@@ -1,0 +1,70 @@
+DEFINITION MODULE wcom;
+
+(*==============================================================
+
+                    Win32 API for Modula-2
+
+       32-bit version for M2CPP Modula-2 to C++ compiler
+
+      Copyright (c) 1996, 2001 Moravian Instruments, Inc.
+
+==============================================================*)
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+TYPE 
+  PULONG  = POINTER TO CARD32;
+  PUSHORT = POINTER TO CARD16;
+  PUCHAR  = POINTER TO CARD8;
+
+(*# save, call( macro => on, result_optional => off ) *)
+
+PROCEDURE mGetByte ( pa : ADDRESS ) : BYTE;
+PROCEDURE mPutByte ( pa : ADDRESS; b : BYTE );
+PROCEDURE mGetWord ( pa : ADDRESS ) : WORD;
+PROCEDURE mPutWord ( pa : ADDRESS; w : WORD );
+PROCEDURE mGetDWord( pa : ADDRESS ) : LONGWORD;
+PROCEDURE mPutDWord( pa : ADDRESS; dw : LONGWORD );
+
+PROCEDURE dbgOut( s : ARRAY OF TCHAR );
+PROCEDURE dbgOut1( fmt : ARRAY OF TCHAR; p1 : ADDRESS );
+PROCEDURE dbgOut2( fmt : ARRAY OF TCHAR; p1, p2 : ADDRESS );
+PROCEDURE dbgOut3( fmt : ARRAY OF TCHAR; p1, p2, p3 : ADDRESS );
+PROCEDURE dbgOut4( fmt : ARRAY OF TCHAR; p1, p2, p3, p4 : ADDRESS );
+PROCEDURE dbgOut5( fmt : ARRAY OF TCHAR; p1, p2, p3, p4, p5 : ADDRESS );
+PROCEDURE dbgOut6( fmt : ARRAY OF TCHAR; p1, p2, p3, p4, p5, p6 : ADDRESS );
+
+#if PlatformName #startswith L"WinCE" #then
+PROCEDURE NdisRawReadPortUchar( Port : CARD32; VAR Data : CARD8 );
+PROCEDURE NdisRawWritePortUchar( Port : CARD32; Data : CARD8 );
+#endif
+
+(* /*
+PROCEDURE READ_PORT_ULONG( port : PULONG ) : CARD32;
+PROCEDURE WRITE_PORT_ULONG( port : PULONG; value : CARD32 );
+PROCEDURE READ_PORT_USHORT( port : PUSHORT ) : CARD16;
+PROCEDURE WRITE_PORT_USHORT( port : PUSHORT; value : CARD16 );
+PROCEDURE READ_PORT_UCHAR( port : PUCHAR ) : CARD8;
+PROCEDURE WRITE_PORT_UCHAR( port : PUCHAR; value : CARD8 );
+*/ *)
+
+(* /*
+ULONG __inline READ_PORT_ULONG(PULONG port)
+VOID __inline WRITE_PORT_ULONG(PULONG port, ULONG value)
+USHORT __inline READ_PORT_USHORT(PUSHORT port)
+VOID __inline WRITE_PORT_USHORT(PUSHORT port, USHORT value)
+UCHAR __inline READ_PORT_UCHAR(PUCHAR port)
+VOID __inline WRITE_PORT_UCHAR(PUCHAR port, UCHAR value)
+*/ *)
+
+(*# restore *)
+
+END wcom.

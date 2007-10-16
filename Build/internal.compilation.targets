@@ -1,0 +1,126 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+    <!-- TOOLS -->
+    <PropertyGroup>
+        <!-- VCD Condition="$(VCD)==''">$(MSD)\</VCD -->
+        <CL>&quot;$(VCD)cl&quot; /c /D"_ATL_MIN_CRT"</CL>
+        <LINK>&quot;$(VCD)link&quot; /map /nodefaultlib</LINK>
+        <LIB>&quot;$(VCD)lib&quot; /nodefaultlib</LIB>
+        <RC>&quot;$(VCD)rc&quot; -r -DWIN32</RC><!-- -i&quot;$(VCD)\..\include&quot;</RC -->
+        <MT>mt -manifest $(OutputFile).manifest -outputresource:$(OutputFile)</MT>
+
+        <M2>&quot;$(RootBuildPath)\Bin\m2cpp&quot;</M2><!-- povolit CPPexc -->
+        <M2D>&quot;$(RootBuildPath)\Bin\m2cpp&quot;</M2D>
+        <XRSDEF>&quot;$(RootBuildPath)\Bin\xrsc&quot; -D -O$(SourceDir)</XRSDEF>
+        <XRSBIN>&quot;$(RootBuildPath)\Bin\xrsc&quot; -B -O$(IntermediateDir) -P$(MSBuildProjectName).</XRSBIN>
+
+        <LICSRC>&quot;$(RootBuildPath)\Bin\licbuild&quot; -M</LICSRC>
+        <LICSIGN>&quot;$(RootBuildPath)\Bin\licbuild&quot; -S</LICSIGN>
+        <SUM>&quot;$(RootBuildPath)\Bin\sum&quot;</SUM>
+        <LIBEXP>&quot;$(RootBuildPath)\Bin\libexp&quot;</LIBEXP>
+    </PropertyGroup>
+
+    <!-- CONTROLS -->
+    <PropertyGroup>
+        <M2CTRL>-DProductId:$(ProductId) -DManufacturer:$(Manufacturer) -DConfigurationName:$(ConfigurationName) -DPlatformName:$(PlatformName)</M2CTRL>
+        <M2CTRL>$(M2CTRL) -DDEBUG:$(Debug) </M2CTRL>
+        <M2CTRL Condition="$(LeakChecking)=='on'">$(M2CTRL) -SM</M2CTRL>
+        <CLCTRL>/Zp8 /J /Gy /GR /Gr /GF /GS- /Oi /DNO_STRICT /DWINVER=0x0501 /D_WIN32_WINNT=0x0501</CLCTRL>
+        <CLCTRL Condition="$(CPPExceptions)=='on'">$(CLCTRL) /EHsc</CLCTRL>
+        <LINKCTRL Condition="$(CLib)=='Static'">/OPT:REF /OPT:NOWIN98 /MANIFEST:NO</LINKCTRL>
+        <LINKCTRL Condition="$(CLib)!='Static'">/OPT:REF /OPT:NOWIN98 /MANIFEST</LINKCTRL>
+        <MT Condition="$(Result)=='Program'">$(MT);#1</MT>
+        <MT Condition="$(Result)=='Dynamic'">$(MT);#2</MT>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <M2CTRL Condition ="$(ComponentResult)=='Dynamic'">$(M2CTRL) -LN$(LibraryName) -LD</M2CTRL>
+        <M2CTRL Condition ="$(ComponentResult)!='Dynamic'">$(M2CTRL) -LN$(LibraryName)</M2CTRL>
+    </PropertyGroup>
+
+    <PropertyGroup Condition ="$(ConfigurationName)=='Release'">
+        <RCCTRL>-DRELEASE</RCCTRL>
+        <LINKCTRL>$(LINKCTRL) /RELEASE /LTCG</LINKCTRL>
+        <LIBDEF>/LTCG</LIBDEF>
+    </PropertyGroup>
+    <PropertyGroup Condition ="$(ConfigurationName)!='Release'">
+        <RCCTRL></RCCTRL>
+        <LIBDEF></LIBDEF>
+    </PropertyGroup>
+
+    <PropertyGroup Condition ="$(Debug)=='on'">
+        <M2CTRL>$(M2CTRL) -SS</M2CTRL>
+        <CLCTRL>$(CLCTRL) /Zi</CLCTRL>
+        <CLCTRL Condition="$(CLib)=='Static'">$(CLCTRL) /MTd</CLCTRL>
+        <CLCTRL Condition="$(CLib)!='Static'">$(CLCTRL) /MDd</CLCTRL>
+        <RCCTRL>$(RCCTRL) -DDEBUG</RCCTRL>
+        <LINKCTRL>$(LINKCTRL) /DEBUG</LINKCTRL>
+    </PropertyGroup>
+    <PropertyGroup Condition ="$(Debug)!='on'">
+        <M2CTRL>$(M2CTRL) -SD</M2CTRL>
+        <CLCTRL>$(CLCTRL) /GL /O2</CLCTRL>
+        <CLCTRL Condition="$(CLib)=='Static'">$(CLCTRL) /MT</CLCTRL>
+        <CLCTRL Condition="$(CLib)!='Static'">$(CLCTRL) /MD</CLCTRL>
+        <RCCTRL>$(RCCTRL)</RCCTRL>
+        <LINKCTRL>$(LINKCTRL)</LINKCTRL>
+    </PropertyGroup>
+
+    <!-- INPUTS -->
+    <PropertyGroup>
+        <M2INPUTS>@(GrabbedSources -> '-I&quot;%(Identity)\$(SourceDir)&quot;', ' ')</M2INPUTS>
+        <CLINPUTS>-I&quot;$(HeaderDir)&quot;</CLINPUTS>
+        <CLINPUTS>$(CLINPUTS) @(GrabbedIncludes -> '-I&quot;%(Identity)\$(HeaderDirName)&quot;', ' ')</CLINPUTS>
+        <CLINPUTS>$(CLINPUTS) @(GrabbedHeaders -> '-I&quot;%(Identity)\Header&quot;', ' ')</CLINPUTS>
+        <RCINPUTS>-i&quot;..\$(ResourceDir)&quot; @(GrabbedIncludes -> '-I&quot;%(Identity)\$(HeaderDirName)&quot;', ' ')</RCINPUTS>
+    </PropertyGroup>
+
+    <!-- OUTPUT -->
+    <PropertyGroup>
+        <BUILDOUTPUT>/out:..\$(OutputFile)</BUILDOUTPUT>
+        <LINKEXPORT Condition="$(Export)!=''">/def:..\$(SourceDir)\$(Export).def</LINKEXPORT>
+        <LINKEXPORTTOINTERFACE>/def:..\$(SourceDir)\$(ExportToInterfaceFile)</LINKEXPORTTOINTERFACE>
+    </PropertyGroup>
+
+    <PropertyGroup Condition ="$(ProductLinkMapFilePath)==''">
+        <ProductLinkMapFilePath>$(ProductBuildPath)\Base.map</ProductLinkMapFilePath>
+    </PropertyGroup> 
+    <PropertyGroup Condition ="Exists('$(ProductLinkMapFilePath)')">
+        <LINKBASE>/base:@$(ProductLinkMapFilePath),$(MSBuildProjectName)</LINKBASE>
+    </PropertyGroup>
+
+    <!-- LANGUAGES -->
+    <PropertyGroup Condition ="$(Language)=='Czech'">
+        <RCLANG>-C1250</RCLANG>
+    </PropertyGroup>
+    <PropertyGroup Condition ="$(Language)!='Czech'">
+        <RCLANG>-C1252</RCLANG>
+    </PropertyGroup>
+
+    <PropertyGroup Condition ="$(LanguageStyle)=='ANSI'">
+        <M2LANG>-DUNICODE:off -CB</M2LANG>
+        <CLLANG></CLLANG>
+    </PropertyGroup>
+    <PropertyGroup Condition ="$(LanguageStyle)!='ANSI'">
+        <M2LANG>-DUNICODE:on -CW</M2LANG>
+        <CLLANG>-DUNICODE</CLLANG>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <M2CTRL Condition="$(ProductM2Control)!=''">$(M2CTRL) $(ProductM2Control)</M2CTRL>
+        <CLCTRL Condition="$(ProductCLControl)!=''">$(CLCTRL) $(ProductCLControl)</CLCTRL>
+        <RCCTRL Condition="$(ProductRCControl)!=''">$(RCCTRL) $(ProductRCControl)</RCCTRL>
+        <LINKCTRL Condition="$(ProductLNControl)!=''">$(LINKCTRL) $(ProductLNControl)</LINKCTRL>
+    </PropertyGroup>
+
+    <!-- DEFINITIONS TOGETHER -->
+    <PropertyGroup>
+        <M2DEF>$(M2CTRL) $(M2LANG) $(M2INPUTS)</M2DEF>
+        <M2TDEF>-T -QI $(M2DEF)</M2TDEF>
+        <CLDEF>$(CLCTRL) $(CLLANG) $(CLINPUTS)</CLDEF>
+        <RCDEF>$(RCCTRL) $(RCLANG) $(RCINPUTS)</RCDEF>
+        <LINKDEF>$(LINKCTRL) $(BUILDOUTPUT) $(LINKBASE)</LINKDEF>
+        <LINKTEST>$(LINKCTRL)</LINKTEST>
+        <LIBDEF>$(LIBDEF) $(BUILDOUTPUT)</LIBDEF>
+    </PropertyGroup>
+
+</Project>

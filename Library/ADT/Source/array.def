@@ -1,0 +1,64 @@
+DEFINITION MODULE array;
+
+IMPORT
+  Exceptions;
+
+#save, option( dll_export => on )
+
+(*=============================================================================*)
+
+TYPE
+  TPArray = POINTER TO CArray;
+  
+TYPE
+  TStrategy = (
+    astrgUnknown,
+    astrgListInArray, // removed indexes are compacted
+    astrgSparseArray // removed index stays in place (and is unused forever), so another indexes remain valid
+  );
+
+CLASS CArray;
+  INTERNAL VAR
+    _ItemSize : CARDINAL;
+    _Size : CARDINAL;
+    _Count : CARDINAL;
+    _Data : ADDRESS;
+  PUBLIC VAR
+    LowBound : INTEGER;
+    Strategy : TStrategy := astrgSparseArray;
+  PUBLIC PROPERTY
+    Size : CARDINAL; // get, set initializes (to 0)/reallocates space
+    Count : CARDINAL;
+  PUBLIC READONLY PROPERTY
+    Empty : BOOLEAN;
+    Data : ADDRESS;
+
+  PUBLIC INDEX( Index : INTEGER ) : ADDRESS; // on set, data of at least ItemSize is expected
+
+  PUBLIC PROCEDURE Init( Strategy : TStrategy; ItemSize : CARDINAL );
+  PUBLIC PROCEDURE RemoveIndex( Index : INTEGER );
+  
+  PUBLIC PROCEDURE Add( Item : ADDRESS; Len : CARDINAL ) : INTEGER; // returns index
+  PUBLIC PROCEDURE Contains( Item : ADDRESS; Len : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE Insert( Index : INTEGER; Item : ADDRESS; Len : CARDINAL );
+  PUBLIC PROCEDURE Remove( Item : ADDRESS; Len : CARDINAL );
+
+  PUBLIC PROCEDURE AddOA( CONST Item : ARRAY OF BYTE ) : INTEGER; // returns index
+  PUBLIC PROCEDURE ContainsOA( CONST Item : ARRAY OF BYTE ) : BOOLEAN;
+  PUBLIC PROCEDURE InsertOA( Index : INTEGER; CONST Item : ARRAY OF BYTE );
+  PUBLIC PROCEDURE RemoveOA( CONST Item : ARRAY OF BYTE );
+
+  PUBLIC PROCEDURE IndexOf( Item : ADDRESS; Len : CARDINAL ) : INTEGER; // if not found returns LowBound-1
+  PUBLIC PROCEDURE IndexOfOA( CONST Item : ARRAY OF BYTE ) : INTEGER; // if not found returns LowBound-1
+  
+  PUBLIC PROCEDURE Clear();
+  PUBLIC PROCEDURE Dispose();
+
+  VIRTUAL FINALLY CArray;
+END CArray;
+
+(*=============================================================================*)
+
+#restore
+
+END array.

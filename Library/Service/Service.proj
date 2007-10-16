@@ -1,0 +1,27 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 -->
+    <PropertyGroup>
+        <FileDescription>Service Process Handling</FileDescription>
+        <FileVersionMajor>0</FileVersionMajor>
+        <FileVersionMinor>9</FileVersionMinor>
+    </PropertyGroup>
+
+    <!-- 2 INCLUDE DEFINITION -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 COMPOMENT DEFINITION -->
+    <ItemGroup>
+        <Components Include="modula2\modula2;api\clib;API\win32"/>
+        <Components Include="modula2\m2rtl;library\ADT;library\threading;library\resources"/>
+        <Messages Include="Texts"/>
+        <Modules Include="ServiceControl;Service"/>
+    </ItemGroup>
+    
+    <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>

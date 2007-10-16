@@ -1,0 +1,744 @@
+<?xml version="1.0" encoding="windows-1250"?>
+<document file="LMS2xx">
+  <header creator="mk" doc_type="cwdoc_core" doc_version="5.0"
+          last_modified="2007-10-03" last_modifier="mk"></header>
+  <text>
+    <section level="1" selfnumbered="no">
+      <title>Ovladač LMS<c.special what="thinspace" />2xx pro <c.abbreviation
+      what="CW" /></title>
+      <subtitle>Dokumentace popisuje konfiguraci a chování ovladače (1.1.1077
+      a vyšší) pro laserové měřicí jednotky LMS (Laser Measurement System)
+      společnosti SICK.</subtitle>
+      <text>
+        <content>
+          <caption></caption>
+        </content>
+        <blank size="fill" />
+        <p.figure file="sicklogo" format="jpg" width="5cm">
+          <caption></caption>
+        </p.figure>
+        <page></page>
+        <section level="2">
+          <title>Princip práce ovladače</title>
+          <text>
+            <p>Ovladač podle své konfigurace samostatně komunikuje s LMS
+            jednotkou, získaná data vyhodnocuje a pokud nalezne změnu
+            v měřených hodnotách oznámí takto dotčené oblasti aplikaci systému
+            <c.abbreviation what="CW" />.</p>
+            <p>Jednotky LMS skenují zorné pole v rozsahu 0<c.special
+            what="interval" />180<c.special what="degree" /> (při přesnosti
+            <number>0.5</number><c.special what="degree" /> a 1<c.special
+            what="degree" />) nebo v rozsahu 40<c.special
+            what="degree" /><c.special what="interval" />140<c.special
+            what="degree" /> (při přesnosti <number>0.25</number><c.special
+            what="degree" />) a v každém z úhlů měří vzdálenost překážky.
+            Jednotky skenují prostor opakovaně a nepřetržitě. Pomocí nastavení
+            jednotky (není součástí ovladače) lze ovlivňovat chování jednotky,
+            citlivost, spínání pomocných výstupů apod.</p>
+            <il>
+              <caption>Ovladač získává z jednotky dva druhy dat:</caption>
+              <li><p>stav porušení zón; zóny jsou určeny konfigurací jednotky,
+              celkem je možné konfigurovat šest zón (zóny A, B, C ve dvou
+              skupinách), </p></li>
+              <li><p>plný rozsah změřených vzdáleností; hustota, rozsah a
+              přesnost dat jsou rovněž určeny konfigurací jednotky.</p></li>
+            </il>
+            <p>Data jsou v základní konfiguraci ovladače vyčítána z jednotky
+            periodicky. Stav porušení zón je ovladačem čten vždy v základní
+            periodě, změřené vzdálenosti jsou ovladačem vyčítány buď po
+            uplynutí násobku základní periody, nebo na požádání aplikace. Oba
+            způsoby lze kombinovat, periodicky vyčítaná data mohou mimo
+            periodu vyčtena na požádání. Jednotky mohou samy přepínat
+            sledování dvou skupin zón; ovladač vždy čte jen stav aktuální
+            skupiny. Informace o zónách jsou nicméně ovladačem vždy uchovány
+            korektně (v kanálech jedné nebo druhé skupiny zón).</p>
+            <il>
+              <caption>Data přicházející z jednotky ovladač vyhodnocuje
+              v <em>zónách</em>, které je nutno v ovladači předem vytvořit a
+              řádně nastavit (pomocí procedur ovladače). Zóny jsou na sobě
+              nezávislé a mohou se překrývat. Každá zóna v sobě zahrnuje
+              nastavení:</caption>
+              <li><p>rozsah úhlů (od, do, slouží k vymezení sledované
+              oblasti),</p></li>
+              <li><p>rozsah vzdáleností (absolutní, slouží pro vymezení
+              sledované oblasti),</p></li>
+              <li><p>limitní vzdálenosti (od jednotky a k jednotce), které
+              mají být považovány za poplach,</p></li>
+              <li><p>nutný počet porušených směrů (paprsků), včetně počtu
+              možných neaktivních paprsků,</p></li>
+              <li><p>počet měření, po něž musí být paprsek mimo
+              limit,</p></li>
+              <li><p>počet měřeních, z nichž se počítá střední
+              hodnota,</p></li>
+              <li><p>počet paprsků, o které se musí střed poplachu posunout,
+              aby byl považován za jiný poplach.</p></li>
+            </il>
+            <p>Ovladač za běhu podle těchto parametrů v každé zóně vyhodnocuje
+            vznik poplachu, trvání (posunutí) poplachu a zánik poplachu. Jedna
+            zóna přitom může v jednom okamžiku obsahovat více poplachů.
+            Protože jsou všechny poplachy identifikovány (mají své jedinečné
+            číslo), lze je dobře rozlišovat i při jejich větším počtu.</p>
+            <p>Množství dat přicházejících z jednotky je omezeno kapacitou
+            sériové linky. Nelze proto získávat okamžité hodnoty (např. v řádu
+            tisícin sekundy) a ovladač musí vždy nová načtená data vyhodnotit
+            vůči již dostupným datům bez další komunikace. Pro tento účel se
+            v ovladači udržuje (pro všechny zóny společná) střední hodnota
+            horizontu, která se považuje za nulovou hladinu a od které je
+            počítáno narušení do blízka i do dálky.</p>
+            <p>Informace o poruchách předává ovladač do aplikace pomocí
+            mechanizmu výjimky ovladače (<code>driver_exception</code>), kdy
+            po přijetí výjimky aplikace musí data jednotlivých poruch přečíst
+            opakovaným voláním dotazovací procedury ovladače (<code>core.DriverQueryProc</code>).
+            Ovladač předpokládá, že aplikace zpracovává výjimky korektně a
+            bezchybně, takže informuje aplikaci o výjimce jednou a až do
+            vyčtení poruch dotazovací procedurou výjimku neopakuje.</p>
+            <p>Ovladač podporuje základní způsoby vyčítání změřených dat
+            (ovladač jednotku buď o data žádá, anebo mu je jednotka posílá
+            opakovaně sama), nepodporuje způsoby speciální. Zjistí-li ovladač,
+            že jednotka pracuje v nepodporovaném režimu, přejde do bezpečného
+            chybového stavu. Ovladač podporuje následující režimy sledování
+            (monitoring mode, více viz dokumentaci protokolu jednotek LMS):
+            020H, 021H, 022H, 023H, 024H, 025H (default), 02AH.</p>
+          </text>
+        </section>
+        <section level="2">
+          <title>Parametrický soubor</title>
+          <text>
+            <p>Parametrický soubor je zapsán konvencí INI souborů, tj.
+            obsahuje sekce uvozené názvem sekce v hranatých závorkách a
+            parametry (klíče) zapsané na jednom řádku v podobě <diff>klíč =
+            hodnota</diff>. V parametrickém souboru záleží na velikosti
+            písmen.</p>
+            <p>Ovladač rozeznává v parametrickém souboru dvě sekce, sekci
+            <code>[comm]</code> s nastavením sériového kanálu a sekci <code>[LMS2xx]</code>
+            s vlastním nastavením ovladače.</p>
+            <section level="3">
+              <title>Sekce <code>[comm]</code></title>
+              <text>
+                <p>Sekce obsahující kompletní nastavení sériového
+                komunikačního kanálu. Ovladač používá pro sériovou komunikaci
+                obecnou vrstvu systému <c.abbreviation what="CW" />, její
+                konfigurace je proto stejná se všemi jinými sériovými
+                ovladači. Více informací se lze dočíst např. v popisech
+                ovladačů ASCDRV a ASCDRV5, které jsou součástí systému
+                <c.abbreviation what="CW" /> (viz dokumentaci systému
+                <c.abbreviation what="CW" />).</p>
+              </text>
+            </section>
+            <section level="3">
+              <title>Sekce <code>[LMS2xx]</code></title>
+              <text>
+                <dl class="dlParameters">
+                  <caption>Sekce s parametry ovladače, ovladačem rozeznávané
+                  parametry jsou tyto:</caption>
+                  <dt>com_driver</dt>
+                  <dd><p>klíč definující sériový kanál, jímž se bude
+                  s jednotkou komunikovat. Klíč jednak obsahuje DLL
+                  s komunikační vrstvou (tato část se prakticky nikdy nebude
+                  měnit) a jednak jméno sériového portu (např. COM3
+                  apod.).</p><p>Příklad zápisu parametru: <code>com_driver = CWCOMM.DLL COM1</code></p><p>Klíč
+                  nemá výchozí hodnotu a musí být definován.</p></dd>
+                  <dt>ACK_timeout</dt>
+                  <dd><p>timeout čekání na potvrzení přijetí
+                  požadavku.</p><p>Klíč má výchozí hodnotu 75, jeho hodnota se
+                  zapisuje v milisekundách.</p><p>Nastavení tohoto klíče se
+                  nedoporučuje používat, pokud ovladač klíč nenalezne, použije
+                  jeho výchozí hodnotu.</p></dd>
+                  <dt>timeout</dt>
+                  <dd><p>timeout čekání na odpověď jednotky.</p><p>Klíč má
+                  výchozí hodnotu <number>5000</number>, jeho hodnota se
+                  zapisuje v milisekundách.</p><p>Nastavení tohoto klíče se
+                  nedoporučuje používat, pokud ovladač klíč nenalezne, použije
+                  jeho výchozí hodnotu.</p></dd>
+                  <dt>read_back</dt>
+                  <dd><p>logický parametr (může mít hodnotu <code>true</code>
+                  nebo <code>false</code>), který zapíná či vypíná zpětné
+                  vyčítání zapsaných dat po jejich odeslání. Parametr je nutné
+                  použít při komunikaci se zařízeními (převodníky či porty),
+                  které mají zapnuto odpovídání přijatých znaků
+                  (echo).</p><p>Výchozí hodnota klíče je <code>false</code>
+                  (data se zpětně nevyčítají).</p><p>Pokud ovladač klíč
+                  nenalezne, použije jeho výchozí hodnotu.</p></dd>
+                  <dt>address</dt>
+                  <dd><p>adresa jednotky, se kterou se má komunikovat.
+                  Protokol adresy používá, současně však nepovoluje, aby na
+                  jedné komunikační lince bylo více jednotek. Adresa je tedy
+                  ryze formální parametr<c.special what="dash" />její definice
+                  v parametrickém souboru a v jednotce se musí
+                  shodovat.</p><p>Výchozí hodnota parametru je 0.</p><p>Pokud
+                  ovladač klíč nenalezne, použije jeho výchozí
+                  hodnotu.</p></dd>
+                  <dt>scan_period</dt>
+                  <dd><p>základní perioda akcí ovladače. V této periodě
+                  ovladač vyčítá stav poruch zón, tato perioda je vzata jako
+                  základ pro vyčítání změřených vzdáleností.</p><p>Výchozí
+                  hodnota klíče je 250, jeho hodnota se zapisuje
+                  v milisekundách.</p><p>Pokud ovladač klíč nenalezne, použije
+                  jeho výchozí hodnotu.</p><p>Vyčítání změřených dat
+                  z jednotky může při jejich největší délce trvat až
+                  750<c.special what="thinspace" />ms (při
+                  <number>9600</number> Bd). Vzájemné nastavení parametru
+                  <code>scan_period</code> a <code>scan_factor</code> proto
+                  musí být takové, aby ovladač a jednotka mohli stihnout data
+                  přenášet. Proto, např., při výchozím nastavení parametru
+                  <code>scan_period</code> (250) musí být hodnota parametru
+                  <code>scan_factor</code> nejméně 4, a podobně. </p></dd>
+                  <dt>scan_factor</dt>
+                  <dd><p>počet základních period (viz parametr <code>scan_period</code>),
+                  které musí uplynout, aby ovladač přečetl z jednotky změřená
+                  data. Součástí zpracování změřených dat je rovněž
+                  vyhodnocení poruch; ovladač proto poruchy nikdy
+                  nevyhodnocuje častěji (toto se samozřejmě netýká porušení
+                  zón, protože informace o zónách jsou vyčítány v každé
+                  základní periodě). </p><p>Výchozí hodnota klíče je
+                  8.</p><p>Pokud ovladač klíč nenalezne, použije jeho výchozí
+                  hodnotu.</p><p>Vyčítání změřených dat z jednotky může při
+                  jejich největší délce trvat až 750<c.special
+                  what="thinspace" />ms (při <number>9600</number> Bd).
+                  Vzájemné nastavení parametru <code>scan_period</code> a
+                  <code>scan_factor</code> proto musí být takové, aby ovladač
+                  a jednotka mohli stihnout data přenášet. Proto, např., při
+                  výchozím nastavení parametru <code>scan_period</code> (250)
+                  musí být hodnota parametru <code>scan_factor</code> nejméně
+                  4, a podobně.</p><p>Nastaví-li se scan_factor = 1, bude
+                  ovladač číst změřená data každou základní periodu (podobně
+                  jako vyčítá stav porušení zón), nastaví-li se scan_factor =
+                  0, <em>nebude ovladač automaticky číst změřená data
+                  vůbec</em>. Takovéto vypnutí nicméně nijak neomezuje čtení
+                  dat na vyžádání (pomocí dotazovací procedury ovladače <code>scan</code>).
+                  </p></dd>
+                  <dt>mean_count</dt>
+                  <dd><p>počet měření, ze kterých se bude počítat plovoucí
+                  průměr pro výpočet střední hodnoty horizontu. Velké hodnoty
+                  parametru znamenají velkou spolehlivost průměru, ale jeho
+                  velmi pomalé přizpůsobení změnám, malé hodnoty parametru
+                  znamenají malou stabilitu průměru, ale jeho rychlejší
+                  přizpůsobení změnám. Je-li horizont neměnný (a jeho změny
+                  mohou vždy být poruchy), může být hodnota parametru
+                  i vysoká.</p><p>Princip výpočtu středního horizontu
+                  ovlivňuje v ovladači hlášení událostí poruch<c.special
+                  what="dash" />při detekci poruchy a jejím určitém trvání
+                  začne průměrná hodnota postupně akceptovat hodnotu poruchy,
+                  takže i po odeznění poruchy (kdy se měřený horizont vrátí do
+                  normálu) zůstane v průměrné hodnotě porucha započítána (opět
+                  po určitý čas daný šířkou plovoucího průměru). To znamená,
+                  že ovladač bude nacházet nesoulad mezi skutečnou (správnou)
+                  vzdáleností a vzdáleností průměrnou (kdy průměr ještě bude
+                  obsahovat údaje z doby trvání poruchy) a bude stále hlásit
+                  události poruch, i když již porucha odezněla. Pro tyto
+                  situace ovladač poskytuje volání dotazovací procedury
+                  ovladače <code>reset</code> (viz níže). Je zřejmé, že při
+                  řádových rozdílech délky trvání poruchy a časové délky
+                  plovoucího průměru nebudou mít poruchy na střední horizont
+                  příliš velký vliv.</p><p>Parametr ovlivňuje výpočet
+                  středního horizontu, který je v ovladači společný pro
+                  všechny zóny.</p><p>Výchozí hodnota parametru je
+                  25.</p><p>Pokud ovladač klíč nenalezne, použije jeho výchozí
+                  hodnotu.</p></dd>
+                  <dt>debug_mode</dt>
+                  <dd><p>parametr pro řízení výpisu ladicích výpisu. Parametr
+                  může mít hodnoty <code>none</code>, <code>file</code> a
+                  <code>windows</code>. Hodnota <code>none</code> ladicí
+                  výpisy vypíná, údaj <code>file</code> znamená výpis do
+                  souboru (uvedeném v parametru <code>debug_file</code>) a
+                  údaj <code>windows</code> znamená výpis pomocí funkce
+                  operačního systému <code>OutputDebugString</code> (takové
+                  výpisy se dají sledovat v každém ladicím prostředí anebo
+                  pomocí nástrojů jako <file>DbgView</file>
+                  apod.).</p><p>Výchozí hodnota parametru je <code>none</code>.</p><p>Pokud
+                  ovladač klíč nenalezne, použije jeho výchozí
+                  hodnotu.</p></dd>
+                  <dt>debug_file</dt>
+                  <dd><p>klíč určující soubor, do něhož se budou zapisovat
+                  ladicí výpisy při nastavení <code>debug_mode = file</code>.
+                  Pokud je uvedený soubor nedostupný (chybná cesta, soubor je
+                  výhradně otevřen někým jiným), výpisy se
+                  nevypisují.</p><p>Parametr nemá výchozí hodnotu, pokud není
+                  uveden, výpisy se při <code>debug_mode = file</code>
+                  nevypisují</p></dd>
+                  <dt>debug_level</dt>
+                  <dd><p>klíč řídící množství a podrobnost ladicích výpisů.
+                  Klíč může mít hodnoty <code>basic</code>, <code>extended</code>
+                  a <code>all</code> (se stoupající podrobností
+                  výpisů).</p><p>Výchozí hodnota klíče je <code>basic</code>.</p><p>Pokud
+                  ovladač klíč nenalezne, použije jeho výchozí
+                  hodnotu.</p></dd>
+                </dl>
+                <p>Příklad parametrického souboru:</p>
+                <sample>[comm]
+baudrate = 9600
+parity = no
+databits = 8
+stopbits = 1
+rx_buffer = 260
+tx_buffer = 260
+rx_frame_buffer = 260
+tx_frame_buffer = 260
+cts_flow = false
+dsr_flow = false
+dtr_control = disable
+rts_control = disable
+dsr_sense = low
+rx_interchar_timeout = 5
+rx_char_timeout = 2
+rx_timeout = 5
+tx_char_timeout = 2
+tx_timeout = 5
+
+[LMS2xx]
+com_driver = CWCOMM.DLL COM1
+read_back = false
+debug_mode = none
+debug_level = basic</sample>
+              </text>
+            </section>
+          </text>
+        </section>
+        <section level="2">
+          <title>Kanály ovladače</title>
+          <text>
+            <dl class="dlObjects">
+              <dt>status (1, longcard)</dt>
+              <dd><p>stavový kanál, v jednotlivých bitech je zapsán stav
+              ovladače. Význam bitů je popsán dále.</p></dd>
+              <dt>mode (2, longcard)</dt>
+              <dd><p>informativní kanál, obsahuje číslo režimu sledování
+              (monitoring mode), více viz dokumentaci protokolu jednotek LMS).
+              Výchozí nastavení jednotek je 025H (37), takže tato hodnota bude
+              v kanálu nejčastěji.</p></dd>
+              <dt>active field set (3, longcard)</dt>
+              <dd><p>informativní kanál, obsahuje číslo aktivní skupiny zón.
+              Hodnota kanálu je buď 1 nebo 2.</p></dd>
+              <dt>scanning angle (4, longcard)</dt>
+              <dd><p>informativní kanál, obsahuje velikost zorného pole.
+              Hodnota kanálu je buď 180<c.special what="degree" /> nebo
+              100<c.special what="degree" />.</p></dd>
+              <dt>resolution (5, longreal)</dt>
+              <dd><p>informativní kanál, obsahuje rozlišení, s nímž jednotka
+              pracuje. Možné hodnoty kanálu jsou <number>0.25</number>,
+              <number>0.5</number> nebo <number>1</number>.</p></dd>
+              <dt>average data (10, buffer[longcard])</dt>
+              <dd><p>Buffer s průměrnými daty středního horizontu. Buffer je
+              připraven na nejvyšší možné rozlišení jednotky (tj.
+              0.25<c.special what="degree" />), takže vždy obsahuje
+              721 vzorků. Pokud jednotka pracuje s menším rozlišením (výchozí
+              je 0.5<c.special what="degree" />) obsahují nesledované vzorky
+              bufferu nulu.</p><p>Ovladač do bufferu zapisuje vzdálenosti vždy
+              v milimetrech, bez ohledu na konfiguraci jednotky. Tím je
+              zajištěna nezávislost dat z ovladače na konfiguraci jednotky.
+              Současně je tím rovněž určeno, že buffer musí obsahovat
+              čtyřbajtové vzorky (odpovídající datovému typu <code>longcard</code>).</p><p>Datový
+              typ buffer je v systému <c.abbreviation what="CW" /> definován
+              jako blok dat určité délky, přičemž tato délka se do definice
+              uvádí jako počet bloků dlouhých 256<c.special
+              what="thinspace" />B. Obsahuje-li buffer čtyřbajtové vzorky,
+              musí mít při počtu 721 vzorků délku
+              <number>2884</number><c.special what="thinspace" />B, což
+              odpovídá nejméně dvanácti blokům v definici kanálu
+              v aplikaci.</p><p>Pokud bude definovaný buffer menší, nebo pokud
+              bude mít jiný typ vzorků než <code>longcard</code>, bude
+              ovladačem odmítnut a aplikace se nerozběhne.</p><p>Průměr dat
+              v bufferu se počítá jako plovoucí s délkou okna nastavitelnou
+              parametrem <code>mean_count</code> parametrického
+              souboru.</p></dd>
+              <dt>current data (11, buffer[longcard])</dt>
+              <dd><p>Buffer s aktuálními změřenými daty. Buffer je připraven
+              na nejvyšší možné rozlišení jednotky (tj. 0.25<c.special
+              what="degree" />), takže vždy obsahuje 721 vzorků. Pokud
+              jednotka pracuje s menším rozlišením (výchozí je 0.5<c.special
+              what="degree" />) obsahují nesledované vzorky bufferu
+              nulu.</p><p>Ovladač do bufferu zapisuje vzdálenosti vždy
+              v milimetrech, bez ohledu na konfiguraci jednotky. Tím je
+              zajištěna nezávislost dat z ovladače na konfiguraci jednotky.
+              Současně je tím rovněž určeno, že buffer musí obsahovat
+              čtyřbajtové vzorky (odpovídající datovému typu <code>longcard</code>).</p><p>Datový
+              typ buffer je v systému <c.abbreviation what="CW" /> definován
+              jako blok dat určité délky, přičemž tato délka se do definice
+              uvádí jako počet bloků dlouhých 256<c.special
+              what="thinspace" />B. Obsahuje-li buffer čtyřbajtové vzorky,
+              musí mít při počtu 721 vzorků délku
+              <number>2884</number><c.special what="thinspace" />B, což
+              odpovídá nejméně dvanácti blokům v definici kanálu
+              v aplikaci.</p><p>Pokud bude definovaný buffer menší, nebo pokud
+              bude mít jiný typ vzorků než <code>longcard</code>, bude
+              ovladačem odmítnut a aplikace se nerozběhne.</p></dd>
+              <dt>field set 2 status (100<c.special what="interval" />102,
+              boolean)</dt>
+              <dd><p>stav zón (A, B, C) první skupiny. Aktivní skupinu nelze
+              ovladačem měnit, je dána konfigurací jednotky.</p><p>Stav zón je
+              ovladačem vyčítán neustále, dojde-li k narušení zóny, informuje
+              ovladač aplikaci výjimkou (a aplikace získá data o poruše pomocí
+              <code>core.DriverQueryProc</code>.</p><p>Hodnota <code>true</code>
+              kanálu znamená, že zóna není porušena, hodnota <code>false</code>
+              znamená porušení zóny.</p></dd>
+              <dt>field set 1 status (200<c.special what="interval" />202,
+              boolean)</dt>
+              <dd><p>stav zón (A, B, C) druhé skupiny. Aktivní zónu nelze
+              ovladačem měnit, je dána konfigurací jednotky.</p><p>Stav zón je
+              ovladačem vyčítán neustále, dojde-li k narušení zóny, informuje
+              ovladač aplikaci výjimkou (a aplikace získá data o poruše pomocí
+              <code>core.DriverQueryProc</code>.</p><p>Hodnota <code>true</code>
+              kanálu znamená, že zóna není porušena, hodnota <code>false</code>
+              znamená porušení zóny.</p></dd>
+            </dl>
+            <dl class="dlValues">
+              <caption>Význam bitů kanálu <code>status</code>:</caption>
+              <dt>0 (serial channel opened)</dt>
+              <dd><p>Ovladač má správně otevřen a inicializován sériový
+              kanál.</p></dd>
+              <dt>1 (running)</dt>
+              <dd><p>Ovladač běží, není systémem <c.abbreviation what="CW" />
+              zastaven.</p></dd>
+              <dt>2 (device error)</dt>
+              <dd><p>Komunikace s jednotkou je ve stavu chyby, jednotlivé
+              kanály ovladače vracejí příslušný chybový kód.</p></dd>
+              <dt>3 (event pending)</dt>
+              <dd><p>Ovladač nahlásil systému <c.abbreviation what="CW" />
+              výjimku ovladače, ale aplikace dosud nevyčetla události
+              z ovladače.</p></dd>
+            </dl>
+          </text>
+        </section>
+        <section level="2">
+          <title>Procedury ovladače (dotazovací procedura ovladače)</title>
+          <text>
+            <p>Ovladač rozumí čtyřem procedurám (<code>reset</code>, <code>scan</code>,
+            <code>get_event</code> a <code>zone</code>). Tyto procedury
+            ovladače jsou volány pomocí dotazovací procedury ovladače <code>core.DriverQueryProc</code>,
+            kdy druhý parametr této procedury obsahuje jméno volané procedury.
+            Třetí parametr procedury <code>DriverQueryProc</code> se na vstupu
+            nepoužívá. Procedura <code>scan</code> může být v kódu aplikace
+            zavolána například takto:</p>
+            <sample>...
+core.DriverQueryProc( 'LMS', 'scan', &amp;Error );
+...</sample>
+            <p>Nastane-li během provádění procedury chyba, zapíše ovladač
+            popis chyby do třetího (řetězcového) parametru procedury (<code>&amp;Error</code>).</p>
+            <section level="3">
+              <title>Procedura <code>reset</code></title>
+              <text>
+                <p>Procedura zruší vypočítané průměrné hodnoty vzdáleností,
+                takže ovladač začne průměry znova vypočítávat. Proceduru lze
+                použít například po zpracování poruchových událostí pro to,
+                aby ovladač nehlásil falešné poruchy.</p>
+              </text>
+            </section>
+            <section level="3">
+              <title>Procedura <code>scan</code></title>
+              <text>
+                <p>Procedura bezprostředně přečte změřená data z jednotky.
+                Takto vyvolané čtení je možné použít kdykoli, bez ohledu na
+                definici periodických vyčítání změřených dat (viz parametr
+                <code>scan_period</code> a <code>scan_factor</code>
+                parametrického souboru).</p>
+                <p>Součástí zpracování přečtených dat je vždy vyhodnocení
+                poruch, takže volání procedury <code>scan</code> mimo vlastní
+                vyčtení hodnot automaticky vyhodnotí i poruchy.</p>
+              </text>
+            </section>
+            <section level="3">
+              <title>Procedura <code>get_event</code></title>
+              <text>
+                <p>Procedura pro vyčtení všech ovladačem vyhodnocených
+                poruchových událostí. Proceduru má smysl volat vždy po
+                nahlášení poruch (ovladač hlásí poruchy výjimkou ovladače),
+                samozřejmě ji však lze volat kdykoli.</p>
+                <p>Procedura vrací výjimky postupně<c.special
+                what="dash" />každé jedno volání procedury vrátí ve třetím
+                parametru procedury core.DriverQueryProc řetězec s popisem
+                jedné události. Pokud je tento řetězec (popis události)
+                prázdný, ovladač již žádné další události nehlásí a jejich
+                vyčítání by mělo skončit.</p>
+                <p>Vyčítání událostí z ovladače pomocí procedury <code>get_event</code>
+                může vypadat například následovně:</p>
+                <sample>program ReadOutEvents;
+  driver_exception = LMS;
+    
+  procedure OnActivate();
+  var
+    s : string;
+  begin
+    repeat
+      core.DriverQueryProc( 'LMS', 'get_event', &amp;s );
+      core.DebugOutput( 'Event: ', s );
+    until s = '';
+  end_procedure;
+    
+end_program;</sample>
+                <p>Formáty řetězce s popisem události jsou následující:</p>
+                <sample>{S|F}:F:&lt;field&gt;
+{S|F|M}:Z[&lt;alarm&gt;]:&lt;angle&gt;:&lt;mean_value&gt;[&lt;difference&gt;] (&lt;zone&gt;)</sample>
+                <dl class="dlValues">
+                  <caption>kde v každé skupině uvnitř složených závorek platí
+                  vždy jen jeden kód. Význam jednotlivých kódů je
+                  následující:</caption>
+                  <dt>S</dt>
+                  <dd><p>vznik poplachu (set off) v zóně či poli,</p></dd>
+                  <dt>F</dt>
+                  <dd><p>zánik poplachu (finish) v zóně či poli,</p></dd>
+                  <dt>M</dt>
+                  <dd><p>posunutí poplachu v zóně,</p></dd>
+                  <dt>F (druhé)</dt>
+                  <dd><p>poplach je hlášen z jednotky; jedná se o porušení
+                  pole definovaného v její konfiguraci,</p></dd>
+                  <dt>Z</dt>
+                  <dd><p>poplach je vyhodnocen ovladačem a týká se některé
+                  jeho definované zóny,</p></dd>
+                  <dt>&lt;field&gt;</dt>
+                  <dd><p>číslo zóny (1, 2 nebo 3), údaj je součástí všech
+                  <code>F</code> událostí,</p></dd>
+                  <dt>&lt;alarm&gt;</dt>
+                  <dd><p>číslo poplachu, jehož se událost týká,</p></dd>
+                  <dt>&lt;angle&gt;</dt>
+                  <dd><p>úhel ve stupních, údaj je součástí všech <code>Z</code> událostí,</p></dd>
+                  <dt>&lt;mean_value&gt;</dt>
+                  <dd><p>střední hodnota vzdálenosti v daném směru
+                  (v milimetrech),</p></dd>
+                  <dt>&lt;difference&gt;</dt>
+                  <dd><p>odchylka (může být kladná i záporná) od střední
+                  hodnoty v daném směru (v milimetrech),</p></dd>
+                  <dt>&lt;zone&gt;</dt>
+                  <dd><p>identifikace zóny (identifikace je údaj zadaný při
+                  vzniku zóny).</p></dd>
+                </dl>
+                <p>Jako příklad lze uvést následující události: <code>F:F:2</code>
+                (ukončení poplachu v poli 2, hlášeno jednotkou) nebo <code>M:Z[14]:140.5:3395[-1100] (Hlavni)</code>
+                (posunutí poplachu číslo 14 do směru
+                <number>140.5</number><c.special what="degree" />, střední
+                vzdálenost v tomto směru je 3,395<c.special
+                what="thinspace" />m a poplachová vzdálenost je
+                2,295<c.special what="thinspace" />m).</p>
+              </text>
+            </section>
+            <section level="3">
+              <title>Procedura <code>zone</code></title>
+              <text>
+                <p>Procedura pro vytváření, změnu a rušení zón, které má
+                ovladač sledovat. Zón může být definováno několik, není to
+                však nutné<c.special what="dash" />není-li třeba mít ve
+                sledovaném prostoru různé parametry pro různé směry, stačí
+                zóna jediná.</p>
+                <p>Procedura <code>zone</code> má jeden nebo dva parametry.
+                Možné hodnoty (povely) prvního parametru lze seskupit do dvou
+                celků<c.special what="dash" />povely pro ovládání zón
+                samotných (<code>create</code>, <code>change</code>, <code>remove</code>,
+                <code>copy_from</code>, <code>commit</code> a <code>abort</code>)
+                a povely pro nastavování parametrů upravované zóny (<code>switch</code>,
+                <code>switch_near</code>, <code>switch_far</code>, <code>angle_from</code>,
+                <code>angle_to</code>, <code>distance_from</code>, <code>distance_to</code>,
+                <code>mean_count</code>, <code>far_limit</code>, <code>near_limit</code>,
+                <code>beam_count</code>, <code>beam_scan</code>, <code>gap_count</code>
+                a <code>movement_threshold</code>).</p>
+                <p>Veškeré operace se zónami jsou dávkové. Vytvoření zóny
+                (<code>create</code>) nebo zahájení změn zóny (<code>change</code>)
+                započne dávku (zvolená zóna je přístupná pro úpravy), kterou
+                lze po upravení parametrů buď přijmout (<code>commit</code>,
+                úpravy akceptují) nebo zrušit (<code>abort</code>, úpravy se
+                zapomenou). Během úprav zóny není možné upravovat jinou
+                zónu.</p>
+                <dl class="dlParameters">
+                  <caption>Povely pro správu zón jsou následující:</caption>
+                  <dt>create &lt;name&gt;</dt>
+                  <dd><p>vytvoření zóny se jménem <code>&lt;name&gt;</code>,
+                  <code>&lt;name&gt;</code> může být jakýkoli text bez mezer.
+                  Pokud již zóna existuje, skončí procedura
+                  chybou.</p><p>Podaří-li se zónu vytvořit, je zóna
+                  automaticky přístupná pro nastavení parametrů.</p></dd>
+                  <dt>change &lt;name&gt;</dt>
+                  <dd><p>zahájení změn zóny <code>&lt;name&gt;</code>. Pokud
+                  zóna není v ovladači konfigurována, skončí procedura
+                  chybou.</p></dd>
+                  <dt>remove &lt;name&gt;</dt>
+                  <dd><p>zrušení zóny <code>&lt;name&gt;</code>. Pokud zóna
+                  není v ovladači konfigurována, skončí procedura chybou. Při
+                  ukončení práce ovladače není nutné zóny odstraňovat (není
+                  nutné použít tento povel), neboť ovladač veškerá data
+                  odstraní sám.</p></dd>
+                  <dt>copy_from &lt;name&gt;</dt>
+                  <dd><p>zkopíruje parametry zóny <code>&lt;name&gt;</code> do
+                  aktuálně upravované zóny. Není-li žádná zóna rozeditována,
+                  kopie se neprovede. Procedura skončí chybou, pokud zóna
+                  <code>&lt;name&gt;</code> není ovladači známa.</p></dd>
+                  <dt>abort</dt>
+                  <dd><p>zruší změny učiněné v upravované zóně. Pokud není
+                  žádná zóna rozeditována, skončí procedura chybou.</p></dd>
+                  <dt>commit</dt>
+                  <dd><p>použije změny učiněné v upravované zóně, změny se po
+                  tomto povelu uplatní a zóna podle nich začne pracovat.
+                  Není-li žádná zóna rozeditována, skončí povel
+                  chybou.</p></dd>
+                </dl>
+                <p>Příklady povelů pro správu zón:</p>
+                <sample>core.DriverQueryProc( 'LMS', 'zone create Main', &amp;Error );
+...
+core.DriverQueryProc( 'LMS', 'zone commit', &amp;Error );
+
+core.DriverQueryProc( 'LMS', 'zone change Auxiliary', &amp;Error );
+core.DriverQueryProc( 'LMS', 'zone copy_from Main', &amp;Error );
+...
+core.DriverQueryProc( 'LMS', 'zone abort', &amp;Error );</sample>
+                <dl class="dlParameters">
+                  <caption>Povely pro nastavení parametrů zón jsou:</caption>
+                  <dt>switch on | off</dt>
+                  <dt>switch_near on | off</dt>
+                  <dt>switch_far on | off</dt>
+                  <dd><p>zapnutí, resp. vypnutí sledování zóny (<code>switch</code>),
+                  sledování přiblížení (<code>switch_near</code>) a sledování
+                  vzdálení (<code>switch_far</code>).</p><p>Sledování
+                  přiblížení a vzdálení je vzájemně nezávislé a je spojeno
+                  s parametry <code>near_limit</code> a <code>far_limit</code>.
+                  Oba směry tak lze sledovat s různou
+                  citlivostí.</p><p>Vypnutí zóny (<code>switch off</code>)
+                  znamená její vyřazení ze sledování. Vypne-li se takto zóna,
+                  nemá zapínání a vypínání sledování přiblížení i vzdálení
+                  smysl.</p><p>Výchozí nastavení parametrů je: <code>switch off</code>
+                  a ostatní parametry <code>on</code>. Je tedy nutné, má-li
+                  ovladač poplachy v zóně sledovat, po vytvoření zóny zónu
+                  zapnout.</p></dd>
+                  <dt>angle_from &lt;angle&gt;</dt>
+                  <dt>angle_to &lt;angle&gt;</dt>
+                  <dd><p>rozsah úhlů (směrů), v nichž se mají vyhodnocovat
+                  poplachy. Omezení sledování směrů má smysl, pokud např.
+                  sledovaná oblast není směrem k horizontu
+                  uzavřená.</p><p>Parametry jsou celočíselné v rozsahu
+                  0<c.special what="interval" />180, počáteční nastavení je
+                  <code>angle_from 0</code> a <code>angle_to 180</code>.</p></dd>
+                  <dt>distance_from &lt;distance&gt;</dt>
+                  <dt>distance_to &lt;distance&gt;</dt>
+                  <dd><p>rozsah vzdáleností, v němž se mají vyhodnocovat
+                  poplachy. Omezení vzdáleností má smysl, pokud např.
+                  sledovaná oblast končí oplocením, jímž paprsky
+                  procházejí.</p><p>Parametry jsou celočíselné, udávané
+                  v milimetrech, počáteční nastavení je od 0 do
+                  nekonečna.</p></dd>
+                  <dt>mean_count &lt;count&gt;</dt>
+                  <dd><p>počet vzorků, z nichž se počítá střední hodnota
+                  poruchové vzdálenosti. Poruchová vzdálenost by měla být
+                  průměrována, aby se odstranily náhodné (občas i velké)
+                  okamžité fluktuace vzdáleností (např. při sněžení apod.).
+                  Náhodné fluktuace jsou typicky odstraněny již i při malém
+                  počtu (&lt; 5) průměrovaných vzorků.</p><p>Každá zóna
+                  pracuje s okamžitými poruchami (kladnými a zápornými
+                  odchylkami od středního horizontu) v každém kroku, počítá
+                  jejich střední hodnotu (podle nastavení tohoto parametru), a
+                  teprve tuto střední hodnotu použije pro porovnání se
+                  středním horizontem a následnou detekci a hlášení
+                  poruch.</p><p>Parameter je celočíselný, jeho počáteční
+                  hodnota je 1.</p></dd>
+                  <dt>far_limit &lt;distance&gt;</dt>
+                  <dt>near_limit &lt;distance&gt;</dt>
+                  <dd><p>limity vzdáleností od střední hodnoty, které musí
+                  paprsek v daném směru překročit, aby byl považován za
+                  porušený.</p><p>Jedná-li se o překročení do dálky, uplatní
+                  se parametr <code>far_limit</code>; jedná-li se o překročení
+                  do blízka, uplatní se parametr <code>near_limit</code>. Oba
+                  parametry se definují jako kladné.</p><p>Parametry jsou
+                  celočíselné, v milimetrech, s počátečním nastavením <code>far_limit 100</code>
+                  a <code>near_limit 50</code>.</p></dd>
+                  <dt>beam_count &lt;beams&gt;</dt>
+                  <dt>gap_count &lt;beams&gt;</dt>
+                  <dd><p>počet sousedících porušených paprsků (<code>beam_count</code>),
+                  přerušených oblastmi s počtem nejvýše <code>gap_count</code>
+                  sousedících neporušených paprsků, které při sledování musí
+                  ovladač nalézt, aby oblast s porušenými paprsky prohlásil za
+                  poplach. Střed takové oblasti je následně použit jako směr
+                  poplachu.</p><p>Smyslem těchto parametrů je zamezit
+                  poplachům způsobeným malými objekty (myšové, hmyz, vločky
+                  apod.). Běžné objekty ve sledované oblasti typicky protnou
+                  vždy více paprsků. Je vhodné zjistit, jak velké objekty mají
+                  být sledovány a podle toho nastavit parametr <code>beam_count</code>
+                  na menší hodnotu (poloviční apod.). Správné nastavení
+                  v konkrétních podmínkách musí být zjištěno a ověřeno
+                  experimentálně.</p><p>V oblasti s porušenými paprsky může
+                  jeden či několik z paprsků zůstat neporušený (odražen,
+                  důsledek fluktuace apod.). Takové paprsky by neměly zamezit
+                  nalezení poplachu v celé skupině; proto existuje parametr
+                  <code>gap_count</code>, který vymezuje počet (sousedících)
+                  neporušených paprsků mezi porušenými, které ještě neovlivní
+                  vznik poplachu. Stejně jako v případě parametru <code>beam_count</code>
+                  je nutné správnou hodnotu tohoto parametru stanovit
+                  experimentálně. Typická hodnota tohoto parametru bude malá
+                  (1, 2, 3 apod.).</p><p>Nastavení parametru <code>gap_count</code>
+                  rovněž ovlivňuje ukončení oblasti s poplachem. Je-li
+                  gap_count nenulový, skončí oblast s poplachem vždy až po
+                  počtu gap_count neporušených paprsků. Tato skutečnost není
+                  problematická, pokud je <code>gap_count</code>
+                  malé.</p><p>Parametry jsou celočíselné, udávají počet
+                  paprsků a jejich počáteční hodnota je <code>beam_count 5</code>
+                  a <code>gap_count 1</code>.</p></dd>
+                  <dt>beam_scan &lt;count&gt;</dt>
+                  <dd><p>počet měření porušeného paprsku před vznikem
+                  poplachu, po které musí být paprsek stále porušen, aby byl
+                  pro vyhodnocení poplachu použit jako porušení. Neboli,
+                  hodnota tohoto parametru říká, kolikrát musí být paprsek
+                  slepě nalezen porušený, aby se stal skutečně
+                  porušeným.</p><p>Parametr pomáhá filtrovat náhodné
+                  fluktuace, může však při použití způsobovat nepřesné a
+                  pomalejší vyhodnocování (vyhlášení poplachu se brzdí
+                  opakováním měření). Je možné, že v konkrétních situacích
+                  bude možné ponechat parametru počáteční hodnotu, neboť
+                  fluktuace jednotlivých paprsků dobře odstraní nutné počty
+                  porušených paprsků (<code>beam_count</code>).</p><p>Parametr
+                  je celočíselný, jeho počáteční hodnota je 1.</p></dd>
+                  <dt>movement_threshold &lt;beams&gt;</dt>
+                  <dd><p>Po vzniku poplachu ovladač v každém vyhodnocení zóny
+                  ztotožňuje nalezené poplachy s poplachy z předešlého
+                  vyhodnocení a pokud to je možné, považuje změnu pozic
+                  poplachů za jejich posunutí (to odpovídá např. pohybu osoby
+                  ve sledovaném prostoru).</p><p>Jestli poplach bude považován
+                  za posunutý (neboli bude ztotožněn s již vyhlášeným
+                  poplachem), nebo zdali poplach z předešlého měření zanikne a
+                  vyhlásí se poplach nový, rozhodne ovladač podle vzdálenosti
+                  směrů poplachů (současného a předešlého; směr poplachu je
+                  střed porušené oblasti, viz parametr <code>beam_count</code>).
+                  Je-li vzdálenost směrů menší než <code>movement_threshold</code>,
+                  dojde k posunutí poplachu (událost <code>M</code>), je-li
+                  vzdálenost větší původní poplach zanikne (událost <code>F</code>)
+                  a nový poplach vznikne (událost <code>S</code>).</p><p>Parametr
+                  je celočíselný, zadáván ve stupních, s počáteční hodnotou
+                  15.</p></dd>
+                </dl>
+                <p>Příklad nastavení parametrů zóny:</p>
+                <sample>core.DriverQueryProc( 'LMS', 'zone change Main', &amp;Error );
+
+core.DriverQueryProc( 'LMS', 'zone switch on', &amp;Error );
+core.DriverQueryProc( 'LMS', 'zone angle_from 10', &amp;Error );
+core.DriverQueryProc( 'LMS', 'zone angle_to 150', &amp;Error );
+core.DriverQueryProc( 'LMS', 'zone distance_from 3000', &amp;Error );
+core.DriverQueryProc( 'LMS', 'zone near_limit 50', &amp;Error );
+core.DriverQueryProc( 'LMS', 'zone far_limit 300', &amp;Error );
+core.DriverQueryProc( 'LMS', 'zone beam_count 10', &amp;Error );
+core.DriverQueryProc( 'LMS', 'zone gap_count 2', &amp;Error );
+core.DriverQueryProc( 'LMS', 'zone movement_threshold 25', &amp;Error );
+
+core.DriverQueryProc( 'LMS', 'zone commit', &amp;Error );</sample>
+              </text>
+            </section>
+          </text>
+        </section>
+        <section level="2">
+          <title>Specifické chybové kódy ovladače</title>
+          <text>
+            <dl class="dlValues">
+              <caption>Kromě systémových chybových kódů (<code>ecTimeout</code>,
+              <code>ecCheckSumError</code>) ovladač nastavuje pro své kanály
+              následující chybové kódy:</caption>
+              <dt>65536 (driver stopped)</dt>
+              <dd><p>Ovladač je systémem <c.abbreviation what="CW" />
+              zastaven.</p></dd>
+              <dt>65537 (device not found)</dt>
+              <dd><p>Ovladač se dosud nedokázal s jednotkou spojit, aby z ní
+              vyčetl její konfigurační data. Pokud se ovladači první spojení
+              podaří, a pak následně dojde k jeho poškození, bude ovladač
+              místo této chyby hlásit chybu <code>2 (timeout)</code>.</p></dd>
+              <dt>65538 (device in unsupported mode)</dt>
+              <dd><p>Jednotka pracuje v režimu, který není ovladačem
+              podporován (viz výše). Aktuální režim jednotky je možné zjistit
+              čtením kanálu <code>mode (2)</code> ovladače.</p></dd>
+            </dl>
+          </text>
+        </section>
+      </text>
+    </section>
+  </text>
+</document>

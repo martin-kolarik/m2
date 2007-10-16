@@ -1,0 +1,31 @@
+DEFINITION MODULE assert;
+
+//==============================================================
+// assert.h - define the assert macro
+// 
+//       Copyright (c) 1985-1997, Microsoft Corporation. All rights reserved.
+// 
+// Purpose:
+//       Defines the assert(exp) macro.
+//       [ANSI/System V]
+//
+// 32-bit version for M2CPP Modula-2 to C++ compiler
+//
+// Copyright (c) 2000 Moravian Instruments Inc.
+//
+//==============================================================
+
+(*# name(   prefix=>c ) *)
+
+(*# module( header=>off,
+            init_code=>off ) *)
+
+(*# call(   o_a_size=>off,
+            o_a_copy=>off,
+            prefix=>cdecl ) *)
+
+(*# save, call( macro => on, result_optional => off ) *)
+PROCEDURE assert( FalseMeansFailure : BOOLEAN );
+(*# restore *)
+
+END assert.

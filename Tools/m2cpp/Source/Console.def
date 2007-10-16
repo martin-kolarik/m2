@@ -1,0 +1,31 @@
+DEFINITION MODULE Console;
+
+(*# call( o_a_copy => off ) *)
+
+IMPORT
+  StringsO;
+
+TYPE
+  TQuietMode = (
+    quietNone,
+    quietInfo,
+    quietAll
+  );
+
+PROCEDURE WriteEOL();
+PROCEDURE WriteString( Data : ARRAY OF WCHAR );
+PROCEDURE WriteStringS( Mask, Data : ARRAY OF WCHAR );
+PROCEDURE WriteStringS2( Mask, Data1, Data2 : ARRAY OF WCHAR );
+PROCEDURE WriteStringCS( Mask : ARRAY OF WCHAR; CONST Data : StringsO.CString );
+PROCEDURE WriteLineS( Mask, Data : ARRAY OF WCHAR );
+PROCEDURE WriteLineCS( Mask : ARRAY OF WCHAR; CONST Data : StringsO.CString );
+PROCEDURE WriteLineCS2( Mask : ARRAY OF WCHAR; CONST Data1, Data2 : StringsO.CString );
+
+PROCEDURE WriteLineError( Number : CARDINAL; Mask : ARRAY OF WCHAR; CONST Path : StringsO.CString; Line, Col : CARDINAL; Data : ARRAY OF WCHAR );
+PROCEDURE WriteLineWarning( Number : CARDINAL; Mask : ARRAY OF WCHAR; CONST Path : StringsO.CString; Line, Col : CARDINAL; Data : ARRAY OF WCHAR );
+
+PROCEDURE SetQuiet( QuietMode : TQuietMode );
+
+INITIALLY __I();
+
+END Console.

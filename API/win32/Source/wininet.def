@@ -1,0 +1,3302 @@
+DEFINITION MODULE wininet;
+
+(*==============================================================
+
+                    Win32 API for Modula-2
+
+       32-bit version for M2CPP Modula-2 to C++ compiler
+
+         Copyright (c) 2000 Moravian Instruments, Inc.
+
+==============================================================*)
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+(*==============================================================
+
+  History: Created: 28.08.2000
+           Build 0: --.--.----
+
+==============================================================*)
+
+IMPORT
+  windows;
+
+(*============================================================*)
+(* Windows header:           wininet.h                        *)
+(*============================================================*)
+
+
+//!!! NOTE
+//    GOPHER API IS NOT SUPPORTED
+
+
+(* /*++
+
+Copyright 1995 - 1998 Microsoft Corporation
+
+Module Name:
+
+    wininet.h
+
+Abstract:
+
+    Contains manifests, macros, types and prototypes for Microsoft Windows
+    Internet Extensions
+
+--*/ *)
+
+
+// PROCEDURE CommitUrlCacheEntry
+// PROCEDURE CreateUrlCacheEntry
+// PROCEDURE CreateUrlCacheGroup
+// PROCEDURE DeleteUrlCacheEntry
+// PROCEDURE DeleteUrlCacheGroup
+// PROCEDURE FindCloseUrlCache
+// PROCEDURE FindFirstUrlCacheEntryEx
+// PROCEDURE FindFirstUrlCacheEntry
+// PROCEDURE FindNextUrlCacheEntryEx
+// PROCEDURE FindNextUrlCacheEntry
+// PROCEDURE FtpCreateDirectory
+// PROCEDURE FtpDeleteFile
+// PROCEDURE FtpFindFirstFile
+// PROCEDURE FtpGetCurrentDirectory
+// PROCEDURE FtpGetFile
+// PROCEDURE FtpOpenFile
+// PROCEDURE FtpPutFile
+// PROCEDURE FtpRemoveDirectory
+// PROCEDURE FtpRenameFile
+// PROCEDURE FtpSetCurrentDirectory
+// PROCEDURE GetUrlCacheEntryInfoEx
+// PROCEDURE GetUrlCacheEntryInfo
+// PROCEDURE HttpAddRequestHeaders
+// PROCEDURE HttpEndRequest
+// PROCEDURE HttpOpenRequest
+// PROCEDURE HttpQueryInfo
+// PROCEDURE HttpSendRequestEx
+// PROCEDURE HttpSendRequest
+// PROCEDURE InternetAttemptConnect
+// PROCEDURE InternetAuthNotifyCallback
+// PROCEDURE InternetAutodial
+// PROCEDURE InternetAutodialHangup
+// PROCEDURE InternetCanonicalizeUrl
+// PROCEDURE InternetCloseHandle
+// PROCEDURE InternetCombineUrl
+// PROCEDURE InternetConfirmZoneCrossing
+// PROCEDURE InternetConnectUrl 
+// PROCEDURE InternetConnect
+// PROCEDURE InternetCrackUrl
+// PROCEDURE InternetCreateUrl
+// PROCEDURE InternetDial
+// PROCEDURE InternetErrorDlg
+// PROCEDURE InternetFindNextFile
+// PROCEDURE InternetGetConnectedState
+// PROCEDURE InternetGetCookie
+// PROCEDURE InternetGetLastResponseInfo
+// PROCEDURE InternetGoOnline
+// PROCEDURE InternetHangUp
+// PROCEDURE InternetCheckConnection
+// PROCEDURE InternetLockRequestFile
+// PROCEDURE InternetOpenUrl
+// PROCEDURE InternetOpen
+// PROCEDURE InternetQueryDataAvailable
+// PROCEDURE InternetQueryOption
+// PROCEDURE InternetReadFile
+// PROCEDURE InternetReadFileEx
+// PROCEDURE InternetSetCookie
+// PROCEDURE InternetSetDialState
+// PROCEDURE InternetSetFilePointer
+// PROCEDURE InternetSetOptionEx
+// PROCEDURE InternetSetOption
+// PROCEDURE InternetSetStatusCallback
+// PROCEDURE InternetTimeFromSystemTime
+// PROCEDURE InternetTimeToSystemTime
+// PROCEDURE InternetUnlockRequestFile
+// PROCEDURE InternetWriteFile
+// PROCEDURE ReadUrlCacheEntryStream
+// PROCEDURE RetrieveUrlCacheEntryFile
+// PROCEDURE RetrieveUrlCacheEntryStream
+// PROCEDURE SetUrlCacheEntryGroup
+// PROCEDURE SetUrlCacheEntryInfo
+// PROCEDURE UnlockUrlCacheEntryFile
+// PROCEDURE UnlockUrlCacheEntryStream
+
+
+(* /*
+ * Set up Structure Packing to be 4 bytes
+ * for all wininet structures
+ */ *)
+
+(*# option( pack => 4 ) *)
+
+
+//#if !defined(_WINX32_)
+//#define INTERNETAPI DECLSPEC_IMPORT
+//#define URLCACHEAPI DECLSPEC_IMPORT
+//#else
+//#define INTERNETAPI
+//#define URLCACHEAPI
+//#endif
+
+//#define BOOLAPI INTERNETAPI BOOL WINAPI
+
+//
+// internet types
+//
+TYPE
+  HINTERNET       = windows.PVOID;
+  LPHINTERNET     = POINTER TO HINTERNET;
+
+  INTERNET_PORT   = WORD;
+  LPINTERNET_PORT = POINTER TO INTERNET_PORT;
+
+  PPCSTR          = POINTER TO windows.PCSTR;
+  PPCWSTR         = POINTER TO windows.PCWSTR;
+
+//
+// Internet APIs
+//
+
+//
+// manifests
+//
+CONST
+  INTERNET_INVALID_PORT_NUMBER          = 0;           // use the protocol-specific default
+                                        
+  INTERNET_DEFAULT_FTP_PORT             = 21;          // default for FTP servers
+  INTERNET_DEFAULT_GOPHER_PORT          = 70;          //    "     "  gopher "
+  INTERNET_DEFAULT_HTTP_PORT            = 80;          //    "     "  HTTP   "
+  INTERNET_DEFAULT_HTTPS_PORT           = 443;         //    "     "  HTTPS  "
+  INTERNET_DEFAULT_SOCKS_PORT           = 1080;        // default for SOCKS firewall servers.
+
+//
+// maximum field lengths (arbitrary)
+//
+  PROTOCOL_SEPARATOR                    = C'://';
+
+  INTERNET_MAX_HOST_NAME_LENGTH         = 256;
+  INTERNET_MAX_USER_NAME_LENGTH         = 128;
+  INTERNET_MAX_PASSWORD_LENGTH          = 128;
+  INTERNET_MAX_PORT_NUMBER_LENGTH       = 5;           // INTERNET_PORT is unsigned short
+  INTERNET_MAX_PORT_NUMBER_VALUE        = 65535;       // maximum unsigned short value
+  INTERNET_MAX_PATH_LENGTH              = 2048;
+  INTERNET_MAX_SCHEME_LENGTH            = 32;          // longest protocol name length
+  INTERNET_MAX_URL_LENGTH               = INTERNET_MAX_SCHEME_LENGTH +
+                                          SIZE( PROTOCOL_SEPARATOR ) +
+                                          INTERNET_MAX_PATH_LENGTH;
+
+//
+// values returned by InternetQueryOption() with INTERNET_OPTION_KEEP_CONNECTION:
+//
+
+  INTERNET_KEEP_ALIVE_UNKNOWN           = windows.DWORD( -1 );
+  INTERNET_KEEP_ALIVE_ENABLED           = 1;
+  INTERNET_KEEP_ALIVE_DISABLED          = 0;
+
+//
+// flags returned by InternetQueryOption() with INTERNET_OPTION_REQUEST_FLAGS
+//
+
+  INTERNET_REQFLAG_FROM_CACHE           = 00000001H;  // response came from cache
+  INTERNET_REQFLAG_ASYNC                = 00000002H;  // request was made asynchronously
+  INTERNET_REQFLAG_VIA_PROXY            = 00000004H;  // request was made via a proxy
+  INTERNET_REQFLAG_NO_HEADERS           = 00000008H;  // orginal response contained no headers
+  INTERNET_REQFLAG_PASSIVE              = 00000010H;  // FTP: passive-mode connection
+  INTERNET_REQFLAG_CACHE_WRITE_DISABLED = 00000040H;  // HTTPS: this request not cacheable
+
+//
+// flags common to open functions (not InternetOpen()):
+//
+
+  INTERNET_FLAG_RELOAD                  = 80000000H;  // retrieve the original item
+
+//
+// flags for InternetOpenUrl():
+//
+
+  INTERNET_FLAG_RAW_DATA                = 40000000H;  // FTP/gopher find: receive the item as raw (structured) data
+  INTERNET_FLAG_EXISTING_CONNECT        = 20000000H;  // FTP: use existing InternetConnect handle for server if possible
+
+//
+// flags for InternetOpen():
+//
+
+  INTERNET_FLAG_ASYNC                   = 10000000H;  // this request is asynchronous (where supported)
+
+//
+// protocol-specific flags:
+//
+
+  INTERNET_FLAG_PASSIVE                 = 08000000H;  // used for FTP connections
+
+//
+// additional cache flags
+//
+
+  INTERNET_FLAG_NO_CACHE_WRITE          = 04000000H;  // don't write this item to the cache
+  INTERNET_FLAG_DONT_CACHE              = INTERNET_FLAG_NO_CACHE_WRITE;
+  INTERNET_FLAG_MAKE_PERSISTENT         = 02000000H;  // make this item persistent in cache
+  INTERNET_FLAG_FROM_CACHE              = 01000000H;  // use offline semantics
+  INTERNET_FLAG_OFFLINE                 = INTERNET_FLAG_FROM_CACHE;
+
+//
+// additional flags
+//
+
+  INTERNET_FLAG_SECURE                  = 00800000H;  // use PCT/SSL if applicable (HTTP)
+  INTERNET_FLAG_KEEP_CONNECTION         = 00400000H;  // use keep-alive semantics
+  INTERNET_FLAG_NO_AUTO_REDIRECT        = 00200000H;  // don't handle redirections automatically
+  INTERNET_FLAG_READ_PREFETCH           = 00100000H;  // do background read prefetch
+  INTERNET_FLAG_NO_COOKIES              = 00080000H;  // no automatic cookie handling
+  INTERNET_FLAG_NO_AUTH                 = 00040000H;  // no automatic authentication handling
+  INTERNET_FLAG_CACHE_IF_NET_FAIL       = 00010000H;  // return cache file if net request fails
+
+//
+// Security Ignore Flags, Allow HttpOpenRequest to overide
+//  Secure Channel (SSL/PCT) failures of the following types.
+//
+
+  INTERNET_FLAG_IGNORE_REDIRECT_TO_HTTP   = 00008000H; // ex: https:// to http://
+  INTERNET_FLAG_IGNORE_REDIRECT_TO_HTTPS  = 00004000H; // ex: http:// to https://
+  INTERNET_FLAG_IGNORE_CERT_DATE_INVALID  = 00002000H; // expired X509 Cert.
+  INTERNET_FLAG_IGNORE_CERT_CN_INVALID    = 00001000H; // bad common name in X509 Cert.
+
+//
+// more caching flags
+//
+
+  INTERNET_FLAG_RESYNCHRONIZE           = 00000800H;  // asking wininet to update an item if it is newer
+  INTERNET_FLAG_HYPERLINK               = 00000400H;  // asking wininet to do hyperlinking semantic which works right for scripts
+  INTERNET_FLAG_NO_UI                   = 00000200H;  // no cookie popup
+  INTERNET_FLAG_PRAGMA_NOCACHE          = 00000100H;  // asking wininet to add "pragma: no-cache"
+  INTERNET_FLAG_CACHE_ASYNC             = 00000080H;  // ok to perform lazy cache-write
+  INTERNET_FLAG_FORMS_SUBMIT            = 00000040H;  // this is a forms submit
+  INTERNET_FLAG_NEED_FILE               = 00000010H;  // need a file for this request
+  INTERNET_FLAG_MUST_CACHE_REQUEST      = INTERNET_FLAG_NEED_FILE;
+
+//
+// flags for FTP
+//
+  FTP_TRANSFER_TYPE_UNKNOWN             = 00000000H;
+  FTP_TRANSFER_TYPE_ASCII               = 00000001H;
+  FTP_TRANSFER_TYPE_BINARY              = 00000002H;
+
+  FTP_TRANSFER_TYPE_MASK                = FTP_TRANSFER_TYPE_ASCII OR FTP_TRANSFER_TYPE_BINARY;
+
+  INTERNET_FLAG_TRANSFER_ASCII          = FTP_TRANSFER_TYPE_ASCII;     // 0x00000001
+  INTERNET_FLAG_TRANSFER_BINARY         = FTP_TRANSFER_TYPE_BINARY;    // 0x00000002
+
+
+//
+// flags field masks
+//
+
+  SECURITY_INTERNET_MASK   = INTERNET_FLAG_IGNORE_CERT_CN_INVALID   OR
+                             INTERNET_FLAG_IGNORE_CERT_DATE_INVALID OR
+                             INTERNET_FLAG_IGNORE_REDIRECT_TO_HTTPS OR
+                             INTERNET_FLAG_IGNORE_REDIRECT_TO_HTTP;
+
+  INTERNET_FLAGS_MASK      = INTERNET_FLAG_RELOAD            OR
+                             INTERNET_FLAG_RAW_DATA          OR
+                             INTERNET_FLAG_EXISTING_CONNECT  OR
+                             INTERNET_FLAG_ASYNC             OR
+                             INTERNET_FLAG_PASSIVE           OR
+                             INTERNET_FLAG_NO_CACHE_WRITE    OR
+                             INTERNET_FLAG_MAKE_PERSISTENT   OR
+                             INTERNET_FLAG_FROM_CACHE        OR
+                             INTERNET_FLAG_SECURE            OR
+                             INTERNET_FLAG_KEEP_CONNECTION   OR
+                             INTERNET_FLAG_NO_AUTO_REDIRECT  OR
+                             INTERNET_FLAG_READ_PREFETCH     OR
+                             INTERNET_FLAG_NO_COOKIES        OR
+                             INTERNET_FLAG_NO_AUTH           OR
+                             INTERNET_FLAG_CACHE_IF_NET_FAIL OR
+                             SECURITY_INTERNET_MASK          OR
+                             INTERNET_FLAG_RESYNCHRONIZE     OR
+                             INTERNET_FLAG_HYPERLINK         OR
+                             INTERNET_FLAG_NO_UI             OR
+                             INTERNET_FLAG_PRAGMA_NOCACHE    OR
+                             INTERNET_FLAG_CACHE_ASYNC       OR
+                             INTERNET_FLAG_FORMS_SUBMIT      OR
+                             INTERNET_FLAG_NEED_FILE         OR
+                             INTERNET_FLAG_TRANSFER_BINARY   OR
+                             INTERNET_FLAG_TRANSFER_ASCII;    
+                             
+
+  INTERNET_ERROR_MASK_INSERT_CDROM = 1H;
+
+  INTERNET_OPTIONS_MASK            = NOT INTERNET_FLAGS_MASK;
+
+//
+// common per-API flags (new APIs)
+//
+
+  WININET_API_FLAG_ASYNC           = 00000001H;  // force async operation
+  WININET_API_FLAG_SYNC            = 00000004H;  // force sync operation
+  WININET_API_FLAG_USE_CONTEXT     = 00000008H;  // use value supplied in dwContext (even if 0)
+
+//
+// INTERNET_NO_CALLBACK - if this value is presented as the dwContext parameter
+// then no call-backs will be made for that API
+//
+
+  INTERNET_NO_CALLBACK             = 0;
+
+//
+// structures/types
+//
+
+//
+// INTERNET_SCHEME - enumerated URL scheme type
+//
+// typedef enum {
+//     INTERNET_SCHEME_PARTIAL = -2,
+//     INTERNET_SCHEME_UNKNOWN = -1,
+//     INTERNET_SCHEME_DEFAULT = 0,
+//     INTERNET_SCHEME_FTP,
+//     INTERNET_SCHEME_GOPHER,
+//     INTERNET_SCHEME_HTTP,
+//     INTERNET_SCHEME_HTTPS,
+//     INTERNET_SCHEME_FILE,
+//     INTERNET_SCHEME_NEWS,
+//     INTERNET_SCHEME_MAILTO,
+//     INTERNET_SCHEME_SOCKS,
+//     INTERNET_SCHEME_FIRST = INTERNET_SCHEME_FTP,
+//     INTERNET_SCHEME_LAST = INTERNET_SCHEME_SOCKS
+// } INTERNET_SCHEME, * LPINTERNET_SCHEME;
+
+TYPE
+  INTERNET_SCHEME = ( INTERNET_SCHEME_PARTIAL = -2,
+                      INTERNET_SCHEME_UNKNOWN = -1,
+                      INTERNET_SCHEME_DEFAULT = 0,
+                      INTERNET_SCHEME_FTP,
+                      INTERNET_SCHEME_GOPHER,
+                      INTERNET_SCHEME_HTTP,
+                      INTERNET_SCHEME_HTTPS,
+                      INTERNET_SCHEME_FILE,
+                      INTERNET_SCHEME_NEWS,
+                      INTERNET_SCHEME_MAILTO,
+                      INTERNET_SCHEME_SOCKS );
+
+CONST
+  INTERNET_SCHEME_FIRST ::= INTERNET_SCHEME_FTP;
+  INTERNET_SCHEME_LAST  ::= INTERNET_SCHEME_SOCKS;
+
+TYPE
+  LPINTERNET_SCHEME = POINTER TO INTERNET_SCHEME;
+
+//
+// INTERNET_ASYNC_RESULT - this structure is returned to the application via
+// the callback with INTERNET_STATUS_REQUEST_COMPLETE. It is not sufficient to
+// just return the result of the async operation. If the API failed then the
+// app cannot call GetLastError() because the thread context will be incorrect.
+// Both the value returned by the async API and any resultant error code are
+// made available. The app need not check dwError if dwResult indicates that
+// the API succeeded (in this case dwError will be ERROR_SUCCESS)
+//
+
+TYPE
+  INTERNET_ASYNC_RESULT = RECORD
+    //
+    // dwResult - the HINTERNET, DWORD or BOOL return code from an async API
+    //
+
+    dwResult : windows.DWORD;
+
+    //
+    // dwError - the error code if the API failed
+    //
+
+    dwError : windows.DWORD;
+  END;
+
+  LPINTERNET_ASYNC_RESULT = POINTER TO INTERNET_ASYNC_RESULT;
+
+
+//
+// INTERNET_PROXY_INFO - structure supplied with INTERNET_OPTION_PROXY to get/
+// set proxy information on a InternetOpen() handle
+//
+
+TYPE
+  INTERNET_PROXY_INFO = RECORD
+    //
+    // dwAccessType - INTERNET_OPEN_TYPE_DIRECT, INTERNET_OPEN_TYPE_PROXY, or
+    // INTERNET_OPEN_TYPE_PRECONFIG (set only)
+    //
+
+     dwAccessType : windows.DWORD;
+
+    //
+    // lpszProxy - proxy server list
+    //
+
+    lpszProxy : windows.PCTSTR;
+
+    //
+    // lpszProxyBypass - proxy bypass list
+    //
+
+    lpszProxyBypass : windows.PCTSTR;
+  END;
+
+  LPINTERNET_PROXY_INFO = POINTER TO INTERNET_PROXY_INFO;
+
+//
+// INTERNET_VERSION_INFO - version information returned via
+// InternetQueryOption(..., INTERNET_OPTION_VERSION, ...)
+//
+
+TYPE
+  INTERNET_VERSION_INFO = RECORD
+    dwMajorVersion : windows.DWORD;
+    dwMinorVersion : windows.DWORD;
+  END;
+
+  LPINTERNET_VERSION_INFO = POINTER TO INTERNET_VERSION_INFO;
+
+//
+// HTTP_VERSION_INFO - query or set global HTTP version (1.0 or 1.1)
+//
+
+TYPE
+  HTTP_VERSION_INFO = RECORD
+    dwMajorVersion : windows.DWORD;
+    dwMinorVersion : windows.DWORD;
+  END;
+
+  LPHTTP_VERSION_INFO = POINTER TO HTTP_VERSION_INFO;
+
+//
+// INTERNET_CONNECTED_INFO - information used to set the global connected state
+//
+
+TYPE
+  INTERNET_CONNECTED_INFO = RECORD
+    //
+    // dwConnectedState - new connected/disconnected state.
+    // See INTERNET_STATE_CONNECTED, etc.
+    //
+
+    dwConnectedState : windows.DWORD;
+
+    //
+    // dwFlags - flags controlling connected->disconnected (or disconnected->
+    // connected) transition. See below
+    //
+
+    dwFlags : windows.DWORD;
+  END;
+
+  LPINTERNET_CONNECTED_INFO = POINTER TO INTERNET_CONNECTED_INFO;
+
+
+//
+// flags for INTERNET_CONNECTED_INFO dwFlags
+//
+
+//
+// ISO_FORCE_DISCONNECTED - if set when putting Wininet into disconnected mode,
+// all outstanding requests will be aborted with a cancelled error
+//
+
+CONST
+  ISO_FORCE_DISCONNECTED  = 00000001H;
+
+
+//
+// URL_COMPONENTS - the constituent parts of an URL. Used in InternetCrackUrl()
+// and InternetCreateUrl()
+//
+// For InternetCrackUrl(), if a pointer field and its corresponding length field
+// are both 0 then that component is not returned. If the pointer field is NULL
+// but the length field is not zero, then both the pointer and length fields are
+// returned if both pointer and corresponding length fields are non-zero then
+// the pointer field points to a buffer where the component is copied. The
+// component may be un-escaped, depending on dwFlags
+//
+// For InternetCreateUrl(), the pointer fields should be NULL if the component
+// is not required. If the corresponding length field is zero then the pointer
+// field is the address of a zero-terminated string. If the length field is not
+// zero then it is the string length of the corresponding pointer field
+//
+
+TYPE
+  URL_COMPONENTSA = RECORD
+    dwStructSize      : windows.DWORD;       // size of this structure. Used in version check
+    lpszScheme        : windows.PSTR;        // pointer to scheme name
+    dwSchemeLength    : windows.DWORD;       // length of scheme name
+    nScheme           : INTERNET_SCHEME ;    // enumerated scheme type (if known)
+    lpszHostName      : windows.PSTR;        // pointer to host name
+    dwHostNameLength  : windows.DWORD;       // length of host name
+    nPort             : INTERNET_PORT ;      // converted port number
+    lpszUserName      : windows.PSTR;        // pointer to user name
+    dwUserNameLength  : windows.DWORD;       // length of user name
+    lpszPassword      : windows.PSTR;        // pointer to password
+    dwPasswordLength  : windows.DWORD;       // length of password
+    lpszUrlPath       : windows.PSTR;        // pointer to URL-path
+    dwUrlPathLength   : windows.DWORD;       // length of URL-path
+    lpszExtraInfo     : windows.PSTR;        // pointer to extra information (e.g. ?foo or #foo)
+    dwExtraInfoLength : windows.DWORD;       // length of extra information
+  END;
+
+  LPURL_COMPONENTSA = POINTER TO URL_COMPONENTSA;
+
+TYPE
+  URL_COMPONENTSW = RECORD
+    dwStructSize      : windows.DWORD;       // size of this structure. Used in version check
+    lpszScheme        : windows.PWSTR;       // pointer to scheme name
+    dwSchemeLength    : windows.DWORD;       // length of scheme name
+    nScheme           : INTERNET_SCHEME ;    // enumerated scheme type (if known)
+    lpszHostName      : windows.PWSTR;       // pointer to host name
+    dwHostNameLength  : windows.DWORD;       // length of host name
+    nPort             : INTERNET_PORT ;      // converted port number
+    lpszUserName      : windows.PWSTR;       // pointer to user name
+    dwUserNameLength  : windows.DWORD;       // length of user name
+    lpszPassword      : windows.PWSTR;       // pointer to password
+    dwPasswordLength  : windows.DWORD;       // length of password
+    lpszUrlPath       : windows.PWSTR;       // pointer to URL-path
+    dwUrlPathLength   : windows.DWORD;       // length of URL-path
+    lpszExtraInfo     : windows.PWSTR;       // pointer to extra information (e.g. ?foo or #foo)
+    dwExtraInfoLength : windows.DWORD;       // length of extra information
+  END;
+
+  LPURL_COMPONENTSW = POINTER TO URL_COMPONENTSW;
+
+CONST
+(*%T UNICODE *)
+  URL_COMPONENTS   ::= URL_COMPONENTSW;
+  LPURL_COMPONENTS ::= LPURL_COMPONENTSW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  URL_COMPONENTS   ::= URL_COMPONENTSA;
+  LPURL_COMPONENTS ::= LPURL_COMPONENTSA;
+(*%E UNICODE *)
+
+
+//
+// INTERNET_CERTIFICATE_INFO lpBuffer - contains the certificate returned from
+// the server
+//
+
+TYPE
+  INTERNET_CERTIFICATE_INFO = RECORD
+    //
+    // ftExpiry - date the certificate expires.
+    //
+    ftExpiry : windows.FILETIME;
+    //
+    // ftStart - date the certificate becomes valid.
+    //
+    ftStart : windows.FILETIME;
+    //
+    // lpszSubjectInfo - the name of organization, site, and server
+    //   the cert. was issued for.
+    //
+    lpszSubjectInfo : windows.PTSTR;
+    //
+    // lpszIssuerInfo - the name of orgainzation, site, and server
+    //   the cert was issues by.
+    //
+    lpszIssuerInfo : windows.PTSTR;
+    //
+    // lpszProtocolName - the name of the protocol used to provide the secure
+    //   connection.
+    //
+    lpszProtocolName : windows.PTSTR;
+    //
+    // lpszSignatureAlgName - the name of the algorithm used for signing
+    //  the certificate.
+    //
+    lpszSignatureAlgName : windows.PTSTR;
+    //
+    // lpszEncryptionAlgName - the name of the algorithm used for
+    //  doing encryption over the secure channel (SSL/PCT) connection.
+    //
+    lpszEncryptionAlgName : windows.PTSTR;
+    //
+    // dwKeySize - size of the key.
+    //
+    dwKeySize : windows.DWORD;
+  END;
+
+  LPINTERNET_CERTIFICATE_INFO = POINTER TO INTERNET_CERTIFICATE_INFO;
+
+
+//
+// INTERNET_BUFFERS - combines headers and data. May be chained for e.g. file
+// upload or scatter/gather operations. For chunked read/write, lpcszHeader
+// contains the chunked-ext
+//
+
+TYPE
+  LPINTERNET_BUFFERSA = POINTER TO INTERNET_BUFFERSA;
+
+  INTERNET_BUFFERSA = RECORD
+    dwStructSize    : windows.DWORD;         // used for API versioning. Set to sizeof(INTERNET_BUFFERS)
+    Next            : LPINTERNET_BUFFERSA;   // chain of buffers
+    lpcszHeader     : windows.PCSTR;         // pointer to headers (may be NULL)
+    dwHeadersLength : windows.DWORD;         // length of headers if not NULL
+    dwHeadersTotal  : windows.DWORD;         // size of headers if not enough buffer
+    lpvBuffer       : ADDRESS;               // pointer to data buffer (may be NULL)
+    dwBufferLength  : windows.DWORD;         // length of data buffer if not NULL
+    dwBufferTotal   : windows.DWORD;         // total size of chunk, or content-length if not chunked
+    dwOffsetLow     : windows.DWORD;         // used for read-ranges (only used in HttpSendRequest2)
+    dwOffsetHigh    : windows.DWORD;
+  END;
+
+
+TYPE
+  LPINTERNET_BUFFERSW = POINTER TO INTERNET_BUFFERSW;
+
+  INTERNET_BUFFERSW = RECORD
+    dwStructSize    : windows.DWORD;         // used for API versioning. Set to sizeof(INTERNET_BUFFERS)
+    Next            : LPINTERNET_BUFFERSW;   // chain of buffers
+    lpcszHeader     : windows.PCWSTR;        // pointer to headers (may be NULL)
+    dwHeadersLength : windows.DWORD;         // length of headers if not NULL
+    dwHeadersTotal  : windows.DWORD;         // size of headers if not enough buffer
+    lpvBuffer       : ADDRESS;               // pointer to data buffer (may be NULL)
+    dwBufferLength  : windows.DWORD;         // length of data buffer if not NULL
+    dwBufferTotal   : windows.DWORD;         // total size of chunk, or content-length if not chunked
+    dwOffsetLow     : windows.DWORD;         // used for read-ranges (only used in HttpSendRequest2)
+    dwOffsetHigh    : windows.DWORD;
+  END;
+
+CONST
+(*%T UNICODE *)
+  INTERNET_BUFFERS   ::= INTERNET_BUFFERSW;
+  LPINTERNET_BUFFERS ::= LPINTERNET_BUFFERSW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  INTERNET_BUFFERS   ::= INTERNET_BUFFERSA;
+  LPINTERNET_BUFFERS ::= LPINTERNET_BUFFERSA;
+(*%E UNICODE *)
+
+//
+// prototypes
+//
+
+PROCEDURE InternetTimeFromSystemTime(
+    CONST pst : windows.PSYSTEMTIME;         // input GMT time
+    dwRFC : windows.DWORD;                   // RFC format
+    lpszTime : windows.PSTR;                 // output string buffer
+    cbTime : windows.DWORD                   // output buffer size
+    ) : windows.BOOL;
+
+//
+// constants for InternetTimeFromSystemTime
+//
+
+CONST
+  INTERNET_RFC1123_FORMAT     = 0;
+  INTERNET_RFC1123_BUFSIZE    = 30;
+
+PROCEDURE InternetTimeToSystemTime(
+    lpszTime : windows.PCSTR;         // NULL terminated string
+    pst : windows.PSYSTEMTIME;         // output in GMT time
+    dwReserved : windows.DWORD
+    ) : windows.BOOL;
+
+
+PROCEDURE InternetCrackUrlA(
+    lpszUrl : windows.PCSTR;
+    dwUrlLength : windows.DWORD;
+    dwFlags : windows.DWORD;
+    lpUrlComponents : LPURL_COMPONENTSA
+    ) : windows.BOOL;
+
+PROCEDURE InternetCrackUrlW(
+    lpszUrl : windows.PCWSTR;
+    dwUrlLength : windows.DWORD;
+    dwFlags : windows.DWORD;
+    lpUrlComponents : LPURL_COMPONENTSW
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  InternetCrackUrl ::= InternetCrackUrlW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  InternetCrackUrl ::= InternetCrackUrlA;
+(*%E UNICODE *)
+
+
+PROCEDURE InternetCreateUrlA(
+    lpUrlComponents : LPURL_COMPONENTSA;
+    dwFlags : windows.DWORD;
+    lpszUrl : windows.PSTR;
+    lpdwUrlLength : windows.PDWORD
+    ) : windows.BOOL;
+
+PROCEDURE InternetCreateUrlW(
+    lpUrlComponents : LPURL_COMPONENTSW;
+    dwFlags : windows.DWORD;
+    lpszUrl : windows.PWSTR;
+    lpdwUrlLength : windows.PDWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  InternetCreateUrl ::= InternetCreateUrlW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  InternetCreateUrl ::= InternetCreateUrlA;
+(*%E UNICODE *)
+
+PROCEDURE InternetCanonicalizeUrlA(
+    lpszUrl : windows.PCSTR;
+    lpszBuffer : windows.PSTR;
+    lpdwBufferLength : windows.PDWORD;
+    dwFlags : windows.DWORD
+    ) : windows.BOOL;
+
+PROCEDURE InternetCanonicalizeUrlW(
+    lpszUrl : windows.PCWSTR;
+    lpszBuffer : windows.PWSTR;
+    lpdwBufferLength : windows.PDWORD;
+    dwFlags : windows.DWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  InternetCanonicalizeUrl ::= InternetCanonicalizeUrlW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  InternetCanonicalizeUrl ::= InternetCanonicalizeUrlA;
+(*%E UNICODE *)
+
+PROCEDURE InternetCombineUrlA(
+    lpszBaseUrl : windows.PCSTR;
+    lpszRelativeUrl : windows.PCSTR;
+    lpszBuffer : windows.PSTR;
+    lpdwBufferLength : windows.PDWORD;
+    dwFlags : windows.DWORD
+    ) : windows.BOOL;
+
+PROCEDURE InternetCombineUrlW(
+    lpszBaseUrl : windows.PCWSTR;
+    lpszRelativeUrl : windows.PCWSTR;
+    lpszBuffer : windows.PWSTR;
+    lpdwBufferLength : windows.PDWORD;
+    dwFlags : windows.DWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  InternetCombineUrl ::= InternetCombineUrlW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  InternetCombineUrl ::= InternetCombineUrlA;
+(*%E UNICODE *)
+
+//
+// flags for InternetCrackUrl() and InternetCreateUrl()
+//
+
+CONST
+  ICU_ESCAPE             = 80000000H;  // (un)escape URL characters
+  ICU_USERNAME           = 40000000H;  // use internal username & password
+
+//
+// flags for InternetCanonicalizeUrl() and InternetCombineUrl()
+//
+CONST
+  ICU_NO_ENCODE          = 20000000H;  // Don't convert unsafe characters to escape sequence
+  ICU_DECODE             = 10000000H;  // Convert %XX escape sequences to characters
+  ICU_NO_META            = 08000000H;  // Don't convert .. etc. meta path sequences
+  ICU_ENCODE_SPACES_ONLY = 04000000H;  // Encode spaces only
+  ICU_BROWSER_MODE       = 02000000H;  // Special encode/decode rules for browser
+
+PROCEDURE InternetOpenA(
+    lpszAgent : windows.PCSTR;
+    dwAccessType : windows.DWORD;
+    lpszProxy : windows.PCSTR;
+    lpszProxyBypass : windows.PCSTR;
+    dwFlags : windows.DWORD
+    ) : HINTERNET;
+
+PROCEDURE InternetOpenW(
+    lpszAgent : windows.PCWSTR;
+    dwAccessType : windows.DWORD;
+    lpszProxy : windows.PCWSTR;
+    lpszProxyBypass : windows.PCWSTR;
+    dwFlags : windows.DWORD
+    ) : HINTERNET;
+
+CONST
+(*%T UNICODE *)
+  InternetOpen ::= InternetOpenW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  InternetOpen ::= InternetOpenA;
+(*%E UNICODE *)
+
+//
+// access types for InternetOpen()
+//
+
+CONST
+  INTERNET_OPEN_TYPE_PRECONFIG                    = 0;   // use registry configuration
+  INTERNET_OPEN_TYPE_DIRECT                       = 1;   // direct to net
+  INTERNET_OPEN_TYPE_PROXY                        = 3;   // via named proxy
+  INTERNET_OPEN_TYPE_PRECONFIG_WITH_NO_AUTOPROXY  = 4;   // prevent using java/script/INS
+
+//
+// old names for access types
+//
+
+CONST
+  PRE_CONFIG_INTERNET_ACCESS  = INTERNET_OPEN_TYPE_PRECONFIG;
+  LOCAL_INTERNET_ACCESS       = INTERNET_OPEN_TYPE_DIRECT;
+  CERN_PROXY_INTERNET_ACCESS  = INTERNET_OPEN_TYPE_PROXY;
+
+PROCEDURE InternetCloseHandle(
+    hInternet : HINTERNET
+    ) : windows.BOOL;
+
+PROCEDURE InternetConnectA(
+    hInternet : HINTERNET;
+    lpszServerName : windows.PCSTR;
+    nServerPort : INTERNET_PORT;
+    lpszUserName : windows.PCSTR;
+    lpszPassword : windows.PCSTR;
+    dwService : windows.DWORD;
+    dwFlags : windows.DWORD;
+    dwContext : windows.DWORD
+    ) : HINTERNET;
+
+PROCEDURE InternetConnectW(
+    hInternet : HINTERNET;
+    lpszServerName : windows.PCWSTR;
+    nServerPort : INTERNET_PORT;
+    lpszUserName : windows.PCWSTR;
+    lpszPassword : windows.PCWSTR;
+    dwService : windows.DWORD;
+    dwFlags : windows.DWORD;
+    dwContext : windows.DWORD
+    ) : HINTERNET;
+
+CONST
+(*%T UNICODE *)
+  InternetConnect ::= InternetConnectW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  InternetConnect ::= InternetConnectA;
+(*%E UNICODE *)
+
+//
+// service types for InternetConnect()
+//
+
+CONST
+  INTERNET_SERVICE_URL    = 0;
+  INTERNET_SERVICE_FTP    = 1;
+  INTERNET_SERVICE_GOPHER = 2;
+  INTERNET_SERVICE_HTTP   = 3;
+
+//
+// InternetConnectUrl() - a macro which allows you to specify an URL instead of
+// the component parts to InternetConnect(). If any API which uses the returned
+// connect handle specifies a NULL path then the URL-path part of the URL
+// specified in InternetConnectUrl() will be used
+//
+
+//#define InternetConnectUrl(hInternet, lpszUrl, dwFlags, dwContext) \
+//    InternetConnect(hInternet,                      \
+//                    lpszUrl,                        \
+//                    INTERNET_INVALID_PORT_NUMBER,   \
+//                    NULL,                           \
+//                    NULL,                           \
+//                    INTERNET_SERVICE_URL,           \
+//                    dwFlags,                        \
+//                    dwContext                       \
+//                    )
+
+
+PROCEDURE InternetConnectUrl( 
+    hInternet : HINTERNET;
+    lpszUrl : windows.PCTSTR;
+    dwFlags : windows.DWORD;
+    dwContext : windows.DWORD
+    ) : HINTERNET;
+
+PROCEDURE InternetOpenUrlA(
+    hInternet : HINTERNET;
+    lpszUrl : windows.PCSTR;
+    lpszHeaders : windows.PCSTR;
+    dwHeadersLength : windows.DWORD;
+    dwFlags : windows.DWORD;
+    dwContext : windows.DWORD
+    ) : HINTERNET;
+
+PROCEDURE InternetOpenUrlW(
+    hInternet : HINTERNET;
+    lpszUrl : windows.PCWSTR;
+    lpszHeaders : windows.PCWSTR;
+    dwHeadersLength : windows.DWORD;
+    dwFlags : windows.DWORD;
+    dwContext : windows.DWORD
+    ) : HINTERNET;
+
+CONST
+(*%T UNICODE *)
+  InternetOpenUrl ::= InternetOpenUrlW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  InternetOpenUrl ::= InternetOpenUrlA;
+(*%E UNICODE *)
+
+PROCEDURE InternetReadFile(
+    hFile : HINTERNET;
+    lpBuffer : ADDRESS;
+    dwNumberOfBytesToRead : windows.DWORD;
+    lpdwNumberOfBytesRead : windows.PDWORD
+    ) : windows.BOOL;
+
+PROCEDURE InternetReadFileExA(
+    hFile : HINTERNET;
+    lpBuffersOut : LPINTERNET_BUFFERSA;
+    dwFlags : windows.DWORD;
+    dwContext : windows.DWORD
+    ) : windows.BOOL;
+
+PROCEDURE InternetReadFileExW(
+    hFile : HINTERNET;
+    lpBuffersOut : LPINTERNET_BUFFERSW;
+    dwFlags : windows.DWORD;
+    dwContext : windows.DWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  InternetReadFileEx ::= InternetReadFileExW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  InternetReadFileEx ::= InternetReadFileExA;
+(*%E UNICODE *)
+
+//
+// flags for InternetReadFileEx()
+//
+
+CONST
+  IRF_ASYNC       = WININET_API_FLAG_ASYNC;
+  IRF_SYNC        = WININET_API_FLAG_SYNC;
+  IRF_USE_CONTEXT = WININET_API_FLAG_USE_CONTEXT;
+  IRF_NO_WAIT     = 00000008H;
+
+PROCEDURE InternetSetFilePointer(
+    hFile : HINTERNET;
+    lDistanceToMove : windows.LONG;
+    pReserved : windows.PVOID;
+    dwMoveMethod : windows.DWORD;
+    dwContext : windows.DWORD
+    ) : windows.DWORD;
+
+PROCEDURE InternetWriteFile(
+    hFile : HINTERNET;
+    lpBuffer : ADDRESS;
+    dwNumberOfBytesToWrite : windows.DWORD;
+    lpdwNumberOfBytesWritten : windows.PDWORD
+    ) : windows.BOOL;
+
+
+PROCEDURE InternetQueryDataAvailable(
+    hFile : HINTERNET;
+    lpdwNumberOfBytesAvailable : windows.PDWORD;
+    dwFlags : windows.DWORD;
+    dwContext : windows.DWORD
+    ) : windows.BOOL;
+
+PROCEDURE InternetFindNextFileA(
+    hFind : HINTERNET;
+    lpvFindData : ADDRESS
+    ) : windows.BOOL;
+
+PROCEDURE InternetFindNextFileW(
+    hFind : HINTERNET;
+    lpvFindData : ADDRESS
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  InternetFindNextFile ::= InternetFindNextFileW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  InternetFindNextFile ::= InternetFindNextFileA;
+(*%E UNICODE *)
+
+PROCEDURE InternetQueryOptionA(
+    hInternet : HINTERNET;
+    dwOption : windows.DWORD;
+    lpBuffer : ADDRESS;
+    lpdwBufferLength : windows.PDWORD
+    ) : windows.BOOL;
+
+PROCEDURE InternetQueryOptionW(
+    hInternet : HINTERNET;
+    dwOption : windows.DWORD;
+    lpBuffer : ADDRESS;
+    lpdwBufferLength : windows.PDWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  InternetQueryOption ::= InternetQueryOptionW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  InternetQueryOption ::= InternetQueryOptionA;
+(*%E UNICODE *)
+
+PROCEDURE InternetSetOptionA(
+    hInternet : HINTERNET;
+    dwOption : windows.DWORD;
+    lpBuffer : ADDRESS;
+    dwBufferLength : windows.DWORD
+    ) : windows.BOOL;
+
+PROCEDURE InternetSetOptionW(
+    hInternet : HINTERNET;
+    dwOption : windows.DWORD;
+    lpBuffer : ADDRESS;
+    dwBufferLength : windows.DWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  InternetSetOption ::= InternetSetOptionW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  InternetSetOption ::= InternetSetOptionA;
+(*%E UNICODE *)
+
+PROCEDURE InternetSetOptionExA(
+    hInternet : HINTERNET;
+    dwOption : windows.DWORD;
+    lpBuffer : ADDRESS;
+    dwBufferLength : windows.DWORD;
+    dwFlags : windows.DWORD
+    ) : windows.BOOL;
+
+PROCEDURE InternetSetOptionExW(
+    hInternet : HINTERNET;
+    dwOption : windows.DWORD;
+    lpBuffer : ADDRESS;
+    dwBufferLength : windows.DWORD;
+    dwFlags : windows.DWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  InternetSetOptionEx ::= InternetSetOptionExW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  InternetSetOptionEx ::= InternetSetOptionExA;
+(*%E UNICODE *)
+
+PROCEDURE InternetLockRequestFile(
+    hInternet : HINTERNET;
+    lphLockRequestInfo : windows.HANDLE
+    ) : windows.BOOL;
+
+PROCEDURE InternetUnlockRequestFile(
+    hLockRequestInfo : windows.HANDLE
+    ) : windows.BOOL;
+
+//
+// flags for InternetSetOptionEx()
+//
+
+CONST 
+  ISO_GLOBAL      = 00000001H;  // modify option globally
+  ISO_REGISTRY    = 00000002H;  // write option to registry (where applicable)
+
+  ISO_VALID_FLAGS = ISO_GLOBAL OR ISO_REGISTRY;
+
+//
+// options manifests for Internet{Query|Set}Option
+//
+
+CONST
+  INTERNET_OPTION_CALLBACK                = 1;
+  INTERNET_OPTION_CONNECT_TIMEOUT         = 2;
+  INTERNET_OPTION_CONNECT_RETRIES         = 3;
+  INTERNET_OPTION_CONNECT_BACKOFF         = 4;
+  INTERNET_OPTION_SEND_TIMEOUT            = 5;
+  INTERNET_OPTION_CONTROL_SEND_TIMEOUT    = INTERNET_OPTION_SEND_TIMEOUT;
+  INTERNET_OPTION_RECEIVE_TIMEOUT         = 6;
+  INTERNET_OPTION_CONTROL_RECEIVE_TIMEOUT = INTERNET_OPTION_RECEIVE_TIMEOUT;
+  INTERNET_OPTION_DATA_SEND_TIMEOUT       = 7;
+  INTERNET_OPTION_DATA_RECEIVE_TIMEOUT    = 8;
+  INTERNET_OPTION_HANDLE_TYPE             = 9;
+  INTERNET_OPTION_LISTEN_TIMEOUT          = 11;
+  INTERNET_OPTION_READ_BUFFER_SIZE        = 12;
+  INTERNET_OPTION_WRITE_BUFFER_SIZE       = 13;
+
+  INTERNET_OPTION_ASYNC_ID                = 15;
+  INTERNET_OPTION_ASYNC_PRIORITY          = 16;
+
+  INTERNET_OPTION_PARENT_HANDLE           = 21;
+  INTERNET_OPTION_KEEP_CONNECTION         = 22;
+  INTERNET_OPTION_REQUEST_FLAGS           = 23;
+  INTERNET_OPTION_EXTENDED_ERROR          = 24;
+
+  INTERNET_OPTION_OFFLINE_MODE            = 26;
+  INTERNET_OPTION_CACHE_STREAM_HANDLE     = 27;
+  INTERNET_OPTION_USERNAME                = 28;
+  INTERNET_OPTION_PASSWORD                = 29;
+  INTERNET_OPTION_ASYNC                   = 30;
+  INTERNET_OPTION_SECURITY_FLAGS          = 31;
+  INTERNET_OPTION_SECURITY_CERTIFICATE_STRUCT = 32;
+  INTERNET_OPTION_DATAFILE_NAME           = 33;
+  INTERNET_OPTION_URL                     = 34;
+  INTERNET_OPTION_SECURITY_CERTIFICATE    = 35;
+  INTERNET_OPTION_SECURITY_KEY_BITNESS    = 36;
+  INTERNET_OPTION_REFRESH                 = 37;
+  INTERNET_OPTION_PROXY                   = 38;
+  INTERNET_OPTION_SETTINGS_CHANGED        = 39;
+  INTERNET_OPTION_VERSION                 = 40;
+  INTERNET_OPTION_USER_AGENT              = 41;
+  INTERNET_OPTION_END_BROWSER_SESSION     = 42;
+  INTERNET_OPTION_PROXY_USERNAME          = 43;
+  INTERNET_OPTION_PROXY_PASSWORD          = 44;
+  INTERNET_OPTION_CONTEXT_VALUE           = 45;
+  INTERNET_OPTION_CONNECT_LIMIT           = 46;
+  INTERNET_OPTION_SECURITY_SELECT_CLIENT_CERT = 47;
+  INTERNET_OPTION_POLICY                  = 48;
+  INTERNET_OPTION_DISCONNECTED_TIMEOUT    = 49;
+  INTERNET_OPTION_CONNECTED_STATE         = 50;
+  INTERNET_OPTION_IDLE_STATE              = 51;
+  INTERNET_OPTION_OFFLINE_SEMANTICS       = 52;
+  INTERNET_OPTION_SECONDARY_CACHE_KEY     = 53;
+  INTERNET_OPTION_CALLBACK_FILTER         = 54;
+  INTERNET_OPTION_CONNECT_TIME            = 55;
+  INTERNET_OPTION_SEND_THROUGHPUT         = 56;
+  INTERNET_OPTION_RECEIVE_THROUGHPUT      = 57;
+  INTERNET_OPTION_REQUEST_PRIORITY        = 58;
+  INTERNET_OPTION_HTTP_VERSION            = 59;
+  INTERNET_OPTION_RESET_URLCACHE_SESSION  = 60;
+  INTERNET_OPTION_ERROR_MASK              = 62;
+
+  INTERNET_FIRST_OPTION                   = INTERNET_OPTION_CALLBACK;
+  INTERNET_LAST_OPTION                    = INTERNET_OPTION_ERROR_MASK;
+
+
+//
+// values for INTERNET_OPTION_PRIORITY
+//
+
+CONST
+  INTERNET_PRIORITY_FOREGROUND            = 1000;
+
+//
+// handle types
+//
+
+CONST
+  INTERNET_HANDLE_TYPE_INTERNET           = 1;
+  INTERNET_HANDLE_TYPE_CONNECT_FTP        = 2;
+  INTERNET_HANDLE_TYPE_CONNECT_GOPHER     = 3;
+  INTERNET_HANDLE_TYPE_CONNECT_HTTP       = 4;
+  INTERNET_HANDLE_TYPE_FTP_FIND           = 5;
+  INTERNET_HANDLE_TYPE_FTP_FIND_HTML      = 6;
+  INTERNET_HANDLE_TYPE_FTP_FILE           = 7;
+  INTERNET_HANDLE_TYPE_FTP_FILE_HTML      = 8;
+  INTERNET_HANDLE_TYPE_GOPHER_FIND        = 9;
+  INTERNET_HANDLE_TYPE_GOPHER_FIND_HTML   = 10;
+  INTERNET_HANDLE_TYPE_GOPHER_FILE        = 11;
+  INTERNET_HANDLE_TYPE_GOPHER_FILE_HTML   = 12;
+  INTERNET_HANDLE_TYPE_HTTP_REQUEST       = 13;
+
+//
+// values for INTERNET_OPTION_SECURITY_FLAGS
+//
+
+// query only
+CONST
+  SECURITY_FLAG_SECURE                    = 00000001H; // can query only
+  SECURITY_FLAG_STRENGTH_WEAK             = 10000000H;
+  SECURITY_FLAG_STRENGTH_MEDIUM           = 40000000H;
+  SECURITY_FLAG_STRENGTH_STRONG           = 20000000H;
+  SECURITY_FLAG_UNKNOWNBIT                = 80000000H;
+  SECURITY_FLAG_NORMALBITNESS             = SECURITY_FLAG_STRENGTH_WEAK;
+
+
+
+// The following are unused
+CONST
+  SECURITY_FLAG_SSL                       = 00000002H;
+  SECURITY_FLAG_SSL3                      = 00000004H;
+  SECURITY_FLAG_PCT                       = 00000008H;
+  SECURITY_FLAG_PCT4                      = 00000010H;
+  SECURITY_FLAG_IETFSSL4                  = 00000020H;
+
+// The following are for backwards compatability only.
+CONST
+  SECURITY_FLAG_40BIT                     = SECURITY_FLAG_STRENGTH_WEAK;
+  SECURITY_FLAG_128BIT                    = SECURITY_FLAG_STRENGTH_STRONG;
+  SECURITY_FLAG_56BIT                     = SECURITY_FLAG_STRENGTH_MEDIUM;
+
+
+// setable flags
+CONST
+  SECURITY_FLAG_IGNORE_REVOCATION         = 00000080H;
+  SECURITY_FLAG_IGNORE_UNKNOWN_CA         = 00000100H;
+  SECURITY_FLAG_IGNORE_WRONG_USAGE        = 00000200H;
+
+  SECURITY_FLAG_IGNORE_CERT_CN_INVALID    = INTERNET_FLAG_IGNORE_CERT_CN_INVALID;
+  SECURITY_FLAG_IGNORE_CERT_DATE_INVALID  = INTERNET_FLAG_IGNORE_CERT_DATE_INVALID;
+
+
+  SECURITY_FLAG_IGNORE_REDIRECT_TO_HTTPS  = INTERNET_FLAG_IGNORE_REDIRECT_TO_HTTPS;
+  SECURITY_FLAG_IGNORE_REDIRECT_TO_HTTP   = INTERNET_FLAG_IGNORE_REDIRECT_TO_HTTP;
+
+  SECURITY_SET_MASK            = SECURITY_FLAG_IGNORE_REVOCATION OR 
+                                 SECURITY_FLAG_IGNORE_UNKNOWN_CA OR 
+                                 SECURITY_FLAG_IGNORE_CERT_CN_INVALID OR 
+                                 SECURITY_FLAG_IGNORE_CERT_DATE_INVALID OR 
+                                 SECURITY_FLAG_IGNORE_WRONG_USAGE;
+
+
+
+PROCEDURE InternetGetLastResponseInfoA(
+    lpdwError : windows.PDWORD;
+    lpszBuffer : windows.PSTR;
+    lpdwBufferLength : windows.PDWORD
+    ) : windows.BOOL;
+
+PROCEDURE InternetGetLastResponseInfoW(
+    lpdwError : windows.PDWORD;
+    lpszBuffer : windows.PWSTR;
+    lpdwBufferLength : windows.PDWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  InternetGetLastResponseInfo ::= InternetGetLastResponseInfoW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  InternetGetLastResponseInfo ::= InternetGetLastResponseInfoA;
+(*%E UNICODE *)
+
+//
+// callback function for InternetSetStatusCallback
+//
+
+// typedef
+// VOID
+// (CALLBACK * INTERNET_STATUS_CALLBACK)(
+//     IN HINTERNET hInternet,
+//     IN DWORD dwContext,
+//     IN DWORD dwInternetStatus,
+//     IN LPVOID lpvStatusInformation,
+//     IN DWORD dwStatusInformationLength
+//     );
+//
+// typedef INTERNET_STATUS_CALLBACK * LPINTERNET_STATUS_CALLBACK;
+
+
+(*# save, call( prefix=>stdcall ) *)
+TYPE
+  INTERNET_STATUS_CALLBACK = PROCEDURE( HINTERNET, windows.DWORD, windows.DWORD, ADDRESS, windows.DWORD );
+(*# restore *)
+
+PROCEDURE InternetSetStatusCallback(
+    hInternet : HINTERNET;
+    lpfnInternetCallback : INTERNET_STATUS_CALLBACK
+    ) : INTERNET_STATUS_CALLBACK;
+
+//
+// status manifests for Internet status callback
+//
+
+CONST
+  INTERNET_STATUS_RESOLVING_NAME          = 10;
+  INTERNET_STATUS_NAME_RESOLVED           = 11;
+  INTERNET_STATUS_CONNECTING_TO_SERVER    = 20;
+  INTERNET_STATUS_CONNECTED_TO_SERVER     = 21;
+  INTERNET_STATUS_SENDING_REQUEST         = 30;
+  INTERNET_STATUS_REQUEST_SENT            = 31;
+  INTERNET_STATUS_RECEIVING_RESPONSE      = 40;
+  INTERNET_STATUS_RESPONSE_RECEIVED       = 41;
+  INTERNET_STATUS_CTL_RESPONSE_RECEIVED   = 42;
+  INTERNET_STATUS_PREFETCH                = 43;
+  INTERNET_STATUS_CLOSING_CONNECTION      = 50;
+  INTERNET_STATUS_CONNECTION_CLOSED       = 51;
+  INTERNET_STATUS_HANDLE_CREATED          = 60;
+  INTERNET_STATUS_HANDLE_CLOSING          = 70;
+  INTERNET_STATUS_DETECTING_PROXY         = 80;
+  INTERNET_STATUS_REQUEST_COMPLETE        = 100;
+  INTERNET_STATUS_REDIRECT                = 110;
+  INTERNET_STATUS_INTERMEDIATE_RESPONSE   = 120;
+  INTERNET_STATUS_USER_INPUT_REQUIRED     = 140;
+  INTERNET_STATUS_STATE_CHANGE            = 200;
+  INTERNET_STATUS_COOKIE_SENT             = 320;
+  INTERNET_STATUS_COOKIE_RECEIVED         = 321;
+  INTERNET_STATUS_PRIVACY_IMPACTED        = 324;
+  INTERNET_STATUS_P3P_HEADER              = 325;
+  INTERNET_STATUS_P3P_POLICYREF           = 326;
+  INTERNET_STATUS_COOKIE_HISTORY          = 327;
+
+
+//
+// the following can be indicated in a state change notification:
+//
+
+CONST
+  INTERNET_STATE_CONNECTED                = 00000001H;  // connected state (mutually exclusive with disconnected)
+  INTERNET_STATE_DISCONNECTED             = 00000002H;  // disconnected from network
+  INTERNET_STATE_DISCONNECTED_BY_USER     = 00000010H;  // disconnected by user request
+  INTERNET_STATE_IDLE                     = 00000100H;  // no network requests being made (by Wininet)
+  INTERNET_STATE_BUSY                     = 00000200H;  // network requests being made (by Wininet)
+
+
+//
+// if the following value is returned by InternetSetStatusCallback, then
+// probably an invalid (non-code) address was supplied for the callback
+//
+
+CONST
+  INTERNET_INVALID_STATUS_CALLBACK        = INTERNET_STATUS_CALLBACK(-1);
+
+//
+// FTP
+//
+
+//
+// manifests
+//
+
+//!!! Note
+//    In Modula2 defined above
+
+//#define FTP_TRANSFER_TYPE_UNKNOWN   0x00000000
+//#define FTP_TRANSFER_TYPE_ASCII     0x00000001
+//#define FTP_TRANSFER_TYPE_BINARY    0x00000002
+
+//#define FTP_TRANSFER_TYPE_MASK      (FTP_TRANSFER_TYPE_ASCII | FTP_TRANSFER_TYPE_BINARY)
+
+//
+// prototypes
+//
+
+PROCEDURE FtpFindFirstFileA(
+    hConnect : HINTERNET;
+    lpszSearchFile : windows.PCSTR;
+    lpFindFileData : windows.PWIN32_FIND_DATA;
+    dwFlags : windows.DWORD;
+    dwContext : windows.DWORD
+    ) : HINTERNET;
+
+
+PROCEDURE FtpFindFirstFileW(
+    hConnect : HINTERNET;
+    lpszSearchFile : windows.PCWSTR;
+    lpFindFileData : windows.PWIN32_FIND_DATA;
+    dwFlags : windows.DWORD;
+    dwContext : windows.DWORD
+    ) : HINTERNET;
+
+CONST
+(*%T UNICODE *)
+  FtpFindFirstFile ::= FtpFindFirstFileW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  FtpFindFirstFile ::= FtpFindFirstFileA;
+(*%E UNICODE *)
+
+PROCEDURE FtpGetFileA(
+    hConnect : HINTERNET;
+    lpszRemoteFile : windows.PCSTR;
+    lpszNewFile : windows.PCSTR;
+    fFailIfExists : windows.BOOL;
+    dwFlagsAndAttributes : windows.DWORD;
+    dwFlags : windows.DWORD;
+    dwContext : windows.DWORD
+    ) : windows.BOOL;
+
+PROCEDURE FtpGetFileW(
+    hConnect : HINTERNET;
+    lpszRemoteFile : windows.PCWSTR;
+    lpszNewFile : windows.PCWSTR;
+    fFailIfExists : windows.BOOL;
+    dwFlagsAndAttributes : windows.DWORD;
+    dwFlags : windows.DWORD;
+    dwContext : windows.DWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  FtpGetFile ::= FtpGetFileW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  FtpGetFile ::= FtpGetFileA;
+(*%E UNICODE *)
+
+PROCEDURE FtpPutFileA(
+    hConnect : HINTERNET;
+    lpszLocalFile : windows.PCSTR;
+    lpszNewRemoteFile : windows.PCSTR;
+    dwFlags : windows.DWORD;
+    dwContext : windows.DWORD
+    ) : windows.BOOL;
+
+PROCEDURE FtpPutFileW(
+    hConnect : HINTERNET;
+    lpszLocalFile : windows.PCWSTR;
+    lpszNewRemoteFile : windows.PCWSTR;
+    dwFlags : windows.DWORD;
+    dwContext : windows.DWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  FtpPutFile ::= FtpPutFileW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  FtpPutFile ::= FtpPutFileA;
+(*%E UNICODE *)
+
+PROCEDURE FtpDeleteFileA(
+    hConnect : HINTERNET;
+    lpszFileName : windows.PCSTR
+    ) : windows.BOOL;
+
+PROCEDURE FtpDeleteFileW(
+    hConnect : HINTERNET;
+    lpszFileName : windows.PCWSTR
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  FtpDeleteFile ::= FtpDeleteFileW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  FtpDeleteFile ::= FtpDeleteFileA;
+(*%E UNICODE *)
+
+PROCEDURE FtpRenameFileA(
+    hConnect : HINTERNET;
+    lpszExisting : windows.PCSTR;
+    lpszNew : windows.PCSTR
+    ) : windows.BOOL;
+
+PROCEDURE FtpRenameFileW(
+    hConnect : HINTERNET;
+    lpszExisting : windows.PCWSTR;
+    lpszNew : windows.PCWSTR
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  FtpRenameFile ::= FtpRenameFileW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  FtpRenameFile ::= FtpRenameFileA;
+(*%E UNICODE *)
+
+
+PROCEDURE FtpOpenFileA(
+    hConnect : HINTERNET;
+    lpszFileName : windows.PCSTR;
+    dwAccess : windows.DWORD;
+    dwFlags : windows.DWORD;
+    dwContext : windows.DWORD
+    ) : HINTERNET;
+
+PROCEDURE FtpOpenFileW(
+    hConnect : HINTERNET;
+    lpszFileName : windows.PCWSTR;
+    dwAccess : windows.DWORD;
+    dwFlags : windows.DWORD;
+    dwContext : windows.DWORD
+    ) : HINTERNET;
+
+CONST
+(*%T UNICODE *)
+  FtpOpenFile ::= FtpOpenFileW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  FtpOpenFile ::= FtpOpenFileA;
+(*%E UNICODE *)
+
+PROCEDURE FtpCreateDirectoryA(
+    hConnect : HINTERNET;
+    lpszDirectory : windows.PCSTR
+    ) : windows.BOOL;
+
+PROCEDURE FtpCreateDirectoryW(
+    hConnect : HINTERNET;
+    lpszDirectory : windows.PCWSTR
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  FtpCreateDirectory ::= FtpCreateDirectoryW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  FtpCreateDirectory ::= FtpCreateDirectoryA;
+(*%E UNICODE *)
+
+PROCEDURE FtpRemoveDirectoryA(
+    hConnect : HINTERNET;
+    lpszDirectory : windows.PCSTR
+    ) : windows.BOOL;
+
+PROCEDURE FtpRemoveDirectoryW(
+    hConnect : HINTERNET;
+    lpszDirectory : windows.PCWSTR
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  FtpRemoveDirectory ::= FtpRemoveDirectoryW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  FtpRemoveDirectory ::= FtpRemoveDirectoryA;
+(*%E UNICODE *)
+
+PROCEDURE FtpSetCurrentDirectoryA(
+    hConnect : HINTERNET;
+    lpszDirectory : windows.PCSTR
+    ) : windows.BOOL;
+
+PROCEDURE FtpSetCurrentDirectoryW(
+    hConnect : HINTERNET;
+    lpszDirectory : windows.PCWSTR
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  FtpSetCurrentDirectory ::= FtpSetCurrentDirectoryW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  FtpSetCurrentDirectory ::= FtpSetCurrentDirectoryA;
+(*%E UNICODE *)
+
+PROCEDURE FtpGetCurrentDirectoryA(
+    hConnect : HINTERNET;
+    lpszCurrentDirectory : windows.PSTR;
+    lpdwCurrentDirectory : windows.PDWORD
+    ) : windows.BOOL;
+
+PROCEDURE FtpGetCurrentDirectoryW(
+    hConnect : HINTERNET;
+    lpszCurrentDirectory : windows.PWSTR;
+    lpdwCurrentDirectory : windows.PDWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  FtpGetCurrentDirectory ::= FtpGetCurrentDirectoryW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  FtpGetCurrentDirectory ::= FtpGetCurrentDirectoryA;
+(*%E UNICODE *)
+
+
+
+(* /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! GOPHER API IS NOT SUPPORTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+//
+// Gopher
+//
+
+//
+// manifests
+//
+
+//
+// string field lengths (in characters, not bytes)
+//
+
+#define MAX_GOPHER_DISPLAY_TEXT     128
+#define MAX_GOPHER_SELECTOR_TEXT    256
+#define MAX_GOPHER_HOST_NAME        INTERNET_MAX_HOST_NAME_LENGTH
+#define MAX_GOPHER_LOCATOR_LENGTH   (1                                  \
+                                    + MAX_GOPHER_DISPLAY_TEXT           \
+                                    + 1                                 \
+                                    + MAX_GOPHER_SELECTOR_TEXT          \
+                                    + 1                                 \
+                                    + MAX_GOPHER_HOST_NAME              \
+                                    + 1                                 \
+                                    + INTERNET_MAX_PORT_NUMBER_LENGTH   \
+                                    + 1                                 \
+                                    + 1                                 \
+                                    + 2                                 \
+                                    )
+
+//
+// structures/types
+//
+
+//
+// GOPHER_FIND_DATA - returns the results of a GopherFindFirstFile()/
+// InternetFindNextFile() request
+//
+
+typedef struct {
+    CHAR   DisplayString[MAX_GOPHER_DISPLAY_TEXT + 1];
+    DWORD GopherType;   // GOPHER_TYPE_, if known
+    DWORD SizeLow;
+    DWORD SizeHigh;
+    FILETIME LastModificationTime;
+    CHAR   Locator[MAX_GOPHER_LOCATOR_LENGTH + 1];
+} GOPHER_FIND_DATAA, * LPGOPHER_FIND_DATAA;
+typedef struct {
+    WCHAR  DisplayString[MAX_GOPHER_DISPLAY_TEXT + 1];
+    DWORD GopherType;   // GOPHER_TYPE_, if known
+    DWORD SizeLow;
+    DWORD SizeHigh;
+    FILETIME LastModificationTime;
+    WCHAR  Locator[MAX_GOPHER_LOCATOR_LENGTH + 1];
+} GOPHER_FIND_DATAW, * LPGOPHER_FIND_DATAW;
+#ifdef UNICODE
+typedef GOPHER_FIND_DATAW GOPHER_FIND_DATA;
+typedef LPGOPHER_FIND_DATAW LPGOPHER_FIND_DATA;
+#else
+typedef GOPHER_FIND_DATAA GOPHER_FIND_DATA;
+typedef LPGOPHER_FIND_DATAA LPGOPHER_FIND_DATA;
+#endif // UNICODE
+
+//
+// manifests for GopherType
+//
+
+#define GOPHER_TYPE_TEXT_FILE       0x00000001
+#define GOPHER_TYPE_DIRECTORY       0x00000002
+#define GOPHER_TYPE_CSO             0x00000004
+#define GOPHER_TYPE_ERROR           0x00000008
+#define GOPHER_TYPE_MAC_BINHEX      0x00000010
+#define GOPHER_TYPE_DOS_ARCHIVE     0x00000020
+#define GOPHER_TYPE_UNIX_UUENCODED  0x00000040
+#define GOPHER_TYPE_INDEX_SERVER    0x00000080
+#define GOPHER_TYPE_TELNET          0x00000100
+#define GOPHER_TYPE_BINARY          0x00000200
+#define GOPHER_TYPE_REDUNDANT       0x00000400
+#define GOPHER_TYPE_TN3270          0x00000800
+#define GOPHER_TYPE_GIF             0x00001000
+#define GOPHER_TYPE_IMAGE           0x00002000
+#define GOPHER_TYPE_BITMAP          0x00004000
+#define GOPHER_TYPE_MOVIE           0x00008000
+#define GOPHER_TYPE_SOUND           0x00010000
+#define GOPHER_TYPE_HTML            0x00020000
+#define GOPHER_TYPE_PDF             0x00040000
+#define GOPHER_TYPE_CALENDAR        0x00080000
+#define GOPHER_TYPE_INLINE          0x00100000
+#define GOPHER_TYPE_UNKNOWN         0x20000000
+#define GOPHER_TYPE_ASK             0x40000000
+#define GOPHER_TYPE_GOPHER_PLUS     0x80000000
+
+//
+// gopher type macros
+//
+
+#define IS_GOPHER_FILE(type)            (BOOL)(((type) & GOPHER_TYPE_FILE_MASK) ? TRUE : FALSE)
+#define IS_GOPHER_DIRECTORY(type)       (BOOL)(((type) & GOPHER_TYPE_DIRECTORY) ? TRUE : FALSE)
+#define IS_GOPHER_PHONE_SERVER(type)    (BOOL)(((type) & GOPHER_TYPE_CSO) ? TRUE : FALSE)
+#define IS_GOPHER_ERROR(type)           (BOOL)(((type) & GOPHER_TYPE_ERROR) ? TRUE : FALSE)
+#define IS_GOPHER_INDEX_SERVER(type)    (BOOL)(((type) & GOPHER_TYPE_INDEX_SERVER) ? TRUE : FALSE)
+#define IS_GOPHER_TELNET_SESSION(type)  (BOOL)(((type) & GOPHER_TYPE_TELNET) ? TRUE : FALSE)
+#define IS_GOPHER_BACKUP_SERVER(type)   (BOOL)(((type) & GOPHER_TYPE_REDUNDANT) ? TRUE : FALSE)
+#define IS_GOPHER_TN3270_SESSION(type)  (BOOL)(((type) & GOPHER_TYPE_TN3270) ? TRUE : FALSE)
+#define IS_GOPHER_ASK(type)             (BOOL)(((type) & GOPHER_TYPE_ASK) ? TRUE : FALSE)
+#define IS_GOPHER_PLUS(type)            (BOOL)(((type) & GOPHER_TYPE_GOPHER_PLUS) ? TRUE : FALSE)
+
+#define IS_GOPHER_TYPE_KNOWN(type)      (BOOL)(((type) & GOPHER_TYPE_UNKNOWN) ? FALSE : TRUE)
+
+//
+// GOPHER_TYPE_FILE_MASK - use this to determine if a locator identifies a
+// (known) file type
+//
+
+#define GOPHER_TYPE_FILE_MASK       (GOPHER_TYPE_TEXT_FILE          \
+                                    | GOPHER_TYPE_MAC_BINHEX        \
+                                    | GOPHER_TYPE_DOS_ARCHIVE       \
+                                    | GOPHER_TYPE_UNIX_UUENCODED    \
+                                    | GOPHER_TYPE_BINARY            \
+                                    | GOPHER_TYPE_GIF               \
+                                    | GOPHER_TYPE_IMAGE             \
+                                    | GOPHER_TYPE_BITMAP            \
+                                    | GOPHER_TYPE_MOVIE             \
+                                    | GOPHER_TYPE_SOUND             \
+                                    | GOPHER_TYPE_HTML              \
+                                    | GOPHER_TYPE_PDF               \
+                                    | GOPHER_TYPE_CALENDAR          \
+                                    | GOPHER_TYPE_INLINE            \
+                                    )
+
+//
+// structured gopher attributes (as defined in gopher+ protocol document)
+//
+
+typedef struct {
+    LPCTSTR Comment;
+    LPCTSTR EmailAddress;
+} GOPHER_ADMIN_ATTRIBUTE_TYPE, * LPGOPHER_ADMIN_ATTRIBUTE_TYPE;
+
+typedef struct {
+    FILETIME DateAndTime;
+} GOPHER_MOD_DATE_ATTRIBUTE_TYPE, * LPGOPHER_MOD_DATE_ATTRIBUTE_TYPE;
+
+typedef struct {
+    DWORD Ttl;
+} GOPHER_TTL_ATTRIBUTE_TYPE, * LPGOPHER_TTL_ATTRIBUTE_TYPE;
+
+typedef struct {
+    INT Score;
+} GOPHER_SCORE_ATTRIBUTE_TYPE, * LPGOPHER_SCORE_ATTRIBUTE_TYPE;
+
+typedef struct {
+    INT LowerBound;
+    INT UpperBound;
+} GOPHER_SCORE_RANGE_ATTRIBUTE_TYPE, * LPGOPHER_SCORE_RANGE_ATTRIBUTE_TYPE;
+
+typedef struct {
+    LPCTSTR Site;
+} GOPHER_SITE_ATTRIBUTE_TYPE, * LPGOPHER_SITE_ATTRIBUTE_TYPE;
+
+typedef struct {
+    LPCTSTR Organization;
+} GOPHER_ORGANIZATION_ATTRIBUTE_TYPE, * LPGOPHER_ORGANIZATION_ATTRIBUTE_TYPE;
+
+typedef struct {
+    LPCTSTR Location;
+} GOPHER_LOCATION_ATTRIBUTE_TYPE, * LPGOPHER_LOCATION_ATTRIBUTE_TYPE;
+
+typedef struct {
+    INT DegreesNorth;
+    INT MinutesNorth;
+    INT SecondsNorth;
+    INT DegreesEast;
+    INT MinutesEast;
+    INT SecondsEast;
+} GOPHER_GEOGRAPHICAL_LOCATION_ATTRIBUTE_TYPE, * LPGOPHER_GEOGRAPHICAL_LOCATION_ATTRIBUTE_TYPE;
+
+typedef struct {
+    INT Zone;
+} GOPHER_TIMEZONE_ATTRIBUTE_TYPE, * LPGOPHER_TIMEZONE_ATTRIBUTE_TYPE;
+
+typedef struct {
+    LPCTSTR Provider;
+} GOPHER_PROVIDER_ATTRIBUTE_TYPE, * LPGOPHER_PROVIDER_ATTRIBUTE_TYPE;
+
+typedef struct {
+    LPCTSTR Version;
+} GOPHER_VERSION_ATTRIBUTE_TYPE, * LPGOPHER_VERSION_ATTRIBUTE_TYPE;
+
+typedef struct {
+    LPCTSTR ShortAbstract;
+    LPCTSTR AbstractFile;
+} GOPHER_ABSTRACT_ATTRIBUTE_TYPE, * LPGOPHER_ABSTRACT_ATTRIBUTE_TYPE;
+
+typedef struct {
+    LPCTSTR ContentType;
+    LPCTSTR Language;
+    DWORD Size;
+} GOPHER_VIEW_ATTRIBUTE_TYPE, * LPGOPHER_VIEW_ATTRIBUTE_TYPE;
+
+typedef struct {
+    BOOL TreeWalk;
+} GOPHER_VERONICA_ATTRIBUTE_TYPE, * LPGOPHER_VERONICA_ATTRIBUTE_TYPE;
+
+typedef struct {
+    LPCTSTR QuestionType;
+    LPCTSTR QuestionText;
+} GOPHER_ASK_ATTRIBUTE_TYPE, * LPGOPHER_ASK_ATTRIBUTE_TYPE;
+
+//
+// GOPHER_UNKNOWN_ATTRIBUTE_TYPE - this is returned if we retrieve an attribute
+// that is not specified in the current gopher/gopher+ documentation. It is up
+// to the application to parse the information
+//
+
+typedef struct {
+    LPCTSTR Text;
+} GOPHER_UNKNOWN_ATTRIBUTE_TYPE, * LPGOPHER_UNKNOWN_ATTRIBUTE_TYPE;
+
+//
+// GOPHER_ATTRIBUTE_TYPE - returned in the user's buffer when an enumerated
+// GopherGetAttribute call is made
+//
+
+typedef struct {
+    DWORD CategoryId;   // e.g. GOPHER_CATEGORY_ID_ADMIN
+    DWORD AttributeId;  // e.g. GOPHER_ATTRIBUTE_ID_ADMIN
+    union {
+        GOPHER_ADMIN_ATTRIBUTE_TYPE Admin;
+        GOPHER_MOD_DATE_ATTRIBUTE_TYPE ModDate;
+        GOPHER_TTL_ATTRIBUTE_TYPE Ttl;
+        GOPHER_SCORE_ATTRIBUTE_TYPE Score;
+        GOPHER_SCORE_RANGE_ATTRIBUTE_TYPE ScoreRange;
+        GOPHER_SITE_ATTRIBUTE_TYPE Site;
+        GOPHER_ORGANIZATION_ATTRIBUTE_TYPE Organization;
+        GOPHER_LOCATION_ATTRIBUTE_TYPE Location;
+        GOPHER_GEOGRAPHICAL_LOCATION_ATTRIBUTE_TYPE GeographicalLocation;
+        GOPHER_TIMEZONE_ATTRIBUTE_TYPE TimeZone;
+        GOPHER_PROVIDER_ATTRIBUTE_TYPE Provider;
+        GOPHER_VERSION_ATTRIBUTE_TYPE Version;
+        GOPHER_ABSTRACT_ATTRIBUTE_TYPE Abstract;
+        GOPHER_VIEW_ATTRIBUTE_TYPE View;
+        GOPHER_VERONICA_ATTRIBUTE_TYPE Veronica;
+        GOPHER_ASK_ATTRIBUTE_TYPE Ask;
+        GOPHER_UNKNOWN_ATTRIBUTE_TYPE Unknown;
+    } AttributeType;
+} GOPHER_ATTRIBUTE_TYPE, * LPGOPHER_ATTRIBUTE_TYPE;
+
+#define MAX_GOPHER_CATEGORY_NAME    128     // arbitrary
+#define MAX_GOPHER_ATTRIBUTE_NAME   128     //     "
+#define MIN_GOPHER_ATTRIBUTE_LENGTH 256     //     "
+
+//
+// known gopher attribute categories. See below for ordinals
+//
+
+#define GOPHER_INFO_CATEGORY        TEXT("+INFO")
+#define GOPHER_ADMIN_CATEGORY       TEXT("+ADMIN")
+#define GOPHER_VIEWS_CATEGORY       TEXT("+VIEWS")
+#define GOPHER_ABSTRACT_CATEGORY    TEXT("+ABSTRACT")
+#define GOPHER_VERONICA_CATEGORY    TEXT("+VERONICA")
+
+//
+// known gopher attributes. These are the attribute names as defined in the
+// gopher+ protocol document
+//
+
+#define GOPHER_ADMIN_ATTRIBUTE      TEXT("Admin")
+#define GOPHER_MOD_DATE_ATTRIBUTE   TEXT("Mod-Date")
+#define GOPHER_TTL_ATTRIBUTE        TEXT("TTL")
+#define GOPHER_SCORE_ATTRIBUTE      TEXT("Score")
+#define GOPHER_RANGE_ATTRIBUTE      TEXT("Score-range")
+#define GOPHER_SITE_ATTRIBUTE       TEXT("Site")
+#define GOPHER_ORG_ATTRIBUTE        TEXT("Org")
+#define GOPHER_LOCATION_ATTRIBUTE   TEXT("Loc")
+#define GOPHER_GEOG_ATTRIBUTE       TEXT("Geog")
+#define GOPHER_TIMEZONE_ATTRIBUTE   TEXT("TZ")
+#define GOPHER_PROVIDER_ATTRIBUTE   TEXT("Provider")
+#define GOPHER_VERSION_ATTRIBUTE    TEXT("Version")
+#define GOPHER_ABSTRACT_ATTRIBUTE   TEXT("Abstract")
+#define GOPHER_VIEW_ATTRIBUTE       TEXT("View")
+#define GOPHER_TREEWALK_ATTRIBUTE   TEXT("treewalk")
+
+//
+// identifiers for attribute strings
+//
+
+#define GOPHER_ATTRIBUTE_ID_BASE        0xabcccc00
+
+#define GOPHER_CATEGORY_ID_ALL          (GOPHER_ATTRIBUTE_ID_BASE + 1)
+
+#define GOPHER_CATEGORY_ID_INFO         (GOPHER_ATTRIBUTE_ID_BASE + 2)
+#define GOPHER_CATEGORY_ID_ADMIN        (GOPHER_ATTRIBUTE_ID_BASE + 3)
+#define GOPHER_CATEGORY_ID_VIEWS        (GOPHER_ATTRIBUTE_ID_BASE + 4)
+#define GOPHER_CATEGORY_ID_ABSTRACT     (GOPHER_ATTRIBUTE_ID_BASE + 5)
+#define GOPHER_CATEGORY_ID_VERONICA     (GOPHER_ATTRIBUTE_ID_BASE + 6)
+#define GOPHER_CATEGORY_ID_ASK          (GOPHER_ATTRIBUTE_ID_BASE + 7)
+
+#define GOPHER_CATEGORY_ID_UNKNOWN      (GOPHER_ATTRIBUTE_ID_BASE + 8)
+
+#define GOPHER_ATTRIBUTE_ID_ALL         (GOPHER_ATTRIBUTE_ID_BASE + 9)
+
+#define GOPHER_ATTRIBUTE_ID_ADMIN       (GOPHER_ATTRIBUTE_ID_BASE + 10)
+#define GOPHER_ATTRIBUTE_ID_MOD_DATE    (GOPHER_ATTRIBUTE_ID_BASE + 11)
+#define GOPHER_ATTRIBUTE_ID_TTL         (GOPHER_ATTRIBUTE_ID_BASE + 12)
+#define GOPHER_ATTRIBUTE_ID_SCORE       (GOPHER_ATTRIBUTE_ID_BASE + 13)
+#define GOPHER_ATTRIBUTE_ID_RANGE       (GOPHER_ATTRIBUTE_ID_BASE + 14)
+#define GOPHER_ATTRIBUTE_ID_SITE        (GOPHER_ATTRIBUTE_ID_BASE + 15)
+#define GOPHER_ATTRIBUTE_ID_ORG         (GOPHER_ATTRIBUTE_ID_BASE + 16)
+#define GOPHER_ATTRIBUTE_ID_LOCATION    (GOPHER_ATTRIBUTE_ID_BASE + 17)
+#define GOPHER_ATTRIBUTE_ID_GEOG        (GOPHER_ATTRIBUTE_ID_BASE + 18)
+#define GOPHER_ATTRIBUTE_ID_TIMEZONE    (GOPHER_ATTRIBUTE_ID_BASE + 19)
+#define GOPHER_ATTRIBUTE_ID_PROVIDER    (GOPHER_ATTRIBUTE_ID_BASE + 20)
+#define GOPHER_ATTRIBUTE_ID_VERSION     (GOPHER_ATTRIBUTE_ID_BASE + 21)
+#define GOPHER_ATTRIBUTE_ID_ABSTRACT    (GOPHER_ATTRIBUTE_ID_BASE + 22)
+#define GOPHER_ATTRIBUTE_ID_VIEW        (GOPHER_ATTRIBUTE_ID_BASE + 23)
+#define GOPHER_ATTRIBUTE_ID_TREEWALK    (GOPHER_ATTRIBUTE_ID_BASE + 24)
+
+#define GOPHER_ATTRIBUTE_ID_UNKNOWN     (GOPHER_ATTRIBUTE_ID_BASE + 25)
+
+//
+// prototypes
+//
+
+BOOLAPI
+GopherCreateLocatorA(
+    IN LPCSTR lpszHost,
+    IN INTERNET_PORT nServerPort,
+    IN LPCSTR lpszDisplayString,
+    IN LPCSTR lpszSelectorString,
+    IN DWORD dwGopherType,
+    OUT LPSTR lpszLocator,
+    IN OUT LPDWORD lpdwBufferLength
+    );
+BOOLAPI
+GopherCreateLocatorW(
+    IN LPCWSTR lpszHost,
+    IN INTERNET_PORT nServerPort,
+    IN LPCWSTR lpszDisplayString,
+    IN LPCWSTR lpszSelectorString,
+    IN DWORD dwGopherType,
+    OUT LPWSTR lpszLocator,
+    IN OUT LPDWORD lpdwBufferLength
+    );
+#ifdef UNICODE
+#define GopherCreateLocator  GopherCreateLocatorW
+#else
+#define GopherCreateLocator  GopherCreateLocatorA
+#endif // !UNICODE
+
+BOOLAPI
+GopherGetLocatorTypeA(
+    IN LPCSTR lpszLocator,
+    OUT LPDWORD lpdwGopherType
+    );
+BOOLAPI
+GopherGetLocatorTypeW(
+    IN LPCWSTR lpszLocator,
+    OUT LPDWORD lpdwGopherType
+    );
+#ifdef UNICODE
+#define GopherGetLocatorType  GopherGetLocatorTypeW
+#else
+#define GopherGetLocatorType  GopherGetLocatorTypeA
+#endif // !UNICODE
+
+INTERNETAPI
+HINTERNET
+WINAPI
+GopherFindFirstFileA(
+    IN HINTERNET hConnect,
+    IN LPCSTR lpszLocator,
+    IN LPCSTR lpszSearchString,
+    OUT LPGOPHER_FIND_DATAA lpFindData,
+    IN DWORD dwFlags,
+    IN DWORD dwContext
+    );
+INTERNETAPI
+HINTERNET
+WINAPI
+GopherFindFirstFileW(
+    IN HINTERNET hConnect,
+    IN LPCWSTR lpszLocator,
+    IN LPCWSTR lpszSearchString,
+    OUT LPGOPHER_FIND_DATAW lpFindData,
+    IN DWORD dwFlags,
+    IN DWORD dwContext
+    );
+#ifdef UNICODE
+#define GopherFindFirstFile  GopherFindFirstFileW
+#else
+#define GopherFindFirstFile  GopherFindFirstFileA
+#endif // !UNICODE
+
+INTERNETAPI
+HINTERNET
+WINAPI
+GopherOpenFileA(
+    IN HINTERNET hConnect,
+    IN LPCSTR lpszLocator,
+    IN LPCSTR lpszView,
+    IN DWORD dwFlags,
+    IN DWORD dwContext
+    );
+INTERNETAPI
+HINTERNET
+WINAPI
+GopherOpenFileW(
+    IN HINTERNET hConnect,
+    IN LPCWSTR lpszLocator,
+    IN LPCWSTR lpszView,
+    IN DWORD dwFlags,
+    IN DWORD dwContext
+    );
+#ifdef UNICODE
+#define GopherOpenFile  GopherOpenFileW
+#else
+#define GopherOpenFile  GopherOpenFileA
+#endif // !UNICODE
+
+typedef
+BOOL
+(CALLBACK * GOPHER_ATTRIBUTE_ENUMERATOR)(
+    LPGOPHER_ATTRIBUTE_TYPE lpAttributeInfo,
+    DWORD dwError
+    );
+
+BOOLAPI
+GopherGetAttributeA(
+    IN HINTERNET hConnect,
+    IN LPCSTR lpszLocator,
+    IN LPCSTR lpszAttributeName,
+    OUT LPBYTE lpBuffer,
+    IN DWORD dwBufferLength,
+    OUT LPDWORD lpdwCharactersReturned,
+    IN GOPHER_ATTRIBUTE_ENUMERATOR lpfnEnumerator,
+    IN DWORD dwContext
+    );
+BOOLAPI
+GopherGetAttributeW(
+    IN HINTERNET hConnect,
+    IN LPCWSTR lpszLocator,
+    IN LPCWSTR lpszAttributeName,
+    OUT LPBYTE lpBuffer,
+    IN DWORD dwBufferLength,
+    OUT LPDWORD lpdwCharactersReturned,
+    IN GOPHER_ATTRIBUTE_ENUMERATOR lpfnEnumerator,
+    IN DWORD dwContext
+    );
+#ifdef UNICODE
+#define GopherGetAttribute  GopherGetAttributeW
+#else
+#define GopherGetAttribute  GopherGetAttributeA
+#endif // !UNICODE
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! GOPHER API IS NOT SUPPORTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */ *)
+
+
+
+//
+// HTTP
+//
+
+//
+// manifests
+//
+
+//
+// the default major/minor HTTP version numbers
+//
+
+CONST
+  HTTP_MAJOR_VERSION      = 1;
+  HTTP_MINOR_VERSION      = 0;
+
+  HTTP_VERSION            = 'HTTP/1.0';
+
+//
+// HttpQueryInfo info levels. Generally, there is one info level
+// for each potential RFC822/HTTP/MIME header that an HTTP server
+// may send as part of a request response.
+//
+// The HTTP_QUERY_RAW_HEADERS info level is provided for clients
+// that choose to perform their own header parsing.
+//
+
+CONST
+  HTTP_QUERY_MIME_VERSION                 = 0;
+  HTTP_QUERY_CONTENT_TYPE                 = 1;
+  HTTP_QUERY_CONTENT_TRANSFER_ENCODING    = 2;
+  HTTP_QUERY_CONTENT_ID                   = 3;
+  HTTP_QUERY_CONTENT_DESCRIPTION          = 4;
+  HTTP_QUERY_CONTENT_LENGTH               = 5;
+  HTTP_QUERY_CONTENT_LANGUAGE             = 6;
+  HTTP_QUERY_ALLOW                        = 7;
+  HTTP_QUERY_PUBLIC                       = 8;
+  HTTP_QUERY_DATE                         = 9;
+  HTTP_QUERY_EXPIRES                      = 10;
+  HTTP_QUERY_LAST_MODIFIED                = 11;
+  HTTP_QUERY_MESSAGE_ID                   = 12;
+  HTTP_QUERY_URI                          = 13;
+  HTTP_QUERY_DERIVED_FROM                 = 14;
+  HTTP_QUERY_COST                         = 15;
+  HTTP_QUERY_LINK                         = 16;
+  HTTP_QUERY_PRAGMA                       = 17;
+  HTTP_QUERY_VERSION                      = 18;  // special: part of status line
+  HTTP_QUERY_STATUS_CODE                  = 19;  // special: part of status line
+  HTTP_QUERY_STATUS_TEXT                  = 20;  // special: part of status line
+  HTTP_QUERY_RAW_HEADERS                  = 21;  // special: all headers as ASCIIZ
+  HTTP_QUERY_RAW_HEADERS_CRLF             = 22;  // special: all headers
+  HTTP_QUERY_CONNECTION                   = 23;
+  HTTP_QUERY_ACCEPT                       = 24;
+  HTTP_QUERY_ACCEPT_CHARSET               = 25;
+  HTTP_QUERY_ACCEPT_ENCODING              = 26;
+  HTTP_QUERY_ACCEPT_LANGUAGE              = 27;
+  HTTP_QUERY_AUTHORIZATION                = 28;
+  HTTP_QUERY_CONTENT_ENCODING             = 29;
+  HTTP_QUERY_FORWARDED                    = 30;
+  HTTP_QUERY_FROM                         = 31;
+  HTTP_QUERY_IF_MODIFIED_SINCE            = 32;
+  HTTP_QUERY_LOCATION                     = 33;
+  HTTP_QUERY_ORIG_URI                     = 34;
+  HTTP_QUERY_REFERER                      = 35;
+  HTTP_QUERY_RETRY_AFTER                  = 36;
+  HTTP_QUERY_SERVER                       = 37;
+  HTTP_QUERY_TITLE                        = 38;
+  HTTP_QUERY_USER_AGENT                   = 39;
+  HTTP_QUERY_WWW_AUTHENTICATE             = 40;
+  HTTP_QUERY_PROXY_AUTHENTICATE           = 41;
+  HTTP_QUERY_ACCEPT_RANGES                = 42;
+  HTTP_QUERY_SET_COOKIE                   = 43;
+  HTTP_QUERY_COOKIE                       = 44;
+  HTTP_QUERY_REQUEST_METHOD               = 45;  // special: GET/POST etc.
+  HTTP_QUERY_REFRESH                      = 46;
+  HTTP_QUERY_CONTENT_DISPOSITION          = 47;
+
+//
+// HTTP 1.1 defined headers
+//
+
+CONST
+  HTTP_QUERY_AGE                          = 48;
+  HTTP_QUERY_CACHE_CONTROL                = 49;
+  HTTP_QUERY_CONTENT_BASE                 = 50;
+  HTTP_QUERY_CONTENT_LOCATION             = 51;
+  HTTP_QUERY_CONTENT_MD5                  = 52;
+  HTTP_QUERY_CONTENT_RANGE                = 53;
+  HTTP_QUERY_ETAG                         = 54;
+  HTTP_QUERY_HOST                         = 55;
+  HTTP_QUERY_IF_MATCH                     = 56;
+  HTTP_QUERY_IF_NONE_MATCH                = 57;
+  HTTP_QUERY_IF_RANGE                     = 58;
+  HTTP_QUERY_IF_UNMODIFIED_SINCE          = 59;
+  HTTP_QUERY_MAX_FORWARDS                 = 60;
+  HTTP_QUERY_PROXY_AUTHORIZATION          = 61;
+  HTTP_QUERY_RANGE                        = 62;
+  HTTP_QUERY_TRANSFER_ENCODING            = 63;
+  HTTP_QUERY_UPGRADE                      = 64;
+  HTTP_QUERY_VARY                         = 65;
+  HTTP_QUERY_VIA                          = 66;
+  HTTP_QUERY_WARNING                      = 67;
+
+  HTTP_QUERY_MAX                          = 67;
+
+//
+// HTTP_QUERY_CUSTOM - if this special value is supplied as the dwInfoLevel
+// parameter of HttpQueryInfo() then the lpBuffer parameter contains the name
+// of the header we are to query
+//
+
+CONST
+  HTTP_QUERY_CUSTOM                       = 65535;
+
+//
+// HTTP_QUERY_FLAG_REQUEST_HEADERS - if this bit is set in the dwInfoLevel
+// parameter of HttpQueryInfo() then the request headers will be queried for the
+// request information
+//
+
+CONST
+  HTTP_QUERY_FLAG_REQUEST_HEADERS         = 80000000H;
+
+//
+// HTTP_QUERY_FLAG_SYSTEMTIME - if this bit is set in the dwInfoLevel parameter
+// of HttpQueryInfo() AND the header being queried contains date information,
+// e.g. the "Expires:" header then lpBuffer will contain a SYSTEMTIME structure
+// containing the date and time information converted from the header string
+//
+
+CONST
+  HTTP_QUERY_FLAG_SYSTEMTIME              = 40000000H;
+
+//
+// HTTP_QUERY_FLAG_NUMBER - if this bit is set in the dwInfoLevel parameter of
+// HttpQueryInfo(), then the value of the header will be converted to a number
+// before being returned to the caller, if applicable
+//
+
+CONST
+  HTTP_QUERY_FLAG_NUMBER                  = 20000000H;
+
+//
+// HTTP_QUERY_FLAG_COALESCE - combine the values from several headers of the
+// same name into the output buffer
+//
+
+CONST
+  HTTP_QUERY_FLAG_COALESCE                = 10000000H;
+
+  HTTP_QUERY_MODIFIER_FLAGS_MASK          = HTTP_QUERY_FLAG_REQUEST_HEADERS OR 
+                                            HTTP_QUERY_FLAG_SYSTEMTIME OR 
+                                            HTTP_QUERY_FLAG_NUMBER OR 
+                                            HTTP_QUERY_FLAG_COALESCE;
+
+  HTTP_QUERY_HEADER_MASK                  = NOT HTTP_QUERY_MODIFIER_FLAGS_MASK;
+
+//
+// HTTP Response Status Codes:
+//
+
+CONST
+  HTTP_STATUS_CONTINUE            = 100; // OK to continue with request
+  HTTP_STATUS_SWITCH_PROTOCOLS    = 101; // server has switched protocols in upgrade header
+
+  HTTP_STATUS_OK                  = 200; // request completed
+  HTTP_STATUS_CREATED             = 201; // object created, reason = new URI
+  HTTP_STATUS_ACCEPTED            = 202; // async completion (TBS)
+  HTTP_STATUS_PARTIAL             = 203; // partial completion
+  HTTP_STATUS_NO_CONTENT          = 204; // no info to return
+  HTTP_STATUS_RESET_CONTENT       = 205; // request completed, but clear form
+  HTTP_STATUS_PARTIAL_CONTENT     = 206; // partial GET furfilled
+
+  HTTP_STATUS_AMBIGUOUS           = 300; // server couldn't decide what to return
+  HTTP_STATUS_MOVED               = 301; // object permanently moved
+  HTTP_STATUS_REDIRECT            = 302; // object temporarily moved
+  HTTP_STATUS_REDIRECT_METHOD     = 303; // redirection w/ new access method
+  HTTP_STATUS_NOT_MODIFIED        = 304; // if-modified-since was not modified
+  HTTP_STATUS_USE_PROXY           = 305; // redirection to proxy, location header specifies proxy to use
+  HTTP_STATUS_REDIRECT_KEEP_VERB  = 307; // HTTP/1.1: keep same verb
+
+  HTTP_STATUS_BAD_REQUEST         = 400; // invalid syntax
+  HTTP_STATUS_DENIED              = 401; // access denied
+  HTTP_STATUS_PAYMENT_REQ         = 402; // payment required
+  HTTP_STATUS_FORBIDDEN           = 403; // request forbidden
+  HTTP_STATUS_NOT_FOUND           = 404; // object not found
+  HTTP_STATUS_BAD_METHOD          = 405; // method is not allowed
+  HTTP_STATUS_NONE_ACCEPTABLE     = 406; // no response acceptable to client found
+  HTTP_STATUS_PROXY_AUTH_REQ      = 407; // proxy authentication required
+  HTTP_STATUS_REQUEST_TIMEOUT     = 408; // server timed out waiting for request
+  HTTP_STATUS_CONFLICT            = 409; // user should resubmit with more info
+  HTTP_STATUS_GONE                = 410; // the resource is no longer available
+  HTTP_STATUS_LENGTH_REQUIRED     = 411; // the server refused to accept request w/o a length
+  HTTP_STATUS_PRECOND_FAILED      = 412; // precondition given in request failed
+  HTTP_STATUS_REQUEST_TOO_LARGE   = 413; // request entity was too large
+  HTTP_STATUS_URI_TOO_LONG        = 414; // request URI too long
+  HTTP_STATUS_UNSUPPORTED_MEDIA   = 415; // unsupported media type
+
+  HTTP_STATUS_SERVER_ERROR        = 500; // internal server error
+  HTTP_STATUS_NOT_SUPPORTED       = 501; // required not supported
+  HTTP_STATUS_BAD_GATEWAY         = 502; // error response received from gateway
+  HTTP_STATUS_SERVICE_UNAVAIL     = 503; // temporarily overloaded
+  HTTP_STATUS_GATEWAY_TIMEOUT     = 504; // timed out waiting for gateway
+  HTTP_STATUS_VERSION_NOT_SUP     = 505; // HTTP version not supported
+
+  HTTP_STATUS_FIRST               = HTTP_STATUS_CONTINUE;
+  HTTP_STATUS_LAST                = HTTP_STATUS_VERSION_NOT_SUP;
+
+//
+// prototypes
+//
+
+
+PROCEDURE HttpOpenRequestA(
+    hConnect : HINTERNET;
+    lpszVerb : windows.PCSTR;
+    lpszObjectName : windows.PCSTR;
+    lpszVersion : windows.PCSTR;
+    lpszReferrer : windows.PCSTR;
+    lplpszAcceptTypes : PPCSTR;
+    dwFlags : windows.DWORD;
+    dwContext : windows.DWORD
+    ) : HINTERNET;
+
+
+PROCEDURE HttpOpenRequestW(
+    hConnect : HINTERNET;
+    lpszVerb : windows.PCWSTR;
+    lpszObjectName : windows.PCWSTR;
+    lpszVersion : windows.PCWSTR;
+    lpszReferrer : windows.PCWSTR;
+    lplpszAcceptTypes : PPCWSTR;
+    dwFlags : windows.DWORD;
+    dwContext : windows.DWORD
+    ) : HINTERNET;
+
+CONST
+(*%T UNICODE *)
+  HttpOpenRequest ::= HttpOpenRequestW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  HttpOpenRequest ::= HttpOpenRequestA;
+(*%E UNICODE *)
+
+PROCEDURE HttpAddRequestHeadersA(
+    hRequest : HINTERNET;
+    lpszHeaders : windows.PCSTR;
+    dwHeadersLength : windows.DWORD;
+    dwModifiers : windows.DWORD
+    ) : windows.BOOL;
+
+PROCEDURE HttpAddRequestHeadersW(
+    hRequest : HINTERNET;
+    lpszHeaders : windows.PCWSTR;
+    dwHeadersLength : windows.DWORD;
+    dwModifiers : windows.DWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  HttpAddRequestHeaders ::= HttpAddRequestHeadersW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  HttpAddRequestHeaders ::= HttpAddRequestHeadersA;
+(*%E UNICODE *)
+
+//
+// values for dwModifiers parameter of HttpAddRequestHeaders()
+//
+
+CONST
+  HTTP_ADDREQ_INDEX_MASK      =  0000FFFFH;
+  HTTP_ADDREQ_FLAGS_MASK      = 0FFFF0000H;
+
+//
+// HTTP_ADDREQ_FLAG_ADD_IF_NEW - the header will only be added if it doesn't
+// already exist
+//
+
+CONST
+  HTTP_ADDREQ_FLAG_ADD_IF_NEW = 10000000H;
+
+//
+// HTTP_ADDREQ_FLAG_ADD - if HTTP_ADDREQ_FLAG_REPLACE is set but the header is
+// not found then if this flag is set, the header is added anyway, so long as
+// there is a valid header-value
+//
+
+CONST
+  HTTP_ADDREQ_FLAG_ADD        = 20000000H;
+
+//
+// HTTP_ADDREQ_FLAG_COALESCE - coalesce headers with same name. e.g.
+// "Accept: text/*" and "Accept: audio/*" with this flag results in a single
+// header: "Accept: text/*, audio/*"
+//
+
+CONST
+  HTTP_ADDREQ_FLAG_COALESCE_WITH_COMMA       = 40000000H;
+  HTTP_ADDREQ_FLAG_COALESCE_WITH_SEMICOLON   = 01000000H;
+  HTTP_ADDREQ_FLAG_COALESCE                  = HTTP_ADDREQ_FLAG_COALESCE_WITH_COMMA;
+
+//
+// HTTP_ADDREQ_FLAG_REPLACE - replaces the specified header. Only one header can
+// be supplied in the buffer. If the header to be replaced is not the first
+// in a list of headers with the same name, then the relative index should be
+// supplied in the low 8 bits of the dwModifiers parameter. If the header-value
+// part is missing, then the header is removed
+//
+
+CONST
+  HTTP_ADDREQ_FLAG_REPLACE    = 80000000H;
+
+PROCEDURE HttpSendRequestA(
+    hRequest : HINTERNET;
+    lpszHeaders : windows.PCSTR;
+    dwHeadersLength : windows.DWORD;
+    lpOptional : ADDRESS;
+    dwOptionalLength : windows.DWORD
+    ) : windows.BOOL;
+
+PROCEDURE HttpSendRequestW(
+    hRequest : HINTERNET;
+    lpszHeaders : windows.PCWSTR;
+    dwHeadersLength : windows.DWORD;
+    lpOptional : ADDRESS;
+    dwOptionalLength : windows.DWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  HttpSendRequest ::= HttpSendRequestW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  HttpSendRequest ::= HttpSendRequestA;
+(*%E UNICODE *)
+
+PROCEDURE HttpSendRequestExA(
+    hRequest : HINTERNET;
+    lpBuffersIn : LPINTERNET_BUFFERSA;
+    lpBuffersOut : LPINTERNET_BUFFERSA;
+    dwFlags : windows.DWORD;
+    dwContext : windows.DWORD
+    ) : windows.BOOL;
+
+PROCEDURE HttpSendRequestExW(
+    hRequest : HINTERNET;
+    lpBuffersIn : LPINTERNET_BUFFERSW;
+    lpBuffersOut : LPINTERNET_BUFFERSW;
+    dwFlags : windows.DWORD;
+    dwContext : windows.DWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  HttpSendRequestEx ::= HttpSendRequestExW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  HttpSendRequestEx ::= HttpSendRequestExA;
+(*%E UNICODE *)
+
+//
+// flags for HttpSendRequestEx(), HttpEndRequest()
+//
+
+CONST
+  HSR_ASYNC       = WININET_API_FLAG_ASYNC;          // force async
+  HSR_SYNC        = WININET_API_FLAG_SYNC;           // force sync
+  HSR_USE_CONTEXT = WININET_API_FLAG_USE_CONTEXT;    // use dwContext value
+  HSR_INITIATE    = 00000008;                        // iterative operation (completed by HttpEndRequestH)
+  HSR_DOWNLOAD    = 00000010;                        // download to filHe
+  HSR_CHUNKED     = 00000020;                        // operation is send of chunked datHa
+
+PROCEDURE HttpEndRequestA(
+    hRequest : HINTERNET;
+    lpBuffersOut : LPINTERNET_BUFFERSA;
+    dwFlags : windows.DWORD;
+    dwContext : windows.DWORD
+    ) : windows.BOOL;
+
+PROCEDURE HttpEndRequestW(
+    hRequest : HINTERNET;
+    lpBuffersOut : LPINTERNET_BUFFERSW;
+    dwFlags : windows.DWORD;
+    dwContext : windows.DWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  HttpEndRequest ::= HttpEndRequestW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  HttpEndRequest ::= HttpEndRequestA;
+(*%E UNICODE *)
+
+PROCEDURE HttpQueryInfoA(
+    hRequest : HINTERNET;
+    dwInfoLevel : windows.DWORD;
+    lpBuffer : ADDRESS;
+    lpdwBufferLength : windows.PDWORD;
+    lpdwIndex : windows.PDWORD
+    ) : windows.BOOL;
+
+PROCEDURE HttpQueryInfoW(
+    hRequest : HINTERNET;
+    dwInfoLevel : windows.DWORD;
+    lpBuffer : ADDRESS;
+    lpdwBufferLength : windows.PDWORD;
+    lpdwIndex : windows.PDWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  HttpQueryInfo ::= HttpQueryInfoW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  HttpQueryInfo ::= HttpQueryInfoA;
+(*%E UNICODE *)
+
+//
+// Cookie APIs
+//
+
+
+PROCEDURE InternetSetCookieA(
+    lpszUrl : windows.PCSTR;
+    lpszCookieName : windows.PCSTR;
+    lpszCookieData : windows.PCSTR
+    ) : windows.BOOL;
+
+PROCEDURE InternetSetCookieW(
+    lpszUrl : windows.PCSTR;
+    lpszCookieName : windows.PCWSTR;
+    lpszCookieData : windows.PCWSTR
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  InternetSetCookie ::= InternetSetCookieW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  InternetSetCookie ::= InternetSetCookieA;
+(*%E UNICODE *)
+
+PROCEDURE InternetGetCookieA(
+    lpszUrl : windows.PCSTR;
+    lpszCookieName : windows.PCSTR;
+    lpCookieData : windows.PSTR;
+    lpdwSize : windows.PDWORD
+    ) : windows.BOOL;
+
+PROCEDURE InternetGetCookieW(
+    lpszUrl : windows.PCSTR;
+    lpszCookieName : windows.PCWSTR;
+    lpCookieData : windows.PWSTR;
+    lpdwSize : windows.PDWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  InternetGetCookie ::= InternetGetCookieW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  InternetGetCookie ::= InternetGetCookieA;
+(*%E UNICODE *)
+
+
+//
+// offline browsing
+//
+
+PROCEDURE InternetAttemptConnect(
+    dwReserved : windows.DWORD
+    ) : windows.DWORD;
+
+PROCEDURE InternetCheckConnectionA(
+    lpszUrl : windows.PCSTR;
+    dwFlags : windows.DWORD;
+    dwReserved : windows.DWORD
+    ) : windows.BOOL;
+
+PROCEDURE InternetCheckConnectionW(
+    lpszUrl : windows.PCWSTR;
+    dwFlags : windows.DWORD;
+    dwReserved : windows.DWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  InternetCheckConnection ::= InternetCheckConnectionW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  InternetCheckConnection ::= InternetCheckConnectionA;
+(*%E UNICODE *)
+
+CONST
+  FLAG_ICC_FORCE_CONNECTION       = 00000001H;
+
+//
+// Internet UI
+//
+
+//
+// InternetErrorDlg - Provides UI for certain Errors.
+//
+
+CONST
+  FLAGS_ERROR_UI_FILTER_FOR_ERRORS        = 01H;
+  FLAGS_ERROR_UI_FLAGS_CHANGE_OPTIONS     = 02H;
+  FLAGS_ERROR_UI_FLAGS_GENERATE_DATA      = 04H;
+  FLAGS_ERROR_UI_FLAGS_NO_UI              = 08H;
+  FLAGS_ERROR_UI_SERIALIZE_DIALOGS        = 10H;
+
+//
+// If SERIALIZE_DIALOGS flag set, client should implement thread-safe non-blocking callback...
+//
+
+PROCEDURE InternetAuthNotifyCallback(
+    dwContext : windows.DWORD;              // as passed to InternetErrorDlg
+    dwReturn : windows.DWORD;               // error code: success, resend, or cancel
+    lpReserved : ADDRESS                    // reserved: will be set to null
+    ) : windows.DWORD;
+
+(*# save, call( prefix=>stdcall ) *)
+TYPE
+  PFN_AUTH_NOTIFY = PROCEDURE( windows.DWORD, windows.DWORD, ADDRESS ) : windows.DWORD;
+(*# restore *)
+
+//
+// ... and last parameter of InternetErrorDlg should point to...
+//
+
+TYPE
+  INTERNET_AUTH_NOTIFY_DATA = RECORD
+    cbStruct  : windows.DWORD;              // size of this structure
+    dwOptions : windows.DWORD;              // reserved: must set to 0
+    pfnNotify : PFN_AUTH_NOTIFY;            // notification callback to retry InternetErrorDlg
+    dwContext : windows.DWORD;              // context to pass to to notification function
+  END;
+
+PROCEDURE InternetErrorDlg(
+    hWnd : windows.HWND;
+    hRequest : HINTERNET;
+    dwError : windows.DWORD;
+    dwFlags : windows.DWORD;
+    lppvData : ADDRESS
+    ) : windows.DWORD;
+
+PROCEDURE InternetConfirmZoneCrossing(
+    hWnd : windows.HWND;
+    szUrlPrev : windows.PSTR;
+    szUrlNew : windows.PSTR;
+    bPost : windows.BOOL
+    ) : windows.DWORD;
+
+
+//#if !defined(_WINERROR_)
+
+//
+// Internet API error returns
+//
+
+CONST
+  INTERNET_ERROR_BASE                     = 12000;
+
+  ERROR_INTERNET_OUT_OF_HANDLES           = INTERNET_ERROR_BASE + 1;
+  ERROR_INTERNET_TIMEOUT                  = INTERNET_ERROR_BASE + 2;
+  ERROR_INTERNET_EXTENDED_ERROR           = INTERNET_ERROR_BASE + 3;
+  ERROR_INTERNET_INTERNAL_ERROR           = INTERNET_ERROR_BASE + 4;
+  ERROR_INTERNET_INVALID_URL              = INTERNET_ERROR_BASE + 5;
+  ERROR_INTERNET_UNRECOGNIZED_SCHEME      = INTERNET_ERROR_BASE + 6;
+  ERROR_INTERNET_NAME_NOT_RESOLVED        = INTERNET_ERROR_BASE + 7;
+  ERROR_INTERNET_PROTOCOL_NOT_FOUND       = INTERNET_ERROR_BASE + 8;
+  ERROR_INTERNET_INVALID_OPTION           = INTERNET_ERROR_BASE + 9;
+  ERROR_INTERNET_BAD_OPTION_LENGTH        = INTERNET_ERROR_BASE + 10;
+  ERROR_INTERNET_OPTION_NOT_SETTABLE      = INTERNET_ERROR_BASE + 11;
+  ERROR_INTERNET_SHUTDOWN                 = INTERNET_ERROR_BASE + 12;
+  ERROR_INTERNET_INCORRECT_USER_NAME      = INTERNET_ERROR_BASE + 13;
+  ERROR_INTERNET_INCORRECT_PASSWORD       = INTERNET_ERROR_BASE + 14;
+  ERROR_INTERNET_LOGIN_FAILURE            = INTERNET_ERROR_BASE + 15;
+  ERROR_INTERNET_INVALID_OPERATION        = INTERNET_ERROR_BASE + 16;
+  ERROR_INTERNET_OPERATION_CANCELLED      = INTERNET_ERROR_BASE + 17;
+  ERROR_INTERNET_INCORRECT_HANDLE_TYPE    = INTERNET_ERROR_BASE + 18;
+  ERROR_INTERNET_INCORRECT_HANDLE_STATE   = INTERNET_ERROR_BASE + 19;
+  ERROR_INTERNET_NOT_PROXY_REQUEST        = INTERNET_ERROR_BASE + 20;
+  ERROR_INTERNET_REGISTRY_VALUE_NOT_FOUND = INTERNET_ERROR_BASE + 21;
+  ERROR_INTERNET_BAD_REGISTRY_PARAMETER   = INTERNET_ERROR_BASE + 22;
+  ERROR_INTERNET_NO_DIRECT_ACCESS         = INTERNET_ERROR_BASE + 23;
+  ERROR_INTERNET_NO_CONTEXT               = INTERNET_ERROR_BASE + 24;
+  ERROR_INTERNET_NO_CALLBACK              = INTERNET_ERROR_BASE + 25;
+  ERROR_INTERNET_REQUEST_PENDING          = INTERNET_ERROR_BASE + 26;
+  ERROR_INTERNET_INCORRECT_FORMAT         = INTERNET_ERROR_BASE + 27;
+  ERROR_INTERNET_ITEM_NOT_FOUND           = INTERNET_ERROR_BASE + 28;
+  ERROR_INTERNET_CANNOT_CONNECT           = INTERNET_ERROR_BASE + 29;
+  ERROR_INTERNET_CONNECTION_ABORTED       = INTERNET_ERROR_BASE + 30;
+  ERROR_INTERNET_CONNECTION_RESET         = INTERNET_ERROR_BASE + 31;
+  ERROR_INTERNET_FORCE_RETRY              = INTERNET_ERROR_BASE + 32;
+  ERROR_INTERNET_INVALID_PROXY_REQUEST    = INTERNET_ERROR_BASE + 33;
+  ERROR_INTERNET_NEED_UI                  = INTERNET_ERROR_BASE + 34;
+
+  ERROR_INTERNET_HANDLE_EXISTS            = INTERNET_ERROR_BASE + 36;
+  ERROR_INTERNET_SEC_CERT_DATE_INVALID    = INTERNET_ERROR_BASE + 37;
+  ERROR_INTERNET_SEC_CERT_CN_INVALID      = INTERNET_ERROR_BASE + 38;
+  ERROR_INTERNET_HTTP_TO_HTTPS_ON_REDIR   = INTERNET_ERROR_BASE + 39;
+  ERROR_INTERNET_HTTPS_TO_HTTP_ON_REDIR   = INTERNET_ERROR_BASE + 40;
+  ERROR_INTERNET_MIXED_SECURITY           = INTERNET_ERROR_BASE + 41;
+  ERROR_INTERNET_CHG_POST_IS_NON_SECURE   = INTERNET_ERROR_BASE + 42;
+  ERROR_INTERNET_POST_IS_NON_SECURE       = INTERNET_ERROR_BASE + 43;
+  ERROR_INTERNET_CLIENT_AUTH_CERT_NEEDED  = INTERNET_ERROR_BASE + 44;
+  ERROR_INTERNET_INVALID_CA               = INTERNET_ERROR_BASE + 45;
+  ERROR_INTERNET_CLIENT_AUTH_NOT_SETUP    = INTERNET_ERROR_BASE + 46;
+  ERROR_INTERNET_ASYNC_THREAD_FAILED      = INTERNET_ERROR_BASE + 47;
+  ERROR_INTERNET_REDIRECT_SCHEME_CHANGE   = INTERNET_ERROR_BASE + 48;
+  ERROR_INTERNET_DIALOG_PENDING           = INTERNET_ERROR_BASE + 49;
+  ERROR_INTERNET_RETRY_DIALOG             = INTERNET_ERROR_BASE + 50;
+  ERROR_INTERNET_HTTPS_HTTP_SUBMIT_REDIR  = INTERNET_ERROR_BASE + 52;
+  ERROR_INTERNET_INSERT_CDROM             = INTERNET_ERROR_BASE + 53;
+
+
+//
+// FTP API errors
+//
+
+CONST
+  ERROR_FTP_TRANSFER_IN_PROGRESS          = INTERNET_ERROR_BASE + 110;
+  ERROR_FTP_DROPPED                       = INTERNET_ERROR_BASE + 111;
+  ERROR_FTP_NO_PASSIVE_MODE               = INTERNET_ERROR_BASE + 112;
+  
+// gopher API errors
+//
+
+CONST
+  ERROR_GOPHER_PROTOCOL_ERROR             = INTERNET_ERROR_BASE + 130;
+  ERROR_GOPHER_NOT_FILE                   = INTERNET_ERROR_BASE + 131;
+  ERROR_GOPHER_DATA_ERROR                 = INTERNET_ERROR_BASE + 132;
+  ERROR_GOPHER_END_OF_DATA                = INTERNET_ERROR_BASE + 133;
+  ERROR_GOPHER_INVALID_LOCATOR            = INTERNET_ERROR_BASE + 134;
+  ERROR_GOPHER_INCORRECT_LOCATOR_TYPE     = INTERNET_ERROR_BASE + 135;
+  ERROR_GOPHER_NOT_GOPHER_PLUS            = INTERNET_ERROR_BASE + 136;
+  ERROR_GOPHER_ATTRIBUTE_NOT_FOUND        = INTERNET_ERROR_BASE + 137;
+  ERROR_GOPHER_UNKNOWN_LOCATOR            = INTERNET_ERROR_BASE + 138;
+
+//
+// HTTP API errors
+//
+
+CONST
+  ERROR_HTTP_HEADER_NOT_FOUND             = INTERNET_ERROR_BASE + 150;
+  ERROR_HTTP_DOWNLEVEL_SERVER             = INTERNET_ERROR_BASE + 151;
+  ERROR_HTTP_INVALID_SERVER_RESPONSE      = INTERNET_ERROR_BASE + 152;
+  ERROR_HTTP_INVALID_HEADER               = INTERNET_ERROR_BASE + 153;
+  ERROR_HTTP_INVALID_QUERY_REQUEST        = INTERNET_ERROR_BASE + 154;
+  ERROR_HTTP_HEADER_ALREADY_EXISTS        = INTERNET_ERROR_BASE + 155;
+  ERROR_HTTP_REDIRECT_FAILED              = INTERNET_ERROR_BASE + 156;
+  ERROR_HTTP_NOT_REDIRECTED               = INTERNET_ERROR_BASE + 160;
+  ERROR_HTTP_COOKIE_NEEDS_CONFIRMATION    = INTERNET_ERROR_BASE + 161;
+  ERROR_HTTP_COOKIE_DECLINED              = INTERNET_ERROR_BASE + 162;
+  ERROR_HTTP_REDIRECT_NEEDS_CONFIRMATION  = INTERNET_ERROR_BASE + 168;
+
+//
+// additional Internet API error codes
+//
+
+CONST
+  ERROR_INTERNET_SECURITY_CHANNEL_ERROR   = INTERNET_ERROR_BASE + 157;
+  ERROR_INTERNET_UNABLE_TO_CACHE_FILE     = INTERNET_ERROR_BASE + 158;
+  ERROR_INTERNET_TCPIP_NOT_INSTALLED      = INTERNET_ERROR_BASE + 159;
+  ERROR_INTERNET_DISCONNECTED             = INTERNET_ERROR_BASE + 163;
+  ERROR_INTERNET_SERVER_UNREACHABLE       = INTERNET_ERROR_BASE + 164;
+  ERROR_INTERNET_PROXY_SERVER_UNREACHABLE = INTERNET_ERROR_BASE + 165;
+
+  ERROR_INTERNET_BAD_AUTO_PROXY_SCRIPT     = INTERNET_ERROR_BASE + 166;
+  ERROR_INTERNET_UNABLE_TO_DOWNLOAD_SCRIPT = INTERNET_ERROR_BASE + 167;
+  ERROR_INTERNET_SEC_INVALID_CERT          = INTERNET_ERROR_BASE + 169;
+  ERROR_INTERNET_SEC_CERT_REVOKED          = INTERNET_ERROR_BASE + 170;
+
+// InternetAutodial specific errors
+
+CONST
+  ERROR_INTERNET_FAILED_DUETOSECURITYCHECK = INTERNET_ERROR_BASE + 171;
+
+  INTERNET_ERROR_LAST                      = ERROR_INTERNET_FAILED_DUETOSECURITYCHECK;
+
+
+//#endif // !defined(_WINERROR_)
+
+//
+// URLCACHE APIs
+//
+
+//
+// datatype definitions.
+//
+
+//
+// cache entry type flags.
+//
+
+CONST
+  NORMAL_CACHE_ENTRY              = 00000001H;
+  COOKIE_CACHE_ENTRY              = 00100000H;
+  URLHISTORY_CACHE_ENTRY          = 00200000H;
+  TRACK_OFFLINE_CACHE_ENTRY       = 00000010H;
+  TRACK_ONLINE_CACHE_ENTRY        = 00000020H;
+  STICKY_CACHE_ENTRY              = 00000004H;
+  SPARSE_CACHE_ENTRY              = 00010000H;
+
+
+
+  URLCACHE_FIND_DEFAULT_FILTER    = NORMAL_CACHE_ENTRY OR 
+                                    COOKIE_CACHE_ENTRY OR 
+                                    URLHISTORY_CACHE_ENTRY OR 
+                                    TRACK_OFFLINE_CACHE_ENTRY OR 
+                                    TRACK_ONLINE_CACHE_ENTRY OR 
+                                    STICKY_CACHE_ENTRY;
+
+
+
+//
+// INTERNET_CACHE_ENTRY_INFO -
+//
+
+
+TYPE
+  INTERNET_CACHE_ENTRY_INFOA = RECORD
+    dwStructSize        : windows.DWORD;     // version of cache system.
+    lpszSourceUrlName   : windows.PSTR;      // embedded pointer to the URL name string.
+    lpszLocalFileName   : windows.PSTR;      // embedded pointer to the local file name.
+    CacheEntryType      : windows.DWORD;     // cache type bit mask.
+    dwUseCount          : windows.DWORD;     // current users count of the cache entry.
+    dwHitRate           : windows.DWORD;     // num of times the cache entry was retrieved.
+    dwSizeLow           : windows.DWORD;     // low DWORD of the file size.
+    dwSizeHigh          : windows.DWORD;     // high DWORD of the file size.
+    LastModifiedTime    : windows.FILETIME;  // last modified time of the file in GMT format.
+    ExpireTime          : windows.FILETIME;  // expire time of the file in GMT format
+    LastAccessTime      : windows.FILETIME;  // last accessed time in GMT format
+    LastSyncTime        : windows.FILETIME;  // last time the URL was synchronized
+                                             // with the source
+    lpHeaderInfo        : windows.PBYTE;     // embedded pointer to the header info.
+    dwHeaderInfoSize    : windows.DWORD;     // size of the above header.
+    lpszFileExtension   : windows.PSTR;      // File extension used to retrive the urldata as a file.
+    CASE : BYTE OF                           // Exemption delta from last access time. 
+    | 0 : dwReserved    : windows.DWORD;
+    | 1 : dwExemptDelta : windows.DWORD;
+    END;                                     // Exemption delta from last access
+  END;
+
+  LPINTERNET_CACHE_ENTRY_INFOA = POINTER TO INTERNET_CACHE_ENTRY_INFOA;
+
+  INTERNET_CACHE_ENTRY_INFOW = RECORD
+    dwStructSize        : windows.DWORD;     // version of cache system.
+    lpszSourceUrlName   : windows.PSTR;      // embedded pointer to the URL name string.
+    lpszLocalFileName   : windows.PWSTR;     // embedded pointer to the local file name.
+    CacheEntryType      : windows.DWORD;     // cache type bit mask.
+    dwUseCount          : windows.DWORD;     // current users count of the cache entry.
+    dwHitRate           : windows.DWORD;     // num of times the cache entry was retrieved.
+    dwSizeLow           : windows.DWORD;     // low DWORD of the file size.
+    dwSizeHigh          : windows.DWORD;     // high DWORD of the file size.
+    LastModifiedTime    : windows.FILETIME;  // last modified time of the file in GMT format.
+    ExpireTime          : windows.FILETIME;  // expire time of the file in GMT format
+    LastAccessTime      : windows.FILETIME;  // last accessed time in GMT format
+    LastSyncTime        : windows.FILETIME;  // last time the URL was synchronized
+                                             // with the source
+    lpHeaderInfo        : windows.PBYTE;     // embedded pointer to the header info.
+    dwHeaderInfoSize    : windows.DWORD;     // size of the above header.
+    lpszFileExtension   : windows.PWSTR;     // File extension used to retrive the urldata as a file.
+    CASE : BYTE OF                           // Exemption delta from last access time. 
+    | 0 : dwReserved    : windows.DWORD;
+    | 1 : dwExemptDelta : windows.DWORD;
+    END;                                     // Exemption delta from last access
+  END;
+
+  LPINTERNET_CACHE_ENTRY_INFOW = POINTER TO INTERNET_CACHE_ENTRY_INFOW;
+
+CONST
+(*%T UNICODE *)
+  INTERNET_CACHE_ENTRY_INFO   ::= INTERNET_CACHE_ENTRY_INFOW;
+  LPINTERNET_CACHE_ENTRY_INFO ::= LPINTERNET_CACHE_ENTRY_INFOW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  INTERNET_CACHE_ENTRY_INFO   ::= INTERNET_CACHE_ENTRY_INFOA;
+  LPINTERNET_CACHE_ENTRY_INFO ::= LPINTERNET_CACHE_ENTRY_INFOA;
+(*%E UNICODE *)
+
+
+//
+// Cache APIs
+//
+
+PROCEDURE CreateUrlCacheEntryA(
+    lpszUrlName : windows.PCSTR;
+    dwExpectedFileSize : windows.DWORD;
+    lpszFileExtension : windows.PCSTR;
+    lpszFileName : windows.PSTR;
+    dwReserved : windows.DWORD
+    ) : windows.BOOL;
+
+PROCEDURE CreateUrlCacheEntryW(
+    lpszUrlName : windows.PCSTR;
+    dwExpectedFileSize : windows.DWORD;
+    lpszFileExtension : windows.PCSTR;
+    lpszFileName : windows.PWSTR;
+    dwReserved : windows.DWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  CreateUrlCacheEntry ::= CreateUrlCacheEntryW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  CreateUrlCacheEntry ::= CreateUrlCacheEntryA;
+(*%E UNICODE *)
+
+PROCEDURE CommitUrlCacheEntryA(
+    lpszUrlName : windows.PCSTR;
+    lpszLocalFileName : windows.PCSTR;
+    ExpireTime : windows.FILETIME;
+    LastModifiedTime : windows.FILETIME;
+    CacheEntryType : windows.DWORD;
+    lpHeaderInfo : windows.PBYTE;
+    dwHeaderSize : windows.DWORD;
+    lpszFileExtension : windows.PCSTR;
+    dwReserved : windows.DWORD
+    ) : windows.BOOL;
+
+PROCEDURE CommitUrlCacheEntryW(
+    lpszUrlName : windows.PCSTR;
+    lpszLocalFileName : windows.PCWSTR;
+    ExpireTime : windows.FILETIME;
+    LastModifiedTime : windows.FILETIME;
+    CacheEntryType : windows.DWORD;
+    lpHeaderInfo : windows.PBYTE;
+    dwHeaderSize : windows.DWORD;
+    lpszFileExtension : windows.PCWSTR;
+    dwReserved : windows.DWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  CommitUrlCacheEntry ::= CommitUrlCacheEntryW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  CommitUrlCacheEntry ::= CommitUrlCacheEntryA;
+(*%E UNICODE *)
+
+PROCEDURE RetrieveUrlCacheEntryFileA(
+    lpszUrlName : windows.PCSTR;
+    lpCacheEntryInfo : LPINTERNET_CACHE_ENTRY_INFOA;
+    lpdwCacheEntryInfoBufferSize : windows.PDWORD;
+    dwReserved : windows.DWORD
+    ) : windows.BOOL;
+
+PROCEDURE RetrieveUrlCacheEntryFileW(
+    lpszUrlName : windows.PCSTR;
+    lpCacheEntryInfo : LPINTERNET_CACHE_ENTRY_INFOW;
+    lpdwCacheEntryInfoBufferSize : windows.PDWORD;
+    dwReserved : windows.DWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  RetrieveUrlCacheEntryFile ::= RetrieveUrlCacheEntryFileW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  RetrieveUrlCacheEntryFile ::= RetrieveUrlCacheEntryFileA;
+(*%E UNICODE *)
+
+PROCEDURE UnlockUrlCacheEntryFile(
+    lpszUrlName : windows.PCSTR;
+    dwReserved : windows.DWORD
+    ) : windows.BOOL;
+
+PROCEDURE RetrieveUrlCacheEntryStreamA(
+    lpszUrlName : windows.PCSTR;
+    lpCacheEntryInfo : LPINTERNET_CACHE_ENTRY_INFOA;
+    lpdwCacheEntryInfoBufferSize : windows.PDWORD;
+    fRandomRead : windows.BOOL;
+    dwReserved : windows.DWORD
+    ) : windows.HANDLE;
+
+PROCEDURE RetrieveUrlCacheEntryStreamW(
+    lpszUrlName : windows.PCSTR ;
+    lpCacheEntryInfo : LPINTERNET_CACHE_ENTRY_INFOW;
+    lpdwCacheEntryInfoBufferSize : windows.PDWORD;
+    fRandomRead : windows.BOOL;
+    dwReserved : windows.DWORD
+    ) : windows.HANDLE;
+
+CONST
+(*%T UNICODE *)
+  RetrieveUrlCacheEntryStream ::= RetrieveUrlCacheEntryStreamW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  RetrieveUrlCacheEntryStream ::= RetrieveUrlCacheEntryStreamA;
+(*%E UNICODE *)
+
+PROCEDURE ReadUrlCacheEntryStream(
+    hUrlCacheStream : windows.HANDLE;
+    dwLocation : windows.DWORD;
+    lpBuffer : ADDRESS;
+    lpdwLen : windows.PDWORD;
+    Reserved : windows.DWORD
+    ) : windows.BOOL;
+
+PROCEDURE UnlockUrlCacheEntryStream(
+    hUrlCacheStream : windows.HANDLE;
+    Reserved : windows.DWORD
+    ) : windows.BOOL;
+
+
+PROCEDURE GetUrlCacheEntryInfoA(
+    lpszUrlName : windows.PCSTR;
+    lpCacheEntryInfo : LPINTERNET_CACHE_ENTRY_INFOA;
+    lpdwCacheEntryInfoBufferSize : windows.PDWORD
+    ) : windows.BOOL;
+
+PROCEDURE GetUrlCacheEntryInfoW(
+    lpszUrlName : windows.PCSTR;
+    lpCacheEntryInfo : LPINTERNET_CACHE_ENTRY_INFOW;
+    lpdwCacheEntryInfoBufferSize : windows.PDWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  GetUrlCacheEntryInfo ::= GetUrlCacheEntryInfoW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  GetUrlCacheEntryInfo ::= GetUrlCacheEntryInfoA;
+(*%E UNICODE *)
+
+
+PROCEDURE GetUrlCacheEntryInfoExA(
+    lpszUrl : windows.PCSTR;
+    lpCacheEntryInfo : LPINTERNET_CACHE_ENTRY_INFOA;
+    lpdwCacheEntryInfoBufSize : windows.PDWORD;
+    lpszReserved : windows.PSTR;         // must pass null
+    lpdwReserved : windows.PDWORD;       // must pass null
+    lpReserved : ADDRESS;                // must pass null
+    dwFlags : windows.DWORD              // reserved
+    ) : windows.BOOL;
+
+PROCEDURE GetUrlCacheEntryInfoExW(
+    lpszUrl : windows.PCSTR;
+    lpCacheEntryInfo : LPINTERNET_CACHE_ENTRY_INFOW;
+    lpdwCacheEntryInfoBufSize : windows.PDWORD;
+    lpszReserved : windows.PSTR;         // must pass null
+    lpdwReserved : windows.PDWORD;       // must pass null
+    lpReserved : ADDRESS;                // must pass null
+    dwFlags : windows.DWORD              // reserved
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  GetUrlCacheEntryInfoEx ::= GetUrlCacheEntryInfoExW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  GetUrlCacheEntryInfoEx ::= GetUrlCacheEntryInfoExA;
+(*%E UNICODE *)
+
+CONST
+  CACHE_ENTRY_ATTRIBUTE_FC    = 00000004H;
+  CACHE_ENTRY_HITRATE_FC      = 00000010H;
+  CACHE_ENTRY_MODTIME_FC      = 00000040H;
+  CACHE_ENTRY_EXPTIME_FC      = 00000080H;
+  CACHE_ENTRY_ACCTIME_FC      = 00000100H;
+  CACHE_ENTRY_SYNCTIME_FC     = 00000200H;
+  CACHE_ENTRY_HEADERINFO_FC   = 00000400H;
+  CACHE_ENTRY_EXEMPT_DELTA_FC = 00000800H;
+
+
+PROCEDURE SetUrlCacheEntryInfoA(
+    lpszUrlName : windows.PCSTR;
+    lpCacheEntryInfo : LPINTERNET_CACHE_ENTRY_INFOA;
+    dwFieldControl : windows.DWORD
+    ) : windows.BOOL;
+
+PROCEDURE SetUrlCacheEntryInfoW(
+    lpszUrlName : windows.PCSTR;
+    lpCacheEntryInfo : LPINTERNET_CACHE_ENTRY_INFOW;
+    dwFieldControl : windows.DWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  SetUrlCacheEntryInfo ::= SetUrlCacheEntryInfoW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  SetUrlCacheEntryInfo ::= SetUrlCacheEntryInfoA;
+(*%E UNICODE *)
+
+//
+// Cache Group Functions
+//
+
+TYPE
+  GROUPID = INT64;                       // LONGLONG;
+
+PROCEDURE CreateUrlCacheGroup(
+    dwFlags : windows.DWORD;
+    lpReserved : ADDRESS                 // must pass NULL
+    ) : GROUPID;
+
+PROCEDURE DeleteUrlCacheGroup(
+    GroupId : GROUPID;
+    dwFlags : windows.DWORD;             // must pass 0
+    lpReserved : ADDRESS                 // must pass NULL
+    ) : windows.BOOL;
+
+// Flags for SetUrlCacheEntryGroup
+CONST
+  INTERNET_CACHE_GROUP_ADD      = 0;
+  INTERNET_CACHE_GROUP_REMOVE   = 1;
+
+PROCEDURE SetUrlCacheEntryGroup(
+    lpszUrlName : windows.PCSTR;
+    dwFlags : windows.DWORD;
+    GroupId : GROUPID;
+    pbGroupAttributes : windows.PBYTE;   // must pass NULL
+    cbGroupAttributes : windows.DWORD;   // must pass 0
+    lpReserved : ADDRESS                 // must pass NULL
+    ) : windows.BOOL;
+
+PROCEDURE FindFirstUrlCacheEntryExA(
+    lpszUrlSearchPattern : windows.PCSTR;
+    dwFlags : windows.DWORD;
+    dwFilter : windows.DWORD;
+    GroupId : GROUPID;
+    lpFirstCacheEntryInfo : LPINTERNET_CACHE_ENTRY_INFOA;
+    lpdwFirstCacheEntryInfoBufferSize : windows.PDWORD   ;
+    lpGroupAttributes : ADDRESS;         // must pass NULL
+    pcbGroupAttributes : windows.PDWORD; // must pass NULL
+    lpReserved : ADDRESS                 // must pass NULL
+    ) : windows.HANDLE;
+
+PROCEDURE FindFirstUrlCacheEntryExW(
+    lpszUrlSearchPattern : windows.PCSTR;
+    dwFlags : windows.DWORD;
+    dwFilter : windows.DWORD;
+    GroupId : GROUPID;
+    lpFirstCacheEntryInfo : LPINTERNET_CACHE_ENTRY_INFOW;
+    lpdwFirstCacheEntryInfoBufferSize : windows.PDWORD;
+    lpGroupAttributes : ADDRESS;         // must pass NULL
+    pcbGroupAttributes : windows.PDWORD; // must pass NULL
+    lpReserved : ADDRESS                 // must pass NULL
+    ) : windows.HANDLE;
+
+CONST
+(*%T UNICODE *)
+  FindFirstUrlCacheEntryEx ::= FindFirstUrlCacheEntryExW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  FindFirstUrlCacheEntryEx ::= FindFirstUrlCacheEntryExA;
+(*%E UNICODE *)
+
+PROCEDURE FindNextUrlCacheEntryExA(
+    hEnumHandle : windows.HANDLE;
+    lpFirstCacheEntryInfo : LPINTERNET_CACHE_ENTRY_INFOA;
+    lpdwFirstCacheEntryInfoBufferSize : windows.PDWORD;
+    lpGroupAttributes : ADDRESS;            // must pass NULL
+    pcbGroupAttributes : windows.PDWORD;    // must pass NULL
+    lpReserved : ADDRESS                    // must pass NULL
+    ) : windows.BOOL;
+
+PROCEDURE FindNextUrlCacheEntryExW(
+    hEnumHandle : windows.HANDLE;
+    lpFirstCacheEntryInfo : LPINTERNET_CACHE_ENTRY_INFOW;
+    lpdwFirstCacheEntryInfoBufferSize : windows.PDWORD;
+    lpGroupAttributes : ADDRESS;            // must pass NULL
+    pcbGroupAttributes : windows.PDWORD;    // must pass NULL
+    lpReserved : ADDRESS                    // must pass NULL
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  FindNextUrlCacheEntryEx ::= FindNextUrlCacheEntryExW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  FindNextUrlCacheEntryEx ::= FindNextUrlCacheEntryExA;
+(*%E UNICODE *)
+
+PROCEDURE FindFirstUrlCacheEntryA(
+    lpszUrlSearchPattern : windows.PCSTR;
+    lpFirstCacheEntryInfo : LPINTERNET_CACHE_ENTRY_INFOA;
+    lpdwFirstCacheEntryInfoBufferSize : windows.PDWORD
+    ) : windows.HANDLE;
+
+PROCEDURE FindFirstUrlCacheEntryW(
+    lpszUrlSearchPattern : windows.PCSTR;
+    lpFirstCacheEntryInfo : LPINTERNET_CACHE_ENTRY_INFOW;
+    lpdwFirstCacheEntryInfoBufferSize : windows.PDWORD
+    ) : windows.HANDLE;
+
+CONST
+(*%T UNICODE *)
+  FindFirstUrlCacheEntry ::= FindFirstUrlCacheEntryW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  FindFirstUrlCacheEntry ::= FindFirstUrlCacheEntryA;
+(*%E UNICODE *)
+
+PROCEDURE FindNextUrlCacheEntryA(
+    hEnumHandle : windows.HANDLE;
+    lpNextCacheEntryInfo : LPINTERNET_CACHE_ENTRY_INFOA;
+    lpdwNextCacheEntryInfoBufferSize : windows.PDWORD
+    ) : windows.BOOL;
+
+PROCEDURE FindNextUrlCacheEntryW(
+    hEnumHandle : windows.HANDLE;
+    lpNextCacheEntryInfo : LPINTERNET_CACHE_ENTRY_INFOW;
+    lpdwNextCacheEntryInfoBufferSize : windows.PDWORD
+    ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  FindNextUrlCacheEntry ::= FindNextUrlCacheEntryW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  FindNextUrlCacheEntry ::= FindNextUrlCacheEntryA;
+(*%E UNICODE *)
+
+
+PROCEDURE FindCloseUrlCache(
+    hEnumHandle : windows.HANDLE
+    ) : windows.BOOL;
+
+PROCEDURE DeleteUrlCacheEntry(
+    lpszUrlName : windows.PCSTR
+    ) : windows.BOOL;
+
+
+
+//
+// Autodial APIs
+//
+
+PROCEDURE InternetDial(
+    hwndParent : windows.HWND;
+    lpszConnectoid : windows.PTSTR;
+    dwFlags : windows.DWORD;
+    lpdwConnection : windows.PDWORD;
+    dwReserved : windows.DWORD
+    ) : windows.DWORD;
+
+// Flags for InternetDial - must not conflict with InternetAutodial flags
+//                          as they are valid here also.
+CONST
+  INTERNET_DIAL_FORCE_PROMPT     = 2000H;
+  INTERNET_DIAL_SHOW_OFFLINE     = 4000H;
+  INTERNET_DIAL_UNATTENDED       = 8000H;
+
+PROCEDURE InternetHangUp(
+    dwConnection : windows.DWORD;
+    dwReserved : windows.DWORD    
+    ) : windows.DWORD;
+
+CONST
+  INTERENT_GOONLINE_REFRESH = 00000001H;
+  INTERENT_GOONLINE_MASK    = 00000001H;
+
+PROCEDURE InternetGoOnline(
+    lpszURL : windows.PTSTR;
+    hwndParent : windows.HWND;
+    dwFlags : windows.DWORD   
+    ) : windows.BOOL;
+
+PROCEDURE InternetAutodial(
+    dwFlags : windows.DWORD;
+    dwReserved : windows.DWORD   
+    ) : windows.BOOL;
+
+// Flags for InternetAutodial
+CONST
+  INTERNET_AUTODIAL_FORCE_ONLINE          = 1;
+  INTERNET_AUTODIAL_FORCE_UNATTENDED      = 2;
+  INTERNET_AUTODIAL_FAILIFSECURITYCHECK   = 4;
+
+  INTERNET_AUTODIAL_FLAGS_MASK  = INTERNET_AUTODIAL_FORCE_ONLINE OR
+                                  INTERNET_AUTODIAL_FORCE_UNATTENDED OR 
+                                  INTERNET_AUTODIAL_FAILIFSECURITYCHECK;
+
+PROCEDURE InternetAutodialHangup(
+    dwReserved : windows.DWORD   
+    ) : windows.BOOL;
+
+PROCEDURE InternetGetConnectedState(
+    lpdwFlags : windows.PDWORD;
+    dwReserved : windows.DWORD   
+    ) : windows.BOOL;
+
+// Flags for InternetGetConnectedState
+CONST
+  INTERNET_CONNECTION_MODEM           = 001H;
+  INTERNET_CONNECTION_LAN             = 002H;
+  INTERNET_CONNECTION_PROXY           = 004H;
+  INTERNET_CONNECTION_MODEM_BUSY      = 008H;  // no longer used
+  INTERNET_RAS_INSTALLED              = 010H;
+  INTERNET_CONNECTION_OFFLINE         = 020H;
+  INTERNET_CONNECTION_CONFIGURED      = 040H;
+
+//
+// Custom dial handler functions
+//
+
+// Custom dial handler prototype
+
+(*# save, call( prefix=>stdcall ) *)
+TYPE
+  PFN_DIAL_HANDLER = PROCEDURE( windows.HWND, windows.PCSTR, windows.DWORD, windows.PDWORD ) : windows.DWORD;
+(*# restore *)
+
+// Flags for custom dial handler
+CONST
+  INTERNET_CUSTOMDIAL_CONNECT         = 0;
+  INTERNET_CUSTOMDIAL_UNATTENDED      = 1;
+  INTERNET_CUSTOMDIAL_DISCONNECT      = 2;
+  INTERNET_CUSTOMDIAL_SHOWOFFLINE     = 4;
+
+// Custom dial handler supported functionality flags
+CONST
+  INTERNET_CUSTOMDIAL_SAFE_FOR_UNATTENDED = 1;
+  INTERNET_CUSTOMDIAL_WILL_SUPPLY_STATE   = 2;
+  INTERNET_CUSTOMDIAL_CAN_HANGUP          = 4;
+
+PROCEDURE InternetSetDialState(
+    lpszConnectoid : windows.PCTSTR;
+    dwState : windows.DWORD;
+    dwReserved : windows.DWORD   
+    ) : windows.BOOL;
+
+// States for InternetSetDialState
+CONST
+  INTERNET_DIALSTATE_DISCONNECTED     = 1;
+
+
+END wininet.

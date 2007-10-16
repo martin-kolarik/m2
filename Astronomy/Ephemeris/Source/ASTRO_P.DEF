@@ -1,0 +1,155 @@
+DEFINITION MODULE astro_p;
+
+(* polynoms except orbital elements *)
+
+FROM astro IMPORT TaArray, TPolynom;
+
+CONST
+
+(*---------------------------------------------------------------------------*)
+
+(* [1], 10 *)
+(* x = dT = ( jd - jd2000 ) / julianCentury *)
+(* y = sec *)
+MeanGrenwichSideralTime
+  = TPolynom( 3, TaArray( +   24110.54841,
+                          + 8640184.812866,
+                          +       0.093104,
+                          -       0.0000062,
+                                  0.0,
+                                  0.0 )
+  );
+
+(*---------------------------------------------------------------------------*)
+
+(* [1], 10 *)
+(* x = dT = ( jd - jd2000 ) / julianCentury *)
+(* y = nasobek MeanGrenwichSideralTime, UT1 = y * MGST *)
+UT1toMeanGrenwichSideralTimeRatio
+  = TPolynom( 2, TaArray( +       1.002737909350795,
+                          +       5.9006E-11,
+                          -       5.9E-15,
+                                  0.0,
+                                  0.0,
+                                  0.0 )
+  );
+
+(*---------------------------------------------------------------------------*)
+
+(* [1], 10 *)
+(* x = dT = ( jd - jd2000 ) / julianCentury *)
+(* y = sklon ekliptiky k rovniku *)
+EclipticInclination
+  = TPolynom( 3, TaArray( +   84381.448,
+                          -      46.8150,
+                          -       0.00059,
+                          +       0.001813,
+                                  0.0,
+                                  0.0 )
+  );
+
+(*---------------------------------------------------------------------------*)
+
+(* [1], 17 *)
+(* x = dT = ( jd - jd2000 ) / julianCentury *)
+(* ddzeta, dz, dny = arcsec *)
+PrecessionDzeta
+  = TPolynom( 3, TaArray(         0.0,
+                          +    2306.218100,
+                          +       0.301880,
+                          +       0.017998,
+                                  0.0,
+                                  0.0 )
+  );
+PrecessionZ
+  = TPolynom( 3, TaArray(         0.0,
+                          +    2306.218100,
+                          +       1.094680,
+                          +       0.018203,
+                                  0.0,
+                                  0.0 )
+  );
+PrecessionNy
+  = TPolynom( 3, TaArray(         0.0,
+                          +    2004.310900,
+                          -       0.426650,
+                          -       0.041833,
+                                  0.0,
+                                  0.0 )
+  );
+
+(*---------------------------------------------------------------------------*)
+
+(* [1], 27 *)
+(* x = t = air pressure in hPa *)
+(* y = f in Pa *)
+WaterSteamPressure
+  = TPolynom( 5, TaArray( +     605.0,
+                          +      44.94,
+                          +       1.0279,
+                          +       0.0279,
+                          +       0.00037,
+                                  0.0 )
+  );
+
+(*---------------------------------------------------------------------------*)
+
+(* [1], 19 *)
+(* x = dT = ( jd - jd2000 ) / julianCentury *)
+(* y = Delaunayovy parametry pro vypocet nutace a drahy Mesice
+   l - stredni anomalie Slunce           (L)
+   L - stredni anomaile Mesice           (LL)
+   f - stredni argument sirky Mesice
+   d - stredni elongace Mesice a Slunce
+   o - stredni delka uzlu drahy Mesice
+*)
+DelaunayLL
+  = TPolynom( 3, TaArray( +    1287099.804,
+                          +  129596581.224,
+                          -          0.577,
+                          -          0.012,
+                                     0.0,
+                                     0.0 )
+  );
+DelaunayL
+  = TPolynom( 3, TaArray( +     485866.733,
+                          + 1717915922.633,
+                          +         31.310,
+                          +          0.064,
+                                     0.0,
+                                     0.0 )
+  );
+DelaunayF
+  = TPolynom( 3, TaArray( +     335778.677,
+                          + 1739527263.137,
+                          -         13.257,
+                          +          0.011,
+                                     0.0,
+                                     0.0 )
+  );
+DelaunayD
+  = TPolynom( 3, TaArray( +    1072261.307,
+                          + 1602961601.328,
+                          -          6.891,
+                          -          0.019,
+                                     0.0,
+                                     0.0 )
+  );
+DelaunayO
+  = TPolynom( 3, TaArray( +     450160.280,
+                          -    6962890.539,
+                          +          0.455,
+                          +          0.008,
+                                     0.0,
+                                     0.0 )
+  );
+
+(*---------------------------------------------------------------------------*)
+(*
+
+[1] - Astronomicka prirucka, Academia, Praha 1992
+
+*)
+(*---------------------------------------------------------------------------*)
+
+END astro_p.

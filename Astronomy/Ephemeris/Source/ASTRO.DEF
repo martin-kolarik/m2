@@ -1,0 +1,375 @@
+DEFINITION MODULE astro;
+
+IMPORT
+	math;
+
+IMPORT
+	ef82_def,
+	efPl_def,
+	efMo_def;
+
+(* shared mathematic funtions *)
+CONST
+	sin   ::= math.sin;
+	cos   ::= math.cos;
+	tan   ::= math.tan;
+	asin  ::= math.asin;
+	acos  ::= math.acos;
+	atan  ::= math.atan;
+	atan2 ::= math.atan2;
+	sqrt  ::= math.sqrt;
+	log   ::= math.log10;
+	exp   ::= math.exp;
+	ln    ::= math.log;
+
+(*---------------------------------------------------------------------------*)
+
+CONST
+	jd1900  = 2415020.5;
+	jd1950  = 2433282.5;
+	jdb1950 = 2433282.423;
+	jd2000  = 2451545.0;   (* 12h UT *)
+
+	jdStepDay  = 1.0;
+	jdStepHour = jdStepDay / 24.0;
+	jdStepMin  = jdStepHour / 60.0;
+	jdStepSec  = jdStepMin / 60.0;
+	jdStepRT   = 0.0; (* special mean *)
+
+CONST
+	julianCentury    = 36525.0;
+	gregorianCentury = 36524.25;
+	julianYear       = 365.25;
+	gregorianYear    = 365.2425;
+
+TYPE
+	TMonthLen    = ARRAY [1..12] OF INTEGER;
+
+CONST
+	daysInMonths = TMonthLen( 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 );
+
+CONST
+	pi               = 3.141592653589793240;
+	pi2              = 6.283185307179586480;
+	pib2             = 1.570796326794896620;
+	degToRad         = pi / 180.0;
+	radToDeg         = 180.0 / pi;
+	degToArcSec      = 3600.0;
+	arcSecToDeg      = 1.0 / degToArcSec;
+	radToArcSec      = radToDeg * degToArcSec;
+	arcSecToRad      = arcSecToDeg * degToRad;
+	arcSecToSec      = 15.0;
+	secToArcSec      = 1.0 / arcSecToSec;
+	hToSec           = 3600.0;
+	secToH           = 1.0 / hToSec;
+	hToDeg           = 15.0;
+	degToH           = 1.0 / hToDeg;
+	radToH           = radToDeg * degToH;
+	hToRad           = hToDeg * degToRad;
+	aU               = 149597829.0;
+	rE               = 6378.0;
+	gaussGravit      = 0.017202098950; (* rad *)
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+	TOrder = [0..5];
+	TaArray = ARRAY TOrder OF LONGREAL;
+	TPolynom =  RECORD
+						order : TOrder;
+						a     : TaArray;
+					END;
+	// TPPolynom = POINTER TO TPolynom;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+	TCorrection = (
+		corUnknown,
+		corBarycenter,
+		corPrecession,
+		corNutation,
+		corAberation,
+		corParalax,
+		corRefraction
+	);
+	TCorrections = SET OF TCorrection;
+
+TYPE
+	TReferencePointKind = (
+		rpHeliocenter, rpGeocenter, rpTopocenter, rpBodyCenter, rpPlanetocenter
+	);
+
+	TReferencePoint = RECORD
+								CASE Kind : TReferencePointKind OF
+								| rpHeliocenter, rpGeocenter, rpTopocenter, rpBodyCenter :
+								| rpPlanetocenter :
+									Planet : CARDINAL;
+								END;
+							END;
+
+	TCoordType = (
+		ctRect, ctSphera
+	);
+
+	TCoordSystem = (
+		csEclip, csEquator, csAzimuth, csCommon
+	);
+
+	TJD = LONGREAL;
+
+	TRefractionParameters =
+					 RECORD
+						 tC   : LONGREAL;
+						 phPa : LONGREAL;
+						 fipc : LONGREAL;
+					 END;
+
+	TCoord = RECORD
+					 ReferencePoint  : TReferencePoint;
+					 Epoch           : TJD;
+
+					 Corrected       : TCorrections;
+
+					 rSun            : LONGREAL;
+					 rReferencePoint : LONGREAL;
+				 
+					 CASE CoordType : TCoordType OF
+					 | ctRect :
+						 x, y, z         : LONGREAL;
+					 | ctSphera :
+						 r               : LONGREAL;
+					 END;
+				 
+					 CASE CoordSystem : TCoordSystem OF
+					 | csCommon :
+						 beta, lambda  : LONGREAL;
+					 | csEclip :
+						 b, l          : LONGREAL;
+					 | csEquator :
+						 delta, alfa   : LONGREAL;
+					 | csAzimuth :
+						 h, A          : LONGREAL;
+						 altitude,
+						 longitude,
+						 latitude      : LONGREAL;
+						 refraction    : TRefractionParameters;
+					 END;
+				END;
+
+	TElements =
+					 RECORD
+						 Epoch : TJD;                     (* cas platnosti techto elementu *)
+
+						 FKnownT0 : BOOLEAN;
+						 FKnownM0 : BOOLEAN;
+						 FKnownPeriod : BOOLEAN;
+
+						 CASE : BOOLEAN OF // FKnownT0
+						 | FALSE :
+							 CASE : BOOLEAN OF // FKnownM0
+							 | FALSE :
+								L : LONGREAL;                  (* stredni delka, L = M + omega2 *)
+							 | TRUE :
+								_n : LONGREAL;                 (* alias pro stredni denni pohyb *)
+								M0 : LONGREAL;                 (* M v platnosti epochy *)
+							 END;
+						 | TRUE :
+							 CASE : BOOLEAN OF // FKnownPeriod
+							 | FALSE :
+								 n : LONGREAL;                (* stredni denni pohyb, n = gaussGravit * a^(-1.5) *)
+							 | TRUE :
+								 P : LONGREAL;                (* perioda pohybu telesa *)
+							 END;
+							 T0 : TJD;                      (* cas pruchodu perihelem *)
+						 END;
+
+						 CASE FOmegaInPath : BOOLEAN OF
+						 | FALSE :                        (* omega1 je pocitana od vyst. uzlu *)
+																							(* vzdalenost perihelu od vystupneho uzlu *)
+							 omega1 : LONGREAL;
+						 | TRUE :
+							 omega2 : LONGREAL;             (* omega2 je pocitana od jarniho bodu omega2 = Omega + omega1 *)
+						 END;
+
+						 i     : LONGREAL;                (* inklinace, sklon roviny drahy vuci ekliptice *)
+						 Omega : LONGREAL;                (* vzdalenost vystupneho uzlu od jarniho bodu *)
+
+						 CASE FKnownPerihelDistance : BOOLEAN OF
+						 | FALSE:
+							 a : LONGREAL;                  (* velka polosa drahy *)
+						 | TRUE:
+							 p : LONGREAL;                  (* vzdalenost perihelu,
+																								 elipse:    a = p + ex,
+																								 parabola:  p
+																								 hyperbola: a = ex - p *)
+						 END;
+						 e     : LONGREAL;                (* excentricita,
+																								 elipsa:    e < 1, e = ex / a, ex^2 + b^2 = a^2
+																								 parabola:  e = 1, e = ex / a, ex = a = nekonecno
+																								 hyperbola: e > 1, e = ex / a, ex^2 - a^2 = b^2  *)
+					 END;
+
+(*---------------------------------------------------------------------------*)
+
+(* common mathematic *)
+PROCEDURE sqrt3( r : LONGREAL ) : LONGREAL;
+PROCEDURE frac( r : LONGREAL ) : LONGREAL;
+PROCEDURE rmod( r, d : LONGREAL ) : LONGINT;
+PROCEDURE normalizeAngle( VAR a : LONGREAL );
+PROCEDURE eval( x : LONGREAL; CONST Polynom : TPolynom ) : LONGREAL;
+
+(* make human readable form ... *)
+PROCEDURE RadToDE( angle : LONGREAL; VAR    degrees, minutes : INTEGER;
+																		 VAR arcsec, minutesfrac : LONGREAL );
+PROCEDURE RadToRA( angle : LONGREAL; VAR      hours, minutes : INTEGER;
+																		 VAR arcsec, minutesfrac : LONGREAL );
+PROCEDURE JDToH(      jd : LONGREAL; VAR      hours, minutes : INTEGER;
+																		 VAR arcsec, minutesfrac : LONGREAL );
+
+(* solve Kepler's equation *)
+PROCEDURE Kepler( M, e : LONGREAL ) : LONGREAL;
+
+(*===========================================================================*)
+
+(* FOR memo BITSET *)
+CONST
+	memoSideralTime = 0;
+	memoEpsilon     = 1;
+	memoNutation    = 2;
+	memoPrecession  = 3;
+	memoRefraction  = 4;
+
+TYPE
+	TPCelestialMechanic = POINTER TO CCelestialMechanic;
+	TPAbstractBody      = POINTER TO CAbstractBody;
+
+CLASS CCelestialMechanic;
+	JD     : TJD;
+	JD0    : TJD; // JD in midnight
+	fd     : LONGREAL; // fraction of the day
+
+	dT     : LONGREAL; (* ( JD - J2000 ) / julianCentury *)
+	dT0    : LONGREAL; (* ( JD0 - J2000 ) / julianCentury *)
+	dM     : LONGREAL; (* Moon - Earth distance *)
+
+	memo   : RECORD
+					Counted : BITSET;
+					SideralTime, Epsilon, dpsi, deps, ddzeta, dz, dny, R : LONGREAL;
+				END;
+
+	PEarth : TPAbstractBody;
+
+	(*---------------------------------------------------------------------------*)
+
+	PROCEDURE SetJD( jd : TJD );
+	PROCEDURE EquinoxEquation( S0_Hours : LONGREAL ) : LONGREAL;
+	PROCEDURE SideralTimeUT() : LONGREAL;
+
+	(*---------------------------------------------------------------------------*)
+
+	PROCEDURE DelaunayMonthParameters( VAR l, L, f, d, o : LONGREAL );
+	PROCEDURE Epsilon() : LONGREAL;
+	PROCEDURE Nutation( VAR dpsi, deps : LONGREAL );
+	PROCEDURE Precession( VAR ddzeta, dz, dny : LONGREAL );
+	PROCEDURE Refraction( VAR params : TRefractionParameters;
+												z, r : LONGREAL; VAR R : LONGREAL );
+	PROCEDURE CountGeoMonthBarycentricDifference( rZ, rM : LONGREAL; VAR dl, dr : LONGREAL );
+
+	(*---------------------------------------------------------------------------*)
+
+	PROCEDURE Correct( correctionType : TCorrection; VAR coord : TCoord );
+	PROCEDURE Uncorrect( correctionType : TCorrection; VAR coord : TCoord );
+
+	PROCEDURE GeomToZdanlive( jd : TJD; nestedCorrections : TCorrections; VAR coord : TCoord );
+	PROCEDURE ZdanliveToGeom( jd : TJD; VAR coord : TCoord );  (* NOT implemented yet *)
+
+	PROCEDURE ConvertCoordLocal( jd : TJD; src : TCoord; VAR dst : TCoord ); (* convert coords only in place *)
+	PROCEDURE ConvertCoord(      jdBody, jdEarth : TJD;
+															 psrcBody, pdstBody : TPAbstractBody;
+															 src : TCoord; VAR dst : TCoord );
+
+	(*---------------------------------------------------------------------------*)
+
+	(* basic function, counts ecliptical coordinations without any corrections *)
+	PROCEDURE EphemerisHeliocentricGeometric( pBody : TPAbstractBody );
+	(* the same as above, with corrections *)
+	PROCEDURE Ephemeris( pBody : TPAbstractBody );
+
+(*---------------------------------------------------------------------------*)
+
+END CCelestialMechanic;
+
+(*===========================================================================*)
+
+CLASS CAbstractBody;
+	PNext            : TPAbstractBody;
+	PMechanic        : TPCelestialMechanic;
+
+	Id               : ARRAY [0..79] OF WCHAR;
+	Corrections      : TCorrections;
+	Elements         : TElements; (* actual elements *)
+
+	CoordsHeliocentricGeometric : TCoord;
+	CoordsEquatoreal            : TCoord;
+	CoordsAzimutal              : TCoord;
+
+(*----------*)
+
+	PROCEDURE Init( alt, longitude, latitude : LONGREAL;
+									VAR refractionParameters : TRefractionParameters );
+	VIRTUAL PROCEDURE FillElements( jd : TJD );
+	VIRTUAL PROCEDURE CountEphemerisHeliocentricGeometric( jd : TJD );
+	VIRTUAL PROCEDURE CountEphemeris( jd : TJD );
+END CAbstractBody;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CPlanet( CAbstractBody );
+	Planet : CARDINAL; (* 1 means Mercury, 3 Earth, 10 Moon, 11 Sun *)
+
+	VIRTUAL PROCEDURE FillElements( jd : TJD );
+	VIRTUAL PROCEDURE CountEphemerisHeliocentricGeometric( jd : TJD );
+	VIRTUAL PROCEDURE CountEphemeris( jd : TJD );
+
+(*----------*)
+
+	PROCEDURE CountEHGPluto( jd : TJD );
+
+(*----------*)
+
+	PROCEDURE CountESun( jd : TJD );
+	PROCEDURE CountEMoon( jd : TJD );
+END CPlanet;
+
+(*---------------------------------------------------------------------------*)
+
+(*
+CLASS CBody( CAbstractBody );
+	PROCEDURE Init( alt, long, lat : LONGREAL;
+									VAR refractionParameters : TRefractionParameters;
+									VAR elements : TElements );
+END CBody;
+
+(*===========================================================================*)
+
+CLASS CContinuousSimulator;
+	PMechanic  : TPCelestialMechanic;
+	PFirstBody : TPAbstractBody;
+
+	VIRTUAL PROCEDURE Idle();
+	PROCEDURE SetJDStep( jdStep : TJD ); (* jdStep = 0.0 means maximal speed *)
+
+	VIRTUAL PROCEDURE RegisterBody( PBody : TPAbstractBody; nestedCorrections : TCorrections ) : CARDINAL; (* handle *)
+	VIRTUAL PROCEDURE ForgetBody  ( handle : CARDINAL );
+	VIRTUAL PROCEDURE GetBody     ( handle : CARDINAL ) : TPAbstractBody;
+
+	(* expect coord filled with nested corrections, type AND system *)
+	VIRTUAL PROCEDURE GetActualBodyCoord( handle : CARDINAL;
+										VAR coordsEquatoreal, coordsAzimutal : TCoord ) : BOOLEAN;
+END CContinuousSimulator;
+
+(*---------------------------------------------------------------------------*)
+*)
+
+END astro.

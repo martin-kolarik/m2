@@ -1,0 +1,173 @@
+DEFINITION MODULE objbase;
+
+(*# name(   decoration      => c ) *)
+
+(*# module( header          => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            convention      => stdcall ) *)
+
+//----------------------------------------------------------------------------
+//
+//  m2cpp compiler - Component Object Model defintion module
+//
+//  (c) 1998 Moravian Instruments Inc
+//
+//----------------------------------------------------------------------------
+
+IMPORT
+  windows;
+
+IMPORT
+  wtypes,
+  unknwn;
+
+(*# option( pack => 8 ) *)
+
+CONST
+  CLSCTX_INPROC = wtypes.CLSCTX_INPROC_SERVER OR wtypes.CLSCTX_INPROC_HANDLER;
+  CLSCTX_ALL    = wtypes.CLSCTX_INPROC_SERVER OR
+                  wtypes.CLSCTX_INPROC_HANDLER OR
+                  wtypes.CLSCTX_LOCAL_SERVER OR
+                  wtypes.CLSCTX_REMOTE_SERVER;
+  CLSCTX_SERVER = wtypes.CLSCTX_INPROC_SERVER OR
+                  wtypes.CLSCTX_LOCAL_SERVER OR
+                  wtypes.CLSCTX_REMOTE_SERVER;
+
+// class registration flags; passed to CoRegisterClassObject
+
+// enum REGCLS;
+  REGCLS_SINGLEUSE      = 0; // class object only generates one instance
+  REGCLS_MULTIPLEUSE    = 1; // same class object genereates multiple inst.
+                             // and local automatically goes into inproc tbl.
+  REGCLS_MULTI_SEPARATE = 2; // multiple use, but separate control over each
+                             // context.
+  REGCLS_SUSPENDED      = 4; // register is as suspended, will be activated
+                             // when app calls CoResumeClassObjects
+
+(*# save, call( macro => on ) *)
+PROCEDURE InlineIsEqualGUID( rguid1, rguid2 : guiddef.GUID ): windows.BOOL;
+PROCEDURE IsEqualGUID( rguid1, rguid2 : guiddef.GUID ): windows.BOOL;
+PROCEDURE IsEqualIID( rguid1, rguid2 : guiddef.GUID ): windows.BOOL;
+PROCEDURE IsEqualCLSID( rguid1, rguid2 : guiddef.GUID ): windows.BOOL;
+(*# restore *)
+
+// COM initialization flags; passed to CoInitialize.
+//enum COINIT
+
+CONST
+  COINIT_APARTMENTTHREADED  = 02H;      // Apartment model
+  // These constants are only valid on Windows NT 4.0
+  COINIT_MULTITHREADED      = 00H;      // OLE calls objects on any thread.
+  COINIT_DISABLE_OLE1DDE    = 04H;      // Don't use DDE for Ole1 support.
+  COINIT_SPEED_OVER_MEMORY  = 08H;      // Trade memory for speed.
+
+//****** STD Object API Prototypes *****************************************
+
+PROCEDURE CoBuildVersion(): windows.DWORD;
+
+// init/uninit
+
+PROCEDURE CoInitialize( pvReserved : windows.PVOID ): wtypes.HRESULT;
+PROCEDURE CoUninitialize();
+PROCEDURE CoGetCurrentProcess(): windows.DWORD;
+PROCEDURE CoInitializeEx( pvReserved : windows.PVOID; dwCoInit : windows.DWORD ): wtypes.HRESULT;
+
+//#if DBG == 1
+//WINOLEAPI_(ULONG) DebugCoGetRpcFault( void );
+//WINOLEAPI_(void) DebugCoSetRpcFault( ULONG );
+//#endif
+
+// register/revoke/get class objects
+
+PROCEDURE CoGetClassObject( CONST rclsid : guiddef.CLSID;
+                            dwClsContext : windows.DWORD;
+                            pvReserved : windows.PVOID;
+                            CONST riid : guiddef.IID;
+                            VAR ppv : windows.PVOID ): wtypes.HRESULT;
+PROCEDURE CoRegisterClassObject( CONST rclsid : guiddef.CLSID;
+                                 pUnk : unknwn.TPIUnknown;
+                                 dwClsContext : windows.DWORD;
+                                 flags : windows.DWORD;
+                                 lpdwRegister : windows.PDWORD ): wtypes.HRESULT;
+PROCEDURE CoRevokeClassObject( dwRegister : windows.DWORD ): wtypes.HRESULT;
+PROCEDURE CoResumeClassObjects(): wtypes.HRESULT;
+PROCEDURE CoSuspendClassObjects(): wtypes.HRESULT;
+PROCEDURE CoAddRefServerProcess(): windows.ULONG;
+PROCEDURE CoReleaseServerProcess(): windows.ULONG;
+PROCEDURE CoGetPSClsid( CONST riid : guiddef.IID; CONST pClsid : guiddef.CLSID ): wtypes.HRESULT;
+PROCEDURE CoRegisterPSClsid( CONST riid : guiddef.IID; CONST rclsid : guiddef.CLSID ): wtypes.HRESULT;
+
+
+CONST
+  COM_RIGHTS_EXECUTE = 1;
+
+// helper for creating instances
+
+PROCEDURE CoCreateInstance(
+    CONST rclsid : guiddef.CLSID;
+    pUnkOuter : unknwn.TPIUnknown;
+    dwClsContext : windows.DWORD;
+    CONST riid : guiddef.IID;
+    VAR ppv : ADDRESS
+  ): wtypes.HRESULT;
+
+// other helpers
+PROCEDURE StringFromCLSID(
+    CONST rclsid : guiddef.CLSID;
+    VAR lplpsz : wtypes.POLESTR
+  ): wtypes.HRESULT;
+PROCEDURE CLSIDFromString(
+    lpsz : wtypes.POLESTR;
+    pclsid : guiddef.PCLSID
+  ): wtypes.HRESULT;
+PROCEDURE StringFromIID(
+    CONST rclsid : guiddef.IID;
+    VAR lplpsz : wtypes.POLESTR
+  ): wtypes.HRESULT;
+PROCEDURE IIDFromString(
+    lpsz : wtypes.POLESTR;
+    lpiid : guiddef.PIID
+  ): wtypes.HRESULT;
+PROCEDURE CoIsOle1Class(
+    CONST rclsid : guiddef.CLSID
+  ) : windows.BOOL;
+PROCEDURE ProgIDFromCLSID(
+    CONST clsid : guiddef.CLSID;
+    VAR lplpszProgID : wtypes.POLESTR
+  ): wtypes.HRESULT;
+PROCEDURE CLSIDFromProgID(
+    lpszProgID : wtypes.POLESTR;
+    lpclsid : guiddef.PCLSID
+  ): wtypes.HRESULT;
+PROCEDURE StringFromGUID2(
+    rguid : guiddef.GUID;
+    lpsz : wtypes.POLESTR;
+    cbMax : INTEGER
+  ): INTEGER;
+
+PROCEDURE CoCreateGuid( pguid : guiddef.GUID ): wtypes.HRESULT;
+
+TYPE
+  PFNGETCLASSOBJECT = PROCEDURE( VAR guiddef.CLSID, VAR guiddef.IID, VAR ADDRESS ): wtypes.HRESULT;
+  //typedef wtypes.HRESULT (STDAPICALLTYPE * LPFNGETCLASSOBJECT) (REFCLSID, REFIID, PVOID *);
+  PFNCANUNLOADNOW = PROCEDURE(): wtypes.HRESULT;
+  //typedef wtypes.HRESULT (STDAPICALLTYPE * LPFNCANUNLOADNOW)(void);
+
+PROCEDURE DllGetClassObject(
+    CONST rclsid : guiddef.CLSID;
+    CONST riid : guiddef.IID;
+    VAR ppv : ADDRESS
+  ): wtypes.HRESULT;
+
+PROCEDURE DllCanUnloadNow(): wtypes.HRESULT;
+
+//***** Default Memory Allocation ******************************************
+PROCEDURE CoTaskMemAlloc( cp : windows.ULONG ): ADDRESS;
+PROCEDURE CoTaskMemRealloc( pv : ADDRESS; cb : windows.ULONG ): ADDRESS;
+PROCEDURE CoTaskMemFree( pv : ADDRESS );
+
+END objbase.

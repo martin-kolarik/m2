@@ -1,0 +1,144 @@
+DEFINITION MODULE avltree;
+
+(*===========================================================================*)
+//
+// AVL tree
+//
+// version 5 (c) 1993-2006 mk
+//
+(*===========================================================================*)
+
+#save, option( dll_export => on )
+
+// common types
+TYPE
+  TBalance = (
+    tbLeftOverflow, tbLeft,
+    tbNone,
+    tbRight, tbRightOverflow
+  );
+
+(*===========================================================================*)
+// basic, single AVL Tree
+
+TYPE
+  TPAVLTreeKey  = POINTER TO IAVLTreeKey;
+  TPAVLTreeElem = POINTER TO IAVLTreeElem;
+  TPAVLTree     = POINTER TO CAVLTree;
+  
+  TAVLIndex     = RECORD
+                    L, R    : TPAVLTreeElem;
+                    Balance : TBalance;
+                    Items   : CARDINAL;
+                  END;
+  TPAVLIndex    = POINTER TO TAVLIndex;
+  TPAVLIndexes  = POINTER TO ARRAY [0..0] OF TAVLIndex;
+
+(*---------------------------------------------------------------------------*)
+
+INTERFACE IAVLTreeKey;
+  PUBLIC ABSTRACT PROCEDURE Compare( i : CARDINAL; pelem : TPAVLTreeKey ) : TRISTATE;
+  // method Compare must:
+  //   return 0 for pelem^.[Data] = SELF.[Data]
+  //          1 for pelem^.[Data] < SELF.[Data]
+  //         -1 for pelem^.[Data] > SELF.[Data]
+END IAVLTreeKey;
+
+(*---------------------------------------------------------------------------*)
+
+ABSTRACT CLASS IAVLTreeElem IMPLEMENTS IAVLTreeKey;
+  LOCAL ABSTRACT READONLY INDEX( i : CARDINAL ) : TPAVLIndex;
+  PUBLIC ABSTRACT PROCEDURE Compare( i : CARDINAL; pelem : TPAVLTreeKey ) : TRISTATE;
+  PUBLIC VIRTUAL FINALLY IAVLTreeElem();
+END IAVLTreeElem;
+
+(*---------------------------------------------------------------------------*)
+
+ABSTRACT CLASS CAVLTreeElem1( IAVLTreeElem );
+  PRIVATE VAR
+    _I : TAVLIndex;
+  LOCAL FINAL READONLY INDEX( i : CARDINAL ) : TPAVLIndex;
+  PUBLIC ABSTRACT PROCEDURE Compare( i : CARDINAL; pelem : TPAVLTreeKey ) : TRISTATE;
+END CAVLTreeElem1;
+
+CONST
+  CAVLTreeElem ::= CAVLTreeElem1;
+
+(*---------------------------------------------------------------------------*)
+
+ABSTRACT CLASS CAVLTreeElem2( IAVLTreeElem );
+  PRIVATE VAR
+    _I  : ARRAY [0..1] OF TAVLIndex;
+  LOCAL FINAL READONLY INDEX( i : CARDINAL ) : TPAVLIndex;
+  PUBLIC ABSTRACT PROCEDURE Compare( i : CARDINAL; pelem : TPAVLTreeKey ) : TRISTATE;
+END CAVLTreeElem2;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CAVLTree;
+  INTERNAL VAR
+    _Root   : POINTER TO ARRAY [0..0] OF TPAVLTreeElem;
+    _I      : CARDINAL;
+  PUBLIC FINAL READONLY PROPERTY
+    Count   : CARDINAL;
+    Empty   : BOOLEAN;
+  PUBLIC FINAL PROPERTY
+    Indexes : CARDINAL;
+  
+  PUBLIC READONLY
+    INDEX( Index : INTEGER ) : TPAVLTreeElem; // operates with i = 0
+
+  PUBLIC PROCEDURE Insert( Element : TPAVLTreeElem );
+  PUBLIC VIRTUAL PROCEDURE Dispose();
+
+  // methods i = 0
+  PUBLIC PROCEDURE Contains( CONST Key : TPAVLTreeKey ) : BOOLEAN;
+  PUBLIC PROCEDURE Search( CONST Key : TPAVLTreeKey; OUT Found : TPAVLTreeElem ) : BOOLEAN;
+  PUBLIC PROCEDURE Remove( CONST Key : TPAVLTreeKey; OUT Removed : TPAVLTreeElem ) : BOOLEAN;
+  PUBLIC PROCEDURE Delete( CONST Key : TPAVLTreeKey ) : BOOLEAN;
+
+  PUBLIC PROCEDURE GetFirst( OUT First : TPAVLTreeElem ) : BOOLEAN;
+  PUBLIC PROCEDURE GetLast( OUT Last : TPAVLTreeElem ) : BOOLEAN;
+
+  PUBLIC PROCEDURE PrevOf( CONST Element : TPAVLTreeElem; OUT Previous : TPAVLTreeElem ) : BOOLEAN;
+  PUBLIC PROCEDURE NextOf( CONST Element : TPAVLTreeElem; OUT Next : TPAVLTreeElem ) : BOOLEAN;
+  PUBLIC PROCEDURE IndexOf( CONST Key : TPAVLTreeKey ) : INTEGER;
+
+  // methods i = ...
+  PUBLIC PROCEDURE ContainsI( i : CARDINAL; CONST Key : TPAVLTreeKey ) : BOOLEAN;
+  PUBLIC PROCEDURE SearchI( i : CARDINAL; CONST Key : TPAVLTreeKey; OUT Found : TPAVLTreeElem ) : BOOLEAN;
+  PUBLIC PROCEDURE RemoveI( i : CARDINAL; CONST Key : TPAVLTreeKey; OUT Removed : TPAVLTreeElem ) : BOOLEAN;
+  PUBLIC PROCEDURE DeleteI( i : CARDINAL; CONST Key : TPAVLTreeKey ) : BOOLEAN;
+
+  PUBLIC PROCEDURE GetFirstI( i : CARDINAL; OUT First : TPAVLTreeElem ) : BOOLEAN;
+  PUBLIC PROCEDURE GetLastI( i : CARDINAL; OUT Last : TPAVLTreeElem ) : BOOLEAN;
+
+  PUBLIC PROCEDURE PrevOfI( i : CARDINAL; CONST Element : TPAVLTreeElem; OUT Previous : TPAVLTreeElem ) : BOOLEAN;
+  PUBLIC PROCEDURE NextOfI( i : CARDINAL; CONST Element : TPAVLTreeElem; OUT Next : TPAVLTreeElem ) : BOOLEAN;
+  PUBLIC PROCEDURE IndexOfI( i : CARDINAL; CONST Key : TPAVLTreeKey ) : INTEGER;
+  PUBLIC PROCEDURE OfIndexI( i : CARDINAL; Index : INTEGER; OUT Element : TPAVLTreeElem ) : BOOLEAN;
+
+  INTERNAL PROCEDURE iBalanceL( i : CARDINAL; REF Element : TPAVLTreeElem );
+  INTERNAL PROCEDURE iBalanceR( i : CARDINAL; REF Element : TPAVLTreeElem );
+  INTERNAL PROCEDURE iRemoveBalanceL( i : CARDINAL; REF Element : TPAVLTreeElem; REF w : BOOLEAN );
+  INTERNAL PROCEDURE iRemoveBalanceR( i : CARDINAL; REF Element : TPAVLTreeElem; REF w : BOOLEAN );
+  INTERNAL PROCEDURE iFindPredecessor( i : CARDINAL; REF Element : TPAVLTreeElem; REF w : BOOLEAN ) : TPAVLTreeElem;
+END CAVLTree;
+
+(*==========================================================================*)
+
+CLASS CAVLTreeWState( CAVLTree );
+  INTERNAL VAR
+    _Current : PTR;
+  PUBLIC READONLY PROPERTY
+    Current : TPAVLTreeElem;
+
+  PUBLIC PROCEDURE Reset();
+  PUBLIC PROCEDURE MoveNext() : BOOLEAN;
+END CAVLTreeWState;
+
+(*==========================================================================*)
+
+#restore
+
+END avltree.

@@ -1,0 +1,68 @@
+DEFINITION MODULE netsrv;
+
+IMPORT
+  winsock;
+
+IMPORT
+  msghandler,
+  netsocket;
+
+(*  
+  Network listening (TCP) / server receiving (UDP) API.
+  It creates self in main thread unless SetCallbackMode( cbmPooled ) procedure is called.
+  Using main thread means AStreamCreator calls are dispatched to the main thread where they can be processed synchronously.
+*)
+  
+#save, option( dll_export => on )
+
+(*================================================================================*)
+
+TYPE
+  TPListener = POINTER TO AListener;
+
+ABSTRACT CLASS AListener( Delegate.ADelegate );
+  LOCAL VIRTUAL PROCEDURE OnListen( CONST ServerSocket : netsocket.TPSSocket ); // stStream
+  LOCAL VIRTUAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket ); // stDatagram
+  LOCAL VIRTUAL PROCEDURE OnListenSocketClosed( CONST ServerSocket : netsocket.TPSSocket ); // both types
+END AListener;
+
+(*================================================================================*)
+
+TYPE
+  TCallbackMode = (
+    cbmPooled,
+    cbmMainThread,
+    cbmDefault = cbmMainThread
+  );
+
+PROCEDURE SetCallbackMode(
+            Mode : TCallbackMode
+          );
+
+PROCEDURE StartListen(
+            Type : netsocket.TSocketType;
+            Port : CARDINAL; // if Port = 0 the ephemeral one is selected
+            PMulticastGroup : winsock.PIN_ADDR; // can be NIL
+            PStreamCreator : TPListener;
+            AutomaticCloseTimeMS : CARDINAL;	// can be 0 or INFINITE to INFINITE time
+            PCreatedSocket : POINTER TO netsocket.TPSSocket // can be NIL
+          ) : CARDINAL;
+
+PROCEDURE StopListenPort(
+            Type : netsocket.TSocketType;
+            Port : CARDINAL
+			);
+
+PROCEDURE StopListenSocket(
+				OUT Socket : netsocket.TPSSocket
+			 );
+
+#restore
+
+(*================================================================================*)
+
+PROCEDURE Cleanup();
+
+(*================================================================================*)
+
+END netsrv.

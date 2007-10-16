@@ -1,0 +1,159 @@
+DEFINITION MODULE Time;
+
+IMPORT
+  windows;
+
+#save, option( dll_export => on )
+
+TYPE
+  TTime64  = INT64;
+  TPTime64 = POINTER TO TTime64;
+
+PROCEDURE UptimeMS(): CARDINAL; // returns time from system startup in ms
+PROCEDURE UptimeMS64(): TTime64; // returns time from system startup in ms
+
+// high resolution timer
+PROCEDURE HiResTimerExists() : BOOLEAN;
+PROCEDURE GetHiResHz() : TTime64;
+PROCEDURE GetHiResTicks() : TTime64;
+PROCEDURE GetHiResDifference( REF fromTick : TTime64 ) : TTime64; // returns amount of ticks and sets fromTime to the current ticks
+PROCEDURE HiResTicksToLRS( ticks : TTime64 ) : LONGREAL; // converts ticks to seconds
+PROCEDURE HiResTicksToLRMS( ticks : TTime64 ) : LONGREAL; // converts ticks to miliseconds
+PROCEDURE HiResTicksToMS( ticks : TTime64 ) : TTime64; // converts ticks to miliseconds
+
+// like c/time
+CONST
+  time ::= GetHiResTicks;
+PROCEDURE difftime( CONST StopTime, StartTime : TTime64 ) : LONGREAL; // seconds
+
+//===========================================================================
+// JulianDate routines
+
+TYPE
+   TJD  = INT64; // unit is 100 ns
+   TPJD = POINTER TO INT64;
+
+   TJDC = TJD; // type interpreted as count of 100 ns unit, not as whole JD
+
+CONST
+   unitsInMillisecond = TJD( 10 );
+   unitsInSecond = TJD( 10000 );
+   unitsInDay = TJD( 864000000 ); 
+
+PROCEDURE fd( ri : TJD ) : CARDINAL;
+PROCEDURE HMS2fd( H, M, S, MS : CARDINAL ) : CARDINAL;
+PROCEDURE fd2HMS( fd : CARDINAL; OUT H, M, S, MS : CARDINAL ) : BOOLEAN;
+
+PROCEDURE JD( y : INTEGER; m, d, fd : CARDINAL ) : TJD;
+PROCEDURE iJD( CONST jd : TJD; OUT y : INTEGER; OUT m, d, fd : CARDINAL );
+PROCEDURE DayOfWeek( CONST jd : TJD ) : CARDINAL; // 0 is monday, 6 is sunday
+PROCEDURE TrimFD( CONST jd : TJD ) : TJD;
+
+PROCEDURE JDCToMS( CONST jd : TJDC ) : CARDINAL;
+PROCEDURE MSToJDC( ms : CARDINAL ) : TJDC;
+PROCEDURE JDCToDays( CONST jd : TJDC ) : CARDINAL;
+PROCEDURE DaysToJDC( days : CARDINAL ) : TJDC;
+PROCEDURE JDCToDaysLR( CONST jd : TJDC ) : LONGREAL;
+PROCEDURE DaysLRToJDC( days : LONGREAL ) : TJDC;
+
+PROCEDURE ToSJD( CONST jd : TJD ) : LONGREAL; // correct scientific Julian date
+PROCEDURE FromSJD( sjd : LONGREAL ) : TJD; // correct scientific Julian date
+
+PROCEDURE SystemTimeToJD( CONST SystemTime : windows.SYSTEMTIME ) : TJD;
+PROCEDURE JDToSystemTime( JD : TJD; OUT SystemTime : windows.SYSTEMTIME );
+
+//=============================================================================
+// date and time support
+
+TYPE
+  TDateTime   = RECORD
+                  Millisecond : CARDINAL;
+                  Second      : CARDINAL;
+                  Minute      : CARDINAL;
+                  Hour        : CARDINAL;
+                  Day         : CARDINAL;
+                  Month       : CARDINAL;
+                  Year        : INTEGER;
+                  DayOfWeek   : CARDINAL; // 0 is Sunday
+                  // UTC = LocalTime + UTCBias + DSTBias
+                  UTCBias     : INTEGER;  // if TDateTime contains system (UTC) time, the UTCBias is 0
+                    // MINUTES!!
+                  DSTBias     : INTEGER;  // if TDateTime contains system (UTC) time, the DSTBias is 0
+                    // MINUTES!!
+                END;
+  TPDateTime  = POINTER TO TDateTime;
+
+//-----------------------------------------------------------------------------
+
+PROCEDURE InitDateTime( OUT DateTime : TDateTime );
+PROCEDURE TrimDate( REF DateTime : TDateTime );
+PROCEDURE TrimTime( REF DateTime : TDateTime );
+
+PROCEDURE Less( CONST Origin, Comperand : TDateTime ) : BOOLEAN;
+PROCEDURE Greater( CONST Origin, Comperand : TDateTime ) : BOOLEAN;
+
+// UTCBias always represents zone time only, thus,
+// real bias of UTC is to be counted as addition of both UTCBias and DSTBias
+
+PROCEDURE GetZonalUTCBias() : INTEGER; // MINUTES!!
+  // returns bias according to system time zone
+PROCEDURE GetZonalDSTBias() : INTEGER; // MINUTES!!
+  // returns bias according to current time zone ignoring current DST state
+PROCEDURE GetCurrentUTCBias() : INTEGER; // MINUTES!! 
+  // returns whole local bias
+PROCEDURE GetCurrentDSTBias() : INTEGER; // MINUTES;
+  // returns bias in current zone according to current DST state
+
+// procedures return current local/system datetime in requested format
+PROCEDURE GetCurrentJD() : TJD; // JD is by definition UTC
+PROCEDURE GetCurrentUTCDateTime( VAR DateTime : TDateTime );
+PROCEDURE GetCurrentZonalDateTime( VAR DateTime : TDateTime; UTCBias, DSTBias : INTEGER );
+PROCEDURE GetCurrentLocalDateTime( VAR DateTime : TDateTime );
+
+// conversions JD <--> DateTime
+PROCEDURE JDToZonalDateTime( JD : TJD; VAR DateTime : TDateTime; UTCBias, DSTBias : INTEGER );
+PROCEDURE JDToLocalDateTime( JD : TJD; VAR DateTime : TDateTime );
+  // applies DST bias according to DST state of date determined by JD
+PROCEDURE ZonalDateTimeToJD( CONST DateTime : TDateTime; UTCBias, DSTBias : INTEGER ) : TJD;
+PROCEDURE LocalDateTimeToJD( CONST DateTime : TDateTime ) : TJD;
+  // applies DST bias according to DST state of date determined by DateTime
+PROCEDURE DateTimeToJD     ( CONST DateTime : TDateTime ) : TJD;
+  // uses biases set in DateTime
+
+// conversions DateTime <--> DateTime
+PROCEDURE LocalDateTimeToZonalDateTime( CONST DateTime1 : TDateTime; VAR DateTime2 : TDateTime; UTCBias, DSTBias : INTEGER );
+PROCEDURE ZonalDateTimeToLocalDateTime( CONST DateTime1 : TDateTime; UTCBias, DSTBias : INTEGER; VAR DateTime2 : TDateTime );
+PROCEDURE ZonalDateTimeToZonalDateTime( CONST DateTime1 : TDateTime; UTCBias1, DSTBias1 : INTEGER; VAR DateTime2 : TDateTime; UTCBias2, DSTBias2 : INTEGER );
+PROCEDURE DateTimeToLocalDateTime     ( CONST DateTime1 : TDateTime; VAR DateTime2 : TDateTime );
+  // uses biases set in DateTime1
+PROCEDURE DateTimeToZonalDateTime     ( CONST DateTime1 : TDateTime; VAR DateTime2 : TDateTime; UTCBias2, DSTBias2 : INTEGER );
+  // uses biases set in DateTime1
+
+// internal
+PROCEDURE dstActive( CONST DateTime : TDateTime ) : BOOLEAN;
+
+PROCEDURE DateTimeToSystemTime( CONST DateTime : TDateTime; OUT SystemTime : windows.SYSTEMTIME );
+PROCEDURE SystemTimeToDateTime( CONST SystemTime : windows.SYSTEMTIME; OUT DateTime : TDateTime );
+
+//=============================================================================
+// extended formatting helper
+
+PROCEDURE StringToDateTime(         String : ARRAY OF WCHAR;
+                                    Format : ARRAY OF WCHAR;
+                              VAR DateTime : TDateTime ) : BOOLEAN;
+
+PROCEDURE DateTimeToString( CONST   DateTime : TDateTime;
+                                      Format : ARRAY OF WCHAR;
+                                  FormatDate : BOOLEAN;
+                                  FormatTime : BOOLEAN;
+                              VAR     String : ARRAY OF WCHAR ) : BOOLEAN;
+
+//=============================================================================
+
+INITIALLY __I();
+
+//=============================================================================
+
+#restore
+
+END Time.

@@ -1,0 +1,84 @@
+DEFINITION MODULE nsitem;
+
+IMPORT
+	IOO,
+  nslookup,
+	sdns,
+	sdvalue;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+	TPnsWrapper = POINTER TO CnsWrapper;
+	
+CLASS CnsWrapper( sdns.ASDNSItem );
+	PRIVATE VAR
+		_NS : sdns.TPSDNS;
+
+	PUBLIC VIRTUAL READONLY PROPERTY
+		Name : StringsO.TPString;
+		NameType : sdns.TSDNameType;
+		ValueType : sdvalue.TSDValueType;
+		Data : PTR;
+	PUBLIC VIRTUAL READONLY PROPERTY
+		Count : CARDINAL;
+	PUBLIC PROPERTY
+		Namespace : sdns.TPSDNS;
+
+	PUBLIC VIRTUAL READONLY INDEX( Index : CARDINAL ) : sdns.TPSDNSItem;
+
+	PUBLIC VIRTUAL PROCEDURE ContainsOA( CONST SingleName : ARRAY OF WCHAR ) : BOOLEAN;
+	PUBLIC VIRTUAL PROCEDURE GetOA( CONST SingleName : ARRAY OF WCHAR; OUT Item : sdns.TPSDNSItem ) : BOOLEAN;
+
+	PUBLIC VIRTUAL PROCEDURE AddChild( Child : sdns.TPSDNSItem );
+END CnsWrapper;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+  TPnsItem = POINTER TO CnsItem;
+
+CLASS CnsItem( nslookup.AnsAVLItem );
+	PRIVATE VAR
+		_Name : StringsO.CString;
+		_NameType : sdns.TSDNameType;
+		_ValueType : sdvalue.TSDValueType;
+		_Data : PTR;
+	PUBLIC VIRTUAL READONLY PROPERTY
+		Name : StringsO.TPString;
+		NameType : sdns.TSDNameType;
+		ValueType : sdvalue.TSDValueType;
+		Data : PTR;
+	PUBLIC PROCEDURE Init( CONST SingleChildName : ARRAY OF WCHAR; ConstName : BOOLEAN; NameType : sdns.TSDNameType; ValueType : sdvalue.TSDValueType; Data : PTR );
+END CnsItem;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+  TPNS = POINTER TO ANS;
+
+ABSTRACT CLASS ANS( sdns.ASDNS );
+	PRIVATE VAR
+		_Root : sdns.TPSDNSItem;
+	PUBLIC VIRTUAL READONLY PROPERTY
+		Root : sdns.TPSDNSItem;
+	PUBLIC VAR
+		ConstNames : BOOLEAN := FALSE; // names will be stored as references
+
+	// must be called as the first
+	PUBLIC PROCEDURE Initialize();
+
+	// root creator
+	INTERNAL ABSTRACT PROCEDURE CreateRoot() : sdns.TPSDNSItem;
+	// structure creator, could be left empty
+	INTERNAL VIRTUAL PROCEDURE CreateStructure(); // excluding root, need not to be overriden
+	// items creator, used from CnsItem
+	PUBLIC VIRTUAL PROCEDURE CreateNewItem( CONST Name : ARRAY OF WCHAR; Type : sdvalue.TSDValueType; Data : PTR ) : sdns.TPSDNSItem;
+
+	// helpers
+	PUBLIC PROCEDURE FromXML( Stream : IOO.TPStream );
+END ANS;
+
+(*---------------------------------------------------------------------------*)
+
+END nsitem.

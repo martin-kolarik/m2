@@ -1,0 +1,18 @@
+DEFINITION MODULE Validator;
+
+IMPORT
+   StringsO;
+
+(*================================================================================*)
+
+PROCEDURE Register( CONST Data : ADDRESS; Length : CARDINAL; Source : ADDRESS );
+PROCEDURE Unregister( CONST Data : ADDRESS );
+
+(*================================================================================*)
+
+PROCEDURE Check( CONST Product : StringsO.IString ) : TRISTATE;
+PROCEDURE UnwrapData( CONST Data : ADDRESS; Length : CARDINAL; OUT Unwrapped : StringsO.IString );
+
+(*================================================================================*)
+
+END Validator.

@@ -1,0 +1,116 @@
+DEFINITION MODULE cguid;
+
+FROM guiddef IMPORT
+  CLSID,
+  GUID,
+  IID;
+
+VAR
+  CATID_MARSHALER                    : CLSID;
+  IID_IRpcChannel                    : IID;
+  IID_IRpcStub                       : IID;
+  IID_IStubManager                   : IID;
+  IID_IRpcProxy                      : IID;
+  IID_IProxyManager                  : IID;
+  IID_IPSFactory                     : IID;
+  IID_IInternalMoniker               : IID;
+  IID_IDfReserved1                   : IID;
+  IID_IDfReserved2                   : IID;
+  IID_IDfReserved3                   : IID;
+  CLSID_StdMarshal                   : CLSID;
+  CLSID_AggStdMarshal                : CLSID;
+  CLSID_StdAsyncActManager           : CLSID;
+  IID_IStub                          : IID;
+  IID_IProxy                         : IID;
+  IID_IEnumGeneric                   : IID;
+  IID_IEnumHolder                    : IID;
+  IID_IEnumCallback                  : IID;
+  IID_IOleManager                    : IID;
+  IID_IOlePresObj                    : IID;
+  IID_IDebug                         : IID;
+  IID_IDebugStream                   : CLSID;
+  CLSID_PSGenObject                  : CLSID;
+  CLSID_PSClientSite                 : CLSID;
+  CLSID_PSClassObject                : CLSID;
+  CLSID_PSInPlaceActive              : CLSID;
+  CLSID_PSInPlaceFrame               : CLSID;
+  CLSID_PSDragDrop                   : CLSID;
+  CLSID_PSBindCtx                    : CLSID;
+  CLSID_PSEnumerators                : CLSID;
+  CLSID_StaticMetafile               : CLSID;
+  CLSID_StaticDib                    : CLSID;
+  CID_CDfsVolume                     : CLSID;
+  CLSID_DCOMAccessControl            : CLSID;
+  CLSID_StdGlobalInterfaceTable      : CLSID;
+  CLSID_ComBinding                   : CLSID;
+  CLSID_StdEvent                     : CLSID;
+  CLSID_ManualResetEvent             : CLSID;
+  CLSID_SynchronizeContainer         : CLSID;
+  CLSID_AddrControl                  : CLSID;
+
+  //********************************************
+  //
+  // CD Forms CLSIDs
+  //
+  //********************************************
+
+  //
+  // Form Kernel objects
+  //
+  CLSID_CCDFormKrnl                  : CLSID;
+  CLSID_CCDPropertyPage              : CLSID;
+  CLSID_CCDFormDialog                : CLSID;
+
+  //
+  // Control objects
+  //
+  CLSID_CCDCommandButton             : CLSID;
+  CLSID_CCDComboBox                  : CLSID;
+  CLSID_CCDTextBox                   : CLSID;
+  CLSID_CCDCheckBox                  : CLSID;
+  CLSID_CCDLabel                     : CLSID;
+  CLSID_CCDOptionButton              : CLSID;
+  CLSID_CCDListBox                   : CLSID;
+  CLSID_CCDScrollBar                 : CLSID;
+  CLSID_CCDGroupBox                  : CLSID;
+
+  //
+  // Property Pages
+  //
+  CLSID_CCDGeneralPropertyPage       : CLSID;
+  CLSID_CCDGenericPropertyPage       : CLSID;
+  CLSID_CCDFontPropertyPage          : CLSID;
+  CLSID_CCDColorPropertyPage         : CLSID;
+  CLSID_CCDLabelPropertyPage         : CLSID;
+  CLSID_CCDCheckBoxPropertyPage      : CLSID;
+  CLSID_CCDTextBoxPropertyPage       : CLSID;
+  CLSID_CCDOptionButtonPropertyPage  : CLSID;
+  CLSID_CCDListBoxPropertyPage       : CLSID;
+  CLSID_CCDCommandButtonPropertyPage : CLSID;
+  CLSID_CCDComboBoxPropertyPage      : CLSID;
+  CLSID_CCDScrollBarPropertyPage     : CLSID;
+  CLSID_CCDGroupBoxPropertyPage      : CLSID;
+  CLSID_CCDXObjectPropertyPage       : CLSID;
+
+  CLSID_CStdPropertyFrame            : CLSID;
+
+  CLSID_CFormPropertyPage            : CLSID;
+  CLSID_CGridPropertyPage            : CLSID;
+
+  CLSID_CWSJArticlePage              : CLSID;
+  CLSID_CSystemPage                  : CLSID;
+
+  CLSID_IdentityUnmarshal            : CLSID;
+  CLSID_InProcFreeMarshaler          : CLSID;
+
+  CLSID_Picture_Metafile             : CLSID;
+  CLSID_Picture_EnhMetafile          : CLSID;
+  CLSID_Picture_Dib                  : CLSID;
+
+  //
+  // Enumerations
+  //
+  GUID_TRISTATE                      : GUID;
+
+END cguid.
+

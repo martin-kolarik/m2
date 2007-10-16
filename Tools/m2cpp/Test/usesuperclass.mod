@@ -1,0 +1,35 @@
+MODULE usesuperclass;
+
+TYPE
+  TP1 = POINTER TO C1;
+
+CLASS C1;
+  PROCEDURE M1();
+END C1;
+
+CLASS C2( C1 );
+  PROCEDURE M2();
+END C2;
+
+CLASS IMPLEMENTATION C1;
+
+  PROCEDURE M1();
+  BEGIN
+  END M1;
+
+END C1;
+
+CLASS IMPLEMENTATION C2;
+
+  PROCEDURE M2();
+  VAR
+    PC1 : TP1;
+  BEGIN
+    PC1^.C1.M1();
+    C1.M1();
+  END M2;
+
+END C2;
+
+BEGIN
+END usesuperclass.

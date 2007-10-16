@@ -1,0 +1,19 @@
+DEFINITION MODULE ServiceControl;
+
+IMPORT
+   Sync;
+
+(*===========================================================================*)
+// helpers to operate services
+
+PROCEDURE CheckPresence( CONST ServiceName : ARRAY OF WCHAR; OUT Error : CARDINAL ) : BOOLEAN; // Present
+PROCEDURE Create( CONST ServiceName, ServiceDisplayName, ServiceEXEPath, DependsOn, Description : ARRAY OF WCHAR; OUT Error : CARDINAL ) : BOOLEAN;
+
+PROCEDURE Start( CONST ServiceName : ARRAY OF WCHAR; CONST Parameter : ARRAY OF WCHAR; WaitResult : BOOLEAN; TimeoutMS : CARDINAL; OUT Error : CARDINAL ) : Sync.TAsyncResult;
+PROCEDURE Stop( CONST ServiceName : ARRAY OF WCHAR; WaitResult : BOOLEAN; TimeoutMS : CARDINAL; OUT Error : CARDINAL ) : Sync.TAsyncResult;
+
+PROCEDURE Delete( CONST ServiceName : ARRAY OF WCHAR; OUT Error : CARDINAL ) : BOOLEAN;
+
+(*===========================================================================*)
+
+END ServiceControl.

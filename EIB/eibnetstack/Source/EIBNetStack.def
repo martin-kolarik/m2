@@ -1,0 +1,35 @@
+DEFINITION MODULE EIBNetStack;
+
+(*================================================================================*)
+
+IMPORT
+   winsock; // must be first
+
+IMPORT
+  eib_status,
+  eib_stack;
+
+(*================================================================================*)
+// EIBNet connection
+
+TYPE
+   TPEIBNetStack = POINTER TO CEIBNetStack;
+
+CLASS CEIBNetStack( eib_stack.CEIBStack );
+   PUBLIC VIRTUAL PROCEDURE SetTimeout( TimeoutId : eib_stack.TTimeoutId; Timeout : CARDINAL; AuxiliarySpecification : LONGWORD );
+
+   INTERNAL VIRTUAL PROCEDURE Initialize() : eib_status.TEIBStackStatus;
+   INTERNAL VIRTUAL PROCEDURE ConnectBUS() : eib_status.TEIBStackStatus;
+   INTERNAL VIRTUAL PROCEDURE DisconnectBUS() : eib_status.TEIBStackStatus;
+   INTERNAL VIRTUAL PROCEDURE CreateLayer( Layer : eib_stack.TEIBStackLayerType; VAR PLayer : eib_stack.TPEIBStackLayer ) : BOOLEAN;
+
+   // known: link.mode = routing|tunneling, link.address = ipaddress|multicastgroup, link.port = ipport
+   INTERNAL VIRTUAL PROCEDURE ParseParameter( CONST Parameter, Value : ARRAY OF WCHAR; OUT ErrorText : ARRAY OF WCHAR ) : TRISTATE; // -1 means unknown/unprocessed
+
+   PUBLIC VIRTUAL PROCEDURE DeviceConnected() : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE EIBConnected() : BOOLEAN;
+END CEIBNetStack;
+
+(*================================================================================*)
+
+END EIBNetStack.

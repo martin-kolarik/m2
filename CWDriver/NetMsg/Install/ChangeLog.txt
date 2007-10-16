@@ -1,0 +1,76 @@
+Version 1.0.1097 6.10.2007
+- NEW: release licensing
+- BUG: received data could be trimmed due to bad reading of internal ring buffer
+- BUG: received data could be delayed to next receive event (to next peer side send).
+       It could cause difficulties if for example sending side waited with next
+       sending to receiving side ACK. If received data were delayed, ACK was
+       not sent.
+
+Version 1.0.963 beta 26.8.2007
+- BUG: client could leave some unread data in buffer after disconnect. Next reading,
+       after reestablishing the connection, then got from the buffer bad data.
+       The buffer is cleared now.
+- BUG: if peer side ended connection inside socket receive loop, the socket
+       remained in infinite loop (recv returned 0).
+- BUG: server could send data to client after removing the connection, request to
+       send was queued sooner than disconnect notification. Server found this,
+       but it did not recover and it could damage the memory or access unnalocated
+       memory.
+- BUG: when network data came across the buffer boundary, it was possible that
+       not completed buffer filling did not wait for data, but started new buffer
+       reading. Data could be received corrupted.
+
+Version 1.0.955 beta 15.8.2007
+- CHG: now, strings of length greater than 16 KB can be sent.
+
+Version 1.0.953 DEBUG beta 13.8.2007
+- BUG: client/server delayed messages, if in some time more than single message was
+       sent. The bug was originated in 1.0.952 version.
+
+Version 1.0.952 DEBUG beta 12.8.2007
+- BUG: client/server stops communicating if internal condition is met: after filling
+       cache the socket with intentionaly pending unread data was not read again, so
+       no next read notification occurred. After some time the peer side filled up
+       self buffers and block the process.
+- BUG: after remote side disconnect internal caches were not cleared, so after
+       reconnecting unexpected data could be received/sent.
+- BUG: "event get" command always returned 0 for return variables of integer and
+       cardinal type.
+- CHG: distributed as DEBUG
+- CHG: datagrams of communication are transferred usign private cache,
+       not the stream cache.
+
+Version 1.0.942 beta 6.8.2007
+- BUG: "client connect" immediatelly following (without delay) more "client create"
+       connected all created clients, not only one selected.
+
+Version 1.0.933 beta 5.8.2007
+- BUG: port specified as part of server address of "client create" command was
+       rejected with error message.
+- BUG: after creating more clients the first "client connect" command connected
+       all clients, not only the specified one.
+
+Version 1.0.859 beta 1.7.2007
+- BUG: error texts were trimmed after the first character, U2A conversion missed.
+
+Version 1.0.821 beta 11.6.2007
+- BUG: after server-side closing of connection client stub on local side was destroyed
+       even it was created by user and had not be destroyed automatically. This leaded to
+       unability to reconnect disconnected client.
+- BUG: client/server connecting/disconnecting notifications were mismatched for some cases.
+       Behaviour is cleaned up now, events are named by originator properly.
+
+Version 1.0.551 beta 3.4.2007
+- BUG: send stops for a very long time, internal queue boundary problem
+- PRB: MSI is unable to run in WinXPe with MSI 3.0, this cannot be solved without
+       upgrading MSI to 3.1. For WinXPe NetMsg must be deployed as DLL manually.
+- CHG: linked with static CRT, this simplifies deploying on WinXPe
+- CHG: no leak checking, no DEBUG
+
+Version 1.0.527 beta 18.12.2006
+- NEW: first public beta version
+- NEW: with leak checking
+- NEW: with dynamic CRT
+
+Version 0.0.322 17.9.2006
+- INI: created

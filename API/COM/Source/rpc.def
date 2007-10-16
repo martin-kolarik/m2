@@ -1,0 +1,83 @@
+DEFINITION MODULE rpc;
+
+(*/*
+    Master include file for RPC applications.
+*/*)
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off ) *)
+
+(*# call(   o_a_size        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+IMPORT
+  rpcdce;
+
+CONST
+
+//typedef void * I_RPC_HANDLE;
+//typedef long RPC_STATUS;
+// these types were defined earlier to avoid circular definitions
+  I_RPC_HANDLE ::= rpcdce.I_RPC_HANDLE;
+  RPC_STATUS ::= rpcdce.RPC_STATUS;
+
+//#define RPC_UNICODE_SUPPORTED
+
+
+(*/*
+#define RpcTryExcept \
+    __try \
+        {
+
+// trystmts
+
+#define RpcExcept(expr) \
+        } \
+    __except (expr) \
+        {
+
+// exceptstmts
+
+#define RpcEndExcept \
+        }
+
+#define RpcTryFinally \
+    __try \
+        {
+
+// trystmts
+
+#define RpcFinally \
+        } \
+    __finally \
+        {
+
+// finallystmts
+
+#define RpcEndFinally \
+        }
+*/*)
+
+// excpt.h not translated yet
+//CONST
+//  RpcExceptionCode ::= excpt.GetExceptionCode;
+//  RpcAbnormalTermination ::= excpt.AbnormalTermination;
+
+PROCEDURE RpcImpersonateClient(
+     BindingHandle : rpcdce.RPC_BINDING_HANDLE
+    ): RPC_STATUS;
+
+PROCEDURE RpcRevertToSelfEx(
+     BindingHandle : rpcdce.RPC_BINDING_HANDLE
+    ): RPC_STATUS;
+
+PROCEDURE RpcRevertToSelf(): RPC_STATUS;
+
+PROCEDURE I_RpcMapWin32Status(
+     Status : RPC_STATUS
+    ): LONGINT;
+
+END rpc.

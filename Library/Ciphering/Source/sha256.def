@@ -1,0 +1,51 @@
+DEFINITION MODULE sha256;
+
+IMPORT
+   digest;
+
+(*================================================================================*)
+
+TYPE
+	TDigest = ARRAY [0..31] OF CARD8;
+
+CLASS CDigest( digest.ADigest );
+	PRIVATE VAR
+		_digest : TDigest;
+   PUBLIC VIRTUAL READONLY PROPERTY
+      digest : PBYTE;
+      size : CARDINAL;
+END CDigest;
+
+(*--------------------------------------------------------------------------------*)
+
+// should be CSHA256 private type
+TYPE
+	TBuffer = ARRAY [0..63] OF CARD8;
+	TProcessBuffer = ARRAY [0..63] OF CARD32;
+
+CLASS CSHA256( digest.Digester );
+	PRIVATE VAR
+		count : ARRAY [0..1] OF CARD32;
+		state : ARRAY [0..7] OF CARD32;
+		inputbuffer : TBuffer;
+		processbuffer : TProcessBuffer;
+	
+	PUBLIC VIRTUAL PROCEDURE Init();
+	PUBLIC VIRTUAL PROCEDURE Update( CONST input : ARRAY OF BYTE );
+	PUBLIC VIRTUAL PROCEDURE Finish( OUT D : digest.ADigest );
+
+	// in ancestor PUBLIC PROCEDURE Digest( CONST input : ARRAY OF BYTE; OUT digest : CDigest );
+
+	PRIVATE INLINE PROCEDURE sha256_process( CONST data : TBuffer );
+END CSHA256;
+
+(*================================================================================*)
+
+// shortcut
+PROCEDURE Digest( CONST input : ARRAY OF BYTE; OUT D : digest.ADigest );
+
+PROCEDURE DigestOA( CONST input : ARRAY OF BYTE; OUT D : TDigest );
+
+(*================================================================================*)
+
+END sha256.

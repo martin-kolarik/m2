@@ -1,0 +1,95 @@
+DEFINITION MODULE Resources;
+
+//===========================================================================
+
+IMPORT
+  Languages,
+  lists,
+  maps,
+  windows;
+
+//===========================================================================
+
+#save, option( dll_export => on )
+
+TYPE
+  TPResources = POINTER TO CResources;
+  TPResourcesNotifier = POINTER TO IResourcesNotifier;
+  TResource;
+  
+TYPE
+  TResourceMode = ( rmUnknown, rmSelfMemory, rmRefMemory, rmResource );
+  
+CLASS CResources;
+  INTERNAL VAR
+    _Resource      : TResource;
+    _Stub          : TResource;
+    _Mode          : TResourceMode;
+    _HResource     : windows.HGLOBAL;
+    _Strings       : maps.CStringMap;
+  PRIVATE VAR
+    _Lang          : Languages.TLanguage;
+    _RFC1766       : Languages.TRFC1766;
+    _FallbackLang  : Languages.TLanguage;
+    _Texts         : ADDRESS; // shortcut
+    _FallbackTexts : ADDRESS; // shortcut
+    _Notifiers     : lists.CPtrList;
+  PUBLIC PROPERTY
+    Lang           : Languages.TLanguage; // falls back to 0 if Lang does not exist in Resource
+    RFC1766        : Languages.TRFC1766;
+    FallbackLang   : Languages.TLanguage; // if text in Lang is not found, then text in FallbackLang is searched.
+  PUBLIC READONLY VAR
+    Name           : ARRAY [0..63] OF WCHAR; // e.g. ResourceName
+  PUBLIC VAR
+    GlobalFallback : BOOLEAN;
+  PUBLIC READONLY
+    INDEX( Id : CARDINAL ) : PWCHAR; // zero-terminated
+    
+  PUBLIC PROCEDURE LoadRES1( HModule : windows.HANDLE; CONST ResourceName : ARRAY OF WCHAR ) : BOOLEAN;
+  PUBLIC PROCEDURE LoadRES2( CONST ModuleName, ResourceName : ARRAY OF WCHAR ) : BOOLEAN;
+  PUBLIC PROCEDURE LoadBIN( Path : ARRAY OF WCHAR ) : BOOLEAN;
+  
+  PUBLIC PROCEDURE GetText( Id : CARDINAL; OUT Text : PWCHAR; OUT Length : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE GetTextL( Language : Languages.TLanguage; Id : CARDINAL; OUT Text : PWCHAR; OUT Length : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE FillText( Id : CARDINAL; OUT Text : ARRAY OF WCHAR ) : BOOLEAN;
+  PUBLIC PROCEDURE FillTextL( Language : Languages.TLanguage; Id : CARDINAL; OUT Text : ARRAY OF WCHAR ) : BOOLEAN;
+  
+  PUBLIC PROCEDURE Text( Id : CARDINAL; Fallback : ARRAY OF WCHAR ) : PWCHAR; // same as []
+  PUBLIC PROCEDURE Length( Id : CARDINAL; Fallback : ARRAY OF WCHAR ) : CARDINAL;
+  PUBLIC PROCEDURE TextL( Language : Languages.TLanguage; Id : CARDINAL; Fallback : ARRAY OF WCHAR ) : PWCHAR; // same as []
+  PUBLIC PROCEDURE LengthL( Language : Languages.TLanguage; Id : CARDINAL; Fallback : ARRAY OF WCHAR ) : CARDINAL;
+  
+  PUBLIC PROCEDURE RegisterNotifier( Notifier : TPResourcesNotifier );
+  PUBLIC PROCEDURE ForgetNotifier( Notifier : TPResourcesNotifier );
+  
+  PRIVATE PROCEDURE SearchLanguage( Language : Languages.TLanguage; OUT Index : CARDINAL ) : BOOLEAN;
+  PRIVATE PROCEDURE Notify( Lang, Texts : BOOLEAN );
+  INTERNAL PROCEDURE LoadMemory( Bin : TResource; Copy : BOOLEAN; ResultMode : TResourceMode ); // if Copy the ResultMode is ignored
+  INTERNAL PROCEDURE ResToStub(); 
+END CResources;
+
+//===========================================================================
+
+INTERFACE IResourcesNotifier;
+  VIRTUAL PROCEDURE OnLangChange( CONST Resources : TPResources ); // Lang := ...
+  VIRTUAL PROCEDURE OnTextsChange( CONST Resources : TPResources ); // Lang := ..., FallbackLang := ...
+END IResourcesNotifier;
+
+//===========================================================================
+
+CLASS CResourcesCreator( CResources );
+  PUBLIC PROCEDURE LoadXML( CONST Path : ARRAY OF WCHAR; OUT ErrorText : ARRAY OF WCHAR ) : BOOLEAN;
+
+  PUBLIC PROCEDURE GetXML( OUT XML : ARRAY OF WCHAR );
+  PUBLIC PROCEDURE GetBIN( OUT BIN : ARRAY OF BYTE );
+  
+  PUBLIC PROCEDURE SaveXML( CONST Path : ARRAY OF WCHAR );
+  PUBLIC PROCEDURE SaveBIN( CONST Path : ARRAY OF WCHAR );
+  PUBLIC PROCEDURE SaveDEF( CONST ModuleName, Path, NamePrefix : ARRAY OF WCHAR ) : BOOLEAN;
+END CResourcesCreator;
+
+//===========================================================================
+
+#restore
+
+END Resources.

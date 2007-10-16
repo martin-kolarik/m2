@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xsi:schemaLocation="http://schemas.microsoft.com/wix/2003/01/wi wix.xsd" xmlns="http://schemas.microsoft.com/wix/2003/01/wi" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xse="http://schemas.microsoft.com/wix/2005/XmlSchemaExtension" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ns="http://schemas.microsoft.com/wix/2003/01/wi" xmlns:html="http://www.w3.org/1999/xhtml" xmlns:hfp="http://www.w3.org/2001/XMLSchema-hasFacetAndProperty">
+    <Product
+      Codepage="$(var.CodePage)" Language="$(var.Language)"
+      Manufacturer="$(var.Manufacturer)" Name="$(var.ProductDescription)" Version="$(var.ProductVersion)"
+      Id="$(var.ProductGUID)" UpgradeCode="$(var.UpgradeGUID)">
+        <Package Compressed="yes" Id="????????-????-????-????-????????????" Languages="$(var.Language)" SummaryCodepage="$(var.CodePage)" />
+        <Media Cabinet="Product.Cab" EmbedCab="yes" Id="1">
+        </Media>
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <?if $(var.CLib)!=Static ?>
+            <?if $(var.ConfigurationName)=Debug ?>
+            <Merge Id="VC8Runtime" SourceFile="C:\Program Files\Common Files\Merge Modules\Microsoft_VC80_DebugCRT_x86.msm" Language="1033" DiskId="1" />
+            <Merge Id="VC8Policy" SourceFile="C:\Program Files\Common Files\Merge Modules\policy_8_0_Microsoft_VC80_DebugCRT_x86.msm" Language="1033" DiskId="1" />
+            <?else ?>
+            <Merge Id="VC8Runtime" SourceFile="C:\Program Files\Common Files\Merge Modules\Microsoft_VC80_CRT_x86.msm" Language="1033" DiskId="1" />
+            <Merge Id="VC8Policy" SourceFile="C:\Program Files\Common Files\Merge Modules\policy_8_0_Microsoft_VC80_CRT_x86.msm" Language="1033" DiskId="1" />
+            <?endif ?>
+            <?endif ?>
+            <Directory Id="ProgramFilesFolder">
+                <Directory Id="Inris" Name="Inris">
+                    <Directory Id="INSTALLDIR" Name="LMS2xx">
+                        <Component Guid="8013545F-AB52-4E57-8A20-C6209D7626D6" Id="Program">
+                            <File DiskId="1" Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" Vital="yes">
+                            </File>
+                            <File DiskId="1" Id="License.rtf" Name="License.rtf" Source="License.rtf" Vital="yes">
+                            </File>
+                            <File DiskId="1" Id="lms2xx.DLL" Name="lms2xx.dll" Source="lms2xx.dll" Vital="yes">
+                            </File>
+                        </Component>
+                        <Component Id="Licence" Guid="BC838025-578C-46E8-A079-40E8B2134B03">
+                            <File Id="Licence" Name="Licence.lic" DiskId="1" LongName="$(var.ProductId).tlic" Source="$(var.ProductId).tlic" Vital="yes" />
+                        </Component>
+                        <Directory Id="DOC" Name="Doc">
+                            <Component Id="Documentation" Guid="D132A1AF-8805-47da-A325-DFF37FE92DE9">
+                                <File Id="lms2xx.pdf" Name="lms2xx.pdf" Source="..\Doc\lms2xx.pdf" DiskId="1" Vital="yes" />
+                            </Component>
+                        </Directory>
+                        <Directory Id="EXAMPLES" Name="Examples">
+                            <Component Id="Examples" Guid="2F632F65-0AFE-49cd-BB6D-5D9ADD0ADB43">
+                                <File Id="lms2xx.cw" Name="lms2xx.cw" Source="Examples\lms2xx.cw" DiskId="1" Vital="yes" />
+                                <File Id="lms2xx.par" Name="lms2xx.par" Source="Examples\lms2xx.par" DiskId="1" Vital="yes" />
+                                <File Id="lms2xx.dmf" Name="lms2xx.dmf" Source="Examples\lms2xx.dmf" DiskId="1" Vital="yes" />
+                                <File Id="led16gon.ico" Name="led16gon.ico" Source="Examples\led16gon.ico" DiskId="1" Vital="yes" />
+                                <File Id="led16ron.ico" Name="led16ron.ico" Source="Examples\led16ron.ico" DiskId="1" Vital="yes" />
+                            </Component>
+                        </Directory>
+                        <?if $(var.LeakChecking)=on ?>
+                        <Component Guid="B77FFC41-B032-47C6-841B-12239073885D" Id="LeakDetector">
+                            <File DiskId="1" Id="LeakDetector.DLL" LongName="LeakDetector.dll" Name="LeakDet.dll" Source="LeakDetector.dll" Vital="yes">
+                            </File>
+                        </Component>
+                        <?endif ?>
+                    </Directory>
+                </Directory>
+            </Directory>
+        </Directory>
+        <?if $(var.CLib)!=Static ?>
+        <Feature Id="VC8RuntimeFeature" Level="1" AllowAdvertise="no" Display="hidden">
+            <MergeRef Id="VC8Runtime" />
+            <MergeRef Id="VC8Policy" />
+        </Feature>
+        <?endif ?>
+        <Feature ConfigurableDirectory="INSTALLDIR" Id="Complete" Level="1">
+            <ComponentRef Id="Program" />
+            <ComponentRef Id="Licence" />
+            <ComponentRef Id="Documentation" />
+            <ComponentRef Id="Examples" />
+            <?if $(var.LeakChecking)=on ?>
+            <ComponentRef Id="LeakDetector" />
+            <?endif ?>
+        </Feature>
+
+        <UIRef Id="WixUI_Licence" />
+        <UI />
+
+        <?include $(var.BuildRoot)\Manufacturer.wxs ?>
+
+    </Product>
+</Wix>

@@ -1,0 +1,64 @@
+DEFINITION MODULE rpcnsip;
+
+(*/*
+    This file contains the types and function definitions to use the
+    to implement the autohandle features of the runtime.
+
+*/*)
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+IMPORT
+  rpcnsi,
+  rpcdce,
+  rpcdcep;
+
+CONST
+  RPC_STATUS ::= rpcdce.RPC_STATUS;
+
+TYPE
+
+  RPC_IMPORT_CONTEXT_P = RECORD
+    LookupContext : rpcnsi.RPC_NS_HANDLE;
+    ProposedHandle : rpcdce.RPC_BINDING_HANDLE;
+    Bindings : rpcdce.PRPC_BINDING_VECTOR;
+  END;
+  PRPC_IMPORT_CONTEXT_P = POINTER TO RPC_IMPORT_CONTEXT_P;
+
+
+// Stub Auto Binding routines.
+
+PROCEDURE I_RpcNsGetBuffer(
+    Message : rpcdcep.PRPC_MESSAGE
+  ): RPC_STATUS;
+
+PROCEDURE I_RpcNsSendReceive(
+    Message : rpcdcep.PRPC_MESSAGE;
+    Handle : rpcdce.PRPC_BINDING_HANDLE
+  ): RPC_STATUS;
+
+PROCEDURE I_RpcNsRaiseException(
+    Message : rpcdcep.PRPC_MESSAGE;
+    Status : RPC_STATUS
+  );
+
+PROCEDURE I_RpcReBindBuffer(
+    Message : rpcdcep.PRPC_MESSAGE
+  ): RPC_STATUS;
+
+PROCEDURE I_NsServerBindSearch(): RPC_STATUS;
+
+PROCEDURE I_NsClientBindSearch(): RPC_STATUS;
+
+PROCEDURE I_NsClientBindDone();
+
+END rpcnsip.

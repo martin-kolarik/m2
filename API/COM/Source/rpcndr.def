@@ -1,0 +1,2267 @@
+DEFINITION MODULE rpcndr;
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off ) *)
+
+(*# call(   o_a_size        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+(*/****************************************************************************
+
+     Network Computing Architecture (NCA) definition:
+
+     Network Data Representation: (NDR) Label format:
+     An unsigned long (32 bits) with the following layout:
+
+     3 3 2 2 2 2 2 2 2 2 2 2 1 1 1 1 1 1 1 1 1 1
+     1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+    +---------------+---------------+---------------+-------+-------+
+    |   Reserved    |   Reserved    |Floating point | Int   | Char  |
+    |               |               |Representation | Rep.  | Rep.  |
+    +---------------+---------------+---------------+-------+-------+
+
+     Where
+
+         Reserved:
+
+             Must be zero (0) for NCA 1.5 and NCA 2.0.
+
+         Floating point Representation is:
+
+             0 - IEEE
+             1 - VAX
+             2 - Cray
+             3 - IBM
+
+         Int Rep. is Integer Representation:
+
+             0 - Big Endian
+             1 - Little Endian
+
+         Char Rep. is Character Representation:
+
+             0 - ASCII
+             1 - EBCDIC
+
+     The Microsoft Local Data Representation (for all platforms which are
+     of interest currently is edefined below:
+
+****************************************************************************/*)
+
+IMPORT
+  rpcdce,
+  rpcdcep;
+
+// forward definition
+TYPE
+
+  TPIRpcChannelBuffer = POINTER TO IRpcChannelBuffer;
+  TPIRpcStubBuffer = POINTER TO IRpcStubBuffer;
+
+// auxiliary types
+TYPE
+  PPCHAR = POINTER TO PCHAR;
+
+CONST
+
+  NDR_CHAR_REP_MASK             = LONGCARD(0000000FH);
+  NDR_INT_REP_MASK              = LONGCARD(000000F0H);
+  NDR_FLOAT_REP_MASK            = LONGCARD(0000FF00H);
+
+  NDR_LITTLE_ENDIAN             = LONGCARD(00000010H);
+  NDR_BIG_ENDIAN                = LONGCARD(00000000H);
+
+  NDR_IEEE_FLOAT                = LONGCARD(00000000H);
+  NDR_VAX_FLOAT                 = LONGCARD(00000100H);
+
+  NDR_ASCII_CHAR                = LONGCARD(00000000H);
+  NDR_EBCDIC_CHAR               = LONGCARD(00000001H);
+
+  NDR_LOCAL_DATA_REPRESENTATION = LONGCARD(00000010H);
+  NDR_LOCAL_ENDIAN              = NDR_LITTLE_ENDIAN;
+
+
+(*/**************************************************************************
+ *  Macros for targeted platforms
+ **************************************************************************/*)
+
+(*/*
+#if (0x500 <= _WIN32_WINNT)
+#define TARGET_IS_NT50_OR_LATER                   1
+#else
+#define TARGET_IS_NT50_OR_LATER                   0
+#endif
+
+#if (defined(_WIN32_DCOM) || 0x400 <= _WIN32_WINNT)
+#define TARGET_IS_NT40_OR_LATER                   1
+#else
+#define TARGET_IS_NT40_OR_LATER                   0
+#endif
+
+#if (0x400 <= WINVER)
+#define TARGET_IS_NT351_OR_WIN95_OR_LATER         1
+#else
+#define TARGET_IS_NT351_OR_WIN95_OR_LATER         0
+#endif
+*/*)
+
+(*/**************************************************************************
+ *  Other MIDL base types / predefined types:
+ **************************************************************************/*)
+
+TYPE
+
+  hyper       = INT64;
+  Phyper      = POINTER TO hyper;
+  MIDL_uhyper = CARD64;
+
+  wchar_t     = WCHAR;
+  Pwchar_t    = POINTER TO wchar_t;
+
+  size_t      = CARDINAL;
+
+//#ifndef __MIDL_USER_DEFINED
+//#define midl_user_allocate MIDL_user_allocate
+//#define midl_user_free     MIDL_user_free
+//#define __MIDL_USER_DEFINED
+
+PROCEDURE MIDL_user_allocate( _ : size_t ): ADDRESS;
+PROCEDURE MIDL_user_free( _ : ADDRESS );
+
+
+///* winnt only */
+//#if defined(_M_MRX000) || defined(_M_IX86) || defined(_M_ALPHA)
+//#define __MIDL_DECLSPEC_DLLIMPORT   __declspec(dllimport)
+//#define __MIDL_DECLSPEC_DLLEXPORT   __declspec(dllexport)
+//#else
+//#define __MIDL_DECLSPEC_DLLIMPORT
+//#define __MIDL_DECLSPEC_DLLEXPORT
+//#endif
+
+
+(*/**************************************************************************
+ * Context handle management related definitions:
+ *
+ * Client and Server Contexts.
+ *
+ **************************************************************************/*)
+
+TYPE
+
+  NDR_CCONTEXT = ADDRESS;
+  PNDR_CCONTEXT = POINTER TO NDR_CCONTEXT;
+
+  TContext = RECORD
+    pad : ARRAY [0..1] OF ADDRESS;
+    userContext : ADDRESS;
+  END;
+  NDR_SCONTEXT = POINTER TO TContext;
+
+//#define NDRSContextValue(hContext) (&(hContext)->userContext)
+(*# call( macro => on ) *)
+PROCEDURE NDRSContextValue( _ : TContext ): ADDRESS;
+(*# call( macro => off ) *)
+
+CONST
+  cbNDRContext = 20;         // size of context on WIRE
+
+TYPE
+
+  NDR_RUNDOWN = PROCEDURE( (* context : *) ADDRESS );
+
+  SCONTEXT_QUEUE = RECORD
+    NumberOfObjects : LONGCARD;
+    ArrayOfObjects : POINTER TO NDR_RUNDOWN;
+  END;
+  PSCONTEXT_QUEUE = POINTER TO SCONTEXT_QUEUE;
+
+PROCEDURE NDRCContextBinding(
+          CContext : NDR_CCONTEXT
+        ): rpcdce.RPC_BINDING_HANDLE;
+
+PROCEDURE NDRCContextMarshall(
+          CContext : NDR_CCONTEXT;
+          pBuff : ADDRESS
+        );
+
+PROCEDURE NDRCContextUnmarshall(
+          pCContext : PNDR_CCONTEXT;
+          hBinding : rpcdce.RPC_BINDING_HANDLE;
+          pBuff : ADDRESS;
+          DataRepresentation : LONGCARD
+        );
+
+PROCEDURE NDRSContextMarshall(
+          CContext : NDR_SCONTEXT;
+          pBuff : ADDRESS;
+          userRunDownIn : NDR_RUNDOWN
+        );
+
+PROCEDURE NDRSContextUnmarshall(
+          pBuff : ADDRESS;
+          DataRepresentation : LONGCARD
+        ): NDR_SCONTEXT;
+
+PROCEDURE RpcSsDestroyClientContext(
+          VAR ContextHandle : ADDRESS
+        );
+
+
+(*/**************************************************************************
+    NDR conversion related definitions.
+ **************************************************************************/*)
+
+(*# call( macro => on ) *)
+
+// !!!! Don't know what type is the 'source'. Supposing rpcdcep.RPC_MESSAGE.
+PROCEDURE byte_from_ndr( source : rpcdcep.PRPC_MESSAGE; target : ADDRESS );
+//#define byte_from_ndr(source, target) \
+//    { \
+//    *(target) = *(*(char  *  *)&(source)->Buffer)++; \
+//    }
+
+PROCEDURE byte_array_from_ndr( Source : rpcdcep.PRPC_MESSAGE; LowerIndex, UpperIndex : INTEGER; Target : ADDRESS );
+//#define byte_array_from_ndr(Source, LowerIndex, UpperIndex, Target) \
+//    { \
+//    NDRcopy ( \
+//        (((char  *)(Target))+(LowerIndex)), \
+//        (Source)->Buffer, \
+//        (unsigned int)((UpperIndex)-(LowerIndex))); \
+//    *(unsigned long  *)&(Source)->Buffer += ((UpperIndex)-(LowerIndex)); \
+//    }
+
+PROCEDURE boolean_from_ndr( source : rpcdcep.PRPC_MESSAGE; target : ADDRESS );
+//#define boolean_from_ndr(source, target) \
+//    { \
+//    *(target) = *(*(char  *  *)&(source)->Buffer)++; \
+//    }
+
+PROCEDURE boolean_array_from_ndr(Source : rpcdcep.PRPC_MESSAGE; LowerIndex, UpperIndex : INTEGER; Target : ADDRESS );
+//#define boolean_array_from_ndr(Source, LowerIndex, UpperIndex, Target) \
+//    { \
+//    NDRcopy ( \
+//        (((char  *)(Target))+(LowerIndex)), \
+//        (Source)->Buffer, \
+//        (unsigned int)((UpperIndex)-(LowerIndex))); \
+//    *(unsigned long  *)&(Source)->Buffer += ((UpperIndex)-(LowerIndex)); \
+//    }
+
+PROCEDURE small_from_ndr( source : rpcdcep.PRPC_MESSAGE; target : ADDRESS );
+//#define small_from_ndr(source, target) \
+//    { \
+//    *(target) = *(*(char  *  *)&(source)->Buffer)++; \
+//    }
+
+PROCEDURE small_from_ndr_temp( source : rpcdcep.PRPC_MESSAGE; target : ADDRESS; format : LONGWORD );
+//#define small_from_ndr_temp(source, target, format) \
+//    { \
+//    *(target) = *(*(char  *  *)(source))++; \
+//    }
+
+PROCEDURE small_array_from_ndr( Source : rpcdcep.PRPC_MESSAGE; LowerIndex, UpperIndex : INTEGER; Target : ADDRESS );
+//#define small_array_from_ndr(Source, LowerIndex, UpperIndex, Target) \
+//    { \
+//    NDRcopy ( \
+//        (((char  *)(Target))+(LowerIndex)), \
+//        (Source)->Buffer, \
+//        (unsigned int)((UpperIndex)-(LowerIndex))); \
+//    *(unsigned long  *)&(Source)->Buffer += ((UpperIndex)-(LowerIndex)); \
+//    }
+
+(*# call( macro => off ) *)
+
+(*/****************************************************************************
+    Platform specific mapping of c-runtime functions.
+ ****************************************************************************/*)
+
+(*# call( macro => on ) *)
+
+PROCEDURE MIDL_ascii_strlen( string : PCHAR );
+//#define MIDL_ascii_strlen(string) strlen(string)
+
+PROCEDURE MIDL_ascii_strcpy( target, source : PCHAR );
+//#define MIDL_ascii_strcpy(target,source) strcpy(target,source)
+
+PROCEDURE MIDL_memset( s : ADDRESS; c : INTEGER; count : size_t );
+//#define MIDL_memset(s,c,n) memset(s,c,n)
+
+(*# call( macro => off ) *)
+
+(*/****************************************************************************
+    Ndr Library helper function prototypes for MIDL 1.0 ndr functions.
+ ****************************************************************************/*)
+
+PROCEDURE NDRcopy(
+      pTarget : ADDRESS;
+      pSource : ADDRESS;
+      size : CARDINAL
+    );
+
+PROCEDURE MIDL_wchar_strlen(
+      s : Pwchar_t
+    ): size_t;
+
+PROCEDURE MIDL_wchar_strcpy(
+      t : ADDRESS;
+      s : Pwchar_t
+    );
+
+PROCEDURE char_from_ndr(
+      SourceMessage : rpcdcep.PRPC_MESSAGE;
+      Target : PCHAR
+    );
+
+PROCEDURE char_array_from_ndr(
+      SourceMessage : rpcdcep.PRPC_MESSAGE;
+      LowerIndex : LONGCARD;
+      UpperIndex : LONGCARD;
+      Target : PCHAR
+    );
+
+PROCEDURE short_from_ndr(
+      source : rpcdcep.PRPC_MESSAGE;
+      target : PSHORTCARD
+    );
+
+PROCEDURE short_array_from_ndr(
+      SourceMessage : rpcdcep.PRPC_MESSAGE;
+      LowerIndex : LONGCARD;
+      UpperIndex : LONGCARD;
+      Target : PSHORTCARD
+    );
+
+PROCEDURE short_from_ndr_temp (
+      VAR source : PCHAR;
+      target : PSHORTCARD;
+      format : LONGCARD
+    );
+
+PROCEDURE long_from_ndr (
+      source : rpcdcep.PRPC_MESSAGE;
+      target : PLONGCARD
+    );
+
+PROCEDURE long_array_from_ndr(
+      SourceMessage : rpcdcep.PRPC_MESSAGE;
+      LowerIndex : LONGCARD;
+      UpperIndex : LONGCARD;
+      Target : PLONGCARD
+    );
+
+PROCEDURE long_from_ndr_temp (
+      VAR source : PCHAR;
+      target : PLONGCARD;
+      format : LONGCARD
+    );
+
+PROCEDURE enum_from_ndr(
+      SourceMessage : rpcdcep.PRPC_MESSAGE;
+      Target : PCARDINAL
+    );
+
+PROCEDURE float_from_ndr (
+      SourceMessage : rpcdcep.PRPC_MESSAGE;
+      Target : ADDRESS
+    );
+
+PROCEDURE float_array_from_ndr(
+      SourceMessage : rpcdcep.PRPC_MESSAGE;
+      LowerIndex : LONGCARD;
+      UpperIndex : LONGCARD;
+      Target : ADDRESS
+    );
+
+PROCEDURE double_from_ndr(
+      SourceMessage : rpcdcep.PRPC_MESSAGE;
+      Target : ADDRESS
+    );
+
+PROCEDURE double_array_from_ndr(
+      SourceMessage : rpcdcep.PRPC_MESSAGE;
+      LowerIndex : LONGCARD;
+      UpperIndex : LONGCARD;
+      Target : ADDRESS
+    );
+
+PROCEDURE hyper_from_ndr(
+      source : rpcdcep.PRPC_MESSAGE;
+      target : Phyper
+    );
+
+PROCEDURE hyper_array_from_ndr(
+      SourceMessage : rpcdcep.PRPC_MESSAGE;
+      LowerIndex : LONGCARD;
+      UpperIndex : LONGCARD;
+      Target : Phyper
+    );
+
+PROCEDURE hyper_from_ndr_temp(
+      source : PPCHAR;
+      target : Phyper;
+      format : LONGCARD
+    );
+
+PROCEDURE data_from_ndr(
+      source : rpcdcep.PRPC_MESSAGE;
+      target : ADDRESS;
+      format : PCHAR;
+      MscPak : CHAR
+    );
+
+PROCEDURE data_into_ndr(
+      source : ADDRESS;
+      target : rpcdcep.PRPC_MESSAGE;
+      format : PCHAR;
+      MscPak : CHAR
+    );
+
+PROCEDURE tree_into_ndr(
+      source : ADDRESS;
+      target : rpcdcep.PRPC_MESSAGE;
+      format : PCHAR;
+      MscPak : CHAR
+    );
+
+PROCEDURE data_size_ndr(
+      source : ADDRESS;
+      target : rpcdcep.PRPC_MESSAGE;
+      format : PCHAR;
+      MscPak : CHAR
+    );
+
+PROCEDURE tree_size_ndr(
+      source : ADDRESS;
+      target : rpcdcep.PRPC_MESSAGE;
+      format : PCHAR;
+      MscPak : CHAR
+    );
+
+PROCEDURE tree_peek_ndr(
+      source : rpcdcep.PRPC_MESSAGE;
+      buffer : PPCHAR;
+      format : PCHAR;
+      MscPak : CHAR
+    );
+
+PROCEDURE midl_allocate(
+      size : size_t
+    ): ADDRESS;
+
+(*/****************************************************************************
+    MIDL 2.0 ndr definitions.
+ ****************************************************************************/*)
+
+TYPE
+
+  error_status_t = LONGCARD;
+
+//#define _midl_ma1( p, cast )    *(*( cast **)&p)++
+//#define _midl_ma2( p, cast )    *(*( cast **)&p)++
+//#define _midl_ma4( p, cast )    *(*( cast **)&p)++
+//#define _midl_ma8( p, cast )    *(*( cast **)&p)++
+
+//#define _midl_unma1( p, cast )  *(( cast *)p)++
+//#define _midl_unma2( p, cast )  *(( cast *)p)++
+//#define _midl_unma3( p, cast )  *(( cast *)p)++
+//#define _midl_unma4( p, cast )  *(( cast *)p)++
+
+// Some alignment specific macros.
+
+//#define _midl_fa2( p )          (p = (RPC_BUFPTR )((unsigned long)(p+1) & 0xfffffffe))
+//#define _midl_fa4( p )          (p = (RPC_BUFPTR )((unsigned long)(p+3) & 0xfffffffc))
+//#define _midl_fa8( p )          (p = (RPC_BUFPTR )((unsigned long)(p+7) & 0xfffffff8))
+
+//#define _midl_addp( p, n )      (p += n)
+
+// Marshalling macros
+
+//#define _midl_marsh_lhs( p, cast )  *(*( cast **)&p)++
+//#define _midl_marsh_up( mp, p )     *(*(unsigned long **)&mp)++ = (unsigned long)p
+//#define _midl_advmp( mp )           *(*(unsigned long **)&mp)++
+//#define _midl_unmarsh_up( p )       (*(*(unsigned long **)&p)++)
+
+
+////////////////////////////////////////////////////////////////////////////
+// Ndr macros.
+////////////////////////////////////////////////////////////////////////////
+
+(*# call( macro => on ) *)
+
+PROCEDURE NdrMarshConfStringHdr( p, s, l : LONGCARD );
+//#define NdrMarshConfStringHdr( p, s, l )    (_midl_ma4( p, unsigned long) = s, \
+//                                            _midl_ma4( p, unsigned long) = 0, \
+//                                            _midl_ma4( p, unsigned long) = l)
+
+PROCEDURE NdrUnMarshConfStringHdr( p, s, l : LONGCARD );
+//#define NdrUnMarshConfStringHdr(p, s, l)    ((s=_midl_unma4(p,unsigned long),\
+//                                            (_midl_addp(p,4)),               \
+//                                            (l=_midl_unma4(p,unsigned long))
+
+PROCEDURE NdrMarshCCtxtHdl( pc : NDR_CCONTEXT; p : LONGCARD );
+//#define NdrMarshCCtxtHdl(pc,p)  (NDRCContextMarshall( (NDR_CCONTEXT)pc, p ),p+20)
+
+// this macro contains NCR_CONTEXT symbol which is not defined so I gess it is not used very often :-)
+//#define NdrUnMarshCCtxtHdl(pc,p,h,drep) \
+//        (NDRCContextUnmarshall((NDR_CONTEXT)pc,h,p,drep), p+20)
+
+//#define NdrUnMarshSCtxtHdl(pc, p,drep)  (pc = NdrSContextUnMarshall(p,drep ))
+
+//#define NdrMarshSCtxtHdl(pc,p,rd)   (NdrSContextMarshall((NDR_SCONTEXT)pc,p, (NDR_RUNDOWN)rd)
+
+//#define NdrFieldOffset(s,f)     (long)(& (((s  *)0)->f))
+//#define NdrFieldPad(s,f,p,t)    (NdrFieldOffset(s,f) - NdrFieldOffset(s,p) - sizeof(t))
+
+//#define NdrFcShort(s)   (unsigned char)(s & 0xff), (unsigned char)(s >> 8)
+//#define NdrFcLong(s)    (unsigned char)(s & 0xff), (unsigned char)((s & 0x0000ff00) >> 8), \
+//                        (unsigned char)((s & 0x00ff0000) >> 16), (unsigned char)(s >> 24)
+
+//
+// On the server side, the following exceptions are mapped to
+// the bad stub data exception if -error stub_data is used.
+//
+
+PROCEDURE RPC_BAD_STUB_DATA_EXCEPTION_FILTER(): BOOLEAN;
+//#define RPC_BAD_STUB_DATA_EXCEPTION_FILTER  \
+//                 ( (RpcExceptionCode() == STATUS_ACCESS_VIOLATION)  || \
+//                   (RpcExceptionCode() == STATUS_DATATYPE_MISALIGNMENT) || \
+//                   (RpcExceptionCode() == RPC_X_BAD_STUB_DATA) )
+
+(*# call( macro => off ) *)
+
+/////////////////////////////////////////////////////////////////////////////
+// Some stub helper functions.
+/////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////
+// Stub helper structures.
+////////////////////////////////////////////////////////////////////////////
+
+TYPE
+
+  PMIDL_STUB_MESSAGE    = POINTER TO MIDL_STUB_MESSAGE;
+  PMIDL_STUB_DESC       = POINTER TO MIDL_STUB_DESC;
+  PFULL_PTR_XLAT_TABLES = POINTER TO FULL_PTR_XLAT_TABLES;
+
+
+  RPC_BUFPTR = POINTER TO CHAR;
+  RPC_LENGTH = LONGCARD;
+
+// Expression evaluation callback routine prototype.
+  EXPR_EVAL = PROCEDURE( PMIDL_STUB_MESSAGE );
+
+  PFORMAT_STRING = POINTER TO CHAR;
+
+//
+// Multidimensional conformant/varying array struct.
+//
+
+  ARRAY_INFO = RECORD
+    Dimension : LONGINT;
+
+    // These fields MUST be (unsigned long *)
+    BufferConformanceMark : PLONGCARD;
+    BufferVarianceMark : PLONGCARD;
+
+    // Count arrays, used for top level arrays in -Os stubs
+    MaxCountArray : PLONGCARD;
+    OffsetArray : PLONGCARD;
+    ActualCountArray : PLONGCARD;
+  END;
+  PARRAY_INFO = POINTER TO ARRAY_INFO;
+
+//
+//  Pipe related definitions.
+//
+
+  NDR_PIPE_PULL_RTN = PROCEDURE(
+        PCHAR (* state *),
+        ADDRESS (* buf *),
+        LONGCARD (* esize *),
+        PLONGCARD (* ecount *) 
+      );
+
+  NDR_PIPE_PUSH_RTN = PROCEDURE(
+        PCHAR (* state *),
+        ADDRESS (* buf *),
+        LONGCARD (* count *)
+      );
+
+  NDR_PIPE_ALLOC_RTN = PROCEDURE(
+        PCHAR (* state *),
+        LONGCARD (* bsize *),
+        VAR ADDRESS (* buf *),
+        PLONGCARD (* bcount *)
+      );
+
+  GENERIC_PIPE_TYPE = RECORD
+    pfnPull : NDR_PIPE_PULL_RTN;
+    pfnPush : NDR_PIPE_PUSH_RTN;
+    pfnAlloc : NDR_PIPE_ALLOC_RTN;
+    pState : PCHAR;
+  END;
+
+  PNDR_PIPE_DESC    = POINTER TO NDR_PIPE_DESC;
+  PNDR_PIPE_MESSAGE = POINTER TO NDR_PIPE_MESSAGE;
+
+//
+// MIDL Stub Message
+//
+
+//#include <pshpack4.h>
+(*# option( pack => 4 ) *)
+
+  MIDL_STUB_MESSAGE = RECORD
+    // RPC message structure.
+    RpcMsg : rpcdcep.PRPC_MESSAGE;
+
+    // Pointer into RPC message buffer.
+    Buffer : PCHAR;
+
+    // These are used internally by the Ndr routines to mark the beginning
+    // and end of an incoming RPC buffer.
+    BufferStart : PCHAR;
+    BufferEnd : PCHAR;
+
+    // Used internally by the Ndr routines as a place holder in the buffer.
+    // On the marshalling side it's used to mark the location where conformance
+    // size should be marshalled.
+    // On the unmarshalling side it's used to mark the location in the buffer
+    // used during pointer unmarshalling to base pointer offsets off of.
+    BufferMark : PCHAR;
+
+    // Set by the buffer sizing routines.
+    BufferLength : LONGCARD;
+
+    // Set by the memory sizing routines.
+    MemorySize : LONGCARD;
+
+    // Pointer to user memory.
+    Memory : PCHAR;
+
+    // Is the Ndr routine begin called from a client side stub.
+    IsClient : INTEGER;
+
+    // Can the buffer be re-used for memory on unmarshalling.
+    ReuseBuffer : INTEGER;
+
+    // Holds the current pointer to an allocate all nodes memory block.
+    AllocAllNodesMemory : PCHAR;
+
+    // Used for debugging asserts only, remove later.
+    AllocAllNodesMemoryEnd : PCHAR;
+
+    //
+    // Stuff needed while handling complex structures
+    //
+
+    // Ignore imbeded pointers while computing buffer or memory sizes.
+    IgnoreEmbeddedPointers : INTEGER;
+
+    // This marks the location in the buffer where pointees of a complex
+    // struct reside.
+    PointerBufferMark : PCHAR;
+
+    // Used to catch errors in SendReceive.
+    fBufferValid : CHAR;
+
+    // Obsolete unused field (formerly MaxContextHandleNumber).
+    Unused : CHAR;
+
+    // Used internally by the Ndr routines.  Holds the max counts for
+    // a conformant array.
+    MaxCount : LONGCARD;
+
+    // Used internally by the Ndr routines.  Holds the offsets for a varying
+    // array.
+    Offset : LONGCARD;
+
+    // Used internally by the Ndr routines.  Holds the actual counts for
+    // a varying array.
+    ActualCount : LONGCARD;
+
+    // Allocation and Free routine to be used by the Ndr routines.
+    pfnAllocate : PROCEDURE( size_t ): ADDRESS;
+    pfnFree : PROCEDURE( ADDRESS );
+
+    // Top of parameter stack.  Used for "single call" stubs during marshalling
+    // to hold the beginning of the parameter list on the stack.  Needed to
+    // extract parameters which hold attribute values for top level arrays and
+    // pointers.
+    StackTop : PCHAR;
+
+    // Fields used for the transmit_as and represent_as objects.
+    // For represent_as the mapping is: presented=local, transmit=named.
+    pPresentedType : PCHAR;
+    pTransmitType : PCHAR;
+
+    // When we first construct a binding on the client side, stick it
+    // in the rpcmessage and later call RpcGetBuffer, the handle field
+    // in the rpcmessage is changed. That's fine except that we need to
+    // have that original handle for use in unmarshalling context handles
+    // (the second argument in NDRCContextUnmarshall to be exact). So
+    // stash the contructed handle here and extract it when needed.
+    SavedHandle : rpcdce.handle_t;
+
+    // Pointer back to the stub descriptor.  Use this to get all handle info.
+    StubDesc : PMIDL_STUB_DESC;
+
+    // Full pointer stuff.
+    FullPtrXlatTables : PFULL_PTR_XLAT_TABLES;
+
+    FullPtrRefId : LONGCARD;
+
+    //
+    // flags
+    //
+
+    fCheckBounds : INTEGER;
+
+    //int                             fInDontFree       :1;
+    //int                             fDontCallFreeInst :1;
+    //int                             fInOnlyParam      :1;
+    //int                             fHasReturn        :1;
+    CASE : CARDINAL OF
+    | 0: fInDontFree       : INTEGER;
+    | 1: fDontCallFreeInst : INTEGER;
+    | 2: fInOnlyParam      : INTEGER;
+    | 3: fHasReturn        : INTEGER;
+    END;
+
+    dwDestContext : LONGCARD;
+    pvDestContext : ADDRESS;
+
+    SavedContextHandles : POINTER TO NDR_SCONTEXT;
+
+    ParamNumber : LONGINT;
+
+    pRpcChannelBuffer : TPIRpcChannelBuffer;
+
+    pArrayInfo : PARRAY_INFO;
+
+    //
+    // This is where the Beta2 stub message ends.
+    //
+
+    SizePtrCountArray : PLONGCARD;
+    SizePtrOffsetArray : PLONGCARD;
+    SizePtrLengthArray : PLONGCARD;
+
+    // Interpreter argument queue.  Used on server side only.
+    pArgQueue : ADDRESS;
+
+    dwStubPhase : LONGCARD;
+
+    // Pipe descriptor, defined for the 4.0 release.
+    pPipeDesc : PNDR_PIPE_DESC;
+
+    Reserved : ARRAY [0..3] OF LONGCARD;
+
+    // Fields up to this point present since the 3.50 release.
+
+  END;
+
+(*# option( pack => 1 ) *)
+
+//
+// Generic handle bind/unbind routine pair.
+//
+  GENERIC_BINDING_ROUTINE = PROCEDURE( ADDRESS ): ADDRESS;
+
+  GENERIC_UNBIND_ROUTINE  = PROCEDURE( ADDRESS, PCHAR );
+
+  GENERIC_BINDING_ROUTINE_PAIR = RECORD
+    pfnBind : GENERIC_BINDING_ROUTINE;
+    pfnUnbind : GENERIC_UNBIND_ROUTINE;
+  END;
+  PGENERIC_BINDING_ROUTINE_PAIR = POINTER TO GENERIC_BINDING_ROUTINE_PAIR;
+
+  GENERIC_BINDING_INFO = RECORD
+    pObj : ADDRESS;
+    Size : CARDINAL;
+    pfnBind : GENERIC_BINDING_ROUTINE;
+    pfnUnbind : GENERIC_UNBIND_ROUTINE;
+  END;
+  PGENERIC_BINDING_INFO = POINTER TO GENERIC_BINDING_INFO;
+
+// typedef EXPR_EVAL - see above
+// typedefs for xmit_as
+
+//#if (defined(_MSC_VER)) && !defined(MIDL_PASS)
+// // a Microsoft C++ compiler
+//#define NDR_SHAREABLE __inline
+//#else
+//#define NDR_SHAREABLE static
+//#endif
+
+  XMIT_HELPER_ROUTINE = PROCEDURE( PMIDL_STUB_MESSAGE );
+
+  XMIT_ROUTINE_QUINTUPLE = RECORD
+    pfnTranslateToXmit : XMIT_HELPER_ROUTINE;
+    pfnTranslateFromXmit : XMIT_HELPER_ROUTINE;
+    pfnFreeXmit : XMIT_HELPER_ROUTINE;
+    pfnFreeInst : XMIT_HELPER_ROUTINE;
+  END;
+  PXMIT_ROUTINE_QUINTUPLE = POINTER TO XMIT_ROUTINE_QUINTUPLE;
+
+  USER_MARSHAL_SIZING_ROUTINE = PROCEDURE( PLONGCARD, LONGCARD, ADDRESS ): LONGCARD;
+
+  USER_MARSHAL_MARSHALLING_ROUTINE = PROCEDURE( PLONGCARD, PCHAR, ADDRESS ): PCHAR;
+
+  USER_MARSHAL_UNMARSHALLING_ROUTINE = PROCEDURE( PLONGCARD, PCHAR, ADDRESS ): PCHAR;
+
+  USER_MARSHAL_FREEING_ROUTINE = PROCEDURE( PLONGCARD, ADDRESS );
+
+  USER_MARSHAL_ROUTINE_QUADRUPLE = RECORD
+    pfnBufferSize : USER_MARSHAL_SIZING_ROUTINE;
+    pfnMarshall   : USER_MARSHAL_MARSHALLING_ROUTINE;
+    pfnUnmarshall : USER_MARSHAL_UNMARSHALLING_ROUTINE;
+    pfnFree       : USER_MARSHAL_FREEING_ROUTINE;
+  END;
+  PUSER_MARSHAL_ROUTINE_QUADRUPLE = POINTER TO USER_MARSHAL_ROUTINE_QUADRUPLE;
+
+  USER_MARSHAL_CB = RECORD
+    Flags : LONGCARD;
+    pStubMsg : PMIDL_STUB_MESSAGE;
+    pReserve : PFORMAT_STRING;
+  END;
+  PUSER_MARSHAL_CB = POINTER TO USER_MARSHAL_CB;
+
+(*# call( macro => on ) *)
+
+PROCEDURE USER_CALL_CTXT_MASK( f : LONGWORD ): LONGWORD;
+//#define USER_CALL_CTXT_MASK(f)	((f) & 0xff)
+
+PROCEDURE GET_USER_DATA_REP( f : LONGWORD ): LONGWORD;
+//#define GET_USER_DATA_REP(f)    ((f) >> 16)
+
+(*# call( macro => off ) *)
+
+TYPE
+
+  MALLOC_FREE_STRUCT = RECORD
+    pfnAllocate : PROCEDURE( size_t ): ADDRESS;
+    pfnFree : PROCEDURE ( ADDRESS );
+  END;
+  PMALLOC_FREE_STRUCT = POINTER TO MALLOC_FREE_STRUCT;
+
+  COMM_FAULT_OFFSETS = RECORD
+    CommOffset : SHORTINT;
+    FaultOffset : SHORTINT;
+  END;
+  PCOMM_FAULT_OFFSETS = POINTER TO COMM_FAULT_OFFSETS;
+
+//
+// MIDL Stub Descriptor
+//
+
+  MIDL_STUB_DESC = RECORD
+
+    RpcInterfaceInformation : ADDRESS;
+
+    pfnAllocate : PROCEDURE( size_t ): ADDRESS;
+    pfnFree : PROCEDURE ( ADDRESS );
+
+    CASE : CARDINAL OF
+    | 0: pAutoHandle : POINTER TO handle_t;
+    | 1: pPrimitiveHandle : POINTER TO handle_t;
+    | 2: pGenericBindingInfo : PGENERIC_BINDING_INFO;
+    END; // IMPLICIT_HANDLE_INFO;
+
+    apfnNdrRundownRoutines : NDR_RUNDOWN;
+    aGenericBindingRoutinePairs : PGENERIC_BINDING_ROUTINE_PAIR;
+
+    apfnExprEval : EXPR_EVAL;
+
+    aXmitQuintuple : PXMIT_ROUTINE_QUINTUPLE;
+
+    pFormatTypes : PCHAR;
+
+    fCheckBounds : INTEGER;
+
+    // Ndr library version.
+    Version : LONGCARD;
+
+    //
+    // Reserved for future use. (no reserves )
+    //
+
+    pMallocFreeStruct : PMALLOC_FREE_STRUCT;
+
+    MIDLVersion : LONGINT;
+
+    CommFaultOffsets : PCOMM_FAULT_OFFSETS;
+
+    // New fields for version 3.0+
+
+    aUserMarshalQuadruple : PUSER_MARSHAL_ROUTINE_QUADRUPLE;
+
+    Reserved1 : LONGINT;
+    Reserved2 : LONGINT;
+    Reserved3 : LONGINT;
+    Reserved4 : LONGINT;
+    Reserved5 : LONGINT;
+
+  END;
+
+  PMIDL_XMIT_TYPE = ADDRESS;
+
+//
+// MIDL Stub Format String.  This is a const in the stub.
+//
+  MIDL_FORMAT_STRING = RECORD
+    Pad : SHORTINT;
+    Format : PCHAR; // unsigned char Format[]
+  END;
+
+//
+// Stub thunk used for some interpreted server stubs.
+//
+  STUB_THUNK = PROCEDURE( PMIDL_STUB_MESSAGE );
+
+  SERVER_ROUTINE = PROCEDURE(): LONGINT;
+
+//
+// Server Interpreter's information strucuture.
+//
+  MIDL_SERVER_INFO = RECORD
+    pStubDesc : PMIDL_STUB_DESC;
+    DispatchTable : SERVER_ROUTINE;
+    ProcString : PFORMAT_STRING;
+    FmtStringOffset : PSHORTCARD;
+    ThunkTable : POINTER TO STUB_THUNK;
+    LocalFormatTypes : PFORMAT_STRING;
+    LocalProcString : PFORMAT_STRING;
+    LocalFmtStringOffset : PSHORTCARD;
+  END;
+  PMIDL_SERVER_INFO = POINTER TO MIDL_SERVER_INFO;
+
+//
+// Stubless object proxy information structure.
+//
+  MIDL_STUBLESS_PROXY_INFO = RECORD
+    pStubDesc : PMIDL_STUB_DESC;
+    ProcFormatString : PFORMAT_STRING;
+    FormatStringOffset : PSHORTCARD;
+    LocalFormatTypes : PFORMAT_STRING;
+    LocalProcString : PFORMAT_STRING;
+    LocalFmtStringOffset : PSHORTCARD;
+  END;
+  PMIDL_STUBLESS_PROXY_INFO = POINTER TO MIDL_STUBLESS_PROXY_INFO;
+
+//
+// This is the return value from NdrClientCall.
+//
+  CLIENT_CALL_RETURN = RECORD
+    CASE : CARDINAL OF
+    | 0: Pointer : ADDRESS;
+    | 1: Simple  : LONGINT;
+    END;
+  END;
+
+//
+// Full pointer data structures.
+//
+
+(*/*typedef enum
+        {
+        XLAT_SERVER = 1,
+        XLAT_CLIENT
+        } XLAT_SIDE;
+*/*)
+
+CONST
+
+  XLAT_SERVER = 1;
+  XLAT_CLIENT = 2;
+
+TYPE
+
+  XLAT_SIDE = CARDINAL;
+
+//
+// Stores the translation for the conversion from a full pointer into it's
+// corresponding ref id.
+//
+  PFULL_PTR_TO_REFID_ELEMENT = POINTER TO FULL_PTR_TO_REFID_ELEMENT;
+  FULL_PTR_TO_REFID_ELEMENT = RECORD
+    Next : PFULL_PTR_TO_REFID_ELEMENT;
+    Pointer : ADDRESS;
+    RefId : LONGCARD;
+    State : CHAR;
+  END;
+
+//
+// Full pointer translation tables.
+//
+  FULL_PTR_XLAT_TABLES = RECORD
+    //
+    // Ref id to pointer translation information.
+    //
+    RefIdToPointer : RECORD
+      XlatTable : POINTER TO ADDRESS;
+      StateTable : PCHAR;
+      NumberOfEntries :   LONGCARD;
+    END;
+
+    //
+    // Pointer to ref id translation information.
+    //
+    PointerToRefId : RECORD
+      XlatTable : POINTER TO PFULL_PTR_TO_REFID_ELEMENT;
+      NumberOfBuckets : LONGCARD;
+      HashMask : LONGCARD;
+    END;
+
+    //
+    // Next ref id to use.
+    //
+    NextRefId : LONGCARD;
+
+    //
+    // Keep track of the translation size we're handling : server or client.
+    // This tells us when we have to do reverse translations when we insert
+    // new translations.  On the server we must insert a pointer-to-refid
+    // translation whenever we insert a refid-to-pointer translation, and
+    // vica versa for the client.
+    XlatSide : XLAT_SIDE;
+  END;
+
+(*/*************************************************************************
+ ** New MIDL 2.0 Ndr routine templates
+ *************************************************************************/*)
+
+//
+// Marshall routines
+//
+
+PROCEDURE NdrSimpleTypeMarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      FormatChar : CHAR
+    );
+
+PROCEDURE NdrPointerMarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    ): PCHAR;
+
+// Structures
+
+PROCEDURE NdrSimpleStructMarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    ): PCHAR;
+
+PROCEDURE NdrConformantStructMarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    ): PCHAR;
+
+PROCEDURE NdrConformantVaryingStructMarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    ): PCHAR;
+
+PROCEDURE NdrHardStructMarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    ): PCHAR;
+
+PROCEDURE NdrComplexStructMarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    ): PCHAR;
+
+// Arrays
+
+PROCEDURE NdrFixedArrayMarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    ): PCHAR;
+
+PROCEDURE NdrConformantArrayMarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    ): PCHAR;
+
+PROCEDURE NdrConformantVaryingArrayMarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    ): PCHAR;
+
+PROCEDURE NdrVaryingArrayMarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    ): PCHAR;
+
+PROCEDURE NdrComplexArrayMarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    ): PCHAR;
+
+// Strings
+
+PROCEDURE NdrNonConformantStringMarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    ): PCHAR;
+
+PROCEDURE NdrConformantStringMarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    ): PCHAR;
+
+// Unions
+
+PROCEDURE NdrEncapsulatedUnionMarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    ): PCHAR;
+
+PROCEDURE NdrNonEncapsulatedUnionMarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    ): PCHAR;
+
+// Byte count pointer
+
+PROCEDURE NdrByteCountPointerMarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    ): PCHAR;
+
+// Transmit as and represent as
+
+PROCEDURE NdrXmitOrRepAsMarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    ): PCHAR;
+
+// User_marshal
+
+PROCEDURE NdrUserMarshalMarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    ): PCHAR;
+
+// Cairo interface pointer
+
+PROCEDURE NdrInterfacePointerMarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    ): PCHAR;
+
+// Context handles
+
+PROCEDURE NdrClientContextMarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      ContextHandle : NDR_CCONTEXT;
+      fCheck : INTEGER
+    );
+
+PROCEDURE NdrServerContextMarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      ContextHandle : NDR_SCONTEXT;
+      RundownRoutine : NDR_RUNDOWN
+    );
+
+//
+// Unmarshall routines
+//
+
+PROCEDURE NdrSimpleTypeUnmarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      FormatChar : CHAR
+    );
+
+PROCEDURE NdrPointerUnmarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      ppMemory : PPCHAR;
+      pFormat : PFORMAT_STRING;
+      fMustAlloc : CHAR
+    ): PCHAR;
+
+// Structures
+
+PROCEDURE NdrSimpleStructUnmarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      ppMemory : PPCHAR;
+      pFormat : PFORMAT_STRING;
+      fMustAlloc : CHAR
+    ): PCHAR;
+
+PROCEDURE NdrConformantStructUnmarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      ppMemory : PPCHAR;
+      pFormat : PFORMAT_STRING;
+      fMustAlloc : CHAR
+    ): PCHAR;
+
+PROCEDURE NdrConformantVaryingStructUnmarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      ppMemory : PPCHAR;
+      pFormat : PFORMAT_STRING;
+      fMustAlloc : CHAR
+    ): PCHAR;
+
+PROCEDURE NdrHardStructUnmarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      ppMemory : PPCHAR;
+      pFormat : PFORMAT_STRING;
+      fMustAlloc : CHAR
+    ): PCHAR;
+
+PROCEDURE NdrComplexStructUnmarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      ppMemory : PPCHAR;
+      pFormat : PFORMAT_STRING;
+      fMustAlloc : CHAR
+    ): PCHAR;
+
+// Arrays
+
+PROCEDURE NdrFixedArrayUnmarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      ppMemory : PPCHAR;
+      pFormat : PFORMAT_STRING;
+      fMustAlloc : CHAR
+    ): PCHAR;
+
+PROCEDURE NdrConformantArrayUnmarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      ppMemory : PPCHAR;
+      pFormat : PFORMAT_STRING;
+      fMustAlloc : CHAR
+    ): PCHAR;
+
+PROCEDURE NdrConformantVaryingArrayUnmarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      ppMemory : PPCHAR;
+      pFormat : PFORMAT_STRING;
+      fMustAlloc : CHAR
+    ): PCHAR;
+
+PROCEDURE NdrVaryingArrayUnmarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      ppMemory : PPCHAR;
+      pFormat : PFORMAT_STRING;
+      fMustAlloc : CHAR
+    ): PCHAR;
+
+PROCEDURE NdrComplexArrayUnmarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      ppMemory : PPCHAR;
+      pFormat : PFORMAT_STRING;
+      fMustAlloc : CHAR
+    ): PCHAR;
+
+// Strings
+
+PROCEDURE NdrNonConformantStringUnmarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      ppMemory : PPCHAR;
+      pFormat : PFORMAT_STRING;
+      fMustAlloc : CHAR
+    ): PCHAR;
+
+PROCEDURE NdrConformantStringUnmarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      ppMemory : PPCHAR;
+      pFormat : PFORMAT_STRING;
+      fMustAlloc : CHAR
+    ): PCHAR;
+
+// Unions
+
+PROCEDURE NdrEncapsulatedUnionUnmarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      ppMemory : PPCHAR;
+      pFormat : PFORMAT_STRING;
+      fMustAlloc : CHAR
+    ): PCHAR;
+
+PROCEDURE NdrNonEncapsulatedUnionUnmarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      ppMemory : PPCHAR;
+      pFormat : PFORMAT_STRING;
+      fMustAlloc : CHAR
+    ): PCHAR;
+
+// Byte count pointer
+
+PROCEDURE NdrByteCountPointerUnmarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      ppMemory : PPCHAR;
+      pFormat : PFORMAT_STRING;
+      fMustAlloc : CHAR
+    ): PCHAR;
+
+// Transmit as and represent as
+
+PROCEDURE NdrXmitOrRepAsUnmarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      ppMemory : PPCHAR;
+      pFormat : PFORMAT_STRING;
+      fMustAlloc : CHAR
+    ): PCHAR;
+
+// User_marshal
+
+PROCEDURE NdrUserMarshalUnmarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      ppMemory : PPCHAR;
+      pFormat : PFORMAT_STRING;
+      fMustAlloc : CHAR
+    ): PCHAR;
+
+// Cairo interface pointer
+
+PROCEDURE NdrInterfacePointerUnmarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      ppMemory : PPCHAR;
+      pFormat : PFORMAT_STRING;
+      fMustAlloc : CHAR
+    ): PCHAR;
+
+// Context handles
+
+PROCEDURE NdrClientContextUnmarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pContextHandle : PNDR_CCONTEXT;
+      BindHandle : rpcdce.RPC_BINDING_HANDLE
+    );
+
+
+PROCEDURE NdrServerContextUnmarshall(
+      pStubMsg : PMIDL_STUB_MESSAGE
+    ): NDR_SCONTEXT;
+
+//
+// Buffer sizing routines
+//
+
+PROCEDURE NdrPointerBufferSize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+// Structures
+
+PROCEDURE NdrSimpleStructBufferSize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+PROCEDURE NdrConformantStructBufferSize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+PROCEDURE NdrConformantVaryingStructBufferSize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+PROCEDURE NdrHardStructBufferSize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+PROCEDURE NdrComplexStructBufferSize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+// Arrays
+
+PROCEDURE NdrFixedArrayBufferSize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+PROCEDURE NdrConformantArrayBufferSize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+PROCEDURE NdrConformantVaryingArrayBufferSize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+PROCEDURE NdrVaryingArrayBufferSize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+PROCEDURE NdrComplexArrayBufferSize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+// Strings
+
+PROCEDURE NdrConformantStringBufferSize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+PROCEDURE NdrNonConformantStringBufferSize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+// Unions
+
+PROCEDURE NdrEncapsulatedUnionBufferSize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+PROCEDURE NdrNonEncapsulatedUnionBufferSize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+// Byte count pointer
+
+PROCEDURE NdrByteCountPointerBufferSize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+// Transmit as and represent as
+
+PROCEDURE NdrXmitOrRepAsBufferSize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+// User_marshal
+
+PROCEDURE NdrUserMarshalBufferSize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+// Cairo Interface pointer
+
+PROCEDURE NdrInterfacePointerBufferSize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+// Context Handle size
+
+PROCEDURE NdrContextHandleSize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+//
+// Memory sizing routines
+//
+
+PROCEDURE NdrPointerMemorySize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pFormat : PFORMAT_STRING
+    ): LONGCARD;
+
+// Structures
+
+PROCEDURE NdrSimpleStructMemorySize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pFormat : PFORMAT_STRING
+    ): LONGCARD;
+
+PROCEDURE NdrConformantStructMemorySize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pFormat : PFORMAT_STRING
+    ): LONGCARD;
+
+PROCEDURE NdrConformantVaryingStructMemorySize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pFormat : PFORMAT_STRING
+    ): LONGCARD;
+
+PROCEDURE NdrHardStructMemorySize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pFormat : PFORMAT_STRING
+    ): LONGCARD;
+
+PROCEDURE NdrComplexStructMemorySize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pFormat : PFORMAT_STRING
+    ): LONGCARD;
+
+// Arrays
+
+PROCEDURE NdrFixedArrayMemorySize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pFormat : PFORMAT_STRING
+    ): LONGCARD;
+
+PROCEDURE NdrConformantArrayMemorySize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pFormat : PFORMAT_STRING
+    ): LONGCARD;
+
+PROCEDURE NdrConformantVaryingArrayMemorySize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pFormat : PFORMAT_STRING
+    ): LONGCARD;
+
+PROCEDURE NdrVaryingArrayMemorySize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pFormat : PFORMAT_STRING
+    ): LONGCARD;
+
+PROCEDURE NdrComplexArrayMemorySize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pFormat : PFORMAT_STRING
+    ): LONGCARD;
+
+// Strings
+
+PROCEDURE NdrConformantStringMemorySize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pFormat : PFORMAT_STRING
+    ): LONGCARD;
+
+PROCEDURE NdrNonConformantStringMemorySize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pFormat : PFORMAT_STRING
+    ): LONGCARD;
+
+// Unions
+
+PROCEDURE NdrEncapsulatedUnionMemorySize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pFormat : PFORMAT_STRING
+    ): LONGCARD;
+
+PROCEDURE NdrNonEncapsulatedUnionMemorySize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pFormat : PFORMAT_STRING
+    ): LONGCARD;
+
+// Transmit as and represent as
+
+PROCEDURE NdrXmitOrRepAsMemorySize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pFormat : PFORMAT_STRING
+    ): LONGCARD;
+
+// User_marshal
+
+PROCEDURE NdrUserMarshalMemorySize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pFormat : PFORMAT_STRING
+    ): LONGCARD;
+
+// Cairo Interface pointer
+
+PROCEDURE NdrInterfacePointerMemorySize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pFormat : PFORMAT_STRING
+    ): LONGCARD;
+
+//
+// Freeing routines
+//
+
+PROCEDURE NdrPointerFree(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+// Structures
+
+PROCEDURE NdrSimpleStructFree(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+PROCEDURE NdrConformantStructFree(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+PROCEDURE NdrConformantVaryingStructFree(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+PROCEDURE NdrHardStructFree(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+PROCEDURE NdrComplexStructFree(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+// Arrays
+
+PROCEDURE NdrFixedArrayFree(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+PROCEDURE NdrConformantArrayFree(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+PROCEDURE NdrConformantVaryingArrayFree(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+PROCEDURE NdrVaryingArrayFree(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+PROCEDURE NdrComplexArrayFree(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+// Unions
+
+PROCEDURE NdrEncapsulatedUnionFree(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+PROCEDURE NdrNonEncapsulatedUnionFree(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+// Byte count
+
+PROCEDURE NdrByteCountPointerFree(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+// Transmit as and represent as
+
+PROCEDURE NdrXmitOrRepAsFree(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+// User_marshal
+
+PROCEDURE NdrUserMarshalFree(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+// Cairo Interface pointer
+
+PROCEDURE NdrInterfacePointerFree(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      pFormat : PFORMAT_STRING
+    );
+
+//
+// Endian conversion routine.
+//
+
+PROCEDURE NdrConvert2(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pFormat : PFORMAT_STRING;
+      NumberParams : LONGINT
+    );
+
+PROCEDURE NdrConvert(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pFormat : PFORMAT_STRING
+    );
+
+CONST
+
+  USER_MARSHAL_FC_BYTE    =  1;
+  USER_MARSHAL_FC_CHAR    =  2;
+  USER_MARSHAL_FC_SMALL   =  3;
+  USER_MARSHAL_FC_USMALL  =  4;
+  USER_MARSHAL_FC_WCHAR   =  5;
+  USER_MARSHAL_FC_SHORT   =  6;
+  USER_MARSHAL_FC_USHORT  =  7;
+  USER_MARSHAL_FC_LONG    =  8;
+  USER_MARSHAL_FC_ULONG   =  9;
+  USER_MARSHAL_FC_FLOAT   = 10;
+  USER_MARSHAL_FC_HYPER   = 11;
+  USER_MARSHAL_FC_DOUBLE  = 12;
+
+PROCEDURE NdrUserMarshalSimpleTypeConvert(
+      pFlags : PLONGCARD;
+      pBuffer : PCHAR;
+      FormatChar : CHAR
+    ): PCHAR;
+
+//
+// Auxilary routines
+//
+
+PROCEDURE NdrClientInitializeNew(
+      pRpcMsg : rpcdcep.PRPC_MESSAGE;
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pStubDescriptor : PMIDL_STUB_DESC;
+      ProcNum : CARDINAL
+    );
+
+PROCEDURE NdrServerInitializeNew(
+      pRpcMsg : rpcdcep.PRPC_MESSAGE;
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pStubDescriptor : PMIDL_STUB_DESC
+    ): PCHAR;
+
+PROCEDURE NdrServerInitializePartial(
+      pRpcMsg : rpcdcep.PRPC_MESSAGE;
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pStubDescriptor : PMIDL_STUB_DESC;
+      RequestedBufferSize : LONGCARD
+    );
+
+PROCEDURE NdrClientInitialize(
+      pRpcMsg : rpcdcep.PRPC_MESSAGE;
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pStubDescriptor : PMIDL_STUB_DESC;
+      ProcNum : CARDINAL
+    );
+
+PROCEDURE NdrServerInitialize(
+      pRpcMsg : rpcdcep.PRPC_MESSAGE;
+      pStubMsg :PMIDL_STUB_MESSAGE;
+      pStubDescriptor : PMIDL_STUB_DESC
+    ): PCHAR;
+
+PROCEDURE NdrServerInitializeUnmarshall (
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pStubDescriptor : PMIDL_STUB_DESC;
+      pRpcMsg : rpcdcep.PRPC_MESSAGE
+    ): PCHAR;
+
+PROCEDURE NdrServerInitializeMarshall (
+      pRpcMsg : rpcdcep.PRPC_MESSAGE;
+      pStubMsg : PMIDL_STUB_MESSAGE
+    );
+
+PROCEDURE NdrGetBuffer(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      BufferLength : LONGCARD;
+      Handle : rpcdce.RPC_BINDING_HANDLE
+    ): PCHAR;
+
+PROCEDURE NdrNsGetBuffer(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      BufferLength : LONGCARD;
+      Handle : rpcdce.RPC_BINDING_HANDLE
+    ): PCHAR;
+
+PROCEDURE NdrGetPipeBuffer(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      BufferLength : LONGCARD;
+      Handle : rpcdce.RPC_BINDING_HANDLE
+    ): PCHAR;
+
+PROCEDURE NdrGetPartialBuffer(
+      pStubMsg : PMIDL_STUB_MESSAGE
+    );
+
+PROCEDURE NdrSendReceive(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pBufferEnd : PCHAR
+    ): PCHAR;
+
+PROCEDURE NdrNsSendReceive(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pBufferEnd : PCHAR;
+      pAutoHandle : rpcdce.PRPC_BINDING_HANDLE
+    ): PCHAR;
+
+PROCEDURE NdrPipeSendReceive(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pPipeDesc : PNDR_PIPE_DESC
+    );
+
+PROCEDURE NdrFreeBuffer(
+      pStubMsg : PMIDL_STUB_MESSAGE
+    );
+
+//
+// Pipe specific calls
+//
+
+PROCEDURE NdrPipesInitialize(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pParamDesc : PFORMAT_STRING;
+      pPipeDesc : PNDR_PIPE_DESC;
+      pPipeMsg : PNDR_PIPE_MESSAGE;
+      pStackTop : PCHAR;
+      NumberParams : LONGCARD
+    );
+
+PROCEDURE NdrMarkNextActivePipe( 
+      pPipeDesc : PNDR_PIPE_DESC;
+      DirectionMask : CARDINAL
+    );
+
+PROCEDURE NdrPipePull(
+      pState : PCHAR;
+      buf : ADDRESS;
+      esize : LONGCARD;
+      ecount : PLONGCARD
+    );
+
+PROCEDURE NdrPipePush(
+      pState : PCHAR;
+      buf : ADDRESS;
+      ecount : LONGCARD
+    );
+
+PROCEDURE NdrIsAppDoneWithPipes( 
+      pPipeDesc : PNDR_PIPE_DESC
+    );
+
+PROCEDURE NdrPipesDone( 
+      pStubMsg : PMIDL_STUB_MESSAGE
+    );
+
+
+//
+// Interpeter calls.
+//
+
+// client
+
+(*# save,
+    call( prefix => cdecl ),
+    call( var_arg => on ) *)
+
+PROCEDURE NdrClientCall2(
+      pStubDescriptor : PMIDL_STUB_DESC;
+      pFormat : PFORMAT_STRING
+    ): CLIENT_CALL_RETURN;
+
+PROCEDURE NdrClientCall(
+      pStubDescriptor : PMIDL_STUB_DESC;
+      pFormat : PFORMAT_STRING
+    ): CLIENT_CALL_RETURN;
+
+(*# restore *)
+
+// server
+
+TYPE
+  STUB_PHASE = (
+    STUB_UNMARSHAL,
+    STUB_CALL_SERVER,
+    STUB_MARSHAL,
+    STUB_CALL_SERVER_NO_HRESULT
+  );
+
+  PROXY_PHASE = (
+    PROXY_CALCSIZE,
+    PROXY_GETBUFFER,
+    PROXY_MARSHAL,
+    PROXY_SENDRECEIVE,
+    PROXY_UNMARSHAL
+  );
+
+PROCEDURE NdrStubCall2(
+      pThis : TPIRpcStubBuffer;
+      pChannel : TPIRpcChannelBuffer;
+      pRpcMsg : rpcdcep.PRPC_MESSAGE;
+      pdwStubPhase : PLONGCARD
+    ): LONGINT;
+
+PROCEDURE NdrServerCall2(
+      pRpcMsg : rpcdcep.PRPC_MESSAGE
+    );
+
+PROCEDURE NdrStubCall (
+      pThis : TPIRpcStubBuffer;
+      pChannel : TPIRpcChannelBuffer;
+      pRpcMsg : rpcdcep.PRPC_MESSAGE;
+      pdwStubPhase : PLONGCARD
+    );
+
+PROCEDURE NdrServerCall(
+      pRpcMsg : rpcdcep.PRPC_MESSAGE
+    );
+
+PROCEDURE NdrServerUnmarshall(
+      pChannel : TPIRpcChannelBuffer;
+      pRpcMsg : rpcdcep.PRPC_MESSAGE;
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pStubDescriptor : PMIDL_STUB_DESC;
+      pFormat : PFORMAT_STRING;
+      pParamList : ADDRESS
+    ): INTEGER;
+
+PROCEDURE NdrServerMarshall(
+      pThis : TPIRpcStubBuffer;
+      pChannel : TPIRpcChannelBuffer;
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pFormat : PFORMAT_STRING
+    );
+
+// Comm and Fault status
+
+PROCEDURE NdrMapCommAndFaultStatus(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pCommStatus : PLONGCARD;
+      pFaultStatus : PLONGCARD;
+      Status : rpcdce.RPC_STATUS
+    ): rpcdce.RPC_STATUS;
+
+// Helper routines
+
+PROCEDURE NdrSH_UPDecision(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pPtrInMem : PPCHAR;
+      pBuffer : RPC_BUFPTR
+    );
+
+PROCEDURE NdrSH_TLUPDecision(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pPtrInMem : PPCHAR
+    );
+
+PROCEDURE NdrSH_TLUPDecisionBuffer(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pPtrInMem : PPCHAR
+    );
+
+PROCEDURE NdrSH_IfAlloc(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pPtrInMem : PPCHAR;
+      Count : LONGCARD
+    );
+
+PROCEDURE NdrSH_IfAllocRef(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pPtrInMem : PPCHAR;
+      Count : LONGCARD
+    );
+
+PROCEDURE NdrSH_IfAllocSet(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pPtrInMem : PPCHAR;
+      Count : LONGCARD
+    );
+
+PROCEDURE NdrSH_IfCopy(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pPtrInMem : PPCHAR;
+      Count : LONGCARD
+    ): RPC_BUFPTR;
+
+PROCEDURE NdrSH_IfAllocCopy(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pPtrInMem : PPCHAR;
+      Count : LONGCARD
+    ): RPC_BUFPTR;
+
+PROCEDURE NdrSH_Copy(
+      pStubMsg : PCHAR;
+      pPtrInMem : PCHAR;
+      Count : LONGCARD
+    ): LONGCARD;
+
+PROCEDURE NdrSH_IfFree(
+      pMessage : PMIDL_STUB_MESSAGE;
+      pPtr : PCHAR
+    );
+
+PROCEDURE NdrSH_StringMarshall(
+      pMessage : PMIDL_STUB_MESSAGE;
+      pMemory : PCHAR;
+      Count : LONGCARD;
+      Size : INTEGER
+    ): RPC_BUFPTR;
+
+PROCEDURE NdrSH_StringUnMarshall(
+      pMessage : PMIDL_STUB_MESSAGE;
+      pMemory : PPCHAR;
+      Size : INTEGER
+    ): RPC_BUFPTR;
+
+(*/**************************************************************************
+    MIDL 2.0 memory package: rpc_ss_* rpc_sm_*
+ **************************************************************************/*)
+
+TYPE
+
+  RPC_SS_THREAD_HANDLE = ADDRESS;
+
+  RPC_CLIENT_ALLOC = PROCEDURE( size_t (* Size *)): ADDRESS;
+  PRPC_CLIENT_ALLOC = POINTER TO RPC_CLIENT_ALLOC;
+
+  RPC_CLIENT_FREE = PROCEDURE( ADDRESS (* Ptr *) );
+  PRPC_CLIENT_FREE = POINTER TO RPC_CLIENT_FREE;
+
+(*/*++
+     RpcSs* package
+--*/*)
+
+PROCEDURE RpcSsAllocate(
+      Size : size_t
+    ): ADDRESS;
+
+PROCEDURE RpcSsDisableAllocate();
+
+PROCEDURE RpcSsEnableAllocate();
+
+PROCEDURE RpcSsFree(
+      NodeToFree : ADDRESS
+    );
+
+PROCEDURE RpcSsGetThreadHandle(): RPC_SS_THREAD_HANDLE;
+
+PROCEDURE RpcSsSetClientAllocFree (
+      ClientAlloc : RPC_CLIENT_ALLOC;
+      ClientFree : RPC_CLIENT_FREE
+    );
+
+PROCEDURE RpcSsSetThreadHandle (
+      Id : RPC_SS_THREAD_HANDLE
+    );
+
+PROCEDURE RpcSsSwapClientAllocFree (
+     ClientAlloc : RPC_CLIENT_ALLOC;
+     ClientFree : RPC_CLIENT_FREE;
+     OldClientAlloc : PRPC_CLIENT_ALLOC;
+     OldClientFree : PRPC_CLIENT_FREE
+    );
+
+(*/*++
+     RpcSm* package
+--*/*)
+
+PROCEDURE RpcSmAllocate(
+      Size : size_t;
+      VAR pStatus : rpcdce.RPC_STATUS
+    ): ADDRESS;
+
+PROCEDURE RpcSmClientFree(
+      pNodeToFree : ADDRESS
+    ): rpcdce.RPC_STATUS;
+
+PROCEDURE RpcSmDestroyClientContext(
+      VAR ContextHandle : ADDRESS
+    ): rpcdce.RPC_STATUS;
+
+PROCEDURE RpcSmDisableAllocate(): rpcdce.RPC_STATUS;
+
+PROCEDURE RpcSmEnableAllocate(): rpcdce.RPC_STATUS;
+
+PROCEDURE RpcSmFree(
+      NodeToFree : ADDRESS
+    ): rpcdce.RPC_STATUS;
+
+PROCEDURE RpcSmGetThreadHandle(
+     VAR pStatus :  rpcdce.RPC_STATUS
+    ): RPC_SS_THREAD_HANDLE;
+
+PROCEDURE RpcSmSetClientAllocFree (
+     ClientAlloc : RPC_CLIENT_ALLOC;
+     ClientFree : RPC_CLIENT_FREE
+    ): rpcdce.RPC_STATUS;
+
+PROCEDURE RpcSmSetThreadHandle (
+     Id : RPC_SS_THREAD_HANDLE
+    ): rpcdce.RPC_STATUS;
+
+PROCEDURE RpcSmSwapClientAllocFree (
+     ClientAlloc : RPC_CLIENT_ALLOC;
+     ClientFree : RPC_CLIENT_FREE;
+     OldClientAlloc : PRPC_CLIENT_ALLOC;
+     OldClientFree : PRPC_CLIENT_FREE
+    ): rpcdce.RPC_STATUS;
+
+(*/*++
+     Ndr stub entry points
+--*/*)
+
+PROCEDURE NdrRpcSsEnableAllocate(
+      pMessage : PMIDL_STUB_MESSAGE
+    );
+
+PROCEDURE NdrRpcSsDisableAllocate(
+      pMessage : PMIDL_STUB_MESSAGE
+    );
+
+PROCEDURE NdrRpcSmSetClientToOsf(
+      pMessage : PMIDL_STUB_MESSAGE
+    );
+
+PROCEDURE NdrRpcSmClientAllocate(
+      Size : size_t
+    ): ADDRESS;
+
+PROCEDURE NdrRpcSmClientFree(
+      NodeToFree : ADDRESS
+    );
+
+PROCEDURE NdrRpcSsDefaultAllocate(
+      Size : size_t
+    ): ADDRESS;
+
+PROCEDURE NdrRpcSsDefaultFree(
+      NodeToFree : ADDRESS
+    );
+
+(*/**************************************************************************
+    end of memory package: rpc_ss_* rpc_sm_*
+ **************************************************************************/*)
+
+(*/**************************************************************************
+ * Full Pointer APIs
+ **************************************************************************/*)
+
+PROCEDURE NdrFullPointerXlatInit(
+      NumberOfPointers : LONGCARD;
+      XlatSide : XLAT_SIDE
+    ): PFULL_PTR_XLAT_TABLES;
+
+PROCEDURE NdrFullPointerXlatFree(
+      pXlatTables : PFULL_PTR_XLAT_TABLES
+    );
+
+PROCEDURE NdrFullPointerQueryPointer(
+      pXlatTables : PFULL_PTR_XLAT_TABLES;
+      pPointer : ADDRESS;
+      QueryType : CHAR;
+      pRefId : PLONGCARD
+    ): INTEGER;
+
+PROCEDURE NdrFullPointerQueryRefId(
+      pXlatTables : PFULL_PTR_XLAT_TABLES;
+      RefId : LONGCARD;
+      QueryType : CHAR;
+      VAR ppPointer : ADDRESS
+    ): INTEGER;
+
+PROCEDURE NdrFullPointerInsertRefId(
+      pXlatTables : PFULL_PTR_XLAT_TABLES;
+      RefId : LONGCARD;
+      pPointer : ADDRESS
+    );
+
+PROCEDURE NdrFullPointerFree(
+      pXlatTables :PFULL_PTR_XLAT_TABLES;
+      Pointer : ADDRESS
+    ): INTEGER;
+
+PROCEDURE NdrAllocate(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      Len : size_t
+    ): ADDRESS;
+
+PROCEDURE NdrClearOutParameters(
+      pStubMsg : PMIDL_STUB_MESSAGE;
+      pFormat : PFORMAT_STRING;
+      ArgAddr : ADDRESS
+    );
+
+
+(*/**************************************************************************
+ * Proxy APIs
+ **************************************************************************/*)
+
+PROCEDURE NdrOleAllocate (
+      Size : size_t
+    ): ADDRESS;
+
+PROCEDURE NdrOleFree (
+      NodeToFree : ADDRESS
+    );
+
+(*/**************************************************************************
+ * Special things for VC5 Com support
+ **************************************************************************/*)
+
+(*/*
+#if _MSC_VER >= 1100
+#define DECLSPEC_UUID(x)    __declspec(uuid(x))
+#else
+#define DECLSPEC_UUID(x)
+#endif
+
+#if _MSC_VER >= 1100
+#define EXTERN_GUID(itf,l1,s1,s2,c1,c2,c3,c4,c5,c6,c7,c8)  \
+  EXTERN_C const IID __declspec(selectany) itf = {l1,s1,s2,{c1,c2,c3,c4,c5,c6,c7,c8}}
+#else
+#define EXTERN_GUID(itf,l1,s1,s2,c1,c2,c3,c4,c5,c6,c7,c8) EXTERN_C const IID itf
+#endif
+*/*)
+
+END rpcndr.

@@ -1,0 +1,70 @@
+DEFINITION MODULE SyncQueue;
+
+IMPORT
+   Sync;
+
+#save, option( dll_export => on )
+
+(*================================================================================*)
+
+TYPE
+   TPRingBuffer = POINTER TO RingBuffer;
+
+CLASS RingBuffer( Sync.OneToOneQueue ); // SIGNALLING and FLUSHING, if needed, should be done using VIRTUAL PROCEDURE Flush/Signal.
+   INTERNAL VAR
+      Data : ADDRESS;
+      DataDoubled : BOOLEAN;
+  PUBLIC VAR
+      Consume : Sync.SIGNAL := NIL;
+      Produce : Sync.SIGNAL := NIL;
+  PUBLIC VIRTUAL PROPERTY
+      Size : CARDINAL;
+
+  // asynchronous GET API
+  PUBLIC PROCEDURE StartReading( WantsRead : CARDINAL; OUT BufferToReadFrom : ADDRESS; OUT AllowedToRead : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE CommitReading( Read : CARDINAL );
+  PUBLIC PROCEDURE StartWriting( WantsWrite : CARDINAL; OUT BufferToWriteTo : ADDRESS; OUT AllowedToWrite : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE CommitWriting( Written : CARDINAL );
+
+  // sychronous PUSH noblocking API
+  PUBLIC PROCEDURE Read( BufferToWriteTo : ADDRESS; BufferLength : CARDINAL; OUT Read : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE Write( BufferToReadFrom : ADDRESS; BufferLength : CARDINAL; OUT Written : CARDINAL ) : BOOLEAN;
+
+  // sychronous PUSH blocking API
+  PUBLIC PROCEDURE ReadOA( OUT Data : ARRAY OF BYTE );
+  PUBLIC PROCEDURE WriteOA( CONST Data : ARRAY OF BYTE );
+  
+  // synchronous peek API
+  PUBLIC PROCEDURE Peek( OUT Data : ADDRESS; OUT Length : CARDINAL ) : BOOLEAN; // allocates 2x more memory and moves!
+  PUBLIC PROCEDURE Peek2( OUT Data1 : ADDRESS; OUT Length1 : CARDINAL; OUT Data2 : ADDRESS; OUT Length2 : CARDINAL ) : BOOLEAN; // does not allocate, does not move, returns two areas if data are splitted
+  // use CommitReading for flushing out
+
+  INTERNAL VIRTUAL PROCEDURE Flush() : Sync.TAsyncResult;
+  INTERNAL VIRTUAL PROCEDURE Signal( What : Sync.TpcqSignal ); // when produced, next producing SHOULD NOT be signalled (until signalling consumed)
+END RingBuffer;
+
+(*================================================================================*)
+
+TYPE
+   TPIntegerQueue = POINTER TO IntegerQueue;
+
+CLASS IntegerQueue( RingBuffer );
+   PUBLIC PROCEDURE Queue( I : INTEGER; Wait : BOOLEAN; Timeout : CARDINAL ) : BOOLEAN;
+   PUBLIC PROCEDURE Dequeue( OUT I : INTEGER; Wait : BOOLEAN; Timeout : CARDINAL ) : BOOLEAN;
+END IntegerQueue;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPQuadwordQueue = POINTER TO QuadwordQueue;
+
+CLASS QuadwordQueue( RingBuffer );
+   PUBLIC PROCEDURE Queue( CONST Q : QUADWORD; Wait : BOOLEAN; Timeout : CARDINAL ) : BOOLEAN; // if Wait is FALSE, alwasy is possible to wait in caller code
+   PUBLIC PROCEDURE Dequeue( OUT Q : QUADWORD; Wait : BOOLEAN; Timeout : CARDINAL ) : BOOLEAN;
+END QuadwordQueue;
+
+(*================================================================================*)
+
+#restore
+
+END SyncQueue.

@@ -1,0 +1,30 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 PRODUCT NAME -->
+    <PropertyGroup>
+        <ProductFlag>on</ProductFlag>
+        <ProductVersionMajor>1</ProductVersionMajor>
+        <ProductVersionMinor>0</ProductVersionMinor>
+        <FileDescription>XML Resource Compiler</FileDescription>
+    </PropertyGroup>
+
+    <!-- 2 ROOT DIRS (including ProjectBuildDir) -->
+    <Import Project="..\..\Build\common.rootdir.proj"/><!-- property CodeRoot affects this -->
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 PRODUCT DEFINITION -->
+    <ItemGroup>
+        <Components Include="api\clib">
+            <CLib>Dynamic</CLib>
+        </Components>
+        <Components Include="modula2\modula2;api\win32;modula2\m2rtl;library\resources"/>
+        <Program Include="xrsc"/>
+        <!-- Messages Include="Texts;Pokus"/ -->
+    </ItemGroup>
+
+    <!-- 5 -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>

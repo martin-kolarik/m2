@@ -1,0 +1,56 @@
+DEFINITION MODULE XMLWriter;
+
+(*===========================================================================*)
+
+IMPORT
+	IOO,
+	Languages,
+	stacks,
+	StringsO;
+	
+(*---------------------------------------------------------------------------*)
+
+TYPE
+	TXMLWriterStateItem = (
+		xwsStarted,
+		xwsInAttributes,
+		xwsInAttribute
+	);
+	TXMLWriterState = SET OF TXMLWriterStateItem;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CXMLWriter;
+	PRIVATE VAR
+		_Stream : IOO.TPStream;
+		_Encoding : CARDINAL := Languages.cp_UTF8;
+		_State : TXMLWriterState;
+		_Stack : stacks.CStringStack;
+	PUBLIC PROPERTY
+		// Encoding : CARDINAL;
+		Stream : IOO.TPStream;
+
+	PUBLIC PROCEDURE WriteElementString( CONST Element : ARRAY OF WCHAR; CONST String : StringsO.CString );
+	PUBLIC PROCEDURE WriteElementStringOA( CONST Element, String : ARRAY OF WCHAR );
+	PUBLIC PROCEDURE WriteElementStartOA( CONST Element : ARRAY OF WCHAR );
+	PUBLIC PROCEDURE WriteElementEnd();
+	
+	PUBLIC PROCEDURE WriteAttributeStringOA( CONST Attribute, String : ARRAY OF WCHAR );
+	PUBLIC PROCEDURE WriteAttributeStartOA( CONST Attribute : ARRAY OF WCHAR );
+	PUBLIC PROCEDURE WriteAttributeEnd();
+
+	PUBLIC PROCEDURE WriteString( CONST String : StringsO.CString );
+	PUBLIC PROCEDURE WriteStringOA( CONST String : ARRAY OF WCHAR );
+	
+	PUBLIC PROCEDURE Close( Persist : BOOLEAN );
+	
+	PRIVATE PROCEDURE Write( REF String : StringsO.CString; Escape : BOOLEAN );
+	PRIVATE INLINE PROCEDURE WriteOA( CONST String : ARRAY OF WCHAR; Escape : BOOLEAN );
+	PRIVATE INLINE PROCEDURE WriteOAA( CONST String : ARRAY OF CHAR ); // string must be escaped
+	PRIVATE PROCEDURE WriteIndent();
+	PRIVATE INLINE PROCEDURE WriteEOL();
+END CXMLWriter;
+
+(*===========================================================================*)
+
+END XMLWriter.

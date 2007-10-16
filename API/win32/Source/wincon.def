@@ -1,0 +1,453 @@
+DEFINITION MODULE wincon;
+
+(*==============================================================
+
+                    Win32 API for Modula-2
+
+       32-bit version for M2CPP Modula-2 to C++ compiler
+
+      Copyright (c) 1996, 2003 Moravian Instruments, Inc.
+
+==============================================================*)
+
+(*# name( decoration => c ) *)
+(*# module( header => off ) *)
+(*# call( o_a_size => off, c_arrays => on, convention => stdcall ) *)
+
+(*============================================================*)
+(* Windows header:           wincon.h                         *)
+(*============================================================*)
+
+IMPORT
+  windows;
+
+TYPE
+  COORD  = RECORD
+             X : CARD16;
+             Y : CARD16;
+           END;
+  PCOORD = POINTER TO COORD;
+
+TYPE
+  SMALL_RECT  = RECORD
+                  Left   : CARD16;
+                  Top    : CARD16;
+                  Right  : CARD16;
+                  Bottom : CARD16;
+                END;
+  PSMALL_RECT = POINTER TO SMALL_RECT;
+
+TYPE  
+  KEY_EVENT_RECORD  = RECORD
+                        bKeyDown : windows.BOOL;
+                        wRepeatCount : WORD;
+                        wVirtualKeyCode : WORD;
+                        wVirtualScanCode : WORD;
+                        CASE : BOOLEAN OF
+                        | FALSE :
+                          UnicodeChar : WCHAR;
+                        | TRUE :
+                          AsciiChar : CHAR;
+                        END; // CASE
+                        dwControlKeyState : windows.DWORD;
+                      END;
+  PKEY_EVENT_RECORD = POINTER TO KEY_EVENT_RECORD;
+
+CONST
+//
+// ControlKeyState flags
+//
+  RIGHT_ALT_PRESSED  = 000000001H; // the right alt key is pressed.
+  LEFT_ALT_PRESSED   = 000000002H; // the left alt key is pressed.
+  RIGHT_CTRL_PRESSED = 000000004H; // the right ctrl key is pressed.
+  LEFT_CTRL_PRESSED  = 000000008H; // the left ctrl key is pressed.
+  SHIFT_PRESSED      = 000000010H; // the shift key is pressed.
+  NUMLOCK_ON         = 000000020H; // the numlock light is on.
+  SCROLLLOCK_ON      = 000000040H; // the scrolllock light is on.
+  CAPSLOCK_ON        = 000000080H; // the capslock light is on.
+  ENHANCED_KEY       = 000000100H; // the key is enhanced.
+  NLS_DBCSCHAR       = 000010000H; // DBCS for JPN: SBCS/DBCS mode.
+  NLS_ALPHANUMERIC   = 000000000H; // DBCS for JPN: Alphanumeric mode.
+  NLS_KATAKANA       = 000020000H; // DBCS for JPN: Katakana mode.
+  NLS_HIRAGANA       = 000040000H; // DBCS for JPN: Hiragana mode.
+  NLS_ROMAN          = 000400000H; // DBCS for JPN: Roman/Noroman mode.
+  NLS_IME_CONVERSION = 000800000H; // DBCS for JPN: IME conversion.
+  NLS_IME_DISABLE    = 020000000H; // DBCS for JPN: IME enable/disable.
+
+TYPE
+  MOUSE_EVENT_RECORD  = RECORD
+                          dwMousePosition   : COORD;
+                          dwButtonState     : windows.DWORD;
+                          dwControlKeyState : windows.DWORD;
+                          dwEventFlags      : windows.DWORD;
+                        END;
+  PMOUSE_EVENT_RECORD = POINTER TO MOUSE_EVENT_RECORD;
+
+CONST
+//
+// ButtonState flags
+//
+  FROM_LEFT_1ST_BUTTON_PRESSED = 00001H;
+  RIGHTMOST_BUTTON_PRESSED     = 00002H;
+  FROM_LEFT_2ND_BUTTON_PRESSED = 00004H;
+  FROM_LEFT_3RD_BUTTON_PRESSED = 00008H;
+  FROM_LEFT_4TH_BUTTON_PRESSED = 00010H;
+
+CONST
+//
+// EventFlags
+//
+  MOUSE_MOVED   = 00001H;
+  DOUBLE_CLICK  = 00002H;
+  MOUSE_WHEELED = 00004H;
+
+TYPE
+  WINDOW_BUFFER_SIZE_RECORD  = RECORD
+                                 dwSize : COORD;
+                               END;
+  PWINDOW_BUFFER_SIZE_RECORD = POINTER TO WINDOW_BUFFER_SIZE_RECORD;
+
+TYPE
+  MENU_EVENT_RECORD  = RECORD
+                         dwCommandId : windows.UINT;
+                       END;
+  PMENU_EVENT_RECORD = POINTER TO MENU_EVENT_RECORD;
+
+TYPE
+  FOCUS_EVENT_RECORD  = RECORD
+                          bSetFocus : windows.BOOL;
+                        END;
+  PFOCUS_EVENT_RECORD = POINTER TO FOCUS_EVENT_RECORD;
+
+TYPE
+  INPUT_RECORD  = RECORD
+                    EventType : WORD;
+                    CASE : CARDINAL OF
+                    | 0 : KeyEvent              : KEY_EVENT_RECORD;
+                    | 1 : MouseEvent            : MOUSE_EVENT_RECORD;
+                    | 2 : WindowBufferSizeEvent : WINDOW_BUFFER_SIZE_RECORD;
+                    | 3 : MenuEvent             : MENU_EVENT_RECORD;
+                    | 4 : FocusEvent            : FOCUS_EVENT_RECORD;
+                    END;
+                  END;
+  PINPUT_RECORD = POINTER TO INPUT_RECORD;
+
+CONST
+//
+//  EventType flags:
+//
+  KEY_EVENT                = 00001H; // Event contains key event record
+  MOUSE_EVENT              = 00002H; // Event contains mouse event record
+  WINDOW_BUFFER_SIZE_EVENT = 00004H; // Event contains window change event record
+  MENU_EVENT               = 00008H; // Event contains menu event record
+  FOCUS_EVENT              = 00010H; // event contains focus change
+
+TYPE
+  CHAR_INFO  = RECORD
+                 CASE : BOOLEAN OF
+                 | FALSE : UnicodeChar : WCHAR;
+                 | TRUE :  AsciiChar   : CHAR;
+                 END;
+                 Attributes : WORD;
+               END;
+  PCHAR_INFO = POINTER TO CHAR_INFO;
+
+CONST
+//
+// Attributes flags:
+//
+FOREGROUND_BLUE            = 00001H; // text color contains blue.
+FOREGROUND_GREEN           = 00002H; // text color contains green.
+FOREGROUND_RED             = 00004H; // text color contains red.
+FOREGROUND_INTENSITY       = 00008H; // text color is intensified.
+BACKGROUND_BLUE            = 00010H; // background color contains blue.
+BACKGROUND_GREEN           = 00020H; // background color contains green.
+BACKGROUND_RED             = 00040H; // background color contains red.
+BACKGROUND_INTENSITY       = 00080H; // background color is intensified.
+COMMON_LVB_LEADING_BYTE    = 00100H; // Leading Byte of DBCS
+COMMON_LVB_TRAILING_BYTE   = 00200H; // Trailing Byte of DBCS
+COMMON_LVB_GRID_HORIZONTAL = 00400H; // DBCS: Grid attribute: top horizontal.
+COMMON_LVB_GRID_LVERTICAL  = 00800H; // DBCS: Grid attribute: left vertical.
+COMMON_LVB_GRID_RVERTICAL  = 01000H; // DBCS: Grid attribute: right vertical.
+COMMON_LVB_REVERSE_VIDEO   = 04000H; // DBCS: Reverse fore/back ground attribute.
+COMMON_LVB_UNDERSCORE      = 08000H; // DBCS: Underscore.
+
+COMMON_LVB_SBCSDBCS        = 00300H; // SBCS or DBCS flag.
+
+TYPE
+  CONSOLE_SCREEN_BUFFER_INFO  = RECORD
+                                  dwSize              : COORD;
+                                  dwCursorPosition    : COORD;
+                                  wAttributes         : WORD;
+                                  srWindow            : SMALL_RECT;
+                                  dwMaximumWindowSize : COORD;
+                                END;
+  PCONSOLE_SCREEN_BUFFER_INFO = POINTER TO CONSOLE_SCREEN_BUFFER_INFO;
+
+TYPE
+  CONSOLE_CURSOR_INFO  = RECORD
+                           dwSize   : windows.DWORD;
+                           bVisible : windows.BOOL;
+                         END;
+  PCONSOLE_CURSOR_INFO = POINTER TO CONSOLE_CURSOR_INFO;
+
+TYPE
+//
+// typedef for ctrl-c windows.HANDLEr routines
+//
+// typedef
+// BOOL
+// (WINAPI *PHANDLER_ROUTINE)(
+//     windows.DWORD CtrlType
+//     );
+ PHANDLER_ROUTINE = PROCEDURE( windows.DWORD ) : windows.BOOL;
+  
+CONST
+  CTRL_C_EVENT        = 0;
+  CTRL_BREAK_EVENT    = 1;
+  CTRL_CLOSE_EVENT    = 2;
+  // 3 is reserved!
+  // 4 is reserved!
+  CTRL_LOGOFF_EVENT   = 5;
+  CTRL_SHUTDOWN_EVENT = 6;
+
+CONST
+//
+//  Input Mode flags:
+//
+  ENABLE_PROCESSED_INPUT = 00001H;
+  ENABLE_LINE_INPUT      = 00002H;
+  ENABLE_ECHO_INPUT      = 00004H;
+  ENABLE_WINDOW_INPUT    = 00008H;
+  ENABLE_MOUSE_INPUT     = 00010H;
+
+CONST
+//
+// Output Mode flags:
+//
+  ENABLE_PROCESSED_OUTPUT   = 00001H;
+  ENABLE_WRAP_AT_EOL_OUTPUT = 00002H;
+
+//
+// direct API definitions.
+//
+
+PROCEDURE PeekConsoleInput( 
+    hConsoleInput : windows.HANDLE;
+    lpBuffer : PINPUT_RECORD;
+    nLength : windows.DWORD;
+    lpNumberOfEventsRead : windows.PDWORD
+    ) : windows.BOOL;
+
+PROCEDURE ReadConsoleInput(
+    hConsoleInput : windows.HANDLE;
+    lpBuffer : PINPUT_RECORD;
+    nLength : windows.DWORD;
+    lpNumberOfEventsRead : windows.PDWORD
+    ) : windows.BOOL;
+
+PROCEDURE WriteConsoleInput(
+    hConsoleInput : windows.HANDLE;
+    CONST lpBuffer : INPUT_RECORD;
+    nLength : windows.DWORD;
+    lpNumberOfEventsWritten : windows.PDWORD
+    ) : windows.BOOL;
+
+PROCEDURE ReadConsoleOutput(
+    hConsoleOutput : windows.HANDLE;
+    lpBuffer : PCHAR_INFO;
+    dwBufferSize : COORD;
+    dwBufferCoord : COORD;
+    lpReadRegion : PSMALL_RECT
+    ) : windows.BOOL;
+
+PROCEDURE WriteConsoleOutput(
+    hConsoleOutput : windows.HANDLE;
+    CONST lpBuffer : CHAR_INFO;
+    dwBufferSize : COORD;
+    dwBufferCoord : COORD;
+    lpWriteRegion : PSMALL_RECT
+    ) : windows.BOOL;
+
+PROCEDURE ReadConsoleOutputCharacter(
+    hConsoleOutput : windows.HANDLE;
+    lpCharacter : windows.PSTR;
+    nLength : windows.DWORD;
+    dwReadCoord : COORD;
+    lpNumberOfCharsRead : windows.PDWORD
+    ) : windows.BOOL;
+
+PROCEDURE ReadConsoleOutputAttribute(
+    hConsoleOutput : windows.HANDLE;
+    lpAttribute : PWORD;
+    nLength : windows.DWORD;
+    dwReadCoord : COORD;
+    lpNumberOfAttrsRead : windows.PDWORD
+    ) : windows.BOOL;
+
+PROCEDURE WriteConsoleOutputCharacter(
+    hConsoleOutput : windows.HANDLE;
+    lpCharacter : windows.PCSTR;
+    nLength : windows.DWORD;
+    dwWriteCoord : COORD;
+    lpNumberOfCharsWritten : windows.PDWORD
+    ) : windows.BOOL;
+
+PROCEDURE WriteConsoleOutputAttribute(
+    hConsoleOutput : windows.HANDLE;
+    CONST lpAttribute : WORD;
+    nLength : windows.DWORD;
+    dwWriteCoord : COORD;
+    lpNumberOfAttrsWritten : windows.PDWORD
+    ) : windows.BOOL;
+
+PROCEDURE FillConsoleOutputCharacter(
+    hConsoleOutput : windows.HANDLE;
+    cCharacter : CHAR ;
+    nLength : windows.DWORD ;
+    dwWriteCoord : COORD ;
+    lpNumberOfCharsWritten : windows.PDWORD
+    ) : windows.BOOL;
+
+PROCEDURE FillConsoleOutputAttribute(
+    hConsoleOutput : windows.HANDLE;
+    wAttribute : WORD;
+    nLength : windows.DWORD;
+    dwWriteCoord : COORD;
+    lpNumberOfAttrsWritten : windows.PDWORD
+    ) : windows.BOOL;
+
+PROCEDURE GetConsoleMode(
+    hConsoleHandle : windows.HANDLE;
+    lpMode : windows.PDWORD
+    ) : windows.BOOL;
+
+PROCEDURE GetNumberOfConsoleInputEvents(
+    hConsoleInput : windows.HANDLE;
+    lpNumberOfEvents : windows.PDWORD
+    ) : windows.BOOL;
+
+PROCEDURE GetConsoleScreenBufferInfo(
+    hConsoleOutput : windows.HANDLE;
+    lpConsoleScreenBufferInfo : PCONSOLE_SCREEN_BUFFER_INFO
+    ) : windows.BOOL;
+
+PROCEDURE GetLargestConsoleWindowSize(
+    hConsoleOutput : windows.HANDLE
+    ) : COORD;
+
+PROCEDURE GetConsoleCursorInfo(
+    hConsoleOutput : windows.HANDLE;
+    lpConsoleCursorInfo : PCONSOLE_CURSOR_INFO
+    ) : windows.BOOL;
+
+PROCEDURE GetNumberOfConsoleMouseButtons(
+    lpNumberOfMouseButtons : windows.PDWORD
+    ) : windows.BOOL;
+
+PROCEDURE SetConsoleMode(
+    hConsoleHandle : windows.HANDLE;
+    dwMode : windows.DWORD
+    ) : windows.BOOL;
+
+PROCEDURE SetConsoleActiveScreenBuffer(
+    hConsoleOutput : windows.HANDLE
+    ) : windows.BOOL;
+
+PROCEDURE FlushConsoleInputBuffer(
+    hConsoleInput : windows.HANDLE
+    ) : windows.BOOL;
+
+PROCEDURE SetConsoleScreenBufferSize(
+    hConsoleOutput : windows.HANDLE;
+    dwSize : COORD
+    ) : windows.BOOL;
+
+PROCEDURE SetConsoleCursorPosition(
+    hConsoleOutput : windows.HANDLE;
+    dwCursorPosition : COORD
+    ) : windows.BOOL;
+
+PROCEDURE SetConsoleCursorInfo(
+    hConsoleOutput : windows.HANDLE;
+    CONST lpConsoleCursorInfo : CONSOLE_CURSOR_INFO
+    ) : windows.BOOL;
+
+PROCEDURE ScrollConsoleScreenBuffer(
+    hConsoleOutput : windows.HANDLE;
+    CONST lpScrollRectangle : SMALL_RECT;
+    CONST lpClipRectangle : SMALL_RECT;
+    dwDestinationOrigin : COORD;
+    CONST lpFill : CHAR_INFO
+    ) : windows.BOOL;
+
+PROCEDURE SetConsoleWindowInfo(
+    hConsoleOutput : windows.HANDLE;
+    bAbsolute : windows.BOOL;
+    CONST lpConsoleWindow : SMALL_RECT
+    ) : windows.BOOL;
+
+PROCEDURE SetConsoleTextAttribute(
+    hConsoleOutput : windows.HANDLE;
+    wAttributes : WORD
+    ) : windows.BOOL;
+
+PROCEDURE SetConsoleCtrlHandler(
+    HandlerRoutine : PHANDLER_ROUTINE;
+    Add : windows.BOOL
+    ) : windows.BOOL;
+
+PROCEDURE GenerateConsoleCtrlEvent(
+    dwCtrlEvent : windows.DWORD;
+    dwProcessGroupId : windows.DWORD
+    ) : windows.BOOL;
+
+PROCEDURE AllocConsole() : windows.BOOL;
+
+PROCEDURE FreeConsole() : windows.BOOL;
+
+PROCEDURE GetConsoleTitle(
+    lpConsoleTitle : windows.PSTR;
+    nSize : windows.DWORD
+    ) : windows.DWORD;
+
+PROCEDURE SetConsoleTitle(
+    lpConsoleTitle : windows.PCSTR
+    ) : windows.BOOL;
+
+PROCEDURE ReadConsole(
+    hConsoleInput : windows.HANDLE;
+    lpBuffer : ADDRESS;
+    nNumberOfCharsToRead : windows.DWORD;
+    lpNumberOfCharsRead : windows.PDWORD;
+    lpReserved : ADDRESS
+    ) : windows.BOOL;
+
+PROCEDURE WriteConsole(
+    hConsoleOutput : windows.HANDLE;
+    CONST lpBuffer : ADDRESS;
+    nNumberOfCharsToWrite : windows.DWORD;
+    lpNumberOfCharsWritten : windows.PDWORD;
+    lpReserved : ADDRESS
+   ) : windows.BOOL;
+
+CONST
+  CONSOLE_TEXTMODE_BUFFER = 1;
+
+PROCEDURE CreateConsoleScreenBuffer(
+    dwDesiredAccess : windows.DWORD;
+    dwShareMode : windows.DWORD;
+    CONST lpSecurityAttributes : windows.SECURITY_ATTRIBUTES;
+    dwFlags : windows.DWORD;
+    lpScreenBufferData : ADDRESS
+    ) : windows.HANDLE;
+
+PROCEDURE GetConsoleCP() : windows.UINT;
+
+PROCEDURE SetConsoleCP( wCodePageID : windows.UINT ) : windows.BOOL;
+
+PROCEDURE GetConsoleOutputCP() : windows.UINT;
+
+PROCEDURE SetConsoleOutputCP( wCodePageID : windows.UINT ) : windows.BOOL;
+
+END wincon.

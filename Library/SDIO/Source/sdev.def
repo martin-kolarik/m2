@@ -1,0 +1,25 @@
+DEFINITION MODULE sdev;
+
+IMPORT
+	sdio,
+	sdns;
+
+(*---------------------------------------------------------------------------*)
+
+INTERFACE ISDevice; // aka device driver
+
+	PUBLIC ABSTRACT PROCEDURE NS() : sdns.TPSDNS;
+	PUBLIC ABSTRACT PROCEDURE IO() : sdio.TPSDIO;
+	
+END ISDevice;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+#save, call( convention => cdecl )
+	TGetSDevice = PROCEDURE( OUT ADDRESS ) : BOOLEAN;
+#restore
+
+(*---------------------------------------------------------------------------*)
+
+END sdev.

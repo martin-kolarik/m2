@@ -1,0 +1,996 @@
+-->begin
+IMPLEMENTATION MODULE Parser;
+-->namespace
+(*# call( o_a_copy => off ) *)
+
+FROM Storage IMPORT
+  ALLOCATE, DEALLOCATE;
+
+IMPORT
+  stacks,
+  Resources,
+  Storage,
+  Strings;
+
+IMPORT
+  err, wrn,
+  Console,
+  DOM,
+  Generator,
+  Languages,
+  Project,
+  Types;
+
+TYPE
+  TIdActionItem = (
+    iaiCreate,
+    iaiCheck,
+    iaiNotReport,
+    iaiNotUnwrap,
+    iaiNotAdd,
+    iaiNotReportIfOpaque, // for opaque types
+    iaiDummy
+  );
+  TIdAction = SET OF TIdActionItem;
+CONST
+  iaCreate                        = TIdAction{iaiCreate};
+  iaCreateNotAdd                  = TIdAction{iaiCreate, iaiNotAdd};
+  iaCreateIfNotExists             = TIdAction{iaiCreate, iaiCheck};
+  iaCreateIfNotExistsNotAdd       = TIdAction{iaiCreate, iaiCheck, iaiNotAdd};
+  iaCreateNotAddNotReportIfOpaque = TIdAction{iaiCreate, iaiNotAdd, iaiNotReportIfOpaque};
+  iaCheck                         = TIdAction{iaiCheck};
+  iaCheckNotReport                = TIdAction{iaiCheck, iaiNotReport};
+  iaDummy                         = TIdAction{iaiDummy};
+
+TYPE
+  TReturn = (
+    retUnknown,
+    retUnknownInSomeBranch,
+    retLabel,
+    retUncertain,
+    retExit,
+    retPrematured,
+    retOK,
+    retGOTO
+  );
+
+TYPE  
+  TValueReqItem = (
+    vrConst,
+    vrSLValue, // value is used only in formal input (ADR, SIZE), it is syntactical L-Value
+    vrREFValue, // value is used on input and also in output, it is semantical L-Value
+    vrCheckIfInitialized, vrMarkAsInitialized,
+    vrAllowCast,
+    vrAssignment,
+    vrAllowSingleType,
+    vrInsideConstructor
+  );
+  TValueReq = SET OF TValueReqItem;
+
+CONST
+  vrsDefault = TValueReq{vrCheckIfInitialized};
+  vrsConst = TValueReq{vrConst, vrCheckIfInitialized};
+  vrsREFValue = TValueReq{vrREFValue, vrCheckIfInitialized};
+  vrsInitREFValue = TValueReq{vrREFValue, vrMarkAsInitialized};
+  vrsLValue = TValueReq{vrREFValue, vrSLValue};
+
+CONST
+  visConst = DOM.TValueInfo{DOM.viConst};
+  visConstLiteral = DOM.TValueInfo{DOM.viConst, DOM.viLiteral};
+
+CONST
+  T = TRUE;
+  x = FALSE;
+  minErrDistInit = 2;
+  
+VAR
+  RE, RW : Resources.CResources;
+
+// -- constants
+-->constants
+// ++ constants
+
+//============================================================
+
+CLASS CErrors;
+  c : DOM.TPModule;
+  logFormat : ARRAY [0..63] OF WCHAR;
+  count : CARDINAL;
+  wcount : CARDINAL;
+
+  PROCEDURE Init( c : DOM.TPModule );
+  PROCEDURE SynErr( line, col, n : CARDINAL; msg : ARRAY OF WCHAR );
+  PROCEDURE SemErr( line, col, n : CARDINAL; msg : ARRAY OF WCHAR );
+  PROCEDURE Warning( line, col, n : CARDINAL; msg : ARRAY OF WCHAR );
+END CErrors;
+
+//------------------------------------------------------------
+
+CLASS IMPLEMENTATION CErrors;
+
+  PROCEDURE Init( c : DOM.TPModule );
+  BEGIN
+    SELF.c := c;
+    count := 0;
+    wcount := 0;
+  END Init;
+  
+  PROCEDURE SynErr( line, col, n : CARDINAL; msg : ARRAY OF WCHAR );
+  VAR
+    N : StringsO.CString;
+    s : ARRAY [0..127] OF WCHAR;
+  BEGIN
+    CASE n OF
+-->errors
+    ELSE
+      ASSIGN( s, msg ); 
+    END;
+    IF c = NIL THEN
+      Console.WriteLineError( n, logFormat, N, line, col, s );
+    ELSE
+      Console.WriteLineError( n, logFormat, c^.FilePath, line, col, s );
+    END;
+    INC( count );
+  END SynErr;
+
+  PROCEDURE SemErr( line, col, n : CARDINAL; msg : ARRAY OF WCHAR );
+  VAR
+    N : StringsO.CString;
+  BEGIN
+    IF c = NIL THEN
+      Console.WriteLineError( 1000 + n, logFormat, N, line, col, msg );
+    ELSE
+      Console.WriteLineError( 1000 + n, logFormat, c^.FilePath, line, col, msg );
+    END;
+    INC( count );
+  END SemErr;
+
+  PROCEDURE Warning ( line, col, n : CARDINAL; msg : ARRAY OF WCHAR );
+  VAR
+    N : StringsO.CString;
+  BEGIN
+    IF c = NIL THEN
+      Console.WriteLineWarning( n, logFormat, N, line, col, msg );
+    ELSE
+      Console.WriteLineWarning( n, logFormat, c^.FilePath, line, col, msg );
+    END;
+    INC( wcount );
+  END Warning;
+
+BEGIN
+  c := NIL;
+  count := 0;
+  wcount := 0;
+  ASSIGN( logFormat, L"{1}({2},{3}) : {4}{0}: {5}" );
+                       //path, line, col, e/w, num, text
+END CErrors;
+
+//============================================================
+
+TYPE
+  TPiParser = POINTER TO CiParser;
+
+//============================================================
+
+CLASS CPragmaIfParser;
+  P : TPiParser;
+  PROCEDURE pragmaExpression( P : TPiParser ) : BOOLEAN;
+
+  PROCEDURE pgExpression( OUT R : BOOLEAN );
+
+  PROCEDURE pgSimpleExpression( OUT T : DOM.TPType; OUT R : BOOLEAN; OUT S : StringsO.CString );
+  PROCEDURE pgTerm( OUT T : DOM.TPType; OUT R : BOOLEAN; OUT S : StringsO.CString );
+  PROCEDURE pgFactor( OUT T : DOM.TPType; OUT R : BOOLEAN; OUT S : StringsO.CString );
+
+  PROCEDURE pgContains( OUT R1 : BOOLEAN );
+  PROCEDURE pgStartsWith( OUT R1 : BOOLEAN );
+END CPragmaIfParser;
+
+//------------------------------------------------------------
+
+CLASS CiParser IMPLEMENTS IParser;
+  scanner      : Scanner.TPScanner;
+  errors       : CErrors;
+  PragmaParser : CPragmaIfParser;
+
+  SkippingText         : BOOLEAN;
+  PragmaSkipUntilEndif : BOOLEAN;
+  PragmaIfStack        : stacks.CIntegerStack;
+
+  t            : Scanner.CToken; // last recognized token
+  la           : Scanner.CToken; // lookahead token
+  errorsOn     : BOOLEAN;
+  errDist      : CARDINAL;
+  minErrDist   : CARDINAL;
+  c            : DOM.TPModule;
+
+  WeakSepBools : ARRAY [0..MaxT+1] OF BOOLEAN;
+  set          : ARRAY [0..79],[0..MaxT+1] OF BOOLEAN;
+
+  VIRTUAL PROCEDURE Parse( Module : ADDRESS; // DOM.TPModule
+                           Scanner : Scanner.TPScanner ) : CARDINAL;
+
+  PROCEDURE SynErr( n : CARDINAL );
+  VIRTUAL PROCEDURE SemErr( N : CARDINAL );
+  VIRTUAL PROCEDURE SemErrN( N, Inner : CARDINAL );
+  VIRTUAL PROCEDURE SemErrS( N : CARDINAL; S : ARRAY OF WCHAR );
+  VIRTUAL PROCEDURE SemErrNNS( N1, N2, N3 : CARDINAL; S2 : ARRAY OF WCHAR );
+  VIRTUAL PROCEDURE SemErrForcedSNS( N1 : CARDINAL; S1 : ARRAY OF WCHAR; N2 : CARDINAL; S2 : ARRAY OF WCHAR );
+  VIRTUAL PROCEDURE SemErrCS( N : CARDINAL; S : StringsO.CString );
+  VIRTUAL PROCEDURE SemErrForcedCS( N : CARDINAL; S : StringsO.CString );
+  VIRTUAL PROCEDURE Warning( n : CARDINAL );
+  VIRTUAL PROCEDURE WarningCS( n : CARDINAL; S : StringsO.CString );
+
+  PROCEDURE Get();
+  PROCEDURE Expect( n : CARDINAL );
+  PROCEDURE StartOf( s : CARDINAL ) : BOOLEAN;
+  PROCEDURE ExpectWeak( n, follow : CARDINAL );
+  PROCEDURE WeakSeparator( n, syFol, repFol : CARDINAL ) : BOOLEAN;
+
+  PROCEDURE Accept() : CARDINAL;
+
+-->productiondefs
+
+  PROCEDURE PragmaIf( Negate : BOOLEAN );
+  PROCEDURE PragmaElsif();
+  PROCEDURE PragmaElse();
+  PROCEDURE PragmaEndif();
+
+  PROCEDURE Pragma( Kind : TPragma  );
+
+  VIRTUAL PROCEDURE IsSpecial( ch : WCHAR ) : BOOLEAN;
+  VIRTUAL PROCEDURE ReadSpecial( ch : WCHAR ) : BOOLEAN;
+  VIRTUAL PROCEDURE DoSpecial( Special : StringsO.CString );
+  PROCEDURE SkipCompatiblePragmaIf( Line : CARDINAL );
+
+  VIRTUAL PROCEDURE ReadASM( Begin : CARDINAL; OUT ASMBlock : StringsO.CString ) : BOOLEAN;
+
+  VIRTUAL PROCEDURE ErrorCount() : CARDINAL;
+  VIRTUAL PROCEDURE DisableErrors();
+  VIRTUAL PROCEDURE EnableErrors();
+  VIRTUAL PROCEDURE ReportAllErrors();
+  VIRTUAL PROCEDURE ReportFirstError();
+
+  // current is module
+  PROCEDURE IsLabel( VAR PLabel : DOM.TPSymbol ) : BOOLEAN;
+
+  PROCEDURE InitSet();
+END CiParser;
+  
+//============================================================
+
+CLASS IMPLEMENTATION CPragmaIfParser;
+
+  PROCEDURE pragmaExpression( P : TPiParser ) : BOOLEAN;
+  VAR
+    R : BOOLEAN;
+  BEGIN
+    SELF.P := P;
+    CASE P^.la.Kind OF
+    | _id, _lpar, _not, _true, _false, _defined, _contains, _startswith, _wordstring :
+      pgExpression( OUT R );
+    END;
+    IF P^.la.Kind = _pragmaThen THEN
+      // Get(); not to Get #then, it would cause skipping comments and next (#else, #endif, #elsif) pragma, which can cause problems to nested #if processing
+    ELSE
+      P^.SynErr( _pragmaThen );
+    END;
+    RETURN R;
+  END pragmaExpression;
+
+  PROCEDURE pgExpression( OUT R1 : BOOLEAN );
+  VAR
+    R2 : BOOLEAN;
+    S1, S2 : StringsO.CString;
+    T1, T2 : DOM.TPType := Types.TUnknown;
+  BEGIN
+    pgSimpleExpression( OUT T1, OUT R1, OUT S1 );
+    IF P^.la.Kind = _equals THEN
+      P^.Get();
+      pgSimpleExpression( OUT T2, OUT R2, OUT S2 );
+      IF NOT T1^.Compatible( DOM.cmOperation, T2 ) THEN
+        P^.SemErrCS( err._TypeMismatchExpected, T1^.N );
+      ELSIF T1 = Types.TBOOLEAN THEN
+        R1 := R1 = R2;
+      ELSE
+        R1 := S1.Equals( S2 );
+      END;
+    ELSIF P^.la.Kind = _notequalsA THEN
+      P^.Get();
+      pgSimpleExpression( OUT T2, OUT R2, OUT S2 );
+      IF NOT T1^.Compatible( DOM.cmOperation, T2 ) THEN
+        P^.SemErrCS( err._TypeMismatchExpected, T1^.N );
+      ELSIF T1 = Types.TBOOLEAN THEN
+        R1 := R1 <> R2;
+      ELSE
+        R1 := NOT S1.Equals( S2 );
+      END;
+    ELSIF P^.la.Kind = _notequalsB THEN
+      P^.Get();
+      pgSimpleExpression( OUT T2, OUT R2, OUT S2 );
+      IF NOT T1^.Compatible( DOM.cmOperation, T2 ) THEN
+        P^.SemErrCS( err._TypeMismatchExpected, T1^.N );
+      ELSIF T1 = Types.TBOOLEAN THEN
+        R1 := R1 <> R2;
+      ELSE
+        R1 := NOT S1.Equals( S2 );
+      END;
+    ELSIF P^.la.Kind = _contains THEN
+      P^.Get();
+      IF NOT Types.TWString^.Compatible( DOM.cmOperation, T1 ) THEN
+        P^.SemErrCS( err._TypeMismatchExpected, Types.TWString^.N );
+      END;
+      pgSimpleExpression( OUT T2, OUT R2, OUT S2 );
+      IF Types.TWString^.Compatible( DOM.cmOperation, T2 ) THEN
+        R1 := S1.IndexOf( S2, 0 ) <> -1;
+      ELSE
+        P^.SemErrCS( err._TypeMismatchExpected, Types.TWString^.N );
+      END;
+    ELSIF P^.la.Kind = _startswith THEN
+      P^.Get();
+      IF NOT Types.TWString^.Compatible( DOM.cmOperation, T1 ) THEN
+        P^.SemErrCS( err._TypeMismatchExpected, Types.TWString^.N );
+      END;
+      pgSimpleExpression( OUT T2, OUT R2, OUT S2 );
+      IF Types.TWString^.Compatible( DOM.cmOperation, T2 ) THEN
+        R1 := S1.StartsWith( S2 );
+      ELSE
+        P^.SemErrCS( err._TypeMismatchExpected, Types.TWString^.N );
+      END;
+    END;
+  END pgExpression;
+
+  PROCEDURE pgSimpleExpression( OUT T1 : DOM.TPType; OUT R1 : BOOLEAN; OUT S1 : StringsO.CString );
+  VAR
+    R2 : BOOLEAN;
+    S2 : StringsO.CString;
+    T2 : DOM.TPType;
+  BEGIN
+    pgTerm( OUT T1, OUT R1, OUT S1 );
+    WHILE P^.la.Kind = _or DO
+      IF NOT Types.TBOOLEAN^.Compatible( DOM.cmOperation, T1 ) THEN
+        P^.SemErrCS( err._TypeMismatchExpected, Types.TBOOLEAN^.N );
+      END;
+      P^.Get();
+      pgTerm( OUT T2, OUT R2, OUT S2 );
+      IF Types.TBOOLEAN^.Compatible( DOM.cmOperation, T2 ) THEN
+        R1 := R1 OR R2;
+      ELSE
+        P^.SemErrCS( err._TypeMismatchExpected, Types.TBOOLEAN^.N );
+      END;
+    END; // WHILE
+  END pgSimpleExpression;
+
+  PROCEDURE pgTerm( OUT T1 : DOM.TPType; OUT R1 : BOOLEAN; OUT S1 : StringsO.CString );
+  VAR
+    R2 : BOOLEAN;
+    S2 : StringsO.CString;
+    T2 : DOM.TPType;
+  BEGIN
+    pgFactor( OUT T1, OUT R1, OUT S1 );
+    WHILE P^.la.Kind = _and DO
+      IF NOT Types.TBOOLEAN^.Compatible( DOM.cmOperation, T1 ) THEN
+        P^.SemErrCS( err._TypeMismatchExpected, Types.TBOOLEAN^.N );
+      END;
+      P^.Get();
+      pgFactor( OUT T2, OUT R2, OUT S2 );
+      IF Types.TBOOLEAN^.Compatible( DOM.cmOperation, T2 ) THEN
+        R1 := R1 AND R2;
+      ELSE
+        P^.SemErrCS( err._TypeMismatchExpected, Types.TBOOLEAN^.N );
+      END;
+    END; // WHILE
+  END pgTerm;
+
+  PROCEDURE pgFactor( OUT T : DOM.TPType; OUT R : BOOLEAN; OUT S : StringsO.CString );
+  LABEL
+    DefinedSkip;
+  VAR
+    FI : DOM.TPSymbol;
+    PId, PId2 : DOM.TPSymbol;
+    V : DOM.CEValue;
+    ExamineDefined : BOOLEAN := FALSE;
+  BEGIN
+    R := FALSE;
+    S.Clear();
+
+    IF P^.la.Kind = _lpar THEN
+      P^.Get();
+      pgExpression( OUT R );
+      T := Types.TBOOLEAN;
+      P^.Expect( _rpar );
+    ELSIF P^.la.Kind = _not THEN
+      P^.Get();
+      pgFactor( OUT T, OUT R, OUT S );
+      IF Types.TBOOLEAN^.Compatible( DOM.cmOperation, T ) THEN
+        R := NOT R;
+      ELSE
+        P^.SemErrCS( err._TypeMismatchExpected, Types.TBOOLEAN^.N );
+      END;
+    ELSIF P^.la.Kind = _true THEN
+      P^.Get();
+      T := Types.TBOOLEAN;
+      R := TRUE;
+    ELSIF P^.la.Kind = _false THEN
+      P^.Get();
+      T := Types.TBOOLEAN;
+      // R := FALSE;
+    ELSIF P^.la.Kind = _defined THEN
+      P^.Get();
+      ExamineDefined := TRUE;
+      GOTO DefinedSkip;
+    ELSIF P^.la.Kind = _contains THEN
+      P^.Get();
+      pgContains( OUT R );
+    ELSIF P^.la.Kind = _startswith THEN
+      P^.Get();
+      pgStartsWith( OUT R );
+    ELSIF P^.la.Kind = _wordstring THEN
+      P^.Get();
+      T := Types.TWString;
+      P^.t.Val.Substring( 2, P^.t.Val.Length - 3, OUT S );
+    ELSIF P^.la.Kind = _id THEN
+  DefinedSkip:
+      P^.Get();
+      IF NOT P^.c^.GetSymbol( P^.t.Val, DOM.skUnknown, NOT ExamineDefined, FALSE, TRUE, PId, FI ) THEN
+        PId := NIL;
+        // fall down
+      ELSIF ( PId^.SymbolKind <> DOM.skConstant ) AND ( PId^.SymbolKind <> DOM.skModule ) THEN
+        P^.SemErr( err._ExpectedConstOrModuleId );
+      END;
+      IF P^.la.Kind = _period THEN
+        P^.Get();
+        P^.Expect( _id );
+        IF NOT P^.c^.GetSymbol( P^.t.Val, DOM.skUnknown, NOT ExamineDefined, FALSE, TRUE, PId2, FI ) THEN
+          PId := NIL;
+          // fall down
+        ELSIF PId2^.OfSymbol <> PId THEN
+          PId := NIL;
+          P^.SemErr( err._ExpectedModuleMemberId );
+        ELSE
+          PId := PId2;
+        END;
+      END;
+      IF ExamineDefined THEN
+        T := Types.TBOOLEAN;
+        R := PId <> NIL;
+      ELSIF PId = NIL THEN
+        T := Types.TBOOLEAN; // symbol does not exists
+        // R := FALSE;
+      ELSIF Types.TBOOLEAN^.Compatible( DOM.cmOperation, PId^.T ) THEN
+        DOM.TPConstant( PId )^.Expression()^.Evaluate( V, 0 );
+        T := Types.TBOOLEAN;
+        R := V.B;
+      ELSIF Types.TWString^.Compatible( DOM.cmOperation, PId^.T ) THEN
+        DOM.TPConstant( PId )^.Expression()^.Evaluate( V, 0 );
+        T := Types.TWString;
+        S.Assign( V.S );
+      ELSE
+        P^.SemErr( err._ExpectedBooleanOrString );
+      END;
+    ELSE
+      P^.SynErr(15);
+    END;
+  END pgFactor;
+  
+  PROCEDURE pgContains( OUT R1 : BOOLEAN );
+  VAR
+    R2 : BOOLEAN;
+    S1, S2 : StringsO.CString;
+    T1, T2 : DOM.TPType;
+  BEGIN
+    P^.Expect( _lpar );
+
+    pgFactor( OUT T1, OUT R1, OUT S1 );
+    IF NOT Types.TWString^.Compatible( DOM.cmOperation, T1 ) THEN
+      P^.SemErrCS( err._TypeMismatchExpected, Types.TWString^.N );
+    END;
+
+    P^.Expect( _comma );
+
+    pgFactor( OUT T2, OUT R2, OUT S2 );
+    IF NOT Types.TWString^.Compatible( DOM.cmOperation, T1 ) THEN
+      P^.SemErrCS( err._TypeMismatchExpected, Types.TWString^.N );
+    END;
+
+    P^.Expect( _rpar );
+    
+    R1 := S1.IndexOf( S2, 0 ) <> -1;
+  END pgContains;
+
+  PROCEDURE pgStartsWith( OUT R1 : BOOLEAN );
+  VAR
+    R2 : BOOLEAN;
+    S1, S2 : StringsO.CString;
+    T1, T2 : DOM.TPType;
+  BEGIN
+    P^.Expect( _lpar );
+
+    pgFactor( OUT T1, OUT R1, OUT S1 );
+    IF NOT Types.TWString^.Compatible( DOM.cmOperation, T1 ) THEN
+      P^.SemErrCS( err._TypeMismatchExpected, Types.TWString^.N );
+    END;
+
+    P^.Expect( _comma );
+
+    pgFactor( OUT T2, OUT R2, OUT S2 );
+    IF NOT Types.TWString^.Compatible( DOM.cmOperation, T1 ) THEN
+      P^.SemErrCS( err._TypeMismatchExpected, Types.TWString^.N );
+    END;
+
+    P^.Expect( _rpar );
+    
+    R1 := S1.StartsWith( S2 );
+  END pgStartsWith;
+
+BEGIN
+  P := NIL;
+END CPragmaIfParser;
+
+//============================================================
+
+CLASS IMPLEMENTATION CiParser;
+
+//------------------------------------------------------------
+
+  VIRTUAL PROCEDURE Parse( Module : ADDRESS; PScanner : Scanner.TPScanner ) : CARDINAL;
+  BEGIN
+    c := DOM.TPModule( Module );
+    scanner := PScanner;
+
+    errors.Init( c );
+    minErrDist := minErrDistInit;
+    errDist := minErrDistInit;
+
+    InitSet();
+    RETURN Accept();
+  END Parse;
+
+//------------------------------------------------------------
+
+  PROCEDURE SynErr( n : CARDINAL );
+  BEGIN
+    IF NOT errorsOn THEN
+      RETURN;
+    END;
+    IF errDist >= minErrDist THEN
+      errors.SynErr( la.Line, la.Col, n, OAsz( RE[err._ESyntax] ));
+    END;
+    errDist := 0;
+  END SynErr;
+
+  VIRTUAL PROCEDURE SemErr( n : CARDINAL );
+  BEGIN
+    SemErrS( n, L'' );
+  END SemErr;
+
+  VIRTUAL PROCEDURE SemErrN( n, Inner : CARDINAL );
+  VAR
+    msg : ARRAY [0..511] OF WCHAR;
+  BEGIN
+    IF NOT errorsOn THEN
+      RETURN;
+    END;
+    ASSIGN( msg, OAsz( RE[n] ));
+    IF Inner = -1 THEN
+      Strings.ReplaceW( REF msg, L"{0}", L"" );
+    ELSE
+      Strings.ReplaceW( REF msg, L"{0}", OAsz( RE[Inner] ) );
+    END;
+    IF errDist >= minErrDist THEN
+      errors.SemErr( t.Line, t.Col, n, msg );
+    END;
+    errDist := 0;
+  END SemErrN;
+
+  VIRTUAL PROCEDURE SemErrS( n : CARDINAL; S : ARRAY OF WCHAR );
+  VAR
+    msg : ARRAY [0..511] OF WCHAR;
+  BEGIN
+    IF NOT errorsOn THEN
+      RETURN;
+    END;
+    ASSIGN( msg, OAsz( RE[n] ));
+    Strings.ReplaceW( REF msg, L"{0}", S );
+    IF errDist >= minErrDist THEN
+      errors.SemErr( t.Line, t.Col, n, msg );
+    END;
+    errDist := 0;
+  END SemErrS;
+
+  VIRTUAL PROCEDURE SemErrNNS( n1, Inner1, n2 : CARDINAL; s2 : ARRAY OF WCHAR );
+  VAR
+    msg1, msg2 : ARRAY [0..511] OF WCHAR;
+  BEGIN
+    IF NOT errorsOn THEN
+      RETURN;
+    END;
+    ASSIGN( msg1, OAsz( RE[n1] ));
+    IF Inner1 = -1 THEN
+      Strings.ReplaceW( REF msg1, L"{0}", L"" );
+    ELSE
+      Strings.ReplaceW( REF msg1, L"{0}", OAsz( RE[Inner1] ));
+    END;
+    IF n2 <> -1 THEN
+      ASSIGN( msg2, OAsz( RE[n2] ));
+      Strings.ReplaceW( REF msg2, L"{0}", s2 );
+      Strings.AppendW( REF msg1, msg2 );
+    END;
+    errors.SemErr( t.Line, t.Col, n1, msg1 );
+    errDist := 0;
+  END SemErrNNS;
+
+  VIRTUAL PROCEDURE SemErrForcedSNS( n1 : CARDINAL; s1 : ARRAY OF WCHAR; n2 : CARDINAL; s2 : ARRAY OF WCHAR );
+  VAR
+    msg1, msg2 : ARRAY [0..511] OF WCHAR;
+  BEGIN
+    IF NOT errorsOn THEN
+      RETURN;
+    END;
+    ASSIGN( msg1, OAsz( RE[n1] ));
+    Strings.ReplaceW( REF msg1, L"{0}", s1 );
+    IF n2 <> -1 THEN
+      ASSIGN( msg2, OAsz( RE[n2] ));
+      Strings.ReplaceW( REF msg2, L"{0}", s2 );
+      Strings.AppendW( REF msg1, msg2 );
+    END;
+    errors.SemErr( t.Line, t.Col, n1, msg1 );
+    errDist := 0;
+  END SemErrForcedSNS;
+
+  VIRTUAL PROCEDURE SemErrCS( n : CARDINAL; S : StringsO.CString );
+  VAR
+    msg : ARRAY [0..511] OF WCHAR;
+    s : ARRAY [0..255] OF WCHAR;
+  BEGIN
+    IF NOT errorsOn THEN
+      RETURN;
+    END;
+    ASSIGN( msg, OAsz( RE[n] ));
+    S.ToOA( OUT s ); Strings.ReplaceW( REF msg, L"{0}", s );
+    IF errDist >= minErrDist THEN
+      errors.SemErr( t.Line, t.Col, n, msg );
+    END;
+    errDist := 0;
+  END SemErrCS;
+
+  VIRTUAL PROCEDURE SemErrForcedCS( n : CARDINAL; S : StringsO.CString );
+  VAR
+    msg : ARRAY [0..511] OF WCHAR;
+    s : ARRAY [0..255] OF WCHAR;
+  BEGIN
+    IF NOT errorsOn THEN
+      RETURN;
+    END;
+    ASSIGN( msg, OAsz( RE[n] ));
+    S.ToOA( OUT s ); Strings.ReplaceW( REF msg, L"{0}", s );
+    errors.SemErr( t.Line, t.Col, n, OAsz( RE[n] ));
+    errDist := 0;
+  END SemErrForcedCS;
+
+  VIRTUAL PROCEDURE Warning( n : CARDINAL );
+  BEGIN
+    IF NOT errorsOn THEN
+      RETURN;
+    END;
+    errors.Warning( t.Line, t.Col, n, OAsz( RW[n] ));
+  END Warning;
+
+  VIRTUAL PROCEDURE WarningCS( n : CARDINAL; S : StringsO.CString );
+  VAR
+    msg : ARRAY [0..511] OF WCHAR;
+    s : ARRAY [0..255] OF WCHAR;
+  BEGIN
+    IF NOT errorsOn THEN
+      RETURN;
+    END;
+    ASSIGN( msg, OAsz( RW[n] ));
+    S.ToOA( OUT s ); Strings.ReplaceW( REF msg, L"{0}", s );
+    errors.Warning( t.Line, t.Col, n, msg );
+  END WarningCS;
+
+  PROCEDURE Get();
+  VAR
+    lt : Scanner.CToken;
+  BEGIN
+    LOOP
+      t.CopyFrom( la );
+      la.CopyFrom( scanner^.Scan()^ );
+      IF la.Kind <= MaxT THEN // no pragma found
+        INC( errDist );
+        RETURN;
+      END;
+
+      lt.CopyFrom( t ); // store token before pragma to be able to restore it
+      LOOP // pragmas can be lexically chained (...#endif #if), so the processing must be done in a LOOP
+
+-->pragmas
+
+        la.CopyFrom( scanner^.Scan()^ ); // move next
+        IF la.Kind <= MaxT THEN // normal token read
+          t.CopyFrom( lt ); // restore token before pragma
+          INC( errDist );
+          RETURN;
+        END;
+      END; // inner LOOP
+
+    END; // outer LOOP
+  END Get;
+
+  PROCEDURE Expect( n : CARDINAL );
+  BEGIN
+    IF la.Kind = n THEN
+      Get();
+    ELSE
+      SynErr(n);
+    END;
+  END Expect;
+
+  PROCEDURE StartOf( s : CARDINAL ) : BOOLEAN;
+  BEGIN
+    RETURN set[s, la.Kind];
+  END StartOf;
+  
+  PROCEDURE ExpectWeak( n, follow : CARDINAL );
+  BEGIN
+    IF la.Kind = n THEN
+      Get();
+    ELSE
+      SynErr(n);
+      WHILE NOT StartOf( follow ) DO
+        Get();
+      END; // WHILE
+    END;
+  END ExpectWeak;
+  
+  PROCEDURE WeakSeparator( n, syFol, repFol : CARDINAL ) : BOOLEAN;
+  VAR
+    i : CARDINAL;
+  BEGIN
+    IF la.Kind = n THEN
+      Get();
+      RETURN TRUE;
+    ELSIF StartOf( repFol ) THEN
+      RETURN FALSE;
+    ELSE
+      FOR i := 0 TO MaxT DO
+        WeakSepBools[i] := set[syFol, i] OR set[repFol, i] OR set[0, i];
+      END;
+      SynErr( n );
+      WHILE NOT WeakSepBools[la.Kind] DO
+        Get();
+      END;
+      RETURN StartOf( syFol );
+    END;
+  END WeakSeparator;
+
+-->productions
+
+  PROCEDURE Accept() : CARDINAL;
+  BEGIN
+    Get();
+-->parseRoot
+    IF NOT( DOM.coSolveTimestamps IN c^.Options ) THEN
+      Expect(0);
+    END;
+    RETURN errors.count;
+  END Accept;
+
+-->declarations
+
+  PROCEDURE PragmaIf( Negate : BOOLEAN );
+  VAR
+    sL : ARRAY [0..15] OF WCHAR;
+    PS : Scanner.TPragmaSkipping;
+    R : BOOLEAN;
+  BEGIN
+    Get(); // get #if
+    PragmaIfStack.Push( la.Line );
+    PragmaSkipUntilEndif := FALSE;
+
+    LOOP
+      R := PragmaParser.pragmaExpression( ADR( SELF ));
+      IF Negate THEN
+        R := NOT R;
+      END;
+      IF R THEN
+        PragmaSkipUntilEndif := TRUE;
+        RETURN;
+      END;
+
+      SkippingText := TRUE;
+      PS := scanner^.ReadOutPragmaIf();
+      SkippingText := FALSE;
+      
+      IF PS = Scanner.psELSIF THEN
+        Get(); // get #elsif and continue to the condition
+        CONTINUE;
+      END;
+
+      IF PS = Scanner.psEOF THEN
+        t.Line := scanner^.Line; t.Col := 1;
+        Strings.FromINT32W( PragmaIfStack.Peek(), 10, OUT sL );
+        SemErrS( err._IfPragmaNotTerminated, sL );
+      END;
+      EXIT;
+
+    END; // LOOP
+  END PragmaIf;
+
+  PROCEDURE PragmaElsif();
+  VAR
+    PS : Scanner.TPragmaSkipping;
+    sL : ARRAY [0..15] OF WCHAR;
+  BEGIN
+    IF PragmaIfStack.Count = 0 THEN
+      t.Line := scanner^.Line; t.Col := 1;
+      SemErr( err._UnexpectedElsifPragma );
+      RETURN;
+    ELSIF NOT PragmaSkipUntilEndif THEN
+      RETURN;
+    END;
+
+    SkippingText := TRUE;
+    REPEAT
+      PS := scanner^.ReadOutPragmaIf();
+    UNTIL ( PS = Scanner.psEOF ) OR ( PS = Scanner.psENDIF );
+    SkippingText := FALSE;
+
+    IF PS = Scanner.psEOF THEN
+      t.Line := scanner^.Line; t.Col := 1;
+      Strings.FromINT32W( PragmaIfStack.Peek(), 10, OUT sL );
+      SemErrS( err._IfPragmaNotTerminated, sL );
+    END;
+  END PragmaElsif;
+
+  PROCEDURE PragmaElse();
+  BEGIN
+    IF PragmaIfStack.Count = 0 THEN
+      t.Line := scanner^.Line; t.Col := 1;
+      SemErr( err._UnexpectedElsePragma );
+    ELSE
+      PragmaElsif();
+    END;
+  END PragmaElse;
+
+  PROCEDURE PragmaEndif();
+  BEGIN
+    IF PragmaIfStack.Count = 0 THEN
+      t.Line := scanner^.Line; t.Col := 1;
+      SemErr( err._UnexpectedEndifPragma );
+    ELSE
+      PragmaIfStack.Pop();
+      PragmaSkipUntilEndif := PragmaIfStack.Count > 0;
+    END;
+  END PragmaEndif;
+
+  PROCEDURE Pragma( Kind : TPragma  );
+  BEGIN
+    c^.ParsePragma( Kind, la.Val );
+  END Pragma;
+
+  VIRTUAL PROCEDURE IsSpecial( ch : WCHAR ) : BOOLEAN;
+  BEGIN
+    RETURN NOT SkippingText AND (( ch = L'%' ) OR ( ch = L'#' ));
+  END IsSpecial;
+
+  VIRTUAL PROCEDURE ReadSpecial( ch : WCHAR ) : BOOLEAN;
+  BEGIN
+    RETURN FALSE;
+  END ReadSpecial;
+
+  VIRTUAL PROCEDURE DoSpecial( Special : StringsO.CString );
+  VAR
+    Symbol : ARRAY [0..63] OF WCHAR;
+    R : BOOLEAN;
+  BEGIN
+    IF ( Special[0] = L'%' ) AND ( Special[1] = L'T' ) OR ( Special[1] = L'F' ) THEN
+      Special.SubstringOA( 2, MAX( CARDINAL ), OUT Symbol );
+      Strings.TrimW( REF Symbol );
+      IF NOT c^.GetConstantBooleanValue( Symbol, R ) THEN
+        RETURN;
+      END;
+      IF R <> ( Special[1] = L'T' ) THEN
+        SkipCompatiblePragmaIf( la.Line ); // read until (*%E*)
+      END;
+    ELSIF ( Special[0] = L'%' ) AND ( Special[1] = L'E' ) THEN
+      RETURN;
+    ELSE
+      c^.ParsePragma( prgCompatible, Special );
+    END;
+  END DoSpecial;
+  
+  PROCEDURE SkipCompatiblePragmaIf( Line : CARDINAL );
+  VAR
+    sL : ARRAY [0..15] OF WCHAR;
+  BEGIN
+    IF NOT scanner^.ReadOutCompatiblePragma() THEN
+      t.Line := scanner^.Line; t.Col := 1;
+      Strings.FromINT32W( Line, 10, OUT sL );
+      SemErrS( err._CompatibleIfPragmaNotTerminated, sL );
+    END;
+  END SkipCompatiblePragmaIf;
+
+  VIRTUAL PROCEDURE ErrorCount() : CARDINAL;
+  BEGIN
+    RETURN errors.count;
+  END ErrorCount;
+
+  VIRTUAL PROCEDURE ReadASM( Begin : CARDINAL; OUT ASMBlock : StringsO.CString ) : BOOLEAN;
+  BEGIN
+    RETURN scanner^.ReadASM( Begin, _kwEND, OUT la, OUT ASMBlock );
+  END ReadASM;
+
+  VIRTUAL PROCEDURE DisableErrors();
+  BEGIN
+    errorsOn := FALSE;
+  END DisableErrors;
+
+  VIRTUAL PROCEDURE EnableErrors();
+  BEGIN
+    errorsOn := TRUE;
+  END EnableErrors;
+
+  VIRTUAL PROCEDURE ReportAllErrors();
+  BEGIN
+    minErrDist := 0;
+  END ReportAllErrors;
+
+  VIRTUAL PROCEDURE ReportFirstError();
+  BEGIN
+    minErrDist := 1;
+  END ReportFirstError;
+
+  PROCEDURE IsLabel( VAR PLabel : DOM.TPSymbol ) : BOOLEAN;
+  BEGIN
+    PLabel := NIL;
+    RETURN ( la.Kind = _id ) AND c^.IsLabel( la.Val, PLabel );
+  END IsLabel;
+
+  PROCEDURE InitSet();
+  CONST
+-->initializationconst
+  TYPE
+    TFirstSetI = ARRAY [0..MaxT+1] OF BOOLEAN;
+    TFirstSetO = ARRAY [0..SymSets-1] OF TFirstSetI;
+  VAR
+    LSet : TFirstSetO;
+  BEGIN
+    LSet := TFirstSetO(
+-->initialization
+    );
+    IF SymSets > 80 THEN
+      ADDRESS( 0 )^ := 0;
+    END;
+    Storage.Move( ADR( LSet ), ADR( set ), SIZE( LSet ));
+  END InitSet;
+  
+BEGIN
+  scanner := NIL;
+  SkippingText := FALSE;
+  PragmaSkipUntilEndif := FALSE;
+  errorsOn := TRUE;
+  errDist := 0;
+  minErrDist := 2;
+  c := NIL;
+  Storage.Fill( ADR( WeakSepBools ), SIZE( WeakSepBools ), 0 );
+  Storage.Fill( ADR( set ), SIZE( set ), 0 );
+END CiParser;
+
+PROCEDURE CreateParser() : TPParser;
+VAR
+  P : TPiParser;
+BEGIN
+  NEW( P );
+  RETURN P;
+END CreateParser;
+
+INITIALLY __I();
+BEGIN
+  RE.LoadRES2( EMITW( %exe ), L'm2cpp.err' ); RE.RFC1766 := Languages.TRFC1766( L'en-US' );
+  RW.LoadRES2( EMITW( %exe ), L'm2cpp.wrn' ); RW.RFC1766 := Languages.TRFC1766( L'en-US' );
+END __I;
+
+END Parser.
+
+$$$

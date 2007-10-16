@@ -1,0 +1,830 @@
+DEFINITION MODULE rpcdce;
+
+(*/*
+    This module contains the DCE RPC runtime APIs.
+*/*)
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off ) *)
+
+(*# call(   o_a_size        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+IMPORT
+  guiddef;
+
+TYPE
+
+  T_unsigned_char_ptr   = POINTER TO CARD8;
+  T_unsigned_wchar_ptr  = POINTER TO CARD16;
+(*%F UNICODE *)
+  T_unsigned_tchar_ptr  = T_unsigned_char_ptr;
+(*%E *)
+(*%T UNICODE *)
+  T_unsigned_tchar_ptr  = T_unsigned_wchar_ptr;
+(*%E *)
+
+  TP_unsigned_char_ptr  = POINTER TO T_unsigned_char_ptr;
+  TP_unsigned_wchar_ptr = POINTER TO T_unsigned_wchar_ptr;
+  TP_unsigned_tchar_ptr = POINTER TO T_unsigned_tchar_ptr;
+
+
+// definition moved from rpc.def to avoid circular import
+  RPC_STATUS   = INTEGER;
+  I_RPC_HANDLE = ADDRESS;
+// end of moved definitions
+
+  PRPC_STATUS = POINTER TO RPC_STATUS;
+
+  RPC_BINDING_HANDLE   = I_RPC_HANDLE;
+  PRPC_BINDING_HANDLE  = POINTER TO RPC_BINDING_HANDLE;
+  handle_t             = RPC_BINDING_HANDLE;
+  rpc_binding_handle_t = RPC_BINDING_HANDLE;
+
+  UUID   = guiddef.GUID;
+  PUUID  = POINTER TO UUID;
+
+  RPC_BINDING_VECTOR = RECORD
+    Count : LONGCARD;
+    BindingH : ARRAY [0..0] OF RPC_BINDING_HANDLE;
+  END;
+  PRPC_BINDING_VECTOR = POINTER TO RPC_BINDING_VECTOR;
+  rpc_binding_vector_t = RPC_BINDING_VECTOR;
+
+  UUID_VECTOR = RECORD
+    Count : LONGCARD;
+    Uuid : POINTER TO ARRAY [0..0] OF UUID;
+  END;
+  PUUID_VECTOR = POINTER TO UUID_VECTOR;
+  uuid_vector_t = UUID_VECTOR;
+
+  RPC_IF_HANDLE = ADDRESS;
+  PRPC_IF_HANDLE = POINTER TO RPC_IF_HANDLE;
+
+  RPC_IF_ID = RECORD
+    Uuid      : UUID;
+    VersMajor : SHORTCARD;
+    VersMinor : SHORTCARD;
+  END;
+  PRPC_IF_ID = POINTER TO RPC_IF_ID;
+
+CONST
+  RPC_C_BINDING_INFINITE_TIMEOUT = 10;
+  RPC_C_BINDING_MIN_TIMEOUT      = 0;
+  RPC_C_BINDING_DEFAULT_TIMEOUT  = 5;
+  RPC_C_BINDING_MAX_TIMEOUT      = 9;
+
+  RPC_C_CANCEL_INFINITE_TIMEOUT  = -1;
+
+  RPC_C_LISTEN_MAX_CALLS_DEFAULT = 1234;
+  RPC_C_PROTSEQ_MAX_REQS_DEFAULT = 10;
+
+  RPC_C_BIND_TO_ALL_NICS         = 1;
+  RPC_C_USE_INTERNET_PORT        = 1;
+  RPC_C_USE_INTRANET_PORT        = 2;
+
+TYPE
+
+  RPC_PROTSEQ_VECTOR = RECORD
+    Count : CARDINAL;
+    Protseq : POINTER TO ARRAY [0..0] OF CHAR;
+  END;
+  PRPC_PROTSEQ_VECTOR = POINTER TO RPC_PROTSEQ_VECTOR;
+
+  RPC_POLICY = RECORD
+    Length : CARDINAL;
+    EndpointFlags : LONGCARD;
+    NICFlags : LONGCARD;
+  END;
+  PRPC_POLICY = POINTER TO RPC_POLICY;
+
+  RPC_OBJECT_INQ_FN = PROCEDURE( PUUID (* ObjectUuid *),
+                                 PUUID (* TypeUuid *),
+                                 PRPC_STATUS (* Status *)
+                               );
+
+  RPC_IF_CALLBACK_FN = PROCEDURE( RPC_IF_HANDLE (* InterfaceUuid *),
+                                  ADDRESS (* Context *)
+                                );
+
+  RPC_STATS_VECTOR = RECORD
+    Count : CARDINAL;
+    Stats : ARRAY [0..0] OF LONGCARD;
+  END;
+  PRPC_STATS_VECTOR = POINTER TO RPC_STATS_VECTOR;
+
+CONST
+
+  RPC_C_STATS_CALLS_IN  = 0;
+  RPC_C_STATS_CALLS_OUT = 1;
+  RPC_C_STATS_PKTS_IN   = 2;
+  RPC_C_STATS_PKTS_OUT  = 3;
+
+TYPE
+
+  RPC_IF_ID_VECTOR = RECORD
+    Count : LONGCARD;
+    IfId : POINTER TO ARRAY [0..0] OF RPC_IF_ID;
+  END;
+  PRPC_IF_ID_VECTOR = POINTER TO RPC_IF_ID_VECTOR;
+
+// client
+
+PROCEDURE RpcBindingCopy(
+     SourceBinding : RPC_BINDING_HANDLE;
+     DestinationBinding : PRPC_BINDING_HANDLE
+    ): RPC_STATUS;
+
+// client
+PROCEDURE RpcBindingFree(
+     Binding : PRPC_BINDING_HANDLE
+    ): RPC_STATUS;
+
+// client
+
+PROCEDURE RpcBindingFromStringBinding(
+     StringBinding : PCHAR;
+     Binding : PRPC_BINDING_HANDLE
+    ): RPC_STATUS;
+
+// client/server
+PROCEDURE RpcBindingInqObject(
+     Binding : RPC_BINDING_HANDLE;
+     ObjectUuid : PUUID
+    ): RPC_STATUS;
+
+// client
+PROCEDURE RpcBindingReset(
+     Binding : RPC_BINDING_HANDLE
+    ): RPC_STATUS;
+
+// RpcBindingServerFromClient : UNSUPPORTED
+// RpcBindingSetAuthInfo
+
+// client
+PROCEDURE RpcBindingSetObject(
+     Binding : RPC_BINDING_HANDLE;
+     ObjectUuid : PUUID
+    ): RPC_STATUS;
+
+// client/server
+PROCEDURE RpcMgmtInqDefaultProtectLevel(
+     AuthnSvc : LONGCARD;
+     AuthnLevel : LONGCARD
+    ): RPC_STATUS;
+
+// client/server
+
+PROCEDURE RpcBindingToStringBinding(
+      Binding : RPC_BINDING_HANDLE;
+      VAR StringBinding : PCHAR
+    ): RPC_STATUS;
+
+// client/server
+PROCEDURE RpcBindingVectorFree (
+     VAR BindingVector : PRPC_BINDING_VECTOR
+    ): RPC_STATUS;
+
+// client/server
+
+PROCEDURE RpcStringBindingCompose(
+     ObjUuid : PCHAR;
+     Protseq : PCHAR;
+     NetworkAddr : PCHAR;
+     Endpoint : PCHAR;
+     Options : PCHAR;
+     VAR StringBinding : PCHAR 
+    ): RPC_STATUS;
+
+// client/server
+
+PROCEDURE RpcStringBindingParse(
+     StringBinding : PCHAR;
+     VAR ObjUuid : PCHAR;
+     VAR Protseq : PCHAR;
+     VAR NetworkAddr : PCHAR;
+     VAR Endpoint : PCHAR;
+     VAR NetworkOptions : PCHAR
+    ): RPC_STATUS;
+
+// client/server
+PROCEDURE RpcStringFreeA(
+     String : TP_unsigned_char_ptr
+    ): RPC_STATUS;
+PROCEDURE RpcStringFreeW(
+     String : TP_unsigned_wchar_ptr
+    ): RPC_STATUS;
+
+CONST
+(*%F UNICODE *)
+  RpcStringFree ::= RpcStringFreeA;
+(*%E *)
+(*%T UNICODE *)
+  RpcStringFree ::= RpcStringFreeW;
+(*%E *)
+
+// client/server
+PROCEDURE RpcIfInqId(
+     RpcIfHandle : RPC_IF_HANDLE;
+     RpcIfId : PRPC_IF_ID
+    ): RPC_STATUS;
+
+// client/server
+
+PROCEDURE RpcNetworkIsProtseqValid(
+     Protseq : PCHAR
+    ): RPC_STATUS;
+
+// client
+PROCEDURE RpcMgmtInqComTimeout(
+     Binding : RPC_BINDING_HANDLE;
+     Timeout : PCARDINAL
+    ): RPC_STATUS;
+
+// client
+PROCEDURE RpcMgmtSetComTimeout(
+     Binding : RPC_BINDING_HANDLE;
+     Timeout : CARDINAL
+    ): RPC_STATUS;
+
+// client
+PROCEDURE RpcMgmtSetCancelTimeout(
+     Timeout : LONGINT
+    ): RPC_STATUS;
+
+
+// server
+
+PROCEDURE RpcNetworkInqProtseqs(
+     VAR ProtseqVector : PRPC_PROTSEQ_VECTOR
+    ): RPC_STATUS;
+
+// server
+PROCEDURE RpcObjectInqType(
+     ObjUuid : PUUID;
+     TypeUuid : PUUID
+    ): RPC_STATUS;
+
+// server
+PROCEDURE RpcObjectSetInqFn(
+     InquiryFn : RPC_OBJECT_INQ_FN
+    ): RPC_STATUS;
+
+// server
+PROCEDURE RpcObjectSetType(
+     ObjUuid : PUUID;
+     TypeUuid : PUUID 
+    ): RPC_STATUS;
+
+// server
+
+PROCEDURE RpcProtseqVectorFree(
+     VAR ProtseqVector : PRPC_PROTSEQ_VECTOR
+    ): RPC_STATUS;
+
+// server
+PROCEDURE RpcServerInqBindings(
+     VAR BindingVector : RPC_BINDING_VECTOR
+    ): RPC_STATUS;
+
+// server
+PROCEDURE RpcServerInqIf(
+     IfSpec : RPC_IF_HANDLE;
+     MgrTypeUuid : PUUID;
+     VAR MgrEpv : ADDRESS
+    ): RPC_STATUS;
+
+// server
+PROCEDURE RpcServerListen(
+     MinimumCallThreads : CARDINAL;
+     MaxCalls : CARDINAL;
+     DontWait : CARDINAL
+    ): RPC_STATUS;
+
+// server
+PROCEDURE RpcServerRegisterIf(
+     IfSpec : RPC_IF_HANDLE;
+     MgrTypeUuid : PUUID;
+     MgrEpv : ADDRESS
+    ): RPC_STATUS;
+
+// server
+PROCEDURE RpcServerRegisterIfEx(
+     IfSpec : RPC_IF_HANDLE;
+     MgrTypeUuid : PUUID;
+     MgrEpv : ADDRESS;
+     Flags : CARDINAL;
+     MaxCalls : CARDINAL;
+     IfCallback : RPC_IF_CALLBACK_FN
+    ): RPC_STATUS;
+
+// server
+PROCEDURE RpcServerUnregisterIf(
+     IfSpec : RPC_IF_HANDLE;
+     MgrTypeUuid : PUUID;
+     WaitForCallsToComplete : CARDINAL
+    ): RPC_STATUS;
+
+// server
+PROCEDURE RpcServerUseAllProtseqs(
+     MaxCalls : CARDINAL;
+     SecurityDescriptor : ADDRESS
+    ): RPC_STATUS;
+
+// server
+PROCEDURE RpcServerUseAllProtseqsEx(
+     MaxCalls : CARDINAL;
+     SecurityDescriptor : ADDRESS;
+     Policy : PRPC_POLICY
+    ): RPC_STATUS;
+
+// server
+PROCEDURE RpcServerUseAllProtseqsIf(
+     MaxCalls : CARDINAL;
+     IfSpec : RPC_IF_HANDLE;
+     SecurityDescriptor : ADDRESS
+    ): RPC_STATUS;
+
+// server
+PROCEDURE RpcServerUseAllProtseqsIfEx(
+     MaxCalls : CARDINAL;
+     IfSpec : RPC_IF_HANDLE;
+     SecurityDescriptor : ADDRESS;
+     Policy : PRPC_POLICY
+    ): RPC_STATUS;
+
+// server
+
+PROCEDURE RpcServerUseProtseq(
+     Protseq : PCHAR;
+     MaxCalls : CARDINAL;
+     SecurityDescriptor : ADDRESS
+    ): RPC_STATUS;
+
+PROCEDURE RpcServerUseProtseqEx(
+     Protseq : PCHAR;
+     MaxCalls : CARDINAL;
+     SecurityDescriptor : ADDRESS;
+     Policy : PRPC_POLICY
+    ): RPC_STATUS;
+
+// server
+
+PROCEDURE RpcServerUseProtseqEp(
+     Protseq : PCHAR;
+     MaxCalls : CARDINAL;
+     Endpoint : PCHAR;
+     SecurityDescriptor : ADDRESS
+    ): RPC_STATUS;
+
+PROCEDURE RpcServerUseProtseqEpEx(
+     Protseq : PCHAR;
+     MaxCalls : CARDINAL;
+     Endpoint : PCHAR;
+     SecurityDescriptor : ADDRESS;
+     Policy : PRPC_POLICY
+    ): RPC_STATUS;
+
+// server
+
+PROCEDURE RpcServerUseProtseqIf(
+     Protseq : PCHAR;
+     MaxCalls : CARDINAL;
+     IfSpec : RPC_IF_HANDLE;
+     SecurityDescriptor : ADDRESS
+    ): RPC_STATUS;
+
+PROCEDURE RpcServerUseProtseqIfEx(
+     Protseq : PCHAR;
+     MaxCalls : CARDINAL;
+     IfSpec : RPC_IF_HANDLE;
+     SecurityDescriptor : ADDRESS;
+     Policy : PRPC_POLICY
+    ): RPC_STATUS;
+
+// server
+PROCEDURE RpcMgmtStatsVectorFree(
+     VAR StatsVector : PRPC_STATS_VECTOR
+    ): RPC_STATUS;
+
+// server
+PROCEDURE RpcMgmtInqStats(
+     Binding : RPC_BINDING_HANDLE;
+     VAR Statistics : PRPC_STATS_VECTOR
+    ): RPC_STATUS;
+
+// server
+PROCEDURE RpcMgmtIsServerListening(
+     Binding : RPC_BINDING_HANDLE
+    ): RPC_STATUS;
+
+// server
+PROCEDURE RpcMgmtStopServerListening(
+     Binding : RPC_BINDING_HANDLE
+    ): RPC_STATUS;
+
+// server
+PROCEDURE RpcMgmtWaitServerListen(): RPC_STATUS;
+
+// server
+PROCEDURE RpcMgmtSetServerStackSize(
+     ThreadStackSize : LONGCARD
+    ): RPC_STATUS;
+
+// server
+PROCEDURE RpcSsDontSerializeContext();
+
+// client
+PROCEDURE RpcMgmtEnableIdleCleanup(): RPC_STATUS;
+
+PROCEDURE RpcMgmtInqIfIds(
+     Binding : RPC_BINDING_HANDLE;
+     VAR IfIdVector : PRPC_IF_ID_VECTOR
+    ): RPC_STATUS;
+
+PROCEDURE RpcIfIdVectorFree(
+      VAR IfIdVector : PRPC_IF_ID_VECTOR
+    ): RPC_STATUS;
+
+PROCEDURE RpcMgmtInqServerPrincName(
+     Binding : RPC_BINDING_HANDLE;
+     AuthnSvc : LONGCARD;
+     VAR ServerPrincName : PCHAR
+    ): RPC_STATUS;
+
+PROCEDURE RpcServerInqDefaultPrincName(
+     AuthnSvc : LONGCARD;
+     VAR PrincName : PCHAR
+    ): RPC_STATUS;
+
+// client
+PROCEDURE RpcEpResolveBinding(
+     Binding : RPC_BINDING_HANDLE;
+     IfSpec : RPC_IF_HANDLE
+    ): RPC_STATUS;
+
+// client
+
+PROCEDURE RpcNsBindingInqEntryName(
+     Binding : RPC_BINDING_HANDLE;
+     EntryNameSyntax : LONGCARD;
+     VAR EntryName : PCHAR
+    ): RPC_STATUS;
+
+TYPE
+
+  RPC_AUTH_IDENTITY_HANDLE  = ADDRESS;
+  PRPC_AUTH_IDENTITY_HANDLE = POINTER TO RPC_AUTH_IDENTITY_HANDLE;
+  RPC_AUTHZ_HANDLE          = ADDRESS;
+  PRPC_AUTHZ_HANDLE         = POINTER TO RPC_AUTHZ_HANDLE;
+
+CONST
+
+  RPC_C_AUTHN_LEVEL_DEFAULT          = 0;
+  RPC_C_AUTHN_LEVEL_NONE             = 1;
+  RPC_C_AUTHN_LEVEL_CONNECT          = 2;
+  RPC_C_AUTHN_LEVEL_CALL             = 3;
+  RPC_C_AUTHN_LEVEL_PKT              = 4;
+  RPC_C_AUTHN_LEVEL_PKT_INTEGRITY    = 5;
+  RPC_C_AUTHN_LEVEL_PKT_PRIVACY      = 6;
+
+  RPC_C_IMP_LEVEL_ANONYMOUS          = 1;
+  RPC_C_IMP_LEVEL_IDENTIFY           = 2;
+  RPC_C_IMP_LEVEL_IMPERSONATE        = 3;
+  RPC_C_IMP_LEVEL_DELEGATE           = 4;
+
+  RPC_C_QOS_IDENTITY_STATIC          = 0;
+  RPC_C_QOS_IDENTITY_DYNAMIC         = 1;
+
+  RPC_C_QOS_CAPABILITIES_DEFAULT     = 0;
+  RPC_C_QOS_CAPABILITIES_MUTUAL_AUTH = 1;
+
+  RPC_C_PROTECT_LEVEL_DEFAULT        = RPC_C_AUTHN_LEVEL_DEFAULT;
+  RPC_C_PROTECT_LEVEL_NONE           = RPC_C_AUTHN_LEVEL_NONE;
+  RPC_C_PROTECT_LEVEL_CONNECT        = RPC_C_AUTHN_LEVEL_CONNECT;
+  RPC_C_PROTECT_LEVEL_CALL           = RPC_C_AUTHN_LEVEL_CALL;
+  RPC_C_PROTECT_LEVEL_PKT            = RPC_C_AUTHN_LEVEL_PKT;
+  RPC_C_PROTECT_LEVEL_PKT_INTEGRITY  = RPC_C_AUTHN_LEVEL_PKT_INTEGRITY;
+  RPC_C_PROTECT_LEVEL_PKT_PRIVACY    = RPC_C_AUTHN_LEVEL_PKT_PRIVACY;
+
+  RPC_C_AUTHN_NONE                   = 0;
+  RPC_C_AUTHN_DCE_PRIVATE            = 1;
+  RPC_C_AUTHN_DCE_PUBLIC             = 2;
+  RPC_C_AUTHN_DEC_PUBLIC             = 4;
+  RPC_C_AUTHN_WINNT                  = 10;
+  RPC_C_AUTHN_DEFAULT                = 0FFFFFFFFH;
+
+  RPC_C_SECURITY_QOS_VERSION         = 1;
+
+TYPE
+
+  RPC_SECURITY_QOS = RECORD
+    Version : LONGCARD;
+    Capabilities : LONGCARD;
+    IdentityTracking : LONGCARD;
+    ImpersonationType : LONGCARD;
+  END;
+  PRPC_SECURITY_QOS = POINTER TO RPC_SECURITY_QOS;
+
+CONST
+
+  SEC_WINNT_AUTH_IDENTITY_ANSI    = 01H;
+  SEC_WINNT_AUTH_IDENTITY_UNICODE = 02H;
+
+TYPE
+
+  SEC_WINNT_AUTH_IDENTITY_W = RECORD
+    User : POINTER TO SHORTCARD;
+    UserLength : LONGCARD;
+    Domain : POINTER TO SHORTCARD;
+    DomainLength : LONGCARD;
+    Password : POINTER TO SHORTCARD;
+    PasswordLength : LONGCARD;
+    Flags : LONGCARD;
+  END;
+  PSEC_WINNT_AUTH_IDENTITY_W = POINTER TO SEC_WINNT_AUTH_IDENTITY_W;
+
+  SEC_WINNT_AUTH_IDENTITY_A = RECORD
+    User : POINTER TO CHAR;
+    UserLength : LONGCARD;
+    Domain : POINTER TO CHAR;
+    DomainLength : LONGCARD;
+    Password : POINTER TO CHAR;
+    PasswordLength : LONGCARD;
+    Flags : LONGCARD;
+  END;
+  PSEC_WINNT_AUTH_IDENTITY_A = POINTER TO SEC_WINNT_AUTH_IDENTITY_A;
+
+  SEC_WINNT_AUTH_IDENTITY  = SEC_WINNT_AUTH_IDENTITY_A;
+  PSEC_WINNT_AUTH_IDENTITY = PSEC_WINNT_AUTH_IDENTITY_A;
+
+CONST
+
+  RPC_C_AUTHZ_NONE = 0;
+  RPC_C_AUTHZ_NAME = 1;
+  RPC_C_AUTHZ_DCE  = 2;
+
+PROCEDURE RpcBindingInqAuthClient(
+     ClientBinding : RPC_BINDING_HANDLE;
+     VAR Privs : RPC_AUTHZ_HANDLE;
+     VAR ServerPrincName : PCHAR;
+     VAR AuthnLevel : LONGCARD;
+     VAR AuthnSvc : LONGCARD;
+     VAR AuthzSvc : LONGCARD
+    ): RPC_STATUS;
+
+PROCEDURE RpcBindingInqAuthInfo(
+     Binding : RPC_BINDING_HANDLE;
+     VAR ServerPrincName : PCHAR;
+     VAR AuthnLevel : LONGCARD;
+     VAR AuthnSvc : LONGCARD;
+     VAR AuthIdentity : RPC_AUTH_IDENTITY_HANDLE;
+     VAR AuthzSvc : LONGCARD
+    ): RPC_STATUS;
+
+PROCEDURE RpcBindingSetAuthInfo(
+     Binding : RPC_BINDING_HANDLE;
+     ServerPrincName : PCHAR;
+     AuthnLevel : LONGCARD;
+     AuthnSvc : LONGCARD;
+     AuthIdentity : RPC_AUTH_IDENTITY_HANDLE;
+     AuthzSvc : LONGCARD
+    ): RPC_STATUS;
+
+TYPE
+
+  RPC_AUTH_KEY_RETRIEVAL_FN = PROCEDURE(
+     ADDRESS (* Arg *),
+     PCHAR  (* ServerPrincName *),
+     LONGCARD (* KeyVer *),
+     VAR ADDRESS (* Key *),
+     VAR RPC_STATUS (* Status *)
+    );
+
+PROCEDURE RpcServerRegisterAuthInfo(
+     ServerPrincName : PCHAR;
+     AuthnSvc : LONGCARD;
+     GetKeyFn : RPC_AUTH_KEY_RETRIEVAL_FN;
+     Arg : ADDRESS
+    ): RPC_STATUS;
+
+TYPE
+
+  RPC_CLIENT_INFORMATION1 = RECORD
+    UserName : PCHAR;
+    ComputerName : PCHAR;
+    Privilege : SHORTCARD;
+    AuthFlags : LONGCARD;
+  END;
+  PRPC_CLIENT_INFORMATION1 = POINTER TO RPC_CLIENT_INFORMATION1;
+
+PROCEDURE RpcBindingServerFromClient(
+     ClientBindin : RPC_BINDING_HANDLE;
+     ServerBinding : PRPC_BINDING_HANDLE
+    ): RPC_STATUS;
+
+PROCEDURE RpcRaiseException( exception : RPC_STATUS );
+    
+PROCEDURE RpcTestCancel(): RPC_STATUS;
+
+PROCEDURE RpcCancelThread(
+     Thread : ADDRESS
+    ): RPC_STATUS;
+
+// client/server
+PROCEDURE UuidCreate(
+     Uuid : PUUID
+    ): RPC_STATUS;
+
+// client/server
+PROCEDURE UuidToStringA(
+     Uuid : PUUID;
+     StringUuid : TP_unsigned_char_ptr
+    ): RPC_STATUS;
+PROCEDURE UuidToStringW(
+     Uuid : PUUID;
+     StringUuid : TP_unsigned_wchar_ptr
+    ): RPC_STATUS;
+
+CONST
+(*%F UNICODE *)
+  UuidToString ::= UuidToStringA;
+(*%E *)
+(*%T UNICODE *)
+  UuidToString ::= UuidToStringW;
+(*%E *)
+
+// client/server
+PROCEDURE UuidFromStringA(
+     StringUuid : T_unsigned_char_ptr;
+     Uuid : PUUID
+    ): RPC_STATUS;
+
+PROCEDURE UuidFromStringW(
+     StringUuid : T_unsigned_wchar_ptr;
+     Uuid : PUUID
+    ): RPC_STATUS;
+
+CONST
+(*%F UNICODE *)
+  UuidFromString ::= UuidFromStringA;
+(*%E *)
+(*%T UNICODE *)
+  UuidFromString ::= UuidFromStringW;
+(*%E *)
+
+PROCEDURE UuidCompare(
+     Uuid1 : PUUID;
+     Uuid2 : PUUID;
+     VAR Status : RPC_STATUS
+    ): INTEGER;
+
+PROCEDURE UuidCreateNil(
+     NilUuid : PUUID
+    ): RPC_STATUS;
+
+PROCEDURE UuidEqual(
+     Uuid1 : PUUID;
+     Uuid2 : PUUID;
+     VAR Status : RPC_STATUS
+    ): INTEGER;
+
+PROCEDURE UuidHash (
+     Uuid : PUUID;
+     VAR Status : RPC_STATUS
+    ): SHORTCARD;
+
+PROCEDURE UuidIsNil (
+     Uuid : PUUID;
+     VAR Status : RPC_STATUS
+    ): INTEGER;
+
+PROCEDURE RpcEpRegisterNoReplace(
+     IfSpec : RPC_IF_HANDLE;
+     BindingVector : PRPC_BINDING_VECTOR;
+     UuidVector : PUUID_VECTOR;
+     Annotation : PCHAR
+    ): RPC_STATUS;
+
+PROCEDURE RpcEpRegister(
+     IfSpec : RPC_IF_HANDLE ;
+     BindingVector : PRPC_IF_HANDLE;
+     UuidVector : PUUID_VECTOR;
+     Annotation : PCHAR
+    ): RPC_STATUS;
+
+PROCEDURE RpcEpUnregister(
+     IfSpec : RPC_IF_HANDLE;
+     BindingVector : PRPC_BINDING_VECTOR;
+     UuidVector : PUUID_VECTOR
+    ): RPC_STATUS;
+
+PROCEDURE DceErrorInqText(
+     RpcStatus : RPC_STATUS;
+     ErrorText : PCHAR
+    ): RPC_STATUS;
+
+CONST
+
+  DCE_C_ERROR_STRING_LEN = 256;
+
+TYPE
+
+  RPC_EP_INQ_HANDLE = POINTER TO I_RPC_HANDLE;
+
+CONST
+
+  RPC_C_EP_ALL_ELTS      = 0;
+  RPC_C_EP_MATCH_BY_IF   = 1;
+  RPC_C_EP_MATCH_BY_OBJ  = 2;
+  RPC_C_EP_MATCH_BY_BOTH = 3;
+
+  RPC_C_VERS_ALL         = 1;
+  RPC_C_VERS_COMPATIBLE  = 2;
+  RPC_C_VERS_EXACT       = 3;
+  RPC_C_VERS_MAJOR_ONLY  = 4;
+  RPC_C_VERS_UPTO        = 5;
+
+PROCEDURE RpcMgmtEpEltInqBegin(
+     EpBinding : RPC_BINDING_HANDLE;
+     InquiryType : LONGCARD;
+     IfId : PRPC_IF_ID;
+     VersOption : LONGCARD;
+     ObjectUuid : PUUID;
+     VAR InquiryContext : RPC_EP_INQ_HANDLE
+    ): RPC_STATUS;
+
+PROCEDURE RpcMgmtEpEltInqDone(
+      VAR InquiryContext : RPC_EP_INQ_HANDLE
+    ): RPC_STATUS;
+
+PROCEDURE RpcMgmtEpEltInqNext(
+     InquiryContext : RPC_EP_INQ_HANDLE;
+     IfId : PRPC_IF_ID;
+     Binding : PRPC_BINDING_HANDLE;
+     VAR Annotation : PCHAR
+    ): RPC_STATUS;
+
+PROCEDURE RpcMgmtEpUnregister(
+     EpBinding : RPC_BINDING_HANDLE;
+     IfId : PRPC_IF_ID;
+     Binding : RPC_BINDING_HANDLE;
+     ObjectUuid : PUUID
+    ): RPC_STATUS;
+
+TYPE
+
+  RPC_MGMT_AUTHORIZATION_FN = PROCEDURE(
+     RPC_BINDING_HANDLE (* ClientBinding *),
+     LONGCARD (* RequestedMgmtOperation *),
+     VAR RPC_STATUS (* Status *)
+    );
+
+CONST
+
+  RPC_C_MGMT_INQ_IF_IDS         = 0;
+  RPC_C_MGMT_INQ_PRINC_NAME     = 1;
+  RPC_C_MGMT_INQ_STATS          = 2;
+  RPC_C_MGMT_IS_SERVER_LISTEN   = 3;
+  RPC_C_MGMT_STOP_SERVER_LISTEN = 4;
+
+PROCEDURE RpcMgmtSetAuthorizationFn(
+     AuthorizationFn : RPC_MGMT_AUTHORIZATION_FN
+    ): RPC_STATUS;
+
+CONST
+
+  RPC_C_PARM_MAX_PACKET_LENGTH  = 1;
+  RPC_C_PARM_BUFFER_LENGTH      = 2;
+
+PROCEDURE RpcMgmtInqParameter(
+     Parameter : CARDINAL;
+     VAR Value : LONGCARD
+    ): RPC_STATUS;
+
+PROCEDURE RpcMgmtSetParameter(
+     Parameter : CARDINAL;
+     Value : LONGCARD
+    ): RPC_STATUS;
+
+PROCEDURE RpcMgmtBindingInqParameter(
+     Handle : RPC_BINDING_HANDLE;
+     Parameter : CARDINAL;
+     VAR Value : LONGCARD
+    ): RPC_STATUS;
+
+PROCEDURE RpcMgmtBindingSetParameter(
+     Handle : RPC_BINDING_HANDLE;
+     Parameter : CARDINAL;
+     Value : LONGCARD
+    ): RPC_STATUS;
+
+CONST
+
+  RPC_IF_AUTOLISTEN  = 00001H;
+  RPC_IF_OLE         = 00002H;
+
+END rpcdce.

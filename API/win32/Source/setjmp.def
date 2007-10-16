@@ -1,0 +1,87 @@
+DEFINITION MODULE setjmp;
+
+(*==============================================================
+
+             Win32 SetJmp/LongJmp API for Modula-2
+
+       32-bit version for M2CPP Modula-2 to C++ compiler
+
+      Copyright (c) 1996, 1997 Moravian Instruments, Inc.
+
+==============================================================*)
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on ) *)
+           (* prefix=>stdcall, let it be __cdecl *)
+
+(*==============================================================
+
+  History: Created: 02.09.1997
+           Build 0: --.--.----
+
+==============================================================*)
+
+(*============================================================*)
+(* Windows header:           setjmp.h                         *)
+(*============================================================*)
+
+(*Purpose:
+ *       This file defines the machine-dependent buffer used by
+ *       setjmp/longjmp to save and restore the program state, and
+ *       declarations for those routines.
+ *       [ANSI/System V]
+ *
+ *       [Public]
+ *
+ ****)
+
+
+(*
+ * Define jump buffer layout for x86 setjmp/longjmp.
+ *)
+
+(*
+ * !!!! x86 specific only !!!!
+ *)
+
+CONST
+  _JBLEN  = 16;
+
+TYPE
+  _JBTYPE = INTEGER;
+
+(*
+ * Define jump buffer layout for x86 setjmp/longjmp.
+ *)
+
+TYPE
+  _JUMP_BUFFER = RECORD
+    Ebp : LONGCARD;
+    Ebx : LONGCARD;
+    Edi : LONGCARD;
+    Esi : LONGCARD;
+    Esp : LONGCARD;
+    Eip : LONGCARD;
+    Registration : LONGCARD;
+    TryLevel : LONGCARD;
+    Cookie : LONGCARD;
+    UnwindFunc : LONGCARD;
+    UnwindData : ARRAY [0..5] OF LONGCARD;
+  END;
+
+  jmp_buf = ARRAY [0 .. _JBLEN - 1] OF _JBTYPE;
+
+(* Function prototypes *)
+
+PROCEDURE setjmp( _ : jmp_buf ): INTEGER;
+
+PROCEDURE longjmp( _ : jmp_buf; _ : INTEGER );
+
+END setjmp.

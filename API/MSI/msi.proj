@@ -1,0 +1,22 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 2 -->
+    <!-- ItemGroup Condition="$(M2Compiler)=='Old'">
+        <Definitions Include="wtypes;rpcdce;rpcdcep;rpcndr;rpcnsi;rpc;unknwn;oaidl"/>
+    </ItemGroup -->
+
+    <!-- 3 -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+    <!-- 4 -->
+    <ItemGroup>
+        <Interface Include="$(ComponentPath)\Library\msi"/>
+    </ItemGroup>
+
+</Project>

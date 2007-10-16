@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<WixLocalization>
+
+    <String Id="UserRegistrationDlg_Title">Instalace [ProductName]</String>
+    <String Id="UserRegistrationDlgInstall">&amp;Instalovat</String>
+    <String Id="UserRegistrationDlgBannerBitmap">WixUI_Bmp_Banner</String>
+    <String Id="UserRegistrationDlgTitle">{\WixUI_Font_Title}Licence pro [ProductName]</String>
+    <String Id="UserRegistrationDlgText">Prosím, vložte platné licenční číslo a vlastníka licence [ProductName].</String>
+    <String Id="UserRegistrationDlgLicenceOwner">&amp;Vlastník licence:</String>
+    <String Id="UserRegistrationDlgLicenceNumber">&amp;Licenční číslo:</String>
+
+    <String Id="UserRegistrationBadLicenceDlgTitle">Chybná licence</String>
+    <String Id="UserRegistrationBadLicenceDlgText">Vložené licenční údaje nejsou pro [ProductName] platné. Prosím, opište správné licenční číslo a vlastníka z licenčního certifikátu.</String>
+    <String Id="UserRegistrationBadLicenceDlgToolTip">Upozornění</String>
+    <String Id="UserRegistrationBadLicenceDlgIcon">WixUI_Ico_Exclam</String>
+
+</WixLocalization>

@@ -1,0 +1,555 @@
+DEFINITION MODULE resapi;
+
+(*/*++
+
+Copyright (c) 1995-1997  Microsoft Corporation
+
+Module Name:
+
+    resapi.h
+
+Abstract:
+
+    This module defines the interface exported by Windows Clusters resources.
+
+Revision History:
+
+--*/*)
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+IMPORT
+  clusapi,
+  windows,
+  winreg;
+
+CONST
+  STARTUP_ROUTINE        = C'Startup';
+
+  // constant moved after CLRES_V1_FUNCTIONS type definition
+  // CLRES_V1_FUNCTION_SIZE = SIZE( CLRES_V1_FUNCTIONS );
+
+  CLRES_VERSION_V1_00    = 0100H;
+
+(*/*
+#define CLRES_V1_FUNCTION_TABLE( _Name,                     \
+                                 _Version,                  \
+                                 _Prefix,                   \
+                                 _Arbitrate,                \
+                                 _Release,                  \
+                                 _ResControl,               \
+                                 _ResTypeControl            \
+                                 )                          \
+CLRES_FUNCTION_TABLE _Name = { CLRES_V1_FUNCTION_SIZE,      \
+                               _Version,                    \
+                               _Prefix##Open,               \
+                               _Prefix##Close,              \
+                               _Prefix##Online,             \
+                               _Prefix##Offline,            \
+                               _Prefix##Terminate,          \
+                               _Prefix##LooksAlive,         \
+                               _Prefix##IsAlive,            \
+                               _Arbitrate,                  \
+                               _Release,                    \
+                               _ResControl,                 \
+                               _ResTypeControl }
+*/*)
+
+TYPE
+  RESID           = windows.PVOID;
+
+//
+// Define a RESOURCE_HANDLE
+//
+
+TYPE
+  RESOURCE_HANDLE = windows.HANDLE;
+
+//
+// Define the Resource Status structure.
+//
+
+  
+  RESOURCE_STATUS  = RECORD
+                       ResourceState : clusapi.CLUSTER_RESOURCE_STATE;
+                       CheckPoint    : windows.DWORD;
+                       WaitHint      : windows.DWORD;
+                       EventHandle   : windows.HANDLE;
+                     END;
+  PRESOURCE_STATUS = POINTER TO RESOURCE_STATUS;
+
+(*# save, call( macro => on ) *)
+PROCEDURE ResUtilInitializeResourceStatus( _resource_status_ : PRESOURCE_STATUS );
+(*# restore *)
+
+//
+// Define Resource DLL callback method for updating the state of a resource.
+//
+
+TYPE
+  PSET_RESOURCE_STATUS_ROUTINE = PROCEDURE( RESOURCE_HANDLE, PRESOURCE_STATUS );
+
+//
+// Define Resource DLL callback method for notifying that a quorum
+// resource DLL failed to hold the quorum resource.
+//
+  PQUORUM_RESOURCE_LOST = PROCEDURE( RESOURCE_HANDLE );
+
+//
+// Define Resource DLL callback method for logging events.
+//
+// typedef enum LOG_LEVEL {
+//    LOG_INFORMATION,
+//    LOG_WARNING,
+//    LOG_ERROR,
+//    LOG_SEVERE
+// } LOG_LEVEL, *PLOG_LEVEL;
+CONST
+  LOG_INFORMATION = 0;
+  LOG_WARNING     = 0;
+  LOG_ERROR       = 0;
+  LOG_SEVERE      = 0;
+
+TYPE
+  LOG_LEVEL = windows.DWORD;
+
+  PLOG_EVENT_ROUTINE = PROCEDURE( RESOURCE_HANDLE, LOG_LEVEL, windows.PCWSTR );
+
+  POPEN_ROUTINE = PROCEDURE( windows.PCWSTR, winreg.HKEY, RESOURCE_HANDLE ) : RESID;
+
+  PCLOSE_ROUTINE = PROCEDURE( RESID );
+
+  PONLINE_ROUTINE = PROCEDURE( RESID, windows.PHANDLE ) : windows.DWORD;
+
+  POFFLINE_ROUTINE = PROCEDURE( RESID ) : windows.DWORD;
+
+  PTERMINATE_ROUTINE = PROCEDURE( RESID );
+
+  PIS_ALIVE_ROUTINE = PROCEDURE( RESID ) : windows.BOOL;
+
+  PLOOKS_ALIVE_ROUTINE = PROCEDURE( RESID ) : windows.BOOL;
+
+  PARBITRATE_ROUTINE = PROCEDURE( RESID, PQUORUM_RESOURCE_LOST ) : windows.DWORD;
+
+  PRELEASE_ROUTINE = PROCEDURE( RESID ) : windows.DWORD;
+
+  PRESOURCE_CONTROL_ROUTINE = PROCEDURE( 
+    RESID, windows.DWORD, windows.PVOID,windows.DWORD,
+    windows.PVOID, windows.DWORD, windows.PDWORD ) : windows.DWORD;
+
+  PRESOURCE_TYPE_CONTROL_ROUTINE = PROCEDURE( 
+    windows.PCWSTR, windows.DWORD, windows.PVOID, windows.DWORD, 
+    windows.PVOID, windows.DWORD,windows.PDWORD ) : windows.DWORD;
+
+//***************************************************************
+//
+// Define the Function Table Format
+//
+//***************************************************************
+
+//
+// Version 1 Resource DLL Interface definition
+//
+  CLRES_V1_FUNCTIONS  = RECORD
+                          Open                : POPEN_ROUTINE;
+                          Close               : PCLOSE_ROUTINE;
+                          Online              : PONLINE_ROUTINE;
+                          Offline             : POFFLINE_ROUTINE;
+                          Terminate           : PTERMINATE_ROUTINE;
+                          LooksAlive          : PLOOKS_ALIVE_ROUTINE;
+                          IsAlive             : PIS_ALIVE_ROUTINE;
+                          Arbitrate           : PARBITRATE_ROUTINE;
+                          Release             : PRELEASE_ROUTINE;
+                          ResourceControl     : PRESOURCE_CONTROL_ROUTINE;
+                          ResourceTypeControl : PRESOURCE_TYPE_CONTROL_ROUTINE;
+                        END; 
+  PCLRES_V1_FUNCTIONS = POINTER TO CLRES_V1_FUNCTIONS;
+
+CONST
+  CLRES_V1_FUNCTION_SIZE = SIZE( CLRES_V1_FUNCTIONS );
+
+TYPE
+
+//
+// Resource DLL Function Table definition
+//
+  CLRES_FUNCTION_TABLE  = RECORD
+                            TableSize : windows.DWORD;
+                            Version   : windows.DWORD;
+                            CASE : BOOLEAN OF
+                            | FALSE : V1Functions : CLRES_V1_FUNCTIONS;
+                            | TRUE :
+                            END;
+                          END;
+  PCLRES_FUNCTION_TABLE = POINTER TO CLRES_FUNCTION_TABLE;
+
+//
+// Define the Resource DLL Startup routine. This is the only routine
+// that should be exported from a resource DLL.
+//
+
+//
+// Calculate the byte offset of a field in a structure of type type.
+//
+
+// !! not converted to Modula-2
+// #ifndef FIELD_OFFSET
+// #define FIELD_OFFSET(type, field)    ((LONG)&(((type *)0)->field))
+// #endif
+
+//
+// Property list structures and functions
+//
+  RESUTIL_PROPERTY_ITEM  = RECORD
+                             Name    : windows.PWSTR; // Property name
+                             KeyName : windows.PWSTR; // Name of value in cluster database
+                             Format  : windows.DWORD; // Format: REG_SZ, REG_DWORD, etc.
+                             Default : windows.DWORD; // Default value
+                             Minimum : windows.DWORD; // Minimum value
+                             Maximum : windows.DWORD; // Maximum value
+                             Flags   : windows.DWORD; // Flags for this item
+                             Offset  : windows.DWORD; // Byte offset to value in parameter block
+                                                      // Assumes MULTI_SZ and BINARY parameters
+                                                      // are PWSTRs followed by DWORDs for length
+                           END;      
+  PRESUTIL_PROPERTY_ITEM = POINTER TO RESUTIL_PROPERTY_ITEM;
+
+CONST
+  RESUTIL_PROPITEM_READ_ONLY = 000000001H;  // Property is read-only
+  RESUTIL_PROPITEM_REQUIRED  = 000000002H;  // Property is required
+  RESUTIL_PROPITEM_SIGNED    = 000000004H;  // Numeric property is signed (defaults to unsigned)
+
+TYPE
+  PSTARTUP_ROUTINE = PROCEDURE( windows.PCWSTR, windows.DWORD, windows.DWORD,
+    PSET_RESOURCE_STATUS_ROUTINE, PLOG_EVENT_ROUTINE, PCLRES_FUNCTION_TABLE ) : windows.DWORD;
+
+//
+// Define layout of shared memory used for tracking Resource Monitor state.
+//
+// typedef enum RESOURCE_MONITOR_STATE {
+//     RmonInitializing,
+//     RmonIdle,
+//     RmonStartingResource,
+//     RmonInitializingResource,
+//     RmonOnlineResource,
+//     RmonOfflineResource,
+//     RmonShutdownResource,
+//     RmonDeletingResource,
+//     RmonIsAlivePoll,
+//     RmonLooksAlivePoll,
+//     RmonArbitrateResource,
+//     RmonReleaseResource,
+//     RmonResourceControl,
+//     RmonResourceTypeControl
+// } RESOURCE_MONITOR_STATE;
+  RESOURCE_MONITOR_STATE = windows.DWORD;
+
+CONST
+  RmonInitializing         = 0;
+  RmonIdle                 = 1;
+  RmonStartingResource     = 2;
+  RmonInitializingResource = 3;
+  RmonOnlineResource       = 4;
+  RmonOfflineResource      = 5;
+  RmonShutdownResource     = 6;
+  RmonDeletingResource     = 7;
+  RmonIsAlivePoll          = 8;
+  RmonLooksAlivePoll       = 9;
+  RmonArbitrateResource    = 10;
+  RmonReleaseResource      = 11;
+  RmonResourceControl      = 12;
+  RmonResourceTypeControl  = 13;
+
+TYPE
+  MONITOR_STATE  = RECORD
+                     LastUpdate     : windows.LARGE_INTEGER;
+                     State          : RESOURCE_MONITOR_STATE;
+                     ActiveResource : windows.HANDLE;
+                     ResmonStop     : windows.BOOL;
+                   END;
+  PMONITOR_STATE = POINTER TO MONITOR_STATE;
+
+//
+// Resource Utility Routines
+//
+
+PROCEDURE ResUtilStartResourceService( ServiceName   : windows.PCTSTR;
+                                       ServiceHandle : windows.PHANDLE ) : windows.DWORD;
+
+PROCEDURE ResUtilVerifyResourceService( ServiceName : windows.PCTSTR ) : windows.DWORD;
+
+PROCEDURE ResUtilStopResourceService( ServiceName : windows.PCTSTR ) : windows.DWORD;
+
+PROCEDURE ResUtilVerifyService( ServiceHandle : windows.HANDLE ) : windows.DWORD;
+
+PROCEDURE ResUtilStopService( ServiceHandle : windows.HANDLE ) : windows.DWORD;
+
+PROCEDURE ResUtilIsPathValid( Path : windows.PCWSTR ) : windows.BOOL;
+
+PROCEDURE ResUtilEnumProperties( CONST PropertyTable : PRESUTIL_PROPERTY_ITEM;
+                                       OutBuffer     : windows.PWSTR;
+                                       OutBufferSize : windows.DWORD;
+                                       BytesReturned : windows.PDWORD;
+                                       Required      : windows.PDWORD ) : windows.DWORD;
+
+PROCEDURE ResUtilEnumPrivateProperties( ClusterKey    : windows.PVOID;
+                                        OutBuffer     : windows.PWSTR;
+                                        OutBufferSize : windows.DWORD;
+                                        BytesReturned : windows.PDWORD;
+                                        Required      : windows.PDWORD ) : windows.DWORD;
+
+PROCEDURE ResUtilGetProperties(       ClusterKey    : windows.PDWORD;
+                                CONST PropertyTable : PRESUTIL_PROPERTY_ITEM;
+                                      OutBuffer     : windows.PVOID;
+                                      OutBufferSize : windows.DWORD;
+                                      BytesReturned : windows.PDWORD;
+                                      Required      : windows.PDWORD ) : windows.DWORD;
+
+PROCEDURE ResUtilGetAllProperties(       ClusterKey    : windows.PDWORD;
+                                   CONST PropertyTable : PRESUTIL_PROPERTY_ITEM;
+                                         OutBuffer     : windows.PVOID;
+                                         OutBufferSize : windows.DWORD;
+                                         BytesReturned : windows.PDWORD;
+                                         Required      : windows.PDWORD ) : windows.DWORD;
+
+PROCEDURE ResUtilGetPrivateProperties( ClusterKey    : windows.PVOID;
+                                       OutBuffer     : windows.PVOID;
+                                       OutBufferSize : windows.DWORD;
+                                       BytesReturned : windows.PDWORD;
+                                       Required      : windows.PDWORD ) : windows.DWORD;
+
+PROCEDURE ResUtilGetPropertySize(       ClusterKey : windows.PVOID;
+                                  CONST Property   : PRESUTIL_PROPERTY_ITEM;
+                                        BufferSize : windows.PDWORD;
+                                        ItemCount  : windows.PDWORD ) : windows.DWORD;
+
+PROCEDURE ResUtilGetProperty(       ClusterKey    : windows.PVOID;
+                              CONST Property      : PRESUTIL_PROPERTY_ITEM;
+                                VAR OutBuffer     : ADDRESS;
+                                    OutBufferSize : windows.PDWORD ) : windows.DWORD;
+
+(*/* not converted due to OPTIONAL
+PROCEDURE ResUtilVerifyPropertyTable(
+    const PRESUTIL_PROPERTY_ITEM PropertyTable,
+    windows.PVOID Reserved,
+    windows.BOOL AllowUnknownProperties,
+    const windows.PVOID InBuffer,
+    windows.DWORD InBufferSize,
+    OPTIONAL windows.PBYTE OutParams
+    ) : windows.DWORD;
+
+PROCEDURE ResUtilSetPropertyTable(
+    windows.PVOID ClusterKey,
+    const PRESUTIL_PROPERTY_ITEM PropertyTable,
+    windows.PVOID Reserved,
+    windows.BOOL AllowUnknownProperties,
+    const windows.PVOID InBuffer,
+    windows.DWORD InBufferSize,
+    OPTIONAL windows.PBYTE OutParams
+    ) : windows.DWORD;
+
+PROCEDURE ResUtilSetPropertyParameterBlock(
+    windows.PVOID ClusterKey,
+    const PRESUTIL_PROPERTY_ITEM PropertyTable,
+    windows.PVOID Reserved,
+    const windows.PBYTE InParams,
+    const windows.PVOID InBuffer,
+    windows.DWORD InBufferSize,
+    OPTIONAL windows.PBYTE OutParams
+    ) : windows.DWORD;
+
+PROCEDURE ResUtilGetPropertiesToParameterBlock(
+          ClusterKey    : windows.PVOID;
+    CONST PropertyTable : PRESUTIL_PROPERTY_ITEM;
+          OutParams     : windows.PBYTE;
+          CheckForRequiredProperties
+                        : windows.BOOL;
+    OPTIONAL windows.PWSTR * NameOfPropInError
+    ) : windows.DWORD;
+*/*)
+
+PROCEDURE ResUtilPropertyListFromParameterBlock( CONST PropertyTable : PRESUTIL_PROPERTY_ITEM;
+                                                   VAR OutBuffer     : windows.PVOID;
+                                                       OutBufferSize : windows.PDWORD;
+                                                 CONST InParams      : windows.PBYTE;
+                                                       BytesReturned : windows.PDWORD;
+                                                       Required      : windows.PDWORD ) : windows.DWORD;
+
+PROCEDURE ResUtilDupParameterBlock(       OutParams     : windows.PBYTE;
+                                    CONST InParams      : windows.PBYTE;
+                                    CONST PropertyTable : PRESUTIL_PROPERTY_ITEM ) : windows.DWORD;
+
+PROCEDURE ResUtilFreeParameterBlock(       OutParams     : windows.PBYTE;
+                                     CONST InParams      : windows.PBYTE;
+                                     CONST PropertyTable : PRESUTIL_PROPERTY_ITEM );
+
+PROCEDURE ResUtilAddUnknownProperties(       ClusterKey    : windows.PVOID;
+                                       CONST PropertyTable : PRESUTIL_PROPERTY_ITEM;
+                                             OutBuffer     : windows.PVOID;
+                                             OutBufferSize : windows.DWORD;
+                                             BytesReturned : windows.PDWORD;
+                                             Required      : windows.PDWORD ) : windows.DWORD;
+
+PROCEDURE ResUtilSetPrivatePropertyList(       ClusterKey   : windows.PVOID;
+                                         CONST InBuffer     : windows.PVOID;
+                                               InBufferSize : windows.DWORD ) : windows.DWORD;
+
+PROCEDURE ResUtilVerifyPrivatePropertyList( CONST InBuffer     : windows.PVOID;
+                                                  InBufferSize : windows.DWORD ) : windows.DWORD;
+
+PROCEDURE ResUtilGetBinaryValue(     ClusterKey   : winreg.HKEY;
+                                     ValueName    : windows.PCWSTR;
+                                 VAR OutValue     : windows.PBYTE;
+                                 VAR OutValueSize : windows.DWORD ) : windows.DWORD;
+
+PROCEDURE ResUtilDupString( Value : windows.PCWSTR ) : windows.PWSTR;
+
+PROCEDURE ResUtilGetSzValue( ClusterKey : winreg.HKEY;
+                             ValueName  : windows.PCWSTR ) : windows.PWSTR;
+
+(*/*
+#define ResUtilGetMultiSzValue( ClusterKey, ValueName, OutValue, OutValueSize ) \
+    ResUtilGetBinaryValue( ClusterKey, ValueName, (PBYTE * ) OutValue, OutValueSize )
+*/*)
+(*# save, call( macro => on ) *)
+PROCEDURE ResUtilGetMultiSzValue(     ClusterKey   : winreg.HKEY;
+                                      ValueName    : windows.PCWSTR;
+                                  VAR OutValue     : windows.PVOID; //??
+                                  VAR OutValueSize : windows.DWORD ) : windows.DWORD;
+(*# restore *)
+
+(*/* not converted due to OPTIONAL
+PROCEDURE ResUtilGetDwordValue(
+    winreg.HKEY ClusterKey,
+    windows.PCWSTR ValueName,
+    windows.PDWORD OutValue,
+    windows.DWORD DefaultValue OPTIONAL
+    ) : windows.DWORD;
+*/*)
+
+PROCEDURE ResUtilSetBinaryVakye(       ClusterKey   : winreg.HKEY;
+                                       ValueName    : windows.PCWSTR;
+                                 CONST NewValue     : windows.PBYTE;
+                                       NewValueSize : windows.DWORD;
+                                   VAR OutValue     : windows.PBYTE;
+                                       OutValueSize : windows.PDWORD ) : windows.DWORD;
+
+PROCEDURE ResUtilSetSzValue(     ClusterKey : winreg.HKEY;
+                                 ValueName  : windows.PCWSTR;
+                                 NewValue   : windows.PCWSTR;
+                             VAR OutString  : windows.PWSTR ) : windows.DWORD;
+
+PROCEDURE ResUtilSetExpandSzValue(     ClusterKey : winreg.HKEY;
+                                       ValueName  : windows.PCWSTR;
+                                       NewValue   : windows.PCWSTR;
+                                   VAR OutString  : windows.PWSTR ) : windows.DWORD;
+
+PROCEDURE ResUtilSetMultiSzValue(     ClusterKey   : winreg.HKEY;
+                                      ValueName    : windows.PCWSTR;
+                                      NewValue     : windows.PCWSTR;
+                                      NewValueSize : windows.DWORD;
+                                  VAR OutValue     : windows.PWSTR;
+                                      OutValueSize : windows.PDWORD ) : windows.DWORD;
+
+PROCEDURE ResUtilSetDwordValue( ClusterKey : winreg.HKEY;
+                                ValueName  : windows.PCWSTR;
+                                NewValue   : windows.DWORD;
+                                OutValue   : windows.PDWORD ) : windows.DWORD;
+
+PROCEDURE ResUtilGetBinaryProperty(   VAR OutValue       : windows.PBYTE;
+                                          OutValueSize   : windows.PDWORD;
+                                    CONST ValueStruct    : clusapi.PCLUSPROP_BINARY;
+                                    CONST OldValue       : windows.PBYTE;
+                                          OldValueSize   : windows.DWORD;
+                                      VAR PropBuffer     : windows.PBYTE;
+                                          PropBufferSize : windows.PDWORD ) : windows.DWORD;
+
+PROCEDURE ResUtilGetSzProperty(   VAR OutValue       : windows.PWSTR;
+                                CONST ValueStruct    : clusapi.PCLUSPROP_SZ;
+                                      OldValue       : windows.PCWSTR;
+                                  VAR PropBuffer     : windows.PBYTE;
+                                      PropBufferSize : windows.PDWORD ) : windows.DWORD;
+
+PROCEDURE ResUtilGetMultiSzProperty(   VAR OutValue       : windows.PWSTR;
+                                           OutValueSize   : windows.PDWORD;
+                                     CONST ValueStruct    : clusapi.PCLUSPROP_SZ;
+                                           OldValue       : windows.PCWSTR;
+                                           OldValueSize   : windows.DWORD;
+                                       VAR PropBuffer     : windows.PBYTE;
+                                           PropBufferSize : windows.PDWORD ) : windows.DWORD;
+
+PROCEDURE ResUtilGetDwordProperty(       OutValue       : windows.PDWORD;
+                                   CONST ValueStruct    : clusapi.PCLUSPROP_DWORD;
+                                         OldValue       : windows.DWORD;
+                                         Minimum        : windows.DWORD;
+                                         Maximum        : windows.DWORD;
+                                     VAR PropBuffer     : windows.PBYTE;
+                                         PropBufferSize : windows.PDWORD ) : windows.DWORD;
+
+PROCEDURE ResUtilGetEnvironmentWithNetName( hResource : clusapi.HRESOURCE );
+
+PROCEDURE ResUtilFindSzProperty( CONST Buffer      : windows.PVOID;
+                                       BufferSize  : windows.DWORD;
+                                       PropName    : windows.PCWSTR;
+                                   VAR FoundString : windows.PWSTR ) : windows.DWORD;
+
+PROCEDURE ResUtilFindDwordProperty( CONST Buffer     : windows.PVOID;
+                                          BufferSize : windows.DWORD;
+                                          PropName   : windows.PCWSTR;
+                                          FoundDword : windows.PDWORD ) : windows.DWORD;
+
+//
+// Common worker thread routines that allow a pending operation to
+// be cancelled with CORRECT synchronization.
+//
+TYPE
+  CLUS_WORKER  = RECORD
+                   hThread   : windows.HANDLE;
+                   Terminate : windows.BOOL;
+                 END;
+  PCLUS_WORKER = POINTER TO CLUS_WORKER;
+
+  PWORKER_START_ROUTINE = PROCEDURE ( PCLUS_WORKER, windows.PVOID ) : windows.DWORD;
+
+PROCEDURE ClusWorkerCreate( Worker         : PCLUS_WORKER;
+                            lpStartAddress : PWORKER_START_ROUTINE;
+                            lpParameter    : windows.PVOID ) : windows.DWORD;
+
+PROCEDURE ClusWorkerCheckTerminate( Worker : PCLUS_WORKER ) : windows.BOOL;
+
+PROCEDURE ClusWorkerTerminate( Worker : PCLUS_WORKER );
+
+
+//Define enumerate resource callback function. This gets called for each resource enumerated
+//by ResUtilEnumResources
+TYPE
+  LPRESOURCE_CALLBACK = PROCEDURE( clusapi.HRESOURCE, clusapi.HRESOURCE, windows.PVOID ) : windows.DWORD;
+
+PROCEDURE ResUtilResourcesEqual( hSelf     : clusapi.HRESOURCE;
+                                 hResource : clusapi.HRESOURCE ) : windows.BOOL;
+
+
+PROCEDURE ResUtilResourceTypesEqual( lpszResourceTypeName : windows.PCWSTR;
+                                     hResource            : clusapi.HRESOURCE ) : windows.BOOL;
+
+PROCEDURE ResUtilEnumResources( hSelf           : clusapi.HRESOURCE;
+                                lpszResTypeName : windows.PCWSTR;
+                                pResCallBack    : LPRESOURCE_CALLBACK;
+                                pParameter      : windows.PVOID ) : windows.DWORD;
+
+PROCEDURE ResUtilGetResourceDependency( hSelf            : windows.HANDLE;
+                                        lpszResourceType : windows.PCWSTR ) : clusapi.HRESOURCE;
+
+PROCEDURE ResUtilGetResourceNameDependency( lpszResourceName : windows.PCWSTR;
+                                            lpszResourceType : windows.PCWSTR ) : clusapi.HRESOURCE;
+
+END resapi.

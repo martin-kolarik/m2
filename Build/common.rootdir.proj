@@ -1,0 +1,30 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+    <!-- root directories, do not modify -->
+    <PropertyGroup>
+        <ComponentDir></ComponentDir>
+        <ComponentPath>$(MSBuildProjectDirectory)</ComponentPath>
+
+        <!-- RootDir>$(ComponentDir)\..\..</RootDir -->
+        <RootDir>..\..</RootDir>
+        <RootPath>$(ComponentPath)\..\..</RootPath>
+
+        <RootBuildDir>$(RootDir)\Build</RootBuildDir>
+        <RootBuildPath>$(RootPath)\Build</RootBuildPath>
+
+        <Level>0</Level>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="$(ProductFlag)=='on'">
+        <ProductPath>$(ComponentPath)</ProductPath>
+
+        <ProductBuildPath>$(MSBuildProjectDirectory)</ProductBuildPath>
+        <ProductBuildFile>$(ProductBuildPath)\$(MSBuildProjectName).proj</ProductBuildFile>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <LibraryName Condition="$(ComponentStandaloneFlag)=='on'">$(MSBuildProjectName)</LibraryName>
+        <LibraryName Condition="$(LibraryName)==''">$(MSBuildProjectName)</LibraryName>
+    </PropertyGroup>
+
+</Project>

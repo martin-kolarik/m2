@@ -1,0 +1,890 @@
+DEFINITION MODULE winnls;
+
+(*==============================================================
+
+                Win32 API Modula-2 to C++ interface
+
+       32-bit version for M2CPP Modula-2 to C++ compiler
+
+      Copyright (c) 1996, 1997 Moravian Instruments, Inc.
+
+==============================================================*)
+
+(*# name(   decoration     => c ) *)
+
+(*# module( header         => off ) *)
+
+(*# call(   o_a_size       => off,
+            c_arrays       => on,
+            convention     => stdcall ) *)
+
+IMPORT
+  windows;
+
+(**************************************************************************
+*                                                                         *
+* winnls.h -- NLS procedure declarations, constant definitions and macros *
+*                                                                         *
+* Copyright (c) 1991-1995, Microsoft Corp. All rights reserved.           *
+*                                                                         *
+**************************************************************************)
+
+
+(***************************************************************************\
+* Constants
+*
+* Define all constants for the NLS component here.
+\***************************************************************************)
+
+CONST
+
+(*
+ *  String Length Maximums.
+ *)
+  MAX_LEADBYTES        = 12;            (* 5 ranges, 2 bytes ea., 0 term. *)
+  MAX_DEFAULTCHAR      = 2;             (* single or double byte *)
+
+
+(*
+ *  MBCS and Unicode Translation Flags.
+ *)
+  MB_PRECOMPOSED       = 000000001H;    (* use precomposed chars *)
+  MB_COMPOSITE         = 000000002H;    (* use composite chars *)
+  MB_USEGLYPHCHARS     = 000000004H;    (* use glyph chars, not ctrl chars *)
+  MB_ERR_INVALID_CHARS = 000000008H;    (* error for invalid chars *)
+
+  WC_DEFAULTCHECK      = 000000100H;    (* check for default char *)
+  WC_COMPOSITECHECK    = 000000200H;    (* convert composite to precomposed *)
+  WC_DISCARDNS         = 000000010H;    (* discard non-spacing chars *)
+  WC_SEPCHARS          = 000000020H;    (* generate separate chars *)
+  WC_DEFAULTCHAR       = 000000040H;    (* replace w/ default char *)
+
+
+
+(*
+ *  Character Type Flags.
+ *)
+  CT_CTYPE1            = 000000001H;    (* ctype 1 information *)
+  CT_CTYPE2            = 000000002H;    (* ctype 2 information *)
+  CT_CTYPE3            = 000000004H;    (* ctype 3 information *)
+
+(*
+ *  CType 1 Flag Bits.
+ *)
+  C1_UPPER             = 00001H;        (* upper case *)
+  C1_LOWER             = 00002H;        (* lower case *)
+  C1_DIGIT             = 00004H;        (* decimal digits *)
+  C1_SPACE             = 00008H;        (* spacing characters *)
+  C1_PUNCT             = 00010H;        (* punctuation characters *)
+  C1_CNTRL             = 00020H;        (* control characters *)
+  C1_BLANK             = 00040H;        (* blank characters *)
+  C1_XDIGIT            = 00080H;        (* other digits *)
+  C1_ALPHA             = 00100H;        (* any linguistic character *)
+
+(*
+ *  CType 2 Flag Bits.
+ *)
+  C2_LEFTTORIGHT       = 00001H;        (* left to right *)
+  C2_RIGHTTOLEFT       = 00002H;        (* right to left *)
+
+  C2_EUROPENUMBER      = 00003H;        (* European number, digit *)
+  C2_EUROPESEPARATOR   = 00004H;        (* European numeric separator *)
+  C2_EUROPETERMINATOR  = 00005H;        (* European numeric terminator *)
+  C2_ARABICNUMBER      = 00006H;        (* Arabic number *)
+  C2_COMMONSEPARATOR   = 00007H;        (* common numeric separator *)
+
+  C2_BLOCKSEPARATOR    = 00008H;        (* block separator *)
+  C2_SEGMENTSEPARATOR  = 00009H;        (* segment separator *)
+  C2_WHITESPACE        = 0000AH;        (* white space *)
+  C2_OTHERNEUTRAL      = 0000BH;        (* other neutrals *)
+
+  C2_NOTAPPLICABLE     = 00000H;        (* no implicit directionality *)
+
+(*
+ *  CType 3 Flag Bits.
+ *)
+  C3_NONSPACING        = 00001H;        (* nonspacing character *)
+  C3_DIACRITIC         = 00002H;        (* diacritic mark *)
+  C3_VOWELMARK         = 00004H;        (* vowel mark *)
+  C3_SYMBOL            = 00008H;        (* symbols *)
+
+  C3_KATAKANA          = 00010H;        (* katakana character *)
+  C3_HIRAGANA          = 00020H;        (* hiragana character *)
+  C3_HALFWIDTH         = 00040H;        (* half width character *)
+  C3_FULLWIDTH         = 00080H;        (* full width character *)
+  C3_IDEOGRAPH         = 00100H;        (* ideographic character *)
+  C3_KASHIDA           = 00200H;        (* Arabic kashida character *)
+  C3_LEXICAL           = 00400H;        (* lexical character *)
+
+  C3_ALPHA             = 08000H;        (* any linguistic char (C1_ALPHA) *)
+
+  C3_NOTAPPLICABLE     = 00000H;        (* ctype 3 is not applicable *)
+
+
+(*
+ *  String Flags.
+ *)
+  NORM_IGNORECASE         = 000000001H; (* ignore case *)
+  NORM_IGNORENONSPACE     = 000000002H; (* ignore nonspacing chars *)
+  NORM_IGNORESYMBOLS      = 000000004H; (* ignore symbols *)
+
+  NORM_IGNOREKANATYPE     = 000010000H; (* ignore kanatype *)
+  NORM_IGNOREWIDTH        = 000020000H; (* ignore width *)
+
+
+(*
+ *  Locale Independent Mapping Flags.
+ *)
+  MAP_FOLDCZONE           = 000000010H; // fold compatibility zone chars
+  MAP_PRECOMPOSED         = 000000020H; // convert to precomposed chars
+  MAP_COMPOSITE           = 000000040H; // convert to composite chars
+  MAP_FOLDDIGITS          = 000000080H; // all digits to ASCII 0-9
+  MAP_EXPAND_LIGATURES    = 000002000H; // expand all ligatures
+
+
+(*
+ *  Locale Dependent Mapping Flags.
+ *)
+  LCMAP_LOWERCASE         = 000000100H; (* lower case letters *)
+  LCMAP_UPPERCASE         = 000000200H; (* upper case letters *)
+  LCMAP_SORTKEY           = 000000400H; (* WC sort key (normalize) *)
+  LCMAP_BYTEREV           = 000000800H; (* byte reversal *)
+
+  LCMAP_HIRAGANA          = 000100000H; (* map katakana to hiragana *)
+  LCMAP_KATAKANA          = 000200000H; (* map hiragana to katakana *)
+  LCMAP_HALFWIDTH         = 000400000H; (* map double byte to single byte *)
+  LCMAP_FULLWIDTH         = 000800000H; (* map single byte to double byte *)
+
+  LCMAP_LINGUISTIC_CASING = 001000000H; // use linguistic rules for casing
+
+  LCMAP_SIMPLIFIED_CHINESE= 002000000H; // map traditional chinese to simplified chinese
+  LCMAP_TRADITIONAL_CHINESE
+                          = 004000000H; // map simplified chinese to traditional chinese
+
+
+(*
+ *  Locale Enumeration Flags.
+ *)
+  LCID_INSTALLED          = 000000001H; (* installed locale ids *)
+  LCID_SUPPORTED          = 000000002H; (* supported locale ids *)
+  LCID_ALTERNATE_SORTS    = 000000004H; // alternate sort locale ids
+
+(*
+ *  Code Page Enumeration Flags.
+ *)
+  CP_INSTALLED            = 000000001H; (* installed code page ids *)
+  CP_SUPPORTED            = 000000002H; (* supported code page ids *)
+
+
+(*
+ *  Sorting Flags.
+ *
+ *    WORD Sort:    culturally correct sort
+ *                  hyphen and apostrophe are special cased
+ *                  example: "coop" and "co-op" will sort together in a list
+ *
+ *                        co_op     <-------  underscore (symbol)
+ *                        coat
+ *                        comb
+ *                        coop
+ *                        co-op     <-------  hyphen (punctuation)
+ *                        cork
+ *                        went
+ *                        were
+ *                        we're     <-------  apostrophe (punctuation)
+ *
+ *
+ *    STRING Sort:  hyphen and apostrophe will sort with all other symbols
+ *
+ *                        co-op     <-------  hyphen (punctuation)
+ *                        co_op     <-------  underscore (symbol)
+ *                        coat
+ *                        comb
+ *                        coop
+ *                        cork
+ *                        we're     <-------  apostrophe (punctuation)
+ *                        went
+ *                        were
+ *)
+  SORT_STRINGSORT         = 000001000H; (* use string sort method *)
+
+
+//
+//  Compare String Return Values.
+//
+  CSTR_LESS_THAN          = 1;           // string 1 less than string 2
+  CSTR_EQUAL              = 2;           // string 1 equal to string 2
+  CSTR_GREATER_THAN       = 3;           // string 1 greater than string 2
+
+
+(*
+ *  Code Page Default Values.
+ *)
+  CP_ACP               = 0;             (* default to ANSI code page *)
+  CP_OEMCP             = 1;             (* default to OEM  code page *)
+  CP_MACCP             = 2;             (* default to MAC  code page *)
+  CP_THREAD_ACP        = 3;             // current thread's ANSI code page
+  CP_SYMBOL            = 42;            // SYMBOL translations
+
+  CP_UTF7              = 65000;         // UTF-7 translation
+  CP_UTF8              = 65001;         // UTF-8 translation
+  
+  // special addendum -- see m2cpp.h
+  CP_UTF16             = 1200; // little endian
+  CP_UTF16_BIG_ENDIAN  = 1201;
+
+(*
+ *  Country Codes.
+ *)
+  CTRY_DEFAULT                     = 0;
+
+  CTRY_ALBANIA              = 355;         // Albania
+  CTRY_ALGERIA              = 213;         // Algeria
+  CTRY_ARGENTINA            = 54;          // Argentina
+  CTRY_AUSTRALIA            = 61;          // Australia
+  CTRY_AUSTRIA              = 43;          // Austria
+  CTRY_BAHRAIN              = 973;         // Bahrain
+  CTRY_BELARUS              = 375;         // Belarus
+  CTRY_BELGIUM              = 32;          // Belgium
+  CTRY_BELIZE               = 501;         // Belize
+  CTRY_BOLIVIA              = 591;         // Bolivia
+  CTRY_BRAZIL               = 55;          // Brazil
+  CTRY_BRUNEI_DARUSSALAM    = 673;         // Brunei Darussalam
+  CTRY_BULGARIA             = 359;         // Bulgaria
+  CTRY_CANADA               = 2;           // Canada
+  CTRY_CARIBBEAN            = 1;           // Caribbean
+  CTRY_CHILE                = 56;          // Chile
+  CTRY_COLOMBIA             = 57;          // Colombia
+  CTRY_COSTA_RICA           = 506;         // Costa Rica
+  CTRY_CROATIA              = 385;         // Croatia
+  CTRY_CZECH                = 420;         // Czech Republic
+  CTRY_DENMARK              = 45;          // Denmark
+  CTRY_DOMINICAN_REPUBLIC   = 1;           // Dominican Republic
+  CTRY_ECUADOR              = 593;         // Ecuador
+  CTRY_EGYPT                = 20;          // Egypt
+  CTRY_EL_SALVADOR          = 503;         // El Salvador
+  CTRY_ESTONIA              = 372;         // Estonia
+  CTRY_FAEROE_ISLANDS       = 298;         // Faeroe Islands
+  CTRY_FINLAND              = 358;         // Finland
+  CTRY_FRANCE               = 33;          // France
+  CTRY_GERMANY              = 49;          // Germany
+  CTRY_GREECE               = 30;          // Greece
+  CTRY_GUATEMALA            = 502;         // Guatemala
+  CTRY_HONDURAS             = 504;         // Honduras
+  CTRY_HONG_KONG            = 852;         // Hong Kong
+  CTRY_HUNGARY              = 36;          // Hungary
+  CTRY_ICELAND              = 354;         // Iceland
+  CTRY_INDIA                = 91;          // India
+  CTRY_INDONESIA            = 62;          // Indonesia
+  CTRY_IRAN                 = 981;         // Iran
+  CTRY_IRAQ                 = 964;         // Iraq
+  CTRY_IRELAND              = 353;         // Ireland
+  CTRY_ISRAEL               = 972;         // Israel
+  CTRY_ITALY                = 39;          // Italy
+  CTRY_JAMAICA              = 1;           // Jamaica
+  CTRY_JAPAN                = 81;          // Japan
+  CTRY_JORDAN               = 962;         // Jordan
+  CTRY_KENYA                = 254;         // Kenya
+  CTRY_KUWAIT               = 965;         // Kuwait
+  CTRY_LATVIA               = 371;         // Latvia
+  CTRY_LEBANON              = 961;         // Lebanon
+  CTRY_LIBYA                = 218;         // Libya
+  CTRY_LIECHTENSTEIN        = 41;          // Liechtenstein
+  CTRY_LITHUANIA            = 370;         // Lithuania
+  CTRY_LUXEMBOURG           = 352;         // Luxembourg
+  CTRY_MACAU                = 853;         // Macau
+  CTRY_MACEDONIA            = 389;         // Republic of Macedonia
+  CTRY_MALAYSIA             = 60;          // Malaysia
+  CTRY_MEXICO               = 52;          // Mexico
+  CTRY_MONACO               = 33;          // Principality of Monaco
+  CTRY_MOROCCO              = 212;         // Morocco
+  CTRY_NETHERLANDS          = 31;          // Netherlands
+  CTRY_NEW_ZEALAND          = 64;          // New Zealand
+  CTRY_NICARAGUA            = 505;         // Nicaragua
+  CTRY_NORWAY               = 47;          // Norway
+  CTRY_OMAN                 = 968;         // Oman
+  CTRY_PAKISTAN             = 92;          // Islamic Republic of Pakistan
+  CTRY_PANAMA               = 507;         // Panama
+  CTRY_PARAGUAY             = 595;         // Paraguay
+  CTRY_PERU                 = 51;          // Peru
+  CTRY_PHILIPPINES          = 63;          // Republic of the Philippines
+  CTRY_POLAND               = 48;          // Poland
+  CTRY_PORTUGAL             = 351;         // Portugal
+  CTRY_PRCHINA              = 86;          // People's Republic of China
+  CTRY_PUERTO_RICO          = 1;           // Puerto Rico
+  CTRY_QATAR                = 974;         // Qatar
+  CTRY_ROMANIA              = 40;          // Romania
+  CTRY_RUSSIA               = 7;           // Russia
+  CTRY_SAUDI_ARABIA         = 966;         // Saudi Arabia
+  CTRY_SERBIA               = 381;         // Serbia
+  CTRY_SINGAPORE            = 65;          // Singapore
+  CTRY_SLOVAK               = 421;         // Slovak Republic
+  CTRY_SLOVENIA             = 386;         // Slovenia
+  CTRY_SOUTH_AFRICA         = 27;          // South Africa
+  CTRY_SOUTH_KOREA          = 82;          // South Korea
+  CTRY_SPAIN                = 34;          // Spain
+  CTRY_SWEDEN               = 46;          // Sweden
+  CTRY_SWITZERLAND          = 41;          // Switzerland
+  CTRY_SYRIA                = 963;         // Syria
+  CTRY_TAIWAN               = 886;         // Taiwan Region
+  CTRY_THAILAND             = 66;          // Thailand
+  CTRY_TRINIDAD_Y_TOBAGO    = 1;           // Trinidad y Tobago
+  CTRY_TUNISIA              = 216;         // Tunisia
+  CTRY_TURKEY               = 90;          // Turkey
+  CTRY_UAE                  = 971;         // U.A.E.
+  CTRY_UKRAINE              = 380;         // Ukraine
+  CTRY_UNITED_KINGDOM       = 44;          // United Kingdom
+  CTRY_UNITED_STATES        = 1;           // United States
+  CTRY_URUGUAY              = 598;         // Uruguay
+  CTRY_VENEZUELA            = 58;          // Venezuela
+  CTRY_VIET_NAM             = 84;          // Viet Nam
+  CTRY_YEMEN                = 967;         // Yemen
+  CTRY_ZIMBABWE             = 263;         // Zimbabwe
+
+
+(*
+ *  Locale Types.
+ *
+ *  These types are used for the GetLocaleInfoW NLS API routine.
+ *
+ *  LOCALE_NOUSEROVERRIDE is also used in GetTimeFormatW and GetDateFormatW.
+ *
+ *  LOCALE_USE_CP_ACP is used in many of the A (Ansi) apis that need to do
+ *  string translation.
+ *)
+  LOCALE_NOUSEROVERRIDE       = 080000000H;  (* do not use user overrides *)
+  LOCALE_USE_CP_ACP           = 040000000H;  (* use the system ACP *)
+  LOCALE_RETURN_NUMBER        = 020000000H;  // return number instead of string
+
+  LOCALE_ILANGUAGE            = 000000001H;  (* language id *)
+  LOCALE_SLANGUAGE            = 000000002H;  (* localized name of language *)
+  LOCALE_SENGLANGUAGE         = 000001001H;  (* English name of language *)
+  LOCALE_SABBREVLANGNAME      = 000000003H;  (* abbreviated language name *)
+  LOCALE_SNATIVELANGNAME      = 000000004H;  (* native name of language *)
+  LOCALE_ICOUNTRY             = 000000005H;  (* country code *)
+  LOCALE_SCOUNTRY             = 000000006H;  (* localized name of country *)
+  LOCALE_SENGCOUNTRY          = 000001002H;  (* English name of country *)
+  LOCALE_SABBREVCTRYNAME      = 000000007H;  (* abbreviated country name *)
+  LOCALE_SNATIVECTRYNAME      = 000000008H;  (* native name of country *)
+  LOCALE_IDEFAULTLANGUAGE     = 000000009H;  (* default language id *)
+  LOCALE_IDEFAULTCOUNTRY      = 00000000AH;  (* default country code *)
+  LOCALE_IDEFAULTCODEPAGE     = 00000000BH;  (* default oem code page *)
+  LOCALE_IDEFAULTANSICODEPAGE = 000001004H;  (* default ansi code page *)
+
+  LOCALE_SLIST                = 00000000CH;  (* list item separator *)
+  LOCALE_IMEASURE             = 00000000DH;  (* 0 = metric, 1 = US *)
+
+  LOCALE_SDECIMAL             = 00000000EH;  (* decimal separator *)
+  LOCALE_STHOUSAND            = 00000000FH;  (* thousand separator *)
+  LOCALE_SGROUPING            = 000000010H;  (* digit grouping *)
+  LOCALE_IDIGITS              = 000000011H;  (* number of fractional digits *)
+  LOCALE_ILZERO               = 000000012H;  (* leading zeros for decimal *)
+  LOCALE_INEGNUMBER           = 000001010H;  (* negative number mode *)
+  LOCALE_SNATIVEDIGITS        = 000000013H;  (* native ascii 0-9 *)
+
+  LOCALE_SCURRENCY            = 000000014H;  (* local monetary symbol *)
+  LOCALE_SINTLSYMBOL          = 000000015H;  (* intl monetary symbol *)
+  LOCALE_SMONDECIMALSEP       = 000000016H;  (* monetary decimal separator *)
+  LOCALE_SMONTHOUSANDSEP      = 000000017H;  (* monetary thousand separator *)
+  LOCALE_SMONGROUPING         = 000000018H;  (* monetary grouping *)
+  LOCALE_ICURRDIGITS          = 000000019H;  (* # local monetary digits *)
+  LOCALE_IINTLCURRDIGITS      = 00000001AH;  (* # intl monetary digits *)
+  LOCALE_ICURRENCY            = 00000001BH;  (* positive currency mode *)
+  LOCALE_INEGCURR             = 00000001CH;  (* negative currency mode *)
+
+  LOCALE_SDATE                = 00000001DH;  (* date separator *)
+  LOCALE_STIME                = 00000001EH;  (* time separator *)
+  LOCALE_SSHORTDATE           = 00000001FH;  (* short date format string *)
+  LOCALE_SLONGDATE            = 000000020H;  (* long date format string *)
+  LOCALE_STIMEFORMAT          = 000001003H;  (* time format string *)
+  LOCALE_IDATE                = 000000021H;  (* short date format ordering *)
+  LOCALE_ILDATE               = 000000022H;  (* long date format ordering *)
+  LOCALE_ITIME                = 000000023H;  (* time format specifier *)
+  LOCALE_ITIMEMARKPOSN        = 000001005H;  (* time marker position *)
+  LOCALE_ICENTURY             = 000000024H;  (* century format specifier (short date) *)
+  LOCALE_ITLZERO              = 000000025H;  (* leading zeros in time field *)
+  LOCALE_IDAYLZERO            = 000000026H;  (* leading zeros in day field (short date) *)
+  LOCALE_IMONLZERO            = 000000027H;  (* leading zeros in month field (short date) *)
+  LOCALE_S1159                = 000000028H;  (* AM designator *)
+  LOCALE_S2359                = 000000029H;  (* PM designator *)
+
+  LOCALE_ICALENDARTYPE        = 000001009H;  (* type of calendar specifier *)
+  LOCALE_IOPTIONALCALENDAR    = 00000100BH;  (* additional calendar types specifier *)
+  LOCALE_IFIRSTDAYOFWEEK      = 00000100CH;  (* first day of week specifier *)
+  LOCALE_IFIRSTWEEKOFYEAR     = 00000100DH;  (* first week of year specifier *)
+
+  LOCALE_SDAYNAME1            = 00000002AH;  (* long name for Monday *)
+  LOCALE_SDAYNAME2            = 00000002BH;  (* long name for Tuesday *)
+  LOCALE_SDAYNAME3            = 00000002CH;  (* long name for Wednesday *)
+  LOCALE_SDAYNAME4            = 00000002DH;  (* long name for Thursday *)
+  LOCALE_SDAYNAME5            = 00000002EH;  (* long name for Friday *)
+  LOCALE_SDAYNAME6            = 00000002FH;  (* long name for Saturday *)
+  LOCALE_SDAYNAME7            = 000000030H;  (* long name for Sunday *)
+  LOCALE_SABBREVDAYNAME1      = 000000031H;  (* abbreviated name for Monday *)
+  LOCALE_SABBREVDAYNAME2      = 000000032H;  (* abbreviated name for Tuesday *)
+  LOCALE_SABBREVDAYNAME3      = 000000033H;  (* abbreviated name for Wednesday *)
+  LOCALE_SABBREVDAYNAME4      = 000000034H;  (* abbreviated name for Thursday *)
+  LOCALE_SABBREVDAYNAME5      = 000000035H;  (* abbreviated name for Friday *)
+  LOCALE_SABBREVDAYNAME6      = 000000036H;  (* abbreviated name for Saturday *)
+  LOCALE_SABBREVDAYNAME7      = 000000037H;  (* abbreviated name for Sunday *)
+  LOCALE_SMONTHNAME1          = 000000038H;  (* long name for January *)
+  LOCALE_SMONTHNAME2          = 000000039H;  (* long name for February *)
+  LOCALE_SMONTHNAME3          = 00000003AH;  (* long name for March *)
+  LOCALE_SMONTHNAME4          = 00000003BH;  (* long name for April *)
+  LOCALE_SMONTHNAME5          = 00000003CH;  (* long name for May *)
+  LOCALE_SMONTHNAME6          = 00000003DH;  (* long name for June *)
+  LOCALE_SMONTHNAME7          = 00000003EH;  (* long name for July *)
+  LOCALE_SMONTHNAME8          = 00000003FH;  (* long name for August *)
+  LOCALE_SMONTHNAME9          = 000000040H;  (* long name for September *)
+  LOCALE_SMONTHNAME10         = 000000041H;  (* long name for October *)
+  LOCALE_SMONTHNAME11         = 000000042H;  (* long name for November *)
+  LOCALE_SMONTHNAME12         = 000000043H;  (* long name for December *)
+  LOCALE_SMONTHNAME13         = 00000100EH;  (* long name for 13th month (if exists) *)
+  LOCALE_SABBREVMONTHNAME1    = 000000044H;  (* abbreviated name for January *)
+  LOCALE_SABBREVMONTHNAME2    = 000000045H;  (* abbreviated name for February *)
+  LOCALE_SABBREVMONTHNAME3    = 000000046H;  (* abbreviated name for March *)
+  LOCALE_SABBREVMONTHNAME4    = 000000047H;  (* abbreviated name for April *)
+  LOCALE_SABBREVMONTHNAME5    = 000000048H;  (* abbreviated name for May *)
+  LOCALE_SABBREVMONTHNAME6    = 000000049H;  (* abbreviated name for June *)
+  LOCALE_SABBREVMONTHNAME7    = 00000004AH;  (* abbreviated name for July *)
+  LOCALE_SABBREVMONTHNAME8    = 00000004BH;  (* abbreviated name for August *)
+  LOCALE_SABBREVMONTHNAME9    = 00000004CH;  (* abbreviated name for September *)
+  LOCALE_SABBREVMONTHNAME10   = 00000004DH;  (* abbreviated name for October *)
+  LOCALE_SABBREVMONTHNAME11   = 00000004EH;  (* abbreviated name for November *)
+  LOCALE_SABBREVMONTHNAME12   = 00000004FH;  (* abbreviated name for December *)
+  LOCALE_SABBREVMONTHNAME13   = 00000100FH;  (* abbreviated name for 13th month (if exists) *)
+
+  LOCALE_SPOSITIVESIGN        = 000000050H;  (* positive sign *)
+  LOCALE_SNEGATIVESIGN        = 000000051H;  (* negative sign *)
+  LOCALE_IPOSSIGNPOSN         = 000000052H;  (* positive sign position *)
+  LOCALE_INEGSIGNPOSN         = 000000053H;  (* negative sign position *)
+  LOCALE_IPOSSYMPRECEDES      = 000000054H;  (* mon sym precedes pos amt *)
+  LOCALE_IPOSSEPBYSPACE       = 000000055H;  (* mon sym sep by space from pos amt *)
+  LOCALE_INEGSYMPRECEDES      = 000000056H;  (* mon sym precedes neg amt *)
+  LOCALE_INEGSEPBYSPACE       = 000000057H;  (* mon sym sep by space from neg amt *)
+
+  LOCALE_FONTSIGNATURE        = 000000058H;  (* font signature *)
+  LOCALE_SISO639LANGNAME      = 000000059H;  // ISO abbreviated language name
+  LOCALE_SISO3166CTRYNAME     = 00000005AH;  // ISO abbreviated country name
+
+  LOCALE_IDEFAULTEBCDICCODEPAGE
+                              = 000001012H;   // default ebcdic code page
+  LOCALE_IPAPERSIZE           = 00000100AH;   // 0 = letter, 1 = a4, 2 = legal, 3 = a3
+  LOCALE_SENGCURRNAME         = 000001007H;   // english name of currency
+  LOCALE_SNATIVECURRNAME      = 000001008H;   // native name of currency
+  LOCALE_SYEARMONTH           = 000001006H;   // year month format string
+  LOCALE_SSORTNAME            = 000001013H;   // sort name
+  LOCALE_IDIGITSUBSTITUTION   = 000001014H;   // 0 = none, 1 = context, 2 = native digit
+
+(*
+ *  Time Flags for GetTimeFormatW.
+ *)
+  TIME_NOMINUTESORSECONDS    = 000000001H; (* do not use minutes or seconds *)
+  TIME_NOSECONDS             = 000000002H; (* do not use seconds *)
+  TIME_NOTIMEMARKER          = 000000004H; (* do not use time marker *)
+  TIME_FORCE24HOURFORMAT     = 000000008H; (* always use 24 hour format *)
+
+
+(*
+ *  Date Flags for GetDateFormatW.
+ *)
+  DATE_SHORTDATE             = 000000001H; (* use short date picture *)
+  DATE_LONGDATE              = 000000002H; (* use long date picture *)
+  DATE_USE_ALT_CALENDAR      = 000000004H; (* use alternate calendar (if any) *)
+  DATE_YEARMONTH             = 000000008H; // use year month picture
+  DATE_LTRREADING            = 000000010H; // add marks for left to right reading order layout
+  DATE_RTLREADING            = 000000020H; // add marks for right to left reading order layout
+
+
+(*
+ *  Calendar Types.
+ *
+ *  These types are used for the GetALTCalendarInfoW NLS API routine.
+ *)
+  CAL_ICALINTVALUE           = 000000001H;  (* calendar type *)
+  CAL_SCALNAME               = 000000002H;  (* native name of calendar *)
+  CAL_IYEAROFFSETRANGE       = 000000003H;  (* starting years of eras *)
+  CAL_SERASTRING             = 000000004H;  (* era name for IYearOffsetRanges *)
+  CAL_SSHORTDATE             = 000000005H;  (* short date format string *)
+  CAL_SLONGDATE              = 000000006H;  (* long date format string *)
+  CAL_SDAYNAME1              = 000000007H;  (* native name for Monday *)
+  CAL_SDAYNAME2              = 000000008H;  (* native name for Tuesday *)
+  CAL_SDAYNAME3              = 000000009H;  (* native name for Wednesday *)
+  CAL_SDAYNAME4              = 00000000AH;  (* native name for Thursday *)
+  CAL_SDAYNAME5              = 00000000BH;  (* native name for Friday *)
+  CAL_SDAYNAME6              = 00000000CH;  (* native name for Saturday *)
+  CAL_SDAYNAME7              = 00000000DH;  (* native name for Sunday *)
+  CAL_SABBREVDAYNAME1        = 00000000EH;  (* abbreviated name for Monday *)
+  CAL_SABBREVDAYNAME2        = 00000000FH;  (* abbreviated name for Tuesday *)
+  CAL_SABBREVDAYNAME3        = 000000010H;  (* abbreviated name for Wednesday *)
+  CAL_SABBREVDAYNAME4        = 000000011H;  (* abbreviated name for Thursday *)
+  CAL_SABBREVDAYNAME5        = 000000012H;  (* abbreviated name for Friday *)
+  CAL_SABBREVDAYNAME6        = 000000013H;  (* abbreviated name for Saturday *)
+  CAL_SABBREVDAYNAME7        = 000000014H;  (* abbreviated name for Sunday *)
+  CAL_SMONTHNAME1            = 000000015H;  (* native name for January *)
+  CAL_SMONTHNAME2            = 000000016H;  (* native name for February *)
+  CAL_SMONTHNAME3            = 000000017H;  (* native name for March *)
+  CAL_SMONTHNAME4            = 000000018H;  (* native name for April *)
+  CAL_SMONTHNAME5            = 000000019H;  (* native name for May *)
+  CAL_SMONTHNAME6            = 00000001AH;  (* native name for June *)
+  CAL_SMONTHNAME7            = 00000001BH;  (* native name for July *)
+  CAL_SMONTHNAME8            = 00000001CH;  (* native name for August *)
+  CAL_SMONTHNAME9            = 00000001DH;  (* native name for September *)
+  CAL_SMONTHNAME10           = 00000001EH;  (* native name for October *)
+  CAL_SMONTHNAME11           = 00000001FH;  (* native name for November *)
+  CAL_SMONTHNAME12           = 000000020H;  (* native name for December *)
+  CAL_SMONTHNAME13           = 000000021H;  (* native name for 13th month (if any) *)
+  CAL_SABBREVMONTHNAME1      = 000000022H;  (* abbreviated name for January *)
+  CAL_SABBREVMONTHNAME2      = 000000023H;  (* abbreviated name for February *)
+  CAL_SABBREVMONTHNAME3      = 000000024H;  (* abbreviated name for March *)
+  CAL_SABBREVMONTHNAME4      = 000000025H;  (* abbreviated name for April *)
+  CAL_SABBREVMONTHNAME5      = 000000026H;  (* abbreviated name for May *)
+  CAL_SABBREVMONTHNAME6      = 000000027H;  (* abbreviated name for June *)
+  CAL_SABBREVMONTHNAME7      = 000000028H;  (* abbreviated name for July *)
+  CAL_SABBREVMONTHNAME8      = 000000029H;  (* abbreviated name for August *)
+  CAL_SABBREVMONTHNAME9      = 00000002AH;  (* abbreviated name for September *)
+  CAL_SABBREVMONTHNAME10     = 00000002BH;  (* abbreviated name for October *)
+  CAL_SABBREVMONTHNAME11     = 00000002CH;  (* abbreviated name for November *)
+  CAL_SABBREVMONTHNAME12     = 00000002DH;  (* abbreviated name for December *)
+  CAL_SABBREVMONTHNAME13     = 00000002EH;  (* abbreviated name for 13th month (if any) *)
+  CAL_SYEARMONTH             = 00000002EH;  // year month format string
+
+
+(*
+ *  Calendar Enumeration Value.
+ *)
+  ENUM_ALL_CALENDARS         = 0FFFFFFFFH;  (* enumerate all calendars *)
+
+
+(*
+ *  Calendar ID Values.
+ *)
+  CAL_GREGORIAN              = 1;      (* Gregorian (localized) calendar *)
+  CAL_GREGORIAN_US           = 2;      (* Gregorian (U.S.) calendar *)
+  CAL_JAPAN                  = 3;      (* Japanese Emperor Era calendar *)
+  CAL_TAIWAN                 = 4;      (* Republic of China Era calendar *)
+  CAL_KOREA                  = 5;      (* Korean Tangun Era calendar *)
+  CAL_HIJRI                  = 6;      // Hijri (Arabic Lunar) calendar
+  CAL_THAI                   = 7;      // Thai calendar
+  CAL_HEBREW                 = 8;      // Hebrew (Lunar) calendar
+  CAL_GREGORIAN_ME_FRENCH    = 9;      // Gregorian Middle East French calendar
+  CAL_GREGORIAN_ARABIC       = 10;     // Gregorian Arabic calendar
+  CAL_GREGORIAN_XLIT_ENGLISH = 11;     // Gregorian Transliterated English calendar
+  CAL_GREGORIAN_XLIT_FRENCH  = 12;     // Gregorian Transliterated French calendar
+
+
+
+
+(***************************************************************************\
+* Typedefs
+*
+* Define all types for the NLS component here.
+\***************************************************************************)
+
+TYPE
+  LCID = windows.DWORD;
+  LANGID = WORD;
+
+(*
+ *  Locale type constant.
+ *)
+  LCTYPE  = windows.DWORD;
+
+(*
+ *  Calendar type constant.
+ *)
+  CALTYPE = windows.DWORD;
+
+(*
+ *  Calendar ID.
+ *)
+  CALID   = windows.DWORD;
+
+
+(*
+ *  CP Info.
+ *)
+
+TYPE
+  CPINFO = RECORD
+    MaxCharSize : windows.UINT;              (* max length (bytes) of a char *)
+    DefaultChar : ARRAY [0..MAX_DEFAULTCHAR-1] OF CHAR; (* default character *)
+    LeadByte    : ARRAY [0..MAX_LEADBYTES-1] OF BYTE; (* lead byte ranges *)
+  END;
+  PCPINFO  = POINTER TO CPINFO;
+
+
+(*
+ *  Number format.
+ *)
+
+  NUMBERFMT = RECORD
+    NumDigits  : windows.UINT;               (* number of decimal digits *)
+    LeadingZero: windows.UINT;               (* if leading zero in decimal fields *)
+    Grouping   : windows.UINT;               (* group size left of decimal *)
+    lpDecimalSep : windows.PTSTR;            (* ptr to decimal separator string *)
+    lpThousandSep: windows.PTSTR;            (* ptr to thousand separator string *)
+    NegativeOrder: windows.UINT;             (* negative number ordering *)
+  END;
+  PNUMBERFMT   = POINTER TO _numberfmt;
+
+
+(*
+ *  Currency format.
+ *)
+
+  CURRENCYFMT = RECORD
+    NumDigits     : windows.UINT;            (* number of decimal digits *)
+    LeadingZero   : windows.UINT;            (* if leading zero in decimal fields *)
+    Grouping      : windows.UINT;            (* group size left of decimal *)
+    lpDecimalSep  : windows.PTSTR;           (* ptr to decimal separator string *)
+    lpThousandSep : windows.PTSTR;           (* ptr to thousand separator string *)
+    NegativeOrder : windows.UINT;            (* negative currency ordering *)
+    PositiveOrder : windows.UINT;            (* positive currency ordering *)
+    lpCurrencySymbol : windows.PTSTR;        (* ptr to currency symbol string *)
+  END;
+  PCURRENCYFMT   = POINTER TO CURRENCYFMT;
+
+
+
+(*
+ *  Enumeration function constants.
+ *)
+
+// sctrict variants 
+//  LOCALE_ENUMPROC   = PROCEDURE(windows.PTSTR) : windows.BOOL;
+//  CODEPAGE_ENUMPROC = PROCEDURE(windows.PTSTR) : windows.BOOL;
+//  DATEFMT_ENUMPROC  = PROCEDURE(windows.PTSTR) : windows.BOOL;
+//  TIMEFMT_ENUMPROC  = PROCEDURE(windows.PTSTR) : windows.BOOL;
+//  CALINFO_ENUMPROC  = PROCEDURE(windows.PTSTR) : windows.BOOL;
+
+  LOCALE_ENUMPROC   = PROCEDURE() : INTEGER;
+  CODEPAGE_ENUMPROC = PROCEDURE() : INTEGER;
+  DATEFMT_ENUMPROC  = PROCEDURE() : INTEGER;
+  TIMEFMT_ENUMPROC  = PROCEDURE() : INTEGER;
+  CALINFO_ENUMPROC  = PROCEDURE() : INTEGER;
+
+(***************************************************************************\
+* Macros
+*
+* Define all macros for the NLS component here.
+\***************************************************************************)
+
+
+
+(***************************************************************************\
+* Function Prototypes
+*
+* Only prototypes for the NLS APIs should go here.
+\***************************************************************************)
+
+(*
+ *  Code Page Dependent APIs.
+ *)
+
+PROCEDURE IsValidCodePage( CodePage : CARDINAL ) : windows.BOOL;
+PROCEDURE GetACP() : CARDINAL;
+PROCEDURE GetOEMCP() : CARDINAL;
+PROCEDURE GetCPInfo( CodePage : CARDINAL; lpCPInfo : PCPINFO ) : windows.BOOL;
+PROCEDURE IsDBCSLeadByte( TestChar : BYTE) : windows.BOOL;
+PROCEDURE IsDBCSLeadByteEx( CodePage : CARDINAL; TestChar : BYTE ) : windows.BOOL;
+PROCEDURE MultiByteToWideChar(CodePage       : CARDINAL;
+                              dwFlags        : windows.DWORD;
+                              lpMultiByteStr : windows.PCSTR;
+                              cchMultiByte   : INTEGER;
+                              lpWideCharStr  : windows.PWSTR;
+                              cchWideChar    : INTEGER) : INTEGER;
+PROCEDURE WideCharToMultiByte(CodePage       : CARDINAL;
+                              dwFlags        : windows.DWORD;
+                              lpWideCharStr  : windows.PCWSTR;
+                              cchWideChar    : INTEGER;
+                              lpMultiByteStr : windows.PSTR;
+                              cchMultiByte   : INTEGER;
+                              lpDefaultChar  : windows.PCSTR;
+                              lpUsedDefaultChar : windows.PBOOL ) : INTEGER;
+
+(*
+ *  Locale Dependent APIs.
+ *)
+
+#if #not( PlatformName #startswith L"WinCE" ) #then
+PROCEDURE CompareStringA( Locale      : LCID;
+                          dwCmpFlags  : CARDINAL;
+                          PString1    : windows.PCSTR;
+                          cchCount1   : INTEGER;
+                          PString2    : windows.PCSTR;
+                          cchCount2   : INTEGER
+                        ) : INTEGER;
+#endif                        
+
+PROCEDURE CompareStringW( Locale      : LCID;
+                          dwCmpFlags  : CARDINAL;
+                          PString1    : windows.PCWSTR;
+                          cchCount1   : INTEGER;
+                          PString2    : windows.PCWSTR;
+                          cchCount2   : INTEGER
+                        ) : INTEGER;
+
+#if PlatformName #startswith L"WinCE" #then
+CONST
+  CompareString ::= CompareStringW;
+#else
+CONST
+  (*%F UNICODE *)
+  CompareString ::= CompareStringA;
+  (*%E UNICODE *)
+  (*%T UNICODE *)
+  CompareString ::= CompareStringW;
+  (*%E UNICODE *)
+#endif
+
+PROCEDURE LCMapString(Locale : LCID;
+                      dwMapFlags : CARDINAL;
+                      lpSrcStr : windows.PCTSTR;
+                      cchSrc : INTEGER;
+                      lpDestStr : windows.PTSTR;
+                      cchDest : INTEGER) : INTEGER;
+
+PROCEDURE GetLocaleInfo(Locale : LCID;
+                        LCType : LCTYPE;
+                        lpLCData : windows.PTSTR;
+                        cchData : INTEGER) : INTEGER;
+
+PROCEDURE SetLocaleInfo(Locale : LCID;
+                        LCType : LCTYPE;
+                        lpLCData : windows.PCTSTR) : windows.BOOL;
+
+PROCEDURE GetTimeFormatA(Locale   : LCID;
+                         dwFlags  : windows.DWORD;
+                         lpTime : windows.PSYSTEMTIME;
+                         lpFormat   : windows.PCSTR;
+                         lpTimeStr  : windows.PSTR;
+                         cchTime    : INTEGER) : INTEGER;
+PROCEDURE GetTimeFormatW(Locale   : LCID;
+                         dwFlags  : windows.DWORD;
+                         lpTime : windows.PSYSTEMTIME;
+                         lpFormat   : windows.PCWSTR;
+                         lpTimeStr  : windows.PWSTR;
+                         cchTime    : INTEGER) : INTEGER;
+CONST
+#if UNICODE #then
+  GetTimeFormat ::= GetTimeFormatW;
+#else
+  GetTimeFormat ::= GetTimeFormatA;
+#endif                        
+
+PROCEDURE GetDateFormatA(Locale   : LCID;
+                         dwFlags  : windows.DWORD;
+                         lpDate : windows.PSYSTEMTIME;
+                         lpFormat   : windows.PCSTR;
+                         lpDateStr  : windows.PSTR;
+                         cchDate    : INTEGER) : INTEGER;
+PROCEDURE GetDateFormatW(Locale   : LCID;
+                         dwFlags  : windows.DWORD;
+                         lpDate : windows.PSYSTEMTIME;
+                         lpFormat   : windows.PCWSTR;
+                         lpDateStr  : windows.PWSTR;
+                         cchDate    : INTEGER) : INTEGER;
+CONST
+#if UNICODE #then
+  GetDateFormat ::= GetDateFormatW;
+#else
+  GetDateFormat ::= GetDateFormatA;
+#endif                        
+
+PROCEDURE GetNumberFormat(Locale  : LCID;
+                          dwFlags : windows.DWORD;
+                          lpValue : windows.PCTSTR;
+                          lpFormat : PNUMBERFMT;
+                          lpNumberStr  : windows.PTSTR;
+                          cchNumber : INTEGER);
+
+PROCEDURE GetCurrencyFormat(Locale  : LCID;
+                            dwFlags : windows.DWORD;
+                            lpValue : windows.PCTSTR;
+                            lpFormat : PCURRENCYFMT;
+                            lpCurrencyStr: windows.PTSTR;
+                            cchCurrency  : INTEGER) : INTEGER;
+
+PROCEDURE EnumCalendarInfoA(lpCalInfoEnumProc : CALINFO_ENUMPROC;
+                            Locale   : LCID;
+                            Calendar : CALID;
+                            CalType  : CALTYPE) : windows.BOOL;
+PROCEDURE EnumCalendarInfoW(lpCalInfoEnumProc : CALINFO_ENUMPROC;
+                            Locale   : LCID;
+                            Calendar : CALID;
+                            CalType  : CALTYPE) : windows.BOOL;
+CONST
+(*%F UNICODE *)
+  EnumCalendarInfo ::= EnumCalendarInfoA;
+(*%E UNICODE *)
+(*%T UNICODE *)
+  EnumCalendarInfo ::= EnumCalendarInfoW;
+(*%E UNICODE *)
+
+PROCEDURE EnumTimeFormats(lpTimeFmtEnumProc : TIMEFMT_ENUMPROC;
+                          Locale : LCID;
+                          dwFlags : windows.DWORD) : windows.BOOL;
+
+PROCEDURE EnumDateFormats(lpDateFmtEnumProc : DATEFMT_ENUMPROC;
+                          Locale : LCID;
+                          dwFlags : windows.DWORD) : windows.BOOL;
+
+PROCEDURE IsValidLocale(Locale : LCID;
+                        dwFlags : windows.DWORD) : windows.BOOL;
+
+PROCEDURE ConvertDefaultLocale(Locale : LCID) : LCID;
+
+PROCEDURE GetThreadLocale() : LCID;
+
+PROCEDURE SetThreadLocale(Locale : LCID) : windows.BOOL;
+
+PROCEDURE GetSystemDefaultLangID() : LANGID;
+
+PROCEDURE GetUserDefaultLangID() : LANGID;
+
+PROCEDURE GetSystemDefaultLCID() : LCID;
+
+PROCEDURE GetUserDefaultLCID() : LCID;
+
+(*
+ *  Locale Independent APIs.
+ *)
+
+PROCEDURE GetStringTypeEx(Locale : LCID;
+                          dwInfoType : windows.DWORD;
+                          lpSrcStr : windows.PCTSTR;
+                          cchSrc : INTEGER;
+                          lpCharType : PWORD) : windows.BOOL;
+
+(*
+ *  NOTE: The parameters for GetStringTypeA and GetStringTypeW are
+ *        NOT the same.  The W version was shipped in NT 3.1.  The
+ *        A version was then shipped in 16-bit OLE with the wrong
+ *        parameters (ported from Win95).  To be compatible, we
+ *        must break the relationship between the A and W versions
+ *        of GetStringType.  There will be NO function call for the
+ *        generic GetStringType.
+ *
+ *        GetStringTypeEx (above) should be used instead.
+ *)
+
+PROCEDURE GetStringType(Locale : LCID;
+                        dwInfoType : windows.DWORD;
+                        lpSrcStr : windows.PCTSTR;
+                        cchSrc   : INTEGER;
+                        lpCharType : PWORD) : windows.BOOL;
+
+PROCEDURE FoldString(dwMapFlags : windows.DWORD;
+                     lpSrcStr   : windows.PCTSTR;
+                     cchSrc     : INTEGER;
+                     lpDestStr  : windows.PTSTR;
+                     cchDest    : INTEGER) : INTEGER;
+
+PROCEDURE EnumSystemLocales(lpLocaleEnumProc : LOCALE_ENUMPROC;
+                            dwFlags : windows.DWORD) : windows.BOOL;
+
+PROCEDURE EnumSystemCodePages(lpCodePageEnumProc : CODEPAGE_ENUMPROC;
+                              dwFlags : windows.DWORD) : windows.BOOL;
+
+END winnls.

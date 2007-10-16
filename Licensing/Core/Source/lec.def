@@ -1,0 +1,61 @@
+DEFINITION MODULE lec;
+
+IMPORT
+   Delegate,
+   sync,
+   time;
+
+(*================================================================================*)
+
+TYPE
+   TInfo = (
+      riUnknown,
+      riDemo,
+      riNotActivated,
+      riActivated
+   );
+   
+   TBehaviour =
+   (
+      bhWorstCase, // use the data with most restrictive setting
+      bhBestCase // use the data with most benevolent setting
+   );
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CResult( Delegate.ADelegate );
+   PRIVATE VAR
+      _Lock : sync.LOCK;
+      _Info : TInfo;
+      _Expires : time.TJD;
+      _Start : time.TJD;
+      _Counter : CARDINAL := 0;
+
+   LOCAL PROCEDURE QueryStarted();
+   LOCAL PROCEDURE QueryData( data : PTR );
+   LOCAL PROCEDURE QueryFinished();
+   
+   PUBLIC VAR
+      Behaviour : TBehaviour := bhBestCase;
+   PUBLIC READONLY PROPERTY
+      Info : TInfo;
+      Expires : time.TDateTime;
+      Expired : BOOLEAN;
+      NextCheck : CARDINAL;
+      Counted : BOOLEAN;
+
+   PUBLIC PROCEDURE Reset( Behaviour : TBehaviour );
+   PUBLIC PROCEDURE Inc();
+END CResult;
+
+(*================================================================================*)
+
+PROCEDURE Query( CONST Path1, Path2, ProductId : ARRAY OF WCHAR; REF Result : CResult ); // dangerous
+PROCEDURE QueryData( CONST Path1, Path2 : ARRAY OF WCHAR; Data : ADDRESS; Length : CARDINAL; REF Result : CResult );
+
+PROCEDURE RegisterValidator( Data : ADDRESS; Length : CARDINAL; Validator : ADDRESS );
+PROCEDURE UnregisterValidator( Data : ADDRESS );
+
+(*================================================================================*)
+
+END lec.

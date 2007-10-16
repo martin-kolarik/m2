@@ -1,0 +1,203 @@
+DEFINITION MODULE winver;
+
+(*==============================================================
+
+                    Win32 API for Modula-2
+
+       32-bit version for M2CPP Modula-2 to C++ compiler
+
+      Copyright (c) 1996, 1997 Moravian Instruments, Inc.
+
+==============================================================*)
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+(*==============================================================*)
+(*/***************************************************************************\
+*                                                                             *
+* winver.h -    Version management functions, types, and definitions          *
+*                                                                             *
+*               Include file for VER.DLL.  This library is                    *
+*               designed to allow version stamping of Windows executable files*
+*               and of special .VER files for DOS executable files.           *
+*                                                                             *
+*          Copyright (c) 1993-1996, Microsoft Corp.  All rights reserved      *
+*                                                                             *
+\***************************************************************************/*)
+
+IMPORT
+  windows;
+
+CONST
+//* ----- Symbols ----- */
+  VS_FILE_INFO            = windows.RT_VERSION;
+  VS_VERSION_INFO         = 1;
+  VS_USER_DEFINED         = 100;
+
+//* ----- VS_VERSION.dwFileFlags ----- */
+  VS_FFI_SIGNATURE        = 0FEEF04BDH;
+  VS_FFI_STRUCVERSION     = 000010000H;
+  VS_FFI_FILEFLAGSMASK    = 00000003FH;
+
+//* ----- VS_VERSION.dwFileFlags ----- */
+  VS_FF_DEBUG             = 000000001H;
+  VS_FF_PRERELEASE        = 000000002H;
+  VS_FF_PATCHED           = 000000004H;
+  VS_FF_PRIVATEBUILD      = 000000008H;
+  VS_FF_INFOINFERRED      = 000000010H;
+  VS_FF_SPECIALBUILD      = 000000020H;
+
+//* ----- VS_VERSION.dwFileOS ----- */
+  VOS_UNKNOWN             = 000000000H;
+  VOS_DOS                 = 000010000H;
+  VOS_OS216               = 000020000H;
+  VOS_OS232               = 000030000H;
+  VOS_NT                  = 000040000H;
+
+  VOS__BASE               = 000000000H;
+  VOS__WINDOWS16          = 000000001H;
+  VOS__PM16               = 000000002H;
+  VOS__PM32               = 000000003H;
+  VOS__WINDOWS32          = 000000004H;
+
+  VOS_DOS_WINDOWS16       = 000010001H;
+  VOS_DOS_WINDOWS32       = 000010004H;
+  VOS_OS216_PM16          = 000020002H;
+  VOS_OS232_PM32          = 000030003H;
+  VOS_NT_WINDOWS32        = 000040004H;
+
+//* ----- VS_VERSION.dwFileType ----- */
+  VFT_UNKNOWN             = 000000000H;
+  VFT_APP                 = 000000001H;
+  VFT_DLL                 = 000000002H;
+  VFT_DRV                 = 000000003H;
+  VFT_FONT                = 000000004H;
+  VFT_VXD                 = 000000005H;
+  VFT_STATIC_LIB          = 000000007H;
+
+//* ----- VS_VERSION.dwFileSubtype for VFT_WINDOWS_DRV ----- */
+  VFT2_UNKNOWN            = 000000000H;
+  VFT2_DRV_PRINTER        = 000000001H;
+  VFT2_DRV_KEYBOARD       = 000000002H;
+  VFT2_DRV_LANGUAGE       = 000000003H;
+  VFT2_DRV_DISPLAY        = 000000004H;
+  VFT2_DRV_MOUSE          = 000000005H;
+  VFT2_DRV_NETWORK        = 000000006H;
+  VFT2_DRV_SYSTEM         = 000000007H;
+  VFT2_DRV_INSTALLABLE    = 000000008H;
+  VFT2_DRV_SOUND          = 000000009H;
+  VFT2_DRV_COMM           = 00000000AH;
+  VFT2_DRV_INPUTMETHOD    = 00000000BH;
+
+//* ----- VS_VERSION.dwFileSubtype for VFT_WINDOWS_FONT ----- */
+  VFT2_FONT_RASTER        = 000000001H;
+  VFT2_FONT_VECTOR        = 000000002H;
+  VFT2_FONT_TRUETYPE      = 000000003H;
+
+//* ----- VerFindFile() flags ----- */
+  VFFF_ISSHAREDFILE       = 00001;
+
+  VFF_CURNEDEST           = 00001;
+  VFF_FILEINUSE           = 00002;
+  VFF_BUFFTOOSMALL        = 00004;
+
+//* ----- VerInstallFile() flags ----- */
+  VIFF_FORCEINSTALL       = 00001;
+  VIFF_DONTDELETEOLD      = 00002;
+
+  VIF_TEMPFILE            = 000000001H;
+  VIF_MISMATCH            = 000000002H;
+  VIF_SRCOLD              = 000000004H;
+
+  VIF_DIFFLANG            = 000000008H;
+  VIF_DIFFCODEPG          = 000000010H;
+  VIF_DIFFTYPE            = 000000020H;
+
+  VIF_WRITEPROT           = 000000040H;
+  VIF_FILEINUSE           = 000000080H;
+  VIF_OUTOFSPACE          = 000000100H;
+  VIF_ACCESSVIOLATION     = 000000200H;
+  VIF_SHARINGVIOLATION    = 000000400H;
+  VIF_CANNOTCREATE        = 000000800H;
+  VIF_CANNOTDELETE        = 000001000H;
+  VIF_CANNOTRENAME        = 000002000H;
+  VIF_CANNOTDELETECUR     = 000004000H;
+  VIF_OUTOFMEMORY         = 000008000H;
+
+  VIF_CANNOTREADSRC       = 000010000H;
+  VIF_CANNOTREADDST       = 000020000H;
+
+  VIF_BUFFTOOSMALL        = 000040000H;
+
+//* ----- Types and structures ----- */
+
+TYPE
+  VS_FIXEDFILEINFO  = RECORD
+                        dwSignature        : windows.DWORD;  //* e.g. 0xfeef04bd */
+                        dwStrucVersion     : windows.DWORD;  //* e.g. 0x00000042 = "0.42" */
+                        dwFileVersionMS    : windows.DWORD;  //* e.g. 0x00030075 = "3.75" */
+                        dwFileVersionLS    : windows.DWORD;  //* e.g. 0x00000031 = "0.31" */
+                        dwProductVersionMS : windows.DWORD;  //* e.g. 0x00030010 = "3.10" */
+                        dwProductVersionLS : windows.DWORD;  //* e.g. 0x00000031 = "0.31" */
+                        dwFileFlagsMask    : windows.DWORD;  //* = 0x3F for version "0.42" */
+                        dwFileFlags        : windows.DWORD;  //* e.g. VFF_DEBUG | VFF_PRERELEASE */
+                        dwFileOS           : windows.DWORD;  //* e.g. VOS_DOS_WINDOWS16 */
+                        dwFileType         : windows.DWORD;  //* e.g. VFT_DRIVER */
+                        dwFileSubtype      : windows.DWORD;  //* e.g. VFT2_DRV_KEYBOARD */
+                        dwFileDateMS       : windows.DWORD;  //* e.g. 0 */
+                        dwFileDateLS       : windows.DWORD;  //* e.g. 0 */
+                      END;
+  PVS_FIXEDFILEINFO = POINTER TO VS_FIXEDFILEINFO;
+
+//* ----- Function prototypes ----- */
+
+PROCEDURE VerFindFile( uFlags        : windows.DWORD;
+                       szFileName    : windows.PTSTR;
+                       szWinDir      : windows.PTSTR;
+                       szAppDir      : windows.PTSTR;
+                       szCurDir      : windows.PTSTR;
+                       lpuCurDirLen  : windows.PUINT;
+                       szDestDir     : windows.PTSTR;
+                       lpuDestDirLen : windows.PUINT ) : windows.DWORD;
+
+PROCEDURE VerInstallFile( uFlags         : windows.DWORD;
+                          szSrcFileName  : windows.PTSTR;
+                          szDestFileName : windows.PTSTR;
+                          szSrcDir       : windows.PTSTR;
+                          szDestDir      : windows.PTSTR;
+                          szCurDir       : windows.PTSTR;
+                          szTmpFile      : windows.PTSTR;
+                          lpuTmpFileLen  : windows.PUINT ) : windows.DWORD;
+
+//* Returns size of version info in bytes */
+PROCEDURE GetFileVersionInfoSize( lptstrFilename : windows.PTSTR;   //* Filename of version stamped file */
+                                  lpdwHandle     : windows.PDWORD   //* Information for use by GetFileVersionInfo */
+                                ) : windows.DWORD; 
+
+//* Read version info into buffer */
+PROCEDURE GetFileVersionInfo( lptstrFilename : windows.PTSTR; //* Filename of version stamped file */
+                              dwHandle       : windows.DWORD; //* Information from GetFileVersionSize */
+                              dwLen          : windows.DWORD; //* Length of buffer for info */
+                              lpData         : ADDRESS        //* Buffer to place the data structure */
+                            ) : windows.BOOL;
+
+PROCEDURE VerLanguageName( wLang  : windows.DWORD;
+                           szLang : windows.PTSTR;
+                           nSize  : windows.DWORD
+                         ) : windows.DWORD;
+
+PROCEDURE VerQueryValue( pBlock         : ADDRESS;
+                         lpSubBlock     : windows.PTSTR;
+                         VAR lplpBuffer : ADDRESS;
+                         puLen          : windows.PUINT ) : windows.BOOL;
+
+END winver.

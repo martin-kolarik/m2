@@ -1,0 +1,79 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <strings lang="en-US">
+        <!-- Warnings -->
+        <!-- order of warnings is MANDATORY, they could be described in DOC -->
+
+        <string name="__DUMMY">
+            <item>...</item>
+        </string>
+        <string name="_Warning">
+            <item>Warning</item>
+        </string>
+
+        <string name="_InitCodeIgnored">
+            <item>init_code pragma ignored</item>
+        </string>
+        <string name="_PrefixShouldBeDecoration">
+            <item>"prefix" pragma should be replaced with more readable "decoration" pragma</item>
+        </string>
+        <string name="_PrefixShouldBeConvention">
+            <item>"prefix" pragma should be replaced with more readable "convention" pragma</item>
+        </string>
+        <string name="_OACopyNotSupported">
+            <item>o_a_copy=>on is not supported, ignored</item>
+        </string>
+        <string name="_TypedADRNotSupported">
+            <item>"typed_adr" is not supported, ADR is always typed, ignored</item>
+        </string>
+        <string name="_ExportShouldBeDLLExport">
+            <item>"export" pragma should be replaced with more readable "dll_export" pragma</item>
+        </string>
+        <string name="_ImportedModuleRequiresInitializationAutomaticOneCreated">
+            <item>Some of imported modules defines init code, but this module not. An automatic init code will be created.</item>
+        </string>
+        <string name="_InitiallyNotCalled">
+            <item>Some of imported modules defines init code, this module too, but the code is not exported. Caller of this module may operate with unitialized import.</item>
+        </string>
+        <string name="_AutomaticInitiallyNotCalled">
+            <item>The automatic init code is not exported. Caller of this module may operate with unitialized import.</item>
+        </string>
+        <string name="_ImportedModuleRequiresFinalizationAutomaticOneCreated">
+            <item>Some of imported modules defines final code, but this module not. An automatic final code will be created.</item>
+        </string>
+        <string name="_ClassVarNotInitialized">
+            <item>Class variable {0} is not initialized</item>
+        </string>
+        <string name="_LocalSymbolIsNotUsed">
+            <item>Local symbol {0} is not used</item>
+        </string>
+        <string name="_ProcedureIsNotCalled">
+            <item>Procedure {0} is not called</item>
+        </string>
+        <string name="_InitiallyFinallyAlwaysPublic">
+            <item>Access control modifier ignored, INITIALLY/FINALLY is always PUBLIC.</item>
+        </string>
+        <string name="_ObjectUnusableAfterFINALLY">
+            <item>After FINALLY the object and its aggregated class members are destructed and can be used only for static data access.</item>
+        </string>
+        <string name="_CodeAfterRETURNIgnored">
+            <item>Code after RETURN, GOTO or THROW has no effect</item>
+        </string>
+        <string name="_InaccessibleFINALLY">
+            <item>After RETURN the FINALLY clause, if used, would not be accessed.</item>
+        </string>
+        <string name="_PossibleBadNOTUsage">
+            <item>Possible bad usage of NOT, could left of IN be really negated?</item>
+        </string>
+        <string name="_CastToPointer">
+            <item>Possible unsafe type cast, RECORD, ARRAY or CLASS is casted to pointer type.</item>
+        </string>
+        <string name="_UnsafePointerCast">
+            <item>Possible unsafe type cast, pointer type length is variable.</item>
+        </string>
+        <string name="_ImportedModuleIsNewer">
+            <item>Imported module "{0}" is newer than me. The component should be rebuilt.</item>
+        </string>
+
+    </strings>
+</resources>

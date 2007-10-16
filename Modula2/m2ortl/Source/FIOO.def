@@ -1,0 +1,60 @@
+DEFINITION MODULE FIOO;
+
+IMPORT
+  FIO,
+  IOO,
+  Sync;
+
+#save, option( dll_export => on )
+
+(*================================================================================*)
+
+TYPE
+  TPFileStream = POINTER TO CFileStream;
+  
+TYPE
+  TInitMode = (
+    imUnknown,
+    imOpenRead,
+    imCreate,
+    imOpenOrCreate,
+    imAppend
+  );
+
+CLASS CFileStream( IOO.AStream ); // 32 bit
+  INTERNAL VAR
+    Access     : IOO.TAccess;
+    OwnHandle  : BOOLEAN;
+  PUBLIC READONLY VAR
+    Handle     : FIO.File;
+  PUBLIC FINAL READONLY PROPERTY
+    CanRead    : BOOLEAN;
+    CanWrite   : BOOLEAN;
+    CanSeek    : BOOLEAN;
+    Long       : BOOLEAN;
+  PUBLIC FINAL PROPERTY
+    Length     : CARD64;
+    Position   : CARD64;
+
+  PUBLIC PROCEDURE FromHandle( Handle : FIO.File; TakeHandleOwnership : BOOLEAN; FileAccess : IOO.TAccess ); // TFileAccess should not colide with Handle access flags
+  PUBLIC PROCEDURE FromPath( CONST Path : ARRAY OF WCHAR; InitMode : TInitMode ) THROWS IOO.CIOException;
+
+  PUBLIC FINAL PROCEDURE Seek( Origin : IOO.TSeekOrigin; Position : INT64 ); 
+  PUBLIC FINAL PROCEDURE Flush();
+  PUBLIC FINAL PROCEDURE Close( Persist : BOOLEAN );
+  
+  INTERNAL FINAL PROCEDURE Start( Direction : IOO.TDirection; OperationTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+  INTERNAL FINAL PROCEDURE Abort( Direction : IOO.TDirection );
+END CFileStream;
+
+(*================================================================================*)
+
+PROCEDURE stdin() : TPFileStream;
+PROCEDURE stdout() : TPFileStream;
+PROCEDURE errout() : TPFileStream;
+
+(*================================================================================*)
+
+#restore
+
+END FIOO.

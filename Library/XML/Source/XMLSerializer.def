@@ -1,0 +1,43 @@
+DEFINITION MODULE XMLSerializer;
+
+(*===========================================================================*)
+
+IMPORT
+	StringsO,
+	DOM,
+	XMLWriter;
+	
+(*---------------------------------------------------------------------------*)
+
+TYPE
+	TPXMLSerializable = POINTER TO AXMLSerializable;
+
+ABSTRACT CLASS AXMLSerializable;
+	// must have methods
+	PUBLIC ABSTRACT PROCEDURE SetProperty( CONST Name, Value : StringsO.CString ) : BOOLEAN; // return if property was accepted
+	PUBLIC VIRTUAL PROCEDURE GetProperty( CONST Name : ARRAY OF WCHAR; OUT Value : StringsO.CString ) : BOOLEAN;
+	// optional queries methods
+	PUBLIC VIRTUAL PROCEDURE SetChild( CONST Name : StringsO.CString; Child : TPXMLSerializable ) : BOOLEAN;
+	PUBLIC VIRTUAL PROCEDURE GetChild( CONST Name : ARRAY OF WCHAR; OUT Child : TPXMLSerializable ) : BOOLEAN;
+	// serialize
+	PUBLIC ABSTRACT PROCEDURE Serialize( CONST Writer : XMLWriter.CXMLWriter; IncludingSelfTag : BOOLEAN );
+END AXMLSerializable;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+	TPClassFactory = POINTER TO AClassFactory;
+
+ABSTRACT CLASS AClassFactory;
+	PUBLIC ABSTRACT PROCEDURE CreateInstance( CONST Owner : TPXMLSerializable; CONST ClassName : StringsO.CString; OUT Object : TPXMLSerializable ) : BOOLEAN;
+END AClassFactory;
+
+(*===========================================================================*)
+
+PROCEDURE DeserializeNodeList( NodeList : DOM.TPXMLNodeList; CONST Factory : AClassFactory; OUT Objects : ARRAY OF TPXMLSerializable; OUT Filled : CARDINAL );
+PROCEDURE DeserializeElement( Node : DOM.TPXMLElement; CONST Factory : AClassFactory; OUT Object : TPXMLSerializable ) : BOOLEAN;
+PROCEDURE Serialize( CONST Writer : XMLWriter.CXMLWriter; CONST Objects : ARRAY OF TPXMLSerializable );
+
+(*===========================================================================*)
+
+END XMLSerializer.

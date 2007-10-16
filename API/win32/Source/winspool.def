@@ -1,0 +1,922 @@
+DEFINITION MODULE winspool;
+
+(*==============================================================
+
+      Header file for Print APIs
+
+      32-bit version for M2CPP Modula-2 to C++ compiler
+
+      Copyright (c) 1998 Moravian Instruments, Inc.
+
+==============================================================*)
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+(*==============================================================
+
+  History: Created: 24.04.1998
+           Build 0: **.**.****
+
+==============================================================*)
+
+IMPORT
+  windows,
+  prsht;
+
+TYPE
+  PPRINTER_INFO_1 = POINTER TO PRINTER_INFO_1;
+  PRINTER_INFO_1  = RECORD
+                      Flags        : windows.DWORD;
+                      pDescription : windows.PTSTR;
+                      pName        : windows.PTSTR;
+                      pComment     : windows.PTSTR;
+                    END;
+
+
+  PPRINTER_INFO_2 = POINTER TO PRINTER_INFO_2;
+  PRINTER_INFO_2  = RECORD
+                      pServerName         : windows.PTSTR;
+                      pPrinterName        : windows.PTSTR;
+                      pShareName          : windows.PTSTR;
+                      pPortName           : windows.PTSTR;
+                      pDriverName         : windows.PTSTR;
+                      pComment            : windows.PTSTR;
+                      pLocation           : windows.PTSTR;
+                      pDevMode            : windows.PDEVMODE;
+                      pSepFile            : windows.PTSTR;
+                      pPrintProcessor     : windows.PTSTR;
+                      pDatatype           : windows.PTSTR;
+                      pParameters         : windows.PTSTR;
+                      pSecurityDescriptor : windows.PSECURITY_DESCRIPTOR ;
+                      Attributes          : windows.DWORD;
+                      Priority            : windows.DWORD;
+                      DefaultPriority     : windows.DWORD;
+                      StartTime           : windows.DWORD;
+                      UntilTime           : windows.DWORD;
+                      Status              : windows.DWORD;
+                      cJobs               : windows.DWORD;
+                      AveragePPM          : windows.DWORD;
+                    END;
+
+
+  PPRINTER_INFO_3 = POINTER TO PRINTER_INFO_3;
+  PRINTER_INFO_3  = RECORD
+                      pSecurityDescriptor : windows.PSECURITY_DESCRIPTOR;
+                    END;
+
+  PPRINTER_INFO_4 = POINTER TO PRINTER_INFO_4;
+  PRINTER_INFO_4  = RECORD
+                      pPrinterName : windows.PTSTR;
+                      pServerName  : windows.PTSTR;
+                      Attributes   : windows.DWORD;
+                    END;
+
+  PPRINTER_INFO_5 = POINTER TO PRINTER_INFO_5;
+  PRINTER_INFO_5  = RECORD
+                      pPrinterName             : windows.PTSTR;
+                      pPortName                : windows.PTSTR;
+                      Attributes               : windows.DWORD;
+                      DeviceNotSelectedTimeout : windows.DWORD;
+                      TransmissionRetryTimeout : windows.DWORD;
+                    END;
+
+  PPRINTER_INFO_6 = POINTER TO PRINTER_INFO_6;
+  PRINTER_INFO_6  = RECORD
+                      dwStatus : windows.DWORD;
+                    END;
+
+CONST
+  PRINTER_CONTROL_PAUSE               = 1;
+  PRINTER_CONTROL_RESUME              = 2;
+  PRINTER_CONTROL_PURGE               = 3;
+  PRINTER_CONTROL_SET_STATUS          = 4;
+
+  PRINTER_STATUS_PAUSED               = 00000001H;
+  PRINTER_STATUS_ERROR                = 00000002H;
+  PRINTER_STATUS_PENDING_DELETION     = 00000004H;
+  PRINTER_STATUS_PAPER_JAM            = 00000008H;
+  PRINTER_STATUS_PAPER_OUT            = 00000010H;
+  PRINTER_STATUS_MANUAL_FEED          = 00000020H;
+  PRINTER_STATUS_PAPER_PROBLEM        = 00000040H;
+  PRINTER_STATUS_OFFLINE              = 00000080H;
+  PRINTER_STATUS_IO_ACTIVE            = 00000100H;
+  PRINTER_STATUS_BUSY                 = 00000200H;
+  PRINTER_STATUS_PRINTING             = 00000400H;
+  PRINTER_STATUS_OUTPUT_BIN_FULL      = 00000800H;
+  PRINTER_STATUS_NOT_AVAILABLE        = 00001000H;
+  PRINTER_STATUS_WAITING              = 00002000H;
+  PRINTER_STATUS_PROCESSING           = 00004000H;
+  PRINTER_STATUS_INITIALIZING         = 00008000H;
+  PRINTER_STATUS_WARMING_UP           = 00010000H;
+  PRINTER_STATUS_TONER_LOW            = 00020000H;
+  PRINTER_STATUS_NO_TONER             = 00040000H;
+  PRINTER_STATUS_PAGE_PUNT            = 00080000H;
+  PRINTER_STATUS_USER_INTERVENTION    = 00100000H;
+  PRINTER_STATUS_OUT_OF_MEMORY        = 00200000H;
+  PRINTER_STATUS_DOOR_OPEN            = 00400000H;
+  PRINTER_STATUS_SERVER_UNKNOWN       = 00800000H;
+  PRINTER_STATUS_POWER_SAVE           = 01000000H;
+
+  PRINTER_ATTRIBUTE_QUEUED            = 00000001H;
+  PRINTER_ATTRIBUTE_DIRECT            = 00000002H;
+  PRINTER_ATTRIBUTE_DEFAULT           = 00000004H;
+  PRINTER_ATTRIBUTE_SHARED            = 00000008H;
+  PRINTER_ATTRIBUTE_NETWORK           = 00000010H;
+  PRINTER_ATTRIBUTE_HIDDEN            = 00000020H;
+  PRINTER_ATTRIBUTE_LOCAL             = 00000040H;
+
+  PRINTER_ATTRIBUTE_ENABLE_DEVQ       = 00000080H;
+  PRINTER_ATTRIBUTE_KEEPPRINTEDJOBS   = 00000100H;
+  PRINTER_ATTRIBUTE_DO_COMPLETE_FIRST = 00000200H;
+
+  PRINTER_ATTRIBUTE_WORK_OFFLINE      = 00000400H;
+  PRINTER_ATTRIBUTE_ENABLE_BIDI       = 00000800H;
+  PRINTER_ATTRIBUTE_RAW_ONLY          = 00001000H;
+
+  NO_PRIORITY  = 0;
+  MAX_PRIORITY = 99;
+  MIN_PRIORITY = 1;
+  DEF_PRIORITY = 1;
+
+
+TYPE
+  PJOB_INFO_1A = POINTER TO JOB_INFO_1A;
+  JOB_INFO_1A  = RECORD
+                   JobId        : windows.DWORD;
+                   pPrinterName : windows.PTSTR;
+                   pMachineName : windows.PTSTR;
+                   pUserName    : windows.PTSTR;
+                   pDocument    : windows.PTSTR;
+                   pDatatype    : windows.PTSTR;
+                   pStatus      : windows.PTSTR;
+                   Status       : windows.DWORD;
+                   Priority     : windows.DWORD;
+                   Position     : windows.DWORD;
+                   TotalPages   : windows.DWORD;
+                   PagesPrinted : windows.DWORD;
+                   Submitted    : windows.SYSTEMTIME;
+                 END;
+
+  PJOB_INFO_2 = POINTER TO JOB_INFO_2;
+  JOB_INFO_2  = RECORD
+                  JobId               : windows.DWORD;
+                  pPrinterName        : windows.PTSTR;
+                  pMachineName        : windows.PTSTR;
+                  pUserName           : windows.PTSTR;
+                  pDocument           : windows.PTSTR;
+                  pNotifyName         : windows.PTSTR;
+                  pDatatype           : windows.PTSTR;
+                  pPrintProcessor     : windows.PTSTR;
+                  pParameters         : windows.PTSTR;
+                  pDriverName         : windows.PTSTR;
+                  pDevMode            : windows.PDEVMODE;
+                  pStatus             : windows.PTSTR;
+                  pSecurityDescriptor : windows.PSECURITY_DESCRIPTOR;
+                  Status              : windows.DWORD;
+                  Priority            : windows.DWORD;
+                  Position            : windows.DWORD;
+                  StartTime           : windows.DWORD;
+                  UntilTime           : windows.DWORD;
+                  TotalPages          : windows.DWORD;
+                  Size                : windows.DWORD;
+                  Submitted           : windows.SYSTEMTIME;  // Time the job was spooled
+                  Time                : windows.DWORD;       // How many seconds the job has been printing
+                  PagesPrinted        : windows.DWORD;
+               END;
+
+  PJOB_INFO_3 = POINTER TO JOB_INFO_3;
+  JOB_INFO_3  = RECORD
+                  JobId     : windows.DWORD;
+                  NextJobId : windows.DWORD;
+                  Reserved  : windows.DWORD;
+                END;
+
+CONST
+  JOB_CONTROL_PAUSE              = 1;
+  JOB_CONTROL_RESUME             = 2;
+  JOB_CONTROL_CANCEL             = 3;
+  JOB_CONTROL_RESTART            = 4;
+  JOB_CONTROL_DELETE             = 5;
+  JOB_CONTROL_SENT_TO_PRINTER    = 6;
+  JOB_CONTROL_LAST_PAGE_EJECTED  = 7;
+
+  JOB_STATUS_PAUSED              = 00000001H;
+  JOB_STATUS_ERROR               = 00000002H;
+  JOB_STATUS_DELETING            = 00000004H;
+  JOB_STATUS_SPOOLING            = 00000008H;
+  JOB_STATUS_PRINTING            = 00000010H;
+  JOB_STATUS_OFFLINE             = 00000020H;
+  JOB_STATUS_PAPEROUT            = 00000040H;
+  JOB_STATUS_PRINTED             = 00000080H;
+  JOB_STATUS_DELETED             = 00000100H;
+  JOB_STATUS_BLOCKED_DEVQ        = 00000200H;
+  JOB_STATUS_USER_INTERVENTION   = 00000400H;
+  JOB_STATUS_RESTART             = 00000800H;
+
+  JOB_POSITION_UNSPECIFIED       = 0;
+
+
+TYPE
+  PADDJOB_INFO_1 = POINTER TO ADDJOB_INFO_1;
+  ADDJOB_INFO_1  = RECORD
+                     Path  : windows.PTSTR;
+                     JobId : windows.DWORD;
+                   END;
+
+  PDRIVER_INFO_1 = POINTER TO DRIVER_INFO_1;
+  DRIVER_INFO_1  = RECORD
+                     pName : windows.PTSTR;  // QMS 810
+                   END;
+
+
+  PDRIVER_INFO_2 = POINTER TO DRIVER_INFO_2;
+  DRIVER_INFO_2  = RECORD
+                     cVersion     : windows.DWORD;
+                     pName        : windows.PTSTR;  // QMS 810
+                     pEnvironment : windows.PTSTR;  // Win32 x86
+                     pDriverPath  : windows.PTSTR;  // c:\drivers\pscript.dll
+                     pDataFile    : windows.PTSTR;  // c:\drivers\QMS810.PPD
+                     pConfigFile  : windows.PTSTR;  // c:\drivers\PSCRPTUI.DLL
+                   END;
+
+
+  PDRIVER_INFO_3 = POINTER TO DRIVER_INFO_3;
+  DRIVER_INFO_3  = RECORD
+                     cVersion         : windows.DWORD;
+                     pName            : windows.PTSTR;  // QMS 810
+                     pEnvironment     : windows.PTSTR;  // Win32 x86
+                     pDriverPath      : windows.PTSTR;  // c:\drivers\pscript.dll
+                     pDataFile        : windows.PTSTR;  // c:\drivers\QMS810.PPD
+                     pConfigFile      : windows.PTSTR;  // c:\drivers\PSCRPTUI.DLL
+                     pHelpFile        : windows.PTSTR;  // c:\drivers\PSCRPTUI.HLP
+                     pDependentFiles  : windows.PTSTR;  // PSCRIPT.DLL\0QMS810.PPD\0PSCRIPTUI.DLL\0PSCRIPTUI.HLP\0PSTEST.TXT\0\0
+                     pMonitorName     : windows.PTSTR;  // "PJL monitor"
+                     pDefaultDataType : windows.PTSTR;  // "EMF"
+                   END;
+
+  PDOC_INFO_1 = POINTER TO DOC_INFO_1;
+  DOC_INFO_1  = RECORD
+                  pDocName    : windows.PTSTR;
+                  pOutputFile : windows.PTSTR;
+                  pDatatype   : windows.PTSTR;
+                END;
+
+  PFORM_INFO_1 = POINTER TO FORM_INFO_1;
+  FORM_INFO_1  = RECORD
+                   Flags         : windows.DWORD;
+                   pName         : windows.PTSTR;
+                   Size          : windows.SIZEL;
+                   ImageableArea : windows.RECTL;
+                 END;
+
+  PDOC_INFO_2 = POINTER TO DOC_INFO_2;
+  DOC_INFO_2  = RECORD
+                  pDocName    : windows.PTSTR;
+                  pOutputFile : windows.PTSTR;
+                  pDatatype   : windows.PTSTR;
+                  dwMode      : windows.DWORD;
+                  JobId       : windows.DWORD;
+                END;  
+
+
+CONST
+  DI_CHANNEL        = 1;    // start direct read/write channel,
+
+  DI_READ_SPOOL_JOB = 3;
+
+  FORM_USER         = 00000000H;
+  FORM_BUILTIN      = 00000001H;
+  FORM_PRINTER      = 00000002H;
+
+
+TYPE
+  PPRINTPROCESSOR_INFO_1 = POINTER TO PRINTPROCESSOR_INFO_1;
+  PRINTPROCESSOR_INFO_1  = RECORD
+                            pName : windows.PTSTR;
+                           END;
+
+  PPORT_INFO_1 = POINTER TO PORT_INFO_1;
+  PORT_INFO_1  = RECORD
+                   pName : windows.PTSTR;
+                 END;
+
+  PPORT_INFO_2 = POINTER TO PORT_INFO_2;
+  PORT_INFO_2  = RECORD
+                   pPortName    : windows.PTSTR;
+                   pMonitorName : windows.PTSTR;
+                   pDescription : windows.PTSTR;
+                   fPortType    : windows.DWORD;
+                   Reserved     : windows.DWORD;
+                 END;
+
+
+CONST
+  PORT_TYPE_WRITE         = 0001H;
+  PORT_TYPE_READ          = 0002H;
+  PORT_TYPE_REDIRECTED    = 0004H;
+  PORT_TYPE_NET_ATTACHED  = 0008H;
+
+TYPE
+  PPORT_INFO_3 = POINTER TO PORT_INFO_3;
+  PORT_INFO_3  = RECORD
+                   dwStatus   : windows.DWORD;
+                   pszStatus  : windows.PTSTR;
+                   dwSeverity : windows.DWORD;
+                 END;
+
+
+CONST
+  PORT_STATUS_TYPE_ERROR        = 1;
+  PORT_STATUS_TYPE_WARNING      = 2;
+  PORT_STATUS_TYPE_INFO         = 3;
+
+  PORT_STATUS_OFFLINE           = 1;
+  PORT_STATUS_PAPER_JAM         = 2;
+  PORT_STATUS_PAPER_OUT         = 3;
+  PORT_STATUS_OUTPUT_BIN_FULL   = 4;
+  PORT_STATUS_PAPER_PROBLEM     = 5;
+  PORT_STATUS_NO_TONER          = 6;
+  PORT_STATUS_DOOR_OPEN         = 7;
+  PORT_STATUS_USER_INTERVENTION = 8;
+  PORT_STATUS_OUT_OF_MEMORY     = 9;
+
+  PORT_STATUS_TONER_LOW         = 10;
+
+  PORT_STATUS_WARMING_UP        = 11;
+  PORT_STATUS_POWER_SAVE        = 12;
+
+TYPE
+  PMONITOR_INFO_1 = POINTER TO MONITOR_INFO_1;
+  MONITOR_INFO_1  = RECORD
+                      pName : windows.PTSTR;
+                    END;
+
+  PMONITOR_INFO_2 = POINTER TO MONITOR_INFO_2;
+  MONITOR_INFO_2  = RECORD
+                      pName        : windows.PTSTR;
+                      pEnvironment : windows.PTSTR;
+                      pDLLName     : windows.PTSTR;
+                    END;
+
+  PDATATYPES_INFO_1 = POINTER TO DATATYPES_INFO_1;
+  DATATYPES_INFO_1  = RECORD
+                        pName : windows.PTSTR;
+                      END;
+
+  PPRINTER_DEFAULTS = POINTER TO PRINTER_DEFAULTS;
+  PRINTER_DEFAULTS  = RECORD
+                        pDatatype     : windows.PTSTR;
+                        pDevMode      : windows.PDEVMODE;
+                        DesiredAccess : windows.ACCESS_MASK;
+                      END;
+
+
+
+PROCEDURE EnumPrinters( Flags       : windows.DWORD;
+                       Name         : windows.PTSTR;
+                       Level        : windows.DWORD;
+                       pPrinterEnum : windows.PBYTE;
+                       cbBuf        : windows.DWORD;
+                       pcbNeeded    : windows.PDWORD;
+                       pcReturned   : windows.PDWORD ) : windows.BOOL;
+
+CONST
+  PRINTER_ENUM_DEFAULT     = 00000001H;
+  PRINTER_ENUM_LOCAL       = 00000002H;
+  PRINTER_ENUM_CONNECTIONS = 00000004H;
+  PRINTER_ENUM_FAVORITE    = 00000004H;
+  PRINTER_ENUM_NAME        = 00000008H;
+  PRINTER_ENUM_REMOTE      = 00000010H;
+  PRINTER_ENUM_SHARED      = 00000020H;
+  PRINTER_ENUM_NETWORK     = 00000040H;
+
+  PRINTER_ENUM_EXPAND      = 00004000H;
+  PRINTER_ENUM_CONTAINER   = 00008000H;
+
+  PRINTER_ENUM_ICONMASK    = 00FF0000H;
+  PRINTER_ENUM_ICON1       = 00010000H;
+  PRINTER_ENUM_ICON2       = 00020000H;
+  PRINTER_ENUM_ICON3       = 00040000H;
+  PRINTER_ENUM_ICON4       = 00080000H;
+  PRINTER_ENUM_ICON5       = 00100000H;
+  PRINTER_ENUM_ICON6       = 00200000H;
+  PRINTER_ENUM_ICON7       = 00400000H;
+  PRINTER_ENUM_ICON8       = 00800000H;
+
+
+PROCEDURE OpenPrinter( pPrinterName : windows.PTSTR;
+                       phPrinter    : windows.PHANDLE;
+                       pDefault     : PPRINTER_DEFAULTS ) : windows.BOOL ;
+
+PROCEDURE ResetPrinter( hPrinter : windows.HANDLE;
+                        pDefault : PPRINTER_DEFAULTS ) : windows.BOOL;
+
+PROCEDURE SetJob( hPrinter : windows.HANDLE;
+                  JobId    : windows.DWORD;
+                  Level    : windows.DWORD;
+                  pJob     : windows.PBYTE;
+                  Command  : windows.DWORD ) : windows.BOOL;
+
+PROCEDURE GetJob( hPrinter  : windows.HANDLE;
+                  JobId     : windows.DWORD;
+                  Level     : windows.DWORD;
+                  pJob      : windows.PBYTE;
+                  cbBuf     : windows.DWORD;
+                  pcbNeeded : windows.PDWORD ) : windows.BOOL;
+
+PROCEDURE EnumJobs( hPrinter   : windows.HANDLE;
+                    FirstJob   : windows.DWORD;
+                    NoJobs     : windows.DWORD;
+                    Level      : windows.DWORD;
+                    pJob       : windows.PBYTE;
+                    cbBuf      : windows.DWORD;
+                    pcbNeeded  : windows.PDWORD;
+                    pcReturned : windows.PDWORD ) : windows.BOOL;
+
+PROCEDURE AddPrinter( pName    : windows.PTSTR;
+                      Level    : windows.DWORD;
+                      pPrinter : windows.PBYTE ) : windows.HANDLE;
+
+PROCEDURE DeletePrinter( hPrinter : windows.HANDLE ) : windows.BOOL;
+
+PROCEDURE SetPrinter( hPrinter  : windows.HANDLE;
+                      Level    : windows.DWORD;
+                      pPrinter : windows.PBYTE;
+                      Command  : windows.DWORD ) : windows.BOOL;
+
+PROCEDURE GetPrinter( hPrinter  : windows.HANDLE;
+                     Level     : windows.DWORD;
+                     pPrinter  : windows.PBYTE;
+                     cbBuf     : windows.DWORD;
+                     pcbNeeded : windows.PDWORD ) : windows.BOOL;
+
+
+PROCEDURE AddPrinterDriver(pName       : windows.PTSTR;
+                           Level       : windows.DWORD;
+                           pDriverInfo : windows.PBYTE ) : windows.BOOL;
+
+
+PROCEDURE EnumPrinterDrivers(pName        : windows.PTSTR;
+                             pEnvironment : windows.PTSTR;
+                             Level        : windows.DWORD;
+                             pDriverInfo  : windows.PBYTE;
+                             cbBuf        : windows.DWORD;
+                             pcbNeeded    : windows.PDWORD;
+                             pcReturned   : windows.PDWORD  ) : windows.BOOL;
+
+PROCEDURE GetPrinterDriver(hPrinter     : windows.HANDLE;
+                           pEnvironment : windows.PTSTR;
+                           Level        : windows.DWORD;
+                           pDriverInfo  : windows.PBYTE;
+                           cbBuf        : windows.DWORD;
+                           pcbNeeded    : windows.PDWORD ) : windows.BOOL;
+
+PROCEDURE GetPrinterDriverDirectory(pName            : windows.PTSTR;
+                                    pEnvironment     : windows.PTSTR;
+                                    Level            : windows.DWORD;
+                                    pDriverDirectory : windows.PBYTE;
+                                    cbBuf            : windows.DWORD;
+                                    pcbNeeded        : windows.PDWORD ) : windows.BOOL;
+
+PROCEDURE DeletePrinterDriver(pName        : windows.PTSTR;
+                              pEnvironment : windows.PTSTR;
+                              pDriverName  : windows.PTSTR ) : windows.BOOL;
+
+PROCEDURE AddPrintProcessor(pName               : windows.PTSTR;
+                            pEnvironment        : windows.PTSTR;
+                            pPathName           : windows.PTSTR;
+                            pPrintProcessorName : windows.PTSTR ) : windows.BOOL;
+
+PROCEDURE EnumPrintProcessors(pName               : windows.PTSTR;
+                              pEnvironment        : windows.PTSTR;
+                              Level               : windows.DWORD;
+                              pPrintProcessorInfo : windows.PBYTE;
+                              cbBuf               : windows.DWORD;
+                              pcbNeeded           : windows.PDWORD;
+                              pcReturned          : windows.PDWORD ) : windows.BOOL;
+
+
+PROCEDURE GetPrintProcessorDirectory(pName               : windows.PTSTR;
+                                     pEnvironment        : windows.PTSTR;
+                                     Level               : windows.DWORD;
+                                     pPrintProcessorInfo : windows.PBYTE;
+                                     cbBuf               : windows.DWORD;
+                                     pcbNeeded           : windows.PDWORD ) : windows.BOOL;
+
+PROCEDURE EnumPrintProcessorDatatypes(pName               : windows.PTSTR;
+                                      pPrintProcessorName : windows.PTSTR;
+                                      Level               : windows.DWORD;
+                                      pDatatypes          : windows.PBYTE;
+                                      cbBuf               : windows.DWORD;
+                                      pcbNeeded           : windows.PDWORD;
+                                      pcReturned          : windows.PDWORD ) : windows.BOOL;
+
+PROCEDURE DeletePrintProcessor(pName               : windows.PTSTR;
+                               pEnvironment        : windows.PTSTR;
+                               pPrintProcessorName : windows.PTSTR ) : windows.BOOL;
+
+PROCEDURE StartDocPrinter(hPrinter : windows.HANDLE;
+                          Level    : windows.DWORD;
+                          pDocInfo : windows.PBYTE ) : windows.DWORD;
+
+PROCEDURE StartPagePrinter( hPrinter : windows.HANDLE ) : windows.BOOL;
+
+PROCEDURE WritePrinter(hPrinter  : windows.HANDLE;
+                       pBuf      : windows.PVOID;
+                       cbBuf     : windows.DWORD;
+                       pcWritten : windows.PDWORD ) : windows.BOOL;
+
+PROCEDURE EndPagePrinter( hPrinter : windows.HANDLE ) : windows.BOOL;
+
+PROCEDURE AbortPrinter( hPrinter : windows.HANDLE ) : windows.BOOL;
+
+PROCEDURE ReadPrinter(hPrinter     : windows.HANDLE;
+                      pBuf         : windows.PVOID;
+                      cbBuf        : windows.DWORD;
+                      pNoBytesRead : windows.PDWORD ) : windows.BOOL;
+
+PROCEDURE EndDocPrinter( hPrinter : windows.HANDLE ) : windows.BOOL;
+
+PROCEDURE AddJob(hPrinter  : windows.HANDLE;
+                 Level     : windows.DWORD;
+                 pData     : windows.PBYTE;
+                 cbBuf     : windows.DWORD;
+                 pcbNeeded : windows.PDWORD ) : windows.BOOL;
+
+PROCEDURE ScheduleJob(hPrinter : windows.HANDLE;
+                      JobId    : windows.DWORD ) : windows.BOOL;
+
+PROCEDURE PrinterProperties( hWnd     : windows.HWND;
+                             hPrinter : windows.HANDLE ) : windows.BOOL;
+
+PROCEDURE DocumentProperties( hWnd           : windows.HWND;
+                             hPrinter       : windows.HANDLE;
+                             pDeviceName    : windows.PTSTR;
+                             pDevModeOutput : windows.PDEVMODE;
+                             pDevModeInput  : windows.PDEVMODE;
+                             fMode          : windows.DWORD ) : windows.LONG;
+
+PROCEDURE AdvancedDocumentProperties( hWnd           : windows.HWND;
+                                     hPrinter       : windows.HANDLE;
+                                     pDeviceName    : windows.PTSTR;
+                                     pDevModeOutput : windows.PDEVMODE;
+                                     pDevModeInput  : windows.PDEVMODE ) : windows.LONG;
+
+PROCEDURE GetPrinterData( hPrinter   : windows.HANDLE;
+                          pValueName : windows.PTSTR;
+                          pType      : windows.PDWORD;
+                          pData      : windows.PBYTE;
+                          nSize      : windows.DWORD;
+                          pcbNeeded  : windows.PDWORD ) : windows.DWORD;
+
+PROCEDURE EnumPrinterData( hPrinter     : windows.HANDLE;
+                          dwIndex      : windows.DWORD;
+                          pValueName   : windows.PTSTR;
+                          cbValueName  : windows.DWORD;
+                          pcbValueName : windows.PDWORD;
+                          pType        : windows.PDWORD;
+                          pData        : windows.PBYTE;
+                          cbData       : windows.DWORD;
+                          pcbData      : windows.PDWORD ) : windows.DWORD;
+
+
+PROCEDURE SetPrinterData( hPrinter   : windows.HANDLE;
+                         pValueName : windows.PTSTR;
+                         Type       : windows.DWORD;
+                         pData      : windows.PBYTE;
+                         cbData     : windows.DWORD ) : windows.DWORD;
+
+
+PROCEDURE DeletePrinterData( hPrinter  : windows.HANDLE;
+                            pValueName : windows.PTSTR ) : windows.DWORD;
+
+
+CONST
+  PRINTER_NOTIFY_TYPE                          = 00H;
+  JOB_NOTIFY_TYPE                              = 01H;
+
+  PRINTER_NOTIFY_FIELD_SERVER_NAME             = 00H;
+  PRINTER_NOTIFY_FIELD_PRINTER_NAME            = 01H;
+  PRINTER_NOTIFY_FIELD_SHARE_NAME              = 02H;
+  PRINTER_NOTIFY_FIELD_PORT_NAME               = 03H;
+  PRINTER_NOTIFY_FIELD_DRIVER_NAME             = 04H;
+  PRINTER_NOTIFY_FIELD_COMMENT                 = 05H;
+  PRINTER_NOTIFY_FIELD_LOCATION                = 06H;
+  PRINTER_NOTIFY_FIELD_DEVMODE                 = 07H;
+  PRINTER_NOTIFY_FIELD_SEPFILE                 = 08H;
+  PRINTER_NOTIFY_FIELD_PRINT_PROCESSOR         = 09H;
+  PRINTER_NOTIFY_FIELD_PARAMETERS              = 0AH;
+  PRINTER_NOTIFY_FIELD_DATATYPE                = 0BH;
+  PRINTER_NOTIFY_FIELD_SECURITY_DESCRIPTOR     = 0CH;
+  PRINTER_NOTIFY_FIELD_ATTRIBUTES              = 0DH;
+  PRINTER_NOTIFY_FIELD_PRIORITY                = 0EH;
+  PRINTER_NOTIFY_FIELD_DEFAULT_PRIORITY        = 0FH;
+  PRINTER_NOTIFY_FIELD_START_TIME              = 10H;
+  PRINTER_NOTIFY_FIELD_UNTIL_TIME              = 11H;
+  PRINTER_NOTIFY_FIELD_STATUS                  = 12H;
+  PRINTER_NOTIFY_FIELD_STATUS_STRING           = 13H;
+  PRINTER_NOTIFY_FIELD_CJOBS                   = 14H;
+  PRINTER_NOTIFY_FIELD_AVERAGE_PPM             = 15H;
+  PRINTER_NOTIFY_FIELD_TOTAL_PAGES             = 16H;
+  PRINTER_NOTIFY_FIELD_PAGES_PRINTED           = 17H;
+  PRINTER_NOTIFY_FIELD_TOTAL_BYTES             = 18H;
+  PRINTER_NOTIFY_FIELD_BYTES_PRINTED           = 19H;
+
+  JOB_NOTIFY_FIELD_PRINTER_NAME                = 00H;
+  JOB_NOTIFY_FIELD_MACHINE_NAME                = 01H;
+  JOB_NOTIFY_FIELD_PORT_NAME                   = 02H;
+  JOB_NOTIFY_FIELD_USER_NAME                   = 03H;
+  JOB_NOTIFY_FIELD_NOTIFY_NAME                 = 04H;
+  JOB_NOTIFY_FIELD_DATATYPE                    = 05H;
+  JOB_NOTIFY_FIELD_PRINT_PROCESSOR             = 06H;
+  JOB_NOTIFY_FIELD_PARAMETERS                  = 07H;
+  JOB_NOTIFY_FIELD_DRIVER_NAME                 = 08H;
+  JOB_NOTIFY_FIELD_DEVMODE                     = 09H;
+  JOB_NOTIFY_FIELD_STATUS                      = 0AH;
+  JOB_NOTIFY_FIELD_STATUS_STRING               = 0BH;
+  JOB_NOTIFY_FIELD_SECURITY_DESCRIPTOR         = 0CH;
+  JOB_NOTIFY_FIELD_DOCUMENT                    = 0DH;
+  JOB_NOTIFY_FIELD_PRIORITY                    = 0EH;
+  JOB_NOTIFY_FIELD_POSITION                    = 0FH;
+  JOB_NOTIFY_FIELD_SUBMITTED                   = 10H;
+  JOB_NOTIFY_FIELD_START_TIME                  = 11H;
+  JOB_NOTIFY_FIELD_UNTIL_TIME                  = 12H;
+  JOB_NOTIFY_FIELD_TIME                        = 13H;
+  JOB_NOTIFY_FIELD_TOTAL_PAGES                 = 14H;
+  JOB_NOTIFY_FIELD_PAGES_PRINTED               = 15H;
+  JOB_NOTIFY_FIELD_TOTAL_BYTES                 = 16H;
+  JOB_NOTIFY_FIELD_BYTES_PRINTED               = 17H;
+
+TYPE
+  PPRINTER_NOTIFY_OPTIONS_TYPE = POINTER TO PRINTER_NOTIFY_OPTIONS_TYPE;
+  PRINTER_NOTIFY_OPTIONS_TYPE  = RECORD
+                                   Type      : WORD ;
+                                   Reserved0 : WORD;
+                                   Reserved1 : windows.DWORD;
+                                   Reserved2 : windows.DWORD;
+                                   Count     : windows.DWORD;
+                                   pFields   : windows.PWORD;
+                                 END; 
+
+
+CONST
+  PRINTER_NOTIFY_OPTIONS_REFRESH = 01H;
+
+TYPE
+  PPRINTER_NOTIFY_OPTIONS = POINTER TO PRINTER_NOTIFY_OPTIONS;
+  PRINTER_NOTIFY_OPTIONS  = RECORD 
+                              Version : windows.DWORD;
+                              Flags   : windows.DWORD;
+                              Count   : windows.DWORD;
+                              pTypes  : PPRINTER_NOTIFY_OPTIONS_TYPE;
+                            END;
+
+
+CONST
+  PRINTER_NOTIFY_INFO_DISCARDED       = 01H;
+
+TYPE
+  PPRINTER_NOTIFY_INFO_DATA = POINTER TO PRINTER_NOTIFY_INFO_DATA;
+  PRINTER_NOTIFY_INFO_DATA  = RECORD
+                                Type     : WORD;
+                                Field    : WORD;
+                                Reserved : windows.DWORD;
+                                Id       : windows.DWORD;
+                                CASE : BYTE OF
+                                | 0 : adwData : ARRAY [0..1] OF windows.DWORD;
+                                | 1 : cbBuf   : windows.DWORD;
+                                      pBuf    : windows.PVOID;
+                                END;
+                              END;
+
+  PPRINTER_NOTIFY_INFO = POINTER TO PRINTER_NOTIFY_INFO;
+  PRINTER_NOTIFY_INFO  = RECORD
+                           Version : windows.DWORD;
+                           Flags   : windows.DWORD;
+                           Count   : windows.DWORD;
+                           aData   : ARRAY [0..0] OF PRINTER_NOTIFY_INFO_DATA ;
+                         END;
+
+PROCEDURE WaitForPrinterChange( hPrinter : windows.HANDLE;
+                               Flags    : windows.DWORD ) : windows.DWORD;
+
+PROCEDURE FindFirstPrinterChangeNotification( hPrinter             : windows.HANDLE;
+                                             fdwFlags             : windows.DWORD;
+                                             fdwOptions           : windows.DWORD;
+                                             pPrinterNotifyOption : windows.PVOID ) : windows.HANDLE;
+
+PROCEDURE FindNextPrinterChangeNotification( hChange           : windows.HANDLE;
+                                            pdwChange          : windows.PDWORD;
+                                            pvReserved         : windows.PVOID;
+                                            ppPrinterNotifyInf : windows.PPVOID ) : windows.BOOL;
+
+PROCEDURE FreePrinterNotifyInfo( pPrinterNotifyInfo : PPRINTER_NOTIFY_INFO ) : windows.BOOL;
+
+PROCEDURE FindClosePrinterChangeNotification( hChang : windows.HANDLE ) : windows.BOOL;
+
+
+CONST
+  PRINTER_CHANGE_ADD_PRINTER               = 00000001H;
+  PRINTER_CHANGE_SET_PRINTER               = 00000002H;
+  PRINTER_CHANGE_DELETE_PRINTER            = 00000004H;
+  PRINTER_CHANGE_FAILED_CONNECTION_PRINTER = 00000008H;
+  PRINTER_CHANGE_PRINTER                   = 000000FFH;
+  PRINTER_CHANGE_ADD_JOB                   = 00000100H;
+  PRINTER_CHANGE_SET_JOB                   = 00000200H;
+  PRINTER_CHANGE_DELETE_JOB                = 00000400H;
+  PRINTER_CHANGE_WRITE_JOB                 = 00000800H;
+  PRINTER_CHANGE_JOB                       = 0000FF00H;
+  PRINTER_CHANGE_ADD_FORM                  = 00010000H;
+  PRINTER_CHANGE_SET_FORM                  = 00020000H;
+  PRINTER_CHANGE_DELETE_FORM               = 00040000H;
+  PRINTER_CHANGE_FORM                      = 00070000H;
+  PRINTER_CHANGE_ADD_PORT                  = 00100000H;
+  PRINTER_CHANGE_CONFIGURE_PORT            = 00200000H;
+  PRINTER_CHANGE_DELETE_PORT               = 00400000H;
+  PRINTER_CHANGE_PORT                      = 00700000H;
+  PRINTER_CHANGE_ADD_PRINT_PROCESSOR       = 01000000H;
+  PRINTER_CHANGE_DELETE_PRINT_PROCESSOR    = 04000000H;
+  PRINTER_CHANGE_PRINT_PROCESSOR           = 07000000H;
+  PRINTER_CHANGE_ADD_PRINTER_DRIVER        = 10000000H;
+  PRINTER_CHANGE_SET_PRINTER_DRIVER        = 20000000H;
+  PRINTER_CHANGE_DELETE_PRINTER_DRIVER     = 40000000H;
+  PRINTER_CHANGE_PRINTER_DRIVER            = 70000000H;
+  PRINTER_CHANGE_TIMEOUT                   = 80000000H;
+  PRINTER_CHANGE_ALL                       = 7777FFFFH;
+
+PROCEDURE PrinterMessageBox( hPrinter : windows.HANDLE;
+                            Error    : windows.DWORD;
+                            hWnd     : windows.HWND;
+                            pText    : windows.PTSTR;
+                            pCaption : windows.PTSTR;
+                            dwType   : windows.DWORD ) : windows.DWORD;
+
+
+CONST
+  PRINTER_ERROR_INFORMATION   = 80000000H;
+  PRINTER_ERROR_WARNING       = 40000000H;
+  PRINTER_ERROR_SEVERE        = 20000000H;
+
+  PRINTER_ERROR_OUTOFPAPER    = 00000001H;
+  PRINTER_ERROR_JAM           = 00000002H;
+  PRINTER_ERROR_OUTOFTONER    = 00000004H;
+
+
+PROCEDURE ClosePrinter( hPrinter : windows.HANDLE ) : windows.BOOL;
+
+PROCEDURE AddForm( hPrinter : windows.HANDLE;
+                  Level    : windows.DWORD;
+                  pForm    : windows.PBYTE ) : windows.BOOL;
+
+PROCEDURE DeleteForm( hPrinter  : windows.HANDLE;
+                     pFormName : windows.PTSTR ) : windows.BOOL;
+
+PROCEDURE GetForm( hPrinter  : windows.HANDLE;
+                  pFormName : windows.PTSTR;
+                  Level     : windows.DWORD;
+                  pForm     : windows.PBYTE;
+                  cbBuf     : windows.DWORD;
+                  pcbNeeded : windows.PDWORD ) : windows.BOOL;
+
+PROCEDURE SetForm( hPrinter  : windows.HANDLE;
+                  pFormName : windows.PTSTR;
+                  Level     : windows.DWORD;
+                  pForm     : windows.PBYTE ) : windows.BOOL;
+
+PROCEDURE EnumForms( hPrinter   : windows.HANDLE;
+                    Level      : windows.DWORD;
+                    pForm      : windows.PBYTE;
+                    cbBuf      : windows.DWORD;
+                    pcbNeeded  : windows.PDWORD;
+                    pcReturned : windows.PDWORD ) : windows.BOOL;
+
+PROCEDURE EnumMonitors( pName      : windows.PTSTR;
+                       Level      : windows.DWORD;
+                       pMonitors  : windows.PBYTE;
+                       cbBuf      : windows.DWORD;
+                       pcbNeeded  : windows.PDWORD;
+                       pcReturned : windows.PDWORD ) : windows.BOOL;
+
+PROCEDURE AddMonitor( pName     : windows.PTSTR;
+                     Level     : windows.DWORD;
+                     pMonitors : windows.PBYTE ) : windows.BOOL;
+
+PROCEDURE DeleteMonitor( pName        : windows.PTSTR;
+                        pEnvironment : windows.PTSTR;
+                        pMonitorName : windows.PTSTR ) : windows.BOOL;
+
+PROCEDURE EnumPorts( pName      : windows.PTSTR;
+                    Level      : windows.DWORD;
+                    pPorts     : windows.PBYTE;
+                    cbBuf      : windows.DWORD;
+                    pcbNeded   : windows.PDWORD;
+                    pcReturned : windows.PDWORD ) : windows.BOOL;
+
+PROCEDURE AddPort( pName        : windows.PTSTR;
+                  hWnd         : windows.HWND;
+                  pMonitorName : windows.PTSTR ) : windows.BOOL;
+
+PROCEDURE ConfigurePort( pName     : windows.PTSTR;
+                        hWnd      : windows.HWND;
+                        pPortName : windows.PTSTR ) : windows.BOOL;
+
+PROCEDURE DeletePort( pName     : windows.PTSTR;
+                     hWnd      : windows.HWND;
+                     pPortName : windows.PTSTR ) : windows.BOOL;
+
+PROCEDURE SetPort( pName     : windows.PTSTR;
+                  pPortName : windows.PTSTR;
+                  dwLevel   : windows.DWORD;
+                  pPortInfo : windows.PBYTE ) : windows.BOOL;
+
+PROCEDURE AddPrinterConnection( pName : windows.PTSTR ) : windows.BOOL;
+
+PROCEDURE DeletePrinterConnection( pName : windows.PTSTR ) : windows.BOOL;
+
+PROCEDURE ConnectToPrinterDlg( hwnd  : windows.HWND;
+                              Flags : windows.DWORD ) : windows.HANDLE;
+
+TYPE
+  PPROVIDOR_INFO_1 = POINTER TO PROVIDOR_INFO_1;
+  PROVIDOR_INFO_1  = RECORD
+                       pName        : windows.PTSTR;
+                       pEnvironment : windows.PTSTR;
+                       pDLLName     : windows.PTSTR;
+                     END;
+
+
+PROCEDURE AddPrintProvidor( pName         : windows.PTSTR;
+                           level         : windows.DWORD;
+                           pProvidorInfo : windows.PBYTE ) : windows.BOOL;
+
+PROCEDURE DeletePrintProvidor( pName              : windows.PTSTR;
+                              pEnvironment       : windows.PTSTR;
+                              pPrintProvidorName : windows.PTSTR ) : windows.BOOL;
+
+
+CONST
+// SetPrinterData and GetPrinterData Server Handle Key values
+
+  SPLREG_DEFAULT_SPOOL_DIRECTORY             = "DefaultSpoolDirectory";
+  SPLREG_PORT_THREAD_PRIORITY_DEFAULT        = "PortThreadPriorityDefault";
+  SPLREG_PORT_THREAD_PRIORITY                = "PortThreadPriority";
+  SPLREG_SCHEDULER_THREAD_PRIORITY_DEFAULT   = "SchedulerThreadPriorityDefault";
+  SPLREG_SCHEDULER_THREAD_PRIORITY           = "SchedulerThreadPriority";
+  SPLREG_BEEP_ENABLED                        = "BeepEnabled";
+  SPLREG_NET_POPUP                           = "NetPopup";
+  SPLREG_EVENT_LOG                           = "EventLog";
+  SPLREG_MAJOR_VERSION                       = "MajorVersion";
+  SPLREG_MINOR_VERSION                       = "MinorVersion";
+  SPLREG_ARCHITECTURE                        = "Architecture";
+
+
+  SERVER_ACCESS_ADMINISTER    = 00000001H;
+  SERVER_ACCESS_ENUMERATE     = 00000002H;
+
+  PRINTER_ACCESS_ADMINISTER   = 00000004H;
+  PRINTER_ACCESS_USE          = 00000008H;
+
+  JOB_ACCESS_ADMINISTER       = 00000010H;
+
+
+// Access rights for print servers
+
+  SERVER_ALL_ACCESS    = windows.STANDARD_RIGHTS_REQUIRED OR SERVER_ACCESS_ADMINISTER OR SERVER_ACCESS_ENUMERATE;
+
+  SERVER_READ          = windows.STANDARD_RIGHTS_READ OR SERVER_ACCESS_ENUMERATE;
+
+  SERVER_WRITE         = windows.STANDARD_RIGHTS_WRITE OR SERVER_ACCESS_ADMINISTER OR SERVER_ACCESS_ENUMERATE;
+
+  SERVER_EXECUTE       = windows.STANDARD_RIGHTS_EXECUTE OR SERVER_ACCESS_ENUMERATE;
+
+// Access rights for printers
+
+  PRINTER_ALL_ACCESS    = windows.STANDARD_RIGHTS_REQUIRED OR PRINTER_ACCESS_ADMINISTER OR PRINTER_ACCESS_USE;
+
+  PRINTER_READ          = windows.STANDARD_RIGHTS_READ OR PRINTER_ACCESS_USE;
+
+  PRINTER_WRITE         = windows.STANDARD_RIGHTS_WRITE OR PRINTER_ACCESS_USE;
+
+  PRINTER_EXECUTE       = windows.STANDARD_RIGHTS_EXECUTE OR PRINTER_ACCESS_USE;
+  
+// Access rights for jobs
+
+  JOB_ALL_ACCESS         = windows.STANDARD_RIGHTS_REQUIRED OR JOB_ACCESS_ADMINISTER;
+
+  JOB_READ               = windows.STANDARD_RIGHTS_READ OR JOB_ACCESS_ADMINISTER;
+
+  JOB_WRITE              = windows.STANDARD_RIGHTS_WRITE OR JOB_ACCESS_ADMINISTER;
+
+  JOB_EXECUTE            = windows.STANDARD_RIGHTS_EXECUTE OR JOB_ACCESS_ADMINISTER;
+
+
+END winspool.

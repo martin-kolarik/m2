@@ -1,0 +1,2036 @@
+// Generated .IDL file (by the OLE/COM Object Viewer)
+// 
+// typelib filename: msado27.tlb
+
+[
+  uuid(EF53050B-882E-4776-B643-EDA472E8E3F2),
+  version(2.7),
+  helpstring("Microsoft ActiveX Data Objects 2.7 Library"),
+  helpfile("ado270.chm"),
+  helpcontext(00000000),
+  custom(DE77BA64-517C-11D1-A2DA-0000F8773CE9, 100663641),
+  custom(DE77BA63-517C-11D1-A2DA-0000F8773CE9, 1004447339),
+  custom(DE77BA65-517C-11D1-A2DA-0000F8773CE9, Created by MIDL version 6.00.0345 at Tue Oct 30 05:08:58 2001
+)
+
+]
+library ADODB
+{
+    // TLib :     // TLib : OLE Automation : {00020430-0000-0000-C000-000000000046}
+    importlib("stdole2.tlb");
+
+    // Forward declare all types defined in this typelib
+    interface _Collection;
+    interface _DynaCollection;
+    interface _ADO;
+    interface Properties;
+    interface Property;
+    interface Error;
+    interface Errors;
+    interface Command15;
+    interface _Connection;
+    interface Connection15;
+    interface _Recordset;
+    interface Recordset21;
+    interface Recordset20;
+    interface Recordset15;
+    interface Fields;
+    interface Fields20;
+    interface Fields15;
+    interface Field;
+    interface Field20;
+    interface _Parameter;
+    interface Parameters;
+    interface Command25;
+    interface _Command;
+    interface ConnectionEventsVt;
+    interface RecordsetEventsVt;
+    dispinterface ConnectionEvents;
+    dispinterface RecordsetEvents;
+    interface ADOConnectionConstruction15;
+    interface ADOConnectionConstruction;
+    interface _Record;
+    interface _Stream;
+    interface ADORecordConstruction;
+    interface ADOStreamConstruction;
+    interface ADOCommandConstruction;
+    interface ADORecordsetConstruction;
+    interface Field15;
+
+    typedef [uuid(0000051B-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ebc0)]
+    enum {
+        adOpenUnspecified = 0xffffffff,
+        adOpenForwardOnly = 0,
+        adOpenKeyset = 1,
+        adOpenDynamic = 2,
+        adOpenStatic = 3
+    } CursorTypeEnum;
+
+    typedef [uuid(0000051C-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ebd4)]
+    enum {
+        adHoldRecords = 256,
+        adMovePrevious = 512,
+        adAddNew = 0x01000400,
+        adDelete = 0x01000800,
+        adUpdate = 0x01008000,
+        adBookmark = 8192,
+        adApproxPosition = 16384,
+        adUpdateBatch = 0x00010000,
+        adResync = 0x00020000,
+        adNotify = 0x00040000,
+        adFind = 0x00080000,
+        adSeek = 0x00400000,
+        adIndex = 0x00800000
+    } CursorOptionEnum;
+
+    typedef [uuid(0000051D-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ebfc)]
+    enum {
+        adLockUnspecified = 0xffffffff,
+        adLockReadOnly = 1,
+        adLockPessimistic = 2,
+        adLockOptimistic = 3,
+        adLockBatchOptimistic = 4
+    } LockTypeEnum;
+
+    typedef [uuid(0000051E-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ec10)]
+    enum {
+        adOptionUnspecified = 0xffffffff,
+        adAsyncExecute = 16,
+        adAsyncFetch = 32,
+        adAsyncFetchNonBlocking = 64,
+        adExecuteNoRecords = 128,
+        adExecuteStream = 1024,
+        adExecuteRecord = 2048
+    } ExecuteOptionEnum;
+
+    typedef [uuid(00000541-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ec2e)]
+    enum {
+        adConnectUnspecified = 0xffffffff,
+        adAsyncConnect = 16
+    } ConnectOptionEnum;
+
+    typedef [uuid(00000532-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ec38)]
+    enum {
+        adStateClosed = 0,
+        adStateOpen = 1,
+        adStateConnecting = 2,
+        adStateExecuting = 4,
+        adStateFetching = 8
+    } ObjectStateEnum;
+
+    typedef [uuid(0000052F-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ec4c)]
+    enum {
+        adUseNone = 1,
+        adUseServer = 2,
+        adUseClient = 3,
+        adUseClientBatch = 3
+    } CursorLocationEnum;
+
+    typedef [uuid(0000051F-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ec88)]
+    enum {
+        adEmpty = 0,
+        adTinyInt = 16,
+        adSmallInt = 2,
+        adInteger = 3,
+        adBigInt = 20,
+        adUnsignedTinyInt = 17,
+        adUnsignedSmallInt = 18,
+        adUnsignedInt = 19,
+        adUnsignedBigInt = 21,
+        adSingle = 4,
+        adDouble = 5,
+        adCurrency = 6,
+        adDecimal = 14,
+        adNumeric = 131,
+        adBoolean = 11,
+        adError = 10,
+        adUserDefined = 132,
+        adVariant = 12,
+        adIDispatch = 9,
+        adIUnknown = 13,
+        adGUID = 72,
+        adDate = 7,
+        adDBDate = 133,
+        adDBTime = 134,
+        adDBTimeStamp = 135,
+        adBSTR = 8,
+        adChar = 129,
+        adVarChar = 200,
+        adLongVarChar = 201,
+        adWChar = 130,
+        adVarWChar = 202,
+        adLongVarWChar = 203,
+        adBinary = 128,
+        adVarBinary = 204,
+        adLongVarBinary = 205,
+        adChapter = 136,
+        adFileTime = 64,
+        adPropVariant = 138,
+        adVarNumeric = 139,
+        adArray = 8192
+    } DataTypeEnum;
+
+    typedef [uuid(00000525-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ecc4)]
+    enum {
+        adFldUnspecified = 0xffffffff,
+        adFldMayDefer = 2,
+        adFldUpdatable = 4,
+        adFldUnknownUpdatable = 8,
+        adFldFixed = 16,
+        adFldIsNullable = 32,
+        adFldMayBeNull = 64,
+        adFldLong = 128,
+        adFldRowID = 256,
+        adFldRowVersion = 512,
+        adFldCacheDeferred = 4096,
+        adFldIsChapter = 8192,
+        adFldNegativeScale = 16384,
+        adFldKeyColumn = 32768,
+        adFldIsRowURL = 0x00010000,
+        adFldIsDefaultStream = 0x00020000,
+        adFldIsCollection = 0x00040000
+    } FieldAttributeEnum;
+
+    typedef [uuid(00000526-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ecd3)]
+    enum {
+        adEditNone = 0,
+        adEditInProgress = 1,
+        adEditAdd = 2,
+        adEditDelete = 4
+    } EditModeEnum;
+
+    typedef [uuid(00000527-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ecd8)]
+    enum {
+        adRecOK = 0,
+        adRecNew = 1,
+        adRecModified = 2,
+        adRecDeleted = 4,
+        adRecUnmodified = 8,
+        adRecInvalid = 16,
+        adRecMultipleChanges = 64,
+        adRecPendingChanges = 128,
+        adRecCanceled = 256,
+        adRecCantRelease = 1024,
+        adRecConcurrencyViolation = 2048,
+        adRecIntegrityViolation = 4096,
+        adRecMaxChangesExceeded = 8192,
+        adRecObjectOpen = 16384,
+        adRecOutOfMemory = 32768,
+        adRecPermissionDenied = 0x00010000,
+        adRecSchemaViolation = 0x00020000,
+        adRecDBDeleted = 0x00040000
+    } RecordStatusEnum;
+
+    typedef [uuid(00000542-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ecec)]
+    enum {
+        adGetRowsRest = 0xffffffff
+    } GetRowsOptionEnum;
+
+    typedef [uuid(00000528-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ed00)]
+    enum {
+        adPosUnknown = 0xffffffff,
+        adPosBOF = 0xfffffffe,
+        adPosEOF = 0xfffffffd
+    } PositionEnum;
+
+    typedef [uuid(A56187C5-D690-4037-AE32-A00EDC376AC3), public]
+    PositionEnum PositionEnum_Param;
+
+    typedef [helpcontext(0x0012ed14)]
+    enum {
+        adBookmarkCurrent = 0,
+        adBookmarkFirst = 1,
+        adBookmarkLast = 2
+    } BookmarkEnum;
+
+    typedef [uuid(00000540-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ed28)]
+    enum {
+        adMarshalAll = 0,
+        adMarshalModifiedOnly = 1
+    } MarshalOptionsEnum;
+
+    typedef [uuid(00000543-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ed3c)]
+    enum {
+        adAffectCurrent = 1,
+        adAffectGroup = 2,
+        adAffectAll = 3,
+        adAffectAllChapters = 4
+    } AffectEnum;
+
+    typedef [uuid(00000544-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ed50)]
+    enum {
+        adResyncUnderlyingValues = 1,
+        adResyncAllValues = 2
+    } ResyncEnum;
+
+    typedef [uuid(00000545-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ed64)]
+    enum {
+        adCompareLessThan = 0,
+        adCompareEqual = 1,
+        adCompareGreaterThan = 2,
+        adCompareNotEqual = 3,
+        adCompareNotComparable = 4
+    } CompareEnum;
+
+    typedef [uuid(00000546-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ed78)]
+    enum {
+        adFilterNone = 0,
+        adFilterPendingRecords = 1,
+        adFilterAffectedRecords = 2,
+        adFilterFetchedRecords = 3,
+        adFilterPredicate = 4,
+        adFilterConflictingRecords = 5
+    } FilterGroupEnum;
+
+    typedef [uuid(00000547-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ed8c)]
+    enum {
+        adSearchForward = 1,
+        adSearchBackward = 0xffffffff
+    } SearchDirectionEnum;
+
+    typedef [public]
+    SearchDirectionEnum SearchDirection;
+
+    typedef [uuid(00000548-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ed96)]
+    enum {
+        adPersistADTG = 0,
+        adPersistXML = 1
+    } PersistFormatEnum;
+
+    typedef [uuid(00000549-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012eda0)]
+    enum {
+        adClipString = 2
+    } StringFormatEnum;
+
+    typedef [uuid(00000520-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012eddc)]
+    enum {
+        adPromptAlways = 1,
+        adPromptComplete = 2,
+        adPromptCompleteRequired = 3,
+        adPromptNever = 4
+    } ConnectPromptEnum;
+
+    typedef [uuid(00000521-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012edf0)]
+    enum {
+        adModeUnknown = 0,
+        adModeRead = 1,
+        adModeWrite = 2,
+        adModeReadWrite = 3,
+        adModeShareDenyRead = 4,
+        adModeShareDenyWrite = 8,
+        adModeShareExclusive = 12,
+        adModeShareDenyNone = 16,
+        adModeRecursive = 0x00400000
+    } ConnectModeEnum;
+
+    typedef [uuid(00000570-0000-0010-8000-00AA006D2EA4), helpcontext(0x0001e4a6)]
+    enum {
+        adCreateCollection = 8192,
+        adCreateStructDoc = 0x80000000,
+        adCreateNonCollection = 0,
+        adOpenIfExists = 0x02000000,
+        adCreateOverwrite = 0x04000000,
+        adFailIfNotExists = 0xffffffff
+    } RecordCreateOptionsEnum;
+
+    typedef [uuid(00000571-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012f048)]
+    enum {
+        adOpenRecordUnspecified = 0xffffffff,
+        adOpenSource = 0x00800000,
+        adOpenOutput = 0x00800000,
+        adOpenAsync = 4096,
+        adDelayFetchStream = 16384,
+        adDelayFetchFields = 32768,
+        adOpenExecuteCommand = 0x00010000
+    } RecordOpenOptionsEnum;
+
+    typedef [uuid(00000523-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ee04)]
+    enum {
+        adXactUnspecified = 0xffffffff,
+        adXactChaos = 16,
+        adXactReadUncommitted = 256,
+        adXactBrowse = 256,
+        adXactCursorStability = 4096,
+        adXactReadCommitted = 4096,
+        adXactRepeatableRead = 0x00010000,
+        adXactSerializable = 0x00100000,
+        adXactIsolated = 0x00100000
+    } IsolationLevelEnum;
+
+    typedef [uuid(00000524-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ee18)]
+    enum {
+        adXactCommitRetaining = 0x00020000,
+        adXactAbortRetaining = 0x00040000,
+        adXactAsyncPhaseOne = 0x00080000,
+        adXactSyncPhaseOne = 0x00100000
+    } XactAttributeEnum;
+
+    typedef [uuid(00000529-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ee2c)]
+    enum {
+        adPropNotSupported = 0,
+        adPropRequired = 1,
+        adPropOptional = 2,
+        adPropRead = 512,
+        adPropWrite = 1024
+    } PropertyAttributesEnum;
+
+    typedef [uuid(0000052A-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ee40)]
+    enum {
+        adErrProviderFailed = 3000,
+        adErrInvalidArgument = 3001,
+        adErrOpeningFile = 3002,
+        adErrReadFile = 3003,
+        adErrWriteFile = 3004,
+        adErrNoCurrentRecord = 3021,
+        adErrIllegalOperation = 3219,
+        adErrCantChangeProvider = 3220,
+        adErrInTransaction = 3246,
+        adErrFeatureNotAvailable = 3251,
+        adErrItemNotFound = 3265,
+        adErrObjectInCollection = 3367,
+        adErrObjectNotSet = 3420,
+        adErrDataConversion = 3421,
+        adErrObjectClosed = 3704,
+        adErrObjectOpen = 3705,
+        adErrProviderNotFound = 3706,
+        adErrBoundToCommand = 3707,
+        adErrInvalidParamInfo = 3708,
+        adErrInvalidConnection = 3709,
+        adErrNotReentrant = 3710,
+        adErrStillExecuting = 3711,
+        adErrOperationCancelled = 3712,
+        adErrStillConnecting = 3713,
+        adErrInvalidTransaction = 3714,
+        adErrNotExecuting = 3715,
+        adErrUnsafeOperation = 3716,
+        adwrnSecurityDialog = 3717,
+        adwrnSecurityDialogHeader = 3718,
+        adErrIntegrityViolation = 3719,
+        adErrPermissionDenied = 3720,
+        adErrDataOverflow = 3721,
+        adErrSchemaViolation = 3722,
+        adErrSignMismatch = 3723,
+        adErrCantConvertvalue = 3724,
+        adErrCantCreate = 3725,
+        adErrColumnNotOnThisRow = 3726,
+        adErrURLDoesNotExist = 3727,
+        adErrTreePermissionDenied = 3728,
+        adErrInvalidURL = 3729,
+        adErrResourceLocked = 3730,
+        adErrResourceExists = 3731,
+        adErrCannotComplete = 3732,
+        adErrVolumeNotFound = 3733,
+        adErrOutOfSpace = 3734,
+        adErrResourceOutOfScope = 3735,
+        adErrUnavailable = 3736,
+        adErrURLNamedRowDoesNotExist = 3737,
+        adErrDelResOutOfScope = 3738,
+        adErrPropInvalidColumn = 3739,
+        adErrPropInvalidOption = 3740,
+        adErrPropInvalidValue = 3741,
+        adErrPropConflicting = 3742,
+        adErrPropNotAllSettable = 3743,
+        adErrPropNotSet = 3744,
+        adErrPropNotSettable = 3745,
+        adErrPropNotSupported = 3746,
+        adErrCatalogNotSet = 3747,
+        adErrCantChangeConnection = 3748,
+        adErrFieldsUpdateFailed = 3749,
+        adErrDenyNotSupported = 3750,
+        adErrDenyTypeNotSupported = 3751,
+        adErrProviderNotSpecified = 3753
+    } ErrorValueEnum;
+
+    typedef [uuid(0000052B-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ee68)]
+    enum {
+        adParamSigned = 16,
+        adParamNullable = 64,
+        adParamLong = 128
+    } ParameterAttributesEnum;
+
+    typedef [uuid(0000052C-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ee7c)]
+    enum {
+        adParamUnknown = 0,
+        adParamInput = 1,
+        adParamOutput = 2,
+        adParamInputOutput = 3,
+        adParamReturnValue = 4
+    } ParameterDirectionEnum;
+
+    typedef [uuid(0000052E-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ee90)]
+    enum {
+        adCmdUnspecified = 0xffffffff,
+        adCmdUnknown = 8,
+        adCmdText = 1,
+        adCmdTable = 2,
+        adCmdStoredProc = 4,
+        adCmdFile = 256,
+        adCmdTableDirect = 512
+    } CommandTypeEnum;
+
+    typedef [uuid(00000530-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012eea4)]
+    enum {
+        adStatusOK = 1,
+        adStatusErrorsOccurred = 2,
+        adStatusCantDeny = 3,
+        adStatusCancel = 4,
+        adStatusUnwantedEvent = 5
+    } EventStatusEnum;
+
+    typedef [uuid(00000531-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012eeb8)]
+    enum {
+        adRsnAddNew = 1,
+        adRsnDelete = 2,
+        adRsnUpdate = 3,
+        adRsnUndoUpdate = 4,
+        adRsnUndoAddNew = 5,
+        adRsnUndoDelete = 6,
+        adRsnRequery = 7,
+        adRsnResynch = 8,
+        adRsnClose = 9,
+        adRsnMove = 10,
+        adRsnFirstChange = 11,
+        adRsnMoveFirst = 12,
+        adRsnMoveNext = 13,
+        adRsnMovePrevious = 14,
+        adRsnMoveLast = 15
+    } EventReasonEnum;
+
+    typedef [uuid(00000533-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012eee0)]
+    enum {
+        adSchemaProviderSpecific = 0xffffffff,
+        adSchemaAsserts = 0,
+        adSchemaCatalogs = 1,
+        adSchemaCharacterSets = 2,
+        adSchemaCollations = 3,
+        adSchemaColumns = 4,
+        adSchemaCheckConstraints = 5,
+        adSchemaConstraintColumnUsage = 6,
+        adSchemaConstraintTableUsage = 7,
+        adSchemaKeyColumnUsage = 8,
+        adSchemaReferentialContraints = 9,
+        adSchemaReferentialConstraints = 9,
+        adSchemaTableConstraints = 10,
+        adSchemaColumnsDomainUsage = 11,
+        adSchemaIndexes = 12,
+        adSchemaColumnPrivileges = 13,
+        adSchemaTablePrivileges = 14,
+        adSchemaUsagePrivileges = 15,
+        adSchemaProcedures = 16,
+        adSchemaSchemata = 17,
+        adSchemaSQLLanguages = 18,
+        adSchemaStatistics = 19,
+        adSchemaTables = 20,
+        adSchemaTranslations = 21,
+        adSchemaProviderTypes = 22,
+        adSchemaViews = 23,
+        adSchemaViewColumnUsage = 24,
+        adSchemaViewTableUsage = 25,
+        adSchemaProcedureParameters = 26,
+        adSchemaForeignKeys = 27,
+        adSchemaPrimaryKeys = 28,
+        adSchemaProcedureColumns = 29,
+        adSchemaDBInfoKeywords = 30,
+        adSchemaDBInfoLiterals = 31,
+        adSchemaCubes = 32,
+        adSchemaDimensions = 33,
+        adSchemaHierarchies = 34,
+        adSchemaLevels = 35,
+        adSchemaMeasures = 36,
+        adSchemaProperties = 37,
+        adSchemaMembers = 38,
+        adSchemaTrustees = 39,
+        adSchemaFunctions = 40,
+        adSchemaActions = 41,
+        adSchemaCommands = 42,
+        adSchemaSets = 43
+    } SchemaEnum;
+
+    typedef [uuid(0000057E-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012f070)]
+    enum {
+        adFieldOK = 0,
+        adFieldCantConvertValue = 2,
+        adFieldIsNull = 3,
+        adFieldTruncated = 4,
+        adFieldSignMismatch = 5,
+        adFieldDataOverflow = 6,
+        adFieldCantCreate = 7,
+        adFieldUnavailable = 8,
+        adFieldPermissionDenied = 9,
+        adFieldIntegrityViolation = 10,
+        adFieldSchemaViolation = 11,
+        adFieldBadStatus = 12,
+        adFieldDefault = 13,
+        adFieldIgnore = 15,
+        adFieldDoesNotExist = 16,
+        adFieldInvalidURL = 17,
+        adFieldResourceLocked = 18,
+        adFieldResourceExists = 19,
+        adFieldCannotComplete = 20,
+        adFieldVolumeNotFound = 21,
+        adFieldOutOfSpace = 22,
+        adFieldCannotDeleteSource = 23,
+        adFieldReadOnly = 24,
+        adFieldResourceOutOfScope = 25,
+        adFieldAlreadyExists = 26,
+        adFieldPendingInsert = 0x00010000,
+        adFieldPendingDelete = 0x00020000,
+        adFieldPendingChange = 0x00040000,
+        adFieldPendingUnknown = 0x00080000,
+        adFieldPendingUnknownDelete = 0x00100000
+    } FieldStatusEnum;
+
+    typedef [uuid(00000552-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ef1c)]
+    enum {
+        adSeekFirstEQ = 1,
+        adSeekLastEQ = 2,
+        adSeekAfterEQ = 4,
+        adSeekAfter = 8,
+        adSeekBeforeEQ = 16,
+        adSeekBefore = 32
+    } SeekEnum;
+
+    typedef [uuid(0000054A-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012edb4)]
+    enum {
+        adCriteriaKey = 0,
+        adCriteriaAllCols = 1,
+        adCriteriaUpdCols = 2,
+        adCriteriaTimeStamp = 3
+    } ADCPROP_UPDATECRITERIA_ENUM;
+
+    typedef [uuid(0000054B-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012edc8)]
+    enum {
+        adPriorityLowest = 1,
+        adPriorityBelowNormal = 2,
+        adPriorityNormal = 3,
+        adPriorityAboveNormal = 4,
+        adPriorityHighest = 5
+    } ADCPROP_ASYNCTHREADPRIORITY_ENUM;
+
+    typedef [uuid(00000554-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ef6c)]
+    enum {
+        adRecalcUpFront = 0,
+        adRecalcAlways = 1
+    } ADCPROP_AUTORECALC_ENUM;
+
+    typedef [uuid(00000553-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ef58)]
+    enum {
+        adResyncNone = 0,
+        adResyncAutoIncrement = 1,
+        adResyncConflicts = 2,
+        adResyncUpdates = 4,
+        adResyncInserts = 8,
+        adResyncAll = 15
+    } ADCPROP_UPDATERESYNC_ENUM;
+
+    typedef [uuid(00000573-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ef80)]
+    enum {
+        adMoveUnspecified = 0xffffffff,
+        adMoveOverWrite = 1,
+        adMoveDontUpdateLinks = 2,
+        adMoveAllowEmulation = 4
+    } MoveRecordOptionsEnum;
+
+    typedef [uuid(00000574-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012ef94)]
+    enum {
+        adCopyUnspecified = 0xffffffff,
+        adCopyOverWrite = 1,
+        adCopyAllowEmulation = 4,
+        adCopyNonRecursive = 2
+    } CopyRecordOptionsEnum;
+
+    typedef [uuid(00000576-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012efa8)]
+    enum {
+        adTypeBinary = 1,
+        adTypeText = 2
+    } StreamTypeEnum;
+
+    typedef [uuid(00000577-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012efbc)]
+    enum {
+        adLF = 10,
+        adCR = 13,
+        adCRLF = 0xffffffff
+    } LineSeparatorEnum;
+
+    typedef [uuid(0000057A-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012efd0)]
+    enum {
+        adOpenStreamUnspecified = 0xffffffff,
+        adOpenStreamAsync = 1,
+        adOpenStreamFromRecord = 4
+    } StreamOpenOptionsEnum;
+
+    typedef [uuid(0000057B-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012efe4)]
+    enum {
+        adWriteChar = 0,
+        adWriteLine = 1,
+        stWriteChar = 0,
+        stWriteLine = 1
+    } StreamWriteEnum;
+
+    typedef [uuid(0000057C-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012eff8)]
+    enum {
+        adSaveCreateNotExist = 1,
+        adSaveCreateOverWrite = 2
+    } SaveOptionsEnum;
+
+    typedef [helpcontext(0x0012f00c)]
+    enum {
+        adDefaultStream = 0xffffffff,
+        adRecordURL = 0xfffffffe
+    } FieldEnum;
+
+    typedef [helpcontext(0x0012f020)]
+    enum {
+        adReadAll = 0xffffffff,
+        adReadLine = 0xfffffffe
+    } StreamReadEnum;
+
+    typedef [uuid(0000057D-0000-0010-8000-00AA006D2EA4), helpcontext(0x0012f034)]
+    enum {
+        adSimpleRecord = 0,
+        adCollectionRecord = 1,
+        adStructDoc = 2
+    } RecordTypeEnum;
+
+    [
+      odl,
+      uuid(00000512-0000-0010-8000-00AA006D2EA4),
+      dual,
+      nonextensible,
+      oleautomation
+    ]
+    interface _Collection : IDispatch {
+        [id(0x00000001), propget, helpcontext(0x0012c91a)]
+        HRESULT Count([out, retval] long* c);
+        [id(0xfffffffc), restricted]
+        HRESULT _NewEnum([out, retval] IUnknown** ppvObject);
+        [id(0x00000002), helpcontext(0x0012c8da)]
+        HRESULT Refresh();
+    };
+
+    [
+      odl,
+      uuid(00000513-0000-0010-8000-00AA006D2EA4),
+      dual,
+      nonextensible,
+      oleautomation
+    ]
+    interface _DynaCollection : _Collection {
+        [id(0x60030000), helpcontext(0x0012c8b5)]
+        HRESULT Append([in] IDispatch* Object);
+        [id(0x60030001), helpcontext(0x0012c8c4)]
+        HRESULT Delete([in] VARIANT Index);
+    };
+
+    [
+      odl,
+      uuid(00000534-0000-0010-8000-00AA006D2EA4),
+      dual,
+      nonextensible,
+      oleautomation
+    ]
+    interface _ADO : IDispatch {
+        [id(0x000001f4), propget, helpcontext(0x0012c900)]
+        HRESULT Properties([out, retval] Properties** ppvObject);
+    };
+
+    [
+      odl,
+      uuid(00000504-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c900),
+      dual,
+      nonextensible,
+      oleautomation
+    ]
+    interface Properties : _Collection {
+        [id(00000000), propget, helpcontext(0x0012c8d1)]
+        HRESULT Item(
+                        [in] VARIANT Index, 
+                        [out, retval] Property** ppvObject);
+    };
+
+    [
+      odl,
+      uuid(00000503-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c907),
+      dual,
+      nonextensible,
+      oleautomation
+    ]
+    interface Property : IDispatch {
+        [id(00000000), propget, helpcontext(0x0012c94d)]
+        HRESULT Value([out, retval] VARIANT* pval);
+        [id(00000000), propput, helpcontext(0x0012c94d)]
+        HRESULT Value([in] VARIANT pval);
+        [id(0x60020002), propget, helpcontext(0x0012c92f)]
+        HRESULT Name([out, retval] BSTR* pbstr);
+        [id(0x60020003), propget, helpcontext(0x0012c94a)]
+        HRESULT Type([out, retval] DataTypeEnum* ptype);
+        [id(0x60020004), propget, helpcontext(0x0012c90d)]
+        HRESULT Attributes([out, retval] long* plAttributes);
+        [id(0x60020004), propput, helpcontext(0x0012c90d)]
+        HRESULT Attributes([in] long plAttributes);
+    };
+
+    [
+      odl,
+      uuid(00000500-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c906),
+      dual,
+      nonextensible,
+      oleautomation
+    ]
+    interface Error : IDispatch {
+        [id(0x00000001), propget, helpcontext(0x0012c931)]
+        HRESULT Number([out, retval] long* pl);
+        [id(0x00000002), propget, helpcontext(0x0012c944)]
+        HRESULT Source([out, retval] BSTR* pbstr);
+        [id(00000000), propget, helpcontext(0x0012c91f)]
+        HRESULT Description([out, retval] BSTR* pbstr);
+        [id(0x00000003), propget, helpcontext(0x000f4251)]
+        HRESULT HelpFile([out, retval] BSTR* pbstr);
+        [id(0x00000004), propget, helpcontext(0x0012c929)]
+        HRESULT HelpContext([out, retval] long* pl);
+        [id(0x00000005), propget, helpcontext(0x0012c947)]
+        HRESULT SQLState([out, retval] BSTR* pbstr);
+        [id(0x00000006), propget, helpcontext(0x0012c930)]
+        HRESULT NativeError([out, retval] long* pl);
+    };
+
+    [
+      odl,
+      uuid(00000501-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c8fd),
+      dual,
+      nonextensible,
+      oleautomation
+    ]
+    interface Errors : _Collection {
+        [id(00000000), propget, helpcontext(0x0012c8d1)]
+        HRESULT Item(
+                        [in] VARIANT Index, 
+                        [out, retval] Error** ppvObject);
+        [id(0x60030001), helpcontext(0x0012c8bd)]
+        HRESULT Clear();
+    };
+
+    [
+      odl,
+      uuid(00000508-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c902),
+      hidden,
+      dual,
+      nonextensible,
+      oleautomation
+    ]
+    interface Command15 : _ADO {
+        [id(0x00000001), propget, helpcontext(0x0012c90b)]
+        HRESULT ActiveConnection([out, retval] _Connection** ppvObject);
+        [id(0x00000001), propputref, helpcontext(0x0012c90b)]
+        HRESULT ActiveConnection([in] _Connection* ppvObject);
+        [id(0x00000001), propput, helpcontext(0x0012c90b)]
+        HRESULT ActiveConnection([in] VARIANT ppvObject);
+        [id(0x00000002), propget, helpcontext(0x0012c913)]
+        HRESULT CommandText([out, retval] BSTR* pbstr);
+        [id(0x00000002), propput, helpcontext(0x0012c913)]
+        HRESULT CommandText([in] BSTR pbstr);
+        [id(0x00000003), propget, helpcontext(0x0012c914)]
+        HRESULT CommandTimeout([out, retval] long* pl);
+        [id(0x00000003), propput, helpcontext(0x0012c914)]
+        HRESULT CommandTimeout([in] long pl);
+        [id(0x00000004), propget, helpcontext(0x0012c939)]
+        HRESULT Prepared([out, retval] VARIANT_BOOL* pfPrepared);
+        [id(0x00000004), propput, helpcontext(0x0012c939)]
+        HRESULT Prepared([in] VARIANT_BOOL pfPrepared);
+        [id(0x00000005), helpcontext(0x0012c8cb)]
+        HRESULT Execute(
+                        [out, optional] VARIANT* RecordsAffected, 
+                        [in, optional] VARIANT* Parameters, 
+                        [in, optional, defaultvalue(-1)] long Options, 
+                        [out, retval] _Recordset** ppiRs);
+        [id(0x00000006), helpcontext(0x0012c8c2)]
+        HRESULT CreateParameter(
+                        [in, optional, defaultvalue("")] BSTR Name, 
+                        [in, optional, defaultvalue(0)] DataTypeEnum Type, 
+                        [in, optional, defaultvalue(1)] ParameterDirectionEnum Direction, 
+                        [in, optional, defaultvalue(0)] ADO_LONGPTR Size, 
+                        [in, optional] VARIANT Value, 
+                        [out, retval] _Parameter** ppiprm);
+        [id(00000000), propget, helpcontext(0x0012c8ff)]
+        HRESULT Parameters([out, retval] Parameters** ppvObject);
+        [id(0x00000007), propput, helpcontext(0x0012c915)]
+        HRESULT CommandType([in] CommandTypeEnum plCmdType);
+        [id(0x00000007), propget, helpcontext(0x0012c915)]
+        HRESULT CommandType([out, retval] CommandTypeEnum* plCmdType);
+        [id(0x00000008), propget, helpcontext(0x0012c92f)]
+        HRESULT Name([out, retval] BSTR* pbstrName);
+        [id(0x00000008), propput, helpcontext(0x0012c92f)]
+        HRESULT Name([in] BSTR pbstrName);
+    };
+
+    [
+      odl,
+      uuid(00000550-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c901),
+      dual,
+      oleautomation
+    ]
+    interface _Connection : Connection15 {
+        [id(0x00000015), helpcontext(0x0012c8b8)]
+        HRESULT Cancel();
+    };
+
+    [
+      odl,
+      uuid(00000515-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c901),
+      hidden,
+      dual,
+      oleautomation
+    ]
+    interface Connection15 : _ADO {
+        [id(00000000), propget, helpcontext(0x0012c918)]
+        HRESULT ConnectionString([out, retval] BSTR* pbstr);
+        [id(00000000), propput, helpcontext(0x0012c918)]
+        HRESULT ConnectionString([in] BSTR pbstr);
+        [id(0x00000002), propget, helpcontext(0x0012c914)]
+        HRESULT CommandTimeout([out, retval] long* plTimeout);
+        [id(0x00000002), propput, helpcontext(0x0012c914)]
+        HRESULT CommandTimeout([in] long plTimeout);
+        [id(0x00000003), propget, helpcontext(0x0012c919)]
+        HRESULT ConnectionTimeout([out, retval] long* plTimeout);
+        [id(0x00000003), propput, helpcontext(0x0012c919)]
+        HRESULT ConnectionTimeout([in] long plTimeout);
+        [id(0x00000004), propget, helpcontext(0x0012c94e)]
+        HRESULT Version([out, retval] BSTR* pbstr);
+        [id(0x00000005), helpcontext(0x0012c8bf)]
+        HRESULT Close();
+        [id(0x00000006), helpcontext(0x0012c8cc)]
+        HRESULT Execute(
+                        [in] BSTR CommandText, 
+                        [out, optional] VARIANT* RecordsAffected, 
+                        [in, optional, defaultvalue(-1)] long Options, 
+                        [out, retval] _Recordset** ppiRset);
+        [id(0x00000007), helpcontext(0x0012c8b7)]
+        HRESULT BeginTrans([out, retval] long* TransactionLevel);
+        [id(0x00000008), helpcontext(0x000f4248)]
+        HRESULT CommitTrans();
+        [id(0x00000009), helpcontext(0x000f4249)]
+        HRESULT RollbackTrans();
+        [id(0x0000000a), helpcontext(0x0012c8d6)]
+        HRESULT Open(
+                        [in, optional, defaultvalue("")] BSTR ConnectionString, 
+                        [in, optional, defaultvalue("")] BSTR UserID, 
+                        [in, optional, defaultvalue("")] BSTR Password, 
+                        [in, optional, defaultvalue(-1)] long Options);
+        [id(0x0000000b), propget, helpcontext(0x0012c8fd)]
+        HRESULT Errors([out, retval] Errors** ppvObject);
+        [id(0x0000000c), propget, helpcontext(0x0012c91d)]
+        HRESULT DefaultDatabase([out, retval] BSTR* pbstr);
+        [id(0x0000000c), propput, helpcontext(0x0012c91d)]
+        HRESULT DefaultDatabase([in] BSTR pbstr);
+        [id(0x0000000d), propget, helpcontext(0x0012c92a)]
+        HRESULT IsolationLevel([out, retval] IsolationLevelEnum* Level);
+        [id(0x0000000d), propput, helpcontext(0x0012c92a)]
+        HRESULT IsolationLevel([in] IsolationLevelEnum Level);
+        [id(0x0000000e), propget, helpcontext(0x0012c90d)]
+        HRESULT Attributes([out, retval] long* plAttr);
+        [id(0x0000000e), propput, helpcontext(0x0012c90d)]
+        HRESULT Attributes([in] long plAttr);
+        [id(0x0000000f), propget, helpcontext(0x0012c91b)]
+        HRESULT CursorLocation([out, retval] CursorLocationEnum* plCursorLoc);
+        [id(0x0000000f), propput, helpcontext(0x0012c91b)]
+        HRESULT CursorLocation([in] CursorLocationEnum plCursorLoc);
+        [id(0x00000010), propget, helpcontext(0x0012c92e)]
+        HRESULT Mode([out, retval] ConnectModeEnum* plMode);
+        [id(0x00000010), propput, helpcontext(0x0012c92e)]
+        HRESULT Mode([in] ConnectModeEnum plMode);
+        [id(0x00000011), propget, helpcontext(0x0012c93a)]
+        HRESULT Provider([out, retval] BSTR* pbstr);
+        [id(0x00000011), propput, helpcontext(0x0012c93a)]
+        HRESULT Provider([in] BSTR pbstr);
+        [id(0x00000012), propget, helpcontext(0x0012c948)]
+        HRESULT State([out, retval] long* plObjState);
+        [id(0x00000013), helpcontext(0x0012c8d8)]
+        HRESULT OpenSchema(
+                        [in] SchemaEnum Schema, 
+                        [in, optional] VARIANT Restrictions, 
+                        [in, optional] VARIANT SchemaID, 
+                        [out, retval] _Recordset** pprset);
+    };
+
+    [
+      odl,
+      uuid(00000556-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c903),
+      dual,
+      nonextensible,
+      oleautomation
+    ]
+    interface _Recordset : Recordset21 {
+        [id(0x00000421), helpcontext(0x0012c8df)]
+        HRESULT Save(
+                        [in, optional] VARIANT Destination, 
+                        [in, optional, defaultvalue(0)] PersistFormatEnum PersistFormat);
+    };
+
+    [
+      odl,
+      uuid(00000555-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c903),
+      hidden,
+      dual,
+      nonextensible,
+      oleautomation
+    ]
+    interface Recordset21 : Recordset20 {
+        [id(0x0000042a), helpcontext(0x001356db)]
+        HRESULT Seek(
+                        [in] VARIANT KeyValues, 
+                        [in, optional, defaultvalue(1)] SeekEnum SeekOption);
+        [id(0x0000042b), propput, helpcontext(0x001356da)]
+        HRESULT Index([in] BSTR pbstrIndex);
+        [id(0x0000042b), propget, helpcontext(0x001356da)]
+        HRESULT Index([out, retval] BSTR* pbstrIndex);
+    };
+
+    [
+      odl,
+      uuid(0000054F-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c903),
+      hidden,
+      dual,
+      nonextensible,
+      oleautomation
+    ]
+    interface Recordset20 : Recordset15 {
+        [id(0x0000041f), helpcontext(0x0012c8b8)]
+        HRESULT Cancel();
+        [id(0x00000420), propget, helpcontext(0x0012dbbe)]
+        HRESULT DataSource([out, retval] IUnknown** ppunkDataSource);
+        [id(0x00000420), propputref, helpcontext(0x0012dbbe)]
+        HRESULT DataSource([in] IUnknown* ppunkDataSource);
+        [id(0x60040003), hidden]
+        HRESULT _xSave(
+                        [in, optional, defaultvalue("")] BSTR FileName, 
+                        [in, optional, defaultvalue(0)] PersistFormatEnum PersistFormat);
+        [id(0x00000425), propget, helpcontext(0x0012dbbc)]
+        HRESULT ActiveCommand([out, retval] IDispatch** ppCmd);
+        [id(0x00000427), propput, helpcontext(0x0012dbd0)]
+        HRESULT StayInSync([in] VARIANT_BOOL pbStayInSync);
+        [id(0x00000427), propget, helpcontext(0x0012dbd0)]
+        HRESULT StayInSync([out, retval] VARIANT_BOOL* pbStayInSync);
+        [id(0x00000426), helpcontext(0x0012c8d0)]
+        HRESULT GetString(
+                        [in, optional, defaultvalue(2)] StringFormatEnum StringFormat, 
+                        [in, optional, defaultvalue(-1)] long NumRows, 
+                        [in, optional, defaultvalue("")] BSTR ColumnDelimeter, 
+                        [in, optional, defaultvalue("")] BSTR RowDelimeter, 
+                        [in, optional, defaultvalue("")] BSTR NullExpr, 
+                        [out, retval] BSTR* pRetString);
+        [id(0x00000428), propget, helpcontext(0x0012dbbd)]
+        HRESULT DataMember([out, retval] BSTR* pbstrDataMember);
+        [id(0x00000428), propput, helpcontext(0x0012dbbd)]
+        HRESULT DataMember([in] BSTR pbstrDataMember);
+        [id(0x00000429), helpcontext(0x0012dba4)]
+        HRESULT CompareBookmarks(
+                        [in] VARIANT Bookmark1, 
+                        [in] VARIANT Bookmark2, 
+                        [out, retval] CompareEnum* pCompare);
+        [id(0x0000040a), helpcontext(0x0012c8be)]
+        HRESULT Clone(
+                        [in, optional, defaultvalue(-1)] LockTypeEnum LockType, 
+                        [out, retval] _Recordset** ppvObject);
+        [id(0x00000400), helpcontext(0x0012c8de)]
+        HRESULT Resync(
+                        [in, optional, defaultvalue(3)] AffectEnum AffectRecords, 
+                        [in, optional, defaultvalue(2)] ResyncEnum ResyncValues);
+    };
+
+    [
+      odl,
+      uuid(0000050E-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c903),
+      hidden,
+      dual,
+      nonextensible,
+      oleautomation
+    ]
+    interface Recordset15 : _ADO {
+        [id(0x000003e8), propget, helpcontext(0x0012c905)]
+        HRESULT AbsolutePosition([out, retval] PositionEnum_Param* pl);
+        [id(0x000003e8), propput, helpcontext(0x0012c905)]
+        HRESULT AbsolutePosition([in] PositionEnum_Param pl);
+        [id(0x000003e9), propputref, helpcontext(0x0012c90b)]
+        HRESULT ActiveConnection([in] IDispatch* pvar);
+        [id(0x000003e9), propput, helpcontext(0x0012c90b)]
+        HRESULT ActiveConnection([in] VARIANT pvar);
+        [id(0x000003e9), propget, helpcontext(0x0012c90b)]
+        HRESULT ActiveConnection([out, retval] VARIANT* pvar);
+        [id(0x000003ea), propget, helpcontext(0x0012c910)]
+        HRESULT BOF([out, retval] VARIANT_BOOL* pb);
+        [id(0x000003eb), propget, helpcontext(0x0012c911)]
+        HRESULT Bookmark([out, retval] VARIANT* pvBookmark);
+        [id(0x000003eb), propput, helpcontext(0x0012c911)]
+        HRESULT Bookmark([in] VARIANT pvBookmark);
+        [id(0x000003ec), propget, helpcontext(0x0012c912)]
+        HRESULT CacheSize([out, retval] long* pl);
+        [id(0x000003ec), propput, helpcontext(0x0012c912)]
+        HRESULT CacheSize([in] long pl);
+        [id(0x000003ed), propget, helpcontext(0x0012c91c)]
+        HRESULT CursorType([out, retval] CursorTypeEnum* plCursorType);
+        [id(0x000003ed), propput, helpcontext(0x0012c91c)]
+        HRESULT CursorType([in] CursorTypeEnum plCursorType);
+        [id(0x000003ee), propget, helpcontext(0x000f4250)]
+        HRESULT EOF([out, retval] VARIANT_BOOL* pb);
+        [id(00000000), propget, helpcontext(0x0012c8fe)]
+        HRESULT Fields([out, retval] Fields** ppvObject);
+        [id(0x000003f0), propget, helpcontext(0x0012c92b)]
+        HRESULT LockType([out, retval] LockTypeEnum* plLockType);
+        [id(0x000003f0), propput, helpcontext(0x0012c92b)]
+        HRESULT LockType([in] LockTypeEnum plLockType);
+        [id(0x000003f1), propget, helpcontext(0x0012c92d)]
+        HRESULT MaxRecords([out, retval] ADO_LONGPTR* plMaxRecords);
+        [id(0x000003f1), propput, helpcontext(0x0012c92d)]
+        HRESULT MaxRecords([in] ADO_LONGPTR plMaxRecords);
+        [id(0x000003f2), propget, helpcontext(0x0012c93b)]
+        HRESULT RecordCount([out, retval] ADO_LONGPTR* pl);
+        [id(0x000003f3), propputref, helpcontext(0x0012c945)]
+        HRESULT Source([in] IDispatch* pvSource);
+        [id(0x000003f3), propput, helpcontext(0x0012c945)]
+        HRESULT Source([in] BSTR pvSource);
+        [id(0x000003f3), propget, helpcontext(0x0012c945)]
+        HRESULT Source([out, retval] VARIANT* pvSource);
+        [id(0x000003f4), helpcontext(0x0012c8b4)]
+        HRESULT AddNew(
+                        [in, optional] VARIANT FieldList, 
+                        [in, optional] VARIANT Values);
+        [id(0x000003f5), helpcontext(0x0012c8bb)]
+        HRESULT CancelUpdate();
+        [id(0x000003f6), helpcontext(0x0012c8bf)]
+        HRESULT Close();
+        [id(0x000003f7), helpcontext(0x0012c8ca)]
+        HRESULT Delete([in, optional, defaultvalue(1)] AffectEnum AffectRecords);
+        [id(0x000003f8), helpcontext(0x0012c8cf)]
+        HRESULT GetRows(
+                        [in, optional, defaultvalue(-1)] long Rows, 
+                        [in, optional] VARIANT Start, 
+                        [in, optional] VARIANT Fields, 
+                        [out, retval] VARIANT* pvar);
+        [id(0x000003f9), helpcontext(0x0012c8d2)]
+        HRESULT Move(
+                        [in] ADO_LONGPTR NumRecords, 
+                        [in, optional] VARIANT Start);
+        [id(0x000003fa), helpcontext(0x000f424b)]
+        HRESULT MoveNext();
+        [id(0x000003fb), helpcontext(0x000f424c)]
+        HRESULT MovePrevious();
+        [id(0x000003fc), helpcontext(0x0012c8d3)]
+        HRESULT MoveFirst();
+        [id(0x000003fd), helpcontext(0x000f424a)]
+        HRESULT MoveLast();
+        [id(0x000003fe), helpcontext(0x0012c8d7)]
+        HRESULT Open(
+                        [in, optional] VARIANT Source, 
+                        [in, optional] VARIANT ActiveConnection, 
+                        [in, optional, defaultvalue(-1)] CursorTypeEnum CursorType, 
+                        [in, optional, defaultvalue(-1)] LockTypeEnum LockType, 
+                        [in, optional, defaultvalue(-1)] long Options);
+        [id(0x000003ff), helpcontext(0x0012c8dc)]
+        HRESULT Requery([in, optional, defaultvalue(-1)] long Options);
+        [id(0x60030022), hidden]
+        HRESULT _xResync([in, optional, defaultvalue(3)] AffectEnum AffectRecords);
+        [id(0x00000401), helpcontext(0x0012c8e2)]
+        HRESULT Update(
+                        [in, optional] VARIANT Fields, 
+                        [in, optional] VARIANT Values);
+        [id(0x00000417), propget, helpcontext(0x0012c904)]
+        HRESULT AbsolutePage([out, retval] PositionEnum_Param* pl);
+        [id(0x00000417), propput, helpcontext(0x0012c904)]
+        HRESULT AbsolutePage([in] PositionEnum_Param pl);
+        [id(0x00000402), propget, helpcontext(0x0012c921)]
+        HRESULT EditMode([out, retval] EditModeEnum* pl);
+        [id(0x00000406), propget, helpcontext(0x0012c924)]
+        HRESULT Filter([out, retval] VARIANT* Criteria);
+        [id(0x00000406), propput, helpcontext(0x0012c924)]
+        HRESULT Filter([in] VARIANT Criteria);
+        [id(0x0000041a), propget, helpcontext(0x0012c935)]
+        HRESULT PageCount([out, retval] ADO_LONGPTR* pl);
+        [id(0x00000418), propget, helpcontext(0x0012c936)]
+        HRESULT PageSize([out, retval] long* pl);
+        [id(0x00000418), propput, helpcontext(0x0012c936)]
+        HRESULT PageSize([in] long pl);
+        [id(0x00000407), propget, helpcontext(0x0012c941)]
+        HRESULT Sort([out, retval] BSTR* Criteria);
+        [id(0x00000407), propput, helpcontext(0x0012c941)]
+        HRESULT Sort([in] BSTR Criteria);
+        [id(0x00000405), propget, helpcontext(0x0012c949)]
+        HRESULT Status([out, retval] long* pl);
+        [id(0x0000041e), propget, helpcontext(0x0012c948)]
+        HRESULT State([out, retval] long* plObjState);
+        [id(0x60030030), hidden]
+        HRESULT _xClone([out, retval] _Recordset** ppvObject);
+        [id(0x0000040b), helpcontext(0x0012c8e3)]
+        HRESULT UpdateBatch([in, optional, defaultvalue(3)] AffectEnum AffectRecords);
+        [id(0x00000419), helpcontext(0x0012c8ba)]
+        HRESULT CancelBatch([in, optional, defaultvalue(3)] AffectEnum AffectRecords);
+        [id(0x0000041b), propget, helpcontext(0x0012c91b)]
+        HRESULT CursorLocation([out, retval] CursorLocationEnum* plCursorLoc);
+        [id(0x0000041b), propput, helpcontext(0x0012c91b)]
+        HRESULT CursorLocation([in] CursorLocationEnum plCursorLoc);
+        [id(0x0000041c), helpcontext(0x0012c8d5)]
+        HRESULT NextRecordset(
+                        [out, optional] VARIANT* RecordsAffected, 
+                        [out, retval] _Recordset** ppiRs);
+        [id(0x0000040c), helpcontext(0x0012c8e1)]
+        HRESULT Supports(
+                        [in] CursorOptionEnum CursorOptions, 
+                        [out, retval] VARIANT_BOOL* pb);
+        [id(0xfffffff8), propget, hidden]
+        HRESULT Collect(
+                        [in] VARIANT Index, 
+                        [out, retval] VARIANT* pvar);
+        [id(0xfffffff8), propput, hidden]
+        HRESULT Collect(
+                        [in] VARIANT Index, 
+                        [in] VARIANT pvar);
+        [id(0x0000041d), propget, helpcontext(0x0012c92c)]
+        HRESULT MarshalOptions([out, retval] MarshalOptionsEnum* peMarshal);
+        [id(0x0000041d), propput, helpcontext(0x0012c92c)]
+        HRESULT MarshalOptions([in] MarshalOptionsEnum peMarshal);
+        [id(0x00000422), helpcontext(0x0012c8cd)]
+        HRESULT Find(
+                        [in] BSTR Criteria, 
+                        [in, optional, defaultvalue(0)] ADO_LONGPTR SkipRecords, 
+                        [in, optional, defaultvalue(1)] SearchDirectionEnum SearchDirection, 
+                        [in, optional] VARIANT Start);
+    };
+
+    [
+      odl,
+      uuid(00000564-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c8fe),
+      dual,
+      nonextensible,
+      oleautomation
+    ]
+    interface Fields : Fields20 {
+        [id(0x00000003), helpcontext(0x0012f05d)]
+        HRESULT Append(
+                        [in] BSTR Name, 
+                        [in] DataTypeEnum Type, 
+                        [in, optional, defaultvalue(0)] ADO_LONGPTR DefinedSize, 
+                        [in, optional, defaultvalue(-1)] FieldAttributeEnum Attrib, 
+                        [in, optional] VARIANT FieldValue);
+        [id(0x00000005), helpcontext(0x0012f05e)]
+        HRESULT Update();
+        [id(0x00000006), helpcontext(0x0012f05f)]
+        HRESULT Resync([in, optional, defaultvalue(2)] ResyncEnum ResyncValues);
+        [id(0x00000007), helpcontext(0x0012f060)]
+        HRESULT CancelUpdate();
+    };
+
+    [
+      odl,
+      uuid(0000054D-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c8fe),
+      hidden,
+      dual,
+      nonextensible,
+      oleautomation
+    ]
+    interface Fields20 : Fields15 {
+        [id(0x60040000), hidden]
+        HRESULT _Append(
+                        [in] BSTR Name, 
+                        [in] DataTypeEnum Type, 
+                        [in, optional, defaultvalue(0)] ADO_LONGPTR DefinedSize, 
+                        [in, optional, defaultvalue(-1)] FieldAttributeEnum Attrib);
+        [id(0x00000004), helpcontext(0x0012f05c)]
+        HRESULT Delete([in] VARIANT Index);
+    };
+
+    [
+      odl,
+      uuid(00000506-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c8fe),
+      hidden,
+      dual,
+      nonextensible,
+      oleautomation
+    ]
+    interface Fields15 : _Collection {
+        [id(00000000), propget, helpcontext(0x0012c8d1)]
+        HRESULT Item(
+                        [in] VARIANT Index, 
+                        [out, retval] Field** ppvObject);
+    };
+
+    [
+      odl,
+      uuid(00000569-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c908),
+      dual,
+      nonextensible,
+      oleautomation
+    ]
+    interface Field : Field20 {
+        [id(0x0000045c), propget, helpcontext(0x0012c90e)]
+        HRESULT Status([out, retval] long* pFStatus);
+    };
+
+    [
+      odl,
+      uuid(0000054C-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c908),
+      hidden,
+      dual,
+      nonextensible,
+      oleautomation
+    ]
+    interface Field20 : _ADO {
+        [id(0x00000455), propget, helpcontext(0x0012c90c)]
+        HRESULT ActualSize([out, retval] ADO_LONGPTR* pl);
+        [id(0x0000045a), propget, helpcontext(0x0012c90d)]
+        HRESULT Attributes([out, retval] long* pl);
+        [id(0x0000044f), propget, helpcontext(0x0012c91e)]
+        HRESULT DefinedSize([out, retval] ADO_LONGPTR* pl);
+        [id(0x0000044c), propget, helpcontext(0x0012c92f)]
+        HRESULT Name([out, retval] BSTR* pbstr);
+        [id(0x0000044e), propget, helpcontext(0x0012c94a)]
+        HRESULT Type([out, retval] DataTypeEnum* pDataType);
+        [id(00000000), propget, helpcontext(0x0012c94d)]
+        HRESULT Value([out, retval] VARIANT* pvar);
+        [id(00000000), propput, helpcontext(0x0012c94d)]
+        HRESULT Value([in] VARIANT pvar);
+        [id(0x00000458), propget, helpcontext(0x0012c938)]
+        HRESULT Precision([out, retval] unsigned char* pbPrecision);
+        [id(0x00000459), propget, helpcontext(0x0012c932)]
+        HRESULT NumericScale([out, retval] unsigned char* pbNumericScale);
+        [id(0x00000453), helpcontext(0x0012c8b6)]
+        HRESULT AppendChunk([in] VARIANT Data);
+        [id(0x00000454), helpcontext(0x0012c8ce)]
+        HRESULT GetChunk(
+                        [in] long Length, 
+                        [out, retval] VARIANT* pvar);
+        [id(0x00000450), propget, helpcontext(0x0012c934)]
+        HRESULT OriginalValue([out, retval] VARIANT* pvar);
+        [id(0x00000451), propget, helpcontext(0x0012c94b)]
+        HRESULT UnderlyingValue([out, retval] VARIANT* pvar);
+        [id(0x0000045b), propget]
+        HRESULT DataFormat([out, retval] IUnknown** ppiDF);
+        [id(0x0000045b), propputref]
+        HRESULT DataFormat([in] IUnknown* ppiDF);
+        [id(0x00000458), propput, helpcontext(0x0012c938)]
+        HRESULT Precision([in] unsigned char pbPrecision);
+        [id(0x00000459), propput, helpcontext(0x0012c932)]
+        HRESULT NumericScale([in] unsigned char pbNumericScale);
+        [id(0x0000044e), propput, helpcontext(0x0012c94a)]
+        HRESULT Type([in] DataTypeEnum pDataType);
+        [id(0x0000044f), propput, helpcontext(0x0012c91e)]
+        HRESULT DefinedSize([in] ADO_LONGPTR pl);
+        [id(0x0000045a), propput, helpcontext(0x0012c90d)]
+        HRESULT Attributes([in] long pl);
+    };
+
+    typedef [uuid(54D8B4B9-663B-4A9C-95F6-0E749ABD70F1), public]
+    long ADO_LONGPTR;
+
+    [
+      odl,
+      uuid(0000050C-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c909),
+      dual,
+      nonextensible,
+      oleautomation
+    ]
+    interface _Parameter : _ADO {
+        [id(0x00000001), propget, helpcontext(0x0012c92f)]
+        HRESULT Name([out, retval] BSTR* pbstr);
+        [id(0x00000001), propput, helpcontext(0x0012c92f)]
+        HRESULT Name([in] BSTR pbstr);
+        [id(00000000), propget, helpcontext(0x0012c94d)]
+        HRESULT Value([out, retval] VARIANT* pvar);
+        [id(00000000), propput, helpcontext(0x0012c94d)]
+        HRESULT Value([in] VARIANT pvar);
+        [id(0x00000002), propget, helpcontext(0x0012c94a)]
+        HRESULT Type([out, retval] DataTypeEnum* psDataType);
+        [id(0x00000002), propput, helpcontext(0x0012c94a)]
+        HRESULT Type([in] DataTypeEnum psDataType);
+        [id(0x00000003), propput, helpcontext(0x0012c920)]
+        HRESULT Direction([in] ParameterDirectionEnum plParmDirection);
+        [id(0x00000003), propget, helpcontext(0x0012c920)]
+        HRESULT Direction([out, retval] ParameterDirectionEnum* plParmDirection);
+        [id(0x00000004), propput, helpcontext(0x0012c938)]
+        HRESULT Precision([in] unsigned char pbPrecision);
+        [id(0x00000004), propget, helpcontext(0x0012c938)]
+        HRESULT Precision([out, retval] unsigned char* pbPrecision);
+        [id(0x00000005), propput, helpcontext(0x0012c932)]
+        HRESULT NumericScale([in] unsigned char pbScale);
+        [id(0x00000005), propget, helpcontext(0x0012c932)]
+        HRESULT NumericScale([out, retval] unsigned char* pbScale);
+        [id(0x00000006), propput, helpcontext(0x0012c940)]
+        HRESULT Size([in] ADO_LONGPTR pl);
+        [id(0x00000006), propget, helpcontext(0x0012c940)]
+        HRESULT Size([out, retval] ADO_LONGPTR* pl);
+        [id(0x00000007), helpcontext(0x0012c8b6)]
+        HRESULT AppendChunk([in] VARIANT Val);
+        [id(0x00000008), propget, helpcontext(0x0012c90d)]
+        HRESULT Attributes([out, retval] long* plParmAttribs);
+        [id(0x00000008), propput, helpcontext(0x0012c90d)]
+        HRESULT Attributes([in] long plParmAttribs);
+    };
+
+    [
+      odl,
+      uuid(0000050D-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c8ff),
+      dual,
+      nonextensible,
+      oleautomation
+    ]
+    interface Parameters : _DynaCollection {
+        [id(00000000), propget, helpcontext(0x0012c8d1)]
+        HRESULT Item(
+                        [in] VARIANT Index, 
+                        [out, retval] _Parameter** ppvObject);
+    };
+
+    [
+      odl,
+      uuid(0000054E-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c902),
+      hidden,
+      dual,
+      nonextensible,
+      oleautomation
+    ]
+    interface Command25 : Command15 {
+        [id(0x00000009), propget, helpcontext(0x0012c948)]
+        HRESULT State([out, retval] long* plObjState);
+        [id(0x0000000a), helpcontext(0x0012c8b8)]
+        HRESULT Cancel();
+    };
+
+    [
+      odl,
+      uuid(B08400BD-F9D1-4D02-B856-71D5DBA123E9),
+      helpcontext(0x0012c902),
+      dual,
+      nonextensible,
+      oleautomation
+    ]
+    interface _Command : Command25 {
+        [id(0x0000000b), propputref, helpcontext(0x0012c956)]
+        HRESULT CommandStream([in] IUnknown* pvStream);
+        [id(0x0000000b), propget, helpcontext(0x0012c956)]
+        HRESULT CommandStream([out, retval] VARIANT* pvStream);
+        [id(0x0000000c), propput, helpcontext(0x0012c957)]
+        HRESULT Dialect([in] BSTR pbstrDialect);
+        [id(0x0000000c), propget, helpcontext(0x0012c957)]
+        HRESULT Dialect([out, retval] BSTR* pbstrDialect);
+        [id(0x0000000d), propput, helpcontext(0x0012c958)]
+        HRESULT NamedParameters([in] VARIANT_BOOL pfNamedParameters);
+        [id(0x0000000d), propget, helpcontext(0x0012c958)]
+        HRESULT NamedParameters([out, retval] VARIANT_BOOL* pfNamedParameters);
+    };
+
+    [
+      odl,
+      uuid(00000402-0000-0010-8000-00AA006D2EA4),
+      hidden
+    ]
+    interface ConnectionEventsVt : IUnknown {
+        [helpcontext(0x0012d374)]
+        HRESULT _stdcall InfoMessage(
+                        [in] Error* pError, 
+                        [in, out] EventStatusEnum* adStatus, 
+                        [in] _Connection* pConnection);
+        [helpcontext(0x0012d344)]
+        HRESULT _stdcall BeginTransComplete(
+                        [in] long TransactionLevel, 
+                        [in] Error* pError, 
+                        [in, out] EventStatusEnum* adStatus, 
+                        [in] _Connection* pConnection);
+        [helpcontext(0x000f4241)]
+        HRESULT _stdcall CommitTransComplete(
+                        [in] Error* pError, 
+                        [in, out] EventStatusEnum* adStatus, 
+                        [in] _Connection* pConnection);
+        [helpcontext(0x000f4242)]
+        HRESULT _stdcall RollbackTransComplete(
+                        [in] Error* pError, 
+                        [in, out] EventStatusEnum* adStatus, 
+                        [in] _Connection* pConnection);
+        [helpcontext(0x0012d357)]
+        HRESULT _stdcall WillExecute(
+                        [in, out] BSTR* Source, 
+                        [in, out] CursorTypeEnum* CursorType, 
+                        [in, out] LockTypeEnum* LockType, 
+                        [in, out] long* Options, 
+                        [in, out] EventStatusEnum* adStatus, 
+                        [in] _Command* pCommand, 
+                        [in] _Recordset* pRecordset, 
+                        [in] _Connection* pConnection);
+        [helpcontext(0x0012d367)]
+        HRESULT _stdcall ExecuteComplete(
+                        [in] long RecordsAffected, 
+                        [in] Error* pError, 
+                        [in, out] EventStatusEnum* adStatus, 
+                        [in] _Command* pCommand, 
+                        [in] _Recordset* pRecordset, 
+                        [in] _Connection* pConnection);
+        [helpcontext(0x0012d355)]
+        HRESULT _stdcall WillConnect(
+                        [in, out] BSTR* ConnectionString, 
+                        [in, out] BSTR* UserID, 
+                        [in, out] BSTR* Password, 
+                        [in, out] long* Options, 
+                        [in, out] EventStatusEnum* adStatus, 
+                        [in] _Connection* pConnection);
+        [helpcontext(0x0012d356)]
+        HRESULT _stdcall ConnectComplete(
+                        [in] Error* pError, 
+                        [in, out] EventStatusEnum* adStatus, 
+                        [in] _Connection* pConnection);
+        [helpcontext(0x000f4243)]
+        HRESULT _stdcall Disconnect(
+                        [in, out] EventStatusEnum* adStatus, 
+                        [in] _Connection* pConnection);
+    };
+
+    [
+      odl,
+      uuid(00000403-0000-0010-8000-00AA006D2EA4),
+      hidden
+    ]
+    interface RecordsetEventsVt : IUnknown {
+        [helpcontext(0x0012d377)]
+        HRESULT _stdcall WillChangeField(
+                        [in] long cFields, 
+                        [in] VARIANT Fields, 
+                        [in, out] EventStatusEnum* adStatus, 
+                        [in] _Recordset* pRecordset);
+        [helpcontext(0x000f4244)]
+        HRESULT _stdcall FieldChangeComplete(
+                        [in] long cFields, 
+                        [in] VARIANT Fields, 
+                        [in] Error* pError, 
+                        [in, out] EventStatusEnum* adStatus, 
+                        [in] _Recordset* pRecordset);
+        [helpcontext(0x0012d378)]
+        HRESULT _stdcall WillChangeRecord(
+                        [in] EventReasonEnum adReason, 
+                        [in] long cRecords, 
+                        [in, out] EventStatusEnum* adStatus, 
+                        [in] _Recordset* pRecordset);
+        [helpcontext(0x000f4245)]
+        HRESULT _stdcall RecordChangeComplete(
+                        [in] EventReasonEnum adReason, 
+                        [in] long cRecords, 
+                        [in] Error* pError, 
+                        [in, out] EventStatusEnum* adStatus, 
+                        [in] _Recordset* pRecordset);
+        [helpcontext(0x0012d379)]
+        HRESULT _stdcall WillChangeRecordset(
+                        [in] EventReasonEnum adReason, 
+                        [in, out] EventStatusEnum* adStatus, 
+                        [in] _Recordset* pRecordset);
+        [helpcontext(0x000f4246)]
+        HRESULT _stdcall RecordsetChangeComplete(
+                        [in] EventReasonEnum adReason, 
+                        [in] Error* pError, 
+                        [in, out] EventStatusEnum* adStatus, 
+                        [in] _Recordset* pRecordset);
+        [helpcontext(0x0012d376)]
+        HRESULT _stdcall WillMove(
+                        [in] EventReasonEnum adReason, 
+                        [in, out] EventStatusEnum* adStatus, 
+                        [in] _Recordset* pRecordset);
+        [helpcontext(0x000f4247)]
+        HRESULT _stdcall MoveComplete(
+                        [in] EventReasonEnum adReason, 
+                        [in] Error* pError, 
+                        [in, out] EventStatusEnum* adStatus, 
+                        [in] _Recordset* pRecordset);
+        [helpcontext(0x0012d37a)]
+        HRESULT _stdcall EndOfRecordset(
+                        [in, out] VARIANT_BOOL* fMoreData, 
+                        [in, out] EventStatusEnum* adStatus, 
+                        [in] _Recordset* pRecordset);
+        [helpcontext(0x0012d47d)]
+        HRESULT _stdcall FetchProgress(
+                        [in] long Progress, 
+                        [in] long MaxProgress, 
+                        [in, out] EventStatusEnum* adStatus, 
+                        [in] _Recordset* pRecordset);
+        [helpcontext(0x0012d47e)]
+        HRESULT _stdcall FetchComplete(
+                        [in] Error* pError, 
+                        [in, out] EventStatusEnum* adStatus, 
+                        [in] _Recordset* pRecordset);
+    };
+
+    [
+      uuid(00000400-0000-0010-8000-00AA006D2EA4)
+    ]
+    dispinterface ConnectionEvents {
+        properties:
+        methods:
+            [id(00000000), helpcontext(0x0012d374)]
+            HRESULT InfoMessage(
+                            [in] Error* pError, 
+                            [in, out] EventStatusEnum* adStatus, 
+                            [in] _Connection* pConnection);
+            [id(0x00000001), helpcontext(0x0012d344)]
+            HRESULT BeginTransComplete(
+                            [in] long TransactionLevel, 
+                            [in] Error* pError, 
+                            [in, out] EventStatusEnum* adStatus, 
+                            [in] _Connection* pConnection);
+            [id(0x00000003), helpcontext(0x000f4241)]
+            HRESULT CommitTransComplete(
+                            [in] Error* pError, 
+                            [in, out] EventStatusEnum* adStatus, 
+                            [in] _Connection* pConnection);
+            [id(0x00000002), helpcontext(0x000f4242)]
+            HRESULT RollbackTransComplete(
+                            [in] Error* pError, 
+                            [in, out] EventStatusEnum* adStatus, 
+                            [in] _Connection* pConnection);
+            [id(0x00000004), helpcontext(0x0012d357)]
+            HRESULT WillExecute(
+                            [in, out] BSTR* Source, 
+                            [in, out] CursorTypeEnum* CursorType, 
+                            [in, out] LockTypeEnum* LockType, 
+                            [in, out] long* Options, 
+                            [in, out] EventStatusEnum* adStatus, 
+                            [in] _Command* pCommand, 
+                            [in] _Recordset* pRecordset, 
+                            [in] _Connection* pConnection);
+            [id(0x00000005), helpcontext(0x0012d367)]
+            HRESULT ExecuteComplete(
+                            [in] long RecordsAffected, 
+                            [in] Error* pError, 
+                            [in, out] EventStatusEnum* adStatus, 
+                            [in] _Command* pCommand, 
+                            [in] _Recordset* pRecordset, 
+                            [in] _Connection* pConnection);
+            [id(0x00000006), helpcontext(0x0012d355)]
+            HRESULT WillConnect(
+                            [in, out] BSTR* ConnectionString, 
+                            [in, out] BSTR* UserID, 
+                            [in, out] BSTR* Password, 
+                            [in, out] long* Options, 
+                            [in, out] EventStatusEnum* adStatus, 
+                            [in] _Connection* pConnection);
+            [id(0x00000007), helpcontext(0x0012d356)]
+            HRESULT ConnectComplete(
+                            [in] Error* pError, 
+                            [in, out] EventStatusEnum* adStatus, 
+                            [in] _Connection* pConnection);
+            [id(0x00000008), helpcontext(0x000f4243)]
+            HRESULT Disconnect(
+                            [in, out] EventStatusEnum* adStatus, 
+                            [in] _Connection* pConnection);
+    };
+
+    [
+      uuid(00000266-0000-0010-8000-00AA006D2EA4)
+    ]
+    dispinterface RecordsetEvents {
+        properties:
+        methods:
+            [id(0x00000009), helpcontext(0x0012d377)]
+            HRESULT WillChangeField(
+                            [in] long cFields, 
+                            [in] VARIANT Fields, 
+                            [in, out] EventStatusEnum* adStatus, 
+                            [in] _Recordset* pRecordset);
+            [id(0x0000000a), helpcontext(0x000f4244)]
+            HRESULT FieldChangeComplete(
+                            [in] long cFields, 
+                            [in] VARIANT Fields, 
+                            [in] Error* pError, 
+                            [in, out] EventStatusEnum* adStatus, 
+                            [in] _Recordset* pRecordset);
+            [id(0x0000000b), helpcontext(0x0012d378)]
+            HRESULT WillChangeRecord(
+                            [in] EventReasonEnum adReason, 
+                            [in] long cRecords, 
+                            [in, out] EventStatusEnum* adStatus, 
+                            [in] _Recordset* pRecordset);
+            [id(0x0000000c), helpcontext(0x000f4245)]
+            HRESULT RecordChangeComplete(
+                            [in] EventReasonEnum adReason, 
+                            [in] long cRecords, 
+                            [in] Error* pError, 
+                            [in, out] EventStatusEnum* adStatus, 
+                            [in] _Recordset* pRecordset);
+            [id(0x0000000d), helpcontext(0x0012d379)]
+            HRESULT WillChangeRecordset(
+                            [in] EventReasonEnum adReason, 
+                            [in, out] EventStatusEnum* adStatus, 
+                            [in] _Recordset* pRecordset);
+            [id(0x0000000e), helpcontext(0x000f4246)]
+            HRESULT RecordsetChangeComplete(
+                            [in] EventReasonEnum adReason, 
+                            [in] Error* pError, 
+                            [in, out] EventStatusEnum* adStatus, 
+                            [in] _Recordset* pRecordset);
+            [id(0x0000000f), helpcontext(0x0012d376)]
+            HRESULT WillMove(
+                            [in] EventReasonEnum adReason, 
+                            [in, out] EventStatusEnum* adStatus, 
+                            [in] _Recordset* pRecordset);
+            [id(0x00000010), helpcontext(0x000f4247)]
+            HRESULT MoveComplete(
+                            [in] EventReasonEnum adReason, 
+                            [in] Error* pError, 
+                            [in, out] EventStatusEnum* adStatus, 
+                            [in] _Recordset* pRecordset);
+            [id(0x00000011), helpcontext(0x0012d37a)]
+            HRESULT EndOfRecordset(
+                            [in, out] VARIANT_BOOL* fMoreData, 
+                            [in, out] EventStatusEnum* adStatus, 
+                            [in] _Recordset* pRecordset);
+            [id(0x00000012), helpcontext(0x0012d47d)]
+            HRESULT FetchProgress(
+                            [in] long Progress, 
+                            [in] long MaxProgress, 
+                            [in, out] EventStatusEnum* adStatus, 
+                            [in] _Recordset* pRecordset);
+            [id(0x00000013), helpcontext(0x0012d47e)]
+            HRESULT FetchComplete(
+                            [in] Error* pError, 
+                            [in, out] EventStatusEnum* adStatus, 
+                            [in] _Recordset* pRecordset);
+    };
+
+    [
+      odl,
+      uuid(00000516-0000-0010-8000-00AA006D2EA4),
+      restricted
+    ]
+    interface ADOConnectionConstruction15 : IUnknown {
+        [propget]
+        HRESULT _stdcall DSO([out, retval] IUnknown** ppDSO);
+        [propget]
+        HRESULT _stdcall Session([out, retval] IUnknown** ppSession);
+        HRESULT _stdcall WrapDSOandSession(
+                        [in] IUnknown* pDSO, 
+                        [in] IUnknown* pSession);
+    };
+
+    [
+      odl,
+      uuid(00000551-0000-0010-8000-00AA006D2EA4),
+      restricted
+    ]
+    interface ADOConnectionConstruction : ADOConnectionConstruction15 {
+    };
+
+    [
+      uuid(00000514-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c901),
+      licensed
+    ]
+    coclass Connection {
+        [default] interface _Connection;
+        [default, source] dispinterface ConnectionEvents;
+    };
+
+    [
+      odl,
+      uuid(00000562-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012cc8e),
+      hidden,
+      dual,
+      oleautomation
+    ]
+    interface _Record : _ADO {
+        [id(0x00000001), propget, helpcontext(0x0012c90b)]
+        HRESULT ActiveConnection([out, retval] VARIANT* pvar);
+        [id(0x00000001), propput, helpcontext(0x0012c90b)]
+        HRESULT ActiveConnection([in] BSTR pvar);
+        [id(0x00000001), propputref, helpcontext(0x0012c90b)]
+        HRESULT ActiveConnection([in] _Connection* pvar);
+        [id(0x00000002), propget, helpcontext(0x0012cc80)]
+        HRESULT State([out, retval] ObjectStateEnum* pState);
+        [id(0x00000003), propget, helpcontext(0x0012cc81)]
+        HRESULT Source([out, retval] VARIANT* pvar);
+        [id(0x00000003), propput, helpcontext(0x0012cc81)]
+        HRESULT Source([in] BSTR pvar);
+        [id(0x00000003), propputref, helpcontext(0x0012cc81)]
+        HRESULT Source([in] IDispatch* pvar);
+        [id(0x00000004), propget, helpcontext(0x0012cc82)]
+        HRESULT Mode([out, retval] ConnectModeEnum* pMode);
+        [id(0x00000004), propput, helpcontext(0x0012cc82)]
+        HRESULT Mode([in] ConnectModeEnum pMode);
+        [id(0x00000005), propget, helpcontext(0x0012cc83)]
+        HRESULT ParentURL([out, retval] BSTR* pbstrParentURL);
+        [id(0x00000006), helpcontext(0x0012cc84)]
+        HRESULT MoveRecord(
+                        [in, optional, defaultvalue("")] BSTR Source, 
+                        [in, optional, defaultvalue("")] BSTR Destination, 
+                        [in, optional, defaultvalue("")] BSTR UserName, 
+                        [in, optional, defaultvalue("")] BSTR Password, 
+                        [in, optional, defaultvalue(-1)] MoveRecordOptionsEnum Options, 
+                        [in, optional, defaultvalue(0)] VARIANT_BOOL Async, 
+                        [out, retval] BSTR* pbstrNewURL);
+        [id(0x00000007), helpcontext(0x0012cc85)]
+        HRESULT CopyRecord(
+                        [in, optional, defaultvalue("")] BSTR Source, 
+                        [in, optional, defaultvalue("")] BSTR Destination, 
+                        [in, optional, defaultvalue("")] BSTR UserName, 
+                        [in, optional, defaultvalue("")] BSTR Password, 
+                        [in, optional, defaultvalue(-1)] CopyRecordOptionsEnum Options, 
+                        [in, optional, defaultvalue(0)] VARIANT_BOOL Async, 
+                        [out, retval] BSTR* pbstrNewURL);
+        [id(0x00000008), helpcontext(0x0012cc86)]
+        HRESULT DeleteRecord(
+                        [in, optional, defaultvalue("")] BSTR Source, 
+                        [in, optional, defaultvalue(0)] VARIANT_BOOL Async);
+        [id(0x00000009), helpcontext(0x0012cc87)]
+        HRESULT Open(
+                        [in, optional] VARIANT Source, 
+                        [in, optional] VARIANT ActiveConnection, 
+                        [in, optional, defaultvalue(0)] ConnectModeEnum Mode, 
+                        [in, optional, defaultvalue(-1)] RecordCreateOptionsEnum CreateOptions, 
+                        [in, optional, defaultvalue(-1)] RecordOpenOptionsEnum Options, 
+                        [in, optional, defaultvalue("")] BSTR UserName, 
+                        [in, optional, defaultvalue("")] BSTR Password);
+        [id(0x0000000a), helpcontext(0x0012cc88)]
+        HRESULT Close();
+        [id(00000000), propget, helpcontext(0x0012cc89)]
+        HRESULT Fields([out, retval] Fields** ppFlds);
+        [id(0x0000000b), propget, helpcontext(0x0012cc8a)]
+        HRESULT RecordType([out, retval] RecordTypeEnum* ptype);
+        [id(0x0000000c), helpcontext(0x0012cc8d)]
+        HRESULT GetChildren([out, retval] _Recordset** pprset);
+        [id(0x0000000d), helpcontext(0x0012cc8c)]
+        HRESULT Cancel();
+    };
+
+    [
+      uuid(00000560-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012cc8e),
+      licensed
+    ]
+    coclass Record {
+        [default] interface _Record;
+    };
+
+    [
+      odl,
+      uuid(00000565-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012ccc7),
+      hidden,
+      dual,
+      oleautomation
+    ]
+    interface _Stream : IDispatch {
+        [id(0x00000001), propget, helpcontext(0x0012ccb2)]
+        HRESULT Size([out, retval] ADO_LONGPTR* pSize);
+        [id(0x00000002), propget, helpcontext(0x0012ccb3)]
+        HRESULT EOS([out, retval] VARIANT_BOOL* pEOS);
+        [id(0x00000003), propget, helpcontext(0x0012ccb4)]
+        HRESULT Position([out, retval] ADO_LONGPTR* pPos);
+        [id(0x00000003), propput, helpcontext(0x0012ccb4)]
+        HRESULT Position([in] ADO_LONGPTR pPos);
+        [id(0x00000004), propget, helpcontext(0x0012ccb5)]
+        HRESULT Type([out, retval] StreamTypeEnum* ptype);
+        [id(0x00000004), propput, helpcontext(0x0012ccb5)]
+        HRESULT Type([in] StreamTypeEnum ptype);
+        [id(0x00000005), propget, helpcontext(0x0012ccb6)]
+        HRESULT LineSeparator([out, retval] LineSeparatorEnum* pLS);
+        [id(0x00000005), propput, helpcontext(0x0012ccb6)]
+        HRESULT LineSeparator([in] LineSeparatorEnum pLS);
+        [id(0x00000006), propget, helpcontext(0x0012ccb7)]
+        HRESULT State([out, retval] ObjectStateEnum* pState);
+        [id(0x00000007), propget, helpcontext(0x0012ccb8)]
+        HRESULT Mode([out, retval] ConnectModeEnum* pMode);
+        [id(0x00000007), propput, helpcontext(0x0012ccb8)]
+        HRESULT Mode([in] ConnectModeEnum pMode);
+        [id(0x00000008), propget, helpcontext(0x0012ccb9)]
+        HRESULT Charset([out, retval] BSTR* pbstrCharset);
+        [id(0x00000008), propput, helpcontext(0x0012ccb9)]
+        HRESULT Charset([in] BSTR pbstrCharset);
+        [id(0x00000009), helpcontext(0x0012ccba)]
+        HRESULT Read(
+                        [in, optional, defaultvalue(-1)] long NumBytes, 
+                        [out, retval] VARIANT* pval);
+        [id(0x0000000a), helpcontext(0x0012ccbb)]
+        HRESULT Open(
+                        [in, optional] VARIANT Source, 
+                        [in, optional, defaultvalue(0)] ConnectModeEnum Mode, 
+                        [in, optional, defaultvalue(-1)] StreamOpenOptionsEnum Options, 
+                        [in, optional, defaultvalue("")] BSTR UserName, 
+                        [in, optional, defaultvalue("")] BSTR Password);
+        [id(0x0000000b), helpcontext(0x0012ccbc)]
+        HRESULT Close();
+        [id(0x0000000c), helpcontext(0x0012ccbd)]
+        HRESULT SkipLine();
+        [id(0x0000000d), helpcontext(0x0012ccbe)]
+        HRESULT Write([in] VARIANT Buffer);
+        [id(0x0000000e), helpcontext(0x0012ccbf)]
+        HRESULT SetEOS();
+        [id(0x0000000f), helpcontext(0x0012ccc0)]
+        HRESULT CopyTo(
+                        [in] _Stream* DestStream, 
+                        [in, optional, defaultvalue(-1)] ADO_LONGPTR CharNumber);
+        [id(0x00000010), helpcontext(0x0012ccc1)]
+        HRESULT Flush();
+        [id(0x00000011), helpcontext(0x0012ccc2)]
+        HRESULT SaveToFile(
+                        [in] BSTR FileName, 
+                        [in, optional, defaultvalue(1)] SaveOptionsEnum Options);
+        [id(0x00000012), helpcontext(0x0012ccc3)]
+        HRESULT LoadFromFile([in] BSTR FileName);
+        [id(0x00000013), helpcontext(0x0012ccc4)]
+        HRESULT ReadText(
+                        [in, optional, defaultvalue(-1)] long NumChars, 
+                        [out, retval] BSTR* pbstr);
+        [id(0x00000014), helpcontext(0x0012ccc5)]
+        HRESULT WriteText(
+                        [in] BSTR Data, 
+                        [in, optional, defaultvalue(0)] StreamWriteEnum Options);
+        [id(0x00000015), helpcontext(0x0012ccc6)]
+        HRESULT Cancel();
+    };
+
+    [
+      uuid(00000566-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012ccc7),
+      licensed
+    ]
+    coclass Stream {
+        [default] interface _Stream;
+    };
+
+    [
+      odl,
+      uuid(00000567-0000-0010-8000-00AA006D2EA4),
+      restricted
+    ]
+    interface ADORecordConstruction : IDispatch {
+        [propget]
+        HRESULT _stdcall Row([out, retval] IUnknown** ppRow);
+        [propput]
+        HRESULT _stdcall Row([in] IUnknown* ppRow);
+        [propput]
+        HRESULT _stdcall ParentRow([in] IUnknown* rhs);
+    };
+
+    [
+      odl,
+      uuid(00000568-0000-0010-8000-00AA006D2EA4),
+      restricted
+    ]
+    interface ADOStreamConstruction : IDispatch {
+        [propget]
+        HRESULT _stdcall Stream([out, retval] IUnknown** ppStm);
+        [propput]
+        HRESULT _stdcall Stream([in] IUnknown* ppStm);
+    };
+
+    [
+      odl,
+      uuid(00000517-0000-0010-8000-00AA006D2EA4),
+      restricted
+    ]
+    interface ADOCommandConstruction : IUnknown {
+        [propget]
+        HRESULT _stdcall OLEDBCommand([out, retval] IUnknown** ppOLEDBCommand);
+        [propput]
+        HRESULT _stdcall OLEDBCommand([in] IUnknown* ppOLEDBCommand);
+    };
+
+    [
+      uuid(00000507-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c902),
+      licensed
+    ]
+    coclass Command {
+        [default] interface _Command;
+    };
+
+    [
+      uuid(00000535-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c903),
+      licensed
+    ]
+    coclass Recordset {
+        [default] interface _Recordset;
+        [default, source] dispinterface RecordsetEvents;
+    };
+
+    [
+      odl,
+      uuid(00000283-0000-0010-8000-00AA006D2EA4),
+      restricted
+    ]
+    interface ADORecordsetConstruction : IDispatch {
+        [propget]
+        HRESULT _stdcall Rowset([out, retval] IUnknown** ppRowset);
+        [propput]
+        HRESULT _stdcall Rowset([in] IUnknown* ppRowset);
+        [propget]
+        HRESULT _stdcall Chapter([out, retval] ADO_LONGPTR* plChapter);
+        [propput]
+        HRESULT _stdcall Chapter([in] ADO_LONGPTR plChapter);
+        [propget]
+        HRESULT _stdcall RowPosition([out, retval] IUnknown** ppRowPos);
+        [propput]
+        HRESULT _stdcall RowPosition([in] IUnknown* ppRowPos);
+    };
+
+    [
+      odl,
+      uuid(00000505-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c908),
+      hidden,
+      dual,
+      nonextensible,
+      oleautomation
+    ]
+    interface Field15 : _ADO {
+        [id(0x00000455), propget, helpcontext(0x0012c90c)]
+        HRESULT ActualSize([out, retval] ADO_LONGPTR* pl);
+        [id(0x0000045a), propget, helpcontext(0x0012c90d)]
+        HRESULT Attributes([out, retval] long* pl);
+        [id(0x0000044f), propget, helpcontext(0x0012c91e)]
+        HRESULT DefinedSize([out, retval] ADO_LONGPTR* pl);
+        [id(0x0000044c), propget, helpcontext(0x0012c92f)]
+        HRESULT Name([out, retval] BSTR* pbstr);
+        [id(0x0000044e), propget, helpcontext(0x0012c94a)]
+        HRESULT Type([out, retval] DataTypeEnum* pDataType);
+        [id(00000000), propget, helpcontext(0x0012c94d)]
+        HRESULT Value([out, retval] VARIANT* pvar);
+        [id(00000000), propput, helpcontext(0x0012c94d)]
+        HRESULT Value([in] VARIANT pvar);
+        [id(0x00000458), propget, helpcontext(0x0012c938)]
+        HRESULT Precision([out, retval] unsigned char* pbPrecision);
+        [id(0x00000459), propget, helpcontext(0x0012c932)]
+        HRESULT NumericScale([out, retval] unsigned char* pbNumericScale);
+        [id(0x00000453), helpcontext(0x0012c8b6)]
+        HRESULT AppendChunk([in] VARIANT Data);
+        [id(0x00000454), helpcontext(0x0012c8ce)]
+        HRESULT GetChunk(
+                        [in] long Length, 
+                        [out, retval] VARIANT* pvar);
+        [id(0x00000450), propget, helpcontext(0x0012c934)]
+        HRESULT OriginalValue([out, retval] VARIANT* pvar);
+        [id(0x00000451), propget, helpcontext(0x0012c94b)]
+        HRESULT UnderlyingValue([out, retval] VARIANT* pvar);
+    };
+
+    [
+      uuid(0000050B-0000-0010-8000-00AA006D2EA4),
+      helpcontext(0x0012c909),
+      licensed
+    ]
+    coclass Parameter {
+        [default] interface _Parameter;
+    };
+};

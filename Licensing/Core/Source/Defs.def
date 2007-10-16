@@ -1,0 +1,15 @@
+DEFINITION MODULE Defs;
+
+IMPORT
+   hash;
+   
+CONST
+   TPID      ::= hash.TH40;
+   TOwner    ::= hash.TH32;
+   TMID      ::= hash.TH40;
+   
+   zeroPID   ::= hash.zeroH40;
+   zeroOwner ::= hash.zeroH32;
+   zeroMID   ::= hash.zeroH40;
+
+END Defs.

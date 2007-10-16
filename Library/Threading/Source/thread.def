@@ -1,0 +1,20 @@
+DEFINITION MODULE thread;
+
+(*===========================================================================*)
+// Win32
+
+IMPORT
+  threadOSAL,
+  threadWin32;
+
+CONST
+  THREAD ::= threadWin32.THREAD;
+  IThread ::= threadOSAL.IThread;
+CONST
+  Thread ::= threadWin32.Win32Thread;
+TYPE
+  TPThread = POINTER TO Thread;
+
+(*===========================================================================*)
+
+END thread.

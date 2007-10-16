@@ -1,0 +1,77 @@
+[
+	uuid( B2C294A0-3999-408f-88EC-1A92AFF7E0D9 ),
+	version(1.0),
+	helpstring("SmartControl Stiebel Heat Pump Simple ActiveX Control 1.0 Type Library")
+]
+
+library StiebelHPsAx {
+
+	importlib("stdole32.tlb");
+
+	typedef [
+		uuid( A969297A-3791-4efe-BA38-85AFF45769E8 ),
+		helpstring( "IO Direction." )
+	] enum {
+		dirUnknown = 0,
+		dirRead = 1,
+		dirWrite = 2
+	} TDirection;
+
+	typedef [
+		uuid( 373C8B0D-A252-4b4b-9807-3F85D90D51F9 ),
+		helpstring( "Asynchronous operation result." )
+	] enum { // see Sync.def
+		arUnknown = 0,
+		arCompleted = 1,
+		arNoData = 3,
+		arPending = 4,
+		arTimeout = 5,
+		arAborted = 6,
+		arAlreadyPending = 7,
+		arCannotStart = 8
+	} TAsyncResult;
+
+	[
+		uuid( A497A09E-A629-4e66-A383-EBCB06EE8859 ),
+		helpstring("Control IDispatch Interface of SmartControl Stiebel Heat Pump Simple ActiveX Control"),
+	]
+	interface StiebelHPsAx_Control : IDispatch {
+
+		[id(1),helpstring( "Prepares control for operation." )]
+		HRESULT Init( BSTR COMDevice, BSTR PARFilePath, [out] BSTR* ErrorMessage, [out, retval] VARIANT_BOOL* Result );
+
+		[id(2),helpstring( "Stops control." )]
+		HRESULT Done();
+
+		[id(3),helpstring( "Maps name to handle." )]
+		HRESULT Map( BSTR ItemName, [out] long* ItemHandle, [out, retval] VARIANT_BOOL* Found );
+
+		[id(4),helpstring( "Starts IO." )]
+		HRESULT IO( TDirection Direction, long ItemHandle, BSTR DataValue, [out, retval] TAsyncResult* Result );
+
+	};
+
+	[
+		uuid( C4E0B480-0567-4a30-BCB1-6A6DEBE72837 ),
+		helpstring("Event IDispatch interface of SmartControl Stiebel Heat Pump Simple ActiveX Control"),
+	]
+	dispinterface StiebelHPsAx_Events {
+
+	properties:
+	methods:
+		[id(1),helpstring( "Start IO." )]
+		HRESULT OnIO( TDirection Direction, TAsyncResult Result, BSTR Value );
+
+	};
+
+	// class information
+	[
+	uuid( 35CC7D24-EE71-4344-9C49-029AA23E509C ),
+		helpstring("SmartControl Stiebel Heat Pump Simple ActiveX Control")
+	]
+	coclass StiebelHPsAx {
+		[ default ]         interface StiebelHPsAx_Control;
+		[ default, source ]	dispinterface StiebelHPsAx_Events;
+	};
+
+}

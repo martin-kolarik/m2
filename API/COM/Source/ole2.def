@@ -1,0 +1,505 @@
+DEFINITION MODULE ole2;
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+// Set packing to 8 
+(*# option( pack => 8 ) *)
+// Make 100% sure WIN32 is defined 
+// SET to remove _export from interface definitions
+
+IMPORT 
+  winerror,
+  windows;
+
+IMPORT
+  wtypes,
+  unknwn,
+  oleidl,
+  objidl;
+
+// View OBJECT Error Codes
+CONST
+  E_DRAW = 080040140H;
+// IDataObject Error Codes
+  DATA_E_FORMATETC = 080040064H;
+
+
+
+
+
+// Common stuff gleamed from OLE.2,
+// (0L) (-1L)
+//* verbs */
+CONST
+  PCLSID ::= wtypes.PCLSID;
+  CLIPFORMAT ::= wtypes.CLIPFORMAT;
+  HRESULT ::= wtypes.HRESULT;
+  PCOLESTR ::= wtypes.POLESTR;
+
+CONST 
+
+  OLEIVERB_PRIMARY           = 0;
+  OLEIVERB_SHOW              = -1;
+  OLEIVERB_OPEN              = -2;
+  OLEIVERB_HIDE              = -3;
+  OLEIVERB_UIACTIVATE        = -4;
+  OLEIVERB_INPLACEACTIVATE   = -5;
+  OLEIVERB_DISCARDUNDOSTATE  = -6;
+
+// for OleCreateEmbeddingHelper flags; roles in low word; options in high word
+  EMBDHLP_INPROC_HANDLER  = 0000H;
+  EMBDHLP_INPROC_SERVER  =  0001H;
+  EMBDHLP_CREATENOW   = 00000000H;
+  EMBDHLP_DELAYCREATE = 00010000H;
+
+///* extended create function flags */
+  OLECREATE_LEAVERUNNING = 0000000H;
+  
+
+///* pull in the MIDL generated header */
+///****** DV APIs ***********************************************************/
+TYPE
+
+  TPPIDataAdviseHolder = objidl.TPIDataAdviseHolder;
+
+PROCEDURE CreateDataAdviseHolder (ppDAHolder : TPPIDataAdviseHolder) : HRESULT;
+
+///****** OLE API Prototypes ************************************************/
+
+PROCEDURE OleBuildVersion() : CARD32;//dword
+
+///* helper functions */
+
+
+TYPE
+  TPPAddress = POINTER TO ADDRESS;
+  POLESTR = POINTER TO wtypes.OLECHAR;
+
+PROCEDURE ReadClassStg(pStg : objidl.TPIStorage;
+    pclsid : PCLSID) : HRESULT;
+
+PROCEDURE WriteClassStg(pStg : objidl.TPIStorage; 
+    CONST rclsid : wtypes.CLSID) : HRESULT;
+
+PROCEDURE ReadClassStm(pStm : objidl.TPIStream; 
+    pclsid : PCLSID) : HRESULT;
+
+PROCEDURE WriteClassStm(pStm : objidl.TPIStream; 
+    CONST rclsid : wtypes.CLSID) : HRESULT;
+//??
+PROCEDURE WriteFmtUserTypeStg (pstg : objidl.TPIStorage; 
+    cf : CLIPFORMAT; 
+    lpszUserType : PCOLESTR ) : HRESULT;
+
+PROCEDURE ReadFmtUserTypeStg (pstg : objidl.TPIStorage; 
+    pcf : CLIPFORMAT; 
+    lplpszUserType : PCOLESTR ) : HRESULT;
+
+
+///* init/term */
+
+PROCEDURE OleInitialize(pvReserved : ADDRESS ) : HRESULT;
+
+PROCEDURE OleUninitialize();
+
+
+///* APIs to query whether (Embedded/Linked) object can be created from
+//   the data object */
+
+PROCEDURE OleQueryLinkFromData(pSrcDataObject : objidl.TPIDataObject) : HRESULT;
+
+PROCEDURE OleQueryCreateFromData(pSrcDataObject : objidl.TPIDataObject) : HRESULT;
+
+
+///* Object creation APIs */
+
+PROCEDURE OleCreate( CONST rclsid : wtypes.CLSID; 
+    CONST riid : wtypes.IID ; 
+    renderopt : CARD32; 
+    pFormatEtc : objidl.PFORMATETC; 
+    pClientSite :oleidl.TPIOleClientSite;
+    pStg : objidl.TPIStorage; 
+    ppvObj : TPPAddress) : HRESULT;
+
+TYPE
+  
+  TPWord = POINTER TO WORD;
+  
+PROCEDURE OleCreateEx( CONST rclsid : wtypes.CLSID; 
+    CONST riid : wtypes.IID; dwFlags : CARD32;
+    renderopt : CARD32; 
+    cFormats : CARD32; 
+    rgAdvf : windows.PDWORD;
+    rgFormatEtc : objidl.PFORMATETC ; 
+    lpAdviseSink : objidl.TPIAdviseSink;
+    rgdwConnection : windows.PDWORD; 
+    pClientSite :oleidl.TPIOleClientSite;
+    pStg :objidl.TPIStorage; 
+    ppvObj : TPPAddress) : HRESULT;
+
+PROCEDURE OleCreateFromData(pSrcDataObj : objidl.TPIDataObject; 
+    CONST riid : wtypes.IID;
+    renderopt : CARD32; 
+    pFormatEtc : objidl.PFORMATETC;
+    pClientSite :oleidl.TPIOleClientSite; 
+    pStg : objidl.TPIStorage;
+    ppvObj : TPPAddress) : HRESULT;
+
+PROCEDURE OleCreateFromDataEx(pSrcDataObj : objidl.TPIDataObject; 
+   CONST riid : wtypes.IID;
+   dwFlags : CARD32; 
+   renderopt : CARD32; 
+   cFormats : CARD32; 
+   rgAdvf : windows.PDWORD;
+   rgFormatEtc : objidl.PFORMATETC; 
+   lpAdviseSink : objidl.TPIAdviseSink;
+   rgdwConnection : windows.PDWORD; 
+   pClientSite :oleidl.TPIOleClientSite;
+   pStg : objidl.TPIStorage; 
+   ppvObj : TPPAddress) : HRESULT;
+
+PROCEDURE OleCreateLinkFromData(pSrcDataObj : objidl.TPIDataObject; 
+    CONST riid : wtypes.IID;
+    renderopt : CARD32; 
+    pFormatEtc : objidl.PFORMATETC;
+    pClientSite :oleidl.TPIOleClientSite; 
+    pStg : objidl.TPIStorage;
+    ppvObj : TPPAddress) : HRESULT;
+
+PROCEDURE OleCreateLinkFromDataEx(pSrcDataObj : objidl.TPIDataObject; 
+    CONST riid : wtypes.IID;
+    dwFlags : CARD32; 
+    renderopt : CARD32; 
+    cFormats : CARD32; 
+    rgAdvf : windows.PDWORD;
+    rgFormatEtc : objidl.PFORMATETC; 
+    lpAdviseSink : objidl.TPIAdviseSink;
+    rgdwConnection : windows.PDWORD; 
+    pClientSite :oleidl.TPIOleClientSite;
+    pStg : objidl.TPIStorage; 
+    ppvObj : TPPAddress) : HRESULT;
+
+PROCEDURE OleCreateStaticFromData(pSrcDataObj : objidl.TPIDataObject; 
+    CONST iid : wtypes.IID;
+    renderopt : CARD32; 
+    pFormatEtc : objidl.PFORMATETC;
+    pClientSite :oleidl.TPIOleClientSite; 
+    pStg : objidl.TPIStorage;
+    ppvObj : TPPAddress) : HRESULT;
+
+
+PROCEDURE OleCreateLink(pmkLinkSrc : objidl.TPIMoniker; 
+    CONST riid : wtypes.IID;
+    renderopt : CARD32; 
+    lpFormatEtc : objidl.PFORMATETC;
+    pClientSite :oleidl.TPIOleClientSite; 
+    pStg : objidl.TPIStorage; 
+    ppvObj : TPPAddress) : HRESULT;
+
+PROCEDURE OleCreateLinkEx(pmkLinkSrc : objidl.TPIMoniker; 
+    CONST riid : wtypes.IID;
+    dwFlags : CARD32; 
+    renderopt : CARD32; 
+    cFormats : CARD32; 
+    rgAdvf : windows.PDWORD;
+    rgFormatEtc : objidl.PFORMATETC; 
+    lpAdviseSink : objidl.TPIAdviseSink;
+    rgdwConnection : windows.PDWORD; 
+    pClientSite :oleidl.TPIOleClientSite;
+    pStg : objidl.TPIStorage; 
+    ppvObj : TPPAddress) : HRESULT;
+
+PROCEDURE OleCreateLinkToFile(lpszFileName : PCOLESTR; 
+    CONST riid : wtypes.IID;
+    renderopt : CARD32; 
+    lpFormatEtc : objidl.PFORMATETC;
+    pClientSite :oleidl.TPIOleClientSite; 
+    pStg : objidl.TPIStorage; 
+    ppvObj : TPPAddress) : HRESULT;
+
+PROCEDURE OleCreateLinkToFileEx(lpszFileName : PCOLESTR; 
+    CONST riid : wtypes.IID;
+    dwFlags : CARD32; 
+    renderopt : CARD32; 
+    cFormats : CARD32; 
+    rgAdvf : windows.PDWORD;
+    rgFormatEtc : objidl.PFORMATETC; 
+    lpAdviseSink : objidl.TPIAdviseSink;
+    rgdwConnection : windows.PDWORD; 
+    pClientSite :oleidl.TPIOleClientSite;
+    pStg : objidl.TPIStorage; 
+    ppvObj : TPPAddress) : HRESULT;
+
+PROCEDURE OleCreateFromFile( CONST rclsid : wtypes.CLSID; 
+    lpszFileName : PCOLESTR; 
+    CONST riid : wtypes.IID;
+    renderopt : CARD32; 
+    lpFormatEtc : objidl.PFORMATETC;
+    pClientSite :oleidl.TPIOleClientSite; 
+    pStg : objidl.TPIStorage; 
+    ppvObj : ADDRESS) : HRESULT;
+
+PROCEDURE OleCreateFromFileEx( CONST rclsid : wtypes.CLSID; 
+    lpszFileName : PCOLESTR; 
+    CONST riid : wtypes.IID;
+    dwFlags : CARD32; 
+    renderopt : CARD32; 
+    cFormats : CARD32; 
+    rgAdvf : windows.PDWORD;
+    rgFormatEtc : objidl.PFORMATETC; 
+    lpAdviseSink : objidl.TPIAdviseSink;
+    rgdwConnection : windows.PDWORD; 
+    pClientSite :oleidl.TPIOleClientSite;
+    pStg : objidl.TPIStorage; 
+    ppvObj : TPPAddress) : HRESULT;
+
+PROCEDURE OleLoad(pStg : objidl.TPIStorage; 
+    CONST riid : wtypes.IID; 
+    pClientSite :oleidl.TPIOleClientSite;
+    ppvObj : TPPAddress) : HRESULT;
+
+PROCEDURE OleSave(pPS : objidl.TPIPersistStorage; 
+    pStg : objidl.TPIStorage; 
+    fSameAsLoad : windows.BOOL ) : HRESULT;
+
+PROCEDURE OleLoadFromStream( pStm : objidl.TPIStream; 
+    CONST iidInterface : wtypes.IID; 
+    ppvObj : TPPAddress) : HRESULT;
+
+PROCEDURE OleSaveToStream( pPStm : objidl.TPIPersistStream; 
+    pStm :objidl.TPIStream ) : HRESULT;
+
+PROCEDURE OleSetContainedObject(pUnknown : unknwn.TPIUnknown; 
+    fContained : windows.BOOL ) : HRESULT;
+
+PROCEDURE OleNoteObjectVisible(pUnknown : unknwn.TPIUnknown; 
+    fVisible : windows.BOOL) : HRESULT;
+
+
+///* Drag/Drop APIs */
+
+PROCEDURE RegisterDragDrop (hwnd : windows.HANDLE; 
+    pDropTarget : oleidl.TPIDropTarget ) : HRESULT;
+
+PROCEDURE RevokeDragDrop (hwnd : windows.HANDLE) : HRESULT;
+
+PROCEDURE DoDragDrop(pDataObj : objidl.TPIDataObject; 
+    pDropSource : oleidl.TPIDropSource;
+    dwOKEffects : CARD32; 
+    pdwEffect : windows.PDWORD) : HRESULT;
+
+///* Clipboard APIs */
+TYPE
+  TPPIDataObj = POINTER TO objidl.TPIDataObject;
+
+PROCEDURE OleSetClipboard(pDataObj : objidl.TPIDataObject ) : HRESULT;
+
+PROCEDURE OleGetClipboard(ppDataObj : TPPIDataObj ) : HRESULT;
+
+PROCEDURE OleFlushClipboard() : HRESULT;
+
+PROCEDURE OleIsCurrentClipboard(pDataObj : objidl.TPIDataObject) : HRESULT;
+
+
+//* InPlace Editing APIs */
+(*/*WINOLEAPI_(HOLEMENU) */ *)
+PROCEDURE OleCreateMenuDescriptor ( hmenuCombined : windows.HMENU;
+    lpMenuWidths : oleidl.POLEMENUGROUPWIDTHS ) : windows.HGLOBAL;
+
+PROCEDURE OleSetMenuDescriptor (holemenu : windows.HMENU; 
+    hwndFrame : windows.HWND;
+    hwndActiveObject : windows.HWND;
+    lpFrame : oleidl.TPIOleInPlaceFrame;
+    lpActiveObj : oleidl.TPIOleInPlaceActiveObject ) : HRESULT;
+
+PROCEDURE OleDestroyMenuDescriptor (holemenu : windows.HANDLE) : HRESULT;
+
+PROCEDURE OleTranslateAccelerator (lpFrame : oleidl.TPIOleInPlaceFrame;
+    lpFrameInfo : oleidl.POLEINPLACEFRAMEINFO; 
+    lpmsg : windows.PMSG ) : HRESULT;
+
+
+///* Helper APIs */
+(*/*WINOLEAPI_(HANDLE)*/*)
+
+PROCEDURE OleDuplicateData (hSrc : windows.HANDLE; 
+    cfFormat : CARD16;
+    uiFlags : CARD32) : windows.HANDLE;
+
+PROCEDURE OleDraw (pUnknown : unknwn.TPIUnknown; 
+    dwAspect : CARD32; 
+    hdcDraw : windows.HDC;
+    lprcBounds : windows.PCRECT ) : HRESULT;
+
+PROCEDURE OleRun(pUnknown : unknwn.TPIUnknown ) : HRESULT;
+
+//WINOLEAPI_(BOOL)
+PROCEDURE OleIsRunning(pObject : oleidl.TPIOleObject ) : windows.BOOL;
+
+PROCEDURE OleLockRunning(pUnknown : unknwn.TPIUnknown; 
+    fLock : windows.BOOL; 
+    fLastUnlockCloses : windows.BOOL ) : HRESULT;
+
+//WINOLEAPI_(void)
+TYPE   
+  ReleaseStgMedium = PROCEDURE (objidl.PSTGMEDIUM);
+  
+  TPPIOleAdviseHolder = POINTER TO oleidl.TPIOleAdviseHolder;
+  
+PROCEDURE CreateOleAdviseHolder(ppOAHolder : TPPIOleAdviseHolder) : HRESULT;
+
+PROCEDURE OleCreateDefaultHandler( CONST clsid : wtypes.CLSID; 
+    pUnkOuter : unknwn.TPIUnknown;
+    CONST riid : wtypes.IID; 
+    lplpObj : ADDRESS) : HRESULT;
+
+PROCEDURE OleCreateEmbeddingHelper( CONST clsid : wtypes.CLSID; 
+    pUnkOuter : unknwn.TPIUnknown;
+    flags : CARD32; 
+    pCF : unknwn.TPIClassFactory;
+    CONST riid : wtypes.IID; 
+    lplpObj : ADDRESS) : HRESULT;
+
+//WINOLEAPI_(BOOL)   
+PROCEDURE IsAccelerator(hAccel : windows.HACCEL; 
+    cAccelEntries : windows.INT; 
+    lpMsg : windows.PMSG;
+    pwCmd : TPWord) : windows.BOOL;
+//* Icon extraction Helper APIs */
+
+//WINOLEAPI_(HGLOBAL) 
+PROCEDURE OleGetIconOfFile(lpszPath : PCOLESTR; 
+    fUseFileAsLabel : windows.BOOL) : windows.HGLOBAL;
+
+//WINOLEAPI_(HGLOBAL) 
+PROCEDURE OleGetIconOfClass( CONST rclsid : wtypes.CLSID; 
+    lpszLabel : PCOLESTR;
+    fUseTypeAsLabel : windows.BOOL) : windows.HGLOBAL;
+
+//WINOLEAPI_(HGLOBAL) 
+PROCEDURE OleMetafilePictFromIconAndLabel(hIcon : windows.HICON; 
+    lpszLabel : PCOLESTR;
+    lpszSourceFile : PCOLESTR; 
+    iIconIndex : CARD32) : windows.HGLOBAL;
+
+
+//* Registration Database Helper APIs */
+TYPE
+  TPPCOLESTR = POINTER TO PCOLESTR; 
+
+PROCEDURE OleRegGetUserType( CONST clsid : wtypes.CLSID; 
+    dwFormOfType : CARD32;
+    pszUserType : TPPCOLESTR) : HRESULT;
+
+PROCEDURE OleRegGetMiscStatus( CONST clsid : wtypes.CLSID; 
+    dwAspect : CARD32;
+    pdwStatus : windows.PDWORD) : HRESULT;
+
+TYPE
+  TPPIEnumFORMATETC = POINTER TO objidl.TPIEnumFORMATETC;
+
+PROCEDURE OleRegEnumFormatEtc( CONST clsid : wtypes.CLSID; 
+    dwDirection : CARD32;
+    ppenum : TPPIEnumFORMATETC): HRESULT;
+
+TYPE
+  TPPIEnumOLEVERB = POINTER TO oleidl.TPIEnumOLEVERB; 
+
+PROCEDURE OleRegEnumVerbs( CONST clsid : wtypes.CLSID; 
+    ppenum : TPPIEnumOLEVERB ) : HRESULT;
+
+//* OLE 1.0 conversion APIS */
+
+//***** OLE 1.0 OLESTREAM declarations *************************************/
+
+//  !!!!!!!!!!!!!!!
+
+TYPE
+  PCOLESTREAM = POINTER TO OLESTREAM;
+  POLESTREAMVTBL = POINTER TO OLESTREAMVTBL;
+  
+  TPGet = PROCEDURE( PCOLESTREAM, ADDRESS, CARD32 ): CARD32;
+  TPPut = PROCEDURE( PCOLESTREAM, ADDRESS, CARD32 ): CARD32;
+  
+  OLESTREAMVTBL = RECORD 
+                    Get : TPGet;
+                    Put : TPPut;
+                  END;
+
+  OLESTREAM = RECORD
+                lpstbl : POLESTREAMVTBL;
+              END;   
+
+PROCEDURE OleConvertOLESTREAMToIStorage  (lpolestream : PCOLESTREAM;
+    pstg : objidl.TPIStorage;
+   //?
+    ptd : objidl.PDVTARGETDEVICE) : HRESULT;
+
+PROCEDURE OleConvertIStorageToOLESTREAM (pstg : objidl.TPIStorage;
+    lpolestream : PCOLESTREAM) : HRESULT;
+
+
+//* Storage Utility APIs */
+TYPE
+  Pphglobal = POINTER TO windows.HGLOBAL;
+  
+PROCEDURE GetHGlobalFromILockBytes (plkbyt : objidl.TPILockBytes;
+    phglobal : Pphglobal) : HRESULT;
+
+PROCEDURE CreateILockBytesOnHGlobal (hGlobal : windows.HGLOBAL; 
+    fDeleteOnRelease : windows.BOOL;
+    VAR pplkbyt : objidl.TPILockBytes) : HRESULT;
+
+PROCEDURE GetHGlobalFromStream (pstm : objidl.TPIStream; 
+    phglobal : Pphglobal) : HRESULT;
+
+PROCEDURE CreateStreamOnHGlobal (hGlobal : windows.HGLOBAL;
+    fDeleteOnRelease : windows.BOOL;
+    VAR ppstm : objidl.TPIStream) : HRESULT;
+//* ConvertTo APIS */
+
+PROCEDURE OleDoAutoConvert( pStg : objidl.TPIStorage; 
+    pClsidNew : PCLSID ) : HRESULT;
+
+PROCEDURE OleGetAutoConvert( CONST clsidOld : wtypes.CLSID; 
+    pClsidNew : PCLSID ) : HRESULT;
+
+PROCEDURE OleSetAutoConvert( CONST clsidOld : wtypes.CLSID; 
+    CONST clsidNew : wtypes.CLSID ) : HRESULT;
+
+PROCEDURE GetConvertStg( pStg : objidl.TPIStorage ) : HRESULT;
+
+PROCEDURE SetConvertStg( pStg : objidl.TPIStorage; 
+    fConvert : windows.BOOL ) : HRESULT;
+
+
+PROCEDURE OleConvertIStorageToOLESTREAMEx( pstg : objidl.TPIStorage;        // Presentation data to OLESTREAM
+    cfFormat : CLIPFORMAT;   //      format
+    lWidth : LONGINT;     //      width
+    lHeight : LONGINT;    //      height
+    dwSize : CARD32;     //      size in bytes
+    pmedium : objidl.PSTGMEDIUM;    //      bits
+    polestm : PCOLESTREAM ) : HRESULT;
+
+TYPE
+  TPCLIPFORMAT = POINTER TO CLIPFORMAT;
+  TPLongInt = POINTER TO LONGINT;
+  
+PROCEDURE OleConvertOLESTREAMToIStorageEx( polestm : PCOLESTREAM;
+    pstg : objidl.TPIStorage;                // Presentation data from OLESTREAM
+    pcfFormat : TPCLIPFORMAT;  //      format
+    plwWidth  : TPLongInt;   //      width
+    plHeight : TPLongInt;   //      height
+    pdwSize : windows.PDWORD;    //      size in bytes
+    pmedium : objidl.PSTGMEDIUM ) : HRESULT;   //      bits
+
+END ole2.

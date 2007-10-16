@@ -1,0 +1,41 @@
+DEFINITION MODULE Delegate;
+// Modula2 Delegates handling module -- Delegate is an object, which is shared between more owners.
+// The object must solve race condition during finishing/deallocating.
+
+IMPORT
+  Exceptions;
+
+#save, option( dll_export => on )
+
+//--------------------------------------------------------------------------------
+
+FINAL CLASS CDelegateException( Exceptions.CException );
+   INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
+END CDelegateException;
+
+PROCEDURE DelegateException( NestedException : POINTER TO Exceptions.Exception; CONST Originator, Text : ARRAY OF WCHAR ) : CDelegateException;
+
+//--------------------------------------------------------------------------------
+
+ABSTRACT CLASS ADelegate; // AFTER CREATION (either static or NEW) THE _References = 1 !!
+                          // This simplifies usage to NEW/Release only and solves problems with static instances,
+                          // for which AddRef/Release is used.
+  PRIVATE VAR
+    _References : CARDINAL;
+  PUBLIC READONLY PROPERTY
+		References : CARDINAL;
+
+  PUBLIC PROCEDURE AddRef() : CARDINAL;
+  #save, option( leak_info => on )
+  PUBLIC PROCEDURE Release() : CARDINAL;
+  #restore
+  PUBLIC VIRTUAL FINALLY ADelegate();
+
+  PRIVATE OPERATOR DISPOSE( a : ADDRESS );
+END ADelegate;
+
+//--------------------------------------------------------------------------------
+
+#restore
+
+END Delegate.

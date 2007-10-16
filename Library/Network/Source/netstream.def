@@ -1,0 +1,50 @@
+DEFINITION MODULE netstream;
+
+IMPORT
+  winsock;
+
+IMPORT
+  IOO,
+  netsocket,
+  Sync;
+  
+#save, option( dll_export => on )
+
+(*================================================================================*)
+
+TYPE
+  TPNetworkStream = POINTER TO CNetworkStream;
+
+CLASS CNetworkStream( IOO.AStream );
+  INTERNAL VAR
+    Access     : IOO.TAccess;
+    OwnHandle  : BOOLEAN;
+    RProxy     : IOO.CStreamProxy;
+    WProxy     : IOO.CStreamProxy;
+  PUBLIC READONLY VAR
+    Socket     : netsocket.TPDSocket;
+  PUBLIC FINAL READONLY PROPERTY
+    CanRead    : BOOLEAN;
+    CanWrite   : BOOLEAN;
+    CanSeek    : BOOLEAN;
+    Long       : BOOLEAN;
+  PUBLIC FINAL PROPERTY
+    Length     : CARD64;
+    Position   : CARD64;
+
+  PUBLIC PROCEDURE FromSocket( Socket : netsocket.TPDSocket; TakeSocketOwnership : BOOLEAN; Access : IOO.TAccess ); // Access tells the stream what should be allowed
+  PUBLIC PROCEDURE FromServer( CONST Server : ARRAY OF WCHAR; Port : CARDINAL );
+
+  PUBLIC FINAL PROCEDURE Seek( Origin : IOO.TSeekOrigin; Position : INT64 ); 
+  PUBLIC FINAL PROCEDURE Flush();
+  PUBLIC FINAL PROCEDURE Close( Persist : BOOLEAN );
+  
+  INTERNAL FINAL PROCEDURE Start( Direction : IOO.TDirection; OperationTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+  INTERNAL FINAL PROCEDURE Abort( Direction : IOO.TDirection );
+END CNetworkStream;
+
+(*================================================================================*)
+
+#restore
+
+END netstream.

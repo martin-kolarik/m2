@@ -1,0 +1,14 @@
+MODULE initializedADR;
+
+PROCEDURE P0( PC : POINTER TO CARDINAL );
+BEGIN
+END P0;
+
+TYPE
+  TPC = POINTER TO CARDINAL;
+VAR
+  C : CARDINAL;
+BEGIN
+  P0( ADR( C ));
+  P0( TPC( ADR( C )));
+END initializedADR.

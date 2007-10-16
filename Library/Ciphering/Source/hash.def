@@ -1,0 +1,25 @@
+DEFINITION MODULE hash;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TH32 = LONGWORD;
+   TH40 = ARRAY [0..4] OF BYTE;
+   TH48 = ARRAY [0..5] OF BYTE;
+   TH64 = QUADWORD;
+   
+CONST
+   zeroH32 = LONGWORD( 0 );
+   zeroH40 = TH40( 0, 0, 0, 0, 0 );
+   zeroH48 = TH48( 0, 0, 0, 0, 0, 0 );
+   zeroH64 = QUADWORD( 0 );
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE hashb( CONST in : ARRAY OF BYTE; OUT hash : ARRAY OF BYTE ) : BOOLEAN; // length of hash array must be 4, 5, 6, 8
+
+PROCEDURE hashs( CONST in : ARRAY OF WCHAR; OUT hash : ARRAY OF BYTE ) : BOOLEAN; // length of hash array must be 4, 5, 6, 8
+
+(*--------------------------------------------------------------------------------*)
+
+END hash.

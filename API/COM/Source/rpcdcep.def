@@ -1,0 +1,342 @@
+DEFINITION MODULE rpcdcep;
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off ) *)
+
+(*# call(   o_a_size        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+(*/*
+    This module contains the private RPC runtime APIs for use by the
+    stubs and by support libraries.  Applications must not call these
+    routines.
+
+*/*)
+
+IMPORT
+  guiddef,
+  rpcdce,
+  windows;
+
+CONST
+  
+  RPC_STATUS ::= rpcdce.RPC_STATUS;
+
+TYPE
+
+  RPC_VERSION = RECORD
+    MajorVersion : SHORTCARD;
+    MinorVersion : SHORTCARD;
+  END;
+  PRPC_VERSION = POINTER TO RPC_VERSION;
+
+  RPC_SYNTAX_IDENTIFIER = RECORD
+    SyntaxGUID : guiddef.GUID;
+    SyntaxVersion : RPC_VERSION;
+  END;
+  PRPC_SYNTAX_IDENTIFIER = POINTER TO RPC_SYNTAX_IDENTIFIER;
+
+  RPC_MESSAGE = RECORD
+    Handle : rpcdce.RPC_BINDING_HANDLE;
+    DataRepresentation : CARDINAL;
+    Buffer : ADDRESS;
+    BufferLength : CARDINAL;
+    ProcNum : CARDINAL;
+    TransferSyntax : PRPC_SYNTAX_IDENTIFIER;
+    RpcInterfaceInformation : ADDRESS;
+    ReservedForRuntime : ADDRESS;
+    ManagerEpv : ADDRESS;
+    ImportContext : ADDRESS;
+    RpcFlags : LONGCARD
+  END;
+  PRPC_MESSAGE = POINTER TO RPC_MESSAGE;
+
+  RPC_FORWARD_FUNCTION = PROCEDURE(
+                           rpcdce.PUUID, // InterfaceId
+                           PRPC_VERSION, // InterfaceVersion
+                           rpcdce.PUUID, // ObjectId
+                           PCHAR,        // Rpcpro
+                           VAR ADDRESS   // ppDestEndpoint
+                         ): RPC_STATUS;
+
+//
+// Types of function calls for datagram rpc
+//
+
+CONST 
+
+  RPC_NCA_FLAGS_DEFAULT    = 000000000H;  // 0b000...000
+  RPC_NCA_FLAGS_IDEMPOTENT = 000000001H;  // 0b000...001
+  RPC_NCA_FLAGS_BROADCAST  = 000000002H;  // 0b000...010
+  RPC_NCA_FLAGS_MAYBE      = 000000004H;  // 0b000...100
+
+  RPC_BUFFER_COMPLETE      = 000001000H;  // used by pipes
+  RPC_BUFFER_PARTIAL       = 000002000H;  // used by pipes
+  RPC_BUFFER_EXTRA         = 000004000H;  // used by pipes
+
+  RPCFLG_NON_NDR           = 080000000H;
+  RPCFLG_ASYNCHRONOUS      = 040000000H;
+  RPCFLG_INPUT_SYNCHRONOUS = 020000000H;
+  RPCFLG_LOCAL_CALL        = 010000000H;
+
+  RPC_FLAGS_VALID_BIT      = 000008000H;
+
+TYPE
+
+  RPC_DISPATCH_FUNCTION = PROCEDURE(
+    (*Message :*) PRPC_MESSAGE
+  );
+
+  RPC_DISPATCH_TABLE = RECORD
+    DispatchTableCount : CARDINAL;
+    DispatchTable : RPC_DISPATCH_FUNCTION;
+    Reserved : INTEGER;
+  END;
+  PRPC_DISPATCH_TABLE = POINTER TO RPC_DISPATCH_TABLE;
+
+  RPC_PROTSEQ_ENDPOINT =  RECORD
+    RpcProtocolSequence : PCHAR;
+    Endpoint : PCHAR;
+  END;
+  PRPC_PROTSEQ_ENDPOINT = POINTER TO RPC_PROTSEQ_ENDPOINT;
+
+(*/*
+Both of these types MUST start with the InterfaceId and TransferSyntax.
+Look at RpcIfInqId and I_RpcIfInqTransferSyntaxes to see why.
+*/*)
+
+CONST
+
+  NT351_INTERFACE_SIZE    = 040H;
+  RPC_INTERFACE_HAS_PIPES = 001H;
+
+TYPE
+
+  RPC_SERVER_INTERFACE = RECORD
+    Length : CARDINAL;
+    InterfaceId : RPC_SYNTAX_IDENTIFIER;
+    TransferSyntax : RPC_SYNTAX_IDENTIFIER;
+    DispatchTable : PRPC_DISPATCH_TABLE;
+    RpcProtseqEndpointCount : CARDINAL;
+    RpcProtseqEndpoint : PRPC_PROTSEQ_ENDPOINT;
+    DefaultManagerEpv : ADDRESS;
+    InterpreterInfo : ADDRESS;
+    Flags : CARDINAL;
+  END;
+  PRPC_SERVER_INTERFACE = POINTER TO RPC_SERVER_INTERFACE;
+
+  RPC_CLIENT_INTERFACE = RECORD
+    Length : CARDINAL;
+    InterfaceId : RPC_SYNTAX_IDENTIFIER;
+    TransferSyntax : RPC_SYNTAX_IDENTIFIER;
+    DispatchTable : PRPC_DISPATCH_TABLE;
+    RpcProtseqEndpointCount : CARDINAL;
+    RpcProtseqEndpoint : PRPC_PROTSEQ_ENDPOINT;
+    Reserved : LONGCARD;
+    InterpreterInfo : ADDRESS;
+    Flags : CARDINAL;
+  END;
+  PRPC_CLIENT_INTERFACE = POINTER TO RPC_CLIENT_INTERFACE;
+
+PROCEDURE I_RpcGetBuffer(
+      Message : PRPC_MESSAGE
+    ): RPC_STATUS;
+
+PROCEDURE I_RpcSendReceive(
+      Message : PRPC_MESSAGE
+    ): RPC_STATUS;
+
+PROCEDURE I_RpcFreeBuffer(
+      Message : PRPC_MESSAGE
+    ): RPC_STATUS;
+
+PROCEDURE I_RpcSend(
+      Message : PRPC_MESSAGE
+    ): RPC_STATUS;
+
+PROCEDURE I_RpcReceive(
+      Message : PRPC_MESSAGE;
+      Size : CARDINAL
+    ): RPC_STATUS;
+
+PROCEDURE I_RpcFreePipeBuffer(
+      Message : PRPC_MESSAGE
+    ): RPC_STATUS;
+
+PROCEDURE I_RpcReallocPipeBuffer(
+      Message : PRPC_MESSAGE;
+      NewSize : CARDINAL
+    ): RPC_STATUS;
+
+TYPE
+  I_RPC_MUTEX = ADDRESS;
+  PI_RPC_MUTEX = POINTER TO I_RPC_MUTEX;
+
+PROCEDURE I_RpcRequestMutex(
+      Mutex : PI_RPC_MUTEX
+    );
+
+PROCEDURE I_RpcClearMutex(
+      Mutex : I_RPC_MUTEX
+    );
+
+PROCEDURE I_RpcDeleteMutex(
+      Mutex : I_RPC_MUTEX
+    );
+
+PROCEDURE I_RpcAllocate(
+      Size : CARDINAL
+    ): ADDRESS;
+
+PROCEDURE I_RpcFree(
+      Object : ADDRESS
+    );
+
+PROCEDURE I_RpcPauseExecution(
+      Milliseconds : LONGCARD
+    );
+
+TYPE
+  PRPC_RUNDOWN = PROCEDURE( (*AssociationContext :*) ADDRESS );
+
+PROCEDURE I_RpcMonitorAssociation(
+      Handle : rpcdce.RPC_BINDING_HANDLE;
+      RundownRoutine : PRPC_RUNDOWN;
+      Context : ADDRESS
+    ): RPC_STATUS;
+
+PROCEDURE I_RpcStopMonitorAssociation(
+      Handle : rpcdce.RPC_BINDING_HANDLE
+    ): RPC_STATUS;
+
+PROCEDURE I_RpcGetCurrentCallHandle(): rpcdce.RPC_BINDING_HANDLE;
+
+PROCEDURE I_RpcGetAssociationContext(
+      VAR AssociationContext : ADDRESS
+    ): RPC_STATUS;
+
+PROCEDURE I_RpcSetAssociationContext(
+      AssociationContext : ADDRESS
+    ): RPC_STATUS;
+
+PROCEDURE I_RpcNsBindingSetEntryName(
+      Binding : rpcdce.RPC_BINDING_HANDLE;
+      EntryNameSyntax : LONGCARD;
+      EntryName : PSHORTCARD
+    ): RPC_STATUS;
+
+PROCEDURE I_RpcBindingInqDynamicEndpoint(
+      Binding : rpcdce.RPC_BINDING_HANDLE;
+      VAR DynamicEndpoint : PSHORTCARD
+    ): RPC_STATUS;
+
+CONST
+
+  TRANSPORT_TYPE_CN   =  01H;
+  TRANSPORT_TYPE_DG   =  02H;
+  TRANSPORT_TYPE_LPC  =  04H;
+  TRANSPORT_TYPE_WMSG =  08H;
+
+PROCEDURE I_RpcBindingInqTransportType(
+      Binding : rpcdce.RPC_BINDING_HANDLE;
+      Type : PCARDINAL
+    ): RPC_STATUS;
+
+TYPE
+
+  RPC_TRANSFER_SYNTAX = RECORD
+    Uuid : rpcdce.UUID;
+    VersMajor : SHORTCARD;
+    VersMinor : SHORTCARD;
+  END;
+  PRPC_TRANSFER_SYNTAX = POINTER TO RPC_TRANSFER_SYNTAX;
+
+PROCEDURE I_RpcIfInqTransferSyntaxes(
+      RpcIfHandle : rpcdce.RPC_IF_HANDLE;
+      TransferSyntaxes : PRPC_TRANSFER_SYNTAX;
+      TransferSyntaxSize : CARDINAL;
+      TransferSyntaxCount : PCARDINAL
+    ): RPC_STATUS;
+
+PROCEDURE I_UuidCreate(
+      Uuid : rpcdce.PUUID 
+    ): RPC_STATUS;
+
+PROCEDURE I_RpcBindingCopy(
+      SourceBinding : rpcdce.RPC_BINDING_HANDLE;
+      DestinationBinding : rpcdce.PRPC_BINDING_HANDLE
+    ): RPC_STATUS;
+
+PROCEDURE I_RpcBindingIsClientLocal(
+     BindingHandle : rpcdce.RPC_BINDING_HANDLE;
+     ClientLocalFlag : PCARDINAL
+    ): RPC_STATUS;
+
+PROCEDURE I_RpcSsDontSerializeContext ();
+
+PROCEDURE I_RpcLaunchDatagramReceiveThread(
+      pAddress : ADDRESS
+    ): RPC_STATUS;
+
+PROCEDURE I_RpcServerRegisterForwardFunction(
+      pForwardFunction : RPC_FORWARD_FUNCTION
+    ): RPC_STATUS;
+
+PROCEDURE I_RpcConnectionInqSockBuffSize(
+     RecvBuffSize : PLONGCARD;
+     SendBuffSize : PLONGCARD
+   ): RPC_STATUS;
+
+PROCEDURE I_RpcConnectionSetSockBuffSize(
+     RecvBuffSize : LONGCARD;
+     SendBuffSize : LONGCARD
+   ): RPC_STATUS;
+
+
+PROCEDURE I_RpcServerStartListening(
+      hWnd : windows.HWND
+    ): RPC_STATUS;
+
+PROCEDURE I_RpcServerStopListening(): RPC_STATUS;
+
+PROCEDURE I_RpcGetThreadWindowHandle(
+      WindowHandle : windows.PHWND
+    ): RPC_STATUS;
+
+TYPE
+  RPC_BLOCKING_FN = PROCEDURE(
+    (*wnd :*) ADDRESS,
+    (*Context :*) ADDRESS,
+    (*hSyncEvent :*) windows.HANDLE
+  ): RPC_STATUS;
+
+PROCEDURE I_RpcAsyncSendReceive(
+      pRpcMessage : PRPC_MESSAGE;
+      Context : ADDRESS;
+      hWnd : windows.HWND
+    ): RPC_STATUS;
+
+PROCEDURE I_RpcBindingSetAsync(
+      Binding : rpcdce.RPC_BINDING_HANDLE;
+      BlockingFn : RPC_BLOCKING_FN
+    ): RPC_STATUS;
+
+PROCEDURE I_RpcWindowProc(
+      hWnd : windows.HWND;
+      Message : windows.UINT;
+      wParam : windows.WPARAM;
+      lParam : windows.LPARAM
+    ): LONGINT;
+
+PROCEDURE I_RpcSetWMsgEndpoint(
+      Endpoint : PWCHAR
+    ): RPC_STATUS;
+
+PROCEDURE I_RpcServerInqTransportType(
+      Type : PCARDINAL
+    ): RPC_STATUS;
+
+END rpcdcep.

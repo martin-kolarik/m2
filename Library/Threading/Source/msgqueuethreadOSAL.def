@@ -1,0 +1,21 @@
+DEFINITION MODULE msgqueuethreadOSAL;
+
+(*---------------------------------------------------------------------------*)
+  
+IMPORT
+   msghandler;
+
+(*===========================================================================*)
+
+INTERFACE IMsgQueueThread( msghandler.IMessageRecipient );
+
+   INTERNAL READONLY PROPERTY
+      Root : msghandler.TPMessageHandler;
+
+   INTERNAL PROCEDURE MessageToHandler( CONST Msg : PTR; OUT Handler : msghandler.TPMessageHandler ) : BOOLEAN;
+
+END IMsgQueueThread;
+
+(*===========================================================================*)
+
+END msgqueuethreadOSAL.

@@ -1,0 +1,83 @@
+DEFINITION MODULE threadpool;
+
+IMPORT
+  avltree,
+  Delegate,
+  lists,
+  msghandler,
+  msgqueue,
+  Sync,
+  windows;
+
+//--------------------------------------------------------------------------------
+
+TYPE
+  TPPoolDelegate = POINTER TO APoolDelegate;
+
+ABSTRACT CLASS APoolDelegate( Delegate.ADelegate );
+  LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+  LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
+  LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+  LOCAL VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+END APoolDelegate;
+
+//--------------------------------------------------------------------------------
+
+TYPE
+  TPMessageHandlerDelegate = POINTER TO CMessageHandlerDelegate;
+  
+CLASS CMessageHandlerDelegate( APoolDelegate );
+  PUBLIC VAR
+    Handler : msghandler.TPMessageHandler;
+    Delivery : msghandler.TDelivery := msghandler.delSynchronous;
+  LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
+END CMessageHandlerDelegate;
+
+//--------------------------------------------------------------------------------
+
+TYPE
+  TPPoolWorker = POINTER TO APoolWorker;
+
+ABSTRACT CLASS APoolWorker( Delegate.ADelegate );
+  LOCAL ABSTRACT PROCEDURE Run();
+END APoolWorker;
+
+//--------------------------------------------------------------------------------
+
+TYPE
+  TPThreadPool = POINTER TO CThreadPool;
+  
+CLASS CThreadPool( msghandler.MessageHandler );
+  PRIVATE VAR
+    Threads : lists.CPtrList;
+    MQueue : msgqueue.CMessageQueue;
+    _MinThreads : CARDINAL;
+  PUBLIC PROPERTY
+    MinThreads : CARDINAL; // default is 1; moreover, the pool does not allocate all threads on start, the number of them increases lazily
+  PUBLIC VAR
+    WorkerLoad : CARDINAL; // number of workers in single worker thread
+    MaxThreads : CARDINAL; // if there is no space, the RunWorker request is queued
+    SingleThreadInterface : BOOLEAN; // default TRUE, FALSE not implemented yet
+    CompletionInOwningThread : BOOLEAN; // default FALSE
+    
+  INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
+  PUBLIC PROCEDURE FinishAndWait();
+
+  PUBLIC PROCEDURE WaitTimeout( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce : BOOLEAN; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
+  PUBLIC PROCEDURE WaitMessage( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce : BOOLEAN; OUT Handler : msghandler.TPMessageHandler; OUT Message : msghandler.Message; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
+  PUBLIC PROCEDURE WaitHandle( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce : BOOLEAN; Handle : windows.HANDLE; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
+  PUBLIC PROCEDURE RunWorker( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; Worker : TPPoolWorker; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
+  PUBLIC PROCEDURE WaitCompletion( PoolHandle : Sync.WAITABLE; Timeout : CARDINAL ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE Abort( REF PoolHandle : Sync.WAITABLE );
+  PUBLIC PROCEDURE AbortAll( CONST Delegate : TPPoolDelegate ); // not implemented yet
+  
+  LOCAL PROCEDURE OnThreadEmpty();
+  LOCAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; Task : PTR; CONST MSG : msghandler.Message ) : BOOLEAN;
+  
+  PRIVATE PROCEDURE LookupThread( WorkerFlag : BOOLEAN; OUT PoolThread : PTR ) : BOOLEAN;
+  PRIVATE PROCEDURE DisposeThreads( RespectMinThreads : BOOLEAN );
+END CThreadPool;
+
+//--------------------------------------------------------------------------------
+
+END threadpool.

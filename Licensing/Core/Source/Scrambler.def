@@ -1,0 +1,10 @@
+DEFINITION MODULE Scrambler;
+
+(*================================================================================*)
+
+PROCEDURE Scramble( CONST In : ARRAY OF BYTE; CONST Prefix : ARRAY OF WCHAR; Separator : WCHAR; OUT Out : ARRAY OF WCHAR ) : BOOLEAN;
+PROCEDURE Unscramble( CONST In : ARRAY OF WCHAR; Separator : WCHAR; OUT Prefix : ARRAY OF WCHAR; OUT Out : ARRAY OF BYTE; OUT Filled : CARDINAL ) : BOOLEAN;
+
+(*================================================================================*)
+
+END Scrambler.

@@ -1,0 +1,134 @@
+DEFINITION MODULE maps;
+
+//===========================================================================
+//
+// simple AVL tree implementations
+//
+// version 1 (c) 1993-2006 mk
+//
+//===========================================================================
+
+IMPORT
+  avltree;
+
+FROM StringsO IMPORT
+  CString;
+
+//---------------------------------------------------------------------------
+
+#save, option( dll_export => on )
+
+TYPE
+  TPIntegerMap = POINTER TO CIntegerMap;
+
+CLASS CIntegerMap( avltree.CAVLTreeWState );
+  PUBLIC READONLY PROPERTY
+    Current : INTEGER;
+  PUBLIC PROPERTY
+    CurrentData : PTR;
+
+  PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
+
+  PUBLIC PROCEDURE Add( Key : INTEGER; Data : PTR );
+  PUBLIC PROCEDURE Remove( Key : INTEGER );
+  PUBLIC PROCEDURE Contains( Key : INTEGER ) : BOOLEAN;
+  PUBLIC PROCEDURE Get( Key : INTEGER; OUT Data : PTR ) : BOOLEAN;
+  PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : INTEGER; OUT Data : PTR ) : BOOLEAN; // similar as []
+
+END CIntegerMap;
+
+//---------------------------------------------------------------------------
+
+TYPE
+  TPCardinalMap = POINTER TO CCardinalMap;
+
+CLASS CCardinalMap( avltree.CAVLTreeWState );
+  PUBLIC READONLY PROPERTY
+    Current : CARDINAL;
+  PUBLIC PROPERTY
+    CurrentData : PTR;
+
+  PUBLIC READONLY INDEX( Key : CARDINAL ) : PTR;
+
+  PUBLIC PROCEDURE Add( Key : CARDINAL; Data : PTR );
+  PUBLIC PROCEDURE Remove( Key : CARDINAL );
+  PUBLIC PROCEDURE Contains( Key : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE Get( Key : CARDINAL; OUT Data : PTR ) : BOOLEAN;
+  PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : CARDINAL; OUT Data : PTR ) : BOOLEAN; // similar as []
+
+END CCardinalMap;
+
+//---------------------------------------------------------------------------
+
+TYPE
+  TPPtrMap = POINTER TO CPtrMap;
+
+CLASS CPtrMap( avltree.CAVLTreeWState );
+  PUBLIC READONLY PROPERTY
+    Current : PTR;
+  PUBLIC PROPERTY
+    CurrentData : PTR;
+
+  PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
+
+  PUBLIC PROCEDURE Add( Key : PTR; Data : PTR );
+  PUBLIC PROCEDURE Remove( Key : PTR );
+  PUBLIC PROCEDURE Contains( Key : PTR ) : BOOLEAN;
+  PUBLIC PROCEDURE Get( Key : PTR; OUT Data : PTR ) : BOOLEAN;
+  PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
+
+END CPtrMap;
+
+//---------------------------------------------------------------------------
+
+TYPE
+  TPQuadwordMap = POINTER TO CQuadwordMap;
+
+CLASS CQuadwordMap( avltree.CAVLTreeWState );
+  PUBLIC READONLY PROPERTY
+    Current : QUADWORD;
+  PUBLIC PROPERTY
+    CurrentData : PTR;
+
+  PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
+
+  PUBLIC PROCEDURE Add( Key : QUADWORD; Data : PTR );
+  PUBLIC PROCEDURE Remove( Key : QUADWORD );
+  PUBLIC PROCEDURE Contains( Key : QUADWORD ) : BOOLEAN;
+  PUBLIC PROCEDURE Get( Key : QUADWORD; OUT Data : PTR ) : BOOLEAN;
+  PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : QUADWORD; OUT Data : PTR ) : BOOLEAN; // similar as []
+
+END CQuadwordMap;
+
+//---------------------------------------------------------------------------
+
+TYPE
+  TPStringMap = POINTER TO CStringMap;
+
+CLASS CStringMap( avltree.CAVLTreeWState );
+  PUBLIC READONLY PROPERTY
+    Current : POINTER TO CString;
+  PUBLIC PROPERTY
+    CurrentData : PTR;
+
+  PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
+
+  PUBLIC PROCEDURE Add( CONST Key : CString; Data : PTR );
+  PUBLIC PROCEDURE Remove( CONST Key : CString );
+  PUBLIC PROCEDURE Contains( CONST Key : CString ) : BOOLEAN;
+  PUBLIC PROCEDURE Get( CONST Key : CString; OUT Data : PTR ) : BOOLEAN;
+  PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : CString; OUT Data : PTR ) : BOOLEAN; // similar as []
+
+  PUBLIC PROCEDURE AddOA( CONST Key : ARRAY OF WCHAR; Data : PTR );
+  PUBLIC PROCEDURE RemoveOA( CONST Key : ARRAY OF WCHAR );
+  PUBLIC PROCEDURE ContainsOA( CONST Key : ARRAY OF WCHAR ) : BOOLEAN;
+  PUBLIC PROCEDURE GetOA( CONST Key : ARRAY OF WCHAR; OUT Data : PTR ) : BOOLEAN;
+  PUBLIC PROCEDURE ElementAtOA( Index : CARDINAL; OUT Key : ARRAY OF WCHAR; OUT Data : PTR ) : BOOLEAN; // similar as []
+
+END CStringMap;
+
+//===========================================================================
+
+#restore
+
+END maps.

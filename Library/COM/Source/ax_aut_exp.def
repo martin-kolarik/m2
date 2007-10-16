@@ -1,0 +1,7 @@
+DESCRIPTION 'SmartControl ActiveX Control'
+
+EXPORTS
+       DllGetClassObject    PRIVATE
+       DllCanUnloadNow      PRIVATE
+       DllRegisterServer    PRIVATE
+       DllUnregisterServer  PRIVATE

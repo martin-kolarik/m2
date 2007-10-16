@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="windows-1250"?>
+<VisualStudioProject
+	ProjectType="Visual C++"
+	Version="8,00"
+	Name="sum"
+	ProjectGUID="{8DB92C49-2CDD-4B7C-B2D6-A6164D6276D6}"
+	Keyword="MakeFileProj"
+	>
+	<Platforms>
+		<Platform
+			Name="Win32"
+		/>
+	</Platforms>
+	<ToolFiles>
+	</ToolFiles>
+	<Configurations>
+		<Configuration
+			Name="Debug|Win32"
+			OutputDirectory="~$(ConfigurationName)"
+			IntermediateDirectory="~Build"
+			ConfigurationType="0"
+			BuildLogFile="$(OutDir)\BuildLog.htm"
+			>
+			<Tool
+				Name="VCNMakeTool"
+				BuildCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:ConfigurationName=$(ConfigurationName)"
+				ReBuildCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:ConfigurationName=$(ConfigurationName)"
+				CleanCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:ConfigurationName=$(ConfigurationName)"
+				Output="Digest.exe"
+				PreprocessorDefinitions="WIN32;_DEBUG"
+				IncludeSearchPath=""
+				ForcedIncludes=""
+				AssemblySearchPath=""
+				ForcedUsingAssemblies=""
+				CompileAsManaged=""
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release|Win32"
+			OutputDirectory="~$(ConfigurationName)"
+			IntermediateDirectory="~Build"
+			ConfigurationType="0"
+			BuildLogFile="$(OutDir)\BuildLog.htm"
+			>
+			<Tool
+				Name="VCNMakeTool"
+				BuildCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:ConfigurationName=$(ConfigurationName)"
+				ReBuildCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:ConfigurationName=$(ConfigurationName)"
+				CleanCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:ConfigurationName=$(ConfigurationName)"
+				Output="Digest.exe"
+				PreprocessorDefinitions="WIN32;NDEBUG"
+				IncludeSearchPath=""
+				ForcedIncludes=""
+				AssemblySearchPath=""
+				ForcedUsingAssemblies=""
+				CompileAsManaged=""
+			/>
+		</Configuration>
+	</Configurations>
+	<References>
+	</References>
+	<Files>
+		<Filter
+			Name="Source Files"
+			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
+			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
+			>
+			<File
+				RelativePath=".\Source\sum.mod"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Test"
+			>
+		</Filter>
+		<File
+			RelativePath=".\sum.definition.proj"
+			>
+		</File>
+		<File
+			RelativePath=".\sum.proj"
+			>
+		</File>
+	</Files>
+	<Globals>
+	</Globals>
+</VisualStudioProject>

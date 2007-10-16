@@ -1,0 +1,40 @@
+DEFINITION MODULE guiddef;
+
+# name( decoration => c ), module( header => off )
+# call( o_a_size => off, c_arrays => on, result_optional => on, convention => stdcall )
+
+IMPORT
+  windows;
+
+TYPE
+  GUID       = RECORD
+                 Data1 : CARD32;
+                 Data2 : CARD16;
+                 Data3 : CARD16;
+                 Data4 : ARRAY [0..7] OF CARD8;
+               END;
+  PGUID      = POINTER TO GUID;
+
+  IID        = GUID;
+  PIID       = POINTER TO IID;
+  CLSID      = GUID;
+  PCLSID     = POINTER TO CLSID;
+  FMTID      = GUID;
+  PFMTID     = POINTER TO FMTID;
+
+VAR
+  GUID_NULL  : IID;
+
+CONST
+  IID_NULL   ::= GUID_NULL;
+  CLSID_NULL ::= GUID_NULL;
+  FMTID_NULL ::= GUID_NULL;
+
+(*# call( macro => on ) *)
+  PROCEDURE IsEqualGUID ( VAR riid1,   riid2   : GUID  ) : windows.BOOL;
+  PROCEDURE IsEqualIID  ( VAR riid1,   riid2   : IID   ) : windows.BOOL;
+  PROCEDURE IsEqualCLSID( VAR riid1,   riid2   : CLSID ) : windows.BOOL;
+  PROCEDURE IsEqualFMTID( VAR rfmtid1, rfmtid2 : FMTID ) : windows.BOOL;
+(*# call( macro => off ) *)
+
+END guiddef.

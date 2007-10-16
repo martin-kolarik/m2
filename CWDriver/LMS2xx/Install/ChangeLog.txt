@@ -1,0 +1,15 @@
+Version 1.1.1077 3.10.2007
+- BUG: division by zero for certain zones
+- CHG: modified documentation
+- CHG: final licensing
+
+Version 1.0.1046 23.9.2007
+- BUG: global PAR parameter mean_count affected applying differential data to defined zones;
+       when zones PAR.mean_count was less than 6, no data were prepared for zones and
+       zones did not work.
+- CHG: created events are logged now
+- ADD: test licensing
+
+Version -- 17.9.2007
+- CHG: source code base changed, using of MemoryBuffers instead of DStrA.
+ 

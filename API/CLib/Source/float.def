@@ -1,0 +1,326 @@
+DEFINITION MODULE float;
+
+(*==============================================================
+
+          Win32 API for Modula-2 : FLOATING POINT
+
+       32-bit version for M2CPP Modula-2 to C++ compiler
+
+      Copyright (c) 1996, 1998 Moravian Instruments, Inc.
+
+==============================================================*)
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+(*==============================================================
+
+  History: Created: 23.01.1998
+           Build 0: 
+
+==============================================================*)
+
+CONST
+
+  DBL_DIG        = 15;     (* # of decimal digits of precision *) 
+  DBL_EPSILON    = 2.2204460492503131E-016; (* smallest such that 1.0+DBL_EPSILON != 1.0 *) 
+  DBL_MANT_DIG   = 53;     (* # of bits in mantissa *) 
+  DBL_MAX        = 1.7976931348623158E+308; (* max value *) 
+  DBL_MAX_10_EXP = 308;      (* max decimal exponent *) 
+  DBL_MAX_EXP    = 1024;     (* max binary exponent *) 
+  DBL_MIN        = 2.2250738585072014E-308; (* min positive value *) 
+  DBL_MIN_10_EXP = -307;     (* min decimal exponent *) 
+  DBL_MIN_EXP    = -1021;    (* min binary exponent *) 
+  _DBL_RADIX     = 2;      (* exponent radix *) 
+  _DBL_ROUNDS    = 1;      (* addition rounding: near *) 
+
+  FLT_DIG        = 6;      (* # of decimal digits of precision *) 
+  FLT_EPSILON    = REAL(1.192092896E-07); (* smallest such that 1.0+FLT_EPSILON != 1.0 *) 
+  FLT_GUARD      = 0; 
+  FLT_MANT_DIG   = 24;     (* # of bits in mantissa *) 
+  FLT_MAX        = REAL(3.402823466E+38);  (* max value *) 
+  FLT_MAX_10_EXP = 38;      (* max decimal exponent *) 
+  FLT_MAX_EXP    = 128;     (* max binary exponent *) 
+  FLT_MIN        = REAL(1.175494351E-38);  (* min positive value *) 
+  FLT_MIN_10_EXP = -37;     (* min decimal exponent *) 
+  FLT_MIN_EXP    = -125;      (* min binary exponent *) 
+  FLT_NORMALIZE  = 0; 
+  FLT_RADIX      = 2;     (* exponent radix *) 
+  FLT_ROUNDS     = 1;     (* addition rounding: near *) 
+
+(* #ifndef _M_M68K *)
+  LDBL_DIG        = DBL_DIG;     (* # of decimal digits of precision *) 
+  LDBL_EPSILON    = DBL_EPSILON;   (* smallest such that 1.0+LDBL_EPSILON != 1.0 *) 
+  LDBL_MANT_DIG   = DBL_MANT_DIG;    (* # of bits in mantissa *) 
+  LDBL_MAX        = DBL_MAX;     (* max value *) 
+  LDBL_MAX_10_EXP = DBL_MAX_10_EXP;   (* max decimal exponent *) 
+  LDBL_MAX_EXP    = DBL_MAX_EXP;   (* max binary exponent *) 
+  LDBL_MIN        = DBL_MIN;     (* min positive value *) 
+  LDBL_MIN_10_EXP = DBL_MIN_10_EXP;   (* min decimal exponent *) 
+  LDBL_MIN_EXP    = DBL_MIN_EXP;   (* min binary exponent *) 
+  _LDBL_RADIX     = _DBL_RADIX;   (* exponent radix *) 
+  _LDBL_ROUNDS    = _DBL_ROUNDS;    (* addition rounding: near *) 
+(*
+#else
+  LDBL_DIG =  18          // # of decimal digits of precision
+  LDBL_EPSILON =  1.08420217248550443412e-019L    // smallest such that 1.0+LDBL_EPSILON != 1.0
+  LDBL_MANT_DIG =   64          // # of bits in mantissa
+  LDBL_MAX =  1.189731495357231765e+4932L     // max value
+  LDBL_MAX_10_EXP =  4932         // max decimal exponent
+  LDBL_MAX_EXP =  16384         // max binary exponent
+  LDBL_MIN =  3.3621031431120935063e-4932L    // min positive value
+  LDBL_MIN_10_EXP =  (-4931)        // min decimal exponent
+  LDBL_MIN_EXP =  (-16381)        // min binary exponent
+  _LDBL_RADIX =   2         // exponent radix
+  _LDBL_ROUNDS =  1         // addition rounding: near
+#endif
+*)
+
+(* Function prototypes *)
+
+(*# save, call( prefix => cdecl ) *)
+PROCEDURE _clearfp(): CARDINAL;
+PROCEDURE _controlfp( _ : CARDINAL; _ : CARDINAL ): CARDINAL;
+PROCEDURE _statusfp(): CARDINAL;
+PROCEDURE _fpreset();
+(*# restore *)
+
+CONST
+  _clear87  ::= _clearfp;
+  _status87 ::= _statusfp;
+
+(*
+ * Abstract User Control Word Mask and bit definitions
+ *)
+(* #if !defined(_M_MPPC) && !defined(_M_M68K) *)
+  _MCW_EM =   0008001FH;    (* interrupt Exception Masks *) 
+(*
+#else
+  _MCW_EM =   0x0000001f    (* interrupt Exception Masks *) 
+#endif
+*)
+  _EM_INEXACT    = 00000001H;    (*   inexact (precision) *)
+  _EM_UNDERFLOW  = 00000002H;    (*   underflow *)
+  _EM_OVERFLOW   = 00000004H;    (*   overflow *)
+  _EM_ZERODIVIDE = 00000008H;    (*   zero divide *)
+  _EM_INVALID    = 00000010H;    (*   invalid *)
+
+  _MCW_RC  =  00000300H;    (* Rounding Control *)
+  _RC_NEAR =  00000000H;    (*   near *)
+  _RC_DOWN =  00000100H;    (*   down *)
+  _RC_UP   =  00000200H;    (*   up *)
+  _RC_CHOP =  00000300H;    (*   chop *)
+
+(*
+ * Abstract User Status Word bit definitions
+ *)
+
+  _SW_INEXACT    = 00000001H;    (* inexact (precision) *)
+  _SW_UNDERFLOW  = 00000002H;    (* underflow *)
+  _SW_OVERFLOW   = 00000004H;    (* overflow *)
+  _SW_ZERODIVIDE = 00000008H;    (* zero divide *)
+  _SW_INVALID    = 00000010H;    (* invalid *)
+
+(*
+ * i386 specific definitions
+ *)
+  _MCW_PC =   00030000H;    (* Precision Control *)
+
+(*
+#if defined(_M_MPPC)
+// PowerMac specific definitions(no precision control)
+  _PC_64 =    0x00000000    (*    64 bits *) 
+  _PC_53 =    0x00000000    (*    53 bits *) 
+  _PC_24 =    0x00000000    (*    24 bits *) 
+#else
+*)
+
+  _PC_64 =    00000000H;    (*    64 bits *) 
+  _PC_53 =    00010000H;    (*    53 bits *) 
+  _PC_24 =    00020000H;    (*    24 bits *) 
+(* #endif *)
+
+  _MCW_IC        = 00040000H;    (* Infinity Control *) 
+  _IC_AFFINE     = 00040000H;    (*   affine *) 
+  _IC_PROJECTIVE = 00000000H;    (*   projective *) 
+
+  _EM_DENORMAL   = 00080000H;    (* denormal exception mask (_control87 only) *) 
+
+  _SW_DENORMAL   = 00080000H;    (* denormal status bit *) 
+
+(*# save, call( prefix => cdecl ) *)
+PROCEDURE _control87( _ : CARDINAL; _ : CARDINAL ): CARDINAL;
+(*# restore *)
+
+CONST
+
+(*
+ * MIPS R4000 specific definitions
+ *)
+
+  _MCW_DN   = 01000000H;    (* Denormal Control (R4000) *) 
+  _DN_FLUSH = 01000000H;    (*   flush to zero *) 
+  _DN_SAVE  = 00000000H;    (*   save *) 
+
+(* initial Control Word value *)
+
+(* #if defined(_M_IX86) *)
+
+  _CW_DEFAULT = _RC_NEAR + _PC_53 + _EM_INVALID + _EM_ZERODIVIDE + _EM_OVERFLOW + _EM_UNDERFLOW + _EM_INEXACT + _EM_DENORMAL; 
+
+(*
+#elif defined(_M_M68K) || defined(_M_MPPC)
+  _CW_DEFAULT =  ( _RC_NEAR + _PC_64 + _EM_INVALID + _EM_ZERODIVIDE + _EM_OVERFLOW + _EM_UNDERFLOW + _EM_INEXACT ) 
+#elif defined(_M_MRX000) || defined (_M_ALPHA) || defined(_M_PPC)
+  _CW_DEFAULT =  ( _RC_NEAR + _DN_FLUSH + _EM_INVALID + _EM_ZERODIVIDE + _EM_OVERFLOW + _EM_UNDERFLOW + _EM_INEXACT ) 
+#endif
+*)
+
+(* Global variable holding floating point error code *)
+
+(*
+#if defined(_MT) || defined(_DLL)
+_CRTIMP extern int * __cdecl __fpecode(void);
+  _fpecode =  ( * __fpecode() ) 
+#else // ndef _MT && ndef _DLL
+extern int _fpecode;
+#endif // _MT || _DLL
+*)
+
+(* invalid subconditions (_SW_INVALID also set) *)
+
+  _SW_UNEMULATED     = 0040H;  (* unemulated instruction *) 
+  _SW_SQRTNEG        = 0080H;  (* square root of a neg number *) 
+  _SW_STACKOVERFLOW  = 0200H;  (* FP stack overflow *) 
+  _SW_STACKUNDERFLOW = 0400H;  (* FP stack underflow *) 
+
+(*  Floating point error signals and return codes *)
+
+  _FPE_INVALID    = 81H;
+  _FPE_DENORMAL   = 82H;
+  _FPE_ZERODIVIDE = 83H;
+  _FPE_OVERFLOW   = 84H;
+  _FPE_UNDERFLOW  = 85H;
+  _FPE_INEXACT    = 86H;
+
+  _FPE_UNEMULATED     = 87H;
+  _FPE_SQRTNEG        = 88H;
+  _FPE_STACKOVERFLOW  = 8AH;
+  _FPE_STACKUNDERFLOW = 8BH;
+
+  _FPE_EXPLICITGEN    = 8CH;  (* raise( SIGFPE ); *)
+
+(* IEEE recommended functions *)
+
+(*# save, call( prefix => cdecl ) *)
+PROCEDURE _copysign ( _ : LONGREAL; _ : LONGREAL ): LONGREAL;
+PROCEDURE _chgsign ( _ : LONGREAL ): LONGREAL;
+PROCEDURE _scalb( _ : LONGREAL; _ : LONGINT ): LONGREAL;
+PROCEDURE _logb( _ : LONGREAL ): LONGREAL;
+PROCEDURE _nextafter( _ : LONGREAL; _ : LONGREAL ): LONGREAL;
+PROCEDURE _finite( _ : LONGREAL ): INTEGER;
+PROCEDURE _isnan( _ : LONGREAL ): INTEGER;
+PROCEDURE _fpclass( _ : LONGREAL ): INTEGER;
+(*# restore *)
+
+CONST
+
+  _FPCLASS_SNAN = 0001H;  (* signaling NaN *)
+  _FPCLASS_QNAN = 0002H;  (* quiet NaN *)
+  _FPCLASS_NINF = 0004H;  (* negative infinity *)
+  _FPCLASS_NN   = 0008H;  (* negative normal *)
+  _FPCLASS_ND   = 0010H;  (* negative denormal *)
+  _FPCLASS_NZ   = 0020H;  (* -0 *)
+  _FPCLASS_PZ   = 0040H;  (* +0 *)
+  _FPCLASS_PD   = 0080H;  (* positive denormal *)
+  _FPCLASS_PN   = 0100H;  (* positive normal *)
+  _FPCLASS_PINF = 0200H;  (* positive infinity *)
+
+
+(* Non-ANSI names for compatibility *)
+(* --------------- not supported under Modula-2 ----------------
+
+#if !__STDC__
+
+#ifndef _MAC
+#define clear87         _clear87
+#define status87        _status87
+#define control87       _control87
+#endif
+
+#ifdef  _NTSDK
+#define fpreset         _fpreset
+#else
+_CRTIMP void __cdecl fpreset(void);
+#endif
+
+#define DBL_RADIX   _DBL_RADIX
+#define DBL_ROUNDS    _DBL_ROUNDS
+
+#define LDBL_RADIX    _LDBL_RADIX
+#define LDBL_ROUNDS   _LDBL_ROUNDS
+
+#define MCW_EM      _MCW_EM
+#define EM_INVALID    _EM_INVALID
+#define EM_DENORMAL   _EM_DENORMAL
+#define EM_ZERODIVIDE   _EM_ZERODIVIDE
+#define EM_OVERFLOW   _EM_OVERFLOW
+#define EM_UNDERFLOW    _EM_UNDERFLOW
+#define EM_INEXACT    _EM_INEXACT
+
+#define MCW_IC      _MCW_IC
+#define IC_AFFINE   _IC_AFFINE
+#define IC_PROJECTIVE   _IC_PROJECTIVE
+
+#define MCW_RC      _MCW_RC
+#define RC_CHOP     _RC_CHOP
+#define RC_UP     _RC_UP
+#define RC_DOWN     _RC_DOWN
+#define RC_NEAR     _RC_NEAR
+
+#define MCW_PC      _MCW_PC
+#define PC_24     _PC_24
+#define PC_53     _PC_53
+#define PC_64     _PC_64
+
+#define CW_DEFAULT    _CW_DEFAULT
+
+#define SW_INVALID    _SW_INVALID
+#define SW_DENORMAL   _SW_DENORMAL
+#define SW_ZERODIVIDE   _SW_ZERODIVIDE
+#define SW_OVERFLOW   _SW_OVERFLOW
+#define SW_UNDERFLOW    _SW_UNDERFLOW
+#define SW_INEXACT    _SW_INEXACT
+
+#define SW_UNEMULATED   _SW_UNEMULATED
+#define SW_SQRTNEG    _SW_SQRTNEG
+#define SW_STACKOVERFLOW  _SW_STACKOVERFLOW
+#define SW_STACKUNDERFLOW _SW_STACKUNDERFLOW
+
+#define FPE_INVALID   _FPE_INVALID
+#define FPE_DENORMAL    _FPE_DENORMAL
+#define FPE_ZERODIVIDE    _FPE_ZERODIVIDE
+#define FPE_OVERFLOW    _FPE_OVERFLOW
+#define FPE_UNDERFLOW   _FPE_UNDERFLOW
+#define FPE_INEXACT   _FPE_INEXACT
+
+#define FPE_UNEMULATED    _FPE_UNEMULATED
+#define FPE_SQRTNEG   _FPE_SQRTNEG
+#define FPE_STACKOVERFLOW _FPE_STACKOVERFLOW
+#define FPE_STACKUNDERFLOW  _FPE_STACKUNDERFLOW
+
+#define FPE_EXPLICITGEN   _FPE_EXPLICITGEN
+
+#endif  (* __STDC__ *)
+
+*)
+
+END float.

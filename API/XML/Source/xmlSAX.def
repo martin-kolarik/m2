@@ -1,0 +1,1354 @@
+DEFINITION MODULE xmlSAX HEADER msxml2;
+
+IMPORT
+  rpc,
+  rpcndr;
+
+IMPORT
+  unknwn,
+  objidl,
+  oaidl;
+
+#ifndef __ISAXXMLReader_INTERFACE_DEFINED__
+#define __ISAXXMLReader_INTERFACE_DEFINED__
+
+/* interface ISAXXMLReader */
+/* [unique][helpstring][uuid][local][object][hidden] */ 
+
+
+EXTERN_C const IID IID_ISAXXMLReader;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("a4f96ed0-f829-476e-81c0-cdc7bd2a0802")
+ISAXXMLReader : public IUnknown
+{
+public:
+  virtual HRESULT STDMETHODCALLTYPE getFeature( 
+    /* [in] */ const wchar_t *pwchName,
+     ) : TPVARIANT_BOOL *pvfValue) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE putFeature( 
+    /* [in] */ const wchar_t *pwchName,
+    /* [in] */ VARIANT_BOOL vfValue) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE getProperty( 
+    /* [in] */ const wchar_t *pwchName,
+     ) : TPVARIANT *pvarValue) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE putProperty( 
+    /* [in] */ const wchar_t *pwchName,
+    /* [in] */ VARIANT varValue) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE getEntityResolver( 
+     ) : TPISAXEntityResolver **ppResolver) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE putEntityResolver( 
+    /* [in] */ ISAXEntityResolver *pResolver) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE getContentHandler( 
+     ) : TPISAXContentHandler **ppHandler) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE putContentHandler( 
+    /* [in] */ ISAXContentHandler *pHandler) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE getDTDHandler( 
+     ) : TPISAXDTDHandler **ppHandler) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE putDTDHandler( 
+    /* [in] */ ISAXDTDHandler *pHandler) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE getErrorHandler( 
+     ) : TPISAXErrorHandler **ppHandler) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE putErrorHandler( 
+    /* [in] */ ISAXErrorHandler *pHandler) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE getBaseURL( 
+     ) : TPconst wchar_t **ppwchBaseUrl) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE putBaseURL( 
+    /* [in] */ const wchar_t *pwchBaseUrl) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE getSecureBaseURL( 
+     ) : TPconst wchar_t **ppwchSecureBaseUrl) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE putSecureBaseURL( 
+    /* [in] */ const wchar_t *pwchSecureBaseUrl) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE parse( 
+    /* [in] */ VARIANT varInput) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE parseURL( 
+    /* [in] */ const wchar_t *pwchUrl) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+#endif 	/* __ISAXXMLReader_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISAXXMLFilter_INTERFACE_DEFINED__
+#define __ISAXXMLFilter_INTERFACE_DEFINED__
+
+/* interface ISAXXMLFilter */
+/* [unique][helpstring][uuid][local][object][hidden] */ 
+
+
+EXTERN_C const IID IID_ISAXXMLFilter;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("70409222-ca09-4475-acb8-40312fe8d145")
+ISAXXMLFilter : public ISAXXMLReader
+{
+public:
+  virtual HRESULT STDMETHODCALLTYPE getParent( 
+     ) : TPISAXXMLReader **ppReader) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE putParent( 
+    /* [in] */ ISAXXMLReader *pReader) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+
+#endif 	/* __ISAXXMLFilter_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISAXLocator_INTERFACE_DEFINED__
+#define __ISAXLocator_INTERFACE_DEFINED__
+
+/* interface ISAXLocator */
+/* [unique][helpstring][uuid][local][object][hidden] */ 
+
+
+EXTERN_C const IID IID_ISAXLocator;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("9b7e472a-0de4-4640-bff3-84d38a051c31")
+ISAXLocator : public IUnknown
+{
+public:
+  virtual HRESULT STDMETHODCALLTYPE getColumnNumber( 
+     ) : TPint *pnColumn) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE getLineNumber( 
+     ) : TPint *pnLine) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE getPublicId( 
+     ) : TPconst wchar_t **ppwchPublicId) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE getSystemId( 
+     ) : TPconst wchar_t **ppwchSystemId) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+
+#endif 	/* __ISAXLocator_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISAXEntityResolver_INTERFACE_DEFINED__
+#define __ISAXEntityResolver_INTERFACE_DEFINED__
+
+/* interface ISAXEntityResolver */
+/* [unique][helpstring][uuid][local][object][hidden] */ 
+
+
+EXTERN_C const IID IID_ISAXEntityResolver;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("99bca7bd-e8c4-4d5f-a0cf-6d907901ff07")
+ISAXEntityResolver : public IUnknown
+{
+public:
+  virtual HRESULT STDMETHODCALLTYPE resolveEntity( 
+    /* [in] */ const wchar_t *pwchPublicId,
+    /* [in] */ const wchar_t *pwchSystemId,
+     ) : TPVARIANT *pvarInput) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+
+#endif 	/* __ISAXEntityResolver_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISAXContentHandler_INTERFACE_DEFINED__
+#define __ISAXContentHandler_INTERFACE_DEFINED__
+
+/* interface ISAXContentHandler */
+/* [unique][helpstring][uuid][local][object][hidden] */ 
+
+
+EXTERN_C const IID IID_ISAXContentHandler;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("1545cdfa-9e4e-4497-a8a4-2bf7d0112c44")
+ISAXContentHandler : public IUnknown
+{
+public:
+  virtual HRESULT STDMETHODCALLTYPE putDocumentLocator( 
+    /* [in] */ ISAXLocator *pLocator) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE startDocument( void) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE endDocument( void) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE startPrefixMapping( 
+    /* [in] */ const wchar_t *pwchPrefix,
+    /* [in] */ int cchPrefix,
+    /* [in] */ const wchar_t *pwchUri,
+    /* [in] */ int cchUri) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE endPrefixMapping( 
+    /* [in] */ const wchar_t *pwchPrefix,
+    /* [in] */ int cchPrefix) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE startElement( 
+    /* [in] */ const wchar_t *pwchNamespaceUri,
+    /* [in] */ int cchNamespaceUri,
+    /* [in] */ const wchar_t *pwchLocalName,
+    /* [in] */ int cchLocalName,
+    /* [in] */ const wchar_t *pwchQName,
+    /* [in] */ int cchQName,
+    /* [in] */ ISAXAttributes *pAttributes) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE endElement( 
+    /* [in] */ const wchar_t *pwchNamespaceUri,
+    /* [in] */ int cchNamespaceUri,
+    /* [in] */ const wchar_t *pwchLocalName,
+    /* [in] */ int cchLocalName,
+    /* [in] */ const wchar_t *pwchQName,
+    /* [in] */ int cchQName) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE characters( 
+    /* [in] */ const wchar_t *pwchChars,
+    /* [in] */ int cchChars) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE ignorableWhitespace( 
+    /* [in] */ const wchar_t *pwchChars,
+    /* [in] */ int cchChars) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE processingInstruction( 
+    /* [in] */ const wchar_t *pwchTarget,
+    /* [in] */ int cchTarget,
+    /* [in] */ const wchar_t *pwchData,
+    /* [in] */ int cchData) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE skippedEntity( 
+    /* [in] */ const wchar_t *pwchName,
+    /* [in] */ int cchName) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+
+#endif 	/* __ISAXContentHandler_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISAXDTDHandler_INTERFACE_DEFINED__
+#define __ISAXDTDHandler_INTERFACE_DEFINED__
+
+/* interface ISAXDTDHandler */
+/* [unique][helpstring][uuid][local][object][hidden] */ 
+
+
+EXTERN_C const IID IID_ISAXDTDHandler;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("e15c1baf-afb3-4d60-8c36-19a8c45defed")
+ISAXDTDHandler : public IUnknown
+{
+public:
+  virtual HRESULT STDMETHODCALLTYPE notationDecl( 
+    /* [in] */ const wchar_t *pwchName,
+    /* [in] */ int cchName,
+    /* [in] */ const wchar_t *pwchPublicId,
+    /* [in] */ int cchPublicId,
+    /* [in] */ const wchar_t *pwchSystemId,
+    /* [in] */ int cchSystemId) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE unparsedEntityDecl( 
+    /* [in] */ const wchar_t *pwchName,
+    /* [in] */ int cchName,
+    /* [in] */ const wchar_t *pwchPublicId,
+    /* [in] */ int cchPublicId,
+    /* [in] */ const wchar_t *pwchSystemId,
+    /* [in] */ int cchSystemId,
+    /* [in] */ const wchar_t *pwchNotationName,
+    /* [in] */ int cchNotationName) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+
+#endif 	/* __ISAXDTDHandler_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISAXErrorHandler_INTERFACE_DEFINED__
+#define __ISAXErrorHandler_INTERFACE_DEFINED__
+
+/* interface ISAXErrorHandler */
+/* [unique][helpstring][uuid][local][object][hidden] */ 
+
+
+EXTERN_C const IID IID_ISAXErrorHandler;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("a60511c4-ccf5-479e-98a3-dc8dc545b7d0")
+ISAXErrorHandler : public IUnknown
+{
+public:
+  virtual HRESULT STDMETHODCALLTYPE error( 
+    /* [in] */ ISAXLocator *pLocator,
+    /* [in] */ const wchar_t *pwchErrorMessage,
+    /* [in] */ HRESULT hrErrorCode) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE fatalError( 
+    /* [in] */ ISAXLocator *pLocator,
+    /* [in] */ const wchar_t *pwchErrorMessage,
+    /* [in] */ HRESULT hrErrorCode) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE ignorableWarning( 
+    /* [in] */ ISAXLocator *pLocator,
+    /* [in] */ const wchar_t *pwchErrorMessage,
+    /* [in] */ HRESULT hrErrorCode) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+#endif 	/* __ISAXErrorHandler_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISAXLexicalHandler_INTERFACE_DEFINED__
+#define __ISAXLexicalHandler_INTERFACE_DEFINED__
+
+/* interface ISAXLexicalHandler */
+/* [unique][helpstring][uuid][local][object][hidden] */ 
+
+
+EXTERN_C const IID IID_ISAXLexicalHandler;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("7f85d5f5-47a8-4497-bda5-84ba04819ea6")
+ISAXLexicalHandler : public IUnknown
+{
+public:
+  virtual HRESULT STDMETHODCALLTYPE startDTD( 
+    /* [in] */ const wchar_t *pwchName,
+    /* [in] */ int cchName,
+    /* [in] */ const wchar_t *pwchPublicId,
+    /* [in] */ int cchPublicId,
+    /* [in] */ const wchar_t *pwchSystemId,
+    /* [in] */ int cchSystemId) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE endDTD( void) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE startEntity( 
+    /* [in] */ const wchar_t *pwchName,
+    /* [in] */ int cchName) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE endEntity( 
+    /* [in] */ const wchar_t *pwchName,
+    /* [in] */ int cchName) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE startCDATA( void) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE endCDATA( void) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE comment( 
+    /* [in] */ const wchar_t *pwchChars,
+    /* [in] */ int cchChars) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+#endif 	/* __ISAXLexicalHandler_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISAXDeclHandler_INTERFACE_DEFINED__
+#define __ISAXDeclHandler_INTERFACE_DEFINED__
+
+/* interface ISAXDeclHandler */
+/* [unique][helpstring][uuid][local][object][hidden] */ 
+
+
+EXTERN_C const IID IID_ISAXDeclHandler;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("862629ac-771a-47b2-8337-4e6843c1be90")
+ISAXDeclHandler : public IUnknown
+{
+public:
+  virtual HRESULT STDMETHODCALLTYPE elementDecl( 
+    /* [in] */ const wchar_t *pwchName,
+    /* [in] */ int cchName,
+    /* [in] */ const wchar_t *pwchModel,
+    /* [in] */ int cchModel) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE attributeDecl( 
+    /* [in] */ const wchar_t *pwchElementName,
+    /* [in] */ int cchElementName,
+    /* [in] */ const wchar_t *pwchAttributeName,
+    /* [in] */ int cchAttributeName,
+    /* [in] */ const wchar_t *pwchType,
+    /* [in] */ int cchType,
+    /* [in] */ const wchar_t *pwchValueDefault,
+    /* [in] */ int cchValueDefault,
+    /* [in] */ const wchar_t *pwchValue,
+    /* [in] */ int cchValue) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE internalEntityDecl( 
+    /* [in] */ const wchar_t *pwchName,
+    /* [in] */ int cchName,
+    /* [in] */ const wchar_t *pwchValue,
+    /* [in] */ int cchValue) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE externalEntityDecl( 
+    /* [in] */ const wchar_t *pwchName,
+    /* [in] */ int cchName,
+    /* [in] */ const wchar_t *pwchPublicId,
+    /* [in] */ int cchPublicId,
+    /* [in] */ const wchar_t *pwchSystemId,
+    /* [in] */ int cchSystemId) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+#endif 	/* __ISAXDeclHandler_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISAXAttributes_INTERFACE_DEFINED__
+#define __ISAXAttributes_INTERFACE_DEFINED__
+
+/* interface ISAXAttributes */
+/* [unique][helpstring][uuid][local][object][hidden] */ 
+
+
+EXTERN_C const IID IID_ISAXAttributes;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("f078abe1-45d2-4832-91ea-4466ce2f25c9")
+ISAXAttributes : public IUnknown
+{
+public:
+  virtual HRESULT STDMETHODCALLTYPE getLength( 
+     ) : TPint *pnLength) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE getURI( 
+    /* [in] */ int nIndex,
+    /* [out] */ const wchar_t **ppwchUri,
+    /* [out] */ int *pcchUri) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE getLocalName( 
+    /* [in] */ int nIndex,
+    /* [out] */ const wchar_t **ppwchLocalName,
+    /* [out] */ int *pcchLocalName) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE getQName( 
+    /* [in] */ int nIndex,
+    /* [out] */ const wchar_t **ppwchQName,
+    /* [out] */ int *pcchQName) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE getName( 
+    /* [in] */ int nIndex,
+    /* [out] */ const wchar_t **ppwchUri,
+    /* [out] */ int *pcchUri,
+    /* [out] */ const wchar_t **ppwchLocalName,
+    /* [out] */ int *pcchLocalName,
+    /* [out] */ const wchar_t **ppwchQName,
+    /* [out] */ int *pcchQName) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE getIndexFromName( 
+    /* [in] */ const wchar_t *pwchUri,
+    /* [in] */ int cchUri,
+    /* [in] */ const wchar_t *pwchLocalName,
+    /* [in] */ int cchLocalName,
+     ) : TPint *pnIndex) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE getIndexFromQName( 
+    /* [in] */ const wchar_t *pwchQName,
+    /* [in] */ int cchQName,
+     ) : TPint *pnIndex) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE getType( 
+    /* [in] */ int nIndex,
+    /* [out] */ const wchar_t **ppwchType,
+    /* [out] */ int *pcchType) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE getTypeFromName( 
+    /* [in] */ const wchar_t *pwchUri,
+    /* [in] */ int cchUri,
+    /* [in] */ const wchar_t *pwchLocalName,
+    /* [in] */ int cchLocalName,
+    /* [out] */ const wchar_t **ppwchType,
+    /* [out] */ int *pcchType) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE getTypeFromQName( 
+    /* [in] */ const wchar_t *pwchQName,
+    /* [in] */ int cchQName,
+    /* [out] */ const wchar_t **ppwchType,
+    /* [out] */ int *pcchType) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE getValue( 
+    /* [in] */ int nIndex,
+    /* [out] */ const wchar_t **ppwchValue,
+    /* [out] */ int *pcchValue) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE getValueFromName( 
+    /* [in] */ const wchar_t *pwchUri,
+    /* [in] */ int cchUri,
+    /* [in] */ const wchar_t *pwchLocalName,
+    /* [in] */ int cchLocalName,
+    /* [out] */ const wchar_t **ppwchValue,
+    /* [out] */ int *pcchValue) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE getValueFromQName( 
+    /* [in] */ const wchar_t *pwchQName,
+    /* [in] */ int cchQName,
+    /* [out] */ const wchar_t **ppwchValue,
+    /* [out] */ int *pcchValue) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+#endif 	/* __ISAXAttributes_INTERFACE_DEFINED__ */
+
+
+#ifndef __IVBSAXXMLReader_INTERFACE_DEFINED__
+#define __IVBSAXXMLReader_INTERFACE_DEFINED__
+
+/* interface IVBSAXXMLReader */
+/* [unique][helpstring][uuid][nonextensible][oleautomation][dual][local][object] */ 
+
+
+EXTERN_C const IID IID_IVBSAXXMLReader;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("8c033caa-6cd6-4f73-b728-4531af74945f")
+IVBSAXXMLReader : public IDispatch
+{
+public:
+  COM PROCEDURE getFeature( 
+    /* [in] */ BSTR strName,
+     ) : TPVARIANT_BOOL *fValue) = 0;
+
+  COM PROCEDURE putFeature( 
+    /* [in] */ BSTR strName,
+    /* [in] */ VARIANT_BOOL fValue) = 0;
+
+  COM PROCEDURE getProperty( 
+    /* [in] */ BSTR strName,
+     ) : TPVARIANT *varValue) = 0;
+
+  COM PROCEDURE putProperty( 
+    /* [in] */ BSTR strName,
+    /* [in] */ VARIANT varValue) = 0;
+
+  virtual /* [helpstring][id][propget] */ HRESULT STDMETHODCALLTYPE get_entityResolver( 
+     ) : TPIVBSAXEntityResolver **oResolver) = 0;
+
+  virtual /* [helpstring][id][propputref] */ HRESULT STDMETHODCALLTYPE putref_entityResolver( 
+    /* [in] */ IVBSAXEntityResolver *oResolver) = 0;
+
+  virtual /* [helpstring][id][propget] */ HRESULT STDMETHODCALLTYPE get_contentHandler( 
+     ) : TPIVBSAXContentHandler **oHandler) = 0;
+
+  virtual /* [helpstring][id][propputref] */ HRESULT STDMETHODCALLTYPE putref_contentHandler( 
+    /* [in] */ IVBSAXContentHandler *oHandler) = 0;
+
+  virtual /* [helpstring][id][propget] */ HRESULT STDMETHODCALLTYPE get_dtdHandler( 
+     ) : TPIVBSAXDTDHandler **oHandler) = 0;
+
+  virtual /* [helpstring][id][propputref] */ HRESULT STDMETHODCALLTYPE putref_dtdHandler( 
+    /* [in] */ IVBSAXDTDHandler *oHandler) = 0;
+
+  virtual /* [helpstring][id][propget] */ HRESULT STDMETHODCALLTYPE get_errorHandler( 
+     ) : TPIVBSAXErrorHandler **oHandler) = 0;
+
+  virtual /* [helpstring][id][propputref] */ HRESULT STDMETHODCALLTYPE putref_errorHandler( 
+    /* [in] */ IVBSAXErrorHandler *oHandler) = 0;
+
+  virtual /* [helpstring][id][propget] */ HRESULT STDMETHODCALLTYPE get_baseURL( 
+     ) : TPBSTR *strBaseURL) = 0;
+
+  virtual /* [helpstring][id][propput] */ HRESULT STDMETHODCALLTYPE put_baseURL( 
+    /* [in] */ BSTR strBaseURL) = 0;
+
+  virtual /* [helpstring][id][propget] */ HRESULT STDMETHODCALLTYPE get_secureBaseURL( 
+     ) : TPBSTR *strSecureBaseURL) = 0;
+
+  virtual /* [helpstring][id][propput] */ HRESULT STDMETHODCALLTYPE put_secureBaseURL( 
+    /* [in] */ BSTR strSecureBaseURL) = 0;
+
+  COM PROCEDURE parse( 
+    /* [in] */ VARIANT varInput) = 0;
+
+  COM PROCEDURE parseURL( 
+    /* [in] */ BSTR strURL) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+#endif 	/* __IVBSAXXMLReader_INTERFACE_DEFINED__ */
+
+
+#ifndef __IVBSAXXMLFilter_INTERFACE_DEFINED__
+#define __IVBSAXXMLFilter_INTERFACE_DEFINED__
+
+/* interface IVBSAXXMLFilter */
+/* [unique][helpstring][uuid][nonextensible][oleautomation][dual][local][object] */ 
+
+
+EXTERN_C const IID IID_IVBSAXXMLFilter;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("1299eb1b-5b88-433e-82de-82ca75ad4e04")
+IVBSAXXMLFilter : public IDispatch
+{
+public:
+  virtual /* [helpstring][id][propget] */ HRESULT STDMETHODCALLTYPE get_parent( 
+     ) : TPIVBSAXXMLReader **oReader) = 0;
+
+  virtual /* [helpstring][id][propputref] */ HRESULT STDMETHODCALLTYPE putref_parent( 
+    /* [in] */ IVBSAXXMLReader *oReader) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+
+#endif 	/* __IVBSAXXMLFilter_INTERFACE_DEFINED__ */
+
+
+#ifndef __IVBSAXLocator_INTERFACE_DEFINED__
+#define __IVBSAXLocator_INTERFACE_DEFINED__
+
+/* interface IVBSAXLocator */
+/* [unique][helpstring][uuid][nonextensible][oleautomation][dual][local][object] */ 
+
+
+EXTERN_C const IID IID_IVBSAXLocator;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("796e7ac5-5aa2-4eff-acad-3faaf01a3288")
+IVBSAXLocator : public IDispatch
+{
+public:
+  virtual /* [helpstring][id][propget] */ HRESULT STDMETHODCALLTYPE get_columnNumber( 
+     ) : TPint *nColumn) = 0;
+
+  virtual /* [helpstring][id][propget] */ HRESULT STDMETHODCALLTYPE get_lineNumber( 
+     ) : TPint *nLine) = 0;
+
+  virtual /* [helpstring][id][propget] */ HRESULT STDMETHODCALLTYPE get_publicId( 
+     ) : TPBSTR *strPublicId) = 0;
+
+  virtual /* [helpstring][id][propget] */ HRESULT STDMETHODCALLTYPE get_systemId( 
+     ) : TPBSTR *strSystemId) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+
+#endif 	/* __IVBSAXLocator_INTERFACE_DEFINED__ */
+
+
+#ifndef __IVBSAXEntityResolver_INTERFACE_DEFINED__
+#define __IVBSAXEntityResolver_INTERFACE_DEFINED__
+
+/* interface IVBSAXEntityResolver */
+/* [unique][helpstring][uuid][nonextensible][oleautomation][dual][local][object] */ 
+
+
+EXTERN_C const IID IID_IVBSAXEntityResolver;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("0c05d096-f45b-4aca-ad1a-aa0bc25518dc")
+IVBSAXEntityResolver : public IDispatch
+{
+public:
+  COM PROCEDURE resolveEntity( 
+    /* [out][in] */ BSTR *strPublicId,
+    /* [out][in] */ BSTR *strSystemId,
+     ) : TPVARIANT *varInput) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+
+#endif 	/* __IVBSAXEntityResolver_INTERFACE_DEFINED__ */
+
+
+#ifndef __IVBSAXContentHandler_INTERFACE_DEFINED__
+#define __IVBSAXContentHandler_INTERFACE_DEFINED__
+
+/* interface IVBSAXContentHandler */
+/* [unique][helpstring][uuid][nonextensible][oleautomation][dual][local][object] */ 
+
+
+EXTERN_C const IID IID_IVBSAXContentHandler;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("2ed7290a-4dd5-4b46-bb26-4e4155e77faa")
+IVBSAXContentHandler : public IDispatch
+{
+public:
+  virtual /* [helpstring][id][propputref] */ HRESULT STDMETHODCALLTYPE putref_documentLocator( 
+    /* [in] */ IVBSAXLocator *oLocator) = 0;
+
+  COM PROCEDURE startDocument( void) = 0;
+
+  COM PROCEDURE endDocument( void) = 0;
+
+  COM PROCEDURE startPrefixMapping( 
+    /* [out][in] */ BSTR *strPrefix,
+    /* [out][in] */ BSTR *strURI) = 0;
+
+  COM PROCEDURE endPrefixMapping( 
+    /* [out][in] */ BSTR *strPrefix) = 0;
+
+  COM PROCEDURE startElement( 
+    /* [out][in] */ BSTR *strNamespaceURI,
+    /* [out][in] */ BSTR *strLocalName,
+    /* [out][in] */ BSTR *strQName,
+    /* [in] */ IVBSAXAttributes *oAttributes) = 0;
+
+  COM PROCEDURE endElement( 
+    /* [out][in] */ BSTR *strNamespaceURI,
+    /* [out][in] */ BSTR *strLocalName,
+    /* [out][in] */ BSTR *strQName) = 0;
+
+  COM PROCEDURE characters( 
+    /* [out][in] */ BSTR *strChars) = 0;
+
+  COM PROCEDURE ignorableWhitespace( 
+    /* [out][in] */ BSTR *strChars) = 0;
+
+  COM PROCEDURE processingInstruction( 
+    /* [out][in] */ BSTR *strTarget,
+    /* [out][in] */ BSTR *strData) = 0;
+
+  COM PROCEDURE skippedEntity( 
+    /* [out][in] */ BSTR *strName) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+
+#endif 	/* __IVBSAXContentHandler_INTERFACE_DEFINED__ */
+
+
+#ifndef __IVBSAXDTDHandler_INTERFACE_DEFINED__
+#define __IVBSAXDTDHandler_INTERFACE_DEFINED__
+
+/* interface IVBSAXDTDHandler */
+/* [unique][helpstring][uuid][nonextensible][oleautomation][dual][local][object] */ 
+
+
+EXTERN_C const IID IID_IVBSAXDTDHandler;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("24fb3297-302d-4620-ba39-3a732d850558")
+IVBSAXDTDHandler : public IDispatch
+{
+public:
+  COM PROCEDURE notationDecl( 
+    /* [out][in] */ BSTR *strName,
+    /* [out][in] */ BSTR *strPublicId,
+    /* [out][in] */ BSTR *strSystemId) = 0;
+
+  COM PROCEDURE unparsedEntityDecl( 
+    /* [out][in] */ BSTR *strName,
+    /* [out][in] */ BSTR *strPublicId,
+    /* [out][in] */ BSTR *strSystemId,
+    /* [out][in] */ BSTR *strNotationName) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+#endif 	/* __IVBSAXDTDHandler_INTERFACE_DEFINED__ */
+
+
+#ifndef __IVBSAXErrorHandler_INTERFACE_DEFINED__
+#define __IVBSAXErrorHandler_INTERFACE_DEFINED__
+
+/* interface IVBSAXErrorHandler */
+/* [unique][helpstring][uuid][nonextensible][oleautomation][dual][local][object] */ 
+
+
+EXTERN_C const IID IID_IVBSAXErrorHandler;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("d963d3fe-173c-4862-9095-b92f66995f52")
+IVBSAXErrorHandler : public IDispatch
+{
+public:
+  COM PROCEDURE error( 
+    /* [in] */ IVBSAXLocator *oLocator,
+    /* [out][in] */ BSTR *strErrorMessage,
+    /* [in] */ long nErrorCode) = 0;
+
+  COM PROCEDURE fatalError( 
+    /* [in] */ IVBSAXLocator *oLocator,
+    /* [out][in] */ BSTR *strErrorMessage,
+    /* [in] */ long nErrorCode) = 0;
+
+  COM PROCEDURE ignorableWarning( 
+    /* [in] */ IVBSAXLocator *oLocator,
+    /* [out][in] */ BSTR *strErrorMessage,
+    /* [in] */ long nErrorCode) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+#endif 	/* __IVBSAXErrorHandler_INTERFACE_DEFINED__ */
+
+
+#ifndef __IVBSAXLexicalHandler_INTERFACE_DEFINED__
+#define __IVBSAXLexicalHandler_INTERFACE_DEFINED__
+
+/* interface IVBSAXLexicalHandler */
+/* [unique][helpstring][uuid][nonextensible][oleautomation][dual][local][object] */ 
+
+
+EXTERN_C const IID IID_IVBSAXLexicalHandler;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("032aac35-8c0e-4d9d-979f-e3b702935576")
+IVBSAXLexicalHandler : public IDispatch
+{
+public:
+  COM PROCEDURE startDTD( 
+    /* [out][in] */ BSTR *strName,
+    /* [out][in] */ BSTR *strPublicId,
+    /* [out][in] */ BSTR *strSystemId) = 0;
+
+  COM PROCEDURE endDTD( void) = 0;
+
+  COM PROCEDURE startEntity( 
+    /* [out][in] */ BSTR *strName) = 0;
+
+  COM PROCEDURE endEntity( 
+    /* [out][in] */ BSTR *strName) = 0;
+
+  COM PROCEDURE startCDATA( void) = 0;
+
+  COM PROCEDURE endCDATA( void) = 0;
+
+  COM PROCEDURE comment( 
+    /* [out][in] */ BSTR *strChars) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+
+#endif 	/* __IVBSAXLexicalHandler_INTERFACE_DEFINED__ */
+
+
+#ifndef __IVBSAXDeclHandler_INTERFACE_DEFINED__
+#define __IVBSAXDeclHandler_INTERFACE_DEFINED__
+
+/* interface IVBSAXDeclHandler */
+/* [unique][helpstring][uuid][nonextensible][oleautomation][dual][local][object] */ 
+
+
+EXTERN_C const IID IID_IVBSAXDeclHandler;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("e8917260-7579-4be1-b5dd-7afbfa6f077b")
+IVBSAXDeclHandler : public IDispatch
+{
+public:
+  COM PROCEDURE elementDecl( 
+    /* [out][in] */ BSTR *strName,
+    /* [out][in] */ BSTR *strModel) = 0;
+
+  COM PROCEDURE attributeDecl( 
+    /* [out][in] */ BSTR *strElementName,
+    /* [out][in] */ BSTR *strAttributeName,
+    /* [out][in] */ BSTR *strType,
+    /* [out][in] */ BSTR *strValueDefault,
+    /* [out][in] */ BSTR *strValue) = 0;
+
+  COM PROCEDURE internalEntityDecl( 
+    /* [out][in] */ BSTR *strName,
+    /* [out][in] */ BSTR *strValue) = 0;
+
+  COM PROCEDURE externalEntityDecl( 
+    /* [out][in] */ BSTR *strName,
+    /* [out][in] */ BSTR *strPublicId,
+    /* [out][in] */ BSTR *strSystemId) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+
+#endif 	/* __IVBSAXDeclHandler_INTERFACE_DEFINED__ */
+
+
+#ifndef __IVBSAXAttributes_INTERFACE_DEFINED__
+#define __IVBSAXAttributes_INTERFACE_DEFINED__
+
+/* interface IVBSAXAttributes */
+/* [unique][helpstring][uuid][nonextensible][oleautomation][dual][local][object] */ 
+
+
+EXTERN_C const IID IID_IVBSAXAttributes;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("10dc0586-132b-4cac-8bb3-db00ac8b7ee0")
+IVBSAXAttributes : public IDispatch
+{
+public:
+  virtual /* [helpstring][id][propget] */ HRESULT STDMETHODCALLTYPE get_length( 
+     ) : TPint *nLength) = 0;
+
+  COM PROCEDURE getURI( 
+    /* [in] */ int nIndex,
+     ) : TPBSTR *strURI) = 0;
+
+  COM PROCEDURE getLocalName( 
+    /* [in] */ int nIndex,
+     ) : TPBSTR *strLocalName) = 0;
+
+  COM PROCEDURE getQName( 
+    /* [in] */ int nIndex,
+     ) : TPBSTR *strQName) = 0;
+
+  COM PROCEDURE getIndexFromName( 
+    /* [in] */ BSTR strURI,
+    /* [in] */ BSTR strLocalName,
+     ) : TPint *nIndex) = 0;
+
+  COM PROCEDURE getIndexFromQName( 
+    /* [in] */ BSTR strQName,
+     ) : TPint *nIndex) = 0;
+
+  COM PROCEDURE getType( 
+    /* [in] */ int nIndex,
+     ) : TPBSTR *strType) = 0;
+
+  COM PROCEDURE getTypeFromName( 
+    /* [in] */ BSTR strURI,
+    /* [in] */ BSTR strLocalName,
+     ) : TPBSTR *strType) = 0;
+
+  COM PROCEDURE getTypeFromQName( 
+    /* [in] */ BSTR strQName,
+     ) : TPBSTR *strType) = 0;
+
+  COM PROCEDURE getValue( 
+    /* [in] */ int nIndex,
+     ) : TPBSTR *strValue) = 0;
+
+  COM PROCEDURE getValueFromName( 
+    /* [in] */ BSTR strURI,
+    /* [in] */ BSTR strLocalName,
+     ) : TPBSTR *strValue) = 0;
+
+  COM PROCEDURE getValueFromQName( 
+    /* [in] */ BSTR strQName,
+     ) : TPBSTR *strValue) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+#endif 	/* __IVBSAXAttributes_INTERFACE_DEFINED__ */
+
+
+#ifndef __IMXWriter_INTERFACE_DEFINED__
+#define __IMXWriter_INTERFACE_DEFINED__
+
+/* interface IMXWriter */
+/* [unique][helpstring][uuid][nonextensible][oleautomation][dual][local][object] */ 
+
+
+EXTERN_C const IID IID_IMXWriter;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("4d7ff4ba-1565-4ea8-94e1-6e724a46f98d")
+IMXWriter : public IDispatch
+{
+public:
+  virtual /* [helpstring][id][propput] */ HRESULT STDMETHODCALLTYPE put_output( 
+    /* [in] */ VARIANT varDestination) = 0;
+
+  virtual /* [helpstring][id][propget] */ HRESULT STDMETHODCALLTYPE get_output( 
+     ) : TPVARIANT *varDestination) = 0;
+
+  virtual /* [helpstring][id][propput] */ HRESULT STDMETHODCALLTYPE put_encoding( 
+    /* [in] */ BSTR strEncoding) = 0;
+
+  virtual /* [helpstring][id][propget] */ HRESULT STDMETHODCALLTYPE get_encoding( 
+     ) : TPBSTR *strEncoding) = 0;
+
+  virtual /* [helpstring][id][propput] */ HRESULT STDMETHODCALLTYPE put_byteOrderMark( 
+    /* [in] */ VARIANT_BOOL fWriteByteOrderMark) = 0;
+
+  virtual /* [helpstring][id][propget] */ HRESULT STDMETHODCALLTYPE get_byteOrderMark( 
+     ) : TPVARIANT_BOOL *fWriteByteOrderMark) = 0;
+
+  virtual /* [helpstring][id][propput] */ HRESULT STDMETHODCALLTYPE put_indent( 
+    /* [in] */ VARIANT_BOOL fIndentMode) = 0;
+
+  virtual /* [helpstring][id][propget] */ HRESULT STDMETHODCALLTYPE get_indent( 
+     ) : TPVARIANT_BOOL *fIndentMode) = 0;
+
+  virtual /* [helpstring][id][propput] */ HRESULT STDMETHODCALLTYPE put_standalone( 
+    /* [in] */ VARIANT_BOOL fValue) = 0;
+
+  virtual /* [helpstring][id][propget] */ HRESULT STDMETHODCALLTYPE get_standalone( 
+     ) : TPVARIANT_BOOL *fValue) = 0;
+
+  virtual /* [helpstring][id][propput] */ HRESULT STDMETHODCALLTYPE put_omitXMLDeclaration( 
+    /* [in] */ VARIANT_BOOL fValue) = 0;
+
+  virtual /* [helpstring][id][propget] */ HRESULT STDMETHODCALLTYPE get_omitXMLDeclaration( 
+     ) : TPVARIANT_BOOL *fValue) = 0;
+
+  virtual /* [helpstring][id][propput] */ HRESULT STDMETHODCALLTYPE put_version( 
+    /* [in] */ BSTR strVersion) = 0;
+
+  virtual /* [helpstring][id][propget] */ HRESULT STDMETHODCALLTYPE get_version( 
+     ) : TPBSTR *strVersion) = 0;
+
+  virtual /* [helpstring][id][propput] */ HRESULT STDMETHODCALLTYPE put_disableOutputEscaping( 
+    /* [in] */ VARIANT_BOOL fValue) = 0;
+
+  virtual /* [helpstring][id][propget] */ HRESULT STDMETHODCALLTYPE get_disableOutputEscaping( 
+     ) : TPVARIANT_BOOL *fValue) = 0;
+
+  COM PROCEDURE flush( void) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+
+#endif 	/* __IMXWriter_INTERFACE_DEFINED__ */
+
+
+#ifndef __IMXAttributes_INTERFACE_DEFINED__
+#define __IMXAttributes_INTERFACE_DEFINED__
+
+/* interface IMXAttributes */
+/* [unique][helpstring][uuid][nonextensible][oleautomation][dual][local][object] */ 
+
+
+EXTERN_C const IID IID_IMXAttributes;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("f10d27cc-3ec0-415c-8ed8-77ab1c5e7262")
+IMXAttributes : public IDispatch
+{
+public:
+  COM PROCEDURE addAttribute( 
+    /* [in] */ BSTR strURI,
+    /* [in] */ BSTR strLocalName,
+    /* [in] */ BSTR strQName,
+    /* [in] */ BSTR strType,
+    /* [in] */ BSTR strValue) = 0;
+
+  COM PROCEDURE addAttributeFromIndex( 
+    /* [in] */ VARIANT varAtts,
+    /* [in] */ int nIndex) = 0;
+
+  COM PROCEDURE clear( void) = 0;
+
+  COM PROCEDURE removeAttribute( 
+    /* [in] */ int nIndex) = 0;
+
+  COM PROCEDURE setAttribute( 
+    /* [in] */ int nIndex,
+    /* [in] */ BSTR strURI,
+    /* [in] */ BSTR strLocalName,
+    /* [in] */ BSTR strQName,
+    /* [in] */ BSTR strType,
+    /* [in] */ BSTR strValue) = 0;
+
+  COM PROCEDURE setAttributes( 
+    /* [in] */ VARIANT varAtts) = 0;
+
+  COM PROCEDURE setLocalName( 
+    /* [in] */ int nIndex,
+    /* [in] */ BSTR strLocalName) = 0;
+
+  COM PROCEDURE setQName( 
+    /* [in] */ int nIndex,
+    /* [in] */ BSTR strQName) = 0;
+
+  COM PROCEDURE setType( 
+    /* [in] */ int nIndex,
+    /* [in] */ BSTR strType) = 0;
+
+  COM PROCEDURE setURI( 
+    /* [in] */ int nIndex,
+    /* [in] */ BSTR strURI) = 0;
+
+  COM PROCEDURE setValue( 
+    /* [in] */ int nIndex,
+    /* [in] */ BSTR strValue) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+
+#endif 	/* __IMXAttributes_INTERFACE_DEFINED__ */
+
+
+#ifndef __IMXReaderControl_INTERFACE_DEFINED__
+#define __IMXReaderControl_INTERFACE_DEFINED__
+
+/* interface IMXReaderControl */
+/* [unique][helpstring][uuid][nonextensible][oleautomation][dual][local][object] */ 
+
+
+EXTERN_C const IID IID_IMXReaderControl;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("808f4e35-8d5a-4fbe-8466-33a41279ed30")
+IMXReaderControl : public IDispatch
+{
+public:
+  COM PROCEDURE abort( void) = 0;
+
+  COM PROCEDURE resume( void) = 0;
+
+  COM PROCEDURE suspend( void) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+
+#endif 	/* __IMXReaderControl_INTERFACE_DEFINED__ */
+
+
+#ifndef __IMXSchemaDeclHandler_INTERFACE_DEFINED__
+#define __IMXSchemaDeclHandler_INTERFACE_DEFINED__
+
+/* interface IMXSchemaDeclHandler */
+/* [unique][helpstring][uuid][nonextensible][oleautomation][dual][local][object] */ 
+
+
+EXTERN_C const IID IID_IMXSchemaDeclHandler;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("fa4bb38c-faf9-4cca-9302-d1dd0fe520db")
+IMXSchemaDeclHandler : public IDispatch
+{
+public:
+  COM PROCEDURE schemaElementDecl( 
+    /* [in] */ ISchemaElement *oSchemaElement) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+
+#endif 	/* __IMXSchemaDeclHandler_INTERFACE_DEFINED__ */
+
+
+
+EXTERN_C const CLSID CLSID_SAXXMLReader;
+
+#ifdef __cplusplus
+
+class DECLSPEC_UUID("079aa557-4a18-424a-8eee-e39f0a8d41b9")
+  SAXXMLReader;
+#endif
+
+EXTERN_C const CLSID CLSID_SAXXMLReader30;
+
+#ifdef __cplusplus
+
+class DECLSPEC_UUID("3124c396-fb13-4836-a6ad-1317f1713688")
+  SAXXMLReader30;
+#endif
+
+EXTERN_C const CLSID CLSID_SAXXMLReader40;
+
+#ifdef __cplusplus
+
+class DECLSPEC_UUID("7c6e29bc-8b8b-4c3d-859e-af6cd158be0f")
+  SAXXMLReader40;
+#endif
+
+EXTERN_C const CLSID CLSID_MXXMLWriter;
+
+#ifdef __cplusplus
+
+class DECLSPEC_UUID("fc220ad8-a72a-4ee8-926e-0b7ad152a020")
+  MXXMLWriter;
+#endif
+
+EXTERN_C const CLSID CLSID_MXXMLWriter30;
+
+#ifdef __cplusplus
+
+class DECLSPEC_UUID("3d813dfe-6c91-4a4e-8f41-04346a841d9c")
+  MXXMLWriter30;
+#endif
+
+EXTERN_C const CLSID CLSID_MXXMLWriter40;
+
+#ifdef __cplusplus
+
+class DECLSPEC_UUID("88d969c8-f192-11d4-a65f-0040963251e5")
+  MXXMLWriter40;
+#endif
+
+EXTERN_C const CLSID CLSID_MXHTMLWriter;
+
+#ifdef __cplusplus
+
+class DECLSPEC_UUID("a4c23ec3-6b70-4466-9127-550077239978")
+  MXHTMLWriter;
+#endif
+
+EXTERN_C const CLSID CLSID_MXHTMLWriter30;
+
+#ifdef __cplusplus
+
+class DECLSPEC_UUID("853d1540-c1a7-4aa9-a226-4d3bd301146d")
+  MXHTMLWriter30;
+#endif
+
+EXTERN_C const CLSID CLSID_MXHTMLWriter40;
+
+#ifdef __cplusplus
+
+class DECLSPEC_UUID("88d969c9-f192-11d4-a65f-0040963251e5")
+  MXHTMLWriter40;
+#endif
+
+EXTERN_C const CLSID CLSID_SAXAttributes;
+
+#ifdef __cplusplus
+
+class DECLSPEC_UUID("4dd441ad-526d-4a77-9f1b-9841ed802fb0")
+  SAXAttributes;
+#endif
+
+EXTERN_C const CLSID CLSID_SAXAttributes30;
+
+#ifdef __cplusplus
+
+class DECLSPEC_UUID("3e784a01-f3ae-4dc0-9354-9526b9370eba")
+  SAXAttributes30;
+#endif
+
+EXTERN_C const CLSID CLSID_SAXAttributes40;
+
+#ifdef __cplusplus
+
+class DECLSPEC_UUID("88d969ca-f192-11d4-a65f-0040963251e5")
+  SAXAttributes40;
+#endif
+
+EXTERN_C const CLSID CLSID_MXNamespaceManager;
+
+#ifdef __cplusplus
+
+class DECLSPEC_UUID("88d969d5-f192-11d4-a65f-0040963251e5")
+  MXNamespaceManager;
+#endif
+
+EXTERN_C const CLSID CLSID_MXNamespaceManager40;
+
+#ifdef __cplusplus
+
+class DECLSPEC_UUID("88d969d6-f192-11d4-a65f-0040963251e5")
+  MXNamespaceManager40;
+#endif
+
+

@@ -1,0 +1,380 @@
+DEFINITION MODULE IOO;
+
+IMPORT
+  Delegate,
+  Exceptions,
+  StorageO,
+  Sync,
+  SyncQueue;
+
+(*================================================================================*)
+
+#save, option( dll_export => on )
+
+TYPE
+  TAccess = (
+    accUnknown,
+    accRead,
+    accReadWrite,
+    accWrite
+  );
+  TDirection = (
+    dirUnknown,
+    dirRead,
+    dirWrite
+  );
+
+(*================================================================================*)
+
+FINAL CLASS CIOException( Exceptions.CException );
+   PUBLIC READONLY VAR
+      ErrorCode : CARDINAL := 0;
+
+   PUBLIC PROCEDURE Init( NestedException : POINTER TO Exceptions.Exception; CONST Originator, Text : ARRAY OF WCHAR; ErrorCode : CARDINAL ) : CIOException;
+
+   INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
+END CIOException;
+
+PROCEDURE IOException( NestedException : POINTER TO Exceptions.Exception; CONST Originator, Text : ARRAY OF WCHAR; ErrorCode : CARDINAL ) : CIOException;
+
+(*================================================================================*)
+// data proxy is main data access object
+
+TYPE
+  TPDataInfo = POINTER TO ADataInfo;
+  TPDataProxy = POINTER TO ADataProxy;
+
+  TDataProxyStatusItem = (
+    dpsPending
+  );
+  TDataProxyStatus = SET OF TDataProxyStatusItem;
+
+(*--------------------------------------------------------------------------------*)
+// ADataInfo uses almost servers, which could asynchronously notify events (data received etc.)
+
+ABSTRACT CLASS ADataInfo( Delegate.ADelegate ); // POSSIBLY FOREIGN THREAD
+  PUBLIC VIRTUAL PROCEDURE OnError( Direction : TDirection; Error : CARDINAL; Source : ADDRESS; SourceSpecificCode : LONGWORD );
+  PUBLIC VIRTUAL PROCEDURE OnFlowPossible( Direction : TDirection; Source : ADDRESS );
+  PUBLIC VIRTUAL PROCEDURE OnReadable( Length : CARDINAL; Source : ADDRESS );
+  PUBLIC VIRTUAL PROCEDURE OnWritten( Length : CARDINAL; Source : ADDRESS );
+END ADataInfo;
+
+(*--------------------------------------------------------------------------------*)
+
+ABSTRACT CLASS ADataProxy( ADataInfo );
+  INTERNAL VAR
+    _Status : TDataProxyStatus;
+    _Signal : Sync.SIGNAL;
+  PUBLIC VAR
+    Persistent : BOOLEAN := TRUE; // FALSE = object is after completion self-Released
+  PUBLIC READONLY VAR
+    Result : Sync.TAsyncResult; // for WaitCompletion
+  PUBLIC PROPERTY
+    Waitable : BOOLEAN;
+  PUBLIC READONLY PROPERTY
+    Completed : BOOLEAN;
+  PUBLIC ABSTRACT READONLY PROPERTY
+    Processed : CARDINAL; // count of read/written data
+  PUBLIC VIRTUAL READONLY PROPERTY
+    SignalsCompleteData : BOOLEAN; // if TRUE then both DeviceFinish/CompleteData causes Signal
+
+  // used by client
+  PUBLIC PROCEDURE Start(); // prepares waiting, clears Result
+  PUBLIC PROCEDURE WaitCompletion( TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+  // used by server -- request/response model
+  PUBLIC VIRTUAL PROCEDURE PrepareData( OUT Prepared : ADDRESS; OUT Length : CARDINAL ) : BOOLEAN; // TRUE == have next data
+  PUBLIC VIRTUAL PROCEDURE CompleteData( Completed : CARDINAL );
+  // can be used by both
+  PUBLIC PROCEDURE Signal();
+  PUBLIC PROCEDURE Reset();
+  // POSSIBLY FOREIGN THREAD
+  PUBLIC VIRTUAL PROCEDURE DeviceFinish( Result : Sync.TAsyncResult );
+END ADataProxy;
+
+(*================================================================================*)
+// mostly for stream clients
+
+TYPE
+  TPMemoryProxy = POINTER TO CMemoryProxy;
+
+CLASS CMemoryProxy( ADataProxy ); // default: Persistent = FALSE
+  PRIVATE VAR
+    _Private : BOOLEAN;
+  INTERNAL VAR
+    _Data : ADDRESS;
+    _Ptr : CARDINAL;
+    _Length : CARDINAL;
+  PUBLIC VIRTUAL READONLY PROPERTY
+    Processed : CARDINAL; // count of read/written data
+
+  PUBLIC PROCEDURE Init( Data : ADDRESS; Length : CARDINAL; CreateCopy : BOOLEAN );
+  PUBLIC PROCEDURE InitBuffer( CONST Buffer : StorageO.AMemoryBuffer; CreateCopy : BOOLEAN );
+
+  PUBLIC VIRTUAL PROCEDURE PrepareData( OUT Prepared : ADDRESS; OUT Length : CARDINAL ) : BOOLEAN; // TRUE == have next data
+  PUBLIC VIRTUAL PROCEDURE CompleteData( Completed : CARDINAL );
+END CMemoryProxy;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+  TPDatagramProxy = POINTER TO CDatagramProxy;
+
+// for synchronous use -- writes and reads data prepending/expecting before the data itself its lenght
+// typically for writing
+CLASS CDatagramProxy( CMemoryProxy ); // default: Persistent = TRUE
+  PUBLIC VIRTUAL READONLY PROPERTY
+    Processed : CARDINAL; // count of read/written data
+  PUBLIC VIRTUAL PROCEDURE PrepareData( OUT Prepared : ADDRESS; OUT Length : CARDINAL ) : BOOLEAN; // TRUE == have next data
+  PUBLIC VIRTUAL PROCEDURE CompleteData( Completed : CARDINAL );
+END CDatagramProxy;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+  TPRingBufferProxy = POINTER TO CRingBufferProxy;
+
+// typically for reading
+CLASS CRingBufferProxy( ADataProxy ); // default: Persistent = TRUE
+  PUBLIC VAR
+    Direction : TDirection := dirRead;
+    RingBuffer : SyncQueue.TPRingBuffer;
+  PUBLIC VIRTUAL READONLY PROPERTY
+    Processed : CARDINAL; // count of read/written data
+  PUBLIC VIRTUAL READONLY PROPERTY
+    SignalsCompleteData : BOOLEAN; // TRUE
+  PUBLIC VIRTUAL PROCEDURE PrepareData( OUT Prepared : ADDRESS; OUT Length : CARDINAL ) : BOOLEAN; // TRUE == have next data
+  PUBLIC VIRTUAL PROCEDURE CompleteData( Completed : CARDINAL );
+END CRingBufferProxy;
+
+(*================================================================================*)
+// abstract ancestor of all streams
+
+TYPE
+  TSeekOrigin = (
+    soBegin,
+    soCurrent,
+    soEnd
+  );
+
+TYPE
+  TPStream = POINTER TO AStream;
+
+ABSTRACT CLASS AStream;
+  INTERNAL VAR
+    Reader     : TPDataProxy; // client
+    Writer     : TPDataProxy; // client
+  PUBLIC ABSTRACT READONLY PROPERTY
+    CanRead    : BOOLEAN;
+    CanWrite   : BOOLEAN;
+    CanSeek    : BOOLEAN;
+    Long       : BOOLEAN;
+  PUBLIC ABSTRACT PROPERTY
+    Length     : CARD64;
+    Position   : CARD64;
+  PUBLIC PROPERTY
+    Length32   : CARD32;
+    Position32 : CARD32;
+  PUBLIC READONLY PROPERTY
+    AtEnd      : BOOLEAN;
+    Reading    : BOOLEAN;
+    Writing    : BOOLEAN;
+
+  PUBLIC ABSTRACT PROCEDURE Seek( Origin : TSeekOrigin; Position : INT64 ); 
+  PUBLIC ABSTRACT PROCEDURE Flush();
+  PUBLIC ABSTRACT PROCEDURE Close( Persist : BOOLEAN ); // Close closes data flow and, if NOT Persist, also all owned/allocated structures. E.g., if Persist, the stream will not call closesocket, if not Persist it will be.
+  
+  INTERNAL ABSTRACT PROCEDURE Start( Direction : TDirection; OperationTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+    // Start should always call Complete, except it returns arPending, arCannotStart or arAlreadyPending.
+    // For data access Start uses Reader/Writer.PrepareData/CompleteData.
+  INTERNAL ABSTRACT PROCEDURE Abort( Direction : TDirection );
+
+  // client  
+  PUBLIC PROCEDURE Read( Reader : TPDataProxy; TimeoutMS : CARDINAL; WaitForResult : BOOLEAN ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE ReadOA( OUT Data : ARRAY OF BYTE; OUT Filled : CARDINAL; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE ReadBuffer( MaximalReadLength : CARDINAL; REF Data : StorageO.AMemoryBuffer; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE AbortReading();
+  // client  
+  PUBLIC PROCEDURE Write( Writer : TPDataProxy; TimeoutMS : CARDINAL; WaitForResult : BOOLEAN ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE WriteOA( CONST Data : ARRAY OF BYTE; OUT Consumed : CARDINAL; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE WriteBuffer( CONST Data : StorageO.AMemoryBuffer; OUT Consumed : CARDINAL; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE AbortWriting();
+
+  // device shortcuts -- either for self (if stream is executive) or for underlying proxy (if stream is inside the stream chain); other callers should be avoided
+  PUBLIC VIRTUAL PROCEDURE DevicePrepareData( Direction : TDirection; OUT Prepared : ADDRESS; OUT Length : CARDINAL ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE DeviceCompleteData( Direction : TDirection; Completed : CARDINAL );
+  PUBLIC VIRTUAL PROCEDURE DeviceFinish( Direction : TDirection; Result : Sync.TAsyncResult );
+
+  INTERNAL PROCEDURE IO( Direction : TDirection; _Proxy : TPDataProxy; TimeoutMS : CARDINAL; WaitForResult : BOOLEAN ) : Sync.TAsyncResult;
+END AStream;
+
+(*--------------------------------------------------------------------------------*)
+// used mostly inside streams to handle underlying layers
+
+CLASS CStreamProxy( ADataProxy );
+  INTERNAL VAR
+    Direction : TDirection := dirRead;
+    Stream : TPStream;
+  PUBLIC VIRTUAL READONLY PROPERTY
+    Processed : CARDINAL; // count of read/written data
+
+  PUBLIC PROCEDURE Init( Direction : TDirection; Stream : TPStream );
+
+  // POSSIBLY FOREIGN THREAD
+  PUBLIC VIRTUAL PROCEDURE PrepareData( OUT Prepared : ADDRESS; OUT Length : CARDINAL ) : BOOLEAN; // TRUE == have next data
+  PUBLIC VIRTUAL PROCEDURE CompleteData( Completed : CARDINAL );
+  PUBLIC VIRTUAL PROCEDURE DeviceFinish( Result : Sync.TAsyncResult );
+END CStreamProxy;
+
+(*================================================================================*)
+// buffered stream and its counterparts
+
+// Fully cooperates with buffered stream, it uses its internal buffer to construct self data flow.
+// It is parallel way to get asynchronous data flow (compare to AStream.Read/Write).
+TYPE
+   TPBufferedReader = POINTER TO IBufferedReader;
+
+INTERFACE IBufferedReader;
+   // events
+   PROPERTY Notifier : TPDataInfo;
+   // commands
+   PROCEDURE StartReading(); // starts reading
+   PROCEDURE Peek( OUT Data : ADDRESS; OUT Length : CARDINAL ) : BOOLEAN; // peeks data from read buffer
+   PROCEDURE ReadOut( Length : CARDINAL ); // consumes data from read buffer
+END IBufferedReader;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+  TPBufferedStream = POINTER TO CBufferedStream; 
+
+TYPE  
+  TBufferingMode = (
+    bmBypass, // the buffer is not used
+    bmCache, // data block and composed and sent/composed and receive (notified to client) by stream decision; the stream tries to reduce count of underlying or client communications
+    bmChunked, // ChunkSize is used, data are buffered and sent/received (notified to client) after they are greater than ChunkSize. If ChunkSize = 0 then clien/underlying stream are operated immediatelly
+    bmCommited // for writing only, data are sent only after CommitCall
+  );
+
+CLASS CBufferedStream( AStream ) IMPLEMENTS IBufferedReader;
+  PRIVATE VAR
+    _Stream    : TPStream;
+    _BSize     : CARDINAL := 4096;
+    _RPending  : TPDataProxy;
+    _RProxy    : CStreamProxy;
+    _RBuffer   : SyncQueue.RingBuffer;
+    _WPending  : TPDataProxy;
+    _WBuffer   : SyncQueue.RingBuffer;
+    _WProxy    : CStreamProxy;
+    _Notifier  : TPDataInfo;
+  PUBLIC FINAL READONLY PROPERTY
+    CanRead    : BOOLEAN;
+    CanWrite   : BOOLEAN;
+    CanSeek    : BOOLEAN;
+    Long       : BOOLEAN; // class static, cannot be modified when changing stream source
+  PUBLIC FINAL PROPERTY
+    Length     : CARD64;
+    Position   : CARD64;
+  PUBLIC PROPERTY
+    BufferSize : CARD32; // default 4096
+    Stream     : TPStream;
+  PUBLIC VAR
+    RMode      : TBufferingMode := bmChunked;
+    RChunk     : CARDINAL := 0;
+    WMode      : TBufferingMode := bmChunked;
+    WChunk     : CARDINAL := 0;
+
+   // AStream
+   PUBLIC FINAL PROCEDURE Seek( Origin : TSeekOrigin; Position : INT64 ); 
+   PUBLIC FINAL PROCEDURE Flush();
+   PUBLIC FINAL PROCEDURE Close( Persist : BOOLEAN );
+  
+   // IBufferedReader
+   PUBLIC VIRTUAL PROPERTY Notifier : TPDataInfo;
+   PUBLIC VIRTUAL PROCEDURE StartReading();
+   PUBLIC VIRTUAL PROCEDURE Peek( OUT Data : ADDRESS; OUT Length : CARDINAL ) : BOOLEAN; // peeks data from read buffer
+   PUBLIC VIRTUAL PROCEDURE ReadOut( Length : CARDINAL ); // consumes data from read buffer
+
+   // procedures special to BufferedStream
+   PUBLIC PROCEDURE CommitWrite(); // if WMode = wmCommited
+  
+   INTERNAL FINAL PROCEDURE Start( Direction : TDirection; OperationTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+     // Action should always call Complete, except it returns arPending, arCannotStart or arAlreadyPending.
+   INTERNAL FINAL PROCEDURE Abort( Direction : TDirection );
+     // Abort should always call Complete( arAbort )
+
+   PUBLIC VIRTUAL PROCEDURE DevicePrepareData( Direction : TDirection; OUT Prepared : ADDRESS; OUT Length : CARDINAL ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE DeviceCompleteData( Direction : TDirection; Completed : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE DeviceFinish( Direction : TDirection; Result : Sync.TAsyncResult );
+
+   PRIVATE PROCEDURE OperateClient( Direction : TDirection; Proxy : TPDataProxy ) : Sync.TAsyncResult;
+   PRIVATE PROCEDURE OperateDevice( Direction : TDirection );
+END CBufferedStream;
+
+(*--------------------------------------------------------------------------------*)
+// for line access use TextReader, which also defines Notifier for asynchronous access
+
+(*--------------------------------------------------------------------------------*)
+// for datagramming using buffered stream in background
+
+TYPE
+   TPDatagramReader = POINTER TO CDatagramReader;
+  
+CLASS CDatagramReader( ADataInfo ) IMPLEMENTS IBufferedReader;
+   PRIVATE VAR
+      _Stream : TPBufferedStream;
+      _Notifier : TPDataInfo;
+      _Buffer : StorageO.TPMemoryBuffer := NIL;
+      _BufferDataLength : CARDINAL := 0;
+      _BufferLock : POINTER TO Sync.LOCK := NIL;
+   PUBLIC PROPERTY
+      Stream : TPBufferedStream;
+      SelfBuffer : BOOLEAN; // allows use datagrams greater than _Stream.BufferSize, default FALSE
+
+   // IBufferedReader
+   PUBLIC VIRTUAL PROPERTY Notifier : TPDataInfo;
+   PUBLIC VIRTUAL PROCEDURE StartReading();
+   PUBLIC VIRTUAL PROCEDURE Peek( OUT Data : ADDRESS; OUT Length : CARDINAL ) : BOOLEAN; // peeks data from read buffer
+   PUBLIC VIRTUAL PROCEDURE ReadOut( Length : CARDINAL ); // consumes data from read buffer
+
+   // internal, POSSIBLY FOREIGN THREAD
+   PUBLIC VIRTUAL PROCEDURE OnReadable( Length : CARDINAL; Source : ADDRESS );
+
+   PRIVATE PROCEDURE FeedDataToBuffer( L1 : CARDINAL; A : ADDRESS ) : BOOLEAN; // returns if buffer is filled
+   PRIVATE PROCEDURE LoadLengthForBuffer( L2 : CARDINAL );
+END CDatagramReader;
+
+(*================================================================================*)
+
+TYPE
+  TPMemoryStream = POINTER TO CMemoryStream;
+
+CLASS CMemoryStream( AStream );
+  INTERNAL VAR
+    _Access : TAccess;
+    _Data : ADDRESS;
+    _Length : PTR;
+    _Offset : PTR;
+  PUBLIC VIRTUAL READONLY PROPERTY
+    CanRead    : BOOLEAN;
+    CanWrite   : BOOLEAN;
+    CanSeek    : BOOLEAN;
+    Long       : BOOLEAN;
+  PUBLIC VIRTUAL PROPERTY
+    Length     : CARD64;
+    Position   : CARD64;
+    
+  PUBLIC PROCEDURE Init( Data : ADDRESS; Length : PTR; Access : TAccess );
+
+  PUBLIC VIRTUAL PROCEDURE Seek( Origin : TSeekOrigin; Position : INT64 ); 
+  PUBLIC VIRTUAL PROCEDURE Flush();
+  PUBLIC VIRTUAL PROCEDURE Close( Persist : BOOLEAN ); // Close closes data flow and, if NOT Persist, also all owned/allocated structures. E.g., if Persist, the stream will not call closesocket, if not Persist it will be.
+  
+  INTERNAL VIRTUAL PROCEDURE Start( Direction : TDirection; OperationTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+  INTERNAL VIRTUAL PROCEDURE Abort( Direction : TDirection );
+END CMemoryStream;
+
+(*================================================================================*)
+
+#restore
+
+END IOO.

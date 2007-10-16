@@ -1,0 +1,460 @@
+DEFINITION MODULE winreg HEADER windows;
+
+(*==============================================================
+
+                Win32 Registry API for Modula-2
+
+       32-bit version for M2CPP Modula-2 to C++ compiler
+
+      Copyright (c) 1996, 1997 Moravian Instruments, Inc.
+
+==============================================================*)
+
+(*# name(   decoration      => c ) *)
+
+(*# module( header          => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            convention      => stdcall ) *)
+
+(*==============================================================
+
+  History: Created: 02.09.1997
+           Build 0: --.--.----
+
+==============================================================*)
+
+IMPORT
+  windows;
+
+(*============================================================*)
+(* Windows header:           winreg.h                         *)
+(*============================================================*)
+
+
+(*
+Abstract:
+
+    This module contains the function prototypes and constant, type and
+    structure definitions for the Windows 32-Bit Registry API.
+
+*)
+
+
+(*
+// Requested Key access mask type.
+*)
+
+TYPE
+  REGSAM = windows.ACCESS_MASK;
+
+(*
+// Type definitions.
+*)
+
+TYPE
+  HKEY  = windows.HANDLE;
+  PHKEY = POINTER TO HKEY;
+
+(*
+// Reserved Key Handles.
+*)
+
+CONST
+  HKEY_CLASSES_ROOT     = HKEY( 080000000H );
+  HKEY_CURRENT_USER     = HKEY( 080000001H );
+  HKEY_LOCAL_MACHINE    = HKEY( 080000002H );
+  HKEY_USERS            = HKEY( 080000003H );
+  HKEY_PERFORMANCE_DATA = HKEY( 080000004H );
+  HKEY_CURRENT_CONFIG   = HKEY( 080000005H );
+  HKEY_DYN_DATA         = HKEY( 080000006H );
+
+(*NOINC*)
+
+CONST
+  PROVIDER_KEEPS_VALUE_LENGTH = 1;
+
+TYPE
+  val_context = RECORD
+    valuelen      : INTEGER;         (* the total length of this value *)
+    value_context : windows.PVOID;   (* provider's context *)
+    val_buff_ptr  : windows.PVOID;   (* where in the ouput buffer the value is. *)
+  END;
+  PVALCONTEXT = POINTER TO val_context;
+
+  PVALUE = RECORD                    (* Provider supplied value/context *)
+    pv_valuename : windows.PTSTR;    (* The value name pointer *)
+    pv_valuelen : INTEGER;
+    pv_value_context : windows.PVOID;
+    pv_type : windows.DWORD;
+  END;
+  PPVALUE = POINTER TO PVALUE;
+
+(*# save, call( convention => stdcall ) *)
+  PQUERYHANDLER = PROCEDURE ( windows.PVOID, PVALCONTEXT, windows.DWORD,
+                              windows.PVOID, VAR windows.DWORD, windows.DWORD ) : windows.DWORD;
+(*# restore *)
+
+  REG_PROVIDER = RECORD
+    pi_R0_1val : PQUERYHANDLER;
+    pi_R0_allvals : PQUERYHANDLER;
+    pi_R3_1val : PQUERYHANDLER;
+    pi_R3_allvals : PQUERYHANDLER;
+    pi_flags : windows.DWORD;    (* capability flags (none defined yet) *)
+    pi_key_context : windows.PVOID;
+  END;
+  PPROVIDER = POINTER TO REG_PROVIDER;
+
+  VALENT = RECORD
+    ve_valuename : windows.PTSTR;
+    ve_valuelen : windows.DWORD;
+    ve_valueptr : windows.DWORD;
+    ve_type : windows.DWORD;
+  END;
+  PVALENT = POINTER TO VALENT;
+
+(*INC*)
+
+(*
+// Default values for parameters that do not exist in the Win 3.1
+// compatible APIs.
+*)
+
+CONST
+  WIN31_CLASS = NIL;
+
+(*
+// API Prototypes
+*)
+
+PROCEDURE RegCloseKey( 
+    hKey : HKEY
+    ): windows.LONG;
+
+PROCEDURE RegConnectRegistry( 
+    lpMachineName : windows.PTSTR;
+    hKey : HKEY;
+    phkResult : PHKEY
+    ): windows.LONG;
+
+PROCEDURE RegCreateKey(
+    hKey : HKEY;
+    lpSubKey : windows.PCTSTR;
+    phkResult : PHKEY
+    ): windows.LONG;
+
+PROCEDURE RegCreateKeyExA(
+    hKey : HKEY;
+    lpSubKey : windows.PCSTR;
+    Reserved : windows.DWORD;
+    lpClass : windows.PSTR;
+    dwOptions : windows.DWORD;
+    samDesired : REGSAM;
+    lpSecurityAttributes : windows.PSECURITY_ATTRIBUTES;
+    phkResult : PHKEY;
+    lpdwDisposition : windows.PDWORD
+    ): windows.LONG;
+PROCEDURE RegCreateKeyExW(
+    hKey : HKEY;
+    lpSubKey : windows.PCWSTR;
+    Reserved : windows.DWORD;
+    lpClass : windows.PWSTR;
+    dwOptions : windows.DWORD;
+    samDesired : REGSAM;
+    lpSecurityAttributes : windows.PSECURITY_ATTRIBUTES;
+    phkResult : PHKEY;
+    lpdwDisposition : windows.PDWORD
+    ): windows.LONG;
+CONST
+(*%F UNICODE *)
+  RegCreateKeyEx ::= RegCreateKeyExA;
+(*%E UNICODE *)
+(*%T UNICODE *)
+  RegCreateKeyEx ::= RegCreateKeyExW;
+(*%E UNICODE *)
+
+PROCEDURE RegDeleteKeyA(
+    hKey : HKEY;
+    lpSubKey : windows.PCSTR
+    ): windows.LONG;
+PROCEDURE RegDeleteKeyW(
+    hKey : HKEY;
+    lpSubKey : windows.PCWSTR
+    ): windows.LONG;
+CONST
+(*%F UNICODE *)
+  RegDeleteKey ::= RegDeleteKeyA;
+(*%E UNICODE *)
+(*%T UNICODE *)
+  RegDeleteKey ::= RegDeleteKeyW;
+(*%E UNICODE *)
+
+PROCEDURE RegDeleteValueA(
+    hKey : HKEY;
+    lpValueName : windows.PCSTR
+    ): windows.LONG;
+PROCEDURE RegDeleteValueW(
+    hKey : HKEY;
+    lpValueName : windows.PCWSTR
+    ): windows.LONG;
+CONST
+(*%F UNICODE *)
+  RegDeleteValue ::= RegDeleteValueA;
+(*%E UNICODE *)
+(*%T UNICODE *)
+  RegDeleteValue ::= RegDeleteValueW;
+(*%E UNICODE *)
+
+PROCEDURE RegEnumKey(
+    hKey : HKEY;
+    dwIndex : windows.DWORD;
+    lpName : windows.PTSTR;
+    cbName : windows.DWORD
+    ): windows.LONG;
+
+PROCEDURE RegEnumKeyExA(
+    hKey : HKEY;
+    dwIndex : windows.DWORD;
+    lpName : windows.PSTR;
+    lpcbName : windows.PDWORD;
+    lpReserved : windows.PDWORD;
+    lpClass : windows.PSTR;
+    lpcbClass : windows.PDWORD;
+    lpftLastWriteTime : windows.PFILETIME
+    ): windows.LONG;
+PROCEDURE RegEnumKeyExW(
+    hKey : HKEY;
+    dwIndex : windows.DWORD;
+    lpName : windows.PWSTR;
+    lpcbName : windows.PDWORD;
+    lpReserved : windows.PDWORD;
+    lpClass : windows.PWSTR;
+    lpcbClass : windows.PDWORD;
+    lpftLastWriteTime : windows.PFILETIME
+    ): windows.LONG;
+CONST
+(*%F UNICODE *)
+  RegEnumKeyEx ::= RegEnumKeyExA;
+(*%E UNICODE *)
+(*%T UNICODE *)
+  RegEnumKeyEx ::= RegEnumKeyExW;
+(*%E UNICODE *)
+
+PROCEDURE RegEnumValueA(
+    hKey : HKEY;
+    dwIndex : windows.DWORD;
+    lpValueName : windows.PSTR;
+    lpcbValueName : windows.PDWORD;
+    lpReserved : windows.PDWORD;
+    lpType : windows.PDWORD;
+    lpData : PBYTE;
+    lpcbData : windows.PDWORD
+    ): windows.LONG;
+PROCEDURE RegEnumValueW(
+    hKey : HKEY;
+    dwIndex : windows.DWORD;
+    lpValueName : windows.PWSTR;
+    lpcbValueName : windows.PDWORD;
+    lpReserved : windows.PDWORD;
+    lpType : windows.PDWORD;
+    lpData : PBYTE;
+    lpcbData : windows.PDWORD
+    ): windows.LONG;
+CONST
+(*%F UNICODE *)
+  RegEnumValue ::= RegEnumValueA;
+(*%E UNICODE *)
+(*%T UNICODE *)
+  RegEnumValue ::= RegEnumValueW;
+(*%E UNICODE *)
+
+PROCEDURE RegFlushKey (
+    hKey : HKEY
+    ): windows.LONG;
+
+PROCEDURE RegGetKeySecurity (
+    hKey : HKEY;
+    SecurityInformation : windows.SECURITY_INFORMATION;
+    pSecurityDescriptor : windows.PSECURITY_DESCRIPTOR;
+    lpcbSecurityDescriptor : windows.PDWORD
+    ): windows.LONG;
+
+PROCEDURE RegLoadKey(
+    hKey : HKEY;
+    lpSubKey : windows.PCTSTR;
+    lpFile : windows.PCTSTR
+    ): windows.LONG;
+
+PROCEDURE RegNotifyChangeKeyValue (
+    hKey : HKEY;
+    bWatchSubtree : windows.BOOL;
+    dwNotifyFilter : windows.DWORD;
+    hEvent : windows.HANDLE;
+    fAsynchronus : windows.BOOL
+    ): windows.LONG;
+
+PROCEDURE RegOpenKey(
+    hKey : HKEY;
+    lpSubKey : windows.PCTSTR;
+    phkResult : PHKEY
+    ): windows.LONG;
+
+PROCEDURE RegOpenKeyExA(
+    hKey : HKEY;
+    lpSubKey : windows.PCSTR;
+    ulOptions : windows.DWORD;
+    samDesired : REGSAM;
+    phkResult : PHKEY
+    ): windows.LONG;
+PROCEDURE RegOpenKeyExW(
+    hKey : HKEY;
+    lpSubKey : windows.PCWSTR;
+    ulOptions : windows.DWORD;
+    samDesired : REGSAM;
+    phkResult : PHKEY
+    ): windows.LONG;
+CONST
+(*%F UNICODE *)
+  RegOpenKeyEx ::= RegOpenKeyExA;
+(*%E UNICODE *)
+(*%T UNICODE *)
+  RegOpenKeyEx ::= RegOpenKeyExW;
+(*%E UNICODE *)
+
+PROCEDURE RegQueryInfoKey(
+    hKey : HKEY;
+    lpClass : windows.PTSTR;
+    lpcbClass : windows.PDWORD;
+    lpReserved : windows.PDWORD;
+    lpcSubKeys : windows.PDWORD;
+    lpcbMaxSubKeyLen : windows.PDWORD;
+    lpcbMaxClassLen : windows.PDWORD;
+    lpcValues : windows.PDWORD;
+    lpcbMaxValueNameLen : windows.PDWORD;
+    lpcbMaxValueLen : windows.PDWORD ;
+    lpcbSecurityDescriptor : windows.PDWORD;
+    lpftLastWriteTime : windows.PFILETIME
+    ): windows.LONG;
+
+PROCEDURE RegQueryValue(
+    hKey : HKEY;
+    lpSubKey : windows.PCTSTR;
+    lpValue : windows.PTSTR;
+    lpcbValue : windows.PLONG
+    ): windows.LONG;
+
+PROCEDURE RegQueryMultipleValues(
+    hKey : HKEY;
+    val_list : PVALENT;
+    num_vals : windows.DWORD;
+    lpValueBuf : windows.PTSTR;
+    ldwTotsize : windows.PDWORD
+    ): windows.LONG;
+
+PROCEDURE RegQueryValueExA(
+    hKey : HKEY;
+    lpValueName : windows.PCSTR;
+    lpReserved : windows.PDWORD;
+    lpType : windows.PDWORD;
+    lpData : PBYTE;
+    lpcbData : windows.PDWORD
+    ): windows.LONG;
+PROCEDURE RegQueryValueExW(
+    hKey : HKEY;
+    lpValueName : windows.PCWSTR;
+    lpReserved : windows.PDWORD;
+    lpType : windows.PDWORD;
+    lpData : PBYTE;
+    lpcbData : windows.PDWORD
+    ): windows.LONG;
+CONST
+(*%F UNICODE *)
+  RegQueryValueEx ::= RegQueryValueExA;
+(*%E UNICODE *)
+(*%T UNICODE *)
+  RegQueryValueEx ::= RegQueryValueExW;
+(*%E UNICODE *)
+
+PROCEDURE RegReplaceKey(
+    hKey : HKEY;
+    lpSubKey : windows.PCTSTR;
+    lpNewFile : windows.PCTSTR;
+    lpOldFile : windows.PCTSTR
+    ): windows.LONG;
+
+PROCEDURE RegRestoreKey(
+    hKey : HKEY ;
+    lpFile : windows.PCTSTR;
+    dwFlags : windows.DWORD
+    ): windows.LONG;
+
+PROCEDURE RegSaveKey(
+    hKey : HKEY;
+    lpFile : windows.PCTSTR;
+    lpSecurityAttributes : windows.PSECURITY_ATTRIBUTES
+    ): windows.LONG;
+
+PROCEDURE RegSetKeySecurity (
+    hKey : HKEY;
+    SecurityInformation : windows.SECURITY_INFORMATION;
+    pSecurityDescriptor : windows.PSECURITY_DESCRIPTOR
+    ): windows.LONG;
+
+PROCEDURE RegSetValue(
+    hKey : HKEY;
+    lpSubKey : windows.PCTSTR;
+    dwType : windows.DWORD;
+    lpData : windows.PCTSTR;
+    cbData : windows.DWORD
+    ): windows.LONG;
+
+PROCEDURE RegSetValueExA(
+    hKey : HKEY;
+    lpValueName : windows.PCSTR;
+    Reserved : windows.DWORD;
+    dwType : windows.DWORD;
+    lpData : PBYTE;
+    cbData : windows.DWORD
+    ): windows.LONG;
+PROCEDURE RegSetValueExW(
+    hKey : HKEY;
+    lpValueName : windows.PCWSTR;
+    Reserved : windows.DWORD;
+    dwType : windows.DWORD;
+    lpData : PBYTE;
+    cbData : windows.DWORD
+    ): windows.LONG;
+CONST
+(*%F UNICODE *)
+  RegSetValueEx ::= RegSetValueExA;
+(*%E UNICODE *)
+(*%T UNICODE *)
+  RegSetValueEx ::= RegSetValueExW;
+(*%E UNICODE *)
+
+PROCEDURE RegUnLoadKey(
+    hKey : HKEY;
+    lpSubKey : windows.PCTSTR
+    ): windows.LONG;
+
+(*
+// Remoteable System Shutdown APIs
+*)
+
+PROCEDURE InitiateSystemShutdown(
+    lpMachineName : windows.PTSTR;
+    lpMessage : windows.PTSTR;
+    dwTimeout : windows.DWORD;
+    bForceAppsClosed : windows.BOOL;
+    bRebootAfterShutdown : windows.BOOL
+    ): windows.BOOL;
+
+
+PROCEDURE AbortSystemShutdown(
+    lpMachineName : windows.PTSTR
+    ): windows.BOOL;
+
+END winreg.

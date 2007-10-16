@@ -1,0 +1,1568 @@
+DEFINITION MODULE DOM;
+(*# call( o_a_copy => off ) *)
+
+IMPORT
+  FIO,
+  list,
+  lists,
+  avltree,
+  stacks;
+  
+IMPORT
+  Strings,
+  StringsO;
+
+IMPORT
+  Generator,
+  Parser,
+  Scanner;
+
+//============================================================
+
+TYPE
+  TPUnit            = POINTER TO CUnit;
+  TPSymbol          = POINTER TO CSymbol;
+  TPSymbols         = POINTER TO CSymbols;
+
+  TPLabel           = POINTER TO CLabel;
+  TPConstant        = POINTER TO CConstant;
+  TPVariable        = POINTER TO CVariable;
+  TPTPVariable      = POINTER TO TPVariable;
+  TPSelf            = POINTER TO CSelf;
+  TPSuperWrapper    = POINTER TO CSuperWrapper;
+
+  TPType            = POINTER TO CType;
+  TPTPType          = POINTER TO TPType;
+  TPArray           = POINTER TO CArray;
+  TPSet             = POINTER TO CSet;
+  TPRecord          = POINTER TO CRecord;
+  TPEnumeration     = POINTER TO CEnumeration;
+  TPSubrange        = POINTER TO CSubrange;
+  TPProcedureType   = POINTER TO CProcedureType;
+  TPProcedure       = POINTER TO CProcedure;
+  TPFormalType      = POINTER TO CFormalType;
+  TPParameterContainer
+                    = POINTER TO CParameterContainer;
+  TPNestedParameters= POINTER TO CNestedParameters;
+  TPNestedFrames    = POINTER TO CNestedFrames;
+
+  TPClass           = POINTER TO CClass;
+  TPClassDecl       = POINTER TO CClassDecl;
+  TPMember          = POINTER TO CMember;
+  TPMethodDecl      = POINTER TO CMember;
+  TPPropertyDecl    = POINTER TO CPropertyDecl;
+  TPIndexerDecl     = POINTER TO CIndexerDecl;
+  TPOperatorDecl    = POINTER TO COperatorDecl;
+
+  TPModule          = POINTER TO CModule;
+
+  TPVarDeclContainer= POINTER TO CVarDeclContainer;
+  TPPropertyDef     = POINTER TO CPropertyDef;
+  TPIndexerDef      = POINTER TO CIndexerDef;
+  TPOperatorDef     = POINTER TO COperatorDef;
+
+  TPExpression      = POINTER TO CExpression;
+  TPENode           = POINTER TO CENode;
+  TPEValue          = POINTER TO CEValue;
+  TPTypedContainer  = POINTER TO CTypedContainer;
+  TPProcedureCall   = POINTER TO CProcedureCall;
+
+  TPDesignator      = POINTER TO CDesignator;
+  TPPDesignator     = POINTER TO TPDesignator;
+
+  TPStatement       = POINTER TO CStatement;
+  TPSAssignment     = POINTER TO CSAssignment;
+  TPSReturn         = POINTER TO CSReturn;
+  TPSLabel          = POINTER TO CSLabel;
+  TPSLoop           = POINTER TO CSLoop;
+  TPSFor            = POINTER TO CSFor;
+  TPSGoto           = POINTER TO CSGoto;
+  TPSASM            = POINTER TO CSASM;
+  TPSTRY            = POINTER TO CSTRY;
+
+//============================================================
+
+TYPE
+  TEO = (
+    opUnknown, opAssign, opConcat, opNEW, opDISPOSE,
+    opAdd, opSub, opDiv, opMult, opIDiv, opRem, opMod, opLShift, opRShift,
+    opEQ, opNEQ, opLT, opGT, opLTE, opGTE, opIN, opNotIN, opIS,
+    opORL, opORB, opANDL, opANDB, opEORB,
+    opSgnP, opSgnM, opNotL, opNotB,
+    opAddSET, opSubSET, opMultSET, opDivSET,
+    opSubExpr
+  );
+  TopS = ARRAY [0..7] OF WCHAR;
+  TopSs = ARRAY TEO OF TopS;
+
+CONST
+  opString = TopSs(
+    TopS( L'?'  ), TopS( L'='  ), TopS( L'?' ), TopS( L'new'  ), TopS( L'delete'  ),
+    TopS( L'+'  ), TopS( L'-'  ), TopS( L'/' ), TopS( L'*' ), TopS( L'?'  ), TopS( L'?'  ), TopS( L'%' ), TopS( L'<<' ), TopS( L'>>' ),
+    TopS( L'==' ), TopS( L'!=' ), TopS( L'<' ), TopS( L'>' ), TopS( L'<=' ), TopS( L'>=' ), TopS( L'?' ), TopS( L'?'  ), TopS( L'?'  ),
+    TopS( L'?'  ), TopS( L'|'  ), TopS( L'?' ), TopS( L'&' ), TopS( L'^'  ),
+    TopS( L'?'  ), TopS( L'?'  ), TopS( L'!' ), TopS( L'~' ),
+    TopS( L'|'  ), TopS( L'&~'  ), TopS( L'&' ), TopS( L'^' ),
+    TopS( L'?' )
+  );
+
+TYPE
+  TUnitKind = (
+    ukUnknown,
+    ukForwardedTypes,
+    ukNestedForwardedFrame,
+    ukNestedForwardedSymbols,
+    ukNestedForwardedFrames,
+    ukNestedForwardedProcedures,
+    ukForwardedStatements,
+
+    ukRegionMark,
+    
+    ukProgram,
+    ukDefinition,
+    ukImplementation,
+      ukModuleInitCode,
+      ukModuleFinalCode,
+
+    ukImport,
+      ukImportExternal,
+    ukLabelDecl,
+    ukConstDeclBlock,
+      ukCmdLineConstDecl,
+      ukSimpleConstDecl,
+      ukClassConstDecl,
+    ukTypeDefBlock,
+      ukSimpleTypeDef,
+      ukClassTypeDef,
+        ukEnumItemImplicit,
+        ukEnumItemExplicit,
+      ukOpaqueClassType,
+      ukOpaqueTypeDeclaration,
+    ukVarDeclBlock,
+      ukVarDeclContainer,
+        ukSimpleVarDecl,
+        ukClassVarDecl,
+        ukSelf,
+        ukADRSelf,
+        ukSuperWrapper,
+    ukProcedureDef,
+      ukParameterList,
+        ukParamDefContainer,
+          ukParamDef,
+          ukNestedParamDef,
+    ukProcedureDecl,
+      ukProcedureBlock,
+        ukBlockBody,
+        ukBlockBodyOfCOMProcedure,
+        ukBlockBodyOfReturnInTryProc,
+        ukBlockBodyOfReturnInTryFunc,
+        ukEntryPointReturnType,
+        ukClassInitStart,
+    ukProcedureCall,
+      ukActualParameterList,
+        ukParameterContainer,
+    ukNestedProcedureDecl,
+      ukNestedParameters,
+        ukNestedParameter,
+      ukNestedFrames,
+        ukNestedFrame,
+        ukNestedClassFrame,
+
+    ukSAssignment,
+    ukSCall,
+    ukSAssignmentByCall1, // without arguments in designator part
+    ukSAssignmentByCall2, // with arguments in designator part
+    ukSAssignmentByCOMCall, // with argument of call, which fills the assigned argument
+    ukSAssignmentStringByEmbeddedCall,
+    ukSAssignmentSetByEmbeddedCall,
+
+    ukReturn,
+      ukReturnInCOM,
+      ukReturnInCPPTry,
+    ukIf,
+      ukIfExpr,
+        ukIfBlock,
+      ukElsifExpr,
+        ukElsifBlock,
+      ukElse,
+
+    ukSimpleClassDef,
+    ukClassClassDef,
+      ukMethodDef,
+      ukIndexerDef,
+      ukOperatorDef,
+      ukPropertyDef,
+    ukClassDecl,
+      ukClassInitCode,
+      ukClassFinalCode,
+      ukMethodDecl,
+      ukIndexerDeclR,
+      ukIndexerDeclW,
+      ukOperatorDecl,
+      ukPropertyDeclR,
+      ukPropertyDeclW,
+      ukFriends,
+        ukFriendWrapper,
+
+    ukDesignator,
+      ukVariableDesignator,
+      ukAssignmentDesignator,
+      ukWithDesignator,
+
+    ukExpression,
+      ukValue,
+      ukTypedContainer,
+      ukCall,
+    
+    ukFieldIds,
+    ukVariantContainer,
+      ukVariantSelector,    
+      ukVariantItem,
+        ukVariantLabel,
+      ukVariantElse,
+
+    ukSCase,
+      ukCaseSelector, 
+      ukCaseLabel,
+      ukCaseItem,
+      ukCaseElse,
+
+    ukSWhile,
+      ukWhileCondition,
+      ukWhileBody,
+
+    ukSRepeat,
+      ukRepeatBody,
+      ukRepeatCondition,
+
+    ukSLoop,
+
+    ukSFor,
+      ukSForBody,
+      
+    ukSTry,
+      ukTryCPPBlock,
+      ukTrySEHBlock,
+      ukExceptBlock,
+      ukExceptSEHExpression,
+      ukExceptDoBlock,
+      ukFinallyCPPBlock,
+      ukFinallySEHBlock,
+
+      ukCatchBlock,
+      ukCatchAnyBlock,
+      ukCatchVarDecl,
+      ukCatchDoBlock,
+
+    ukSThrow
+      
+  );
+  TUnitKindSet = SET OF TUnitKind;
+  
+CONST
+  uksRoutineDef = TUnitKindSet{
+    ukProcedureDef,
+    ukMethodDef,
+    ukIndexerDef,
+    ukOperatorDef,
+    ukPropertyDef
+  };
+  uksRoutineDecl = TUnitKindSet{
+    ukProcedureDecl,
+    ukClassInitCode,
+    ukClassFinalCode,
+    ukMethodDecl,
+    ukIndexerDeclR,
+    ukIndexerDeclW,
+    ukOperatorDecl,
+    ukPropertyDeclR,
+    ukPropertyDeclW
+  };
+  uksMemberDecl = TUnitKindSet{
+    ukClassInitCode,
+    ukClassFinalCode,
+    ukMethodDecl,
+    ukIndexerDeclR,
+    ukIndexerDeclW,
+    ukOperatorDecl,
+    ukPropertyDeclR,
+    ukPropertyDeclW
+  };
+
+TYPE
+  TCompileState = (
+    csUnknown,
+    csPending,
+    csCompiled,
+    csError
+  );
+
+  TImplementationState = (
+    isUnknown,
+    isDefined,
+    isForwarded,
+    isImplementedA,
+    isImplementedR,
+    isImplementedW
+  );
+
+  TGenerateUnitMode = (
+    gumUnknown,
+    gumEmpty, // a separator will be deprecated too
+
+    gumSimple, // GenHead and nothing
+    gumSimpleWithTrailing, // GenHead and GenHead
+
+    gumIndent, // GenHead, indent, GenBody, GenTail
+    gumNoIndent // GenHead, GenBody, GenTail
+  );
+
+  TGenerateControlItem = (
+    // main
+    gcDefault,
+      gcDeferredFromDEF,
+    gcExplicitLeading,
+      gcForceArraySize,
+      gcForceFormalParameterAddOn, // generates * or & according to parameter type
+      gcForceFormalFrameAddOn, // generates * according to parameter type (for CONST too)
+    gcExplicitTrailing,
+    gcName,
+      gcLValue,
+      gcRValue,
+      gcNameNested,
+      gcCast,
+      gcSimple,
+
+    // helpers
+    gcPassNestedTopLevel, // frame or super procedure or element of super procedure is generated as parameter
+    gcPassNestedInNested, // frame or super procedure or element of super procedure is generated as parameter
+    gcCharLiteralAsStringForOA, // char literals passed into open array will be generated as string
+    gcStringLiteralAsChars, // constant of typed array of char is defined using string literal and the literal is length exactly as array is
+
+    // misc
+    gcFirst, // generated unit is first in owner
+    gcForward, // informational, for indenting and commenting, generates function prototype
+    gcLValueType // type container/cast is LValue (for NEW)
+  );
+  TGenerateControl = SET OF TGenerateControlItem;
+
+CONST
+  gcExplicit           ::= gcExplicitLeading;
+  gcsDefault           = TGenerateControl{gcDefault};
+  gcsExplicit          = TGenerateControl{gcExplicit};
+  gcsExplicitArray     = TGenerateControl{gcExplicit, gcForceArraySize};
+  gcsExplicitParameter = TGenerateControl{gcExplicit, gcForceFormalParameterAddOn};
+  gcsName              = TGenerateControl{gcName};
+  gcsCast              = TGenerateControl{gcName, gcCast};
+  gcsNameNested        = TGenerateControl{gcName, gcNameNested};
+  gcsNameSimple        = TGenerateControl{gcName, gcSimple};
+  gcsPassNestedTop     = TGenerateControl{gcPassNestedTopLevel};
+  gcsPassNested        = TGenerateControl{gcPassNestedInNested};
+  gcsForward           = TGenerateControl{gcForward};
+  gcsAssignment        = TGenerateControl{gcName, gcLValue};
+  gcsDesignator        = TGenerateControl{gcName, gcRValue};
+
+TYPE
+  TEnvironmentOptionsItem = (
+    coFileNotFound,
+    coSolveTimestamps,
+    coDependsOnNewerDEF,
+  
+    coOASize,
+    coVarArg,
+    coCArrays,
+    coMacro,
+    coResultOptional,
+    coParamsInFrame,
+
+    cpUndefined,
+    cpCDecl,
+    cpStdCall,
+    cpFastCall,
+
+		eoIS,
+    eoLeakChecking,
+    eoVolatile,
+    eoExport,
+    eoPublishExports, // -LD
+    eoCharEscape,
+    eoQualifiedEnum,
+    eoWCHAR,
+    eoUntypedConstAsDefine,
+    eoSizeAsTypes,
+    eoRegion,
+    eoISOClassImplementation,
+    eoAssertAllowed,
+    eoDebuggedAllowed,
+    eoCOMExtensionAllowed,
+
+    // compile time options
+    eoUnnamed, // for structured types
+    eoDLLInterface,
+    eoReferenced,
+    eoInitialized,
+      eoClassInitialized, // specially set for class variables
+    eoMovedToFrame, // variable became part of frame
+    eoForwarded, // type or constant was moved to forwad place
+    eoForward, // symbol is forward
+    eoProcessed, // symbols is already marked to be generated as forward or to be generated as friend
+    eoStringLiteralAsChars, // see gcStringLiteralAsChars
+    eoASMBlock, // current ntBlock contains ASM, this controls reporting of uninitalized variables
+    // modules, classes
+    eoInitially,
+    eoFinally,
+    eoVirtualFinally, // the class or ancestor defines virtual destructor, so all descendants must have destructor virtual too
+    eoVMT, // the class have some virtual member
+    eoAssignSelf,
+    eoHaveReturnInCPPTry, // proecdure contains TRY in CPP style
+      eoInsideCPPTry, // for proper RETURN/FINALLY handling, SEHTry this solves by itself
+      eoTryReturnsValue,
+    eoLeakInfo
+  );
+  TEnvironmentOptions = SET OF TEnvironmentOptionsItem;
+  
+CONST
+  cpsAll         = TEnvironmentOptions{cpUndefined, cpCDecl, cpStdCall, cpFastCall};
+  cpsUndefined   = TEnvironmentOptions{cpUndefined};
+  cpsCDecl       = TEnvironmentOptions{cpCDecl};
+  cpsStdCall     = TEnvironmentOptions{cpStdCall};
+  cpsFastCall    = TEnvironmentOptions{cpFastCall};
+
+TYPE  
+  TValueInfoItem = (
+    viConst, // constant value
+    viCONST, // CONST modifier
+    viLiteral, // always viConst
+    viLValue,
+    viAuxiliaryConst,
+    viPropertyAssign,
+    viOperatorAssign,
+    viIndexerAssign,
+    viCOMProcedure,
+    viStructuredType
+  );
+  TValueInfo = SET OF TValueInfoItem;
+CONST
+  visOverwrittenAssignment = TValueInfo{viPropertyAssign, viIndexerAssign, viOperatorAssign};  
+  visLValue                = TValueInfo{viLValue, viPropertyAssign, viIndexerAssign, viOperatorAssign};  
+
+CLASS CUnit( list.CListElem );
+  UnitKind            : TUnitKind;
+  ImplementationState : TImplementationState;
+  CompileState        : TCompileState;
+  Options             : TEnvironmentOptions;
+  Owner               : TPUnit;
+  Childs              : list.CList;
+  Current             : TPUnit;
+  GenTo               : ARRAY Generator.TGenerate OF BOOLEAN;
+
+  PROCEDURE Add( Unit : TPUnit );
+  PROCEDURE GetFirst( VAR Unit : TPUnit ) : BOOLEAN;
+  PROCEDURE GetNext( VAR Unit : TPUnit ) : BOOLEAN;
+  READONLY PROPERTY Empty : BOOLEAN;
+  PROCEDURE Items() : CARDINAL;
+
+  PROCEDURE Generate( G : Generator.TPGenerator; C : TGenerateControl ) : TGenerateUnitMode;
+
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+  VIRTUAL PROCEDURE GenBody( G : Generator.TPGenerator; C : TGenerateControl; Indent : BOOLEAN; Context : CARDINAL );
+  VIRTUAL PROCEDURE GenSep( CONST BeforeU : TPUnit; G : Generator.TPGenerator; C : TGenerateControl );
+  VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
+
+  INITIALLY CUnit();
+END CUnit;
+
+//============================================================
+
+TYPE
+  TSymbolKind = (
+    skUnknown,
+    skModule,
+    skLabel,
+    skConstant,
+    skType,
+    skVariable,
+    skProcedure,
+    skClass,
+    skProperty,
+    skMethod,
+    skIndexer,
+    skOperator
+  );
+
+TYPE
+  TSymbolAccess = (
+    saUnknown,
+    saDirect,
+    saParentProcedureVariable,
+    saChildProcedureCall,
+    saParentObject,
+    saParentObjectSymbol,
+    saPeerProcedureCall
+  );
+  TPSymbolAccess = POINTER TO TSymbolAccess;
+
+TYPE
+  TAccessModifier = (
+    amUnknown,
+    amPrivate,
+    amInternal,
+    amLocal,
+    amPublic
+  );
+
+TYPE
+  TCodeModifierItem = (
+    cmRO, cmWO, // disjunct
+    cmINLINE,
+    cmREF, cmREV
+  );
+  TCodeModifier = SET OF TCodeModifierItem;
+
+TYPE
+  TInheritanceModifierItem = (
+    imAbstract,
+    imVirtual,
+    imFinal,
+    imInterface,
+    imCOM
+  );
+  TInheritanceModifier = SET OF TInheritanceModifierItem;
+
+CLASS CSymbol( CUnit );
+  SymbolKind : TSymbolKind;
+  N          : StringsO.CString;
+  T          : TPType;
+  OfSymbol   : TPSymbol; // if symbol is member of complex one
+  AM         : TAccessModifier;
+  CM         : TCodeModifier;
+  NSD        : CUnit; // nested data (constants, types) generated as standalone forward to this unit
+  
+  PUBLIC VIRTUAL READONLY PROPERTY
+    Symbols : TPSymbols;
+
+  VIRTUAL PROCEDURE Done();
+  PROCEDURE DoneAndFree();
+  PROCEDURE AddForwardedUnit( Unit : TPUnit );
+
+  PROCEDURE IsModule() : BOOLEAN;
+  PROCEDURE IsClass() : BOOLEAN;
+  PROCEDURE IsProcedure( AllowTypes : BOOLEAN ) : BOOLEAN;
+
+  PROCEDURE GetN( C : TGenerateControl; AppendFlag : BOOLEAN; REF CS : StringsO.CString );
+  PROCEDURE GetQN( C : TGenerateControl; REF CS : StringsO.CString );
+  PROCEDURE GetSourceQN( OUT CS : StringsO.CString );
+  PROCEDURE OutN( G : Generator.TPGenerator; C : TGenerateControl );
+  PROCEDURE OutQN( G : Generator.TPGenerator; C : TGenerateControl );
+
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+END CSymbol;
+
+//------------------------------------------------------------
+
+CLASS CSymbols( avltree.CAVLTree );
+  OfSymbol : TPSymbol;
+
+  Current : TPSymbol; // for Reset, MoveNext
+  CurrentSTE : ADDRESS; // for Reset, MoveNext
+
+  AnonCount : CARDINAL; // anonymous symbols count
+  
+  StartLine : CARDINAL := 1;
+  StartColumn : CARDINAL := 1;
+  StopLine : CARDINAL := -1;
+  StopColumn : CARDINAL := -1;
+
+  PROCEDURE Knows( Symbol : TPSymbol ) : BOOLEAN;
+  PROCEDURE Add( Symbol : TPSymbol );
+  PROCEDURE Forget( Symbol : TPSymbol ) : BOOLEAN;
+  PROCEDURE Get( CONST Name : StringsO.CString; VAR Symbol : TPSymbol ) : BOOLEAN;
+  PROCEDURE GetCI( CONST Name : StringsO.CString; VAR Symbol : TPSymbol ) : BOOLEAN; // CaseInsensitive
+  PROCEDURE GetS( Name : ARRAY OF WCHAR; VAR Symbol : TPSymbol ) : BOOLEAN;
+
+  PROCEDURE Reset();
+  PROCEDURE MoveNext() : BOOLEAN;
+END CSymbols;
+
+//------------------------------------------------------------
+
+CLASS CSymbolsStack( stacks.CPtrStack );
+  CurC : TPClass;
+  CurP : TPProcedureType;
+  PROCEDURE Push( CONST Symbols : TPSymbols; EnterChangesContext : BOOLEAN; WithDesignator : TPDesignator );
+  PROCEDURE Pop() : TPSymbols;
+END CSymbolsStack;
+
+//============================================================
+
+CLASS CLabel( CSymbol );
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+END CLabel;
+
+//============================================================
+
+TYPE
+  TOrdinalKind = (
+    okUnknown,
+    okDecimal,
+    okHexadecimal,
+    okOctal,
+    okBinary,
+    okCharacter
+  );
+
+CLASS CConstant( CSymbol );
+  IsLinkOf              : TPSymbol;
+  DeclarationExpression : TPExpression;
+
+  PROCEDURE Init2( T : TPType; DecimalLiteral : ARRAY OF WCHAR );
+
+  PROCEDURE Unwrap() : TPSymbol;
+
+  PROCEDURE LinkOf() : TPSymbol;
+  PROCEDURE SetLinkOf( Link : TPSymbol );
+
+  PROCEDURE Expression() : TPExpression;
+  PROCEDURE SetExpression( Expression : TPExpression );
+
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+END CConstant;
+
+//============================================================
+
+TYPE
+  TTypeKind = (
+    tkUnknown,
+    tkLink, // this covers language aliases too
+
+    tkOpaqueBase, // TYPE X = POINTER TO opaque;                                  \ must be sequential
+      tkOpaqueBaseLink, // firstly opaque types, secondly links to their source   /
+    tkOpaqueWhole, // TYPE X;                                                     \ must be sequential
+      tkOpaqueWholeLink, // firstly opaque types, secondly links to their source  /
+    tkMorphable, // types of literals like OrdinalNumber, etc.
+
+    tkPrimitive,
+
+    tkOpenArray,
+    tkStringArray,
+
+    tkArray,
+    tkSet,
+    tkRecord,
+    tkEnumeration,
+    tkRange,
+    tkReference,
+    tkProcedure,
+    tkClass
+  );
+
+  TTypeKindSet = SET OF TTypeKind;
+CONST
+  typeLinks = TTypeKindSet{tkLink, tkOpaqueBaseLink, tkOpaqueWholeLink};
+  
+TYPE
+  TPrimitiveType = (
+    ptUnknown,
+    ptStructure,
+
+    ptINT8,    ptINT16,    ptINT32,    ptINT64,
+    ptCARD8,   ptCARD16,   ptCARD32,   ptCARD64,
+    ptBCHAR,   ptWCHAR,    ptBOOLEAN,
+
+    ptBITSET8, ptBITSET16, ptBITSET32, ptBITSET64,
+    ptBYTE,    ptWORD,     ptLONGWORD, ptQUADWORD,
+    ptREAL,    ptLONGREAL, ptTEMPREAL,
+    
+    ptADDRESS, ptPTR,      ptSIZE,
+    ptPROC,    ptOBJECT
+  );
+
+  TTypeModifier = (
+    tmUnknown,
+    tmVAR,
+    tmREF,
+    tmCONST,
+    tmOUT
+  );
+
+  TCompatibilityMode = (
+    cmOperation,
+    cmAssign,
+    cmOperatorParameter, // any operator, the parameter is passed into operator function parameter
+    cmExact // not implemented
+  );
+
+  TCastInfoItem = (
+    ciCast, // simple cast applied
+    ciCastConstPointer, // (const T&)(...))
+    ciStructure, // casted using (*(T*)&(...)) -- !! requires terminating cast after term (using "))")
+    ciReference // referenced
+  );
+  TCastInfo = SET OF TCastInfoItem;
+
+CLASS CType( CSymbol );
+  TypeKind : TTypeKind;
+  PrimitiveType : TPrimitiveType;
+  UW : TPType; // unwrapped shortcut
+  Packing : CARDINAL;
+
+  PROCEDURE Init2( Name : ARRAY OF WCHAR; TK : TTypeKind );
+  PROCEDURE Init3( Name : ARRAY OF WCHAR; TK : TTypeKind; PT : TPrimitiveType );
+
+  PROCEDURE Unwrap() : TPType;
+  PROCEDURE UnwrapToFirstType() : TPType;
+  PROCEDURE UnwrapToBaseType() : TPType;
+
+  VIRTUAL PROCEDURE IsFormal() : BOOLEAN;
+  VIRTUAL PROCEDURE IsOpenArray() : BOOLEAN;
+  VIRTUAL PROCEDURE Compatible( CM : TCompatibilityMode; PWith : TPType ) : BOOLEAN;
+
+  VIRTUAL PROCEDURE FirstOrdinal() : INT64;
+  VIRTUAL PROCEDURE LastOrdinal() : INT64;
+  VIRTUAL PROCEDURE OrdinalRange() : INT64;
+  VIRTUAL PROCEDURE CheckIfExpressionFits( E : TPExpression; VAR Ordinal : INT64 ) : BOOLEAN;
+  VIRTUAL PROCEDURE OccupiedMemory() : CARDINAL;
+
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+  VIRTUAL PROCEDURE GenerateOrdinal( G : Generator.TPGenerator; Ord : INT64 );
+
+  PROCEDURE CheckAndGenerateCast( G : Generator.TPGenerator; TargetT : TPType; SourceIsConstant : BOOLEAN; VAR CastInfo : TCastInfo );
+END CType;
+
+//============================================================
+
+CLASS CArray( CType );
+  I      : TPType;
+  _Count : INT64;
+  _First : INT64;
+  _Last  : INT64;
+
+  VIRTUAL PROCEDURE OccupiedMemory() : CARDINAL;
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+
+  PROCEDURE FirstIndex() : INT64;
+  PROCEDURE LastIndex() : INT64;
+  PROCEDURE High() : CARDINAL;
+  PROCEDURE Count() : CARDINAL;
+  PROCEDURE GenerateCount( G : Generator.TPGenerator );
+END CArray;
+
+//============================================================
+
+CLASS CSet( CArray );
+  TU : TPType;
+  VIRTUAL PROCEDURE OccupiedMemory() : CARDINAL;
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+  PROCEDURE GetItemType() : TPType;
+  PROCEDURE IsLong() : BOOLEAN;
+END CSet;
+
+//============================================================
+
+TYPE
+  TPOrdinalPresence = POINTER TO COrdinalPresence;
+
+CLASS COrdinalPresence( avltree.CAVLTree );
+  PROCEDURE Knows( Ordinal1, Ordinal2 : INT64 ) : BOOLEAN;
+  PROCEDURE Add( Ordinal1, Ordinal2 : INT64 );
+END COrdinalPresence;
+
+//------------------------------------------------------------
+
+CLASS CRecord( CType );
+  S : CSymbols;
+  Stack : stacks.CPtrStack; // for Constructor
+
+  PUBLIC VIRTUAL READONLY PROPERTY
+    Symbols : TPSymbols;
+
+  VIRTUAL PROCEDURE OccupiedMemory() : CARDINAL;
+
+  PROCEDURE ConstructorGetFirst( VAR T : TPType; VAR VariantSelector, Unnamed : BOOLEAN ) : BOOLEAN;
+  PROCEDURE ConstructorGetNext( VariantIndex : INT64; VAR T : TPType; VAR VariantSelector, Unnamed : BOOLEAN ) : BOOLEAN;
+  PROCEDURE GetIndexOfField( Field : TPSymbol; OUT ItemIndex : INT64 ) : BOOLEAN;
+
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+  VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
+
+  // private
+  PROCEDURE Add( Symbol : TPSymbol );
+  PROCEDURE HandleNestedTypes( c : TPModule );
+  PRIVATE PROCEDURE Parse( FirstFlag : BOOLEAN; VariantIndex : INT64; VAR T : TPType; VAR VariantSelector, Unnamed : BOOLEAN; PField : POINTER TO TPSymbol ) : BOOLEAN;
+END CRecord;
+
+//------------------------------------------------------------
+
+CLASS CEnumeration( CType );
+  S          : CSymbols; // used if enums are qualified
+  First      : INT64;
+  Last       : INT64;
+  Iteratable : BOOLEAN;
+
+  VIRTUAL PROCEDURE OccupiedMemory() : CARDINAL;
+
+  VIRTUAL PROCEDURE FirstOrdinal() : INT64;
+  VIRTUAL PROCEDURE LastOrdinal() : INT64;
+  VIRTUAL PROCEDURE OrdinalRange() : INT64;
+  VIRTUAL PROCEDURE CheckIfExpressionFits( E : TPExpression; VAR Ordinal : INT64 ) : BOOLEAN;
+
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+  VIRTUAL PROCEDURE GenSep( CONST BeforeU : TPUnit; G : Generator.TPGenerator; C : TGenerateControl );
+  VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
+  VIRTUAL PROCEDURE GenerateOrdinal( G : Generator.TPGenerator; Ord : INT64 );
+END CEnumeration;
+
+//------------------------------------------------------------
+
+CLASS CSubrange( CType );
+  Count : INT64; // count of items
+  First : INT64;
+  Last  : INT64;
+
+  VIRTUAL PROCEDURE FirstOrdinal() : INT64;
+  VIRTUAL PROCEDURE LastOrdinal() : INT64;
+  VIRTUAL PROCEDURE OrdinalRange() : INT64;
+
+  VIRTUAL PROCEDURE GenerateOrdinal( G : Generator.TPGenerator; Ord : INT64 );
+END CSubrange;
+
+//============================================================
+
+CLASS CVariable( CSymbol );
+  InitE : TPExpression;
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+  PROCEDURE GenerateInitExpression( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL );
+END CVariable;
+
+CLASS CSelf( CVariable );
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+END CSelf;
+
+CLASS CSuperWrapper( CVariable );
+  OfClass : TPClass;
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+END CSuperWrapper;
+
+//============================================================
+
+CLASS CNestedParameters( CUnit );
+  P : TPProcedure;
+  PROCEDURE Add( Symbol, FoundIn : TPSymbol ) : TPSymbol;
+END CNestedParameters;
+
+//------------------------------------------------------------
+
+CLASS CNestedFrames( CUnit );
+  P : TPProcedure;
+  PROCEDURE Add( Symbol, FoundIn : TPSymbol );
+END CNestedFrames;
+
+//------------------------------------------------------------
+
+CLASS CProcedureType( CType );
+  IM         : TInheritanceModifier;
+  S          : CSymbols;
+  Parameters : TPUnit;
+  OI         : TPProcedure; // of implementation
+  Throws     : lists.CPtrList;
+
+  PUBLIC VIRTUAL READONLY PROPERTY
+    Symbols : TPSymbols;
+
+  VIRTUAL PROCEDURE Compatible( CM : TCompatibilityMode; PWith : TPType ) : BOOLEAN;
+
+  PROCEDURE GetFirstFormalType( REF Stack : stacks.CPtrStack; OUT FormalType : TPFormalType ) : BOOLEAN;
+  PROCEDURE GetNextFormalType( REF Stack : stacks.CPtrStack; OUT FormalType : TPFormalType ) : BOOLEAN;
+  PROCEDURE GetFormalType( FirstFlag : BOOLEAN; REF Stack : stacks.CPtrStack; OUT T : TPFormalType ) : BOOLEAN;
+  PROCEDURE CompareHeader( WithP : TPProcedureType; OUT Error : CARDINAL ) : BOOLEAN;
+  PROCEDURE CopyThrows( From : TPProcedureType );
+
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+END CProcedureType;
+
+CLASS CProcedure( CProcedureType );
+  OD   : TPProcedureType; // of defintion
+  NI   : TPProcedure; // nested in
+  // NIMC : TPClass; // nested in method of class
+
+  CTDU : TPUnit; // control data container (frames, withs)
+  NSP  : CUnit; // nested procedures generated as standalone
+
+  NFT  : TPClass; // nested frame type, type for nested procedures
+  NF   : TPNestedFrames; // frames of procedures in which I am nested in
+  NP   : TPNestedParameters; // data of procedures in which I am nested in
+
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+  VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
+  VIRTUAL PROCEDURE GenParameters( G : Generator.TPGenerator; C : TGenerateControl ) : TGenerateUnitMode;
+
+  PROCEDURE AddNestedSymbol( Symbol, FoundIn : TPSymbol ) : TPSymbol;
+END CProcedure;
+
+//------------------------------------------------------------
+
+CLASS CFormalType( CType );
+  TypeModifier : TTypeModifier;
+
+  VIRTUAL PROCEDURE IsFormal() : BOOLEAN;
+  VIRTUAL PROCEDURE IsOpenArray() : BOOLEAN;
+
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+END CFormalType;
+
+//------------------------------------------------------------
+
+CLASS CParameterContainer( CUnit );
+  PT : TPFormalType;
+  AT : TPType; // actual type
+  CU : TPUnit; // contained unit
+  CV : TPVariable; // cast variable
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+  VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
+END CParameterContainer;
+
+//============================================================
+
+CLASS CClass( CType );
+	IM : TInheritanceModifier;
+	S : CSymbols;
+	I : TPClass; // inherits
+	Implements : lists.CPtrList;
+	ExposedAbstract : lists.CPtrList;
+	OD : TPClass;
+	InitCode : TPUnit;
+	FinalCode : TPUnit;
+
+  PUBLIC VIRTUAL READONLY PROPERTY
+    Symbols : TPSymbols;
+
+	VIRTUAL PROCEDURE Compatible( CM : TCompatibilityMode; PWith : TPType ) : BOOLEAN;
+
+	VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+	VIRTUAL PROCEDURE GenBody( G : Generator.TPGenerator; C : TGenerateControl; Indent : BOOLEAN; Context : CARDINAL );
+	VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
+	PROCEDURE GenerateClassVarInit( G : Generator.TPGenerator; C : TGenerateControl );
+
+	PROCEDURE CheckDefinitionSemantics( c : TPModule );
+	PROCEDURE CheckImplementationSemantics( c : TPModule );
+	PROCEDURE IsDescendantOf( Ancestor : TPClass; AllowSelf : BOOLEAN ) : BOOLEAN;
+	PROCEDURE IsDescendantOfInterface() : BOOLEAN;
+	PROCEDURE IsDescendantOfException() : BOOLEAN;
+	PROCEDURE AddNestedFriend( AccessedMember : TPSymbol; P : TPProcedureType );
+   PROCEDURE AddAncestor( Ancestor : TPClass );
+END CClass;
+
+//------------------------------------------------------------
+
+CLASS CMember( CProcedure );
+END CMember;
+
+//------------------------------------------------------------
+
+CLASS CPropertyDecl( CMember );
+END CPropertyDecl;
+
+//------------------------------------------------------------
+
+CLASS CIndexerDecl( CMember );
+END CIndexerDecl;
+
+//------------------------------------------------------------
+
+CLASS COperatorDecl( CMember );
+END COperatorDecl;
+
+//------------------------------------------------------------
+
+CLASS CClassDecl( CUnit );
+  OfClass   : TPClass;
+  InitCode  : TPUnit;
+  FinalCode : TPUnit;
+
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+  VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
+END CClassDecl;
+
+//============================================================
+
+CLASS CLexer( Scanner.CScanner );
+  M2 : Parser.TPParser;
+  VIRTUAL PROCEDURE IsSpecial( CH : WCHAR ) : BOOLEAN;
+  VIRTUAL PROCEDURE ReadSpecial( CH : WCHAR ) : BOOLEAN;
+  VIRTUAL PROCEDURE DoSpecial( CONST Special : StringsO.CString );
+END CLexer;
+
+//------------------------------------------------------------
+
+TYPE
+  TEnvironment       = RECORD
+                         Options : TEnvironmentOptions;
+                         Packing : CARDINAL;
+                       END;
+  TPEnvironment      = POINTER TO TEnvironment;
+  TEnvironmentData   = ARRAY [0..0] OF TEnvironment;
+  TPEnvironmentData  = POINTER TO TEnvironmentData;
+
+CLASS CEnvironmentStack;
+  PData     : TPEnvironmentData;
+  Allocated : CARDINAL;
+  Current   : CARDINAL;
+
+  PROCEDURE Push() : TPEnvironment;
+  PROCEDURE Pop() : TPEnvironment;
+  PROCEDURE PeekBottom() : TPEnvironment;
+END CEnvironmentStack;
+
+TYPE
+  TModuleNamePrefix  = (
+    mprfC,
+    mprfModula,
+    mprfWindows
+  );
+
+TYPE
+  TModulaIntrinsicId = (
+    miidAllocate,
+    miidDeallocate,
+    miidCapA,
+    miidCapW,
+    miidLowA,
+    miidLowW
+  );
+
+CLASS CModuleEnvironment;
+   Timestamp    : FIO.FileTime;
+   Library      : StringsO.CString;
+   Prefix       : TModuleNamePrefix;
+   ClassAM      : TAccessModifier;
+   Header       : BOOLEAN;
+   MIID         : ARRAY TModulaIntrinsicId OF TPSymbol;
+END CModuleEnvironment;
+
+CLASS CModule( CSymbol );
+  OD       : TPModule; // OfDefinition
+  OI       : TPModule; // OfImplementation
+  CU       : TPModule; // CompileUnit
+  Emit     : BOOLEAN;
+
+  Name     : StringsO.CString;
+  FilePath : StringsO.CString;
+  OH       : StringsO.CString;
+  Lexer    : CLexer;
+  M2       : Parser.TPParser;
+  Warnings : list.CList;
+
+  InitCode : TPUnit; // valid for implementation modules
+  FinalCode: TPUnit; // valid for implementation modules
+
+  MEnv     : CModuleEnvironment;
+  EStack   : CEnvironmentStack;
+  CurE     : TPEnvironment;
+  eosIF    : TEnvironmentOptions;
+
+  SStack   : CSymbolsStack;
+  SelfS    : CSymbols;
+  CurS     : TPSymbols;
+  ASCount  : CARDINAL; // count of anonymous symbols
+
+  TypeO    : CUnit; // opaque types
+  TypeC    : CUnit; // forwarded complex types
+  CurTypeC : TPUnit;
+  UStack   : stacks.CPtrStack;
+  CurU     : TPUnit;
+  CurST    : TPStatement;
+
+  CTDStack : stacks.CPtrStack; // control declarations -- frames, withs
+  CurCTDU  : TPUnit; // control declarations
+
+  LStack   : stacks.CPtrStack; // LOOP stack
+  TStack   : stacks.CPtrStack; // TRY stack
+  DCount   : CARDINAL; // value/variable designator deep
+
+  PUBLIC VIRTUAL READONLY PROPERTY
+    Symbols : TPSymbols;
+
+  PROCEDURE SD() : TPSymbols; // Symbols of DEF
+  PROCEDURE SI() : TPSymbols; // Symbols of IMPL
+  PROCEDURE SC() : TPSymbols; // Symbols of CURRENT
+
+  PROCEDURE Compile() : CARDINAL;
+  PROCEDURE CheckSemantics( CheckDefinitionOnly : BOOLEAN );
+  PROCEDURE ParsePragma( PragmaKind : Parser.TPragma; CONST PragmaString : StringsO.CString );
+  PROCEDURE AddWarningSwitch( Warning : CARDINAL; On : BOOLEAN );
+  PROCEDURE PushOptions( Options : TEnvironmentOptions );
+  PROCEDURE PopOptions();
+
+  PROCEDURE EnterSymbols( CONST Symbols : CSymbols; EnterUnitToo, EnterChangesContext : BOOLEAN; WithDescriptor : TPDesignator );
+  PROCEDURE LeaveSymbols( LeaveUnitToo : BOOLEAN ) : TPSymbols;
+  PROCEDURE CurrentP() : TPProcedureType;
+  PROCEDURE CurrentC() : TPClass;
+  PROCEDURE GetWithDesignator( FoundIn : TPSymbol ) : TPDesignator;
+
+  PROCEDURE GetNewUnit( UnitKind : TUnitKind; Owner : TPUnit; EnterFlag : BOOLEAN ) : TPUnit;
+  PROCEDURE EnterNewUnit( UnitKind : TUnitKind ) : TPUnit;
+  PROCEDURE EnterUnit( CONST Unit : TPUnit );
+  PROCEDURE LeaveUnit() : TPUnit;
+  PROCEDURE MarkForwardTypeDeclPlace();
+
+  PROCEDURE EnterNewCTDeclUnit( OfSymbol : TPSymbol ) : TPUnit; // control declaratations
+  PROCEDURE LeaveCTDeclUnit() : TPUnit;
+  PROCEDURE AddToCTDeclUnit( Unit : TPUnit );
+  PROCEDURE CreateExpressionWithDesignator( D : TPDesignator; CopyDesignator : BOOLEAN; OUT E : TPExpression );
+  PROCEDURE HandleAuxConstantDesignatorRequest( VAR V : TPDesignator );
+  PROCEDURE HandleAuxConstantExpressionRequest( T : DOM.TPType; VAR E : TPExpression );
+  PROCEDURE HandleAuxVariableRequest( T : TPType; VAR V : TPVariable );
+  PROCEDURE SetCurrentStatement( S : TPStatement );
+  PROCEDURE AddPrecedingStatement( S : TPUnit );
+  PROCEDURE AddFollowingStatement( S : TPUnit );
+  PROCEDURE AddLeakInfoPushPop( SourceLine : CARDINAL );
+
+  PROCEDURE EnterLoop( LoopType : TUnitKind ) : TPSLoop;
+  PROCEDURE LeaveLoop() : TPUnit;
+  PROCEDURE LoopLabel( Exit : BOOLEAN ) : TPLabel;
+
+  PROCEDURE CreateSymbol( CONST Name : StringsO.CString; Kind : TSymbolKind; Add, ReportErrors : BOOLEAN; VAR Symbol : TPSymbol ) : BOOLEAN;
+  PROCEDURE AddSymbol( Symbol : TPSymbol; ReportErrors : BOOLEAN );
+  PROCEDURE AddForeignSymbol( Symbol : TPSymbol; ReportErrors : BOOLEAN );
+  PROCEDURE AddUnit( Unit : TPUnit );
+  PROCEDURE CheckIfNested( Symbol : TPSymbol ) : BOOLEAN;
+  PROCEDURE AddToUnitOrNestedUnit( Symbol : TPSymbol );
+  PROCEDURE GetSymbol( CONST Name : StringsO.CString; SymbolKind : TSymbolKind; ReportErrors, CheckOnlyInTop, UnwrapAliases : BOOLEAN; VAR Symbol, FoundIn : TPSymbol ) : BOOLEAN;
+  PROCEDURE GetClassSymbol( CONST Name : StringsO.CString; Class : TPClass; VAR Symbol : TPSymbol; VAR InClass : TPClass ) : BOOLEAN;
+  PROCEDURE SetNumId( Symbol : TPSymbol; Global : BOOLEAN; Prefix : ARRAY OF WCHAR );
+  PROCEDURE RevertOpaqueClassType( OpaqueType, RealType : TPType );
+  PROCEDURE HandleTypeDefDecl( NewFlag, OpaqueFlag : BOOLEAN; UK : TUnitKind; AM : TAccessModifier; LType, RType : TPType ) : TPType;
+  PROCEDURE ForwardOpaqueType( T : TPType );
+  PROCEDURE ForwardComplexType( T : TPType );
+  PROCEDURE HandleNestedSymbol( Symbol, FoundIn : TPSymbol; VAR SA : TSymbolAccess ) : BOOLEAN;
+  PROCEDURE HandleCOMPropertyOrFunction( AssignmentFlag : BOOLEAN; REF D : TPDesignator );
+  PROCEDURE IdToType( Id : TPSymbol ) : TPType;
+  PROCEDURE IdToClass( Id : TPSymbol ) : TPClass;
+
+  PROCEDURE IsLabel( CONST Name : StringsO.CString; VAR Label : TPSymbol ) : BOOLEAN;
+
+  PROCEDURE GetConstantBooleanValue( Name : ARRAY OF WCHAR; VAR Value : BOOLEAN ) : BOOLEAN;
+  PROCEDURE GetOpenArrayFormalType( ComponentType : TPType ) : TPFormalType;
+  PROCEDURE GetSetFormalType( ComponentType : TPType ) : TPType;
+
+  PROCEDURE ExpectType( LT, RT : TPType; n : CARDINAL ) : BOOLEAN;
+  PROCEDURE CheckTypeMismatch( LT, RT : TPType; ClassOperatorFlag : BOOLEAN; n : CARDINAL ) : BOOLEAN;
+  PROCEDURE AdaptMorphableTypes( VAR ParentT, LT, RT : TPType );
+  PROCEDURE CheckCONSTAssignment( LVI, RVI : TValueInfo; LT, RT : DOM.TPType ) : BOOLEAN;
+  PROCEDURE CheckOverwrittenOperator( Class : TPClass; O : TEO; CheckAccessibility : BOOLEAN ) : BOOLEAN;
+  PROCEDURE CheckIndexerUsage( Class : TPClass; OUT DfI : TPIndexerDef; OUT IndexType : TPFormalType; OUT ResultType : TPType ) : BOOLEAN;
+  PROCEDURE CheckOperatorUsage( N : TPENode; OUT OperandType, ResultType : TPType ) : BOOLEAN;
+  PROCEDURE CheckAccessToSymbol( Id : TPSymbol );
+  PROCEDURE CheckReadonly( Id : TPSymbol );
+  PROCEDURE CheckWriteonly( Id : TPSymbol );
+
+  PROCEDURE CheckClassSymbolSemantics( Symbol : TPSymbol; AgainstClass : TPClass ); // if AgainstClass = NIL, then inherited class and interfaces are examined
+
+  PROCEDURE CreateProcedureImplementation( DP : TPProcedureType; ImS : TImplementationState; AM : TAccessModifier; IM : TInheritanceModifier; CM : TCodeModifier; VAR IP : TPProcedure ); // Definition, Implementation
+  PROCEDURE EnterProcedureImplementation( DP : TPProcedureType );
+  PROCEDURE CheckProcedureSemantics( DP : TPProcedureType );
+  PROCEDURE LeaveProcedureImplementation( DP : TPProcedureType; ImS : TImplementationState; OmitAddingUnit : BOOLEAN );
+  
+  PROCEDURE CheckTypeIsException( T : TPType );
+  PROCEDURE AddThrownType( P : TPProcedureType; T : TPType );
+  PROCEDURE CheckIfThrowingProcedureIsPossible( P : TPSymbol );
+  PROCEDURE CheckIfThrowIsPossible( T : TPType );
+  PROCEDURE AddTryHandleAll();
+  PROCEDURE AddTryHandle( T : TPType );
+  PROCEDURE AddTryProcedure( P : TPProcedureType );
+  PROCEDURE AddTryThrow( T : TPType );
+  PROCEDURE TryCheckParity();
+
+  PROCEDURE SemErr( n : CARDINAL );
+  PROCEDURE SemErrN( n, inner : CARDINAL );
+  PROCEDURE SemErrForced( n : CARDINAL );
+  PROCEDURE SemErrForcedN( n1, n2 : CARDINAL );
+  PROCEDURE SemErrForcedSNS( n1 : CARDINAL; s1 : ARRAY OF WCHAR; n2 : CARDINAL; s2 : ARRAY OF WCHAR );
+  PROCEDURE SemErrS( n : CARDINAL; String : ARRAY OF WCHAR );
+  PROCEDURE SemErrCS( n : CARDINAL; CONST S : StringsO.CString );
+  PROCEDURE SemErrUnknownId( LookForKind, FoundKind : TSymbolKind; CONST HintModuleName : StringsO.TPString; Name : StringsO.CString ); // CONST
+  PROCEDURE SemErrExpectId( Id : DOM.TPSymbol );
+  PROCEDURE Warning( n : CARDINAL );
+  PROCEDURE WarningCS( n : CARDINAL; CONST S : StringsO.CString );
+
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+  VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
+
+  PROCEDURE GenerateWithImported( G : Generator.TPGenerator; Context : TUnitKind ) : BOOLEAN;
+  PROCEDURE GenerateInitHeader( G : Generator.TPGenerator; Qualified, Call, Forward : BOOLEAN );
+  PROCEDURE GenerateFinalHeader( G : Generator.TPGenerator; Qualified, Call, Forward : BOOLEAN );
+END CModule;
+
+//============================================================
+
+CLASS CVarDeclContainer( CUnit );
+  OfSymbol : TPSymbol;
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+  VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
+END CVarDeclContainer;
+
+//------------------------------------------------------------
+
+CLASS CPropertyDef( CProcedureType );
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+END CPropertyDef;
+
+//------------------------------------------------------------
+
+CLASS CIndexerDef( CProcedureType );
+  IndexType  : TPFormalType;
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+  PROCEDURE GenHeadInternal( G : Generator.TPGenerator; C : TGenerateControl; CM : TCodeModifierItem ) : TGenerateUnitMode;
+END CIndexerDef;
+
+//------------------------------------------------------------
+
+CLASS COperatorDef( CProcedureType );
+  O : TEO;
+  OperandType : TPType;
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+END COperatorDef;
+
+//============================================================
+
+CLASS CEValue;
+  T : TPType;
+
+  B : BOOLEAN;
+  I : INT64;
+  R : LONGREAL;
+  S : StringsO.CString;
+  E : TPExpression;
+
+  PROCEDURE ToInteger() : INT64;
+  PROCEDURE CopyFrom( CONST V : CEValue );
+END CEValue;
+
+//------------------------------------------------------------
+
+CLASS CExpression( CUnit );
+  T : TPType;
+  TargetT : TPType;
+  N : TPENode;
+  VI : TValueInfo;
+  Cache : CEValue;
+
+  PROCEDURE Init3( T : TPType; OK : TOrdinalKind; Literal : ARRAY OF WCHAR );
+  PROCEDURE Evaluate( VAR V : CEValue; ItemIndex : INT64 );
+  PROCEDURE High() : CARDINAL;
+
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+  VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
+
+  PROCEDURE AnalyzeAndGenerateOAHigh( G : Generator.TPGenerator; PT : TPType );
+END CExpression;
+
+//------------------------------------------------------------
+
+TYPE
+  TEN = (
+    enUnknown,
+    enOperation,
+    enClassOperator,
+    enLiteral,
+    enDesignator
+  );
+
+  TOP = ARRAY TEO OF INTEGER;
+
+CONST
+  m2TOP = TOP(
+    -1, -1, -1, -1, -1,
+    3, 3, 4, 4, 4, 4, 4, 6, 6,
+    2, 2, 2, 2, 2, 2, -1, -1, -1,
+    3, 5, 3, 5, 5,
+    7, 7, 1, 1,
+    5, 5, 5, 5,
+    0
+  );
+  cppTOP = TOP(
+    -1, -1, -1, -1, -1,
+    8, 8, 9, 9, 9, 9, 9, 7, 7,
+    6, 6, 6, 6, 6, 6, -1, -1, -1,
+    1, 3, 2, 5, 4,
+    10, 10, 11, 11,
+    3, 5, 5, 4,
+    0
+  );
+
+TYPE
+  TNodeVariant = RECORD
+    CASE N : TEN OF
+    | enOperation :
+      O : TEO;
+      L : TPENode;
+      R : TPENode;
+      SV : TPVariable; // set variable
+    | enClassOperator :
+    | enLiteral :
+      S : StringsO.CString;
+      OK : TOrdinalKind;
+    | enDesignator :
+      V : TPDesignator;
+      A : ADDRESS;
+    END; // CASE
+  END;
+
+CLASS CENode;
+  T : TPType;
+  r : TNodeVariant;
+
+  PROCEDURE Evaluate( VAR V : CEValue; ItemIndex : INT64 );
+  PROCEDURE Generate( G : Generator.TPGenerator; C : TGenerateControl );
+END CENode;
+
+//------------------------------------------------------------
+
+TYPE
+  TConstantQuery = (
+    cqUnknown,
+    cqVariable,
+    cqConstant
+  );
+
+CLASS CProcedureCall( CUnit );
+  P : TPProcedureType; // callee
+  C : TPProcedure; // caller
+  RVD : TPDesignator; // return/OUT designator
+
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+  VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
+END CProcedureCall;
+
+//============================================================
+
+TYPE
+  TDesignatorKind = (
+    dkUndefined,
+    dkOperator,
+    dkId,
+      dkCOMAuxId, // only for variant, dkCOMAuxId is ALWAYS simple dkId
+    dkType,
+    dkEmbeddedProcedure
+  );
+
+  TDesignatorOperator = (
+    doUnknown,
+    doIndexing,
+    doIndexingOfClass,
+    doIndexingOfSuperClass,
+    doSelecting,
+    doSelectingOfSuperClass,
+    doDereferencing,
+    doAddressingOffset,
+    doCall,
+    doCallRelease
+  );
+
+  TEmbeddedProcedure = (
+    epABS,
+    epADR,
+    epASSERT,
+    epASSIGN, epASSIGNsz,
+    epCAP, epCAPFunc,
+    epCHR,
+    epDEBUGGED,
+    epDEC, epDECFunc,
+    epDISPOSE,
+    epEMIT,
+    epEQUALS,
+    epEVEN,
+    epEXCL8, epEXCL16, epEXCL32, epEXCL64, epEXCLArray,
+    epFIELDOFS,
+    epFRAC,
+    epFREE,
+    epHIBYTE, epHIWORD, epHILONGWORD,
+    epHIGH,
+    epINC, epINCFunc,
+    epINCL8, epINCL16, epINCL32, epINCL64, epINCLArray,
+    epINSIDE,
+    epLeakINFOPush, epLeakINFOPop, epLeakALLOCATE, epLeakREALLOCATE, epLeakDEALLOCATE, epLeakSTART, epLeakSTOP, epLeakRESET,
+    epLENGTH, epLENGTHsz,
+    epLOW, epLOWFunc,
+    epLOBYTE, epLOWORD, epLOLONGWORD,
+    epMAXf, epMAXo, epMAX2,
+    epMINf, epMINo, epMIN2,
+    epOA, epOAsz,
+    epNEW, epNEWFunc,
+    epODD,
+    epORD,
+    epSIZE,
+    epSWAP, epSWAPBytes,
+    epTRUNC,
+    epVAL
+  );
+
+  TDesignatorVariant = RECORD
+    CASE DK : TDesignatorKind OF
+    | dkId : 
+      Id  : TPSymbol; // Id, shared with F !!, for ukWithDesignator WITH variable
+      WV  : TPVariable;
+      GO  : TPSymbol; // generated owner, must not collide with Id, WV, F, TC
+      IdA : TSymbolAccess;
+      W   : TPDesignator; // designator of With of which the Id is
+    | dkCOMAuxId :
+      _1  : ADDRESS; // Id
+      OD  : TPDesignator; // original designator
+      PA  : TPSAssignment; // preceding assignment
+      FA  : TPSAssignment; // following assignment
+    | dkOperator :
+      // O : TDesignatorOperator cannot be here as
+      // Id must have THE SAME PLACE as F !!
+      CASE : TDesignatorOperator OF
+      | doIndexing,
+        doIndexingOfClass,
+        doIndexingOfSuperClass :
+        Idx  : TPExpression;
+        DfI  : TPIndexerDef;
+      | doSelecting,
+        doSelectingOfSuperClass :
+        F    : TPSymbol; // field, shared with Id !!
+        FIdx : INT64;
+      | doDereferencing :
+        AO   : TPExpression; // addressing offset
+      | doCall :
+        P    : TPProcedureCall;
+      END; // CASE TDesignatorOperator
+      O : TDesignatorOperator;
+    | dkType :
+      _2 : ADDRESS; // dummy
+      TC : TPTypedContainer;
+    | dkEmbeddedProcedure :
+      EP : TEmbeddedProcedure;
+      U1 : TPUnit;
+      U2 : TPUnit;
+      D1 : PTR; // data 1
+      D2 : LONGWORD; // data 2
+    END; // CASE TDesignatorKind
+    CD : TPDesignator; // COM return value designator
+  END; // RECORD
+
+CLASS CDesignator( CUnit );
+  T : TPType;
+  L : TPDesignator;
+  r : TDesignatorVariant;
+  VI : TValueInfo;
+  Cache : CEValue;
+
+  PROCEDURE Evaluate( VAR V : CEValue; ItemIndex : INT64 );
+
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+  VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
+
+  PROCEDURE AnalyzeAndGenerateOAHigh( G : Generator.TPGenerator; PT : TPType );
+  PROCEDURE MarkAsInitializedAndCheckRO( c : TPModule; TopLevel, LValueFlag : BOOLEAN );
+END CDesignator;
+
+//------------------------------------------------------------
+
+CLASS CTypedContainer( CUnit );
+  T : TPType;
+  Cast : BOOLEAN;
+  Cache : CEValue;
+
+  PROCEDURE Evaluate( VAR V : CEValue; ItemIndex : INT64 );
+
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+  VIRTUAL PROCEDURE GenSep( CONST BeforeU : TPUnit; G : Generator.TPGenerator; C : TGenerateControl );
+  VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
+
+  PROCEDURE IsLValue() : BOOLEAN;
+  PROCEDURE MarkAsInitializedAndCheckRO( c : TPModule; TopLevel, LValueFlag : BOOLEAN );
+  PROCEDURE GetDesignator( OUT D : TPDesignator ) : BOOLEAN;
+  PROCEDURE SetDesignator( D : TPDesignator );
+END CTypedContainer;
+
+//============================================================
+
+CLASS CStatement( CUnit );
+  Preceding : CUnit;
+  Following : CUnit;
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+  VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
+END CStatement;
+
+//------------------------------------------------------------
+
+CLASS CSAssignment( CStatement );
+  D : TPDesignator;
+  E : TPExpression;
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+END CSAssignment;
+
+//------------------------------------------------------------
+
+CLASS CSReturn( CStatement );
+  L : TPLabel;
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+  VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
+END CSReturn;
+
+//------------------------------------------------------------
+
+CLASS CSLabel( CStatement );
+  L : TPLabel;
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+END CSLabel;
+
+//------------------------------------------------------------
+
+CLASS CSLoop( CStatement );
+  LC : CLabel; // continue
+  LE : CLabel; // exit
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+END CSLoop;
+
+//------------------------------------------------------------
+
+CLASS CSFor( CSLoop );
+  CV : TPVariable;
+  IV : TPExpression;
+  FVV : TPVariable;
+  FVE : TPExpression;
+  SS : TPExpression;
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+  VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
+END CSFor;
+
+//------------------------------------------------------------
+
+CLASS CSGoto( CSLabel );
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+END CSGoto;
+
+//------------------------------------------------------------
+
+CLASS CSASM( CStatement );
+  ASMBlock : StringsO.CString;
+  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+END CSASM;
+
+//------------------------------------------------------------
+
+CLASS CCATCH( CUnit );
+   S : CSymbols;
+
+  PUBLIC VIRTUAL READONLY PROPERTY
+    Symbols : TPSymbols;
+
+END CCATCH;
+
+//------------------------------------------------------------
+
+CLASS CSTRY( CStatement );
+   InnerThrows : lists.CPtrList;
+	Procedures : lists.CPtrList;
+	Handles : lists.CPtrList;
+	VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+END CSTRY;
+
+//============================================================
+
+INITIALLY __I();
+
+END DOM.

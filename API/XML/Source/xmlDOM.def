@@ -1,0 +1,1005 @@
+DEFINITION MODULE xmlDOM HEADER msxml2;
+#save, name( decoration => windows ), call( convention => stdcall )
+
+FROM wtypes IMPORT
+  BSTR, VARIANT_BOOL;
+  
+FROM guiddef IMPORT
+  CLSID, GUID, IID;
+  
+FROM oaidl IMPORT
+  IDispatch, TPIDispatch, VARIANT;
+
+FROM unknwn IMPORT
+  IUnknown, TPIUnknown;
+  
+// FORWARD pointer types
+TYPE
+
+  TPIXMLDOMImplementation        = POINTER TO IXMLDOMImplementation;
+  TPIXMLDOMNode                  = POINTER TO IXMLDOMNode;
+  TPIXMLDOMDocumentFragment      = POINTER TO IXMLDOMDocumentFragment;
+  TPIXMLDOMDocument              = POINTER TO IXMLDOMDocument;
+  TPIXMLDOMNodeList              = POINTER TO IXMLDOMNodeList;
+  TPIXMLDOMDocument2             = POINTER TO IXMLDOMDocument2;
+  TPIXMLDOMNamedNodeMap          = POINTER TO IXMLDOMNamedNodeMap;
+  TPIXMLDOMCharacterData         = POINTER TO IXMLDOMCharacterData;
+  TPIXMLDOMAttribute             = POINTER TO IXMLDOMAttribute;
+  TPIXMLDOMElement               = POINTER TO IXMLDOMElement;
+  TPIXMLDOMText                  = POINTER TO IXMLDOMText;
+  TPIXMLDOMComment               = POINTER TO IXMLDOMComment;
+  TPIXMLDOMProcessingInstruction = POINTER TO IXMLDOMProcessingInstruction;
+  TPIXMLDOMCDATASection          = POINTER TO IXMLDOMCDATASection;
+  TPIXMLDOMDocumentType          = POINTER TO IXMLDOMDocumentType;
+  TPIXMLDOMNotation              = POINTER TO IXMLDOMNotation;
+  TPIXMLDOMEntity                = POINTER TO IXMLDOMEntity;
+  TPIXMLDOMEntityReference       = POINTER TO IXMLDOMEntityReference;
+  TPIXMLDOMParseError            = POINTER TO IXMLDOMParseError;
+  TPIXMLDOMSchemaCollection      = POINTER TO IXMLDOMSchemaCollection;
+  TPIXSLTemplate                 = POINTER TO IXSLTemplate;
+  TPIXSLProcessor                = POINTER TO IXSLProcessor;
+  TPIXMLDOMSelection             = POINTER TO IXMLDOMSelection;
+  TPXMLDOMDocumentEvents         = POINTER TO XMLDOMDocumentEvents;
+  TPIXMLHTTPRequest              = POINTER TO IXMLHTTPRequest;
+  TPIServerXMLHTTPRequest        = POINTER TO IServerXMLHTTPRequest;
+  TPIServerXMLHTTPRequest2       = POINTER TO IServerXMLHTTPRequest2;
+  TPIMXNamespacePrefixes         = POINTER TO IMXNamespacePrefixes;
+  TPIVBMXNamespaceManager        = POINTER TO IVBMXNamespaceManager;
+
+TYPE
+
+  DOMNodeType = (
+    NODE_INVALID,
+    NODE_ELEMENT,
+    NODE_ATTRIBUTE,
+    NODE_TEXT,
+    NODE_CDATA_SECTION,
+    NODE_ENTITY_REFERENCE,
+    NODE_ENTITY,
+    NODE_PROCESSING_INSTRUCTION,
+    NODE_COMMENT,
+    NODE_DOCUMENT,
+    NODE_DOCUMENT_TYPE,
+    NODE_DOCUMENT_FRAGMENT,
+    NODE_NOTATION
+  );
+
+  SERVERXMLHTTP_OPTION = (
+    SXH_OPTION_URL = -1,
+    SXH_OPTION_URL_CODEPAGE,
+    SXH_OPTION_ESCAPE_PERCENT_IN_URL,
+    SXH_OPTION_IGNORE_SERVER_SSL_CERT_ERROR_FLAGS,
+    SXH_OPTION_SELECT_CLIENT_SSL_CERT
+  );
+
+  SXH_SERVER_CERT_OPTION = (
+    SXH_SERVER_CERT_IGNORE_UNKNOWN_CA        = 0100H,
+    SXH_SERVER_CERT_IGNORE_WRONG_USAGE       = 0200H,
+    SXH_SERVER_CERT_IGNORE_CERT_CN_INVALID   = 01000H,
+    SXH_SERVER_CERT_IGNORE_CERT_DATE_INVALID = 02000H,
+    SXH_SERVER_CERT_IGNORE_ALL_SERVER_ERRORS = SXH_SERVER_CERT_IGNORE_UNKNOWN_CA OR
+                                               SXH_SERVER_CERT_IGNORE_WRONG_USAGE OR
+                                               SXH_SERVER_CERT_IGNORE_CERT_CN_INVALID OR
+                                               SXH_SERVER_CERT_IGNORE_CERT_DATE_INVALID
+  );
+
+  SXH_PROXY_SETTING = (
+    SXH_PROXY_SET_PRECONFIG,
+    SXH_PROXY_SET_DIRECT,
+    SXH_PROXY_SET_PROXY,
+    SXH_PROXY_SET_DEFAULT	= SXH_PROXY_SET_PRECONFIG
+  );
+
+  SOMITEMTYPE = (
+    SOMITEM_SCHEMA                      = 01000H,
+    SOMITEM_ATTRIBUTE                   = 01001H,
+    SOMITEM_ATTRIBUTEGROUP              = 01002H,
+    SOMITEM_NOTATION                    = 01003H,
+    SOMITEM_IDENTITYCONSTRAINT          = 01100H,
+    SOMITEM_KEY                         = 01101H,
+    SOMITEM_KEYREF                      = 01102H,
+    SOMITEM_UNIQUE                      = 01103H,
+    SOMITEM_ANYTYPE                     = 02000H,
+    SOMITEM_DATATYPE                    = 02100H,
+    SOMITEM_DATATYPE_ANYTYPE            = 02101H,
+    SOMITEM_DATATYPE_ANYURI             = 02102H,
+    SOMITEM_DATATYPE_BASE64BINARY       = 02103H,
+    SOMITEM_DATATYPE_BOOLEAN            = 02104H,
+    SOMITEM_DATATYPE_BYTE               = 02105H,
+    SOMITEM_DATATYPE_DATE               = 02106H,
+    SOMITEM_DATATYPE_DATETIME           = 02107H,
+    SOMITEM_DATATYPE_DAY                = 02108H,
+    SOMITEM_DATATYPE_DECIMAL            = 02109H,
+    SOMITEM_DATATYPE_DOUBLE             = 0210AH,
+    SOMITEM_DATATYPE_DURATION           = 0210BH,
+    SOMITEM_DATATYPE_ENTITIES           = 0210CH,
+    SOMITEM_DATATYPE_ENTITY             = 0210DH,
+    SOMITEM_DATATYPE_FLOAT              = 0210EH,
+    SOMITEM_DATATYPE_HEXBINARY          = 0210FH,
+    SOMITEM_DATATYPE_ID                 = 02110H,
+    SOMITEM_DATATYPE_IDREF              = 02111H,
+    SOMITEM_DATATYPE_IDREFS             = 02112H,
+    SOMITEM_DATATYPE_INT                = 02113H,
+    SOMITEM_DATATYPE_INTEGER            = 02114H,
+    SOMITEM_DATATYPE_LANGUAGE           = 02115H,
+    SOMITEM_DATATYPE_LONG               = 02116H,
+    SOMITEM_DATATYPE_MONTH              = 02117H,
+    SOMITEM_DATATYPE_MONTHDAY           = 02118H,
+    SOMITEM_DATATYPE_NAME               = 02119H,
+    SOMITEM_DATATYPE_NCNAME             = 0211AH,
+    SOMITEM_DATATYPE_NEGATIVEINTEGER    = 0211BH,
+    SOMITEM_DATATYPE_NMTOKEN            = 0211CH,
+    SOMITEM_DATATYPE_NMTOKENS           = 0211DH,
+    SOMITEM_DATATYPE_NONNEGATIVEINTEGER = 0211EH,
+    SOMITEM_DATATYPE_NONPOSITIVEINTEGER = 0211FH,
+    SOMITEM_DATATYPE_NORMALIZEDSTRING   = 02120H,
+    SOMITEM_DATATYPE_NOTATION           = 02121H,
+    SOMITEM_DATATYPE_POSITIVEINTEGER    = 02122H,
+    SOMITEM_DATATYPE_QNAME              = 02123H,
+    SOMITEM_DATATYPE_SHORT              = 02124H,
+    SOMITEM_DATATYPE_STRING             = 02125H,
+    SOMITEM_DATATYPE_TIME               = 02126H,
+    SOMITEM_DATATYPE_TOKEN              = 02127H,
+    SOMITEM_DATATYPE_UNSIGNEDBYTE       = 02128H,
+    SOMITEM_DATATYPE_UNSIGNEDINT        = 02129H,
+    SOMITEM_DATATYPE_UNSIGNEDLONG       = 0212AH,
+    SOMITEM_DATATYPE_UNSIGNEDSHORT      = 0212BH,
+    SOMITEM_DATATYPE_YEAR               = 0212CH,
+    SOMITEM_DATATYPE_YEARMONTH          = 0212DH,
+    SOMITEM_DATATYPE_ANYSIMPLETYPE      = 021FFH,
+    SOMITEM_SIMPLETYPE                  = 02200H,
+    SOMITEM_COMPLEXTYPE                 = 02400H,
+    SOMITEM_PARTICLE                    = 04000H,
+    SOMITEM_ANY                         = 04001H,
+    SOMITEM_ANYATTRIBUTE                = 04002H,
+    SOMITEM_ELEMENT                     = 04003H,
+    SOMITEM_GROUP                       = 04100H,
+    SOMITEM_ALL                         = 04101H,
+    SOMITEM_CHOICE                      = 04102H,
+    SOMITEM_SEQUENCE                    = 04103H,
+    SOMITEM_EMPTYPARTICLE               = 04104H,
+    SOMITEM_NULL                        = 00800H,
+    SOMITEM_NULL_TYPE                   = 02800H,
+    SOMITEM_NULL_ANY                    = 04801H,
+    SOMITEM_NULL_ANYATTRIBUTE           = 04802H,
+    SOMITEM_NULL_ELEMENT                = 04803H
+  );
+
+  SCHEMAUSE = (
+    SCHEMAUSE_OPTIONAL,
+    SCHEMAUSE_PROHIBITED,
+    SCHEMAUSE_REQUIRED
+  );
+
+  SCHEMADERIVATIONMETHOD = (
+    SCHEMADERIVATIONMETHOD_EMPTY        = 0000H,
+    SCHEMADERIVATIONMETHOD_SUBSTITUTION = 0001H,
+    SCHEMADERIVATIONMETHOD_EXTENSION    = 0002H,
+    SCHEMADERIVATIONMETHOD_RESTRICTION  = 0004H,
+    SCHEMADERIVATIONMETHOD_LIST         = 0008H,
+    SCHEMADERIVATIONMETHOD_UNION        = 0010H,
+    SCHEMADERIVATIONMETHOD_ALL          = 00FFH,
+    SCHEMADERIVATIONMETHOD_NONE         = 0100H
+  );
+
+  SCHEMACONTENTTYPE = (
+    SCHEMACONTENTTYPE_EMPTY,
+    SCHEMACONTENTTYPE_TEXTONLY,
+    SCHEMACONTENTTYPE_ELEMENTONLY,
+    SCHEMACONTENTTYPE_MIXED
+  );
+
+  SCHEMAPROCESSCONTENTS = (
+    SCHEMAPROCESSCONTENTS_NONE,
+    SCHEMAPROCESSCONTENTS_SKIP,
+    SCHEMAPROCESSCONTENTS_LAX,
+    SCHEMAPROCESSCONTENTS_STRICT
+  );
+
+  SCHEMAWHITESPACE = (
+    SCHEMAWHITESPACE_NONE = -1,
+    SCHEMAWHITESPACE_PRESERVE,
+    SCHEMAWHITESPACE_REPLACE,
+    SCHEMAWHITESPACE_COLLAPSE
+  );
+
+  SCHEMATYPEVARIETY = (
+    SCHEMATYPEVARIETY_NONE = -1,
+    SCHEMATYPEVARIETY_ATOMIC,
+    SCHEMATYPEVARIETY_LIST,
+    SCHEMATYPEVARIETY_UNION
+  );
+  
+VAR
+  LIBID_MSXML2 : IID;
+
+//===== IXMLDOMImplementation
+VAR
+  IID_IXMLDOMImplementation : IID;
+
+COM INTERFACE IXMLDOMImplementation( IDispatch );
+  COM PROCEDURE hasFeature( feature, version : BSTR ) : VARIANT_BOOL;
+END IXMLDOMImplementation;
+
+//===== IXMLDOMNode
+VAR
+  IID_IXMLDOMNode : IID;
+
+COM INTERFACE IXMLDOMNode( IDispatch );
+
+  COM READONLY PROPERTY
+    nodeName        : BSTR;
+  COM PROPERTY
+    nodeValue       : VARIANT;
+  COM READONLY PROPERTY
+    nodeType        : DOMNodeType;
+    parentNode      : TPIXMLDOMNode;
+    childNodes      : TPIXMLDOMNodeList;
+    firstChild      : TPIXMLDOMNode;
+    lastChild       : TPIXMLDOMNode;
+    previousSibling : TPIXMLDOMNode;
+    nextSibling     : TPIXMLDOMNode;
+    attributes      : TPIXMLDOMNamedNodeMap;
+
+  COM PROCEDURE insertBefore(
+    newChild : TPIXMLDOMNode;
+    refChild : VARIANT
+  ) : TPIXMLDOMNode; // RET NewChild
+
+  COM PROCEDURE replaceChild(
+    newChild : TPIXMLDOMNode;
+    oldChild : TPIXMLDOMNode
+  ) : TPIXMLDOMNode; // RET OldChild
+
+  COM PROCEDURE removeChild(
+    childNode : TPIXMLDOMNode
+  ) : TPIXMLDOMNode; // RET OldChild
+
+  COM PROCEDURE appendChild(
+    newChild : TPIXMLDOMNode
+  ) : TPIXMLDOMNode; // RET NewChild
+
+  COM PROCEDURE hasChildNodes() : VARIANT_BOOL; // RET HasChild
+
+  COM READONLY PROPERTY
+    ownerDocument   : TPIXMLDOMDocument;
+
+  COM PROCEDURE cloneNode( 
+    deep : VARIANT_BOOL
+  ) : TPIXMLDOMNode; // RET CloneRoot
+
+  COM READONLY PROPERTY
+    nodeTypeString  : BSTR; // RET NodeType
+  COM PROPERTY
+    text            : BSTR;
+  COM READONLY PROPERTY
+    specified       : VARIANT_BOOL;
+    definition      : TPIXMLDOMNode;
+  COM PROPERTY
+    nodeTypedValue  : VARIANT;
+    dataType        : VARIANT;
+  COM READONLY PROPERTY
+    xml             : BSTR;
+
+  COM PROCEDURE transformNode(
+    stylesheet : TPIXMLDOMNode
+  ) : BSTR; // RET xmlString
+
+  COM PROCEDURE selectNodes(
+    queryString : BSTR
+  ) : TPIXMLDOMNodeList; // RET resultList
+
+  COM PROCEDURE selectSingleNode(
+    queryString : BSTR
+  ) : TPIXMLDOMNode; // RET resultNode
+
+  COM READONLY PROPERTY
+    parsed          : VARIANT_BOOL;
+    namespaceURI    : BSTR;
+    prefix          : BSTR;
+    baseName        : BSTR;
+  
+  COM PROCEDURE transformNodeToObject(
+    stylesheet : TPIXMLDOMNode;
+    outputObject : VARIANT
+  );
+
+END IXMLDOMNode;
+
+//===== IXMLDOMNode
+VAR
+  IID_IXMLDOMDocumentFragment : IID;
+
+COM INTERFACE IXMLDOMDocumentFragment( IXMLDOMNode );
+END IXMLDOMDocumentFragment;
+
+//===== IXMLDOMDocument
+VAR
+  IID_IXMLDOMDocument : IID;
+
+COM INTERFACE IXMLDOMDocument( IXMLDOMNode );
+
+  COM READONLY PROPERTY
+    doctype             : TPIXMLDOMDocumentType;
+    implementation      : TPIXMLDOMImplementation;
+  COM PROPERTY
+    REF documentElement : TPIXMLDOMElement;
+
+  COM PROCEDURE createElement( 
+    tagName : BSTR
+  ) : TPIXMLDOMElement;
+
+  COM PROCEDURE createDocumentFragment() : TPIXMLDOMDocumentFragment;
+
+  COM PROCEDURE createTextNode(
+    data : BSTR
+  ) : TPIXMLDOMText;
+
+  COM PROCEDURE createComment( 
+    data : BSTR
+  ) : TPIXMLDOMComment;
+
+  COM PROCEDURE createCDATASection( 
+    data : BSTR
+  ) : TPIXMLDOMCDATASection;
+
+  COM PROCEDURE createProcessingInstruction( 
+    target : BSTR;
+    data : BSTR
+  ) : TPIXMLDOMProcessingInstruction;
+
+  COM PROCEDURE createAttribute( 
+    name : BSTR
+  ) : TPIXMLDOMAttribute;
+
+  COM PROCEDURE createEntityReference( 
+    name : BSTR
+  ) : TPIXMLDOMEntityReference;
+
+  COM PROCEDURE getElementsByTagName( 
+    tageName : BSTR
+  ) : TPIXMLDOMNodeList;
+
+  COM PROCEDURE createNode( 
+    Type : VARIANT;
+    name : BSTR;
+    namespaceURI : BSTR
+  ) : TPIXMLDOMNode;
+
+  COM PROCEDURE nodeFromID( 
+    idString : BSTR
+  ) : TPIXMLDOMNode;
+
+  COM PROCEDURE load( 
+    xmlSource : VARIANT
+  ) : VARIANT_BOOL;
+
+  COM READONLY PROPERTY
+    readyState          : LONGINT;
+    parseError          : TPIXMLDOMParseError;
+    url                 : BSTR;
+  COM PROPERTY
+    async               : VARIANT_BOOL;
+
+  COM PROCEDURE abort();
+
+  COM PROCEDURE loadXML(
+    bstrXML : BSTR
+  ) : VARIANT_BOOL;
+
+  COM PROCEDURE save( 
+    destination : VARIANT
+  );
+
+  COM PROPERTY
+    validateOnParse     : VARIANT_BOOL;
+    resolveExternals    : VARIANT_BOOL;
+    preserveWhiteSpace  : VARIANT_BOOL;
+  COM WRITEONLY PROPERTY
+    onreadystatechange  : VARIANT;
+    ondataavailable     : VARIANT;
+    ontransformnode     : VARIANT;
+
+END IXMLDOMDocument;
+
+//===== IXMLDOMDocument2
+VAR
+  IID_IXMLDOMDocument2 : IID;
+
+COM INTERFACE IXMLDOMDocument2( IXMLDOMDocument );
+
+  COM READONLY PROPERTY
+    namespaces          : TPIXMLDOMSchemaCollection;
+  COM PROPERTY
+    REF schemas         : VARIANT; 
+
+  COM PROCEDURE validate() : TPIXMLDOMParseError;
+
+  COM PROCEDURE setProperty(
+    name : BSTR;
+    value : VARIANT
+  );
+
+  COM PROCEDURE getProperty( 
+    name : BSTR;
+    OUT value : VARIANT
+  );
+
+END IXMLDOMDocument2;
+
+//===== IXMLDOMNodeList
+VAR
+  IID_IXMLDOMNodeList : IID;
+
+COM INTERFACE IXMLDOMNodeList( IDispatch );
+
+  COM READONLY INDEX(
+    index : LONGINT
+  ) : TPIXMLDOMNode;
+
+  COM READONLY PROPERTY
+    length : LONGINT;
+
+  COM PROCEDURE nextNode() : TPIXMLDOMNode;
+
+  COM PROCEDURE reset();
+
+  COM READONLY PROPERTY
+    newEnum : TPIUnknown;
+
+END IXMLDOMNodeList;
+
+//===== IXMLDOMNamedNodeMap
+VAR
+  IID_IXMLDOMNamedNodeMap : IID;
+
+COM INTERFACE IXMLDOMNamedNodeMap( IDispatch );
+
+  COM PROCEDURE getNamedItem( 
+    name : BSTR
+  ) : TPIXMLDOMNode;
+
+  COM PROCEDURE setNamedItem( 
+    newItem : TPIXMLDOMNode
+  ) : TPIXMLDOMNode;
+
+  COM PROCEDURE removeNamedItem( 
+    name : BSTR
+  ) : TPIXMLDOMNode;
+
+  COM READONLY INDEX(
+    index : LONGINT
+  ) : TPIXMLDOMNode;
+
+  COM READONLY PROPERTY
+    length : LONGINT;
+
+  COM PROCEDURE getQualifiedItem( 
+    baseName : BSTR;
+    namespaceURI : BSTR
+  ) : TPIXMLDOMNode;
+
+  COM PROCEDURE removeQualifiedItem( 
+    baseName : BSTR;
+    namespaceURI : BSTR
+  ) : TPIXMLDOMNode;
+
+  COM PROCEDURE nextNode() : TPIXMLDOMNode;
+
+  COM PROCEDURE reset();
+
+  COM READONLY PROPERTY
+    newEnum : TPIUnknown;
+
+END IXMLDOMNamedNodeMap;
+
+//===== IXMLDOMCharacterData
+VAR
+  IID_IXMLDOMCharacterData : IID;
+
+COM INTERFACE IXMLDOMCharacterData( IXMLDOMNode );
+
+  COM PROPERTY
+    data   : BSTR;
+  COM READONLY PROPERTY
+    length : LONGINT;
+
+  COM PROCEDURE substringData(
+    offset : LONGINT;
+    count : LONGINT
+  ) : BSTR;
+
+  COM PROCEDURE appendData(
+    data : BSTR
+  );
+
+  COM PROCEDURE insertData(
+    offset : LONGINT;
+    data : BSTR
+  );
+
+  COM PROCEDURE deleteData(
+    offset : LONGINT;
+    count : LONGINT
+  );
+
+  COM PROCEDURE replaceData( 
+    offset : LONGINT;
+    count : LONGINT;
+    data : BSTR
+  );
+
+END IXMLDOMCharacterData;
+
+//===== IXMLDOMAttribute
+VAR
+  IID_IXMLDOMAttribute : IID;
+
+COM INTERFACE IXMLDOMAttribute( IXMLDOMNode );
+
+  COM READONLY PROPERTY
+    name : BSTR;
+  COM PROPERTY
+    value : VARIANT;
+
+END IXMLDOMAttribute;
+
+//===== IXMLDOMElement
+VAR
+  IID_IXMLDOMElement : IID;
+
+COM INTERFACE IXMLDOMElement( IXMLDOMNode );
+
+  COM READONLY PROPERTY
+    tagName : BSTR;
+
+  COM PROCEDURE getAttribute(
+    name : BSTR
+  ) : VARIANT;
+
+  COM PROCEDURE setAttribute( 
+    name : BSTR;
+    value : VARIANT
+  );
+
+  COM PROCEDURE removeAttribute( 
+    name : BSTR
+  );
+
+  COM PROCEDURE getAttributeNode( 
+    name : BSTR
+  ) : TPIXMLDOMAttribute;
+
+  COM PROCEDURE setAttributeNode( 
+    DOMAttribute : TPIXMLDOMAttribute
+  ) : TPIXMLDOMAttribute;
+
+  COM PROCEDURE removeAttributeNode( 
+    DOMAttribute : TPIXMLDOMAttribute
+  ) : TPIXMLDOMAttribute;
+
+  COM PROCEDURE getElementsByTagName( 
+    tagName : BSTR
+  ) : TPIXMLDOMNodeList;
+
+  COM PROCEDURE normalize();
+
+END IXMLDOMElement;
+
+//===== IXMLDOMText
+VAR
+  IID_IXMLDOMText : IID;
+
+COM INTERFACE IXMLDOMText( IXMLDOMCharacterData );
+
+  COM PROCEDURE splitText( 
+    offset : LONGINT
+  ) : TPIXMLDOMText; // rightHandTextNode
+
+END IXMLDOMText;
+
+//===== IXMLDOMComment
+VAR
+  IID_IXMLDOMComment : IID;
+
+COM INTERFACE IXMLDOMComment( IXMLDOMCharacterData );
+END IXMLDOMComment;
+
+//===== IXMLDOMProcessingInstruction
+VAR
+  IID_IXMLDOMProcessingInstruction : IID;
+
+COM INTERFACE IXMLDOMProcessingInstruction( IXMLDOMNode );
+
+  COM READONLY PROPERTY
+    target : BSTR;
+  COM PROPERTY
+    data : BSTR;
+
+END IXMLDOMProcessingInstruction;
+
+//===== IXMLDOMCDATASection
+VAR
+  IID_IXMLDOMCDATASection : IID;
+
+COM INTERFACE IXMLDOMCDATASection( IXMLDOMText );
+END IXMLDOMCDATASection;
+
+//===== IXMLDOMDocumentType
+VAR
+  IID_IXMLDOMDocumentType : IID;
+
+COM INTERFACE IXMLDOMDocumentType( IXMLDOMNode );
+
+  COM READONLY PROPERTY
+    name      : BSTR;
+    entities  : TPIXMLDOMNamedNodeMap;
+    notations : TPIXMLDOMNamedNodeMap;
+
+END IXMLDOMDocumentType;
+
+//===== IXMLDOMNotation
+VAR
+  IID_IXMLDOMNotation : IID;
+
+COM INTERFACE IXMLDOMNotation( IXMLDOMNode );
+
+  COM READONLY PROPERTY
+    publicId : VARIANT;
+    systemId : VARIANT;
+
+END IXMLDOMNotation;
+
+//===== IXMLDOMEntity
+VAR
+  IID_IXMLDOMEntity : IID;
+
+COM INTERFACE IXMLDOMEntity( IXMLDOMNode );
+
+  COM READONLY PROPERTY
+    publicId     : VARIANT;
+    systemId     : VARIANT;
+    notationName : BSTR;
+
+END IXMLDOMEntity;
+
+//===== IXMLDOMEntityReference
+VAR
+  IID_IXMLDOMEntityReference : IID;
+
+COM INTERFACE IXMLDOMEntityReference( IXMLDOMNode );
+END IXMLDOMEntityReference;
+
+//===== IXMLDOMParseError
+VAR
+  IID_IXMLDOMParseError : IID;
+
+COM INTERFACE IXMLDOMParseError( IDispatch );
+
+  COM READONLY PROPERTY
+    errorCode : LONGINT;
+    url       : BSTR;
+    reason    : BSTR;
+    srcText   : BSTR;
+    line      : LONGINT; 
+    linepos   : LONGINT;
+    filepos   : LONGINT;
+
+END IXMLDOMParseError;
+
+//===== IXMLDOMSchemaCollection
+VAR
+  IID_IXMLDOMSchemaCollection : IID;
+
+COM INTERFACE IXMLDOMSchemaCollection( IDispatch );
+
+  COM PROCEDURE add( 
+    namespaceURI : BSTR;
+    var : VARIANT
+  );
+
+  COM PROCEDURE get( 
+    namespaceURI : BSTR
+  ) : TPIXMLDOMNode;
+
+  COM PROCEDURE remove( 
+    namespaceURI : BSTR
+  );
+
+  COM READONLY PROPERTY
+    length : LONGINT;
+  COM READONLY INDEX(
+    index : LONGINT
+  ) : BSTR;
+
+  COM PROCEDURE addCollection( 
+    otherCollection : TPIXMLDOMSchemaCollection
+  );
+
+  COM READONLY PROPERTY
+    newEnum : TPIUnknown;
+
+END IXMLDOMSchemaCollection;
+
+//===== IXSLTemplate
+VAR
+  IID_IXSLTemplate : IID;
+
+
+COM INTERFACE IXSLTemplate( IDispatch );
+
+  COM PROPERTY
+    REF REV stylesheet : TPIXMLDOMNode;
+
+  COM PROCEDURE createProcessor() : TPIXSLProcessor;
+
+END IXSLTemplate;
+
+//===== IXSLProcessor
+VAR
+  IID_IXSLProcessor : IID;
+
+COM INTERFACE IXSLProcessor( IDispatch );
+
+  COM PROPERTY
+    REV input     : VARIANT;
+  COM READONLY PROPERTY
+    ownerTemplate : TPIXSLTemplate;
+
+  COM PROCEDURE setStartMode( 
+    mode : BSTR;
+    namespaceURI : BSTR
+  );
+
+  COM READONLY PROPERTY
+    startMode    : BSTR;
+    startModeURI : BSTR;
+  COM PROPERTY
+    REV output : VARIANT;
+
+  COM PROCEDURE transform() : VARIANT_BOOL; 
+
+  COM PROCEDURE reset();
+
+  COM READONLY PROPERTY
+    readyState : LONGINT;
+
+  COM PROCEDURE addParameter( 
+    baseName : BSTR;
+    parameter : VARIANT;
+    namespaceURI : BSTR
+  );
+
+  COM PROCEDURE addObject( 
+    obj : TPIDispatch;
+    namespaceURI : BSTR
+  );
+
+  COM READONLY PROPERTY
+    stylesheet : TPIXMLDOMNode;
+
+END IXSLProcessor;
+
+//===== IXMLDOMSelection
+VAR
+  IID_IXMLDOMSelection : IID;
+
+COM INTERFACE IXMLDOMSelection( IXMLDOMNodeList );
+
+  COM PROPERTY
+    expr        : BSTR;
+    REF context : TPIXMLDOMNode;
+
+  COM PROCEDURE peekNode() : TPIXMLDOMNode;
+
+  COM PROCEDURE matches( 
+    pNode : TPIXMLDOMNode
+  ) : TPIXMLDOMNode;
+
+  COM PROCEDURE removeNext() : TPIXMLDOMNode;
+
+  COM PROCEDURE removeAll();
+
+  COM PROCEDURE clone() : TPIXMLDOMSelection;
+
+  COM PROCEDURE getProperty(
+    name : BSTR
+  ) : VARIANT;
+
+  COM PROCEDURE setProperty(
+    name : BSTR;
+    value : VARIANT
+  );
+
+END IXMLDOMSelection;
+
+//===== XMLDOMDocumentEvents
+VAR
+  DIID_XMLDOMDocumentEvents : IID;
+
+COM INTERFACE XMLDOMDocumentEvents( IDispatch );
+END XMLDOMDocumentEvents;
+
+//===== IXMLHTTPRequest
+VAR
+  IID_IXMLHTTPRequest : IID;
+
+COM INTERFACE IXMLHTTPRequest( IDispatch );
+
+  COM PROCEDURE open( 
+    bstrMethod : BSTR;
+    bstrUrl : BSTR;
+    varAsync : VARIANT;
+    bstrUser : VARIANT;
+    bstrPassword : VARIANT
+  );
+
+  COM PROCEDURE setRequestHeader( 
+    bstrHeader : BSTR;
+    bstrValue : BSTR
+  );
+
+  COM PROCEDURE getResponseHeader( 
+    bstrHeader : BSTR
+  ) : BSTR;
+
+  COM PROCEDURE getAllResponseHeaders() : BSTR;
+
+  COM PROCEDURE send( varBody : VARIANT );
+
+  COM PROCEDURE abort();
+
+  COM READONLY PROPERTY
+    status             : LONGINT;
+    statusText         : BSTR;
+    responseXML        : TPIDispatch;
+    responseText       : BSTR;
+    responseBody       : VARIANT;
+    responseStream     : VARIANT;
+    readyState         : LONGINT;
+  COM WRITEONLY PROPERTY
+    onreadystatechange : TPIDispatch;
+
+END IXMLHTTPRequest;
+
+//===== IServerXMLHTTPRequest
+VAR
+  IID_IServerXMLHTTPRequest : IID;
+
+COM INTERFACE IServerXMLHTTPRequest( IXMLHTTPRequest );
+
+  COM PROCEDURE setTimeouts( 
+    resolveTimeout : LONGINT;
+    connectTimeout : LONGINT;
+    sendTimeout : LONGINT;
+    receiveTimeout : LONGINT
+  );
+
+  COM PROCEDURE waitForResponse( 
+    timeoutInSeconds : VARIANT
+  ) : VARIANT_BOOL;
+
+  COM PROCEDURE getOption( 
+    option : SERVERXMLHTTP_OPTION
+  ) : VARIANT;
+
+  COM PROCEDURE setOption( 
+    option : SERVERXMLHTTP_OPTION;
+    value : VARIANT
+  );
+
+END IServerXMLHTTPRequest;
+
+//===== IServerXMLHTTPRequest2
+VAR
+  IID_IServerXMLHTTPRequest2 : IID;
+
+
+COM INTERFACE IServerXMLHTTPRequest2( IServerXMLHTTPRequest );
+
+  COM PROCEDURE setProxy( 
+    proxySetting : SXH_PROXY_SETTING;
+    varProxyServer : VARIANT;
+    varBypassList : VARIANT
+  );
+
+  COM PROCEDURE setProxyCredentials( 
+    bstrUserName : BSTR;
+    bstrPassword : BSTR
+  );
+
+END IServerXMLHTTPRequest2;
+
+//===== IMXNamespacePrefixes
+VAR
+  IID_IMXNamespacePrefixes : IID;
+
+COM INTERFACE IMXNamespacePrefixes( IDispatch );
+
+  COM READONLY INDEX(
+    index : LONGINT
+  ) : BSTR;
+
+  COM READONLY PROPERTY
+    length : LONGINT;
+    newEnum : TPIUnknown;
+
+END IMXNamespacePrefixes;
+
+//===== IVBMXNamespaceManager
+VAR
+  IID_IVBMXNamespaceManager : IID;
+
+COM INTERFACE IVBMXNamespaceManager( IDispatch );
+
+  COM PROPERTY
+    REV allowOverride : VARIANT_BOOL;
+
+  COM PROCEDURE reset();
+
+  COM PROCEDURE pushContext();
+
+  COM PROCEDURE pushNodeContext( 
+    contextNode : TPIXMLDOMNode;
+    fDeep : VARIANT_BOOL
+  );
+
+  COM PROCEDURE popContext();
+
+  COM PROCEDURE declarePrefix( 
+    prefix : BSTR;
+    namespaceURI : BSTR
+  );
+
+  COM PROCEDURE getDeclaredPrefixes() : TPIMXNamespacePrefixes;
+
+  COM PROCEDURE getPrefixes(
+    namespaceURI : BSTR
+  ) : TPIMXNamespacePrefixes;
+
+  COM PROCEDURE getURI( 
+    prefix : BSTR
+  ) : VARIANT;
+
+  COM PROCEDURE getURIFromNode( 
+    strPrefix : BSTR;
+    contextNode : TPIXMLDOMNode
+  ) : VARIANT;
+
+END IVBMXNamespaceManager;
+
+//===== =====
+VAR
+  CLSID_DOMDocument               : CLSID;
+  CLSID_DOMDocument26             : CLSID;
+  CLSID_DOMDocument30             : CLSID;
+  CLSID_DOMDocument40             : CLSID;
+  CLSID_FreeThreadedDOMDocument   : CLSID;
+  CLSID_FreeThreadedDOMDocument26 : CLSID;
+  CLSID_FreeThreadedDOMDocument30 : CLSID;
+  CLSID_FreeThreadedDOMDocument40 : CLSID;
+  CLSID_XSLTemplate               : CLSID;
+  CLSID_XSLTemplate26             : CLSID;
+  CLSID_XSLTemplate30             : CLSID;
+  CLSID_XSLTemplate40             : CLSID;
+  CLSID_XMLHTTP                   : CLSID;
+  CLSID_XMLHTTP26                 : CLSID;
+  CLSID_XMLHTTP30                 : CLSID;
+  CLSID_XMLHTTP40                 : CLSID;
+  CLSID_ServerXMLHTTP             : CLSID;
+  CLSID_ServerXMLHTTP30           : CLSID;
+  CLSID_ServerXMLHTTP40           : CLSID;
+  CLSID_MXNamespaceManager        : CLSID;
+  CLSID_MXNamespaceManager40      : CLSID;
+
+CONST
+  //----------------------------
+  // MSXML SPECIFIC ERROR CODES 
+  //----------------------------
+  E_XML_NOTWF          = 0C00CE223H; // Validate failed because the document is not well formed.
+  E_XML_NODTD          = 0C00CE224H; // Validate failed because a DTD/Schema was not specified in the document.
+  E_XML_INVALID        = 0C00CE225H; // Validate failed because of a DTD/Schema violation.
+  E_XML_BUFFERTOOSMALL = 0C00CE226H; // Buffer passed in is too small to receive the data.
+
+#restore
+END xmlDOM.

@@ -1,0 +1,97 @@
+DEFINITION MODULE ctype;
+
+//==============================================================
+//
+// ctype.h - C character conversion macros and ctype macros
+//
+// 32-bit version for M2CPP Modula-2 to C++ compiler
+//
+// Copyright (c) 2000 Moravian Instruments Inc.
+//
+//==============================================================
+
+(*# name(   prefix=>c ) *)
+
+(*# module( header=>off,
+            init_code=>off ) *)
+
+(*# call(   o_a_size=>off,
+            o_a_copy=>off,
+            prefix=>cdecl ) *)
+
+
+TYPE
+  wchar_t  = WCHAR;
+  wint_t   = wchar_t;
+  wctype_t = wchar_t;
+
+CONST
+   WEOF = wint_t( 0FFFFH );
+
+
+// set bit masks for the possible character types
+
+CONST
+
+  _UPPER          = 01H;    // upper case letter
+  _LOWER          = 02H;    // lower case letter
+  _DIGIT          = 04H;    // digit[0-9]
+  _SPACE          = 08H;    // tab, carriage return, newline,
+                            // vertical tab or form feed
+  _PUNCT          = 010H;   // punctuation character
+  _CONTROL        = 020H;   // control character
+  _BLANK          = 040H;   // space char
+  _HEX            = 080H;   // hexadecimal digit
+
+  _LEADBYTE       = 08000H;                      // multibyte leadbyte
+  _ALPHA          = (0100H OR _UPPER OR _LOWER); // alphabetic character
+
+
+// character classification function prototypes
+
+PROCEDURE _isctype(_:INTEGER; _:INTEGER): INTEGER;
+PROCEDURE isalpha(_:INTEGER): INTEGER;
+PROCEDURE isupper(_:INTEGER): INTEGER;
+PROCEDURE islower(_:INTEGER): INTEGER;
+PROCEDURE isdigit(_:INTEGER): INTEGER;
+PROCEDURE isxdigit(_:INTEGER): INTEGER;
+PROCEDURE isspace(_:INTEGER): INTEGER;
+PROCEDURE ispunct(_:INTEGER): INTEGER;
+PROCEDURE isalnum(_:INTEGER): INTEGER;
+PROCEDURE isprint(_:INTEGER): INTEGER;
+PROCEDURE isgraph(_:INTEGER): INTEGER;
+PROCEDURE iscntrl(_:INTEGER): INTEGER;
+PROCEDURE toupper(_:INTEGER): INTEGER;
+PROCEDURE tolower(_:INTEGER): INTEGER;
+PROCEDURE _tolower(_:INTEGER): INTEGER;
+PROCEDURE _toupper(_:INTEGER): INTEGER;
+PROCEDURE __isascii(_:INTEGER): INTEGER;
+PROCEDURE __toascii(_:INTEGER): INTEGER;
+PROCEDURE __iscsymf(_:INTEGER): INTEGER;
+PROCEDURE __iscsym(_:INTEGER): INTEGER;
+
+
+// wide function prototypes, also declared in wchar.h
+
+// character classification function prototypes
+
+PROCEDURE iswalpha(_:wint_t): INTEGER;
+PROCEDURE iswupper(_:wint_t): INTEGER;
+PROCEDURE iswlower(_:wint_t): INTEGER;
+PROCEDURE iswdigit(_:wint_t): INTEGER;
+PROCEDURE iswxdigit(_:wint_t): INTEGER;
+PROCEDURE iswspace(_:wint_t): INTEGER;
+PROCEDURE iswpunct(_:wint_t): INTEGER;
+PROCEDURE iswalnum(_:wint_t): INTEGER;
+PROCEDURE iswprint(_:wint_t): INTEGER;
+PROCEDURE iswgraph(_:wint_t): INTEGER;
+PROCEDURE iswcntrl(_:wint_t): INTEGER;
+PROCEDURE iswascii(_:wint_t): INTEGER;
+PROCEDURE isleadbyte(_:INTEGER): INTEGER;
+
+PROCEDURE towupper(_:wchar_t): wchar_t;
+PROCEDURE towlower(_:wchar_t): wchar_t;
+
+PROCEDURE iswctype(_:wint_t; _:wctype_t): INTEGER;
+
+END ctype.

@@ -1,0 +1,34 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 -->
+    <PropertyGroup>
+        <ProductFlag>on</ProductFlag>
+        <ProductId>SmartControl.FlashConnector.ActiveX</ProductId>
+        <ProductVersionMajor>1</ProductVersionMajor>
+        <ProductVersionMinor>0</ProductVersionMinor>
+        <FileDescription>SmartControl Macromedia Flash Socket Server ActiveX Control</FileDescription>
+    </PropertyGroup>
+
+    <!-- 2 INCLUDE DEFINITION -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 COMPONENT DEFINITION -->
+    <ItemGroup>
+        <Components Include="modula2\modula2;api\clib;API\win32"/>
+        <Components Include="modula2\m2rtl;modula2\m2ortl;library\ADT;library\Resources;library\Text;library\messaging;library\Network;library\CWdriver"/>
+        <Modules Include="flashconnector"/>
+        <Messages Include="Texts"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <Export>export</Export>
+        <TypeLibrary>typelib</TypeLibrary>
+    </PropertyGroup>
+
+    <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>

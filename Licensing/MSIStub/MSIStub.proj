@@ -1,0 +1,33 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"
+         DefaultTargets = "Build" >
+
+    <!-- 1 -->
+    <PropertyGroup>
+        <ProductFlag>on</ProductFlag>
+        <ProductId>SmartControl.MSIHelper</ProductId>
+        <ProductVersionMajor>0</ProductVersionMajor>
+        <ProductVersionMinor>9</ProductVersionMinor>
+        <FileDescription>SmartControl MSI Helper</FileDescription>
+        <FileVersionMajor>0</FileVersionMajor>
+        <FileVersionMinor>9</FileVersionMinor>
+    </PropertyGroup>
+
+    <!-- 2 -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 -->
+    <ItemGroup>
+        <Components Include="modula2\modula2"/>
+        <Components Include="api\Win32;api\Msi;modula2\m2ortl;licensing\core"/>
+        <Program Include="MSIStub"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <Export>export</Export>
+    </PropertyGroup>
+
+    <!-- 4 -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>

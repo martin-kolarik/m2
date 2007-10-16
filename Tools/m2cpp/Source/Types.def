@@ -1,0 +1,86 @@
+DEFINITION MODULE Types;
+
+IMPORT
+  DOM;
+
+VAR
+  // compiler types
+  TUnknown          : DOM.TPType;
+  TFormalUnknown    : DOM.TPFormalType;
+  TAny              : DOM.TPType;
+  TStorage          : DOM.TPType;
+  TFloat            : DOM.TPType;
+  TOrdinalNumber    : DOM.TPType;
+  TOrdinalNumeric   : DOM.TPType; // OrdinalNumber + ENUM + RANGE
+  TOrdinal          : DOM.TPType;
+  TOfAddOp          : DOM.TPType;
+  TOfMultOp         : DOM.TPType;
+  TOfNotOp          : DOM.TPType;
+  TNumber           : DOM.TPType;
+  TSet              : DOM.TPSet;
+  TSetNumber        : DOM.TPType;
+  TNumericSet       : DOM.TPSet;
+  TString           : DOM.TPType;
+
+  TBString          : DOM.TPArray;
+  TWString          : DOM.TPArray;
+  TTStringB         : DOM.TPArray;
+  TTStringW         : DOM.TPArray;
+
+  TBOAString        : DOM.TPFormalType;
+  TWOAString        : DOM.TPFormalType;
+  TBCONSTOAString   : DOM.TPFormalType;
+  TBCONSTOAStringSZ : DOM.TPFormalType;
+  TWCONSTOAString   : DOM.TPFormalType;
+  TWCONSTOAStringSZ : DOM.TPFormalType;
+
+  // language types
+  TINT8, TpINT8           : DOM.TPType;
+  TINT16, TpINT16         : DOM.TPType;
+  TINT32, TpINT32         : DOM.TPType;
+  TINT64, TpINT64         : DOM.TPType;
+  TINTPTR, TpINTPTR       : DOM.TPType;
+  TSHORTINT, TpSHORTINT   : DOM.TPType;
+  TINTEGER, TpINTEGER     : DOM.TPType;
+  TLONGINT, TpLONGINT     : DOM.TPType;
+  TCARD8, TpCARD8         : DOM.TPType;
+  TCARD16, TpCARD16       : DOM.TPType;
+  TCARD32, TpCARD32       : DOM.TPType;
+  TCARD64, TpCARD64       : DOM.TPType;
+  TCARDPTR, TpCARDPTR     : DOM.TPType;
+  TSHORTCARD, TpSHORTCARD : DOM.TPType;
+  TCARDINAL, TpCARDINAL   : DOM.TPType;
+  TLONGCARD, TpLONGCARD   : DOM.TPType;
+  TBCHAR, TpBCHAR         : DOM.TPType;
+  TWCHAR, TpWCHAR         : DOM.TPType;
+  TTCHAR                  : DOM.TPType;
+    TTCHARB, TpTCHARB     : DOM.TPType;
+    TTCHARW, TpTCHARW     : DOM.TPType;
+  TBOOLEAN, TpBOOLEAN     : DOM.TPType;
+  TTRISTATE, TpTRISTATE   : DOM.TPSubrange;
+
+  TBITSET8, TpBITSET8     : DOM.TPSet;
+  TBITSET16, TpBITSET16   : DOM.TPSet;
+  TBITSET32, TpBITSET32   : DOM.TPSet;
+  TBITSET64, TpBITSET64   : DOM.TPSet;
+  TBITSET, TpBITSET       : DOM.TPType;
+  TBYTE, TpBYTE           : DOM.TPType;
+  TWORD, TpWORD           : DOM.TPType;
+  TLONGWORD, TpLONGWORD   : DOM.TPType;
+  TQUADWORD, TpQUADWORD   : DOM.TPType;
+  TSTOREPTR, TpSTOREPTR   : DOM.TPType;
+
+  TADDRESS, TpADDRESS     : DOM.TPType;
+    TREFADDRESS           : DOM.TPFormalType;
+  TPTR, TpPTR             : DOM.TPType;
+  TSIZE, TpSIZE           : DOM.TPType;
+    TFormalSIZE           : DOM.TPFormalType;
+  TREAL, TpREAL           : DOM.TPType;
+  TLONGREAL, TpLONGREAL   : DOM.TPType;
+  TPROC, TpPROC           : DOM.TPType;
+  TOBJECT, TpOBJECT       : DOM.TPType;
+
+INITIALLY __I(); 
+
+END Types.
+

@@ -1,0 +1,17 @@
+DEFINITION MODULE netinit;
+
+//--------------------------------------------------------------------------------
+// module stands for automatic initialization of network library,
+// IT SHOULD NOT BE CALLED automatically of from init code -- they can operate threads.
+// Call this functions from some higher code.
+
+#save, option( dll_export => on )
+
+PROCEDURE Startup() : CARDINAL;
+PROCEDURE Cleanup();
+
+#restore
+
+//--------------------------------------------------------------------------------
+
+END netinit.

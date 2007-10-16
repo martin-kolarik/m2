@@ -1,0 +1,82 @@
+DEFINITION MODULE stacks;
+
+IMPORT
+  stack;
+
+FROM StringsO IMPORT
+	CString;
+
+#save, option( dll_export => on )
+
+//---------------------------------------------------------------------------
+
+CLASS CIntegerStack( stack.CStack );
+  PUBLIC READONLY PROPERTY
+    Current : INTEGER;
+  PUBLIC PROPERTY
+    CurrentData : PTR;
+
+  PUBLIC PROCEDURE Contains( Value : INTEGER ) : BOOLEAN;
+
+  PUBLIC PROCEDURE Push( Value : INTEGER );
+  PUBLIC PROCEDURE PushEx( Value : INTEGER; Data : PTR );
+  PUBLIC PROCEDURE Pop() : INTEGER;
+  PUBLIC PROCEDURE PopEx( OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN;
+  PUBLIC PROCEDURE Peek() : INTEGER;
+  PUBLIC PROCEDURE PeekEx( OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN;
+
+  PUBLIC PROCEDURE StoreData( Data : PTR ); // uses TOP
+  PUBLIC PROCEDURE PeekData() : PTR; // uses TOP
+END CIntegerStack;
+
+//---------------------------------------------------------------------------
+
+CLASS CPtrStack( stack.CStack );
+  PUBLIC READONLY PROPERTY
+    Current : PTR;
+  PUBLIC PROPERTY
+    CurrentData : PTR;
+
+  PUBLIC PROCEDURE Contains( Value : PTR ) : BOOLEAN;
+
+  PUBLIC PROCEDURE Push( Value : PTR );
+  PUBLIC PROCEDURE PushEx( Value : PTR; Data : PTR );
+  PUBLIC PROCEDURE Pop() : PTR;
+  PUBLIC PROCEDURE PopEx( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+  PUBLIC PROCEDURE Peek() : PTR;
+  PUBLIC PROCEDURE PeekEx( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+
+  PUBLIC PROCEDURE StoreData( Data : PTR ); // uses TOP
+  PUBLIC PROCEDURE PeekData() : PTR; // uses TOP
+END CPtrStack;
+
+//---------------------------------------------------------------------------
+
+CLASS CStringStack( stack.CStack );
+  PUBLIC READONLY PROPERTY
+    Current : POINTER TO CString;
+  PUBLIC PROPERTY
+    CurrentData : PTR;
+
+  PUBLIC PROCEDURE Contains( CONST Value : CString ) : BOOLEAN;
+  PUBLIC PROCEDURE ContainsOA( CONST Value : ARRAY OF WCHAR ) : BOOLEAN;
+
+  PUBLIC PROCEDURE Push( CONST Value : CString );
+  PUBLIC PROCEDURE PushOA( CONST Value : ARRAY OF WCHAR );
+  PUBLIC PROCEDURE PushEx( CONST Value : CString; Data : PTR );
+  PUBLIC PROCEDURE PushExOA( CONST Value : ARRAY OF WCHAR; Data : PTR );
+
+  PUBLIC PROCEDURE Pop( OUT Value : CString );
+  PUBLIC PROCEDURE PopEx( OUT Value : CString; OUT Data : PTR ) : BOOLEAN;
+  PUBLIC PROCEDURE Peek( OUT Value : CString );
+  PUBLIC PROCEDURE PeekEx( OUT Value : CString; OUT Data : PTR ) : BOOLEAN;
+
+  PUBLIC PROCEDURE StoreData( Data : PTR ); // uses TOP
+  PUBLIC PROCEDURE PeekData() : PTR; // uses TOP
+END CStringStack;
+
+//---------------------------------------------------------------------------
+
+#restore
+
+END stacks.

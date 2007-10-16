@@ -1,0 +1,26 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 -->
+    <PropertyGroup>
+        <ComponentStandaloneFlag>on</ComponentStandaloneFlag>
+
+        <FileDescription>SmartControl Core Library</FileDescription>
+    </PropertyGroup>
+
+    <!-- 2 INCLUDE DEFINITION -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 COMPONENT DEFINITION -->
+    <ItemGroup>
+        <Components Include="modula2\m2rtl;modula2\m2ortl;library\ADT;library\Resources;library\Text"/>
+        <Components Include="library\messaging;library\threading;library\Network;library\Service"/>
+        <ExportToInterface Include="@(Components)"/>
+    </ItemGroup>
+
+    <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>

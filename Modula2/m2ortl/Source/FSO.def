@@ -1,0 +1,90 @@
+DEFINITION MODULE FSO;
+
+IMPORT
+   FIOO,
+   IOO,
+   StringsO,
+   time,
+   windows;
+
+#save, option( dll_export => on )
+
+(*================================================================================*)
+
+TYPE
+   TSearchOption = (
+      soAllDirectories,
+      soTopDirectoryOnly
+   );
+   
+   TFileAttribute = (
+      faArchive,
+      faCompressed,
+      faDirectory,
+      faEncrypted,
+      faHidden,
+      faNormal,
+      faOffline,
+      faReadOnly,
+      faReparsePoint,
+      faSparseFile,
+      faSystem,
+      faTemporary 
+   );
+   TFileAttributes = SET OF TFileAttribute;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPDirectoryInfo = POINTER TO CDirectoryInfo;
+
+CLASS CDirectoryInfo; // 0W or '*' are equivalent in Pattern
+   PRIVATE VAR
+      _handle      : windows.HANDLE;
+      _current     : windows.WIN32_FIND_DATAW;
+      _path        : ARRAY [0..511] OF WCHAR;
+      _pattern     : ARRAY [0..255] OF WCHAR;
+      _directories : BOOLEAN;
+      _files       : BOOLEAN;
+
+   // enumerator interface
+   PUBLIC PROCEDURE StartOA( CONST Path, Pattern : ARRAY OF WCHAR; SearchOptions : TSearchOption; GetDirectories, GetFiles : BOOLEAN ) : BOOLEAN;
+   PUBLIC PROCEDURE StartFromPath( CONST PathWithPattern : StringsO.IString; SearchOptions : TSearchOption; GetDirectories, GetFiles : BOOLEAN ) : BOOLEAN;
+   PUBLIC PROCEDURE StartFromPathOA( CONST PathWithPattern : ARRAY OF WCHAR; SearchOptions : TSearchOption; GetDirectories, GetFiles : BOOLEAN ) : BOOLEAN;
+   PUBLIC PROCEDURE Stop();
+   PUBLIC PROCEDURE MoveNext() : BOOLEAN;
+   PUBLIC READONLY PROPERTY // returns data of current item
+      Name           : StringsO.CString;
+      Path           : StringsO.CString;
+      Attributes     : TFileAttributes;
+      Size           : CARD64;
+      CreationTime   : time.TDateTime;
+      LastAccessTime : time.TDateTime;
+   
+   PRIVATE PROCEDURE CheckMatch( Feed : BOOLEAN ) : BOOLEAN;
+END CDirectoryInfo;
+
+(*
+// group operations
+PROCEDURE GetFiles( Path, Pattern : ARRAY OF WCHAR; SearchOption : TSearchOption; OUT Files : lists.CStringList );
+PROCEDURE GetDirectories( Path, Pattern : ARRAY OF WCHAR; SearchOption : TSearchOption; OUT Directories : lists.CStringList );
+*)
+
+(*================================================================================*)
+
+PROCEDURE CreateDirectory( CONST Directory : StringsO.CString ) : BOOLEAN;
+PROCEDURE CreateDirectoryOA( CONST Directory : ARRAY OF WCHAR ) : BOOLEAN;
+
+(*================================================================================*)
+
+PROCEDURE GetEnvVariable( CONST Variable : ARRAY OF WCHAR; OUT Data : StringsO.CString ) : BOOLEAN;
+
+(*================================================================================*)
+
+PROCEDURE RunProgramInPipe( CONST Path, Parameters : ARRAY OF WCHAR; CONST InStream : IOO.TPStream; OUT OutStream : FIOO.TPFileStream ) THROWS IOO.CIOException;
+
+(*================================================================================*)
+
+#restore
+
+END FSO.

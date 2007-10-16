@@ -1,0 +1,21 @@
+[comm]
+baudrate = 9600
+parity = even
+databits = 8
+stopbits = 2
+
+rx_buffer = 260
+tx_buffer = 260
+rx_frame_buffer = 260
+tx_frame_buffer = 260
+cts_flow = false
+dsr_flow = false
+dtr_control = disable
+rts_control = disable
+dsr_sense = low
+rx_interchar_timeout = 5
+rx_char_timeout = 2
+rx_timeout = 5
+tx_char_timeout = 2
+tx_timeout = 5
+

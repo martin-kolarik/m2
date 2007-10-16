@@ -1,0 +1,836 @@
+
+Log-File:deblog.txt erzeugt am:24.1.2007 - 9.39.04> 
+
+Start ComfortSoft
+pathValueComfortSoft:C:\Program Files\STIEBEL ELTRON\ComSoft GSM
+cc.dat Path:.
+WaitOnTimeOutMSec:150
+ReadTimeoutMSec:1000
+MaxRecordEntries:50000
+RepeatBuskonfTelegr(nur Direktverbindung):0
+Version CS: 3.2.1
+
+9.39.09> Sec:9, <PC(0)READ FROM:PC(0),TgrNr:11,D3:0,D4:0,D5:0,D6:0>
+9.39.10> Acknowlede!!!!
+
+9.39.23> Sec:23, <PC(0)READ FROM:DIRECT(0),TgrNr:250 InfoNr:427,iVal:0,D3:1,D4:171,D5:0,D6:0>
+9.39.24> Sec:24, <DIRECT(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:427,iVal:1,D3:1,D4:171,D5:0,D6:1>
+9.39.24> Comm-Thread angehalten, wartet auf Fortsetzung
+
+9.39.24> Sec:24, <PC(0)READ FROM:DIRECT(0),CoCo Buskonfig-Kessel-Busk >
+9.39.25> Sec:25, <DIRECT(0)RESPOND TO:PC(0),CoCo Buskonfig-Kessel-Busk:(0),>
+9.39.25> Sec:25, <PC(0)READ FROM:DIRECT(1),CoCo Buskonfig-Manager-Busk >
+9.39.27> Sec:27, <DIRECT(1)RESPOND TO:PC(0),CoCo Buskonfig-Manager-Busk:(0),>
+9.39.27> Sec:27, <PC(0)READ FROM:DIRECT(2),CoCo Buskonfig-Heizmodul-Busk >
+9.39.28> Sec:28, <DIRECT(2)RESPOND TO:PC(0),CoCo Buskonfig-Heizmodul-Busk:(0),>
+9.39.28> Sec:28, <PC(0)READ FROM:DIRECT(3),CoCo Buskonfig-Bedien-Busk >
+9.39.29> Sec:29, <DIRECT(3)RESPOND TO:PC(0),CoCo Buskonfig-Bedien-Busk:(0),>
+9.39.29> Sec:29, <PC(0)READ FROM:DIRECT(4),CoCo Buskonfig-Mischer-Busk >
+9.39.30> Sec:30, <DIRECT(4)RESPOND TO:PC(0),CoCo Buskonfig-Mischer-Busk:>
+9.39.30> Comm-Thread angehalten, wartet auf Fortsetzung
+
+9.39.30> Sec:30, <PC(0)READ FROM:Kessel(0),TgrNr:11,D3:0,D4:0,D5:0,D6:0>
+9.39.31> Sec:31, <Kessel(0)RESPOND TO:PC(0),TgrNr:11,D3:165,D4:8,D5:0,D6:0>
+9.39.31> Sec:31, <PC(0)READ FROM:Bedienmodul(0),TgrNr:11,D3:0,D4:0,D5:0,D6:0>
+9.39.32> Sec:32, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:11,D3:165,D4:8,D5:0,D6:0>
+9.39.32> Sec:32, <PC(0)READ FROM:Manager(0),TgrNr:11,D3:0,D4:0,D5:0,D6:0>
+9.39.33> Sec:33, <Manager(0)RESPOND TO:PC(0),TgrNr:11,D3:165,D4:8,D5:0,D6:0>
+9.39.33> Sec:33, <PC(0)READ FROM:Heizmodul(0),TgrNr:11,D3:0,D4:0,D5:0,D6:0>
+9.39.34> Sec:34, <Heizmodul(0)RESPOND TO:PC(0),TgrNr:11,D3:25,D4:8,D5:0,D6:0>
+9.39.34> Comm-Thread angehalten, wartet auf Fortsetzung
+
+9.39.34> Sec:34, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:755,iVal:0,D3:2,D4:243,D5:0,D6:0>
+9.39.35> Sec:35, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:755,iVal:32768,D3:2,D4:243,D5:128,D6:0>
+9.39.35> Sec:35, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:755,iVal:0,D3:2,D4:243,D5:0,D6:0>
+9.39.36> Sec:36, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:755,iVal:32768,D3:2,D4:243,D5:128,D6:0>
+9.39.36> Sec:36, <PC(0)READ FROM:Manager(0),TgrNr:250 InfoNr:755,iVal:0,D3:2,D4:243,D5:0,D6:0>
+9.39.37> Sec:37, <Manager(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:755,iVal:32768,D3:2,D4:243,D5:128,D6:0>
+9.39.37> Sec:37, <PC(0)READ FROM:Heizmodul(0),TgrNr:250 InfoNr:755,iVal:0,D3:2,D4:243,D5:0,D6:0>
+9.39.38> <Timeout>
+9.39.39> Sec:39, <PC(0)READ FROM:Heizmodul(0),TgrNr:250 InfoNr:755,iVal:0,D3:2,D4:243,D5:0,D6:0>
+9.39.40> <Timeout>
+9.39.40> Sec:40, <PC(0)READ FROM:Heizmodul(0),TgrNr:250 InfoNr:755,iVal:0,D3:2,D4:243,D5:0,D6:0>
+9.39.41> <Timeout>
+9.39.41> Sec:41, <PC(0)READ FROM:Heizmodul(0),TgrNr:250 InfoNr:755,iVal:0,D3:2,D4:243,D5:0,D6:0>
+9.39.42> <Timeout>
+9.39.42> Comm-Thread angehalten, wartet auf Fortsetzung
+
+9.39.42> Sec:42, <PC(0)READ FROM:Kessel(0),TgrNr:16,D3:0,D4:0,D5:0,D6:0>
+9.39.43> Sec:43, <Kessel(0)RESPOND TO:PC(0),TgrNr:16,D3:0,D4:49,D5:0,D6:1>
+9.39.43> Sec:43, <PC(0)READ FROM:Bedienmodul(0),TgrNr:16,D3:0,D4:0,D5:0,D6:0>
+9.39.44> Sec:44, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:16,D3:128,D4:0,D5:0,D6:0>
+9.39.44> Sec:44, <PC(0)READ FROM:Manager(0),TgrNr:16,D3:0,D4:0,D5:0,D6:0>
+9.39.45> Sec:45, <Manager(0)RESPOND TO:PC(0),TgrNr:16,D3:0,D4:0,D5:0,D6:0>
+9.39.45> Sec:45, <PC(0)READ FROM:Heizmodul(0),TgrNr:16,D3:0,D4:0,D5:0,D6:0>
+9.39.46> Sec:46, <Heizmodul(0)RESPOND TO:PC(0),TgrNr:16,D3:0,D4:0,D5:0,D6:0>
+9.39.46> Info->
+=== Buskonfig ===
+ModTyp:3,Busk:0,ModId:65536,Conf:49,SNr:165,SVer:8
+ModTyp:6,Busk:0,ModId:65536,Conf:32768,SNr:165,SVer:8
+ModTyp:9,Busk:0,ModId:65536,Conf:0,SNr:165,SVer:8
+ModTyp:10,Busk:0,ModId:65537,Conf:0,SNr:25,SVer:8
+=================
+
+9.39.46> Sec:46, <PC(0)READ FROM:Heizmodul(0),TgrNr:90,D3:0,D4:0,D5:0,D6:0>
+9.39.47> Sec:47, <Heizmodul(0)RESPOND TO:PC(0),TgrNr:90,D3:130,D4:0,D5:0,D6:0>
+9.40.38> Sec:38, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:17,iVal:32768,D3:0,D4:17,D5:128,D6:0>
+9.40.39> Sec:39, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:17,iVal:181,D3:0,D4:17,D5:0,D6:181>
+9.40.39> Sec:39, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:387,iVal:0,D3:1,D4:131,D5:0,D6:0>
+9.40.40> Sec:40, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:387,iVal:0,D3:1,D4:131,D5:0,D6:0>
+9.40.40> Sec:40, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:64959,iVal:0,D3:253,D4:191,D5:0,D6:0>
+9.40.41> Sec:41, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64959,iVal:0,D3:253,D4:191,D5:0,D6:0>
+9.40.41> Sec:41, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5,iVal:200,D3:0,D4:5,D5:0,D6:200>
+9.40.42> Sec:42, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5,iVal:205,D3:0,D4:5,D5:0,D6:205>
+9.40.42> Sec:42, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:8,iVal:200,D3:0,D4:8,D5:0,D6:200>
+9.40.43> Sec:43, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:8,iVal:180,D3:0,D4:8,D5:0,D6:180>
+9.40.43> Sec:43, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:270,iVal:60,D3:1,D4:14,D5:0,D6:60>
+9.40.45> Sec:45, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:270,iVal:75,D3:1,D4:14,D5:0,D6:75>
+9.40.45> Sec:45, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:88,iVal:512,D3:0,D4:88,D5:2,D6:0>
+9.40.46> <Timeout>
+9.40.46> Sec:46, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:88,iVal:512,D3:0,D4:88,D5:2,D6:0>
+9.40.47> Sec:47, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:88,iVal:512,D3:0,D4:88,D5:2,D6:0>
+9.40.47> Sec:47, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:40,iVal:500,D3:0,D4:40,D5:1,D6:244>
+9.40.48> Sec:48, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:40,iVal:480,D3:0,D4:40,D5:1,D6:224>
+9.40.48> Sec:48, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:19,iVal:470,D3:0,D4:19,D5:1,D6:214>
+9.40.49> Sec:49, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:19,iVal:400,D3:0,D4:19,D5:1,D6:144>
+9.40.49> Sec:49, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2566,iVal:100,D3:10,D4:6,D5:0,D6:100>
+9.40.50> Sec:50, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2566,iVal:350,D3:10,D4:6,D5:1,D6:94>
+9.40.50> Sec:50, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:14,iVal:32776,D3:0,D4:14,D5:128,D6:8>
+9.40.51> Sec:51, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:14,iVal:366,D3:0,D4:14,D5:1,D6:110>
+9.40.51> Sec:51, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:274,iVal:256,D3:1,D4:18,D5:1,D6:0>
+9.40.52> Sec:52, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:274,iVal:512,D3:1,D4:18,D5:2,D6:0>
+9.40.52> Sec:52, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:275,iVal:0,D3:1,D4:19,D5:0,D6:0>
+9.40.53> Sec:53, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:275,iVal:1792,D3:1,D4:19,D5:7,D6:0>
+9.40.53> Sec:53, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:290,iVal:6144,D3:1,D4:34,D5:24,D6:0>
+9.40.54> Sec:54, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:290,iVal:6144,D3:1,D4:34,D5:24,D6:0>
+9.40.54> Sec:54, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:291,iVal:256,D3:1,D4:35,D5:1,D6:0>
+9.40.55> Sec:55, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:291,iVal:256,D3:1,D4:35,D5:1,D6:0>
+9.40.55> Sec:55, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:292,iVal:1792,D3:1,D4:36,D5:7,D6:0>
+9.40.56> Sec:56, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:292,iVal:1792,D3:1,D4:36,D5:7,D6:0>
+9.40.56> Sec:56, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:293,iVal:2304,D3:1,D4:37,D5:9,D6:0>
+9.40.57> Sec:57, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:293,iVal:2304,D3:1,D4:37,D5:9,D6:0>
+9.40.57> Sec:57, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:294,iVal:10240,D3:1,D4:38,D5:40,D6:0>
+9.40.58> Sec:58, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:294,iVal:6656,D3:1,D4:38,D5:26,D6:0>
+9.40.58> Sec:58, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:295,iVal:9728,D3:1,D4:39,D5:38,D6:0>
+9.41.00> Sec:0, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:295,iVal:10752,D3:1,D4:39,D5:42,D6:0>
+9.41.00> Sec:0, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:283,iVal:6144,D3:1,D4:27,D5:24,D6:0>
+9.41.01> Sec:1, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:283,iVal:7168,D3:1,D4:27,D5:28,D6:0>
+9.41.01> Sec:1, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:284,iVal:256,D3:1,D4:28,D5:1,D6:0>
+9.41.02> Sec:2, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:284,iVal:2304,D3:1,D4:28,D5:9,D6:0>
+9.41.02> Sec:2, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:285,iVal:1792,D3:1,D4:29,D5:7,D6:0>
+9.41.03> Sec:3, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:285,iVal:1536,D3:1,D4:29,D5:6,D6:0>
+9.41.03> Sec:3, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:286,iVal:6144,D3:1,D4:30,D5:24,D6:0>
+9.41.04> Sec:4, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:286,iVal:7168,D3:1,D4:30,D5:28,D6:0>
+9.41.04> Sec:4, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:287,iVal:256,D3:1,D4:31,D5:1,D6:0>
+9.41.05> Sec:5, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:287,iVal:2304,D3:1,D4:31,D5:9,D6:0>
+9.41.05> Sec:5, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:288,iVal:1792,D3:1,D4:32,D5:7,D6:0>
+9.41.06> Sec:6, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:288,iVal:1536,D3:1,D4:32,D5:6,D6:0>
+9.41.06> Sec:6, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:17,iVal:181,D3:0,D4:17,D5:0,D6:181>
+9.41.07> Sec:7, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:17,iVal:181,D3:0,D4:17,D5:0,D6:181>
+9.41.07> Sec:7, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:387,iVal:0,D3:1,D4:131,D5:0,D6:0>
+9.41.08> Sec:8, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:387,iVal:0,D3:1,D4:131,D5:0,D6:0>
+9.41.08> Sec:8, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:64959,iVal:0,D3:253,D4:191,D5:0,D6:0>
+9.41.09> Sec:9, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64959,iVal:0,D3:253,D4:191,D5:0,D6:0>
+9.41.10> Sec:10, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5136,iVal:6232,D3:20,D4:16,D5:24,D6:88>
+9.41.11> Sec:11, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5136,iVal:4672,D3:20,D4:16,D5:18,D6:64>
+9.41.11> Sec:11, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5137,iVal:32896,D3:20,D4:17,D5:128,D6:128>
+9.41.12> <Timeout>
+9.41.12> Sec:12, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5137,iVal:32896,D3:20,D4:17,D5:128,D6:128>
+9.41.13> Sec:13, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5137,iVal:32896,D3:20,D4:17,D5:128,D6:128>
+9.41.13> Sec:13, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5138,iVal:32896,D3:20,D4:18,D5:128,D6:128>
+9.41.14> Sec:14, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5138,iVal:32896,D3:20,D4:18,D5:128,D6:128>
+9.41.14> Sec:14, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5152,iVal:6232,D3:20,D4:32,D5:24,D6:88>
+9.41.15> Sec:15, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5152,iVal:4672,D3:20,D4:32,D5:18,D6:64>
+9.41.15> Sec:15, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5153,iVal:32896,D3:20,D4:33,D5:128,D6:128>
+9.41.16> Sec:16, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5153,iVal:32896,D3:20,D4:33,D5:128,D6:128>
+9.41.16> Sec:16, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5154,iVal:32896,D3:20,D4:34,D5:128,D6:128>
+9.41.17> Sec:17, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5154,iVal:32896,D3:20,D4:34,D5:128,D6:128>
+9.41.17> Sec:17, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5168,iVal:6232,D3:20,D4:48,D5:24,D6:88>
+9.41.18> Sec:18, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5168,iVal:4672,D3:20,D4:48,D5:18,D6:64>
+9.41.18> Sec:18, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5169,iVal:32896,D3:20,D4:49,D5:128,D6:128>
+9.41.19> Sec:19, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5169,iVal:32896,D3:20,D4:49,D5:128,D6:128>
+9.41.19> Sec:19, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5170,iVal:32896,D3:20,D4:50,D5:128,D6:128>
+9.41.20> Sec:20, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5170,iVal:32896,D3:20,D4:50,D5:128,D6:128>
+9.41.20> Sec:20, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5184,iVal:6232,D3:20,D4:64,D5:24,D6:88>
+9.41.21> Sec:21, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5184,iVal:4672,D3:20,D4:64,D5:18,D6:64>
+9.41.21> Sec:21, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5185,iVal:32896,D3:20,D4:65,D5:128,D6:128>
+9.41.22> Sec:22, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5185,iVal:32896,D3:20,D4:65,D5:128,D6:128>
+9.41.22> Sec:22, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5186,iVal:32896,D3:20,D4:66,D5:128,D6:128>
+9.41.24> Sec:24, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5186,iVal:32896,D3:20,D4:66,D5:128,D6:128>
+9.41.24> Sec:24, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5200,iVal:6232,D3:20,D4:80,D5:24,D6:88>
+9.41.25> Sec:25, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5200,iVal:4672,D3:20,D4:80,D5:18,D6:64>
+9.41.25> Sec:25, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5201,iVal:32896,D3:20,D4:81,D5:128,D6:128>
+9.41.26> Sec:26, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5201,iVal:32896,D3:20,D4:81,D5:128,D6:128>
+9.41.26> Sec:26, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5202,iVal:32896,D3:20,D4:82,D5:128,D6:128>
+9.41.27> Sec:27, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5202,iVal:32896,D3:20,D4:82,D5:128,D6:128>
+9.41.27> Sec:27, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5216,iVal:7260,D3:20,D4:96,D5:28,D6:92>
+9.41.28> Sec:28, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5216,iVal:8234,D3:20,D4:96,D5:32,D6:42>
+9.41.28> Sec:28, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5217,iVal:32896,D3:20,D4:97,D5:128,D6:128>
+9.41.29> Sec:29, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5217,iVal:32896,D3:20,D4:97,D5:128,D6:128>
+9.41.29> Sec:29, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5218,iVal:32896,D3:20,D4:98,D5:128,D6:128>
+9.41.30> Sec:30, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5218,iVal:32896,D3:20,D4:98,D5:128,D6:128>
+9.41.30> Sec:30, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5232,iVal:7260,D3:20,D4:112,D5:28,D6:92>
+9.41.31> Sec:31, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5232,iVal:8234,D3:20,D4:112,D5:32,D6:42>
+9.41.31> Sec:31, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5233,iVal:32896,D3:20,D4:113,D5:128,D6:128>
+9.41.32> Sec:32, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5233,iVal:32896,D3:20,D4:113,D5:128,D6:128>
+9.41.32> Sec:32, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5234,iVal:32896,D3:20,D4:114,D5:128,D6:128>
+9.41.33> Sec:33, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5234,iVal:32896,D3:20,D4:114,D5:128,D6:128>
+9.41.33> Sec:33, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5136,iVal:4672,D3:20,D4:16,D5:18,D6:64>
+9.41.34> Sec:34, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5136,iVal:4672,D3:20,D4:16,D5:18,D6:64>
+9.41.34> Sec:34, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5137,iVal:32896,D3:20,D4:17,D5:128,D6:128>
+9.41.35> Sec:35, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5137,iVal:32896,D3:20,D4:17,D5:128,D6:128>
+9.41.35> Sec:35, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5138,iVal:32896,D3:20,D4:18,D5:128,D6:128>
+9.41.36> Sec:36, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5138,iVal:32896,D3:20,D4:18,D5:128,D6:128>
+9.41.36> Sec:36, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5152,iVal:4672,D3:20,D4:32,D5:18,D6:64>
+9.41.38> Sec:38, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5152,iVal:4672,D3:20,D4:32,D5:18,D6:64>
+9.41.38> Sec:38, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5153,iVal:32896,D3:20,D4:33,D5:128,D6:128>
+9.41.39> Sec:39, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5153,iVal:32896,D3:20,D4:33,D5:128,D6:128>
+9.41.39> Sec:39, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5154,iVal:32896,D3:20,D4:34,D5:128,D6:128>
+9.41.40> Sec:40, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5154,iVal:32896,D3:20,D4:34,D5:128,D6:128>
+9.41.40> Sec:40, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5168,iVal:4672,D3:20,D4:48,D5:18,D6:64>
+9.41.41> Sec:41, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5168,iVal:4672,D3:20,D4:48,D5:18,D6:64>
+9.41.41> Sec:41, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5169,iVal:32896,D3:20,D4:49,D5:128,D6:128>
+9.41.42> <Timeout>
+9.41.42> Sec:42, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5169,iVal:32896,D3:20,D4:49,D5:128,D6:128>
+9.41.43> Sec:43, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5169,iVal:32896,D3:20,D4:49,D5:128,D6:128>
+9.41.43> Sec:43, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5170,iVal:32896,D3:20,D4:50,D5:128,D6:128>
+9.41.44> Sec:44, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5170,iVal:32896,D3:20,D4:50,D5:128,D6:128>
+9.41.44> Sec:44, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5184,iVal:4672,D3:20,D4:64,D5:18,D6:64>
+9.41.45> Sec:45, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5184,iVal:4672,D3:20,D4:64,D5:18,D6:64>
+9.41.45> Sec:45, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5185,iVal:32896,D3:20,D4:65,D5:128,D6:128>
+9.41.46> Sec:46, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5185,iVal:32896,D3:20,D4:65,D5:128,D6:128>
+9.41.46> Sec:46, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5186,iVal:32896,D3:20,D4:66,D5:128,D6:128>
+9.41.47> Sec:47, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5186,iVal:32896,D3:20,D4:66,D5:128,D6:128>
+9.41.47> Sec:47, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5200,iVal:4672,D3:20,D4:80,D5:18,D6:64>
+9.41.48> Sec:48, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5200,iVal:4672,D3:20,D4:80,D5:18,D6:64>
+9.41.48> Sec:48, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5201,iVal:32896,D3:20,D4:81,D5:128,D6:128>
+9.41.49> Sec:49, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5201,iVal:32896,D3:20,D4:81,D5:128,D6:128>
+9.41.49> Sec:49, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5202,iVal:32896,D3:20,D4:82,D5:128,D6:128>
+9.41.50> Sec:50, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5202,iVal:32896,D3:20,D4:82,D5:128,D6:128>
+9.41.51> Sec:51, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:17,iVal:181,D3:0,D4:17,D5:0,D6:181>
+9.41.52> Sec:52, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:17,iVal:181,D3:0,D4:17,D5:0,D6:181>
+9.41.52> Sec:52, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:387,iVal:0,D3:1,D4:131,D5:0,D6:0>
+9.41.53> Sec:53, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:387,iVal:0,D3:1,D4:131,D5:0,D6:0>
+9.41.53> Sec:53, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:12,iVal:32776,D3:0,D4:12,D5:128,D6:8>
+9.41.54> Sec:54, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:12,iVal:2,D3:0,D4:12,D5:0,D6:2>
+9.41.54> Sec:54, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5,iVal:32776,D3:0,D4:5,D5:128,D6:8>
+9.41.55> Sec:55, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5,iVal:205,D3:0,D4:5,D5:0,D6:205>
+9.41.55> Sec:55, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:14,iVal:32776,D3:0,D4:14,D5:128,D6:8>
+9.41.56> Sec:56, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:14,iVal:366,D3:0,D4:14,D5:1,D6:110>
+9.41.56> Sec:56, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:3,iVal:32776,D3:0,D4:3,D5:128,D6:8>
+9.41.57> Sec:57, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:3,iVal:400,D3:0,D4:3,D5:1,D6:144>
+9.41.57> Sec:57, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:22,iVal:32776,D3:0,D4:22,D5:128,D6:8>
+9.41.58> Sec:58, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:22,iVal:355,D3:0,D4:22,D5:1,D6:99>
+9.41.58> Sec:58, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:4,iVal:32776,D3:0,D4:4,D5:128,D6:8>
+9.41.59> Sec:59, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:4,iVal:446,D3:0,D4:4,D5:1,D6:190>
+9.41.59> Sec:59, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:15,iVal:32776,D3:0,D4:15,D5:128,D6:8>
+9.42.00> Sec:0, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:15,iVal:65136,D3:0,D4:15,D5:254,D6:112>
+9.42.00> Sec:0, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:4,iVal:32776,D3:0,D4:4,D5:128,D6:8>
+9.42.01> Sec:1, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:4,iVal:50,D3:0,D4:4,D5:0,D6:50>
+9.42.01> Sec:1, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:448,iVal:0,D3:1,D4:192,D5:0,D6:0>
+9.42.02> Sec:2, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:448,iVal:0,D3:1,D4:192,D5:0,D6:0>
+9.42.02> Sec:2, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:469,iVal:32776,D3:1,D4:213,D5:128,D6:8>
+9.42.03> Sec:3, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:469,iVal:446,D3:1,D4:213,D5:1,D6:190>
+9.42.03> Sec:3, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:470,iVal:32776,D3:1,D4:214,D5:128,D6:8>
+9.42.04> Sec:4, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:470,iVal:327,D3:1,D4:214,D5:1,D6:71>
+9.42.04> Sec:4, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:385,iVal:32776,D3:1,D4:129,D5:128,D6:8>
+9.42.06> Sec:6, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:385,iVal:600,D3:1,D4:129,D5:2,D6:88>
+9.42.06> Sec:6, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:488,iVal:32776,D3:1,D4:232,D5:128,D6:8>
+9.42.07> Sec:7, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:488,iVal:600,D3:1,D4:232,D5:2,D6:88>
+9.42.07> Sec:7, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:468,iVal:32776,D3:1,D4:212,D5:128,D6:8>
+9.42.08> Sec:8, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:468,iVal:65136,D3:1,D4:212,D5:254,D6:112>
+9.42.08> Sec:8, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:432,iVal:65336,D3:1,D4:176,D5:255,D6:56>
+9.42.09> <Timeout>
+9.42.09> Sec:9, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:432,iVal:65336,D3:1,D4:176,D5:255,D6:56>
+9.42.10> Sec:10, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:432,iVal:65486,D3:1,D4:176,D5:255,D6:206>
+9.42.10> Sec:10, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:428,iVal:32776,D3:1,D4:172,D5:128,D6:8>
+9.42.11> Sec:11, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:428,iVal:65436,D3:1,D4:172,D5:255,D6:156>
+9.42.11> Sec:11, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:429,iVal:32776,D3:1,D4:173,D5:128,D6:8>
+9.42.12> Sec:12, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:429,iVal:65436,D3:1,D4:173,D5:255,D6:156>
+9.42.12> Sec:12, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:430,iVal:65336,D3:1,D4:174,D5:255,D6:56>
+9.42.13> Sec:13, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:430,iVal:65336,D3:1,D4:174,D5:255,D6:56>
+9.42.13> Sec:13, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:431,iVal:65336,D3:1,D4:175,D5:255,D6:56>
+9.42.14> Sec:14, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:431,iVal:65341,D3:1,D4:175,D5:255,D6:61>
+9.42.14> Sec:14, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2560,iVal:32776,D3:10,D4:0,D5:128,D6:8>
+9.42.15> Sec:15, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2560,iVal:40,D3:10,D4:0,D5:0,D6:40>
+9.42.15> Sec:15, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:64951,iVal:0,D3:253,D4:183,D5:0,D6:0>
+9.42.16> Sec:16, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64951,iVal:0,D3:253,D4:183,D5:0,D6:0>
+9.42.16> Sec:16, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:64950,iVal:0,D3:253,D4:182,D5:0,D6:0>
+9.42.17> Sec:17, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64950,iVal:0,D3:253,D4:182,D5:0,D6:0>
+9.42.17> Sec:17, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:17,iVal:32776,D3:0,D4:17,D5:128,D6:8>
+9.42.18> Sec:18, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:17,iVal:181,D3:0,D4:17,D5:0,D6:181>
+9.42.19> Sec:19, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:17,iVal:181,D3:0,D4:17,D5:0,D6:181>
+9.42.20> Sec:20, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:17,iVal:181,D3:0,D4:17,D5:0,D6:181>
+9.42.20> Sec:20, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:387,iVal:0,D3:1,D4:131,D5:0,D6:0>
+9.42.21> Sec:21, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:387,iVal:0,D3:1,D4:131,D5:0,D6:0>
+9.42.21> Sec:21, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:12,iVal:2,D3:0,D4:12,D5:0,D6:2>
+9.42.22> Sec:22, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:12,iVal:2,D3:0,D4:12,D5:0,D6:2>
+9.42.22> Sec:22, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:5,iVal:205,D3:0,D4:5,D5:0,D6:205>
+9.42.23> Sec:23, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:5,iVal:205,D3:0,D4:5,D5:0,D6:205>
+9.42.23> Sec:23, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:14,iVal:366,D3:0,D4:14,D5:1,D6:110>
+9.42.24> Sec:24, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:14,iVal:366,D3:0,D4:14,D5:1,D6:110>
+9.42.24> Sec:24, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:3,iVal:400,D3:0,D4:3,D5:1,D6:144>
+9.42.25> Sec:25, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:3,iVal:400,D3:0,D4:3,D5:1,D6:144>
+9.42.25> Sec:25, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:22,iVal:355,D3:0,D4:22,D5:1,D6:99>
+9.42.26> Sec:26, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:22,iVal:355,D3:0,D4:22,D5:1,D6:99>
+9.42.26> Sec:26, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:4,iVal:446,D3:0,D4:4,D5:1,D6:190>
+9.42.27> Sec:27, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:4,iVal:446,D3:0,D4:4,D5:1,D6:190>
+9.42.27> Sec:27, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:15,iVal:65136,D3:0,D4:15,D5:254,D6:112>
+9.42.28> Sec:28, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:15,iVal:65136,D3:0,D4:15,D5:254,D6:112>
+9.42.28> Sec:28, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:4,iVal:50,D3:0,D4:4,D5:0,D6:50>
+9.42.29> Sec:29, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:4,iVal:50,D3:0,D4:4,D5:0,D6:50>
+9.42.29> Sec:29, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:448,iVal:0,D3:1,D4:192,D5:0,D6:0>
+9.42.30> Sec:30, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:448,iVal:0,D3:1,D4:192,D5:0,D6:0>
+9.42.31> Sec:31, <PC(0)READ FROM:Manager(0),TgrNr:250 InfoNr:48,iVal:5120,D3:0,D4:48,D5:20,D6:0>
+9.42.32> Sec:32, <Manager(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:48,iVal:512,D3:0,D4:48,D5:2,D6:0>
+9.42.32> Sec:32, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:468,iVal:65136,D3:1,D4:212,D5:254,D6:112>
+9.42.33> Sec:33, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:468,iVal:65136,D3:1,D4:212,D5:254,D6:112>
+9.42.33> Sec:33, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:459,iVal:62260,D3:1,D4:203,D5:243,D6:52>
+9.42.34> Sec:34, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:459,iVal:0,D3:1,D4:203,D5:0,D6:0>
+9.42.34> Sec:34, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:458,iVal:62260,D3:1,D4:202,D5:243,D6:52>
+9.42.35> Sec:35, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:458,iVal:0,D3:1,D4:202,D5:0,D6:0>
+9.42.35> Sec:35, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:64936,iVal:0,D3:253,D4:168,D5:0,D6:0>
+9.42.36> Sec:36, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64936,iVal:512,D3:253,D4:168,D5:2,D6:0>
+9.42.36> Sec:36, <PC(0)READ FROM:Manager(0),TgrNr:95,D3:0,D4:0,D5:0,D6:0>
+9.42.37> Sec:37, <Manager(0)RESPOND TO:PC(0),TgrNr:95,D3:1,D4:0,D5:0,D6:0>
+9.42.37> Sec:37, <PC(0)READ FROM:Heizmodul(0),TgrNr:20,D3:0,D4:0,D5:0,D6:0>
+9.42.38> Sec:38, <Heizmodul(0)RESPOND TO:PC(0),TgrNr:20,D3:1,D4:74,D5:0,D6:0>
+9.42.38> Sec:38, <PC(0)READ FROM:Heizmodul(0),TgrNr:11,D3:0,D4:0,D5:0,D6:0>
+9.42.39> Sec:39, <Heizmodul(0)RESPOND TO:PC(0),TgrNr:11,D3:25,D4:8,D5:0,D6:0>
+9.42.39> Sec:39, <PC(0)READ FROM:Heizmodul(0),TgrNr:90,D3:0,D4:0,D5:0,D6:0>
+9.42.40> Sec:40, <Heizmodul(0)RESPOND TO:PC(0),TgrNr:90,D3:130,D4:0,D5:0,D6:0>
+9.42.40> Sec:40, <PC(0)READ FROM:Manager(0),TgrNr:250 InfoNr:48,iVal:512,D3:0,D4:48,D5:2,D6:0>
+9.42.41> Sec:41, <Manager(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:48,iVal:512,D3:0,D4:48,D5:2,D6:0>
+9.42.41> Sec:41, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:468,iVal:65136,D3:1,D4:212,D5:254,D6:112>
+9.42.42> Sec:42, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:468,iVal:65136,D3:1,D4:212,D5:254,D6:112>
+9.42.42> Sec:42, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:459,iVal:0,D3:1,D4:203,D5:0,D6:0>
+9.42.44> Sec:44, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:459,iVal:0,D3:1,D4:203,D5:0,D6:0>
+9.42.44> Sec:44, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:458,iVal:0,D3:1,D4:202,D5:0,D6:0>
+9.42.45> Sec:45, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:458,iVal:0,D3:1,D4:202,D5:0,D6:0>
+9.42.45> Sec:45, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:64936,iVal:512,D3:253,D4:168,D5:2,D6:0>
+9.42.46> Sec:46, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64936,iVal:512,D3:253,D4:168,D5:2,D6:0>
+9.42.46> Sec:46, <PC(0)READ FROM:Manager(0),TgrNr:95,D3:1,D4:0,D5:0,D6:0>
+9.42.47> Sec:47, <Manager(0)RESPOND TO:PC(0),TgrNr:95,D3:1,D4:0,D5:0,D6:0>
+9.42.47> Sec:47, <PC(0)READ FROM:Heizmodul(0),TgrNr:20,D3:1,D4:74,D5:0,D6:0>
+9.42.48> Sec:48, <Heizmodul(0)RESPOND TO:PC(0),TgrNr:20,D3:1,D4:73,D5:0,D6:0>
+9.42.48> Sec:48, <PC(0)READ FROM:Heizmodul(0),TgrNr:11,D3:25,D4:8,D5:0,D6:0>
+9.42.49> Sec:49, <Heizmodul(0)RESPOND TO:PC(0),TgrNr:11,D3:25,D4:8,D5:0,D6:0>
+9.42.49> Sec:49, <PC(0)READ FROM:Heizmodul(0),TgrNr:90,D3:130,D4:0,D5:0,D6:0>
+9.42.50> Sec:50, <Heizmodul(0)RESPOND TO:PC(0),TgrNr:90,D3:130,D4:0,D5:0,D6:0>
+9.42.50> Sec:50, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:452,iVal:0,D3:1,D4:196,D5:0,D6:0>
+9.42.51> Sec:51, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:452,iVal:722,D3:1,D4:196,D5:2,D6:210>
+9.42.51> Sec:51, <PC(0)READ FROM:Manager(0),TgrNr:250 InfoNr:460,iVal:0,D3:1,D4:204,D5:0,D6:0>
+9.42.52> Sec:52, <Manager(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:460,iVal:0,D3:1,D4:204,D5:0,D6:0>
+9.42.52> Sec:52, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:453,iVal:0,D3:1,D4:197,D5:0,D6:0>
+9.42.53> Sec:53, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:453,iVal:712,D3:1,D4:197,D5:2,D6:200>
+9.42.53> Sec:53, <PC(0)READ FROM:Manager(0),TgrNr:250 InfoNr:461,iVal:0,D3:1,D4:205,D5:0,D6:0>
+9.42.54> Sec:54, <Manager(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:461,iVal:641,D3:1,D4:205,D5:2,D6:129>
+9.42.54> Sec:54, <PC(0)READ FROM:Manager(0),TgrNr:250 InfoNr:48,iVal:512,D3:0,D4:48,D5:2,D6:0>
+9.42.55> Sec:55, <Manager(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:48,iVal:512,D3:0,D4:48,D5:2,D6:0>
+9.42.55> Sec:55, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:468,iVal:65136,D3:1,D4:212,D5:254,D6:112>
+9.42.56> Sec:56, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:468,iVal:65136,D3:1,D4:212,D5:254,D6:112>
+9.42.57> Sec:57, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:100,iVal:0,D3:0,D4:100,D5:0,D6:0>
+9.42.58> Sec:58, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:100,iVal:0,D3:0,D4:100,D5:0,D6:0>
+9.42.58> Sec:58, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:83,iVal:0,D3:0,D4:83,D5:0,D6:0>
+9.42.59> Sec:59, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:83,iVal:0,D3:0,D4:83,D5:0,D6:0>
+9.42.59> Sec:59, <PC(0)READ FROM:Manager(0),TgrNr:250 InfoNr:64940,iVal:0,D3:253,D4:172,D5:0,D6:0>
+9.43.00> Sec:0, <Manager(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64940,iVal:0,D3:253,D4:172,D5:0,D6:0>
+9.43.00> Sec:0, <PC(0)READ FROM:Manager(0),TgrNr:250 InfoNr:64940,iVal:0,D3:253,D4:172,D5:0,D6:0>
+9.43.01> Sec:1, <Manager(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64940,iVal:0,D3:253,D4:172,D5:0,D6:0>
+9.43.01> Sec:1, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:99,iVal:0,D3:0,D4:99,D5:0,D6:0>
+9.43.02> Sec:2, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:99,iVal:256,D3:0,D4:99,D5:1,D6:0>
+9.43.02> Sec:2, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:99,iVal:0,D3:0,D4:99,D5:0,D6:0>
+9.43.03> Sec:3, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:99,iVal:256,D3:0,D4:99,D5:1,D6:0>
+9.43.03> Sec:3, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:99,iVal:0,D3:0,D4:99,D5:0,D6:0>
+9.43.04> Sec:4, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:99,iVal:256,D3:0,D4:99,D5:1,D6:0>
+9.43.04> Sec:4, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:99,iVal:0,D3:0,D4:99,D5:0,D6:0>
+9.43.05> Sec:5, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:99,iVal:256,D3:0,D4:99,D5:1,D6:0>
+9.43.05> Sec:5, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:99,iVal:0,D3:0,D4:99,D5:0,D6:0>
+9.43.06> Sec:6, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:99,iVal:256,D3:0,D4:99,D5:1,D6:0>
+9.43.06> Sec:6, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:99,iVal:0,D3:0,D4:99,D5:0,D6:0>
+9.43.07> Sec:7, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:99,iVal:256,D3:0,D4:99,D5:1,D6:0>
+9.43.07> Sec:7, <PC(0)READ FROM:Manager(0),TgrNr:250 InfoNr:64940,iVal:0,D3:253,D4:172,D5:0,D6:0>
+9.43.08> Sec:8, <Manager(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64940,iVal:0,D3:253,D4:172,D5:0,D6:0>
+9.43.08> Sec:8, <PC(0)READ FROM:Manager(0),TgrNr:250 InfoNr:64939,iVal:0,D3:253,D4:171,D5:0,D6:0>
+9.43.09> Sec:9, <Manager(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64939,iVal:256,D3:253,D4:171,D5:1,D6:0>
+9.43.09> Sec:9, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:64938,iVal:0,D3:253,D4:170,D5:0,D6:0>
+9.43.10> Sec:10, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64938,iVal:0,D3:253,D4:170,D5:0,D6:0>
+9.43.10> Sec:10, <PC(0)READ FROM:Heizmodul(0),TgrNr:90,D3:0,D4:0,D5:0,D6:0>
+9.43.12> Sec:12, <Heizmodul(0)RESPOND TO:PC(0),TgrNr:90,D3:130,D4:0,D5:0,D6:0>
+9.43.12> Sec:12, <PC(0)READ FROM:Heizmodul(0),TgrNr:97,D3:0,D4:0,D5:0,D6:0>
+9.43.13> Sec:13, <Heizmodul(0)RESPOND TO:PC(0),TgrNr:97,D3:1,D4:0,D5:0,D6:0>
+9.43.13> Sec:13, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:100,iVal:0,D3:0,D4:100,D5:0,D6:0>
+9.43.14> Sec:14, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:100,iVal:0,D3:0,D4:100,D5:0,D6:0>
+9.43.14> Sec:14, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:83,iVal:0,D3:0,D4:83,D5:0,D6:0>
+9.43.15> Sec:15, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:83,iVal:0,D3:0,D4:83,D5:0,D6:0>
+9.43.15> Sec:15, <PC(0)READ FROM:Manager(0),TgrNr:250 InfoNr:64940,iVal:0,D3:253,D4:172,D5:0,D6:0>
+9.43.16> Sec:16, <Manager(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64940,iVal:0,D3:253,D4:172,D5:0,D6:0>
+9.43.16> Sec:16, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:17,iVal:181,D3:0,D4:17,D5:0,D6:181>
+9.43.17> Sec:17, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:17,iVal:181,D3:0,D4:17,D5:0,D6:181>
+9.43.17> Sec:17, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:64951,iVal:0,D3:253,D4:183,D5:0,D6:0>
+9.43.18> Sec:18, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64951,iVal:0,D3:253,D4:183,D5:0,D6:0>
+9.43.18> Sec:18, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:64948,iVal:256,D3:253,D4:180,D5:1,D6:0>
+9.43.19> Sec:19, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64948,iVal:256,D3:253,D4:180,D5:1,D6:0>
+9.43.19> Sec:19, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:64950,iVal:0,D3:253,D4:182,D5:0,D6:0>
+9.43.20> Sec:20, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64950,iVal:0,D3:253,D4:182,D5:0,D6:0>
+9.43.20> Sec:20, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:64943,iVal:0,D3:253,D4:175,D5:0,D6:0>
+9.43.21> Sec:21, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64943,iVal:0,D3:253,D4:175,D5:0,D6:0>
+9.43.21> Sec:21, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:64946,iVal:0,D3:253,D4:178,D5:0,D6:0>
+9.43.23> Sec:23, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64946,iVal:0,D3:253,D4:178,D5:0,D6:0>
+9.43.23> Sec:23, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:282,iVal:0,D3:1,D4:26,D5:0,D6:0>
+9.43.24> Sec:24, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:282,iVal:0,D3:1,D4:26,D5:0,D6:0>
+9.43.24> Sec:24, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:448,iVal:200,D3:1,D4:192,D5:0,D6:200>
+9.43.25> Sec:25, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:448,iVal:0,D3:1,D4:192,D5:0,D6:0>
+9.43.25> Sec:25, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:432,iVal:65486,D3:1,D4:176,D5:255,D6:206>
+9.43.26> Sec:26, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:432,iVal:65486,D3:1,D4:176,D5:255,D6:206>
+9.43.26> Sec:26, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:64945,iVal:5120,D3:253,D4:177,D5:20,D6:0>
+9.43.27> Sec:27, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64945,iVal:3840,D3:253,D4:177,D5:15,D6:0>
+9.43.27> Sec:27, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:64944,iVal:5120,D3:253,D4:176,D5:20,D6:0>
+9.43.28> Sec:28, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64944,iVal:5120,D3:253,D4:176,D5:20,D6:0>
+9.43.28> Sec:28, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:64947,iVal:0,D3:253,D4:179,D5:0,D6:0>
+9.43.29> Sec:29, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64947,iVal:0,D3:253,D4:179,D5:0,D6:0>
+9.43.29> Sec:29, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:447,iVal:200,D3:1,D4:191,D5:0,D6:200>
+9.43.30> Sec:30, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:447,iVal:200,D3:1,D4:191,D5:0,D6:200>
+9.43.30> Sec:30, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:265,iVal:0,D3:1,D4:9,D5:0,D6:0>
+9.43.31> Sec:31, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:265,iVal:0,D3:1,D4:9,D5:0,D6:0>
+9.43.31> Sec:31, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:64942,iVal:0,D3:253,D4:174,D5:0,D6:0>
+9.43.32> Sec:32, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64942,iVal:0,D3:253,D4:174,D5:0,D6:0>
+9.43.32> Sec:32, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:387,iVal:0,D3:1,D4:131,D5:0,D6:0>
+9.43.33> Sec:33, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:387,iVal:0,D3:1,D4:131,D5:0,D6:0>
+9.43.33> Sec:33, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:17,iVal:181,D3:0,D4:17,D5:0,D6:181>
+9.43.34> Sec:34, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:17,iVal:181,D3:0,D4:17,D5:0,D6:181>
+9.43.34> Sec:34, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:64951,iVal:0,D3:253,D4:183,D5:0,D6:0>
+9.43.36> Sec:36, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64951,iVal:0,D3:253,D4:183,D5:0,D6:0>
+9.43.36> Sec:36, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:64948,iVal:256,D3:253,D4:180,D5:1,D6:0>
+9.43.37> Sec:37, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64948,iVal:256,D3:253,D4:180,D5:1,D6:0>
+9.43.37> Sec:37, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:64954,iVal:256,D3:253,D4:186,D5:1,D6:0>
+9.43.38> Sec:38, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64954,iVal:256,D3:253,D4:186,D5:1,D6:0>
+9.43.38> Sec:38, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:34,iVal:30,D3:0,D4:34,D5:0,D6:30>
+9.43.39> Sec:39, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:34,iVal:40,D3:0,D4:34,D5:0,D6:40>
+9.43.39> Sec:39, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:439,iVal:50,D3:1,D4:183,D5:0,D6:50>
+9.43.40> Sec:40, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:439,iVal:65486,D3:1,D4:183,D5:255,D6:206>
+9.43.40> Sec:40, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:488,iVal:600,D3:1,D4:232,D5:2,D6:88>
+9.43.41> Sec:41, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:488,iVal:600,D3:1,D4:232,D5:2,D6:88>
+9.43.41> Sec:41, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:429,iVal:100,D3:1,D4:173,D5:0,D6:100>
+9.43.42> Sec:42, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:429,iVal:65436,D3:1,D4:173,D5:255,D6:156>
+9.43.42> Sec:42, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:428,iVal:100,D3:1,D4:172,D5:0,D6:100>
+9.43.43> Sec:43, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:428,iVal:65436,D3:1,D4:172,D5:255,D6:156>
+9.43.43> Sec:43, <PC(0)READ FROM:Bedienmodul(0),TgrNr:250 InfoNr:40,iVal:500,D3:0,D4:40,D5:1,D6:244>
+9.43.44> Sec:44, <Bedienmodul(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:40,iVal:480,D3:0,D4:40,D5:1,D6:224>
+9.43.44> Sec:44, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:40,iVal:500,D3:0,D4:40,D5:1,D6:244>
+9.43.45> Sec:45, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:40,iVal:500,D3:0,D4:40,D5:1,D6:244>
+9.43.45> Sec:45, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:43,iVal:25600,D3:0,D4:43,D5:100,D6:0>
+9.43.46> Sec:46, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:43,iVal:25600,D3:0,D4:43,D5:100,D6:0>
+9.43.46> Sec:46, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2560,iVal:40,D3:10,D4:0,D5:0,D6:40>
+9.43.47> Sec:47, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2560,iVal:40,D3:10,D4:0,D5:0,D6:40>
+9.43.47> Sec:47, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:431,iVal:65341,D3:1,D4:175,D5:255,D6:61>
+9.43.48> Sec:48, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:431,iVal:65341,D3:1,D4:175,D5:255,D6:61>
+9.43.48> Sec:48, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:430,iVal:65341,D3:1,D4:174,D5:255,D6:61>
+9.43.50> Sec:50, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:430,iVal:65336,D3:1,D4:174,D5:255,D6:56>
+9.43.50> Sec:50, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:385,iVal:600,D3:1,D4:129,D5:2,D6:88>
+9.43.51> Sec:51, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:385,iVal:600,D3:1,D4:129,D5:2,D6:88>
+9.43.51> Sec:51, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:64953,iVal:0,D3:253,D4:185,D5:0,D6:0>
+9.43.52> Sec:52, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64953,iVal:0,D3:253,D4:185,D5:0,D6:0>
+9.43.52> Sec:52, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:638,iVal:0,D3:2,D4:126,D5:0,D6:0>
+9.43.53> Sec:53, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:638,iVal:1,D3:2,D4:126,D5:0,D6:1>
+9.43.53> Sec:53, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:257,iVal:0,D3:1,D4:1,D5:0,D6:0>
+9.43.54> Sec:54, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:257,iVal:0,D3:1,D4:1,D5:0,D6:0>
+9.43.54> Sec:54, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:309,iVal:256,D3:1,D4:53,D5:1,D6:0>
+9.43.55> Sec:55, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:309,iVal:256,D3:1,D4:53,D5:1,D6:0>
+9.43.55> Sec:55, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:64954,iVal:256,D3:253,D4:186,D5:1,D6:0>
+9.43.56> Sec:56, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:64954,iVal:256,D3:253,D4:186,D5:1,D6:0>
+9.43.56> Sec:56, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:34,iVal:40,D3:0,D4:34,D5:0,D6:40>
+9.43.57> Sec:57, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:34,iVal:40,D3:0,D4:34,D5:0,D6:40>
+9.43.57> Sec:57, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:439,iVal:65486,D3:1,D4:183,D5:255,D6:206>
+9.43.58> Sec:58, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:439,iVal:65486,D3:1,D4:183,D5:255,D6:206>
+9.43.58> Sec:58, <PC(0)READ FROM:Manager(0),TgrNr:251,D3:0,D4:0,D5:0,D6:0>
+9.44.00> Sec:0, <Manager(0)RESPOND TO:PC(0),TgrNr:251,D3:128,D4:0,D5:0,D6:0>
+9.44.00> Sec:0, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2816,iVal:0,D3:11,D4:0,D5:0,D6:0>
+9.44.01> Sec:1, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2816,iVal:28,D3:11,D4:0,D5:0,D6:28>
+9.44.01> Sec:1, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2817,iVal:0,D3:11,D4:1,D5:0,D6:0>
+9.44.02> Sec:2, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2817,iVal:9,D3:11,D4:1,D5:0,D6:9>
+9.44.02> Sec:2, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2818,iVal:0,D3:11,D4:2,D5:0,D6:0>
+9.44.03> Sec:3, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2818,iVal:13,D3:11,D4:2,D5:0,D6:13>
+9.44.03> Sec:3, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2819,iVal:0,D3:11,D4:3,D5:0,D6:0>
+9.44.04> Sec:4, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2819,iVal:10,D3:11,D4:3,D5:0,D6:10>
+9.44.04> Sec:4, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2820,iVal:0,D3:11,D4:4,D5:0,D6:0>
+9.44.05> Sec:5, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2820,iVal:6,D3:11,D4:4,D5:0,D6:6>
+9.44.05> Sec:5, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2821,iVal:0,D3:11,D4:5,D5:0,D6:0>
+9.44.06> Sec:6, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2821,iVal:4,D3:11,D4:5,D5:0,D6:4>
+9.44.06> Sec:6, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2821,iVal:0,D3:11,D4:5,D5:0,D6:0>
+9.44.07> Sec:7, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2821,iVal:4,D3:11,D4:5,D5:0,D6:4>
+9.44.07> Sec:7, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2822,iVal:0,D3:11,D4:6,D5:0,D6:0>
+9.44.08> Sec:8, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2822,iVal:1,D3:11,D4:6,D5:0,D6:1>
+9.44.08> Sec:8, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2823,iVal:0,D3:11,D4:7,D5:0,D6:0>
+9.44.09> Sec:9, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2823,iVal:45,D3:11,D4:7,D5:0,D6:45>
+9.44.09> Sec:9, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2824,iVal:0,D3:11,D4:8,D5:0,D6:0>
+9.44.10> Sec:10, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2824,iVal:9,D3:11,D4:8,D5:0,D6:9>
+9.44.10> Sec:10, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2825,iVal:0,D3:11,D4:9,D5:0,D6:0>
+9.44.11> Sec:11, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2825,iVal:13,D3:11,D4:9,D5:0,D6:13>
+9.44.11> Sec:11, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2826,iVal:0,D3:11,D4:10,D5:0,D6:0>
+9.44.12> Sec:12, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2826,iVal:10,D3:11,D4:10,D5:0,D6:10>
+9.44.12> Sec:12, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2827,iVal:0,D3:11,D4:11,D5:0,D6:0>
+9.44.13> Sec:13, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2827,iVal:6,D3:11,D4:11,D5:0,D6:6>
+9.44.13> Sec:13, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2828,iVal:0,D3:11,D4:12,D5:0,D6:0>
+9.44.14> Sec:14, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2828,iVal:4,D3:11,D4:12,D5:0,D6:4>
+9.44.14> Sec:14, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2828,iVal:0,D3:11,D4:12,D5:0,D6:0>
+9.44.16> Sec:16, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2828,iVal:4,D3:11,D4:12,D5:0,D6:4>
+9.44.16> Sec:16, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2829,iVal:0,D3:11,D4:13,D5:0,D6:0>
+9.44.17> Sec:17, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2829,iVal:1,D3:11,D4:13,D5:0,D6:1>
+9.44.17> Sec:17, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2830,iVal:0,D3:11,D4:14,D5:0,D6:0>
+9.44.18> Sec:18, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2830,iVal:2,D3:11,D4:14,D5:0,D6:2>
+9.44.18> Sec:18, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2831,iVal:0,D3:11,D4:15,D5:0,D6:0>
+9.44.19> Sec:19, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2831,iVal:10,D3:11,D4:15,D5:0,D6:10>
+9.44.19> Sec:19, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2832,iVal:0,D3:11,D4:16,D5:0,D6:0>
+9.44.20> Sec:20, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2832,iVal:13,D3:11,D4:16,D5:0,D6:13>
+9.44.20> Sec:20, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2833,iVal:0,D3:11,D4:17,D5:0,D6:0>
+9.44.21> Sec:21, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2833,iVal:10,D3:11,D4:17,D5:0,D6:10>
+9.44.21> Sec:21, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2834,iVal:0,D3:11,D4:18,D5:0,D6:0>
+9.44.22> Sec:22, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2834,iVal:6,D3:11,D4:18,D5:0,D6:6>
+9.44.22> Sec:22, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2835,iVal:0,D3:11,D4:19,D5:0,D6:0>
+9.44.23> Sec:23, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2835,iVal:4,D3:11,D4:19,D5:0,D6:4>
+9.44.23> Sec:23, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2835,iVal:0,D3:11,D4:19,D5:0,D6:0>
+9.44.24> Sec:24, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2835,iVal:4,D3:11,D4:19,D5:0,D6:4>
+9.44.24> Sec:24, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2836,iVal:0,D3:11,D4:20,D5:0,D6:0>
+9.44.25> Sec:25, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2836,iVal:1,D3:11,D4:20,D5:0,D6:1>
+9.44.25> Sec:25, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2837,iVal:0,D3:11,D4:21,D5:0,D6:0>
+9.44.26> Sec:26, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2837,iVal:19,D3:11,D4:21,D5:0,D6:19>
+9.44.26> Sec:26, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2838,iVal:0,D3:11,D4:22,D5:0,D6:0>
+9.44.27> Sec:27, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2838,iVal:10,D3:11,D4:22,D5:0,D6:10>
+9.44.27> Sec:27, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2839,iVal:0,D3:11,D4:23,D5:0,D6:0>
+9.44.28> Sec:28, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2839,iVal:13,D3:11,D4:23,D5:0,D6:13>
+9.44.28> Sec:28, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2840,iVal:0,D3:11,D4:24,D5:0,D6:0>
+9.44.29> Sec:29, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2840,iVal:10,D3:11,D4:24,D5:0,D6:10>
+9.44.29> Sec:29, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2841,iVal:0,D3:11,D4:25,D5:0,D6:0>
+9.44.30> Sec:30, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2841,iVal:6,D3:11,D4:25,D5:0,D6:6>
+9.44.30> Sec:30, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2842,iVal:0,D3:11,D4:26,D5:0,D6:0>
+9.44.32> Sec:32, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2842,iVal:4,D3:11,D4:26,D5:0,D6:4>
+9.44.32> Sec:32, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2842,iVal:0,D3:11,D4:26,D5:0,D6:0>
+9.44.33> Sec:33, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2842,iVal:4,D3:11,D4:26,D5:0,D6:4>
+9.44.33> Sec:33, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2843,iVal:0,D3:11,D4:27,D5:0,D6:0>
+9.44.34> Sec:34, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2843,iVal:1,D3:11,D4:27,D5:0,D6:1>
+9.44.34> Sec:34, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2844,iVal:0,D3:11,D4:28,D5:0,D6:0>
+9.44.35> Sec:35, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2844,iVal:36,D3:11,D4:28,D5:0,D6:36>
+9.44.35> Sec:35, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2845,iVal:0,D3:11,D4:29,D5:0,D6:0>
+9.44.36> Sec:36, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2845,iVal:10,D3:11,D4:29,D5:0,D6:10>
+9.44.36> Sec:36, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2846,iVal:0,D3:11,D4:30,D5:0,D6:0>
+9.44.37> Sec:37, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2846,iVal:13,D3:11,D4:30,D5:0,D6:13>
+9.44.37> Sec:37, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2847,iVal:0,D3:11,D4:31,D5:0,D6:0>
+9.44.38> Sec:38, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2847,iVal:10,D3:11,D4:31,D5:0,D6:10>
+9.44.38> Sec:38, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2848,iVal:0,D3:11,D4:32,D5:0,D6:0>
+9.44.39> Sec:39, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2848,iVal:6,D3:11,D4:32,D5:0,D6:6>
+9.44.39> Sec:39, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2849,iVal:0,D3:11,D4:33,D5:0,D6:0>
+9.44.40> Sec:40, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2849,iVal:4,D3:11,D4:33,D5:0,D6:4>
+9.44.40> Sec:40, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2849,iVal:0,D3:11,D4:33,D5:0,D6:0>
+9.44.41> Sec:41, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2849,iVal:4,D3:11,D4:33,D5:0,D6:4>
+9.44.41> Sec:41, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2850,iVal:0,D3:11,D4:34,D5:0,D6:0>
+9.44.42> Sec:42, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2850,iVal:1,D3:11,D4:34,D5:0,D6:1>
+9.44.42> Sec:42, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2851,iVal:0,D3:11,D4:35,D5:0,D6:0>
+9.44.43> Sec:43, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2851,iVal:25,D3:11,D4:35,D5:0,D6:25>
+9.44.43> Sec:43, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2852,iVal:0,D3:11,D4:36,D5:0,D6:0>
+9.44.44> Sec:44, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2852,iVal:9,D3:11,D4:36,D5:0,D6:9>
+9.44.44> Sec:44, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2853,iVal:0,D3:11,D4:37,D5:0,D6:0>
+9.44.45> Sec:45, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2853,iVal:26,D3:11,D4:37,D5:0,D6:26>
+9.44.45> Sec:45, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2854,iVal:0,D3:11,D4:38,D5:0,D6:0>
+9.44.46> Sec:46, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2854,iVal:10,D3:11,D4:38,D5:0,D6:10>
+9.44.46> Sec:46, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2855,iVal:0,D3:11,D4:39,D5:0,D6:0>
+9.44.47> Sec:47, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2855,iVal:6,D3:11,D4:39,D5:0,D6:6>
+9.44.47> Sec:47, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2856,iVal:0,D3:11,D4:40,D5:0,D6:0>
+9.44.49> Sec:49, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2856,iVal:4,D3:11,D4:40,D5:0,D6:4>
+9.44.49> Sec:49, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2856,iVal:0,D3:11,D4:40,D5:0,D6:0>
+9.44.50> Sec:50, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2856,iVal:4,D3:11,D4:40,D5:0,D6:4>
+9.44.50> Sec:50, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2857,iVal:0,D3:11,D4:41,D5:0,D6:0>
+9.44.51> Sec:51, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2857,iVal:1,D3:11,D4:41,D5:0,D6:1>
+9.44.51> Sec:51, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2858,iVal:0,D3:11,D4:42,D5:0,D6:0>
+9.44.52> Sec:52, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2858,iVal:42,D3:11,D4:42,D5:0,D6:42>
+9.44.52> Sec:52, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2859,iVal:0,D3:11,D4:43,D5:0,D6:0>
+9.44.53> Sec:53, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2859,iVal:9,D3:11,D4:43,D5:0,D6:9>
+9.44.53> Sec:53, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2860,iVal:0,D3:11,D4:44,D5:0,D6:0>
+9.44.54> Sec:54, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2860,iVal:26,D3:11,D4:44,D5:0,D6:26>
+9.44.54> Sec:54, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2861,iVal:0,D3:11,D4:45,D5:0,D6:0>
+9.44.55> Sec:55, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2861,iVal:10,D3:11,D4:45,D5:0,D6:10>
+9.44.55> Sec:55, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2862,iVal:0,D3:11,D4:46,D5:0,D6:0>
+9.44.56> Sec:56, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2862,iVal:6,D3:11,D4:46,D5:0,D6:6>
+9.44.56> Sec:56, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2863,iVal:0,D3:11,D4:47,D5:0,D6:0>
+9.44.57> Sec:57, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2863,iVal:4,D3:11,D4:47,D5:0,D6:4>
+9.44.57> Sec:57, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2863,iVal:0,D3:11,D4:47,D5:0,D6:0>
+9.44.58> Sec:58, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2863,iVal:4,D3:11,D4:47,D5:0,D6:4>
+9.44.58> Sec:58, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2864,iVal:0,D3:11,D4:48,D5:0,D6:0>
+9.44.59> Sec:59, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2864,iVal:1,D3:11,D4:48,D5:0,D6:1>
+9.44.59> Sec:59, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2865,iVal:0,D3:11,D4:49,D5:0,D6:0>
+9.45.00> Sec:0, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2865,iVal:59,D3:11,D4:49,D5:0,D6:59>
+9.45.00> Sec:0, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2866,iVal:0,D3:11,D4:50,D5:0,D6:0>
+9.45.01> Sec:1, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2866,iVal:9,D3:11,D4:50,D5:0,D6:9>
+9.45.01> Sec:1, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2867,iVal:0,D3:11,D4:51,D5:0,D6:0>
+9.45.02> Sec:2, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2867,iVal:26,D3:11,D4:51,D5:0,D6:26>
+9.45.02> Sec:2, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2868,iVal:0,D3:11,D4:52,D5:0,D6:0>
+9.45.03> Sec:3, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2868,iVal:10,D3:11,D4:52,D5:0,D6:10>
+9.45.03> Sec:3, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2869,iVal:0,D3:11,D4:53,D5:0,D6:0>
+9.45.05> Sec:5, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2869,iVal:6,D3:11,D4:53,D5:0,D6:6>
+9.45.05> Sec:5, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2870,iVal:0,D3:11,D4:54,D5:0,D6:0>
+9.45.06> Sec:6, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2870,iVal:4,D3:11,D4:54,D5:0,D6:4>
+9.45.06> Sec:6, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2870,iVal:0,D3:11,D4:54,D5:0,D6:0>
+9.45.07> Sec:7, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2870,iVal:4,D3:11,D4:54,D5:0,D6:4>
+9.45.07> Sec:7, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2871,iVal:0,D3:11,D4:55,D5:0,D6:0>
+9.45.08> Sec:8, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2871,iVal:1,D3:11,D4:55,D5:0,D6:1>
+9.45.08> Sec:8, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2872,iVal:0,D3:11,D4:56,D5:0,D6:0>
+9.45.09> Sec:9, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2872,iVal:16,D3:11,D4:56,D5:0,D6:16>
+9.45.09> Sec:9, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2873,iVal:0,D3:11,D4:57,D5:0,D6:0>
+9.45.10> Sec:10, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2873,iVal:10,D3:11,D4:57,D5:0,D6:10>
+9.45.10> Sec:10, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2874,iVal:0,D3:11,D4:58,D5:0,D6:0>
+9.45.11> Sec:11, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2874,iVal:26,D3:11,D4:58,D5:0,D6:26>
+9.45.11> Sec:11, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2875,iVal:0,D3:11,D4:59,D5:0,D6:0>
+9.45.12> Sec:12, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2875,iVal:10,D3:11,D4:59,D5:0,D6:10>
+9.45.12> Sec:12, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2876,iVal:0,D3:11,D4:60,D5:0,D6:0>
+9.45.13> Sec:13, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2876,iVal:6,D3:11,D4:60,D5:0,D6:6>
+9.45.13> Sec:13, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2877,iVal:0,D3:11,D4:61,D5:0,D6:0>
+9.45.14> Sec:14, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2877,iVal:4,D3:11,D4:61,D5:0,D6:4>
+9.45.14> Sec:14, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2877,iVal:0,D3:11,D4:61,D5:0,D6:0>
+9.45.15> Sec:15, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2877,iVal:4,D3:11,D4:61,D5:0,D6:4>
+9.45.15> Sec:15, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2878,iVal:0,D3:11,D4:62,D5:0,D6:0>
+9.45.16> Sec:16, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2878,iVal:1,D3:11,D4:62,D5:0,D6:1>
+9.45.16> Sec:16, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2879,iVal:0,D3:11,D4:63,D5:0,D6:0>
+9.45.17> Sec:17, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2879,iVal:33,D3:11,D4:63,D5:0,D6:33>
+9.45.17> Sec:17, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2880,iVal:0,D3:11,D4:64,D5:0,D6:0>
+9.45.18> Sec:18, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2880,iVal:10,D3:11,D4:64,D5:0,D6:10>
+9.45.18> Sec:18, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2881,iVal:0,D3:11,D4:65,D5:0,D6:0>
+9.45.19> Sec:19, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2881,iVal:26,D3:11,D4:65,D5:0,D6:26>
+9.45.19> Sec:19, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2882,iVal:0,D3:11,D4:66,D5:0,D6:0>
+9.45.20> Sec:20, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2882,iVal:10,D3:11,D4:66,D5:0,D6:10>
+9.45.20> Sec:20, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2883,iVal:0,D3:11,D4:67,D5:0,D6:0>
+9.45.22> Sec:22, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2883,iVal:6,D3:11,D4:67,D5:0,D6:6>
+9.45.22> Sec:22, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2884,iVal:0,D3:11,D4:68,D5:0,D6:0>
+9.45.23> Sec:23, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2884,iVal:4,D3:11,D4:68,D5:0,D6:4>
+9.45.23> Sec:23, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2884,iVal:0,D3:11,D4:68,D5:0,D6:0>
+9.45.24> Sec:24, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2884,iVal:4,D3:11,D4:68,D5:0,D6:4>
+9.45.24> Sec:24, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2885,iVal:0,D3:11,D4:69,D5:0,D6:0>
+9.45.25> Sec:25, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2885,iVal:1,D3:11,D4:69,D5:0,D6:1>
+9.45.25> Sec:25, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2886,iVal:0,D3:11,D4:70,D5:0,D6:0>
+9.45.26> Sec:26, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2886,iVal:34,D3:11,D4:70,D5:0,D6:34>
+9.45.26> Sec:26, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2887,iVal:0,D3:11,D4:71,D5:0,D6:0>
+9.45.27> Sec:27, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2887,iVal:9,D3:11,D4:71,D5:0,D6:9>
+9.45.27> Sec:27, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2888,iVal:0,D3:11,D4:72,D5:0,D6:0>
+9.45.28> Sec:28, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2888,iVal:7,D3:11,D4:72,D5:0,D6:7>
+9.45.28> Sec:28, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2889,iVal:0,D3:11,D4:73,D5:0,D6:0>
+9.45.29> Sec:29, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2889,iVal:11,D3:11,D4:73,D5:0,D6:11>
+9.45.29> Sec:29, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2890,iVal:0,D3:11,D4:74,D5:0,D6:0>
+9.45.30> Sec:30, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2890,iVal:6,D3:11,D4:74,D5:0,D6:6>
+9.45.30> Sec:30, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2891,iVal:0,D3:11,D4:75,D5:0,D6:0>
+9.45.31> Sec:31, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2891,iVal:4,D3:11,D4:75,D5:0,D6:4>
+9.45.31> Sec:31, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2891,iVal:0,D3:11,D4:75,D5:0,D6:0>
+9.45.32> Sec:32, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2891,iVal:4,D3:11,D4:75,D5:0,D6:4>
+9.45.32> Sec:32, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2892,iVal:0,D3:11,D4:76,D5:0,D6:0>
+9.45.33> Sec:33, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2892,iVal:1,D3:11,D4:76,D5:0,D6:1>
+9.45.33> Sec:33, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2893,iVal:0,D3:11,D4:77,D5:0,D6:0>
+9.45.34> Sec:34, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2893,iVal:51,D3:11,D4:77,D5:0,D6:51>
+9.45.34> Sec:34, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2894,iVal:0,D3:11,D4:78,D5:0,D6:0>
+9.45.35> Sec:35, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2894,iVal:9,D3:11,D4:78,D5:0,D6:9>
+9.45.35> Sec:35, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2895,iVal:0,D3:11,D4:79,D5:0,D6:0>
+9.45.37> Sec:37, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2895,iVal:7,D3:11,D4:79,D5:0,D6:7>
+9.45.37> Sec:37, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2896,iVal:0,D3:11,D4:80,D5:0,D6:0>
+9.45.38> Sec:38, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2896,iVal:11,D3:11,D4:80,D5:0,D6:11>
+9.45.38> Sec:38, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2897,iVal:0,D3:11,D4:81,D5:0,D6:0>
+9.45.39> Sec:39, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2897,iVal:6,D3:11,D4:81,D5:0,D6:6>
+9.45.39> Sec:39, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2898,iVal:0,D3:11,D4:82,D5:0,D6:0>
+9.45.40> Sec:40, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2898,iVal:4,D3:11,D4:82,D5:0,D6:4>
+9.45.40> Sec:40, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2898,iVal:0,D3:11,D4:82,D5:0,D6:0>
+9.45.41> Sec:41, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2898,iVal:4,D3:11,D4:82,D5:0,D6:4>
+9.45.41> Sec:41, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2899,iVal:0,D3:11,D4:83,D5:0,D6:0>
+9.45.42> Sec:42, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2899,iVal:1,D3:11,D4:83,D5:0,D6:1>
+9.45.42> Sec:42, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2900,iVal:0,D3:11,D4:84,D5:0,D6:0>
+9.45.43> Sec:43, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2900,iVal:9,D3:11,D4:84,D5:0,D6:9>
+9.45.43> Sec:43, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2901,iVal:0,D3:11,D4:85,D5:0,D6:0>
+9.45.44> Sec:44, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2901,iVal:10,D3:11,D4:85,D5:0,D6:10>
+9.45.44> Sec:44, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2902,iVal:0,D3:11,D4:86,D5:0,D6:0>
+9.45.45> Sec:45, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2902,iVal:7,D3:11,D4:86,D5:0,D6:7>
+9.45.45> Sec:45, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2903,iVal:0,D3:11,D4:87,D5:0,D6:0>
+9.45.46> Sec:46, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2903,iVal:11,D3:11,D4:87,D5:0,D6:11>
+9.45.46> Sec:46, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2904,iVal:0,D3:11,D4:88,D5:0,D6:0>
+9.45.47> Sec:47, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2904,iVal:6,D3:11,D4:88,D5:0,D6:6>
+9.45.47> Sec:47, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2905,iVal:0,D3:11,D4:89,D5:0,D6:0>
+9.45.48> Sec:48, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2905,iVal:4,D3:11,D4:89,D5:0,D6:4>
+9.45.48> Sec:48, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2905,iVal:0,D3:11,D4:89,D5:0,D6:0>
+9.45.49> Sec:49, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2905,iVal:4,D3:11,D4:89,D5:0,D6:4>
+9.45.49> Sec:49, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2906,iVal:0,D3:11,D4:90,D5:0,D6:0>
+9.45.50> Sec:50, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2906,iVal:1,D3:11,D4:90,D5:0,D6:1>
+9.45.50> Sec:50, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2907,iVal:0,D3:11,D4:91,D5:0,D6:0>
+9.45.51> Sec:51, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2907,iVal:26,D3:11,D4:91,D5:0,D6:26>
+9.45.51> Sec:51, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2908,iVal:0,D3:11,D4:92,D5:0,D6:0>
+9.45.53> Sec:53, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2908,iVal:10,D3:11,D4:92,D5:0,D6:10>
+9.45.53> Sec:53, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2909,iVal:0,D3:11,D4:93,D5:0,D6:0>
+9.45.54> Sec:54, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2909,iVal:7,D3:11,D4:93,D5:0,D6:7>
+9.45.54> Sec:54, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2910,iVal:0,D3:11,D4:94,D5:0,D6:0>
+9.45.55> Sec:55, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2910,iVal:11,D3:11,D4:94,D5:0,D6:11>
+9.45.55> Sec:55, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2911,iVal:0,D3:11,D4:95,D5:0,D6:0>
+9.45.56> Sec:56, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2911,iVal:6,D3:11,D4:95,D5:0,D6:6>
+9.45.56> Sec:56, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2912,iVal:0,D3:11,D4:96,D5:0,D6:0>
+9.45.57> Sec:57, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2912,iVal:4,D3:11,D4:96,D5:0,D6:4>
+9.45.57> Sec:57, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2912,iVal:0,D3:11,D4:96,D5:0,D6:0>
+9.45.58> Sec:58, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2912,iVal:4,D3:11,D4:96,D5:0,D6:4>
+9.45.58> Sec:58, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2913,iVal:0,D3:11,D4:97,D5:0,D6:0>
+9.45.59> Sec:59, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2913,iVal:1,D3:11,D4:97,D5:0,D6:1>
+9.45.59> Sec:59, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2914,iVal:0,D3:11,D4:98,D5:0,D6:0>
+9.46.00> Sec:0, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2914,iVal:43,D3:11,D4:98,D5:0,D6:43>
+9.46.00> Sec:0, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2915,iVal:0,D3:11,D4:99,D5:0,D6:0>
+9.46.01> Sec:1, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2915,iVal:10,D3:11,D4:99,D5:0,D6:10>
+9.46.01> Sec:1, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2916,iVal:0,D3:11,D4:100,D5:0,D6:0>
+9.46.02> Sec:2, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2916,iVal:7,D3:11,D4:100,D5:0,D6:7>
+9.46.02> Sec:2, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2917,iVal:0,D3:11,D4:101,D5:0,D6:0>
+9.46.03> Sec:3, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2917,iVal:11,D3:11,D4:101,D5:0,D6:11>
+9.46.03> Sec:3, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2918,iVal:0,D3:11,D4:102,D5:0,D6:0>
+9.46.04> Sec:4, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2918,iVal:6,D3:11,D4:102,D5:0,D6:6>
+9.46.04> Sec:4, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2919,iVal:0,D3:11,D4:103,D5:0,D6:0>
+9.46.05> Sec:5, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2919,iVal:4,D3:11,D4:103,D5:0,D6:4>
+9.46.05> Sec:5, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2919,iVal:0,D3:11,D4:103,D5:0,D6:0>
+9.46.06> Sec:6, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2919,iVal:4,D3:11,D4:103,D5:0,D6:4>
+9.46.06> Sec:6, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2920,iVal:0,D3:11,D4:104,D5:0,D6:0>
+9.46.07> Sec:7, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2920,iVal:1,D3:11,D4:104,D5:0,D6:1>
+9.46.07> Sec:7, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2921,iVal:0,D3:11,D4:105,D5:0,D6:0>
+9.46.08> Sec:8, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2921,iVal:0,D3:11,D4:105,D5:0,D6:0>
+9.46.08> Sec:8, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2922,iVal:0,D3:11,D4:106,D5:0,D6:0>
+9.46.10> Sec:10, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2922,iVal:0,D3:11,D4:106,D5:0,D6:0>
+9.46.10> Sec:10, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2923,iVal:0,D3:11,D4:107,D5:0,D6:0>
+9.46.11> Sec:11, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2923,iVal:0,D3:11,D4:107,D5:0,D6:0>
+9.46.11> Sec:11, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2924,iVal:0,D3:11,D4:108,D5:0,D6:0>
+9.46.12> Sec:12, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2924,iVal:0,D3:11,D4:108,D5:0,D6:0>
+9.46.12> Sec:12, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2925,iVal:0,D3:11,D4:109,D5:0,D6:0>
+9.46.13> Sec:13, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2925,iVal:0,D3:11,D4:109,D5:0,D6:0>
+9.46.13> Sec:13, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2926,iVal:0,D3:11,D4:110,D5:0,D6:0>
+9.46.14> Sec:14, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2926,iVal:0,D3:11,D4:110,D5:0,D6:0>
+9.46.14> Sec:14, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2926,iVal:0,D3:11,D4:110,D5:0,D6:0>
+9.46.15> Sec:15, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2926,iVal:0,D3:11,D4:110,D5:0,D6:0>
+9.46.15> Sec:15, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2927,iVal:0,D3:11,D4:111,D5:0,D6:0>
+9.46.16> Sec:16, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2927,iVal:0,D3:11,D4:111,D5:0,D6:0>
+9.46.16> Sec:16, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2928,iVal:0,D3:11,D4:112,D5:0,D6:0>
+9.46.17> Sec:17, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2928,iVal:0,D3:11,D4:112,D5:0,D6:0>
+9.46.17> Sec:17, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2929,iVal:0,D3:11,D4:113,D5:0,D6:0>
+9.46.18> Sec:18, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2929,iVal:0,D3:11,D4:113,D5:0,D6:0>
+9.46.18> Sec:18, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2930,iVal:0,D3:11,D4:114,D5:0,D6:0>
+9.46.19> Sec:19, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2930,iVal:0,D3:11,D4:114,D5:0,D6:0>
+9.46.19> Sec:19, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2931,iVal:0,D3:11,D4:115,D5:0,D6:0>
+9.46.20> Sec:20, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2931,iVal:0,D3:11,D4:115,D5:0,D6:0>
+9.46.20> Sec:20, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2932,iVal:0,D3:11,D4:116,D5:0,D6:0>
+9.46.21> Sec:21, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2932,iVal:0,D3:11,D4:116,D5:0,D6:0>
+9.46.21> Sec:21, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2933,iVal:0,D3:11,D4:117,D5:0,D6:0>
+9.46.22> Sec:22, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2933,iVal:0,D3:11,D4:117,D5:0,D6:0>
+9.46.22> Sec:22, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2933,iVal:0,D3:11,D4:117,D5:0,D6:0>
+9.46.23> <Timeout>
+9.46.24> Sec:24, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2933,iVal:0,D3:11,D4:117,D5:0,D6:0>
+9.46.25> Sec:25, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2933,iVal:0,D3:11,D4:117,D5:0,D6:0>
+9.46.25> Sec:25, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2934,iVal:0,D3:11,D4:118,D5:0,D6:0>
+9.46.26> Sec:26, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2934,iVal:0,D3:11,D4:118,D5:0,D6:0>
+9.46.26> Sec:26, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2935,iVal:0,D3:11,D4:119,D5:0,D6:0>
+9.46.27> Sec:27, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2935,iVal:0,D3:11,D4:119,D5:0,D6:0>
+9.46.27> Sec:27, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2936,iVal:0,D3:11,D4:120,D5:0,D6:0>
+9.46.28> Sec:28, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2936,iVal:0,D3:11,D4:120,D5:0,D6:0>
+9.46.28> Sec:28, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2937,iVal:0,D3:11,D4:121,D5:0,D6:0>
+9.46.29> Sec:29, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2937,iVal:0,D3:11,D4:121,D5:0,D6:0>
+9.46.29> Sec:29, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2938,iVal:0,D3:11,D4:122,D5:0,D6:0>
+9.46.30> Sec:30, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2938,iVal:0,D3:11,D4:122,D5:0,D6:0>
+9.46.30> Sec:30, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2939,iVal:0,D3:11,D4:123,D5:0,D6:0>
+9.46.31> Sec:31, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2939,iVal:0,D3:11,D4:123,D5:0,D6:0>
+9.46.31> Sec:31, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2940,iVal:0,D3:11,D4:124,D5:0,D6:0>
+9.46.32> Sec:32, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2940,iVal:0,D3:11,D4:124,D5:0,D6:0>
+9.46.32> Sec:32, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2940,iVal:0,D3:11,D4:124,D5:0,D6:0>
+9.46.33> Sec:33, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2940,iVal:0,D3:11,D4:124,D5:0,D6:0>
+9.46.33> Sec:33, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2941,iVal:0,D3:11,D4:125,D5:0,D6:0>
+9.46.34> Sec:34, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2941,iVal:0,D3:11,D4:125,D5:0,D6:0>
+9.46.34> Sec:34, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2942,iVal:0,D3:11,D4:126,D5:0,D6:0>
+9.46.35> Sec:35, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2942,iVal:0,D3:11,D4:126,D5:0,D6:0>
+9.46.35> Sec:35, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2943,iVal:0,D3:11,D4:127,D5:0,D6:0>
+9.46.36> Sec:36, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2943,iVal:0,D3:11,D4:127,D5:0,D6:0>
+9.46.36> Sec:36, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2944,iVal:0,D3:11,D4:128,D5:0,D6:0>
+9.46.37> Sec:37, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2944,iVal:0,D3:11,D4:128,D5:0,D6:0>
+9.46.37> Sec:37, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2945,iVal:0,D3:11,D4:129,D5:0,D6:0>
+9.46.38> Sec:38, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2945,iVal:0,D3:11,D4:129,D5:0,D6:0>
+9.46.38> Sec:38, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2946,iVal:0,D3:11,D4:130,D5:0,D6:0>
+9.46.39> Sec:39, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2946,iVal:0,D3:11,D4:130,D5:0,D6:0>
+9.46.39> Sec:39, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2947,iVal:0,D3:11,D4:131,D5:0,D6:0>
+9.46.41> Sec:41, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2947,iVal:0,D3:11,D4:131,D5:0,D6:0>
+9.46.41> Sec:41, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2947,iVal:0,D3:11,D4:131,D5:0,D6:0>
+9.46.42> Sec:42, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2947,iVal:0,D3:11,D4:131,D5:0,D6:0>
+9.46.42> Sec:42, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2948,iVal:0,D3:11,D4:132,D5:0,D6:0>
+9.46.43> Sec:43, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2948,iVal:0,D3:11,D4:132,D5:0,D6:0>
+9.46.43> Sec:43, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2949,iVal:0,D3:11,D4:133,D5:0,D6:0>
+9.46.44> Sec:44, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2949,iVal:0,D3:11,D4:133,D5:0,D6:0>
+9.46.44> Sec:44, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2950,iVal:0,D3:11,D4:134,D5:0,D6:0>
+9.46.45> Sec:45, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2950,iVal:0,D3:11,D4:134,D5:0,D6:0>
+9.46.45> Sec:45, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2951,iVal:0,D3:11,D4:135,D5:0,D6:0>
+9.46.46> Sec:46, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2951,iVal:0,D3:11,D4:135,D5:0,D6:0>
+9.46.46> Sec:46, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2952,iVal:0,D3:11,D4:136,D5:0,D6:0>
+9.46.47> Sec:47, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2952,iVal:0,D3:11,D4:136,D5:0,D6:0>
+9.46.47> Sec:47, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2953,iVal:0,D3:11,D4:137,D5:0,D6:0>
+9.46.48> Sec:48, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2953,iVal:0,D3:11,D4:137,D5:0,D6:0>
+9.46.48> Sec:48, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2954,iVal:0,D3:11,D4:138,D5:0,D6:0>
+9.46.49> Sec:49, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2954,iVal:0,D3:11,D4:138,D5:0,D6:0>
+9.46.49> Sec:49, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2954,iVal:0,D3:11,D4:138,D5:0,D6:0>
+9.46.50> Sec:50, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2954,iVal:0,D3:11,D4:138,D5:0,D6:0>
+9.46.50> Sec:50, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2955,iVal:0,D3:11,D4:139,D5:0,D6:0>
+9.46.51> Sec:51, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2955,iVal:0,D3:11,D4:139,D5:0,D6:0>
+9.46.51> Sec:51, <PC(0)READ FROM:Manager(0),TgrNr:251,D3:128,D4:0,D5:0,D6:0>
+9.46.52> Sec:52, <Manager(0)RESPOND TO:PC(0),TgrNr:251,D3:128,D4:0,D5:0,D6:0>
+9.46.52> Sec:52, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2816,iVal:28,D3:11,D4:0,D5:0,D6:28>
+9.46.54> Sec:54, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2816,iVal:28,D3:11,D4:0,D5:0,D6:28>
+9.46.54> Sec:54, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2817,iVal:9,D3:11,D4:1,D5:0,D6:9>
+9.46.55> Sec:55, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2817,iVal:9,D3:11,D4:1,D5:0,D6:9>
+9.46.55> Sec:55, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2818,iVal:13,D3:11,D4:2,D5:0,D6:13>
+9.46.56> Sec:56, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2818,iVal:13,D3:11,D4:2,D5:0,D6:13>
+9.46.56> Sec:56, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2819,iVal:10,D3:11,D4:3,D5:0,D6:10>
+9.46.57> Sec:57, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2819,iVal:10,D3:11,D4:3,D5:0,D6:10>
+9.46.57> Sec:57, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2820,iVal:6,D3:11,D4:4,D5:0,D6:6>
+9.46.58> Sec:58, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2820,iVal:6,D3:11,D4:4,D5:0,D6:6>
+9.46.58> Sec:58, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2821,iVal:4,D3:11,D4:5,D5:0,D6:4>
+9.46.59> Sec:59, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2821,iVal:4,D3:11,D4:5,D5:0,D6:4>
+9.46.59> Sec:59, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2821,iVal:4,D3:11,D4:5,D5:0,D6:4>
+9.47.00> Sec:0, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2821,iVal:4,D3:11,D4:5,D5:0,D6:4>
+9.47.00> Sec:0, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2822,iVal:1,D3:11,D4:6,D5:0,D6:1>
+9.47.01> Sec:1, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2822,iVal:1,D3:11,D4:6,D5:0,D6:1>
+9.47.01> Sec:1, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2823,iVal:45,D3:11,D4:7,D5:0,D6:45>
+9.47.02> Sec:2, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2823,iVal:45,D3:11,D4:7,D5:0,D6:45>
+9.47.02> Sec:2, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2824,iVal:9,D3:11,D4:8,D5:0,D6:9>
+9.47.03> Sec:3, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2824,iVal:9,D3:11,D4:8,D5:0,D6:9>
+9.47.03> Sec:3, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2825,iVal:13,D3:11,D4:9,D5:0,D6:13>
+9.47.04> Sec:4, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2825,iVal:13,D3:11,D4:9,D5:0,D6:13>
+9.47.04> Sec:4, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2826,iVal:10,D3:11,D4:10,D5:0,D6:10>
+9.47.05> Sec:5, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2826,iVal:10,D3:11,D4:10,D5:0,D6:10>
+9.47.05> Sec:5, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2827,iVal:6,D3:11,D4:11,D5:0,D6:6>
+9.47.06> Sec:6, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2827,iVal:6,D3:11,D4:11,D5:0,D6:6>
+9.47.06> Sec:6, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2828,iVal:4,D3:11,D4:12,D5:0,D6:4>
+9.47.07> Sec:7, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2828,iVal:4,D3:11,D4:12,D5:0,D6:4>
+9.47.07> Sec:7, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2828,iVal:4,D3:11,D4:12,D5:0,D6:4>
+9.47.08> Sec:8, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2828,iVal:4,D3:11,D4:12,D5:0,D6:4>
+9.47.08> Sec:8, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2829,iVal:1,D3:11,D4:13,D5:0,D6:1>
+9.47.09> Sec:9, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2829,iVal:1,D3:11,D4:13,D5:0,D6:1>
+9.47.09> Sec:9, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2830,iVal:2,D3:11,D4:14,D5:0,D6:2>
+9.47.11> Sec:11, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2830,iVal:2,D3:11,D4:14,D5:0,D6:2>
+9.47.11> Sec:11, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2831,iVal:10,D3:11,D4:15,D5:0,D6:10>
+9.47.12> Sec:12, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2831,iVal:10,D3:11,D4:15,D5:0,D6:10>
+9.47.12> Sec:12, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2832,iVal:13,D3:11,D4:16,D5:0,D6:13>
+9.47.13> Sec:13, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2832,iVal:13,D3:11,D4:16,D5:0,D6:13>
+9.47.13> Sec:13, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2833,iVal:10,D3:11,D4:17,D5:0,D6:10>
+9.47.14> Sec:14, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2833,iVal:10,D3:11,D4:17,D5:0,D6:10>
+9.47.14> Sec:14, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2834,iVal:6,D3:11,D4:18,D5:0,D6:6>
+9.47.15> Sec:15, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2834,iVal:6,D3:11,D4:18,D5:0,D6:6>
+9.47.15> Sec:15, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2835,iVal:4,D3:11,D4:19,D5:0,D6:4>
+9.47.16> Sec:16, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2835,iVal:4,D3:11,D4:19,D5:0,D6:4>
+9.47.16> Sec:16, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2835,iVal:4,D3:11,D4:19,D5:0,D6:4>
+9.47.17> Sec:17, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2835,iVal:4,D3:11,D4:19,D5:0,D6:4>
+9.47.17> Sec:17, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2836,iVal:1,D3:11,D4:20,D5:0,D6:1>
+9.47.18> Sec:18, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2836,iVal:1,D3:11,D4:20,D5:0,D6:1>
+9.47.18> Sec:18, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2837,iVal:19,D3:11,D4:21,D5:0,D6:19>
+9.47.19> Sec:19, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2837,iVal:19,D3:11,D4:21,D5:0,D6:19>
+9.47.19> Sec:19, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2838,iVal:10,D3:11,D4:22,D5:0,D6:10>
+9.47.20> Sec:20, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2838,iVal:10,D3:11,D4:22,D5:0,D6:10>
+9.47.20> Sec:20, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2839,iVal:13,D3:11,D4:23,D5:0,D6:13>
+9.47.21> Sec:21, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2839,iVal:13,D3:11,D4:23,D5:0,D6:13>
+9.47.21> Sec:21, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2840,iVal:10,D3:11,D4:24,D5:0,D6:10>
+9.47.22> Sec:22, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2840,iVal:10,D3:11,D4:24,D5:0,D6:10>
+9.47.22> Sec:22, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2841,iVal:6,D3:11,D4:25,D5:0,D6:6>
+9.47.23> Sec:23, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2841,iVal:6,D3:11,D4:25,D5:0,D6:6>
+9.47.23> Sec:23, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2842,iVal:4,D3:11,D4:26,D5:0,D6:4>
+9.47.24> Sec:24, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2842,iVal:4,D3:11,D4:26,D5:0,D6:4>
+9.47.24> Sec:24, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2842,iVal:4,D3:11,D4:26,D5:0,D6:4>
+9.47.25> Sec:25, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2842,iVal:4,D3:11,D4:26,D5:0,D6:4>
+9.47.25> Sec:25, <PC(0)READ FROM:Kessel(0),TgrNr:250 InfoNr:2843,iVal:1,D3:11,D4:27,D5:0,D6:1>
+9.47.26> Sec:26, <Kessel(0)RESPOND TO:PC(0),TgrNr:250 InfoNr:2843,iVal:1,D3:11,D4:27,D5:0,D6:1>
+9.47.27> Com-Thread beendet sich nach Aufforderung

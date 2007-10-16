@@ -1,0 +1,84 @@
+DEFINITION MODULE FIO;
+// File Input/Output module
+
+(*============================================================*)
+
+TYPE
+  File = ADDRESS;
+
+CONST
+  MaxPath = 260; // windows.MAX_PATH;
+
+TYPE
+  PathStrA   = ARRAY [0..MaxPath-1] OF CHAR;
+  TPPathStrA = POINTER TO PathStrA;
+  PathStrW   = ARRAY [0..MaxPath-1] OF WCHAR;
+  TPPathStrW = POINTER TO PathStrW;
+
+TYPE
+   TFileShareItem = (
+      fsRead,
+      fsWrite
+   );
+   TFileShare = SET OF TFileShareItem;
+
+TYPE
+  FileTime   = RECORD
+    dwLowDateTime  : LONGWORD;
+    dwHighDateTime : LONGWORD;
+  END;
+
+#save, option( dll_export => on )
+
+PROCEDURE ChangeExtensionW( REF Path : ARRAY OF WCHAR; CONST Extension : ARRAY OF WCHAR ); // if Ext = '' removes it, if Path is without appends it
+
+PROCEDURE IsUNCW( CONST Path : ARRAY OF WCHAR ) : BOOLEAN;
+PROCEDURE IsDriveW( CONST Path : ARRAY OF WCHAR ) : BOOLEAN;
+  
+PROCEDURE MakePathW( CONST Head, Tail : ARRAY OF WCHAR; OUT Path : ARRAY OF WCHAR );
+PROCEDURE SplitPathW( CONST Path : ARRAY OF WCHAR; OUT Head, Tail : ARRAY OF WCHAR );
+PROCEDURE PathHeadW( CONST Path : ARRAY OF WCHAR; OUT Head : ARRAY OF WCHAR );
+PROCEDURE PathTailW( CONST Path : ARRAY OF WCHAR; OUT Tail : ARRAY OF WCHAR );
+PROCEDURE PathAddW( REF Path : ARRAY OF WCHAR; CONST AddedPath : ARRAY OF WCHAR );
+
+PROCEDURE IOresult(): CARDINAL;
+
+PROCEDURE OpenW    ( CONST Name : ARRAY OF WCHAR; FileShare : TFileShare ): File;
+PROCEDURE OpenReadW( CONST Name : ARRAY OF WCHAR; FileShare : TFileShare ): File;
+PROCEDURE CreateW  ( CONST Name : ARRAY OF WCHAR; FileShare : TFileShare ): File;
+PROCEDURE AppendW  ( CONST Name : ARRAY OF WCHAR; FileShare : TFileShare ): File;
+
+PROCEDURE ExistsW( CONST Name: ARRAY OF WCHAR ): BOOLEAN;
+PROCEDURE ExistsDirW( CONST Name: ARRAY OF WCHAR ): BOOLEAN;
+PROCEDURE DeleteW( CONST Name: ARRAY OF WCHAR );
+PROCEDURE RenameW( CONST Name, NewName: ARRAY OF WCHAR );
+
+PROCEDURE IsUnicodeFile( F : File ) : BOOLEAN;
+PROCEDURE Close( F: File );
+PROCEDURE Size( F: File ): CARDINAL;
+PROCEDURE GetPos( F: File ): CARDINAL;
+PROCEDURE Seek( F: File; Pos: CARDINAL );
+PROCEDURE Truncate( F: File );
+PROCEDURE Flush( F: File );
+PROCEDURE EndOfFile( F: File ): BOOLEAN;
+PROCEDURE GetFileTime( F: File ): FileTime;
+PROCEDURE SetFileTime( F: File; Time: FileTime );
+
+PROCEDURE WrBin( F: File; Buf : ARRAY OF BYTE; Count: CARDINAL ) : CARDINAL;
+PROCEDURE WrStrW( F: File; Buf : ARRAY OF WCHAR );
+PROCEDURE WrLnW( F: File );
+PROCEDURE WrStrA( F: File; Buf : ARRAY OF CHAR );
+PROCEDURE WrLnA( F: File );
+
+PROCEDURE RdBin( F: File; VAR Buf: ARRAY OF BYTE; Count: CARDINAL ): CARDINAL;
+PROCEDURE RdCharW( F: File ) : WCHAR;
+PROCEDURE RdStrW( F: File; VAR Buf: ARRAY OF WCHAR );
+PROCEDURE RdCharA( F: File ) : CHAR;
+PROCEDURE RdStrA( F: File; VAR Buf: ARRAY OF CHAR );
+
+PROCEDURE GetModulePathW( CONST ModuleName : ARRAY OF WCHAR; OUT ModulePath : ARRAY OF WCHAR ) : BOOLEAN;
+PROCEDURE GetModuleDirW( CONST ModuleName : ARRAY OF WCHAR; OUT ModuleDir : ARRAY OF WCHAR ) : BOOLEAN;
+
+#restore
+
+END FIO.

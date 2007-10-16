@@ -1,0 +1,51 @@
+DEFINITION MODULE eh;
+
+(*==============================================================
+
+          Win32 API for Modula-2 : EXCEPTION HANDLING
+
+       32-bit version for M2CPP Modula-2 to C++ compiler
+
+      Copyright (c) 1996, 1998 Moravian Instruments, Inc.
+
+==============================================================*)
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+(*==============================================================
+
+  History: Created: 23.01.1998
+           Build 0: 
+
+==============================================================*)
+
+(*# call( prefix => cdecl ) *)
+
+TYPE
+  terminate_function  = PROCEDURE();
+  unexpected_function = PROCEDURE();
+  terminate_handler   = PROCEDURE();
+  unexpected_handler  = PROCEDURE();
+
+  P_EXCEPTION_POINTERS = POINTER TO _EXCEPTION_POINTERS;
+
+  _se_translator_function = PROCEDURE( CARDINAL, P_EXCEPTION_POINTERS );
+
+PROCEDURE terminate();
+PROCEDURE unexpected();
+
+PROCEDURE set_terminate( _ : terminate_function ): terminate_function;
+PROCEDURE set_unexpected( _ : unexpected_function ): unexpected_function;
+
+PROCEDURE _set_se_translator( _ : _se_translator_function ): _se_translator_function;
+
+END eh.

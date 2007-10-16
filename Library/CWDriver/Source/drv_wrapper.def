@@ -1,0 +1,470 @@
+DEFINITION MODULE drv_wrapper;
+
+#if #not UNICODE #then
+  #error
+#endif
+
+IMPORT
+  windows;
+
+IMPORT
+  avltree,
+  FIO;
+
+IMPORT
+  drv_str,
+  drv_def;
+
+//=============================================================================
+// API linkage
+
+CONST
+  cwDriversAPIMinorVersionGenericDriver = 0;
+    // drivers of CW versions  < 4.0
+  cwDriversAPIMinorVersionRevision1     = 1;
+    // drivers of CW versions >= 4.0, newly including: IO with QOS and timestamps
+  cwDriversAPIMinorVersionRevision2     = 2;
+    // drivers of CW versions >= 5.0, newly including: errors in GetInput, ReadParameters, Run, Stop
+
+  cwDriversAPIMajorVersionPString       = 3H; // see comments above
+  cwDriversAPIMajorVersionDString       = 4H; // see comments above
+
+  // what minimal driver DLL API ControlWeb accepts
+  cwDriversAPIMajorVersion              = cwDriversAPIMajorVersionPString;
+  cwDriversAPIMinorVersion              = cwDriversAPIMinorVersionGenericDriver; // see comments above
+
+//=============================================================================
+
+TYPE
+  TPDriver = POINTER TO CDriver;
+
+//================================================================================
+
+TYPE
+// definitions of driver DLL procedure interface
+//
+// ANSI/UNICODE API OF DRIVER IS DISTINGUISHED USING TVersion/TVersionW DLL SYMBOLS
+//
+// flags for API procedures (written only for ANSI API, UNICODE has the same flags):
+//   1 = must have
+//   * = not mandatory
+//   ? = one of corresponding procedure
+
+(*# save, call( convention => cdecl, o_a_copy => off, o_a_size => on ) *)
+
+//================================================================================
+// ANSI (compatible) procedures
+  TDriverCallback            = PROCEDURE( ADDRESS, CARDINAL, ADDRESS ) : CARDINAL;
+
+//-- 1
+  TVersion                   = PROCEDURE() : CARDINAL;
+//-- 1
+  TCheck                     = PROCEDURE( VAR ARRAY OF CHAR, CARDINAL,
+                                          CARDINAL, 
+                                          CARDINAL, CARDINAL, CARDINAL ) : BOOLEAN;
+//-- *
+  TSystemEnvironment         = PROCEDURE( CARDINAL, LONGWORD, LONGWORD );
+  // see evi* constant
+//-- 1?
+  TGetDriverInfo             = PROCEDURE( VAR ARRAY OF CHAR );
+
+//-- 1
+  TMakeDriver                = PROCEDURE() : ADDRESS;
+//-- 1
+  TDisposeDriver             = PROCEDURE( ADDRESS );
+
+//-- 1?
+  TInit                      = PROCEDURE( ADDRESS,               // PData
+                                          VAR ARRAY OF CHAR,     // ParamFileName
+                                          VAR ARRAY OF CHAR,     // ErrorMessage
+                                          CARDINAL,              // Level
+                                          BOOLEAN,               // RunningFlag
+                                          ADDRESS,               // PDriver == CBHandle
+                                          TDriverCallback        // DriverCallback
+                                        ) : BOOLEAN;
+//-- 1?
+  TInit3                     = PROCEDURE( ADDRESS,               // PData
+                                          CARDINAL,              // DriverRunMode
+                                          VAR ARRAY OF CHAR,     // SymbolicDriverName
+                                          ADDRESS,               // PDriver == CBHandle
+                                          TDriverCallback        // DriverCallback
+                                        ) : BOOLEAN;
+//-- *, called only if Init3 is present
+  TReadParameters            = PROCEDURE( ADDRESS,               // PData
+                                          VAR ARRAY OF CHAR,     // ParamFileName
+                                          VAR ARRAY OF CHAR,     // ErrorMessage
+                                          VAR CARDINAL,          // ErrorLine
+                                          VAR CARDINAL,          // ErrorColumn
+                                          VAR ARRAY OF CHAR      // HintOrHelp
+                                        ) : BOOLEAN;
+//-- *
+  TQueryErrorCode            = PROCEDURE( ADDRESS,               // PData
+                                          CARDINAL,              // ErrorCode
+                                          VAR ARRAY OF CHAR      // ErrorText
+                                        ) : BOOLEAN;
+//-- *
+  TEnumerateChannels         = PROCEDURE( ADDRESS,               // PData
+                                          VAR LONGWORD,          // EnumerateState
+                                          VAR CARDINAL,          // Type
+                                          VAR CARDINAL,          // Direction
+                                          VAR CARDINAL,          // DriverIndex
+                                          VAR CARDINAL,          // Count
+                                          VAR BOOLEAN            // HaveDescription
+                                        ) : BOOLEAN;
+//-- *
+  TInputParameters           = PROCEDURE( ADDRESS,               // PData
+                                          CARDINAL,              // DriverIndex
+                                          BOOLEAN                // Active
+                                        );
+//-- *
+  TGetChannelDescription     = PROCEDURE( ADDRESS,               // PData
+                                          CARDINAL,              // DriverIndex
+                                          VAR ARRAY OF CHAR,     // Description
+                                          VAR ARRAY OF CHAR      // Id, OPTIONAL, valid if it is not 0C
+                                        ) : BOOLEAN;
+
+//-- *
+  TRun                       = PROCEDURE( ADDRESS );
+//-- *
+  TStop                      = PROCEDURE( ADDRESS );
+//-- 1
+  TDone                      = PROCEDURE( ADDRESS );
+
+//-- *
+  TBufferInfo                = PROCEDURE( ADDRESS, CARDINAL, CARD8, CARDINAL ) : BOOLEAN;
+//-- *
+  TSetBufferAddr             = PROCEDURE( ADDRESS, CARDINAL, ADDRESS );
+
+//-- *
+  TInputRequestStart         = PROCEDURE( ADDRESS );
+//-- 1
+  TInputRequest              = PROCEDURE( ADDRESS, CARDINAL );
+//-- 1
+  TInputRequestCompleted     = PROCEDURE( ADDRESS );
+//-- 1
+  TInputFinalized            = PROCEDURE( ADDRESS, CARDINAL, VAR CARDINAL ) : BOOLEAN;
+//-- *, should be implemented if dcfOOBDataAdvise is used
+  TInputOOBDataQuery         = PROCEDURE( ADDRESS, VAR LONGWORD, VAR CARDINAL ) : BOOLEAN;
+//-- 1?
+  TGetInput1                 = PROCEDURE( ADDRESS, CARDINAL, VAR drv_def.TValue );
+                               // vtPString256
+//-- 1?
+  TGetInput2                 = PROCEDURE( ADDRESS, CARDINAL, VAR drv_def.TValue, VAR CARDINAL, VAR drv_def.TUTCStamp );
+                               // vtPString256, QOS, TimeStamp
+//-- 1?
+  TGetInput3                 = PROCEDURE( ADDRESS, CARDINAL, VAR drv_def.TValue, VAR CARDINAL, VAR drv_def.TUTCStamp, VAR CARDINAL );
+                               // vtDriverString, QOS, TimeStamp, ErrorCode
+
+//-- *
+  TOutputRequestStart        = PROCEDURE( ADDRESS );
+//-- 1?
+  TOutputRequest1            = PROCEDURE( ADDRESS, CARDINAL, drv_def.TValue );
+                               // vtPString256
+//-- 1?
+  TOutputRequest2            = PROCEDURE( ADDRESS, CARDINAL, drv_def.TValue, CARDINAL, VAR drv_def.TUTCStamp );
+                               // vtPString256, QOS, TimeStamp
+//-- 1?
+  TOutputRequest3            = PROCEDURE( ADDRESS, CARDINAL, drv_def.TValue, CARDINAL, VAR drv_def.TUTCStamp );
+                               // vtDriverString, QOS, TimeStamp
+//-- 1
+  TOutputRequestCompleted    = PROCEDURE( ADDRESS );
+//-- 1
+  TOutputFinalized           = PROCEDURE( ADDRESS, CARDINAL, VAR CARDINAL ) : BOOLEAN;
+
+//-- 1
+  TDriverProc                = PROCEDURE( ADDRESS, CARDINAL, CARDINAL, CARDINAL, CARDINAL, CARDINAL );
+//-- *?
+  TQueryProc1                = PROCEDURE( ADDRESS, drv_def.TValue, VAR drv_def.TValue );
+                               // vtPString256
+//-- *?
+  TQueryProc3                = PROCEDURE( ADDRESS, drv_def.TValue, drv_def.TValue, VAR drv_def.TValue );
+                               // vtDriverString
+                               // parameters: PDriver, IN Param1, IN Param2, OUT Param2
+
+PROCEDURE CWDriverCallback( PDriver : ADDRESS; Func : CARDINAL; Param : ADDRESS ) : CARDINAL;
+
+TYPE
+
+//================================================================================
+// UNICODE procedures
+  TDriverCallbackW           = PROCEDURE( ADDRESS, CARDINAL, ADDRESS ) : CARDINAL;
+
+  TVersionW                  = PROCEDURE() : CARDINAL;
+  TCheckW                    = PROCEDURE( VAR ARRAY OF WCHAR, CARDINAL, CARDINAL, CARDINAL, CARDINAL, CARDINAL ) : BOOLEAN;
+  TSystemEnvironmentW        = PROCEDURE( CARDINAL, LONGWORD, LONGWORD );
+  TGetDriverInfoW            = PROCEDURE( VAR ARRAY OF WCHAR );
+
+  TMakeDriverW               = PROCEDURE() : ADDRESS;
+  TDisposeDriverW            = PROCEDURE( ADDRESS );
+
+  TInitW                     = PROCEDURE( ADDRESS,               // PData
+                                          VAR ARRAY OF WCHAR,    // ParamFileName
+                                          VAR ARRAY OF WCHAR,    // ErrorMessage
+                                          CARDINAL,              // Level
+                                          BOOLEAN,               // RunningFlag
+                                          ADDRESS,               // PDriver
+                                          TDriverCallbackW       // DriverCallback
+                                        ) : BOOLEAN;
+  TInit3W                    = PROCEDURE( ADDRESS,               // PData
+                                          CARDINAL,              // DriverRunMode
+                                          VAR ARRAY OF WCHAR,    // SymbolicDriverName
+                                          ADDRESS,               // PDriver == CBHandle
+                                          TDriverCallback        // DriverCallback
+                                        ) : BOOLEAN;
+  TReadParametersW           = PROCEDURE( ADDRESS,               // PData
+                                          VAR ARRAY OF WCHAR,    // ParamFileName
+                                          VAR ARRAY OF WCHAR,    // ErrorMessage
+                                          VAR CARDINAL,          // ErrorLine
+                                          VAR CARDINAL,          // ErrorColumn
+                                          VAR ARRAY OF WCHAR     // HintOrHelp
+                                        ) : BOOLEAN;
+  TQueryErrorCodeW           = PROCEDURE( ADDRESS,               // PData
+                                          CARDINAL,              // ErrorCode
+                                          VAR ARRAY OF WCHAR     // ErrorText
+                                        ) : BOOLEAN;
+  TEnumerateChannelsW        = PROCEDURE( ADDRESS,               // PData
+                                          VAR LONGWORD,          // EnumerateState
+                                          VAR CARDINAL,          // Type
+                                          VAR CARDINAL,          // Direction
+                                          VAR CARDINAL,          // DriverIndex
+                                          VAR CARDINAL,          // Count
+                                          VAR BOOLEAN            // HaveDescription
+                                        ) : BOOLEAN;
+  TInputParametersW          = PROCEDURE( ADDRESS,               // PData
+                                          CARDINAL,              // DriverIndex
+                                          BOOLEAN                // Active
+                                        );
+  TGetChannelDescriptionW    = PROCEDURE( ADDRESS,               // PData
+                                          CARDINAL,              // DriverIndex
+                                          VAR ARRAY OF WCHAR,    // Description
+                                          VAR ARRAY OF WCHAR     // Id, OPTIONAL, valid if it is not 0C
+                                        ) : BOOLEAN;
+
+  TRunW                      = PROCEDURE( ADDRESS );
+  TStopW                     = PROCEDURE( ADDRESS );
+  TDoneW                     = PROCEDURE( ADDRESS );
+
+  TBufferInfoW               = PROCEDURE( ADDRESS, CARDINAL, CARD8, CARDINAL ) : BOOLEAN;
+  TSetBufferAddrW            = PROCEDURE( ADDRESS, CARDINAL, ADDRESS );
+
+  TInputRequestStartW        = PROCEDURE( ADDRESS );
+  TInputRequestW             = PROCEDURE( ADDRESS, CARDINAL );
+  TInputRequestCompletedW    = PROCEDURE( ADDRESS );
+  TInputFinalizedW           = PROCEDURE( ADDRESS, CARDINAL, VAR CARDINAL ) : BOOLEAN;
+  TInputOOBDataQueryW        = PROCEDURE( ADDRESS, VAR LONGWORD, VAR CARDINAL ) : BOOLEAN;
+  TGetInput1W                = PROCEDURE( ADDRESS, CARDINAL, VAR drv_def.TValue );
+                               // vtPString256
+  TGetInput2W                = PROCEDURE( ADDRESS, CARDINAL, VAR drv_def.TValue, VAR CARDINAL, VAR drv_def.TUTCStamp );
+                               // vtPString256, QOS, TimeStamp
+  TGetInput3W                = PROCEDURE( ADDRESS, CARDINAL, VAR drv_def.TValue, VAR CARDINAL, VAR drv_def.TUTCStamp, VAR CARDINAL );
+                               // vtDriverString, QOS, TimeStamp, ErrorCode
+
+  TOutputRequestStartW       = PROCEDURE( ADDRESS );
+  TOutputRequest1W           = PROCEDURE( ADDRESS, CARDINAL, drv_def.TValue );
+                               // vtPString256
+  TOutputRequest2W           = PROCEDURE( ADDRESS, CARDINAL, drv_def.TValue, CARDINAL, VAR drv_def.TUTCStamp );
+                               // vtPString256, QOS, TimeStamp
+  TOutputRequest3W           = PROCEDURE( ADDRESS, CARDINAL, drv_def.TValue, CARDINAL, VAR drv_def.TUTCStamp );
+                               // vtDriverString, QOS, TimeStamp
+  TOutputRequestCompletedW   = PROCEDURE( ADDRESS );
+  TOutputFinalizedW          = PROCEDURE( ADDRESS, CARDINAL, VAR CARDINAL ) : BOOLEAN;
+
+  TDriverProcW               = PROCEDURE( ADDRESS, CARDINAL, CARDINAL, CARDINAL, CARDINAL, CARDINAL );
+  TQueryProc1W               = PROCEDURE( ADDRESS, drv_def.TValue, VAR drv_def.TValue );
+                               // vtPString256
+  TQueryProc3W               = PROCEDURE( ADDRESS, drv_def.TValue, drv_def.TValue, VAR drv_def.TValue );
+                               // vtDriverString
+                               // parameters: PDriver, IN Param1, IN Param2, OUT Param2
+
+PROCEDURE CWDriverCallbackW( PDriver : ADDRESS; Func : CARDINAL; Param : ADDRESS ) : CARDINAL;
+
+(*# restore *)
+
+//=============================================================================
+
+TYPE
+  TDCDHState = (
+    dcstInit,
+    dcstMapError,
+    dcstMapOK
+  );
+
+CLASS CDriverComponentDLLHelper;
+  State     : TDCDHState;
+  DLLHandle : windows.HANDLE;
+  // init
+  PUBLIC PROCEDURE Init( VAR ErrorString : ARRAY OF WCHAR; HModule : windows.HANDLE ) : BOOLEAN;
+  // queries
+  PUBLIC PROCEDURE Version( VAR Version : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE GetDriverDescription( VAR Description : ARRAY OF WCHAR ) : BOOLEAN;
+  PUBLIC PROCEDURE AbleToRunInThisCW( VAR ErrorString : ARRAY OF WCHAR; ControlWebKind, MajorVersion, MinorVersion : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE IsUNICODE( VAR _IsUNICODE : BOOLEAN ) : BOOLEAN;
+  PUBLIC PROCEDURE AbleToEnumerateChannels( ForceInit3 : BOOLEAN ) : BOOLEAN;
+END CDriverComponentDLLHelper;
+
+//=============================================================================
+//                               Abstract Driver                        
+//=============================================================================
+
+CLASS CDriver;
+  DLLHandle        : ADDRESS;      // cw_serv sets it
+  DriverHandle     : CARDINAL;
+  DriverDLLVersion : CARDINAL;     // comes in Initialize
+  DriverRunHandle  : CARDINAL;     // cw_comp sets it
+  DriverDLLName    : ARRAY [0..255] OF WCHAR;
+  DriverAppName    : ARRAY [0..63] OF WCHAR;
+  DriverRunMode    : CARDINAL;
+  ComponentHelper  : CDriverComponentDLLHelper;
+
+  ParFilePath      : FIO.PathStrW;
+  PObjectData      : ADDRESS;
+
+  PBufferA         : drv_str.TPDStringA;
+  PBufferW         : drv_str.TPDStringW;
+
+  // procedure variables from DLL
+  // ANSI -----------------------
+  // generic procedures
+  __SystemEnvironment         : TSystemEnvironment;
+  __MakeDriver                : TMakeDriver;
+  __DisposeDriver             : TDisposeDriver;
+  __Init                      : TInit;
+  __Init3                     : TInit3;
+  __ReadParameters            : TReadParameters;
+  __QueryErrorCode            : TQueryErrorCode;
+  __EnumerateChannels         : TEnumerateChannels;
+  __InputParameters           : TInputParameters;
+  __GetChannelDescription     : TGetChannelDescription;
+  __Run                       : TRun;
+  __Stop                      : TStop;
+  __Done                      : TDone;
+  __BufferInfo                : TBufferInfo;
+  __SetBufferAddr             : TSetBufferAddr;
+  __InputRequestStart         : TInputRequestStart;
+  __InputRequest              : TInputRequest;
+  __InputRequestCompleted     : TInputRequestCompleted;
+  __InputFinalized            : TInputFinalized;
+  __InputOOBDataQuery         : TInputOOBDataQuery;
+  __GetInput1                 : TGetInput1;
+  __OutputRequestStart        : TOutputRequestStart;
+  __OutputRequest1            : TOutputRequest1;
+  __OutputRequestCompleted    : TOutputRequestCompleted;
+  __OutputFinalized           : TOutputFinalized;
+  __DriverProc                : TDriverProc;
+  __QueryProc1                : TQueryProc1;
+  // V400: QOS, TimeStamp additions
+  __GetInput2                 : TGetInput2;
+  __OutputRequest2            : TOutputRequest2;
+  // V500: vtDriverString additions
+  __GetInput3                 : TGetInput3;
+  __OutputRequest3            : TOutputRequest3;
+  __QueryProc3                : TQueryProc3;
+
+  // UNICODE --------------------
+  // generic procedures
+  __SystemEnvironmentW        : TSystemEnvironmentW;
+  __MakeDriverW               : TMakeDriverW;
+  __DisposeDriverW            : TDisposeDriverW;
+  __InitW                     : TInitW;
+  __Init3W                    : TInit3W;
+  __ReadParametersW           : TReadParametersW;
+  __QueryErrorCodeW           : TQueryErrorCodeW;
+  __EnumerateChannelsW        : TEnumerateChannelsW;
+  __InputParametersW          : TInputParametersW;
+  __GetChannelDescriptionW    : TGetChannelDescriptionW;
+  __RunW                      : TRunW;
+  __StopW                     : TStopW;
+  __DoneW                     : TDoneW;
+  __BufferInfoW               : TBufferInfoW;
+  __SetBufferAddrW            : TSetBufferAddrW;
+  __InputRequestStartW        : TInputRequestStartW;
+  __InputRequestW             : TInputRequestW;
+  __InputRequestCompletedW    : TInputRequestCompletedW;
+  __InputFinalizedW           : TInputFinalizedW;
+  __InputOOBDataQueryW        : TInputOOBDataQueryW;
+  __GetInput1W                : TGetInput1W;
+  __OutputRequestStartW       : TOutputRequestStartW;
+  __OutputRequest1W           : TOutputRequest1W;
+  __OutputRequestCompletedW   : TOutputRequestCompletedW;
+  __OutputFinalizedW          : TOutputFinalizedW;
+  __DriverProcW               : TDriverProcW;
+  __QueryProc1W               : TQueryProc1W;
+  // V400: QOS, TimeStamp additions
+  __GetInput2W                : TGetInput2W;
+  __OutputRequest2W           : TOutputRequest2W;
+  // V500: vtDriverString additions
+  __GetInput3W                : TGetInput3W;
+  __OutputRequest3W           : TOutputRequest3W;
+  __QueryProc3W               : TQueryProc3W;
+
+  // methods
+  PUBLIC PROCEDURE Init( DLLHandle : windows.HANDLE );
+    // DriverDLLHandle MUST not be NIL
+
+  PUBLIC VIRTUAL PROCEDURE Version( VAR DLLVersion : CARDINAL ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE GetDriverInfo( VAR DriverInfo : ARRAY OF WCHAR ) : BOOLEAN;
+
+  PUBLIC VIRTUAL PROCEDURE Initialize( VAR ErrorString    : ARRAY OF WCHAR;
+                                       DriverRunMode      : CARDINAL;
+                                       SymbolicDriverName : ARRAY OF WCHAR
+                                      ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE ReadParameters(
+                                          ParFilePath        : ARRAY OF WCHAR;
+                                          VAR ErrorString    : ARRAY OF WCHAR;
+                                          VAR ErrorLine      : CARDINAL;
+                                          VAR ErrorColumn    : CARDINAL;
+                                          VAR HintOrHelp     : ARRAY OF WCHAR
+                                         ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE QueryErrorCode( ErrorCode : CARDINAL; VAR ErrorText : ARRAY OF WCHAR ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE AbleToEnumerateChannels( ForceInit3 : BOOLEAN ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE EnumerateChannels( VAR EnumerateState : LONGWORD; VAR Type : CARDINAL; VAR Direction : drv_def.TDirection; VAR DriverIndex, Count : CARDINAL; VAR HaveDescription : BOOLEAN ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE InputParameters( DriverIndex : CARDINAL; Active : BOOLEAN );
+  PUBLIC VIRTUAL PROCEDURE GetChannelDescription( DriverIndex : CARDINAL; VAR Description, Id : ARRAY OF WCHAR ) : BOOLEAN;
+
+  PUBLIC VIRTUAL PROCEDURE Run();
+  PUBLIC VIRTUAL PROCEDURE Stop();
+  PUBLIC VIRTUAL PROCEDURE Done();
+
+  PUBLIC VIRTUAL PROCEDURE InputRequestStart();
+  PUBLIC VIRTUAL PROCEDURE InputRequest( ChannelNumber : CARDINAL );
+  PUBLIC VIRTUAL PROCEDURE InputRequestCompleted();
+  PUBLIC VIRTUAL PROCEDURE InputFinalized( ChannelNumber : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE InputOOBDataQuery( VAR QueryEnumerateState : LONGWORD; VAR ChannelNumber : CARDINAL ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE GetInput( VAR ErrorCode : CARDINAL; ChannelNumber : CARDINAL; VAR ChannelValue : drv_def.TValue; VAR QOS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE OutputRequestStart();
+  PUBLIC VIRTUAL PROCEDURE OutputRequest( VAR ErrorCode : CARDINAL; ChannelNumber : CARDINAL; ChannelValue : drv_def.TValue; QOS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE OutputRequestCompleted();
+  PUBLIC VIRTUAL PROCEDURE OutputFinalized( ChannelNumber : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
+
+  PUBLIC VIRTUAL PROCEDURE BufferInfo( VAR ErrorCode : CARDINAL; ChannelNumber : CARDINAL; BType : CARD8; BLen : CARDINAL ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE SetBufferAddr( VAR ErrorCode : CARDINAL; ChannelNumber : CARDINAL; PBuffer : ADDRESS ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE DriverProc( Func, Param1, Param2, Param3, Param4 : CARDINAL );
+  PUBLIC VIRTUAL PROCEDURE QueryProc( VAR ErrorCode : CARDINAL; Param1 : drv_def.TValue; VAR Param2 : drv_def.TValue ) : BOOLEAN;
+
+  // API is always identical in both ANSI and UNICODE versions, thus there is no pragmas here
+  PUBLIC VIRTUAL PROCEDURE DriverCallBackA( Func : CARDINAL; Param : ADDRESS ) : CARDINAL;
+  PUBLIC VIRTUAL PROCEDURE DriverCallBackW( Func : CARDINAL; Param : ADDRESS ) : CARDINAL;
+END CDriver; //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+//=============================================================================
+
+TYPE
+  TPChannelMap = POINTER TO CChannelMap;
+
+CLASS CChannelMap;
+  Channels : avltree.CAVLTree;
+  AutomaticInsertOnCheck : BOOLEAN;
+
+  PUBLIC PROCEDURE LoadFromDriver( VAR ErrorString : ARRAY OF WCHAR; PDriver : TPDriver ) : BOOLEAN;
+  // PROCEDURE LoadFromFile( VAR ErrorString : ARRAY OF WCHAR; Path : ARRAY OF WCHAR ) : BOOLEAN;
+  // PROCEDURE LoadFromDString( VAR ErrorString : ARRAY OF WCHAR; PString : vdstr.TPDString ) : BOOLEAN;
+  PUBLIC PROCEDURE Dispose();
+
+  VIRTUAL PROCEDURE Check( VAR ErrorString : ARRAY OF WCHAR; DriverIndex, Count : CARDINAL; Type : drv_def.TValueType; CheckedDirection : drv_def.TDirection; VAR AllowedDirection : drv_def.TDirection ) : BOOLEAN;
+  PUBLIC PROCEDURE Get( VAR ErrorString : ARRAY OF WCHAR; DriverIndex : CARDINAL; VAR Type : drv_def.TValueType; VAR Direction : drv_def.TDirection ) : BOOLEAN;
+  PUBLIC PROCEDURE Info( VAR ErrorString : ARRAY OF WCHAR; DriverIndex : CARDINAL; VAR Id, Description : ARRAY OF WCHAR ) : BOOLEAN;
+END CChannelMap;
+
+//=============================================================================
+
+END drv_wrapper.

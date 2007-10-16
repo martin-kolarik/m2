@@ -1,0 +1,97 @@
+DEFINITION MODULE sdvalue;
+
+IMPORT
+   StringsO,
+   time;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TSDValueType = (
+      sdtUnknown,
+      sdtVoid,
+      sdtObject, // has class
+      sdtBoolean,
+      sdtTristate,
+      sdtInteger,
+      sdtLong,
+      sdtFloat,
+      sdtString,
+      sdtDate,
+      sdtData // TODO
+   );
+   
+TYPE
+   TFlagItem = (
+     vfUndefined,
+     vfSaturate
+   );
+   TFlags = SET OF TFlagItem;
+   
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPValue = POINTER TO Value;
+
+CLASS Value;
+   INTERNAL VAR
+      _Flags : TFlags;
+      _Type : TSDValueType;
+      _Storage : QUADWORD;
+
+   PUBLIC PROPERTY
+      Type : TSDValueType;
+      Undefined : BOOLEAN;
+      Saturate : BOOLEAN;
+   PUBLIC PROPERTY
+      // Object : ADDRESS; // will be object
+      Boolean : BOOLEAN;
+      Tristate : TRISTATE;
+      Integer : INT32;
+      Long : INT64;
+      Float : LONGREAL;
+      String : StringsO.CString;
+      Date : time.TJD; // JD * 86400 * 10000 = count of 100 ns
+      // TODO
+      // Data : StorageO.CMemoryBuffer;
+   PUBLIC READONLY PROPERTY
+      PString : StringsO.TPString; // returns internal string for Type = dstString, otherwise it returns NIL
+
+   PUBLIC OPERATOR :=( CONST Source : Value ); // respects type
+
+   PUBLIC OPERATOR = ( CONST Source : Value ) : BOOLEAN; // hard, binary comparing
+   PUBLIC OPERATOR <>( CONST Source : Value ) : BOOLEAN; // hard, binary comparing
+   PUBLIC OPERATOR > ( CONST Source : Value ) : BOOLEAN;
+   PUBLIC OPERATOR >=( CONST Source : Value ) : BOOLEAN;
+   PUBLIC OPERATOR < ( CONST Source : Value ) : BOOLEAN;
+   PUBLIC OPERATOR <=( CONST Source : Value ) : BOOLEAN;
+   PUBLIC OPERATOR + ( CONST Source : Value ) : Value;
+   PUBLIC OPERATOR - ( CONST Source : Value ) : Value;
+   PUBLIC OPERATOR * ( CONST Source : Value ) : Value;
+   PUBLIC OPERATOR / ( CONST Source : Value ) : Value;
+
+   PUBLIC PROCEDURE Dispose();
+   PUBLIC PROCEDURE Clone( OUT New : Value ); // New has the same type
+   PUBLIC PROCEDURE Equals( CONST Source : Value ) : BOOLEAN; // soft, respects different types
+
+   PUBLIC PROCEDURE ToString( OUT String : StringsO.IString; TransportFlag : BOOLEAN ); // if TransportFlag is set then string is used for some communication and will not be visible
+   PUBLIC PROCEDURE ToStringOA( OUT String : ARRAY OF WCHAR; TransportFlag : BOOLEAN ); // if TransportFlag is set then string is used for some communication and will not be visible
+   PUBLIC PROCEDURE FromString( CONST String : StringsO.IString; TransportFlag : BOOLEAN ); // if TransportFlag is set then string is used for some communication and will not be visible
+   PUBLIC PROCEDURE FromStringOA( CONST String : ARRAY OF WCHAR; TransportFlag : BOOLEAN ); // if TransportFlag is set then string is used for some communication and will not be visible
+
+   // TODO
+   // PUBLIC PROCEDURE ToBuffer( OUT Buffer : StorageO.AMemoryBuffer );
+   // PUBLIC PROCEDURE ToOA( OUT Data : ARRAY OF BYTE );
+   // PUBLIC PROCEDURE FromBuffer( CONST Buffer : StorageO.AMemoryBuffer );
+   // PUBLIC PROCEDURE FromSOA( CONST Data : ARRAY OF BYTE );
+   
+   PUBLIC PROCEDURE Limit( Bits : CARDINAL; Signed, Saturate : BOOLEAN ); // e.g. Limit( 8, TRUE, FALSE ) saturates to CARD8, limites IN PLACE only numbers (Integer, Long, Float)
+
+   PUBLIC PROCEDURE LimitedInteger( Bits : CARDINAL; Signed, Saturate : BOOLEAN ) : INT32; // limites all types
+   PUBLIC PROCEDURE LimitedLong( Bits : CARDINAL; Signed, Saturate : BOOLEAN ) : INT64; // limites all types
+   PUBLIC PROCEDURE LimitedFloat( Bits : CARDINAL; Signed, Saturate : BOOLEAN ) : LONGREAL; // limites all types
+END Value;
+
+(*---------------------------------------------------------------------------*)
+
+END sdvalue.

@@ -1,0 +1,38 @@
+MODULE TClient;
+
+IMPORT
+  windows,
+  lec,
+  time;
+  
+#save, call( convention => cdecl )
+PROCEDURE wmain() : INTEGER;
+#restore
+VAR
+   res : lec.CResult;
+   s : ARRAY [0..63] OF WCHAR;
+BEGIN
+   res.Reset( lec.bhBestCase );
+   lec.Query( L"..\lictool\~debug", L"", L"Inris.Tvrz*", REF res );
+   
+   IF res.Info = lec.riDemo THEN
+      windows.OutputDebugStringW( "demo" + 13W+10W );
+   ELSIF res.Info = lec.riNotActivated THEN
+      windows.OutputDebugStringW( "inactive" + 13W+10W );
+   ELSIF res.Info = lec.riActivated THEN
+      windows.OutputDebugStringW( "active" + 13W+10W );
+   END;
+   
+   IF res.Expires.Year = 0 THEN
+      windows.OutputDebugStringW( "forever" + 13W+10W );
+   ELSE
+      windows.OutputDebugStringW( "expires: " + 13W+10W );
+      time.DateTimeToString( res.Expires, "yyyy-MM-dd HH.mm.ss,fff", TRUE, TRUE, s );
+      windows.OutputDebugStringW( ADR( s ));
+      windows.OutputDebugStringW( 13W+10W );
+   END;
+   
+	RETURN 0;
+END wmain;
+
+END TClient.

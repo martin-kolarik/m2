@@ -1,0 +1,240 @@
+IMPLEMENTATION MODULE cphcommon;
+
+(*================================================================================*)
+
+PROCEDURE FromHex( CONST String : ARRAY OF WCHAR; OUT Bin : ARRAY OF BYTE; OUT Filled : CARDINAL ); // expects even number of characters in String
+VAR
+	i, j, u : CARDINAL;
+	ch : WCHAR;
+	lo, hi : CARD8;
+BEGIN
+	u := MIN2( HIGH( String ) DIV 2, HIGH( Bin ));
+	j := 0;
+	FOR i := 0 TO u DO
+		ch := String[j];
+		CASE ch OF
+		| L'0'..L'9' : hi := CARD8( ch ) - CARD8( L'0' );
+		| L'a'..L'f' : hi := CARD8( ch ) - CARD8( L'a' ) + 10;
+		| L'A'..L'F' : hi := CARD8( ch ) - CARD8( L'A' ) + 10;
+		END; // CASE
+		INC( j );
+		ch := String[j];
+		CASE ch OF
+		| L'0'..L'9' : lo := CARD8( ch ) - CARD8( L'0' );
+		| L'a'..L'f' : lo := CARD8( ch ) - CARD8( L'a' ) + 10;
+		| L'A'..L'F' : lo := CARD8( ch ) - CARD8( L'A' ) + 10;
+		END; // CASE
+		INC( j );
+		Bin[i] := hi << 4 OR lo;
+	END; // WHILE
+	Filled := u+1;
+END FromHex;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE ToHex( CONST Bin : ARRAY OF BYTE; OUT String : ARRAY OF WCHAR );
+VAR
+	b : CARD8;
+	i, j, u : CARDINAL;
+BEGIN
+	u := MIN2( HIGH( Bin ), HIGH( String ) DIV 2 );
+	j := 0;
+	FOR i := 0 TO u DO
+		b := Bin[i] >> 4;
+		IF b < 10 THEN
+			String[j] := WCHAR( ORD( '0' ) + b );
+		ELSE
+			String[j] := WCHAR( ORD( 'a' ) + b - 10 );
+		END;
+		INC( j );
+		b := Bin[i] AND 0FH;
+		IF b < 10 THEN
+			String[j] := WCHAR( ORD( '0' ) + b );
+		ELSE
+			String[j] := WCHAR( ORD( 'a' ) + b - 10 );
+		END;
+		INC( j );
+	END; // FOR
+	IF u < HIGH( String ) DIV 2 THEN
+		String[(u+1)<<1] := 0W;
+	END;
+END ToHex;
+
+(*================================================================================*)
+
+PROCEDURE BASE64CharCount( SrcBytes : CARDINAL ) : CARDINAL;
+BEGIN
+   RETURN ( SrcBytes + 2 ) DIV 3 * 4;
+END BASE64CharCount;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE BASE64ByteCount( BASE64Chars : CARDINAL ) : CARDINAL; 
+BEGIN
+   RETURN BASE64Chars DIV 4 * 3;
+END BASE64ByteCount;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+  Tibase64table = ARRAY [WCHAR(0)..WCHAR(255)] OF CARDINAL;
+
+CONST
+   ibase64table = Tibase64table(
+      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 62,  0,  0,  0, 63,
+     52, 53, 54, 55, 56, 57, 58, 59, 60, 61,  0,  0,  0,  0,  0,  0,
+      0,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+     15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,  0,  0,  0,  0,  0,
+      0, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+     41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51,  0,  0,  0,  0,  0,
+     0 BY 128 );
+
+PROCEDURE FromBASE64( CONST In : ARRAY OF WCHAR; OUT Out : ARRAY OF BYTE; OUT Filled : CARDINAL ) : BOOLEAN;
+VAR
+   i, il : PWCHAR;
+   o : PBYTE;
+   u : CARDINAL;
+   u1 : PBYTE := PBYTE( ADR( u )@[1] );
+   u2 : PBYTE := PBYTE( ADR( u )@[2] );
+BEGIN
+   Filled := 0;
+   IF HIGH( In ) = -1 THEN
+      RETURN TRUE;
+   ELSIF HIGH( In ) AND 3 <> 3 THEN
+      RETURN FALSE;
+   END;
+   u := MIN2( 3 * HIGH( In ) DIV 4, HIGH( Out ));
+
+   o := ADR( Out );
+	i := PWCHAR( ADR( In ));
+	il := INC( i, 8 * (u+1) DIV 3 );
+	WHILE i <> il DO
+	   IF i^ > WCHAR( 255 ) THEN
+   	   INC( i, 2 );
+	      CONTINUE;
+	   END;
+
+      // first six bits
+	   u :=        ibase64table[i^] << 18;
+	   INC( i, 2 );
+      // second six bits
+	   u := u OR ( ibase64table[i^] << 12 );
+	   INC( i, 2 );
+	   IF i^ = L"=" THEN // stop char
+   	   o^ := u2^;
+	      INC( o );
+	      EXIT;
+	   END;
+      // third six bits
+	   u := u OR ( ibase64table[i^] << 06 );
+	   INC( i, 2 );
+	   IF i^ = L"=" THEN // stop char
+   	   o^ := u2^;
+	      INC( o );
+   	   o^ := u1^;
+	      INC( o );
+	      EXIT;
+	   END;
+      // fourth six bits
+	   u := u OR   ibase64table[i^];
+	   INC( i, 2 );
+
+	   o^ := u2^;
+	   INC( o );
+	   o^ := u1^;
+	   INC( o );
+	   o^ := BYTE( u );
+	   INC( o );
+	END; // WHILE
+	
+   Filled := CARDINAL( o - ADR( Out ));
+   RETURN TRUE;
+END FromBASE64;
+
+(*--------------------------------------------------------------------------------*)
+
+CONST
+   base64Table = L"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+PROCEDURE ToBASE64( CONST In : ARRAY OF BYTE; OUT Out : ARRAY OF WCHAR ) : BOOLEAN;
+VAR
+   i, il : PCARD8;
+   o : PWCHAR;
+   u : CARDINAL;
+   x : CARD8;
+BEGIN
+   u := BASE64CharCount( HIGH( In ) + 1 );
+   IF u > HIGH( Out )+1 THEN
+      RETURN FALSE;
+      // u := BASE64BytesCount( HIGH( Out ) + 1 );
+   ELSE
+      u := HIGH( In )+1;
+   END;
+   
+   o := ADR( Out );
+   i := PCARD8( ADR( In ));
+   il := INC( i, u );
+   LOOP
+      IF i = il THEN
+         EXIT;
+      END;
+      x := i^ >> 2;
+      o^ := base64Table[x];
+      INC( o, 2 );
+
+      x := ( i^ AND 03H ) << 4;
+      INC( i );
+      IF i = il THEN
+         o^ := base64Table[x];
+         INC( o, 2 );
+         EXIT;
+      ELSE
+         x := x OR ( i^ >> 4 );
+         o^ := base64Table[x];
+         INC( o, 2 );
+      END;
+
+      x := ( i^ AND 0FH ) << 2;
+      INC( i );
+      IF i = il THEN
+         o^ := base64Table[x];
+         INC( o, 2 );
+         EXIT;
+      ELSE
+         x := x OR ( i^ >> 6 );
+         o^ := base64Table[x];
+         INC( o, 2 );
+      END;
+
+      x := i^ AND 03FH;
+      INC( i );
+      o^ := base64Table[x];
+      INC( o, 2 );
+   END; // WHILE
+
+   CASE u MOD 3 OF
+   | 2 : // ends with 16 bits
+      o^ := L"=";
+      INC( o, 2 );
+   | 1 : // ends with 8 bits
+      o^ := L"=";
+      INC( o, 2 );
+      o^ := L"=";
+      INC( o, 2 );
+   END;
+
+   u := CARDINAL( o - ADR( Out ));
+   IF u > HIGH( Out ) THEN
+      RETURN TRUE;
+   END;
+   o^ := 0W;
+   
+   RETURN TRUE;
+END ToBASE64;
+
+(*================================================================================*)
+
+END cphcommon.
+

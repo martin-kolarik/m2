@@ -1,0 +1,138 @@
+DEFINITION MODULE math;
+
+(*==============================================================
+
+                 Math calculations for Modula-2
+
+       32-bit version for M2CPP Modula-2 to C++ compiler
+
+          Copyright (c) 1996 Moravian Instruments Inc.
+
+==============================================================*)
+
+(*# name( decoration => c ) *)
+
+(*# module( header=>off ) *)
+
+(*# call(   o_a_size=>off,
+            o_a_copy=>off,
+            convention => stdcall ) *)
+
+(*==============================================================
+
+  History: Created: 14.06.1996
+           Build 0:
+
+==============================================================*)
+
+(*============================================================*)
+(* Windows header:            math.h                          *)
+(*============================================================*)
+
+TYPE
+
+  _exception = RECORD
+    type   : INTEGER;         (* exception type - see below *)
+    name   : POINTER TO CHAR; (* name of function where error occured *)
+    arg1   : LONGREAL;        (* first argument to function *)
+    arg2   : LONGREAL;        (* second argument (if any) to function *)
+    retval : LONGREAL;        (* value to be returned by function *)
+  END;
+
+(* Definition of a _complex struct to be used by those who use cabs and
+ * want type checking on their argument
+ *)
+
+  _complex = RECORD
+     x,y : LONGREAL;  (* real and imaginary parts *)
+  END;
+
+(* Constant definitions for the exception type passed in the _exception struct
+ *)
+
+CONST
+
+  _DOMAIN     = 1;  (* argument domain error *)
+  _SING       = 2;  (* argument singularity *)
+  _OVERFLOW   = 3;  (* overflow range error *)
+  _UNDERFLOW  = 4;  (* underflow range error *)
+  _TLOSS      = 5;  (* total loss of precision *)
+  _PLOSS      = 6;  (* partial loss of precision *)
+
+  EDOM        = 33;
+  ERANGE      = 34;
+
+(* Constants rounded for 18 decimals. *)
+  MA_E         = 2.71828182845904524;
+  MA_LOG2E     = 1.44269504088896341;
+  MA_LOG10E    = 0.434294481903251828;
+  MA_LN2       = 0.693147180559945309;
+  MA_LN10      = 2.30258509299404568;
+  MA_PI        = 3.14159265358979324;
+  MA_PI_2      = 1.57079632679489662;
+  MA_PI_4      = 0.785398163397448310;
+  MA_1_PI      = 0.318309886183790672;
+  MA_2_PI      = 0.636619772367581343;
+  MA_1_SQRTPI  = 0.564189583547756287;
+  MA_2_SQRTPI  = 1.12837916709551257;
+  MA_SQRT2	   = 1.41421356237309505;
+  MA_SQRT_2	   = 0.707106781186547524;
+
+(* Function prototypes *)
+PROCEDURE abs( _:INTEGER ): INTEGER;
+
+PROCEDURE acos( _:LONGREAL ): LONGREAL;
+PROCEDURE asin( _:LONGREAL ): LONGREAL;
+PROCEDURE atan( _:LONGREAL ): LONGREAL;
+PROCEDURE atan2( _:LONGREAL; _:LONGREAL ): LONGREAL;
+PROCEDURE cos( _:LONGREAL ): LONGREAL;
+PROCEDURE cosh( _:LONGREAL ): LONGREAL;
+PROCEDURE exp( _:LONGREAL ): LONGREAL;
+PROCEDURE fabs( _:LONGREAL ): LONGREAL;
+PROCEDURE fmod( _:LONGREAL; _:LONGREAL ): LONGREAL;
+PROCEDURE modf( _:LONGREAL; _:PLONGREAL ): LONGREAL;
+PROCEDURE labs( _:LONGINT ): LONGINT;
+PROCEDURE log( _:LONGREAL ): LONGREAL;
+PROCEDURE log10( _:LONGREAL ): LONGREAL;
+PROCEDURE pow( _:LONGREAL; _:LONGREAL ): LONGREAL;
+PROCEDURE sin( _:LONGREAL ): LONGREAL;
+PROCEDURE sinh( _:LONGREAL ): LONGREAL;
+PROCEDURE tan( _:LONGREAL ): LONGREAL;
+PROCEDURE tanh( _:LONGREAL ): LONGREAL;
+PROCEDURE sqrt( _:LONGREAL ): LONGREAL;
+PROCEDURE ceil( _:LONGREAL ): LONGREAL;
+PROCEDURE floor( _:LONGREAL ): LONGREAL;
+
+PROCEDURE acosf( _:REAL ): REAL;
+PROCEDURE asinf( _:REAL ): REAL;
+PROCEDURE atanf( _:REAL ): REAL;
+PROCEDURE atan2f( _:REAL; _:REAL ): REAL;
+PROCEDURE cosf( _:REAL ): REAL;
+PROCEDURE coshf( _:REAL ): REAL;
+PROCEDURE expf( _:REAL ): REAL;
+PROCEDURE fabsf( _:REAL ): REAL;
+PROCEDURE fmodf( _:REAL; _:REAL ): REAL;
+PROCEDURE labsf( _:LONGINT ): LONGINT;
+PROCEDURE logf( _:REAL ): REAL;
+PROCEDURE log10f( _:REAL ): REAL;
+PROCEDURE powf( _:REAL; _:REAL ): REAL;
+PROCEDURE sinf( _:REAL ): REAL;
+PROCEDURE sinhf( _:REAL ): REAL;
+PROCEDURE tanf( _:REAL ): REAL;
+PROCEDURE tanhf( _:REAL ): REAL;
+PROCEDURE sqrtf( _:REAL ): REAL;
+PROCEDURE ceilf( _:REAL ): REAL;
+PROCEDURE floorf( _:REAL ): REAL;
+
+PROCEDURE _matherr( VAR _ : _exception ): INTEGER;
+
+CONST
+
+  DOMAIN      = _DOMAIN;
+  SING        = _SING;
+  OVERFLOW    = _OVERFLOW;
+  UNDERFLOW   = _UNDERFLOW;
+  TLOSS       = _TLOSS;
+  PLOSS       = _PLOSS;
+
+END math.

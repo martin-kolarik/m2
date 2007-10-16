@@ -1,0 +1,253 @@
+DEFINITION MODULE nddeapi;
+
+(*/* ===========================================================
+
+                    Win32 API for Modula-2
+
+       32-bit version for M2CPP Modula-2 to C++ compiler
+
+       (c) 1998 by DAD, Moravian Instruments Inc.
+
+=============================================================*/*)
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+
+(*/* ORIGINAL HEADER: nddeapi.h */*)
+
+FROM windows IMPORT
+  PSTR, PTSTR,
+  BOOL,
+  UINT,
+  PBYTE,
+  PWORD,
+  LONG,
+  DWORD,
+  PDWORD,
+  PSECURITY_DESCRIPTOR,
+  SECURITY_INFORMATION;
+
+// -------------------------------------------------------------
+
+CONST
+  CNLEN           = 15;                 // Computer name length
+  UNCLEN          = (CNLEN+2);          // UNC computer name length
+
+// the choice of this char affects legal share,topic, etc. names
+  SEP_CHAR              = C',';
+  BAR_CHAR              = C"|";
+
+//SEP_WCHAR             = L',';
+//BAR_WCHAR             = L"|";
+
+// API error codes
+  NDDE_NO_ERROR                   = 0;
+  NDDE_ACCESS_DENIED              = 1;
+  NDDE_BUF_TOO_SMALL              = 2;
+  NDDE_ERROR_MORE_DATA            = 3;
+  NDDE_INVALID_SERVER             = 4;
+  NDDE_INVALID_SHARE              = 5;
+  NDDE_INVALID_PARAMETER          = 6;
+  NDDE_INVALID_LEVEL              = 7;
+  NDDE_INVALID_PASSWORD           = 8;
+  NDDE_INVALID_ITEMNAME           = 9;
+  NDDE_INVALID_TOPIC              = 10;
+  NDDE_INTERNAL_ERROR             = 11;
+  NDDE_OUT_OF_MEMORY              = 12;
+  NDDE_INVALID_APPNAME            = 13;
+  NDDE_NOT_IMPLEMENTED            = 14;
+  NDDE_SHARE_ALREADY_EXIST        = 15;
+  NDDE_SHARE_NOT_EXIST            = 16;
+  NDDE_INVALID_FILENAME           = 17;
+  NDDE_NOT_RUNNING                = 18;
+  NDDE_INVALID_WINDOW             = 19;
+  NDDE_INVALID_SESSION            = 20;
+  NDDE_INVALID_ITEM_LIST          = 21;
+  NDDE_SHARE_DATA_CORRUPTED       = 22;
+  NDDE_REGISTRY_ERROR             = 23;
+  NDDE_CANT_ACCESS_SERVER         = 24;
+  NDDE_INVALID_SPECIAL_COMMAND    = 25;
+  NDDE_INVALID_SECURITY_DESC      = 26;
+  NDDE_TRUST_SHARE_FAIL           = 27;
+
+// string size constants
+  MAX_NDDESHARENAME               = 256;
+  MAX_DOMAINNAME                  = 15;
+  MAX_USERNAME                    = 15;
+  MAX_APPNAME                     = 255;
+  MAX_TOPICNAME                   = 255;
+  MAX_ITEMNAME                    = 255;
+
+// connectFlags bits for ndde service affix
+  NDDEF_NOPASSWORDPROMPT          = 0001H;
+  NDDEF_NOCACHELOOKUP             = 0002H;
+  NDDEF_STRIP_NDDE                = 0004H;
+
+
+// NDDESHAREINFO - contains information about a NDDE share
+
+TYPE
+  NDdeShareInfo_tag = RECORD
+    lRevision         : LONG;
+    lpszShareName     : PTSTR;
+    lShareType        : LONG;
+    lpszAppTopicList  : PTSTR;
+    fSharedFlag       : LONG;
+    fService          : LONG;
+    fStartAppFlag     : LONG;
+    nCmdShow          : LONG;
+    qModifyId         : ARRAY [0..1] OF LONG;
+    cNumItems         : LONG;
+    lpszItemList      : PTSTR;
+  END;
+
+  NDDESHAREINFO     = NDdeShareInfo_tag;
+  PNDDESHAREINFO    = POINTER TO NDdeShareInfo_tag;
+
+CONST
+//  Share Types
+  SHARE_TYPE_OLD              = 01H;  // Excel|sheet1.xls
+  SHARE_TYPE_NEW              = 02H;  // ExcelWorksheet|sheet1.xls
+  SHARE_TYPE_STATIC           = 04H;  // ClipSrv|SalesData
+  
+//  Add new share
+
+PROCEDURE NDdeShareAdd(
+  lpszServer    : PSTR;     // server to execute on ( must be NULL )
+  nLevel        : UINT;     // info level must be 2
+  pSD           : PSECURITY_DESCRIPTOR; // initial security descriptor (optional)
+  lpBuffer      : PBYTE;    // contains (NDDESHAREINFO) + data
+  cBufSize      : DWORD     // sizeof supplied buffer
+): UINT;
+  
+//  Delete a share
+
+PROCEDURE NDdeShareDel(
+  lpszServer    : PTSTR;    // server to execute on ( must be NULL )
+  lpszShareName : PTSTR;    // name of share to delete
+  wReserved     : UINT      // reserved for force level (?) 0 for now
+): UINT;
+
+//  Get Share Security Descriptor
+
+PROCEDURE NDdeGetShareSecurity(
+  lpszServer    : PTSTR;     // server to execute on ( must be NULL )
+  lpszShareName : PTSTR;     // name of share to delete
+  si            : SECURITY_INFORMATION; // requested information
+  pSD           : PSECURITY_DESCRIPTOR; // address of security descriptor
+  cbSD          : DWORD;     // size of buffer for security descriptor
+  lpcbsdRequired: PDWORD     // address of required size of buffer
+): UINT;
+
+
+//  Set Share Security Descriptor
+
+PROCEDURE NDdeSetShareSecurity(
+  lpszServer    : PTSTR;   // server to execute on ( must be NULL )
+  lpszShareName : PTSTR;   // name of share to delete
+  si            : SECURITY_INFORMATION; // type of information to set
+  pSD           : PSECURITY_DESCRIPTOR  // address of security descriptor
+): UINT;
+
+//  Enumerate shares
+PROCEDURE NDdeShareEnum(
+  lpszServer    : PTSTR;  // server to execute on ( NULL for local )
+  nLevel        : UINT;   //  0 for null separated 00 terminated list
+  lpBuffer      : PBYTE;  // pointer to buffer
+  cBufSize      : DWORD;  // size of buffer
+  lpnEntriesRead     : PDWORD;  // number of names returned
+  lpcbTotalAvailable : PDWORD   // number of bytes available
+): UINT;
+
+//  Get information on a share
+
+PROCEDURE NDdeShareGetInfo(
+  lpszServer    : PTSTR;  // server to execute on ( must be NULL )
+  lpszShareName : PTSTR;  // name of share
+  nLevel        : UINT;   // info level must be 2
+  lpBuffer      : PBYTE;  // gets struct containing (NDDESHAREINFO) + data
+  cBufSize      : DWORD;  // sizeof buffer
+  lpnTotalAvailable : PDWORD; // number of bytes available
+  lpnItems          : PWORD   // item mask for partial getinfo (must be 0)
+): UINT;
+
+//  Modify DDE share data
+
+PROCEDURE NDdeShareSetInfo(
+  lpszServer    : PTSTR;  // server to execute on ( must be NULL )
+  lpszShareName : PTSTR;  // name of share
+  nLevel        : UINT;   // info level must be 2
+  lpBuffer      : PBYTE;  // points to struct with (NDDESHAREINFO) + data
+  cBufSize      : DWORD;  // sizeof buffer
+  sParmNum      : WORD    // Parameter index ( must be 0 - entire )
+);
+
+//  Set/Create a trusted share
+
+PROCEDURE NDdeSetTrustedShare(
+  lpszServer    : PTSTR;  // server to execute on ( must be NULL )
+  lpszShareName : PTSTR;  // name of share to delete
+  dwTrustOptions: DWORD   // trust options to apply
+): UINT;
+
+CONST
+//  Trusted share options
+  NDDE_TRUST_SHARE_START  = 80000000H;    // Start App Allowed
+  NDDE_TRUST_SHARE_INIT   = 40000000H;    // Init Conv Allowed
+  NDDE_TRUST_SHARE_DEL    = 20000000H;    // Delete Trusted Share (on set)
+  NDDE_TRUST_CMD_SHOW     = 10000000H;    // Use supplied cmd show
+  NDDE_CMD_SHOW_MASK      = 0000FFFFH;    // Command Show mask
+
+//  Get a trusted share options
+
+PROCEDURE NDdeGetTrustedShare(
+  lpszServer    : PTSTR;   // server to execute on ( must be NULL )
+  lpszShareName : PTSTR;   // name of share to query
+  lpdwTrustOptions : PDWORD;  // trust options in effect
+  lpdwShareModId0  : PDWORD;  // first word of share mod id
+  lpdwShareModId1  : PDWORD   // second word of share mod id
+): UINT;
+
+
+//  Enumerate trusted shares
+
+PROCEDURE NDdeTrustedShareEnum(
+  lpszServer  : PTSTR;   // server to execute on ( NULL for local )
+  nLevel      : UINT;    //  0 for null separated 00 terminated list
+  lpBuffer    : PBYTE;   // pointer to buffer
+  cBufSize    : DWORD;   // size of buffer
+  lpnEntriesRead    : PDWORD; // number of names returned
+  lpcbTotalAvailable: PDWORD  // number of bytes available
+): UINT;
+
+//  Convert error code to string value
+
+PROCEDURE NDdeGetErrorString(
+  uErrorCode  : UINT;       // Error code to get string for
+  lpszErrorString : PTSTR;  // buffer to hold error string
+  cBufSize    : DWORD       // sizeof buffer
+): UINT;
+
+//  Validate share name format
+
+PROCEDURE NDdeIsValidShareName(
+  shareName   : PTSTR
+): BOOL;
+
+//  Validate application/topic list format
+
+PROCEDURE NDdeIsValidAppTopicList(
+  targetTopic : PTSTR
+): BOOL;
+
+
+END nddeapi.

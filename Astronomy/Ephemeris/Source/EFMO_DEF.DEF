@@ -1,0 +1,108 @@
+DEFINITION MODULE efMo_def;
+
+(*===========================================================================*)
+
+  PROCEDURE CountCorrections(     l, ll, f, d : LONGREAL;
+                              VAR al, ab, ar  : LONGREAL );
+
+  PROCEDURE GetOrbitalElements( jd : LONGREAL; VAR a, L, o : LONGREAL );
+
+(*===========================================================================*)
+
+(* chybove rozvoje efemerid Mesice - ELP2000-85 (Chapront-Touz‚, Chapront 1983)
+   chyba celkem max 20"
+*)
+
+(*===========================================================================*)
+
+TYPE
+  TCoefficients = ARRAY [0..3] OF INTEGER;
+  TErrorRecord  = RECORD
+                    k   : TCoefficients;
+                    eal : LONGINT;
+                    ear : LONGINT;
+                    abp : LONGINT;
+                    abm : LONGINT;
+                  END;
+
+  TerrorsPolynom = ARRAY [0..36] OF TErrorRecord;
+
+CONST
+  errorsPolynom = TerrorsPolynom(
+                      TErrorRecord( TCoefficients(  1,  0,  0,  0 ),
+                                     22640, -20905,  1010,  1000 ),
+                      TErrorRecord( TCoefficients(  1,  0,  0, -2 ),
+                                     -4586,  -3699,  -167,  -199 ),
+                      TErrorRecord( TCoefficients(  0,  0,  0,  2 ),
+                                      2370,  -2956,   117,   624 ),
+                      TErrorRecord( TCoefficients(  2,  0,  0,  0 ),
+                                       769,   -570,    62,    32 ),
+                      TErrorRecord( TCoefficients(  0,  1,  0,  0 ),
+                                      -666,     49,    -6,    -5 ),
+                      TErrorRecord( TCoefficients(  0,  0,  2,  0 ),
+                                      -412,     -3,    -6, 18461 ),
+                      TErrorRecord( TCoefficients(  2,  0,  0, -2 ),
+                                      -212,    246,   -16,     2 ),
+                      TErrorRecord( TCoefficients(  1,  1,  0, -2 ),
+                                      -205,   -152,    -7,    -9 ),
+                      TErrorRecord( TCoefficients(  1,  0,  0,  2 ),
+                                       192,   -171,    15,    33 ),
+                      TErrorRecord( TCoefficients(  0,  1,  0, -2 ),
+                                      -165,   -205,   -30,    -8 ),
+                      TErrorRecord( TCoefficients(  1, -1,  0,  0 ),
+                                       147,   -130,     7,     6 ),
+                      TErrorRecord( TCoefficients(  0,  0,  0,  1 ),
+                                      -125,    109,    -5,    -5 ),
+                      TErrorRecord( TCoefficients(  1,  1,  0,  0 ),
+                                      -109,    105,    -5,    -5 ),
+                      TErrorRecord( TCoefficients(  0,  0,  2, -2 ),
+                                       -55,     10,    -2,     0 ),
+                      TErrorRecord( TCoefficients(  1,  0,  2,  0 ),
+                                       -45,      0,    -1,     0 ),
+                      TErrorRecord( TCoefficients(  1,  0, -2,  0 ),
+                                        40,     80,     0,     3 ),
+                      TErrorRecord( TCoefficients(  1,  0,  0, -4 ),
+                                       -38,    -35,    -7,    -3 ),
+                      TErrorRecord( TCoefficients(  3,  0,  0,  0 ),
+                                        36,    -23,     4,     2 ),
+                      TErrorRecord( TCoefficients(  2,  0,  0, -4 ),
+                                       -31,    -22,    -1,     2 ),
+                      TErrorRecord( TCoefficients(  1, -1,  0, -2 ),
+                                        28,     24,     0,     1 ),
+                      TErrorRecord( TCoefficients(  0,  1,  0,  2 ),
+                                       -24,     31,    -1,   -12 ),
+                      TErrorRecord( TCoefficients(  1,  0,  0, -1 ),
+                                        19,     -8,     0,     0 ),
+                      TErrorRecord( TCoefficients(  0,  1,  0,  1 ),
+                                        18,    -17,     0,     0 ),
+                      TErrorRecord( TCoefficients(  1, -1,  0,  2 ),
+                                        15,    -13,     0,     0 ),
+                      TErrorRecord( TCoefficients(  2,  0,  0,  2 ),
+                                        14,    -10,     0,     0 ),
+                      TErrorRecord( TCoefficients(  0,  0,  0,  4 ),
+                                        14,    -12,     0,     0 ),
+                      TErrorRecord( TCoefficients(  3,  0,  0, -2 ),
+                                       -13,     14,     0,     0 ),
+                      TErrorRecord( TCoefficients(  2, -1,  0,  0 ),
+                                        10,     -7,     0,     0 ),
+                      TErrorRecord( TCoefficients(  1,  0, -2, -2 ),
+                                         9,      0,     0,     0 ),
+                      TErrorRecord( TCoefficients(  2,  1,  0, -2 ),
+                                        -9,     10,     0,     0 ),
+                      TErrorRecord( TCoefficients(  1,  0,  0,  1 ),
+                                        -8,      6,     0,     0 ),
+                      TErrorRecord( TCoefficients(  0,  2,  0, -2 ),
+                                        -8,    -10,     0,     0 ),
+                      TErrorRecord( TCoefficients(  2,  1,  0,  0 ),
+                                        -8,      6,     0,     0 ),
+                      TErrorRecord( TCoefficients(  0,  2,  0,  0 ),
+                                        -7,      1,     0,     0 ),
+                      TErrorRecord( TCoefficients(  1,  2,  0, -2 ),
+                                        -7,     -5,     0,     0 ),
+                      TErrorRecord( TCoefficients(  1,  0, -2,  2 ),
+                                        -6,      4,     0,     0 ),
+                      TErrorRecord( TCoefficients(  0,  0,  2,  2 ),
+                                        -6,      0,     0,     0 )
+                                );
+
+END efMo_def.

@@ -1,0 +1,2383 @@
+(* this ALWAYS GENERATED file contains the definitions for the interfaces *)
+
+DEFINITION MODULE oleidl;
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+// packing declared because ocidl included to olectl after pack=>8
+(*# option( pack => 8 ) *)
+
+IMPORT 
+  windows,
+  rpc,
+  rpcdce,
+  rpcndr,
+  rpcdcep,
+  objidl,
+  wtypes,
+  unknwn;
+
+PROCEDURE MIDL_user_allocate( _ : rpcndr.size_t ): ADDRESS;
+PROCEDURE MIDL_user_free( _ : ADDRESS ); 
+
+CONST 
+  HRESULT ::= wtypes.HRESULT;
+
+VAR
+  __MIDL__intf_0000_v0_0_c_ifspec : rpcdce.RPC_IF_HANDLE;
+  __MIDL__intf_0000_v0_0_s_ifspec : rpcdce.RPC_IF_HANDLE;
+  IID_IOleAdviseHolder : wtypes.IID;
+
+TYPE
+
+  PDWORD = POINTER TO CARD32;
+  TPIOleAdviseHolder = POINTER TO IOleAdviseHloder;
+  TPPVOID = POINTER TO windows.PVOID;
+  TPLOGPALETTE = POINTER TO wtypes.LOGPALETTE;
+  TPPLOGPALETTE = POINTER TO TPLOGPALETTE;
+     
+CLASS IOleAdviseHolder( unknwn.IUnknown );
+
+	VIRTUAL PROCEDURE  Advise(pAdvise : objidl.TPIAdviseSink;
+		pdwConnection : windows.PDWORD ): HRESULT;
+
+	VIRTUAL PROCEDURE Unadvise(dwConnection : CARD32 ): HRESULT;
+
+	VIRTUAL PROCEDURE EnumAdvise(VAR ppenumAdvise :objidl.TPIEnumSTATDATA ): HRESULT;
+
+	VIRTUAL PROCEDURE SendOnRename( 
+		pmk : objidl.TPIMoniker ): HRESULT;
+
+	VIRTUAL PROCEDURE SendOnSave ( ): HRESULT;
+
+	VIRTUAL PROCEDURE SendOnClose ( ): HRESULT;
+
+END IOleAdviseHolder;  
+
+
+PROCEDURE IOleAdviseHolder_Advise_Proxy( 
+    This : TPIOleAdviseHolder;
+    pAdvise : objidl.TPIAdviseSink;
+    pdwConnection : windows.PDWORD ): HRESULT;
+
+
+PROCEDURE IOleAdviseHolder_Advise_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleAdviseHolder_Unadvise_Proxy( 
+    This : TPIOleAdviseHolder;
+    dwConnection : CARD32 ): HRESULT;
+
+
+PROCEDURE IOleAdviseHolder_Unadvise_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+PROCEDURE IOleAdviseHolder_EnumAdvise_Proxy( 
+    This : TPIOleAdviseHolder;
+    VAR ppenumAdvise :objidl.TPIEnumSTATDATA ): HRESULT;
+
+PROCEDURE IOleAdviseHolder_EnumAdvise_Stub(
+    This : objidl.TPIRpcStubBuffer;
+  _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+  _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+  _pdwStubPhase : windows.PDWORD);
+
+PROCEDURE IOleAdviseHolder_SendOnRename_Proxy( 
+    This : TPIOleAdviseHolder;
+    pmk :  objidl.TPIMoniker ): HRESULT;
+
+
+PROCEDURE IOleAdviseHolder_SendOnRename_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+PROCEDURE IOleAdviseHolder_SendOnSave_Proxy( 
+    This : TPIOleAdviseHolder ): HRESULT;
+
+
+PROCEDURE  IOleAdviseHolder_SendOnSave_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleAdviseHolder_SendOnClose_Proxy( 
+    This : TPIOleAdviseHolder ): HRESULT;
+
+
+PROCEDURE IOleAdviseHolder_SendOnClose_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+VAR
+  IID_IOleCache : wtypes.IID ;  
+TYPE
+  TPPIEnumOLEVERB = POINTER TO TPIEnumOLEVERB;
+  TPIEnumOLEVERB  = POINTER TO IEnumOLEVERB;
+  TPenumSTATDATA = POINTER TO IEnumSTATDATA;
+  TPPenumSTATDATA = POINTER TO TPenumSTATDATA;
+  TPIOleCache = POINTER TO IOleCache;
+  
+CLASS IOleCache( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE Cache( 
+    pformatetc : objidl.PFORMATETC;
+    advf : windows.DWORD;
+    pdwConnection : windows.PDWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE Uncache( 
+    dwConnection : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE EnumCache( 
+    ppenumSTATDATA : TPPenumSTATDATA ): HRESULT;
+
+  VIRTUAL PROCEDURE InitCache( 
+    pDataObject : objidl.TPIDataObject ): HRESULT;
+
+  VIRTUAL PROCEDURE SetData( 
+    pformatetc : objidl.FORMATETC;
+    pmedium : objidl.PSTGMEDIUM;
+    fRelease : windows.BOOL ): HRESULT;
+
+END IOleCache;
+
+PROCEDURE IOleCache_Cache_Proxy( 
+    This : TPIOleCache; 
+    pformatetc : objidl.PFORMATETC;
+    advf : windows.DWORD;
+    pdwConnection : windows.PDWORD ): HRESULT;
+
+PROCEDURE IOleCache_Cache_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+PROCEDURE IOleCache_Uncache_Proxy( 
+    This : TPIOleCache;
+    dwConnection : windows.DWORD ): HRESULT;
+
+PROCEDURE IOleCache_Uncache_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer :objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+PROCEDURE IOleCache_EnumCache_Proxy( 
+    This : TPIOleCache;
+    ppenumSTATDATA : TPPenumSTATDATA ): HRESULT;
+
+
+PROCEDURE IOleCache_EnumCache_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer :objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleCache_InitCache_Proxy( 
+    This : TPIOleCache;
+    pDataObject : objidl.TPIDataObject ): HRESULT;
+
+
+PROCEDURE IOleCache_InitCache_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleCache_SetData_Proxy( 
+    This : TPIOleCache;
+    pformatetc : objidl.PFORMATETC;
+    pmedium : objidl.PSTGMEDIUM;
+    fRelease : windows.BOOL ): HRESULT;
+
+
+PROCEDURE IOleCache_SetData_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+CONST 
+
+  UPDFCACHE_NODATACACHE	= 1;
+  UPDFCACHE_ONSAVECACHE	= 2;
+  UPDFCACHE_ONSTOPCACHE	= 4;
+  UPDFCACHE_NORMALCACHE	= 8;
+  UPDFCACHE_IFBLANK	= 010H;
+  UPDFCACHE_ONLYIFBLANK	= 080000000H;
+  UPDFCACHE_IFBLANKORONSAVECACHE	= (UPDFCACHE_IFBLANK) OR (UPDFCACHE_ONSAVECACHE);
+  UPDFCACHE_ALL	= windows.DWORD (NOT(UPDFCACHE_ONLYIFBLANK));
+  UPDFCACHE_ALLBUTNODATACACHE	= (UPDFCACHE_ALL) AND ( windows.DWORD ( NOT (UPDFCACHE_NODATACACHE )));
+  DISCARDCACHE_SAVEIFDIRTY	= 0;
+  DISCARDCACHE_NOSAVE	= 1;
+
+TYPE   
+  DISCARDCACHE = CARDINAL;
+VAR
+  IID_IOleCache2 : wtypes.IID;
+TYPE
+  TPIOleCache2 = POINTER TO IOleCache2;
+
+CLASS IOleCache2 (IOleCache);
+
+  VIRTUAL PROCEDURE UpdateCache( 
+    pDataObject : objidl.TPIDataObject;
+    grfUpdf : windows.DWORD;
+    (* [in] *) pReserved : windows.PVOID ): HRESULT;
+
+  VIRTUAL PROCEDURE DiscardCache( 
+    dwDiscardOptions : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE IOleCache2_RemoteUpdateCache_Proxy(
+    This : TPIOleCache2;
+    (* [in] *)      pDataObject  : objidl.TPIDataObject;
+    (* [in] *)      grfUpdf : windows.DWORD;
+    (* [in] *)      pReserved : windows.DWORD ): HRESULT;
+
+END IOleCache2;
+
+PROCEDURE IOleCache2_RemoteUpdateCache_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+PROCEDURE IOleCache2_DiscardCache_Proxy( 
+    This : TPIOleCache2;
+    dwDiscardOptions : windows.DWORD ): HRESULT;
+
+PROCEDURE IOleCache2_DiscardCache_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+VAR
+  IID_IOleCacheControl : wtypes.IID;
+
+TYPE
+  TPIOleCacheControl = POINTER TO IOleCacheControl;
+
+CLASS IOleCacheControl( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE OnRun( pDataObject : objidl.TPIDataObject ): HRESULT;
+    
+  VIRTUAL PROCEDURE OnStop( ): HRESULT;
+    
+END IOleCacheControl;
+  
+PROCEDURE IOleCacheControl_OnRun_Proxy( 
+    This : TPIOleCacheControl;
+    pDataObject : objidl.TPIDataObject ): HRESULT;
+
+
+PROCEDURE IOleCacheControl_OnRun_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+PROCEDURE IOleCacheControl_OnStop_Proxy( 
+    This : TPIOleCacheControl ): HRESULT;
+
+PROCEDURE IOleCacheControl_OnStop_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+VAR
+  IID_IParseDisplayName : wtypes.IID;
+
+TYPE
+  TPIParseDisplayName = POINTER TO IParseDisplayName;
+  
+CLASS IParseDisplayName( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE ParseDisplayName( 
+    pbc : objidl.TPIBindCtx;
+    pszDisplayName :  wtypes.POLESTR;
+    pchEaten : windows.PULONG;
+    ppmkOut : objidl.TPPIMoniker): HRESULT;
+
+END IParseDisplayName;
+
+PROCEDURE IParseDisplayName_ParseDisplayName_Proxy( 
+       This : TPIParseDisplayName;
+       pbc : objidl.TPIBindCtx;
+       pszDisplayName : wtypes.PCOLESTR;
+       pchEaten : windows.PULONG;
+       ppmkOut : objidl.TPPIMoniker ): HRESULT;
+
+
+PROCEDURE IParseDisplayName_ParseDisplayName_Stub(
+       This : objidl.TPIRpcStubBuffer;
+       _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+       _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+       _pdwStubPhase : windows.PDWORD);
+
+VAR
+  IID_IOleContainer : wtypes.IID;
+
+TYPE
+  TPPIEnumUnknown = POINTER TO TPIEnumUnknown; 
+  TPIOleContainer = POINTER TO IOleContainer;
+  TPPIOleContainer = POINTER TO TPIOleContainer;
+
+CLASS IOleContainer (IParseDisplayName);
+
+  VIRTUAL PROCEDURE EnumObjects( 
+    grfFlags : windows.DWORD;
+    ppenum : objidl.TPPIEnumUnknown ): HRESULT;
+
+  VIRTUAL PROCEDURE LockContainer( 
+    fLock : windows.BOOL ): HRESULT;
+
+END IOleContainer;
+
+
+PROCEDURE IOleContainer_EnumObjects_Proxy( 
+    This : TPIOleContainer;
+    grfFlags : windows.DWORD;
+    ppenum : TPPIEnumUnknown ): HRESULT;
+
+
+PROCEDURE IOleContainer_EnumObjects_Stub(
+    This  : objidl.IRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.IRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleContainer_LockContainer_Proxy( 
+    This : TPIOleContainer;
+    fLock : windows.BOOL ): HRESULT;
+
+PROCEDURE IOleContainer_LockContainer_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.DWORD);
+
+VAR
+  IID_IOleClientSite : wtypes.IID;
+
+TYPE
+  TPIOleClientSite = POINTER TO IOleClientSite;
+  TPPIOleClientSite = POINTER TO TPIOleClientSite;
+  
+  
+CLASS IOleClientSite( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE SaveObject( ): HRESULT;
+
+  VIRTUAL PROCEDURE GetMoniker( 
+    dwAssign : windows.DWORD;
+    dwWhichMoniker : windows.DWORD;
+    ppmk : objidl.TPPIMoniker ): HRESULT;
+
+  VIRTUAL PROCEDURE GetContainer( 
+    ppContainer : TPPIOleContainer ): HRESULT;
+
+  VIRTUAL PROCEDURE ShowObject( ): HRESULT;
+
+  VIRTUAL PROCEDURE OnShowWindow(
+    fShow : windows.BOOL ): HRESULT;
+
+  VIRTUAL PROCEDURE RequestNewObjectLayout( ): HRESULT;
+
+END IOleClientSite;
+  
+
+PROCEDURE IOleClientSite_SaveObject_Proxy( 
+    This : TPIOleClientSite ): HRESULT;
+
+
+PROCEDURE IOleClientSite_SaveObject_Stub(
+    This : objidl.IRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.IRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.DWORD);
+
+
+PROCEDURE IOleClientSite_GetMoniker_Proxy( 
+    This : TPIOleClientSite;
+    dwAssign : windows.DWORD;
+    dwWhichMoniker : windows.DWORD;
+    ppmk : objidl.TPPIMoniker ): HRESULT;
+
+
+PROCEDURE IOleClientSite_GetMoniker_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD );
+
+
+PROCEDURE IOleClientSite_GetContainer_Proxy( 
+    This : TPIOleClientSite;
+    ppContainer : TPPIOleContainer ): HRESULT;
+
+
+PROCEDURE IOleClientSite_GetContainer_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleClientSite_ShowObject_Proxy( 
+    This : TPIOleClientSite ): HRESULT;
+
+
+PROCEDURE IOleClientSite_ShowObject_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.DWORD);
+
+
+PROCEDURE IOleClientSite_OnShowWindow_Proxy( 
+    This : TPIOleClientSite;
+    fShow : windows.BOOL ): HRESULT;
+
+
+PROCEDURE  IOleClientSite_OnShowWindow_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.DWORD);
+
+
+PROCEDURE IOleClientSite_RequestNewObjectLayout_Proxy( 
+    This : TPIOleClientSite ): HRESULT;
+
+
+PROCEDURE IOleClientSite_RequestNewObjectLayout_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.DWORD);
+
+
+//enum
+CONST  
+  OLEGETMONIKER_ONLYIFTHERE	= 1;
+  OLEGETMONIKER_FORCEASSIGN	= 2;
+  OLEGETMONIKER_UNASSIGN	= 3;
+  OLEGETMONIKER_TEMPFORUSER	= 4;
+TYPE  
+  OLEGETMONIKER = CARDINAL;
+
+// enum
+CONST
+  OLEWHICHMK_CONTAINER	= 1;
+	OLEWHICHMK_OBJREL	= 2;
+	OLEWHICHMK_OBJFULL	= 3;
+TYPE  
+  OLEWHICHMK = CARDINAL;
+
+//enum
+CONST 
+  USERCLASSTYPE_FULL	= 1;
+	USERCLASSTYPE_SHORT	= 2;
+	USERCLASSTYPE_APPNAME	= 3;
+   
+TYPE 
+  USERCLASSTYPE = CARDINAL;
+
+//enum
+CONST
+  OLEMISC_RECOMPOSEONRESIZE	= 1;
+	OLEMISC_ONLYICONIC	= 2;
+	OLEMISC_INSERTNOTREPLACE	= 4;
+	OLEMISC_STATIC	= 8;
+	OLEMISC_CANTLINKINSIDE	= 010H;
+	OLEMISC_CANLINKBYOLE1	= 20H;
+	OLEMISC_ISLINKOBJECT	= 040H;
+	OLEMISC_INSIDEOUT	= 080H;
+	OLEMISC_ACTIVATEWHENVISIBLE	= 0100H;
+	OLEMISC_RENDERINGISDEVICEINDEPENDENT	= 0200H;
+	OLEMISC_INVISIBLEATRUNTIME	= 0400H;
+	OLEMISC_ALWAYSRUN	= 0800H;
+	OLEMISC_ACTSLIKEBUTTON	= 01000H;
+	OLEMISC_ACTSLIKELABEL	= 02000H;
+	OLEMISC_NOUIACTIVATE	= 04000H;
+	OLEMISC_ALIGNABLE	= 08000H;
+	OLEMISC_SIMPLEFRAME	= 010000H;
+	OLEMISC_SETCLIENTSITEFIRST	= 020000H;
+	OLEMISC_IMEMODE	= 040000H;
+	OLEMISC_IGNOREACTIVATEWHENVISIBLE	= 080000H;
+	OLEMISC_WANTSTOMENUMERGE	= 0100000H;
+	OLEMISC_SUPPORTSMULTILEVELUNDO	= 0200000H;
+  
+TYPE
+  OLEMISC = CARDINAL;
+
+//enum
+
+CONST
+  OLECLOSE_SAVEIFDIRTY	= 0;
+	OLECLOSE_NOSAVE	= 1;
+	OLECLOSE_PROMPTSAVE	= 2;
+    
+TYPE
+  OLECLOSE = CARDINAL;
+
+VAR
+  IID_IOleObject : wtypes.IID;
+
+TYPE
+  TPIOleObject = POINTER TO IOleObject;
+  TPPIDataObject = POINTER TO objidl.TPIDataObject;
+  
+CLASS IOleObject( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE SetClientSite( 
+   pClientSite : TPIOleClientSite ): HRESULT;
+
+  VIRTUAL PROCEDURE GetClientSite( 
+   ppClientSite : TPPIOleClientSite ): HRESULT;
+
+  VIRTUAL PROCEDURE SetHostNames( 
+   szContainerApp : wtypes.PCOLESTR;
+   szContainerObj : wtypes.PCOLESTR ): HRESULT;
+
+  VIRTUAL PROCEDURE Close( 
+   dwSaveOption : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE SetMoniker( 
+   dwWhichMoniker : windows.DWORD;
+   pmk : objidl.TPIMoniker ): HRESULT;
+
+  VIRTUAL PROCEDURE GetMoniker( 
+   dwAssign : windows.DWORD;
+   dwWhichMoniker : windows.DWORD;
+   ppmk : objidl.TPPIMoniker ): HRESULT;
+
+  VIRTUAL PROCEDURE InitFromData( 
+   pDataObject : objidl.TPIDataObject;
+   fCreation : windows.BOOL;
+   dwReserved : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE GetClipboardData( 
+   dwReserved : windows.DWORD;
+   ppDataObject : TPPIDataObject ): HRESULT;
+
+  VIRTUAL PROCEDURE DoVerb( 
+   iVerb : windows.LONG;
+   ipmsg : windows.PMSG;
+   pActiveSite : TPIOleClientSite;
+   lindex : windows.LONG;
+   hwndParent : windows.HWND;
+   lprcPosRect : windows.PCRECT ): HRESULT;
+
+  VIRTUAL PROCEDURE EnumVerbs( 
+   ppEnumOleVerb : TPPIEnumOLEVERB ): HRESULT;
+
+  VIRTUAL PROCEDURE Update( ): HRESULT;
+
+  VIRTUAL PROCEDURE IsUpToDate( ): HRESULT;
+
+  VIRTUAL PROCEDURE GetUserClassID( 
+    pClsid : wtypes.PCLSID ): HRESULT;
+
+  VIRTUAL PROCEDURE GetUserType( 
+    dwFormOfType : windows.DWORD;
+    pszUserType :  wtypes.PPOLESTR ): HRESULT;
+
+  VIRTUAL PROCEDURE SetExtent( 
+    dwDrawAspect : windows.DWORD;
+    psizel : windows.PSIZEL ): HRESULT;
+
+  VIRTUAL PROCEDURE GetExtent( 
+    dwDrawAspect : windows.DWORD;
+    psizel : windows.PSIZEL ): HRESULT;
+
+  VIRTUAL PROCEDURE Advise( 
+    pAdvSink : objidl.TPIAdviseSink;
+    pdwConnection : windows.PDWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE Unadvise( 
+    dwConnection : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE EnumAdvise( 
+    ppenumAdvise : objidl.TPPIEnumSTATDATA ): HRESULT;
+
+  VIRTUAL PROCEDURE GetMiscStatus( 
+    dwAspect : windows.DWORD;
+    pdwStatus : windows.PDWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE SetColorScheme( 
+    pLogpal :  TPLOGPALETTE ): HRESULT;
+
+END IOleObject;
+  
+
+PROCEDURE IOleObject_SetClientSite_Proxy( 
+     This : TPIOleObject;
+     pClientSite : TPIOleClientSite ): HRESULT;
+
+
+PROCEDURE IOleObject_SetClientSite_Stub(
+     This : objidl.TPIRpcStubBuffer;
+     _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+     _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+     _pdwStubPhase : windows.DWORD );
+
+
+PROCEDURE IOleObject_GetClientSite_Proxy( 
+     This : TPIOleObject;
+     ppClientSite : TPPIOleClientSite ): HRESULT;
+
+
+PROCEDURE IOleObject_GetClientSite_Stub(
+     This : objidl.IRpcStubBuffer;
+     _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+     _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+     _pdwStubPhase : windows.DWORD);
+
+
+PROCEDURE IOleObject_SetHostNames_Proxy( 
+   This : TPIOleObject;
+   szContainerApp : wtypes.PCOLESTR;
+   szContainerObj : wtypes.PCOLESTR ): HRESULT;
+
+
+PROCEDURE IOleObject_SetHostNames_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.DWORD);
+
+
+PROCEDURE IOleObject_Close_Proxy( 
+    This : TPIOleObject;
+    dwSaveOption : windows.DWORD ): HRESULT;
+
+
+PROCEDURE IOleObject_Close_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD );
+
+
+PROCEDURE IOleObject_SetMoniker_Proxy( 
+    This : TPIOleObject;
+    dwWhichMoniker : windows.DWORD;
+    pmk : objidl.TPIMoniker ): HRESULT;
+
+
+PROCEDURE IOleObject_SetMoniker_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.IRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD );
+
+
+PROCEDURE IOleObject_GetMoniker_Proxy( 
+    This : TPIOleObject;
+    dwAssign : windows.DWORD;
+    dwWhichMoniker : windows.DWORD;
+    ppmk : objidl.TPPIMoniker ): HRESULT;
+
+
+PROCEDURE IOleObject_GetMoniker_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD );
+
+
+PROCEDURE IOleObject_InitFromData_Proxy( 
+    This : TPIOleObject;
+    pDataObject : objidl.TPIDataObject;
+    fCreation : windows.BOOL;
+    dwReserved : windows.DWORD ): HRESULT;
+
+
+PROCEDURE IOleObject_InitFromData_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD );
+
+
+ PROCEDURE IOleObject_GetClipboardData_Proxy( 
+   This : TPIOleObject;
+   dwReserved : windows.DWORD;
+   ppDataObject : TPPIDataObject ): HRESULT;
+
+
+PROCEDURE IOleObject_GetClipboardData_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD );
+
+
+PROCEDURE IOleObject_DoVerb_Proxy( 
+   This : TPIOleObject;
+   iVerb : windows.LONG;
+   lpmsg : windows.PMSG;
+   pActiveSite : TPIOleClientSite;
+   lindex : windows.LONG;
+   hwndParent : windows.HWND;
+   lprcPosRect : windows.PRECT ): HRESULT;
+
+
+PROCEDURE IOleObject_DoVerb_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD );
+
+
+PROCEDURE IOleObject_EnumVerbs_Proxy( 
+   This : TPIOleObject;
+   ppEnumOleVerb : TPPIEnumOLEVERB ): HRESULT;
+
+
+PROCEDURE IOleObject_EnumVerbs_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleObject_Update_Proxy( 
+   This : TPIOleObject ): HRESULT;
+
+
+PROCEDURE IOleObject_Update_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD );
+
+
+PROCEDURE IOleObject_IsUpToDate_Proxy( 
+   This : TPIOleObject ): HRESULT;
+
+
+PROCEDURE IOleObject_IsUpToDate_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleObject_GetUserClassID_Proxy( 
+   This : IOleObject;
+   pClsid : wtypes.PCLSID ): HRESULT;
+
+
+PROCEDURE IOleObject_GetUserClassID_Stub(
+  This : objidl.TPIRpcStubBuffer;
+  _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+  _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+  _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleObject_GetUserType_Proxy( 
+   This : TPIOleObject;
+   dwFormOfType : windows.DWORD;
+   pszUserType : wtypes.POLESTR ): HRESULT;
+
+
+PROCEDURE IOleObject_GetUserType_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleObject_SetExtent_Proxy( 
+   This : TPIOleObject;
+   dwDrawAspect : windows.DWORD;
+   psizel : windows.PSIZEL ): HRESULT;
+
+
+PROCEDURE IOleObject_SetExtent_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleObject_GetExtent_Proxy( 
+   This : TPIOleObject;
+   dwDrawAspect : windows.DWORD;
+   psizel : windows.PSIZEL ): HRESULT;
+
+
+PROCEDURE IOleObject_GetExtent_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleObject_Advise_Proxy( 
+   This : TPIOleObject;
+   pAdvSink : objidl.TPIAdviseSink;
+   pdwConnection : windows.PDWORD ): HRESULT;
+
+
+PROCEDURE IOleObject_Advise_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleObject_Unadvise_Proxy( 
+   This : TPIOleObject;
+   dwConnection :windows.DWORD ): HRESULT;
+
+
+PROCEDURE IOleObject_Unadvise_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleObject_EnumAdvise_Proxy( 
+    This : TPIOleObject;
+    ppenumAdvise :objidl.TPPIEnumSTATDATA ): HRESULT;
+
+
+PROCEDURE IOleObject_EnumAdvise_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleObject_GetMiscStatus_Proxy( 
+   This : TPIOleObject;
+   dwAspect : windows.DWORD;
+   pdwStatus : windows.PDWORD ): HRESULT;
+
+
+PROCEDURE IOleObject_GetMiscStatus_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleObject_SetColorScheme_Proxy( 
+   This : TPIOleObject;
+   pLogpal : TPLOGPALETTE ): HRESULT;
+//  !!!!!!!!!!!!!  LOGPALETTE
+
+PROCEDURE IOleObject_SetColorScheme_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+//enum
+CONST
+  OLERENDER_NONE	= 0;
+	OLERENDER_DRAW	= 1;
+	OLERENDER_FORMAT	= 2;
+	OLERENDER_ASIS	= 3;
+TYPE 
+	OLERENDER = CARDINAL;
+  POLERENDER = POINTER TO OLERENDER;
+
+  OBJECTDESCRIPTOR = RECORD
+    cbSize : windows.ULONG;
+    clsid : wtypes.CLSID;
+    dwDrawAspect : windows.DWORD;
+    sizel : windows.SIZEL;
+    pointl : windows.POINTL;
+    dwStatus : windows.DWORD;
+    dwFullUserTypeName : windows.DWORD;
+    dwSrcOfCopy : windows.DWORD;
+  END;
+
+TYPE
+  POBJECTDESCRIPTOR = POINTER TO OBJECTDESCRIPTOR;
+  LINKSRCDESCRIPTOR = OBJECTDESCRIPTOR;
+  PLINKSRCDESCRIPTOR = POINTER TO OBJECTDESCRIPTOR;
+
+VAR
+  IID_IOleWindow : wtypes.IID;
+
+TYPE
+  TPIOleWindow = POINTER TO IOleWindow;
+
+CLASS IOleWindow( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE GetWindow( 
+    phwnd : windows.PHWND ): HRESULT;
+
+  VIRTUAL PROCEDURE ContextSensitiveHelp( 
+    fEnterMode : windows.BOOL ): HRESULT;
+
+END IOleWindow;
+  
+
+PROCEDURE IOleWindow_GetWindow_Proxy( 
+   This : TPIOleWindow ;
+   phwnd : windows.HWND ): HRESULT;
+
+
+PROCEDURE IOleWindow_GetWindow_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleWindow_ContextSensitiveHelp_Proxy( 
+   This : TPIOleWindow ;
+   fEnterMode : windows.BOOL ): HRESULT;
+
+
+PROCEDURE IOleWindow_ContextSensitiveHelp_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+ 
+//enum
+CONST
+
+  OLEUPDATE_ALWAYS	= 1;
+	OLEUPDATE_ONCALL	= 3;
+TYPE  
+ 
+  OLEUPDATE = CARDINAL;
+//enum
+CONST
+  OLELINKBIND_EVENIFCLASSDIFF	= 1;
+
+TYPE   
+  OLELINKBIND = CARDINAL;
+
+VAR
+  IID_IOleLink : wtypes.IID;
+
+TYPE
+  TPIOleLink = POINTER TO IOleLink;
+  TPPIUnknown = POINTER TO unknwn.TPIUnknown;
+  TPPIOleInPlaceUIWindow = POINTER TO TPIOleInPlaceUIWindow;
+  PPOLESTR = POINTER TO wtypes.POLESTR;
+  
+CLASS IOleLink( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE SetUpdateOptions( 
+    dwUpdateOpt : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE GetUpdateOptions( 
+    pdwUpdateOpt : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE SetSourceMoniker( 
+    pmk : objidl.TPIMoniker;
+    CONST rclsid : wtypes.CLSID ): HRESULT;
+
+  VIRTUAL PROCEDURE GetSourceMoniker( 
+    ppmk : objidl.TPPIMoniker ): HRESULT;
+
+  VIRTUAL PROCEDURE SetSourceDisplayName( 
+    pszStatusText : wtypes.PCOLESTR ): HRESULT;
+
+  VIRTUAL PROCEDURE GetSourceDisplayName( 
+    VAR ppszDisplayName : wtypes.POLESTR ): HRESULT;
+
+  VIRTUAL PROCEDURE BindToSource( 
+    bindflags : windows.DWORD;
+    pbc : objidl.TPIBindCtx ): HRESULT;
+
+  VIRTUAL PROCEDURE BindIfRunning( ): HRESULT;
+
+  VIRTUAL PROCEDURE GetBoundSource( 
+    ppunk : TPPIUnknown ): HRESULT;
+
+  VIRTUAL PROCEDURE UnbindSource( ): HRESULT;
+
+  VIRTUAL PROCEDURE Update( 
+    pbc : objidl.IBindCtx ): HRESULT;
+
+END IOleLink;
+
+
+
+PROCEDURE IOleLink_SetUpdateOptions_Proxy( 
+   This : TPIOleLink;
+   dwUpdateOpt : windows.DWORD ): HRESULT;
+
+
+PROCEDURE IOleLink_SetUpdateOptions_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleLink_GetUpdateOptions_Proxy( 
+   This : TPIOleLink;
+   pdwUpdateOpt : windows.PDWORD ): HRESULT;
+
+
+PROCEDURE IOleLink_GetUpdateOptions_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE  IOleLink_SetSourceMoniker_Proxy( 
+    This : TPIOleLink;
+    pmk : objidl.TPIMoniker;
+    CONST rclsid : wtypes.CLSID ): HRESULT;
+
+
+PROCEDURE IOleLink_SetSourceMoniker_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleLink_GetSourceMoniker_Proxy( 
+    This : TPIOleLink;
+    ppmk : objidl.TPPIMoniker ): HRESULT;
+
+
+PROCEDURE IOleLink_GetSourceMoniker_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleLink_SetSourceDisplayName_Proxy( 
+    This : TPIOleLink;
+    pszStatusText : wtypes.PCOLESTR ): HRESULT;
+
+
+PROCEDURE IOleLink_SetSourceDisplayName_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleLink_GetSourceDisplayName_Proxy( 
+    This : TPIOleLink;
+    ppszDisplayName : PPOLESTR ): HRESULT;
+
+
+PROCEDURE IOleLink_GetSourceDisplayName_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+
+ PROCEDURE IOleLink_BindToSource_Proxy( 
+    This : TPIOleLink;
+    bindflags : windows.DWORD;
+    pbc : objidl.TPIBindCtx ): HRESULT;
+
+
+PROCEDURE IOleLink_BindToSource_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleLink_BindIfRunning_Proxy( 
+    This : TPIOleLink ): HRESULT;
+
+
+PROCEDURE IOleLink_BindIfRunning_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleLink_GetBoundSource_Proxy( 
+    This : TPIOleLink;
+    ppunk : TPPIUnknown ): HRESULT;
+
+
+PROCEDURE IOleLink_GetBoundSource_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleLink_UnbindSource_Proxy( 
+    This : TPIOleLink ): HRESULT;
+
+
+PROCEDURE IOleLink_UnbindSource_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleLink_Update_Proxy( 
+   This : TPIOleLink;
+   pbc : objidl.TPIBindCtx ): HRESULT;
+
+
+PROCEDURE IOleLink_Update_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+
+//enum
+CONST
+  BINDSPEED_INDEFINITE	= 1;
+	BINDSPEED_MODERATE	= 2;
+	BINDSPEED_IMMEDIATE	= 3;
+TYPE 
+	BINDSPEED = CARDINAL;
+//enum 
+CONST
+  OLECONTF_EMBEDDINGS	= 1;
+	OLECONTF_LINKS	= 2;
+	OLECONTF_OTHERS	= 4;
+	OLECONTF_ONLYUSER	= 8;
+	OLECONTF_ONLYIFRUNNING	= 16;
+TYPE
+  OLECONTF = CARDINAL;
+
+VAR
+  IID_IOleItemContainer : wtypes.IID;
+
+TYPE
+  TPIOleInPlaceActiveObject = POINTER TO IOleInPlaceActiveObject;
+  TPIOleItemContainer = POINTER TO IOleItemContainer;
+    
+CLASS  IOleItemContainer (IOleContainer);
+
+  VIRTUAL PROCEDURE GetObject( 
+    pszItem : wtypes.POLESTR;
+    dwSpeedNeeded : windows.DWORD;
+    pbc : objidl.TPIBindCtx;
+    CONST riid : wtypes.IID;
+    (* [iid_is][out]  void __RPC_FAR *__RPC_FAR *ppvObject); *)
+    ppvObject : TPPVOID ): HRESULT;
+
+  VIRTUAL PROCEDURE GetObjectStorage( 
+    pszItem : wtypes.POLESTR;
+    pbc : objidl.TPIBindCtx;
+    CONST riid : wtypes.IID;
+    (* [iid_is][out]  void __RPC_FAR *__RPC_FAR *ppvStorage); *)
+    ppvStorage : TPPVOID ): HRESULT;
+
+  VIRTUAL PROCEDURE IsRunning( 
+    pszItem : wtypes.POLESTR );
+
+END IOleItemContainer; 
+
+
+PROCEDURE IOleItemContainer_RemoteGetObject_Proxy( 
+    This : TPIOleItemContainer;
+    pszItem : wtypes.POLESTR;
+     dwSpeedNeeded : windows.DWORD;
+    pbc : objidl.TPIBindCtx;
+    CONST riid : wtypes.IID;
+    ppvObject : TPPIUnknown ): HRESULT;
+
+
+PROCEDURE IOleItemContainer_RemoteGetObject_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+ PROCEDURE IOleItemContainer_RemoteGetObjectStorage_Proxy( 
+    This : TPIOleItemContainer;
+    pszItem : wtypes.POLESTR;
+    pbc : objidl.TPIBindCtx;
+    CONST riid : wtypes.IID;
+    ppvStorage : TPPIUnknown ): HRESULT;
+
+
+PROCEDURE IOleItemContainer_RemoteGetObjectStorage_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleItemContainer_IsRunning_Proxy( 
+   This : TPIOleItemContainer;
+   pszItem : wtypes.POLESTR ): HRESULT;
+
+
+PROCEDURE IOleItemContainer_IsRunning_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+TYPE
+  BORDERWIDTHS = windows.RECT;
+  PBORDERWIDTHS = windows.PRECT;
+  PCBORDERWIDTHS = windows.PCRECT;
+
+  TPIOleInPlaceUIWindow = POINTER TO IOleInPlaceUIWindow;
+
+VAR
+  IID_IOleInPlaceUIWindow : wtypes.IID;
+
+CLASS IOleInPlaceUIWindow (IOleWindow);
+
+  VIRTUAL PROCEDURE GetBorder( 
+    lprectBorder : windows.PRECT ): HRESULT;
+
+  VIRTUAL PROCEDURE RequestBorderSpace( 
+    pborderwidths : PCBORDERWIDTHS ): HRESULT;
+
+  VIRTUAL PROCEDURE  SetBorderSpace( 
+    pborderwidths : PCBORDERWIDTHS ): HRESULT;
+
+  VIRTUAL PROCEDURE SetActiveObject( 
+    pActiveObject : TPIOleInPlaceActiveObject;
+    pszObjName : wtypes.PCOLESTR ): HRESULT;
+
+END IOleInPlaceUIWindow;
+    
+PROCEDURE IOleInPlaceUIWindow_GetBorder_Proxy( 
+   This : TPIOleInPlaceUIWindow;
+   lprectBorder : windows.PRECT ): HRESULT;
+
+
+PROCEDURE IOleInPlaceUIWindow_GetBorder_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleInPlaceUIWindow_RequestBorderSpace_Proxy( 
+   This : TPIOleInPlaceUIWindow;
+   pborderwidths : PCBORDERWIDTHS ): HRESULT;
+
+
+PROCEDURE IOleInPlaceUIWindow_RequestBorderSpace_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleInPlaceUIWindow_SetBorderSpace_Proxy( 
+   This : TPIOleInPlaceUIWindow;
+   pborderwidths : PCBORDERWIDTHS ): HRESULT;
+
+
+PROCEDURE IOleInPlaceUIWindow_SetBorderSpace_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleInPlaceUIWindow_SetActiveObject_Proxy( 
+   This : TPIOleInPlaceUIWindow;
+   pActiveObject : TPIOleInPlaceActiveObject;
+   pszObjName : wtypes.PCOLESTR );
+
+
+PROCEDURE IOleInPlaceUIWindow_SetActiveObject_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+VAR  
+  IID_IOleInPlaceActiveObject : wtypes.IID; 
+
+CLASS IOleInPlaceActiveObject (IOleWindow);
+
+  VIRTUAL PROCEDURE TranslateAccelerator( 
+    lpmsg : windows.PMSG ): HRESULT;
+
+  VIRTUAL PROCEDURE OnFrameWindowActivate( 
+    fActivate : windows.BOOL ): HRESULT;
+
+  VIRTUAL PROCEDURE OnDocWindowActivate( 
+    fActivate : windows.BOOL ): HRESULT;
+
+  VIRTUAL PROCEDURE ResizeBorder( 
+    prcBorder : windows.PCRECT;
+    pUIWindow : TPIOleInPlaceUIWindow;
+    fFrameWindow : windows.BOOL ): HRESULT;
+
+  VIRTUAL PROCEDURE EnableModeless( 
+    fEnable : windows.BOOL ): HRESULT;
+
+END IOleInPlaceActiveObject;
+ 
+PROCEDURE IOleInPlaceActiveObject_RemoteTranslateAccelerator_Proxy( 
+   This : TPIOleInPlaceActiveObject ): HRESULT;
+
+
+PROCEDURE IOleInPlaceActiveObject_RemoteTranslateAccelerator_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleInPlaceActiveObject_OnFrameWindowActivate_Proxy( 
+   This : TPIOleInPlaceActiveObject;
+   fActivate : windows.BOOL ): HRESULT;
+
+
+PROCEDURE IOleInPlaceActiveObject_OnFrameWindowActivate_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleInPlaceActiveObject_OnDocWindowActivate_Proxy( 
+   This : TPIOleInPlaceActiveObject;
+   fActivate : windows.BOOL ): HRESULT;
+
+
+PROCEDURE IOleInPlaceActiveObject_OnDocWindowActivate_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+ PROCEDURE IOleInPlaceActiveObject_RemoteResizeBorder_Proxy( 
+   This : TPIOleInPlaceActiveObject;
+   prcBorder : windows.PCRECT;
+   CONST riid : wtypes.IID;
+   pUIWindow : TPIOleInPlaceUIWindow;
+   fFrameWindow : windows.BOOL ): HRESULT;
+
+
+PROCEDURE IOleInPlaceActiveObject_RemoteResizeBorder_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleInPlaceActiveObject_EnableModeless_Proxy( 
+   This : TPIOleInPlaceActiveObject;
+   fEnable : windows.BOOL ): HRESULT;
+
+
+PROCEDURE IOleInPlaceActiveObject_EnableModeless_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+TYPE
+  
+  TPIOleInPlaceFrame = POINTER TO IOleInPlaceFrame;
+
+  OLEINPLACEFRAMEINFO = RECORD
+    cb : windows.UINT;
+    fMDIApp : windows.BOOL;
+    hwndFrame : windows.HWND;
+    haccel : windows.HACCEL;
+    cAccelEntries : windows.UINT;
+  END;
+
+  POLEINPLACEFRAMEINFO = POINTER TO OLEINPLACEFRAMEINFO;
+
+  OLEMENUGROUPWIDTHS = RECORD
+    width : ARRAY [0..5] OF windows.LONG;
+  END;
+
+  POLEMENUGROUPWIDTHS = POINTER TO OLEMENUGROUPWIDTHS;
+  HOLEMENU = windows.HGLOBAL;
+
+VAR
+  IID_IOleInPlaceFrame : wtypes.IID;
+
+CLASS IOleInPlaceFrame (IOleInPlaceUIWindow);
+
+  VIRTUAL PROCEDURE InsertMenus( 
+    (* [in] *) hmenuShared : windows.HMENU;
+               lpMenuWidths : POLEMENUGROUPWIDTHS ): HRESULT;
+
+  (* [input_sync] *) VIRTUAL PROCEDURE SetMenu( 
+    (* [in] *) hmenuShared : windows.HMENU;
+    (* [in] *) holemenu : HOLEMENU;
+    (* [in] *) hwndActiveObject : windows.HWND ): HRESULT;
+
+  VIRTUAL PROCEDURE RemoveMenus( 
+    (* [in] *) hmenuShared : windows.HMENU ): HRESULT;
+
+  (* [input_sync] *)    VIRTUAL PROCEDURE SetStatusText( 
+    (* [in] *) pszStatusText : wtypes.PCOLESTR ): HRESULT;
+
+  VIRTUAL PROCEDURE EnableModeless( 
+    (* [in] *) fEnable : windows.BOOL ): HRESULT;
+
+  VIRTUAL PROCEDURE TranslateAccelerator( 
+    (* [in] *) lpmsg : windows.PMSG;
+    (* [in] *) wID : WORD ): HRESULT;
+
+END IOleInPlaceFrame; 
+ 
+PROCEDURE IOleInPlaceFrame_InsertMenus_Proxy( 
+  This : TPIOleInPlaceFrame;
+  (* [in] *) hmenuShared : windows.HMENU;
+  (* [out][in] *)lpMenuWidths : POLEMENUGROUPWIDTHS ): HRESULT;
+
+
+PROCEDURE IOleInPlaceFrame_InsertMenus_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+(* [input_sync] *)  PROCEDURE IOleInPlaceFrame_SetMenu_Proxy( 
+  This : TPIOleInPlaceFrame;
+  (* [in] *) hmenuShared : windows.HMENU;
+  (* [in] *) holemenu : HOLEMENU;
+  (* [in] *) hwndActiveObject : windows.HWND ): HRESULT;
+
+
+PROCEDURE IOleInPlaceFrame_SetMenu_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleInPlaceFrame_RemoveMenus_Proxy( 
+   This : TPIOleInPlaceFrame;
+  (* [in] *) hmenuShared : windows.HMENU ): HRESULT;
+
+
+PROCEDURE IOleInPlaceFrame_RemoveMenus_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+(* [input_sync] *)  PROCEDURE IOleInPlaceFrame_SetStatusText_Proxy( 
+   This : TPIOleInPlaceFrame;
+  (* [in] *) pszStatusText : wtypes.PCOLESTR ): HRESULT;
+
+
+PROCEDURE IOleInPlaceFrame_SetStatusText_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleInPlaceFrame_EnableModeless_Proxy( 
+   This : TPIOleInPlaceFrame;
+  (* [in] *)fEnable : windows.BOOL ): HRESULT;
+
+
+PROCEDURE IOleInPlaceFrame_EnableModeless_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleInPlaceFrame_TranslateAccelerator_Proxy( 
+   This : TPIOleInPlaceFrame;
+  (* [in] *) lpmsg : windows.PMSG;
+  (* [in] *) wID : CARD16 ): HRESULT; 
+
+
+PROCEDURE IOleInPlaceFrame_TranslateAccelerator_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+VAR
+  IID_IOleInPlaceObject : wtypes.IID;
+
+TYPE
+  TPIOleInPlaceObject = POINTER TO IOleInPlaceObject;
+     
+CLASS IOleInPlaceObject (IOleWindow);
+
+  VIRTUAL PROCEDURE InPlaceDeactivate( ): HRESULT;
+
+  VIRTUAL PROCEDURE UIDeactivate( ): HRESULT;
+
+  (* [input_sync] *)  VIRTUAL PROCEDURE SetObjectRects( 
+    (* [in] *) lprcPosRect : windows.PCRECT;
+    (* [in] *) lprcClipRect : windows.PCRECT ): HRESULT;
+
+  VIRTUAL PROCEDURE ReactivateAndUndo ( ): HRESULT;
+
+END IOleInPlaceObject;
+
+PROCEDURE IOleInPlaceObject_InPlaceDeactivate_Proxy( 
+   This : IOleInPlaceObject ): HRESULT;
+
+
+PROCEDURE IOleInPlaceObject_InPlaceDeactivate_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleInPlaceObject_UIDeactivate_Proxy( 
+   This : IOleInPlaceObject ): HRESULT;
+
+
+PROCEDURE IOleInPlaceObject_UIDeactivate_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+(* [input_sync] *)  PROCEDURE IOleInPlaceObject_SetObjectRects_Proxy( 
+  This : IOleInPlaceObject;
+  (* [in] *) lprcPosRect : windows.PCRECT;
+  (* [in] *) lprcClipRect : windows.PCRECT ): HRESULT; 
+
+
+PROCEDURE IOleInPlaceObject_SetObjectRects_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleInPlaceObject_ReactivateAndUndo_Proxy( 
+   This : IOleInPlaceObject ): HRESULT;
+
+
+PROCEDURE IOleInPlaceObject_ReactivateAndUndo_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+VAR
+  IID_IOleInPlaceSite : wtypes.IID;
+
+TYPE
+  TPPIOleInPlaceFrame = POINTER TO TPIOleInPlaceFrame;
+  TPIOleInPlaceSite = POINTER TO IOleInPlaceSite;    
+ 
+CLASS IOleInPlaceSite (IOleWindow);
+
+  VIRTUAL PROCEDURE CanInPlaceActivate( ): HRESULT;
+
+  VIRTUAL PROCEDURE OnInPlaceActivate( ): HRESULT;
+
+  VIRTUAL PROCEDURE OnUIActivate( )  : HRESULT;
+
+  VIRTUAL PROCEDURE GetWindowContext( 
+    (* [out] *) ppFrame : TPPIOleInPlaceFrame;
+    (* [out] *) ppDoc : TPPIOleInPlaceUIWindow;
+    (* [out] *) lprcPosRect : windows.PRECT;
+    (* [out] *) lprcClipRect : windows.PRECT;
+    (* [out][in] *)lpFrameInfo : POLEINPLACEFRAMEINFO ): HRESULT;
+
+  VIRTUAL PROCEDURE Scroll( 
+    (* [in] *)  scrollExtant : windows.SIZEL ): HRESULT;
+
+  VIRTUAL PROCEDURE OnUIDeactivate( 
+    (* [in] *)  fUndoable : windows.BOOL ): HRESULT;
+
+  VIRTUAL PROCEDURE OnInPlaceDeactivate( ): HRESULT;
+
+  VIRTUAL PROCEDURE DiscardUndoState( ): HRESULT;
+
+  VIRTUAL PROCEDURE DeactivateAndUndo( ): HRESULT;
+
+  VIRTUAL PROCEDURE OnPosRectChange( 
+    (* [in] *) lprcPosRect : windows.PCRECT ): HRESULT;
+
+END IOleInPlaceSite;
+
+PROCEDURE IOleInPlaceSite_CanInPlaceActivate_Proxy( 
+   This : TPIOleInPlaceSite ): HRESULT;
+
+
+PROCEDURE IOleInPlaceSite_CanInPlaceActivate_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleInPlaceSite_OnInPlaceActivate_Proxy( 
+   This : TPIOleInPlaceSite ): HRESULT;
+
+
+PROCEDURE IOleInPlaceSite_OnInPlaceActivate_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleInPlaceSite_OnUIActivate_Proxy( 
+   This : TPIOleInPlaceSite ): HRESULT;
+
+
+PROCEDURE IOleInPlaceSite_OnUIActivate_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleInPlaceSite_GetWindowContext_Proxy( 
+   This : TPIOleInPlaceSite;
+  (* [out] *) ppFrame : TPPIOleInPlaceFrame;
+  (* [out] *) ppDoc : TPPIOleInPlaceUIWindow;
+  (* [out] *) lprcPosRect : windows.PRECT;
+  (* [out] *) lprcClipRect : windows.PRECT;
+  (* [out][in] *) lpFrameInfo : POLEINPLACEFRAMEINFO ): HRESULT;
+
+
+PROCEDURE IOleInPlaceSite_GetWindowContext_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleInPlaceSite_Scroll_Proxy( 
+   This : TPIOleInPlaceSite;
+  (* [in] *) scrollExtant : windows.SIZEL ): HRESULT;
+
+
+PROCEDURE IOleInPlaceSite_Scroll_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleInPlaceSite_OnUIDeactivate_Proxy( 
+   This : TPIOleInPlaceSite;
+  (* [in] *)fUndoable : windows.BOOL ): HRESULT;
+
+
+PROCEDURE IOleInPlaceSite_OnUIDeactivate_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleInPlaceSite_OnInPlaceDeactivate_Proxy( 
+   This : TPIOleInPlaceSite ): HRESULT;
+
+
+PROCEDURE IOleInPlaceSite_OnInPlaceDeactivate_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleInPlaceSite_DiscardUndoState_Proxy( 
+   This : TPIOleInPlaceSite ): HRESULT;
+
+
+PROCEDURE IOleInPlaceSite_DiscardUndoState_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleInPlaceSite_DeactivateAndUndo_Proxy( 
+   This : TPIOleInPlaceSite ): HRESULT;
+
+
+PROCEDURE IOleInPlaceSite_DeactivateAndUndo_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IOleInPlaceSite_OnPosRectChange_Proxy( 
+   This : TPIOleInPlaceSite;
+  (* [in] *) lprcPosRect : windows.PCRECT ): HRESULT;
+
+
+PROCEDURE IOleInPlaceSite_OnPosRectChange_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+VAR
+  IID_IContinue : wtypes.IID;
+
+TYPE
+  TPIContinue = POINTER TO IContinue;
+   
+CLASS IContinue( unknwn.IUnknown );
+ 
+   VIRTUAL PROCEDURE FContinue ( ): HRESULT;
+      
+END IContinue;
+    
+
+PROCEDURE IContinue_FContinue_Proxy( 
+    This : TPIContinue ): HRESULT;
+
+
+PROCEDURE IContinue_FContinue_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+VAR
+  IID_IViewObject : wtypes.IID;
+
+TYPE
+  TPIViewObject = POINTER TO IViewObject;
+  //dwContinue
+  TPfnContinue = PROCEDURE (windows.DWORD ): windows.BOOL;   
+  TPPIAdviseSink = POINTER TO objidl.TPIAdviseSink;  
+
+CLASS IViewObject( unknwn.IUnknown );
+
+  (* [local] *)  VIRTUAL PROCEDURE Draw( 
+    (* [in] *)dwDrawAspect : windows.DWORD;
+    (* [in] *)lindex : windows.LONG;
+    (* [unique][in] *) pvAspect : ADDRESS;
+    (* [unique][in] *) ptd : objidl.PDVTARGETDEVICE;
+    (* [in] *) hdcTargetDev : windows.HDC;
+    (* [in] *) hdcDraw : windows.HDC;
+    (* [in] *) lprcBounds : windows.PCRECTL;
+    (* [unique][in] *) lprcWBounds : windows.PCRECTL;
+    (* [in] *) pfnContinue : TPfnContinue; 
+    (* [in] *) dwContinue : windows.DWORD ): HRESULT;
+
+  (* [local] *)  VIRTUAL PROCEDURE GetColorSet( 
+    (* [in] *)dwDrawAspect : windows.DWORD;
+    (* [in] *)lindex : windows.LONG;
+    (* [unique][in] *) pvAspect : ADDRESS;
+    (* [unique][in] *) ptd : objidl.PDVTARGETDEVICE;
+    (* [in] *) hicTargetDev : windows.HDC;
+    (* [out] *) ppColorSet : TPPLOGPALETTE ): HRESULT;
+
+  (* [local] *)  VIRTUAL PROCEDURE Freeze( 
+    (* [in] *)dwDrawAspect : windows.DWORD;
+    (* [in] *)lindex : windows.LONG;
+    (* [unique][in] *) pvAspect : ADDRESS;
+    (* [out] *)pdwFreeze : windows.PDWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE Unfreeze( 
+    (* [in] *)dwFreeze : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE SetAdvise( 
+    (* [in] *)aspects : windows.DWORD;
+    (* [in] *)advf : windows.DWORD;
+    (* [unique][in] *)pAdvSink : objidl.TPIAdviseSink ): HRESULT;
+
+  VIRTUAL PROCEDURE GetAdvise( 
+    (* [out] *)pAspects : windows.PDWORD;
+    (* [out] *)pAdvf : windows.PDWORD;
+    (* [out] *)ppAdvSink : TPPIAdviseSink ): HRESULT;
+
+END IViewObject;
+ 
+(* [call_as] *)  PROCEDURE IViewObject_RemoteDraw_Proxy( 
+  This : TPIViewObject;
+  (* [in] *)dwDrawAspect : windows.DWORD;
+  (* [in] *) lindex : windows.LONG;
+  (* [in] *)pvAspect : windows.PDWORD;
+  (* [unique][in] *)ptd :  objidl.PDVTARGETDEVICE;
+  (* [in] *)hdcTargetDev : windows.DWORD;
+  (* [in] *)hdcDraw : windows.DWORD;
+  (* [in] *) lprcBounds : windows.PCRECTL;
+  (* [unique][in] *) lprcWBounds : windows.PCRECTL;
+  (* [in] *) pContinue : TPIContinue ): HRESULT;
+
+
+PROCEDURE IViewObject_RemoteDraw_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+(* [call_as] *)  PROCEDURE IViewObject_RemoteGetColorSet_Proxy( 
+  This : TPIViewObject;
+  (* [in] *)dwDrawAspect : windows.DWORD;
+  (* [in] *) lindex : windows.LONG;
+  (* [in] *)pvAspect : windows.PDWORD;
+  (* [unique][in] *)ptd :  objidl.PDVTARGETDEVICE;
+  (* [in] *)hicTargetDev : windows.DWORD;
+  (* [out] *)ppColorSet : TPPLOGPALETTE ): HRESULT;
+
+
+PROCEDURE IViewObject_RemoteGetColorSet_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+(* [call_as] *)  PROCEDURE IViewObject_RemoteFreeze_Proxy( 
+  This : TPIViewObject;
+  (* [in] *)dwDrawAspect : windows.DWORD;
+  (* [in] *) lindex :windows.LONG;
+  (* [in] *)pvAspect : windows.PDWORD;
+  (* [out] *)pdwFreeze : windows.PDWORD ): HRESULT;
+
+
+PROCEDURE IViewObject_RemoteFreeze_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IViewObject_Unfreeze_Proxy( 
+   This : TPIViewObject;
+  (* [in] *)dwFreeze : windows.DWORD ): HRESULT;
+
+
+PROCEDURE IViewObject_Unfreeze_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IViewObject_SetAdvise_Proxy( 
+   This : TPIViewObject;
+  (* [in] *)aspects : windows.DWORD;
+  (* [in] *)advf : windows.DWORD;
+  (* [unique][in] *)pAdvSink : objidl.TPIAdviseSink ): HRESULT;
+
+
+PROCEDURE IViewObject_SetAdvise_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IViewObject_GetAdvise_Proxy( 
+   This : TPIViewObject;
+   (* [out] *)pAspects  : windows.PDWORD;
+   (* [out] *)pAdvf : windows.PDWORD;
+   (* [out] *)ppAdvSink : TPPIAdviseSink ): HRESULT;
+
+
+PROCEDURE IViewObject_GetAdvise_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+VAR
+  IID_IViewObject2 : wtypes.IID;
+
+TYPE    
+  TPIViewObject2 = POINTER TO IViewObject2;
+
+CLASS IViewObject2 (IViewObject);
+
+  VIRTUAL PROCEDURE GetExtent( 
+        (* [in] *)dwDrawAspect : windows.DWORD;
+        (* [in] *) lindex :windows.LONG;
+        (* [unique][in] *)ptd : objidl.PDVTARGETDEVICE;
+        (* [out] *) lpsizel : windows.PSIZEL ): HRESULT;
+    
+END IViewObject2;
+
+PROCEDURE IViewObject2_GetExtent_Proxy( 
+    
+     This : TPIViewObject2;
+  (* [in] *)dwDrawAspect : windows.DWORD;
+  (* [in] *) lindex :windows.LONG;
+  (* [unique][in] *)ptd :  objidl.PDVTARGETDEVICE;
+  (* [out] *) lpsizel : windows.PSIZEL ): HRESULT;
+
+
+PROCEDURE IViewObject2_GetExtent_Stub(
+    This : objidl.TPIRpcStubBuffer;
+    _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+    _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+    _pdwStubPhase : windows.PDWORD);
+
+VAR
+  IID_IDropSource : wtypes.IID;
+
+TYPE
+  TPIDropSource = POINTER TO IDropSource;
+  
+CLASS IDropSource( unknwn.IUnknown );
+
+    VIRTUAL PROCEDURE QueryContinueDrag( 
+        (* [in] *)fEscapePressed : windows.BOOL;
+        (* [in] *)grfKeyState : windows.DWORD ): HRESULT;
+    
+    VIRTUAL PROCEDURE GiveFeedback( 
+        (* [in] *)dwEffect : windows.DWORD ): HRESULT;
+    
+END IDropSource;
+    
+PROCEDURE IDropSource_QueryContinueDrag_Proxy( 
+     This : TPIDropSource;
+    (* [in] *)fEscapePressed : windows.BOOL;
+    (* [in] *)grfKeyState : windows.DWORD ): HRESULT;
+
+
+PROCEDURE IDropSource_QueryContinueDrag_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IDropSource_GiveFeedback_Proxy( 
+   This : TPIDropSource;
+  (* [in] *)dwEffect : windows.DWORD ): HRESULT;
+
+
+PROCEDURE IDropSource_GiveFeedback_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+CONST 
+
+	MK_ALT	= 020H;
+	DROPEFFECT_NONE	= 0;
+	DROPEFFECT_COPY	= 1;
+	DROPEFFECT_MOVE	= 2;
+	DROPEFFECT_LINK	= 4;
+	DROPEFFECT_SCROLL	= 080000000H;
+
+// default inset-width of the hot zone; in pixels
+//   typical use: GetProfileInt="windows";"DragScrollInset";DD_DEFSCROLLINSET;
+	DD_DEFSCROLLINSET	= 11;
+
+// default delay before scrolling; in milliseconds
+//   typical use: GetProfileInt="windows";"DragScrollDelay";DD_DEFSCROLLDELAY;
+	DD_DEFSCROLLDELAY	= 50;
+
+// default scroll interval; in milliseconds
+//   typical use: GetProfileInt="windows";"DragScrollInterval"; DD_DEFSCROLLINTERVAL;
+	DD_DEFSCROLLINTERVAL	= 50;
+
+// default delay before dragging should start; in milliseconds
+//   typical use: GetProfileInt="windows"; "DragDelay"; DD_DEFDRAGDELAY;
+	DD_DEFDRAGDELAY	= 200;
+
+// default minimum distance=radius; before dragging should start; in pixels
+//   typical use: GetProfileInt="windows"; "DragMinDist"; DD_DEFDRAGMINDIST;
+	DD_DEFDRAGMINDIST	= 2;
+
+VAR
+  IID_IDropTarget : wtypes.IID;
+
+TYPE
+  TPIDropTarget = POINTER TO IDropTarget;
+
+CLASS IDropTarget( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE DragEnter( 
+    (* [unique][in] *) pDataObj : objidl.TPIDataObject;
+    (* [in] *)grfKeyState : windows.DWORD;
+    (* [in] *) pt : windows.POINTL;
+    (* [out][in] *)pdwEffect : windows.PDWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE DragOver( 
+    (* [in] *)grfKeyState : windows.DWORD;
+    (* [in] *) pt : windows.POINTL;
+    (* [out][in] *)pdwEffect : windows.PDWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE DragLeave( ): HRESULT;
+
+  VIRTUAL PROCEDURE Drop( 
+    (* [unique][in] *) pDataObj : objidl.TPIDataObject;
+    (* [in] *)grfKeyState : windows.DWORD;
+    (* [in] *) pt : windows.POINTL;
+    (* [out][in] *)pdwEffect : windows.PDWORD ): HRESULT;
+
+END IDropTarget;
+
+PROCEDURE IDropTarget_DragEnter_Proxy( 
+  This : TPIDropTarget;
+  (* [unique][in] *) pDataObj : objidl.TPIDataObject;
+  (* [in] *)grfKeyState : windows.DWORD;
+  (* [in] *) pt : windows.POINTL;
+  (* [out][in] *)pdwEffect : windows.PDWORD ): HRESULT;
+
+
+PROCEDURE IDropTarget_DragEnter_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IDropTarget_DragOver_Proxy( 
+   This : TPIDropTarget;
+  (* [in] *)grfKeyState : windows.DWORD;
+  (* [in] *) pt : windows.POINTL;
+  (* [out][in] *)pdwEffect : windows.PDWORD ): HRESULT;
+
+
+PROCEDURE IDropTarget_DragOver_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IDropTarget_DragLeave_Proxy( 
+   This : TPIDropTarget ): HRESULT;
+
+
+PROCEDURE IDropTarget_DragLeave_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IDropTarget_Drop_Proxy( 
+   This : TPIDropTarget;
+  (* [unique][in] *) pDataObj : objidl.TPIDataObject;
+  (* [in] *)grfKeyState : windows.DWORD;
+  (* [in] *) pt : windows.POINTL;
+  (* [out][in] *)pdwEffect : windows.PDWORD ): HRESULT;
+
+
+PROCEDURE IDropTarget_Drop_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+TYPE
+
+  OLEVERB = RECORD
+    lVerb : windows.LONG;
+    lpszVerbName : wtypes.POLESTR;
+    fuFlags : windows.DWORD;
+    grfAttribs : windows.DWORD;
+  END;
+
+  POLEVERB = POINTER TO OLEVERB;
+
+CONST 
+  OLEVERBATTRIB_NEVERDIRTIES	= 1;
+	OLEVERBATTRIB_ONCONTAINERMENU	= 2;
+
+TYPE   
+  OLEVERBATTRIB = CARDINAL;
+  
+VAR
+  IID_IEnumOLEVERB : wtypes.IID;
+
+CLASS IEnumOLEVERB( unknwn.IUnknown );
+
+  (* [local] *)VIRTUAL PROCEDURE Next( 
+    (* [in] *) celt : windows.ULONG;
+    (* [length_is][size_is][out] *) rgelt : POLEVERB;
+    (* [out] *) pceltFetched : windows.PULONG ): HRESULT;
+
+  VIRTUAL PROCEDURE Skip( 
+    (* [in] *) celt : windows.ULONG ): HRESULT;
+
+  VIRTUAL PROCEDURE Reset();
+
+  VIRTUAL PROCEDURE Clone( 
+    (* [out] *)ppenum : TPPIEnumOLEVERB );
+
+END IEnumOLEVERB;
+ 
+(* [call_as] *)  PROCEDURE IEnumOLEVERB_RemoteNext_Proxy( 
+  This : TPIEnumOLEVERB;
+  (* [in] *) celt : windows.ULONG;
+  (* [length_is][size_is][out] *) rgelt : POLEVERB;
+  (* [out] *) pceltFetched : windows.PULONG ): HRESULT;
+
+
+PROCEDURE IEnumOLEVERB_RemoteNext_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IEnumOLEVERB_Skip_Proxy( 
+   This : TPIEnumOLEVERB;
+  (* [in] *) celt : windows.ULONG ): HRESULT;
+
+
+PROCEDURE IEnumOLEVERB_Skip_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IEnumOLEVERB_Reset_Proxy( 
+   This : TPIEnumOLEVERB ): HRESULT;
+
+
+PROCEDURE IEnumOLEVERB_Reset_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+PROCEDURE IEnumOLEVERB_Clone_Proxy( 
+   This : TPIEnumOLEVERB;
+  (* [out] *)ppenum : TPPIEnumOLEVERB);
+
+
+PROCEDURE IEnumOLEVERB_Clone_Stub(
+   This : objidl.TPIRpcStubBuffer;
+   _pRpcChannelBuffer : objidl.TPIRpcChannelBuffer;
+   _pRpcMessage : rpcdcep.PRPC_MESSAGE;
+   _pdwStubPhase : windows.PDWORD);
+
+
+(* Additional Prototypes for ALL interfaces *)
+TYPE
+  TPCLIPFORMAT = POINTER TO CLIPFORMAT;  
+  PHACCEL = POINTER TO windows.HACCEL;
+  PHGLOBAL = POINTER TO windows.HGLOBAL;
+  PHMENU = POINTER TO windows.HMENU;
+  PHWND = POINTER TO windows.HWND;
+
+  CLIPFORMAT_UserSize = PROCEDURE ( windows.PULONG, CLIPFORMAT ): windows.ULONG; 
+  CLIPFORMAT_UserMarshal = PROCEDURE ( windows.PULONG, windows.UCHAR, TPCLIPFORMAT ): windows.PUCHAR; 
+  CLIPFORMAT_UserUnmarshal = PROCEDURE ( windows.PULONG,windows.PUCHAR, TPCLIPFORMAT ): windows.PUCHAR; 
+  CLIPFORMAT_UserFree = PROCEDURE ( windows.PULONG, TPCLIPFORMAT); 
+
+  HACCEL_UserSize = PROCEDURE (windows.PULONG,windows.ULONG , PHACCEL ): windows.ULONG; 
+  HACCEL_UserMarshal = PROCEDURE (  windows.PULONG ,windows.PUCHAR, PHACCEL ): windows.PUCHAR; 
+  HACCEL_UserUnmarshal = PROCEDURE (windows.PULONG, windows.PUCHAR, PHACCEL ): windows.PUCHAR; 
+  HACCEL_UserFree = PROCEDURE (windows.PULONG,PHACCEL); 
+
+  HGLOBAL_UserSize = PROCEDURE (windows.PULONG, windows.ULONG, PHGLOBAL ): windows.ULONG; 
+  HGLOBAL_UserMarshal = PROCEDURE (  windows.PULONG , windows.PUCHAR, PHGLOBAL ): windows.PUCHAR; 
+  HGLOBAL_UserUnmarshal = PROCEDURE (windows.PULONG,windows.PUCHAR, PHGLOBAL ): windows.PUCHAR; 
+  HGLOBAL_UserFree = PROCEDURE (windows.PULONG, PHGLOBAL ); 
+
+  HMENU_UserSize = PROCEDURE (windows.PULONG, windows.ULONG, PHMENU ): windows.ULONG; 
+  HMENU_UserMarshal = PROCEDURE (  windows.PULONG, windows.PUCHAR, PHMENU ): windows.PUCHAR; 
+  HMENU_UserUnmarshal = PROCEDURE (windows.PULONG , windows.PUCHAR, PHMENU ): windows.PUCHAR ; 
+  HMENU_UserFree = PROCEDURE  (windows.PULONG, PHMENU ); 
+
+  HWND_UserSize = PROCEDURE (windows.PULONG, windows.ULONG, PHWND ): windows.ULONG; 
+  HWND_UserMarshal = PROCEDURE (  windows.PULONG, windows.PUCHAR, PHWND ): windows.PUCHAR; 
+  HWND_UserUnmarshal = PROCEDURE (windows.PULONG, windows.PUCHAR, PHWND  ): windows.PUCHAR; 
+  HWND_UserFree = PROCEDURE (windows.PULONG, PHWND); 
+
+  STGMEDIUM_UserSize = PROCEDURE  (windows.PULONG, windows.ULONG, objidl.PSTGMEDIUM ): windows.ULONG; 
+  STGMEDIUM_UserMarshal = PROCEDURE (  windows.PULONG, windows.PUCHAR, objidl.PSTGMEDIUM ): windows.PUCHAR ; 
+  STGMEDIUM_UserUnmarshal = PROCEDURE (windows.PULONG,windows.PUCHAR,objidl.PSTGMEDIUM ): windows.PUCHAR ; 
+  STGMEDIUM_UserFree = PROCEDURE (windows.ULONG, objidl.PSTGMEDIUM); 
+
+  PPVOID = POINTER TO windows.PVOID;
+
+(* [local] *)  PROCEDURE IOleCache2_UpdateCache_Proxy( 
+  This : TPIOleCache2;
+  (* [in] *) pDataObject : objidl.TPIDataObject;
+  (* [in] *) grfUpdf : windows.DWORD;
+  (* [in] *) pReserved : windows.PVOID ): HRESULT;
+
+
+(* [call_as] *)  PROCEDURE IOleCache2_UpdateCache_Stub( 
+  This : TPIOleCache2;
+  (* [in] *) pDataObject : objidl.TPIDataObject;
+  (* [in] *)grfUpdf : windows.DWORD;
+  (* [in] *)pReserved : windows.DWORD ): HRESULT;
+
+(* [local] *)  PROCEDURE IOleItemContainer_GetObject_Proxy( 
+  This : TPIOleItemContainer;
+  (* [in] *) pszItem : wtypes.POLESTR;
+  (* [in] *) dwSpeedNeeded : windows.DWORD;
+  (* [unique][in] *) pbc : objidl.TPIBindCtx;
+  (* [in] *) CONST riid : wtypes.IID;
+  (* [iid_is][out] *) ppvObject : PPVOID ): HRESULT;
+
+
+(* [call_as] *)  PROCEDURE IOleItemContainer_GetObject_Stub( 
+  This : TPIOleItemContainer;
+  (* [in] *) pszItem : wtypes.POLESTR;
+  (* [in] *) dwSpeedNeeded : windows.DWORD;
+  (* [unique][in] *) pbc : objidl.TPIBindCtx;
+  (* [in] *) CONST riid : wtypes.IID;
+  (* [iid_is][out] *) ppvObject : TPPIUnknown ): HRESULT;
+
+(* [local] *)  PROCEDURE IOleItemContainer_GetObjectStorage_Proxy( 
+  This : TPIOleItemContainer;
+  (* [in] *) pszItem : wtypes.POLESTR;
+  (* [unique][in] *) pbc : objidl.TPIBindCtx;
+  (* [in] *) CONST riid : wtypes.IID;
+  (* [iid_is][out] *) ppvStorage : PPVOID ): HRESULT;
+
+
+(* [call_as] *)  PROCEDURE IOleItemContainer_GetObjectStorage_Stub( 
+  This : TPIOleItemContainer;
+  (* [in] *) pszItem : wtypes.POLESTR;
+  (* [unique][in] *) pbc : objidl.TPIBindCtx;
+  (* [in] *) CONST riid : wtypes.IID;
+  (* [iid_is][out] *)ppvStorage : TPPIUnknown ): HRESULT;
+
+(* [local] *)  PROCEDURE IOleInPlaceActiveObject_TranslateAccelerator_Proxy( 
+  This : TPIOleInPlaceActiveObject;
+  (* [in] *) lpmsg : windows.PMSG ): HRESULT;
+
+
+(* [call_as] *)  PROCEDURE IOleInPlaceActiveObject_TranslateAccelerator_Stub( 
+  This : TPIOleInPlaceActiveObject ): HRESULT;
+
+(* [local] *)  PROCEDURE IOleInPlaceActiveObject_ResizeBorder_Proxy( 
+  This : TPIOleInPlaceActiveObject;
+  (* [in] *) prcBorder : windows.PCRECT;
+  (* [unique][in] *) pUIWindow : TPIOleInPlaceUIWindow;
+  (* [in] *) fFrameWindow : windows.BOOL ): HRESULT;
+
+
+(* [input_sync][call_as] *)  PROCEDURE IOleInPlaceActiveObject_ResizeBorder_Stub( 
+  This : TPIOleInPlaceActiveObject;
+  (* [in] *) prcBorder : windows.PCRECT;
+  (* [in] *) CONST riid : wtypes.IID;
+  (* [iid_is][unique][in] *) pUIWindow : TPIOleInPlaceUIWindow;
+  (* [in] *) fFrameWindow : windows.BOOL ): HRESULT;
+
+(* [local] *)  PROCEDURE IViewObject_Draw_Proxy( 
+  This : TPIViewObject;
+  (* [in] *)dwDrawAspect : windows.DWORD;
+  (* [in] *) lindex :windows.LONG;
+  (* [unique][in] *) pvAspect : windows.PVOID;
+  (* [unique][in] *)ptd :  objidl.PDVTARGETDEVICE;
+  (* [in] *) hdcTargetDev : windows.HDC;
+  (* [in] *) hdcDraw : windows.HDC;
+  (* [in] *) lprcBounds : windows.PCRECTL;
+  (* [unique][in] *) lprcWBounds : windows.PCRECTL;
+  (* [in] *) pfnContinue : TPfnContinue;
+  (* [in] *) dwContinue : windows.DWORD ): HRESULT;
+
+
+(* [call_as] *)  PROCEDURE IViewObject_Draw_Stub( 
+  This : TPIViewObject;
+  (* [in] *)dwDrawAspect : windows.DWORD;
+  (* [in] *) lindex :windows.LONG;
+  (* [in] *)pvAspect : windows.PDWORD;
+  (* [unique][in] *)ptd :  objidl.PDVTARGETDEVICE;
+  (* [in] *)hdcTargetDev : windows.DWORD;
+  (* [in] *)hdcDraw : windows.DWORD;
+  (* [in] *)lprcBounds : windows.PCRECTL;
+  (* [unique][in] *) lprcWBounds : windows.PCRECTL;
+  (* [in] *) pContinue : TPIContinue ): HRESULT;
+
+(* [local] *)  PROCEDURE IViewObject_GetColorSet_Proxy( 
+  This : TPIViewObject;
+  (* [in] *)dwDrawAspect : windows.DWORD;
+  (* [in] *) lindex :windows.LONG;
+  (* [unique][in] *) pvAspect : windows.PVOID;
+  (* [unique][in] *)ptd :  objidl.PDVTARGETDEVICE;
+  (* [in] *) hicTargetDev : windows.HDC;
+  (* [out] *)ppColorSet : TPPLOGPALETTE ): HRESULT;
+
+
+(* [call_as] *)  PROCEDURE IViewObject_GetColorSet_Stub( 
+  This : TPIViewObject;
+  (* [in] *)dwDrawAspect : windows.DWORD;
+  (* [in] *) lindex :windows.LONG;
+  (* [in] *)pvAspect : windows.PDWORD;
+  (* [unique][in] *)ptd :  objidl.PDVTARGETDEVICE;
+  (* [in] *)hicTargetDev : windows.DWORD;
+  (* [out] *) ppColorSet : TPPLOGPALETTE ): HRESULT;
+
+(* [local] *)  PROCEDURE IViewObject_Freeze_Proxy( 
+  This : TPIViewObject;
+  (* [in] *)dwDrawAspect : windows.DWORD;
+  (* [in] *) lindex : windows.LONG;
+  (* [unique][in] *) pvAspect : windows.PVOID;
+  (* [out] *)pdwFreeze : windows.PDWORD ): HRESULT;
+
+
+(* [call_as] *)  PROCEDURE IViewObject_Freeze_Stub( 
+  This : TPIViewObject;
+  (* [in] *)dwDrawAspect : windows.DWORD;
+  (* [in] *) lindex :windows.LONG;
+  (* [in] *)pvAspect : windows.PDWORD;
+  (* [out] *)pdwFreeze : windows.PDWORD ): HRESULT;
+
+(* [local] *)  PROCEDURE IEnumOLEVERB_Next_Proxy( 
+  This : TPIEnumOLEVERB;
+  (* [in] *) celt : windows.ULONG;
+  (* [length_is][size_is][out] *) rgelt : POLEVERB;
+  (* [out] *) pceltFetched : windows.PULONG ): HRESULT;
+
+
+(* [call_as] *)  PROCEDURE IEnumOLEVERB_Next_Stub( 
+  This : TPIEnumOLEVERB;
+  (* [in] *) celt : windows.ULONG;
+  (* [length_is][size_is][out] *) rgelt : POLEVERB;
+  (* [out] *) pceltFetched : windows.PULONG ): HRESULT;
+
+END oleidl.

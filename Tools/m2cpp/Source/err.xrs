@@ -1,0 +1,930 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <strings lang="en-US">
+        <!-- Errors -->
+        <!-- order of errors is MANDATORY, they could be described in DOC -->
+
+        <string name="__DUMMY">
+            <item>...</item>
+        </string>
+        <string name="_ESyntax">
+            <item>Syntax error</item>
+        </string>
+        <string name="_ESemantic">
+            <item>Error</item>
+        </string>
+
+        <string name="_FileNotFound">
+            <item>File not found ({0})</item>
+        </string>
+        <string name="_DEFFileNotFound">
+            <item>File not found ({0}.def)</item>
+        </string>
+        <string name="_MODFileNotFound">
+            <item>File not found ({0}.mod)</item>
+        </string>
+        <string name="_ModuleIsNotDEF">
+            <item>Module is not DEFINITION</item>
+        </string>
+        <string name="_CircularImport">
+            <item>Circular import, module &quot;{0}&quot;</item>
+        </string>
+        <string name="_CircularImportIsCompiled">
+            <item> requests &quot;{0}&quot;, which is already being compiled</item>
+        </string>
+        <string name="_ExpectedConstOrModuleId">
+            <item>Expected constant or module identifier</item>
+        </string>
+        <string name="_ExpectedModuleMemberId">
+            <item>Expected module member identifier</item>
+        </string>
+        <string name="_ExpectedBooleanOrString">
+            <item>Expected BOOLEAN or wide string constant</item>
+        </string>
+        <string name="_DEFAlreadyKnown">
+            <item>Different definition module with the same name is already known.</item>
+        </string>
+
+        <string name="_IfPragmaNotTerminated">
+            <item>#if started at line {0} is not terminated</item>
+        </string>
+        <string name="_UnexpectedElsifPragma">
+            <item>Unexpected #elsif</item>
+        </string>
+        <string name="_UnexpectedElsePragma">
+            <item>Unexpected #else</item>
+        </string>
+        <string name="_UnexpectedEndifPragma">
+            <item>Unexpected #endif</item>
+        </string>
+        <string name="_CompatibleIfPragmaNotTerminated">
+            <item>%T or %F at line {0} is not terminated</item>
+        </string>
+        <string name="_IllegalLogicalValue">
+            <item>Illegal on/off/true/false value: {0}</item>
+        </string>
+        <string name="_UnknownPragma">
+            <item>Unknown pragma: &quot;{0}&quot;</item>
+        </string>
+        <string name="_BadPragmaItemSyntax">
+            <item>Bad pragma item syntax: {0}</item>
+        </string>
+        <string name="_IllegalModuleAndNamePragmaPosition">
+            <item>Illegal position of &quot;{0}&quot; pragma, it can be placed in MODULE before all defintions only</item>
+        </string>
+        <string name="_IllegalModulePragmaItem">
+            <item>Illegal module pragma item: &quot;{0}&quot;</item>
+        </string>
+        <string name="_IllegalNamePragmaItem">
+            <item>Illegal name pragma item: &quot;{0}&quot;</item>
+        </string>
+        <string name="_IllegalDecorationPragmaValue">
+            <item>Illegal value of name/decoration pragma: &quot;{0}&quot;</item>
+        </string>
+        <string name="_IllegalCallPragmaItem">
+            <item>Illegal call pragma item: &quot;{0}&quot;</item>
+        </string>
+        <string name="_IllegalConventionPragmaValue">
+            <item>Illegal value of call/convention pragma: &quot;{0}&quot;</item>
+        </string>
+        <string name="_IllegalPackPragmaValue">
+            <item>Illegal value of option/pack pragma: &quot;{0}&quot;</item>
+        </string>
+        <string name="_IllegalOptionPragmaItem">
+            <item>Illegal option pragma item: &quot;{0}&quot;</item>
+        </string>
+        <string name="_IllegalWarnPragmaNumber">
+            <item>Illegal warn pragma number: &quot;{0}&quot;</item>
+        </string>
+        <string name="_ExportCanBePlacedInDEFOnly">
+            <item>dll_export pragma can be placed in DEFINITION module only</item>
+        </string>
+        <string name="_ModuleNameFileMismatch">
+            <item>Module name/file name mismatch</item>
+        </string>
+        <string name="_HeaderValidForDEFOnly">
+            <item>Specifiyng destination header is valid for DEFINITION module only</item>
+        </string>
+        <string name="_Expected">
+            <item>Expected {0}</item>
+        </string>
+        <string name="_UnknownIdentifier">
+            <item>Unknown identifier: &quot;{0}&quot;</item>
+        </string>
+        <string name="_IdentifierOfUnexpectedKind">
+            <item>Identifier of unexpected kind: &quot;{0}&quot;</item>
+        </string>
+            <string name="_ExpectedModule">
+                <item> (expected module)</item>
+            </string>
+            <string name="_ExpectedClass">
+                <item> (expected class)</item>
+            </string>
+            <string name="_ExpectedType">
+                <item> (expected type)</item>
+            </string>
+            <string name="_ExpectedVariable">
+                <item> (expected variable)</item>
+            </string>
+        <string name="_IdentifierRedefined">
+            <item>Identifier redefined: &quot;{0}&quot;</item>
+        </string>
+        <string name="_IdentifierRedefinedIsMemberOf">
+            <item> is already member of &quot;{0}&quot;</item>
+        </string>
+        <string name="_ExpectedTypeName">
+            <item>Expected type name</item>
+        </string>
+        <string name="_ExpectedTypeOrClassName">
+            <item>Expected type or class name</item>
+        </string>
+        <string name="_ExpectedClassName">
+            <item>Expected class name</item>
+        </string>
+        <string name="_TypeMismatch">
+            <item>Type mismatch</item>
+        </string>
+        <string name="_TypeMismatchComma">
+            <item>Type mismatch, </item>
+        </string>
+        <string name="_TypeMismatchExpected">
+            <item>Type mismatch, expected &quot;{0}&quot;</item>
+        </string>
+        <string name="_TypeMismatchCommaFound">
+            <item>, found &quot;{0}&quot;</item>
+        </string>
+        <string name="_TypeMismatchRight">
+            <item>Type mismatch, right &quot;{0}&quot;</item>
+        </string>
+        <string name="_TypeMismatchIncompatible">
+            <item> is incompatible to left &quot;{0}&quot;</item>
+        </string>
+        <string name="_RecordDoesNotContainRequiredVariant">
+            <item>Record does not contain required variant</item>
+        </string>
+        <string name="_OnlyFirstVariantCanBeInitialized">
+            <item>C++ allows initializing of first union member only, member cannot be initialized</item>
+        </string>
+        <string name="_MemberIsNotFirstOrIsNotFound">
+            <item>Structure does not contain required field, or the field is not in the first variant part (this is required as C++ allows initializing of the first member only)</item>
+        </string>
+        <string name="_HdrMismatch">
+            <item>Header does not match previous definition ({0})</item>
+        </string>
+        <string name="_HdrSee">
+            <item> -- see &quot;{0}&quot;</item>
+        </string>
+        <string name="_HdrMismatchCallConv">
+            <item>different calling convention (stdcall, ...)</item>
+        </string>
+        <string name="_HdrMismatchAM">
+            <item>different access modifier (PUBLIC, ...)</item>
+        </string>
+        <string name="_HdrMismatchCM">
+            <item>different code modifier (INLINE, READONLY, ...)</item>
+        </string>
+        <string name="_HdrMismatchReturn">
+            <item>different return type</item>
+        </string>
+        <string name="_HdrMismatchOA">
+            <item>open array mismatch</item>
+        </string>
+        <string name="_HdrMismatchTM">
+            <item>different type modifier (REF, ...)</item>
+        </string>
+        <string name="_HdrMismatchTypes">
+            <item>incompatible types</item>
+        </string>
+        <string name="_HdrLessParameters">
+            <item>less parameters</item>
+        </string>
+        <string name="_HdrMoreParameters">
+            <item>more parameters</item>
+        </string>
+        <string name="_ProcedureNotImplemented">
+            <item>Procedure &quot;{0}&quot; not implemented</item>
+        </string>
+        <string name="_ClassNotImplemented">
+            <item>Class &quot;{0}&quot; not implemented</item>
+        </string>
+        <string name="_ProcedureAlreadyDefined">
+            <item>Procedure &quot;{0}&quot; already defined</item>
+        </string>
+        <string name="_ProcedureAlreadyForwarded">
+            <item>Procedure &quot;{0}&quot; already defined</item>
+        </string>
+        <string name="_ProcedureAlreadyImplemented">
+            <item>Procedure &quot;{0}&quot; already implemented</item>
+        </string>
+        <string name="_LabelDestinationNotKnown">
+            <item>Label &quot;{0}&quot; destination is not known</item>
+        </string>
+        <string name="_LabelDestinationAlreadyKnown">
+            <item>Label destination already known</item>
+        </string>
+        <string name="_UnableToAssignToCONST">
+            <item>Unable to assign to CONST value</item>
+        </string>
+        <string name="_UnableToAssignToValueOA">
+            <item>Unable to assign value to value-passed open array</item>
+        </string>
+        <string name="_UnableToPassCONSTintoREF">
+            <item>Unable to pass CONST value into pointer variable</item>
+        </string>
+        <string name="_OpaqueTypeMustBePointer">
+            <item>Opaque type must be declared as pointer type</item>
+        </string>
+        <string name="_NestedTypeMustNotBePublic">
+            <item>C++ requires nested types to be private or internal only</item>
+        </string>
+        <string name="_UnableToInitializeVar">
+            <item>The variable cannot be initialized by this way</item>
+        </string>
+        <string name="_InstanceOfInterface">
+            <item>Cannot create instance of interface</item>
+        </string>
+        <string name="_InstanceOfAbstractClass">
+            <item>Cannot create instance of abstract class</item>
+        </string>
+        <string name="_UnableToDisposeInterface">
+            <item>Cannot dispose interface pointer</item>
+        </string>
+        <string name="_SubrangeOutOfBorder">
+            <item>Subrange border is out of type range</item>
+        </string>
+        <string name="_BordersMustHaveSameType">
+            <item>Range borders must be of the same type</item>
+        </string>
+        <string name="_EnumerationOutOfRange">
+            <item>Enumeration item is out of type range</item>
+        </string>
+        <string name="_NotAllPathsReturn">
+            <item>Not all control paths return a value</item>
+        </string>
+        <string name="_AssignmentExpected">
+            <item>Expected :=</item>
+        </string>
+        <string name="_ExpectedLValue">
+            <item>Expected L-value</item>
+        </string>
+        <string name="_ExpectedPointerVariable">
+            <item>expected pointer variable</item>
+        </string>
+        <string name="_ExpectedNumberOrOrdinalValue">
+            <item>Expected number or ordinal value</item>
+        </string>
+        <string name="_ExpectedNumberOrOrdinalType">
+            <item>Type mismatch, expected number or ordinal type</item>
+        </string>
+        <string name="_ExpectedOrdinalStorageOrPointerType">
+            <item>Type mismatch, expected ordinal, storage or pointer type</item>
+        </string>
+        <string name="_ExpectedOrdinalOrStorageType">
+            <item>Type mismatch, expected ordinal or storage type</item>
+        </string>
+        <string name="_CallNotProcedure">
+            <item>Call expected, identifier is not procedure nor procedure type</item>
+        </string>
+        <string name="_ConstructorCannotBeCalled">
+            <item>Class constructor cannot be directly called</item>
+        </string>
+        <string name="_TooFewParameters">
+            <item>Too few parameters in a call</item>
+        </string>
+        <string name="_ParameterListMissing">
+            <item>Missing parameter list ("()")</item>
+        </string>
+        <string name="_CallProcedureType">
+            <item>Call expected, type identifier cannot be used for call</item>
+        </string>
+        <string name="_ProcedureMustReturnAValue">
+            <item>Procedure must return a value</item>
+        </string>
+        <string name="_RecordOrClassExpected">
+            <item>Record or class expected</item>
+        </string>
+        <string name="_RecordOrClassTypeExpected">
+            <item>Record or class type expected</item>
+        </string>
+        <string name="_CaseLabelDoesNotMatchSelector">
+            <item>Case label does not match case selector type</item>
+        </string>
+        <string name="_CaseLabelIsOutOfTypeRange">
+            <item>Case label is out of type range</item>
+        </string>
+        <string name="_ReversedCaseLabelBorders">
+            <item>Reversed case label interval borders</item>
+        </string>
+        <string name="_OverlappingCases">
+            <item>Overlapping cases</item>
+        </string>
+        <string name="_EXITOutsideOfLoop">
+            <item>EXIT outside of loop</item>
+        </string>
+        <string name="_CONTINUEOutsideOfLoop">
+            <item>CONTINUE outside of loop</item>
+        </string>
+        <string name="_NotSuccessiveEnumeration">
+            <item>Enumeration with not successive ordinal numbers cannot be used for iteration</item>
+        </string>
+        <string name="_FORVarMustBeOrdinal">
+          <item>FOR control variable must be ordinal</item>
+        </string>
+        <string name="_FORVarMustBeLocal">
+            <item>FOR control variable must be locally defined; global, class, module or outer procedure variables cannot be used</item>
+        </string>
+        <string name="_EXCEPTTypeMustBeTRISTATE">
+            <item>EXCEPT expression must have TRISTATE type</item>
+        </string>
+        <string name="_UNHANDLEDMustBeLast">
+            <item>UNHANDLED case must be last</item>
+        </string>
+        <string name="_DesignatorIsNotConstant">
+            <item>Designator is not constant</item>
+        </string>
+        <string name="_ExpressionToCastExpected">
+            <item>Expected expression to cast following the type name, single type identifier cannot be used here</item>
+        </string>
+        <string name="_ModuleNotImported">
+            <item>Module not imported</item>
+        </string>
+        <string name="_VariableUsedWithoutInitialization">
+            <item>Variable used without initialization</item>
+        </string>
+        <string name="_BadLeakInfoProcPlacement">
+            <item>"leak_info=>on" procedure can be used in assignment, call or RETURN statement only.</item>
+        </string>
+        <string name="_BadNEWFuncPlacement">
+            <item>NEW function can be used, when checking memory leaks, only in assignment, call or RETURN statement</item>
+        </string>
+        <string name="_BadMemberPlacement">
+            <item>Property or COM function can be used in assignment or RETURN statement only.</item>
+        </string>
+        <string name="_UnableToUseClassIndex">
+            <item>Referenced class cannot be indexed, unable to use []</item>
+        </string>
+        <string name="_UnableToUseIndex">
+            <item>Referenced variable is not array, unable to use []</item>
+        </string>
+        <string name="_UnableToUseSelector">
+            <item>Referenced variable is not record nor class, unable to use .</item>
+        </string>
+        <string name="_UnableToUseDereferencing">
+            <item>Referenced variable is not pointer, unable to use ^</item>
+        </string>
+        <string name="_UnableToUseAddressShift">
+            <item>Referenced variable is not pointer, unable to use @[]</item>
+        </string>
+        <string name="_UnableToUseCall">
+            <item>Referenced variable is not procedure, unable to use ()</item>
+        </string>
+        <string name="_TooManyIndexes">
+            <item>Too many indexes</item>
+        </string>
+        <string name="_BadFINALLYUsage">
+            <item>Bad field, using FINALLY is allowed only for classes.</item>
+        </string>
+        <string name="_BadRECORDFieldUsage">
+            <item>Only fields of constant RECORDs can be accessed.</item>
+        </string>
+        <string name="_ExpectedOrdinalNumberExpression">
+            <item>expected ordinal number expression</item>
+        </string>
+        <string name="_ExpectedOrdinalExpression">
+            <item>expected ordinal expression</item>
+        </string>
+        <string name="_BadRelationalOperand">
+            <item>Relational operator is not defined for pointer, set or structured types</item>
+        </string>
+        <string name="_TestedMemberIsNotMember">
+            <item>set member is not a member of the tested set</item>
+        </string>
+        <string name="_INExpectsASet">
+            <item>IN expects a set on right side</item>
+        </string>
+				<string name="_ISExpectsClassOnLeft">
+					<item>IS expects a polymorphic class on left side</item>
+				</string>
+				<string name="_ISExpectsClassOrBStringOnRight">
+					<item>IS expects a class type or class name (byte string) on right side</item>
+				</string>
+				<string name="_StringsCanBeConcatenatedOnly">
+            <item>Strings and characters can be concatenated only</item>
+        </string>
+        <string name="_OnlyConstStringsCanBeConcatenated">
+            <item>Only constant strings can be concatenated</item>
+        </string>
+        <string name="_ANDExpectsBOOLEAN">
+            <item>AND expects BOOLEAN on left</item>
+        </string>
+        <string name="_MultExpectsNumberOrSet">
+            <item>* or / expect number or set on left</item>
+        </string>
+        <string name="_DIVMODExpectsNumber">
+            <item>DIV or MOD expect number on left</item>
+        </string>
+        <string name="_BitANDORXORExpectNumberOrStorageOfSameBitLengths">
+            <item>Type mismatch, bitwise AND OR XOR expect ordinal number or storage type of the same length</item>
+        </string>
+        <string name="_NOTExpectsBOOLEANOrNumber">
+            <item>NOT expects BOOLEAN or ordinal number type</item>
+        </string>
+        <string name="_UnableToCastScalar">
+            <item>Constant expression of simple type cannot be casted to ARRAY neither RECORD</item>
+        </string>
+        <string name="_ItemOfTypeConstructorMustBeConst">
+            <item>Unable to use nonconstant component, C++ is not able to handle this.</item>
+        </string>
+        <string name="_StringTooLong">
+            <item>String too long.</item>
+        </string>
+        <string name="_TooManyArrayItems">
+            <item>Too many items in array constructor</item>
+        </string>
+        <string name="_UnableToCastPointerToArray">
+            <item>Unable to cast pointer type to ARRAY type</item>
+        </string>
+        <string name="_ArrayConstructorIsNotComplete">
+            <item>Array constructor is not complete</item>
+        </string>
+        <string name="_TooManyRecordItems">
+            <item>Too many items in record constructor</item>
+        </string>
+        <string name="_UnableToCastPointerToRecord">
+            <item>Unable to cast pointer type to RECORD type</item>
+        </string>
+        <string name="_RecordConstructorIsNotComplete">
+            <item>Record constructor is not complete</item>
+        </string>
+        <string name="_ConstructedMemberIsNotMember">
+            <item>member is not member of constructed set</item>
+        </string>
+        <string name="_UnableToCastCOMInterface">
+            <item>COM interfaces cannot be casted, QueryInterface must be used instead</item>
+        </string>
+        <string name="_TooFewParametersInACall">
+            <item>Too few parameters in a call</item>
+        </string>
+        <string name="_TooManyParametersInACall">
+            <item>Too many parameters in a call</item>
+        </string>
+        <string name="_ExpectedParameterLValue">
+            <item>Expected L-value, the parameter is reference (REF, OUT) or CONST structure</item>
+        </string>
+        <string name="_ExpectedREF">
+            <item>Expected REF, the parameter is REF</item>
+        </string>
+        <string name="_ExpectedOUT">
+            <item>Expected OUT, the parameter is OUT</item>
+        </string>
+        <string name="_NotExpectedVARREFOUT">
+            <item>Parameter modifier mismatch, the parameter is not reference</item>
+        </string>
+        <string name="_UnableToPassCONSTIntoReference">
+            <item>Unable to pass CONST value into reference or pointer value</item>
+        </string>
+        <string name="_UnableToPassValueOAIntoReference">
+            <item>Unable to pass value-passed open array into reference parameter</item>
+        </string>
+        <string name="_ExpectedModuleOrClass">
+            <item>Bad identifier, only module or class can be used here</item>
+        </string>
+        <string name="_ExpectedModuleMember">
+            <item>Module member expected, module name cannot be used here</item>
+        </string>
+        <string name="_ExpectedClassMember">
+            <item>Class member expected, class name cannot be used here</item>
+        </string>
+        <string name="_OperatorOutsideOfClass">
+            <item>Bad operator usage, only classes can define operators</item>
+        </string>
+        <string name="_ClassDoesNotDefineOperator">
+            <item>Class does not define operator &quot;{0}&quot;</item>
+        </string>
+        <string name="_ExpectedMemberFoundClass">
+            <item>Member expected, found identifier is class</item>
+        </string>
+        <string name="_MemberNotFound">
+            <item>Member not found</item>
+        </string>
+        <string name="_MemberNotFoundExpectedClassMember">
+            <item>Member not found, expected class or member name</item>
+        </string>
+        <string name="_OperatorNotFound">
+            <item>Operator not found</item>
+        </string>
+        <string name="_OperatorNotFoundExpectedClassMember">
+            <item>Operator not found, expected class or member name</item>
+        </string>
+        <string name="_MemberHasNoDeclaration">
+            <item>Member has no declaration</item>
+        </string>
+        <string name="_InvalidMemberOwnerIsNotClass">
+            <item>Invalid member, owner is not class</item>
+        </string>
+        <string name="_ClassNameExpected">
+            <item>Class name expected</item>
+        </string>
+        <string name="_ExpectedMemberOfImplementedClass">
+            <item>Expected member of current CLASS IMPLEMENTATION class</item>
+        </string>
+        <string name="_ClassMemberOrOperatorExpected">
+            <item>Class member or operator expected</item>
+        </string>
+
+        <string name="_IsNotConst">
+            <item>{0} cannot be used in constant expression</item>
+        </string>
+        <string name="_MissingCapA">
+            <item>CapitalizeA for CAP is not imported</item>
+        </string>
+        <string name="_MissingCapW">
+            <item>CapitalizeW for CAP is not imported</item>
+        </string>
+        <string name="_MissingLowA">
+            <item>LowerizeA for CAP is not imported</item>
+        </string>
+        <string name="_MissingLowW">
+            <item>LowerizeW for CAP is not imported</item>
+        </string>
+        <string name="_ExpectedARRAYParameter">
+            <item>Expected ARRAY parameter</item>
+        </string>
+        <string name="_HIGHUnusableForOASizeOff">
+            <item>HIGH is cannot be used on open arrays passed without size</item>
+        </string>
+        <string name="_ExpectedPointerToChar">
+            <item>Expected POINTER TO CHAR/TCHAR/WCHAR</item>
+        </string>
+        <string name="_ExpectedPointerExpression">
+            <item>Expected expression of pointer type</item>
+        </string>
+        <string name="_MissingALLOCATEForNEW">
+            <item>ALLOCATE for NEW is not imported</item>
+        </string>
+        <string name="_ExpectedLValueOrSingleType">
+            <item>L-value or single type name expected</item>
+        </string>
+        <string name="_UnableToObtainTypeSize">
+            <item>Unable to obtain type size, function cannot be used in constant expression</item>
+        </string>
+        <string name="_MissingDEALLOCATEForDISPOSE">
+            <item>DEALLOCATE for DISPOSE is not imported</item>
+        </string>
+        <string name="_MissingDEALLOCATEForFREE">
+            <item>DEALLOCATE for FREE is not imported</item>
+        </string>
+        <string name="_ExpectedSetType">
+            <item>Expected set type</item>
+        </string>
+        <string name="_ExpectedMemberOfTheSet">
+            <item>expected a member of the set</item>
+        </string>
+        <string name="_ExpectedPointerVariableOrTypeName">
+            <item>expected pointer variable or type name</item>
+        </string>
+        <string name="_ResolvingOfOpaqueImpossible">
+            <item>Target of opaque type is not declared yet</item>
+        </string>
+		<string name="_ProcedureWithThrowMustBeUsedInTryBlockOnly">
+			<item>Procedure &quot;{0}&quot; throws exception, it must be used inside TRY block only</item>
+		</string>
+		<string name="_PropertyWithThrowMustBeUsedInTryBlockOnly">
+			<item>Property &quot;{0}&quot; throws exception, it must be used inside TRY block only</item>
+		</string>
+		<string name="_ExpectedException">
+			<item>Expected exception, some of ancestor of Exceptions.Exception class</item>
+		</string>
+		<string name="_ThrowIsNotPossible">
+			<item>Throwing this exception is not possible, the exception is missing in the procedure THROWS clause</item>
+		</string>
+		<string name="_ProcedureNotCatched">
+			<item>Exception &quot;{0}&quot; is not catched</item>
+		</string>
+        <string name="_ThrowNotCatched">
+            <item>Exception &quot;{0}&quot; is not catched</item>
+        </string>
+
+        <string name="_ClassCanBeModifiedOnlyAsLocal">
+            <item>Class can be modified only to LOCAL access</item>
+        </string>
+        <string name="_CannotInheritSelf">
+            <item>Cannot inherit self</item>
+        </string>
+        <string name="_CannotInheritFINAL">
+            <item>Cannot inherit FINAL class</item>
+        </string>
+        <string name="_COMCanInheritOnlyCOM">
+            <item>COM interface can be inherited only from another COM interface</item>
+        </string>
+        <string name="_IMPLEMENTSCannotUseCOMInterfaces">
+            <item>IMPLEMENTS clause cannot be used for COM interfaces</item>
+        </string>
+        <string name="_INTERFACECannotIMPLEMENTAnything">
+            <item>INTERFACE cannot implement anything</item>
+        </string>
+        <string name="_InterfaceCannotBeInherited">
+            <item>Interface cannot be inherited directly, use IMPLEMENTS clause for it</item>
+        </string>
+        <string name="_InterfaceCanInheritOnlyInterface">
+            <item>Interface can be inherited only from another interface</item>
+        </string>
+        <string name="_ClassIsNotAncestor">
+            <item>Bad class name usage, found class is not ancestor of current class</item>
+        </string>
+        <string name="_COMMemberMustBeSTDCall">
+            <item>COM member must have stdcall calling convention</item>
+        </string>
+        <string name="_IMIsNotForVariables">
+            <item>Inheritance modifier cannot be used for variables</item>
+        </string>
+        <string name="_UnableToInitializeClassVar">
+            <item>Class variable cannot be initialized by this way</item>
+        </string>
+        <string name="_UnableToInitializeClassProperty">
+            <item>Property cannot be initialized by this way</item>
+        </string>
+				<string name="_SimpleVariableCannotThrowExceptions">
+					<item>THROWS placement mismatch, variable does not throw exceptions</item>
+				</string>
+				<string name="_PrivateVariablesCannotBeReadonly">
+            <item>Private variables cannot be readonly</item>
+        </string>
+        <string name="_InterfaceMemberCannotBePrivate">
+            <item>Interface member cannot be private</item>
+        </string>
+        <string name="_COMMemberMustBePUBLIC">
+            <item>Member of COM interface must always be PUBLIC</item>
+        </string>
+        <string name="_COMCannotHaveOperators">
+            <item>COM interface cannot define operators.</item>
+        </string>
+        <string name="_AssignMustBeRewrittenForAssignment">
+            <item>Class inheriting INTERFACE cannot be assigned without defining its := operator</item>
+        </string>
+        <string name="_AssignMustBeRewrittenForRETURN">
+            <item>Class inheriting INTERFACE cannot be used as return type without defining its := operator</item>
+        </string>
+        <string name="_COMCannotHaveInitFinal">
+            <item>COM interface cannot define INITIALLY or FINALLY member.</item>
+        </string>
+        <string name="_PrivateInaccessible">
+            <item>Private symbol &quot;{0}&quot; can be used only inside of its class</item>
+        </string>
+        <string name="_InternalInaccessible">
+            <item>Internal symbol &quot;{0}&quot; can be used only inside its class or its class's descendant</item>
+        </string>
+        <string name="_LocalInaccessible">
+            <item>Local symbol &quot;{0}&quot; can be used only inside its module</item>
+        </string>
+        <string name="_UnableToAssignReadonlyVar">
+            <item>Variable is readonly, it cannot be used as L-value</item>
+        </string>
+        <string name="_PublicReadonlyInaccessible">
+            <item>Readonly variable &quot;{0}&quot; can be used as L-value only inside its module</item>
+        </string>
+        <string name="_PublicClassReadonlyInaccessible">
+            <item>Readonly class symbol &quot;{0}&quot; can be used as L-value only inside its class or its class's descendant</item>
+        </string>
+        <string name="_InternalClassReadonlyInaccessible">
+            <item>Internal readonly class symbol &quot;{0}&quot; can be used as L-value only inside its class</item>
+        </string>
+        <string name="_UnableToReadWriteonlyVar">
+            <item>Variable is writeonly, it cannot be used on R-side</item>
+        </string>
+        <string name="_PublicWriteonlyInaccessible">
+            <item>Writeonly variable &quot;{0}&quot; can be used on R-side only inside its module</item>
+        </string>
+        <string name="_PublicClassWriteonlyInaccessible">
+            <item>Writeonly class symbol &quot;{0}&quot; can be used on R-side only inside its class or its class's descendant</item>
+        </string>
+        <string name="_InternalClassWriteonlyInaccessible">
+            <item>Internal writeonly class symbol &quot;{0}&quot; can be used on R-side only inside its class</item>
+        </string>
+        <string name="_ABSTRACTMustNotStayABSTRACT">
+            <item>Symbol &quot;{0}&quot; defined as ABSTRACT in ancestor must be rewritten as VIRTUAL/FINAL in this class</item>
+        </string>
+        <string name="_BadIMNotVirtual">
+            <item>Bad inheritance modifier, symbol is not defined as virtual -- see &quot;{0}&quot;</item>
+        </string>
+        <string name="_BadIMNotAbstractVirtualFinal">
+            <item>Bad inheritance modifier, symbol must stay ABSTRACT or be VIRTUAL or FINAL -- see &quot;{0}&quot;</item>
+        </string>
+        <string name="_ABSTRACTInNOTABSTRACTClass">
+            <item>ABSTRACT member can be defined in INTERFACE or ABSTRACT CLASS only</item>
+        </string>
+        <string name="_BadAMVirtualNotSame">
+            <item>Access modifier mismatch, virtual symbol must always be accessible identically</item>
+        </string>
+        <string name="_BadIMMustBeVirtualOrFinal">
+            <item>Bad inheritance modifier, symbol must be VIRTUAL or FINAL -- see &quot;{0}&quot;</item>
+        </string>
+        <string name="_IMPLEMENTSRedefined">
+          <item>Implemented interface {0} already declared.</item>
+        </string>
+        <string name="_UnableToRewriteFinal">
+            <item>Unable to define, symbol already declared as FINAL in &quot;{0}&quot;</item>
+        </string>
+        <string name="_BadIMDefAndDeclMismatch">
+            <item>Inheritance modifier mismatch, defined and declared symbol must have identical decoration</item>
+        </string>
+        <string name="_AbstractMemberCannotBeDeclared">
+            <item>L"Member &quot;{0}&quot; is abstract and cannot be declared"</item>
+        </string>
+        <string name="_IndexCannotBeOUT">
+            <item>Index parameter cannot be VAR or OUT</item>
+        </string>
+        <string name="_AssignRequiresCONSTOperand">
+            <item>Operator := requires CONST operand</item>
+        </string>
+        <string name="_OperatorHasNoReturn">
+            <item>Operator does not define a return value</item>
+        </string>
+        <string name="_OperatorRequiresReturn">
+            <item>Operator requires return value</item>
+        </string>
+        <string name="_OperatorNEWMustReturnADDRESS">
+            <item>Operator NEW must return ADDRESS type</item>
+        </string>
+        <string name="_REFOnlyForCOM">
+            <item>REF call modifier can be used only for COM PROPERTY</item>
+        </string>
+        <string name="_REVOnlyForCOM">
+            <item>REV call modifier can be used only for COM PROPERTY</item>
+        </string>
+        <string name="_MemberIsNotProcedure">
+            <item>Unable to declare as procedure, &quot;{0}&quot; is not procedure</item>
+        </string>
+        <string name="_MemberIsNotProperty">
+            <item>Unable to declare as property, &quot;{0}&quot; is not property</item>
+        </string>
+        <string name="_GETForWriteonlyProperty">
+            <item>Property is defined ar WRITEONLY, GET part cannot be implemented</item>
+        </string>
+        <string name="_SETForReadonlyProperty">
+            <item>Property is defined ar READONLY, SET part cannot be implemented</item>
+        </string>
+        <string  name="_SETForStructMustBeCONST">
+            <item>Parameter of property SET part with structured type must be CONST</item>
+        </string>
+        <string name="_BadPropertyParameterType">
+            <item>parameter type differs from property type</item>
+        </string>
+        <string name="_GETForWriteonlyIndex">
+            <item>Index is defined ar WRITEONLY, GET part cannot be implemented</item>
+        </string>
+        <string name="_SETForReadonlyIndex">
+            <item>Index is defined ar READONLY, SET part cannot be implemented</item>
+        </string>
+        <string name="_ClassHasNoINDEX">
+            <item>Class does not define INDEX</item>
+        </string>
+        <string  name="_IndexerSETForStructMustBeCONST">
+            <item>Parameter of indexer SET part with structured type must be CONST</item>
+        </string>
+        <string name="_BadIndexParameterType">
+            <item>index type differs from definition</item>
+        </string>
+        <string name="_BadIndexReturnType">
+            <item>Index return/value type differs from definition</item>
+        </string>
+        <string name="_MemberIsNotOperator">
+            <item>Unable to declare as operator, &quot;{0}&quot; is not operator</item>
+        </string>
+        <string name="_BadOperatorParameterType">
+            <item>operand type differs from definition</item>
+        </string>
+        <string  name="_OperandForStructMustBeCONST">
+            <item>Operand of structured type must be CONST</item>
+        </string>
+        <string name="_MemberGETAlreadyImplemented">
+            <item>Member &quot;{0}&quot; GET already implemented</item>
+        </string>
+        <string name="_MemberSETAlreadyImplemented">
+            <item>Member &quot;{0}&quot; SET already implemented</item>
+        </string>
+        <string name="_MethodImplementationIsMissing">
+            <item>Method &quot;{0}&quot; implementation is missing</item>
+        </string>
+        <string name="_PropertyImplementationIsMissing">
+            <item>Property &quot;{0}&quot; implementation is missing</item>
+        </string>
+        <string name="_PropertySETImplementationIsMissing">
+            <item>Property &quot;{0}&quot; SET implementation is missing</item>
+        </string>
+        <string name="_PropertyGETImplementationIsMissing">
+            <item>Property &quot;{0}&quot; GET implementation is missing</item>
+        </string>
+        <string name="_IndexerImplementationIsMissing">
+            <item>Indexer implementation is missing</item>
+        </string>
+        <string name="_IndexerSETImplementationIsMissing">
+            <item>Indexer SET implementation is missing</item>
+        </string>
+        <string name="_IndexerGETImplementationIsMissing">
+            <item>Indexer GET implementation is missing</item>
+        </string>
+        <string name="_OperatorImplementationIsMissing">
+            <item>Operator &quot;{0}&quot; implementation is missing</item>
+        </string>
+        <string name="_OperatorNEWImplementationIsMissing">
+            <item>Operator NEW implementation is missing</item>
+        </string>
+        <string name="_OperatorDISPOSEImplementationIsMissing">
+            <item>Operator DISPOSE implementation is missing</item>
+        </string>
+        <string name="_HdrClassMismatchCM">
+            <item>Header does not match previous definition -- call modifiers differs, see {0}</item>
+        </string>
+        <string name="_HdrClassMismatchReturn">
+            <item>Header does not match previous definition -- return type differs, see {0}</item>
+        </string>
+        <string name="_HdrClassMismatchIndexType">
+            <item>Header does not match previous definition -- index type differs, see {0}</item>
+        </string>
+        <string name="_HdrClassMismatchOperandType">
+            <item>Header does not match previous definition -- operand type differs, see {0}</item>
+        </string>
+        <string name="_SELFOusideOfClass">
+            <item>SELF cannot be used outside of class</item>
+        </string>
+        <string name="_SUPEROutsideOfClass">
+            <item>SUPER cannot be used outside of class</item>
+        </string>
+        <string name="_NoSUPERExists">
+            <item>SUPER cannot be used, class does not have any ancestor</item>
+        </string>
+        <string name="_NoSUPERUsable">
+            <item>SUPER cannot be used, class inherits interface</item>
+        </string>
+
+        <string name="_InitiallyMustBeNonVirtual">
+            <item>INITIALLY must always be non-virtual</item>
+        </string>
+        <string name="_InitiallyRedefinition">
+            <item>INITIALLY already defined</item>
+        </string>
+        <string name="_ClassInitiallyCannotBeINLINE">
+            <item>Class INITIALLY cannot be INLINE</item>
+        </string>
+        <string name="_ClassInitMustHaveNameOfSelf">
+            <item>INITIALLY name mismatch, class constructor must have name of self class</item>
+        </string>
+        <string name="_InitiallyNameMismatch">
+            <item>INITIALLY name mismatch, found name does not correspond to defined name</item>
+        </string>
+        <string name="_InitCannotHaveParameters">
+            <item>INITIALLY cannot have parameters</item>
+        </string>
+        <string name="_InitCannotHaveReturn">
+            <item>INITIALLY cannot have return value</item>
+        </string>
+        <string name="_FinallyMustBeNonVirtual">
+            <item>FINALLY must always be non-virtual or VIRTUAL only.</item>
+        </string>
+        <string name="_FinallyRedefinition">
+            <item>FINALLY already defined</item>
+        </string>
+        <string name="_InitiallyRedeclaration">
+            <item>Initialization code (INITIALLY) already declared</item>
+        </string>
+        <string name="_FinallyRedeclaration">
+            <item>FINALLY already declared</item>
+        </string>
+        <string name="_ClassFinallyCannotBeINLINE">
+            <item>Class FINALLY cannot be INLINE</item>
+        </string>
+        <string name="_ClassFinalMustHaveNameOfSelf">
+            <item>L"FINALLY name mismatch, class destructor must have name of self class."</item>
+        </string>
+        <string name="_FinallyNameMismatch">
+            <item>FINALLY name mismatch, found name does not correspond to defined name</item>
+        </string>
+        <string name="_FinalCannotHaveParameters">
+            <item>FINALLY cannot have parameters</item>
+        </string>
+        <string name="_FinalCannotHaveReturn">
+            <item>FINALLY cannot have return value</item>
+        </string>
+        <string name="_ClassHasNoExplicitInitially">
+            <item>Class does not define explict constructor (INITIALLY)</item>
+        </string>
+        <string name="_ClassHasNoExplicitFinally">
+            <item>Class does not define explicit destructor (FINALLY)</item>
+        </string>
+        <string name="_ModuleINITIALLYNotDeclared">
+            <item>Module initialization code (INITIALLY) not declared</item>
+        </string>
+        <string name="_ModuleFINALLYNotDeclared">
+            <item>Module finalization code (FINALLY) not declared</item>
+        </string>
+
+        <string name="_NoInitCodeForImport">
+            <item>Imported module &quot;{0}&quot; defines init code, but this module not. Imported module cannot be properly initialized.</item>
+        </string>
+        <string name="_NoFinalCodeForImport">
+            <item>Imported module &quot;{0}&quot; defines final code, but this module not. Imported module cannot be properly finalized.</item>
+        </string>
+
+    </strings>
+</resources>

@@ -1,0 +1,19 @@
+DEFINITION MODULE seriallinki;
+
+(* ====================================================== *)
+(*# save *)
+(*# name( decoration=>windows ) *)
+(*# call( o_a_size=>off,
+          o_a_copy=>off,
+          convention=>stdcall ) *)
+IMPORT
+  windows;
+
+//(*# option( export=> on ) *)
+PROCEDURE DllMain( Instance : windows.HINSTANCE;
+                   Reason   : windows.DWORD;
+                   Reserved : windows.PVOID ): windows.BOOL;
+
+//(*# restore *)
+
+END seriallinki.

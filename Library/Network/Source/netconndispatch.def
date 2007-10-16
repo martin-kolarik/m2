@@ -1,0 +1,108 @@
+DEFINITION MODULE netconndispatch; // network connections dispatcher
+
+//--------------------------------------------------------------------------------
+  
+IMPORT
+  winsock,
+  windows;
+
+IMPORT
+  Delegate,
+  maps,
+  msghandler,
+  msgqueue,
+  netsocket,
+  netsrv,
+  netstream,
+  StringsO;
+
+#save, option( dll_export => on )
+
+//--------------------------------------------------------------------------------
+  
+TYPE
+  TPClientInterface = POINTER TO CClientInterface;
+  TConnectionHandle = netsocket.TPDSocket;
+  TPDispatcher = POINTER TO CDispatcher;
+
+//--------------------------------------------------------------------------------
+  
+CLASS CClientInterface( Delegate.ADelegate );
+  INTERNAL VAR
+    PDispatcher : TPDispatcher;
+  
+  PUBLIC PROCEDURE BindDispatcher( PDispatcher : TPDispatcher );
+  PUBLIC PROCEDURE Join( RemotePort : CARDINAL; RemoteAddress : winsock.IN_ADDR );
+  PUBLIC PROCEDURE Leave( Connection : TConnectionHandle );
+  PUBLIC PROCEDURE Connect( Connection : TConnectionHandle ); // not so needed
+  PUBLIC PROCEDURE Disconnect( Connection : TConnectionHandle ); // not so needed
+
+  // for ctStream, ctDatagram
+  PUBLIC PROCEDURE Send( Connection : TConnectionHandle; Id : LONGWORD; Data : ADDRESS; DataLen : CARDINAL );
+  // for ctLine
+  PUBLIC PROCEDURE SendS( Connection : TConnectionHandle; Id : LONGWORD; CONST String : StringsO.IString );
+  // for ctLine
+  PUBLIC PROCEDURE SendOA( Connection : TConnectionHandle; Id : LONGWORD; CONST String : ARRAY OF WCHAR );
+
+  LOCAL VIRTUAL PROCEDURE OnJoin( Connection : TConnectionHandle );
+  LOCAL VIRTUAL PROCEDURE OnLeave( Connection : TConnectionHandle; Error : CARDINAL );
+  LOCAL VIRTUAL PROCEDURE OnConnect( Connection : TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
+  LOCAL VIRTUAL PROCEDURE OnDisconnect( Connection : TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
+  LOCAL VIRTUAL PROCEDURE OnReceive( Connection : TConnectionHandle; Data : ADDRESS; DataLen : CARDINAL );
+  LOCAL VIRTUAL PROCEDURE OnSent( Connection : TConnectionHandle; SequenceNumber : LONGWORD; Error : CARDINAL );
+END CClientInterface;
+
+//--------------------------------------------------------------------------------
+
+TYPE
+   TConnectionType = (
+      ctStream, // continuous data flow
+      ctDatagram, // datagrammed flow (receiver gets data as a whole, there is assured data is complete), datagrams must be smaller than PieceSize
+      ctLine // line flow (receiver gets data as a whole line), lines must be smaller than PieceSize
+   );
+
+CLASS CDispatcher( msghandler.MessageHandler );
+  PRIVATE VAR
+    MQueue      : msgqueue.CMessageQueue;
+    Connections : maps.CQuadwordMap;
+    PListener   : netsrv.TPListener;
+    PNotifier   : netsocket.TPSocketNotifier;
+  PUBLIC VAR
+    Connection  : TConnectionType := ctStream; // must be set before Init, no later change takes effect
+    PieceSize   : CARDINAL := 0;  // must be set before Init, no later change takes effect, valid only for Connection <> ctStream. The value is expected MAXIMUM and is taken as HINT. Pieces < 128K could be allocated in stream, greater ones in separate buffers.
+  PUBLIC READONLY PROPERTY
+    Listener    : netsrv.TPListener; // for registering to IP server
+
+  PUBLIC PROCEDURE Dispose();
+
+  // inherited
+  INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : CARDINAL ) : BOOLEAN;
+
+  // events of server
+  LOCAL PROCEDURE OnListen( CONST ServerSocket : netsocket.TPSSocket );
+
+  // events of stream -- INTERNAL
+  LOCAL PROCEDURE OnNetworkConnect( ErrorCode : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN );
+  LOCAL PROCEDURE OnNetworkDisconnect( ErrorCode : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN );
+  LOCAL PROCEDURE OnNetworkReceive( CONST Socket : netsocket.TPDSocket; Readable : CARDINAL );
+
+  // local events -- PUBLIC
+  INTERNAL VIRTUAL PROCEDURE OnConnect( PConnection : TConnectionHandle; Local : BOOLEAN; ErrorCode : CARDINAL );
+  INTERNAL VIRTUAL PROCEDURE OnDisconnect( PConnection : TConnectionHandle; Local : BOOLEAN; ErrorCode : CARDINAL );
+  INTERNAL VIRTUAL PROCEDURE OnReceive( PConnection : TConnectionHandle; Data : ADDRESS; DataLen : CARDINAL );
+  INTERNAL VIRTUAL PROCEDURE OnClientJoin( PConnection : TConnectionHandle; PClientInterface : TPClientInterface );
+  INTERNAL VIRTUAL PROCEDURE OnClientLeave( PConnection : TConnectionHandle; PClientInterface : TPClientInterface );
+
+  // internal, client requests, passed from client interface -- INTERNAL
+  LOCAL PROCEDURE Join( PClientInterface : TPClientInterface; RemotePort : CARDINAL; RemoteAddress : winsock.IN_ADDR ); // asynchronous, results in Client.OnJoin/Client.OnConnect
+  LOCAL PROCEDURE Leave( PClientInterface : TPClientInterface; Connection : TConnectionHandle ); // asynchronous, results in Client.OnDisconnect/Client.OnLeave and Done
+  LOCAL PROCEDURE Connect( PClientInterface : TPClientInterface; Connection : TConnectionHandle ); // asynchronous, results in Client.OnConnect
+  LOCAL PROCEDURE Disconnect( PClientInterface : TPClientInterface; Connection : TConnectionHandle ); // asynchronous, results in Client.OnDisconnect
+  LOCAL PROCEDURE Send( PClientInterface : TPClientInterface; Connection : TConnectionHandle; ClientId : LONGWORD; Data : ADDRESS; DataLen : CARDINAL ); // asynchronous, results in Client.OnSend
+END CDispatcher;
+
+//--------------------------------------------------------------------------------
+
+#restore
+
+END netconndispatch.

@@ -1,0 +1,424 @@
+DEFINITION MODULE shellapi;
+
+(*==============================================================
+
+                    Win32 API for Modula-2
+
+       32-bit version for M2CPP Modula-2 to C++ compiler
+
+      Copyright (c) 1996, 1997 Moravian Instruments, Inc.
+
+==============================================================*)
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+(*==============================================================
+
+  History: Created: 21.06.1998
+           Build 0: 30.05.1996
+
+==============================================================*)
+
+(*============================================================*)
+(* Windows header:          Shellapi.h                        *)
+(*============================================================*)
+
+IMPORT
+  windows,
+  winreg;
+
+(*****************************************************************************\
+*                                                                             *
+* shellapi.h -  SHELL.DLL functions, types, and definitions                   *
+*                                                                             *
+* Copyright (c) 1992-1996, Microsoft Corp.  All rights reserved               *
+*                                                                             *
+\*****************************************************************************)
+
+TYPE 
+  HDROP = windows.HANDLE;
+
+PROCEDURE DragQueryFile( _ : HDROP; 
+                         _ : windows.UINT; 
+                         _ : windows.PTSTR; 
+                         _ : windows.UINT );
+PROCEDURE DragQueryPoint( _ : HDROP; 
+                          _ : windows.PPOINT );
+PROCEDURE DragFinish( _ : HDROP );
+PROCEDURE DragAcceptFiles( _ : windows.HWND; 
+                           _ : windows.BOOL );
+
+PROCEDURE ShellExecute( hwnd : windows.HWND; 
+                        lpOperation : windows.PCTSTR; 
+                        lpFile : windows.PCTSTR;
+                        lpParameters : windows.PCTSTR;
+                        lpDirectory : windows.PCTSTR; 
+                        nShowCmd : windows.INT ) : windows.HINSTANCE;
+PROCEDURE FindExecutable( lpFile : windows.PCTSTR;
+                          lpDirectory : windows.PCTSTR;
+                          lpResult : windows.PTSTR ) : windows.HINSTANCE;
+
+TYPE
+  PLPWSTR = POINTER TO windows.PSTR;
+
+PROCEDURE CommandLineToArgvW( lpCmdLine : windows.PCWSTR;
+                              pNumArgs : windows.PINT ) : windows.PWSTR;
+
+PROCEDURE ShellAbout( hWnd : windows.HWND; 
+                      szApp : windows.PCTSTR; 
+                      szOtherStuff : windows.PCTSTR; 
+                      hIcon : windows.HICON) : CARDINAL;
+PROCEDURE ExtractAssociatedIcon( hInst : windows.HINSTANCE; 
+                                 lpIconPath : windows.PTSTR; 
+                                 lpiIcon : windows.PWORD ) : windows.HICON;
+PROCEDURE ExtractIcon( hInst : windows.HINSTANCE; 
+                       lpszExeFileName : windows.PCTSTR;
+                       nIconIndex : CARDINAL ) : windows.HICON;
+
+CONST
+  ABM_NEW              = 000000000H;
+  ABM_REMOVE           = 000000001H;
+  ABM_QUERYPOS         = 000000002H;
+  ABM_SETPOS           = 000000003H;
+  ABM_GETSTATE         = 000000004H;
+  ABM_GETTASKBARPOS    = 000000005H;
+  ABM_ACTIVATE         = 000000006H;  // lParam == TRUE/FALSE means activate/deactivate
+  ABM_GETAUTOHIDEBAR   = 000000007H;
+  ABM_SETAUTOHIDEBAR   = 000000008H;  // this can fail at any time.  MUST check the result
+                                        // lParam = TRUE/FALSE  Set/Unset
+                                        // uEdge = what edge
+  ABM_WINDOWPOSCHANGED = 00000009H;
+
+
+// these are put in the wparam of callback messages
+  ABN_STATECHANGE      = 00000000H;
+  ABN_POSCHANGED       = 00000001H;
+  ABN_FULLSCREENAPP    = 00000002H;
+  ABN_WINDOWARRANGE    = 00000003H; // lParam == TRUE means hide
+
+// flags for get state
+  ABS_AUTOHIDE         = 00000001H;
+  ABS_ALWAYSONTOP      = 00000002H;
+
+  ABE_LEFT        = 0;
+  ABE_TOP         = 1;
+  ABE_RIGHT       = 2;
+  ABE_BOTTOM      = 3;
+
+TYPE
+  APPBARDATA  = RECORD
+                  cbSize           : windows.DWORD;
+                  hWnd             : windows.HWND;
+                  uCallbackMessage : windows.UINT;
+                  uEdge            : windows.UINT;
+                  rc               : windows.RECT;
+                  lParam           : windows.LPARAM; // message specific
+                END;
+  PAPPBARDATA = POINTER TO APPBARDATA;
+
+PROCEDURE SHAppBarMessage( dwMessage : windows.DWORD; 
+                           pData     : PAPPBARDATA ) : windows.UINT;
+
+////
+////  EndAppBar
+////
+
+
+(*# call( macro => on ) *)
+(* #define EIRESID(x) (-1 * (int)(x)) *)
+PROCEDURE EIRESID( x : windows.DWORD ) : windows.DWORD;
+(*# call( macro => off ) *)
+PROCEDURE ExtractIconEx( lpszFile : windows.PCTSTR;
+                         nIconIndex : CARDINAL;
+                         phiconLarge : windows.PHANDLE;
+                         phiconSmall : windows.PHANDLE;
+                         nIcons : CARDINAL ) : windows.UINT;
+
+////
+//// Shell File Operations
+////
+
+CONST 
+  FO_MOVE           = 00001H;
+  FO_COPY           = 00002H;
+  FO_DELETE         = 00003H;
+  FO_RENAME         = 00004H;
+
+  FOF_MULTIDESTFILES         = 00001H;
+  FOF_CONFIRMMOUSE           = 00002H;
+  FOF_SILENT                 = 00004H;  // don't create progress/report
+  FOF_RENAMEONCOLLISION      = 00008H;
+  FOF_NOCONFIRMATION         = 00010H;  // Don't prompt the user.
+  FOF_WANTMAPPINGHANDLE      = 00020H;  // Fill in SHFILEOPSTRUCT.hNameMappings
+                                        // Must be freed using SHFreeNameMappings
+  FOF_ALLOWUNDO              = 00040H;
+  FOF_FILESONLY              = 00080H;  // on *.*, do only files
+  FOF_SIMPLEPROGRESS         = 00100H;  // means don't show names of files
+  FOF_NOCONFIRMMKDIR         = 00200H;  // don't confirm making any needed dirs
+  FOF_NOERRORUI              = 00400H;  // don't put up error UI
+
+TYPE 
+  FILEOP_FLAGS = WORD;
+
+CONST
+  PO_DELETE                  = 00013H;  // printer is being deleted
+  PO_RENAME                  = 00014H;  // printer is being renamed
+  PO_PORTCHANGE              = 00020H;  // port this printer connected to is being changed
+                                        // if this id is set, the strings received by
+                                        // the copyhook are a doubly-null terminated
+                                        // list of strings.  The first is the printer
+                                        // name and the second is the printer port.
+  PO_REN_PORT                = 00034H;  // PO_RENAME and PO_PORTCHANGE at same time.
+
+// no POF_ flags currently defined
+
+TYPE
+  PRINTEROP_FLAGS = WORD;
+
+// implicit parameters are:
+//      if pFrom or pTo are unqualified names the current directories are
+//      taken from the global current drive/directory settings managed
+//      by Get/SetCurrentDrive/Directory
+//
+//      the global confirmation settings
+
+TYPE
+  SHFILEOPSTRUCT  = RECORD
+                      hwnd : windows.HWND;
+                      wFunc : windows.UINT;
+                      pFrom : windows.PCTSTR;
+                      pTo : windows.PCTSTR;
+                      fFlags : FILEOP_FLAGS;
+                      fAnyOperationsAborted : windows.BOOL;
+                      hNameMappings : ADDRESS;
+                      lpszProgressTitle : windows.PCTSTR; // only used if FOF_SIMPLEPROGRESS
+                    END;
+  PSHFILEOPSTRUCT = POINTER TO SHFILEOPSTRUCT;
+
+PROCEDURE SHFileOperation( lpFileOp : PSHFILEOPSTRUCT ) : CARDINAL;
+PROCEDURE SHFreeNameMappings( hNameMappings : windows.HANDLE );
+
+TYPE
+  SHNAMEMAPPING  = RECORD
+                     pszOldPath : windows.PTSTR;
+                     pszNewPath : windows.PTSTR;
+                     cchOldPath : CARDINAL;
+                     cchNewPath : CARDINAL;
+                   END;
+  PSHNAMEMAPPING = POINTER TO SHNAMEMAPPING;
+
+////
+//// End Shell File Operations
+////
+
+////
+////  Begin ShellExecuteEx and family
+////
+
+
+(* ShellExecute() and ShellExecuteEx() error codes *)
+
+CONST
+(* regular WinExec() codes *)
+  SE_ERR_FNF              = 2;       // file not found
+  SE_ERR_PNF              = 3;       // path not found
+  SE_ERR_ACCESSDENIED     = 5;       // access denied
+  SE_ERR_OOM              = 8;       // out of memory
+  SE_ERR_DLLNOTFOUND      = 32;
+
+(* error values for ShellExecute() beyond the regular WinExec() codes *)
+  SE_ERR_SHARE                    = 26;
+  SE_ERR_ASSOCINCOMPLETE          = 27;
+  SE_ERR_DDETIMEOUT               = 28;
+  SE_ERR_DDEFAIL                  = 29;
+  SE_ERR_DDEBUSY                  = 30;
+  SE_ERR_NOASSOC                  = 31;
+
+// Note CLASSKEY overrides CLASSNAME
+  SEE_MASK_CLASSNAME      = 000000001H;
+  SEE_MASK_CLASSKEY       = 000000003H;
+// Note INVOKEIDLIST overrides IDLIST
+  SEE_MASK_IDLIST         = 000000004H;
+  SEE_MASK_INVOKEIDLIST   = 00000000CH;
+  SEE_MASK_ICON           = 000000010H;
+  SEE_MASK_HOTKEY         = 000000020H;
+  SEE_MASK_NOCLOSEPROCESS = 000000040H;
+  SEE_MASK_CONNECTNETDRV  = 000000080H;
+  SEE_MASK_FLAG_DDEWAIT   = 000000100H;
+  SEE_MASK_DOENVSUBST     = 000000200H;
+  SEE_MASK_FLAG_NO_UI     = 000000400H;
+  SEE_MASK_UNICODE        = 000004000H;
+  SEE_MASK_NO_CONSOLE     = 000008000H;
+  SEE_MASK_ASYNCOK        = 000100000H;
+
+TYPE
+  SHELLEXECUTEINFO  = RECORD
+                        cbSize : windows.DWORD;
+                        fMask : windows.ULONG;
+                        hwnd : windows.HWND;
+                        lpVerb : windows.PCTSTR;
+                        lpFile : windows.PCTSTR;
+                        lpParameters : windows.PCTSTR;
+                        lpDirectory : windows.PCTSTR;
+                        nShow : CARDINAL;
+                        hInstApp : windows.HINSTANCE;
+                        // Optional fields
+                        lpIDList : ADDRESS;
+                        lpClass : windows.PCTSTR;
+                        hkeyClass : winreg.HKEY;
+                        dwHotKey : windows.DWORD;
+                        hIcon : windows.HANDLE;
+                        hProcess : windows.HANDLE;
+                      END;
+  PSHELLEXECUTEINFO = POINTER TO SHELLEXECUTEINFO;
+
+PROCEDURE ShellExecuteEx( lpExecInfo : PSHELLEXECUTEINFO ) : windows.BOOL;
+
+////
+////  End ShellExecuteEx and family
+////
+
+////
+//// Tray notification definitions
+////
+
+TYPE 
+  NOTIFYICONDATA  = RECORD 
+                      cbSize : windows.DWORD;
+                      hWnd : windows.HWND;
+                      uID : windows.UINT;
+                      uFlags : windows.UINT;
+                      uCallbackMessage : windows.UINT;
+                      hIcon : windows.HICON;
+                      szTip : ARRAY [0..127] OF TCHAR; // max 128 char length
+                      dwState : windows.DWORD;
+                      dwStateMask : windows.DWORD;
+                      szInfo : ARRAY [0..255] OF TCHAR;
+                      CASE : BOOLEAN OF
+                      | FALSE :
+                        uTimeout : windows.UINT;
+                      | TRUE :
+                        uVersion : windows.UINT;
+                      END; // CASE
+                      szInfoTitle : ARRAY [0..63] OF TCHAR;
+                      dwInfoFlags : windows.DWORD;
+                      guidItem : windows.GUID;
+                    END;
+  PNOTIFYICONDATA = POINTER TO NOTIFYICONDATA;
+
+CONST 
+  NIM_ADD              = 000000000H;
+  NIM_MODIFY           = 000000001H;
+  NIM_DELETE           = 000000002H;
+  NIM_SETFOCUS         = 000000003H;
+  NIM_SETVERSION       = 000000004H;
+    NOTIFYICON_VERSION = 3;
+
+  NIN_SELECT           = windows.WM_USER + 0;
+    NINF_KEY           = 01H;
+  NIN_KEYSELECT        = NIN_SELECT OR NINF_KEY;
+
+  NIN_BALLOONSHOW      = windows.WM_USER + 2;
+  NIN_BALLOONHIDE      = windows.WM_USER + 3;
+  NIN_BALLOONTIMEOUT   = windows.WM_USER + 4;
+  NIN_BALLOONUSERCLICK = windows.WM_USER + 5;
+
+  NIF_MESSAGE          = 000000001H;
+  NIF_ICON             = 000000002H;
+  NIF_TIP              = 000000004H;
+  NIF_STATE            = 000000008H;
+  NIF_INFO             = 000000010H;
+  NIF_GUID             = 000000020H;
+
+  NIS_HIDDEN           = 000000001H;
+  NIS_SHAREDICON       = 000000002H;
+
+  NIIF_NONE            = 000000000H;
+  NIIF_INFO            = 000000001H;
+  NIIF_WARNING         = 000000002H;
+  NIIF_ERROR           = 000000003H;
+  NIIF_ICON_MASK       = 00000000FH;
+  NIIF_NOSOUND         = 000000010H;
+
+PROCEDURE Shell_NotifyIcon( dwMessage : windows.DWORD;
+                            lpData : PNOTIFYICONDATA ) : windows.BOOL;
+
+////
+//// End Tray Notification Icons
+////
+
+////
+//// Begin SHGetFileInfo
+////
+
+(*
+ * The SHGetFileInfo API provides an easy way to get attributes
+ * for a file given a pathname.
+ *
+ *   PARAMETERS
+ *
+ *     pszPath              file name to get info about
+ *     dwFileAttributes     file attribs, only used with SHGFI_USEFILEATTRIBUTES
+ *     psfi                 place to return file info
+ *     cbFileInfo           size of structure
+ *     uFlags               flags
+ *
+ *   RETURN
+ *     TRUE if things worked
+ *)
+
+TYPE 
+  TCharMAXPATH = ARRAY [0..windows.MAX_PATH] OF TCHAR;
+  TChar80      = ARRAY [0..79] OF TCHAR;
+  SHFILEINFO  = RECORD
+                  hIcon : windows.HICON;        // out: icon
+                  iIcon : CARDINAL;             // out: icon index
+                  dwAttributes : windows.DWORD; // out: SFGAO_ flags
+                  szDisplayName : TCharMAXPATH; // out: display name (or path)
+                  szTypeName : TChar80;         // out: type name
+                END;
+  PSHFILEINFO = POINTER TO SHFILEINFO;
+
+CONST
+  SHGFI_ICON              = 0000000100H;     // get icon
+  SHGFI_DISPLAYNAME       = 0000000200H;     // get display name
+  SHGFI_TYPENAME          = 0000000400H;     // get type name
+  SHGFI_ATTRIBUTES        = 0000000800H;     // get attributes
+  SHGFI_ICONLOCATION      = 0000001000H;     // get icon location
+  SHGFI_EXETYPE           = 0000002000H;     // return exe type
+  SHGFI_SYSICONINDEX      = 0000004000H;     // get system icon index
+  SHGFI_LINKOVERLAY       = 0000008000H;     // put a link overlay on icon
+  SHGFI_SELECTED          = 0000010000H;     // show icon in selected state
+  SHGFI_LARGEICON         = 0000000000H;     // get large icon
+  SHGFI_SMALLICON         = 0000000001H;     // get small icon
+  SHGFI_OPENICON          = 0000000002H;     // get open icon
+  SHGFI_SHELLICONSIZE     = 0000000004H;     // get shell size icon
+  SHGFI_PIDL              = 0000000008H;     // pszPath is a pidl
+  SHGFI_USEFILEATTRIBUTES = 0000000010H;     // use passed dwFileAttribute
+
+PROCEDURE SHGetFileInfo( pszPath : windows.PCTSTR; 
+                         dwFileAttributes : windows.DWORD;
+                         psfi : PSHFILEINFO;
+                         cbFileInfo : windows.UINT;
+                         uFlags : windows.UINT ) : windows.DWORD;
+
+CONST
+  SHGNLI_PIDL             = 0000000001H;     // pszLinkTo is a pidl
+  SHGNLI_PREFIXNAME       = 0000000002H;     // Make name "Shortcut to xxx"
+  SHGNLI_NOUNIQUE         = 0000000004H;     // don't do the unique name generation
+
+
+////
+//// End SHGetFileInfo
+////
+
+END shellapi.

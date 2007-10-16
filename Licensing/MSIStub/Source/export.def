@@ -1,0 +1,5 @@
+LIBRARY MSIStub.dll
+
+EXPORTS
+  Check = _Check@4
+  Apply = _Apply@4

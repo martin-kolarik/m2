@@ -1,0 +1,1831 @@
+DEFINITION MODULE objidl;
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off ) *)
+
+(*# call(   o_a_size        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix          => stdcall ) *)
+
+IMPORT 
+  windows,
+  unknwn,
+  wtypes;
+  
+FROM guiddef IMPORT
+  CLSID, FMTID, GUID, IID, PCLSID, PIID;
+
+CONST 
+  HRESULT ::= wtypes.HRESULT;
+
+TYPE
+  TPIMarshal            = POINTER TO IMarshal;
+  TPIMalloc             = POINTER TO IMalloc;
+  TPIMallocSpy          = POINTER TO IMallocSpy;
+  TPIGetClassForHandler = POINTER TO IGetClassForHandler;
+  TPIStdMarshalInfo     = POINTER TO IStdMarshalInfo;
+  TPIExternalConnection = POINTER TO IExternalConnection;
+  TPIStream             = POINTER TO IStream;
+  TPIRpcChannelBuffer   = POINTER TO IRpcChannelBuffer;
+  TPIRpcStubBuffer      = POINTER TO IRpcStubBuffer;
+  TPIEnumString         = POINTER TO IEnumString;
+  TPPIEnumString        = POINTER TO TPIEnumString;
+  TPIAdviseSink         = POINTER TO IAdviseSink;
+
+TYPE
+  TPPVOID = POINTER TO windows.PVOID;
+  ULONGLONG = CARD64;
+  PULONGLONG = POINTER TO CARD64;
+  PULARGE_INTEGER = POINTER TO ULARGE_INTEGER;
+  TPIRunningObjectTable = POINTER TO IRunningObjectTable;
+  
+  ULARGE_INTEGER = RECORD
+     QuadPart : ULONGLONG;
+  END;
+
+//===== IMarshal
+VAR 
+  IID_IMarshal : IID;
+
+INTERFACE IMarshal( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE GetUnmarshalClass( 
+    (* [in] *) CONST riid : IID;
+    (* [unique][in] *) pv : windows.PVOID;
+    (* [in] *) dwDestContext : windows.DWORD;
+    (* [unique][in] *) pvDestContext : windows.PVOID;
+    (* [in] *)mshlflags : windows.DWORD;
+    (* [out] *) pCid : PCLSID ): HRESULT;
+
+  VIRTUAL PROCEDURE GetMarshalSizeMax( 
+    (* [in] *) CONST riid : IID;
+    (* [unique][in] *) pv : windows.PVOID;
+    (* [in] *) dwDestContext : windows.DWORD;
+    (* [unique][in] *) pvDestContext : windows.PVOID;
+    (* [in] *)mshlflags : windows.DWORD;
+    (* [out] *)pSize : windows.PDWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE MarshalInterface( 
+    (* [unique][in] *) pStm : TPIStream;
+    (* [in] *) CONST riid : IID;
+    (* [unique][in] *) pv : windows.PVOID;
+    (* [in] *) dwDestContext : windows.DWORD;
+    (* [unique][in] *) pvDestContext : windows.PVOID;
+    (* [in] *)mshlflags : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE UnmarshalInterface( 
+    (* [unique][in] *) pStm : TPIStream;
+    (* [in] *) CONST riid : IID;
+    (* [out] *) ppv : TPPVOID ): HRESULT;
+
+  VIRTUAL PROCEDURE ReleaseMarshalData( 
+    (* [unique][in] *) pStm : TPIStream ): HRESULT;
+
+  VIRTUAL PROCEDURE DisconnectObject( 
+    (* [in] *)dwReserved : windows.DWORD ): HRESULT;
+
+END IMarshal;
+  
+//===== IMalloc
+VAR 
+  IID_IMalloc : IID;
+
+INTERFACE IMalloc( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE Alloc( 
+    (* [in] *) cb : windows.ULONG ): windows.PVOID;
+
+  VIRTUAL PROCEDURE Realloc( 
+    (* [in] *) pv : windows.PVOID;
+    (* [in] *) cb : windows.ULONG ): windows.PVOID;
+
+  VIRTUAL PROCEDURE  Free( 
+    (* [in] *) pv : windows.PVOID );
+
+  VIRTUAL PROCEDURE EGetSize( 
+    (* [in] *) pv : windows.PVOID ): windows.ULONG;
+
+  VIRTUAL PROCEDURE DidAlloc( 
+    pv : windows.PVOID ): windows.INT;
+
+  VIRTUAL PROCEDURE HeapMinimize();
+
+END IMalloc;
+
+//===== IMallocSpy
+VAR 
+  IID_IMallocSpy : IID;
+
+INTERFACE IMallocSpy( unknwn.IUnknown );
+  
+  VIRTUAL PROCEDURE  PreAlloc( 
+      (* [in] *) cbRequest : windows.ULONG ): windows.ULONG;
+  
+  VIRTUAL PROCEDURE PostAlloc( 
+      (* [in] *) pActual : windows.PVOID ): windows.PVOID;
+  
+  VIRTUAL PROCEDURE PreFree( 
+      (* [in] *) pRequest : windows.PVOID;
+      (* [in] *) fSpyed : windows.BOOL ): HRESULT;
+  
+  VIRTUAL PROCEDURE  PostFree( 
+      (* [in] *) fSpyed : windows.BOOL );
+  
+  VIRTUAL PROCEDURE  PreRealloc( 
+      (* [in] *) pRequest : windows.PVOID;
+      (* [in] *) cbRequest : windows.ULONG;
+      (* [out] *) ppNewRequest : windows.PPVOID;
+      (* [in] *) fSpyed : windows.BOOL ): windows.ULONG;
+  
+  VIRTUAL PROCEDURE PostRealloc( 
+      (* [in] *) pActual : ADDRESS;
+      (* [in] *) fSpyed : windows.BOOL ): windows.PVOID;
+  
+  VIRTUAL PROCEDURE PreGetSize( 
+      (* [in] *) pRequest : windows.PVOID;
+      (* [in] *) fSpyed : windows.BOOL ): windows.PVOID;
+  
+  VIRTUAL PROCEDURE PostGetSize( 
+      (* [in] *) cbActual : windows.ULONG;
+      (* [in] *) fSpyed : windows.BOOL ): windows.ULONG;
+  
+  VIRTUAL PROCEDURE PreDidAlloc( 
+      (* [in] *) pRequest : windows.PVOID;
+      (* [in] *) fSpyed : windows.BOOL ): windows.PVOID;
+  
+  VIRTUAL PROCEDURE PostDidAlloc( 
+      (* [in] *) pRequest : windows.PVOID;
+      (* [in] *) fSpyed : windows.BOOL;
+      (* [in] *) fActual : windows.INT ): windows.INT;
+  
+  VIRTUAL PROCEDURE PreHeapMinimize( );
+  
+  VIRTUAL PROCEDURE PostHeapMinimize( );
+  
+END IMallocSpy;
+
+//===== IStdMarshalInfo 
+VAR 
+  IID_IStdMarshalInfo : IID;
+
+INTERFACE IStdMarshalInfo( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE GetClassForHandler( 
+      (* [in] *) dwDestContext : windows.DWORD;
+      (* [unique][in] *) pvDestContext : windows.PVOID;
+      (* [out] *) pClsid : PCLSID ): HRESULT;
+  
+END IStdMarshalInfo;
+
+//===== IExternalConnection
+VAR 
+  IID_IExternalConnection : IID;
+
+TYPE
+  EXTCONN = (
+    EXTCONN_STRONG   = 1,
+	  EXTCONN_WEAK     = 2,
+	  EXTCONN_CALLABLE = 4
+	);
+
+INTERFACE IExternalConnection( unknwn.IUnknown );
+ 
+  VIRTUAL PROCEDURE AddConnection( 
+      (* [in] *)extconn : windows.DWORD;
+      (* [in] *)reserved : windows.DWORD ): windows.DWORD;
+  
+  VIRTUAL PROCEDURE ReleaseConnection( 
+      (* [in] *)extconn : windows.DWORD;
+      (* [in] *)reserved : windows.DWORD;
+      (* [in] *) fLastReleaseCloses : windows.BOOL ): windows.DWORD;
+      
+END IExternalConnection;
+
+//===== IMultiQI
+VAR 
+  IID_IMultiQI : IID;
+
+TYPE 
+  TPIID = POINTER TO IID;
+  MULTI_QI = RECORD
+    pIID : TPIID;
+    pItf : unknwn.TPIUnknown;
+    hr : wtypes.HRESULT;
+  END;
+  PMULTI_QI = POINTER TO MULTI_QI;
+
+TYPE
+  TPIMultiQI = POINTER TO IMultiQI; 
+  
+INTERFACE IMultiQI( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE QueryMultipleInterfaces( 
+    (* [in] *) cMQIs : windows.ULONG;
+    (* [out][in] *) pMQIs : PMULTI_QI ): HRESULT;
+
+END IMultiQI;
+
+//===== IEnumUnknown  
+VAR 
+  IID_IEnumUnknown : IID;
+
+TYPE
+  TPIEnumUnknown = POINTER TO IEnumUnknown;
+  TPPIEnumUnknown = POINTER TO TPIEnumUnknown;
+  TPPIUnknown = POINTER TO unknwn.TPIUnknown;
+  
+INTERFACE IEnumUnknown( unknwn.IUnknown );
+
+  (* [local] *)VIRTUAL PROCEDURE Next( 
+    (* [in] *) celt : windows.ULONG;
+    (* [out] *) rgelt : TPPIUnknown;
+    (* [out] *) pceltFetched : windows.PULONG ): HRESULT;
+
+  VIRTUAL PROCEDURE Skip( 
+    (* [in] *) celt : windows.ULONG ): HRESULT;
+
+  VIRTUAL PROCEDURE Reset() : HRESULT;
+
+  VIRTUAL PROCEDURE Clone( 
+    (* [out] *)ppenum : TPPIEnumUnknown ): HRESULT;
+
+END IEnumUnknown;      
+
+TYPE
+
+  (* [unique] *) PBC = POINTER TO IBindCtx;
+
+  BIND_OPTS = RECORD
+    cbStruct : windows.DWORD;
+    grfFlags : windows.DWORD;
+    grfMode : windows.DWORD;
+    dwTickCountDeadline : windows.DWORD;
+  END;
+
+  PBIND_OPTS = POINTER TO BIND_OPTS;
+
+  BIND_OPTS2 = RECORD
+    cbStruct : windows.DWORD;
+    grfFlags : windows.DWORD;
+    grfMode : windows.DWORD;
+    dwTickCountDeadline : windows.DWORD;
+    dwTrackFlags : windows.DWORD;
+    dwClassContext : windows.DWORD;
+    locale : wtypes.LCID;
+    pServerInfo : wtypes.COSERVERINFO;
+  END;
+  PBIND_OPTS2 = POINTER TO BIND_OPTS2;
+
+TYPE
+  BIND_FLAGS = (
+    BIND_MAYBOTHERUSER      = 1,
+    BIND_JUSTTESTEXISTENCE  = 2
+  );
+
+//===== IID_IBindCtx 
+VAR 
+  IID_IBindCtx : IID;
+
+TYPE
+  TPIBindCtx = POINTER TO IBindCtx;
+  TPPOLESTR = POINTER TO wtypes.POLESTR;
+  TPPIRunningObjectTable = POINTER TO TPIRunningObjectTable;
+
+INTERFACE IBindCtx( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE RegisterObjectBound( 
+    (* [unique][in] *) punk : unknwn.TPIUnknown ): HRESULT;
+
+  VIRTUAL PROCEDURE RevokeObjectBound( 
+    (* [unique][in] *) punk : unknwn.TPIUnknown ): HRESULT;
+
+  VIRTUAL PROCEDURE ReleaseBoundObjects( ): HRESULT;
+
+  (* [local] *)  VIRTUAL PROCEDURE SetBindOptions( 
+    (* [in] *) pbindopts : PBIND_OPTS ): HRESULT;
+
+  (* [local] *)  VIRTUAL PROCEDURE GetBindOptions( 
+    (* [out][in] *) pbindopts : PBIND_OPTS ): HRESULT;
+
+  VIRTUAL  PROCEDURE GetRunningObjectTable( 
+    (* [out] *) pprot : TPPIRunningObjectTable ): HRESULT;
+
+  VIRTUAL  PROCEDURE RegisterObjectParam( 
+    (* [in] *) pszKey : wtypes.POLESTR;
+    (* [unique][in] *) punk : unknwn.TPIUnknown ): HRESULT;
+
+  VIRTUAL  PROCEDURE GetObjectParam( 
+    (* [in] *) pszKey : wtypes.POLESTR;
+    (* [out] *) ppunk : TPPIUnknown ): HRESULT;
+
+  VIRTUAL  PROCEDURE EnumObjectParam( 
+    (* [out] *) ppenum : TPPIEnumString ): HRESULT;
+
+  VIRTUAL PROCEDURE RevokeObjectParam( 
+    (* [in] *) pszKey : wtypes.POLESTR ): HRESULT;
+
+END IBindCtx;
+
+TYPE
+  TPIEnumMoniker  = POINTER TO IEnumMoniker;
+  TPPIEnumMoniker = POINTER TO TPIEnumMoniker;
+
+  TPIMoniker  = POINTER TO IMoniker;
+  TPPIMoniker = POINTER TO TPIMoniker;
+  
+VAR 
+  IID_IEnumMoniker : IID;
+  
+INTERFACE IEnumMoniker( unknwn.IUnknown );
+
+  (* [local] *) VIRTUAL PROCEDURE Next( 
+    (* [in] *) celt : windows.ULONG;
+    (* [length_is][size_is][out] *)rgelt : TPPIMoniker;
+    (* [out] *) pceltFetched : windows.ULONG ): HRESULT;
+
+  VIRTUAL PROCEDURE Skip( 
+    (* [in] *) celt : windows.ULONG ): HRESULT;
+
+  VIRTUAL PROCEDURE Reset( ): HRESULT;
+
+  VIRTUAL PROCEDURE Clone( 
+    (* [out] *) ppenum : TPPIEnumMoniker ): HRESULT;
+
+END IEnumMoniker;
+
+VAR 
+  IID_IRunnableObject : IID;
+
+TYPE
+  TPIRunnableObject = POINTER TO IRunnableObject;
+
+INTERFACE IRunnableObject( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE GetRunningClass( 
+    (* [out] *) lpClsid : PCLSID ): HRESULT;
+
+  VIRTUAL PROCEDURE Run( 
+    (* [in] *) pbc : TPIBindCtx ): HRESULT;
+
+  VIRTUAL PROCEDURE IsRunning( ): windows.BOOL;
+
+  VIRTUAL PROCEDURE LockRunning( 
+    (* [in] *) fLock : windows.BOOL;
+    (* [in] *) fLastUnlockCloses : windows.BOOL ): HRESULT;
+
+  VIRTUAL PROCEDURE SetContainedObject( 
+    (* [in] *) fContained : windows.BOOL ): HRESULT;
+
+END IRunnableObject;
+
+VAR 
+  IID_IRunningObjectTable : IID;
+  
+INTERFACE IRunningObjectTable( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE Register( 
+    (* [in] *)grfFlags : windows.DWORD;
+    (* [unique][in] *) punkObject : unknwn.TPIUnknown;
+    (* [unique][in] *) pmkObjectName : TPIMoniker;
+    (* [out] *)pdwRegister : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE Revoke( 
+    (* [in] *)dwRegister : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE IsRunning( 
+    (* [unique][in] *) pmkObjectName : TPIMoniker ): HRESULT;
+
+  VIRTUAL PROCEDURE GetObject( 
+    (* [unique][in] *) pmkObjectName : TPIMoniker;
+    (* [out] *) ppunkObject : TPPIUnknown ): HRESULT;
+
+  VIRTUAL PROCEDURE NoteChangeTime( 
+    (* [in] *)dwRegister : windows.DWORD;
+    (* [in] *) pfiletime : windows.PFILETIME ): HRESULT;
+
+  VIRTUAL PROCEDURE GetTimeOfLastChange( 
+    (* [unique][in] *) pmkObjectName : TPIMoniker;
+    (* [out] *) pfiletime : windows.PFILETIME ): HRESULT;
+
+  VIRTUAL PROCEDURE EnumRunning( 
+    (* [out] *) ppenumMoniker : TPPIEnumMoniker ): HRESULT;
+
+END IRunningObjectTable;
+
+VAR 
+  IID_IPersist : IID;
+
+TYPE
+  TPIPersist = POINTER TO IPetrsist;
+
+INTERFACE IPersist( unknwn.IUnknown );
+
+  VIRTUAL  PROCEDURE GetClassID( 
+      (* [out] *) pClassID : PCLSID ): HRESULT;
+
+END IPersist;
+  
+TYPE
+  TPIPersistStream = POINTER TO IPersistStream;
+
+VAR 
+  IID_IPersistStream : IID;
+
+INTERFACE IPersistStream (IPersist);
+
+  VIRTUAL PROCEDURE IsDirty( ): HRESULT;
+
+  VIRTUAL PROCEDURE Load( 
+    (* [unique][in] *) pStm : TPIStream ): HRESULT;
+
+  VIRTUAL PROCEDURE Save( 
+    (* [unique][in] *) pStm : TPIStream;
+    (* [in] *) fClearDirty : windows.BOOL ): HRESULT;
+
+  VIRTUAL PROCEDURE GetSizeMax( 
+    (* [out] *) pcbSize : PULARGE_INTEGER ): HRESULT;
+
+END IPersistStream;
+
+TYPE
+  MKSYS = (
+    MKSYS_NONE	= 0,
+	  MKSYS_GENERICCOMPOSITE	= 1,
+	  MKSYS_FILEMONIKER	= 2,
+	  MKSYS_ANTIMONIKER	= 3,
+	  MKSYS_ITEMMONIKER	= 4,
+	  MKSYS_POINTERMONIKER	= 5,
+	  MKSYS_CLASSMONIKER	= 7
+	);
+
+  MKRREDUCE = (
+    MKRREDUCE_ONE	= 3 << 16,
+	  MKRREDUCE_TOUSER	= 2 << 16,
+	  MKRREDUCE_THROUGHUSER	= 1 << 16,
+	  MKRREDUCE_ALL	= 0
+	);
+
+VAR 
+  IID_IMoniker : IID;
+    
+INTERFACE IMoniker( IPersistStream );
+
+  (* [local] *) VIRTUAL PROCEDURE BindToObject( 
+    (* [unique][in] *) pbc : TPIBindCtx;
+    (* [unique][in] *) pmkToLeft : TPIMoniker;
+    (* [in] *) CONST riidResult : IID;
+    (* [VAR IID_is][out] *) ppvResult :TPPVOID ): HRESULT;
+
+  (* [local] *) VIRTUAL PROCEDURE BindToStorage( 
+    (* [unique][in] *) pbc : TPIBindCtx;
+    (* [unique][in] *) pmkToLeft : TPIMoniker;
+    (* [in] *) CONST riid : IID;
+    (* [VAR IID_is][out] *) ppvObj :TPPVOID ): HRESULT;
+
+  VIRTUAL PROCEDURE Reduce( 
+    (* [unique][in] *) pbc : TPIBindCtx;
+    (* [in] *)dwReduceHowFar : windows.DWORD;
+    (* [unique][out][in] *) ppmkToLeft : TPPIMoniker;
+    (* [out] *) ppmkReduced : TPPIMoniker ): HRESULT;
+
+  VIRTUAL PROCEDURE ComposeWith( 
+    (* [unique][in] *) pmkRight : TPIMoniker;
+    (* [in] *) fOnlyIfNotGeneric : windows.BOOL;
+    (* [out] *) ppmkComposite : TPPIMoniker ): HRESULT;
+
+  VIRTUAL PROCEDURE Enum( 
+    (* [in] *) fForward : windows.BOOL;
+    (* [out] *) ppenumMoniker : TPPIEnumMoniker ): HRESULT;
+
+  VIRTUAL PROCEDURE IsEqual( 
+    (* [unique][in] *) pmkOtherMoniker : TPIMoniker ): HRESULT;
+
+  VIRTUAL PROCEDURE Hash( 
+    (* [out] *)pdwHash : windows.PDWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE IsRunning( 
+    (* [unique][in] *) pbc : TPIBindCtx;
+    (* [unique][in] *) pmkToLeft : TPIMoniker;
+    (* [unique][in] *) pmkNewlyRunning : TPIMoniker ): HRESULT;
+
+  VIRTUAL PROCEDURE GetTimeOfLastChange( 
+    (* [unique][in] *) pbc : TPIBindCtx;
+    (* [unique][in] *) pmkToLeft : TPIMoniker;
+    (* [out] *) pfiletime : windows.PFILETIME ): HRESULT;
+
+  VIRTUAL PROCEDURE Inverse( 
+    (* [out] *) ppmk : TPPIMoniker ): HRESULT;
+
+  VIRTUAL PROCEDURE CommonPrefixWith( 
+    (* [unique][in] *) pmkOther : TPIMoniker;
+    (* [out] *) ppmkPrefix : TPPIMoniker ): HRESULT;
+
+  VIRTUAL PROCEDURE RelativePathTo( 
+    (* [unique][in] *) pmkOther : TPIMoniker;
+    (* [out] *) ppmkRelPath : TPPIMoniker ): HRESULT;
+
+  VIRTUAL PROCEDURE GetDisplayName( 
+    (* [unique][in] *) pbc : TPIBindCtx;
+    (* [unique][in] *) pmkToLeft : TPIMoniker;
+    (* [out] *) ppszDisplayName : TPPOLESTR ): HRESULT;
+
+  VIRTUAL PROCEDURE ParseDisplayName( 
+    (* [unique][in] *) pbc : TPIBindCtx;
+    (* [unique][in] *) pmkToLeft : TPIMoniker;
+    (* [in] *) pszDisplayName : wtypes.POLESTR;
+    (* [out] *) pchEaten : windows.PULONG;
+    (* [out] *) ppmkOut : TPPIMoniker ): HRESULT;
+
+  VIRTUAL PROCEDURE IsSystemMoniker( 
+    (* [out] *)pdwMksys : windows.PDWORD ): HRESULT;
+
+END IMoniker;
+
+VAR 
+  IID_IROTData : IID;
+
+TYPE
+  TPIROTData = POINTER TO IROTData;
+
+INTERFACE IROTData( unknwn.IUnknown );
+
+    VIRTUAL PROCEDURE GetComparisonData( 
+          (* [size_is][out] *) pbData : PBYTE;
+          (* [in] *) cbMax : windows.ULONG;
+          (* [out] *) pcbData : windows.PULONG ): HRESULT;
+      
+END IROTData;
+
+VAR 
+  IID_IEnumString : IID;
+  
+INTERFACE IEnumString( unknwn.IUnknown );
+
+  (* [local] *)VIRTUAL PROCEDURE Next( 
+    (* [in] *) celt : windows.ULONG;
+    (* [length_is][size_is][out] *) rgelt : TPPOLESTR;
+    (* [out] *) pceltFetched : windows.PULONG ): HRESULT;
+
+  VIRTUAL PROCEDURE Skip( 
+    (* [in] *) celt : windows.ULONG ): HRESULT;
+
+  VIRTUAL PROCEDURE Reset( ): HRESULT;
+
+  VIRTUAL PROCEDURE Clone( 
+    (* [out] *) ppenum : TPPIEnumString ): HRESULT;
+
+END IEnumString;
+
+VAR 
+  IID_ISequentialStream : IID;
+
+TYPE
+  TPISequentialStream = POINTER TO ISequentialStream;  
+  
+INTERFACE ISequentialStream( unknwn.IUnknown );
+
+(* [local] *) VIRTUAL PROCEDURE Read( 
+  (* [length_is][size_is][out] *) pv : windows.PVOID;
+  (* [in] *) cb : windows.ULONG;
+  (* [out] *) pcbRead : windows.PULONG ): HRESULT;
+
+(* [local] *) VIRTUAL PROCEDURE  Write( 
+  (* [size_is][in] *)pv : windows.PVOID;
+  (* [in] *) cb : windows.ULONG;
+  (* [out] *) pcbWritten : windows.PULONG ): HRESULT;
+
+END ISequentialStream;
+
+TYPE
+  PSTATSTG = POINTER TO STATSTG;
+  STATSTG = RECORD
+    pwcsName : wtypes.POLESTR;
+    type : windows.DWORD;
+    cbSize : ULARGE_INTEGER;
+    mtime : windows.FILETIME;
+    ctime : windows.FILETIME;
+    atime : windows.FILETIME;
+    grfMode : windows.DWORD;
+    grfLocksSupported : windows.DWORD;
+    clsid : CLSID;
+    grfStateBits : windows.DWORD;
+    reserved : windows.DWORD;
+  END;
+
+VAR 
+  IID_IStream : IID;
+
+TYPE
+  STGTY = (
+    STGTY_STORAGE	= 1,
+	  STGTY_STREAM,
+	  STGTY_LOCKBYTES,
+	  STGTY_PROPERTY
+	);
+
+  STREAM_SEEK = (
+    STREAM_SEEK_SET,
+	  STREAM_SEEK_CUR,
+	  STREAM_SEEK_END
+	);
+
+  LOCKTYPE = (
+    LOCK_WRITE	= 1,
+	  LOCK_EXCLUSIVE	= 2,
+	  LOCK_ONLYONCE	= 4
+	);
+
+TYPE
+  TPPIStream = POINTER TO TPIStream;
+
+INTERFACE IStream( ISequentialStream );
+
+  (* [local] *) VIRTUAL PROCEDURE Seek( 
+    (* [in] *) dlibMove : windows.LARGE_INTEGER;
+    (* [in] *)dwOrigin : windows.DWORD;
+    (* [out] *)plibNewPosition : PULARGE_INTEGER ): HRESULT;
+
+  VIRTUAL PROCEDURE SetSize( 
+    (* [in] *)libNewSize : ULARGE_INTEGER ): HRESULT;
+
+  (* [local] *)  VIRTUAL  PROCEDURE CopyTo( 
+    (* [unique][in] *) pstm : TPIStream;
+    (* [in] *) cb : ULARGE_INTEGER;
+    (* [out] *) pcbRead : PULARGE_INTEGER;
+    (* [out] *) pcbWritten : PULARGE_INTEGER ): HRESULT;
+
+  VIRTUAL PROCEDURE Commit( 
+    (* [in] *)grfCommitFlags : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE Revert( ): HRESULT;
+
+  VIRTUAL PROCEDURE LockRegion( 
+    (* [in] *) libOffset : ULARGE_INTEGER;
+    (* [in] *) cb : ULARGE_INTEGER;
+    (* [in] *)dwLockType : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE UnlockRegion( 
+    (* [in] *)libOffset : ULARGE_INTEGER;
+    (* [in] *) cb : ULARGE_INTEGER;
+    (* [in] *)dwLockType : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE Stat( 
+    (* [out] *) pstatstg : PSTATSTG;
+    (* [in] *)grfStatFlag : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE Clone( 
+    (* [out] *) ppstm : TPPIStream ): HRESULT;
+
+END IStream;
+
+VAR 
+  IID_IEnumSTATSTG : IID;
+
+TYPE
+  TPIEnumSTATSTG = POINTER TO IEnumSTATSTG;
+  TPPIEnumSTATSTG = POINTER TO TPIEnumSTATSTG;
+
+INTERFACE IEnumSTATSTG( unknwn.IUnknown );
+
+  (* [local] *) VIRTUAL PROCEDURE Next( 
+    (* [in] *) celt : windows.ULONG;
+    (* [length_is][size_is][out] *) rgelt : PSTATSTG;
+    (* [out] *) pceltFetched : windows.PULONG ): HRESULT;
+
+  VIRTUAL PROCEDURE Skip( 
+    (* [in] *) celt : windows.ULONG ): HRESULT;
+
+  VIRTUAL PROCEDURE Reset( ): HRESULT;
+
+  VIRTUAL PROCEDURE Clone( 
+    (* [out] *) ppenum : TPPIEnumSTATSTG ): HRESULT;
+
+END IEnumSTATSTG;
+
+TYPE 
+  RemSNB = RECORD
+    
+    ulCntStr : windows.ULONG;
+    ulCntChar : windows.ULONG;
+    //?????
+    rgString : ARRAY [0..0] OF wtypes.OLECHAR;
+
+  END;
+  
+  wireSNB = POINTER TO RemSNB;
+  TPRemSNB = POINTER TO RemSNB;
+
+VAR 
+  IID_IStorage : IID;
+
+TYPE
+  TPIStorage = POINTER TO IStorage;
+  TPPIStorage = POINTER TO TPIStorage;
+  SNB = POINTER TO wtypes.POLECHAR;
+  PSNB = POINTER TO SNB;
+
+INTERFACE IStorage( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE CreateStream( 
+    (* [string][in] *) pwcsName : wtypes.POLECHAR;
+    (* [in] *)grfMode : windows.DWORD;
+    (* [in] *)reserved1 : windows.DWORD;
+    (* [in] *)reserved2 : windows.DWORD;
+    (* [out] *) ppstm : TPPIStream ): HRESULT;
+
+  (* [local] *) VIRTUAL PROCEDURE OpenStream( 
+    (* [string][in] *) pwcsName : wtypes.POLECHAR;
+    (* [unique][in] *) reserved1 : windows.PVOID;
+    (* [in] *)grfMode : windows.DWORD;
+    (* [in] *)reserved2 : windows.DWORD;
+    (* [out] *) ppstm : TPPIStream ): HRESULT;
+
+  VIRTUAL PROCEDURE CreateStorage( 
+    (* [string][in] *) pwcsName : wtypes.POLECHAR;
+    (* [in] *)grfMode : windows.DWORD;
+    (* [in] *)dwStgFmt : windows.DWORD;
+    (* [in] *)reserved2 : windows.DWORD;
+    (* [out] *)ppstg : TPPIStorage ): HRESULT;
+
+  VIRTUAL PROCEDURE OpenStorage( 
+    (* [string][unique][in] *) pwcsName : wtypes.POLECHAR;
+    (* [unique][in] *) pstgPriority : TPIStorage;
+    (* [in] *)grfMode : windows.DWORD;
+    (* [unique][in] *) snbExclude : SNB;
+    (* [in] *)reserved : windows.DWORD;
+    (* [out] *) ppstg : TPPIStorage ): HRESULT;
+
+  VIRTUAL PROCEDURE CopyTo( 
+    (* [in] *)ciidExclude : windows.DWORD;
+    (* [size_is][unique][in] *) rgiidExclude : PIID;
+    (* [unique][in] *) snbExclude : SNB;
+    (* [unique][in] *) pstgDest : TPIStorage ): HRESULT;
+
+  VIRTUAL PROCEDURE MoveElementTo( 
+    (* [string][in] *) pwcsName : wtypes.POLECHAR;
+    (* [unique][in] *) pstgDest : TPIStorage;
+    (* [string][in] *) pwcsNewName : wtypes.POLECHAR;
+    (* [in] *)grfFlags : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE Commit( 
+    (* [in] *)grfCommitFlags : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE Revert( ): HRESULT;
+
+  VIRTUAL (* [local] *)   PROCEDURE EnumElements( 
+    (* [in] *)reserved1 : windows.DWORD;
+    (* [size_is][unique][in] *) reserved2 : windows.PVOID;
+    (* [in] *)reserved3 : windows.DWORD;
+    (* [out] *) ppenum : TPPIEnumSTATSTG ): HRESULT;
+
+  VIRTUAL PROCEDURE DestroyElement( 
+    (* [string][in] *)  pwcsName : wtypes.POLECHAR ): HRESULT;
+
+  VIRTUAL PROCEDURE RenameElement( 
+    (* [string][in] *) pwcsOldName : wtypes.POLECHAR;
+    (* [string][in] *) pwcsNewName : wtypes.POLECHAR ): HRESULT;
+
+  VIRTUAL PROCEDURE SetElementTimes( 
+    (* [string][in] *) pwcsName : wtypes.POLECHAR;
+    (* [in] *) pctime : windows.PFILETIME;
+    (* [in] *) patime : windows.PFILETIME;
+    (* [in] *) pmtime : windows.PFILETIME ): HRESULT;
+
+  VIRTUAL PROCEDURE SetClass( 
+    (* [in] *)  CONST clsid : CLSID ): HRESULT;
+
+  VIRTUAL PROCEDURE SetStateBits( 
+    (* [in] *)grfStateBits : windows.DWORD;
+    (* [in] *)grfMask : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE Stat( 
+    (* [out] *) pstatstg : PSTATSTG;
+    (* [in] *)grfStatFlag : windows.DWORD ): HRESULT;
+
+END IStorage;
+
+VAR 
+  IID_IPersistFile : IID;
+
+TYPE
+  TPIPersistFile = POINTER TO IPersistFile;
+  TPPIPersistFile = POINTER TO TPIPersistFile;
+  
+INTERFACE IPersistFile (IPersist);
+
+  VIRTUAL PROCEDURE IsDirty( ): HRESULT;
+
+  VIRTUAL PROCEDURE Load( 
+    (* [in] *) pszFileName : wtypes.PCOLESTR;
+    (* [in] *)dwMode : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE Save( 
+    (* [unique][in] *) pszFileName : wtypes.PCOLESTR;
+    (* [in] *) fRemember : windows.BOOL ): HRESULT;
+
+  VIRTUAL PROCEDURE SaveCompleted( 
+    (* [unique][in] *) pszFileName : wtypes.PCOLESTR ): HRESULT;
+
+  VIRTUAL PROCEDURE GetCurFile( 
+    (* [out] *) ppszFileName : TPPOLESTR ): HRESULT;
+
+END IPersistFile;
+
+VAR 
+  IID_IPersistStorage : IID;
+
+TYPE  
+  TPIPersistStorage = POINTER TO IPersistStorage;
+
+INTERFACE IPersistStorage (IPersist);
+
+  VIRTUAL PROCEDURE IsDirty( ): HRESULT;
+
+  VIRTUAL PROCEDURE InitNew( 
+    (* [unique][in] *) pStg : TPIStorage ): HRESULT;
+
+  VIRTUAL PROCEDURE Load( 
+    (* [unique][in] *) pStg : TPIStorage ): HRESULT;
+
+  VIRTUAL PROCEDURE Save( 
+    (* [unique][in] *) pStgSave : TPIStorage;
+    (* [in] *) fSameAsLoad : windows.BOOL ): HRESULT;
+
+  VIRTUAL PROCEDURE SaveCompleted( 
+    (* [unique][in] *) pStgNew : TPIStorage ): HRESULT;
+
+  VIRTUAL PROCEDURE HandsOffStorage( ): HRESULT;
+
+END IPersistStorage;
+
+VAR 
+  IID_ILockBytes : IID;
+
+TYPE
+  TPILockBytes = POINTER TO ILockBytes;
+  TPPILockBytes = POINTER TO TPILockBytes;
+  
+INTERFACE ILockBytes( unknwn.IUnknown );
+
+  (* [local] *)   VIRTUAL PROCEDURE ReadAt( 
+    (* [in] *) ulOffset : ULARGE_INTEGER;
+    (* [length_is][size_is][out] *) pv : windows.PVOID;
+    (* [in] *) cb : windows.ULONG;
+    (* [out] *) pcbRead : windows.PULONG ): HRESULT;
+
+  VIRTUAL PROCEDURE WriteAt( 
+    (* [in] *) ulOffset : ULARGE_INTEGER;
+    (* [size_is][in] *) pv : windows.PVOID;
+    (* [in] *) cb : windows.ULONG;
+    (* [out] *) pcbWritten : windows.PULONG ): HRESULT;
+
+  VIRTUAL PROCEDURE Flush( ): HRESULT;
+
+  VIRTUAL PROCEDURE SetSize( 
+    (* [in] *) cb : ULARGE_INTEGER ): HRESULT;
+
+  VIRTUAL PROCEDURE LockRegion( 
+    (* [in] *)libOffset : ULARGE_INTEGER;
+    (* [in] *) cb : ULARGE_INTEGER;
+    (* [in] *)dwLockType : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE UnlockRegion( 
+    (* [in] *)libOffset : ULARGE_INTEGER;
+    (* [in] *) cb : ULARGE_INTEGER;
+    (* [in] *)dwLockType : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE Stat( 
+    (* [out] *) pstatstg : PSTATSTG;
+    (* [in] *)grfStatFlag : windows.DWORD ): HRESULT;
+
+END ILockBytes;
+
+TYPE
+  DVTARGETDEVICE = RECORD
+    tdSize : windows.DWORD;
+    tdDriverNameOffset : CARD16;
+    tdDeviceNameOffset : CARD16;
+    tdPortNameOffset : CARD16;
+    tdExtDevmodeOffset : CARD16;
+  //BYTE tdData[ 1 ];
+    tdData : ARRAY [0..0] OF CARD8;
+  END;
+  PDVTARGETDEVICE = POINTER TO DVTARGETDEVICE;
+  
+  FORMATETC = RECORD
+    cfFormat : wtypes.userCLIPFORMAT;
+    (* [unique] *) ptd : PDVTARGETDEVICE;
+    dwAspect : windows.DWORD;
+    lindex : windows.LONG;
+    tymed : windows.DWORD;
+  END;
+  PFORMATETC = POINTER TO FORMATETC;
+
+  TPIEnumFORMATETC = POINTER TO IEnumFORMATETC;
+  TPPIEnumFORMATETC = POINTER TO TPIEnumFORMATETC;
+
+VAR 
+  IID_IEnumFORMATETC : IID;
+
+INTERFACE IEnumFORMATETC( unknwn.IUnknown );
+
+  (* [local] *) VIRTUAL PROCEDURE Next( 
+    (* [in] *) celt : windows.ULONG;
+    (* [length_is][size_is][out] *) rgelt : PFORMATETC;
+    (* [out] *) pceltFetched : windows.PULONG ): HRESULT;
+
+  VIRTUAL PROCEDURE Skip( 
+    (* [in] *) celt : windows.ULONG ): HRESULT;
+
+  VIRTUAL PROCEDURE Reset( ): HRESULT;
+
+  VIRTUAL PROCEDURE Clone( 
+    (* [out] *) ppenum : TPPIEnumFORMATETC ): HRESULT;
+
+END IEnumFORMATETC;
+
+//enum
+TYPE
+  ADVF = ( 
+    ADVF_NODATA	= 1,
+	  ADVF_PRIMEFIRST	= 2,
+	  ADVF_ONLYONCE	= 4,
+	  ADVF_DATAONSTOP	= 64,
+	  ADVFCACHE_NOHANDLER	= 8,
+	  ADVFCACHE_FORCEBUILTIN	= 16,
+	  ADVFCACHE_ONSAVE	= 32
+	);
+
+  STATDATA = RECORD
+    formatetc : FORMATETC;
+    advf : windows.DWORD;
+    (* [unique] *)pAdvSink : TPIAdviseSink;
+    dwConnection : windows.DWORD;
+  END;
+
+  PSTATDATA = POINTER TO STATDATA;
+  TPIEnumSTATDATA = POINTER TO IEnumSTATDATA;
+  TPPIEnumSTATDATA = POINTER TO TPIEnumSTATDATA;
+
+VAR   
+  IID_IEnumSTATDATA : IID;
+
+INTERFACE IEnumSTATDATA( unknwn.IUnknown );
+
+  (* [local] *) VIRTUAL PROCEDURE Next( 
+    (* [in] *) celt : windows.ULONG;
+    (* [length_is][size_is][out] *)rgelt : STATDATA;
+    (* [out] *) pceltFetched : windows.PULONG ): HRESULT;
+
+  VIRTUAL PROCEDURE Skip( 
+    (* [in] *) celt : windows.ULONG ): HRESULT;
+
+  VIRTUAL PROCEDURE Reset( ): HRESULT;
+
+  VIRTUAL PROCEDURE Clone( 
+    (* [out] *) ppenum : TPPIEnumSTATDATA ): HRESULT;
+
+END IEnumSTATDATA;
+
+VAR 
+  IID_IRootStorage : IID;  
+
+TYPE
+  TPIRootStorage = POINTER TO IRootStorage; 
+  
+INTERFACE IRootStorage( unknwn.IUnknown );
+ 
+      VIRTUAL PROCEDURE SwitchToFile( 
+          (* [in] *) pszFile : wtypes.POLESTR ): HRESULT;
+END IRootStorage;
+
+TYPE
+  TYMED = (
+ 	  TYMED_HGLOBAL	= 1,
+	  TYMED_FILE	= 2,
+	  TYMED_ISTREAM	= 4,
+	  TYMED_ISTORAGE	= 8,
+	  TYMED_GDI	= 16,
+	  TYMED_MFPICT	= 32,
+	  TYMED_ENHMF	= 64,
+	  TYMED_NULL	= 0
+	);
+
+  RemSTGMEDIUM = RECORD
+    tymed : windows.DWORD;
+    dwHandleType : windows.DWORD;
+    pData : windows.ULONG;
+    pUnkForRelease : windows.ULONG;
+    cbData : windows.ULONG;
+    data : ARRAY [0..0] OF CARD8;
+  END;
+
+TYPE
+  STGMEDIUM = RECORD
+    tymed : windows.DWORD;
+//    (* [switch_is][switch_type] *) union
+      CASE : CARDINAL OF     
+      (* [case()] *) | 0: hBitmap : windows.HBITMAP;
+      (* [case()] *) | 1: hMetaFilePict : wtypes.HMETAFILEPICT;
+      (* [case()] *) | 2: hEnhMetaFile : windows.HENHMETAFILE;
+      (* [case()] *) | 3: hGlobal : windows.HGLOBAL;
+      (* [case()] *) | 4: lpszFileName : wtypes.POLESTR;
+      (* [case()] *) | 5: pstm : TPIStream;
+      (* [case()] *) | 6: pstg : TPIStorage;
+      (* [default] *)  (* Empty union arm *) 
+      END;
+    pUnkForRelease : unknwn.TPIUnknown;
+  END;
+  PSTGMEDIUM = POINTER TO STGMEDIUM; 
+  
+  GDI_OBJECT = RECORD
+    ObjectType : windows.DWORD;
+  //  (* [switch_is] *) (* [switch_type] *) union __MIDL_IAdviseSink_0002
+    u : RECORD
+      CASE : CARDINAL OF 
+        | 0 :(* [case()] *) hBitmap : wtypes.wireHBITMAP;
+        | 1 :(* [case()] *) hPalette : wtypes.wireHPALETTE;
+        | 2 :(* [default] *) hGeneric : wtypes.wireHGLOBAL;
+      END;
+    END;
+  END;
+  PGDI_OBJECT = POINTER TO GDI_OBJECT;
+
+  userSTGMEDIUM = RECORD
+    tymed : windows.DWORD;
+    u : RECORD
+      CASE : CARDINAL OF
+            (* [case()] *)  (* Empty union arm *) 
+         | 0:(* [case()] *) hMetaFilePict : wtypes.wireHMETAFILEPICT;
+         | 1:(* [case()] *)  hHEnhMetaFile : wtypes.wireHENHMETAFILE;
+         | 2:(* [case()] *) hGdiHandle : PGDI_OBJECT;
+         | 3:(* [case()] *) hGlobal : wtypes.wireHGLOBAL;
+         | 4:(* [case()] *) lpszFileName : wtypes.POLESTR;
+         | 5:(* [case()] *) pstm : wtypes.UP_BYTE_BLOB;
+         | 6:(* [case()] *) pstg : wtypes.UP_BYTE_BLOB;
+      END;
+    END;
+    pUnkForRelease : unknwn.TPIUnknown;
+  END;
+
+TYPE
+  wireSTGMEDIUM = POINTER TO userSTGMEDIUM;
+
+VAR 
+  wireASYNC_STGMEDIUM : PSTGMEDIUM;
+  ASYNC_STGMEDIUM : STGMEDIUM;
+
+TYPE
+  PASYNC_STGMEDIUM = POINTER TO STGMEDIUM;
+
+  userFLAG_STGMEDIUM = RECORD
+    ContextFlags : windows.LONG;
+    fPassOwnership : windows.LONG;
+    Stgmed : userSTGMEDIUM;
+  END;
+
+VAR
+  wireFLAG_STGMEDIUM : userFLAG_STGMEDIUM;
+
+TYPE
+  PFLAG_STGMEDIUM = POINTER TO FLAG_STGMEDIUM; 
+  FLAG_STGMEDIUM = RECORD
+    ContextFlags : windows.LONG;
+    fPassOwnership : windows.LONG;
+    Stgmed : STGMEDIUM;
+  END;
+
+VAR 
+  IID_IAdviseSink : IID;
+  
+INTERFACE IAdviseSink( unknwn.IUnknown );
+
+  VIRTUAL (* [local] *) PROCEDURE OnDataChange( 
+    (* [unique][in] *) pFormatetc : PFORMATETC;
+    (* [unique][in] *) pStgmed : PSTGMEDIUM );
+
+  VIRTUAL (* [local] *) PROCEDURE OnViewChange( 
+    (* [in] *)dwAspect : windows.DWORD;
+    (* [in] *) lindex : windows.LONG );
+
+  VIRTUAL (* [local] *) PROCEDURE OnRename( 
+    (* [in] *) pmk : TPIMoniker );
+
+  VIRTUAL (* [local] *) PROCEDURE OnSave();
+
+  VIRTUAL (* [local] *) PROCEDURE OnClose();
+
+END IAdviseSink;
+
+VAR 
+  IID_IDataObject : IID;
+
+TYPE
+  DATADIR = (
+    DATADIR_GET	= 1,
+	  DATADIR_SET	= 2
+	);
+
+TYPE
+  TPIDataObject = POINTER TO IDataObject;  
+  
+INTERFACE IDataObject( unknwn.IUnknown );
+
+  (* [local] *) VIRTUAL PROCEDURE GetData( 
+    (* [unique][in] *) pformatetcIn : PFORMATETC;
+    (* [out] *) pmedium : PSTGMEDIUM ): HRESULT;
+
+  (* [local] *) VIRTUAL PROCEDURE GetDataHere( 
+    (* [unique][in] *) pformatetc : PFORMATETC;
+    (* [out][in] *) pmedium : PSTGMEDIUM ): HRESULT;
+
+  VIRTUAL PROCEDURE QueryGetData( 
+    (* [unique][in] *) pformatetc : PFORMATETC ): HRESULT;
+
+  VIRTUAL PROCEDURE GetCanonicalFormatEtc( 
+    (* [unique][in] *) pformatectIn : PFORMATETC;
+    (* [out] *) pformatetcOut : PFORMATETC ): HRESULT;
+
+  (* [local] *) VIRTUAL PROCEDURE SetData( 
+    (* [unique][in] *) pformatetc : PFORMATETC;
+    (* [unique][in] *) pmedium : PSTGMEDIUM;
+    (* [in] *) fRelease : windows.BOOL ): HRESULT;
+
+  VIRTUAL PROCEDURE EnumFormatEtc( 
+    (* [in] *)dwDirection : windows.DWORD;
+    (* [out] *) ppenumFormatEtc : TPPIEnumFORMATETC ): HRESULT;
+
+  VIRTUAL PROCEDURE DAdvise( 
+    (* [in] *) pformatetc : PFORMATETC;
+    (* [in] *)advf : windows.DWORD;
+    (* [unique][in] *) pAdvSink : TPIAdviseSink;
+    (* [out] *)pdwConnection : windows.PDWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE DUnadvise( 
+    (* [in] *)dwConnection : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE EnumDAdvise( 
+    (* [out] *) ppenumAdvise : TPPIEnumSTATDATA ): HRESULT;
+
+END IDataObject;
+
+VAR 
+  IID_IDataAdviseHolder : IID;
+
+TYPE
+  TPIDataAdviseHolder = POINTER TO IDataAdviseHolder;
+  TPPIDataAdviseHolder = POINTER TO TPIDataAdviseHolder;
+
+INTERFACE IDataAdviseHolder( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE Advise( 
+    (* [unique][in] *) pDataObject : TPIDataObject;
+    (* [unique][in] *) pFetc : PFORMATETC;
+    (* [in] *)advf : windows.DWORD;
+    (* [unique][in] *) pAdvise : TPIAdviseSink;
+    (* [out] *)pdwConnection : windows.PDWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE Unadvise( 
+    (* [in] *)dwConnection : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE EnumAdvise( 
+    (* [out] *) ppenumAdvise : TPPIEnumSTATDATA ): HRESULT;
+
+  VIRTUAL PROCEDURE SendOnDataChange( 
+    (* [unique][in] *) pDataObject : TPIDataObject;
+    (* [in] *)dwReserved : windows.DWORD;
+    (* [in] *)advf : windows.DWORD ): HRESULT;
+
+END IDataAdviseHolder;
+
+//enum 
+TYPE
+  CALLTYPE = (
+    CALLTYPE_TOPLEVEL	= 1,
+	  CALLTYPE_NESTED,
+	  CALLTYPE_ASYNC,
+	  CALLTYPE_TOPLEVEL_CALLPENDING,
+	  CALLTYPE_ASYNC_CALLPENDING
+	);
+  PCALLTYPE = POINTER TO CALLTYPE;
+
+
+  SERVERCALL = (
+    SERVERCALL_ISHANDLED,
+	  SERVERCALL_REJECTED,
+	  SERVERCALL_RETRYLATER
+	);
+
+  PENDINGTYPE = (
+    PENDINGTYPE_TOPLEVEL = 1,
+	  PENDINGTYPE_NESTED
+	);
+
+  PENDINGMSG = (
+    PENDINGMSG_CANCELCALL,
+	  PENDINGMSG_WAITNOPROCESS,
+	  PENDINGMSG_WAITDEFPROCESS
+	);
+
+  INTERFACEINFO = RECORD
+    pUnk : unknwn.TPIUnknown;
+    iid : IID;
+    wMethod : CARD16;
+  END;
+  PINTERFACEINFO = POINTER TO INTERFACEINFO;
+
+VAR 
+  IID_IMessageFilter : IID;
+TYPE
+  TPIMessageFilter = POINTER TO IMessageFilter;
+  TPPIMessageFilter = POINTER TO TPIMessageFilter;
+  
+INTERFACE IMessageFilter( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE  HandleInComingCall( 
+    (* [in] *)dwCallType : windows.DWORD;
+    (* [in] *) htaskCaller : windows.HTASK;
+    (* [in] *)dwTickCount : windows.DWORD;
+    (* [in] *) lpInterfaceInfo : PINTERFACEINFO ): windows.DWORD;
+
+  VIRTUAL PROCEDURE  RetryRejectedCall( 
+    (* [in] *) htaskCallee : windows.HTASK;
+    (* [in] *)dwTickCount : windows.DWORD;
+    (* [in] *)dwRejectType : windows.DWORD ): windows.DWORD;
+
+  VIRTUAL PROCEDURE  MessagePending( 
+    (* [in] *) htaskCallee : windows.HTASK;
+    (* [in] *)dwTickCount : windows.DWORD;
+    (* [in] *) dwPendingType : windows.DWORD ): windows.DWORD;
+
+END IMessageFilter;
+
+VAR
+  IID_IChannelHook : IID;
+
+TYPE 
+  TPIChannelHook = POINTER TO ChannelHook;
+
+INTERFACE IChannelHook( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE ClientGetSize( 
+    (* [in] *) CONST uExtent : GUID;
+    (* [in] *) CONST riid : IID;
+    (* [out] *) pDataSize : windows.PULONG );
+
+  VIRTUAL PROCEDURE ClientFillBuffer( 
+    (* [in] *) CONST uExtent : GUID;
+    (* [in] *) CONST riid : IID;
+    (* [out][in] *) pDataSize : windows.PULONG;
+    (* [in] *) pDataBuffer : windows.PVOID );
+
+  VIRTUAL PROCEDURE ClientNotify( 
+    (* [in] *) CONST uExtent : GUID;
+    (* [in] *) CONST riid : IID;
+    (* [in] *) cbDataSize : windows.ULONG;
+    (* [in] *) pDataBuffer : windows.PVOID;
+    (* [in] *)lDataRep : windows.DWORD;
+    (* [in] *) hrFault : HRESULT );
+
+  VIRTUAL PROCEDURE ServerNotify( 
+    (* [in] *) CONST uExtent : GUID;
+    (* [in] *) CONST riid : IID;
+    (* [in] *) cbDataSize  : windows.ULONG;
+    (* [in] *) pDataBuffer : windows.PVOID;
+    (* [in] *)lDataRep : windows.DWORD );
+
+  VIRTUAL PROCEDURE ServerGetSize( 
+    (* [in] *) CONST uExtent : GUID;
+    (* [in] *) CONST riid : IID;
+    (* [in] *) hrFault : HRESULT;
+    (* [out] *) pDataSize : windows.PULONG );
+
+  VIRTUAL PROCEDURE ServerFillBuffer( 
+    (* [in] *) CONST uExtent : GUID;
+    (* [in] *) CONST riid : IID;
+    (* [out][in] *) pDataSize : windows.PULONG;
+    (* [in] *) pDataBuffer : windows.PVOID;
+    (* [in] *) hrFault : HRESULT );
+
+END IChannelHook;
+
+//??
+VAR
+  FMTID_SummaryInformation : FMTID;
+  FMTID_DocSummaryInformation : FMTID;
+  FMTID_UserDefinedProperties : FMTID;
+
+// Flags for IPropertySetStorage::Create
+CONST
+  PROPSETFLAG_DEFAULT	= 0;
+  PROPSETFLAG_NONSIMPLE	= 1;
+  PROPSETFLAG_ANSI = 2;
+
+TYPE
+ 
+  PPROPVARIANT = POINTER TO PROPVARIANT;
+
+  CAUB = RECORD
+    cElems : windows.ULONG;
+    (* [size_is] *) pElems : windows.PUCHAR;
+  END;
+
+  CAI = RECORD
+    cElems : windows.ULONG;
+    pElems : windows.PSHORT;
+  END;
+
+  CAUI = RECORD
+    cElems : windows.ULONG;
+    pElems : windows.PUSHORT;
+  END;
+
+  CAL = RECORD
+    cElems : windows.ULONG;
+    pElems : windows.PLONG;
+  END;
+
+  CAUL = RECORD
+    cElems : windows.ULONG;
+    pElems : windows.PULONG;
+  END;
+
+  CAFLT = RECORD
+   cElems : windows.ULONG;
+   pElems : windows.PFLOAT;
+  END;
+
+  PDOUBLE = POINTER TO LONGREAL;
+  CADBL = RECORD
+    cElems : windows.ULONG;
+    pElems : PDOUBLE;
+  END;
+  //??
+  PCY = POINTER TO wtypes.CY;
+  CACY = RECORD
+    cElems : windows.ULONG;
+    pElems : PCY;
+  END;
+
+  PDATE = POINTER TO wtypes.DATE;
+  CADATE = RECORD
+    cElems : windows.ULONG;
+    pElems : PDATE;
+  END;
+
+  CABSTR = RECORD
+    cElems : windows.ULONG;
+    pElems : wtypes.BSTR;
+  END;
+
+  CABOOL = RECORD
+    cElems : windows.ULONG;
+    pElems : wtypes.VARIANT_BOOL;
+  END;
+
+  CASCODE = RECORD
+    cElems : windows.ULONG;
+    pElems : wtypes.SCODE;
+  END;
+
+  CAPROPVARIANT = RECORD
+    cElems : windows.ULONG;
+    pElems : PPROPVARIANT;
+  END;
+
+  CAH = RECORD
+    cElems : windows.ULONG;
+    pElems : windows.LARGE_INTEGER;
+  END;
+
+  CAUH = RECORD
+    cElems : windows.ULONG;
+    pElems : ULARGE_INTEGER;
+  END;
+
+  CALPSTR = RECORD
+    cElems : windows.ULONG;
+    pElems :windows.PSTR;
+  END;
+
+  CALPWSTR = RECORD
+    cElems : windows.ULONG;
+    pElems : windows.PWSTR;
+  END;
+
+  CAFILETIME = RECORD
+    cElems : windows.ULONG;
+    pElems : windows.PFILETIME;
+  END;
+
+  CACLIPDATA = RECORD
+    cElems : windows.ULONG;
+    pElems : wtypes.CLIPDATA;
+  END;
+
+  CACLSID = RECORD
+    cElems : windows.ULONG;
+    pElems : PCLSID;
+  END;
+  LARGE_INTEGER = RECORD  
+  QuadPart :  INT64 ; //LONGLONG
+  END;
+
+
+//#pragma warning(disable:4237)
+TYPE
+ PCLIPDATA = POINTER TO wtypes.CLIPDATA;
+ PSTATPROPSETSTG = POINTER TO STATPROPSETSTG;
+ 
+ PROPVARIANT = RECORD
+    vt : wtypes.VARTYPE;
+    wReserved1 : CARD16;
+    wReserved2 : CARD16;
+    wReserved3 : CARD16;
+// [switch_is] *) (* [switch_type] *)
+    CASE :CARDINAL OF
+//        (* [case()] *)  (* Empty union arm *) 
+        (* [case()] *)|0 : bVal : windows.UCHAR;
+        (* [case()] *)|1 : iVal : windows.SHORT;
+        (* [case()] *)|2 : uiVal : windows.USHORT;
+        (* [case()] *)|3 : boolVal : wtypes.VARIANT_BOOL;
+        //?????
+        (* [case()] *)// _VARIANT_BOOL bool;
+        (* [case()] *)|5: lVal : windows.LONG;
+        (* [case()] *)|6: ulVal : windows.ULONG;
+        //????
+        (* [case()] *)// float;
+        (* [case()] *)|8: scode : wtypes.SCODE;
+        (* [case()] *)|9: hVal :  LARGE_INTEGER;
+        (* [case()] *)|10: uhVal : ULARGE_INTEGER;
+        (* [case()] *)|11: dblVal : LONGREAL ; //double
+        (* [case()] *)|12: cyVal : wtypes.CY;
+        (* [case()] *)|13: date : wtypes.DATE;
+        (* [case()] *)|14: filetime : windows.FILETIME;
+        (* [case()] *)|15: puuid : PCLSID;
+        (* [case()] *)|16: blob : wtypes.BLOB;
+        (* [case()] *)|17: pclipdata : PCLIPDATA;
+        (* [case()] *)|18: pStream : TPIStream;
+        (* [case()] *)|19: pStorage : TPIStorage;
+        (* [case()] *)|20: bstrVal : wtypes.BSTR;
+        (* [case()] *)|21: pszVal : windows.PSTR;
+        (* [case()] *)|22: pwszVal : windows.PWSTR;
+        (* [case()] *)|23: caub : CAUB;
+        (* [case()] *)|24: cai : CAI;
+        (* [case()] *)|25: caui : CAUI;
+        (* [case()] *)|26: cabool : CABOOL;
+        (* [case()] *)|27: cal : CAL;
+        (* [case()] *)|28: caul : CAUL;
+        (* [case()] *)|29: caflt : CAFLT;
+        (* [case()] *)|30: cascode : CASCODE;
+        (* [case()] *)|40: cah : CAH;
+        (* [case()] *)|41: cauh : CAUH;
+        (* [case()] *)|42: cadbl : CADBL;
+        (* [case()] *)|43: cacy : CACY;
+        (* [case()] *)|44: cadate : CADATE;
+        (* [case()] *)|45: cafiletime : CAFILETIME;
+        (* [case()] *)|46: cauuid : CACLSID;
+        (* [case()] *)|47: caclipdata : CACLIPDATA;
+        (* [case()] *)|48: cabstr : CABSTR;
+        (* [case()] *)|49: calpstr : CALPSTR;
+        (* [case()] *)|50: calpwstr : CALPWSTR;
+        (* [case()] *)|51: capropvar : CAPROPVARIANT;
+    END;
+ END;
+
+// Reserved global Property IDs
+CONST
+
+  PID_DICTIONARY	= 0;
+	PID_CODEPAGE	= 1;
+	PID_FIRST_USABLE	= 2;
+	PID_FIRST_NAME_DEFAULT	= 0FFFH;
+	PID_LOCALE	= 080000000H;
+	PID_MODIFY_TIME	= 080000001H;
+	PID_SECURITY	= 080000002H;
+	PID_ILLEGAL	= 0FFFFFFFFH;
+
+// Property IDs for the SummaryInformation Property Set
+
+  PIDSI_TITLE           =    000000002;  // VT_LPSTR
+  PIDSI_SUBJECT         =    000000003;  // VT_LPSTR
+  PIDSI_AUTHOR          =    000000004;  // VT_LPSTR
+  PIDSI_KEYWORDS        =    000000005;  // VT_LPSTR
+  PIDSI_COMMENTS        =    000000006;  // VT_LPSTR
+  PIDSI_TEMPLATE        =    000000007;  // VT_LPSTR
+  PIDSI_LASTAUTHOR      =    000000008;  // VT_LPSTR
+  PIDSI_REVNUMBER       =    000000009;  // VT_LPSTR
+  PIDSI_EDITTIME        =    00000000AH;  // VT_FILETIME =UTC;
+  PIDSI_LASTPRINTED     =    00000000BH;  // VT_FILETIME =UTC;
+  PIDSI_CREATE_DTM      =    00000000CH;  // VT_FILETIME =UTC;
+  PIDSI_LASTSAVE_DTM    =    00000000DH;  // VT_FILETIME =UTC;
+  PIDSI_PAGECOUNT       =    00000000EH;  // VT_I4
+  PIDSI_WORDCOUNT       =    00000000FH;  // VT_I4
+  PIDSI_CHARCOUNT       =    000000010H;  // VT_I4
+  PIDSI_THUMBNAIL       =    000000011H;  // VT_CF
+  PIDSI_APPNAME         =    000000012H;  // VT_LPSTR
+  PIDSI_DOC_SECURITY    =    000000013H;  // VT_I4
+  PRSPEC_INVALID	= 0FFFFFFFFH;
+  PRSPEC_LPWSTR	= 0;
+  PRSPEC_PROPID	= 1;
+
+TYPE
+
+  PROPSPEC = RECORD
+    ulKind : windows.ULONG;
+    CASE : CARDINAL OF 
+      | 0: propid : wtypes.PROPID;
+      | 1: lpwstr : wtypes.POLESTR;
+    (* [default] *)  (* Empty union arm *) 
+    END;
+  END;
+
+  PPROSPEC = POINTER TO PROPSPEC;
+
+  STATPROPSTG = RECORD
+    lpwstrName : wtypes.POLESTR;
+    propid : wtypes.PROPID;
+    vt : wtypes.VARTYPE;
+  END;
+
+// Macros for parsing the OS Version of the Property Set Header
+(*
+PROPSETHDR_OSVER_KIND(dwOSVer)      HIWORD( (dwOSVer) )
+PROPSETHDR_OSVER_MAJOR(dwOSVer)     LOBYTE(LOWORD( (dwOSVer) ))
+PROPSETHDR_OSVER_MINOR(dwOSVer)     HIBYTE(LOWORD( (dwOSVer) ))
+PROPSETHDR_OSVERSION_UNKNOWN        0xFFFFFFFF
+*)
+(*# call( macro => on ) *)
+PROCEDURE PROPSETHDR_OSVER_KIND (dwOSVer : windows.DWORD ): CARD16;
+PROCEDURE PROPSETHDR_OSVER_MAJOR (dwOSVer : windows.DWORD ): CARD8;
+PROCEDURE PROPSETHDR_OSVER_MINOR (dwOSVer : windows.DWORD ): CARD8;
+(*# call( macro => off ) *)
+
+CONST
+  PROPSETHDR_OSVERSION_UNKNOWN  = 0FFFFFFFFH;
+
+TYPE
+  STATPROPSETSTG = RECORD
+    fmtid : FMTID;
+    clsid : CLSID;
+    grfFlags : windows.DWORD;
+    mtime : windows.FILETIME;
+    ctime : windows.FILETIME;
+    atime : windows.FILETIME;
+    dwOSVersion : windows.DWORD;
+  END;
+
+VAR 
+  IID_IPropertyStorage : IID;
+
+TYPE
+  TPIPropertyStorage = POINTER TO IPropertyStorage;
+  Trgpspec = ARRAY [0..0] OF PROPSPEC;
+  Trgpropvar = ARRAY [0..0] OF PROPVARIANT;
+  Trgpropid = ARRAY [0..0] OF wtypes.PROPID;
+  TrglpwstrName = ARRAY [0..0] OF wtypes.POLESTR;
+  TPIEnumSTATPROPSTG = POINTER TO IEnumSTATPROPSTG;  
+  TPPIEnumSTATPROPSTG = POINTER TO TPIEnumSTATPROPSTG;
+  TPIEnumSTATPROPSETSTG = POINTER TO IEnumSTATPROPSETSTG;
+  TPPIEnumSTATPROPSETSTG = POINTER TO TPIEnumSTATPROPSETSTG;
+  TPIPropertySetStorage = POINTER TO IPropertySetStorage;  
+  TPPIPropertySetStorage = POINTER TO TPIPropertySetStorage;
+  
+INTERFACE IPropertyStorage( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE ReadMultiple( 
+    (* [in] *) cpspec : windows.ULONG;
+    (* [size_is][in] *) rgpspec : Trgpspec;
+    (* [size_is][out] *) rgpropvar : Trgpropvar  ): HRESULT;
+
+  VIRTUAL PROCEDURE WriteMultiple( 
+    (* [in] *) cpspec : windows.ULONG;
+    (* [size_is][in] *) rgpspec : Trgpspec;
+    (* [size_is][in] *)  rgpropvar : Trgpropvar;
+    (* [in] *)   propidNameFirst : wtypes.PROPID ): HRESULT;
+
+  VIRTUAL PROCEDURE DeleteMultiple( 
+    (* [in] *) cpspec : windows.ULONG;
+    (* [size_is][in] *) rgpspec : Trgpspec  ): HRESULT;
+
+  VIRTUAL PROCEDURE ReadPropertyNames( 
+    (* [in] *) cpropid : windows.ULONG;
+    (* [size_is][in] *) rgpropid : Trgpropid;
+    (* [size_is][out] *) rglpwstrName : TrglpwstrName  ): HRESULT;
+
+  VIRTUAL PROCEDURE WritePropertyNames( 
+    (* [in] *) cpropid : windows.ULONG;
+    (* [size_is][in] *) rgpropid : Trgpropid;
+    (* [size_is][in] *) rglpwstrName : TrglpwstrName  ): HRESULT;
+
+  VIRTUAL PROCEDURE DeletePropertyNames( 
+    (* [in] *) cpropid : windows.ULONG;
+    (* [size_is][in] *) rgpropid : Trgpropid  ): HRESULT;
+
+  VIRTUAL PROCEDURE Commit( 
+    (* [in] *)grfCommitFlags : windows.DWORD ): HRESULT;
+
+  VIRTUAL PROCEDURE Revert( ): HRESULT;
+
+  VIRTUAL PROCEDURE Enum( 
+    (* [out] *) ppenum : TPPIEnumSTATPROPSTG ): HRESULT;
+
+  VIRTUAL PROCEDURE SetTimes( 
+    (* [in] *)  pctime : windows.PFILETIME;
+    (* [in] *)  patime : windows.PFILETIME;
+    (* [in] *)  pmtime : windows.PFILETIME ): HRESULT;
+
+  VIRTUAL PROCEDURE SetClass( 
+    (* [in] *)  CONST clsid : CLSID ): HRESULT;
+
+  VIRTUAL PROCEDURE Stat( 
+    (* [out] *) pstatpsstg : PSTATPROPSETSTG ): HRESULT;
+  
+END IPropertyStorage;
+
+VAR 
+  IID_IPropertySetStorage : IID;
+
+INTERFACE IPropertySetStorage( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE Create( 
+    (* [in] *) CONST rfmtid : FMTID;
+    (* [unique][in] *) pClsid : PCLSID;
+    (* [in] *)grfFlags : windows.DWORD;
+    (* [in] *)grfMode : windows.DWORD;
+    (* [out] *) VAR ppprstg : TPIPropertyStorage ): HRESULT;
+
+  VIRTUAL PROCEDURE Open( 
+    (* [in] *) CONST rfmtid : FMTID;
+    (* [in] *)grfMode : windows.DWORD;
+    (* [out] *) VAR ppprstg : TPIPropertyStorage ): HRESULT;
+
+  VIRTUAL PROCEDURE Delete( 
+    (* [in] *) CONST rfmtid : FMTID  ): HRESULT;
+
+  VIRTUAL PROCEDURE Enum( 
+    (* [out] *) ppenum : TPPIEnumSTATPROPSETSTG ): HRESULT;
+
+END IPropertySetStorage;
+
+VAR 
+  IID_IEnumSTATPROPSTG : IID;
+
+INTERFACE IEnumSTATPROPSTG( unknwn.IUnknown );
+
+  VIRTUAL (* [local] *)   PROCEDURE Next( 
+    (* [in] *) celt : windows.ULONG;
+    (* [length_is][size_is][out] *) rgelt : STATPROPSTG;
+    (* [out] *) pceltFetched : windows.PULONG ): HRESULT;
+
+  VIRTUAL PROCEDURE Skip( 
+    (* [in] *) celt : windows.ULONG ): HRESULT;
+
+  VIRTUAL PROCEDURE Reset( ): HRESULT;
+
+  VIRTUAL PROCEDURE Clone( 
+    (* [out] *) ppenum : TPPIEnumSTATPROPSTG ): HRESULT;
+  
+END IEnumSTATPROPSTG;
+
+VAR 
+  IID_IEnumSTATPROPSETSTG : IID;
+
+INTERFACE IEnumSTATPROPSETSTG( unknwn.IUnknown );
+
+  VIRTUAL (* [local] *)   PROCEDURE Next( 
+    (* [in] *) celt : windows.ULONG;
+    (* [length_is][size_is][out] *) rgelt : PSTATPROPSETSTG;
+    (* [out] *) pceltFetched : windows.PULONG ): HRESULT;
+
+  VIRTUAL PROCEDURE Skip( 
+    (* [in] *) celt : windows.ULONG ): HRESULT;
+
+  VIRTUAL PROCEDURE Reset( ): HRESULT;
+
+  VIRTUAL PROCEDURE Clone( 
+    (* [out] *) ppenum : TPPIEnumSTATPROPSETSTG ): HRESULT;
+
+END IEnumSTATPROPSETSTG;
+
+PROCEDURE PropVariantCopy ( pvarDest : PPROPVARIANT ; pvarSrc : PPROPVARIANT  ): HRESULT;
+PROCEDURE PropVariantClear ( pvar : PPROPVARIANT  ): HRESULT;
+
+//inline void PropVariantInit ( PROPVARIANT * pvar )
+PROCEDURE PropVariantInit ( pvar : PPROPVARIANT );  
+PROCEDURE FreePropVariantArray (cVariants : windows.ULONG ;rgvars : PPROPVARIANT ): HRESULT;
+
+VAR
+  IID_IFillLockBytes : IID;
+
+TYPE
+  TPIFillLockBytes = POINTER TO IFillLockBytes;
+  
+INTERFACE IFillLockBytes( unknwn.IUnknown );
+
+  (* [local] *) VIRTUAL PROCEDURE FillAppend( 
+    (* [size_is][in] *) pv : windows.PVOID;
+    (* [in] *) cb : windows.ULONG;
+    (* [out] *) pcbWritten : windows.PULONG ): HRESULT;
+
+  (* [local] *) VIRTUAL PROCEDURE FillAt( 
+    (* [in] *) ulOffset : ULARGE_INTEGER;
+    (* [size_is][in] *)  pv : windows.PVOID;
+    (* [in] *) cb : windows.ULONG;
+    (* [out] *) pcbWritten : windows.PULONG ): HRESULT;
+
+  VIRTUAL PROCEDURE SetFillSize( 
+    (* [in] *) ulSize : ULARGE_INTEGER ): HRESULT;
+
+  VIRTUAL PROCEDURE Terminate( 
+    (* [in] *) bCanceled : windows.BOOL ): HRESULT;
+
+END IFillLockBytes;
+
+VAR 
+  IID_IProgressNotify : IID;
+
+TYPE
+  TPIProgressNotify = POINTER TO IProgresNotify;
+
+INTERFACE IProgressNotify( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE OnProgress( 
+    (* [in] *)dwProgressCurrent : windows.DWORD;
+    (* [in] *)dwProgressMaximum : windows.DWORD;
+    (* [in] *) fAccurate : windows.BOOL;
+    (* [in] *) fOwner : windows.BOOL ): HRESULT;
+      
+END IProgressNotify;
+
+TYPE
+  PStorageLayout = POINTER TO StorageLayout;
+  StorageLayout = RECORD
+    LayoutType : windows.DWORD;
+    pwcsElementName : wtypes.POLECHAR;
+    cOffset : windows.LARGE_INTEGER;
+    cBytes : windows.LARGE_INTEGER;
+  END;
+
+VAR 
+  IID_ILayoutStorage : IID;
+
+TYPE
+  TPILayoutStorage = POINTER TO ILayoutStorage;
+
+INTERFACE ILayoutStorage( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE  LayoutScript( 
+    (* [in] *) pStorageLayout : PStorageLayout;
+    (* [in] *)nEntries : windows.DWORD;
+    (* [in] *)glfInterleavedFlag : windows.DWORD ): HRESULT;
+  
+  VIRTUAL PROCEDURE  BeginMonitor( ): HRESULT;
+  
+  VIRTUAL PROCEDURE  EndMonitor( ): HRESULT;
+  
+  VIRTUAL PROCEDURE  ReLayoutDocfile( 
+    (* [in] *) pwcsNewDfName : wtypes.POLECHAR ): HRESULT;
+  
+  VIRTUAL PROCEDURE  ReLayoutDocfileOnILockBytes( 
+    (* [in] *) pILockBytes : TPILockBytes ): HRESULT;
+  
+END ILayoutStorage;
+
+TYPE
+  TPCLIPFORMAT = POINTER TO wtypes.userCLIPFORMAT; 
+
+  ASYNC_STGMEDIUM_UserSize = PROCEDURE (windows.PULONG, windows.ULONG, PASYNC_STGMEDIUM ): windows.ULONG; 
+  ASYNC_STGMEDIUM_UserMarshal = PROCEDURE ( windows.PULONG, windows.PUCHAR, PASYNC_STGMEDIUM ): windows.PUCHAR; 
+  ASYNC_STGMEDIUM_UserUnmarshal = PROCEDURE (windows.PULONG, windows.PUCHAR, PASYNC_STGMEDIUM ): windows.PUCHAR; 
+  ASYNC_STGMEDIUM_UserFree = PROCEDURE (windows.PULONG, PASYNC_STGMEDIUM ); 
+
+  BSTR_UserSize = PROCEDURE (windows.PULONG, windows.ULONG, wtypes.PBSTR  ): windows.ULONG; 
+  BSTR_UserMarshal = PROCEDURE ( windows.PULONG, windows.PUCHAR, wtypes.PBSTR  ): windows.PUCHAR; 
+  BSTR_UserUnmarshal = PROCEDURE (windows.PULONG, windows.PUCHAR, wtypes.PBSTR  ): windows.PUCHAR; 
+  BSTR_UserFree = PROCEDURE (windows.PULONG, wtypes.PBSTR  ); 
+
+  CLIPFORMAT_UserSize = PROCEDURE (windows.PULONG, windows.ULONG,TPCLIPFORMAT ): windows.ULONG; 
+  CLIPFORMAT_UserMarshal = PROCEDURE ( windows.PULONG, windows.PUCHAR,TPCLIPFORMAT ): windows.PUCHAR; 
+  CLIPFORMAT_UserUnmarshal = PROCEDURE (windows.PULONG, windows.PUCHAR,TPCLIPFORMAT ): windows.PUCHAR; 
+  CLIPFORMAT_UserFree = PROCEDURE (windows.PULONG,TPCLIPFORMAT ); 
+
+  FLAG_STGMEDIUM_UserSize = PROCEDURE (windows.PULONG, windows.ULONG, PFLAG_STGMEDIUM ): windows.ULONG; 
+  FLAG_STGMEDIUM_UserMarshal = PROCEDURE ( windows.PULONG, windows.PUCHAR, PFLAG_STGMEDIUM ): windows.PUCHAR; 
+  FLAG_STGMEDIUM_UserUnmarshal = PROCEDURE (windows.PULONG, windows.PUCHAR, PFLAG_STGMEDIUM ): windows.PUCHAR; 
+  FLAG_STGMEDIUM_UserFree = PROCEDURE (windows.PULONG, PFLAG_STGMEDIUM ); 
+
+  SNB_UserSize = PROCEDURE (windows.PULONG, windows.ULONG, PSNB ): windows.ULONG; 
+  SNB_UserMarshal = PROCEDURE ( windows.PULONG, windows.PUCHAR, PSNB ): windows.PUCHAR; 
+  SNB_UserUnmarshal = PROCEDURE (windows.PULONG, windows.PUCHAR, PSNB ): windows.PUCHAR; 
+  SNB_UserFree = PROCEDURE (windows.PULONG, PSNB); 
+
+  STGMEDIUM_UserSize = PROCEDURE (windows.PULONG,windows.ULONG, PSTGMEDIUM  ): windows.ULONG; 
+  STGMEDIUM_UserMarshal = PROCEDURE ( windows.PULONG, windows.PUCHAR, PSTGMEDIUM  ): windows.PUCHAR; 
+  STGMEDIUM_UserUnmarshal = PROCEDURE (windows.PULONG, windows.PUCHAR, PSTGMEDIUM  ): windows.PUCHAR; 
+  STGMEDIUM_UserFree = PROCEDURE (windows.PULONG, PSTGMEDIUM  ); 
+
+END objidl.
+

@@ -1,0 +1,3 @@
+IMPLEMENTATION MODULE comm_;
+
+END comm_.

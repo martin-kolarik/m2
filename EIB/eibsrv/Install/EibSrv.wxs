@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xsi:schemaLocation="http://schemas.microsoft.com/wix/2003/01/wi wix.xsd" xmlns="http://schemas.microsoft.com/wix/2003/01/wi" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xse="http://schemas.microsoft.com/wix/2005/XmlSchemaExtension" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ns="http://schemas.microsoft.com/wix/2003/01/wi" xmlns:html="http://www.w3.org/1999/xhtml" xmlns:hfp="http://www.w3.org/2001/XMLSchema-hasFacetAndProperty">
+    <Product
+      Codepage="$(var.CodePage)" Language="$(var.Language)"
+      Manufacturer="$(var.Manufacturer)" Name="$(var.ProductDescription)" Version="$(var.ProductVersion)"
+      Id="$(var.ProductGUID)" UpgradeCode="$(var.UpgradeGUID)">
+        <Package Compressed="yes" Id="????????-????-????-????-????????????" Languages="$(var.Language)" SummaryCodepage="$(var.CodePage)" />
+        <Media Cabinet="Product.Cab" EmbedCab="yes" Id="1">
+        </Media>
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <?if $(var.CLib)!=Static ?>
+            <?if $(var.ConfigurationName)=Debug ?>
+            <Merge Id="VC8Runtime" SourceFile="C:\Program Files\Common Files\Merge Modules\Microsoft_VC80_DebugCRT_x86.msm" Language="1033" DiskId="1" />
+            <Merge Id="VC8Policy" SourceFile="C:\Program Files\Common Files\Merge Modules\policy_8_0_Microsoft_VC80_DebugCRT_x86.msm" Language="1033" DiskId="1" />
+            <?else ?>
+            <Merge Id="VC8Runtime" SourceFile="C:\Program Files\Common Files\Merge Modules\Microsoft_VC80_CRT_x86.msm" Language="1033" DiskId="1" />
+            <Merge Id="VC8Policy" SourceFile="C:\Program Files\Common Files\Merge Modules\policy_8_0_Microsoft_VC80_CRT_x86.msm" Language="1033" DiskId="1" />
+            <?endif ?>
+            <?endif ?>
+            <Directory Id="ProgramFilesFolder">
+                <Directory Id="SmartControl" Name="SmartCtr" LongName="SmartControl">
+                    <Directory Id="INSTALLDIR" Name="EibSrv">
+                        <Component Guid="7661D6C7-3F2E-4990-815B-36609A99DE62" Id="Program">
+                            <File DiskId="1" Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" Vital="yes">
+                            </File>
+                            <File DiskId="1" Id="License.rtf" Name="License.rtf" Source="License.rtf" Vital="yes">
+                            </File>
+                            <File DiskId="1" Id="EibSrv.DLL" Name="EibSrv.dll" Source="EibSrv.dll" Vital="yes">
+                            </File>
+                        </Component>
+                        <Component Id="Licence" Guid="BC838025-578C-46E8-A079-40E8B2134B03">
+                            <File Id="Licence" Name="Licence.lic" DiskId="1" LongName="$(var.ProductId).tlic" Source="$(var.ProductId).tlic" Vital="yes" />
+                        </Component>
+                        <Directory Id="EXAMPLES" Name="Examples">
+                            <Component Id="Examples" Guid="504E174F-A539-4C95-B1BA-51674C84ECD4">
+                            </Component>
+                        </Directory>
+                        <?if $(var.LeakChecking)=on ?>
+                        <Component Guid="B77FFC41-B032-47C6-841B-12239073885D" Id="LeakDetector">
+                            <File DiskId="1" Id="LeakDetector.DLL" LongName="LeakDetector.dll" Name="LeakDet.dll" Source="LeakDetector.dll" Vital="yes">
+                            </File>
+                        </Component>
+                        <?endif ?>
+                    </Directory>
+                </Directory>
+            </Directory>
+        </Directory>
+        <?if $(var.CLib)!=Static ?>
+        <Feature Id="VC8RuntimeFeature" Level="1" AllowAdvertise="no" Display="hidden">
+            <MergeRef Id="VC8Runtime" />
+            <MergeRef Id="VC8Policy" />
+        </Feature>
+        <?endif ?>
+        <Feature ConfigurableDirectory="INSTALLDIR" Id="Complete" Level="1">
+            <ComponentRef Id="Program" />
+            <ComponentRef Id="Licence" />
+            <ComponentRef Id="Examples" />
+            <?if $(var.LeakChecking)=on ?>
+            <ComponentRef Id="LeakDetector" />
+            <?endif ?>
+        </Feature>
+        <UIRef Id="WixUI_Licence" />
+        <UI />
+
+        <Icon Id="AddRemoveIcon" SourceFile="EibSrv.ico" />
+
+        <?include $(var.BuildRoot)\Manufacturer.wxs ?>
+
+    </Product>
+</Wix>

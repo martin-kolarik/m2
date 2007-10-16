@@ -1,0 +1,242 @@
+(* this ALWAYS GENERATED file contains the definitions for the interfaces *)
+
+DEFINITION MODULE comcat;
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+
+// Set packing to 8 
+(*# option( pack => 8 ) *)
+
+IMPORT
+  windows,
+  winnls;
+
+IMPORT
+  wtypes,
+  unknwn;
+
+CONST
+  HRESULT ::= wtypes.HRESULT;
+
+(* header files for imported files *)
+
+(****************************************
+ * Generated header for interface: __MIDL_itf_comcat_0000
+ * at Thu Sep 11 10:58:53 1997
+ * using MIDL 3.03.0110
+ ****************************************)
+(* [local] *) 
+
+
+//=--------------------------------------------------------------------------=
+// ComCat.h
+//=--------------------------------------------------------------------------=
+// (C) Copyright 1995 - 1998 Microsoft Corporation.  All Rights Reserved.
+//
+// THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF
+// ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
+// PARTICULAR PURPOSE.
+//=--------------------------------------------------------------------------=
+
+//=--------------------------------------------------------------------------=
+// OLE Componet Categories Interfaces.
+//=--------------------------------------------------------------------------=
+
+VAR
+  CLSID_StdComponentCategoriesMgr : wtypes.CLSID;
+
+////////////////////////////////////////////////////////////////////////////
+//  Types
+
+TYPE
+  CATID = wtypes.GUID;
+  PCATID = wtypes.PGUID;
+//REFGUID defined as macro const GUID &, use CONST GUID instead
+//REFCATID = REFGUID;
+
+////////////////////////////////////////////////////////////////////////////
+//  Category IDs (link to uuid3.lib)
+
+// C externs
+VAR
+  CATID_Insertable : CATID;
+  CATID_Control : CATID;
+  CATID_Programmable : CATID;
+  CATID_IsShortcut : CATID;
+  CATID_NeverShowExt : CATID;
+  CATID_DocObject : CATID;
+  CATID_Printable : CATID;
+  CATID_RequiresDataPathHost : CATID;
+  CATID_PersistsToMoniker : CATID;
+  CATID_PersistsToStorage : CATID;
+  CATID_PersistsToStreamInit : CATID;
+  CATID_PersistsToStream : CATID;
+  CATID_PersistsToMemory : CATID;
+  CATID_PersistsToFile : CATID;
+  CATID_PersistsToPropertyBag : CATID;
+  CATID_InternetAware : CATID;
+
+////////////////////////////////////////////////////////////////////////////
+//  Interface Definitions
+
+(****************************************
+ * Generated header for interface: IEnumGUID
+ * at Thu Sep 11 10:58:53 1997
+ * using MIDL 3.03.0110
+ ****************************************)
+(* [unique][uuid][object] *) 
+
+TYPE
+  PENUMGUID = POINTER TO IEnumGUID;
+  TPIEnumGUID = PENUMGUID;
+  TPPIEnumGUID = POINTER TO TPIEnumGUID;
+
+VAR
+  IID_IEnumGUID : wtypes.IID;
+
+// MIDL_INTERFACE("0002E000-0000-0000-C000-000000000046")
+CLASS IEnumGUID( unknwn.IUnknown );
+  VIRTUAL PROCEDURE Next( celt : windows.ULONG;
+                          rgelt : wtypes.PGUID;
+                          pceltFetched : windows.PULONG ): HRESULT;
+  VIRTUAL PROCEDURE Skip( celt : windows.ULONG ): HRESULT;
+  VIRTUAL PROCEDURE Reset(): HRESULT;
+  VIRTUAL PROCEDURE Clone( ppenum : TPPIEnumGUID ): HRESULT;
+END IEnumGUID;
+
+(****************************************
+ * Generated header for interface: IEnumCATEGORYINFO
+ * at Thu Sep 11 10:58:53 1997
+ * using MIDL 3.03.0110
+ ****************************************)
+(* [unique][uuid][object] *) 
+
+TYPE
+  PENUMCATEGORYINFO = POINTER TO IEnumCATEGORYINFO;
+  TPIEnumCATEGORYINFO = PENUMCATEGORYINFO;
+  TPPIEnumCATEGORYINFO = POINTER TO TPIEnumCATEGORYINFO;
+
+  CATEGORYINFO = RECORD
+    catid : CATID;
+    lcid : winnls.LCID;
+    szDescription : ARRAY [0..127] OF wtypes.OLECHAR;
+  END;
+  PCATEGORYINFO = POINTER TO CATEGORYINFO;
+
+VAR
+  IID_IEnumCATEGORYINFO : wtypes.IID;
+
+// MIDL_INTERFACE("0002E011-0000-0000-C000-000000000046")
+CLASS IEnumCATEGORYINFO( unknwn.IUnknown );
+  VIRTUAL PROCEDURE Next( celt : windows.ULONG;
+                          rgelt : PCATEGORYINFO;
+                          pceltFetched : windows.PULONG ): HRESULT;
+  VIRTUAL PROCEDURE Skip( celt : windows.ULONG ): HRESULT;
+  VIRTUAL PROCEDURE Reset(): HRESULT;
+  VIRTUAL PROCEDURE Clone( ppenum : TPPIEnumCATEGORYINFO ): HRESULT;
+END IEnumCATEGORYINFO;
+
+(****************************************
+ * Generated header for interface: ICatRegister
+ * at Thu Sep 11 10:58:53 1997
+ * using MIDL 3.03.0110
+ ****************************************)
+(* [unique][uuid][object] *) 
+
+TYPE
+  PCATREGISTER = POINTER TO ICatRegister;
+  TPICatRegister = PCATREGISTER;
+
+VAR
+  IID_ICatRegister : wtypes.IID;
+
+// MIDL_INTERFACE("0002E012-0000-0000-C000-000000000046")
+CLASS ICatRegister( unknwn.IUnknown );
+  VIRTUAL PROCEDURE RegisterCategories( 
+      (* [in] *) cCategories : windows.ULONG;
+      (* [size_is][in] *) rgCategoryInfo : PCATEGORYINFO ): HRESULT;
+  VIRTUAL PROCEDURE UnRegisterCategories( 
+      (* [in] *) cCategories : windows.ULONG;
+      (* [size_is][in] *) rgcatid : PCATID ): HRESULT;
+  VIRTUAL PROCEDURE RegisterClassImplCategories( 
+      (* [in] *) CONST rclsid : wtypes.CLSID;
+      (* [in] *) cCategories : windows.ULONG;
+      (* [size_is][in] *) rgcatid : PCATID ): HRESULT;
+  VIRTUAL PROCEDURE UnRegisterClassImplCategories( 
+      (* [in] *) CONST rclsid : wtypes.CLSID;
+      (* [in] *) cCategories : windows.ULONG;
+      (* [size_is][in] *) rgcatid : PCATID ): HRESULT;
+  VIRTUAL PROCEDURE RegisterClassReqCategories( 
+      (* [in] *) CONST rclsid : wtypes.CLSID;
+      (* [in] *) cCategories : windows.ULONG;
+      (* [size_is][in] *) rgcatid : PCATID ): HRESULT;
+  VIRTUAL PROCEDURE UnRegisterClassReqCategories( 
+      (* [in] *) CONST rclsid : wtypes.CLSID;
+      (* [in] *) cCategories : windows.ULONG;
+      (* [size_is][in] *) rgcatid : PCATID ): HRESULT;
+END ICatRegister;        
+
+(****************************************
+ * Generated header for interface: ICatInformation
+ * at Thu Sep 11 10:58:53 1997
+ * using MIDL 3.03.0110
+ ****************************************)
+(* [unique][uuid][object] *) 
+
+TYPE
+  PCATINFORMATION = POINTER TO ICatInformation;
+  TPICatInformation = PCATINFORMATION;
+
+VAR
+  IID_ICatInformation : wtypes.IID;
+
+// MIDL_INTERFACE("0002E013-0000-0000-C000-000000000046")
+CLASS ICatInformation( unknwn.IUnknown );
+  VIRTUAL PROCEDURE EnumCategories( 
+      (* [in] *) lcid : winnls.LCID;
+      (* [out] *) ppenumCategoryInfo : TPPIEnumCATEGORYINFO ): HRESULT;
+  VIRTUAL PROCEDURE GetCategoryDesc( 
+      (* [in] *) CONST rcatid : CATID;
+      (* [in] *) lcid : winnls.LCID;
+      (* [out] *) pszDesc : windows.PWSTR ): HRESULT;
+  VIRTUAL PROCEDURE EnumClassesOfCategories( 
+      (* [in] *) cImplemented : windows.ULONG;
+      (* [size_is][in] *) rgcatidImpl : PCATID;
+      (* [in] *) cRequired : windows.ULONG;
+      (* [size_is][in] *) rgcatidReq : PCATID;
+      (* [out] *) ppenumClsid : TPPIEnumGUID ): HRESULT;
+  VIRTUAL PROCEDURE IsClassOfCategories( 
+      (* [in] *) CONST rclsid : wtypes.CLSID;
+      (* [in] *) cImplemented : windows.ULONG;
+      (* [size_is][in] *) rgcatidImpl : PCATID;
+      (* [in] *) cRequired : windows.ULONG;
+      (* [size_is][in] *) rgcatidReq : PCATID ): HRESULT;
+  VIRTUAL PROCEDURE EnumImplCategoriesOfClass( 
+      (* [in] *) CONST rclsid : wtypes.CLSID;
+      (* [out] *) ppenumCatid : TPPIEnumGUID ): HRESULT;
+  VIRTUAL PROCEDURE EnumReqCategoriesOfClass( 
+      (* [in] *) CONST rclsid : wtypes.CLSID;
+      (* [out] *) ppenumCatid : TPPIEnumGUID ): HRESULT;
+END ICatInformation;    
+
+CONST
+  IID_IEnumCLSID ::= IID_IEnumGUID;
+  IEnumCLSID     ::= IEnumGUID;
+  PENUMCLSID     ::= PENUMGUID;
+  CATID_NULL     ::= wtypes.GUID_NULL;
+  IsEqualCATID   ::= wtypes.IsEqualGUID;
+  IID_IEnumCATID ::= IID_IEnumGUID;
+  IEnumCATID     ::= IEnumGUID;
+
+END comcat.

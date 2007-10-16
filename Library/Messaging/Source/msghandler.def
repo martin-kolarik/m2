@@ -1,0 +1,37 @@
+DEFINITION MODULE msghandler;
+
+(*===========================================================================*)
+// Win32
+
+IMPORT
+  msgOSAL,
+  msgWin32;
+
+CONST
+  TDelivery ::= msgOSAL.TDelivery;
+  delUnknown ::= msgOSAL.delUnknown;
+  delDefault ::= msgOSAL.delDefault;
+  delSynchronous ::= msgOSAL.delSynchronous;
+  delSynchronousInThread ::= msgOSAL.delSynchronousInThread;
+  delAsynchronous ::= msgOSAL.delAsynchronous;
+
+CONST
+  IMessage ::= msgOSAL.IMessage;
+  IMessageRecipient ::= msgOSAL.IMessageRecipient;
+  TPIMessage ::= msgOSAL.TPMessage;
+  TPMessageRecipient ::= msgOSAL.TPMessageRecipient;
+CONST
+  MsgBase ::= msgWin32.Win32MsgBase;
+  Message ::= msgWin32.Win32Message;
+  MessageHandler ::= msgWin32.Win32MessageHandler;
+TYPE
+  TPMessage = POINTER TO Message;
+  TPMessageHandler = POINTER TO MessageHandler;
+
+CONST
+  CurrentThread ::= msgWin32.CurrentThread;
+  HandleToHandler ::= msgWin32.HandleToHandler;
+
+(*===========================================================================*)
+
+END msghandler.

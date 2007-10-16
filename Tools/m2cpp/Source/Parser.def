@@ -1,0 +1,50 @@
+DEFINITION MODULE Parser;
+(*# call( o_a_copy => off ) *)
+
+IMPORT
+  stacks,
+  StringsO;
+
+IMPORT
+  Scanner;
+
+TYPE
+  TPragma = (
+    prgUnknown,
+    prgLine, prgBlock, prgCompatible,
+    prgRegion, prgEndRegion,
+    prgSave, prgRestore,
+    prgModule, prgName, prgCall, prgOption, prgWarn
+  );
+
+TYPE
+  TPParser = POINTER TO IParser;
+
+INTERFACE IParser;
+  VIRTUAL PROCEDURE Parse( Module : ADDRESS; // DOM.TPModule
+                           Scanner : Scanner.TPScanner ) : CARDINAL;
+  VIRTUAL PROCEDURE SemErr( N : CARDINAL );
+  VIRTUAL PROCEDURE SemErrN( N, Inner : CARDINAL );
+  VIRTUAL PROCEDURE SemErrS( N : CARDINAL; S : ARRAY OF WCHAR );
+  VIRTUAL PROCEDURE SemErrNNS( N1, Inner1, N2 : CARDINAL; S2 : ARRAY OF WCHAR );
+  VIRTUAL PROCEDURE SemErrForcedSNS( N1 : CARDINAL; S1 : ARRAY OF WCHAR; N2 : CARDINAL; S2 : ARRAY OF WCHAR );
+  VIRTUAL PROCEDURE SemErrCS( N : CARDINAL; S : StringsO.CString );
+  VIRTUAL PROCEDURE SemErrForcedCS( N : CARDINAL; S : StringsO.CString );
+  VIRTUAL PROCEDURE Warning( N : CARDINAL );
+  VIRTUAL PROCEDURE WarningCS( N : CARDINAL; S : StringsO.CString );
+
+  VIRTUAL PROCEDURE IsSpecial( CH : WCHAR ) : BOOLEAN;
+  VIRTUAL PROCEDURE ReadSpecial( CH : WCHAR ) : BOOLEAN;
+  VIRTUAL PROCEDURE DoSpecial( Special : StringsO.CString );
+  VIRTUAL PROCEDURE ReadASM( Begin : CARDINAL; OUT ASMBlock : StringsO.CString ) : BOOLEAN;
+
+  VIRTUAL PROCEDURE ErrorCount() : CARDINAL;
+  VIRTUAL PROCEDURE ReportAllErrors();
+  VIRTUAL PROCEDURE ReportFirstError();
+END IParser;
+
+PROCEDURE CreateParser() : TPParser;
+
+INITIALLY __I();
+
+END Parser.

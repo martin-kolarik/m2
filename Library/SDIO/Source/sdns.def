@@ -1,0 +1,93 @@
+DEFINITION MODULE sdns;
+
+IMPORT
+	StringsO;
+	
+IMPORT
+	sdvalue;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TSDNameType = (
+      sdnName, // aka namespace/package, value of its type cannot exist
+      sdnClass, // values of its type can exists
+      sdnValue, // typed value
+      sdnIndexedValue // typed array value
+   );
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPSDNS = POINTER TO ASDNS;
+   TPSDNSItem = POINTER TO ASDNSItem;
+   TPSDNSIterator = POINTER TO CSDNSIterator;
+   THash = PTR;
+
+(*---------------------------------------------------------------------------*)
+
+ABSTRACT CLASS ASDNSItem;
+
+	PUBLIC ABSTRACT READONLY PROPERTY
+		Name : StringsO.TPString;
+		NameType : TSDNameType;
+		ValueType : sdvalue.TSDValueType;
+		Data : PTR; // for user data or references
+
+	PUBLIC ABSTRACT READONLY PROPERTY
+		Count : CARDINAL;
+	PUBLIC ABSTRACT READONLY INDEX( Index : CARDINAL ) : TPSDNSItem;
+
+	PUBLIC PROCEDURE Contains( CONST SingleName : StringsO.IString ) : BOOLEAN;
+	PUBLIC ABSTRACT PROCEDURE ContainsOA( CONST SingleName : ARRAY OF WCHAR ) : BOOLEAN;
+
+	PUBLIC PROCEDURE Get( CONST SingleName : StringsO.IString; OUT Item : TPSDNSItem ) : BOOLEAN;
+	PUBLIC ABSTRACT PROCEDURE GetOA( CONST SingleName : ARRAY OF WCHAR; OUT Item : TPSDNSItem ) : BOOLEAN;
+
+	PUBLIC ABSTRACT PROCEDURE AddChild( Child : TPSDNSItem );
+
+	PUBLIC PROCEDURE GetNewIterator() : TPSDNSIterator;
+
+END ASDNSItem;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CSDNSIterator;
+	PRIVATE VAR
+		Owner : TPSDNSItem;
+		Index : CARDINAL;
+	PUBLIC READONLY PROPERTY
+		Count : CARDINAL;
+	PUBLIC READONLY PROPERTY
+		Current : TPSDNSItem;
+	PUBLIC READONLY INDEX( Index : CARDINAL ) : TPSDNSItem;
+	
+	LOCAL PROCEDURE Init( Item : TPSDNSItem );
+
+	PUBLIC PROCEDURE Reset();
+	PUBLIC PROCEDURE MoveNext() : BOOLEAN;
+END CSDNSIterator;
+
+(*---------------------------------------------------------------------------*)
+
+ABSTRACT CLASS ASDNS;
+
+	PUBLIC ABSTRACT READONLY PROPERTY
+		Root : TPSDNSItem;
+	PUBLIC READONLY PROPERTY
+		Namespace : StringsO.TPString;
+
+	PUBLIC PROCEDURE Contains( CONST Name : StringsO.IString ) : BOOLEAN;
+
+	PUBLIC PROCEDURE Get( CONST Name : StringsO.IString; OUT Item : TPSDNSItem ) : BOOLEAN;
+	PUBLIC VIRTUAL PROCEDURE GetOA( CONST Name : ARRAY OF WCHAR; OUT Item : TPSDNSItem ) : BOOLEAN;
+
+	PUBLIC VIRTUAL PROCEDURE Map( CONST Name : ARRAY OF WCHAR; OUT Hash : THash ) : BOOLEAN;
+	PUBLIC VIRTUAL PROCEDURE GetHash( Hash : THash; OUT Item : TPSDNSItem ) : BOOLEAN;
+
+	PUBLIC ABSTRACT PROCEDURE CreateNewItem( CONST Name : ARRAY OF WCHAR; Type : sdvalue.TSDValueType; Data : PTR ) : sdns.TPSDNSItem;
+END ASDNS;
+
+(*---------------------------------------------------------------------------*)
+
+END sdns.

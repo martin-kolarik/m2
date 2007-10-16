@@ -1,0 +1,117 @@
+DEFINITION MODULE Scanner;
+
+IMPORT
+  windows;
+
+IMPORT
+  FIO;
+  
+IMPORT
+  StringsO;
+
+//============================================================
+
+CONST
+  tkEOF = 0;
+
+TYPE
+  TPToken = POINTER TO CToken;
+
+CLASS CToken;
+  Kind  : CARDINAL;
+
+  Pos   : CARDINAL;
+  Col   : CARDINAL;
+  Line  : CARDINAL;
+
+  Val   : StringsO.CString;
+
+  PROCEDURE CopyFrom( CONST From : CToken );
+END CToken;
+
+//============================================================
+
+CONST
+  EOF = WCHAR( -1 );
+  BOF1 = WCHAR( 0FFFEH );
+  BOF2 = WCHAR( 0FEFFH );
+
+CLASS CBuffer;
+  HFile    : FIO.File;
+  FileLen  : CARDINAL;
+  HMapping : windows.HANDLE;
+  PBuffer  : ADDRESS;
+  CharPos  : CARDINAL;
+  U        : BOOLEAN;
+
+  PROCEDURE Open( File : FIO.File ) : CARDINAL;
+  PROCEDURE Close();
+
+  PROCEDURE Read() : WCHAR;
+  PROCEDURE Peek() : WCHAR;
+  PROCEDURE GetString( From, To : CARDINAL; OUT S : StringsO.CString );
+
+  PROCEDURE Pos() : CARDINAL;
+  PROCEDURE SetPos( Pos : CARDINAL );
+END CBuffer;
+
+//============================================================
+
+CONST
+  EOL = WCHAR( 10 );
+  CR = WCHAR( 13 );
+  LF = WCHAR( 10 );
+
+TYPE    
+  TPragmaSkipping = (
+    psEOF,
+    psELSIF,
+    psELSE,
+    psENDIF
+  );
+
+TYPE
+  TStart = ARRAY WCHAR[WCHAR(0)..WCHAR(255)] OF INTEGER;
+
+TYPE
+  TPScanner = POINTER TO CScanner;
+
+CLASS CScanner;
+  CharSetSize : CARDINAL;
+  MaxT        : CARDINAL;
+  tkNothing   : CARDINAL;
+
+  Buffer      : CBuffer;
+  CH          : WCHAR; // current input character
+  T           : CToken; // current token
+  Start		  : TStart;
+
+  Pos         : CARDINAL; // column number of current character
+  Line        : CARDINAL; // line number of current character
+  LineStart   : CARDINAL; // start position of current line
+  CommentEols : CARDINAL; // EOLs that appeared in a comment;
+  Ignore      : SET OF WCHAR; // set of characters to be ignored by the scanner
+
+  Val         : StringsO.CString;
+  
+  PROCEDURE Init( FilePath : ARRAY OF WCHAR; OUT Timestamp : FIO.FileTime ) : CARDINAL;
+
+  PROCEDURE NextCh();
+  PROCEDURE AddCh();
+
+  PROCEDURE CheckLiteral();
+  PROCEDURE Scan() : TPToken;
+
+  PROCEDURE Comment0() : BOOLEAN;
+  PROCEDURE Comment1() : BOOLEAN;
+
+  VIRTUAL PROCEDURE IsSpecial( CH : WCHAR ) : BOOLEAN;
+  VIRTUAL PROCEDURE ReadSpecial( CH : WCHAR ) : BOOLEAN;
+  VIRTUAL PROCEDURE DoSpecial( CONST Special : StringsO.CString );
+
+  PROCEDURE ReadOutPragmaIf() : TPragmaSkipping;
+  PROCEDURE ReadOutCompatiblePragma() : BOOLEAN;
+  PROCEDURE ReadASM( begin, tokenEnd : CARDINAL; OUT la : CToken; OUT ASMBlock : StringsO.CString ) : BOOLEAN;
+END CScanner;
+
+END Scanner.

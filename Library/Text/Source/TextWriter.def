@@ -1,0 +1,57 @@
+DEFINITION MODULE TextWriter;
+
+(*===========================================================================*)
+
+IMPORT
+   Exceptions,
+	IOO,
+	Languages,
+	StringsO;
+
+(*---------------------------------------------------------------------------*)
+
+#save, option( dll_export => on )
+
+TYPE
+   TLineEndStyle = (
+      lesWindows,
+      lesUNIX,
+      lesMAC
+   );
+   
+TYPE
+   TPTextWriter = POINTER TO CTextWriter;
+
+CLASS CTextWriter;
+	INTERNAL VAR
+		_Stream : IOO.TPStream;
+		_Encoding : CARDINAL := Languages.cp_UTF8;
+		_LineEndStyle : TLineEndStyle := lesWindows;
+	PUBLIC PROPERTY
+		Encoding : CARDINAL;
+		Stream : IOO.TPStream;
+		LineEndStyle : TLineEndStyle;
+
+	PUBLIC PROCEDURE Write( CONST String : StringsO.IString; LineEnd : BOOLEAN );
+	PUBLIC PROCEDURE WriteOA( CONST String : ARRAY OF WCHAR; LineEnd : BOOLEAN );
+	PUBLIC PROCEDURE WriteM( CONST String : PWCHAR; Length : CARDINAL; LineEnd : BOOLEAN ); // Length is WCHAR count
+
+	PUBLIC PROCEDURE WriteINT32( I : INT32; Base : CARDINAL; LineEnd : BOOLEAN );
+	PUBLIC PROCEDURE WriteExc( CONST e : Exceptions.CException; LineEnd : BOOLEAN );
+
+	PUBLIC PROCEDURE LineEnd();
+	
+	// PUBLIC PROCEDURE WriteINT64( I : INT64; LineEnd : BOOLEAN );
+	// PUBLIC PROCEDURE WriteLONGREAL( I : LONGREAL; LineEnd : BOOLEAN );
+END CTextWriter;
+
+(*===========================================================================*)
+
+PROCEDURE stdout() : TPTextWriter;
+PROCEDURE errout() : TPTextWriter;
+
+(*===========================================================================*)
+
+#restore
+
+END TextWriter.

@@ -1,0 +1,45 @@
+DEFINITION MODULE Languages;
+
+#save, option( dll_export => on )
+
+(*================================================================================*)
+
+CONST
+   cp_ACP              = 0;
+   cp_THREAD_ACP       = 3; 
+   cp_UTF8             = 65001;
+   cp_UTF16            = 1200;
+   cp_UTF16_BIG_ENDIAN = 1201;
+   cp_Win1250          = 1250;
+   cp_ISO8859_2        = 28592;
+   
+PROCEDURE cp_Console() : CARDINAL;
+
+(*================================================================================*)
+
+TYPE
+  TLanguage = CARDINAL; // for Win32 = LCID
+  TRFC1766  = ARRAY [0..7] OF WCHAR;
+  
+PROCEDURE RFC1766ToLanguage( CONST RFC1766 : ARRAY OF WCHAR; OUT Language : TLanguage ) : BOOLEAN;
+PROCEDURE LanguageToRFC1766( Language : TLanguage; OUT RFC1766 : ARRAY OF WCHAR ) : BOOLEAN;
+
+PROCEDURE CodePageToLanguage( CodePage : CARDINAL; OUT Language : TLanguage ) : BOOLEAN;
+PROCEDURE LanguageToCodePage( Language : TLanguage; OUT CodePage : CARDINAL ) : BOOLEAN;
+
+PROCEDURE BytesPerCharacter( CodePage : CARDINAL; OUT FixedCount : BOOLEAN; OUT MinimalCount, MaximalCount : CARDINAL ); // for both MCBS and UNICODE
+PROCEDURE ToWStream( CONST Source : ARRAY OF BYTE; CodePage : CARDINAL; OUT Destination : ARRAY OF WCHAR; OUT Consumed, Produced : CARDINAL ) : BOOLEAN; // returns if something consumed
+PROCEDURE ToAStream( CONST Source : ARRAY OF WCHAR; CodePage : CARDINAL; OUT Destination : ARRAY OF BYTE; OUT Consumed, Produced : CARDINAL ) : BOOLEAN; // returns if something consumed
+
+(*================================================================================*)
+
+TYPE
+  TDefaultLanguage = ( dlThread, dlUser, dlSystem );
+
+PROCEDURE GetDefaultLanguage( Default : TDefaultLanguage ) : TLanguage;
+
+(*================================================================================*)
+
+#restore
+
+END Languages.

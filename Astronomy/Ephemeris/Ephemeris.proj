@@ -1,0 +1,24 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"
+         DefaultTargets = "Build" >
+
+    <!-- 1 -->
+    <PropertyGroup>
+        <FileDescription>Ephemeris of Sun system bodies</FileDescription>
+        <FileVersionMajor>0</FileVersionMajor>
+        <FileVersionMinor>9</FileVersionMinor>
+    </PropertyGroup>
+
+    <!-- 2 -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 -->
+    <ItemGroup>
+        <Components Include="modula2\modula2;api\clib;modula2\m2rtl"/>
+        <Modules Include="ef82_def;efmo_def;efpl_def;astro;astro_p"/>
+    </ItemGroup>
+
+    <!-- 4 -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>

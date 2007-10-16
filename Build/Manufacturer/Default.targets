@@ -1,0 +1,38 @@
+<?xml version ="1.0" encoding ="windows-1250"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+    <!-- main resource properties -->
+    <PropertyGroup>
+        <CopyrightYears Condition="$(CopyrightYears)==''">1900-2100</CopyrightYears>
+        <CompanyName Condition="$(CompanyName)==''">Company</CompanyName>
+        <LegalCopyright Condition="$(LegalCopyright)==''">Copyright © Company® $(CopyrightYears)</LegalCopyright>
+        <LegalTrademarks Condition="$(LegalTrademarks)==''"></LegalTrademarks>
+        <LegalNote></LegalNote>
+        <Contact>mail</Contact>
+        <Phone>phone</Phone>
+        <Support>support</Support>
+        <URL>homepage</URL>
+        <UpdateURL>updateurl</UpdateURL>
+    </PropertyGroup>
+
+    <!-- language identifiers -->
+    <PropertyGroup Condition="$(Language)=='Czech'">
+        <LangIdDec>1029</LangIdDec>
+        <LangIdHex>0405</LangIdHex>
+        <CodePageDec>1250</CodePageDec>
+        <CodePageHex>04e2</CodePageHex>
+        <LangName>LANG_CZECH</LangName>
+        <SublangName>SUBLANG_DEFAULT</SublangName>
+    </PropertyGroup>
+
+    <!-- language identifiers -->
+    <PropertyGroup Condition="$(Language)=='English'">
+        <LangIdDec>1033</LangIdDec>
+        <LangIdHex>0409</LangIdHex>
+        <CodePageDec>1252</CodePageDec>
+        <CodePageHex>04e4</CodePageHex>
+        <LangName>LANG_ENGLISH</LangName>
+        <SublangName>SUBLANG_ENGLISH_US</SublangName>
+    </PropertyGroup>
+
+</Project>

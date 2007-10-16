@@ -1,0 +1,28 @@
+DEFINITION MODULE crc;
+
+(*--------------------------------------------------------------------------------*)
+
+CONST
+   crc_ccitt_init = CARD16( 0FFFFH );
+
+PROCEDURE crc_ccitt( InCRC : CARD16; CONST In : ARRAY OF BYTE ) : CARD16;
+
+(*--------------------------------------------------------------------------------*)
+
+CONST
+   crc_mpeg2_init = CARD32( 0FFFFFFFFH );
+
+PROCEDURE crc_mpeg2( InCRC : CARD32; CONST In : ARRAY OF BYTE ) : CARD32;
+
+(*--------------------------------------------------------------------------------*)
+
+CONST
+   crc16  ::= crc_ccitt;
+   crc16i ::= crc_ccitt_init;
+
+   crc32  ::= crc_mpeg2;
+   crc32i ::= crc_mpeg2_init;
+
+(*--------------------------------------------------------------------------------*)
+
+END crc.

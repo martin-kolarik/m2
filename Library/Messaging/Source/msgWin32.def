@@ -1,0 +1,72 @@
+DEFINITION MODULE msgWin32;
+
+IMPORT
+  lists,
+  msgOSAL;
+  
+IMPORT
+  windows;
+  
+#save, option( dll_export => on )
+
+CONST
+  Win32MsgBase = windows.WM_USER + 64;
+  
+READONLY VAR
+  WndClass : windows.ATOM;
+  
+PROCEDURE CurrentThread() : CARDINAL;
+PROCEDURE HandleToHandler( CONST Handle : PTR; OUT Handler : msgOSAL.TPMessageHandler ) : BOOLEAN;
+
+CLASS Win32Message IMPLEMENTS msgOSAL.IMessage;
+  PRIVATE VAR
+    target : msgOSAL.TPMessageHandler; // [0]
+    message : CARDINAL; // [1]
+    wParam : CARDINAL; // [2]
+    lParam : CARDINAL; // [3]
+  PUBLIC VIRTUAL PROPERTY
+    Target : msgOSAL.TPMessageHandler;
+    Message : CARDINAL;
+  PUBLIC VIRTUAL READONLY PROPERTY
+    ParameterCount : CARDINAL; // including handler and Message
+  PUBLIC VIRTUAL
+    INDEX( ParameterIndex : CARDINAL ) : PTR;
+  PUBLIC VIRTUAL PROCEDURE
+    Clone() : POINTER TO msgOSAL.IMessage;
+  PUBLIC OPERATOR
+    :=( CONST MSG : Win32Message );
+END Win32Message;
+
+CLASS Win32MessageHandler IMPLEMENTS msgOSAL.IMessageHandler;
+  PRIVATE VAR
+    Timers : lists.CPtrList;
+  INTERNAL VAR
+    HWND : windows.HWND;
+  PUBLIC VIRTUAL READONLY PROPERTY
+    Handle : PTR;
+    OfThread : CARDINAL;
+
+  #save, option( leak_info => on )
+  PUBLIC PROCEDURE Init();
+  PUBLIC PROCEDURE Dispose();
+  #restore
+
+  PUBLIC VIRTUAL PROCEDURE Message( CONST MSG : msgOSAL.IMessage; Delivery : msgOSAL.TDelivery; Result : PPTR ) : BOOLEAN;
+  INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : msgOSAL.IMessage; OUT Result : PTR ) : BOOLEAN;
+
+  INTERNAL VIRTUAL PROCEDURE StartTimer( Timer : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
+  INTERNAL VIRTUAL PROCEDURE TimerRunning( Timer : PTR ) : BOOLEAN;
+  INTERNAL VIRTUAL PROCEDURE StopTimer( Timer : PTR );
+  INTERNAL VIRTUAL PROCEDURE OnTimer( Timer : PTR );
+
+  #save, option( leak_info => on )
+  PRIVATE VIRTUAL PROCEDURE CreateHWND();
+  PRIVATE VIRTUAL PROCEDURE DestroyHWND();
+  #restore
+
+  VIRTUAL FINALLY Win32MessageHandler();
+END Win32MessageHandler;
+
+#restore
+
+END msgWin32.

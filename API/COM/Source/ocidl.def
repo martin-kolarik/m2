@@ -1,0 +1,168 @@
+DEFINITION MODULE ocidl;
+
+(*# name(   decoration      => c ) *)
+
+(*# module( header          => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            convention      => stdcall ) *)
+
+(*# option( pack => 8 ) *)
+
+IMPORT
+  oaidl,
+  unknwn,
+  windows,
+  wtypes;
+  
+FROM guiddef IMPORT
+  IID;
+
+TYPE
+  TPIEnumConnections            = POINTER TO IEnumConnections;
+  TPIConnectionPoint            = POINTER TO IConnectionPoint;
+  TPIEnumConnectionPoints       = POINTER TO IEnumConnectionPoints;
+  TPIConnectionPointContainer   = POINTER TO IConnectionPointContainer;
+  TPIClassFactory2              = POINTER TO IClassFactory2;
+  TPIProvideClassInfo           = POINTER TO IProvideClassInfo;
+  TPIProvideClassInfo2          = POINTER TO IProvideClassInfo2;
+
+// TYPE
+//   TPIEnumConnections = POINTER TO IEnumConnections;
+
+TYPE
+  CONNECTDATA  = RECORD
+                   pUnk     : unknwn.TPIUnknown;
+                   dwCookie : windows.DWORD;
+                 END;
+  PCONNECTDATA = POINTER TO CONNECTDATA;
+
+VAR
+  IID_IEnumConnections : IID;
+
+COM INTERFACE IEnumConnections( unknwn.IUnknown );
+  VIRTUAL PROCEDURE Next( 
+            (*/* [in] */*)                      cConnections : windows.ULONG;
+            (*/* [length_is][size_is][out] */*) rgcd         : PCONNECTDATA;
+            (*/* [out] */*)                     pcFetched    : windows.PULONG
+                         ) : wtypes.HRESULT;
+  VIRTUAL PROCEDURE Skip( (*/* [in] */*) cConnections : windows.ULONG ) : wtypes.HRESULT;
+  VIRTUAL PROCEDURE Reset() : wtypes.HRESULT;
+  VIRTUAL PROCEDURE Clone( (*/* [out] */*) VAR ppEnum : TPIEnumConnections ) : wtypes.HRESULT;
+END IEnumConnections;        
+   
+TYPE
+//  TPIConnectionPoint = POINTER TO IConnectionPoint;
+  TPPIConnectionPoint = POINTER TO TPIConnectionPoint;
+  TPPIConnectionPointContainer = POINTER TO TPIConnectionPointContainer;
+  TPPIEnumConnections = POINTER TO TPIEnumConnections;
+
+VAR 
+  IID_IConnectionPoint : IID;
+
+COM INTERFACE IConnectionPoint( unknwn.IUnknown );
+  VIRTUAL PROCEDURE GetConnectionInterface( 
+            (*/* [out] */*) pIID : guiddef.PIID ) : wtypes.HRESULT;
+  VIRTUAL PROCEDURE GetConnectionPointContainer( 
+            (*/* [out] */*) ppCPC : TPPIConnectionPointContainer ) : wtypes.HRESULT;
+  VIRTUAL PROCEDURE Advise( 
+            (*/* [in] */*) pUnkSink : unknwn.TPIUnknown;
+            (*/* [out] */*) pdwCookie : windows.PDWORD ) : wtypes.HRESULT;
+  VIRTUAL PROCEDURE Unadvise( 
+            (*/* [in] */*) dwCookie : windows.DWORD ) : wtypes.HRESULT;
+  VIRTUAL PROCEDURE EnumConnections( 
+            (*/* [out] */*) ppEnum : TPPIEnumConnections ) : wtypes.HRESULT;
+END IConnectionPoint;        
+
+TYPE
+//  TPIEnumConnectionPoints = POINTER TO IEnumConnectionPoints;
+  TPPIEnumConnectionPoints = POINTER TO TPIEnumConnectionPoints;
+
+VAR 
+  IID_IEnumConnectionPoints : IID;
+
+COM INTERFACE IEnumConnectionPoints( unknwn.IUnknown );
+  VIRTUAL PROCEDURE (* [local] *) Next( 
+      (*/* [in] */*) cConnections : windows.ULONG;
+      (* [length_is][size_is][out] *) ppCP : TPPIConnectionPoint;
+      (*/* [out] */*) pcFetched : windows.PULONG ) : wtypes.HRESULT;
+  VIRTUAL PROCEDURE Skip( (*/* [in] */*) cConnections : windows.ULONG ) : wtypes.HRESULT;
+  VIRTUAL PROCEDURE Reset() : wtypes.HRESULT;
+  VIRTUAL PROCEDURE Clone( 
+      (*/* [out] */*) ppEnum : TPPIEnumConnectionPoints) : wtypes.HRESULT;
+END IEnumConnectionPoints;
+    
+// TYPE
+//   TPIConnectionPointContainer = POINTER TO IConnectionPointContainer;
+
+VAR 
+  IID_IConnectionPointContainer : IID;
+
+COM INTERFACE IConnectionPointContainer( unknwn.IUnknown );
+  VIRTUAL PROCEDURE EnumConnectionPoints( 
+            (*/* [out] */*) ppEnum : TPPIEnumConnectionPoints) : wtypes.HRESULT;
+  VIRTUAL PROCEDURE FindConnectionPoint( 
+            (*/* [in] */*) CONST riid : IID;
+            (*/* [out] */*) ppCP : TPPIConnectionPoint ) : wtypes.HRESULT;
+END IConnectionPointContainer;    
+
+// TYPE 
+//  TPIClassFactory2 = POINTER TO IClassFactory2;
+
+TYPE
+  LICINFO  = RECORD
+               cbLicInfo        : windows.LONG;
+               fRuntimeKeyAvail : windows.BOOL;
+               fLicVerified     : windows.BOOL;
+             END;
+  PLICINFO = POINTER TO LICINFO;
+
+VAR 
+  IID_IClassFactory2 : IID;
+
+COM INTERFACE IClassFactory2( unknwn.IClassFactory );
+  VIRTUAL PROCEDURE GetLicInfo( 
+            (*/* [out] */*) pLicInfo : PLICINFO ) : wtypes.HRESULT;
+  VIRTUAL PROCEDURE RequestLicKey( 
+            (*/* [in] */*) dwReserved : windows.DWORD;
+            (*/* [out] */*) pBstrKey : wtypes.PBSTR) : wtypes.HRESULT;
+  VIRTUAL PROCEDURE (* [local] *) CreateInstanceLic( 
+            (*/* [in] */*) pUnkOuter : unknwn.TPIUnknown;
+            (*/* [in] */*) pUnkReserved : unknwn.TPIUnknown;
+            (*/* [in] */*) CONST riid : IID;
+            (*/* [in] */*) bstrKey : wtypes.BSTR;
+            (* [iid_is][out] *) VAR ppvObj : ADDRESS ) : wtypes.HRESULT;
+END IClassFactory2;
+    
+// TYPE 
+//  TPIProvideClassInfo = POINTER TO IProvideClassInfo;
+
+VAR 
+  IID_IProvideClassInfo : IID;
+    
+COM INTERFACE IProvideClassInfo( unknwn.IUnknown );
+  VIRTUAL PROCEDURE GetClassInfo( 
+            (*/* [out] */*) VAR ppTI : oaidl.TPITypeInfo ) : wtypes.HRESULT;
+END IProvideClassInfo;    
+
+// TYPE 
+//  TPIProvideClassInfo2 = POINTER TO IProvideClassInfo2;
+
+CONST
+  GUIDKIND_DEFAULT_SOURCE_DISP_IID = 1;
+TYPE
+  GUIDKIND = CARDINAL;
+
+VAR 
+  IID_IProvideClassInfo2 : IID;
+
+COM INTERFACE IProvideClassInfo2( IProvideClassInfo );
+  VIRTUAL PROCEDURE GetGUID( 
+            (*/* [in] */*) dwGuidKind : windows.DWORD;
+            (*/* [out] */*) pGUID : guiddef.PGUID ) : wtypes.HRESULT;
+END IProvideClassInfo2;
+
+END ocidl.

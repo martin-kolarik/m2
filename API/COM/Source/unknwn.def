@@ -1,0 +1,82 @@
+DEFINITION MODULE unknwn;
+
+(*# name(   decoration      => c ) *)
+
+(*# module( header          => off ) *)
+
+(*# call(   o_a_size        => off,
+            c_arrays        => on,
+            result_optional => on,
+            convention      => stdcall ) *)
+
+(*# option( pack => 8 ) *)
+
+FROM guiddef IMPORT
+  IID;
+
+IMPORT
+  windows;
+
+TYPE
+  TPIUnknown = POINTER TO IUnknown;
+  TPAsyncIUnknown = POINTER TO AsyncIUnknown;
+  TPIClassFactory = POINTER TO IClassFactory;
+
+//===== IUnknown
+VAR
+  IID_IUnknown : IID;
+
+COM INTERFACE IUnknown;
+
+  VIRTUAL PROCEDURE QueryInterface(
+    CONST riid : guiddef.IID;
+    ppvObject : PADDRESS
+  ) : wtypes.HRESULT;
+
+  VIRTUAL PROCEDURE AddRef(): windows.ULONG;
+
+  VIRTUAL PROCEDURE Release(): windows.ULONG;
+
+END IUnknown;
+
+//===== AsyncIUnknown
+VAR
+  IID_AsyncIUnknown : IID;
+
+COM INTERFACE AsyncIUnknown( IUnknown );
+
+  COM VIRTUAL PROCEDURE Begin_QueryInterface(
+    CONST riid : IID
+  );
+  
+  COM VIRTUAL PROCEDURE Finish_QueryInterface() : ADDRESS;
+  
+  COM VIRTUAL PROCEDURE Begin_AddRef();
+  
+  VIRTUAL PROCEDURE Finish_AddRef() : windows.ULONG;
+  
+  COM VIRTUAL PROCEDURE Begin_Release();
+  
+  VIRTUAL PROCEDURE Finish_Release() : windows.ULONG;
+    
+END AsyncIUnknown;
+
+//===== IID_IClassFactory;
+VAR
+  IID_IClassFactory : IID;
+
+COM INTERFACE IClassFactory( IUnknown );
+
+  VIRTUAL PROCEDURE CreateInstance(
+    pUnkOuter : TPIUnknown;
+    CONST riid : IID;
+    ppvObject : PADDRESS
+  ) : wtypes.HRESULT;
+
+  COM VIRTUAL PROCEDURE LockServer( 
+    fLock : windows.BOOL
+  );
+
+END IClassFactory;    
+
+END unknwn.

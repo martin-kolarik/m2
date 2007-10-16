@@ -1,0 +1,32 @@
+DEFINITION MODULE Msi;
+
+(******************************************************************************
+*                                                                             *
+* msi.h - - Interface for external access to Installer Service                *
+*                                                                             *
+* Version 4.0                                                                 *
+*                                                                             *
+* NOTES:  All buffers sizes are TCHAR count, null included only on input      *
+*         Return argument pointers may be null if not interested in value     *
+*                                                                             *
+* Copyright (c) Microsoft Corporation. All rights reserved.                   *
+*                                                                             *
+*******************************************************************************)
+
+(*# name(   decoration      => c ) *)
+
+(*# module( header          => off ) *)
+
+(*# call(   o_a_size        => off,
+            c_arrays        => on,
+            result_optional => on,
+            convention      => stdcall ) *)
+
+// --------------------------------------------------------------------------
+// Installer generic handle definitions
+// --------------------------------------------------------------------------
+
+TYPE
+   MSIHANDLE = CARDINAL; // abstract generic handle, 0 == no handle
+
+END Msi.

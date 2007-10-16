@@ -1,0 +1,114 @@
+DEFINITION MODULE DOM;
+
+(*===========================================================================*)
+
+IMPORT
+	StringsO,
+	xmlDOM;
+	
+(*---------------------------------------------------------------------------*)
+
+TYPE
+	XMLNodeType = (
+		Attribute,
+		CDATA,
+		Comment,
+		Document,
+		DocumentFragment,
+		DocumentType,
+		Element,
+		Entity,
+		EntityReference,
+		Notation,
+		ProcessingInstruction,
+		SignificantWhitespace,
+		Text,
+		XmlDeclaration
+	);
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+	TPXMLNode = POINTER TO CXMLNode;
+	TPXMLNodeList = POINTER TO CXMLNodeList;
+
+(*---------------------------------------------------------------------------*)
+
+ABSTRACT CLASS CXMLNode; // ABSTRACT denies instantiating
+	// technical code
+	INTERNAL VAR // settable from this module only
+		_of : xmlDOM.TPIXMLDOMNode; // common
+	LOCAL INLINE PROPERTY
+		of : xmlDOM.TPIXMLDOMNode;
+	VIRTUAL FINALLY CXMLNode(); // allows IS usage too
+
+	// XML code
+	PUBLIC PROPERTY
+		InnerText : StringsO.CString;
+	PUBLIC READONLY PROPERTY
+		NodeType : XMLNodeType;
+		ChildNodes : TPXMLNodeList;
+END CXMLNode;
+
+(*---------------------------------------------------------------------------*)
+
+ABSTRACT CLASS CXMLNodeList;
+	// technical code
+	LOCAL VAR // settable from this module only
+		of : xmlDOM.TPIXMLDOMNodeList;
+	VIRTUAL FINALLY CXMLNodeList(); // allows IS usage too
+
+	// XML code
+	PUBLIC READONLY
+		INDEX( Index : INTEGER ) : TPXMLNode;
+	PUBLIC READONLY PROPERTY
+		Count : CARDINAL;
+
+	PUBLIC PROCEDURE Reset();
+	PUBLIC PROCEDURE MoveNext() : TPXMLNode;
+END CXMLNodeList;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+	TPXMLElement = POINTER TO CXMLElement;
+
+ABSTRACT CLASS CXMLElement( CXMLNode );
+	// technical code
+	LOCAL INLINE PROPERTY
+		of : xmlDOM.TPIXMLDOMElement;
+
+	// XML code
+	PUBLIC READONLY PROPERTY
+		LocalName : StringsO.CString;
+		Name : StringsO.CString;
+
+	PUBLIC PROCEDURE GetAttribute( AttributeName : ARRAY OF WCHAR; OUT AttributeValue : StringsO.CString ) : BOOLEAN; // returns if the attribute is not present
+	PUBLIC PROCEDURE GetElementsByTagName( TagName : ARRAY OF WCHAR ) : TPXMLNodeList;
+END CXMLElement;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+	TPXMLDocument = POINTER TO CXMLDocument;
+
+ABSTRACT CLASS CXMLDocument( CXMLNode );
+	LOCAL INLINE PROPERTY
+		of : xmlDOM.TPIXMLDOMDocument;
+
+	// DOM API
+	PUBLIC PROCEDURE Load( CONST Path : ARRAY OF WCHAR ) : BOOLEAN;
+	// PUBLIC PROCEDURE LoadXML( CONST XML : ARRAY OF WCHAR );
+
+	PUBLIC PROCEDURE SelectNodes( XPath : ARRAY OF WCHAR ) : TPXMLNodeList;
+	PUBLIC PROCEDURE SelectSingleNode( XPath : ARRAY OF WCHAR ) : TPXMLNode;
+	PUBLIC PROCEDURE GetElementsByTagName( TagName : ARRAY OF WCHAR ) : TPXMLNodeList;
+END CXMLDocument;
+
+(*===========================================================================*)
+
+PROCEDURE newXMLDocument() : TPXMLDocument;
+
+(*===========================================================================*)
+
+END DOM.

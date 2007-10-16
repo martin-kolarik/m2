@@ -1,0 +1,54 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+    <!-- compiler -->
+    <PropertyGroup>
+        <LeakDetector>Debug\LeakDetector</LeakDetector>
+        <LicensingComponent>Licensing\Core</LicensingComponent>
+    </PropertyGroup>
+
+    <!-- defaults, which should be set in $(MSBuildProjectFile) -->
+    <PropertyGroup>
+        <Manufacturer Condition="$(Manufacturer)==''">SmartControl</Manufacturer>
+        <ProductFlag Condition="$(ProductFlag)==''">off</ProductFlag>
+        <ComponentStandaloneFlag Condition="$(ComponentStandaloneFlag)==''">off</ComponentStandaloneFlag>
+    </PropertyGroup>
+
+    <!-- (constructed properties, DO NOT MODIFY) -->
+    <PropertyGroup Condition="$(ProductFlag)=='on'">
+        <ProductId Condition="$(ProductId)==''">$(MSBuildProjectName)</ProductId>
+        <ProductDescription Condition="$(ProductDescription)==''">$(FileDescription)</ProductDescription>
+        <ComponentStandaloneFlag>on</ComponentStandaloneFlag>
+    </PropertyGroup>
+    <PropertyGroup>
+        <ComponentDefinitionsPath>$(MSBuildProjectDirectory)\$(MSBuildProjectName).definition.proj</ComponentDefinitionsPath>
+    </PropertyGroup>
+
+    <!-- configuration depended on component definition-->
+    <Import Condition="Exists('$(ComponentDefinitionsPath)')" Project="$(ComponentDefinitionsPath)"/>
+
+    <!-- default compilation control, CAN BE MODIFIED here as GLOBAL, or in product $(ComponentDefinitions) file -->
+    <PropertyGroup>
+        <PlatformName Condition="$(PlatformName)==''">Win32</PlatformName>
+        <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName><!-- Release Debug -->
+        <LanguageStyle Condition="$(LanguageStyle)==''">UNICODE</LanguageStyle><!-- ANSI UNICODE -->
+        <Language Condition="$(Language)==''">Czech</Language><!-- English Czech German Japanese -->
+        <CLib Condition="$(CLib)==''">Dynamic</CLib><!-- Static Dynamic --><!-- Static = LIBC, Dynamic = MSVCRT -->
+        <Result Condition="$(Result)==''">Static</Result><!-- Static (LIB) Dynamic (DLL) Program (EXE) -->
+        <LeakChecking Condition="$(LeakChecking)==''">off</LeakChecking>
+        <CPPExceptions Condition="$(CPPExceptions)==''">on</CPPExceptions>
+    </PropertyGroup>
+
+    <!-- (constructed properties, DO NOT MODIFY) -->
+    <PropertyGroup Condition ="$(ConfigurationName)=='Release'">
+        <Licensing Condition="$(Licensing)==''">off</Licensing>
+        <Debug Condition="$(Debug)==''">off</Debug>
+        <LeakChecking Condition="$(LeakChecking)==''">off</LeakChecking>
+    </PropertyGroup>
+
+    <PropertyGroup Condition ="$(ConfigurationName)!='Release'">
+        <Licensing Condition="$(Licensing)==''">off</Licensing>
+        <Debug Condition="$(Debug)==''">on</Debug>
+        <LeakChecking Condition="$(LeakChecking)==''">off</LeakChecking>
+    </PropertyGroup>
+
+</Project>

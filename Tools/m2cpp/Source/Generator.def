@@ -1,0 +1,132 @@
+DEFINITION MODULE Generator;
+
+(*# call( o_a_copy => off ) *)
+
+IMPORT
+  FIO,
+  windows;
+  
+IMPORT
+  StringsO;
+
+TYPE
+  TGenerate = (
+    genUnknown,
+    genGraph,
+    genM2,
+    genCPP,
+    genCSharp
+  );
+
+  TGenerateOptionsItem = (
+    goManagedCPP
+  );
+  TGenerateOptions = SET OF TGenerateOptionsItem;
+
+//============================================================
+
+CONST
+  DataSize = 62*1024;
+
+TYPE
+  TData = RECORD
+            __X : ARRAY [0..DataSize-1] OF WCHAR;
+            Pos : CARDINAL;
+          END;
+
+CLASS CBuffer;
+  HFile       : FIO.File;
+  Data        : ARRAY [0..1] OF TData;
+  CurrentData : CARDINAL;
+  Overlapped  : windows.OVERLAPPED;
+  WrapStart   : CARDINAL;
+
+  Unicode     : BOOLEAN;
+  AData       : ARRAY [0..DataSize-1] OF CHAR;
+
+  PROCEDURE Create( Path : ARRAY OF WCHAR; UFlag : BOOLEAN ) : BOOLEAN;
+  PROCEDURE Close();
+
+  PROCEDURE ResetWrap();
+  PROCEDURE CheckWrap() : BOOLEAN;
+  PROCEDURE WriteB( A : ADDRESS; CharLen : CARDINAL );
+  PROCEDURE WriteS( S : ARRAY OF WCHAR );
+  PROCEDURE WriteCS( CONST S : StringsO.CString );
+
+  PROCEDURE Sync();
+END CBuffer;
+
+//============================================================
+
+TYPE
+  TPGenerator = POINTER TO CGenerator;
+
+CLASS CGenerator;
+  Buffer          : CBuffer;
+  GenerateMode    : TGenerate;
+  GenerateOptions : TGenerateOptions;
+  GlobalPacking   : CARDINAL;
+
+  IndentDepth     : CARDINAL;
+  IndentCount     : CARDINAL;
+  IndentData      : ARRAY [0..1023] OF WCHAR;
+
+  PUBLIC PROCEDURE Init( IndentChar : WCHAR; IndentUnitLen : CARDINAL );
+  PUBLIC PROCEDURE Mode() : TGenerate;
+
+  PUBLIC PROCEDURE Enter();
+  PUBLIC PROCEDURE Leave();
+
+  PUBLIC PROCEDURE Indent();
+
+  PUBLIC PROCEDURE OutSP();
+  PUBLIC PROCEDURE OutSC();
+
+  PUBLIC PROCEDURE OutLP();
+  PUBLIC PROCEDURE OutLPSP();
+  PUBLIC PROCEDURE OutLPRPSCEOL();
+  PUBLIC PROCEDURE OutRP();
+  PUBLIC PROCEDURE OutSPRP();
+  PUBLIC PROCEDURE OutSPRPSC();
+
+  PUBLIC PROCEDURE OutLB();
+  PUBLIC PROCEDURE OutRB();
+
+  PUBLIC PROCEDURE OutAST();
+  PUBLIC PROCEDURE OutCmSP();
+  PUBLIC PROCEDURE OutCoSP();
+
+  PUBLIC PROCEDURE OutN( N : CARDINAL );
+  PUBLIC PROCEDURE OutNH( N : CARDINAL );
+  PUBLIC PROCEDURE OutNL( N : CARD64 );
+  PUBLIC PROCEDURE OutNLH( N : CARD64 );
+  PUBLIC PROCEDURE OutNI( N : INTEGER );
+  PUBLIC PROCEDURE OutNLI( N : INT64 );
+  PUBLIC PROCEDURE OutS( S : ARRAY OF WCHAR );
+  PUBLIC PROCEDURE OutCS( CONST S : StringsO.CString );
+
+  PUBLIC PROCEDURE OutANSIEscapeCS( S : StringsO.CString; ByChars : BOOLEAN ); // CONST
+  PUBLIC PROCEDURE OutUNICODEEscapeCS( S : StringsO.CString; ByChars : BOOLEAN );
+
+  PUBLIC PROCEDURE LineS( S : ARRAY OF WCHAR );
+  PUBLIC PROCEDURE LineSCS( S : ARRAY OF WCHAR; CONST CS : StringsO.CString );
+  PUBLIC PROCEDURE LineLB();
+  PUBLIC PROCEDURE LineRB();
+  PUBLIC PROCEDURE LineRBS( S : ARRAY OF WCHAR ); // for commenting
+  PUBLIC PROCEDURE LineRBSC();
+  PUBLIC PROCEDURE LineRBSCCS( CONST S : StringsO.CString ); // for commenting name
+
+  PUBLIC PROCEDURE EOL();
+
+  PUBLIC PROCEDURE goManaged() : BOOLEAN;
+  PUBLIC PROCEDURE SetPacking( Packing : CARDINAL );
+  PUBLIC PROCEDURE ResetPacking( Packing : CARDINAL );
+
+  PUBLIC PROCEDURE Generate( OutputPath : ARRAY OF WCHAR; GM : TGenerate; GO : TGenerateOptions; M : ADDRESS );
+END CGenerator;
+
+PROCEDURE Generate( OutputPath : ARRAY OF WCHAR; GM : TGenerate; GO : TGenerateOptions; M : ADDRESS );
+
+INITIALLY __I();
+
+END Generator.

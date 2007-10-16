@@ -1,0 +1,131 @@
+DEFINITION MODULE nddesec;
+
+(*/* ===========================================================
+
+                    Win32 API for Modula-2
+
+       32-bit version for M2CPP Modula-2 to C++ compiler
+
+       (c) 1998 by DAD, Moravian Instruments Inc.
+
+=============================================================*/*)
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+
+(*/* ORIGINAL HEADER: nddesec.h */*)
+
+FROM windows IMPORT
+ READ_CONTROL, 
+ WRITE_DAC,
+ WRITE_OWNER,
+ DELETE;
+
+// -------------------------------------------------------------
+
+CONST
+  NDDE_SHAREDB_ADD        = 00000001H;
+  NDDE_SHAREDB_DELETE     = 00000002H;
+  NDDE_SHAREDB_LIST       = 00000004H;
+
+  NDDE_SHAREDB_ADMIN      = NDDE_SHAREDB_ADD OR
+                            NDDE_SHAREDB_DELETE OR
+                            NDDE_SHAREDB_LIST OR
+                            READ_CONTROL OR
+                            WRITE_DAC OR
+                            WRITE_OWNER;
+
+  NDDE_SHAREDB_OPER       = NDDE_SHAREDB_ADD OR
+                            NDDE_SHAREDB_DELETE OR
+                            NDDE_SHAREDB_LIST;
+
+  NDDE_SHAREDB_POWER      = NDDE_SHAREDB_ADD OR
+                            NDDE_SHAREDB_DELETE OR
+                            NDDE_SHAREDB_LIST;
+
+  NDDE_SHAREDB_USER       = NDDE_SHAREDB_ADD OR
+                            NDDE_SHAREDB_DELETE OR
+                            NDDE_SHAREDB_LIST;
+
+  NDDE_SHAREDB_EVERYONE   = NDDE_SHAREDB_LIST;
+
+  NDDE_SHARE_READ             = 00000001H;
+  NDDE_SHARE_WRITE            = 00000002H;
+  NDDE_SHARE_INITIATE_STATIC  = 00000004H;
+  NDDE_SHARE_INITIATE_LINK    = 00000008H;
+  NDDE_SHARE_REQUEST          = 00000010H;
+  NDDE_SHARE_ADVISE           = 00000020H;
+  NDDE_SHARE_POKE             = 00000040H;
+  NDDE_SHARE_EXECUTE          = 00000080H;
+  NDDE_SHARE_ADD_ITEMS        = 00000100H;
+  NDDE_SHARE_LIST_ITEMS       = 00000200H;
+
+  NDDE_SHARE_GENERIC_READ     = NDDE_SHARE_READ OR
+                                NDDE_SHARE_INITIATE_STATIC OR
+                                NDDE_SHARE_REQUEST OR
+                                NDDE_SHARE_ADVISE OR
+                                NDDE_SHARE_LIST_ITEMS;
+
+  NDDE_SHARE_GENERIC_WRITE    = NDDE_SHARE_INITIATE_STATIC OR
+                                NDDE_SHARE_INITIATE_LINK OR
+                                NDDE_SHARE_POKE OR
+                                DELETE;
+
+  NDDE_SHARE_GENERIC_EXECUTE  = NDDE_SHARE_INITIATE_STATIC OR
+                                NDDE_SHARE_INITIATE_LINK OR
+                                NDDE_SHARE_EXECUTE;
+
+  NDDE_SHARE_GENERIC_ALL      = NDDE_SHARE_READ OR
+                                NDDE_SHARE_WRITE OR
+                                NDDE_SHARE_INITIATE_STATIC OR
+                                NDDE_SHARE_INITIATE_LINK OR
+                                NDDE_SHARE_REQUEST OR
+                                NDDE_SHARE_ADVISE OR
+                                NDDE_SHARE_POKE OR
+                                NDDE_SHARE_EXECUTE OR
+                                NDDE_SHARE_ADD_ITEMS OR
+                                NDDE_SHARE_LIST_ITEMS OR
+                                DELETE OR
+                                READ_CONTROL OR
+                                WRITE_DAC OR
+                                WRITE_OWNER;
+
+
+  NDDE_ITEM_REQUEST           = 00000001H;
+  NDDE_ITEM_ADVISE            = 00000002H;
+  NDDE_ITEM_POKE              = 00000004H;
+
+  NDDE_ITEM_GENERIC_READ      = NDDE_ITEM_REQUEST OR NDDE_ITEM_ADVISE;
+  NDDE_ITEM_GENERIC_WRITE     = NDDE_ITEM_POKE;
+  NDDE_ITEM_GENERIC_EXECUTE   = 0;
+  NDDE_ITEM_GENERIC_ALL       = NDDE_ITEM_REQUEST OR
+                                NDDE_ITEM_ADVISE OR
+                                NDDE_ITEM_POKE OR
+                                DELETE OR
+                                READ_CONTROL OR
+                                WRITE_DAC OR
+                                WRITE_OWNER;
+
+  NDDE_GUI_NONE               = 0;
+
+  NDDE_GUI_READ               = NDDE_SHARE_GENERIC_READ;
+
+  NDDE_GUI_READ_LINK          = NDDE_SHARE_GENERIC_READ OR
+                                NDDE_SHARE_INITIATE_LINK;
+
+  NDDE_GUI_CHANGE             = NDDE_SHARE_GENERIC_READ OR
+                                NDDE_SHARE_GENERIC_WRITE OR
+                                NDDE_SHARE_GENERIC_EXECUTE;
+
+  NDDE_GUI_FULL_CONTROL       = NDDE_SHARE_GENERIC_ALL;
+
+END nddesec.

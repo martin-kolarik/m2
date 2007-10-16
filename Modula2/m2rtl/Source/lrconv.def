@@ -1,0 +1,17 @@
+DEFINITION MODULE lrconv;
+
+(*================================================================================*)
+
+// !!!!!
+// MODULE MUST NOT BE USED DIRECTLY,
+// for conversions use Strings/StringsO.
+
+(*================================================================================*)
+
+PROCEDURE LONGREALToStrW( r : LONGREAL; ValidCiphers, FractionPlaces : CARDINAL; ExpFlag : BOOLEAN; PointChar : WCHAR; OUT S : ARRAY OF WCHAR ) : BOOLEAN;
+
+PROCEDURE StrToLONGREALW( CONST String : ARRAY OF WCHAR; OUT R : LONGREAL ) : BOOLEAN;
+
+(*================================================================================*)
+
+END lrconv.

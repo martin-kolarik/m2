@@ -1,0 +1,1357 @@
+DEFINITION MODULE oaidl;
+
+(*# name(   decoration      => c ) *)
+
+(*# module( header          => off ) *)
+
+(*# call(   o_a_size        => off,
+            c_arrays        => on,
+            result_optional => on,
+            convention      => stdcall ) *)
+
+IMPORT
+  windows;
+
+FROM guiddef IMPORT
+  GUID, IID, PGUID;
+
+IMPORT
+  wtypes,
+  unknwn;
+
+CONST
+  HRESULT ::= wtypes.HRESULT;
+
+TYPE
+  TPICreateTypeInfo = POINTER TO ICreateTypeInfo;
+  TPICreateTypeInfo2 = POINTER TO ICreateTypeInfo2;
+  TPICreateTypeLib = POINTER TO ICreateTypeLib;
+  TPICreateTypeLib2 = POINTER TO ICreateTypeLib2;
+  TPIDispatch = POINTER TO IDispatch;
+  TPIEnumVARIANT = POINTER TO IEnumVARIANT;
+  TPITypeComp = POINTER TO ITypeComp;
+  TPITypeInfo = POINTER TO ITypeInfo;
+  TPITypeInfo2 = POINTER TO ITypeInfo2;
+  TPITypeLib = POINTER TO ITypeLib;
+  TPITypeLib2 = POINTER TO ITypeLib2;
+  TPITypeChangeEvents = POINTER TO ITypeChangeEvents;
+  TPIErrorInfo = POINTER TO IErrorInfo;
+  TPICreateErrorInfo = POINTER TO ICreateErrorInfo;
+  TPISupportErrorInfo = POINTER TO ISupportErrorInfo;
+
+(****************************************
+ * Generated header for interface: __MIDL__intf_0000
+ * at Sat Jul 13 21:56:52 1996
+ * using MIDL 3.00.39
+ ****************************************)
+(* [local] *) 
+
+(****************************************
+ * Generated header for interface: IOleAutomationTypes
+ * at Sat Jul 13 21:56:52 1996
+ * using MIDL 3.00.39
+ ****************************************)
+(* [auto_handle][unique][version] *) 
+
+
+TYPE
+  CURRENCY = wtypes.CY;
+
+  SAFEARRAYBOUND = RECORD
+    cElements : windows.ULONG;
+    lLbound : windows.LONG;
+  END;
+  PSAFEARRAYBOUND = POINTER TO SAFEARRAYBOUND;
+
+(* the following is what MIDL knows how to remote *)
+  wireVARIANT = POINTER TO _wireVARIANT;
+
+  SAFEARR_BSTR = RECORD
+    Size : windows.ULONG;
+    (* [ref][size_is] *) aBstr : POINTER TO wtypes.wireBSTR;
+  END;
+
+  SAFEARR_UNKNOWN = RECORD
+    Size : windows.ULONG;
+    (* [ref][size_is] *) apUnknown : POINTER TO unknwn.TPIUnknown;
+  END;
+
+  SAFEARR_DISPATCH = RECORD
+    Size : windows.ULONG;
+    (* [ref][size_is] *) apDispatch : POINTER TO TPIDispatch;
+  END;
+
+  SAFEARR_VARIANT = RECORD
+    Size : windows.ULONG;
+    (* [ref][size_is] *) aVariant : POINTER TO wireVARIANT;
+  END;
+
+TYPE
+  SF_TYPE = (
+    SF_ERROR	  = wtypes.VT_ERROR,
+    SF_I1	      = wtypes.VT_I1,
+    SF_I2	      = wtypes.VT_I2,
+    SF_I4	      = wtypes.VT_I4,
+    SF_I8	      = wtypes.VT_I8,
+    SF_BSTR	    = wtypes.VT_BSTR,
+    SF_UNKNOWN	= wtypes.VT_UNKNOWN,
+    SF_DISPATCH	= wtypes.VT_DISPATCH,
+    SF_VARIANT	= wtypes.VT_VARIANT
+  );
+
+  SAFEARRAYUNION = RECORD
+    sfType : windows.ULONG;
+    CASE : CARDINAL OF
+    (* [switch_is] *) (* [switch_type] *) //union __MIDL_IOleAutomationTypes_0001
+    (* [case()] *) |0: BstrStr : SAFEARR_BSTR;
+    (* [case()] *) |1: UnknownStr : SAFEARR_UNKNOWN;
+    (* [case()] *) |2: DispatchStr : SAFEARR_DISPATCH;
+    (* [case()] *) |3: VariantStr : SAFEARR_VARIANT;
+    (* [case()] *) |4: ByteStr : wtypes.BYTE_SIZEDARR;
+    (* [case()] *) |5: WordStr : wtypes.WORD_SIZEDARR;
+    (* [case()] *) |6: LongStr : wtypes.DWORD_SIZEDARR;
+    (* [case()] *) |7: HyperStr : wtypes.HYPER_SIZEDARR;
+    (* [default] *)  (* Empty union arm *) 
+    END;
+  END;
+
+  wireSAFEARRAY = POINTER TO RECORD
+    cDims : windows.USHORT;
+    fFeatures : windows.USHORT;
+    cbElements : windows.ULONG;
+    cLocks : windows.ULONG;
+    uArrayStructs : SAFEARRAYUNION;
+    (* [size_is] *) rgsabound : ARRAY [0..0] OF SAFEARRAYBOUND;
+  END;
+  wirePSAFEARRAY = POINTER TO wireSAFEARRAY;
+
+  SAFEARRAY = RECORD
+    cDims : windows.USHORT;
+    fFeatures : windows.USHORT;
+    cbElements : windows.ULONG;
+    cLocks : windows.ULONG;
+    pvData : windows.PVOID;
+    rgsabound : ARRAY [0..0] OF SAFEARRAYBOUND;
+  END;
+  (* [wire_marshal] *) PSAFEARRAY = POINTER TO SAFEARRAY;
+
+CONST
+
+  FADF_AUTO      = 01H;
+  FADF_STATIC    = 02H;
+  FADF_EMBEDDED  = 04H;
+  FADF_FIXEDSIZE = 010H;
+  FADF_BSTR	     = 0100H;
+  FADF_UNKNOWN   = 0200H;
+  FADF_DISPATCH  = 0400H;
+  FADF_VARIANT   = 0800H;
+  FADF_RESERVED  = 0F0E8H;
+
+(*/* VARIANT STRUCTURE
+ *
+ *  VARTYPE vt;
+ *  WORD wReserved1;
+ *  WORD wReserved2;
+ *  WORD wReserved3;
+ *  union {
+ *    LONG           VT_I4
+ *    BYTE           VT_UI1
+ *    SHORT          VT_I2
+ *    FLOAT          VT_R4
+ *    DOUBLE         VT_R8
+ *    VARIANT_BOOL   VT_BOOL
+ *    SCODE          VT_ERROR
+ *    CY             VT_CY
+ *    DATE           VT_DATE
+ *    BSTR           VT_BSTR
+ *    IUnknown *     VT_UNKNOWN
+ *    IDispatch *    VT_DISPATCH
+ *    SAFEARRAY *    VT_ARRAY
+ *    BYTE *         VT_BYREF|VT_UI1
+ *    SHORT *        VT_BYREF|VT_I2
+ *    LONG *         VT_BYREF|VT_I4
+ *    FLOAT *        VT_BYREF|VT_R4
+ *    DOUBLE *       VT_BYREF|VT_R8
+ *    VARIANT_BOOL * VT_BYREF|VT_BOOL
+ *    SCODE *        VT_BYREF|VT_ERROR
+ *    CY *           VT_BYREF|VT_CY
+ *    DATE *         VT_BYREF|VT_DATE
+ *    BSTR *         VT_BYREF|VT_BSTR
+ *    IUnknown **    VT_BYREF|VT_UNKNOWN
+ *    IDispatch **   VT_BYREF|VT_DISPATCH
+ *    SAFEARRAY **   VT_BYREF|VT_ARRAY
+ *    VARIANT *      VT_BYREF|VT_VARIANT
+ *    PVOID          VT_BYREF (Generic ByRef)
+ *    CHAR           VT_I1
+ *    USHORT         VT_UI2
+ *    ULONG          VT_UI4
+ *    INT            VT_INT
+ *    UINT           VT_UINT
+ *    DECIMAL *      VT_BYREF|VT_DECIMAL
+ *    CHAR *         VT_BYREF|VT_I1
+ *    USHORT *       VT_BYREF|VT_UI2
+ *    ULONG *        VT_BYREF|VT_UI4
+ *    INT *          VT_BYREF|VT_INT
+ *    UINT *         VT_BYREF|VT_UINT
+ *  }
+ */*)
+
+//#if (__STDC__ && !defined(_FORCENAMELESSUNION)) || defined(NONAMELESSUNION)
+//#define __VARIANT_NAME_1 n1
+//#define __VARIANT_NAME_2 n2
+//#define __VARIANT_NAME_3 n3
+//#else
+//#define __tagVARIANT
+//#define __VARIANT_NAME_1
+//#define __VARIANT_NAME_2
+//#define __VARIANT_NAME_3
+//#endif
+
+TYPE
+
+  PVARIANT = POINTER TO VARIANT;
+
+  VARIANT = RECORD
+    CASE : CARDINAL OF
+    | 0:
+      vt: wtypes.VARENUM;
+      wReserved1 : WORD;
+      wReserved2 : WORD;
+      wReserved3 : WORD;
+      CASE : CARDINAL OF
+      | 0:  lVal : windows.LONG;
+      | 1:  bVal : BYTE;
+      | 2:  iVal : windows.SHORT;
+      | 3:  fltVal : windows.FLOAT;
+      | 4:  dblVal : windows.DOUBLE;
+      | 5:  boolVal : wtypes.VARIANT_BOOL;
+      | 6:  bool : wtypes._VARIANT_BOOL;
+      | 7:  scode : wtypes.SCODE;
+      | 8:  cyVal : wtypes.CY;
+      | 9:  date : wtypes.DATE;
+      |10:  bstrVal : wtypes.BSTR;
+      |11:  punkVal : unknwn.TPIUnknown;
+      |12:  pdispVal : TPIDispatch;
+      |13:  parray : PSAFEARRAY;
+      |14:  pbVal : PBYTE;
+      |15:  piVal : windows.PSHORT;
+      |16:  plVal : windows.PLONG;
+      |17:  pfltVal : windows.PFLOAT;
+      |18:  pdblVal : windows.PDOUBLE;
+      |19:  pboolVal : wtypes.PVARIANT_BOOL;
+      |20:  pbool : POINTER TO wtypes._VARIANT_BOOL;
+      |21:  pscode : wtypes.PSCODE;
+      |22:  pcyVal : wtypes.PCY;
+      |23:  pdate : wtypes.PDATE;
+      |24:  pbstrVal : wtypes.PBSTR;
+      |25:  ppunkVal : POINTER TO unknwn.TPIUnknown;
+      |26:  ppdispVal : POINTER TO TPIDispatch;
+      |27:  pparray : POINTER TO PSAFEARRAY;
+      |28:  pvarVal : PVARIANT;
+      |29:  byref : windows.PVOID;
+      |30:  cVal : CHAR;
+      |31:  uiVal : windows.USHORT;
+      |32:  ulVal : windows.ULONG;
+      |33:  intVal : windows.INT;
+      |34:  uintVal : windows.UINT;
+      |35:  pdecVal : wtypes.PDECIMAL;
+      |36:  pcVal : PCHAR;
+      |37:  puiVal : windows.PUSHORT;
+      |38:  pulVal : windows.PULONG;
+      |39:  pintVal : windows.PINT;
+      |40:  puintVal : windows.PUINT;
+      END; //union __VARIANT_NAME_3;
+    | 1: decVal : wtypes.DECIMAL;
+    END; //	union __VARIANT_NAME_1;
+  END;
+
+  VARIANTARG = VARIANT;
+
+  PVARIANTARG = POINTER TO VARIANTARG;
+
+(* the following is what MIDL knows how to remote *)
+// defined only as struct _wireVARIANT
+  _wireVARIANT = RECORD
+    clSize : windows.DWORD;
+    rpcReserved : windows.DWORD;
+    vt : windows.USHORT;
+    wReserved1 : windows.USHORT;
+    wReserved2 : windows.USHORT;
+    wReserved3 : windows.USHORT;
+    //(* [switch_is][switch_type] *) union 
+    CASE : CARDINAL OF
+    |  0: lVal : windows.LONG;
+    |  1: bVal : BYTE;
+    |  2: iVal : windows.SHORT;
+    |  3: fltVal : windows.FLOAT;
+    |  4: dblVal : windows.DOUBLE;
+    |  5: boolVal : wtypes.VARIANT_BOOL;
+    |  6: scode : wtypes.SCODE;
+    |  7: cyVal : wtypes.CY;
+    |  8: date : wtypes.DATE;
+    |  9: bstrVal : wtypes.wireBSTR;
+    | 10: punkVal : unknwn.TPIUnknown;
+    | 11: pdispVal : TPIDispatch;
+    | 12: parray : wireSAFEARRAY;
+    | 13: pbVal : PBYTE;
+    | 14: piVal : windows.PSHORT;
+    | 15: plVal : windows.PLONG;
+    | 16: pfltVal : windows.PFLOAT;
+    | 17: pdblVal : windows.PDOUBLE;
+    | 18: pboolVal : wtypes.PVARIANT_BOOL;
+    | 19: pscode : wtypes.PSCODE;
+    | 20: pcyVal : wtypes.PCY;
+    | 21: pdate : wtypes.PDATE;
+    | 22: pbstrVal : POINTER TO wireBSTR;
+    | 23: ppunkVal : POINTER TO unknwn.TPIUnknown;
+    | 24: ppdispVal : POINTER TO TPIDispatch;
+    | 25: pparray : POINTER TO wireSAFEARRAY;
+    | 26: pvarVal : POINTER TO wireVARIANT;
+    | 27: cVal : CHAR;
+    | 28: uiVal : windows.USHORT;
+    | 29: ulVal : windows.ULONG;
+    | 30: intVal : windows.INT;
+    | 31: uintVal : windows.UINT;
+    | 32: decVal : wtypes.DECIMAL;
+    | 33: pdecVal : wtypes.PDECIMAL;
+    | 34: pcVal : PCHAR;
+    | 35: puiVal : windows.PUSHORT;
+    | 36: pulVal : windows.PULONG;
+    | 37: pintVal : windows.PINT;
+    | 38: puintVal : windows.PUINT;
+    END;
+  END;
+
+  DISPID = windows.LONG;
+  PDISPID = POINTER TO DISPID;
+
+  MEMBERID = DISPID;
+  PMEMBERID = POINTER TO MEMBERID;
+
+  HREFTYPE = windows.DWORD;
+  PHREFTYPE = POINTER TO HREFTYPE;
+
+TYPE
+  TYPEKIND = (
+    TKIND_ENUM = 0,
+    TKIND_RECORD = 1,
+    TKIND_MODULE = 2,
+    TKIND_INTERFACE = 3,
+    TKIND_DISPATCH = 4,
+    TKIND_COCLASS = 5,
+    TKIND_ALIAS = 6,
+    TKIND_UNION = 7,
+    TKIND_MAX = 7
+  );
+  PTYPEKIND = POINTER TO TYPEKIND;
+
+  PTYPEDESC = POINTER TO TYPEDESC;
+  PARRAYDESC = POINTER TO ARRAYDESC;
+
+  TYPEDESC = RECORD
+    CASE : CARDINAL OF
+    | 0: lptdesc : PTYPEDESC;
+    | 1: lpadesc : PARRAYDESC;
+    | 2: hreftype : HREFTYPE;
+    END;
+    vt : wtypes.VARTYPE;
+  END;
+
+  ARRAYDESC = RECORD
+    tdescElem : TYPEDESC;
+    cDims : windows.USHORT;
+    rgbounds : ARRAY [0..0] OF SAFEARRAYBOUND;
+  END;
+
+  PARAMDESCEX = RECORD
+    cBytes : windows.ULONG;
+    varDefaultValue : VARIANTARG;
+  END;
+  PPARAMDESCEX = POINTER TO PARAMDESCEX;
+
+  PARAMDESC = RECORD
+    pparamdescex : PPARAMDESCEX;
+    wParamFlags : windows.USHORT;
+  END;
+  PPARAMDESC = POINTER TO PARAMDESC;
+
+CONST
+
+  PARAMFLAG_NONE = 00H;
+  PARAMFLAG_FIN = 01H;
+  PARAMFLAG_FOUT = 02H;
+  PARAMFLAG_FLCID = 04H;
+  PARAMFLAG_FRETVAL = 08H;
+  PARAMFLAG_FOPT = 010H;
+  PARAMFLAG_FHASDEFAULT = 020H;
+
+TYPE
+
+  IDLDESC = RECORD
+    dwReserved : windows.ULONG;
+    wIDLFlags : windows.USHORT;
+  END;
+  PIDLDESC = POINTER TO IDLDESC;
+
+CONST
+
+  IDLFLAG_NONE = PARAMFLAG_NONE;
+  IDLFLAG_FIN = PARAMFLAG_FIN;
+  IDLFLAG_FOUT = PARAMFLAG_FOUT;
+  IDLFLAG_FLCID = PARAMFLAG_FLCID;
+  IDLFLAG_FRETVAL = PARAMFLAG_FRETVAL;
+
+(*/*
+#if 0
+(* the following is what MIDL knows how to remote *)
+typedef struct  tagELEMDESC
+    {
+    TYPEDESC tdesc;
+    PARAMDESC paramdesc;
+    }	ELEMDESC;
+
+#else (* 0 *)
+*/*)
+
+TYPE
+
+  ELEMDESC  = RECORD
+    tdesc : TYPEDESC;              (* the type of the element *)
+    CASE : CARDINAL OF
+    | 0: idldesc : IDLDESC;        (* info for remoting the element *)
+    | 1: paramdesc : PARAMDESC;    (* info about the parameter *)
+    END;
+  END;
+  PELEMDESC = POINTER TO ELEMDESC;
+
+//#endif (* 0 *)
+
+  TYPEATTR = RECORD
+    guid : GUID;
+    lcid : wtypes.LCID;
+    dwReserved : windows.DWORD;
+    memidConstructor : MEMBERID;
+    memidDestructor : MEMBERID;
+    lpstrSchema : wtypes.POLESTR;
+    cbSizeInstance : windows.ULONG;
+    typekind : TYPEKIND;
+    cFuncs : WORD;
+    cVars : WORD;
+    cImplTypes : WORD;
+    cbSizeVft : WORD;
+    cbAlignment : WORD;
+    wTypeFlags : WORD;
+    wMajorVerNum : WORD;
+    wMinorVerNum : WORD;
+    tdescAlias : TYPEDESC;
+    idldescType : IDLDESC;
+  END;
+  PTYPEATTR = POINTER TO TYPEATTR;
+
+  DISPPARAMS = RECORD
+    rgvarg : PVARIANTARG;
+    rgdispidNamedArgs : PDISPID;
+    cArgs : windows.UINT;
+    cNamedArgs : windows.UINT;
+  END;
+  PDISPPARAMS = POINTER TO DISPPARAMS;
+
+(*/*
+#if 0
+(* the following is what MIDL knows how to remote *)
+typedef struct  tagEXCEPINFO
+    {
+    WORD wCode;
+    WORD wReserved;
+    BSTR bstrSource;
+    BSTR bstrDescription;
+    BSTR bstrHelpFile;
+    DWORD dwHelpContext;
+    ULONG pvReserved;
+    ULONG pfnDeferredFillIn;
+    SCODE scode;
+    }	EXCEPINFO;
+
+#else (* 0 *)
+*/*)
+
+  PEXCEPINFO = POINTER TO EXCEPINFO;
+  EXCEPINFO = RECORD
+    wCode : WORD;
+    wReserved : WORD;
+    bstrSource : wtypes.BSTR;
+    bstrDescription : wtypes.BSTR;
+    bstrHelpFile : wtypes.BSTR;
+    dwHelpContext : windows.DWORD;
+    pvReserved : windows.DWORD;
+    pfnDeferredFillIn : PROCEDURE ( PEXCEPINFO ): HRESULT;
+    scode : wtypes.SCODE;
+  END;
+
+//#endif (* 0 *)
+
+TYPE
+  CALLCONV = (
+    CC_FASTCALL,
+    CC_CDECL,
+    CC_MSCPASCAL,
+    CC_PASCAL,
+    CC_MACPASCAL,
+    CC_STDCALL,
+    CC_FPFASTCALL,
+    CC_SYSCALL,
+    CC_MPWCDECL,
+    CC_MPWPASCAL,
+    CC_MAX
+  );
+
+  FUNCKIND = (
+    FUNC_VIRTUAL,
+    FUNC_PUREVIRTUAL,
+    FUNC_NONVIRTUAL,
+    FUNC_STATIC,
+    FUNC_DISPATCH
+  );
+
+  INVOKEKIND = (
+    INVOKE_FUNC	= 1,
+    INVOKE_PROPERTYGET	= 2,
+    INVOKE_PROPERTYPUT	= 4,
+    INVOKE_PROPERTYPUTREF	= 8
+  );
+
+  FUNCDESC = RECORD
+    memid : MEMBERID;
+    (* [size_is] *) lprgscode : wtypes.PSCODE;
+    (* [size_is] *) lprgelemdescParam : PELEMDESC;
+    funckind : FUNCKIND;
+    invkind : INVOKEKIND;
+    callconv : CALLCONV;
+    cParams : windows.SHORT;
+    cParamsOpt : windows.SHORT;
+    oVft : windows.SHORT;
+    cScodes : windows.SHORT;
+    elemdescFunc : ELEMDESC;
+    wFuncFlags : WORD;
+  END;
+  PFUNCDESC = POINTER TO FUNCDESC;
+
+  VARKIND = (
+ 	  VAR_PERINSTANCE,
+	  VAR_STATIC,
+	  VAR_CONST,
+	  VAR_DISPATCH
+	);
+
+CONST
+  IMPLTYPEFLAG_FDEFAULT       = 01H;
+  IMPLTYPEFLAG_FSOURCE        = 02H;
+  IMPLTYPEFLAG_FRESTRICTED    = 04H;
+  IMPLTYPEFLAG_FDEFAULTVTABLE = 08H;
+
+TYPE
+
+  VARDESC = RECORD
+    memid : MEMBERID;
+    lpstrSchema : wtypes.POLESTR;
+    CASE : CARDINAL OF
+    | 0: oInst : windows.ULONG;
+    | 1: lpvarValue : PVARIANT;
+    END;
+    elemdescVar : ELEMDESC;
+    wVarFlags : WORD;
+    varkind : VARKIND;
+  END;
+  PVARDESC = POINTER TO VARDESC;
+
+//enum tagTYPEFLAGS
+CONST
+  TYPEFLAG_FAPPOBJECT	= 01H;
+  TYPEFLAG_FCANCREATE	= 02H;
+  TYPEFLAG_FLICENSED	= 04H;
+  TYPEFLAG_FPREDECLID	= 08H;
+  TYPEFLAG_FHIDDEN	= 010H;
+  TYPEFLAG_FCONTROL	= 020H;
+  TYPEFLAG_FDUAL	= 040H;
+  TYPEFLAG_FNONEXTENSIBLE	= 080H;
+  TYPEFLAG_FOLEAUTOMATION	= 0100H;
+  TYPEFLAG_FRESTRICTED	= 0200H;
+  TYPEFLAG_FAGGREGATABLE	= 0400H;
+  TYPEFLAG_FREPLACEABLE	= 0800H;
+  TYPEFLAG_FDISPATCHABLE	= 01000H;
+  TYPEFLAG_FREVERSEBIND	= 02000H;
+TYPE
+  TYPEFLAGS = CARDINAL;
+
+//enum tagFUNCFLAGS
+CONST
+  FUNCFLAG_FRESTRICTED	= 01H;
+  FUNCFLAG_FSOURCE	= 02H;
+  FUNCFLAG_FBINDABLE	= 04H;
+  FUNCFLAG_FREQUESTEDIT	= 08H;
+  FUNCFLAG_FDISPLAYBIND	= 010H;
+  FUNCFLAG_FDEFAULTBIND	= 020H;
+  FUNCFLAG_FHIDDEN	= 040H;
+  FUNCFLAG_FUSESGETLASTERROR	= 080H;
+  FUNCFLAG_FDEFAULTCOLLELEM	= 0100H;
+  FUNCFLAG_FUIDEFAULT	= 0200H;
+  FUNCFLAG_FNONBROWSABLE	= 0400H;
+  FUNCFLAG_FREPLACEABLE	= 0800H;
+  FUNCFLAG_FIMMEDIATEBIND	= 01000H;
+TYPE
+  FUNCFLAGS = CARDINAL;
+
+//enum tagVARFLAGS
+CONST
+  VARFLAG_FREADONLY	= 01H;
+  VARFLAG_FSOURCE	= 02H;
+  VARFLAG_FBINDABLE	= 04H;
+  VARFLAG_FREQUESTEDIT	= 08H;
+  VARFLAG_FDISPLAYBIND	= 010H;
+  VARFLAG_FDEFAULTBIND	= 020H;
+  VARFLAG_FHIDDEN	= 040H;
+  VARFLAG_FRESTRICTED	= 080H;
+  VARFLAG_FDEFAULTCOLLELEM	= 0100H;
+  VARFLAG_FUIDEFAULT	= 0200H;
+  VARFLAG_FNONBROWSABLE	= 0400H;
+  VARFLAG_FREPLACEABLE	= 0800H;
+  VARFLAG_FIMMEDIATEBIND	= 01000H;
+TYPE
+  VARFLAGS = CARDINAL;
+
+(* [wire_marshal] *) CLEANLOCALSTORAGE = RECORD
+    pInterface : unknwn.TPIUnknown;
+    pStorage : windows.PVOID;
+    flags : windows.DWORD;
+  END;
+  PCLEANLOCALSTORAGE = POINTER TO CLEANLOCALSTORAGE;
+
+  CUSTDATAITEM = RECORD
+    guid : GUID;
+    varValue : VARIANTARG;
+  END;
+  PCUSTDATAITEM = POINTER TO CUSTDATAITEM;
+
+  CUSTDATA = RECORD
+    cCustData : windows.DWORD;
+    (* [size_is] *) prgCustData : PCUSTDATAITEM;
+  END;
+  PCUSTDATA = POINTER TO CUSTDATA;
+
+(****************************************
+ * Generated header for interface: ICreateTypeInfo
+ * at Sat Jul 13 21:56:52 1996
+ * using MIDL 3.00.39
+ ****************************************)
+(* [local][unique][uuid][object] *) 
+
+//TPICreateTypeInfo = POINTER TO ICreateTypeInfo;
+
+VAR
+  IID_ICreateTypeInfo : IID;
+
+COM INTERFACE ICreateTypeInfo( unknwn.IUnknown );
+  VIRTUAL PROCEDURE SetGuid( 
+      (* [in] *) CONST guid : GUID ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetTypeFlags( 
+      (* [in] *) uTypeFlags : windows.UINT ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetDocString( 
+      (* [in] *) pStrDoc : wtypes.POLESTR ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetHelpContext( 
+      (* [in] *) dwHelpContext : windows.DWORD ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetVersion( 
+      (* [in] *) wMajorVerNum : WORD;
+      (* [in] *) wMinorVerNum : WORD ): HRESULT;
+  
+  VIRTUAL PROCEDURE AddRefTypeInfo( 
+      (* [in] *) pTInfo : TPITypeInfo;
+      (* [in] *) phRefType : PHREFTYPE ): HRESULT;
+  
+  VIRTUAL PROCEDURE AddFuncDesc( 
+      (* [in] *) index : windows.UINT;
+      (* [in] *) pFuncDesc : PFUNCDESC ): HRESULT;
+  
+  VIRTUAL PROCEDURE AddImplType( 
+      (* [in] *) index : windows.UINT;
+      (* [in] *) hRefType : HREFTYPE ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetImplTypeFlags( 
+      (* [in] *) index : windows.UINT;
+      (* [in] *) implTypeFlags : windows.INT ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetAlignment( 
+      (* [in] *) cbAlignment : WORD ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetSchema( 
+      (* [in] *) pStrSchema : wtypes.POLESTR ): HRESULT;
+  
+  VIRTUAL PROCEDURE AddVarDesc( 
+      (* [in] *) index : windows.UINT;
+      (* [in] *) pVarDesc : PVARDESC ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetFuncAndParamNames( 
+      (* [in] *) index : windows.UINT;
+      (* [in][size_is][in] *) VAR rgszNames : wtypes.POLESTR;
+      (* [in] *) cNames : windows.UINT ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetVarName( 
+      (* [in] *) index : windows.UINT;
+      (* [in] *) szName : wtypes.POLESTR ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetTypeDescAlias( 
+      (* [in] *) pTDescAlias : PTYPEDESC ): HRESULT;
+  
+  VIRTUAL PROCEDURE DefineFuncAsDllEntry( 
+      (* [in] *) index : windows.UINT;
+      (* [in] *) szDllName : wtypes.POLESTR;
+      (* [in] *) szProcName : wtypes.POLESTR ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetFuncDocString( 
+      (* [in] *) index : windows.UINT;
+      (* [in] *) szDocString : wtypes.POLESTR ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetVarDocString( 
+      (* [in] *) index : windows.UINT;
+      (* [in] *) szDocString : wtypes.POLESTR ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetFuncHelpContext( 
+      (* [in] *) index : windows.UINT;
+      (* [in] *) dwHelpContext : windows.DWORD ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetVarHelpContext( 
+      (* [in] *) index : windows.UINT;
+      (* [in] *) dwHelpContext : windows.DWORD ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetMops( 
+      (* [in] *) index : windows.UINT;
+      (* [in] *) bstrMops : wtypes.BSTR ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetTypeIdldesc( 
+      (* [in] *) pIdlDesc : PIDLDESC ): HRESULT;
+  
+  VIRTUAL PROCEDURE LayOut(): HRESULT;
+  
+END ICreateTypeInfo;
+    
+//=====  ICreateTypeInfo2
+VAR
+  IID_ICreateTypeInfo2 : IID;
+
+COM INTERFACE ICreateTypeInfo2( ICreateTypeInfo );
+
+  VIRTUAL PROCEDURE DeleteFuncDesc( 
+      (* [in] *) index : windows.UINT ): HRESULT;
+  
+  VIRTUAL PROCEDURE DeleteFuncDescByMemId( 
+      (* [in] *) memid : MEMBERID;
+      (* [in] *) invKind : INVOKEKIND ): HRESULT;
+  
+  VIRTUAL PROCEDURE DeleteVarDesc( 
+      (* [in] *) index : windows.UINT ): HRESULT;
+  
+  VIRTUAL PROCEDURE DeleteVarDescByMemId( 
+      (* [in] *) memid : MEMBERID ): HRESULT;
+  
+  VIRTUAL PROCEDURE DeleteImplType( 
+      (* [in] *) index : windows.UINT ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetCustData( 
+      (* [in] *) CONST guid : GUID;
+      (* [in] *) pVarVal : PVARIANT ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetFuncCustData( 
+      (* [in] *) index : windows.UINT;
+      (* [in] *) CONST guid : GUID;
+      (* [in] *) pVarVal : PVARIANT ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetParamCustData( 
+      (* [in] *) indexFunc : windows.UINT;
+      (* [in] *) indexParam : windows.UINT;
+      (* [in] *) CONST guid : GUID;
+      (* [in] *) pVarVal : PVARIANT ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetVarCustData( 
+      (* [in] *) index : windows.UINT;
+      (* [in] *) CONST guid : GUID;
+      (* [in] *) pVarVal : PVARIANT ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetImplTypeCustData( 
+      (* [in] *) index : windows.UINT;
+      (* [in] *) CONST guid : GUID;
+      (* [in] *) pVarVal : PVARIANT ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetHelpStringContext( 
+      (* [in] *) dwHelpStringContext : windows.ULONG ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetFuncHelpStringContext( 
+      (* [in] *) index : windows.UINT;
+      (* [in] *) dwHelpStringContext : windows.ULONG ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetVarHelpStringContext( 
+      (* [in] *) index : windows.UINT;
+      (* [in] *) dwHelpStringContext : windows.ULONG ): HRESULT;
+  
+  VIRTUAL PROCEDURE Invalidate(): HRESULT;
+  
+  VIRTUAL PROCEDURE SetName( 
+      (* [in] *) szName : wtypes.POLESTR ): HRESULT;
+  
+END ICreateTypeInfo2;    
+
+//===== ICreateTypeLib
+VAR
+  IID_ICreateTypeLib : IID;
+
+COM INTERFACE ICreateTypeLib( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE CreateTypeInfo( 
+      (* [in] *) szName : wtypes.POLESTR;
+      (* [in] *) tkind : TYPEKIND;
+      (* [out] *) VAR ppCTInfo : TPICreateTypeInfo ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetName( 
+      (* [in] *) szName : wtypes.POLESTR ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetVersion( 
+      (* [in] *) wMajorVerNum : WORD;
+      (* [in] *) wMinorVerNum : WORD ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetGuid( 
+      (* [in] *) CONST guid : GUID ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetDocString( 
+      (* [in] *) szDoc : wtypes.POLESTR ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetHelpFileName( 
+      (* [in] *) szHelpFileName : wtypes.POLESTR ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetHelpContext( 
+      (* [in] *) dwHelpContext : windows.DWORD ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetLcid( 
+      (* [in] *) lcid : wtypes.LCID ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetLibFlags( 
+      (* [in] *) uLibFlags : windows.UINT ): HRESULT;
+  
+  VIRTUAL PROCEDURE SaveAllChanges(): HRESULT;
+  
+END ICreateTypeLib;
+    
+//===== ICreateTypeLib2
+VAR
+  IID_ICreateTypeLib2 : IID;
+
+COM INTERFACE ICreateTypeLib2( ICreateTypeLib );
+
+  PROCEDURE DeleteTypeInfo( 
+      (* [in] *) szName : wtypes.POLESTR ): HRESULT;
+  
+  PROCEDURE SetCustData( 
+      (* [in] *) CONST guid : GUID;
+      (* [in] *) pVarVal : PVARIANT ): HRESULT;
+  
+  PROCEDURE SetHelpStringContext( 
+      (* [in] *) dwHelpStringContext : windows.ULONG ): HRESULT;
+  
+  PROCEDURE SetHelpStringDll( 
+      (* [in] *) szFileName : wtypes.POLESTR ): HRESULT;
+  
+END ICreateTypeLib2;
+    
+//===== IDispatch
+VAR
+  IID_IDispatch : IID;
+
+CONST
+  // DISPID reserved to indicate an "unknown" name
+  // only reserved for data members (properties); reused as a method dispid below
+  DISPID_UNKNOWN     = -1;
+  // DISPID reserved for the "value" property
+  DISPID_VALUE = 0;
+  // The following DISPID is reserved to indicate the param
+  // that is the right-hand-side (or "put" value) of a PropertyPut
+  DISPID_PROPERTYPUT = -3;
+  // DISPID reserved for the standard "NewEnum" method
+  DISPID_NEWENUM     = -4;
+  // DISPID reserved for the standard "Evaluate" method
+  DISPID_EVALUATE    = -5;
+  DISPID_CONSTRUCTOR = -6;
+  DISPID_DESTRUCTOR  = -7;
+  DISPID_COLLECT     = -8;
+
+  // The range -500 through -999 is reserved for Controls
+  // The range 0x80010000 through 0x8001FFFF is reserved for Controls
+  // The range -5000 through -5499 is reserved for ActiveX Accessibility
+  // The remainder of the negative DISPIDs are reserved for future use
+
+COM INTERFACE IDispatch( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE GetTypeInfoCount( 
+      (* [out] *) pctinfo : windows.PUINT ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetTypeInfo( 
+      (* [in] *) iTInfo : windows.UINT;
+      (* [in] *) lcid : wtypes.LCID;
+      (* [out] *) VAR ppTInfo : TPITypeInfo ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetIDsOfNames( 
+      (* [in] *) CONST riid : IID;
+      (* [size_is][in] *) rgszNames : wtypes.PPOLESTR;
+      (* [in] *) cNames : windows.UINT;
+      (* [in] *) lcid : wtypes.LCID;
+      (* [size_is][out] *) rgDispId : PDISPID ): HRESULT;
+  
+  (* [local] *) VIRTUAL PROCEDURE Invoke( 
+      (* [in] *) dispIdMember : DISPID;
+      (* [in] *) CONST riid : IID;
+      (* [in] *) lcid : wtypes.LCID;
+      (* [in] *) wFlags : WORD;
+      (* [out][in] *) pDispParams : PDISPPARAMS;
+      (* [out] *) pVarResult : PVARIANT;
+      (* [out] *) pExcepInfo : PEXCEPINFO;
+      (* [out] *) puArgErr : windows.PUINT ): HRESULT;
+  
+END IDispatch;    
+
+//===== IEnumVARIANT
+VAR
+  IID_IEnumVARIANT : IID;
+
+COM INTERFACE IEnumVARIANT( unknwn.IUnknown );
+
+  (* [local] *) VIRTUAL PROCEDURE Next( 
+      (* [in] *) celt : windows.ULONG;
+      (* [length_is][size_is][out] *) rgVar : PVARIANT;
+      (* [out] *) pCeltFetched : windows.PULONG ): HRESULT;
+  
+  VIRTUAL PROCEDURE Skip( 
+      (* [in] *) celt : windows.ULONG ): HRESULT;
+  
+  VIRTUAL PROCEDURE Reset(): HRESULT;
+  
+  VIRTUAL PROCEDURE Clone( 
+      (* [out] *) VAR ppEnum : TPIEnumVARIANT ): HRESULT;
+  
+END IEnumVARIANT;
+    
+//===== ITypeComp;
+VAR
+  IID_ITypeComp : IID;
+
+TYPE
+  DESCKIND = (
+    DESCKIND_NONE,
+    DESCKIND_FUNCDESC,
+    DESCKIND_VARDESC,
+    DESCKIND_TYPECOMP,
+    DESCKIND_IMPLICITAPPOBJ,
+    DESCKIND_MAX
+  );
+  PDESCKIND = POINTER TO DESCKIND;
+
+  BINDPTR = RECORD
+    lpfuncdesc : PFUNCDESC;
+    lpvardesc : PVARDESC;
+    lptcomp : TPITypeComp;
+  END;
+  PBINDPTR = POINTER TO BINDPTR;
+
+COM INTERFACE ITypeComp( unknwn.IUnknown );
+
+  (* [local] *) VIRTUAL PROCEDURE Bind( 
+      (* [in] *) szName : wtypes.POLESTR;
+      (* [in] *) lHashVal : windows.ULONG;
+      (* [in] *) wFlags : WORD;
+      (* [out] *) VAR ppTInfo : TPITypeInfo;
+      (* [out] *) pDescKind : PDESCKIND;
+      (* [out] *) pBindPtr : PBINDPTR ): HRESULT;
+  
+  (* [local] *) VIRTUAL PROCEDURE BindType( 
+      (* [in] *) szName : wtypes.POLESTR;
+      (* [in] *) lHashVal : windows.ULONG;
+      (* [out] *) VAR ppTInfo : TPITypeInfo;
+      (* [out] *) VAR ppTComp : TPITypeComp ): HRESULT;
+  
+END ITypeComp;
+
+//===== ITypeInfo
+VAR
+  IID_ITypeInfo : IID;
+
+COM INTERFACE ITypeInfo( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE (* [local] *) GetTypeAttr( 
+      (* [out] *) VAR ppTypeAttr : PTYPEATTR ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetTypeComp( 
+      (* [out] *) VAR ppTComp : TPITypeComp ): HRESULT;
+  
+  VIRTUAL PROCEDURE (* [local] *) GetFuncDesc( 
+      (* [in] *) index : windows.UINT;
+      (* [out] *) VAR ppFuncDesc : PFUNCDESC ): HRESULT;
+  
+  VIRTUAL PROCEDURE (* [local] *) GetVarDesc( 
+      (* [in] *) index : windows.UINT;
+      (* [out] *) VAR ppVarDesc : PVARDESC ): HRESULT;
+  
+  VIRTUAL PROCEDURE (* [local] *) GetNames( 
+      (* [in] *) memid : MEMBERID;
+      (* [length_is][size_is][out] *) rgBstrNames : wtypes.PBSTR;
+      (* [in] *) cMaxNames : windows.UINT;
+      (* [out] *) pcNames : windows.PUINT ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetRefTypeOfImplType( 
+      (* [in] *) index : windows.UINT;
+      (* [out] *) pRefType : PHREFTYPE ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetImplTypeFlags( 
+      (* [in] *) index : windows.UINT;
+      (* [out] *) pImplTypeFlags : windows.PINT ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetIDsOfNames( 
+      (* [size_is][in] *) VAR rgszNames : wtypes.POLESTR;
+      (* [in] *) cNames : windows.UINT;
+      (* [size_is][out] *) pMemId : PMEMBERID ): HRESULT;
+  
+  VIRTUAL PROCEDURE (* [local] *) Invoke( 
+      (* [in] *) pvInstance : windows.PVOID;
+      (* [in] *) memid : MEMBERID;
+      (* [in] *) wFlags : WORD;
+      (* [out][in] *) pDispParams : PDISPPARAMS;
+      (* [out] *) pVarResult : PVARIANT;
+      (* [out] *) pExcepInfo : PEXCEPINFO;
+      (* [out] *) puArgErr : windows.PUINT ): HRESULT;
+  
+  VIRTUAL PROCEDURE (* [local] *) GetDocumentation( 
+      (* [in] *) memid : MEMBERID;
+      (* [out] *) pBstrName : wtypes.PBSTR;
+      (* [out] *) pBstrDocString : wtypes.PBSTR;
+      (* [out] *) pdwHelpContext : windows.PDWORD;
+      (* [out] *) pBstrHelpFile : wtypes.PBSTR ): HRESULT;
+  
+  VIRTUAL PROCEDURE (* [local] *) GetDllEntry( 
+      (* [in] *) memid : MEMBERID;
+      (* [in] *) invKind : INVOKEKIND;
+      (* [out] *) pBstrDllName : wtypes.PBSTR;
+      (* [out] *) pBstrName : wtypes.PBSTR;
+      (* [out] *) pwOrdinal : PWORD ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetRefTypeInfo( 
+      (* [in] *) hRefType : HREFTYPE;
+      (* [out] *) VAR ppTInfo : TPITypeInfo ): HRESULT;
+  
+  VIRTUAL PROCEDURE (* [local] *) AddressOfMember( 
+      (* [in] *) memid : MEMBERID;
+      (* [in] *) invKind : INVOKEKIND;
+      (* [out] *) ppv : windows.PPVOID ): HRESULT;
+  
+  VIRTUAL PROCEDURE (* [local] *) CreateInstance( 
+      (* [in] *) pUnkOuter : unknwn.TPIUnknown;
+      (* [in] *) CONST riid : IID;
+      (* [iid_is][out] *) ppvObj : windows.PPVOID ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetMops( 
+      (* [in] *) memid : MEMBERID;
+      (* [out] *) pBstrMops : wtypes.PBSTR ): HRESULT;
+  
+  VIRTUAL PROCEDURE (* [local] *) GetContainingTypeLib( 
+      (* [out] *) VAR ppTLib : TPITypeLib;
+      (* [out] *) pIndex : windows.PUINT ): HRESULT;
+  
+  VIRTUAL PROCEDURE (* [local] *) ReleaseTypeAttr( 
+      (* [in] *) pTypeAttr : PTYPEATTR );
+  
+  VIRTUAL PROCEDURE (* [local] *) ReleaseFuncDesc( 
+      (* [in] *) pFuncDesc : PFUNCDESC );
+  
+  VIRTUAL PROCEDURE (* [local] *) ReleaseVarDesc( 
+      (* [in] *) pVarDesc : PVARDESC );
+  
+END ITypeInfo;
+
+//===== TPITypeInfo2
+VAR
+  IID_ITypeInfo2 : IID;
+
+COM INTERFACE ITypeInfo2( ITypeInfo );
+
+  VIRTUAL PROCEDURE GetTypeKind( 
+      (* [out] *) pTypeKind : PTYPEKIND ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetTypeFlags( 
+      (* [out] *) pTypeFlags : windows.PULONG ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetFuncIndexOfMemId( 
+      (* [in] *) memid : MEMBERID;
+      (* [in] *) invKind : INVOKEKIND;
+      (* [out] *) pFuncIndex : windows.PUINT ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetVarIndexOfMemId( 
+      (* [in] *) memid : MEMBERID;
+      (* [out] *) pVarIndex : windows.PUINT ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetCustData( 
+      (* [in] *) CONST guid : GUID;
+      (* [out] *) pVarVal : PVARIANT ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetFuncCustData( 
+      (* [in] *) index : windows.UINT;
+      (* [in] *) CONST guid : GUID;
+      (* [out] *) pVarVal : PVARIANT ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetParamCustData( 
+      (* [in] *) indexFunc : windows.UINT;
+      (* [in] *) indexParam : windows.UINT;
+      (* [in] *) CONST guid : GUID;
+      (* [out] *) pVarVal : PVARIANT ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetVarCustData( 
+      (* [in] *) index : windows.UINT;
+      (* [in] *) CONST guid : GUID;
+      (* [out] *) pVarVal : PVARIANT ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetImplTypeCustData( 
+      (* [in] *) index : windows.UINT;
+      (* [in] *) CONST guid : GUID;
+      (* [out] *) pVarVal : PVARIANT ): HRESULT;
+  
+  VIRTUAL PROCEDURE (* [local] *) GetDocumentation2( 
+      (* [in] *) memid : MEMBERID;
+      (* [in] *) lcid : wtypes.LCID;
+      (* [out] *) pbstrHelpString : wtypes.PBSTR;
+      (* [out] *) pdwHelpStringContext : windows.PDWORD;
+      (* [out] *) pbstrHelpStringDll : wtypes.PBSTR ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetAllCustData( 
+      (* [out] *) pCustData : PCUSTDATA ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetAllFuncCustData( 
+      (* [in] *) index : windows.UINT;
+      (* [out] *) pCustData : PCUSTDATA ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetAllParamCustData( 
+      (* [in] *) indexFunc : windows.UINT;
+      (* [in] *) indexParam : windows.UINT;
+      (* [out] *) pCustData : PCUSTDATA ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetAllVarCustData( 
+      (* [in] *) index : windows.UINT;
+      (* [out] *) pCustData : PCUSTDATA ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetAllImplTypeCustData( 
+      (* [in] *) index : windows.UINT;
+      (* [out] *) pCustData : PCUSTDATA ): HRESULT;
+        
+END ITypeInfo2;
+
+//===== ITypeLib
+VAR
+  IID_ITypeLib : IID;
+
+TYPE
+  SYSKIND = (
+    SYS_WIN16,
+    SYS_WIN32,
+    SYS_MAC
+  );
+
+  LIBFLAGS = (
+    LIBFLAG_FRESTRICTED	= 01H,
+    LIBFLAG_FCONTROL	= 02H,
+    LIBFLAG_FHIDDEN	= 04H,
+    LIBFLAG_FHASDISKIMAGE	= 08H
+  );
+
+  TLIBATTR = RECORD
+    guid : GUID;
+    lcid : wtypes.LCID;
+    syskind : SYSKIND;
+    wMajorVerNum : WORD;
+    wMinorVerNum : WORD;
+    wLibFlags : WORD;
+  END;
+  PTLIBATTR = POINTER TO TLIBATTR;
+
+COM INTERFACE ITypeLib( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE (* [local] *) GetTypeInfoCount(): windows.UINT;
+  
+  VIRTUAL PROCEDURE GetTypeInfo( 
+      (* [in] *) index : windows.UINT;
+      (* [out] *) VAR ppTInfo : TPITypeInfo ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetTypeInfoType( 
+      (* [in] *) index : windows.UINT;
+      (* [out] *) pTKind : PTYPEKIND ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetTypeInfoOfGuid( 
+      (* [in] *) CONST guid : GUID;
+      (* [out] *) VAR ppTinfo : TPITypeInfo ): HRESULT;
+  
+  VIRTUAL PROCEDURE (* [local] *) GetLibAttr( 
+      (* [out] *) VAR ppTLibAttr : PTLIBATTR ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetTypeComp( 
+      (* [out] *) VAR ppTComp : TPITypeComp ): HRESULT;
+  
+  VIRTUAL PROCEDURE (* [local] *) GetDocumentation( 
+      (* [in] *) index : windows.INT;
+      (* [out] *) pBstrName : wtypes.PBSTR;
+      (* [out] *) pBstrDocString : wtypes.PBSTR;
+      (* [out] *) pdwHelpContext : windows.PDWORD;
+      (* [out] *) pBstrHelpFile : wtypes.PBSTR ): HRESULT;
+  
+  VIRTUAL PROCEDURE (* [local] *) IsName( 
+      (* [out][in] *) szNameBuf : wtypes.POLESTR;
+      (* [in] *) lHashVal : windows.ULONG;
+      (* [out] *) pfName : windows.PBOOL ): HRESULT;
+  
+  VIRTUAL PROCEDURE (* [local] *) FindName( 
+      (* [out][in] *) szNameBuf : wtypes.POLESTR;
+      (* [in] *) lHashVal : windows.ULONG;
+      (* [length_is][size_is][out] *) VAR ppTInfo : TPITypeInfo;
+      (* [length_is][size_is][out] *) rgMemId : PMEMBERID;
+      (* [out][in] *) pcFound : windows.PUSHORT ): HRESULT;
+  
+  VIRTUAL PROCEDURE (* [local] *) ReleaseTLibAttr( 
+      (* [in] *) pTLibAttr : PTLIBATTR );
+  
+END ITypeLib;
+
+//===== TPITypeLib2 = POINTER TO ITypeLib2;
+VAR
+  IID_ITypeLib2 : IID;
+
+COM INTERFACE ITypeLib2( ITypeLib );
+
+  VIRTUAL PROCEDURE  GetCustData( 
+      (* [in] *) CONST guid : GUID;
+      (* [out] *) pVarVal : PVARIANT ): HRESULT;
+  
+  VIRTUAL PROCEDURE  (* [local] *) GetLibStatistics( 
+      (* [out] *) pcUniqueNames : windows.PULONG;
+      (* [out] *) pcchUniqueNames : windows.PULONG ): HRESULT;
+  
+  VIRTUAL PROCEDURE  (* [local] *) GetDocumentation2( 
+      (* [in] *) index : windows.INT;
+      (* [in] *) lcid : wtypes.LCID;
+      (* [out] *) pbstrHelpString : wtypes.PBSTR;
+      (* [out] *) pdwHelpStringContext : windows.PDWORD;
+      (* [out] *) pbstrHelpStringDll : wtypes.PBSTR ): HRESULT;
+  
+  VIRTUAL PROCEDURE  GetAllCustData( 
+      (* [out] *) pCustData : PCUSTDATA ): HRESULT;
+  
+END ITypeLib2;
+
+//===== ITypeChangeEvents;
+VAR
+  IID_ITypeChangeEvents : IID;
+
+TYPE
+  CHANGEKIND = (
+    CHANGEKIND_ADDMEMBER,
+    CHANGEKIND_DELETEMEMBER	= CHANGEKIND_ADDMEMBER + 1,
+    CHANGEKIND_SETNAMES	= CHANGEKIND_DELETEMEMBER + 1,
+    CHANGEKIND_SETDOCUMENTATION	= CHANGEKIND_SETNAMES + 1,
+    CHANGEKIND_GENERAL	= CHANGEKIND_SETDOCUMENTATION + 1,
+    CHANGEKIND_INVALIDATE	= CHANGEKIND_GENERAL + 1,
+    CHANGEKIND_CHANGEFAILED	= CHANGEKIND_INVALIDATE + 1,
+    CHANGEKIND_MAX	= CHANGEKIND_CHANGEFAILED + 1
+  );
+
+COM INTERFACE ITypeChangeEvents( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE RequestTypeChange( 
+      (* [in] *) changeKind : CHANGEKIND;
+      (* [in] *) pTInfoBefore : TPITypeInfo;
+      (* [in] *) pStrName : wtypes.POLESTR;
+      (* [out] *) pfCancel : windows.PINT ): HRESULT;
+  
+  VIRTUAL PROCEDURE AfterTypeChange( 
+      (* [in] *) changeKind : CHANGEKIND;
+      (* [in] *) pTInfoAfter : TPITypeInfo;
+      (* [in] *) pStrName : wtypes.POLESTR ): HRESULT;
+  
+END ITypeChangeEvents;
+    
+//===== IErrorInfo
+VAR
+  IID_IErrorInfo : IID;
+
+COM INTERFACE IErrorInfo( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE GetGUID( 
+      (* [out] *) pGUID : PGUID ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetSource( 
+      (* [out] *) pBstrSource : wtypes.PBSTR ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetDescription( 
+      (* [out] *) pBstrDescription : wtypes.PBSTR ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetHelpFile( 
+      (* [out] *) pBstrHelpFile : wtypes.PBSTR ): HRESULT;
+  
+  VIRTUAL PROCEDURE GetHelpContext( 
+      (* [out] *) pdwHelpContext : windows.PDWORD ): HRESULT;
+  
+END IErrorInfo;
+    
+//===== ICreateErrorInfo
+VAR
+  IID_ICreateErrorInfo : IID;
+
+COM INTERFACE ICreateErrorInfo( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE SetGUID( 
+      (* [in] *) CONST rguid : GUID ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetSource( 
+      (* [in] *) szSource : wtypes.POLESTR ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetDescription( 
+      (* [in] *) szDescription : wtypes.POLESTR ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetHelpFile( 
+      (* [in] *) szHelpFile : wtypes.POLESTR ): HRESULT;
+  
+  VIRTUAL PROCEDURE SetHelpContext( 
+      (* [in] *) dwHelpContext : windows.DWORD ): HRESULT;
+  
+END ICreateErrorInfo;
+    
+//===== ISupportErrorInfo
+VAR
+  IID_ISupportErrorInfo : IID;
+
+COM INTERFACE ISupportErrorInfo( unknwn.IUnknown );
+
+  VIRTUAL PROCEDURE InterfaceSupportsErrorInfo( 
+      (* [in] *) CONST riid : IID ): HRESULT;
+  
+END ISupportErrorInfo;
+    
+// Additional Prototypes for ALL interfaces
+
+PROCEDURE BSTR_UserSize( _ : PLONGCARD; _ : LONGCARD; _ : wtypes.PBSTR ): LONGCARD;
+PROCEDURE BSTR_UserMarshal( _ : PLONGCARD; _ : PCHAR; _ : wtypes.PBSTR ): PCHAR;
+PROCEDURE BSTR_UserUnmarshal( _ : PLONGCARD; _ : PCHAR; _ : wtypes.PBSTR ): PCHAR;
+PROCEDURE BSTR_UserFree( _ : PLONGCARD; _ : wtypes.PBSTR );
+
+PROCEDURE CLEANLOCALSTORAGE_UserSize( _ : PLONGCARD; _ : LONGCARD; _ : PCLEANLOCALSTORAGE ): LONGCARD;
+PROCEDURE CLEANLOCALSTORAGE_UserMarshal( _ : PLONGCARD; _ : PCHAR; _ : PCLEANLOCALSTORAGE ): PCHAR;
+PROCEDURE CLEANLOCALSTORAGE_UserUnmarshal( _ : PLONGCARD; _ : PCHAR; _ : PCLEANLOCALSTORAGE ): PCHAR;
+PROCEDURE CLEANLOCALSTORAGE_UserFree( _ : PLONGCARD; _ : PCLEANLOCALSTORAGE ); 
+
+PROCEDURE VARIANT_UserSize( _ : PLONGCARD; _ : LONGCARD; _ : PVARIANT ): LONGCARD;
+PROCEDURE VARIANT_UserMarshal( _ : PLONGCARD; _ : PCHAR; _ : PVARIANT ): PCHAR;
+PROCEDURE VARIANT_UserUnmarshal( _ : PLONGCARD; _ : PCHAR; _ : PVARIANT ): PCHAR;
+PROCEDURE VARIANT_UserFree( _ : PLONGCARD; _ : PVARIANT ); 
+
+END oaidl.

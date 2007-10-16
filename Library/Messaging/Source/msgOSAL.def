@@ -1,0 +1,61 @@
+DEFINITION MODULE msgOSAL;
+
+#save, option( dll_export => on )
+
+(*===========================================================================*)
+
+TYPE
+  TDelivery = (
+    delUnknown,
+    delSynchronous, // Message directly calls OnMessage
+    delSynchronousInThread, // Message directly calls OnMessage if Handler is of the current thread
+    delAsynchronous,
+    delDefault = delAsynchronous
+  );
+
+TYPE
+  TPMessage = POINTER TO IMessage;
+  TPMessageRecipient = POINTER TO IMessageRecipient;
+  TPMessageHandler = POINTER TO IMessageHandler;
+
+(*---------------------------------------------------------------------------*)
+  
+INTERFACE IMessage;
+  PUBLIC ABSTRACT PROPERTY
+    Target : TPMessageHandler; // [0], if Target is NIL the message's target is owner of Message method taking the message
+    Message : CARDINAL; // [1]
+  PUBLIC ABSTRACT READONLY PROPERTY
+    ParameterCount : CARDINAL; // including MSG and optional Target
+  PUBLIC ABSTRACT 
+    INDEX( ParameterIndex : CARDINAL ) : PTR;
+  PUBLIC ABSTRACT PROCEDURE
+    Clone() : POINTER TO IMessage;
+END IMessage;
+
+(*---------------------------------------------------------------------------*)
+  
+INTERFACE IMessageRecipient;
+  PUBLIC ABSTRACT READONLY PROPERTY
+    OfThread : CARDINAL;
+
+  PUBLIC ABSTRACT PROCEDURE Message( CONST MSG : IMessage; Delivery : TDelivery; Result : PPTR ) : BOOLEAN;
+  INTERNAL ABSTRACT PROCEDURE OnMessage( CONST MSG : IMessage; OUT Result : PTR ) : BOOLEAN;
+END IMessageRecipient;  
+
+(*---------------------------------------------------------------------------*)
+  
+INTERFACE IMessageHandler( IMessageRecipient );
+  PUBLIC ABSTRACT READONLY PROPERTY
+    Handle : PTR;
+
+  INTERNAL ABSTRACT PROCEDURE StartTimer( Timer : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
+  INTERNAL ABSTRACT PROCEDURE TimerRunning( Timer : PTR ) : BOOLEAN;
+  INTERNAL ABSTRACT PROCEDURE StopTimer( Timer : PTR );
+  INTERNAL ABSTRACT PROCEDURE OnTimer( Timer : PTR );
+END IMessageHandler;
+
+(*===========================================================================*)
+
+#restore
+
+END msgOSAL.

@@ -1,0 +1,18 @@
+DEFINITION MODULE LanguagesO;
+
+IMPORT
+	StringsO,
+	StorageO;
+
+(*================================================================================*)
+
+#save, option( dll_export => on )
+
+PROCEDURE ToMB( CONST String : StringsO.IString; CodePage : CARDINAL; OUT Buffer : StorageO.AMemoryBuffer );
+PROCEDURE FromMB( CONST Buffer : StorageO.AMemoryBuffer; CodePage : CARDINAL; OUT String : StringsO.IString );
+
+#restore
+
+(*================================================================================*)
+
+END LanguagesO.

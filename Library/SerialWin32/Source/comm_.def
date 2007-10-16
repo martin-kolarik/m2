@@ -1,0 +1,236 @@
+DEFINITION MODULE comm_;
+
+CONST
+	ENGLISH = FALSE;
+	CZECH = TRUE;
+	GERMAN = FALSE;
+	JAPANESE = FALSE;
+
+CONST
+// scanner
+  secCOMMPAR                = 'comm';
+
+  keyFILE                   = 'file';
+  keyDEVICE                 = 'device';
+  keyRX_FRAME_BUFFER        = 'rx_frame_buffer';
+  keyTX_FRAME_BUFFER        = 'tx_frame_buffer';
+  keyRX_BUFFER              = 'rx_buffer';
+  keyTX_BUFFER              = 'tx_buffer';
+
+  keyBAUDRATE               = 'baudrate';
+  keyPARITY                 = 'parity';
+  keyNONE                   = 'none';
+  keyNO                     = 'no';
+  keyEVEN                   = 'even';
+  keyMARK                   = 'mark';
+  keyODD                    = 'odd';
+  keySPACE                  = 'space';
+  keyCTSFLOW                = 'cts_flow';
+  keyDSRFLOW                = 'dsr_flow';
+  keyDTRCONTROL             = 'dtr_control';
+  keyRTSCONTROL             = 'rts_control';
+  keyDISABLE                = 'disable';
+  keyENABLE                 = 'enable';
+  keyHANDSHAKE              = 'handshake';
+  keyTOGGLE                 = 'toggle';
+  keyTOGGLE_NEG             = 'toggle_neg';
+  keyDSRSENSE               = 'dsr_sense';
+  keyLOW                    = 'low';
+  keyHIGH                   = 'high';
+  keyTX_CONT_ON_XOFF        = 'tx_continue_xon_xoff';
+  keyTX_CONT_ON_XOFF2       = 'tx_continue_on_xoff';
+  keyTX_XON_XOFF            = 'tx_xon_xoff';
+  keyRX_XON_XOFF            = 'rx_xon_xoff';
+  keyXON_TRESH              = 'xon_tresh';
+  keyXOFF_TRESH             = 'xoff_tresh';
+  keyERR_XLAT               = 'error_xlat';
+  keyDISCARD_NULL           = 'discard_null';
+  keyDATABITS               = 'databits';
+  keySTOPBITS               = 'stopbits';
+  keyONE                    = 'one';
+  keyONEANDHALF             = 'oneandhalf';
+  keyTWO                    = 'two';
+  keyXONCHAR                = 'xon_char';
+  keyXOFFCHAR               = 'xoff_char';
+  keyERRCHAR                = 'err_char';
+  keyEOFCHAR                = 'eof_char';
+  keyEVTCHAR                = 'evt_char';
+
+  keyRX_INT_TIMEOUT         = 'rx_interchar_timeout';
+  keyRX_TIMEOUT_MULT        = 'rx_char_timeout';
+  keyRX_TIMEOUT             = 'rx_timeout';
+  keyTX_TIMEOUT_MULT        = 'tx_char_timeout';
+  keyTX_TIMEOUT             = 'tx_timeout';
+
+  keyPRIORITY               = 'priority';
+  keyIDLE                   = 'idle';
+  keyBELOW_NORMAL           = 'below_normal';
+  keyNORMAL                 = 'normal';
+  keyABOVE_NORMAL           = 'above_normal';
+  keyREALTIME               = 'realtime';
+
+  keyMODE                   = 'mode';
+  keyFULLDUPLEX             = 'fullduplex';
+  keyHALFDUPLEX             = 'halfduplex';
+
+  keyPREKEY                 = 'pre_key';
+  keyHOLDKEY                = 'hold_key';
+
+  keyAUTO_READ              = 'auto_read';
+
+// error messages
+(*%T ENGLISH *)
+  errPRIVATE_CONFLICT               = 'Communication layer usage conflict - CWCOMM';
+  errCANNOT_INITIALIZE              = 'Cannot initialize';
+  errMISSING_DEVICE                 = 'Missing device specification';
+  errCANNOT_OPEN_                   = 'Cannot open file ';
+  errCANNOT_OPEN_DEVICE_            = 'Cannot open device ';
+  errMISSING_                       = 'Missing ';
+  errUNKNOWN_                       = 'Unknown phrase ';
+  errUNABLE_INIT_DEVICE_            = 'Unable to initialize device ';
+  errUNABLE_SETUP_DEVICE_BUFFERS    = 'Unable to setup device buffers';
+  errUNABLE_SETUP_DEVICE_TIMEOUTS   = 'Unable to setup device timeouts';
+  errSETUP_FAILED                   = 'Setup failed';
+  errSETUP_FAILED_                  = 'Setup failed: ';
+(*%E ENGLISH *)
+
+(*%T GERMAN *)
+  errPRIVATE_CONFLICT               = 'Anwendungskonflikt der Kommunikationsebene';
+  errCANNOT_INITIALIZE              = 'Initialisierung nicht möglich';
+  errMISSING_DEVICE                 = 'Spezifikation der Einrichtung fehlt';
+  errCANNOT_OPEN_                   = 'Datei läßt sich nicht öffnen ';
+  errCANNOT_OPEN_DEVICE_            = 'Einrichtung kann nicht geöffnet werden ';
+  errMISSING_                       = 'fehlt ';
+  errUNKNOWN_                       = 'unbekannte Phrase ';
+  errUNABLE_INIT_DEVICE_            = 'Einrichtung läßt sich nicht initialisieren ';
+  errUNABLE_SETUP_DEVICE_BUFFERS    = 'Einrichtungspuffer läßt sich nicht initialisieren';
+  errUNABLE_SETUP_DEVICE_TIMEOUTS   = 'Zeitüberwachung der Einrichtung läßt sich nicht initialisieren';
+  errSETUP_FAILED                   = 'erfolglose Initialisierung';
+  errSETUP_FAILED_                  = 'erfolglose Initialisierung: ';
+(*%E GERMAN *)
+
+(*%T JAPANESE *)
+(*# option( char_escape => on ) *)
+  errPRIVATE_CONFLICT               = 'Communication \xff9a\xff72\xff94\x306e\x4f7f\x7528\x304c\x885d\x7a81\x3057\x3066\x3044\x307e\x3059';
+  errCANNOT_INITIALIZE              = '\x521d\x671f\x5316\x3067\x304d\x307e\x305b\x3093';
+  errMISSING_DEVICE                 = '\xff83\xff9e\xff8a\xff9e\xff72\xff7d\x4ed5\x69d8\x304c\x898b\x3064\x304b\x308a\x307e\x305b\x3093';
+  errCANNOT_OPEN_                   = '\xff8c\xff67\xff72\xff99\x3092\xff75\xff70\xff8c\xff9f\xff9d\x3067\x304d\x307e\x305b\x3093';
+  errCANNOT_OPEN_DEVICE_            = '\xff83\xff9e\xff8a\xff9e\xff72\xff7d\x3092\xff75\xff70\xff8c\xff9f\xff9d\x3067\x304d\x307e\x305b\x3093';
+  errMISSING_                       = '\x898b\x3064\x304b\x308a\x307e\x305b\x3093 ';
+  errUNKNOWN_                       = '\x672a\x77e5\x306e\xff8c\xff9a\xff70\xff7d\xff9e ';
+  errUNABLE_INIT_DEVICE_            = '\xff83\xff9e\xff8a\xff9e\xff72\xff7d\x3092\x521d\x671f\x5316\x3067\x304d\x307e\x305b\x3093';
+  errUNABLE_SETUP_DEVICE_BUFFERS    = '\xff83\xff9e\xff8a\xff9e\xff72\xff7d\xff8a\xff9e\xff8c\xff67\x3092\x8a2d\x5b9a\x3067\x304d\x307e\x305b\x3093';
+  errUNABLE_SETUP_DEVICE_TIMEOUTS   = '\xff83\xff9e\xff8a\xff9e\xff72\xff7d\xff80\xff72\xff91\xff71\xff73\xff84\x3092\x8a2d\x5b9a\x3067\x304d\x307e\x305b\x3093';
+  errSETUP_FAILED                   = '\x8a2d\x5b9a\x306b\x5931\x6557\x3057\x307e\x3057\x305f';
+  errSETUP_FAILED_                  = '\x8a2d\x5b9a\x306b\x5931\x6557\x3057\x307e\x3057\x305f: ';
+(*# option( char_escape => off ) *)
+(*%E JAPANESE *)
+
+(*%T CZECH *)
+  errPRIVATE_CONFLICT               = 'Konflikt použití komunikaèní vrstvy - CWCOMM';
+  errCANNOT_INITIALIZE              = 'Nelze inicializovat';
+  errMISSING_DEVICE                 = 'Chybí specifikace zaøízení';
+  errCANNOT_OPEN_                   = 'Nelze otevøít soubor ';
+  errCANNOT_OPEN_DEVICE_            = 'Nelze otevøít zaøízení ';
+  errMISSING_                       = 'Chybí ';
+  errUNKNOWN_                       = 'Neznámá fráze ';
+  errUNABLE_INIT_DEVICE_            = 'Nelze inicializovat zaøízení ';
+  errUNABLE_SETUP_DEVICE_BUFFERS    = 'Nelze inicializovat buffery zaøízení';
+  errUNABLE_SETUP_DEVICE_TIMEOUTS   = 'Nelze inicializovat timeout zaøízení';
+  errSETUP_FAILED                   = 'Neúspìšná inicializace';
+  errSETUP_FAILED_                  = 'Neúspìšná inicializace: ';
+(*%E CZECH *)
+
+END comm_.
+
+
+(*/*
+
+[comm]
+
+*  file = <filename>             // file with parameters; not necessary
+
+*  device = <device_name>        // name of device; not necessary, should not be used
+
+*  priority = idle | low | below_normal | normal (*) | above_normal | high | realtime
+
+[<device_name>] .. if the section <device_name> exists, parameters are given from it; otherwise [comm] is used
+
+
+*  mode = fullduplex (*)
+        | halfduplex
+
+*  pre_key = <n>              pre-transmision delay (ms)
+
+*  hold_key = <n>             post-transmision delay (ms)
+
+  rx_frame_buffer = <n>       \  min. 96      not used since cwcomm version 3
+  tx_frame_buffer = <n>       /  max. 65535   not used since cwcomm version 3
+*  rx_buffer = <n>            \
+*  tx_buffer = <n>            /  default: 4096
+
+  baudrate = <n>
+
+  databits = <n>
+
+  stopbits = one | 1
+           | oneandhalf | 1.5
+           | two | 2
+
+  parity = none | no 
+         | even
+         | mark
+         | odd
+         | space
+
+  cts_flow = true
+           | false
+
+  dsr_flow = true
+           | false
+
+  dtr_control = disable | low 
+              | enable | high
+              | handshake
+              | toggle
+              | toggle_neg
+
+  rts_control = disable | low
+              | enable | high
+              | handshake
+              | toggle
+              | toggle_neg
+
+  dsr_sense = low
+            | high
+
+*  tx_continue_xon_xoff = true
+                        | false (*)
+
+*  tx_xon_xoff = true
+               | false (*)
+
+   rx_xon_xoff = true
+               | false (*)
+
+*  xon_tresh = <n>      (*) 50%   in characters
+*  xoff_tresh = <n>     (*) 80%   in characters
+
+*  error_xlat = true
+              | false (*)
+
+*  discard_null = true
+                | false (*)
+*  xon_char = <n>
+*  xoff_char = <n>
+*  err_char = <n>
+*  eof_char = <n>
+*  evt_char = <n>
+
+  rx_interchar_timeout = <n>
+  rx_char_timeout = <n> | 0
+  rx_timeout = <n> | 0
+  tx_char_timeout = <n> | 0
+  tx_timeout = <n> | 0
+
+*/*)

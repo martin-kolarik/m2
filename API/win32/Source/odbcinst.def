@@ -1,0 +1,427 @@
+DEFINITION MODULE odbcinst;
+
+//==============================================================
+//              Prototypes for ODBCCP32.DLL
+//     32-bit version for M2CPP Modula-2 to C++ compiler
+//     Copyright (c)1996-1999 Moravian Instruments, Inc.
+//==============================================================
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+//==============================================================
+
+IMPORT 
+  windows;
+
+IMPORT
+  sqlext;
+
+CONST
+  ODBCVER = 0351H;  // Assume ODBC 3.51
+
+// Constants ---------------------------------------------------
+
+// SQLConfigDataSource request flags
+  ODBC_ADD_DSN            = 1;  // Add data source
+  ODBC_CONFIG_DSN         = 2;  // Configure (edit) data source
+  ODBC_REMOVE_DSN         = 3;  // Remove data source
+
+  ODBC_ADD_SYS_DSN        = 4;  // Add a system DSN
+  ODBC_CONFIG_SYS_DSN     = 5;  // Configure a system DSN
+  ODBC_REMOVE_SYS_DSN     = 6;  // Remove a system DSN
+  ODBC_REMOVE_DEFAULT_DSN = 7;  // Remove the default DSN
+
+// install request flags
+  ODBC_INSTALL_INQUIRY  = 1;  
+  ODBC_INSTALL_COMPLETE = 2;
+
+// config driver flags
+  ODBC_INSTALL_DRIVER    = 1;
+  ODBC_REMOVE_DRIVER     = 2;
+  ODBC_CONFIG_DRIVER     = 3;
+  ODBC_CONFIG_DRIVER_MAX = 100;
+
+// SQLGetConfigMode and SQLSetConfigMode flags
+  ODBC_BOTH_DSN   = 0;
+  ODBC_USER_DSN   = 1;
+  ODBC_SYSTEM_DSN = 2;
+
+// SQLInstallerError code
+  ODBC_ERROR_GENERAL_ERR             = 1;
+  ODBC_ERROR_INVALID_BUFF_LEN        = 2;
+  ODBC_ERROR_INVALID_HWND            = 3;
+  ODBC_ERROR_INVALID_STR             = 4;
+  ODBC_ERROR_INVALID_REQUEST_TYPE    = 5;
+  ODBC_ERROR_COMPONENT_NOT_FOUND     = 6;
+  ODBC_ERROR_INVALID_NAME            = 7;
+  ODBC_ERROR_INVALID_KEYWORD_VALUE   = 8;
+  ODBC_ERROR_INVALID_DSN             = 9;
+  ODBC_ERROR_INVALID_INF             = 10;
+  ODBC_ERROR_REQUEST_FAILED          = 11;
+  ODBC_ERROR_INVALID_PATH            = 12;
+  ODBC_ERROR_LOAD_LIB_FAILED         = 13;
+  ODBC_ERROR_INVALID_PARAM_SEQUENCE  = 14;
+  ODBC_ERROR_INVALID_LOG_FILE        = 15;
+  ODBC_ERROR_USER_CANCELED           = 16;
+  ODBC_ERROR_USAGE_UPDATE_FAILED     = 17;
+  ODBC_ERROR_CREATE_DSN_FAILED       = 18;
+  ODBC_ERROR_WRITING_SYSINFO_FAILED  = 19;
+  ODBC_ERROR_REMOVE_DSN_FAILED       = 20;
+  ODBC_ERROR_OUT_OF_MEM              = 21;
+  ODBC_ERROR_OUTPUT_STRING_TRUNCATED = 22;
+
+
+// High level APIs
+(*%F UNICODE *)
+PROCEDURE SQLInstallODBC( hwndParent  : windows.HWND;
+                          lpszInfFile : windows.PCSTR;
+                          lpszSrcPath : windows.PCSTR;
+                          lpszDrivers : windows.PCSTR ) : windows.BOOL;
+(*%E UNICODE *)
+
+PROCEDURE SQLManageDataSources( hwndParent : windows.HWND ) : windows.BOOL;
+
+(*%F UNICODE *)
+PROCEDURE SQLCreateDataSource( hwndParent : windows.HWND; 
+                               lpszDSN    : windows.PCSTR ) : windows.BOOL;
+
+PROCEDURE SQLGetTranslator( hwnd       : windows.HWND;
+                            lpszName   : windows.PSTR;
+                            cbNameMax  : WORD;
+                            pcbNameOut : windows.PWORD;
+                            lpszPath   : windows.PSTR;
+                            cbPathMax  : WORD;
+                            pcbPathOut : windows.PWORD;
+                            pvOption   : windows.PDWORD ) : windows.BOOL;
+(*%E UNICODE *)
+
+// Low level APIs
+// NOTE: The high-level APIs should always be used. These APIs have been left for compatibility.
+(*%F UNICODE *)
+PROCEDURE SQLInstallDriver( lpszInfFile : windows.PCSTR;
+                            lpszDriver  : windows.PCSTR;
+                            lpszPath    : windows.PSTR;
+                            cbPathMax   : WORD;
+                            pcbPathOut  : windows.PWORD ) : windows.BOOL;
+
+PROCEDURE SQLInstallDriverManager( lpszPath   : windows.PSTR;
+                                   cbPathMax  : WORD;
+                                   pcbPathOut : windows.PWORD ) : windows.BOOL;
+
+PROCEDURE SQLGetInstalledDrivers( lpszBuf   : windows.PSTR;
+                                  cbBufMax  : WORD;
+                                  pcbBufOut : windows.PWORD ) : windows.BOOL;
+
+PROCEDURE SQLGetAvailableDrivers( lpszInfFile : windows.PCSTR;
+                                  lpszBuf     : windows.PSTR;
+                                  cbBufMax    : WORD;
+                                  pcbBufOut   : windows.PWORD ) : windows.BOOL;
+
+PROCEDURE SQLConfigDataSource( hwndParent     : windows.HWND;
+                               fRequest       : WORD;
+                               lpszDriver     : windows.PCSTR;
+                               lpszAttributes : windows.PCSTR ) : windows.BOOL;
+(*%E UNICODE *)
+
+PROCEDURE SQLRemoveDefaultDataSource() : windows.BOOL;
+
+(*%F UNICODE *)
+PROCEDURE SQLWriteDSNToIni( lpszDSN    : windows.PCSTR; 
+                            lpszDriver : windows.PCSTR ) : windows.BOOL;
+
+PROCEDURE SQLRemoveDSNFromIni( lpszDSN : windows.PCSTR ) : windows.BOOL;
+
+PROCEDURE SQLValidDSN( lpszDSN : windows.PCSTR ) : windows.BOOL;
+
+PROCEDURE SQLWritePrivateProfileString( lpszSection  : windows.PCSTR;
+                                        lpszEntry    : windows.PCSTR;
+                                        lpszString   : windows.PCSTR;
+                                        lpszFilename : windows.PCSTR ) : windows.BOOL;
+
+PROCEDURE SQLGetPrivateProfileString( lpszSection   : windows.PCSTR;
+                                      lpszEntry     : windows.PCSTR;
+                                      lpszDefault   : windows.PCSTR;
+                                      lpszRetBuffer : windows.PSTR;
+                                      cbRetBuffer   : windows.INT;
+                                      lpszFilename  : windows.PCSTR ) : windows.INT;
+(*%E UNICODE *)
+
+PROCEDURE SQLRemoveDriverManager( lpdwUsageCount : windows.PDWORD ) : windows.BOOL;
+
+(*%F UNICODE *)
+PROCEDURE SQLInstallTranslator( lpszInfFile    : windows.PCSTR;
+                                lpszTranslator : windows.PCSTR;
+                                lpszPathIn     : windows.PCSTR;
+                                lpszPathOut    : windows.PSTR;
+                                cbPathOutMax   : WORD;
+                                pcbPathOut     : windows.PWORD;
+                                fRequest       : WORD;
+                                lpdwUsageCount : windows.PDWORD ) : windows.BOOL;
+
+PROCEDURE SQLRemoveTranslator( lpszTranslator : windows.PCSTR; 
+                               lpdwUsageCount : windows.PDWORD ) : windows.BOOL;
+
+PROCEDURE SQLRemoveDriver( lpszDriver     : windows.PCSTR; 
+                           fRemoveDSN     : windows.BOOL; 
+                           lpdwUsageCount : windows.PDWORD ) : windows.BOOL;
+
+PROCEDURE SQLConfigDriver( hwndParent : windows.HWND; 
+                           fRequest   : WORD; 
+                           lpszDriver : windows.PCSTR;
+                           lpszArgs   : windows.PCSTR;
+                           lpszMsg    : windows.PSTR;
+                           cbMsgMax   : WORD;
+                           pcbMsgOut  : windows.PWORD ) : windows.BOOL;
+
+PROCEDURE SQLInstallerError( iError        : WORD;
+                             pfErrorCode   : windows.PDWORD;
+                             lpszErrorMsg  : windows.PSTR;
+                             cbErrorMsgMax : WORD;
+                             pcbErrorMsg   : windows.PWORD ) : sqlext.SQLRETURN ;
+
+PROCEDURE SQLPostInstallerError( dwErrorCode : windows.DWORD; 
+                                 lpszErrMsg  : windows.PCSTR ) : sqlext.SQLRETURN ;
+
+PROCEDURE SQLWriteFileDSN( lpszFileName : windows.PCSTR;
+                           lpszAppName  : windows.PCSTR;
+                           lpszKeyName  : windows.PCSTR;
+                           lpszString   : windows.PCSTR ) : windows.BOOL;
+
+PROCEDURE SQLReadFileDSN( lpszFileName : windows.PCSTR;
+                          lpszAppName  : windows.PCSTR;
+                          lpszKeyName  : windows.PCSTR;
+                          lpszString   : windows.PSTR;
+                          cbString     : WORD;
+                          pcbString    : windows.PWORD ) : windows.BOOL;
+
+PROCEDURE SQLInstallDriverEx( lpszDriver     : windows.PCSTR;
+                              lpszPathIn     : windows.PCSTR;
+                              lpszPathOut    : windows.PSTR;
+                              cbPathOutMax   : WORD;
+                              pcbPathOut     : windows.PWORD;
+                              fRequest       : WORD;
+                              lpdwUsageCount : windows.PDWORD ) : windows.BOOL;
+
+PROCEDURE SQLInstallTranslatorEx( lpszTranslator : windows.PCSTR;
+                                  lpszPathIn     : windows.PCSTR;
+                                  lpszPathOut    : windows.PSTR;
+                                  cbPathOutMax   : WORD;
+                                  pcbPathOut     : windows.PWORD;
+                                  fRequest       : WORD;
+                                  lpdwUsageCount : windows.PDWORD ) : windows.BOOL;
+(*%E UNICODE *)
+
+PROCEDURE SQLGetConfigMode( pwConfigMode : sqlext.PUWORD ) : windows.BOOL;
+
+PROCEDURE SQLSetConfigMode( wConfigMode : sqlext.UWORD ) : windows.BOOL;
+
+// Driver specific Setup APIs called by installer
+
+(*%F UNICODE *)
+PROCEDURE ConfigDSN( hwndParent     : windows.HWND;
+                     fRequest       : WORD;
+                     lpszDriver     : windows.PCSTR;
+                     lpszAttributes : windows.PCSTR ) : windows.BOOL;
+(*%E UNICODE *)
+
+PROCEDURE ConfigTranslator( hwndParent : windows.HWND;
+                            pvOption   : windows.PDWORD ) : windows.BOOL;
+
+(*%F UNICODE *)
+PROCEDURE ConfigDriver( hwndParent : windows.HWND; 
+                        fRequest   : WORD; 
+                        lpszDriver : windows.PCSTR;
+                        lpszArgs   : windows.PCSTR; 
+                        lpszMsg    : windows.PSTR; 
+                        cbMsgMax   : WORD; 
+                        pcbMsgOut  : windows.PWORD ) : windows.BOOL;
+(*%E UNICODE *)
+
+// UNICODE APIs ================================================
+
+// High level APIs
+
+PROCEDURE SQLInstallODBCW( hwndParent	: windows.HWND;
+												   lpszInfFile : windows.PCWSTR;
+													 lpszSrcPath : windows.PCWSTR;
+													 lpszDrivers : windows.PCWSTR ) : windows.BOOL;
+
+PROCEDURE SQLCreateDataSourceW( hwndParent : windows.HWND; 
+                                lpszDSN    : windows.PCWSTR ) : windows.BOOL;
+
+PROCEDURE SQLGetTranslatorW( hwnd       : windows.HWND;
+                             lpszName   : windows.PWSTR;
+                             cbNameMax  : WORD;
+                             pcbNameOut : windows.PWORD;
+                             lpszPath   : windows.PWSTR;
+                             cbPathMax  : WORD;
+                             pcbPathOut : windows.PWORD;
+                             pvOption   : windows.PDWORD ) : windows.BOOL;
+
+
+// Low level APIs
+// NOTE: The high-level APIs should always be used. These APIs
+//			 have been left for compatibility.
+PROCEDURE SQLInstallDriverW( lpszInfFile : windows.PCWSTR;
+                             lpszDriver  : windows.PCWSTR;
+                             lpszPath    : windows.PWSTR;
+                             cbPathMax   : WORD;
+                             pcbPathOut  : windows.PWORD ) : windows.BOOL;
+
+PROCEDURE SQLInstallDriverManagerW( lpszPath   : windows.PWSTR;
+                                    cbPathMax  : WORD;
+                                    pcbPathOut : windows.PWORD ) : windows.BOOL;
+
+PROCEDURE SQLGetInstalledDriversW( lpszBuf   : windows.PWSTR;
+                                   cbBufMax  : WORD;
+                                   pcbBufOut : windows.PWORD ) : windows.BOOL;
+
+PROCEDURE SQLGetAvailableDriversW( lpszInfFile : windows.PCWSTR;
+                                   lpszBuf     : windows.PWSTR;
+                                   cbBufMax    : WORD;
+                                   pcbBufOut   : windows.PWORD ) : windows.BOOL;
+
+PROCEDURE SQLConfigDataSourceW( hwndParent     : windows.HWND;
+                                fRequest       : WORD;
+                                lpszDriver     : windows.PCWSTR;
+                                lpszAttributes : windows.PCWSTR ) : windows.BOOL;
+
+PROCEDURE SQLWriteDSNToIniW( lpszDSN    : windows.PCWSTR; 
+                             lpszDriver : windows.PCWSTR ) : windows.BOOL;
+
+PROCEDURE SQLRemoveDSNFromIniW( lpszDSN : windows.PCWSTR ) : windows.BOOL;
+
+PROCEDURE SQLValidDSNW( lpszDSN : windows.PCWSTR ) : windows.BOOL;
+
+PROCEDURE SQLWritePrivateProfileStringW( lpszSection  : windows.PCWSTR;
+                                         lpszEntry    : windows.PCWSTR;
+                                         lpszString   : windows.PCWSTR;
+                                         lpszFilename : windows.PCWSTR ) : windows.BOOL;
+
+PROCEDURE SQLGetPrivateProfileStringW( lpszSection   : windows.PCWSTR;
+                                       lpszEntry     : windows.PCWSTR;
+                                       lpszDefault   : windows.PCWSTR;
+                                       lpszRetBuffer : windows.PWSTR;
+                                       cbRetBuffer   : windows.INT;
+                                       lpszFilename  : windows.PCWSTR ) : windows.INT;
+
+PROCEDURE SQLInstallTranslatorW( lpszInfFile    : windows.PCWSTR;
+                                 lpszTranslator : windows.PCWSTR;
+                                 lpszPathIn     : windows.PCWSTR;
+                                 lpszPathOut    : windows.PWSTR;
+                                 cbPathOutMax   : WORD;
+                                 pcbPathOut     : windows.PWORD;
+                                 fRequest       : WORD;
+                                 lpdwUsageCount : windows.PDWORD ) : windows.BOOL;
+
+PROCEDURE SQLRemoveTranslatorW( lpszTranslator : windows.PCWSTR; 
+                                lpdwUsageCount : windows.PDWORD ) : windows.BOOL;
+
+PROCEDURE SQLRemoveDriverW( lpszDriver     : windows.PCWSTR; 
+                            fRemoveDSN     : windows.BOOL; 
+                            lpdwUsageCount : windows.PDWORD ) : windows.BOOL;
+
+PROCEDURE SQLConfigDriverW( hwndParent : windows.HWND; 
+                            fRequest   : WORD; 
+                            lpszDriver : windows.PCWSTR;
+                            lpszArgs   : windows.PCWSTR;
+                            lpszMsg    : windows.PWSTR;
+                            cbMsgMax   : WORD;
+                            pcbMsgOut  : windows.PWORD ) : windows.BOOL;
+
+PROCEDURE SQLInstallerErrorW( iError        : WORD;
+                              pfErrorCode   : windows.PDWORD;
+                              lpszErrorMsg  : windows.PWSTR;
+                              cbErrorMsgMax : WORD;
+                              pcbErrorMsg   : windows.PWORD ) : sqlext.SQLRETURN ;
+
+PROCEDURE SQLPostInstallerErrorW( dwErrorCode : windows.DWORD; 
+                                  lpszErrMsg  : windows.PCWSTR ) : sqlext.SQLRETURN ;
+
+PROCEDURE SQLWriteFileDSNW( lpszFileName : windows.PCWSTR;
+                            lpszAppName  : windows.PCWSTR;
+                            lpszKeyName  : windows.PCWSTR;
+                            lpszString   : windows.PCWSTR ) : windows.BOOL;
+
+PROCEDURE  SQLReadFileDSNW( lpszFileName : windows.PCWSTR;
+                            lpszAppName  : windows.PCWSTR;
+                            lpszKeyName  : windows.PCWSTR;
+                            lpszString   : windows.PWSTR;
+                            cbString     : WORD;
+                            pcbString    : windows.PWORD ) : windows.BOOL;
+
+PROCEDURE SQLInstallDriverExW( lpszDriver     : windows.PCWSTR;
+                               lpszPathIn     : windows.PCWSTR;
+                               lpszPathOut    : windows.PWSTR;
+                               cbPathOutMax   : WORD;
+                               pcbPathOut     : windows.PWORD;
+                               fRequest       : WORD;
+                               lpdwUsageCount : windows.PDWORD ) : windows.BOOL;
+
+PROCEDURE SQLInstallTranslatorExW( lpszTranslator : windows.PCWSTR;
+                                   lpszPathIn     : windows.PCWSTR;
+                                   lpszPathOut    : windows.PWSTR;
+                                   cbPathOutMax   : WORD;
+                                   pcbPathOut     : windows.PWORD;
+                                   fRequest       : WORD;
+                                   lpdwUsageCount : windows.PDWORD ) : windows.BOOL;
+
+//	Driver specific Setup APIs called by installer
+
+PROCEDURE ConfigDSNW( hwndParent     : windows.HWND;
+                      fRequest       : WORD;
+                      lpszDriver     : windows.PCWSTR;
+                      lpszAttributes : windows.PCWSTR ) : windows.BOOL;
+
+
+PROCEDURE ConfigDriverW( hwndParent : windows.HWND; 
+                         fRequest   : WORD; 
+                         lpszDriver : windows.PCWSTR;
+                         lpszArgs   : windows.PCWSTR; 
+                         lpszMsg    : windows.PWSTR; 
+                         cbMsgMax   : WORD; 
+                         pcbMsgOut  : windows.PWORD ) : windows.BOOL;
+
+//--------------------------------------------------------------
+// Mapping macros for UNICODE
+//--------------------------------------------------------------
+
+CONST
+(*%T UNICODE *)
+  SQLInstallODBC 				       ::= SQLInstallODBCW;
+  SQLCreateDataSource			     ::= SQLCreateDataSourceW;
+  SQLGetTranslator 				     ::= SQLGetTranslatorW;
+  SQLInstallDriver 			       ::= SQLInstallDriverW;
+  SQLInstallDriverManager		   ::= SQLInstallDriverManagerW;
+  SQLGetInstalledDrivers 		   ::= SQLGetInstalledDriversW;
+  SQLGetAvailableDrivers 		   ::= SQLGetAvailableDriversW;
+  SQLConfigDataSource			     ::= SQLConfigDataSourceW;
+  SQLWriteDSNToIni 			       ::= SQLWriteDSNToIniW;
+  SQLRemoveDSNFromIni			     ::= SQLRemoveDSNFromIniW;
+  SQLValidDSN					         ::= SQLValidDSNW;
+  SQLWritePrivateProfileString ::= SQLWritePrivateProfileStringW;
+  SQLGetPrivateProfileString 	 ::= SQLGetPrivateProfileStringW;
+  SQLInstallTranslator 	       ::= SQLInstallTranslatorW;
+  SQLRemoveTranslator		       ::= SQLRemoveTranslatorW;
+  SQLRemoveDriver				       ::= SQLRemoveDriverW;
+  SQLConfigDriver				       ::= SQLConfigDriverW;
+  SQLInstallerError			       ::= SQLInstallerErrorW;
+  SQLPostInstallerError	       ::= SQLPostInstallerErrorW;
+  SQLReadFileDSN 				       ::= SQLReadFileDSNW;
+  SQLWriteFileDSN				       ::= SQLWriteFileDSNW;
+  SQLInstallDriverEx           ::= SQLInstallDriverExW;
+  SQLInstallTranslatorEx       ::= SQLInstallTranslatorExW;
+  ConfigDSN                    ::= ConfigDSNW; 
+  ConfigDriver                 ::= ConfigDriverW;   
+(*%E UNICODE *)
+
+END odbcinst.

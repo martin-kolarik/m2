@@ -1,0 +1,18 @@
+DEFINITION MODULE netpool;
+
+//--------------------------------------------------------------------------------
+// internal module of net library, procedures should be used outside it
+
+IMPORT
+  threadpool;
+
+PROCEDURE Pool() : threadpool.TPThreadPool;
+
+//--------------------------------------------------------------------------------
+
+PROCEDURE Startup();
+PROCEDURE Cleanup();
+
+//--------------------------------------------------------------------------------
+
+END netpool.

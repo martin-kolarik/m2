@@ -1,0 +1,72 @@
+DEFINITION MODULE rijndael;
+
+(*================================================================================*)
+
+// private, should be private in the CRindael
+CONST
+	rlen = 16;
+TYPE
+	TRunKey = ARRAY [0..63] OF LONGWORD;
+	TBlock = ARRAY [0..rlen-1] OF BYTE;
+	
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+	TCipherMode = (
+		cphmECBe, // block, electronic codebook encrypt, no IV
+		cphmECBd, // block, electronic codebook decrypt, no IV
+		cphmCBCe, // block, cipher block chain encrypt, requires IV
+		cphmCBCd, // block, cipher block chain decrypt, requires IV 
+		cphmCFB8e, // stream, cipher feed back encrypt, FeedbackSize = 8 bits, requires IV
+		cphmCFB8d, // stream, cipher feed back decrypt, FeedbackSize = 8 bits, requires IV
+		cphmCFB128e, // stream, cipher feed back encrypt, FeedbackSize = 128 bits, requires IV
+		cphmCFB128d, // stream, cipher feed back decrypt, FeedbackSize = 128 bits, requires IV
+		cphmOFBe, // output feed back encrypt, requires IV
+		cphmOFBd = cphmOFBe, // output feed back decrypt, requires IV
+		// cmCTR
+		cphmBlockEncrypt = cphmCBCe, // default
+		cphmBlockDecrypt = cphmCBCd, // default
+		cphmStreamEncrypt = cphmCFB128e, // default
+		cphmStreamDecrypt = cphmCFB128d // default
+	);
+
+	TRijndaelKeyLen = (
+		rkl128 = 16,
+		rkl192 = 24,
+		rkl256 = 32,
+		rklDefault = rkl256
+	);
+	
+(*--------------------------------------------------------------------------------*)
+
+CLASS CRijndael;
+	PRIVATE VAR
+		ciphermode : TCipherMode;
+		rounds : CARDINAL;
+		rkey : TRunKey;
+		rregister : TBlock;
+		rposition : CARDINAL; // current position in rregister
+
+	// main
+	PUBLIC PROCEDURE Init( CipherMode : TCipherMode; KeyLen : TRijndaelKeyLen; CONST Key, IV : ARRAY OF BYTE );
+	PUBLIC PROCEDURE Encrypt( CONST Input : ARRAY OF BYTE; OUT Output : ARRAY OF BYTE; OUT Filled : CARDINAL ) : BOOLEAN; // fails if mode requires complete block and the input is not padded by the block
+	PUBLIC PROCEDURE Decrypt( CONST Input : ARRAY OF BYTE; OUT Output : ARRAY OF BYTE; OUT Filled : CARDINAL ) : BOOLEAN; // fails if mode requires complete block and the input is not padded by the block
+
+	PRIVATE PROCEDURE KeySchedule( KeyLen : TRijndaelKeyLen; CONST Key : ARRAY OF BYTE );
+	PRIVATE PROCEDURE EncryptBlock( CONST Input : TBlock; OUT Output : TBlock );
+	PRIVATE PROCEDURE DecryptBlock( CONST Input : TBlock; OUT Output : TBlock );
+	PRIVATE INLINE PROCEDURE OperateXFB( CONST Input : ARRAY OF BYTE; OUT Output : ARRAY OF BYTE; OUT Filled : CARDINAL );
+	PRIVATE INLINE PROCEDURE OperateCFB8( CONST Input : ARRAY OF BYTE; OUT Output : ARRAY OF BYTE; OUT Filled : CARDINAL );
+END CRijndael;
+
+CONST
+	CAES ::= CRijndael;
+
+(*================================================================================*)
+
+PROCEDURE Encrypt( CipherMode : TCipherMode; KeyLen : TRijndaelKeyLen; CONST Key, IV, Input : ARRAY OF BYTE; OUT Output : ARRAY OF BYTE; OUT Filled : CARDINAL ) : BOOLEAN;
+PROCEDURE Decrypt( CipherMode : TCipherMode; KeyLen : TRijndaelKeyLen; CONST Key, IV, Input : ARRAY OF BYTE; OUT Output : ARRAY OF BYTE; OUT Filled : CARDINAL ) : BOOLEAN;
+
+(*================================================================================*)
+
+END rijndael.

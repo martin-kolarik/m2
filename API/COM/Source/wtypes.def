@@ -1,0 +1,553 @@
+DEFINITION MODULE wtypes;
+
+(*# name(   decoration      => c ) *)
+
+(*# module( header          => off ) *)
+
+(*# call(   o_a_size        => off,
+            c_arrays        => on,
+            result_optional => on,
+            convention      => stdcall ) *)
+
+IMPORT
+  windows,
+  guiddef;
+
+TYPE
+  RemHGLOBAL = RECORD
+                 fNullHGlobal : INTEGER;
+                 cbData       : CARDINAL;
+                 data         : ARRAY [0..0] OF BYTE;
+               END;
+
+  RemHMETAFILEPICT = RECORD
+                       mm     : INTEGER;
+                       xExt   : INTEGER;
+                       yExt   : INTEGER;
+                       cbData : CARDINAL;
+                       data   : ARRAY [0..0] OF BYTE;
+                     END;
+
+  RemHENHMETAFILE = RECORD
+                      cbData : CARDINAL;
+                      data   : ARRAY [0..0] OF BYTE;
+                    END;
+
+  RemHBITMAP = RECORD
+                 cbData : CARDINAL;
+                 data   : ARRAY [0..0] OF BYTE;
+               END;
+
+  RemHPALETTE = RECORD
+                  cbData : CARDINAL;
+                  data   : ARRAY [0..0] OF BYTE;
+                END;
+
+  RemHBRUSH = RECORD
+                 cbData : CARDINAL;
+                 data   : ARRAY [0..0] OF BYTE;
+              END;
+
+TYPE
+  OLECHAR    = WCHAR;
+  POLECHAR   = POINTER TO OLECHAR;
+  POLESTR    = POINTER TO OLECHAR;
+  PPOLESTR   = POINTER TO POLESTR;
+  PCOLESTR   = POINTER TO CONST OLECHAR;
+
+  DOUBLE     = LONGREAL;
+  DWORDLONG  = INT64;
+  PDWORDLONG = POINTER TO DWORDLONG;
+  LONGLONG   = INT64;
+  PLONGLONG  = POINTER TO LONGLONG;
+  ULONGLONG  = CARD64;
+  PULONGLONG = POINTER TO ULONGLONG;
+
+TYPE
+  COAUTHIDENTITY = RECORD
+                     User           : windows.PUSHORT;
+                     UserLength     : windows.ULONG;
+                     Domain         : windows.PUSHORT;
+                     DomainLength   : windows.ULONG;
+                     Password       : windows.PUSHORT;
+                     PasswordLength : windows.ULONG;
+                     Flags          : windows.ULONG;
+                   END;
+
+  COAUTHINFO = RECORD
+                 dwAuthnSvc           : windows.DWORD;
+                 dwAuthzSvc           : windows.DWORD;
+                 pwszServerPrintName  : windows.PWSTR;
+                 dwAuthnLevel         : windows.DWORD;
+                 dwImpersonationLevel : windows.DWORD;
+                 pAuthIdentityData    : POINTER TO COAUTHIDENTITY;
+                 dwCapabilities       : windows.DWORD;
+               END;
+
+  COSERVERINFO  = RECORD
+                    dwReserved1 : windows.DWORD;
+                    pwszName    : windows.PWSTR;;
+                    pAuthInfo   : POINTER TO COAUTHINFO;
+                    dwReserved2 : windows.DWORD;
+                  END;
+  PCOSERVERINFO = POINTER TO COSERVERINFO;
+
+TYPE
+  SCODE    = windows.LONG;
+  PSCODE   = POINTER TO SCODE;
+
+  HRESULT  = windows.LONG;
+  PHRESULT = POINTER TO HRESULT;
+
+  OBJECTID = RECORD
+               Lineage    : guiddef.GUID;
+               Uniquifier : CARDINAL;
+             END;
+
+TYPE
+  MEMCTX = (
+    MEMCTX_TASK      = 1,
+	  MEMCTX_SHARED    = 2,
+	  MEMCTX_MACSYSTEM = 3,
+	  MEMCTX_UNKNOWN   = -1,
+	  MEMCTX_SAME      = -2
+	);
+
+CONST
+  ROTFLAGS_REGISTRATIONKEEPSALIVE = 01H;
+  ROTFLAGS_ALLOWANYCLIENT         = 02H;
+  ROT_COMPARE_MAX                 = 2048;
+
+TYPE
+  CLSCTX = (
+    CLSCTX_INPROC_SERVER          = 000001H,
+    CLSCTX_INPROC_HANDLER         = 000002H,
+    CLSCTX_LOCAL_SERVER           = 000004H,
+    CLSCTX_INPROC_SERVER16        = 000008H,
+    CLSCTX_REMOTE_SERVER          = 000010H,
+    CLSCTX_INPROC_HANDLER16       = 000020H,
+    CLSCTX_RESERVED1              = 000040H,
+    CLSCTX_RESERVED2              = 000080H,
+    CLSCTX_RESERVED3              = 000100H,
+    CLSCTX_RESERVED4              = 000200H,
+    CLSCTX_NO_CODE_DOWNLOAD       = 000400H,
+    CLSCTX_RESERVED5              = 000800H,
+    CLSCTX_NO_CUSTOM_MARSHAL      = 001000H,
+    CLSCTX_ENABLE_CODE_DOWNLOAD   = 002000H,
+    CLSCTX_NO_FAILURE_LOG         = 004000H,
+    CLSCTX_DISABLE_AAA            = 008000H,
+    CLSCTX_ENABLE_AAA             = 010000H,
+    CLSCTX_FROM_DEFAULT_CONTEXT   = 020000H,
+    CLSCTX_ACTIVATE_32_BIT_SERVER = 040000H,
+    CLSCTX_ACTIVATE_64_BIT_SERVER = 080000H
+  );
+
+  MSHLFLAGS = (
+    MSHLFLAGS_NORMAL      = 0,
+    MSHLFLAGS_TABLESTRONG = 1,
+    MSHLFLAGS_TABLEWEAK   = 2,
+    MSHLFLAGS_NOPING      = 4
+  );
+
+  MSHCTX = (
+    MSHCTX_LOCAL            = 0,
+    MSHCTX_NOSHAREDMEM      = 1,
+    MSHCTX_DIFFERENTMACHINE = 2,
+    MSHCTX_INPROC           = 3
+  );
+
+  DVASPECT = (
+    DVASPECT_CONTENT   = 1,
+    DVASPECT_THUMBNAIL = 2,
+    DVASPECT_ICON      = 4,
+    DVASPECT_DOCPRINT  = 8
+  );
+
+  STGC = (
+    STGC_DEFAULT                            = 0,
+    STGC_OVERWRITE                          = 1,
+    STGC_ONLYIFCURRENT                      = 2,
+    STGC_DANGEROUSLYCOMMITMERELYTODISKCACHE = 4
+  );
+
+  STGMOVE = (
+    STGMOVE_MOVE        = 0,
+    STGMOVE_COPY        = 1,
+    STGMOVE_SHALLOWCOPY = 2
+  );
+
+  STATFLAG = (
+    STATFLAG_DEFAULT = 0,
+    STATFLAG_NONAME  = 1,
+    STATFLAG_NOOPEN  = 2
+  );
+
+TYPE
+  HCONTEXT      = ADDRESS;
+
+  LCID          = windows.DWORD;
+  PLCID         = POINTER TO LCID;
+  LANGID        = CARD16;
+
+  BYTE_BLOB     = RECORD
+                    clSize : CARDINAL;
+                    abData : ARRAY [0..0] OF BYTE;
+                  END;
+  UP_BYTE_BLOB  = POINTER TO BYTE_BLOB;
+
+  WORD_BLOB     = RECORD
+                    clSize : CARDINAL;
+                    asData : ARRAY [0..0] OF WORD;
+                  END;
+  UP_WORD_BLOB  = POINTER TO WORD_BLOB;
+
+  DWORD_BLOB    = RECORD
+                    clSize : CARDINAL;
+                    asData : ARRAY [0..0] OF LONGWORD;
+                  END;
+  UP_DWORD_BLOB = POINTER TO DWORD_BLOB;
+
+TYPE
+  FLAGGED_BYTE_BLOB     = RECORD
+                            fFlags : CARDINAL;
+                            clSize : CARDINAL;
+                            abData : ARRAY [0..0] OF BYTE;
+                          END;
+  UP_FLAGGED_BYTE_BLOB  = POINTER TO FLAGGED_BYTE_BLOB;
+
+  FLAGGED_WORD_BLOB     = RECORD
+                            fFlags : CARDINAL;
+                            clSize : CARDINAL;
+                            asData : ARRAY [0..0] OF WORD;
+                          END;
+  UP_FLAGGED_WORD_BLOB  = POINTER TO FLAGGED_WORD_BLOB;
+
+TYPE
+  BYTE_SIZEDARR   = RECORD
+                      clSize : CARDINAL;
+                      pData  : POINTER TO BYTE;
+                    END;
+
+  WORD_SIZEDARR   = RECORD
+                      clSize : CARDINAL;
+                      pData  : POINTER TO WORD;
+                    END;
+
+  DWORD_SIZEDARR  = RECORD
+                      clSize : CARDINAL;
+                      pData  : POINTER TO LONGWORD;
+                    END;
+
+  HYPER_SIZEDARR  = RECORD
+                      clSize : CARDINAL;
+                      pData  : POINTER TO QUADWORD;
+                    END;
+
+CONST
+  WDT_INPROC_CALL   = 048746457H;
+  WDT_REMOTE_CALL   = 052746457H;
+  WDT_INPROC64_CALL = 050746457H;
+
+TYPE
+  userCLIPFORMAT = RECORD
+                     fContext : INTEGER;
+                     CASE : CARDINAL OF
+                     | 0 : dwValue  : windows.DWORD;
+                     | 1 : pwszName : PWCHAR;
+                     END;
+                   END;
+  wireCLIPFORMAT = POINTER TO userCLIPFORMAT;
+
+  GDI_NONREMOTE = RECORD
+                    fContext : INTEGER;
+                    CASE : CARDINAL OF
+                    | 0 : hInproc : INTEGER;
+                    | 1 : hRemote : POINTER TO DWORD_BLOB;
+                    END;
+                  END;
+
+  userHGLOBAL = RECORD
+                  fContext : INTEGER;
+                  CASE : CARDINAL OF
+                  | 0 : hInproc   : INTEGER;
+                  | 1 : hRemote   : POINTER TO FLAGGED_BYTE_BLOB;
+                  | 2 : hInproc64 : INT64;
+                  END;
+                END;
+  wireHGLOBAL = POINTER TO userHGLOBAL;
+
+  userHMETAFILE = RECORD
+                    fContext : INTEGER;
+                    CASE : CARDINAL OF
+                    | 0: hInproc   : INTEGER;
+                    | 1: hRemote   : POINTER TO BYTE_BLOB;
+                    | 2: hInproc64 : INT64;
+                    END;
+                  END;
+
+  remoteMETAFILEPICT = RECORD
+                         mm   : INTEGER;
+                         xExt : INTEGER;
+                         yExt : INTEGER;
+                         hMF  : POINTER TO userHMETAFILE;
+                       END;
+
+  userHMETAFILEPICT = RECORD
+                        fContext : INTEGER;
+                        CASE : CARDINAL OF
+                        | 0: hInproc   : INTEGER;
+                        | 1: hRemote   : POINTER TO remoteMETAFILEPICT;
+                        | 2: hInproc64 : INT64;
+                        END;
+                      END;
+
+  userHENHMETAFILE = RECORD
+                       fContext : INTEGER;
+                       CASE : CARDINAL OF
+                       | 0: hInproc   : INTEGER;
+                       | 1: hRemote   : POINTER TO BYTE_BLOB;
+                       | 2: hInproc64 : INT64;
+                       END;
+                     END;
+
+  userBITMAP = RECORD
+                 bmType       : windows.LONG;
+                 bmWidth      : windows.LONG;
+                 bmHeight     : windows.LONG;
+                 bmWidthBytes : windows.LONG;
+                 bmPlanes     : WORD;
+                 bmBitsPixel  : WORD;
+                 cbSize       : windows.ULONG;
+                 pBuffer      : ARRAY [0..0] OF BYTE;
+               END;
+
+  userHBITMAP = RECORD
+                  fContext : INTEGER;
+                  CASE : CARDINAL OF
+                  | 0: hInproc   : INTEGER;
+                  | 1: hRemote   : POINTER TO userBITMAP;
+                  | 2: hInproc64 : INT64;
+                  END;
+                END;
+
+  LOGPALETTE = RECORD
+                 palVersion    : WORD;
+                 palNumEntries : WORD;
+                 palPalEntry   : ARRAY [0..0] OF windows.PALETTEENTRY;
+               END;
+
+  userHPALETTE = RECORD
+                   fContext : INTEGER;
+                   CASE : CARDINAL OF
+                   | 0: hInproc   : INTEGER;
+                   | 1: hRemote   : POINTER TO LOGPALETTE;
+                   | 2: hInproc64 : INT64;
+                   END;
+                 END;
+
+  RemotableHandle = RECORD
+                      fContext : INTEGER;
+                      CASE : CARDINAL OF
+                      | 0: hInproc : INTEGER;
+                      | 1: hRemote : INTEGER;
+                      END;
+                    END;
+
+TYPE
+  wireHWND          = POINTER TO RemotableHandle;
+  wireHMENU         = POINTER TO RemotableHandle;
+  wireHACCEL        = POINTER TO RemotableHandle;
+  wireHBRUSH        = POINTER TO RemotableHandle;
+  wireHFONT         = POINTER TO RemotableHandle;
+  wireHDC           = POINTER TO RemotableHandle;
+  wireHICON         = POINTER TO RemotableHandle;
+
+  wireHBITMAP       = POINTER TO userHBITMAP;
+  wireHPALETTE      = POINTER TO userHPALETTE;
+  wireHENHMETAFILE  = POINTER TO userHENHMETAFILE;
+  wireHMETAFILE     = POINTER TO userHMETAFILE;
+  wireHMETAFILEPICT = POINTER TO userHMETAFILEPICT;
+
+  HMETAFILEPICT     = ADDRESS;
+
+TYPE
+  DATE  = LONGREAL;
+  PDATE = POINTER TO DATE;
+
+TYPE
+  CY  = RECORD
+          CASE : CARDINAL OF
+          | 0: Lo : CARDINAL;
+               Hi : INTEGER;
+          | 1: int64 : LONGLONG;
+          END;
+        END;
+  PCY = POINTER TO CY;
+
+  DECIMAL = RECORD
+    wReserved : windows.USHORT;
+    CASE : CARDINAL OF
+    | 0: scale : BYTE;
+         sign : BYTE;
+    | 1: signscale : windows.USHORT;
+    END;
+    Hi32 : windows.ULONG;
+    CASE : CARDINAL OF
+    | 0: Lo32 : windows.ULONG;
+         Mid32 : windows.ULONG;
+    | 1: Lo64 : ULONGLONG;
+    END;
+  END;
+  PDECIMAL = POINTER TO DECIMAL;
+
+CONST
+  DECIMAL_NEG = BYTE(080H);
+
+(*# call( macro => on ) *)
+  PROCEDURE DECIMAL_SETZERO( dec : DECIMAL);
+(*# call( macro => off ) *)
+
+TYPE
+  wireBSTR = POINTER TO FLAGGED_WORD_BLOB;
+  BSTR     = POINTER TO OLECHAR;
+  PBSTR    = POINTER TO BSTR;
+
+  // 0 == FALSE, -1 == TRUE
+  VARIANT_BOOL  = SHORTINT;
+  PVARIANT_BOOL = POINTER TO VARIANT_BOOL;
+  _VARIANT_BOOL = VARIANT_BOOL;
+
+CONST
+  VARIANT_TRUE  = VARIANT_BOOL( -1 );
+  VARIANT_FALSE = VARIANT_BOOL( 0 );
+
+TYPE
+  BLOB  = RECORD
+            cbSize    : windows.ULONG;
+            pBlobData : POINTER TO BYTE;
+          END;
+  PBLOB = POINTER TO BLOB;
+
+  CLIPDATA = RECORD
+               cbSize    : windows.ULONG;
+               ulClipFmt : INTEGER;
+               pClipData : POINTER TO BYTE;
+             END;
+
+(*# call( macro => on ) *)
+PROCEDURE CBPCLIPDATA( clipdata : CLIPDATA ): CARDINAL;
+(*# call( macro => off ) *)
+
+TYPE
+  VARTYPE  = SHORTCARD;
+  PVARTYPE = POINTER TO VARTYPE;
+
+(*/*
+ * VARENUM usage key,
+ *
+ * * [V] - may appear in a VARIANT
+ * * [T] - may appear in a TYPEDESC
+ * * [P] - may appear in an OLE property set
+ * * [S] - may appear in a Safe Array
+ *
+ *
+ *  VT_EMPTY            [V]   [P]     nothing
+ *  VT_NULL             [V]   [P]     SQL style Null
+ *  VT_I2               [V][T][P][S]  2 byte signed int
+ *  VT_I4               [V][T][P][S]  4 byte signed int
+ *  VT_R4               [V][T][P][S]  4 byte real
+ *  VT_R8               [V][T][P][S]  8 byte real
+ *  VT_CY               [V][T][P][S]  currency
+ *  VT_DATE             [V][T][P][S]  date
+ *  VT_BSTR             [V][T][P][S]  OLE Automation string
+ *  VT_DISPATCH         [V][T][P][S]  IDispatch *
+ *  VT_ERROR            [V][T]   [S]  SCODE
+ *  VT_BOOL             [V][T][P][S]  True=-1, False=0
+ *  VT_VARIANT          [V][T][P][S]  VARIANT *
+ *  VT_UNKNOWN          [V][T]   [S]  IUnknown *
+ *  VT_DECIMAL          [V][T]   [S]  16 byte fixed point
+ *  VT_I1                  [T]        signed char
+ *  VT_UI1              [V][T][P][S]  unsigned char
+ *  VT_UI2                 [T][P]     unsigned short
+ *  VT_UI4                 [T][P]     unsigned short
+ *  VT_I8                  [T][P]     signed 64-bit int
+ *  VT_UI8                 [T][P]     unsigned 64-bit int
+ *  VT_INT                 [T]        signed machine int
+ *  VT_UINT                [T]        unsigned machine int
+ *  VT_VOID                [T]        C style void
+ *  VT_HRESULT             [T]        Standard return type
+ *  VT_PTR                 [T]        pointer type
+ *  VT_SAFEARRAY           [T]        (use VT_ARRAY in VARIANT)
+ *  VT_CARRAY              [T]        C style array
+ *  VT_USERDEFINED         [T]        user defined type
+ *  VT_LPSTR               [T][P]     null terminated string
+ *  VT_LPWSTR              [T][P]     wide null terminated string
+ *  VT_FILETIME               [P]     FILETIME
+ *  VT_BLOB                   [P]     Length prefixed bytes
+ *  VT_STREAM                 [P]     Name of the stream follows
+ *  VT_STORAGE                [P]     Name of the storage follows
+ *  VT_STREAMED_OBJECT        [P]     Stream contains an object
+ *  VT_STORED_OBJECT          [P]     Storage contains an object
+ *  VT_BLOB_OBJECT            [P]     Blob contains an object
+ *  VT_CF                     [P]     Clipboard format
+ *  VT_CLSID                  [P]     A Class ID
+ *  VT_VECTOR                 [P]     simple counted array
+ *  VT_ARRAY            [V]           SAFEARRAY*
+ *  VT_BYREF            [V]           void* for local use
+ */*)
+
+TYPE
+  VARENUM = (
+    VT_EMPTY           = 0,
+    VT_NULL            = 1,
+    VT_I2              = 2,
+    VT_I4              = 3,
+    VT_R4              = 4,
+    VT_R8              = 5,
+    VT_CY              = 6,
+    VT_DATE            = 7,
+    VT_BSTR            = 8,
+    VT_DISPATCH        = 9,
+    VT_ERROR           = 10,
+    VT_BOOL            = 11,
+    VT_VARIANT         = 12,
+    VT_UNKNOWN         = 13,
+    VT_DECIMAL         = 14,
+    VT_I1              = 16,
+    VT_UI1             = 17,
+    VT_UI2             = 18,
+    VT_UI4             = 19,
+    VT_I8              = 20,
+    VT_UI8             = 21,
+    VT_INT             = 22,
+    VT_UINT            = 23,
+    VT_VOID            = 24,
+    VT_HRESULT         = 25,
+    VT_PTR             = 26,
+    VT_SAFEARRAY       = 27,
+    VT_CARRAY          = 28,
+    VT_USERDEFINED     = 29,
+    VT_LPSTR           = 30,
+    VT_LPWSTR          = 31,
+    VT_FILETIME        = 64,
+	  VT_BLOB            = 65,
+    VT_STREAM          = 66,
+    VT_STORAGE         = 67,
+    VT_STREAMED_OBJECT = 68,
+    VT_STORED_OBJECT   = 69,
+	  VT_BLOB_OBJECT     = 70,
+    VT_CF              = 71,
+    VT_CLSID           = 72,
+    VT_VECTOR          = 01000H,
+    VT_ARRAY           = 02000H,
+    VT_BYREF           = 04000H,
+    VT_RESERVED        = 08000H,
+    VT_ILLEGAL         = 0FFFFH,
+    VT_ILLEGALMASKED   = 0FFFH,
+    VT_TYPEMASK        = 0FFFH
+  );
+
+TYPE
+  PROPID = windows.ULONG;
+
+END wtypes.

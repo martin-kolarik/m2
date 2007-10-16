@@ -1,0 +1,16 @@
+DEFINITION MODULE msgqueuethread;
+
+(*===========================================================================*)
+// Win32
+
+IMPORT
+  msgqueuethreadWin32;
+
+CONST
+  MsgQueueThread ::= msgqueuethreadWin32.Win32MsgQueueThread;
+TYPE
+  TPMsgQueueThread = POINTER TO MsgQueueThread;
+
+(*===========================================================================*)
+
+END msgqueuethread.

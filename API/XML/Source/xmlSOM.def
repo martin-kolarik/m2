@@ -1,0 +1,660 @@
+DEFINITION MODULE xmlDOM HEADER msxml2;
+
+IMPORT
+  rpc,
+  rpcndr;
+
+IMPORT
+  unknwn,
+  objidl,
+  oaidl;
+
+EXTERN_C const IID IID_IXMLDOMSchemaCollection2;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("50ea08b0-dd1b-4664-9a50-c2f40f4bd79a")
+IXMLDOMSchemaCollection2 : public IXMLDOMSchemaCollection
+{
+public:
+  virtual /* [id] */ HRESULT STDMETHODCALLTYPE validate( void) = 0;
+
+  virtual /* [propput][id] */ HRESULT STDMETHODCALLTYPE put_validateOnLoad( 
+    /* [in] */ VARIANT_BOOL validateOnLoad) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_validateOnLoad( 
+     ) : TPVARIANT_BOOL *validateOnLoad) = 0;
+
+  virtual /* [id] */ HRESULT STDMETHODCALLTYPE getSchema( 
+    /* [in] */ BSTR namespaceURI,
+     ) : TPISchema **schema) = 0;
+
+  virtual /* [id] */ HRESULT STDMETHODCALLTYPE getDeclaration( 
+    /* [in] */ IXMLDOMNode *node,
+     ) : TPISchemaItem **item) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+
+#endif 	/* __IXMLDOMSchemaCollection2_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISchemaStringCollection_INTERFACE_DEFINED__
+#define __ISchemaStringCollection_INTERFACE_DEFINED__
+
+/* interface ISchemaStringCollection */
+/* [unique][helpstring][nonextensible][oleautomation][dual][uuid][object][local] */ 
+
+
+EXTERN_C const IID IID_ISchemaStringCollection;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("50ea08b1-dd1b-4664-9a50-c2f40f4bd79a")
+ISchemaStringCollection : public IDispatch
+{
+public:
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_item( 
+    /* [in] */ long index,
+     ) : TPBSTR *bstr) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_length( 
+     ) : TPlong *length) = 0;
+
+  virtual /* [propget][restricted][hidden][id] */ HRESULT STDMETHODCALLTYPE get__newEnum( 
+     ) : TPIUnknown **ppunk) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+
+#endif 	/* __ISchemaStringCollection_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISchemaItemCollection_INTERFACE_DEFINED__
+#define __ISchemaItemCollection_INTERFACE_DEFINED__
+
+/* interface ISchemaItemCollection */
+/* [unique][helpstring][nonextensible][oleautomation][dual][uuid][object][local] */ 
+
+
+EXTERN_C const IID IID_ISchemaItemCollection;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("50ea08b2-dd1b-4664-9a50-c2f40f4bd79a")
+ISchemaItemCollection : public IDispatch
+{
+public:
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_item( 
+    /* [in] */ long index,
+     ) : TPISchemaItem **item) = 0;
+
+  virtual /* [id] */ HRESULT STDMETHODCALLTYPE itemByName( 
+    /* [in] */ BSTR name,
+     ) : TPISchemaItem **item) = 0;
+
+  virtual /* [id] */ HRESULT STDMETHODCALLTYPE itemByQName( 
+    /* [in] */ BSTR name,
+    /* [in] */ BSTR namespaceURI,
+     ) : TPISchemaItem **item) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_length( 
+     ) : TPlong *length) = 0;
+
+  virtual /* [propget][restricted][hidden][id] */ HRESULT STDMETHODCALLTYPE get__newEnum( 
+     ) : TPIUnknown **ppunk) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __ISchemaItemCollection_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISchemaItem_INTERFACE_DEFINED__
+#define __ISchemaItem_INTERFACE_DEFINED__
+
+/* interface ISchemaItem */
+/* [unique][helpstring][nonextensible][oleautomation][dual][uuid][object][local] */ 
+
+
+EXTERN_C const IID IID_ISchemaItem;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("50ea08b3-dd1b-4664-9a50-c2f40f4bd79a")
+ISchemaItem : public IDispatch
+{
+public:
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_name( 
+     ) : TPBSTR *name) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_namespaceURI( 
+     ) : TPBSTR *namespaceURI) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_schema( 
+     ) : TPISchema **schema) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_id( 
+     ) : TPBSTR *id) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_itemType( 
+     ) : TPSOMITEMTYPE *itemType) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_unhandledAttributes( 
+     ) : TPIVBSAXAttributes **attributes) = 0;
+
+  virtual /* [id] */ HRESULT STDMETHODCALLTYPE writeAnnotation( 
+    /* [in] */ IUnknown *annotationSink,
+     ) : TPVARIANT_BOOL *isWritten) = 0;
+
+};
+
+#else 	/* C style interface */
+
+#endif 	/* C style interface */
+
+
+
+#endif 	/* __ISchemaItem_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISchema_INTERFACE_DEFINED__
+#define __ISchema_INTERFACE_DEFINED__
+
+/* interface ISchema */
+/* [unique][helpstring][nonextensible][oleautomation][dual][uuid][object][local] */ 
+
+
+EXTERN_C const IID IID_ISchema;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("50ea08b4-dd1b-4664-9a50-c2f40f4bd79a")
+ISchema : public ISchemaItem
+{
+public:
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_targetNamespace( 
+     ) : TPBSTR *targetNamespace) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_version( 
+     ) : TPBSTR *version) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_types( 
+     ) : TPISchemaItemCollection **types) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_elements( 
+     ) : TPISchemaItemCollection **elements) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_attributes( 
+     ) : TPISchemaItemCollection **attributes) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_attributeGroups( 
+     ) : TPISchemaItemCollection **attributeGroups) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_modelGroups( 
+     ) : TPISchemaItemCollection **modelGroups) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_notations( 
+     ) : TPISchemaItemCollection **notations) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_schemaLocations( 
+     ) : TPISchemaStringCollection **schemaLocations) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+
+#endif 	/* __ISchema_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISchemaParticle_INTERFACE_DEFINED__
+#define __ISchemaParticle_INTERFACE_DEFINED__
+
+/* interface ISchemaParticle */
+/* [unique][helpstring][nonextensible][oleautomation][dual][uuid][object][local] */ 
+
+
+EXTERN_C const IID IID_ISchemaParticle;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("50ea08b5-dd1b-4664-9a50-c2f40f4bd79a")
+ISchemaParticle : public ISchemaItem
+{
+public:
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_minOccurs( 
+     ) : TPVARIANT *minOccurs) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_maxOccurs( 
+     ) : TPVARIANT *maxOccurs) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+#endif 	/* __ISchemaParticle_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISchemaAttribute_INTERFACE_DEFINED__
+#define __ISchemaAttribute_INTERFACE_DEFINED__
+
+/* interface ISchemaAttribute */
+/* [unique][helpstring][nonextensible][oleautomation][dual][uuid][object][local] */ 
+
+
+EXTERN_C const IID IID_ISchemaAttribute;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("50ea08b6-dd1b-4664-9a50-c2f40f4bd79a")
+ISchemaAttribute : public ISchemaItem
+{
+public:
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_type( 
+     ) : TPISchemaType **type) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_scope( 
+     ) : TPISchemaComplexType **scope) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_defaultValue( 
+     ) : TPBSTR *defaultValue) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_fixedValue( 
+     ) : TPBSTR *fixedValue) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_use( 
+     ) : TPSCHEMAUSE *use) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_isReference( 
+     ) : TPVARIANT_BOOL *reference) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+#endif 	/* __ISchemaAttribute_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISchemaElement_INTERFACE_DEFINED__
+#define __ISchemaElement_INTERFACE_DEFINED__
+
+/* interface ISchemaElement */
+/* [unique][helpstring][nonextensible][oleautomation][dual][uuid][object][local] */ 
+
+
+EXTERN_C const IID IID_ISchemaElement;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("50ea08b7-dd1b-4664-9a50-c2f40f4bd79a")
+ISchemaElement : public ISchemaParticle
+{
+public:
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_type( 
+     ) : TPISchemaType **type) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_scope( 
+     ) : TPISchemaComplexType **scope) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_defaultValue( 
+     ) : TPBSTR *defaultValue) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_fixedValue( 
+     ) : TPBSTR *fixedValue) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_isNillable( 
+     ) : TPVARIANT_BOOL *nillable) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_identityConstraints( 
+     ) : TPISchemaItemCollection **constraints) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_substitutionGroup( 
+     ) : TPISchemaElement **element) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_substitutionGroupExclusions( 
+     ) : TPSCHEMADERIVATIONMETHOD *exclusions) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_disallowedSubstitutions( 
+     ) : TPSCHEMADERIVATIONMETHOD *disallowed) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_isAbstract( 
+     ) : TPVARIANT_BOOL *abstract) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_isReference( 
+     ) : TPVARIANT_BOOL *reference) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+#endif 	/* __ISchemaElement_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISchemaType_INTERFACE_DEFINED__
+#define __ISchemaType_INTERFACE_DEFINED__
+
+/* interface ISchemaType */
+/* [unique][helpstring][nonextensible][oleautomation][dual][uuid][object][local] */ 
+
+
+EXTERN_C const IID IID_ISchemaType;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("50ea08b8-dd1b-4664-9a50-c2f40f4bd79a")
+ISchemaType : public ISchemaItem
+{
+public:
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_baseTypes( 
+     ) : TPISchemaItemCollection **baseTypes) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_final( 
+     ) : TPSCHEMADERIVATIONMETHOD *final) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_variety( 
+     ) : TPSCHEMATYPEVARIETY *variety) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_derivedBy( 
+     ) : TPSCHEMADERIVATIONMETHOD *derivedBy) = 0;
+
+  virtual /* [id] */ HRESULT STDMETHODCALLTYPE isValid( 
+    /* [in] */ BSTR data,
+     ) : TPVARIANT_BOOL *valid) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_minExclusive( 
+     ) : TPBSTR *minExclusive) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_minInclusive( 
+     ) : TPBSTR *minInclusive) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_maxExclusive( 
+     ) : TPBSTR *maxExclusive) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_maxInclusive( 
+     ) : TPBSTR *maxInclusive) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_totalDigits( 
+     ) : TPVARIANT *totalDigits) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_fractionDigits( 
+     ) : TPVARIANT *fractionDigits) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_length( 
+     ) : TPVARIANT *length) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_minLength( 
+     ) : TPVARIANT *minLength) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_maxLength( 
+     ) : TPVARIANT *maxLength) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_enumeration( 
+     ) : TPISchemaStringCollection **enumeration) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_whitespace( 
+     ) : TPSCHEMAWHITESPACE *whitespace) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_patterns( 
+     ) : TPISchemaStringCollection **patterns) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+
+#endif 	/* __ISchemaType_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISchemaComplexType_INTERFACE_DEFINED__
+#define __ISchemaComplexType_INTERFACE_DEFINED__
+
+/* interface ISchemaComplexType */
+/* [unique][helpstring][nonextensible][oleautomation][dual][uuid][object][local] */ 
+
+
+EXTERN_C const IID IID_ISchemaComplexType;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("50ea08b9-dd1b-4664-9a50-c2f40f4bd79a")
+ISchemaComplexType : public ISchemaType
+{
+public:
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_isAbstract( 
+     ) : TPVARIANT_BOOL *abstract) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_anyAttribute( 
+     ) : TPISchemaAny **anyAttribute) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_attributes( 
+     ) : TPISchemaItemCollection **attributes) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_contentType( 
+     ) : TPSCHEMACONTENTTYPE *contentType) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_contentModel( 
+     ) : TPISchemaModelGroup **contentModel) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_prohibitedSubstitutions( 
+     ) : TPSCHEMADERIVATIONMETHOD *prohibited) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+
+#endif 	/* __ISchemaComplexType_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISchemaAttributeGroup_INTERFACE_DEFINED__
+#define __ISchemaAttributeGroup_INTERFACE_DEFINED__
+
+/* interface ISchemaAttributeGroup */
+/* [unique][helpstring][nonextensible][oleautomation][dual][uuid][object][local] */ 
+
+
+EXTERN_C const IID IID_ISchemaAttributeGroup;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("50ea08ba-dd1b-4664-9a50-c2f40f4bd79a")
+ISchemaAttributeGroup : public ISchemaItem
+{
+public:
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_anyAttribute( 
+     ) : TPISchemaAny **anyAttribute) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_attributes( 
+     ) : TPISchemaItemCollection **attributes) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+#endif 	/* __ISchemaAttributeGroup_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISchemaModelGroup_INTERFACE_DEFINED__
+#define __ISchemaModelGroup_INTERFACE_DEFINED__
+
+/* interface ISchemaModelGroup */
+/* [unique][helpstring][nonextensible][oleautomation][dual][uuid][object][local] */ 
+
+
+EXTERN_C const IID IID_ISchemaModelGroup;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("50ea08bb-dd1b-4664-9a50-c2f40f4bd79a")
+ISchemaModelGroup : public ISchemaParticle
+{
+public:
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_particles( 
+     ) : TPISchemaItemCollection **particles) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+
+#endif 	/* __ISchemaModelGroup_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISchemaAny_INTERFACE_DEFINED__
+#define __ISchemaAny_INTERFACE_DEFINED__
+
+/* interface ISchemaAny */
+/* [unique][helpstring][nonextensible][oleautomation][dual][uuid][object][local] */ 
+
+
+EXTERN_C const IID IID_ISchemaAny;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("50ea08bc-dd1b-4664-9a50-c2f40f4bd79a")
+ISchemaAny : public ISchemaParticle
+{
+public:
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_namespaces( 
+     ) : TPISchemaStringCollection **namespaces) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_processContents( 
+     ) : TPSCHEMAPROCESSCONTENTS *processContents) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+
+#endif 	/* __ISchemaAny_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISchemaIdentityConstraint_INTERFACE_DEFINED__
+#define __ISchemaIdentityConstraint_INTERFACE_DEFINED__
+
+/* interface ISchemaIdentityConstraint */
+/* [unique][helpstring][nonextensible][oleautomation][dual][uuid][object][local] */ 
+
+
+EXTERN_C const IID IID_ISchemaIdentityConstraint;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("50ea08bd-dd1b-4664-9a50-c2f40f4bd79a")
+ISchemaIdentityConstraint : public ISchemaItem
+{
+public:
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_selector( 
+     ) : TPBSTR *selector) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_fields( 
+     ) : TPISchemaStringCollection **fields) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_referencedKey( 
+     ) : TPISchemaIdentityConstraint **key) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+#endif 	/* __ISchemaIdentityConstraint_INTERFACE_DEFINED__ */
+
+
+#ifndef __ISchemaNotation_INTERFACE_DEFINED__
+#define __ISchemaNotation_INTERFACE_DEFINED__
+
+/* interface ISchemaNotation */
+/* [unique][helpstring][nonextensible][oleautomation][dual][uuid][object][local] */ 
+
+
+EXTERN_C const IID IID_ISchemaNotation;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+
+MIDL_INTERFACE("50ea08be-dd1b-4664-9a50-c2f40f4bd79a")
+ISchemaNotation : public ISchemaItem
+{
+public:
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_systemIdentifier( 
+     ) : TPBSTR *uri) = 0;
+
+  virtual /* [propget][id] */ HRESULT STDMETHODCALLTYPE get_publicIdentifier( 
+     ) : TPBSTR *uri) = 0;
+
+};
+
+#else 	/* C style interface */
+#endif 	/* C style interface */
+
+
+#endif 	/* __ISchemaNotation_INTERFACE_DEFINED__ */
+
+
+
+EXTERN_C const CLSID CLSID_XMLSchemaCache;
+
+#ifdef __cplusplus
+
+class DECLSPEC_UUID("373984c9-b845-449b-91e7-45ac83036ade")
+  XMLSchemaCache;
+#endif
+
+EXTERN_C const CLSID CLSID_XMLSchemaCache26;
+
+#ifdef __cplusplus
+
+class DECLSPEC_UUID("f5078f1d-c551-11d3-89b9-0000f81fe221")
+  XMLSchemaCache26;
+#endif
+
+EXTERN_C const CLSID CLSID_XMLSchemaCache30;
+
+#ifdef __cplusplus
+
+class DECLSPEC_UUID("f5078f34-c551-11d3-89b9-0000f81fe221")
+  XMLSchemaCache30;
+#endif
+
+EXTERN_C const CLSID CLSID_XMLSchemaCache40;
+
+#ifdef __cplusplus
+
+class DECLSPEC_UUID("88d969c2-f192-11d4-a65f-0040963251e5")
+  XMLSchemaCache40;
+#endif
+
+END xmlSOM.

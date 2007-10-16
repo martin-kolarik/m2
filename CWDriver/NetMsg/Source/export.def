@@ -1,0 +1,27 @@
+LIBRARY NetMsg.dll
+
+EXPORTS
+  Version                 = VersionW
+
+  MakeDriver              = MakeDriverW
+  DisposeDriver           = DisposeDriverW
+
+  Run                     = RunW
+  Stop                    = StopW
+  Done                    = DoneW
+
+  EnumerateChannels       = EnumerateChannelsW
+  BufferInfo              = BufferInfoW
+  SetBufferAddr           = SetBufferAddrW
+
+  DriverProc              = DriverProcW
+
+  InputRequestStart       = InputRequestStartW
+  InputRequest            = InputRequestW
+  InputRequestCompleted   = InputRequestCompletedW
+  InputFinalized          = InputFinalizedW
+  InputOOBDataQuery       = InputOOBDataQueryW
+
+  OutputRequestStart      = OutputRequestStartW
+  OutputRequestCompleted  = OutputRequestCompletedW
+  OutputFinalized         = OutputFinalizedW

@@ -1,0 +1,446 @@
+DEFINITION MODULE htmlhelp;
+
+(*/*++
+
+*****************************************************************************
+*                                                                           *
+* HtmlHelp.h                                                                *
+*                                                                           *
+* Copyright (c) 1996-1997, Microsoft Corp. All rights reserved.             *
+*                                                                           *
+*****************************************************************************
+
+--*/*)
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+IMPORT
+  windows,
+  wtypes,
+  oaidl;
+
+CONST
+  // Commands to pass to HtmlHelp()
+  HH_DISPLAY_TOPIC        = 00000H;
+  HH_HELP_FINDER          = 00000H;  // WinHelp equivalent
+  HH_DISPLAY_TOC          = 00001H;  
+  HH_DISPLAY_INDEX        = 00002H;  
+  HH_DISPLAY_SEARCH       = 00003H;  
+  HH_SET_WIN_TYPE         = 00004H;
+  HH_GET_WIN_TYPE         = 00005H;
+  HH_GET_WIN_HANDLE       = 00006H;
+  HH_ENUM_INFO_TYPE       = 00007H;  // Get Info type name, call repeatedly to enumerate, -1 at end
+  HH_SET_INFO_TYPE        = 00008H;  // Add Info type to filter.
+  HH_SYNC                 = 00009H;
+  HH_RESERVED1            = 0000AH;
+  HH_RESERVED2            = 0000BH;
+  HH_RESERVED3            = 0000CH;
+  HH_KEYWORD_LOOKUP       = 0000DH;
+  HH_DISPLAY_TEXT_POPUP   = 0000EH;  // display string resource id or text in a popup window
+  HH_HELP_CONTEXT         = 0000FH;  // display mapped numeric value in dwData
+  HH_TP_HELP_CONTEXTMENU  = 00010H;  // text popup help, same as WinHelp HELP_CONTEXTMENU
+  HH_TP_HELP_WM_HELP      = 00011H;  // text popup help, same as WinHelp HELP_WM_HELP
+  HH_CLOSE_ALL            = 00012H;  // close all windows opened directly or indirectly by the caller
+  HH_ALINK_LOOKUP         = 00013H;  // ALink version of HH_KEYWORD_LOOKUP
+  HH_GET_LAST_ERROR       = 00014H;  // not currently implemented // See HHERROR.h
+  HH_ENUM_CATEGORY        = 00015H;  // Get category name, call repeatedly to enumerate, -1 at end
+  HH_ENUM_CATEGORY_IT     = 00016H;  // Get category info type members, call repeatedly to enumerate, -1 at end
+  HH_RESET_IT_FILTER      = 00017H;  // Clear the info type filter of all info types.
+  HH_SET_INCLUSIVE_FILTER = 00018H;  // set inclusive filtering method for untyped topics to be included in display
+  HH_SET_EXCLUSIVE_FILTER = 00019H;  // set exclusive filtering method for untyped topics to be excluded from display
+  HH_INITIALIZE           = 0001CH;  // Initializes the help system.
+  HH_UNINITIALIZE         = 0001DH;  // Uninitializes the help system.
+  HH_PRETRANSLATEMESSAGE  = 000FDH;  // Pumps messages. (NULL, NULL, MSG*). 
+  HH_SET_GLOBAL_PROPERTY  = 000FCH;  // Set a global property. (NULL, NULL, HH_GPROP)
+
+CONST
+  HHWIN_PROP_TAB_AUTOHIDESHOW = 1 << 0;    // Automatically hide/show tri-pane window
+  HHWIN_PROP_ONTOP            = 1 << 1;    // Top-most window
+  HHWIN_PROP_NOTITLEBAR       = 1 << 2;    // no title bar
+  HHWIN_PROP_NODEF_STYLES     = 1 << 3;    // no default window styles (only HH_WINTYPE.dwStyles)
+  HHWIN_PROP_NODEF_EXSTYLES   = 1 << 4;    // no default extended window styles (only HH_WINTYPE.dwExStyles)
+  HHWIN_PROP_TRI_PANE         = 1 << 5;    // use a tri-pane window
+  HHWIN_PROP_NOTB_TEXT        = 1 << 6;    // no text on toolbar buttons
+  HHWIN_PROP_POST_QUIT        = 1 << 7;    // post WM_QUIT message when window closes
+  HHWIN_PROP_AUTO_SYNC        = 1 << 8;    // automatically ssync contents and index
+  HHWIN_PROP_TRACKING         = 1 << 9;    // send tracking notification messages
+  HHWIN_PROP_TAB_SEARCH       = 1 << 10;   // include search tab in navigation pane
+  HHWIN_PROP_TAB_HISTORY      = 1 << 11;   // include history tab in navigation pane
+  HHWIN_PROP_TAB_FAVORITES    = 1 << 12;   // include favorites tab in navigation pane
+  HHWIN_PROP_CHANGE_TITLE     = 1 << 13;   // Put current HTML title in title bar
+  HHWIN_PROP_NAV_ONLY_WIN     = 1 << 14;   // Only display the navigation window
+  HHWIN_PROP_NO_TOOLBAR       = 1 << 15;   // Don't display a toolbar
+  HHWIN_PROP_MENU             = 1 << 16;   // Menu
+  HHWIN_PROP_TAB_ADVSEARCH    = 1 << 17;   // Advanced FTS UI.
+  HHWIN_PROP_USER_POS         = 1 << 18;   // After initial creation, user controls window size/position
+  HHWIN_PROP_TAB_CUSTOM1      = 1 << 19;   // Use custom tab #1
+  HHWIN_PROP_TAB_CUSTOM2      = 1 << 20;   // Use custom tab #2
+  HHWIN_PROP_TAB_CUSTOM3      = 1 << 21;   // Use custom tab #3
+  HHWIN_PROP_TAB_CUSTOM4      = 1 << 22;   // Use custom tab #4
+  HHWIN_PROP_TAB_CUSTOM5      = 1 << 23;   // Use custom tab #5
+  HHWIN_PROP_TAB_CUSTOM6      = 1 << 24;   // Use custom tab #6
+  HHWIN_PROP_TAB_CUSTOM7      = 1 << 25;   // Use custom tab #7
+  HHWIN_PROP_TAB_CUSTOM8      = 1 << 26;   // Use custom tab #8
+  HHWIN_PROP_TAB_CUSTOM9      = 1 << 27;   // Use custom tab #9
+  HHWIN_TB_MARGIN             = 1 << 28;   // the window type has a margin
+
+  HHWIN_PARAM_PROPERTIES      = 1 << 1;    // valid fsWinProperties
+  HHWIN_PARAM_STYLES          = 1 << 2;    // valid dwStyles
+  HHWIN_PARAM_EXSTYLES        = 1 << 3;    // valid dwExStyles
+  HHWIN_PARAM_RECT            = 1 << 4;    // valid rcWindowPos
+  HHWIN_PARAM_NAV_WIDTH       = 1 << 5;    // valid iNavWidth
+  HHWIN_PARAM_SHOWSTATE       = 1 << 6;    // valid nShowState
+  HHWIN_PARAM_INFOTYPES       = 1 << 7;    // valid apInfoTypes
+  HHWIN_PARAM_TB_FLAGS        = 1 << 8;    // valid fsToolBarFlags
+  HHWIN_PARAM_EXPANSION       = 1 << 9;    // valid fNotExpanded
+  HHWIN_PARAM_TABPOS          = 1 << 10;   // valid tabpos
+  HHWIN_PARAM_TABORDER        = 1 << 11;   // valid taborder
+  HHWIN_PARAM_HISTORY_COUNT   = 1 << 12;   // valid cHistory
+  HHWIN_PARAM_CUR_TAB         = 1 << 13;   // valid curNavType
+
+  HHWIN_BUTTON_EXPAND         = 1 << 1;    // Expand/contract button
+  HHWIN_BUTTON_BACK           = 1 << 2;    // Back button
+  HHWIN_BUTTON_FORWARD        = 1 << 3;    // Forward button
+  HHWIN_BUTTON_STOP           = 1 << 4;    // Stop button
+  HHWIN_BUTTON_REFRESH        = 1 << 5;    // Refresh button
+  HHWIN_BUTTON_HOME           = 1 << 6;    // Home button
+  HHWIN_BUTTON_BROWSE_FWD     = 1 << 7;    // not implemented
+  HHWIN_BUTTON_BROWSE_BCK     = 1 << 8;    // not implemented
+  HHWIN_BUTTON_NOTES          = 1 << 9;    // not implemented
+  HHWIN_BUTTON_CONTENTS       = 1 << 10;   // not implemented
+  HHWIN_BUTTON_SYNC           = 1 << 11;   // Sync button
+  HHWIN_BUTTON_OPTIONS        = 1 << 12;   // Options button
+  HHWIN_BUTTON_PRINT          = 1 << 13;   // Print button
+  HHWIN_BUTTON_INDEX          = 1 << 14;   // not implemented
+  HHWIN_BUTTON_SEARCH         = 1 << 15;   // not implemented
+  HHWIN_BUTTON_HISTORY        = 1 << 16;   // not implemented
+  HHWIN_BUTTON_FAVORITES      = 1 << 17;   // not implemented
+  HHWIN_BUTTON_JUMP1          = 1 << 18;
+  HHWIN_BUTTON_JUMP2          = 1 << 19;
+  HHWIN_BUTTON_ZOOM           = 1 << 20;
+  HHWIN_BUTTON_TOC_NEXT       = 1 << 21;
+  HHWIN_BUTTON_TOC_PREV       = 1 << 22;
+
+CONST
+  HHWIN_DEF_BUTTONS           = HHWIN_BUTTON_EXPAND OR HHWIN_BUTTON_BACK OR HHWIN_BUTTON_OPTIONS OR HHWIN_BUTTON_PRINT;
+
+CONST
+  // Button IDs
+  IDTB_EXPAND                 = 200;
+  IDTB_CONTRACT               = 201;
+  IDTB_STOP                   = 202;
+  IDTB_REFRESH                = 203;
+  IDTB_BACK                   = 204;
+  IDTB_HOME                   = 205;
+  IDTB_SYNC                   = 206;
+  IDTB_PRINT                  = 207;
+  IDTB_OPTIONS                = 208;
+  IDTB_FORWARD                = 209;
+  IDTB_NOTES                  = 210; // not implemented
+  IDTB_BROWSE_FWD             = 211;
+  IDTB_BROWSE_BACK            = 212;
+  IDTB_CONTENTS               = 213; // not implemented
+  IDTB_INDEX                  = 214; // not implemented
+  IDTB_SEARCH                 = 215; // not implemented
+  IDTB_HISTORY                = 216; // not implemented
+  IDTB_FAVORITES              = 217; // not implemented
+  IDTB_JUMP1                  = 218;
+  IDTB_JUMP2                  = 219;
+  IDTB_CUSTOMIZE              = 221;
+  IDTB_ZOOM                   = 222;
+  IDTB_TOC_NEXT               = 223;
+  IDTB_TOC_PREV               = 224;
+
+CONST
+// Notification codes
+  HHN_FIRST                   = CARDINAL( -860 );
+  HHN_LAST                    = CARDINAL( -879 );
+
+  HHN_NAVCOMPLETE             = CARDINAL( HHN_FIRST-0 );
+  HHN_TRACK                   = CARDINAL( HHN_FIRST-1 );
+  HHN_WINDOW_CREATE           = CARDINAL( HHN_FIRST-2 );
+
+TYPE
+  HHN_NOTIFY  = RECORD
+                  hdr    : windows.NMHDR;
+                  pszUrl : windows.PCSTR; // Multi-byte, null-terminated string
+                END;
+  PHHN_NOTIFY = POINTER TO HHN_NOTIFY;
+
+TYPE
+  HH_POPUP  = RECORD
+                cbStruct      : INTEGER;           // sizeof this structure
+                hinst         : windows.HINSTANCE; // instance handle for string resource
+                idString      : CARDINAL;          // string resource id, or text id if pszFile is specified in HtmlHelp call
+                pszText       : windows.PCTSTR;    // used if idString is zero
+                pt            : windows.POINT;     // top center of popup window
+                clrForeground : windows.COLORREF;  // use -1 for default
+                clrBackground : windows.COLORREF;  // use -1 for default
+                rcMargins     : windows.RECT;      // amount of space between edges of window and text, -1 for each member to ignore
+                pszFont       : windows.PCTSTR;    // facename, point size, char set, BOLD ITALIC UNDERLINE
+              END;
+  PHH_POPUP = POINTER TO HH_POPUP;
+
+TYPE
+  HH_AKLINK  = RECORD
+                 cbStruct     : INTEGER;        // sizeof this structure
+                 fReserved    : windows.BOOL;   // must be FALSE (really!)
+                 pszKeywords  : windows.PCTSTR; // semi-colon separated keywords
+                 pszUrl       : windows.PCTSTR; // URL to jump to if no keywords found (may be NULL)
+                 pszMsgText   : windows.PCTSTR; // Message text to display in MessageBox if pszUrl is NULL and no keyword match
+                 pszMsgTitle  : windows.PCTSTR; // Message text to display in MessageBox if pszUrl is NULL and no keyword match
+                 pszWindow    : windows.PCTSTR; // Window to display URL in
+                 fIndexOnFail : windows.BOOL;   // Displays index if keyword lookup fails.
+               END;
+  PHH_AKLINK = POINTER TO HH_AKLINK;
+
+TYPE
+  __HHWIN_NAVTYPE = (
+    HHWIN_NAVTYPE_TOC,
+    HHWIN_NAVTYPE_INDEX,
+    HHWIN_NAVTYPE_SEARCH,
+    HHWIN_NAVTYPE_FAVORITES,
+    HHWIN_NAVTYPE_HISTORY,   // not implemented
+    HHWIN_NAVTYPE_AUTHOR,
+    HHWIN_NAVTYPE_CUSTOM_FIRST = 11
+  );
+
+  __IT = (  
+    IT_INCLUSIVE,
+    IT_EXCLUSIVE,
+    IT_HIDDEN
+  );
+
+TYPE
+  HH_ENUM_IT  = RECORD
+                  cbStruct         : INTEGER;       // sizeof this structure
+                  iType            : __IT;          // the type of the information type ie. Inclusive, Exclusive, or Hidden
+                  pszCatName       : windows.PCSTR; // Set to the name of the Category to enumerate the info types in a category; else NULL
+                  pszITName        : windows.PCSTR; // volitile pointer to the name of the infotype. Allocated by call. Caller responsible for freeing
+                  pszITDescription : windows.PCSTR; // volitile pointer to the description of the infotype.
+                END;
+  PHH_ENUM_IT = POINTER TO HH_ENUM_IT;
+
+TYPE
+  HH_ENUM_CAT  = RECORD
+                   cbStruct          : INTEGER;       // size of this structure
+                   pszCatName        : windows.PCSTR; // volitile pointer to the category name
+                   pszCatDescription : windows.PCSTR; // volitile pointer to the category description
+                 END;
+  PHH_ENUM_CAT = POINTER TO HH_ENUM_CAT;
+
+TYPE
+  HH_SET_INFOTYPE  = RECORD
+                       cbStruct        : INTEGER;       // the size of this structure
+                       pszCatName      : windows.PCSTR; // the name of the category, if any, the InfoType is a member of.
+                       pszInfoTypeName : windows.PCSTR; // the name of the info type to add to the filter
+                     END;
+  PHH_SET_INFOTYPE = POINTER TO HH_SET_INFOTYPE;
+
+TYPE
+  HH_INFOTYPE  = windows.DWORD;
+  PHH_INFOTYPE = POINTER TO HH_INFOTYPE;
+
+  __HHWIN_NAVTAB = (
+    HHWIN_NAVTAB_TOP,
+    HHWIN_NAVTAB_LEFT,
+    HHWIN_NAVTAB_BOTTOM
+  );
+
+CONST
+  HH_MAX_TABS = 19;  // maximum number of tabs
+
+TYPE
+  __HH_TAB = (
+    HH_TAB_CONTENTS,
+    HH_TAB_INDEX,
+    HH_TAB_SEARCH,
+    HH_TAB_FAVORITES,
+    HH_TAB_HISTORY,
+    HH_TAB_AUTHOR,
+
+    HH_TAB_CUSTOM_FIRST = 11,
+    HH_TAB_CUSTOM_LAST = HH_MAX_TABS
+  );
+
+CONST
+  HH_MAX_TABS_CUSTOM = CARDINAL( HH_TAB_CUSTOM_LAST ) - CARDINAL( HH_TAB_CUSTOM_FIRST ) + 1;
+
+CONST
+  // HH_DISPLAY_SEARCH Command Related Structures and Constants
+  HH_FTS_DEFAULT_PROXIMITY = -1;
+
+TYPE
+  HH_FTS_QUERY  = RECORD;
+                    cbStruct        : INTEGER;        // Sizeof structure in bytes.
+                    fUniCodeStrings : windows.BOOL;   // TRUE if all strings are unicode.
+                    pszSearchQuery  : windows.PCTSTR; // String containing the search query.
+                    iProximity      : windows.LONG;   // Word proximity.
+                    fStemmedSearch  : windows.BOOL;   // TRUE for StemmedSearch only.
+                    fTitleOnly      : windows.BOOL;   // TRUE for Title search only.
+                    fExecute        : windows.BOOL;   // TRUE to initiate the search.
+                    pszWindow       : windows.PCTSTR; // Window to display in
+                  END;
+  PHH_FTS_QUERY = HH_FTS_QUERY;
+
+// HH_LAST_ERROR Structure
+TYPE
+  HH_LAST_ERROR  = RECORD
+                     cbStruct    : INTEGER;
+                     hr          : wtypes.HRESULT;
+                     description : windows.PWSTR;
+                   END;
+  PHH_LAST_ERROR = POINTER TO HH_LAST_ERROR;
+
+// HH_WINTYPE Structure
+TYPE
+  HH_WINTYPE  = RECORD
+                  cbStruct        : INTEGER;        // IN: size of this structure including all Information Types
+                  fUniCodeStrings : windows.BOOL;   // IN/OUT: TRUE if all strings are in UNICODE
+                  pszType         : windows.PCTSTR; // IN/OUT: Name of a type of window
+                  fsValidMembers  : windows.DWORD;  // IN: Bit flag of valid members (HHWIN_PARAM_)
+                  fsWinProperties : windows.DWORD;  // IN/OUT: Properties/attributes of the window (HHWIN_)
+
+                  pszCaption      : windows.PCTSTR; // IN/OUT: Window title
+                  dwStyles        : windows.DWORD;  // IN/OUT: Window styles
+                  dwExStyles      : windows.DWORD;  // IN/OUT: Extended Window styles
+                  rcWindowPos     : windows.RECT;   // IN: Starting position, OUT: current position
+                  nShowState      : INTEGER;        // IN: show state (e.g., SW_SHOW)
+
+                  hwndHelp        : windows.HWND;   // OUT: window handle
+                  hwndCaller      : windows.HWND;   // OUT: who called this window
+
+                  paInfoTypes     : PHH_INFOTYPE;   // IN: Pointer to an array of Information Types
+
+                  // The following members are only valid if HHWIN_PROP_TRI_PANE is set
+
+                  hwndToolBar     : windows.HWND;   // OUT: toolbar window in tri-pane window
+                  hwndNavigation  : windows.HWND;   // OUT: navigation window in tri-pane window
+                  hwndHTML        : windows.HWND;   // OUT: window displaying HTML in tri-pane window
+                  iNavWidth       : INTEGER;        // IN/OUT: width of navigation window
+                  rcHTML          : windows.RECT;   // OUT: HTML window coordinates
+
+                  pszToc          : windows.PCTSTR; // IN: Location of the table of contents file
+                  pszIndex        : windows.PCTSTR; // IN: Location of the index file
+                  pszFile         : windows.PCTSTR; // IN: Default location of the html file
+                  pszHome         : windows.PCTSTR; // IN/OUT: html file to display when Home button is clicked
+                  fsToolBarFlags  : windows.DWORD;  // IN: flags controling the appearance of the toolbar
+                  fNotExpanded    : windows.BOOL;   // IN: TRUE/FALSE to contract or expand, OUT: current state
+                  curNavType      : INTEGER;        // IN/OUT: UI to display in the navigational pane
+                  tabpos          : INTEGER;        // IN/OUT: HHWIN_NAVTAB_TOP, HHWIN_NAVTAB_LEFT, or HHWIN_NAVTAB_BOTTOM
+                  idNotify        : INTEGER;        // IN: ID to use for WM_NOTIFY messages
+                  tabOrder        : ARRAY [0..HH_MAX_TABS] OF BYTE;
+                                                    // IN/OUT: tab order: Contents, Index, Search, History, Favorites, Reserved 1-5, Custom tabs
+                  cHistory        : INTEGER;        // IN/OUT: number of history items to keep (default is 30)
+                  pszJump1        : windows.PCTSTR; // Text for HHWIN_BUTTON_JUMP1
+                  pszJump2        : windows.PCTSTR; // Text for HHWIN_BUTTON_JUMP2
+                  pszUrlJump1     : windows.PCTSTR; // URL for HHWIN_BUTTON_JUMP1
+                  pszUrlJump2     : windows.PCTSTR; // URL for HHWIN_BUTTON_JUMP2
+                  rcMinSize       : windows.RECT;   // Minimum size for window (ignored in version 1)
+                  cbInfoTypes     : INTEGER;        // size of paInfoTypes;
+                  pszCustomTabs   : windows.PCTSTR; // multiple zero-terminated strings
+                END;
+  PHH_WINTYPE = POINTER TO HH_WINTYPE;
+
+TYPE
+  HH_ACT = (
+    HHACT_TAB_CONTENTS,
+    HHACT_TAB_INDEX,
+    HHACT_TAB_SEARCH,
+    HHACT_TAB_HISTORY,
+    HHACT_TAB_FAVORITES,
+
+    HHACT_EXPAND,
+    HHACT_CONTRACT,
+    HHACT_BACK,
+    HHACT_FORWARD,
+    HHACT_STOP,
+    HHACT_REFRESH,
+    HHACT_HOME,
+    HHACT_SYNC,
+    HHACT_OPTIONS,
+    HHACT_PRINT,
+    HHACT_HIGHLIGHT,
+    HHACT_CUSTOMIZE,
+    HHACT_JUMP1,
+    HHACT_JUMP2,
+    HHACT_ZOOM,
+    HHACT_TOC_NEXT,
+    HHACT_TOC_PREV,
+    HHACT_NOTES,
+
+    HHACT_LAST_ENUM
+  );
+
+TYPE
+  HHNTRACK  = RECORD
+                hdr        : windows.NMHDR;
+                pszCurUrl  : windows.PCSTR; // Multi-byte, null-terminated string
+                idAction   : HH_ACT;        // HHACT_ value
+                phhWinType : PHH_WINTYPE;   // Current window type structure
+              END;
+  PHHNTRACK = POINTER TO HHNTRACK;
+
+PROCEDURE HtmlHelpA( hwndCaller : windows.HWND;
+                     pszFile    : windows.PCSTR;
+                     uCommand   : CARDINAL;
+                     dwData     : windows.DWORD ) : windows.HWND;
+PROCEDURE HtmlHelpW( hwndCaller : windows.HWND;
+                     pszFile    : windows.PCWSTR;
+                     uCommand   : CARDINAL;
+                     dwData     : windows.DWORD ) : windows.HWND;
+
+CONST
+(*%T UNICODE *)
+  HtmlHelp ::= HtmlHelpW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  HtmlHelp ::= HtmlHelpA;
+(*%E UNICODE *)
+
+// Use the following for GetProcAddress to load from hhctrl.ocx
+
+CONST
+// #define ATOM_HTMLHELP_API_ANSI    (LPTSTR)((DWORD)((WORD)(14)))
+// #define ATOM_HTMLHELP_API_UNICODE (LPTSTR)((DWORD)((WORD)(15)))
+  ATOM_HTMLHELP_API_ANSI    = windows.PTSTR( 14 );
+  ATOM_HTMLHELP_API_UNICODE = windows.PTSTR( 15 );
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Global Control Properties. 
+//
+TYPE
+  HH_GPROPID = (
+    HH_GPROPID_SINGLETHREAD     = 1, // VARIANT_BOOL: True for single thread
+    HH_GPROPID_TOOLBAR_MARGIN   = 2, // long: Provides a left/right margin around the toolbar.
+    HH_GPROPID_UI_LANGUAGE      = 3, // long: LangId of the UI.
+    HH_GPROPID_CURRENT_SUBSET   = 4, // BSTR: Current subset.
+    HH_GPROPID_CONTENT_LANGUAGE = 5  // long: LandId for desired content.
+  );                
+  PHH_GPROPID = POINTER TO HH_GPROPID;
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Global Property structure
+//
+
+(*# save, option( pack => 8 ) *)
+TYPE
+  HH_GLOBAL_PROPERTY  = RECORD
+                          id  : HH_GPROPID;
+                          var : oaidl.VARIANT;
+                        END;
+  PHH_GLOBAL_PROPERTY = HH_GLOBAL_PROPERTY;
+(*# restore *)
+
+END htmlhelp.

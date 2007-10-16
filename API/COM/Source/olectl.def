@@ -1,0 +1,429 @@
+DEFINITION MODULE olectl;
+
+(*# name(   decoration      => c ) *)
+
+(*# module( header          => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            convention      => stdcall ) *)
+
+(*# option( pack => 8 ) *)
+
+IMPORT
+  windows;
+
+IMPORT
+  winerror,
+  wtypes,
+  unknwn;
+
+VAR
+
+//DEFINE_GUID(IID_IPropertyFrame,
+//  0xB196B28A,0xBAB4,0x101A,0xB6,0x9C,0x00,0xAA,0x00,0x34,0x1D,0x07);
+  IID_IPropertyFrame : guiddef.GUID;
+
+//
+//  Class IDs for property sheet implementations
+//
+
+//DEFINE_GUID(CLSID_CFontPropPage, 
+//  0x0be35200,0x8f91,0x11ce,0x9d,0xe3,0x00,0xaa,0x00,0x4b,0xb8,0x51);
+  CLSID_CFontPropPage : guiddef.GUID;
+//DEFINE_GUID(CLSID_CColorPropPage, 
+//  0x0be35201,0x8f91,0x11ce,0x9d,0xe3,0x00,0xaa,0x00,0x4b,0xb8,0x51);
+  CLSID_CColorPropPage : guiddef.GUID;
+//DEFINE_GUID(CLSID_CPicturePropPage, 
+//  0x0be35202,0x8f91,0x11ce,0x9d,0xe3,0x00,0xaa,0x00,0x4b,0xb8,0x51);
+  CLSID_CPicturePropPage : guiddef.GUID;
+
+//
+//  Class IDs for persistent property set formats
+//
+
+//DEFINE_GUID(CLSID_PersistPropset,
+//  0xfb8f0821,0x0164,0x101b,0x84,0xed,0x08,0x00,0x2b,0x2e,0xc7,0x13);
+  CLSID_PersistPropset : guiddef.GUID;
+//DEFINE_GUID(CLSID_ConvertVBX,
+//  0xfb8f0822,0x0164,0x101b,0x84,0xed,0x08,0x00,0x2b,0x2e,0xc7,0x13);
+  CLSID_ConvertVBX : guiddef.GUID;
+
+//
+//  Class ID for standard implementations of IFont and IPicture
+//
+
+//DEFINE_GUID(CLSID_StdFont,
+//  0x0be35203,0x8f91,0x11ce,0x9d,0xe3,0x00,0xaa,0x00,0x4b,0xb8,0x51);
+  CLSID_StdFont : guiddef.GUID;
+//DEFINE_GUID(CLSID_StdPicture, 
+//  0x0be35204,0x8f91,0x11ce,0x9d,0xe3,0x00,0xaa,0x00,0x4b,0xb8,0x51);
+  CLSID_StdPicture : guiddef.GUID;
+
+//
+//  GUIDs for standard types
+//
+
+//DEFINE_GUID(GUID_HIMETRIC,
+//  0x66504300,0xBE0F,0x101A,0x8B,0xBB,0x00,0xAA,0x00,0x30,0x0C,0xAB);
+  GUID_HIMETRIC : guiddef.GUID;
+//DEFINE_GUID(GUID_COLOR,
+//  0x66504301,0xBE0F,0x101A,0x8B,0xBB,0x00,0xAA,0x00,0x30,0x0C,0xAB);
+  GUID_COLOR : guiddef.GUID;
+//DEFINE_GUID(GUID_XPOSPIXEL,
+//  0x66504302,0xBE0F,0x101A,0x8B,0xBB,0x00,0xAA,0x00,0x30,0x0C,0xAB);
+  GUID_XPOSPIXEL : guiddef.GUID;
+//DEFINE_GUID(GUID_YPOSPIXEL,
+//  0x66504303,0xBE0F,0x101A,0x8B,0xBB,0x00,0xAA,0x00,0x30,0x0C,0xAB);
+  GUID_YPOSPIXEL : guiddef.GUID;
+//DEFINE_GUID(GUID_XSIZEPIXEL,
+//  0x66504304,0xBE0F,0x101A,0x8B,0xBB,0x00,0xAA,0x00,0x30,0x0C,0xAB);
+  GUID_XSIZEPIXEL : guiddef.GUID;
+//DEFINE_GUID(GUID_YSIZEPIXEL,
+//  0x66504305,0xBE0F,0x101A,0x8B,0xBB,0x00,0xAA,0x00,0x30,0x0C,0xAB);
+  GUID_YSIZEPIXEL : guiddef.GUID;
+//DEFINE_GUID(GUID_XPOS,
+//  0x66504306,0xBE0F,0x101A,0x8B,0xBB,0x00,0xAA,0x00,0x30,0x0C,0xAB);
+  GUID_XPOS : guiddef.GUID;
+//DEFINE_GUID(GUID_YPOS,
+//  0x66504307,0xBE0F,0x101A,0x8B,0xBB,0x00,0xAA,0x00,0x30,0x0C,0xAB);
+  GUID_YPOS : guiddef.GUID;
+//DEFINE_GUID(GUID_XSIZE,
+//  0x66504308,0xBE0F,0x101A,0x8B,0xBB,0x00,0xAA,0x00,0x30,0x0C,0xAB);
+  GUID_XSIZE : guiddef.GUID;
+//DEFINE_GUID(GUID_YSIZE,
+//  0x66504309,0xBE0F,0x101A,0x8B,0xBB,0x00,0xAA,0x00,0x30,0x0C,0xAB);
+  GUID_YSIZE : guiddef.GUID;
+
+//DEFINE_GUID(GUID_TRISTATE,
+//  0x6650430A,0xBE0F,0x101A,0x8B,0xBB,0x00,0xAA,0x00,0x30,0x0C,0xAB);
+  GUID_TRISTATE : guiddef.GUID;
+
+//DEFINE_GUID(GUID_OPTIONVALUEEXCLUSIVE,
+//  0x6650430B,0xBE0F,0x101A,0x8B,0xBB,0x00,0xAA,0x00,0x30,0x0C,0xAB);
+  GUID_OPTIONVALUEEXCLUSIVE : guiddef.GUID;
+//DEFINE_GUID(GUID_CHECKVALUEEXCLUSIVE,
+//  0x6650430C,0xBE0F,0x101A,0x8B,0xBB,0x00,0xAA,0x00,0x30,0x0C,0xAB);
+  GUID_CHECKVALUEEXCLUSIVE : guiddef.GUID;
+//DEFINE_GUID(GUID_FONTNAME,
+//  0x6650430D,0xBE0F,0x101A,0x8B,0xBB,0x00,0xAA,0x00,0x30,0x0C,0xAB);
+  GUID_FONTNAME : guiddef.GUID;
+//DEFINE_GUID(GUID_FONTSIZE,
+//  0x6650430E,0xBE0F,0x101A,0x8B,0xBB,0x00,0xAA,0x00,0x30,0x0C,0xAB);
+  GUID_FONTSIZE : guiddef.GUID;
+//DEFINE_GUID(GUID_FONTBOLD,
+//  0x6650430F,0xBE0F,0x101A,0x8B,0xBB,0x00,0xAA,0x00,0x30,0x0C,0xAB);
+  GUID_FONTBOLD : guiddef.GUID;
+//DEFINE_GUID(GUID_FONTITALIC,
+//  0x66504310,0xBE0F,0x101A,0x8B,0xBB,0x00,0xAA,0x00,0x30,0x0C,0xAB);
+  GUID_FONTITALIC : guiddef.GUID;
+//DEFINE_GUID(GUID_FONTUNDERSCORE,
+//  0x66504311,0xBE0F,0x101A,0x8B,0xBB,0x00,0xAA,0x00,0x30,0x0C,0xAB);
+  GUID_FONTUNDERSCORE : guiddef.GUID;
+//DEFINE_GUID(GUID_FONTSTRIKETHROUGH,
+//  0x66504312,0xBE0F,0x101A,0x8B,0xBB,0x00,0xAA,0x00,0x30,0x0C,0xAB);
+  GUID_FONTSTRIKETHROUGH : guiddef.GUID;
+//DEFINE_GUID(GUID_HANDLE,
+//  0x66504313,0xBE0F,0x101A,0x8B,0xBB,0x00,0xAA,0x00,0x30,0x0C,0xAB);
+  GUID_HANDLE : guiddef.GUID;
+
+//#endif // INITGUID
+
+/////////////////////////////////////////////////////////////////////////////
+// FACILITY_CONTROL status codes
+CONST
+  FACILITY_CONTROL = 0AH;
+
+(*# call( macro => on ) *)
+PROCEDURE STD_CTL_SCODE( n : LONGWORD ): wtypes.SCODE;
+(*# call( macro => off ) *)
+
+//#define CTL_E_ILLEGALFUNCTIONCALL       STD_CTL_SCODE(5)
+CONST
+  CTL_E_ILLEGALFUNCTIONCALL       = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (5);
+  CTL_E_OVERFLOW                  = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (6);
+  CTL_E_OUTOFMEMORY               = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (7);
+  CTL_E_DIVISIONBYZERO            = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (11);
+  CTL_E_OUTOFSTRINGSPACE          = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (14);
+  CTL_E_OUTOFSTACKSPACE           = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (28);
+  CTL_E_BADFILENAMEORNUMBER       = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (52);
+  CTL_E_FILENOTFOUND              = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (53);
+  CTL_E_BADFILEMODE               = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (54);
+  CTL_E_FILEALREADYOPEN           = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (55);
+  CTL_E_DEVICEIOERROR             = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (57);
+  CTL_E_FILEALREADYEXISTS         = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (58);
+  CTL_E_BADRECORDLENGTH           = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (59);
+  CTL_E_DISKFULL                  = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (61);
+  CTL_E_BADRECORDNUMBER           = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (63);
+  CTL_E_BADFILENAME               = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (64);
+  CTL_E_TOOMANYFILES              = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (67);
+  CTL_E_DEVICEUNAVAILABLE         = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (68);
+  CTL_E_PERMISSIONDENIED          = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (70);
+  CTL_E_DISKNOTREADY              = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (71);
+  CTL_E_PATHFILEACCESSERROR       = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (75);
+  CTL_E_PATHNOTFOUND              = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (76);
+  CTL_E_INVALIDPATTERNSTRING      = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (93);
+  CTL_E_INVALIDUSEOFNULL          = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (94);
+  CTL_E_INVALIDFILEFORMAT         = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (321);
+  CTL_E_INVALIDPROPERTYVALUE      = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (380);
+  CTL_E_INVALIDPROPERTYARRAYINDEX = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (381);
+  CTL_E_SETNOTSUPPORTEDATRUNTIME  = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (382);
+  CTL_E_SETNOTSUPPORTED           = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (383);
+  CTL_E_NEEDPROPERTYARRAYINDEX    = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (385);
+  CTL_E_SETNOTPERMITTED           = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (387);
+  CTL_E_GETNOTSUPPORTEDATRUNTIME  = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (393);
+  CTL_E_GETNOTSUPPORTED           = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (394);
+  CTL_E_PROPERTYNOTFOUND          = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (422);
+  CTL_E_INVALIDCLIPBOARDFORMAT    = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (460);
+  CTL_E_INVALIDPICTURE            = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (481);
+  CTL_E_PRINTERERROR              = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (482);
+  CTL_E_CANTSAVEFILETOTEMP        = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (735);
+  CTL_E_SEARCHTEXTNOTFOUND        = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (744);
+  CTL_E_REPLACEMENTSTOOLONG       = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (746);
+
+(*# call( macro => on ) *)
+//#define CUSTOM_CTL_SCODE(n) MAKE_SCODE(SEVERITY_ERROR, FACILITY_CONTROL, n)
+TYPE
+  PROCEDURE CUSTOM_CTL_SCODE( n : LONGWORD ): wtypes.SCODE;
+(*# call( macro => off ) *)
+
+CONST
+  CTL_E_CUSTOM_FIRST              = (winerror.SEVERITY_ERROR << 31) OR (FACILITY_CONTROL << 16) OR (600);
+
+
+/////////////////////////////////////////////////////////////////////////////
+// IClassFactory2 status codes
+
+  CLASS_E_NOTLICENSED         = winerror.CLASSFACTORY_E_FIRST + 2;
+// class is not licensed for use
+
+
+/////////////////////////////////////////////////////////////////////////////
+// IConnectionPoint status codes
+
+  CONNECT_E_FIRST    = (winerror.SEVERITY_ERROR << 31) OR (winerror.FACILITY_ITF << 16) OR (00200H);
+  CONNECT_E_LAST     = (winerror.SEVERITY_ERROR << 31) OR (winerror.FACILITY_ITF << 16) OR (0020FH);
+  CONNECT_S_FIRST    = (winerror.SEVERITY_SUCCESS << 31) OR (winerror.FACILITY_ITF << 16) OR (00200H);
+  CONNECT_S_LAST     = (winerror.SEVERITY_SUCCESS << 31) OR (winerror.FACILITY_ITF << 16) OR (0020FH);
+
+  CONNECT_E_NOCONNECTION      = CONNECT_E_FIRST + 0;
+// there is no connection for this connection id
+
+  CONNECT_E_ADVISELIMIT       = CONNECT_E_FIRST + 1;
+// this implementation's limit for advisory connections has been reached
+
+  CONNECT_E_CANNOTCONNECT     = CONNECT_E_FIRST + 2;
+// connection attempt failed
+
+  CONNECT_E_OVERRIDDEN        = CONNECT_E_FIRST + 3;
+// must use a derived interface to connect
+
+
+/////////////////////////////////////////////////////////////////////////////
+// DllRegisterServer/DllUnregisterServer status codes
+
+  SELFREG_E_FIRST    = (winerror.SEVERITY_ERROR << 31) OR (winerror.FACILITY_ITF << 16) OR (00200H);
+  SELFREG_E_LAST     = (winerror.SEVERITY_ERROR << 31) OR (winerror.FACILITY_ITF << 16) OR (0020FH);
+  SELFREG_S_FIRST    = (winerror.SEVERITY_SUCCESS << 31) OR (winerror.FACILITY_ITF << 16) OR (00200H);
+  SELFREG_S_LAST     = (winerror.SEVERITY_SUCCESS << 31) OR (winerror.FACILITY_ITF << 16) OR (0020FH);
+
+  SELFREG_E_TYPELIB  = SELFREG_E_FIRST + 0;
+// failed to register/unregister type library
+
+  SELFREG_E_CLASS    = SELFREG_E_FIRST + 1;
+// failed to register/unregister class
+
+
+/////////////////////////////////////////////////////////////////////////////
+// IPerPropertyBrowsing status codes
+
+  PERPROP_E_FIRST    = (winerror.SEVERITY_ERROR << 31) OR (winerror.FACILITY_ITF << 16) OR (00200H);
+  PERPROP_E_LAST     = (winerror.SEVERITY_ERROR << 31) OR (winerror.FACILITY_ITF << 16) OR (0020FH);
+  PERPROP_S_FIRST    = (winerror.SEVERITY_SUCCESS << 31) OR (winerror.FACILITY_ITF << 16) OR (00200H);
+  PERPROP_S_LAST     = (winerror.SEVERITY_SUCCESS << 31) OR (winerror.FACILITY_ITF << 16) OR (0020FH);
+
+  PERPROP_E_NOPAGEAVAILABLE  = PERPROP_E_FIRST + 0;
+// no page available for requested property
+
+
+/////////////////////////////////////////////////////////////////////////////
+// OLEMISC_ constants (they are also defined in the latest oleidl.h)
+
+  OLEMISC_INVISIBLEATRUNTIME  = 000000400H;
+  OLEMISC_ALWAYSRUN           = 000000800H;
+  OLEMISC_ACTSLIKEBUTTON      = 000001000H;
+  OLEMISC_ACTSLIKELABEL       = 000002000H;
+  OLEMISC_NOUIACTIVATE        = 000004000H;
+  OLEMISC_ALIGNABLE           = 000008000H;
+  OLEMISC_SIMPLEFRAME         = 000010000H;
+  OLEMISC_SETCLIENTSITEFIRST  = 000020000H;
+  OLEMISC_IMEMODE             = 000040000H;
+
+
+/////////////////////////////////////////////////////////////////////////////
+// OLEIVERB_ constants
+
+  OLEIVERB_PROPERTIES = -7;
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Variant type (VT_) tags for property sets
+
+  VT_STREAMED_PROPSET = 73;  //       [P]  Stream contains a property set
+  VT_STORED_PROPSET   = 74;  //       [P]  Storage contains a property set
+  VT_BLOB_PROPSET     = 75;  //       [P]  Blob contains a property set
+  VT_VERBOSE_ENUM     = 76;  //       [P]  Enum value with text string
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Variant type (VT_) tags that are just aliases for others
+
+  VT_COLOR            = wtypes.VT_I4;
+  VT_XPOS_PIXELS      = wtypes.VT_I4;
+  VT_YPOS_PIXELS      = wtypes.VT_I4;
+  VT_XSIZE_PIXELS     = wtypes.VT_I4;
+  VT_YSIZE_PIXELS     = wtypes.VT_I4;
+  VT_XPOS_HIMETRIC    = wtypes.VT_I4;
+  VT_YPOS_HIMETRIC    = wtypes.VT_I4;
+  VT_XSIZE_HIMETRIC   = wtypes.VT_I4;
+  VT_YSIZE_HIMETRIC   = wtypes.VT_I4;
+  VT_TRISTATE         = wtypes.VT_I2;
+  VT_OPTEXCLUSIVE     = wtypes.VT_BOOL;
+  VT_FONT             = wtypes.VT_DISPATCH;
+  VT_PICTURE          = wtypes.VT_DISPATCH;
+
+  VT_HANDLE           = wtypes.VT_I4;
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Reflected Window Message IDs
+
+  OCM__BASE           = windows.WM_USER + 01C00H;
+  OCM_COMMAND         = OCM__BASE + windows.WM_COMMAND;
+
+  OCM_CTLCOLORBTN     = OCM__BASE + windows.WM_CTLCOLORBTN;
+  OCM_CTLCOLOREDIT    = OCM__BASE + windows.WM_CTLCOLOREDIT;
+  OCM_CTLCOLORDLG     = OCM__BASE + windows.WM_CTLCOLORDLG;
+  OCM_CTLCOLORLISTBOX = OCM__BASE + windows.WM_CTLCOLORLISTBOX;
+  OCM_CTLCOLORMSGBOX  = OCM__BASE + windows.WM_CTLCOLORMSGBOX;
+  OCM_CTLCOLORSCROLLBAR   = OCM__BASE + windows.WM_CTLCOLORSCROLLBAR;
+  OCM_CTLCOLORSTATIC  = OCM__BASE + windows.WM_CTLCOLORSTATIC;
+
+  OCM_DRAWITEM        = OCM__BASE + windows.WM_DRAWITEM;
+  OCM_MEASUREITEM     = OCM__BASE + windows.WM_MEASUREITEM;
+  OCM_DELETEITEM      = OCM__BASE + windows.WM_DELETEITEM;
+  OCM_VKEYTOITEM      = OCM__BASE + windows.WM_VKEYTOITEM;
+  OCM_CHARTOITEM      = OCM__BASE + windows.WM_CHARTOITEM;
+  OCM_COMPAREITEM     = OCM__BASE + windows.WM_COMPAREITEM;
+  OCM_HSCROLL         = OCM__BASE + windows.WM_HSCROLL;
+  OCM_VSCROLL         = OCM__BASE + windows.WM_VSCROLL;
+  OCM_PARENTNOTIFY    = OCM__BASE + windows.WM_PARENTNOTIFY;
+
+  OCM_NOTIFY          = OCM__BASE + windows.WM_NOTIFY;
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Self-registration APIs (to be implemented by server DLL)
+
+PROCEDURE DllRegisterServer(): wtypes.HRESULT;
+PROCEDURE DllUnregisterServer(): wtypes.HRESULT;
+
+/////////////////////////////////////////////////////////////////////////////
+//  Standard dispatch ID constants
+
+CONST
+
+  DISPID_AUTOSIZE                 = -500;
+  DISPID_BACKCOLOR                = -501;
+  DISPID_BACKSTYLE                = -502;
+  DISPID_BORDERCOLOR              = -503;
+  DISPID_BORDERSTYLE              = -504;
+  DISPID_BORDERWIDTH              = -505;
+  DISPID_DRAWMODE                 = -507;
+  DISPID_DRAWSTYLE                = -508;
+  DISPID_DRAWWIDTH                = -509;
+  DISPID_FILLCOLOR                = -510;
+  DISPID_FILLSTYLE                = -511;
+  DISPID_FONT                     = -512;
+  DISPID_FORECOLOR                = -513;
+  DISPID_ENABLED                  = -514;
+  DISPID_HWND                     = -515;
+  DISPID_TABSTOP                  = -516;
+  DISPID_TEXT                     = -517;
+  DISPID_CAPTION                  = -518;
+  DISPID_BORDERVISIBLE            = -519;
+  DISPID_APPEARANCE               = -520;
+  DISPID_MOUSEPOINTER             = -521;
+  DISPID_MOUSEICON                = -522;
+  DISPID_PICTURE                  = -523;
+  DISPID_VALID                    = -524;
+  DISPID_READYSTATE               = -525;
+
+  DISPID_REFRESH                  = -550;
+  DISPID_DOCLICK                  = -551;
+  DISPID_ABOUTBOX                 = -552;
+
+  DISPID_CLICK                    = -600;
+  DISPID_DBLCLICK                 = -601;
+  DISPID_KEYDOWN                  = -602;
+  DISPID_KEYPRESS                 = -603;
+  DISPID_KEYUP                    = -604;
+  DISPID_MOUSEDOWN                = -605;
+  DISPID_MOUSEMOVE                = -606;
+  DISPID_MOUSEUP                  = -607;
+  DISPID_ERROREVENT               = -608;
+  DISPID_READYSTATECHANGE         = -609;
+
+  DISPID_AMBIENT_BACKCOLOR        = -701;
+  DISPID_AMBIENT_DISPLAYNAME      = -702;
+  DISPID_AMBIENT_FONT             = -703;
+  DISPID_AMBIENT_FORECOLOR        = -704;
+  DISPID_AMBIENT_LOCALEID         = -705;
+  DISPID_AMBIENT_MESSAGEREFLECT   = -706;
+  DISPID_AMBIENT_SCALEUNITS       = -707;
+  DISPID_AMBIENT_TEXTALIGN        = -708;
+  DISPID_AMBIENT_USERMODE         = -709;
+  DISPID_AMBIENT_UIDEAD           = -710;
+  DISPID_AMBIENT_SHOWGRABHANDLES  = -711;
+  DISPID_AMBIENT_SHOWHATCHING     = -712;
+  DISPID_AMBIENT_DISPLAYASDEFAULT = -713;
+  DISPID_AMBIENT_SUPPORTSMNEMONICS = -714;
+  DISPID_AMBIENT_AUTOCLIP         = -715;
+  DISPID_AMBIENT_APPEARANCE       = -716;
+  DISPID_AMBIENT_PALETTE          = -726;
+  DISPID_AMBIENT_TRANSFERPRIORITY = -728;
+
+  DISPID_Name                     = -800;
+  DISPID_Delete                   = -801;
+  DISPID_Object                   = -802;
+  DISPID_Parent                   = -803;
+
+/////////////////////////////////////////////////////////////////////////////
+// Dispatch ID constants for font and picture types
+
+  DISPID_FONT_NAME    = 0;
+  DISPID_FONT_SIZE    = 2;
+  DISPID_FONT_BOLD    = 3;
+  DISPID_FONT_ITALIC  = 4;
+  DISPID_FONT_UNDER   = 5;
+  DISPID_FONT_STRIKE  = 6;
+  DISPID_FONT_WEIGHT  = 7;
+  DISPID_FONT_CHARSET = 8;
+
+  DISPID_PICT_HANDLE  = 0;
+  DISPID_PICT_HPAL    = 2;
+  DISPID_PICT_TYPE    = 3;
+  DISPID_PICT_WIDTH   = 4;
+  DISPID_PICT_HEIGHT  = 5;
+  DISPID_PICT_RENDER  = 6;
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Names of modules containing type libraries for standard types
+
+//#define STDOLE_TLB "stdole32.tlb"
+//#define STDTYPE_TLB "olepro32.dll"
+
+END olectl.

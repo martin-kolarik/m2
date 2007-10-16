@@ -1,0 +1,43 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 PRODUCT NAME -->
+    <PropertyGroup>
+        <ProductFlag>on</ProductFlag>
+        <ProductVersionMajor>1</ProductVersionMajor>
+        <ProductVersionMinor>0</ProductVersionMinor>
+        <FileDescription>Modula 2 to CPP compiler</FileDescription>
+    </PropertyGroup>
+
+    <!-- 2 ROOT DIRS (including ProjectBuildDir) -->
+    <Import Project="..\..\Build\common.rootdir.proj"/><!-- property CodeRoot affects this -->
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 PRODUCT DEFINITION -->
+    <ItemGroup>
+        <Components Include="api\clib">
+            <CLib>Dynamic</CLib>
+        </Components>
+        <Components Include="modula2\modula2;api\win32;modula2\m2rtl;modula2\m2ortl;library\adt;library\Resources"/>
+        <Messages Include="err;wrn"/>
+        <Modules Include="console;generator;scanner;parser;dom;types;project"/>
+        <Program Include="program"/>
+    </ItemGroup>
+
+    <!-- 4 special build steps -->
+    <PropertyGroup>
+        <UserPreCompile>BuildCOCOFiles</UserPreCompile>
+    </PropertyGroup>
+
+    <Target Name="BuildCOCOFiles"
+            Inputs="$(SourceDir)\Scanner.frame;$(SourceDir)\Parser.frame;$(SourceDir)\m2cpp.grammar"
+            Outputs="$(SourceDir)\Scanner.mod;$(SourceDir)\Parser.mod">
+        <Exec WorkingDirectory="$(ComponentDir)"
+              Command="Bin\coco $(SourceDir)\m2cpp.grammar"/>
+    </Target>
+
+    <!-- 5 -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>

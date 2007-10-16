@@ -1,0 +1,34 @@
+DEFINITION MODULE Storage;
+
+#save, option( dll_export => on )
+
+//================================================================================
+// Memory allocation/deallocation module
+
+#save, option( leak_info => on )
+PROCEDURE M2ALLOCATE( VAR a : ADDRESS; size : CARDINAL );
+PROCEDURE M2DEALLOCATE( VAR a : ADDRESS );
+PROCEDURE M2REALLOCATE( VAR a : ADDRESS; size : CARDINAL );
+#restore
+
+CONST
+  ALLOCATE   ::= M2ALLOCATE;
+  DEALLOCATE ::= M2DEALLOCATE;
+  REALLOCATE ::= M2REALLOCATE;
+
+//--------------------------------------------------------------------------------
+
+PROCEDURE Move( CONST Source : ADDRESS; Destination : ADDRESS; Length : CARDINAL );
+PROCEDURE Fill( Destination : ADDRESS; Length : CARDINAL; Value : BYTE );
+PROCEDURE Zero( Destination : ADDRESS; Length : CARDINAL );
+PROCEDURE Equals( CONST Source, Destination : ADDRESS; Length : CARDINAL ) : BOOLEAN;
+
+//--------------------------------------------------------------------------------
+
+INITIALLY __I();
+
+//================================================================================
+
+#restore
+
+END Storage.

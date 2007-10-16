@@ -1,0 +1,50 @@
+DEFINITION MODULE bitarray;
+
+#save, option( dll_export => on )
+
+TYPE
+  TPBitArray = POINTER TO CBitArray;
+
+TYPE
+  TData;
+  TBitsCount;
+
+CLASS CBitArray;
+  INTERNAL READONLY VAR
+    _Data        : TData;
+    _Allocated   : CARDINAL;
+    _CountBits   : BOOLEAN := FALSE;
+    _BitsCount   : TBitsCount; 
+  PUBLIC PROPERTY
+    Count        : CARDINAL; // get, set initializes/reallocates space; !! SLOW on decreasing count
+  PUBLIC READONLY VAR
+    Occupied     : CARDINAL;
+  PUBLIC VAR
+    ExpandOnSet  : BOOLEAN := TRUE;
+  PUBLIC PROPERTY
+    CountBits    : BOOLEAN;
+    
+  PUBLIC
+    INDEX( Index : INTEGER ) : BOOLEAN;
+
+  PRIVATE VIRTUAL PROCEDURE __VMT();
+
+  PUBLIC PROCEDURE InclAll();
+  PUBLIC PROCEDURE Incl( Bit : INTEGER ); // [Bit] := TRUE
+  PUBLIC PROCEDURE In( Bit : INTEGER ) : BOOLEAN; // [Bit]
+  PUBLIC PROCEDURE ExclAll();
+  PUBLIC PROCEDURE Excl( Bit : INTEGER ); // [Bit] := FALSE
+
+  PUBLIC PROCEDURE GetFirst( OUT Bit : INTEGER ) : BOOLEAN;
+  PUBLIC PROCEDURE NextOf( FromBit : INTEGER; OUT Bit : INTEGER ) : BOOLEAN;
+  PUBLIC PROCEDURE OrderOfSetBit( Bit : INTEGER; OUT Order : INTEGER ) : BOOLEAN;
+
+  PUBLIC PROCEDURE Dispose();
+
+  INTERNAL INLINE PROCEDURE CountToBytes( Count : CARDINAL ) : CARDINAL;
+  INTERNAL PROCEDURE AdjustBitsCount() : CARDINAL;
+END CBitArray;
+
+#restore
+
+END bitarray.

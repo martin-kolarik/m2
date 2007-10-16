@@ -1,0 +1,306 @@
+DEFINITION MODULE comm;
+
+(*/*)
+(* ================================================================ *)
+(*   CwComm - COM Communication Layer for Control Web               *)
+(*                                                                  *)
+(*   (c) 1998,1999 by DAD, Moravian Instruments                     *)
+(* ================================================================ *)
+(*/*)
+
+IMPORT
+  windows;
+
+IMPORT
+  FIO;
+
+IMPORT
+  seriallink;
+
+IMPORT
+  btools;
+
+(* ================================================================ *)
+CONST
+  //CommVersion = CARDINAL( 010014H );	// v. 1.20
+  //CommVersion = CARDINAL( 030000H );	// v. 3.00
+  //CommVersion = CARDINAL( 030005H );	// v. 3.5
+  //CommVersion = CARDINAL( 030009H );	// v. 3.9
+  //CommVersion = CARDINAL( 03000CH );	// v. 3.12    Feb 2003
+  //CommVersion = CARDINAL( 040000H );	// v. 4.0     Feb 2005
+  CommVersion = CARDINAL( 040001H );	// v. 4.1     Feb 2006
+
+(* ================================================================ *)
+TYPE
+  TPCommStream    = POINTER TO CCommStream;
+
+(* ---------------------------------------------------------------- *)
+
+CONST
+	SYNC_COMM = FALSE;
+// Event array
+(*%F SYNC_COMM *)
+  hevDoneRq       = 0;    // thread exit signal
+  hevRead         = 1;    // overlapped IO signal
+  hevWrite        = 2;    // overlapped IO signal
+  hevCommEvent    = 3;    // communication event overlapped wait signal
+  hevCommError    = 4;    // signal "error occured"
+  hevReadRq       = 5;    // signal "data ready, receive" - only for AutoReadPending mode
+  hevWriteRq      = 6;    // signal "data ready, send"
+  hevCommEventRq  = 7;    // abort comm. overlapped wait and continue
+
+  hevFirst        = 0;
+  hevLast         = hevCommEventRq;
+  NumCommEvents   = hevLast - hevFirst + 1;
+(*%E SYNC_COMM *)
+
+(*%T SYNC_COMM *)
+  hevDoneRq       = 0;    // thread exit signal
+  hevWrite        = 1;    // overlapped IO signal
+  hevCommEvent    = 2;    // communication event overlapped wait signal
+  hevCommError    = 3;    // signal "error occured"
+  hevCommEventRq  = 4;    // abort comm. overlapped wait and continue
+  hevCEThreadDone = 5;    // thread exit signal
+  hevCEStartWrite = 6;    // start synchronous write
+  hevCEWriteNext  = 7;    // synchronous re-run of non-overlapped write
+  hevCEWaitNext   = 8;    // synchronous re-run of non-overlapped wait
+
+  hevFirst        = 0;
+  hevLast         = hevCEWaitNext;
+  NumCommEvents   = hevCommEventRq - hevFirst + 1;
+(*%E SYNC_COMM *)
+
+  // added 25/04/2001 ------------------------------------------------
+  // problems with ADAM4570 -- application stop delays for undefined time
+  // problem is: Advantech COM/Ethernet SW tuneling support when line disconnected works as follows:
+  // WaitCommEvent() returns False & GetLastError()=ERROR_SUCCESS (!!!)
+  // thread sets hevCommEventRq to start new overlapped WaitCommEvent() operation
+  // and WaitForMultipleObjectsEx() never returns (hevDoneRq + windows.WAIT_OBJECT_0) if hevCommEventRq < hevDoneRq
+
+
+  NumAllEvents  = hevLast - hevFirst + 1;
+
+// CommState
+  comsReady             = 0;
+  comsInitialized       = 1;    // having been initialized
+  comsThreadLock        = 2;    // lock for MT
+  comsPrivate           = 3;    // can be used by 1 instance only
+
+  comsHalfDuplex        = 8;
+  comsToggleDTR         = 9;
+  comsNegToggleDTR      = 10;
+  comsToggleRTS         = 11;
+  comsNegToggleRTS      = 12;
+
+// error codes
+  errOK                 = 0;
+  errLocked             = 0FFFFFFFFH;
+
+// Escape codes - enhanced; only for this Comm link
+  escNOPARITY           = 080010001H;
+  escEVENPARITY         = 080010002H;
+  escMARKPARITY         = 080010003H;
+  escODDPARITY          = 080010004H;
+  escSPACEPARITY        = 080010005H;
+
+  escSETBREAK           = 08001000AH; // windows.SETBREAK may be used instead of this
+  escCLRBREAK           = 08001000BH; // windows.CLRBREAK may be used instead of this
+
+// debug mask
+  dbgReadFile           = 0;
+  dbgWriteFile          = 1;
+  dbgCommEvt            = 2;
+  dbgRecv               = 3;
+  dbgSend               = 4;
+
+(* ---------------------------------------------------------------- *)
+(*# save,
+    call( o_a_copy => off, o_a_size => on ),
+    option( dll_export=>on ) *)
+
+// 09/11/1998 removed "prefix => c" to avoid binary DLL compatibility with CW 3.11
+
+CLASS CCommStream( seriallink.CCommLinkStream );     // link layer driver - COM
+
+// PROTECTED members
+  InitCount         : CARDINAL;
+  CommState         : BITSET;
+
+  OpenedDev         : ARRAY [0..63] OF TCHAR;
+  HComm             : FIO.File;
+  CommDCB           : windows.DCB;
+
+  Timeouts          : windows.COMMTIMEOUTS;
+(*%F SYNC_COMM *)
+  RxOverlapped,
+  TxOverlapped,
+  WaitOverlapped    : windows.OVERLAPPED;
+(*%E SYNC_COMM *)
+
+  CommEventMask     : CARDINAL;                   // FocusMask -> CommEventMask
+  CurrentEvMask     : CARDINAL;                   // commited mask
+  WaitEventOccured  : CARDINAL;
+  RxWinBufSize,                                   // windows buffers
+  TxWinBufSize      : CARDINAL;
+
+// receiption cache
+  RxQueue           : btools.CCircularBuffer;     // circular buffer
+  RxCacheSize       : CARDINAL;
+  PRxCache          : ADDRESS;                    // linear cache
+
+// transmition cache
+  TxQueue           : btools.CCircularBuffer;     // circular buffer
+  TxCacheSize       : CARDINAL;
+  PTxCache          : ADDRESS;                    // linear cache
+
+  RxCacheUsed       : BOOLEAN;
+  TxCacheUsed       : BOOLEAN;
+  __a1, __a2        : BOOLEAN;
+
+// mutexes
+  CommCritical      : windows.CRITICAL_SECTION;   // internal; lock for shared vars
+  MTCS              : windows.CRITICAL_SECTION;   // multithread lock
+
+  EventArray        : ARRAY [hevFirst..hevLast] OF windows.HANDLE;
+  HCommThread       : windows.HANDLE;
+  CommThreadId      : LONGWORD;
+(*%T SYNC_COMM *)
+  HWaitThread       : windows.HANDLE;
+  WaitThreadId      : LONGWORD;
+  HWriteThread      : windows.HANDLE;
+  WriteThreadId     : LONGWORD;
+(*%E SYNC_COMM *)
+  BasePriority      : INTEGER;
+
+  CharDelay         : CARDINAL;                   // 1 char delay - for halfduplex (ms)
+  PreKey            : CARDINAL;                   // data key pre-delay (ms)
+  HoldKey           : CARDINAL;                   // data key hold (ms)
+
+(*# save, option(volatile=>on) *)
+  ComStat           : windows.COMSTAT;
+  ComStatError      : CARDINAL;
+  CurRxCount        : CARDINAL;                   // Rx count cache
+  ComStatCached     : BOOLEAN;                    // CommStat,CurRxCount,CurRxCount cached
+  AutoReadPending   : BOOLEAN;
+  CSRxPending       : BOOLEAN;                    // Read operation pending flag
+  CSTxPending       : BOOLEAN;                    // Write operation pending flag
+  CSWaitPending     : BOOLEAN;                    // WaitCommEvent pending
+  CSMaskRxChar      : BOOLEAN;                    // mask EV_RXCHAR
+  CSXmit            : BOOLEAN;                    // transmit in progress (control signals driving or WriteFile)
+  TxEmptySignalized : BOOLEAN;
+(*# restore *)
+
+  RxBytesRq         : CARDINAL;                   // read bytes requested
+  TxBytesRq         : CARDINAL;                   // write bytes requested
+  RxBytesRead       : CARDINAL;                   // bytes read
+  TxBytesWritten    : CARDINAL;                   // bytes written
+
+// debugging
+  DebugMask         : BITSET;
+
+// performance counters
+  TotalRx,
+  TotalTx           : CARD64;
+
+// PUBLIC members
+#if #not( PlatformName #startswith L"WinCE" ) #then
+  PUBLIC VIRTUAL PROCEDURE Init( Device      : ARRAY OF CHAR;
+                                 IniFilePath : ARRAY OF CHAR;
+                                 fMultithreadLock, fPrivate : BOOLEAN;
+                                 VAR ErrorString : ARRAY OF CHAR;
+                                 VAR hSession : seriallink.TSessionHandle ) : BOOLEAN;
+#endif
+  PUBLIC VIRTUAL PROCEDURE InitW( Device      : ARRAY OF WCHAR;
+                                  IniFilePath : ARRAY OF WCHAR;
+                                  fMultithreadLock, fPrivate : BOOLEAN;
+                                  VAR ErrorString : ARRAY OF WCHAR;
+                                  VAR hSession : seriallink.TSessionHandle ) : BOOLEAN;
+
+  PUBLIC VIRTUAL PROCEDURE Done();
+
+  PUBLIC VIRTUAL PROCEDURE SetBasePriority( ThreadPriority : INTEGER );
+  PUBLIC VIRTUAL PROCEDURE GetCommFocusMask( VAR Mask : BITSET );
+  PUBLIC VIRTUAL PROCEDURE SetCommFocus( Event : CARDINAL; fSet : BOOLEAN );
+  PUBLIC VIRTUAL PROCEDURE SetCommFocusMask( Mask : BITSET );
+
+  PUBLIC VIRTUAL PROCEDURE SetRxTimeout( TotalPerByte, TotalConst, Interval : CARDINAL ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE RxCount() : CARDINAL;
+  PUBLIC VIRTUAL PROCEDURE RxFree() : CARDINAL;
+  PUBLIC VIRTUAL PROCEDURE Receive( PBuf : ADDRESS; Len : CARDINAL; MaskRxCharPending : BOOLEAN ) : CARDINAL;
+  PUBLIC VIRTUAL PROCEDURE PurgeRxBuffer() : BOOLEAN;
+
+  PUBLIC VIRTUAL PROCEDURE SetTxTimeout( TotalPerByte, TotalConst : CARDINAL ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE TxCount() : CARDINAL;
+  PUBLIC VIRTUAL PROCEDURE TxFree() : CARDINAL;
+  PUBLIC VIRTUAL PROCEDURE Send( PBuf : ADDRESS; Len : CARDINAL ) : CARDINAL;
+  PUBLIC VIRTUAL PROCEDURE Flush() : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE PurgeTxBuffer() : BOOLEAN;
+
+  PUBLIC VIRTUAL PROCEDURE Escape( EscCode : CARDINAL ) : BOOLEAN;
+
+  PUBLIC VIRTUAL PROCEDURE GetProperty( PropertyName         : ARRAY OF CHAR;
+                                        VAR PropertyType     : CARDINAL;
+                                        PPropertyData        : ADDRESS;
+                                        VAR PropertyDataSize : CARDINAL ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE GetPropertyW( PropertyName         : ARRAY OF WCHAR;
+                                         VAR PropertyType     : CARDINAL;
+                                         PPropertyData        : ADDRESS;
+                                         VAR PropertyDataSize : CARDINAL ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE SetProperty( PropertyName     : ARRAY OF CHAR;
+                                        PropertyType     : CARDINAL;
+                                        PPropertyData    : ADDRESS;
+                                        PropertyDataSize : CARDINAL ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE SetPropertyW( PropertyName     : ARRAY OF WCHAR;
+                                         PropertyType     : CARDINAL;
+                                         PPropertyData    : ADDRESS;
+                                         PropertyDataSize : CARDINAL ) : BOOLEAN;
+
+// PROTECTED members
+  LOCAL VIRTUAL PROCEDURE CommThread();           // runs in separate thread
+  VIRTUAL PROCEDURE XmitSignal( On : BOOLEAN );
+  VIRTUAL PROCEDURE ClearCommError() : BOOLEAN;
+  VIRTUAL PROCEDURE UpdateCommStat();
+(*%F SYNC_COMM *)
+  VIRTUAL PROCEDURE DoReadComm( StartRead : BOOLEAN ) : BOOLEAN;
+(*%E SYNC_COMM *)
+(*%T SYNC_COMM *)
+  VIRTUAL PROCEDURE CECommThreadWait();     // runs in separate thread
+  VIRTUAL PROCEDURE CECommThreadWrite();    // runs in separate thread
+(*%E SYNC_COMM *)
+
+END CCommStream;
+(*# restore *)
+
+(*# save,
+    call( convention => cdecl, o_a_copy => off, o_a_size => on ),
+    option( dll_export=>on ) *)
+  PROCEDURE NewLinkInstance() : ADDRESS;
+  PROCEDURE FreeLinkInstance( PI : ADDRESS );
+(*# restore *)
+
+CONST
+// property id names & types ---
+// cathegory: common
+  pnameVersion              = C'version';                 ptypeVersion              = seriallink.propDWORD; // MSB to LSB: Major(8).Minor(8).Release(8).zero(8) 
+  pnameLinkVersion          = C'lversion';                ptypeLinkVersion          = seriallink.propDWORD;
+  pnameDevice               = C'device';                  ptypeDevice               = seriallink.propSZ;
+  pnameRxBuffer             = C'rx_buffer';               ptypeRxBuffer             = seriallink.propDWORD;
+  pnameTxBuffer             = C'tx_buffer';               ptypeTxBuffer             = seriallink.propDWORD;
+  pnameRxTimeoutInterval    = C'rx_interchar_timeout';    ptypeRxTimeoutInterval    = seriallink.propDWORD;
+  pnameRxTimeoutPerChar     = C'rx_char_timeout';         ptypeRxTimeoutPerChar     = seriallink.propDWORD;
+  pnameRxTimeoutConst       = C'rx_timeout';              ptypeRxTimeoutConst       = seriallink.propDWORD;
+  pnameTxTimeoutPerChar     = C'tx_char_timeout';         ptypeTxTimeoutPerChar     = seriallink.propDWORD;
+  pnameTxTimeoutConst       = C'tx_timeout';              ptypeTxTimeoutConst       = seriallink.propDWORD;
+
+// cathegory: serial
+  pnameBaudRate             = C'baudrate';                ptypeBaudRate             = seriallink.propDWORD;
+  pnameParity               = C'parity';                  ptypeParity               = seriallink.propDWORD;
+  pnameDataBits             = C'databits';                ptypeDataBits             = seriallink.propDWORD;
+  pnameStopBits             = C'stopbits';                ptypeStopBits             = seriallink.propDWORD;
+
+  pnameCTS                  = C'cts';                     ptypeCTS                  = seriallink.propDWORD;
+  pnameDSR                  = C'dsr';                     ptypeDSR                  = seriallink.propDWORD;
+  pnameRING                 = C'ring';                    ptypeRING                 = seriallink.propDWORD;
+  pnameRLSD                 = C'rlsd';                    ptypeRLSD                 = seriallink.propDWORD;
+
+END comm.

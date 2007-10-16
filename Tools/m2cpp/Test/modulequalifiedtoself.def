@@ -1,0 +1,7 @@
+DEFINITION MODULE modulequalifiedtoself;
+
+CLASS C;
+  VIRTUAL PROCEDURE M();
+END C;
+
+END modulequalifiedtoself.

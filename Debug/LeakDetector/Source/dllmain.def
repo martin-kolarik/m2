@@ -1,0 +1,17 @@
+DEFINITION MODULE dllmain;
+
+//==============================================================
+// DllMain module
+//==============================================================
+
+(*# name( decoration=>windows ) *)
+(*# call( o_a_size=>off, convention=>stdcall ) *)
+
+IMPORT
+  windows;
+
+PROCEDURE DllMain( Instance : windows.HINSTANCE;
+                   Reason   : windows.DWORD;
+                   Reserved : windows.PVOID ): windows.BOOL;
+
+END dllmain.

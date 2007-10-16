@@ -1,0 +1,436 @@
+DEFINITION MODULE seriallink;
+
+(*/*)
+(* ================================================================ *)
+(*   CwXLink - General Link Layer for Control Web Device Drivers    *)
+(*                                                                  *)
+(*   (c) 1998 by DAD, Moravian Instruments                          *)
+(* ================================================================ *)
+(*/*)
+
+(*/*
+
+  Link layer rules:
+
+    OpenLink is obsolete, instead of this call OpenLinkEx (within ANSI drivers) or
+    OpenLinkExW (within UNICODE drivers).
+
+
+      CWXLINK/ANSI
+      ============
+
+        Supports only ANSI-style drivers.
+
+                      OpenLinkEx    --(layer)--> Init
+                      OpenLinkExW   returns FALSE, not implemented, no transition to link-layer
+
+        Link layer libraries requirements:
+          'Init' must be supported.
+          Methods InitW, GetErrorMsgW, GetPropertyW, SetPropertyW must not to be implemented
+
+
+      CWXLINK/UNICODE
+      ===============
+
+        Supports both ANSI/UNICODE drivers.
+
+                      OpenLinkEx  -- transforms calls internally to OpenLinkExW
+                      OpenLinkExW --(layer)--> InitW
+
+        Link layer libraries must support both ANSI/UNICODE calls:
+          Init/InitW, GetErrorMsg/GetErrorMsgW, GetProperty/GetPropertyW,
+          SetProperty/SetPropertyW
+        'Init' must be implemented to make cooperation with ANSI CWXLINK possible;
+        calls to 'Init' should be redirected to 'InitW'.
+
+
+      Link layer libraries must support ANSI and UNICODE styles of compilation.
+*/*)
+
+IMPORT
+  windows;
+
+IMPORT
+  list;
+
+(* ================================================================ *)
+TYPE
+  TPCommLinkStream  = POINTER TO CCommLinkStream;
+  TLinkHandle       = ADDRESS;
+  TSessionHandle    = CARDINAL;
+
+(*# save,
+    call( convention => cdecl, o_a_copy => off, o_a_size => on ) *)
+  TCommCallback     = PROCEDURE( ADDRESS, CARDINAL, CARDINAL );
+  TNewLinkInstance  = PROCEDURE() : ADDRESS;
+  TFreeLinkInstance = PROCEDURE( ADDRESS );
+(*# restore *)
+
+CONST
+  TPList ::= list.TPList;
+  CListElem ::= list.CListElem;
+
+  InvalidSessionHandle = TSessionHandle( windows.INVALID_HANDLE_VALUE );
+
+(* ---------------------------------------------------------------- *)
+
+CONST
+// CommFocus
+  // atomic events
+  comfBreakEvent        = 0;
+  comfCTS               = 1;
+  comfDSR               = 2;
+  comfErrorEvent        = 3;
+  comfRing              = 4;
+  comfRLSD              = 5;
+  comfRxChar            = 6;
+  comfRxEvent           = 7;
+  comfTxEmpty           = 8;
+  comfRx80Full          = 9;
+  // global events
+  comfRecvCountReached  = 16;
+  comfRxTimeout         = 17;
+  comfTxTimeout         = 18;
+  comfRxDataQueued      = 19;
+  comfCE                = 20; // Error field is mask (use CE_XXX constants to decode)
+
+  comfCTSHold           = 24;
+  comfDSRHold           = 25;
+  comfRingHold          = 26;
+  comfRLSDHold          = 27;
+
+// error codes
+  errOK                 = 0;
+  errLocked             = 0FFFFFFFFH;
+
+// handles
+
+// CE_XXX -> 
+  CE_RXOVER   ::= windows.CE_RXOVER;
+  CE_OVERRUN  ::= windows.CE_OVERRUN;
+  CE_RXPARITY ::= windows.CE_RXPARITY;
+  CE_FRAME    ::= windows.CE_FRAME;
+  CE_BREAK    ::= windows.CE_BREAK;
+  CE_TXFULL   ::= windows.CE_TXFULL;
+  CE_PTO      ::= windows.CE_PTO;
+  CE_IOE      ::= windows.CE_IOE;
+  CE_DNS      ::= windows.CE_DNS;
+  CE_OOP      ::= windows.CE_OOP;
+  CE_MODE     ::= windows.CE_MODE;
+
+// escape codes
+  CLRDTR      ::= windows.CLRDTR;
+  CLRRTS      ::= windows.CLRRTS;
+  SETDTR      ::= windows.SETDTR;
+  SETRTS      ::= windows.SETRTS;
+  SETXOFF     ::= windows.SETXOFF;
+  SETXON      ::= windows.SETXON;
+  SETBREAK    ::= windows.SETBREAK;
+  CLRBREAK    ::= windows.CLRBREAK;
+
+// property types
+  propBINARY  = 0;
+  propDWORD   = 1;
+  propSZ      = 2;
+
+(*# save, option( dll_export=>on ) *)
+// property id names & types ---
+// cathegory: common
+  pnameVersion              = C'version';                 ptypeVersion              = propDWORD; // MSB to LSB: Major(8).Minor(8).Release(8).zero(8) 
+  pnameLinkVersion          = C'lversion';                ptypeLinkVersion          = propDWORD;
+  pnameDevice               = C'device';                  ptypeDevice               = propSZ;
+  pnameRxBuffer             = C'rx_buffer';               ptypeRxBuffer             = propDWORD;
+  pnameTxBuffer             = C'tx_buffer';               ptypeTxBuffer             = propDWORD;
+  pnameRxTimeoutInterval    = C'rx_interchar_timeout';    ptypeRxTimeoutInterval    = propDWORD;
+  pnameRxTimeoutPerChar     = C'rx_char_timeout';         ptypeRxTimeoutPerChar     = propDWORD;
+  pnameRxTimeoutConst       = C'rx_timeout';              ptypeRxTimeoutConst       = propDWORD;
+  pnameTxTimeoutPerChar     = C'tx_char_timeout';         ptypeTxTimeoutPerChar     = propDWORD;
+  pnameTxTimeoutConst       = C'tx_timeout';              ptypeTxTimeoutConst       = propDWORD;
+
+// cathegory: serial
+  pnameBaudRate             = C'baudrate';                ptypeBaudRate             = propDWORD;
+  pnameParity               = C'parity';                  ptypeParity               = propDWORD;
+  pnameDataBits             = C'databits';                ptypeDataBits             = propDWORD;
+  pnameStopBits             = C'stopbits';                ptypeStopBits             = propDWORD;
+
+  pnameCTS                  = C'cts';                     ptypeCTS                  = propDWORD;
+  pnameDSR                  = C'dsr';                     ptypeDSR                  = propDWORD;
+  pnameRING                 = C'ring';                    ptypeRING                 = propDWORD;
+  pnameRLSD                 = C'rlsd';                    ptypeRLSD                 = propDWORD;
+(*# restore *)
+
+(* ---------------------------------------------------------------- *)
+(* >>> Object Interface >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
+CONST
+  cbtInvisible  = 0;
+  cbtPrivate    = 1;
+TYPE
+  TCallbackRec  = RECORD
+                    CommCallback       : TCommCallback;
+                    CommCallbackParam  : ADDRESS;
+                    SessionHandle      : TSessionHandle;
+                    Opt                : BITSET;
+                  END;
+  TCallbackArray  = ARRAY [0..SIZE(BITSET)*8-1] OF TCallbackRec;
+
+CONST
+  SessionHandles  = 32; // 512;
+TYPE
+  TPSessionHandleSet = POINTER TO BITSET; //POINTER TO SET OF [0..SessionHandles-1];
+
+(*# save, 
+    call( o_a_copy => off, o_a_size => on ),
+    option( dll_export=>off ) *)
+
+(* 09/11/98 removed "prefix => c" to avoid binary DLL compatibility with CW3.11 *)
+
+CLASS CCommLinkStream;  // abstract link layer
+
+// PROTECTED
+  FocusMask         : BITSET;
+  CommCBArray       : TCallbackArray;
+  PSHandles         : ADDRESS;
+
+// PUBLIC
+  // not supported since CW 4.00
+  (*/*
+  VIRTUAL PROCEDURE Init( Device   : ARRAY OF CHAR;
+                          PScanner : TPScanner; 
+                          fMultithreadLock, fPrivate : BOOLEAN;
+                          VAR ErrorString : ARRAY OF CHAR;
+                          VAR hSession : TSessionHandle ) : BOOLEAN;
+  */*)
+
+  PUBLIC VIRTUAL PROCEDURE Init( Device      : ARRAY OF CHAR;
+                                 IniFilePath : ARRAY OF CHAR;
+                                 fMultithreadLock, fPrivate : BOOLEAN;
+                                 VAR ErrorString : ARRAY OF CHAR;
+                                 VAR hSession : TSessionHandle ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE InitW( Device      : ARRAY OF WCHAR;
+                                  IniFilePath : ARRAY OF WCHAR;
+                                  fMultithreadLock, fPrivate : BOOLEAN;
+                                  VAR ErrorString : ARRAY OF WCHAR;
+                                  VAR hSession : TSessionHandle ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE Done();
+  PUBLIC VIRTUAL PROCEDURE DoneSession( hSession : TSessionHandle );
+
+// PROTECTED
+  VIRTUAL PROCEDURE GetNewSessionHandle() : TSessionHandle;
+
+// PUBLIC
+  PUBLIC VIRTUAL PROCEDURE SetBasePriority( ThreadPriority : INTEGER );
+  PUBLIC VIRTUAL PROCEDURE GetCommFocusMask( VAR Mask : BITSET );
+  PUBLIC VIRTUAL PROCEDURE SetCommFocus( Event : CARDINAL; fSet : BOOLEAN );
+  PUBLIC VIRTUAL PROCEDURE SetCommFocusMask( Mask : BITSET );
+  PUBLIC VIRTUAL PROCEDURE GetCommCallback( Event : CARDINAL; 
+                                            VAR CBRoutine : ADDRESS; //TCommCallback;
+                                            VAR CBParam   : ADDRESS;
+                                            VAR hSession : TSessionHandle ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE SetCommCallback( hSession : TSessionHandle;
+                                            Event : CARDINAL;
+                                            CBRoutine : TCommCallback; CBParam : ADDRESS;
+                                            fPrivate, fInvisible : BOOLEAN ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE SetCommCallbackM( hSession : TSessionHandle;
+                                             Mask : BITSET;
+                                             CBRoutine : TCommCallback; CBParam : ADDRESS;
+                                             fPrivate, fInvisible : BOOLEAN ) : BOOLEAN;
+
+  PUBLIC VIRTUAL PROCEDURE SetRxTimeout( TotalPerByte, TotalConst, Interval : CARDINAL ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE RxCount() : CARDINAL;
+  PUBLIC VIRTUAL PROCEDURE RxFree() : CARDINAL;
+  PUBLIC VIRTUAL PROCEDURE Receive( PBuf : ADDRESS; Len : CARDINAL; MaskRxCharPending : BOOLEAN ) : CARDINAL;
+  PUBLIC VIRTUAL PROCEDURE PurgeRxBuffer() : BOOLEAN;
+
+  PUBLIC VIRTUAL PROCEDURE SetTxTimeout( TotalPerByte, TotalConst : CARDINAL ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE TxCount() : CARDINAL;
+  PUBLIC VIRTUAL PROCEDURE TxFree() : CARDINAL;
+  PUBLIC VIRTUAL PROCEDURE Send( PBuf : ADDRESS; Len : CARDINAL ) : CARDINAL;
+  PUBLIC VIRTUAL PROCEDURE Flush() : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE PurgeTxBuffer() : BOOLEAN;
+
+  PUBLIC VIRTUAL PROCEDURE Escape( EscCode : CARDINAL ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE GetErrorMsg( VAR ErrorString : ARRAY OF CHAR );
+  PUBLIC VIRTUAL PROCEDURE GetErrorMsgW( VAR ErrorString : ARRAY OF WCHAR );
+
+  PUBLIC VIRTUAL PROCEDURE GetProperty( PropertyName         : ARRAY OF CHAR;
+                                        VAR PropertyType     : CARDINAL;
+                                        PPropertyData        : ADDRESS;
+                                        VAR PropertyDataSize : CARDINAL ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE GetPropertyW( PropertyName         : ARRAY OF WCHAR;
+                                         VAR PropertyType     : CARDINAL;
+                                         PPropertyData        : ADDRESS;
+                                         VAR PropertyDataSize : CARDINAL ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE SetProperty( PropertyName     : ARRAY OF CHAR;
+                                        PropertyType     : CARDINAL;
+                                        PPropertyData    : ADDRESS;
+                                        PropertyDataSize : CARDINAL ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE SetPropertyW( PropertyName     : ARRAY OF WCHAR;
+                                         PropertyType     : CARDINAL;
+                                         PPropertyData    : ADDRESS;
+                                         PropertyDataSize : CARDINAL ) : BOOLEAN;
+
+// PROTECTED
+  VIRTUAL PROCEDURE CommEvent( Mask : BITSET; ErrorCode : CARDINAL );
+
+END CCommLinkStream;
+(*# restore *)
+
+(* ---------------------------------------------------------------- *)
+(* procedural interface *)
+
+(*# save,
+    call( convention => cdecl, o_a_copy => off, o_a_size => on ),
+    option( dll_export=>off ) *)
+
+(* >>> Link Interface >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
+
+  // not supported since CW 4.00
+  (*/*
+  PROCEDURE Init( hLink    : TLinkHandle;
+                  Device   : ARRAY OF CHAR;
+                  PScanner : TPScanner; 
+                  fMultithreadLock, fPrivate : BOOLEAN;
+                  VAR ErrorString : ARRAY OF CHAR;
+                  VAR hSession : TSessionHandle ) : BOOLEAN;
+  */*)
+
+  // Priority
+  PROCEDURE SetBasePriority( hLink          : TLinkHandle;
+                             ThreadPriority : INTEGER );
+  // Focus
+  PROCEDURE GetCommFocusMask( hLink    : TLinkHandle;
+                              VAR Mask : BITSET );
+  PROCEDURE SetCommFocus( hLink : TLinkHandle;
+                          Event : CARDINAL;
+                          fSet  : BOOLEAN );
+  PROCEDURE SetCommFocusMask( hLink    : TLinkHandle;
+                              Mask     : BITSET );
+
+  PROCEDURE GetCommCallback( hLink    : TLinkHandle;
+                             Event    : CARDINAL; 
+                             VAR CBRoutine : ADDRESS; //TCommCallback;
+                             VAR CBParam   : ADDRESS;
+                             VAR hSession  : TSessionHandle ) : BOOLEAN;
+  PROCEDURE SetCommCallback( hLink    : TLinkHandle;
+                             hSession : TSessionHandle;
+                             Event    : CARDINAL;
+                             CBRoutine : TCommCallback; 
+                             CBParam   : ADDRESS;
+                             fPrivate, fInvisible : BOOLEAN ) : BOOLEAN;
+  PROCEDURE SetCommCallbackM( hLink    : TLinkHandle;
+                              hSession : TSessionHandle;
+                              Mask      : BITSET;
+                              CBRoutine : TCommCallback; 
+                              CBParam   : ADDRESS;
+                              fPrivate, fInvisible : BOOLEAN ) : BOOLEAN;
+  // Rx
+  PROCEDURE SetRxTimeout( hLink : TLinkHandle;
+                          TotalPerByte, TotalConst, Interval : CARDINAL ) : BOOLEAN;
+  PROCEDURE RxCount( hLink : TLinkHandle ) : CARDINAL;
+  PROCEDURE RxFree( hLink : TLinkHandle ) : CARDINAL;
+  PROCEDURE Receive( hLink : TLinkHandle;
+                     PBuf  : ADDRESS; Len : CARDINAL; 
+                     MaskRxCharPending : BOOLEAN ) : CARDINAL;
+  PROCEDURE PurgeRxBuffer( hLink : TLinkHandle ) : BOOLEAN;
+  // Tx
+  PROCEDURE SetTxTimeout( hLink : TLinkHandle;
+                          TotalPerByte, TotalConst : CARDINAL ) : BOOLEAN;
+  PROCEDURE TxCount( hLink : TLinkHandle ) : CARDINAL;
+  PROCEDURE TxFree( hLink : TLinkHandle ) : CARDINAL;
+  PROCEDURE Send( hLink : TLinkHandle;
+                  PBuf  : ADDRESS; Len : CARDINAL ) : CARDINAL;
+  PROCEDURE Flush( hLink : TLinkHandle ) : BOOLEAN;
+  PROCEDURE PurgeTxBuffer( hLink : TLinkHandle ) : BOOLEAN;
+  // Tools
+  PROCEDURE Escape( hLink : TLinkHandle; EscCode : CARDINAL ) : BOOLEAN;
+  PROCEDURE GetErrorMsg( hLink : TLinkHandle; VAR ErrorString : ARRAY OF CHAR );
+  PROCEDURE GetErrorMsgW( hLink : TLinkHandle; VAR ErrorString : ARRAY OF WCHAR );
+
+  PROCEDURE GetProperty( hLink            : TLinkHandle;
+                         PropertyName     : ARRAY OF CHAR;
+                         VAR PropertyType : CARDINAL;
+                         PPropertyData    : ADDRESS;
+                         VAR PropertyDataSize : CARDINAL ) : BOOLEAN;
+  PROCEDURE GetPropertyW( hLink            : TLinkHandle;
+                          PropertyName     : ARRAY OF WCHAR;
+                          VAR PropertyType : CARDINAL;
+                          PPropertyData    : ADDRESS;
+                          VAR PropertyDataSize : CARDINAL ) : BOOLEAN;
+  PROCEDURE SetProperty( hLink            : TLinkHandle;
+                         PropertyName     : ARRAY OF CHAR;
+                         PropertyType     : CARDINAL;
+                         PPropertyData    : ADDRESS;
+                         PropertyDataSize : CARDINAL ) : BOOLEAN;
+  PROCEDURE SetPropertyW( hLink            : TLinkHandle;
+                          PropertyName     : ARRAY OF WCHAR;
+                          PropertyType     : CARDINAL;
+                          PPropertyData    : ADDRESS;
+                          PropertyDataSize : CARDINAL ) : BOOLEAN;
+
+(* >>> Management Interface >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
+
+#if #not( PlatformName #startswith L"WinCE" ) #then
+  // not supported since CW 4.00
+  // !!! DO NOT USE !!! Istead of OpenLink use OpenLinkEx
+  // OpenLink
+  PROCEDURE OpenLink( Library,
+                      Device            : ARRAY OF CHAR;
+                      PScanner          : ADDRESS;          // TPScanner in previous version
+                      fMultithreadLock, 
+                      fPrivate          : BOOLEAN;
+                      VAR ErrorString   : ARRAY OF CHAR;
+                      VAR hLink         : TLinkHandle;
+                      VAR hSession      : TSessionHandle ) : BOOLEAN;
+#endif
+
+  PROCEDURE OpenLinkEx( Library,
+                        Device            : ARRAY OF CHAR;
+                        IniFilePath       : ARRAY OF CHAR;
+                        fMultithreadLock,
+                        fPrivate          : BOOLEAN;
+                        VAR ErrorString   : ARRAY OF CHAR;
+                        VAR hLink         : TLinkHandle;
+                        VAR hSession      : TSessionHandle ) : BOOLEAN;
+
+  PROCEDURE OpenLinkExW( Library,
+                         Device            : ARRAY OF WCHAR;
+                         IniFilePath       : ARRAY OF WCHAR;
+                         fMultithreadLock,
+                         fPrivate          : BOOLEAN;
+                         VAR ErrorString   : ARRAY OF WCHAR;
+                         VAR hLink         : TLinkHandle;
+                         VAR hSession      : TSessionHandle ) : BOOLEAN;
+
+  PROCEDURE CloseLink( hLink : TLinkHandle; 
+                       hSession : TSessionHandle );
+
+(*# restore *)
+(* ---------------------------------------------------------------- *)
+
+VAR
+  POpenLinkList : TPList;
+
+(*%T UNICODE *)
+CONST
+  SetBasePriorityW      ::= SetBasePriority;
+  GetCommFocusMaskW     ::= GetCommFocusMask;
+  SetCommFocusW         ::= SetCommFocus;
+  SetCommFocusMaskW     ::= SetCommFocusMask;
+  GetCommCallbackW      ::= GetCommCallback;
+  SetCommCallbackW      ::= SetCommCallback;
+  SetCommCallbackMW     ::= SetCommCallbackM;
+  SetRxTimeoutW         ::= SetRxTimeout;
+  RxCountW              ::= RxCount;
+  RxFreeW               ::= RxFree;
+  ReceiveW              ::= Receive;
+  PurgeRxBufferW        ::= PurgeRxBuffer;
+  SetTxTimeoutW         ::= SetTxTimeout;
+  TxCountW              ::= TxCount;
+  TxFreeW               ::= TxFree;
+  SendW                 ::= Send;
+  FlushW                ::= Flush;
+  PurgeTxBufferW        ::= PurgeTxBuffer;
+  EscapeW               ::= Escape;
+(*%E UNICODE *)
+
+END seriallink.

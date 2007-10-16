@@ -1,0 +1,795 @@
+DEFINITION MODULE winsvc;
+
+(*==============================================================
+
+                    Win32 API for Modula-2
+
+       32-bit version for M2CPP Modula-2 to C++ compiler
+
+         Copyright (c) 2001 Moravian Instruments, Inc.
+
+==============================================================*)
+
+(*# name(   decoration      => c ) *)
+
+(*# module( header          => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            convention      => stdcall ) *)
+            
+//*++ BUILD Version: 0010    // Increment this if a change has global effects
+//Copyright 1995 - 1998 Microsoft Corporation
+//Module Name:
+//    winsvc.h
+//Abstract:
+//    Header file for the Service Control Manager
+//Environment:
+//    User Mode - Win32
+//
+// Constants
+//
+
+//
+// Service database names
+//
+
+// #define SERVICES_ACTIVE_DATABASEW      L"ServicesActive"
+// #define SERVICES_FAILED_DATABASEW      L"ServicesFailed"
+
+// #define SERVICES_ACTIVE_DATABASEA      "ServicesActive"
+// #define SERVICES_FAILED_DATABASEA      "ServicesFailed"
+
+//
+// Character to designate that a name is a group
+//
+
+// #define SC_GROUP_IDENTIFIERW           L'+'
+// #define SC_GROUP_IDENTIFIERA           '+'
+
+// #ifdef UNICODE
+
+// #define SERVICES_ACTIVE_DATABASE       SERVICES_ACTIVE_DATABASEW
+// #define SERVICES_FAILED_DATABASE       SERVICES_FAILED_DATABASEW
+
+// #define SC_GROUP_IDENTIFIER            SC_GROUP_IDENTIFIERW
+
+// #else // ndef UNICODE
+
+// #define SERVICES_ACTIVE_DATABASE       SERVICES_ACTIVE_DATABASEA
+// #define SERVICES_FAILED_DATABASE       SERVICES_FAILED_DATABASEA
+
+// #define SC_GROUP_IDENTIFIER            SC_GROUP_IDENTIFIERA
+// #endif // ndef UNICODE
+
+IMPORT
+  windows;
+
+CONST
+//
+// Value to indicate no change to an optional parameter
+//
+  SERVICE_NO_CHANGE                    = 0FFFFFFFFH;
+
+//
+// Service State -- for Enum Requests (Bit Mask)
+//
+  SERVICE_ACTIVE                       = 000000001H;
+  SERVICE_INACTIVE                     = 000000002H;
+  SERVICE_STATE_ALL                    = SERVICE_ACTIVE OR SERVICE_INACTIVE;
+
+//
+// Controls
+//
+  SERVICE_CONTROL_STOP                 = 000000001H;
+  SERVICE_CONTROL_PAUSE                = 000000002H;
+  SERVICE_CONTROL_CONTINUE             = 000000003H;
+  SERVICE_CONTROL_INTERROGATE          = 000000004H;
+  SERVICE_CONTROL_SHUTDOWN             = 000000005H;
+  SERVICE_CONTROL_PARAMCHANGE          = 000000006H;
+  SERVICE_CONTROL_NETBINDADD           = 000000007H;
+  SERVICE_CONTROL_NETBINDREMOVE        = 000000008H;
+  SERVICE_CONTROL_NETBINDENABLE        = 000000009H;
+  SERVICE_CONTROL_NETBINDDISABLE       = 00000000AH;
+  SERVICE_CONTROL_DEVICEEVENT          = 00000000BH;
+  SERVICE_CONTROL_HARDWAREPROFILECHANGE= 00000000CH;
+  SERVICE_CONTROL_POWEREVENT           = 00000000DH;
+
+//
+// Service State -- for CurrentState
+//
+  SERVICE_STOPPED                      = 000000001H;
+  SERVICE_START_PENDING                = 000000002H;
+  SERVICE_STOP_PENDING                 = 000000003H;
+  SERVICE_RUNNING                      = 000000004H;
+  SERVICE_CONTINUE_PENDING             = 000000005H;
+  SERVICE_PAUSE_PENDING                = 000000006H;
+  SERVICE_PAUSED                       = 000000007H;
+
+//
+// Controls Accepted  (Bit Mask)
+//
+  SERVICE_ACCEPT_STOP                  = 000000001H;
+  SERVICE_ACCEPT_PAUSE_CONTINUE        = 000000002H;
+  SERVICE_ACCEPT_SHUTDOWN              = 000000004H;
+  SERVICE_ACCEPT_PARAMCHANGE           = 000000008H;
+  SERVICE_ACCEPT_NETBINDCHANGE         = 000000010H;
+  SERVICE_ACCEPT_HARDWAREPROFILECHANGE = 000000020H;
+  SERVICE_ACCEPT_POWEREVENT            = 000000040H;
+
+//
+// Service Control Manager object specific access types
+//
+  SC_MANAGER_CONNECT                   = 00001H;
+  SC_MANAGER_CREATE_SERVICE            = 00002H;
+  SC_MANAGER_ENUMERATE_SERVICE         = 00004H;
+  SC_MANAGER_LOCK                      = 00008H;
+  SC_MANAGER_QUERY_LOCK_STATUS         = 00010H;
+  SC_MANAGER_MODIFY_BOOT_CONFIG        = 00020H;
+
+  SC_MANAGER_ALL_ACCESS                = windows.STANDARD_RIGHTS_REQUIRED OR
+                                         SC_MANAGER_CONNECT OR
+                                         SC_MANAGER_CREATE_SERVICE OR
+                                         SC_MANAGER_ENUMERATE_SERVICE OR
+                                         SC_MANAGER_LOCK OR
+                                         SC_MANAGER_QUERY_LOCK_STATUS OR
+                                         SC_MANAGER_MODIFY_BOOT_CONFIG;
+
+//
+// Service object specific access type
+//
+  SERVICE_QUERY_CONFIG                 = 00001H;
+  SERVICE_CHANGE_CONFIG                = 00002H;
+  SERVICE_QUERY_STATUS                 = 00004H;
+  SERVICE_ENUMERATE_DEPENDENTS         = 00008H;
+  SERVICE_START                        = 00010H;
+  SERVICE_STOP                         = 00020H;
+  SERVICE_PAUSE_CONTINUE               = 00040H;
+  SERVICE_INTERROGATE                  = 00080H;
+  SERVICE_USER_DEFINED_CONTROL         = 00100H;
+
+  SERVICE_ALL_ACCESS                   = windows.STANDARD_RIGHTS_REQUIRED OR
+                                         SERVICE_QUERY_CONFIG OR
+                                         SERVICE_CHANGE_CONFIG OR
+                                         SERVICE_QUERY_STATUS OR
+                                         SERVICE_ENUMERATE_DEPENDENTS OR
+                                         SERVICE_START OR
+                                         SERVICE_STOP OR
+                                         SERVICE_PAUSE_CONTINUE OR
+                                         SERVICE_INTERROGATE OR
+                                         SERVICE_USER_DEFINED_CONTROL;
+
+//
+// Service flags for QueryServiceStatusEx
+//
+  SERVICE_RUNS_IN_SYSTEM_PROCESS       = 000000001H;
+
+//
+// Info levels for ChangeServiceConfig2 and QueryServiceConfig2
+//
+  SERVICE_CONFIG_DESCRIPTION           = 1;
+  SERVICE_CONFIG_FAILURE_ACTIONS       = 2;
+
+//
+// Service description string
+//
+TYPE
+  SERVICE_DESCRIPTIONA  = RECORD
+                            lpDescription : windows.PSTR;
+                          END;
+  PSERVICE_DESCRIPTIONA = POINTER TO SERVICE_DESCRIPTIONA;
+  SERVICE_DESCRIPTIONW  = RECORD
+                            lpDescription : windows.PWSTR;
+                          END;
+  PSERVICE_DESCRIPTIONW = POINTER TO SERVICE_DESCRIPTIONW;
+CONST
+(*%T UNICODE *)
+  SERVICE_DESCRIPTION  ::= SERVICE_DESCRIPTIONW;
+  PSERVICE_DESCRIPTION ::= PSERVICE_DESCRIPTIONW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  SERVICE_DESCRIPTION  ::= SERVICE_DESCRIPTIONA;
+  PSERVICE_DESCRIPTION ::= PSERVICE_DESCRIPTIONA;
+(*%E UNICODE *)
+
+//
+// Actions to take on service failure
+//
+// typedef enum _SC_ACTION_TYPE {
+//         SC_ACTION_NONE          = 0,
+//         SC_ACTION_RESTART       = 1,
+//         SC_ACTION_REBOOT        = 2,
+//         SC_ACTION_RUN_COMMAND   = 3
+// } SC_ACTION_TYPE;
+TYPE
+  SC_ACTION_TYPE = (
+    SC_ACTION_NONE,
+    SC_ACTION_RESTART,
+    SC_ACTION_REBOOT,
+    SC_ACTION_RUN_COMMAND
+  );
+
+TYPE
+  SC_ACTION  = RECORD
+                 Type  : SC_ACTION_TYPE;
+                 Delay : windows.DWORD;
+               END;
+  PSC_ACTION = POINTER TO SC_ACTION;
+
+TYPE
+  SERVICE_FAILURE_ACTIONSA  = RECORD
+                                dwResetPeriod : windows.DWORD;
+                                lpRebootMsg   : windows.PSTR;
+                                lpCommand     : windows.PSTR;
+                                cActions      : windows.DWORD;
+                                lpsaActions   : PSC_ACTION;
+                              END;
+  PSERVICE_FAILURE_ACTIONSA = POINTER TO SERVICE_FAILURE_ACTIONSA;
+  SERVICE_FAILURE_ACTIONSW  = RECORD
+                                dwResetPeriod : windows.DWORD;
+                                lpRebootMsg   : windows.PWSTR;
+                                lpCommand     : windows.PWSTR;
+                                cActions      : windows.DWORD;
+                                lpsaActions   : PSC_ACTION;
+                              END;
+  PSERVICE_FAILURE_ACTIONSW = POINTER TO SERVICE_FAILURE_ACTIONSW;
+CONST
+(*%T UNICODE *)
+  SERVICE_FAILURE_ACTIONS  ::= SERVICE_FAILURE_ACTIONSW;
+  PSERVICE_FAILURE_ACTIONS ::= PSERVICE_FAILURE_ACTIONSW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  SERVICE_FAILURE_ACTIONS  ::= SERVICE_FAILURE_ACTIONSA;
+  PSERVICE_FAILURE_ACTIONS ::= PSERVICE_FAILURE_ACTIONSA;
+(*%E UNICODE *)
+
+//
+// Handle Types
+//
+TYPE
+  SC_HANDLE             = windows.HANDLE;
+  PSC_HANDLE            = POINTER TO SC_HANDLE;
+
+  SERVICE_STATUS_HANDLE = windows.HANDLE;
+
+//
+// Info levels for QueryServiceStatusEx
+//
+// typedef enum _SC_STATUS_TYPE {
+//         SC_STATUS_PROCESS_INFO      = 0
+// } SC_STATUS_TYPE;
+TYPE
+  SC_STATUS_TYPE = (
+    SC_STATUS_PROCESS_INFO
+  );
+
+//
+// Info levels for EnumServicesStatusEx
+//
+// typedef enum _SC_ENUM_TYPE {
+//         SC_ENUM_PROCESS_INFO        = 0
+// } SC_ENUM_TYPE;
+TYPE
+  SC_ENUM_TYPE = (
+    SC_ENUM_PROCESS_INFO
+  );
+
+//
+// Service Status Structure
+//
+TYPE
+  SERVICE_STATUS  = RECORD
+                      dwServiceType             : windows.DWORD;
+                      dwCurrentState            : windows.DWORD;
+                      dwControlsAccepted        : windows.DWORD;
+                      dwWin32ExitCode           : windows.DWORD;
+                      dwServiceSpecificExitCode : windows.DWORD;
+                      dwCheckPoint              : windows.DWORD;
+                      dwWaitHint                : windows.DWORD;
+                    END;
+  PSERVICE_STATUS = POINTER TO SERVICE_STATUS;
+
+  SERVICE_STATUS_PROCESS  = RECORD
+                              dwServiceType             : windows.DWORD;
+                              dwCurrentState            : windows.DWORD;
+                              dwControlsAccepted        : windows.DWORD;
+                              dwWin32ExitCode           : windows.DWORD;
+                              dwServiceSpecificExitCode : windows.DWORD;
+                              dwCheckPoint              : windows.DWORD;
+                              dwWaitHint                : windows.DWORD;
+                              dwProcessId               : windows.DWORD;
+                              dwServiceFlags            : windows.DWORD;
+                            END;
+  PSERVICE_STATUS_PROCESS = POINTER TO SERVICE_STATUS;
+
+//
+// Service Status Enumeration Structure
+//
+TYPE
+  ENUM_SERVICE_STATUSA  = RECORD
+                            lpServiceName : windows.PSTR;
+                            lpDisplayName : windows.PSTR;
+                            ServiceStatus : SERVICE_STATUS;
+                          END;
+  PENUM_SERVICE_STATUSA = POINTER TO ENUM_SERVICE_STATUSA;
+  ENUM_SERVICE_STATUSW  = RECORD
+                            lpServiceName : windows.PWSTR;
+                            lpDisplayName : windows.PWSTR;
+                            ServiceStatus : SERVICE_STATUS;
+                          END;
+  PENUM_SERVICE_STATUSW = POINTER TO ENUM_SERVICE_STATUSW;
+CONST
+(*%T UNICODE *)
+  ENUM_SERVICE_STATUS  ::= ENUM_SERVICE_STATUSW;
+  PENUM_SERVICE_STATUS ::= PENUM_SERVICE_STATUSW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  ENUM_SERVICE_STATUS  ::= ENUM_SERVICE_STATUSA;
+  PENUM_SERVICE_STATUS ::= PENUM_SERVICE_STATUSA;
+(*%E UNICODE *)
+
+//
+// Structures for the Lock API functions
+//
+TYPE
+  SC_LOCK = windows.PVOID;
+
+TYPE
+  QUERY_SERVICE_LOCK_STATUSA  = RECORD
+                                  fIsLocked      : windows.DWORD;
+                                  lpLockOwner    : windows.PSTR;
+                                  dwLockDuration : windows.DWORD;
+                                END;
+  PQUERY_SERVICE_LOCK_STATUSA = POINTER TO QUERY_SERVICE_LOCK_STATUSA;
+  QUERY_SERVICE_LOCK_STATUSW  = RECORD
+                                  fIsLocked      : windows.DWORD;
+                                  lpLockOwner    : windows.PWSTR;
+                                  dwLockDuration : windows.DWORD;
+                                END;
+  PQUERY_SERVICE_LOCK_STATUSW = POINTER TO QUERY_SERVICE_LOCK_STATUSW;
+CONST
+(*%T UNICODE *)
+  QUERY_SERVICE_LOCK_STATUS  ::= QUERY_SERVICE_LOCK_STATUSW;
+  PQUERY_SERVICE_LOCK_STATUS ::= PQUERY_SERVICE_LOCK_STATUSW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  QUERY_SERVICE_LOCK_STATUS  ::= QUERY_SERVICE_LOCK_STATUSA;
+  PQUERY_SERVICE_LOCK_STATUS ::= PQUERY_SERVICE_LOCK_STATUSA;
+(*%E UNICODE *)
+
+//
+// Query Service Configuration Structure
+//
+TYPE
+  QUERY_SERVICE_CONFIGA  = RECORD
+                             dwServiceType      : windows.DWORD;
+                             dwStartType        : windows.DWORD;
+                             dwErrorControl     : windows.DWORD;
+                             lpBinaryPathName   : windows.PSTR;
+                             lpLoadOrderGroup   : windows.PSTR;
+                             dwTagId            : windows.DWORD;
+                             lpDependencies     : windows.PSTR;
+                             lpServiceStartName : windows.PSTR;
+                             lpDisplayName      : windows.PSTR;
+                           END;
+  PQUERY_SERVICE_CONFIGA = POINTER TO QUERY_SERVICE_CONFIGA;
+  QUERY_SERVICE_CONFIGW  = RECORD
+                             dwServiceType      : windows.DWORD;
+                             dwStartType        : windows.DWORD;
+                             dwErrorControl     : windows.DWORD;
+                             lpBinaryPathName   : windows.PWSTR;
+                             lpLoadOrderGroup   : windows.PWSTR;
+                             dwTagId            : windows.DWORD;
+                             lpDependencies     : windows.PWSTR;
+                             lpServiceStartName : windows.PWSTR;
+                             lpDisplayName      : windows.PWSTR;
+                           END;
+  PQUERY_SERVICE_CONFIGW = POINTER TO QUERY_SERVICE_CONFIGW;
+CONST
+(*%T UNICODE *)
+  QUERY_SERVICE_CONFIG  ::= QUERY_SERVICE_CONFIGW;
+  PQUERY_SERVICE_CONFIG ::= PQUERY_SERVICE_CONFIGW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  QUERY_SERVICE_CONFIG  ::= QUERY_SERVICE_CONFIGA;
+  PQUERY_SERVICE_CONFIG ::= PQUERY_SERVICE_CONFIGA;
+(*%E UNICODE *)
+
+//
+// Function Prototype for the Service Main Function
+//
+TYPE
+  LPSERVICE_MAIN_FUNCTIONA = PROCEDURE( windows.DWORD, windows.PPSTR );
+  LPSERVICE_MAIN_FUNCTIONW = PROCEDURE( windows.DWORD, windows.PPWSTR );
+CONST
+(*%T UNICODE *)
+  LPSERVICE_MAIN_FUNCTION ::= LPSERVICE_MAIN_FUNCTIONW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  LPSERVICE_MAIN_FUNCTION ::= LPSERVICE_MAIN_FUNCTIONA;
+(*%E UNICODE *)
+
+//
+// Service Start Table
+//
+TYPE
+  SERVICE_TABLE_ENTRYA  = RECORD
+                            lpServiceName : windows.PSTR;
+                            lpServiceProc : LPSERVICE_MAIN_FUNCTIONA;
+                          END;
+  PSERVICE_TABLE_ENTRYA = POINTER TO SERVICE_TABLE_ENTRYA;
+  SERVICE_TABLE_ENTRYW  = RECORD
+                            lpServiceName : windows.PWSTR;
+                            lpServiceProc : LPSERVICE_MAIN_FUNCTIONW;
+                          END;
+  PSERVICE_TABLE_ENTRYW = POINTER TO SERVICE_TABLE_ENTRYW;
+CONST
+(*%T UNICODE *)
+  SERVICE_TABLE_ENTRY  ::= SERVICE_TABLE_ENTRYW;
+  PSERVICE_TABLE_ENTRY ::= PSERVICE_TABLE_ENTRYW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  SERVICE_TABLE_ENTRY  ::= SERVICE_TABLE_ENTRYA;
+  PSERVICE_TABLE_ENTRY ::= PSERVICE_TABLE_ENTRYA;
+(*%E UNICODE *)
+
+//
+// Prototype for the Service Control Handler Function
+//
+TYPE
+  LPHANDLER_FUNCTION = PROCEDURE( windows.DWORD );
+  LPHANDLER_FUNCTION_EX = PROCEDURE( windows.DWORD, windows.DWORD, windows.PVOID, windows.PVOID );
+
+///////////////////////////////////////////////////////////////////////////
+// API Function Prototypes
+///////////////////////////////////////////////////////////////////////////
+
+PROCEDURE ChangeServiceConfigA( hService           : SC_HANDLE;
+                                dwServiceType      : windows.DWORD;
+                                dwStartType        : windows.DWORD;
+                                dwErrorControl     : windows.DWORD;
+                                lpBinaryPathName   : windows.PSTR;
+                                lpLoadOrderGroup   : windows.PSTR;
+                                lpdwTagId          : windows.PDWORD;
+                                lpDependencies     : windows.PSTR;
+                                lpServiceStartName : windows.PSTR;
+                                lpPassword         : windows.PSTR;
+                                lpDisplayName      : windows.PSTR ) : windows.BOOL;
+PROCEDURE ChangeServiceConfigW( hService           : SC_HANDLE;
+                                dwServiceType      : windows.DWORD;
+                                dwStartType        : windows.DWORD;
+                                dwErrorControl     : windows.DWORD;
+                                lpBinaryPathName   : windows.PWSTR;
+                                lpLoadOrderGroup   : windows.PWSTR;
+                                lpdwTagId          : windows.PDWORD;
+                                lpDependencies     : windows.PWSTR;
+                                lpServiceStartName : windows.PWSTR;
+                                lpPassword         : windows.PWSTR;
+                                lpDisplayName      : windows.PWSTR ) : windows.BOOL;
+CONST
+(*%T UNICODE *)
+  ChangeServiceConfig ::= ChangeServiceConfigW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  ChangeServiceConfig ::= ChangeServiceConfigA;
+(*%E UNICODE *)
+
+PROCEDURE ChangeServiceConfig2A( hService    : SC_HANDLE;
+                                 dwInfoLevel : windows.DWORD;
+                                 lpInfo      : windows.PVOID ) : windows.BOOL;	
+PROCEDURE ChangeServiceConfig2W( hService    : SC_HANDLE;
+                                 dwInfoLevel : windows.DWORD;
+                                 lpInfo      : windows.PVOID ) : windows.BOOL;	
+CONST
+(*%T UNICODE *)
+  ChangeServiceConfig2 ::= ChangeServiceConfig2W;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  ChangeServiceConfig2 ::= ChangeServiceConfig2A;
+(*%E UNICODE *)
+
+PROCEDURE CloseServiceHandle( hSCObject : SC_HANDLE ) : windows.BOOL;
+
+PROCEDURE ControlService( hService        : SC_HANDLE;
+                          dwControl       : windows.DWORD;
+                          lpServiceStatus : PSERVICE_STATUS ) : windows.BOOL;
+
+PROCEDURE CreateServiceA( hSCManager         : SC_HANDLE;
+                          lpServiceName      : windows.PSTR;
+                          lpDisplayName      : windows.PSTR;
+                          dwDesiredAccess    : windows.DWORD;
+                          dwServiceType      : windows.DWORD;
+                          dwStartType        : windows.DWORD;
+                          dwErrorControl     : windows.DWORD;
+                          lpBinaryPathName   : windows.PSTR;
+                          lpLoadOrderGroup   : windows.PSTR;
+                          lpdwTagId          : windows.PDWORD;
+                          lpDependencies     : windows.PSTR;
+                          lpServiceStartName : windows.PSTR;
+                          lpPassword         : windows.PSTR ) : SC_HANDLE;
+PROCEDURE CreateServiceW( hSCManager         : SC_HANDLE;
+                          lpServiceName      : windows.PWSTR;
+                          lpDisplayName      : windows.PWSTR;
+                          dwDesiredAccess    : windows.DWORD;
+                          dwServiceType      : windows.DWORD;
+                          dwStartType        : windows.DWORD;
+                          dwErrorControl     : windows.DWORD;
+                          lpBinaryPathName   : windows.PWSTR;
+                          lpLoadOrderGroup   : windows.PWSTR;
+                          lpdwTagId          : windows.PDWORD;
+                          lpDependencies     : windows.PWSTR;
+                          lpServiceStartName : windows.PWSTR;
+                          lpPassword         : windows.PWSTR ) : SC_HANDLE;
+CONST
+(*%T UNICODE *)
+  CreateService ::= CreateServiceW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  CreateService ::= CreateServiceA;
+(*%E UNICODE *)
+
+PROCEDURE DeleteService( hService : SC_HANDLE ) : windows.BOOL;
+
+PROCEDURE EnumDependentServicesA( hService           : SC_HANDLE;
+                                  dwServiceState     : windows.DWORD;
+                                  lpServices         : PENUM_SERVICE_STATUSA;
+                                  cbBufSize          : windows.DWORD;
+                                  pcbBytesNeeded     : windows.PDWORD;
+                                  lpServicesReturned : windows.PDWORD ) : windows.BOOL;
+PROCEDURE EnumDependentServicesW( hService           : SC_HANDLE;
+                                  dwServiceState     : windows.DWORD;
+                                  lpServices         : PENUM_SERVICE_STATUSW;
+                                  cbBufSize          : windows.DWORD;
+                                  pcbBytesNeeded     : windows.PDWORD;
+                                  lpServicesReturned : windows.PDWORD ) : windows.BOOL;
+CONST
+(*%T UNICODE *)
+  EnumDependentServices ::= EnumDependentServicesW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  EnumDependentServices ::= EnumDependentServicesA;
+(*%E UNICODE *)
+
+PROCEDURE EnumServicesStatusA( hSCManager         : SC_HANDLE;
+                               dwServiceType      : windows.DWORD;
+                               dwServiceState     : windows.DWORD;
+                               lpServices         : PENUM_SERVICE_STATUSA;
+                               cbBufSize          : windows.DWORD;
+                               pcbBytesNeeded     : windows.PDWORD;
+                               lpServicesReturned : windows.PDWORD;
+                               lpResumeHandle     : windows.PDWORD ) : windows.BOOL;
+PROCEDURE EnumServicesStatusW( hSCManager         : SC_HANDLE;
+                               dwServiceType      : windows.DWORD;
+                               dwServiceState     : windows.DWORD;
+                               lpServices         : PENUM_SERVICE_STATUSW;
+                               cbBufSize          : windows.DWORD;
+                               pcbBytesNeeded     : windows.PDWORD;
+                               lpServicesReturned : windows.PDWORD;
+                               lpResumeHandle     : windows.PDWORD ) : windows.BOOL;
+CONST
+(*%T UNICODE *)
+  EnumServicesStatus ::= EnumServicesStatusW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  EnumServicesStatus ::= EnumServicesStatusA;
+(*%E UNICODE *)
+
+PROCEDURE EnumServicesStatusExA( hSCManager         : SC_HANDLE;
+                                 InfoLevel          : SC_ENUM_TYPE;
+                                 dwServiceType      : windows.DWORD;
+                                 dwServiceState     : windows.DWORD;
+                                 lpServices         : PBYTE;
+                                 cbBufSize          : windows.DWORD;
+                                 pcbBytesNeeded     : windows.PDWORD;
+                                 lpServicesReturned : windows.PDWORD;
+                                 lpResumeHandle     : windows.PDWORD;
+                                 pszGroupName       : windows.PCSTR ) : windows.BOOL;
+PROCEDURE EnumServicesStatusExW( hSCManager         : SC_HANDLE;
+                                 InfoLevel          : SC_ENUM_TYPE;
+                                 dwServiceType      : windows.DWORD;
+                                 dwServiceState     : windows.DWORD;
+                                 lpServices         : PBYTE;
+                                 cbBufSize          : windows.DWORD;
+                                 pcbBytesNeeded     : windows.PDWORD;
+                                 lpServicesReturned : windows.PDWORD;
+                                 lpResumeHandle     : windows.PDWORD;
+                                 pszGroupName       : windows.PCWSTR ) : windows.BOOL;
+CONST
+(*%T UNICODE *)
+  EnumServicesStatusEx ::= EnumServicesStatusExW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  EnumServicesStatusEx ::= EnumServicesStatusExA;
+(*%E UNICODE *)
+
+PROCEDURE GetServiceKeyNameA( hSCManager    : SC_HANDLE;
+                              lpDisplayName : windows.PSTR;
+                              lpServiceName : windows.PSTR;
+                              lpcchBuffer   : windows.PDWORD ) : windows.BOOL;
+PROCEDURE GetServiceKeyNameW( hSCManager    : SC_HANDLE;
+                              lpDisplayName : windows.PWSTR;
+                              lpServiceName : windows.PWSTR;
+                              lpcchBuffer   : windows.PDWORD ) : windows.BOOL;
+CONST
+(*%T UNICODE *)
+  GetServiceKeyName ::= GetServiceKeyNameW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  GetServiceKeyName ::= GetServiceKeyNameA;
+(*%E UNICODE *)
+
+PROCEDURE GetServiceDisplayNameA( hSCManager    : SC_HANDLE;
+                                  lpServiceName : windows.PSTR;
+                                  lpDisplayName : windows.PSTR;
+                                  lpcchBuffer   : windows.PDWORD ) : windows.BOOL;
+PROCEDURE GetServiceDisplayNameW( hSCManager    : SC_HANDLE;
+                                  lpServiceName : windows.PWSTR;
+                                  lpDisplayName : windows.PWSTR;
+                                  lpcchBuffer   : windows.PDWORD ) : windows.BOOL;
+CONST
+(*%T UNICODE *)
+  GetServiceDisplayName ::= GetServiceDisplayNameW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  GetServiceDisplayName ::= GetServiceDisplayNameA;
+(*%E UNICODE *)
+
+PROCEDURE LockServiceDatabase( hSCManager : SC_HANDLE ) : SC_LOCK;
+
+PROCEDURE NotifyBootConfigStatus( BootAcceptable : windows.BOOL ) : windows.BOOL;
+
+PROCEDURE OpenSCManagerA( lpMachineName   : windows.PSTR;
+                          lpDatabaseName  : windows.PSTR;
+                          dwDesiredAccess : windows.DWORD ) : SC_HANDLE;
+PROCEDURE OpenSCManagerW( lpMachineName   : windows.PWSTR;
+                          lpDatabaseName  : windows.PWSTR;
+                          dwDesiredAccess : windows.DWORD ) : SC_HANDLE;
+CONST
+(*%T UNICODE *)
+  OpenSCManager ::= OpenSCManagerW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  OpenSCManager ::= OpenSCManagerA;
+(*%E UNICODE *)
+
+PROCEDURE OpenServiceA( hSCManager      : SC_HANDLE;
+                        lpServiceName   : windows.PSTR;
+                        dwDesiredAccess : windows.DWORD ) : SC_HANDLE;
+PROCEDURE OpenServiceW( hSCManager      : SC_HANDLE;
+                        lpServiceName   : windows.PWSTR;
+                        dwDesiredAccess : windows.DWORD ) : SC_HANDLE;
+CONST
+(*%T UNICODE *)
+  OpenService ::= OpenServiceW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  OpenService ::= OpenServiceA;
+(*%E UNICODE *)
+
+PROCEDURE QueryServiceConfigA( hService        : SC_HANDLE;
+                               lpServiceConfig : PQUERY_SERVICE_CONFIGA;
+                               cbBufSize       : windows.DWORD;
+                               pcbBytesNeeded  : windows.PDWORD ) : windows.BOOL;
+PROCEDURE QueryServiceConfigW( hService        : SC_HANDLE;
+                               lpServiceConfig : PQUERY_SERVICE_CONFIGW;
+                               cbBufSize       : windows.DWORD;
+                               pcbBytesNeeded  : windows.PDWORD ) : windows.BOOL;
+CONST
+(*%T UNICODE *)
+  QueryServiceConfig ::= QueryServiceConfigW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  QueryServiceConfig ::= QueryServiceConfigA;
+(*%E UNICODE *)
+
+PROCEDURE QueryServiceConfig2A( hService       : SC_HANDLE;
+                                dwInfoLevel    : windows.DWORD;
+                                lpBuffer       : PBYTE;
+                                cbBufSize      : windows.DWORD;
+                                pcbBytesNeeded : windows.PDWORD ) : windows.BOOL;
+PROCEDURE QueryServiceConfig2W( hService       : SC_HANDLE;
+                                dwInfoLevel    : windows.DWORD;
+                                lpBuffer       : PBYTE;
+                                cbBufSize      : windows.DWORD;
+                                pcbBytesNeeded : windows.PDWORD ) : windows.BOOL;
+CONST
+(*%T UNICODE *)
+  QueryServiceConfig2 ::= QueryServiceConfig2W;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  QueryServiceConfig2 ::= QueryServiceConfig2A;
+(*%E UNICODE *)
+
+PROCEDURE QueryServiceLockStatusA( hSCManager     : SC_HANDLE;
+                                   lpLockStatus   : PQUERY_SERVICE_LOCK_STATUSA;
+                                   cbBufSize      : windows.DWORD;
+                                   pcbBytesNeeded : windows.PDWORD ) : windows.BOOL;
+PROCEDURE QueryServiceLockStatusW( hSCManager     : SC_HANDLE;
+                                   lpLockStatus   : PQUERY_SERVICE_LOCK_STATUSW;
+                                   cbBufSize      : windows.DWORD;
+                                   pcbBytesNeeded : windows.PDWORD ) : windows.BOOL;
+CONST
+(*%T UNICODE *)
+  QueryServiceLockStatus ::= QueryServiceLockStatusW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  QueryServiceLockStatus ::= QueryServiceLockStatusA;
+(*%E UNICODE *)
+
+PROCEDURE QueryServiceObjectSecurity( hService              : SC_HANDLE;
+                                      dwSecurityInformation : windows.SECURITY_INFORMATION;
+                                      lpSecurityDescriptor  : windows.PSECURITY_DESCRIPTOR;
+                                      cbBufSize             : windows.DWORD;
+                                      pcbBytesNeeded        : windows.PDWORD ) : windows.BOOL;
+
+PROCEDURE QueryServiceStatus( hService        : SC_HANDLE;
+                              lpServiceStatus : PSERVICE_STATUS ) : windows.BOOL;
+
+PROCEDURE QueryServiceStatusEx( hService       : SC_HANDLE;
+                                InfoLevel      : SC_STATUS_TYPE;
+                                lpBuffer       : PBYTE;
+                                cbBufSize      : windows.DWORD;
+                                pcbBytesNeeded : windows.PDWORD ) : windows.BOOL;
+
+PROCEDURE RegisterServiceCtrlHandlerA( lpServiceName : windows.PSTR;
+                                       lpHandlerProc : LPHANDLER_FUNCTION ) : SERVICE_STATUS_HANDLE;
+PROCEDURE RegisterServiceCtrlHandlerW( lpServiceName : windows.PWSTR;
+                                       lpHandlerProc : LPHANDLER_FUNCTION ) : SERVICE_STATUS_HANDLE;
+CONST
+(*%T UNICODE *)
+  RegisterServiceCtrlHandler ::= RegisterServiceCtrlHandlerW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  RegisterServiceCtrlHandler ::= RegisterServiceCtrlHandlerA;
+(*%E UNICODE *)
+
+PROCEDURE RegisterServiceCtrlHandlerExA( lpServiceName : windows.PCSTR;
+                                         lpHandlerProc : LPHANDLER_FUNCTION_EX;
+                                         lpContext     : windows.PVOID ) : SERVICE_STATUS_HANDLE;
+PROCEDURE RegisterServiceCtrlHandlerExW( lpServiceName : windows.PCWSTR;
+                                         lpHandlerProc : LPHANDLER_FUNCTION_EX;
+                                         lpContext     : windows.PVOID ) : SERVICE_STATUS_HANDLE;
+CONST
+(*%T UNICODE *)
+  RegisterServiceCtrlHandlerEx ::= RegisterServiceCtrlHandlerExW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  RegisterServiceCtrlHandlerEx ::= RegisterServiceCtrlHandlerExA;
+(*%E UNICODE *)
+
+PROCEDURE SetServiceObjectSecurity( hService              : SC_HANDLE;
+                                    dwSecurityInformation : windows.SECURITY_INFORMATION;
+                                    lpSecurityDescriptor  : windows.PSECURITY_DESCRIPTOR ) : windows.BOOL;
+
+PROCEDURE SetServiceStatus( hServiceStatus  : SERVICE_STATUS_HANDLE;
+                            lpServiceStatus : PSERVICE_STATUS ) : windows.BOOL;
+
+PROCEDURE StartServiceCtrlDispatcherA( lpServiceStartTable : PSERVICE_TABLE_ENTRYA ) : windows.BOOL;
+PROCEDURE StartServiceCtrlDispatcherW( lpServiceStartTable : PSERVICE_TABLE_ENTRYW ) : windows.BOOL;
+CONST
+(*%T UNICODE *)
+  StartServiceCtrlDispatcher ::= StartServiceCtrlDispatcherW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  StartServiceCtrlDispatcher ::= StartServiceCtrlDispatcherA;
+(*%E UNICODE *)
+
+PROCEDURE StartServiceA( hService            : SC_HANDLE;
+                         dwNumServiceArgs    : windows.DWORD;
+                         lpServiceArgVectors : windows.PPCSTR ) : windows.BOOL;
+PROCEDURE StartServiceW( hService            : SC_HANDLE;
+                         dwNumServiceArgs    : windows.DWORD;
+                         lpServiceArgVectors : windows.PPCWSTR ) : windows.BOOL;
+CONST
+(*%T UNICODE *)
+  StartService ::= StartServiceW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  StartService ::= StartServiceA;
+(*%E UNICODE *)
+
+PROCEDURE UnlockServiceDatabase( ScLock : SC_LOCK ) : windows.BOOL;
+
+END winsvc.

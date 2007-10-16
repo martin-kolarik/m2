@@ -1,0 +1,70 @@
+DEFINITION MODULE btools;
+
+(*# call( o_a_size=>on,
+          o_a_copy=>off ),
+    option( pack=>4 ) *)
+
+IMPORT
+  windows;
+
+(* ================================================================ *)
+TYPE
+  TPCircularBuffer        = POINTER TO CCircularBuffer;
+  TPCircularBufferSync    = POINTER TO CCircularBufferSync;
+
+(* ================================================================ *)
+
+CLASS CCircularBuffer;
+  PBuffer     : ADDRESS;
+  BufferSize  : CARDINAL;
+  Head, Tail  : CARDINAL;
+  BufferFull  : BOOLEAN;
+  ClearOnFree : BOOLEAN;
+
+  PUBLIC PROCEDURE Init( Size : CARDINAL );
+  PUBLIC VIRTUAL PROCEDURE Release();
+
+  PUBLIC PROCEDURE Purge();
+
+// storing API
+  PUBLIC PROCEDURE PutBlock   ( a : ADDRESS;     len : CARDINAL ) : BOOLEAN;
+  PROCEDURE PutBlockMin( a : ADDRESS; VAR len : CARDINAL ) : BOOLEAN;
+
+  PUBLIC PROCEDURE QryPutBlock( VAR a1 : ADDRESS; VAR len1 : CARDINAL;
+                                VAR a2 : ADDRESS; VAR len2 : CARDINAL ) : BOOLEAN;
+  PROCEDURE QryPutBlockContinuous( VAR a : ADDRESS; VAR len : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE PutBlockCommit( len : CARDINAL ) : BOOLEAN;
+
+// retrieving API
+  PUBLIC PROCEDURE GetBlock( a : ADDRESS; len : CARDINAL ) : BOOLEAN;
+
+  PUBLIC PROCEDURE QryGetBlock( VAR a1   : ADDRESS; VAR len1 : CARDINAL;
+                                VAR a2   : ADDRESS; VAR len2 : CARDINAL ) : BOOLEAN;
+  PROCEDURE QryGetBlockContinuous( VAR a : ADDRESS; VAR len : CARDINAL ) : BOOLEAN;
+  PROCEDURE QryGetBlockLen( RequiredLen : CARDINAL;
+                            VAR a1   : ADDRESS; VAR len1 : CARDINAL;
+                            VAR a2   : ADDRESS; VAR len2 : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE GetBlockCommit( len : CARDINAL ) : BOOLEAN;
+
+// info API
+  PROCEDURE IsEmpty() : BOOLEAN;
+  PROCEDURE IsFull()  : BOOLEAN;
+  PUBLIC PROCEDURE GetCount(): CARDINAL;
+  PUBLIC PROCEDURE GetFree() : CARDINAL;
+END CCircularBuffer;
+
+CLASS CCircularBufferSync( CCircularBuffer );
+  MTLock      : BOOLEAN;
+  CS          : windows.CRITICAL_SECTION;
+
+  PUBLIC VIRTUAL PROCEDURE Release();
+
+// synchronization
+  PROCEDURE Lock();
+  PROCEDURE Unlock();
+
+END CCircularBufferSync;
+
+(* ================================================================ *)
+
+END btools.

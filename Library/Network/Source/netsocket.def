@@ -1,0 +1,182 @@
+DEFINITION MODULE netsocket;
+
+IMPORT
+  winsock;
+
+IMPORT
+  Delegate,
+  IOO,
+  msghandler,
+  StorageO,
+  Sync,
+  threadpool;
+
+#save, option( dll_export => on )
+
+(*================================================================================*)
+
+CONST
+   INADDR_EMPTY_VAL = 0;
+   INADDR_EMPTY     = winsock.IN_ADDR( 0, 0, 0, 0, 0 );
+	INADDR_SELF_VAL  = 00100007FH; // big endian INADDR_LOOPBACK
+	INADDR_SELF      = winsock.IN_ADDR( 0, 127, 0, 0, 1 );
+	INADDR_ALL_VAL   = winsock.INADDR_BROADCAST;
+	INADDR_ALL       = winsock.IN_ADDR( 0, 255, 255, 255, 255 ); // local broadcast
+
+TYPE
+  TPSSocket = POINTER TO SSocket;
+  TPDSocket = POINTER TO DSocket;
+  TPSocketNotifier = POINTER TO ASocketNotifier;
+  
+TYPE
+  TOperation = (
+    opUnknown,
+    opListen,
+    opAccept,
+    opConnect,
+    opDisconnect,
+    opSend,
+    opReceive
+  );
+
+ABSTRACT CLASS ASocketNotifier( IOO.ADataInfo );
+  // common
+  // SUPER.OnError
+  // SUPER.OnFlowPossible
+  // SSocket
+  LOCAL VIRTUAL PROCEDURE OnListen( Result : CARDINAL; CONST Socket : TPSSocket );
+  LOCAL VIRTUAL PROCEDURE OnDataArrived( Result : CARDINAL; CONST Socket : TPSSocket );
+  // DSocket
+  LOCAL VIRTUAL PROCEDURE OnAccept( Result : CARDINAL; CONST Socket : TPDSocket ); 
+  LOCAL VIRTUAL PROCEDURE OnConnect( Result : CARDINAL; CONST Socket : TPDSocket; Local : BOOLEAN ); 
+  LOCAL VIRTUAL PROCEDURE OnDisconnect( Result : CARDINAL; CONST Socket : TPDSocket; Local : BOOLEAN ); // calling Socket^.Release is safe if OnDisconnect is called from OnMessage. Otherwise (when OnDisconnect is called synchronously from Disconnect) it can be dangerous.
+END ASocketNotifier;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+  TSocketType = (
+    stUnknown,
+    stStream,
+    stDatagram
+  );
+  TPendingOperationItem = (
+    poUnknown,
+    poListen, poConnection,
+    poResolveAddress, poResolveName,
+    poConnect, poDisconnect, // should be consequent to reserve space
+    poReceive, poSend // should be consequent to reserve space
+  );
+  TPendingOperation = SET OF TPendingOperationItem;
+  
+CLASS SSocket( threadpool.APoolDelegate );
+  INTERNAL VAR
+    _Type        : TSocketType;
+    _Pending     : TPendingOperation;
+    _Lock        : Sync.LOCK; // locks _Pending (poListen, poConnection, poConnect, poDisconnect, poResolve*), others are informative, but for regularity they are locked too
+    _FDHandle    : Sync.WAITABLE;
+    _FDMessager  : msghandler.TPMessageHandler;
+    _FDMessage   : msghandler.Message;
+    _Notifier    : TPSocketNotifier;
+    _HSignal     : Sync.SIGNAL;
+    _Backlog     : CARDINAL;
+    Socket       : winsock.SOCKET;
+    Local        : winsock.SOCKADDR_IN;
+    Remote       : winsock.SOCKADDR_IN; // here only for storing mcast data
+  PUBLIC READONLY VAR
+    Result       : Sync.TAsyncResult; // for WaitCompletion, useless for listen
+
+  PUBLIC PROPERTY
+    Type           : TSocketType;
+    Backlog        : CARDINAL;
+    Notifier       : TPSocketNotifier;
+    LocalAddress   : winsock.IN_ADDR;
+    LocalPort      : CARDINAL;
+    MulticastGroup : winsock.IN_ADDR;
+    MulticastPort  : CARDINAL;
+    Waitable       : BOOLEAN;
+  PUBLIC READONLY PROPERTY
+    Listening      : BOOLEAN;
+    DataAvailable  : CARDINAL; // for stDatagram
+
+  PUBLIC PROCEDURE Open( OUT Error : CARDINAL ) : Sync.TAsyncResult; // socket, bind, getlocalname
+  PUBLIC PROCEDURE Close( Persist : BOOLEAN ); // closesocket
+  PUBLIC PROCEDURE WaitCompletion( TimeoutMS : CARDINAL ) : Sync.TAsyncResult; // for SSocket waits new connection (waits accept availability)
+
+  PUBLIC PROCEDURE Listen( OUT Error : CARDINAL ) : Sync.TAsyncResult; // listen
+  PUBLIC PROCEDURE Flush(); // blind recv, accept depending on SSocket.Type, flushes Listen queue
+  
+	// for stDatagram
+  PUBLIC PROCEDURE ReceiveOA( OUT Data : ARRAY OF BYTE; OUT Filled : CARDINAL ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE SendOA( CONST Data : ARRAY OF BYTE ) : Sync.TAsyncResult; // uses multicast address
+  PUBLIC PROCEDURE SendToOA( CONST Data : ARRAY OF BYTE; To : winsock.IN_ADDR; Port : CARDINAL ) : Sync.TAsyncResult; // uses given address
+
+  LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
+  INTERNAL PROCEDURE Select( Events : CARDINAL ) : CARDINAL;
+  INTERNAL PROCEDURE MulticastJoin() : CARDINAL;
+  INTERNAL PROCEDURE MulticastLeave() : CARDINAL;
+END SSocket;
+
+(*================================================================================*)
+
+CLASS DSocket( SSocket );
+  INTERNAL VAR
+    // Remote     : winsock.SOCKADDR_IN; // moved to SSocket due to multicast issues
+    RemoteName    : StringsO.CString;
+    ResolveAddr   : Sync.WAITABLE;
+    Timeout       : ARRAY [poConnect..poSend] OF Sync.WAITABLE;
+    KeepAlive     : CARDINAL;
+    Reader        : IOO.TPDataProxy;
+    RPending      : IOO.TPDataProxy;
+    Writer        : IOO.TPDataProxy;
+    WPending      : IOO.TPDataProxy;
+
+  PUBLIC PROPERTY
+    RemoteAddress : winsock.IN_ADDR;
+    RemotePort    : CARDINAL;
+    KeepAliveTime : CARDINAL; // timeout after which KA probe is performed, default 300 s, INIFINITE means KA is off
+  PUBLIC READONLY PROPERTY
+    Connecting    : BOOLEAN;
+    Connected     : BOOLEAN;
+    Closed        : BOOLEAN;
+    DataAvailable : CARDINAL;
+
+	// Open, Close pair is in DSocket covered with Connect/Disconnet. Use Open/Close only if you PRECISELY know, what you do.
+  PUBLIC PROCEDURE Open( OUT Error : CARDINAL ) : Sync.TAsyncResult; // socket -- modified variant of SSocket.Open
+  // Close() comes from SSocket
+  // WaitCompletion() comes from SSocket
+
+  PUBLIC PROCEDURE Connect( CONST Server : ARRAY OF WCHAR; Port : CARDINAL; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE ConnectAddress( CONST Server : winsock.IN_ADDR; Port : CARDINAL; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE Accept( CONST ServerSocket : TPSSocket; OUT Error : CARDINAL ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE AcceptFrom( REF SourceSocket : TPDSocket; OUT Error : CARDINAL ) : Sync.TAsyncResult; // adopts SourceSocket.Socket and clears it
+  PUBLIC PROCEDURE Disconnect( Abortive : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+  
+  PUBLIC PROCEDURE Receive( Buffer : IOO.TPDataProxy; TimeoutMS : CARDINAL; WaitForResult : BOOLEAN ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE ReceiveOA( OUT Data : ARRAY OF BYTE; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE AbortReceive();
+  PUBLIC PROCEDURE Send( Buffer : IOO.TPDataProxy; TimeoutMS : CARDINAL; WaitForResult : BOOLEAN ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE SendOA( CONST Data : ARRAY OF BYTE; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE AbortSend();
+
+  LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+  LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
+  LOCAL PROCEDURE OnAddressFound( Result : CARDINAL; CONST Address : ARRAY OF winsock.IN_ADDR );
+  LOCAL PROCEDURE OnNameFound( Result : CARDINAL; CONST Name : StringsO.CString );
+
+  PRIVATE PROCEDURE SwitchContext( FromContext : CARDINAL; Operation : TPendingOperationItem; Result : CARDINAL );
+  PRIVATE PROCEDURE StartConnect();
+  PRIVATE PROCEDURE OnConnect( Context : CARDINAL; Error : CARDINAL );
+  PRIVATE PROCEDURE OnDisconnect( Context : CARDINAL; Error : CARDINAL; Local : BOOLEAN );
+  PRIVATE PROCEDURE StartFlow( Operation : TPendingOperationItem; Buffer : IOO.TPDataProxy; TimeoutMS : CARDINAL; WaitForResult : BOOLEAN ) : Sync.TAsyncResult;
+  PRIVATE PROCEDURE OnFlow( Operation : TPendingOperationItem );
+  PRIVATE PROCEDURE CompleteFlow( Operation : TPendingOperationItem; Device : BOOLEAN; Result : Sync.TAsyncResult; NResult : CARDINAL );
+  PRIVATE PROCEDURE StartKeepAlive() : CARDINAL;
+  PRIVATE PROCEDURE Dispose() : CARDINAL;
+  PRIVATE PROCEDURE StartTimeout( Operation : TPendingOperationItem; Timeout : CARDINAL );
+  PRIVATE PROCEDURE StopTimeout( Operation : TPendingOperationItem );
+END DSocket;
+
+#restore
+
+END netsocket.

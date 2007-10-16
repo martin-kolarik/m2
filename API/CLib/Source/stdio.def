@@ -1,0 +1,32 @@
+DEFINITION MODULE stdio;
+
+(**************************************************************************
+*                                                                         *
+*                                                                         *
+* Copyright (c) 1997, Alcor-Moravian Instruments Inc. All rights reserved.*
+*                                                                         *
+**************************************************************************)
+
+(*# name( decoration => c ) *)
+
+(*# module( header => off ) *)
+
+(*# call( o_a_size => off,
+          c_arrays => on,
+          convention => stdcall ) *)
+
+FROM windows IMPORT
+  PSTR, PCSTR, PWSTR, PCWSTR;
+
+
+(*# save, call( var_arg=>on ) *)
+PROCEDURE strcat( buffer : PSTR; format : PCSTR ) : PSTR;
+PROCEDURE sprintf( buffer : PSTR; format : PCSTR ) : INTEGER;
+PROCEDURE sscanf ( buffer : PCSTR; format : PCSTR ) : INTEGER;
+PROCEDURE _tempnam( dir : PCSTR; prefix : PCSTR ) : PSTR;
+PROCEDURE tmpnam( temp : PSTR ) : PSTR;
+
+PROCEDURE swprintf( buffer : PWSTR; format : PCWSTR ) : INTEGER;
+(*# restore *)
+
+END stdio.

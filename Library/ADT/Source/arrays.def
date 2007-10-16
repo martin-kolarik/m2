@@ -1,0 +1,68 @@
+DEFINITION MODULE arrays;
+
+IMPORT
+  array;
+  
+FROM StringsO IMPORT
+  CString;
+
+#save, option( dll_export => on )
+
+//---------------------------------------------------------------------------
+
+TYPE
+  TPIntegerArray = POINTER TO CIntegerArray;
+
+CLASS CIntegerArray( array.CArray );
+  PUBLIC INDEX( Index : INTEGER ) : INTEGER; // returns 0 if index is out of range
+
+  PUBLIC PROCEDURE Add( Value : INTEGER ) : INTEGER; // returns index
+  PUBLIC PROCEDURE Contains( Value : INTEGER ) : BOOLEAN;
+  PUBLIC PROCEDURE Insert( Index : INTEGER; Value : INTEGER );
+  PUBLIC PROCEDURE Remove( Value : INTEGER );
+
+  PUBLIC PROCEDURE IndexOf( Value : INTEGER ) : INTEGER; // if not found returns LowBound-1
+
+  PRIVATE PROCEDURE Init(); // deny usage
+END CIntegerArray;
+
+//---------------------------------------------------------------------------
+
+TYPE
+  TPPtrArray = POINTER TO CPtrArray;
+
+CLASS CPtrArray( array.CArray );
+  PUBLIC INDEX( Index : INTEGER ) : PTR; // returns 0 if index is out of range
+
+  PUBLIC PROCEDURE Add( Value : PTR ) : INTEGER; // returns index
+  PUBLIC PROCEDURE Contains( Value : PTR ) : BOOLEAN;
+  PUBLIC PROCEDURE Insert( Index : INTEGER; Value : PTR );
+  PUBLIC PROCEDURE Remove( Value : PTR );
+
+  PUBLIC PROCEDURE IndexOf( Value : PTR ) : INTEGER; // if not found returns LowBound-1
+
+  PRIVATE PROCEDURE Init(); // deny usage
+END CPtrArray;
+
+//---------------------------------------------------------------------------
+
+(*
+CLASS CStringArray( array.CArray );
+  PUBLIC INDEX( Index : INTEGER ) : PTR; // returns 0 if index is out of range
+
+  PROCEDURE Add( Value : PTR ) : INTEGER; // returns index
+  PROCEDURE Contains( Value : PTR ) : BOOLEAN;
+  PROCEDURE Insert( Index : INTEGER; Value : PTR );
+  PROCEDURE Remove( Value : PTR );
+
+  PROCEDURE IndexOf( Value : PTR ) : INTEGER; // if not found returns LowBound-1
+
+  PRIVATE PROCEDURE Init(); // deny usage
+END CStringArray;
+*)
+
+//---------------------------------------------------------------------------
+
+#restore
+
+END arrays.

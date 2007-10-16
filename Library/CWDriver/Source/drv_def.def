@@ -1,0 +1,326 @@
+DEFINITION MODULE drv_def;
+
+(*# warn( 4251 => off ) *)
+(*# warn( 4275 => off ) *)
+
+IMPORT
+  Strings,
+  StringsO;
+IMPORT
+  drv_str,
+  sdvalue;
+  
+#if #not UNICODE #then
+  #error
+#endif
+
+//=============================================================================
+// values used inside Control Web
+
+TYPE
+  TValueType = (
+    vtNothing      = 0,
+    vtError        = 1,
+    vtBoolean      = 2,
+    vtShortCard    = 3,
+    vtCardinal     = 4,
+    vtLongCard     = 5,
+    vtShortInt     = 6,
+    vtInteger      = 7,
+    vtLongInt      = 8,
+    vtLongReal     = 10,
+    vtPString256_A = 911,
+    vtPString256   = 11,
+    vtBuffer       = 12,
+    vtUnknown      = 13,
+    vtDString_A    = 914,
+    vtDString      = 14,
+    vtDriverString = 15,
+    vtData         = 20
+  );
+
+//-----------------------------------------------------------------------------
+
+(*# save, option( pack => 1 ) *) // pack 1
+
+TYPE
+  TPValue = POINTER TO TValue;
+  TValue = RECORD
+    CASE Type : TValueType OF
+    | vtBoolean       : ValBoolean     : BOOLEAN;
+    | vtShortCard     : ValShortCard   : CARD8;
+    | vtCardinal      : ValCardinal    : CARD16;
+    | vtLongCard      : ValLongCard    : CARD32;
+    | vtShortInt      : ValShortInt    : INT8;
+    | vtInteger       : ValInteger     : INT16;
+    | vtLongInt       : ValLongInt     : INT32;
+    | vtLongReal      : ValLongReal    : LONGREAL;
+    | vtPString256    : ValPString256W : POINTER TO ARRAY [0..255] OF WCHAR;
+    | vtPString256_A  : ValPString256A : POINTER TO ARRAY [0..255] OF CHAR;
+    | vtDString       : ValDStringW    : drv_str.TPDStringW;
+    | vtDString_A     : ValDStringA    : drv_str.TPDStringA;
+    | vtDriverString  : // internal, see vtDriverString definition
+                        ValDriverStringCharLength  : CARDINAL;
+                        ValDriverStringAddress     : ADDRESS;
+    | vtBuffer        : // obsolete
+                        BType          : CARD8;
+                        BLen256        : CARD16;
+                        PBuffer        : ADDRESS;
+    | vtData          : ValPData       : drv_str.TPDStringW;
+    END; // CASE
+  END; // TValue
+
+  TValueArray  = ARRAY [0..0] OF TValue;
+  TPValueArray = POINTER TO TValueArray;
+
+  TBufferHeader  = RECORD
+                     CASE HeaderKind : CARD16 OF
+                     | 0 :
+                         Channels   : CARD16;
+                         NumSamples : CARDINAL;
+                         CurSamples : CARDINAL;
+                         SampFreq   : LONGREAL;
+                         SampStruct : CARD16;
+                         DataType   : CARD16; // resolution
+                         Status     : BITSET16;
+                         Any1       : CARD16; // reserve
+                         Time       : REAL;
+                     END;
+                   END;
+  TPBufferHeader = POINTER TO TBufferHeader;
+(*# restore *) // pack 1
+
+//-----------------------------------------------------------------------------
+// basic helpers
+
+// sets vtNothing, does not check dynamic string, used to initialize new values
+PROCEDURE InitValue( VAR Value : TValue );
+// sets vtNothing but check for possible dynamic string and free it
+PROCEDURE DoneValue( VAR Value : TValue );
+// allocates PBuffer if type is vtBuffer
+PROCEDURE ValueDataLength( Type : TValueType ) : CARDINAL;
+
+PROCEDURE IsValidValue( CONST Value : TValue ) : BOOLEAN;// all types except vtError (including vtUnknown) // ( CONST Value : TValue ) : BOOLEAN;
+PROCEDURE IsKnownValue( CONST Value : TValue ) : BOOLEAN;// all types except both vtError and vtUnknown // ( CONST Value : TValue ) : BOOLEAN;
+
+//-----------------------------------------------------------------------------
+
+PROCEDURE IOTypeToCWType( IOType : sdvalue.TSDValueType ) : TValueType;
+
+//-----------------------------------------------------------------------------
+// helpers changing value's type
+// they check for possible dynamic string and free it
+PROCEDURE SetValueBoolean( VAR Value : TValue; b : BOOLEAN );
+PROCEDURE SetValueCard8( VAR Value : TValue; v : CARD8 );
+PROCEDURE SetValueCard32( VAR Value : TValue; v : CARD32 );
+PROCEDURE SetValueInt8( VAR Value : TValue; v : INT8 );
+PROCEDURE SetValueInt32( VAR Value : TValue; v : INT32 );
+PROCEDURE SetValueLongReal( VAR Value : TValue; r : LONGREAL );
+PROCEDURE SetValueString( VAR Value : TValue; s : ARRAY OF WCHAR  );
+PROCEDURE SetValueDString( VAR Value : TValue; s : drv_str.TPDStringW );
+
+//-----
+CONST
+  SetValueCardinal ::= SetValueCard32;
+  SetValueInteger  ::= SetValueInt32;
+
+// helpers preserving value's type
+PROCEDURE AssignValueBoolean( VAR Value : TValue; Saturate : BOOLEAN; b : BOOLEAN );
+PROCEDURE AssignValueCard8( VAR Value : TValue; Saturate : BOOLEAN; v : CARD8 );
+PROCEDURE AssignValueCard32( VAR Value : TValue; Saturate : BOOLEAN; v : CARD32 );
+PROCEDURE AssignValueInt8( VAR Value : TValue; Saturate : BOOLEAN; v : INT8 );
+PROCEDURE AssignValueInt32( VAR Value : TValue; Saturate : BOOLEAN; v : INT32 );
+PROCEDURE AssignValueLongReal( VAR Value : TValue; Saturate : BOOLEAN; r : LONGREAL );
+PROCEDURE AssignValueStringW( VAR Value : TValue; Saturate : BOOLEAN; s : ARRAY OF WCHAR );
+PROCEDURE AssignValueCStringW( VAR Value : TValue; Saturate : BOOLEAN; CONST CS : StringsO.CString );
+
+//-----
+CONST
+  AssignValueCardinal ::= AssignValueCard32;
+  AssignValueInteger  ::= AssignValueInt32;
+
+// helpers converting value
+PROCEDURE ValueToBoolean( CONST Value : TValue; Saturate : BOOLEAN ) : BOOLEAN;
+PROCEDURE ValueToCard8( CONST Value : TValue; Saturate : BOOLEAN ) : CARD8;
+PROCEDURE ValueToCard32( CONST Value : TValue; Saturate : BOOLEAN ) : CARD32;
+PROCEDURE ValueToInt8( CONST Value : TValue; Saturate : BOOLEAN ) : INT8;
+PROCEDURE ValueToInt32( CONST Value : TValue; Saturate : BOOLEAN ) : INT32;
+PROCEDURE ValueToLongReal( CONST Value : TValue; Saturate : BOOLEAN ) : LONGREAL;
+PROCEDURE ValueToStringW( CONST Value : TValue; ValueUFlag : BOOLEAN; VAR sw : ARRAY OF WCHAR );
+
+PROCEDURE ValueToStringDecPlaces( CONST Value : TValue; DecPlaces : INTEGER; VAR s : ARRAY OF WCHAR );
+
+PROCEDURE FormatNumber( Number : LONGREAL; Format : ARRAY OF WCHAR; VAR Result : ARRAY OF WCHAR );
+PROCEDURE ValueToStringFormat( CONST Value : TValue; Format : ARRAY OF WCHAR; VAR s : ARRAY OF WCHAR );
+
+//-----
+CONST
+  ValueToCardinal ::= ValueToCard32;
+  ValueToInteger  ::= ValueToInt32;
+
+PROCEDURE SetValueType   ( VAR   Value : TValue; Saturate : BOOLEAN; NewValueType, DataType : TValueType; PData : ADDRESS );
+PROCEDURE AssignValueType( VAR   Value : TValue; Saturate : BOOLEAN; DataType : TValueType; PData : ADDRESS );
+PROCEDURE ValueToType    ( CONST Value : TValue; Saturate : BOOLEAN; DataType : TValueType; PData : ADDRESS );
+
+PROCEDURE CopyValue      ( VAR   RValue : TValue;                     CONST SValue : TValue );
+PROCEDURE AssignValue    ( VAR   RValue : TValue; Saturate : BOOLEAN; CONST SValue : TValue );
+PROCEDURE CompareValues  ( CONST Value1 : TValue;                     CONST Value2 : TValue ) : BOOLEAN;
+
+// vtDriverString repated helpers 
+#save, option( leak_info => on )
+PROCEDURE CopyDrvValueToValue( VAR Value : TValue; ValueUFlag, String256Flag : BOOLEAN; CONST DrvValue : TValue; DrvValueUFlag : BOOLEAN );
+#restore
+PROCEDURE CopyValueToDrvValue( VAR DrvValue : TValue; DrvValueUFlag, TrimFlag : BOOLEAN; CONST Value : TValue; ValueUFlag : BOOLEAN ) : BOOLEAN;
+
+PROCEDURE DrvValueToStringW( CONST DrvValue : TValue; DrvValueUFlag : BOOLEAN; VAR s : ARRAY OF WCHAR );
+#save, option( leak_info => on )
+PROCEDURE DrvValueToCStringW( CONST DrvValue : TValue; DrvValueUFlag : BOOLEAN; OUT CS : StringsO.CString );
+#restore
+PROCEDURE AssignDrvValueStringW( VAR DrvValue : TValue; DrvValueUFlag, TrimFlag : BOOLEAN; s : ARRAY OF WCHAR ): BOOLEAN;
+PROCEDURE AssignDrvValueCStringW( REF DrvValue : TValue; DrvValueUFlag, TrimFlag : BOOLEAN; CONST CS : StringsO.CString ): BOOLEAN;
+
+//=============================================================================
+
+PROCEDURE IOValueToCWValue( CONST IOValue : sdvalue.Value; DrvValueUFlag, TrimFlag : BOOLEAN; REF CWValue : TValue ) : BOOLEAN;
+PROCEDURE CWValueToIOValue( CONST CWValue : TValue; DrvValueUFlag : BOOLEAN; REF IOValue : sdvalue.Value );
+
+//=============================================================================
+// definitions common to drivers
+//=============================================================================
+
+// COMPILER and DLL API internal errors
+CONST
+  res_FacilityCore                   = 001200000H; // ControlWeb itself
+  res_ErrorMask                      = 0C0000000H;
+  res_CustomerMask                   = 020000000H;
+  res_Error                          = res_ErrorMask OR res_FacilityCore OR res_CustomerMask;
+  // errors itself
+  ecSucces                           = 0;
+  ecFirst                            = res_Error + 2048 + 2048 + 64;
+  // drivers
+  ecDriverMissingBufferInfo          = ecFirst + 1;
+  ecDriverMissingSetBufferAddr       = ecFirst + 2;
+  ecDriverMissingQueryProc           = ecFirst + 3;
+  ecDriverBufferInfoFailure          = ecFirst + 4;
+  ecDriverBadAllocation              = ecFirst + 5;
+  ecDriverBadInputRoutine            = ecFirst + 6;
+  ecDriverBadInputFinalizedRoutine   = ecFirst + 7;
+  ecDriverBadOutputRoutine           = ecFirst + 8;
+  ecDriverBadOutputFinalizedRoutine  = ecFirst + 9;
+  ecDriverBadDriverMajorVersion      = ecFirst + 10;
+  ecDriverOverwrittenString          = ecFirst + 11;
+  ecDriverOverwrittenBuffer          = ecFirst + 12;
+  ecDriverRequestForLessMemory       = ecFirst + 13;
+  ecDriverSecondRequestForAllocation = ecFirst + 14;
+
+(*# save, call( convention => cdecl ) *)
+TYPE
+  TDriverCallbackW = PROCEDURE( ADDRESS, CARDINAL, ADDRESS ) : CARDINAL;
+(*# restore *)
+
+CONST
+// DRIVER Check procedure CWVersion parameter
+  cwDevelopment          = 0;
+  cwRuntime              = 1;
+  cwDemonstration        = 2;
+  cwFreeBeta             = 3;
+
+// DRIVER ERROR CODES
+  ecSuccess              = 000000000H;
+  ecCommunicationTimeout = 000000001H; // e.g. PLC did not respond
+  ecValueProcessing      = 000000002H; // e.g. invalid real number received
+  ecUnknownElement       = 000000003H; // driver has not defined such element
+  ecBadDirection         = 000000004H; // driver's only input/output element is to be written/read
+  ecValueTruncated       = 000000005H; // e.g. LONGREAL --> INT8 conversion
+  ecIncompatibleTypes    = 000000006H; // number/boolean/string collision
+  ecDeviceShutdown       = 000000007H; // device is not operating after controlled action
+  ecCheckSumError        = 000000008H;
+                         
+  ecUser                 = 000010000H;
+  //--07FFFFFFFH
+
+//=============================================================================
+// TIME STAMP
+(*# save, option( pack => 1 ) *)
+TYPE
+  TUTCStamp  = RECORD
+                 MillisecondsInDay : CARDINAL;
+                 Day : CARD8;
+                 Month : CARD8;
+                 Year : INT16;
+               END;
+  TPUTCStamp = POINTER TO TUTCStamp;
+(*# restore *)
+
+//=============================================================================
+// quality of service
+
+CONST
+  // quality of service values
+  qosUnknown   = MAX( CARDINAL );
+  qosBad       = 0;
+  qosUncertain = 250;
+  qosGood      = 500;
+
+//=============================================================================
+// enumerating of channels
+
+TYPE
+  TDirectionItem = (
+    dirInput = 0, // a channel can be input
+    dirOutput = 1, // a channel can be output
+    dirNotifyInput = 2  // driver notifies core about input communications on this channel
+  );
+  TDirection = SET OF TDirectionItem;
+
+//=============================================================================
+// DriverProc and DriverCallback
+
+CONST
+  // DriverProc function codes
+  dpfHide                = 0;
+  dpfShow                = 1;
+  dpfMinimize            = 2;
+  dpfRestore             = 3;
+  dpfSelect              = 4;
+  dpfNewRect             = 5;    // Param1,Param2,Param3,Param4 = x,y,w,d
+  dpfLogin               = 6;    // Param1 = UserLoginLevel, Param2 = POINTER TO LoginName
+  dpfConfigureChannel    = 7;
+
+  // DriverCallback function codes
+  dcfInputFinalized      = 0;
+  dcfOutputFinalized     = 1;
+  dcfException           = 2;
+  dcfOOBDataAdvise       = 3;
+
+  // obsolete
+  // dcfGetAppHandle          = 100H; // Param = AppHandle
+
+  dcfGetPCompiler        = 400H; // Param = PCompiler
+  dcfGetPBackground      = 401H; // Param = PBackground
+  // dcfGetCoreHWND        = 402H; // Param = CoreWndHandle // obsolete
+  // dcfGetDLLHandle       = 403H; // Param = DLLHandle // obsolete
+  // dcfGetPRed            = 404H; // Param = PRed // obsolete
+  defGetCommunicatorHWND = 405H; // from v. 5.00
+  dcfGetPRedA            = 406H; // Param = PRed
+  dcfGetPRedW            = 407H; // Param = PRed
+
+  // DriverCallback return codes
+  erOK                   = 0;
+  erNotAccepted          = 1;
+  erNoApplication        = 2;
+  erNotReady             = 3;
+  erNotThread            = 4;
+
+  erNoFunction           = MAX( CARDINAL );
+
+  // RunMode DriverRunMode
+  drmRun                 = 0; // required activity: load, single read_par, single run, single stop
+  drmEdit                = 1; // required activity: load
+  drmCheck               = 2; // required activity: load, single read_par
+  drmConfigure           = 3; // required activity: load, multiple read_par, multiple run, multiple stop
+  drmSimulate            = 4; // required activity: --- (driver is not loaded)
+
+//=============================================================================
+
+END drv_def.

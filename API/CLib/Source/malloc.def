@@ -1,0 +1,62 @@
+DEFINITION MODULE malloc;
+// CRT interface for memory allocation
+
+(*# name( decoration=>c ) *)
+
+(*# module( header=>off ) *)
+
+(*# call(   o_a_size=>off,
+            convention=>cdecl ) *)
+
+TYPE
+  size_t = CARDINAL;
+
+(* Maximum heap request the heap manager will attempt *)
+
+CONST
+  _HEAP_MAXREQ    = 0FFFFFFE0H;
+
+(* Constants for _heapchk/_heapset/_heapwalk routines *)
+
+  _HEAPEMPTY      = -1;
+  _HEAPOK         = -2;
+  _HEAPBADBEGIN   = -3;
+  _HEAPBADNODE    = -4;
+  _HEAPEND        = -5;
+  _HEAPBADPTR     = -6;
+  _FREEENTRY      = 0;
+  _USEDENTRY      = 1;
+
+TYPE 
+
+  _HEAPINFO = RECORD
+    _pentry  : POINTER TO INTEGER;
+    _size    : size_t;
+    _useflag : INTEGER;
+  END;
+
+(* Function prototypes *)
+
+PROCEDURE calloc( _ : size_t; _ : size_t): ADDRESS;
+PROCEDURE free( _ : ADDRESS );
+PROCEDURE malloc( _ : size_t ): ADDRESS;
+PROCEDURE realloc( _ : ADDRESS; _ : size_t ): ADDRESS;
+PROCEDURE _msize(_ : ADDRESS): size_t;
+PROCEDURE _heapchk() : INTEGER;
+
+TYPE
+  _HEAPHOOK = PROCEDURE( INTEGER, size_t, ADDRESS, VAR ADDRESS );
+
+(* set hook function *)
+PROCEDURE _setheaphook( _ : _HEAPHOOK ): _HEAPHOOK;
+
+(* hook function must handle these types *)
+CONST
+  _HEAP_MALLOC    = 1;
+  _HEAP_CALLOC    = 2;
+  _HEAP_FREE      = 3;
+  _HEAP_REALLOC   = 4;
+  _HEAP_MSIZE     = 5;
+  _HEAP_EXPAND    = 6;
+
+END malloc.

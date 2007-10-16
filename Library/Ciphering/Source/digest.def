@@ -1,0 +1,51 @@
+DEFINITION MODULE digest;
+
+(*================================================================================*)
+
+TYPE
+   TPDigest = POINTER TO ADigest;
+
+ABSTRACT CLASS ADigest;
+   PUBLIC ABSTRACT READONLY PROPERTY
+      digest : PBYTE;
+      size : CARDINAL;
+
+	PUBLIC OPERATOR =( CONST Operand : ADigest ) : BOOLEAN;
+
+	PUBLIC PROCEDURE FromOA( CONST Data : ARRAY OF BYTE );
+	PUBLIC PROCEDURE ToOA( OUT Data : ARRAY OF BYTE );
+
+	PUBLIC PROCEDURE FromHex( CONST String : ARRAY OF WCHAR );
+	PUBLIC PROCEDURE ToHex( OUT String : ARRAY OF WCHAR );
+END ADigest;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPDigester = POINTER TO Digester;
+
+ABSTRACT CLASS Digester;
+	
+	PUBLIC ABSTRACT PROCEDURE Init();
+	PUBLIC ABSTRACT PROCEDURE Update( CONST input : ARRAY OF BYTE );
+	PUBLIC ABSTRACT PROCEDURE Finish( OUT digest : ADigest );
+
+	PUBLIC PROCEDURE Digest( CONST input : ARRAY OF BYTE; OUT digest : ADigest );
+END Digester;
+
+(*================================================================================*)
+
+TYPE
+   TDigestType = (
+      md5,
+      sha1,
+      sha256
+   );
+
+PROCEDURE Digest( Type : TDigestType; CONST input : ARRAY OF BYTE; OUT digest : ADigest );
+
+PROCEDURE DigestOA( Type : TDigestType; CONST input : ARRAY OF BYTE; OUT digest : ARRAY OF BYTE );
+
+(*================================================================================*)
+
+END digest.

@@ -1,0 +1,53 @@
+DEFINITION MODULE Uniquer;
+
+IMPORT
+   lists,
+   StringsO;
+
+(*================================================================================*)
+
+TYPE
+	TUId = ARRAY [0..31] OF BYTE;
+
+INTERFACE IUniquerSource;
+	PUBLIC ABSTRACT WRITEONLY PROPERTY
+		Seed : TUId;
+	PUBLIC ABSTRACT READONLY PROPERTY
+		Valid : BOOLEAN;
+		UId : TUId;
+END IUniquerSource;
+
+(*================================================================================*)
+
+CLASS CUniquer;
+   PRIVATE VAR
+      _Sources : lists.CPtrList;
+   PUBLIC READONLY PROPERTY
+      Sources : lists.TPPtrList;
+   PUBLIC PROCEDURE UId( CONST S : StringsO.IString ) : TUId;
+END CUniquer;
+
+(*================================================================================*)
+
+CLASS NullSource IMPLEMENTS IUniquerSource;
+	INTERNAL VAR
+		_Valid : BOOLEAN;
+		_Seed : TUId;
+	PUBLIC VIRTUAL WRITEONLY PROPERTY
+		Seed : TUId;
+	PUBLIC VIRTUAL READONLY PROPERTY
+		Valid : BOOLEAN;
+		UId : TUId;
+END NullSource;
+
+(*================================================================================*)
+
+CLASS DiscSource( NullSource );
+	PUBLIC VIRTUAL READONLY PROPERTY
+		UId : TUId;
+	INITIALLY DiscSource;
+END DiscSource;
+
+(*================================================================================*)
+
+END Uniquer.

@@ -1,0 +1,56 @@
+DEFINITION MODULE crtdbg;
+
+//==============================================================
+// assert.h - define the assert macro
+// 
+//       Copyright (c) 1985-1997, Microsoft Corporation. All rights reserved.
+// 
+// Purpose:
+//       Defines the assert(exp) macro.
+//       [ANSI/System V]
+//
+//==============================================================
+
+(*# name( decoration=>c ) *)
+
+(*# module( header=>off ) *)
+
+(*# call(   o_a_size=>off,
+            o_a_copy=>off,
+            convention=>cdecl ) *)
+
+// VERY, VERY SMALL SUBSET !!!!!!!
+
+CONST
+  _CRTDBG_ALLOC_MEM_DF      = 001H;  // Turn on debug allocation
+  _CRTDBG_DELAY_FREE_MEM_DF = 002H;  // Don't actually free memory
+  _CRTDBG_CHECK_ALWAYS_DF   = 004H;  // Check heap every alloc/dealloc
+  _CRTDBG_RESERVED_DF       = 008H;  // Reserved - do not use
+  _CRTDBG_CHECK_CRT_DF      = 010H;  // Leak check/diff CRT blocks
+  _CRTDBG_LEAK_CHECK_DF     = 020H;  // Leak check at program exit
+
+PROCEDURE _CrtSetDbgFlag( Flag : INTEGER ) : INTEGER;
+
+//--------------------------------------------------------------
+
+CONST
+  _CRT_WARN   = 0;
+  _CRT_ERROR  = 1;
+  _CRT_ASSERT = 2;
+  _CRT_ERRCNT = 3;
+
+CONST
+  _CRTDBG_MODE_FILE   = 000000001H;
+  _CRTDBG_MODE_DEBUG  = 000000002H;
+  _CRTDBG_MODE_WNDW   = 000000004H;
+  _CRTDBG_REPORT_MODE = 0FFFFFFFFH;
+
+(*# save, call( macro => on, result_optional => off ) *)
+PROCEDURE _CrtSetReportMode( CrtReportType : INTEGER; CrtReportMode : INTEGER ) : INTEGER;
+// usage: _CrtSetReportMode( _CRT_ASSERT, _CRTDBG_MODE_DEBUG );
+
+PROCEDURE _ASSERT( FalseMeansFailure : BOOLEAN );
+PROCEDURE _ASSERTE( FalseMeansFailure : BOOLEAN );
+(*# restore *)
+
+END crtdbg.

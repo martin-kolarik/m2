@@ -1,0 +1,23 @@
+DEFINITION MODULE drv_ax_;
+
+CONST
+	CZECH = TRUE;
+	ENGLISH = FALSE;
+
+(*%T CZECH *)
+
+_E_AlreadyRunnning          = L'Ovladaè již bìží';
+_E_NotInitialized           = L'Ovladaè není správnì inicializován';
+_E_UnableToGetConfiguration = L'Ovladaè není schopen poskytnout svou konfiguraci';
+
+(*%E CZECH *)
+
+(*%T ENGLISH *)
+
+_E_AlreadyRunnning          = L'Driver is already running';
+_E_NotInitialized           = L'Driver is not properly initialized';
+_E_UnableToGetConfiguration = L'Driver is unable to provide its configuration';
+
+(*%E ENGLISH *)
+
+END drv_ax_.

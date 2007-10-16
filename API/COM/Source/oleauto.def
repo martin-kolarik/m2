@@ -1,0 +1,900 @@
+DEFINITION MODULE oleauto;
+
+(*# name(   decoration      => c ) *)
+
+(*# module( header          => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            convention      => stdcall ) *)
+
+(*/*
+
+//  Definition of the OLE Automation APIs, and macros.
+
+#ifdef _OLEAUT32_
+#define WINOLEAUTAPI        STDAPI
+#define WINOLEAUTAPI_(type) STDAPI_(type)
+#else
+#define WINOLEAUTAPI        EXTERN_C DECLSPEC_IMPORT wtypes.HRESULT STDAPICALLTYPE
+#define WINOLEAUTAPI_(type) EXTERN_C DECLSPEC_IMPORT type STDAPICALLTYPE
+#endif
+*/*)
+
+IMPORT
+  guiddef,
+  oaidl,
+  unknwn,
+  windows,
+  wtypes;
+
+(*# option( pack => 8 ) *)
+
+VAR
+  IID_StdOle : guiddef.IID;
+
+CONST
+  STDOLE_MAJORVERNUM =     01H;
+  STDOLE_MINORVERNUM =     00H;
+  STDOLE_LCID        =  00000H;
+
+// Version # of stdole2.tlb
+  STDOLE2_MAJORVERNUM =    02H;
+  STDOLE2_MINORVERNUM =    00H;
+  STDOLE2_LCID        = 00000H;
+
+(*/* if not already picked up from olenls.h */*)
+(*/*
+#ifndef _LCID_DEFINED
+typedef windows.DWORD LCID;
+# define _LCID_DEFINED
+#endif
+*/*)
+TYPE
+  LCID = windows.DWORD;
+
+(*
+/*---------------------------------------------------------------------*/
+/*                            wtypes.BSTR API                                 */
+/*---------------------------------------------------------------------*/
+*)
+
+PROCEDURE SysAllocString( _ : wtypes.POLECHAR ) : wtypes.BSTR;
+PROCEDURE SysReAllocString( _ : wtypes.PBSTR; _ : wtypes.POLECHAR ) : windows.INT;
+PROCEDURE SysAllocStringLen( _ : wtypes.POLECHAR; _ : windows.UINT) : wtypes.BSTR;
+PROCEDURE SysReAllocStringLen( _ : wtypes.PBSTR; _ : wtypes.POLECHAR; _ : windows.UINT ) : windows.INT;
+PROCEDURE SysFreeString( _ : wtypes.BSTR );
+PROCEDURE SysStringLen( _ : wtypes.BSTR) : windows.UINT;
+
+PROCEDURE SysStringByteLen( bstr : wtypes.BSTR ) : windows.UINT;
+PROCEDURE SysAllocStringByteLen( psz : windows.PCSTR; len : windows.UINT ) : wtypes.BSTR;
+
+(*
+/*---------------------------------------------------------------------*/
+/*                            Time API                                 */
+/*---------------------------------------------------------------------*/
+*)
+
+PROCEDURE DosDateTimeToVariantTime( wDosDate : windows.USHORT; wDosTime : windows.USHORT; VAR pvtime : wtypes.DOUBLE ) : windows.INT;
+PROCEDURE VariantTimeToDosDateTime( vtime : wtypes.DOUBLE; VAR pwDosData : windows.USHORT; VAR pwDosTime : windows.USHORT ) : windows.INT;
+PROCEDURE SystemTimeToVariantTime( lpSystemTime : windows.PSYSTEMTIME; VAR pvtime : wtypes.DOUBLE ) : windows.INT;
+PROCEDURE VariantTimeToSystemTime( vtime : wtypes.DOUBLE; lpSystemTime : windows.PSYSTEMTIME ) : windows.INT;
+
+(*
+/*---------------------------------------------------------------------*/
+/*                          SafeArray API                              */
+/*---------------------------------------------------------------------*/
+*)
+
+PROCEDURE SafeArrayAllocDescriptor( cDims : windows.UINT; VAR ppsaOut : oaidl.PSAFEARRAY ) : wtypes.HRESULT;
+PROCEDURE SafeArrayAllocData( psa : oaidl.PSAFEARRAY ) : wtypes.HRESULT;
+PROCEDURE SafeArrayCreate( vt : wtypes.VARTYPE; cDims : windows.UINT; rgsabound : oaidl.PSAFEARRAYBOUND ) : oaidl.PSAFEARRAY;
+PROCEDURE SafeArrayCreateVector( vt : wtypes.VARTYPE; lLbound : windows.LONG; cElements : windows.ULONG ) : oaidl.PSAFEARRAY;
+PROCEDURE SafeArrayCopyData( psaSource : oaidl.PSAFEARRAY; psaTarget : oaidl.PSAFEARRAY ) : wtypes.HRESULT;
+PROCEDURE SafeArrayDestroyDescriptor( psa : oaidl.PSAFEARRAY ) : wtypes.HRESULT;
+PROCEDURE SafeArrayDestroyData( psa : oaidl.PSAFEARRAY ) : wtypes.HRESULT;
+PROCEDURE SafeArrayDestroy( psa : oaidl.PSAFEARRAY ) : wtypes.HRESULT;
+PROCEDURE SafeArrayRedim( psa : oaidl.PSAFEARRAY; psaboundNew : oaidl.PSAFEARRAYBOUND ) : wtypes.HRESULT;
+PROCEDURE SafeArrayGetDim( psa : oaidl.PSAFEARRAY ) : windows.UINT;
+PROCEDURE SafeArrayGetElemsize( psa : oaidl.PSAFEARRAY ) : windows.UINT;
+PROCEDURE SafeArrayGetUBound( psa : oaidl.PSAFEARRAY; nDim : windows.UINT; VAR plUbound : windows.LONG) : wtypes.HRESULT;
+PROCEDURE SafeArrayGetLBound( psa : oaidl.PSAFEARRAY; nDim : windows.UINT; VAR plLbound : windows.LONG ) : wtypes.HRESULT;
+PROCEDURE SafeArrayLock( psa : oaidl.PSAFEARRAY ) : wtypes.HRESULT;
+PROCEDURE SafeArrayUnlock( psa : oaidl.PSAFEARRAY ) : wtypes.HRESULT;
+PROCEDURE SafeArrayAccessData( psa : oaidl.PSAFEARRAY; VAR ppvData : ADDRESS ) : wtypes.HRESULT;
+PROCEDURE SafeArrayUnaccessData( psa : oaidl.PSAFEARRAY ) : wtypes.HRESULT;
+PROCEDURE SafeArrayGetElement( psa : oaidl.PSAFEARRAY; rgIndices : windows.PLONG; pv : ADDRESS ) : wtypes.HRESULT;
+PROCEDURE SafeArrayPutElement( psa : oaidl.PSAFEARRAY; rgIndices : windows.PLONG; pv : ADDRESS ) : wtypes.HRESULT;
+PROCEDURE SafeArrayCopy( psa : oaidl.PSAFEARRAY; VAR ppsaOut : oaidl.PSAFEARRAY ) : wtypes.HRESULT;
+PROCEDURE SafeArrayPtrOfIndex( psa : oaidl.PSAFEARRAY; rgIndices : windows.PLONG; VAR ppvData : ADDRESS ) : wtypes.HRESULT;
+
+(*
+/*---------------------------------------------------------------------*/
+/*                           oaidl.VARIANT API                         */
+/*---------------------------------------------------------------------*/
+*)
+
+PROCEDURE VariantInit( pvarg : oaidl.PVARIANTARG );
+PROCEDURE VariantClear( pvarg : oaidl.PVARIANTARG ) : wtypes.HRESULT;
+PROCEDURE VariantCopy( pvargDest : oaidl.PVARIANTARG; pvargSrc : oaidl.PVARIANTARG ) : wtypes.HRESULT;
+PROCEDURE VariantCopyInd( pvarDest : oaidl.PVARIANT; pvargSrc : oaidl.PVARIANTARG ) : wtypes.HRESULT;
+PROCEDURE VariantChangeType( pvargDest, pvarSrc : oaidl.PVARIANTARG; wFlags : windows.USHORT; vt : wtypes.VARTYPE ) : wtypes.HRESULT;
+PROCEDURE VariantChangeTypeEx( pvargDest, pvarSrc : oaidl.PVARIANTARG; lcid : LCID; wFlags : windows.USHORT; vt : wtypes.VARTYPE ) : wtypes.HRESULT;
+
+CONST
+// Flags for VariantChangeType/VariantChangeTypeEx
+  VARIANT_NOVALUEPROP    = 01H;
+  VARIANT_ALPHABOOL      = 02H; // For VT_BOOL to VT_BSTR conversions,
+                                // convert to "True"/"False" instead of
+                                // "-1"/"0"
+  VARIANT_NOUSEROVERRIDE = 04H;	// For conversions to/from VT_BSTR,
+					// passes LOCALE_NOUSEROVERRIDE
+					// to core coercion routines
+
+(*
+/*---------------------------------------------------------------------*/
+/*                Vector <-> Bstr conversion APIs                      */
+/*---------------------------------------------------------------------*/
+*)
+
+PROCEDURE VectorFromBstr ( bstr : wtypes.BSTR; VAR ppsa : oaidl.PSAFEARRAY ) : wtypes.HRESULT;
+PROCEDURE BstrFromVector ( psa : oaidl.PSAFEARRAY; pbstr : wtypes.PBSTR ) : wtypes.HRESULT;
+
+(*
+/*---------------------------------------------------------------------*/
+/*                     wtypes.VARTYPE Coercion API                            */
+/*---------------------------------------------------------------------*/
+*)
+
+(*
+/* Note: The routines that convert *from* a string are defined
+ * to take a OLECHAR* rather than a wtypes.BSTR because no allocation is
+ * required, and this makes the routines a bit more generic.
+ * They may of course still be passed a wtypes.BSTR as the strIn param.
+ */
+
+/* Any of the coercion functions that converts either from or to a string
+ * takes an additional lcid and dwFlags arguments. The lcid argument allows
+ * locale specific parsing to occur.  The dwFlags allow additional function
+ * specific condition to occur.  All function that accept the dwFlags argument
+ * can include either 0 or LOCALE_NOUSEROVERRIDE flag. In addition, the
+ * VarDateFromStr functions also accepts the VAR_TIMEVALUEONLY and
+ * VAR_DATEVALUEONLY flags
+ */
+*)
+
+CONST
+  VAR_TIMEVALUEONLY = windows.DWORD( 000000001H );    ///* return time value */
+  VAR_DATEVALUEONLY = windows.DWORD( 000000002H );    ///* return date value */
+
+PROCEDURE VarUI1FromI2( sIn : windows.SHORT; pbOut : PBYTE ) : wtypes.HRESULT;
+PROCEDURE VarUI1FromI4( lIn : windows.LONG; pbOut : PBYTE ) : wtypes.HRESULT;
+PROCEDURE VarUI1FromR4( fltIn : windows.FLOAT; pbOut : PBYTE ) : wtypes.HRESULT;
+PROCEDURE VarUI1FromR8( dblIn : wtypes.DOUBLE; pbOut : PBYTE ) : wtypes.HRESULT;
+PROCEDURE VarUI1FromCy( cyIn : wtypes.CY; pbOut : PBYTE ) : wtypes.HRESULT;
+PROCEDURE VarUI1FromDate( dateIn : wtypes.DATE; pbOut : PBYTE ) : wtypes.HRESULT;
+PROCEDURE VarUI1FromStr( strIn : wtypes.POLECHAR; lcid : LCID; dwFlags : windows.ULONG; pbOut : PBYTE ) : wtypes.HRESULT;
+PROCEDURE VarUI1FromDisp( pdispIn : oaidl.TPIDispatch; lcid : LCID; pbOut : PBYTE ) : wtypes.HRESULT;
+PROCEDURE VarUI1FromBool( boolIn : wtypes.VARIANT_BOOL; pbOut : PBYTE ) : wtypes.HRESULT;
+PROCEDURE VarUI1FromI1( cIn : CHAR; pbOut : PBYTE ) : wtypes.HRESULT;
+PROCEDURE VarUI1FromUI2( uiIn : windows.USHORT; pbOut : PBYTE ) : wtypes.HRESULT;
+PROCEDURE VarUI1FromUI4( ulIn : windows.ULONG; pbOut : PBYTE ) : wtypes.HRESULT;
+PROCEDURE VarUI1FromDec( pdecIn : wtypes.PDECIMAL; pbOut : PBYTE ) : wtypes.HRESULT;
+
+PROCEDURE VarI2FromUI1( bIn : BYTE; psOut : windows.PSHORT );
+PROCEDURE VarI2FromI4( lIn : windows.LONG; psOut : windows.PSHORT );
+PROCEDURE VarI2FromR4( fltIn : windows.FLOAT; psOut : windows.PSHORT );
+PROCEDURE VarI2FromR8( dblIn : wtypes.DOUBLE; psOut : windows.PSHORT );
+PROCEDURE VarI2FromCy( cyIn : wtypes.CY; psOut : windows.PSHORT );
+PROCEDURE VarI2FromDate( dateIn : wtypes.DATE; psOut : windows.PSHORT );
+PROCEDURE VarI2FromStr( strIn : wtypes.POLECHAR; lcid : LCID; dwFlags : windows.ULONG; psOut : windows.PSHORT );
+PROCEDURE VarI2FromDisp( pdispIn : oaidl.TPIDispatch; lcid : LCID; psOut : windows.PSHORT );
+PROCEDURE VarI2FromBool( boolIn : wtypes.VARIANT_BOOL; psOut : windows.PSHORT );
+PROCEDURE VarI2FromI1( cIn : CHAR; psOut : windows.PSHORT );
+PROCEDURE VarI2FromUI2( uiIn : windows.USHORT; psOut : windows.PSHORT );
+PROCEDURE VarI2FromUI4( ulIn : windows.ULONG; psOut : windows.PSHORT );
+PROCEDURE VarI2FromDec( pdecIn : wtypes.PDECIMAL; psOut : windows.PSHORT );
+
+PROCEDURE VarI4FromUI1( bIn : BYTE; plOut : windows.PLONG );
+PROCEDURE VarI4FromI2( sIn : windows.SHORT; plOut : windows.PLONG );
+PROCEDURE VarI4FromR4( fltIn : windows.FLOAT; plOut : windows.PLONG );
+PROCEDURE VarI4FromR8( dblIn : wtypes.DOUBLE; plOut : windows.PLONG );
+PROCEDURE VarI4FromCy( cyIn : wtypes.CY; plOut : windows.PLONG );
+PROCEDURE VarI4FromDate( dateIn : wtypes.DATE; plOut : windows.PLONG );
+PROCEDURE VarI4FromStr( strIn : wtypes.POLECHAR; lcid : LCID; dwFlags : windows.ULONG; plOut : windows.PLONG );
+PROCEDURE VarI4FromDisp( pdispIn : oaidl.TPIDispatch; lcid : LCID; plOut : windows.PLONG );
+PROCEDURE VarI4FromBool( boolIn : wtypes.VARIANT_BOOL; plOut : windows.PLONG );
+PROCEDURE VarI4FromI1( cIn : CHAR; plOut : windows.PLONG );
+PROCEDURE VarI4FromUI2( uiIn : windows.USHORT; plOut : windows.PLONG );
+PROCEDURE VarI4FromUI4( ulIn : windows.ULONG; plOut  : windows.PLONG ) : wtypes.HRESULT;
+PROCEDURE VarI4FromDec( pdecIn : wtypes.PDECIMAL; plOut  : windows.PLONG ) : wtypes.HRESULT;
+PROCEDURE VarI4FromInt( intIn : windows.INT; plOut  : windows.PLONG ) : wtypes.HRESULT;
+
+PROCEDURE VarR4FromUI1( bIn : BYTE; pfltOut  : windows.PFLOAT ) : wtypes.HRESULT;
+PROCEDURE VarR4FromI2( sIn : windows.SHORT; pfltOut  : windows.PFLOAT ) : wtypes.HRESULT;
+PROCEDURE VarR4FromI4( lIn : windows.LONG; pfltOut  : windows.PFLOAT ) : wtypes.HRESULT;
+PROCEDURE VarR4FromR8( dblIn : wtypes.DOUBLE; pfltOut  : windows.PFLOAT ) : wtypes.HRESULT;
+PROCEDURE VarR4FromCy( cyIn : wtypes.CY; pfltOut  : windows.PFLOAT ) : wtypes.HRESULT;
+PROCEDURE VarR4FromDate( dateIn : wtypes.DATE; pfltOut  : windows.PFLOAT ) : wtypes.HRESULT;
+PROCEDURE VarR4FromStr( strIn : wtypes.POLECHAR; lcid : LCID; dwFlags : windows.ULONG; pfltOut : windows.PFLOAT ) : wtypes.HRESULT;
+PROCEDURE VarR4FromDisp( pdispIn : oaidl.TPIDispatch; lcid : LCID; pfltOut : windows.PFLOAT ) : wtypes.HRESULT;
+PROCEDURE VarR4FromBool( boolIn : wtypes.VARIANT_BOOL; pfltOut  : windows.PFLOAT ) : wtypes.HRESULT;
+PROCEDURE VarR4FromI1( cIn : CHAR; pfltOut  : windows.PFLOAT ) : wtypes.HRESULT;
+PROCEDURE VarR4FromUI2( uiIn : windows.USHORT; pfltOut  : windows.PFLOAT ) : wtypes.HRESULT;
+PROCEDURE VarR4FromUI4( ulIn : windows.ULONG; pfltOut  : windows.PFLOAT ) : wtypes.HRESULT;
+PROCEDURE VarR4FromDec( pdecIn : wtypes.PDECIMAL; pfltOut : windows.PFLOAT ) : wtypes.HRESULT;
+
+PROCEDURE VarR8FromUI1( bIn : BYTE; pdblOut  : windows.PDOUBLE ) : wtypes.HRESULT;
+PROCEDURE VarR8FromI2( sIn : windows.SHORT; pdblOut  : windows.PDOUBLE ) : wtypes.HRESULT;
+PROCEDURE VarR8FromI4( lIn : windows.LONG; pdblOut  : windows.PDOUBLE ) : wtypes.HRESULT;
+PROCEDURE VarR8FromR4( fltIn : windows.FLOAT; pdblOut  : windows.PDOUBLE ) : wtypes.HRESULT;
+PROCEDURE VarR8FromCy( cyIn : wtypes.CY; pdblOut  : windows.PDOUBLE ) : wtypes.HRESULT;
+PROCEDURE VarR8FromDate( dateIn : wtypes.DATE; pdblOut  : windows.PDOUBLE ) : wtypes.HRESULT;
+PROCEDURE VarR8FromStr( strIn : wtypes.POLECHAR; lcid : LCID; dwFlags : windows.ULONG; pdblOut : windows.PDOUBLE ) : wtypes.HRESULT;
+PROCEDURE VarR8FromDisp( pdispIn : oaidl.TPIDispatch; lcid : LCID; pdblOut : wtypes.DOUBLE ) : wtypes.HRESULT;
+PROCEDURE VarR8FromBool( boolIn : wtypes.VARIANT_BOOL; pdblOut  : windows.PDOUBLE ) : wtypes.HRESULT;
+PROCEDURE VarR8FromI1( cIn : CHAR; pdblOut  : windows.PDOUBLE ) : wtypes.HRESULT;
+PROCEDURE VarR8FromUI2( uiIn : windows.USHORT; pdblOut  : windows.PDOUBLE ) : wtypes.HRESULT;
+PROCEDURE VarR8FromUI4( ulIn : windows.ULONG; pdblOut  : windows.PDOUBLE ) : wtypes.HRESULT;
+PROCEDURE VarR8FromDec( pdecIn : wtypes.PDECIMAL; pdblOut : windows.PDOUBLE ) : wtypes.HRESULT;
+
+PROCEDURE VarDateFromUI1( bIn : BYTE; pdateOut  : wtypes.PDATE ) : wtypes.HRESULT;
+PROCEDURE VarDateFromI2( sIn : windows.SHORT; pdateOut  : wtypes.PDATE ) : wtypes.HRESULT;
+PROCEDURE VarDateFromI4( lIn : windows.LONG; pdateOut  : wtypes.PDATE ) : wtypes.HRESULT;
+PROCEDURE VarDateFromR4( fltIn : windows.FLOAT; pdateOut  : wtypes.PDATE ) : wtypes.HRESULT;
+PROCEDURE VarDateFromR8( dblIn : wtypes.DOUBLE; pdateOut  : wtypes.PDATE ) : wtypes.HRESULT;
+PROCEDURE VarDateFromCy( cyIn : wtypes.CY; pdateOut  : wtypes.PDATE ) : wtypes.HRESULT;
+PROCEDURE VarDateFromStr( strIn : wtypes.POLECHAR; lcid : LCID; dwFlags : windows.ULONG; pdateOut : wtypes.PDATE ) : wtypes.HRESULT;
+PROCEDURE VarDateFromDisp( pdispIn : oaidl.TPIDispatch; lcid : LCID; pdateOut : wtypes.PDATE ) : wtypes.HRESULT;
+PROCEDURE VarDateFromBool( boolIn : wtypes.VARIANT_BOOL; pdateOut  : wtypes.PDATE ) : wtypes.HRESULT;
+PROCEDURE VarDateFromI1( cIn : CHAR; pdateOut  : wtypes.PDATE ) : wtypes.HRESULT;
+PROCEDURE VarDateFromUI2( uiIn : windows.USHORT; pdateOut  : wtypes.PDATE ) : wtypes.HRESULT;
+PROCEDURE VarDateFromUI4( ulIn : windows.ULONG; pdateOut  : wtypes.PDATE ) : wtypes.HRESULT;
+PROCEDURE VarDateFromDec( pdecIn : wtypes.PDECIMAL; pdateOut : wtypes.PDATE ) : wtypes.HRESULT;
+
+PROCEDURE VarCyFromUI1( bIn : BYTE; pcyOut  : wtypes.PCY ) : wtypes.HRESULT;
+PROCEDURE VarCyFromI2( sIn : windows.SHORT; pcyOut  : wtypes.PCY ) : wtypes.HRESULT;
+PROCEDURE VarCyFromI4( lIn : windows.LONG; pcyOut  : wtypes.PCY ) : wtypes.HRESULT;
+PROCEDURE VarCyFromR4( fltIn : windows.FLOAT; pcyOut  : wtypes.PCY ) : wtypes.HRESULT;
+PROCEDURE VarCyFromR8( dblIn : wtypes.DOUBLE; pcyOut  : wtypes.PCY ) : wtypes.HRESULT;
+PROCEDURE VarCyFromDate( dateIn : wtypes.DATE; pcyOut  : wtypes.PCY ) : wtypes.HRESULT;
+PROCEDURE VarCyFromStr( strIn : wtypes.POLECHAR; lcid : LCID; dwFlags : windows.ULONG; pcyOut : wtypes.PCY ) : wtypes.HRESULT;
+PROCEDURE VarCyFromDisp( pdispIn : oaidl.TPIDispatch; lcid : LCID; pcyOut : wtypes.PCY ) : wtypes.HRESULT;
+PROCEDURE VarCyFromBool( boolIn : wtypes.VARIANT_BOOL; pcyOut  : wtypes.PCY ) : wtypes.HRESULT;
+PROCEDURE VarCyFromI1( cIn : CHAR; pcyOut  : wtypes.PCY ) : wtypes.HRESULT;
+PROCEDURE VarCyFromUI2( uiIn : windows.USHORT; pcyOut  : wtypes.PCY ) : wtypes.HRESULT;
+PROCEDURE VarCyFromUI4( ulIn : windows.ULONG; pcyOut  : wtypes.PCY ) : wtypes.HRESULT;
+PROCEDURE VarCyFromDec( pdecIn : wtypes.PDECIMAL; pcyOut : wtypes.PCY ) : wtypes.HRESULT;
+
+PROCEDURE VarBstrFromUI1( bVal : BYTE; lcid : LCID; dwFlags : windows.ULONG; pbstrOut : wtypes.PBSTR ) : wtypes.HRESULT;
+PROCEDURE VarBstrFromI2( iVal : windows.SHORT; lcid : LCID; dwFlags : windows.ULONG; pbstrOut : wtypes.PBSTR ) : wtypes.HRESULT;
+PROCEDURE VarBstrFromI4( lIn : windows.LONG; lcid : LCID; dwFlags : windows.ULONG; pbstrOut : wtypes.PBSTR ) : wtypes.HRESULT;
+PROCEDURE VarBstrFromR4( fltIn : windows.FLOAT; lcid : LCID; dwFlags : windows.ULONG; pbstrOut : wtypes.PBSTR ) : wtypes.HRESULT;
+PROCEDURE VarBstrFromR8( dblIn : wtypes.DOUBLE; lcid : LCID; dwFlags : windows.ULONG; pbstrOut : wtypes.PBSTR ) : wtypes.HRESULT;
+PROCEDURE VarBstrFromCy( cyIn : wtypes.CY; lcid : LCID; dwFlags : windows.ULONG; pbstrOut : wtypes.PBSTR ) : wtypes.HRESULT;
+PROCEDURE VarBstrFromDate( dateIn : wtypes.DATE; lcid : LCID; dwFlags : windows.ULONG; pbstrOut : wtypes.PBSTR ) : wtypes.HRESULT;
+PROCEDURE VarBstrFromDisp( pdispIn : oaidl.TPIDispatch; lcid : LCID; dwFlags : windows.ULONG; pbstrOut : wtypes.PBSTR ) : wtypes.HRESULT;
+PROCEDURE VarBstrFromBool( boolIn : wtypes.VARIANT_BOOL; lcid : LCID; dwFlags : windows.ULONG; pbstrOut : wtypes.PBSTR ) : wtypes.HRESULT;
+PROCEDURE VarBstrFromI1( cIn : CHAR; lcid : LCID; dwFlags : windows.ULONG; pbstrOut : wtypes.PBSTR ) : wtypes.HRESULT;
+PROCEDURE VarBstrFromUI2( uiIn : windows.USHORT; lcid : LCID; dwFlags : windows.ULONG; pbstrOut : wtypes.PBSTR ) : wtypes.HRESULT;
+PROCEDURE VarBstrFromUI4( ulIn : windows.ULONG; lcid : LCID; dwFlags : windows.ULONG; pbstrOut : wtypes.PBSTR ) : wtypes.HRESULT;
+PROCEDURE VarBstrFromDec( pdecIn : wtypes.PDECIMAL; lcid : LCID; dwFlags : windows.ULONG; pbstrOut : wtypes.PBSTR ) : wtypes.HRESULT;
+
+PROCEDURE VarBoolFromUI1( bIn : BYTE; pboolOut  : wtypes.PVARIANT_BOOL ) : wtypes.HRESULT;
+PROCEDURE VarBoolFromI2( sIn : windows.SHORT; pboolOut  : wtypes.PVARIANT_BOOL ) : wtypes.HRESULT;
+PROCEDURE VarBoolFromI4( lIn : windows.LONG; pboolOut  : wtypes.PVARIANT_BOOL ) : wtypes.HRESULT;
+PROCEDURE VarBoolFromR4( fltIn : windows.FLOAT; pboolOut  : wtypes.PVARIANT_BOOL ) : wtypes.HRESULT;
+PROCEDURE VarBoolFromR8( dblIn : wtypes.DOUBLE; pboolOut  : wtypes.PVARIANT_BOOL ) : wtypes.HRESULT;
+PROCEDURE VarBoolFromDate( dateIn : wtypes.DATE; pboolOut  : wtypes.PVARIANT_BOOL ) : wtypes.HRESULT;
+PROCEDURE VarBoolFromCy( cyIn : wtypes.CY; pboolOut  : wtypes.PVARIANT_BOOL ) : wtypes.HRESULT;
+PROCEDURE VarBoolFromStr( strIn : wtypes.POLECHAR; lcid : LCID; dwFlags : windows.ULONG; pboolOut : wtypes.PVARIANT_BOOL ) : wtypes.HRESULT;
+PROCEDURE VarBoolFromDisp( pdispIn : oaidl.TPIDispatch; lcid : LCID; pboolOut : wtypes.PVARIANT_BOOL ) : wtypes.HRESULT;
+PROCEDURE VarBoolFromI1( cIn : CHAR; pboolOut  : wtypes.PVARIANT_BOOL ) : wtypes.HRESULT;
+PROCEDURE VarBoolFromUI2( uiIn : windows.USHORT; pboolOut  : wtypes.PVARIANT_BOOL ) : wtypes.HRESULT;
+PROCEDURE VarBoolFromUI4( ulIn : windows.ULONG; pboolOut  : wtypes.PVARIANT_BOOL ) : wtypes.HRESULT;
+PROCEDURE VarBoolFromDec( pdecIn : wtypes.PDECIMAL; pboolOut : wtypes.PVARIANT_BOOL ) : wtypes.HRESULT;
+
+PROCEDURE VarI1FromUI1( bIn : BYTE; pcOut : PCHAR ) : wtypes.HRESULT;
+PROCEDURE VarI1FromI2( uiIn : windows.SHORT; pcOut : PCHAR ) : wtypes.HRESULT;
+PROCEDURE VarI1FromI4( lIn : windows.LONG; pcOut : PCHAR ) : wtypes.HRESULT;
+PROCEDURE VarI1FromR4( fltIn : windows.FLOAT; pcOut : PCHAR ) : wtypes.HRESULT;
+PROCEDURE VarI1FromR8( dblIn : wtypes.DOUBLE; pcOut : PCHAR ) : wtypes.HRESULT;
+PROCEDURE VarI1FromDate( dateIn : wtypes.DATE; pcOut : PCHAR ) : wtypes.HRESULT;
+PROCEDURE VarI1FromCy( cyIn : wtypes.CY; pcOut : PCHAR ) : wtypes.HRESULT;
+PROCEDURE VarI1FromStr( strIn : wtypes.POLECHAR; lcid : LCID; dwFlags : windows.ULONG; pcOut : PCHAR ) : wtypes.HRESULT;
+PROCEDURE VarI1FromDisp( pdispIn : oaidl.TPIDispatch; lcid : LCID; pcOut : PCHAR ) : wtypes.HRESULT;
+PROCEDURE VarI1FromBool( boolIn : wtypes.VARIANT_BOOL; pcOut : PCHAR ) : wtypes.HRESULT;
+PROCEDURE VarI1FromUI2( uiIn : windows.USHORT; pcOut : PCHAR ) : wtypes.HRESULT;
+PROCEDURE VarI1FromUI4( ulIn : windows.ULONG; pcOut : PCHAR ) : wtypes.HRESULT;
+PROCEDURE VarI1FromDec( pdecIn : wtypes.PDECIMAL; pcOut : PCHAR ) : wtypes.HRESULT;
+
+PROCEDURE VarUI2FromUI1( bIn : BYTE; puiOut  : windows.PUSHORT ) : wtypes.HRESULT;
+PROCEDURE VarUI2FromI2( uiIn : windows.SHORT; puiOut  : windows.PUSHORT ) : wtypes.HRESULT;
+PROCEDURE VarUI2FromI4( lIn : windows.LONG; puiOut  : windows.PUSHORT ) : wtypes.HRESULT;
+PROCEDURE VarUI2FromR4( fltIn : windows.FLOAT; puiOut  : windows.PUSHORT ) : wtypes.HRESULT;
+PROCEDURE VarUI2FromR8( dblIn : wtypes.DOUBLE; puiOut  : windows.PUSHORT ) : wtypes.HRESULT;
+PROCEDURE VarUI2FromDate( dateIn : wtypes.DATE; puiOut  : windows.PUSHORT ) : wtypes.HRESULT;
+PROCEDURE VarUI2FromCy( cyIn : wtypes.CY; puiOut  : windows.PUSHORT ) : wtypes.HRESULT;
+PROCEDURE VarUI2FromStr( strIn : wtypes.POLECHAR; lcid : LCID; dwFlags : windows.ULONG; puiOut : windows.USHORT ) : wtypes.HRESULT;
+PROCEDURE VarUI2FromDisp( pdispIn : oaidl.TPIDispatch; lcid : LCID; puiOut : windows.PUSHORT ) : wtypes.HRESULT;
+PROCEDURE VarUI2FromBool( boolIn : wtypes.VARIANT_BOOL; puiOut  : windows.PUSHORT ) : wtypes.HRESULT;
+PROCEDURE VarUI2FromI1( cIn : CHAR; puiOut  : windows.PUSHORT ) : wtypes.HRESULT;
+PROCEDURE VarUI2FromUI4( ulIn : windows.ULONG; puiOut  : windows.PUSHORT ) : wtypes.HRESULT;
+PROCEDURE VarUI2FromDec( pdecIn : wtypes.PDECIMAL; puiOut : windows.PUSHORT ) : wtypes.HRESULT;
+
+PROCEDURE VarUI4FromUI1( bIn : BYTE; pulOut  : windows.PULONG ) : wtypes.HRESULT;
+PROCEDURE VarUI4FromI2( uiIn : windows.SHORT; pulOut  : windows.PULONG ) : wtypes.HRESULT;
+PROCEDURE VarUI4FromI4( lIn : windows.LONG; pulOut  : windows.PULONG ) : wtypes.HRESULT;
+PROCEDURE VarUI4FromR4( fltIn : windows.FLOAT; pulOut  : windows.PULONG ) : wtypes.HRESULT;
+PROCEDURE VarUI4FromR8( dblIn : wtypes.DOUBLE; pulOut  : windows.PULONG ) : wtypes.HRESULT;
+PROCEDURE VarUI4FromDate( dateIn : wtypes.DATE; pulOut  : windows.PULONG ) : wtypes.HRESULT;
+PROCEDURE VarUI4FromCy( cyIn : wtypes.CY; pulOut  : windows.PULONG ) : wtypes.HRESULT;
+PROCEDURE VarUI4FromStr( strIn : wtypes.POLECHAR; lcid : LCID; dwFlags : windows.ULONG; pulOut : windows.PULONG ) : wtypes.HRESULT;
+PROCEDURE VarUI4FromDisp( pdispIn : oaidl.TPIDispatch; lcid : LCID; pulOut : windows.PULONG ) : wtypes.HRESULT;
+PROCEDURE VarUI4FromBool( boolIn : wtypes.VARIANT_BOOL; pulOut  : windows.PULONG ) : wtypes.HRESULT;
+PROCEDURE VarUI4FromI1( cIn : CHAR; pulOut  : windows.PULONG ) : wtypes.HRESULT;
+PROCEDURE VarUI4FromUI2( uiIn : windows.USHORT; pulOut  : windows.PULONG ) : wtypes.HRESULT;
+PROCEDURE VarUI4FromDec( pdecIn : wtypes.PDECIMAL; pulOut : windows.PULONG ) : wtypes.HRESULT;
+
+PROCEDURE VarDecFromUI1( bIn : BYTE; pdecOut  : wtypes.PDECIMAL ) : wtypes.HRESULT;
+PROCEDURE VarDecFromI2( uiIn : windows.SHORT; pdecOut  : wtypes.PDECIMAL ) : wtypes.HRESULT;
+PROCEDURE VarDecFromI4( lIn : windows.LONG; pdecOut  : wtypes.PDECIMAL ) : wtypes.HRESULT;
+PROCEDURE VarDecFromR4( fltIn : windows.FLOAT; pdecOut  : wtypes.PDECIMAL ) : wtypes.HRESULT;
+PROCEDURE VarDecFromR8( dblIn : wtypes.DOUBLE; pdecOut  : wtypes.PDECIMAL ) : wtypes.HRESULT;
+PROCEDURE VarDecFromDate( dateIn : wtypes.DATE; pdecOut  : wtypes.PDECIMAL ) : wtypes.HRESULT;
+PROCEDURE VarDecFromCy( cyIn : wtypes.CY; pdecOut  : wtypes.PDECIMAL ) : wtypes.HRESULT;
+PROCEDURE VarDecFromStr( strIn : wtypes.POLECHAR; lcid : LCID; dwFlags : windows.ULONG; pdecOut : wtypes.PDECIMAL ) : wtypes.HRESULT;
+PROCEDURE VarDecFromDisp( pdispIn : oaidl.TPIDispatch; lcid : LCID; pdecOut : wtypes.PDECIMAL ) : wtypes.HRESULT;
+PROCEDURE VarDecFromBool( boolIn : wtypes.VARIANT_BOOL; pdecOut  : wtypes.PDECIMAL ) : wtypes.HRESULT;
+PROCEDURE VarDecFromI1( cIn : CHAR; pdecOut  : wtypes.PDECIMAL ) : wtypes.HRESULT;
+PROCEDURE VarDecFromUI2( uiIn : windows.USHORT; pdecOut  : wtypes.PDECIMAL ) : wtypes.HRESULT;
+PROCEDURE VarDecFromUI4( ulIn : windows.ULONG; pdecOut : wtypes.PDECIMAL ) : wtypes.HRESULT;
+
+(*# save, call( macro => on ) *)
+// #define VarUI4FromUI4(in, pOut) (*(pOut) = (in))
+// #define VarI4FromI4(in, pOut)   (*(pOut) = (in))
+PROCEDURE VarUI4FromUI4( in : windows.ULONG; pOut : windows.PULONG );
+PROCEDURE VarI4FromI4( in : windows.LONG; pOut : windows.PLONG );
+(*# restore *)
+
+CONST 
+  VarUI1FromInt       ::= VarUI1FromI4;
+  VarUI1FromUint      ::= VarUI1FromUI4;
+  VarI2FromInt        ::= VarI2FromI4;
+  VarI2FromUint       ::= VarI2FromUI4;
+//  VarI4FromInt      ::= VarI4FromI4; -- defined as standalone procedure
+  VarI4FromUint       ::= VarI4FromUI4;
+  VarR4FromInt        ::= VarR4FromI4;
+  VarR4FromUint       ::= VarR4FromUI4;
+  VarR8FromInt        ::= VarR8FromI4;
+  VarR8FromUint       ::= VarR8FromUI4;
+  VarDateFromInt      ::= VarDateFromI4;
+  VarDateFromUint     ::= VarDateFromUI4;
+  VarCyFromInt        ::= VarCyFromI4;
+  VarCyFromUint       ::= VarCyFromUI4;
+  VarBstrFromInt      ::= VarBstrFromI4;
+  VarBstrFromUint     ::= VarBstrFromUI4;
+  VarBoolFromInt      ::= VarBoolFromI4;
+  VarBoolFromUint     ::= VarBoolFromUI4;
+  VarI1FromInt        ::= VarI1FromI4;
+  VarI1FromUint       ::= VarI1FromUI4;
+  VarUI2FromInt       ::= VarUI2FromI4;
+  VarUI2FromUint      ::= VarUI2FromUI4;
+  VarUI4FromInt       ::= VarUI4FromI4;
+  VarUI4FromUint      ::= VarUI4FromUI4;
+  VarDecFromInt       ::= VarDecFromI4;
+  VarDecFromUint      ::= VarDecFromUI4;
+  VarIntFromUI1       ::= VarI4FromUI1;
+  VarIntFromI2        ::= VarI4FromI2;
+  VarIntFromI4        ::= VarI4FromI4;
+  VarIntFromR4        ::= VarI4FromR4;
+  VarIntFromR8        ::= VarI4FromR8;
+  VarIntFromDate      ::= VarI4FromDate;
+  VarIntFromCy        ::= VarI4FromCy;
+  VarIntFromStr       ::= VarI4FromStr;
+  VarIntFromDisp      ::= VarI4FromDisp;
+  VarIntFromBool      ::= VarI4FromBool;
+  VarIntFromI1        ::= VarI4FromI1;
+  VarIntFromUI2       ::= VarI4FromUI2;
+  VarIntFromUI4       ::= VarI4FromUI4;
+  VarIntFromDec       ::= VarI4FromDec;
+  VarIntFromUint      ::= VarI4FromUI4;
+  VarUintFromUI1      ::= VarUI4FromUI1;
+  VarUintFromI2       ::= VarUI4FromI2;
+  VarUintFromI4       ::= VarUI4FromI4;
+  VarUintFromR4       ::= VarUI4FromR4;
+  VarUintFromR8       ::= VarUI4FromR8;
+  VarUintFromDate     ::= VarUI4FromDate;
+  VarUintFromCy       ::= VarUI4FromCy;
+  VarUintFromStr      ::= VarUI4FromStr;
+  VarUintFromDisp     ::= VarUI4FromDisp;
+  VarUintFromBool     ::= VarUI4FromBool;
+  VarUintFromI1       ::= VarUI4FromI1;
+  VarUintFromUI2      ::= VarUI4FromUI2;
+  VarUintFromUI4      ::= VarUI4FromUI4;
+  VarUintFromDec      ::= VarUI4FromDec;
+  VarUintFromInt      ::= VarUI4FromI4;
+
+(*  
+/* Mac Note: On the Mac, the coercion functions support the
+ * Symantec C++ calling convention for float/double. To support
+ * float/double arguments compiled with the MPW C compiler,
+ * use the following APIs to move MPW float/double values into
+ * a oaidl.VARIANT.
+ */
+*)
+
+(*
+/*---------------------------------------------------------------------*/
+/*            New oaidl.VARIANT <-> string parsing functions                 */
+/*---------------------------------------------------------------------*/
+*)
+
+TYPE
+  NUMPARSE  = RECORD 
+                cDig       : windows.INT;
+                dwInFlags  : windows.ULONG;
+                dwOutFlags : windows.ULONG;
+                cchUsed    : windows.INT;
+                nBaseShift : windows.INT;
+                nPwr10     : windows.INT;
+              END;
+  PNUMPARSE = POINTER TO NUMPARSE;
+
+(*
+/* flags used by both dwInFlags and dwOutFlags:
+ */
+*)
+CONST
+  NUMPRS_LEADING_WHITE    = 00001H;
+  NUMPRS_TRAILING_WHITE   = 00002H;
+  NUMPRS_LEADING_PLUS     = 00004H;
+  NUMPRS_TRAILING_PLUS    = 00008H;
+  NUMPRS_LEADING_MINUS    = 00010H;
+  NUMPRS_TRAILING_MINUS   = 00020H;
+  NUMPRS_HEX_OCT          = 00040H;
+  NUMPRS_PARENS           = 00080H;
+  NUMPRS_DECIMAL          = 00100H;
+  NUMPRS_THOUSANDS        = 00200H;
+  NUMPRS_CURRENCY         = 00400H;
+  NUMPRS_EXPONENT         = 00800H;
+  NUMPRS_USE_ALL          = 01000H;
+  NUMPRS_STD              = 01FFFH;
+
+(*
+/* flags used by dwOutFlags only:
+ */
+*)
+  NUMPRS_NEG              = 010000H;
+  NUMPRS_INEXACT          = 020000H;
+
+(*
+/* flags used by VarNumFromParseNum to indicate acceptable result types:
+ */
+*)
+  VTBIT_I1        = (1 << ORD(wtypes.VT_I1));
+  VTBIT_UI1       = (1 << ORD(wtypes.VT_UI1));
+  VTBIT_I2        = (1 << ORD(wtypes.VT_I2));
+  VTBIT_UI2       = (1 << ORD(wtypes.VT_UI2));
+  VTBIT_I4        = (1 << ORD(wtypes.VT_I4));
+  VTBIT_UI4       = (1 << ORD(wtypes.VT_UI4));
+  VTBIT_R4        = (1 << ORD(wtypes.VT_R4));
+  VTBIT_R8        = (1 << ORD(wtypes.VT_R8));
+  VTBIT_CY        = (1 << ORD(wtypes.VT_CY));
+  VTBIT_DECIMAL   = (1 << ORD(wtypes.VT_DECIMAL));
+
+
+PROCEDURE VarParseNumFromStr(
+  strIn : wtypes.POLECHAR; lcid : LCID; dwFlags : windows.ULONG;
+  pnumprs : PNUMPARSE; rgbDig : PBYTE ) : wtypes.HRESULT;
+
+PROCEDURE VarNumFromParseNum( pnumprs : PNUMPARSE; rgbDig : PBYTE;
+            dwVtBits : windows.ULONG; pvar : oaidl.PVARIANT ) : wtypes.HRESULT;
+
+
+(*
+/*---------------------------------------------------------------------*/
+/*                   New date functions                                */
+/*---------------------------------------------------------------------*/
+*)
+
+CONST
+  VAR_VALIDDATE          = 00004H;    ///* VarDateFromUdate() only */
+  VAR_CALENDAR_HIJRI     = 00008H;    ///* use Hijri calender */
+  VARIANT_CALENDAR_HIJRI = VAR_CALENDAR_HIJRI;
+
+(*
+/* The UDATE structure is used with VarDateFromUdate() and VarUdateFromDate().
+ * It represents an "unpacked date".
+ */
+*)
+TYPE
+  UDATE  = RECORD 
+             st         : windows.SYSTEMTIME;
+             wDayOfYear : windows.USHORT;
+           END;
+  PUDATE = POINTER TO UDATE;
+
+(*
+/* APIs to "pack" and "unpack" dates.
+ */
+*)
+PROCEDURE VarDateFromUdate( pudateIn : PUDATE; dwFlags : windows.ULONG; pdateOut : PUDATE ) : wtypes.HRESULT;
+PROCEDURE VarUdateFromDate( dateIn : wtypes.DATE; dwFlags : windows.ULONG; pudateOut : PUDATE ) : wtypes.HRESULT;
+
+(*
+/* API to retrieve the secondary(altername) month names
+   Useful for Hijri, Polish and Russian alternate month names
+*/
+*)   
+PROCEDURE GetAltMonthNames( lcid : LCID; VAR prgp : wtypes.POLESTR ) : wtypes.HRESULT;
+
+
+(*
+/*---------------------------------------------------------------------*/
+/*                 ITypeLib                                            */
+/*---------------------------------------------------------------------*/
+*)
+
+CONST
+  TPITypeLib ::= oaidl.TPITypeLib;
+
+(*
+/*---------------------------------------------------------------------*/
+/*                ITypeInfo                                            */
+/*---------------------------------------------------------------------*/
+*)
+
+TYPE
+  DISPID     = windows.LONG;
+  MEMBERID   = DISPID;
+
+CONST
+  MEMBERID_NIL   = oaidl.DISPID_UNKNOWN;
+  ID_DEFAULTINST = -2;
+
+CONST
+///* Flags for IDispatch::Invoke */
+  DISPATCH_METHOD         = 01H;
+  DISPATCH_PROPERTYGET    = 02H;
+  DISPATCH_PROPERTYPUT    = 04H;
+  DISPATCH_PROPERTYPUTREF = 08H;
+
+CONST
+  TPITypeInfo ::= oaidl.TPITypeInfo;
+
+(*
+/*---------------------------------------------------------------------*/
+/*                ITypeComp                                            */
+/*---------------------------------------------------------------------*/
+*)
+
+CONST
+  TPITypeComp ::= oaidl.TPITypeComp;
+
+(*
+/*---------------------------------------------------------------------*/
+/*             ICreateTypeLib                                          */
+/*---------------------------------------------------------------------*/
+*)
+
+CONST
+  TPICreateTypeLib  ::= oaidl.TPICreateTypeLib;
+  TPICreateTypeInfo ::= oaidl.TPICreateTypeInfo;
+
+(*
+/*---------------------------------------------------------------------*/
+/*             TypeInfo API                                            */
+/*---------------------------------------------------------------------*/
+
+/* compute a 16bit hash value for the given name
+ */
+*)
+PROCEDURE LHashValOfNameSys( syskind : oaidl.SYSKIND; lcid : LCID; szName : wtypes.POLECHAR ) : windows.ULONG;
+
+(*/*
+#define LHashValOfName(lcid, szName) \
+            LHashValOfNameSys(SYS_WIN32, lcid, szName)
+
+#define WHashValOfLHashVal(lhashval) \
+            ((windows.USHORT) (0x0000ffff & (lhashval)))
+
+#define IsHashValCompatible(lhashval1, lhashval2) \
+            ((BOOL) ((0x00ff0000 & (lhashval1)) == (0x00ff0000 & (lhashval2))))
+*/*)
+(*# save, call( macro => on ) *)
+PROCEDURE LHashValOfName( lcid : LCID; szName : windows.PCSTR );
+PROCEDURE WHashValOfName( lhashval : windows.ULONG );
+PROCEDURE IsHashCompatible( lhasval1, lhasval2 : windows.ULONG );
+(*# restore *)
+
+(*
+/* load the typelib from the file with the given filename
+ */
+*)
+PROCEDURE LoadTypeLib( szFile : wtypes.POLECHAR; VAR pptLib : TPITypeLib ) : wtypes.HRESULT;
+
+(*
+/* Control how a type library is registered
+ */
+*)
+// typedef enum tagREGKIND
+//{
+//    REGKIND_DEFAULT,
+//    REGKIND_REGISTER,
+//    REGKIND_NONE
+//} REGKIND;
+TYPE
+  REGKIND = ( REGKIND_DEFAULT,
+              REGKIND_REGISTER,
+              REGKIND_NONE );
+
+PROCEDURE LoadTypeLibEx( szFile : wtypes.PCOLESTR; regkind : REGKIND; VAR pptlib : TPITypeLib ) : wtypes.HRESULT;
+
+(*
+/* load registered typelib
+ */
+*)
+PROCEDURE LoadRegTypeLib( CONST rguid : guiddef.GUID; wVerMajor : WORD; wVerMinor : WORD; lcid : LCID; VAR pptlib : TPITypeLib ) : wtypes.HRESULT;
+
+(*
+/* get path to registered typelib
+ */
+*)
+PROCEDURE QueryPathOfRegTypeLib( CONST guid : guiddef.GUID; wMaj : windows.USHORT; wMin : windows.USHORT; lcid : LCID; lpbstrPathName : wtypes.PBSTR ) : wtypes.HRESULT;
+
+(*
+/* add typelib to registry
+ */
+*)
+PROCEDURE RegisterTypeLib( ptlib : TPITypeLib; szFullPath : wtypes.POLECHAR; szHelpDir : wtypes.POLECHAR ) : wtypes.HRESULT;
+
+(*
+/* remove typelib from registry
+ */
+*)
+PROCEDURE UnRegisterTypeLib( CONST libID : guiddef.GUID; wVerMajor : WORD; wVerMinor : WORD; lcid : LCID; syskind : oaidl.SYSKIND ) : wtypes.HRESULT;
+PROCEDURE CreateTypeLib( syskind : oaidl.SYSKIND; szFile : wtypes.POLECHAR; VAR ppctlib : TPICreateTypeLib ) : wtypes.HRESULT;
+PROCEDURE CreateTypeLib2( syskind : oaidl.SYSKIND; szFile : wtypes.PCOLESTR; VAR ppctlib : oaidl.TPICreateTypeLib2 ) : wtypes.HRESULT;
+
+(*
+/*---------------------------------------------------------------------*/
+/*           IDispatch implementation support                          */
+/*---------------------------------------------------------------------*/
+*)
+
+CONST
+  TPIDispatch ::= oaidl.TPIDispatch;
+
+TYPE
+  PARAMDATA   = RECORD
+                  szName : wtypes.POLECHAR;   ///* parameter name */
+                  vt     : wtypes.VARTYPE;    ///* parameter type */
+                END;
+  PPARAMDATA  = POINTER TO PARAMDATA;
+
+  METHODDATA  = RECORD
+                  szName   : wtypes.POLECHAR; ///* method name */
+                  ppdata   : PPARAMDATA;      ///* pointer to an array of PARAMDATAs */
+                  dispid   : DISPID;          ///* method ID */
+                  iMeth    : windows.UINT;    ///* method index */
+                  cc       : oaidl.CALLCONV;  ///* calling convention */
+                  cArgs    : windows.UINT;    ///* count of arguments */
+                  wFlags   : WORD;            ///* same wFlags as on IDispatch::Invoke() */
+                  vtReturn : wtypes.VARTYPE;
+                END;
+  PMETHODDATA = POINTER TO METHODDATA;
+
+  INTERFACEDATA  = RECORD
+                     pmethdata : PMETHODDATA;  ///* pointer to an array of METHODDATAs */
+                     cMembers  : windows.UINT;         ///* count of members */
+                   END;
+  PINTERFACEDATA = POINTER TO INTERFACEDATA;
+
+(*
+/* Locate the parameter indicated by the given position, and
+ * return it coerced to the given target wtypes.VARTYPE (vtTarg).
+ */
+*)
+PROCEDURE DispGetParam( pdispparams : oaidl.PDISPPARAMS; position : windows.UINT; vtTarg : wtypes.VARTYPE; pvarResult : oaidl.PVARIANT; puArgErr : windows.PUINT ) : wtypes.HRESULT;
+
+(*
+/* Automatic TypeInfo driven implementation of IDispatch::GetIDsOfNames()
+ */
+*)
+PROCEDURE DispGetIDsOfNames( ptinfo : TPITypeInfo; VAR rgszNames : wtypes.POLECHAR; cNames : windows.UINT; rgdispid : oaidl.PDISPID ) : wtypes.HRESULT;
+
+(*
+/* Automatic TypeInfo driven implementation of IDispatch::Invoke()
+ */
+*)
+PROCEDURE DispInvoke( _this : ADDRESS; ptinfo : TPITypeInfo; dispidMember : DISPID;
+                      wFlags : WORD; pparams : oaidl.PDISPPARAMS; pvarResult : oaidl.PVARIANT;
+                      pexcepinfo : oaidl.PEXCEPINFO; puArgErr : windows.PUINT ) : wtypes.HRESULT;
+
+(*
+/* Construct a TypeInfo from an interface data description
+ */
+*)
+PROCEDURE CreateDispTypeInfo( pidata : INTERFACEDATA; lcid : LCID; VAR pptinfo : TPITypeInfo ) : wtypes.HRESULT;
+
+(*
+/* Create an instance of the standard TypeInfo driven IDispatch
+ * implementation.
+ */
+*)
+PROCEDURE CreateStdDispatch( punkOuter : unknwn.TPIUnknown; pvThis : ADDRESS;
+                             ptinfo : TPITypeInfo; VAR ppunkStdDisp : unknwn.TPIUnknown ) : wtypes.HRESULT;
+
+(*
+/* Low-level helper for IDispatch::Invoke() provides machine independence
+ * for customized Invoke().
+ */
+*)
+PROCEDURE DispCallFunc( pvInstance : ADDRESS; oVft : windows.ULONG; cc : oaidl.CALLCONV;
+                        vtReturn : wtypes.VARTYPE; cActuals : windows.UINT; prgvt : wtypes.PVARTYPE;
+                        VAR prgpvarg : oaidl.PVARIANTARG; pvargResult : oaidl.PVARIANT ) : wtypes.HRESULT;
+
+(*
+/*---------------------------------------------------------------------*/
+/*            Active Object Registration API                           */
+/*---------------------------------------------------------------------*/
+*)
+
+///* flags for RegisterActiveObject */
+CONST
+  ACTIVEOBJECT_STRONG  = 0;
+  ACTIVEOBJECT_WEAK    = 1;
+
+PROCEDURE RegisterActiveObject( punk : unknwn.TPIUnknown; CONST rclsid : guiddef.CLSID; 
+                                dwFlags : windows.DWORD; pdwRegister : windows.PDWORD ) : wtypes.HRESULT;
+PROCEDURE RevokeActiveObject( dwRegister : windows.DWORD; pvReserved : ADDRESS ) : wtypes.HRESULT;
+PROCEDURE GetActiveObject( CONST rclsid : guiddef.CLSID; pvReserved : ADDRESS; VAR ppunk : unknwn.TPIUnknown ) : wtypes.HRESULT;
+
+(*
+/*---------------------------------------------------------------------*/
+/*                           ErrorInfo API                             */
+/*---------------------------------------------------------------------*/
+*)
+PROCEDURE SetErrorInfo( dwReserved : windows.ULONG; perrinfo : oaidl.TPIErrorInfo ) : wtypes.HRESULT;
+PROCEDURE GetErrorInfo( dwReserved : windows.ULONG; VAR pperrinfo : oaidl.TPIErrorInfo ) : wtypes.HRESULT;
+PROCEDURE CreateErrorInfo( VAR pperrinfo : oaidl.TPICreateErrorInfo ) : wtypes.HRESULT;
+
+(*
+/*---------------------------------------------------------------------*/
+/*                           MISC API                                  */
+/*---------------------------------------------------------------------*/
+*)
+PROCEDURE OaBuildVersion() : windows.ULONG;
+PROCEDURE ClearCustData( pCustData : oaidl.PCUSTDATA );
+
+// Declare variant access functions.
+
+(*# save, call( macro => on ) *)
+//#if __STDC__ || defined(NONAMELESSUNION)
+//#define V_UNION(X, Y)   ((X)->n1.n2.n3.Y)
+//#define V_VT(X)         ((X)->n1.n2.vt)
+//#else
+//#define V_UNION(X, Y)   ((X)->Y)
+//#define V_VT(X)         ((X)->vt)
+//#endif
+(*
+PROCEDURE V_UNION( X : oaidl.PVARIANT; Y : ADDRESS ) : type?;
+PROCEDURE V_VT( X : oaidl.PVARIANT ) : type?;
+*)
+
+///* Variant access macros
+//#define V_ISBYREF(X)     (V_VT(X)&VT_BYREF)
+//#define V_ISARRAY(X)     (V_VT(X)&VT_ARRAY)
+//#define V_ISVECTOR(X)    (V_VT(X)&VT_VECTOR)
+//#define V_NONE(X)        V_I2(X)
+
+//#define V_UI1(X)         V_UNION(X, bVal)
+//#define V_UI1REF(X)      V_UNION(X, pbVal)
+//#define V_I2(X)          V_UNION(X, iVal)
+//#define V_I2REF(X)       V_UNION(X, piVal)
+//#define V_I4(X)          V_UNION(X, lVal)
+//#define V_I4REF(X)       V_UNION(X, plVal)
+//#define V_R4(X)          V_UNION(X, fltVal)
+//#define V_R4REF(X)       V_UNION(X, pfltVal)
+//#define V_R8(X)          V_UNION(X, dblVal)
+//#define V_R8REF(X)       V_UNION(X, pdblVal)
+//#define V_I1(X)          V_UNION(X, cVal)
+//#define V_I1REF(X)       V_UNION(X, pcVal)
+//#define V_UI2(X)         V_UNION(X, uiVal)
+//#define V_UI2REF(X)      V_UNION(X, puiVal)
+//#define V_UI4(X)         V_UNION(X, ulVal)
+//#define V_UI4REF(X)      V_UNION(X, pulVal)
+//#define V_INT(X)         V_UNION(X, intVal)
+//#define V_INTREF(X)      V_UNION(X, pintVal)
+//#define V_UINT(X)        V_UNION(X, uintVal)
+//#define V_UINTREF(X)     V_UNION(X, puintVal)
+//#define V_CY(X)          V_UNION(X, cyVal)
+//#define V_CYREF(X)       V_UNION(X, pcyVal)
+//#define V_DATE(X)        V_UNION(X, date)
+//#define V_DATEREF(X)     V_UNION(X, pdate)
+//#define V_BSTR(X)        V_UNION(X, bstrVal)
+//#define V_BSTRREF(X)     V_UNION(X, pbstrVal)
+//#define V_DISPATCH(X)    V_UNION(X, pdispVal)
+//#define V_DISPATCHREF(X) V_UNION(X, ppdispVal)
+//#define V_ERROR(X)       V_UNION(X, scode)
+//#define V_ERRORREF(X)    V_UNION(X, pscode)
+//#define V_BOOL(X)        V_UNION(X, boolVal)
+//#define V_BOOLREF(X)     V_UNION(X, pboolVal)
+//#define V_UNKNOWN(X)     V_UNION(X, punkVal)
+//#define V_UNKNOWNREF(X)  V_UNION(X, ppunkVal)
+//#define V_VARIANTREF(X)  V_UNION(X, pvarVal)
+//#define V_ARRAY(X)       V_UNION(X, parray)
+//#define V_ARRAYREF(X)    V_UNION(X, pparray)
+//#define V_BYREF(X)       V_UNION(X, byref)
+
+//#define V_DECIMAL(X)     V_UNION(X, decVal)
+//#define V_DECIMALREF(X)  V_UNION(X, pdecVal)
+
+PROCEDURE V_ISBYREF( X : oaidl.VARIANT ) : windows.ULONG;
+PROCEDURE V_ISARRAY( X : oaidl.VARIANT ) : windows.ULONG;
+PROCEDURE V_ISVECTOR( X : oaidl.VARIANT ) : windows.ULONG;
+PROCEDURE V_NONE( X : oaidl.VARIANT ) : windows.ULONG;
+
+PROCEDURE V_UI1( X : oaidl.VARIANT ) : BYTE;
+PROCEDURE V_UI1REF( X : oaidl.VARIANT ) : PBYTE;
+PROCEDURE V_I2( X : oaidl.VARIANT ) : windows.SHORT;
+PROCEDURE V_I2REF( X : oaidl.VARIANT ) : windows.PSHORT;
+PROCEDURE V_I4( X : oaidl.VARIANT ) : windows.LONG;
+PROCEDURE V_I4REF( X : oaidl.VARIANT ) : windows.PLONG;
+PROCEDURE V_R4( X : oaidl.VARIANT ) : windows.FLOAT;
+PROCEDURE V_R4REF( X : oaidl.VARIANT ) : windows.PFLOAT;
+PROCEDURE V_R8( X : oaidl.VARIANT ) : wtypes.DOUBLE;
+PROCEDURE V_R8REF( X : oaidl.VARIANT ) : windows.PDOUBLE;
+PROCEDURE V_I1( X : oaidl.VARIANT ) : CHAR;
+PROCEDURE V_I1REF( X : oaidl.VARIANT ) : PCHAR;
+PROCEDURE V_UI2( X : oaidl.VARIANT ) : windows.USHORT;
+PROCEDURE V_UI2REF( X : oaidl.VARIANT ) : windows.PUSHORT;
+PROCEDURE V_UI4( X : oaidl.VARIANT ) : windows.ULONG;
+PROCEDURE V_UI4REF( X : oaidl.VARIANT ) : windows.PULONG;
+PROCEDURE V_INT( X : oaidl.VARIANT ) : windows.INT;
+PROCEDURE V_INTREF( X : oaidl.VARIANT ) : windows.PINT;
+PROCEDURE V_UINT( X : oaidl.VARIANT ) : windows.UINT;
+PROCEDURE V_UINTREF( X : oaidl.VARIANT ) : windows.PUINT;
+PROCEDURE V_CY( X : oaidl.VARIANT ) : wtypes.CY;
+PROCEDURE V_CYREF( X : oaidl.VARIANT ) : wtypes.PCY;
+PROCEDURE V_DATE( X : oaidl.VARIANT ) : wtypes.DATE;
+PROCEDURE V_DATEREF( X : oaidl.VARIANT ) : wtypes.PDATE;
+PROCEDURE V_BSTR( X : oaidl.VARIANT ) : wtypes.BSTR;
+PROCEDURE V_BSTRREF( X : oaidl.VARIANT ) : wtypes.PBSTR;
+PROCEDURE V_DISPATCH( X : oaidl.VARIANT ) : oaidl.TPIDispatch;
+
+TYPE
+  TPPIDispatch = POINTER TO oaidl.TPIDispatch;
+
+PROCEDURE V_DISPATCHREF( X : oaidl.VARIANT ) : TPPIDispatch;
+
+PROCEDURE V_ERROR( X : oaidl.VARIANT ) : windows.ULONG;
+PROCEDURE V_ERRORREF( X : oaidl.VARIANT ) : windows.PULONG;
+PROCEDURE V_BOOL( X : oaidl.VARIANT ) : windows.BOOL;
+PROCEDURE V_BOOLREF( X : oaidl.VARIANT ) : windows.PBOOL;
+PROCEDURE V_UNKNOWN( X : oaidl.VARIANT ) : unknwn.TPIUnknown;
+
+TYPE
+  TPPIUnknown = POINTER TO unknwn.TPIUnknown;
+
+PROCEDURE V_UNKNOWNREF( X : oaidl.VARIANT ) : TPPIUnknown;
+
+PROCEDURE V_VARIANTREF( X : oaidl.VARIANT ) : oaidl.PVARIANT;
+PROCEDURE V_ARRAY( X : oaidl.VARIANT ) : oaidl.PSAFEARRAY;
+
+TYPE
+  TPPSAFEARRAY = POINTER TO oaidl.PSAFEARRAY;
+
+PROCEDURE V_ARRAYREF( X : oaidl.VARIANT ) : TPPSAFEARRAY;
+
+PROCEDURE V_BYREF( X : oaidl.VARIANT ) : ADDRESS;
+
+PROCEDURE V_DECIMAL( X : oaidl.VARIANT ) : wtypes.DECIMAL;
+PROCEDURE V_DECIMALREF( X : oaidl.VARIANT ) : wtypes.PDECIMAL;
+
+(*# restore *)
+
+END oleauto.

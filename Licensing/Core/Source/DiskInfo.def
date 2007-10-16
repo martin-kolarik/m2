@@ -1,0 +1,14 @@
+DEFINITION MODULE DiskInfo;
+
+IMPORT
+  StringsO;
+
+CLASS CDiskInfo;
+  Serial   : StringsO.CString;
+  Model    : StringsO.CString;
+  Firmware : StringsO.CString;
+END CDiskInfo;
+
+PROCEDURE LoadDiskInfo( DiskNumber : CARDINAL; OUT DiskInfo : CDiskInfo ) : BOOLEAN;
+
+END DiskInfo.

@@ -1,0 +1,102 @@
+DEFINITION MODULE string;
+
+(*==============================================================
+
+                     HEADER OVERRIDE string.h
+
+                Win32 API Modula-2 to C++ interface
+
+       32-bit version for M2CPP Modula-2 to C++ compiler
+
+      Copyright (c) 1996, 1997 Moravian Instruments, Inc.
+
+==============================================================*)
+
+(*# name(   prefix         => c ) *)
+
+(*# module( header         => off,
+            init_code      => off ) *)
+
+(*# call(   o_a_size       => off,
+            o_a_copy       => off,
+            c_arrays       => on,
+            prefix=>stdcall ) *)
+
+FROM windows IMPORT PSTR, PCSTR, PWSTR, PCWSTR;
+
+TYPE
+  size_t = CARDINAL;
+
+CONST
+  _NLSCMPERROR = 2147483647;  (* currently == INT_MAX *)
+
+(* Function prototypes *)
+
+PROCEDURE memcpy(PDest, PSrc  : ADDRESS; Count : size_t) : ADDRESS;
+PROCEDURE memcmp(PBuf1, PBuf2 : ADDRESS; Count : size_t) : INTEGER;
+PROCEDURE memset(PDest : ADDRESS; Sample : BYTE; Count : size_t) : ADDRESS;
+PROCEDURE _strset(PStr : PCSTR; Pattern : CHAR);
+PROCEDURE strcpy(PDest : PSTR; PSrc : PCSTR) : PCSTR;
+PROCEDURE strcat(PDest : PSTR; PSrc : PCSTR) : PCSTR;
+PROCEDURE strcmp(PS1, PS2 : PCSTR) : INTEGER;
+PROCEDURE strlen(Str : PCSTR) : size_t;
+
+PROCEDURE _memccpy(PDest, PSrc  : ADDRESS; c : CHAR; Count : size_t) : ADDRESS;
+PROCEDURE memchr(PBuf : ADDRESS; Pattern : CHAR; Count : size_t) : ADDRESS;
+PROCEDURE _memicmp(PBuf1, PBuf2 : ADDRESS; Count : INTEGER) : INTEGER;
+
+PROCEDURE memmove(PDest, PSrc : ADDRESS; Count : size_t) : ADDRESS;
+
+PROCEDURE strchr(PS : PCSTR; Pattern : CHAR) : PCSTR;
+PROCEDURE _strcmpi(Str1, Str2 : PCSTR) : INTEGER;
+PROCEDURE _stricmp(Str1, Str2 : PCSTR) : INTEGER;
+PROCEDURE strcoll(Str1, Str2 : PCSTR) : INTEGER;
+PROCEDURE _stricoll(Str1, Str2 : PCSTR) : INTEGER; 
+PROCEDURE _strncoll(Str1, Str2 : PCSTR; Count : size_t) : INTEGER;
+PROCEDURE _strnicoll(Str1, Str2 : PCSTR; Count : size_t) : INTEGER;
+PROCEDURE strcspn(Str1, Str2 : PCSTR) : size_t;
+PROCEDURE _strdup(Str : PCSTR) : PCSTR;
+PROCEDURE _strerror(Str : PCSTR) : PCSTR;
+PROCEDURE strerror(Error : INTEGER) : PCSTR;
+PROCEDURE _strlwr(Str : PCSTR) : PCSTR;
+PROCEDURE strncat(Str1, Str2 : PCSTR; Count : size_t) : PCSTR;
+PROCEDURE strncmp(Str1, Str2 : PCSTR; Count : size_t) : INTEGER;
+PROCEDURE _strnicmp(Str1, Str2 : PCSTR; Count : size_t) : INTEGER;
+PROCEDURE strncpy(Str1, Str2 : PCSTR; Count : size_t) : PCSTR;
+PROCEDURE _strnset(Str : PCSTR; Pattern : CHAR; Count : size_t) : PCSTR;
+PROCEDURE strpbrk(Str1, Str2 : PCSTR) : PCSTR;
+PROCEDURE strrchr(Str : PCSTR; Pattern : CHAR) : PCSTR;
+PROCEDURE _strrev(Str : PCSTR) : PCSTR;
+PROCEDURE strspn(Str1, Str2 : PCSTR) : size_t;
+PROCEDURE strstr(Str1, Str2 : PCSTR) : PCSTR;
+PROCEDURE strtok(Str1, Str2 : PCSTR) : PCSTR;
+PROCEDURE _strupr(Str : PCSTR) : PCSTR;
+PROCEDURE strxfrm (Str1, Str2 : PCSTR; Count : size_t) : size_t;
+
+// UNICODE versions
+PROCEDURE wcscpy(PDest : PWSTR; PSrc : PCWSTR) : PCWSTR;
+PROCEDURE wcscat(PDest : PWSTR; PSrc : PCWSTR) : PCWSTR;
+PROCEDURE wcscmp(PS1, PS2 : PCWSTR) : INTEGER;
+PROCEDURE wcslen(Str : PCWSTR) : size_t;
+
+PROCEDURE wcscoll( Str1, Str2 : PCWSTR ) : INTEGER;
+PROCEDURE _wcsicoll(Str1, Str2 : PCWSTR) : INTEGER; 
+PROCEDURE _wcsncoll(Str1, Str2 : PCWSTR; Count : size_t) : INTEGER;
+PROCEDURE _wcsnicoll(Str1, Str2 : PCWSTR; Count : size_t) : INTEGER;
+PROCEDURE _wcslwr(Str : PWSTR) : PWSTR;
+PROCEDURE _wcsupr(Str : PWSTR) : PWSTR;
+
+(* prototypes for oldnames.lib functions *)
+PROCEDURE memccpy(PBuf1, PBuf2 : ADDRESS; Pattern : CHAR; Count : CARDINAL) : ADDRESS;
+PROCEDURE memicmp(PBuf1, PBuf2 : ADDRESS; Count : CARDINAL) : INTEGER;
+PROCEDURE strcmpi(Str1, Str2 : PCSTR) : INTEGER;
+PROCEDURE stricmp(Str1, Str2 : PCSTR) : INTEGER;
+PROCEDURE strdup(Str : PCSTR) : PCSTR;
+PROCEDURE strlwr(Str : PCSTR) : PCSTR;
+PROCEDURE strnicmp(Str1, Str2 : PCSTR; Count : size_t) : INTEGER;
+PROCEDURE strnset(Str : PCSTR; Pattern : CHAR; Count : size_t) : PCSTR;
+PROCEDURE strrev(Str : PCSTR) : PCSTR;
+PROCEDURE strset(Str : PCSTR; Pattern : CHAR) : PCSTR;
+PROCEDURE strupr(Str : PCSTR) : PCSTR;
+
+END string.

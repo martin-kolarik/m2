@@ -1,0 +1,929 @@
+DEFINITION MODULE winioctl;
+
+//////////////////////////////////////////////////////////////////////
+//
+//  Original Windows header: winioctl.h
+//
+//                  BUILD Version: 0013
+//                  Copyright (c) 1990-1996  Microsoft Corporation
+//
+//////////////////////////////////////////////////////////////////////
+
+(*# name(   decoration      => c ) *)
+
+(*# module( header          => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            convention => stdcall ) *)
+
+//////////////////////////////////////////////////////////////////////
+//
+//  History: Created: 24.02.1999
+//
+//////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
+
+IMPORT windows;
+
+//#ifndef _WINIOCTL_
+//#define _WINIOCTL_
+
+//#ifndef _DEVIOCTL_
+//#define _DEVIOCTL_
+
+// begin_ntddk begin_nthal begin_ntifs
+//
+// Define the various device type values.  Note that values used by Microsoft
+// Corporation are in the range 0-32767, and 32768-65535 are reserved for use
+// by customers.
+//
+
+TYPE
+  DEVICE_TYPE = windows.DWORD;
+
+CONST
+  FILE_DEVICE_BEEP                = 00000001H;
+  FILE_DEVICE_CD_ROM              = 00000002H;
+  FILE_DEVICE_CD_ROM_FILE_SYSTEM  = 00000003H;
+  FILE_DEVICE_CONTROLLER          = 00000004H;
+  FILE_DEVICE_DATALINK            = 00000005H;
+  FILE_DEVICE_DFS                 = 00000006H;
+  FILE_DEVICE_DISK                = 00000007H;
+  FILE_DEVICE_DISK_FILE_SYSTEM    = 00000008H;
+  FILE_DEVICE_FILE_SYSTEM         = 00000009H;
+  FILE_DEVICE_INPORT_PORT         = 0000000AH;
+  FILE_DEVICE_KEYBOARD            = 0000000BH;
+  FILE_DEVICE_MAILSLOT            = 0000000CH;
+  FILE_DEVICE_MIDI_IN             = 0000000DH;
+  FILE_DEVICE_MIDI_OUT            = 0000000EH;
+  FILE_DEVICE_MOUSE               = 0000000FH;
+  FILE_DEVICE_MULTI_UNC_PROVIDER  = 00000010H;
+  FILE_DEVICE_NAMED_PIPE          = 00000011H;
+  FILE_DEVICE_NETWORK             = 00000012H;
+  FILE_DEVICE_NETWORK_BROWSER     = 00000013H;
+  FILE_DEVICE_NETWORK_FILE_SYSTEM = 00000014H;
+  FILE_DEVICE_NULL                = 00000015H;
+  FILE_DEVICE_PARALLEL_PORT       = 00000016H;
+  FILE_DEVICE_PHYSICAL_NETCARD    = 00000017H;
+  FILE_DEVICE_PRINTER             = 00000018H;
+  FILE_DEVICE_SCANNER             = 00000019H;
+  FILE_DEVICE_SERIAL_MOUSE_PORT   = 0000001AH;
+  FILE_DEVICE_SERIAL_PORT         = 0000001BH;
+  FILE_DEVICE_SCREEN              = 0000001CH;
+  FILE_DEVICE_SOUND               = 0000001DH;
+  FILE_DEVICE_STREAMS             = 0000001EH;
+  FILE_DEVICE_TAPE                = 0000001FH;
+  FILE_DEVICE_TAPE_FILE_SYSTEM    = 00000020H;
+  FILE_DEVICE_TRANSPORT           = 00000021H;
+  FILE_DEVICE_UNKNOWN             = 00000022H;
+  FILE_DEVICE_VIDEO               = 00000023H;
+  FILE_DEVICE_VIRTUAL_DISK        = 00000024H;
+  FILE_DEVICE_WAVE_IN             = 00000025H;
+  FILE_DEVICE_WAVE_OUT            = 00000026H;
+  FILE_DEVICE_8042_PORT           = 00000027H;
+  FILE_DEVICE_NETWORK_REDIRECTOR  = 00000028H;
+  FILE_DEVICE_BATTERY             = 00000029H;
+  FILE_DEVICE_BUS_EXTENDER        = 0000002AH;
+  FILE_DEVICE_MODEM               = 0000002BH;
+  FILE_DEVICE_VDM                 = 0000002CH;
+  FILE_DEVICE_MASS_STORAGE        = 0000002DH;
+
+//
+// Macro definition for defining IOCTL and FSCTL function control codes.  Note
+// that function codes 0-2047 are reserved for Microsoft Corporation, and
+// 2048-4095 are reserved for customers.
+//
+
+(*# save, call( macro => on ) *)
+  PROCEDURE CTL_CODE( DeviceType, Function, Method, Access : windows.DWORD );
+//      ((DeviceType) << 16) | ((Access) << 14) | ((Function) << 2) | (Method)
+
+(*# restore *)
+
+//
+// Define the method codes for how buffers are passed for I/O and FS controls
+//
+CONST
+  METHOD_BUFFERED     = 0;
+  METHOD_IN_DIRECT    = 1;
+  METHOD_OUT_DIRECT   = 2;
+  METHOD_NEITHER      = 3;
+
+//
+// Define the access check value for any access
+//
+//
+// The FILE_READ_ACCESS and FILE_WRITE_ACCESS constants are also defined in
+// ntioapi.h as FILE_READ_DATA and FILE_WRITE_DATA. The values for these
+// constants *MUST* always be in sync.
+//
+CONST
+  FILE_ANY_ACCESS     = 0;
+  FILE_READ_ACCESS    = 01H;    // file & pipe
+  FILE_WRITE_ACCESS   = 02H;    // file & pipe
+
+// end_ntddk end_nthal end_ntifs
+
+// #endif // _DEVIOCTL_
+
+
+//#ifndef _NTDDSTOR_H_
+//#define _NTDDSTOR_H_
+
+
+//
+// IoControlCode values for disk devices.
+//
+CONST
+  IOCTL_STORAGE_BASE = FILE_DEVICE_MASS_STORAGE;
+
+//
+// The following device control codes are common for all class drivers.  They
+// should be used in place of the older IOCTL_DISK, IOCTL_CDROM and IOCTL_TAPE
+// common codes
+//
+CONST
+  IOCTL_STORAGE_CHECK_VERIFY       = (IOCTL_STORAGE_BASE << 16) OR (200H) << 2 OR (METHOD_BUFFERED) OR (FILE_READ_ACCESS << 14); // CTL_CODE(IOCTL_STORAGE_BASE, 0x0200, METHOD_BUFFERED, FILE_READ_ACCESS)
+  IOCTL_STORAGE_MEDIA_REMOVAL      = (IOCTL_STORAGE_BASE << 16) OR (201H) << 2 OR (METHOD_BUFFERED) OR (FILE_READ_ACCESS << 14); // CTL_CODE(IOCTL_STORAGE_BASE, 0x0201, METHOD_BUFFERED, FILE_READ_ACCESS)
+  IOCTL_STORAGE_EJECT_MEDIA        = (IOCTL_STORAGE_BASE << 16) OR (202H) << 2 OR (METHOD_BUFFERED) OR (FILE_READ_ACCESS << 14); // CTL_CODE(IOCTL_STORAGE_BASE, 0x0202, METHOD_BUFFERED, FILE_READ_ACCESS)
+  IOCTL_STORAGE_LOAD_MEDIA         = (IOCTL_STORAGE_BASE << 16) OR (203H) << 2 OR (METHOD_BUFFERED) OR (FILE_READ_ACCESS << 14); // CTL_CODE(IOCTL_STORAGE_BASE, 0x0203, METHOD_BUFFERED, FILE_READ_ACCESS)
+  IOCTL_STORAGE_RESERVE            = (IOCTL_STORAGE_BASE << 16) OR (204H) << 2 OR (METHOD_BUFFERED) OR (FILE_READ_ACCESS << 14); // CTL_CODE(IOCTL_STORAGE_BASE, 0x0204, METHOD_BUFFERED, FILE_READ_ACCESS)
+  IOCTL_STORAGE_RELEASE            = (IOCTL_STORAGE_BASE << 16) OR (205H) << 2 OR (METHOD_BUFFERED) OR (FILE_READ_ACCESS << 14); // CTL_CODE(IOCTL_STORAGE_BASE, 0x0205, METHOD_BUFFERED, FILE_READ_ACCESS)
+  IOCTL_STORAGE_FIND_NEW_DEVICES   = (IOCTL_STORAGE_BASE << 16) OR (206H) << 2 OR (METHOD_BUFFERED) OR (FILE_READ_ACCESS << 14); // CTL_CODE(IOCTL_STORAGE_BASE, 0x0206, METHOD_BUFFERED, FILE_READ_ACCESS)
+  IOCTL_STORAGE_GET_MEDIA_TYPES    = (IOCTL_STORAGE_BASE << 16) OR (300H) << 2 OR (METHOD_BUFFERED) OR (FILE_ANY_ACCESS  << 14); // CTL_CODE(IOCTL_STORAGE_BASE, 0x0300, METHOD_BUFFERED, FILE_ANY_ACCESS)
+
+//
+// IOCTL_STORAGE_MEDIA_REMOVAL disables the mechanism
+// on a storage device that ejects media. This function
+// may or may not be supported on storage devices that
+// support removable media.
+//
+// TRUE means prevent media from being removed.
+// FALSE means allow media removal.
+//
+TYPE
+  _PREVENT_MEDIA_REMOVAL  = RECORD
+                              PreventMediaRemoval : BYTE;
+                            END;
+  PREVENT_MEDIA_REMOVAL   = _PREVENT_MEDIA_REMOVAL;
+  PPREVENT_MEDIA_REMOVAL  = POINTER TO _PREVENT_MEDIA_REMOVAL;
+
+//#endif // _NTDDSTOR_H_
+
+//
+// IoControlCode values for disk devices.
+//
+CONST
+  IOCTL_DISK_BASE                 = FILE_DEVICE_DISK;
+  IOCTL_DISK_GET_DRIVE_GEOMETRY   = (IOCTL_DISK_BASE << 16) OR (0000H << 2) OR (METHOD_BUFFERED) OR (FILE_ANY_ACCESS << 14);                          // CTL_CODE(IOCTL_DISK_BASE, 0x0000, METHOD_BUFFERED, FILE_ANY_ACCESS)
+  IOCTL_DISK_GET_PARTITION_INFO   = (IOCTL_DISK_BASE << 16) OR (0001H << 2) OR (METHOD_BUFFERED) OR (FILE_READ_ACCESS << 14);                         // CTL_CODE(IOCTL_DISK_BASE, 0x0001, METHOD_BUFFERED, FILE_READ_ACCESS)
+  IOCTL_DISK_SET_PARTITION_INFO   = (IOCTL_DISK_BASE << 16) OR (0002H << 2) OR (METHOD_BUFFERED) OR ((FILE_READ_ACCESS OR FILE_WRITE_ACCESS) << 14);  // CTL_CODE(IOCTL_DISK_BASE, 0x0002, METHOD_BUFFERED, FILE_READ_ACCESS | FILE_WRITE_ACCESS)
+  IOCTL_DISK_GET_DRIVE_LAYOUT     = (IOCTL_DISK_BASE << 16) OR (0003H << 2) OR (METHOD_BUFFERED) OR (FILE_READ_ACCESS << 14);                         // CTL_CODE(IOCTL_DISK_BASE, 0x0003, METHOD_BUFFERED, FILE_READ_ACCESS)
+  IOCTL_DISK_SET_DRIVE_LAYOUT     = (IOCTL_DISK_BASE << 16) OR (0004H << 2) OR (METHOD_BUFFERED) OR ((FILE_READ_ACCESS OR FILE_WRITE_ACCESS) << 14);  // CTL_CODE(IOCTL_DISK_BASE, 0x0004, METHOD_BUFFERED, FILE_READ_ACCESS | FILE_WRITE_ACCESS)
+  IOCTL_DISK_VERIFY               = (IOCTL_DISK_BASE << 16) OR (0005H << 2) OR (METHOD_BUFFERED) OR (FILE_ANY_ACCESS << 14);                          // CTL_CODE(IOCTL_DISK_BASE, 0x0005, METHOD_BUFFERED, FILE_ANY_ACCESS)
+  IOCTL_DISK_FORMAT_TRACKS        = (IOCTL_DISK_BASE << 16) OR (0006H << 2) OR (METHOD_BUFFERED) OR ((FILE_READ_ACCESS OR FILE_WRITE_ACCESS) << 14);  // CTL_CODE(IOCTL_DISK_BASE, 0x0006, METHOD_BUFFERED, FILE_READ_ACCESS | FILE_WRITE_ACCESS)
+  IOCTL_DISK_REASSIGN_BLOCKS      = (IOCTL_DISK_BASE << 16) OR (0007H << 2) OR (METHOD_BUFFERED) OR ((FILE_READ_ACCESS OR FILE_WRITE_ACCESS) << 14);  // CTL_CODE(IOCTL_DISK_BASE, 0x0007, METHOD_BUFFERED, FILE_READ_ACCESS | FILE_WRITE_ACCESS)
+  IOCTL_DISK_PERFORMANCE          = (IOCTL_DISK_BASE << 16) OR (0008H << 2) OR (METHOD_BUFFERED) OR (FILE_ANY_ACCESS << 14);                          // CTL_CODE(IOCTL_DISK_BASE, 0x0008, METHOD_BUFFERED, FILE_ANY_ACCESS)
+  IOCTL_DISK_IS_WRITABLE          = (IOCTL_DISK_BASE << 16) OR (0009H << 2) OR (METHOD_BUFFERED) OR (FILE_ANY_ACCESS << 14);                          // CTL_CODE(IOCTL_DISK_BASE, 0x0009, METHOD_BUFFERED, FILE_ANY_ACCESS)
+  IOCTL_DISK_LOGGING              = (IOCTL_DISK_BASE << 16) OR (000AH << 2) OR (METHOD_BUFFERED) OR (FILE_ANY_ACCESS << 14);                          // CTL_CODE(IOCTL_DISK_BASE, 0x000a, METHOD_BUFFERED, FILE_ANY_ACCESS)
+  IOCTL_DISK_FORMAT_TRACKS_EX     = (IOCTL_DISK_BASE << 16) OR (000BH << 2) OR (METHOD_BUFFERED) OR ((FILE_READ_ACCESS OR FILE_WRITE_ACCESS) << 14);  // CTL_CODE(IOCTL_DISK_BASE, 0x000b, METHOD_BUFFERED, FILE_READ_ACCESS | FILE_WRITE_ACCESS)
+  IOCTL_DISK_HISTOGRAM_STRUCTURE  = (IOCTL_DISK_BASE << 16) OR (000CH << 2) OR (METHOD_BUFFERED) OR (FILE_ANY_ACCESS << 14);                          // CTL_CODE(IOCTL_DISK_BASE, 0x000c, METHOD_BUFFERED, FILE_ANY_ACCESS)
+  IOCTL_DISK_HISTOGRAM_DATA       = (IOCTL_DISK_BASE << 16) OR (000DH << 2) OR (METHOD_BUFFERED) OR (FILE_ANY_ACCESS << 14);                          // CTL_CODE(IOCTL_DISK_BASE, 0x000d, METHOD_BUFFERED, FILE_ANY_ACCESS)
+  IOCTL_DISK_HISTOGRAM_RESET      = (IOCTL_DISK_BASE << 16) OR (000EH << 2) OR (METHOD_BUFFERED) OR (FILE_ANY_ACCESS << 14);                          // CTL_CODE(IOCTL_DISK_BASE, 0x000e, METHOD_BUFFERED, FILE_ANY_ACCESS)
+  IOCTL_DISK_REQUEST_STRUCTURE    = (IOCTL_DISK_BASE << 16) OR (000FH << 2) OR (METHOD_BUFFERED) OR (FILE_ANY_ACCESS << 14);                          // CTL_CODE(IOCTL_DISK_BASE, 0x000f, METHOD_BUFFERED, FILE_ANY_ACCESS)
+  IOCTL_DISK_REQUEST_DATA         = (IOCTL_DISK_BASE << 16) OR (0010H << 2) OR (METHOD_BUFFERED) OR (FILE_ANY_ACCESS << 14);                          // CTL_CODE(IOCTL_DISK_BASE, 0x0010, METHOD_BUFFERED, FILE_ANY_ACCESS)
+
+//#if(_WIN32_WINNT >= 0x0400)
+
+  IOCTL_DISK_CONTROLLER_NUMBER    = (IOCTL_DISK_BASE << 16) OR (0011H << 2) OR (METHOD_BUFFERED) OR (FILE_ANY_ACCESS << 14);  // CTL_CODE(IOCTL_DISK_BASE, 0x0011, METHOD_BUFFERED, FILE_ANY_ACCESS)
+
+//
+// IOCTL support for SMART drive fault prediction.
+//
+
+  SMART_GET_VERSION               = (IOCTL_DISK_BASE << 16) OR (0020H << 2) OR (METHOD_BUFFERED) OR (FILE_READ_ACCESS << 14);                         // CTL_CODE(IOCTL_DISK_BASE, 0x0020, METHOD_BUFFERED, FILE_READ_ACCESS)
+  SMART_SEND_DRIVE_COMMAND        = (IOCTL_DISK_BASE << 16) OR (0021H << 2) OR (METHOD_BUFFERED) OR ((FILE_READ_ACCESS OR FILE_WRITE_ACCESS) << 14);  // CTL_CODE(IOCTL_DISK_BASE, 0x0021, METHOD_BUFFERED, FILE_READ_ACCESS | FILE_WRITE_ACCESS)
+  SMART_RCV_DRIVE_DATA            = (IOCTL_DISK_BASE << 16) OR (0022H << 2) OR (METHOD_BUFFERED) OR ((FILE_READ_ACCESS OR FILE_WRITE_ACCESS) << 14);  // CTL_CODE(IOCTL_DISK_BASE, 0x0022, METHOD_BUFFERED, FILE_READ_ACCESS | FILE_WRITE_ACCESS)
+
+//#endif /* _WIN32_WINNT >= 0x0400 */
+
+//
+// The following device control codes are common for all class drivers.  The
+// functions codes defined here must match all of the other class drivers.
+//
+// Warning: these codes will be replaced in the future by equivalent
+// IOCTL_STORAGE codes
+//
+  IOCTL_DISK_CHECK_VERIFY         = (IOCTL_DISK_BASE << 16) OR (0200H << 2) OR (METHOD_BUFFERED) OR (FILE_READ_ACCESS << 14);  // CTL_CODE(IOCTL_DISK_BASE, 0x0200, METHOD_BUFFERED, FILE_READ_ACCESS)
+  IOCTL_DISK_MEDIA_REMOVAL        = (IOCTL_DISK_BASE << 16) OR (0201H << 2) OR (METHOD_BUFFERED) OR (FILE_READ_ACCESS << 14);  // CTL_CODE(IOCTL_DISK_BASE, 0x0201, METHOD_BUFFERED, FILE_READ_ACCESS)
+  IOCTL_DISK_EJECT_MEDIA          = (IOCTL_DISK_BASE << 16) OR (0202H << 2) OR (METHOD_BUFFERED) OR (FILE_READ_ACCESS << 14);  // CTL_CODE(IOCTL_DISK_BASE, 0x0202, METHOD_BUFFERED, FILE_READ_ACCESS)
+  IOCTL_DISK_LOAD_MEDIA           = (IOCTL_DISK_BASE << 16) OR (0203H << 2) OR (METHOD_BUFFERED) OR (FILE_READ_ACCESS << 14);  // CTL_CODE(IOCTL_DISK_BASE, 0x0203, METHOD_BUFFERED, FILE_READ_ACCESS)
+  IOCTL_DISK_RESERVE              = (IOCTL_DISK_BASE << 16) OR (0204H << 2) OR (METHOD_BUFFERED) OR (FILE_READ_ACCESS << 14);  // CTL_CODE(IOCTL_DISK_BASE, 0x0204, METHOD_BUFFERED, FILE_READ_ACCESS)
+  IOCTL_DISK_RELEASE              = (IOCTL_DISK_BASE << 16) OR (0205H << 2) OR (METHOD_BUFFERED) OR (FILE_READ_ACCESS << 14);  // CTL_CODE(IOCTL_DISK_BASE, 0x0205, METHOD_BUFFERED, FILE_READ_ACCESS)
+  IOCTL_DISK_FIND_NEW_DEVICES     = (IOCTL_DISK_BASE << 16) OR (0206H << 2) OR (METHOD_BUFFERED) OR (FILE_READ_ACCESS << 14);  // CTL_CODE(IOCTL_DISK_BASE, 0x0206, METHOD_BUFFERED, FILE_READ_ACCESS)
+  IOCTL_DISK_GET_MEDIA_TYPES      = (IOCTL_DISK_BASE << 16) OR (0300H << 2) OR (METHOD_BUFFERED) OR (FILE_ANY_ACCESS  << 14);  // CTL_CODE(IOCTL_DISK_BASE, 0x0300, METHOD_BUFFERED, FILE_ANY_ACCESS)
+
+//
+// Define the partition types returnable by known disk drivers.
+//
+CONST
+  PARTITION_ENTRY_UNUSED      = 00H;      // Entry unused
+  PARTITION_FAT_12            = 01H;      // 12-bit FAT entries
+  PARTITION_XENIX_1           = 02H;      // Xenix
+  PARTITION_XENIX_2           = 03H;      // Xenix
+  PARTITION_FAT_16            = 04H;      // 16-bit FAT entries
+  PARTITION_EXTENDED          = 05H;      // Extended partition entry
+  PARTITION_HUGE              = 06H;      // Huge partition MS-DOS V4
+  PARTITION_IFS               = 07H;      // IFS Partition
+  PARTITION_FAT32             = 0BH;      // FAT32
+  PARTITION_FAT32_XINT13      = 0CH;      // FAT32 using extended int13 services
+  PARTITION_XINT13            = 0EH;      // Win95 partition using extended int13 services
+  PARTITION_XINT13_EXTENDED   = 0FH;      // Same as type 5 but uses extended int13 services
+  PARTITION_PREP              = 41H;      // PowerPC Reference Platform (PReP) Boot Partition
+  PARTITION_UNIX              = 63H;      // Unix
+
+  VALID_NTFT                  = 0C0H;      // NTFT uses high order bits
+
+//
+// The high bit of the partition type code indicates that a partition
+// is part of an NTFT mirror or striped array.
+//
+
+  PARTITION_NTFT              = 80H;     // NTFT partition
+
+//
+// The following macro is used to determine which partitions should be
+// assigned drive letters.
+//
+
+
+//++
+//
+// BOOLEAN
+// IsRecognizedPartition(
+//     IN DWORD PartitionType
+//     )
+//
+// Routine Description:
+//
+//     This macro is used to determine to which partitions drive letters
+//     should be assigned.
+//
+// Arguments:
+//
+//     PartitionType - Supplies the type of the partition being examined.
+//
+// Return Value:
+//
+//     The return value is TRUE if the partition type is recognized,
+//     otherwise FALSE is returned.
+//
+//--
+
+(*# save, call( macro => on ) *)
+
+  PROCEDURE IsRecognizedPartition( PartitionType : windows.DWORD ) : windows.BOOL;
+
+(*# restore *)
+(*/*
+     ((PartitionType & PARTITION_NTFT) && ((PartitionType & ~0xC0) == PARTITION_FAT_12)) ||  \
+     ((PartitionType & PARTITION_NTFT) && ((PartitionType & ~0xC0) == PARTITION_FAT_16)) ||  \
+     ((PartitionType & PARTITION_NTFT) && ((PartitionType & ~0xC0) == PARTITION_IFS)) ||  \
+     ((PartitionType & PARTITION_NTFT) && ((PartitionType & ~0xC0) == PARTITION_HUGE)) ||  \
+     ((PartitionType & PARTITION_NTFT) && ((PartitionType & ~0xC0) == PARTITION_FAT32)) ||  \
+     ((PartitionType & PARTITION_NTFT) && ((PartitionType & ~0xC0) == PARTITION_FAT32_XINT13)) ||  \
+     ((PartitionType & PARTITION_NTFT) && ((PartitionType & ~0xC0) == PARTITION_XINT13)) ||  \
+     ((PartitionType & ~PARTITION_NTFT) == PARTITION_FAT_12) ||  \
+     ((PartitionType & ~PARTITION_NTFT) == PARTITION_FAT_16) ||  \
+     ((PartitionType & ~PARTITION_NTFT) == PARTITION_IFS)    ||  \
+     ((PartitionType & ~PARTITION_NTFT) == PARTITION_HUGE)    ||  \
+     ((PartitionType & ~PARTITION_NTFT) == PARTITION_FAT32)  || \
+     ((PartitionType & ~PARTITION_NTFT) == PARTITION_FAT32_XINT13) || \
+     ((PartitionType & ~PARTITION_NTFT) == PARTITION_XINT13) )
+*/*)
+
+//++
+//
+// BOOLEAN
+// IsContainerPartition(
+//     IN DWORD PartitionType
+//     )
+//
+// Routine Description:
+//
+//     This macro is used to determine to which partition types are actually
+//     containers for other partitions (ie, extended partitions).
+//
+// Arguments:
+//
+//     PartitionType - Supplies the type of the partition being examined.
+//
+// Return Value:
+//
+//     The return value is TRUE if the partition type is a container,
+//     otherwise FALSE is returned.
+//
+//--
+
+(*# save, call( macro => on ) *)
+
+  PROCEDURE IsContainerPartition( PartitionType : windows.DWORD ) : windows.BOOL;
+//     ((PartitionType == PARTITION_EXTENDED) || (PartitionType == PARTITION_XINT13_EXTENDED))
+(*# restore *)
+
+//
+// Define the media types supported by the driver.
+//
+TYPE
+  _MEDIA_TYPE   = (
+    Unknown,                // Format is unknown
+    F5_1Pt2_512,            // 5.25", 1.2MB,  512 bytes/sector
+    F3_1Pt44_512,           // 3.5",  1.44MB, 512 bytes/sector
+    F3_2Pt88_512,           // 3.5",  2.88MB, 512 bytes/sector
+    F3_20Pt8_512,           // 3.5",  20.8MB, 512 bytes/sector
+    F3_720_512,             // 3.5",  720KB,  512 bytes/sector
+    F5_360_512,             // 5.25", 360KB,  512 bytes/sector
+    F5_320_512,             // 5.25", 320KB,  512 bytes/sector
+    F5_320_1024,            // 5.25", 320KB,  1024 bytes/sector
+    F5_180_512,             // 5.25", 180KB,  512 bytes/sector
+    F5_160_512,             // 5.25", 160KB,  512 bytes/sector
+    RemovableMedia,         // Removable media other than floppy
+    FixedMedia,             // Fixed hard disk media
+    F3_120M_512             // 3.5", 120M Floppy
+  );
+
+  MEDIA_TYPE    = _MEDIA_TYPE;
+  PMEDIA_TYPE   = POINTER TO MEDIA_TYPE;
+
+//
+// Define the input buffer structure for the driver, when
+// it is called with IOCTL_DISK_FORMAT_TRACKS.
+//
+
+TYPE
+  _FORMAT_PARAMETERS  = RECORD
+    MediaType           : MEDIA_TYPE;
+    StartCylinderNumber : windows.DWORD;
+    EndCylinderNumber   : windows.DWORD;
+    StartHeadNumber     : windows.DWORD;
+    EndHeadNumber       : windows.DWORD;
+  END;
+
+  FORMAT_PARAMETERS   = _FORMAT_PARAMETERS;
+  PFORMAT_PARAMETERS  = POINTER TO FORMAT_PARAMETERS;
+
+//
+// Define the BAD_TRACK_NUMBER type. An array of elements of this type is
+// returned by the driver on IOCTL_DISK_FORMAT_TRACKS requests, to indicate
+// what tracks were bad during formatting. The length of that array is
+// reported in the `Information' field of the I/O Status Block.
+//
+
+TYPE
+  BAD_TRACK_NUMBER    = WORD;
+  PBAD_TRACK_NUMBER   = POINTER TO WORD;
+
+//
+// Define the input buffer structure for the driver, when
+// it is called with IOCTL_DISK_FORMAT_TRACKS_EX.
+//
+
+TYPE
+  _FORMAT_EX_PARAMETERS = RECORD
+    MediaType             : MEDIA_TYPE;
+    StartCylinderNumber   : windows.DWORD;
+    EndCylinderNumber     : windows.DWORD;
+    StartHeadNumber       : windows.DWORD;
+    EndHeadNumber         : windows.DWORD;
+    FormatGapLength       : WORD;
+    SectorsPerTrack       : WORD;
+    SectorNumber          : ARRAY [0..0] OF WORD;
+  END;
+
+  FORMAT_EX_PARAMETERS  = _FORMAT_EX_PARAMETERS;
+  PFORMAT_EX_PARAMETERS = POINTER TO FORMAT_EX_PARAMETERS;
+
+//
+// The following structure is returned on an IOCTL_DISK_GET_DRIVE_GEOMETRY
+// request and an array of them is returned on an IOCTL_DISK_GET_MEDIA_TYPES
+// request.
+//
+
+TYPE
+  _DISK_GEOMETRY  = RECORD
+    Cylinders             : windows.LARGE_INTEGER;
+    MediaType             : MEDIA_TYPE;
+    TracksPerCylinder     : windows.DWORD;
+    SectorsPerTrack       : windows.DWORD;
+    BytesPerSector        : windows.DWORD;
+  END;
+
+  DISK_GEOMETRY         = _DISK_GEOMETRY;
+  PDISK_GEOMETRY        = POINTER TO DISK_GEOMETRY;
+
+//
+// The following structure is returned on an IOCTL_DISK_GET_PARTITION_INFO
+// and an IOCTL_DISK_GET_DRIVE_LAYOUT request.  It is also used in a request
+// to change the drive layout, IOCTL_DISK_SET_DRIVE_LAYOUT.
+//
+
+TYPE
+  _PARTITION_INFORMATION  = RECORD
+    StartingOffset    : windows.LARGE_INTEGER;
+    PartitionLength   : windows.LARGE_INTEGER;
+    HiddenSectors     : windows.DWORD;
+    PartitionNumber   : windows.DWORD;
+    PartitionType     : BYTE;
+    BootIndicator     : windows.BOOL; // BOOLEAN
+    RecognizedPartition : windows.BOOL; // BOOLEAN
+    RewritePartition  : windows.BOOL; // BOOLEAN
+  END;
+
+  PARTITION_INFORMATION   = _PARTITION_INFORMATION;
+  PPARTITION_INFORMATION  = POINTER TO PARTITION_INFORMATION;
+
+//
+// The following structure is used to change the partition type of a
+// specified disk partition using an IOCTL_DISK_SET_PARTITION_INFO
+// request.
+//
+
+TYPE
+  _SET_PARTITION_INFORMATION  = RECORD
+    PartitionType : BYTE;
+  END;
+
+  SET_PARTITION_INFORMATION   = _SET_PARTITION_INFORMATION;
+  PSET_PARTITION_INFORMATION  = POINTER TO SET_PARTITION_INFORMATION;
+
+//
+// The following structures is returned on an IOCTL_DISK_GET_DRIVE_LAYOUT
+// request and given as input to an IOCTL_DISK_SET_DRIVE_LAYOUT request.
+//
+TYPE
+  _DRIVE_LAYOUT_INFORMATION   = RECORD
+    PartitionCount    : windows.DWORD;
+    Signature         : windows.DWORD;
+    PartitionEntry    : ARRAY [0..0] OF PARTITION_INFORMATION;
+  END;
+
+  DRIVE_LAYOUT_INFORMATION    = _DRIVE_LAYOUT_INFORMATION;
+  PDRIVE_LAYOUT_INFORMATION   = POINTER TO DRIVE_LAYOUT_INFORMATION;
+
+//
+// The following structure is passed in on an IOCTL_DISK_VERIFY request.
+// The offset and length parameters are both given in bytes.
+//
+TYPE
+  _VERIFY_INFORMATION   = RECORD
+    StartingOffset      : windows.LARGE_INTEGER;
+    Length              : windows.DWORD;
+  END;
+
+  VERIFY_INFORMATION    = _VERIFY_INFORMATION;
+  PVERIFY_INFORMATION   = POINTER TO VERIFY_INFORMATION;
+
+//
+// The following structure is passed in on an IOCTL_DISK_REASSIGN_BLOCKS
+// request.
+//
+TYPE
+  _REASSIGN_BLOCKS  = RECORD
+    Reserved    : WORD;
+    Count       : WORD;
+    BlockNumber : ARRAY [0..0] OF windows.DWORD;
+  END;
+
+  REASSIGN_BLOCKS   = _REASSIGN_BLOCKS;
+  PREASSIGN_BLOCKS  = POINTER TO REASSIGN_BLOCKS;
+
+//#if(_WIN32_WINNT >= 0x0400)
+//
+// IOCTL_DISK_CONTROLLER_NUMBER returns the controller and disk
+// number for the handle.  This is used to determine if a disk
+// is attached to the primary or secondary IDE controller.
+//
+TYPE
+  _DISK_CONTROLLER_NUMBER   = RECORD
+    ControllerNumber    : windows.DWORD;
+    DiskNumber          : windows.DWORD;
+  END;
+
+  DISK_CONTROLLER_NUMBER  = _DISK_CONTROLLER_NUMBER;
+  PDISK_CONTROLLER_NUMBER = POINTER TO DISK_CONTROLLER_NUMBER;
+
+//#endif /* _WIN32_WINNT >= 0x0400 */
+
+///////////////////////////////////////////////////////
+//                                                   //
+// The following structures define disk performance  //
+// statistics: specifically the locations of all the //
+// reads and writes which have occured on the disk.  //
+//                                                   //
+// To use these structures, you must issue an IOCTL_ //
+// DISK_HIST_STRUCTURE (with a DISK_HISTOGRAM) to    //
+// obtain the basic histogram information. The       //
+// number of buckets which must allocated is part of //
+// this structure. Allocate the required number of   //
+// buckets and call an IOCTL_DISK_HIST_DATA to fill  //
+// in the data                                       //
+//                                                   //
+///////////////////////////////////////////////////////
+
+CONST
+  HIST_NO_OF_BUCKETS = 24;
+
+TYPE
+  _HISTOGRAM_BUCKET = RECORD
+    Reads   : windows.DWORD;
+    Writes  : windows.DWORD;
+  END;
+
+  HISTOGRAM_BUCKET  = _HISTOGRAM_BUCKET;
+  PHISTOGRAM_BUCKET = POINTER TO HISTOGRAM_BUCKET;
+
+CONST
+  HISTOGRAM_BUCKET_SIZE   = SIZE(HISTOGRAM_BUCKET);
+
+TYPE
+  _DISK_HISTOGRAM = RECORD
+    DiskSize,
+    Start,
+    End,
+    Average,
+    AverageRead,
+    AverageWrite  : windows.LARGE_INTEGER;
+    Granularity,
+    Size,
+    ReadCount,
+    WriteCount    : windows.DWORD;
+    Histogram     : PHISTOGRAM_BUCKET;
+  END;
+
+  DISK_HISTOGRAM  = _DISK_HISTOGRAM;
+  PDISK_HISTOGRAM = POINTER TO DISK_HISTOGRAM;
+
+CONST
+  DISK_HISTOGRAM_SIZE  = SIZE(DISK_HISTOGRAM);
+
+///////////////////////////////////////////////////////
+//                                                   //
+// The following structures define disk debugging    //
+// capabilities. The IOCTLs are directed to one of   //
+// the two disk filter drivers.                      //
+//                                                   //
+// DISKPERF is a utilty for collecting disk request  //
+// statistics.                                       //
+//                                                   //
+// SIMBAD is a utility for injecting faults in       //
+// IO requests to disks.                             //
+//                                                   //
+///////////////////////////////////////////////////////
+
+//
+// The following structure is exchanged on an IOCTL_DISK_GET_PERFORMANCE
+// request. This ioctl collects summary disk request statistics used
+// in measuring performance.
+//
+TYPE
+  _DISK_PERFORMANCE = RECORD
+    BytesRead,
+    BytesWritten,
+    ReadTime,
+    WriteTime   : windows.LARGE_INTEGER;
+    ReadCount,
+    WriteCount,
+    QueueDepth  : windows.DWORD;
+  END;
+
+  DISK_PERFORMANCE    = _DISK_PERFORMANCE;
+  PDISK_PERFORMANCE   = POINTER TO DISK_PERFORMANCE;
+
+//
+// This structure defines the disk logging record. When disk logging
+// is enabled, one of these is written to an internal buffer for each
+// disk request.
+//
+TYPE
+  _DISK_RECORD = RECORD
+    ByteOffset,
+    StartTime,
+    EndTime         : windows.LARGE_INTEGER;
+    VirtualAddress  : ADDRESS;
+    NumberOfBytes   : windows.DWORD;
+    DeviceNumber    : BYTE;
+    ReadRequest     : windows.BOOL; // BOOLEAN
+  END;
+
+  DISK_RECORD   = _DISK_RECORD;
+  PDISK_RECORD  = POINTER TO DISK_RECORD;
+
+//
+// The following structure is exchanged on an IOCTL_DISK_LOG request.
+// Not all fields are valid with each function type.
+//
+TYPE
+  _DISK_LOGGING = RECORD
+    Function      : BYTE;
+    BufferAddress : ADDRESS;
+    BufferSize    : windows.DWORD;
+  END;
+
+  DISK_LOGGING    = _DISK_LOGGING;
+  PDISK_LOGGING   = POINTER TO DISK_LOGGING;
+
+//
+// Disk logging functions
+//
+// Start disk logging. Only the Function and BufferSize fields are valid.
+//
+CONST
+  DISK_LOGGING_START    = 0;
+
+//
+// Stop disk logging. Only the Function field is valid.
+//
+
+  DISK_LOGGING_STOP     = 1;
+
+//
+// Return disk log. All fields are valid. Data will be copied from internal
+// buffer to buffer specified for the number of bytes requested.
+//
+
+  DISK_LOGGING_DUMP     = 2;
+
+//
+// DISK BINNING
+//
+// DISKPERF will keep counters for IO that falls in each of these ranges.
+// The application determines the number and size of the ranges.
+// Joe Lin wanted me to keep it flexible as possible, for instance, IO
+// sizes are interesting in ranges like 0-4096, 4097-16384, 16385-65536, 65537+.
+//
+
+  DISK_BINNING          = 3;
+
+//
+// Bin types
+//
+TYPE
+  _BIN_TYPES = (
+    RequestSize,
+    RequestLocation
+  );
+
+  BIN_TYPES = _BIN_TYPES;
+
+//
+// Bin ranges
+//
+TYPE
+  _BIN_RANGE = RECORD
+    StartValue,
+    Length      : windows.LARGE_INTEGER;
+  END;
+
+  BIN_RANGE   = _BIN_RANGE;
+  PBIN_RANGE  = POINTER TO BIN_RANGE;
+
+//
+// Bin definition
+//
+TYPE
+  _PERF_BIN = RECORD
+    NumberOfBins,
+    TypeOfBin       : windows.DWORD;
+    BinsRanges      : ARRAY [0..0] OF BIN_RANGE;
+  END;
+
+  PERF_BIN    = _PERF_BIN;
+  PPERF_BIN   = POINTER TO PERF_BIN;
+
+//
+// Bin count
+//
+TYPE
+  _BIN_COUNT = RECORD
+    BinRange    : BIN_RANGE;
+    BinCount    : windows.DWORD;
+  END;
+
+  BIN_COUNT   = _BIN_COUNT;
+  PBIN_COUNT  = POINTER TO BIN_COUNT;
+
+//
+// Bin results
+//
+TYPE
+  _BIN_RESULTS = RECORD
+    NumberOfBins    : windows.DWORD;
+    BinCounts       : ARRAY [0..0] OF BIN_COUNT;
+  END;
+
+  BIN_RESULTS   = _BIN_RESULTS;
+  PBIN_RESULTS  = POINTER TO BIN_RESULTS;
+
+//#if(_WIN32_WINNT >= 0x0400)
+//
+// Data structures for SMART drive fault prediction.
+//
+// GETVERSIONINPARAMS contains the data returned from the
+// Get Driver Version function.
+//
+TYPE
+(*# save, option( pack => 1 ) *)
+  _GETVERSIONINPARAMS = RECORD
+    bVersion,                           // Binary driver version.
+    bRevision,                          // Binary driver revision.
+    bReserved,                          // Not used.
+    bIDEDeviceMap  : BYTE;              // Bit map of IDE devices.
+    fCapabilities  : windows.DWORD;     // Bit mask of driver capabilities.
+    dwReserved     : ARRAY [0..3] OF windows.DWORD;          // For future use.
+  END;
+
+  GETVERSIONINPARAMS    = _GETVERSIONINPARAMS;
+  PGETVERSIONINPARAMS   = POINTER TO GETVERSIONINPARAMS;
+  LPGETVERSIONINPARAMS  = POINTER TO GETVERSIONINPARAMS;
+(*# restore *)
+
+//
+// Bits returned in the fCapabilities member of GETVERSIONINPARAMS
+//
+CONST
+  CAP_ATA_ID_CMD    = 1;       // ATA ID command supported
+  CAP_ATAPI_ID_CMD  = 2;       // ATAPI ID command supported
+  CAP_SMART_CMD     = 4;       // SMART commannds supported
+
+//
+// IDE registers
+//
+TYPE
+(*# save, option( pack => 1 ) *)
+  _IDEREGS  = RECORD
+    bFeaturesReg,           // Used for specifying SMART "commands".
+    bSectorCountReg,        // IDE sector count register
+    bSectorNumberReg,       // IDE sector number register
+    bCylLowReg,             // IDE low order cylinder value
+    bCylHighReg,            // IDE high order cylinder value
+    bDriveHeadReg,          // IDE drive/head register
+    bCommandReg,            // Actual IDE command.
+    bReserved : BYTE;       // reserved for future use.  Must be zero.
+  END;
+
+  IDEREGS   = _IDEREGS;
+  PIDEREGS  = POINTER TO IDEREGS;
+  LPIDEREGS = POINTER TO IDEREGS;
+(*# restore *)
+
+//
+// Valid values for the bCommandReg member of IDEREGS.
+//
+CONST
+  ATAPI_ID_CMD  = 0A1H;             // Returns ID sector for ATAPI.
+  ID_CMD        = 0ECH;             // Returns ID sector for ATA.
+  SMART_CMD     = 0B0H;             // Performs SMART cmd.
+                                    // Requires valid bFeaturesReg,
+                                    // bCylLowReg, and bCylHighReg
+
+//
+// Cylinder register defines for SMART command
+//
+
+  SMART_CYL_LOW = 04FH;
+  SMART_CYL_HI  = 0C2H;
+
+
+//
+// SENDCMDINPARAMS contains the input parameters for the
+// Send Command to Drive function.
+//
+TYPE
+(*# save, option( pack => 1 ) *)
+  _SENDCMDINPARAMS = RECORD
+    cBufferSize     : windows.DWORD;  // Buffer size in bytes
+    irDriveRegs     : IDEREGS;        // Structure with drive register values.
+    bDriveNumber    : BYTE;           // Physical drive number to send
+                                      // command to (0,1,2,3).
+    bReserved       : ARRAY [0..2] OF BYTE;           // Reserved for future expansion.
+    dwReserved      : ARRAY [0..3] OF windows.DWORD;  // For future use.
+    bBuffer         : ARRAY [0..0] OF BYTE;           // Input buffer.
+  END;
+
+  SENDCMDINPARAMS   = _SENDCMDINPARAMS;
+  PSENDCMDINPARAMS  = POINTER TO SENDCMDINPARAMS;
+  LPSENDCMDINPARAMS = POINTER TO SENDCMDINPARAMS;
+(*# restore *)
+
+//
+// Status returned from driver
+//
+TYPE
+(*# save, option( pack => 1 ) *)
+  _DRIVERSTATUS = RECORD
+    bDriverError  : BYTE;       // Error code from driver,
+                                // or 0 if no error.
+    bIDEError     : BYTE;       // Contents of IDE Error register.
+                                // Only valid when bDriverError
+                                // is SMART_IDE_ERROR.
+    bReserved     : ARRAY [0..1] OF BYTE;           // Reserved for future expansion.
+    dwReserved    : ARRAY [0..1] OF windows.DWORD;  // Reserved for future expansion.
+  END;
+
+  DRIVERSTATUS  = _DRIVERSTATUS;
+  PDRIVERSTATUS = POINTER TO DRIVERSTATUS;
+  LPDRIVERSTATUS= POINTER TO DRIVERSTATUS;
+(*# restore *)
+
+//
+// bDriverError values
+//
+CONST
+  SMART_NO_ERROR          = 0;       // No error
+  SMART_IDE_ERROR         = 1;       // Error from IDE controller
+  SMART_INVALID_FLAG      = 2;       // Invalid command flag
+  SMART_INVALID_COMMAND   = 3;       // Invalid command byte
+  SMART_INVALID_BUFFER    = 4;       // Bad buffer (null, invalid addr..)
+  SMART_INVALID_DRIVE     = 5;       // Drive number not valid
+  SMART_INVALID_IOCTL     = 6;       // Invalid IOCTL
+  SMART_ERROR_NO_MEM      = 7;       // Could not lock user's buffer
+  SMART_INVALID_REGISTER  = 8;       // Some IDE Register not valid
+  SMART_NOT_SUPPORTED     = 9;       // Invalid cmd flag set
+  SMART_NO_IDE_DEVICE     = 10;      // Cmd issued to device not present
+                                          // although drive number is valid
+TYPE
+(*# save, option( pack => 1 ) *)
+  _SENDCMDOUTPARAMS = RECORD
+    cBufferSize     : windows.DWORD;          // Size of bBuffer in bytes
+    DriverStatus    : DRIVERSTATUS;           // Driver status structure.
+    bBuffer         : ARRAY [0..0] OF BYTE;   // Buffer of arbitrary length in which to store the data read from the                                                                                  
+  END;                                        // drive.
+
+  SENDCMDOUTPARAMS    = _SENDCMDOUTPARAMS;
+  PSENDCMDOUTPARAMS   = POINTER TO SENDCMDOUTPARAMS;
+  LPSENDCMDOUTPARAMS  = POINTER TO SENDCMDOUTPARAMS;
+(*# restore *)
+
+CONST
+  READ_ATTRIBUTE_BUFFER_SIZE  = 512;
+  IDENTIFY_BUFFER_SIZE        = 512;
+  READ_THRESHOLD_BUFFER_SIZE  = 512;
+
+//
+// Feature register defines for SMART "sub commands"
+//
+
+  READ_ATTRIBUTES         = 0D0H;
+  READ_THRESHOLDS         = 0D1H;
+  ENABLE_DISABLE_AUTOSAVE = 0D2H;
+  SAVE_ATTRIBUTE_VALUES   = 0D3H;
+  EXECUTE_OFFLINE_DIAGS   = 0D4H;
+  ENABLE_SMART            = 0D8H;
+  DISABLE_SMART           = 0D9H;
+  RETURN_SMART_STATUS     = 0DAH;
+//#endif /* _WIN32_WINNT >= 0x0400 */
+
+CONST
+  IOCTL_SERIAL_LSRMST_INSERT  = (FILE_DEVICE_SERIAL_PORT << 16) OR (31 << 2) OR (METHOD_BUFFERED) OR (FILE_ANY_ACCESS << 14); // CTL_CODE(FILE_DEVICE_SERIAL_PORT,31,METHOD_BUFFERED,FILE_ANY_ACCESS)
+
+//
+// The following values follow the escape designator in the
+// data stream if the LSRMST_INSERT mode has been turned on.
+//
+CONST
+  SERIAL_LSRMST_ESCAPE     = BYTE(00H);
+
+//
+// Following this value is the contents of the line status
+// register, and then the character in the RX hardware when
+// the line status register was encountered.
+//
+  SERIAL_LSRMST_LSR_DATA   = BYTE(01H);
+
+//
+// Following this value is the contents of the line status
+// register.  No error character follows
+//
+  SERIAL_LSRMST_LSR_NODATA = BYTE(02H);
+
+//
+// Following this value is the contents of the modem status
+// register.
+//
+  SERIAL_LSRMST_MST        = BYTE(03H);
+
+  FSCTL_LOCK_VOLUME        = (FILE_DEVICE_FILE_SYSTEM << 16) OR (6 << 2)  OR (METHOD_BUFFERED) OR (FILE_ANY_ACCESS << 14);                     //  CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 6, METHOD_BUFFERED, FILE_ANY_ACCESS)
+  FSCTL_UNLOCK_VOLUME      = (FILE_DEVICE_FILE_SYSTEM << 16) OR (7 << 2)  OR (METHOD_BUFFERED) OR (FILE_ANY_ACCESS << 14);                     //  CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 7, METHOD_BUFFERED, FILE_ANY_ACCESS)
+  FSCTL_DISMOUNT_VOLUME    = (FILE_DEVICE_FILE_SYSTEM << 16) OR (8 << 2)  OR (METHOD_BUFFERED) OR (FILE_ANY_ACCESS << 14);                     //  CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 8, METHOD_BUFFERED, FILE_ANY_ACCESS)
+  FSCTL_MOUNT_DBLS_VOLUME  = (FILE_DEVICE_FILE_SYSTEM << 16) OR (13 << 2) OR (METHOD_BUFFERED) OR (FILE_ANY_ACCESS << 14);                     //  CTL_CODE(FILE_DEVICE_FILE_SYSTEM,13, METHOD_BUFFERED, FILE_ANY_ACCESS)
+  FSCTL_GET_COMPRESSION    = (FILE_DEVICE_FILE_SYSTEM << 16) OR (15 << 2) OR (METHOD_BUFFERED) OR (FILE_ANY_ACCESS << 14);                     //  CTL_CODE(FILE_DEVICE_FILE_SYSTEM,15, METHOD_BUFFERED, FILE_ANY_ACCESS)
+  FSCTL_SET_COMPRESSION    = (FILE_DEVICE_FILE_SYSTEM << 16) OR (16 << 2) OR (METHOD_BUFFERED) OR ((windows.FILE_READ_DATA OR windows.FILE_WRITE_DATA) << 14); //  CTL_CODE(FILE_DEVICE_FILE_SYSTEM,16, METHOD_BUFFERED, FILE_READ_DATA | FILE_WRITE_DATA)
+  FSCTL_READ_COMPRESSION   = (FILE_DEVICE_FILE_SYSTEM << 16) OR (17 << 2) OR (METHOD_NEITHER)  OR (windows.FILE_READ_DATA << 14);              //  CTL_CODE(FILE_DEVICE_FILE_SYSTEM,17, METHOD_NEITHER,  FILE_READ_DATA)
+  FSCTL_WRITE_COMPRESSION  = (FILE_DEVICE_FILE_SYSTEM << 16) OR (18 << 2) OR (METHOD_NEITHER)  OR (windows.FILE_WRITE_DATA << 14);             //  CTL_CODE(FILE_DEVICE_FILE_SYSTEM,18, METHOD_NEITHER,  FILE_WRITE_DATA)
+
+//#endif // _WINIOCTL_
+
+END winioctl.

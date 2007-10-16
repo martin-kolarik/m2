@@ -1,0 +1,46 @@
+<?xml version ="1.0" encoding ="windows-1250"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+    <!-- main resource properties -->
+    <PropertyGroup Condition="$(Language)=='Czech'">
+        <CopyrightYears Condition="$(CopyrightYears)==''">1992-2006</CopyrightYears>
+        <CompanyName Condition="$(CompanyName)==''">Moravské pøístroje®</CompanyName>
+        <LegalCopyright Condition="$(LegalCopyright)==''">Copyright © Moravské pøístroje® $(CopyrightYears)</LegalCopyright>
+        <LegalTrademarks Condition="$(LegalTrademarks)==''">ControlWeb, DataLab</LegalTrademarks>
+        <LegalNote></LegalNote>
+        <Contact>info@mii.cz</Contact>
+        <Phone>(420) 603 498 498</Phone>
+        <Support>support@mii.cz</Support>
+        <URL>http://www.mii.cz</URL>
+        <UpdateURL>http://www.mii.cz</UpdateURL>
+    </PropertyGroup>
+
+    <!-- language identifiers -->
+    <PropertyGroup Condition="$(Language)=='Czech'">
+        <LangIdDec>1029</LangIdDec>
+        <LangIdHex>0405</LangIdHex>
+        <CodePageDec>1250</CodePageDec>
+        <CodePageHex>04e2</CodePageHex>
+        <LangName>LANG_CZECH</LangName>
+        <SublangName>SUBLANG_DEFAULT</SublangName>
+    </PropertyGroup>
+
+    <!-- main resource properties -->
+    <PropertyGroup Condition="$(Language)=='English'">
+        <CopyrightYears Condition="$(CopyrightYears)==''">1992-2006</CopyrightYears>
+        <CompanyName Condition="$(CompanyName)==''">Moravian Instruments®</CompanyName>
+        <LegalCopyright Condition="$(LegalCopyright)==''">Copyright © Moravian Instruments® $(CopyrightYears)</LegalCopyright>
+        <LegalTrademarks Condition="$(LegalTrademarks)==''">ControlWeb, DataLab</LegalTrademarks>
+    </PropertyGroup>
+
+    <!-- language identifiers -->
+    <PropertyGroup Condition="$(Language)=='English'">
+        <LangIdDec>1033</LangIdDec>
+        <LangIdHex>0409</LangIdHex>
+        <CodePageDec>1252</CodePageDec>
+        <CodePageHex>04e4</CodePageHex>
+        <LangName>LANG_ENGLISH</LangName>
+        <SublangName>SUBLANG_ENGLISH_US</SublangName>
+    </PropertyGroup>
+
+</Project>

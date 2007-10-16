@@ -1,0 +1,24 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+    <!-- default -->
+    <Import Condition="Exists('common.default.company.targets')" Project="common.default.company.targets" />
+
+    <!-- common resource properties -->
+    <PropertyGroup>
+        <ProductId Condition="$(ProductId)==''">$(FileDescription)</ProductId>
+        <!-- ProductStepping></ProductStepping --><!-- ServicePack etc. -->
+        <!-- Comments></Comments -->
+        <OriginalFileName Condition="$(OriginalFileName)==''">$(OutputName)</OriginalFileName>
+        <InternalName Condition="$(InternalName)==''">$(MSBuildProjectName)</InternalName>
+
+        <ResourcePrefix Condition="$(ResourcePrefix)==''">default</ResourcePrefix>
+        <ResourcePath>Manufacturer\$(ResourcePrefix).targets</ResourcePath>
+    </PropertyGroup>
+
+    <!-- language dependent default values -->
+    <Import Project="$(ResourcePath)" />
+
+    <!-- construction of versioninfo and RC file -->
+    <Import Project="internal.resource.createrc.targets" />
+
+</Project>

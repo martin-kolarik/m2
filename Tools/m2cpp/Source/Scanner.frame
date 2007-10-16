@@ -1,0 +1,435 @@
+-->begin
+IMPLEMENTATION MODULE Scanner;
+
+IMPORT
+  winerror;
+
+FROM Storage IMPORT
+  ALLOCATE, DEALLOCATE;
+  
+IMPORT
+  Storage,
+  Strings;
+-->namespace
+//============================================================
+
+CLASS IMPLEMENTATION CToken;
+
+  PROCEDURE CopyFrom( CONST From : CToken );
+  BEGIN
+    Kind := From.Kind;
+    Pos := From.Pos;
+    Col := From.Col;
+    Line := From.Line;
+    Val.Assign( From.Val );
+  END CopyFrom;
+
+BEGIN
+  Kind := tkEOF;
+  Pos := 0;
+  Col := 1;
+  Line := 1;
+END CToken;
+
+//============================================================
+
+TYPE
+  TABCH = ARRAY [0..0] OF CHAR;
+  TPABCH = POINTER TO TABCH;
+  TAWCH = ARRAY [0..0] OF WCHAR;
+  TPAWCH = POINTER TO TAWCH;
+
+CLASS IMPLEMENTATION CBuffer;
+
+  PROCEDURE Open( File : FIO.File ) : CARDINAL;
+  BEGIN
+    HFile := File;
+    FileLen := FIO.Size( HFile );
+    U := FIO.IsUnicodeFile( HFile );
+    IF U THEN
+      FileLen := FileLen DIV 2;
+    END;
+
+    HMapping := windows.CreateFileMapping( HFile, NIL, windows.PAGE_READONLY, 0, 0, NIL );
+    IF HMapping = NIL THEN
+      RETURN CARDINAL( windows.GetLastError());
+    END;
+    PBuffer := windows.MapViewOfFile( HMapping, windows.FILE_MAP_READ, 0, 0, 0 );
+    IF PBuffer = NIL THEN
+      RETURN CARDINAL( windows.GetLastError());
+    END;
+
+    RETURN winerror.ERROR_SUCCESS;
+  END Open;
+
+  PROCEDURE Close();
+  BEGIN
+    IF PBuffer <> NIL THEN
+      windows.UnmapViewOfFile( PBuffer );
+      PBuffer := NIL;
+    END;
+    IF HMapping <> NIL THEN
+      windows.CloseHandle( HMapping );
+      HMapping := NIL;
+    END;
+    IF HFile <> windows.INVALID_HANDLE_VALUE THEN
+      FIO.Flush( HFile );
+      FIO.Close( HFile );
+      HFile := windows.INVALID_HANDLE_VALUE;
+    END;
+    windows.Sleep( 0 );
+  END Close;
+  
+  PROCEDURE Read() : WCHAR;
+  VAR
+    CH : WCHAR;
+  BEGIN
+    IF CharPos < FileLen THEN
+      IF U THEN
+        CH := TPAWCH( PBuffer )^[CharPos];
+      ELSIF TPABCH( PBuffer )^[CharPos] < CHAR( 128 ) THEN
+        CH := WCHAR( TPABCH( PBuffer )^[CharPos] );
+      ELSE
+        Strings.ToW( OA( 0, ADR( TPABCH( PBuffer )^[CharPos] )), 0, OUT OA( 0, ADR( CH )) );
+      END;
+      INC( CharPos );
+      RETURN CH;
+    ELSE
+      RETURN EOF;
+    END;
+  END Read;
+
+  PROCEDURE Peek() : WCHAR;
+  VAR
+    CH : WCHAR;
+  BEGIN
+    IF CharPos < FileLen THEN
+      IF U THEN
+        CH := TPAWCH( PBuffer )^[CharPos];
+      ELSE
+        CH := WCHAR( TPABCH( PBuffer )^[CharPos] );
+      END;
+      RETURN CH;
+    ELSE
+      RETURN EOF;
+    END;
+  END Peek;
+
+  PROCEDURE GetString( From, To : CARDINAL; OUT S : StringsO.CString );
+  BEGIN
+    IF U THEN
+      S.FromOA( OA( To - From, PWCHAR( PBuffer@[From<<1] )));
+    ELSE
+      S.FromOAA( 0, OA( To - From, PCHAR( PBuffer@[From] )));
+    END;
+  END GetString;
+
+  PROCEDURE Pos() : CARDINAL;
+  BEGIN
+    RETURN CharPos;
+  END Pos;
+
+  PROCEDURE SetPos( Pos : CARDINAL );
+  BEGIN
+    IF Pos > FileLen THEN
+      CharPos := FileLen;
+    ELSE
+      CharPos := Pos;
+    END;
+  END SetPos;
+
+BEGIN
+  HFile := windows.INVALID_HANDLE_VALUE;
+  FileLen := 0;
+  HMapping := NIL;
+  PBuffer := NIL;
+  CharPos := 0;
+  U := FALSE;
+END CBuffer;
+
+//============================================================
+
+CLASS IMPLEMENTATION CScanner;
+
+  PROCEDURE Init( FilePath : ARRAY OF WCHAR; OUT Timestamp : FIO.FileTime ) : CARDINAL;
+  VAR
+    HFile : FIO.File;
+    R : CARDINAL;
+  BEGIN
+    HFile := FIO.OpenReadW( FilePath, FIO.TFileShare{FIO.fsRead} );
+    IF HFile = windows.INVALID_HANDLE_VALUE THEN
+      RETURN CARDINAL( windows.GetLastError());
+    ELSE
+      Timestamp := FIO.GetFileTime( HFile );
+    END;
+    R := Buffer.Open( HFile );
+    IF R <> winerror.ERROR_SUCCESS THEN
+      RETURN R;
+    END;
+
+-->declarations
+
+    Pos := -1;
+    Line := 1;
+    LineStart := 0;
+
+    CommentEols := 0;
+    NextCh();
+
+    Storage.Fill( ADR( Ignore ), SIZE( Ignore ), 0 );
+    INCL( Ignore, L' ' ); // white space are always blank
+    INCL( Ignore, BOF1 ); // begin of file mark
+    INCL( Ignore, BOF2 ); // begin of file mark
+
+-->initialization
+    
+    RETURN winerror.ERROR_SUCCESS;
+  END Init;
+  
+  PROCEDURE NextCh();
+  BEGIN
+    IF CommentEols > 0 THEN
+      CH := EOL;
+      DEC( CommentEols );
+    ELSE
+      CH := Buffer.Read();
+      INC( Pos );
+      // replace isolated '\r' by '\n' in order to make
+      // eol handling uniform across Windows, Unix and Mac
+      IF ( CH = CR ) AND ( Buffer.Peek() <> LF ) THEN
+        CH := EOL;
+      END;
+      IF ( CH = EOL ) THEN
+        INC( Line );
+        LineStart := Pos + 1;
+      END;
+    END;
+    // -- casing1
+-->casing1
+    // ++ casing1
+  END NextCh;
+
+  PROCEDURE AddCh();
+  BEGIN
+    // -- casing2
+-->casing2
+    // ++ casing2
+    NextCh();
+  END AddCh;
+
+  // -- comments
+-->comments
+  // ++ comments
+
+  PROCEDURE CheckLiteral();
+  VAR
+    CMPSI : ARRAY [0..63] OF WCHAR;
+  BEGIN
+    CMPSI[0] := WCHAR( 0 );
+    // -- literals
+-->literals
+    // ++ literals
+  END CheckLiteral;
+
+  PROCEDURE Scan() : TPToken;
+  LABEL
+-->scanlabels
+  VAR
+    State : INTEGER;
+    apx : CARDINAL;
+  BEGIN
+    WHILE CH IN Ignore DO
+      NextCh();
+    END;
+    // -- scan1
+-->scan1
+    // ++ scan1
+
+    T.Pos := Pos;
+    T.Col := Pos - LineStart + 1;
+    T.Line := Line;
+
+    IF CH = EOF THEN
+      State := -1;
+    ELSE
+      State := Start[CH];
+    END;
+
+    Val.Clear();
+    AddCh();
+    
+    CASE State OF
+    | -1:
+      T.Kind := tkEOF; // NextCh already done
+    | 0:
+      T.Kind := tkNothing; // NextCh already done
+    // -- scan2
+-->scan2
+    // ++ scan2
+    END; // CASE
+
+    T.Val.Assign( Val );
+    RETURN ADR( T );
+  END Scan;
+  
+  VIRTUAL PROCEDURE IsSpecial( CH : WCHAR ) : BOOLEAN;
+  BEGIN
+    RETURN FALSE;
+  END IsSpecial;
+
+  VIRTUAL PROCEDURE ReadSpecial( CH : WCHAR ) : BOOLEAN;
+  BEGIN
+    RETURN FALSE;
+  END ReadSpecial;
+
+  VIRTUAL PROCEDURE DoSpecial( CONST S : StringsO.CString );
+  BEGIN
+  END DoSpecial;
+
+  PROCEDURE ReadOutPragmaIf() : TPragmaSkipping;
+  LABEL
+    Next;
+  VAR
+    Deep : CARDINAL;
+  BEGIN
+    Deep := 1;
+    LOOP
+  Next:
+      NextCh();
+      IF CH = EOF THEN
+        RETURN psEOF;
+      ELSIF CH <> L'#' THEN // no pragma
+        GOTO Next;
+      END;
+      NextCh();
+      IF CH = L'i' THEN // nested if
+        NextCh();
+        IF CH = L'f' THEN
+          Deep := Deep + 1;
+        END;
+        GOTO Next;
+      ELSIF CH <> L'e' THEN
+        GOTO Next;
+      END;
+      NextCh();
+      IF ( Deep = 1 ) AND ( CH = L'l' ) THEN // elsif, else
+        NextCh();
+        IF CH <> L's' THEN 
+          GOTO Next;
+        END;
+        NextCh();
+        IF CH = L'e' THEN // else
+          Pos := Pos - 5; // else must be processed as regular pragma, endif and elsif are skipped
+          Buffer.SetPos( Pos + 1 );
+          NextCh();
+          RETURN psELSE;
+        ELSIF CH <> L'i' THEN
+          GOTO Next;
+        END;
+        NextCh();
+        IF CH <> L'f' THEN
+          GOTO Next;
+        END;
+        // elsif
+        NextCh();
+        RETURN psELSIF;
+      ELSIF CH = L'n' THEN // endif
+        NextCh();
+        IF CH <> L'd' THEN
+          GOTO Next;
+        END;
+        NextCh();
+        IF CH <> L'i' THEN
+          GOTO Next;
+        END;
+        NextCh();
+        IF CH <> L'f' THEN
+          GOTO Next;
+        END;
+        // endif
+        Deep := Deep - 1;
+        IF Deep = 0 THEN
+          Pos := Pos - 6; // #endif must be processed as regular pragma
+          Buffer.SetPos( Pos + 1 );
+          NextCh();
+          RETURN psENDIF;
+        END;
+      END;
+    END; // LOOP
+  END ReadOutPragmaIf;
+
+  PROCEDURE ReadOutCompatiblePragma() : BOOLEAN;
+  LABEL
+    Next;
+  VAR
+    Deep : CARDINAL;
+    Found : BOOLEAN;
+  BEGIN
+    Found := FALSE;
+    Deep := 1;
+    LOOP
+  Next:
+      NextCh();
+      IF CH = EOF THEN
+        RETURN FALSE;
+      ELSIF Found AND ( CH = L'*' ) THEN
+        NextCh();
+        IF CH <> L')' THEN
+          GOTO Next;
+        END;
+        DEC( Deep );
+        IF Deep = 0 THEN
+          RETURN TRUE;
+        ELSE
+          Found := FALSE;
+          GOTO Next;
+        END;
+      ELSIF CH <> L'(' THEN
+        GOTO Next;
+      END;
+      NextCh();
+      IF CH <> L'*' THEN
+        GOTO Next;
+      END;
+      NextCh();
+      IF CH <> L'%' THEN
+        GOTO Next;
+      END;
+      NextCh();
+      IF CH = L'E' THEN
+        Found := TRUE;
+      ELSIF ( CH = L'F' ) OR ( CH = L'T' ) THEN
+        INC( Deep );
+      END;
+    END; // LOOP
+  END ReadOutCompatiblePragma;
+
+  PROCEDURE ReadASM( begin, tokenEnd : CARDINAL; OUT la : CToken; OUT ASMBlock : StringsO.CString ) : BOOLEAN;
+  BEGIN
+    LOOP
+      la.CopyFrom( Scan()^ );
+      IF la.Kind = tkEOF THEN
+        RETURN FALSE;
+      ELSIF la.Kind = tokenEnd THEN
+        Buffer.GetString( begin, la.Pos-1, OUT ASMBlock );
+        RETURN TRUE;
+      END;  
+    END; // LOOP
+  END ReadASM;
+
+BEGIN
+  CharSetSize := 0;
+  MaxT := 0;
+  tkNothing := 0;
+  CH := WCHAR( 0 ); // current input character
+  Storage.Fill( ADR( Start ), SIZE( Start ), 0 );
+  Pos := 1; // column number of current character
+  Line := 1; // line number of current character
+  LineStart := 0; // start position of current line
+  CommentEols := 0; // EOLs that appeared in a comment;
+  Ignore := WCHAR{}; // set of characters to be ignored by the scanner
+END CScanner;
+
+END Scanner.
+
+$$$

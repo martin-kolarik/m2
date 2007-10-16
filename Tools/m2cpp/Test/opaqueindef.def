@@ -1,0 +1,15 @@
+DEFINITION MODULE opaqueindef;
+
+TYPE
+  TPR = POINTER TO TR;
+
+  TPR2 = POINTER TO TR2;
+  TR2 = RECORD
+          I : CARDINAL;
+        END;
+        
+  TPC = POINTER TO C;
+  
+  TOpq;
+  
+END opaqueindef.

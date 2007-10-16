@@ -1,0 +1,26 @@
+<Project
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <PropertyGroup>
+        <M2Compiler>New</M2Compiler>
+        <PlatformName Condition="$(PlatformName)==''">Win32</PlatformName>
+        <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName>
+        <LanguageStyle Condition="$(LanguageStyle)==''">UNICODE</LanguageStyle>
+        <Language Condition="$(Language)==''">Czech</Language>
+        <CLib>Static</CLib>
+        <Licensing>on</Licensing>
+        <LeakChecking>off</LeakChecking>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="$(MSBuildProjectName)=='eibsrv'">
+        <Result>Program</Result>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <ProductM2Control></ProductM2Control>
+        <ProductCLControl></ProductCLControl>
+        <ProductRCControl></ProductRCControl>
+        <ProductLNControl></ProductLNControl>
+    </PropertyGroup>
+
+</Project>

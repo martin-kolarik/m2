@@ -1,0 +1,77 @@
+DEFINITION MODULE list;
+// ADT List
+
+#save, option( dll_export => on )
+
+TYPE
+  TPList     = POINTER TO CList;
+  TPListElem = POINTER TO CListElem;
+
+CLASS CListElem;
+  LOCAL VAR
+    PPrev : TPListElem;
+    PNext : TPListElem;
+  PUBLIC READONLY PROPERTY
+    InList : BOOLEAN;
+    PrevOf : TPListElem;
+    NextOf : TPListElem;
+  PUBLIC VIRTUAL FINALLY CListElem();
+END CListElem;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CList;
+  INTERNAL VAR
+    PFirst      : TPListElem;
+    PLast       : TPListElem;
+  PUBLIC READONLY VAR
+    Count       : CARDINAL;
+  PUBLIC READONLY PROPERTY
+    Empty       : BOOLEAN;
+  PUBLIC VAR
+    CheckOwning : BOOLEAN;
+
+  PUBLIC READONLY
+    INDEX( Index : INTEGER ) : TPListElem; // SLOW, O(n)!!
+
+  PUBLIC PROCEDURE InsertFirst( PElem : TPListElem );
+  PUBLIC PROCEDURE InsertBefore( PBefore, PElem : TPListElem );
+  PUBLIC PROCEDURE Append( PElem : TPListElem );
+  PUBLIC PROCEDURE Contains( CONST PElem : TPListElem ): BOOLEAN;
+  PUBLIC PROCEDURE Remove( PElem : TPListElem );
+  PUBLIC PROCEDURE Delete( PElem : TPListElem );
+
+  PUBLIC PROCEDURE GetFirst( OUT PElem : TPListElem ) : BOOLEAN;
+  PUBLIC PROCEDURE GetLast( OUT PElem : TPListElem ) : BOOLEAN;
+
+  PUBLIC PROCEDURE PrevOf( CONST Element : TPListElem; OUT Previous : TPListElem ): BOOLEAN;
+  PUBLIC PROCEDURE NextOf( CONST Element : TPListElem; OUT Next : TPListElem ): BOOLEAN;
+  PUBLIC PROCEDURE IndexOf( CONST Element : TPListElem ): INTEGER;
+
+  PUBLIC PROCEDURE AppendList( REF List : CList ); // clears PList
+
+  PUBLIC PROCEDURE Clear();
+  PUBLIC VIRTUAL PROCEDURE Dispose();
+  
+  // queue interface
+  PUBLIC PROCEDURE Enqueue( PElem : TPListElem );
+  PUBLIC PROCEDURE Dequeue( OUT PElem : TPListElem ) : BOOLEAN; 
+END CList;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CListWState( CList );
+  INTERNAL VAR
+    _Current : PTR;
+  PUBLIC READONLY PROPERTY
+    Current : TPListElem;
+
+  PUBLIC PROCEDURE Reset();
+  PUBLIC PROCEDURE MoveNext() : BOOLEAN;
+END CListWState;
+
+(*===========================================================================*)
+
+#restore
+
+END list.

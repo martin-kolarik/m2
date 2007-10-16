@@ -1,0 +1,19 @@
+DEFINITION MODULE threadOSAL;
+
+IMPORT
+   Sync;
+
+INTERFACE IThread;
+   PUBLIC READONLY PROPERTY
+      Thread : CARDINAL;
+   PUBLIC PROPERTY
+      WithMessages : BOOLEAN;
+
+   PUBLIC PROCEDURE Run( Wait : BOOLEAN ); // command
+   PUBLIC PROCEDURE Stop( Wait : BOOLEAN ); // command
+   PUBLIC PROCEDURE WaitStop( Timeout : CARDINAL ) : Sync.TAsyncResult; // wait to exit
+
+   INTERNAL PROCEDURE OnRun() : CARDINAL; // executive code
+END IThread;
+
+END threadOSAL.

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Include>
+
+    <Property Id="PID" Value="$(var.ProductId)" />
+    <Property Id="PIDLICENCE" Value="$(var.ProductId).tlic" />
+    
+    <Binary Id="WixUI_Bmp_Banner" SourceFile="$(var.ProductRoot)\Bitmaps\banner.$(var.Manufacturer).bmp" />
+    <Binary Id="WixUI_Bmp_Dialog" SourceFile="$(var.ProductRoot)\Bitmaps\dialog.$(var.Manufacturer).bmp" />
+
+    <Property Id="ARPCOMMENT" Value="$(var.ProductDescription)" />
+    <Property Id="ARPCONTACT" Value="$(var.Contact)" />
+    <Property Id="ARPHELPLINK" Value="$(var.Support)" />
+    <Property Id="ARPHELPTELEPHONE" Value="$(var.Phone)" />
+    <Property Id="ARPPRODUCTICON" Value="AddRemoveIcon" />
+    <Property Id="ARPSIZE" Value="500" />
+    <Property Id="ARPURLINFOABOUT" Value="$(var.URL)" />
+    <Property Id="ARPURLUPDATEINFO" Value="$(var.UpdateURL)" />
+
+    <Binary Id="MSIStub" SourceFile="$(var.BuildRoot)\MSIStub.dll" />
+    <Binary Id="WixUI_Ico_Exclam" SourceFile="$(var.BuildRoot)\IconStop.ico" />
+    <Binary Id="WixUI_Ico_Info" SourceFile="$(var.BuildRoot)\IconInfo.ico" />
+    <!-- Binary Id="WixUI_Bmp_New" SourceFile="Bitmaps\New.ico" / -->
+    <!-- Binary Id="WixUI_Bmp_Up" SourceFile="Bitmaps\Up.ico" / -->
+
+</Include>

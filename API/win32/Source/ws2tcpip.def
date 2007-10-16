@@ -1,0 +1,32 @@
+DEFINITION MODULE WS2TcpIp;
+// HEAVILY INCOMPLETE
+
+(*# name( decoration => c ) *)
+(*# module( header  => off ) *)
+(*# call( o_a_size => off, convention => stdcall ) *)
+
+IMPORT
+	winsock;
+
+TYPE
+	ip_mreq = RECORD
+							imr_multiaddr : winsock.in_addr;
+							imr_interface : winsock.in_addr;
+						END; // RECORD
+
+	ip_mreq_source  = RECORD
+											imr_multiaddr  : winsock.in_addr;
+											imr_sourceaddr : winsock.in_addr;
+											imr_interface  : winsock.in_addr;
+										END; // RECORD
+
+CONST
+	IP_MULTICAST_IF           = 09;
+	IP_MULTICAST_TTL          = 10;
+	IP_MULTICAST_LOOP         = 11;
+	IP_ADD_MEMBERSHIP         = 12;
+	IP_DROP_MEMBERSHIP        = 13;
+	IP_ADD_SOURCE_MEMBERSHIP  = 15;
+	IP_DROP_SOURCE_MEMBERSHIP = 16;
+
+END WS2TcpIp.

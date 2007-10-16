@@ -1,0 +1,332 @@
+DEFINITION MODULE prsht;
+
+(*==============================================================
+
+      Header file for the Windows Property Sheet Pages
+
+      32-bit version for M2CPP Modula-2 to C++ compiler
+
+      Copyright (c) 1998 Moravian Instruments, Inc.
+
+==============================================================*)
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+(*==============================================================
+
+  History: Created: 24.04.1998
+           Build 0: **.**.****
+
+==============================================================*)
+
+IMPORT
+  windows;
+
+
+CONST
+  MAXPROPPAGES = 100;
+
+TYPE
+  HPROPSHEETPAGE = POINTER TO _PSP;
+
+TYPE
+  LPPROPSHEETPAGEA      = POINTER TO PROPSHEETPAGEA;
+  LPCPROPSHEETPAGEA     = POINTER TO PROPSHEETPAGEA;
+  LPPROPSHEETPAGEW      = POINTER TO PROPSHEETPAGEW;
+  LPCPROPSHEETPAGEW     = POINTER TO PROPSHEETPAGEW;
+
+  LPFNPSPCALLBACKA      = PROCEDURE( windows.HWND, windows.UINT, LPPROPSHEETPAGEA );
+  LPFNPSPCALLBACKW      = PROCEDURE( windows.HWND, windows.UINT, LPPROPSHEETPAGEW );
+
+CONST
+  PSP_DEFAULT           = 0000H;
+  PSP_DLGINDIRECT       = 0001H;
+  PSP_USEHICON          = 0002H;
+  PSP_USEICONID         = 0004H;
+  PSP_USETITLE          = 0008H;
+  PSP_RTLREADING        = 0010H;
+
+  PSP_HASHELP           = 0020H;
+  PSP_USEREFPARENT      = 0040H;
+  PSP_USECALLBACK       = 0080H;
+  PSP_PREMATURE         = 0400H;
+
+  PSP_HIDEHEADER        = 000000800H;
+  PSP_USEHEADERTITLE    = 000001000H;
+  PSP_USEHEADERSUBTITLE = 000002000H;
+
+  PSPCB_RELEASE     = 1;
+  PSPCB_CREATE      = 2;
+
+TYPE
+  PROPSHEETPAGEA  = RECORD
+                      dwSize    : windows.DWORD;
+                      dwFlags   : windows.DWORD;
+                      hInstance         : windows.HINSTANCE;
+                      CASE : BYTE OF
+                      | 0 : pszTemplate : windows.PCSTR;
+                      | 1 : pResource   : windows.PCDLGTEMPLATE;
+                      END;
+                      CASE : BYTE OF
+                      | 0 : hIcon       : windows.HICON;
+                      | 1 : pszIcon     : windows.PCSTR;
+                      END;
+                      pszTitle          : windows.PCSTR;
+                      pfnDlgProc        : windows.DLGPROC;
+                      lParam            : windows.LPARAM;
+                      pfnCallback       : LPFNPSPCALLBACKA;
+                      pcRefParent       : POINTER TO UINT;
+                      pszHeaderTitle    : windows.PCSTR;
+                      pszHeaderSubTitle : windows.PCSTR;
+                    END;
+  PROPSHEETPAGEW  = RECORD
+                      dwSize    : windows.DWORD;
+                      dwFlags   : windows.DWORD;
+                      hInstance         : windows.HINSTANCE;
+                      CASE : BYTE OF
+                      | 0 : pszTemplate : windows.PCWSTR;
+                      | 1 : pResource   : windows.PCDLGTEMPLATE;
+                      END;
+                      CASE : BYTE OF
+                      | 0 : hIcon       : windows.HICON;
+                      | 1 : pszIcon     : windows.PCWSTR;
+                      END;
+                      pszTitle          : windows.PCWSTR;
+                      pfnDlgProc        : windows.DLGPROC;
+                      lParam            : windows.LPARAM;
+                      pfnCallback       : LPFNPSPCALLBACKW;
+                      pcRefParent       : POINTER TO UINT;
+                      pszHeaderTitle    : windows.PCWSTR;
+                      pszHeaderSubTitle : windows.PCWSTR;
+                    END;
+
+CONST
+(*%F UNICODE *)
+  PROPSHEETPAGE    ::= PROPSHEETPAGEA;
+  LPPROPSHEETPAGE  ::= LPPROPSHEETPAGEA;
+  LPCPROPSHEETPAGE ::= LPCPROPSHEETPAGEA;
+  LPFNPSPCALLBACK  ::= LPFNPSPCALLBACKA;
+(*%E UNICODE *)
+(*%T UNICODE *)
+  PROPSHEETPAGE    ::= PROPSHEETPAGEW;
+  LPPROPSHEETPAGE  ::= LPPROPSHEETPAGEW;
+  LPCPROPSHEETPAGE ::= LPCPROPSHEETPAGEW;
+  LPFNPSPCALLBACK  ::= LPFNPSPCALLBACKW;
+(*%E UNICODE *)
+
+CONST
+  PSH_DEFAULT             = 0000H;
+  PSH_PROPTITLE           = 0001H;
+  PSH_USEHICON            = 0002H;
+  PSH_USEICONID           = 0004H;
+  PSH_PROPSHEETPAGE       = 0008H;
+  PSH_WIZARD              = 0020H;
+  PSH_USEPSTARTPAGE       = 0040H;
+  PSH_NOAPPLYNOW          = 0080H;
+  PSH_USECALLBACK         = 0100H;
+  PSH_HASHELP             = 0200H;
+  PSH_MODELESS            = 0400H;
+  PSH_RTLREADING          = 0800H;
+
+TYPE
+  PFNPROPSHEETCALLBACK = PROCEDURE( windows.HWND, windows.UINT, windows.LPARAM ) : INTEGER;
+
+  LPPROPSHEETHEADERA  = POINTER TO PROPSHEETHEADERA;
+  LPCPROPSHEETHEADERA = POINTER TO PROPSHEETHEADERA;
+
+  LPPROPSHEETHEADERW  = POINTER TO PROPSHEETHEADERW;
+  LPCPROPSHEETHEADERW = POINTER TO PROPSHEETHEADERW;
+
+  PROPSHEETHEADERA    = RECORD
+                          dwSize     : windows.DWORD;
+                          dwFlags    : windows.DWORD;
+                          hwndParent : windows.HWND;
+                          hInstance  : windows.HINSTANCE;
+                          CASE : BYTE OF
+                          | 0 : hIcon   : windows.HICON;
+                          | 1 : pszIcon : windows.PCSTR;
+                          END;
+                          pszCaption : windows.PCSTR;
+                          nPages     : windows.UINT;
+                          CASE : BYTE OF
+                          | 0 : nStartPage : windows.UINT;
+                          | 1 : pStartPage : windows.PCSTR;
+                          END;
+                          CASE : BYTE OF
+                          | 0 : ppsp   : LPCPROPSHEETPAGE;
+                          | 1 : phpage : POINTER TO HPROPSHEETPAGE;
+                          END;
+                          pfnCallback : PFNPROPSHEETCALLBACK;
+                        END;
+  PROPSHEETHEADERW    = RECORD
+                          dwSize     : windows.DWORD;
+                          dwFlags    : windows.DWORD;
+                          hwndParent : windows.HWND;
+                          hInstance  : windows.HINSTANCE;
+                          CASE : BYTE OF
+                          | 0 : hIcon   : windows.HICON;
+                          | 1 : pszIcon : windows.PCWSTR;
+                          END;
+                          pszCaption : windows.PCWSTR;
+                          nPages     : windows.UINT;
+                          CASE : BYTE OF
+                          | 0 : nStartPage : windows.UINT;
+                          | 1 : pStartPage : windows.PCWSTR;
+                          END;
+                          CASE : BYTE OF
+                          | 0 : ppsp   : LPCPROPSHEETPAGE;
+                          | 1 : phpage : POINTER TO HPROPSHEETPAGE;
+                          END;
+                          pfnCallback : PFNPROPSHEETCALLBACK;
+                        END;
+
+CONST
+(*%F UNICODE *)
+  PROPSHEETHEADER    ::= PROPSHEETHEADERA;
+  LPPROPSHEETHEADER  ::= PROPSHEETHEADERA;
+  LPCPROPSHEETHEADER ::= PROPSHEETHEADERA;
+(*%E UNICODE *)
+(*%T UNICODE *)
+  PROPSHEETHEADER    ::= PROPSHEETHEADERW;
+  LPPROPSHEETHEADER  ::= PROPSHEETHEADERW;
+  LPCPROPSHEETHEADER ::= PROPSHEETHEADERW;
+(*%E UNICODE *)
+
+CONST
+  PSCB_INITIALIZED  = 1;
+  PSCB_PRECREATE    = 2;
+
+(*# call( macro => on ) *)
+  PROCEDURE CreatePropertySheetPageA( x : LPCPROPSHEETPAGEA ) : HPROPSHEETPAGE;
+  PROCEDURE CreatePropertySheetPageW( x : LPCPROPSHEETPAGEW ) : HPROPSHEETPAGE;
+  PROCEDURE CreatePropertySheetPage( x : LPCPROPSHEETPAGE ) : HPROPSHEETPAGE;
+  PROCEDURE DestroyPropertySheetPage( x : HPROPSHEETPAGE ) : windows.BOOL;
+  PROCEDURE PropertySheet( s : LPCPROPSHEETHEADER) : INTEGER;
+(*# call( macro => off ) *)
+
+TYPE
+  LPFNADDPROPSHEETPAGE  = PROCEDURE(HPROPSHEETPAGE, windows.LPARAM) : windows.BOOL;
+  LPFNADDPROPSHEETPAGES = PROCEDURE(windows.PVOID, LPFNADDPROPSHEETPAGE, windows.LPARAM) : windows.BOOL;
+
+  LPPSHNOTIFY = POINTER TO PSHNOTIFY;
+  PSHNOTIFY = RECORD
+                hdr    : windows.NMHDR;
+                lParam : windows.LPARAM;
+              END;
+
+CONST
+  PSN_FIRST               = MAX( CARDINAL ) - 200 + 1; // 0U-200U;
+  PSN_LAST                = MAX( CARDINAL ) - 299 + 1;  // 0U-299U;
+
+  PSN_SETACTIVE           = PSN_FIRST-0;
+  PSN_KILLACTIVE          = PSN_FIRST-1;
+  PSN_APPLY               = PSN_FIRST-2;
+  PSN_RESET               = PSN_FIRST-3;
+  PSN_HELP                = PSN_FIRST-5;
+  PSN_WIZBACK             = PSN_FIRST-6;
+  PSN_WIZNEXT             = PSN_FIRST-7;
+  PSN_WIZFINISH           = PSN_FIRST-8;
+  PSN_QUERYCANCEL         = PSN_FIRST-9;
+
+  PSNRET_NOERROR              = 0;
+  PSNRET_INVALID              = 1;
+  PSNRET_INVALID_NOCHANGEPAGE = 2;
+
+
+CONST
+  PSM_SETCURSEL           = windows.WM_USER + 101;
+  PSM_REMOVEPAGE          = windows.WM_USER + 102;
+  PSM_ADDPAGE             = windows.WM_USER + 103;
+  PSM_CHANGED             = windows.WM_USER + 104;
+  PSM_RESTARTWINDOWS      = windows.WM_USER + 105;
+  PSM_REBOOTSYSTEM        = windows.WM_USER + 106;
+  PSM_CANCELTOCLOSE       = windows.WM_USER + 107;
+  PSM_QUERYSIBLINGS       = windows.WM_USER + 108;
+  PSM_UNCHANGED           = windows.WM_USER + 109;
+  PSM_APPLY               = windows.WM_USER + 110;
+  PSM_SETTITLE            = windows.WM_USER + 111;
+  PSM_SETWIZBUTTONS       = windows.WM_USER + 112;
+
+(*# call( macro => on ) *)
+PROCEDURE PropSheet_SetCurSel( a : windows.HWND; hpage : windows.LPARAM; index : windows.WPARAM );
+PROCEDURE PropSheet_RemovePage( hDlg : windows.HWND; index : windows.WPARAM; hpage : windows.LPARAM );
+PROCEDURE PropSheet_AddPage( hDlg : windows.HWND; hpage : windows.LPARAM );
+PROCEDURE PropSheet_Changed( hDlg : windows.HWND; hwnd : windows.HWND );
+PROCEDURE PropSheet_RestartWindows( hDlg : windows.HWND );
+PROCEDURE PropSheet_RebootSystem( hDlg : windows.HWND );
+PROCEDURE PropSheet_CancelToClose( hDlg : windows.HWND );
+PROCEDURE PropSheet_QuerySiblings( hDlg : windows.HWND; wParam : windows.WPARAM; lParam : windows.LPARAM );
+PROCEDURE PropSheet_UnChanged( hDlg : windows.HWND; hwnd : windows.WPARAM );
+PROCEDURE PropSheet_Apply( hDlg  : windows.HWND );
+PROCEDURE PropSheet_SetTitle( hDlg : windows.HWND; wStyle : windows.WPARAM; lpszText : windows.LPARAM );
+PROCEDURE PropSheet_SetWizButtons( hDlg : windows.HWND; dwFlags : windows.LPARAM );
+(*# call( macro => off ) *)
+
+CONST
+  PSWIZB_BACK             = 00000001H;
+  PSWIZB_NEXT             = 00000002H;
+  PSWIZB_FINISH           = 00000004H;
+  PSWIZB_DISABLEDFINISH   = 00000008H;
+
+  PSM_PRESSBUTTON         = windows.WM_USER + 113;
+
+(*# call( macro => on ) *)
+PROCEDURE PropSheet_PressButton(hDlg : windows.HWND; iButton : windows.WPARAM );
+(*# call( macro => off ) *)
+
+CONST
+  PSBTN_BACK              = 0;
+  PSBTN_NEXT              = 1;
+  PSBTN_FINISH            = 2;
+  PSBTN_OK                = 3;
+  PSBTN_APPLYNOW          = 4;
+  PSBTN_CANCEL            = 5;
+  PSBTN_HELP              = 6;
+  PSBTN_MAX               = 6;
+
+  PSM_SETCURSELID         = windows.WM_USER + 114;
+  PSM_SETFINISHTEXTA      = windows.WM_USER + 115;
+  PSM_GETTABCONTROL       = windows.WM_USER + 116;
+  PSM_ISDIALOGMESSAGE     = windows.WM_USER + 117;
+  PSM_GETCURRENTPAGEHWND  = windows.WM_USER + 118;
+
+(*# call( macro => on ) *)
+PROCEDURE PropSheet_SetCurSelByID(hDlg : windows.HWND; id : windows.LPARAM);
+PROCEDURE PropSheet_SetFinishText(hDlg : windows.HWND; lpszText : windows.LPARAM);
+PROCEDURE PropSheet_GetTabControl(hDlg : windows.HWND );
+PROCEDURE PropSheet_IsDialogMessage(hDlg : windows.HWND; pMsg: windows.LPARAM);
+PROCEDURE PropSheet_GetCurrentPageHwnd(hDlg : windows.HWND);
+(*# call( macro => off ) *)
+
+
+CONST
+  ID_PSRESTARTWINDOWS     = 02H;
+  ID_PSREBOOTSYSTEM       = ID_PSRESTARTWINDOWS OR 01H;
+
+  WIZ_CXDLG               = 276;
+  WIZ_CYDLG               = 140;
+
+  WIZ_CXBMP               = 80;
+
+  WIZ_BODYX               = 92;
+  WIZ_BODYCX              = 184;
+
+  PROP_SM_CXDLG           = 212;
+  PROP_SM_CYDLG           = 188;
+
+  PROP_MED_CXDLG          = 227;
+  PROP_MED_CYDLG          = 215;
+
+  PROP_LG_CXDLG           = 252;
+  PROP_LG_CYDLG           = 218;
+
+END prsht.

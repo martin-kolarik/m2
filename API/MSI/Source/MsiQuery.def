@@ -1,0 +1,52 @@
+DEFINITION MODULE MsiQuery;
+
+(******************************************************************************
+*                                                                             *
+* MsiQuery.h - Interface to running installer for custom actions and tools    *
+*                                                                             *
+* Version 3.0                                                                 *
+*                                                                             *
+* NOTES:  All buffers sizes are TCHAR count, null included only on input      *
+*         Return argument pointers may be null if not interested in value     *
+*         Returned handles of all types must be closed: MsiCloseHandle(h)     *
+*         Functions with UINT return type return a system error code          *
+*         Designated functions will set or clear the last error record,       *
+*         which is then accessible with MsiGetLastErrorRecord. However,       *
+*         the following argument errors do not register an error record:      *
+*         ERROR_INVALID_HANDLE, ERROR_INVALID_PARAMETER, ERROR_MORE_DATA.     *
+*                                                                             *
+* Copyright (c) Microsoft Corporation.  All rights reserved.                  *
+*                                                                             *
+******************************************************************************)
+
+(*# name(   decoration      => c ) *)
+
+(*# module( header          => off ) *)
+
+(*# call(   o_a_size        => off,
+            c_arrays        => on,
+            result_optional => on,
+            convention      => stdcall ) *)
+
+IMPORT
+   Msi;
+
+// Set the value for an installer property
+// If the property is not defined, it will be created
+// If the value is null or an empty string, the property will be removed
+// Returns ERROR_SUCCESS, ERROR_INVALID_HANDLE, ERROR_BAD_ARGUMENTS
+
+PROCEDURE MsiSetPropertyW(
+       hInstall : Msi.MSIHANDLE;
+       szName   : PWCHAR;   // property identifier, case-sensitive
+	    szValue  : PWCHAR    // property value, null to undefine property
+) : CARDINAL;
+
+PROCEDURE MsiGetPropertyW(
+       hInstall   : Msi.MSIHANDLE;
+       szName     : PWCHAR;   // property identifier, case-sensitive
+       szValueBuf : PWCHAR;   // buffer for returned property value
+   REF chValueBuf : LONGWORD  // in/out buffer character count
+) : CARDINAL;
+
+END MsiQuery.

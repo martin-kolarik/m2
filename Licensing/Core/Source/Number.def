@@ -1,0 +1,128 @@
+DEFINITION MODULE Number;
+
+(*================================================================================*)
+
+IMPORT
+   Defs,
+   Items,
+	StringsO,
+	time,
+	Uniquer;
+
+(*================================================================================*)
+
+ABSTRACT CLASS CNumber;
+	INTERNAL VAR
+	   _PId : Defs.TPID;
+	   _GOrd : CARDINAL := 0;
+	   
+	PUBLIC PROPERTY
+	   GOrd : CARDINAL;
+
+	PUBLIC ABSTRACT READONLY PROPERTY
+		Prefix    : StringsO.CString;
+		Separator : WCHAR;
+		Valid     : BOOLEAN;
+		
+   PUBLIC READONLY PROPERTY
+      PId : Defs.TPID;
+
+	PUBLIC ABSTRACT PROCEDURE ToOA( OUT Out : ARRAY OF BYTE; OUT Filled : CARDINAL ) : BOOLEAN;
+	PUBLIC ABSTRACT PROCEDURE FromOA( CONST In : ARRAY OF BYTE ) : BOOLEAN;
+
+	PUBLIC PROCEDURE SetPId( CONST PId : StringsO.IString );
+	PUBLIC PROCEDURE CheckPId( CONST PId : StringsO.IString ) : BOOLEAN;
+END CNumber;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CSerial( CNumber );
+	PUBLIC VAR
+		Type  : Items.TLicenceType;
+   INTERNAL VAR 
+		_Owner : Defs.TOwner;
+
+	PUBLIC VIRTUAL READONLY PROPERTY
+		Prefix    : StringsO.CString;
+		Separator : WCHAR;
+		Valid     : BOOLEAN;
+		
+	PUBLIC READONLY PROPERTY
+	   Owner : Defs.TOwner;
+
+	PUBLIC VIRTUAL PROCEDURE ToOA( OUT Out : ARRAY OF BYTE; OUT Filled : CARDINAL ) : BOOLEAN;
+	PUBLIC VIRTUAL PROCEDURE FromOA( CONST In : ARRAY OF BYTE ) : BOOLEAN;
+	
+	PUBLIC PROCEDURE SetOwner( CONST Owner : StringsO.IString );
+	PUBLIC PROCEDURE CheckOwner( CONST Owner : StringsO.IString ) : BOOLEAN;
+
+   INITIALLY CSerial;
+END CSerial;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TOSVersion = RECORD
+                   Platform : CARDINAL;
+                   Major : CARDINAL;
+                   Minor : CARDINAL;
+                END;
+
+CLASS CRegistration( CNumber );
+   INTERNAL VAR 
+		_MId : Defs.TMID;
+	PUBLIC VAR
+	   OSVersion : TOSVersion;
+
+	PUBLIC VIRTUAL READONLY PROPERTY
+		Prefix : StringsO.CString;
+		Separator : WCHAR;
+		Valid : BOOLEAN;
+	PUBLIC READONLY PROPERTY
+		MId : Defs.TMID;
+
+	PUBLIC VIRTUAL PROCEDURE ToOA( OUT Out : ARRAY OF BYTE; OUT Filled : CARDINAL ) : BOOLEAN;
+	PUBLIC VIRTUAL PROCEDURE FromOA( CONST In : ARRAY OF BYTE ) : BOOLEAN;
+	
+	PUBLIC PROCEDURE SetMId( CONST UId : Uniquer.TUId );
+	PUBLIC PROCEDURE SetOSVersionByMachine();
+
+   INITIALLY CRegistration;
+END CRegistration;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CActivation( CNumber );
+   INTERNAL VAR 
+		_MId : Defs.TMID;
+		_Origin : CARDINAL := 0; // days
+		_Months : CARDINAL := 0; // month count
+
+	PUBLIC VIRTUAL READONLY PROPERTY
+		Prefix : StringsO.CString;
+		Separator : WCHAR;
+		Valid : BOOLEAN;
+	PUBLIC WRITEONLY PROPERTY
+	   PId : Defs.TPID;
+   PUBLIC PROPERTY
+		Origin : time.TDateTime; // 0        SET  SET   SET
+		Months : CARDINAL;       // 0        0    -1    ?
+		// result:               // Forever  To   From  From-To 
+		MId : Defs.TMID;
+
+	PUBLIC VIRTUAL PROCEDURE ToOA( OUT Out : ARRAY OF BYTE; OUT Filled : CARDINAL ) : BOOLEAN;
+	PUBLIC VIRTUAL PROCEDURE FromOA( CONST In : ARRAY OF BYTE ) : BOOLEAN;
+
+	PUBLIC PROCEDURE CheckMId( CONST UId : Uniquer.TUId ) : BOOLEAN;
+
+   INITIALLY CActivation;
+END CActivation;
+
+(*================================================================================*)
+
+PROCEDURE Code( CONST Number : CNumber; OUT Text : StringsO.IString ) : BOOLEAN;
+PROCEDURE Decode( CONST Text : StringsO.IString; REF Number : CNumber ) : BOOLEAN;
+
+(*================================================================================*)
+
+END Number.

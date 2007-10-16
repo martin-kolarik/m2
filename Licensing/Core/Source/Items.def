@@ -1,0 +1,165 @@
+DEFINITION MODULE Items;
+
+IMPORT
+   time,
+   lists,
+   StringsO,
+   Uniquer;
+
+(*================================================================================*)
+
+TYPE
+   TPItem = POINTER TO CItem;
+   
+TYPE
+   TItemStateItem = (
+      isDirty,
+      isValid
+   );
+   TItemState = SET OF TItemStateItem;
+
+ABSTRACT CLASS CItem;
+   INTERNAL VAR
+      Parent         : POINTER TO CItem;
+      Childs         : lists.CPtrList;
+      State          : TItemState := TItemState{};
+      _ProductId     : StringsO.CString;
+      _Created       : time.TDateTime;
+      _TransportData : StringsO.CString;
+   PUBLIC READONLY PROPERTY
+      Valid          : BOOLEAN;
+      IsStub         : BOOLEAN;
+      HasChilds      : BOOLEAN;
+   PUBLIC PROPERTY
+      Dirty          : BOOLEAN;
+      ProductId      : StringsO.CString;
+      Created        : time.TDateTime;
+      TransportData  : StringsO.CString;
+      CreatedString  : StringsO.CString;
+      
+   VIRTUAL FINALLY CItem();
+
+   PUBLIC ABSTRACT PROCEDURE Equals( CONST To : CItem ) : BOOLEAN;
+
+   PUBLIC ABSTRACT PROCEDURE CreateTransportData(); // prepares Data, sets Valid
+   PUBLIC ABSTRACT PROCEDURE ValidateByTransportData(); // gets transport data, sets Valid
+   INTERNAL ABSTRACT PROCEDURE CreateHash( OUT Hash : StringsO.CString );
+   
+   INTERNAL PROCEDURE EncodeTransportData();
+   INTERNAL PROCEDURE DecodeTransportData( OUT Decoded : StringsO.CString ) : BOOLEAN;
+END CItem;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPProduct = POINTER TO CProduct;
+   TPLockedItem = POINTER TO CLockedItem;
+   TPLicence = POINTER TO CLicence;
+   TPActivation = POINTER TO CActivation;
+
+(*================================================================================*)
+
+TYPE
+   TVersionItem = (
+      viMajor,
+      viMinor,
+      viBuild,
+      viPatch
+   );
+   TVersion = ARRAY TVersionItem OF CARDINAL;
+
+CLASS CProduct( CItem );
+   INTERNAL VAR
+      _Name      : StringsO.CString;
+      _Version   : TVersion;
+      _Copyright : StringsO.CString;
+      _Legal     : StringsO.CString;
+      _Note      : StringsO.CString;
+   PUBLIC PROPERTY
+      Name          : StringsO.CString;
+      Version       : TVersion;
+      VersionString : StringsO.CString;
+      Copyright     : StringsO.CString;
+      Legal         : StringsO.CString;
+      Note          : StringsO.CString;
+    PUBLIC READONLY PROPERTY
+      Licences      : lists.TPPtrList;
+
+   PUBLIC VIRTUAL PROCEDURE Equals( CONST To : CItem ) : BOOLEAN;
+
+   PUBLIC PROCEDURE AddLicence( Licence : TPLicence );
+   PUBLIC PROCEDURE RemoveLicence( Licence : TPLicence );
+
+   PUBLIC VIRTUAL PROCEDURE CreateTransportData(); // prepares Data
+   PUBLIC VIRTUAL PROCEDURE ValidateByTransportData(); // returns is failure occurrs
+   INTERNAL VIRTUAL PROCEDURE CreateHash( OUT Hash : StringsO.CString );
+END CProduct;
+
+(*--------------------------------------------------------------------------------*)
+
+ABSTRACT CLASS CLockedItem( CItem );
+   PUBLIC VAR
+      UId : Uniquer.TUId;
+   INTERNAL PROPERTY
+      UIdString : StringsO.CString;
+END CLockedItem;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+	TLicenceTypeItem = (
+		ltUnnamed,
+		ltUpgrade,
+		ltEducational,
+		ltTrial // without activation runs as DEMO not as unregistered
+	);
+	TLicenceType = SET OF TLicenceTypeItem;
+
+CLASS CLicence( CLockedItem );
+   INTERNAL VAR
+      _Serial : StringsO.CString;
+      _Owner : StringsO.CString;
+      _Type : TLicenceType := TLicenceType{};
+   PUBLIC PROPERTY
+      Serial : StringsO.CString;
+      Owner : StringsO.CString;
+      Type : TLicenceType;
+      TypeString : StringsO.CString;
+    PUBLIC READONLY PROPERTY
+      Activations : lists.TPPtrList;
+
+   PUBLIC VIRTUAL PROCEDURE Equals( CONST To : CItem ) : BOOLEAN;
+
+   PUBLIC PROCEDURE AddActivation( Activation : TPActivation );
+   PUBLIC PROCEDURE RemoveActivation( Activation : TPActivation );
+
+   PUBLIC VIRTUAL PROCEDURE CreateTransportData(); // prepares Data
+   PUBLIC VIRTUAL PROCEDURE ValidateByTransportData();
+   INTERNAL VIRTUAL PROCEDURE CreateHash( OUT Hash : StringsO.CString );
+END CLicence;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CActivation( CLockedItem );
+   INTERNAL VAR
+      _OfSerial : StringsO.CString;
+      _Starts   : time.TDateTime;
+      _Expires  : time.TDateTime;
+   PUBLIC PROPERTY
+      OfSerial      : StringsO.CString;
+      Starts        : time.TDateTime;
+      StartsString  : StringsO.CString;
+      Expires       : time.TDateTime;
+      ExpiresString : StringsO.CString;
+
+   PUBLIC VIRTUAL PROCEDURE Equals( CONST To : CItem ) : BOOLEAN;
+   PUBLIC PROCEDURE ValidFor( CONST datetime : time.TDateTime ) : BOOLEAN;
+
+   PUBLIC VIRTUAL PROCEDURE CreateTransportData(); // prepares Data
+   PUBLIC VIRTUAL PROCEDURE ValidateByTransportData();
+   INTERNAL VIRTUAL PROCEDURE CreateHash( OUT Hash : StringsO.CString );
+END CActivation;
+
+(*================================================================================*)
+
+END Items.

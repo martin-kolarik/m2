@@ -1,0 +1,188 @@
+DEFINITION MODULE Sync;
+
+#save, option( dll_export => on )
+
+(*================================================================================*)
+
+// generic types
+TYPE
+   WAITABLE = ADDRESS;
+   SIGNAL = WAITABLE;
+  
+TYPE
+   // main success: arCompleted
+   // main error: arCannotStart
+
+   TAsyncResult = ( // Sync this with IDLs !!!
+      // initial, undefined value
+      arUnknown,
+      // successes
+      arCompleted, // whole sucessfull completion
+        arPartCompleted, // partial sucessfull completion
+      // processing
+      arNoData, // success, but nothing
+      arPending, // sucesfully started
+      arTimeout, // completed after timeout
+      arAborted, // abortion, the operation was stopped
+      // errors
+      arAlreadyPending, // not started -- something is pending now
+      arCannotStart // not started, no resources
+   );
+   TAsyncResults = SET OF TAsyncResult;
+
+CONST
+   arsCompletions = TAsyncResults{arCompleted, arPartCompleted};
+   arsStarts = arsCompletions + TAsyncResults{arPending};
+  
+CONST
+   INFINITE_TIME = 0FFFFFFFFH;
+
+PROCEDURE Sleep( Time : CARDINAL );
+
+(*================================================================================*)
+
+// locking
+TYPE
+   TLockType = ( ltILock, ltSpin, ltCS, ltMutex ); // interlocked, nonreentrant, reentrant, interprocess
+
+CLASS LOCK;
+   INTERNAL VAR
+      Type : TLockType := ltSpin;
+      Data : PTR;
+   PUBLIC READONLY PROPERTY
+      WaitHandle : WAITABLE;
+
+   PUBLIC PROCEDURE Init( Type : TLockType; CONST Name : ARRAY OF WCHAR; InitiallyLocked : BOOLEAN );
+   PUBLIC PROCEDURE Lock();
+   PUBLIC PROCEDURE Unlock();
+
+   // primitive operations done in LOCKed context  
+   PUBLIC PROCEDURE Get( REF Operand : LONGWORD ) : CARDINAL; // current value
+   PUBLIC PROCEDURE GetPtr( REF Operand : ADDRESS ) : ADDRESS; // current value
+   PUBLIC PROCEDURE Inc( REF Operand : LONGWORD; Increment : CARDINAL ) : CARDINAL; // resulting value
+   PUBLIC PROCEDURE Dec( REF Operand : LONGWORD; Decrement : CARDINAL ) : CARDINAL; // resulting value
+   PUBLIC PROCEDURE Exchg( REF Operand : LONGWORD; Value : LONGWORD ) : CARDINAL; // previous value
+   PUBLIC PROCEDURE ExchgPtr( REF Operand : ADDRESS; Value : ADDRESS ) : ADDRESS; // previous value
+   PUBLIC PROCEDURE ExchgAdd( REF Operand : LONGWORD; Addition : INTEGER ) : CARDINAL; // previous value
+   PUBLIC PROCEDURE CmpExchg( REF Operand : LONGWORD; Value : LONGWORD; Comparand : LONGWORD ) : CARDINAL; // previous value
+   PUBLIC PROCEDURE CmpExchgPtr( REF Operand : ADDRESS; Value : ADDRESS; Comparand : ADDRESS ) : ADDRESS; // previous value
+   // 32bits sets
+   PUBLIC PROCEDURE Incl( REF Operand : LONGWORD; IncludedBit : LONGWORD ) : BITSET32; // previous value
+   PUBLIC PROCEDURE Excl( REF Operand : LONGWORD; ExcludedBit : LONGWORD ) : BITSET32; // previous value
+   PUBLIC PROCEDURE InclExcl( REF Operand : LONGWORD; IncludedSet, ExcludedSet : BITSET32 ) : BITSET32; // previous value
+   PUBLIC PROCEDURE In( REF Operand : LONGWORD; TestBit : LONGWORD ) : BOOLEAN;
+   PUBLIC PROCEDURE InSet( REF Operand : LONGWORD; TestSet : BITSET32 ) : BOOLEAN;
+   PUBLIC PROCEDURE NotInSet( REF Operand : LONGWORD; TestSet : BITSET32 ) : BOOLEAN;
+   PUBLIC PROCEDURE AndCmp( REF Operand : LONGWORD; AndSet, CmpSet : BITSET32 ) : BOOLEAN;
+  
+   PRIVATE PROCEDURE Dispose();
+END LOCK;
+
+// signalling
+PROCEDURE CreateSignal( InitiallySignalled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : SIGNAL;
+PROCEDURE Signal( S : SIGNAL );
+PROCEDURE SignalAndReset( S : SIGNAL );
+PROCEDURE Reset( S : SIGNAL );
+PROCEDURE DeleteSignal( REF S : SIGNAL );
+
+// waiting
+PROCEDURE Wait( W : WAITABLE; Timeout : CARDINAL ) : TAsyncResult;
+PROCEDURE State( W : WAITABLE ) : BOOLEAN; // TRUE = Signalled, FALSE = Nonsignalled
+
+// primitive atomic operations
+PROCEDURE ICmpExchg( REF Destination : INT32; Exchange : INT32; Comperand : INT32 ) : INT32;
+PROCEDURE ICmpExchgPtr( REF Destination : ADDRESS; Exchange : ADDRESS; Comperand : ADDRESS ) : ADDRESS;
+PROCEDURE IDec( REF Addend : INT32 ) : INT32;
+PROCEDURE IExchg( REF Target : INT32; Value : INT32 ) : INT32;
+PROCEDURE IExchgAdd( REF Addend : INT32; Value : INT32 ) : INT32;
+PROCEDURE IExchgPtr( REF Destination : ADDRESS; Value : ADDRESS ) : ADDRESS;
+PROCEDURE IInc( REF Addend : INT32 ): INT32;
+PROCEDURE IGet( REF Value : INT32 ) : INT32;
+PROCEDURE IGetPtr( REF Value : ADDRESS ) : ADDRESS;
+
+(*================================================================================*)
+
+TYPE
+  TpcqSignal = (
+    pcqProduced,
+    pcqStartingConsumation,
+    pcqConsumed
+  );
+
+(*--------------------------------------------------------------------------------*)
+
+// OneToOneQueue: single producer, single consumer, variable length blocks
+TYPE
+  TPOneToOneQueue = POINTER TO OneToOneQueue;
+
+CLASS OneToOneQueue;
+  INTERNAL VAR
+    _Head : CARDINAL;
+    _Tail : CARDINAL;
+    _Size : CARDINAL := 4096;
+  PUBLIC READONLY PROPERTY
+    Count : CARDINAL; // occupied
+    Empty : BOOLEAN;
+    Full : BOOLEAN;
+  PUBLIC VIRTUAL PROPERTY
+    Size : CARDINAL;
+
+  // common
+  PUBLIC PROCEDURE Clear();
+
+  // producer
+  PUBLIC PROCEDURE StartProducing( LengthToProduce : CARDINAL; OUT ProduceTo : CARDINAL; OUT AllowedToProduce : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE CommitProducing( Produced : CARDINAL );
+  INTERNAL VIRTUAL PROCEDURE Flush() : TAsyncResult; // completed, aborted
+
+  // consumer
+  PUBLIC PROCEDURE StartConsuming( LengthToConsume : CARDINAL; OUT ConsumeFrom : CARDINAL; OUT AllowedToConsume : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE CommitConsuming( Consumed : CARDINAL );
+
+  // both side, usualy implemented using ONE signal/message
+  INTERNAL VIRTUAL PROCEDURE Signal( What : TpcqSignal ); // when produced, next producing SHOULD NOT be signalled (until signalling consumed)
+END OneToOneQueue;
+
+(*--------------------------------------------------------------------------------*)
+
+// NToOneQueue: multiple producers, single consumer, single length (1) blocks
+TYPE
+  TPNToOneQueue = POINTER TO NToOneQueue;
+
+ABSTRACT CLASS NToOneQueue;
+  PRIVATE VAR
+    _Head : CARDINAL;
+    _Tail : CARDINAL;
+  INTERNAL VAR
+    _Size : CARDINAL := 256;
+  PUBLIC READONLY PROPERTY
+    Count : CARDINAL;
+    Empty : BOOLEAN;
+    Full : BOOLEAN;
+  PUBLIC VIRTUAL PROPERTY
+    Size : CARDINAL;
+
+  // common
+  PUBLIC PROCEDURE Clear();
+
+  // producer
+  PUBLIC PROCEDURE StartProducing( OUT ProduceTo : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE CommitProducing( Produced : CARDINAL );
+  INTERNAL VIRTUAL PROCEDURE Flush() : TAsyncResult; // completed, timeout, aborted
+  INTERNAL ABSTRACT PROCEDURE Validate( Block : CARDINAL );
+
+  // consumer
+  PUBLIC PROCEDURE StartConsuming( OUT ConsumeFrom : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE CommitConsuming();
+  INTERNAL ABSTRACT PROCEDURE IsValid( Block : CARDINAL ) : BOOLEAN;
+  INTERNAL ABSTRACT PROCEDURE Invalidate( Block : CARDINAL );
+
+  // both side, usualy implemented using ONE signal/message
+  INTERNAL VIRTUAL PROCEDURE Signal( What : TpcqSignal ); // when produced, next producing SHOULD NOT be done (until signalling consumed)
+END NToOneQueue;
+
+(*================================================================================*)
+
+#restore
+
+END Sync.

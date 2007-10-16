@@ -1,0 +1,802 @@
+DEFINITION MODULE sql;
+
+(*==============================================================
+
+      This is the the main include for ODBC Core functions
+
+       32-bit version for M2CPP Modula-2 to C++ compiler
+
+      Copyright (c) 1996, 1997 Moravian Instruments, Inc.
+
+==============================================================*)
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+(*==============================================================
+
+  History: Created: 10.11.1997
+           Build 0: **.**.****
+
+==============================================================*)
+
+
+IMPORT
+  windows;
+
+IMPORT
+  sqltypes;
+
+
+CONST
+  ODBCVER = 0300H;
+
+(* special length/indicator values *)
+  SQL_NULL_DATA    = -1;
+  SQL_DATA_AT_EXEC = -2;
+
+
+(* return values from functions *)
+  SQL_SUCCESS           = 0;
+  SQL_SUCCESS_WITH_INFO = 1;
+
+  SQL_NO_DATA = 100; // see sqlext.def
+
+  SQL_ERROR          = -1;
+  SQL_INVALID_HANDLE = -2;
+
+  SQL_STILL_EXECUTING = 2;
+  SQL_NEED_DATA       = 99;
+
+(* test for SQL_SUCCESS or SQL_SUCCESS_WITH_INFO *)
+(*# save, call( macro => on ) *)
+  PROCEDURE SQL_SUCCEEDED( rc : WORD ) : windows.BOOL; // (((rc)&(~!))==0)
+(*# restore *)
+
+CONST
+(* flags for null-terminated string *)
+  SQL_NTS  = -3;
+  SQL_NTSL = -3;
+
+(* maximum message length *)
+  SQL_MAX_MESSAGE_LENGTH = 512;
+
+(* date/time length constants *)
+  SQL_DATE_LEN      = 10;
+  SQL_TIME_LEN      = 8;  // add P+1 if precision is nonzero 
+  SQL_TIMESTAMP_LEN = 19; // add P+1 if precision is nonzero 
+
+(* handle type identifiers *)
+  SQL_HANDLE_ENV  = 1;
+  SQL_HANDLE_DBC  = 2;
+  SQL_HANDLE_STMT = 3;
+  SQL_HANDLE_DESC = 4;
+
+(* environment attribute *)
+  SQL_ATTR_OUTPUT_NTS = 10001;
+
+(* connection attributes *)
+  SQL_ATTR_AUTO_IPD    = 10001;
+  SQL_ATTR_METADATA_ID = 10014;
+
+(* statement attributes *)
+  SQL_ATTR_APP_ROW_DESC       = 10010;
+  SQL_ATTR_APP_PARAM_DESC     = 10011;
+  SQL_ATTR_IMP_ROW_DESC       = 10012;
+  SQL_ATTR_IMP_PARAM_DESC     = 10013;
+  SQL_ATTR_CURSOR_SCROLLABLE  = -1;
+  SQL_ATTR_CURSOR_SENSITIVITY = -2;
+
+(* SQL_ATTR_CURSOR_SCROLLABLE values *)
+  SQL_NONSCROLLABLE	= 0;
+  SQL_SCROLLABLE		=	1;
+
+(* identifiers of fields in the SQL descriptor *)
+  SQL_DESC_COUNT                  = 1001;
+  SQL_DESC_TYPE                   = 1002;
+  SQL_DESC_LENGTH                 = 1003;
+  SQL_DESC_OCTET_LENGTH_PTR       = 1004;
+  SQL_DESC_PRECISION              = 1005;
+  SQL_DESC_SCALE                  = 1006;
+  SQL_DESC_DATETIME_INTERVAL_CODE = 1007;
+  SQL_DESC_NULLABLE               = 1008;
+  SQL_DESC_INDICATOR_PTR          = 1009;
+  SQL_DESC_DATA_PTR               = 1010;
+  SQL_DESC_NAME                   = 1011;
+  SQL_DESC_UNNAMED                = 1012;
+  SQL_DESC_OCTET_LENGTH           = 1013;
+  SQL_DESC_ALLOC_TYPE             = 1099;
+
+(* identifiers of fields in the diagnostics area *)
+  SQL_DIAG_RETURNCODE            = 1;
+  SQL_DIAG_NUMBER                = 2;
+  SQL_DIAG_ROW_COUNT             = 3;
+  SQL_DIAG_SQLSTATE              = 4;
+  SQL_DIAG_NATIVE                = 5;
+  SQL_DIAG_MESSAGE_TEXT          = 6;
+  SQL_DIAG_DYNAMIC_FUNCTION      = 7;
+  SQL_DIAG_CLASS_ORIGIN          = 8;
+  SQL_DIAG_SUBCLASS_ORIGIN       = 9;
+  SQL_DIAG_CONNECTION_NAME       = 10;
+  SQL_DIAG_SERVER_NAME           = 11;
+  SQL_DIAG_DYNAMIC_FUNCTION_CODE = 12;
+
+(* dynamic function codes *)
+  SQL_DIAG_ALTER_TABLE           =  4;
+  SQL_DIAG_CREATE_INDEX          = -1;
+  SQL_DIAG_CREATE_TABLE          = 77;
+  SQL_DIAG_CREATE_VIEW           = 84;
+  SQL_DIAG_DELETE_WHERE          = 19;
+  SQL_DIAG_DROP_INDEX            = -2;
+  SQL_DIAG_DROP_TABLE            = 32;
+  SQL_DIAG_DROP_VIEW             = 36;
+  SQL_DIAG_DYNAMIC_DELETE_CURSOR = 38;
+  SQL_DIAG_DYNAMIC_UPDATE_CURSOR = 81;
+  SQL_DIAG_GRANT                 = 48;
+  SQL_DIAG_INSERT                = 50;
+  SQL_DIAG_REVOKE                = 59;
+  SQL_DIAG_SELECT_CURSOR         = 85;
+  SQL_DIAG_UNKNOWN_STATEMENT     =  0;
+  SQL_DIAG_UPDATE_WHERE          = 82;
+
+(* SQL data type codes *)
+  SQL_UNKNOWN_TYPE = 0;
+  SQL_CHAR         = 1;
+  SQL_NUMERIC      = 2;
+  SQL_DECIMAL      = 3;
+  SQL_INTEGER      = 4;
+  SQL_SMALLINT     = 5;
+  SQL_FLOAT        = 6;
+  SQL_REAL         = 7;
+  SQL_DOUBLE       = 8;
+  SQL_DATETIME     = 9;
+  SQL_VARCHAR      = 12;
+
+(* One-parameter shortcuts for date/time data types *)
+  SQL_TYPE_DATE      = 91;
+  SQL_TYPE_TIME      = 92;
+  SQL_TYPE_TIMESTAMP = 93;
+
+(* Statement attribute values for cursor sensitivity *)
+  SQL_UNSPECIFIED = 0;
+  SQL_INSENSITIVE = 1;
+  SQL_SENSITIVE   = 2;
+
+(* GetTypeInfo() request for all data types *)
+  SQL_ALL_TYPES = 0;
+
+(* Default conversion code for SQLBindCol(), SQLBindParam() and SQLGetData() *)
+  SQL_DEFAULT = 99;
+
+(* SQLGetData() code indicating that the application row descriptor
+ * specifies the data type 
+ *)
+  SQL_ARD_TYPE = -99;
+
+(* SQL date/time type subcodes *)
+  SQL_CODE_DATE      = 1;
+  SQL_CODE_TIME      = 2;
+  SQL_CODE_TIMESTAMP = 3;
+
+(* CLI option values *)
+  SQL_FALSE = 0;
+  SQL_TRUE  = 1;
+
+(* values of NULLABLE field in descriptor *)
+  SQL_NO_NULLS = 0;
+  SQL_NULLABLE = 1;
+
+(* Value returned by SQLGetTypeInfo() to denote that it is
+ * not known whether or not a data type supports null values.
+ *)
+ SQL_NULLABLE_UNKNOWN = 2;
+
+(* Values returned by SQLGetTypeInfo() to show WHERE clause
+ * supported
+ *)
+  SQL_PRED_NONE  = 0;
+  SQL_PRED_CHAR  = 1;
+  SQL_PRED_BASIC = 2;
+
+(* values of UNNAMED field in descriptor *)
+  SQL_NAMED   = 0;
+  SQL_UNNAMED = 1;
+
+(* values of ALLOC_TYPE field in descriptor *)
+  SQL_DESC_ALLOC_AUTO = 1;
+  SQL_DESC_ALLOC_USER = 2;
+
+(* FreeStmt() options *)
+  SQL_CLOSE        = 0;
+  SQL_DROP         = 1;
+  SQL_UNBIND       = 2;
+  SQL_RESET_PARAMS = 3;
+
+(* Codes used for FetchOrientation in SQLFetchScroll(), 
+ * and in SQLDataSources() 
+ *)
+  SQL_FETCH_NEXT  = 1;
+  SQL_FETCH_FIRST = 2;
+
+(* Other codes used for FetchOrientation in SQLFetchScroll() *)
+  SQL_FETCH_LAST     = 3;
+  SQL_FETCH_PRIOR    = 4;
+  SQL_FETCH_ABSOLUTE = 5;
+  SQL_FETCH_RELATIVE = 6;
+
+(* SQLEndTran() options *)
+  SQL_COMMIT   = 0;
+  SQL_ROLLBACK = 1;
+
+(* null handles returned by SQLAllocHandle() *)
+  SQL_NULL_HENV  = 0;
+  SQL_NULL_HDBC  = 0;
+  SQL_NULL_HSTMT = 0;
+  SQL_NULL_HDESC = 0;
+
+(* null handle used in place of parent handle when allocating HENV *)
+  SQL_NULL_HANDLE = NIL;
+
+(* Values that may appear in the result set of SQLSpecialColumns() *)
+  SQL_SCOPE_CURROW      = 0;
+  SQL_SCOPE_TRANSACTION = 1;
+  SQL_SCOPE_SESSION     = 2;
+
+  SQL_PC_UNKNOWN    = 0;
+  SQL_PC_NON_PSEUDO = 1;
+  SQL_PC_PSEUDO     = 2;
+
+(* Reserved value for the IdentifierType argument of SQLSpecialColumns() *)
+  SQL_ROW_IDENTIFIER = 1;
+
+(* Reserved values for UNIQUE argument of SQLStatistics() *)
+  SQL_INDEX_UNIQUE = 0;
+  SQL_INDEX_ALL    = 1;
+
+(* Values that may appear in the result set of SQLStatistics() *)
+  SQL_INDEX_CLUSTERED = 1;
+  SQL_INDEX_HASHED    = 2;
+  SQL_INDEX_OTHER     = 3;
+
+(* SQLGetFunctions() values to identify ODBC APIs *)
+  SQL_API_SQLALLOCCONNECT     =    1;
+  SQL_API_SQLALLOCENV         =    2;
+  SQL_API_SQLALLOCHANDLE      = 1001;
+  SQL_API_SQLALLOCSTMT        =    3;
+  SQL_API_SQLBINDCOL          =    4;
+  SQL_API_SQLBINDPARAM        = 1002;
+  SQL_API_SQLCANCEL           =    5;
+  SQL_API_SQLCLOSECURSOR      = 1003;
+  SQL_API_SQLCOLATTRIBUTE     =    6;
+  SQL_API_SQLCOLUMNS          =   40;
+  SQL_API_SQLCONNECT          =    7;
+  SQL_API_SQLCOPYDESC         = 1004;
+  SQL_API_SQLDATASOURCES      =   57;
+  SQL_API_SQLDESCRIBECOL      =    8;
+  SQL_API_SQLDISCONNECT       =    9;
+  SQL_API_SQLENDTRAN          = 1005;
+  SQL_API_SQLERROR            =   10;
+  SQL_API_SQLEXECDIRECT       =   11;
+  SQL_API_SQLEXECUTE          =   12;
+  SQL_API_SQLFETCH            =   13;
+  SQL_API_SQLFETCHSCROLL      = 1021;
+  SQL_API_SQLFREECONNECT      =   14;
+  SQL_API_SQLFREEENV          =   15;
+  SQL_API_SQLFREEHANDLE       = 1006;
+  SQL_API_SQLFREESTMT         =   16;
+  SQL_API_SQLGETCONNECTATTR   = 1007;
+  SQL_API_SQLGETCONNECTOPTION =   42;
+  SQL_API_SQLGETCURSORNAME    =   17;
+  SQL_API_SQLGETDATA          =   43;
+  SQL_API_SQLGETDESCFIELD     = 1008;
+  SQL_API_SQLGETDESCREC       = 1009;
+  SQL_API_SQLGETDIAGFIELD     = 1010;
+  SQL_API_SQLGETDIAGREC       = 1011;
+  SQL_API_SQLGETENVATTR       = 1012;
+  SQL_API_SQLGETFUNCTIONS     =   44;
+  SQL_API_SQLGETINFO          =   45;
+  SQL_API_SQLGETSTMTATTR      = 1014;
+  SQL_API_SQLGETSTMTOPTION    =   46;
+  SQL_API_SQLGETTYPEINFO      =   47;
+  SQL_API_SQLNUMRESULTCOLS    =   18;
+  SQL_API_SQLPARAMDATA        =   48;
+  SQL_API_SQLPREPARE          =   19;
+  SQL_API_SQLPUTDATA          =   49;
+  SQL_API_SQLROWCOUNT         =   20;
+  SQL_API_SQLSETCONNECTATTR   = 1016;
+  SQL_API_SQLSETCONNECTOPTION =   50;
+  SQL_API_SQLSETCURSORNAME    =   21;
+  SQL_API_SQLSETDESCFIELD     = 1017;
+  SQL_API_SQLSETDESCREC       = 1018;
+  SQL_API_SQLSETENVATTR       = 1019;
+  SQL_API_SQLSETPARAM         =   22;
+  SQL_API_SQLSETSTMTATTR      = 1020;
+  SQL_API_SQLSETSTMTOPTION    =   51;
+  SQL_API_SQLSPECIALCOLUMNS   =   52;
+  SQL_API_SQLSTATISTICS       =   53;
+  SQL_API_SQLTABLES           =   54;
+  SQL_API_SQLTRANSACT         =   23;
+
+(* Information requested by SQLGetInfo() *)
+  SQL_MAX_DRIVER_CONNECTIONS        = 0;
+  SQL_MAXIMUM_DRIVER_CONNECTIONS		= SQL_MAX_DRIVER_CONNECTIONS;
+  SQL_MAX_CONCURRENT_ACTIVITIES     = 1;
+  SQL_MAXIMUM_CONCURRENT_ACTIVITIES	= SQL_MAX_CONCURRENT_ACTIVITIES;
+  SQL_DATA_SOURCE_NAME              = 2;
+  SQL_FETCH_DIRECTION               = 8;
+  SQL_SERVER_NAME                   = 13;
+  SQL_SEARCH_PATTERN_ESCAPE         = 14;
+  SQL_DBMS_NAME                     = 17;
+  SQL_DBMS_VER                      = 18;
+  SQL_ACCESSIBLE_TABLES             = 19;
+  SQL_ACCESSIBLE_PROCEDURES        	= 20;
+  SQL_CURSOR_COMMIT_BEHAVIOR        = 23;
+  SQL_DATA_SOURCE_READ_ONLY         = 25;
+  SQL_DEFAULT_TXN_ISOLATION         = 26;
+  SQL_IDENTIFIER_CASE               = 28;
+  SQL_IDENTIFIER_QUOTE_CHAR         = 29;
+  SQL_MAX_COLUMN_NAME_LEN           = 30;
+  SQL_MAXIMUM_COLUMN_NAME_LENGTH		= SQL_MAX_COLUMN_NAME_LEN;
+  SQL_MAX_CURSOR_NAME_LEN           = 31;
+  SQL_MAXIMUM_CURSOR_NAME_LENGTH		= SQL_MAX_CURSOR_NAME_LEN;
+  SQL_MAX_SCHEMA_NAME_LEN           = 32;
+  SQL_MAXIMUM_SCHEMA_NAME_LENGTH		= SQL_MAX_SCHEMA_NAME_LEN;
+  SQL_MAX_CATALOG_NAME_LEN          = 34;
+  SQL_MAXIMUM_CATALOG_NAME_LENGTH		= SQL_MAX_CATALOG_NAME_LEN;
+  SQL_MAX_TABLE_NAME_LEN            = 35;
+  SQL_SCROLL_CONCURRENCY            = 43;
+  SQL_TXN_CAPABLE                   = 46;
+  SQL_TRANSACTION_CAPABLE				    = SQL_TXN_CAPABLE;
+  SQL_USER_NAME                     = 47;
+  SQL_TXN_ISOLATION_OPTION          = 72;
+  SQL_TRANSACTION_ISOLATION_OPTION	= SQL_TXN_ISOLATION_OPTION;
+  SQL_INTEGRITY                     = 73;
+  SQL_GETDATA_EXTENSIONS            = 81;
+  SQL_NULL_COLLATION                = 85;
+  SQL_ALTER_TABLE                   = 86;
+  SQL_ORDER_BY_COLUMNS_IN_SELECT    = 90;
+  SQL_SPECIAL_CHARACTERS            = 94;
+  SQL_MAX_COLUMNS_IN_GROUP_BY       = 97;
+  SQL_MAXIMUM_COLUMNS_IN_GROUP_BY		= SQL_MAX_COLUMNS_IN_GROUP_BY;
+  SQL_MAX_COLUMNS_IN_INDEX          = 98;
+  SQL_MAXIMUM_COLUMNS_IN_INDEX		  = SQL_MAX_COLUMNS_IN_INDEX;
+  SQL_MAX_COLUMNS_IN_ORDER_BY       = 99;
+  SQL_MAXIMUM_COLUMNS_IN_ORDER_BY		= SQL_MAX_COLUMNS_IN_ORDER_BY;
+  SQL_MAX_COLUMNS_IN_SELECT         = 100;
+  SQL_MAXIMUM_COLUMNS_IN_SELECT	    = SQL_MAX_COLUMNS_IN_SELECT;
+  SQL_MAX_COLUMNS_IN_TABLE          = 101;
+  SQL_MAX_INDEX_SIZE                = 102;
+  SQL_MAXIMUM_INDEX_SIZE			      = SQL_MAX_INDEX_SIZE;
+  SQL_MAX_ROW_SIZE                  = 104;
+  SQL_MAXIMUM_ROW_SIZE			        = SQL_MAX_ROW_SIZE;
+  SQL_MAX_STATEMENT_LEN             = 105;
+  SQL_MAXIMUM_STATEMENT_LENGTH	    = SQL_MAX_STATEMENT_LEN;
+  SQL_MAX_TABLES_IN_SELECT          = 106;
+  SQL_MAXIMUM_TABLES_IN_SELECT	    = SQL_MAX_TABLES_IN_SELECT;
+  SQL_MAX_USER_NAME_LEN             = 107;
+  SQL_MAXIMUM_USER_NAME_LENGTH	    = SQL_MAX_USER_NAME_LEN;
+  SQL_OJ_CAPABILITIES               = 115;
+  SQL_OUTER_JOIN_CAPABILITIES		    = SQL_OJ_CAPABILITIES;
+
+  SQL_XOPEN_CLI_YEAR            = 10000;
+  SQL_CURSOR_SENSITIVITY        = 10001;
+  SQL_DESCRIBE_PARAMETER        = 10002;
+  SQL_CATALOG_NAME              = 10003;
+  SQL_COLLATION_SEQ             = 10004;
+  SQL_MAX_IDENTIFIER_LEN        = 10005;
+  SQL_MAXIMUM_IDENTIFIER_LENGTH	= SQL_MAX_IDENTIFIER_LEN;
+
+(* SQL_ALTER_TABLE bitmasks *)
+  SQL_AT_ADD_COLUMN  = 00000001H;
+  SQL_AT_DROP_COLUMN = 00000002H;
+
+  SQL_AT_ADD_CONSTRAINT = 00000008H;
+
+(*/* The following bitmasks are ODBC extensions and defined in sqlext.h
+*#define SQL_AT_COLUMN_SINGLE					          0x00000020L	
+*#define SQL_AT_ADD_COLUMN_DEFAULT				      0x00000040L
+*#define SQL_AT_ADD_COLUMN_COLLATION	    			0x00000080L
+*#define SQL_AT_SET_COLUMN_DEFAULT    				  0x00000100L
+*#define SQL_AT_DROP_COLUMN_DEFAULT				      0x00000200L
+*#define SQL_AT_DROP_COLUMN_CASCADE			    	  0x00000400L
+*#define SQL_AT_DROP_COLUMN_RESTRICT    				0x00000800L
+*#define SQL_AT_ADD_TABLE_CONSTRAINT				    0x00001000L		
+*#define SQL_AT_DROP_TABLE_CONSTRAINT_CASCADE		0x00002000L		
+*#define SQL_AT_DROP_TABLE_CONSTRAINT_RESTRICT	0x00004000L		
+*#define SQL_AT_CONSTRAINT_NAME_DEFINITION			0x00008000L
+*#define SQL_AT_CONSTRAINT_INITIALLY_DEFERRED		0x00010000L
+*#define SQL_AT_CONSTRAINT_INITIALLY_IMMEDIATE	0x00020000L
+*#define SQL_AT_CONSTRAINT_DEFERRABLE				    0x00040000L
+*#define SQL_AT_CONSTRAINT_NON_DEFERRABLE			  0x00080000L
+*/*)
+
+(* SQL_ASYNC_MODE values *)
+  SQL_AM_NONE       = 0;
+  SQL_AM_CONNECTION = 1;
+  SQL_AM_STATEMENT  = 2;
+
+(* SQL_CURSOR_COMMIT_BEHAVIOR values *)
+  SQL_CB_DELETE   = 0;
+  SQL_CB_CLOSE    = 1;
+  SQL_CB_PRESERVE = 2;
+
+(* SQL_FETCH_DIRECTION bitmasks *)
+  SQL_FD_FETCH_NEXT     = 00000001H;
+  SQL_FD_FETCH_FIRST    = 00000002H;
+  SQL_FD_FETCH_LAST     = 00000004H;
+  SQL_FD_FETCH_PRIOR    = 00000008H;
+  SQL_FD_FETCH_ABSOLUTE = 00000010H;
+  SQL_FD_FETCH_RELATIVE = 00000020H;
+
+(* SQL_GETDATA_EXTENSIONS bitmasks *)
+  SQL_GD_ANY_COLUMN = 00000001H;
+  SQL_GD_ANY_ORDER  = 00000002H;
+
+(* SQL_IDENTIFIER_CASE values *)
+  SQL_IC_UPPER     = 1;
+  SQL_IC_LOWER     = 2;
+  SQL_IC_SENSITIVE = 3;
+  SQL_IC_MIXED     = 4;
+
+(* SQL_OJ_CAPABILITIES bitmasks *)
+(* NB: this means 'outer join', not what  you may be thinking *)
+
+  SQL_OJ_LEFT               = 00000001H;
+  SQL_OJ_RIGHT              = 00000002H;
+  SQL_OJ_FULL               = 00000004H;
+  SQL_OJ_NESTED             = 00000008H;
+  SQL_OJ_NOT_ORDERED        = 00000010H;
+  SQL_OJ_INNER              = 00000020H;
+  SQL_OJ_ALL_COMPARISON_OPS = 00000040H;
+
+(* SQL_SCROLL_CONCURRENCY bitmasks *)
+  SQL_SCCO_READ_ONLY  = 00000001H;
+  SQL_SCCO_LOCK       = 00000002H;
+  SQL_SCCO_OPT_ROWVER = 00000004H;
+  SQL_SCCO_OPT_VALUES = 00000008H;
+
+(* SQL_TXN_CAPABLE values *)
+  SQL_TC_NONE       = 0;
+  SQL_TC_DML        = 1;
+  SQL_TC_ALL        = 2;
+  SQL_TC_DDL_COMMIT = 3;
+  SQL_TC_DDL_IGNORE = 4;
+
+(* SQL_TXN_ISOLATION_OPTION bitmasks *)
+  SQL_TXN_READ_UNCOMMITTED         = 00000001H;
+  SQL_TRANSACTION_READ_UNCOMMITTED = SQL_TXN_READ_UNCOMMITTED;
+  SQL_TXN_READ_COMMITTED           = 00000002H;
+  SQL_TRANSACTION_READ_COMMITTED	 = SQL_TXN_READ_COMMITTED;
+  SQL_TXN_REPEATABLE_READ          = 00000004H;
+  SQL_TRANSACTION_REPEATABLE_READ	 = SQL_TXN_REPEATABLE_READ;
+  SQL_TXN_SERIALIZABLE             = 00000008H;
+  SQL_TRANSACTION_SERIALIZABLE		 = SQL_TXN_SERIALIZABLE;
+
+(* SQL_NULL_COLLATION values *)
+  SQL_NC_HIGH = 0;
+  SQL_NC_LOW  = 1;
+
+(*============================================================*)
+
+(* Obsolete - ODBC 2.0 *)
+PROCEDURE SQLAllocConnect( EnvironmentHandle : sqltypes.SQLHENV; 
+                           ConnectionHandle  : sqltypes.TPSQLHDBC ) : sqltypes.SQLRETURN;
+
+(* Obsolete - ODBC 2.0 *)
+PROCEDURE SQLAllocEnv( EnvironmentHandle : sqltypes.TPSQLHENV ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLAllocHandle( HandleType   : sqltypes.SQLSMALLINT;
+                          InputHandle  : sqltypes.SQLHANDLE;
+                          OutputHandle : sqltypes.TPSQLHANDLE ) : sqltypes.SQLRETURN;
+
+(* Obsolete - ODBC 2.0 *)
+PROCEDURE SQLAllocStmt( ConnectionHandle : sqltypes.SQLHDBC;
+                        StatementHandle  : sqltypes.TPSQLHSTMT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLBindCol( StatementHandle : sqltypes.SQLHSTMT;
+		                  ColumnNumber    : sqltypes.SQLUSMALLINT;
+                      TargetType      : sqltypes.SQLSMALLINT;
+		                  TargetValue     : sqltypes.SQLPOINTER;
+                      BufferLength    : sqltypes.SQLINTEGER;
+	   	                StrLen_or_Ind   : sqltypes.TPSQLINTEGER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLBindParam( StatementHandle : sqltypes.SQLHSTMT;
+                        ParameterNumber : sqltypes.SQLUSMALLINT;
+                        ValueType       : sqltypes.SQLSMALLINT;
+                        ParameterType   : sqltypes.SQLSMALLINT;
+                        LengthPrecision : sqltypes.SQLUINTEGER;
+                        ParameterScale  : sqltypes.SQLSMALLINT;
+                        ParameterValue  : sqltypes.SQLPOINTER;
+                        StrLen_or_Ind   : sqltypes.TPSQLINTEGER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLCancel( StatementHandle : sqltypes.SQLHSTMT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLCloseCursor( StatementHandle : sqltypes.SQLHSTMT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLColAttribute ( StatementHandle    : sqltypes.SQLHSTMT;
+                            ColumnNumber       : sqltypes.SQLUSMALLINT;
+                            FieldIdentifier    : sqltypes.SQLUSMALLINT;
+                            CharacterAttribute : sqltypes.SQLPOINTER;
+                            BufferLength       : sqltypes.SQLSMALLINT;
+                            StringLength       : sqltypes.TPSQLSMALLINT;
+                            NumericAttribute   : sqltypes.SQLPOINTER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLColumns( StatementHandle : sqltypes.SQLHSTMT;
+                      CatalogName     : sqltypes.TPSQLCHAR;
+                      NameLength1     : sqltypes.SQLSMALLINT;
+                      SchemaName      : sqltypes.TPSQLCHAR;
+                      NameLength2     : sqltypes.SQLSMALLINT;
+                      TableName       : sqltypes.TPSQLCHAR;
+                      NameLength3     : sqltypes.SQLSMALLINT;
+                      ColumnName      : sqltypes.TPSQLCHAR;
+                      NameLength4     : sqltypes.SQLSMALLINT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLConnect( ConnectionHandle : sqltypes.SQLHDBC;
+                      ServerName       : sqltypes.TPSQLCHAR;
+                      NameLength1      : sqltypes.SQLSMALLINT;
+                      UserName         : sqltypes.TPSQLCHAR;
+                      NameLength2      : sqltypes.SQLSMALLINT;
+                      Authentication   : sqltypes.TPSQLCHAR;
+                      NameLength3      : sqltypes.SQLSMALLINT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLCopyDesc( SourceDescHandle : sqltypes.SQLHDESC;
+                       TargetDescHandle : sqltypes.SQLHDESC ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLDataSources( EnvironmentHandle : sqltypes.SQLHENV;
+                          Direction         : sqltypes.SQLUSMALLINT;
+                          ServerName        : sqltypes.TPSQLCHAR;
+                          BufferLength1     : sqltypes.SQLSMALLINT;
+                          NameLength1       : sqltypes.TPSQLSMALLINT;
+                          Description       : sqltypes.TPSQLCHAR;
+                          BufferLength2     : sqltypes.SQLSMALLINT;
+                          NameLength2       : sqltypes.TPSQLSMALLINT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLDescribeCol( StatementHandle : sqltypes.SQLHSTMT;
+                          ColumnNumber    : sqltypes.SQLUSMALLINT; 
+                          ColumnName      : sqltypes.TPSQLCHAR;
+                          BufferLength    : sqltypes.SQLSMALLINT; 
+                          NameLength      : sqltypes.TPSQLSMALLINT;
+                          DataType        : sqltypes.TPSQLSMALLINT; 
+                          ColumnSize      : sqltypes.TPSQLUINTEGER;
+                          DecimalDigits   : sqltypes.TPSQLSMALLINT; 
+                          Nullable        : sqltypes.TPSQLSMALLINT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLDisconnect( ConnectionHandle : sqltypes.SQLHDBC ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLEndTran( HandleType     : sqltypes.SQLSMALLINT; 
+                      Handle         : sqltypes.SQLHANDLE;
+                      CompletionType : sqltypes.SQLSMALLINT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLError( EnvironmentHandle : sqltypes.SQLHENV;
+                    ConnectionHandle  : sqltypes.SQLHDBC; 
+                    StatementHandle   : sqltypes.SQLHSTMT;
+                    Sqlstate          : sqltypes.TPSQLCHAR; 
+                    NativeError       : sqltypes.TPSQLINTEGER;
+                    MessageText       : sqltypes.TPSQLCHAR; 
+                    BufferLength      : sqltypes.SQLSMALLINT;
+                    TextLength        : sqltypes.TPSQLSMALLINT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLExecDirect( StatementHandle : sqltypes.SQLHSTMT;
+                         StatementText   : sqltypes.TPSQLCHAR; 
+                         TextLength      : sqltypes.SQLINTEGER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLExecute( StatementHandle : sqltypes.SQLHSTMT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLFetch( StatementHandle : sqltypes.SQLHSTMT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLFetchScroll( StatementHandle  : sqltypes.SQLHSTMT;
+                          FetchOrientation : sqltypes.SQLSMALLINT; 
+                          FetchOffset      : sqltypes.SQLINTEGER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLFreeConnect( ConnectionHandle : sqltypes.SQLHDBC ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLFreeEnv( EnvironmentHandle : sqltypes.SQLHENV ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLFreeHandle( HandleType : sqltypes.SQLSMALLINT; 
+                         Handle     : sqltypes.SQLHANDLE ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLFreeStmt( StatementHandle : sqltypes.SQLHSTMT;
+                       Option          : sqltypes.SQLUSMALLINT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLGetConnectAttr( ConnectionHandle : sqltypes.SQLHDBC;
+                             Attribute        : sqltypes.SQLINTEGER; 
+                             Value            : sqltypes.SQLPOINTER;
+                             BufferLength     : sqltypes.SQLINTEGER; 
+                             StringLength     : sqltypes.TPSQLINTEGER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLGetConnectOption( ConnectionHandle : sqltypes.SQLHDBC;
+                               Option           : sqltypes.SQLUSMALLINT; 
+                               Value            : sqltypes.SQLPOINTER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLGetCursorName( StatementHandle : sqltypes.SQLHSTMT;
+                            CursorName      : sqltypes.TPSQLCHAR; 
+                            BufferLength    : sqltypes.SQLSMALLINT;
+                            NameLength      : sqltypes.TPSQLSMALLINT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLGetData( StatementHandle : sqltypes.SQLHSTMT;
+                      ColumnNumber    : sqltypes.SQLUSMALLINT; 
+                      TargetType      : sqltypes.SQLSMALLINT;
+                      TargetValue     : sqltypes.SQLPOINTER; 
+                      BufferLength    : sqltypes.SQLINTEGER;
+                      StrLen_or_Ind   : sqltypes.TPSQLINTEGER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLGetDescField( DescriptorHandle : sqltypes.SQLHDESC;
+                           RecNumber        : sqltypes.SQLSMALLINT; 
+                           FieldIdentifier  : sqltypes.SQLSMALLINT;
+                           Value            : sqltypes.SQLPOINTER; 
+                           BufferLength     : sqltypes.SQLINTEGER;
+                           StringLength     : sqltypes.TPSQLINTEGER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLGetDescRec( DescriptorHandle : sqltypes.SQLHDESC;
+                         RecNumber        : sqltypes.SQLSMALLINT; 
+                         Name             : sqltypes.TPSQLCHAR;
+                         BufferLength     : sqltypes.SQLSMALLINT; 
+                         StringLength     : sqltypes.TPSQLSMALLINT;
+                         Type             : sqltypes.TPSQLSMALLINT; 
+                         SubType          : sqltypes.TPSQLSMALLINT; 
+                         Length           : sqltypes.TPSQLINTEGER; 
+                         Precision        : sqltypes.TPSQLSMALLINT; 
+                         Scale            : sqltypes.TPSQLSMALLINT; 
+                         Nullable         : sqltypes.TPSQLSMALLINT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLGetDiagField( HandleType     : sqltypes.SQLSMALLINT; 
+                           Handle         : sqltypes.SQLHANDLE;
+                           RecNumber      : sqltypes.SQLSMALLINT; 
+                           DiagIdentifier : sqltypes.SQLSMALLINT;
+                           DiagInfo       : sqltypes.SQLPOINTER; 
+                           BufferLength   : sqltypes.SQLSMALLINT;
+                           StringLength   : sqltypes.TPSQLSMALLINT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLGetDiagRec( HandleType   : sqltypes.SQLSMALLINT; 
+                         Handle       : sqltypes.SQLHANDLE;
+                         RecNumber    : sqltypes.SQLSMALLINT; 
+                         Sqlstate     : sqltypes.TPSQLCHAR;
+                         NativeError  : sqltypes.TPSQLINTEGER; 
+                         MessageText  : sqltypes.TPSQLCHAR;
+                         BufferLength : sqltypes.SQLSMALLINT; 
+                         TextLength   : sqltypes.TPSQLSMALLINT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLGetEnvAttr( EnvironmentHandle : sqltypes.SQLHENV;
+                         Attribute         : sqltypes.SQLINTEGER; 
+                         Value             : sqltypes.SQLPOINTER;
+                         BufferLength      : sqltypes.SQLINTEGER; 
+                         StringLength      : sqltypes.TPSQLINTEGER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLGetFunctions( ConnectionHandle : sqltypes.SQLHDBC;
+                           FunctionId       : sqltypes.SQLUSMALLINT; 
+                           Supported        : sqltypes.TPSQLUSMALLINT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLGetInfo( ConnectionHandle : sqltypes.SQLHDBC;
+                      InfoType         : sqltypes.SQLUSMALLINT; 
+                      InfoValue        : sqltypes.SQLPOINTER;
+                      BufferLength     : sqltypes.SQLSMALLINT; 
+                      StringLength     : sqltypes.TPSQLSMALLINT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLGetStmtAttr( StatementHandle : sqltypes.SQLHSTMT;
+                          Attribute       : sqltypes.SQLINTEGER; 
+                          Value           : sqltypes.SQLPOINTER;
+                          BufferLength    : sqltypes.SQLINTEGER; 
+                          StringLength    : sqltypes.TPSQLINTEGER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLGetStmtOption( StatementHandle : sqltypes.SQLHSTMT;
+                            Option          : sqltypes.SQLUSMALLINT; 
+                            Value           : sqltypes.SQLPOINTER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLGetTypeInfo( StatementHandle : sqltypes.SQLHSTMT;
+                          DataType        : sqltypes.SQLSMALLINT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLNumResultCols( StatementHandle : sqltypes.SQLHSTMT;
+                            ColumnCount     : sqltypes.TPSQLSMALLINT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLParamData( StatementHandle : sqltypes.SQLHSTMT;
+                        Value           : sqltypes.TPSQLPOINTER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLPrepare( StatementHandle : sqltypes.SQLHSTMT;
+                      StatementText   : sqltypes.TPSQLCHAR; 
+                      TextLength      : sqltypes.SQLINTEGER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLPutData( StatementHandle : sqltypes.SQLHSTMT;
+                      Data            : sqltypes.SQLPOINTER; 
+                      StrLen_or_Ind   : sqltypes.SQLINTEGER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLRowCount( StatementHandle : sqltypes.SQLHSTMT; 
+	                     RowCount        : sqltypes.TPSQLINTEGER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLSetConnectAttr( ConnectionHandle : sqltypes.SQLHDBC;
+                             Attribute        : sqltypes.SQLINTEGER; 
+                             Value            : sqltypes.SQLPOINTER;
+                             StringLength     : sqltypes.SQLINTEGER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLSetConnectOption( ConnectionHandle : sqltypes.SQLHDBC;
+                               Option           : sqltypes.SQLUSMALLINT; 
+                               Value            : sqltypes.SQLUINTEGER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLSetCursorName( StatementHandle : sqltypes.SQLHSTMT;
+                            CursorName      : sqltypes.TPSQLCHAR; 
+                            NameLength      : sqltypes.SQLSMALLINT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLSetDescField( DescriptorHandle : sqltypes.SQLHDESC;
+                           RecNumber        : sqltypes.SQLSMALLINT; 
+                           FieldIdentifier  : sqltypes.SQLSMALLINT;
+                           Value            : sqltypes.SQLPOINTER; 
+                           BufferLength     : sqltypes.SQLINTEGER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLSetDescRec( DescriptorHandle : sqltypes.SQLHDESC;
+                         RecNumber        : sqltypes.SQLSMALLINT; 
+                         Type             : sqltypes.SQLSMALLINT;
+                         SubType          : sqltypes.SQLSMALLINT; 
+                         Length           : sqltypes.SQLINTEGER;
+                         Precision        : sqltypes.SQLSMALLINT; 
+                         Scale            : sqltypes.SQLSMALLINT;
+                         Data             : sqltypes.SQLPOINTER; 
+                         StringLength     : sqltypes.TPSQLINTEGER;
+                         Indicator        : sqltypes.TPSQLINTEGER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLSetEnvAttr( EnvironmentHandle : sqltypes.SQLHENV;
+                         Attribute         : sqltypes.SQLINTEGER; 
+                         Value             : sqltypes.SQLPOINTER;
+                         StringLength      : sqltypes.SQLINTEGER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLSetParam( StatementHandle : sqltypes.SQLHSTMT;
+                       ParameterNumber : sqltypes.SQLUSMALLINT; 
+                       ValueType       : sqltypes.SQLSMALLINT;
+                       ParameterType   : sqltypes.SQLSMALLINT; 
+                       LengthPrecision : sqltypes.SQLUINTEGER;
+                       ParameterScale  : sqltypes.SQLSMALLINT; 
+                       ParameterValue  : sqltypes.SQLPOINTER;
+                       StrLen_or_Ind   : sqltypes.TPSQLINTEGER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLSetStmtAttr( StatementHandle : sqltypes.SQLHSTMT;
+                          Attribute       : sqltypes.SQLINTEGER; 
+                          Value           : sqltypes.SQLPOINTER;
+                          StringLength    : sqltypes.SQLINTEGER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLSetStmtOption( StatementHandle : sqltypes.SQLHSTMT;
+                            Option          : sqltypes.SQLUSMALLINT; 
+                            Value           : sqltypes.SQLUINTEGER ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLSpecialColumns( StatementHandle : sqltypes.SQLHSTMT;
+                             IdentifierType  : sqltypes.SQLUSMALLINT; 
+                             CatalogName     : sqltypes.TPSQLCHAR;
+                             NameLength1     : sqltypes.SQLSMALLINT; 
+                             SchemaName      : sqltypes.TPSQLCHAR;
+                             NameLength2     : sqltypes.SQLSMALLINT; 
+                             TableName       : sqltypes.TPSQLCHAR;
+                             NameLength3     : sqltypes.SQLSMALLINT; 
+                             Scope           : sqltypes.SQLUSMALLINT;
+                             Nullable        : sqltypes.SQLUSMALLINT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLStatistics( StatementHandle : sqltypes.SQLHSTMT;
+                         CatalogName     : sqltypes.TPSQLCHAR; 
+                         NameLength1     : sqltypes.SQLSMALLINT;
+                         SchemaName      : sqltypes.TPSQLCHAR; 
+                         NameLength2     : sqltypes.SQLSMALLINT;
+                         TableName       : sqltypes.TPSQLCHAR; 
+                         NameLength3     : sqltypes.SQLSMALLINT;
+                         Unique          : sqltypes.SQLUSMALLINT; 
+                         Reserved        : sqltypes.SQLUSMALLINT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLTables( StatementHandle : sqltypes.SQLHSTMT;
+                     CatalogName     : sqltypes.TPSQLCHAR; 
+                     NameLength1     : sqltypes.SQLSMALLINT;
+                     SchemaName      : sqltypes.TPSQLCHAR; 
+                     NameLength2     : sqltypes.SQLSMALLINT;
+                     TableName       : sqltypes.TPSQLCHAR; 
+                     NameLength3     : sqltypes.SQLSMALLINT;
+                     TableType       : sqltypes.TPSQLCHAR; 
+                     NameLength4     : sqltypes.SQLSMALLINT ) : sqltypes.SQLRETURN;
+
+PROCEDURE SQLTransact( EnvironmentHandle : sqltypes.SQLHENV;
+                       ConnectionHandle  : sqltypes.SQLHDBC; 
+                       CompletionType    : sqltypes.SQLUSMALLINT ) : sqltypes.SQLRETURN;
+
+
+END sql.

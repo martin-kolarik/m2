@@ -1,0 +1,92 @@
+DEFINITION MODULE Store;
+
+IMPORT
+	arrays,
+	Items,
+	IOO,
+	lists,
+	StringsO;
+
+(*================================================================================*)
+
+TYPE
+   TPStorage = POINTER TO CStorage;
+
+ABSTRACT CLASS CStorage;
+	PUBLIC ABSTRACT PROCEDURE Load( ProductIdFilter : ARRAY OF WCHAR; REF Items : arrays.CPtrArray; ClearArray, ValidateItems : BOOLEAN );
+   PUBLIC ABSTRACT PROCEDURE Store( CONST ItemsToStore : arrays.CPtrArray; RespectDirty : BOOLEAN );
+END CStorage;
+
+(*================================================================================*)
+
+TYPE
+	TFileOperationMode = (
+		fomSingleFile,
+		fomFileByItem,
+		fomFileByProduct
+	);
+	
+TYPE
+   TPFileStorage = POINTER TO CFileStorage;
+   TPFileFilter = POINTER TO CFileFilter;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CFileStorage( CStorage );
+	PRIVATE VAR
+		_OperationMode : TFileOperationMode := fomFileByProduct;
+		_Path : StringsO.CString; // default is empty, what means system common files storage
+		_Root : StringsO.CString; // must not be empty, it means company and forms root of commonprograms hierarchy
+		_Filters : lists.CPtrList;
+	PUBLIC PROPERTY
+		OperationMode : TFileOperationMode;
+		Root : StringsO.CString; // used if path is empty
+		Path : StringsO.CString; // overwrites root
+		FilterToStore : TPFileFilter;
+	PUBLIC READONLY PROPERTY
+		Filters : lists.TPPtrList;
+
+   PUBLIC PROCEDURE SetRootOA( Root : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE SetPathOA( Path : ARRAY OF WCHAR );
+
+	PUBLIC FINAL PROCEDURE Load( ProductIdFilter : ARRAY OF WCHAR; REF Items : arrays.CPtrArray; ClearArray, RespectValidation : BOOLEAN );
+   PUBLIC FINAL PROCEDURE Store( CONST ItemsToStore : arrays.CPtrArray; RespectDirty : BOOLEAN );
+	
+	// special
+	PUBLIC PROCEDURE LoadSingleFile( CONST Path : StringsO.IString; REF Items : arrays.CPtrArray; ClearArray, RespectValidation : BOOLEAN ) : BOOLEAN THROWS IOO.CIOException; // returns if something was loaded
+	PUBLIC PROCEDURE LoadSingleFileOA( CONST Path : ARRAY OF WCHAR; REF Items : arrays.CPtrArray; ClearArray, RespectValidation : BOOLEAN ) : BOOLEAN THROWS IOO.CIOException; // returns if something was loaded
+
+   PUBLIC PROCEDURE StoreSingleFile( CONST Path : StringsO.IString; CONST ItemsToStore : arrays.CPtrArray );
+   PUBLIC PROCEDURE StoreSingleFileOA( CONST Path : ARRAY OF WCHAR; CONST ItemsToStore : arrays.CPtrArray );
+	
+	// own
+	PRIVATE PROCEDURE ValidateItems( IgnoreValidity : BOOLEAN; CONST SourceItems : arrays.CPtrArray; OUT ValidItems : arrays.CPtrArray );
+END CFileStorage;
+
+(*--------------------------------------------------------------------------------*)
+
+ABSTRACT CLASS CFileFilter;
+   LOCAL PROCEDURE IsFor( CONST Path : ARRAY OF WCHAR ) : BOOLEAN;
+	LOCAL ABSTRACT PROCEDURE Extension( OUT Extension : ARRAY OF WCHAR );
+	
+	LOCAL VIRTUAL PROCEDURE InitLoad();
+	LOCAL ABSTRACT PROCEDURE LoadFile( CONST File : ARRAY OF WCHAR; REF Items : arrays.CPtrArray );
+	LOCAL VIRTUAL PROCEDURE FinishLoad();
+	
+	LOCAL VIRTUAL PROCEDURE InitStore();
+	LOCAL ABSTRACT PROCEDURE StoreFile( CONST File : ARRAY OF WCHAR; CONST Items : arrays.CPtrArray );
+	LOCAL VIRTUAL PROCEDURE FinishStore();
+END CFileFilter;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CINIFilter( CFileFilter );
+	LOCAL VIRTUAL PROCEDURE Extension( OUT Extension : ARRAY OF WCHAR );
+	
+	LOCAL VIRTUAL PROCEDURE LoadFile( CONST File : ARRAY OF WCHAR; REF Items : arrays.CPtrArray );
+	LOCAL VIRTUAL PROCEDURE StoreFile( CONST File : ARRAY OF WCHAR; CONST Items : arrays.CPtrArray );
+END CINIFilter;
+
+(*================================================================================*)
+
+END Store.

@@ -1,0 +1,25 @@
+MODULE opsnewdispose;
+
+  TYPE
+    TPCX = POINTER TO CX;
+
+  CLASS CX;
+    OPERATOR NEW( s : CARDINAL ) : ADDRESS;
+    OPERATOR DISPOSE( a : ADDRESS );
+  END CX;
+
+  CLASS IMPLEMENTATION CX;
+
+    OPERATOR CX.NEW( t : CARDINAL ) : ADDRESS;
+    BEGIN
+      RETURN NIL;
+    END CX.NEW;
+
+    OPERATOR CX.DISPOSE( a : ADDRESS );
+    BEGIN
+    END CX.DISPOSE;
+
+  BEGIN
+  END CX;
+
+END opsnewdispose.

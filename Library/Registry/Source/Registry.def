@@ -1,0 +1,58 @@
+DEFINITION MODULE Registry;
+
+TYPE
+   TRoot = (
+      LOCAL_MACHINE,
+      CURRENT_USER,
+      CLASSES_ROOT
+   );
+
+TYPE
+   TPRegistry = POINTER TO CRegistry;
+
+CLASS CRegistry;
+   PRIVATE VAR
+      CurrentKey : PTR;
+      CurrentSec : PTR;
+      Modified : BOOLEAN;
+      #if DEBUG #then
+         _al1 : TRISTATE;
+      #endif
+
+   // the registry path consists of  "\\RemoteName\CurrentRoot\Path"
+   PUBLIC PROCEDURE OpenRead( CONST RemoteName : ARRAY OF WCHAR; Root : TRoot; CONST Path : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC PROCEDURE Open( CONST RemoteName : ARRAY OF WCHAR; Root : TRoot; CONST Path : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC PROCEDURE Close();
+
+   // virtual API -- Init/Create/Done mapped to vfInit/vfCreate/vfDone
+   INTERNAL VIRTUAL PROCEDURE vfOpenRead( CONST RemoteName : ARRAY OF WCHAR; Root : TRoot; CONST Path : ARRAY OF WCHAR ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE vfOpen( CONST RemoteName : ARRAY OF WCHAR; Root : TRoot; CONST Path : ARRAY OF WCHAR ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE vfClose();
+
+   INTERNAL VIRTUAL PROCEDURE GetKeyData( CONST Key : ARRAY OF WCHAR; PData : ADDRESS; OUT DataSize : CARDINAL; OUT RegType : CARDINAL ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE SetKeyData( CONST Key : ARRAY OF WCHAR; PData : ADDRESS;     DataSize : CARDINAL;     RegType : CARDINAL ) : BOOLEAN;
+
+   // "section" means the path constructed like this: \\RemoteName\CurrentRoot\Path\section
+   PUBLIC PROCEDURE SetRootSection() : BOOLEAN;
+   PUBLIC PROCEDURE SetSection( CONST Section : ARRAY OF WCHAR ): BOOLEAN;
+   PUBLIC PROCEDURE CreateSection( CONST Section : ARRAY OF WCHAR ): BOOLEAN;
+   PUBLIC PROCEDURE ClearSection( CONST Section : ARRAY OF WCHAR ): BOOLEAN;
+   PUBLIC PROCEDURE DeleteSection( CONST Section : ARRAY OF WCHAR ): BOOLEAN;
+   PUBLIC PROCEDURE DeleteKey( CONST Key : ARRAY OF WCHAR ) : BOOLEAN;
+
+   PUBLIC PROCEDURE Enumerate( DoSections, DoKeys : BOOLEAN; REF EnumerateState : PTR; OUT Key : ARRAY OF WCHAR ) : BOOLEAN;
+
+   PUBLIC PROCEDURE GetKeyStr ( CONST Key : ARRAY OF WCHAR; OUT V : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC PROCEDURE GetKeyBool( CONST Key : ARRAY OF WCHAR; OUT V : BOOLEAN        ) : BOOLEAN;
+   PUBLIC PROCEDURE GetKeyInt ( CONST Key : ARRAY OF WCHAR; OUT V : INTEGER        ) : BOOLEAN;
+   PUBLIC PROCEDURE GetKeyReal( CONST Key : ARRAY OF WCHAR; OUT V : LONGREAL       ) : BOOLEAN;
+   PUBLIC PROCEDURE GetKeyBin ( CONST Key : ARRAY OF WCHAR; REF PData : ADDRESS; DataSize : CARDINAL; OUT DataLen : CARDINAL ) : BOOLEAN;
+
+   PUBLIC PROCEDURE SetKeyStr ( CONST Key : ARRAY OF WCHAR; CONST V : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC PROCEDURE SetKeyBool( CONST Key : ARRAY OF WCHAR;       V : BOOLEAN        ) : BOOLEAN;
+   PUBLIC PROCEDURE SetKeyInt ( CONST Key : ARRAY OF WCHAR;       V : INTEGER        ) : BOOLEAN;
+   PUBLIC PROCEDURE SetKeyReal( CONST Key : ARRAY OF WCHAR;       V : LONGREAL       ) : BOOLEAN;
+   PUBLIC PROCEDURE SetKeyBin ( CONST Key : ARRAY OF WCHAR;       PData : ADDRESS; DataLen : CARDINAL ) : BOOLEAN;
+END CRegistry;
+
+END Registry.

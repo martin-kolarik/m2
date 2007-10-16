@@ -1,0 +1,25 @@
+DEFINITION MODULE drv_wrapper_;
+
+CONST
+	CZECH = TRUE;
+	ENGLISH = FALSE;
+
+(*%T CZECH *)
+
+  _Channel_number_redefined    = 'Channel number redefined';
+  _Incorrect_channel_direction = 'Incorrect channel direction';
+  _Incorrect_channel_type      = 'Incorrect channel type';
+  _Incorrect_channel_number    = 'Incorrect channel number';
+
+(*%E CZECH *)
+
+(*%T ENGLISH *)
+
+  _Channel_number_redefined    = 'Èíslo kanálu redefinováno';
+  _Incorrect_channel_direction = 'Nesprávný smìr kanálu';
+  _Incorrect_channel_type      = 'Nesprávný typ kanálu';
+  _Incorrect_channel_number    = 'Nesprávné èíslo kanálu';
+
+(*%E ENGLISH *)
+
+END drv_wrapper_.

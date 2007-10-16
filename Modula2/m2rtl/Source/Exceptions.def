@@ -1,0 +1,63 @@
+DEFINITION MODULE Exceptions;
+// Modula2 Exceptions handling module
+
+#save, option( dll_export => on )
+
+//--------------------------------------------------------------------------------
+
+ABSTRACT CLASS Exception; // first ancestor of all exceptions
+   PUBLIC READONLY VAR
+      Code : CARDINAL := 0;
+      NestedException : POINTER TO Exception := NIL;
+
+   INTERNAL ABSTRACT PROCEDURE Name( OUT S : ARRAY OF WCHAR );
+   PUBLIC ABSTRACT PROCEDURE ToString( OUT S : ARRAY OF WCHAR );
+END Exception;
+
+//--------------------------------------------------------------------------------
+
+CLASS CException( Exception );
+   PUBLIC READONLY VAR
+      Text : ARRAY [0..255] OF WCHAR := L"";
+      Originator : ARRAY [0..255] OF WCHAR := L"";
+
+   PUBLIC PROCEDURE Init( NestedException : POINTER TO Exception; CONST Originator, Text : ARRAY OF WCHAR ) : CException;
+   PUBLIC VIRTUAL PROCEDURE ToString( OUT S : ARRAY OF WCHAR );
+
+   INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
+END CException;
+
+//--------------------------------------------------------------------------------
+
+PROCEDURE GenericException( NestedException : POINTER TO Exception; CONST Originator, Text : ARRAY OF WCHAR ) : CException;
+
+//--------------------------------------------------------------------------------
+
+TYPE
+  TModula2Exception = (
+    mexOutOfArrayIndex,
+    mexProcedureNotImplemented,
+    mexMethodNotImplemented,
+    mexNotSupported,
+    mexInvalidParameter,
+    mexInvalidObjectState
+  );
+
+FINAL CLASS CModula2Exception( CException );
+   PUBLIC READONLY VAR
+      Kind : TModula2Exception;
+
+   PUBLIC PROCEDURE Init( NestedException : POINTER TO Exception; CONST Originator, Text : ARRAY OF WCHAR; Kind : TModula2Exception ) : CModula2Exception;
+
+   INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
+END CModula2Exception;
+
+//--------------------------------------------------------------------------------
+
+PROCEDURE Modula2Exception( NestedException : POINTER TO Exception; CONST Originator, Text : ARRAY OF WCHAR; Exception : TModula2Exception ) : CModula2Exception;
+
+//--------------------------------------------------------------------------------
+
+#restore
+
+END Exceptions.

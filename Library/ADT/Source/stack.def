@@ -1,0 +1,22 @@
+DEFINITION MODULE stack;
+// ADT Stack
+
+IMPORT
+  list;
+
+(*===========================================================================*)
+
+#save, option( dll_export => on )
+
+TYPE
+  TPStack = POINTER TO CStack;
+
+CLASS CStack( list.CListWState );
+  PROCEDURE Push( Object : list.TPListElem );
+  PROCEDURE Peek( OUT Object : list.TPListElem ) : BOOLEAN; 
+  PROCEDURE Pop( OUT Object : list.TPListElem ) : BOOLEAN; 
+END CStack;
+
+#restore
+
+END stack.

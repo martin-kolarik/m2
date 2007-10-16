@@ -1,0 +1,35 @@
+DEFINITION MODULE drv_ax;
+
+#if #not UNICODE #then
+  #error
+#endif
+
+(*# call( o_a_copy => off ) *)
+(*# option( pack => 8 ) *)
+
+////////////////////////////////////////////////////////////////
+// Control Web Driver ActiveX Control                         //
+//                                            the code itself //
+//                              (C) 2004 Moravian Instruments //
+////////////////////////////////////////////////////////////////
+
+IMPORT
+  guiddef,
+  wtypes;
+
+IMPORT
+  ax_automation;
+
+(*===========================================================================*)
+
+CLASS CClientConstructor IMPLEMENTS ax_automation.CAbstractClientConstructor;
+  PUBLIC VIRTUAL PROCEDURE CreateInstance( VAR PInstance : ax_automation.TPActiveXControl ) : wtypes.HRESULT;
+  PUBLIC VIRTUAL PROCEDURE QueryControlIIDs( VAR ControlIID, TypeLibIID, IDispatch_Native_IID, IDispatch_Event_IID : guiddef.IID );
+  PUBLIC VIRTUAL PROCEDURE QueryControlNames( VAR DLLName, ControlName, ProgId : ARRAY OF WCHAR; VAR ProgIdCurrentVersion : CARDINAL );
+  PUBLIC VIRTUAL PROCEDURE QueryTypeLibIndexes( VAR IControl, IDispatch_Native, IDispatch_Event : CARDINAL );
+  PUBLIC VIRTUAL PROCEDURE QueryUsesRunStop( VAR UsesRunStop : BOOLEAN );
+END CClientConstructor;
+
+(*===========================================================================*)
+
+END drv_ax.

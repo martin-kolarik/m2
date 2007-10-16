@@ -1,0 +1,760 @@
+DEFINITION MODULE imm;
+
+//==============================================================
+//      IMM.H - Input Method Manager definitions
+//
+// 32-bit version for M2CPP Modula-2 to C++ compiler
+// Copyright (c) 1999 Moravian Instruments, Inc.
+//
+//==============================================================
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+IMPORT
+  windows;
+
+TYPE
+//#if (WINVER >= 0x40A)
+//  HIMC  = windows.HANDLE;
+//  HIMCC = windows.HANDLE;
+//#else
+  HIMC  = windows.DWORD;
+  HIMCC = windows.DWORD;
+//#endif
+
+  PHKL = POINTER TO windows.HKL;
+  PUINT = POINTER TO windows.UINT;
+
+  COMPOSITIONFORM = RECORD
+    dwStyle : windows.DWORD;
+    ptCurrentPos : windows.POINT;
+    rcArea : windows.RECT;
+  END;
+  PCOMPOSITIONFORM = POINTER TO COMPOSITIONFORM;
+
+  CANDIDATEFORM = RECORD
+    dwIndex : windows.DWORD;
+    dwStyle : windows.DWORD;
+    ptCurrentPos : windows.POINT;
+    rcArea : windows.RECT;
+  END;
+  PCANDIDATEFORM = POINTER TO CANDIDATEFORM;
+
+  CANDIDATELIST = RECORD
+    dwSize : windows.DWORD;
+    dwStyle : windows.DWORD;
+    dwCount : windows.DWORD;
+    dwSelection : windows.DWORD;
+    dwPageStart : windows.DWORD;
+    dwPageSize : windows.DWORD;
+    dwOffset : ARRAY [0..0] OF windows.DWORD;
+  END;
+  PCANDIDATELIST = POINTER TO CANDIDATELIST;
+
+  REGISTERWORDA = RECORD
+    lpReading : windows.PSTR;
+    lpWord : windows.PSTR;
+  END;
+  PREGISTERWORDA = POINTER TO REGISTERWORDA;
+
+  REGISTERWORDW = RECORD
+    lpReading : windows.PWSTR;
+    lpWord : windows.PWSTR;
+  END;
+  PREGISTERWORDW = POINTER TO REGISTERWORDW;
+
+CONST
+(*%T UNICODE *)
+  REGISTERWORD ::= REGISTERWORDW;
+  PREGISTERWORD ::= PREGISTERWORDW;
+(*%E *)
+(*%F UNICODE *)
+  REGISTERWORD ::= REGISTERWORDA;
+  PREGISTERWORD ::= PREGISTERWORDA;
+(*%E *)
+
+// #if(WINVER >= 0x040A)
+TYPE
+  RECONVERTSTRING = RECORD
+    dwSize : windows.DWORD;
+    dwVersion : windows.DWORD;
+    dwStrLen : windows.DWORD;
+    dwStrOffset : windows.DWORD;
+    dwCompStrLen : windows.DWORD;
+    dwCompStrOffset : windows.DWORD;
+    dwTargetStrLen : windows.DWORD;
+    dwTargetStrOffset : windows.DWORD;
+  END;
+  PRECONVERTSTRING = POINTER TO RECONVERTSTRING;
+//#endif
+
+CONST
+  STYLE_DESCRIPTION_SIZE  = 32;
+
+TYPE
+  STYLEBUFA = RECORD
+    dwStyle : windows.DWORD;
+    szDescription : ARRAY [0..STYLE_DESCRIPTION_SIZE-1] OF CHAR;
+  END;
+  PSTYLEBUFA = POINTER TO STYLEBUFA;
+
+  STYLEBUFW = RECORD
+    dwStyle : windows.DWORD;
+    szDescription : ARRAY [0..STYLE_DESCRIPTION_SIZE-1] OF WCHAR;
+  END;
+  PSTYLEBUFW = POINTER TO STYLEBUFW;
+
+CONST
+(*%T UNICODE *)
+  STYLEBUF  ::= STYLEBUFW;
+  PSTYLEBUF ::= PSTYLEBUFW;
+(*%E *)
+(*%F UNICODE *)
+  STYLEBUF  ::= STYLEBUFA;
+  PSTYLEBUF ::= PSTYLEBUFA;
+(*%E *)
+
+
+//#if(WINVER >= 0x040A)
+
+CONST
+  IMEMENUITEM_STRING_SIZE = 80;
+
+TYPE
+  IMEMENUITEMINFOA = RECORD
+    cbSize : windows.UINT;
+    fType : windows.UINT;
+    fState : windows.UINT;
+    wID : windows.UINT;
+    hbmpChecked : windows.HBITMAP;
+    hbmpUnchecked : windows.HBITMAP;
+    dwItemData : windows.DWORD;
+    szString : ARRAY [0..IMEMENUITEM_STRING_SIZE-1] OF CHAR;
+    hbmpItem : windows.HBITMAP;
+  END;
+  PIMEMENUITEMINFOA = POINTER TO IMEMENUITEMINFOA;
+
+  IMEMENUITEMINFOW = RECORD
+    cbSize : windows.UINT;
+    fType : windows.UINT;
+    fState : windows.UINT;
+    wID : windows.UINT;
+    hbmpChecked : windows.HBITMAP;
+    hbmpUnchecked : windows.HBITMAP;
+    dwItemData : windows.DWORD;
+    szString : ARRAY [0..IMEMENUITEM_STRING_SIZE-1] OF WCHAR;
+    hbmpItem : windows.HBITMAP;
+  END;
+  PIMEMENUITEMINFOW = POINTER TO IMEMENUITEMINFOW;
+
+CONST
+(*%T UNICODE *)
+  IMEMENUITEMINFO  ::= IMEMENUITEMINFOW;
+  PIMEMENUITEMINFO ::= PIMEMENUITEMINFOW;
+(*%E *)
+(*%F UNICODE *)
+  IMEMENUITEMINFO  ::= IMEMENUITEMINFOA;
+  PIMEMENUITEMINFO ::= PIMEMENUITEMINFOA;
+(*%E *)
+
+//#endif  /* WINVER >= 0x040A */
+
+// prototype of IMM API
+
+PROCEDURE ImmInstallIMEA( lpszIMEFileName : windows.PCSTR; lpszLayoutText : windows.PCSTR ): windows.HKL;
+PROCEDURE ImmInstallIMEW( lpszIMEFileName : windows.PCWSTR; lpszLayoutText : windows.PCWSTR ): windows.HKL;
+
+CONST
+(*%T UNICODE *)
+  ImmInstallIME ::= ImmInstallIMEW;
+(*%E *)
+(*%F UNICODE *)
+  ImmInstallIME ::= ImmInstallIMEA;
+(*%E *)
+
+PROCEDURE ImmGetDefaultIMEWnd( _ : windows.HWND ): windows.HWND;
+
+PROCEDURE ImmGetDescriptionA( _ : windows.HKL; _ : windows.PSTR; uBufLen : windows.UINT ): windows.UINT;
+PROCEDURE ImmGetDescriptionW( _ : windows.HKL; _ : windows.PWSTR; uBufLen : windows.UINT ): windows.UINT;
+
+CONST
+(*%T UNICODE *)
+  ImmGetDescription ::= ImmGetDescriptionW;
+(*%E *)
+(*%F UNICODE *)
+  ImmGetDescription ::= ImmGetDescriptionA;
+(*%E *)
+
+PROCEDURE ImmGetIMEFileNameA( _ : windows.HKL; _ : windows.PSTR; uBufLen : windows.UINT ): windows.UINT;
+PROCEDURE ImmGetIMEFileNameW( _ : windows.HKL; _ : windows.PWSTR; uBufLen : windows.UINT ): windows.UINT;
+
+CONST
+(*%T UNICODE *)
+  ImmGetIMEFileName ::= ImmGetIMEFileNameW;
+(*%E *)
+(*%F UNICODE *)
+  ImmGetIMEFileName ::= ImmGetIMEFileNameA;
+(*%E *)
+
+PROCEDURE ImmGetProperty( _ : windows.HKL; _ : windows.DWORD ): windows.DWORD;
+
+PROCEDURE ImmIsIME( _ : windows.HKL ): windows.BOOL;
+PROCEDURE ImmSimulateHotKey( _ : windows.HWND; _ : windows.DWORD ): windows.BOOL;
+
+PROCEDURE ImmCreateContext(): HIMC;
+PROCEDURE ImmDestroyContext( _ : HIMC ): windows.BOOL;
+PROCEDURE ImmGetContext( _ : windows.HWND ): HIMC;
+PROCEDURE ImmReleaseContext( _ : windows.HWND; _ : HIMC ): windows.BOOL;
+PROCEDURE ImmAssociateContext( _ : windows.HWND; _ : HIMC ): HIMC;
+//#if(WINVER >= 0x040A)
+PROCEDURE ImmAssociateContextEx( _ : windows.HWND; _ : HIMC; _ : windows.DWORD): windows.BOOL;
+//#endif /* WINVER >= 0x040A */
+
+PROCEDURE ImmGetCompositionStringA( _ : HIMC; _ : windows.DWORD; _ : windows.PVOID; _ : windows.DWORD): windows.LONG;
+PROCEDURE ImmGetCompositionStringW( _ : HIMC; _ : windows.DWORD; _ : windows.PVOID; _ : windows.DWORD): windows.LONG;
+
+CONST
+(*%T UNICODE *)
+  ImmGetCompositionString ::= ImmGetCompositionStringW;
+(*%E *)
+(*%F UNICODE *)
+  ImmGetCompositionString ::= ImmGetCompositionStringA;
+(*%E *)
+
+PROCEDURE ImmSetCompositionStringA( _ : HIMC; dwIndex : windows.DWORD; lpComp : windows.PCVOID; _ : windows.DWORD; lpRead : windows.PCVOID; _ : windows.DWORD): windows.BOOL;
+PROCEDURE ImmSetCompositionStringW( _ : HIMC; dwIndex : windows.DWORD; lpComp : windows.PCVOID; _ : windows.DWORD; lpRead : windows.PCVOID; _ : windows.DWORD): windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  ImmSetCompositionString ::= ImmSetCompositionStringW;
+(*%E *)
+(*%F UNICODE *)
+  ImmSetCompositionString ::= ImmSetCompositionStringA;
+(*%E *)
+
+PROCEDURE ImmGetCandidateListCountA( _ : HIMC; lpdwListCount : windows.PWORD ): windows.DWORD;
+PROCEDURE ImmGetCandidateListCountW( _ : HIMC; lpdwListCount : windows.PWORD ): windows.DWORD;
+
+CONST
+(*%T UNICODE *)
+  ImmGetCandidateListCount ::= ImmGetCandidateListCountW;
+(*%E *)
+(*%F UNICODE *)
+  ImmGetCandidateListCount ::= ImmGetCandidateListCountA;
+(*%E *)
+
+PROCEDURE ImmGetCandidateListA( _ : HIMC; deIndex : windows.DWORD; _ : PCANDIDATELIST; dwBufLen : windows.DWORD ): windows.DWORD;
+PROCEDURE ImmGetCandidateListW( _ : HIMC; deIndex : windows.DWORD; _ : PCANDIDATELIST; dwBufLen : windows.DWORD ): windows.DWORD;
+
+CONST
+(*%T UNICODE *)
+  ImmGetCandidateList ::= ImmGetCandidateListW;
+(*%E *)
+(*%F UNICODE *)
+  ImmGetCandidateList ::= ImmGetCandidateListA;
+(*%E *)
+
+PROCEDURE ImmGetGuideLineA( _ : HIMC; dwIndex : windows.DWORD; _ : windows.PSTR; dwBufLen : windows.DWORD ): windows.DWORD;
+PROCEDURE ImmGetGuideLineW( _ : HIMC; dwIndex : windows.DWORD; _ : windows.PWSTR; dwBufLen : windows.DWORD ): windows.DWORD;
+
+CONST
+(*%T UNICODE *)
+  ImmGetGuideLine ::= ImmGetGuideLineW;
+(*%E *)
+(*%F UNICODE *)
+  ImmGetGuideLine ::= ImmGetGuideLineA;
+(*%E *)
+
+PROCEDURE ImmGetConversionStatus( _ : HIMC; _ : windows.PWORD; _ : windows.PWORD): windows.BOOL;
+PROCEDURE ImmSetConversionStatus( _ : HIMC; _ : windows.DWORD; _ : windows.DWORD): windows.BOOL;
+PROCEDURE ImmGetOpenStatus( _ : HIMC): windows.BOOL;
+PROCEDURE ImmSetOpenStatus( _ : HIMC; _ : windows.BOOL): windows.BOOL;
+
+//#ifdef _WINGDI_
+//#ifndef NOGDI
+
+PROCEDURE ImmGetCompositionFontA( _ : HIMC; _ : windows.PLOGFONTA ): windows.BOOL;
+PROCEDURE ImmGetCompositionFontW( _ : HIMC; _ : windows.PLOGFONTW ): windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  ImmGetCompositionFont ::= ImmGetCompositionFontW;
+(*%E *)
+(*%F UNICODE *)
+  ImmGetCompositionFont ::= ImmGetCompositionFontA;
+(*%E *)
+
+PROCEDURE ImmSetCompositionFontA( _ : HIMC; _ : windows.PLOGFONTA ): windows.BOOL;
+PROCEDURE ImmSetCompositionFontW( _ : HIMC; _ : windows.PLOGFONTW ): windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  ImmSetCompositionFont ::= ImmSetCompositionFontW;
+(*%E *)
+(*%F UNICODE *)
+  ImmSetCompositionFont ::= ImmSetCompositionFontA;
+(*%E *)
+
+//#endif  // ifndef NOGDI
+//#endif  // ifdef _WINGDI_
+
+PROCEDURE ImmConfigureIMEA( _ : windows.HKL; _ : windows.HWND; _ : windows.DWORD; _ : windows.PVOID): windows.BOOL;
+PROCEDURE ImmConfigureIMEW( _ : windows.HKL; _ : windows.HWND; _ : windows.DWORD; _ : windows.PVOID): windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  ImmConfigureIME ::= ImmConfigureIMEW;
+(*%E *)
+(*%F UNICODE *)
+  ImmConfigureIME ::= ImmConfigureIMEA;
+(*%E *)
+
+PROCEDURE ImmEscapeA( _ : windows.HKL; _ : HIMC; _ : windows.UINT; _ : windows.PVOID): windows.LRESULT;
+PROCEDURE ImmEscapeW( _ : windows.HKL; _ : HIMC; _ : windows.UINT; _ : windows.PVOID): windows.LRESULT;
+
+CONST
+(*%T UNICODE *)
+  ImmEscape ::= ImmEscapeW;
+(*%E *)
+(*%F UNICODE *)
+  ImmEscape ::= ImmEscapeA;
+(*%E *)
+
+PROCEDURE ImmGetConversionListA( _ : windows.HKL; _ : HIMC; _ : windows.PCSTR; _ : PCANDIDATELIST; dwBufLen : windows.DWORD; uFlag : windows.UINT ): windows.DWORD;
+PROCEDURE ImmGetConversionListW( _ : windows.HKL; _ : HIMC; _ : windows.PCWSTR; _ : PCANDIDATELIST; dwBufLen : windows.DWORD; uFlag : windows.UINT ): windows.DWORD;
+
+CONST
+(*%T UNICODE *)
+  ImmGetConversionList ::= ImmGetConversionListW;
+(*%E *)
+(*%F UNICODE *)
+  ImmGetConversionList ::= ImmGetConversionListA;
+(*%E *)
+
+PROCEDURE ImmNotifyIME( _ : HIMC; dwAction : windows.DWORD; dwIndex : windows.DWORD; dwValue : windows.DWORD ): windows.BOOL;
+
+PROCEDURE ImmGetStatusWindowPos( _ : HIMC; _ : windows.PPOINT): windows.BOOL;
+PROCEDURE ImmSetStatusWindowPos( _ : HIMC; _ : windows.PPOINT): windows.BOOL;
+PROCEDURE ImmGetCompositionWindow( _ : HIMC; _ : PCOMPOSITIONFORM): windows.BOOL;
+PROCEDURE ImmSetCompositionWindow( _ : HIMC; _ : PCOMPOSITIONFORM): windows.BOOL;
+PROCEDURE ImmGetCandidateWindow( _ : HIMC; _ : windows.DWORD; _ : PCANDIDATEFORM): windows.BOOL;
+PROCEDURE ImmSetCandidateWindow( _ : HIMC; _ : PCANDIDATEFORM): windows.BOOL;
+
+PROCEDURE ImmIsUIMessageA( _ : windows.HWND; _ : windows.UINT; _ : windows.WPARAM; _ : windows.LPARAM): windows.BOOL;
+PROCEDURE ImmIsUIMessageW( _ : windows.HWND; _ : windows.UINT; _ : windows.WPARAM; _ : windows.LPARAM): windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  ImmIsUIMessage ::= ImmIsUIMessageW;
+(*%E *)
+(*%F UNICODE *)
+  ImmIsUIMessage ::= ImmIsUIMessageA;
+(*%E *)
+
+PROCEDURE ImmGetVirtualKey( _ : windows.HWND): windows.UINT;
+
+TYPE
+  REGISTERWORDENUMPROCA = PROCEDURE( windows.PCSTR, windows.DWORD, windows.PCSTR, windows.PVOID ): INTEGER;
+  REGISTERWORDENUMPROCW = PROCEDURE( windows.PCWSTR, windows.DWORD, windows.PCWSTR, windows.PVOID ): INTEGER;
+
+CONST
+(*%T UNICODE *)
+  REGISTERWORDENUMPROC ::= REGISTERWORDENUMPROCW;
+(*%E *)
+(*%F UNICODE *)
+  REGISTERWORDENUMPROC ::= REGISTERWORDENUMPROCA;
+(*%E *)
+
+PROCEDURE ImmRegisterWordA( _ : windows.HKL; lpszReading : windows.PCSTR; _ : windows.DWORD; lpszRegister : windows.PCSTR ): windows.BOOL;
+PROCEDURE ImmRegisterWordW( _ : windows.HKL; lpszReading : windows.PCWSTR; _ : windows.DWORD; lpszRegister : windows.PCWSTR ): windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  ImmRegisterWord ::= ImmRegisterWordW;
+(*%E *)
+(*%F UNICODE *)
+  ImmRegisterWord ::= ImmRegisterWordA;
+(*%E *)
+
+PROCEDURE ImmUnregisterWordA( _ : windows.HKL; lpszReading : windows.PCSTR; _ : windows.DWORD; lpszUnregister : windows.PCSTR ): windows.BOOL;
+PROCEDURE ImmUnregisterWordW( _ : windows.HKL; lpszReading : windows.PCWSTR; _ : windows.DWORD; lpszUnregister : windows.PCWSTR ): windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  ImmUnregisterWord ::= ImmUnregisterWordW;
+(*%E *)
+(*%F UNICODE *)
+  ImmUnregisterWord ::= ImmUnregisterWordA;
+(*%E *)
+
+PROCEDURE ImmGetRegisterWordStyleA( _ : windows.HKL; nItem : windows.UINT; _ : PSTYLEBUFA): windows.UINT;
+PROCEDURE ImmGetRegisterWordStyleW( _ : windows.HKL; nItem : windows.UINT; _ : PSTYLEBUFW): windows.UINT;
+
+CONST
+(*%T UNICODE *)
+  ImmGetRegisterWordStyle ::= ImmGetRegisterWordStyleW;
+(*%E *)
+(*%F UNICODE *)
+  ImmGetRegisterWordStyle ::= ImmGetRegisterWordStyleA;
+(*%E *)
+
+PROCEDURE ImmEnumRegisterWordA( _ : windows.HKL; _ : REGISTERWORDENUMPROCA; lpszReading : windows.PCSTR; _ : windows.DWORD; lpszRegister : windows.PCSTR; _ : windows.PVOID): windows.UINT;
+PROCEDURE ImmEnumRegisterWordW( _ : windows.HKL; _ : REGISTERWORDENUMPROCW; lpszReading : windows.PCWSTR; _ : windows.DWORD; lpszRegister : windows.PCWSTR; _ : windows.PVOID): windows.UINT;
+
+CONST
+(*%T UNICODE *)
+  ImmEnumRegisterWord ::= ImmEnumRegisterWordW;
+(*%E *)
+(*%F UNICODE *)
+  ImmEnumRegisterWord ::= ImmEnumRegisterWordA;
+(*%E *)
+
+//#if(WINVER >= 0x040A)
+PROCEDURE ImmDisableIME( _ : windows.DWORD ): windows.BOOL;
+
+PROCEDURE ImmGetImeMenuItemsA( _ : HIMC; _ : windows.DWORD; _ : windows.DWORD; _ : PIMEMENUITEMINFOA; _ : PIMEMENUITEMINFOA; _ : windows.DWORD): windows.DWORD;
+PROCEDURE ImmGetImeMenuItemsW( _ : HIMC; _ : windows.DWORD; _ : windows.DWORD; _ : PIMEMENUITEMINFOW; _ : PIMEMENUITEMINFOW; _ : windows.DWORD): windows.DWORD;
+
+CONST
+(*%T UNICODE *)
+  ImmGetImeMenuItems ::= ImmGetImeMenuItemsW;
+(*%E *)
+(*%F UNICODE *)
+  ImmGetImeMenuItems ::= ImmGetImeMenuItemsA;
+(*%E *)
+
+//#endif /* WINVER >= 0x040A */
+
+// wParam for WM_IME_CONTROL
+  IMC_GETCANDIDATEPOS             = 00007H;
+  IMC_SETCANDIDATEPOS             = 00008H;
+  IMC_GETCOMPOSITIONFONT          = 00009H;
+  IMC_SETCOMPOSITIONFONT          = 0000AH;
+  IMC_GETCOMPOSITIONWINDOW        = 0000BH;
+  IMC_SETCOMPOSITIONWINDOW        = 0000CH;
+  IMC_GETSTATUSWINDOWPOS          = 0000FH;
+  IMC_SETSTATUSWINDOWPOS          = 00010H;
+  IMC_CLOSESTATUSWINDOW           = 00021H;
+  IMC_OPENSTATUSWINDOW            = 00022H;
+
+// dwAction for ImmNotifyIME
+  NI_OPENCANDIDATE                = 00010H;
+  NI_CLOSECANDIDATE               = 00011H;
+  NI_SELECTCANDIDATESTR           = 00012H;
+  NI_CHANGECANDIDATELIST          = 00013H;
+  NI_FINALIZECONVERSIONRESULT     = 00014H;
+  NI_COMPOSITIONSTR               = 00015H;
+  NI_SETCANDIDATE_PAGESTART       = 00016H;
+  NI_SETCANDIDATE_PAGESIZE        = 00017H;
+  NI_IMEMENUSELECTED              = 00018H;
+
+// lParam for WM_IME_SETCONTEXT
+  ISC_SHOWUICANDIDATEWINDOW       = 000000001H;
+  ISC_SHOWUICOMPOSITIONWINDOW     = 080000000H;
+  ISC_SHOWUIGUIDELINE             = 040000000H;
+  ISC_SHOWUIALLCANDIDATEWINDOW    = 00000000FH;
+  ISC_SHOWUIALL                   = 0C000000FH;
+
+// dwIndex for ImmNotifyIME/NI_COMPOSITIONSTR
+  CPS_COMPLETE                    = 00001H;
+  CPS_CONVERT                     = 00002H;
+  CPS_REVERT                      = 00003H;
+  CPS_CANCEL                      = 00004H;
+
+// the modifiers of hot key
+  MOD_ALT                         = 00001H;
+  MOD_CONTROL                     = 00002H;
+  MOD_SHIFT                       = 00004H;
+
+  MOD_LEFT                        = 08000H;
+  MOD_RIGHT                       = 04000H;
+
+  MOD_ON_KEYUP                    = 00800H;
+  MOD_IGNORE_ALL_MODIFIER         = 00400H;
+
+// Windows for Simplified Chinese Edition hot key ID from 0x10 - 0x2F
+  IME_CHOTKEY_IME_NONIME_TOGGLE           = 010H;
+  IME_CHOTKEY_SHAPE_TOGGLE                = 011H;
+  IME_CHOTKEY_SYMBOL_TOGGLE               = 012H;
+
+// Windows for Japanese Edition hot key ID from 0x30 - 0x4F
+  IME_JHOTKEY_CLOSE_OPEN                  = 030H;
+
+// Windows for Korean Edition hot key ID from 0x50 - 0x6F
+  IME_KHOTKEY_SHAPE_TOGGLE                = 050H;
+  IME_KHOTKEY_HANJACONVERT                = 051H;
+  IME_KHOTKEY_ENGLISH                     = 052H;
+
+// Windows for Traditional Chinese Edition hot key ID from 0x70 - 0x8F
+  IME_THOTKEY_IME_NONIME_TOGGLE           = 070H;
+  IME_THOTKEY_SHAPE_TOGGLE                = 071H;
+  IME_THOTKEY_SYMBOL_TOGGLE               = 072H;
+
+// direct switch hot key ID from 0x100 - 0x11F
+  IME_HOTKEY_DSWITCH_FIRST                = 0100H;
+  IME_HOTKEY_DSWITCH_LAST                 = 011FH;
+
+// IME private hot key from 0x200 - 0x21F
+  IME_HOTKEY_PRIVATE_FIRST                = 0200H;
+  IME_ITHOTKEY_RESEND_RESULTSTR           = 0200H;
+  IME_ITHOTKEY_PREVIOUS_COMPOSITION       = 0201H;
+  IME_ITHOTKEY_UISTYLE_TOGGLE             = 0202H;
+  IME_ITHOTKEY_RECONVERTSTRING            = 0203H;
+  IME_HOTKEY_PRIVATE_LAST                 = 021FH;
+
+// dwSystemInfoFlags bits
+
+// parameter of ImmGetCompositionString
+  GCS_COMPREADSTR                 = 00001H;
+  GCS_COMPREADATTR                = 00002H;
+  GCS_COMPREADCLAUSE              = 00004H;
+  GCS_COMPSTR                     = 00008H;
+  GCS_COMPATTR                    = 00010H;
+  GCS_COMPCLAUSE                  = 00020H;
+  GCS_CURSORPOS                   = 00080H;
+  GCS_DELTASTART                  = 00100H;
+  GCS_RESULTREADSTR               = 00200H;
+  GCS_RESULTREADCLAUSE            = 00400H;
+  GCS_RESULTSTR                   = 00800H;
+  GCS_RESULTCLAUSE                = 01000H;
+
+// style bit flags for WM_IME_COMPOSITION
+  CS_INSERTCHAR                   = 02000H;
+  CS_NOMOVECARET                  = 04000H;
+
+// bits of fdwInit of INPUTCONTEXT
+// IME version constants
+  IMEVER_0310                     = 00003000AH;
+  IMEVER_0400                     = 000040000H;
+
+// IME property bits
+  IME_PROP_AT_CARET               = 000010000H;
+  IME_PROP_SPECIAL_UI             = 000020000H;
+  IME_PROP_CANDLIST_START_FROM_1  = 000040000H;
+  IME_PROP_UNICODE                = 000080000H;
+  IME_PROP_COMPLETE_ON_UNSELECT   = 000100000H;
+
+// IME UICapability bits
+  UI_CAP_2700                     = 000000001H;
+  UI_CAP_ROT90                    = 000000002H;
+  UI_CAP_ROTANY                   = 000000004H;
+
+// ImmSetCompositionString Capability bits
+  SCS_CAP_COMPSTR                 = 000000001H;
+  SCS_CAP_MAKEREAD                = 000000002H;
+  SCS_CAP_SETRECONVERTSTRING      = 000000004H;
+
+// IME WM_IME_SELECT inheritance Capability bits
+  SELECT_CAP_CONVERSION           = 000000001H;
+  SELECT_CAP_SENTENCE             = 000000002H;
+
+// ID for deIndex of ImmGetGuideLine
+  GGL_LEVEL                       = 000000001H;
+  GGL_INDEX                       = 000000002H;
+  GGL_STRING                      = 000000003H;
+  GGL_PRIVATE                     = 000000004H;
+
+// ID for dwLevel of GUIDELINE Structure
+  GL_LEVEL_NOGUIDELINE            = 000000000H;
+  GL_LEVEL_FATAL                  = 000000001H;
+  GL_LEVEL_ERROR                  = 000000002H;
+  GL_LEVEL_WARNING                = 000000003H;
+  GL_LEVEL_INFORMATION            = 000000004H;
+
+// ID for dwIndex of GUIDELINE Structure
+  GL_ID_UNKNOWN                   = 000000000H;
+  GL_ID_NOMODULE                  = 000000001H;
+  GL_ID_NODICTIONARY              = 000000010H;
+  GL_ID_CANNOTSAVE                = 000000011H;
+  GL_ID_NOCONVERT                 = 000000020H;
+  GL_ID_TYPINGERROR               = 000000021H;
+  GL_ID_TOOMANYSTROKE             = 000000022H;
+  GL_ID_READINGCONFLICT           = 000000023H;
+  GL_ID_INPUTREADING              = 000000024H;
+  GL_ID_INPUTRADICAL              = 000000025H;
+  GL_ID_INPUTCODE                 = 000000026H;
+  GL_ID_INPUTSYMBOL               = 000000027H;
+  GL_ID_CHOOSECANDIDATE           = 000000028H;
+  GL_ID_REVERSECONVERSION         = 000000029H;
+  GL_ID_PRIVATE_FIRST             = 000008000H;
+  GL_ID_PRIVATE_LAST              = 00000FFFFH;
+
+// ID for dwIndex of ImmGetProperty
+  IGP_GETIMEVERSION               = windows.DWORD(-4);
+  IGP_PROPERTY                    = 000000004H;
+  IGP_CONVERSION                  = 000000008H;
+  IGP_SENTENCE                    = 00000000CH;
+  IGP_UI                          = 000000010H;
+  IGP_SETCOMPSTR                  = 000000014H;
+  IGP_SELECT                      = 000000018H;
+
+// dwIndex for ImmSetCompositionString API
+  SCS_SETSTR                      = GCS_COMPREADSTR OR GCS_COMPSTR;
+  SCS_CHANGEATTR                  = GCS_COMPREADATTR OR GCS_COMPATTR;
+  SCS_CHANGECLAUSE                = GCS_COMPREADCLAUSE OR GCS_COMPCLAUSE;
+  SCS_SETRECONVERTSTRING          = 000010000H;
+  SCS_QUERYRECONVERTSTRING        = 000020000H;
+
+// attribute for COMPOSITIONSTRING Structure
+  ATTR_INPUT                      = 000H;
+  ATTR_TARGET_CONVERTED           = 001H;
+  ATTR_CONVERTED                  = 002H;
+  ATTR_TARGET_NOTCONVERTED        = 003H;
+  ATTR_INPUT_ERROR                = 004H;
+  ATTR_FIXEDCONVERTED             = 005H;
+
+// bit field for IMC_SETCOMPOSITIONWINDOW, IMC_SETCANDIDATEWINDOW
+  CFS_DEFAULT                     = 00000H;
+  CFS_RECT                        = 00001H;
+  CFS_POINT                       = 00002H;
+  CFS_FORCE_POSITION              = 00020H;
+  CFS_CANDIDATEPOS                = 00040H;
+  CFS_EXCLUDE                     = 00080H;
+
+// conversion direction for ImmGetConversionList
+  GCL_CONVERSION                  = 00001H;
+  GCL_REVERSECONVERSION           = 00002H;
+  GCL_REVERSE_LENGTH              = 00003H;
+
+// bit field for conversion mode
+  IME_CMODE_ALPHANUMERIC          = 00000H;
+  IME_CMODE_NATIVE                = 00001H;
+  IME_CMODE_CHINESE               = IME_CMODE_NATIVE;
+// IME_CMODE_HANGEUL is old name of IME_CMODE_HANGUL. It will be gone eventually.
+  IME_CMODE_HANGEUL               = IME_CMODE_NATIVE;
+  IME_CMODE_HANGUL                = IME_CMODE_NATIVE;
+  IME_CMODE_JAPANESE              = IME_CMODE_NATIVE;
+  IME_CMODE_KATAKANA              = 00002H;  // only effect under IME_CMODE_NATIVE
+  IME_CMODE_LANGUAGE              = 00003H;
+  IME_CMODE_FULLSHAPE             = 00008H;
+  IME_CMODE_ROMAN                 = 00010H;
+  IME_CMODE_CHARCODE              = 00020H;
+  IME_CMODE_HANJACONVERT          = 00040H;
+  IME_CMODE_SOFTKBD               = 00080H;
+  IME_CMODE_NOCONVERSION          = 00100H;
+  IME_CMODE_EUDC                  = 00200H;
+  IME_CMODE_SYMBOL                = 00400H;
+  IME_CMODE_FIXED                 = 00800H;
+
+  IME_SMODE_NONE                  = 00000H;
+  IME_SMODE_PLAURALCLAUSE         = 00001H;
+  IME_SMODE_SINGLECONVERT         = 00002H;
+  IME_SMODE_AUTOMATIC             = 00004H;
+  IME_SMODE_PHRASEPREDICT         = 00008H;
+  IME_SMODE_CONVERSATION          = 00010H;
+
+// style of candidate
+  IME_CAND_UNKNOWN                = 00000H;
+  IME_CAND_READ                   = 00001H;
+  IME_CAND_CODE                   = 00002H;
+  IME_CAND_MEANING                = 00003H;
+  IME_CAND_RADICAL                = 00004H;
+  IME_CAND_STROKE                 = 00005H;
+
+// wParam of report message WM_IME_NOTIFY
+  IMN_CLOSESTATUSWINDOW           = 00001H;
+  IMN_OPENSTATUSWINDOW            = 00002H;
+  IMN_CHANGECANDIDATE             = 00003H;
+  IMN_CLOSECANDIDATE              = 00004H;
+  IMN_OPENCANDIDATE               = 00005H;
+  IMN_SETCONVERSIONMODE           = 00006H;
+  IMN_SETSENTENCEMODE             = 00007H;
+  IMN_SETOPENSTATUS               = 00008H;
+  IMN_SETCANDIDATEPOS             = 00009H;
+  IMN_SETCOMPOSITIONFONT          = 0000AH;
+  IMN_SETCOMPOSITIONWINDOW        = 0000BH;
+  IMN_SETSTATUSWINDOWPOS          = 0000CH;
+  IMN_GUIDELINE                   = 0000DH;
+  IMN_PRIVATE                     = 0000EH;
+
+//#if(WINVER >= 0040AH)
+// wParam of report message WM_IME_REQUEST
+  IMR_COMPOSITIONWINDOW           = 00001H;
+  IMR_CANDIDATEWINDOW             = 00002H;
+  IMR_COMPOSITIONFONT             = 00003H;
+  IMR_RECONVERTSTRING             = 00004H;
+  IMR_CONFIRMRECONVERTSTRING      = 00005H;
+//#endif
+
+// error code of ImmGetCompositionString
+  IMM_ERROR_NODATA                = -1;
+  IMM_ERROR_GENERAL               = -2;
+
+// dialog mode of ImmConfigureIME
+  IME_CONFIG_GENERAL              = 1;
+  IME_CONFIG_REGISTERWORD         = 2;
+  IME_CONFIG_SELECTDICTIONARY     = 3;
+
+// dialog mode of ImmEscape
+  IME_ESC_QUERY_SUPPORT           = 00003H;
+  IME_ESC_RESERVED_FIRST          = 00004H;
+  IME_ESC_RESERVED_LAST           = 007FFH;
+  IME_ESC_PRIVATE_FIRST           = 00800H;
+  IME_ESC_PRIVATE_LAST            = 00FFFH;
+  IME_ESC_SEQUENCE_TO_INTERNAL    = 01001H;
+  IME_ESC_GET_EUDC_DICTIONARY     = 01003H;
+  IME_ESC_SET_EUDC_DICTIONARY     = 01004H;
+  IME_ESC_MAX_KEY                 = 01005H;
+  IME_ESC_IME_NAME                = 01006H;
+  IME_ESC_SYNC_HOTKEY             = 01007H;
+  IME_ESC_HANJA_MODE              = 01008H;
+  IME_ESC_AUTOMATA                = 01009H;
+  IME_ESC_PRIVATE_HOTKEY          = 0100AH;
+  IME_ESC_GETHELPFILENAME         = 0100BH;
+
+// style of word registration
+  IME_REGWORD_STYLE_EUDC          = 000000001H;
+  IME_REGWORD_STYLE_USER_FIRST    = 080000000H;
+  IME_REGWORD_STYLE_USER_LAST     = 0FFFFFFFFH;
+
+
+//#if(WINVER >= 0040AH)
+// dwFlags for ImmAssociateContextEx
+  IACE_CHILDREN                   = 00001H;
+  IACE_DEFAULT                    = 00010H;
+  IACE_IGNORENOCONTEXT            = 00020H;
+
+// dwFlags for ImmGetImeMenuItems
+  IGIMIF_RIGHTMENU                = 00001H;
+
+// dwType for ImmGetImeMenuItems
+  IGIMII_CMODE                    = 00001H;
+  IGIMII_SMODE                    = 00002H;
+  IGIMII_CONFIGURE                = 00004H;
+  IGIMII_TOOLS                    = 00008H;
+  IGIMII_HELP                     = 00010H;
+  IGIMII_OTHER                    = 00020H;
+  IGIMII_INPUTTOOLS               = 00040H;
+
+// fType of IMEMENUITEMINFO structure
+  IMFT_RADIOCHECK = 000001H;
+  IMFT_SEPARATOR  = 000002H;
+  IMFT_SUBMENU    = 000004H;
+
+// fState of IMEMENUITEMINFO structure
+  IMFS_GRAYED          = windows.MFS_GRAYED;
+  IMFS_DISABLED        = windows.MFS_DISABLED;
+  IMFS_CHECKED         = windows.MFS_CHECKED;
+  IMFS_HILITE          = windows.MFS_HILITE;
+  IMFS_ENABLED         = windows.MFS_ENABLED;
+  IMFS_UNCHECKED       = windows.MFS_UNCHECKED;
+  IMFS_UNHILITE        = windows.MFS_UNHILITE;
+  IMFS_DEFAULT         = windows.MFS_DEFAULT;
+//#endif /* WINVER >= 0x040A */
+
+// type of soft keyboard
+// for Windows Tranditional Chinese Edition
+  SOFTKEYBOARD_TYPE_T1            = 00001H;
+// for Windows Simplified Chinese Edition
+  SOFTKEYBOARD_TYPE_C1            = 00002H;
+
+END imm.

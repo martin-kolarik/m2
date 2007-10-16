@@ -1,0 +1,25 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+    <PropertyGroup>
+
+        <ProductLicenceFileContents>[product]
+id = $(ProductId)
+name = $(ProductDescription)
+version = $(ProductVersionMajor).$(ProductVersionMinor).#(ProductVersionBuild).$(ProductVersionRevision)
+copyright = $(LegalCopyright)
+legal = $(LegalNote)
+note = $(ProductNote)</ProductLicenceFileContents>
+
+    </PropertyGroup>
+
+    <UsingTask TaskName="Patch" AssemblyFile="BuildTasks.dll"/>
+    <Target Name="CreateProductLicenceFile"
+            Inputs="$(RCFile);$(ProductBuildFile)"
+            Outputs="$(ProductLicenceFile)">
+        <Patch Value="$(ProductLicenceFileContents)" Keys="ProductVersionBuild" Patches="$(ProductVersionBuild)">
+            <Output TaskParameter="Value" PropertyName="ProductLicenceFileContents"/>
+        </Patch>
+        <WriteLinesToFile File="$(ProductLicenceFile)" Lines="$(ProductLicenceFileContents)"/>
+    </Target>
+
+</Project>

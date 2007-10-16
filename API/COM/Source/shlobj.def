@@ -1,0 +1,556 @@
+DEFINITION MODULE shlobj;
+
+(*==============================================================
+
+                    Win32 API for Modula-2
+
+       32-bit version for M2CPP Modula-2 to C++ compiler
+
+      Copyright (c) 2001 Moravian Instruments, Inc.
+
+
+ !!! *** THIS IS ONLY A PART OF ORIGINAL HEADER *** !!!
+
+ dad
+
+==============================================================*)
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+(*==============================================================
+
+  History: Created: 07.08.2001
+
+==============================================================*)
+
+(*============================================================*)
+(* Windows header:       shlobj.h                             *)
+(*============================================================*)
+
+(*# save, option( pack=>1 ) *)
+
+FROM windows IMPORT HWND,
+                    UINT,PUINT,ULONG,PULONG,USHORT,DWORD,
+                    LPARAM,
+                    PSTR,PCSTR,PWSTR,PCWSTR,
+                    WM_USER;
+IMPORT windows;
+IMPORT wtypes, objidl, oleidl, unknwn;
+
+//===========================================================================
+//
+// Object identifiers in the explorer's name space (ItemID and IDList)
+//
+//  All the items that the user can browse with the explorer (such as files,
+// directories, servers, work-groups, etc.) has an identifier which is unique
+// among items within the parent folder. Those identifiers are called item
+// IDs (SHITEMID). Since all its parent folders have their own item IDs,
+// any items can be uniquely identified by a list of item IDs, which is called
+// an ID list (ITEMIDLIST).
+//
+//  ID lists are almost always allocated by the task allocator (see some
+// description below as well as OLE 2.0 SDK) and may be passed across
+// some of shell interfaces (such as IShellFolder). Each item ID in an ID list
+// is only meaningful to its parent folder (which has generated it), and all
+// the clients must treat it as an opaque binary data except the first two
+// bytes, which indicates the size of the item ID.
+//
+//  When a shell extension -- which implements the IShellFolder interace --
+// generates an item ID, it may put any information in it, not only the data
+// with that it needs to identifies the item, but also some additional
+// information, which would help implementing some other functions efficiently.
+// For example, the shell's IShellFolder implementation of file system items
+// stores the primary (long) name of a file or a directory as the item
+// identifier, but it also stores its alternative (short) name, size and date
+// etc.
+//
+//  When an ID list is passed to one of shell APIs (such as SHGetPathFromIDList),
+// it is always an absolute path -- relative from the root of the name space,
+// which is the desktop folder. When an ID list is passed to one of IShellFolder
+// member function, it is always a relative path from the folder (unless it
+// is explicitly specified).
+//
+//===========================================================================
+
+TYPE
+//
+// SHITEMID -- Item ID
+//
+  SHITEMID = RECORD                 // mkid
+    cb   : USHORT;                  // Size of the ID (including cb itself)
+    abID : ARRAY [0..0] OF BYTE;    // The item ID (variable length)
+  END;
+  PSHITEMID   = POINTER TO SHITEMID;
+  PCSHITEMID  = POINTER TO CONST SHITEMID;
+
+//
+// ITEMIDLIST -- List if item IDs (combined with 0-terminator)
+//
+  ITEMIDLIST = RECORD
+    mkid : SHITEMID;
+  END;
+  PITEMIDLIST  = POINTER TO ITEMIDLIST;
+  PCITEMIDLIST = POINTER TO CONST ITEMIDLIST;
+  PPITEMIDLIST = POINTER TO PITEMIDLIST;
+  PPCITEMIDLIST= POINTER TO PCITEMIDLIST;
+
+//===========================================================================
+//
+// Task allocator API
+//
+//  All the shell extensions MUST use the task allocator (see OLE 2.0
+// programming guild for its definition) when they allocate or free
+// memory objects (mostly ITEMIDLIST) that are returned across any
+// shell interfaces. There are two ways to access the task allocator
+// from a shell extension depending on whether or not it is linked with
+// OLE32.DLL or not (purely for efficiency).
+//
+// (1) A shell extension which calls any OLE API (i.e., linked with
+//  OLE32.DLL) should call OLE's task allocator (by retrieving
+//  the task allocator by calling CoGetMalloc API).
+//
+// (2) A shell extension which does not call any OLE API (i.e., not linked
+//  with OLE32.DLL) should call the shell task allocator API (defined
+//  below), so that the shell can quickly loads it when OLE32.DLL is not
+//  loaded by any application at that point.
+//
+// Notes:
+//  In next version of Windowso release, SHGetMalloc will be replaced by
+// the following macro.
+//
+// #define SHGetMalloc(ppmem)   CoGetMalloc(MEMCTX_TASK, ppmem)
+//
+//===========================================================================
+
+TYPE
+  TppMalloc = POINTER TO objidl.TPIMalloc;
+
+PROCEDURE SHGetMalloc( ppMalloc : TppMalloc ) : wtypes.HRESULT;
+
+
+//-------------------------------------------------------------------------
+//
+// SHGetSpecialFolderLocation
+//
+//  Caller should use SHGetMalloc to obtain an allocator that can free the pidl
+//
+//
+//-------------------------------------------------------------------------
+//
+// registry entries for special paths are kept in :
+
+//#define REGSTR_PATH_SPECIAL_FOLDERS    REGSTR_PATH_EXPLORER TEXT("\\Shell Folders")
+
+CONST
+  CSIDL_DESKTOP                   = 00000H;        // <desktop>
+  CSIDL_INTERNET                  = 00001H;        // Internet Explorer (icon on desktop)
+  CSIDL_PROGRAMS                  = 00002H;        // Start Menu\Programs
+  CSIDL_CONTROLS                  = 00003H;        // My Computer\Control Panel
+  CSIDL_PRINTERS                  = 00004H;        // My Computer\Printers
+  CSIDL_PERSONAL                  = 00005H;        // My Documents
+  CSIDL_FAVORITES                 = 00006H;        // <user name>\Favorites
+  CSIDL_STARTUP                   = 00007H;        // Start Menu\Programs\Startup
+  CSIDL_RECENT                    = 00008H;        // <user name>\Recent
+  CSIDL_SENDTO                    = 00009H;        // <user name>\SendTo
+  CSIDL_BITBUCKET                 = 0000AH;        // <desktop>\Recycle Bin
+  CSIDL_STARTMENU                 = 0000BH;        // <user name>\Start Menu
+  CSIDL_DESKTOPDIRECTORY          = 00010H;        // <user name>\Desktop
+  CSIDL_DRIVES                    = 00011H;        // My Computer
+  CSIDL_NETWORK                   = 00012H;        // Network Neighborhood
+  CSIDL_NETHOOD                   = 00013H;        // <user name>\nethood
+  CSIDL_FONTS                     = 00014H;        // windows\fonts
+  CSIDL_TEMPLATES                 = 00015H;
+  CSIDL_COMMON_STARTMENU          = 00016H;        // All Users\Start Menu
+  CSIDL_COMMON_PROGRAMS           = 00017H;        // All Users\Programs
+  CSIDL_COMMON_STARTUP            = 00018H;        // All Users\Startup
+  CSIDL_COMMON_DESKTOPDIRECTORY   = 00019H;        // All Users\Desktop
+  CSIDL_APPDATA                   = 0001AH;        // <user name>\Application Data
+  CSIDL_PRINTHOOD                 = 0001BH;        // <user name>\PrintHood
+  CSIDL_LOCAL_APPDATA             = 0001CH;        // <user name>\Local Settings\Applicaiton Data (non roaming)
+  CSIDL_ALTSTARTUP                = 0001DH;        // non localized startup
+  CSIDL_COMMON_ALTSTARTUP         = 0001EH;        // non localized common startup
+  CSIDL_COMMON_FAVORITES          = 0001FH;
+  CSIDL_INTERNET_CACHE            = 00020H;
+  CSIDL_COOKIES                   = 00021H;
+  CSIDL_HISTORY                   = 00022H;
+  CSIDL_COMMON_APPDATA            = 00023H;        // All Users\Application Data
+  CSIDL_WINDOWS                   = 00024H;        // GetWindowsDirectory()
+  CSIDL_SYSTEM                    = 00025H;        // GetSystemDirectory()
+  CSIDL_PROGRAM_FILES             = 00026H;        // C:\Program Files
+  CSIDL_MYPICTURES                = 00027H;        // C:\Program Files\My Pictures
+  CSIDL_PROFILE                   = 00028H;        // USERPROFILE
+  CSIDL_SYSTEMX86                 = 00029H;        // x86 system directory on RISC
+  CSIDL_PROGRAM_FILESX86          = 0002AH;        // x86 C:\Program Files on RISC
+  CSIDL_PROGRAM_FILES_COMMON      = 0002BH;        // C:\Program Files\Common
+  CSIDL_PROGRAM_FILES_COMMONX86   = 0002CH;        // x86 Program Files\Common on RISC
+  CSIDL_COMMON_TEMPLATES          = 0002DH;        // All Users\Templates
+  CSIDL_COMMON_DOCUMENTS          = 0002EH;        // All Users\Documents
+  CSIDL_COMMON_ADMINTOOLS         = 0002FH;        // All Users\Start Menu\Programs\Administrative Tools
+  CSIDL_ADMINTOOLS                = 00030H;        // <user name>\Start Menu\Programs\Administrative Tools
+  CSIDL_CONNECTIONS               = 00031H;        // Network and Dial-up Connections
+
+  CSIDL_FLAG_CREATE               = 08000H;        // combine with CSIDL_ value to force folder creation in SHGetFolderPath()
+  CSIDL_FLAG_DONT_VERIFY          = 04000H;        // combine with CSIDL_ value to return an unverified folder path
+  CSIDL_FLAG_MASK                 = 0FF00H;        // mask for all possible flag values
+
+
+PROCEDURE SHGetSpecialFolderLocation( hwnd : HWND; csidl : INTEGER; ppidl : PPITEMIDLIST ) : wtypes.HRESULT;
+
+//#if (_WIN32_IE >= 0x0400)
+
+PROCEDURE SHGetSpecialFolderPathA( hwnd : HWND; pszPath : PSTR; csidl : INTEGER; fCreate : windows.BOOL ) : windows.BOOL;
+PROCEDURE SHGetSpecialFolderPathW( hwnd : HWND; pszPath : PWSTR; csidl : INTEGER; fCreate : windows.BOOL ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  SHGetSpecialFolderPath  ::= SHGetSpecialFolderPathW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  SHGetSpecialFolderPath  ::= SHGetSpecialFolderPathA;
+(*%E UNICODE *)
+
+//#if (_WIN32_IE >= 0x0500)
+
+TYPE
+  SHGFP_TYPE = (
+    SHGFP_TYPE_CURRENT  = 0,   // current value for user, verify it exists
+    SHGFP_TYPE_DEFAULT  = 1    // default value, may not exist
+  );
+
+PROCEDURE SHGetFolderPathA( hwnd : HWND; csidl : INTEGER; hToken : windows.HANDLE; dwFlags : DWORD; pszPath : PSTR ) : wtypes.HRESULT;
+PROCEDURE SHGetFolderPathW( hwnd : HWND; csidl : INTEGER; hToken : windows.HANDLE; dwFlags : DWORD; pszPath : PWSTR ) : wtypes.HRESULT;
+
+CONST
+(*%T UNICODE *)
+  SHGetFolderPath  ::= SHGetFolderPathW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  SHGetFolderPath  ::= SHGetFolderPathA;
+(*%E UNICODE *)
+
+PROCEDURE SHGetFolderLocation(hwnd : HWND; csidl : INTEGER; hToken : windows.HANDLE; dwFlags : DWORD; ppidl : PPITEMIDLIST ) : wtypes.HRESULT;
+
+//#endif      // _WIN32_IE >= 0x0500
+//#endif      // _WIN32_IE >= 0x0400
+
+//-------------------------------------------------------------------------
+//
+// SHBrowseForFolder API
+//
+//-------------------------------------------------------------------------
+TYPE
+  BFFCALLBACK = PROCEDURE( HWND, 
+                           UINT,
+                           LPARAM,
+                           LPARAM ) : INTEGER;
+
+  BROWSEINFOA = RECORD
+    hwndOwner       : HWND;
+    pidlRoot        : PCITEMIDLIST;
+    pszDisplayName  : PSTR;         // Return display name of item selected.
+    lpszTitle       : PCSTR;        // text to go in the banner over the tree.
+    ulFlags         : UINT;         // Flags that control the return stuff
+    lpfn            : BFFCALLBACK;
+    lParam          : LPARAM;       // extra info that's passed back in callbacks
+
+    iImage          : INTEGER;      // output var: where to return the Image index.
+  END;
+  PBROWSEINFOA = POINTER TO BROWSEINFOA;
+
+  BROWSEINFOW = RECORD
+    hwndOwner       : HWND;
+    pidlRoot        : PCITEMIDLIST;
+    pszDisplayName  : PWSTR;        // Return display name of item selected.
+    lpszTitle       : PCWSTR;       // text to go in the banner over the tree.
+    ulFlags         : UINT;         // Flags that control the return stuff
+    lpfn            : BFFCALLBACK;
+    lParam          : LPARAM;       // extra info that's passed back in callbacks
+
+    iImage          : INTEGER;      // output var: where to return the Image index.
+  END;
+  PBROWSEINFOW = POINTER TO BROWSEINFOW;
+
+CONST
+(*%T UNICODE *)
+  BROWSEINFO      ::= BROWSEINFOW;
+  PBROWSEINFO     ::= PBROWSEINFOW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  BROWSEINFO      ::= BROWSEINFOA;
+  PBROWSEINFO     ::= PBROWSEINFOA;
+(*%E UNICODE *)
+
+
+// Browsing for directory.
+CONST
+  BIF_RETURNONLYFSDIRS   = 0001H;  // For finding a folder to start document searching
+  BIF_DONTGOBELOWDOMAIN  = 0002H;  // For starting the Find Computer
+  BIF_STATUSTEXT         = 0004H;  // Top of the dialog has 2 lines of text for BROWSEINFO.lpszTitle and one line if
+                                   // this flag is set.  Passing the message BFFM_SETSTATUSTEXTA to the hwnd can set the
+                                   // rest of the text.  This is not used with BIF_USENEWUI and BROWSEINFO.lpszTitle gets
+                                   // all three lines of text.
+  BIF_RETURNFSANCESTORS  = 0008H;
+  BIF_EDITBOX            = 0010H;
+  BIF_VALIDATE           = 0020H;  // insist on valid result (or CANCEL)
+  BIF_NEWDIALOGSTYLE     = 0040H;  // Use the new dialog layout with the ability to resize
+                                   // Caller needs to call OleInitialize() before using this API
+  BIF_USENEWUI           = (BIF_NEWDIALOGSTYLE OR BIF_EDITBOX);
+  BIF_BROWSEINCLUDEURLS  = 0080H;  // Allow URLs to be displayed or entered. (Requires BIF_USENEWUI)
+
+  BIF_BROWSEFORCOMPUTER  = 1000H;  // Browsing for Computers.
+  BIF_BROWSEFORPRINTER   = 2000H;  // Browsing for Printers
+  BIF_BROWSEINCLUDEFILES = 4000H;  // Browsing for Everything
+  BIF_SHAREABLE          = 8000H;  // sharable resources displayed (remote shares, requires BIF_USENEWUI)
+
+// message from browser
+  BFFM_INITIALIZED        = 1;
+  BFFM_SELCHANGED         = 2;
+  BFFM_VALIDATEFAILEDA    = 3;   // lParam:szPath ret:1(cont),0(EndDialog)
+  BFFM_VALIDATEFAILEDW    = 4;   // lParam:wzPath ret:1(cont),0(EndDialog)
+
+// messages to browser
+  BFFM_SETSTATUSTEXTA     = (WM_USER + 100);
+  BFFM_ENABLEOK           = (WM_USER + 101);
+  BFFM_SETSELECTIONA      = (WM_USER + 102);
+  BFFM_SETSELECTIONW      = (WM_USER + 103);
+  BFFM_SETSTATUSTEXTW     = (WM_USER + 104);
+
+//WINSHELLAPI LPITEMIDLIST WINAPI SHBrowseForFolderA(LPBROWSEINFOA lpbi);
+  PROCEDURE SHBrowseForFolderA( lpbi : PBROWSEINFOA ) : PITEMIDLIST;
+
+//WINSHELLAPI LPITEMIDLIST WINAPI SHBrowseForFolderW(LPBROWSEINFOW lpbi);
+  PROCEDURE SHBrowseForFolderW( lpbi : PBROWSEINFOW ) : PITEMIDLIST;
+
+CONST
+(*%T UNICODE *)
+  SHBrowseForFolder   ::= SHBrowseForFolderW;
+  BFFM_SETSTATUSTEXT  ::= BFFM_SETSTATUSTEXTW;
+  BFFM_SETSELECTION   ::= BFFM_SETSELECTIONW;
+
+  BFFM_VALIDATEFAILED ::= BFFM_VALIDATEFAILEDW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  SHBrowseForFolder   ::= SHBrowseForFolderA;
+  BFFM_SETSTATUSTEXT  ::= BFFM_SETSTATUSTEXTA;
+  BFFM_SETSELECTION   ::= BFFM_SETSELECTIONA;
+
+  BFFM_VALIDATEFAILED ::= BFFM_VALIDATEFAILEDA;
+(*%E UNICODE *)
+
+
+(*# save, option( pack=>8 ) *)
+//-------------------------------------------------------------------------
+//
+// struct STRRET
+//
+// structure for returning strings from IShellFolder member functions
+//
+//-------------------------------------------------------------------------
+CONST
+  STRRET_WSTR     = 0000H;          // Use STRRET.pOleStr
+  STRRET_OFFSET   = 0001H;          // Use STRRET.uOffset to Ansi
+  STRRET_CSTR     = 0002H;          // Use STRRET.cStr
+
+TYPE
+  STRRET = RECORD
+    CASE uType : UINT OF // One of the STRRET_* values
+    | STRRET_WSTR:
+        pOleStr : PWSTR;        // must be freed by caller of GetDisplayNameOf
+        //LPSTR           pStr;           // NOT USED
+    | STRRET_OFFSET:
+        uOffset : UINT;        // Offset into SHITEMID
+    | STRRET_CSTR:
+        cStr : ARRAY [0..windows.MAX_PATH-1] OF CHAR; // Buffer to fill in (ANSI)
+    END;
+  END;
+  PSTRRET = POINTER TO STRRET;
+
+(*# restore *)
+
+//-------------------------------------------------------------------------
+//
+// IShellFolder interface
+//
+//
+// [Member functions]
+//
+// IShellFolder::BindToObject(pidl, pbc, riid, ppv)
+//   This function returns an instance of a sub-folder which is specified
+//  by the IDList (pidl).
+//
+// IShellFolder::BindToStorage(pidl, pbc, riid, ppv)
+//   This function returns a storage instance of a sub-folder which is
+//  specified by the IDList (pidl). The shell never calls this member
+//  function in the first release of Win95.
+//
+// IShellFolder::CompareIDs(lParam, pidl1, pidl2)
+//   This function compares two IDLists and returns the result. The shell
+//  explorer always passes 0 as lParam, which indicates "sort by name".
+//  It should return 0 (as CODE of the scode), if two id indicates the
+//  same object; negative value if pidl1 should be placed before pidl2;
+//  positive value if pidl2 should be placed before pidl1.
+//
+// IShellFolder::CreateViewObject(hwndOwner, riid, ppv)
+//   This function creates a view object of the folder itself. The view
+//  object is a difference instance from the shell folder object.
+//   "hwndOwner" can be used  as the owner window of its dialog box or
+//  menu during the lifetime of the view object.
+//  instance which has only one reference count. The explorer may create
+//  more than one instances of view object from one shell folder object
+//  and treat them as separate instances.
+//
+// IShellFolder::GetAttributesOf(cidl, apidl, prgfInOut)
+//   This function returns the attributes of specified objects in that
+//  folder. "cidl" and "apidl" specifies objects. "apidl" contains only
+//  simple IDLists. The explorer initializes *prgfInOut with a set of
+//  flags to be evaluated. The shell folder may optimize the operation
+//  by not returning unspecified flags.
+//
+// IShellFolder::GetUIObjectOf(hwndOwner, cidl, apidl, riid, prgfInOut, ppv)
+//   This function creates a UI object to be used for specified objects.
+//  The shell explorer passes either IID_IDataObject (for transfer operation)
+//  or IID_IContextMenu (for context menu operation) as riid.
+//
+// IShellFolder::GetDisplayNameOf
+//   This function returns the display name of the specified object.
+//  If the ID contains the display name (in the locale character set),
+//  it returns the offset to the name. Otherwise, it returns a pointer
+//  to the display name string (UNICODE), which is allocated by the
+//  task allocator, or fills in a buffer.
+//
+// IShellFolder::SetNameOf
+//   This function sets the display name of the specified object.
+//  If it changes the ID as well, it returns the new ID which is
+//  alocated by the task allocator.
+//
+//-------------------------------------------------------------------------
+
+// IShellFolder::GetDisplayNameOf/SetNameOf uFlags
+TYPE
+  SHGNO = ( 
+    SHGDN_NORMAL             = 0000H,  // default (display purpose)
+    SHGDN_INFOLDER           = 0001H,  // displayed under a folder (relative)
+    SHGDN_FOREDITING         = 1000H,  // for in-place editing
+    SHGDN_FORADDRESSBAR      = 4000H,  // UI friendly parsing name (remove ugly stuff)
+    SHGDN_FORPARSING         = 8000H   // parsing name for ParseDisplayName()
+  );
+
+// IShellFolder::EnumObjects grfFlags bits
+  SHCONTF = (
+    SHCONTF_FOLDERS             = 0020H,   // only want folders enumerated (SHGAO_FOLDER)
+    SHCONTF_NONFOLDERS          = 0040H,   // include non folders
+    SHCONTF_INCLUDEHIDDEN       = 0080H,   // show items normally hidden
+    SHCONTF_INIT_ON_FIRST_NEXT  = 0100H,   // allow EnumObject() to return before validating enum
+    SHCONTF_NETPRINTERSRCH      = 0200H,   // hint that client is looking for printers
+    SHCONTF_SHAREABLE           = 0400H    // hint that client is looking sharable resources (remote shares)
+  );
+
+// IShellFolder::CompareIDs lParam flags
+CONST
+  SHCIDS_ALLFIELDS        = CARDINAL(80000000H);
+  SHCIDS_COLUMNMASK       = CARDINAL(0000FFFFH);
+
+// IShellFolder::GetAttributesOf flags
+// DESCRIPTION:
+// 	 SFGAO_CANLINK: If this bit is set on an item in the shell folder, a
+//            "Create Shortcut" menu item will be added to the File
+//            menu and context menus for the item.  If the user selects
+//            that command, your IContextMenu::InvokeCommand() will be called
+//            with 'link'.
+//            	 That flag will also be used to determine if "Create Shortcut"
+//            should be added when the item in your folder is dragged to another
+//            folder.
+CONST
+  SFGAO_CANCOPY           = oleidl.DROPEFFECT_COPY; // Objects can be copied    (0x1)
+  SFGAO_CANMOVE           = oleidl.DROPEFFECT_MOVE; // Objects can be moved     (0x2)
+  SFGAO_CANLINK           = oleidl.DROPEFFECT_LINK; // Objects can be linked    (0x4)
+  SFGAO_CANRENAME         = 00000010H;     // Objects can be renamed
+  SFGAO_CANDELETE         = 00000020H;     // Objects can be deleted
+  SFGAO_HASPROPSHEET      = 00000040H;     // Objects have property sheets
+  SFGAO_DROPTARGET        = 00000100H;     // Objects are drop target
+  SFGAO_CAPABILITYMASK    = 00000177H;
+  SFGAO_LINK              = 00010000H;     // Shortcut (link)
+  SFGAO_SHARE             = 00020000H;     // shared
+  SFGAO_READONLY          = 00040000H;     // read-only
+  SFGAO_GHOSTED           = 00080000H;     // ghosted icon
+  SFGAO_HIDDEN            = 00080000H;     // hidden object
+  SFGAO_DISPLAYATTRMASK   = 000F0000H;
+  SFGAO_FILESYSANCESTOR   = 10000000H;     // It contains file system folder
+  SFGAO_FOLDER            = 20000000H;     // It's a folder.
+  SFGAO_FILESYSTEM        = 40000000H;     // is a file system thing (file/folder/root)
+  SFGAO_HASSUBFOLDER      = 80000000H;     // Expandable in the map pane
+  SFGAO_CONTENTSMASK      = 80000000H;
+  SFGAO_VALIDATE          = 01000000H;     // invalidate cached information
+  SFGAO_REMOVABLE         = 02000000H;     // is this removeable media?
+  SFGAO_COMPRESSED        = 04000000H;     // Object is compressed (use alt color)
+  SFGAO_BROWSABLE         = 08000000H;     // is in-place browsable
+  SFGAO_NONENUMERATED     = 00100000H;     // is a non-enumerated object
+  SFGAO_NEWCONTENT        = 00200000H;     // should show bold in explorer tree
+  SFGAO_CANMONIKER        = 00400000H;     // can create monikers for its objects
+
+
+// IShellFolder IBindCtx* parameters. the IUnknown for these are
+// accessed through IBindCtx::RegisterObjectParam/GetObjectParam
+
+// this object will support IPersist to query a CLSID that should be skipped
+// in the binding process. this is to avoid loops or to allow delegation to
+// base name space functionality. see SHSkipJunction()
+
+CONST
+  STR_SKIP_BINDING_CLSID      = L'Skip Binding CLSID';
+
+//#undef  INTERFACE
+//#define INTERFACE       IShellFolder
+
+//DECLARE_INTERFACE_(IShellFolder, IUnknown)
+
+CLASS IShellFolder( unknwn.IUnknown );
+
+    // *** IUnknown methods ***
+    VIRTUAL PROCEDURE QueryInterface( CONST riid : wtypes.IID; ppv : unknwn.PADDRESS ) : wtypes.HRESULT;
+    VIRTUAL PROCEDURE AddRef() : ULONG;
+    VIRTUAL PROCEDURE Release() : ULONG;
+
+    // *** IShellFolder methods ***
+    VIRTUAL PROCEDURE ParseDisplayName( hwnd : HWND; pbc : objidl.PBC; pszDisplayName : wtypes.POLESTR;
+                                        pchEaten : PULONG; ppidl : PPITEMIDLIST; pdwAttributes : PULONG );
+
+    //VIRTUAL PROCEDURE EnumObjects( hwnd : HWND; grfFlags : DWORD; **ppenumIDList IEnumIDList );
+
+    VIRTUAL PROCEDURE BindToObject( pidl : PCITEMIDLIST; pbc : objidl.PBC; CONST riid : wtypes.IID; ppv : unknwn.PADDRESS );
+    VIRTUAL PROCEDURE BindToStorage( pidl : PCITEMIDLIST; pbc : objidl.PBC; CONST riid : wtypes.IID; ppv : unknwn.PADDRESS );
+    VIRTUAL PROCEDURE CompareIDs( lParam : LPARAM; pidl1 : PCITEMIDLIST; pidl2 : PCITEMIDLIST );
+    VIRTUAL PROCEDURE CreateViewObject( hwndOwner : HWND; CONST riid : wtypes.IID; ppv : unknwn.PADDRESS );
+    VIRTUAL PROCEDURE GetAttributesOf( cidl : UINT;  apidl : PPCITEMIDLIST; rgfInOut : PULONG );
+    VIRTUAL PROCEDURE GetUIObjectOf( hwndOwner : HWND; cidl : UINT; apidl : PPCITEMIDLIST;
+                                     CONST riid : wtypes.IID; prgfInOut : PUINT; ppv : unknwn.PADDRESS );
+    VIRTUAL PROCEDURE GetDisplayNameOf( pidl : PCITEMIDLIST; uFlags : DWORD;  lpName : PSTRRET );
+    VIRTUAL PROCEDURE SetNameOf( hwnd : HWND; pidl : PCITEMIDLIST; pszName : wtypes.PCOLESTR;
+                                 uFlags : DWORD; ppidlOut : PPITEMIDLIST );
+END IShellFolder;
+
+TYPE
+  PSHELLFOLDER = POINTER TO IShellFolder;
+  PPSHELLFOLDER = POINTER TO PSHELLFOLDER;
+
+//
+//  Helper function which returns a IShellFolder interface to the desktop
+// folder. This is equivalent to call CoCreateInstance with CLSID_ShellDesktop.
+//
+//  CoCreateInstance(CLSID_Desktop, NULL,
+//                   CLSCTX_INPROC, IID_IShellFolder, &pshf);
+//
+PROCEDURE SHGetDesktopFolder( ppshf : PPSHELLFOLDER ) : wtypes.HRESULT;
+
+(*# restore *)
+
+END shlobj.

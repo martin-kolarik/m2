@@ -1,0 +1,94 @@
+DEFINITION MODULE log;
+
+//=========================================================
+
+IMPORT
+   Exceptions,
+   Sync;
+
+//=========================================================
+
+TYPE
+  TRStatusItem = (
+    rsDebugFile,
+    rsDebugKernel
+  );
+  TRStatus = SET OF TRStatusItem;
+
+  TDebugMethod = (
+    dmNone,
+    dmFile,
+    dmKernel
+  );
+
+  TDebugLevel = (
+    dl1, // brief OR critical severity
+    dl2,
+    dl3,
+    dl4 // exhaustive OR very low severity
+  );
+
+CONST // for protocols
+  dlpIO       ::= dl1;
+  dlpProtocol ::= dl2;
+  dlpCtrl     ::= dl3;
+  dlpAll      ::= dl4;
+  
+CONST // for common purposes
+  dlcSysError ::= dl1;
+  dlcError    ::= dl2;
+  dlcWarning  ::= dl3;
+  dlcInfo     ::= dl4;
+
+CONST // for developing purposes
+  dldError    ::= dl1;
+  dldInfo     ::= dl2;
+  dldTrace    ::= dl3;
+  dldDebug    ::= dl4;
+
+TYPE
+  TPLogger = POINTER TO CLogger;
+
+#save, option( dll_export => on )
+
+CLASS CLogger;
+  RStatus    : TRStatus;
+  Name       : ARRAY [0..63] OF WCHAR;
+  DebugLevel : TDebugLevel;
+  DebugFile  : ARRAY [0..260] OF WCHAR;
+  DebugLock  : Sync.LOCK;
+
+  PUBLIC PROCEDURE Init( Name : ARRAY OF WCHAR ) : CARDINAL;
+  PUBLIC PROCEDURE Set( Method : TDebugMethod; Level : TDebugLevel; DebugFile : ARRAY OF WCHAR );
+
+  PUBLIC PROCEDURE LogS( Level : TDebugLevel; Prefix, S : ARRAY OF WCHAR );
+  PUBLIC PROCEDURE LogSS( Level : TDebugLevel; Prefix, S1, S2 : ARRAY OF WCHAR );
+  PUBLIC PROCEDURE LogSC( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL );
+  PUBLIC PROCEDURE LogSH( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL );
+  PUBLIC PROCEDURE LogSP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; P : PTR );
+  PUBLIC PROCEDURE LogSCP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; P : PTR );
+  PUBLIC PROCEDURE LogSHP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL; P : PTR );
+  PUBLIC PROCEDURE LogSB( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; A : ADDRESS; Bytes : CARDINAL );
+  PUBLIC PROCEDURE LogSCB( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; A : ADDRESS; Bytes : CARDINAL );
+  PUBLIC PROCEDURE LogSSS( Level : TDebugLevel; Prefix, S1, S2, S3 : ARRAY OF WCHAR );
+  PUBLIC PROCEDURE LogSSSS( Level : TDebugLevel; Prefix, S1, S2, S3, S4 : ARRAY OF WCHAR );
+  
+  PUBLIC PROCEDURE LogExc( Level : TDebugLevel; Prefix : ARRAY OF WCHAR; CONST e : Exceptions.CException );
+
+  PRIVATE INLINE PROCEDURE Filtered( Level : TDebugLevel ) : BOOLEAN;
+  PRIVATE PROCEDURE Log( Prefix, S : ARRAY OF WCHAR );
+
+  INITIALLY CLogger;
+END CLogger;
+
+#restore
+
+//=========================================================
+
+// not exported
+VAR
+  LOG : CLogger; // default logger
+
+//=========================================================
+
+END log.

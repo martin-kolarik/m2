@@ -1,0 +1,204 @@
+DEFINITION MODULE lists;
+
+IMPORT
+  list;
+  
+FROM StringsO IMPORT
+  IString;
+  
+FROM StorageO IMPORT
+	AMemoryBuffer;
+
+#save, option( dll_export => on )
+
+//---------------------------------------------------------------------------
+
+TYPE
+  TPIntegerList = POINTER TO CIntegerList;
+
+CLASS CIntegerList( list.CListWState );
+  PUBLIC READONLY PROPERTY
+    Current : INTEGER;
+  PUBLIC PROPERTY
+    CurrentData : PTR;
+  PUBLIC READONLY
+    INDEX( Index : INTEGER ) : INTEGER; // SLOW, O(n)!!
+
+  // map interface
+  #save, option( leak_info => on )
+  PUBLIC PROCEDURE Add( Value : INTEGER; Data : PTR );
+  #restore
+  PUBLIC PROCEDURE Contains( Value : INTEGER ): BOOLEAN;
+  PUBLIC PROCEDURE Get( Value : INTEGER; OUT Data : PTR ): BOOLEAN;
+  #save, option( leak_info => on )
+  PUBLIC PROCEDURE Remove( Value : INTEGER ); // removes all occurences
+  #restore
+
+  // list interface
+  PUBLIC PROCEDURE InsertFirst( Value : INTEGER; Data : PTR );
+  PUBLIC PROCEDURE InsertBefore( Before, Value : INTEGER; Data : PTR );
+  PUBLIC PROCEDURE Append( Value : INTEGER; Data : PTR );
+
+  PUBLIC PROCEDURE GetFirst( OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN;
+  PUBLIC PROCEDURE GetLast( OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN;
+
+  PUBLIC PROCEDURE PrevOf( Value : INTEGER; OUT Previous : INTEGER; OUT Data : PTR ) : BOOLEAN; // SLOW
+  PUBLIC PROCEDURE NextOf( Value : INTEGER; OUT Next : INTEGER; OUT Data : PTR ) : BOOLEAN; // SLOW
+  PUBLIC PROCEDURE IndexOf( Value : INTEGER ) : INTEGER; // SLOW
+  
+  PRIVATE PROCEDURE Lookup( Value : INTEGER; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
+
+  // queue interface
+  PUBLIC PROCEDURE Enqueue( Value : INTEGER; Data : PTR );
+  PUBLIC PROCEDURE Dequeue( OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN; 
+END CIntegerList;
+
+//---------------------------------------------------------------------------
+
+TYPE
+  TPPtrList = POINTER TO CPtrList;
+
+CLASS CPtrList( list.CListWState );
+  PUBLIC READONLY PROPERTY
+    Current : PTR;
+  PUBLIC PROPERTY
+    CurrentData : PTR;
+  PUBLIC READONLY
+    INDEX( Index : INTEGER ) : PTR; // SLOW, O(n)!!
+
+  // map interface
+  #save, option( leak_info => on )
+  PUBLIC PROCEDURE Add( Value : PTR; Data : PTR );
+  #restore
+  PUBLIC PROCEDURE Contains( Value : PTR ): BOOLEAN;
+  PUBLIC PROCEDURE Get( Value : PTR; OUT Data : PTR ): BOOLEAN;
+  #save, option( leak_info => on )
+  PUBLIC PROCEDURE Remove( Value : PTR ); // removes all occurences
+  #restore
+
+  // list interface
+  PUBLIC PROCEDURE InsertFirst( Value : PTR; Data : PTR );
+  PUBLIC PROCEDURE InsertBefore( Before, Value : PTR; Data : PTR );
+  PUBLIC PROCEDURE Append( Value : PTR; Data : PTR );
+
+  PUBLIC PROCEDURE GetFirst( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+  PUBLIC PROCEDURE GetLast( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN;
+
+  PUBLIC PROCEDURE PrevOf( Value : PTR; OUT Previous : PTR; OUT Data : PTR ) : BOOLEAN; // SLOW
+  PUBLIC PROCEDURE NextOf( Value : PTR; OUT Next : PTR; OUT Data : PTR ) : BOOLEAN; // SLOW
+  PUBLIC PROCEDURE IndexOf( Value : PTR ) : INTEGER; // SLOW
+  
+  PRIVATE PROCEDURE Lookup( Value : PTR; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
+
+  // queue interface
+  PUBLIC PROCEDURE Enqueue( Value : PTR; Data : PTR );
+  PUBLIC PROCEDURE Dequeue( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; 
+END CPtrList;
+
+//---------------------------------------------------------------------------
+
+TYPE
+  TPStringList = POINTER TO CStringList;
+
+CLASS CStringList( list.CListWState );
+  PUBLIC READONLY PROPERTY
+    Current : POINTER TO IString;
+  PUBLIC PROPERTY
+    CurrentData : PTR;
+  PUBLIC READONLY
+    INDEX( Index : INTEGER ) : POINTER TO IString; // SLOW, O(n)!!
+
+  // map interface
+  PUBLIC PROCEDURE Add( CONST Value : IString; Data : PTR );
+  PUBLIC PROCEDURE Contains( CONST Value : IString ): BOOLEAN;
+  PUBLIC PROCEDURE Get( CONST Value : IString; OUT Data : PTR ): BOOLEAN;
+  PUBLIC PROCEDURE Remove( CONST Value : IString ); // removes all occurences
+
+  PUBLIC PROCEDURE AddOA( CONST Value : ARRAY OF WCHAR; Data : PTR );
+  PUBLIC PROCEDURE ContainsOA( CONST Value : ARRAY OF WCHAR ): BOOLEAN;
+  PUBLIC PROCEDURE GetOA( CONST Value : ARRAY OF WCHAR; OUT Data : PTR ): BOOLEAN;
+  PUBLIC PROCEDURE RemoveOA( CONST Value : ARRAY OF WCHAR ); // removes all occurences
+
+  // list interface
+  PUBLIC PROCEDURE InsertFirst( CONST Value : IString; Data : PTR );
+  PUBLIC PROCEDURE InsertBefore( CONST Before, Value : IString; Data : PTR );
+  PUBLIC PROCEDURE Append( CONST Value : IString; Data : PTR );
+
+  PUBLIC PROCEDURE GetFirst( OUT Value : IString; OUT Data : PTR ) : BOOLEAN;
+  PUBLIC PROCEDURE GetLast( OUT Value : IString; OUT Data : PTR ) : BOOLEAN;
+
+  PUBLIC PROCEDURE PrevOf( CONST Value : IString; OUT Previous : IString; OUT Data : PTR ) : BOOLEAN; // SLOW
+  PUBLIC PROCEDURE NextOf( CONST Value : IString; OUT Next : IString; OUT Data : PTR ) : BOOLEAN; // SLOW
+  PUBLIC PROCEDURE IndexOf( CONST Value : IString ) : INTEGER; // SLOW
+  
+  PRIVATE PROCEDURE Lookup( CONST Value : IString; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
+
+  // queue interface
+  PUBLIC PROCEDURE Enqueue( CONST Value : IString; Data : PTR );
+  PUBLIC PROCEDURE EnqueueOA( CONST Value : ARRAY OF WCHAR; Data : PTR );
+
+  PUBLIC PROCEDURE Dequeue( OUT Value : IString; OUT Data : PTR ) : BOOLEAN; 
+  PUBLIC PROCEDURE DequeueOA( OUT Value : ARRAY OF WCHAR; OUT Data : PTR ) : BOOLEAN; 
+END CStringList;
+
+//---------------------------------------------------------------------------
+
+TYPE
+   TBufferListItemType = (
+      blitDynamic,
+      blitSlot32,
+      blitSlot64,
+      blitSlot256
+   );
+
+TYPE
+  TPBufferList = POINTER TO CBufferList;
+
+CLASS CBufferList( list.CListWState );
+   PUBLIC VAR
+      ItemType : TBufferListItemType := blitDynamic;
+   PUBLIC READONLY PROPERTY
+      Current : POINTER TO AMemoryBuffer;
+   PUBLIC PROPERTY
+      CurrentData : PTR;
+   PUBLIC READONLY
+      INDEX( Index : INTEGER ) : POINTER TO AMemoryBuffer; // SLOW, O(n)!!
+
+  // map interface
+  PUBLIC PROCEDURE Add( CONST Value : AMemoryBuffer; Data : PTR );
+  PUBLIC PROCEDURE Contains( CONST Value : AMemoryBuffer ): BOOLEAN;
+  PUBLIC PROCEDURE Get( CONST Value : AMemoryBuffer; OUT Data : PTR ): BOOLEAN;
+  PUBLIC PROCEDURE Remove( CONST Value : AMemoryBuffer ); // removes all occurences
+
+  PUBLIC PROCEDURE AddOA( CONST Value : ARRAY OF BYTE; Data : PTR );
+  PUBLIC PROCEDURE ContainsOA( CONST Value : ARRAY OF BYTE ): BOOLEAN;
+  PUBLIC PROCEDURE GetOA( CONST Value : ARRAY OF BYTE; OUT Data : PTR ): BOOLEAN;
+  PUBLIC PROCEDURE RemoveOA( CONST Value : ARRAY OF BYTE ); // removes all occurences
+
+  // list interface
+  PUBLIC PROCEDURE InsertFirst( CONST Value : AMemoryBuffer; Data : PTR );
+  PUBLIC PROCEDURE InsertBefore( CONST Before, Value : AMemoryBuffer; Data : PTR );
+  PUBLIC PROCEDURE Append( CONST Value : AMemoryBuffer; Data : PTR );
+
+  PUBLIC PROCEDURE GetFirst( OUT Value : AMemoryBuffer; OUT Data : PTR ) : BOOLEAN;
+  PUBLIC PROCEDURE GetLast( OUT Value : AMemoryBuffer; OUT Data : PTR ) : BOOLEAN;
+
+  PUBLIC PROCEDURE PrevOf( CONST Value : AMemoryBuffer; OUT Previous : AMemoryBuffer; OUT Data : PTR ) : BOOLEAN; // SLOW
+  PUBLIC PROCEDURE NextOf( CONST Value : AMemoryBuffer; OUT Next : AMemoryBuffer; OUT Data : PTR ) : BOOLEAN; // SLOW
+  PUBLIC PROCEDURE IndexOf( CONST Value : AMemoryBuffer ) : INTEGER; // SLOW
+  
+  PRIVATE PROCEDURE Lookup( CONST Value : AMemoryBuffer; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
+
+  // queue interface
+  PUBLIC PROCEDURE Enqueue( CONST Value : AMemoryBuffer; Data : PTR );
+  PUBLIC PROCEDURE EnqueueOA( CONST Value : ARRAY OF BYTE; Data : PTR );
+
+  PUBLIC PROCEDURE Dequeue( OUT Value : AMemoryBuffer; OUT Data : PTR ) : BOOLEAN; 
+  PUBLIC PROCEDURE DequeueOA( OUT Value : ARRAY OF BYTE; OUT Filled : CARDINAL; OUT Data : PTR ) : BOOLEAN; 
+END CBufferList;
+
+//---------------------------------------------------------------------------
+
+#restore
+
+END lists.

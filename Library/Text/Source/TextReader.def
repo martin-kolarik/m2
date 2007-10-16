@@ -1,0 +1,75 @@
+DEFINITION MODULE TextReader;
+
+IMPORT
+   IOO,
+   StringsO,
+   SyncQueue;
+
+(*================================================================================*)
+
+#save, option( dll_export => on )
+
+TYPE
+   TScanResult = (
+      srNothing,
+      srBOM,
+      srCommentaryLine,
+      srIncompleteLine,
+      srIncompleteLineBufferFull,
+      srCompleteLine
+   );
+
+TYPE
+   TPTextReader = POINTER TO CTextReader;
+   
+CLASS CTextReader IMPLEMENTS IOO.IBufferedReader;
+   PRIVATE VAR
+      _Encoding : CARDINAL;
+   INTERNAL VAR
+      _Stream : IOO.TPStream;
+      _SBuffer : SyncQueue.RingBuffer;
+      _SProxy : IOO.CRingBufferProxy;
+      _WBuffer : SyncQueue.RingBuffer;
+      _OmitCommentaries : BOOLEAN := FALSE;
+      _CommentaryStart : StringsO.CString;
+   PUBLIC READONLY VAR
+      Line : CARDINAL; // valid only for ReadLine, not for ReadChar/ReadBlock, returns Line of last read out character/line
+   PUBLIC VAR
+      DetectEncodingAutomatically : BOOLEAN := TRUE;
+      MaskBOM : BOOLEAN := TRUE; // byte order mark
+   PUBLIC PROPERTY
+      Stream : IOO.TPStream;
+      Encoding : CARDINAL; // UTF8 by default
+      BufferSize : CARDINAL; // aka maximal line length; 1024 by default, in characters
+      OmitCommentaries : BOOLEAN;
+      CommentaryStart : StringsO.CString;
+
+   PUBLIC PROCEDURE ReadChar( OUT Ch : WCHAR; TimeoutMS : CARDINAL; WaitForResult : BOOLEAN ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE ReadLine( OUT Line : StringsO.IString; TimeoutMS : CARDINAL; WaitForResult : BOOLEAN ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE ReadLineOA( OUT Line : ARRAY OF WCHAR; TimeoutMS : CARDINAL; WaitForResult : BOOLEAN; OUT Read : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE ReadBlock( OUT Block : StringsO.IString; Length : CARDINAL; TimeoutMS : CARDINAL; WaitForResult : BOOLEAN ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE ReadBlockOA( OUT Block : ARRAY OF WCHAR; TimeoutMS : CARDINAL; WaitForResult : BOOLEAN; OUT Read : CARDINAL ) : Sync.TAsyncResult;
+   
+   PUBLIC PROCEDURE ReadCharS( OUT Ch : WCHAR ) : BOOLEAN;
+   PUBLIC PROCEDURE ReadLineS( OUT Line : StringsO.IString ) : BOOLEAN;
+
+   // IBufferedReader   
+   PUBLIC VIRTUAL PROPERTY Notifier : IOO.TPDataInfo; // TextReader is unable to notify, call does nothing
+   PUBLIC VIRTUAL PROCEDURE StartReading(); // starts reading
+   PUBLIC VIRTUAL PROCEDURE Peek( OUT Data : ADDRESS; OUT byteLength : CARDINAL ) : BOOLEAN; // peeks data from read buffer, !!!!! IBufferReader is BYTE oriented, Length is BYTE count not WCHAR count.
+   PUBLIC VIRTUAL PROCEDURE ReadOut( byteLength : CARDINAL ); // consumes data from read buffer, !!!!! IBufferReader Length is BYTE, not WCHAR count.
+   
+   PRIVATE PROCEDURE ReadFromStream( TimeoutMS : CARDINAL; WaitForResult : BOOLEAN; AllowPredictioning : BOOLEAN ) : Sync.TAsyncResult;
+   PRIVATE PROCEDURE Feed();
+   PRIVATE PROCEDURE ScanLine( DetectBOM : BOOLEAN; OUT Start : PWCHAR; OUT DataLength, CommitLength : CARDINAL ) : TScanResult;
+END CTextReader;
+
+(*================================================================================*)
+
+PROCEDURE stdin() : TPTextReader;
+
+(*===========================================================================*)
+
+#restore
+
+END TextReader.

@@ -1,0 +1,92 @@
+DEFINITION MODULE StiebelHP;
+// setpoint process.value control.value
+
+IMPORT
+	IOO,
+	StorageO,
+	StringsO,
+	Sync;
+
+IMPORT
+	nsitem,
+	sdev,
+	sdio,
+	sdns,
+	sdvalue,
+	serial;
+	
+(*===========================================================================*)
+
+TYPE
+	TPIO = POINTER TO CIO;
+	TPNS = POINTER TO CNS;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CNS( nsitem.ANS );
+	INTERNAL VIRTUAL PROCEDURE CreateRoot() : sdns.TPSDNSItem;
+	INTERNAL VIRTUAL PROCEDURE CreateStructure();
+	PUBLIC VIRTUAL PROCEDURE CreateNewItem( CONST Name : ARRAY OF WCHAR; Type : sdvalue.TSDType; Data : PTR ) : sdns.TPSDNSItem;
+END CNS;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CSerial( serial.CSerialHandler );
+	LOCAL VAR
+		PIO : TPIO;
+
+	INTERNAL VIRTUAL PROCEDURE DataComplete( CONST Data : StorageO.CMemoryBuffer; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyCheckSum : BOOLEAN ) : BOOLEAN;
+	INTERNAL VIRTUAL PROCEDURE TestChkSum( CONST Data : StorageO.CMemoryBuffer ) : BOOLEAN;
+	INTERNAL VIRTUAL PROCEDURE OnRx( Result : Sync.TAsyncResult; CONST Data : StorageO.CMemoryBuffer );
+
+	INTERNAL VIRTUAL PROCEDURE AddChkSum( REF Data : StorageO.CMemoryBuffer );
+	INTERNAL VIRTUAL PROCEDURE OnTx( Result : Sync.TAsyncResult );
+END CSerial;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+	TPNSI = POINTER TO CNSI;
+	TPPacket = POINTER TO TPacket;
+
+CLASS CIO( sdio.ASDItemizedIO );
+	LOCAL VAR
+		Serial : CSerial;
+	PRIVATE VAR
+		_AbortFlag : BOOLEAN;
+		_Pending : IOO.TDirection;
+		_Item : TPNSI;
+		_Callback : sdio.TPSDCallback;
+
+	PUBLIC VIRTUAL READONLY PROPERTY
+		Pending : BOOLEAN;
+		
+	PUBLIC PROCEDURE Dispose();
+
+	PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : sdns.THash; REF Value : sdvalue.ASDValue; Delegate : sdio.TPSDCallback ) : Sync.TAsyncResult;
+	PUBLIC VIRTUAL PROCEDURE Abort();
+
+	LOCAL PROCEDURE OnRx( Result : Sync.TAsyncResult; PPacket : TPPacket );
+	LOCAL PROCEDURE OnTxCON( Result : Sync.TAsyncResult );
+END CIO;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CStiebelHPDevice( sdev.ISDevice );
+	PRIVATE VAR
+		_NS : CNS;
+		_IO : CIO;
+
+	PUBLIC PROCEDURE Dispose();
+
+	PUBLIC VIRTUAL PROCEDURE NS() : sdns.TPSDNS;
+	PUBLIC VIRTUAL PROCEDURE IO() : sdio.TPSDIO;
+
+	PUBLIC PROCEDURE Init( COMDevice, File : ARRAY OF WCHAR; OUT ErrorString : ARRAY OF WCHAR ) : BOOLEAN;
+	PUBLIC PROCEDURE Run();
+	PUBLIC PROCEDURE Stop();
+END CStiebelHPDevice;
+
+(*---------------------------------------------------------------------------*)
+
+END StiebelHP.

@@ -1,0 +1,71 @@
+[
+  uuid( F69DAC96-A671-4F76-9571-A0F0E086C755 ),
+  version(1.0),
+  helpstring("SmartControl Macromedia Flash Socket Server ActiveX Control 1.0 Type Library")
+]
+
+library MMFlashSrv {
+
+  importlib("stdole32.tlb");
+
+  [ 
+    uuid( 4B9F1D00-479E-474D-807C-B1B11C1E5F2F ),
+    helpstring("Native IDispatch Interface of SmartControl Macromedia Flash Socket Server ActiveX Control"),
+    oleautomation
+  ]
+  interface IMMFlashSrv_Native : IDispatch {
+
+    [helpstring( "Initiates control to run, starts listening." )]
+    HRESULT Start();
+
+    [helpstring( "Finalizes control activity, stops listening." )]
+    HRESULT Stop();
+
+    [helpstring( "Sends a single data piece to client." )]
+    HRESULT Send( long Client, BSTR DataName, BSTR DataValue, BSTR DataAddOn );
+
+    // [helpstring( "Starts a batch for sending multiple pieces of data in one packet." )]
+    // HRESULT StartBatch( long Client );
+
+    // [helpstring( "Adds data to current batch." )]
+    // HRESULT AddToBatch( BSTR DataName, BSTR DataValue, BSTR DataAddOn );
+
+    // [helpstring( "Sends curent pending batch." )]
+    // HRESULT SendBatch();
+
+    // [helpstring( "Disconnects client." )]
+    // HRESULT Disconnect( long Client );
+
+  };
+
+  [ 
+    uuid( 963B0F3B-6C5D-449B-9E72-75DE9D82E06C ),
+    helpstring("Event IDispatch interface of SmartControl Macromedia Flash Socket Server ActiveX Control"),
+  ]
+  dispinterface IMMFlashSrv_Event {
+
+  properties:
+  methods:
+    [id(1),helpstring( "New client has been connected." )]
+    HRESULT OnConnect( long Client, BSTR From );
+
+    [id(2),helpstring( "Client has been disconnected." )]
+    HRESULT OnDisconnect( long Client );
+
+    [id(3),helpstring( "Client has been disconnected." )]
+    HRESULT OnReceive( long Client, BSTR DataName, BSTR DataValue, BSTR DataAddOn );
+
+  };
+
+  // class information
+  [
+  uuid( EFD40B3D-C450-4E1D-9B30-159AD7606E0C ),
+    helpstring("SmartControl Macromedia Flash Socket Server ActiveX Control")
+  ]
+  coclass MMFlashSrv {
+                        interface     IDispatch;
+    [ default ]         interface     IMMFlashSrv_Native;
+    [ default, source ]	dispinterface IMMFlashSrv_Event;
+  };
+
+}

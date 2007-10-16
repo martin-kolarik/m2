@@ -1,0 +1,53 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+      <WixBin>c:\program files\wix</WixBin>
+      <Candle>$(WixBin)\candle</Candle>
+      <Light>$(WixBin)\light</Light>
+      <WixSrc>..\$(RootBuildDir)\WiX</WixSrc>
+
+      <SetupFile>..\$(SetupDir)\$(MSBuildProjectName).wxs</SetupFile>
+      <SetupObj>$(IntermediateDir)\$(MSBuildProjectName).wixobj</SetupObj>
+      <SetupResult>$(MSBuildProjectName).msi</SetupResult>
+      <SetupResultDir>$(OutputDir)\$(MSBuildProjectName).msi</SetupResultDir>
+
+      <CandleDefs>-dBuildRoot=&quot;$(WiXSrc)&quot; -dProductRoot=&quot;$(ComponentPath)\Install&quot; -dProductId=&quot;$(ProductId)&quot;</CandleDefs>
+      <CandleDefs> $(CandleDefs) -dContact=&quot;$(Contact)&quot; -dSupport=&quot;$(Support)&quot; -dPhone=&quot;$(Phone)&quot; -dURL=&quot;$(URL)&quot; -dUpdateURL=&quot;$(UpdateURL)&quot;</CandleDefs>
+      <CandleDefs> $(CandleDefs) -dManufacturer=&quot;$(Manufacturer)&quot; -dProductDescription=&quot;$(ProductDescription)&quot;</CandleDefs>
+      <CandleDefs> $(CandleDefs) -dProductGUID=$(ProductGUID) -dUpgradeGUID=$(ProductUpgradeGUID)</CandleDefs>
+      <CandleDefs> $(CandleDefs) -dLanguage=$(LangIdDec) -dCodePage=$(OriginalCodePageDec) -dConfigurationName=$(ConfigurationName) -dCLib=$(CLib) -dLeakChecking=$(LeakChecking)</CandleDefs>
+  </PropertyGroup>
+
+  <ItemGroup>
+      <SetupSource Include="$(SetupDir)\*;$(SetupDir)\**\*.bmp;$(SetupDir)\**\*.ico" />
+      <IntermediateSetupFiles Include="$(SetupDir)\License.rtf;$(IntermediateDir)\*.wixobj;$(OutputDir)\$(SetupResult)"/>
+  </ItemGroup>
+
+  <Target Name="CleanSetup">
+      <Delete Files="@(IntermediateSetupFiles)" ContinueOnError="true" />
+  </Target>
+
+    <Target Name="CreateSetup"
+            DependsOnTargets="MSI;Digests"/>
+
+    <Target Name="MSI"
+            Inputs="$(Compiled);@(SetupSource)"
+            Outputs="$(SetupResultDir)">
+        <Copy SourceFiles="$(SetupDir)\License.$(Manufacturer).rtf"
+              DestinationFiles="$(SetupDir)\License.rtf" />
+        <Exec WorkingDirectory="$(IntermediateDir)"
+              Command="&quot;$(Candle)&quot; $(SetupFile) -dProductVersion=$(ProductVersion) $(CandleDefs)"/>
+        <Exec WorkingDirectory="$(OutputDir)"
+              Command="&quot;$(Light)&quot; -b &quot;..\$(SetupDir)&quot; &quot;..\$(SetupObj)&quot; &quot;$(WiXSrc)\WixUI_Licence.wixlib&quot; -loc &quot;$(WiXSrc)\WixUI_cs-CZ.wxl&quot; -loc &quot;$(WixSrc)\WixUI_Licence_cs-CZ.wxl&quot; -out $(SetupResult)"/>
+    </Target>
+
+    <Target Name="Digests"
+            Inputs="$(SetupResultDir)"
+            Outputs="$(OutputDir)\$(MSBuildProjectName).sha1;$(OutputDir)\$(MSBuildProjectName).md5">
+        <Exec WorkingDirectory="$(OutputDir)"
+              Command="$(SUM) -b -1 $(SetupResult) &gt; $(MSBuildProjectName).sha1"/>
+        <Exec WorkingDirectory="$(OutputDir)"
+              Command="$(SUM) -b -5 $(SetupResult) &gt; $(MSBuildProjectName).md5"/>
+    </Target>
+
+</Project>

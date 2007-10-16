@@ -1,0 +1,806 @@
+IMPLEMENTATION MODULE Sync;
+
+IMPORT
+   windows;
+
+FROM Storage IMPORT
+  ALLOCATE,
+  DEALLOCATE;
+  
+(*================================================================================*)
+
+PROCEDURE Sleep( Time : CARDINAL );
+BEGIN
+   windows.Sleep( Time );
+END Sleep;
+
+(*================================================================================*)
+
+CLASS IMPLEMENTATION LOCK;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROPERTY WaitHandle GET : WAITABLE;
+  BEGIN
+    IF Type = ltMutex THEN
+      RETURN Data;
+    ELSE
+      RETURN NIL;
+    END;
+  END WaitHandle;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROCEDURE Init( Type : TLockType; CONST Name : ARRAY OF WCHAR; InitiallyLocked : BOOLEAN );
+  BEGIN
+    Dispose();
+    SELF.Type := Type;
+    IF Type = ltCS THEN
+      Data := NEW( windows.CRITICAL_SECTION );
+      windows.InitializeCriticalSection( windows.PCRITICAL_SECTION( Data ));
+    ELSIF Type = ltMutex THEN
+      IF Name[0] = 0W THEN
+        Data := windows.CreateMutexW( NIL, windows.BOOL( InitiallyLocked ), NIL );
+      ELSE
+        Data := windows.CreateMutexW( NIL, windows.BOOL( InitiallyLocked ), ADR( Name ));
+      END;
+    END;
+    IF InitiallyLocked THEN
+      Lock();
+    END;
+  END Init;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROCEDURE Lock();
+  BEGIN
+    IF Type = ltSpin THEN
+      WHILE IExchgPtr( REF Data, ADDRESS( 1 )) = ADDRESS( 1 ) DO
+        windows.Sleep( 0 );
+      END; // WHILE
+    ELSIF Type = ltCS THEN
+      windows.EnterCriticalSection( windows.PCRITICAL_SECTION( Data ));
+    ELSIF Type = ltMutex THEN
+      windows.WaitForSingleObject( Data, windows.INFINITE );
+    END;
+  END Lock;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROCEDURE Unlock();
+  BEGIN
+    IF Type = ltSpin THEN
+      IExchgPtr( REF Data, ADDRESS( 0 ));
+    ELSIF Type = ltCS THEN
+      windows.LeaveCriticalSection( windows.PCRITICAL_SECTION( Data ));
+    ELSIF Type = ltMutex THEN
+      windows.ReleaseMutex( Data );
+    END;
+  END Unlock;
+
+(*--------------------------------------------------------------------------------*)
+  
+  PUBLIC PROCEDURE Get( REF Operand : LONGWORD ) : CARDINAL; // current value
+  VAR
+    L : CARDINAL;
+  BEGIN
+    IF Type = ltILock THEN
+      RETURN IExchgAdd( REF Operand, 0 );
+    ELSE
+      Lock();
+      L := Operand;
+      Unlock();
+      RETURN L;
+    END;
+  END Get;
+
+(*--------------------------------------------------------------------------------*)
+  
+  PUBLIC PROCEDURE GetPtr( REF Operand : ADDRESS ) : ADDRESS; // current value
+  VAR
+    L : ADDRESS;
+  BEGIN
+    IF Type = ltILock THEN
+      RETURN ICmpExchgPtr( REF Operand, NIL, NIL );
+    ELSE
+      Lock();
+      L := Operand;
+      Unlock();
+      RETURN L;
+    END;
+  END GetPtr;
+
+(*--------------------------------------------------------------------------------*)
+  
+  PUBLIC PROCEDURE Inc( REF Operand : LONGWORD; Increment : CARDINAL ) : CARDINAL; // resulting value
+  VAR
+    L : CARDINAL;
+  BEGIN
+    IF Type = ltILock THEN
+      IF Increment = 1 THEN
+        RETURN IInc( REF Operand );
+      ELSE
+        RETURN IExchgAdd( REF Operand, Increment ) + INT32( Increment );
+      END;
+    ELSE
+      Lock();
+      INC( Operand, Increment );
+      L := Operand;
+      Unlock();
+      RETURN L;
+    END;
+  END Inc;
+  
+(*--------------------------------------------------------------------------------*)
+  
+  PUBLIC PROCEDURE Dec( REF Operand : LONGWORD; Decrement : CARDINAL ) : CARDINAL; // resulting value
+  VAR
+    L : CARDINAL;
+  BEGIN
+    IF Type = ltILock THEN
+      IF Decrement = 1 THEN
+        RETURN IDec( REF Operand );
+      ELSE
+        RETURN IExchgAdd( REF Operand, - Decrement ) - INT32( Decrement );
+      END;
+    ELSE
+      Lock();
+      DEC( Operand, Decrement );
+      L := Operand;
+      Unlock();
+      RETURN L;
+    END;
+  END Dec;
+  
+(*--------------------------------------------------------------------------------*)
+  
+  PUBLIC PROCEDURE Exchg( REF Operand : LONGWORD; Value : LONGWORD ) : CARDINAL; // previous value
+  VAR
+    L : CARDINAL;
+  BEGIN
+    IF Type = ltILock THEN
+      RETURN IExchg( REF Operand, Value );
+    ELSE
+      Lock();
+      L := Operand;
+      Operand := Value;
+      Unlock();
+      RETURN L;
+    END;
+  END Exchg;
+  
+(*--------------------------------------------------------------------------------*)
+  
+  PUBLIC PROCEDURE ExchgPtr( REF Operand : ADDRESS; Value : ADDRESS ) : ADDRESS; // previous value
+  VAR
+    L : ADDRESS;
+  BEGIN
+    IF Type = ltILock THEN
+      RETURN IExchgPtr( REF Operand, Value );
+    ELSE
+      Lock();
+      L := Operand;
+      Operand := Value;
+      Unlock();
+      RETURN L;
+    END;
+  END ExchgPtr;
+  
+(*--------------------------------------------------------------------------------*)
+  
+  PUBLIC PROCEDURE ExchgAdd( REF Operand : LONGWORD; Addition : INTEGER ) : CARDINAL; // previous value
+  VAR
+    L : CARDINAL;
+  BEGIN
+    IF Type = ltILock THEN
+      RETURN IExchgAdd( REF Operand, Addition );
+    ELSE
+      Lock();
+      L := Operand;
+      INC( Operand, Addition );
+      Unlock();
+      RETURN L;
+    END;
+  END ExchgAdd;
+  
+(*--------------------------------------------------------------------------------*)
+  
+  PUBLIC PROCEDURE CmpExchg( REF Operand : LONGWORD; Value : LONGWORD; Comparand : LONGWORD ) : CARDINAL; // previous value
+  VAR
+    L : CARDINAL;
+  BEGIN
+    IF Type = ltILock THEN
+      RETURN ICmpExchg( REF Operand, Value, Comparand );
+    ELSE
+      Lock();
+      L := Operand;
+      IF Operand = Comparand THEN
+        Operand := Value;
+      END;
+      Unlock();
+      RETURN L;
+    END;
+  END CmpExchg;
+  
+(*--------------------------------------------------------------------------------*)
+  
+  PUBLIC PROCEDURE CmpExchgPtr( REF Operand : ADDRESS; Value : ADDRESS; Comparand : ADDRESS ) : ADDRESS; // previous value
+  VAR
+    L : ADDRESS;
+  BEGIN
+    IF Type = ltILock THEN
+      RETURN ICmpExchgPtr( REF Operand, Value, Comparand );
+    ELSE
+      Lock();
+      L := Operand;
+      IF Operand = Comparand THEN
+        Operand := Value;
+      END;
+      Unlock();
+      RETURN L;
+    END;
+  END CmpExchgPtr;
+  
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Incl( REF Operand : LONGWORD; IncludedBit : LONGWORD ) : BITSET32; // previous value
+   VAR
+      L : BITSET32;
+   BEGIN
+      IF Type = ltILock THEN
+         ASSERT( FALSE );
+         RETURN {};
+      ELSE
+         Lock();
+         L := Operand;
+         Operand := Operand OR ( 1 << IncludedBit );
+         Unlock();
+         RETURN L;
+      END;
+   END Incl;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Excl( REF Operand : LONGWORD; ExcludedBit : LONGWORD ) : BITSET32; // previous value
+   VAR
+      L : BITSET32;
+   BEGIN
+      IF Type = ltILock THEN
+         ASSERT( FALSE );
+         RETURN {};
+      ELSE
+         Lock();
+         L := Operand;
+         Operand := Operand AND NOT( 1 << ExcludedBit );
+         Unlock();
+         RETURN L;
+      END;
+   END Excl;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE InclExcl( REF Operand : LONGWORD; IncludedSet, ExcludedSet : BITSET32 ) : BITSET32; // previous value
+   VAR
+      L : BITSET32;
+   BEGIN
+      IF Type = ltILock THEN
+         ASSERT( FALSE );
+         RETURN {};
+      ELSE
+         Lock();
+         L := Operand;
+         Operand := Operand AND NOT LONGWORD( ExcludedSet ) OR LONGWORD( IncludedSet );
+         Unlock();
+         RETURN L;
+      END;
+   END InclExcl;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE In( REF Operand : LONGWORD; TestBit : LONGWORD ) : BOOLEAN;
+   VAR
+      L : BOOLEAN;
+   BEGIN
+      IF Type = ltILock THEN
+         ASSERT( FALSE );
+         RETURN FALSE;
+      ELSE
+         Lock();
+         L := Operand AND ( 1 << TestBit ) <> 0;
+         Unlock();
+         RETURN L;
+      END;
+   END In;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE InSet( REF Operand : LONGWORD; TestSet : BITSET32 ) : BOOLEAN;
+   VAR
+      L : BOOLEAN;
+   BEGIN
+      IF Type = ltILock THEN
+         ASSERT( FALSE );
+         RETURN FALSE;
+      ELSE
+         Lock();
+         L := Operand AND LONGWORD( TestSet ) = LONGWORD( TestSet );
+         Unlock();
+         RETURN L;
+      END;
+   END InSet;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE NotInSet( REF Operand : LONGWORD; TestSet : BITSET32 ) : BOOLEAN;
+   VAR
+      L : BOOLEAN;
+   BEGIN
+      IF Type = ltILock THEN
+         ASSERT( FALSE );
+         RETURN FALSE;
+      ELSE
+         Lock();
+         L := Operand AND LONGWORD( TestSet ) = 0;
+         Unlock();
+         RETURN L;
+      END;
+   END NotInSet;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE AndCmp( REF Operand : LONGWORD; AndSet, CmpSet : BITSET32 ) : BOOLEAN;
+   VAR
+      L : BOOLEAN;
+   BEGIN
+      IF Type = ltILock THEN
+         ASSERT( FALSE );
+         RETURN FALSE;
+      ELSE
+         Lock();
+         L := Operand AND LONGWORD( AndSet ) = LONGWORD( CmpSet );
+         Unlock();
+         RETURN L;
+      END;
+   END AndCmp;
+
+(*--------------------------------------------------------------------------------*)
+
+  PRIVATE PROCEDURE Dispose();
+  BEGIN
+    Unlock();
+    IF Data = 0 THEN
+      // do nothing
+    ELSIF Type = ltCS THEN
+      windows.DeleteCriticalSection( windows.PCRITICAL_SECTION( Data ));
+      DISPOSE( Data );
+    ELSIF Type = ltMutex THEN
+      windows.CloseHandle( Data );
+      Data := 0;
+    END;
+  END Dispose;
+  
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+  Data := 0;
+FINALLY
+  Dispose();
+END LOCK;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE ICmpExchg( REF Destination : INT32; Exchange : INT32; Comperand : INT32 ) : INT32;
+BEGIN
+   RETURN windows.InterlockedCompareExchange( REF Destination, Exchange, Comperand );
+END ICmpExchg;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE ICmpExchgPtr( REF Destination : ADDRESS; Exchange : ADDRESS; Comperand : ADDRESS ) : ADDRESS;
+BEGIN
+   RETURN windows.InterlockedCompareExchangePointer( REF Destination, Exchange, Comperand );
+END ICmpExchgPtr;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE IDec( REF Addend : INT32 ) : INT32;
+BEGIN
+   RETURN windows.InterlockedDecrement( REF Addend );
+END IDec;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE IExchg( REF Target : INT32; Value : INT32 ) : INT32;
+BEGIN
+   RETURN windows.InterlockedExchange( REF Target, Value );
+END IExchg;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE IExchgAdd( REF Addend : INT32; Value : INT32 ) : INT32;
+BEGIN
+   RETURN windows.InterlockedExchangeAdd( REF Addend, Value );
+END IExchgAdd;
+
+(*--------------------------------------------------------------------------------*)
+  
+PROCEDURE IExchgPtr( REF Destination : ADDRESS; Value : ADDRESS ) : ADDRESS;
+BEGIN
+   RETURN windows.InterlockedExchangePointer( REF Destination, Value );
+END IExchgPtr;
+
+(*--------------------------------------------------------------------------------*)
+  
+PROCEDURE IInc( REF Addend : INT32 ): INT32;
+BEGIN
+   RETURN windows.InterlockedIncrement( REF Addend );
+END IInc;
+
+(*--------------------------------------------------------------------------------*)
+  
+PROCEDURE IGet( REF Value : INT32 ) : INT32;
+BEGIN
+  RETURN IExchgAdd( REF Value, 0 );
+END IGet;
+
+(*--------------------------------------------------------------------------------*)
+  
+PROCEDURE IGetPtr( REF Value : ADDRESS ) : ADDRESS;
+BEGIN
+  RETURN ICmpExchgPtr( REF Value, NIL, NIL );
+END IGetPtr;
+
+(*================================================================================*)
+// signalling
+
+PROCEDURE CreateSignal( InitiallySignalled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : SIGNAL;
+BEGIN
+  IF Name[0] = 0W THEN
+    RETURN windows.CreateEventW( NIL, windows.True, windows.BOOL( InitiallySignalled ), NIL );
+  ELSE
+    RETURN windows.CreateEventW( NIL, windows.True, windows.BOOL( InitiallySignalled ), ADR( Name ));
+  END;
+END CreateSignal;
+
+PROCEDURE Signal( S : SIGNAL );
+BEGIN
+  IF S = NIL THEN
+    RETURN;
+  END;
+  windows.SetEvent( S );
+END Signal;
+
+PROCEDURE SignalAndReset( S : SIGNAL );
+BEGIN
+  IF S = NIL THEN
+    RETURN;
+  END;
+  windows.PulseEvent( S );
+END SignalAndReset;
+
+PROCEDURE Reset( S : SIGNAL );
+BEGIN
+  IF S = NIL THEN
+    RETURN;
+  END;
+  windows.ResetEvent( S );
+END Reset;
+
+PROCEDURE DeleteSignal( REF S : SIGNAL );
+BEGIN
+  IF S <> NIL THEN
+    windows.CloseHandle( S );
+    S := NIL;
+  END;
+END DeleteSignal;
+
+(*================================================================================*)
+// waiting
+
+PROCEDURE Wait( W : WAITABLE; Timeout : CARDINAL ) : TAsyncResult; // 1 = W got, 0 = Timeout, -1 = Abortion
+BEGIN
+  IF W = NIL THEN
+    RETURN arCannotStart;
+  END;
+  CASE CARDINAL( windows.WaitForSingleObject( W, Timeout )) OF
+  | windows.WAIT_OBJECT_0 :
+    RETURN arCompleted;
+  | windows.WAIT_TIMEOUT :
+    RETURN arTimeout;
+  ELSE
+    RETURN arAborted;
+  END;
+END Wait;
+
+PROCEDURE State( W : WAITABLE ) : BOOLEAN; // TRUE = Signalled, FALSE = Nonsignalled
+BEGIN
+  RETURN windows.WaitForSingleObject( W, 0 ) = windows.WAIT_OBJECT_0;
+END State;
+
+(*================================================================================*)
+
+CLASS IMPLEMENTATION OneToOneQueue;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROPERTY OneToOneQueue.Count GET : CARDINAL;
+  VAR
+    LHead : CARDINAL;
+    LTail : CARDINAL;
+  BEGIN
+    // order is significant, first LTail
+    LTail := IExchgAdd( REF _Tail, 0 );
+    LHead := IExchgAdd( REF _Head, 0 );
+    RETURN LTail-LHead;
+  END OneToOneQueue.Count;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROPERTY OneToOneQueue.Empty GET : BOOLEAN;
+  BEGIN
+    RETURN Count = 0;
+  END OneToOneQueue.Empty;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROPERTY OneToOneQueue.Full GET : BOOLEAN;
+  BEGIN
+    RETURN Count = _Size;
+  END OneToOneQueue.Full;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC VIRTUAL PROPERTY OneToOneQueue.Size GET : CARDINAL;
+  BEGIN
+    RETURN _Size;
+  END OneToOneQueue.Size;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC VIRTUAL PROPERTY OneToOneQueue.Size SET( Value : CARDINAL );
+  BEGIN
+    _Size := Value;
+    _Head := 0;
+    _Tail := 0;
+  END OneToOneQueue.Size;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROCEDURE Clear();
+  BEGIN
+    CommitConsuming( MAX( CARDINAL ));
+  END Clear;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROCEDURE StartProducing( LengthToProduce : CARDINAL; OUT ProduceTo : CARDINAL; OUT AllowedToProduce : CARDINAL ) : BOOLEAN;
+  VAR
+    LHead, Space : CARDINAL;
+  BEGIN
+    LOOP
+      // Space = H + L - T
+      LHead := IExchgAdd( REF _Head, 0 );
+      // compute space as minimum from inbound and outboud pieces -- only these assures the area will be continuous
+      Space := MIN2( LHead + _Size - _Tail, _Size - _Tail MOD _Size );
+      IF Space > 0 THEN
+        AllowedToProduce := MIN2( LengthToProduce, Space );
+        ProduceTo := _Tail MOD _Size;
+        RETURN TRUE;
+      ELSIF Flush() <> arCompleted THEN
+        RETURN FALSE;
+      END;
+    END; // LOOP
+  END StartProducing;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROCEDURE CommitProducing( Produced : CARDINAL );
+  VAR
+    LHead : CARDINAL;
+  BEGIN
+    // Space = H + L - T;
+    LHead := IExchgAdd( REF _Head, 0 );
+    IExchgAdd( REF _Tail, MIN2( LHead + _Size - _Tail, Produced ));
+    Signal( pcqProduced );
+  END CommitProducing;
+
+(*--------------------------------------------------------------------------------*)
+
+  INTERNAL VIRTUAL PROCEDURE Flush() : TAsyncResult;
+  BEGIN
+    RETURN arAborted;
+  END Flush;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROCEDURE StartConsuming( LengthToConsume : CARDINAL; OUT ConsumeFrom : CARDINAL; OUT AllowedToConsume : CARDINAL ) : BOOLEAN;
+  VAR
+    LTail, Occupied : CARDINAL;
+  BEGIN
+    // order is significant, first *cache LTail
+    LTail := IExchgAdd( REF _Tail, 0 );
+    // compute occupation as minimum from inbound and outboud pieces -- only these assures the area will be continuous
+    Occupied := MIN2( LTail - _Head, _Size - _Head MOD _Size );
+    Signal( pcqStartingConsumation ); // allow producer signalling me again
+    // continue consumation with *cached data
+    IF Occupied > 0 THEN
+      AllowedToConsume := MIN2( Occupied, LengthToConsume );
+      ConsumeFrom := _Head MOD _Size;
+      RETURN TRUE;
+    ELSE
+      RETURN FALSE;
+    END;
+  END StartConsuming;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROCEDURE CommitConsuming( Consumed : CARDINAL );
+  VAR
+    LTail : CARDINAL;
+  BEGIN
+    // order is significant, first LTail
+    LTail := IExchgAdd( REF _Tail, 0 );
+    IExchgAdd( REF _Head, MIN2( LTail - _Head, Consumed ));
+    Signal( pcqConsumed );
+  END CommitConsuming;
+
+(*--------------------------------------------------------------------------------*)
+
+  INTERNAL VIRTUAL PROCEDURE Signal( What : TpcqSignal ); // when produced, next producing SHOULD NOT be done (until signalling consumed)
+  BEGIN
+  END Signal;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+  _Head := 0;
+  _Tail := 0;
+END OneToOneQueue;
+
+(*================================================================================*)
+
+CLASS IMPLEMENTATION NToOneQueue;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROPERTY NToOneQueue.Count GET : CARDINAL;
+  VAR
+    LHead : CARDINAL;
+    LTail : CARDINAL;
+  BEGIN
+    // order is significant, first LTail
+    LTail := IExchgAdd( REF _Tail, 0 );
+    LHead := IExchgAdd( REF _Head, 0 );
+    RETURN LTail-LHead;
+  END NToOneQueue.Count;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROPERTY NToOneQueue.Empty GET : BOOLEAN;
+  BEGIN
+    RETURN Count = 0;
+  END NToOneQueue.Empty;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROPERTY NToOneQueue.Full GET : BOOLEAN;
+  BEGIN
+    RETURN Count = _Size;
+  END NToOneQueue.Full;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC VIRTUAL PROPERTY NToOneQueue.Size GET : CARDINAL;
+  BEGIN
+    RETURN _Size;
+  END NToOneQueue.Size;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC VIRTUAL PROPERTY NToOneQueue.Size SET( Value : CARDINAL );
+  BEGIN
+    _Size := Value;
+    _Head := 0;
+    _Tail := 0;
+  END NToOneQueue.Size;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROCEDURE Clear();
+  VAR
+    LHead, LTail : CARDINAL;
+  BEGIN
+    // get current indexes, Tail first
+    LTail := IExchgAdd( REF _Tail, 0 );
+    LHead := IExchgAdd( REF _Head, 0 );
+    WHILE LHead < LTail DO
+      Invalidate( LHead MOD _Size );
+      LHead := IExchgAdd( REF _Head, 1 );
+    END;
+    Signal( pcqConsumed );
+  END Clear;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROCEDURE StartProducing( OUT ProduceTo : CARDINAL ) : BOOLEAN;
+  VAR
+    LHead, LTail : CARDINAL;
+  BEGIN
+    LOOP // Space = H + L - T;
+      LTail := IExchgAdd( REF _Tail, 1 ); // allocate speculatively
+      LHead := IExchgAdd( REF _Head, 0 );
+      IF INTEGER( LHead + _Size - LTail ) > 0 THEN // space found, allocated
+        EXIT;
+      END;
+      // space not found, revert speculative allocation
+      IDec( REF _Tail );
+      IF Flush() <> arCompleted THEN
+        RETURN FALSE;
+      END;
+    END; // LOOP
+    ProduceTo := LTail MOD _Size;
+    RETURN TRUE;
+  END StartProducing;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROCEDURE CommitProducing( Produced : CARDINAL );
+  BEGIN
+    Validate( Produced MOD _Size ); // MOD for safety
+    Signal( pcqProduced );
+  END CommitProducing;
+
+(*--------------------------------------------------------------------------------*)
+
+  INTERNAL VIRTUAL PROCEDURE Flush() : TAsyncResult;
+  BEGIN
+    RETURN arAborted;
+  END Flush;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROCEDURE StartConsuming( OUT ConsumeFrom : CARDINAL ) : BOOLEAN;
+  VAR
+    LHead, LTail : CARDINAL;
+  BEGIN
+    // get current indexes, Tail first
+    LTail := IExchgAdd( REF _Tail, 0 );
+    LHead := IExchgAdd( REF _Head, 0 );
+    // allow producer signalling me again
+    Signal( pcqStartingConsumation );
+    // continue consumation with cached data
+    IF LHead = LTail THEN
+      RETURN FALSE;
+    ELSIF IsValid( LHead MOD _Size ) THEN // OK, slot is occupied
+      ConsumeFrom := LHead MOD _Size;
+      RETURN TRUE;
+    ELSE // slot is not marked as occupied yet
+      RETURN FALSE;
+    END;
+  END StartConsuming;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROCEDURE CommitConsuming();
+  BEGIN
+    Invalidate( _Head MOD _Size );
+    IInc( REF _Head );
+    Signal( pcqConsumed );
+  END CommitConsuming;
+
+(*--------------------------------------------------------------------------------*)
+
+  INTERNAL VIRTUAL PROCEDURE Signal( What : TpcqSignal ); // when produced, next producing SHOULD NOT be done (until signalling consumed)
+  BEGIN
+  END Signal;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+  _Head := 0;
+  _Tail := 0;
+END NToOneQueue;
+
+(*================================================================================*)
+
+END Sync.

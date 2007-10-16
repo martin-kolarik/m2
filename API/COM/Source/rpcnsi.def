@@ -1,0 +1,256 @@
+DEFINITION MODULE rpcnsi;
+
+(*/*
+    This file contains the types and function definitions to use the
+    Name Service Independent APIs.
+*/*)
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off ) *)
+
+(*# call(   o_a_size        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix          => stdcall ) *)
+
+IMPORT
+  rpcdce;
+
+// definition moved from rpc.def to avoid circular import
+CONST
+  I_RPC_HANDLE ::= rpcdce.I_RPC_HANDLE;
+  RPC_STATUS ::= rpcdce.RPC_STATUS;
+// end of moved definitions
+
+TYPE
+
+  RPC_NS_HANDLE  = ADDRESS;
+  PRPC_NS_HANDLE = POINTER TO RPC_NS_HANDLE;
+
+CONST
+
+  RPC_C_NS_SYNTAX_DEFAULT     = 0;
+  RPC_C_NS_SYNTAX_DCE         = 3;
+
+  RPC_C_PROFILE_DEFAULT_ELT   = 0;
+  RPC_C_PROFILE_ALL_ELT       = 1;
+  RPC_C_PROFILE_MATCH_BY_IF   = 2;
+  RPC_C_PROFILE_MATCH_BY_MBR  = 3;
+  RPC_C_PROFILE_MATCH_BY_BOTH = 4;
+
+  RPC_C_NS_DEFAULT_EXP_AGE    = -1;
+
+// Server APIs
+
+PROCEDURE RpcNsBindingExport(
+     EntryNameSyntax : LONGCARD;
+     EntryName : PCHAR;
+     IfSpec : rpcdce.RPC_IF_HANDLE;
+     BindingVec : rpcdce.PRPC_BINDING_VECTOR;
+     ObjectUuidVec : rpcdce.PUUID_VECTOR
+    ): RPC_STATUS;
+
+
+PROCEDURE RpcNsBindingUnexport(
+     EntryNameSyntax : LONGCARD;
+     EntryName : PCHAR;
+     IfSpec : rpcdce.RPC_IF_HANDLE;
+     ObjectUuidVec : rpcdce.PUUID_VECTOR
+    ): RPC_STATUS;
+
+// Client APIs
+
+PROCEDURE RpcNsBindingLookupBegin(
+     EntryNameSyntax : LONGCARD;
+     EntryName : PCHAR;
+     IfSpec : rpcdce.RPC_IF_HANDLE;
+     ObjUuid : rpcdce.PUUID;
+     BindingMaxCount : LONGCARD;
+     LookupContext : PRPC_NS_HANDLE
+    ): RPC_STATUS;
+
+PROCEDURE RpcNsBindingLookupNext(
+     LookupContext : RPC_NS_HANDLE;
+     VAR BindingVec : rpcdce.PRPC_BINDING_VECTOR
+    ): RPC_STATUS;
+
+PROCEDURE RpcNsBindingLookupDone(
+      LookupContext : PRPC_NS_HANDLE
+    ): RPC_STATUS;
+
+// Group APIs
+
+PROCEDURE RpcNsGroupDelete(
+     GroupNameSyntax : LONGCARD;
+     GroupName : PCHAR
+    ): RPC_STATUS;
+
+PROCEDURE RpcNsGroupMbrAdd(
+     GroupNameSyntax : LONGCARD;
+     GroupName : PCHAR;
+     MemberNameSyntax : LONGCARD;
+     MemberName : PCHAR
+    ): RPC_STATUS;
+
+PROCEDURE RpcNsGroupMbrRemove(
+     GroupNameSyntax : LONGCARD;
+     GroupName : PCHAR;
+     MemberNameSyntax  : LONGCARD;
+     MemberName : PCHAR
+    ): RPC_STATUS;
+
+PROCEDURE RpcNsGroupMbrInqBegin(
+     GroupNameSyntax : LONGCARD;
+     GroupName : PCHAR;
+     MemberNameSyntax : LONGCARD;
+     InquiryContext : PRPC_NS_HANDLE
+    ): RPC_STATUS;
+
+PROCEDURE RpcNsGroupMbrInqNext(
+     InquiryContext : RPC_NS_HANDLE;
+     VAR MemberName : PCHAR
+    ): RPC_STATUS;
+
+
+PROCEDURE RpcNsGroupMbrInqDone(
+     InquiryContext : PRPC_NS_HANDLE
+    ): RPC_STATUS;
+
+// Profile APIs
+
+PROCEDURE RpcNsProfileDelete(
+     ProfileNameSyntax : LONGCARD;
+     ProfileName : PCHAR
+    ): RPC_STATUS;
+
+PROCEDURE RpcNsProfileEltAdd(
+     ProfileNameSyntax : LONGCARD;
+     ProfileName : PCHAR;
+     IfId : rpcdce.PRPC_IF_ID;
+     MemberNameSyntax : LONGCARD;
+     MemberName : PCHAR;
+     Priority : LONGCARD;
+     Annotation : PCHAR
+    ): RPC_STATUS;
+
+PROCEDURE RpcNsProfileEltRemove(
+     ProfileNameSyntax : LONGCARD;
+     ProfileName : PCHAR;
+     IfId : rpcdce.PRPC_IF_ID;
+     MemberNameSyntax : LONGCARD;
+     MemberName : PCHAR
+    ): RPC_STATUS;
+
+PROCEDURE RpcNsProfileEltInqBegin(
+     ProfileNameSyntax : LONGCARD;
+     ProfileName : PCHAR;
+     InquiryType : LONGCARD;
+     IfId : rpcdce.PRPC_IF_ID;
+     VersOption : LONGCARD;
+     MemberNameSyntax : LONGCARD;
+     MemberName : PCHAR;
+     InquiryContext : PRPC_NS_HANDLE
+    ): RPC_STATUS;
+
+PROCEDURE RpcNsProfileEltInqNext(
+     InquiryContext : RPC_NS_HANDLE;
+     IfId : rpcdce.PRPC_IF_ID;
+     VAR MemberName : PCHAR;
+     Priority : PLONGCARD;
+     VAR Annotation : PCHAR
+    ): RPC_STATUS;
+
+
+PROCEDURE RpcNsProfileEltInqDone(
+     InquiryContext : PRPC_NS_HANDLE
+    ): RPC_STATUS;
+
+// Entry object APIs
+
+PROCEDURE RpcNsEntryObjectInqBegin(
+     EntryNameSyntax : LONGCARD;
+     EntryName : PCHAR;
+     InquiryContext : PRPC_NS_HANDLE
+    ): RPC_STATUS;
+
+PROCEDURE RpcNsEntryObjectInqNext(
+     InquiryContext : RPC_NS_HANDLE;
+     ObjUuid : rpcdce.PUUID
+    ): RPC_STATUS;
+
+PROCEDURE RpcNsEntryObjectInqDone(
+     InquiryContext : PRPC_NS_HANDLE
+    ): RPC_STATUS;
+
+// Management and MISC APIs
+
+PROCEDURE RpcNsEntryExpandName(
+     EntryNameSyntax : LONGCARD;
+     EntryName : PCHAR;
+     VAR ExpandedName : PCHAR
+    ): RPC_STATUS;
+
+PROCEDURE RpcNsMgmtBindingUnexport(
+     EntryNameSyntax : LONGCARD;
+     EntryName : PCHAR;
+     IfId : rpcdce.PRPC_IF_ID;
+     VersOption : LONGCARD;
+     ObjectUuidVec : rpcdce.PUUID_VECTOR
+    ): RPC_STATUS;
+
+PROCEDURE RpcNsMgmtEntryCreate(
+     EntryNameSyntax : LONGCARD;
+     EntryName : PCHAR
+    ): RPC_STATUS;
+
+PROCEDURE RpcNsMgmtEntryDelete(
+     EntryNameSyntax : LONGCARD;
+     EntryName : PCHAR
+    ): RPC_STATUS;
+
+PROCEDURE RpcNsMgmtEntryInqIfIds(
+     EntryNameSyntax : LONGCARD;
+     EntryName : PCHAR;
+     VAR IfIdVec : rpcdce.PRPC_IF_ID_VECTOR
+    ): RPC_STATUS;
+
+PROCEDURE RpcNsMgmtHandleSetExpAge(
+     NsHandle : RPC_NS_HANDLE;
+     ExpirationAge : LONGCARD
+    ): RPC_STATUS;
+
+PROCEDURE RpcNsMgmtInqExpAge(
+     ExpirationAge : PLONGCARD
+    ): RPC_STATUS;
+
+PROCEDURE RpcNsMgmtSetExpAge(
+     ExpirationAge : LONGCARD
+    ): RPC_STATUS;
+
+
+// Client API's implemented in wrappers.
+
+PROCEDURE RpcNsBindingImportBegin(
+     EntryNameSyntax : LONGCARD;
+     EntryName : PCHAR;
+     IfSpec : rpcdce.RPC_IF_HANDLE;
+     ObjUuid : rpcdce.PUUID;
+     ImportContext : PRPC_NS_HANDLE
+    ): RPC_STATUS;
+
+PROCEDURE RpcNsBindingImportNext(
+     ImportContext : RPC_NS_HANDLE;
+     Binding : rpcdce.PRPC_BINDING_HANDLE
+    ): RPC_STATUS;
+
+PROCEDURE RpcNsBindingImportDone(
+     ImportContext : PRPC_NS_HANDLE
+    ): RPC_STATUS;
+
+PROCEDURE RpcNsBindingSelect(
+     BindingVec : rpcdce.PRPC_BINDING_VECTOR;
+     Binding : rpcdce.PRPC_BINDING_HANDLE
+    ): RPC_STATUS;
+
+END rpcnsi.

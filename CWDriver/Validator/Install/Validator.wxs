@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xsi:schemaLocation="http://schemas.microsoft.com/wix/2003/01/wi wix.xsd" xmlns="http://schemas.microsoft.com/wix/2003/01/wi" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xse="http://schemas.microsoft.com/wix/2005/XmlSchemaExtension" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ns="http://schemas.microsoft.com/wix/2003/01/wi" xmlns:html="http://www.w3.org/1999/xhtml" xmlns:hfp="http://www.w3.org/2001/XMLSchema-hasFacetAndProperty">
+  <Product Codepage="1250" Id="3066F5DF-CB4F-4EBD-B8AC-5011870C795B" Language="1029" Manufacturer="Inris" Name="Application Validator Driver" UpgradeCode="F9474D3E-7475-4F6A-88C4-38DAF7C4B8C4" Version="1.0.821">
+    <Package Compressed="yes" Id="E7468ADE-CE95-47AE-87AD-5237D7DCFE67" Languages="1029" SummaryCodepage="1250" />
+    <Media Cabinet="Product.Cab" EmbedCab="yes" Id="1">
+    </Media>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <?if $(var.CLib)!=Static ?>
+      <?if $(var.ConfigurationName)=Debug ?>
+      <Merge Id="VC8Runtime" SourceFile="C:\Program Files\Common Files\Merge Modules\Microsoft_VC80_DebugCRT_x86.msm" Language="1033" DiskId="1" />
+      <Merge Id="VC8Policy" SourceFile="C:\Program Files\Common Files\Merge Modules\policy_8_0_Microsoft_VC80_DebugCRT_x86.msm" Language="1033" DiskId="1" />
+      <?else ?>
+      <Merge Id="VC8Runtime" SourceFile="C:\Program Files\Common Files\Merge Modules\Microsoft_VC80_CRT_x86.msm" Language="1033" DiskId="1" />
+      <Merge Id="VC8Policy" SourceFile="C:\Program Files\Common Files\Merge Modules\policy_8_0_Microsoft_VC80_CRT_x86.msm" Language="1033" DiskId="1" />
+      <?endif ?>
+      <?endif ?>
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="Inris" Name="Inris">
+          <Directory Id="INSTALLDIR" LongName="Validator" Name="Validat">
+            <Component Guid="8013545F-AB52-4E57-8A20-C6209D7626D6" Id="Program">
+              <File DiskId="1" Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" Vital="yes">
+              </File>
+              <File DiskId="1" Id="License.rtf" Name="License.rtf" Source="License.rtf" Vital="yes">
+              </File>
+              <File DiskId="1" Id="Validator.DLL" Name="Validato.dll" Source="Validator.dll" Vital="yes" LongName="Validator.dll">
+              </File>
+            </Component>
+            <?if $(var.LeakChecking)=on ?>
+            <Component Guid="B77FFC41-B032-47C6-841B-12239073885D" Id="LeakDetector">
+              <File DiskId="1" Id="LeakDetector.DLL" LongName="LeakDetector.dll" Name="LeakDet.dll" Source="LeakDetector.dll" Vital="yes">
+              </File>
+            </Component>
+            <?endif ?>
+            <Directory Id="EXAMPLES" Name="Examples">
+              <Component Id="Examples" Guid="6C9E8ABA-A80D-4A8B-A932-47854E72B5B7">
+                <File Id="Inris.Tvrz.tlic" LongName="Inris.Tvrz.tlic" Name="INRIS.T1.TLI" Source="Examples\Inris.Tvrz.tlic" DiskId="1" Vital="yes" />
+                <File Id="Validator.cw" LongName="Validator.cw" Name="VALIDAT1.CW" Source="Examples\Validator.cw" DiskId="1" Vital="yes" />
+                <File Id="validator.par" LongName="validator.par" Name="VALIDAT1.PAR" Source="Examples\validator.par" DiskId="1" Vital="yes" />
+              </Component>
+            </Directory>
+          </Directory>
+        </Directory>
+      </Directory>
+    </Directory>
+    <?if $(var.CLib)!=Static ?>
+    <Feature Id="VC8RuntimeFeature" Level="1" AllowAdvertise="no" Display="hidden">
+      <MergeRef Id="VC8Runtime" />
+      <MergeRef Id="VC8Policy" />
+    </Feature>
+    <?endif ?>
+    <Feature ConfigurableDirectory="INSTALLDIR" Id="Complete" Level="1">
+      <ComponentRef Id="Program" />
+      <?if $(var.ConfigurationName)=Debug ?>
+      <ComponentRef Id="LeakDetector" />
+      <ComponentRef Id="Examples" />
+      <?endif ?>
+    </Feature>
+    <UIRef Id="WixUI_Minimal" />
+    <UI />
+  </Product>
+</Wix>

@@ -1,0 +1,241 @@
+DEFINITION MODULE ime;
+
+//==============================================================
+//
+// Procedure declarations, constant definitions and macros for 
+// the IME component.
+//
+// 32-bit version for M2CPP Modula-2 to C++ compiler
+// Copyright (c) 1999 Moravian Instruments, Inc.
+//
+//==============================================================
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+IMPORT
+  windows;
+
+CONST
+  IME_MAXPROCESS = 32;
+
+PROCEDURE SendIMEMessageExA( _ : windows.HWND; _ : windows.LPARAM ): windows.LRESULT;
+PROCEDURE SendIMEMessageExW( _ : windows.HWND; _ : windows.LPARAM ): windows.LRESULT;
+
+CONST
+(*%T UNICODE *)
+  SendIMEMessageEx ::= SendIMEMessageExW;
+(*%E *)
+(*%F UNICODE *)
+  SendIMEMessageEx ::= SendIMEMessageExA;
+(*%E *)
+
+//
+// IMESTRUCT structure for SendIMEMessageEx
+//
+TYPE 
+  IMESTRUCT = RECORD
+    fnc       : windows.UINT;   // function code
+    wParam    : windows.WPARAM; // word parameter
+    wCount    : windows.UINT;   // word counter
+    dchSource : windows.UINT;   // offset to Source from top of memory object
+    dchDest   : windows.UINT;   // offset to Desrination from top of memory object
+    lParam1   : windows.LPARAM;
+    lParam2   : windows.LPARAM;
+    lParam3   : windows.LPARAM;
+  END;
+  PIMESTRUCT = POINTER TO IMESTRUCT;
+
+CONST
+
+  CP_HWND                 = 0;
+  CP_OPEN                 = 1;
+  CP_DIRECT               = 2;
+  CP_LEVEL                = 3;
+
+//
+//      Virtual Keys
+//
+
+  VK_DBE_ALPHANUMERIC              = 00F0H;
+  VK_DBE_KATAKANA                  = 00F1H;
+  VK_DBE_HIRAGANA                  = 00F2H;
+  VK_DBE_SBCSCHAR                  = 00F3H;
+  VK_DBE_DBCSCHAR                  = 00F4H;
+  VK_DBE_ROMAN                     = 00F5H;
+  VK_DBE_NOROMAN                   = 00F6H;
+  VK_DBE_ENTERWORDREGISTERMODE     = 00F7H;
+  VK_DBE_ENTERIMECONFIGMODE        = 00F8H;
+  VK_DBE_FLUSHSTRING               = 00F9H;
+  VK_DBE_CODEINPUT                 = 00FAH;
+  VK_DBE_NOCODEINPUT               = 00FBH;
+  VK_DBE_DETERMINESTRING           = 00FCH;
+  VK_DBE_ENTERDLGCONVERSIONMODE    = 00FDH;
+
+//
+//     switch for wParam of IME_SETCONVERSIONWINDOW
+//
+
+  MCW_DEFAULT             = 000H;
+  MCW_RECT                = 001H;
+  MCW_WINDOW              = 002H;
+  MCW_SCREEN              = 004H;
+  MCW_VERTICAL            = 008H;
+  MCW_HIDDEN              = 010H;
+
+//
+//    switch for wParam of IME_SETCONVERSIONMODE
+//       and IME_GETCONVERSIONMODE
+//
+
+  IME_MODE_ALPHANUMERIC   = 00001H;
+
+//#ifdef KOREA    // BeomOh - 9/29/92
+//#define IME_MODE_SBCSCHAR       00002H
+//#else
+//#define IME_MODE_SBCSCHAR       00008H
+//#endif
+
+  IME_MODE_SBCSCHAR       = 00008H;
+
+  IME_MODE_KATAKANA       = 00002H;
+  IME_MODE_HIRAGANA       = 00004H;
+  IME_MODE_HANJACONVERT   = 00004H;
+  IME_MODE_DBCSCHAR       = 00010H;
+  IME_MODE_ROMAN          = 00020H;
+  IME_MODE_NOROMAN        = 00040H;
+  IME_MODE_CODEINPUT      = 00080H;
+  IME_MODE_NOCODEINPUT    = 00100H;
+
+//
+//     IME APIs
+//
+
+  IME_GETIMECAPS            = 003H;
+  IME_SETOPEN               = 004H;
+  IME_GETOPEN               = 005H;
+  IME_GETVERSION            = 007H;
+  IME_SETCONVERSIONWINDOW   = 008H;
+  IME_MOVEIMEWINDOW         = IME_SETCONVERSIONWINDOW; // KOREA only
+  IME_SETCONVERSIONMODE     = 010H;
+
+  IME_GETCONVERSIONMODE     = 011H;
+  IME_SET_MODE              = 012H;        // KOREA only
+  IME_SENDVKEY              = 013H;
+  IME_ENTERWORDREGISTERMODE = 018H;
+  IME_SETCONVERSIONFONTEX   = 019H;
+
+//
+// IME_CODECONVERT subfunctions
+//
+  IME_BANJAtoJUNJA        = 013H;            // KOREA only
+  IME_JUNJAtoBANJA        = 014H;            // KOREA only
+  IME_JOHABtoKS           = 015H;            // KOREA only
+  IME_KStoJOHAB           = 016H;            // KOREA only
+
+//
+// IME_AUTOMATA subfunctions
+//
+  IMEA_INIT               = 001H;            // KOREA only
+  IMEA_NEXT               = 002H;            // KOREA only
+  IMEA_PREV               = 003H;            // KOREA only
+
+//
+// IME_HANJAMODE subfunctions
+//
+  IME_REQUEST_CONVERT     = 001H;            // KOREA only
+  IME_ENABLE_CONVERT      = 002H;            // KOREA only
+
+//
+// IME_MOVEIMEWINDOW subfunctions
+//
+  INTERIM_WINDOW          = 000H;            // KOREA only
+  MODE_WINDOW             = 001H;            // KOREA only
+  HANJA_WINDOW            = 002H;            // KOREA only
+
+//
+//    error code
+//
+  IME_RS_ERROR            = 001H;    // genetal error
+  IME_RS_NOIME            = 002H;    // IME is not installed
+  IME_RS_TOOLONG          = 005H;    // given string is too long
+  IME_RS_ILLEGAL          = 006H;    // illegal charactor(s) is string
+  IME_RS_NOTFOUND         = 007H;    // no (more) candidate
+  IME_RS_NOROOM           = 00AH;    // no disk/memory space
+  IME_RS_DISKERROR        = 00EH;    // disk I/O error
+  IME_RS_INVALID          = 011H;    // Win3.1/NT
+  IME_RS_NEST             = 012H;    // called nested
+  IME_RS_SYSTEMMODAL      = 013H;    // called when system mode
+
+//
+//   report messge from IME to WinApps
+//
+  WM_IME_REPORT       = 00280H;
+
+//
+//   report message parameter for WM_IME_REPORT
+//
+  IR_STRINGSTART      = 0100H;
+  IR_STRINGEND        = 0101H;
+  IR_OPENCONVERT      = 0120H;
+  IR_CHANGECONVERT    = 0121H;
+  IR_CLOSECONVERT     = 0122H;
+  IR_FULLCONVERT      = 0123H;
+  IR_IMESELECT        = 0130H;
+  IR_STRING           = 0140H;
+  IR_DBCSCHAR             = 0160H;
+  IR_UNDETERMINE          = 0170H;
+  IR_STRINGEX             = 0180H;   // New for 3.1
+  IR_MODEINFO             = 0190H;
+
+//#define WM_CONVERTREQUESTEX     00109H
+  WM_WNT_CONVERTREQUESTEX = 00109H; // WM_CONVERTREQUESTEX: 109 for NT, 108 for OT
+  WM_CONVERTREQUEST       = 0010AH;
+  WM_CONVERTRESULT        = 0010BH;
+  WM_INTERIM              = 0010CH;
+
+  WM_IMEKEYDOWN           = 0290H;
+  WM_IMEKEYUP             = 0291H;
+
+//
+// UNDETERMINESTRING structure for IR_UNDETERMINE
+//
+
+TYPE
+
+  UNDETERMINESTRUCT = RECORD
+    dwSize : windows.DWORD;
+    uDefIMESize : windows.UINT;
+    uDefIMEPos : windows.UINT;
+    uUndetTextLen : windows.UINT;
+    uUndetTextPos : windows.UINT;
+    uUndetAttrPos : windows.UINT;
+    uCursorPos : windows.UINT;
+    uDeltaStart : windows.UINT;
+    uDetermineTextLen : windows.UINT;
+    uDetermineTextPos : windows.UINT;
+    uDetermineDelimPos : windows.UINT;
+    uYomiTextLen : windows.UINT;
+    uYomiTextPos : windows.UINT;
+    uYomiDelimPos : windows.UINT;
+  END;
+  PUNDETERMINESTRUCT = POINTER TO UNDETERMINESTRUCT;
+
+  STRINGEXSTRUCT = RECORD
+    dwSize : windows.DWORD;
+    uDeterminePos : windows.UINT;
+    uDetermineDelimPos : windows.UINT;
+    uYomiPos : windows.UINT;
+    uYomiDelimPos : windows.UINT;
+  END;
+  PSTRINGEXSTRUCT = POINTER TO STRINGEXSTRUCT;
+
+END ime.

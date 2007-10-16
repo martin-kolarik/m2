@@ -1,0 +1,19 @@
+DEFINITION MODULE TypeLib;
+#name( decoration => c )
+
+//================================================================================
+(*/* changes:
+
+*/*)
+//================================================================================
+
+IMPORT
+	guiddef;
+
+VAR
+	CLSID_StiebelHPsAx       : guiddef.CLSID; // {35CC7D24-EE71-4344-9C49-029AA23E509C}
+	LIBID_StiebelHPsAx       : guiddef.IID;   // {B2C294A0-3999-408f-88EC-1A92AFF7E0D9}
+	IID_StiebelHPsAx_Control : guiddef.IID;   // {A497A09E-A629-4e66-A383-EBCB06EE8859}
+	DIID_StiebelHPsAx_Events : guiddef.IID;   // {C4E0B480-0567-4a30-BCB1-6A6DEBE72837}
+
+END TypeLib.

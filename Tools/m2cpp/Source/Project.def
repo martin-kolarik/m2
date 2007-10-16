@@ -1,0 +1,47 @@
+DEFINITION MODULE Project;
+
+(*# call( o_a_copy => off ) *)
+
+IMPORT
+  StringsO,
+  DOM;
+  
+TYPE
+  TOutputPath = (
+    opAll,
+    opHeader,
+    opCPP,
+    opTimestamp,
+    opTimestampDEF,
+    opTimestampIMPL
+  );
+
+PROCEDURE EnterSymbols( c : DOM.TPModule );
+PROCEDURE LeaveSymbols( c : DOM.TPModule );
+PROCEDURE GenerateSymbolTable( CONST File : ARRAY OF WCHAR );
+
+PROCEDURE AddOption( Option : DOM.TEnvironmentOptionsItem );
+PROCEDURE RemoveOption( Option : DOM.TEnvironmentOptionsItem );
+PROCEDURE SetDefaultAccessMode( AccessMode : DOM.TAccessModifier );
+PROCEDURE SuppressWarning( Warning : CARDINAL );
+
+PROCEDURE AddFileToCompile( FilePath : ARRAY OF WCHAR ) : DOM.TPModule;
+PROCEDURE ImportModule( CallerCU : DOM.TPModule; CONST Name : StringsO.CString; CompileImmediatelly : BOOLEAN ) : DOM.TPModule;
+PROCEDURE AssignFoundCompiledModuleName( CallerCU : DOM.TPModule; CONST Name : StringsO.CString );
+
+PROCEDURE ExpandPath( VAR FilePath : ARRAY OF WCHAR ) : CARDINAL;
+PROCEDURE CmdLineSymbol( Name, Value : ARRAY OF WCHAR );
+PROCEDURE AddInputPath( Path : ARRAY OF WCHAR );
+PROCEDURE AddOutputPath( WhatOutput : TOutputPath; Path : ARRAY OF WCHAR );
+PROCEDURE AddComponentName( Name : ARRAY OF WCHAR );
+PROCEDURE Compile() : CARDINAL;
+PROCEDURE SemErr( n : CARDINAL );
+
+PROCEDURE Generate( GenerateAll : BOOLEAN );
+PROCEDURE Current() : DOM.TPModule;
+PROCEDURE GetComponentName( VAR Name : ARRAY OF WCHAR; OutputCPPSymbol : BOOLEAN ) : BOOLEAN;
+
+INITIALLY __I();
+
+END Project.
+

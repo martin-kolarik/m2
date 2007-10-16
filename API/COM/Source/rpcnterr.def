@@ -1,0 +1,32 @@
+DEFINITION MODULE rpcnterr;
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*/*
+  Rpc Error Codes from the compiler and runtime
+*/*)
+
+IMPORT
+  winerror;
+
+CONST
+
+  RPC_S_OK                    = winerror.ERROR_SUCCESS;
+  RPC_S_INVALID_ARG           = winerror.ERROR_INVALID_PARAMETER;
+  RPC_S_OUT_OF_MEMORY         = winerror.ERROR_OUTOFMEMORY;
+  RPC_S_OUT_OF_THREADS        = winerror.ERROR_MAX_THRDS_REACHED;
+  RPC_S_INVALID_LEVEL         = winerror.ERROR_INVALID_PARAMETER;
+  RPC_S_BUFFER_TOO_SMALL      = winerror.ERROR_INSUFFICIENT_BUFFER;
+  RPC_S_INVALID_SECURITY_DESC = winerror.ERROR_INVALID_SECURITY_DESCR;
+  RPC_S_ACCESS_DENIED         = winerror.ERROR_ACCESS_DENIED;
+  RPC_S_SERVER_OUT_OF_MEMORY  = winerror.ERROR_NOT_ENOUGH_SERVER_MEMORY;
+
+  RPC_X_NO_MEMORY             = RPC_S_OUT_OF_MEMORY;
+  RPC_X_INVALID_BOUND         = winerror.RPC_S_INVALID_BOUND;
+  RPC_X_INVALID_TAG           = winerror.RPC_S_INVALID_TAG;
+  RPC_X_ENUM_VALUE_TOO_LARGE  = winerror.RPC_X_ENUM_VALUE_OUT_OF_RANGE;
+  RPC_X_SS_CONTEXT_MISMATCH   = winerror.ERROR_INVALID_HANDLE;
+  RPC_X_INVALID_BUFFER        = winerror.ERROR_INVALID_USER_BUFFER;
+
+END rpcnterr.

@@ -1,0 +1,21 @@
+DEFINITION MODULE Engine;
+
+IMPORT
+   arrays,
+   Uniquer;
+
+(*================================================================================*)
+
+PROCEDURE ValidateByUQ( REF data : arrays.CPtrArray; CONST uq : Uniquer.CUniquer ); // requires flat data
+
+PROCEDURE Canonize( REF data : arrays.CPtrArray; CONST ProductIdFilter : ARRAY OF WCHAR; CreateBindings, OmitUnbound, FilterNotProduct : BOOLEAN );
+
+(*================================================================================*)
+
+PROCEDURE LoadProducts( CONST Path1, Path2, ProductIdFilter : ARRAY OF WCHAR; OUT data : arrays.CPtrArray );
+
+PROCEDURE DisposeProducts( REF data : arrays.CPtrArray );
+
+(*================================================================================*)
+
+END Engine.

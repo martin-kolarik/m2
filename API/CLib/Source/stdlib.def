@@ -1,0 +1,64 @@
+DEFINITION MODULE stdlib;
+
+(**************************************************************************
+*                                                                         *
+*                                                                         *
+* Copyright (c) 1997, Alcor-Moravian Instruments Inc. All rights reserved.*
+*                                                                         *
+**************************************************************************)
+
+(*# name(   prefix         => c ) *)
+
+(*# module( header         => off,
+            init_code      => off ) *)
+
+(*# call(   o_a_size       => off,
+            o_a_copy       => off,
+            c_arrays       => on,
+            prefix=>stdcall ) *)
+
+FROM windows IMPORT PSTR, PCSTR, PWSTR, PCWSTR;
+
+TYPE
+  TPPCSTR = POINTER TO PCSTR;
+
+VAR
+  errno : INTEGER;
+
+PROCEDURE atof(str : PCSTR) : LONGREAL;
+PROCEDURE atoi(str : PCSTR) : INTEGER;
+PROCEDURE atol(str : PCSTR) : INTEGER;
+PROCEDURE _itoa(V : INTEGER; str : PCSTR; radix : INTEGER) : PCSTR;
+PROCEDURE _ltoa(V : INTEGER; str : PCSTR; radix : INTEGER) : PCSTR;
+PROCEDURE strtod(str : PCSTR; stopstring : TPPCSTR) : LONGREAL;
+PROCEDURE strtol(str : PCSTR; stopstring : TPPCSTR; base : INTEGER) : INTEGER;
+
+PROCEDURE _ecvt(V : LONGREAL; Digits : INTEGER; VAR Dec : INTEGER; VAR Sign : BOOLEAN) : PCSTR;
+PROCEDURE _fcvt(V : LONGREAL; Digits : INTEGER; VAR Dec : INTEGER; VAR Sign : BOOLEAN) : PCSTR;
+PROCEDURE _gcvt(V : LONGREAL; Digits : INTEGER; str : PCSTR) : PCSTR;
+
+PROCEDURE toupper( c : CHAR ) : CHAR;
+PROCEDURE tolower( c : CHAR ) : CHAR;
+
+#if PlatformName #startswith L"WinCE" #then
+
+(*# save, call( var_arg=>on ) *)
+PROCEDURE sprintf( buffer : PSTR; format : PCSTR ) : INTEGER;
+PROCEDURE sscanf ( buffer : PCSTR; format : PCSTR ) : INTEGER;
+PROCEDURE swprintf( buffer : PWSTR; format : PCWSTR ) : INTEGER;
+(*# restore *)
+
+#endif
+
+CONST
+// Argument values for _set_error_mode().
+  _OUT_TO_DEFAULT = 0;
+  _OUT_TO_STDERR  = 1;
+  _OUT_TO_MSGBOX  = 2;
+  _REPORT_ERRMODE = 3;
+
+(*# save, call( prefix=>cdecl ) *)
+PROCEDURE _set_error_mode( ErrorMode : INTEGER );
+(*# restore *)
+
+END stdlib.

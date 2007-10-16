@@ -1,0 +1,55 @@
+DEFINITION MODULE INIFile;
+
+IMPORT
+   IOO,
+   TextReader,
+   TextWriter,
+   StringsO;
+
+IMPORT
+   list;
+
+#save, option( dll_export => on )
+
+TYPE
+   TPDataListElem = POINTER TO CDataListElem;
+   TPINIFile      = POINTER TO CINIFile;
+   
+CLASS CINIFile;
+   PRIVATE VAR
+      _DataList : list.CList;
+      _PSection : TPDataListElem;
+   PUBLIC READONLY VAR
+      Modified : BOOLEAN;
+
+   PUBLIC PROCEDURE Clear();
+   PUBLIC PROCEDURE Load( CONST Reader : TextReader.CTextReader ) : BOOLEAN;
+   PUBLIC PROCEDURE LoadPath( CONST FilePath : ARRAY OF WCHAR ) : BOOLEAN; // handy shortcut
+   PUBLIC PROCEDURE Save( CONST Writer : TextWriter.CTextWriter ) : BOOLEAN;
+   PUBLIC PROCEDURE SavePath( CONST FilePath : ARRAY OF WCHAR ) : BOOLEAN; // handy shortcut
+
+   PUBLIC PROCEDURE SetSection( CONST Section : ARRAY OF WCHAR ) : BOOLEAN; // '' means file as a whole
+   PUBLIC PROCEDURE CreateSection( CONST Section : ARRAY OF WCHAR; Multiple : BOOLEAN );
+   PUBLIC PROCEDURE ClearSection( CONST Section : ARRAY OF WCHAR ) : BOOLEAN; // operates first section of the name
+   PUBLIC PROCEDURE DeleteSection( CONST Section : ARRAY OF WCHAR ) : BOOLEAN; // operates first section of the name
+   // PROCEDURE DeleteKey( CONST Section : ARRAY OF WCHAR ) : BOOLEAN;
+
+   PUBLIC PROCEDURE EnumerateSections( REF EnumerateState : PTR; OUT Line : CARDINAL; OUT Section : ARRAY OF WCHAR; SetAsActive : BOOLEAN ) : BOOLEAN;
+   PUBLIC PROCEDURE EnumerateKeys( REF EnumerateState : PTR; OUT Line : CARDINAL; OUT Key : ARRAY OF WCHAR; OUT Value : StringsO.IString ) : BOOLEAN;
+
+   PUBLIC PROCEDURE GetKeyStr( CONST Key : ARRAY OF WCHAR; OUT Line : CARDINAL; OUT String : StringsO.IString ): BOOLEAN;
+   PUBLIC PROCEDURE GetKeyBool( CONST Key : ARRAY OF WCHAR; OUT Line : CARDINAL; OUT b : BOOLEAN ): BOOLEAN;
+   PUBLIC PROCEDURE GetKeyInt( CONST Key : ARRAY OF WCHAR; OUT Line : CARDINAL; OUT i : INTEGER ): BOOLEAN;
+   PUBLIC PROCEDURE GetKeyReal( CONST Key : ARRAY OF WCHAR; OUT Line : CARDINAL; OUT lr : LONGREAL ): BOOLEAN;
+   // PROCEDURE GetKeyBin ( 
+
+   PUBLIC PROCEDURE SetKeyStr( CONST Key : ARRAY OF WCHAR; CONST String : StringsO.IString; Multiple : BOOLEAN ): BOOLEAN;
+   PUBLIC PROCEDURE SetKeyBool( CONST Key : ARRAY OF WCHAR; b : BOOLEAN; Multiple : BOOLEAN ): BOOLEAN;
+   PUBLIC PROCEDURE SetKeyInt ( CONST Key : ARRAY OF WCHAR; i : INTEGER; Multiple : BOOLEAN ): BOOLEAN;
+   PUBLIC PROCEDURE SetKeyReal( CONST Key : ARRAY OF WCHAR; lr : LONGREAL; Multiple : BOOLEAN ): BOOLEAN;
+   // PROCEDURE SetKeyBin ( 
+END CINIFile;
+
+#restore
+
+END INIFile.

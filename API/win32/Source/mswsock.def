@@ -1,0 +1,197 @@
+DEFINITION MODULE mswsock;
+
+(*==============================================================
+
+                    Win32 API for Modula-2
+
+       32-bit version for M2CPP Modula-2 to C++ compiler
+
+      Copyright (c) 1996, 1997 Moravian Instruments, Inc.
+
+==============================================================*)
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+(*==============================================================
+
+  History: Created: 19.12.1997
+           Build 0: --.--.----
+
+==============================================================*)
+
+(*============================================================*)
+(* Windows header:          mswsock.h                         *)
+(*============================================================*)
+
+IMPORT
+  windows,
+  winsock2;
+
+(*++
+
+Copyright (c) 1989-1996  Microsoft Corporation
+
+Module Name:
+
+    mswsock.h
+
+Abstract:
+
+    This module contains the Microsoft-specific extensions to the Windows
+    Sockets API.
+
+Author:
+
+    Keith Moore (keithmo) 06-Oct-1995 (Separated from WINSOCK.H).
+
+Revision History:
+
+--*)
+
+(*/*
+ * Options for connect and disconnect data and options.  Used only by
+ * non-TCP/IP transports such as DECNet, OSI TP4, etc.
+ */*)
+CONST
+  SO_CONNDATA                  = 07000H;
+  SO_CONNOPT                   = 07001H;
+  SO_DISCDATA                  = 07002H;
+  SO_DISCOPT                   = 07003H;
+  SO_CONNDATALEN               = 07004H;
+  SO_CONNOPTLEN                = 07005H;
+  SO_DISCDATALEN               = 07006H;
+  SO_DISCOPTLEN                = 07007H;
+
+(*/*
+ * Option for opening sockets for synchronous access.
+ */*)
+  SO_OPENTYPE                  = 07008H;
+
+  SO_SYNCHRONOUS_ALERT         = 010H;
+  SO_SYNCHRONOUS_NONALERT      = 020H;
+
+(*/*
+ * Other NT-specific options.
+ */*)
+  SO_MAXDG                     = 07009H;
+  SO_MAXPATHDG                 = 0700AH;
+  SO_UPDATE_ACCEPT_CONTEXT     = 0700BH;
+  SO_CONNECT_TIME              = 0700CH;
+
+(*/*
+ * TCP options.
+ */*)
+  TCP_BSDURGENT                = 07000H;
+
+(*/*
+ * Microsoft extended APIs.
+ */*)
+PROCEDURE WSARecvEx ( s : winsock2.SOCKET; buf : ADDRESS; len : INTEGER; flags : windows.PINT ) : INTEGER;
+
+TYPE
+  TRANSMIT_FILE_BUFFERS  = RECORD
+                             Head       : ADDRESS;
+                             HeadLength : windows.DWORD;
+                             Tail       : ADDRESS;
+                             TailLength : windows.DWORD;
+                           END;
+  PTRANSMIT_FILE_BUFFERS = POINTER TO TRANSMIT_FILE_BUFFERS;
+
+CONST
+  TF_DISCONNECT        = 001H;
+  TF_REUSE_SOCKET      = 002H;
+  TF_WRITE_BEHIND      = 004H;
+
+PROCEDURE TransmitFile( hSocket : winsock2.SOCKET; hFile : windows.HANDLE;
+                        nNumberOfBytesToWrite : windows.DWORD;
+                        nNumberOfBytesPerSend : windows.DWORD;
+                        lpOverlapped : windows.POVERLAPPED;
+                        lpTransmitBuffers : PTRANSMIT_FILE_BUFFERS;
+                        dwReserved : windows.DWORD
+                      ) : windows.BOOL;
+
+PROCEDURE AcceptEx ( sListenSocket : winsock2.SOCKET; sAcceptSocket : winsock2.SOCKET;
+                     lpOutputBuffer : ADDRESS;
+                     dwReceiveDataLength : windows.DWORD;
+                     dwLocalAddressLength : windows.DWORD;
+                     dwRemoteAddressLength : windows.DWORD;
+                     lpdwBytesReceived : windows.PDWORD;
+                     lpOverlapped : windows.POVERLAPPED
+                    ) : windows.BOOL;
+
+PROCEDURE GetAcceptExSockaddrs ( lpOutputBuffer : ADDRESS;
+                                 dwReceiveDataLength : windows.DWORD;
+                                 dwLocalAddressLength : windows.DWORD;
+                                 dwRemoteAddressLength : windows.DWORD;
+                                 LocalSockaddr : winsock2.PPsockaddr;
+                                 LocalSockaddrLength : windows.PINT;
+                                 RemoteSockaddr : winsock2.PPsockaddr;
+                                 RemoteSockaddrLength : windows.PINT
+                               );
+
+(*/*
+ * "QueryInterface" versions of the above APIs.
+ */*)
+
+TYPE
+  LPFN_TRANSMITFILE = PROCEDURE( winsock2.SOCKET, windows.HANDLE,
+                                 windows.DWORD, windows.DWORD, 
+                                 windows.POVERLAPPED, 
+                                 PTRANSMIT_FILE_BUFFERS, 
+                                 windows.DWORD 
+                               ) : windows.BOOL;
+
+TYPE
+  TWSAIDA = ARRAY [0..7] OF BYTE;
+  TWSAID = RECORD
+             a : windows.DWORD;
+             b : WORD;
+             c : WORD;
+             d : TWSAIDA
+           END;
+
+CONST
+  WSAID_TRANSMITFILE = TWSAID( 0B5367DF0H,
+                               0CBACH,
+                               011CFH,
+                               TWSAIDA( 095H,0CAH,000H,080H,05FH,048H,0A1H,092H )
+                       );
+
+TYPE
+  LPFN_ACCEPTEX = PROCEDURE( winsock2.SOCKET, winsock2.SOCKET,
+                             ADDRESS, windows.DWORD, windows.DWORD,
+                             windows.DWORD, windows.PDWORD,
+                             windows.POVERLAPPED 
+                           ) : windows.BOOL;
+
+CONST
+  WSAID_ACCEPTEX = TWSAID( 0B5367DF1H,
+                               0CBACH,
+                               011CFH,
+                               TWSAIDA( 095H,0CAH,000H,080H,05FH,048H,0A1H,092H )
+                   );
+
+TYPE
+  LPFN_GETACCEPTEXSOCKADDRS = PROCEDURE( ADDRESS, 
+                                         windows.DWORD, windows.DWORD, windows.DWORD, 
+                                         winsock2.PPsockaddr, windows.PINT, 
+                                         winsock2.PPsockaddr, windows.PINT );
+
+CONST
+  WSAID_GETACCEPTEXSOCKADDRS = TWSAID( 0B5367DF2H,
+                                           0CBACH,
+                                           011CFH,
+                                           TWSAIDA( 095H,0CAH,000H,080H,05FH,048H,0A1H,092H )
+                                     );
+
+
+END mswsock.

@@ -1,0 +1,28 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 PRODUCT NAME -->
+    <PropertyGroup>
+        <ProductFlag>on</ProductFlag>
+        <ProductId>SmartControl.Sum</ProductId>
+        <ProductVersionMajor>1</ProductVersionMajor>
+        <ProductVersionMinor>0</ProductVersionMinor>
+
+        <FileDescription>Tool to create and check file and message digests</FileDescription>
+    </PropertyGroup>
+
+    <!-- 2 ROOT DIRS (including ProjectBuildDir) -->
+    <Import Project="..\..\Build\common.rootdir.proj"/><!-- property CodeRoot affects this -->
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 PRODUCT DEFINITION -->
+    <ItemGroup>
+        <Components Include="api\clib;modula2\modula2;api\win32;modula2\m2rtl;library\Ciphering;library\Text"/>
+        <Program Include="sum"/>
+    </ItemGroup>
+
+    <!-- 5 -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>

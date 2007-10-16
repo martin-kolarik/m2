@@ -1,0 +1,1516 @@
+DEFINITION MODULE ADO HEADER adoint;
+
+#call( convention => stdcall )
+
+// Generated .IDL file (by the OLE/COM Object Viewer)
+// 
+// typelib filename: msado27.tlb
+
+FROM wtypes IMPORT
+  BSTR, VARIANT_BOOL;
+  
+FROM guiddef IMPORT
+  CLSID, GUID, IID;
+  
+FROM oaidl IMPORT
+  IDispatch, TPIDispatch, VARIANT, PVARIANT;
+
+FROM unknwn IMPORT
+  IUnknown, TPIUnknown;
+  
+VAR
+   CLSID_Recordset : CLSID;
+
+TYPE
+   ADO_LONGPTR = INTEGER;
+
+   TP_ADOCollection = POINTER TO _ADOCollection;
+   TP_ADODynaCollection = POINTER TO _ADODynaCollection;
+   TP_ADO = POINTER TO _ADO;
+   TPProperties = POINTER TO Properties;
+   TPProperty = POINTER TO Property;
+   TPError = POINTER TO Error;
+   TPErrors = POINTER TO Errors;
+   TPCommand15 = POINTER TO Command15;
+   TP_ADOConnection = POINTER TO _ADOConnection;
+   TPConnection15 = POINTER TO Connection15;
+   TP_Recordset = POINTER TO _Recordset;
+   TPRecordset21 = POINTER TO Recordset21;
+   TPRecordset20 = POINTER TO Recordset20;
+   TPRecordset15 = POINTER TO Recordset15;
+   TPFields = POINTER TO Fields;
+   TPFields20 = POINTER TO Fields20;
+   TPFields15 = POINTER TO Fields15;
+   TPField = POINTER TO Field;
+   TPField20 = POINTER TO Field20;
+   TP_Parameter = POINTER TO _Parameter;
+   TPParameters = POINTER TO Parameters;
+   TPCommand25 = POINTER TO Command25;
+   TP_Command = POINTER TO _Command;
+   TPConnectionEventsVt = POINTER TO ConnectionEventsVt;
+   TPRecordsetEventsVt = POINTER TO RecordsetEventsVt;
+   TPConnectionEvents = POINTER TO ConnectionEvents;
+   TPRecordsetEvents = POINTER TO RecordsetEvents;
+   TPADOConnectionConstruction15 = POINTER TO ADOConnectionConstruction15;
+   TPADOConnectionConstruction = POINTER TO ADOConnectionConstruction;
+   TP_Record = POINTER TO _Record;
+   TP_Stream = POINTER TO _Stream;
+   TPADORecordConstruction = POINTER TO ADORecordConstruction;
+   TPADOStreamConstruction = POINTER TO ADOStreamConstruction;
+   TPADOCommandConstruction = POINTER TO ADOCommandConstruction;
+   TPADORecordsetConstruction = POINTER TO ADORecordsetConstruction;
+   TPField15 = POINTER TO Field15;
+
+TYPE
+   CursorTypeEnum = (
+      adOpenUnspecified = 0FFFFFFFFH,
+      adOpenForwardOnly = 0,
+      adOpenKeyset = 1,
+      adOpenDynamic = 2,
+      adOpenStatic = 3
+   );
+
+   CursorOptionEnum = (
+      adHoldRecords = 256,
+      adMovePrevious = 512,
+      adAddNew = 001000400H,
+      adDelete = 001000800H,
+      adUpdate = 001008000H,
+      adBookmark = 8192,
+      adApproxPosition = 16384,
+      adUpdateBatch = 000010000H,
+      adResync = 000020000H,
+      adNotify = 000040000H,
+      adFind = 000080000H,
+      adSeek = 000400000H,
+      adIndex = 000800000H
+   );
+
+   LockTypeEnum = (
+      adLockUnspecified = 0FFFFFFFFH,
+      adLockReadOnly = 1,
+      adLockPessimistic = 2,
+      adLockOptimistic = 3,
+      adLockBatchOptimistic = 4
+   );
+
+   ExecuteOptionEnum = (
+      adOptionUnspecified = 0FFFFFFFFH,
+      adAsyncExecute = 16,
+      adAsyncFetch = 32,
+      adAsyncFetchNonBlocking = 64,
+      adExecuteNoRecords = 128,
+      adExecuteStream = 1024,
+      adExecuteRecord = 2048
+   );
+
+   ConnectOptionEnum = (
+      adConnectUnspecified = 0FFFFFFFFH,
+      adAsyncConnect = 16
+   );
+
+   ObjectStateEnum = (
+      adStateClosed = 0,
+      adStateOpen = 1,
+      adStateConnecting = 2,
+      adStateExecuting = 4,
+      adStateFetching = 8
+   );
+
+   CursorLocationEnum = (
+      adUseNone = 1,
+      adUseServer = 2,
+      adUseClient = 3,
+      adUseClientBatch = 3
+   );
+
+   DataTypeEnum = (
+      adEmpty = 0,
+      adTinyInt = 16,
+      adSmallInt = 2,
+      adInteger = 3,
+      adBigInt = 20,
+      adUnsignedTinyInt = 17,
+      adUnsignedSmallInt = 18,
+      adUnsignedInt = 19,
+      adUnsignedBigInt = 21,
+      adSingle = 4,
+      adDouble = 5,
+      adCurrency = 6,
+      adDecimal = 14,
+      adNumeric = 131,
+      adBoolean = 11,
+      adError = 10,
+      adUserDefined = 132,
+      adVariant = 12,
+      adIDispatch = 9,
+      adIUnknown = 13,
+      adGUID = 72,
+      adDate = 7,
+      adDBDate = 133,
+      adDBTime = 134,
+      adDBTimeStamp = 135,
+      adBSTR = 8,
+      adChar = 129,
+      adVarChar = 200,
+      adLongVarChar = 201,
+      adWChar = 130,
+      adVarWChar = 202,
+      adLongVarWChar = 203,
+      adBinary = 128,
+      adVarBinary = 204,
+      adLongVarBinary = 205,
+      adChapter = 136,
+      adFileTime = 64,
+      adPropVariant = 138,
+      adVarNumeric = 139,
+      adArray = 8192
+   );
+
+   FieldAttributeEnum = (
+      adFldUnspecified = 0FFFFFFFFH,
+      adFldMayDefer = 2,
+      adFldUpdatable = 4,
+      adFldUnknownUpdatable = 8,
+      adFldFixed = 16,
+      adFldIsNullable = 32,
+      adFldMayBeNull = 64,
+      adFldLong = 128,
+      adFldRowID = 256,
+      adFldRowVersion = 512,
+      adFldCacheDeferred = 4096,
+      adFldIsChapter = 8192,
+      adFldNegativeScale = 16384,
+      adFldKeyColumn = 32768,
+      adFldIsRowURL = 000010000H,
+      adFldIsDefaultStream = 000020000H,
+      adFldIsCollection = 000040000H
+   );
+
+   EditModeEnum = (
+      adEditNone = 0,
+      adEditInProgress = 1,
+      adEditAdd = 2,
+      adEditDelete = 4
+   );
+
+   RecordStatusEnum = (
+      adRecOK = 0,
+      adRecNew = 1,
+      adRecModified = 2,
+      adRecDeleted = 4,
+      adRecUnmodified = 8,
+      adRecInvalid = 16,
+      adRecMultipleChanges = 64,
+      adRecPendingChanges = 128,
+      adRecCanceled = 256,
+      adRecCantRelease = 1024,
+      adRecConcurrencyViolation = 2048,
+      adRecIntegrityViolation = 4096,
+      adRecMaxChangesExceeded = 8192,
+      adRecObjectOpen = 16384,
+      adRecOutOfMemory = 32768,
+      adRecPermissionDenied = 000010000H,
+      adRecSchemaViolation = 000020000H,
+      adRecDBDeleted = 000040000H
+   );
+
+   GetRowsOptionEnum = (
+      adGetRowsRest = 0FFFFFFFFH
+   );
+
+   PositionEnum = (
+      adPosUnknown = 0FFFFFFFFH,
+      adPosBOF = 0FFFFFFFEH,
+      adPosEOF = 0FFFFFFFDH
+   );
+
+   PositionEnum_Param = PositionEnum;
+
+   BookmarkEnum = (
+      adBookmarkCurrent = 0,
+      adBookmarkFirst = 1,
+      adBookmarkLast = 2
+   );
+
+   MarshalOptionsEnum = (
+      adMarshalAll = 0,
+      adMarshalModifiedOnly = 1
+   );
+
+   AffectEnum = (
+      adAffectCurrent = 1,
+      adAffectGroup = 2,
+      adAffectAll = 3,
+      adAffectAllChapters = 4
+   );
+
+   ResyncEnum = (
+      adResyncUnderlyingValues = 1,
+      adResyncAllValues = 2
+   );
+
+   CompareEnum = (
+      adCompareLessThan = 0,
+      adCompareEqual = 1,
+      adCompareGreaterThan = 2,
+      adCompareNotEqual = 3,
+      adCompareNotComparable = 4
+   );
+
+   FilterGroupEnum = (
+      adFilterNone = 0,
+      adFilterPendingRecords = 1,
+      adFilterAffectedRecords = 2,
+      adFilterFetchedRecords = 3,
+      adFilterPredicate = 4,
+      adFilterConflictingRecords = 5
+   );
+
+   SearchDirectionEnum = (
+      adSearchForward = 1,
+      adSearchBackward = 0FFFFFFFFH
+   );
+
+   SearchDirection = SearchDirectionEnum;
+
+   PersistFormatEnum = (
+      adPersistADTG = 0,
+      adPersistXML = 1
+   );
+
+   StringFormatEnum = (
+      adClipString = 2
+   );
+
+   ConnectPromptEnum = (
+      adPromptAlways = 1,
+      adPromptComplete = 2,
+      adPromptCompleteRequired = 3,
+      adPromptNever = 4
+   );
+
+   ConnectModeEnum = (
+      adModeUnknown = 0,
+      adModeRead = 1,
+      adModeWrite = 2,
+      adModeReadWrite = 3,
+      adModeShareDenyRead = 4,
+      adModeShareDenyWrite = 8,
+      adModeShareExclusive = 12,
+      adModeShareDenyNone = 16,
+      adModeRecursive = 000400000H
+   );
+
+   RecordCreateOptionsEnum = (
+      adCreateCollection = 8192,
+      adCreateStructDoc = 080000000H,
+      adCreateNonCollection = 0,
+      adOpenIfExists = 002000000H,
+      adCreateOverwrite = 004000000H,
+      adFailIfNotExists = 0FFFFFFFFH
+   );
+
+   RecordOpenOptionsEnum = (
+      adOpenRecordUnspecified = 0FFFFFFFFH,
+      adOpenSource = 000800000H,
+      adOpenOutput = 000800000H,
+      adOpenAsync = 4096,
+      adDelayFetchStream = 16384,
+      adDelayFetchFields = 32768,
+      adOpenExecuteCommand = 000010000H
+   );
+
+   IsolationLevelEnum = (
+      adXactUnspecified = 0FFFFFFFFH,
+      adXactChaos = 16,
+      adXactReadUncommitted = 256,
+      adXactBrowse = 256,
+      adXactCursorStability = 4096,
+      adXactReadCommitted = 4096,
+      adXactRepeatableRead = 000010000H,
+      adXactSerializable = 000100000H,
+      adXactIsolated = 000100000H
+   );
+
+   XactAttributeEnum = (
+      adXactCommitRetaining = 000020000H,
+      adXactAbortRetaining = 000040000H,
+      adXactAsyncPhaseOne = 000080000H,
+      adXactSyncPhaseOne = 000100000H
+   );
+
+   PropertyAttributesEnum = (
+      adPropNotSupported = 0,
+      adPropRequired = 1,
+      adPropOptional = 2,
+      adPropRead = 512,
+      adPropWrite = 1024
+   );
+
+   ErrorValueEnum = (
+      adErrProviderFailed = 3000,
+      adErrInvalidArgument = 3001,
+      adErrOpeningFile = 3002,
+      adErrReadFile = 3003,
+      adErrWriteFile = 3004,
+      adErrNoCurrentRecord = 3021,
+      adErrIllegalOperation = 3219,
+      adErrCantChangeProvider = 3220,
+      adErrInTransaction = 3246,
+      adErrFeatureNotAvailable = 3251,
+      adErrItemNotFound = 3265,
+      adErrObjectInCollection = 3367,
+      adErrObjectNotSet = 3420,
+      adErrDataConversion = 3421,
+      adErrObjectClosed = 3704,
+      adErrObjectOpen = 3705,
+      adErrProviderNotFound = 3706,
+      adErrBoundToCommand = 3707,
+      adErrInvalidParamInfo = 3708,
+      adErrInvalidConnection = 3709,
+      adErrNotReentrant = 3710,
+      adErrStillExecuting = 3711,
+      adErrOperationCancelled = 3712,
+      adErrStillConnecting = 3713,
+      adErrInvalidTransaction = 3714,
+      adErrNotExecuting = 3715,
+      adErrUnsafeOperation = 3716,
+      adwrnSecurityDialog = 3717,
+      adwrnSecurityDialogHeader = 3718,
+      adErrIntegrityViolation = 3719,
+      adErrPermissionDenied = 3720,
+      adErrDataOverflow = 3721,
+      adErrSchemaViolation = 3722,
+      adErrSignMismatch = 3723,
+      adErrCantConvertvalue = 3724,
+      adErrCantCreate = 3725,
+      adErrColumnNotOnThisRow = 3726,
+      adErrURLDoesNotExist = 3727,
+      adErrTreePermissionDenied = 3728,
+      adErrInvalidURL = 3729,
+      adErrResourceLocked = 3730,
+      adErrResourceExists = 3731,
+      adErrCannotComplete = 3732,
+      adErrVolumeNotFound = 3733,
+      adErrOutOfSpace = 3734,
+      adErrResourceOutOfScope = 3735,
+      adErrUnavailable = 3736,
+      adErrURLNamedRowDoesNotExist = 3737,
+      adErrDelResOutOfScope = 3738,
+      adErrPropInvalidColumn = 3739,
+      adErrPropInvalidOption = 3740,
+      adErrPropInvalidValue = 3741,
+      adErrPropConflicting = 3742,
+      adErrPropNotAllSettable = 3743,
+      adErrPropNotSet = 3744,
+      adErrPropNotSettable = 3745,
+      adErrPropNotSupported = 3746,
+      adErrCatalogNotSet = 3747,
+      adErrCantChangeConnection = 3748,
+      adErrFieldsUpdateFailed = 3749,
+      adErrDenyNotSupported = 3750,
+      adErrDenyTypeNotSupported = 3751,
+      adErrProviderNotSpecified = 3753
+   );
+
+   ParameterAttributesEnum = (
+      adParamSigned = 16,
+      adParamNullable = 64,
+      adParamLong = 128
+   );
+
+   ParameterDirectionEnum = (
+      adParamUnknown = 0,
+      adParamInput = 1,
+      adParamOutput = 2,
+      adParamInputOutput = 3,
+      adParamReturnValue = 4
+   );
+
+   CommandTypeEnum = (
+      adCmdUnspecified = 0FFFFFFFFH,
+      adCmdUnknown = 8,
+      adCmdText = 1,
+      adCmdTable = 2,
+      adCmdStoredProc = 4,
+      adCmdFile = 256,
+      adCmdTableDirect = 512
+   );
+
+   EventStatusEnum = (
+      adStatusOK = 1,
+      adStatusErrorsOccurred = 2,
+      adStatusCantDeny = 3,
+      adStatusCancel = 4,
+      adStatusUnwantedEvent = 5
+   );
+
+   EventReasonEnum = (
+      adRsnAddNew = 1,
+      adRsnDelete = 2,
+      adRsnUpdate = 3,
+      adRsnUndoUpdate = 4,
+      adRsnUndoAddNew = 5,
+      adRsnUndoDelete = 6,
+      adRsnRequery = 7,
+      adRsnResynch = 8,
+      adRsnClose = 9,
+      adRsnMove = 10,
+      adRsnFirstChange = 11,
+      adRsnMoveFirst = 12,
+      adRsnMoveNext = 13,
+      adRsnMovePrevious = 14,
+      adRsnMoveLast = 15
+   );
+
+   SchemaEnum = (
+      adSchemaProviderSpecific = 0FFFFFFFFH,
+      adSchemaAsserts = 0,
+      adSchemaCatalogs = 1,
+      adSchemaCharacterSets = 2,
+      adSchemaCollations = 3,
+      adSchemaColumns = 4,
+      adSchemaCheckConstraints = 5,
+      adSchemaConstraintColumnUsage = 6,
+      adSchemaConstraintTableUsage = 7,
+      adSchemaKeyColumnUsage = 8,
+      adSchemaReferentialContraints = 9,
+      adSchemaReferentialConstraints = 9,
+      adSchemaTableConstraints = 10,
+      adSchemaColumnsDomainUsage = 11,
+      adSchemaIndexes = 12,
+      adSchemaColumnPrivileges = 13,
+      adSchemaTablePrivileges = 14,
+      adSchemaUsagePrivileges = 15,
+      adSchemaProcedures = 16,
+      adSchemaSchemata = 17,
+      adSchemaSQLLanguages = 18,
+      adSchemaStatistics = 19,
+      adSchemaTables = 20,
+      adSchemaTranslations = 21,
+      adSchemaProviderTypes = 22,
+      adSchemaViews = 23,
+      adSchemaViewColumnUsage = 24,
+      adSchemaViewTableUsage = 25,
+      adSchemaProcedureParameters = 26,
+      adSchemaForeignKeys = 27,
+      adSchemaPrimaryKeys = 28,
+      adSchemaProcedureColumns = 29,
+      adSchemaDBInfoKeywords = 30,
+      adSchemaDBInfoLiterals = 31,
+      adSchemaCubes = 32,
+      adSchemaDimensions = 33,
+      adSchemaHierarchies = 34,
+      adSchemaLevels = 35,
+      adSchemaMeasures = 36,
+      adSchemaProperties = 37,
+      adSchemaMembers = 38,
+      adSchemaTrustees = 39,
+      adSchemaFunctions = 40,
+      adSchemaActions = 41,
+      adSchemaCommands = 42,
+      adSchemaSets = 43
+   );
+
+   FieldStatusEnum = (
+      adFieldOK = 0,
+      adFieldCantConvertValue = 2,
+      adFieldIsNull = 3,
+      adFieldTruncated = 4,
+      adFieldSignMismatch = 5,
+      adFieldDataOverflow = 6,
+      adFieldCantCreate = 7,
+      adFieldUnavailable = 8,
+      adFieldPermissionDenied = 9,
+      adFieldIntegrityViolation = 10,
+      adFieldSchemaViolation = 11,
+      adFieldBadStatus = 12,
+      adFieldDefault = 13,
+      adFieldIgnore = 15,
+      adFieldDoesNotExist = 16,
+      adFieldInvalidURL = 17,
+      adFieldResourceLocked = 18,
+      adFieldResourceExists = 19,
+      adFieldCannotComplete = 20,
+      adFieldVolumeNotFound = 21,
+      adFieldOutOfSpace = 22,
+      adFieldCannotDeleteSource = 23,
+      adFieldReadOnly = 24,
+      adFieldResourceOutOfScope = 25,
+      adFieldAlreadyExists = 26,
+      adFieldPendingInsert = 000010000H,
+      adFieldPendingDelete = 000020000H,
+      adFieldPendingChange = 000040000H,
+      adFieldPendingUnknown = 000080000H,
+      adFieldPendingUnknownDelete = 000100000H
+   );
+
+   SeekEnum = (
+      adSeekFirstEQ = 1,
+      adSeekLastEQ = 2,
+      adSeekAfterEQ = 4,
+      adSeekAfter = 8,
+      adSeekBeforeEQ = 16,
+      adSeekBefore = 32
+   );
+
+   ADCPROP_UPDATECRITERIA_ENUM = (
+      adCriteriaKey = 0,
+      adCriteriaAllCols = 1,
+      adCriteriaUpdCols = 2,
+      adCriteriaTimeStamp = 3
+   );
+
+   ADCPROP_ASYNCTHREADPRIORITY_ENUM = (
+      adPriorityLowest = 1,
+      adPriorityBelowNormal = 2,
+      adPriorityNormal = 3,
+      adPriorityAboveNormal = 4,
+      adPriorityHighest = 5
+   );
+
+   ADCPROP_AUTORECALC_ENUM = (
+      adRecalcUpFront = 0,
+      adRecalcAlways = 1
+   );
+
+   ADCPROP_UPDATERESYNC_ENUM = (
+      adResyncNone = 0,
+      adResyncAutoIncrement = 1,
+      adResyncConflicts = 2,
+      adResyncUpdates = 4,
+      adResyncInserts = 8,
+      adResyncAll = 15
+   );
+
+   MoveRecordOptionsEnum = (
+      adMoveUnspecified = 0FFFFFFFFH,
+      adMoveOverWrite = 1,
+      adMoveDontUpdateLinks = 2,
+      adMoveAllowEmulation = 4
+   );
+
+   CopyRecordOptionsEnum = (
+      adCopyUnspecified = 0FFFFFFFFH,
+      adCopyOverWrite = 1,
+      adCopyAllowEmulation = 4,
+      adCopyNonRecursive = 2
+   );
+
+   StreamTypeEnum = (
+      adTypeBinary = 1,
+      adTypeText = 2
+   );
+
+   LineSeparatorEnum = (
+      adLF = 10,
+      adCR = 13,
+      adCRLF = 0FFFFFFFFH
+   );
+
+   StreamOpenOptionsEnum = (
+      adOpenStreamUnspecified = 0FFFFFFFFH,
+      adOpenStreamAsync = 1,
+      adOpenStreamFromRecord = 4
+   );
+
+   StreamWriteEnum = (
+      adWriteChar = 0,
+      adWriteLine = 1,
+      stWriteChar = 0,
+      stWriteLine = 1
+   );
+
+   SaveOptionsEnum = (
+      adSaveCreateNotExist = 1,
+      adSaveCreateOverWrite = 2
+   );
+
+   FieldEnum = (
+      adDefaultStream = 0FFFFFFFFH,
+      adRecordURL = 0FFFFFFFEH
+   );
+
+   StreamReadEnum = (
+      adReadAll = 0FFFFFFFFH,
+      adReadLine = 0FFFFFFFEH
+   );
+
+   RecordTypeEnum = (
+      adSimpleRecord = 0,
+      adCollectionRecord = 1,
+      adStructDoc = 2
+   );
+
+//========== _ADOCollection
+VAR
+   IID__ADOCollection : IID;
+   
+   COM INTERFACE _ADOCollection( IDispatch );
+      COM READONLY PROPERTY
+         Count : INTEGER;
+      COM PROCEDURE _NewEnum() : TPIUnknown;
+      COM PROCEDURE Refresh();
+   END _ADOCollection;
+
+//========== _ADODynaCollection
+VAR
+   IID__ADODynaCollection : IID;
+   
+   COM INTERFACE _ADODynaCollection( _ADOCollection );
+      COM PROCEDURE Append(Object : TPIDispatch);
+      COM PROCEDURE Delete(Index : VARIANT);
+   END _ADODynaCollection;
+
+//========== _ADO
+VAR
+   IID__ADO : IID;
+   
+   COM INTERFACE _ADO( IDispatch );
+      COM READONLY PROPERTY Properties : TPProperties;
+   END _ADO;
+
+//========== Properties
+VAR
+   IID_Properties : IID;
+   
+   COM INTERFACE Properties( _ADOCollection );
+      COM READONLY INDEX( Index : VARIANT ) : TPProperty;
+   END Properties;
+
+//========== Property
+VAR
+   IID_Property : IID;
+   
+   COM INTERFACE Property( IDispatch );
+      COM PROPERTY
+         Name : BSTR;
+         Type : DataTypeEnum;
+      COM PROPERTY
+         Value : VARIANT;
+         Attributes : INTEGER;
+   END Property;
+    
+//========== Error
+VAR
+   IID_Error : IID;
+   
+   COM INTERFACE Error( IDispatch );
+      COM READONLY PROPERTY
+         Number : INTEGER;
+         Source : BSTR;
+         Description : BSTR;
+         HelpFile : BSTR;
+         HelpContext : INTEGER;
+         SQLState : BSTR;
+         NativeError : INTEGER;
+   END Error;
+
+//========== Errors
+VAR
+   IID_Errors : IID;
+   
+   COM INTERFACE Errors( _ADOCollection );
+      COM READONLY INDEX( Index : VARIANT ) : TPError;
+      COM PROCEDURE Clear();
+   END Errors;
+
+//========== Command15
+VAR
+   IID_Command15 : IID;
+   
+   COM INTERFACE Command15( _ADO );
+
+      COM PROPERTY REF
+         ActiveConnection : TP_ADOConnection;
+
+      COM PROPERTY
+         CommandText : BSTR;
+         CommandTimeout : INTEGER;
+         Prepared : VARIANT_BOOL;
+         Parameters : TPParameters;
+         CommandType : CommandTypeEnum;
+         Name : BSTR;
+
+      COM PROCEDURE Execute(
+         OUT RecordsAffected : VARIANT; 
+         Parameters : PVARIANT;
+         Options : INTEGER
+      ) : TP_Recordset;
+
+      COM PROCEDURE CreateParameter(
+         Name : BSTR;
+         Type : DataTypeEnum;
+         Direction : ParameterDirectionEnum;
+         Size : ADO_LONGPTR;
+         Value : VARIANT
+      ) : TP_Parameter;
+
+   END Command15;
+
+//========== Connection15
+VAR
+   IID_Connection15 : IID;
+   
+   COM INTERFACE Connection15( _ADO );
+
+      COM READONLY PROPERTY
+         Version : BSTR;
+         State : INTEGER;
+         Errors : TPErrors;
+
+      COM PROPERTY
+         ConnectionString : BSTR;
+         CommandTimeout : INTEGER;
+         ConnectionTimeout : INTEGER;
+         DefaultDatabase : BSTR;
+         IsolationLevel : IsolationLevelEnum;
+         Attributes : INTEGER;
+         CursorLocation : CursorLocationEnum;
+         Mode : ConnectModeEnum;
+         Provider : BSTR;
+
+      COM PROCEDURE Open(
+         ConnectionString : BSTR;
+         UserID : BSTR;
+         Password : BSTR;
+         Options : INTEGER
+      );
+
+      COM PROCEDURE OpenSchema(
+         Schema : SchemaEnum;
+         Restrictions : VARIANT;
+         SchemaID : VARIANT
+      ) : TP_Recordset;
+
+      COM PROCEDURE Close();
+
+      COM PROCEDURE Execute(
+         CommandText : BSTR;
+         OUT RecordsAffected : VARIANT;
+         Options : INTEGER
+      ) : TP_Recordset;
+
+      COM PROCEDURE BeginTrans() : INTEGER;
+
+      COM PROCEDURE CommitTrans();
+
+      COM PROCEDURE RollbackTrans();
+
+   END Connection15;
+
+//========== _Connection
+VAR
+   IID__Connection : IID;
+   
+   COM INTERFACE _Connection( Connection15 );
+      COM PROCEDURE Cancel();
+   END _Connection;
+
+//========== Recordset15
+VAR
+   IID_Recordset15 : IID;
+   
+   COM INTERFACE Recordset15( _ADO );
+
+       COM READONLY PROPERTY
+         BOF : VARIANT_BOOL;
+         EOF : VARIANT_BOOL;
+         Fields : TPFields;
+         RecordCount : ADO_LONGPTR;
+         EditMode : EditModeEnum;
+         PageCount : ADO_LONGPTR;
+         Status : INTEGER;
+         State : INTEGER;
+
+       COM PROPERTY
+         Source : BSTR;
+         AbsolutePosition : PositionEnum_Param;
+         Bookmark : VARIANT;
+         CacheSize : INTEGER;
+         CursorType : CursorTypeEnum;
+         LockType : LockTypeEnum;
+         MaxRecords : ADO_LONGPTR;
+         AbsolutePage : PositionEnum_Param;
+         Filter : VARIANT;
+         PageSize : INTEGER;
+         Sort : BSTR;
+         CursorLocation : CursorLocationEnum;
+         MarshalOptions : MarshalOptionsEnum;
+
+      COM PROPERTY REF
+         ActiveConnection : TPIDispatch;
+
+      COM PROCEDURE AddNew(
+         FieldList : VARIANT;
+         Values : VARIANT
+      );
+
+      COM PROCEDURE CancelUpdate();
+
+      COM PROCEDURE Close();
+
+      COM PROCEDURE Delete(AffectRecords : AffectEnum);
+
+      COM PROCEDURE GetRows(
+         Rows : INTEGER;
+         Start : VARIANT;
+         Fields : VARIANT
+      ) : VARIANT;
+
+      COM PROCEDURE Move(
+         NumRecords : ADO_LONGPTR;
+         Start : VARIANT
+      );
+
+      COM PROCEDURE MoveNext();
+
+      COM PROCEDURE MovePrevious();
+
+      COM PROCEDURE MoveFirst();
+
+      COM PROCEDURE MoveLast();
+
+      COM PROCEDURE Open(
+         Source : VARIANT;
+         ActiveConnection : VARIANT;
+         CursorType : CursorTypeEnum;
+         LockType : LockTypeEnum;
+         Options : INTEGER
+      );
+
+      COM PROCEDURE Requery(Options : INTEGER);
+
+      COM PROCEDURE Update(
+         Fields : VARIANT;
+         Values : VARIANT
+      );
+
+      COM PROCEDURE UpdateBatch(
+         AffectRecords : AffectEnum
+      );
+
+      COM PROCEDURE CancelBatch(
+         AffectRecords : AffectEnum
+      );
+
+      COM PROCEDURE NextRecordset(
+         OUT RecordsAffected : VARIANT
+      ) : TP_Recordset;
+
+      COM PROCEDURE Supports(
+         CursorOptions : CursorOptionEnum
+      ) : VARIANT_BOOL;
+
+      COM PROCEDURE Find(
+         Criteria : BSTR;
+         SkipRecords : ADO_LONGPTR;
+         SearchDirection : SearchDirectionEnum;
+         Start : VARIANT
+      );
+
+   END Recordset15;
+
+//========== Recordset20
+VAR
+   IID_Recordset20 : IID;
+   
+   COM INTERFACE Recordset20( Recordset15 );
+
+      COM READONLY PROPERTY
+         ActiveCommand : TPIDispatch;
+
+      COM PROPERTY REF
+         DataSource : TPIUnknown;
+
+      COM PROPERTY
+         StayInSync : VARIANT_BOOL;
+         DataMember : BSTR;
+
+      COM PROCEDURE Cancel();
+
+      COM PROCEDURE GetString(
+         StringFormat : StringFormatEnum;
+         NumRows : INTEGER;
+         ColumnDelimeter : BSTR;
+         RowDelimeter : BSTR;
+         NullExpr : BSTR
+      ) : BSTR;
+
+      COM PROCEDURE CompareBookmarks(
+         Bookmark1 : VARIANT;
+         Bookmark2 : VARIANT
+      ) : CompareEnum;
+
+      COM PROCEDURE Clone(
+         LockType : LockTypeEnum
+      ) : TP_Recordset;
+
+      COM PROCEDURE Resync(
+         AffectRecords : AffectEnum;
+         ResyncValues : ResyncEnum
+      );
+
+   END Recordset20;
+
+//========== Recordset21
+VAR
+   IID_Recordset21 : IID;
+   
+   COM INTERFACE Recordset21( Recordset20 );
+
+      COM PROPERTY Index : BSTR;
+
+      COM PROCEDURE Seek(
+         KeyValues : VARIANT;
+         SeekOption : SeekEnum
+      );
+
+   END Recordset21;
+
+//========== _Recordset
+VAR
+   IID__Recordset : IID;
+   
+   COM INTERFACE _Recordset( Recordset21 );
+
+      COM PROCEDURE Save( 
+         Destination : VARIANT;
+         PersistFormat : PersistFormatEnum
+      );
+
+   END _Recordset;
+
+//========== Fields15
+VAR
+   IID_Fields15 : IID;
+   
+   COM INTERFACE Fields15( _ADOCollection );
+      COM READONLY INDEX( Index : VARIANT ) : TPField;
+   END Fields15;
+
+//========== Fields20
+VAR
+   IID_Fields20 : IID;
+   
+   COM INTERFACE Fields20( Fields15 );
+      COM PROCEDURE Delete(Index : VARIANT);
+   END Fields20;
+
+//========== Fields
+VAR
+   IID_Fields : IID;
+   
+   COM INTERFACE Fields( Fields20 );
+
+      COM PROCEDURE Append(
+         Name : BSTR;
+         Type : DataTypeEnum;
+         DefinedSize : ADO_LONGPTR;
+         Attrib : FieldAttributeEnum;
+         FieldValue : VARIANT
+      );
+
+      COM PROCEDURE Update();
+
+      COM PROCEDURE Resync(ResyncValues : ResyncEnum);
+
+      COM PROCEDURE CancelUpdate();
+
+   END Fields;
+
+//========== Field20
+VAR
+   IID_Field20 : IID;
+   
+   COM INTERFACE Field20( _ADO );
+      COM READONLY PROPERTY
+         OriginalValue : VARIANT;
+         UnderlyingValue : VARIANT;
+         ActualSize : ADO_LONGPTR;
+         Name : BSTR;
+
+      COM PROPERTY
+         DataFormat : TPIUnknown;
+         Attributes : INTEGER;
+         DefinedSize : ADO_LONGPTR;
+         Type : DataTypeEnum;
+         Value : VARIANT;
+         Precision : CARD8;
+         NumericScale : CARD8;
+
+      COM PROCEDURE AppendChunk(
+         Data : VARIANT
+      );
+
+      COM PROCEDURE GetChunk(
+         Length : INTEGER
+      ) : VARIANT;
+
+   END Field20;
+
+//========== Field
+VAR
+   IID_Field : IID;
+   
+   COM INTERFACE Field( Field20 );
+      COM READONLY PROPERTY
+         Status : INTEGER;
+   END Field;
+
+//========== _Parameter
+VAR
+   IID__Parameter : IID;
+   
+   COM INTERFACE _Parameter( _ADO );
+
+      COM PROPERTY
+         Name : BSTR;
+         Value : VARIANT;
+         Type : DataTypeEnum;
+         Direction : ParameterDirectionEnum;
+         Precision : CARD8;
+         NumericScale : CARD8;
+         Size : ADO_LONGPTR;
+         Attributes : INTEGER;
+
+      COM PROCEDURE AppendChunk(
+         Val : VARIANT
+      );
+
+   END _Parameter;
+
+//========== Parameters
+VAR
+   IID_Parameters : IID;
+   
+   COM INTERFACE Parameters( _ADODynaCollection );
+      COM READONLY INDEX( Index : VARIANT ) : TP_Parameter;
+   END Parameters;
+
+//========== Command25
+VAR
+   IID_Command25 : IID;
+   
+   COM INTERFACE Command25( Command15 );
+      COM READONLY PROPERTY
+         State : INTEGER;
+      COM PROCEDURE Cancel();
+   END Command25;
+
+//========== _Command
+VAR
+   IID__Command : IID;
+   
+   COM INTERFACE _Command( Command25 );
+      COM PROPERTY
+         Dialect : BSTR;
+         NamedParameters : VARIANT_BOOL;
+      COM PROPERTY REF
+         CommandStream : VARIANT;
+   END _Command;
+
+//========== ConnectionEventsVt
+VAR
+   IID_ConnectionEventsVt : IID;
+   
+   COM INTERFACE ConnectionEventsVt( IUnknown );
+
+      COM PROCEDURE InfoMessage(
+         pError : TPError;
+         REF adStatus : EventStatusEnum;
+         pConnection : TP_ADOConnection
+      );
+
+      COM PROCEDURE BeginTransComplete(
+         TransactionLevel : INTEGER; 
+         pError : TPError;
+         REF adStatus : EventStatusEnum;
+         pConnection : TP_ADOConnection
+      );
+
+      COM PROCEDURE CommitTransComplete(
+         pError : TPError;
+         REF adStatus : EventStatusEnum;
+         pConnection : TP_ADOConnection
+      );
+
+      COM PROCEDURE RollbackTransComplete(
+         pError : TPError;
+         REF adStatus : EventStatusEnum;
+         pConnection : TP_ADOConnection
+      );
+
+      COM PROCEDURE WillExecute(
+         REF Source : BSTR;
+         REF CursorType : CursorTypeEnum;
+         REF LockType : LockTypeEnum;
+         REF Options : INTEGER; 
+         REF adStatus : EventStatusEnum;
+         pCommand : TP_Command;
+         pRecordset : TP_Recordset;
+         pConnection : TP_ADOConnection
+      );
+
+      COM PROCEDURE ExecuteComplete(
+         RecordsAffected : INTEGER; 
+         pError : TPError;
+         REF adStatus : EventStatusEnum;
+         pCommand : TP_Command;
+         pRecordset : TP_Recordset;
+         pConnection : TP_ADOConnection
+      );
+
+      COM PROCEDURE WillConnect(
+         REF ConnectionString : BSTR;
+         REF UserID : BSTR;
+         REF Password : BSTR;
+         REF Options : INTEGER; 
+         REF adStatus : EventStatusEnum;
+         pConnection : TP_ADOConnection
+      );
+
+      COM PROCEDURE ConnectComplete(
+         pError : TPError;
+         REF adStatus : EventStatusEnum;
+         pConnection : TP_ADOConnection
+      );
+
+      COM PROCEDURE Disconnect(
+         REF adStatus : EventStatusEnum;
+         pConnection : TP_ADOConnection
+      );
+
+   END ConnectionEventsVt;
+
+//========== RecordsetEventsVt
+VAR
+   IID_RecordsetEventsVt : IID;
+   
+   COM INTERFACE RecordsetEventsVt( IUnknown );
+
+      COM PROCEDURE WillChangeField(
+         cFields : INTEGER; 
+         Fields : VARIANT;
+         REF adStatus : EventStatusEnum;
+         pRecordset : TP_Recordset
+      );
+
+      COM PROCEDURE FieldChangeComplete(
+         cFields : INTEGER; 
+         Fields : VARIANT;
+         pError : TPError;
+         REF adStatus : EventStatusEnum;
+         pRecordset : TP_Recordset
+      );
+
+      COM PROCEDURE WillChangeRecord(
+         adReason : EventReasonEnum;
+         cRecords : INTEGER; 
+         REF adStatus : EventStatusEnum;
+         pRecordset : TP_Recordset
+      );
+
+      COM PROCEDURE RecordChangeComplete(
+         adReason : EventReasonEnum;
+         cRecords : INTEGER; 
+         pError : TPError;
+         REF adStatus : EventStatusEnum;
+         pRecordset : TP_Recordset
+      );
+
+      COM PROCEDURE WillChangeRecordset(
+         adReason : EventReasonEnum;
+         REF adStatus : EventStatusEnum;
+         pRecordset : TP_Recordset
+      );
+
+      COM PROCEDURE RecordsetChangeComplete(
+         adReason : EventReasonEnum;
+         pError : TPError;
+         REF adStatus : EventStatusEnum;
+         pRecordset : TP_Recordset
+      );
+
+      COM PROCEDURE WillMove(
+         adReason : EventReasonEnum;
+         REF adStatus : EventStatusEnum;
+         pRecordset : TP_Recordset
+      );
+
+      COM PROCEDURE MoveComplete(
+         adReason : EventReasonEnum;
+         pError : TPError;
+         REF adStatus : EventStatusEnum;
+         pRecordset : TP_Recordset
+      );
+
+      COM PROCEDURE EndOfRecordset(
+         REF fMoreData : VARIANT_BOOL;
+         REF adStatus : EventStatusEnum;
+         pRecordset : TP_Recordset
+      );
+
+      COM PROCEDURE FetchProgress(
+         Progress : INTEGER; 
+         MaxProgress : INTEGER; 
+         REF adStatus : EventStatusEnum;
+         pRecordset : TP_Recordset
+      );
+
+      COM PROCEDURE FetchComplete(
+         pError : TPError;
+         REF adStatus : EventStatusEnum;
+         pRecordset : TP_Recordset
+      );
+
+   END RecordsetEventsVt;
+
+
+//========== ADOConnectionConstruction15
+VAR
+   IID_ADOConnectionConstruction15 : IID;
+   
+   COM INTERFACE ADOConnectionConstruction15( IUnknown );
+
+      COM READONLY PROPERTY
+         DSO : TPIUnknown;
+         Session : TPIUnknown;
+
+      COM PROCEDURE WrapDSOandSession(
+         pDSO : TPIUnknown;
+         pSession : TPIUnknown
+      );
+
+   END ADOConnectionConstruction15;
+
+//========== ADOConnectionConstruction
+VAR
+   IID_ADOConnectionConstruction : IID;
+   
+   COM INTERFACE ADOConnectionConstruction( ADOConnectionConstruction15 );
+   END ADOConnectionConstruction;
+
+//========== _Record
+VAR
+   IID__Record : IID;
+   
+   COM INTERFACE _Record( _ADO );
+
+      COM READONLY PROPERTY
+         RecordType : RecordTypeEnum;
+         Fields : TPFields;
+         State : ObjectStateEnum;
+         ParentURL : BSTR;
+
+       COM PROPERTY
+         Mode : ConnectModeEnum;
+
+      (*
+        [id(000000001H), propget, helpcontext(00012c90bH)]
+        HRESULT ActiveConnection() : VARIANT;
+        [id(000000001H), propput, helpcontext(00012c90bH)]
+        HRESULT ActiveConnection(pvar : BSTR);
+        [id(000000001H), propputref, helpcontext(00012c90bH)]
+        HRESULT ActiveConnection(pvar : TP_ADOConnection);
+
+
+        [id(000000003H), propget, helpcontext(00012cc81H)]
+        HRESULT Source() : VARIANT;
+        [id(000000003H), propput, helpcontext(00012cc81H)]
+        HRESULT Source(pvar : BSTR);
+        [id(000000003H), propputref, helpcontext(00012cc81H)]
+        HRESULT Source(pvar : TPIDispatch);
+      *)
+
+      COM PROCEDURE MoveRecord(
+         Source : BSTR;
+         Destination : BSTR;
+         UserName : BSTR;
+         Password : BSTR;
+         Options : MoveRecordOptionsEnum;
+         Async : VARIANT_BOOL
+      ) : BSTR;
+
+      COM PROCEDURE CopyRecord(
+         Source : BSTR;
+         Destination : BSTR;
+         UserName : BSTR;
+         Password : BSTR;
+         Options : CopyRecordOptionsEnum;
+         Async : VARIANT_BOOL
+      ) : BSTR;
+
+      COM PROCEDURE DeleteRecord(
+         Source : BSTR;
+         Async : VARIANT_BOOL
+      );
+
+      COM PROCEDURE Open(
+         Source : VARIANT;
+         ActiveConnection : VARIANT;
+         Mode : ConnectModeEnum;
+         CreateOptions : RecordCreateOptionsEnum;
+         Options : RecordOpenOptionsEnum;
+         UserName : BSTR;
+         Password : BSTR
+      );
+
+      COM PROCEDURE Close();
+
+      COM PROCEDURE GetChildren() : TP_Recordset;
+
+      COM PROCEDURE Cancel();
+
+   END _Record;
+
+//========== _Stream
+VAR
+   IID__Stream : IID;
+   
+   COM INTERFACE _Stream( IDispatch );
+
+      COM READONLY PROPERTY
+         Size : ADO_LONGPTR;
+         EOS : VARIANT_BOOL;
+         State : ObjectStateEnum;
+
+      COM PROPERTY
+         Position : ADO_LONGPTR;
+         Type : StreamTypeEnum;
+         LineSeparator : LineSeparatorEnum;
+         Mode : ConnectModeEnum;
+         Charset : BSTR;
+
+      COM PROCEDURE Read(
+         NumBytes : INTEGER
+      ) : VARIANT;
+
+      COM PROCEDURE Open(
+         Source : VARIANT;
+         Mode : ConnectModeEnum;
+         Options : StreamOpenOptionsEnum;
+         UserName : BSTR;
+         Password : BSTR
+      );
+
+      COM PROCEDURE Close();
+
+      COM PROCEDURE SkipLine();
+
+      COM PROCEDURE Write(
+         Buffer : VARIANT
+      );
+
+      COM PROCEDURE SetEOS();
+
+      COM PROCEDURE CopyTo(
+         DestStream : TP_Stream;
+         CharNumber : ADO_LONGPTR
+      );
+
+      COM PROCEDURE Flush();
+
+      COM PROCEDURE SaveToFile(
+         FileName : BSTR;
+         Options : SaveOptionsEnum
+      );
+
+      COM PROCEDURE LoadFromFile(
+         FileName : BSTR
+      );
+
+      COM PROCEDURE ReadText(
+         NumChars : INTEGER
+      ) : BSTR;
+
+      COM PROCEDURE WriteText(
+         Data : BSTR;
+         Options : StreamWriteEnum
+      );
+
+      COM PROCEDURE Cancel();
+
+   END _Stream;
+
+//========== ADORecordConstruction
+VAR
+   IID_ADORecordConstruction : IID;
+   
+   COM INTERFACE ADORecordConstruction( IDispatch );
+
+      COM PROPERTY
+         Row : TPIUnknown;
+
+      COM WRITEONLY PROPERTY
+         ParentRow : TPIUnknown;
+
+   END ADORecordConstruction;
+
+//========== ADOStreamConstruction
+VAR
+   IID_ADOStreamConstruction : IID;
+   
+   COM INTERFACE ADOStreamConstruction( IDispatch );
+
+      COM PROPERTY
+         Stream : TPIUnknown;
+
+   END ADOStreamConstruction;
+
+//========== ADOCommandConstruction
+VAR
+   IID_ADOCommandConstruction : IID;
+   
+   COM INTERFACE ADOCommandConstruction( IUnknown );
+
+      COM PROPERTY
+         OLEDBCommand : TPIUnknown;
+
+   END ADOCommandConstruction;
+
+//========== ADORecordsetConstruction
+VAR
+   IID_ADORecordsetConstruction : IID;
+   
+   COM INTERFACE ADORecordsetConstruction( IDispatch );
+
+      COM PROPERTY
+         Rowset : TPIUnknown;
+         Chapter : ADO_LONGPTR;
+         RowPosition : TPIUnknown;
+
+   END ADORecordsetConstruction;
+
+//========== Field15
+VAR
+   IID_Field15 : IID;
+   
+   COM INTERFACE Field15( _ADO );
+
+      COM READONLY PROPERTY
+         ActualSize : ADO_LONGPTR;
+         Attributes : INTEGER;
+         DefinedSize : ADO_LONGPTR;
+         Name : BSTR;
+         Type : DataTypeEnum;
+         Precision : CARD8;
+         NumericScale : CARD8;
+         OriginalValue : VARIANT;
+         UnderlyingValue : VARIANT;
+
+      COM PROPERTY
+         Value : VARIANT;
+
+      COM PROCEDURE AppendChunk(
+         Data : VARIANT
+      );
+
+      COM PROCEDURE GetChunk(
+         Length : INTEGER
+      ) : VARIANT;
+
+   END Field15;
+
+END ADO.

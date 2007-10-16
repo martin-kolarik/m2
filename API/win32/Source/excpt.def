@@ -1,0 +1,76 @@
+DEFINITION MODULE excpt;
+
+(*# name(   prefix=>c ) *)
+
+(*# module( header=>off,
+            init_code=>off ) *)
+
+(*# call(   o_a_size=>off,
+            o_a_copy=>off,
+            prefix=>stdcall ) *)
+
+FROM windows IMPORT
+  PEXCEPTION_RECORD,
+  PEXCEPTION_POINTERS,
+  PCONTEXT;
+
+(*============================================================*)
+(* Windows header:           excpt.h                          *)
+(*============================================================*)
+
+
+//
+// Exception disposition return values.
+//
+
+TYPE
+  EXCEPTION_DISPOSITION = (
+    ExceptionContinueExecution,
+    ExceptionContinueSearch,
+    ExceptionNestedException,
+    ExceptionCollidedUnwind );
+
+//
+// Prototype for SEH support function.
+//
+
+(*# save, call( prefix => cdecl ) *)
+
+PROCEDURE _except_handler( ExceptionRecord : PEXCEPTION_RECORD;
+                           EstablisherFrame : ADDRESS;
+                           ContextRecord : PCONTEXT;
+                           DispatcherContext : ADDRESS
+                         ): EXCEPTION_DISPOSITION;
+
+(*# restore *)
+
+//
+// Keywords and intrinsics for SEH
+//
+
+(*# save, call( macro => on ) *)
+PROCEDURE GetExceptionCode(): LONGCARD;
+PROCEDURE exception_code(): LONGCARD;
+PROCEDURE GetExceptionInformation(): PEXCEPTION_POINTERS;
+PROCEDURE exception_info(): PEXCEPTION_POINTERS;
+PROCEDURE AbnormalTermination(): INTEGER;
+PROCEDURE abnormal_termination(): INTEGER;
+(*# restore *)
+
+(*# save, call( prefix => cdecl ) *)
+PROCEDURE _exception_code(): LONGCARD;
+PROCEDURE _exception_info(): ADDRESS;
+PROCEDURE _abnormal_termination(): INTEGER;
+(*# restore *)
+
+
+//
+// Legal values for expression in except().
+//
+
+CONST
+  EXCEPTION_EXECUTE_HANDLER       = 1;
+  EXCEPTION_CONTINUE_SEARCH       = 0;
+  EXCEPTION_CONTINUE_EXECUTION    = -1;
+
+END excpt.

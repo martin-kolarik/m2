@@ -1,0 +1,229 @@
+DEFINITION MODULE StorageO;
+
+IMPORT
+	Exceptions;
+
+#save, option( dll_export => on )
+
+//================================================================================
+// Memory buffers
+
+ABSTRACT CLASS AMemoryBuffer;
+	PUBLIC ABSTRACT PROPERTY
+		Length : CARDINAL;
+		Size : CARDINAL;
+	PUBLIC ABSTRACT READONLY PROPERTY
+		Data : ADDRESS;
+	PUBLIC READONLY PROPERTY
+		Empty : BOOLEAN;
+		
+	PUBLIC INDEX( Index : CARDINAL ) : BYTE THROWS Exceptions.CModula2Exception;
+	PUBLIC OPERATOR =( CONST Buffer : AMemoryBuffer ) : BOOLEAN;
+	
+	PUBLIC PROCEDURE Clear();
+	PUBLIC PROCEDURE Zero();
+	PUBLIC PROCEDURE Fill( Value : BYTE );
+	
+	PUBLIC ABSTRACT PROCEDURE Assign( CONST Buffer : AMemoryBuffer );
+	PUBLIC ABSTRACT PROCEDURE FromOA( CONST Buffer : ARRAY OF BYTE; CopyFlag : BOOLEAN ); // IF NOT CopyFlag then reference to Buffer is used
+	PUBLIC PROCEDURE ToOA( OUT Buffer : ARRAY OF BYTE; OUT Filled : CARDINAL );
+
+	PUBLIC PROCEDURE Append( CONST Buffer : AMemoryBuffer );
+	PUBLIC PROCEDURE AppendByte( Byte : BYTE );
+	PUBLIC ABSTRACT PROCEDURE AppendOA( CONST Buffer : ARRAY OF BYTE );
+	PUBLIC PROCEDURE Prepend( CONST Buffer : AMemoryBuffer );
+	PUBLIC PROCEDURE PrependByte( Byte : BYTE );
+	PUBLIC ABSTRACT PROCEDURE PrependOA( CONST Buffer : ARRAY OF BYTE );
+
+	PUBLIC ABSTRACT PROCEDURE Remove( FromIndex, Count : CARDINAL );
+	PUBLIC PROCEDURE RemoveStart( Count : CARDINAL );
+	PUBLIC PROCEDURE RemoveEnd( Count : CARDINAL );
+	PUBLIC PROCEDURE Subbuffer( From, Count : CARDINAL; OUT Buffer : AMemoryBuffer );
+	PUBLIC PROCEDURE SubbufferOA( From, Count : CARDINAL; OUT Buffer : ARRAY OF BYTE; OUT Filled : CARDINAL );
+
+	PUBLIC PROCEDURE IndexOf( CONST Buffer : AMemoryBuffer; FromIndex : CARDINAL ) : CARDINAL;
+	PUBLIC PROCEDURE IndexOfByte( Byte : BYTE; FromIndex : CARDINAL ) : CARDINAL;
+	PUBLIC PROCEDURE IndexOfOA( CONST Buffer : ARRAY OF BYTE; FromIndex : CARDINAL ) : CARDINAL;
+	PUBLIC PROCEDURE IndexOfAny( CONST Bytes : SET OF BYTE; FromIndex : CARDINAL ) : CARDINAL;
+	PUBLIC PROCEDURE LastIndexOf( CONST Buffer : AMemoryBuffer; IndexFromRight : CARDINAL ) : CARDINAL;
+	PUBLIC PROCEDURE LastIndexOfByte( Byte : BYTE; FromIndex : CARDINAL ) : CARDINAL;
+	PUBLIC PROCEDURE LastIndexOfOA( CONST Buffer : ARRAY OF BYTE; FromIndexFromRight : CARDINAL ) : CARDINAL;
+	PUBLIC PROCEDURE LastIndexOfAny( CONST Bytes : SET OF BYTE; IndexFromRight : CARDINAL ) : CARDINAL;
+	
+	PUBLIC PROCEDURE StartsWith( CONST Buffer : ARRAY OF BYTE ) : BOOLEAN;
+	PUBLIC PROCEDURE EndsWith( CONST Buffer : ARRAY OF BYTE ) : BOOLEAN;
+END AMemoryBuffer;
+
+//--------------------------------------------------------------------------------
+
+TYPE
+	TPMemoryBuffer = POINTER TO CMemoryBuffer;
+
+CLASS CMemoryBuffer( AMemoryBuffer );
+	INTERNAL VAR
+		OwnMemory : BOOLEAN := FALSE;
+		_Length : CARDINAL;
+		_Size : CARDINAL;
+		_Data : ADDRESS;
+	PUBLIC VIRTUAL PROPERTY
+		Length : CARDINAL;
+		Size : CARDINAL;
+	PUBLIC VIRTUAL READONLY PROPERTY
+		Data : ADDRESS;
+
+	PUBLIC PROCEDURE Dispose();
+
+	PUBLIC OPERATOR :=( CONST Buffer : CMemoryBuffer );
+	PUBLIC VIRTUAL PROCEDURE Assign( CONST Buffer : AMemoryBuffer );
+	PUBLIC VIRTUAL PROCEDURE FromOA( CONST Buffer : ARRAY OF BYTE; CopyFlag : BOOLEAN ); // IF NOT CopyFlag then reference to Buffer is used
+
+	PUBLIC VIRTUAL PROCEDURE AppendOA( CONST Buffer : ARRAY OF BYTE );
+	PUBLIC VIRTUAL PROCEDURE PrependOA( CONST Buffer : ARRAY OF BYTE );
+	PUBLIC VIRTUAL PROCEDURE Remove( FromIndex, Count : CARDINAL );
+
+	INTERNAL VIRTUAL PROCEDURE Reallocate( Bytes : CARDINAL );
+	INTERNAL VIRTUAL PROCEDURE Deallocate();
+END CMemoryBuffer;
+
+//--------------------------------------------------------------------------------
+
+ABSTRACT CLASS AMemorySlot( AMemoryBuffer );
+	INTERNAL VAR
+	   _Length : CARDINAL;
+	PUBLIC VIRTUAL PROPERTY
+		Length : CARDINAL;
+
+	PUBLIC OPERATOR :=( CONST Buffer : CMemoryBuffer );
+	PUBLIC VIRTUAL PROCEDURE Assign( CONST Buffer : AMemoryBuffer );
+	PUBLIC VIRTUAL PROCEDURE FromOA( CONST Buffer : ARRAY OF BYTE; CopyFlag : BOOLEAN ); // IF NOT CopyFlag then reference to Buffer is used
+
+	PUBLIC VIRTUAL PROCEDURE AppendOA( CONST Buffer : ARRAY OF BYTE );
+	PUBLIC VIRTUAL PROCEDURE PrependOA( CONST Buffer : ARRAY OF BYTE );
+	PUBLIC VIRTUAL PROCEDURE Remove( FromIndex, Count : CARDINAL );
+END AMemorySlot;
+
+//--------------------------------------------------------------------------------
+
+TYPE
+	TPMemorySlot32 = POINTER TO CMemorySlot32;
+	TPMemorySlot64 = POINTER TO CMemorySlot64;
+	TPMemorySlot256 = POINTER TO CMemorySlot256;
+
+CLASS CMemorySlot32( AMemorySlot );
+	INTERNAL VAR _Data : ARRAY [0..31] OF BYTE;
+	PUBLIC VIRTUAL PROPERTY Size : CARDINAL;
+	PUBLIC VIRTUAL READONLY PROPERTY Data : ADDRESS;
+END CMemorySlot32;
+
+CLASS CMemorySlot64( AMemorySlot );
+	INTERNAL VAR _Data : ARRAY [0..63] OF BYTE;
+	PUBLIC VIRTUAL PROPERTY Size : CARDINAL;
+	PUBLIC VIRTUAL READONLY PROPERTY Data : ADDRESS;
+END CMemorySlot64;
+
+CLASS CMemorySlot256( AMemorySlot );
+	INTERNAL VAR _Data : ARRAY [0..255] OF BYTE;
+	PUBLIC VIRTUAL PROPERTY Size : CARDINAL;
+	PUBLIC VIRTUAL READONLY PROPERTY Data : ADDRESS;
+END CMemorySlot256;
+
+//================================================================================
+// Memory allocation/deallocation module, object interface
+
+TYPE
+	TAllocatorException = (
+		aexNotEnoughMemory,
+		aexLimitExceeded,
+		aexUnknownAddress,
+		aexUnableToReallocate,
+		aexAllocateLengthTooBig,
+		aexUnitTooBig
+	);
+
+FINAL CLASS CAllocatorException( Exceptions.CException );
+   PUBLIC READONLY VAR
+      Kind : TAllocatorException;
+
+   PUBLIC PROCEDURE Init( NestedException : POINTER TO Exceptions.Exception; CONST Originator, Text : ARRAY OF WCHAR; Kind : TAllocatorException ) : CAllocatorException;
+
+   INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
+END CAllocatorException;
+
+PROCEDURE AllocatorException( NestedException : POINTER TO Exceptions.Exception; CONST Originator, Text : ARRAY OF WCHAR; Kind : TAllocatorException ) : CAllocatorException;
+
+//================================================================================
+
+TYPE
+	TAllocatorStrategy = (
+		asUnknown,
+		asCommitVirtual,
+		asAllocatePages,
+		asDefault = asAllocatePages
+	);
+	
+	TPages;
+
+ABSTRACT CLASS CAAllocator;
+
+	INTERNAL READONLY VAR
+		_Debug          : BOOLEAN;
+		_Strategy       : TAllocatorStrategy;
+		_Backlog        : CARDINAL;
+		_Limit          : CARDINAL;
+		_PageCount      : CARDINAL;
+		_Pages          : TPages;
+		_FirstEmptyPage : CARDINAL;
+
+	PUBLIC ABSTRACT READONLY PROPERTY
+		Occupied        : CARDINAL;
+		Empty           : CARDINAL;
+	PUBLIC PROPERTY
+		Debug           : BOOLEAN;
+		Strategy        : TAllocatorStrategy;
+		Backlog         : CARDINAL; // minimal allocated space, even if memory is deallocated
+		Limit           : CARDINAL;
+
+	PUBLIC ABSTRACT PROCEDURE Allocate( OUT a : ADDRESS; size : CARDINAL ) : BOOLEAN;
+	PUBLIC ABSTRACT PROCEDURE Deallocate( REF a : ADDRESS );
+	PUBLIC ABSTRACT PROCEDURE Reallocate( REF a : ADDRESS; size : CARDINAL ) : BOOLEAN;
+	
+	INTERNAL PROCEDURE CommitPages( Count : CARDINAL ) : BOOLEAN THROWS CAllocatorException;
+	INTERNAL VIRTUAL PROCEDURE PageCommitted( Index : CARDINAL ); // callback
+
+	INTERNAL PROCEDURE ReleasePage( Index : CARDINAL );
+	INTERNAL VIRTUAL PROCEDURE PageReleased( Index : CARDINAL ); // callback
+
+	INTERNAL PROCEDURE Address2Page( a : ADDRESS; OUT Index : CARDINAL ) : BOOLEAN;
+END CAAllocator;
+
+TYPE
+	TEmptySlots;
+
+CLASS CSlotAllocator( CAAllocator ); // allocates slots of equal size
+
+	PRIVATE VAR
+		_SlotSize       : CARDINAL;
+		_Occupied       : CARDINAL; // in slots
+		_KnownPages     : CARDINAL;
+		_EmptySlots     : TEmptySlots;
+		_FirstEmptySlot : CARDINAL; // index to block array
+	PUBLIC VIRTUAL READONLY PROPERTY
+		Occupied        : CARDINAL;
+		Empty           : CARDINAL;
+		
+	PUBLIC PROCEDURE Init( SlotSize, Backlog : CARDINAL ) THROWS CAllocatorException;
+	
+	PUBLIC VIRTUAL PROCEDURE Allocate( OUT a : ADDRESS; size : CARDINAL ) : BOOLEAN THROWS CAllocatorException;
+	PUBLIC VIRTUAL PROCEDURE Deallocate( REF a : ADDRESS ) THROWS CAllocatorException;
+	PUBLIC VIRTUAL PROCEDURE Reallocate( REF a : ADDRESS; size : CARDINAL ) : BOOLEAN THROWS CAllocatorException;
+
+	INTERNAL VIRTUAL PROCEDURE PageCommitted( Index : CARDINAL );
+	INTERNAL VIRTUAL PROCEDURE PageReleased( Index : CARDINAL );
+
+END CSlotAllocator;
+
+//================================================================================
+
+#restore
+
+END StorageO.

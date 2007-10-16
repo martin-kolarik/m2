@@ -1,0 +1,544 @@
+DEFINITION MODULE ddeml;
+
+(*==============================================================
+
+                  DDE Connectivity to Modula-2
+            Dynamic Data Exchange Management Library
+
+       32-bit version for M2CPP Modula-2 to C++ compiler
+
+      Copyright (c) 1996, 1997 Moravian Instruments, Inc.
+
+==============================================================*)
+
+(*# name(   prefix          => c ) *)
+
+(*# module( header          => off,
+            init_code       => off ) *)
+
+(*# call(   o_a_size        => off,
+            o_a_copy        => off,
+            c_arrays        => on,
+            result_optional => on,
+            prefix=>stdcall ) *)
+
+(*==============================================================
+
+  History: Created: 09.11.1997
+           Build 0: **********
+
+==============================================================*)
+
+(*============================================================*)
+(* Windows header:           ddeml.h                          *)
+(*============================================================*)
+
+IMPORT
+  windows;
+
+
+(******** public types ********)
+TYPE
+  UINT		= windows.UINT;
+  DWORD		= windows.DWORD;
+  HWND		= windows.HWND;
+
+  HCONVLIST	= windows.HANDLE;
+  HCONV		= windows.HANDLE;
+  HSZ		= windows.HANDLE;
+  HDDEDATA	= windows.HANDLE;
+
+  EXPENTRY      = PROCEDURE();
+
+(*// the following structure is for use with XTYP_WILDCONNECT processing. *)
+
+  tagHSZPAIR	= RECORD
+		    hszSvc   : HSZ;
+		    hszTopic : HSZ;
+	          END;
+  HSZPAIR	= tagHSZPAIR;
+  PHSZPAIR	= POINTER TO HSZPAIR;
+
+(*// The following structure is used by DdeConnect() and DdeConnectList() and
+  // by XTYP_CONNECT and XTYP_WILDCONNECT callbacks. *)
+
+  tagCONVCONTEXT = RECORD
+    cb		: UINT;	    (*// set to sizeof(CONVCONTEXT) *)
+    wFlags	: UINT;	    (*// none currently defined. *)
+    wCountryID	: UINT;	    (*// country code for topic/item strings used. *)
+    iCodePage	: INTEGER;  (*// codepage used for topic/item strings. *)
+    dwLangID	: DWORD;    (*// language ID for topic/item strings. *)
+    dwSecurity	: DWORD;    (*// Private security code. *)
+    qos		: windows.SECURITY_QUALITY_OF_SERVICE;  (*// client side's quality of service *)
+  END;
+  CONVCONTEXT	= tagCONVCONTEXT;
+  PCONVCONTEXT  = POINTER TO CONVCONTEXT;
+
+
+(*// The following structure is used by DdeQueryConvInfo(): *)
+
+  tagCONVINFO = RECORD
+    cb		  : DWORD;  (*// sizeof(CONVINFO)  *)
+    hUser	  : DWORD;  (*// user specified field  *)
+    hConvPartner  : HCONV;  (*// hConv on other end or 0 if non-ddemgr partner  *)
+    hszSvcPartner : HSZ;    (*// app name of partner if obtainable  *)
+    hszServiceReq : HSZ;    (*// AppName requested for connection  *)
+    hszTopic	  : HSZ;    (*// Topic name for conversation  *)
+    hszItem	  : HSZ;    (*// transaction item name or NULL if quiescent  *)
+    wFmt	  : UINT;   (*// transaction format or NULL if quiescent  *)
+    wType	  : UINT;   (*// XTYP_ for current transaction  *)
+    wStatus	  : UINT;   (*// ST_ constant for current conversation  *)
+    wConvst	  : UINT;   (*// XST_ constant for current transaction  *)
+    wLastError	  : UINT;   (*// last transaction error.  *)
+    hConvList	  : HCONVLIST;   (*// parent hConvList if this conversation is in a list *)
+    ConvCtxt	  : CONVCONTEXT; (*// conversation context *)
+    hwnd	  : HWND;        (*// window handle for this conversation *)
+    hwndPartner	  : HWND;   (*// partner window handle for this conversation *)
+  END;
+  CONVINFO    = tagCONVINFO;
+  PCONVINFO   = POINTER TO CONVINFO;
+
+(*//**** conversation states (usState) *****)
+CONST
+  XST_NULL              = 0; (*// quiescent states *)
+  XST_INCOMPLETE        = 1;
+  XST_CONNECTED         = 2;
+  XST_INIT1             = 3; (*// mid-initiation states *)
+  XST_INIT2             = 4;
+  XST_REQSENT           = 5; (*// active conversation states *)
+  XST_DATARCVD          = 6;
+  XST_POKESENT          = 7;
+  XST_POKEACKRCVD       = 8;
+  XST_EXECSENT          = 9;
+  XST_EXECACKRCVD	= 10;
+  XST_ADVSENT		= 11;
+  XST_UNADVSENT		= 12;
+  XST_ADVACKRCVD	= 13;
+  XST_UNADVACKRCVD	= 14;
+  XST_ADVDATASENT	= 15;
+  XST_ADVDATAACKRCVD	= 16;
+
+(*// used in LOWORD(dwData1) of XTYP_ADVREQ callbacks... *)
+  CADV_LATEACK		= 0FFFFH;
+
+(*//**** conversation status bits (fsStatus) *****)
+
+  ST_CONNECTED		= 0001H;
+  ST_ADVISE		= 0002H;
+  ST_ISLOCAL		= 0004H;
+  ST_BLOCKED		= 0008H;
+  ST_CLIENT		= 0010H;
+  ST_TERMINATED		= 0020H;
+  ST_INLIST		= 0040H;
+  ST_BLOCKNEXT		= 0080H;
+  ST_ISSELF		= 0100H;
+
+
+(*// DDE constants for wStatus field *)
+
+  DDE_FACK		= 8000H;
+  DDE_FBUSY		= 4000H;
+  DDE_FDEFERUPD		= 4000H;
+  DDE_FACKREQ		= 8000H;
+  DDE_FRELEASE		= 2000H;
+  DDE_FREQUESTED	= 1000H;
+  DDE_FAPPSTATUS	= 00FFH;
+  DDE_FNOTPROCESSED	= 0000H;
+
+  DDE_FACKRESERVED      = NOT(DDE_FACK OR DDE_FBUSY OR DDE_FAPPSTATUS);
+  DDE_FADVRESERVED      = NOT(DDE_FACKREQ OR DDE_FDEFERUPD);
+  DDE_FDATRESERVED      = NOT(DDE_FACKREQ OR DDE_FRELEASE OR DDE_FREQUESTED);
+  DDE_FPOKRESERVED      = NOT(DDE_FRELEASE);
+
+(*//**** message filter hook types *****)
+
+  MSGF_DDEMGR           = 8001H;
+
+(*//**** codepage constants ****)
+
+  CP_WINANSI		= 1004;    (*// default codepage for windows & old DDE convs. *)
+  CP_WINUNICODE		= 1200;
+  CP_WINNEUTRAL		= CP_WINANSI; (* NOT UNICODE !!!! *)
+
+(*//**** transaction types *****)
+
+  XTYPF_NOBLOCK		= 0002H;   (*// CBR_BLOCK will not work *)
+  XTYPF_NODATA		= 0004H;   (*// DDE_FDEFERUPD *)
+  XTYPF_ACKREQ		= 0008H;   (*// DDE_FACKREQ *)
+
+  XCLASS_MASK		= 0FC00H; 
+  XCLASS_BOOL		= 1000H; 
+  XCLASS_DATA		= 2000H; 
+  XCLASS_FLAGS		= 4000H; 
+  XCLASS_NOTIFICATION	= 8000H; 
+
+  XTYP_ERROR            =  (0000H OR XCLASS_NOTIFICATION OR XTYPF_NOBLOCK );
+  XTYP_ADVDATA          =  (0010H OR XCLASS_FLAGS         );
+  XTYP_ADVREQ           =  (0020H OR XCLASS_DATA OR XTYPF_NOBLOCK );
+  XTYP_ADVSTART         =  (0030H OR XCLASS_BOOL          );
+  XTYP_ADVSTOP          =  (0040H OR XCLASS_NOTIFICATION);
+  XTYP_EXECUTE          =  (0050H OR XCLASS_FLAGS         );
+  XTYP_CONNECT          =  (0060H OR XCLASS_BOOL OR XTYPF_NOBLOCK);
+  XTYP_CONNECT_CONFIRM  =  (0070H OR XCLASS_NOTIFICATION OR XTYPF_NOBLOCK);
+  XTYP_XACT_COMPLETE    =  (0080H OR XCLASS_NOTIFICATION  );
+  XTYP_POKE             =  (0090H OR XCLASS_FLAGS         );
+  XTYP_REGISTER         =  (00A0H OR XCLASS_NOTIFICATION OR XTYPF_NOBLOCK);
+  XTYP_REQUEST          =  (00B0H OR XCLASS_DATA          );
+  XTYP_DISCONNECT       =  (00C0H OR XCLASS_NOTIFICATION OR XTYPF_NOBLOCK);
+  XTYP_UNREGISTER       =  (00D0H OR XCLASS_NOTIFICATION OR XTYPF_NOBLOCK);
+  XTYP_WILDCONNECT      =  (00E0H OR XCLASS_DATA OR XTYPF_NOBLOCK);
+
+  XTYP_MASK             =   00F0H;
+  XTYP_SHIFT            =   4; (*// shift to turn XTYP_ into an index *)
+
+(*//**** Timeout constants *****)
+
+  TIMEOUT_ASYNC		= 0FFFFFFFFH;
+
+(*//**** Transaction ID constants *****)
+
+  QID_SYNC		= 0FFFFFFFFH;
+
+(*//***** public strings used in DDE ******)
+
+  SZDDESYS_TOPIC	= "System";
+  SZDDESYS_ITEM_TOPICS	= "Topics";
+  SZDDESYS_ITEM_SYSITEMS= "SysItems";
+  SZDDESYS_ITEM_RTNMSG	= "ReturnMessage";
+  SZDDESYS_ITEM_STATUS	= "Status";
+  SZDDESYS_ITEM_FORMATS = "Formats";
+  SZDDESYS_ITEM_HELP	= "Help";
+  SZDDE_ITEM_ITEMLIST	= "TopicItemList";
+
+
+(*//***** API entry points ******)
+TYPE
+(*
+  FNCALLBACK = PROCEDURE( wType, wFmt      : UINT;
+			  hConv            : HCONV;
+			  hsz1, hsz2       : HSZ;
+			  hData            : HDDEDATA;
+			  dwData1, dwData2 : DWORD ) : HDDEDATA;
+*)
+  FNCALLBACK = PROCEDURE( UINT, UINT, HCONV, HSZ, HSZ, HDDEDATA,
+			  DWORD, DWORD ) : HDDEDATA;
+  PFNCALLBACK = POINTER TO FNCALLBACK;
+
+CONST
+  CBR_BLOCK   = HDDEDATA(0FFFFFFFFH);
+
+(*// DLL registration functions *)
+
+ PROCEDURE DdeInitialize( pidInst     : windows.PDWORD; 
+                          pfnCallback : PFNCALLBACK;
+                          afCmd       : DWORD; 
+                          ulRes       : DWORD ) : UINT;
+
+
+(*
+ *// Callback filter flags for use with standard apps.
+ *)
+CONST
+  CBF_FAIL_SELFCONNECTIONS          = 000001000H;
+  CBF_FAIL_CONNECTIONS              = 000002000H;
+  CBF_FAIL_ADVISES                  = 000004000H;
+  CBF_FAIL_EXECUTES                 = 000008000H;
+  CBF_FAIL_POKES                    = 000010000H;
+  CBF_FAIL_REQUESTS                 = 000020000H;
+  CBF_FAIL_ALLSVRXACTIONS           = 00003F000H;
+
+  CBF_SKIP_CONNECT_CONFIRMS         = 000040000H;
+  CBF_SKIP_REGISTRATIONS            = 000080000H;
+  CBF_SKIP_UNREGISTRATIONS          = 000100000H;
+  CBF_SKIP_DISCONNECTS              = 000200000H;
+  CBF_SKIP_ALLNOTIFICATIONS         = 0003C0000H;
+
+(*
+ *// Application command flags
+ *)
+CONST
+  APPCMD_CLIENTONLY                 = LONGWORD(000000010H);
+  APPCMD_FILTERINITS                = LONGWORD(000000020H);
+  APPCMD_MASK                       = LONGWORD(000000FF0H);
+
+(*
+ *// Application classification flags
+ *)
+  APPCLASS_STANDARD                 = LONGWORD(000000000H);
+  APPCLASS_MASK                     = LONGWORD(00000000FH);
+
+
+PROCEDURE DdeUninitialize( idInst : DWORD ) : windows.BOOL;
+
+(*
+ *// conversation enumeration functions
+ *)
+
+PROCEDURE DdeConnectList( idInst      : DWORD;
+                          hszService, 
+                          hszTopic    : HSZ;
+                          hConvList   : HCONVLIST;
+                          pCC         : PCONVCONTEXT ) : HCONVLIST;
+PROCEDURE DdeQueryNextServer( hConvList : HCONVLIST;
+                              hConvPrev : HCONV ) : HCONV;
+PROCEDURE DdeDisconnectList( hConvList  : HCONVLIST ) : windows.BOOL;
+
+(*
+ *// conversation control functions
+ *)
+
+PROCEDURE DdeConnect( idInst    : DWORD;
+                      hszService, 
+                      hszTopic  : HSZ;
+                      pCC : PCONVCONTEXT ) : HCONV;
+PROCEDURE DdeDisconnect( hConv : HCONV ) : windows.BOOL;
+PROCEDURE DdeReconnect( hConv : HCONV ) : HCONV;
+PROCEDURE DdeQueryConvInfo( hConv         : HCONV;
+                            idTransaction : DWORD;
+                            pConvInfo     : PCONVINFO ) : UINT;
+PROCEDURE DdeSetUserHandle( hConv : HCONV;
+                            id, hUser : DWORD ) : windows.BOOL;
+PROCEDURE DdeAbandonTransaction( idInst   : DWORD; 
+                                 hConv    : HCONV;
+                                 idTransaction : DWORD ) : windows.BOOL;
+
+
+(*
+ *// app server interface functions
+ *)
+
+PROCEDURE DdePostAdvise( idInst   : DWORD;
+                         hszTopic, 
+                         hszItem  : HSZ ) : windows.BOOL;
+PROCEDURE DdeEnableCallback( idInst : DWORD;
+                             hConv  : HCONV;
+                             wCmd   : UINT ) : windows.BOOL;
+PROCEDURE DdeImpersonateClient( hConv : HCONV ) : windows.BOOL;
+
+CONST
+  EC_ENABLEALL        = 0;
+  EC_ENABLEONE        = ST_BLOCKNEXT;
+  EC_DISABLE          = ST_BLOCKED;
+  EC_QUERYWAITING     = 2;
+
+
+PROCEDURE DdeNameService( idInst     : DWORD;
+                          hsz1, hsz2 : HSZ;
+                          afCmd      : UINT ) : HDDEDATA;
+
+CONST
+  DNS_REGISTER        = 00001H;
+  DNS_UNREGISTER      = 00002H;
+  DNS_FILTERON        = 00004H;
+  DNS_FILTEROFF       = 00008H;
+
+(*
+ *// app client interface functions
+ *)
+
+PROCEDURE DdeClientTransaction( pData  : windows.PBYTE;
+                                cbData : DWORD;
+                                hConv  : HCONV;
+                                hszItem: HSZ;
+                                wFmt, wType : UINT;
+                                dwTimeout : DWORD;
+                                pdwResult : windows.PDWORD ) : HDDEDATA;
+
+(*
+ *// data transfer functions
+ *)
+
+PROCEDURE DdeCreateDataHandle( idInst   : DWORD;
+                               pSrc     : windows.PBYTE;
+                               cb       : DWORD;
+                               cbOff    : DWORD;
+                               hszItem  : HSZ; 
+                               wFmt, 
+                               afCmd    : UINT ) : HDDEDATA;
+PROCEDURE DdeAddData( hData : HDDEDATA; 
+                      pSrc  : windows.PBYTE;
+                      cb,  
+                      cbOff : DWORD ) : HDDEDATA;
+PROCEDURE DdeGetData( hData : HDDEDATA;
+                      pDst  : windows.PBYTE;
+                      cbMax, 
+                      cbOff : DWORD ) : DWORD;
+PROCEDURE DdeAccessData( hData       : HDDEDATA;
+                         pcbDataSize : windows.PDWORD ) : windows.PBYTE;
+PROCEDURE DdeUnaccessData( hData : HDDEDATA ) : windows.BOOL;
+PROCEDURE DdeFreeDataHandle( hData : HDDEDATA ) : windows.BOOL;
+
+CONST
+  HDATA_APPOWNED      = 00001H;
+
+
+PROCEDURE DdeGetLastError( idInst : DWORD ) : UINT;
+
+CONST
+  DMLERR_NO_ERROR             = 0;       (*// must be 0 *)
+
+  DMLERR_FIRST                = 04000H;
+
+  DMLERR_ADVACKTIMEOUT        = 04000H;
+  DMLERR_BUSY                 = 04001H;
+  DMLERR_DATAACKTIMEOUT       = 04002H;
+  DMLERR_DLL_NOT_INITIALIZED  = 04003H;
+  DMLERR_DLL_USAGE            = 04004H;
+  DMLERR_EXECACKTIMEOUT       = 04005H;
+  DMLERR_INVALIDPARAMETER     = 04006H;
+  DMLERR_LOW_MEMORY           = 04007H;
+  DMLERR_MEMORY_ERROR         = 04008H;
+  DMLERR_NOTPROCESSED         = 04009H;
+  DMLERR_NO_CONV_ESTABLISHED  = 0400AH;
+  DMLERR_POKEACKTIMEOUT       = 0400BH;
+  DMLERR_POSTMSG_FAILED       = 0400CH;
+  DMLERR_REENTRANCY           = 0400DH;
+  DMLERR_SERVER_DIED          = 0400EH;
+  DMLERR_SYS_ERROR            = 0400FH;
+  DMLERR_UNADVACKTIMEOUT      = 04010H;
+  DMLERR_UNFOUND_QUEUE_ID     = 04011H;
+
+  DMLERR_LAST                 = 04011H;
+
+PROCEDURE DdeCreateStringHandle( idInst : DWORD;
+                                 psz    : windows.PTSTR;
+                                 iCodePage : INTEGER ) : HSZ;
+
+PROCEDURE DdeQueryString( idInst    : DWORD;
+                          hsz       : HSZ;
+                          psz       : windows.PTSTR;
+                          cchMax    : DWORD;
+                          iCodePage : INTEGER ) : DWORD;
+
+PROCEDURE DdeFreeStringHandle( idInst : DWORD; hsz : HSZ ) : windows.BOOL;
+PROCEDURE DdeKeepStringHandle( idInst : DWORD; hsz : HSZ ) : windows.BOOL;
+PROCEDURE DdeCmpStringHandles( hsz1, hsz2 : HSZ ) : INTEGER;
+
+
+(* #ifndef NODDEMLSPY *)
+(*
+ *// DDEML public debugging header file info
+ *)
+
+TYPE
+  tagDDEML_MSG_HOOK_DATA = RECORD     (*// new for NT *)
+    uiLo,                             (*// unpacked lo and hi parts of lParam *)
+    uiHi   : UINT;
+    cbData : DWORD;       (*// amount of data in message, if any. May be > than 32 bytes. *)
+    Data   : ARRAY [0..7] OF DWORD;   (*// data peeking by DDESPY is limited to 32 bytes. *)
+  END;
+  DDEML_MSG_HOOK_DATA   = tagDDEML_MSG_HOOK_DATA;
+  PDDEML_MSG_HOOK_DATA  = POINTER TO DDEML_MSG_HOOK_DATA;
+
+  tagMONMSGSTRUCT = RECORD
+    cb      : UINT;
+    hwndTo  : windows.HWND;
+    dwTime  : DWORD;
+    hTask   : windows.HANDLE;
+    wMsg    : UINT;
+    wParam  : windows.WPARAM;
+    lParam  : windows.LPARAM;
+    dmhd    : DDEML_MSG_HOOK_DATA;    (*// new for NT *)
+  END;
+  MONMSGSTRUCT   = tagMONMSGSTRUCT;
+  PMONMSGSTRUCT  = POINTER TO MONMSGSTRUCT;
+
+  tagMONCBSTRUCT = RECORD
+    cb      : UINT;
+    dwTime  : DWORD;
+    hTask   : windows.HANDLE;
+    dwRet   : DWORD;
+    wType   : UINT;
+    wFmt    : UINT;
+    hConv   : HCONV;
+    hsz1    : HSZ;
+    hsz2    : HSZ;
+    hData   : HDDEDATA;
+    dwData1,
+    dwData2 : DWORD;
+    cc      : CONVCONTEXT;            (*// new for NT for XTYP_CONNECT callbacks *)
+    cbData  : DWORD;                  (*// new for NT for data peeking *)
+    Data    : ARRAY [0..7] OF DWORD;  (*// new for NT for data peeking *)
+  END;
+  MONCBSTRUCT   = tagMONCBSTRUCT;
+  PMONCBSTRUCT  = POINTER TO MONCBSTRUCT;
+
+  tagMONHSZSTRUCT = RECORD
+    cb        : UINT;
+    fsAction  : windows.BOOL;    (*// MH_ value *)
+    dwTime    : DWORD;
+    hsz       : HSZ;
+    hTask     : windows.HANDLE;
+    str       : ARRAY [0..0] OF TCHAR;
+  END;
+  MONHSZSTRUCT    = tagMONHSZSTRUCT;
+  PMONHSZSTRUCT   = POINTER TO MONHSZSTRUCT;
+
+CONST
+  MH_CREATE   = 1;
+  MH_KEEP     = 2;
+  MH_DELETE   = 3;
+  MH_CLEANUP  = 4;
+
+TYPE
+  tagMONERRSTRUCT = RECORD
+    cb         : UINT;
+    wLastError : UINT;
+    dwTime     : DWORD;
+    hTask      : windows.HANDLE;
+  END;
+  MONERRSTRUCT  = tagMONERRSTRUCT;
+  PMONERRSTRUCT = POINTER TO MONERRSTRUCT;
+
+  tagMONLINKSTRUCT = RECORD
+    cb         : UINT;
+    dwTime     : DWORD;
+    hTask      : windows.HANDLE;
+    fEstablished : windows.BOOL;
+    fNoData    : windows.BOOL;
+    hszSvc,
+    hszTopic,
+    hszItem    : HSZ;
+    wFmt       : UINT;
+    fServer    : windows.BOOL;
+    hConvServer  : HCONV;
+    hConvClient  : HCONV;
+  END;
+  MONLINKSTRUCT   = tagMONLINKSTRUCT;
+  PMONLINKSTRUCT  = POINTER TO MONLINKSTRUCT;
+
+  tagMONCONVSTRUCT = RECORD
+    cb        : UINT;
+    fConnect  : windows.BOOL;
+    dwTime    : DWORD;
+    hTask     : windows.HANDLE;
+    hszSvc,
+    hszTopic  : HSZ;
+    hConvClient,                (*// Globally unique value != apps local hConv *)
+    hConvServer : HCONV;        (*// Globally unique value != apps local hConv *)
+  END;
+  MONCONVSTRUCT   = tagMONCONVSTRUCT;
+  PMONCONVSTRUCT  = POINTER TO MONCONVSTRUCT;
+
+CONST
+  MAX_MONITORS           = 4;
+  APPCLASS_MONITOR       = LONGWORD(000000001H);
+  XTYP_MONITOR           = (000F0H OR XCLASS_NOTIFICATION OR XTYPF_NOBLOCK);
+
+(*
+ *// Callback filter flags for use with MONITOR apps - 0 implies no monitor
+ *// callbacks.
+ *)
+  MF_HSZ_INFO       = 001000000H;
+  MF_SENDMSGS       = 002000000H;
+  MF_POSTMSGS       = 004000000H;
+  MF_CALLBACKS      = 008000000H;
+  MF_ERRORS         = 010000000H;
+  MF_LINKS          = 020000000H;
+  MF_CONV           = 040000000H;
+
+  MF_MASK           = 0FF000000H;
+
+(* #endif (*// NODDEMLSPY *) *)
+
+END ddeml.
