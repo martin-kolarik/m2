@@ -18,8 +18,8 @@
 
     <!-- 3 -->
     <ItemGroup>
-        <Components Include="modula2\modula2"/>
-        <Components Include="api\Win32;api\Msi;modula2\m2ortl;licensing\core"/>
+        <Components Include="modula2\modula2;api\Win32;api\Msi"/>
+        <Components Include="modula2\m2ortl;licensing\core"/>
         <Program Include="MSIStub"/>
     </ItemGroup>
 
