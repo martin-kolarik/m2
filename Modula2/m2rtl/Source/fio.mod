@@ -41,30 +41,32 @@ END IsDriveW;
 PROCEDURE FullPathToVolumeAndPathW( CONST FullPath : ARRAY OF WCHAR; OUT Volume, Path : ARRAY OF WCHAR );
 VAR
   i : CARDINAL;
+  LPath : PathStrW;
 BEGIN
-  IF IsUNCW( Path ) THEN
-    i := Strings.IndexOfCharW( Path, L'\', 3 );
+  LPath := FullPath;
+  IF IsUNCW( LPath ) THEN
+    i := Strings.IndexOfCharW( LPath, L'\', 3 );
     IF i <> -1 THEN
-      i := Strings.IndexOfCharW( Path, L'\', i+1 );
+      i := Strings.IndexOfCharW( LPath, L'\', i+1 );
     END;
     IF i = -1 THEN
-      ASSIGN( Volume, FullPath );
+      ASSIGN( Volume, LPath );
       Path := L'';
     ELSE
-      Strings.SubstringW( FullPath, 0, i, OUT Volume );
-      Strings.SubstringW( FullPath, i+1, -1, OUT Path );
+      Strings.SubstringW( LPath, 0, i, OUT Volume );
+      Strings.SubstringW( LPath, i+1, -1, OUT Path );
     END;
-  ELSIF IsDriveW( Path ) THEN
-    IF Path[2] = L'\' THEN
-      Strings.SubstringW( FullPath, 0, 2, OUT Volume );
-      Strings.SubstringW( FullPath, 3, -1, OUT Path );
+  ELSIF IsDriveW( LPath ) THEN
+    IF LPath[2] = L'\' THEN
+      Strings.SubstringW( LPath, 0, 2, OUT Volume );
+      Strings.SubstringW( LPath, 3, -1, OUT Path );
     ELSE
       Volume := L'';
-      ASSIGN( Path, FullPath );
+      ASSIGN( Path, LPath );
     END;
   ELSE
     Volume := L'';
-    ASSIGN( Path, FullPath );
+    ASSIGN( Path, LPath );
   END;    
 END FullPathToVolumeAndPathW;
 
@@ -88,15 +90,18 @@ BEGIN
 END NormalizePathW;
 
 PROCEDURE MakePathW( CONST Head, Tail : ARRAY OF WCHAR; OUT Path : ARRAY OF WCHAR );
+VAR
+  LPath : PathStrW;
 BEGIN
   IF Head[ LENGTH( Head ) - 1 ] = '\' THEN
-    Strings.ConcatW( OUT Path, Head, Tail );
+    Strings.ConcatW( OUT LPath, Head, Tail );
   ELSIF Head[0] = 0W THEN
-		ASSIGN( Path, Tail );
+		ASSIGN( LPath, Tail );
   ELSE
-    Strings.ConcatW( OUT Path, Head, L'\' );
-    Strings.AppendW( REF Path, Tail );
+    Strings.ConcatW( OUT LPath, Head, L'\' );
+    Strings.AppendW( REF LPath, Tail );
   END;
+  Path := LPath;
 END MakePathW;
 
 PROCEDURE SplitPathW( CONST FullPath : ARRAY OF WCHAR; OUT Head, Tail : ARRAY OF WCHAR );

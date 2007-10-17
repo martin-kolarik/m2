@@ -338,6 +338,7 @@ CLASS IMPLEMENTATION CLogger;
          valInfo        = L"info";
    VAR
       DataSize : CARDINAL;
+      Dir : FIO.PathStrW;
       DLLName : ARRAY [0..255] OF WCHAR;
       hkey : winreg.HKEY;
       Key, Data : ARRAY [0..511] OF WCHAR;
@@ -392,6 +393,9 @@ CLASS IMPLEMENTATION CLogger;
             DataSize := SIZE( Data );
             IF ( winreg.RegQueryValueExW( hkey, keyFile, NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
                ASSIGNsz( DebugFile, PWCHAR( PData ));
+            ELSE
+               FIO.GetModuleDirW( EMITW( %exe ), OUT Dir );
+               FIO.MakePathW( Dir, DebugFile, OUT DebugFile );
             END;
             DataSize := SIZE( Data );
             IF ( winreg.RegQueryValueExW( hkey, keyLevel, NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
