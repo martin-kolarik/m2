@@ -394,7 +394,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       END;
 
       // TODO
-      Log.LOG.LogSS( Log.dlpIO, L"sdap", "RCV: ", OA( d.Length-1, d.rawData ));
+      Log.logger()^.LogSS( Log.dlpIO, L"sdap", "RCV: ", OA( d.Length-1, d.rawData ));
 
       d.SplitS( StringsO.WCHARS{L' '}, 0, TRUE, OUT parametersFound, OUT p );
       p[0].Lowerize();
@@ -557,7 +557,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       s.FromCARD32( CARDINAL( ack ), 10 );
       
       // TODO
-      Log.LOG.LogSS( Log.dlpIO, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
+      Log.logger()^.LogSS( Log.dlpIO, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
       
       Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
    END ACK;
@@ -571,7 +571,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       s.FromCARD32( CARDINAL( ack ), 10 );
 
       // TODO
-      Log.LOG.LogSS( Log.dlpIO, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
+      Log.logger()^.LogSS( Log.dlpIO, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
       
       Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
    END ACKs;
@@ -587,7 +587,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       s.Append( S );
 
       // TODO
-      Log.LOG.LogSS( Log.dlpIO, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
+      Log.logger()^.LogSS( Log.dlpIO, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
       
       Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
    END ACKS;
@@ -602,14 +602,14 @@ CLASS IMPLEMENTATION CSDAPServer;
       s.AppendOA( ' 1' );
 
       // TODO
-      Log.LOG.LogSS( Log.dlpIO, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
+      Log.logger()^.LogSS( Log.dlpIO, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
       
       Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
 
       s := address; s.AppendOA( L" " ); s.Append( value.String );
 
       // TODO
-      Log.LOG.LogSS( Log.dlpIO, L"sdap", "DATA: ", OA( s.Length-1, s.rawData ));
+      Log.logger()^.LogSS( Log.dlpIO, L"sdap", "DATA: ", OA( s.Length-1, s.rawData ));
       
       Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
    END ACKd;
@@ -2497,7 +2497,7 @@ saddr : ARRAY [0..63] OF WCHAR;
 
       // TODO
       PObject^.ReadAddress.GetGroupAddress3( TRUE, saddr );
-      Log.LOG.LogSS( Log.dlpIO, L"srv", "INIT: ", saddr );
+      Log.logger()^.LogSS( Log.dlpIO, L"srv", "INIT: ", saddr );
 
             INC( InitReadItems );
             PObject^.State := PObject^.State - eib_user.TObjectState{eib_user.osInitReadRepeat} + eib_user.TObjectState{eib_user.osInitReadPending};

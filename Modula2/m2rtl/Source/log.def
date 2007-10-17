@@ -81,13 +81,10 @@ CLASS CLogger;
   INITIALLY CLogger;
 END CLogger;
 
+// global system LOG
+PROCEDURE logger() : TPLogger;
+
 #restore
-
-//=========================================================
-
-// not exported
-VAR
-  LOG : CLogger; // default logger
 
 //=========================================================
 

@@ -141,10 +141,10 @@ CLASS IMPLEMENTATION AService;
       DebugLevel := Log.dlcError;
     END;
     IF ( ErrorCode = 0 ) OR ( ErrorCode = -1 ) THEN
-      Log.LOG.LogS( DebugLevel, L"SVC", ErrorText );
+      Log.logger()^.LogS( DebugLevel, L"SVC", ErrorText );
     ELSE
       Strings.FromErrorW( ErrorCode, OUT LocalErrorText );
-      Log.LOG.LogSSS( DebugLevel, L"SVC", ErrorText, L": ", LocalErrorText );
+      Log.logger()^.LogSSS( DebugLevel, L"SVC", ErrorText, L": ", LocalErrorText );
     END;
   END LogEvent;
 

@@ -416,4 +416,15 @@ END CLogger;
 
 //=========================================================
 
+VAR
+   Logger : CLogger; // default logger
+
+PROCEDURE logger() : TPLogger;
+BEGIN
+   RETURN ADR( Logger );
+END logger;
+
+
+//=========================================================
+
 END log.

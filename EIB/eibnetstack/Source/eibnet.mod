@@ -4,7 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
    
 FROM Log IMPORT
-   LOG, dldTrace, dldDebug;
+   logger, dldTrace, dldDebug;
 
 IMPORT
    dns,
@@ -205,25 +205,25 @@ CLASS IMPLEMENTATION CConnection;
       CASE TTimers( TimerId ) OF
       //----
       | tiConnect :
-         LOG.LogS( dldTrace, L"EIBNet Connection", L"CONNECT timeout" );
+         logger()^.LogS( dldTrace, L"EIBNet Connection", L"CONNECT timeout" );
 
          DeviceDisconnect();
 
       //----
       | tiDisconnect :
-         LOG.LogSC( dldTrace, L"EIBNet Connection", L"DISCONNECT timeout: ", CARDINAL( ChannelId ));
+         logger()^.LogSC( dldTrace, L"EIBNet Connection", L"DISCONNECT timeout: ", CARDINAL( ChannelId ));
 
          DeviceDisconnect();
 
       //-----
       | tiACK :
          IF IOState = ioWaitACK1 THEN // resend data
-            LOG.LogSC( dldTrace, L"EIBNet Connection", L"R_CON timeout, repeat SEND: ", CARDINAL( ChannelId ));
+            logger()^.LogSC( dldTrace, L"EIBNet Connection", L"R_CON timeout, repeat SEND: ", CARDINAL( ChannelId ));
 
             IOState := ioWaitACK2;
             DoSend();
          ELSIF IOState = ioWaitACK2 THEN
-            LOG.LogSC( dldTrace, L"EIBNet Connection", L"R_CON timeout, kill SEND: ", CARDINAL( ChannelId ));
+            logger()^.LogSC( dldTrace, L"EIBNet Connection", L"R_CON timeout, kill SEND: ", CARDINAL( ChannelId ));
 
             // INC( OutSeq ); // prepare next writing -- unable to do, if remote peer does not ACKs packet, it expects ONLY the next one... Maybe, it should accept newer packets, but it does not do so
             INC( SendErr ); // increment connection recovery counter
@@ -278,9 +278,9 @@ CLASS IMPLEMENTATION CConnection;
          b := netsrv.StartListen( netsocket.stDatagram, 0, NIL, Listener, timeout, ADR( Socket )) = 0;
       END;
       IF b THEN
-         LOG.LogSP( dldTrace, L"EIBNet Connection", L"CONNECT request: ", Socket );
+         logger()^.LogSP( dldTrace, L"EIBNet Connection", L"CONNECT request: ", Socket );
       ELSE
-         LOG.LogS( dldTrace, L"EIBNet Connection", L"CONNECT (listen) cannot start" );
+         logger()^.LogS( dldTrace, L"EIBNet Connection", L"CONNECT (listen) cannot start" );
          Socket := NIL;
          RETURN Sync.arCannotStart;
       END;
@@ -297,7 +297,7 @@ CLASS IMPLEMENTATION CConnection;
          Socket^.MulticastPort := core.EIBNET_IPPORT;
          IOState := ioReady;
 
-         LOG.LogSP( dldTrace, L"EIBNet Connection", L"CONNECTed in SCANNING mode: ", Socket );
+         logger()^.LogSP( dldTrace, L"EIBNet Connection", L"CONNECTed in SCANNING mode: ", Socket );
          RETURN Sync.arCompleted;
       //-----
       | cmRouting :
@@ -306,7 +306,7 @@ CLASS IMPLEMENTATION CConnection;
          IOState := ioReady;
          OnConnect();
 
-         LOG.LogSP( dldTrace, L"EIBNet Connection", L"CONNECTed in ROUTING mode: ", Socket );
+         logger()^.LogSP( dldTrace, L"EIBNet Connection", L"CONNECTed in ROUTING mode: ", Socket );
          RETURN Sync.arCompleted;
       //-----
       | cmTunnelingHPAI, cmTunnelingBlind :
@@ -328,12 +328,12 @@ CLASS IMPLEMENTATION CConnection;
    BEGIN
       IF Abortive AND ( IOState <> ioDisconnected ) THEN
          abortive := TRUE;
-         LOG.LogS( dldTrace, L"EIBNet Connection", L"DISCONNECT forced as abortive" );
+         logger()^.LogS( dldTrace, L"EIBNet Connection", L"DISCONNECT forced as abortive" );
       ELSIF Disconnected THEN
          RETURN Sync.arCompleted;
       END;
 
-      LOG.LogSCP( dldTrace, L"EIBNet Connection", L"DISCONNECT request: ", CARDINAL( ChannelId ), Socket );
+      logger()^.LogSCP( dldTrace, L"EIBNet Connection", L"DISCONNECT request: ", CARDINAL( ChannelId ), Socket );
 
       DataDisconnect();
 
@@ -355,13 +355,13 @@ CLASS IMPLEMENTATION CConnection;
    PUBLIC PROCEDURE SendPacket( CONST EMI : eib_def.TPacket ) : Sync.TAsyncResult;
    BEGIN
       IF ( IOState = ioDisconnected ) OR ( IOState = ioConnecting ) OR ( IOState = ioDisconnecting ) THEN
-         LOG.LogS( dldTrace, L"EIBNet Connection", L"SEND request when disconnected" );
+         logger()^.LogS( dldTrace, L"EIBNet Connection", L"SEND request when disconnected" );
          RETURN Sync.arCannotStart;
       ELSIF _Mode = cmScanning THEN
-         LOG.LogS( dldTrace, L"EIBNet Connection", L"SEND request in scanning mode" );
+         logger()^.LogS( dldTrace, L"EIBNet Connection", L"SEND request in scanning mode" );
          RETURN Sync.arCannotStart;
       ELSIF IOState <> ioReady THEN
-         LOG.LogSC( dldTrace, L"EIBNet Connection", L"SEND request when not ready: ", CARDINAL( ChannelId ));
+         logger()^.LogSC( dldTrace, L"EIBNet Connection", L"SEND request when not ready: ", CARDINAL( ChannelId ));
          RETURN Sync.arAlreadyPending;
       END;
       SELF.EMI := EMI;
@@ -396,7 +396,7 @@ CLASS IMPLEMENTATION CConnection;
          | core.SEARCH_RESPONSE,
            core.DESCRIPTION_RESPONSE :
          ELSE
-            LOG.LogSCP( dldDebug, L"EIBNet Connection", L"packet rejected in SCANNING mode: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+            logger()^.LogSCP( dldDebug, L"EIBNet Connection", L"packet rejected in SCANNING mode: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
             RETURN;
          END; // Service
       //-----
@@ -406,7 +406,7 @@ CLASS IMPLEMENTATION CConnection;
            core.ROUTING_INDICATION,
            core.ROUTING_LOST_MESSAGE :
          ELSE
-            LOG.LogSCP( dldDebug, L"EIBNet Connection", L"packet rejected in ROUTING mode: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+            logger()^.LogSCP( dldDebug, L"EIBNet Connection", L"packet rejected in ROUTING mode: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
             RETURN;
          END; // Service
       //-----
@@ -415,7 +415,7 @@ CLASS IMPLEMENTATION CConnection;
          | core.DESCRIPTION_RESPONSE :
          | core.CONNECT_RESPONSE :
             IF IOState <> ioConnecting THEN
-               LOG.LogSCP( dldDebug, L"EIBNet Connection", L"packet rejected as unexpected: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+               logger()^.LogSCP( dldDebug, L"EIBNet Connection", L"packet rejected as unexpected: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
                RETURN;
             END;
          | core.CONNECTIONSTATE_RESPONSE,
@@ -424,11 +424,11 @@ CLASS IMPLEMENTATION CConnection;
            core.TUNNELING_REQUEST,
            core.TUNNELING_ACK :
             IF IOState < ioReady THEN
-               LOG.LogSCP( dldDebug, L"EIBNet Connection", L"packet rejected as unexpected: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+               logger()^.LogSCP( dldDebug, L"EIBNet Connection", L"packet rejected as unexpected: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
                RETURN;
             END;
          ELSE
-            LOG.LogSCP( dldDebug, L"EIBNet Connection", L"packet rejected in TUNNELING mode: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+            logger()^.LogSCP( dldDebug, L"EIBNet Connection", L"packet rejected in TUNNELING mode: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
             RETURN;
          END;
       //-----
@@ -440,21 +440,21 @@ CLASS IMPLEMENTATION CConnection;
          IF core.TPSearchResponse( packet )^.Valid THEN
             OnSearchResponse( core.TPSearchResponse( packet )^ );
          ELSE
-            LOG.LogSCB( dldDebug, L"EIBNet Connection", L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            logger()^.LogSCB( dldDebug, L"EIBNet Connection", L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.DESCRIPTION_RESPONSE :
          IF core.TPDescriptionResponse( packet )^.Valid THEN
             OnDescriptionResponse( core.TPDescriptionResponse( packet )^ );
          ELSE
-            LOG.LogSCB( dldDebug, L"EIBNet Connection", L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            logger()^.LogSCB( dldDebug, L"EIBNet Connection", L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.ROUTING_INDICATION :
          IF core.TPRoutingIndication( packet )^.Valid THEN
             OnRoutingIndication( core.TPRoutingIndication( packet )^ );
          ELSE
-            LOG.LogSCB( dldDebug, L"EIBNet Connection", L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            logger()^.LogSCB( dldDebug, L"EIBNet Connection", L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       // | core.ROUTING_LOST_MESSAGE :
@@ -463,42 +463,42 @@ CLASS IMPLEMENTATION CConnection;
          IF core.TPConnectResponse( packet )^.Valid THEN
             OnConnectResponse( core.TPConnectResponse( packet )^ );
          ELSE
-            LOG.LogSCB( dldDebug, L"EIBNet Connection", L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            logger()^.LogSCB( dldDebug, L"EIBNet Connection", L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.CONNECTIONSTATE_RESPONSE :
          IF core.TPConnectionStateResponse( packet )^.Valid THEN
             OnConnectionStateResponse( core.TPConnectionStateResponse( packet )^ );
          ELSE
-            LOG.LogSCB( dldDebug, L"EIBNet Connection", L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            logger()^.LogSCB( dldDebug, L"EIBNet Connection", L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.DISCONNECT_REQUEST :
          IF core.TPDisconnectRequest( packet )^.Valid THEN
             OnDisconnectRequest( core.TPDisconnectRequest( packet )^ );
          ELSE
-            LOG.LogSCB( dldDebug, L"EIBNet Connection", L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            logger()^.LogSCB( dldDebug, L"EIBNet Connection", L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.DISCONNECT_RESPONSE :
          IF core.TPDisconnectResponse( packet )^.Valid THEN
             OnDisconnectResponse( core.TPDisconnectResponse( packet )^ );
          ELSE
-            LOG.LogSCB( dldDebug, L"EIBNet Connection", L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            logger()^.LogSCB( dldDebug, L"EIBNet Connection", L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.TUNNELING_REQUEST :
          IF core.TPTunnelingRequest( packet )^.Valid THEN
             OnTunnelingRequest( core.TPTunnelingRequest( packet )^ );
          ELSE
-            LOG.LogSCB( dldDebug, L"EIBNet Connection", L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            logger()^.LogSCB( dldDebug, L"EIBNet Connection", L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.TUNNELING_ACK :
          IF core.TPTunnelingACK( packet )^.Valid THEN
             OnTunnelingACK( core.TPTunnelingACK( packet )^ );
          ELSE
-            LOG.LogSCB( dldDebug, L"EIBNet Connection", L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            logger()^.LogSCB( dldDebug, L"EIBNet Connection", L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       END; // main case
    END OnDatagramReceived;
@@ -507,7 +507,7 @@ CLASS IMPLEMENTATION CConnection;
 
    LOCAL PROCEDURE OnListenSocketClosed( CONST ServerSocket : netsocket.TPSSocket );
    BEGIN
-      LOG.LogSP( dldTrace, L"EIBNet Connection", L"socket closed: ", ServerSocket );
+      logger()^.LogSP( dldTrace, L"EIBNet Connection", L"socket closed: ", ServerSocket );
       
       IF Socket = ServerSocket THEN
          Socket := NIL;
@@ -567,8 +567,8 @@ CLASS IMPLEMENTATION CConnection;
 
    PRIVATE PROCEDURE OnRoutingIndication( CONST packet : core.RoutingIndication );
    BEGIN
-      LOG.LogS( dldTrace, L"EIBNet Connection", L"ROUTED in" );
-      LOG.LogSB( dldDebug, L"EIBNet Connection", L"ROUTED: ", ADR( packet ), packet.Length );
+      logger()^.LogS( dldTrace, L"EIBNet Connection", L"ROUTED in" );
+      logger()^.LogSB( dldDebug, L"EIBNet Connection", L"ROUTED: ", ADR( packet ), packet.Length );
 
       On_L_IND( packet.EMI );
    END OnRoutingIndication;
@@ -590,14 +590,14 @@ CLASS IMPLEMENTATION CConnection;
          InSeq := 0;
          OutSeq := 0;
 
-         LOG.LogSCP( dldTrace, L"EIBNet Connection", L"CONNECTed in TUNNELING mode: ", CARDINAL( ChannelId ), Socket );
+         logger()^.LogSCP( dldTrace, L"EIBNet Connection", L"CONNECTed in TUNNELING mode: ", CARDINAL( ChannelId ), Socket );
 
          HbRepeat := maximalHbRepeat;
          StartTimer( PTR( tiHeartbeat ), core.HEART_BEAT_PERIOD, TRUE );
 
          OnConnect();
       ELSE
-         LOG.LogSHP( dldTrace, L"EIBNet Connection", L"CONNECT failure: ", CARDINAL( packet.Status ), Socket );
+         logger()^.LogSHP( dldTrace, L"EIBNet Connection", L"CONNECT failure: ", CARDINAL( packet.Status ), Socket );
 
          DeviceDisconnect();
       END;
@@ -608,7 +608,7 @@ CLASS IMPLEMENTATION CConnection;
    PRIVATE PROCEDURE OnConnectionStateResponse( CONST packet : core.ConnectionStateResponse );
    BEGIN
       IF packet.Status = core.E_NO_ERROR THEN
-         LOG.LogSCP( dldDebug, L"EIBNet Connection", L"HEARTBEAT response: ", CARDINAL( ChannelId ), Socket );
+         logger()^.LogSCP( dldDebug, L"EIBNet Connection", L"HEARTBEAT response: ", CARDINAL( ChannelId ), Socket );
 
          StopTimer( PTR( tiHeartbeatRepeat ));
          HbRepeat := maximalHbRepeat;
@@ -617,7 +617,7 @@ CLASS IMPLEMENTATION CConnection;
             Disconnect( FALSE );
          END;
       ELSE
-         LOG.LogSHP( dldDebug, L"EIBNet Connection", L"HEARTBEAT error: ", CARDINAL( packet.Status ), Socket );
+         logger()^.LogSHP( dldDebug, L"EIBNet Connection", L"HEARTBEAT error: ", CARDINAL( packet.Status ), Socket );
 
          ProcessHbFailure();
       END;
@@ -630,7 +630,7 @@ CLASS IMPLEMENTATION CConnection;
       dr : core.DisconnectResponse;
    BEGIN
       IF NOT Disconnected THEN
-         LOG.LogSCP( dldTrace, L"EIBNet Connection", L"remote DISCONNECT request: ", CARDINAL( ChannelId ), Socket );
+         logger()^.LogSCP( dldTrace, L"EIBNet Connection", L"remote DISCONNECT request: ", CARDINAL( ChannelId ), Socket );
 
          DataDisconnect();
 
@@ -656,7 +656,7 @@ CLASS IMPLEMENTATION CConnection;
       pSeq : CARD8 := packet.Sequence;
    BEGIN
       IF pSeq + 1 < CARD8( InSeq ) THEN
-         LOG.LogSCP( dldTrace, L"EIBNet Connection", L"RECEIVE out of order: ", CARDINAL( ChannelId ), PTR( pSeq ));
+         logger()^.LogSCP( dldTrace, L"EIBNet Connection", L"RECEIVE out of order: ", CARDINAL( ChannelId ), PTR( pSeq ));
          RETURN; // ignore
       END;
 
@@ -666,10 +666,10 @@ CLASS IMPLEMENTATION CConnection;
       Socket^.SendToOA( OA( tack.Length-1, ADR( tack )), HPAIData.Address, HPAIData.Port );
 
       IF pSeq < CARD8( InSeq ) THEN
-         LOG.LogSCP( dldTrace, L"EIBNet Connection", L"RECEIVE previous: ", CARDINAL( ChannelId ), PTR( pSeq ));
+         logger()^.LogSCP( dldTrace, L"EIBNet Connection", L"RECEIVE previous: ", CARDINAL( ChannelId ), PTR( pSeq ));
       ELSE
-         LOG.LogSCP( dldTrace, L"EIBNet Connection", L"RECEIVE ok: ", CARDINAL( ChannelId ), PTR( pSeq ));
-         LOG.LogSB( dldDebug, L"EIBNet Connection", L"RECEIVE: ", ADR( packet ), packet.Length );
+         logger()^.LogSCP( dldTrace, L"EIBNet Connection", L"RECEIVE ok: ", CARDINAL( ChannelId ), PTR( pSeq ));
+         logger()^.LogSB( dldDebug, L"EIBNet Connection", L"RECEIVE: ", ADR( packet ), packet.Length );
 
          InSeq := CARDINAL( pSeq ) + 1;
          On_L_IND( packet.EMI );
@@ -680,7 +680,7 @@ CLASS IMPLEMENTATION CConnection;
 
    PRIVATE PROCEDURE OnTunnelingACK( CONST packet : core.TunnelingACK );
    BEGIN
-      LOG.LogSCP( dldTrace, L"EIBNet Connection", L"SEND R_CON: ", CARDINAL( ChannelId ), PTR( packet.Sequence ));
+      logger()^.LogSCP( dldTrace, L"EIBNet Connection", L"SEND R_CON: ", CARDINAL( ChannelId ), PTR( packet.Sequence ));
 
       StopTimer( PTR( tiACK ));
       IOState := ioReady;
@@ -703,8 +703,8 @@ CLASS IMPLEMENTATION CConnection;
       IF _Mode = cmRouting THEN
          rr.EMI := EMI;
 
-         LOG.LogS( dldTrace, L"EIBNet Connection", L"ROUTED out" );
-         LOG.LogSB( dldDebug, L"EIBNet Connection", L"ROUTED: ", ADR( rr ), rr.Length );
+         logger()^.LogS( dldTrace, L"EIBNet Connection", L"ROUTED out" );
+         logger()^.LogSB( dldDebug, L"EIBNet Connection", L"ROUTED: ", ADR( rr ), rr.Length );
 
          res := Socket^.SendOA( OA( rr.Length-1, ADR( rr ))); // send to internal multicast group
 
@@ -716,8 +716,8 @@ CLASS IMPLEMENTATION CConnection;
          tr.Sequence := CARD8( OutSeq );
          tr.EMI := EMI;
 
-         LOG.LogSCP( dldTrace, L"EIBNet Connection", L"SEND ok: ", CARDINAL( ChannelId ), PTR( OutSeq ));
-         LOG.LogSB( dldDebug, L"EIBNet Connection", L"SEND: ", ADR( tr ), tr.Length );
+         logger()^.LogSCP( dldTrace, L"EIBNet Connection", L"SEND ok: ", CARDINAL( ChannelId ), PTR( OutSeq ));
+         logger()^.LogSB( dldDebug, L"EIBNet Connection", L"SEND: ", ADR( tr ), tr.Length );
 
          StartTimer( PTR( tiACK ), core.TUNNELING_REQUEST_TIME_OUT, FALSE );
          res := Socket^.SendToOA( OA( tr.Length-1, ADR( tr )), HPAIData.Address, HPAIData.Port ); // send to specified address
@@ -727,7 +727,7 @@ CLASS IMPLEMENTATION CConnection;
          RETURN res;
       ELSIF _Mode = cmRouting THEN // acknowledge packet immediatelly, routing has no ACK
 
-         LOG.LogS( dldTrace, L"EIBNet Connection", L"ROUTING L_CON" );
+         logger()^.LogS( dldTrace, L"EIBNet Connection", L"ROUTING L_CON" );
 
          On_L_CON( eib_status.essOK );
          RETURN Sync.arCompleted;
@@ -766,7 +766,7 @@ CLASS IMPLEMENTATION CConnection;
       IF currentState = ioDisconnected THEN
          RETURN;
       END;
-      LOG.LogSCP( dldTrace, L"EIBNet Connection", L"DISCONNECTed: ", CARDINAL( ChannelId ), Socket );
+      logger()^.LogSCP( dldTrace, L"EIBNet Connection", L"DISCONNECTed: ", CARDINAL( ChannelId ), Socket );
 
       StopTimer( PTR( tiDisconnect ));
       IF Socket <> NIL THEN
@@ -795,7 +795,7 @@ CLASS IMPLEMENTATION CConnection;
          DEC( HbRepeat );
       END;
 
-      LOG.LogSCP( dldDebug, L"EIBNet Connection", L"HEARTBEAT probe: ", CARDINAL( ChannelId ), Socket );
+      logger()^.LogSCP( dldDebug, L"EIBNet Connection", L"HEARTBEAT probe: ", CARDINAL( ChannelId ), Socket );
 
       hb.ControlHPAI := HPAISelf;
       hb.ChannelId := ChannelId;

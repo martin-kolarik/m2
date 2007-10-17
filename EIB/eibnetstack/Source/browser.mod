@@ -6,7 +6,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
    
 FROM Log IMPORT
-   LOG, dldTrace;
+   logger, dldTrace;
 
 (*================================================================================*)
 
@@ -36,9 +36,9 @@ CLASS IMPLEMENTATION CBrowser;
    BEGIN
       LDelegate := Sync.ICmpExchgPtr( REF SELF.Delegate, Delegate, NIL );
       IF LDelegate = NIL THEN // previous value
-         LOG.LogS( dldTrace, L"EIBNet Browser", "started" );
+         logger()^.LogS( dldTrace, L"EIBNet Browser", "started" );
       ELSE
-         LOG.LogS( dldTrace, L"EIBNet Browser", "not started -- already pending" );
+         logger()^.LogS( dldTrace, L"EIBNet Browser", "not started -- already pending" );
          RETURN Sync.arAlreadyPending;
       END;
       Delegate^.AddRef();
@@ -51,7 +51,7 @@ CLASS IMPLEMENTATION CBrowser;
          RETURN Sync.arPending;
       END;
 
-      LOG.LogSC( dldTrace, L"EIBNet Browser", "stopped with error: ", CARDINAL( res ));
+      logger()^.LogSC( dldTrace, L"EIBNet Browser", "stopped with error: ", CARDINAL( res ));
       Sync.IExchgPtr( REF SELF.Delegate, NIL );
       RETURN Sync.arCannotStart;
    END Browse;
@@ -65,7 +65,7 @@ CLASS IMPLEMENTATION CBrowser;
    BEGIN
       LDelegate := Sync.IExchgPtr( REF SELF.Delegate, NIL );
       IF LDelegate <> NIL THEN
-         LOG.LogSC( dldTrace, L"EIBNet Browser", "stopped with servers: ", Servers.Count );
+         logger()^.LogSC( dldTrace, L"EIBNet Browser", "stopped with servers: ", Servers.Count );
 
          l := Servers.Count;
          IF l = 0 THEN
@@ -84,7 +84,7 @@ CLASS IMPLEMENTATION CBrowser;
    VAR
       Server : TPServer;
    BEGIN
-      LOG.LogSP( dldTrace, L"EIBNet Browser", "found server: ", PTR( REVERSE( packet.Address.s_addr )));
+      logger()^.LogSP( dldTrace, L"EIBNet Browser", "found server: ", PTR( REVERSE( packet.Address.s_addr )));
 
       NEW( Server );
       Server^.HPAI := packet.HPAI;

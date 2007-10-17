@@ -4,7 +4,7 @@ FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
   
 FROM log IMPORT
-  LOG, TDebugLevel, dldError, dldDebug;
+  logger, TDebugLevel, dldError, dldDebug;
 
 IMPORT
   IOO,
@@ -535,9 +535,9 @@ CONST
   
 PROCEDURE Log( Severity : TDebugLevel; Connection : TPConnection; Text : ARRAY OF WCHAR );
 BEGIN
-   LOG.LogS( Severity, logPrefix, Text );
-   LOG.LogSH( Severity, logPrefix, "2 address ", Connection^.RemoteAddress.s_addr );
-   LOG.LogSC( Severity, logPrefix, "3 port ", Connection^.RemotePort );
+   logger()^.LogS( Severity, logPrefix, Text );
+   logger()^.LogSH( Severity, logPrefix, "2 address ", Connection^.RemoteAddress.s_addr );
+   logger()^.LogSC( Severity, logPrefix, "3 port ", Connection^.RemotePort );
 END Log;
   
 //--------------------------------------------------------------------------------
@@ -678,7 +678,7 @@ CLASS IMPLEMENTATION CDispatcher;
 
         //-----
         | cmClientJoin :
-          LOG.LogSP( dldDebug, logPrefix, L"Join ", Message.CPClient );
+          logger()^.LogSP( dldDebug, logPrefix, L"Join ", Message.CPClient );
 
           QWA := APQW( Message.JRemoteAddress, Message.JRemotePort );
           IF Connections.Get( QWA, OUT Connection ) THEN
@@ -701,7 +701,7 @@ CLASS IMPLEMENTATION CDispatcher;
         | cmClientLeave :
           Known := Message.CPConnection <> NIL;
           IF Known THEN // unknown/promiscuous client close
-            LOG.LogSP( dldDebug, logPrefix, L"Leave from single connection ", Message.CPClient );
+            logger()^.LogSP( dldDebug, logPrefix, L"Leave from single connection ", Message.CPClient );
             IF Connections.Contains( APQW( Message.CPConnection^.RemoteAddress, Message.CPConnection^.RemotePort )) THEN
                Log( dldDebug, TPConnection( Message.CPConnection ), L". from known connection" );
             ELSE
@@ -711,7 +711,7 @@ CLASS IMPLEMENTATION CDispatcher;
             b := TRUE;
             Connection := TPConnection( Message.CPConnection );
           ELSE
-            LOG.LogSP( dldDebug, logPrefix, L"Leave from all connections ", Message.CPClient );
+            logger()^.LogSP( dldDebug, logPrefix, L"Leave from all connections ", Message.CPClient );
 
             Connections.Reset();
             b := Connections.MoveNext();
@@ -746,7 +746,7 @@ CLASS IMPLEMENTATION CDispatcher;
         | cmClientConnect :
           Known := Message.CPConnection <> NIL;
           IF Known THEN // unknown/promiscuous client close
-            LOG.LogSP( dldDebug, logPrefix, L"Connect ", Message.CPClient );
+            logger()^.LogSP( dldDebug, logPrefix, L"Connect ", Message.CPClient );
             IF Connections.Contains( APQW( Message.CPConnection^.RemoteAddress, Message.CPConnection^.RemotePort )) THEN
                Log( dldDebug, TPConnection( Message.CPConnection ), L". to known connection" );
             ELSE
@@ -756,7 +756,7 @@ CLASS IMPLEMENTATION CDispatcher;
             b := TRUE;
             Connection := TPConnection( Message.CPConnection );
           ELSE
-            LOG.LogSP( dldDebug, logPrefix, L"Connect to all connections ", Message.CPClient );
+            logger()^.LogSP( dldDebug, logPrefix, L"Connect to all connections ", Message.CPClient );
 
             Connections.Reset();
             b := Connections.MoveNext();
@@ -781,7 +781,7 @@ CLASS IMPLEMENTATION CDispatcher;
         | cmClientDisconnect :
           Known := Message.CPConnection <> NIL;
           IF Known THEN // unknown/promiscuous client close
-            LOG.LogSP( dldDebug, logPrefix, L"Disconnect ", Message.CPClient );
+            logger()^.LogSP( dldDebug, logPrefix, L"Disconnect ", Message.CPClient );
             IF Connections.Contains( APQW( Message.CPConnection^.RemoteAddress, Message.CPConnection^.RemotePort )) THEN
                Log( dldDebug, TPConnection( Message.CPConnection ), L". from known connection" );
             ELSE
@@ -791,7 +791,7 @@ CLASS IMPLEMENTATION CDispatcher;
             b := TRUE;
             Connection := TPConnection( Message.CPConnection );
           ELSE
-            LOG.LogSP( dldDebug, logPrefix, L"Disconnect from all connections ", Message.CPClient );
+            logger()^.LogSP( dldDebug, logPrefix, L"Disconnect from all connections ", Message.CPClient );
 
             Connections.Reset();
             b := Connections.MoveNext();
@@ -811,7 +811,7 @@ CLASS IMPLEMENTATION CDispatcher;
         | cmClientSend :
           Known := Message.SPConnection <> NIL;
           IF Known THEN // unknown/promiscuous client close
-            LOG.LogSP( dldDebug, logPrefix, L"Send ", Message.CPClient );
+            logger()^.LogSP( dldDebug, logPrefix, L"Send ", Message.CPClient );
             IF Connections.Contains( APQW( Message.CPConnection^.RemoteAddress, Message.CPConnection^.RemotePort )) THEN
                Log( dldDebug, TPConnection( Message.CPConnection ), L". to known connection" );
                b := TRUE;
@@ -823,7 +823,7 @@ CLASS IMPLEMENTATION CDispatcher;
             END;
 
           ELSE
-            LOG.LogSP( dldDebug, logPrefix, L"Send to all connections ", Message.CPClient );
+            logger()^.LogSP( dldDebug, logPrefix, L"Send to all connections ", Message.CPClient );
 
             Connections.Reset();
             b := Connections.MoveNext();
@@ -860,7 +860,7 @@ CLASS IMPLEMENTATION CDispatcher;
           FREE( Message.SData );
 
         ELSE
-          LOG.LogSC( dldError, logPrefix, L"Unrecognized command ", CARDINAL( Message.Command ));
+          logger()^.LogSC( dldError, logPrefix, L"Unrecognized command ", CARDINAL( Message.Command ));
 
         END; // CASE
       END; // WHILE
