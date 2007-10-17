@@ -3,7 +3,7 @@
     <!-- compiler -->
     <PropertyGroup>
         <LeakDetector>Debug\LeakDetector</LeakDetector>
-        <LicensingComponent>Licensing\Core</LicensingComponent>
+        <LicensingComponent>Library\Ciphering;Licensing\Core</LicensingComponent>
     </PropertyGroup>
 
     <!-- defaults, which should be set in $(MSBuildProjectFile) -->

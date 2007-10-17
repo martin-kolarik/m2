@@ -4,7 +4,8 @@
     <PropertyGroup>
 
         <!-- main controls -->
-        <DeepFlag>off</DeepFlag>
+        <DeepFlag>off</DeepFlag><!-- for build -->
+
         <EffectiveLicensing>off</EffectiveLicensing>
         <EffectiveLicensing Condition="$(ProductFlag)=='on' And $(Licensing)=='on'">on</EffectiveLicensing>
 
@@ -38,9 +39,9 @@
         <ComponentResult Condition="$(Level)=='0'">$(Result)</ComponentResult>
         <ComponentResult Condition="$(Level)!='0'">$(ComponentResult)</ComponentResult>
 
-        <ChildParameters>ComponentDefinitionsPath=$(ComponentDefinitionsPath);Parameters=%(Components.Parameters);LibraryName=$(LibraryName);ProductId=$(ProductId);ProductLinkMapFilePath=$(ProductLinkMapFilePath);ComponentResult=$(ComponentResult);Test=</ChildParameters>
-        <ChildParameters Condition="$(Level)==0">Level=1;$(ChildParameters)</ChildParameters>
-        <ChildParameters Condition="$(Level)!=0">Level=2+;$(ChildParameters)</ChildParameters>
+        <ChildParameters>ComponentDefinitionsPath=$(ComponentDefinitionsPath);LibraryName=$(LibraryName);ProductId=$(ProductId);ProductLinkMapFilePath=$(ProductLinkMapFilePath);ComponentResult=$(ComponentResult);Test=</ChildParameters>
+        <ChildParameters Condition="$(Level)=='0'">Level=1;$(ChildParameters)</ChildParameters>
+        <ChildParameters Condition="$(Level)=='1'">Level=2+;$(ChildParameters)</ChildParameters>
 
         <!-- M2 initializing code -->
         <Modula2InitCode>$(RootDir)\Modula2\Modula2\Header\m2init.cpp</Modula2InitCode>
@@ -131,19 +132,23 @@
 
         <Objects Include="@(MODFiles -> '$(IntermediateDir)\%(Filename).obj')" />
         <Objects Condition="$(TypeLibOBJ) !=''" Include="$(TypeLibOBJ)" />
-        <Objects Condition="@(Objects)!= '' And $(Result)!='Static' And $(Modula2InitCode)!=''" Include="$(IntermediateDir)\m2init.obj"/>
+        <Objects Condition="$(Result)!='Static' And (@(ExportToInterface)!='' Or @(Objects)!='') And $(Modula2InitCode)!=''"
+                 Include="$(IntermediateDir)\m2init.obj"/>
 
         <Objects Condition="$(Test) != ''" Include="$(IntermediateDir)\m2init.obj"/>
 
-        <RESFile Condition="$(Result)!='Static' And @(Objects)!=''" Include="$(IntermediateDir)\$(MSBuildProjectName).res" />
-        <Interface Condition="@(Objects)!=''" Include="$(InterfaceNamePath)"/>
+        <RESFile Condition="$(Result)!='Static' And (@(ExportToInterface)!='' Or @(Objects)!='')"
+                 Include="$(IntermediateDir)\$(MSBuildProjectName).res" />
+
+        <Interface Condition="@(ExportToInterface)!='' Or @(Objects)!=''" Include="$(InterfaceNamePath)"/>
         <MessagesBin Condition="@(Messages)!=''" Include="@(Messages -> '$(IntermediateDir)\$(MSBuildProjectName).%(FileName).brs')"/>
 
-        <Components Condition="$(LeakChecking)=='on' And $(LeakDetector)!='' And @(Objects)!=''"
+        <Components Condition="$(LeakChecking)=='on' And $(LeakDetector)!='' And (@(ExportToInterface)!='' Or @(Objects)!='')"
                     Include="$(LeakDetector)"/>
 
         <Components Condition="$(EffectiveLicensing)=='on' And $(LicensingComponent)!=''"
-                    Include="$(LicensingComponent)"/>
+                Include="$(LicensingComponent)"/>
+
     </ItemGroup>
 
     <!-- inner, invisible targets -->
@@ -192,69 +197,75 @@
     <UsingTask TaskName="ShortenPath" AssemblyFile="BuildTasks.dll"/>
     <Target Name="GrabComponent"
             Outputs="@(Grabbed)">
-        <!-- Message Text="-LW:$(MSBuildProjectName)/$(Result): @(GrabbedComponents)" Importance="high"/ -->
+
+        <!-- Message Text="...for $(Parent)->$(MSBuildProjectName)" Importance="high"/ -->
+
+        <!-- Message Text="-LW:$(MSBuildProjectName)/$(Result): @(Grabbed)" Importance="high"/ -->
+
         <!-- PREPARE ITEMS -->
-        <CreateItem Exclude="*">
-            <Output TaskParameter="Include" ItemName="GrabbedChilds"/>
-        </CreateItem>
-        <CreateItem Exclude="*">
-            <Output TaskParameter="Include" ItemName="LocalGrabbed"/>
-        </CreateItem>
         <CreateItem Exclude="*">
             <Output TaskParameter="Include" ItemName="Grabbed"/>
         </CreateItem>
+        <CreateItem Exclude="*">
+            <Output TaskParameter="Include" ItemName="GrabbedChilds"/>
+        </CreateItem>
+        
+        <!-- try remove already checked components -->
 
-        <!-- SELF CHILD COMPONENTS, GET THEM ALL, DO EVERYTHING ONLY IF I AM STATIC -->
-        <MSBuild Condition="$(Result)=='Static' And $(ComponentStandaloneFlag)=='off'"
-                 Projects="@(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"
-                 Properties="DeepFlag=$(DeepFlag);$(ChildParameters)"
+        <!-- SELF CHILD COMPONENTS, GET THEM ALL -->
+        <MSBuild Projects="@(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"
+                 Properties="Parent=$(MSBuildProjectName);$(ChildParameters)"
                  Targets="GrabComponent">
             <Output TaskParameter="TargetOutputs" ItemName="GrabbedChilds"/>
         </MSBuild>
-        <CreateItem Condition="$(Result)=='Static' And $(ComponentStandaloneFlag)=='off'"
-                    Include="@(GrabbedChilds)">
-            <Output TaskParameter="Include" ItemName="LocalGrabbed"/>
-        </CreateItem>
         <!-- ADD CHILD COMPONENT PATHS FOR DEF/H -->
         <CreateItem Include="@(Components -> '$(RootDir)\%(Identity)')"
-                    AdditionalMetadata="Type=Component">
-            <Output TaskParameter="Include" ItemName="LocalGrabbed"/>
+                    AdditionalMetadata="Type=Component;Owner=$(MSBuildProjectName);Parent=$(Parent)">
+            <Output TaskParameter="Include" ItemName="GrabbedChilds"/>
         </CreateItem>
-        <!-- USED LIBRARY PATHS -->
-        <CreateItem Condition="$(Result)=='Static'"
-                    Include="@(Libraries -> '%(Identity).lib')"
-                    AdditionalMetadata="Type=Library">
-            <Output TaskParameter="Include" ItemName="LocalGrabbed"/>
+        
+        
+        
+        <!-- slightly reduce -->
+        <RemoveDuplicates Condition="%(Type)=='Component'" Inputs="@(GrabbedChilds)">
+            <Output TaskParameter="Filtered" ItemName="Grabbed"/>
+        </RemoveDuplicates>
+        <CreateItem Include="@(GrabbedChilds)">
+            <Output TaskParameter="Include" ItemName="Grabbed"/>
         </CreateItem>
+
         <!-- USED MESSAGES -->
         <CreateItem Condition="$(Result)=='Static' And @(Messages)!=''"
                     Include="@(MessagesBin)"
-                    AdditionalMetadata="Type=Messages">
-            <Output TaskParameter="Include" ItemName="LocalGrabbed"/>
+                    AdditionalMetadata="Type=Messages;Owner=$(MSBuildProjectName);Parent=$(Parent)">
+            <Output TaskParameter="Include" ItemName="Grabbed"/>
         </CreateItem>
+
         <!-- SELF LIBRARY PATH and DLL/EXE -->
         <CreateItem Include="@(Interface -> '%(Identity).lib')"
-                    AdditionalMetadata="Type=Library">
-            <Output TaskParameter="Include" ItemName="LocalGrabbed"/>
-        </CreateItem>
-        <CreateItem Condition="$(Level)=='1'"
-                    Include="@(Interface -> '%(Identity).exportlib')"
-                    AdditionalMetadata="Type=Interface">
-            <Output TaskParameter="Include" ItemName="LocalGrabbed"/>
+                    AdditionalMetadata="Type=Library;Owner=$(MSBuildProjectName);Parent=$(Parent)">
+            <Output TaskParameter="Include" ItemName="Grabbed"/>
         </CreateItem>
         <CreateItem Condition="$(ComponentStandaloneFlag)=='on'"
                     Include="$(InterfacePath)"
-                    AdditionalMetadata="Type=Runtime">
-            <Output TaskParameter="Include" ItemName="LocalGrabbed"/>
+                    AdditionalMetadata="Type=Runtime;Owner=$(MSBuildProjectName);Parent=$(Parent)">
+            <Output TaskParameter="Include" ItemName="Grabbed"/>
         </CreateItem>
-        <RemoveDuplicates Inputs="@(LocalGrabbed)">
-            <Output TaskParameter="Filtered" ItemName="Grabbed"/>
-        </RemoveDuplicates>
 
-        <!-- Message Text="+LW:$(MSBuildProjectName)/$(Result): @(GrabbedComponents)" Importance="high"/ -->
+        <!-- interfaces and re-exported components -->
+        <CreateItem Include="@(Objects -> '$(ComponentPath)\$(IntermediateDirName)\%(FileName).obj')"
+                    AdditionalMetadata="Type=Interface;Owner=$(MSBuildProjectName);Parent=$(Parent)">
+            <Output TaskParameter="Include" ItemName="Grabbed"/>
+        </CreateItem>
+
+        <!-- Message Text="+LW:$(MSBuildProjectName)/$(Result): @(Grabbed)" Importance="high"/ -->
+
     </Target>
+
     <Target Name="GrabComponents">
         <!-- Message Text="-%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedComponents)" Importance="high"/ -->
+
+        <Message Text="Building component dependencies and information..." Importance="high"/>
 
         <!-- PREPARE ITEMS -->
         <CreateItem Exclude="*">
@@ -290,14 +301,17 @@
 
         <!-- PARSE/ADD CHILD COMPONENTS -->
         <MSBuild Projects="@(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"
-                 Properties="DeepFlag=$(DeepFlag);$(ChildParameters)"
+                 Properties="Parent=$(MSBuildProjectName);$(ChildParameters)"
                  Targets="GrabComponent">
             <Output TaskParameter="TargetOutputs" ItemName="RawGrabbed"/>
         </MSBuild>
+
+        <Message Text="...parsing results" Importance="high"/>
+
         <!-- ADD SELF COMPONENTS -->
         <!-- this could be done inside GrabComponent too, GrabComponent could add self component name into list, used solution is more clear -->
         <CreateItem Include="@(Components -> '$(RootDir)\%(Identity)')"
-                    AdditionalMetadata="Type=Component">
+                    AdditionalMetadata="Type=Component;Owner=$(MSBuildProjectName);Parent=$(Parent)">
             <Output TaskParameter="Include" ItemName="RawGrabbed"/>
         </CreateItem>
 
@@ -312,7 +326,7 @@
         </CreateItem>
 
         <!-- ... (1b) TO ExportInterfaces... -->
-        <RemoveDuplicates Condition="%(Type)=='Interface'"
+        <RemoveDuplicates Condition="%(Type)=='Interface' And $(ComponentStandaloneFlag)=='on' And %(Parent)==$(MSBuildProjectName)"
                           Inputs="@(RawGrabbed)">
             <Output TaskParameter="Filtered" ItemName="GrabbedExportInterfaces"/>
         </RemoveDuplicates>
@@ -322,6 +336,7 @@
                      Input="@(RawGrabbed)">
             <Output TaskParameter="Shortened" ItemName="Grabbed"/>
         </ShortenPath>
+
         <!-- ... (2a) TO Sources (for DEF)... -->
         <RemoveDuplicates Condition="%(Type)=='Component' And Exists( '%(Identity)\$(SourceDirName)' )"
                           Inputs="@(Grabbed)">
@@ -350,8 +365,13 @@
             <Output TaskParameter="Filtered" ItemName="GrabbedRuntimes"/>
         </RemoveDuplicates>
 
+        <Message Text="...finished." Importance="high"/>
+
+        <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(Grabbed)" Importance="high"/ -->
+        <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedSources)" Importance="high"/ -->
+        <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedIncludes)" Importance="high"/ -->
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedComponents)" Importance="high"/ -->
-        <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedLibraries)" Importance="high"/ -->
+        <Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedLibraries)" Importance="high"/>
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedMessages)" Importance="high"/ -->
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedRuntimes)" Importance="high"/ -->
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedExportInterfaces)" Importance="high"/ -->
@@ -408,7 +428,7 @@
     <PropertyGroup>
         <CompileCPPsDEP>$(UserPreCPP);Modula2InitCPP;CPPs</CompileCPPsDEP>
     </PropertyGroup>
-    <Target Name="Objects" Condition="@(CPPs)!=''"
+    <Target Name="Objects" Condition="@(CPPs)!='' Or @(ExportToInterface)!=''"
             DependsOnTargets="$(UserPreCompile);MessagesDef;LicensingSource;PrepareIDL;GrabOutOfDateFiles;TouchOutOfDateFiles;$(CompileCPPsDEP);$(UserPostCPP);$(UserPreOBJ)"
             Inputs="@(CPPsDir)" Outputs="@(CPPsDir -> '$(IntermediateDir)\%(Filename).obj')">
         <Exec WorkingDirectory="$(IntermediateDir)"
@@ -449,24 +469,20 @@
 
 
     <Target Name="ComponentInterface"
-            Condition="@(ExportToInterface)!=''"
-            Inputs="@(GrabbedExportInterfaces)"
-            Outputs="$(Source)\$(ExportToInterfaceFile)">
-        <Exec WorkingDirectory="$(SourceDir)"
-              Command="$(LIBEXP) @(GrabbedExportInterfaces -> '%(RootDir)%(Directory)%(Filename).lib', ' ') > $(ExportToInterfaceFile)"/>
+            Condition="@(ExportToInterface)!=''">
+        <CreateItem Include="@(GrabbedExportInterfaces)">
+            <Output ItemName="ExportToInterfaceObjects" TaskParameter="Include"/>
+        </CreateItem>
     </Target>
 
     <Target Name="ComponentCode"
             Condition="@(ExportToInterface)!='' Or @(Objects)!=''"
             DependsOnTargets="Resources;$(UserPostRES);Objects;$(UserPostOBJ)"
-            Inputs="@(ExportToInterface);@(Objects);@(RESFile);@(LinkDependencyLibraries)"
+            Inputs="@(Objects);@(ExportToInterfaceObjects);@(RESFile);@(LinkDependencyLibraries)"
             Outputs="$(OutputFile)">
-        <Exec Condition="$(Result)=='Dynamic' And @(ExportToInterface)==''"
+        <Exec Condition="$(Result)=='Dynamic'"
               WorkingDirectory="$(IntermediateDir)"
-              Command="$(LINK) /dll $(LINKDEF) $(LINKEXPORT) @(Objects -> '%(Filename).obj', ' ') @(RESFile -> '%(Filename).res') @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
-        <Exec Condition="$(Result)=='Dynamic' And @(ExportToInterface)!=''"
-              WorkingDirectory="$(IntermediateDir)"
-              Command="$(LINK) /dll $(LINKDEF) $(LINKEXPORTTOINTERFACE) @(Objects -> '%(Filename).obj', ' ') @(RESFile -> '%(Filename).res') @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
+              Command="$(LINK) /dll $(LINKDEF) $(LINKEXPORT) @(ExportToInterfaceObjects, ' ') @(Objects -> '%(Filename).obj', ' ') @(RESFile -> '%(Filename).res') @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
         <Exec Condition="$(Result)=='Static'"
               WorkingDirectory="$(IntermediateDir)"
               Command="$(LIB) $(LIBDEF) @(Objects -> '%(Filename).obj', ' ')"/>
@@ -497,7 +513,7 @@
     <!-- ;ComponentRuntimes"/ -->
 
 
-    <Target Name="Test" Condition="@(Objects)!=''"
+    <Target Name="Test" Condition="@(ExportToInterface)!='' Or @(Objects)!=''"
             DependsOnTargets="Objects"
             Inputs="@(Objects);@(LinkDependencyLibraries)" Outputs="@(TestOutputs)">
         <Exec Condition="$(Result)=='Program'"
@@ -522,13 +538,13 @@
             Condition="$(Level)=='0' Or $(ComponentStandaloneFlag)=='off' Or $(DeepFlag)=='on'">
         <MSBuild Projects="@(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"
                  Targets="CleanAll"
-                 Properties="DeepFlag=$(DeepFlag);$(ChildParameters)"/>
+                 Properties="DeepFlag=$(DeepFlag);Parameters=%(Components.Parameters);$(ChildParameters)"/>
         <CallTarget Targets="Clean"/>
     </Target>
     <Target Name="CleanAllComponents">
         <MSBuild Projects="@(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"
                  Targets="CleanAllComponents"
-                 Properties="DeepFlag=on;$(ChildParameters)"/>
+                 Properties="DeepFlag=on;Parameters=%(Components.Parameters);$(ChildParameters)"/>
         <CallTarget Targets="CleanAll"/>
     </Target>
 
@@ -549,7 +565,7 @@
         <!-- duplicite if building BuildAll target for product -->
         <MSBuild Projects="@(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"
                  Targets="BuildAll"
-                 Properties="DeepFlag=$(DeepFlag);$(ChildParameters)"
+                 Properties="DeepFlag=$(DeepFlag);Parameters=%(Components.Parameters);$(ChildParameters)"
                  StopOnFirstFailure="true">
             <Output TaskParameter="TargetOutputs" ItemName="Compiled"/>
         </MSBuild>
@@ -560,12 +576,12 @@
               SkipUnchangedFiles="true"
               ContinueOnError="false" />
     </Target>
-    <Target Name="BuildAllComponets">
+    <Target Name="BuildAllComponents">
         <CallTarget Targets="ProductBuildNumberGet"/>
         <!-- duplicite if building BuildAllComponents target for product -->
         <MSBuild Projects="@(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"
                  Targets="BuildAllComponents"
-                 Properties="DeepFlag=on;$(ChildParameters)"
+                 Properties="DeepFlag=on;Parameters=%(Components.Parameters);$(ChildParameters)"
                  StopOnFirstFailure="true">
             <Output TaskParameter="TargetOutputs" ItemName="Compiled"/>
         </MSBuild>
