@@ -4,7 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
    
 FROM Log IMPORT
-   LOG, dldTrace;
+   logger, dldTrace;
 
 IMPORT
    bitarray,
@@ -487,7 +487,7 @@ CLASS IMPLEMENTATION CINIFilter;
 	   TRY
          fs.FromPath( File, FIOO.imOpenRead );
       CATCH e : IOO.CIOException DO
-         LOG.LogExc( dldTrace, EMITW( %lprocedure ), e );
+         logger()^.LogExc( dldTrace, EMITW( %lprocedure ), e );
          RETURN;
       END;
       tr.Stream := ADR( fs );
@@ -577,7 +577,7 @@ CLASS IMPLEMENTATION CINIFilter;
 	   TRY
          fs.FromPath( File, FIOO.imCreate );
       CATCH e : IOO.CIOException DO
-         LOG.LogExc( dldTrace, EMITW( %lprocedure ), e );
+         logger()^.LogExc( dldTrace, EMITW( %lprocedure ), e );
          RETURN;
       END;
       tw.Stream := ADR( fs );

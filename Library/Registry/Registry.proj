@@ -18,7 +18,7 @@
         <Components Include="modula2\modula2;api\clib;API\win32"/>
         <Components Include="modula2\m2rtl"/>
         <Modules Include="registry"/>
-        <Libraries Include="advapi32"/>
+        <Interface Include="advapi32"/>
     </ItemGroup>
 
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->

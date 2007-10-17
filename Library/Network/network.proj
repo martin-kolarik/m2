@@ -17,7 +17,7 @@
         <Components Include="modula2\modula2;api\clib;API\win32"/>
         <Components Include="modula2\m2rtl;library\ADT;library\messaging;library\threading;library\Text"/>
         <Modules Include="netinit;netpool;dns;netsocket;netstream;netsrv;netconndispatch"/>
-        <Libraries Include="user32;Ws2_32"/>
+        <Interface Include="Ws2_32"/>
     </ItemGroup>
 
     <!-- 4 -->
