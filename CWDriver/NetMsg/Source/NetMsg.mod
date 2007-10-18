@@ -11,7 +11,6 @@ IMPLEMENTATION MODULE NetMsg;
 //================================================================================
 
 IMPORT
-  winsock,
   windows;
 
 FROM Storage IMPORT
@@ -377,7 +376,7 @@ CLASS IMPLEMENTATION CDriver;
   //----------
 
   VAR
-      cs : StringsO.CString;
+    cs : StringsO.CString;
     DebugFile : FIO.PathStrW;
     DebugLevel : log.TDebugLevel;
     DebugMode : log.TDebugMethod;
@@ -414,14 +413,14 @@ CLASS IMPLEMENTATION CDriver;
       END;
     END;
 
-    IF TS.GetKeyStr( knDebugMode, OUT cs ) THEN
+    IF TS.GetKeyStr( knDebugMode, OUT ErrorLine, OUT cs ) THEN
       cs.ToOA( OUT s );
 
       IF EQUALS( s, kvDebugNone ) THEN
         DebugMode := log.dmNone;
       ELSIF EQUALS( s, kvDebugFile ) THEN
         DebugMode := log.dmFile;
-        IF NOT TS.GetKeyStr( knDebugFile, OUT cs ) THEN
+        IF NOT TS.GetKeyStr( knDebugFile, OUT ErrorLine, OUT cs ) THEN
           ASSIGN( ErrorMessage, OAsz( R[ Texts._FileDebugMissingFile ] ));
           GOTO Fail;
         END;
@@ -430,7 +429,7 @@ CLASS IMPLEMENTATION CDriver;
         DebugMode := log.dmKernel;
       END;
       IF DebugMode <> log.dmNone THEN
-        IF TS.GetKeyStr( knDebugLevel, OUT cs ) THEN
+        IF TS.GetKeyStr( knDebugLevel, OUT ErrorLine, OUT cs ) THEN
             cs.ToOA( OUT s );
           IF EQUALS( s, kvDebugBasic ) THEN
             DebugLevel := log.dlpIO;
@@ -1004,6 +1003,9 @@ CLASS IMPLEMENTATION CDriver;
         ELSIF NOT SearchName( Name, PClientLE ) THEN
           SW.FromOA( OAsz( R[ Texts._UnknownClient ] ));
           GOTO Error;
+        END;
+        IF Result.Counted OR Result.Expired THEN
+          GOTO Success;
         END;
 
         drv_def.DrvValueToCStringW( InValue2, UFlag, OUT SW );
