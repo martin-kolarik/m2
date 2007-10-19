@@ -67,11 +67,11 @@
 
     <!-- INPUTS -->
     <PropertyGroup>
-        <M2INPUTS>@(GrabbedSources -> '-I&quot;%(Identity)\$(SourceDir)&quot;', ' ')</M2INPUTS>
+        <M2INPUTS>@(GrabbedSources -> '-I&quot;..\%(Identity)\$(SourceDir)&quot;', ' ')</M2INPUTS>
         <CLINPUTS>-I&quot;$(HeaderDir)&quot;</CLINPUTS>
-        <CLINPUTS>$(CLINPUTS) @(GrabbedIncludes -> '-I&quot;%(Identity)\$(HeaderDirName)&quot;', ' ')</CLINPUTS>
-        <CLINPUTS>$(CLINPUTS) @(GrabbedHeaders -> '-I&quot;%(Identity)\Header&quot;', ' ')</CLINPUTS>
-        <RCINPUTS>-i&quot;..\$(ResourceDir)&quot; @(GrabbedIncludes -> '-I&quot;%(Identity)\$(HeaderDirName)&quot;', ' ')</RCINPUTS>
+        <CLINPUTS>$(CLINPUTS) @(GrabbedIncludes -> '-I&quot;..\%(Identity)\$(HeaderDirName)&quot;', ' ')</CLINPUTS>
+        <CLINPUTS>$(CLINPUTS) @(GrabbedHeaders -> '-I&quot;..\%(Identity)\Header&quot;', ' ')</CLINPUTS>
+        <RCINPUTS>-i&quot;..\$(ResourceDir)&quot; @(GrabbedIncludes -> '-I&quot;..\%(Identity)\$(HeaderDirName)&quot;', ' ')</RCINPUTS>
     </PropertyGroup>
 
     <!-- OUTPUT -->

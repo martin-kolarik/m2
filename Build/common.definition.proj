@@ -20,7 +20,8 @@
         <ComponentStandaloneFlag>on</ComponentStandaloneFlag>
     </PropertyGroup>
     <PropertyGroup>
-        <ComponentDefinitionsPath>$(MSBuildProjectDirectory)\$(MSBuildProjectName).definition.proj</ComponentDefinitionsPath>
+        <RootComponentPath>$(MSBuildProjectDirectory)</RootComponentPath>
+        <ComponentDefinitionsPath>$(RootComponentPath)\$(MSBuildProjectName).definition.proj</ComponentDefinitionsPath>
     </PropertyGroup>
 
     <!-- configuration depended on component definition-->
