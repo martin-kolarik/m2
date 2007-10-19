@@ -140,7 +140,10 @@
         <RESFile Condition="$(Result)!='Static' And (@(ExportToInterface)!='' Or @(Objects)!='')"
                  Include="$(IntermediateDir)\$(MSBuildProjectName).res" />
 
-        <Interface Condition="@(ExportToInterface)!='' Or @(Objects)!=''" Include="$(InterfaceNamePath)"/>
+        <SelfInterface Condition="@(ExportToInterface)!='' Or @(Objects)!=''" Include="$(InterfaceNamePath)"/>
+        <!-- SelfInterface/Interface: Interface could be extended by project to export some interfaces, e.g. Ws32, msxml, etc. -->
+        <Interface Include="@(SelfInterface)"/>
+
         <MessagesBin Condition="@(Messages)!=''" Include="@(Messages -> '$(IntermediateDir)\$(MSBuildProjectName).%(FileName).brs')"/>
 
         <Components Condition="$(LeakChecking)=='on' And $(LeakDetector)!='' And (@(ExportToInterface)!='' Or @(Objects)!='')"
@@ -188,6 +191,7 @@
     <Import Project="internal.resource.targets"/>
 
 
+    <!-- start of pure build targets -->
     <Target Name="Directories">
         <MakeDir Directories="$(IntermediateDir);$(OutputDir)" />
     </Target>
@@ -199,25 +203,37 @@
     
     <Target Name="GrabComponent"
             DependsOnTargets="Directories"
-            Condition="@(Components)!=''" 
             Outputs="@(Grabbed)">
         <!-- Message Text="-LW:$(MSBuildProjectName)/$(Result): @(Grabbed)" Importance="high"/ -->
 
         <!-- try remove already checked components and store result of removing -->
-        <ReadLinesFromFile File="$(GrabProcessFile)">
+        <ReadLinesFromFile Condition="@(Components)!=''" 
+                           File="$(GrabProcessFile)">
             <Output TaskParameter="Lines" ItemName="GrabbedComponents"/>
         </ReadLinesFromFile>
-        <CreateItem Include="@(Components)" Exclude="@(GrabbedComponents)">
+        <CreateItem Condition="@(Components)!=''" 
+                    Include="@(Components)"
+                    Exclude="@(GrabbedComponents)">
             <Output TaskParameter="Include" ItemName="ComponentsToParse"/>
         </CreateItem>
-        <WriteLinesToFile Condition="@(ComponentsToParse)!=''"
+        <WriteLinesToFile Condition="@(Components)!='' And @(ComponentsToParse)!=''"
                           File="$(GrabProcessFile)"
                           Lines="@(ComponentsToParse)"/>
 
-        <!-- PARSE ALL CHILD COMPONENTS -->
+        <!-- PARSE ALL CHILD COMPONENTS, specially handle libraries masked with standalone/re-export components -->
+        <CreateProperty Value="$(GetLibrariesToFilter)">
+            <Output TaskParameter="Value" PropertyName="FilterLibraries"/>
+        </CreateProperty>
+        <CreateProperty Condition="@(ExportToInterface)==''" Value="false">
+            <Output TaskParameter="Value" PropertyName="GetLibrariesToFilter"/>
+        </CreateProperty>
+        <CreateProperty Condition="@(ExportToInterface)!=''" Value="true">
+            <Output TaskParameter="Value" PropertyName="GetLibrariesToFilter"/>
+        </CreateProperty>
+
         <MSBuild Condition="@(ComponentsToParse)!=''"
                  Projects="@(ComponentsToParse -> '$(RootDir)\%(Identity)\%(Filename).proj')"
-                 Properties="GrabProcessFile=$(GrabProcessFile);$(ChildParameters)"
+                 Properties="GrabProcessFile=$(GrabProcessFile);GetLibrariesToFilter=$(GetLibrariesToFilter);$(ChildParameters)"
                  Targets="GrabComponent">
             <Output TaskParameter="TargetOutputs" ItemName="Grabbed"/>
         </MSBuild>
@@ -241,20 +257,21 @@
                     AdditionalMetadata="Type=Library">
             <Output TaskParameter="Include" ItemName="Grabbed"/>
         </CreateItem>
+
         <CreateItem Condition="$(ComponentStandaloneFlag)=='on'"
                     Include="$(InterfacePath)"
                     AdditionalMetadata="Type=Runtime">
             <Output TaskParameter="Include" ItemName="Grabbed"/>
         </CreateItem>
-
-        <!-- interfaces and re-exported components -->
-        <!-- CreateItem Include="@(Objects -> '$(ComponentPath)\$(IntermediateDirName)\%(FileName).obj')"
-                    AdditionalMetadata="Type=Interface;Owner=$(MSBuildProjectName);Parent=$(Parent)">
+        
+        <!-- standalone/re-export component libs -->
+        <CreateItem Condition="$(FilterLibraries)=='true'"
+                    Include="@(SelfInterface -> '%(Identity).filtered')"
+                    AdditionalMetadata="Type=LibraryToFilter">
             <Output TaskParameter="Include" ItemName="Grabbed"/>
-        </CreateItem -->
+        </CreateItem>
 
         <!-- Message Text="+LW:$(MSBuildProjectName)/$(Result): @(Grabbed)" Importance="high"/ -->
-
     </Target>
 
     <Target Name="GrabComponents"
@@ -263,58 +280,65 @@
         <!-- SPLIT COMPONENTS (1a) TO Libraries... -->
         <CreateItem Condition="%(Type)=='Library'"
                     Include="@(Grabbed)">
+            <Output TaskParameter="Include" ItemName="GrabbedUnfilteredLibraries"/>
+        </CreateItem>
+        <!-- SPLIT COMPONENTS (1b) TO libraries to be filtered... -->
+        <CreateItem Condition="%(Type)=='LibraryToFilter'"
+                    Include="@(Grabbed -> '%(RootDir)%(Directory)%(FileName).lib')">
+            <Output TaskParameter="Include" ItemName="GrabbedLibrariesToFilter"/>
+        </CreateItem>
+        <!-- ...and filter them -->
+        <CreateItem Include="@(GrabbedUnfilteredLibraries)" Exclude="@(GrabbedLibrariesToFilter)">
             <Output TaskParameter="Include" ItemName="GrabbedLibraries"/>
         </CreateItem>
+        <!-- ...and create final libraries -->
         <CreateItem Include="@(GrabbedLibraries);@(Libraries -> '%(Filename).lib')"
                     Condition="Exists('%(Identity)')">
             <Output TaskParameter="Include" ItemName="LinkDependencyLibraries"/>
         </CreateItem>
 
-        <!-- ... (1b) TO ExportInterfaces... -->
-        <!-- RemoveDuplicates Condition="%(Type)=='Interface' And $(ComponentStandaloneFlag)=='on' And %(Parent)==$(MSBuildProjectName)"
-                          Inputs="@(RawGrabbed)">
-            <Output TaskParameter="Filtered" ItemName="GrabbedExportInterfaces"/>
-        </RemoveDuplicates -->
-
+        <!-- prepare components -->
         <CreateItem Condition="%(Type)=='Component'"
                     Include="@(Grabbed)">
-            <Output TaskParameter="Include" ItemName="GrabbedShortened"/>
+            <Output TaskParameter="Include" ItemName="GrabbedComponents"/>
         </CreateItem>
 
         <!-- ... (2a) TO Sources (for DEF)... -->
         <CreateItem Condition="Exists( '%(Identity)\$(SourceDirName)' )"
-                    Include="@(GrabbedShortened)">
+                    Include="@(GrabbedComponents)">
             <Output TaskParameter="Include" ItemName="GrabbedSources"/>
         </CreateItem>
         <!-- ... (2b) TO Includes (for H)... -->
         <CreateItem Condition="Exists( '%(Identity)\$(IntermediateDirName)' )"
-                    Include="@(GrabbedShortened)">
+                    Include="@(GrabbedComponents)">
             <Output TaskParameter="Include" ItemName="GrabbedIncludes"/>
         </CreateItem>
         <!-- ... (3) TO Header Includes... -->
         <CreateItem Condition="Exists( '%(Identity)\Header' )"
-                    Include="@(GrabbedShortened)">
+                    Include="@(GrabbedComponents)">
             <Output TaskParameter="Include" ItemName="GrabbedHeaders"/>
         </CreateItem>
 
-        <!-- SPLIT COMPONENTS (3) TO Messages (BinaryReSources)... -->
+        <!-- SPLIT COMPONENTS (4) TO Messages (BinaryReSources)... -->
         <CreateItem Condition="%(Type)=='Messages'"
                     Include="@(Grabbed)">
             <Output TaskParameter="Include" ItemName="GrabbedMessages"/>
         </CreateItem>
 
-        <!-- SPLIT COMPONENTS (4) TO Runtime Modules (DLL,EXE)... -->
+        <!-- SPLIT COMPONENTS (5) TO Runtime Modules (DLL,EXE)... -->
         <CreateItem Condition="%(Type)=='Runtime'"
                     Include="@(Grabbed)">
             <Output TaskParameter="Include" ItemName="GrabbedRuntimes"/>
         </CreateItem>
 
+        <Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedLibrariesToFilter)" Importance="high"/>
+        <Message Text="=========================================" Importance="high"/>
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(Grabbed)" Importance="high"/ -->
         <!-- Message Text="=========================================" Importance="high"/ -->
-        <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedShortened)" Importance="high"/ -->
+        <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedComponents)" Importance="high"/ -->
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedSources)" Importance="high"/ -->
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedIncludes)" Importance="high"/ -->
-        <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedLibraries)" Importance="high"/ -->
+        <Message Text="+!!$(MSBuildProjectName)/$(Result): @(GrabbedLibraries)" Importance="high"/>
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedMessages)" Importance="high"/ -->
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedRuntimes)" Importance="high"/ -->
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedExportInterfaces)" Importance="high"/ -->
@@ -411,11 +435,23 @@
     <Target Name="Resources" DependsOnTargets="MessagesBin;CheckRevision;BuildResources" />
 
 
+    <Target Name="GrabComponentInterface"
+            Outputs="@(Grabbed)">
+        <CreateItem Include="@(Objects -> '$(ComponentPath)\$(IntermediateDirName)\%(FileName).obj')"
+                    AdditionalMetadata="Type=InterfaceObjects">
+            <Output TaskParameter="Include" ItemName="Grabbed"/>
+        </CreateItem>
+    </Target>
+
     <Target Name="ComponentInterface"
             Condition="@(ExportToInterface)!=''">
-        <CreateItem Include="@(GrabbedExportInterfaces)">
-            <Output ItemName="ExportToInterfaceObjects" TaskParameter="Include"/>
-        </CreateItem>
+        <MSBuild Projects="@(ExportToInterface -> '$(RootDir)\%(Identity)\%(Filename).proj')"
+                 Properties="$(ChildParameters)"
+                 Targets="GrabComponentInterface">
+            <Output TaskParameter="TargetOutputs" ItemName="ExportToInterfaceObjects"/>
+        </MSBuild>
+
+        <!-- Message Text="@(ExportToInterfaceObjects)" Importance="high" /-->
     </Target>
 
     <Target Name="ComponentCode"
