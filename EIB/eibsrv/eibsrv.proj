@@ -23,9 +23,9 @@
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
         <Components Include="modula2\modula2;api\clib;API\win32"/>
-        <!-- Components Include="component\sccore"/ -->
-        <Components Include="modula2\m2rtl;modula2\m2ortl;library\ADT;library\resources;library\Text;library\messaging;library\Service"/>
-        <Components Include="library\Registry;library\sdio;EIB\eibstack;EIB\eibnetstack;library\CWdriver"/>
+        <Components Include="component\sccore"/>
+        <!-- Components Include="modula2\m2rtl;modula2\m2ortl;library\ADT;library\resources;library\Text;library\messaging;library\Service"/ -->
+        <Components Include="library\sdio;EIB\eibstack;EIB\eibnetstack;library\CWdriver"/>
         <Messages Include="Texts"/>
         <Modules Include="eibsrv;eibsrvdiface"/>
         <Program Include="eibsvc"/>
