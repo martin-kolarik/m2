@@ -7,6 +7,8 @@
         <ComponentStandaloneFlag>on</ComponentStandaloneFlag>
 
         <FileDescription>SmartControl Core Library</FileDescription>
+
+        <Result>Dynamic</Result>
     </PropertyGroup>
 
     <!-- 2 INCLUDE DEFINITION -->
@@ -15,8 +17,8 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <Components Include="modula2\m2rtl;modula2\m2ortl;library\ADT;library\Resources;library\Text"/>
-        <Components Include="library\messaging;library\threading;library\Network;library\Service"/>
+        <Components Include="modula2\m2rtl;modula2\m2ortl;library\ADT;library\COM;library\Resources;library\Registry;library\Text"/>
+        <Components Include="library\ciphering;library\messaging;library\threading;library\Network;library\Service"/>
         <ExportToInterface Include="@(Components)"/>
     </ItemGroup>
 
