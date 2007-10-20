@@ -826,7 +826,7 @@ CLASS IMPLEMENTATION CResourcesCreator;
     _Strings.Reset();
     WHILE _Strings.MoveNext() DO
       _Strings.Current^.ToOA( OUT Name );
-      Strings.FromCARD32W( CARDINAL( _Strings.CurrentData ), 10, OUT Index );
+      Strings.FromCARD64W( CARD64( _Strings.CurrentData ), 10, OUT Index );
       FIO.WrStrW( f, L'  ' ); FIO.WrStrW( f, NamePrefix ); FIO.WrStrW( f, Name ); FIO.WrStrW( f, L' = ' ); FIO.WrStrW( f, Index ); FIO.WrStrW( f, L';' ); FIO.WrLnW( f );
     END; // WHILE
 

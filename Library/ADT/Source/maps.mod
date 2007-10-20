@@ -849,11 +849,11 @@ END CStringMap;
 
 //===========================================================================
 
-INITIALLY __I();
-BEGIN
+// INITIALLY __I();
+// BEGIN
   // IntegerAllocator.Init( SIZE( CIntegerItem ), 0 );
   // CardinalAllocator.Init( SIZE( CCardinalItem ), 0 );
   // PtrAllocator.Init( SIZE( CPtrItem ), 0 );
-END __I;
+// END __I;
 
 END maps.

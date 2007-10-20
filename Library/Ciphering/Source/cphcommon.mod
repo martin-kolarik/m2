@@ -149,7 +149,7 @@ BEGIN
 	   INC( o );
 	END; // WHILE
 	
-   Filled := CARDINAL( o - ADR( Out ));
+   Filled := CARDINAL( LOPTRLONGWORD( o - ADR( Out )));
    RETURN TRUE;
 END FromBASE64;
 
@@ -225,7 +225,7 @@ BEGIN
       INC( o, 2 );
    END;
 
-   u := CARDINAL( o - ADR( Out ));
+   u := CARDINAL( LOPTRLONGWORD( o - ADR( Out )));
    IF u > HIGH( Out ) THEN
       RETURN TRUE;
    END;

@@ -2845,5 +2845,4 @@ END CChannelMap;
 
 //=============================================================================
 
-BEGIN // module initialization
 END drv_wrapper.

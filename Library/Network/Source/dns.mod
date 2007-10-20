@@ -63,7 +63,7 @@ CLASS IMPLEMENTATION ADNSNotifier;
     | Sync.arCannotStart :
       netResult := winsock.WSAENOBUFS;
     | Sync.arCompleted :
-      netResult := CARDINAL( winsock.WSAGETASYNCERROR( LONGWORD( MSG[3] )));
+      netResult := CARDINAL( winsock.WSAGETASYNCERROR( MSG[3] ));
     | Sync.arAborted :
       netResult := winsock.WSAECONNABORTED;
     | Sync.arTimeout :

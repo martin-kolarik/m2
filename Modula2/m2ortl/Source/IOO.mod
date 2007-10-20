@@ -1398,7 +1398,7 @@ CLASS IMPLEMENTATION CMemoryStream;
       RETURN Sync.arNoData;
     END;
     WHILE DevicePrepareData( Direction, OUT a, OUT l ) DO
-      l := MIN2( l, CARDINAL( _Length-_Offset ));
+      l := MIN2( l, CARDINAL( LOPTRLONGWORD( _Length-_Offset )));
       IF l > 0 THEN
         IF Direction = dirRead THEN
           Storage.Move( _Data@[_Offset], a, l );

@@ -502,7 +502,7 @@ CLASS IMPLEMENTATION SSocket;
   BEGIN
     CASE Result OF
     | Sync.arCompleted :
-      Event := CARDINAL( winsock.WSAGETSELECTEVENT( LONGWORD( MSG[3] )));
+      Event := CARDINAL( winsock.WSAGETSELECTEVENT( MSG[3] ));
       IF ( _Type = stDatagram ) AND ( Event <> winsock.FD_READ ) THEN
         RETURN;
       ELSIF ( _Type = stStream ) AND ( Event <> winsock.FD_ACCEPT ) THEN
@@ -523,9 +523,9 @@ CLASS IMPLEMENTATION SSocket;
     Sync.Signal( _HSignal ); Sync.Reset( _HSignal );
     IF _Notifier <> NIL THEN
       IF _Type = stDatagram THEN
-        _Notifier^.OnDataArrived( CARDINAL( winsock.WSAGETASYNCERROR( LONGWORD( MSG[3] ))), ADR( SELF ));
+        _Notifier^.OnDataArrived( CARDINAL( winsock.WSAGETASYNCERROR( MSG[3] )), ADR( SELF ));
       ELSE
-        _Notifier^.OnListen( CARDINAL( winsock.WSAGETASYNCERROR( LONGWORD( MSG[3] ))), ADR( SELF ));
+        _Notifier^.OnListen( CARDINAL( winsock.WSAGETASYNCERROR( MSG[3] )), ADR( SELF ));
       END;
     END;
   END OnMessage;
@@ -1075,7 +1075,7 @@ CLASS IMPLEMENTATION DSocket;
   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
   BEGIN
     IF Result = Sync.arCompleted THEN
-      SwitchContext( FD_TIMEOUT, TPendingOperationItem( UserId ), winsock.WSAETIMEDOUT );
+      SwitchContext( FD_TIMEOUT, TPendingOperationItem( LOPTRLONGWORD( UserId )), winsock.WSAETIMEDOUT );
     END;
   END OnTimeout;
 
@@ -1092,12 +1092,12 @@ CLASS IMPLEMENTATION DSocket;
   BEGIN
     CASE Result OF
     | Sync.arCompleted :
-      Event := CARDINAL( winsock.WSAGETSELECTEVENT( LONGWORD( MSG[3] )));
+      Event := CARDINAL( winsock.WSAGETSELECTEVENT( MSG[3] ));
       IF Event = winsock.FD_ACCEPT THEN
         SUPER.OnMessage( Result, PoolHandle, UserId, MSG );
         RETURN;
       END;
-      Error := CARDINAL( winsock.WSAGETASYNCERROR( LONGWORD( MSG[3] )));
+      Error := CARDINAL( winsock.WSAGETASYNCERROR( MSG[3] ));
     | Sync.arAborted :
       LPending := TPendingOperation( _Lock.Get( REF _Pending ));
       IF poListen IN LPending THEN
@@ -1117,7 +1117,7 @@ CLASS IMPLEMENTATION DSocket;
     CASE Event OF
     //-----
     | FD_INIT :
-      CASE TPendingOperationItem( MSG[2] ) OF
+      CASE TPendingOperationItem( LOPTRLONGWORD( MSG[2] )) OF
       | poConnect :
         StartConnect();
       | poDisconnect :
@@ -1134,7 +1134,7 @@ CLASS IMPLEMENTATION DSocket;
       END; // CASE
     //-----
     | FD_TIMEOUT :
-      CASE TPendingOperationItem( MSG[2] ) OF
+      CASE TPendingOperationItem( LOPTRLONGWORD( MSG[2] )) OF
       | poConnect :
         OnConnect( FD_TIMEOUT, Error );
       | poDisconnect :
@@ -1156,7 +1156,7 @@ CLASS IMPLEMENTATION DSocket;
       OnDisconnect( winsock.FD_CLOSE, Error, InDisconnect );
     //-----
     | FD_DNS :
-      CASE TPendingOperationItem( MSG[2] ) OF
+      CASE TPendingOperationItem( LOPTRLONGWORD( MSG[2] )) OF
       | poResolveAddress :
         LPending := TPendingOperation( _Lock.Excl( REF _Pending, poResolveAddress ));
         IF Error = winsock.WSAECONNABORTED THEN

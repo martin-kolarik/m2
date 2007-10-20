@@ -22,8 +22,8 @@ CLASS Win32Message IMPLEMENTS msgOSAL.IMessage;
   PRIVATE VAR
     target : msgOSAL.TPMessageHandler; // [0]
     message : CARDINAL; // [1]
-    wParam : CARDINAL; // [2]
-    lParam : CARDINAL; // [3]
+    wParam : PTR; // [2]
+    lParam : PTR; // [3]
   PUBLIC VIRTUAL PROPERTY
     Target : msgOSAL.TPMessageHandler;
     Message : CARDINAL;

@@ -35,6 +35,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Registry", "Registry\Regist
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SCCore", "..\Component\SCCore\SCCore.vcproj", "{F0DA0BA4-EE9E-4AB1-A82E-E7A76DE813C7}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Threading", "Threading\Threading.vcproj", "{97C30A53-92E2-4179-B0A0-A740E2FDD762}"
+EndProject
 Global
 	GlobalSection(TextTemplating) = postSolution
 		TextTemplating = 1
@@ -218,6 +220,16 @@ Global
 		{F0DA0BA4-EE9E-4AB1-A82E-E7A76DE813C7}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{F0DA0BA4-EE9E-4AB1-A82E-E7A76DE813C7}.Release|Win32.ActiveCfg = Release|Win32
 		{F0DA0BA4-EE9E-4AB1-A82E-E7A76DE813C7}.Release|Win32.Build.0 = Release|Win32
+		{97C30A53-92E2-4179-B0A0-A740E2FDD762}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{97C30A53-92E2-4179-B0A0-A740E2FDD762}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{97C30A53-92E2-4179-B0A0-A740E2FDD762}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{97C30A53-92E2-4179-B0A0-A740E2FDD762}.Debug|Win32.ActiveCfg = Debug|Win32
+		{97C30A53-92E2-4179-B0A0-A740E2FDD762}.Debug|Win32.Build.0 = Debug|Win32
+		{97C30A53-92E2-4179-B0A0-A740E2FDD762}.Release|Any CPU.ActiveCfg = Release|Win32
+		{97C30A53-92E2-4179-B0A0-A740E2FDD762}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{97C30A53-92E2-4179-B0A0-A740E2FDD762}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{97C30A53-92E2-4179-B0A0-A740E2FDD762}.Release|Win32.ActiveCfg = Release|Win32
+		{97C30A53-92E2-4179-B0A0-A740E2FDD762}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

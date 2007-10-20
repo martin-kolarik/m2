@@ -206,7 +206,7 @@ CLASS IMPLEMENTATION CDLLConstructor;
       END;
 
     #if DEBUG #then
-      DbgOutSH( L'PAX: ', LONGWORD( PAX ));
+      DbgOutSP( L'PAX: ', PAX );
     #endif
 
       AddRefFlag := FALSE;
@@ -466,7 +466,7 @@ CLASS IMPLEMENTATION CIConnectionPointContainer;
     PCEnum^.PInterfaceFactory := PInterfaceFactory;
 
 (*%T DEBUG *)
-    DbgOutSH( L'ECP: ', LONGWORD( PCEnum ));
+    DbgOutSP( L'ECP: ', PCEnum );
 (*%E DEBUG *)
 
     PCEnum^.AddRef();
@@ -716,7 +716,7 @@ CLASS IMPLEMENTATION CIConnectionPoint;
     PAClient^.PIDispatch_Event:= PIDispatch_Event;
     AdvisedClients.Append( PAClient );
 
-    dwCookie := windows.DWORD( PAClient );
+    dwCookie := LOPTRLONGWORD( PAClient );
     RETURN winerror.S_OK;
   END Advise;
 
@@ -785,7 +785,7 @@ CLASS IMPLEMENTATION CIEnumConnections;
     WHILE i < CARDINAL( cConnections ) DO
       rgpcd^.pUnk := PActive^.PClient;
       rgpcd^.pUnk^.AddRef();
-      rgpcd^.dwCookie := windows.DWORD( PActive );
+      rgpcd^.dwCookie := windows.DWORD( LOPTRLONGWORD( PActive ));
       INC( rgpcd, SIZE( ocidl.CONNECTDATA ));
       INC( i );
       IF NOT PIConnectionPoint^.AdvisedClients.NextOf( PActive, OUT PActive ) THEN
@@ -1023,14 +1023,14 @@ CLASS IMPLEMENTATION CActiveXControl;
     END;
 
 (*%T DEBUG *)
-    DbgOutSH( L'NID: ', LONGWORD( PNativeIDispatch ));
+    DbgOutSP( L'NID: ', PNativeIDispatch );
 (*%E DEBUG *)
 
     NEW( PIConnectionPointContainer );
     PIConnectionPointContainer^.PInterfaceFactory := PInterfaceFactory;
 
 (*%T DEBUG *)
-    DbgOutSH( L'CPC: ', LONGWORD( PIConnectionPointContainer ));
+    DbgOutSP( L'CPC: ', PIConnectionPointContainer );
 (*%E DEBUG *)
 
     PIConnectionPointContainer^.AddRef();
@@ -1115,12 +1115,25 @@ END DbgOutSH;
 
 (*---------------------------------------------------------------------------*)
 
+PROCEDURE DbgOutSP( String : ARRAY OF WCHAR; HexNumber : PTR );
+VAR
+  OString : ARRAY [0..255] OF WCHAR;
+  NString : ARRAY [0..32] OF WCHAR;
+BEGIN
+  Strings.FromCARD64W( CARD64( HexNumber ), 16, OUT NString );
+  Strings.ConcatW( OUT OString, String, NString );
+  Strings.AppendW( REF OString, WCHAR( 13 ) + WCHAR( 10 ));
+  windows.OutputDebugStringW( ADR( OString ));
+END DbgOutSP;
+
+(*---------------------------------------------------------------------------*)
+
 PROCEDURE DbgOutIID( String : ARRAY OF WCHAR; POwner : ADDRESS; riid : guiddef.IID );
 VAR
   PBSTR : wtypes.BSTR;
   s : ARRAY [0..127] OF WCHAR;
 BEGIN
-  Strings.FromCARD32W( CARDINAL( POwner ), 16, OUT s );
+  Strings.FromCARD64W( CARD64( POwner ), 16, OUT s );
   Strings.PrependW( REF s, L'ref: ' );
   Strings.PrependW( REF s, String );
   Strings.AppendW( REF s, L' req: ' );
@@ -1163,7 +1176,7 @@ VAR
   n : ARRAY [0..31] OF WCHAR;
   s : ARRAY [0..127] OF WCHAR;
 BEGIN
-  Strings.FromCARD32W( CARDINAL( PInterface ), 16, OUT s );
+  Strings.FromCARD64W( CARD64( PInterface ), 16, OUT s );
   Strings.PrependW( REF s, Text );
   Strings.FromCARD32W( From, 10, OUT n );
   Strings.AppendW( REF s, L', ' );

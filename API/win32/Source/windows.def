@@ -82,9 +82,9 @@ TYPE
 
 // from BASETSD.H
 #if PlatformName #startswith L"WinCE" #then
-  INT_PTR         = INT;
+  INT_PTR         = PTR;
   PINT_PTR        = POINTER TO INT_PTR;
-  UINT_PTR        = UINT;
+  UINT_PTR        = PTR;
   PUINT_PTR       = POINTER TO UINT_PTR;
 
   HALF_PTR        = SHORT;
@@ -92,13 +92,13 @@ TYPE
   UHALF_PTR       = USHORT;
   PUHALF_PTR      = POINTER TO UHALF_PTR;
 #else
-  INT_PTR         = LONG;
+  INT_PTR         = PTR;
   PINT_PTR        = POINTER TO INT_PTR;
-  LONG_PTR        = LONG;
+  LONG_PTR        = PTR;
   PLONG_PTR       = POINTER TO LONG_PTR;
-  UINT_PTR        = ULONG;
+  UINT_PTR        = PTR;
   PUINT_PTR       = POINTER TO UINT_PTR;
-  ULONG_PTR       = ULONG;
+  ULONG_PTR       = PTR;
   PULONG_PTR      = POINTER TO ULONG_PTR;
 
   HALF_PTR        = SHORT;
@@ -118,9 +118,9 @@ CONST
 
 (* Types use for passing & returning polymorphic values *)
 TYPE
-  WPARAM  = UINT;
-  LPARAM  = LONG;
-  LRESULT = LONG;
+  WPARAM  = PTR;
+  LPARAM  = PTR;
+  LRESULT = PTR;
 
 (* NONSTRICT  Extension *)
   FARPROC           = PROCEDURE(): INTEGER;
@@ -13563,14 +13563,14 @@ CONST
 
 PROCEDURE SetTimer(
     hWnd  : HWND;
-    nIDEvent : UINT;
+    nIDEvent : PTR;
     uElapse : UINT;
     lpTimerFunc : TIMERPROC
     ): UINT;
 
 PROCEDURE KillTimer(
     hWnd : HWND;
-    uIDEvent : UINT
+    uIDEvent : PTR
     ): BOOL;
 
 PROCEDURE IsWindowUnicode(

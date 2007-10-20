@@ -161,9 +161,9 @@ CLASS IMPLEMENTATION Win32Message;
   BEGIN
     CASE ParameterIndex OF
     | 0: target := Value;
-    | 1: message := CARDINAL( Value );
-    | 2: wParam := CARDINAL( Value );
-    | 3: lParam := CARDINAL( Value );
+    | 1: message := CARDINAL( LOPTRLONGWORD( Value ));
+    | 2: wParam := Value;
+    | 3: lParam := Value;
     END;
   END Win32Message;
 
@@ -200,7 +200,7 @@ CLASS IMPLEMENTATION Win32MessageHandler;
 
   PUBLIC VIRTUAL READONLY PROPERTY Win32MessageHandler.OfThread GET : CARDINAL;
   BEGIN
-    RETURN CARDINAL( windows.GetWindowThreadProcessId( HWND, NIL ));
+    RETURN CARDINAL( LOPTRLONGWORD( windows.GetWindowThreadProcessId( HWND, NIL )));
   END Win32MessageHandler.OfThread;
 
   PUBLIC PROCEDURE Win32MessageHandler.Init();
@@ -225,7 +225,7 @@ CLASS IMPLEMENTATION Win32MessageHandler;
             IF NOT Timers.Get( Timer, OUT Repeat ) THEN
                RETURN FALSE;
             ELSIF Repeat = 0 THEN
-               windows.KillTimer( HWND, CARDINAL( Timer )); // IA64PTR
+               windows.KillTimer( HWND, Timer );
             END;
             OnTimer( Timer );
          ELSE
@@ -237,7 +237,7 @@ CLASS IMPLEMENTATION Win32MessageHandler;
       ELSIF HWND = NIL THEN
          RETURN FALSE;
       ELSE // deffer message
-         windows.PostMessage( HWND, CARDINAL( MSG[1] ), windows.WPARAM( MSG[2] ), windows.LPARAM( MSG[3] ));
+         windows.PostMessage( HWND, MSG.Message, windows.WPARAM( MSG[2] ), windows.LPARAM( MSG[3] ));
       END;
       IF Result <> NIL THEN
          Result^ := 0;
@@ -255,10 +255,10 @@ CLASS IMPLEMENTATION Win32MessageHandler;
     IF HWND = NIL THEN
       RETURN;
     ELSIF Timers.Contains( Timer ) THEN
-      windows.KillTimer( HWND, CARDINAL( Timer )); // IA64PTR
+      windows.KillTimer( HWND, Timer );
       Timers.Remove( Timer );
     END;
-    Timers.Add( windows.SetTimer( HWND, CARDINAL( Timer ), PeriodMS, NIL ), PTR( Repeat )); // IA64PTR
+    Timers.Add( windows.SetTimer( HWND, Timer, PeriodMS, NIL ), PTR( Repeat )); // IA64PTR
   END StartTimer;
   
   INTERNAL VIRTUAL PROCEDURE TimerRunning( Timer : PTR ) : BOOLEAN;
@@ -275,7 +275,7 @@ CLASS IMPLEMENTATION Win32MessageHandler;
     IF HWND = NIL THEN
       RETURN;
     ELSIF Timers.Contains( Timer ) THEN
-      windows.KillTimer( HWND, CARDINAL( Timer )); // IA64PTR
+      windows.KillTimer( HWND, Timer );
       Timers.Remove( Timer );
     END;
   END StopTimer;
@@ -297,8 +297,8 @@ CLASS IMPLEMENTATION Win32MessageHandler;
               windows.GetModuleHandle( NIL ), NIL
             );
     IF HWND <> NIL THEN        
-      LeakALLOCATE( HWND, CARDINAL( HWND ) OR 0F000000H );
-      windows.SetWindowLongPtr( HWND, windows.GWL_USERDATA, windows.LONG_PTR( ADR( SELF )));
+      LeakALLOCATE( HWND, CARDINAL( LOPTRLONGWORD( HWND )) OR 08000000H );
+      windows.SetWindowLongPtr( HWND, windows.GWL_USERDATA, PTR( ADR( SELF )));
     END;
     #if DEBUG #then
       Handlers.Add( ADR( SELF ), 0 );
@@ -310,7 +310,7 @@ CLASS IMPLEMENTATION Win32MessageHandler;
     IF HWND <> NIL THEN
       Timers.Reset();
       WHILE Timers.MoveNext() DO
-        windows.KillTimer( HWND, CARDINAL( Timers.Current )); // IA64PTR
+        windows.KillTimer( HWND, Timers.Current ); // IA64PTR
       END;
       Timers.Dispose();
       #if DEBUG #then

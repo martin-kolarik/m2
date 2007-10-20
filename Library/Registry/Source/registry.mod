@@ -277,10 +277,10 @@ CLASS IMPLEMENTATION CRegistry;
       RETURN FALSE;
     ELSIF DoSections THEN
       KeyHigh := HIGH( Key ) + 1;
-      res := winreg.RegEnumKeyExW( CurrentSec, windows.DWORD( EnumerateState ), ADR( Key ), ADR( KeyHigh ), NIL, NIL, NIL, NIL );
+      res := winreg.RegEnumKeyExW( CurrentSec, windows.DWORD( LOPTRLONGWORD( EnumerateState )), ADR( Key ), ADR( KeyHigh ), NIL, NIL, NIL, NIL );
     ELSIF DoKeys THEN
       KeyHigh := HIGH( Key ) + 1;
-      res := winreg.RegEnumValueW( CurrentSec, windows.DWORD( EnumerateState ), ADR( Key ), ADR( KeyHigh ), NIL, NIL, NIL, NIL );
+      res := winreg.RegEnumValueW( CurrentSec, windows.DWORD( LOPTRLONGWORD( EnumerateState )), ADR( Key ), ADR( KeyHigh ), NIL, NIL, NIL, NIL );
     END;
     CASE res OF
     | winerror.ERROR_SUCCESS:

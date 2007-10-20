@@ -168,6 +168,7 @@ END CActiveXControl;
 // public data and procedures manipulating interfaces
 
 PROCEDURE DbgOutSH( String : ARRAY OF WCHAR; HexNumber : CARDINAL );
+PROCEDURE DbgOutSP( String : ARRAY OF WCHAR; HexNumber : PTR );
 PROCEDURE DbgOutIID( String : ARRAY OF WCHAR; POwner : ADDRESS; riid : guiddef.IID );
 PROCEDURE DbgOutADD( PInterface : TPInterface );
 PROCEDURE DbgOutREL( PInterface : TPInterface );
