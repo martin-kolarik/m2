@@ -9408,37 +9408,37 @@ CLASS IMPLEMENTATION CDesignator;
         r.U1^.Generate( G, Cn );
         G^.OutSPRP();
       | epLOBYTE :
-        G^.OutS( L'LOBYTE_( (WORD)' );
+        G^.OutS( L'LOBYTE_((WORD)( ' );
         r.U1^.Generate( G, Cn );
-        G^.OutSPRP();
+        G^.OutS( L' ))' );
       | epHIBYTE :
-        G^.OutS( L'HIBYTE_( (WORD)' );
+        G^.OutS( L'HIBYTE_((WORD)( ' );
         r.U1^.Generate( G, Cn );
-        G^.OutSPRP();
+        G^.OutS( L' ))' );
       | epLOWORD :
-        G^.OutS( L'LOWORD_( (LONGWORD)' );
+        G^.OutS( L'LOWORD_((LONGWORD)( ' );
         r.U1^.Generate( G, Cn );
-        G^.OutSPRP();
+        G^.OutS( L' ))' );
       | epHIWORD :
-        G^.OutS( L'HIWORD_( (LONGWORD)' );
+        G^.OutS( L'HIWORD_((LONGWORD)( ' );
         r.U1^.Generate( G, Cn );
-        G^.OutSPRP();
+        G^.OutS( L' ))' );
       | epLOLONGWORD :
-        G^.OutS( L'LOLONGWORD_( (QUADWORD)' );
+        G^.OutS( L'LOLONGWORD_((QUADWORD)( ' );
         r.U1^.Generate( G, Cn );
-        G^.OutSPRP();
+        G^.OutS( L' ))' );
       | epHILONGWORD :
-        G^.OutS( L'HILONGWORD_( (QUADWORD)' );
+        G^.OutS( L'HILONGWORD_((QUADWORD)( ' );
         r.U1^.Generate( G, Cn );
-        G^.OutSPRP();
+        G^.OutS( L' ))' );
       | epLOPTR :
-        G^.OutS( L'LOPTRLONGWORD_( (PTR)' );
+        G^.OutS( L'LOPTRLONGWORD_((PTR)( ' );
         r.U1^.Generate( G, Cn );
-        G^.OutSPRP();
+        G^.OutS( L' ))' );
       | epHIPTR :
-        G^.OutS( L'HIPTRLONGGWORD_( (PTR)' );
+        G^.OutS( L'HIPTRLONGGWORD_((PTR)( ' );
         r.U1^.Generate( G, Cn );
-        G^.OutSPRP();
+        G^.OutS( L' ))' );
       END; // CASE r.EK
     END; // CASE r.DK
 

@@ -4073,13 +4073,14 @@ ntSingleTypeConstructedValue<T : DOM.TPType; VR : TValueReq; VAR VI : DOM.TValue
                                                                   // compatible
                                                                 ELSIF Types.TOrdinal^.Compatible( DOM.cmOperation, ET ) AND ( ET^.Unwrap()^.LastOrdinal() <= MAX( CARD32 )) THEN
                                                                   // not compatible, but trucation cannot occur
-                                                                ELSE
-                                                                  // Warning( wrn._UnsafePointerCast ); -- casting to bigger type
+                                                                ELSIF ET^.OccupiedMemory() > SIZE( CARD32 ) THEN
+                                                                  Warning( wrn._UnsafePointerCast );
                                                                 END;
                                                               ELSIF Types.TADDRESS^.Compatible( DOM.cmOperation, ET ) OR ( ET = Types.TPTR ) THEN
                                                                 IF NOT Types.TADDRESS^.Compatible( DOM.cmOperation, T ) AND
                                                                    NOT( T = Types.TPTR ) AND
-                                                                   NOT( T^.TypeKind = DOM.tkProcedure ) THEN
+                                                                   NOT( T^.TypeKind = DOM.tkProcedure ) AND
+                                                                      ( T^.OccupiedMemory() < SIZE( CARD64 )) THEN
                                                                   Warning( wrn._UnsafePointerCast );
                                                                 END;
                                                               END;
