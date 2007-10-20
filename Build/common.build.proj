@@ -39,9 +39,11 @@
         <GrabProcessFileName>GrabbedComponents.tmp</GrabProcessFileName>
         <GrabProcessFile>$(ComponentPath)\$(IntermediateDirName)\$(GrabProcessFileName)</GrabProcessFile>
 
-        <ChildParameters>RootComponentPath=$(RootComponentPath);LibraryName=$(LibraryName);ProductId=$(ProductId);ProductLinkMapFilePath=$(ProductLinkMapFilePath);Test=</ChildParameters>
-        <ChildParameters Condition="$(Level)=='0'">Level=1;$(ChildParameters)</ChildParameters>
-        <ChildParameters Condition="$(Level)=='1'">Level=2+;$(ChildParameters)</ChildParameters>
+        <ComponentResult Condition="$(Level)=='0'">$(Result)</ComponentResult>
+        <ComponentResult Condition="$(Level)!='0'">$(ComponentResult)</ComponentResult>
+
+        <ChildParameters>RootComponentPath=$(RootComponentPath);LibraryName=$(LibraryName);ProductId=$(ProductId);ProductLinkMapFilePath=$(ProductLinkMapFilePath);ComponentResult=$(ComponentResult);Test=</ChildParameters>
+        <ChildParameters Condition="$(Level)=='0'">Level=1+;$(ChildParameters)</ChildParameters>
 
         <!-- M2 initializing code -->
         <Modula2InitCode>$(RootDir)\Modula2\Modula2\Header\m2init.cpp</Modula2InitCode>
@@ -58,11 +60,13 @@
         <TLBFile Condition="$(TypeLibrary)!=''">$(TypeLibrary).tlb</TLBFile>
     </PropertyGroup>
 
+    <!-- outputs -->
     <PropertyGroup>
         <OutputName Condition="$(Result)=='Static'">$(MSBuildProjectName).lib</OutputName>
         <OutputName Condition="$(Result)=='Dynamic'">$(MSBuildProjectName).dll</OutputName>
         <OutputName Condition="$(Result)=='Program'">$(MSBuildProjectName).exe</OutputName>
         <OutputFile>$(OutputDir)\$(OutputName)</OutputFile>
+        <OutputFilePath>$(OutputPath)\$(OutputName)</OutputFilePath>
         <InterfaceNamePath>$(OutputPath)\$(MSBuildProjectName)</InterfaceNamePath>
         <!-- !! without .lib -->
         <InterfacePath>$(OutputPath)\$(OutputName)</InterfacePath>
@@ -205,6 +209,7 @@
             DependsOnTargets="Directories"
             Outputs="@(Grabbed)">
         <!-- Message Text="-LW:$(MSBuildProjectName)/$(Result): @(Grabbed)" Importance="high"/ -->
+        <!-- Message Text="-LW:$(MSBuildProjectName)/$(Result)" Importance="high"/ -->
 
         <!-- try remove already checked components and store result of removing -->
         <ReadLinesFromFile Condition="@(Components)!=''" 
@@ -253,13 +258,14 @@
         </CreateItem>
 
         <!-- SELF LIBRARY PATH and DLL/EXE -->
-        <CreateItem Include="@(Interface -> '%(Identity).lib')"
+        <CreateItem Condition="$(Level)!='0'"
+                    Include="@(Interface -> '%(Identity).lib')"
                     AdditionalMetadata="Type=Library">
             <Output TaskParameter="Include" ItemName="Grabbed"/>
         </CreateItem>
 
-        <CreateItem Condition="$(ComponentStandaloneFlag)=='on'"
-                    Include="$(InterfacePath)"
+        <CreateItem Condition="$(Level)!='0' And $(ComponentStandaloneFlag)=='on'"
+                    Include="$(OutputFilePath)"
                     AdditionalMetadata="Type=Runtime">
             <Output TaskParameter="Include" ItemName="Grabbed"/>
         </CreateItem>
@@ -331,14 +337,14 @@
             <Output TaskParameter="Include" ItemName="GrabbedRuntimes"/>
         </CreateItem>
 
-        <Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedLibrariesToFilter)" Importance="high"/>
-        <Message Text="=========================================" Importance="high"/>
+        <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedLibrariesToFilter)" Importance="high"/ -->
+        <!-- Message Text="=========================================" Importance="high"/ -->
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(Grabbed)" Importance="high"/ -->
         <!-- Message Text="=========================================" Importance="high"/ -->
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedComponents)" Importance="high"/ -->
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedSources)" Importance="high"/ -->
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedIncludes)" Importance="high"/ -->
-        <Message Text="+!!$(MSBuildProjectName)/$(Result): @(GrabbedLibraries)" Importance="high"/>
+        <!-- Message Text="+!!$(MSBuildProjectName)/$(Result): @(GrabbedLibraries)" Importance="high"/ -->
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedMessages)" Importance="high"/ -->
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedRuntimes)" Importance="high"/ -->
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedExportInterfaces)" Importance="high"/ -->
@@ -482,14 +488,13 @@
 
     <Target Name="ComponentRuntimes"
             Inputs="@(GrabbedRuntimes)"
-            Outputs="@(GrabbedRuntimes -> '$(OutputDir)\%(FileName).%(Extension)')">
+            Outputs="@(GrabbedRuntimes -> '$(OutputDir)\%(FileName)%(Extension)')">
         <Copy SourceFiles="@(GrabbedRuntimes)"
-              DestinationFiles="@(GrabbedRuntimes -> '$(OutputDir)\%(FileName).%(Extension)')"/>
+              DestinationFiles="@(GrabbedRuntimes -> '$(OutputDir)\%(FileName)%(Extension)')"/>
     </Target>
 
     <Target Name="Component"
-            DependsOnTargets="ComponentInterface;ComponentCode;BuildProductLicence"/>
-    <!-- ;ComponentRuntimes"/ -->
+            DependsOnTargets="ComponentInterface;ComponentCode;ComponentRuntimes;BuildProductLicence"/>
 
 
     <Target Name="Test" Condition="@(ExportToInterface)!='' Or @(Objects)!=''"
@@ -507,7 +512,6 @@
     <!-- outer, visible targets -->
 
     <Target Name="Clean">
-        <Message Text="$(ResourceDefinition)" Importance="high"/>
         <RemoveDir Directories="$(HeaderDir);$(IntermediateDir)" ContinueOnError="true" />
         <Delete Condition="$(EffectiveLicensing)=='on'"
                 Files="@(MessagesDefDir);@(LicensingSourceFiles)"
