@@ -4074,7 +4074,7 @@ ntSingleTypeConstructedValue<T : DOM.TPType; VR : TValueReq; VAR VI : DOM.TValue
                                                                 ELSIF Types.TOrdinal^.Compatible( DOM.cmOperation, ET ) AND ( ET^.Unwrap()^.LastOrdinal() <= MAX( CARD32 )) THEN
                                                                   // not compatible, but trucation cannot occur
                                                                 ELSE
-                                                                  Warning( wrn._UnsafePointerCast );
+                                                                  // Warning( wrn._UnsafePointerCast ); -- casting to bigger type
                                                                 END;
                                                               ELSIF Types.TADDRESS^.Compatible( DOM.cmOperation, ET ) OR ( ET = Types.TPTR ) THEN
                                                                 IF NOT Types.TADDRESS^.Compatible( DOM.cmOperation, T ) AND
@@ -4160,6 +4160,7 @@ ntEmbeddedFunction<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM.TValue
   | ntEmbeddedLOHIBs<VR, D, VI>
   | ntEmbeddedLOHIWs<VR, D, VI>
   | ntEmbeddedLOHILWs<VR, D, VI>
+  | ntEmbeddedLOHIPTRs<VR, D, VI>
   )                                                        (. VI := VI - DOM.visLValue; .)
 .
 
@@ -4701,6 +4702,19 @@ ntEmbeddedLOHILWs<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM.TValueI
     ntCommonExpression<VR, E, VI>                          (. D^.r.U1 := E;
                                                               D^.T := Types.TLONGWORD;
                                                               c^.ExpectType( Types.TQUADWORD, E^.T, -1 ); .)
+  rpar
+.
+
+ntEmbeddedLOHIPTRs<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM.TValueInfo>
+                                                           (. E : DOM.TPExpression; .)
+  =
+  ( "LOPTRLONGWORD"                                        (. D^.r.EP := DOM.epLOPTR; .)
+  | "HIPTRLONGWORD"                                        (. D^.r.EP := DOM.epHIPTR; .)
+  )
+  lpar
+    ntCommonExpression<VR, E, VI>                          (. D^.r.U1 := E;
+                                                              D^.T := Types.TLONGWORD;
+                                                              c^.ExpectType( Types.TPTR, E^.T, -1 ); .)
   rpar
 .
 

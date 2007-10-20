@@ -151,7 +151,8 @@ BEGIN
         | L'I' : Console.SetQuiet( Console.quietInfo );
         END;
       | L'W' : // suppress warnings
-        IF ( i+1 < CARDINAL( argc )) AND Strings.ToCARD32W( OAsz( argp^[i+1] ), 10, OUT c ) THEN
+        Strings.SubstringW( argp^[i]^, 2, MAX( CARDINAL ), OUT Parameter );
+        IF Strings.ToCARD32W( Parameter, 10, OUT c ) THEN
           Project.SuppressWarning( c );
         ELSE
           Console.WriteString( L'-- missing or bad warning number' ); Console.WriteEOL();

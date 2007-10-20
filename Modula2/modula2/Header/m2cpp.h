@@ -19,7 +19,6 @@
 # define TRUE                  1
 # define NIL                   0
 # define OA_MAX                2147483647
-# define INT_MAX               2147483647 // temporary
 
 # define OUT
 # define IN
@@ -70,12 +69,7 @@ typedef float                  REAL;
 typedef double                 LONGREAL;
 typedef void *                 ADDRESS;
 
-# ifdef _BASETSD_H_
-typedef CARD_PTR               PTR;
-typedef CARD_PTR               CARDPTR;
-typedef INT_PTR                INTPTR;
-typedef DWORD_PTR              STORPTR;
-# elif _WIN64
+# ifdef _WIN64
 typedef unsigned __int64       PTR;
 typedef unsigned __int64       CARDPTR;
 typedef __int64                INTPTR;
@@ -139,6 +133,13 @@ inline WORD LOWORD_( LONGWORD dw ) { return ((__dw*)&dw)->lo; }
 inline WORD HIWORD_( LONGWORD dw ) { return ((__dw*)&dw)->hi; }
 inline LONGWORD LOLONGWORD_( QUADWORD qw ) { return ((__qw*)&qw)->lo; }
 inline LONGWORD HILONGWORD_( QUADWORD qw ) { return ((__qw*)&qw)->hi; }
+# ifdef _WIN64
+   inline LONGWORD LOPTRLONGWORD_( PTR ptr ) { return ((__qw*)&ptr)->lo; }
+   inline LONGWORD HIPTRLONGWORD_( PTR ptr ) { return ((__qw*)&ptr)->hi; }
+# else
+   inline LONGWORD LOPTRLONGWORD_( PTR ptr ) { return (LONGWORD)ptr; }
+   inline LONGWORD HIPTRLONGWORD_( PTR ptr ) { return (LONGWORD)0; }
+# endif
 
 // simple swaps
 # define SWAPB_(b) (b)
@@ -160,9 +161,7 @@ inline QUADWORD SWAPQW_( QUADWORD w ) {
   ((__qw*)&l)->hi = ((__qw*)&w)->lo;
   return l;
 };
-# ifdef _BASETSD_H_
-  # define SWAPPTR_(p) SWAPLW_(p)
-# elif _WIN64
+# ifdef _WIN64
   # define SWAPPTR_(p) SWAPQW_(p)
 # else
   # define SWAPPTR_(p) SWAPLW_(p)
@@ -185,9 +184,7 @@ inline QUADWORD REVERSEQWB_( QUADWORD w ) {
   ((__qw*)&l)->hi = REVERSELWB_( ((__qw*)&w)->lo );
   return l;
 }
-# ifdef _BASETSD_H_
-  # define REVERSEPTRB_(p) REVERSELWB_(p)
-# elif _WIN64
+# ifdef _WIN64
   # define REVERSEPTRB_(p) REVERSEQWB_(p)
 # else
   # define REVERSEPTRB_(p) REVERSELWB_(p)

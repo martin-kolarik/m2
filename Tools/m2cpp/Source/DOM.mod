@@ -1040,6 +1040,7 @@ CLASS IMPLEMENTATION CConstant;
     GUM : TGenerateUnitMode;
     LT : TPType;
     Deferred : BOOLEAN;
+    Structure : BOOLEAN;
   BEGIN
     IF UnitKind = ukVariantSelector THEN
       RETURN gumSimple;
@@ -1139,7 +1140,8 @@ CLASS IMPLEMENTATION CConstant;
  
     ELSE
 
-      IF T^.Unwrap()^.PrimitiveType = DOM.ptStructure THEN
+      Structure := T^.Unwrap()^.PrimitiveType = DOM.ptStructure;
+      IF Structure THEN
         Deferred := eoDLLInterface IN Options;
       ELSE
         Deferred := FALSE;
@@ -1149,7 +1151,15 @@ CLASS IMPLEMENTATION CConstant;
       END;
 
       G^.Indent();
-      IF NOT Deferred OR ( gcDeferredFromDEF IN C ) THEN
+      IF Structure AND
+         ( eoDLLInterface IN Options ) AND
+         ( TEnvironmentOptions{eoExport, eoPublishExports} * Options = TEnvironmentOptions{eoExport, eoPublishExports} ) THEN
+        IF gcDeferredFromDEF IN C THEN
+          G^.OutS( L"const __IFACE " );
+        ELSE
+          G^.OutS( L"extern const __IFACE " );
+        END;
+      ELSIF NOT Deferred OR ( gcDeferredFromDEF IN C ) THEN
         G^.OutS( L'static const ' );
       ELSE
         G^.OutS( L'extern const ' );
@@ -2530,8 +2540,16 @@ CLASS IMPLEMENTATION CVariable;
     CASE UnitKind OF
     | ukSimpleVarDecl :
       G^.Indent();
-      IF ( eoDLLInterface IN Options ) AND NOT( gcDeferredFromDEF IN C ) THEN
-        G^.OutS( L"extern " );
+      IF eoDLLInterface IN Options THEN
+        IF TEnvironmentOptions{eoExport, eoPublishExports} * Options = TEnvironmentOptions{eoExport, eoPublishExports} THEN
+          IF gcDeferredFromDEF IN C THEN
+            G^.OutS( L"__IFACE " );
+          ELSE
+            G^.OutS( L"extern __IFACE " );
+          END;
+        ELSIF NOT( gcDeferredFromDEF IN C ) THEN
+          G^.OutS( L"extern " );
+        END;
       END;
     | ukClassVarDecl, ukVariantSelector :
       G^.Indent();
@@ -8449,7 +8467,7 @@ CLASS IMPLEMENTATION CDesignator;
         IF r.D1 = 1 THEN
           V.I := INT64( INTEGER( r.D2 ));
         ELSIF r.U1 <> NIL THEN
-          CASE CARDINAL( r.D1 ) OF
+          CASE CARDINAL( LOPTRLONGWORD( r.D1 )) OF
           | 2 : V.S.Assign( TPModule( r.U1 )^.OD^.Name );
           | 3 : V.S.Assign( TPModule( r.U1 )^.OD^.FilePath );
           | 4 : V.S.Assign( TPSymbol( r.U1 )^.N );
@@ -8917,7 +8935,7 @@ CLASS IMPLEMENTATION CDesignator;
 
       | epDISPOSE, epFREE :
         IF eoLeakChecking IN Options THEN
-          LeakInfo( TRUE, CARDINAL( r.D1 ), TRUE );
+          LeakInfo( TRUE, CARDINAL( LOPTRLONGWORD( r.D1 )), TRUE );
         END;
         IF T^.UnwrapToBaseType()^.TypeKind = tkClass THEN
           G^.OutS( L'delete ' ); 
@@ -8933,7 +8951,7 @@ CLASS IMPLEMENTATION CDesignator;
           G^.OutS( L' )' );
         END;
         IF eoLeakChecking IN Options THEN
-          LeakInfo( FALSE, CARDINAL( r.D1 ), TRUE );
+          LeakInfo( FALSE, CARDINAL( LOPTRLONGWORD( r.D1 )), TRUE );
         END;
         
       | epEMIT :
@@ -9135,7 +9153,7 @@ CLASS IMPLEMENTATION CDesignator;
 
       | epLeakINFOPush, epLeakINFOPop :
         IF eoLeakChecking IN Options THEN
-          LeakInfo( r.EP = epLeakINFOPush, CARDINAL( r.D1 ), FALSE );
+          LeakInfo( r.EP = epLeakINFOPush, CARDINAL( LOPTRLONGWORD( r.D1 )), FALSE );
         ELSE
           RETURN gumEmpty;
         END;
@@ -9258,7 +9276,7 @@ CLASS IMPLEMENTATION CDesignator;
       
       | epNEW :
         IF eoLeakChecking IN Options THEN
-          LeakInfo( TRUE, CARDINAL( r.D1 ), TRUE );
+          LeakInfo( TRUE, CARDINAL( LOPTRLONGWORD( r.D1 )), TRUE );
         END;
         FT := T^.UnwrapToFirstType();
         LT := FT^.UnwrapToBaseType();
@@ -9279,7 +9297,7 @@ CLASS IMPLEMENTATION CDesignator;
           LT^.Generate( G, gcsName ); G^.OutRP();
         END;
         IF eoLeakChecking IN Options THEN
-          LeakInfo( FALSE, CARDINAL( r.D1 ), TRUE );
+          LeakInfo( FALSE, CARDINAL( LOPTRLONGWORD( r.D1 )), TRUE );
         END;
       | epNEWFunc :
         // IF eoLeakChecking IN Options THEN
@@ -9382,7 +9400,7 @@ CLASS IMPLEMENTATION CDesignator;
 	        Types.TQUADWORD^.CheckAndGenerateCast( G, T, FALSE, CI );
 	        G^.OutS( L'REVERSEQWB_( ' );
 	        T^.CheckAndGenerateCast( G, Types.TQUADWORD, FALSE, CI );
-				ELSIF Types.TBYTE^.Compatible( cmOperation, T ) THEN
+			ELSIF Types.TBYTE^.Compatible( cmOperation, T ) THEN
 	        Types.TBYTE^.CheckAndGenerateCast( G, T, FALSE, CI );
 	        G^.OutS( L'REVERSEBB_( ' );
 	        T^.CheckAndGenerateCast( G, Types.TBYTE, FALSE, CI );
@@ -9411,6 +9429,14 @@ CLASS IMPLEMENTATION CDesignator;
         G^.OutSPRP();
       | epHILONGWORD :
         G^.OutS( L'HILONGWORD_( (QUADWORD)' );
+        r.U1^.Generate( G, Cn );
+        G^.OutSPRP();
+      | epLOPTR :
+        G^.OutS( L'LOPTRLONGWORD_( (PTR)' );
+        r.U1^.Generate( G, Cn );
+        G^.OutSPRP();
+      | epHIPTR :
+        G^.OutS( L'HIPTRLONGGWORD_( (PTR)' );
         r.U1^.Generate( G, Cn );
         G^.OutSPRP();
       END; // CASE r.EK

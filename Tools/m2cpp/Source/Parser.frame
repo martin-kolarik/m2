@@ -670,7 +670,7 @@ CLASS IMPLEMENTATION CiParser;
 
   VIRTUAL PROCEDURE Warning( n : CARDINAL );
   BEGIN
-    IF NOT errorsOn THEN
+    IF NOT errorsOn OR Project.WarningSuppressed( n ) THEN
       RETURN;
     END;
     errors.Warning( t.Line, t.Col, n, OAsz( RW[n] ));
@@ -681,7 +681,7 @@ CLASS IMPLEMENTATION CiParser;
     msg : ARRAY [0..511] OF WCHAR;
     s : ARRAY [0..255] OF WCHAR;
   BEGIN
-    IF NOT errorsOn THEN
+    IF NOT errorsOn OR Project.WarningSuppressed( n ) THEN
       RETURN;
     END;
     ASSIGN( msg, OAsz( RW[n] ));

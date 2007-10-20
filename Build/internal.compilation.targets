@@ -23,7 +23,7 @@
     <!-- CONTROLS -->
     <PropertyGroup>
         <M2CTRL>-DProductId:$(ProductId) -DManufacturer:$(Manufacturer) -DConfigurationName:$(ConfigurationName) -DPlatformName:$(PlatformName)</M2CTRL>
-        <M2CTRL>$(M2CTRL) -DDEBUG:$(Debug) </M2CTRL>
+        <M2CTRL>$(M2CTRL) -W8 -W10 -DDEBUG:$(Debug) </M2CTRL>
         <M2CTRL Condition="$(LeakChecking)=='on'">$(M2CTRL) -SM</M2CTRL>
         <CLCTRL>/Zp8 /J /Gy /GR /Gr /GF /GS- /Oi /DNO_STRICT /DWINVER=0x0501 /D_WIN32_WINNT=0x0501</CLCTRL>
         <CLCTRL Condition="$(CPPExceptions)=='on'">$(CLCTRL) /EHsc</CLCTRL>

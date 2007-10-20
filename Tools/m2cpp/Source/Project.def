@@ -24,6 +24,7 @@ PROCEDURE AddOption( Option : DOM.TEnvironmentOptionsItem );
 PROCEDURE RemoveOption( Option : DOM.TEnvironmentOptionsItem );
 PROCEDURE SetDefaultAccessMode( AccessMode : DOM.TAccessModifier );
 PROCEDURE SuppressWarning( Warning : CARDINAL );
+PROCEDURE WarningSuppressed( Warning : CARDINAL ) : BOOLEAN;
 
 PROCEDURE AddFileToCompile( FilePath : ARRAY OF WCHAR ) : DOM.TPModule;
 PROCEDURE ImportModule( CallerCU : DOM.TPModule; CONST Name : StringsO.CString; CompileImmediatelly : BOOLEAN ) : DOM.TPModule;

@@ -14,6 +14,7 @@ IMPORT
 IMPORT
   FIO,
   lists,
+  maps,
   Storage,
   Strings;
 
@@ -38,6 +39,8 @@ CLASS CProject;
   Units      : DOM.CSymbols;
   Inputs     : lists.CStringList;
   OutputPath : ARRAY TOutputPath OF FIO.PathStrW;
+  
+  Warnings   : maps.CCardinalMap;
 
   PROCEDURE EnterSymbols( c : DOM.TPModule );
   PROCEDURE LeaveSymbols( c : DOM.TPModule );
@@ -46,6 +49,7 @@ CLASS CProject;
   PROCEDURE RemoveOption( Option : DOM.TEnvironmentOptionsItem );
   PROCEDURE SetDefaultAccessMode( AccessMode : DOM.TAccessModifier );
   PROCEDURE SuppressWarning( Warning : CARDINAL );
+  PROCEDURE WarningSuppressed( Warning : CARDINAL ) : BOOLEAN;
 
   PROCEDURE AddFileToCompile( FilePath : ARRAY OF WCHAR ) : DOM.TPModule;
   PROCEDURE ImportModule( CallerCU : DOM.TPModule; CONST Name : StringsO.CString; CompileImmediatelly : BOOLEAN ) : DOM.TPModule;
@@ -95,7 +99,15 @@ CLASS IMPLEMENTATION CProject;
 
   PROCEDURE SuppressWarning( Warning : CARDINAL );
   BEGIN
+    IF NOT Warnings.Contains( Warning ) THEN
+      Warnings.Add( Warning, 0 );
+    END;
   END SuppressWarning;
+  
+  PROCEDURE WarningSuppressed( Warning : CARDINAL ) : BOOLEAN;
+  BEGIN
+    RETURN Warnings.Contains( Warning );
+  END WarningSuppressed;
 
   PROCEDURE RemoveOption( Option : DOM.TEnvironmentOptionsItem );
   BEGIN
@@ -516,6 +528,11 @@ PROCEDURE SuppressWarning( Warning : CARDINAL );
 BEGIN
   Project.SuppressWarning( Warning );
 END SuppressWarning;
+
+PROCEDURE WarningSuppressed( Warning : CARDINAL ) : BOOLEAN;
+BEGIN
+  RETURN Project.WarningSuppressed( Warning );
+END WarningSuppressed;
 
 PROCEDURE AddFileToCompile( FilePath : ARRAY OF WCHAR ) : DOM.TPModule;
 BEGIN
