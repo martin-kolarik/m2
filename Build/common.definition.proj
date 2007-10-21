@@ -3,7 +3,7 @@
     <!-- compiler -->
     <PropertyGroup>
         <LeakDetector>Debug\LeakDetector</LeakDetector>
-        <LicensingComponent>Library\Ciphering;Licensing\Core</LicensingComponent>
+        <LicensingComponent>Licensing\Core</LicensingComponent>
     </PropertyGroup>
 
     <!-- defaults, which should be set in $(MSBuildProjectFile) -->
@@ -20,8 +20,7 @@
         <ComponentStandaloneFlag>on</ComponentStandaloneFlag>
     </PropertyGroup>
     <PropertyGroup>
-        <RootComponentPath>$(MSBuildProjectDirectory)</RootComponentPath>
-        <ComponentDefinitionsPath>$(RootComponentPath)\$(MSBuildProjectName).definition.proj</ComponentDefinitionsPath>
+        <ComponentDefinitionsPath>$(MSBuildProjectDirectory)\$(MSBuildProjectName).definition.proj</ComponentDefinitionsPath>
     </PropertyGroup>
 
     <!-- configuration depended on component definition-->

@@ -30,7 +30,6 @@
 
         <!-- default entered export is overwritten -->
         <OriginalExport>$(Export)</OriginalExport>
-        <ExportToInterfaceFile>ExportToInterface.def</ExportToInterfaceFile>
 
         <!-- HeaderDirName>%40Header</HeaderDirName -->
         <HeaderDir>$(HeaderDirName)</HeaderDir>
@@ -42,8 +41,7 @@
         <ComponentResult Condition="$(Level)=='0'">$(Result)</ComponentResult>
         <ComponentResult Condition="$(Level)!='0'">$(ComponentResult)</ComponentResult>
 
-        <ChildParameters>RootComponentPath=$(RootComponentPath);LibraryName=$(LibraryName);ProductId=$(ProductId);ProductLinkMapFilePath=$(ProductLinkMapFilePath);ComponentResult=$(ComponentResult);Test=</ChildParameters>
-        <ChildParameters Condition="$(Level)=='0'">Level=1+;$(ChildParameters)</ChildParameters>
+        <ChildParameters>Level=1+;ComponentDefinitionsPath=$(ComponentDefinitionsPath);LibraryName=$(LibraryName);ProductId=$(ProductId);ProductLinkMapFilePath=$(ProductLinkMapFilePath);ComponentResult=$(ComponentResult);Test=</ChildParameters>
 
         <!-- M2 initializing code -->
         <Modula2InitCode>$(RootDir)\Modula2\Modula2\Header\m2init.cpp</Modula2InitCode>
@@ -270,7 +268,7 @@
             <Output TaskParameter="Include" ItemName="Grabbed"/>
         </CreateItem>
         
-        <!-- standalone/re-export component libs -->
+        <!-- standalone/re-export component and component libs -->
         <CreateItem Condition="$(FilterLibraries)=='true'"
                     Include="@(SelfInterface -> '%(Identity).filtered')"
                     AdditionalMetadata="Type=LibraryToFilter">
@@ -303,44 +301,42 @@
             <Output TaskParameter="Include" ItemName="LinkDependencyLibraries"/>
         </CreateItem>
 
-        <!-- prepare components -->
+        <!-- prepare (2a) unfiltered components -->
         <CreateItem Condition="%(Type)=='Component'"
                     Include="@(Grabbed)">
             <Output TaskParameter="Include" ItemName="GrabbedComponents"/>
         </CreateItem>
 
-        <!-- ... (2a) TO Sources (for DEF)... -->
+        <!-- ... (3a) TO Sources (for DEF)... -->
         <CreateItem Condition="Exists( '%(Identity)\$(SourceDirName)' )"
                     Include="@(GrabbedComponents)">
             <Output TaskParameter="Include" ItemName="GrabbedSources"/>
         </CreateItem>
-        <!-- ... (2b) TO Includes (for H)... -->
+        <!-- ... (3b) TO Includes (for H)... -->
         <CreateItem Condition="Exists( '%(Identity)\$(IntermediateDirName)' )"
                     Include="@(GrabbedComponents)">
             <Output TaskParameter="Include" ItemName="GrabbedIncludes"/>
         </CreateItem>
-        <!-- ... (3) TO Header Includes... -->
+        <!-- ... (4) TO Header Includes... -->
         <CreateItem Condition="Exists( '%(Identity)\Header' )"
                     Include="@(GrabbedComponents)">
             <Output TaskParameter="Include" ItemName="GrabbedHeaders"/>
         </CreateItem>
 
-        <!-- SPLIT COMPONENTS (4) TO Messages (BinaryReSources)... -->
+        <!-- SPLIT COMPONENTS (6) TO Messages (BinaryReSources)... -->
         <CreateItem Condition="%(Type)=='Messages'"
                     Include="@(Grabbed)">
             <Output TaskParameter="Include" ItemName="GrabbedMessages"/>
         </CreateItem>
 
-        <!-- SPLIT COMPONENTS (5) TO Runtime Modules (DLL,EXE)... -->
+        <!-- SPLIT COMPONENTS (7) TO Runtime Modules (DLL,EXE)... -->
         <CreateItem Condition="%(Type)=='Runtime'"
                     Include="@(Grabbed)">
             <Output TaskParameter="Include" ItemName="GrabbedRuntimes"/>
         </CreateItem>
 
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedLibrariesToFilter)" Importance="high"/ -->
-        <!-- Message Text="=========================================" Importance="high"/ -->
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(Grabbed)" Importance="high"/ -->
-        <!-- Message Text="=========================================" Importance="high"/ -->
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedComponents)" Importance="high"/ -->
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedSources)" Importance="high"/ -->
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedIncludes)" Importance="high"/ -->
@@ -348,6 +344,7 @@
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedMessages)" Importance="high"/ -->
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedRuntimes)" Importance="high"/ -->
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedExportInterfaces)" Importance="high"/ -->
+        <!-- Message Text="=========================================" Importance="high"/ -->
     </Target>
 
 
