@@ -383,8 +383,22 @@ ntClassDefinition<DLLInterface, ClassInterface : BOOLEAN; AM : DOM.TAccessModifi
     WEAK semicolon                                         (. c^.EnterSymbols( Class^.S, TRUE, TRUE, NIL ); .)
   ( IF( ClassInterface )
       ntInterfaceDefinitionBody<Class>
-    | ntClassDefinitionBody<Class> )                       (. c^.LeaveSymbols( TRUE ); .)
-  SYNC kwEND ntIdExpect<Class, FALSE>                      (. Class^.CheckDefinitionSemantics( c ); .)
+    | ntClassDefinitionBody<Class> )                        (. c^.LeaveSymbols( TRUE ); .)
+  SYNC kwEND ntIdExpect<Class, FALSE>                       (. IF NOT ClassInterface AND ( Class^.I = NIL ) THEN // class inherits OBJECT, which requires ALLOCATE, DEALLOCATE to be imported
+                                                                  c^.M2^.ReportAllErrors();
+                                                                  IF ( c^.OD^.MEnv.MIID[DOM.miidAllocate] = NIL ) AND ( c^.MEnv.MIID[DOM.miidAllocate] = NIL ) THEN
+                                                                     IF NOT c^.CheckOverwrittenOperator( Class, DOM.opNEW, TRUE ) THEN
+                                                                        SemErr( err._MissingALLOCATEForOBJECT );
+                                                                     END;
+                                                                  END;
+                                                                  IF ( c^.OD^.MEnv.MIID[DOM.miidDeallocate] = NIL ) AND ( c^.MEnv.MIID[DOM.miidDeallocate] = NIL ) THEN
+                                                                     IF NOT c^.CheckOverwrittenOperator( Class, DOM.opDISPOSE, TRUE ) THEN
+                                                                        SemErr( err._MissingDEALLOCATEForOBJECT );
+                                                                     END;
+                                                                  END;
+                                                                  c^.M2^.ReportFirstError();
+                                                               END;
+                                                               Class^.CheckDefinitionSemantics( c ); .)
 .
   
 ntClassInheritanceModifier<REF IM : DOM.TInheritanceModifier>
@@ -419,9 +433,7 @@ ntVirtual  = "VIRTUAL".
 ntInheritClause<ClassInterface : BOOLEAN; Class : DOM.TPClass>
   = lpar
       ntAncestor<ClassInterface, Class, OUT Class^.I>      (. IF Class^.I <> NIL THEN
-                                                                IF NOT ClassInterface AND
-                                                                   ( Class^.I^.IM * DOM.TInheritanceModifier{DOM.imInterface, DOM.imCOM} = DOM.TInheritanceModifier{DOM.imInterface} ) THEN
-                                                                  // only COM interfaces can be interited to class
+                                                                IF NOT ClassInterface AND ( DOM.imInterface IN Class^.I^.IM ) THEN
                                                                   SemErr( err._InterfaceCannotBeInherited );
                                                                 END;
                                                                 Class^.Options := Class^.Options + Class^.I^.Options * DOM.TEnvironmentOptions{DOM.eoVirtualFinally, DOM.eoVMT};
@@ -433,11 +445,11 @@ ntImplementsClause<Class : DOM.TPClass>
                                                            (. Ancestor : DOM.TPClass; .)
   = "IMPLEMENTS"
       ntAncestor<FALSE, Class, OUT Ancestor>               (. IF ( Ancestor <> NIL ) AND ( DOM.imCOM IN Ancestor^.IM ) THEN
-                                                                SemErr( err._IMPLEMENTSCannotUseCOMInterfaces );
+                                                                // SemErr( err._IMPLEMENTSCannotUseCOMInterfaces );
                                                               END; .)
       { comma
          ntAncestor<FALSE, Class, OUT Ancestor>            (. IF ( Ancestor <> NIL ) AND ( DOM.imCOM IN Ancestor^.IM ) THEN
-                                                                SemErr( err._IMPLEMENTSCannotUseCOMInterfaces );
+                                                                // SemErr( err._IMPLEMENTSCannotUseCOMInterfaces );
                                                               END; .)
       }
 .

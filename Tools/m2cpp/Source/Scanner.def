@@ -1,13 +1,12 @@
 DEFINITION MODULE Scanner;
 
-IMPORT
-  windows;
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
 
 IMPORT
-  FIO;
-  
-IMPORT
-  StringsO;
+  FIO,
+  StringsO,
+  windows;
 
 //============================================================
 

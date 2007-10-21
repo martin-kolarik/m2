@@ -623,6 +623,12 @@
         <string name="_INTERFACECannotIMPLEMENTAnything">
             <item>INTERFACE cannot implement anything</item>
         </string>
+        <string name="_MissingALLOCATEForOBJECT">
+            <item>ALLOCATE for internal base class "NEW" operator is not imported</item>
+        </string>
+        <string name="_MissingDEALLOCATEForOBJECT">
+            <item>DEALLOCATE for internal base class "DISPOSE" operator is not imported</item>
+        </string>
         <string name="_InterfaceCannotBeInherited">
             <item>Interface cannot be inherited directly, use IMPLEMENTS clause for it</item>
         </string>

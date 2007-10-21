@@ -2,13 +2,14 @@ DEFINITION MODULE Generator;
 
 (*# call( o_a_copy => off ) *)
 
+FROM Storage IMPORT
+  ALLOCATE, DEALLOCATE;
+
 IMPORT
   FIO,
+  StringsO,
   windows;
   
-IMPORT
-  StringsO;
-
 TYPE
   TGenerate = (
     genUnknown,

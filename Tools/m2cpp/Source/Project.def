@@ -40,7 +40,7 @@ PROCEDURE SemErr( n : CARDINAL );
 
 PROCEDURE Generate( GenerateAll : BOOLEAN );
 PROCEDURE Current() : DOM.TPModule;
-PROCEDURE GetComponentName( VAR Name : ARRAY OF WCHAR; OutputCPPSymbol : BOOLEAN ) : BOOLEAN;
+PROCEDURE GetComponentName( VAR Name : ARRAY OF WCHAR; OutputCPPSymbol, OutputCPPIfaceSymbol : BOOLEAN ) : BOOLEAN;
 
 INITIALLY __I();
 

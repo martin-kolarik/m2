@@ -577,4 +577,14 @@ inline void ASSIGNszW_(CARDINAL HIGH_D, WCHAR* D, const WCHAR* S)
   }
 }
 
+// --------------------
+// common class
+
+class OBJECT { public:
+  void* operator new(size_t size);
+  void operator delete(void* ptr);
+}; // OBJECT
+
+// --------------------
+
 # endif // ifndef _M2CPP_H_

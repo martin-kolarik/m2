@@ -1,4 +1,8 @@
 DEFINITION MODULE DOM;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 (*# call( o_a_copy => off ) *)
 
 IMPORT

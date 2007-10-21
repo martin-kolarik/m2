@@ -1038,6 +1038,7 @@ CLASS IMPLEMENTATION CConstant;
   VAR
     EV : CEValue;
     GUM : TGenerateUnitMode;
+    LN : ARRAY [0..255] OF WCHAR;
     LT : TPType;
     Deferred : BOOLEAN;
     Structure : BOOLEAN;
@@ -1155,10 +1156,11 @@ CLASS IMPLEMENTATION CConstant;
          ( eoDLLInterface IN Options ) AND
          ( TEnvironmentOptions{eoExport, eoPublishExports} * Options = TEnvironmentOptions{eoExport, eoPublishExports} ) THEN
         IF gcDeferredFromDEF IN C THEN
-          G^.OutS( L"const __IFACE " );
+          G^.OutS( L"const __" );
         ELSE
-          G^.OutS( L"extern const __IFACE " );
+          G^.OutS( L"extern const __" );
         END;
+        Project.GetComponentName( LN, TRUE, TRUE ); G^.OutS( LN ); G^.OutSP();
       ELSIF NOT Deferred OR ( gcDeferredFromDEF IN C ) THEN
         G^.OutS( L'static const ' );
       ELSE
@@ -1582,7 +1584,11 @@ CLASS IMPLEMENTATION CType;
     ELSIF gcForward IN C THEN
   DoForward:
       G^.Indent();
-        G^.OutS( L'struct ' );
+        IF T^.UnwrapToBaseType()^.IsClass() THEN
+          G^.OutS( L'class ' );
+        ELSE
+          G^.OutS( L'struct ' );
+        END;
         OutN( G, C );
         G^.OutSC();
       G^.EOL();
@@ -2524,6 +2530,7 @@ CLASS IMPLEMENTATION CVariable;
   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
   VAR
     GUM : TGenerateUnitMode;
+    LN : ARRAY [0..255] OF WCHAR;
     LT : TPType;
     i : BOOLEAN;
   BEGIN
@@ -2542,11 +2549,12 @@ CLASS IMPLEMENTATION CVariable;
       G^.Indent();
       IF eoDLLInterface IN Options THEN
         IF TEnvironmentOptions{eoExport, eoPublishExports} * Options = TEnvironmentOptions{eoExport, eoPublishExports} THEN
-          IF gcDeferredFromDEF IN C THEN
-            G^.OutS( L"__IFACE " );
+          IF gcDeferredFromDEF NOT IN C THEN
+            G^.OutS( L"extern __" );
           ELSE
-            G^.OutS( L"extern __IFACE " );
+            G^.OutS( L"__" );
           END;
+          Project.GetComponentName( LN, TRUE, TRUE ); G^.OutS( LN ); G^.OutSP();
         ELSIF NOT( gcDeferredFromDEF IN C ) THEN
           G^.OutS( L"extern " );
         END;
@@ -3065,6 +3073,7 @@ CLASS IMPLEMENTATION CProcedure;
 
   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
   VAR
+    LN : ARRAY [0..255] OF WCHAR;
     GenIFace : BOOLEAN;
   BEGIN
     IF gcName IN C THEN
@@ -3114,7 +3123,7 @@ CLASS IMPLEMENTATION CProcedure;
       IF NOT GenIFace THEN
         // do nothing, extern "C" can be decorated only once
       ELSIF TEnvironmentOptions{eoDLLInterface, eoExport, eoPublishExports} * Options = TEnvironmentOptions{eoDLLInterface, eoExport, eoPublishExports} THEN
-        G^.OutS( L"__IFACE " );
+        G^.OutS( L"__" ); Project.GetComponentName( LN, TRUE, TRUE ); G^.OutS( LN ); G^.OutSP();
       END;
       IF UnitKind IN uksRoutineDef THEN
         IF IM * TInheritanceModifier{imAbstract, imVirtual} <> TInheritanceModifier{} THEN
@@ -3495,6 +3504,7 @@ CLASS IMPLEMENTATION CClass;
 
   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
   VAR
+    LN : ARRAY [0..255] OF WCHAR;
     first : BOOLEAN := TRUE;
     noclass : BOOLEAN := TRUE;
   BEGIN
@@ -3526,7 +3536,7 @@ CLASS IMPLEMENTATION CClass;
       IF TEnvironmentOptions{eoExport} * Options = TEnvironmentOptions{} THEN
         // do nothing
       ELSIF TEnvironmentOptions{eoDLLInterface, eoPublishExports} * Options = TEnvironmentOptions{eoDLLInterface, eoPublishExports} THEN
-        G^.OutS( L"__IFACE " );
+        G^.OutS( L"__" ); Project.GetComponentName( LN, TRUE, TRUE ); G^.OutS( LN ); G^.OutSP();
       END;
       IF imInterface IN IM THEN
         G^.OutS( L"__declspec(novtable) " );
@@ -6670,10 +6680,12 @@ CLASS IMPLEMENTATION CModule;
 
   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
   VAR
-    N : ARRAY [0..63] OF WCHAR;
+    IFN : ARRAY [0..255] OF WCHAR;
+    LN : ARRAY [0..255] OF WCHAR;
     PWLE : TPWarningListElem;
     U : TPUnit;
     b : BOOLEAN;
+    haveComponent : BOOLEAN;
   BEGIN
     G^.Indent();
     CASE UnitKind OF
@@ -6715,30 +6727,39 @@ CLASS IMPLEMENTATION CModule;
     IF eoIS IN Options THEN
 	    G^.LineS( L'#include "typeinfo.h"' );
     END;
+
     IF UnitKind = ukImplementation THEN
-      IF ( eoPublishExports IN CurE^.Options ) AND Project.GetComponentName( N, TRUE ) THEN
-        G^.Indent(); G^.OutS( L"#define " ); G^.OutS( N ); G^.EOL();
+      IF ( eoPublishExports IN CurE^.Options ) AND Project.GetComponentName( LN, TRUE, FALSE ) THEN
+        G^.Indent(); G^.OutS( L"#define __" ); G^.OutS( LN ); G^.EOL();
       END;
       G^.Indent(); G^.OutS( L'#include "' ); G^.OutCS( Name ); G^.OutS( L'.h"' ); G^.EOL();
+    ELSE
+      G^.Indent(); G^.OutS( L"#define __" ); G^.OutCS( Name ); G^.OutS( L"_MN" ); G^.EOL();
     END;
 
     GenerateWithImported( G, UnitKind );
 
     G^.EOL();
-    G^.LineS( L"#undef __IFACE" );
+    haveComponent := Project.GetComponentName( IFN, TRUE, TRUE );
+    IF haveComponent THEN
+      G^.OutS( L"#undef __" ); G^.OutS( IFN ); G^.EOL();
+    END;
     CASE UnitKind OF
     | ukDefinition :
-      IF ( eoPublishExports IN CurE^.Options ) AND Project.GetComponentName( N, TRUE ) THEN
-        G^.Indent(); G^.OutS( L"#ifdef " ); G^.OutS( N ); G^.EOL();
-        G^.LineS( L"  #define __IFACE __DLL_EXPORT" );
+      IF ( eoPublishExports IN CurE^.Options ) AND haveComponent THEN
+        Project.GetComponentName( LN, TRUE, FALSE );
+        G^.Indent(); G^.OutS( L"#ifdef __" ); G^.OutS( LN ); G^.EOL();
+        G^.Indent(); G^.OutS( L"  #define __" ); G^.OutS( IFN ); G^.OutS( L" __DLL_EXPORT" ); G^.EOL();
         G^.LineS( L"#else" );
-        G^.LineS( L"  #define __IFACE __DLL_IMPORT" );
+        G^.Indent(); G^.OutS( L"  #define __" ); G^.OutS( IFN ); G^.OutS( L" __DLL_IMPORT" ); G^.EOL();
         G^.LineS( L"#endif" );
+
+        G^.Indent(); G^.OutS( L"#define __" ); G^.OutCS( Name ); G^.OutS( L"_MI __" ); G^.OutS( IFN ); G^.EOL();
       END;
     | ukImplementation, ukProgram :
       // control by option
       IF eoPublishExports IN CurE^.Options THEN
-        G^.LineS( L"#define __IFACE __DLL_EXPORT" );
+        G^.Indent(); G^.OutS( L"#define __" ); G^.OutS( IFN ); G^.OutS( L" __DLL_EXPORT" ); G^.EOL();
       END;
     END;
 
@@ -8500,7 +8521,7 @@ CLASS IMPLEMENTATION CDesignator;
           Strings.FromCARD32W( CARDINAL( r.D2 ), 10, OUT n );
           V.S.AppendOA( n );
         ELSIF r.D1 < 12 THEN // library
-          IF Project.GetComponentName( n, FALSE ) THEN
+          IF Project.GetComponentName( n, FALSE, FALSE ) THEN
             V.S.AppendOA( n );
           ELSE
             V.S.AppendOA( L"<unknown>" );

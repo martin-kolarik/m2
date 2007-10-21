@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE Project;
 (*# call( o_a_copy => off ) *)
 
 FROM Storage IMPORT
-  ALLOCATE;
+  ALLOCATE, DEALLOCATE;
 
 FROM Strings IMPORT
   LowerizeW, CapitalizeW;
@@ -65,7 +65,7 @@ CLASS CProject;
 
   PROCEDURE Generate( GenerateAll : BOOLEAN );
   PROCEDURE Current() : DOM.TPModule;
-  PROCEDURE GetComponentName( VAR Name : ARRAY OF WCHAR; OutputCPPSymbol : BOOLEAN ) : BOOLEAN;
+  PROCEDURE GetComponentName( VAR Name : ARRAY OF WCHAR; OutputCPPSymbol, OutputCPPIfaceSymbol : BOOLEAN ) : BOOLEAN;
 END CProject;
 
 //------------------------------------------------------------
@@ -418,7 +418,7 @@ CLASS IMPLEMENTATION CProject;
     RETURN CurrentM;
   END Current;
 
-  PROCEDURE GetComponentName( VAR Name : ARRAY OF WCHAR; OutputCPPSymbol : BOOLEAN ) : BOOLEAN;
+  PROCEDURE GetComponentName( VAR Name : ARRAY OF WCHAR; OutputCPPSymbol, OutputCPPIfaceSymbol : BOOLEAN ) : BOOLEAN;
   BEGIN
     IF EQUALS( Component, L"" ) THEN
       RETURN FALSE;
@@ -426,7 +426,12 @@ CLASS IMPLEMENTATION CProject;
       ASSIGN( Name, Component );
     END;
     IF OutputCPPSymbol THEN
-      Strings.AppendW( REF Name, L"_LN" );
+      IF OutputCPPIfaceSymbol THEN
+        // Strings.AppendW( REF Name, L"_IF" );
+        Name := L"IFACE";
+      ELSE
+        Strings.AppendW( REF Name, L"_LN" );
+      END;
     END;
     RETURN TRUE;
   END GetComponentName;
@@ -594,9 +599,9 @@ BEGIN
   RETURN Project.Current();
 END Current;
 
-PROCEDURE GetComponentName( VAR Name : ARRAY OF WCHAR; OutputCPPSymbol : BOOLEAN ) : BOOLEAN;
+PROCEDURE GetComponentName( VAR Name : ARRAY OF WCHAR; OutputCPPSymbol, OutputCPPIfaceSymbol : BOOLEAN ) : BOOLEAN;
 BEGIN
-  RETURN Project.GetComponentName( Name, OutputCPPSymbol );
+  RETURN Project.GetComponentName( Name, OutputCPPSymbol, OutputCPPIfaceSymbol );
 END GetComponentName;
 
 INITIALLY __I();

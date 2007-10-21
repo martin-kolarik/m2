@@ -1,0 +1,14 @@
+DEFINITION MODULE forwardtypes;
+
+TYPE
+  TPC = POINTER TO C;
+  TPR = POINTER TO R;
+
+  R = RECORD
+        I : CARDINAL;
+      END;
+      
+  CLASS C;
+  END C;
+        
+END forwardtypes.

@@ -1,32 +1,36 @@
 // DEFINITION MODULE SYSTEM
 
-# pragma once
-# ifndef _M2INTRINSIC_H_
-# define _M2INTRINSIC_H_
-
-# undef __IFACE_UNKNOWN
-# ifndef __IFACE
-# define __IFACE_UNKNOWN
-# define __IFACE
-# endif
-
 // --------------------
+// prototypes for CAPS/LOWS
 
-// prototypes for new/delete
+# ifdef __Strings_MN
+
+# ifndef _M2INTRINSIC_Strings_
+# define _M2INTRINSIC_Strings_
+
 # ifndef _USER_STRINGS_DEFINED_
 
+# ifndef __Strings_MI
+# define __Strings_MI_UNDEF
+# define __Strings_MI
+# endif
+
 namespace Strings {
-  __IFACE void (CapsA)( CARDINAL HIGH_, CHAR* s );
-  __IFACE void (CapsW)( CARDINAL HIGH_, WCHAR* s );
-  __IFACE void (LowsA)( CARDINAL HIGH_, CHAR* s );
-  __IFACE void (LowsW)( CARDINAL HIGH_, WCHAR* s );
+  __Strings_MI void (CapsA)( CARDINAL HIGH_, CHAR* s );
+  __Strings_MI void (CapsW)( CARDINAL HIGH_, WCHAR* s );
+  __Strings_MI void (LowsA)( CARDINAL HIGH_, CHAR* s );
+  __Strings_MI void (LowsW)( CARDINAL HIGH_, WCHAR* s );
 }
 # define __M2CAPA Strings::CapsA
 # define __M2CAPW Strings::CapsW
 # define __M2LOWA Strings::LowsA
 # define __M2LOWW Strings::LowsW
 
+# ifdef __Strings_MI_UNDEF
+# undef __Strings_MI
 # endif
+
+# endif // _USER_STRINGS_DEFINED_
 
 // procedures
 inline void CAPB_( CARDINAL HIGH_, CHAR* ch )
@@ -67,25 +71,37 @@ inline WCHAR LOWFW_( WCHAR ch )
   return ch;
 }
 
+# endif // # ifndef _M2INTRINSIC_Strings_
+
+# endif // # ifdef __Strings_MN
+
 // --------------------
-
-// common class
-class OBJECT { public:
-  void* operator new(size_t size);
-  void operator delete(void* ptr);
-}; // OBJECT
-
 // prototypes for new/delete
+
+# ifdef __Storage_MN
+
+# ifndef _M2INTRINSIC_Storage_
+# define _M2INTRINSIC_Storage_
+
 # ifndef _USER_STORAGE_DEFINED_
 
+# ifndef __Storage_MI
+# define __Storage_MI_UNDEF
+# define __Storage_MI
+# endif
+
 namespace Storage {
-  __IFACE void (M2ALLOCATE)( ADDRESS* ptr, CARDINAL size );
-  __IFACE void (M2DEALLOCATE)( ADDRESS* ptr );
+  __Storage_MI void (M2ALLOCATE)( ADDRESS* ptr, CARDINAL size );
+  __Storage_MI void (M2DEALLOCATE)( ADDRESS* ptr );
 }
 # define __M2ALLOCATE Storage::M2ALLOCATE
 # define __M2DEALLOCATE Storage::M2DEALLOCATE
 
+# ifdef __Storage_MI_UNDEF
+# undef __Storage_MI
 # endif
+
+# endif // _USER_STORAGE_DEFINED_
 
 inline void* OBJECT::operator new(size_t size)
 {
@@ -99,12 +115,8 @@ inline void OBJECT::operator delete(void* ptr)
   __M2DEALLOCATE(&ptr);
 } // OBJECT::operator delete
 
-// --------------------
+# endif // # ifndef _M2INTRINSIC_Storage_
 
-# ifdef __IFACE_UNKNOWN
-# undef __IFACE
-# endif
+# endif // # ifdef __Storage_MN
 
 // --------------------
-
-# endif // ifndef _M2INTRINSIC_H_
