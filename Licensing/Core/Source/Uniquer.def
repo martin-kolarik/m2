@@ -1,5 +1,8 @@
 DEFINITION MODULE Uniquer;
 
+FROM Storage IMPORT
+  ALLOCATE, DEALLOCATE;
+
 IMPORT
    lists,
    StringsO;

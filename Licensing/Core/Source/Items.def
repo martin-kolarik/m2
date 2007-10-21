@@ -1,5 +1,8 @@
 DEFINITION MODULE Items;
 
+FROM Storage IMPORT
+  ALLOCATE, DEALLOCATE;
+
 IMPORT
    time,
    lists,

@@ -14,7 +14,7 @@
 
     <!-- 3 -->
     <ItemGroup>
-        <Components Include="modula2\modula2;api\clib;API\win32"/>
+        <Components Include="modula2\modula2;api\clib;API\win32;modula2\m2rtl"/>
         <Modules Include="cphcommon;crc;digest;sha1;sha256;md5;hash;Rijndael"/>
     </ItemGroup>
 

@@ -1,5 +1,8 @@
 DEFINITION MODULE Resources;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 //===========================================================================
 
 IMPORT

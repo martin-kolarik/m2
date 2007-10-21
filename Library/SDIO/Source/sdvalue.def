@@ -1,5 +1,8 @@
 DEFINITION MODULE sdvalue;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
    StringsO,
    time;

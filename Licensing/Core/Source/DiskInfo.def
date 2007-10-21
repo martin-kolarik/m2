@@ -1,5 +1,8 @@
 DEFINITION MODULE DiskInfo;
 
+FROM Storage IMPORT
+  ALLOCATE, DEALLOCATE;
+
 IMPORT
   StringsO;
 

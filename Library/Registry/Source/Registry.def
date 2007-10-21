@@ -1,5 +1,10 @@
 DEFINITION MODULE Registry;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+#save, option( dll_export => on )
+
 TYPE
    TRoot = (
       LOCAL_MACHINE,
@@ -54,5 +59,7 @@ CLASS CRegistry;
    PUBLIC PROCEDURE SetKeyReal( CONST Key : ARRAY OF WCHAR;       V : LONGREAL       ) : BOOLEAN;
    PUBLIC PROCEDURE SetKeyBin ( CONST Key : ARRAY OF WCHAR;       PData : ADDRESS; DataLen : CARDINAL ) : BOOLEAN;
 END CRegistry;
+
+#restore
 
 END Registry.

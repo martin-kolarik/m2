@@ -1,5 +1,8 @@
 DEFINITION MODULE StorageO;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
 	Exceptions;
 

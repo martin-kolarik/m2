@@ -4,16 +4,15 @@ DEFINITION MODULE drv_wrapper;
   #error
 #endif
 
-IMPORT
-  windows;
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
 
 IMPORT
   avltree,
-  FIO;
-
-IMPORT
   drv_str,
-  drv_def;
+  drv_def,
+  FIO,
+  windows;
 
 //=============================================================================
 // API linkage

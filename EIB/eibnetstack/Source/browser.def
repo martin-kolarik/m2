@@ -5,6 +5,9 @@ DEFINITION MODULE browser;
 IMPORT
    winsock; // must be the first
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
    core,
    Delegate,

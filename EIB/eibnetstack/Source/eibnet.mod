@@ -202,7 +202,7 @@ CLASS IMPLEMENTATION CConnection;
 
    INTERNAL VIRTUAL PROCEDURE OnTimer( TimerId : PTR );
    BEGIN
-      CASE TTimers( TimerId ) OF
+      CASE TTimers( LOPTRLONGWORD( TimerId )) OF
       //----
       | tiConnect :
          logger()^.LogS( dldTrace, L"EIBNet Connection", L"CONNECT timeout" );

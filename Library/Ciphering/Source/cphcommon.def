@@ -1,5 +1,7 @@
 DEFINITION MODULE cphcommon;
 
+# save, option( dll_export => on ) *)
+
 (*================================================================================*)
 
 PROCEDURE FromHex( CONST String : ARRAY OF WCHAR; OUT Bin : ARRAY OF BYTE; OUT Filled : CARDINAL ); // expects event number of characters in String
@@ -14,6 +16,8 @@ PROCEDURE FromBASE64( CONST String : ARRAY OF WCHAR; OUT Bin : ARRAY OF BYTE; OU
 PROCEDURE ToBASE64( CONST Bin : ARRAY OF BYTE; OUT String : ARRAY OF WCHAR ) : BOOLEAN;
 
 (*================================================================================*)
+
+#restore
 
 END cphcommon.
 

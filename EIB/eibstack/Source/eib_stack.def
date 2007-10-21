@@ -5,6 +5,9 @@ DEFINITION MODULE eib_stack;
 
 (*================================================================================*)
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
    avltree,
    eib_def,

@@ -3,6 +3,9 @@ DEFINITION MODULE eibsrv;
 IMPORT
    winsock,
    windows;
+   
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
 
 IMPORT
    arrays,

@@ -3,6 +3,8 @@ DEFINITION MODULE sha1;
 IMPORT
    digest;
 
+# save, option( dll_export => on ) *)
+
 (*================================================================================*)
 
 TYPE
@@ -47,5 +49,7 @@ PROCEDURE Digest( CONST input : ARRAY OF BYTE; OUT D : digest.ADigest );
 PROCEDURE DigestOA( CONST input : ARRAY OF BYTE; OUT D : TDigest );
 
 (*================================================================================*)
+
+# restore
 
 END sha1.

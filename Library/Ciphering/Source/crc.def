@@ -1,5 +1,7 @@
 DEFINITION MODULE crc;
 
+# save, option( dll_export => on ) *)
+
 (*--------------------------------------------------------------------------------*)
 
 CONST
@@ -15,6 +17,8 @@ CONST
 PROCEDURE crc_mpeg2( InCRC : CARD32; CONST In : ARRAY OF BYTE ) : CARD32;
 
 (*--------------------------------------------------------------------------------*)
+
+# restore
 
 CONST
    crc16  ::= crc_ccitt;

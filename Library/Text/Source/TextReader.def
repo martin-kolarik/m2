@@ -1,5 +1,8 @@
 DEFINITION MODULE TextReader;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
    IOO,
    StringsO,

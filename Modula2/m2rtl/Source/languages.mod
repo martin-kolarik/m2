@@ -1,16 +1,17 @@
 IMPLEMENTATION MODULE Languages;
 
-IMPORT
-   windows,
-   wincon,
-   winerror,
-   winnls;
-  
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 FROM Strings IMPORT
   LowerizeW;
   
 IMPORT
-  Strings;
+   Strings,
+   windows,
+   wincon,
+   winerror,
+   winnls;
   
 //===========================================================================
 

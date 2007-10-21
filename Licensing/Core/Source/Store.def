@@ -1,5 +1,8 @@
 DEFINITION MODULE Store;
 
+FROM Storage IMPORT
+  ALLOCATE, DEALLOCATE;
+
 IMPORT
 	arrays,
 	Items,

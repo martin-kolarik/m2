@@ -1,6 +1,9 @@
 DEFINITION MODULE list;
 // ADT List
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 #save, option( dll_export => on )
 
 TYPE

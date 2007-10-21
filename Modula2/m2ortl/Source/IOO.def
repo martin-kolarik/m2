@@ -1,5 +1,8 @@
 DEFINITION MODULE IOO;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
   Delegate,
   Exceptions,

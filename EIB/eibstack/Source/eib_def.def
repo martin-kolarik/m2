@@ -1,5 +1,8 @@
 DEFINITION MODULE eib_def;
 
+FROM Storage IMPORT
+  ALLOCATE, DEALLOCATE;
+
 (*# call( o_a_copy => off ) *)
 (*# warn( 4251 => off,
           4275 => off ) *)

@@ -26,8 +26,9 @@ TYPE
   END;
 # restore
 
-# save, call( convention => stdcall ) *)
+# save, option( dll_export => on ) *)
 
+# save, call( convention => stdcall ) *)
 TYPE
   TPIUnknown  = POINTER TO CIUnknown;
   TPIDispatch = POINTER TO CIDispatch;
@@ -36,7 +37,7 @@ CONST
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CIUnknown( unknwn.IUnknown );
+CLASS CIUnknown IMPLEMENTS unknwn.IUnknown;
   PRIVATE VAR
     PAggregate     : TPIUnknown; // mostly some interface creator
   PUBLIC READONLY VAR
@@ -138,5 +139,7 @@ PROCEDURE DbgOutADD( PInterface : TPIUnknown );
 PROCEDURE DbgOutREL( PInterface : TPIUnknown );
 
 (*===========================================================================*)
+
+# restore
 
 END com.

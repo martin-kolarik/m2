@@ -1,5 +1,8 @@
 DEFINITION MODULE sdns;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
 	StringsO;
 	

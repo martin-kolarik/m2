@@ -1,13 +1,14 @@
 DEFINITION MODULE INIFile;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
    IOO,
+   list,
    TextReader,
    TextWriter,
    StringsO;
-
-IMPORT
-   list;
 
 #save, option( dll_export => on )
 

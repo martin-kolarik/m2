@@ -1,5 +1,8 @@
 DEFINITION MODULE rijndael;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 (*================================================================================*)
 
 // private, should be private in the CRindael
@@ -39,6 +42,8 @@ TYPE
 	
 (*--------------------------------------------------------------------------------*)
 
+# save, option( dll_export => on ) *)
+
 CLASS CRijndael;
 	PRIVATE VAR
 		ciphermode : TCipherMode;
@@ -66,6 +71,8 @@ CONST
 
 PROCEDURE Encrypt( CipherMode : TCipherMode; KeyLen : TRijndaelKeyLen; CONST Key, IV, Input : ARRAY OF BYTE; OUT Output : ARRAY OF BYTE; OUT Filled : CARDINAL ) : BOOLEAN;
 PROCEDURE Decrypt( CipherMode : TCipherMode; KeyLen : TRijndaelKeyLen; CONST Key, IV, Input : ARRAY OF BYTE; OUT Output : ARRAY OF BYTE; OUT Filled : CARDINAL ) : BOOLEAN;
+
+# restore
 
 (*================================================================================*)
 

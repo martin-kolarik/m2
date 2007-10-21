@@ -1,5 +1,10 @@
 DEFINITION MODULE digest;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+# save, option( dll_export => on ) *)
+
 (*================================================================================*)
 
 TYPE
@@ -47,5 +52,7 @@ PROCEDURE Digest( Type : TDigestType; CONST input : ARRAY OF BYTE; OUT digest : 
 PROCEDURE DigestOA( Type : TDigestType; CONST input : ARRAY OF BYTE; OUT digest : ARRAY OF BYTE );
 
 (*================================================================================*)
+
+# restore
 
 END digest.

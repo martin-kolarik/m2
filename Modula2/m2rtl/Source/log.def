@@ -2,6 +2,9 @@ DEFINITION MODULE log;
 
 //=========================================================
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
    Exceptions,
    Sync;

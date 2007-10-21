@@ -1,5 +1,8 @@
 DEFINITION MODULE Service;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
    Sync,
    thread,

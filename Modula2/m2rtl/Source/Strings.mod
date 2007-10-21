@@ -1182,6 +1182,16 @@ BEGIN
 	RETURN lrconv.StrToLONGREALW( String, OUT V );
 END ToLONGREALW;
 
+PROCEDURE LowsA( REF S : ARRAY OF CHAR );
+BEGIN
+	windows.CharLowerBuffA( ADR( S ), LENGTH( S ));
+END LowsA;
+
+PROCEDURE CapsA( REF S : ARRAY OF CHAR );
+BEGIN
+	windows.CharUpperBuffA( ADR( S ), LENGTH( S ));
+END CapsA;
+
 PROCEDURE LowsW( REF S : ARRAY OF WCHAR );
 BEGIN
 	windows.CharLowerBuffW( ADR( S ), LENGTH( S ));

@@ -2,6 +2,9 @@ DEFINITION MODULE TextWriter;
 
 (*===========================================================================*)
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
    Exceptions,
 	IOO,

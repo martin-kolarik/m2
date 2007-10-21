@@ -13,12 +13,13 @@ DEFINITION MODULE drv_ax;
 //                              (C) 2004 Moravian Instruments //
 ////////////////////////////////////////////////////////////////
 
-IMPORT
-  guiddef,
-  wtypes;
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
 
 IMPORT
-  ax_automation;
+  ax_automation,
+  guiddef,
+  wtypes;
 
 (*===========================================================================*)
 

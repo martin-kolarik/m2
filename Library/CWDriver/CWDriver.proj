@@ -16,7 +16,7 @@
     <!-- 3 COMPOMENT DEFINITION -->
     <ItemGroup>
         <Components Include="modula2\modula2;api\clib;API\win32"/>
-        <Components Include="modula2\m2rtl;modula2\m2ortl;API\COM;Library\COM;Library\ADT;Library\Messaging;Library\SDIO"/>
+        <Components Include="component\sccore;Library\SDIO"/>
         <Modules Include="drv_str;drv_def;drv_wrapper_;drv_wrapper;drv_ax_;drv_ax"/>
     </ItemGroup>
 

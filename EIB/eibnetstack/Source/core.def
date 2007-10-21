@@ -3,6 +3,9 @@ DEFINITION MODULE core;
 IMPORT
    winsock;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
    eib_def,
    StringsO;

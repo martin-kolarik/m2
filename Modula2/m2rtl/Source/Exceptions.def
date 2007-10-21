@@ -1,6 +1,9 @@
 DEFINITION MODULE Exceptions;
 // Modula2 Exceptions handling module
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 #save, option( dll_export => on )
 
 //--------------------------------------------------------------------------------

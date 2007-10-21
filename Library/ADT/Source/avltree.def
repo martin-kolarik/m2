@@ -1,5 +1,8 @@
 DEFINITION MODULE avltree;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 (*===========================================================================*)
 //
 // AVL tree

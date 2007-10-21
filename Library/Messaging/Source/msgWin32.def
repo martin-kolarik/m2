@@ -1,10 +1,11 @@
 DEFINITION MODULE msgWin32;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
   lists,
-  msgOSAL;
-  
-IMPORT
+  msgOSAL,
   windows;
   
 #save, option( dll_export => on )

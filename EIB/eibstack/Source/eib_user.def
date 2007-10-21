@@ -2,6 +2,9 @@ DEFINITION MODULE eib_user;
 
 (*================================================================================*)
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
    eib_def,
    eib_status,

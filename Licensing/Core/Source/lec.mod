@@ -171,7 +171,7 @@ CLASS IMPLEMENTATION CResult;
       IF LInfo = riUnknown THEN
          RETURN riDemo;
       ELSIF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( LInfo )) >> 3 ) MOD 117 ) THEN
-         RETURN TInfo(( PTR( ADR( LInfo )) >> 3 ) MOD 2 + 1 );
+         RETURN TInfo( CARDINAL( LOPTRLONGWORD( PTR( ADR( LInfo )) >> 3 )) MOD 2 + 1 );
       ELSE
          RETURN LInfo;
       END;

@@ -1,6 +1,9 @@
 DEFINITION MODULE StringsO;
 // Modula2 Strings handling module
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
   Exceptions;
 

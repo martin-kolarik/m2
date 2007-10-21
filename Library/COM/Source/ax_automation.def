@@ -1,5 +1,8 @@
 DEFINITION MODULE ax_automation;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 ////////////////////////////////////////////////////////////////
 // Common ActiveX Control                                     //
 //                                            the code itself //
@@ -17,6 +20,8 @@ IMPORT
   com,
   list;
 
+# save, option( dll_export => on )
+
 (*===========================================================================*)
 // COM DLL interface
 
@@ -26,7 +31,7 @@ PROCEDURE UnloadAllowed() : BOOLEAN;
 (*===========================================================================*)
 // common interfaces
 
-(*# save, call( convention => stdcall ) *)
+# save, call( convention => stdcall )
 
 TYPE
   TPInterface = POINTER TO CInterface;
@@ -162,16 +167,9 @@ CLASS CActiveXControl( CInterface );
   INTERNAL PROCEDURE DispatchEvent( EventIDispatchIID : guiddef.IID; EventId : CARDINAL; Parameters : ARRAY OF oaidl.VARIANTARG );
 END CActiveXControl;
 
-(*# restore *)
+# restore
 
 (*===========================================================================*)
-// public data and procedures manipulating interfaces
-
-PROCEDURE DbgOutSH( String : ARRAY OF WCHAR; HexNumber : CARDINAL );
-PROCEDURE DbgOutSP( String : ARRAY OF WCHAR; HexNumber : PTR );
-PROCEDURE DbgOutIID( String : ARRAY OF WCHAR; POwner : ADDRESS; riid : guiddef.IID );
-PROCEDURE DbgOutADD( PInterface : TPInterface );
-PROCEDURE DbgOutREL( PInterface : TPInterface );
 
 TYPE
   TPAbstractClientConstructor = POINTER TO CAbstractClientConstructor;
@@ -189,6 +187,16 @@ PROCEDURE ForgetClientConstructor();
 
 // helper
 PROCEDURE GetClientConstructor() : TPAbstractClientConstructor;
+
+#restore
+
+(*===========================================================================*)
+
+PROCEDURE DbgOutSH( String : ARRAY OF WCHAR; HexNumber : CARDINAL );
+PROCEDURE DbgOutSP( String : ARRAY OF WCHAR; HexNumber : PTR );
+PROCEDURE DbgOutIID( String : ARRAY OF WCHAR; POwner : ADDRESS; riid : guiddef.IID );
+PROCEDURE DbgOutADD( PInterface : TPInterface );
+PROCEDURE DbgOutREL( PInterface : TPInterface );
 
 (*===========================================================================*)
 

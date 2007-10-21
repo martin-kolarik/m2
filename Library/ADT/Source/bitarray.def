@@ -1,5 +1,8 @@
 DEFINITION MODULE bitarray;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 #save, option( dll_export => on )
 
 TYPE

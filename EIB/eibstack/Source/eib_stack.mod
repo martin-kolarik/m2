@@ -208,7 +208,7 @@ CLASS IMPLEMENTATION CTimeouter;
     IF SUPER.OnMessage( MSG, OUT Result ) THEN
       RETURN TRUE;
     ELSIF MSG.Message = msghandler.MsgBase THEN
-      PLayer^.Timeout( TTimeoutId( MSG[3] ), LONGWORD( MSG[2] ));
+      PLayer^.Timeout( TTimeoutId( LOPTRLONGWORD( MSG[3] )), LONGWORD( LOPTRLONGWORD( MSG[2] )));
     ELSE
       RETURN FALSE;
     END;

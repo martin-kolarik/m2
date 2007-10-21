@@ -2,6 +2,9 @@ DEFINITION MODULE Delegate;
 // Modula2 Delegates handling module -- Delegate is an object, which is shared between more owners.
 // The object must solve race condition during finishing/deallocating.
 
+FROM Storage IMPORT
+  ALLOCATE, DEALLOCATE;
+
 IMPORT
   Exceptions;
 
