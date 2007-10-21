@@ -307,6 +307,9 @@ VAR
 
       tw.WriteOA( L"IMPLEMENTATION MODULE cllv;", TRUE );
       tw.LineEnd();
+      tw.WriteOA( L"FROM Storage IMPORT", TRUE );
+      tw.WriteOA( L"   ALLOCATE, DEALLOCATE;", TRUE );
+      tw.LineEnd();
       tw.WriteOA( L"IMPORT", TRUE );
       tw.WriteOA( L"   lec;", TRUE );
       tw.LineEnd();

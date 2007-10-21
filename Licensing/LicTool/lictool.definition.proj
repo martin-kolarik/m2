@@ -15,6 +15,10 @@
         <Result>Static</Result>
     </PropertyGroup>
 
+    <PropertyGroup Condition="$(MSBuildProjectName)=='sccore'">
+        <ComponentStandaloneFlag>off</ComponentStandaloneFlag>
+    </PropertyGroup>
+
     <PropertyGroup>
         <ProductM2Control>-DTarget:&quot;$(ProductVariant)&quot;</ProductM2Control>
         <ProductCLControl></ProductCLControl>
