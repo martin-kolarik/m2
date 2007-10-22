@@ -5,6 +5,7 @@ IMPLEMENTATION MODULE eibsrv;
 //================================================================================
 (*/* changes:
 
+21.10.2007 -- started to split to core/svc/driver
 01.09.2007 -- started with SDAP/Server
 --.08.2007 -- checked operations, EIB network code complete
 26.07.2007 -- first alpha, unchanged sources, started removing abundant code
@@ -86,8 +87,6 @@ IMPORT
    Time;
 
 IMPORT
-   cllv,
-   drv_str,
    INIFile,
    netsocket,
    netsrv,
@@ -104,6 +103,11 @@ FROM Storage IMPORT
 
 FROM Strings IMPORT
    LowerizeW;
+
+//================================================================================
+
+VAR
+   R : Resources.CResources;
 
 //================================================================================
 
@@ -403,6 +407,7 @@ CLASS IMPLEMENTATION CSDAPServer;
          ACK( PConnection, sdap400 );
          RETURN;
       END;
+      Server^.PResult^.Inc();
 
       // split command and subcommand
       parametersCount := 2;
@@ -475,9 +480,10 @@ CLASS IMPLEMENTATION CSDAPServer;
             RETURN;
          END;
       END;
-
-      // IF Result.Counted THEN
-      // ELSIF Result.Expired THEN
+      IF Server^.PResult^.Counted OR Server^.PResult^.Expired THEN
+         ACK( PConnection, sdap501 );
+         RETURN;
+      END;
 
       CASE Command OF
       //-----
@@ -494,8 +500,7 @@ CLASS IMPLEMENTATION CSDAPServer;
          b := Server^.Running;
          Server^.Stop( TRUE, FALSE );
          Server^.Dispose();
-         Server^.Init( L"EibSrv", NIL, NIL );
-         IF NOT Server^.ReadParameters( p[1], OUT p[0], OUT l ) THEN
+         IF NOT Server^.LoadConfiguration( p[1], OUT p[0], OUT l ) THEN
             p[1].FromINT32( l, 10 );
             p[0].PrependOA( L" " );
             p[0].Prepend( p[1] );
@@ -645,6 +650,45 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
+   PUBLIC PROPERTY PResult GET : POINTER TO lec.CResult;
+   BEGIN
+      RETURN ADR( Result );
+   END PResult;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROPERTY cllvData SET( Value : ADDRESS );
+   BEGIN
+      cllvdata := Value;
+   END cllvData;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROPERTY cllvLength SET( Value : CARDINAL );
+   BEGIN
+      cllvlength := Value;
+   END cllvLength;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROPERTY EXEFlag GET : BOOLEAN;
+   BEGIN
+      RETURN rsEXEFlag IN RStatus;
+   END EXEFlag;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROPERTY EXEFlag SET( Value : BOOLEAN );
+   BEGIN
+      IF Value THEN
+         INCL( RStatus, rsEXEFlag );
+      ELSE
+         EXCL( RStatus, rsEXEFlag );
+      END;
+   END EXEFlag;
+
+//--------------------------------------------------------------------------------
+
    INTERNAL VIRTUAL PROCEDURE OnTimer( TimerId : PTR );
    BEGIN
       IF TimerId = tiInitReadDelay THEN
@@ -654,18 +698,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE Init( CONST SymbolicName : ARRAY OF WCHAR; _CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW ) : BOOLEAN;
-   BEGIN
-      SUPER.Init();
-      CallbackId := _CallbackId;
-      CallbackProc := PCallback;
-      SDAP.Init();
-      RETURN TRUE;
-   END Init;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE ReadParameters( CONST ParFilePath : StringsO.CString; OUT ErrorMessage : StringsO.CString; OUT ErrorLine : CARDINAL ) : BOOLEAN;
+   PUBLIC PROCEDURE LoadConfiguration( CONST ConfigurationFile : StringsO.CString; OUT ErrorMessage : StringsO.CString; OUT ErrorLine : CARDINAL ) : BOOLEAN;
    LABEL
       Fail;
    CONST
@@ -683,10 +716,6 @@ CLASS IMPLEMENTATION CEIBServer;
          kvEIBNet            = L'eibnet';
       knKey                  = L'key';
       knMode                 = L'mode';
-      knStatusChannel        = L'status_channel';
-      knIQChannel            = L'input_queue_length_channel';
-      knOQChannel            = L'output_queue_length_channel';
-      knWQChannel            = L'write_queue_length_channel';
       knInputQueueLength     = L'input_queue_length';
       knOutputQueueLength    = L'output_queue_length';
       knWriteQueueLength     = L'write_queue_length';
@@ -975,7 +1004,7 @@ CLASS IMPLEMENTATION CEIBServer;
          Priority : eib_def.TPriority;
       BEGIN
          TRY
-            FIO.PathHeadW( OA( ParFilePath.Length-1, ParFilePath.rawData ), OUT Path );
+            FIO.PathHeadW( OA( ConfigurationFile.Length-1, ConfigurationFile.rawData ), OUT Path );
             FIO.PathAddW( REF Path, OA( ESFPath.Length-1, ESFPath.rawData ));
             fs.FromPath( Path, FIOO.imOpenRead );
          CATCH e : IOO.CIOException DO
@@ -1134,10 +1163,10 @@ CLASS IMPLEMENTATION CEIBServer;
       ErrorLine := 0;
    
       TRY
-         fs.FromPath( OA( ParFilePath.Length-1, ParFilePath.rawData ), FIOO.imOpenRead );
+         fs.FromPath( OA( ConfigurationFile.Length-1, ConfigurationFile.rawData ), FIOO.imOpenRead );
       CATCH e : IOO.CIOException DO
          ErrorMessage.FromOA( OAsz( R[ Texts._CannotOpenPar ] ));
-         AppendErrorId( REF ErrorMessage, OA( ParFilePath.Length-1, ParFilePath.rawData ));
+         AppendErrorId( REF ErrorMessage, OA( ConfigurationFile.Length-1, ConfigurationFile.rawData ));
          GOTO Fail;
       END; // try
       tr.Stream := ADR( fs );
@@ -1145,7 +1174,7 @@ CLASS IMPLEMENTATION CEIBServer;
       fs.Close( FALSE );
       IF NOT b THEN
          ErrorMessage.FromOA( OAsz( R[ Texts._CannotOpenPar ] ));
-         AppendErrorId( REF ErrorMessage, OA( ParFilePath.Length-1, ParFilePath.rawData ));
+         AppendErrorId( REF ErrorMessage, OA( ConfigurationFile.Length-1, ConfigurationFile.rawData ));
          GOTO Fail;
       END;
       InitToDefault();
@@ -1155,10 +1184,6 @@ CLASS IMPLEMENTATION CEIBServer;
       PromiscuousMode := FALSE;
       Connection := L'';
       Key := L'';
-      StatusChannel := MAX( CARDINAL );
-      InputQueueLengthChannel := MAX( CARDINAL );
-      OutputQueueLengthChannel := MAX( CARDINAL );
-      WriteQueueLengthChannel := MAX( CARDINAL );
       IF TS.SetSection( snDevice ) THEN
          IF TS.GetKeyInt( knId, OUT ErrorLine, OUT c ) THEN
             DeviceId := c;
@@ -1181,18 +1206,6 @@ CLASS IMPLEMENTATION CEIBServer;
          END;
          IF TS.GetKeyStr( knKey, OUT ErrorLine, OUT so ) THEN
             so.ToOA( OUT Key );
-         END;
-         IF TS.GetKeyInt( knStatusChannel, OUT ErrorLine, OUT c ) THEN
-            StatusChannel := c;
-         END;
-         IF TS.GetKeyInt( knIQChannel, OUT ErrorLine, OUT c ) THEN
-            InputQueueLengthChannel := c;
-         END;
-         IF TS.GetKeyInt( knOQChannel, OUT ErrorLine, OUT c ) THEN
-            OutputQueueLengthChannel := c;
-         END;
-         IF TS.GetKeyInt( knWQChannel, OUT ErrorLine, OUT c ) THEN
-            WriteQueueLengthChannel := c;
          END;
       END; // IF snDevice
       IF DeviceId = LONGWORD( -1 ) THEN
@@ -1520,129 +1533,7 @@ CLASS IMPLEMENTATION CEIBServer;
    Fail:
       Blocks.Dispose();
       RETURN FALSE;
-   END ReadParameters;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE EnumerateChannels( VAR EnumerateState : LONGWORD; VAR Type : CARDINAL; VAR Direction : CARDINAL; VAR DriverIndex : CARDINAL; VAR Count : CARDINAL; VAR HaveDescription : BOOLEAN ): BOOLEAN;
-   LABEL
-      Described;
-   CONST
-      directionInput = eib_def.TA_ObjectFlags{eib_def.aofUpdate, eib_def.aofWritable, eib_def.aofInitRead, eib_def.aofAdvise};
-      directionOutput = eib_def.TA_ObjectFlags{eib_def.aofTransmit, eib_def.aofReadable};
-   VAR
-      Index : CARDINAL;
-      OCount : CARDINAL := Objects.Count;
-      PObject : TPObject;
-   BEGIN
-      IF EnumerateState = LONGWORD( 0 ) THEN // start enumeration
-         IF OCount = 0 THEN
-            RETURN FALSE;
-         ELSE
-            Index := CARDINAL( EnumerateState );
-         END;
-      ELSE // continue enumeration
-         Index := CARDINAL( EnumerateState );
-         IF Index < OCount THEN
-            // fall down
-         ELSE
-            Direction := CARDINAL( drv_def.dirInput );
-            HaveDescription := TRUE;
-            Type := CARDINAL( drv_def.vtLongCard );
-            LOOP
-               IF Index > OCount + 3 THEN
-                  RETURN FALSE;
-               ELSIF ( Index = OCount ) AND ( StatusChannel <> MAX( CARDINAL )) THEN
-                  // enumerate status channel
-                  DriverIndex := StatusChannel;
-                  GOTO Described;
-               ELSIF ( Index = OCount + 1 ) AND ( InputQueueLengthChannel <> MAX( CARDINAL )) THEN
-                  // enumerate input_queue_length channel
-                  DriverIndex := InputQueueLengthChannel;
-                  GOTO Described;
-               ELSIF ( Index = OCount + 2 ) AND ( OutputQueueLengthChannel <> MAX( CARDINAL )) THEN
-                  // enumerate input_queue_length channel
-                  DriverIndex := OutputQueueLengthChannel;
-                  GOTO Described;
-               ELSIF ( Index = OCount + 3 ) AND ( WriteQueueLengthChannel <> MAX( CARDINAL )) THEN
-                  // enumerate input_queue_length channel
-                  DriverIndex := WriteQueueLengthChannel;
-                  GOTO Described;
-               END;
-               INC( Index );
-            END; // LOOP
-         END;
-      END;
-
-      PObject := TPObject( Objects[ Index ] );
-      CASE PObject^.Value.GetType() OF
-      | eib_def.eitSwitch :     Type := CARDINAL( drv_def.vtBoolean );
-      | eib_def.eitIncrease :   Type := CARDINAL( drv_def.vtShortInt );
-      | eib_def.eitTime :       Type := CARDINAL( drv_def.vtLongCard );
-      | eib_def.eitDate :       Type := CARDINAL( drv_def.vtLongReal );
-      | eib_def.eitValue,
-        eib_def.eitValueRange : Type := CARDINAL( drv_def.vtLongReal );
-      | eib_def.eitScaling,
-        eib_def.eitScaling255 : Type := CARDINAL( drv_def.vtShortCard );
-      | eib_def.eitMove :       Type := CARDINAL( drv_def.vtBoolean );
-      | eib_def.eitFloat :      Type := CARDINAL( drv_def.vtLongReal );
-      | eib_def.eit16bit :      Type := CARDINAL( drv_def.vtLongCard );
-      | eib_def.eit32bit :      Type := CARDINAL( drv_def.vtLongCard );
-      | eib_def.eitChar :       Type := CARDINAL( drv_def.vtDString );
-      | eib_def.eit8bit :       Type := CARDINAL( drv_def.vtShortCard );
-      | eib_def.eitString :     Type := CARDINAL( drv_def.vtDString);
-      END; // CASE EV.Type
-
-      IF directionOutput * PObject^.Flags = eib_def.TA_ObjectFlags{} THEN
-         Direction := CARDINAL( drv_def.TDirection{drv_def.dirInput} );
-      ELSIF directionInput * PObject^.Flags = eib_def.TA_ObjectFlags{} THEN
-         Direction := CARDINAL( drv_def.TDirection{drv_def.dirOutput} );
-      ELSE
-         Direction := CARDINAL( drv_def.TDirection{drv_def.dirInput, drv_def.dirOutput} );
-      END;
-
-      DriverIndex := PObject^.LogNumber();
-      HaveDescription := NOT PObject^.Name.Empty OR NOT PObject^.Comment.Empty;
-
-   Described:
-      Count := 1;
-
-      INC( Index );
-      EnumerateState := Index;
-      RETURN TRUE;
-   END EnumerateChannels;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE GetChannelDescription( DriverIndex : CARDINAL; VAR Description : ARRAY OF WCHAR; VAR Id : ARRAY OF WCHAR ) : BOOLEAN;
-   CONST
-      _StatusId            = L'drvStatus';
-      _InputQueueLengthId  = L'drvInputQueueLength';
-      _OutputQueueLengthId = L'drvOutputQueueLength';
-      _WriteQueueLengthId  = L'drvWriteQueueLength';
-   VAR
-      PObject : TPObject;
-   BEGIN
-      IF DriverIndex = StatusChannel THEN
-         ASSIGN( Description, OAsz( R[ Texts._StatusComment ] ));
-         ASSIGN( Id, _StatusId );
-      ELSIF DriverIndex = InputQueueLengthChannel THEN
-         ASSIGN( Description, OAsz( R[ Texts._InputQueueLengthComment ] ));
-         ASSIGN( Id, _InputQueueLengthId );
-      ELSIF DriverIndex = OutputQueueLengthChannel THEN
-         ASSIGN( Description, OAsz( R[ Texts._OutputQueueLengthComment ] ));
-         ASSIGN( Id, _OutputQueueLengthId );
-      ELSIF DriverIndex = WriteQueueLengthChannel THEN
-         ASSIGN( Description, OAsz( R[ Texts._WriteQueueLengthComment ] ));
-         ASSIGN( Id, _WriteQueueLengthId );
-      ELSIF LogNumber2Object( DriverIndex, PObject ) THEN
-         PObject^.Name.ToOA( OUT Id );
-         PObject^.Comment.ToOA( OUT Description );
-      ELSE
-         RETURN FALSE;
-      END;
-      RETURN TRUE;
-   END GetChannelDescription;
+   END LoadConfiguration;
 
 //--------------------------------------------------------------------------------
 
@@ -1657,15 +1548,22 @@ CLASS IMPLEMENTATION CEIBServer;
       END;
    
       Result.Reset( lec.bhBestCase );
-      FIO.GetModuleDirW( EMITW( %dll ), OUT s );
-      lec.QueryData( s, L"", ADR( cllv.data ), cllv.length, REF Result );
+      IF rsEXEFlag IN RStatus THEN
+         FIO.GetModuleDirW( EMITW( %exe ), OUT s );
+      ELSE
+         FIO.GetModuleDirW( EMITW( %dll ), OUT s );
+      END;
+      ASSERT( cllvdata <> NIL );
+      IF cllvdata <> NIL THEN
+         lec.QueryData( s, L"", cllvdata, cllvlength, REF Result );
+      END;
 
       IF OperateEIB AND ( EIB <> NIL ) THEN
          EXCL( RStatus, rsInitReadFinished );
          EIB^.Connect();
       END;
 
-      IF OperateSDAP THEN      
+      IF OperateSDAP THEN
          SDAP.Start();
       END;
    END Run;
@@ -1674,8 +1572,8 @@ CLASS IMPLEMENTATION CEIBServer;
 
    PUBLIC PROCEDURE Connected();
    BEGIN
-      IF CallbackProc <> NIL THEN
-         CallbackProc( CallbackId, drv_def.dcfException, NIL );
+      IF EventSink <> NIL THEN
+         EventSink^.OnConnect();
       END;
 
       IF TRStatus{rsInitReadPending, rsInitReadFinished} * RStatus <> TRStatus{} THEN
@@ -1694,10 +1592,8 @@ CLASS IMPLEMENTATION CEIBServer;
 
    PUBLIC PROCEDURE Disconnected();
    BEGIN
-      IF CallbackProc <> NIL THEN
-         CallbackProc( CallbackId, drv_def.dcfInputFinalized, NIL );
-         CallbackProc( CallbackId, drv_def.dcfOutputFinalized, NIL );
-         CallbackProc( CallbackId, drv_def.dcfException, NIL );
+      IF EventSink <> NIL THEN
+         EventSink^.OnDisconnect();
       END;
    END Disconnected;
 
@@ -1732,509 +1628,6 @@ CLASS IMPLEMENTATION CEIBServer;
       END;
       SUPER.Dispose();
    END Dispose;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE InputRequestStart();
-   BEGIN
-   END InputRequestStart;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE InputRequest( DriverIndex : CARDINAL );
-   VAR
-      EV : eib_def.TValue;
-      PObject : TPObject;
-   BEGIN
-      Result.Inc();
-      IF ( DriverIndex = StatusChannel ) OR
-          ( DriverIndex = InputQueueLengthChannel ) OR
-          ( DriverIndex = OutputQueueLengthChannel ) OR
-          ( DriverIndex = WriteQueueLengthChannel ) THEN
-         // pass down
-      ELSIF NOT LogNumber2Object( DriverIndex, PObject ) THEN
-         // pass down
-      ELSIF eib_user.TObjectState{eib_user.osInitReadPending, eib_user.osReading} * PObject^.State <> eib_user.TObjectState{} THEN
-         // pass down
-      ELSIF eib_def.aofForceRead IN PObject^.GetFlags() THEN
-         IF ( PObject^.RecoveryExpiration <> 0 ) AND ( INTEGER( PObject^.RecoveryExpiration - CARDINAL( windows.GetTickCount())) < 0 ) THEN
-            // still cannot read, pass away
-            RETURN;
-         END;
-         // start reading itself
-         PObject^.ReadRepeatCount := ReadDuringRun.RepeatCount;
-         PObject^.GetValue( EV, FALSE, FALSE );
-      END;
-   END InputRequest;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE InputRequestCompleted();
-   BEGIN
-   END InputRequestCompleted;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE InputFinalized( DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
-   VAR
-      PObject : TPObject;
-   BEGIN
-      IF ( DriverIndex = StatusChannel ) OR
-          ( DriverIndex = InputQueueLengthChannel ) OR
-          ( DriverIndex = OutputQueueLengthChannel ) OR
-          ( DriverIndex = WriteQueueLengthChannel ) THEN
-         ErrorCode := drv_def.ecSuccess;
-      ELSIF NOT LogNumber2Object( DriverIndex, PObject ) THEN
-         ErrorCode := drv_def.ecUnknownElement;
-      ELSIF NOT HWConnected( ErrorCode ) THEN
-         PObject^.CancelIO();
-      ELSIF eib_user.osReading IN PObject^.State THEN
-         RETURN FALSE;
-      ELSIF Result.Expired OR Result.Counted THEN
-         RETURN FALSE;
-      ELSIF PObject^.RSStatus = eib_status.essOK THEN
-         ErrorCode := drv_def.ecSuccess;
-      ELSE
-         ErrorCode := EIBStatus2ErrorCode( PObject^.RSStatus );
-      END;
-      RETURN TRUE;
-   END InputFinalized;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE InputOOBDataQuery( VAR EnumerateState : LONGWORD; VAR DriverIndex : CARDINAL ) : BOOLEAN;
-   BEGIN
-      IF CARDINAL( EnumerateState ) >= oobData.Count THEN
-         EXCL( RStatus, rsProcessingOOB );
-         oobData.Dispose();
-         RETURN FALSE;
-      ELSIF rsProcessingOOB NOT IN RStatus THEN
-         INCL( RStatus, rsProcessingOOB );
-         oobData.Reset();
-      END;
-      oobData.MoveNext();
-      DriverIndex := TPObject( oobData.CurrentData )^.LogNumber();
-      EnumerateState := CARDINAL( EnumerateState ) + 1;
-      RETURN TRUE;
-   END InputOOBDataQuery;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE GetInput( UFlag : BOOLEAN; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue; VAR QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp; VAR ErrorCode : CARDINAL );
-   VAR
-      c : CARDINAL;
-      Day : eib_def.TDay;
-      EV : eib_def.TValue;
-      PObject : TPObject;
-      s : ARRAY [0..31] OF WCHAR;
-      Status : TStatusChannel;
-      Y, M, D, H, S : CARDINAL;
-      wch : WCHAR;
-      b1 : BOOLEAN;
-      b2 : BOOLEAN;
-   BEGIN
-      IF DriverIndex = StatusChannel THEN
-         QoS := drv_def.qosGood;
-         ErrorCode := drv_def.ecSuccess;
-
-         Status := TStatusChannel{};
-         IF EIB^.DeviceConnected() THEN
-            INCL( Status, schiUSBConnected );
-         END;
-         IF PromiscuousMode THEN
-            IF prData.Count >= InputQueueLength THEN
-               INCL( Status, schiInputQueueOverflow );
-            END;
-         ELSE
-            IF oobData.Count >= InputQueueLength THEN
-               INCL( Status, schiInputQueueOverflow );
-            END;
-         END;
-         IF EIB^.EIBConnected() THEN
-            INCL( Status, schiEIBConnected );
-         END;
-         IF NOT( rsInitReadFinished IN RStatus ) THEN
-            INCL( Status, schiInitReadPending );
-         END;
-         IF rsPromiscuousInQueue IN RStatus THEN
-            INCL( Status, schiHavePromiscuousData );
-         END;
-
-         drv_def.AssignValueCardinal( InValue, TRUE, CARDINAL( Status ));
-
-      ELSIF DriverIndex = InputQueueLengthChannel THEN
-         QoS := drv_def.qosGood;
-         ErrorCode := drv_def.ecSuccess;
-         drv_def.AssignValueCardinal( InValue, TRUE, CARDINAL( oobData.Count ));
-
-      ELSIF DriverIndex = OutputQueueLengthChannel THEN
-         QoS := drv_def.qosGood;
-         ErrorCode := drv_def.ecSuccess;
-         drv_def.AssignValueCardinal( InValue, TRUE, CARDINAL( EIB^.OutputQueueLength() ));
-
-      ELSIF DriverIndex = WriteQueueLengthChannel THEN
-         QoS := drv_def.qosGood;
-         ErrorCode := drv_def.ecSuccess;
-         drv_def.AssignValueCardinal( InValue, TRUE, CARDINAL( EIB^.WriteQueueLength() ));
-
-      ELSIF NOT LogNumber2Object( DriverIndex, PObject ) THEN
-         QoS := drv_def.qosBad;
-         ErrorCode := drv_def.ecUnknownElement;
-
-      ELSE
-         ErrorCode := EIBStatus2ErrorCode( PObject^.RSStatus );
-         IF ErrorCode <> drv_def.ecSuccess THEN
-            QoS := drv_def.qosBad;
-            RETURN;
-         ELSIF eib_def.aofEIBValue IN PObject^.GetFlags() THEN
-            QoS := drv_def.qosGood;
-         ELSE
-            QoS := drv_def.qosBad;
-         END;
-
-         PObject^.GetValue( EV, TRUE, FALSE );
-         IF rsProcessingOOB IN RStatus THEN
-            oobData.Current^.ToOA( OUT EV.Data, OUT c );
-         END;
-
-         CASE EV.GetType() OF
-         | eib_def.eitUnknown :
-            ErrorCode := drv_def.ecValueProcessing;
-         | eib_def.eitSwitch :
-            drv_def.AssignValueBoolean( InValue, TRUE, EV.GetSwitch() );
-         | eib_def.eitIncrease :
-            c := EV.GetIncrease( b1, b2 );
-            IF b1 THEN
-               drv_def.AssignValueInteger( InValue, TRUE, INTEGER( c ));
-            ELSIF b2 THEN
-               drv_def.AssignValueInteger( InValue, TRUE, -INTEGER( c ));
-            ELSE
-               drv_def.AssignValueInteger( InValue, TRUE, 0 );
-            END;
-         | eib_def.eitTime :
-            EV.GetTime( Day, H, M, S );
-            drv_def.AssignValueCardinal( InValue, TRUE, CARDINAL( Day ) * 100000 + ( H * 60 + M ) * 60 + S );
-         | eib_def.eitDate :
-            EV.GetDate( Y, M, D );
-            drv_def.AssignValueLongReal( InValue, TRUE, Time.ToSJD( Time.JD( Y, M, D, 0 )));
-         | eib_def.eitValue,
-            eib_def.eitValueRange :
-            drv_def.AssignValueLongReal( InValue, TRUE, EV.GetValue() );
-         | eib_def.eitScaling :
-            drv_def.AssignValueCardinal( InValue, TRUE, EV.GetScaling() );
-         | eib_def.eitScaling255 :
-            drv_def.AssignValueCardinal( InValue, TRUE, EV.GetScaling255() );
-         | eib_def.eitMove :
-            drv_def.AssignValueBoolean( InValue, TRUE, EV.GetMove() );
-         | eib_def.eitFloat :
-            drv_def.AssignValueLongReal( InValue, TRUE, EV.GetFloat() );
-         | eib_def.eit16bit :
-            drv_def.AssignValueCardinal( InValue, TRUE, EV.Get16bit() );
-         | eib_def.eit32bit :
-            drv_def.AssignValueCardinal( InValue, TRUE, EV.Get32bit() );
-         | eib_def.eitChar :
-            wch := EV.GetChar();
-            InValue.ValDriverStringCharLength := 1;
-            IF UFlag THEN
-               Strings.MoveW( ADR( wch ), InValue.ValDriverStringAddress, 1 );
-            ELSE
-               Strings.ToA( OA( 0, ADR( wch )), 0, OUT OA( 0, PCHAR( InValue.ValDriverStringAddress )));
-            END;
-         | eib_def.eit8bit :
-            drv_def.AssignValueCardinal( InValue, TRUE, EV.Get8bit() );
-         | eib_def.eitString :
-            EV.GetString( s );
-            InValue.ValDriverStringCharLength := MIN2( InValue.ValDriverStringCharLength, LENGTH( s ));
-            IF UFlag THEN
-               Strings.MoveW( ADR( s ), InValue.ValDriverStringAddress, InValue.ValDriverStringCharLength );
-            ELSE
-               c := InValue.ValDriverStringCharLength-1;
-               Strings.ToA( OA( c, ADR( s )), 0, OUT OA( c, PCHAR( InValue.ValDriverStringAddress )));
-            END;
-         END; // CASE EV.Type
-
-      END;
-   END GetInput;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE OutputRequestStart();
-   BEGIN
-   END OutputRequestStart;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE OutputRequest( UFlag : BOOLEAN; DriverIndex : CARDINAL; OutValue : drv_def.TValue; QoS : CARDINAL; TimeStamp : drv_def.TUTCStamp );
-   VAR
-      EV : eib_def.TValue;
-      PObject : TPObject;
-   BEGIN
-      Result.Inc();
-      IF LogNumber2Object( DriverIndex, PObject ) THEN
-         CWValue2EIBValue( UFlag, OutValue, PObject^.Value.GetType(), EV );
-         PObject^.SetValue( EV );
-      END;
-   END OutputRequest;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE OutputRequestCompleted();
-   BEGIN
-   END OutputRequestCompleted;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE OutputFinalized( DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
-   VAR
-      PObject : TPObject;
-   BEGIN
-      IF NOT LogNumber2Object( DriverIndex, PObject ) THEN
-         ErrorCode := drv_def.ecUnknownElement;
-      ELSIF NOT HWConnected( ErrorCode ) THEN
-         PObject^.CancelIO();
-      ELSIF eib_user.osWritting IN PObject^.State THEN
-         RETURN FALSE;
-      ELSIF Result.Expired OR Result.Counted THEN
-         RETURN FALSE;
-      ELSIF PObject^.WSStatus = eib_status.essOK THEN
-         ErrorCode := drv_def.ecSuccess;
-      ELSE
-         ErrorCode := EIBStatus2ErrorCode( PObject^.WSStatus );
-      END;
-      RETURN TRUE;
-   END OutputFinalized;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE QueryProc( UFlag : BOOLEAN; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
-   LABEL
-      Error;
-   VAR
-      c : CARDINAL;
-      CS : StringsO.CString;
-      Day : eib_def.TDay;
-      EIT : eib_def.TEIBType;
-      EV : eib_def.TValue;
-      H, M, S, D, Y : CARDINAL;
-      LValue : drv_def.TValue;
-      N, V : ARRAY [0..63] OF WCHAR;
-      prItem : PromiscuousData;
-      s : ARRAY [0..15] OF WCHAR;
-      b1, b2 : BOOLEAN;
-   BEGIN
-      drv_def.DrvValueToCStringW( InValue1, UFlag, OUT CS );
-      CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 0, TRUE, OUT N );
-      IF EQUALS( N, L'event' ) THEN
-
-         CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 1, TRUE, OUT N );
-         IF EQUALS( N, L'count' ) THEN
-         //-----
-            Strings.FromCARD32W( prData.Count, 10, OUT s );
-            CS.FromOA( s );
-
-         ELSIF EQUALS( N, L'get' ) THEN
-         //-----
-            IF NOT prData.DequeueOA( OUT prItem, OUT c, OUT c ) THEN
-               EXCL( RStatus, rsPromiscuousInQueue );
-
-               CS.FromOA( L'' ); // queue empty;
-               GOTO Error;
-            END;
-
-            IF Result.Counted OR Result.Expired THEN
-               WHILE prData.DequeueOA( OUT prItem, OUT c, OUT c ) DO END;
-               CS.Clear();
-               GOTO Error;
-            END;
-
-            WITH prItem DO
-               Address.GetGroupAddress3( TRUE, s );
-               CS.FromOA( s ); CS.AppendOA( L' ' );
-
-               eib_def.TypeToString( Value.GetType(), s );
-               CS.AppendOA( s ); CS.AppendOA( L' ' );
-
-               s[0] := WCHAR( 0 );
-               CASE Value.GetType() OF
-               | eib_def.eitSwitch :
-                  IF Value.GetSwitch() THEN
-                     s := L'true';
-                  ELSE
-                     s := L'false';
-                  END;
-
-               | eib_def.eitIncrease :
-                  c := Value.GetIncrease( b1, b2 );
-                  IF b1 THEN
-                     Strings.FromINT32W( INTEGER( c ), 10, OUT s );
-                  ELSIF b2 THEN
-                     Strings.FromINT32W( -INTEGER( c ), 10, OUT s );
-                  ELSE
-                     s := L'0';
-                  END;
-
-               | eib_def.eitTime :
-                  Value.GetTime( Day, H, M, S );
-                  c := CARDINAL( Day ) * 100000 + ( H * 60 + M ) * 60 + S;
-                  Strings.FromCARD32W( c, 10, OUT s );
-
-               | eib_def.eitDate :
-                  Value.GetDate( Y, M, D );
-                  Strings.FromLONGREALW( Time.ToSJD( Time.JD( Y, M, D, 0 )), FALSE, OUT s );
-
-               | eib_def.eitValue, eib_def.eitValueRange :
-                  Strings.FromLONGREALW( Value.GetValue(), FALSE, OUT s );
-
-               | eib_def.eitScaling :
-                  Strings.FromCARD32W( Value.GetScaling(), 10, OUT s );
-
-               | eib_def.eitScaling255 :
-                  Strings.FromCARD32W( Value.GetScaling255(), 10, OUT s );
-
-               | eib_def.eitMove :
-                  IF Value.GetMove() THEN
-                     s := L'true';
-                  ELSE
-                     s := L'false';
-                  END;
-
-               | eib_def.eitFloat :
-                  Strings.FromLONGREALW( Value.GetFloat(), FALSE, OUT s );
-
-               | eib_def.eit16bit :
-                  Strings.FromCARD32W( Value.Get16bit(), 10, OUT s );
-
-               | eib_def.eit32bit :
-                  Strings.FromCARD32W( Value.Get32bit(), 10, OUT s );
-
-               | eib_def.eitChar :
-                  s[0] := Value.GetChar();
-                  s[1] := WCHAR( 0 );
-
-               | eib_def.eit8bit :
-                  Strings.FromCARD32W( Value.Get8bit(), 10, OUT s );
-
-               | eib_def.eitString :
-                  Value.GetString( s );
-
-               END; // CASE EV.Type
-               IF s[0] <> WCHAR( 0 ) THEN
-                  CS.AppendOA( s );
-               END;
-
-            END; // WITH
-
-         ELSE
-            CS.FromOA( L'error: unknown "event" procedure command' );
-            GOTO Error;
-         END;
-
-      ELSIF EQUALS( N, L'send' ) THEN
-         CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 1, TRUE, OUT N );
-         IF N[0] = WCHAR( 0 ) THEN
-            CS.FromOA( L'error: "send" procedure, missing group address' );
-            GOTO Error;
-         END;
-         CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 2, TRUE, OUT s );
-         IF s[0] = WCHAR( 0 ) THEN
-            CS.FromOA( L'error: "send" procedure, missing value type' );
-            GOTO Error;
-         END;
-         CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 3, TRUE, OUT V );
-         IF V[0] = WCHAR( 0 ) THEN
-            CS.FromOA( L'error: "send" procedure, missing value' );
-            GOTO Error;
-         END;
-
-         IF Result.Counted THEN
-            CS.Clear();
-            GOTO Error;
-         ELSIF NOT eib_def.StringToType( s, EIT ) THEN
-            CS.FromOA( L'error: "send" procedure, bad type name (' );
-            CS.AppendOA( s );
-            CS.AppendOA( L')' );
-            GOTO Error;
-         ELSIF NOT prObjects[EIT].prAddress.SetGroupAddress3( N ) THEN
-            CS.FromOA( L'error: "send" procedure, bad group address (' );
-            CS.AppendOA( N );
-            CS.AppendOA( L')' );
-            GOTO Error;
-         ELSIF Result.Expired THEN
-            CS.Clear();
-            GOTO Error;
-         END;
-
-         drv_def.InitValue( LValue );
-         drv_def.SetValueString( LValue, V );
-         CWValue2EIBValue( TRUE, LValue, EIT, EV );
-         prObjects[EIT].SetValue( EV );
-         drv_def.DoneValue( LValue )
-
-      ELSE
-         CS.FromOA( L'error: unknown driver procedure' );
-      END;
-
-   Error:
-      drv_def.AssignDrvValueCStringW( REF OutValue, UFlag, FALSE, CS );
-      Result.Inc();
-   END QueryProc;
-
-//--------------------------------------------------------------------------------
-
-   LOCAL PROCEDURE LogNumber2Object( LogNumber : CARDINAL; VAR PObject : TPObject ) : BOOLEAN;
-   VAR
-      ca : CARDINAL;
-      sa : eib_def.CAddress;
-   BEGIN
-      IF Objects.Count = 0 THEN
-         RETURN FALSE;
-      END;
-
-      LogNumber2Address( LogNumber, sa );
-      ca := sa.GetGroupAddress1();
-      IF Groups[ CARD16( ca ) ] = 0FFFFH THEN
-         RETURN FALSE;
-      END;
-
-      PObject := Objects[ CARDINAL( Groups[ CARD16( ca ) ] ) ];
-      RETURN TRUE;
-   END LogNumber2Object;
-
-//--------------------------------------------------------------------------------
-
-   PROCEDURE EIBStatus2ErrorCode( Status : eib_status.TEIBStackStatus ) : CARDINAL;
-   BEGIN 
-      CASE Status OF
-      | eib_status.essOK :
-         RETURN drv_def.ecSuccess;
-      | eib_status.essConError, eib_status.essL_Timeout :
-         RETURN ceLCONError;
-      | eib_status.essA_Timeout :
-         RETURN ceRD_RES_Timeout;
-      | eib_status.essLineBusy :
-         RETURN ceLineBusy;
-      | eib_status.essTransceiverFault :
-         RETURN ceTransceiverFault;
-      ELSE
-         RETURN ceTransceiverFault; // drv_def.ecValueProcessing;
-      END;
-   END EIBStatus2ErrorCode;
-
-//--------------------------------------------------------------------------------
-
-   PROCEDURE HWConnected( VAR ErrorCode : CARDINAL ) : BOOLEAN;
-   BEGIN
-      IF NOT EIB^.DeviceConnected() THEN
-         ErrorCode := ceDeviceUnplugged;
-         RETURN FALSE;
-      // ELSIF NOT EIB^.EIBConnected() THEN
-      // rem 15.10.2004, this cause some problems due to not deterministic
-      // TPUPART reset state reporting. But it can be an error, so it worths for
-      // further analyzing... (*?*)
-      ELSE
-         RETURN TRUE;
-      END;
-   END HWConnected;
 
 //--------------------------------------------------------------------------------
 
@@ -2385,8 +1778,8 @@ CLASS IMPLEMENTATION CEIBServer;
          IF InitReadItems = 0 THEN
             InitReadFinished();
          END;
-      ELSIF ( eib_user.osReading IN PObject^.State ) AND ( CallbackProc <> NIL ) THEN
-         CallbackProc( CallbackId, drv_def.dcfInputFinalized, NIL );
+      ELSIF ( eib_user.osReading IN PObject^.State ) AND ( EventSink <> NIL ) THEN
+         EventSink^.OnRead( PObject );
       END;
    END ValueRead;
 
@@ -2402,7 +1795,7 @@ CLASS IMPLEMENTATION CEIBServer;
       ELSIF PObject^.RSStatus = eib_status.essOK THEN
          INCL( PObject^.Flags, eib_def.aofEIBValue );
       END;
-      IF CallbackProc = NIL THEN
+      IF EventSink = NIL THEN
          RETURN;
       END;
 
@@ -2410,7 +1803,7 @@ CLASS IMPLEMENTATION CEIBServer;
       IF PromiscuousMode THEN // promiscuous mode queueing
 
          IF prData.Count >= InputQueueLength THEN
-            CallbackProc( CallbackId, drv_def.dcfException, NIL );
+            EventSink^.OnInputQueueOverflow();
             RETURN;
          END;
          
@@ -2419,20 +1812,19 @@ CLASS IMPLEMENTATION CEIBServer;
          prData.EnqueueOA( prItem, 0 );
 
          INCL( RStatus, rsPromiscuousInQueue );
-         CallbackProc( CallbackId, drv_def.dcfException, NIL );
+         EventSink^.OnInputQueueAdd();
 
       ELSE // not promiscuous mode queueing
 
          IF oobData.Count >= InputQueueLength THEN
-            CallbackProc( CallbackId, drv_def.dcfException, NIL );
+            EventSink^.OnInputQueueOverflow();
             RETURN;
          END;
 
          PObject^.GetValue( EValue, TRUE, FALSE );
          oobData.EnqueueOA( EValue.Data, PObject );
 
-         CallbackProc( CallbackId, drv_def.dcfOOBDataAdvise, NIL );
-
+         EventSink^.OnInputQueueAdd();
       END;
    END ValueUpdated;
 
@@ -2443,8 +1835,8 @@ CLASS IMPLEMENTATION CEIBServer;
       IF PObject^.WSStatus = eib_status.essOK THEN
          INCL( PObject^.Flags, eib_def.aofEIBValue );
       END;
-      IF ( eib_user.osWritting IN PObject^.State ) AND ( CallbackProc <> NIL ) THEN
-         CallbackProc( CallbackId, drv_def.dcfOutputFinalized, NIL );
+      IF ( eib_user.osWritting IN PObject^.State ) AND ( EventSink <> NIL ) THEN
+         EventSink^.OnWritten( PObject );
       END;
       IF eib_def.aofAdvise IN PObject^.GetFlags() THEN
          ValueUpdated( PObject );
@@ -2479,7 +1871,6 @@ CLASS IMPLEMENTATION CEIBServer;
          RecoveryTime := 0;
       END;
       Storage.Fill( ADR( Groups ), SIZE( Groups ), 0FFH );
-      StatusChannel := MAX( CARDINAL );
       IF EIB <> NIL THEN
          EIB^.Done();
          DISPOSE( EIB );
@@ -2526,8 +1917,8 @@ saddr : ARRAY [0..63] OF WCHAR;
          RStatus := RStatus - TRStatus{rsInitReadPending} + TRStatus{rsInitReadFinished};
          EIB^.SetTimeout( eib_stack.tidA_PendingDelay, ReadDuringRun.Delay, eib_stack.pendingGroupRead );
          EIB^.SetTimeout( eib_stack.tidA_PendingTimeout, ReadDuringRun.Timeout, eib_stack.pendingGroupRead );
-         IF CallbackProc <> NIL THEN
-            CallbackProc( CallbackId, drv_def.dcfException, NIL );
+         IF EventSink <> NIL THEN
+            EventSink^.OnInitReadCompleted();
          END;
       ELSIF InitReadRepeat <= 1 THEN
          InitReadRepeat := 0;
@@ -2541,95 +1932,6 @@ saddr : ARRAY [0..63] OF WCHAR;
    END InitReadFinished;
 
 //--------------------------------------------------------------------------------
-
-   LOCAL PROCEDURE CWValue2EIBValue( UFlag : BOOLEAN; CONST Value : drv_def.TValue; DestEVType : eib_def.TEIBType; VAR EV : eib_def.TValue );
-   VAR
-      c : CARDINAL;
-      Day : eib_def.TDay;
-      fd : CARDINAL;
-      H, M, S, WD : CARDINAL;
-      i : INTEGER;
-      s : ARRAY [0..31] OF WCHAR;
-      ST : windows.SYSTEMTIME;
-      Y, MM, D : INTEGER;
-   BEGIN
-      EV.SetType( DestEVType );
-
-      CASE EV.GetType() OF
-      | eib_def.eitUnknown :
-         RETURN;
-      | eib_def.eitSwitch :
-         EV.SetSwitch( drv_def.ValueToBoolean( Value, TRUE ));
-      | eib_def.eitIncrease :
-         i := drv_def.ValueToInteger( Value, TRUE );
-         IF i = 0 THEN
-            EV.SetIncrease( FALSE, FALSE, 0 );
-         ELSIF i < 0 THEN
-            EV.SetIncrease( FALSE, TRUE, CARDINAL( -i ));
-         ELSE
-            EV.SetIncrease( TRUE, FALSE, CARDINAL( i ));
-         END;
-      | eib_def.eitTime :
-         c := drv_def.ValueToCardinal( Value, TRUE );
-         WD := c DIV 100000;
-         c := c - WD * 100000;
-         H := c DIV 3600;
-         c := c - H * 3600;
-         M := c DIV 60;
-         S := c MOD 60;
-         CASE WD OF
-         | 0 :
-            windows.GetLocalTime( ADR( ST ));
-            Day := eib_def.TDay( 1 + ( CARDINAL( ST.wDayOfWeek ) + 6 ) MOD 7 );
-         | 1..7 :
-            Day := eib_def.TDay( WD );
-         ELSE
-            Day := eib_def.dayNo;
-         END;
-         EV.SetTime( Day, H, M, S );
-      | eib_def.eitDate :
-         Time.iJD( Time.FromSJD( drv_def.ValueToLongReal( Value, TRUE )), OUT Y, OUT MM, OUT D, OUT fd );
-         EV.SetDate( Y, MM, D );
-      | eib_def.eitValue, eib_def.eitValueRange :
-         EV.SetValue( drv_def.ValueToLongReal( Value, TRUE ));
-      | eib_def.eitScaling :
-         EV.SetScaling( CARDINAL( drv_def.ValueToCard8( Value, TRUE )) );
-      | eib_def.eitScaling255 :
-         EV.SetScaling255( drv_def.ValueToCard8( Value, TRUE ));
-      | eib_def.eitMove :
-         EV.SetMove( drv_def.ValueToBoolean( Value, TRUE ));
-      | eib_def.eitFloat :
-         EV.SetFloat( drv_def.ValueToLongReal( Value, TRUE ));
-      | eib_def.eit16bit :
-         c:= drv_def.ValueToCard32( Value, TRUE );
-         IF c > MAX( CARD16 ) THEN
-            c := MAX( CARD16 );
-         END;
-         EV.Set16bit( c );
-      | eib_def.eit32bit :
-         EV.Set32bit( drv_def.ValueToCardinal( Value, TRUE ));
-      | eib_def.eitChar :
-         IF UFlag THEN
-            Strings.MoveW( Value.ValDriverStringAddress, ADR( s ), 1 );
-         ELSE
-            Strings.ToW( OA( 0, PCHAR( Value.ValDriverStringAddress )), 0, OUT OA( 0, ADR( s )) );
-         END;
-         EV.SetChar( s[0] );
-      | eib_def.eit8bit :
-         EV.Set8bit( CARDINAL( drv_def.ValueToCard8( Value, TRUE )) );
-      | eib_def.eitString :
-         c := MIN2( SIZE( eib_def.TEISString ), Value.ValDriverStringCharLength );
-         IF UFlag THEN
-            Strings.MoveW( Value.ValDriverStringAddress, ADR( s ), c );
-         ELSE
-            DEC( c );
-            Strings.ToW( OA( c, PCHAR( Value.ValDriverStringAddress )), 0, OUT OA( c, ADR( s )) );
-         END;
-         s[c] := 0W;
-         EV.SetString( s );
-      END; // CASE EV.Type
-   
-   END CWValue2EIBValue;
 
    LOCAL PROCEDURE IOValue2EIBValue( CONST Value : sdvalue.Value; DestEVType : eib_def.TEIBType; OUT EV : eib_def.TValue );
    VAR
@@ -2718,6 +2020,8 @@ saddr : ARRAY [0..63] OF WCHAR;
 
    END IOValue2EIBValue;
 
+//--------------------------------------------------------------------------------
+
    LOCAL PROCEDURE EIBValue2IOValue( CONST EV : eib_def.TValue; OUT Value : sdvalue.Value );
    VAR
       c : CARDINAL;
@@ -2789,23 +2093,25 @@ saddr : ARRAY [0..63] OF WCHAR;
 
    END EIBValue2IOValue;
 
+//--------------------------------------------------------------------------------
+
 BEGIN
    RStatus := TRStatus{};
-
-   CallbackId := NIL;
-   CallbackProc := NIL;
    Stack := stackUnknown;
+
    EIB := NIL;
    Sink.Server := ADR( SELF );
    SDAP.Server := ADR( SELF );
+   SDAP.Init();
+   EventSink := NIL;
+   
+   cllvdata := NIL;
+   cllvlength := 0;
 
    InitToDefault();
-
    InitReadItems := 0;
-
    oobData.ItemType := lists.blitSlot32;
    prData.ItemType := lists.blitSlot64;
-
 FINALLY
    SDAP.Dispose();
 END CEIBServer;
@@ -2815,9 +2121,7 @@ END CEIBServer;
 INITIALLY __I();
 BEGIN
    // messages
-   R.LoadRES2( EMIT( %exe ), L"eibsrv.Texts" );
-   // logging
-   Log.logger()^.SetUpByRegistry( LIBRARY );
+   R.LoadRES2( EMIT( %exe ), L"eibsrvcore.Texts" );
 END __I;
 
 //================================================================================

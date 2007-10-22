@@ -4,16 +4,9 @@
 
     <!-- 1 -->
     <PropertyGroup>
-        <ProductGUID>DA1CC8C1-DD65-4CA0-B9FE-8A112DD6715D</ProductGUID>
-        <ProductUpgradeGUID>67E4985B-93E9-43ED-8B7E-5D381F094F5D</ProductUpgradeGUID>
-
-        <ProductFlag>on</ProductFlag>
-        <ProductId>SmartControl.EibSrv</ProductId>
-        <ProductVersionMajor>1</ProductVersionMajor>
-        <ProductVersionMinor>0</ProductVersionMinor>
-        <ProductNote></ProductNote>
-
-        <FileDescription>SmartControl EIB/KNX group object server</FileDescription>
+        <FileVersionMajor>1</FileVersionMajor>
+        <FileVersionMinor>0</FileVersionMinor>
+        <FileDescription>SmartControl EIB/KNX group object server core</FileDescription>
     </PropertyGroup>
 
     <!-- 2 INCLUDE DEFINITION -->
@@ -24,16 +17,10 @@
     <ItemGroup>
         <Components Include="modula2\modula2;api\clib;API\win32"/>
         <Components Include="component\sccore"/>
-        <!-- Components Include="modula2\m2rtl;modula2\m2ortl;library\ADT;library\resources;library\Text;library\messaging;library\Service"/ -->
-        <Components Include="library\sdio;EIB\eibstack;EIB\eibnetstack;library\CWdriver"/>
+        <Components Include="licensing\core;library\sdio;EIB\eibstack;EIB\eibnetstack"/>
         <Messages Include="Texts"/>
-        <Modules Include="eibsrv;eibsrvdiface"/>
-        <Program Include="eibsvc"/>
+        <Modules Include="eibsrv"/>
     </ItemGroup>
-
-    <PropertyGroup>
-        <Export>export</Export>
-    </PropertyGroup>
 
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
     <Import Project="$(RootBuildDir)\common.build.proj"/>

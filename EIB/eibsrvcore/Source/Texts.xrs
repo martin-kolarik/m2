@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <strings version="1.0">
+
+        <comment>CFG errors</comment>
+        <string name="_CannotOpenPar">
+            <item lang="en-US">Error during opening configuration file</item>
+            <item lang="cs-CZ">Chyba při otevření konfiguračního souboru</item>
+        </string>
+        <string name="_BadConnection">
+            <item lang="en-US">Bad connection definition</item>
+            <item lang="cs-CZ">Chybný zápis definice spojení</item>
+        </string>
+        <string name="_UnsupportedStack">
+            <item lang="en-US">Unsupported stack</item>
+            <item lang="cs-CZ">Nepodporovaný způsob spojení s EIB</item>
+        </string>
+        <string name="_BadOrUndefinedDeviceId">
+            <item lang="en-US">Bad or undefined id</item>
+            <item lang="cs-CZ">Chybné nebo nedefinované id</item>
+        </string>
+        <string name="_BadPhysicalAddress">
+            <item lang="en-US">Bad or badly typed physical address</item>
+            <item lang="cs-CZ">Chybná nebo chybně zapsaná adresa zařízení</item>
+        </string>
+        <string name="_UnknownACKMethod">
+            <item lang="en-US">Unknown ACK method</item>
+            <item lang="cs-CZ">Neznámá metoda ACK</item>
+        </string>
+        <string name="_MissingBehaviourName">
+            <item lang="en-US">Missing behaviour name</item>
+            <item lang="cs-CZ">Chybí jméno chování</item>
+        </string>
+        <string name="_BadBehaviourItemName">
+            <item lang="en-US">Bad behaviour item name</item>
+            <item lang="cs-CZ">Neznámé jméno položky chování</item>
+        </string>
+        <string name="_UnknownBehaviour">
+            <item lang="en-US">Unknown behaviour name</item>
+            <item lang="cs-CZ">Neznámé jméno chování</item>
+        </string>
+        <string name="_MissingType">
+            <item lang="en-US">Missing data type</item>
+            <item lang="cs-CZ">Chybí datový typ</item>
+        </string>
+        <string name="_UnknownType">
+            <item lang="en-US">Unknown data type</item>
+            <item lang="cs-CZ">Neznámý datový typ</item>
+        </string>
+        <string name="_MissingAddress">
+            <item lang="en-US">Missing address</item>
+            <item lang="cs-CZ">Chybí skupinová adresa</item>
+        </string>
+        <string name="_BadGroupAddress">
+            <item lang="en-US">Bad group address</item>
+            <item lang="cs-CZ">Chybná skupinová adresa</item>
+        </string>
+        <string name="_BadGroupAddressInterval">
+            <item lang="en-US">Bad group address interval</item>
+            <item lang="cs-CZ">Chybné rozmezí skupinových adres</item>
+        </string>
+        <string name="_RequestedBlockNotFound">
+            <item lang="en-US">Defined block not found</item>
+            <item lang="cs-CZ">Definovaný blok nebyl nalezen</item>
+        </string>
+        <string name="_CannotOpenESF">
+            <item lang="en-US">ESF file is now found</item>
+            <item lang="cs-CZ">ESF soubor nebyl nalezen</item>
+        </string>
+        <string name="_ESFMissingGroupField1">
+            <item lang="en-US">Missing first field, group address</item>
+            <item lang="cs-CZ">Chybí první položka, skupinová adresa</item>
+        </string>
+        <string name="_ESFMissingTypeField3">
+            <item lang="en-US">Missing third field, type information</item>
+            <item lang="cs-CZ">Chybí třetí položka, popis datového typu</item>
+        </string>
+        <string name="_ESFMissingPriorityField4">
+            <item lang="en-US">Missing fourth field, priority</item>
+            <item lang="cs-CZ">Chybí čtvrtá položka, priorita</item>
+        </string>
+        <string name="_BadTypeInfo">
+            <item lang="en-US">Type information is bad or badly formatted</item>
+            <item lang="cs-CZ">Datový typ je chybný nebo je chybně zapsán</item>
+        </string>
+        <string name="_BadESFPriority">
+            <item lang="en-US">Unknown priority</item>
+            <item lang="cs-CZ">Neznámá priorita</item>
+        </string>
+        <string name="_BlockWithoutType ">
+            <item lang="en-US">Block does not contain data type</item>
+            <item lang="cs-CZ">V bloku není určen datový typ</item>
+        </string>
+        <string name="_BlockWithoutBehaviour ">
+            <item lang="en-US">Block does not contain behaviour</item>
+            <item lang="cs-CZ">V bloku není určeno chování</item>
+        </string>
+        <string name="_UnknownFalconInterface">
+            <item lang="en-US">Unknown Falcon interface</item>
+            <item lang="cs-CZ">Neznámé Falcon rozhraní</item>
+        </string>
+        <string name="InitError_ParametersNotValidated">
+            <item lang="cs-CZ">Komunikační zásobník se nepodařilo inicializovat.</item>
+            <item lang="en-US">Communication stack initialization has failed.</item>
+        </string>
+
+   </strings>
+</resources>
