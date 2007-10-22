@@ -14,7 +14,8 @@ IMPORT
 TYPE
   TRStatusItem = (
     rsDebugFile,
-    rsDebugKernel
+    rsDebugKernel,
+    rsTimeStamps
   );
   TRStatus = SET OF TRStatusItem;
 
@@ -60,9 +61,18 @@ CLASS CLogger;
   DebugLevel : TDebugLevel;
   DebugFile  : ARRAY [0..260] OF WCHAR;
   DebugLock  : Sync.LOCK;
+  
+  PUBLIC PROPERTY
+    Method : TDebugMethod;
+    Level : TDebugLevel; // what (and less) will be present in log
+    TimeStamps : BOOLEAN;
 
-  PUBLIC PROCEDURE Init( Name : ARRAY OF WCHAR ) : CARDINAL;
-  PUBLIC PROCEDURE Set( Method : TDebugMethod; Level : TDebugLevel; DebugFile : ARRAY OF WCHAR );
+  PUBLIC PROCEDURE SetLogName( CONST Name : ARRAY OF WCHAR );
+  PUBLIC PROCEDURE GetLogName( OUT Name : ARRAY OF WCHAR ) : BOOLEAN;
+  PUBLIC PROCEDURE SetLogFile( CONST LogFile : ARRAY OF WCHAR );
+  PUBLIC PROCEDURE GetLogFile( OUT LogFile : ARRAY OF WCHAR ) : BOOLEAN;
+
+  PUBLIC PROCEDURE SetUpByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN;
 
   PUBLIC PROCEDURE LogS( Level : TDebugLevel; Prefix, S : ARRAY OF WCHAR );
   PUBLIC PROCEDURE LogSS( Level : TDebugLevel; Prefix, S1, S2 : ARRAY OF WCHAR );
@@ -79,9 +89,8 @@ CLASS CLogger;
   PUBLIC PROCEDURE LogExc( Level : TDebugLevel; Prefix : ARRAY OF WCHAR; CONST e : Exceptions.CException );
 
   PRIVATE INLINE PROCEDURE Filtered( Level : TDebugLevel ) : BOOLEAN;
-  PRIVATE PROCEDURE Log( Prefix, S : ARRAY OF WCHAR );
-
-  INITIALLY CLogger;
+  PRIVATE PROCEDURE Log( LoggedLevel : TDebugLevel; CONST Prefix, S : ARRAY OF WCHAR );
+  PRIVATE PROCEDURE LoadByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN;
 END CLogger;
 
 // global system LOG

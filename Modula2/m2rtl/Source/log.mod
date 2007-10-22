@@ -2,9 +2,13 @@ IMPLEMENTATION MODULE log;
 
 //=========================================================
 
+FROM Strings IMPORT
+  LowerizeW;
+
 IMPORT
   FIO,
   Strings,
+  time,
   windows,
   winreg;
 
@@ -14,27 +18,109 @@ CLASS IMPLEMENTATION CLogger;
 
 //---------------------------------------------------------
 
-  PUBLIC PROCEDURE Init( _Name : ARRAY OF WCHAR ) : CARDINAL;
-  BEGIN
-    ASSIGN( Name, _Name );
-    RETURN 0;
-  END Init;
+   PUBLIC PROPERTY Method GET : TDebugMethod;
+   BEGIN
+      IF rsDebugKernel IN RStatus THEN
+         RETURN dmKernel;
+      ELSIF rsDebugFile IN RStatus THEN
+         RETURN dmFile;
+      ELSE
+         RETURN dmNone;
+      END;
+   END Method;
 
 //---------------------------------------------------------
 
-  PUBLIC PROCEDURE Set( Method : TDebugMethod; Level : TDebugLevel; File : ARRAY OF WCHAR );
-  BEGIN
-    RStatus := RStatus - TRStatus{rsDebugKernel, rsDebugFile};
-    DebugLevel := Level;
-    IF Method = dmNone THEN
-      // do nothing
-    ELSIF Method = dmFile THEN
-      INCL( RStatus, rsDebugFile );
-      ASSIGN( DebugFile, File );
-    ELSE
-      INCL( RStatus, rsDebugKernel );
-    END;
-  END Set;
+   PUBLIC PROPERTY Method SET( Value : TDebugMethod );
+   BEGIN
+      RStatus := RStatus - TRStatus{rsDebugKernel, rsDebugFile};
+      IF Value = dmNone THEN
+         // do nothing
+      ELSIF Value = dmFile THEN
+         ASSERT( DebugFile[0] <> 0W );
+         INCL( RStatus, rsDebugFile );
+      ELSE
+         INCL( RStatus, rsDebugKernel );
+      END;
+   END Method;
+
+//---------------------------------------------------------
+
+   PUBLIC PROPERTY Level GET : TDebugLevel;
+   BEGIN
+      RETURN DebugLevel;
+   END Level;
+
+//---------------------------------------------------------
+
+   PUBLIC PROPERTY Level SET( Vaue : TDebugLevel );
+   BEGIN
+      DebugLevel := Level;
+   END Level;
+
+//---------------------------------------------------------
+
+   PUBLIC PROPERTY TimeStamps GET : BOOLEAN;
+   BEGIN
+      RETURN rsTimeStamps IN RStatus;
+   END TimeStamps;
+
+//---------------------------------------------------------
+
+   PUBLIC PROPERTY TimeStamps SET( Value : BOOLEAN );
+   BEGIN
+      IF Value THEN
+         INCL( RStatus, rsTimeStamps );
+      ELSE
+         EXCL( RStatus, rsTimeStamps );
+      END;
+   END TimeStamps;
+
+//---------------------------------------------------------
+
+   PUBLIC PROCEDURE SetLogName( CONST Name : ARRAY OF WCHAR );
+   BEGIN
+      ASSIGN( SELF.Name, Name );
+   END SetLogName;
+
+//---------------------------------------------------------
+
+   PUBLIC PROCEDURE GetLogName( OUT Name : ARRAY OF WCHAR ) : BOOLEAN;
+   BEGIN
+      IF Name[0] = 0W THEN
+         RETURN FALSE;
+      END;
+      ASSIGN( Name, SELF.Name );
+      RETURN TRUE;
+   END GetLogName;
+
+//---------------------------------------------------------
+
+   PUBLIC PROCEDURE SetLogFile( CONST LogFile : ARRAY OF WCHAR );
+   BEGIN
+      ASSIGN( DebugFile, LogFile );
+      IF DebugFile[0] = 0W THEN
+         RStatus := RStatus - TRStatus{rsDebugFile} + TRStatus{rsDebugKernel};
+      END;
+   END SetLogFile;
+
+//---------------------------------------------------------
+
+   PUBLIC PROCEDURE GetLogFile( OUT LogFile : ARRAY OF WCHAR ) : BOOLEAN;
+   BEGIN
+      IF DebugFile[0] = 0W THEN
+         RETURN FALSE;
+      END;
+      ASSIGN( LogFile, DebugFile );
+      RETURN TRUE;
+   END GetLogFile;
+
+//---------------------------------------------------------
+
+   PUBLIC PROCEDURE SetUpByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN;
+   BEGIN
+      RETURN LoadByRegistry( LibraryName );
+   END SetUpByRegistry;
 
 //---------------------------------------------------------
 
@@ -43,7 +129,7 @@ CLASS IMPLEMENTATION CLogger;
     IF Filtered( Level ) THEN
       RETURN;
     END;
-    Log( Prefix, S );
+    Log( Level, Prefix, S );
   END LogS;
 
 //---------------------------------------------------------
@@ -56,7 +142,7 @@ CLASS IMPLEMENTATION CLogger;
       RETURN;
     END;
     Strings.ConcatW( OUT S, S1, S2 );
-    Log( Prefix, S );
+    Log( Level, Prefix, S );
   END LogSS;
 
 //---------------------------------------------------------
@@ -71,7 +157,7 @@ CLASS IMPLEMENTATION CLogger;
     END;
     Strings.FromCARD32W( C, 10, OUT N );
     Strings.ConcatW( OUT S, S1, N );
-    Log( Prefix, S );
+    Log( Level, Prefix, S );
   END LogSC;
 
 //---------------------------------------------------------
@@ -86,7 +172,7 @@ CLASS IMPLEMENTATION CLogger;
     END;
     Strings.FromCARD32W( C, 16, OUT N );
     Strings.ConcatW( OUT S, S1, N );
-    Log( Prefix, S );
+    Log( Level, Prefix, S );
   END LogSH;
 
 //---------------------------------------------------------
@@ -101,7 +187,7 @@ CLASS IMPLEMENTATION CLogger;
     END;
     Strings.FromCARD64W( CARD64( P ), 16, OUT N );
     Strings.ConcatW( OUT S, S1, N );
-    Log( Prefix, S );
+    Log( Level, Prefix, S );
   END LogSP;
 
 //---------------------------------------------------------
@@ -119,7 +205,7 @@ CLASS IMPLEMENTATION CLogger;
     Strings.AppendW( REF S, L" " );
     Strings.FromCARD64W( CARD64( P ), 16, OUT N );
     Strings.AppendW( REF S, N );
-    Log( Prefix, S );
+    Log( Level, Prefix, S );
   END LogSCP;
 
 //---------------------------------------------------------
@@ -137,7 +223,7 @@ CLASS IMPLEMENTATION CLogger;
     Strings.AppendW( REF S, L" " );
     Strings.FromCARD64W( CARD64( P ), 16, OUT N );
     Strings.AppendW( REF S, N );
-    Log( Prefix, S );
+    Log( Level, Prefix, S );
   END LogSHP;
 
 //---------------------------------------------------------
@@ -178,7 +264,7 @@ CLASS IMPLEMENTATION CLogger;
     END;
     S[c] := WCHAR( 0 );
     Strings.AppendW( REF S, L']' );
-    Log( Prefix, S );
+    Log( Level, Prefix, S );
   END LogSB;
 
 //---------------------------------------------------------
@@ -221,7 +307,7 @@ CLASS IMPLEMENTATION CLogger;
     END;
     S[c] := WCHAR( 0 );
     Strings.AppendW( REF S, L']' );
-    Log( Prefix, S );
+    Log( Level, Prefix, S );
   END LogSCB;
 
 //---------------------------------------------------------
@@ -235,7 +321,7 @@ CLASS IMPLEMENTATION CLogger;
     END;
     Strings.ConcatW( OUT S, S1, S2 );
     Strings.AppendW( REF S, S3 );
-    Log( Prefix, S );
+    Log( Level, Prefix, S );
   END LogSSS;
 
 //---------------------------------------------------------
@@ -250,7 +336,7 @@ CLASS IMPLEMENTATION CLogger;
     Strings.ConcatW( OUT S, S1, S2 );
     Strings.AppendW( REF S, S3 );
     Strings.AppendW( REF S, S4 );
-    Log( Prefix, S );
+    Log( Level, Prefix, S );
   END LogSSSS;
 
 //---------------------------------------------------------
@@ -263,7 +349,7 @@ CLASS IMPLEMENTATION CLogger;
          RETURN;
       END;
 	   e.ToString( OUT S );
-	   Log( Prefix, S );
+	   Log( Level, Prefix, S );
 	END LogExc;
 
 //---------------------------------------------------------
@@ -279,28 +365,33 @@ CLASS IMPLEMENTATION CLogger;
 
 //---------------------------------------------------------
 
-  PRIVATE PROCEDURE Log( Prefix, S : ARRAY OF WCHAR );
+  PRIVATE PROCEDURE Log( LoggedLevel : TDebugLevel; CONST Prefix, S : ARRAY OF WCHAR );
   VAR
+    dt : time.TDateTime;
     f : FIO.File;
     SW : ARRAY [0..511] OF WCHAR;
     SA : ARRAY [0..511] OF CHAR;
-    XW : ARRAY [0..63] OF WCHAR;
   BEGIN
-    ASSIGN( SW, S );
-    IF Prefix[0] = WCHAR( 0 ) THEN
-      IF Name[0] = WCHAR( 0 ) THEN
-        Strings.PrependW( REF SW, L': ' );
-      ELSE
-        ASSIGN( XW, Name );
-        Strings.AppendW( REF XW, L']: ' );
-        Strings.PrependW( REF XW, L'[' );
-        Strings.PrependW( REF SW, XW );
-      END;
+    IF rsTimeStamps IN RStatus THEN
+      time.GetCurrentUTCDateTime( dt );
+      time.DateTimeToString( dt, L"[yyyy-dd-MM HH:mm:ss] ", TRUE, TRUE, OUT SW );
     ELSE
-      ASSIGN( XW, Prefix );
-      Strings.AppendW( REF XW, L': ' );
-      Strings.PrependW( REF SW, XW );
+      SW := L"";
     END;
+    CASE LoggedLevel OF
+    | dl1 : Strings.AppendW( REF SW, L"F " );
+    | dl2 : Strings.AppendW( REF SW, L"E " );
+    | dl3 : Strings.AppendW( REF SW, L"W " );
+    | dl4 : Strings.AppendW( REF SW, L"I " );
+    END;
+    IF Name[0] <> 0W THEN
+      Strings.AppendW( REF SW, Name );
+    END;
+    IF Prefix[0] <> 0W THEN
+      Strings.AppendW( REF SW, L"/" ); Strings.AppendW( REF SW, Prefix );
+    END;
+    Strings.AppendW( REF SW, L": " ); 
+    Strings.AppendW( REF SW, S ); 
     IF rsDebugFile IN RStatus THEN
       DebugLock.Lock();
       f := FIO.AppendW( DebugFile, FIO.TFileShare{FIO.fsRead} );
@@ -324,7 +415,7 @@ CLASS IMPLEMENTATION CLogger;
 
 //---------------------------------------------------------
 
-   INITIALLY CLogger;
+   PRIVATE PROCEDURE LoadByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN;
    CONST
       keyJoin   = L"join";
       keyTarget = L"target";
@@ -336,86 +427,117 @@ CLASS IMPLEMENTATION CLogger;
          valError       = L"error";
          valWarning     = L"warning";
          valInfo        = L"info";
+      keyTimeStamps = L"timestamps";
+         valTrue = L"true";
+         valFalse = L"false";
    VAR
       DataSize : CARDINAL;
       Dir : FIO.PathStrW;
-      DLLName : ARRAY [0..255] OF WCHAR;
       hkey : winreg.HKEY;
       Key, Data : ARRAY [0..511] OF WCHAR;
+      LLibraryName : ARRAY [0..255] OF WCHAR;
       PData : PBYTE := PBYTE( ADR( Data ));
       RegType : CARDINAL;
       res : CARDINAL;
    BEGIN
-      DebugLock.Init( Sync.ltCS, L"", FALSE );
+      LLibraryName := LibraryName;
 
-      RStatus := TRStatus{rsDebugFile};
+      // defaults
+      RStatus := TRStatus{rsDebugKernel, rsTimeStamps};
+      Strings.ConcatW( OUT DebugFile, LibraryName, L".log" );
       #if DEBUG #then
          DebugLevel := dl3;
       #else
          DebugLevel := dl1;
       #endif
-      Name[0] := 0W;
 
-      #if #not #defined LIBRARY #then
-         RStatus := TRStatus{rsDebugKernel};
-      #else
-         DebugFile := LIBRARY + L".log";
-         DLLName := LIBRARY;
+      LOOP
+         Strings.ConcatW( OUT Key, L"SOFTWARE\" + Manufacturer + "\Log\", LLibraryName );
+         res := winreg.RegOpenKeyExW( winreg.HKEY_CURRENT_USER, ADR( Key ), 0, windows.KEY_READ, ADR( hkey ));
+         IF res <> 0 THEN // key does not exists, try HKLM
+            res := winreg.RegOpenKeyExW( winreg.HKEY_LOCAL_MACHINE, ADR( Key ), 0, windows.KEY_READ, ADR( hkey ));
+         END;
+         IF res <> 0 THEN // key not found
+            RETURN FALSE;
+         END;
 
-         // try to overwrite defaults
-         LOOP
-            Strings.ConcatW( OUT Key, L"SOFTWARE\" + Manufacturer + "\Log\", DLLName );
-            res := winreg.RegOpenKeyExW( winreg.HKEY_CURRENT_USER, ADR( Key ), 0, windows.KEY_READ, ADR( hkey ));
-            IF res <> 0 THEN // key does not exists, try HKLM
-               res := winreg.RegOpenKeyExW( winreg.HKEY_LOCAL_MACHINE, ADR( Key ), 0, windows.KEY_READ, ADR( hkey ));
-            END;
-            IF res <> 0 THEN // key not found
-               EXIT;
-            END;
-
-            // read data
-            DataSize := SIZE( Data );
-            IF ( winreg.RegQueryValueExW( hkey, keyJoin, NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
-               // redirect to another settings
-               ASSIGNsz( DLLName, PWCHAR( PData ));
-
-               winreg.RegCloseKey( hkey );
-               CONTINUE;
-            END;
-            DataSize := SIZE( Data );
-            IF ( winreg.RegQueryValueExW( hkey, keyTarget, NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
-               IF EQUALS( OAsz( PWCHAR( PData )), valKernel ) THEN
-                  RStatus := TRStatus{rsDebugKernel};
-               ELSIF EQUALS( OAsz( PWCHAR( PData )), valFile ) THEN
-                  RStatus := TRStatus{rsDebugFile};
-               END;
-            END;
-            DataSize := SIZE( Data );
-            IF ( winreg.RegQueryValueExW( hkey, keyFile, NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
-               ASSIGNsz( DebugFile, PWCHAR( PData ));
-            ELSE
-               FIO.GetModuleDirW( EMITW( %exe ), OUT Dir );
-               FIO.MakePathW( Dir, DebugFile, OUT DebugFile );
-            END;
-            DataSize := SIZE( Data );
-            IF ( winreg.RegQueryValueExW( hkey, keyLevel, NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
-               IF EQUALS( OAsz( PWCHAR( PData )), valSystemError ) THEN
-                  DebugLevel := dl1;
-               ELSIF EQUALS( OAsz( PWCHAR( PData )), valError ) THEN
-                  DebugLevel := dl2;
-               ELSIF EQUALS( OAsz( PWCHAR( PData )), valWarning ) THEN
-                  DebugLevel := dl3;
-               ELSIF EQUALS( OAsz( PWCHAR( PData )), valInfo ) THEN
-                  DebugLevel := dl4;
-               END;
-            END;
+         // read data
+         DataSize := SIZE( Data );
+         IF ( winreg.RegQueryValueExW( hkey, keyJoin, NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
+            // redirect to another settings
+            ASSIGNsz( LLibraryName, PWCHAR( PData ));
 
             winreg.RegCloseKey( hkey );
-            EXIT;
-         END; // LOOP
-      #endif
-   END CLogger;
+            CONTINUE;
+         END;
 
+         DataSize := SIZE( Data );
+         IF ( winreg.RegQueryValueExW( hkey, keyTarget, NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
+            LOW( OAsz( PWCHAR( PData )));
+            IF EQUALS( OAsz( PWCHAR( PData )), valKernel ) THEN
+               RStatus := RStatus - TRStatus{rsDebugFile} + TRStatus{rsDebugKernel};
+            ELSIF EQUALS( OAsz( PWCHAR( PData )), valFile ) THEN
+               RStatus := RStatus - TRStatus{rsDebugKernel} + TRStatus{rsDebugFile};
+            END;
+         END;
+
+         DataSize := SIZE( Data );
+         IF ( winreg.RegQueryValueExW( hkey, keyTarget, NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
+            LOW( OAsz( PWCHAR( PData )));
+            IF EQUALS( OAsz( PWCHAR( PData )), valTrue ) THEN
+               RStatus := RStatus + TRStatus{rsTimeStamps};
+            ELSIF EQUALS( OAsz( PWCHAR( PData )), valFalse ) THEN
+               RStatus := RStatus - TRStatus{rsTimeStamps};
+            END;
+         END;
+
+         DataSize := SIZE( Data );
+         IF ( winreg.RegQueryValueExW( hkey, keyFile, NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
+            ASSIGNsz( DebugFile, PWCHAR( PData ));
+         ELSE
+            FIO.GetModuleDirW( EMITW( %exe ), OUT Dir );
+            IF Dir[0] = 0W THEN
+               FIO.GetModuleDirW( EMITW( %dll ), OUT Dir );
+            END;
+            FIO.MakePathW( Dir, DebugFile, OUT DebugFile );
+         END;
+
+         DataSize := SIZE( Data );
+         IF ( winreg.RegQueryValueExW( hkey, keyLevel, NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
+            LOW( OAsz( PWCHAR( PData )));
+            IF EQUALS( OAsz( PWCHAR( PData )), valSystemError ) THEN
+               DebugLevel := dl1;
+            ELSIF EQUALS( OAsz( PWCHAR( PData )), valError ) THEN
+               DebugLevel := dl2;
+            ELSIF EQUALS( OAsz( PWCHAR( PData )), valWarning ) THEN
+               DebugLevel := dl3;
+            ELSIF EQUALS( OAsz( PWCHAR( PData )), valInfo ) THEN
+               DebugLevel := dl4;
+            END;
+         END;
+
+         winreg.RegCloseKey( hkey );
+         RETURN TRUE;
+      END; // LOOP
+   END LoadByRegistry;
+
+//---------------------------------------------------------
+
+BEGIN
+   DebugLock.Init( Sync.ltCS, L"", FALSE );
+
+   RStatus := TRStatus{rsDebugKernel, rsTimeStamps};
+   #if DEBUG #then
+      DebugLevel := dl3;
+   #else
+      DebugLevel := dl1;
+   #endif
+   Name[0] := 0W;
+   DebugFile := 0W;
+
+   #if #defined LIBRARY #then
+      LoadByRegistry( LIBRARY );
+   #endif
 END CLogger;
 
 //=========================================================
