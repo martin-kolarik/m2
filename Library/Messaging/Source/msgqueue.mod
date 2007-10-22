@@ -160,7 +160,9 @@ CLASS IMPLEMENTATION CMessageQueue;
         NEW( msghandler.TPMessage( Msg )); Msg^.Message := WM_MQ_PROCESS;
       END;
       INCL( Options, moLeaveLock );
-      Consumer^.Message( Msg^, msghandler.delSynchronous, NIL );
+      IF NOT Consumer^.Message( Msg^, msghandler.delSynchronous, NIL ) THEN
+        ASSERT( FALSE );
+      END;
       EXCL( Options, moLeaveLock );
     ELSE // consumer is in the other thread
       windows.Sleep( 0 );
@@ -200,7 +202,9 @@ CLASS IMPLEMENTATION CMessageQueue;
           IF Msg = NIL THEN
             NEW( msghandler.TPMessage( Msg )); Msg^.Message := WM_MQ_PROCESS;
           END;
-          Consumer^.Message( Msg^, msghandler.delAsynchronous, NIL );
+          IF NOT Consumer^.Message( Msg^, msghandler.delAsynchronous, NIL ) THEN
+            ASSERT( FALSE );
+          END;
         END;
         Sync.Signal( Consume );
       END;
