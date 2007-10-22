@@ -75,7 +75,7 @@ BEGIN
                 NIL,
                 NIL,
                 windows.PWSTR( ADR( DependsOn )),
-                windows.PCWSTR( ADR( NETWORK_SERVICE )),
+                NIL, // windows.PCWSTR( ADR( NETWORK_SERVICE )), // TODO ???
                 NIL
               );
   IF HService = NIL THEN
