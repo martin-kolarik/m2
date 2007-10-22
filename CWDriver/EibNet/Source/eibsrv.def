@@ -1,0 +1,251 @@
+DEFINITION MODULE eibsrv;
+
+IMPORT
+   winsock,
+   windows;
+   
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   arrays,
+   drv_def,
+   eib_def,
+   eib_stack,
+   eib_status,
+   eib_user,
+   lec,
+   list,
+   lists,
+   msghandler,
+   netconndispatch,
+   Resources,
+   sdvalue,
+   StringsO;
+
+//================================================================================
+
+TYPE
+   TPEIBServer = POINTER TO CEIBServer;
+   TPObject = POINTER TO CObject;
+
+//--------------------------------------------------------------------------------
+
+CLASS CObject( eib_user.CUserObject );
+   Server             : TPEIBServer;
+
+   Name               : StringsO.CString;
+   Comment            : StringsO.CString;
+
+   RSStatus           : eib_status.TEIBStackStatus;
+   WSStatus           : eib_status.TEIBStackStatus;
+   ReadRepeatCount    : CARDINAL;
+   RecoveryExpiration : CARDINAL;
+
+   INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : eib_status.TEIBStackStatus );
+   INTERNAL VIRTUAL PROCEDURE ValueRead( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN );
+   INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN );
+   INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : eib_status.TEIBStackStatus );
+
+   // private
+   LOCAL PROCEDURE LogNumber() : CARDINAL;
+END CObject;
+
+//--------------------------------------------------------------------------------
+
+CLASS CStackSink IMPLEMENTS eib_stack.IEIBStackEventSink;
+   Server : TPEIBServer;
+   PUBLIC VIRTUAL PROCEDURE OnDeviceConnected();
+   PUBLIC VIRTUAL PROCEDURE OnDeviceDisconnected();
+END CStackSink;
+
+//--------------------------------------------------------------------------------
+
+TYPE
+   TsdapACK = (
+      // successes
+      sdap200 = 200, // OK
+
+      // client problems
+      sdap400 = 400, // empty command
+      sdap401 = 401, // unknown command
+      sdap402 = 402, // unknown/unsupported subcommand
+      sdap403 = 403, // bad parameter count
+      sdap404 = 404, // bad parameter value
+      sdap405 = 405, // resource not found
+      sdap406 = 406, // resource error -- followed by error text
+
+      // server problems
+      sdap500 = 500, // internal server error
+      sdap501 = 501, // service not available, aka server not running
+      sdap502 = 502  // unsupported command
+   );
+
+CLASS CSDAPServer( netconndispatch.CDispatcher );
+   LOCAL VAR
+      Server : TPEIBServer := NIL;
+
+   LOCAL PROCEDURE Start();
+   LOCAL PROCEDURE Stop();
+
+   INTERNAL VIRTUAL PROCEDURE OnConnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
+   INTERNAL VIRTUAL PROCEDURE OnDisconnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
+   INTERNAL VIRTUAL PROCEDURE OnReceive( Connection : netconndispatch.TConnectionHandle; PData : ADDRESS; DataLen : CARDINAL );
+
+   PRIVATE PROCEDURE ACK( Connection : netconndispatch.TConnectionHandle; ack : TsdapACK );
+   PRIVATE PROCEDURE ACKS( Connection : netconndispatch.TConnectionHandle; ack : TsdapACK; CONST S : StringsO.CString );
+   PRIVATE PROCEDURE ACKs( Connection : netconndispatch.TConnectionHandle; ack : TsdapACK; subCode : CARDINAL );
+   PRIVATE PROCEDURE ACKd( Connection : netconndispatch.TConnectionHandle; ack : TsdapACK; CONST address : StringsO.CString; CONST value : sdvalue.Value );
+END CSDAPServer;
+
+//--------------------------------------------------------------------------------
+
+TYPE
+   TStack = (
+      stackUnknown,
+      stackUSB,
+      stackFalcon,
+      stackEIBNet
+   );
+
+   TRStatusItem = (
+      rsRunning,
+      rsInitReadPending,
+      rsInitReadRepeat,
+      rsInitReadFinished,
+      rsProcessingOOB,
+      rsEnumeratingObject,
+      rsPromiscuousInQueue
+   );
+   TRStatus = SET OF TRStatusItem;
+
+   TReadParameters = RECORD
+                        Timeout      : CARDINAL;
+                        RepeatCount  : CARDINAL;
+                        Delay        : CARDINAL;
+                        RecoveryTime : CARDINAL;
+                     END;
+
+CONST // device specific error codes
+   ceDeviceUnplugged                = 10001H;
+   ceNoEIBConnection                = 10002H;
+   ceBUSMONActive                   = 10003H;
+   ceLCONError                      = 10004H;
+   ceRD_RES_Timeout                 = 10005H;
+   ceLineBusy                       = 10006H;
+   ceTransceiverFault               = 10007H;
+   ceOutputQueueOverflow            = 10008H;
+   ceReadQueueOverflow              = 10009H;
+   ceWriteQueueOverflow             = 1000AH;
+   cePromiscuousModeRunning         = 1000BH;
+
+CLASS CEIBServer( msghandler.MessageHandler );
+   RStatus                  : TRStatus;
+
+   CallbackId               : ADDRESS;
+   CallbackProc             : drv_def.TDriverCallbackW;
+   Result                   : lec.CResult;
+
+   Stack                    : TStack;
+   EIB                      : eib_stack.TPEIBStack;
+   Sink                     : CStackSink;
+   SDAP                     : CSDAPServer;
+
+   DeviceId                 : LONGWORD;
+   PromiscuousMode          : BOOLEAN;
+
+   InputQueueLength         : CARDINAL;
+   StatusChannel            : CARDINAL;
+   InputQueueLengthChannel  : CARDINAL;
+   OutputQueueLengthChannel : CARDINAL;
+   WriteQueueLengthChannel  : CARDINAL;
+   Address                  : eib_def.CAddress;
+   ACKTimeout               : CARDINAL;
+   BUSYDelay                : CARDINAL;
+   SendDelay                : CARDINAL;
+   IgnoreRepeated           : BOOLEAN;
+   WriteDelay               : CARDINAL;
+
+   ReadOnStart              : TReadParameters;
+   ReadDuringRun            : TReadParameters;
+   InitReadRepeatDelay      : CARDINAL;
+   InitReadRepeatCount      : CARDINAL;
+
+   Behaviours               : list.CList;
+
+   Groups                   : ARRAY CARD16 OF CARD16; // maps group addresses to object indexes
+   Objects                  : arrays.CPtrArray;
+   prObjects                : ARRAY eib_def.TEIBType OF CObject; // promiscuous objects
+
+   InitReadItems            : CARDINAL;
+   InitReadRepeat           : CARDINAL;
+
+   // OOB management
+   oobData                  : lists.CBufferList;
+   // promiscuous data management
+   prData                   : lists.CBufferList;
+
+   PUBLIC READONLY PROPERTY
+     Running                : BOOLEAN;
+
+   // inherited
+   INTERNAL VIRTUAL PROCEDURE OnTimer( TimerId : PTR );
+
+   // binding to procedural interface
+   PUBLIC PROCEDURE Init( CONST SymbolicName : ARRAY OF WCHAR; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW ) : BOOLEAN;
+   PUBLIC PROCEDURE ReadParameters( CONST ParFilePath : StringsO.CString; OUT ErrorMessage : StringsO.CString; OUT ErrorLine : CARDINAL ) : BOOLEAN;
+   PUBLIC PROCEDURE EnumerateChannels(  VAR EnumerateState : LONGWORD; VAR Type : CARDINAL; VAR Direction : CARDINAL; VAR DriverIndex : CARDINAL; VAR Count : CARDINAL; VAR HaveDescription : BOOLEAN ): BOOLEAN;
+   PUBLIC PROCEDURE GetChannelDescription( DriverIndex : CARDINAL; VAR Description : ARRAY OF WCHAR; VAR Id : ARRAY OF WCHAR ) : BOOLEAN;
+
+   PUBLIC PROCEDURE Run( OperateEIB, OperateSDAP : BOOLEAN );
+   PUBLIC PROCEDURE Connected();
+   PUBLIC PROCEDURE Stop( OperateEIB, OperateSDAP : BOOLEAN );
+   PUBLIC PROCEDURE Disconnected();
+   PUBLIC PROCEDURE Dispose();
+
+   PUBLIC PROCEDURE InputRequestStart();
+   PUBLIC PROCEDURE InputRequest( DriverIndex : CARDINAL );
+   PUBLIC PROCEDURE InputRequestCompleted();
+   PUBLIC PROCEDURE InputFinalized( DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
+   PUBLIC PROCEDURE InputOOBDataQuery( VAR EnumerateState : LONGWORD; VAR DriverIndex : CARDINAL ) : BOOLEAN;
+   PUBLIC PROCEDURE GetInput( UFlag : BOOLEAN; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue; VAR QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp; VAR ErrorCode : CARDINAL );
+
+   PUBLIC PROCEDURE OutputRequestStart();
+   PUBLIC PROCEDURE OutputRequest( UFlag : BOOLEAN; DriverIndex : CARDINAL; OutValue : drv_def.TValue; QoS : CARDINAL; TimeStamp : drv_def.TUTCStamp );
+   PUBLIC PROCEDURE OutputRequestCompleted();
+   PUBLIC PROCEDURE OutputFinalized( DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
+
+   PUBLIC PROCEDURE QueryProc( UFlag : BOOLEAN; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
+
+   // index/log number management
+   LOCAL PROCEDURE LogNumber2Object( LogNumber : CARDINAL; VAR PObject : TPObject ) : BOOLEAN;
+   PROCEDURE EIBStatus2ErrorCode( Status : eib_status.TEIBStackStatus ) : CARDINAL;
+   PROCEDURE HWConnected( VAR ErrorCode : CARDINAL ) : BOOLEAN;
+   PROCEDURE FindBehaviour( BehaviourName : ARRAY OF WCHAR; VAR Priority : eib_def.TPriority; VAR Flags : eib_def.TA_ObjectFlags ) : BOOLEAN;
+   PROCEDURE AddObject( Class : eib_def.TPriority; Flags : eib_def.TA_ObjectFlags; Type : eib_def.TEIBType ) : TPObject;
+   PROCEDURE DoneObjects( NILExecutive : BOOLEAN );
+
+   // object callbacks
+   LOCAL PROCEDURE ValueReadRequestSent( PObject : TPObject );
+   LOCAL PROCEDURE ValueRead( PObject : TPObject );
+   LOCAL PROCEDURE ValueUpdated( PObject : TPObject );
+   LOCAL PROCEDURE ValueWritten( PObject : TPObject );
+
+   // helpers
+   PROCEDURE DoInitRead( RepeatFlag : BOOLEAN );
+   PROCEDURE InitToDefault();
+   PROCEDURE InitReadFinished();
+   LOCAL PROCEDURE CWValue2EIBValue( UFlag : BOOLEAN; CONST Value : drv_def.TValue; DestEVType : eib_def.TEIBType; VAR EV : eib_def.TValue );
+
+   LOCAL PROCEDURE IOValue2EIBValue( CONST Value : sdvalue.Value; DestEVType : eib_def.TEIBType; OUT EV : eib_def.TValue );
+   LOCAL PROCEDURE EIBValue2IOValue( CONST EV : eib_def.TValue; OUT Value : sdvalue.Value );
+END CEIBServer;
+
+//================================================================================
+
+READONLY VAR
+   R : Resources.CResources;
+
+//================================================================================
+
+END eibsrv.
