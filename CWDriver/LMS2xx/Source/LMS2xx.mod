@@ -689,7 +689,10 @@ CLASS IMPLEMENTATION CDriver;
       Serial.ReadBack := ReadBack;
       // Serial.SetInBoundaryStrings( WCHAR( 2 ), L'' );
       Serial.SetOutBoundaryStrings( WCHAR( 2 ), L'' );
-      Serial.Logger.Set( DebugMode, DebugLevel, DebugFile );
+
+      Serial.Logger.SetLogFile( DebugFile );
+      Serial.Logger.Mode := DebugMode;
+      Serial.Logger.Level := DebugLevel;
 
       RETURN Serial.Init( Name, ComChannel, ComDriver, ParFilePath, OUT ErrorMessage );
     ELSE
