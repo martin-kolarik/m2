@@ -6,8 +6,10 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
    
 IMPORT
+   cllv,
    eibsrv,
    FIO,
+   Log,
    netinit,
    Registry,
    Service,
@@ -63,6 +65,7 @@ CLASS IMPLEMENTATION CEibSvc;
       RS : Registry.CRegistry;
       s1, s2 : StringsO.CString;
    BEGIN
+      Log.logger()^.SetUpByRegistry( LIBRARY );
       netinit.Startup();
       
       Strings.ConcatW( OUT Path, L"SOFTWARE\", Manufacturer ); Strings.AppendW( REF Path, L"\" ); Strings.AppendW( REF Path, ProductId );
@@ -85,11 +88,13 @@ CLASS IMPLEMENTATION CEibSvc;
       END;
       
       ASSERT( EIB = NIL );
-      NEW( EIB ); // ^.Init();
-      EIB^.Init( L"EibSrv", NIL, NIL );
+      NEW( EIB )^.Init();
+      EIB^.EXEFlag := TRUE;
+      EIB^.cllvData := ADR( cllv.data );
+      EIB^.cllvLength := cllv.length;
 
       s1.AppendOA( L"\" ); s1.Append( s2 );
-      IF EIB^.ReadParameters( s1, OUT s2, OUT line ) THEN
+      IF EIB^.LoadConfiguration( s1, OUT s2, OUT line ) THEN
          EIB^.Run( TRUE, TRUE );
       ELSE
          s2.AppendOA( L", line: " ); s1.FromCARD32( line, 10 ); s2.Append( s1 );
