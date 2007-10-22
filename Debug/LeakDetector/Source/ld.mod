@@ -423,7 +423,9 @@ BEGIN
   Running := TRUE;
   LHeap := windows.HeapCreate( 0, 0, 0 );
   Lock.Init( Sync.ltSpin, L"", FALSE );
-  Log.Init( "LD" ); Log.Set( log.dmKernel, log.dlcWarning, L'' );
+  Log.SetLogName( "LD" );
+  Log.Mode := log.dmKernel;
+  Log.Level := log.dlcWarning;
 END CLeakDetector;
 
 //================================================================================
