@@ -162,6 +162,7 @@ TYPE
 
 TYPE
    TsdapCommand = (
+      sdapEXIT,
       sdapLOAD,
       sdapSET,
       sdapGET,
@@ -406,7 +407,10 @@ CLASS IMPLEMENTATION CSDAPServer;
       // split command and subcommand
       parametersCount := 2;
       p[0].SplitS( StringsO.WCHARS{L'.'}, 0, FALSE, OUT l, OUT s );
-      IF s[0].EqualsOA( L"load" ) THEN
+      IF s[0].EqualsOA( L"exit" ) THEN
+         Command := sdapEXIT;
+         parametersCount := 0;
+      ELSIF s[0].EqualsOA( L"load" ) THEN
          Command := sdapLOAD;
          parametersCount := 2;
       ELSIF s[0].EqualsOA( L"set" ) THEN
@@ -435,6 +439,8 @@ CLASS IMPLEMENTATION CSDAPServer;
 
       // decoding and check    
       CASE Command OF
+      //-----
+      | sdapEXIT :
       //-----
       | sdapLOAD :
       //-----
@@ -474,6 +480,11 @@ CLASS IMPLEMENTATION CSDAPServer;
       // ELSIF Result.Expired THEN
 
       CASE Command OF
+      //-----
+      | sdapEXIT :
+         ACK( PConnection, sdap200 );
+         Disconnect( NIL, PConnection );
+
       //-----
       | sdapLOAD :
          // recode parameters
@@ -2805,6 +2816,8 @@ INITIALLY __I();
 BEGIN
    // messages
    R.LoadRES2( EMIT( %exe ), L"eibsrv.Texts" );
+   // logging
+   Log.logger()^.SetUpByRegistry( LIBRARY );
 END __I;
 
 //================================================================================
