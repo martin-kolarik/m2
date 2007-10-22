@@ -4,15 +4,18 @@ MODULE eibsvc;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
+
+IMPORT
+   winsock;
    
 IMPORT
    cllv,
-   eibsrv,
    FIO,
    Log,
    netinit,
    Registry,
    Service,
+   srvcore,
    Strings,
    StringsO;
    
@@ -33,7 +36,7 @@ CLASS CEibSvc( Service.AService );
       Name : PWCHAR;
       
    PRIVATE VAR
-      EIB : eibsrv.TPEIBServer := NIL;
+      EIB : srvcore.TPEIBServer := NIL;
 
    INTERNAL VIRTUAL PROCEDURE OnStart();
    INTERNAL VIRTUAL PROCEDURE OnPause();
