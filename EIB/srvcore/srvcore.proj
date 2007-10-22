@@ -19,7 +19,7 @@
         <Components Include="component\sccore"/>
         <Components Include="licensing\core;library\sdio;EIB\eibstack;EIB\eibnetstack"/>
         <Messages Include="Texts"/>
-        <Modules Include="eibsrv"/>
+        <Modules Include="srvcore"/>
     </ItemGroup>
 
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->

@@ -1,4 +1,4 @@
-DEFINITION MODULE eibsrv;
+DEFINITION MODULE srvcore;
 
 IMPORT
    winsock,
@@ -225,4 +225,4 @@ END CEIBServer;
 
 //================================================================================
 
-END eibsrv.
+END srvcore.

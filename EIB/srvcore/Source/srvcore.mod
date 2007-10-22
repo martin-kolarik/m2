@@ -1,4 +1,4 @@
-IMPLEMENTATION MODULE eibsrv;
+IMPLEMENTATION MODULE srvcore;
 
 (*# call( o_a_copy => off ) *)
 
@@ -2121,9 +2121,9 @@ END CEIBServer;
 INITIALLY __I();
 BEGIN
    // messages
-   R.LoadRES2( EMIT( %exe ), L"eibsrvcore.Texts" );
+   R.LoadRES2( EMIT( %exe ), L"srvcore.Texts" );
 END __I;
 
 //================================================================================
 
-END eibsrv.
+END srvcore.

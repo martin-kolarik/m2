@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8,00"
-	Name="eibsrvcore"
+	Name="srvcore"
 	ProjectGUID="{B3354F39-423B-4402-9990-4EB6A313D0FC}"
-	RootNamespace="eibsrvcore"
+	RootNamespace="srvcore"
 	Keyword="MakeFileProj"
 	>
 	<Platforms>
@@ -66,7 +66,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\Source\eibsrv.mod"
+				RelativePath=".\Source\srvcore.mod"
 				>
 			</File>
 		</Filter>
@@ -76,16 +76,16 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\Source\eibsrv.def"
+				RelativePath=".\Source\srvcore.def"
 				>
 			</File>
 		</Filter>
 		<File
-			RelativePath=".\eibsrvcore.definition.proj"
+			RelativePath=".\srvcore.definition.proj"
 			>
 		</File>
 		<File
-			RelativePath=".\eibsrvcore.proj"
+			RelativePath=".\srvcore.proj"
 			>
 		</File>
 		<File
