@@ -1,11 +1,11 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "eibstack", "..\eibstack\eibstack.vcproj", "{3560FA24-B555-4408-91F0-77E822A074F0}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "falconstack", "..\falconstack\falconstack.vcproj", "{A4D9F9FB-17AD-4E95-AB30-482C4E8134C5}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "eibsrv", "eibsrv.vcproj", "{B3354F39-423B-4402-9990-4EB6A313D0FC}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "eibsrvcore", "..\eibsrvcore\eibsrvcore.vcproj", "{B3354F39-423B-4402-9990-4EB6A313D0FC}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CWDriver", "..\..\Library\CWDriver\CWDriver.vcproj", "{C9960D6E-4A25-4781-BD91-E95AB34AFA79}"
 EndProject

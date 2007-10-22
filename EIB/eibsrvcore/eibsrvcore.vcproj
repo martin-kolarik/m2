@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8,00"
-	Name="eibsrv"
+	Name="eibsrvcore"
 	ProjectGUID="{B3354F39-423B-4402-9990-4EB6A313D0FC}"
-	RootNamespace="eibsrv"
+	RootNamespace="eibsrvcore"
 	Keyword="MakeFileProj"
 	>
 	<Platforms>
@@ -93,11 +93,11 @@
 			</File>
 		</Filter>
 		<File
-			RelativePath=".\eibsrv.definition.proj"
+			RelativePath=".\eibsrvcore.definition.proj"
 			>
 		</File>
 		<File
-			RelativePath=".\eibsrv.proj"
+			RelativePath=".\eibsrvcore.proj"
 			>
 		</File>
 		<File
