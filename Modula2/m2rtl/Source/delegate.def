@@ -25,15 +25,18 @@ ABSTRACT CLASS ADelegate; // AFTER CREATION (either static or NEW) THE _Referenc
                           // for which AddRef/Release is used.
   PRIVATE VAR
     _References : CARDINAL;
+    _Completed  : CARDINAL;
   PUBLIC READONLY PROPERTY
-		References : CARDINAL;
+     References : CARDINAL;
+  PUBLIC PROPERTY
+     Completed : BOOLEAN;
 
   PUBLIC PROCEDURE AddRef() : CARDINAL;
   #save, option( leak_info => on )
   PUBLIC PROCEDURE Release() : CARDINAL;
   #restore
   PUBLIC VIRTUAL FINALLY ADelegate();
-
+  
   PRIVATE OPERATOR DISPOSE( a : ADDRESS );
 END ADelegate;
 
