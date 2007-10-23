@@ -28,6 +28,8 @@
                             </File>
                             <File DiskId="1" Id="CheckCfg.EXE" Name="CheckCfg.exe" Source="CheckCfg.exe">
                             </File>
+                            <File DiskId="1" Id="Discover.EXE" Name="Discover.exe" Source="Discover.exe">
+                            </File>
                             <ServiceInstall Id="SVC" Name="$(var.ProductId)" Type="ownProcess" Start="auto" ErrorControl="normal" DisplayName="$(var.ProductDisplayName)" Description="$(var.ProductDescription)">
                                 <ServiceDependency Id="Tcpip" />
                             </ServiceInstall>

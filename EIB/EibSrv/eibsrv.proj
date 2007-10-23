@@ -24,7 +24,7 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <Components Include="EIB\srvsvc;EIB\checkcfg"/>
+        <Components Include="EIB\srvsvc;EIB\checkcfg;EIB\discover"/>
     </ItemGroup>
 
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
