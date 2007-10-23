@@ -12,7 +12,7 @@
         <LeakChecking>off</LeakChecking>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='eibsrv'">
+    <PropertyGroup Condition="$(MSBuildProjectName)=='eibsrv' Or $(MSBuildProjectName)=='checkcfg'">
         <Result>Program</Result>
     </PropertyGroup>
 

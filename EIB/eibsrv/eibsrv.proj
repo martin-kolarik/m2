@@ -12,7 +12,9 @@
         <ProductVersionMajor>1</ProductVersionMajor>
         <ProductVersionMinor>0</ProductVersionMinor>
         <ProductNote></ProductNote>
+        <DynamicCLibInstallMethod>Shared</DynamicCLibInstallMethod>
 
+        <FileDisplayName>EIB/KNX Server</FileDisplayName>
         <FileDescription>SmartControl EIB/KNX group object server</FileDescription>
     </PropertyGroup>
 
@@ -23,7 +25,7 @@
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
         <Components Include="modula2\modula2;api\clib;API\win32"/>
-        <Components Include="component\sccore;EIB\srvcore"/>
+        <Components Include="component\sccore;EIB\srvcore;EIB\checkcfg"/>
         <Program Include="eibsvc"/>
     </ItemGroup>
 

@@ -18,7 +18,7 @@
 		<Configuration
 			Name="Debug|Win32"
 			OutputDirectory="~$(ConfigurationName)"
-			IntermediateDirectory="~$(Build)"
+			IntermediateDirectory="~Build"
 			ConfigurationType="0"
 			BuildLogFile="$(OutDir)\BuildLog.htm"
 			>
@@ -39,7 +39,7 @@
 		<Configuration
 			Name="Release|Win32"
 			OutputDirectory="~$(ConfigurationName)"
-			IntermediateDirectory="~$(Build)"
+			IntermediateDirectory="~Build"
 			ConfigurationType="0"
 			BuildLogFile="$(OutDir)\BuildLog.htm"
 			>
@@ -89,6 +89,10 @@
 		</File>
 		<File
 			RelativePath=".\eibsrv.proj"
+			>
+		</File>
+		<File
+			RelativePath=".\Install\EibSrv.wxs"
 			>
 		</File>
 	</Files>
