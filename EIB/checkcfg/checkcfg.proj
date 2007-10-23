@@ -1,0 +1,36 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 -->
+    <PropertyGroup>
+        <ProductGUID>C016DBAB-2F26-46ad-8B12-12C5C79D4B2A</ProductGUID>
+        <ProductUpgradeGUID>3A80E4D6-DBDF-4ca6-8100-7E513A139764</ProductUpgradeGUID>
+
+        <ProductFlag>on</ProductFlag>
+        <ProductId>SmartControl.EibCheckCfg</ProductId>
+        <ProductVersionMajor>1</ProductVersionMajor>
+        <ProductVersionMinor>0</ProductVersionMinor>
+        <ProductNote></ProductNote>
+        <DynamicCLibInstallMethod>Shared</DynamicCLibInstallMethod>
+
+        <FileDisplayName>EIB/KNX Configuration Checker</FileDisplayName>
+        <FileDescription>SmartControl EIB/KNX group object provider configuration checker</FileDescription>
+    </PropertyGroup>
+
+    <!-- 2 INCLUDE DEFINITION -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 COMPONENT DEFINITION -->
+    <ItemGroup>
+        <Components Include="modula2\modula2;api\clib;API\win32"/>
+        <Components Include="component\sccore;EIB\srvcore"/>
+        <Messages Include="Texts"/>
+        <Program Include="checkcfg"/>
+    </ItemGroup>
+
+    <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>
