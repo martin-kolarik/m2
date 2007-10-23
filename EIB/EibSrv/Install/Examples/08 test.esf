@@ -1,0 +1,90 @@
+Testovací byt
+Topení v koupelně.Input.1/0/0	Teplota v podlaze	Uncertain (2 Byte)	Low
+Topení v koupelně.Input.1/0/1	Topení zapnuto	EIS 1 'Switching' (1 Bit)	Low
+Topení v koupelně.Output.1/1/1	Topení zapnuto	EIS 1 'Switching' (1 Bit)	Low
+Topení v koupelně.Output.1/1/2	Topení povoleno	EIS 1 'Switching' (1 Bit)	Low
+Topení v pokojích.Input.2/0/0	Teplota venkovní	Uncertain (2 Byte)	Low
+Topení v pokojích.Input.2/0/1	Teplota v místnosti	Uncertain (2 Byte)	Low
+Topení v pokojích.Input.2/0/2	Požadovaná teplota	Uncertain (2 Byte)	Low
+Topení v pokojích.Input.2/0/3	Ochrana proti zámrazu	EIS 1 'Switching' (1 Bit)	Low
+Topení v pokojích.Output.2/1/0	Koupelna	Uncertain (1 Byte)	Low	2/1/129
+Topení v pokojích.Output.2/1/2	Kuchyně	Uncertain (1 Byte)	Low	2/1/129
+Topení v pokojích.Output.2/1/9	Jídelna	Uncertain (1 Byte)	Low	2/1/129
+Topení v pokojích.Output.2/1/10	Ložnice	Uncertain (1 Byte)	Low	2/1/129
+Topení v pokojích.Output.2/1/11	Dětský pokoj	Uncertain (1 Byte)	Low	2/1/129
+Topení v pokojích.Output.2/1/12	Obývací pokoj	Uncertain (1 Byte)	Low	2/1/129
+Topení v pokojích.Output.2/1/128	Výstup termostatu	Uncertain (1 Byte)	Low
+Topení v pokojích.Output.2/1/129	Společná pozice	Uncertain (1 Byte)	Low
+Topení v pokojích.Switching.2/2/0	Koupelna	EIS 1 'Switching' (1 Bit)	Low
+Topení v pokojích.Switching.2/2/6	Ložnice	EIS 1 'Switching' (1 Bit)	Low
+Topení v pokojích.Control.2/4/0	Způsob topení	Uncertain (1 Byte)	Low
+Topení v pokojích.Control.2/4/1	Zapnutí topného okruhu	EIS 1 'Switching' (1 Bit)	Low	2/4/12
+Topení v pokojích.Control.2/4/12	Okruh kuchyně	EIS 1 'Switching' (1 Bit)	Low
+Topení v pokojích.Přítomnost.2/5/12	Přítomnost obývací pokoj	EIS 1 'Switching' (1 Bit)	Low
+Světla.Input.3/0/0	Koupelna strop (stav)	EIS 1 'Switching' (1 Bit)	Low	3/1/0 3/1/128 3/1/32
+Světla.Input.3/0/2	Kuchyně strop (stav)	EIS 1 'Switching' (1 Bit)	Low	3/1/2 3/1/128
+Světla.Input.3/0/4	Kuchyne linka (stav)	EIS 1 'Switching' (1 Bit)	Low
+Světla.Input.3/0/6	Chodba (stav)	EIS 1 'Switching' (1 Bit)	Low
+Světla.Input.3/0/9	Jídelna (stav)	EIS 1 'Switching' (1 Bit)	Low
+Světla.Input.3/0/10	Ložnice (stav)	EIS 1 'Switching' (1 Bit)	Low	3/1/10 3/1/128
+Světla.Input.3/0/11	Dětský pokoj (stav)	EIS 1 'Switching' (1 Bit)	Low	3/1/11 3/1/128
+Světla.Input.3/0/12	Obývací pokoj C (stav)	EIS 1 'Switching' (1 Bit)	Low	3/1/12 3/1/128 3/1/32 3/1/33
+Světla.Input.3/0/13	Obývací pokoj D (stav)	EIS 1 'Switching' (1 Bit)	Low	3/1/13 3/1/128 3/1/33
+Světla.Input.3/0/18	Balkon (stav)	EIS 1 'Switching' (1 Bit)	Low
+Světla.Input.3/0/128	Stav všech světel	EIS 1 'Switching' (1 Bit)	Low
+Světla.Output.3/1/0	Koupelna strop	EIS 1 'Switching' (1 Bit)	Low
+Světla.Output.3/1/2	Kuchyně strop	EIS 1 'Switching' (1 Bit)	Low
+Světla.Output.3/1/4	Kuchyne linka	EIS 1 'Switching' (1 Bit)	Low	3/1/128
+Světla.Output.3/1/6	Chodba strop	EIS 1 'Switching' (1 Bit)	Low	3/0/6 3/1/128
+Světla.Output.3/1/9	Jídelna	EIS 1 'Switching' (1 Bit)	Low	3/1/128
+Světla.Output.3/1/10	Ložnice	EIS 1 'Switching' (1 Bit)	Low
+Světla.Output.3/1/11	Dětský pokoj	EIS 1 'Switching' (1 Bit)	Low
+Světla.Output.3/1/12	Obývací pokoj C	EIS 1 'Switching' (1 Bit)	Low	3/0/12
+Světla.Output.3/1/13	Obývací pokoj D	EIS 1 'Switching' (1 Bit)	Low	3/0/13
+Světla.Output.3/1/18	Balkon strop	EIS 1 'Switching' (1 Bit)	Low	3/1/128 3/0/18
+Světla.Output.3/1/32	Cesta do koupelny	EIS 1 'Switching' (1 Bit)	Low
+Světla.Output.3/1/33	Obývací pokoj	EIS 1 'Switching' (1 Bit)	Low	3/0/12
+Světla.Output.3/1/128	Vypnutí všech světel	EIS 1 'Switching' (1 Bit)	Low	3/0/128
+Světla.Dimming.3/2/0	Koupelna strop	EIS 2 'Dimming - control' (4 Bit)	Low
+Světla.Dimming.3/2/2	Kuchyně strop	EIS 2 'Dimming - control' (4 Bit)	Low
+Světla.Dimming.3/2/4	Kuchyne linka	EIS 2 'Dimming - control' (4 Bit)	Low
+Světla.Dimming.3/2/9	Jídelna	EIS 2 'Dimming - control' (4 Bit)	Low
+Světla.Dimming.3/2/10	Ložnice	EIS 2 'Dimming - control' (4 Bit)	Low
+Světla.Dimming.3/2/11	Dětský pokoj	EIS 2 'Dimming - control' (4 Bit)	Low
+Světla.Dimming.3/2/12	Obývací pokoj C	EIS 2 'Dimming - control' (4 Bit)	Low	3/2/33
+Světla.Dimming.3/2/13	Obývací pokoj D	EIS 2 'Dimming - control' (4 Bit)	Low	3/2/33
+Světla.Dimming.3/2/33	Obývací pokoj	EIS 2 'Dimming - control' (4 Bit)	Low
+Světla.Brightness.3/3/0	Koupelna strop	Uncertain (1 Byte)	Low	3/3/32
+Světla.Brightness.3/3/2	Kuchyně strop	Uncertain (1 Byte)	Low
+Světla.Brightness.3/3/4	Kuchyne linka	Uncertain (1 Byte)	Low
+Světla.Brightness.3/3/9	Jídelna	Uncertain (1 Byte)	Low
+Světla.Brightness.3/3/10	Ložnice	Uncertain (1 Byte)	Low
+Světla.Brightness.3/3/11	Dětský pokoj	Uncertain (1 Byte)	Low
+Světla.Brightness.3/3/12	Obývací pokoj C	Uncertain (1 Byte)	Low	3/3/33 3/3/32
+Světla.Brightness.3/3/13	Obývací pokoj D	Uncertain (1 Byte)	Low	3/3/33
+Světla.Brightness.3/3/32	Cesta do koupelny	Uncertain (1 Byte)	Low
+Světla.Brightness.3/3/33	Obývací pokoj	Uncertain (1 Byte)	Low
+Světla.Preset.3/4/0	Koupelna strop	EIS 1 'Switching' (1 Bit)	Low	3/4/33
+Světla.Preset.3/4/2	Kuchyně strop	EIS 1 'Switching' (1 Bit)	Low
+Světla.Preset.3/4/10	Ložnice	EIS 1 'Switching' (1 Bit)	Low
+Světla.Preset.3/4/11	Dětský pokoj	EIS 1 'Switching' (1 Bit)	Low
+Světla.Preset.3/4/12	Obývací pokoj C	EIS 1 'Switching' (1 Bit)	Low
+Světla.Preset.3/4/13	Obývací pokoj D	EIS 1 'Switching' (1 Bit)	Low
+Světla.Preset.3/4/33	Obývací pokoj 1	EIS 1 'Switching' (1 Bit)	Low	3/4/12 3/4/13 5/0/0 6/1/0
+Světla.Preset.3/4/34	Obývací pokoj 2	EIS 1 'Switching' (1 Bit)	Low	3/0/12
+Ventilátory.Input.4/0/1	Ventilátor v koupelně	EIS 1 'Switching' (1 Bit)	Low
+Ventilátory.Output.4/1/1	Ventilátor v koupelně	EIS 1 'Switching' (1 Bit)	Low	4/0/1
+Okna a dveře.Plášť.5/0/0	C/I/7	EIS 1 'Switching' (1 Bit)	Low
+Okna a dveře.Okna.5/1/2	Kuchyně	EIS 1 'Switching' (1 Bit)	Low
+Okna a dveře.Okna.5/1/9	Jídelna	EIS 1 'Switching' (1 Bit)	Low
+Okna a dveře.Okna.5/1/10	Ložnice	EIS 1 'Switching' (1 Bit)	Low
+Okna a dveře.Okna.5/1/11	Dětský pokoj	EIS 1 'Switching' (1 Bit)	Low
+Okna a dveře.Okna.5/1/12	Obývací pokoj	EIS 1 'Switching' (1 Bit)	Low
+Okna a dveře.Dveře.5/2/0	Koupelna	EIS 1 'Switching' (1 Bit)	Low
+Okna a dveře.Dveře.5/2/6	Vstup	EIS 1 'Switching' (1 Bit)	Low
+Okna a dveře.Dveře.5/2/11	Dětský pokoj	EIS 1 'Switching' (1 Bit)	Low
+Okna a dveře.Dveře.5/2/12	Balkon	EIS 1 'Switching' (1 Bit)	Low
+Systémové informace.Datum a čas.6/0/0	Denní čas	Uncertain (3 Byte)	Low
+Systémové informace.Kontrola a řízení.6/1/0	Keep Alive Probe	EIS 1 'Switching' (1 Bit)	Low
+Systémové informace.Zabezpečení.6/2/0	Zabezpečeno	EIS 1 'Switching' (1 Bit)	Low
+Systémové informace.Zabezpečení.6/2/12	Narušení obývací pokoj	EIS 1 'Switching' (1 Bit)	Low
