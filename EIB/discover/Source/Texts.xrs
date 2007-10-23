@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <strings version="1.0">
+
+        <string name="_InvalidOption">
+            <item xml:space="preserve" lang="en-US">  checkcfg: invalid option </item>
+            <item xml:space="preserve" lang="cs-CZ">  checkcfg: neplatný přepínač </item>
+        </string>
+        <string name="_UsageInfo">
+            <item xml:space="preserve" lang="en-US">  usage: checkcfg &lt;list of cfg files&gt; [-h]</item>
+            <item xml:space="preserve" lang="cs-CZ">  použití: checkcfg &lt;seznam cfg souborů&gt; [-h]</item>
+        </string>
+
+        <string name="_Success">
+            <item xml:space="preserve" lang="en-US">OK</item>
+            <item xml:space="preserve" lang="cs-CZ">OK</item>
+        </string>
+        <string name="_Objects">
+            <item xml:space="preserve" lang="en-US"> objects</item>
+            <item xml:space="preserve" lang="cs-CZ"> objekty/ů</item>
+        </string>
+        <string name="_Failed">
+            <item xml:space="preserve" lang="en-US">FAILED</item>
+            <item xml:space="preserve" lang="cs-CZ">CHYBA</item>
+        </string>
+        <string name="_Line">
+            <item xml:space="preserve" lang="en-US">    line </item>
+            <item xml:space="preserve" lang="cs-CZ">    řádek </item>
+        </string>
+
+    </strings>
+</resources>    
+
