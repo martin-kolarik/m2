@@ -827,8 +827,10 @@ CLASS IMPLEMENTATION CConnection;
    BEGIN
       Disconnect( TRUE );
 
-      Listener^.Connection := NIL;
-      Listener^.Release();
+      IF Listener <> NIL THEN // this occurs in case of multiple FINALLY calls
+         Listener^.Connection := NIL;
+         Listener^.Release();
+      END;
       Listener := NIL;
    END CConnection;
 
