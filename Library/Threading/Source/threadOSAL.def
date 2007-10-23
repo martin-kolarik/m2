@@ -3,6 +3,8 @@ DEFINITION MODULE threadOSAL;
 IMPORT
    Sync;
 
+#save, option( dll_export => on )
+
 INTERFACE IThread;
    PUBLIC READONLY PROPERTY
       Thread : CARDINAL;
@@ -15,5 +17,7 @@ INTERFACE IThread;
 
    INTERNAL PROCEDURE OnRun() : CARDINAL; // executive code
 END IThread;
+
+#restore
 
 END threadOSAL.

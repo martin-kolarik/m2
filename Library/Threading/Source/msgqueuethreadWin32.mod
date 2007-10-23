@@ -23,6 +23,7 @@ CLASS IMPLEMENTATION Win32MsgQueueThread;
       Msg : msghandler.Message;
       Status : CARDINAL;
    BEGIN
+      OnStart();
       LOOP
          Status := windows.MsgWaitForMultipleObjectsEx( waitHandles, ADR( _HExit ), windows.INFINITE, windows.QS_ALLINPUT, windows.MWMO_INPUTAVAILABLE OR windows.MWMO_ALERTABLE );
          CASE Status OF
@@ -30,10 +31,12 @@ CLASS IMPLEMENTATION Win32MsgQueueThread;
          | CARDINAL( windows.WAIT_FAILED ), windows.WAIT_ABANDONED : // some handle failed, this MUST not occur
             Status := windows.GetLastError();
             ASSERT( FALSE );
+            OnExit();
             RETURN -1;
 
          //-----
          | windows.WAIT_OBJECT_0 : // graceful EXIT
+            OnExit();
             RETURN 0;
 
          //-----
@@ -89,6 +92,18 @@ CLASS IMPLEMENTATION Win32MsgQueueThread;
       RETURN NIL;
    END Root;
   
+(*---------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE OnStart();
+   BEGIN
+   END OnStart;
+
+(*---------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE OnExit();
+   BEGIN
+   END OnExit;
+
 (*---------------------------------------------------------------------------*)
   
    INTERNAL VIRTUAL PROCEDURE MessageToHandler( CONST Msg : PTR; OUT Handler : msghandler.TPMessageHandler ) : BOOLEAN;

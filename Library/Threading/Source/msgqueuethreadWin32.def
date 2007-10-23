@@ -8,6 +8,8 @@ IMPORT
   
 (*---------------------------------------------------------------------------*)
   
+#save, option( dll_export => on )
+
 CLASS Win32MsgQueueThread( threadWin32.Win32Thread ) IMPLEMENTS msgqueuethreadOSAL.IMsgQueueThread;
 // behavior: DispatchMessage for Root = NIL and MessageToHandler = FALSE == Win32 default
 // behavior: Root^.OnMessage for Root <> NIL
@@ -18,6 +20,8 @@ CLASS Win32MsgQueueThread( threadWin32.Win32Thread ) IMPLEMENTS msgqueuethreadOS
    
    // IMessageQueueThread
    INTERNAL VIRTUAL READONLY PROPERTY Root : msghandler.TPMessageHandler;
+   INTERNAL VIRTUAL PROCEDURE OnStart();
+   INTERNAL VIRTUAL PROCEDURE OnExit();
    INTERNAL VIRTUAL PROCEDURE MessageToHandler( CONST Msg : PTR; OUT Handler : msghandler.TPMessageHandler ) : BOOLEAN;
 
    // IMessageRecipient
@@ -26,6 +30,8 @@ CLASS Win32MsgQueueThread( threadWin32.Win32Thread ) IMPLEMENTS msgqueuethreadOS
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Msg : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN; // thread targetted messages
 
 END Win32MsgQueueThread;
+
+#restore
 
 (*---------------------------------------------------------------------------*)
   

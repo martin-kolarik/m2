@@ -7,6 +7,8 @@ IMPORT
   sync,
   threadOSAL;
   
+#save, option( dll_export => on )
+
 TYPE
   THREAD = sync.WAITABLE;
 
@@ -30,5 +32,7 @@ ABSTRACT CLASS Win32Thread IMPLEMENTS threadOSAL.IThread;
   LOCAL PROCEDURE Exec() : CARDINAL;
   VIRTUAL FINALLY Win32Thread();
 END Win32Thread;
+
+#restore
 
 END threadWin32.

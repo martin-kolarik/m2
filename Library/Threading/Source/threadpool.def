@@ -9,6 +9,8 @@ IMPORT
   Sync,
   windows;
 
+#save, option( dll_export => on )
+
 //--------------------------------------------------------------------------------
 
 TYPE
@@ -79,5 +81,7 @@ CLASS CThreadPool( msghandler.MessageHandler );
 END CThreadPool;
 
 //--------------------------------------------------------------------------------
+
+#restore
 
 END threadpool.
