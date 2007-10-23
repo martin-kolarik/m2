@@ -38,6 +38,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "checkcfg", "..\checkcfg\che
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "eibsrv", "eibsrv.vcproj", "{F8427491-0CFE-48E7-BC17-7F1AE8254B5C}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "discover", "..\discover\discover.vcproj", "{A4E1F8BC-399C-4F82-A5E7-10B3E65B49CB}"
+EndProject
 Global
 	GlobalSection(TextTemplating) = postSolution
 		TextTemplating = 1
@@ -241,6 +243,16 @@ Global
 		{F8427491-0CFE-48E7-BC17-7F1AE8254B5C}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{F8427491-0CFE-48E7-BC17-7F1AE8254B5C}.Release|Win32.ActiveCfg = Release|Win32
 		{F8427491-0CFE-48E7-BC17-7F1AE8254B5C}.Release|Win32.Build.0 = Release|Win32
+		{A4E1F8BC-399C-4F82-A5E7-10B3E65B49CB}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{A4E1F8BC-399C-4F82-A5E7-10B3E65B49CB}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{A4E1F8BC-399C-4F82-A5E7-10B3E65B49CB}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{A4E1F8BC-399C-4F82-A5E7-10B3E65B49CB}.Debug|Win32.ActiveCfg = Debug|Win32
+		{A4E1F8BC-399C-4F82-A5E7-10B3E65B49CB}.Debug|Win32.Build.0 = Debug|Win32
+		{A4E1F8BC-399C-4F82-A5E7-10B3E65B49CB}.Release|Any CPU.ActiveCfg = Release|Win32
+		{A4E1F8BC-399C-4F82-A5E7-10B3E65B49CB}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{A4E1F8BC-399C-4F82-A5E7-10B3E65B49CB}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{A4E1F8BC-399C-4F82-A5E7-10B3E65B49CB}.Release|Win32.ActiveCfg = Release|Win32
+		{A4E1F8BC-399C-4F82-A5E7-10B3E65B49CB}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
