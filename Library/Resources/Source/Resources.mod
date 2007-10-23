@@ -477,6 +477,7 @@ CLASS IMPLEMENTATION CResources;
 
   INTERNAL PROCEDURE ResToStub(); 
   VAR
+    _CurrentLang : Languages.TLanguage;
     i, j, l : INTEGER;
   BEGIN
     l := SIZE( TResourceData ) + _Resource^.SlotCount * ( SIZE( TLanguageSlot ) + _Resource^.TextCount * SIZE( TText ));
@@ -493,9 +494,18 @@ CLASS IMPLEMENTATION CResources;
         INC( _Stub^.Slots^[i].Texts^[j].Text, PTR( _Resource ));
       END;
     END;
-    
+
+    IF _Lang = 0 THEN
+      _CurrentLang := Languages.GetDefaultLanguage( Languages.dlUser );
+    ELSE
+      _CurrentLang := _Lang;
+    END;
+    IF NOT SearchLanguage( _CurrentLang, OUT i ) THEN
+      _CurrentLang := _Stub^.Slots^[0].Lang;
+    END;
+
     _Lang := 0; // force to change language data
-    Lang := _Stub^.Slots^[0].Lang;
+    Lang := _CurrentLang;
   END ResToStub;
 
 //---------------------------------------------------------------------------
