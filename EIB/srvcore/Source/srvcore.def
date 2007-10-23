@@ -64,6 +64,7 @@ TYPE
    TsdapACK = (
       // successes
       sdap200 = 200, // OK
+      sdap201 = 201, // OK, but cached without connection
 
       // client problems
       sdap400 = 400, // empty command

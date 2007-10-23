@@ -83,6 +83,10 @@
             <item lang="en-US">Type information is bad or badly formatted</item>
             <item lang="cs-CZ">Datový typ je chybný nebo je chybně zapsán</item>
         </string>
+        <string name="_BadTypeInfoUnableToDetectUncertainType">
+            <item lang="en-US">Uncertain type information is not allowed</item>
+            <item lang="cs-CZ">Nejistý datový typ (uncertain) není povolený</item>
+        </string>
         <string name="_BadESFPriority">
             <item lang="en-US">Unknown priority</item>
             <item lang="cs-CZ">Neznámá priorita</item>
@@ -103,6 +107,10 @@
             <item lang="cs-CZ">Komunikační zásobník se nepodařilo inicializovat.</item>
             <item lang="en-US">Communication stack initialization has failed.</item>
         </string>
+        <string name="_BadAdjacentGroupAddress">
+            <item lang="en-US">Bad adjacent group address</item>
+            <item lang="cs-CZ">Chybná doplňková skupinová adresa</item>
+        </string>
 
-   </strings>
+    </strings>
 </resources>

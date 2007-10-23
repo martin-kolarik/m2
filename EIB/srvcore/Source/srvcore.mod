@@ -397,9 +397,8 @@ CLASS IMPLEMENTATION CSDAPServer;
       IF d.EndsWithOA( 13W + 10W ) THEN
          d.Length := d.Length - 2;
       END;
-
-      // TODO
-      Log.logger()^.LogSS( Log.dlpIO, L"sdap", "RCV: ", OA( d.Length-1, d.rawData ));
+      Log.logger()^.LogSS( Log.dldDebug, L"sdap", "RCV: ", OA( d.Length-1, d.rawData ));
+      Log.logger()^.LogSH( Log.dldDebug, L"sdap", "from: ", PConnection^.RemoteAddress.s_addr );
 
       d.SplitS( StringsO.WCHARS{L' '}, 0, TRUE, OUT parametersFound, OUT p );
       p[0].Lowerize();
@@ -488,6 +487,8 @@ CLASS IMPLEMENTATION CSDAPServer;
       CASE Command OF
       //-----
       | sdapEXIT :
+         Log.logger()^.LogSH( Log.dldTrace, L"sdap", "EXIT from: ", PConnection^.RemoteAddress.s_addr );
+
          ACK( PConnection, sdap200 );
          Disconnect( NIL, PConnection );
 
@@ -495,6 +496,8 @@ CLASS IMPLEMENTATION CSDAPServer;
       | sdapLOAD :
          // recode parameters
          d.Substring( p[0].Length + 1, -1, OUT p[1] );
+
+         Log.logger()^.LogSS( Log.dldTrace, L"sdap", "LOAD: ", OA( p[1].Length-1, p[1].rawData ));
 
          // stop, load
          b := Server^.Running;
@@ -518,6 +521,8 @@ CLASS IMPLEMENTATION CSDAPServer;
 
       //-----
       | sdapRUN :
+         Log.logger()^.LogS( Log.dldTrace, L"sdap", "RUN" );
+
          Server^.Run( TRUE, FALSE );
          IF Server^.Running THEN
             ACK( PConnection, sdap200 );
@@ -527,12 +532,20 @@ CLASS IMPLEMENTATION CSDAPServer;
 
       //-----
       | sdapSTOP :
+         Log.logger()^.LogS( Log.dldTrace, L"sdap", "STOP" );
+
          Server^.Stop( TRUE, FALSE );
          ACK( PConnection, sdap200 );
 
        //-----
       | sdapSET, sdapGET :
-         IF FALSE AND NOT Server^.Running THEN // TODO
+         IF Command = sdapSET THEN
+            Log.logger()^.LogSSSS( Log.dldTrace, L"sdap", "SET ", OA( p[1].Length-1, p[1].rawData ), L" ", OA( p[2].Length-1, p[2].rawData ));
+         ELSE
+            Log.logger()^.LogSS( Log.dldTrace, L"sdap", "GET ", OA( p[1].Length-1, p[1].rawData ));
+         END;
+
+         IF ( Command = sdapSET ) AND NOT Server^.Running THEN
             ACK( PConnection, sdap501 );
 
          ELSIF NOT eadr.SetGroupAddress3( OA( p[1].Length-1, p[1].rawData )) THEN
@@ -549,17 +562,20 @@ CLASS IMPLEMENTATION CSDAPServer;
                PObject^.SetValue( EV );
                ACK( PConnection, sdap200 );
 
-               // TODO
-               Server^.ValueUpdated( PObject ); // notify CWDriver OOBQueue, if we are in such environment
+               // for notification using EventSink, if it exists
+               Server^.ValueUpdated( PObject );
        
-            ELSE // expect data.name (aka data.x/x/x)
+            ELSE
         
                PObject^.GetValue( EV, TRUE, FALSE );
                Server^.EIBValue2IOValue( EV, OUT IOValue );
-               ACKd( PConnection, sdap200, p[1], IOValue );
+               IF Server^.Running THEN
+                  ACKd( PConnection, sdap200, p[1], IOValue );
+               ELSE
+                  ACKd( PConnection, sdap201, p[1], IOValue );
+               END;
        
             END;
-
          END;
       END; // CASE
   END OnReceive;
@@ -571,10 +587,9 @@ CLASS IMPLEMENTATION CSDAPServer;
       s : StringsO.CString;
    BEGIN
       s.FromCARD32( CARDINAL( ack ), 10 );
-      
-      // TODO
-      Log.logger()^.LogSS( Log.dlpIO, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
-      
+
+      Log.logger()^.LogSS( Log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
+
       Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
    END ACK;
 
@@ -586,8 +601,7 @@ CLASS IMPLEMENTATION CSDAPServer;
    BEGIN
       s.FromCARD32( CARDINAL( ack ), 10 );
 
-      // TODO
-      Log.logger()^.LogSS( Log.dlpIO, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
+      Log.logger()^.LogSS( Log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
       
       Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
    END ACKs;
@@ -602,8 +616,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       s.AppendOA( L" " );
       s.Append( S );
 
-      // TODO
-      Log.logger()^.LogSS( Log.dlpIO, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
+      Log.logger()^.LogSS( Log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
       
       Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
    END ACKS;
@@ -617,15 +630,13 @@ CLASS IMPLEMENTATION CSDAPServer;
       s.FromCARD32( CARDINAL( ack ), 10 );
       s.AppendOA( ' 1' );
 
-      // TODO
-      Log.logger()^.LogSS( Log.dlpIO, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
+      Log.logger()^.LogSS( Log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
       
       Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
 
       s := address; s.AppendOA( L" " ); s.Append( value.String );
 
-      // TODO
-      Log.logger()^.LogSS( Log.dlpIO, L"sdap", "DATA: ", OA( s.Length-1, s.rawData ));
+      Log.logger()^.LogSS( Log.dldDebug, L"sdap", "DATA: ", OA( s.Length-1, s.rawData ));
       
       Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
    END ACKd;
@@ -987,13 +998,15 @@ CLASS IMPLEMENTATION CEIBServer;
 
    //----------
 
-      PROCEDURE ReadESF( REF ErrorMessage : StringsO.CString; CONST ESFPath : StringsO.CString ) : BOOLEAN;
+      PROCEDURE ReadESF( REF ErrorMessage : StringsO.CString; CONST Mode : ARRAY OF WCHAR; CONST ESFPath : StringsO.CString ) : BOOLEAN;
       CONST
          kvEIS = L"EIS";
          kvESFLow = L"Low";
          kvESFHigh = L"High";
          kvESFAlarm = L"Alarm";
          kvUncertain = L"Uncertain";
+         tabSet = StringsO.WCHARS{ 9W };
+         spaceSet = StringsO.WCHARS{ L" " };
       VAR
          c, i : CARDINAL;
          EIT : eib_def.TEIBType;
@@ -1020,7 +1033,7 @@ CLASS IMPLEMENTATION CEIBServer;
             END;
 
             // group address
-            i := so.ItemS( StringsO.WCHARS{ 9W }, 0, 0, FALSE, OUT item );
+            i := so.ItemS( tabSet, 0, 0, FALSE, OUT item );
             IF item.Empty THEN
                ErrorMessage.FromOA( OAsz( R[ Texts._ESFMissingGroupField1 ] ));
                AppendErrorLine( REF ErrorMessage, tr.Line );
@@ -1039,8 +1052,8 @@ CLASS IMPLEMENTATION CEIBServer;
             END;
             
             // skip name, read type
-            i := so.ItemS( StringsO.WCHARS{ 9W }, i, 1, FALSE, OUT item );
-            c := item.ItemS( StringsO.WCHARS{ L' ' }, 0, 0, FALSE, OUT io );
+            i := so.ItemS( tabSet, i, 1, FALSE, OUT item );
+            c := item.ItemS( spaceSet, 0, 0, FALSE, OUT io );
             IF io.Empty THEN
                ErrorMessage.FromOA( OAsz( R[ Texts._ESFMissingTypeField3 ] ));
                AppendErrorLine( REF ErrorMessage, tr.Line );
@@ -1062,6 +1075,14 @@ CLASS IMPLEMENTATION CEIBServer;
                END;
 
             ELSIF io.EqualsOA( kvUncertain ) THEN
+               IF EQUALS( Mode, knESFIgnore ) THEN
+                  CONTINUE;
+               ELSIF EQUALS( Mode, knESFStrict ) THEN
+                  ErrorMessage.FromOA( OAsz( R[ Texts._BadTypeInfoUnableToDetectUncertainType ] ));
+                  AppendErrorLine( REF ErrorMessage, tr.Line );
+                  RETURN FALSE;
+               END;
+
                item.Remove( 0, c );
                c := item.IndexOfOA( L'(', 0 );
                IF c = -1 THEN
@@ -1112,7 +1133,7 @@ CLASS IMPLEMENTATION CEIBServer;
             END;
             
             // read priority
-            i := so.ItemS( StringsO.WCHARS{ 9W }, i, 0, FALSE, OUT item );
+            i := so.ItemS( tabSet, i, 0, FALSE, OUT item );
             IF item.Empty THEN
                ErrorMessage.FromOA( OAsz( R[ Texts._ESFMissingPriorityField4 ] ));
                AppendErrorLine( REF ErrorMessage, tr.Line );
@@ -1131,8 +1152,23 @@ CLASS IMPLEMENTATION CEIBServer;
             
             PObject := AddObject( Priority, fullIOFlags, EIT );
             PObject^.AddAddress( FALSE, FALSE, GroupAddress );
-            
+            Groups[ CARD16( GroupAddress.GetGroupAddress1()) ] := CARD16( Objects.Count - 1 );
+
             // read optional adjacent group address;
+            i := so.ItemS( tabSet, i, 0, FALSE, OUT item );
+            IF NOT item.Empty THEN
+               so := item;
+               i := so.ItemS( spaceSet, 0, 0, FALSE, OUT item );
+               WHILE NOT item.Empty DO
+                  IF NOT GroupAddress.SetGroupAddress3( OA( item.Length-1, item.rawData )) THEN
+                     ErrorMessage.FromOA( OAsz( R[ Texts._BadAdjacentGroupAddress ] ));
+                     AppendErrorLine( REF ErrorMessage, tr.Line );
+                     RETURN FALSE;
+                  END;
+                  PObject^.AddAddress( FALSE, FALSE, GroupAddress );
+                  i := so.ItemS( spaceSet, i, 0, FALSE, OUT item );
+               END;
+            END; // WHILE
 
          END; // WHILE
 
@@ -1185,23 +1221,16 @@ CLASS IMPLEMENTATION CEIBServer;
       Connection := L'';
       Key := L'';
       IF TS.SetSection( snDevice ) THEN
-         IF TS.GetKeyInt( knId, OUT ErrorLine, OUT c ) THEN
-            DeviceId := c;
-         ELSIF TS.GetKeyStr( knId, OUT ErrorLine, OUT so ) THEN
+         IF TS.GetKeyStr( knId, OUT ErrorLine, OUT so ) THEN
             IF so.StartsWithOA( kvFalcon ) THEN
                c := so.IndexOfOA( kvFalcon, 0 );
-               IF c <> MAX( CARDINAL ) THEN
-                  so.SubstringOA( c+LENGTH( kvFalcon )+1, MAX( CARDINAL ), OUT Connection );
-                  Strings.TrimW( REF Connection );
-                  DeviceId := LONGWORD( -2 );
-               END;
+               so.SubstringOA( c+LENGTH( kvFalcon )+1, MAX( CARDINAL ), OUT Connection );
+               Strings.TrimW( REF Connection );
             ELSIF so.StartsWithOA( kvEIBNet ) THEN
                c := so.IndexOfOA( kvEIBNet, 0 );
-               IF c <> MAX( CARDINAL ) THEN
-                  so.SubstringOA( c+LENGTH( kvEIBNet )+1, MAX( CARDINAL ), OUT Connection );
-                  Strings.TrimW( REF Connection );
-                  DeviceId := LONGWORD( -3 );
-               END;
+               so.SubstringOA( c+LENGTH( kvEIBNet )+1, MAX( CARDINAL ), OUT Connection );
+               Strings.TrimW( REF Connection );
+               DeviceId := LONGWORD( -2 );
             END;
          END;
          IF TS.GetKeyStr( knKey, OUT ErrorLine, OUT so ) THEN
@@ -1209,15 +1238,12 @@ CLASS IMPLEMENTATION CEIBServer;
          END;
       END; // IF snDevice
       IF DeviceId = LONGWORD( -1 ) THEN
-         ErrorMessage.FromOA( OAsz( R[ Texts._BadOrUndefinedDeviceId ] ));
-         GOTO Fail;
-      ELSIF DeviceId = LONGWORD( -2 ) THEN
          // Stack := stackFalcon;
          // NEW( falconStack.TPFalconStack( EIB ));
          // ASSIGN( falconStack.TPFalconStack( EIB )^.Connection, FalconConnection );
          // ASSIGN( falconStack.TPFalconStack( EIB )^.Key, Key );
          ErrorMessage.FromOA( OAsz( R[ Texts._UnsupportedStack ] ));
-      ELSIF DeviceId = LONGWORD( -3 ) THEN
+      ELSIF DeviceId = LONGWORD( -2 ) THEN
          Stack := stackEIBNet;
          NEW( eibnetstack.TPEIBNetStack( EIB ));
       ELSE
@@ -1312,7 +1338,7 @@ CLASS IMPLEMENTATION CEIBServer;
          END;
       END; // IF snReadStart
 
-      // read read on start options
+      // read read during run options
       IF TS.SetSection( snReadRun ) THEN
          // timeouts
          IF TS.GetKeyInt( knTimeout, OUT ErrorLine, OUT c ) THEN
@@ -1428,7 +1454,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
             //-----
             ELSIF EQUALS( p, knESFStrict ) OR EQUALS( p, knESFIgnore ) OR EQUALS( p, knESFAdapt ) THEN
-               IF NOT ReadESF( REF ErrorMessage, so ) THEN
+               IF NOT ReadESF( REF ErrorMessage, p, so ) THEN
                   GOTO Fail;
                END;
 
