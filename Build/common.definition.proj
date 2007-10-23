@@ -38,6 +38,12 @@
         <Result Condition="$(Result)==''">Static</Result><!-- Static (LIB) Dynamic (DLL) Program (EXE) -->
         <LeakChecking Condition="$(LeakChecking)==''">off</LeakChecking>
         <CPPExceptions Condition="$(CPPExceptions)==''">on</CPPExceptions>
+        <CopyRuntimes Condition="$(CopyRuntimes)==''">$(ProductFlag)</CopyRuntimes>
+
+        <ClientLicensing Condition="$(ClientLicensing)=='' Or $(ProductFlag)=='off'">off</ClientLicensing>
+        <SetupLicensing Condition="$(SetupLicensing)=='' Or $(ProductFlag)=='off'">off</SetupLicensing>
+        <ClientLicensing Condition="$(Licensing)=='on' And $(ProductFlag)=='on'">on</ClientLicensing>
+        <SetupLicensing Condition="$(Licensing)=='on' And $(ProductFlag)=='on'">on</SetupLicensing>
     </PropertyGroup>
 
     <!-- (constructed properties, DO NOT MODIFY) -->

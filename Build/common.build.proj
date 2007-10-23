@@ -2,12 +2,8 @@
 
     <!-- common properties -->
     <PropertyGroup>
-
         <!-- main controls -->
         <DeepFlag>off</DeepFlag><!-- for build -->
-
-        <EffectiveLicensing>off</EffectiveLicensing>
-        <EffectiveLicensing Condition="$(ProductFlag)=='on' And $(Licensing)=='on'">on</EffectiveLicensing>
 
         <!-- directories -->
         <SourceDir>Source</SourceDir>
@@ -60,9 +56,9 @@
 
     <!-- outputs -->
     <PropertyGroup>
-        <OutputName Condition="$(Result)=='Static'">$(MSBuildProjectName).lib</OutputName>
-        <OutputName Condition="$(Result)=='Dynamic'">$(MSBuildProjectName).dll</OutputName>
-        <OutputName Condition="$(Result)=='Program'">$(MSBuildProjectName).exe</OutputName>
+        <OutputName Condition="$(OutputName)=='' And $(Result)=='Static'">$(MSBuildProjectName).lib</OutputName>
+        <OutputName Condition="$(OutputName)=='' And $(Result)=='Dynamic'">$(MSBuildProjectName).dll</OutputName>
+        <OutputName Condition="$(OutputName)=='' And $(Result)=='Program'">$(MSBuildProjectName).exe</OutputName>
         <OutputFile>$(OutputDir)\$(OutputName)</OutputFile>
         <OutputFilePath>$(OutputPath)\$(OutputName)</OutputFilePath>
         <InterfaceNamePath>$(OutputPath)\$(MSBuildProjectName)</InterfaceNamePath>
@@ -91,7 +87,7 @@
     </ItemGroup>
 
     <!-- add licensing files between normal DEF/MOD -->
-    <ItemGroup Condition="$(EffectiveLicensing)=='on'">
+    <ItemGroup Condition="$(ClientLicensing)=='on'">
         <DEFFiles Include = "cllv.def" />
         <DEFFilesDir Include = "$(SourceDir)\cllv.def" />
         <MODFiles Include = "cllv.mod" />
@@ -151,7 +147,7 @@
         <Components Condition="$(LeakChecking)=='on' And $(LeakDetector)!='' And (@(ExportToInterface)!='' Or @(Objects)!='')"
                     Include="$(LeakDetector)"/>
 
-        <Components Condition="$(EffectiveLicensing)=='on' And $(LicensingComponent)!=''"
+        <Components Condition="$(ClientLicensing)=='on' And $(LicensingComponent)!=''"
                 Include="$(LicensingComponent)"/>
 
     </ItemGroup>
@@ -353,7 +349,7 @@
     </Target>
 
 
-    <Target Name="LicensingSource" Condition="$(EffectiveLicensing)=='on'" Inputs="$(ProductBuildFile)" Outputs="@(LicensingSourceFiles)">
+    <Target Name="LicensingSource" Condition="$(ClientLicensing)=='on'" Inputs="$(ProductBuildFile)" Outputs="@(LicensingSourceFiles)">
         <Exec WorkingDirectory="$(LicensingSourceDir)"
               Command="$(LICSRC) $(ProductId)"/>
     </Target>
@@ -417,9 +413,13 @@
         <ReadLinesFromFile File="$(RCFile).lastrev" ContinueOnError="true">
             <Output TaskParameter="Lines" PropertyName="LastRev"/>
         </ReadLinesFromFile>
-        <Delete Condition="$(FileVersionBuild)!=$(LastRev)" Files="@(RESFile)"/>
-        <Delete Condition="$(FileVersionBuild)!=$(LastRev) And $(EffectiveLicensing)"
-                Files="$(ProductLicenceFile);@(LicensingSourceFiles)"
+        <Delete Condition="$(FileVersionBuild)!=$(LastRev)"
+                Files="@(RESFile)"/>
+        <Delete Condition="$(FileVersionBuild)!=$(LastRev) And $(ClientLicensing)"
+                Files="@(LicensingSourceFiles)"
+                ContinueOnError="true"/>
+        <Delete Condition="$(FileVersionBuild)!=$(LastRev) And $(SetupLicensing)"
+                Files="$(ProductLicenceFile)"
                 ContinueOnError="true"/>
     </Target>
 
@@ -477,14 +477,14 @@
 
     <Import Project="internal.licence.targets"/>
     <Target Name="BuildProductLicence"
-            Condition="$(EffectiveLicensing)=='on'"
+            Condition="$(SetupLicensing)=='on'"
             DependsOnTargets="CreateProductLicenceFile">
         <Exec WorkingDirectory="$(OutputDir)"
               Command="$(LICSIGN) *.tlic"/>
     </Target>
 
     <Target Name="ComponentRuntimes"
-            Condition="$(ProductFlag)=='on'" 
+            Condition="$(CopyRuntimes)=='on'" 
             Inputs="@(GrabbedRuntimes)"
             Outputs="@(GrabbedRuntimes -> '$(OutputDir)\%(FileName)%(Extension)')">
         <Copy SourceFiles="@(GrabbedRuntimes)"
@@ -512,9 +512,10 @@
     <!-- outer, visible targets -->
 
     <Target Name="Clean">
-        <RemoveDir Directories="$(HeaderDir);$(IntermediateDir)" ContinueOnError="true" />
-        <Delete Condition="$(EffectiveLicensing)=='on'"
-                Files="@(MessagesDefDir);@(LicensingSourceFiles)"
+        <RemoveDir Directories="$(HeaderDir);$(IntermediateDir)"
+                   ContinueOnError="true" />
+        <Delete Condition="$(ClientLicensing)=='on'"
+                Files="@(LicensingSourceFiles)"
                 ContinueOnError="true" />
     </Target>
     <Target Name="CleanAll"
@@ -550,11 +551,6 @@
             <Output TaskParameter="TargetOutputs" ItemName="Compiled"/>
         </MSBuild>
         <CallTarget Targets="Build"/>
-        <Copy Condition="$(ProductFlag)=='on'"
-              SourceFiles="@(Compiled)"
-              DestinationFolder="$(ProductPath)\$(OutputDirName)"
-              SkipUnchangedFiles="true"
-              ContinueOnError="false" />
     </Target>
     <Target Name="BuildAllComponents">
         <CallTarget Targets="ProductBuildNumberGet"/>
@@ -576,7 +572,13 @@
     <!-- installation tasks -->
     <Import Project="internal.wix.targets"/>
 
-    <Target Name="SetupBuild" DependsOnTargets="ProductBuildNumberGet;CreateSetup" />
+    <Target Name="CheckSetup">
+        <Error Condition="$(ProductFlag)=='off'" Text="Unable to create setup for not product project" />
+        <Error Condition="$(ProductGUID)==''" Text="ProductGUID not defined" />
+        <Error Condition="$(ProductUpgradeGUI)==''" Text="ProductUpgradeGUID not defined" />
+    </Target>
+    
+    <Target Name="SetupBuild" DependsOnTargets="CheckSetup;ProductBuildNumberGet;CreateSetup" />
     <Target Name="SetupClean" DependsOnTargets="CleanSetup" />
     <Target Name="SetupRebuild" DependsOnTargets="CleanSetup;ProductBuildNumberGet;CreateSetup" />
 
