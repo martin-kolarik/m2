@@ -256,7 +256,7 @@
         </CreateItem>
 
         <!-- SELF LIBRARY PATH and DLL/EXE -->
-        <CreateItem Condition="$(Level)!='0'"
+        <CreateItem Condition="$(Level)!='0' And $(Result)!='Program'"
                     Include="@(Interface -> '%(Identity).lib')"
                     AdditionalMetadata="Type=Library">
             <Output TaskParameter="Include" ItemName="Grabbed"/>

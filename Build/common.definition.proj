@@ -11,11 +11,13 @@
         <Manufacturer Condition="$(Manufacturer)==''">SmartControl</Manufacturer>
         <ProductFlag Condition="$(ProductFlag)==''">off</ProductFlag>
         <ComponentStandaloneFlag Condition="$(ComponentStandaloneFlag)==''">off</ComponentStandaloneFlag>
+        <DynamicCLibInstallMethod Condition="$(DynamicCLibInstallMethod)==''">Private</DynamicCLibInstallMethod><!-- Private Shared -->
     </PropertyGroup>
 
     <!-- (constructed properties, DO NOT MODIFY) -->
     <PropertyGroup Condition="$(ProductFlag)=='on'">
         <ProductId Condition="$(ProductId)==''">$(MSBuildProjectName)</ProductId>
+        <ProductDisplayName Condition="$(ProductDisplayName)==''">$(FileDisplayName)</ProductDisplayName>
         <ProductDescription Condition="$(ProductDescription)==''">$(FileDescription)</ProductDescription>
         <ComponentStandaloneFlag>on</ComponentStandaloneFlag>
     </PropertyGroup>

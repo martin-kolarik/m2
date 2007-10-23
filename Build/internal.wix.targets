@@ -12,10 +12,12 @@
       <SetupResultDir>$(OutputDir)\$(MSBuildProjectName).msi</SetupResultDir>
 
       <CandleDefs>-dBuildRoot=&quot;$(WiXSrc)&quot; -dProductRoot=&quot;$(ComponentPath)\Install&quot; -dProductId=&quot;$(ProductId)&quot;</CandleDefs>
-      <CandleDefs> $(CandleDefs) -dContact=&quot;$(Contact)&quot; -dSupport=&quot;$(Support)&quot; -dPhone=&quot;$(Phone)&quot; -dURL=&quot;$(URL)&quot; -dUpdateURL=&quot;$(UpdateURL)&quot;</CandleDefs>
-      <CandleDefs> $(CandleDefs) -dManufacturer=&quot;$(Manufacturer)&quot; -dProductDescription=&quot;$(ProductDescription)&quot;</CandleDefs>
-      <CandleDefs> $(CandleDefs) -dProductGUID=$(ProductGUID) -dUpgradeGUID=$(ProductUpgradeGUID)</CandleDefs>
-      <CandleDefs> $(CandleDefs) -dLanguage=$(LangIdDec) -dCodePage=$(OriginalCodePageDec) -dConfigurationName=$(ConfigurationName) -dCLib=$(CLib) -dLeakChecking=$(LeakChecking)</CandleDefs>
+      <CandleDefs>$(CandleDefs) -dContact=&quot;$(Contact)&quot; -dSupport=&quot;$(Support)&quot; -dPhone=&quot;$(Phone)&quot; -dURL=&quot;$(URL)&quot; -dUpdateURL=&quot;$(UpdateURL)&quot;</CandleDefs>
+      <CandleDefs>$(CandleDefs) -dManufacturer=&quot;$(Manufacturer)&quot; -dProductDisplayName=&quot;$(ProductDisplayName)&quot; -dProductDescription=&quot;$(ProductDescription)&quot;</CandleDefs>
+      <CandleDefs>$(CandleDefs) -dProductGUID=$(ProductGUID) -dUpgradeGUID=$(ProductUpgradeGUID)</CandleDefs>
+      <CandleDefs>$(CandleDefs) -dLanguage=$(LangIdDec) -dCodePage=$(OriginalCodePageDec) -dConfigurationName=$(ConfigurationName) -dLeakChecking=$(LeakChecking)</CandleDefs>
+      <CandleDefs Condition="$(CLib)=='static'">$(CandleDefs) -dCLib=$(CLib)</CandleDefs>
+      <CandleDefs Condition="$(CLib)!='static'">$(CandleDefs) -dCLib=$(DynamicCLibInstallMethod)</CandleDefs>
   </PropertyGroup>
 
   <ItemGroup>
