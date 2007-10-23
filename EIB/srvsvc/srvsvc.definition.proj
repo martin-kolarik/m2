@@ -8,11 +8,11 @@
         <LanguageStyle Condition="$(LanguageStyle)==''">UNICODE</LanguageStyle>
         <Language Condition="$(Language)==''">Czech</Language>
         <CLib>Dynamic</CLib>
-        <Licensing>on</Licensing>
         <LeakChecking>off</LeakChecking>
+        <ClientLicensing>on</ClientLicensing>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='eibsrv' Or $(MSBuildProjectName)=='checkcfg'">
+    <PropertyGroup Condition="$(MSBuildProjectName)=='srvsvc'">
         <Result>Program</Result>
     </PropertyGroup>
 

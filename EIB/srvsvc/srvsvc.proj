@@ -4,9 +4,6 @@
 
     <!-- 1 -->
     <PropertyGroup>
-        <ProductGUID>DA1CC8C1-DD65-4CA0-B9FE-8A112DD6715D</ProductGUID>
-        <ProductUpgradeGUID>67E4985B-93E9-43ED-8B7E-5D381F094F5D</ProductUpgradeGUID>
-
         <ProductFlag>on</ProductFlag>
         <ProductId>SmartControl.EibSrv</ProductId>
         <ProductVersionMajor>1</ProductVersionMajor>
@@ -18,6 +15,10 @@
         <FileDescription>SmartControl EIB/KNX group object server</FileDescription>
     </PropertyGroup>
 
+    <PropertyGroup>
+        <OutputName>EibSrv.exe</OutputName>
+    </PropertyGroup>
+
     <!-- 2 INCLUDE DEFINITION -->
     <Import Project="..\..\Build\common.rootdir.proj"/>
     <Import Project="$(RootBuildDir)\common.definition.proj"/>
@@ -25,8 +26,8 @@
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
         <Components Include="modula2\modula2;api\clib;API\win32"/>
-        <Components Include="component\sccore;EIB\srvcore;EIB\checkcfg"/>
-        <Program Include="eibsvc"/>
+        <Components Include="component\sccore;EIB\srvcore"/>
+        <Program Include="srvsvc"/>
     </ItemGroup>
 
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
