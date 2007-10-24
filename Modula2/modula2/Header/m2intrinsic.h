@@ -16,10 +16,10 @@
 # endif
 
 namespace Strings {
-  __Strings_MI void (CapsA)( CARDINAL HIGH_, CHAR* s );
-  __Strings_MI void (CapsW)( CARDINAL HIGH_, WCHAR* s );
-  __Strings_MI void (LowsA)( CARDINAL HIGH_, CHAR* s );
-  __Strings_MI void (LowsW)( CARDINAL HIGH_, WCHAR* s );
+  __Strings_MI void (CapsA)( CARDINAL HIGH_, CHAR* s ) throw();
+  __Strings_MI void (CapsW)( CARDINAL HIGH_, WCHAR* s ) throw();
+  __Strings_MI void (LowsA)( CARDINAL HIGH_, CHAR* s ) throw();
+  __Strings_MI void (LowsW)( CARDINAL HIGH_, WCHAR* s ) throw();
 }
 # define __M2CAPA Strings::CapsA
 # define __M2CAPW Strings::CapsW
@@ -33,39 +33,39 @@ namespace Strings {
 # endif // _USER_STRINGS_DEFINED_
 
 // procedures
-inline void CAPB_( CARDINAL HIGH_, CHAR* ch )
+inline void CAPB_( CARDINAL HIGH_, CHAR* ch ) throw()
 {
   __M2CAPA( HIGH_, ch );
 }
-inline void CAPW_( CARDINAL HIGH_, WCHAR* ch )
+inline void CAPW_( CARDINAL HIGH_, WCHAR* ch ) throw()
 {
   __M2CAPW( HIGH_, ch );
 }
-inline void LOWB_( CARDINAL HIGH_, CHAR* ch )
+inline void LOWB_( CARDINAL HIGH_, CHAR* ch ) throw()
 {
   __M2LOWA( HIGH_, ch );
 }
-inline void LOWW_( CARDINAL HIGH_, WCHAR* ch )
+inline void LOWW_( CARDINAL HIGH_, WCHAR* ch ) throw()
 {
   __M2LOWW( HIGH_, ch );
 }
 // functions
-inline CHAR CAPFB_( CHAR ch )
+inline CHAR CAPFB_( CHAR ch ) throw()
 {
   __M2CAPA( 0, &ch );
   return ch;
 }
-inline WCHAR CAPFW_( WCHAR ch )
+inline WCHAR CAPFW_( WCHAR ch ) throw()
 {
   __M2CAPW( 0, &ch );
   return ch;
 }
-inline CHAR LOWFB_( CHAR ch )
+inline CHAR LOWFB_( CHAR ch ) throw()
 {
   __M2LOWA( 0, &ch );
   return ch;
 }
-inline WCHAR LOWFW_( WCHAR ch )
+inline WCHAR LOWFW_( WCHAR ch ) throw()
 {
   __M2LOWW( 0, &ch );
   return ch;
@@ -91,8 +91,8 @@ inline WCHAR LOWFW_( WCHAR ch )
 # endif
 
 namespace Storage {
-  __Storage_MI void (M2ALLOCATE)( ADDRESS* ptr, CARDINAL size );
-  __Storage_MI void (M2DEALLOCATE)( ADDRESS* ptr );
+  __Storage_MI void (M2ALLOCATE)( ADDRESS* ptr, CARDINAL size ) throw();
+  __Storage_MI void (M2DEALLOCATE)( ADDRESS* ptr ) throw();
 }
 # define __M2ALLOCATE Storage::M2ALLOCATE
 # define __M2DEALLOCATE Storage::M2DEALLOCATE
@@ -103,14 +103,14 @@ namespace Storage {
 
 # endif // _USER_STORAGE_DEFINED_
 
-inline void* OBJECT::operator new(size_t size)
+inline void* OBJECT::operator new(size_t size) throw()
 {
   void* ptr;
   __M2ALLOCATE(&ptr, size);
   return ptr;
 } // OBJECT::operator new
 
-inline void OBJECT::operator delete(void* ptr)
+inline void OBJECT::operator delete(void* ptr) throw()
 {
   __M2DEALLOCATE(&ptr);
 } // OBJECT::operator delete

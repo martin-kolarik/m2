@@ -112,7 +112,7 @@ typedef CARD64                 LONGSET;
 # define INCFO_(t,a,b)         ((t)((ORDINAL)(a) + (ORDINAL)(b)))
 # define INCFA_(t,a,b)         ((t)((PTR)(a) + (PTR)(b)))
 
-__forceinline bool __fastcall DEBUGGED_() {
+__forceinline bool __fastcall DEBUGGED_() throw() {
   __asm {
     mov eax, dword ptr fs:[0x18]
     mov eax, dword ptr [eax+0x30]
@@ -127,15 +127,15 @@ typedef struct { WORD lo; WORD hi; } __dw;
 typedef struct { LONGWORD lo; LONGWORD hi; } __qw;
 #pragma pack(pop)
 
-inline BYTE LOBYTE_( WORD w ) { return ((__w*)&w)->lo; }
-inline BYTE HIBYTE_( WORD w ) { return ((__w*)&w)->hi; }
-inline WORD LOWORD_( LONGWORD dw ) { return ((__dw*)&dw)->lo; }
-inline WORD HIWORD_( LONGWORD dw ) { return ((__dw*)&dw)->hi; }
-inline LONGWORD LOLONGWORD_( QUADWORD qw ) { return ((__qw*)&qw)->lo; }
-inline LONGWORD HILONGWORD_( QUADWORD qw ) { return ((__qw*)&qw)->hi; }
+inline BYTE LOBYTE_( WORD w ) throw() { return ((__w*)&w)->lo; }
+inline BYTE HIBYTE_( WORD w ) throw() { return ((__w*)&w)->hi; }
+inline WORD LOWORD_( LONGWORD dw ) throw() { return ((__dw*)&dw)->lo; }
+inline WORD HIWORD_( LONGWORD dw ) throw() { return ((__dw*)&dw)->hi; }
+inline LONGWORD LOLONGWORD_( QUADWORD qw ) throw() { return ((__qw*)&qw)->lo; }
+inline LONGWORD HILONGWORD_( QUADWORD qw ) throw() { return ((__qw*)&qw)->hi; }
 # ifdef _WIN64
-   inline LONGWORD LOPTRLONGWORD_( PTR ptr ) { return ((__qw*)&ptr)->lo; }
-   inline LONGWORD HIPTRLONGWORD_( PTR ptr ) { return ((__qw*)&ptr)->hi; }
+   inline LONGWORD LOPTRLONGWORD_( PTR ptr ) throw() { return ((__qw*)&ptr)->lo; }
+   inline LONGWORD HIPTRLONGWORD_( PTR ptr ) throw() { return ((__qw*)&ptr)->hi; }
 # else
    inline LONGWORD LOPTRLONGWORD_( PTR ptr ) { return (LONGWORD)ptr; }
    inline LONGWORD HIPTRLONGWORD_( PTR ptr ) { return (LONGWORD)0; }
@@ -143,19 +143,19 @@ inline LONGWORD HILONGWORD_( QUADWORD qw ) { return ((__qw*)&qw)->hi; }
 
 // simple swaps
 # define SWAPB_(b) (b)
-inline WORD SWAPW_( WORD w ) {
+inline WORD SWAPW_( WORD w ) throw() {
   WORD l;
   ((__w*)&l)->lo = ((__w*)&w)->hi;
   ((__w*)&l)->hi = ((__w*)&w)->lo;
   return l;
 };
-inline LONGWORD SWAPLW_( LONGWORD w ) {
+inline LONGWORD SWAPLW_( LONGWORD w ) throw() {
   LONGWORD l;
   ((__dw*)&l)->lo = ((__dw*)&w)->hi;
   ((__dw*)&l)->hi = ((__dw*)&w)->lo;
   return l;
 };
-inline QUADWORD SWAPQW_( QUADWORD w ) {
+inline QUADWORD SWAPQW_( QUADWORD w ) throw() {
   QUADWORD l;
   ((__qw*)&l)->lo = ((__qw*)&w)->hi;
   ((__qw*)&l)->hi = ((__qw*)&w)->lo;
@@ -169,16 +169,16 @@ inline QUADWORD SWAPQW_( QUADWORD w ) {
 
 // le/be swaps
 # define REVERSEB_(b) (b)
-inline WORD REVERSEWB_( WORD w ) {
+inline WORD REVERSEWB_( WORD w ) throw() {
   return SWAPW_( w );
 }
-inline LONGWORD REVERSELWB_( LONGWORD w ) {
+inline LONGWORD REVERSELWB_( LONGWORD w ) throw() {
   LONGWORD l;
   ((__dw*)&l)->lo = REVERSEWB_( ((__dw*)&w)->hi );
   ((__dw*)&l)->hi = REVERSEWB_( ((__dw*)&w)->lo );
   return l;
 }
-inline QUADWORD REVERSEQWB_( QUADWORD w ) {
+inline QUADWORD REVERSEQWB_( QUADWORD w ) throw() {
   QUADWORD l;
   ((__qw*)&l)->lo = REVERSELWB_( ((__qw*)&w)->hi );
   ((__qw*)&l)->hi = REVERSELWB_( ((__qw*)&w)->lo );
@@ -231,7 +231,7 @@ inline QUADWORD REVERSEQWB_( QUADWORD w ) {
 }
 
 // sets -- test
-inline bool INS_( SET s, SET l, SET b )
+inline bool INS_( SET s, SET l, SET b ) throw()
 {
   if (b<=l) {
     return (s & (1<<b)) != 0;
@@ -240,7 +240,7 @@ inline bool INS_( SET s, SET l, SET b )
   }
 }
 
-inline bool INL_( LONGSET s, SET l, SET b )
+inline bool INL_( LONGSET s, SET l, SET b ) throw()
 {
   if (b<=l) {
     return (s & (1UI64<<b)) != 0;
@@ -249,7 +249,7 @@ inline bool INL_( LONGSET s, SET l, SET b )
   }
 }
 
-inline bool INA_( BYTE* s, SET l, SET b )
+inline bool INA_( BYTE* s, SET l, SET b ) throw()
 {
   if (b<=l) {
     return (s[b/8] & (1<<(b&7))) != 0;
@@ -258,34 +258,34 @@ inline bool INA_( BYTE* s, SET l, SET b )
   }
 }
 //... a pair to simply solve CONST, the casting should be in m2cpp ???
-inline bool INA_( const BYTE* s, SET l, SET b )
+inline bool INA_( const BYTE* s, SET l, SET b ) throw()
 {
   return INA_( (BYTE*)s, l, b );
 }
 
 // sets -- conjunction
-inline void SCONJA_( CARDINAL L, BYTE* R, const BYTE* S1, const BYTE* S2 )
+inline void SCONJA_( CARDINAL L, BYTE* R, const BYTE* S1, const BYTE* S2 ) throw()
 {
   for(CARDINAL i = 0; i < L; i++) {
     R[i] = S1[i] & S2[i];
   }
 }
 // sets -- disjunction
-inline void SDISJA_( CARDINAL L, BYTE* R, const BYTE* S1, const BYTE* S2 )
+inline void SDISJA_( CARDINAL L, BYTE* R, const BYTE* S1, const BYTE* S2 ) throw()
 {
   for(CARDINAL i = 0; i < L; i++) {
     R[i] = S1[i] | S2[i];
   }
 }
 // sets -- difference
-inline void SDIFFA_( CARDINAL L, BYTE* R, const BYTE* S1, const BYTE* S2 )
+inline void SDIFFA_( CARDINAL L, BYTE* R, const BYTE* S1, const BYTE* S2 ) throw()
 {
   for(CARDINAL i = 0; i < L; i++) {
     R[i] = S1[i] &~ S2[i];
   }
 }
 // sets -- symmetric difference
-inline void SSYMDA_( CARDINAL L, BYTE* R, const BYTE* S1, const BYTE* S2 )
+inline void SSYMDA_( CARDINAL L, BYTE* R, const BYTE* S1, const BYTE* S2 ) throw()
 {
   for(CARDINAL i = 0; i < L; i++) {
     R[i] = S1[i] ^ S2[i];
@@ -295,7 +295,7 @@ inline void SSYMDA_( CARDINAL L, BYTE* R, const BYTE* S1, const BYTE* S2 )
 #define ASSIGNS_( d, s ) ((*(CARD32*)&(d)) = (s))
 
 // binaries -- EQUALS
-inline BOOLEAN EQUALSM_(const BYTE* S1, const BYTE* S2, CARDINAL L)
+inline BOOLEAN EQUALSM_(const BYTE* S1, const BYTE* S2, CARDINAL L) throw()
 {
   ADDRESS t1;
 
@@ -312,18 +312,18 @@ inline BOOLEAN EQUALSM_(const BYTE* S1, const BYTE* S2, CARDINAL L)
 }
 
 // strings -- INSIDE ANSI
-inline BOOLEAN INSIDEB_(CARDINAL HIGH_, const CHAR* S, ORDINAL I)
+inline BOOLEAN INSIDEB_(CARDINAL HIGH_, const CHAR* S, ORDINAL I) throw()
 {
   return I <= HIGH_ && S[I] != 0;
 }
 // strings -- LASTCHAR UNICODE
-inline BOOLEAN INSIDEW_(CARDINAL HIGH_, const WCHAR* S, ORDINAL I)
+inline BOOLEAN INSIDEW_(CARDINAL HIGH_, const WCHAR* S, ORDINAL I) throw()
 {
   return I <= HIGH_ && S[I] != 0;
 }
 
 // strings -- LENGTH ANSI
-inline CARDINAL LENGTHB_(CARDINAL HIGH_, const CHAR* S)
+inline CARDINAL LENGTHB_(CARDINAL HIGH_, const CHAR* S) throw()
 {
   CHAR* a;
   ADDRESS t;
@@ -344,7 +344,7 @@ inline CARDINAL LENGTHB_(CARDINAL HIGH_, const CHAR* S)
   }
 }
 // strings -- LENGTH UNICODE
-inline CARDINAL LENGTHW_(CARDINAL HIGH_, const WCHAR* S)
+inline CARDINAL LENGTHW_(CARDINAL HIGH_, const WCHAR* S) throw()
 {
   WCHAR* a;
   ADDRESS t;
@@ -365,7 +365,7 @@ inline CARDINAL LENGTHW_(CARDINAL HIGH_, const WCHAR* S)
   }
 }
 // strings -- LENGTH zero terminated ANSI
-inline CARDINAL LENGTHszB_(const CHAR* S)
+inline CARDINAL LENGTHszB_(const CHAR* S) throw()
 {
   CHAR* a;
 
@@ -381,7 +381,7 @@ inline CARDINAL LENGTHszB_(const CHAR* S)
   }
 }
 // strings -- LENGTH zero terminated UNICODE
-inline CARDINAL LENGTHszW_(const WCHAR* S)
+inline CARDINAL LENGTHszW_(const WCHAR* S) throw()
 {
   WCHAR* a;
 
@@ -397,7 +397,7 @@ inline CARDINAL LENGTHszW_(const WCHAR* S)
   }
 }
 // strings -- EQUALS ANSI
-inline BOOLEAN EQUALSB_(CARDINAL HIGH_1, const CHAR* S1, CARDINAL HIGH_2, const CHAR* S2)
+inline BOOLEAN EQUALSB_(CARDINAL HIGH_1, const CHAR* S1, CARDINAL HIGH_2, const CHAR* S2) throw()
 {
   ADDRESS t1;
 
@@ -429,7 +429,7 @@ inline BOOLEAN EQUALSB_(CARDINAL HIGH_1, const CHAR* S1, CARDINAL HIGH_2, const 
   }
 }
 // strings -- EQUALS UNICODE
-inline BOOLEAN EQUALSW_(CARDINAL HIGH_1, const WCHAR* S1, CARDINAL HIGH_2, const WCHAR* S2)
+inline BOOLEAN EQUALSW_(CARDINAL HIGH_1, const WCHAR* S1, CARDINAL HIGH_2, const WCHAR* S2) throw()
 {
   ADDRESS t1;
 
@@ -461,7 +461,7 @@ inline BOOLEAN EQUALSW_(CARDINAL HIGH_1, const WCHAR* S1, CARDINAL HIGH_2, const
   }
 }
 // strings -- ASSIGN ANSI
-inline void ASSIGNB_(CARDINAL HIGH_D, CHAR* D, CARDINAL HIGH_S, const CHAR* S)
+inline void ASSIGNB_(CARDINAL HIGH_D, CHAR* D, CARDINAL HIGH_S, const CHAR* S) throw()
 {
   ADDRESS ts;
 
@@ -493,7 +493,7 @@ inline void ASSIGNB_(CARDINAL HIGH_D, CHAR* D, CARDINAL HIGH_S, const CHAR* S)
   }
 }
 // strings -- ASSIGN UNICODE
-inline void ASSIGNW_(CARDINAL HIGH_D, WCHAR* D, CARDINAL HIGH_S, const WCHAR* S)
+inline void ASSIGNW_(CARDINAL HIGH_D, WCHAR* D, CARDINAL HIGH_S, const WCHAR* S) throw()
 {
   ADDRESS ts;
 
@@ -525,7 +525,7 @@ inline void ASSIGNW_(CARDINAL HIGH_D, WCHAR* D, CARDINAL HIGH_S, const WCHAR* S)
   }
 }
 // strings -- ASSIGN zero terminated ANSI
-inline void ASSIGNszB_(CARDINAL HIGH_D, CHAR* D, const CHAR* S)
+inline void ASSIGNszB_(CARDINAL HIGH_D, CHAR* D, const CHAR* S) throw()
 {
   ADDRESS ts;
 
@@ -551,7 +551,7 @@ inline void ASSIGNszB_(CARDINAL HIGH_D, CHAR* D, const CHAR* S)
   }
 }
 // strings -- ASSIGN UNICODE
-inline void ASSIGNszW_(CARDINAL HIGH_D, WCHAR* D, const WCHAR* S)
+inline void ASSIGNszW_(CARDINAL HIGH_D, WCHAR* D, const WCHAR* S) throw()
 {
   ADDRESS ts;
 
@@ -581,8 +581,8 @@ inline void ASSIGNszW_(CARDINAL HIGH_D, WCHAR* D, const WCHAR* S)
 // common class
 
 class OBJECT { public:
-  void* operator new(size_t size);
-  void operator delete(void* ptr);
+  void* operator new(size_t size) throw();
+  void operator delete(void* ptr) throw();
 }; // OBJECT
 
 // --------------------
