@@ -1,7 +1,7 @@
 DEFINITION MODULE netpool;
 
 //--------------------------------------------------------------------------------
-// internal module of net library, procedures should be used outside it
+// internal module of net library, procedures should NOT be used outside it
 
 IMPORT
   threadpool;

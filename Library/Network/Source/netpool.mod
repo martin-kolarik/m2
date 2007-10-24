@@ -13,6 +13,7 @@ VAR
 PROCEDURE Pool() : threadpool.TPThreadPool;
 BEGIN
   IF NetPool = NIL THEN
+    ASSERT( FALSE ); // netinit.Startup was not called
     Startup();
   END;
   RETURN NetPool;
@@ -20,7 +21,9 @@ END Pool;
 
 PROCEDURE Startup();
 BEGIN
-  NEW( NetPool );
+  IF NetPool = NIL THEN
+    NEW( NetPool );
+  END;
 END Startup;
 
 PROCEDURE Cleanup();
