@@ -729,7 +729,7 @@ VAR
 COM INTERFACE IXSLTemplate( IDispatch );
 
   COM PROPERTY
-    REF REV stylesheet : TPIXMLDOMNode;
+    REF stylesheet : TPIXMLDOMNode;
 
   COM PROCEDURE createProcessor() : TPIXSLProcessor;
 
@@ -742,7 +742,7 @@ VAR
 COM INTERFACE IXSLProcessor( IDispatch );
 
   COM PROPERTY
-    REV input     : VARIANT;
+    input : VARIANT;
   COM READONLY PROPERTY
     ownerTemplate : TPIXSLTemplate;
 
@@ -755,7 +755,7 @@ COM INTERFACE IXSLProcessor( IDispatch );
     startMode    : BSTR;
     startModeURI : BSTR;
   COM PROPERTY
-    REV output : VARIANT;
+    output : VARIANT;
 
   COM PROCEDURE transform() : VARIANT_BOOL; 
 
@@ -933,7 +933,7 @@ VAR
 COM INTERFACE IVBMXNamespaceManager( IDispatch );
 
   COM PROPERTY
-    REV allowOverride : VARIANT_BOOL;
+    allowOverride : VARIANT_BOOL;
 
   COM PROCEDURE reset();
 
