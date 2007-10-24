@@ -479,7 +479,7 @@ CLASS IMPLEMENTATION CSDAPServer;
             RETURN;
          END;
       END;
-      IF Server^.PResult^.Counted OR Server^.PResult^.Expired THEN
+      IF ( Command <>sdapEXIT ) AND ( Server^.PResult^.Counted OR Server^.PResult^.Expired ) THEN
          ACK( PConnection, sdap501 );
          RETURN;
       END;
