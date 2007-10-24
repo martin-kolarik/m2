@@ -1,0 +1,145 @@
+DEFINITION MODULE com;
+
+////////////////////////////////////////////////////////////////
+// Common COM helpers and IFaces implementations              //
+//                                            the code itself //
+//                                              (C) 2004-6 mk //
+////////////////////////////////////////////////////////////////
+
+IMPORT
+  guiddef,
+  oaidl,
+  unknwn,
+  windows,
+  wtypes;
+
+(*===========================================================================*)
+// common interfaces
+
+# save, option( pack => 1 ) *)
+TYPE
+  TGUID = RECORD
+    Data1 : LONGWORD;
+    Data2 : WORD;
+    Data3 : WORD;
+    B0, B1, B2, B3, B4, B5, B6, B7 : BYTE;
+  END;
+# restore
+
+# save, option( dll_export => on ) *)
+
+# save, call( convention => stdcall ) *)
+TYPE
+  TPIUnknown  = POINTER TO CIUnknown;
+  TPIDispatch = POINTER TO CIDispatch;
+CONST
+  TPInterface ::= TPIUnknown;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CIUnknown IMPLEMENTS unknwn.IUnknown;
+  PRIVATE VAR
+    PAggregate     : TPIUnknown; // mostly some interface creator
+  PUBLIC READONLY VAR
+    ReferenceCount : CARDINAL;
+    IID            : guiddef.IID;
+
+  PUBLIC PROCEDURE Init( IID : guiddef.IID; PAggregate : TPIUnknown );
+
+  // IUnknown
+  PUBLIC VIRTUAL PROCEDURE QueryInterface( CONST riid : guiddef.IID; ppvObject : PADDRESS ) : wtypes.HRESULT;
+  PUBLIC VIRTUAL PROCEDURE AddRef() : windows.ULONG;
+  PUBLIC VIRTUAL PROCEDURE Release() : windows.ULONG;
+  
+  # save, call( convention => none )
+  PUBLIC OPERATOR NEW( size : CARDINAL ) : ADDRESS;
+  PUBLIC OPERATOR DISPOSE( a : ADDRESS );
+  # restore
+END CIUnknown;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CIDispatch( CIUnknown );
+  PRIVATE VAR
+    PTypeInfo : oaidl.TPITypeInfo;
+
+  PUBLIC PROCEDURE Init(
+          IID        : guiddef.IID;
+          PAggregate : TPIUnknown;
+          PTypeInfo  : oaidl.TPITypeInfo );
+
+  // IDispatch
+  PUBLIC COM VIRTUAL PROCEDURE GetTypeInfoCount() : windows.UINT;
+
+  PUBLIC VIRTUAL PROCEDURE GetTypeInfo( 
+          iTInfo  : windows.UINT;
+          lcid    : wtypes.LCID;
+      VAR ppTInfo : oaidl.TPITypeInfo
+  ) : wtypes.HRESULT;
+
+  PUBLIC VIRTUAL PROCEDURE GetIDsOfNames( 
+    CONST riid      : guiddef.IID;
+          rgszNames : wtypes.PPOLESTR;
+          cNames    : windows.UINT;
+          lcid      : wtypes.LCID;
+          rgDispId  : oaidl.PDISPID
+  ) : wtypes.HRESULT;
+
+  PUBLIC VIRTUAL PROCEDURE Invoke( 
+          dispIdMember : oaidl.DISPID;
+    CONST riid         : guiddef.IID;
+          lcid         : wtypes.LCID;
+          wFlags       : WORD;
+          pDispParams  : oaidl.PDISPPARAMS;
+          pVarResult   : oaidl.PVARIANT;
+          pExcepInfo   : oaidl.PEXCEPINFO;
+          puArgErr     : windows.PUINT
+  ): wtypes.HRESULT;
+
+END CIDispatch;
+
+# restore
+
+(*===========================================================================*)
+
+CONST
+  BSTR ::= wtypes.BSTR;
+  HRESULT ::= wtypes.HRESULT;
+  PSAFEARRAY ::= oaidl.PSAFEARRAY;
+  VARIANT ::= oaidl.VARIANT;
+  VARIANTARG ::= oaidl.VARIANTARG;
+  VARIANT_BOOL ::= wtypes.VARIANT_BOOL;
+
+PROCEDURE COMInit() : HRESULT;
+PROCEDURE COMDone();
+
+PROCEDURE Cast( REF InputInterface : unknwn.TPIUnknown; ToIID : guiddef.GUID; Release : BOOLEAN; OUT OutputInterface : unknwn.TPIUnknown );
+
+PROCEDURE ToBS( CONST String : ARRAY OF WCHAR ) : BSTR;
+PROCEDURE ToBSRef( CONST String : ARRAY OF WCHAR; REF BS : BSTR ) : BSTR; // returns REF BS
+PROCEDURE BSToBSRef( Input : BSTR; ClearInput : BOOLEAN; REF Output : BSTR ) : BSTR; // returns REF BS
+PROCEDURE BSEmpty( BS : BSTR ) : BOOLEAN;
+PROCEDURE DisposeBS( REF BS : BSTR ); // checks NIL, fills NIL
+
+PROCEDURE VariantInit( OUT V : VARIANTARG );
+PROCEDURE VariantInitString( OUT V : VARIANTARG; CONST S : ARRAY OF WCHAR );
+PROCEDURE VariantToINT32( V : VARIANTARG; ClearVariant : BOOLEAN ) : INT32;
+PROCEDURE VariantToBS( V : VARIANTARG; ClearVariant : BOOLEAN ) : BSTR;
+PROCEDURE VariantToBSRef( V : VARIANTARG; ClearVariant : BOOLEAN; REF BS : BSTR ) : BSTR; // returns REF BS
+PROCEDURE VariantClear( REF V : VARIANTARG );
+
+PROCEDURE New0( CONST CLSID, IID : guiddef.GUID; OUT Object : unknwn.TPIUnknown ) : HRESULT;
+PROCEDURE New1( CONST CLSID, IID : TGUID; OUT Object : unknwn.TPIUnknown ) : HRESULT;
+PROCEDURE New2( CONST ProgId : ARRAY OF WCHAR; OUT Object : unknwn.TPIUnknown ) : HRESULT;
+
+(*===========================================================================*)
+
+PROCEDURE DbgOutIID( String : ARRAY OF WCHAR; POwner : ADDRESS; riid : guiddef.IID );
+PROCEDURE DbgOutADD( PInterface : TPIUnknown );
+PROCEDURE DbgOutREL( PInterface : TPIUnknown );
+
+(*===========================================================================*)
+
+# restore
+
+END com.

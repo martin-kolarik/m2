@@ -1,0 +1,203 @@
+DEFINITION MODULE ax_automation;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+////////////////////////////////////////////////////////////////
+// Common ActiveX Control                                     //
+//                                            the code itself //
+//                                              (C) 2004-6 mk //
+////////////////////////////////////////////////////////////////
+
+IMPORT
+  guiddef,
+  oaidl,
+  unknwn,
+  windows,
+  wtypes;
+
+IMPORT
+  com,
+  list;
+
+# save, option( dll_export => on )
+
+(*===========================================================================*)
+// COM DLL interface
+
+PROCEDURE CreateInterface( CONST riid : guiddef.IID; VAR ppv : ADDRESS ) : wtypes.HRESULT;
+PROCEDURE UnloadAllowed() : BOOLEAN;
+
+(*===========================================================================*)
+// common interfaces
+
+# save, call( convention => stdcall )
+
+TYPE
+  TPInterface = POINTER TO CInterface;
+  TPIDispatch = POINTER TO CIDispatch;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CInterface; // there MUST NOT be IUnknown as the m2cpp's new is NOT CALLED for such case... ( unknwn.IUnknown );
+  PInterfaceFactory : TPInterface; // mostly TPAxtiveXControl
+  IID               : guiddef.IID;
+  ReferenceCount    : CARDINAL;
+
+  PUBLIC VIRTUAL PROCEDURE QueryInterface( CONST riid : guiddef.IID; ppvObject : PADDRESS ) : wtypes.HRESULT;
+  PUBLIC VIRTUAL PROCEDURE AddRef() : windows.ULONG;
+  PUBLIC VIRTUAL PROCEDURE Release() : windows.ULONG;
+END CInterface;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CIDispatch( CInterface );
+  PITypeInfoSelf  : oaidl.TPITypeInfo;
+
+  PUBLIC VIRTUAL PROCEDURE GetTypeInfoCount( 
+          pctinfo : windows.PUINT ) : wtypes.HRESULT;
+  PUBLIC VIRTUAL PROCEDURE GetTypeInfo( 
+          iTInfo  : windows.UINT;
+          lcid    : wtypes.LCID;
+      VAR ppTInfo : oaidl.TPITypeInfo ) : wtypes.HRESULT;
+  PUBLIC VIRTUAL PROCEDURE GetIDsOfNames( 
+    CONST riid      : guiddef.IID;
+          rgszNames : wtypes.PPOLESTR;
+          cNames    : windows.UINT;
+          lcid      : wtypes.LCID;
+          rgDispId  : oaidl.PDISPID ) : wtypes.HRESULT;
+  PUBLIC VIRTUAL PROCEDURE Invoke( 
+          dispIdMember : oaidl.DISPID;
+    CONST riid         : guiddef.IID;
+          lcid         : wtypes.LCID;
+          wFlags       : WORD;
+          pDispParams  : oaidl.PDISPPARAMS;
+          pVarResult   : oaidl.PVARIANT;
+          pExcepInfo   : oaidl.PEXCEPINFO;
+          puArgErr     : windows.PUINT ): wtypes.HRESULT;
+
+  // private
+  LOCAL PROCEDURE Init( SelfIID : guiddef.IID ) : wtypes.HRESULT;
+END CIDispatch;
+
+(*===========================================================================*)
+// automation interfaces
+
+TYPE
+  TPIConnectionPointContainer = POINTER TO CIConnectionPointContainer;
+  TPIConnectionPoint          = POINTER TO CIConnectionPoint;
+  TPIEnumConnections          = POINTER TO CIEnumConnections;
+  TPActiveXDispatch           = POINTER TO CActiveXDispatch;
+  TPActiveXControl            = POINTER TO CActiveXControl;
+
+  TAParameters                = ARRAY [0..0] OF oaidl.VARIANTARG;
+  TPParameters                = POINTER TO TAParameters;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CIConnectionPointContainer( CInterface );
+  PActiveXControl  : TPActiveXControl;
+  ConnectionPoints : list.CList;
+
+  // IUnknown
+  PUBLIC VIRTUAL PROCEDURE Release() : windows.ULONG;
+
+  // IConnectionPointContainer interface
+  PUBLIC VIRTUAL PROCEDURE EnumConnectionPoints( VAR ppEnum : TPInterface (*/* TPIEnumConnectionPoints */*) ) : wtypes.HRESULT;
+  PUBLIC VIRTUAL PROCEDURE FindConnectionPoint( CONST riid : guiddef.IID; VAR ppCP : TPIConnectionPoint ) : wtypes.HRESULT;
+
+  // private
+  LOCAL PROCEDURE Init( PActiveXControl : TPActiveXControl ) : BOOLEAN;
+  LOCAL VIRTUAL PROCEDURE EnumerateKnownIIDs( VAR EnumerateState : LONGWORD; VAR IID : guiddef.IID ) : BOOLEAN;
+END CIConnectionPointContainer;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CIConnectionPoint( CInterface );
+  PConnectionPointContainer : TPIConnectionPointContainer;
+  PITypeInfo                : oaidl.TPITypeInfo;
+  AdvisedClients            : list.CList;
+
+  // IUnknown
+  PUBLIC VIRTUAL PROCEDURE Release() : windows.ULONG;
+
+  // IConnectionPoint
+  PUBLIC VIRTUAL PROCEDURE GetConnectionInterface( VAR IID : guiddef.IID ) : wtypes.HRESULT;
+  PUBLIC VIRTUAL PROCEDURE GetConnectionPointContainer( VAR ppCPC : TPIConnectionPointContainer ) : wtypes.HRESULT;
+  PUBLIC VIRTUAL PROCEDURE Advise( pUnk : unknwn.TPIUnknown; VAR dwCookie : windows.DWORD ) : wtypes.HRESULT;
+  PUBLIC VIRTUAL PROCEDURE Unadvise( dwCookie : windows.DWORD ) : wtypes.HRESULT;
+  PUBLIC VIRTUAL PROCEDURE EnumConnections( VAR ppEnum : TPIEnumConnections ) : wtypes.HRESULT;
+END CIConnectionPoint;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CActiveXDispatch( CIDispatch );
+  PActiveXControl : TPActiveXControl;
+
+  PUBLIC VIRTUAL PROCEDURE AddRef() : windows.ULONG;
+  PUBLIC VIRTUAL PROCEDURE Release() : windows.ULONG;
+
+  PUBLIC PROCEDURE Init( IID             : guiddef.IID;
+                         PActiveXControl : TPActiveXControl ) : wtypes.HRESULT;
+END CActiveXDispatch;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CActiveXControl( CInterface );
+  PDLLConstructor            : TPInterface;
+  PIConnectionPointContainer : TPIConnectionPointContainer;
+  PNativeIDispatch           : TPActiveXDispatch;
+  InsideSUPERQueryInterface  : BOOLEAN;
+
+  // IUnknown
+  PUBLIC VIRTUAL PROCEDURE QueryInterface( CONST riid : guiddef.IID; ppvObject : PADDRESS ) : wtypes.HRESULT;
+  PUBLIC VIRTUAL PROCEDURE Release() : windows.ULONG;
+  
+  // IClassFactory
+  PUBLIC VIRTUAL PROCEDURE CreateInstance( pUnkOuter : unknwn.TPIUnknown; CONST riid : guiddef.IID; VAR ppvObject : ADDRESS ): wtypes.HRESULT;
+  PUBLIC VIRTUAL PROCEDURE LockServer( fLock : windows.BOOL ): wtypes.HRESULT;
+
+  PUBLIC PROCEDURE Init();
+  // called from Init
+  INTERNAL VIRTUAL PROCEDURE CreateNativeIDispatch( VAR PIDispatch : TPActiveXDispatch ) : BOOLEAN; // must call AddRef to PIDispatch
+  // called from Init and IConnectionPointInfo
+  LOCAL VIRTUAL PROCEDURE EnumerateEventIDispatch( VAR EnumerateState : LONGWORD; VAR IID : guiddef.IID ) : BOOLEAN;
+
+  // starts dispatching of event
+  INTERNAL PROCEDURE DispatchEvent( EventIDispatchIID : guiddef.IID; EventId : CARDINAL; Parameters : ARRAY OF oaidl.VARIANTARG );
+END CActiveXControl;
+
+# restore
+
+(*===========================================================================*)
+
+TYPE
+  TPAbstractClientConstructor = POINTER TO CAbstractClientConstructor;
+
+INTERFACE CAbstractClientConstructor;
+  VIRTUAL PROCEDURE CreateInstance( VAR PInstance : TPActiveXControl ) : wtypes.HRESULT; // it MUST call AddRef()
+  VIRTUAL PROCEDURE QueryControlIIDs( VAR ControlIID, TypeLibIID, IDispatch_Native_IID, IDispatch_Event_IID : guiddef.IID );
+  VIRTUAL PROCEDURE QueryControlNames( VAR DLLName, ControName, ProgId : ARRAY OF WCHAR; VAR ProgIdCurrentVersion : CARDINAL );
+END CAbstractClientConstructor;
+
+PROCEDURE RegisterClientConstructor( PClientConstructor : TPAbstractClientConstructor );
+// procedure must be called inside DLLMain.dllAttach
+PROCEDURE ForgetClientConstructor();
+// procedure must be called inside DLLMain.dllDetach
+
+// helper
+PROCEDURE GetClientConstructor() : TPAbstractClientConstructor;
+
+#restore
+
+(*===========================================================================*)
+
+PROCEDURE DbgOutSH( String : ARRAY OF WCHAR; HexNumber : CARDINAL );
+PROCEDURE DbgOutSP( String : ARRAY OF WCHAR; HexNumber : PTR );
+PROCEDURE DbgOutIID( String : ARRAY OF WCHAR; POwner : ADDRESS; riid : guiddef.IID );
+PROCEDURE DbgOutADD( PInterface : TPInterface );
+PROCEDURE DbgOutREL( PInterface : TPInterface );
+
+(*===========================================================================*)
+
+END ax_automation.

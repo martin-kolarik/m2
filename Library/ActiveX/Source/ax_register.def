@@ -1,0 +1,29 @@
+DEFINITION MODULE ax_register;
+
+(*# name( decoration => windows ) *)
+(*# call( o_a_copy => off ) *)
+
+////////////////////////////////////////////////////////////////
+// ActiveX Control registration                               //
+//                                             DLLMain module //
+//                                              (C) 2004-6 mk //
+////////////////////////////////////////////////////////////////
+
+IMPORT
+  guiddef,
+  wtypes;
+
+(*# save,
+    call( o_a_size => off, convention => stdcall ) *)
+
+// common COM server DLL interface
+PROCEDURE DllGetClassObject( CONST rclsid : guiddef.CLSID;
+                             CONST riid : guiddef.IID;
+                               VAR ppv : ADDRESS ) : wtypes.HRESULT;
+PROCEDURE DllCanUnloadNow(): wtypes.HRESULT;
+PROCEDURE DllRegisterServer(): wtypes.HRESULT;
+PROCEDURE DllUnregisterServer(): wtypes.HRESULT;
+
+(*# restore *)
+
+END ax_register.
