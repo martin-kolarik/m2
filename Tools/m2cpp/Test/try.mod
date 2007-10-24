@@ -1,7 +1,7 @@
 MODULE Try;
 
 FROM Storage IMPORT
-   ALLOCATE;
+   ALLOCATE, DEALLOCATE;
 
 IMPORT
 	Exceptions;

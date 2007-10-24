@@ -519,7 +519,7 @@ TYPE
   TCodeModifierItem = (
     cmRO, cmWO, // disjunct
     cmINLINE,
-    cmREF, cmREV
+    cmREF
   );
   TCodeModifier = SET OF TCodeModifierItem;
 
@@ -882,6 +882,7 @@ CLASS CProcedureType( CType );
   PROCEDURE CopyThrows( From : TPProcedureType );
 
   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+  PROCEDURE GenerateThrow( G : Generator.TPGenerator; C : TGenerateControl );
 END CProcedureType;
 
 CLASS CProcedure( CProcedureType );

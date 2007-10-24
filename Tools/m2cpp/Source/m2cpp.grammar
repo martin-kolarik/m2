@@ -814,12 +814,6 @@ ntPropertyDefinition<AM : DOM.TAccessModifier; IM : DOM.TInheritanceModifier; CM
                                                                 SemErr( err._REFOnlyForCOM );
                                                               END; .)
       ]
-      [ SYNC "REV"                                         (. IF DOM.imCOM IN IM THEN
-                                                                INCL( CM, DOM.cmREV );
-                                                              ELSE
-                                                                SemErr( err._REVOnlyForCOM );
-                                                              END; .)
-      ]
       ntVariableDeclaration<FALSE, DOM.ukPropertyDef, DOM.skProperty, AM, IM, CM> WEAK semicolon
     }                                                      (. c^.LeaveUnit(); .)
 .

@@ -3050,14 +3050,37 @@ CLASS IMPLEMENTATION CProcedureType;
     ELSE
       OutN( G, C ); G^.OutRP();
       IF Childs.GetFirst( OUT U ) THEN
-        G^.OutLP(); U^.Generate( G, gcsExplicit ); G^.OutRP(); G^.OutSC();
-        G^.EOL();
+        G^.OutLP(); U^.Generate( G, gcsExplicit ); G^.OutRP(); 
       ELSE
-        G^.OutLPRPSCEOL();
+        G^.OutS( L'()' );
       END;
+      GenerateThrow( G, C );
+      G^.OutSC(); G^.EOL();
       RETURN gumSimple;
     END;  
   END GenHead;
+  
+  PROCEDURE GenerateThrow( G : Generator.TPGenerator; C : TGenerateControl );
+  VAR
+    First : BOOLEAN := TRUE;
+  BEGIN
+    IF Throws.Empty THEN
+      G^.OutS( L' throw()' );
+    ELSE
+      G^.OutS( L' throw( ' );
+      Throws.Reset();
+      WHILE Throws.MoveNext() DO
+        IF First THEN
+          First := FALSE;
+        ELSE
+          G^.OutS( L', ' );
+        END;
+        TPSymbol( Throws.Current )^.Generate( G, gcsName );
+      END; // WHILE
+      G^.OutS( L'' );
+      G^.OutSPRP();
+    END;
+  END GenerateThrow;
 
 BEGIN
   TypeKind := tkProcedure;
@@ -3215,6 +3238,11 @@ CLASS IMPLEMENTATION CProcedure;
           T^.Generate( G, gcsExplicit ); G^.OutS( L"* RetVal " );
         END;
       G^.OutRP();
+      IF OD = NIL THEN
+        GenerateThrow( G, C );
+      ELSE
+        OD^.GenerateThrow( G, C );
+      END;
       IF gcForward IN C THEN
         G^.OutS( L"; // forwarded local/init" );
         G^.EOL();
@@ -3692,13 +3720,13 @@ CLASS IMPLEMENTATION CClass;
       G^.Enter();
     #endif
         IF InitCode = NIL THEN
-          G^.Indent(); OutN( G, C ); G^.OutS( L'(); // implicit empty constructor' ); G^.EOL();
+          G^.Indent(); OutN( G, C ); G^.OutS( L'() throw(); // implicit empty constructor' ); G^.EOL();
         END;
         IF eoAssignSelf IN Options THEN
           G^.Indent(); G^.OutS( L'void ' ); OutN( G, C ); G^.OutS( '_INITIALLY_(); // init code shared in copy constructor and constructor' ); G^.EOL();
           G^.Indent();
             OutN( G, C );
-            G^.OutS( L'( const ' ); OutN( G, C ); G^.OutS( '&' ); G^.OutS( L' Operand ); // implicit copy constructor' );
+            G^.OutS( L'( const ' ); OutN( G, C ); G^.OutS( '&' ); G^.OutS( L' Operand ) throw(); // implicit copy constructor' );
           G^.EOL();
         END;
         IF FinalCode = NIL THEN
@@ -3708,7 +3736,7 @@ CLASS IMPLEMENTATION CClass;
           ELSE
             G^.OutS( L'~' );
           END;
-          OutN( G, C ); G^.OutS( L'(); // implicit empty destructor' ); G^.EOL();
+          OutN( G, C ); G^.OutS( L'() throw(); // implicit empty destructor' ); G^.EOL();
         END;
     #if CPP_ACCESS_MODIFIERS #then
       G^.Leave();
@@ -4024,7 +4052,7 @@ CLASS IMPLEMENTATION CClassDecl;
 
     IF InitCode = NIL THEN
       G^.Indent();
-        OfClass^.Generate( G, gcsName ); G^.OutS( L"::" ); OfClass^.Generate( G, gcsName ); G^.OutS( L'()' );
+        OfClass^.Generate( G, gcsName ); G^.OutS( L"::" ); OfClass^.Generate( G, gcsName ); G^.OutS( L'() throw() ' );
         G^.OutS( L'{} // implicit empty constructor' );
       G^.EOL();
     ELSIF eoAssignSelf IN OfClass^.Options THEN
@@ -4032,7 +4060,7 @@ CLASS IMPLEMENTATION CClassDecl;
       // generate constructor common for implicit and explicit form
       G^.EOL();
       G^.Indent();
-      OfClass^.Generate( G, gcsName ); G^.OutS( L"::" ); OfClass^.Generate( G, gcsName ); G^.OutS( L'()' );
+      OfClass^.Generate( G, gcsName ); G^.OutS( L"::" ); OfClass^.Generate( G, gcsName ); G^.OutS( L'() throw()' );
       G^.OutS( L' // implicit constructor' ); G^.EOL();
       G^.LineLB(); G^.Enter();
         G^.Indent(); OfClass^.Generate( G, gcsName ); G^.OutS( L'_INITIALLY_();' ); G^.EOL();
@@ -4056,7 +4084,7 @@ CLASS IMPLEMENTATION CClassDecl;
       IF eoAssignSelf IN OfClass^.Options THEN
         G^.OutS( L'void ' ); OfClass^.Generate( G, gcsName ); G^.OutS( L"::" ); OfClass^.Generate( G, gcsName ); G^.OutS( L'_INITIALLY_() // init code shared in copy constructor and constructor' );
       ELSE
-        OfClass^.Generate( G, gcsName ); G^.OutS( L"::" ); OfClass^.Generate( G, gcsName ); G^.OutS( L'() // implicit constructor' );
+        OfClass^.Generate( G, gcsName ); G^.OutS( L"::" ); OfClass^.Generate( G, gcsName ); G^.OutS( L'() throw() // implicit constructor' );
       END;
       G^.EOL();
       G^.LineLB();
@@ -4068,7 +4096,7 @@ CLASS IMPLEMENTATION CClassDecl;
       G^.EOL();
       G^.Indent();
         OfClass^.Generate( G, gcsName ); G^.OutS( L'::' ); OfClass^.Generate( G, gcsName ); 
-        G^.OutS( L'( const ' ); OfClass^.Generate( G, gcsName ); G^.OutS( '&' ); G^.OutS( L' Operand ) // implicit copy constructor' );
+        G^.OutS( L'( const ' ); OfClass^.Generate( G, gcsName ); G^.OutS( '&' ); G^.OutS( L' Operand ) throw() // implicit copy constructor' );
       G^.EOL();
       G^.LineLB();
       G^.Enter();
@@ -4087,11 +4115,11 @@ CLASS IMPLEMENTATION CClassDecl;
   BEGIN
     IF FinalCode = NIL THEN
       G^.EOL();
-      G^.Indent(); OfClass^.Generate( G, gcsName ); G^.OutS( L"::~" ); OfClass^.Generate( G, gcsName ); G^.OutS( L'()' );
+      G^.Indent(); OfClass^.Generate( G, gcsName ); G^.OutS( L"::~" ); OfClass^.Generate( G, gcsName ); G^.OutS( L'() throw() ' );
       G^.OutS( L'{} // implicit empty destructor' ); G^.EOL();
     ELSIF FinalCode^.UnitKind  = ukClassFinalCode THEN
       G^.EOL();
-      G^.Indent(); OfClass^.Generate( G, gcsName ); G^.OutS( L"::~" ); OfClass^.Generate( G, gcsName ); G^.OutS( L'()' );
+      G^.Indent(); OfClass^.Generate( G, gcsName ); G^.OutS( L"::~" ); OfClass^.Generate( G, gcsName ); G^.OutS( L'() throw() ' );
       G^.OutS( L' // implicit destructor' ); G^.EOL();
       G^.LineLB();
       FinalCode^.Generate( G, C );
@@ -7170,8 +7198,6 @@ END CVarDeclContainer;
 CLASS IMPLEMENTATION CPropertyDef;
 
   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
-  LABEL
-    REV1, REV2, REV3;
   BEGIN
     IF gcName IN C THEN
       IF TInheritanceModifier{imCOM} * IM = TInheritanceModifier{} THEN
@@ -7195,10 +7221,6 @@ CLASS IMPLEMENTATION CPropertyDef;
       RETURN gumSimple;
     END;
 
-    IF cmREV IN CM THEN
-      GOTO REV1;
-    END;
-  REV2:
     IF NOT( cmWO IN CM ) THEN
       G^.Indent();
         IF TInheritanceModifier{imAbstract, imVirtual} * IM <> TInheritanceModifier{} THEN
@@ -7240,6 +7262,7 @@ CLASS IMPLEMENTATION CPropertyDef;
           T^.Generate( G, gcsExplicit );
           G^.OutS( L'* RetVal )' );
         END;
+        GenerateThrow( G, C );
       IF imAbstract IN IM THEN
         G^.OutS( L' = 0;' ); // pure virtual method
       ELSE
@@ -7247,11 +7270,7 @@ CLASS IMPLEMENTATION CPropertyDef;
       END;
       G^.EOL();
     END;
-    IF cmREV IN CM THEN
-      GOTO REV3;
-    END;
    
-  REV1:
     IF NOT( cmRO IN CM ) THEN
       G^.Indent();
         IF TInheritanceModifier{imAbstract, imVirtual} * IM <> TInheritanceModifier{} THEN
@@ -7320,6 +7339,7 @@ CLASS IMPLEMENTATION CPropertyDef;
             G^.OutS( L' Value )' );
           END;
         END;
+      GenerateThrow( G, C );
       IF imAbstract IN IM THEN
         G^.OutS( L' = 0;' ); // pure virtual method
       ELSE
@@ -7327,11 +7347,7 @@ CLASS IMPLEMENTATION CPropertyDef;
       END;
       G^.EOL();
     END;
-    IF cmREV IN CM THEN
-      GOTO REV2;
-    END;
 
-  REV3:
     RETURN gumSimple;
   END GenHead;
 
@@ -7465,6 +7481,7 @@ CLASS IMPLEMENTATION CIndexerDef;
           END;
         END;
       END;
+      GenerateThrow( G, C );
     IF imAbstract IN IM THEN
       G^.OutS( L' = 0;' ); // pure virtual method
     ELSE
@@ -7526,6 +7543,7 @@ CLASS IMPLEMENTATION COperatorDef;
         OperandType^.Generate( G, gcsExplicitParameter );
         G^.OutS( L' Operand )' );
       END;
+      GenerateThrow( G, C );
     IF imAbstract IN IM THEN
       G^.OutS( L' = 0;' ); // pure virtual method
     ELSE
