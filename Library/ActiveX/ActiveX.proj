@@ -16,8 +16,8 @@
     <!-- 3 COMPOMENT DEFINITION -->
     <ItemGroup>
         <Components Include="modula2\modula2;api\clib;API\win32"/>
-        <Components Include="API\COM;modula2\m2rtl;Library\ADT;Library\Registry"/>
-        <Modules Include="com;ax_register;ax_automation"/>
+        <Components Include="API\COM;modula2\m2rtl;Library\ADT;Library\Registry;Library\COM"/>
+        <Modules Include="ax_register;ax_automation"/>
     </ItemGroup>
 
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
