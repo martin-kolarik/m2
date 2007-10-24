@@ -265,7 +265,7 @@
         </CreateItem>
         
         <!-- standalone/re-export component and component libs -->
-        <CreateItem Condition="$(FilterLibraries)=='true'"
+        <CreateItem Condition="$(FilterLibraries)=='true' And $(ComponentStandaloneFlag)=='off'"
                     Include="@(SelfInterface -> '%(Identity).filtered')"
                     AdditionalMetadata="Type=LibraryToFilter">
             <Output TaskParameter="Include" ItemName="Grabbed"/>
@@ -331,6 +331,7 @@
             <Output TaskParameter="Include" ItemName="GrabbedRuntimes"/>
         </CreateItem>
 
+        <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedUnfilteredLibraries)" Importance="high"/ -->
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedLibrariesToFilter)" Importance="high"/ -->
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(Grabbed)" Importance="high"/ -->
         <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedComponents)" Importance="high"/ -->
