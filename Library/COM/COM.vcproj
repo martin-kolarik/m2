@@ -66,14 +66,6 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\Source\ax_automation.mod"
-				>
-			</File>
-			<File
-				RelativePath=".\Source\ax_register.mod"
-				>
-			</File>
-			<File
 				RelativePath=".\Source\com.mod"
 				>
 			</File>
@@ -84,28 +76,12 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\Source\ax_aut_exp.def"
-				>
-			</File>
-			<File
-				RelativePath=".\Source\ax_automation.def"
-				>
-			</File>
-			<File
-				RelativePath=".\Source\ax_register.def"
-				>
-			</File>
-			<File
 				RelativePath=".\Source\com.def"
 				>
 			</File>
 		</Filter>
 		<File
 			RelativePath=".\COM.proj"
-			>
-		</File>
-		<File
-			RelativePath=".\readme.txt"
 			>
 		</File>
 	</Files>
