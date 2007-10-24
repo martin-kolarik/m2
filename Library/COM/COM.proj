@@ -4,7 +4,7 @@
 
     <!-- 1 -->
     <PropertyGroup>
-        <FileDescription>COM/ActiveX Client</FileDescription>
+        <FileDescription>COM Support</FileDescription>
         <FileVersionMajor>0</FileVersionMajor>
         <FileVersionMinor>9</FileVersionMinor>
     </PropertyGroup>
@@ -16,8 +16,8 @@
     <!-- 3 COMPOMENT DEFINITION -->
     <ItemGroup>
         <Components Include="modula2\modula2;api\clib;API\win32"/>
-        <Components Include="API\COM;modula2\m2rtl;Library\ADT;Library\Registry"/>
-        <Modules Include="com;ax_register;ax_automation"/>
+        <Components Include="API\COM;modula2\m2rtl;Library\ADT"/>
+        <Modules Include="com"/>
     </ItemGroup>
 
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
