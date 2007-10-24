@@ -11,10 +11,6 @@
         <LeakChecking>off</LeakChecking>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='discover'">
-        <Result>Program</Result>
-    </PropertyGroup>
-
     <PropertyGroup>
         <ProductM2Control></ProductM2Control>
         <ProductCLControl></ProductCLControl>

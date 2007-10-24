@@ -19,6 +19,10 @@
             <item xml:space="preserve" lang="en-US">  Missing configuration file to update</item>
             <item xml:space="preserve" lang="cs-CZ">  Chybí jméno konfiguračního souboru pro úpravu</item>
         </string>
+        <string name="_Searching">
+            <item xml:space="preserve" lang="en-US">  Searching...</item>
+            <item xml:space="preserve" lang="cs-CZ">  Vyhledává se...</item>
+        </string>
         <string name="_NoDevicesFound">
             <item xml:space="preserve" lang="en-US">  No EIBNet/IP devices was found</item>
             <item xml:space="preserve" lang="cs-CZ">  Žádné EIBNet/IP zařízení nebylo nalezeno</item>
@@ -30,6 +34,10 @@
         <string name="_devices">
             <item xml:space="preserve" lang="en-US"> EIBNet/IP devices</item>
             <item xml:space="preserve" lang="cs-CZ"> EIBNet/IP zařízení</item>
+        </string>
+        <string name="_UnableToSaveConfigFile">
+            <item xml:space="preserve" lang="en-US">  Configuration file cannot be saved</item>
+            <item xml:space="preserve" lang="cs-CZ">  Konfigurační soubor se nepodařilo uložit</item>
         </string>
 
     </strings>

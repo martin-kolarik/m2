@@ -16,6 +16,8 @@
 
         <FileDisplayName>EIB/KNX EIBNet/IP discoverer</FileDisplayName>
         <FileDescription>SmartControl EIB/KNX EIBNet/IP device discover tool</FileDescription>
+
+        <Result>Program</Result>
     </PropertyGroup>
 
     <!-- 2 INCLUDE DEFINITION -->
@@ -25,7 +27,7 @@
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
         <Components Include="modula2\modula2;api\clib;API\win32"/>
-        <Components Include="component\sccore;EIB\srvcore"/>
+        <Components Include="component\sccore;EIB\eibnetstack"/>
         <Messages Include="Texts"/>
         <Program Include="discover"/>
     </ItemGroup>

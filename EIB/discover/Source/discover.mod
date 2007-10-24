@@ -9,10 +9,12 @@ IMPORT
    winsock, // must be the first
    arrays,
    browser,
+   INIFile,
+   lists,
    msgqueuethread,
    netinit,
    Resources,
-   srvcore,
+   Strings,
    StringsO,
    Sync,
    Texts,
@@ -26,6 +28,7 @@ VAR
 CLASS CResult( browser.CBrowserDelegate );
    LOCAL VAR
       Thread : msgqueuethread.TPMsgQueueThread;
+      IPs : lists.CStringList;
    LOCAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; CONST Servers : arrays.CPtrArray );
 END CResult;
 
@@ -38,6 +41,8 @@ CLASS IMPLEMENTATION CResult;
    LOCAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; CONST Servers : arrays.CPtrArray );
    VAR
       i : CARDINAL;
+      s : ARRAY [0..31] OF WCHAR;
+      S : StringsO.CString;
       server : browser.TPServer;
       stdout : TextWriter.TPTextWriter := TextWriter.stdout();
    BEGIN
@@ -50,6 +55,13 @@ CLASS IMPLEMENTATION CResult;
          FOR i := 0 TO Servers.Count-1 DO
             server := browser.TPServer( Servers[i] );
             stdout^.WriteOA( L"  ", FALSE ); stdout^.Write( server^.Description, TRUE );
+            
+            Strings.FromIPV4( server^.Address.s_addr, OUT s );
+            S.FromOA( s );
+            S.AppendOA( L":" );
+            Strings.FromIPV4( server^.Port, OUT s );
+            S.AppendOA( s );
+            IPs.Add( S, 0 );
          END;
       END;
       Thread^.Stop( FALSE );
@@ -64,7 +76,7 @@ END CResult;
 (*================================================================================*)
 
 CLASS CThread( msgqueuethread.MsgQueueThread );
-   VAR
+   LOCAL VAR
       Browser : browser.CBrowser;  
       Result : CResult;
    INTERNAL VIRTUAL PROCEDURE OnStart();
@@ -115,10 +127,12 @@ LABEL
 VAR
    ConfigFile : StringsO.CString;
    errout : TextWriter.TPTextWriter := TextWriter.errout();
+   First : BOOLEAN := FALSE;
    i : INTEGER;
+   Id : StringsO.CString;
    Thread : CThread;
+   TS : INIFile.CINIFile;
 BEGIN
-   netinit.Startup();
    R.LoadRES2( EMIT( %exe ), L"discover.Texts" );
 
    i := 1;
@@ -142,23 +156,49 @@ BEGIN
       INC( i );
    END; // WHILE
 
-   errout^.WriteOA( L"  ", FALSE );
+   errout^.WriteOA( OAsz( R[Texts._Searching] ), FALSE );
    Thread.Run( FALSE );
    WHILE Thread.WaitStop( 250 ) = Sync.arTimeout DO
       errout^.WriteOA( L".", FALSE );
    END; // WHILE
+   
+   IF NOT ConfigFile.Empty THEN
+      TS.LoadPath( OA( ConfigFile.Length-1, ConfigFile.rawData ));
+      TS.CreateSection( L"device", FALSE );
+      IF Thread.Result.IPs.Empty THEN
+         TS.SetKeyStr( L"id", Id, FALSE );
+      ELSE
+         Thread.Result.IPs.Reset();
+         WHILE Thread.Result.IPs.MoveNext() DO
+            Id.FromOA( L"eibnet:" );
+            Id.Append( Thread.Result.IPs.Current^ );
+            IF First THEN
+               TS.SetKeyStr( L"id", Id, FALSE );
+               First := FALSE;
+            ELSE
+               TS.SetKeyStr( L"scanned.id", Id, FALSE );
+            END;
+         END; // WHILE
+      END;
+      IF NOT TS.SavePath( OA( ConfigFile.Length-1, ConfigFile.rawData )) THEN
+         errout^.WriteOA( OAsz( R[Texts._UnableToSaveConfigFile] ), TRUE );
+         GOTO Stop;
+      END;
+   END;
 
-   netinit.Cleanup();
    RETURN 0;
 
 Error:
    errout^.WriteOA( OAsz( R[Texts._UsageInfo] ), TRUE );
 
 Stop:
-   netinit.Cleanup();
    RETURN -1;
 END wmain;
   
 (*================================================================================*)
 
+BEGIN
+   netinit.Startup();
+FINALLY
+   netinit.Cleanup();
 END discover.
