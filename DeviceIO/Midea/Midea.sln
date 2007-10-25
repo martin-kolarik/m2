@@ -3,6 +3,14 @@ Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Midea", "Midea.vcproj", "{C6EBA405-7732-4EF4-9C81-D68997E9EE6E}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SerialLink", "..\..\Library\SerialLink\SerialLink.vcproj", "{B24F6840-35CF-4FF8-A26F-B158D4BE4167}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Serial", "..\..\Library\Serial\Serial.vcproj", "{3FB750EA-B77D-4F8E-8AD8-F9273B4A329D}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DeviceIO", "..\..\Library\DeviceIO\DeviceIO.vcproj", "{A60809F1-641F-4ED7-9128-C41E7A6A9580}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Text", "..\..\Library\Text\Text.vcproj", "{6B0CFB37-444C-41F6-A62A-4EEEEDB5968C}"
+EndProject
 Global
 	GlobalSection(TextTemplating) = postSolution
 		TextTemplating = 1
@@ -16,6 +24,22 @@ Global
 		{C6EBA405-7732-4EF4-9C81-D68997E9EE6E}.Debug|Win32.Build.0 = Debug|Win32
 		{C6EBA405-7732-4EF4-9C81-D68997E9EE6E}.Release|Win32.ActiveCfg = Release|Win32
 		{C6EBA405-7732-4EF4-9C81-D68997E9EE6E}.Release|Win32.Build.0 = Release|Win32
+		{B24F6840-35CF-4FF8-A26F-B158D4BE4167}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B24F6840-35CF-4FF8-A26F-B158D4BE4167}.Debug|Win32.Build.0 = Debug|Win32
+		{B24F6840-35CF-4FF8-A26F-B158D4BE4167}.Release|Win32.ActiveCfg = Release|Win32
+		{B24F6840-35CF-4FF8-A26F-B158D4BE4167}.Release|Win32.Build.0 = Release|Win32
+		{3FB750EA-B77D-4F8E-8AD8-F9273B4A329D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{3FB750EA-B77D-4F8E-8AD8-F9273B4A329D}.Debug|Win32.Build.0 = Debug|Win32
+		{3FB750EA-B77D-4F8E-8AD8-F9273B4A329D}.Release|Win32.ActiveCfg = Release|Win32
+		{3FB750EA-B77D-4F8E-8AD8-F9273B4A329D}.Release|Win32.Build.0 = Release|Win32
+		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Debug|Win32.ActiveCfg = Debug|Win32
+		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Debug|Win32.Build.0 = Debug|Win32
+		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Release|Win32.ActiveCfg = Release|Win32
+		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Release|Win32.Build.0 = Release|Win32
+		{6B0CFB37-444C-41F6-A62A-4EEEEDB5968C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{6B0CFB37-444C-41F6-A62A-4EEEEDB5968C}.Debug|Win32.Build.0 = Debug|Win32
+		{6B0CFB37-444C-41F6-A62A-4EEEEDB5968C}.Release|Win32.ActiveCfg = Release|Win32
+		{6B0CFB37-444C-41F6-A62A-4EEEEDB5968C}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,92 +1,97 @@
-DEFINITION MODULE StiebelHP;
-// setpoint process.value control.value
+DEFINITION MODULE Midea;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
 
 IMPORT
-	IOO,
-	StorageO,
-	StringsO,
-	Sync;
+   IOO,
+   StorageO,
+   StringsO,
+   Sync;
 
 IMPORT
-	nsitem,
-	sdev,
-	sdio,
-	sdns,
-	sdvalue,
-	serial;
-	
+   device,
+   io,
+   iovalue,
+   ns,
+   nsitem,
+   serial;
+   
 (*===========================================================================*)
 
 TYPE
-	TPIO = POINTER TO CIO;
-	TPNS = POINTER TO CNS;
+   TPIO = POINTER TO CIO;
+   TPNS = POINTER TO CNS;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CNS( nsitem.ANS );
-	INTERNAL VIRTUAL PROCEDURE CreateRoot() : sdns.TPSDNSItem;
-	INTERNAL VIRTUAL PROCEDURE CreateStructure();
-	PUBLIC VIRTUAL PROCEDURE CreateNewItem( CONST Name : ARRAY OF WCHAR; Type : sdvalue.TSDType; Data : PTR ) : sdns.TPSDNSItem;
+CLASS CNS( nsitem.Ans );
+   INTERNAL VIRTUAL PROCEDURE CreateRoot() : ns.TPnsItem;
+   INTERNAL VIRTUAL PROCEDURE CreateStructure();
+
+   PRIVATE PROCEDURE NewItem( CONST Name : ARRAY OF WCHAR; NType : ns.TNameType; VType : iovalue.TValueType; Data : PTR ) : nsitem.TPnsItem;
 END CNS;
 
 (*---------------------------------------------------------------------------*)
 
 CLASS CSerial( serial.CSerialHandler );
-	LOCAL VAR
-		PIO : TPIO;
+   LOCAL VAR
+      PIO : TPIO;
 
-	INTERNAL VIRTUAL PROCEDURE DataComplete( CONST Data : StorageO.CMemoryBuffer; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyCheckSum : BOOLEAN ) : BOOLEAN;
-	INTERNAL VIRTUAL PROCEDURE TestChkSum( CONST Data : StorageO.CMemoryBuffer ) : BOOLEAN;
-	INTERNAL VIRTUAL PROCEDURE OnRx( Result : Sync.TAsyncResult; CONST Data : StorageO.CMemoryBuffer );
+   INTERNAL VIRTUAL PROCEDURE DataComplete( CONST Data : StorageO.AMemoryBuffer; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyCheckSum : BOOLEAN ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE TestChkSum( CONST Data : StorageO.AMemoryBuffer ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE OnRx( Result : Sync.TAsyncResult; CONST Data : StorageO.AMemoryBuffer );
 
-	INTERNAL VIRTUAL PROCEDURE AddChkSum( REF Data : StorageO.CMemoryBuffer );
-	INTERNAL VIRTUAL PROCEDURE OnTx( Result : Sync.TAsyncResult );
+   INTERNAL VIRTUAL PROCEDURE AddChkSum( REF Data : StorageO.AMemoryBuffer );
+   INTERNAL VIRTUAL PROCEDURE OnTx( Result : Sync.TAsyncResult );
 END CSerial;
 
 (*---------------------------------------------------------------------------*)
 
 TYPE
-	TPNSI = POINTER TO CNSI;
-	TPPacket = POINTER TO TPacket;
+   TPNSI = POINTER TO CNSI;
+   TPPacket = POINTER TO TInPacket;
 
-CLASS CIO( sdio.ASDItemizedIO );
-	LOCAL VAR
-		Serial : CSerial;
-	PRIVATE VAR
-		_AbortFlag : BOOLEAN;
-		_Pending : IOO.TDirection;
-		_Item : TPNSI;
-		_Callback : sdio.TPSDCallback;
+CLASS CIO( io.AItemizedIO );
+   LOCAL VAR
+      Serial : CSerial;
+   PRIVATE VAR
+      _AbortFlag : BOOLEAN;
+      _Pending : IOO.TDirection;
+      _Item : TPNSI;
+      _DataInfo : io.TPDataInfo;
 
-	PUBLIC VIRTUAL READONLY PROPERTY
-		Pending : BOOLEAN;
-		
-	PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Pending : BOOLEAN;
+   PUBLIC VIRTUAL PROPERTY
+      Advise : io.TAdvise;
+      
+   PUBLIC PROCEDURE Dispose();
 
-	PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : sdns.THash; REF Value : sdvalue.ASDValue; Delegate : sdio.TPSDCallback ) : Sync.TAsyncResult;
-	PUBLIC VIRTUAL PROCEDURE Abort();
+   PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Delegate : io.TPDataInfo ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Abort();
 
-	LOCAL PROCEDURE OnRx( Result : Sync.TAsyncResult; PPacket : TPPacket );
-	LOCAL PROCEDURE OnTxCON( Result : Sync.TAsyncResult );
+   LOCAL PROCEDURE OnRx( Result : Sync.TAsyncResult; PPacket : TPPacket );
+   LOCAL PROCEDURE OnTxCON( Result : Sync.TAsyncResult );
 END CIO;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CStiebelHPDevice( sdev.ISDevice );
-	PRIVATE VAR
-		_NS : CNS;
-		_IO : CIO;
+CLASS CMideaDevice IMPLEMENTS device.IDevice;
+   PRIVATE VAR
+      _NS : CNS;
+      _IO : CIO;
 
-	PUBLIC PROCEDURE Dispose();
+   PUBLIC PROCEDURE Dispose();
 
-	PUBLIC VIRTUAL PROCEDURE NS() : sdns.TPSDNS;
-	PUBLIC VIRTUAL PROCEDURE IO() : sdio.TPSDIO;
+   PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
+   PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
 
-	PUBLIC PROCEDURE Init( COMDevice, File : ARRAY OF WCHAR; OUT ErrorString : ARRAY OF WCHAR ) : BOOLEAN;
-	PUBLIC PROCEDURE Run();
-	PUBLIC PROCEDURE Stop();
-END CStiebelHPDevice;
+   PUBLIC PROCEDURE Init( COMDevice, File : ARRAY OF WCHAR; OUT ErrorString : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC PROCEDURE Run();
+   PUBLIC PROCEDURE Stop();
+END CMideaDevice;
 
 (*---------------------------------------------------------------------------*)
 
-END StiebelHP.
+END Midea.

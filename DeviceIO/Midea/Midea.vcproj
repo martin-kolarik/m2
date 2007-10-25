@@ -4,6 +4,7 @@
 	Version="8,00"
 	Name="Midea"
 	ProjectGUID="{C6EBA405-7732-4EF4-9C81-D68997E9EE6E}"
+	RootNamespace="Midea"
 	Keyword="MakeFileProj"
 	>
 	<Platforms>
@@ -16,15 +17,16 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			OutputDirectory="~$(ConfigurationName)"
+			IntermediateDirectory="~Build"
 			ConfigurationType="0"
+			BuildLogFile="~$(OutDir)\BuildLog.htm"
 			>
 			<Tool
 				Name="VCNMakeTool"
-				BuildCommandLine=""
-				ReBuildCommandLine=""
-				CleanCommandLine=""
+				BuildCommandLine="msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /p:ConfigurationName=$(ConfigurationName)"
+				ReBuildCommandLine="msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:ConfigurationName=$(ConfigurationName)"
+				CleanCommandLine="msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:ConfigurationName=$(ConfigurationName)"
 				Output="Midea.exe"
 				PreprocessorDefinitions="WIN32;_DEBUG"
 				IncludeSearchPath=""
@@ -36,15 +38,16 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			OutputDirectory="~$(ConfigurationName)"
+			IntermediateDirectory="~Build"
 			ConfigurationType="0"
+			BuildLogFile="~$(OutDir)\BuildLog.htm"
 			>
 			<Tool
 				Name="VCNMakeTool"
-				BuildCommandLine=""
-				ReBuildCommandLine=""
-				CleanCommandLine=""
+				BuildCommandLine="msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /p:ConfigurationName=$(ConfigurationName)"
+				ReBuildCommandLine="msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:ConfigurationName=$(ConfigurationName)"
+				CleanCommandLine="msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:ConfigurationName=$(ConfigurationName)"
 				Output="Midea.exe"
 				PreprocessorDefinitions="WIN32;NDEBUG"
 				IncludeSearchPath=""
