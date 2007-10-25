@@ -4,12 +4,12 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-	Sync,
-	IOO;
-	
+   Sync,
+   IOO;
+   
 IMPORT
-	sdns,
-	sdvalue;
+   sdns,
+   sdvalue;
 
 (*---------------------------------------------------------------------------*)
 
@@ -20,44 +20,52 @@ TYPE
 (*---------------------------------------------------------------------------*)
 
 CLASS CSDCallback( Delegate.ADelegate );
-  PUBLIC VIRTUAL PROCEDURE OnError( Direction : IOO.TDirection; Source : TPSDIO; Error : ARRAY OF CARDINAL; Item : ARRAY OF sdns.THash );
-  PUBLIC VIRTUAL PROCEDURE OnIO( Direction : IOO.TDirection; Source : TPSDIO; Result : ARRAY OF Sync.TAsyncResult; Item : ARRAY OF sdns.THash; CONST Value : ARRAY OF sdvalue.Value );
+   PUBLIC VIRTUAL PROCEDURE OnError( Direction : IOO.TDirection; Source : TPSDIO; CONST Error : ARRAY OF CARDINAL; CONST Item : ARRAY OF sdns.THash );
+   PUBLIC VIRTUAL PROCEDURE OnIO( Direction : IOO.TDirection; Source : TPSDIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF sdns.THash; CONST Value : ARRAY OF sdvalue.Value );
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : TPSDIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF sdns.THash; CONST Value : ARRAY OF sdvalue.Value );
 END CSDCallback;
 
 (*---------------------------------------------------------------------------*)
 
 TYPE
-	TCapability = (
-		sdiocapArray
-	);
-	TCapabilities = SET OF TCapability;
+   TCapability = (
+      capArray,
+      capAdvise
+   );
+   TCapabilities = SET OF TCapability;
+
+TYPE
+   TAdvise = (
+      advNone,
+      advWithoutData,
+      advWithData
+   );
 
 (*---------------------------------------------------------------------------*)
 
 INTERFACE ISDIO;
+   READONLY PROPERTY
+      Pending : BOOLEAN;
+      Capabilities : TCapabilities;
+   PROPERTY
+      Advise : TAdvise;
 
-	ABSTRACT READONLY PROPERTY
-		Pending : BOOLEAN;
-		Capabilities : TCapabilities;
-
-	ABSTRACT PROCEDURE IOh( Direction : IOO.TDirection; Item : sdns.THash; REF Value : sdvalue.Value; Callback : TPSDCallback ) : Sync.TAsyncResult;
-	ABSTRACT PROCEDURE IOha( Direction : IOO.TDirection; Item : ARRAY OF sdns.THash; REF Value : ARRAY OF sdvalue.Value; Callback : TPSDCallback ) : Sync.TAsyncResult;
-	
+   PROCEDURE IOh( Direction : IOO.TDirection; Item : sdns.THash; REF Value : sdvalue.Value; Callback : TPSDCallback ) : Sync.TAsyncResult;
+   PROCEDURE IOha( Direction : IOO.TDirection; Item : ARRAY OF sdns.THash; REF Value : ARRAY OF sdvalue.Value; Callback : TPSDCallback ) : Sync.TAsyncResult;
 END ISDIO;
 
 (*---------------------------------------------------------------------------*)
 
 ABSTRACT CLASS ASDItemizedIO IMPLEMENTS ISDIO; // used for devices with single item operations
-	PUBLIC ABSTRACT READONLY PROPERTY
-		Pending : BOOLEAN;
-	PUBLIC VIRTUAL READONLY PROPERTY
-		Capabilities : TCapabilities;
+   PUBLIC ABSTRACT READONLY PROPERTY
+      Pending : BOOLEAN;
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Capabilities : TCapabilities;
 
-	PUBLIC ABSTRACT PROCEDURE IOh( Direction : IOO.TDirection; Item : sdns.THash; REF Value : sdvalue.Value; Delegate : TPSDCallback ) : Sync.TAsyncResult;
-	PUBLIC VIRTUAL PROCEDURE IOha( Direction : IOO.TDirection; Item : ARRAY OF sdns.THash; REF Value : ARRAY OF sdvalue.Value; Callback : TPSDCallback ) : Sync.TAsyncResult;
-	
-	PUBLIC ABSTRACT PROCEDURE Abort();
-	
+   PUBLIC ABSTRACT PROCEDURE IOh( Direction : IOO.TDirection; Item : sdns.THash; REF Value : sdvalue.Value; Delegate : TPSDCallback ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOha( Direction : IOO.TDirection; Item : ARRAY OF sdns.THash; REF Value : ARRAY OF sdvalue.Value; Callback : TPSDCallback ) : Sync.TAsyncResult;
+   
+   PUBLIC ABSTRACT PROCEDURE Abort();
 END ASDItemizedIO;
 
 (*---------------------------------------------------------------------------*)

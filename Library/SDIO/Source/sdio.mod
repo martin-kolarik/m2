@@ -6,15 +6,21 @@ CLASS IMPLEMENTATION CSDCallback;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE OnError( Direction : IOO.TDirection; Source : TPSDIO; Error : ARRAY OF CARDINAL; Item : ARRAY OF sdns.THash );
+  PUBLIC VIRTUAL PROCEDURE OnError( Direction : IOO.TDirection; Source : TPSDIO; CONST Error : ARRAY OF CARDINAL; CONST Item : ARRAY OF sdns.THash );
   BEGIN
   END OnError;
   
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE OnIO( Direction : IOO.TDirection; Source : TPSDIO; Result : ARRAY OF Sync.TAsyncResult; Item : ARRAY OF sdns.THash; CONST Value : ARRAY OF sdvalue.Value );
+  PUBLIC VIRTUAL PROCEDURE OnIO( Direction : IOO.TDirection; Source : TPSDIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF sdns.THash; CONST Value : ARRAY OF sdvalue.Value );
   BEGIN
   END OnIO;
+
+(*---------------------------------------------------------------------------*)
+
+  PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : TPSDIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF sdns.THash; CONST Value : ARRAY OF sdvalue.Value );
+  BEGIN
+  END OnAdvise;
 
 (*---------------------------------------------------------------------------*)
 
