@@ -13,7 +13,7 @@ TYPE
 
 CLASS CnsAVLTreeElem( avltree.CAVLTreeElem );
 	LOCAL VAR
-		Item : sdns.TPSDNSItem;
+		Item : ns.TPnsItem;
 	PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
 END CnsAVLTreeElem;
 
@@ -84,7 +84,7 @@ CLASS IMPLEMENTATION AnsAVLItem;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL INDEX AnsAVLItem GET( Index : CARDINAL ) : sdns.TPSDNSItem;
+	PUBLIC VIRTUAL INDEX AnsAVLItem GET( Index : CARDINAL ) : ns.TPnsItem;
 	BEGIN
 		RETURN TPnsAVLTreeElem( _Childs[Index] )^.Item;
 	END AnsAVLItem;
@@ -101,7 +101,7 @@ CLASS IMPLEMENTATION AnsAVLItem;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE GetOA( CONST SingleName : ARRAY OF WCHAR; OUT Item : sdns.TPSDNSItem ) : BOOLEAN;
+	PUBLIC VIRTUAL PROCEDURE GetOA( CONST SingleName : ARRAY OF WCHAR; OUT Item : ns.TPnsItem ) : BOOLEAN;
 	VAR
 		PElem : TPnsAVLTreeElem;
 		SH : CSearchHelper;
@@ -117,7 +117,7 @@ CLASS IMPLEMENTATION AnsAVLItem;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE AddChild( Child : sdns.TPSDNSItem );
+	PUBLIC VIRTUAL PROCEDURE AddChild( Child : ns.TPnsItem );
 	VAR
 		PElem : TPnsAVLTreeElem;
 	BEGIN
@@ -143,7 +143,7 @@ CLASS IMPLEMENTATION AnsArrayItem;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL INDEX AnsArrayItem GET( Index : CARDINAL ) : sdns.TPSDNSItem;
+	PUBLIC VIRTUAL INDEX AnsArrayItem GET( Index : CARDINAL ) : ns.TPnsItem;
 	BEGIN
 		RETURN _Childs[Index];
 	END AnsArrayItem;
@@ -158,7 +158,7 @@ CLASS IMPLEMENTATION AnsArrayItem;
 			RETURN FALSE;
 		END;
 		FOR i := 0 TO _Childs.Count-1 DO
-			IF sdns.TPSDNSItem( _Childs[i] )^.Name^.EqualsOA( SingleName ) THEN
+			IF ns.TPnsItem( _Childs[i] )^.Name^.EqualsOA( SingleName ) THEN
 				RETURN TRUE;
 			END;
 		END; // WHILE
@@ -167,7 +167,7 @@ CLASS IMPLEMENTATION AnsArrayItem;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE GetOA( CONST SingleName : ARRAY OF WCHAR; OUT Item : sdns.TPSDNSItem ) : BOOLEAN;
+	PUBLIC VIRTUAL PROCEDURE GetOA( CONST SingleName : ARRAY OF WCHAR; OUT Item : ns.TPnsItem ) : BOOLEAN;
 	VAR
 		i : CARDINAL;
 	BEGIN
@@ -175,8 +175,8 @@ CLASS IMPLEMENTATION AnsArrayItem;
 			RETURN FALSE;
 		END;
 		FOR i := 0 TO _Childs.Count-1 DO
-			IF sdns.TPSDNSItem( _Childs[i] )^.Name^.EqualsOA( SingleName ) THEN
-				Item := sdns.TPSDNSItem( _Childs[i] );
+			IF ns.TPnsItem( _Childs[i] )^.Name^.EqualsOA( SingleName ) THEN
+				Item := ns.TPnsItem( _Childs[i] );
 				RETURN TRUE;
 			END;
 		END; // WHILE
@@ -185,7 +185,7 @@ CLASS IMPLEMENTATION AnsArrayItem;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE AddChild( Child : sdns.TPSDNSItem );
+	PUBLIC VIRTUAL PROCEDURE AddChild( Child : ns.TPnsItem );
 	BEGIN
 		_Childs.Add( Child );
 	END AddChild;

@@ -1,4 +1,4 @@
-IMPLEMENTATION MODULE sdns;
+IMPLEMENTATION MODULE ns;
 
 FROM Storage IMPORT
 	ALLOCATE;
@@ -9,8 +9,15 @@ IMPORT
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION ASDNSItem;
+CLASS IMPLEMENTATION AnsItem;
 	
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Empty GET : BOOLEAN;
+   BEGIN
+      RETURN Count = 0;
+   END Empty;
+
 (*---------------------------------------------------------------------------*)
 
 	PUBLIC PROCEDURE Contains( CONST SingleName : StringsO.IString ) : BOOLEAN;
@@ -24,7 +31,7 @@ CLASS IMPLEMENTATION ASDNSItem;
 	
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC PROCEDURE Get( CONST SingleName : StringsO.IString; OUT Item : TPSDNSItem ) : BOOLEAN;
+	PUBLIC PROCEDURE Get( CONST SingleName : StringsO.IString; OUT Item : TPnsItem ) : BOOLEAN;
 	BEGIN
 		IF SingleName.Empty THEN
 			RETURN FALSE;
@@ -35,9 +42,9 @@ CLASS IMPLEMENTATION ASDNSItem;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC PROCEDURE GetNewIterator() : TPSDNSIterator;
+	PUBLIC PROCEDURE GetNewIterator() : TPnsIterator;
 	VAR
-	  PI : TPSDNSIterator;
+	  PI : TPnsIterator;
 	BEGIN
 		NEW( PI );
 		PI^.Init( ADR( SELF ));
@@ -46,11 +53,11 @@ CLASS IMPLEMENTATION ASDNSItem;
 	
 (*---------------------------------------------------------------------------*)
 
-END ASDNSItem;
+END AnsItem;
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION CSDNSIterator;
+CLASS IMPLEMENTATION CnsIterator;
 
 (*---------------------------------------------------------------------------*)
 
@@ -65,7 +72,7 @@ CLASS IMPLEMENTATION CSDNSIterator;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC PROPERTY Current GET : TPSDNSItem;
+	PUBLIC PROPERTY Current GET : TPnsItem;
 	BEGIN
 		IF Owner = NIL THEN
 			RETURN NIL;
@@ -76,18 +83,18 @@ CLASS IMPLEMENTATION CSDNSIterator;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC INDEX CSDNSIterator GET( Index : CARDINAL ) : TPSDNSItem;
+	PUBLIC INDEX CnsIterator GET( Index : CARDINAL ) : TPnsItem;
 	BEGIN
 		IF Owner = NIL THEN
 			RETURN NIL;
 		ELSE
 			RETURN Owner^[Index];
 		END;
-	END CSDNSIterator;
+	END CnsIterator;
 	
 (*---------------------------------------------------------------------------*)
 
-	LOCAL PROCEDURE Init( Item : TPSDNSItem );
+	LOCAL PROCEDURE Init( Item : TPnsItem );
 	BEGIN
 		Owner := Item;
 		Reset();
@@ -116,11 +123,11 @@ CLASS IMPLEMENTATION CSDNSIterator;
 BEGIN
 	Owner := NIL;
 	Index := -1;
-END CSDNSIterator;
+END CnsIterator;
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION ASDNS;
+CLASS IMPLEMENTATION Ans;
 
 (*---------------------------------------------------------------------------*)
 
@@ -133,14 +140,14 @@ CLASS IMPLEMENTATION ASDNS;
 
 	PUBLIC PROCEDURE Contains( CONST Name : StringsO.IString ) : BOOLEAN;
 	VAR
-		Item : TPSDNSItem;
+		Item : TPnsItem;
 	BEGIN
 		RETURN Get( Name, OUT Item );
 	END Contains;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC PROCEDURE Get( CONST Name : StringsO.IString; OUT Item : TPSDNSItem ) : BOOLEAN;
+	PUBLIC PROCEDURE Get( CONST Name : StringsO.IString; OUT Item : TPnsItem ) : BOOLEAN;
 	BEGIN
 		IF Name.Empty THEN
 			RETURN FALSE;
@@ -151,10 +158,10 @@ CLASS IMPLEMENTATION ASDNS;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE GetOA( CONST Name : ARRAY OF WCHAR; OUT Item : TPSDNSItem ) : BOOLEAN;
+	PUBLIC VIRTUAL PROCEDURE GetOA( CONST Name : ARRAY OF WCHAR; OUT Item : TPnsItem ) : BOOLEAN;
 	VAR
 		i : CARDINAL;
-		item : TPSDNSItem;
+		item : TPnsItem;
 		s : ARRAY [0..511] OF WCHAR;
 	BEGIN
 		IF Name[0] = 0W THEN
@@ -186,32 +193,76 @@ CLASS IMPLEMENTATION ASDNS;
 
 	PUBLIC VIRTUAL PROCEDURE Map( CONST Name : ARRAY OF WCHAR; OUT Hash : THash ) : BOOLEAN;
 	VAR
-		Item : TPSDNSItem;
+		Item : TPnsItem;
 	BEGIN
 		IF NOT GetOA( Name, OUT Item ) THEN
 			Hash := 0;
 			RETURN FALSE;
 		ELSE
-			Hash := sdns.THash( Item );
+			Hash := ns.THash( Item );
 			RETURN TRUE;
 		END;
 	END Map;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE GetHash( Hash : THash; OUT Item : TPSDNSItem ) : BOOLEAN;
+	PUBLIC VIRTUAL PROCEDURE GetHash( Hash : THash; OUT Item : TPnsItem ) : BOOLEAN;
 	BEGIN
 		IF Hash = 0 THEN
 			RETURN FALSE;
 		END;
-		Item := TPSDNSItem( Hash );
+		Item := TPnsItem( Hash );
 		RETURN TRUE;
 	END GetHash;
 
 (*---------------------------------------------------------------------------*)
 
-END ASDNS;
+   PUBLIC PROCEDURE Dump( CONST Writer : TextWriter.TPTextWriter );
+   VAR
+      indent : INTEGER := 0;
+      
+   (*----------*)
+   
+      PROCEDURE Indent();
+      VAR
+         i : INTEGER;
+      BEGIN
+         FOR i := 0 TO indent-1 DO
+            Writer^.WriteOA( L" ", FALSE );
+         END; // FOR
+      END Indent;
+   
+   (*----------*)
+   
+      PROCEDURE DumpItem( item : TPnsItem );
+      VAR
+         it : TPnsIterator;
+      BEGIN
+         it := item^.GetNewIterator();
+         it^.Reset();
+         WHILE it^.MoveNext() DO
+
+            Indent(); Writer^.Write( it^.Current^.Name^, TRUE );
+
+            IF NOT it^.Current^.Empty THEN
+               INC( indent );
+               DumpItem( it^.Current );
+               DEC( indent );
+            END;
+         END; // WHILE
+      END DumpItem;
+   
+   (*----------*)
+   
+   BEGIN
+      Writer^.WriteOA( L"Dump of namespace: ", FALSE ); Writer^.Write( Namespace^, TRUE );
+      DumpItem( Root );
+   END Dump;
+
+(*---------------------------------------------------------------------------*)
+
+END Ans;
 
 (*===========================================================================*)
 
-END sdns.
+END ns.

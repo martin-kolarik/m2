@@ -1,25 +1,23 @@
-DEFINITION MODULE sdev;
+DEFINITION MODULE device;
 
 IMPORT
-	sdio,
-	sdns;
+	io,
+	ns;
 
 (*---------------------------------------------------------------------------*)
 
-INTERFACE ISDevice; // aka device driver
-
-	PUBLIC ABSTRACT PROCEDURE NS() : sdns.TPSDNS;
-	PUBLIC ABSTRACT PROCEDURE IO() : sdio.TPSDIO;
-	
-END ISDevice;
+INTERFACE IDevice; // aka device driver
+	PROCEDURE NS() : ns.TPns;
+	PROCEDURE IO() : io.TPIO;
+END IDevice;
 
 (*---------------------------------------------------------------------------*)
 
 TYPE
 #save, call( convention => cdecl )
-	TGetSDevice = PROCEDURE( OUT ADDRESS ) : BOOLEAN;
+	TGetDevice = PROCEDURE( OUT ADDRESS ) : BOOLEAN;
 #restore
 
 (*---------------------------------------------------------------------------*)
 
-END sdev.
+END device.

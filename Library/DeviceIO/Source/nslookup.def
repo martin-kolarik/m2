@@ -1,34 +1,28 @@
 DEFINITION MODULE nslookup;
 
 IMPORT
-	arrays,
-	avltree,
-	sdns,
-	StringsO;
+   arrays,
+   avltree,
+   ns,
+   StringsO;
 
 (*---------------------------------------------------------------------------*)
 
 TYPE
   TPnsAVLItem = POINTER TO AnsAVLItem;
 
-ABSTRACT CLASS AnsAVLItem( sdns.ASDNSItem );
-	PRIVATE VAR
-		_Childs : avltree.CAVLTree;
+ABSTRACT CLASS AnsAVLItem( ns.AnsItem );
+   PRIVATE VAR
+      _Childs : avltree.CAVLTree;
 
-	PUBLIC ABSTRACT READONLY PROPERTY
-		Name : StringsO.TPString;
-		NameType : sdns.TSDNameType;
-		ValueType : sdvalue.TSDValueType;
-		Data : PTR;
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Count : CARDINAL;
+   PUBLIC VIRTUAL READONLY INDEX( Index : CARDINAL ) : ns.TPnsItem;
 
-	PUBLIC VIRTUAL READONLY PROPERTY
-		Count : CARDINAL;
-	PUBLIC VIRTUAL READONLY INDEX( Index : CARDINAL ) : sdns.TPSDNSItem;
+   PUBLIC VIRTUAL PROCEDURE ContainsOA( CONST SingleName : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetOA( CONST SingleName : ARRAY OF WCHAR; OUT Item : ns.TPnsItem ) : BOOLEAN;
 
-	PUBLIC VIRTUAL PROCEDURE ContainsOA( CONST SingleName : ARRAY OF WCHAR ) : BOOLEAN;
-	PUBLIC VIRTUAL PROCEDURE GetOA( CONST SingleName : ARRAY OF WCHAR; OUT Item : sdns.TPSDNSItem ) : BOOLEAN;
-
-	PUBLIC VIRTUAL PROCEDURE AddChild( Child : sdns.TPSDNSItem );
+   PUBLIC VIRTUAL PROCEDURE AddChild( Child : ns.TPnsItem );
 END AnsAVLItem;
 
 (*---------------------------------------------------------------------------*)
@@ -36,24 +30,18 @@ END AnsAVLItem;
 TYPE
   TPnsArrayItem = POINTER TO AnsArrayItem;
 
-ABSTRACT CLASS AnsArrayItem( sdns.ASDNSItem );
-	PRIVATE VAR
-		_Childs : arrays.CPtrArray;
+ABSTRACT CLASS AnsArrayItem( ns.AnsItem );
+   PRIVATE VAR
+      _Childs : arrays.CPtrArray;
 
-	PUBLIC ABSTRACT READONLY PROPERTY
-		Name : StringsO.TPString;
-		NameType : sdns.TSDNameType;
-		ValueType : sdvalue.TSDValueType;
-		Data : PTR;
+   VIRTUAL READONLY PROPERTY
+      Items : CARDINAL;
+   PUBLIC VIRTUAL READONLY INDEX( Index : CARDINAL ) : ns.TPnsItem;
 
-	VIRTUAL READONLY PROPERTY
-		Items : CARDINAL;
-	PUBLIC VIRTUAL READONLY INDEX( Index : CARDINAL ) : sdns.TPSDNSItem;
+   PUBLIC VIRTUAL PROCEDURE ContainsOA( CONST SingleName : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetOA( CONST SingleName : ARRAY OF WCHAR; OUT Item : ns.TPnsItem ) : BOOLEAN;
 
-	PUBLIC VIRTUAL PROCEDURE ContainsOA( CONST SingleName : ARRAY OF WCHAR ) : BOOLEAN;
-	PUBLIC VIRTUAL PROCEDURE GetOA( CONST SingleName : ARRAY OF WCHAR; OUT Item : sdns.TPSDNSItem ) : BOOLEAN;
-
-	PUBLIC VIRTUAL PROCEDURE AddChild( Child : sdns.TPSDNSItem );
+   PUBLIC VIRTUAL PROCEDURE AddChild( Child : ns.TPnsItem );
 END AnsArrayItem;
 
 (*---------------------------------------------------------------------------*)

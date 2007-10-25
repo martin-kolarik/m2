@@ -1,4 +1,4 @@
-DEFINITION MODULE sdvalue;
+DEFINITION MODULE iovalue;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -10,18 +10,18 @@ IMPORT
 (*---------------------------------------------------------------------------*)
 
 TYPE
-   TSDValueType = (
-      sdtUnknown,
-      sdtVoid,
-      sdtObject, // has class
-      sdtBoolean,
-      sdtTristate,
-      sdtInteger,
-      sdtLong,
-      sdtFloat,
-      sdtString,
-      sdtDate,
-      sdtData // TODO
+   TValueType = (
+      vtUnknown,
+      vtVoid,
+      vtObject, // has class
+      vtBoolean,
+      vtTristate,
+      vtInteger,
+      vtLong,
+      vtFloat,
+      vtString,
+      vtDate,
+      vtData // TODO
    );
    
 TYPE
@@ -39,11 +39,11 @@ TYPE
 CLASS Value;
    INTERNAL VAR
       _Flags : TFlags;
-      _Type : TSDValueType;
+      _Type : TValueType;
       _Storage : QUADWORD;
 
    PUBLIC PROPERTY
-      Type : TSDValueType;
+      Type : TValueType;
       Undefined : BOOLEAN;
       Saturate : BOOLEAN;
    PUBLIC PROPERTY
@@ -97,4 +97,4 @@ END Value;
 
 (*---------------------------------------------------------------------------*)
 
-END sdvalue.
+END iovalue.

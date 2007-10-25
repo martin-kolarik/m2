@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8,00"
-	Name="SDIO"
+	Name="DeviceIO"
 	ProjectGUID="{A60809F1-641F-4ED7-9128-C41E7A6A9580}"
 	Keyword="MakeFileProj"
 	>
@@ -26,7 +26,7 @@
 				BuildCommandLine="msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj"
 				ReBuildCommandLine="msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild"
 				CleanCommandLine="msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /t:Clean"
-				Output="SD.exe"
+				Output="DeviceIO.exe"
 				PreprocessorDefinitions="WIN32;_DEBUG"
 				IncludeSearchPath=""
 				ForcedIncludes=""
@@ -46,7 +46,7 @@
 				BuildCommandLine=""
 				ReBuildCommandLine=""
 				CleanCommandLine=""
-				Output="SD.exe"
+				Output="DeviceIO.exe"
 				PreprocessorDefinitions="WIN32;NDEBUG"
 				IncludeSearchPath=""
 				ForcedIncludes=""
@@ -73,15 +73,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Source\sdio.mod"
+				RelativePath=".\Source\io.mod"
 				>
 			</File>
 			<File
-				RelativePath=".\Source\sdns.mod"
+				RelativePath=".\Source\ns.mod"
 				>
 			</File>
 			<File
-				RelativePath=".\Source\sdvalue.mod"
+				RelativePath=".\Source\iovalue.mod"
 				>
 			</File>
 		</Filter>
@@ -99,19 +99,19 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Source\sdev.def"
+				RelativePath=".\Source\device.def"
 				>
 			</File>
 			<File
-				RelativePath=".\Source\sdio.def"
+				RelativePath=".\Source\io.def"
 				>
 			</File>
 			<File
-				RelativePath=".\Source\sdns.def"
+				RelativePath=".\Source\ns.def"
 				>
 			</File>
 			<File
-				RelativePath=".\Source\sdvalue.def"
+				RelativePath=".\Source\iovalue.def"
 				>
 			</File>
 		</Filter>
@@ -124,7 +124,7 @@
 			</File>
 		</Filter>
 		<File
-			RelativePath=".\SDIO.proj"
+			RelativePath=".\DeviceIO.proj"
 			>
 		</File>
 	</Files>

@@ -1,4 +1,4 @@
-IMPLEMENTATION MODULE sdvalue;
+IMPLEMENTATION MODULE iovalue;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -11,17 +11,17 @@ IMPORT
 TYPE
    #save, option( pack => 1 )
    TStorage  = RECORD
-                  CASE : TSDValueType OF
-                  | sdtUnknown  :
-                  | sdtVoid     :
-                  | sdtObject   : Object   : ADDRESS;
-                  | sdtBoolean  : Boolean  : BOOLEAN;
-                  | sdtTristate : Tristate : TRISTATE;
-                  | sdtInteger  : Integer  : INT32;
-                  | sdtLong     : Long     : INT64;
-                  | sdtFloat    : Float    : LONGREAL;
-                  | sdtString   : String   : POINTER TO StringsO.CString;
-                  | sdtDate     : Date     : time.TJD;
+                  CASE : TValueType OF
+                  | vtUnknown  :
+                  | vtVoid     :
+                  | vtObject   : Object   : ADDRESS;
+                  | vtBoolean  : Boolean  : BOOLEAN;
+                  | vtTristate : Tristate : TRISTATE;
+                  | vtInteger  : Integer  : INT32;
+                  | vtLong     : Long     : INT64;
+                  | vtFloat    : Float    : LONGREAL;
+                  | vtString   : String   : POINTER TO StringsO.CString;
+                  | vtDate     : Date     : time.TJD;
                   END;
                END; // RECORD
    TPStorage = POINTER TO TStorage;
@@ -41,14 +41,14 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Type GET : TSDValueType;
+   PUBLIC PROPERTY Type GET : TValueType;
    BEGIN
       RETURN _Type;
    END Type;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Type SET( value : TSDValueType );
+   PUBLIC PROPERTY Type SET( value : TValueType );
    VAR
       LFlags : TFlags;
       LValue : Value;
@@ -56,7 +56,7 @@ CLASS IMPLEMENTATION Value;
       IF _Type <> value THEN
          LFlags := _Flags;
 
-         IF ( value <> sdtUnknown ) AND ( value <> sdtVoid ) THEN
+         IF ( value <> vtUnknown ) AND ( value <> vtVoid ) THEN
             // convert
             LValue._Type := value;
             LValue := SELF;
@@ -69,7 +69,7 @@ CLASS IMPLEMENTATION Value;
          _Storage := LValue._Storage;
 
          // forget old
-         LValue._Type := sdtUnknown;
+         LValue._Type := vtUnknown;
          LValue._Storage := 0;
       END;
    END Type;
@@ -87,7 +87,7 @@ CLASS IMPLEMENTATION Value;
    BEGIN
       IF Value THEN
          INCL( _Flags, vfUndefined );
-         IF _Type = sdtString THEN
+         IF _Type = vtString THEN
             TPStorage( ADR( _Storage ))^.String^.Clear();
          ELSE
             _Storage := 0;
@@ -126,31 +126,31 @@ CLASS IMPLEMENTATION Value;
          RETURN FALSE;
       END;
       CASE _Type OF
-      | sdtUnknown :
-      | sdtVoid :
-      | sdtObject :
+      | vtUnknown :
+      | vtVoid :
+      | vtObject :
          ASSERT( FALSE );
 
-      | sdtBoolean :
+      | vtBoolean :
          RETURN TPStorage( ADR( _Storage ))^.Boolean;
 
-      | sdtTristate :
+      | vtTristate :
          RETURN TPStorage( ADR( _Storage ))^.Tristate = 1;
 
-      | sdtInteger :
+      | vtInteger :
          RETURN TPStorage( ADR( _Storage ))^.Integer <> 0;
 
-      | sdtLong :
+      | vtLong :
          RETURN TPStorage( ADR( _Storage ))^.Long <> 0;
 
-      | sdtFloat :
+      | vtFloat :
          RETURN TPStorage( ADR( _Storage ))^.Float <> 0.0;
 
-      | sdtString :
+      | vtString :
          PS := TPStorage( ADR( _Storage ))^.String;
          RETURN PS^.EqualsOA( L"TRUE" ) OR PS^.EqualsOA( defaultTrue ) OR PS^.EqualsOA( L"T" ) OR PS^.EqualsOA( L"1" );
 
-      | sdtDate :
+      | vtDate :
          today := time.TrimFD( time.GetCurrentJD());
          tomorrow := today + time.DaysToJDC( 1 );
          RETURN ( TPStorage( ADR( _Storage ))^.Date >= today ) AND ( TPStorage( ADR( _Storage ))^.Date < tomorrow );
@@ -172,22 +172,22 @@ CLASS IMPLEMENTATION Value;
          RETURN -1;
       END;
       CASE _Type OF
-      | sdtUnknown :
-      | sdtVoid :
-      | sdtObject :
+      | vtUnknown :
+      | vtVoid :
+      | vtObject :
          ASSERT( FALSE );
 
-      | sdtBoolean :
+      | vtBoolean :
          IF TPStorage( ADR( _Storage ))^.Boolean THEN
             RETURN 1;
          ELSE
             RETURN 0;
          END;
 
-      | sdtTristate :
+      | vtTristate :
          RETURN TPStorage( ADR( _Storage ))^.Tristate;
 
-      | sdtInteger :
+      | vtInteger :
          IF TPStorage( ADR( _Storage ))^.Integer >= 1 THEN
             RETURN 1;
          ELSIF TPStorage( ADR( _Storage ))^.Integer <= -1 THEN
@@ -196,7 +196,7 @@ CLASS IMPLEMENTATION Value;
             RETURN 0;
          END;
             
-      | sdtLong :
+      | vtLong :
          IF TPStorage( ADR( _Storage ))^.Long >= 1 THEN
             RETURN 1;
          ELSIF TPStorage( ADR( _Storage ))^.Long <= INT64( -1 ) THEN
@@ -205,7 +205,7 @@ CLASS IMPLEMENTATION Value;
             RETURN 0;
          END;
 
-      | sdtFloat :
+      | vtFloat :
          IF TPStorage( ADR( _Storage ))^.Float >= 1.0 THEN
             RETURN 1;
          ELSIF TPStorage( ADR( _Storage ))^.Float <= -1.0 THEN
@@ -214,7 +214,7 @@ CLASS IMPLEMENTATION Value;
             RETURN 0;
          END;
 
-      | sdtString :
+      | vtString :
          PS := TPStorage( ADR( _Storage ))^.String;
          IF PS^.EqualsOA( L"TRUE" ) OR PS^.EqualsOA( defaultTrue ) OR PS^.EqualsOA( L"T" ) OR PS^.EqualsOA( L"1" ) THEN
             RETURN 1;
@@ -224,7 +224,7 @@ CLASS IMPLEMENTATION Value;
             RETURN -1;
          END;
 
-      | sdtDate :
+      | vtDate :
          today := time.TrimFD( time.GetCurrentJD());
          tomorrow := today + time.DaysToJDC( 1 );
          IF ( TPStorage( ADR( _Storage ))^.Date >= today ) AND ( TPStorage( ADR( _Storage ))^.Date < tomorrow ) THEN
@@ -247,25 +247,25 @@ CLASS IMPLEMENTATION Value;
          RETURN 0;
       END;
       CASE _Type OF
-      | sdtUnknown :
-      | sdtVoid :
-      | sdtObject :
+      | vtUnknown :
+      | vtVoid :
+      | vtObject :
          ASSERT( FALSE );
 
-      | sdtBoolean :
+      | vtBoolean :
          IF TPStorage( ADR( _Storage ))^.Boolean THEN
             RETURN 1;
          ELSE
             RETURN 0;
          END;
 
-      | sdtTristate :
+      | vtTristate :
          RETURN INT32( TPStorage( ADR( _Storage ))^.Tristate );
 
-      | sdtInteger :
+      | vtInteger :
          RETURN TPStorage( ADR( _Storage ))^.Integer;
 
-      | sdtLong :
+      | vtLong :
          IF vfSaturate NOT IN _Flags THEN
             RETURN INTEGER( TPStorage( ADR( _Storage ))^.Long );
          ELSIF TPStorage( ADR( _Storage ))^.Long > MAX( INT32 ) THEN
@@ -276,7 +276,7 @@ CLASS IMPLEMENTATION Value;
             RETURN INTEGER( TPStorage( ADR( _Storage ))^.Long );
          END;
 
-      | sdtFloat :
+      | vtFloat :
          IF vfSaturate NOT IN _Flags THEN
             RETURN INTEGER( TPStorage( ADR( _Storage ))^.Float );
          ELSIF TPStorage( ADR( _Storage ))^.Float > LONGREAL( MAX( INT32 )) THEN
@@ -287,14 +287,14 @@ CLASS IMPLEMENTATION Value;
             RETURN INTEGER( TPStorage( ADR( _Storage ))^.Float );
          END;
 
-      | sdtString :
+      | vtString :
          TRY
             RETURN TPStorage( ADR( _Storage ))^.String^.ToINT32( 10 );
          CATCH e : StringsO.CStringException DO
             RETURN 0;
          END;
 
-      | sdtDate :
+      | vtDate :
          RETURN time.fd( TPStorage( ADR( _Storage ))^.Date ) DIV CARDINAL( time.unitsInMillisecond );
 
       ELSE
@@ -311,38 +311,38 @@ CLASS IMPLEMENTATION Value;
          RETURN 0;
       END;
       CASE _Type OF
-      | sdtUnknown :
-      | sdtVoid :
-      | sdtObject :
+      | vtUnknown :
+      | vtVoid :
+      | vtObject :
          ASSERT( FALSE );
 
-      | sdtBoolean :
+      | vtBoolean :
          IF TPStorage( ADR( _Storage ))^.Boolean THEN
             RETURN 1;
          ELSE
             RETURN 0;
          END;
 
-      | sdtTristate :
+      | vtTristate :
          RETURN INT64( TPStorage( ADR( _Storage ))^.Tristate );
 
-      | sdtInteger :
+      | vtInteger :
          RETURN INT64( TPStorage( ADR( _Storage ))^.Integer );
 
-      | sdtLong :
+      | vtLong :
          RETURN TPStorage( ADR( _Storage ))^.Long;
 
-      | sdtFloat :
+      | vtFloat :
          RETURN INT64( TPStorage( ADR( _Storage ))^.Float );
 
-      | sdtString :
+      | vtString :
          TRY
             RETURN TPStorage( ADR( _Storage ))^.String^.ToINT64( 10 );
          CATCH e : StringsO.CStringException DO
             RETURN 0;
          END;
 
-      | sdtDate :
+      | vtDate :
          RETURN TPStorage( ADR( _Storage ))^.Date;
 
       ELSE
@@ -359,38 +359,38 @@ CLASS IMPLEMENTATION Value;
          RETURN 0.0;
       END;
       CASE _Type OF
-      | sdtUnknown :
-      | sdtVoid :
-      | sdtObject :
+      | vtUnknown :
+      | vtVoid :
+      | vtObject :
          ASSERT( FALSE );
 
-      | sdtBoolean :
+      | vtBoolean :
          IF TPStorage( ADR( _Storage ))^.Boolean THEN
             RETURN 1.0;
          ELSE
             RETURN 0.0;
          END;
 
-      | sdtTristate :
+      | vtTristate :
          RETURN LONGREAL( TPStorage( ADR( _Storage ))^.Tristate );
 
-      | sdtInteger :
+      | vtInteger :
          RETURN LONGREAL( TPStorage( ADR( _Storage ))^.Integer );
 
-      | sdtLong :
+      | vtLong :
          RETURN LONGREAL( TPStorage( ADR( _Storage ))^.Long );
 
-      | sdtFloat :
+      | vtFloat :
          RETURN TPStorage( ADR( _Storage ))^.Float;
 
-      | sdtString :
+      | vtString :
          TRY
             RETURN TPStorage( ADR( _Storage ))^.String^.ToLONGREAL();
          CATCH e : StringsO.CStringException DO
             RETURN 0.0;
          END;
 
-      | sdtDate :
+      | vtDate :
          RETURN time.ToSJD( TPStorage( ADR( _Storage ))^.Date );
 
       ELSE
@@ -411,34 +411,34 @@ CLASS IMPLEMENTATION Value;
          RETURN S;
       END;
       CASE _Type OF
-      | sdtUnknown :
-      | sdtVoid :
-      | sdtObject :
+      | vtUnknown :
+      | vtVoid :
+      | vtObject :
          ASSERT( FALSE );
 
-      | sdtBoolean :
+      | vtBoolean :
          IF TPStorage( ADR( _Storage ))^.Boolean THEN
             S.FromOA( defaultTrue );
          ELSE
             S.FromOA( defaultFalse );
          END;
 
-      | sdtTristate :
+      | vtTristate :
          S.FromINT32( INT32( TPStorage( ADR( _Storage ))^.Tristate ), 10 );
 
-      | sdtInteger :
+      | vtInteger :
          S.FromINT32( TPStorage( ADR( _Storage ))^.Integer, 10 );
 
-      | sdtLong :
+      | vtLong :
          S.FromINT64( TPStorage( ADR( _Storage ))^.Long, 10 );
 
-      | sdtFloat :
+      | vtFloat :
          S.FromLONGREAL( TPStorage( ADR( _Storage ))^.Float, FALSE );
 
-      | sdtString :
+      | vtString :
          RETURN TPStorage( ADR( _Storage ))^.String^;
 
-      | sdtDate :
+      | vtDate :
          time.JDToZonalDateTime( TPStorage( ADR( _Storage ))^.Date, OUT dt, 0, 0 );
          IF time.DateTimeToString( dt, defaultDateTimeFormat, TRUE, TRUE, s ) THEN
             S.FromOA( s );
@@ -462,39 +462,39 @@ CLASS IMPLEMENTATION Value;
          RETURN defaultDate;
       END;
       CASE _Type OF
-      | sdtUnknown :
-      | sdtVoid :
-      | sdtObject :
+      | vtUnknown :
+      | vtVoid :
+      | vtObject :
          ASSERT( FALSE );
 
-      | sdtBoolean :
+      | vtBoolean :
          IF TPStorage( ADR( _Storage ))^.Boolean THEN
             RETURN t;
          ELSE
             RETURN defaultDate;
          END;
 
-      | sdtTristate :
+      | vtTristate :
          IF TPStorage( ADR( _Storage ))^.Tristate = 1 THEN
             RETURN t;
          ELSE
             RETURN defaultDate;
          END;
 
-      | sdtInteger :
+      | vtInteger :
          IF TPStorage( ADR( _Storage ))^.Integer < 0 THEN
             RETURN defaultDate;
          ELSE
             RETURN time.TrimFD( t ) + time.TJD( TPStorage( ADR( _Storage ))^.Integer * INTEGER( time.unitsInMillisecond ));
          END;
 
-      | sdtLong :
+      | vtLong :
          RETURN TPStorage( ADR( _Storage ))^.Long;
 
-      | sdtFloat :
+      | vtFloat :
          RETURN time.FromSJD( TPStorage( ADR( _Storage ))^.Float );
 
-      | sdtString :
+      | vtString :
          IF time.StringToDateTime( OA( TPStorage( ADR( _Storage ))^.String^.Length-1, TPStorage( ADR( _Storage ))^.String^.rawData ), defaultDateTimeFormat, dt ) THEN
             time.InitDateTime( OUT dt );
             RETURN time.ZonalDateTimeToJD( dt, 0, 0 );
@@ -502,7 +502,7 @@ CLASS IMPLEMENTATION Value;
             RETURN defaultDate;
          END;
 
-      | sdtDate :
+      | vtDate :
          RETURN TPStorage( ADR( _Storage ))^.Date;
 
       ELSE
@@ -515,54 +515,54 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Boolean SET( value : BOOLEAN );
    BEGIN
-      IF _Type = sdtUnknown THEN
-         _Type := sdtBoolean;
+      IF _Type = vtUnknown THEN
+         _Type := vtBoolean;
       END;
 
       CASE _Type OF
-      | sdtVoid :
-      | sdtObject :
+      | vtVoid :
+      | vtObject :
          ASSERT( FALSE );
 
-      | sdtBoolean :
+      | vtBoolean :
          TPStorage( ADR( _Storage ))^.Boolean := value;
 
-      | sdtTristate :
+      | vtTristate :
          IF value THEN
             TPStorage( ADR( _Storage ))^.Tristate := 1;
          ELSE
             TPStorage( ADR( _Storage ))^.Tristate := 0;
          END;
 
-      | sdtInteger :
+      | vtInteger :
          IF value THEN
             TPStorage( ADR( _Storage ))^.Integer := 1;
          ELSE
             TPStorage( ADR( _Storage ))^.Integer := 0;
          END;
 
-      | sdtLong :
+      | vtLong :
          IF value THEN
             TPStorage( ADR( _Storage ))^.Long := 1;
          ELSE
             TPStorage( ADR( _Storage ))^.Long := 0;
          END;
 
-      | sdtFloat :
+      | vtFloat :
          IF value THEN
             TPStorage( ADR( _Storage ))^.Float := 1.0;
          ELSE
             TPStorage( ADR( _Storage ))^.Float := 0.0;
          END;
 
-      | sdtString :
+      | vtString :
          IF value THEN
             TPStorage( ADR( _Storage ))^.String^.FromOA( defaultTrue );
          ELSE
             TPStorage( ADR( _Storage ))^.String^.FromOA( defaultFalse );
          END;
 
-      | sdtDate :
+      | vtDate :
          Undefined := TRUE;
 
       ELSE
@@ -574,34 +574,34 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Tristate SET( value : TRISTATE );
    BEGIN
-      IF _Type = sdtUnknown THEN
-         _Type := sdtTristate;
+      IF _Type = vtUnknown THEN
+         _Type := vtTristate;
       END;
 
       CASE _Type OF
-      | sdtVoid :
-      | sdtObject :
+      | vtVoid :
+      | vtObject :
          ASSERT( FALSE );
 
-      | sdtBoolean :
+      | vtBoolean :
          TPStorage( ADR( _Storage ))^.Boolean := value = 1;
 
-      | sdtTristate :
+      | vtTristate :
          TPStorage( ADR( _Storage ))^.Tristate := value;
 
-      | sdtInteger :
+      | vtInteger :
          TPStorage( ADR( _Storage ))^.Integer := INT32( value );
             
-      | sdtLong :
+      | vtLong :
          TPStorage( ADR( _Storage ))^.Long := INT64( value );
 
-      | sdtFloat :
+      | vtFloat :
          TPStorage( ADR( _Storage ))^.Float := LONGREAL( value );
 
-      | sdtString :
+      | vtString :
          TPStorage( ADR( _Storage ))^.String^.FromINT32( INT32( value ), 10 );
 
-      | sdtDate :
+      | vtDate :
          Undefined := TRUE;
 
       ELSE
@@ -613,19 +613,19 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Integer SET( value : INT32 );
    BEGIN
-      IF _Type = sdtUnknown THEN
-         _Type := sdtInteger;
+      IF _Type = vtUnknown THEN
+         _Type := vtInteger;
       END;
 
       CASE _Type OF
-      | sdtVoid :
-      | sdtObject :
+      | vtVoid :
+      | vtObject :
          ASSERT( FALSE );
 
-      | sdtBoolean :
+      | vtBoolean :
          TPStorage( ADR( _Storage ))^.Boolean := value <> 0;
 
-      | sdtTristate :
+      | vtTristate :
          IF value >= 1 THEN
             TPStorage( ADR( _Storage ))^.Tristate := 1;
          ELSIF value <= -1 THEN
@@ -634,19 +634,19 @@ CLASS IMPLEMENTATION Value;
             TPStorage( ADR( _Storage ))^.Tristate := 0;
          END;
 
-      | sdtInteger :
+      | vtInteger :
          TPStorage( ADR( _Storage ))^.Integer := value;
             
-      | sdtLong :
+      | vtLong :
          TPStorage( ADR( _Storage ))^.Long := INT64( value );
 
-      | sdtFloat :
+      | vtFloat :
          TPStorage( ADR( _Storage ))^.Float := LONGREAL( value );
 
-      | sdtString :
+      | vtString :
          TPStorage( ADR( _Storage ))^.String^.FromINT32( value, 10 );
 
-      | sdtDate :
+      | vtDate :
          TPStorage( ADR( _Storage ))^.Date := time.TrimFD( time.GetCurrentJD() ) + time.TJD( value ) * time.unitsInMillisecond;
 
       ELSE
@@ -658,19 +658,19 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Long SET( value : INT64 );
    BEGIN
-      IF _Type = sdtUnknown THEN
-         _Type := sdtLong;
+      IF _Type = vtUnknown THEN
+         _Type := vtLong;
       END;
 
       CASE _Type OF
-      | sdtVoid :
-      | sdtObject :
+      | vtVoid :
+      | vtObject :
          ASSERT( FALSE );
 
-      | sdtBoolean :
+      | vtBoolean :
          TPStorage( ADR( _Storage ))^.Boolean := value <> 0;
 
-      | sdtTristate :
+      | vtTristate :
          IF value >= 1 THEN
             TPStorage( ADR( _Storage ))^.Tristate := 1;
          ELSIF value <= -1 THEN
@@ -679,7 +679,7 @@ CLASS IMPLEMENTATION Value;
             TPStorage( ADR( _Storage ))^.Tristate := 0;
          END;
 
-      | sdtInteger :
+      | vtInteger :
          IF vfSaturate NOT IN _Flags THEN
             TPStorage( ADR( _Storage ))^.Integer := INT32( value );
          ELSIF value > MAX( INT32 ) THEN
@@ -690,16 +690,16 @@ CLASS IMPLEMENTATION Value;
             TPStorage( ADR( _Storage ))^.Integer := INT32( value );
          END;
             
-      | sdtLong :
+      | vtLong :
          TPStorage( ADR( _Storage ))^.Long := value;
 
-      | sdtFloat :
+      | vtFloat :
          TPStorage( ADR( _Storage ))^.Float := LONGREAL( value );
 
-      | sdtString :
+      | vtString :
          TPStorage( ADR( _Storage ))^.String^.FromINT64( value, 10 );
 
-      | sdtDate :
+      | vtDate :
          TPStorage( ADR( _Storage ))^.Date := value;
 
       ELSE
@@ -711,19 +711,19 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Float SET( value : LONGREAL );
    BEGIN
-      IF _Type = sdtUnknown THEN
-         _Type := sdtFloat;
+      IF _Type = vtUnknown THEN
+         _Type := vtFloat;
       END;
 
       CASE _Type OF
-      | sdtVoid :
-      | sdtObject :
+      | vtVoid :
+      | vtObject :
          ASSERT( FALSE );
 
-      | sdtBoolean :
+      | vtBoolean :
          TPStorage( ADR( _Storage ))^.Boolean := value <> 0.0;
 
-      | sdtTristate :
+      | vtTristate :
          IF value >= 1.0 THEN
             TPStorage( ADR( _Storage ))^.Tristate := 1;
          ELSIF value <= -1.0 THEN
@@ -732,7 +732,7 @@ CLASS IMPLEMENTATION Value;
             TPStorage( ADR( _Storage ))^.Tristate := 0;
          END;
 
-      | sdtInteger :
+      | vtInteger :
          IF vfSaturate NOT IN _Flags THEN
             TPStorage( ADR( _Storage ))^.Integer := INT32( value );
          ELSIF value > LONGREAL( MAX( INT32 )) THEN
@@ -743,7 +743,7 @@ CLASS IMPLEMENTATION Value;
             TPStorage( ADR( _Storage ))^.Integer := INT32( value );
          END;
             
-      | sdtLong :
+      | vtLong :
          IF vfSaturate NOT IN _Flags THEN
             TPStorage( ADR( _Storage ))^.Long := INT64( value );
          ELSIF value > LONGREAL( MAX( INT64 )) THEN
@@ -754,13 +754,13 @@ CLASS IMPLEMENTATION Value;
             TPStorage( ADR( _Storage ))^.Long := INT64( value );
          END;
 
-      | sdtFloat :
+      | vtFloat :
          TPStorage( ADR( _Storage ))^.Float := value;
 
-      | sdtString :
+      | vtString :
          TPStorage( ADR( _Storage ))^.String^.FromLONGREAL( value, FALSE );
 
-      | sdtDate :
+      | vtDate :
          TPStorage( ADR( _Storage ))^.Date := time.FromSJD( value );
 
       ELSE
@@ -774,19 +774,19 @@ CLASS IMPLEMENTATION Value;
    VAR
       dt : time.TDateTime;
    BEGIN
-      IF _Type = sdtUnknown THEN
-         Type := sdtString; // using property allocates string
+      IF _Type = vtUnknown THEN
+         Type := vtString; // using property allocates string
       END;
 
       CASE _Type OF
-      | sdtVoid :
-      | sdtObject :
+      | vtVoid :
+      | vtObject :
          ASSERT( FALSE );
 
-      | sdtBoolean :
+      | vtBoolean :
          TPStorage( ADR( _Storage ))^.Boolean := value.EqualsOA( L"TRUE" ) OR value.EqualsOA( defaultTrue ) OR value.EqualsOA( L"T" ) OR value.EqualsOA( L"1" );
 
-      | sdtTristate :
+      | vtTristate :
          IF value.EqualsOA( L"TRUE" ) OR value.EqualsOA( defaultTrue ) OR value.EqualsOA( L"T" ) OR value.EqualsOA( L"1" ) THEN
             TPStorage( ADR( _Storage ))^.Tristate := 1;
          ELSIF value.EqualsOA( L"FALSE" ) OR value.EqualsOA( defaultFalse ) OR value.EqualsOA( L"F" ) OR value.EqualsOA( L"0" ) THEN
@@ -795,31 +795,31 @@ CLASS IMPLEMENTATION Value;
             TPStorage( ADR( _Storage ))^.Tristate := -1;
          END;
 
-      | sdtInteger :
+      | vtInteger :
          TRY
             TPStorage( ADR( _Storage ))^.Integer := value.ToINT32( 10 );
          CATCH e : StringsO.CStringException DO
             Undefined := TRUE;
          END;
             
-      | sdtLong :
+      | vtLong :
          TRY
             TPStorage( ADR( _Storage ))^.Long := value.ToINT64( 10 );
          CATCH e : StringsO.CStringException DO
             Undefined := TRUE;
          END;
 
-      | sdtFloat :
+      | vtFloat :
          TRY
             TPStorage( ADR( _Storage ))^.Float := value.ToLONGREAL();
          CATCH e : StringsO.CStringException DO
             Undefined := TRUE;
          END;
 
-      | sdtString :
+      | vtString :
          TPStorage( ADR( _Storage ))^.String^ := value;
 
-      | sdtDate :
+      | vtDate :
          IF time.StringToDateTime( OA( value.Length-1, value.rawData ), defaultDateTimeFormat, dt ) THEN
             time.InitDateTime( OUT dt );
             TPStorage( ADR( _Storage ))^.Date := time.ZonalDateTimeToJD( dt, 0, 0 );
@@ -840,35 +840,35 @@ CLASS IMPLEMENTATION Value;
       dt : time.TDateTime;
       s : ARRAY [0..63] OF WCHAR;
    BEGIN
-      IF _Type = sdtUnknown THEN
-         _Type := sdtDate;
+      IF _Type = vtUnknown THEN
+         _Type := vtDate;
       END;
 
       CASE _Type OF
-      | sdtVoid :
-      | sdtObject :
+      | vtVoid :
+      | vtObject :
          ASSERT( FALSE );
 
-      | sdtBoolean :
+      | vtBoolean :
          today := time.TrimFD( time.GetCurrentJD());
          tomorrow := today + time.DaysToJDC( 1 );
          TPStorage( ADR( _Storage ))^.Boolean := ( value >= today ) AND ( value < tomorrow );
 
-      | sdtTristate :
+      | vtTristate :
          today := time.TrimFD( time.GetCurrentJD());
          tomorrow := today + time.DaysToJDC( 1 );
          TPStorage( ADR( _Storage ))^.Boolean := ( value >= today ) AND ( value < tomorrow );
 
-      | sdtInteger :
+      | vtInteger :
          TPStorage( ADR( _Storage ))^.Integer := time.fd( value ) DIV CARDINAL( time.unitsInMillisecond );
 
-      | sdtLong :
+      | vtLong :
          TPStorage( ADR( _Storage ))^.Long := value;
 
-      | sdtFloat :
+      | vtFloat :
          TPStorage( ADR( _Storage ))^.Float := time.ToSJD( value );
 
-      | sdtString :
+      | vtString :
          time.JDToZonalDateTime( value, OUT dt, 0, 0 );
          IF time.DateTimeToString( dt, defaultDateTimeFormat, TRUE, TRUE, s ) THEN
             TPStorage( ADR( _Storage ))^.String^.FromOA( s );
@@ -876,7 +876,7 @@ CLASS IMPLEMENTATION Value;
             TPStorage( ADR( _Storage ))^.String^.Clear();
          END;
 
-      | sdtDate :
+      | vtDate :
          TPStorage( ADR( _Storage ))^.Date := value;
 
       ELSE
@@ -888,7 +888,7 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY PString GET: StringsO.TPString; // returns internal string for Type = dstString, otherwise it returns NIL
    BEGIN
-      IF _Type = sdtString THEN
+      IF _Type = vtString THEN
          RETURN TPStorage( ADR( _Storage ))^.String;
       ELSE
          RETURN NIL;
@@ -900,38 +900,38 @@ CLASS IMPLEMENTATION Value;
    PUBLIC OPERATOR :=( CONST Source : Value );
    BEGIN
       _Flags := Source._Flags;
-      IF _Type = sdtUnknown THEN
+      IF _Type = vtUnknown THEN
          _Type := Source._Type;
       END;
 
       CASE _Type OF
-      | sdtUnknown :
-      | sdtVoid :
-      | sdtObject :
+      | vtUnknown :
+      | vtVoid :
+      | vtObject :
          ASSERT( FALSE );
 
-      | sdtBoolean :
+      | vtBoolean :
          TPStorage( ADR( _Storage ))^.Boolean := Source.Boolean;
 
-      | sdtTristate :
+      | vtTristate :
          TPStorage( ADR( _Storage ))^.Tristate := Source.Tristate;
 
-      | sdtInteger :
+      | vtInteger :
          TPStorage( ADR( _Storage ))^.Integer := Source.Integer;
 
-      | sdtLong :
+      | vtLong :
          TPStorage( ADR( _Storage ))^.Long := Source.Long;
 
-      | sdtFloat :
+      | vtFloat :
          TPStorage( ADR( _Storage ))^.Float := Source.Float;
 
-      | sdtString :
+      | vtString :
          IF TPStorage( ADR( _Storage ))^.String = NIL THEN
             TPStorage( ADR( _Storage ))^.String := NEW( StringsO.CString );
          END;
          TPStorage( ADR( _Storage ))^.String^ := Source.String;
 
-      | sdtDate :
+      | vtDate :
          TPStorage( ADR( _Storage ))^.Date := Source.Date;
 
       ELSE
@@ -947,7 +947,7 @@ CLASS IMPLEMENTATION Value;
          RETURN FALSE;
       ELSIF _Flags * TFlags{vfUndefined} <> Source._Flags * TFlags{vfUndefined} THEN
          RETURN FALSE;
-      ELSIF _Type = sdtString THEN
+      ELSIF _Type = vtString THEN
          RETURN TPStorage( ADR( _Storage ))^.String^ = TPStorage( ADR( Source._Storage ))^.String^;
       ELSE
          RETURN _Storage = Source._Storage;
@@ -967,21 +967,21 @@ CLASS IMPLEMENTATION Value;
    BEGIN
       IF ( vfUndefined IN _Flags ) OR ( vfUndefined IN Source._Flags ) THEN
          RETURN FALSE;
-      ELSIF ( _Type <> Source._Type ) OR ( _Type = sdtString ) THEN
+      ELSIF ( _Type <> Source._Type ) OR ( _Type = vtString ) THEN
          RETURN String.Compare( Source.String ) > 0;
       END;
       CASE _Type OF
-      | sdtBoolean :
+      | vtBoolean :
          RETURN TPStorage( ADR( _Storage ))^.Boolean AND NOT Source.Boolean;
-      | sdtTristate :
+      | vtTristate :
          RETURN TPStorage( ADR( _Storage ))^.Tristate > Source.Tristate;
-      | sdtInteger :
+      | vtInteger :
          RETURN TPStorage( ADR( _Storage ))^.Integer > Source.Integer;
-      | sdtLong :
+      | vtLong :
          RETURN TPStorage( ADR( _Storage ))^.Long > Source.Long;
-      | sdtFloat :
+      | vtFloat :
          RETURN TPStorage( ADR( _Storage ))^.Float > Source.Float;
-      | sdtDate :
+      | vtDate :
          RETURN TPStorage( ADR( _Storage ))^.Date > Source.Date;
       ELSE
          RETURN FALSE;
@@ -1001,21 +1001,21 @@ CLASS IMPLEMENTATION Value;
    BEGIN
       IF ( vfUndefined IN _Flags ) OR ( vfUndefined IN Source._Flags ) THEN
          RETURN FALSE;
-      ELSIF ( _Type <> Source._Type ) OR ( _Type = sdtString ) THEN
+      ELSIF ( _Type <> Source._Type ) OR ( _Type = vtString ) THEN
          RETURN String.Compare( Source.String ) < 0;
       END;
       CASE _Type OF
-      | sdtBoolean :
+      | vtBoolean :
          RETURN NOT TPStorage( ADR( _Storage ))^.Boolean AND Source.Boolean;
-      | sdtTristate :
+      | vtTristate :
          RETURN TPStorage( ADR( _Storage ))^.Tristate < Source.Tristate;
-      | sdtInteger :
+      | vtInteger :
          RETURN TPStorage( ADR( _Storage ))^.Integer < Source.Integer;
-      | sdtLong :
+      | vtLong :
          RETURN TPStorage( ADR( _Storage ))^.Long < Source.Long;
-      | sdtFloat :
+      | vtFloat :
          RETURN TPStorage( ADR( _Storage ))^.Float < Source.Float;
-      | sdtDate :
+      | vtDate :
          RETURN TPStorage( ADR( _Storage ))^.Date < Source.Date;
       ELSE
          RETURN FALSE;
@@ -1042,13 +1042,13 @@ CLASS IMPLEMENTATION Value;
       LValue.Type := _Type;
       IF ( vfUndefined IN _Flags ) OR ( vfUndefined IN Source._Flags ) THEN
          LValue.Undefined := TRUE;
-      ELSIF ( _Type <> Source._Type ) OR ( _Type = sdtString ) OR ( _Type = sdtDate ) THEN
+      ELSIF ( _Type <> Source._Type ) OR ( _Type = vtString ) OR ( _Type = vtDate ) THEN
          LValue.String := String + Source.String;
       ELSE
          CASE _Type OF
-         | sdtBoolean :
+         | vtBoolean :
             LValue.Boolean := Boolean OR Source.Boolean;
-         | sdtTristate :
+         | vtTristate :
             t1 := Tristate;
             t2 := Source.Tristate;
             IF ( t1 = -1 ) OR ( t2 = -1 ) THEN
@@ -1058,7 +1058,7 @@ CLASS IMPLEMENTATION Value;
             ELSE
                LValue.Tristate := 0;
             END;
-         | sdtInteger :
+         | vtInteger :
             i1 := Integer;
             i2 := i1 + Source.Integer;
             IF ( vfSaturate IN _Flags ) AND ( i2 < i1 ) THEN // overflow 
@@ -1066,7 +1066,7 @@ CLASS IMPLEMENTATION Value;
             ELSE
                LValue.Integer := i2;
             END;
-         | sdtLong :
+         | vtLong :
             l1 := Long;
             l2 := l1 + Source.Long;
             IF ( vfSaturate IN _Flags ) AND ( l2 < l1 ) THEN // overflow 
@@ -1074,7 +1074,7 @@ CLASS IMPLEMENTATION Value;
             ELSE
                LValue.Long := l2;
             END;
-         | sdtFloat :
+         | vtFloat :
             LValue.Float := Float + Source.Float;
          END;
       END;
@@ -1094,16 +1094,16 @@ CLASS IMPLEMENTATION Value;
       LValue.Type := _Type;
       IF ( vfUndefined IN _Flags ) OR ( vfUndefined IN Source._Flags ) THEN
          LValue.Undefined := TRUE;
-      ELSIF ( _Type <> Source._Type ) OR ( _Type = sdtString ) THEN
+      ELSIF ( _Type <> Source._Type ) OR ( _Type = vtString ) THEN
          LValue.Undefined := TRUE;
-      ELSIF _Type = sdtDate THEN
-         LValue.Type := sdtLong;
+      ELSIF _Type = vtDate THEN
+         LValue.Type := vtLong;
          LValue.Long := ( Date - Source.Date ) DIV time.unitsInMillisecond;
       ELSE
          CASE _Type OF
-         | sdtBoolean :
+         | vtBoolean :
             LValue.Boolean := Boolean AND NOT Source.Boolean;
-         | sdtTristate :
+         | vtTristate :
             t1 := Tristate;
             t2 := Source.Tristate;
             IF ( t1 = -1 ) OR ( t2 = -1 ) THEN
@@ -1115,7 +1115,7 @@ CLASS IMPLEMENTATION Value;
             ELSE
                LValue.Tristate := 1;
             END;
-         | sdtInteger :
+         | vtInteger :
             i1 := Integer;
             i2 := i1 - Source.Integer;
             IF ( vfSaturate IN _Flags ) AND ( i2 > i1 ) THEN // overflow 
@@ -1123,7 +1123,7 @@ CLASS IMPLEMENTATION Value;
             ELSE
                LValue.Integer := i2;
             END;
-         | sdtLong :
+         | vtLong :
             l1 := Long;
             l2 := l1 - Source.Long;
             IF ( vfSaturate IN _Flags ) AND ( l2 > l1 ) THEN // overflow 
@@ -1131,7 +1131,7 @@ CLASS IMPLEMENTATION Value;
             ELSE
                LValue.Long := l2;
             END;
-         | sdtFloat :
+         | vtFloat :
             LValue.Float := Float - Source.Float;
          END;
       END;
@@ -1151,13 +1151,13 @@ CLASS IMPLEMENTATION Value;
       LValue.Type := _Type;
       IF ( vfUndefined IN _Flags ) OR ( vfUndefined IN Source._Flags ) THEN
          LValue.Undefined := TRUE;
-      ELSIF ( _Type <> Source._Type ) OR ( _Type = sdtString ) OR ( _Type = sdtDate ) THEN
+      ELSIF ( _Type <> Source._Type ) OR ( _Type = vtString ) OR ( _Type = vtDate ) THEN
          LValue.Undefined := TRUE;
       ELSE
          CASE _Type OF
-         | sdtBoolean :
+         | vtBoolean :
             LValue.Boolean := Boolean AND Source.Boolean;
-         | sdtTristate :
+         | vtTristate :
             t1 := Tristate;
             t2 := Source.Tristate;
             IF ( t1 = -1 ) OR ( t2 = -1 ) THEN
@@ -1167,17 +1167,17 @@ CLASS IMPLEMENTATION Value;
             ELSE
                LValue.Tristate := 1;
             END;
-         | sdtInteger :
+         | vtInteger :
             i1 := Integer;
             i2 := i1 * Source.Integer;
             // TODO saturation
             LValue.Integer := i2;
-         | sdtLong :
+         | vtLong :
             l1 := Long;
             l2 := l1 * Source.Long;
             // TODO saturation
             LValue.Long := l2;
-         | sdtFloat :
+         | vtFloat :
             LValue.Float := Float * Source.Float;
          END;
       END;
@@ -1198,13 +1198,13 @@ CLASS IMPLEMENTATION Value;
       LValue.Type := _Type;
       IF ( vfUndefined IN _Flags ) OR ( vfUndefined IN Source._Flags ) THEN
          LValue.Undefined := TRUE;
-      ELSIF ( _Type <> Source._Type ) OR ( _Type = sdtString ) OR ( _Type = sdtDate ) THEN
+      ELSIF ( _Type <> Source._Type ) OR ( _Type = vtString ) OR ( _Type = vtDate ) THEN
          LValue.Undefined := TRUE;
       ELSE
          CASE _Type OF
-         | sdtBoolean :
+         | vtBoolean :
             LValue.Boolean := Boolean <> Source.Boolean;
-         | sdtTristate :
+         | vtTristate :
             t1 := Tristate;
             t2 := Source.Tristate;
             IF ( t1 = -1 ) OR ( t2 = -1 ) THEN
@@ -1214,7 +1214,7 @@ CLASS IMPLEMENTATION Value;
             ELSE
                LValue.Tristate := 1;
             END;
-         | sdtInteger :
+         | vtInteger :
             i1 := Integer;
             i2 := Source.Integer;
             IF i2 = 0 THEN
@@ -1222,7 +1222,7 @@ CLASS IMPLEMENTATION Value;
             ELSE
                LValue.Integer := i1 DIV i2;
             END;
-         | sdtLong :
+         | vtLong :
             l1 := Long;
             l2 := Source.Long;
             IF l2 = 0 THEN
@@ -1230,7 +1230,7 @@ CLASS IMPLEMENTATION Value;
             ELSE
                LValue.Long := l1 DIV l2;
             END;
-         | sdtFloat :
+         | vtFloat :
             f := Source.Float;
             IF f = 0.0 THEN
                LValue.Undefined := TRUE;
@@ -1246,11 +1246,11 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROCEDURE Dispose();
    BEGIN
-      IF _Type = sdtString THEN
+      IF _Type = vtString THEN
          DISPOSE( TPStorage( ADR( _Storage ))^.String );
       END;
       _Flags := TFlags{};
-      _Type := sdtUnknown;
+      _Type := vtUnknown;
       _Storage := 0;
    END Dispose;
 
@@ -1267,7 +1267,7 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROCEDURE Equals( CONST Source : Value ) : BOOLEAN; // soft, respects different types
    BEGIN
-      IF ( _Type = sdtString ) OR ( Source._Type = sdtString ) THEN
+      IF ( _Type = vtString ) OR ( Source._Type = vtString ) THEN
          RETURN String = Source.String;
       ELSE
          RETURN Float = Float;
@@ -1278,7 +1278,7 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROCEDURE ToString( OUT String : StringsO.IString; TransportFlag : BOOLEAN );
    BEGIN
-      IF _Type <> sdtBoolean THEN
+      IF _Type <> vtBoolean THEN
          String.Assign( SELF.String );
       ELSIF Boolean THEN
          String.FromOA( defaultTransportTrue );
@@ -1291,7 +1291,7 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROCEDURE ToStringOA( OUT String : ARRAY OF WCHAR; TransportFlag : BOOLEAN );
    BEGIN
-      IF _Type <> sdtBoolean THEN
+      IF _Type <> vtBoolean THEN
          SELF.String.ToOA( OUT String );
       ELSIF Boolean THEN
          String := defaultTransportTrue;
@@ -1332,7 +1332,7 @@ CLASS IMPLEMENTATION Value;
          RETURN;
       END;
       CASE _Type OF
-      | sdtInteger :
+      | vtInteger :
          IF NOT Saturate THEN
             ih := 1 << Bits;
          ELSIF Signed THEN
@@ -1349,7 +1349,7 @@ CLASS IMPLEMENTATION Value;
          ELSIF TPStorage( ADR( _Storage ))^.Integer < il THEN
             TPStorage( ADR( _Storage ))^.Integer := il;
          END;
-      | sdtLong :
+      | vtLong :
          IF NOT Saturate THEN
             lh := 1 << Bits;
          ELSIF Signed THEN
@@ -1366,7 +1366,7 @@ CLASS IMPLEMENTATION Value;
          ELSIF TPStorage( ADR( _Storage ))^.Long < ll THEN
             TPStorage( ADR( _Storage ))^.Long := ll;
          END;
-      | sdtFloat :
+      | vtFloat :
          IF NOT Saturate THEN
             fh := LONGREAL( 1 << Bits );
          ELSIF Signed THEN
@@ -1395,7 +1395,7 @@ CLASS IMPLEMENTATION Value;
       IF vfUndefined IN _Flags THEN
          RETURN 0;
       END;
-      LValue.Type := sdtInteger;
+      LValue.Type := vtInteger;
       LValue := SELF;
       LValue.Limit( Bits, Signed, Saturate );
       RETURN LValue.Integer;
@@ -1410,7 +1410,7 @@ CLASS IMPLEMENTATION Value;
       IF vfUndefined IN _Flags THEN
          RETURN 0;
       END;
-      LValue.Type := sdtLong;
+      LValue.Type := vtLong;
       LValue := SELF;
       LValue.Limit( Bits, Signed, Saturate );
       RETURN LValue.Long;
@@ -1425,7 +1425,7 @@ CLASS IMPLEMENTATION Value;
       IF vfUndefined IN _Flags THEN
          RETURN 0.0;
       END;
-      LValue.Type := sdtFloat;
+      LValue.Type := vtFloat;
       LValue := SELF;
       LValue.Limit( Bits, Signed, Saturate );
       RETURN LValue.Float;
@@ -1435,7 +1435,7 @@ CLASS IMPLEMENTATION Value;
 
 BEGIN
    _Flags := TFlags{};
-   _Type := sdtUnknown;
+   _Type := vtUnknown;
    _Storage := 0;
 FINALLY
    Dispose();
@@ -1443,4 +1443,4 @@ END Value;
 
 (*================================================================================*)
 
-END sdvalue.
+END iovalue.

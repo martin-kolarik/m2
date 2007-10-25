@@ -1,34 +1,34 @@
-IMPLEMENTATION MODULE sdio;
+IMPLEMENTATION MODULE io;
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION CSDCallback;
+CLASS IMPLEMENTATION CDataInfo;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE OnError( Direction : IOO.TDirection; Source : TPSDIO; CONST Error : ARRAY OF CARDINAL; CONST Item : ARRAY OF sdns.THash );
+  PUBLIC VIRTUAL PROCEDURE OnError( Direction : IOO.TDirection; Source : TPIO; CONST Error : ARRAY OF CARDINAL; CONST Item : ARRAY OF ns.THash );
   BEGIN
   END OnError;
   
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE OnIO( Direction : IOO.TDirection; Source : TPSDIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF sdns.THash; CONST Value : ARRAY OF sdvalue.Value );
+  PUBLIC VIRTUAL PROCEDURE OnIO( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
   BEGIN
   END OnIO;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : TPSDIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF sdns.THash; CONST Value : ARRAY OF sdvalue.Value );
+  PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
   BEGIN
   END OnAdvise;
 
 (*---------------------------------------------------------------------------*)
 
-END CSDCallback;
+END CDataInfo;
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION ASDItemizedIO;
+CLASS IMPLEMENTATION AItemizedIO;
 
 (*---------------------------------------------------------------------------*)
 
@@ -39,15 +39,15 @@ CLASS IMPLEMENTATION ASDItemizedIO;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE IOha( Direction : IOO.TDirection; Item : ARRAY OF sdns.THash; REF Value : ARRAY OF sdvalue.Value; Callback : TPSDCallback ) : Sync.TAsyncResult;
+	PUBLIC VIRTUAL PROCEDURE IOha( Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
 	BEGIN
 		RETURN Sync.arCannotStart;
 	END IOha;
 
 (*---------------------------------------------------------------------------*)
 
-END ASDItemizedIO;
+END AItemizedIO;
 
 (*===========================================================================*)
 
-END sdio.
+END io.
