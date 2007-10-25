@@ -3,119 +3,119 @@ DEFINITION MODULE serial;
 //=========================================================
 
 IMPORT
-	Log,
-	msghandler,
-	StorageO,
-	StringsO,
-	Sync;
-	
+   Log,
+   msghandler,
+   StorageO,
+   StringsO,
+   Sync;
+   
 IMPORT
-	SerialLink;
+   SerialLink;
 
 //=========================================================
 
 TYPE
-	TFocusedCB = (
-		fcbRxData,
-		fcbRxTimeout,
-		fcbTxEmpty,
-		fcbTxTimeout
-	);
-	TLinkCBItem = RECORD
-									Proc     : ADDRESS;
-									Id       : ADDRESS;
-									hSession : SerialLink.TSessionHandle;
-								END;
-	TLinkCBStorage = ARRAY TFocusedCB OF TLinkCBItem;
+   TFocusedCB = (
+      fcbRxData,
+      fcbRxTimeout,
+      fcbTxEmpty,
+      fcbTxTimeout
+   );
+   TLinkCBItem = RECORD
+      Proc     : ADDRESS;
+      Id       : ADDRESS;
+      hSession : SerialLink.TSessionHandle;
+   END;
+   TLinkCBStorage = ARRAY TFocusedCB OF TLinkCBItem;
 
 //---------------------------------------------------------
 
 TYPE
-	TRStatusItem = (
-		rsRun,
-		rsReadBack,
-		rsRxW
-	);
-	TRStatus = SET OF TRStatusItem;
+   TRStatusItem = (
+      rsRun,
+      rsReadBack,
+      rsRxW
+   );
+   TRStatus = SET OF TRStatusItem;
 
 //---------------------------------------------------------
 
 TYPE
-	TPSerialHandler = POINTER TO CSerialHandler;
+   TPSerialHandler = POINTER TO CSerialHandler;
 
 CLASS CSerialHandler( msghandler.MessageHandler );
-	INTERNAL VAR
-		RStatus         : TRStatus;
-		Name            : StringsO.CString;
-	PRIVATE VAR
-		RepeatCount     : CARDINAL;
-		TxBuffer        : StorageO.CMemoryBuffer;
-		TxTimeout       : CARDINAL; // ms
-		ReadBackLen     : CARDINAL;
-		RxBuffer        : StorageO.CMemoryBuffer;
-		RxTimeout       : CARDINAL; // ms
+   INTERNAL VAR
+      RStatus         : TRStatus;
+      Name            : StringsO.CString;
+   PRIVATE VAR
+      RepeatCount     : CARDINAL;
+      TxBuffer        : StorageO.CMemoryBuffer;
+      TxTimeout       : CARDINAL; // ms
+      ReadBackLen     : CARDINAL;
+      RxBuffer        : StorageO.CMemoryBuffer;
+      RxTimeout       : CARDINAL; // ms
 
-		IBLS            : ARRAY [0..31] OF CHAR; // in boundary leading
-		IBLSLen         : CARDINAL;
-		IBTS            : ARRAY [0..31] OF CHAR; // in boundary trailing
-		IBTSLen         : CARDINAL;
-		OBLS            : ARRAY [0..31] OF CHAR; // out boundary leading
-		OBLSLen         : CARDINAL;
-		OBTS            : ARRAY [0..31] OF CHAR; // out boundary trailing
-		OBTSLen         : CARDINAL;
+      IBLS            : ARRAY [0..31] OF CHAR; // in boundary leading
+      IBLSLen         : CARDINAL;
+      IBTS            : ARRAY [0..31] OF CHAR; // in boundary trailing
+      IBTSLen         : CARDINAL;
+      OBLS            : ARRAY [0..31] OF CHAR; // out boundary leading
+      OBLSLen         : CARDINAL;
+      OBTS            : ARRAY [0..31] OF CHAR; // out boundary trailing
+      OBTSLen         : CARDINAL;
 
-	LOCAL VAR
-		ComLink         : seriallink.TLinkHandle;
-		ComSession      : seriallink.TSessionHandle;
-		CBStorage       : TLinkCBStorage;
-	PUBLIC READONLY VAR
-		Logger          : Log.CLogger;
+   LOCAL VAR
+      ComLink         : seriallink.TLinkHandle;
+      ComSession      : seriallink.TSessionHandle;
+      CBStorage       : TLinkCBStorage;
+   PUBLIC READONLY VAR
+      Logger          : Log.CLogger;
 
-	PUBLIC READONLY PROPERTY
-		Running         : BOOLEAN;
-	PUBLIC PROPERTY
-		ReadBack        : BOOLEAN;
-		RxW             : BOOLEAN;
+   PUBLIC READONLY PROPERTY
+      Running         : BOOLEAN;
+   PUBLIC PROPERTY
+      ReadBack        : BOOLEAN;
+      RxW             : BOOLEAN;
 
-	PUBLIC PROCEDURE Init( Name, Channel, Driver, Parameters : ARRAY OF WCHAR; OUT ErrorString : ARRAY OF WCHAR ) : BOOLEAN;
-	PUBLIC PROCEDURE Dispose();
-	
-	PUBLIC PROCEDURE Run();
-	PUBLIC PROCEDURE Stop();
+   PUBLIC PROCEDURE Init( Name, Channel, Driver, Parameters : ARRAY OF WCHAR; OUT ErrorString : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC PROCEDURE Dispose();
+   
+   PUBLIC PROCEDURE Run();
+   PUBLIC PROCEDURE Stop();
 
-	PUBLIC PROCEDURE SetInBoundaryStrings( Leading, Trailing : ARRAY OF WCHAR );
-	PUBLIC PROCEDURE SetOutBoundaryStrings( Leading, Trailing : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE SetInBoundaryStrings( Leading, Trailing : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE SetOutBoundaryStrings( Leading, Trailing : ARRAY OF WCHAR );
 
-	// receiving
-	LOCAL PROCEDURE _RxTick();
-	INTERNAL VIRTUAL PROCEDURE OnRxTick();
+   // receiving
+   LOCAL PROCEDURE _RxTick();
+   INTERNAL VIRTUAL PROCEDURE OnRxTick();
 
-	LOCAL PROCEDURE _OnRx( Result : Sync.TAsyncResult; REF Data : StorageO.AMemoryBuffer ) : BOOLEAN;
+   LOCAL PROCEDURE _OnRx( Result : Sync.TAsyncResult; REF Data : StorageO.AMemoryBuffer ) : BOOLEAN;
    // all Detect, DataComplete, TestChkSum, OnRx: POSSIBLY FOREIGN THREAD
- 	INTERNAL VIRTUAL PROCEDURE DetectDataStart( CONST Data : StorageO.AMemoryBuffer; OUT FrameStart, DataStart : CARDINAL ) : BOOLEAN;
-	INTERNAL VIRTUAL PROCEDURE DataComplete( CONST Data : StorageO.AMemoryBuffer; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyCheckSum : BOOLEAN ) : BOOLEAN;
-	INTERNAL VIRTUAL PROCEDURE TestChkSum( CONST Data : StorageO.AMemoryBuffer ) : BOOLEAN;
-	INTERNAL VIRTUAL PROCEDURE OnRx( Result : Sync.TAsyncResult; CONST Data : StorageO.AMemoryBuffer );
-	INTERNAL VIRTUAL PROCEDURE OnRxW( Result : Sync.TAsyncResult; CONST Data : StringsO.IString );
+   INTERNAL VIRTUAL PROCEDURE DetectDataStart( CONST Data : StorageO.AMemoryBuffer; OUT FrameStart, DataStart : CARDINAL ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE DataComplete( CONST Data : StorageO.AMemoryBuffer; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyCheckSum : BOOLEAN ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE TestChkSum( CONST Data : StorageO.AMemoryBuffer ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE OnRx( Result : Sync.TAsyncResult; CONST Data : StorageO.AMemoryBuffer );
+   INTERNAL VIRTUAL PROCEDURE OnRxW( Result : Sync.TAsyncResult; CONST Data : StringsO.IString );
 
-	LOCAL PROCEDURE _OnRxTimeout();
-	PRIVATE PROCEDURE _SetRxTimeout( _TxTimeout : CARDINAL );
-	PRIVATE PROCEDURE _ResetRxTimeout();
-	LOCAL PROCEDURE _QueryRxSkip( AbleToReceive : CARDINAL; OUT SkipCount : CARDINAL ) : BOOLEAN;
+   LOCAL PROCEDURE _OnRxTimeout();
+   PRIVATE PROCEDURE _SetRxTimeout( _TxTimeout : CARDINAL );
+   PRIVATE PROCEDURE _ResetRxTimeout();
+   LOCAL PROCEDURE _QueryRxSkip( AbleToReceive : CARDINAL; OUT SkipCount : CARDINAL ) : BOOLEAN;
 
-	// transmitting
-	PUBLIC PROCEDURE Tx( CONST Data : ARRAY OF BYTE; SendAsIs : BOOLEAN; RepeatCount : CARDINAL; TxTimeout, RxTimeout : CARDINAL );
-	PUBLIC PROCEDURE TxW( CONST Data : ARRAY OF WCHAR; SendAsIs : BOOLEAN; RepeatCount : CARDINAL; TxTimeout, RxTimeout : CARDINAL );
-	INTERNAL VIRTUAL PROCEDURE AddChkSum( REF Data : StorageO.AMemoryBuffer );
+   // transmitting
+   PUBLIC PROCEDURE Tx( CONST Data : ARRAY OF BYTE; SendAsIs : BOOLEAN; RepeatCount : CARDINAL; TxTimeout, RxTimeout : CARDINAL );
+   PUBLIC PROCEDURE TxW( CONST Data : ARRAY OF WCHAR; SendAsIs : BOOLEAN; RepeatCount : CARDINAL; TxTimeout, RxTimeout : CARDINAL );
+   INTERNAL VIRTUAL PROCEDURE AddChkSum( REF Data : StorageO.AMemoryBuffer );
 
-	LOCAL PROCEDURE _OnTx( Result : Sync.TAsyncResult );
-	INTERNAL VIRTUAL PROCEDURE OnTx( Result : Sync.TAsyncResult );
+   LOCAL PROCEDURE _OnTx( Result : Sync.TAsyncResult );
+   INTERNAL VIRTUAL PROCEDURE OnTx( Result : Sync.TAsyncResult );
 
-	LOCAL PROCEDURE _OnTxTimeout();
-	PROCEDURE _SetTxTimeout( _TxTimeout : CARDINAL );
-	PROCEDURE _ResetTxTimeout();
+   LOCAL PROCEDURE _OnTxTimeout();
+   PROCEDURE _SetTxTimeout( _TxTimeout : CARDINAL );
+   PROCEDURE _ResetTxTimeout();
 
-	INTERNAL VIRTUAL PROCEDURE OnTimer( Timer : PTR );
+   INTERNAL VIRTUAL PROCEDURE OnTimer( Timer : PTR );
 END CSerialHandler;
 
 //=========================================================
