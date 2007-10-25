@@ -47,11 +47,14 @@ DEFINITION MODULE seriallink;
       Link layer libraries must support ANSI and UNICODE styles of compilation.
 */*)
 
-IMPORT
-  windows;
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
 
 IMPORT
-  list;
+   windows;
+
+IMPORT
+   list;
 
 (* ================================================================ *)
 TYPE
@@ -70,7 +73,7 @@ CONST
   TPList ::= list.TPList;
   CListElem ::= list.CListElem;
 
-  InvalidSessionHandle = TSessionHandle( windows.INVALID_HANDLE_VALUE );
+  InvalidSessionHandle = TSessionHandle( -1 );
 
 (* ---------------------------------------------------------------- *)
 
