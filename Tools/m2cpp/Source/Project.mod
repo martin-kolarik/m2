@@ -441,7 +441,7 @@ BEGIN
   Storage.Fill( ADR( OutputPath ), SIZE( OutputPath ), 0 );
   WITH GEnv DO
     Packing := 8;
-    Options := DOM.TEnvironmentOptions{DOM.coOASize, DOM.coResultOptional, DOM.coParamsInFrame, DOM.cpUndefined};
+    Options := DOM.TEnvironmentOptions{DOM.coOASize, DOM.coResultOptional, DOM.coParamsInFrame, DOM.cpUndefined, DOM.eoRegion};
   END; // WITH
   Component := L"";
   CurrentM := NIL;

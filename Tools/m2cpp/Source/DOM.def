@@ -24,16 +24,15 @@ IMPORT
 //============================================================
 
 TYPE
-  TPUnit            = POINTER TO CUnit;
-  TPSymbol          = POINTER TO CSymbol;
-  TPSymbols         = POINTER TO CSymbols;
+  TPUnit             = POINTER TO CUnit;
+  TPSymbol           = POINTER TO CSymbol;
+  TPSymbols          = POINTER TO CSymbols;
 
-  TPLabel           = POINTER TO CLabel;
-  TPConstant        = POINTER TO CConstant;
-  TPVariable        = POINTER TO CVariable;
-  TPTPVariable      = POINTER TO TPVariable;
-  TPSelf            = POINTER TO CSelf;
-  TPSuperWrapper    = POINTER TO CSuperWrapper;
+  TPLabel            = POINTER TO CLabel;
+  TPConstant         = POINTER TO CConstant;
+  TPVariable         = POINTER TO CVariable;
+  TPTPVariable       = POINTER TO TPVariable;
+  TPSelfSuperWrapper = POINTER TO CSelfSuperWrapper;
 
   TPType            = POINTER TO CType;
   TPTPType          = POINTER TO TPType;
@@ -146,9 +145,8 @@ TYPE
       ukVarDeclContainer,
         ukSimpleVarDecl,
         ukClassVarDecl,
-        ukSelf,
-        ukADRSelf,
-        ukSuperWrapper,
+        ukSelfSuperWrapper,
+        ukADRSelfSuperWrapper,
     ukProcedureDef,
       ukParameterList,
         ukParamDefContainer,
@@ -838,14 +836,10 @@ CLASS CVariable( CSymbol );
   PROCEDURE GenerateInitExpression( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL );
 END CVariable;
 
-CLASS CSelf( CVariable );
-  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
-END CSelf;
-
-CLASS CSuperWrapper( CVariable );
+CLASS CSelfSuperWrapper( CVariable );
   OfClass : TPClass;
   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
-END CSuperWrapper;
+END CSelfSuperWrapper;
 
 //============================================================
 
@@ -950,8 +944,7 @@ CLASS CClass( CType );
 
 	PROCEDURE CheckDefinitionSemantics( c : TPModule );
 	PROCEDURE CheckImplementationSemantics( c : TPModule );
-	PROCEDURE IsDescendantOf( Ancestor : TPClass; AllowSelf : BOOLEAN ) : BOOLEAN;
-	PROCEDURE IsDescendantOfInterface() : BOOLEAN;
+	PROCEDURE IsDescendantOf( Ancestor : TPClass; AllowSelf, DetectInterfaces : BOOLEAN; OUT HaveDuplicite : BOOLEAN ) : BOOLEAN;
 	PROCEDURE IsDescendantOfException() : BOOLEAN;
 	PROCEDURE AddNestedFriend( AccessedMember : TPSymbol; P : TPProcedureType );
    PROCEDURE AddAncestor( Ancestor : TPClass );
@@ -1380,7 +1373,6 @@ TYPE
     epEXCL8, epEXCL16, epEXCL32, epEXCL64, epEXCLArray,
     epFIELDOFS,
     epFRAC,
-    epFREE,
     epHIBYTE, epHIWORD, epHILONGWORD, epHIPTR,
     epHIGH,
     epINC, epINCFunc,

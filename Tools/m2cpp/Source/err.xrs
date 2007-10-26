@@ -542,10 +542,10 @@
             <item>CapitalizeW for CAP is not imported</item>
         </string>
         <string name="_MissingLowA">
-            <item>LowerizeA for CAP is not imported</item>
+            <item>LowerizeA for LOW is not imported</item>
         </string>
         <string name="_MissingLowW">
-            <item>LowerizeW for CAP is not imported</item>
+            <item>LowerizeW for LOW is not imported</item>
         </string>
         <string name="_ExpectedARRAYParameter">
             <item>Expected ARRAY parameter</item>
@@ -570,9 +570,6 @@
         </string>
         <string name="_MissingDEALLOCATEForDISPOSE">
             <item>DEALLOCATE for DISPOSE is not imported</item>
-        </string>
-        <string name="_MissingDEALLOCATEForFREE">
-            <item>DEALLOCATE for FREE is not imported</item>
         </string>
         <string name="_ExpectedSetType">
             <item>Expected set type</item>
@@ -635,6 +632,12 @@
         <string name="_InterfaceCanInheritOnlyInterface">
             <item>Interface can be inherited only from another interface</item>
         </string>
+        <string name="_AmbiguousUsageOfAncestor">
+            <item>Ambiguous ancestor, unable to solve which should be used, use super class/interface name as qualification</item>
+        </string>
+        <string name="_UnableToChainSelf">
+            <item>SELF.SELF, SELF.SelfClass or SelfClass.SELF names are disallowed</item>
+        </string>
         <string name="_ClassIsNotAncestor">
             <item>Bad class name usage, found class is not ancestor of current class</item>
         </string>
@@ -664,12 +667,6 @@
         </string>
         <string name="_COMCannotHaveOperators">
             <item>COM interface cannot define operators.</item>
-        </string>
-        <string name="_AssignMustBeRewrittenForAssignment">
-            <item>Class inheriting INTERFACE cannot be assigned without defining its := operator</item>
-        </string>
-        <string name="_AssignMustBeRewrittenForRETURN">
-            <item>Class inheriting INTERFACE cannot be used as return type without defining its := operator</item>
         </string>
         <string name="_COMCannotHaveInitFinal">
             <item>COM interface cannot define INITIALLY or FINALLY member.</item>

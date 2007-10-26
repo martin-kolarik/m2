@@ -90,13 +90,13 @@ CLASS IMPLEMENTATION CUnit;
       G^.EOL();
       IF TPSymbol( ADR( SELF ))^.N.Empty THEN
         IF eoRegion IN Options THEN
-          G^.LineS( L"#endregion" );
+          G^.LineS( L"#pragma endregion" );
         ELSE
           G^.LineS( L"// endregion" );
         END;
       ELSE
         IF eoRegion IN Options THEN
-          G^.OutS( L"#region " );
+          G^.OutS( L"#pragma region " );
         ELSE
           G^.OutS( L"// region " );
         END;
@@ -814,7 +814,7 @@ CLASS IMPLEMENTATION CSymbols;
     IF NOT Remove( ADR( STE ), OUT PSTE ) THEN
       RETURN FALSE;
     END;
-    FREE( PSTE );
+    DISPOSE( PSTE );
     RETURN TRUE;
   END Forget;
 
@@ -2650,36 +2650,30 @@ END CVariable;
 
 //============================================================
 
-CLASS IMPLEMENTATION CSelf;
+CLASS IMPLEMENTATION CSelfSuperWrapper;
 
   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
   BEGIN
-    IF UnitKind = ukSelf THEN
-      G^.OutS( L"(*this)" );
+    IF UnitKind = ukSelfSuperWrapper THEN
+      // IF T^.Unwrap() = OfClass THEN -- not needed, N::F works correctly, see generating ukSelfSuperWrapper
+      //   G^.OutS( L"(*this)" );
+      // ELSE
+        G^.OutCS( T^.N ); // T^.Generate( G, C );
+      // END;
     ELSE
-      G^.OutS( L"this" );
+       IF T^.Unwrap() = OfClass THEN
+         G^.OutS( L"this" );
+       ELSE
+         G^.OutS( L"((" ); T^.Generate( G, gcsCast ); G^.OutS( L"*)this)" );
+       END;
     END;
     RETURN gumSimple;
   END GenHead;
 
 BEGIN
-  UnitKind := ukSelf;
-END CSelf;
-
-//============================================================
-
-CLASS IMPLEMENTATION CSuperWrapper;
-
-  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
-  BEGIN
-    G^.OutCS( T^.N ); // T^.Generate( G, C );
-    RETURN gumSimple;
-  END GenHead;
-
-BEGIN
-  UnitKind := ukSuperWrapper;
+  UnitKind := ukSelfSuperWrapper;
   OfClass := NIL;
-END CSuperWrapper;
+END CSelfSuperWrapper;
 
 //============================================================
 
@@ -3114,9 +3108,9 @@ CLASS IMPLEMENTATION CProcedure;
       G^.EOL();
       IF NOT( gcForward IN C ) AND ( UnitKind <> ukNestedProcedureDecl ) THEN
         IF eoRegion IN Options THEN
-          G^.Indent(); G^.OutS( L"#region procedure " ); OutN( G, C ); G^.EOL();
+          G^.Indent(); G^.OutS( L"#pragma region procedure_" ); OutN( G, C ); G^.EOL();
         ELSE
-          G^.Indent(); G^.OutS( L"// #region procedure " ); OutN( G, C ); G^.EOL();
+          G^.Indent(); G^.OutS( L"// region procedure_" ); OutN( G, C ); G^.EOL();
         END;
       END;
 
@@ -3216,9 +3210,9 @@ CLASS IMPLEMENTATION CProcedure;
       G^.EOL();
     ELSIF UnitKind <> ukNestedProcedureDecl THEN
       IF eoRegion IN Options THEN
-        G^.Indent(); G^.OutS( L"#endregion procedure " ); OutN( G, C ); G^.EOL();
+        G^.Indent(); G^.OutS( L"#pragma endregion procedure_" ); OutN( G, C ); G^.EOL();
       ELSE
-        G^.Indent(); G^.OutS( L"// #endregion procedure " ); OutN( G, C ); G^.EOL();
+        G^.Indent(); G^.OutS( L"// endregion procedure_" ); OutN( G, C ); G^.EOL();
       END;
     END;
   END GenTail;
@@ -3909,30 +3903,46 @@ CLASS IMPLEMENTATION CClass;
     c^.M2^.ReportFirstError();
   END CheckImplementationSemantics;
 
-	PROCEDURE IsDescendantOf( Ancestor : TPClass; AllowSelf : BOOLEAN ) : BOOLEAN;
+	PROCEDURE IsDescendantOf( Ancestor : TPClass; AllowSelf, DetectInterfaces : BOOLEAN; OUT HaveDuplicite : BOOLEAN ) : BOOLEAN;
+	VAR
+	   Result : BOOLEAN := FALSE;
+	
+	   PROCEDURE BroadSearch( C : TPClass );
+	   BEGIN
+	      IF C = Ancestor THEN
+	         IF Result THEN
+	            HaveDuplicite := TRUE;
+	         END;
+	         Result := TRUE;
+	         RETURN;
+	      END;
+	      C^.Implements.Reset();
+	      WHILE C^.Implements.MoveNext() DO
+	         BroadSearch( C^.Implements.Current );
+	         IF HaveDuplicite THEN
+	            RETURN;
+	         END;
+	      END; // WHILE
+	   END BroadSearch;
+	
 	VAR
 		C : TPClass;
 	BEGIN
+      HaveDuplicite := FALSE;
 		IF AllowSelf AND ( Ancestor = ADR( SELF )) THEN
 			RETURN TRUE;
 		END;
-		C := I;
-		WHILE ( C <> NIL ) AND ( C <> Ancestor ) DO
-			C := C^.I;
+		IF DetectInterfaces THEN
+		   BroadSearch( ADR( SELF ));
+		   RETURN Result;
+		ELSE
+		   C := I;
+		   WHILE ( C <> NIL ) AND ( C <> Ancestor ) DO
+			   C := C^.I;
+		   END;
+   		RETURN C <> NIL;
 		END;
-		RETURN C <> NIL;
 	END IsDescendantOf;
-
-  PROCEDURE IsDescendantOfInterface() : BOOLEAN;
-  VAR
-    C : TPClass;
-  BEGIN
-    C := I;
-    WHILE ( C <> NIL ) AND NOT( imInterface IN C^.IM ) DO
-      C := C^.I;
-    END;
-    RETURN C <> NIL;
-  END IsDescendantOfInterface;
 
 	PROCEDURE IsDescendantOfException() : BOOLEAN;
 	VAR
@@ -5116,17 +5126,17 @@ CLASS IMPLEMENTATION CModule;
       SelfS.Add( C );
 
       IF Symbol^.N.EqualsOA( L"ALLOCATE" ) THEN
-        MEnv.MIID[miidAllocate] := C^.IsLinkOf;
+        OD^.MEnv.MIID[miidAllocate] := C^.IsLinkOf;
       ELSIF Symbol^.N.EqualsOA( L"DEALLOCATE" ) THEN
-        MEnv.MIID[miidDeallocate] := C^.IsLinkOf;
+        OD^.MEnv.MIID[miidDeallocate] := C^.IsLinkOf;
       ELSIF Symbol^.N.EqualsOA( L"CapitalizeA" ) THEN
-        MEnv.MIID[miidCapA] := C^.IsLinkOf;
+        OD^.MEnv.MIID[miidCapA] := C^.IsLinkOf;
       ELSIF Symbol^.N.EqualsOA( L"CapitalizeW" ) THEN
-        MEnv.MIID[miidCapW] := C^.IsLinkOf;
+        OD^.MEnv.MIID[miidCapW] := C^.IsLinkOf;
       ELSIF Symbol^.N.EqualsOA( L"LowerizeA" ) THEN
-        MEnv.MIID[miidLowA] := C^.IsLinkOf;
+        OD^.MEnv.MIID[miidLowA] := C^.IsLinkOf;
       ELSIF Symbol^.N.EqualsOA( L"LowerizeW" ) THEN
-        MEnv.MIID[miidLowW] := C^.IsLinkOf;
+        OD^.MEnv.MIID[miidLowW] := C^.IsLinkOf;
       END;
 
     ELSIF ReportErrors THEN
@@ -5212,30 +5222,32 @@ CLASS IMPLEMENTATION CModule;
   END GetSymbol;
 
   PROCEDURE GetClassSymbol( CONST Name : StringsO.CString; Class : TPClass; VAR Symbol : TPSymbol; VAR InClass : TPClass ) : BOOLEAN;
-  VAR
-    CC : TPClass;
-    LS : TPSymbol;
-  BEGIN
-    CC := Class;
-    LS := NIL;
-    LOOP
-      IF CC = NIL THEN
-        EXIT;
-      ELSIF CC^.S.Get( Name, LS ) THEN
-        Symbol := LS;
-        EXIT;
-      ELSIF CC^.N.Equals( Name ) THEN
-        LS := CC;
-        Symbol := CC;
-        EXIT;
+  
+    PROCEDURE SearchInClass( C : TPClass ) : BOOLEAN;
+    BEGIN
+      IF C^.N.Equals( Name ) THEN
+        InClass := C;
+        Symbol := C;
+        RETURN TRUE;
+      ELSIF C^.S.Get( Name, Symbol ) THEN
+        InClass := C;
+        RETURN TRUE;
+      ELSE
+         C^.Implements.Reset();
+         WHILE C^.Implements.MoveNext() DO
+           IF SearchInClass( TPClass( C^.Implements.Current )) THEN
+             RETURN TRUE;
+           END;
+         END; // WHILE
+         RETURN FALSE;
       END;
-      CC := CC^.I;
-    END; // LOOP
-    IF LS = NIL THEN
+    END SearchInClass;
+  
+  BEGIN
+    IF Class = NIL THEN
       RETURN FALSE;
     ELSE
-      InClass := CC;
-      RETURN TRUE;
+      RETURN SearchInClass( Class );
     END;
   END GetClassSymbol;
 
@@ -5374,13 +5386,7 @@ CLASS IMPLEMENTATION CModule;
       RETURN FALSE;
     END;
 
-    IF Symbol^.UnitKind = ukSelf THEN
-      SA := saParentObject;
-      IF SStack.CurC <> NIL THEN
-        SStack.CurC^.AddNestedFriend( Symbol, SStack.CurP );
-      END;
-      RETURN TRUE;
-    ELSIF Symbol^.UnitKind = ukSuperWrapper THEN
+    IF Symbol^.UnitKind = ukSelfSuperWrapper THEN
       SA := saParentObjectSymbol;
       IF SStack.CurC <> NIL THEN
         SStack.CurC^.AddNestedFriend( Symbol, SStack.CurP );
@@ -6039,6 +6045,7 @@ CLASS IMPLEMENTATION CModule;
   PROCEDURE CheckAccessToSymbol( Id : TPSymbol );
   VAR
     LId : TPSymbol;
+    b : BOOLEAN;
   BEGIN
     CASE Id^.AM OF
     | amPrivate :
@@ -6048,7 +6055,7 @@ CLASS IMPLEMENTATION CModule;
     | amInternal, amLocal :
       IF CurrentC() = Id^.OfSymbol THEN
         RETURN;
-      ELSIF ( CurrentC() <> NIL ) AND CurrentC()^.IsDescendantOf( TPClass( Id^.OfSymbol ), FALSE ) THEN
+      ELSIF ( CurrentC() <> NIL ) AND CurrentC()^.IsDescendantOf( TPClass( Id^.OfSymbol ), FALSE, TRUE, OUT b ) THEN
         RETURN;
       ELSIF Id^.AM = amInternal THEN
         SemErrCS( err._InternalInaccessible, Id^.N );
@@ -6066,6 +6073,8 @@ CLASS IMPLEMENTATION CModule;
   END CheckAccessToSymbol;
 
   PROCEDURE CheckReadonly( Id : TPSymbol );
+  VAR
+    b : BOOLEAN;
   BEGIN
     IF NOT( cmRO IN Id^.CM ) THEN
       RETURN;
@@ -6080,7 +6089,7 @@ CLASS IMPLEMENTATION CModule;
         SemErrCS( err._PublicClassReadonlyInaccessible, Id^.N );
       ELSIF CurrentC() = Id^.OfSymbol THEN
         // OK, self has full accessibility
-      ELSIF CurrentC()^.IsDescendantOf( TPClass( Id^.OfSymbol ), FALSE ) THEN
+      ELSIF CurrentC()^.IsDescendantOf( TPClass( Id^.OfSymbol ), FALSE, TRUE, OUT b ) THEN
         IF Id^.AM = amInternal THEN
           SemErrCS( err._InternalClassReadonlyInaccessible, Id^.N );
         END;
@@ -6093,6 +6102,8 @@ CLASS IMPLEMENTATION CModule;
   END CheckReadonly;
 
   PROCEDURE CheckWriteonly( Id : TPSymbol );
+  VAR
+    b : BOOLEAN;
   BEGIN
     IF NOT( cmWO IN Id^.CM ) THEN
       RETURN;
@@ -6107,7 +6118,7 @@ CLASS IMPLEMENTATION CModule;
         SemErrCS( err._PublicClassWriteonlyInaccessible, Id^.N );
       ELSIF CurrentC() = Id^.OfSymbol THEN
         // OK, self has full accessibility
-      ELSIF CurrentC()^.IsDescendantOf( TPClass( Id^.OfSymbol ), FALSE ) THEN
+      ELSIF CurrentC()^.IsDescendantOf( TPClass( Id^.OfSymbol ), FALSE, TRUE, OUT b ) THEN
         IF Id^.AM = amInternal THEN
           SemErrCS( err._InternalClassReadonlyInaccessible, Id^.N );
         END;
@@ -6574,6 +6585,7 @@ CLASS IMPLEMENTATION CModule;
 		IT : TPType; // inner throw
 		s1 : ARRAY [0..511] OF WCHAR;
 		s2 : ARRAY [0..255] OF WCHAR;
+		b : BOOLEAN;
 	BEGIN
 		IF ( PT^.Handles.Count = 1 ) AND ( TPType( PT^.Handles[0] ) = Types.TUnknown ) THEN // TRY has UNHANDLED clause
 			RETURN;
@@ -6588,7 +6600,7 @@ CLASS IMPLEMENTATION CModule;
 
 				PT^.Handles.Reset();
 				WHILE PT^.Handles.MoveNext() DO
-					IF TPClass( PP^.Throws.Current )^.IsDescendantOf( TPClass( PT^.Handles.Current ), TRUE ) THEN // OK
+					IF TPClass( PP^.Throws.Current )^.IsDescendantOf( TPClass( PT^.Handles.Current ), TRUE, FALSE, OUT b ) THEN // OK
 						GOTO NextProcedureThrow;
 					END;
 				END; // catches while
@@ -6608,7 +6620,7 @@ CLASS IMPLEMENTATION CModule;
 
 			PT^.Handles.Reset();
 			WHILE PT^.Handles.MoveNext() DO
-				IF TPClass( IT )^.IsDescendantOf( TPClass( PT^.Handles.Current ), TRUE ) THEN // OK
+				IF TPClass( IT )^.IsDescendantOf( TPClass( PT^.Handles.Current ), TRUE, FALSE, OUT b ) THEN // OK
 					GOTO NextInnerThrow;
 				END;
 			END; // catches while
@@ -8731,12 +8743,17 @@ CLASS IMPLEMENTATION CDesignator;
         ELSE
         // id found
           CASE L^.r.Id^.UnitKind OF
-          | ukSimpleClassDef, ukClassClassDef, ukSuperWrapper :
+          | ukSimpleClassDef, ukClassClassDef :
             L^.Generate( G, Cn );
             G^.OutS( L'::' );
-          | ukSelf :
+          | ukSelfSuperWrapper :
             L^.Generate( G, Cn );
-            G^.OutS( L'.' );
+            // not needed, N::F works correctly, see CSelfSuperWrapper
+            // IF TPSelfSuperWrapper( L^.r.Id )^.T = TPSelfSuperWrapper( L^.r.Id )^.OfClass THEN
+            //   G^.OutS( L'.' );
+            // ELSE
+              G^.OutS( L'::' );
+            // END;
           ELSE IF (( r.F^.SymbolKind = skProperty ) OR ( r.F^.SymbolKind = skProcedure )) AND
                   L^.T^.IsFormal() AND ( TPFormalType( L^.T )^.TypeModifier = tmCONST ) THEN
             G^.OutS( L'((' );
@@ -8850,7 +8867,13 @@ CLASS IMPLEMENTATION CDesignator;
         END; // IF
       END;
       IF r.IdA <> saParentObject THEN
-        r.Id^.Generate( G, C + gcsName );
+        IF ( r.Id^.UnitKind = ukADRSelfSuperWrapper ) AND ( L <> NIL ) THEN
+          G^.OutS( L"((" ); TPSelfSuperWrapper( r.Id )^.T^.Generate( G, gcsCast ); G^.OutS( L"*)" ); 
+          L^.Generate( G, Cn );
+          G^.OutS( L")" ); 
+        ELSE
+          r.Id^.Generate( G, C + gcsName );
+        END;
         // imCOM properties and functions are handled by call/OUT retval, so the usage must be generated properly
         IF ( gcRValue IN C ) AND ( r.Id^.SymbolKind = skProperty ) AND ( imCOM IN TPPropertyDef( r.Id )^.IM ) THEN
           G^.OutS( L'( &' ); r.CD^.Generate( G, Cn ); G^.OutS( L' )' ); // obtaining property value
@@ -8972,7 +8995,7 @@ CLASS IMPLEMENTATION CDesignator;
           G^.OutSPRP(); 
         END;
 
-      | epDISPOSE, epFREE :
+      | epDISPOSE :
         IF eoLeakChecking IN Options THEN
           LeakInfo( TRUE, CARDINAL( LOPTRLONGWORD( r.D1 )), TRUE );
         END;
@@ -8983,7 +9006,7 @@ CLASS IMPLEMENTATION CDesignator;
           r.U1^.Generate( G, Cn + TGenerateControl{gcLValue} );
           G^.OutS( L' = NIL' ); 
         ELSE
-          Project.Current()^.MEnv.MIID[miidDeallocate]^.Generate( G, gcsName );
+          Project.Current()^.OD^.MEnv.MIID[miidDeallocate]^.Generate( G, gcsName );
           G^.OutS( L'( ' );
           T^.CheckAndGenerateCast( G, Types.TREFADDRESS, FALSE, CI );
           r.U1^.Generate( G, Cn );
@@ -9320,7 +9343,7 @@ CLASS IMPLEMENTATION CDesignator;
         FT := T^.UnwrapToFirstType();
         LT := FT^.UnwrapToBaseType();
         IF LT^.TypeKind <> tkClass THEN
-          Project.Current()^.MEnv.MIID[miidAllocate]^.Generate( G, gcsName );
+          Project.Current()^.OD^.MEnv.MIID[miidAllocate]^.Generate( G, gcsName );
           G^.OutS( L'(' ); 
             T^.CheckAndGenerateCast( G, Types.TREFADDRESS, FALSE, CI );
             r.U1^.Generate( G, Cn );
@@ -9345,7 +9368,7 @@ CLASS IMPLEMENTATION CDesignator;
         LT := T^.UnwrapToBaseType();
         IF LT^.TypeKind <> tkClass THEN
           G^.OutLP();
-          Project.Current()^.MEnv.MIID[miidAllocate]^.Generate( G, gcsName );
+          Project.Current()^.OD^.MEnv.MIID[miidAllocate]^.Generate( G, gcsName );
           G^.OutS( L'(' ); 
             T^.CheckAndGenerateCast( G, Types.TREFADDRESS, FALSE, CI );
             r.U1^.Generate( G, gcsName );
