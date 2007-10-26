@@ -484,7 +484,7 @@ CLASS IMPLEMENTATION CMemoryBuffer;
 	BEGIN
 		IF OwnMemory THEN
 			OwnMemory := FALSE;
-			FREE( _Data );
+			DISPOSE( _Data );
 		ELSE
 			_Data := NIL;
 		END;
