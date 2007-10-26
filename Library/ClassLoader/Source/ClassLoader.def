@@ -1,0 +1,38 @@
+DEFINITION MODULE objldr;
+
+IMPORT
+   objlib;
+
+TYPE
+   TStateItem = (
+      lsEnabled,
+      lsLoaded
+   );
+   TState = SET OF TStateItem;
+
+TYPE
+   TPLoader = POINTER TO CLoader;
+   
+CLASS CLoader IMPLEMENTS objlib.ILoader;
+
+   PUBLIC PROCEDURE AddLibrary( CONST LibraryPath : ARRAY OF WCHAR ) : TResult;
+   PUBLIC PROCEDURE RemoveLibrary( CONST LibraryPath : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE EnumerateLibraryClasses( REF EnumerateState : PTR; CONST LibraryPath : ARRAY OF WCHAR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC PROCEDURE ScanPath( CONST Path, LibraryNamePattern : ARRAY OF WCHAR; OUT Found : CARDINAL ) : TResult;
+
+   PUBLIC PROCEDURE DisableLibrary( CONST LibraryPath : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE EnableLibrary( CONST LibraryPath : ARRAY OF WCHAR );
+
+   PUBLIC PROCEDURE EnumerateLibraries( REF EnumerateState : PTR; OUT LibraryPath : ARRAY OF WCHAR; OUT State : TState ) : BOOLEAN;
+   PUBLIC PROCEDURE EnumerateClasses( REF EnumerateState : PTR; CONST LibraryName : ARRAY OF WCHAR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
+
+   PUBLIC PROCEDURE CreateObject( CONST ClassPath : ARRAY OF WCHAR; OUT Object : objlib.TPIObject ) : TResult;
+
+   // ILoader
+   PUBLIC VIRTUAL PROCEDURE ReleaseObject( Object : objlib.TPIObject );
+END CLoader;
+
+// global loader
+PROCEDURE ldr() : TPLoader;
+
+END objldr;

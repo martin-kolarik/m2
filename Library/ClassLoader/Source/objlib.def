@@ -1,0 +1,98 @@
+DEFINITION MODULE objlib;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+(*===========================================================================*)
+
+TYPE
+   TPLoader = POINTER TO ILoader;
+   TPObject = POINTER TO IObject;
+
+INTERFACE ILoader;
+   LOCAL PROCEDURE ReleaseObject( Object : TPObject );
+END ILoader;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TResult = (
+      lrSuccess,
+      lrLibraryNotFound,
+      lrLibraryFoundButIsUnloadable,
+      lrLibraryDisabled,
+      lrClassNotFound
+   );
+   
+TYPE
+   #save, call( convention => cdecl )
+   TGetObject = PROCEDURE( CONST ARRAY OF WCHAR, OUT TPObject ) : TResult;
+   #restore
+
+(*===========================================================================*)
+
+TYPE
+   TObjectType = (
+      otSingleton,
+      otEphemeral
+   );
+   
+INTERFACE IObject;
+   PUBLIC READONLY PROPERTY
+      Type : TObjectType;
+   PUBLIC WRITEONLY PROPERTY
+      Loader : TPLoader;
+   PUBLIC PROCEDURE Release();
+END IObject;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPLibrary = POINTER TO ILibrary;
+CONST
+   nLibrary = L"Library";
+   
+TYPE
+   TcllvData = RECORD
+      Length    : CARDINAL;
+      Data      : ADDRESS;
+      Validator : ADDRESS;
+   END; // RECORD
+
+INTERFACE ILibrary( IObject );
+   PUBLIC PROCEDURE Version( OUT VersionString : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE HostInfo( CONST Host, HostVersionString : ARRAY OF WCHAR );
+
+   PUBLIC PROCEDURE EnumerateClasses( REF EnumerateState : PTR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
+
+   PUBLIC PROCEDURE GetLECData( OUT cllvData : TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
+END ILibrary;
+
+(*===========================================================================*)
+
+// prepared classes to simplify implementation
+ABSTRACT CLASS AObject IMPLEMENTS IObject;
+   PRIVATE VAR
+      _Loader : TPLoader;
+   PUBLIC FINAL WRITEONLY PROPERTY
+      Loader : TPLoader;
+   PUBLIC FINAL PROCEDURE Release();
+END AObject;
+
+(*---------------------------------------------------------------------------*)
+
+ABSTRACT CLASS ACreator( AObject ) IMPLEMENTS ILibrary;
+   // IObject
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Type : TObjectType;
+
+   // ACreator
+   ABSTRACT PROCEDURE OnGetObject( CONST QName : ARRAY OF WCHAR; OUT Object : TPObject ) : TResult;
+
+   // library caller -- from procedure GetObject
+   LOCAL PROCEDURE GetObject( CONST QName : ARRAY OF WCHAR; OUT Object : TPObject ) : TResult;
+END ACreator;
+
+(*===========================================================================*)
+
+END objlib.
