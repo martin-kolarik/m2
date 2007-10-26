@@ -20,7 +20,7 @@
 			OutputDirectory="~$(ConfigurationName)"
 			IntermediateDirectory="~Build"
 			ConfigurationType="0"
-			BuildLogFile="~$(OutDir)\BuildLog.htm"
+			BuildLogFile="$(OutDir)\BuildLog.htm"
 			>
 			<Tool
 				Name="VCNMakeTool"
@@ -41,7 +41,7 @@
 			OutputDirectory="~$(ConfigurationName)"
 			IntermediateDirectory="~Build"
 			ConfigurationType="0"
-			BuildLogFile="~$(OutDir)\BuildLog.htm"
+			BuildLogFile="$(OutDir)\BuildLog.htm"
 			>
 			<Tool
 				Name="VCNMakeTool"
