@@ -106,7 +106,7 @@ END MakePathW;
 
 PROCEDURE SplitPathW( CONST FullPath : ARRAY OF WCHAR; OUT Head, Tail : ARRAY OF WCHAR );
 VAR
-  H, P, V : FIO.PathStrW;
+  H, P, V : PathStrW;
 BEGIN
   FullPathToVolumeAndPathW( FullPath, OUT V, OUT P );
   ShortPathToHeadAndTailW( P, OUT H, OUT Tail );
@@ -122,7 +122,7 @@ END SplitPathW;
 
 PROCEDURE PathHeadW( CONST FullPath : ARRAY OF WCHAR; OUT Head : ARRAY OF WCHAR );
 VAR
-  H, P, V, T : FIO.PathStrW;
+  H, P, V, T : PathStrW;
 BEGIN
   FullPathToVolumeAndPathW( FullPath, OUT V, OUT P );
   ShortPathToHeadAndTailW( P, OUT H, OUT T );
@@ -138,7 +138,7 @@ END PathHeadW;
 
 PROCEDURE PathTailW( CONST FullPath : ARRAY OF WCHAR; OUT Tail : ARRAY OF WCHAR );
 VAR
-  H, P, V : FIO.PathStrW;
+  H, P, V : PathStrW;
 BEGIN
   FullPathToVolumeAndPathW( FullPath, OUT V, OUT P );
   ShortPathToHeadAndTailW( P, OUT H, OUT Tail );
@@ -148,6 +148,17 @@ PROCEDURE PathAddW( REF Path : ARRAY OF WCHAR; CONST AddedPath : ARRAY OF WCHAR 
 BEGIN
    MakePathW( Path, AddedPath, OUT Path );
 END PathAddW;
+
+PROCEDURE ExpandPathW( CONST Path : ARRAY OF WCHAR; OUT ExpandedPath : ARRAY OF WCHAR ); // expands or canonizes path
+VAR
+   Ch : windows.PWSTR;
+   In : PathStrW;
+BEGIN
+   In := Path;
+   IF windows.GetFullPathNameW( ADR( In ), HIGH( ExpandedPath )+1, ADR( ExpandedPath ), OUT Ch ) = 0 THEN
+      ExpandedPath[0] := 0W;
+   END;
+END ExpandPathW;
 
 PROCEDURE IOresult(): CARDINAL;
 BEGIN
