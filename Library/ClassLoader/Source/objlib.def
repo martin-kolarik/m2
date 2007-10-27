@@ -2,15 +2,19 @@ DEFINITION MODULE objlib;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
+   
+IMPORT
+   StringsO;
 
 (*===========================================================================*)
 
 TYPE
    TPLoader = POINTER TO ILoader;
+   TPLibrary = POINTER TO ILibrary;
    TPObject = POINTER TO IObject;
 
 INTERFACE ILoader;
-   LOCAL PROCEDURE ReleaseObject( Object : TPObject );
+   LOCAL PROCEDURE ReleaseObject( LibraryHandle : PTR; Object : TPObject );
 END ILoader;
 
 (*---------------------------------------------------------------------------*)
@@ -41,14 +45,12 @@ INTERFACE IObject;
    PUBLIC READONLY PROPERTY
       Type : TObjectType;
    PUBLIC WRITEONLY PROPERTY
-      Loader : TPLoader;
+      Library : TPLibrary;
    PUBLIC PROCEDURE Release();
 END IObject;
 
 (*---------------------------------------------------------------------------*)
 
-TYPE
-   TPLibrary = POINTER TO ILibrary;
 CONST
    nLibrary = L"Library";
    
@@ -60,12 +62,16 @@ TYPE
    END; // RECORD
 
 INTERFACE ILibrary( IObject );
-   PUBLIC PROCEDURE Version( OUT VersionString : ARRAY OF WCHAR );
-   PUBLIC PROCEDURE HostInfo( CONST Host, HostVersionString : ARRAY OF WCHAR );
+   PROPERTY
+      Loader : TPLoader;
+      LibraryHandle : PTR;
 
-   PUBLIC PROCEDURE EnumerateClasses( REF EnumerateState : PTR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
+   PROCEDURE Version( OUT VersionString : ARRAY OF WCHAR );
+   PROCEDURE HostInfo( CONST Host, HostVersionString : ARRAY OF WCHAR ); // usually product id/product version
 
-   PUBLIC PROCEDURE GetLECData( OUT cllvData : TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
+   PROCEDURE EnumerateClasses( REF EnumerateState : PTR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
+
+   PROCEDURE GetLECData( OUT cllvData : TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
 END ILibrary;
 
 (*===========================================================================*)
@@ -73,24 +79,41 @@ END ILibrary;
 // prepared classes to simplify implementation
 ABSTRACT CLASS AObject IMPLEMENTS IObject;
    PRIVATE VAR
-      _Loader : TPLoader;
-   PUBLIC FINAL WRITEONLY PROPERTY
-      Loader : TPLoader;
-   PUBLIC FINAL PROCEDURE Release();
+      _Library : TPLibrary;
+   PUBLIC VIRTUAL WRITEONLY PROPERTY
+      Library : TPLibrary;
+   PUBLIC VIRTUAL PROCEDURE Release();
 END AObject;
 
 (*---------------------------------------------------------------------------*)
 
 ABSTRACT CLASS ACreator( AObject ) IMPLEMENTS ILibrary;
-   // IObject
+   
+   // IObject/ILibrary
    PUBLIC VIRTUAL READONLY PROPERTY
       Type : TObjectType;
+   PUBLIC FINAL WRITEONLY PROPERTY
+      Library : TPLibrary;
+   PUBLIC FINAL PROCEDURE Release();
+
+   LOCAL VAR
+      _Loader : TPLoader;
+      _Handle : PTR;
+   PUBLIC FINAL PROPERTY
+      Loader : TPLoader;
+      LibraryHandle : PTR;
+
+   LOCAL VAR
+      _Host : StringsO.CString;
+      _HostVersion : StringsO.CString;
+   PUBLIC FINAL PROCEDURE HostInfo( CONST Host, HostVersionString : ARRAY OF WCHAR ); // usually product id/product version
 
    // ACreator
    ABSTRACT PROCEDURE OnGetObject( CONST QName : ARRAY OF WCHAR; OUT Object : TPObject ) : TResult;
 
-   // library caller -- from procedure GetObject
-   LOCAL PROCEDURE GetObject( CONST QName : ARRAY OF WCHAR; OUT Object : TPObject ) : TResult;
+   // library caller -- use from procedure GetObject
+   PUBLIC PROCEDURE GetObject( CONST QName : ARRAY OF WCHAR; OUT Object : TPObject ) : TResult;
+
 END ACreator;
 
 (*===========================================================================*)
