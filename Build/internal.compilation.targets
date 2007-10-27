@@ -18,11 +18,16 @@
         <LICSIGN>&quot;$(RootBuildPath)\Bin\licbuild&quot; -S</LICSIGN>
         <SUM>&quot;$(RootBuildPath)\Bin\sum&quot;</SUM>
         <LIBEXP>&quot;$(RootBuildPath)\Bin\libexp&quot;</LIBEXP>
+
+        <CompileProductId Condition="$(ProductId)==''">$(MSBuildProjectName)</CompileProductId>
+        <CompileProductId Condition="$(ProductId)!=''">$(ProductId)</CompileProductId>
+        <CompileProductVersion Condition="$(ProductVersion)==''">0.0.0</CompileProductVersion>
+        <CompileProductVersion Condition="$(ProductVersion)!=''">$(ProductVersion)</CompileProductVersion>
     </PropertyGroup>
 
     <!-- CONTROLS -->
     <PropertyGroup>
-        <M2CTRL>-DProductId:$(ProductId) -DManufacturer:$(Manufacturer) -DConfigurationName:$(ConfigurationName) -DPlatformName:$(PlatformName)</M2CTRL>
+        <M2CTRL>-DProductId:$(CompileProductId) -DProductVersion:$(CompileProductVersion) -DManufacturer:$(Manufacturer) -DConfigurationName:$(ConfigurationName) -DPlatformName:$(PlatformName)</M2CTRL>
         <M2CTRL>$(M2CTRL) -W8 -W9 -W10 -W11 -DDEBUG:$(Debug) </M2CTRL>
         <M2CTRL Condition="$(LeakChecking)=='on'">$(M2CTRL) -SM</M2CTRL>
         <CLCTRL>/Zp8 /J /Gy /GR /Gr /GF /GS- /Oi /DNO_STRICT /DWINVER=0x0501 /D_WIN32_WINNT=0x0501</CLCTRL>
