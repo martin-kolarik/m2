@@ -3130,7 +3130,9 @@ ntNonLRecursiveIndexedDesignator<VR : TValueReq; DT : DOM.TPType; VAR D : DOM.TP
                                                               D^.r.DK := DOM.dkOperator;
                                                               IF DT^.TypeKind <> DOM.tkClass THEN
                                                                 D^.r.O := DOM.doIndexing;
-                                                              ELSIF ( D^.L^.r.DK = DOM.dkId ) AND ( D^.L^.r.Id <> NIL ) AND ( D^.L^.r.Id^.UnitKind = DOM.ukSelfSuperWrapper ) THEN
+                                                              ELSIF ( D^.L^.r.DK = DOM.dkId ) AND ( D^.L^.r.Id <> NIL ) AND
+                                                                    ( D^.L^.r.Id^.UnitKind = DOM.ukSelfSuperWrapper ) AND
+                                                                    ( DOM.TPSelfSuperWrapper( D^.L^.r.Id )^.T <> DOM.TPSelfSuperWrapper( D^.L^.r.Id )^.OfClass ) THEN
                                                                 D^.r.O := DOM.doIndexingOfSuperClass;
                                                                 D^.r.DfI := DfI;
                                                               ELSE

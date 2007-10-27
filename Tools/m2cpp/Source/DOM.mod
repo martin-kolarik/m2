@@ -2655,11 +2655,11 @@ CLASS IMPLEMENTATION CSelfSuperWrapper;
   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
   BEGIN
     IF UnitKind = ukSelfSuperWrapper THEN
-      // IF T^.Unwrap() = OfClass THEN -- not needed, N::F works correctly, see generating ukSelfSuperWrapper
-      //   G^.OutS( L"(*this)" );
-      // ELSE
+      IF T^.Unwrap() = OfClass THEN
+        G^.OutS( L"(*this)" );
+      ELSE
         G^.OutCS( T^.N ); // T^.Generate( G, C );
-      // END;
+      END;
     ELSE
        IF T^.Unwrap() = OfClass THEN
          G^.OutS( L"this" );
@@ -4002,6 +4002,17 @@ CLASS IMPLEMENTATION CClass;
          END; // WHILE
       END;
    END AddAncestor;
+   
+   PROCEDURE RemoveExposedAbstractByName( AncestorSymbol : TPSymbol );
+   BEGIN
+      ExposedAbstract.Reset();
+      WHILE ExposedAbstract.MoveNext() DO
+         IF TPSymbol( ExposedAbstract.Current )^.N.Equals( AncestorSymbol^.N ) THEN
+            ExposedAbstract.Remove( ExposedAbstract.Current );
+            RETURN;
+         END;
+      END; // WHILE
+   END RemoveExposedAbstractByName;
 
 BEGIN
   UnitKind := ukSimpleClassDef;
@@ -6195,7 +6206,7 @@ CLASS IMPLEMENTATION CModule;
           END;
         ELSIF imVirtual IN TPProcedureType( Id )^.IM THEN
           IF TPProcedureType( Symbol )^.IM * TInheritanceModifier{imVirtual, imFinal} <> TInheritanceModifier{} THEN
-            // fall down
+            CurrentC()^.RemoveExposedAbstractByName( Id );
           ELSIF imAbstract IN TPProcedureType( Symbol )^.IM THEN
             IF TInheritanceModifier{imInterface} * InClass^.IM = TInheritanceModifier{} THEN // symbol inherited from interface can be abstract
               SemErrCS( err._BadIMMustBeVirtualOrFinal, InClass^.N );
@@ -8748,12 +8759,11 @@ CLASS IMPLEMENTATION CDesignator;
             G^.OutS( L'::' );
           | ukSelfSuperWrapper :
             L^.Generate( G, Cn );
-            // not needed, N::F works correctly, see CSelfSuperWrapper
-            // IF TPSelfSuperWrapper( L^.r.Id )^.T = TPSelfSuperWrapper( L^.r.Id )^.OfClass THEN
-            //   G^.OutS( L'.' );
-            // ELSE
+            IF TPSelfSuperWrapper( L^.r.Id )^.T = TPSelfSuperWrapper( L^.r.Id )^.OfClass THEN
+              G^.OutS( L'.' );
+            ELSE
               G^.OutS( L'::' );
-            // END;
+            END;
           ELSE IF (( r.F^.SymbolKind = skProperty ) OR ( r.F^.SymbolKind = skProcedure )) AND
                   L^.T^.IsFormal() AND ( TPFormalType( L^.T )^.TypeModifier = tmCONST ) THEN
             G^.OutS( L'((' );

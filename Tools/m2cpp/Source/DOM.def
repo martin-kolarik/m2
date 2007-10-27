@@ -948,6 +948,7 @@ CLASS CClass( CType );
 	PROCEDURE IsDescendantOfException() : BOOLEAN;
 	PROCEDURE AddNestedFriend( AccessedMember : TPSymbol; P : TPProcedureType );
    PROCEDURE AddAncestor( Ancestor : TPClass );
+   PROCEDURE RemoveExposedAbstractByName( AncestorSymbol : TPSymbol );
 END CClass;
 
 //------------------------------------------------------------
