@@ -11,6 +11,8 @@
         <ProductVersionMinor>0</ProductVersionMinor>
 
         <FileDescription>SmartControl Midea Air Conditioner Device IO</FileDescription>
+
+        <Result>Dynamic</Result>
     </PropertyGroup>
 
     <!-- 2 INCLUDE DEFINITION -->
@@ -20,9 +22,9 @@
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
         <Components Include="modula2\modula2;api\clib;API\win32" />
-        <Components Include="component\sccore;library\DeviceIO;library\serial"/>
+        <Components Include="component\sccore;library\ClassLoader;library\DeviceIO;library\serial"/>
         <Modules Include="Midea"/>
-        <!-- Program Include="CmdLine"/ -->
+        <Program Include="iface"/>
         <!-- Messages Include="Texts"/ -->
     </ItemGroup>
 
