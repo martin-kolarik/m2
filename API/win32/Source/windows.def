@@ -5859,11 +5859,11 @@ PROCEDURE RemoveDirectoryW(
     ): BOOL;
 (*%E UNICODE *)
 
-PROCEDURE GetFullPathName(
-    lpFileName : PCTSTR;
+PROCEDURE GetFullPathNameW(
+    lpFileName : PCWSTR;
     nBufferLength : DWORD;
-    lpBuffer : PTSTR;
-    VAR lpFilePart : PTSTR
+    lpBuffer : PWSTR;
+    OUT lpFilePart : PWSTR
     ): DWORD;
 
 CONST
