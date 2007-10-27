@@ -857,7 +857,7 @@ CLASS IMPLEMENTATION CDispatcher;
               Connection := Connections.CurrentData;
             END;
           END; // WHILE
-          FREE( Message.SData );
+          DISPOSE( Message.SData );
 
         ELSE
           logger()^.LogSC( dldError, logPrefix, L"Unrecognized command ", CARDINAL( Message.Command ));

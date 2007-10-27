@@ -159,7 +159,7 @@ CLASS IMPLEMENTATION CInterface;
       RETURN windows.ULONG( ReferenceCount );
     ELSE
       a := ADR( SELF );
-      FREE( a );
+      DISPOSE( a );
       RETURN 0;
     END;
   END Release;
@@ -450,7 +450,7 @@ CLASS IMPLEMENTATION CIConnectionPointContainer;
       WHILE ConnectionPoints.GetFirst( OUT PConnectionPoint ) DO
         ConnectionPoints.Remove( PConnectionPoint );
         PConnectionPoint^.IConnectionPoint.Release();
-        FREE( PConnectionPoint );
+        DISPOSE( PConnectionPoint );
       END; // WHILE
     END;
     RETURN SUPER.Release();
@@ -731,7 +731,7 @@ CLASS IMPLEMENTATION CIConnectionPoint;
 
       PAClient^.PIDispatch_Event^.Release();
       PAClient^.PClient^.Release(); // I called AddRef in Advise
-      FREE( PAClient );
+      DISPOSE( PAClient );
     ELSE
       RETURN olectl.CONNECT_E_NOCONNECTION;
     END;

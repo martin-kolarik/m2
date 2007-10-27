@@ -23,7 +23,7 @@ CLASS IMPLEMENTATION CCircularBuffer;
   BEGIN
     IF PBuffer <> NIL THEN
       BufferSize := 0;
-      FREE( PBuffer );
+      DISPOSE( PBuffer );
     END;
   END Release;
 

@@ -832,10 +832,10 @@ DLLInitFailure:
     END;
 
     IF PBufferA <> NIL THEN
-      FREE( PBufferA );
+      DISPOSE( PBufferA );
     END;
     IF PBufferW <> NIL THEN
-      FREE( PBufferW );
+      DISPOSE( PBufferW );
     END;
   END Done;
 
@@ -960,7 +960,7 @@ DLLInitFailure:
       FreeFlag := drv_str.CreateTFromU( PBuffer, PBufferW );
       IF FreeFlag THEN
         drv_def.SetValueDString( ChannelValue, PBuffer );
-        FREE( PBuffer );
+        DISPOSE( PBuffer );
       ELSE
         drv_def.SetValueDString( ChannelValue, PBuffer );
       END;
@@ -993,7 +993,7 @@ DLLInitFailure:
       FreeFlag := drv_str.CreateTFromU( PBuffer, PBufferW );
       IF FreeFlag THEN
         drv_def.SetValueDString( ChannelValue, PBuffer );
-        FREE( PBuffer );
+        DISPOSE( PBuffer );
       ELSE
         drv_def.SetValueDString( ChannelValue, PBuffer );
       END;
@@ -1026,7 +1026,7 @@ DLLInitFailure:
       FreeFlag := drv_str.CreateTFromU( PBuffer, PBufferW );
       IF FreeFlag THEN
         drv_def.SetValueDString( ChannelValue, PBuffer );
-        FREE( PBuffer );
+        DISPOSE( PBuffer );
       ELSE
         drv_def.SetValueDString( ChannelValue, PBuffer );
       END;
@@ -1083,7 +1083,7 @@ DLLInitFailure:
       FreeFlag := drv_str.CreateTFromA( PBuffer, PBufferA );
       IF FreeFlag THEN
         drv_def.SetValueDString( ChannelValue, PBuffer );
-        FREE( PBuffer );
+        DISPOSE( PBuffer );
       ELSE
         drv_def.SetValueDString( ChannelValue, PBuffer );
       END;
@@ -1116,7 +1116,7 @@ DLLInitFailure:
       FreeFlag := drv_str.CreateTFromA( PBuffer, PBufferA );
       IF FreeFlag THEN
         drv_def.SetValueDString( ChannelValue, PBuffer );
-        FREE( PBuffer );
+        DISPOSE( PBuffer );
       ELSE
         drv_def.SetValueDString( ChannelValue, PBuffer );
       END;
@@ -1149,7 +1149,7 @@ DLLInitFailure:
       FreeFlag := drv_str.CreateTFromA( PBuffer, PBufferA );
       IF FreeFlag THEN
         drv_def.SetValueDString( ChannelValue, PBuffer );
-        FREE( PBuffer );
+        DISPOSE( PBuffer );
       ELSE
         drv_def.SetValueDString( ChannelValue, PBuffer );
       END;
@@ -1360,7 +1360,7 @@ Fail:
 
       __OutputRequest3W( PObjectData, ChannelNumber, LocalValue, QOS, TimeStamp );
       IF FreeFlag THEN
-        FREE( PLBufferW );
+        DISPOSE( PLBufferW );
       END;
 
       IF as = LocalValue.ValDriverStringAddress THEN
@@ -1391,7 +1391,7 @@ Fail:
 
       __OutputRequest2W( PObjectData, ChannelNumber, LocalValue, QOS, TimeStamp );
       IF FreeFlag THEN
-        FREE( PLBufferW );
+        DISPOSE( PLBufferW );
       END;
 
       IF as = LocalValue.ValPString256W THEN
@@ -1422,7 +1422,7 @@ Fail:
 
       __OutputRequest1W( PObjectData, ChannelNumber, LocalValue );
       IF FreeFlag THEN
-        FREE( PLBufferW );
+        DISPOSE( PLBufferW );
       END;
 
       IF as = LocalValue.ValPString256W THEN
@@ -1454,7 +1454,7 @@ Fail:
 
       __OutputRequest3( PObjectData, ChannelNumber, LocalValue, QOS, TimeStamp );
       IF FreeFlag THEN
-        FREE( PLBufferA );
+        DISPOSE( PLBufferA );
       END;
 
       IF as = LocalValue.ValDriverStringAddress THEN
@@ -1485,7 +1485,7 @@ Fail:
 
       __OutputRequest2( PObjectData, ChannelNumber, LocalValue, QOS, TimeStamp );
       IF FreeFlag THEN
-        FREE( PLBufferA );
+        DISPOSE( PLBufferA );
       END;
 
       IF as = LocalValue.ValPString256A THEN
@@ -1516,7 +1516,7 @@ Fail:
 
       __OutputRequest1( PObjectData, ChannelNumber, LocalValue );
       IF FreeFlag THEN
-        FREE( PLBufferA );
+        DISPOSE( PLBufferA );
       END;
 
       IF as = LocalValue.ValPString256A THEN
@@ -1743,7 +1743,7 @@ Fail:
           IF FreeFlag3 THEN
             drv_def.SetValueDString( Param2, PBuffer );
             IF PBuffer <> NIL THEN
-              FREE( PBuffer );
+              DISPOSE( PBuffer );
             END;
           ELSE
             drv_def.SetValueDString( Param2, PBuffer );
@@ -1753,10 +1753,10 @@ Fail:
 
     Fail:
       IF FreeFlag1 AND ( PLBufferW1 <> NIL ) THEN
-        FREE( PLBufferW1 );
+        DISPOSE( PLBufferW1 );
       END;
       IF FreeFlag2 AND ( PLBufferW2 <> NIL ) THEN
-        FREE( PLBufferW2 );
+        DISPOSE( PLBufferW2 );
       END;
 
       RETURN ErrorCode = drv_def.ecSuccess;
@@ -1822,7 +1822,7 @@ Fail:
             b := drv_str.CreateTFromU( PBuffer, PLBufferW2 );
             drv_def.SetValueDString( Param2, PBuffer );
             IF b AND ( PBuffer <> NIL ) THEN
-              FREE( PBuffer );
+              DISPOSE( PBuffer );
             END;
           ELSE // PLBufferW2 is Param2.ValDString, so it need not be SetValueDString back in Param2.
                // But PLBufferW2 can be modified from CopyStrToDStrA, thus is MUST be
@@ -1834,10 +1834,10 @@ Fail:
       END;
 
       IF FreeFlag1 AND ( PLBufferW1 <> NIL ) THEN
-        FREE( PLBufferW1 );
+        DISPOSE( PLBufferW1 );
       END;
       IF FreeFlag2 AND ( PLBufferW2 <> NIL ) THEN
-        FREE( PLBufferW2 );
+        DISPOSE( PLBufferW2 );
       END;
 
       RETURN ErrorCode = drv_def.ecSuccess;
@@ -1932,7 +1932,7 @@ Fail:
           IF FreeFlag3 THEN
             drv_def.SetValueDString( Param2, PBuffer );
             IF PBuffer <> NIL THEN
-              FREE( PBuffer );
+              DISPOSE( PBuffer );
             END;
           ELSE
             drv_def.SetValueDString( Param2, PBuffer );
@@ -1942,10 +1942,10 @@ Fail:
 
     Fail:
       IF FreeFlag1 AND ( PLBufferA1 <> NIL ) THEN
-        FREE( PLBufferA1 );
+        DISPOSE( PLBufferA1 );
       END;
       IF FreeFlag2 AND ( PLBufferA2 <> NIL ) THEN
-        FREE( PLBufferA2 );
+        DISPOSE( PLBufferA2 );
       END;
 
       RETURN ErrorCode = drv_def.ecSuccess;
@@ -2010,7 +2010,7 @@ Fail:
             b := drv_str.CreateTFromA( PBuffer, PLBufferA2 );
             drv_def.SetValueDString( Param2, PBuffer );
             IF b AND ( PBuffer <> NIL ) THEN
-              FREE( PBuffer );
+              DISPOSE( PBuffer );
             END;
           ELSE // PLBufferA2 is Param2.ValDString, so it need not be SetValueDString back in Param2.
                // But, PLBufferA2 can be modified from CopyStrToDStrA, thus is MUST be
@@ -2022,10 +2022,10 @@ Fail:
       END;
 
       IF FreeFlag1 AND ( PLBufferA1 <> NIL ) THEN
-        FREE( PLBufferA1 );
+        DISPOSE( PLBufferA1 );
       END;
       IF FreeFlag2 AND ( PLBufferA2 <> NIL ) THEN
-        FREE( PLBufferA2 );
+        DISPOSE( PLBufferA2 );
       END;
 
       RETURN ErrorCode = drv_def.ecSuccess;
@@ -2391,10 +2391,10 @@ BEGIN
   PDescription := NIL;
 FINALLY
   IF PId <> NIL THEN
-    FREE( PId );
+    DISPOSE( PId );
   END;
   IF PDescription <> NIL THEN
-    FREE( PDescription );
+    DISPOSE( PDescription );
   END;
 END CMapTreeElem;
 
@@ -2732,13 +2732,13 @@ CLASS IMPLEMENTATION CChannelMap;
     Result := LoadFromDString( ErrorString, PS );
 
     IF f THEN
-      FREE( PS );
+      DISPOSE( PS );
     END;
     IF PSA <> NIL THEN
-      FREE( PSA );
+      DISPOSE( PSA );
     END;
     IF PSW <> NIL THEN
-      FREE( PSW );
+      DISPOSE( PSW );
     END;
 
     FIO.Close( F );

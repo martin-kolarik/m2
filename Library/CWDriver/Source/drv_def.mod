@@ -41,11 +41,11 @@ END InitValue;
 PROCEDURE DoneValue( VAR Value : TValue );
 BEGIN
   IF ( Value.Type = vtDString ) AND ( Value.ValDStringW <> NIL ) THEN
-    FREE( Value.ValDStringW );
+    DISPOSE( Value.ValDStringW );
   ELSIF ( Value.Type = vtBuffer ) AND ( Value.PBuffer <> NIL ) THEN
-    FREE( Value.PBuffer );
+    DISPOSE( Value.PBuffer );
   ELSIF ( Value.Type = vtData ) AND ( Value.ValPData <> NIL ) THEN
-    FREE( Value.ValPData );
+    DISPOSE( Value.ValPData );
   END;
   Value.Type := vtNothing;
 END DoneValue;
@@ -143,9 +143,9 @@ END IOTypeToCWType;
 PROCEDURE SetValueBoolean( VAR Value : TValue; b : BOOLEAN );
 BEGIN
   IF (Value.Type = vtDString) AND (Value.ValDStringW <> NIL) THEN
-    FREE( Value.ValDStringW );
+    DISPOSE( Value.ValDStringW );
   ELSIF (Value.Type = vtData) AND (Value.ValPData <> NIL) THEN
-    FREE( Value.ValPData );
+    DISPOSE( Value.ValPData );
   END;
   Value.Type := vtBoolean;
   Value.ValBoolean := b;
@@ -156,9 +156,9 @@ END SetValueBoolean;
 PROCEDURE SetValueCard8( VAR Value : TValue; v : CARD8 );
 BEGIN
   IF (Value.Type = vtDString) AND (Value.ValDStringW <> NIL) THEN
-    FREE( Value.ValDStringW );
+    DISPOSE( Value.ValDStringW );
   ELSIF (Value.Type = vtData) AND (Value.ValPData <> NIL) THEN
-    FREE( Value.ValPData );
+    DISPOSE( Value.ValPData );
   END;
   Value.Type := vtShortCard;
   Value.ValShortCard := v;
@@ -169,9 +169,9 @@ END SetValueCard8;
 PROCEDURE SetValueCard32( VAR Value : TValue; v : CARD32 );
 BEGIN
   IF (Value.Type = vtDString) AND (Value.ValDStringW <> NIL) THEN
-    FREE( Value.ValDStringW );
+    DISPOSE( Value.ValDStringW );
   ELSIF (Value.Type = vtData) AND (Value.ValPData <> NIL) THEN
-    FREE( Value.ValPData );
+    DISPOSE( Value.ValPData );
   END;
   Value.Type := vtLongCard;
   Value.ValLongCard := v;
@@ -182,9 +182,9 @@ END SetValueCard32;
 PROCEDURE SetValueInt8( VAR Value : TValue; v : INT8 );
 BEGIN
   IF (Value.Type = vtDString) AND (Value.ValDStringW <> NIL) THEN
-    FREE( Value.ValDStringW );
+    DISPOSE( Value.ValDStringW );
   ELSIF (Value.Type = vtData) AND (Value.ValPData <> NIL) THEN
-    FREE( Value.ValPData );
+    DISPOSE( Value.ValPData );
   END;
   Value.Type := vtShortInt;
   Value.ValShortInt := v;
@@ -195,9 +195,9 @@ END SetValueInt8;
 PROCEDURE SetValueInt32( VAR Value : TValue; v : INT32 );
 BEGIN
   IF (Value.Type = vtDString) AND (Value.ValDStringW <> NIL) THEN
-    FREE( Value.ValDStringW );
+    DISPOSE( Value.ValDStringW );
   ELSIF (Value.Type = vtData) AND (Value.ValPData <> NIL) THEN
-    FREE( Value.ValPData );
+    DISPOSE( Value.ValPData );
   END;
   Value.Type := vtLongInt;
   Value.ValLongInt := v;
@@ -208,9 +208,9 @@ END SetValueInt32;
 PROCEDURE SetValueLongReal( VAR Value : TValue; r : LONGREAL );
 BEGIN
   IF (Value.Type = vtDString) AND (Value.ValDStringW <> NIL) THEN
-    FREE( Value.ValDStringW );
+    DISPOSE( Value.ValDStringW );
   ELSIF (Value.Type = vtData) AND (Value.ValPData <> NIL) THEN
-    FREE( Value.ValPData );
+    DISPOSE( Value.ValPData );
   END;
   Value.Type := vtLongReal;
   Value.ValLongReal := r;
@@ -221,7 +221,7 @@ END SetValueLongReal;
 PROCEDURE SetValueString( VAR Value : TValue; s : ARRAY OF WCHAR );
 BEGIN
   IF (Value.Type = vtData) AND (Value.ValPData <> NIL) THEN
-    FREE( Value.ValPData );
+    DISPOSE( Value.ValPData );
   END;
   IF Value.Type <> vtDString THEN
     Value.Type := vtDString;
@@ -229,7 +229,7 @@ BEGIN
   END;
   IF s[0] = 0W THEN
     IF Value.ValDStringW <> NIL THEN
-      FREE( Value.ValDStringW );
+      DISPOSE( Value.ValDStringW );
     END;
   ELSE
     drv_str.CopyStrToDStrW( Value.ValDStringW, s );
@@ -241,14 +241,14 @@ END SetValueString;
 PROCEDURE SetValueDString( VAR Value : TValue; S : drv_str.TPDStringW );
 BEGIN
   IF ( Value.Type = vtData ) AND ( Value.ValPData <> NIL ) THEN
-    FREE( Value.ValPData );
+    DISPOSE( Value.ValPData );
   END;
   IF S = NIL THEN
     IF Value.Type <> vtDString THEN
       Value.Type := vtDString;
       Value.ValDStringW := NIL;
     ELSIF Value.ValDStringW <> NIL THEN
-      FREE( Value.ValDStringW );
+      DISPOSE( Value.ValDStringW );
     END;
     RETURN;
   END;
@@ -1530,7 +1530,7 @@ BEGIN
     drv_str.CopyStrToDStrA( PDSA, OA( DrvValue.ValDriverStringCharLength-1, PCHAR( DrvValue.ValDriverStringAddress )));
     drv_str.A2U( PDSA, PDS );
     IF PDSA <> NIL THEN
-      FREE( PDSA );
+      DISPOSE( PDSA );
     END;
   END;
   DoneValue( Value );
@@ -1539,7 +1539,7 @@ BEGIN
     NEW( Value.ValPString256W );
     drv_str.CopyDStrToStrW( Value.ValPString256W^, PDS );
     IF PDS <> NIL THEN
-      FREE( PDS );
+      DISPOSE( PDS );
     END;
   ELSE
     Value.Type := vtDString;

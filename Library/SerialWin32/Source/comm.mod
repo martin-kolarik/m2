@@ -1621,10 +1621,10 @@ CLASS IMPLEMENTATION CCommStream; (* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
       TxQueue.Release();
 
       IF PRxCache <> NIL THEN
-        FREE( PRxCache );
+        DISPOSE( PRxCache );
       END;
       IF PTxCache <> NIL THEN
-        FREE( PTxCache );
+        DISPOSE( PTxCache );
       END;
 
       PRxCache := NIL;  RxCacheSize := 0;
@@ -3603,7 +3603,7 @@ END CCommStream;
   PROCEDURE FreeLinkInstance( PI : ADDRESS );
   BEGIN
     IF PI <> NIL THEN
-      FREE( PI );
+      DISPOSE( PI );
     END;
   END FreeLinkInstance;
 

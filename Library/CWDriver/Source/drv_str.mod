@@ -203,7 +203,7 @@ PROCEDURE CopyDStrToDStrA( VAR R : TPDStringA; S: TPDStringA ); // R can be NIL 
 BEGIN
   IF S = NIL THEN
     IF R <> NIL THEN
-      FREE( R );
+      DISPOSE( R );
     END;
     RETURN;
   END;
@@ -218,7 +218,7 @@ PROCEDURE CopyDStrToDStrW( VAR R : TPDStringW; S: TPDStringW ); // R can be NIL 
 BEGIN
   IF S = NIL THEN
     IF R <> NIL THEN
-      FREE( R );
+      DISPOSE( R );
     END;
     RETURN;
   END;
@@ -240,7 +240,7 @@ BEGIN
   GetDStrAddrLenW( dsw, sa, sl );
   IF ( sa = NIL ) OR ( sl = 0 ) THEN
     IF dsa <> NIL THEN
-      FREE( dsa );
+      DISPOSE( dsa );
     END;
   ELSE
     dl := sl;
@@ -260,7 +260,7 @@ BEGIN
   GetDStrAddrLenA( dsa, sa, sl );
   IF ( sa = NIL ) OR ( sl = 0 ) THEN
     IF dsw <> NIL THEN
-      FREE( dsw );
+      DISPOSE( dsw );
     END;
   ELSE
     dl := sl;

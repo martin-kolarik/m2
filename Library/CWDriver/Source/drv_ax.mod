@@ -744,7 +744,7 @@ CLASS IMPLEMENTATION CDriverActiveX;
           OutputWritten( csFailure, POutput^.Index, EC );
 
           POutput^.Done();
-          FREE( POutput );
+          DISPOSE( POutput );
         END;
         POutput := PNext;
       END; // WHILE

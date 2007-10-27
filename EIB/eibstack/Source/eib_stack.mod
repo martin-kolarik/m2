@@ -1241,7 +1241,7 @@ CLASS IMPLEMENTATION CEIBStackNetworkLayer;
     IF N_Data.PL_Listener <> NIL THEN
       N_Data.PL_Listener^.Done();
       IF N_Data.PL_Listener^.Freeable() THEN
-        FREE( N_Data.PL_Listener );
+        DISPOSE( N_Data.PL_Listener );
       ELSE
         N_Data.PL_Listener := NIL;
       END;
@@ -1892,12 +1892,12 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
       A_Data.prGroup[prl4]^.Done();
       A_Data.prGroup[prl5]^.Done();
       A_Data.prGroup[prl15]^.Done();
-      FREE( A_Data.prGroup[prl1] );
-      FREE( A_Data.prGroup[prl2] );
-      FREE( A_Data.prGroup[prl3] );
-      FREE( A_Data.prGroup[prl4] );
-      FREE( A_Data.prGroup[prl5] );
-      FREE( A_Data.prGroup[prl15] );
+      DISPOSE( A_Data.prGroup[prl1] );
+      DISPOSE( A_Data.prGroup[prl2] );
+      DISPOSE( A_Data.prGroup[prl3] );
+      DISPOSE( A_Data.prGroup[prl4] );
+      DISPOSE( A_Data.prGroup[prl5] );
+      DISPOSE( A_Data.prGroup[prl15] );
     END;
 
     i := pendingGroupRead;
@@ -2879,7 +2879,7 @@ CLASS IMPLEMENTATION CEIBStack;
       LOOP
         IF Layers[ Layer ] <> NIL THEN
           IF Layers[ Layer ]^.Freeable() THEN
-            FREE( Layers[ Layer ] );
+            DISPOSE( Layers[ Layer ] );
           ELSE
             Layers[ Layer ] := NIL;
           END;

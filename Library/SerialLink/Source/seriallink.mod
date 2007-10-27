@@ -50,8 +50,7 @@ CLASS IMPLEMENTATION CCommLinkStream; (* >>>>>>>>>>>>>>>>>>>>>>>>>> *)
   PUBLIC VIRTUAL PROCEDURE Done();
   BEGIN
     IF PSHandles <> NIL THEN
-      FREE( PSHandles );
-      PSHandles := NIL;
+      DISPOSE( PSHandles );
     END;
   END Done;
 
@@ -1037,13 +1036,13 @@ END COpenLinkElem;
         POpenLinkList^.Remove( PE );
         PE^.FreeInstance( ADDRESS(PE^.PDeviceLink));
         windows.FreeLibrary( PE^.DllHandle );
-        FREE( PE );
+        DISPOSE( PE );
       ELSE
         DEC( PE^.InitCount );
       END;
     END;
     IF POpenLinkList^.Empty THEN
-      FREE( POpenLinkList );
+      DISPOSE( POpenLinkList );
     END;
   END CloseLink;
 

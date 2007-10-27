@@ -519,7 +519,7 @@ CLASS IMPLEMENTATION CDriver;
     WHILE Groups.GetFirst( OUT PGroupLE ) DO
       PGroupLE^.Clients.Dispose();
       Groups.Remove( PGroupLE );
-      FREE( PGroupLE );
+      DISPOSE( PGroupLE );
     END; // WHILE
 
     WHILE Clients.GetFirst( OUT PClientLE ) DO
@@ -527,7 +527,7 @@ CLASS IMPLEMENTATION CDriver;
         PClientLE^.PClient^.Release();
       END;
       Clients.Remove( PClientLE );
-      FREE( PClientLE );
+      DISPOSE( PClientLE );
     END; // WHILE
   END Done;
 
@@ -988,7 +988,7 @@ CLASS IMPLEMENTATION CDriver;
             EXIT;
           ELSIF PClientGroupLE^.PClientLE = PClientLE THEN
             PGroupLE^.Clients.Remove( PClientGroupLE );
-            FREE( PClientGroupLE );
+            DISPOSE( PClientGroupLE );
             EXIT;
           END;
           b := PGroupLE^.Clients.NextOf( PClientGroupLE, OUT PClientGroupLE );
@@ -1237,7 +1237,7 @@ CLASS IMPLEMENTATION CDriver;
         b := PGroupLE^.Clients.NextOf( PClientGroupLE, OUT PN );
         IF PClientGroupLE^.PClientLE = PClientLE THEN
           PGroupLE^.Clients.Remove( PClientGroupLE );
-          FREE( PClientGroupLE );
+          DISPOSE( PClientGroupLE );
         END;
         PClientGroupLE := PN;
       END; // WHILE
@@ -1320,7 +1320,7 @@ CLASS IMPLEMENTATION CDriver;
       PClientLE^.PClient := NIL;
       // client cannot be removed here; it will be needed for event procesing
       // Clients.Remove();
-      // FREE( PClientLE );
+      // DISPOSE( PClientLE );
     END;
 
     IF rsEventsPending IN RStatus THEN

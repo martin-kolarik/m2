@@ -1204,7 +1204,7 @@ CLASS IMPLEMENTATION CDriver;
         R[i] := WCHAR( 0 );
       END;
 
-      FREE( PELE );
+      DISPOSE( PELE );
     END;
 
     Result.Inc();

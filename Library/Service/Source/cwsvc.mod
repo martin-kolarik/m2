@@ -91,7 +91,7 @@ BEGIN
   IF PService <> NIL THEN
     IF PService^.ControlService( fdwControl ) THEN
       PService^.Done();
-      FREE( PService );
+      DISPOSE( PService );
     END;
   END;
 END ControlHandler;
