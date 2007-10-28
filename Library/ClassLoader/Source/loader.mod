@@ -17,7 +17,7 @@ CLASS CLibrary;
       RefCount : CARDINAL;
    PRIVATE VAR
       LibraryHandle : windows.HANDLE;
-      GetObject : objlib.TGetObject;
+      Factory : objlib.TFactory;
       Library : objlib.TPLibrary;
    LOCAL READONLY PROPERTY
       Name : StringsO.CString;
@@ -51,7 +51,7 @@ CLASS IMPLEMENTATION CLibrary;
             RETURN Result;
          END;
       END;
-      Result := GetObject( ClassName, OUT Object );
+      Result := Factory( ClassName, OUT Object );
       IF Result = objlib.lrSuccess THEN
          INC( RefCount );
       END;
@@ -80,19 +80,19 @@ CLASS IMPLEMENTATION CLibrary;
          RETURN objlib.lrLibraryNotFound;
       END;
 
-      GetObject := windows.GetProcAddress( LibraryHandle, C"_GetObject" );
-      IF GetObject = NIL THEN
+      Factory := windows.GetProcAddress( LibraryHandle, C"_Factory" );
+      IF Factory = NIL THEN
          UnloadLibrary();
          RETURN objlib.lrLibraryFoundButIsUnloadable;
       END;
-      Result := GetObject( objlib.nLibrary, OUT Library );
+      Result := Factory( objlib.nLibrary, OUT Library );
       IF Result <> objlib.lrSuccess THEN
          UnloadLibrary();
          RETURN objlib.lrLibraryFoundButIsUnloadable;
       END;
 
       Library^.Loader := Loader;
-      Library^.HostInfo( ProductId, L"" ); // TODO
+      Library^.HostInfo( ProductId, ProductVersion );
 
       RETURN objlib.lrSuccess;
    END LoadLibrary;
@@ -107,7 +107,7 @@ CLASS IMPLEMENTATION CLibrary;
          END;
          windows.FreeLibrary( LibraryHandle );
          LibraryHandle := NIL;
-         GetObject := NIL;
+         Factory := NIL;
       END;
    END UnloadLibrary;
 
@@ -116,7 +116,7 @@ BEGIN
    Loader := NIL;
    RefCount := 0;
    LibraryHandle := NIL;
-   GetObject := NIL;
+   Factory := NIL;
    Library := NIL;
 END CLibrary;
 

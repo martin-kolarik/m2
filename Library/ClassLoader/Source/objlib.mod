@@ -95,7 +95,7 @@ CLASS IMPLEMENTATION ACreator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE GetObject( CONST QName : ARRAY OF WCHAR; OUT Object : TPObject ) : TResult;
+   PUBLIC PROCEDURE Factory( CONST QName : ARRAY OF WCHAR; OUT Object : TPObject ) : TResult;
    VAR
       Result : TResult;
    BEGIN
@@ -103,13 +103,13 @@ CLASS IMPLEMENTATION ACreator;
          Object := ADR( ILibrary );
          Result := lrSuccess;
       ELSE
-         Result := OnGetObject( QName, OUT Object );
+         Result := OnFactory( QName, OUT Object );
       END;
       IF Result = lrSuccess THEN
          Object^.Library := ADR( ILibrary );
       END;
       RETURN Result;
-   END GetObject;
+   END Factory;
 
 (*---------------------------------------------------------------------------*)
 

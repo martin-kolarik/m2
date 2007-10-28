@@ -30,7 +30,7 @@ TYPE
    
 TYPE
    #save, call( convention => cdecl )
-   TGetObject = PROCEDURE( CONST ARRAY OF WCHAR, OUT TPObject ) : TResult;
+   TFactory = PROCEDURE( CONST ARRAY OF WCHAR, OUT TPObject ) : TResult;
    #restore
 
 (*===========================================================================*)
@@ -42,11 +42,11 @@ TYPE
    );
    
 INTERFACE IObject;
-   PUBLIC READONLY PROPERTY
+   READONLY PROPERTY
       Type : TObjectType;
-   PUBLIC WRITEONLY PROPERTY
+   WRITEONLY PROPERTY
       Library : TPLibrary;
-   PUBLIC PROCEDURE Release();
+   PROCEDURE Release();
 END IObject;
 
 (*---------------------------------------------------------------------------*)
@@ -66,7 +66,7 @@ INTERFACE ILibrary( IObject );
       Loader : TPLoader;
       LibraryHandle : PTR;
 
-   PROCEDURE Version( OUT VersionString : ARRAY OF WCHAR );
+   PROCEDURE LibraryInfo( OUT Library, LibraryVersionString : ARRAY OF WCHAR ); // usually product id/product version
    PROCEDURE HostInfo( CONST Host, HostVersionString : ARRAY OF WCHAR ); // usually product id/product version
 
    PROCEDURE EnumerateClasses( REF EnumerateState : PTR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
@@ -109,10 +109,10 @@ ABSTRACT CLASS ACreator( AObject ) IMPLEMENTS ILibrary;
    PUBLIC FINAL PROCEDURE HostInfo( CONST Host, HostVersionString : ARRAY OF WCHAR ); // usually product id/product version
 
    // ACreator
-   ABSTRACT PROCEDURE OnGetObject( CONST QName : ARRAY OF WCHAR; OUT Object : TPObject ) : TResult;
+   ABSTRACT PROCEDURE OnFactory( CONST QName : ARRAY OF WCHAR; OUT Object : TPObject ) : TResult;
 
    // library caller -- use from procedure GetObject
-   PUBLIC PROCEDURE GetObject( CONST QName : ARRAY OF WCHAR; OUT Object : TPObject ) : TResult;
+   PUBLIC PROCEDURE Factory( CONST QName : ARRAY OF WCHAR; OUT Object : TPObject ) : TResult;
 
 END ACreator;
 
