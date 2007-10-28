@@ -1,12 +1,16 @@
 DEFINITION MODULE device;
 
 IMPORT
+   objlib,
 	io,
 	ns;
 
 (*---------------------------------------------------------------------------*)
 
-INTERFACE IDevice; // aka device driver
+TYPE
+   TPDevice = POINTER TO IDevice;
+
+INTERFACE IDevice( objlib.IObject ); // aka device driver
 	PROCEDURE NS() : ns.TPns;
 	PROCEDURE IO() : io.TPIO;
 END IDevice;

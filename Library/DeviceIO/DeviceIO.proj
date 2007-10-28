@@ -15,7 +15,7 @@
     <!-- 3 -->
     <ItemGroup>
         <Components Include="modula2\modula2;api\clib;API\win32"/>
-        <Components Include="component\sccore"/>
+        <Components Include="component\sccore;library\ClassLoader"/>
         <Definitions Include="device"/>
         <Modules Include="iovalue;io;ns;nslookup;nsitem"/>
         <!-- Libraries Include="user32;Ws2_32"/ -->
