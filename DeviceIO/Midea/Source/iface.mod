@@ -6,6 +6,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   device,
    Midea,
    objlib;
 
@@ -58,14 +59,11 @@ CLASS IMPLEMENTATION CCreator;
 (*---------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE OnFactory( CONST QName : ARRAY OF WCHAR; OUT Object : objlib.TPObject ) : objlib.TResult;
-   VAR
-      midea : POINTER TO Midea.CMideaDevice;
    BEGIN
       IF NOT EQUALS( QName, nDeviceIO ) THEN
          RETURN objlib.lrClassNotFound;
       END;
-      NEW( midea );
-      Object := ADR( midea^.IDevice );
+      Object := NEW( Midea.CMideaDevice );
       RETURN objlib.lrSuccess;
    END OnFactory;
 
