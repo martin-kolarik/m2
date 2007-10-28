@@ -344,10 +344,25 @@ CLASS IMPLEMENTATION CMideaDevice;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC FINAL PROPERTY Type GET : objlib.TObjectType;
    BEGIN
-      _IO.Dispose();
-   END Dispose;
+      RETURN objlib.otEphemeral;
+   END Type;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROPERTY Library SET( Value : objlib.TPLibrary );
+   BEGIN
+      SUPER.Library := Value;
+   END Library;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROCEDURE Release();
+   BEGIN
+      Dispose();
+      SUPER.Release();
+   END Release;
 
 (*---------------------------------------------------------------------------*)
 
@@ -362,6 +377,13 @@ CLASS IMPLEMENTATION CMideaDevice;
    BEGIN
       RETURN ADR( _IO );
    END IO;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Dispose();
+   BEGIN
+      _IO.Dispose();
+   END Dispose;
 
 (*---------------------------------------------------------------------------*)
 

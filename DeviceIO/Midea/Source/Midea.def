@@ -15,6 +15,7 @@ IMPORT
    iovalue,
    ns,
    nsitem,
+   objlib,
    serial;
    
 (*===========================================================================*)
@@ -77,15 +78,24 @@ END CIO;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CMideaDevice IMPLEMENTS device.IDevice;
+CLASS CMideaDevice( objlib.AObject ) IMPLEMENTS device.IDevice;
    PRIVATE VAR
       _NS : CNS;
       _IO : CIO;
 
-   PUBLIC PROCEDURE Dispose();
+   // IObject
+   PUBLIC FINAL READONLY PROPERTY
+      Type : objlib.TObjectType;
+   PUBLIC FINAL WRITEONLY PROPERTY
+      Library : objlib.TPLibrary;
+   PUBLIC FINAL PROCEDURE Release();
 
+   // IDevice
    PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
    PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
+
+   // self
+   PUBLIC PROCEDURE Dispose();
 
    PUBLIC PROCEDURE Init( COMDevice, File : ARRAY OF WCHAR; OUT ErrorString : ARRAY OF WCHAR ) : BOOLEAN;
    PUBLIC PROCEDURE Run();
