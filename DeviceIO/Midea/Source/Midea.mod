@@ -119,7 +119,7 @@ CLASS IMPLEMENTATION CNS;
             AC := NewItem( s, ns.ntName, iovalue.vtString, 0 ); CCM^.AddChild( AC );
 
             I := NewItem( L"Connected", ns.ntValue, iovalue.vtBoolean, 0 ); AC^.AddChild( I );
-            I := NewItem( L"Fan", ns.ntValue, iovalue.vtString, 0 ); CCM^.AddChild( I );
+            I := NewItem( L"Fan", ns.ntValue, iovalue.vtString, 0 ); AC^.AddChild( I );
          END; // FOR j
       END; // FOR i
    END CreateStructure;
@@ -217,6 +217,14 @@ CLASS IMPLEMENTATION CIO;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROPERTY Running GET : BOOLEAN;
+   BEGIN
+     // TODO
+     RETURN FALSE;
+   END Running;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY Pending GET : BOOLEAN;
    BEGIN
       RETURN _Pending <> IOO.dirUnknown;
@@ -242,6 +250,21 @@ CLASS IMPLEMENTATION CIO;
    BEGIN
       Serial.Dispose();
    END Dispose;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Run() : Sync.TAsyncResult;
+   BEGIN
+      Serial.Run();
+      RETURN Sync.arCompleted;
+   END Run;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Stop();
+   BEGIN
+      Serial.Stop();
+   END Stop;
 
 (*---------------------------------------------------------------------------*)
 
@@ -351,6 +374,13 @@ CLASS IMPLEMENTATION CMideaDevice;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC FINAL PROPERTY Library GET : objlib.TPLibrary;
+   BEGIN
+      RETURN SUPER.Library;
+   END Library;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC FINAL PROPERTY Library SET( Value : objlib.TPLibrary );
    BEGIN
       SUPER.Library := Value;
@@ -358,11 +388,10 @@ CLASS IMPLEMENTATION CMideaDevice;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROCEDURE Release();
+   PUBLIC FINAL PROCEDURE Dispose();
    BEGIN
-      Dispose();
-      SUPER.Release();
-   END Release;
+      _IO.Dispose();
+   END Dispose;
 
 (*---------------------------------------------------------------------------*)
 
@@ -380,36 +409,19 @@ CLASS IMPLEMENTATION CMideaDevice;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Dispose();
+	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF PTR; CONST log : Log.TPLogger ) : Sync.TAsyncResult;
    BEGIN
-      _IO.Dispose();
-   END Dispose;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE Init( COMDevice, File : ARRAY OF WCHAR; OUT ErrorString : ARRAY OF WCHAR ) : BOOLEAN;
-   BEGIN
-      RETURN _IO.Serial.Init( L"SS", COMDevice, L"SerialWin32.DLL", File, OUT ErrorString );
-   END Init;
+      IF _IO.Serial.Init( "COM", OAsz( PWCHAR( Source[0] )), L"SerialWin32.DLL", OAsz( PWCHAR( Source[1] )), log ) THEN
+         RETURN Sync.arCompleted;
+      ELSE
+         RETURN Sync.arCannotStart;
+      END;
+   END Configure;
    
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Run();
-   BEGIN
-      _IO.Serial.Run();
-   END Run;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE Stop();
-   BEGIN
-      _IO.Serial.Stop();
-   END Stop;
-
-(*---------------------------------------------------------------------------*)
-
 BEGIN FINALLY
-   Stop();
+   _IO.Stop();
    Dispose();
 END CMideaDevice;
 

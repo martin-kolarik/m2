@@ -81,6 +81,10 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+				RelativePath=".\Source\iface.def"
+				>
+			</File>
+			<File
 				RelativePath=".\Source\Midea.def"
 				>
 			</File>
@@ -90,6 +94,14 @@
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
+		</Filter>
+		<Filter
+			Name="Test"
+			>
+			<File
+				RelativePath=".\Test\CmdIface.mod"
+				>
+			</File>
 		</Filter>
 		<File
 			RelativePath=".\Midea.proj"

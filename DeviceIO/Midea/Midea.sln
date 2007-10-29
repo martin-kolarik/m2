@@ -13,6 +13,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Text", "..\..\Library\Text\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ClassLoader", "..\..\Library\ClassLoader\ClassLoader.vcproj", "{0AD95195-886F-46AE-88B3-76634C3B2E82}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SerialWin32", "..\..\Library\SerialWin32\SerialWin32.vcproj", "{937117D7-3971-4BBA-BC08-98E888F2D810}"
+EndProject
 Global
 	GlobalSection(TextTemplating) = postSolution
 		TextTemplating = 1
@@ -46,6 +48,10 @@ Global
 		{0AD95195-886F-46AE-88B3-76634C3B2E82}.Debug|Win32.Build.0 = Debug|Win32
 		{0AD95195-886F-46AE-88B3-76634C3B2E82}.Release|Win32.ActiveCfg = Release|Win32
 		{0AD95195-886F-46AE-88B3-76634C3B2E82}.Release|Win32.Build.0 = Release|Win32
+		{937117D7-3971-4BBA-BC08-98E888F2D810}.Debug|Win32.ActiveCfg = Debug|Win32
+		{937117D7-3971-4BBA-BC08-98E888F2D810}.Debug|Win32.Build.0 = Debug|Win32
+		{937117D7-3971-4BBA-BC08-98E888F2D810}.Release|Win32.ActiveCfg = Release|Win32
+		{937117D7-3971-4BBA-BC08-98E888F2D810}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,4 +1,4 @@
-MODULE iface;
+IMPLEMENTATION MODULE iface;
 
 (*===========================================================================*)
 
@@ -7,8 +7,7 @@ FROM Storage IMPORT
 
 IMPORT
    device,
-   Midea,
-   objlib;
+   Midea;
 
 (*===========================================================================*)
 
@@ -63,7 +62,7 @@ CLASS IMPLEMENTATION CCreator;
       IF NOT EQUALS( QName, nDeviceIO ) THEN
          RETURN objlib.lrClassNotFound;
       END;
-      Object := NEW( Midea.CMideaDevice );
+      Object := ADR( NEW( Midea.CMideaDevice )^.IDevice );
       RETURN objlib.lrSuccess;
    END OnFactory;
 
@@ -76,9 +75,7 @@ END CCreator;
 VAR
    Creator : CCreator;
 
-#save, call( convention => cdecl )
 PROCEDURE Factory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : objlib.TPObject ) : objlib.TResult;
-#restore
 BEGIN
    RETURN Creator.Factory( ClassPath, OUT Object );
 END Factory;

@@ -22,9 +22,8 @@
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
         <Components Include="modula2\modula2;api\clib;API\win32" />
-        <Components Include="component\sccore;library\ClassLoader;library\DeviceIO;library\serial"/>
-        <Modules Include="Midea"/>
-        <Program Include="iface"/>
+        <Components Include="component\sccore;library\ClassLoader;library\DeviceIO;library\serial;library\SerialWin32"/>
+        <Modules Include="Midea;iface"/>
         <!-- Messages Include="Texts"/ -->
     </ItemGroup>
 
