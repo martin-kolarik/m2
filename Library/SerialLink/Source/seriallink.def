@@ -136,7 +136,7 @@ CONST
   propDWORD   = 1;
   propSZ      = 2;
 
-(*# save, option( dll_export=>on ) *)
+(*# save, option( dll_export=>off ) *)
 // property id names & types ---
 // cathegory: common
   pnameVersion              = C'version';                 ptypeVersion              = propDWORD; // MSB to LSB: Major(8).Minor(8).Release(8).zero(8) 
