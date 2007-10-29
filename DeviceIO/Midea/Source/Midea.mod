@@ -32,25 +32,42 @@ TYPE
       tt4 = 0CDH
    );
    
-   TFanSpeed = CARD8(
-      fsNormal,
-      fsMiddle,
-      fsLow
+   TModeItem = CARD8(
+      mdFan = 0,
+      mdHeat = 2,
+      mdCool = 3,
+      mdLock = 7
    );
+   TMode = SET CARD8 OF TModeItem;
+   
+   TFanSpeedItem = CARD8(
+      fsNormal = 0,
+      fsMiddle = 1,
+      fsLow = 2,
+      fsAuto = 7
+   );
+   TFanSpeed = SET CARD8 OF TFanSpeedItem;
+   
+   TAuxItem = CARD8(
+      aiSwingOn = 2
+   );
+   TAux = SET CARD8 OF TAuxItem;
 
 #save, option( pack => 1 )
 TYPE
    TOutPacket = RECORD
-      Telegram : TTelegramType;
-      Target   : CARD16;
-      Source   : CARD16;
-      Mode     : CARD8; // TMode
-      FanSpeed : TFanSpeed;
-      TS       : CARD8;
-      TimerOn  : CARD8;
-      TimerOff : CARD8;
-      Aux      : CARD8;
-      Save     : CARD8;
+      Telegram  : TTelegramType;
+      Target    : CARD16;
+      Source    : CARD16;
+      Mode      : TMode;
+      FanSpeed  : TFanSpeed;
+      TS        : CARD8;
+      TimerOn   : CARD8;
+      TimerOff  : CARD8;
+      Aux       : TAux;
+      Save      : CARD8;
+      Recode    : CARD8;
+      CheckCode : CARD8;
    END; // RECORD
    TPOutPacket = POINTER TO TOutPacket;
    
@@ -76,9 +93,23 @@ TYPE
       OutdoorStatus : CARD8;
       Aux           : CARD16;
       ACError       : CARD16;
+      CheckCode     : CARD8;
    END; // RECORD
    TPInPacket = POINTER TO TInPacket;
 #restore
+
+(*===========================================================================*)
+
+CLASS CNSI( nsitem.CnsItem );
+   LOCAL VAR
+      Target : WORD := 0;
+END CNSI;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CNSI;
+BEGIN
+END CNSI;
 
 (*===========================================================================*)
 
@@ -95,7 +126,7 @@ CLASS IMPLEMENTATION CNS;
 
    INTERNAL VIRTUAL PROCEDURE CreateStructure();
    VAR
-      AC, CCM, D, I : nsitem.TPnsItem;
+      AC, CCM, D, I : TPNSI;
       i, j : CARDINAL;
       s : ARRAY [0..31] OF WCHAR;
    BEGIN
@@ -106,7 +137,7 @@ CLASS IMPLEMENTATION CNS;
 
       CCM := NewItem( L"Common", ns.ntName, iovalue.vtString, 0 ); D^.AddChild( CCM );
 
-      I := NewItem( L"Fan", ns.ntValue, iovalue.vtString, 0 ); CCM^.AddChild( I );
+      I := NewItem( L"Fan", ns.ntValue, iovalue.vtString, 0 ); CCM^.AddChild( I ); I^.Target := 0FFFFH;
       
       FOR i := 0 TO 15 DO // CCM
          Strings.FromCARD32W( i, 10, OUT s );
@@ -119,16 +150,16 @@ CLASS IMPLEMENTATION CNS;
             AC := NewItem( s, ns.ntName, iovalue.vtString, 0 ); CCM^.AddChild( AC );
 
             I := NewItem( L"Connected", ns.ntValue, iovalue.vtBoolean, 0 ); AC^.AddChild( I );
-            I := NewItem( L"Fan", ns.ntValue, iovalue.vtString, 0 ); AC^.AddChild( I );
+            I := NewItem( L"Fan", ns.ntValue, iovalue.vtString, 0 ); AC^.AddChild( I ); I^.Target := WORD( i << 8 + j );
          END; // FOR j
       END; // FOR i
    END CreateStructure;
 
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE NewItem( CONST Name : ARRAY OF WCHAR; NType : ns.TNameType; VType : iovalue.TValueType; Data : PTR ) : nsitem.TPnsItem;
+   PRIVATE PROCEDURE NewItem( CONST Name : ARRAY OF WCHAR; NType : ns.TNameType; VType : iovalue.TValueType; Data : PTR ) : TPNSI;
    VAR
-      R : nsitem.TPnsItem;
+      R : TPNSI;
    BEGIN
       NEW( R )^.Init( Name, ConstNames, NType, VType, Data );
       RETURN R;
@@ -207,8 +238,8 @@ CLASS IMPLEMENTATION CSerial;
 
 BEGIN
    PIO := NIL;
-   SetInBoundaryStrings( WCHAR( 0AAH ), WCHAR( 055H ));
-   SetOutBoundaryStrings( WCHAR( 0AAH ), WCHAR( 055H ));
+   SetInBoundaryStrings( CHAR( 0AAH ), CHAR( 055H ));
+   SetOutBoundaryStrings( CHAR( 0AAH ), CHAR( 055H ));
 END CSerial;
 
 (*===========================================================================*)
@@ -280,8 +311,19 @@ CLASS IMPLEMENTATION CIO;
       _Item := Item;
       _DataInfo := DataInfo;
 
-      Packet.Source := 08080H;;
+      Packet.Source := 08080H;
       WITH Packet DO
+         Telegram := ttSet;
+         Target := TPNSI( _Item )^.Target;
+
+         Mode := TMode{};
+         FanSpeed := TFanSpeed{fsNormal};
+         TS := 0;
+         TimerOn := 0;
+         TimerOff := 0;
+         Aux := TAux{};
+         Save := 0;
+         Recode := 0FFH - CARD8( Telegram );
       END; // WITH
       
       Serial.Tx( Packet, FALSE, 1, 150, 500 );

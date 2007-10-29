@@ -27,11 +27,14 @@ TYPE
 
 (*---------------------------------------------------------------------------*)
 
+TYPE
+   TPNSI = POINTER TO CNSI;
+
 CLASS CNS( nsitem.Ans );
    INTERNAL VIRTUAL PROCEDURE CreateRoot() : ns.TPnsItem;
    INTERNAL VIRTUAL PROCEDURE CreateStructure();
 
-   PRIVATE PROCEDURE NewItem( CONST Name : ARRAY OF WCHAR; NType : ns.TNameType; VType : iovalue.TValueType; Data : PTR ) : nsitem.TPnsItem;
+   PRIVATE PROCEDURE NewItem( CONST Name : ARRAY OF WCHAR; NType : ns.TNameType; VType : iovalue.TValueType; Data : PTR ) : TPNSI;
 END CNS;
 
 (*---------------------------------------------------------------------------*)
@@ -51,7 +54,6 @@ END CSerial;
 (*---------------------------------------------------------------------------*)
 
 TYPE
-   TPNSI = POINTER TO CNSI;
    TPPacket = POINTER TO TInPacket;
 
 CLASS CIO( io.AItemizedIO );
