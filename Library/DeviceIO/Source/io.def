@@ -45,10 +45,14 @@ TYPE
 
 INTERFACE IIO;
    READONLY PROPERTY
-      Pending : BOOLEAN;
       Capabilities : TCapabilities;
+      Pending : BOOLEAN;
+      Running : BOOLEAN;
    PROPERTY
       Advise : TAdvise;
+
+   PROCEDURE Run() : Sync.TAsyncResult;
+   PROCEDURE Stop();
 
    PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
    PROCEDURE IOha( Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;

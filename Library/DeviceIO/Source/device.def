@@ -3,6 +3,7 @@ DEFINITION MODULE device;
 IMPORT
    objlib,
 	io,
+	log,
 	ns;
 
 (*---------------------------------------------------------------------------*)
@@ -13,6 +14,7 @@ TYPE
 INTERFACE IDevice( objlib.IObject ); // aka device driver
 	PROCEDURE NS() : ns.TPns;
 	PROCEDURE IO() : io.TPIO;
+	PROCEDURE Configure( CONST Source : ARRAY OF PTR; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
 END IDevice;
 
 (*---------------------------------------------------------------------------*)

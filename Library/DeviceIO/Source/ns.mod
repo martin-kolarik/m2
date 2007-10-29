@@ -171,14 +171,14 @@ CLASS IMPLEMENTATION Ans;
 		// Root, the first item must be handled separatelly
 		item := Root;
 		i := Strings.ItemSW( Name, Strings.WCHARS{L'.'}, 0, 0, TRUE, OUT s );
-		IF i = -1 THEN
+		IF s[0] = 0W THEN
 			RETURN FALSE;
 		ELSIF NOT item^.Name^.EqualsOA( s ) THEN
 			RETURN FALSE;
 		END;
 		LOOP
 			i := Strings.ItemSW( Name, Strings.WCHARS{L'.'}, i, 0, TRUE, OUT s );
-			IF i = -1 THEN
+			IF s[0] = 0W THEN
 				EXIT;
 			ELSIF NOT item^.GetOA( s, OUT item ) THEN
 				RETURN FALSE;
