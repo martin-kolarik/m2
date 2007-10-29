@@ -87,11 +87,12 @@ CLASS IMPLEMENTATION CSerialHandler;
 
 //---------------------------------------------------------
 
-	PUBLIC PROCEDURE Init( Name, Channel, Driver, Parameters : ARRAY OF WCHAR; OUT ErrorString : ARRAY OF WCHAR ) : BOOLEAN;
+	PUBLIC PROCEDURE Init( Name, Channel, Driver, Parameters : ARRAY OF WCHAR; CONST log : Log.TPLogger ) : BOOLEAN;
 	VAR
 		ChannelA, DriverA : ARRAY [0..63] OF CHAR;
 		ParametersA : FIO.PathStrA;
 		ErrorStringA : ARRAY [0..255] OF CHAR;
+		ErrorStringW : ARRAY [0..255] OF WCHAR;
 	BEGIN
 		SUPER.Init();
 		SELF.Name.FromOA( Name );
@@ -99,11 +100,17 @@ CLASS IMPLEMENTATION CSerialHandler;
 		Strings.ToA( Driver, 0, OUT DriverA );
 		Strings.ToA( Parameters, 0, OUT ParametersA );
 		IF SerialLink.OpenLinkEx( DriverA, ChannelA, ParametersA, FALSE, FALSE, ErrorStringA, ComLink, ComSession ) THEN
+			IF log <> NIL THEN
+   			log^.LogSS( Log.dlcInfo, L'', L'init success on ', Channel );
+			END;
 			Logger.LogSS( Log.dlpIO, L'', L'init success on ', Channel );
 			RETURN TRUE;
 		ELSE
-			Strings.ToW( ErrorStringA, 0, OUT ErrorString );
-			Logger.LogSSSS( Log.dlpIO, L'', L'init failed on ', Channel, L': ', ErrorString );
+			Strings.ToW( ErrorStringA, 0, OUT ErrorStringW );
+			IF log <> NIL THEN
+   			log^.LogSSSS( Log.dlcError, L'', L'init failed on ', Channel, L': ', ErrorStringW );
+			END;
+			Logger.LogSSSS( Log.dlpIO, L'', L'init failed on ', Channel, L': ', ErrorStringW );
 			RETURN FALSE;
 		END;
 	END Init;

@@ -77,7 +77,7 @@ CLASS CSerialHandler( msghandler.MessageHandler );
       ReadBack        : BOOLEAN;
       RxW             : BOOLEAN;
 
-   PUBLIC PROCEDURE Init( Name, Channel, Driver, Parameters : ARRAY OF WCHAR; OUT ErrorString : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC PROCEDURE Init( Name, Channel, Driver, Parameters : ARRAY OF WCHAR; CONST log : Log.TPLogger ) : BOOLEAN;
    PUBLIC PROCEDURE Dispose();
    
    PUBLIC PROCEDURE Run();
