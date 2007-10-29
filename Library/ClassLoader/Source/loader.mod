@@ -6,6 +6,8 @@ IMPORT
    StringsO,
    windows;
 
+(*===========================================================================*)
+
 TYPE
    TPLibrary = POINTER TO CLibrary;
 
@@ -13,12 +15,12 @@ CLASS CLibrary;
    LOCAL VAR
       Path : StringsO.CString;
       State : TState;
-      Loader : objlib.TPLoader;
+      Loader : TPLoader;
       RefCount : CARDINAL;
    PRIVATE VAR
       LibraryHandle : windows.HANDLE;
+      LibraryInfo : objlib.TPLibrary;
       Factory : objlib.TFactory;
-      Library : objlib.TPLibrary;
    LOCAL READONLY PROPERTY
       Name : StringsO.CString;
 
@@ -29,7 +31,11 @@ CLASS CLibrary;
    PRIVATE PROCEDURE UnloadLibrary();
 END CLibrary;
 
+(*===========================================================================*)
+
 CLASS IMPLEMENTATION CLibrary;
+
+(*---------------------------------------------------------------------------*)
 
    LOCAL PROPERTY Name GET : StringsO.CString;
    VAR
@@ -37,9 +43,12 @@ CLASS IMPLEMENTATION CLibrary;
       S : StringsO.CString;
    BEGIN
       FIO.PathTailW( OA( Path.Length-1, Path.rawData ), OUT FileName );
+      FIO.ChangeExtensionW( REF FileName, L"" );
       S.FromOA( FileName );
       RETURN S;
    END Name;
+
+(*---------------------------------------------------------------------------*)
 
    LOCAL PROCEDURE CreateObject( CONST ClassName : ARRAY OF WCHAR; OUT Object : objlib.TPObject ) : objlib.TResult;
    VAR
@@ -58,15 +67,20 @@ CLASS IMPLEMENTATION CLibrary;
       RETURN Result;
    END CreateObject;
 
+(*---------------------------------------------------------------------------*)
+
    LOCAL PROCEDURE ReleaseObject( Object : objlib.TPObject );
    BEGIN
       ASSERT(( LibraryHandle <> NIL ) AND ( RefCount > 0 ));
+      Object^.Dispose();
       DEC( RefCount );
-      IF RefCount = 0 THEN
+      IF RefCount = 1 THEN // the last one is LibraryInfo
          UnloadLibrary();
       END;
    END ReleaseObject;
    
+(*---------------------------------------------------------------------------*)
+
    PRIVATE PROCEDURE LoadLibrary() : objlib.TResult;
    VAR
       EM : CARDINAL;
@@ -80,30 +94,33 @@ CLASS IMPLEMENTATION CLibrary;
          RETURN objlib.lrLibraryNotFound;
       END;
 
-      Factory := windows.GetProcAddress( LibraryHandle, C"_Factory" );
+      Factory := windows.GetProcAddress( LibraryHandle, C"Factory" );
       IF Factory = NIL THEN
          UnloadLibrary();
          RETURN objlib.lrLibraryFoundButIsUnloadable;
       END;
-      Result := Factory( objlib.nLibrary, OUT Library );
-      IF Result <> objlib.lrSuccess THEN
+      Result := Factory( objlib.nLibrary, OUT LibraryInfo );
+      IF Result = objlib.lrSuccess THEN
+         INC( RefCount );
+      ELSE
          UnloadLibrary();
          RETURN objlib.lrLibraryFoundButIsUnloadable;
       END;
 
-      Library^.Loader := Loader;
-      Library^.HostInfo( ProductId, ProductVersion );
+      LibraryInfo^.HostInfo( Loader, ADR( SELF ), OA( Loader^.Host^.Length-1, Loader^.Host^.rawData ), OA( Loader^.HostVersionString^.Length-1, Loader^.HostVersionString^.rawData ));
 
       RETURN objlib.lrSuccess;
    END LoadLibrary;
    
+(*---------------------------------------------------------------------------*)
+
    PRIVATE PROCEDURE UnloadLibrary();
    BEGIN
-      ASSERT( RefCount = 0 );
       IF LibraryHandle <> NIL THEN
-         IF Library <> NIL THEN
-            Library^.Release();
-            Library := NIL;
+         ASSERT(( RefCount = 1 ) OR ( LibraryInfo = NIL )); // the last one is LibraryInfo, LibraryInfo = NIL in case of unloadability of library
+
+         IF LibraryInfo <> NIL THEN
+            ReleaseObject( LibraryInfo );
          END;
          windows.FreeLibrary( LibraryHandle );
          LibraryHandle := NIL;
@@ -111,16 +128,46 @@ CLASS IMPLEMENTATION CLibrary;
       END;
    END UnloadLibrary;
 
+(*---------------------------------------------------------------------------*)
+
 BEGIN
    State := TState{lsEnabled};
    Loader := NIL;
    RefCount := 0;
    LibraryHandle := NIL;
+   LibraryInfo := NIL;
    Factory := NIL;
-   Library := NIL;
+FINALLY
+   UnloadLibrary();
 END CLibrary;
 
+(*===========================================================================*)
+
 CLASS IMPLEMENTATION CLoader;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Host GET : StringsO.TPString;
+   BEGIN
+      RETURN ADR( _Host );
+   END Host;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY HostVersionString GET : StringsO.TPString;
+   BEGIN
+      RETURN ADR( _HostVersionString );
+   END HostVersionString;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SetHostInfo( CONST Host, HostVersionString : ARRAY OF WCHAR );
+   BEGIN
+      SELF._Host.FromOA( Host );
+      SELF._HostVersionString.FromOA( HostVersionString );
+   END SetHostInfo;
+
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE AddLibrary( CONST LibraryPath : ARRAY OF WCHAR ) : objlib.TResult;
    VAR
@@ -131,12 +178,14 @@ CLASS IMPLEMENTATION CLoader;
       IF NOT LookupLibrary( LPath, OUT Library ) THEN
          NEW( Library );
          Library^.Path.FromOA( LPath );
-         Library^.Loader := ADR( ILoader );
+         Library^.Loader := ADR( SELF );
          Libraries.Add( Library, 0 );
       END;
       BuildNames();
       RETURN objlib.lrSuccess;
    END AddLibrary;
+
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE RemoveLibrary( CONST LibraryPath : ARRAY OF WCHAR );
    VAR
@@ -155,15 +204,21 @@ CLASS IMPLEMENTATION CLoader;
       BuildNames();
    END RemoveLibrary;
 
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE EnumerateLibraryClasses( REF EnumerateState : PTR; CONST LibraryPath : ARRAY OF WCHAR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END EnumerateLibraryClasses;
 
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE ScanPath( CONST Path, LibraryNamePattern : ARRAY OF WCHAR; OUT Found : CARDINAL ) : objlib.TResult;
    BEGIN
       RETURN objlib.lrSuccess;
    END ScanPath;
+
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE DisableLibrary( CONST LibraryPath : ARRAY OF WCHAR );
    VAR
@@ -177,6 +232,8 @@ CLASS IMPLEMENTATION CLoader;
       END;
    END DisableLibrary;
    
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE EnableLibrary( CONST LibraryPath : ARRAY OF WCHAR );
    VAR
       Library : TPLibrary;
@@ -189,15 +246,21 @@ CLASS IMPLEMENTATION CLoader;
       END;
    END EnableLibrary;
 
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE EnumerateLibraries( REF EnumerateState : PTR; OUT LibraryPath : ARRAY OF WCHAR; OUT State : TState ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END EnumerateLibraries;
 
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE EnumerateClasses( REF EnumerateState : PTR; CONST LibraryName : ARRAY OF WCHAR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END EnumerateClasses;
+
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE CreateObject( CONST ClassPath : ARRAY OF WCHAR; OUT Object : objlib.TPObject ) : objlib.TResult;
    VAR
@@ -216,7 +279,24 @@ CLASS IMPLEMENTATION CLoader;
       END;
    END CreateObject;
 
-   LOCAL PROCEDURE Dispose();
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ReleaseObject( REF Object : objlib.TPObject );
+   BEGIN
+      IF ( Object = NIL ) OR ( Object^.Library = NIL ) THEN
+         ASSERT( FALSE );
+         RETURN;
+      ELSIF Object^.Library^.Loader <> ADR( SELF ) THEN
+         ASSERT( FALSE );
+         RETURN;
+      END;
+      TPLibrary( Object^.Library^.LoaderLibraryHandle )^.ReleaseObject( Object );
+      Object := NIL;
+   END ReleaseObject;
+   
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Dispose();
    VAR
       Library : TPLibrary;
    BEGIN
@@ -226,14 +306,11 @@ CLASS IMPLEMENTATION CLoader;
          ASSERT( Library^.RefCount = 0 );
          DISPOSE( Library );
       END; // WHILE
+      Libraries.Dispose();
       Names.Dispose();
    END Dispose;
 
-   // ILoader
-   LOCAL VIRTUAL PROCEDURE ReleaseObject( LibraryHandle : PTR; Object : objlib.TPObject );
-   BEGIN
-      TPLibrary( LibraryHandle )^.ReleaseObject( Object );
-   END ReleaseObject;
+(*---------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE LookupLibrary( CONST LibraryPath : ARRAY OF WCHAR; OUT Library : ADDRESS ) : BOOLEAN;
    BEGIN
@@ -247,14 +324,32 @@ CLASS IMPLEMENTATION CLoader;
       RETURN FALSE;
    END LookupLibrary;
    
+(*---------------------------------------------------------------------------*)
+
    PRIVATE PROCEDURE BuildNames();
+   VAR
+      Library : TPLibrary;
    BEGIN
-     // TODO
+      Names.Dispose();
+      Libraries.Reset();
+      WHILE Libraries.MoveNext() DO
+         Library := TPLibrary( Libraries.Current );
+         IF ( lsEnabled IN Library^.State ) AND NOT Names.Contains( Library^.Name ) THEN
+            Names.Add( Library^.Name, Library );
+         END;
+      END; // WHILE
    END BuildNames;
 
-BEGIN FINALLY
+(*---------------------------------------------------------------------------*)
+
+BEGIN
+   _Host.FromOA( ProductId );
+   _HostVersionString.FromOA( ProductVersion );
+FINALLY
    Dispose();
 END CLoader;
+
+(*===========================================================================*)
 
 // global loader
 VAR
@@ -267,6 +362,8 @@ BEGIN
    END;
    RETURN PLoader;
 END ldr;
+
+(*---------------------------------------------------------------------------*)
 
 BEGIN FINALLY
    IF PLoader <> NIL THEN

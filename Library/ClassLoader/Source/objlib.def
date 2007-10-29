@@ -9,13 +9,8 @@ IMPORT
 (*===========================================================================*)
 
 TYPE
-   TPLoader = POINTER TO ILoader;
    TPLibrary = POINTER TO ILibrary;
    TPObject = POINTER TO IObject;
-
-INTERFACE ILoader;
-   LOCAL PROCEDURE ReleaseObject( LibraryHandle : PTR; Object : TPObject );
-END ILoader;
 
 (*---------------------------------------------------------------------------*)
 
@@ -44,9 +39,9 @@ TYPE
 INTERFACE IObject;
    READONLY PROPERTY
       Type : TObjectType;
-   WRITEONLY PROPERTY
+   PROPERTY
       Library : TPLibrary;
-   PROCEDURE Release();
+   PROCEDURE Dispose();
 END IObject;
 
 (*---------------------------------------------------------------------------*)
@@ -62,15 +57,14 @@ TYPE
    END; // RECORD
 
 INTERFACE ILibrary( IObject );
-   PROPERTY
-      Loader : TPLoader;
-      LibraryHandle : PTR;
+   READONLY PROPERTY
+      Loader : ADDRESS;
+      LoaderLibraryHandle : PTR;
+
+   PROCEDURE HostInfo( Loader : ADDRESS; LoaderLibraryHandle : PTR; CONST Host, HostVersionString : ARRAY OF WCHAR ); // usually product id/product version
 
    PROCEDURE LibraryInfo( OUT Library, LibraryVersionString : ARRAY OF WCHAR ); // usually product id/product version
-   PROCEDURE HostInfo( CONST Host, HostVersionString : ARRAY OF WCHAR ); // usually product id/product version
-
    PROCEDURE EnumerateClasses( REF EnumerateState : PTR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
-
    PROCEDURE GetLECData( OUT cllvData : TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
 END ILibrary;
 
@@ -80,9 +74,9 @@ END ILibrary;
 ABSTRACT CLASS AObject IMPLEMENTS IObject;
    PRIVATE VAR
       _Library : TPLibrary;
-   PUBLIC VIRTUAL WRITEONLY PROPERTY
+   PUBLIC VIRTUAL PROPERTY
       Library : TPLibrary;
-   PUBLIC VIRTUAL PROCEDURE Release();
+   PUBLIC VIRTUAL PROCEDURE Dispose(); // aka destructor
 END AObject;
 
 (*---------------------------------------------------------------------------*)
@@ -92,21 +86,19 @@ ABSTRACT CLASS ACreator( AObject ) IMPLEMENTS ILibrary;
    // IObject/ILibrary
    PUBLIC VIRTUAL READONLY PROPERTY
       Type : TObjectType;
-   PUBLIC FINAL WRITEONLY PROPERTY
-      Library : TPLibrary;
-   PUBLIC FINAL PROCEDURE Release();
-
-   LOCAL VAR
-      _Loader : TPLoader;
-      _Handle : PTR;
    PUBLIC FINAL PROPERTY
-      Loader : TPLoader;
-      LibraryHandle : PTR;
+      Library : TPLibrary;
+   PUBLIC FINAL PROCEDURE Dispose();
 
    LOCAL VAR
+      _Loader : ADDRESS;
+      _LoaderLibraryHandle : PTR;
       _Host : StringsO.CString;
       _HostVersion : StringsO.CString;
-   PUBLIC FINAL PROCEDURE HostInfo( CONST Host, HostVersionString : ARRAY OF WCHAR ); // usually product id/product version
+   PUBLIC FINAL READONLY PROPERTY
+      Loader : ADDRESS;
+      LoaderLibraryHandle : PTR;
+   PUBLIC FINAL PROCEDURE HostInfo( Loader : ADDRESS; LoaderLibraryHandle : PTR; CONST Host, HostVersionString : ARRAY OF WCHAR ); // usually product id/product version
 
    // ACreator
    ABSTRACT PROCEDURE OnFactory( CONST QName : ARRAY OF WCHAR; OUT Object : TPObject ) : TResult;

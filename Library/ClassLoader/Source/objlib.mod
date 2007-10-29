@@ -6,6 +6,13 @@ CLASS IMPLEMENTATION AObject;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROPERTY Library GET : TPLibrary;
+   BEGIN
+      RETURN _Library;
+   END Library;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROPERTY Library SET( Value : TPLibrary );
    BEGIN
       _Library := Value;
@@ -13,18 +20,9 @@ CLASS IMPLEMENTATION AObject;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Release();
-   VAR
-      self1 : ADDRESS := ADR( SELF );
-      self2 : ADDRESS := ADR( SELF );
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    BEGIN
-      IF Type = otEphemeral THEN
-         DISPOSE( self1 );
-      END;
-      IF _Library <> NIL THEN
-         _Library^.Loader^.ReleaseObject( _Library^.LibraryHandle, self2 );
-      END;
-   END Release;
+   END Dispose;
 
 (*---------------------------------------------------------------------------*)
 
@@ -45,6 +43,13 @@ CLASS IMPLEMENTATION ACreator;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC FINAL PROPERTY Library GET : TPLibrary;
+   BEGIN
+      RETURN SUPER.Library;
+   END Library;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC FINAL PROPERTY Library SET( Value : TPLibrary );
    BEGIN
       SUPER.Library := Value;
@@ -52,43 +57,31 @@ CLASS IMPLEMENTATION ACreator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROCEDURE Release();
+   PUBLIC FINAL PROCEDURE Dispose();
    BEGIN
-      SUPER.Release();
-   END Release;
+      SUPER.Dispose();
+   END Dispose;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Loader GET : TPLoader;
+   PUBLIC FINAL PROPERTY Loader GET : ADDRESS;
    BEGIN
       RETURN _Loader;
    END Loader;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Loader SET( Value : TPLoader );
+   PUBLIC FINAL PROPERTY LoaderLibraryHandle GET : PTR;
    BEGIN
-      _Loader := Value;
-   END Loader;
+      RETURN _LoaderLibraryHandle;
+   END LoaderLibraryHandle;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY LibraryHandle GET : PTR;
+   PUBLIC FINAL PROCEDURE HostInfo( Loader : ADDRESS; LoaderLibraryHandle : PTR; CONST Host, HostVersionString : ARRAY OF WCHAR ); // usually product id/product version
    BEGIN
-      RETURN _Handle;
-   END LibraryHandle;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC FINAL PROPERTY LibraryHandle SET( Value : PTR );
-   BEGIN
-      _Handle := Value;
-   END LibraryHandle;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC FINAL PROCEDURE HostInfo( CONST Host, HostVersionString : ARRAY OF WCHAR ); // usually product id/product version
-   BEGIN
+      _Loader := Loader;
+      _LoaderLibraryHandle := LoaderLibraryHandle;
       _Host.FromOA( Host );
       _HostVersion.FromOA( HostVersionString );
    END HostInfo;
@@ -115,7 +108,7 @@ CLASS IMPLEMENTATION ACreator;
 
 BEGIN
    _Loader := NIL;
-   _Handle := NIL;
+   _LoaderLibraryHandle := NIL;
 END ACreator;
 
 (*===========================================================================*)

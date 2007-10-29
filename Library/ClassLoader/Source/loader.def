@@ -8,6 +8,8 @@ IMPORT
    maps,
    objlib;
 
+(*===========================================================================*)
+
 TYPE
    TStateItem = (
       lsEnabled
@@ -17,10 +19,19 @@ TYPE
 TYPE
    TPLoader = POINTER TO CLoader;
    
-CLASS CLoader IMPLEMENTS objlib.ILoader;
+(*---------------------------------------------------------------------------*)
+
+CLASS CLoader;
    PRIVATE VAR
       Libraries : lists.CPtrList;
       Names : maps.CStringMap;
+      _Host : StringsO.CString;
+      _HostVersionString : StringsO.CString;
+   PUBLIC READONLY PROPERTY
+      Host : StringsO.TPString;
+      HostVersionString : StringsO.TPString;
+      
+   PUBLIC PROCEDURE SetHostInfo( CONST Host, HostVersionString : ARRAY OF WCHAR );
 
    PUBLIC PROCEDURE AddLibrary( CONST LibraryPath : ARRAY OF WCHAR ) : objlib.TResult;
    PUBLIC PROCEDURE RemoveLibrary( CONST LibraryPath : ARRAY OF WCHAR );
@@ -34,18 +45,20 @@ CLASS CLoader IMPLEMENTS objlib.ILoader;
    PUBLIC PROCEDURE EnumerateClasses( REF EnumerateState : PTR; CONST LibraryName : ARRAY OF WCHAR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
    
    PUBLIC PROCEDURE CreateObject( CONST ClassPath : ARRAY OF WCHAR; OUT Object : objlib.TPObject ) : objlib.TResult;
+   PUBLIC PROCEDURE ReleaseObject( REF Object : objlib.TPObject );
    
-   LOCAL PROCEDURE Dispose();
-
-   // ILoader
-   LOCAL VIRTUAL PROCEDURE ReleaseObject( LibraryHandle : PTR; Object : objlib.TPObject );
+   PUBLIC PROCEDURE Dispose();
    
    // helpers
    PRIVATE PROCEDURE LookupLibrary( CONST LibraryPath : ARRAY OF WCHAR; OUT Library : ADDRESS ) : BOOLEAN;
    PRIVATE PROCEDURE BuildNames();
 END CLoader;
 
+(*===========================================================================*)
+
 // global loader
 PROCEDURE ldr() : TPLoader;
+
+(*===========================================================================*)
 
 END loader.
