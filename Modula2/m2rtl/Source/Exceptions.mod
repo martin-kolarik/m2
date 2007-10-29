@@ -8,7 +8,6 @@ IMPORT
 
 CLASS IMPLEMENTATION Exception;
 BEGIN
-	Code := 0;
 END Exception;
 
 //--------------------------------------------------------------------------------
@@ -50,6 +49,9 @@ CLASS IMPLEMENTATION CException;
       ASSIGN( S, EMITW( %class ));
    END Name;
 
+BEGIN
+   Text := L"";
+   Originator := L"";
 END CException;
 
 //--------------------------------------------------------------------------------

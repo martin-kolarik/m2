@@ -404,6 +404,7 @@ TYPE
     eoReferenced,
     eoInitialized,
       eoClassInitialized, // specially set for class variables
+      eoClassInitializedVariables,
     eoMovedToFrame, // variable became part of frame
     eoForwarded, // type or constant was moved to forwad place
     eoForward, // symbol is forward

@@ -23,13 +23,10 @@ END CDataInfo;
 CLASS IMPLEMENTATION CDataInfo;
 
   PUBLIC VIRTUAL PROCEDURE OnIO( Direction : IOO.TDirection; Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
-  VAR
-     S : StringsO.CString;
   BEGIN
       tw^.Write( nsitem.TPnsItem( Item[0] )^.Name^, FALSE ); tw^.WriteOA( L": ", FALSE );
 		IF Direction = IOO.dirRead THEN
-		   // S := Value[0].String; TODO m2
-		   tw^.Write( S, TRUE );
+		   tw^.Write( Value[0].String, TRUE );
 		ELSE
 		   tw^.WriteOA( L"OK", TRUE );
 		END;

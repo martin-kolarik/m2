@@ -990,7 +990,7 @@ ntVariableDeclaration<DLLInterface : BOOLEAN; UK : DOM.TUnitKind; SK : DOM.TSymb
                                                            (.  CASE UK OF
                                                                | DOM.ukSimpleVarDecl :
                                                                | DOM.ukClassVarDecl :
-                                                                   // SemErr( err._UnableToInitializeClassVar );
+                                                                   INCL( c^.SStack.CurC^.Options, DOM.eoClassInitializedVariables );
                                                                | DOM.ukPropertyDef :
                                                                    SemErr( err._UnableToInitializeClassProperty );
                                                                ELSE
@@ -1069,14 +1069,18 @@ ntClassDeclaration                                         (. Class : DOM.CClass
                                                                 ClassDecl^.OfClass := ADR( Class );
                                                               END; .)
     WEAK semicolon
-    ntClassDeclarations<ClassDecl>                         (. INCL( c^.Options, DOM.eoClassInitialized ); .)
-    ntISOInitializationFinalization<DOM.ukClassInitCode, DOM.ukClassFinalCode, ClassDecl^.InitCode, ClassDecl^.FinalCode, ClassDecl^.OfClass, ClassDecl>
+      ntClassDeclarations<ClassDecl>                       (. INCL( c^.Options, DOM.eoClassInitialized ); .)
+      ntISOInitializationFinalization<DOM.ukClassInitCode, DOM.ukClassFinalCode, ClassDecl^.InitCode, ClassDecl^.FinalCode, ClassDecl^.OfClass, ClassDecl>
+    SYNC kwEND
                                                            (. EXCL( c^.Options, DOM.eoClassInitialized );
                                                               IF b THEN
+                                                                IF ( ClassDecl^.InitCode = NIL ) AND ( DOM.eoClassInitializedVariables IN ClassDecl^.OfClass^.Options ) THEN
+                                                                   SemErr( err._NoInitCodeForClassVariables );
+                                                                END;                                                                
                                                                 ClassDecl^.OfClass^.ImplementationState := DOM.isImplementedA;
                                                                 c^.LeaveSymbols( FALSE );
                                                               END; .)
-    SYNC kwEND ntIdExpect<ClassDecl^.OfClass, FALSE>       (. c^.LeaveUnit();
+    ntIdExpect<ClassDecl^.OfClass, FALSE>                  (. c^.LeaveUnit();
                                                               IF b THEN
                                                                  ClassDecl^.OfClass^.CheckImplementationSemantics( c );
                                                               END; .)

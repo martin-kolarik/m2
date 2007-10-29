@@ -22,6 +22,7 @@ CLASS IMPLEMENTATION CIOException;
       ASSIGN( S, EMITW( %class ));
    END Name;
 
+BEGIN
 END CIOException;
 
 (*--------------------------------------------------------------------------------*)

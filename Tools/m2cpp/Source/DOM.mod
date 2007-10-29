@@ -8606,6 +8606,7 @@ CLASS IMPLEMENTATION CDesignator;
     b : BOOLEAN;
     OAFlag : BOOLEAN := FALSE;
     FieldOfTypeFlag : BOOLEAN := FALSE;
+    formalFlag : BOOLEAN := FALSE;
 
     PROCEDURE LeakInfo( Push : BOOLEAN; Line : CARDINAL; SeparateLine : BOOLEAN );
     BEGIN
@@ -8641,8 +8642,17 @@ CLASS IMPLEMENTATION CDesignator;
     | dkOperator :
       CASE r.O OF
       | doIndexing :
-        L^.Generate( G, Cn );
-        IF NOT L^.T^.IsFormal() THEN // not formal type -- use it directly for
+        formalFlag := L^.T^.IsFormal();
+        IF formalFlag AND ( TPFormalType( L^.T )^.TypeModifier = tmCONST ) AND ( L^.r.DK = DOM.dkId ) AND ( L^.r.Id^.UnitKind = ukParamDef ) THEN
+          G^.OutS( L'((' );
+          L^.T^.T^.Generate( G, gcsCast );
+          G^.OutS( L'*)&' );
+          L^.Generate( G, Cn );
+          G^.OutS( L')' );
+        ELSE
+          L^.Generate( G, Cn );
+        END;
+        IF NOT formalFlag THEN // not formal type -- use it directly for
           LT := L^.T;
         ELSIF L^.T^.IsOpenArray() THEN // open array, use it directly too, there must no be any _
           LT := L^.T;
@@ -8677,7 +8687,6 @@ CLASS IMPLEMENTATION CDesignator;
         ELSIF L^.T^.IsFormal() AND ( TPFormalType( L^.T )^.TypeModifier = tmCONST ) THEN
           G^.OutS( L'((' );
           L^.T^.T^.Generate( G, gcsCast );
-          // Types.TADDRESS^.CheckAndGenerateCast( G, L^.T^.T, TRUE, CI );
           G^.OutS( L'*)&' );
           L^.Generate( G, Cn );
           G^.OutS( L')->' );

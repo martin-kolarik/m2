@@ -240,6 +240,9 @@
         <string name="_UnableToInitializeVar">
             <item>The variable cannot be initialized by this way</item>
         </string>
+        <string name="_NoInitCodeForClassVariables">
+            <item>Class defines no initialization code, there is no place where to initialize class variables. Create either implicit or explicit class initialization code.</item>
+        </string>
         <string name="_InstanceOfInterface">
             <item>Cannot create instance of interface</item>
         </string>

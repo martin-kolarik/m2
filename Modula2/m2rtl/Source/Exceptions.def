@@ -21,8 +21,8 @@ END Exception;
 
 CLASS CException( Exception );
    PUBLIC READONLY VAR
-      Text : ARRAY [0..255] OF WCHAR := L"";
-      Originator : ARRAY [0..255] OF WCHAR := L"";
+      Text : ARRAY [0..255] OF WCHAR;
+      Originator : ARRAY [0..255] OF WCHAR;
 
    PUBLIC PROCEDURE Init( NestedException : POINTER TO Exception; CONST Originator, Text : ARRAY OF WCHAR ) : CException;
    PUBLIC VIRTUAL PROCEDURE ToString( OUT S : ARRAY OF WCHAR );

@@ -365,7 +365,7 @@ CLASS IMPLEMENTATION CLogger;
 
 //---------------------------------------------------------
 
-  PRIVATE PROCEDURE Log( LoggedLevel : TDebugLevel; CONST Prefix, S : ARRAY OF WCHAR );
+  INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : TDebugLevel; CONST Prefix, S : ARRAY OF WCHAR );
   VAR
     dt : time.TDateTime;
     f : FIO.File;
