@@ -44,7 +44,7 @@ CONST // for common purposes
   dlcWarning  ::= dl3;
   dlcInfo     ::= dl4;
 
-CONST // for developing purposes
+CONST // for runtime
   dldError    ::= dl1;
   dldInfo     ::= dl2;
   dldTrace    ::= dl3;
@@ -89,7 +89,7 @@ CLASS CLogger;
   PUBLIC PROCEDURE LogExc( Level : TDebugLevel; Prefix : ARRAY OF WCHAR; CONST e : Exceptions.CException );
 
   PRIVATE INLINE PROCEDURE Filtered( Level : TDebugLevel ) : BOOLEAN;
-  PRIVATE PROCEDURE Log( LoggedLevel : TDebugLevel; CONST Prefix, S : ARRAY OF WCHAR );
+  INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : TDebugLevel; CONST Prefix, S : ARRAY OF WCHAR );
   PRIVATE PROCEDURE LoadByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN;
 END CLogger;
 
