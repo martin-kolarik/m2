@@ -8646,7 +8646,11 @@ CLASS IMPLEMENTATION CDesignator;
         IF formalFlag AND ( TPFormalType( L^.T )^.TypeModifier = tmCONST ) AND ( L^.r.DK = DOM.dkId ) AND ( L^.r.Id^.UnitKind = ukParamDef ) THEN
           G^.OutS( L'((' );
           L^.T^.T^.Generate( G, gcsCast );
-          G^.OutS( L'*)&' );
+          IF L^.T^.IsOpenArray() THEN
+            G^.OutS( L'*)' );
+          ELSE
+            G^.OutS( L'*)&' );
+          END;
           L^.Generate( G, Cn );
           G^.OutS( L')' );
         ELSE
