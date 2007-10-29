@@ -4,8 +4,11 @@ DEFINITION MODULE btools;
           o_a_copy=>off ),
     option( pack=>4 ) *)
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
-  windows;
+   windows;
 
 (* ================================================================ *)
 TYPE

@@ -939,7 +939,7 @@ CLASS IMPLEMENTATION CCommStream; (* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
 
     Scanner : INIFile.CINIFile;
 
-    i : INTEGER;
+    i, line : INTEGER;
     ok : BOOLEAN;
 
   LABEL
@@ -980,7 +980,7 @@ CLASS IMPLEMENTATION CCommStream; (* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
       ASSIGN( ErrorString, comm_.errCANNOT_INITIALIZE );
       GOTO Error;
     END;
-    IF Scanner.GetKeyStr( comm_.keyFILE, OUT cs ) THEN
+    IF Scanner.GetKeyStr( comm_.keyFILE, OUT line, OUT cs ) THEN
       cs.ToOA( OUT fn );
       IF Scanner.LoadPath( fn ) THEN
         IF NOT Scanner.SetSection( comm_.secCOMMPAR ) THEN
@@ -994,7 +994,7 @@ CLASS IMPLEMENTATION CCommStream; (* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
     END;
 
     IF Device[0] = 0W THEN
-      IF NOT Scanner.GetKeyStr( comm_.keyDEVICE, OUT cs ) THEN
+      IF NOT Scanner.GetKeyStr( comm_.keyDEVICE, OUT line, OUT cs ) THEN
         cs.ToOA( OUT s );
         ASSIGN( ErrorString, comm_.errMISSING_DEVICE );
         GOTO Error;
@@ -1067,7 +1067,7 @@ CLASS IMPLEMENTATION CCommStream; (* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
     END;
     ASSIGN( OpenedDev, s );
 
-    IF NOT Scanner.GetKeyStr( comm_.keyMODE, OUT cs ) THEN
+    IF NOT Scanner.GetKeyStr( comm_.keyMODE, OUT line, OUT cs ) THEN
       EXCL( CommState, comsHalfDuplex );
     ELSE
       cs.ToOA( OUT ss );
@@ -1083,10 +1083,10 @@ CLASS IMPLEMENTATION CCommStream; (* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
     END;
 
     PreKey := 0;
-    ok := Scanner.GetKeyInt( comm_.keyPREKEY, OUT PreKey );
-    ok := Scanner.GetKeyInt( comm_.keyHOLDKEY, OUT HoldKey );
+    ok := Scanner.GetKeyInt( comm_.keyPREKEY, OUT line, OUT PreKey );
+    ok := Scanner.GetKeyInt( comm_.keyHOLDKEY, OUT line, OUT HoldKey );
 
-    IF NOT Scanner.GetKeyStr( comm_.keyPRIORITY, OUT cs ) THEN
+    IF NOT Scanner.GetKeyStr( comm_.keyPRIORITY, OUT line, OUT cs ) THEN
       BasePriority := windows.THREAD_PRIORITY_NORMAL;
     ELSE
       cs.ToOA( OUT ss );
@@ -1111,17 +1111,17 @@ CLASS IMPLEMENTATION CCommStream; (* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
       END;
     END;
 
-    AutoReadPending := Scanner.GetKeyBool( comm_.keyAUTO_READ, OUT ok ) AND ok;
+    AutoReadPending := Scanner.GetKeyBool( comm_.keyAUTO_READ, OUT line, OUT ok ) AND ok;
 
   // windows internal buffers
     RxWinBufSize := 4096;
-    ok := Scanner.GetKeyInt( comm_.keyRX_BUFFER, OUT RxWinBufSize );
+    ok := Scanner.GetKeyInt( comm_.keyRX_BUFFER, OUT line, OUT RxWinBufSize );
     TxWinBufSize := 4096;
-    ok := Scanner.GetKeyInt( comm_.keyTX_BUFFER, OUT TxWinBufSize );
+    ok := Scanner.GetKeyInt( comm_.keyTX_BUFFER, OUT line, OUT TxWinBufSize );
 
   // Rx frame buffer
     c  := RxWinBufSize;
-    ok := Scanner.GetKeyInt( comm_.keyRX_FRAME_BUFFER, OUT c );
+    ok := Scanner.GetKeyInt( comm_.keyRX_FRAME_BUFFER, OUT line, OUT c );
     IF ok AND (c < 96) OR (c > 2*65536) THEN
       Strings.ConcatW( OUT ErrorString, comm_.errSETUP_FAILED_, comm_.keyRX_FRAME_BUFFER );
       GOTO Error;
@@ -1131,7 +1131,7 @@ CLASS IMPLEMENTATION CCommStream; (* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
 
   // Tx frame buffer
     c  := RxWinBufSize;
-    ok := Scanner.GetKeyInt( comm_.keyTX_FRAME_BUFFER, OUT c );
+    ok := Scanner.GetKeyInt( comm_.keyTX_FRAME_BUFFER, OUT line, OUT c );
     IF ok AND (c < 96) OR (c > 2*65536) THEN
       Strings.ConcatW( OUT ErrorString, comm_.errSETUP_FAILED_, comm_.keyTX_FRAME_BUFFER );
       GOTO Error;
@@ -1142,14 +1142,14 @@ CLASS IMPLEMENTATION CCommStream; (* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
   // protocol
     WITH CommDCB DO
       DCBlength         := SIZE(CommDCB);
-      ok := Scanner.GetKeyInt( comm_.keyBAUDRATE, OUT c );
+      ok := Scanner.GetKeyInt( comm_.keyBAUDRATE, OUT line, OUT c );
       BaudRate := windows.DWORD( c );
       IF NOT ok THEN
         Strings.ConcatW( OUT ErrorString, comm_.errMISSING_, comm_.keyBAUDRATE );
         GOTO Error;
       END;
       fBinary	        := windows.True;
-      IF NOT Scanner.GetKeyStr( comm_.keyPARITY, OUT cs ) THEN
+      IF NOT Scanner.GetKeyStr( comm_.keyPARITY, OUT line, OUT cs ) THEN
         fParity    := windows.True;
         Parity     := windows.NOPARITY; (* EVEN/MARK/NO/ODD/SPACE *)
       ELSE
@@ -1176,12 +1176,12 @@ CLASS IMPLEMENTATION CCommStream; (* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
         END;
       END;
 
-      b := Scanner.GetKeyBool( comm_.keyCTSFLOW, OUT ok ) AND ok;
+      b := Scanner.GetKeyBool( comm_.keyCTSFLOW, OUT line, OUT ok ) AND ok;
       fOutxCtsFlow := windows.DWORD( b );
-      b := Scanner.GetKeyBool( comm_.keyDSRFLOW, OUT ok ) AND ok;
+      b := Scanner.GetKeyBool( comm_.keyDSRFLOW, OUT line, OUT ok ) AND ok;
       fOutxDsrFlow := windows.DWORD( b );
 
-      IF NOT Scanner.GetKeyStr( comm_.keyDTRCONTROL, OUT cs ) THEN
+      IF NOT Scanner.GetKeyStr( comm_.keyDTRCONTROL, OUT line, OUT cs ) THEN
         fDtrControl   := windows.DTR_CONTROL_DISABLE; (*// DISABLE/ENABLE/HANDSHAKE *)
       ELSE
         cs.ToOA( OUT ss );
@@ -1204,7 +1204,7 @@ CLASS IMPLEMENTATION CCommStream; (* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
         END;
       END;
 
-      IF NOT Scanner.GetKeyStr( comm_.keyRTSCONTROL, OUT cs ) THEN
+      IF NOT Scanner.GetKeyStr( comm_.keyRTSCONTROL, OUT line, OUT cs ) THEN
         fRtsControl   := windows.RTS_CONTROL_DISABLE; (*// DISABLE/ENABLE/HANDSHAKE/TOGGLE *)
       ELSE
         cs.ToOA( OUT ss );
@@ -1228,7 +1228,7 @@ CLASS IMPLEMENTATION CCommStream; (* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
         END;
       END;
 
-      IF NOT Scanner.GetKeyStr( comm_.keyDSRSENSE, OUT cs ) THEN
+      IF NOT Scanner.GetKeyStr( comm_.keyDSRSENSE, OUT line, OUT cs ) THEN
         fDsrSensitivity   := windows.False;
       ELSE
         cs.ToOA( OUT ss );
@@ -1243,30 +1243,30 @@ CLASS IMPLEMENTATION CCommStream; (* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
         END;
       END;
 
-      b := Scanner.GetKeyBool( comm_.keyTX_CONT_ON_XOFF, OUT ok ) AND ok OR
-           Scanner.GetKeyBool( comm_.keyTX_CONT_ON_XOFF2, OUT ok ) AND ok;
+      b := Scanner.GetKeyBool( comm_.keyTX_CONT_ON_XOFF, OUT line, OUT ok ) AND ok OR
+           Scanner.GetKeyBool( comm_.keyTX_CONT_ON_XOFF2, OUT line, OUT ok ) AND ok;
       fTXContinueOnXoff := windows.DWORD( b );
-      b := Scanner.GetKeyBool( comm_.keyTX_XON_XOFF, OUT ok ) AND ok;
+      b := Scanner.GetKeyBool( comm_.keyTX_XON_XOFF, OUT line, OUT ok ) AND ok;
       fOutX := windows.DWORD( b );
-      b := Scanner.GetKeyBool( comm_.keyRX_XON_XOFF, OUT ok ) AND ok;
+      b := Scanner.GetKeyBool( comm_.keyRX_XON_XOFF, OUT line, OUT ok ) AND ok;
       fInX  := windows.DWORD( b );
 
-      ok := Scanner.GetKeyInt( comm_.keyXON_TRESH, OUT i );
+      ok := Scanner.GetKeyInt( comm_.keyXON_TRESH, OUT line, OUT i );
       IF ok THEN
         XonLim  := WORD(i);
       ELSE
         XonLim  := WORD(RxWinBufSize DIV 2);  // 50%
       END;
-      ok := Scanner.GetKeyInt( comm_.keyXOFF_TRESH, OUT i );
+      ok := Scanner.GetKeyInt( comm_.keyXOFF_TRESH, OUT line, OUT i );
       IF ok THEN
         XoffLim  := WORD(i);
       ELSE
         XoffLim  := WORD(RxWinBufSize * 8 DIV 10);  // 80%
       END;
 
-      b := Scanner.GetKeyBool( comm_.keyERR_XLAT, OUT ok ) AND ok;
+      b := Scanner.GetKeyBool( comm_.keyERR_XLAT, OUT line, OUT ok ) AND ok;
       fErrorChar := windows.DWORD( b );
-      b := Scanner.GetKeyBool( comm_.keyDISCARD_NULL, OUT ok ) AND ok;
+      b := Scanner.GetKeyBool( comm_.keyDISCARD_NULL, OUT line, OUT ok ) AND ok;
       fNull := windows.DWORD( b );
       
       fAbortOnError := windows.False;
@@ -1275,7 +1275,7 @@ CLASS IMPLEMENTATION CCommStream; (* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
       fDummy2       := 0;
       wReserved     := 0;
 
-      ok := Scanner.GetKeyInt( comm_.keyDATABITS, OUT i );
+      ok := Scanner.GetKeyInt( comm_.keyDATABITS, OUT line, OUT i );
       IF ok THEN
         ByteSize := BYTE(i);
       ELSE
@@ -1283,7 +1283,7 @@ CLASS IMPLEMENTATION CCommStream; (* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
         GOTO Error;
       END;
 
-      IF NOT Scanner.GetKeyStr( comm_.keySTOPBITS, OUT cs ) THEN
+      IF NOT Scanner.GetKeyStr( comm_.keySTOPBITS, OUT line, OUT cs ) THEN
         Strings.ConcatW( OUT ErrorString, comm_.errMISSING_, comm_.keySTOPBITS );
         GOTO Error;
       ELSE
@@ -1301,31 +1301,31 @@ CLASS IMPLEMENTATION CCommStream; (* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
         END;
       END;
 
-      ok := Scanner.GetKeyInt( comm_.keyXONCHAR, OUT c );
+      ok := Scanner.GetKeyInt( comm_.keyXONCHAR, OUT line, OUT c );
       IF NOT ok THEN
         XonChar           := ASCII_XON;
       ELSE
         XonChar           := CHAR(c);
       END;
-      ok := Scanner.GetKeyInt( comm_.keyXOFFCHAR, OUT c );
+      ok := Scanner.GetKeyInt( comm_.keyXOFFCHAR, OUT line, OUT c );
       IF NOT ok THEN
         XoffChar           := ASCII_XOFF;
       ELSE
         XoffChar           := CHAR(c);
       END;
-      ok := Scanner.GetKeyInt( comm_.keyERRCHAR, OUT c );
+      ok := Scanner.GetKeyInt( comm_.keyERRCHAR, OUT line, OUT c );
       IF NOT ok THEN
         ErrorChar          := CHAR(0);
       ELSE
         ErrorChar          := CHAR(c);
       END;
-      ok := Scanner.GetKeyInt( comm_.keyEOFCHAR, OUT c );
+      ok := Scanner.GetKeyInt( comm_.keyEOFCHAR, OUT line, OUT c );
       IF NOT ok THEN
         EofChar            := CHAR(26);
       ELSE
         EofChar            := CHAR(c);
       END;
-      ok := Scanner.GetKeyInt( comm_.keyEVTCHAR, OUT c );
+      ok := Scanner.GetKeyInt( comm_.keyEVTCHAR, OUT line, OUT c );
       IF NOT ok THEN
         EvtChar            := CHAR(26);
       ELSE
@@ -1363,7 +1363,7 @@ CLASS IMPLEMENTATION CCommStream; (* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
     END;
 
     WITH Timeouts DO
-      ok := Scanner.GetKeyInt( comm_.keyRX_INT_TIMEOUT, OUT c );
+      ok := Scanner.GetKeyInt( comm_.keyRX_INT_TIMEOUT, OUT line, OUT c );
       IF ok THEN
         ReadIntervalTimeout := c;
       END;
@@ -1371,7 +1371,7 @@ CLASS IMPLEMENTATION CCommStream; (* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
       //  Str.Concat( ErrorString, comm_.errMISSING_, comm_.keyRX_INT_TIMEOUT );
       //  GOTO Error;
       //END;
-      ok := Scanner.GetKeyInt( comm_.keyRX_TIMEOUT_MULT, OUT c );
+      ok := Scanner.GetKeyInt( comm_.keyRX_TIMEOUT_MULT, OUT line, OUT c );
       IF ok THEN
         ReadTotalTimeoutMultiplier := c;
       END;
@@ -1388,7 +1388,7 @@ CLASS IMPLEMENTATION CCommStream; (* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
       //    ReadTotalTimeoutMultiplier := 1;
       //  END;
       //END;
-      ok := Scanner.GetKeyInt( comm_.keyRX_TIMEOUT, OUT c );
+      ok := Scanner.GetKeyInt( comm_.keyRX_TIMEOUT, OUT line, OUT c );
       IF ok THEN
         ReadTotalTimeoutConstant := c;
       END;
@@ -1399,7 +1399,7 @@ CLASS IMPLEMENTATION CCommStream; (* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
       //IF ReadTotalTimeoutConstant = 0 THEN
       //  ReadTotalTimeoutConstant := 20;
       //END;
-      ok := Scanner.GetKeyInt( comm_.keyTX_TIMEOUT_MULT, OUT c );
+      ok := Scanner.GetKeyInt( comm_.keyTX_TIMEOUT_MULT, OUT line, OUT c );
       IF ok THEN
         WriteTotalTimeoutMultiplier := c;
       END;
@@ -1416,7 +1416,7 @@ CLASS IMPLEMENTATION CCommStream; (* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *)
           WriteTotalTimeoutMultiplier := 1;
         END;
       END;
-      ok := Scanner.GetKeyInt( comm_.keyTX_TIMEOUT, OUT c );
+      ok := Scanner.GetKeyInt( comm_.keyTX_TIMEOUT, OUT line, OUT c );
       IF ok THEN
         WriteTotalTimeoutConstant := c;
       END;

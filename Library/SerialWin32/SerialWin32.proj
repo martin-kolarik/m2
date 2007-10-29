@@ -4,9 +4,13 @@
 
     <!-- 1 -->
     <PropertyGroup>
-        <FileDescription>Windows Registry Access</FileDescription>
+        <ComponentStandalone>on</ComponentStandalone>
+        
+        <FileDescription>COM Low Level Handling</FileDescription>
         <FileVersionMajor>0</FileVersionMajor>
         <FileVersionMinor>9</FileVersionMinor>
+
+        <Result>Dynamic</Result>
 
         <ProductM2Control>-DSYNC_COMM:off</ProductM2Control>
     </PropertyGroup>
@@ -17,11 +21,10 @@
 
     <!-- 3 COMPOMENT DEFINITION -->
     <ItemGroup>
-        <Components Include="modula2\modula2"/>
-        <Components Include="api\clib">
+        <Components Include="modula2\modula2;api\clib;API\win32">
             <!-- Parameters>Static</Parameters --><!-- optional, here it has high priority than CLib -->
         </Components>
-        <Components Include="API\win32;modula2\m2rtl;library\ADT;library\Text;library\SerialLink"/>
+        <Components Include="component\sccore;library\SerialLink"/>
         <Modules Include="btools;comm_;comm"/>
     </ItemGroup>
 

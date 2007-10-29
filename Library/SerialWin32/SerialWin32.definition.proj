@@ -7,12 +7,8 @@
         <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName>
         <LanguageStyle>UNICODE</LanguageStyle>
         <Language Condition="$(Language)==''">Czech</Language>
-        <CLib>Static</CLib>
+        <CLib>Dynamic</CLib>
         <LeakChecking>off</LeakChecking>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="$(MSBuildProjectName)=='SerialWin32'">
-        <Result>Dynamic</Result>
     </PropertyGroup>
 
     <PropertyGroup>
