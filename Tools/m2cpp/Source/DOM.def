@@ -24,15 +24,15 @@ IMPORT
 //============================================================
 
 TYPE
-  TPUnit             = POINTER TO CUnit;
-  TPSymbol           = POINTER TO CSymbol;
-  TPSymbols          = POINTER TO CSymbols;
+  TPUnit            = POINTER TO CUnit;
+  TPSymbol          = POINTER TO CSymbol;
+  TPSymbols         = POINTER TO CSymbols;
 
-  TPLabel            = POINTER TO CLabel;
-  TPConstant         = POINTER TO CConstant;
-  TPVariable         = POINTER TO CVariable;
-  TPTPVariable       = POINTER TO TPVariable;
-  TPSelfSuperWrapper = POINTER TO CSelfSuperWrapper;
+  TPLabel           = POINTER TO CLabel;
+  TPConstant        = POINTER TO CConstant;
+  TPVariable        = POINTER TO CVariable;
+  TPTPVariable      = POINTER TO TPVariable;
+  TPSelf            = POINTER TO CSelf;
 
   TPType            = POINTER TO CType;
   TPTPType          = POINTER TO TPType;
@@ -145,8 +145,8 @@ TYPE
       ukVarDeclContainer,
         ukSimpleVarDecl,
         ukClassVarDecl,
-        ukSelfSuperWrapper,
-        ukADRSelfSuperWrapper,
+        ukSelf,
+        ukADRSelf,
     ukProcedureDef,
       ukParameterList,
         ukParamDefContainer,
@@ -436,6 +436,7 @@ TYPE
     viCONST, // CONST modifier
     viLiteral, // always viConst
     viLValue,
+    viClassLValue, // a special syntactical form of LValue
     viAuxiliaryConst,
     viPropertyAssign,
     viOperatorAssign,
@@ -446,7 +447,7 @@ TYPE
   TValueInfo = SET OF TValueInfoItem;
 CONST
   visOverwrittenAssignment = TValueInfo{viPropertyAssign, viIndexerAssign, viOperatorAssign};  
-  visLValue                = TValueInfo{viLValue, viPropertyAssign, viIndexerAssign, viOperatorAssign};  
+  visLValue                = TValueInfo{viLValue, viClassLValue, viPropertyAssign, viIndexerAssign, viOperatorAssign};  
 
 CLASS CUnit( list.CListElem );
   UnitKind            : TUnitKind;
@@ -836,10 +837,9 @@ CLASS CVariable( CSymbol );
   PROCEDURE GenerateInitExpression( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL );
 END CVariable;
 
-CLASS CSelfSuperWrapper( CVariable );
-  OfClass : TPClass;
+CLASS CSelf( CVariable );
   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
-END CSelfSuperWrapper;
+END CSelf;
 
 //============================================================
 
@@ -1360,7 +1360,7 @@ TYPE
 
   TEmbeddedProcedure = (
     epABS,
-    epADR,
+    epADR, epADROfSuperClass,
     epASSERT,
     epASSIGN, epASSIGNsz,
     epCAP, epCAPFunc,
@@ -1547,7 +1547,6 @@ CLASS CCATCH( CUnit );
 
   PUBLIC VIRTUAL READONLY PROPERTY
     Symbols : TPSymbols;
-
 END CCATCH;
 
 //------------------------------------------------------------

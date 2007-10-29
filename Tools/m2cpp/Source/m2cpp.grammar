@@ -2085,6 +2085,7 @@ ntAssignment
 
 ntAssignmentOrCallStatement                                (. A : DOM.TPSAssignment := NEW( DOM.CSAssignment );
                                                               C : DOM.TPClass;
+                                                              Duplicate : BOOLEAN := FALSE;
                                                               FT : DOM.TPFormalType;
                                                               LD : DOM.TPDesignator;
                                                               Reduce : TRISTATE; // 1 = all, -1 = only Release(), 0 = nothing
@@ -2118,6 +2119,11 @@ ntAssignmentOrCallStatement                                (. A : DOM.TPSAssignm
     ntExpression<A^.E>
                                                            (. c^.ExpectType( A^.D^.T, A^.E^.T, -1 );
                                                               c^.CheckCONSTAssignment( VI, A^.E^.VI, A^.D^.T, A^.E^.T );
+                                                              IF A^.E^.T^.UnwrapToBaseType()^.IsClass() AND
+                                                                 DOM.TPClass( A^.E^.T^.UnwrapToBaseType())^.IsDescendantOf( DOM.TPClass( A^.D^.T^.UnwrapToBaseType()), FALSE, TRUE, OUT Duplicate ) AND
+                                                                 Duplicate THEN
+                                                                SemErr( err._AmbiguousUsageOfAncestor );
+                                                              END;
                                                               IF Types.TSet^.Compatible( DOM.cmAssign, A^.D^.T ) AND DOM.TPSet( A^.D^.T^.Unwrap())^.IsLong() AND
                                                                  (
                                                                    ( A^.E^.T^.Unwrap() = Types.TSet ) OR
@@ -2326,7 +2332,7 @@ ntIfStatement<RequestedReturnType : DOM.TPType; VAR R : TReturn>
                                                                 LR1 := LR2;
                                                               END; .)
     ]
-    SYNC kwEND                                             (. c^.LeaveUnit();
+    WEAK kwEND                                             (. c^.LeaveUnit();
                                                               IF LR2 = retUnknown THEN
                                                                 IF LR1 = retExit THEN
                                                                   R := retExit;
@@ -2386,7 +2392,7 @@ ntCaseStatement<RequestedReturnType : DOM.TPType; VAR R : TReturn>
   =                                                        (. c^.EnterNewUnit( DOM.ukSCase ); .)
     SYNC "CASE" ntCaseSelector<T>
     "OF" ntCases<T, RequestedReturnType, R>
-    SYNC kwEND                                             (. c^.LeaveUnit(); .)
+    WEAK kwEND                                             (. c^.LeaveUnit(); .)
 .
   
 ntCaseSelector<VAR CaseT : DOM.TPType>                     (. E : DOM.TPExpression; .)
@@ -2765,7 +2771,7 @@ ntVariableDesignator<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM.TVal
   | ntIndexedDesignator
   | ntSelectedDesignator
   | ntDereferencedDesignator
-*/                                                         (. PA : DOM.TPSAssignment; .)
+  */                                                       (. PA : DOM.TPSAssignment; .)
   =                                                        (. INC( c^.DCount );
                                                               VI := DOM.TValueInfo{}; .)
   ( ntEmbeddedProcedure<D> // except NEWProc
@@ -2790,7 +2796,9 @@ ntVariableDesignator<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM.TVal
                                                               END;
                                                               // solve REF/OUT properties
                                                               IF vrsLValue * VR <> TValueReq{} THEN
-                                                                IF NOT( DOM.viLValue IN VI ) THEN
+                                                                IF ( DOM.viClassLValue IN VI ) AND ( vrClassLValue IN VR ) THEN
+                                                                  // OK
+                                                                ELSIF NOT( DOM.viLValue IN VI ) THEN
                                                                   SemErr( err._ExpectedLValue );
                                                                 ELSIF ( vrREFValue IN VR ) AND ( DOM.TValueInfo{DOM.viPropertyAssign, DOM.viIndexerAssign} * VI <> DOM.TValueInfo{} ) THEN
                                                                   // vrSLValue does not assign value back
@@ -2843,7 +2851,10 @@ ntDesignatorLeading<VR : TValueReq; VAR D : DOM.TPDesignator; OUT VI : DOM.TValu
   | ntNonOrdinalBaseType<TypeId>                           (. D^.r.Id := TypeId; .)
   | ntPointerBaseType<TypeId>                              (. D^.r.Id := TypeId; .)
   )                                                        (. VI := DOM.TValueInfo{};
-                                                              IF D^.r.Id = NIL THEN
+                                                              IF D^.r.DK = DOM.dkOperator THEN
+                                                                ASSERT( D^.r.O = DOM.doSelectingOfSuperClass );
+                                                                D^.T := DOM.TPType( D^.r.F );
+                                                              ELSIF D^.r.Id = NIL THEN
                                                                 D^.T := Types.TUnknown;
                                                               ELSIF D^.r.Id^.SymbolKind = DOM.skType THEN
                                                                 D^.r.DK := DOM.dkType;
@@ -2880,8 +2891,9 @@ ntDesignatorId<VR : TValueReq; VAR D : DOM.TPDesignator; VAR FI : DOM.TPSymbol>
                                                            (. Duplicate : BOOLEAN := FALSE;
                                                               EnterCount : CARDINAL := 0;
                                                               Id : DOM.TPSymbol;
-                                                              SW : DOM.TPSelfSuperWrapper;
-                                                              LABEL QNameRead; .)
+                                                              ND : DOM.TPDesignator;
+                                                              Super : DOM.TPClass;
+                                                              LABEL DoSuper, QNameRead; .)
   =
   (                                                        (. FI := NIL; .)
     ntIdCheck<DOM.skUnknown, FALSE, TRUE, Id, FI>
@@ -2909,15 +2921,8 @@ ntDesignatorId<VR : TValueReq; VAR D : DOM.TPDesignator; VAR FI : DOM.TPSymbol>
                                                                   IF vrAllowSingleType IN VR THEN
                                                                     // not to check
                                                                   ELSIF ( c^.SStack.CurC <> NIL ) AND c^.SStack.CurC^.IsDescendantOf( DOM.TPClass( Id ), FALSE, TRUE, OUT Duplicate ) THEN
-                                                                    IF Duplicate THEN
-                                                                      SemErr( err._AmbiguousUsageOfAncestor );
-                                                                    END;
-                                                                    NEW( SW );
-                                                                    SW^.T := DOM.TPType( Id );
-                                                                    SW^.OfSymbol := Id^.OfSymbol;
-                                                                    SW^.OfClass := c^.SStack.CurC;
-                                                                    FI := c^.SStack.CurC;
-                                                                    Id := SW;
+                                                                    Super := DOM.TPClass( Id );
+                                                                    GOTO DoSuper;
                                                                   ELSIF NOT( vrAllowSingleType IN VR ) THEN
                                                                     SemErr( err._ClassIsNotAncestor );
                                                                   END;
@@ -2933,32 +2938,44 @@ ntDesignatorId<VR : TValueReq; VAR D : DOM.TPDesignator; VAR FI : DOM.TPSymbol>
                                                                   SemErr( err._VariableUsedWithoutInitialization );
                                                                 END;
                                                                 c^.CheckAccessToSymbol( Id );
-                                                              END; .)
-  | "SELF"                                                 (. NEW( DOM.TPSelfSuperWrapper( Id ));
+                                                              END;
+                                                              D^.r.Id := Id; .)
+  | "SELF"                                                 (. NEW( DOM.TPSelf( Id ));
                                                               IF c^.SStack.CurC = NIL THEN
                                                                 SemErr( err._SELFOusideOfClass );
                                                               ELSE
                                                                 Id^.T := c^.SStack.CurC;
                                                                 Id^.OfSymbol := c^.SStack.CurC^.OfSymbol;
-                                                                DOM.TPSelfSuperWrapper( Id )^.OfClass := c^.SStack.CurC; 
                                                                 FI := c^.SStack.CurC;
-                                                              END; .)
-  | "SUPER"                                                (. Id := c^.SStack.CurC;
-                                                              IF Id = NIL THEN
+                                                              END;
+                                                              D^.T := Id^.T;
+                                                              D^.r.DK := DOM.dkId;
+                                                              D^.r.Id := Id; .)
+  | "SUPER"                                                (. Id := NIL;
+                                                              IF c^.SStack.CurC = NIL THEN
                                                                 SemErr( err._SUPEROutsideOfClass );
-                                                              ELSIF DOM.TPClass( Id )^.I = NIL THEN
+                                                              ELSIF c^.SStack.CurC^.I = NIL THEN
                                                                 SemErr( err._NoSUPERExists );
-                                                              ELSIF DOM.imInterface IN DOM.TPClass( Id )^.I^.IM THEN
+                                                              ELSIF DOM.imInterface IN c^.SStack.CurC^.I^.IM THEN
                                                                 SemErr( err._NoSUPERUsable );
                                                               ELSE
-                                                                NEW( DOM.TPSelfSuperWrapper( Id ));
-                                                                Id^.T := c^.SStack.CurC^.I;
-                                                                Id^.OfSymbol := c^.SStack.CurC^.I^.OfSymbol;
-                                                                DOM.TPSelfSuperWrapper( Id )^.OfClass := c^.SStack.CurC; 
+                                                                Super := c^.SStack.CurC^.I;
+                                                              DoSuper:
+                                                                NEW( DOM.TPSelf( Id ));
+                                                                Id^.T := c^.SStack.CurC;
+                                                                Id^.OfSymbol := c^.SStack.CurC^.OfSymbol;
                                                                 FI := c^.SStack.CurC;
+                                                                D^.T := Id^.T;
+                                                                D^.r.DK := DOM.dkId;
+                                                                D^.r.Id := Id;
+                                                                // construct selecting of super class artifically
+                                                                NEW( ND );
+                                                                ND^.L := D; D := ND;
+                                                                D^.r.DK := DOM.dkOperator;
+                                                                D^.r.O := DOM.doSelectingOfSuperClass;
+                                                                D^.r.F := Super;
                                                               END; .)
-  )                                                        (. D^.r.Id := Id;
-                                                              IF Id = NIL THEN
+  )                                                        (. IF Id = NIL THEN
                                                                 DisableErrors();
                                                               END; .)
 .
@@ -2971,6 +2988,7 @@ ntAddressingOffset<VAR E : DOM.TPExpression>               (. ok : BOOLEAN; .)
 
 ntNonLRecursiveDesignator<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM.TValueInfo>
                                                            (. DfI : DOM.TPIndexerDef;
+                                                              Duplicate : BOOLEAN := FALSE;
                                                               FI : DOM.TPSymbol;
                                                               IT, RT : DOM.TPType := Types.TUnknown;
                                                               M : DOM.TPSymbol;
@@ -3005,9 +3023,7 @@ ntNonLRecursiveDesignator<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM
                                                                     VI := VI - DOM.visLValue;
                                                                   END;
                                                                 | DOM.skClass :
-                                                                  VI := VI + DOM.TValueInfo{DOM.viLValue} - DOM.visOverwrittenAssignment;
-                                                                ELSE
-                                                                  VI := VI - DOM.visLValue;
+                                                                  VI := VI - DOM.visLValue - DOM.visOverwrittenAssignment + DOM.TValueInfo{DOM.viClassLValue};
                                                                 END; END; // CASE, IF
                                                               //=====
                                                               | DOM.dkType :
@@ -3022,10 +3038,16 @@ ntNonLRecursiveDesignator<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM
                                                               | DOM.dkOperator :
                                                                 CASE D^.r.O OF
                                                                 //-----
-                                                                | DOM.doSelecting, DOM.doSelectingOfSuperClass :
+                                                                | DOM.doSelecting :
                                                                   GOTO FSharedWithId;
                                                                 //-----
-                                                                | DOM.doIndexingOfClass, DOM.doIndexingOfSuperClass :
+                                                                | DOM.doSelectingOfSuperClass :
+                                                                  IF DOM.TPClass( D^.L^.T^.Unwrap())^.IsDescendantOf( DOM.TPClass( D^.r.F ), FALSE, TRUE, OUT Duplicate ) AND Duplicate THEN
+                                                                    SemErr( err._AmbiguousUsageOfAncestor );
+                                                                  END;
+                                                                  GOTO FSharedWithId;
+                                                                //-----
+                                                                | DOM.doIndexingOfClass :
                                                                   // IF DOM.imAbstract IN D^.r.DfI^.IM THEN
                                                                   //   SemErr( L'ABSTRACT indexer cannot be accessed.' );
                                                                   // END;
@@ -3130,13 +3152,16 @@ ntNonLRecursiveIndexedDesignator<VR : TValueReq; DT : DOM.TPType; VAR D : DOM.TP
                                                               D^.r.DK := DOM.dkOperator;
                                                               IF DT^.TypeKind <> DOM.tkClass THEN
                                                                 D^.r.O := DOM.doIndexing;
-                                                              ELSIF ( D^.L^.r.DK = DOM.dkId ) AND ( D^.L^.r.Id <> NIL ) AND
-                                                                    ( D^.L^.r.Id^.UnitKind = DOM.ukSelfSuperWrapper ) AND
-                                                                    ( DOM.TPSelfSuperWrapper( D^.L^.r.Id )^.T <> DOM.TPSelfSuperWrapper( D^.L^.r.Id )^.OfClass ) THEN
+                                                              ELSIF ( D^.L^.r.DK = DOM.dkId ) AND D^.L^.r.Id^.IsClass() THEN
                                                                 D^.r.O := DOM.doIndexingOfSuperClass;
-                                                                D^.r.DfI := DfI;
+                                                              ELSIF ( D^.L^.r.DK = DOM.dkOperator ) AND ( D^.L^.r.O = DOM.doSelectingOfSuperClass ) THEN
+                                                                D^.r.O := DOM.doIndexingOfSuperClass;
+                                                              ELSIF ( D^.L^.r.DK = DOM.dkOperator ) AND ( D^.L^.r.O = DOM.doSelecting ) AND D^.L^.r.F^.IsClass() THEN
+                                                                D^.r.O := DOM.doIndexingOfSuperClass;
                                                               ELSE
                                                                 D^.r.O := DOM.doIndexingOfClass;
+                                                              END;
+                                                              IF D^.r.O <> DOM.doIndexing THEN
                                                                 D^.r.DfI := DfI;
                                                               END;
                                                               D^.T := RT; .)
@@ -3181,18 +3206,20 @@ ntIndexExpression<VAR Expression : DOM.TPExpression>
 
 ntNonLRecursiveSelectedDesignator<VR : TValueReq; DT : DOM.TPType; VAR D : DOM.TPDesignator; VAR VI : DOM.TValueInfo>
                                                            (. Duplicate : BOOLEAN := FALSE;
-                                                              ND : DOM.TPDesignator := NEW( DOM.CDesignator );
-                                                              SW : DOM.TPSelfSuperWrapper; .)
+                                                              ND : DOM.TPDesignator := NEW( DOM.CDesignator ); .)
   =                                                        (. ND^.L := D; D := ND;
                                                               D^.r.DK := DOM.dkOperator;
-                                                              WITH D^.L^.r DO
-                                                                IF ( DK = DOM.dkOperator ) AND ( O = DOM.doSelecting ) AND ( Id <> NIL ) AND 
-                                                                   (( Id^.SymbolKind = DOM.skClass ) OR ( Id^.UnitKind = DOM.ukSelfSuperWrapper )) THEN
-                                                                  D^.r.O := DOM.doSelectingOfSuperClass;
-                                                                ELSE
-                                                                  D^.r.O := DOM.doSelecting;
-                                                                END;
-                                                              END; // WITH
+                                                              IF DT^.TypeKind <> DOM.tkClass THEN
+                                                                D^.r.O := DOM.doSelecting;
+                                                              ELSIF ( D^.L^.r.DK = DOM.dkId ) AND D^.L^.r.Id^.IsClass() THEN
+                                                                D^.r.O := DOM.doSelectingOfSuperClass;
+                                                              ELSIF ( D^.L^.r.DK = DOM.dkOperator ) AND ( D^.L^.r.O = DOM.doSelectingOfSuperClass ) THEN
+                                                                D^.r.O := DOM.doSelectingOfSuperClass;
+                                                              ELSIF ( D^.L^.r.DK = DOM.dkOperator ) AND ( D^.L^.r.O = DOM.doSelecting ) AND D^.L^.r.F^.IsClass() THEN
+                                                                D^.r.O := DOM.doSelectingOfSuperClass;
+                                                              ELSE
+                                                                D^.r.O := DOM.doSelecting;
+                                                              END;
                                                               CASE DT^.TypeKind OF
                                                               | DOM.tkRecord :
                                                                 c^.EnterSymbols( DOM.TPRecord( DT )^.S, FALSE, FALSE, NIL );
@@ -3229,17 +3256,6 @@ ntNonLRecursiveSelectedDesignator<VR : TValueReq; DT : DOM.TPType; VAR D : DOM.T
                                                                   D^.T := DOM.TPType( D^.r.F );
                                                                 | DOM.skClass :
                                                                   D^.T := DOM.TPType( D^.r.F );
-                                                                  IF ( D^.r.O = DOM.doSelecting ) AND ( D^.L^.r.Id^.UnitKind = DOM.ukSelfSuperWrapper ) THEN
-                                                                    IF ( c^.SStack.CurC = D^.L^.r.Id^.T ) AND c^.SStack.CurC^.IsDescendantOf( DOM.TPClass( D^.r.F ), FALSE, TRUE, OUT Duplicate ) AND Duplicate THEN
-                                                                      // this checks SELF.SUPER variant
-                                                                      SemErr( err._AmbiguousUsageOfAncestor );
-                                                                    END;
-                                                                    NEW( SW );
-                                                                    SW^.T := D^.T;
-                                                                    SW^.OfSymbol := D^.r.F^.OfSymbol;
-                                                                    SW^.OfClass := DOM.TPSelfSuperWrapper( D^.L^.r.Id )^.OfClass;
-                                                                    D^.r.F := SW;
-                                                                  END;
                                                                 ELSE
                                                                   D^.T := D^.r.F^.T;
                                                                 END;
@@ -4197,49 +4213,39 @@ ntEmbeddedABS<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM.TValueInfo>
 .
 
 ntEmbeddedADR<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM.TValueInfo>
-                                                           (. LD : DOM.TPDesignator := NEW( DOM.CDesignator );
-                                                              LId : DOM.TPSymbol;
-                                                              SkipClassSpecials : BOOLEAN := FALSE;
-                                                              SWLD : DOM.TPDesignator; .)
+                                                           (. LD : DOM.TPDesignator := NEW( DOM.CDesignator ); .)
   =
   "ADR"                                                    (. D^.r.EP := DOM.epADR; .)
   lpar
-    ntVariableDesignator<VR + TValueReq{vrSLValue}, LD, VI>(. D^.r.U1 := LD;
+    ntVariableDesignator<VR + TValueReq{vrSLValue, vrClassLValue}, LD, VI>(. D^.r.U1 := LD;
                                                               IF LD^.r.DK = DOM.dkId THEN
-                                                                LId := LD^.r.Id;
-                                                              ELSIF ( LD^.r.DK = DOM.dkOperator ) AND ( LD^.r.O = DOM.doSelecting ) THEN
-                                                                LId := LD^.r.F;
-                                                              ELSE
-                                                                SkipClassSpecials := TRUE;
-                                                              END;
-                                                              IF SkipClassSpecials THEN
-                                                                // fall down
-                                                              ELSIF LId^.UnitKind = DOM.ukSelfSuperWrapper THEN // handle ADR( SUPER )
-                                                                D^.r.DK := DOM.dkId;
-                                                                D^.r.Id := LId;
-                                                                D^.r.Id^.UnitKind := DOM.ukADRSelfSuperWrapper;
-                                                                IF LD^.r.DK = DOM.dkOperator THEN
-                                                                  D^.L := LD^.L;
-                                                                  SWLD := LD;
-                                                                  REPEAT
-                                                                     SWLD^.L^.r.Id^.UnitKind := DOM.ukADRSelfSuperWrapper;
-                                                                     SWLD := SWLD^.L;
-                                                                  UNTIL ( SWLD = NIL ) OR ( SWLD^.r.DK <> DOM.dkOperator ) OR ( SWLD^.r.O <> DOM.doSelecting ) OR ( SWLD^.r.F^.UnitKind <> DOM.ukSelfSuperWrapper );
+                                                                IF LD^.r.Id^.UnitKind = DOM.ukSelf THEN // handle ADR( SELF )
+                                                                  D^.r.DK := DOM.dkId;
+                                                                  D^.r.Id := LD^.r.Id;
+                                                                  D^.r.Id^.UnitKind := DOM.ukADRSelf;
+                                                                  D^.r.IdA := LD^.r.IdA;
+                                                                  D^.r.GO := LD^.r.GO;
+                                                                ELSIF LD^.r.Id^.SymbolKind = DOM.skConstant THEN
+                                                                  CASE LD^.T^.TypeKind OF
+                                                                  | DOM.tkStringArray, DOM.tkArray, DOM.tkRecord, DOM.tkClass : // structured constant are persistent and have address
+                                                                    INCL( VI, DOM.viLValue );
+                                                                  END;
                                                                 END;
-                                                                D^.r.IdA := LD^.r.IdA;
-                                                                D^.r.GO := LD^.r.GO;
-                                                              ELSIF LId^.SymbolKind = DOM.skConstant THEN
-                                                                CASE LD^.T^.TypeKind OF
-                                                                | DOM.tkStringArray, DOM.tkArray, DOM.tkRecord, DOM.tkClass : // structured constant are persistent and have address
-                                                                  INCL( VI, DOM.viLValue );
-                                                                END;
+                                                              ELSIF ( LD^.r.DK = DOM.dkOperator ) AND
+                                                                    (
+                                                                      ( LD^.r.O = DOM.doSelectingOfSuperClass ) OR
+                                                                      ( LD^.r.O = DOM.doSelecting ) AND ( LD^.r.F <> NIL ) AND LD^.r.F^.IsClass()
+                                                                    ) THEN
+                                                                 D^.r.EP := DOM.epADROfSuperClass;
                                                               END;
                                                               NEW( D^.T );
                                                               D^.T^.TypeKind := DOM.tkReference;
                                                               D^.T^.T := LD^.T;
-                                                              IF NOT( DOM.viLValue IN VI ) THEN
-                                                                SemErr( err._ExpectedLValue );
-                                                              END; .)
+                                                              // duplicate?? to ntVariableDesignator
+                                                              // IF ( D^.r.EP = DOM.epADR ) AND NOT( DOM.viLValue IN VI ) THEN
+                                                              //   SemErr( err._ExpectedLValue );
+                                                              // END;
+                                                              .)
   rpar
 .
 

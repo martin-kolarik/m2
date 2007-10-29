@@ -2650,30 +2650,21 @@ END CVariable;
 
 //============================================================
 
-CLASS IMPLEMENTATION CSelfSuperWrapper;
+CLASS IMPLEMENTATION CSelf;
 
   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
   BEGIN
-    IF UnitKind = ukSelfSuperWrapper THEN
-      IF T^.Unwrap() = OfClass THEN
-        G^.OutS( L"(*this)" );
-      ELSE
-        G^.OutCS( T^.N ); // T^.Generate( G, C );
-      END;
+    IF UnitKind = ukSelf THEN
+      G^.OutS( L"(*this)" );
     ELSE
-       IF T^.Unwrap() = OfClass THEN
-         G^.OutS( L"this" );
-       ELSE
-         G^.OutS( L"((" ); T^.Generate( G, gcsCast ); G^.OutS( L"*)this)" );
-       END;
+      G^.OutS( L"this" );
     END;
     RETURN gumSimple;
   END GenHead;
 
 BEGIN
-  UnitKind := ukSelfSuperWrapper;
-  OfClass := NIL;
-END CSelfSuperWrapper;
+  UnitKind := ukSelf;
+END CSelf;
 
 //============================================================
 
@@ -5397,13 +5388,7 @@ CLASS IMPLEMENTATION CModule;
       RETURN FALSE;
     END;
 
-    IF Symbol^.UnitKind = ukSelfSuperWrapper THEN
-      SA := saParentObjectSymbol;
-      IF SStack.CurC <> NIL THEN
-        SStack.CurC^.AddNestedFriend( Symbol, SStack.CurP );
-      END;
-      RETURN TRUE;
-    ELSIF FoundIn^.SymbolKind = skClass THEN
+    IF FoundIn^.SymbolKind = skClass THEN
       TPClass( FoundIn )^.AddNestedFriend( Symbol, SStack.CurP );
       P := TPProcedure( SStack.CurP );
       LS := Symbol;
@@ -8607,9 +8592,12 @@ CLASS IMPLEMENTATION CDesignator;
   END Evaluate;
 
   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+  LABEL
+    OmitThis;
   VAR
     Cn : TGenerateControl;
     CI : TCastInfo;
+    D : TPDesignator;
     FT, LT : TPType;
     i : INTEGER;
     n : ARRAY [0..16] OF WCHAR;
@@ -8683,20 +8671,21 @@ CLASS IMPLEMENTATION CDesignator;
         G^.OutS( L']' );
 
       | doIndexingOfClass, doIndexingOfSuperClass :
-        IF L^.T^.IsFormal() AND ( TPFormalType( L^.T )^.TypeModifier = tmCONST ) THEN
+        IF r.O = doIndexingOfSuperClass THEN
+          L^.Generate( G, Cn );
+          G^.OutS( L'::' );
+        ELSIF L^.T^.IsFormal() AND ( TPFormalType( L^.T )^.TypeModifier = tmCONST ) THEN
           G^.OutS( L'((' );
           L^.T^.T^.Generate( G, gcsCast );
           // Types.TADDRESS^.CheckAndGenerateCast( G, L^.T^.T, TRUE, CI );
           G^.OutS( L'*)&' );
           L^.Generate( G, Cn );
           G^.OutS( L')->' );
+        ELSIF ( L^.r.DK = DOM.dkId ) AND ( L^.r.Id^.UnitKind = ukSelf ) THEN
+          // skip generating this->
         ELSE
           L^.Generate( G, Cn );
-          IF r.O = doIndexingOfClass THEN
-            G^.OutS( L'.' );
-          ELSE
-            G^.OutS( L'::' );
-          END;
+          G^.OutS( L'.' );
         END;
 
         r.DfI^.Generate( G, C + gcsNameSimple );
@@ -8724,6 +8713,12 @@ CLASS IMPLEMENTATION CDesignator;
             G^.OutS( L')' );
             L^.L^.Generate( G, Cn );
             G^.OutS( L')' );
+          ELSIF ( L^.L^.r.DK = dkId ) AND ( L^.L^.r.Id^.UnitKind = ukADRSelf ) THEN
+            CASE r.F^.SymbolKind OF
+            | DOM.skVariable, DOM.skProperty :
+            ELSE // else skip generating this-> if I am self
+              GOTO OmitThis;
+            END;
           ELSE
             L^.L^.Generate( G, Cn );
           END;
@@ -8736,6 +8731,7 @@ CLASS IMPLEMENTATION CDesignator;
           ELSE
             G^.OutS( L'->' );
           END;
+        OmitThis:
           
         ELSIF L^.r.DK = dkOperator THEN // [], (), @[] found
           L^.Generate( G, Cn );
@@ -8757,13 +8753,6 @@ CLASS IMPLEMENTATION CDesignator;
           | ukSimpleClassDef, ukClassClassDef :
             L^.Generate( G, Cn );
             G^.OutS( L'::' );
-          | ukSelfSuperWrapper :
-            L^.Generate( G, Cn );
-            IF TPSelfSuperWrapper( L^.r.Id )^.T = TPSelfSuperWrapper( L^.r.Id )^.OfClass THEN
-              G^.OutS( L'.' );
-            ELSE
-              G^.OutS( L'::' );
-            END;
           ELSE IF (( r.F^.SymbolKind = skProperty ) OR ( r.F^.SymbolKind = skProcedure )) AND
                   L^.T^.IsFormal() AND ( TPFormalType( L^.T )^.TypeModifier = tmCONST ) THEN
             G^.OutS( L'((' );
@@ -8772,6 +8761,13 @@ CLASS IMPLEMENTATION CDesignator;
             G^.OutS( L'*)&' );
             L^.Generate( G, Cn );
             G^.OutS( L')->' );
+          ELSIF L^.r.Id^.UnitKind = ukSelf THEN
+            CASE r.F^.SymbolKind OF
+            | DOM.skVariable, DOM.skProperty : // else skip generating this-> before super class qualification
+              L^.r.Id^.UnitKind := ukADRSelf;
+              L^.Generate( G, Cn );
+              G^.OutS( L'->' );
+            END;
           ELSE
             L^.Generate( G, Cn );
             G^.OutS( L'.' );
@@ -8877,13 +8873,7 @@ CLASS IMPLEMENTATION CDesignator;
         END; // IF
       END;
       IF r.IdA <> saParentObject THEN
-        IF ( r.Id^.UnitKind = ukADRSelfSuperWrapper ) AND ( L <> NIL ) THEN
-          G^.OutS( L"((" ); TPSelfSuperWrapper( r.Id )^.T^.Generate( G, gcsCast ); G^.OutS( L"*)" ); 
-          L^.Generate( G, Cn );
-          G^.OutS( L")" ); 
-        ELSE
-          r.Id^.Generate( G, C + gcsName );
-        END;
+        r.Id^.Generate( G, C + gcsName );
         // imCOM properties and functions are handled by call/OUT retval, so the usage must be generated properly
         IF ( gcRValue IN C ) AND ( r.Id^.SymbolKind = skProperty ) AND ( imCOM IN TPPropertyDef( r.Id )^.IM ) THEN
           G^.OutS( L'( &' ); r.CD^.Generate( G, Cn ); G^.OutS( L' )' ); // obtaining property value
@@ -8907,6 +8897,24 @@ CLASS IMPLEMENTATION CDesignator;
           G^.OutS( L'&' );
         END;
         r.U1^.Generate( G, C );
+      | epADROfSuperClass :
+        G^.OutS( L'(' );
+        D := TPDesignator( r.U1 );
+        WHILE ( D^.r.DK = dkOperator ) AND
+              (
+                ( D^.r.O = doSelectingOfSuperClass ) OR
+                ( D^.r.O = doSelecting ) AND D^.L^.T^.UnwrapToBaseType()^.IsClass()
+              ) DO
+          G^.OutS( L'(' ); D^.r.F^.Generate( G, gcsCast ); G^.OutS( L"*)" );          
+          D := D^.L;
+        END;
+        IF ( D^.r.DK = dkId ) AND ( D^.r.Id^.UnitKind = ukSelf ) THEN
+          G^.OutS( L'this' );
+        ELSE
+          G^.OutS( L'&' );
+          D^.Generate( G, Cn );
+        END;
+        G^.OutS( L')' );
       | epASSIGN :
         IF Types.TBString^.Compatible( cmOperation, TPDesignator( r.U1 )^.T ) THEN
           G^.OutS( L'ASSIGNB_( ' );

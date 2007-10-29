@@ -22,11 +22,16 @@ END B;
 CLASS C IMPLEMENTS I;
    PUBLIC VIRTUAL PROCEDURE Q() : BOOLEAN;
    PROCEDURE P() : BOOLEAN;
+   READONLY INDEX( i : INTEGER ) : BOOLEAN;
 END C;
 
 CLASS D( C ) IMPLEMENTS J;
+   VAR
+      V : BOOLEAN;
+      W : C;
    PUBLIC VIRTUAL PROCEDURE Q() : BOOLEAN;
-   PROCEDURE P() : BOOLEAN;
+   PROCEDURE AP( _D : ARRAY OF D );
+   PROCEDURE P( _D : D ): BOOLEAN;
 END D;
 
 CLASS IMPLEMENTATION A;
@@ -39,7 +44,7 @@ CLASS IMPLEMENTATION A;
       
       IF ADR( SELF )^.P() THEN END;
       // IF ADR( SUPER )^.P() THEN END;
-      IF ADR( A )^.P() THEN END;
+      // IF ADR( A )^.P() THEN END;
 
       RETURN FALSE;
    END P;
@@ -56,9 +61,9 @@ CLASS IMPLEMENTATION B;
       B.P();
 
       IF ADR( SELF )^.P() THEN END;
-      IF ADR( SUPER )^.P() THEN END;
-      IF ADR( A )^.P() THEN END;
-      IF ADR( B )^.P() THEN END;
+      // IF ADR( SUPER )^.P() THEN END;
+      // IF ADR( A )^.P() THEN END;
+      // IF ADR( B )^.P() THEN END;
 
       RETURN FALSE;
    END P;
@@ -81,11 +86,16 @@ CLASS IMPLEMENTATION C;
 
       IF ADR( SELF )^.P() THEN END;
       // IF ADR( SUPER )^.P() THEN END;
-      IF ADR( C )^.P() THEN END;
-      IF ADR( I )^.Q() THEN END;
+      // IF ADR( C )^.P() THEN END;
+      // IF ADR( I )^.Q() THEN END;
 
       RETURN FALSE;
    END P;
+
+   INDEX C GET( i : INTEGER ) : BOOLEAN;
+   BEGIN
+      RETURN FALSE;
+   END C;
 
 END C;
 
@@ -96,24 +106,68 @@ CLASS IMPLEMENTATION D;
       RETURN FALSE;
    END Q;
 
-   PROCEDURE P() : BOOLEAN;
+   PROCEDURE AP( _D : ARRAY OF D );
    BEGIN
-      SELF.P();
+      IF _D[0].V THEN END;
+   END AP;
+
+   PROCEDURE P( _D : D ) : BOOLEAN;
+   TYPE
+      TPC = POINTER TO C;
+      TPD = POINTER TO D;
+   VAR
+      PI : POINTER TO I;
+      PC : POINTER TO C;
+      PD : POINTER TO D := NIL;
+      VC : C;
+      VD : D;
+   BEGIN
+      SELF.V := TRUE;
+   
+      SELF.P( VD );
       SUPER.P();
       C.P();
-      D.P();
+      D.P( VD );
+      _D.P( VD );
+      VD.W.P();
+      // I.Q();
       C.I.Q();
       J.Q();
       J.I.Q();
       SELF.C.I.Q();
+      
+      PC := ADR( NEW( D )^.D );
+      PI := ADR( NEW( D )^.C.I );
 
-      IF ADR( SELF )^.P() THEN END;
+      // IF ADR( SELF )^.I.Q() THEN END;
+      
+      IF SELF[1] THEN END;
+      IF SUPER[1] THEN END;
+      IF C[1] THEN END;
+      IF ADR( SELF )^[1] THEN END;
+      IF PD^.C[1] THEN END;
+
+      IF VD[1] THEN END;
+      VD.V := TRUE;
+      IF VD.V THEN END;
+
+      IF _D[1] THEN END;
+      
+      VC := D.W;
+      VC := VD.W;
+      PC := ADR( TPD( 0 )^.W );
+      PI := ADR( TPD( 0 )^.J.I );
+
+      IF ADR( SELF )^.P( VD ) THEN END;
       IF ADR( SUPER )^.P() THEN END;
       IF ADR( C )^.P() THEN END;
-      IF ADR( D )^.P() THEN END;
+      IF ADR( D )^.P( VD ) THEN END;
       IF ADR( C.I )^.Q() THEN END;
       IF ADR( J )^.Q() THEN END;
       IF ADR( J.I )^.Q() THEN END;
+      
+      IF ADR( SELF )^.C.I.Q() THEN END;
+      PD^.C.I.Q();
 
       RETURN FALSE;
    END P;

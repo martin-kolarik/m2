@@ -59,6 +59,7 @@ TYPE
     vrConst,
     vrSLValue, // value is used only in formal input (ADR, SIZE), it is syntactical L-Value
     vrREFValue, // value is used on input and also in output, it is semantical L-Value
+    vrClassLValue, // syntactical L-Value in form of Class
     vrCheckIfInitialized, vrMarkAsInitialized,
     vrAllowCast,
     vrAssignment,
@@ -72,7 +73,7 @@ CONST
   vrsConst = TValueReq{vrConst, vrCheckIfInitialized};
   vrsREFValue = TValueReq{vrREFValue, vrCheckIfInitialized};
   vrsInitREFValue = TValueReq{vrREFValue, vrMarkAsInitialized};
-  vrsLValue = TValueReq{vrREFValue, vrSLValue};
+  vrsLValue = TValueReq{vrREFValue, vrSLValue, vrClassLValue};
 
 CONST
   visConst = DOM.TValueInfo{DOM.viConst};
