@@ -1276,6 +1276,28 @@ CLASS IMPLEMENTATION Value;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE EqualsS( CONST S : StringsO.IString ) : BOOLEAN;
+   BEGIN
+      IF _Type = vtString THEN
+         RETURN PString^.Equals( S );
+      ELSE
+         RETURN String.Equals( S );
+      END;
+   END EqualsS;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE EqualsOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
+   BEGIN
+      IF _Type = vtString THEN
+         RETURN PString^.EqualsOA( S );
+      ELSE
+         RETURN String.EqualsOA( S );
+      END;
+   END EqualsOA;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE ToString( OUT String : StringsO.IString; TransportFlag : BOOLEAN );
    BEGIN
       IF _Type <> vtBoolean THEN

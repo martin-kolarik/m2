@@ -76,6 +76,8 @@ CLASS Value;
    PUBLIC PROCEDURE Dispose();
    PUBLIC PROCEDURE Clone( OUT New : Value ); // New has the same type
    PUBLIC PROCEDURE Equals( CONST Source : Value ) : BOOLEAN; // soft, respects different types
+   PUBLIC PROCEDURE EqualsS( CONST S : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE EqualsOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
 
    PUBLIC PROCEDURE ToString( OUT String : StringsO.IString; TransportFlag : BOOLEAN ); // if TransportFlag is set then string is used for some communication and will not be visible
    PUBLIC PROCEDURE ToStringOA( OUT String : ARRAY OF WCHAR; TransportFlag : BOOLEAN ); // if TransportFlag is set then string is used for some communication and will not be visible
