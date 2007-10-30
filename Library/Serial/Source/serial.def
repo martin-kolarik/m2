@@ -83,8 +83,8 @@ CLASS CSerialHandler( msghandler.MessageHandler );
    PUBLIC PROCEDURE Run();
    PUBLIC PROCEDURE Stop();
 
-   PUBLIC PROCEDURE SetInBoundaryStrings( Leading, Trailing : ARRAY OF WCHAR );
-   PUBLIC PROCEDURE SetOutBoundaryStrings( Leading, Trailing : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE SetInBoundaryStrings( CONST Leading, Trailing : ARRAY OF CHAR );
+   PUBLIC PROCEDURE SetOutBoundaryStrings( CONST Leading, Trailing : ARRAY OF CHAR );
 
    // receiving
    LOCAL PROCEDURE _RxTick();

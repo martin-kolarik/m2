@@ -132,20 +132,20 @@ CLASS IMPLEMENTATION CSerialHandler;
 
 //---------------------------------------------------------
 
-	PUBLIC PROCEDURE SetInBoundaryStrings( Leading, Trailing : ARRAY OF WCHAR );
+	PUBLIC PROCEDURE SetInBoundaryStrings( CONST Leading, Trailing : ARRAY OF CHAR );
 	BEGIN
-		Strings.ToA( Leading, 0, OUT IBLS );
-		Strings.ToA( Trailing, 0, OUT IBTS );
+		IBLS := Leading;
+		IBTS := Trailing;
 		IBLSLen := LENGTH( IBLS );
 		IBTSLen := LENGTH( IBTS );
 	END SetInBoundaryStrings;
 
 //---------------------------------------------------------
 
-	PUBLIC PROCEDURE SetOutBoundaryStrings( Leading, Trailing : ARRAY OF WCHAR );
+	PUBLIC PROCEDURE SetOutBoundaryStrings( CONST Leading, Trailing : ARRAY OF CHAR );
 	BEGIN
-		Strings.ToA( Leading, 0, OUT OBLS );
-		Strings.ToA( Trailing, 0, OUT OBTS );
+		OBLS := Leading;
+		OBTS := Trailing;
 		OBLSLen := LENGTH( OBLS );
 		OBTSLen := LENGTH( OBTS );
 	END SetOutBoundaryStrings;
