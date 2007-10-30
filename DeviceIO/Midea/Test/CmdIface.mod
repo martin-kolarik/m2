@@ -15,7 +15,7 @@ IMPORT
    windows;
 
 CLASS CDataInfo( io.CDataInfo );
-   VAR
+   LOCAL VAR
       tw : TextWriter.TPTextWriter := TextWriter.errout();
    PUBLIC VIRTUAL PROCEDURE OnIO( Direction : IOO.TDirection; Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
 END CDataInfo;
@@ -72,20 +72,22 @@ BEGIN
    loader.ldr()^.AddLibrary( L"~Debug\midea.dll" );
    loader.ldr()^.CreateObject( L"midea.IO.Device", OUT midea );
    
+   // midea^.NS()^.Dump( DI.tw );
+   
    cfgparam[0] := ADR( sCOM );
    cfgparam[1] := ADR( sPAR );
 	midea^.Configure( cfgparam, Log.logger() );
 	Wait( 65 );
 
-	V.FromStringOA( L"normal", FALSE );
-	b := midea^.NS()^.Map( L"MideaAC.Data.Common.Fan", OUT h );
-	LOOP
-		r := midea^.IO()^.IOh( IOO.dirWrite, h, REF V, ADR( DI ));
-		IF r <> Sync.arPending THEN
-			EXIT;
-		END;
-		Wait( 2 );
-	END;
+	V.FromStringOA( L"high", FALSE );
+	b := midea^.NS()^.Map( L"MideaAC.Data.1.All.Fan", OUT h );
+	r := midea^.IO()^.IOh( IOO.dirWrite, h, REF V, ADR( DI ));
+	Wait( 20 );
+
+	V.FromStringOA( L"heat", FALSE );
+	b := midea^.NS()^.Map( L"MideaAC.Data.1.All.Mode", OUT h );
+	r := midea^.IO()^.IOh( IOO.dirWrite, h, REF V, ADR( DI ));
+	Wait( 20 );
    
    loader.ldr()^.ReleaseObject( REF midea );
    loader.ldr()^.Dispose();

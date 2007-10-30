@@ -8,6 +8,7 @@ FROM Storage IMPORT
 IMPORT
    FIO,
    IOO,
+   Storage,
    StorageO,
    Strings,
    StringsO,
@@ -26,33 +27,15 @@ IMPORT
 
 TYPE
    TTelegramType = CARD8(
-      ttQuery = 0C0H,
+      ttQuery = 0C0H, // and response too
       ttSet = 0C3H,
-      tt3 = 0C5H,
-      tt4 = 0CDH
+      ttModeLock = 0CAH, // data fan, TS, Mode
+      ttModeUnlock = 0CBH, // empty data
+      ttRemoteLock = 0CCH, // empty data
+      ttRemoteUnlock = 0CDH // empty data
+      // C5?, CE?, CF?
    );
    
-   TModeItem = CARD8(
-      mdFan = 0,
-      mdHeat = 2,
-      mdCool = 3,
-      mdLock = 7
-   );
-   TMode = SET CARD8 OF TModeItem;
-   
-   TFanSpeedItem = CARD8(
-      fsNormal = 0,
-      fsMiddle = 1,
-      fsLow = 2,
-      fsAuto = 7
-   );
-   TFanSpeed = SET CARD8 OF TFanSpeedItem;
-   
-   TAuxItem = CARD8(
-      aiSwingOn = 2
-   );
-   TAux = SET CARD8 OF TAuxItem;
-
 #save, option( pack => 1 )
 TYPE
    TOutPacket = RECORD
@@ -100,15 +83,23 @@ TYPE
 
 (*===========================================================================*)
 
+TYPE
+   TItemType = (
+      itMode,
+      itFan,
+      itSetTemperature
+   );
+
 CLASS CNSI( nsitem.CnsItem );
    LOCAL VAR
-      Target : WORD := 0;
+      Type : TItemType;
 END CNSI;
 
 (*---------------------------------------------------------------------------*)
 
 CLASS IMPLEMENTATION CNSI;
 BEGIN
+   Type := itMode;
 END CNSI;
 
 (*===========================================================================*)
@@ -126,31 +117,63 @@ CLASS IMPLEMENTATION CNS;
 
    INTERNAL VIRTUAL PROCEDURE CreateStructure();
    VAR
-      AC, CCM, D, I : TPNSI;
+      AC, CCM, D, I, T : TPNSI;
       i, j : CARDINAL;
       s : ARRAY [0..31] OF WCHAR;
    BEGIN
       Root^.AddChild( NewItem( L"Control", ns.ntName, iovalue.vtString, 0 ));
 
+      D := NewItem( L"Type", ns.ntName, iovalue.vtString, 0 );
+      Root^.AddChild( D );
+         T := NewItem( L"Mode", ns.ntName, iovalue.vtString, 0 ); D^.AddChild( T );
+            I := NewItem( L"auto", ns.ntName, iovalue.vtString, 0 ); T^.AddChild( I );
+            I := NewItem( L"heat", ns.ntName, iovalue.vtString, 0 ); T^.AddChild( I );
+            I := NewItem( L"cool", ns.ntName, iovalue.vtString, 0 ); T^.AddChild( I );
+            I := NewItem( L"fan", ns.ntName, iovalue.vtString, 0 ); T^.AddChild( I );
+         T := NewItem( L"Fan", ns.ntName, iovalue.vtString, 0 ); D^.AddChild( T );
+            I := NewItem( L"auto", ns.ntName, iovalue.vtString, 0 ); T^.AddChild( I );
+            I := NewItem( L"high", ns.ntName, iovalue.vtString, 0 ); T^.AddChild( I );
+            I := NewItem( L"middle", ns.ntName, iovalue.vtString, 0 ); T^.AddChild( I );
+            I := NewItem( L"low", ns.ntName, iovalue.vtString, 0 ); T^.AddChild( I );
+
       D := NewItem( L"Data", ns.ntName, iovalue.vtString, 0 );
       Root^.AddChild( D );
 
-      CCM := NewItem( L"Common", ns.ntName, iovalue.vtString, 0 ); D^.AddChild( CCM );
+      CCM := NewItem( L"All", ns.ntName, iovalue.vtString, 0 ); D^.AddChild( CCM );
 
-      I := NewItem( L"Fan", ns.ntValue, iovalue.vtString, 0 ); CCM^.AddChild( I ); I^.Target := 0FFFFH;
+      I := NewItem( L"Mode", ns.ntValue, iovalue.vtString, 0FFFFH ); CCM^.AddChild( I );
+         I^.Type := itMode;
+      I := NewItem( L"Fan", ns.ntValue, iovalue.vtString, 0FFFFH ); CCM^.AddChild( I );
+         I^.Type := itFan;
+      I := NewItem( L"SetTemperature", ns.ntValue, iovalue.vtInteger, 0FFFFH ); CCM^.AddChild( I );
+         I^.Type := itSetTemperature;
       
       FOR i := 0 TO 15 DO // CCM
          Strings.FromCARD32W( i, 10, OUT s );
          CCM := NewItem( s, ns.ntName, iovalue.vtString, 0 ); D^.AddChild( CCM );
 
-         I := NewItem( L"Connected", ns.ntValue, iovalue.vtBoolean, 0 ); CCM^.AddChild( I );
+         AC := NewItem( L"All", ns.ntName, iovalue.vtString, 0 ); CCM^.AddChild( AC );
+
+         // I := NewItem( L"Connected", ns.ntValue, iovalue.vtBoolean, 0 ); AC^.AddChild( I );
+         I := NewItem( L"Mode", ns.ntValue, iovalue.vtString, i << 8 + 0FFH ); AC^.AddChild( I );
+            I^.Type := itMode;
+         I := NewItem( L"Fan", ns.ntValue, iovalue.vtString, i << 8 + 0FFH ); AC^.AddChild( I );
+            I^.Type := itFan;
+         I := NewItem( L"SetTemperature", ns.ntValue, iovalue.vtInteger, i << 8 + 0FFH ); AC^.AddChild( I );
+            I^.Type := itSetTemperature;
 
          FOR j := 0 TO 63 DO // AC
             Strings.FromCARD32W( j, 10, OUT s );
             AC := NewItem( s, ns.ntName, iovalue.vtString, 0 ); CCM^.AddChild( AC );
 
-            I := NewItem( L"Connected", ns.ntValue, iovalue.vtBoolean, 0 ); AC^.AddChild( I );
-            I := NewItem( L"Fan", ns.ntValue, iovalue.vtString, 0 ); AC^.AddChild( I ); I^.Target := WORD( i << 8 + j );
+            // I := NewItem( L"Connected", ns.ntValue, iovalue.vtBoolean, 0 ); AC^.AddChild( I );
+            I := NewItem( L"Mode", ns.ntValue, iovalue.vtString, i << 8 + j ); AC^.AddChild( I );
+               I^.Type := itMode;
+            I := NewItem( L"Fan", ns.ntValue, iovalue.vtString, i << 8 + j ); AC^.AddChild( I );
+               I^.Type := itFan;
+            I := NewItem( L"SetTemperature", ns.ntValue, iovalue.vtInteger, i << 8 + j ); AC^.AddChild( I );
+               I^.Type := itSetTemperature;
+
          END; // FOR j
       END; // FOR i
    END CreateStructure;
@@ -168,6 +191,7 @@ CLASS IMPLEMENTATION CNS;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
+   Midea := NIL;
    Initialize();
 END CNS;
 
@@ -192,14 +216,14 @@ CLASS IMPLEMENTATION CSerial;
 
    INTERNAL VIRTUAL PROCEDURE TestChkSum( CONST Data : StorageO.AMemoryBuffer ) : BOOLEAN;
    VAR
-      CRC : CARD8 := 1;
+      CRC : CARD8 := 0;
       i : CARDINAL;
       l : CARDINAL := Data.Length-2;
    BEGIN
       FOR i := 1 TO l-1 DO // omit first and last two bytes
          INC( CRC, PCARD8( Data.Data@[i] )^ );
       END; // FOR
-      RETURN PBYTE( Data.Data@[l] )^ = NOT CRC;
+      RETURN PBYTE( Data.Data@[l] )^ = 1 + NOT CRC;
    END TestChkSum;
 
 (*---------------------------------------------------------------------------*)
@@ -217,14 +241,14 @@ CLASS IMPLEMENTATION CSerial;
 
    INTERNAL VIRTUAL PROCEDURE AddChkSum( REF Data : StorageO.AMemoryBuffer );
    VAR
-      CRC : CARD8 := 1;
+      CRC : CARD8 := 0;
       i : CARDINAL;
       l : CARDINAL := Data.Length-2;
    BEGIN
       FOR i := 1 TO l-1 DO // omit first and last two bytes
          INC( CRC, PCARD8( Data.Data@[i] )^ );
       END; // FOR
-      PBYTE( Data.Data@[l] )^ := NOT CRC;
+      PBYTE( Data.Data@[l] )^ := 1 + NOT CRC;
    END AddChkSum;
 
 (*---------------------------------------------------------------------------*)
@@ -301,9 +325,14 @@ CLASS IMPLEMENTATION CIO;
 
    PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; DataInfo : io.TPDataInfo ) : Sync.TAsyncResult;
    VAR
+      Data : TPData;
+      i, j : INTEGER;
       Packet : TOutPacket;
+      Target : CARD16;
    BEGIN
-      IF _Pending <> IOO.dirUnknown THEN
+      IF ( Item = 0 ) OR ( TPNSI( Item )^.NameType <> ns.ntValue ) THEN
+         RETURN Sync.arCannotStart;
+      ELSIF _Pending <> IOO.dirUnknown THEN
          RETURN Sync.arAlreadyPending;
       END;
 
@@ -311,20 +340,55 @@ CLASS IMPLEMENTATION CIO;
       _Item := Item;
       _DataInfo := DataInfo;
 
-      Packet.Source := 08080H;
-      WITH Packet DO
-         Telegram := ttSet;
-         Target := TPNSI( _Item )^.Target;
+      Target := CARD16( LOPTRLONGWORD( _Item^.Data ));
+      Data := Midea^.TargetToData( Target );
+      
+      CASE _Item^.Type OF
+      | itMode :
+         IF Value.EqualsOA( L"heat" ) THEN
+            Data^.Mode := TMode{mdHeat};
+         ELSIF Value.EqualsOA( L"cool" ) THEN
+            Data^.Mode := TMode{mdCool};
+         ELSIF Value.EqualsOA( L"fan" ) THEN
+            Data^.Mode := TMode{mdFan};
+         ELSIF Value.EqualsOA( L"auto" ) THEN
+            // TODO
+         END;
+      | itFan :
+         IF Value.EqualsOA( L"high" ) THEN
+            Data^.FanSpeed := TFanSpeed{fsHigh};
+         ELSIF Value.EqualsOA( L"middle" ) THEN
+            Data^.FanSpeed := TFanSpeed{fsMiddle};
+         ELSIF Value.EqualsOA( L"low" ) THEN
+            Data^.FanSpeed := TFanSpeed{fsLow};
+         ELSIF Value.EqualsOA( L"auto" ) THEN
+            Data^.FanSpeed := TFanSpeed{fsAuto};
+         END;
+      | itSetTemperature :
+         Data^.SetTemperature:= CARD8( Value.LimitedInteger( 5, FALSE, TRUE ));
+      END;
 
-         Mode := TMode{};
-         FanSpeed := TFanSpeed{fsNormal};
-         TS := 0;
-         TimerOn := 0;
-         TimerOff := 0;
-         Aux := TAux{};
-         Save := 0;
-         Recode := 0FFH - CARD8( Telegram );
-      END; // WITH
+      IF HIBYTE( Target ) = 0FFH THEN
+         FOR i := 1 TO 16 DO FOR j := 1 TO 64 DO
+            Midea^._ACS[i,j] := Data^;
+         END; END;
+      ELSIF LOBYTE( Target ) = 0FFH THEN
+         FOR j := 1 TO 64 DO
+            Midea^._ACS[CARDINAL(LOBYTE( Target )),j] := Data^;
+         END; // outer FOR
+      END;
+
+      Packet.Telegram := ttSet;
+      Packet.Recode := 0FFH - CARD8( Packet.Telegram );
+      Packet.Target := Target;
+      Packet.Source := 08080H;
+      Packet.Mode := Data^.Mode;
+      Packet.FanSpeed := Data^.FanSpeed;
+      Packet.TS := Data^.SetTemperature;
+      Packet.TimerOn := 0;
+      Packet.TimerOff := 0;
+      Packet.Aux := Data^.Aux;
+      Packet.Save := 0;
       
       Serial.Tx( Packet, FALSE, 1, 150, 500 );
       // Serial.Tx( Packet, FALSE, 1, 0, 0 );
@@ -395,6 +459,7 @@ CLASS IMPLEMENTATION CIO;
 
 BEGIN
    Serial.PIO := ADR( SELF );
+   Midea := NIL;
    _AbortFlag := FALSE;
    _Pending := IOO.dirUnknown;
    _DataInfo := NIL;
@@ -462,9 +527,51 @@ CLASS IMPLEMENTATION CMideaDevice;
    
 (*---------------------------------------------------------------------------*)
 
-BEGIN FINALLY
-   _IO.Stop();
-   Dispose();
+	LOCAL PROCEDURE TargetToData( Target : CARD16 ) : TPData;
+	VAR
+	   CCM, AC : CARDINAL;
+	BEGIN
+	   IF HIBYTE( Target ) = 0FFH THEN
+	      CCM := 0;
+	   ELSE
+	      CCM := CARDINAL( HIBYTE( Target ));
+	   END;
+	   IF LOBYTE( Target ) = 0FFH THEN
+	      AC := 0;
+	   ELSE
+	      AC := CARDINAL( LOBYTE( Target ));
+	   END;
+	   RETURN ADR( _ACS[CCM,AC] );
+	END TargetToData;
+
+(*---------------------------------------------------------------------------*)
+
+   INITIALLY CMideaDevice();
+   VAR
+      i, j : CARDINAL;
+   BEGIN
+      _NS.Midea := ADR( SELF );
+      _IO.Midea := ADR( SELF );
+      FOR i := 0 TO 16 DO FOR j := 0 TO 64 DO
+         WITH _ACS[i,j] DO
+            Mode := TMode{};
+            FanSpeed := TFanSpeed{fsAuto};
+            SetTemperature := 24;
+            Aux := TAux{};
+         END; // WITH
+      END; END;
+   END CMideaDevice;
+
+(*---------------------------------------------------------------------------*)
+
+   FINALLY CMideaDevice();
+   BEGIN
+      _IO.Stop();
+      Dispose();
+   END CMideaDevice;
+
+(*---------------------------------------------------------------------------*)
+
 END CMideaDevice;
 
 (*===========================================================================*)

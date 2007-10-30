@@ -24,6 +24,7 @@ IMPORT
 TYPE
    TPIO = POINTER TO CIO;
    TPNS = POINTER TO CNS;
+   TPMidea = POINTER TO CMideaDevice;
 
 (*---------------------------------------------------------------------------*)
 
@@ -31,6 +32,9 @@ TYPE
    TPNSI = POINTER TO CNSI;
 
 CLASS CNS( nsitem.Ans );
+   LOCAL VAR
+      Midea : TPMidea;
+
    INTERNAL VIRTUAL PROCEDURE CreateRoot() : ns.TPnsItem;
    INTERNAL VIRTUAL PROCEDURE CreateStructure();
 
@@ -59,6 +63,7 @@ TYPE
 CLASS CIO( io.AItemizedIO );
    LOCAL VAR
       Serial : CSerial;
+      Midea : TPMidea;
    PRIVATE VAR
       _AbortFlag : BOOLEAN;
       _Pending : IOO.TDirection;
@@ -85,10 +90,41 @@ END CIO;
 
 (*---------------------------------------------------------------------------*)
 
+TYPE
+   TModeItem = CARD8(
+      mdFan = 0,
+      mdHeat = 2,
+      mdCool = 3
+   );
+   TMode = SET CARD8 OF TModeItem;
+   
+   TFanSpeedItem = CARD8(
+      fsHigh = 0,
+      fsMiddle = 1,
+      fsLow = 2,
+      fsAuto = 7
+   );
+   TFanSpeed = SET CARD8 OF TFanSpeedItem;
+   
+   TAuxItem = CARD8(
+      aiSwingOn = 2
+   );
+   TAux = SET CARD8 OF TAuxItem;
+
+   TData = RECORD
+      Mode : TMode;
+      FanSpeed : TFanSpeed;
+      SetTemperature : CARD8;
+      Aux : TAux;
+   END; // TData
+   TPData = POINTER TO TData;
+
 CLASS CMideaDevice( objlib.AObject ) IMPLEMENTS device.IDevice;
    PRIVATE VAR
       _NS : CNS;
       _IO : CIO;
+   LOCAL VAR
+      _ACS : ARRAY [0..16], [0..64] OF TData;
 
    // IObject
    PUBLIC FINAL READONLY PROPERTY
@@ -101,6 +137,12 @@ CLASS CMideaDevice( objlib.AObject ) IMPLEMENTS device.IDevice;
    PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
    PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
 	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF PTR; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+	
+	// helpers
+	LOCAL PROCEDURE TargetToData( Target : CARD16 ) : TPData;
+
+   INITIALLY CMideaDevice();
+   FINALLY CMideaDevice();
 END CMideaDevice;
 
 (*---------------------------------------------------------------------------*)
