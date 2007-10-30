@@ -329,13 +329,16 @@ CLASS IMPLEMENTATION CLoader;
    PRIVATE PROCEDURE BuildNames();
    VAR
       Library : TPLibrary;
+      Name : StringsO.CString;
    BEGIN
       Names.Dispose();
       Libraries.Reset();
       WHILE Libraries.MoveNext() DO
          Library := TPLibrary( Libraries.Current );
-         IF ( lsEnabled IN Library^.State ) AND NOT Names.Contains( Library^.Name ) THEN
-            Names.Add( Library^.Name, Library );
+         Name := Library^.Name;
+         Name.Lowerize();
+         IF ( lsEnabled IN Library^.State ) AND NOT Names.Contains( Name ) THEN
+            Names.Add( Name, Library );
          END;
       END; // WHILE
    END BuildNames;
