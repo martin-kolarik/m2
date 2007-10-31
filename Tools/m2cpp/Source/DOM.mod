@@ -5388,7 +5388,13 @@ CLASS IMPLEMENTATION CModule;
       RETURN FALSE;
     END;
 
-    IF FoundIn^.SymbolKind = skClass THEN
+    IF Symbol^.UnitKind = ukSelf THEN
+      SA := saParentObject;
+      IF SStack.CurC <> NIL THEN
+        SStack.CurC^.AddNestedFriend( Symbol, SStack.CurP );
+      END;
+      RETURN TRUE;
+    ELSIF FoundIn^.SymbolKind = skClass THEN
       TPClass( FoundIn )^.AddNestedFriend( Symbol, SStack.CurP );
       P := TPProcedure( SStack.CurP );
       LS := Symbol;
