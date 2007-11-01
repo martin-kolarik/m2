@@ -423,6 +423,7 @@ CLASS IMPLEMENTATION CSerialHandler;
 	PUBLIC PROCEDURE TxW( CONST Data : ARRAY OF WCHAR; _SendAsIs : BOOLEAN; _RepeatCount : CARDINAL; _TxTimeout, _RxTimeout : CARDINAL );
 	VAR
 		D : StorageO.CMemoryBuffer;
+		l : CARDINAL;
 		S : StringsO.CString;
 	BEGIN
 		S.FromOA( Data );
@@ -431,7 +432,7 @@ CLASS IMPLEMENTATION CSerialHandler;
 		END;
 		D.Size := S.Length;
 		D.Length := S.Length;
-		S.ToOAA( 0, OUT OA( D.Length-1, PCHAR( D.Data )));
+		S.ToOAA( 0, OUT OA( D.Length-1, PCHAR( D.Data )), OUT l );
 		Tx( OA( D.Length-1, PCHAR( D.Data )), _SendAsIs, _RepeatCount, _TxTimeout, _RxTimeout );
 	END TxW;
 
