@@ -802,7 +802,7 @@ CLASS IMPLEMENTATION CDriver;
         END;
 
         drv_def.DrvValueToCStringW( InValue2, UFlag, OUT SW );
-        len := hdr + SW.Length << 1; 
+        len := hdr + SW.Length << 2; 
 
         IF Packet.Size < len THEN
           Packet.Size := ( len >> 4 + 1 ) << 4;
@@ -881,7 +881,7 @@ CLASS IMPLEMENTATION CDriver;
         END;
           
         drv_def.DrvValueToCStringW( InValue2, UFlag, OUT SW );
-        len := hdr + SW.Length << 1; 
+        len := hdr + SW.Length << 2; 
 
         IF Packet.Size < len THEN
           Packet.Size := ( len >> 4 + 1 ) << 4;
@@ -1060,7 +1060,7 @@ CLASS IMPLEMENTATION CDriver;
         END;
 
         drv_def.DrvValueToCStringW( InValue2, UFlag, OUT SW );
-        len := hdr + SW.Length << 1; 
+        len := hdr + SW.Length << 2; 
 
         IF Packet.Size < len THEN
           Packet.Size := ( len >> 4 + 1 ) << 4;
