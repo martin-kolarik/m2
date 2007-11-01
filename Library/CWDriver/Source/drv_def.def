@@ -8,7 +8,7 @@ IMPORT
   StringsO;
 IMPORT
   drv_str,
-  sdvalue;
+  iovalue;
   
 #if #not UNICODE #then
   #error
@@ -105,7 +105,7 @@ PROCEDURE IsKnownValue( CONST Value : TValue ) : BOOLEAN;// all types except bot
 
 //-----------------------------------------------------------------------------
 
-PROCEDURE IOTypeToCWType( IOType : sdvalue.TSDValueType ) : TValueType;
+PROCEDURE IOTypeToCWType( IOType : iovalue.TValueType ) : TValueType;
 
 //-----------------------------------------------------------------------------
 // helpers changing value's type
@@ -181,8 +181,8 @@ PROCEDURE AssignDrvValueCStringW( REF DrvValue : TValue; DrvValueUFlag, TrimFlag
 
 //=============================================================================
 
-PROCEDURE IOValueToCWValue( CONST IOValue : sdvalue.Value; DrvValueUFlag, TrimFlag : BOOLEAN; REF CWValue : TValue ) : BOOLEAN;
-PROCEDURE CWValueToIOValue( CONST CWValue : TValue; DrvValueUFlag : BOOLEAN; REF IOValue : sdvalue.Value );
+PROCEDURE IOValueToCWValue( CONST IOValue : iovalue.Value; DrvValueUFlag, TrimFlag : BOOLEAN; REF CWValue : TValue ) : BOOLEAN;
+PROCEDURE CWValueToIOValue( CONST CWValue : TValue; DrvValueUFlag : BOOLEAN; REF IOValue : iovalue.Value );
 
 //=============================================================================
 // definitions common to drivers

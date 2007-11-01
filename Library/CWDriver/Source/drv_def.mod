@@ -115,24 +115,24 @@ END IsKnownValue;
 
 //--------------------------------------------------------------
 
-PROCEDURE IOTypeToCWType( IOType : sdvalue.TSDValueType ) : TValueType;
+PROCEDURE IOTypeToCWType( IOType : iovalue.TValueType ) : TValueType;
 BEGIN
    CASE IOType OF
-   | sdvalue.sdtBoolean :
+   | iovalue.vtBoolean :
       RETURN vtBoolean;
-   | sdvalue.sdtTristate :
+   | iovalue.vtTristate :
       RETURN vtShortInt;
-   | sdvalue.sdtInteger :
+   | iovalue.vtInteger :
       RETURN vtLongInt;
-   | sdvalue.sdtLong :
+   | iovalue.vtLong :
       RETURN vtLongReal;
-   | sdvalue.sdtFloat :
+   | iovalue.vtFloat :
       RETURN vtLongReal;
-   | sdvalue.sdtString :
+   | iovalue.vtString :
       RETURN vtDString;
-   | sdvalue.sdtDate :
+   | iovalue.vtDate :
       RETURN vtLongReal;
-   | sdvalue.sdtData :
+   | iovalue.vtData :
       RETURN vtData;
    END;
    RETURN vtUnknown;
@@ -1680,38 +1680,38 @@ BEGIN
     CS.ToOA( OUT OA( l-1, PWCHAR( DrvValue.ValDriverStringAddress )));
   ELSE
     DrvValue.ValDriverStringCharLength := l;
-    CS.ToOAA( 0, OUT OA( l-1, PCHAR( DrvValue.ValDriverStringAddress )));
+    CS.ToOAA( 0, OUT OA( l-1, PCHAR( DrvValue.ValDriverStringAddress )), OUT l );
   END;
   RETURN TRUE;
 END AssignDrvValueCStringW;
 
 //==============================================================
 
-PROCEDURE IOValueToCWValue( CONST IOValue : sdvalue.Value; DrvValueUFlag, TrimFlag : BOOLEAN; REF CWValue : TValue ) : BOOLEAN;
+PROCEDURE IOValueToCWValue( CONST IOValue : iovalue.Value; DrvValueUFlag, TrimFlag : BOOLEAN; REF CWValue : TValue ) : BOOLEAN;
 BEGIN
    CASE IOValue.Type OF
-   | sdvalue.sdtBoolean :
+   | iovalue.vtBoolean :
       AssignValueBoolean( CWValue, TRUE, IOValue.Boolean );
 
-   | sdvalue.sdtTristate :
+   | iovalue.vtTristate :
       AssignValueInt8( CWValue, TRUE, INT8( IOValue.Tristate ));
 
-   | sdvalue.sdtInteger :
+   | iovalue.vtInteger :
       AssignValueInteger( CWValue, TRUE, IOValue.Integer );
 
-   | sdvalue.sdtLong :
+   | iovalue.vtLong :
       AssignValueLongReal( CWValue, TRUE, LONGREAL( IOValue.Long ));
 
-   | sdvalue.sdtFloat :
+   | iovalue.vtFloat :
       AssignValueLongReal( CWValue, TRUE, IOValue.Float );
 
-   | sdvalue.sdtString :
+   | iovalue.vtString :
       RETURN AssignDrvValueCStringW( REF CWValue, DrvValueUFlag, TrimFlag, IOValue.String );
 
-   | sdvalue.sdtDate :
+   | iovalue.vtDate :
       AssignValueLongReal( CWValue, TRUE, time.ToSJD( IOValue.Date ));
 
-   | sdvalue.sdtData : // TODO
+   | iovalue.vtData : // TODO
       ASSERT( FALSE );
 
    END; // CASE
@@ -1720,7 +1720,7 @@ END IOValueToCWValue;
 
 //--------------------------------------------------------------
 
-PROCEDURE CWValueToIOValue( CONST CWValue : TValue; DrvValueUFlag : BOOLEAN; REF IOValue : sdvalue.Value );
+PROCEDURE CWValueToIOValue( CONST CWValue : TValue; DrvValueUFlag : BOOLEAN; REF IOValue : iovalue.Value );
 BEGIN
    CASE CWValue.Type OF
    | vtBoolean :
