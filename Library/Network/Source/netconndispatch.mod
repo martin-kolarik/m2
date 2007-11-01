@@ -4,7 +4,7 @@ FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
   
 FROM log IMPORT
-  logger, TDebugLevel, dldError, dldDebug;
+  logger, TDebugLevel, dldError, dldTrace, dldDebug;
 
 IMPORT
   IOO,
@@ -187,11 +187,14 @@ TYPE
                   NServerSocket  : netsocket.TPSSocket;
 
                 | cmNetworkConnect,
-                  cmNetworkDisconnect,
-                  cmNetworkReceive :
-                  NSocket : netsocket.TPDSocket;
-                  NData : CARDINAL; // error/length
-                  NLocal : BOOLEAN;
+                  cmNetworkDisconnect :
+                  NCSocket : netsocket.TPDSocket;
+                  NCError : CARDINAL;
+                  NCLocal : BOOLEAN;
+                | cmNetworkReceive :
+                  NRSocket : netsocket.TPDSocket;
+                  NRData : ADDRESS;
+                  NRLen : CARDINAL;
 
                 | cmClientJoin :
                   JPClient : TPClientInterface;
@@ -578,12 +581,9 @@ CLASS IMPLEMENTATION CDispatcher;
 
   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : CARDINAL ) : BOOLEAN;
   VAR
-    a : ADDRESS;
     Connection : TPConnection;
     CurrentConnection : TPConnection;
     Error : CARDINAL;
-    IRead : IOO.TPBufferedReader;
-    Len : CARDINAL;
     MDatagram : IOO.CMemoryProxy;
     Message : TMessage;
     NResult : Sync.TAsyncResult;
@@ -606,7 +606,7 @@ CLASS IMPLEMENTATION CDispatcher;
         | cmNetworkAccept :
           NEW( Connection ); Connection^.Init( ADR( SELF ), PNotifier );
           IF Connection^.Accept( Message.NServerSocket, OUT Error ) = Sync.arCompleted THEN
-            Log( dldDebug, Connection, "Accept" );
+            Log( dldTrace, Connection, "Accept.Net" );
 
             QWA := APQW( Connection^.RemoteAddress, Connection^.RemotePort );
             IF Connections.Get( QWA, OUT CurrentConnection ) THEN
@@ -626,29 +626,29 @@ CLASS IMPLEMENTATION CDispatcher;
 
         //-----
         | cmNetworkConnect :
-          Connection := TPConnection( Message.NSocket );
+          Connection := TPConnection( Message.NCSocket );
           IF Connections.Contains( APQW( Connection^.RemoteAddress, Connection^.RemotePort )) THEN
-            Log( dldDebug, Connection, L"Connect" );
+            Log( dldTrace, Connection, L"Connect.Net" );
           ELSE
             Log( dldError, Connection, L"Connect on unknown connection" );
           END;
 
-          Connection^.OnConnect( Message.NLocal, Message.NData );
-          OnConnect( Connection, Message.NLocal, Message.NData );
+          Connection^.OnConnect( Message.NCLocal, Message.NCError );
+          OnConnect( Connection, Message.NCLocal, Message.NCError );
           IF Connection^.Connected THEN
             Connection^.StartReading();
           END;
 
         //-----
         | cmNetworkDisconnect :
-          Connection := TPConnection( Message.NSocket );
+          Connection := TPConnection( Message.NCSocket );
 
           QWA := APQW( Connection^.RemoteAddress, Connection^.RemotePort );
           IF Connections.Contains( QWA ) THEN
-            Log( dldDebug, Connection, L"Disconnect" );
+            Log( dldTrace, Connection, L"Disconnect.Net" );
 
-            Connection^.OnDisconnect( Message.NLocal, Message.NData ); // dispatch event to the clients
-            OnDisconnect( Connection, Message.NLocal, Message.NData );
+            Connection^.OnDisconnect( Message.NCLocal, Message.NCError ); // dispatch event to the clients
+            OnDisconnect( Connection, Message.NCLocal, Message.NCError );
             IF Connection^.Empty THEN
               Connections.Remove( QWA );
               Connection^.Disconnect( FALSE );
@@ -663,22 +663,22 @@ CLASS IMPLEMENTATION CDispatcher;
 
         //-----
         | cmNetworkReceive :
-          Connection := TPConnection( Message.NSocket );
+          Connection := TPConnection( Message.NRSocket );
 
-          Log( dldDebug, Connection, L"Receive " );
+          logger()^.LogSC( dldDebug, logPrefix, L"Receive bytes ", Message.NRLen );
+          Log( dldDebug, Connection, L". from connection " );
+
           QWA := APQW( Connection^.RemoteAddress, Connection^.RemotePort );
           ASSERT( Connections.Contains( QWA ));
 
-          IRead := Connection^.IRead;
-          WHILE IRead^.Peek( OUT a, OUT Len ) DO
-            OnReceive( Connection, a, Len );
-            Connection^.OnReceive( a, Len );
-            IRead^.ReadOut( Len );
-          END; // WHILE
+          OnReceive( Connection, Message.NRData, Message.NRLen );
+          Connection^.OnReceive( Message.NRData, Message.NRLen );
+
+          DISPOSE( Message.NRData );
 
         //-----
         | cmClientJoin :
-          logger()^.LogSP( dldDebug, logPrefix, L"Join ", Message.CPClient );
+          logger()^.LogSP( dldTrace, logPrefix, L"Join ", Message.CPClient );
 
           QWA := APQW( Message.JRemoteAddress, Message.JRemotePort );
           IF Connections.Get( QWA, OUT Connection ) THEN
@@ -701,7 +701,7 @@ CLASS IMPLEMENTATION CDispatcher;
         | cmClientLeave :
           Known := Message.CPConnection <> NIL;
           IF Known THEN // unknown/promiscuous client close
-            logger()^.LogSP( dldDebug, logPrefix, L"Leave from single connection ", Message.CPClient );
+            logger()^.LogSP( dldTrace, logPrefix, L"Leave from single connection ", Message.CPClient );
             IF Connections.Contains( APQW( Message.CPConnection^.RemoteAddress, Message.CPConnection^.RemotePort )) THEN
                Log( dldDebug, TPConnection( Message.CPConnection ), L". from known connection" );
             ELSE
@@ -746,7 +746,7 @@ CLASS IMPLEMENTATION CDispatcher;
         | cmClientConnect :
           Known := Message.CPConnection <> NIL;
           IF Known THEN // unknown/promiscuous client close
-            logger()^.LogSP( dldDebug, logPrefix, L"Connect ", Message.CPClient );
+            logger()^.LogSP( dldTrace, logPrefix, L"Connect ", Message.CPClient );
             IF Connections.Contains( APQW( Message.CPConnection^.RemoteAddress, Message.CPConnection^.RemotePort )) THEN
                Log( dldDebug, TPConnection( Message.CPConnection ), L". to known connection" );
             ELSE
@@ -781,7 +781,7 @@ CLASS IMPLEMENTATION CDispatcher;
         | cmClientDisconnect :
           Known := Message.CPConnection <> NIL;
           IF Known THEN // unknown/promiscuous client close
-            logger()^.LogSP( dldDebug, logPrefix, L"Disconnect ", Message.CPClient );
+            logger()^.LogSP( dldTrace, logPrefix, L"Disconnect ", Message.CPClient );
             IF Connections.Contains( APQW( Message.CPConnection^.RemoteAddress, Message.CPConnection^.RemotePort )) THEN
                Log( dldDebug, TPConnection( Message.CPConnection ), L". from known connection" );
             ELSE
@@ -811,7 +811,7 @@ CLASS IMPLEMENTATION CDispatcher;
         | cmClientSend :
           Known := Message.SPConnection <> NIL;
           IF Known THEN // unknown/promiscuous client close
-            logger()^.LogSP( dldDebug, logPrefix, L"Send ", Message.CPClient );
+            logger()^.LogSCP( dldDebug, logPrefix, L"Send bytes ", Message.SLen, Message.CPClient );
             IF Connections.Contains( APQW( Message.CPConnection^.RemoteAddress, Message.CPConnection^.RemotePort )) THEN
                Log( dldDebug, TPConnection( Message.CPConnection ), L". to known connection" );
                b := TRUE;
@@ -836,9 +836,15 @@ CLASS IMPLEMENTATION CDispatcher;
             | ctStream :
                MDatagram.Init( Message.SData, Message.SLen, FALSE );
                NResult := Connection^.IWrite^.Write( ADR( MDatagram ), Sync.INFINITE_TIME, TRUE );
+               WHILE MDatagram.References > 1 DO // see note in IOO.CDataProxy
+                  Sync.Sleep( 0 );
+               END; // WHILE
             | ctDatagram :
                WDatagram.Init( Message.SData, Message.SLen, FALSE );
                NResult := Connection^.IWrite^.Write( ADR( WDatagram ), Sync.INFINITE_TIME, TRUE );
+               WHILE WDatagram.References > 1 DO // see note in IOO.CDataProxy
+                  Sync.Sleep( 0 );
+               END; // WHILE
             | ctLine :
                Writer.Stream := Connection^.IWrite;
                Writer.WriteM( PWCHAR( Message.SData ), Message.SLen >> 1, TRUE );
@@ -892,9 +898,9 @@ CLASS IMPLEMENTATION CDispatcher;
     Message : TMessage;
   BEGIN
     Message.Command := cmNetworkConnect;
-    Message.NSocket := Socket;
-    Message.NData := Error;
-    Message.NLocal := Local;
+    Message.NCSocket := Socket;
+    Message.NCError := Error;
+    Message.NCLocal := Local;
     MQueue.QueueOA( Message );
   END OnNetworkConnect;
 
@@ -905,9 +911,9 @@ CLASS IMPLEMENTATION CDispatcher;
     Message : TMessage;
   BEGIN
     Message.Command := cmNetworkDisconnect;
-    Message.NSocket := Socket;
-    Message.NData := Error;
-    Message.NLocal := Local;
+    Message.NCSocket := Socket;
+    Message.NCError := Error;
+    Message.NCLocal := Local;
     MQueue.QueueOA( Message );
   END OnNetworkDisconnect;
 
@@ -915,15 +921,30 @@ CLASS IMPLEMENTATION CDispatcher;
   
   LOCAL PROCEDURE OnNetworkReceive( CONST Socket : netsocket.TPDSocket; Length : CARDINAL );
   VAR
+    a : ADDRESS;
+    Connection : TPConnection := TPConnection( Socket );
+    IRead : IOO.TPBufferedReader;
+    l : CARDINAL;
     Message : TMessage;
   BEGIN
     IF Length = 0 THEN
       RETURN;
     END;
-    Message.Command := cmNetworkReceive;
-    Message.NSocket := Socket;
-    Message.NData := Length;
-    MQueue.QueueOA( Message );
+
+    IRead := Connection^.IRead;
+    WHILE IRead^.Peek( OUT a, OUT l ) DO
+      Message.Command := cmNetworkReceive;
+      Message.NRSocket := Socket;
+      Message.NRLen := l;
+      ALLOCATE( Message.NRData, l );
+      Storage.Move( a, Message.NRData, l );
+
+      // allow reading/sending first, QueueOA could block
+      IRead^.ReadOut( l );
+
+      // queue request
+      MQueue.QueueOA( Message );
+    END; // WHILE
   END OnNetworkReceive;
 
 //--------------------------------------------------------------------------------
