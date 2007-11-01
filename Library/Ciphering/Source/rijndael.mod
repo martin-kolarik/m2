@@ -866,18 +866,23 @@ CLASS IMPLEMENTATION CRijndael;
 	PRIVATE INLINE PROCEDURE OperateXFB( CONST Input : ARRAY OF BYTE; OUT Output : ARRAY OF BYTE; OUT Filled : CARDINAL );
 	VAR
 		io, l : CARDINAL;
-		pr, pi, po : TPBlockLW;
+		lbyte : BYTE; // lbyte and...
+		lregister : TBlock; //...lregister allows for cphmCFB128e/d using in place crypt/encrypt -- undecryped input must be stored for next round
+		pi, po, pri, pro : TPBlockLW;
 	BEGIN
 		l := HIGH( Input ) + 1;
 		io := 0;
 		IF rposition > 0 THEN
 			// process rest of rregister from the previous rouns
 			WHILE rposition < rlen DO
+				IF ciphermode = cphmCFB128d THEN
+					lbyte := Input[io];
+			   END;
 				Output[io] := Input[io] XOR rregister[rposition];
 				IF ciphermode = cphmCFB128e THEN
 					rregister[rposition] := Output[io];
 				ELSIF ciphermode = cphmCFB128d THEN
-					rregister[rposition] := Input[io];
+					rregister[rposition] := lbyte;
 				END;
 				INC( rposition );
 				INC( io );
@@ -886,28 +891,37 @@ CLASS IMPLEMENTATION CRijndael;
 			EncryptBlock( rregister, OUT rregister );
 		END;
 		// process whole blocks
-		pr := TPBlockLW( ADR( rregister ));
+		pro := TPBlockLW( ADR( rregister ));
+      IF ciphermode = cphmCFB128d THEN
+         pri := TPBlockLW( ADR( lregister ));
+      ELSE
+         pri := pro;
+      END;
 		pi := TPBlockLW( ADR( Input[io] ));
 		po := TPBlockLW( ADR( Output[io] ));
 		WHILE l-io >= rlen DO
-			XORBlock( pi, pr, po );
+			IF ciphermode = cphmCFB128d THEN
+			   pri^ := pi^;
+			END;
+			XORBlock( pi, pro, po );
 			IF ciphermode = cphmCFB128e THEN
-				pr^ := po^;
-			ELSIF ciphermode = cphmCFB128d THEN
-				pr^ := pi^;
+				pri^ := po^;
 			END;
 			INC( io, rlen );
 			INC( pi, rlen );
 			INC( po, rlen );
-			EncryptBlock( rregister, OUT rregister );
+			EncryptBlock( TPBlock( pri )^, OUT TPBlock( pro )^ );
 		END; // while over whole block
 		// iterate rest input bytes
 		WHILE io < l DO
+         IF ciphermode = cphmCFB128d THEN
+			   lbyte := Input[io];
+			END;
 			Output[io] := Input[io] XOR rregister[rposition];
 			IF ciphermode = cphmCFB128e THEN
 				rregister[rposition] := Output[io];
 			ELSIF ciphermode = cphmCFB128d THEN
-				rregister[rposition] := Input[io];
+				rregister[rposition] := lbyte;
 			END;
 			INC( rposition );
 			INC( io );
@@ -921,11 +935,15 @@ CLASS IMPLEMENTATION CRijndael;
 	VAR
 		i, io, l : CARDINAL;
 		lregister : TBlock;
+		lbyte : BYTE;
 	BEGIN
 		l := HIGH( Input ) + 1;
 		io := 0;
 		WHILE io < l DO
 			EncryptBlock( rregister, OUT lregister );
+			IF ciphermode = cphmCFB8d THEN // this solves case when input and output are same buffers
+			   lbyte := Input[io];
+			END;
 			Output[io] := Input[io] XOR lregister[0];
 			FOR i := 1 TO rlen-1 DO
 				rregister[i-1] := rregister[i];
@@ -933,7 +951,7 @@ CLASS IMPLEMENTATION CRijndael;
 			IF ciphermode = cphmCFB8e THEN
 				rregister[rlen-1] := Output[io];
 			ELSE
-				rregister[rlen-1] := Input[io];
+				rregister[rlen-1] := lbyte;
 			END;
 			INC( io );
 		END; // while ending bytes

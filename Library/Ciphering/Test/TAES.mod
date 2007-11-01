@@ -17,6 +17,7 @@ BEGIN
 	cphcommon.FromHex( L"6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710", OUT in, OUT i );
 	cphcommon.FromHex( L"000102030405060708090a0b0c0d0e0f", OUT iv, OUT i );
 
+   (*
 	// ECB
 	cphcommon.FromHex( L"2b7e151628aed2a6abf7158809cf4f3c", OUT b, OUT i );
 	AES.Init( Rijndael.cphmECBe, Rijndael.rkl128, b, OAsz( PBYTE( NIL )));
@@ -105,6 +106,7 @@ BEGIN
 	AES.Decrypt( OA( 17, ADR( out[22] )), OUT in[22], OUT i );
 	AES.Decrypt( OA( 23, ADR( out[40] )), OUT in[40], OUT i );
 	cphcommon.ToHex( in, OUT s );
+	*)
 
 	// CFB128 by blocks
 	cphcommon.FromHex( L"2b7e151628aed2a6abf7158809cf4f3c", OUT b, OUT i );
@@ -131,7 +133,12 @@ BEGIN
 	AES.Decrypt( OA( 63, ADR( out )), OUT in, OUT i );
 	cphcommon.ToHex( in, OUT s );
 
-	// CFB8 by pieces
+   // dtto in place
+	AES.Init( Rijndael.cphmCFB128d, Rijndael.rkl256, b, iv );
+	AES.Decrypt( OA( 63, ADR( out )), OUT out, OUT i );
+	cphcommon.ToHex( in, OUT s );
+
+	// CFB128 by pieces
 	AES.Init( Rijndael.cphmCFB128e, Rijndael.rkl256, b, iv );
 	
 	AES.Encrypt( OA(  8, ADR( in[ 0] )), OUT out[ 0], OUT i );
@@ -143,6 +150,13 @@ BEGIN
 	AES.Decrypt( OA( 21, ADR( out[ 0] )), OUT in[ 0], OUT i );
 	AES.Decrypt( OA( 17, ADR( out[22] )), OUT in[22], OUT i );
 	AES.Decrypt( OA( 23, ADR( out[40] )), OUT in[40], OUT i );
+	cphcommon.ToHex( in, OUT s );
+
+   // dtto in place
+	AES.Init( Rijndael.cphmCFB128d, Rijndael.rkl256, b, iv );
+	AES.Decrypt( OA( 21, ADR( out[ 0] )), OUT out[ 0], OUT i );
+	AES.Decrypt( OA( 17, ADR( out[22] )), OUT out[22], OUT i );
+	AES.Decrypt( OA( 23, ADR( out[40] )), OUT out[40], OUT i );
 	cphcommon.ToHex( in, OUT s );
 
 	// OFB by blocks
