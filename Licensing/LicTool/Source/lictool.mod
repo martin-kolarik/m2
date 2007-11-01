@@ -243,6 +243,10 @@ VAR
       tw.Stream := ADR( fs );
 
       hash.hashs( OA( owner.Length-1, owner.rawData ), OUT hPId );
+
+      cphcommon.ToHex( hPId, OUT s );
+      err^.WriteOA( L'  phash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
+
       FOR i := 0 TO 4 DO
          hPId[i] := hPId[i] XOR xorhPId[i];
       END;

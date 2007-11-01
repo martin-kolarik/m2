@@ -17,6 +17,7 @@ CONST
 VAR
    dt : time.TDateTime;
 	f : FIO.File := windows.GetStdHandle( windows.STD_OUTPUT_HANDLE );
+	l : CARDINAL;
 	RN : Number.CRegistration;
 	AN : Number.CActivation;
 	sa : ARRAY [0..255] OF CHAR;
@@ -32,7 +33,7 @@ BEGIN
    RN.GOrd := 10;
    RN.SetOSVersionByMachine();
 
-   Number.Code( RN, OUT so ); so.ToOAA( 0, OUT sa ); FIO.WrStrA( f, sa ); FIO.WrStrA( f, CHAR(13)+CHAR(10) );
+   Number.Code( RN, OUT so ); so.ToOAA( 0, OUT sa, OUT l ); FIO.WrStrA( f, sa ); FIO.WrStrA( f, CHAR(13)+CHAR(10) );
    Number.Decode( so, REF RN );
 
    time.GetCurrentLocalDateTime( dt );
@@ -42,7 +43,7 @@ BEGIN
    AN.Origin := dt;
    AN.Months := 0;
 
-   Number.Code( AN, OUT so ); so.ToOAA( 0, OUT sa ); FIO.WrStrA( f, sa ); FIO.WrStrA( f, CHAR(13)+CHAR(10) );
+   Number.Code( AN, OUT so ); so.ToOAA( 0, OUT sa, OUT l ); FIO.WrStrA( f, sa ); FIO.WrStrA( f, CHAR(13)+CHAR(10) );
    Number.Decode( so, REF AN );
 
 	RETURN 0;

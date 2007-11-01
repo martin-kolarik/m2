@@ -110,7 +110,7 @@ CLASS IMPLEMENTATION DiscSource;
 		FOR l := 0 TO HIGH( s ) DO
 		   s[l] := CHAR( 75 + l );
 		END;
-		DI.Serial.ToOAA( 0, OUT s );
+		DI.Serial.ToOAA( 0, OUT s, OUT l );
 		A.Init( Rijndael.cphmECBe, Rijndael.rkl256, _Seed, OA( 0, NIL ));
 		A.Encrypt( s, OUT uid, OUT l );
 		RETURN uid;
