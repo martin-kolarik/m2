@@ -1646,7 +1646,7 @@ BEGIN
       END;
     | L'"' :
       // skip another literal
-      WHILE ( i < l ) AND ( String[i] <> L"'" ) DO
+      WHILE ( i < l ) AND ( String[i] <> L'"' ) DO
         INC( i );
       END;
       IF i = l THEN

@@ -374,7 +374,7 @@ CLASS IMPLEMENTATION CLogger;
   BEGIN
     IF rsTimeStamps IN RStatus THEN
       time.GetCurrentUTCDateTime( dt );
-      time.DateTimeToString( dt, L"[yyyy-dd-MM HH:mm:ss] ", TRUE, TRUE, OUT SW );
+      time.DateTimeToString( dt, L"[yyyy-MM-dd HH:mm:ss.f] ", TRUE, TRUE, OUT SW );
     ELSE
       SW := L"";
     END;
