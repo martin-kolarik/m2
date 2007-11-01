@@ -851,22 +851,26 @@ CLASS IMPLEMENTATION CString;
 		END;
 	END CString.ToOA;
 
-	PUBLIC VIRTUAL PROCEDURE CString.ToOAA( CodePage : CARDINAL; OUT S : ARRAY OF CHAR );
-	VAR
-		l : CARDINAL;
+	PUBLIC VIRTUAL PROCEDURE CString.ToOAA( CodePage : CARDINAL; OUT S : ARRAY OF CHAR; OUT Filled : CARDINAL );
 	BEGIN
 		IF _Len = 0 THEN
+		   Filled := 0;
 			S[0] := CHAR( 0 );
 		ELSE
 			IF CodePage = 0 THEN
 				CodePage := winnls.CP_ACP;
 			END;
-			l := winnls.WideCharToMultiByte( CodePage, 0, _Data, _Len, ADR( S ), HIGH( S ) + 1, NIL, NIL );
-			IF l < HIGH( S ) THEN
-				S[l] := CHAR( 0 );
+			Filled := winnls.WideCharToMultiByte( CodePage, 0, _Data, _Len, ADR( S ), HIGH( S ) + 1, NIL, NIL );
+			IF Filled < HIGH( S ) THEN
+				S[Filled] := CHAR( 0 );
 			END;
 		END;
 	END CString.ToOAA;
+
+	PUBLIC VIRTUAL PROCEDURE CString.ToUTF8( OUT S : ARRAY OF CHAR; OUT Filled : CARDINAL );
+	BEGIN
+	   ToOAA( winnls.CP_UTF8, OUT S, OUT Filled );
+	END CString.ToUTF8;
 
 	PUBLIC VIRTUAL PROCEDURE CString.ToINT32( Base : CARDINAL ) : INT32;
 	VAR
@@ -975,9 +979,18 @@ CLASS IMPLEMENTATION CString;
 		IF CodePage = 0 THEN
 			CodePage := winnls.CP_ACP;
 		END;
-		winnls.MultiByteToWideChar( CodePage, winnls.MB_PRECOMPOSED, ADR( S ), _Len, _Data, _Len );
+		IF CodePage = winnls.CP_UTF8 THEN
+			_Len := winnls.MultiByteToWideChar( CodePage, 0, ADR( S ), _Len, _Data, _Len );
+		ELSE
+         _Len := winnls.MultiByteToWideChar( CodePage, winnls.MB_PRECOMPOSED, ADR( S ), _Len, _Data, _Len );
+      END;
 	END CString.FromOAA;
 	
+   PUBLIC VIRTUAL PROCEDURE FromUTF8( CONST S : ARRAY OF CHAR );
+	BEGIN
+	   FromOAA( winnls.CP_UTF8, S );
+   END CString.FromUTF8;
+
 	PUBLIC VIRTUAL PROCEDURE FromINT32( I : INT32; Base : CARDINAL );
 	BEGIN
 		IF _Size < 10 THEN

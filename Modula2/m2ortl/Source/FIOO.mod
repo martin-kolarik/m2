@@ -189,7 +189,8 @@ CLASS IMPLEMENTATION CFileStream;
             L2 := FIO.RdBin( Handle, A^, L1 );
             IF L2 = 0 THEN
                CASE CARDINAL( windows.GetLastError()) OF
-               | winerror.ERROR_HANDLE_EOF, // by documentation
+               | winerror.ERROR_SUCCESS, // we are at the end
+                 winerror.ERROR_HANDLE_EOF, // by documentation
                  winerror.ERROR_BROKEN_PIPE, // by documentation
                  winerror.ERROR_INVALID_HANDLE : // by reality
                   Result := Sync.arNoData;
