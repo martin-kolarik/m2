@@ -15,6 +15,9 @@
     <PropertyGroup Condition="$(MSBuildProjectName)=='NetMsg'">
         <Result>Dynamic</Result>
     </PropertyGroup>
+    <PropertyGroup Condition="$(MSBuildProjectName)=='sccore'">
+        <ComponentStandaloneFlag>off</ComponentStandaloneFlag>
+    </PropertyGroup>
 
     <PropertyGroup>
         <ProductM2Control></ProductM2Control>

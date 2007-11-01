@@ -15,37 +15,38 @@ IMPORT
 
 FROM Storage IMPORT
   REALLOCATE, ALLOCATE, DEALLOCATE;
-
-IMPORT
-  cllv,
-  FIO,
-  FIOO,
-  IOO,
-  Languages,
-  lec,
-  Storage,
-  StorageO,
-  Strings,
-  StringsO;
+  
+FROM log IMPORT
+  logger, dldTrace, dldDebug;
 
 IMPORT
   avltree,
+  cllv,
+  crc,
+  digest,
+  dns,
   drv_str,
+  FIO,
+  FIOO,
   INIFile,
+  IOO,
+  Languages,
+  lec,
   list,
   log,
   msghandler,
-  Resources,
-  TextReader;
-
-IMPORT
-  dns,
+  netconndispatch,
   netinit,
   netsrv,
   netsocket,
-  netconndispatch;
-  
-IMPORT
+  Resources,
+  rijndael,
+  sha256,
+  Storage,
+  StorageO,
+  Strings,
+  StringsO,
+  TextReader,
   Texts;
 
 //================================================================================
@@ -54,6 +55,9 @@ CONST // device specific error codes
   ecRxTimeout     = drv_def.ecCommunicationTimeout;
   ecChkSumError   = drv_def.ecCheckSumError;
   ecDeviceStopped = 10001H;
+
+CONST
+   logPrefix = L"NetMsg";
 
 //================================================================================
 
@@ -69,12 +73,19 @@ TYPE
     rsRunning,
     rsEventsPending,
     rsListening,
-    rsValid
+    rsValid,
+    rsGlobalKey
   );
   TRStatus = SET OF TRStatusItem;
 
 CONST
   rssUser = TRStatus{rsRunning, rsEventsPending, rsListening, rsValid};
+  
+CONST
+  ck = sha256.TDigest(
+    0D5H, 007H, 072H, 003H, 014H, 0BEH, 054H, 046H, 008H, 0BEH, 01DH, 082H, 0E3H, 0D3H, 0E0H, 05DH,
+    0FCH, 090H, 06EH, 080H, 02EH, 08DH, 045H, 0BAH, 08DH, 019H, 06AH, 0EBH, 09EH, 0B6H, 06AH, 03EH
+  );
 
 //--------------------------------------------------------------------------------
 
@@ -138,23 +149,24 @@ TYPE
 (*# save, option( pack => 1 ) *)
   TPPacket = POINTER TO RECORD
                 Length : CARDINAL;
+                CRC : CARDINAL;
                 CASE TR : TTransport OF
                 | trGroup  : Group : ARRAY [0..255] OF WCHAR; // use Length
-                | trString : Data  : ARRAY [0..0] OF WCHAR; // normally longer, use Length
-                | trStruct :
+                | trString : Data  : ARRAY [0..0] OF CHAR; // normally longer, use Length
                 END; // CASE
              END; // RECORD
 (*# restore *)
 
 CONST
-  hdr = SIZE( CARDINAL ) + SIZE( TTransport );
+  hdr = SIZE( CARDINAL ) + SIZE( CARDINAL ) + SIZE( TTransport );
 
 TYPE
   TEvent = (
     evConnect,
     evDisconnect,
     evDataReceived1,
-    evDataReceived2
+    evDataReceived2Success,
+    evDataReceived2BadCRC
   );
 
   TEventData = RECORD
@@ -166,9 +178,10 @@ TYPE
                    Error : CARDINAL;
                  | evDataReceived1 :
                    PReceiveClient : TPClientLE;
-                 | evDataReceived2 : // always follows evDataReceived1
+                 | evDataReceived2Success : // always follows evDataReceived1
                    PacketLen : CARDINAL;
                    PPacket : TPPacket;
+                 | evDataReceived2BadCRC :
                  END; // CASE
                END; // RECORD
 
@@ -194,6 +207,7 @@ CLASS CDriver( msghandler.MessageHandler );
   Clients       : list.CList;
   Groups        : list.CList;
   RemovedClients: list.CList;
+  GlobalKey     : sha256.TDigest;
 
   Packet        : StorageO.CMemoryBuffer;
   Events        : list.CList;
@@ -329,7 +343,7 @@ CLASS IMPLEMENTATION CEventLE;
 BEGIN
   Storage.Zero( ADR( Event ), SIZE( Event ));
 FINALLY
-  IF Event.Event = evDataReceived2 THEN
+  IF Event.Event = evDataReceived2Success THEN
     DISPOSE( Event.PPacket );
   END;
 END CEventLE;
@@ -361,6 +375,7 @@ CLASS IMPLEMENTATION CDriver;
   CONST
     // .PAR section names 
     snDevice               = L'NetMsg';
+      knKey                = L'key';
     // .PAR key names
     knDebugMode            = L'debug_mode';
       kvDebugNone          = L'none';
@@ -410,6 +425,15 @@ CLASS IMPLEMENTATION CDriver;
         GOTO Fail;
       ELSE
         RETURN TRUE;
+      END;
+    END;
+    IF TS.GetKeyStr( knKey, OUT ErrorLine, OUT cs ) THEN
+      IF cs.Length < 32 THEN
+        ASSIGN( ErrorMessage, OAsz( R[ Texts._KeyTooShort ] ));
+        GOTO Fail;
+      ELSE
+        INCL( RStatus, rsGlobalKey );
+        digest.DigestOA( digest.sha256, OA( cs.Length-1, cs.rawData ), OUT GlobalKey );
       END;
     END;
 
@@ -563,16 +587,25 @@ CLASS IMPLEMENTATION CDriver;
       SW.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 1, TRUE, OUT si );
 
       IF EQUALS( si, L'count' ) THEN
-        drv_def.AssignValueCardinal( OutValue, TRUE, Events.Count );
+        c := Events.Count;
+        logger()^.LogSC( dldDebug, logPrefix, L"Event.Count ", c );
+
+        drv_def.AssignValueCardinal( OutValue, TRUE, c );
         RETURN;
       
       ELSIF EQUALS( si, L'get' ) THEN
         IF Result.Counted OR Result.Expired THEN
+          logger()^.LogS( dldDebug, logPrefix, L"Event.Get clear buffer" );
+          logger()^.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
+
           Events.Dispose();
+          EXCL( RStatus, rsEventsPending );
           GOTO Success;
         END;
 
         IF Events.GetFirst( OUT PELE ) THEN
+          logger()^.LogSC( dldDebug, logPrefix, L"Event.Dequeue ", CARDINAL( PELE^.Event.Event ));
+
           Events.Remove( PELE );
 
           CASE PELE^.Event.Event OF
@@ -634,16 +667,18 @@ CLASS IMPLEMENTATION CDriver;
             ELSE
               SW.FromOA( L'server_data:' );
             END;
-          | evDataReceived2 :
+          | evDataReceived2Success :
             CASE PELE^.Event.PPacket^.TR OF
             | trString :
-					c := ( PELE^.Event.PacketLen - hdr ) >> 1;
+					c := PELE^.Event.PacketLen - hdr;
 					IF c = 0 THEN
 						SW.Clear();
 					ELSE
-						SW.FromOA( OA( c-1, ADR( PELE^.Event.PPacket^.Data )));
+						SW.FromUTF8( OA( c-1, ADR( PELE^.Event.PPacket^.Data )));
 					END;
             END;
+          | evDataReceived2BadCRC :
+            SW.FromOA( L'$bad CRC' );
           END; // CASE
 
           b := TRUE;
@@ -685,11 +720,15 @@ CLASS IMPLEMENTATION CDriver;
           IF drv_def.AssignDrvValueCStringW( REF OutValue, UFlag, FALSE, SW ) THEN
             DISPOSE( PELE );
           ELSE // wait for longer string, enter record back
+            logger()^.LogS( dldDebug, logPrefix, L"Event.Enqueue back" );
+
             Events.InsertFirst( PELE );
           END;
           RETURN;
 
         ELSE
+          logger()^.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
+
           EXCL( RStatus, rsEventsPending );
           GOTO Success;
         END;
@@ -769,17 +808,23 @@ CLASS IMPLEMENTATION CDriver;
           Packet.Size := ( len >> 4 + 1 ) << 4;
         END;
         PPacket := TPPacket( Packet.Data );
-        PPacket^.Length := len;
         PPacket^.TR := trString;
-        SW.ToOA( OUT OA( SW.Length-1, ADR( PPacket^.Data )));
+        SW.ToUTF8( OUT OA( len-1, ADR( PPacket^.Data )), OUT len );
+        INC( len, hdr );
+        PPacket^.Length := len;
+        PPacket^.CRC := 0;
+        PPacket^.CRC := crc.crc32( crc.crc32i, OA( len-1, PPacket ));
+        IF rsGlobalKey IN RStatus THEN
+          rijndael.Encrypt( rijndael.cphmStreamEncrypt, rijndael.rkl256, ck, GlobalKey, OA( len-1, PPacket ), OUT OA( len-1, PPacket ), OUT len );
+        END;
 
         IF PClientLE <> NIL THEN // send single client
-          PClientLE^.PClient^.Send( PClientLE^.PClient^.Connection, 0, PPacket, PPacket^.Length );
+          PClientLE^.PClient^.Send( PClientLE^.PClient^.Connection, 0, PPacket, len );
         ELSE // send all clients
           b := Clients.GetFirst( OUT PClientLE );
           WHILE b DO
             IF ( PClientLE^.PClient <> NIL ) AND ( PClientLE^.Name[0] = L'$' ) AND ( PClientLE^.Group[0] <> L' ' ) THEN
-              PClientLE^.PClient^.Send( PClientLE^.PClient^.Connection, 0, PPacket, PPacket^.Length );
+              PClientLE^.PClient^.Send( PClientLE^.PClient^.Connection, 0, PPacket, len );
             END;
             b := Clients.NextOf( PClientLE, OUT PClientLE );
           END; // WHILE
@@ -842,14 +887,20 @@ CLASS IMPLEMENTATION CDriver;
           Packet.Size := ( len >> 4 + 1 ) << 4;
         END;
         PPacket := TPPacket( Packet.Data );
-        PPacket^.Length := len;
         PPacket^.TR := trString;
-        SW.ToOA( OUT OA( SW.Length-1, ADR( PPacket^.Data )));
+        SW.ToUTF8( OUT OA( len-1, ADR( PPacket^.Data )), OUT len );
+        INC( len, hdr );
+        PPacket^.Length := len;
+        PPacket^.CRC := 0;
+        PPacket^.CRC := crc.crc32( crc.crc32i, OA( len-1, PPacket ));
+        IF rsGlobalKey IN RStatus THEN
+          rijndael.Encrypt( rijndael.cphmStreamEncrypt, rijndael.rkl256, ck, GlobalKey, OA( len-1, PPacket ), OUT OA( len-1, PPacket ), OUT len );
+        END;
 
         b := PGroupLE^.Clients.GetFirst( OUT PClientGroupLE );
         WHILE b DO
           IF PClientGroupLE^.PClientLE <> NIL THEN
-            PClientGroupLE^.PClientLE^.PClient^.Send( PClientGroupLE^.PClientLE^.PClient^.Connection, 0, PPacket, PPacket^.Length );
+            PClientGroupLE^.PClientLE^.PClient^.Send( PClientGroupLE^.PClientLE^.PClient^.Connection, 0, PPacket, len );
           END;
           b := PGroupLE^.Clients.NextOf( PClientGroupLE, OUT PClientGroupLE );
         END; // WHILE
@@ -1015,20 +1066,26 @@ CLASS IMPLEMENTATION CDriver;
           Packet.Size := ( len >> 4 + 1 ) << 4;
         END;
         PPacket := TPPacket( Packet.Data );
-        PPacket^.Length := len;
         PPacket^.TR := trString;
-        SW.ToOA( OUT OA( SW.Length-1, ADR( PPacket^.Data )));
+        SW.ToUTF8( OUT OA( len-1, ADR( PPacket^.Data )), OUT len );
+        INC( len, hdr );
+        PPacket^.Length := len;
+        PPacket^.CRC := 0;
+        PPacket^.CRC := crc.crc32( crc.crc32i, OA( len-1, PPacket ));
+        IF rsGlobalKey IN RStatus THEN
+          rijndael.Encrypt( rijndael.cphmStreamEncrypt, rijndael.rkl256, ck, GlobalKey, OA( len-1, PPacket ), OUT OA( len-1, PPacket ), OUT len );
+        END;
 
         IF PClientLE = NIL THEN // send all clients
           b := Clients.GetFirst( OUT PClientLE );
           WHILE b DO
             IF ( PClientLE^.PClient <> NIL ) AND ( PClientLE^.Name[0] <> L'$' ) THEN
-              PClientLE^.PClient^.Send( PClientLE^.PClient^.Connection, 0, PPacket, PPacket^.Length );
+              PClientLE^.PClient^.Send( PClientLE^.PClient^.Connection, 0, PPacket, len );
             END;
             b := Clients.NextOf( PClientLE, OUT PClientLE );
           END; // WHILE
         ELSE
-          PClientLE^.PClient^.Send( PClientLE^.PClient^.Connection, 0, PPacket, PPacket^.Length );
+          PClientLE^.PClient^.Send( PClientLE^.PClient^.Connection, 0, PPacket, len );
         END;
 
       ELSE
@@ -1249,6 +1306,7 @@ CLASS IMPLEMENTATION CDriver;
 
   LOCAL PROCEDURE OnConnect( PConnection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
   VAR
+    len : CARDINAL;
     PPacket : TPPacket := Packet.Data;
     PClientLE : TPClientLE;
     PELE : TPEventLE;
@@ -1263,11 +1321,21 @@ CLASS IMPLEMENTATION CDriver;
       PELE^.Event.Error := Error;
       Events.Append( PELE );
 
+      logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evConnect/client ", CARDINAL( evConnect ));
+
       IF SearchNet( REF Clients, PELE^.Event.Port, PELE^.Event.Address, PClientLE ) THEN
-        PPacket^.Length := hdr + LENGTH( PClientLE^.Group ) << 1;
+        len := LENGTH( PClientLE^.Group ) << 1;
         PPacket^.TR := trGroup;
         ASSIGN( PPacket^.Group, PClientLE^.Group );
-        PClientLE^.PClient^.Send( PClientLE^.PClient^.Connection, 0, PPacket, PPacket^.Length );
+        INC( len, hdr );
+        PPacket^.Length := len;
+        PPacket^.CRC := 0;
+        PPacket^.CRC := crc.crc32( crc.crc32i, OA( len-1, PPacket ));
+        IF rsGlobalKey IN RStatus THEN
+          rijndael.Encrypt( rijndael.cphmStreamEncrypt, rijndael.rkl256, ck, GlobalKey, OA( len-1, PPacket ), OUT OA( len-1, PPacket ), OUT len );
+        END;
+
+        PClientLE^.PClient^.Send( PClientLE^.PClient^.Connection, 0, PPacket, len );
       END;
 
     ELSE // remote connect
@@ -1276,7 +1344,7 @@ CLASS IMPLEMENTATION CDriver;
       ELSE
         NEW( PClientLE );
       END;
-      Strings.FromCARD32W( CARDINAL( PClientLE ), 16, OUT PClientLE^.Name );
+      Strings.FromCARD64W( CARD64( PClientLE ), 16, OUT PClientLE^.Name );
       Strings.PrependW( REF PClientLE^.Name, L'$' );
       PClientLE^.Group := L' ';
       PClientLE^.Port := PConnection^.RemotePort;
@@ -1291,6 +1359,8 @@ CLASS IMPLEMENTATION CDriver;
     IF rsEventsPending IN RStatus THEN
       RETURN;
     END;
+    logger()^.LogS( dldDebug, logPrefix, L"RS+ rsEventPending, fire dcfException (1)" );
+
     INCL( RStatus, rsEventsPending );
     CallbackProc( CallbackId, drv_def.dcfException, NIL );
   END OnConnect;
@@ -1310,6 +1380,8 @@ CLASS IMPLEMENTATION CDriver;
     PELE^.Event.Error := Error;
     Events.Append( PELE );
 
+    logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evDisconnect", CARDINAL( evDisconnect ));
+
     // remove remote client stub
     IF SearchNet( REF Clients, PELE^.Event.Port, PELE^.Event.Address, PClientLE ) AND ( PClientLE^.Name[0] = L'$' ) THEN
       // remove client from groups
@@ -1326,6 +1398,8 @@ CLASS IMPLEMENTATION CDriver;
     IF rsEventsPending IN RStatus THEN
       RETURN;
     END;
+    logger()^.LogS( dldDebug, logPrefix, L"RS+ rsEventPending, fire dcfException (2)" );
+
     INCL( RStatus, rsEventsPending );
     CallbackProc( CallbackId, drv_def.dcfException, NIL );
   END OnDisconnect;
@@ -1335,14 +1409,32 @@ CLASS IMPLEMENTATION CDriver;
   LOCAL PROCEDURE OnReceive( PConnection : netconndispatch.TConnectionHandle; PData : ADDRESS; DataLen : CARDINAL );
   VAR
     c : CARDINAL;
+    CRC : CARDINAL;
+    CRCValid : BOOLEAN;
     Name : ARRAY [0..79] OF WCHAR;
+    PClientLE : TPClientLE := NIL;
     PClientGroupLE : TPClientGroupLE;
     PELE : TPEventLE;
     PGroupLE : TPGroupLE;
   BEGIN
+    IF rsGlobalKey IN RStatus THEN
+      rijndael.Decrypt( rijndael.cphmStreamDecrypt, rijndael.rkl256, ck, GlobalKey, OA( DataLen-1, PData ), OUT OA( DataLen-1, PData ), OUT c );
+    END;
+    CRC := TPPacket( PData )^.CRC; TPPacket( PData )^.CRC := 0;
+    CRCValid := crc.crc32( crc.crc32i, OA( DataLen-1, PData )) = CRC;
+
+    logger()^.LogSC( dldDebug, logPrefix, L"OnReceive bytes ", DataLen );
+
     CASE TPPacket( PData )^.TR OF
     | trGroup :
-      IF TPPacket( PData )^.Length = hdr THEN
+      SearchNet( REF Clients, PConnection^.RemotePort, PConnection^.RemoteAddress, PClientLE );
+      IF NOT CRCValid THEN
+        PClientLE^.PClient^.Disconnect( PConnection );
+
+        logger()^.LogS( dldDebug, logPrefix, L"Disconnect, bad CRC" );
+        RETURN;
+
+      ELSIF TPPacket( PData )^.Length = hdr THEN
         c := 0;
       ELSE
         c := ( TPPacket( PData )^.Length - hdr ) >> 1;
@@ -1356,7 +1448,7 @@ CLASS IMPLEMENTATION CDriver;
         Groups.Append( PGroupLE );
       END;
       NEW( PClientGroupLE );
-      SearchNet( REF Clients, PConnection^.RemotePort, PConnection^.RemoteAddress, PClientGroupLE^.PClientLE );
+      PClientGroupLE^.PClientLE := PClientLE;
       ASSIGN( PClientGroupLE^.PClientLE^.Group, Name );
       PGroupLE^.Clients.Append( PClientGroupLE );
 
@@ -1369,9 +1461,13 @@ CLASS IMPLEMENTATION CDriver;
       PELE^.Event.Error := 0;
       Events.Append( PELE );
 
+      logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evConnect/remote ", CARDINAL( evConnect ));
+
       IF rsEventsPending IN RStatus THEN
         RETURN;
       END;
+      logger()^.LogS( dldDebug, logPrefix, L"RS+ rsEventPending, fire dcfException (3)" );
+
       INCL( RStatus, rsEventsPending );
       CallbackProc( CallbackId, drv_def.dcfException, NIL );
 
@@ -1381,19 +1477,34 @@ CLASS IMPLEMENTATION CDriver;
       SearchNet( REF Clients, PConnection^.RemotePort, PConnection^.RemoteAddress, PELE^.Event.PReceiveClient );
       Events.Append( PELE );
 
+      logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evDataReceived1 ", CARDINAL( evDataReceived1 ));
+
       NEW( PELE );
-      PELE^.Event.Event := evDataReceived2;
-      PELE^.Event.PacketLen := DataLen;
-      ALLOCATE( PELE^.Event.PPacket, DataLen );
-      Storage.Move( PData, PELE^.Event.PPacket, DataLen );
+      IF CRCValid THEN
+         PELE^.Event.Event := evDataReceived2Success;
+         PELE^.Event.PacketLen := DataLen;
+         ALLOCATE( PELE^.Event.PPacket, DataLen );
+         Storage.Move( PData, PELE^.Event.PPacket, DataLen );
+
+         logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evDataReceived2Success ", CARDINAL( evDataReceived2Success ));
+      ELSE
+         PELE^.Event.Event := evDataReceived2BadCRC;
+
+         logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evDataReceived2BadCRC ", CARDINAL( evDataReceived2BadCRC ));
+      END;
       Events.Append( PELE );
       
       IF rsEventsPending IN RStatus THEN
         RETURN;
       END;
+      logger()^.LogS( dldDebug, logPrefix, L"RS+ rsEventPending, fire dcfException (4)" );
+
       INCL( RStatus, rsEventsPending );
       CallbackProc( CallbackId, drv_def.dcfException, NIL );
 
+    ELSE
+      logger()^.LogSC( dldTrace, logPrefix, L"Unrecognized packet ", CARDINAL( TPPacket( PData )^.TR  ));
+    
     END;
   END OnReceive;
 
@@ -1409,6 +1520,7 @@ BEGIN
   CallbackProc := NIL;
   Port := 6001;
   Server.Driver := ADR( SELF );
+  GlobalKey[0] := 0;
   Packet.Size := 272;
 END CDriver;
 

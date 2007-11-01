@@ -1,93 +1,97 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <resources>
-  <strings version="1.0.0.0">
+    <strings version="1.0.0.0">
 
-    <string name="StringId">
-      <item lang="en-US">NetworkMessaging</item>
-      <item lang="cs-CZ">NetworkMessaging</item>
-    </string>
+        <string name="StringId">
+            <item lang="en-US">NetworkMessaging</item>
+            <item lang="cs-CZ">NetworkMessaging</item>
+        </string>
 
-    <string name="_DriverName">
-      <item lang="en-US">Network Messaging Driver</item>
-      <item lang="cs-CZ">Ovladač pro síťové zprávy</item>
-    </string>
-    <string name="_LicenceNotFound">
-      <item lang="en-US">Licence information not found</item>
-      <item lang="cs-CZ">Nenalezena informace o licenci</item>
-    </string>
-    <string name="_InitError">
-      <item lang="en-US">Initialization failed</item>
-      <item lang="cs-CZ">Chyba inicializace ovladače</item>
-    </string>
+        <string name="_DriverName">
+            <item lang="en-US">Network Messaging Driver</item>
+            <item lang="cs-CZ">Ovladač pro síťové zprávy</item>
+        </string>
+        <string name="_LicenceNotFound">
+            <item lang="en-US">Licence information not found</item>
+            <item lang="cs-CZ">Nenalezena informace o licenci</item>
+        </string>
+        <string name="_InitError">
+            <item lang="en-US">Initialization failed</item>
+            <item lang="cs-CZ">Chyba inicializace ovladače</item>
+        </string>
 
-    <string name="_E_DeviceStopped">
-      <item lang="en-US">Device stopped</item>
-      <item lang="cs-CZ">Zařízení je zastaveno</item>
-    </string>
+        <string name="_E_DeviceStopped">
+            <item lang="en-US">Device stopped</item>
+            <item lang="cs-CZ">Zařízení je zastaveno</item>
+        </string>
 
-    <string name="_CannotOpenPar">
-      <item lang="en-US">Error during opening parameter file</item>
-      <item lang="cs-CZ">Chyba při otevření souboru s parametry</item>
-    </string>
-    <string name="_MissingDeviceSection">
-      <item lang="en-US">Device definition section is missing ([NetMsg])</item>
-      <item lang="cs-CZ">Chybí definice sekce zařízení ([NetMsg])</item>
-    </string>
-    <string name="_FileDebugMissingFile">
-      <item lang="en-US">Debug output file definition is missing (debug_file = ...)</item>
-      <item lang="cs-CZ">Chybí definice souboru s ladicími výpisy (debug_file = ...)</item>
-    </string>
+        <string name="_CannotOpenPar">
+            <item lang="en-US">Error during opening parameter file</item>
+            <item lang="cs-CZ">Chyba při otevření souboru s parametry</item>
+        </string>
+        <string name="_MissingDeviceSection">
+            <item lang="en-US">Device definition section is missing ([NetMsg])</item>
+            <item lang="cs-CZ">Chybí definice sekce zařízení ([NetMsg])</item>
+        </string>
+        <string name="_FileDebugMissingFile">
+            <item lang="en-US">Debug output file definition is missing (debug_file = ...)</item>
+            <item lang="cs-CZ">Chybí definice souboru s ladicími výpisy (debug_file = ...)</item>
+        </string>
+        <string name="_KeyTooShort">
+            <item lang="en-US">Key must be at least 32 characters long</item>
+            <item lang="cs-CZ">Klíč musí mít nejméně 32 znaků</item>
+        </string>
 
-    <string name="_ListenFailure">
-      <item lang="en-US">Unable to start, port is probably used by another application</item>
-      <item lang="cs-CZ">Nelze rozběhnout, port je pravděpodobně použit jinou aplikací</item>
-    </string>
-    <string name="_BadPortNumber">
-      <item lang="en-US">Bad port number</item>
-      <item lang="cs-CZ">Špatné číslo portu</item>
-    </string>
-    <string name="_UnknownClient">
-      <item lang="en-US">Unknown client</item>
-      <item lang="cs-CZ">Neznámý klient</item>
-    </string>
-    <string name="_UnknownGroup">
-      <item lang="en-US">Unknown group</item>
-      <item lang="cs-CZ">Neznámá skupina</item>
-    </string>
+        <string name="_ListenFailure">
+            <item lang="en-US">Unable to start, port is probably used by another application</item>
+            <item lang="cs-CZ">Nelze rozběhnout, port je pravděpodobně použit jinou aplikací</item>
+        </string>
+        <string name="_BadPortNumber">
+            <item lang="en-US">Bad port number</item>
+            <item lang="cs-CZ">Špatné číslo portu</item>
+        </string>
+        <string name="_UnknownClient">
+            <item lang="en-US">Unknown client</item>
+            <item lang="cs-CZ">Neznámý klient</item>
+        </string>
+        <string name="_UnknownGroup">
+            <item lang="en-US">Unknown group</item>
+            <item lang="cs-CZ">Neznámá skupina</item>
+        </string>
 
-    <string name="_UnrecognizedCommand">
-      <item lang="en-US">Unrecognized command</item>
-      <item lang="cs-CZ">Chybný povel</item>
-    </string>
-    <string name="_UnrecognizedEventCommand">
-      <item lang="en-US">Unrecognized 'event' command</item>
-      <item lang="cs-CZ">Chybný 'event' povel</item>
-    </string>
-    <string name="_UnrecognizedServerCommand">
-      <item lang="en-US">Unrecognized 'server' command</item>
-      <item lang="cs-CZ">Chybný 'server' povel</item>
-    </string>
-    <string name="_UnrecognizedClientCommand">
-      <item lang="en-US">Unrecognized 'client' command</item>
-      <item lang="cs-CZ">Chybný 'client' povel</item>
-    </string>
-    <string name="_UnrecognizedGroupCommand">
-      <item lang="en-US">Unrecognized 'group' command</item>
-      <item lang="cs-CZ">Chybný 'group' povel</item>
-    </string>
-    <string name="_ClientAlreadyExists">
-      <item lang="en-US">Client already exists</item>
-      <item lang="cs-CZ">Klient již existuje</item>
-    </string>
-    <string name="_GroupAlreadyExists">
-      <item lang="en-US">Group already exists</item>
-      <item lang="cs-CZ">Skupina již existuje</item>
-    </string>
-    <string name="_ClientNameReserved">
-      <item lang="en-US">Client name is reserved, it cannot be used</item>
-      <item lang="cs-CZ">Jméno klienta je rezervované, nemůže být použito</item>
-    </string>
+        <string name="_UnrecognizedCommand">
+            <item lang="en-US">Unrecognized command</item>
+            <item lang="cs-CZ">Chybný povel</item>
+        </string>
+        <string name="_UnrecognizedEventCommand">
+            <item lang="en-US">Unrecognized 'event' command</item>
+            <item lang="cs-CZ">Chybný 'event' povel</item>
+        </string>
+        <string name="_UnrecognizedServerCommand">
+            <item lang="en-US">Unrecognized 'server' command</item>
+            <item lang="cs-CZ">Chybný 'server' povel</item>
+        </string>
+        <string name="_UnrecognizedClientCommand">
+            <item lang="en-US">Unrecognized 'client' command</item>
+            <item lang="cs-CZ">Chybný 'client' povel</item>
+        </string>
+        <string name="_UnrecognizedGroupCommand">
+            <item lang="en-US">Unrecognized 'group' command</item>
+            <item lang="cs-CZ">Chybný 'group' povel</item>
+        </string>
+        <string name="_ClientAlreadyExists">
+            <item lang="en-US">Client already exists</item>
+            <item lang="cs-CZ">Klient již existuje</item>
+        </string>
+        <string name="_GroupAlreadyExists">
+            <item lang="en-US">Group already exists</item>
+            <item lang="cs-CZ">Skupina již existuje</item>
+        </string>
+        <string name="_ClientNameReserved">
+            <item lang="en-US">Client name is reserved, it cannot be used</item>
+            <item lang="cs-CZ">Jméno klienta je rezervované, nemůže být použito</item>
+        </string>
 
-  </strings>
+    </strings>
 </resources>
