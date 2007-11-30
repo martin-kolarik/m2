@@ -53,9 +53,9 @@ CLASS IMPLEMENTATION CLogger;
 
 //---------------------------------------------------------
 
-   PUBLIC PROPERTY Level SET( Vaue : TDebugLevel );
+   PUBLIC PROPERTY Level SET( Value : TDebugLevel );
    BEGIN
-      DebugLevel := Level;
+      DebugLevel := Value;
    END Level;
 
 //---------------------------------------------------------
