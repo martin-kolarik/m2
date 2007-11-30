@@ -3582,7 +3582,8 @@ BEGIN
   DebugMask         := {};
 (*%E DEBUG *)
 (*%T DEBUG *)
-  DebugMask         := BITSET(0FFFFFFFFH);
+  // DebugMask         := BITSET(0FFFFFFFFH);
+  DebugMask         := {};
 (*%E DEBUG *)
 
 // performance counters
