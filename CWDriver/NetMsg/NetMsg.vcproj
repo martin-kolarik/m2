@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="windows-1250"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8.00"
+	Version="8,00"
 	Name="NetMsg"
 	ProjectGUID="{BB5A86DE-7A22-4314-AA65-46FA22F5020F}"
 	RootNamespace="NetMsg"
@@ -83,10 +83,6 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
-			<File
-				RelativePath=".\Source\dllmain.def"
-				>
-			</File>
 			<File
 				RelativePath=".\Source\export.def"
 				>
