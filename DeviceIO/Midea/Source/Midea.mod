@@ -14,6 +14,9 @@ IMPORT
    StringsO,
    Sync,
    windows;
+   
+IMPORT
+   log;
 
 IMPORT
    device,
@@ -58,8 +61,8 @@ TYPE
       Telegram      : TTelegramType;
       Target        : CARD16;
       Source        : CARD16;
-      Type          : CARD8; // TType
-      Mode          : CARD8; // TMode
+      Type          : CARD16; // TType
+      Mode          : TMode;
       IndoorStatus  : CARD8;
       TS            : CARD8;
       T1            : CARD8;
@@ -126,6 +129,9 @@ CLASS IMPLEMENTATION CNS;
       D := NewItem( L"Type", ns.ntName, iovalue.vtString, 0 );
       Root^.AddChild( D );
          T := NewItem( L"Mode", ns.ntName, iovalue.vtString, 0 ); D^.AddChild( T );
+            // DBG
+            I := NewItem( L"xx", ns.ntName, iovalue.vtString, 0 ); T^.AddChild( I );
+
             I := NewItem( L"auto", ns.ntName, iovalue.vtString, 0 ); T^.AddChild( I );
             I := NewItem( L"heat", ns.ntName, iovalue.vtString, 0 ); T^.AddChild( I );
             I := NewItem( L"cool", ns.ntName, iovalue.vtString, 0 ); T^.AddChild( I );
@@ -203,11 +209,11 @@ CLASS IMPLEMENTATION CSerial;
 
    INTERNAL VIRTUAL PROCEDURE DataComplete( CONST Data : StorageO.AMemoryBuffer; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyCheckSum : BOOLEAN ) : BOOLEAN;
    BEGIN
-      IF Data.Length < 1 + SIZE( TInPacket ) + 2 + 2 THEN // start, crc+stop, 2 unknown bytes
+      IF Data.Length < 1 + SIZE( TInPacket ) + 2 + 1 THEN // start, crc+stop, 1 unknown bytes
          RETURN FALSE;
       END;
       FirstIndexAfterData := 1 + SIZE( TInPacket );
-      FirstIndexAfterFrame := 1 + SIZE( TInPacket ) + 2 + 2;
+      FirstIndexAfterFrame := 1 + SIZE( TInPacket ) + 2 + 1;
       ApplyCheckSum := TRUE;
       RETURN TRUE;
    END DataComplete;
@@ -223,7 +229,7 @@ CLASS IMPLEMENTATION CSerial;
       FOR i := 1 TO l-1 DO // omit first and last two bytes
          INC( CRC, PCARD8( Data.Data@[i] )^ );
       END; // FOR
-      RETURN PBYTE( Data.Data@[l] )^ = 1 + NOT CRC;
+      RETURN PBYTE( Data.Data@[l] )^ = BYTE( 1 + NOT CRC );
    END TestChkSum;
 
 (*---------------------------------------------------------------------------*)
@@ -353,7 +359,15 @@ CLASS IMPLEMENTATION CIO;
             Data^.Mode := TMode{mdFan};
          ELSIF Value.EqualsOA( L"auto" ) THEN
             // TODO
+
+         ELSIF Value.EqualsOA( L"xx" ) THEN
+            Data^.Mode := TMode{mdXX};
+            // TODO
          END;
+         
+         // TODO: OK
+         INCL( Data^.Mode, mdOn );
+         
       | itFan :
          IF Value.EqualsOA( L"high" ) THEN
             Data^.FanSpeed := TFanSpeed{fsHigh};
@@ -364,8 +378,13 @@ CLASS IMPLEMENTATION CIO;
          ELSIF Value.EqualsOA( L"auto" ) THEN
             Data^.FanSpeed := TFanSpeed{fsAuto};
          END;
+
+         // TODO
+         Data^.Mode := TMode{mdHeat, mdOn};
+
       | itSetTemperature :
-         Data^.SetTemperature:= CARD8( Value.LimitedInteger( 5, FALSE, TRUE ));
+         Data^.SetTemperature := CARD8( Value.LimitedInteger( 5, FALSE, TRUE ));
+
       END;
 
       IF HIBYTE( Target ) = 0FFH THEN
@@ -379,6 +398,7 @@ CLASS IMPLEMENTATION CIO;
       END;
 
       Packet.Telegram := ttSet;
+      
       Packet.Recode := 0FFH - CARD8( Packet.Telegram );
       Packet.Target := Target;
       Packet.Source := 08080H;
@@ -421,6 +441,10 @@ CLASS IMPLEMENTATION CIO;
       ELSE
          _Pending := IOO.dirUnknown;
       END;
+      
+      // DBG
+		log.logger()^.LogSCB( Log.dldTrace, L'', L'rx ', SIZE( PPacket^ ), PPacket, SIZE( PPacket^ ));
+      
       IF Result = Sync.arCompleted THEN
          _DataInfo^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( 0, ADR( V )));
       ELSIF _Pending = IOO.dirWrite THEN

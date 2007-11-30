@@ -93,8 +93,10 @@ END CIO;
 TYPE
    TModeItem = CARD8(
       mdFan = 0,
+      mdXX = 1,
       mdHeat = 2,
-      mdCool = 3
+      mdCool = 3,
+      mdOn = 7
    );
    TMode = SET CARD8 OF TModeItem;
    

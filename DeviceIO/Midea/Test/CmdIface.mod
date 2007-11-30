@@ -53,9 +53,13 @@ BEGIN
 	END; // LOOP
 END Wait;
 
-#save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
-#restore
+TYPE
+   TParamStringArray  = ARRAY [0..0] OF POINTER TO ARRAY [0..511] OF WCHAR;
+   TPParamStringArray = POINTER TO TParamStringArray;
+  
+# save, call( convention => cdecl )
+PROCEDURE wmain( argc : INTEGER; argp : TPParamStringArray; enpv : TPParamStringArray ) : INTEGER;
+# restore
 CONST
    sCOM = L"COM2";
    sPAR = L"D:\Work\SmartControl\Code\DeviceIO\Midea\~Debug\com.par";
@@ -76,18 +80,24 @@ BEGIN
    
    cfgparam[0] := ADR( sCOM );
    cfgparam[1] := ADR( sPAR );
-	midea^.Configure( cfgparam, Log.logger() );
+	IF midea^.Configure( cfgparam, Log.logger() ) = Sync.arCompleted THEN
+	   midea^.IO()^.Run();
+	ELSE
+	   RETURN -1;
+	END;
 	Wait( 65 );
 
+(*
 	V.FromStringOA( L"high", FALSE );
 	b := midea^.NS()^.Map( L"MideaAC.Data.1.All.Fan", OUT h );
-	r := midea^.IO()^.IOh( IOO.dirWrite, h, REF V, ADR( DI ));
+	r := midea^.IO()^.IOh( IOO.dirRead, h, REF V, ADR( DI ));
 	Wait( 20 );
+*)
 
-	V.FromStringOA( L"heat", FALSE );
-	b := midea^.NS()^.Map( L"MideaAC.Data.1.All.Mode", OUT h );
-	r := midea^.IO()^.IOh( IOO.dirWrite, h, REF V, ADR( DI ));
-	Wait( 20 );
+	V.FromStringOA( OAsz( argp^[2] ), FALSE );
+	b := midea^.NS()^.Map( OAsz( argp^[1] ), OUT h );
+	r := midea^.IO()^.IOh( IOO.dirRead, h, REF V, ADR( DI ));
+	Wait( 75 );
    
    loader.ldr()^.ReleaseObject( REF midea );
    loader.ldr()^.Dispose();
