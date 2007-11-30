@@ -282,7 +282,7 @@ CLASS IMPLEMENTATION CSerialHandler;
 			RETURN TRUE;
 		END;
 
-		FrameStart := Data.IndexOfOA( IBLS, 0 );
+		FrameStart := Data.IndexOfOA( OA( IBLSLen-1, ADR( IBLS )), 0 );
 		IF FrameStart = MAX( CARDINAL ) THEN
 			RETURN FALSE;
 		END;
@@ -301,7 +301,7 @@ CLASS IMPLEMENTATION CSerialHandler;
 			FirstIndexAfterFrame := Data.Length;
 			RETURN TRUE;
 		END;
-		FirstIndexAfterData := Data.IndexOfOA( IBTS, 0 );
+		FirstIndexAfterData := Data.IndexOfOA( OA( IBTSLen-1, ADR( IBTS )), 0 );
 		IF FirstIndexAfterData = MAX( CARDINAL ) THEN
 			RETURN FALSE;
 		END;
