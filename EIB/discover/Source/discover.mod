@@ -54,14 +54,22 @@ CLASS IMPLEMENTATION CResult;
          stdout^.WriteOA( OAsz( R[Texts._FoundCount] ), FALSE ); stdout^.WriteINT32( Servers.Count, 10, FALSE ); stdout^.WriteOA( OAsz( R[Texts._devices] ), TRUE );
          FOR i := 0 TO Servers.Count-1 DO
             server := browser.TPServer( Servers[i] );
-            stdout^.WriteOA( L"  ", FALSE ); stdout^.Write( server^.Description, TRUE );
+
+            Strings.FromCARD32W( i+1, 10, OUT s );
+            IF i < 10 THEN
+               stdout^.WriteOA( L"     ", FALSE );
+            END;
+            stdout^.WriteOA( s, FALSE ); stdout^.WriteOA( L". MAC: ", FALSE );
+            stdout^.Write( server^.Description, FALSE );
             
             Strings.FromIPV4( server^.Address.s_addr, OUT s );
             S.FromOA( s );
             S.AppendOA( L":" );
-            Strings.FromIPV4( server^.Port, OUT s );
+            Strings.FromCARD32W( server^.Port, 10, OUT s );
             S.AppendOA( s );
             IPs.Add( S, 0 );
+
+            stdout^.WriteOA( L", IP address: ", FALSE ); stdout^.Write( S, TRUE );
          END;
       END;
       Thread^.Stop( FALSE );
