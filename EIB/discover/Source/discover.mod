@@ -135,7 +135,7 @@ LABEL
 VAR
    ConfigFile : StringsO.CString;
    errout : TextWriter.TPTextWriter := TextWriter.errout();
-   First : BOOLEAN := FALSE;
+   First : BOOLEAN := TRUE;
    i : INTEGER;
    Id : StringsO.CString;
    Thread : CThread;
