@@ -43,6 +43,64 @@
             <item lang="cs-CZ">Klíč musí mít nejméně 32 znaků</item>
         </string>
 
+        <string name="_MissingNameOfRecordType">
+            <item lang="en-US">"name" key of "record_type" is missing</item>
+            <item lang="cs-CZ">Chybí klíč "name" sekce "record_type"</item>
+        </string>
+        <string name="_RecordTypeDuplicated">
+            <item lang="en-US">"record_type" with the same name already exists</item>
+            <item lang="cs-CZ">"record_type" se stejným jménem již existuje</item>
+        </string>
+        <string name="_MissingFieldsOfRecordType">
+            <item lang="en-US">"fields" key is missing</item>
+            <item lang="cs-CZ">Chybí klíč "fields"</item>
+        </string>
+        <string name="_UnknownFieldType">
+            <item lang="en-US">Unknown field type, allowed are "boolean", "tristate", "integer", "float" or "string"</item>
+            <item lang="cs-CZ">Neznámý typ prvku, povoleny jsou "boolean", "tristate", "integer", "float" or "string"</item>
+        </string>
+        <string name="_MissingRecordTypeInRecord">
+            <item lang="en-US">"record_type" key is missing</item>
+            <item lang="cs-CZ">Chybí klíč "record_type"</item>
+        </string>
+        <string name="_UnknownRecordType">
+            <item lang="en-US">The specified "record_type" is not known (it was not defined)</item>
+            <item lang="cs-CZ">Uvedený "record_type" není známý (nebyl definován)</item>
+        </string>
+        <string name="_MissingNameOfRecord">
+            <item lang="en-US">"name" key of "record" is missing</item>
+            <item lang="cs-CZ">Chybí klíč "name" sekce "record"</item>
+        </string>
+        <string name="_RecordDuplicated">
+            <item lang="en-US">"record" with the same name already exists</item>
+            <item lang="cs-CZ">"record" se stejným jménem již existuje</item>
+        </string>
+        <string name="_MissingFirstChannelRecord">
+            <item lang="en-US">"first_channel" key is missing</item>
+            <item lang="cs-CZ">Chybí klíč "first_channel"</item>
+        </string>
+        <string name="_MalformedTypeArray">
+            <item lang="en-US">Missing closing "]"</item>
+            <item lang="cs-CZ">Chybí uzavírací "]"</item>
+        </string>
+        <string name="_MalformedArrayRange">
+            <item lang="en-US">Number is malformed</item>
+            <item lang="cs-CZ">Číslo má chybný formát</item>
+        </string>
+        <string name="_BadArrayRange">
+            <item lang="en-US">Number must be greater than zero</item>
+            <item lang="cs-CZ">Počet musí být větší jak nula</item>
+        </string>
+
+        <string name="_ChannelIndexDuplicated">
+            <item lang="en-US">Channel index is duplicated</item>
+            <item lang="cs-CZ">Číslo kanálu je již obsazeno</item>
+        </string>
+        <string name="_ChannelOneReserved">
+            <item lang="en-US">Channel index 1 is reserved to driver status</item>
+            <item lang="cs-CZ">Číslo kanálu 1 je vyhrazeno pro stavový kanál</item>
+        </string>
+
         <string name="_ListenFailure">
             <item lang="en-US">Unable to start, port is probably used by another application</item>
             <item lang="cs-CZ">Nelze rozběhnout, port je pravděpodobně použit jinou aplikací</item>
@@ -53,11 +111,15 @@
         </string>
         <string name="_UnknownClient">
             <item lang="en-US">Unknown client</item>
-            <item lang="cs-CZ">Neznámý klient</item>
+            <item lang="cs-CZ">Neznámý klient (client)</item>
         </string>
         <string name="_UnknownGroup">
             <item lang="en-US">Unknown group</item>
-            <item lang="cs-CZ">Neznámá skupina</item>
+            <item lang="cs-CZ">Neznámá skupina (group)</item>
+        </string>
+        <string name="_UnknownRecord">
+            <item lang="en-US">Unknown record</item>
+            <item lang="cs-CZ">Neznámý záznam (record)</item>
         </string>
 
         <string name="_UnrecognizedCommand">

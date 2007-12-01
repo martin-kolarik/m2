@@ -1,5 +1,20 @@
-Version 1.0.1306 1.11.2007
-- copy UTF8 and bugs from Inris.NetMsg
+Version DEBUG 1.1.1306 1.11.2007
+- NEW: [NetMsg] section defines optional key "key". If the key is present, then
+       the driver ciphers all communication -- this will be matter of change,
+       ciphering will be adjustable for each block separately
+- NEW: sent data are checked with CRC
+- CHG: transport encoding was changed to UTF-8
+- BUG: during passing sent data to network active sending operation could be realized
+       by driver as finished prematurely, which could cause loss of sent data
+- BUG: for heavy load transport there could occur deadlock (locked over network and
+       TCP window)
+
+Version DEBUG 1.1.1136 10.10.2007
+- NEW: definition of record types (fields) was supplied with optional count
+
+Version DEBUG 1.1.1120 8.10.2007
+- NEW: added sending and receiving of records exposed to the application as discrete
+       channels (send ... record Name + client_record/server_record)
 
 Version 1.0.1097 6.10.2007
 - NEW: release licensing

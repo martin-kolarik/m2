@@ -30,10 +30,13 @@ IMPORT
   FIOO,
   INIFile,
   IOO,
+  iovalue,
   Languages,
   lec,
   list,
+  lists,
   log,
+  maps,
   msghandler,
   netconndispatch,
   netinit,
@@ -153,6 +156,7 @@ TYPE
                 CASE TR : TTransport OF
                 | trGroup  : Group : ARRAY [0..255] OF WCHAR; // use Length
                 | trString : Data  : ARRAY [0..0] OF CHAR; // normally longer, use Length
+                | trStruct : Struct : ARRAY [0..0] OF CHAR; // normally longer, use Length
                 END; // CASE
              END; // RECORD
 (*# restore *)
@@ -165,8 +169,11 @@ TYPE
     evConnect,
     evDisconnect,
     evDataReceived1,
-    evDataReceived2Success,
-    evDataReceived2BadCRC
+      evDataReceived2Success,
+      evDataReceived2BadCRC,
+    evStructReceived1,
+      evStructReceived2Success,
+      evStructReceived2BadCRC
   );
 
   TEventData = RECORD
@@ -176,12 +183,14 @@ TYPE
                    Address : winsock.IN_ADDR;
                    Port : CARDINAL;
                    Error : CARDINAL;
-                 | evDataReceived1 :
+                 | evDataReceived1, evStructReceived1 :
                    PReceiveClient : TPClientLE;
-                 | evDataReceived2Success : // always follows evDataReceived1
+                 | evDataReceived2Success, // always follows evDataReceived1
+                   evStructReceived2Success : // always follows evStructReceived1
                    PacketLen : CARDINAL;
                    PPacket : TPPacket;
-                 | evDataReceived2BadCRC :
+                 | evDataReceived2BadCRC, // always follows evDataReceived1
+                   evStructReceived2BadCRC : // always follows evStructReceived1
                  END; // CASE
                END; // RECORD
 
@@ -211,6 +220,8 @@ CLASS CDriver( msghandler.MessageHandler );
 
   Packet        : StorageO.CMemoryBuffer;
   Events        : list.CList;
+  FieldToValue  : maps.CIntegerMap; // Map OF PTR TO iovalue.Value
+  Records       : maps.CStringMap; // Map OF Array OF PTR to iovalue.Value in above structure
 
   // binding to procedural interface
   LOCAL PROCEDURE Init( RunMode : CARDINAL; VAR SymbolicName : ARRAY OF WCHAR; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW ) : BOOLEAN;
@@ -343,7 +354,7 @@ CLASS IMPLEMENTATION CEventLE;
 BEGIN
   Storage.Zero( ADR( Event ), SIZE( Event ));
 FINALLY
-  IF Event.Event = evDataReceived2Success THEN
+  IF ( Event.Event = evDataReceived2Success ) OR ( Event.Event = evStructReceived2Success ) THEN
     DISPOSE( Event.PPacket );
   END;
 END CEventLE;
@@ -373,10 +384,13 @@ CLASS IMPLEMENTATION CDriver;
   LABEL
     Fail;
   CONST
-    // .PAR section names 
+    // .PAR section names
     snDevice               = L'NetMsg';
       knKey                = L'key';
     // .PAR key names
+    snRecordType           = L'record_type';
+    snRecord               = L'record';
+    // .PAR key names 
     knDebugMode            = L'debug_mode';
       kvDebugNone          = L'none';
       kvDebugFile          = L'file';
@@ -387,18 +401,36 @@ CLASS IMPLEMENTATION CDriver;
       kvDebugExtended      = L'extended';
       kvDebugAllProtocol   = L'protocol';
       kvDebugAll           = L'all';
+    knFields               = L'fields';
+      kvBoolean            = L'boolean';
+      kvTristate           = L'tristate';
+      kvInteger            = L'integer';
+      kvFloat              = L'float';
+      kvString             = L'string';
+    knFirstChannel         = L'first_channel';
+    knName                 = L'name';
+    knRecordType           ::= snRecordType;
 
   //----------
 
   VAR
     cs : StringsO.CString;
+    ChannelIndex : CARDINAL;
     DebugFile : FIO.PathStrW;
     DebugLevel : log.TDebugLevel;
     DebugMode : log.TDebugMethod;
+    ES : PTR;
     fs : FIOO.CFileStream;
+    I : StringsO.CString;
+    i, number : CARDINAL;
+    RecordTypes : maps.CStringMap;
+    S : StringsO.CString;
     s : ARRAY [0..127] OF WCHAR;
     TS : INIFile.CINIFile;
     tr : TextReader.CTextReader;
+    TypeList : lists.TPIntegerList;
+    Value : iovalue.TPValue;
+    ValueList : lists.TPPtrList;
   BEGIN
     HintOrHelp[0] := WCHAR( 0 );
 
@@ -468,26 +500,163 @@ CLASS IMPLEMENTATION CDriver;
       END;
     END;
 
-    IF RunMode = drv_def.drmRun THEN
-    END;
-    RETURN TRUE;
+      // get all record types
+      ES := 0;
+      WHILE TS.EnumerateSections( REF ES, OUT ErrorLine, OUT s, TRUE ) DO
+         IF EQUALS( s, snRecordType ) THEN
+            IF NOT TS.GetKeyStr( knName, OUT ErrorLine, OUT S ) THEN
+               ErrorMessage := OAsz( R[ Texts._MissingNameOfRecordType ] );
+               GOTO Fail;
+            ELSIF RecordTypes.Contains( S ) THEN
+               ErrorMessage := OAsz( R[ Texts._RecordTypeDuplicated ] );
+               GOTO Fail;
+            ELSE
+               TypeList := NEW( lists.CIntegerList );
+               RecordTypes.Add( S, TypeList );
+            END;
+            IF NOT TS.GetKeyStr( knFields, OUT ErrorLine, OUT S ) THEN
+               ErrorMessage := OAsz( R[ Texts._MissingFieldsOfRecordType ] );
+               GOTO Fail;
+            END;
+            i := S.ItemS( StringsO.WCHARS{ L"," }, 0, 0, TRUE, OUT I );
+            WHILE i <> -1 DO
+               I.Lowerize();
+               
+               // determine index
+               number := I.IndexOfOA( L"[", 0 );
+               IF number = -1 THEN // and sequence of types will be created
+                  number := 1;
+               ELSE
+                  I.Substring( number+1, -1, OUT cs );
+                  I.Remove( number, -1 );
+                  number := cs.IndexOfOA( L"]", 0 );
+                  IF number = -1 THEN
+                     ErrorMessage := OAsz( R[ Texts._MalformedTypeArray ] );
+                     GOTO Fail;
+                  END;
+                  cs.Remove( number, -1 );
+                  cs.Trim();
+                  TRY
+                     number := cs.ToINT32( 10 );
+                  CATCH e : StringsO.CStringException DO
+                     ErrorMessage := OAsz( R[ Texts._MalformedArrayRange ] );
+                     GOTO Fail;
+                  END;
+                  IF number < 1 THEN
+                     ErrorMessage := OAsz( R[ Texts._BadArrayRange ] );
+                     GOTO Fail;
+                  END;
+               END;
 
-  Fail:
-    RETURN FALSE;
-  END ReadParameters;
+               I.Trim();
+               IF I.EqualsOA( kvBoolean ) THEN
+                  TypeList^.Add( INTEGER( iovalue.vtBoolean ), number );
+               ELSIF I.EqualsOA( kvTristate ) THEN
+                  TypeList^.Add( INTEGER( iovalue.vtTristate ), number );
+               ELSIF I.EqualsOA( kvInteger ) THEN
+                  TypeList^.Add( INTEGER( iovalue.vtInteger ), number );
+               ELSIF I.EqualsOA( kvFloat ) THEN
+                  TypeList^.Add( INTEGER( iovalue.vtFloat ), number );
+               ELSIF I.EqualsOA( kvString ) THEN
+                  TypeList^.Add( INTEGER( iovalue.vtString ), number );
+               ELSE
+                  ErrorMessage := OAsz( R[ Texts._UnknownFieldType ] );
+                  GOTO Fail;
+               END;
+               i := S.ItemS( StringsO.WCHARS{ L"," }, i, 0, TRUE, OUT I );
+            END; // WHILE
+         END;
+      END; // WHILE
+
+      // get all records
+      ES := 0;
+      WHILE TS.EnumerateSections( REF ES, OUT ErrorLine, OUT s, TRUE ) DO
+         IF EQUALS( s, snRecord ) THEN
+            IF NOT TS.GetKeyStr( knRecordType, OUT ErrorLine, OUT S ) THEN
+               ErrorMessage := OAsz( R[ Texts._MissingRecordTypeInRecord ] );
+               GOTO Fail;
+            ELSIF NOT RecordTypes.Get( S, OUT TypeList ) THEN
+               ErrorMessage := OAsz( R[ Texts._UnknownRecordType ] );
+               GOTO Fail;
+            ELSIF NOT TS.GetKeyStr( knName, OUT ErrorLine, OUT S ) THEN
+               ErrorMessage := OAsz( R[ Texts._MissingNameOfRecord ] );
+               GOTO Fail;
+            ELSIF Records.Contains( S ) THEN
+               ErrorMessage := OAsz( R[ Texts._RecordDuplicated ] );
+               GOTO Fail;
+            ELSIF NOT TS.GetKeyInt( knFirstChannel, OUT ErrorLine, OUT ChannelIndex ) THEN
+               ErrorMessage := OAsz( R[ Texts._MissingFirstChannelRecord ] );
+               GOTO Fail;
+
+            ELSE
+
+               ValueList := NEW( lists.CPtrList );
+               TypeList^.Reset();
+               WHILE TypeList^.MoveNext() DO
+                  IF ChannelIndex = 1 THEN
+                     ErrorMessage := OAsz( R[ Texts._ChannelOneReserved ] );
+                     GOTO Fail;
+                  END;
+                  FOR i := 0 TO CARDINAL( LOPTRLONGWORD( TypeList^.CurrentData )) - 1 DO
+                     IF FieldToValue.Contains( ChannelIndex ) THEN
+                        ErrorMessage := OAsz( R[ Texts._ChannelIndexDuplicated ] );
+                        GOTO Fail;
+                     END;
+                     Value := NEW( iovalue.Value );
+                     Value^.Type := iovalue.TValueType( TypeList^.Current );
+                     ValueList^.Add( Value, 0 );
+                     FieldToValue.Add( ChannelIndex, Value );
+                     INC( ChannelIndex );
+                  END;
+               END; // WHILE
+               Records.Add( S, ValueList );
+
+            END;
+         END;
+      END; // WHILE
+
+      // remove temporary structures
+      RecordTypes.Reset();
+      WHILE RecordTypes.MoveNext() DO
+         DISPOSE( lists.TPIntegerList( RecordTypes.CurrentData ));
+      END; // WHILE
+      RecordTypes.Dispose();
+
+      IF RunMode = drv_def.drmRun THEN
+      END;
+      RETURN TRUE;
+
+   Fail:
+      // remove temporary structures
+      RecordTypes.Reset();
+      WHILE RecordTypes.MoveNext() DO
+         DISPOSE( lists.TPIntegerList( RecordTypes.CurrentData ));
+      END; // WHILE
+      RecordTypes.Dispose();
+
+      RETURN FALSE;
+   END ReadParameters;
 
 //--------------------------------------------------------------------------------
 
   LOCAL PROCEDURE EnumerateChannels( VAR EnumerateState : LONGWORD; VAR Type : CARDINAL; VAR Direction : CARDINAL; VAR DriverIndex : CARDINAL; VAR Count : CARDINAL; VAR HaveDescription : BOOLEAN ): BOOLEAN;
+  VAR
+    Value : iovalue.TPValue;
   BEGIN
-    CASE CARDINAL( EnumerateState ) OF
-    | 0 :
+    IF EnumerateState = 0 THEN
       // status channel
       Direction := CARDINAL( drv_def.TDirection{drv_def.dirInput} );
       DriverIndex := chStatus;
       Type := CARDINAL( drv_def.vtLongCard );
-    ELSE
+
+    ELSIF NOT FieldToValue.ElementAt( CARDINAL( EnumerateState )-1, OUT DriverIndex, OUT Value ) THEN
       RETURN FALSE;
+      
+    ELSE
+       Direction := CARDINAL( drv_def.TDirection{drv_def.dirInput, drv_def.dirOutput} );
+       // DriverIndex already set
+       Type := CARDINAL( drv_def.IOTypeToCWType( Value^.Type ));
+
     END;
 
     Count := 1;
@@ -533,6 +702,7 @@ CLASS IMPLEMENTATION CDriver;
 
   LOCAL PROCEDURE Done();
   VAR
+    List : lists.TPPtrList;
     PClientLE : TPClientLE;
     PGroupLE : TPGroupLE;
   BEGIN
@@ -540,6 +710,22 @@ CLASS IMPLEMENTATION CDriver;
     Events.Dispose();
     Packet.Dispose();
 
+    // kill user records structures
+    FieldToValue.Reset();
+    WHILE FieldToValue.MoveNext() DO
+       DISPOSE( iovalue.TPValue( FieldToValue.CurrentData ));
+    END; // WHILE
+    FieldToValue.Dispose();
+    Records.Reset();
+    WHILE Records.MoveNext() DO
+       List := lists.TPPtrList( Records.CurrentData );
+       IF List <> NIL THEN
+         DISPOSE( List );
+       END;
+    END; // WHILE
+    Records.Dispose();
+
+    // kill client/server groups
     WHILE Groups.GetFirst( OUT PGroupLE ) DO
       PGroupLE^.Clients.Dispose();
       Groups.Remove( PGroupLE );
@@ -560,11 +746,16 @@ CLASS IMPLEMENTATION CDriver;
   LOCAL PROCEDURE QueryProc( UFlag : BOOLEAN; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
   LABEL
     DoSend, Error, Success;
+  CONST
+    structItemSepChar = 9W;
+    structItemSep = StringsO.WCHARS{ structItemSepChar };
   VAR
-    c : CARDINAL;
+    c, i : CARDINAL;
     Group : ARRAY [0..63] OF WCHAR;
     IAddress : winsock.IN_ADDR;
     len : CARDINAL;
+    List : lists.TPPtrList;
+    Payload : TTransport;
     PPacket : TPPacket;
     PClient : TPClient;
     PClientGroupLE : TPClientGroupLE;
@@ -577,7 +768,44 @@ CLASS IMPLEMENTATION CDriver;
     na : ARRAY [0..63] OF CHAR;
     n, si : ARRAY [0..63] OF WCHAR;
     SW : StringsO.CString;
+    S : StringsO.CString;
     b : BOOLEAN;
+    
+  //----------
+
+    PROCEDURE PreparePayload( OUT Payload : TTransport ) : BOOLEAN;
+    VAR
+       Name : ARRAY [0..63] OF WCHAR;
+       S : StringsO.CString;
+    BEGIN
+       SW.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 3, TRUE, OUT Name );
+       IF EQUALS( Name, L'record' ) THEN // a record will be sent, not user data
+          SW.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 4, TRUE, OUT Name );
+          SW.FromOA( Name );
+          IF NOT Records.Get( SW, OUT List ) THEN
+             SW.FromOA( OAsz( R[ Texts._UnknownRecord ] ));
+             RETURN FALSE;
+          END;
+       
+          // construct data
+          List^.Reset();
+          WHILE List^.MoveNext() DO
+             SW.AppendOA( structItemSepChar );
+             iovalue.TPValue( List^.Current )^.ToString( OUT S, TRUE );
+             SW.Append( S );
+          END; // WHILE
+          Payload := trStruct;
+
+       ELSE // record not requested, send user data
+          drv_def.DrvValueToCStringW( InValue2, UFlag, OUT SW );
+          Payload := trString;
+
+       END;
+       RETURN TRUE;
+    END PreparePayload;
+
+  //----------
+
   BEGIN
     drv_def.DrvValueToCStringW( InValue1, UFlag, OUT SW );
     SW.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 0, TRUE, OUT si );
@@ -667,7 +895,15 @@ CLASS IMPLEMENTATION CDriver;
             ELSE
               SW.FromOA( L'server_data:' );
             END;
-          | evDataReceived2Success :
+          | evStructReceived1 :
+            ASSIGN( Name, PELE^.Event.PReceiveClient^.Name );
+            ASSIGN( Group, PELE^.Event.PReceiveClient^.Group );
+            IF Name[0] = L'$' THEN
+              SW.FromOA( L'client_record:' );
+            ELSE
+              SW.FromOA( L'server_record:' );
+            END;
+          | evDataReceived2Success, evStructReceived2Success :
             CASE PELE^.Event.PPacket^.TR OF
             | trString :
 					c := PELE^.Event.PacketLen - hdr;
@@ -676,9 +912,36 @@ CLASS IMPLEMENTATION CDriver;
 					ELSE
 						SW.FromUTF8( OA( c-1, ADR( PELE^.Event.PPacket^.Data )));
 					END;
+			   | trStruct :
+					c := PELE^.Event.PacketLen - hdr;
+					IF c = 0 THEN
+						SW.Clear();
+					ELSE
+						SW.FromUTF8( OA( c-1, ADR( PELE^.Event.PPacket^.Data )));
+					END;
+
+					// detach data, name of record will become data
+					i := SW.ItemS( structItemSep, 0, 0, FALSE, OUT S );
+					IF S.Empty THEN
+					   SW.FromOA( L"$empty" );
+					ELSIF NOT Records.Get( S, OUT List ) THEN
+					   SW.FromOA( L"$unknown " );
+					   SW.Append( S );
+					ELSE // decompose data
+					   
+					   List^.Reset();
+                  i := SW.ItemS( structItemSep, i, 0, FALSE, OUT S );
+                  WHILE ( i <> -1 ) AND List^.MoveNext() DO
+                     iovalue.TPValue( List^.Current )^.FromString( S, TRUE );
+                     i := SW.ItemS( structItemSep, i, 0, FALSE, OUT S );
+                  END; // WHILE
+                  SW.ItemS( structItemSep, 0, 0, FALSE, OUT S );
+                  SW := S;
+					  
+					END;
             END;
-          | evDataReceived2BadCRC :
-            SW.FromOA( L'$bad CRC' );
+          | evDataReceived2BadCRC, evStructReceived2BadCRC :
+            SW.FromOA( L'$badcrc' );
           END; // CASE
 
           b := TRUE;
@@ -686,7 +949,7 @@ CLASS IMPLEMENTATION CDriver;
           | evConnect, evDisconnect :
             IAddress := PELE^.Event.Address;
             Port := PELE^.Event.Port;
-          | evDataReceived1 :
+          | evDataReceived1, evStructReceived1 :
             IAddress := PELE^.Event.PReceiveClient^.Address;
             Port := PELE^.Event.PReceiveClient^.Port;
           ELSE
@@ -701,7 +964,7 @@ CLASS IMPLEMENTATION CDriver;
           END;
 
           CASE PELE^.Event.Event OF
-          | evConnect, evDisconnect, evDataReceived1 :
+          | evConnect, evDisconnect, evDataReceived1, evStructReceived1 :
             SW.AppendOA( L":" );
             IF Group[0] <> WCHAR( 0 ) THEN
               SW.AppendOA( Group );
@@ -801,17 +1064,18 @@ CLASS IMPLEMENTATION CDriver;
           GOTO Success;
         END;
 
-        drv_def.DrvValueToCStringW( InValue2, UFlag, OUT SW );
-        len := hdr + SW.Length << 2; 
+        IF NOT PreparePayload( OUT Payload ) THEN
+          GOTO Error;
+        END;
 
+        len := hdr + SW.Length << 2; 
         IF Packet.Size < len THEN
           Packet.Size := ( len >> 4 + 1 ) << 4;
         END;
         PPacket := TPPacket( Packet.Data );
-        PPacket^.TR := trString;
+        PPacket^.TR := Payload;
         SW.ToUTF8( OUT OA( len-1, ADR( PPacket^.Data )), OUT len );
         INC( len, hdr );
-        PPacket^.Length := len;
         PPacket^.CRC := 0;
         PPacket^.CRC := crc.crc32( crc.crc32i, OA( len-1, PPacket ));
         IF rsGlobalKey IN RStatus THEN
@@ -880,17 +1144,18 @@ CLASS IMPLEMENTATION CDriver;
           GOTO Success;
         END;
           
-        drv_def.DrvValueToCStringW( InValue2, UFlag, OUT SW );
-        len := hdr + SW.Length << 2; 
+        IF NOT PreparePayload( OUT Payload ) THEN
+          GOTO Error;
+        END;
 
+        len := hdr + SW.Length << 2; 
         IF Packet.Size < len THEN
           Packet.Size := ( len >> 4 + 1 ) << 4;
         END;
         PPacket := TPPacket( Packet.Data );
-        PPacket^.TR := trString;
+        PPacket^.TR := Payload;
         SW.ToUTF8( OUT OA( len-1, ADR( PPacket^.Data )), OUT len );
         INC( len, hdr );
-        PPacket^.Length := len;
         PPacket^.CRC := 0;
         PPacket^.CRC := crc.crc32( crc.crc32i, OA( len-1, PPacket ));
         IF rsGlobalKey IN RStatus THEN
@@ -1059,17 +1324,18 @@ CLASS IMPLEMENTATION CDriver;
           GOTO Success;
         END;
 
-        drv_def.DrvValueToCStringW( InValue2, UFlag, OUT SW );
-        len := hdr + SW.Length << 2; 
+        IF NOT PreparePayload( OUT Payload ) THEN
+          GOTO Error;
+        END;
 
+        len := hdr + SW.Length << 2; 
         IF Packet.Size < len THEN
           Packet.Size := ( len >> 4 + 1 ) << 4;
         END;
         PPacket := TPPacket( Packet.Data );
-        PPacket^.TR := trString;
+        PPacket^.TR := Payload;
         SW.ToUTF8( OUT OA( len-1, ADR( PPacket^.Data )), OUT len );
         INC( len, hdr );
-        PPacket^.Length := len;
         PPacket^.CRC := 0;
         PPacket^.CRC := crc.crc32( crc.crc32i, OA( len-1, PPacket ));
         IF rsGlobalKey IN RStatus THEN
@@ -1135,6 +1401,7 @@ CLASS IMPLEMENTATION CDriver;
       Finalized := TRUE;
       ErrorCode := 0;
       IF DriverIndex = chStatus THEN
+         // return always OK
       ELSIF TRStatus{rsRunning} * RStatus = TRStatus{} THEN
          ErrorCode := ecDeviceStopped;
       ELSIF Result.Expired OR Result.Counted THEN
@@ -1154,23 +1421,29 @@ CLASS IMPLEMENTATION CDriver;
 
 //--------------------------------------------------------------------------------
 
-  LOCAL PROCEDURE GetInput( UFlag : BOOLEAN; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue; VAR QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp; VAR ErrorCode : CARDINAL );
-  BEGIN
-    ErrorCode := drv_def.ecSuccess;
-    QoS := drv_def.qosGood;
+   LOCAL PROCEDURE GetInput( UFlag : BOOLEAN; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue; VAR QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp; VAR ErrorCode : CARDINAL );
+   VAR
+      Value : iovalue.TPValue;
+   BEGIN
+      ErrorCode := drv_def.ecSuccess;
+      QoS := drv_def.qosGood;
 
-    CASE DriverIndex OF
-    | chStatus :
-      IF Result.Counted OR Result.Expired THEN
-         EXCL( RStatus, rsValid );
+      IF DriverIndex = chStatus THEN
+         IF Result.Counted OR Result.Expired THEN
+            EXCL( RStatus, rsValid );
+         ELSE
+            INCL( RStatus, rsValid );
+         END;
+         drv_def.AssignValueCardinal( InValue, TRUE, CARDINAL( RStatus * rssUser ));
+
+      ELSIF NOT FieldToValue.Get( DriverIndex, OUT Value ) THEN
+         ErrorCode := drv_def.ecUnknownElement;
+      
       ELSE
-         INCL( RStatus, rsValid );
-      END;
-      drv_def.AssignValueCardinal( InValue, TRUE, CARDINAL( RStatus * rssUser ));
-    ELSE
-      ////
-    END; // CASE
-  END GetInput;
+         drv_def.IOValueToCWValue( Value^, UFlag, FALSE, REF InValue );
+
+      END; // CASE
+   END GetInput;
 
 //--------------------------------------------------------------------------------
 
@@ -1181,8 +1454,13 @@ CLASS IMPLEMENTATION CDriver;
 //--------------------------------------------------------------------------------
 
    LOCAL PROCEDURE OutputRequest( UFlag : BOOLEAN; DriverIndex : CARDINAL; OutValue : drv_def.TValue; QoS : CARDINAL; TimeStamp : drv_def.TUTCStamp );
+   VAR
+      Value : iovalue.TPValue;
    BEGIN
       Result.Inc();
+      IF FieldToValue.Get( DriverIndex, OUT Value ) THEN
+         drv_def.CWValueToIOValue( OutValue, UFlag, REF Value^ );
+      END;
    END OutputRequest;
 
 //--------------------------------------------------------------------------------
@@ -1471,26 +1749,38 @@ CLASS IMPLEMENTATION CDriver;
       INCL( RStatus, rsEventsPending );
       CallbackProc( CallbackId, drv_def.dcfException, NIL );
 
-    | trString :
+    | trString, trStruct :
       NEW( PELE );
-      PELE^.Event.Event := evDataReceived1;
+      IF TPPacket( PData )^.TR = trString THEN
+         PELE^.Event.Event := evDataReceived1;
+         logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evDataReceived1 ", CARDINAL( evDataReceived1 ));
+      ELSE
+         PELE^.Event.Event := evStructReceived1;
+         logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evStructReceived1 ", CARDINAL( evStructReceived1 ));
+      END;
       SearchNet( REF Clients, PConnection^.RemotePort, PConnection^.RemoteAddress, PELE^.Event.PReceiveClient );
       Events.Append( PELE );
 
-      logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evDataReceived1 ", CARDINAL( evDataReceived1 ));
-
       NEW( PELE );
       IF CRCValid THEN
-         PELE^.Event.Event := evDataReceived2Success;
+         IF TPPacket( PData )^.TR = trString THEN
+            PELE^.Event.Event := evDataReceived2Success;
+            logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evDataReceived2Success ", CARDINAL( evDataReceived2Success ));
+         ELSE
+            PELE^.Event.Event := evStructReceived2Success;
+            logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evStructReceived2Success ", CARDINAL( evStructReceived2Success ));
+         END;
          PELE^.Event.PacketLen := DataLen;
          ALLOCATE( PELE^.Event.PPacket, DataLen );
          Storage.Move( PData, PELE^.Event.PPacket, DataLen );
-
-         logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evDataReceived2Success ", CARDINAL( evDataReceived2Success ));
       ELSE
-         PELE^.Event.Event := evDataReceived2BadCRC;
-
-         logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evDataReceived2BadCRC ", CARDINAL( evDataReceived2BadCRC ));
+         IF TPPacket( PData )^.TR = trString THEN
+            PELE^.Event.Event := evDataReceived2BadCRC;
+            logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evDataReceived2BadCRC ", CARDINAL( evDataReceived2BadCRC ));
+         ELSE
+            PELE^.Event.Event := evStructReceived2BadCRC;
+            logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evStructReceived2BadCRC ", CARDINAL( evStructReceived2BadCRC ));
+         END;
       END;
       Events.Append( PELE );
       
