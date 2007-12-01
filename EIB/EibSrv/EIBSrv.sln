@@ -18,8 +18,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Network", "..\..\Library\Ne
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "m2ortl", "..\..\Modula2\m2ortl\m2ortl.vcproj", "{332A033A-AF35-4573-83CB-A19E643D5845}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDIO", "..\..\Library\SDIO\SDIO.vcproj", "{A60809F1-641F-4ED7-9128-C41E7A6A9580}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "StiebelHP", "..\..\ActiveX\StiebelHP\StiebelHP.vcproj", "{751BF3D3-E63A-4A57-A44F-906E518816B8}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Threading", "..\..\Library\Threading\Threading.vcproj", "{97C30A53-92E2-4179-B0A0-A740E2FDD762}"
@@ -40,10 +38,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "eibsrv", "eibsrv.vcproj", "
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "discover", "..\discover\discover.vcproj", "{A4E1F8BC-399C-4F82-A5E7-10B3E65B49CB}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DeviceIO", "..\..\Library\DeviceIO\DeviceIO.vcproj", "{A60809F1-641F-4ED7-9128-C41E7A6A9580}"
+EndProject
 Global
-	GlobalSection(TextTemplating) = postSolution
-		TextTemplating = 1
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Debug|Mixed Platforms = Debug|Mixed Platforms
@@ -143,16 +140,6 @@ Global
 		{332A033A-AF35-4573-83CB-A19E643D5845}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{332A033A-AF35-4573-83CB-A19E643D5845}.Release|Win32.ActiveCfg = Release|Win32
 		{332A033A-AF35-4573-83CB-A19E643D5845}.Release|Win32.Build.0 = Release|Win32
-		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Debug|Any CPU.ActiveCfg = Debug|Win32
-		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
-		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Debug|Mixed Platforms.Build.0 = Debug|Win32
-		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Debug|Win32.ActiveCfg = Debug|Win32
-		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Debug|Win32.Build.0 = Debug|Win32
-		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Release|Any CPU.ActiveCfg = Release|Win32
-		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Release|Mixed Platforms.ActiveCfg = Release|Win32
-		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Release|Mixed Platforms.Build.0 = Release|Win32
-		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Release|Win32.ActiveCfg = Release|Win32
-		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Release|Win32.Build.0 = Release|Win32
 		{751BF3D3-E63A-4A57-A44F-906E518816B8}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{751BF3D3-E63A-4A57-A44F-906E518816B8}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
 		{751BF3D3-E63A-4A57-A44F-906E518816B8}.Debug|Mixed Platforms.Build.0 = Debug|Win32
@@ -253,8 +240,21 @@ Global
 		{A4E1F8BC-399C-4F82-A5E7-10B3E65B49CB}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{A4E1F8BC-399C-4F82-A5E7-10B3E65B49CB}.Release|Win32.ActiveCfg = Release|Win32
 		{A4E1F8BC-399C-4F82-A5E7-10B3E65B49CB}.Release|Win32.Build.0 = Release|Win32
+		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Debug|Win32.ActiveCfg = Debug|Win32
+		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Debug|Win32.Build.0 = Debug|Win32
+		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Release|Any CPU.ActiveCfg = Release|Win32
+		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Release|Win32.ActiveCfg = Release|Win32
+		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(TextTemplating) = postSolution
+		TextTemplating = 1
 	EndGlobalSection
 EndGlobal
