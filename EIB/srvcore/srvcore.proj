@@ -17,7 +17,7 @@
     <ItemGroup>
         <Components Include="modula2\modula2;api\clib;API\win32"/>
         <Components Include="component\sccore"/>
-        <Components Include="licensing\core;library\sdio;EIB\eibstack;EIB\eibnetstack"/>
+        <Components Include="licensing\core;library\deviceio;EIB\eibstack;EIB\eibnetstack"/>
         <Messages Include="Texts"/>
         <Modules Include="srvcore"/>
     </ItemGroup>

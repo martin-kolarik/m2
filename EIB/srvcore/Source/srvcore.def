@@ -13,13 +13,13 @@ IMPORT
    eib_stack,
    eib_status,
    eib_user,
+   iovalue,
    lec,
    list,
    lists,
    msghandler,
    netconndispatch,
    Resources,
-   sdvalue,
    StringsO;
 
 //================================================================================
@@ -95,7 +95,7 @@ CLASS CSDAPServer( netconndispatch.CDispatcher );
    PRIVATE PROCEDURE ACK( Connection : netconndispatch.TConnectionHandle; ack : TsdapACK );
    PRIVATE PROCEDURE ACKS( Connection : netconndispatch.TConnectionHandle; ack : TsdapACK; CONST S : StringsO.CString );
    PRIVATE PROCEDURE ACKs( Connection : netconndispatch.TConnectionHandle; ack : TsdapACK; subCode : CARDINAL );
-   PRIVATE PROCEDURE ACKd( Connection : netconndispatch.TConnectionHandle; ack : TsdapACK; CONST address : StringsO.CString; CONST value : sdvalue.Value );
+   PRIVATE PROCEDURE ACKd( Connection : netconndispatch.TConnectionHandle; ack : TsdapACK; CONST address : StringsO.CString; CONST value : iovalue.Value );
 END CSDAPServer;
 
 //--------------------------------------------------------------------------------
@@ -220,8 +220,8 @@ CLASS CEIBServer( msghandler.MessageHandler );
    PROCEDURE InitToDefault();
    PROCEDURE InitReadFinished();
 
-   LOCAL PROCEDURE IOValue2EIBValue( CONST Value : sdvalue.Value; DestEVType : eib_def.TEIBType; OUT EV : eib_def.TValue );
-   LOCAL PROCEDURE EIBValue2IOValue( CONST EV : eib_def.TValue; OUT Value : sdvalue.Value );
+   LOCAL PROCEDURE IOValue2EIBValue( CONST Value : iovalue.Value; DestEVType : eib_def.TEIBType; OUT EV : eib_def.TValue );
+   LOCAL PROCEDURE EIBValue2IOValue( CONST EV : eib_def.TValue; OUT Value : iovalue.Value );
 END CEIBServer;
 
 //================================================================================

@@ -383,7 +383,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       eadr : eib_def.CAddress;
       EV : eib_def.TValue;
       i : CARDINAL;
-      IOValue : sdvalue.Value;
+      IOValue : iovalue.Value;
       l : CARDINAL;
       p : ARRAY [0..3] OF StringsO.CString; // parameters
       parametersCount : CARDINAL;
@@ -623,7 +623,7 @@ CLASS IMPLEMENTATION CSDAPServer;
 
 //--------------------------------------------------------------------------------
 
-   PRIVATE PROCEDURE ACKd( PConnection : netconndispatch.TConnectionHandle; ack : TsdapACK; CONST address : StringsO.CString; CONST value : sdvalue.Value );
+   PRIVATE PROCEDURE ACKd( PConnection : netconndispatch.TConnectionHandle; ack : TsdapACK; CONST address : StringsO.CString; CONST value : iovalue.Value );
    VAR
       s : StringsO.CString;
    BEGIN
@@ -1243,6 +1243,7 @@ CLASS IMPLEMENTATION CEIBServer;
          // ASSIGN( falconStack.TPFalconStack( EIB )^.Connection, FalconConnection );
          // ASSIGN( falconStack.TPFalconStack( EIB )^.Key, Key );
          ErrorMessage.FromOA( OAsz( R[ Texts._UnsupportedStack ] ));
+         GOTO Fail;
       ELSIF DeviceId = LONGWORD( -2 ) THEN
          Stack := stackEIBNet;
          NEW( eibnetstack.TPEIBNetStack( EIB ));
@@ -1959,7 +1960,7 @@ saddr : ARRAY [0..63] OF WCHAR;
 
 //--------------------------------------------------------------------------------
 
-   LOCAL PROCEDURE IOValue2EIBValue( CONST Value : sdvalue.Value; DestEVType : eib_def.TEIBType; OUT EV : eib_def.TValue );
+   LOCAL PROCEDURE IOValue2EIBValue( CONST Value : iovalue.Value; DestEVType : eib_def.TEIBType; OUT EV : eib_def.TValue );
    VAR
       c : CARDINAL;
       Day : eib_def.TDay;
@@ -2048,7 +2049,7 @@ saddr : ARRAY [0..63] OF WCHAR;
 
 //--------------------------------------------------------------------------------
 
-   LOCAL PROCEDURE EIBValue2IOValue( CONST EV : eib_def.TValue; OUT Value : sdvalue.Value );
+   LOCAL PROCEDURE EIBValue2IOValue( CONST EV : eib_def.TValue; OUT Value : iovalue.Value );
    VAR
       c : CARDINAL;
       Day : eib_def.TDay;
@@ -2106,7 +2107,7 @@ saddr : ARRAY [0..63] OF WCHAR;
          Value.Integer := EV.Get32bit();
 
       | eib_def.eitChar :
-         Value.Type := sdvalue.sdtString;
+         Value.Type := iovalue.vtString;
          Value.FromStringOA( EV.GetChar(), FALSE );
 
       | eib_def.eit8bit :
