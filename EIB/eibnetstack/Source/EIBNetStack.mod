@@ -291,11 +291,11 @@ CLASS IMPLEMENTATION CEIBNetStack;
       ELSIF EQUALS( Parameter, L"link.connection" ) THEN
          ErrorText := L"Expected DNS name | IP address optionally followed by colon and port number (like 10.0.0.1:3778)";
 
-         Strings.ItemSW( Value, Strings.WCHARS{ L' ', L':' }, 0, 0, TRUE, OUT s1 );
-         Strings.ItemSW( Value, Strings.WCHARS{ L' ', L':' }, LENGTH( s1 ), 1, TRUE, OUT s2 );
+         c := Strings.ItemSW( Value, Strings.WCHARS{ L' ', L':' }, 0, 0, TRUE, OUT s1 );
+         Strings.ItemSW( Value, Strings.WCHARS{ L' ', L':' }, c, 0, TRUE, OUT s2 );
          IF s1[0] = 0W THEN
             RETURN 0;
-         ELSIF NOT dns.NameToAddressWait( Value, 2000, OUT Addr ) THEN
+         ELSIF NOT dns.NameToAddressWait( s1, 2000, OUT Addr ) THEN
             RETURN 0;
          END;
          TPEIBNetPhysicalLayer( Layers[ eib_stack.eltPhysical ] )^.RemoteAddress := Addr;
