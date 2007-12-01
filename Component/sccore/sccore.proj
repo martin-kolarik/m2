@@ -6,7 +6,7 @@
     <PropertyGroup>
         <ComponentStandaloneFlag Condition="$(ComponentStandaloneFlag)==''">on</ComponentStandaloneFlag>
 
-        <FileDescription>SmartControl Core Library</FileDescription>
+        <FileDescription>Core Library</FileDescription>
 
         <Result>Dynamic</Result>
     </PropertyGroup>
