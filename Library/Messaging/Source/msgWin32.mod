@@ -76,7 +76,7 @@ BEGIN
   WITH wndclass DO
     style := windows.CS_GLOBALCLASS;
     lpfnWndProc := WndProc;
-    hInstance := windows.GetModuleHandle( NIL );
+    hInstance := windows.GetModuleHandleW( NIL );
     lpszClassName := ADR( WndClassName );
   END;
   WndClass := windows.RegisterClass( ADR( wndclass ));
@@ -87,7 +87,7 @@ BEGIN
   IF WndClass = windows.INVALID_ATOM THEN
     RETURN;
   END;
-  windows.UnregisterClass( ADR( WndClassName ), windows.GetModuleHandle( NIL ));
+  windows.UnregisterClass( ADR( WndClassName ), windows.GetModuleHandleW( NIL ));
   WndClass := windows.INVALID_ATOM;
 END DestroyWndClass;
 
@@ -294,7 +294,7 @@ CLASS IMPLEMENTATION Win32MessageHandler;
               windows.WS_EX_TOOLWINDOW,
               windows.PCTSTR( WndClass ),
               NIL, 0, -1, -1, 0, 0, NIL, NIL,
-              windows.GetModuleHandle( NIL ), NIL
+              windows.GetModuleHandleW( NIL ), NIL
             );
     IF HWND <> NIL THEN        
       LeakALLOCATE( HWND, CARDINAL( LOPTRLONGWORD( HWND )) OR 08000000H );
