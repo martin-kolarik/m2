@@ -196,8 +196,9 @@ CLASS IMPLEMENTATION CUserObject;
     END;
     IF b THEN
       Address := PGroup^.Address;
-    END;
-    IF NOT b THEN
+    ELSIF Groups.GetFirst( OUT PGroup ) THEN
+      Address := PGroup^.Address;
+    ELSE
       Address.SetAddressType( eib_def.addressUnknown );
     END;
     RETURN Address;
