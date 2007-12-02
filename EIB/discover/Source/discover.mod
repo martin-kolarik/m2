@@ -136,6 +136,7 @@ VAR
    ConfigFile : StringsO.CString;
    errout : TextWriter.TPTextWriter := TextWriter.errout();
    First : BOOLEAN := TRUE;
+   ForceFlag : BOOLEAN := FALSE;
    i : INTEGER;
    Id : StringsO.CString;
    Thread : CThread;
@@ -149,7 +150,8 @@ BEGIN
          CASE argp^[i]^[1] OF
          | 'h' :
             GOTO Error;
-         | 'u' : // update cfg file
+         | 'u', 'U' : // update cfg file
+            ForceFlag := argp^[i]^[1] = 'U';
             INC( i );
             IF i >= argc THEN
                errout^.WriteOA( OAsz( R[Texts._MissingConfigurationFile] ), TRUE );
@@ -180,11 +182,11 @@ BEGIN
          WHILE Thread.Result.IPs.MoveNext() DO
             Id.FromOA( L"eibnet:" );
             Id.Append( Thread.Result.IPs.Current^ );
-            IF First THEN
-               TS.SetKeyStr( L"id", Id, FALSE );
+            IF ForceFlag AND First THEN
+               TS.SetKeyStr( L"id", Id, NOT First );
                First := FALSE;
             ELSE
-               TS.SetKeyStr( L"scanned.id", Id, FALSE );
+               TS.SetKeyStr( L"scanned.id", Id, NOT First );
             END;
          END; // WHILE
       END;
