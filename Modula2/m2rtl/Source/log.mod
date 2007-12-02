@@ -495,9 +495,9 @@ CLASS IMPLEMENTATION CLogger;
          IF ( winreg.RegQueryValueExW( hkey, keyFile, NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
             ASSIGNsz( DebugFile, PWCHAR( PData ));
          ELSE
-            FIO.GetModuleDirW( EMITW( %exe ), OUT Dir );
+            FIO.GetModuleDirW( EMITW( %dll ), OUT Dir );
             IF Dir[0] = 0W THEN
-               FIO.GetModuleDirW( EMITW( %dll ), OUT Dir );
+               FIO.GetModuleDirW( L"", OUT Dir );
             END;
             FIO.MakePathW( Dir, DebugFile, OUT DebugFile );
          END;

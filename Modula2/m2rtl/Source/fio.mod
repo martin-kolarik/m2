@@ -21,7 +21,7 @@ END ChangeExtensionW;
 PROCEDURE IsUNCW( CONST Path : ARRAY OF WCHAR ) : BOOLEAN;
 BEGIN
   // the shortest UNC is: \\x\y, which is HIGH = 4
-  IF HIGH( Path ) < 4 THEN
+  IF INTEGER( HIGH( Path )) < 4 THEN
     RETURN FALSE;
   ELSE
     RETURN ( Path[0] = '\' ) AND ( Path[1] = '\' );
@@ -91,17 +91,19 @@ END NormalizePathW;
 
 PROCEDURE MakePathW( CONST Head, Tail : ARRAY OF WCHAR; OUT Path : ARRAY OF WCHAR );
 VAR
-  LPath : PathStrW;
+   LPath : PathStrW;
 BEGIN
-  IF Head[ LENGTH( Head ) - 1 ] = '\' THEN
-    Strings.ConcatW( OUT LPath, Head, Tail );
-  ELSIF Head[0] = 0W THEN
-		ASSIGN( LPath, Tail );
-  ELSE
-    Strings.ConcatW( OUT LPath, Head, L'\' );
-    Strings.AppendW( REF LPath, Tail );
-  END;
-  Path := LPath;
+   IF HIGH( Head ) = -1 THEN
+      ASSIGN( LPath, Tail );
+   ELSIF Head[ LENGTH( Head ) - 1 ] = '\' THEN
+      Strings.ConcatW( OUT LPath, Head, Tail );
+   ELSIF Head[0] = 0W THEN
+      ASSIGN( LPath, Tail );
+   ELSE
+      Strings.ConcatW( OUT LPath, Head, L'\' );
+      Strings.AppendW( REF LPath, Tail );
+   END;
+   Path := LPath;
 END MakePathW;
 
 PROCEDURE SplitPathW( CONST FullPath : ARRAY OF WCHAR; OUT Head, Tail : ARRAY OF WCHAR );
@@ -517,7 +519,11 @@ VAR
    lm : PathStrW;
 BEGIN
    lm := ModuleName;
-   HModule := windows.GetModuleHandleW( ADR( ModuleName ));
+   IF lm[0] = 0W THEN
+      HModule := windows.GetModuleHandleW( NIL );
+   ELSE
+      HModule := windows.GetModuleHandleW( ADR( ModuleName ));
+   END;
    IF HModule = NIL THEN
       RETURN FALSE;
    END;
