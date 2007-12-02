@@ -232,6 +232,26 @@ END CFileStream;
 
 (*================================================================================*)
 
+PROCEDURE PathAdd( REF Path : StringsO.IString; CONST Tail : StringsO.IString );
+VAR
+   path : FIO.PathStrW;
+BEGIN
+   FIO.MakePathW( OA( Path.Length-1, Path.rawData ), OA( Tail.Length-1, Tail.rawData ), OUT path );
+   Path.FromOA( path );
+END PathAdd;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE PathAddOA( REF Path : StringsO.IString; CONST Tail : ARRAY OF WCHAR );
+VAR
+   path : FIO.PathStrW;
+BEGIN
+   FIO.MakePathW( OA( Path.Length-1, Path.rawData ), Tail, OUT path );
+   Path.FromOA( path );
+END PathAddOA;
+
+(*================================================================================*)
+
 VAR
    fsstdin : CFileStream;
    fsstdout : CFileStream;

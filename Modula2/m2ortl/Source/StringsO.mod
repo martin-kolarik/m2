@@ -70,11 +70,7 @@ CLASS IMPLEMENTATION CString;
 	
 	PUBLIC VIRTUAL PROPERTY CString.rawData GET : PWCHAR;
 	BEGIN
-		IF _Len = 0 THEN
-			RETURN NIL;
-		ELSE
-			RETURN _Data;
-		END;
+      RETURN _Data;
 	END CString.rawData;
 	
 	PUBLIC VIRTUAL PROPERTY CString.szData GET : PWCHAR;

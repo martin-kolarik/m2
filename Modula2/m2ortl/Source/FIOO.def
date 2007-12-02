@@ -3,6 +3,7 @@ DEFINITION MODULE FIOO;
 IMPORT
   FIO,
   IOO,
+  StringsO,
   Sync;
 
 #save, option( dll_export => on )
@@ -46,6 +47,11 @@ CLASS CFileStream( IOO.AStream ); // 32 bit
   INTERNAL FINAL PROCEDURE Start( Direction : IOO.TDirection; OperationTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
   INTERNAL FINAL PROCEDURE Abort( Direction : IOO.TDirection );
 END CFileStream;
+
+(*================================================================================*)
+
+PROCEDURE PathAdd( REF Path : StringsO.IString; CONST Tail : StringsO.IString );
+PROCEDURE PathAddOA( REF Path : StringsO.IString; CONST Tail : ARRAY OF WCHAR );
 
 (*================================================================================*)
 
