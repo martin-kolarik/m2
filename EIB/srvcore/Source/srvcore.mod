@@ -479,7 +479,7 @@ CLASS IMPLEMENTATION CSDAPServer;
             RETURN;
          END;
       END;
-      IF ( Command <>sdapEXIT ) AND ( Server^.PResult^.Counted OR Server^.PResult^.Expired ) THEN
+      IF ( Command <> sdapEXIT ) AND ( Server^.PResult^.Counted OR Server^.PResult^.Expired ) THEN
          ACK( PConnection, sdap501 );
          RETURN;
       END;
@@ -1576,7 +1576,7 @@ CLASS IMPLEMENTATION CEIBServer;
    
       Result.Reset( lec.bhBestCase );
       IF rsEXEFlag IN RStatus THEN
-         FIO.GetModuleDirW( EMITW( %exe ), OUT s );
+         FIO.GetModuleDirW( L"", OUT s );
       ELSE
          FIO.GetModuleDirW( EMITW( %dll ), OUT s );
       END;
@@ -2148,7 +2148,7 @@ END CEIBServer;
 INITIALLY __I();
 BEGIN
    // messages
-   R.LoadRES2( EMIT( %exe ), L"srvcore.Texts" );
+   R.LoadRES2( L"", L"srvcore.Texts" );
 END __I;
 
 //================================================================================
