@@ -177,7 +177,7 @@ CLASS IMPLEMENTATION CResources;
     END;
 
     IF HModule = NIL THEN
-      HModule := windows.GetModuleHandle( NIL );
+      HModule := windows.GetModuleHandleW( NIL );
     END;
     ResInfo := windows.FindResource( HModule, ADR( ResourceName ), windows.PWSTR( windows.RT_RCDATA ));
     IF ResInfo = NIL THEN
@@ -204,7 +204,11 @@ CLASS IMPLEMENTATION CResources;
   VAR
     HModule : windows.HANDLE;
   BEGIN
-    HModule := windows.GetModuleHandle( ADR( ModuleName ));
+    IF ( HIGH( ModuleName ) = -1 ) OR ( ModuleName[0] = 0W ) THEN
+      HModule := windows.GetModuleHandle( NIL );
+    ELSE
+      HModule := windows.GetModuleHandle( ADR( ModuleName ));
+    END;
     IF HModule = NIL THEN
       RETURN FALSE;
     END;
