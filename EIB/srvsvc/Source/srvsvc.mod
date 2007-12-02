@@ -11,6 +11,7 @@ IMPORT
 IMPORT
    cllv,
    FIO,
+   FIOO,
    Log,
    netinit,
    Registry,
@@ -83,7 +84,7 @@ CLASS IMPLEMENTATION CEibSvc;
       RS.Close();
       
       IF s1.Empty THEN
-         FIO.GetModuleDirW( EMIT( %exe ), OUT Data );
+         FIO.GetModuleDirW( L"", OUT Data );
          s1.FromOA( Data );
       END;
       IF s2.Empty THEN
@@ -96,7 +97,7 @@ CLASS IMPLEMENTATION CEibSvc;
       EIB^.cllvData := ADR( cllv.data );
       EIB^.cllvLength := cllv.length;
 
-      s1.AppendOA( L"\" ); s1.Append( s2 );
+      FIOO.PathAdd( REF s1, s2 );
       IF EIB^.LoadConfiguration( s1, OUT s2, OUT line ) THEN
          EIB^.Run( TRUE, TRUE );
       ELSE
