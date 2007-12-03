@@ -784,6 +784,19 @@ CLASS IMPLEMENTATION CEIBServer;
       END AppendErrorLine;
 
    //----------
+   
+      PROCEDURE AddGroup( CONST Address : eib_def.TAddress ) : BOOLEAN;
+      VAR
+         addr : CARD16 := CARD16( Address.GetGroupAddress1());
+      BEGIN
+         IF Groups[addr] <> 0FFFFH THEN
+            RETURN FALSE;
+         END;
+         Groups[addr] := CARD16( Objects.Count-1 );
+         RETURN TRUE;
+      END AddGroup;
+
+   //----------
 
       PROCEDURE StringToEIT( REF ErrorMessage : StringsO.CString; String : ARRAY OF WCHAR; VAR EIT : eib_def.TEIBType ) : BOOLEAN;
       BEGIN
@@ -863,10 +876,12 @@ CLASS IMPLEMENTATION CEIBServer;
                AppendErrorId( REF ErrorMessage, p );
                RETURN FALSE;
             END;
-            PObject^.AddAddress( FALSE, FALSE, LAddress );
-            IF FirstAddress THEN
-               Groups[ CARD16( LAddress.GetGroupAddress1()) ] := CARD16( Objects.Count - 1 );
+            IF FirstAddress AND NOT AddGroup( LAddress ) THEN
+               ErrorMessage.FromOA( OAsz( R[ Texts._ObjectWithTheMainAddressAlreadyExists ] ));
+               AppendErrorId( REF ErrorMessage, p );
+               RETURN FALSE;
             END;
+            PObject^.AddAddress( FALSE, FALSE, LAddress );
             IF NOT ReadAddressFound AND b THEN
                ReadAddressFound := TRUE;
                PObject^.ReadAddress := LAddress;
@@ -968,7 +983,6 @@ CLASS IMPLEMENTATION CEIBServer;
             FOR c := f TO l DO
                PObject := AddObject( Priority, BFlags, EIT );
                LAddress.SetGroupAddress1( c );
-               PObject^.AddAddress( FALSE, FALSE, LAddress );
                IF Name[0] <> 0W THEN
                   Strings.FromCARD32W( j, 10, OUT Number );
                   Strings.PadLeftW( REF Number, 4, L'0' );
@@ -979,7 +993,14 @@ CLASS IMPLEMENTATION CEIBServer;
                IF Comment[0] <> 0W THEN
                   PObject^.Comment.FromOA( Comment );
                END;
-               Groups[ CARD16( c ) ] := CARD16( Objects.Count - 1 );
+
+               IF AddGroup( LAddress ) THEN
+                  PObject^.AddAddress( FALSE, FALSE, LAddress );
+               ELSE
+                  ErrorMessage.FromOA( OAsz( R[ Texts._ObjectWithTheMainAddressAlreadyExists ] ));
+                  AppendErrorId( REF ErrorMessage, p0 );
+                  RETURN FALSE;
+               END;
             END; // FOR
 
          NextItem:
@@ -1151,8 +1172,13 @@ CLASS IMPLEMENTATION CEIBServer;
             END;
             
             PObject := AddObject( Priority, fullIOFlags, EIT );
-            PObject^.AddAddress( FALSE, FALSE, GroupAddress );
-            Groups[ CARD16( GroupAddress.GetGroupAddress1()) ] := CARD16( Objects.Count - 1 );
+            IF AddGroup( GroupAddress ) THEN
+               PObject^.AddAddress( FALSE, FALSE, GroupAddress );
+            ELSE
+               ErrorMessage.FromOA( OAsz( R[ Texts._ObjectWithTheMainAddressAlreadyExists ] ));
+               AppendErrorLine( REF ErrorMessage, tr.Line );
+               RETURN FALSE;
+            END;
 
             // read optional adjacent group address;
             i := so.ItemS( tabSet, i, 0, FALSE, OUT item );
