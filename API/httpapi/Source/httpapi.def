@@ -1,0 +1,1027 @@
+DEFINITION MODULE httpapi HEADER http;
+
+(*# name( decoration => c ) *)
+(*# module( header => off ) *)
+
+FROM winsock IMPORT
+   PSOCKADDR, PSOCKADDR_STORAGE;
+
+FROM windows IMPORT
+   DWORD, PCSTR, PCWSTR, PWSTR, HANDLE, POVERLAPPED;
+   
+FROM guiddef IMPORT
+   GUID;
+
+//
+// Flags for HttpInitialize() and HttpTerminate()
+//
+
+//
+// HTTP_INITIALIZE_SERVER - Initializes the HTTP API layer and driver for
+//                          server applications.
+//
+// HTTP_INITIALIZE_CONFIG - Initializes the HTTP API layer and driver for
+//                          applications that will modify the HTTP
+//                          configuration.
+//
+// Notes -
+//
+// 1. These flags can be used in combination.
+//
+// 2. HttpTerminate() must be called for each call to HttpInitialize() made
+//    with each flag set when invoking HttpInitialize.  For example, one
+//    could make two calls to HttpInitialize() setting HTTP_INITIALIZE_SERVER
+//    the first time and HTTP_INITIALIZE_CONFIG the second time.  One call
+//    to HttpTerminate() with both flags set suffices to clean up both
+//    calls to HttpInitialize().
+//
+CONST
+   HTTP_INITIALIZE_SERVER = 000000001H;
+   HTTP_INITIALIZE_CONFIG = 000000002H;
+
+//
+// Flags for HttpReceiveHttpRequest().
+//
+// HTTP_RECEIVE_REQUEST_FLAG_COPY_BODY - Specifies that the caller would like
+// any available entity body to be copied along with the protocol headers.
+//
+CONST
+   HTTP_RECEIVE_REQUEST_FLAG_COPY_BODY = 000000001H;
+
+//
+// Flags for HttpSendHttpResponse() and HttpSendResponseEntityBody().
+//
+// HTTP_SEND_RESPONSE_FLAG_DISCONNECT - Specifies that the network connection
+// should be disconnected immediately after sending the response, overriding
+// the HTTP protocol's persistent connection features, such as
+// "Connection: keep-alive".
+//
+// HTTP_SEND_RESPONSE_FLAG_MORE_DATA - Specifies that additional entity body
+// data will be sent by the caller.
+//
+// HTTP_SEND_RESPONSE_FLAG_BUFFER_DATA - Specifies that a caller wants the
+// response to complete as soon as possible at the cost by buffering partial
+// or the entire response.
+//
+CONST
+   HTTP_SEND_RESPONSE_FLAG_DISCONNECT = 000000001H;
+   HTTP_SEND_RESPONSE_FLAG_MORE_DATA = 000000002H;
+   HTTP_SEND_RESPONSE_FLAG_BUFFER_DATA = 000000004H;
+
+//
+// Flags for HttpFlushResponseCache().
+//
+// HTTP_FLUSH_RESPONSE_FLAG_RECURSIVE - Flushes the specified URL and all
+// hierarchally-related sub-URLs from the response or fragment cache.
+//
+CONST
+   HTTP_FLUSH_RESPONSE_FLAG_RECURSIVE = 000000001H;
+
+//
+// Opaque identifiers for various kernel objects.
+//
+TYPE
+   HTTP_OPAQUE_ID  = CARD64;
+   PHTTP_OPAQUE_ID = POINTER TO HTTP_OPAQUE_ID;
+
+   HTTP_REQUEST_ID = HTTP_OPAQUE_ID;
+   PHTTP_REQUEST_ID = POINTER TO HTTP_REQUEST_ID;
+
+   HTTP_CONNECTION_ID = HTTP_OPAQUE_ID;
+   PHTTP_CONNECTION_ID = POINTER TO HTTP_CONNECTION_ID;
+
+   HTTP_RAW_CONNECTION_ID = HTTP_OPAQUE_ID;
+   PHTTP_RAW_CONNECTION_ID = POINTER TO HTTP_RAW_CONNECTION_ID;
+
+//
+// This structure defines a file byte range.
+//
+// If the Length field is HTTP_BYTE_RANGE_TO_EOF then the remainder of the
+// file (everything after StartingOffset) is sent.
+//
+CONST
+   HTTP_BYTE_RANGE_TO_EOF = CARD64( -1 );
+
+TYPE
+   HTTP_BYTE_RANGE = RECORD
+      StartingOffset : CARD64;
+      Length : CARD64;
+   END;
+   PHTTP_BYTE_RANGE = POINTER TO HTTP_BYTE_RANGE;
+
+//
+// The type for HTTP protocol version numbers.
+//
+TYPE
+   HTTP_VERSION = RECORD
+      MajorVersion : CARD16;
+      MinorVersion : CARD16;
+   END;
+   PHTTP_VERSION = POINTER TO HTTP_VERSION;
+
+//
+// The enum type for HTTP verbs.
+//
+TYPE
+   HTTP_VERB = (
+      HttpVerbUnparsed,
+      HttpVerbUnknown,
+      HttpVerbInvalid,
+      HttpVerbOPTIONS,
+      HttpVerbGET,
+      HttpVerbHEAD,
+      HttpVerbPOST,
+      HttpVerbPUT,
+      HttpVerbDELETE,
+      HttpVerbTRACE,
+      HttpVerbCONNECT,
+      HttpVerbTRACK,  // used by Microsoft Cluster Server for a non-logged trace
+      HttpVerbMOVE,
+      HttpVerbCOPY,
+      HttpVerbPROPFIND,
+      HttpVerbPROPPATCH,
+      HttpVerbMKCOL,
+      HttpVerbLOCK,
+      HttpVerbUNLOCK,
+      HttpVerbSEARCH,
+
+      HttpVerbMaximum
+   );
+   PHTTP_VERB = POINTER TO HTTP_VERB;
+
+//
+// Symbols for all HTTP/1.1 headers and other tokens. Notice request +
+// response values overlap. Make sure you know which type of header array
+// you are indexing.
+//
+// These values are used as offsets into arrays and as token values in
+// HTTP_KNOWN_HEADER arrays in HTTP_REQUEST_HEADERS and HTTP_RESPONSE_HEADERS.
+//
+// See RFC 2616, HTTP/1.1, for further explanation of most of these headers.
+//
+TYPE
+   HTTP_HEADER_ID = (
+      HttpHeaderCacheControl          = 0,    // general-header [section 4.5]
+      HttpHeaderConnection            = 1,    // general-header [section 4.5]
+      HttpHeaderDate                  = 2,    // general-header [section 4.5]
+      HttpHeaderKeepAlive             = 3,    // general-header [not in rfc]
+      HttpHeaderPragma                = 4,    // general-header [section 4.5]
+      HttpHeaderTrailer               = 5,    // general-header [section 4.5]
+      HttpHeaderTransferEncoding      = 6,    // general-header [section 4.5]
+      HttpHeaderUpgrade               = 7,    // general-header [section 4.5]
+      HttpHeaderVia                   = 8,    // general-header [section 4.5]
+      HttpHeaderWarning               = 9,    // general-header [section 4.5]
+
+      HttpHeaderAllow                 = 10,   // entity-header  [section 7.1]
+      HttpHeaderContentLength         = 11,   // entity-header  [section 7.1]
+      HttpHeaderContentType           = 12,   // entity-header  [section 7.1]
+      HttpHeaderContentEncoding       = 13,   // entity-header  [section 7.1]
+      HttpHeaderContentLanguage       = 14,   // entity-header  [section 7.1]
+      HttpHeaderContentLocation       = 15,   // entity-header  [section 7.1]
+      HttpHeaderContentMd5            = 16,   // entity-header  [section 7.1]
+      HttpHeaderContentRange          = 17,   // entity-header  [section 7.1]
+      HttpHeaderExpires               = 18,   // entity-header  [section 7.1]
+      HttpHeaderLastModified          = 19,   // entity-header  [section 7.1]
+
+      // Request Headers
+      HttpHeaderAccept                = 20,   // request-header [section 5.3]
+      HttpHeaderAcceptCharset         = 21,   // request-header [section 5.3]
+      HttpHeaderAcceptEncoding        = 22,   // request-header [section 5.3]
+      HttpHeaderAcceptLanguage        = 23,   // request-header [section 5.3]
+      HttpHeaderAuthorization         = 24,   // request-header [section 5.3]
+      HttpHeaderCookie                = 25,   // request-header [not in rfc]
+      HttpHeaderExpect                = 26,   // request-header [section 5.3]
+      HttpHeaderFrom                  = 27,   // request-header [section 5.3]
+      HttpHeaderHost                  = 28,   // request-header [section 5.3]
+      HttpHeaderIfMatch               = 29,   // request-header [section 5.3]
+
+      HttpHeaderIfModifiedSince       = 30,   // request-header [section 5.3]
+      HttpHeaderIfNoneMatch           = 31,   // request-header [section 5.3]
+      HttpHeaderIfRange               = 32,   // request-header [section 5.3]
+      HttpHeaderIfUnmodifiedSince     = 33,   // request-header [section 5.3]
+      HttpHeaderMaxForwards           = 34,   // request-header [section 5.3]
+      HttpHeaderProxyAuthorization    = 35,   // request-header [section 5.3]
+      HttpHeaderReferer               = 36,   // request-header [section 5.3]
+      HttpHeaderRange                 = 37,   // request-header [section 5.3]
+      HttpHeaderTe                    = 38,   // request-header [section 5.3]
+      HttpHeaderTranslate             = 39,   // request-header [webDAV, not in rfc 2518]
+
+      HttpHeaderUserAgent             = 40,   // request-header [section 5.3]
+
+      HttpHeaderRequestMaximum        = 41,
+
+      // Response Headers
+      HttpHeaderAcceptRanges          = 20,   // response-header [section 6.2]
+      HttpHeaderAge                   = 21,   // response-header [section 6.2]
+      HttpHeaderEtag                  = 22,   // response-header [section 6.2]
+      HttpHeaderLocation              = 23,   // response-header [section 6.2]
+      HttpHeaderProxyAuthenticate     = 24,   // response-header [section 6.2]
+      HttpHeaderRetryAfter            = 25,   // response-header [section 6.2]
+      HttpHeaderServer                = 26,   // response-header [section 6.2]
+      HttpHeaderSetCookie             = 27,   // response-header [not in rfc]
+      HttpHeaderVary                  = 28,   // response-header [section 6.2]
+      HttpHeaderWwwAuthenticate       = 29,   // response-header [section 6.2]
+
+      HttpHeaderResponseMaximum       = 30,
+
+      HttpHeaderMaximum               = 41
+   );
+   PHTTP_HEADER_ID = POINTER TO HTTP_HEADER_ID;
+
+
+//
+// Structure defining format of a known HTTP header.
+// Name is from HTTP_HEADER_ID.
+//
+TYPE
+   HTTP_KNOWN_HEADER = RECORD
+      RawValueLength : CARD16; // in bytes not including the NUL
+      pRawValue : PCSTR;
+   END;
+   PHTTP_KNOWN_HEADER = POINTER TO HTTP_KNOWN_HEADER;
+
+//
+// Structure defining format of an unknown header.
+//
+TYPE
+   HTTP_UNKNOWN_HEADER = RECORD
+      NameLength : CARD16; // in bytes not including the NUL
+      RawValueLength : CARD16; // in bytes not including the NUL
+      pName : PCSTR; // The header name (minus the ':' character)
+      pRawValue : PCSTR; // The header value
+   END;
+   PHTTP_UNKNOWN_HEADER = POINTER TO HTTP_UNKNOWN_HEADER;
+
+//
+// This enum defines a data source for a particular chunk of data.
+//
+TYPE
+   HTTP_DATA_CHUNK_TYPE = (
+      HttpDataChunkFromMemory,
+      HttpDataChunkFromFileHandle,
+      HttpDataChunkFromFragmentCache,
+
+      HttpDataChunkMaximum
+   );
+   PHTTP_DATA_CHUNK_TYPE = POINTER TO HTTP_DATA_CHUNK_TYPE;
+
+//
+// This structure describes an individual data chunk.
+//
+TYPE
+   HTTP_DATA_CHUNK = RECORD
+      //
+      // The type of this data chunk.
+      //
+
+      DataChunkType : HTTP_DATA_CHUNK_TYPE;
+
+      //
+      // The data chunk structures, one per supported data chunk type.
+      //
+
+      CASE : CARDINAL OF
+      | 0 :
+         //
+         // From-memory data chunk.
+         //
+         pBuffer : ADDRESS;
+         BufferLength : CARD32;
+      | 1 :
+         //
+         // From-file handle data chunk.
+         //
+         ByteRange : HTTP_BYTE_RANGE;
+         FileHandle : HANDLE;
+      | 2 :
+         //
+         // From-fragment cache data chunk.
+         //
+         FragmentNameLength : CARD16; // in bytes not including the NUL
+         pFragmentName : PCWSTR;
+      END; // CASE
+
+   END; // RECORD HTTP_DATA_CHUNK
+   PHTTP_DATA_CHUNK = POINTER TO HTTP_DATA_CHUNK;
+
+//
+// Structure defining format of request headers.
+//
+TYPE
+   HTTP_REQUEST_HEADERS = RECORD
+      //
+      // The array of unknown HTTP headers and the number of
+      // entries in the array.
+      //
+      UnknownHeaderCount : CARD16;
+      pUnknownHeaders : PHTTP_UNKNOWN_HEADER;
+
+      // 
+      // Trailers - we don't use these currently, reserved for a future release
+      //
+      TrailerCount : CARD16; // Reserved, must be 0
+      pTrailers : PHTTP_UNKNOWN_HEADER; // Reserved, must be NULL
+
+      //
+      // Known headers.
+      //
+      KnownHeaders : ARRAY[0..ORD(HttpHeaderRequestMaximum)-1] OF HTTP_KNOWN_HEADER;
+   END; // RECORD
+   PHTTP_REQUEST_HEADERS = POINTER TO HTTP_REQUEST_HEADERS;
+
+//
+// Structure defining format of response headers.
+//
+TYPE
+   HTTP_RESPONSE_HEADERS = RECORD
+      //
+      // The array of unknown HTTP headers and the number of
+      // entries in the array.
+      //
+      UnknownHeaderCount : CARD16;
+      pUnknownHeaders : PHTTP_UNKNOWN_HEADER;
+
+      // 
+      // Trailers - we don't use these currently, reserved for a future release
+      //
+      TrailerCount : CARD16;   // Reserved, must be 0
+      pTrailers : PHTTP_UNKNOWN_HEADER; // Reserved, must be NULL
+
+      //
+      // Known headers.
+      //
+      KnownHeaders : ARRAY [0..ORD(HttpHeaderResponseMaximum)-1] OF HTTP_KNOWN_HEADER;
+   END; // RECORD
+   PHTTP_RESPONSE_HEADERS = POINTER TO HTTP_RESPONSE_HEADERS;
+
+//
+// Structure defining format of transport address. Use pLocalAddress->sa_family
+// to determine whether this is an IPv4 address (AF_INET) or IPv6 (AF_INET6).
+// 
+// pRemoteAddress->sa_family will be the same as pLocalAddress->sa_family.
+//
+// SOCKADDRs are always in network order, not host order.
+//
+TYPE
+   HTTP_TRANSPORT_ADDRESS = RECORD
+      pRemoteAddress : PSOCKADDR;
+      pLocalAddress : PSOCKADDR;
+   END; // RECORD
+   PHTTP_TRANSPORT_ADDRESS = POINTER TO HTTP_TRANSPORT_ADDRESS;
+
+//
+// Structure defining format of cooked URL.
+//
+TYPE
+   HTTP_COOKED_URL = RECORD
+      //
+      // Pointers overlap and point into pFullUrl. NULL if not present.
+      //
+      FullUrlLength : CARD16;       // in bytes not including the NUL
+      HostLength : CARD16;          // in bytes (no NUL)
+      AbsPathLength : CARD16;       // in bytes (no NUL)
+      QueryStringLength : CARD16;   // in bytes (no NUL)
+
+      pFullUrl : PCWSTR;     // points to "http://hostname:port/abs/.../path?query"
+      pHost : PCWSTR;        // points to the first char in the hostname
+      pAbsPath : PCWSTR;     // Points to the 3rd '/' char
+      pQueryString : PCWSTR; // Points to the 1st '?' char or NULL
+   END; // RECORD
+   PHTTP_COOKED_URL = POINTER TO HTTP_COOKED_URL;
+
+//
+// An opaque context for URLs
+//
+TYPE
+   HTTP_URL_CONTEXT = CARD64;
+
+//
+// SSL Client certificate information.
+//
+TYPE
+   HTTP_SSL_CLIENT_CERT_INFO = RECORD
+      CertFlags : CARD32;
+      CertEncodedSize : CARD32;
+      pCertEncoded : PBYTE;
+      Token : HANDLE;
+      CertDeniedByMapper : BOOLEAN;
+   END; // RECORD
+   PHTTP_SSL_CLIENT_CERT_INFO = POINTER TO HTTP_SSL_CLIENT_CERT_INFO;
+
+//
+// Data computed during SSL handshake.
+//
+TYPE
+   HTTP_SSL_INFO = RECORD
+      ServerCertKeySize : CARD16;
+      ConnectionKeySize : CARD16;
+      ServerCertIssuerSize : CARD32;
+      ServerCertSubjectSize : CARD32;
+
+      pServerCertIssuer : PCSTR;
+      pServerCertSubject : PCSTR;
+
+      pClientCertInfo : PHTTP_SSL_CLIENT_CERT_INFO;
+      SslClientCertNegotiated : CARD32;
+   END; // RECORD
+   PHTTP_SSL_INFO = POINTER TO HTTP_SSL_INFO;
+
+//
+// The structure of an HTTP request.
+//
+TYPE
+   HTTP_REQUEST = RECORD
+      //
+      // Request flags (see HTTP_REQUEST_FLAG_* definitions below).
+      //
+      Flags : CARD32;
+
+      //
+      // An opaque request identifier. These values are used by the driver
+      // to correlate outgoing responses with incoming requests.
+      //
+      ConnectionId : HTTP_CONNECTION_ID;
+      RequestId : HTTP_REQUEST_ID;
+
+      //
+      // The context associated with the URL prefix.
+      //
+      UrlContext : HTTP_URL_CONTEXT;
+
+      //
+      // The HTTP version number.
+      //
+      Version : HTTP_VERSION;
+
+      //
+      // The request verb.
+      //
+      Verb : HTTP_VERB;
+
+      //
+      // The length of the verb string if the Verb field is HttpVerbUnknown.
+      //
+      UnknownVerbLength : CARD16; // in bytes not including the NUL
+
+      //
+      // The length of the raw (uncooked) URL
+      //
+      RawUrlLength : CARD16; // in bytes not including the NUL
+
+      //
+      // Pointer to the verb string if the Verb field is HttpVerbUnknown.
+      //
+      pUnknownVerb : PCSTR;
+
+      //
+      // Pointer to the raw (uncooked) URL
+      //
+      pRawUrl : PCSTR;
+
+      //
+      // The canonicalized Unicode URL
+      //
+      CookedUrl : HTTP_COOKED_URL;
+
+      //
+      // Local and remote transport addresses for the connection.
+      //
+      Address : HTTP_TRANSPORT_ADDRESS;
+
+      //
+      // The request headers.
+      //
+      Headers : HTTP_REQUEST_HEADERS;
+
+      //
+      // The total number of bytes received from network for this request.
+      //
+      BytesReceived : CARD64;
+
+      //
+      // pEntityChunks is an array of EntityChunkCount HTTP_DATA_CHUNKs. The
+      // entity body is copied only if HTTP_RECEIVE_REQUEST_FLAG_COPY_BODY
+      // was passed to HttpReceiveHttpRequest().
+      //
+      EntityChunkCount : CARD16;
+      pEntityChunks : PHTTP_DATA_CHUNK;
+
+      //
+      // SSL connection information.
+      //
+      RawConnectionId : HTTP_RAW_CONNECTION_ID;
+      pSslInfo : PHTTP_SSL_INFO;
+   END; // RECORD
+   PHTTP_REQUEST = POINTER TO HTTP_REQUEST;
+
+//
+// Values for HTTP_REQUEST::Flags. Zero or more of these may be ORed together.
+//
+// HTTP_REQUEST_FLAG_MORE_ENTITY_BODY_EXISTS - there is more entity body
+// to be read for this request. Otherwise, there is no entity body or
+// all of the entity body was copied into pEntityChunks.
+//
+CONST
+   HTTP_REQUEST_FLAG_MORE_ENTITY_BODY_EXISTS = 000000001H;
+
+//
+// This structure describes an HTTP response.
+//
+TYPE
+   HTTP_RESPONSE = RECORD
+      Flags : CARD32;
+
+      //
+      // The raw HTTP protocol version number. 
+      //
+      Version : HTTP_VERSION;
+
+      //
+      // The HTTP status code (e.g., 200).
+      //
+      StatusCode : CARD16;
+
+      //
+      // The HTTP reason (e.g., "OK"). This MUST not contain
+      // non-ASCII characters (i.e., all chars must be in range 0x20-0x7E).
+      //
+      ReasonLength : CARD16;                 // in bytes not including the '\0'
+      pReason : PCSTR;
+
+      //
+      // The response headers.
+      //
+      Headers : HTTP_RESPONSE_HEADERS;
+
+      //
+      // pEntityChunks points to an array of EntityChunkCount HTTP_DATA_CHUNKs.
+      //
+      EntityChunkCount : CARD16;
+      pEntityChunks : PHTTP_DATA_CHUNK;
+   END; // RECORD
+   PHTTP_RESPONSE = POINTER TO HTTP_RESPONSE;
+
+//
+// Cache control.
+//
+
+//
+// This enum defines the available cache policies.
+//
+TYPE
+   HTTP_CACHE_POLICY_TYPE = (
+      HttpCachePolicyNocache,
+      HttpCachePolicyUserInvalidates,
+      HttpCachePolicyTimeToLive,
+
+      HttpCachePolicyMaximum
+   );
+   PHTTP_CACHE_POLICY_TYPE = POINTER TO HTTP_CACHE_POLICY_TYPE;
+
+//
+//  Only cache unauthorized GETs + HEADs.
+//
+TYPE
+   HTTP_CACHE_POLICY = RECORD
+      Policy : HTTP_CACHE_POLICY_TYPE;
+      SecondsToLive : CARD32;
+   END; // RECORD
+   PHTTP_CACHE_POLICY = POINTER TO HTTP_CACHE_POLICY;
+
+//
+// Enum that is used with HttpSetServiceConfiguration(),
+// HttpQueryServiceConfiguration(), and HttpDeleteServiceConfiguration() APIs.
+//
+TYPE
+   HTTP_SERVICE_CONFIG_ID = (
+      HttpServiceConfigIPListenList,    // Set, Query & Delete.
+      HttpServiceConfigSSLCertInfo,     // Set, Query & Delete.
+      HttpServiceConfigUrlAclInfo,      // Set, Query & Delete.
+      HttpServiceConfigMax
+   );
+   PHTTP_SERVICE_CONFIG_ID = POINTER TO HTTP_SERVICE_CONFIG_ID;
+
+//
+// Generic Query enum that can be used with HttpQueryServiceConfiguration()
+//
+TYPE
+   HTTP_SERVICE_CONFIG_QUERY_TYPE = (
+      HttpServiceConfigQueryExact,
+      HttpServiceConfigQueryNext,
+      HttpServiceConfigQueryMax
+   );
+   PHTTP_SERVICE_CONFIG_QUERY_TYPE = POINTER TO HTTP_SERVICE_CONFIG_QUERY_TYPE;
+
+//
+// This data structure is used to define a key of the SSL certificate hash
+// store.
+//
+TYPE
+   HTTP_SERVICE_CONFIG_SSL_KEY = RECORD
+      pIpPort : PSOCKADDR;
+   END; // RECORD
+   PHTTP_SERVICE_CONFIG_SSL_KEY = POINTER TO HTTP_SERVICE_CONFIG_SSL_KEY;
+
+//
+// This defines a record for the SSL config store.
+//
+TYPE
+   HTTP_SERVICE_CONFIG_SSL_PARAM = RECORD
+      SslHashLength : CARD32;    // Length of the SSL hash (in bytes)
+      pSslHash : ADDRESS;        // Pointer to the SSL hash
+      AppId : GUID;              // A unique identifier that can be used to
+                                 // identify the app that has set this parameter
+
+      pSslCertStoreName : PWSTR; // Store name to read the server certificate
+                                 // from; defaults to "MY". Certificate must be 
+                                 // stored in the LOCAL_MACHINE context.
+
+      //
+      // The following settings are used only for client certificates
+      //
+
+      //
+      // DefaultCertCheckMode is a bit flag with the following semantics
+      //  0x1     - Client certificate will not be verified for revocation
+      //  0x2     - Only cached certificate revocation will be used.
+      //  0x4     - Enable use of the DefaultRevocationFreshnessTime setting
+      //  0x10000 - No usage check. 
+
+      DefaultCertCheckMode : DWORD;
+
+      //
+      // DefaultRevocationFreshnessTime (seconds) - How often to check for 
+      // an updated Certificate revocation list (CRL). If this value is 0 
+      // then the new CRL is updated only if the previous one expires
+      //
+
+      DefaultRevocationFreshnessTime : DWORD;
+
+      //
+      // DefaultRevocationUrlRetrievalTimeout (milliseconds) - Timeout on 
+      // attempt to retrieve certificate revocation list from the remote URL.
+      //
+
+      DefaultRevocationUrlRetrievalTimeout : DWORD;
+
+      //
+      // pDefaultSslCtlIdentifier - Restrict the certificate issuers that you 
+      // want to trust. Can be a subset of the certificate issuers that are 
+      // trusted by the machine.
+      //
+
+      pDefaultSslCtlIdentifier : PWSTR;
+
+      // 
+      // Store name under LOCAL_MACHINE where Ctl identified by 
+      // pDefaultSslCtlIdentifier is stored.
+      //
+
+      pDefaultSslCtlStoreName : PWSTR;
+
+      //
+      // Default Flags - see HTTP_SERVICE_CONFIG_SSL_FLAG* below.
+      //
+
+      DefaultFlags : windows.DWORD;
+   END; // RECORD
+   PHTTP_SERVICE_CONFIG_SSL_PARAM = POINTER TO HTTP_SERVICE_CONFIG_SSL_PARAM;
+
+CONST
+   HTTP_SERVICE_CONFIG_SSL_FLAG_USE_DS_MAPPER         = 000000001H;
+   HTTP_SERVICE_CONFIG_SSL_FLAG_NEGOTIATE_CLIENT_CERT = 000000002H;
+   HTTP_SERVICE_CONFIG_SSL_FLAG_NO_RAW_FILTER         = 000000004H;
+
+//
+// This data structure is used by HttpSetServiceConfiguration() for the
+// config ID HttpServiceConfigSSLCertInfo.  It's used to add a new record
+// to the SSL store.
+//
+TYPE
+   HTTP_SERVICE_CONFIG_SSL_SET = RECORD
+      KeyDesc : HTTP_SERVICE_CONFIG_SSL_KEY;
+      ParamDesc : HTTP_SERVICE_CONFIG_SSL_PARAM;
+   END; // RECORD
+   PHTTP_SERVICE_CONFIG_SSL_SET = POINTER TO HTTP_SERVICE_CONFIG_SSL_SET;
+
+//
+// This data structure is used by HttpQueryServiceConfiguration() for the
+// config ID HttpServiceConfigSSLCertInfo. It's used to query a particular
+// record from the SSL store.
+//
+// If QueryType is HttpServiceConfigQueryExact, then one particular record of
+// the type HTTP_SERVICE_CONFIG_SSL_SET is returned. If the QueryType is
+// HttpServiceConfigQueryNext, then the next instance of
+// HTTP_SERVICE_CONFIG_SSL_SET is returned. In such cases, the dwToken field
+// represents the cursor. For the first item,  dwToken has to be 0.
+// For subsequent items, dwToken has to be incremented by 1,
+// until ERROR_NO_MORE_ITEMS is returned.
+//
+TYPE
+   HTTP_SERVICE_CONFIG_SSL_QUERY = RECORD
+      QueryDesc : HTTP_SERVICE_CONFIG_QUERY_TYPE;
+      KeyDesc : HTTP_SERVICE_CONFIG_SSL_KEY;
+      dwToken : DWORD;
+   END; // RECORD
+   PHTTP_SERVICE_CONFIG_SSL_QUERY = POINTER TO HTTP_SERVICE_CONFIG_SSL_QUERY;
+
+//
+// Set/Delete IP Listen-Only List record
+//
+// Used as a parameter to both HttpSetServiceConfiguration() and 
+// HttpDeleteServiceConfiguration() functions.
+//
+TYPE
+   HTTP_SERVICE_CONFIG_IP_LISTEN_PARAM = RECORD
+      AddrLength : CARD16;
+      pAddress : PSOCKADDR;
+   END; // RECORD
+   PHTTP_SERVICE_CONFIG_IP_LISTEN_PARAM = POINTER TO HTTP_SERVICE_CONFIG_IP_LISTEN_PARAM;
+
+//
+// Query IP Listen-Only List record.
+//
+// Parameter to HttpQueryServiceConfiguration() for the config ID 
+// HttpServiceConfigIPListenList.  On successful return, AddrList 
+// contains an array of AddrCount elements.  Caller must provide a
+// large enough buffer to hold all elements in one call.
+// 
+// Caller may determine the type of each returned element by examining
+// AddrList[i].ss_family. If it's AF_INET, use ((PSOCKADDR_IN) &AddrList[i]);
+// otherwise, for AF_INET6, use ((PSOCKADDR_IN6) &AddrList[i])
+// to select the appropriate address type.
+// 
+TYPE
+   HTTP_SERVICE_CONFIG_IP_LISTEN_QUERY = RECORD
+      AddrCount : CARD32;
+      AddrList : PSOCKADDR_STORAGE;
+   END; // RECORD
+   PHTTP_SERVICE_CONFIG_IP_LISTEN_QUERY = POINTER TO HTTP_SERVICE_CONFIG_IP_LISTEN_QUERY;
+
+//
+// URL ACL
+//
+//
+TYPE
+   HTTP_SERVICE_CONFIG_URLACL_KEY = RECORD
+      pUrlPrefix : PWSTR;
+   END; // RECORD
+   PHTTP_SERVICE_CONFIG_URLACL_KEY = POINTER TO HTTP_SERVICE_CONFIG_URLACL_KEY;
+
+//
+// This defines a record for the SSL config store.
+//
+TYPE
+   HTTP_SERVICE_CONFIG_URLACL_PARAM = RECORD
+      pStringSecurityDescriptor : PWSTR;
+   END; // RECORD
+   PHTTP_SERVICE_CONFIG_URLACL_PARAM = POINTER TO HTTP_SERVICE_CONFIG_URLACL_PARAM;
+
+//
+// This data structure is used by HttpSetServiceConfiguration for the config ID
+// HttpServiceConfigUrlAclInfo. It is used to add a new record to the URL ACL 
+// store.
+//
+TYPE
+   HTTP_SERVICE_CONFIG_URLACL_SET = RECORD
+      KeyDesc : HTTP_SERVICE_CONFIG_URLACL_KEY;
+      ParamDesc : HTTP_SERVICE_CONFIG_URLACL_PARAM;
+   END; // RECORD
+   PHTTP_SERVICE_CONFIG_URLACL_SET = POINTER TO HTTP_SERVICE_CONFIG_URLACL_SET;
+
+//
+// This data structure is used by HttpQueryServiceConfiguration() for the
+// config ID HttpServiceConfigUrlAclInfo. It's used to query a particular
+// record from the URL ACL store.
+//
+// If QueryType is HttpServiceConfigQueryExact, then one particular record of
+// the type HTTP_SERVICE_CONFIG_URLACL_SET is returned. If the QueryType is
+// HttpServiceConfigQueryNext, then the next instance of
+// HTTP_SERVICE_CONFIG_URLACL_SET is returned. In such cases, the dwToken field
+// represents the cursor. For the first item,  dwToken has to be 0.
+// For subsequent items, dwToken has to be incremented by 1,
+// until ERROR_NO_MORE_ITEMS is returned.
+//
+TYPE
+   HTTP_SERVICE_CONFIG_URLACL_QUERY = RECORD
+      QueryDesc : HTTP_SERVICE_CONFIG_QUERY_TYPE;
+      KeyDesc : HTTP_SERVICE_CONFIG_URLACL_KEY;
+      dwToken : DWORD;
+   END;
+   PHTTP_SERVICE_CONFIG_URLACL_QUERY = POINTER TO HTTP_SERVICE_CONFIG_URLACL_QUERY;
+
+//
+// Initialize/Terminate APIs.
+//
+
+//
+// Version number to be passed to HttpInitialize(). This is used to ensure
+// compatibility between applications and httpapi.dll and http.sys.
+//
+// This must not be confused with the HTTP Protocol version.
+//
+TYPE
+   HTTPAPI_VERSION = RECORD
+      HttpApiMajorVersion : CARD16;
+      HttpApiMinorVersion : CARD16;
+   END; // RECORD
+   PHTTPAPI_VERSION = POINTER TO HTTPAPI_VERSION;
+
+CONST
+   HTTPAPI_VERSION_1 = HTTPAPI_VERSION( 1, 0 );
+
+// NOTE: MUST be called once before all other APIs
+PROCEDURE
+HttpInitialize(
+    Version : HTTPAPI_VERSION;
+    Flags : CARD32;
+    pReserved : ADDRESS // must be NULL
+    ) : CARD32;
+
+// NOTE: MUST be called after final API call returns.
+PROCEDURE
+HttpTerminate(
+    Flags : CARD32;
+    pReserved : ADDRESS // must be NULL
+    ) : CARD32;
+
+
+//
+// HTTP Request Queue handle
+//
+
+// NOTE: call CloseHandle() to release.
+PROCEDURE
+HttpCreateHttpHandle(
+    OUT ReqQueueHandle : HANDLE;
+    Options : CARD32 // Reserved must be 0
+    ) : CARD32;
+
+//
+// SSL APIs.
+//
+
+PROCEDURE
+HttpReceiveClientCertificate(
+    ReqQueueHandle : HANDLE;
+    ConnectionId : HTTP_CONNECTION_ID;
+    Flags : CARD32;
+    pSslClientCertInfo : PHTTP_SSL_CLIENT_CERT_INFO;
+    SslClientCertInfoSize : CARD32;
+    OUT BytesReceived : CARD32;
+    pOverlapped : POVERLAPPED
+    ) : CARD32;
+
+//
+// URL Configuration APIs.
+//
+PROCEDURE
+HttpAddUrl(
+    ReqQueueHandle : HANDLE;
+    pUrlPrefix : PCWSTR;
+    pReserved : ADDRESS // must be NULL
+    ) : CARD32;
+
+
+PROCEDURE
+HttpRemoveUrl(
+    ReqQueueHandle : HANDLE;
+    pUrlPrefix : PCWSTR
+    ) : CARD32;
+
+
+//
+// HTTP Server I/O APIs.
+//
+PROCEDURE
+HttpReceiveHttpRequest(
+    ReqQueueHandle : HANDLE;
+    RequestId : HTTP_REQUEST_ID;
+    Flags : CARD32;
+    pRequestBuffer : PHTTP_REQUEST;
+    RequestBufferLength : CARD32;
+    OUT BytesReceived : CARD32;
+    pOverlapped : POVERLAPPED
+    ) : CARD32;
+
+
+PROCEDURE
+HttpReceiveRequestEntityBody(
+    ReqQueueHandle : HANDLE;
+    RequestId : HTTP_REQUEST_ID;
+    Flags : CARD32;
+    pBuffer : ADDRESS;
+    BufferLength : CARD32;
+    OUT BytesReceived : CARD32;
+    pOverlapped : POVERLAPPED
+    ) : CARD32;
+
+
+PROCEDURE
+HttpSendHttpResponse(
+    ReqQueueHandle : HANDLE;
+    RequestId : HTTP_REQUEST_ID;
+    Flags : CARD32;
+    pHttpResponse : PHTTP_RESPONSE;
+    pReserved1 : ADDRESS; // must be NULL
+    pBytesSent : PCARD32;
+    pReserved2 : ADDRESS; // must be NULL
+    Reserved3 : CARD32; // must be 0
+    pOverlapped : POVERLAPPED;
+    pReserved4 : ADDRESS // must be NULL 
+    ) : CARD32;
+
+
+PROCEDURE
+HttpSendResponseEntityBody(
+    ReqQueueHandle : HANDLE;
+    RequestId : HTTP_REQUEST_ID;
+    Flags : CARD32;
+    EntityChunkCount : CARD16;
+    pEntityChunks : PHTTP_DATA_CHUNK;
+    pBytesSent : PCARD32;
+    pReserved1 : ADDRESS; // must be NULL
+    Reserved2 : CARD32; // must be 0
+    pOverlapped : POVERLAPPED;
+    pReserved3 : ADDRESS // must be NULL
+    ) : CARD32;
+
+
+PROCEDURE
+HttpWaitForDisconnect(
+    ReqQueueHandle : HANDLE;
+    ConnectionId : HTTP_CONNECTION_ID;
+    pOverlapped : POVERLAPPED
+    ) : CARD32;
+
+//
+// Cache manipulation APIs.
+//
+
+PROCEDURE
+HttpFlushResponseCache(
+    ReqQueueHandle : HANDLE;
+    pUrlPrefix : PCWSTR;
+    Flags : CARD32;
+    pOverlapped : POVERLAPPED
+    ) : CARD32;
+
+
+PROCEDURE
+HttpAddFragmentToCache(
+    ReqQueueHandle : HANDLE;
+    pUrlPrefix : PCWSTR;
+    pDataChunk : PHTTP_DATA_CHUNK;
+    pCachePolicy : PHTTP_CACHE_POLICY;
+    pOverlapped : POVERLAPPED
+    ) : CARD32;
+
+
+PROCEDURE
+HttpReadFragmentFromCache(
+    ReqQueueHandle : HANDLE;
+    pUrlPrefix : PCWSTR;
+    pByteRange : PHTTP_BYTE_RANGE;
+    pBuffer : ADDRESS;
+    BufferLength : CARD32;
+    OUT BytesRead : CARD32;
+    pOverlapped : POVERLAPPED
+    ) : CARD32;
+
+//
+// Server configuration APIs
+//
+
+PROCEDURE
+HttpSetServiceConfiguration(
+    ServiceHandle : HANDLE; // Reserved, MUST be NULL
+    ConfigId : HTTP_SERVICE_CONFIG_ID;
+    pConfigInformation : ADDRESS;
+    ConfigInformationLength : CARD32;
+    pOverlapped : POVERLAPPED // Reserved, MUST be NULL
+    ) : CARD32;
+
+
+PROCEDURE
+HttpDeleteServiceConfiguration(
+    ServiceHandle : HANDLE; // Reserved, MUST be NULL
+    ConfigId : HTTP_SERVICE_CONFIG_ID;
+    pConfigInformation : ADDRESS;
+    ConfigInformationLength : CARD32;
+    pOverlapped : POVERLAPPED // Reserved, MUST be NULL
+    ) : CARD32;
+
+
+PROCEDURE
+HttpQueryServiceConfiguration(
+    ServiceHandle : HANDLE; // Reserved, MUST be NULL
+    ConfigId : HTTP_SERVICE_CONFIG_ID;
+    pInputConfigInformation : ADDRESS;
+    InputConfigInformationLength : CARD32;
+    pOutputConfigInformation : ADDRESS;
+    OutputConfigInformationLength : CARD32;
+    pReturnLength : PCARD32;
+    pOverlapped : POVERLAPPED // Reserved, MUST be NULL
+    ) : CARD32;
+
+END httpapi.

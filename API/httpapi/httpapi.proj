@@ -1,0 +1,18 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 2 -->
+    <ItemGroup>
+        <Components Include="API\win32;API\COM"/>
+        <Interface Include="httpapi"/>
+    </ItemGroup>
+
+    <!-- 3 -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>
