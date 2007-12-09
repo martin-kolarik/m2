@@ -2,7 +2,8 @@ DEFINITION MODULE msgqueue;
 
 IMPORT
   msghandler,
-  Sync;
+  Sync,
+  SyncQueue;
 
 #save, option( dll_export => on )
 
@@ -22,43 +23,17 @@ TYPE
   );
   TMQOptions = SET OF TMQOption;
   
-CLASS CMessageQueue( Sync.NToOneQueue );
+CLASS CMessageQueue( SyncQueue.CDatagramQueue );
   PRIVATE VAR
-    DoConsume   : CARDINAL; // 0/1
     Options     : TMQOptions;
-    Data        : ADDRESS;
-    ItemISize   : CARDINAL; // internal length, including length friend
-  // function
-  PUBLIC PROPERTY
-    FlushIfFull : BOOLEAN;
-  PUBLIC VIRTUAL PROPERTY
-    Size        : CARDINAL;
-    ItemSize    : CARDINAL;
-  // notification
-  PRIVATE VAR
     Msg         : POINTER TO msghandler.Message;
   PUBLIC VAR
-    Consume     : Sync.SIGNAL;
     Consumer    : TPMessageRecipient;
   PUBLIC PROPERTY
     ConsumerMsg : POINTER TO msghandler.Message; // if NIL then default WM_MQ_PROCESS is used
-
-  // consumer
-  PUBLIC PROCEDURE Init( QueueSize, MessageSoze : CARDINAL );
-  PUBLIC PROCEDURE Dequeue( MessageBuffer : ADDRESS; MessageBufferSize : CARDINAL ) : BOOLEAN;
-  PUBLIC PROCEDURE DequeueOA( OUT Message : ARRAY OF BYTE ) : BOOLEAN; // if HIGH is less than MessageLen the message is trimmed
-    // returns if data get
-
-  // producers
-  PUBLIC PROCEDURE Queue( Message : ADDRESS; MessageSize : CARDINAL ) : BOOLEAN;
-  PUBLIC PROCEDURE QueueOA( CONST Message : ARRAY OF BYTE ) : BOOLEAN;
-    // returns if added, for ANY thread
-  PUBLIC PROCEDURE PushToConsumer() : Sync.TAsyncResult;
+    FlushIfFull : BOOLEAN;
 
   INTERNAL VIRTUAL PROCEDURE Flush() : Sync.TAsyncResult; // completed, timeout, aborted
-  INTERNAL VIRTUAL PROCEDURE Validate( Block : CARDINAL );
-  INTERNAL VIRTUAL PROCEDURE IsValid( Block : CARDINAL ) : BOOLEAN;
-  INTERNAL VIRTUAL PROCEDURE Invalidate( Block : CARDINAL );
   INTERNAL VIRTUAL PROCEDURE Signal( What : Sync.TpcqSignal ); // when produced, next producing SHOULD NOT be done (until signalling consumed)
 END CMessageQueue;
 

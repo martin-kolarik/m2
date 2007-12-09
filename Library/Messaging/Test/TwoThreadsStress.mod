@@ -11,6 +11,7 @@ VAR
 
   Exit : CARDINAL;  
   HConsume : windows.HANDLE;
+  HProduce : windows.HANDLE;
   HStart : windows.HANDLE;
   HThread : windows.HANDLE;
   
@@ -85,19 +86,21 @@ VAR
 BEGIN
   HStart := windows.CreateEvent( NIL, windows.True, windows.False, NIL );
   HConsume := windows.CreateEvent( NIL, windows.True, windows.False, NIL );
+  HProduce := windows.CreateEvent( NIL, windows.True, windows.True, NIL );
 
   MQ.Init( 32, SIZE( CARDINAL ));
   MQ.FlushIfFull := TRUE;
-  // MQ.Consumer := ADR( MH );
-  // HThread := windows.CreateThread( NIL, 0, ThreadM, NIL, 0, NIL );
-  MQ.Consume := HConsume;
-  HThread := windows.CreateThread( NIL, 0, ThreadS, NIL, 0, NIL );
+  // MQ.Produce := HProduce;
+  MQ.Consumer := ADR( MH );
+  HThread := windows.CreateThread( NIL, 0, ThreadM, NIL, 0, NIL );
+  // MQ.Consume := HConsume;
+  // HThread := windows.CreateThread( NIL, 0, ThreadS, NIL, 0, NIL );
   windows.WaitForSingleObject( HStart, windows.INFINITE );
 
   LOOP
     MQ.Queue( ADR( C ), SIZE( CARDINAL ));
     INC( C );
-    IF C > 1000000000 THEN
+    IF C > 50000000 THEN
       EXIT;
     END;
   END;
