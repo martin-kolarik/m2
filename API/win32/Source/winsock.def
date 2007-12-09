@@ -540,6 +540,37 @@ TYPE
   PPsockaddr = POINTER TO Psockaddr;
 
 (*
+ * Desired design of maximum size and alignment.
+ * These are implementation specific.
+ *)
+CONST
+   _SS_MAXSIZE = 128; // Maximum size.
+   _SS_ALIGNSIZE = SIZE( INT64 );  // Desired alignment.
+
+(*
+ * Definitions used for sockaddr_storage structure paddings design.
+ *)
+CONST
+   _SS_PAD1SIZE = _SS_ALIGNSIZE - SIZE( INT16 );
+   _SS_PAD2SIZE = _SS_MAXSIZE - ( SIZE( INT16 ) + _SS_PAD1SIZE + _SS_ALIGNSIZE );
+
+TYPE
+   sockaddr_storage = RECORD
+      ss_family : INT16;           // Address family.
+      __ss_pad1 : ARRAY [0.._SS_PAD1SIZE-1] OF BYTE;
+                                   // 6 byte pad, this is to make
+                                   // implementation specific pad up to
+                                   // alignment field that follows explicit
+                                   // in the data structure.
+      __ss_align : INT64;          // Field to force desired structure.
+      __ss_pad2 : ARRAY [0.._SS_PAD2SIZE-1] OF BYTE; 
+                                   // 112 byte pad to achieve desired size;
+                                   // _SS_MAXSIZE value minus size of
+                                   // ss_family, __ss_pad1, and
+                                   // __ss_align fields is 112.
+   END; // RECORD
+
+(*
  * Structure used by kernel to pass protocol
  * information in raw sockets.
  *)
@@ -1041,6 +1072,9 @@ CONST
 TYPE
   SOCKADDR  = sockaddr;
   PSOCKADDR = POINTER TO SOCKADDR;
+  
+  SOCKADDR_STORAGE = sockaddr_storage;
+  PSOCKADDR_STORAGE = POINTER TO SOCKADDR_STORAGE;
 
 (*
  * Manifest constants and type definitions related to name resolution and

@@ -7,7 +7,7 @@ FROM winsock IMPORT
    PSOCKADDR, PSOCKADDR_STORAGE;
 
 FROM windows IMPORT
-   DWORD, PCSTR, PCWSTR, PWSTR, HANDLE, POVERLAPPED;
+   DWORD, PCSTR, PCWSTR, PWSTR, HANDLE, POVERLAPPED, PULONG;
    
 FROM guiddef IMPORT
    GUID;
@@ -92,6 +92,9 @@ TYPE
 
    HTTP_RAW_CONNECTION_ID = HTTP_OPAQUE_ID;
    PHTTP_RAW_CONNECTION_ID = POINTER TO HTTP_RAW_CONNECTION_ID;
+
+CONST
+   HTTP_NULL_ID = CARD64( 0 );
 
 //
 // This structure defines a file byte range.
@@ -900,7 +903,7 @@ HttpReceiveHttpRequest(
     Flags : CARD32;
     pRequestBuffer : PHTTP_REQUEST;
     RequestBufferLength : CARD32;
-    OUT BytesReceived : CARD32;
+    pBytesReceived : PULONG;
     pOverlapped : POVERLAPPED
     ) : CARD32;
 
@@ -924,7 +927,7 @@ HttpSendHttpResponse(
     Flags : CARD32;
     pHttpResponse : PHTTP_RESPONSE;
     pReserved1 : ADDRESS; // must be NULL
-    pBytesSent : PCARD32;
+    pBytesSent : PULONG;
     pReserved2 : ADDRESS; // must be NULL
     Reserved3 : CARD32; // must be 0
     pOverlapped : POVERLAPPED;
@@ -939,7 +942,7 @@ HttpSendResponseEntityBody(
     Flags : CARD32;
     EntityChunkCount : CARD16;
     pEntityChunks : PHTTP_DATA_CHUNK;
-    pBytesSent : PCARD32;
+    pBytesSent : PULONG;
     pReserved1 : ADDRESS; // must be NULL
     Reserved2 : CARD32; // must be 0
     pOverlapped : POVERLAPPED;
@@ -984,7 +987,7 @@ HttpReadFragmentFromCache(
     pByteRange : PHTTP_BYTE_RANGE;
     pBuffer : ADDRESS;
     BufferLength : CARD32;
-    OUT BytesRead : CARD32;
+    pBytesRead : PULONG;
     pOverlapped : POVERLAPPED
     ) : CARD32;
 
@@ -1020,7 +1023,7 @@ HttpQueryServiceConfiguration(
     InputConfigInformationLength : CARD32;
     pOutputConfigInformation : ADDRESS;
     OutputConfigInformationLength : CARD32;
-    pReturnLength : PCARD32;
+    pReturnLength : PULONG;
     pOverlapped : POVERLAPPED // Reserved, MUST be NULL
     ) : CARD32;
 
