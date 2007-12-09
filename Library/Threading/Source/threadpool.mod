@@ -8,6 +8,7 @@ IMPORT
   arrays,
   lists,
   maps,
+  syncqueue,
   thread;
   
 //================================================================================
@@ -129,7 +130,7 @@ CLASS CPoolThread( thread.Thread );
     Workers : lists.CPtrList; // CTask.Data/PTask
     WaitArray : arrays.CPtrArray;
   LOCAL READONLY VAR
-    MQueue : msgqueue.CMessageQueue;
+    ReqQueue : syncqueue.CDatagramQueue;
     Messager : msghandler.MessageHandler;
   LOCAL VAR
     PendingHandles : CARDINAL;
@@ -363,7 +364,7 @@ CLASS IMPLEMENTATION CPoolThread;
 
   LOCAL READONLY PROPERTY Empty GET : BOOLEAN;
   BEGIN
-    RETURN Handles.Empty AND Messages.Empty AND Workers.Empty AND MQueue.Empty;
+    RETURN Handles.Empty AND Messages.Empty AND Workers.Empty AND ReqQueue.Empty;
   END Empty;
 
 //--------------------------------------------------------------------------------
@@ -400,7 +401,7 @@ CLASS IMPLEMENTATION CPoolThread;
       b : BOOLEAN;
    BEGIN
       WaitArray.Add( _HExit );
-      WaitArray.Add( MQueue.Consume );
+      WaitArray.Add( ReqQueue.Consume );
     
       LOOP
          CheckEmpty := FALSE;
@@ -409,6 +410,7 @@ CLASS IMPLEMENTATION CPoolThread;
          HTasks.CurrentTime := windows.GetTickCount();
          CASE Status OF
          //-----
+         | CARDINAL( windows.WAIT_FAILED ), windows.WAIT_ABANDONED : // some handle failed, this MUST not occur
             Status := windows.GetLastError();
             ASSERT( FALSE );
             EXIT;
@@ -419,7 +421,7 @@ CLASS IMPLEMENTATION CPoolThread;
 
          //-----
          | windows.WAIT_OBJECT_0 + 1 : // administrative message
-            WHILE MQueue.DequeueOA( OUT Message ) DO
+            WHILE ReqQueue.DequeueOA( OUT Message ) DO
                CASE Message.Operation OF
                //---
                | topAdd :
@@ -604,9 +606,8 @@ CLASS IMPLEMENTATION CPoolThread;
   INITIALLY CPoolThread();
   BEGIN
     Pool := NIL;
-    MQueue.Init( 128, SIZE( TMessage ));
-    MQueue.FlushIfFull := TRUE;
-    MQueue.Consume := Sync.CreateSignal( FALSE, L"" );
+    ReqQueue.Init( 128, SIZE( TMessage ));
+    ReqQueue.Consume := Sync.CreateSignal( FALSE, L"" );
     WithMessages := TRUE;
     WaitArray.Strategy := array.astrgListInArray;
     PendingHandles := 0; ASSERT( PTR( ADR( PendingHandles )) AND 03H = 0 );
@@ -639,7 +640,7 @@ CLASS IMPLEMENTATION CPoolThread;
     WHILE HTasks.GetFirstElapsed( OUT Task ) DO
       Completed( Sync.arAborted, Task, NIL, TRUE, TRUE );
     END; // WHILE
-    Sync.DeleteSignal( REF MQueue.Consume );
+    Sync.DeleteSignal( REF ReqQueue.Consume );
   END CPoolThread;
 
 //--------------------------------------------------------------------------------
@@ -735,7 +736,7 @@ CLASS IMPLEMENTATION CThreadPool;
     // return value
     PoolHandle := MSG.Task^.HWait;
 
-    PoolThread^.MQueue.QueueOA( MSG );
+    PoolThread^.ReqQueue.QueueOA( MSG );
     RETURN TRUE;
   END WaitTimeout;
 
@@ -771,7 +772,7 @@ CLASS IMPLEMENTATION CThreadPool;
     Message[1] := MSG.Task^.Data;
     Handler := ADR( PoolThread^.Messager );
 
-    PoolThread^.MQueue.QueueOA( MSG );
+    PoolThread^.ReqQueue.QueueOA( MSG );
     RETURN TRUE;
   END WaitMessage;
 
@@ -806,7 +807,7 @@ CLASS IMPLEMENTATION CThreadPool;
     PoolHandle := MSG.Task^.HWait;
 
     Sync.IInc( REF PoolThread^.PendingHandles );
-    PoolThread^.MQueue.QueueOA( MSG );
+    PoolThread^.ReqQueue.QueueOA( MSG );
     RETURN TRUE;
   END WaitHandle;
 
@@ -838,7 +839,7 @@ CLASS IMPLEMENTATION CThreadPool;
     PoolHandle := MSG.Task^.HWait;
 
     Sync.IInc( REF PoolThread^.PendingWorkers );
-    PoolThread^.MQueue.QueueOA( MSG );
+    PoolThread^.ReqQueue.QueueOA( MSG );
     RETURN TRUE;
   END RunWorker;
 
@@ -859,7 +860,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG.HTask := PoolHandle;
     Threads.Reset();
     WHILE Threads.MoveNext() DO
-      TPPoolThread( Threads.Current )^.MQueue.QueueOA( MSG );
+      TPPoolThread( Threads.Current )^.ReqQueue.QueueOA( MSG );
     END; // WHILE
     PoolHandle := NIL;
   END Abort;
@@ -874,7 +875,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG.Delegate := Delegate;
     Threads.Reset();
     WHILE Threads.MoveNext() DO
-      TPPoolThread( Threads.Current )^.MQueue.QueueOA( MSG );
+      TPPoolThread( Threads.Current )^.ReqQueue.QueueOA( MSG );
     END; // WHILE
   END AbortAll;
 

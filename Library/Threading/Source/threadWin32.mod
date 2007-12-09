@@ -1,7 +1,8 @@
 IMPLEMENTATION MODULE threadWin32;
 
 IMPORT
-  windows;
+  windows,
+  Sync;
 
 TYPE
   TPWin32Thread = POINTER TO Win32Thread;
@@ -35,22 +36,22 @@ CLASS IMPLEMENTATION Win32Thread;
       RETURN;
     END;
     WHILE windows.PostThreadMessage( _Thread, windows.WM_USER, 0, 0 ) = 0 DO
-      windows.Sleep( 0 );
+      Sync.Sleep( 0 );
     END; // WHILE
     _WMsg := 1;
   END Win32Thread.WithMessages;
   
-  PUBLIC FINAL PROCEDURE Win32Thread.Run( Wait : BOOLEAN );
-  BEGIN
-    IF _HThread <> NIL THEN
-      RETURN;
-    END;
-    sync.Reset( _HExit );
-    _HThread := windows.CreateThread( NIL, 81920, Win32_thread, ADR( SELF ), 0, ADR( _Thread ));
-    IF Wait THEN
-      sync.Wait( _HExit, sync.INFINITE_TIME );
-    END;
-  END Win32Thread.Run;
+   PUBLIC FINAL PROCEDURE Win32Thread.Run( Wait : BOOLEAN );
+   BEGIN
+      IF _HThread <> NIL THEN
+         RETURN;
+      END;
+      _RunLock := 0;
+      _HThread := windows.CreateThread( NIL, 81920, Win32_thread, ADR( SELF ), 0, ADR( _Thread ));
+      WHILE Wait AND ( Sync.IGet( REF _RunLock ) = 0 ) DO
+         Sync.Sleep( 0 );
+      END;
+   END Win32Thread.Run;
   
   PUBLIC FINAL PROCEDURE Win32Thread.Stop( Wait : BOOLEAN );
   BEGIN
@@ -81,31 +82,30 @@ CLASS IMPLEMENTATION Win32Thread;
       RETURN 0;
    END OnRun;
 
-  LOCAL PROCEDURE Exec() : CARDINAL;
-  VAR
-    msg : windows.MSG;
-  BEGIN
-    IF _WMsg = -1 THEN
-      windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_NOREMOVE );
-      _WMsg := 1;
-    END;
-    windows.PulseEvent( _HExit );
-    RETURN OnRun();
-  END Exec;
+   LOCAL PROCEDURE Exec() : CARDINAL;
+   VAR
+     msg : windows.MSG;
+   BEGIN
+     IF _WMsg = -1 THEN
+        windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_NOREMOVE );
+        _WMsg := 1;
+     END;
+     Sync.IExchg( REF _RunLock, 1 );
+     RETURN OnRun();
+   END Exec;
 
    VIRTUAL FINALLY Win32Thread();
    BEGIN
       Stop( FALSE );
-      IF _HExit <> NIL THEN
-        windows.CloseHandle( _HExit );
-      END;
+      Sync.DeleteSignal( REF _HExit );
    END Win32Thread;
 
 BEGIN
-  _Thread := 0;
-  _HThread := NIL;
-  _HExit := windows.CreateEvent( NIL, windows.True, windows.False, NIL );
-  _WMsg := 0;
+   _RunLock := 0;
+   _Thread := 0;
+   _HThread := NIL;
+   _HExit := Sync.CreateSignal( FALSE, L"" );
+   _WMsg := 0;
 END Win32Thread;
 
 END threadWin32.

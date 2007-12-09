@@ -2,21 +2,22 @@ MODULE messagedelegate;
 
 IMPORT
   msghandler,
+  Sync,
   threadpool,
   windows;
   
 VAR
   Count : CARDINAL := 0;
   
-CLASS CDelegate( threadpool.CPoolDelegate );
-  LOCAL VIRTUAL PROCEDURE OnMessage( Result : threadpool.TPoolResult; PoolHandle, UserId : PTR; CONST MSG : msghandler.IMessage );
+CLASS CDelegate( threadpool.APoolDelegate );
+  LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
 END CDelegate;
   
 CLASS IMPLEMENTATION CDelegate;
 
-  LOCAL VIRTUAL PROCEDURE OnMessage( Result : threadpool.TPoolResult; PoolHandle, UserId : PTR; CONST MSG : msghandler.IMessage );
+  LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
   BEGIN
-    windows.InterlockedIncrement( ADR( Count ));
+    windows.InterlockedIncrement( REF Count );
   END OnMessage;
   
 END CDelegate;
@@ -32,34 +33,34 @@ VAR
   TP : threadpool.CThreadPool;
 BEGIN
   FOR i := 0 TO 1499 DO
-    TP.WaitMessage( ADR( DLG ), i, windows.INFINITE, OUT MH[i], OUT TM[i], OUT PH[i] );
+    TP.WaitMessage( ADR( DLG ), i, windows.INFINITE, TRUE, OUT MH[i], OUT TM[i], OUT PH[i] );
   END; // FOR
 
   // windows.Sleep( 2000 );
 
   // 1.
-  // TP.FINALLY();  
+  TP.FINALLY();  
 
   // 2.
   // FOR i := 1499 TO 0 BY -1 DO
-  //   windows.PostMessage( MH[i]^.Handle, TM[i].MSG, 0, 0 );
+  //    windows.PostMessage( MH[i]^.Handle, TM[i].Message, 0, 0 );
   // END; // FOR
 
   // 3.
   // FOR i := 1499 TO 0 BY -1 DO
-  //  TP.Abort( PH[i] );
+  //    TP.Abort( REF PH[i] );
   // END; // FOR
 
   // 4.
-  TP.CompletionInOwningThread := TRUE;
-  i := 1500;
-  REPEAT
-    DEC( i );
-    TP.Abort( PH[i] );
-    WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) = windows.True DO
-      windows.DispatchMessage( ADR( msg ));
-    END; // WHILE
-  UNTIL i = 0;
+  // TP.CompletionInOwningThread := TRUE;
+  // i := 1500;
+  // REPEAT
+  //   DEC( i );
+  //   TP.Abort( REF PH[i] );
+  //   WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) = windows.True DO
+  //     windows.DispatchMessage( ADR( msg ));
+  //   END; // WHILE
+  // UNTIL i = 0;
 
   windows.Sleep( 1000 );
 

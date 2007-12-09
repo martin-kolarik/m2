@@ -20,7 +20,7 @@ BEGIN
 
     // 2.
     FOR j := 0 TO 9 DO
-      TP.WaitHandle( NIL, i, windows.INFINITE, EA[i], OUT PH[i*10+j] );
+      TP.WaitHandle( NIL, i, windows.INFINITE, TRUE, EA[i], OUT PH[i*10+j] );
     END;
   END; // FOR
 
@@ -31,20 +31,22 @@ BEGIN
 
   // 2.
   // FOR i := 1499 TO 0 BY -1 DO
-  //   windows.SetEvent( EA[i] );
+  //    windows.SetEvent( EA[i] );
   // END; // FOR
 
   // 3.
   // FOR i := 1499 TO 0 BY -1 DO
-  //   TP.Abort( PH[i] );
+  //    TP.Abort( REF PH[i] );
   // END; // FOR
 
   // 4.
   FOR i := 14999 TO 0 BY -1 DO
-    TP.Abort( PH[i] );
+     TP.Abort( REF PH[i] );
   END; // FOR
 
-  TP.FINALLY();
+  // windows.Sleep( 1000 );
+
+  // TP.FINALLY();
 
   windows.Sleep( 1000 );
 
