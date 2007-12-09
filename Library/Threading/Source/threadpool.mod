@@ -129,8 +129,8 @@ CLASS CPoolThread( thread.Thread );
     Workers : lists.CPtrList; // CTask.Data/PTask
     WaitArray : arrays.CPtrArray;
   LOCAL READONLY VAR
-    Messager : msghandler.MessageHandler;
     MQueue : msgqueue.CMessageQueue;
+    Messager : msghandler.MessageHandler;
   LOCAL VAR
     PendingHandles : CARDINAL;
     PendingWorkers : CARDINAL;
@@ -370,144 +370,147 @@ CLASS IMPLEMENTATION CPoolThread;
 
   LOCAL READONLY PROPERTY AbleWait GET : BOOLEAN;
   BEGIN
-    RETURN ( Workers.Count + PendingWorkers = 0 ) AND ( Handles.Count + PendingHandles < windows.MAXIMUM_WAIT_OBJECTS-2 );
+    RETURN ( Workers.Count + CARDINAL( Sync.IGet( REF PendingWorkers )) = 0 ) AND
+           ( Handles.Count + CARDINAL( Sync.IGet( REF PendingHandles )) < windows.MAXIMUM_WAIT_OBJECTS-3 ); //-1-exit-queue
   END AbleWait;
 
 //--------------------------------------------------------------------------------
 
   LOCAL READONLY PROPERTY AbleRunWorkers GET : BOOLEAN;
   BEGIN
-    RETURN ( Handles.Count + PendingHandles = 0 ) AND Messages.Empty AND ( Workers.Count + PendingWorkers < Pool^.WorkerLoad );
+    RETURN ( Handles.Count + CARDINAL( Sync.IGet( REF PendingHandles )) = 0 ) AND
+           Messages.Empty AND
+           ( Workers.Count + CARDINAL( Sync.IGet( REF PendingWorkers )) < Pool^.WorkerLoad );
   END AbleRunWorkers;
 
 //--------------------------------------------------------------------------------
 
-  INTERNAL VIRTUAL PROCEDURE OnRun() : CARDINAL;
-  VAR
-    CheckEmpty : BOOLEAN;
-    D : PTR;
-    HandleList : lists.TPPtrList;
-    Message : TMessage;
-    msg : windows.MSG;
-    MSG : msghandler.Message;
-    Status : CARDINAL;
-    Task, NextTask : TPTask;
-    Timeout : CARDINAL;
-    Worker : TPPoolWorker;
-    b : BOOLEAN;
-  BEGIN
-    Messager.Init();
-    WaitArray.Add( _HExit );
+   INTERNAL VIRTUAL PROCEDURE OnRun() : CARDINAL;
+   VAR
+      CheckEmpty : BOOLEAN;
+      D : PTR;
+      HandleList : lists.TPPtrList;
+      Message : TMessage;
+      msg : windows.MSG;
+      MSG : msghandler.Message;
+      Status : CARDINAL;
+      Task, NextTask : TPTask;
+      Timeout : CARDINAL;
+      Worker : TPPoolWorker;
+      b : BOOLEAN;
+   BEGIN
+      WaitArray.Add( _HExit );
+      WaitArray.Add( MQueue.Consume );
     
-    LOOP
-      CheckEmpty := FALSE;
-      IF Workers.Empty THEN
-        Timeout := HTasks.GetTimeoutToFirstElapsed( windows.GetTickCount());
-      ELSE
-        Timeout := 0;
-      END;
-      Status := windows.MsgWaitForMultipleObjectsEx( WaitArray.Count, WaitArray.Data, Timeout, windows.QS_ALLINPUT, windows.MWMO_INPUTAVAILABLE );
-      HTasks.CurrentTime := windows.GetTickCount();
-      CASE Status OF
-      | CARDINAL( windows.WAIT_FAILED ), windows.WAIT_ABANDONED : // some handle failed, this MUST not occur
-        Status := windows.GetLastError();
-        ASSERT( FALSE );
-        EXIT;
-      | windows.WAIT_OBJECT_0 : // graceful EXIT
-        EXIT;
-      | windows.WAIT_TIMEOUT : // remove all timeouted tasks
-        WHILE HTasks.GetFirstElapsed( OUT Task ) DO
-          CASE Task^.Task OF
-          | tskTimeoutOnce :
-            Completed( Sync.arCompleted, Task, NIL, TRUE, TRUE );
-            CheckEmpty := TRUE;
-          | tskTimeoutRepeated :
-            Completed( Sync.arCompleted, Task, NIL, TRUE, FALSE );
-            AddTask( Task );
-          ELSE
-            RemoveTask( Sync.arTimeout, Task );
-            CheckEmpty := TRUE;
-          END;
-        END;
-      ELSE
-        DEC( Status, windows.WAIT_OBJECT_0 );
-      END;
+      LOOP
+         CheckEmpty := FALSE;
+         Timeout := HTasks.GetTimeoutToFirstElapsed( windows.GetTickCount());
+         Status := windows.MsgWaitForMultipleObjectsEx( WaitArray.Count, WaitArray.Data, Timeout, windows.QS_ALLINPUT, windows.MWMO_INPUTAVAILABLE OR windows.MWMO_ALERTABLE );
+         HTasks.CurrentTime := windows.GetTickCount();
+         CASE Status OF
+         //-----
+            Status := windows.GetLastError();
+            ASSERT( FALSE );
+            EXIT;
 
-      IF Status = WaitArray.Count THEN // a message has arrived
-        WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) <> 0 DO
-          IF msg.message = msgqueue.WM_MQ_PROCESS THEN // administrative message
-          
+         //-----
+         | windows.WAIT_OBJECT_0 : // graceful EXIT
+            EXIT;
+
+         //-----
+         | windows.WAIT_OBJECT_0 + 1 : // administrative message
             WHILE MQueue.DequeueOA( OUT Message ) DO
-              CASE Message.Operation OF
-              //---
-              | topAdd :
-                AddTask( Message.Task );
-              //---
-              | topRemoveTask :
-                IF HTasks.Get( Message.HTask, OUT Task ) THEN
-                  RemoveTask( Sync.arAborted, Task );
-                  CheckEmpty := TRUE;
-                END;
-              //---
-              | topRemoveDelegate : // NOT IMPLEMENTED YET
-                ASSERT( FALSE );
-              //---
-              ELSE
-                ASSERT( FALSE );
-              END; // CASE
+               CASE Message.Operation OF
+               //---
+               | topAdd :
+                  AddTask( Message.Task );
+               //---
+               | topRemoveTask :
+                  IF HTasks.Get( Message.HTask, OUT Task ) THEN
+                     RemoveTask( Sync.arAborted, Task );
+                     CheckEmpty := TRUE;
+                  END;
+               //---
+               | topRemoveDelegate : // NOT IMPLEMENTED YET
+                  ASSERT( FALSE );
+               //---
+               ELSE
+                  ASSERT( FALSE );
+               END; // CASE
             END; // WHILE
-          
-          ELSIF Messages.Get( msg.message, OUT Task ) THEN // known waited message
-            MSG[1] := msg.message; MSG[2] := msg.wParam; MSG[3] := PTR( msg.lParam );
-            Completed( Sync.arCompleted, Task, ADR( MSG ), Task^.Task = tskMessageOnce, FALSE );
-            IF Task^.Task = tskMessageOnce THEN
-              Messages.Remove( Task^.Data );
-              DISPOSE( Task );
+
+         //-----
+         | windows.WAIT_TIMEOUT : // remove all timeouted tasks
+            WHILE HTasks.GetFirstElapsed( OUT Task ) DO
+               CASE Task^.Task OF
+               | tskTimeoutOnce :
+                  Completed( Sync.arCompleted, Task, NIL, TRUE, TRUE );
+                  CheckEmpty := TRUE;
+               | tskTimeoutRepeated :
+                  Completed( Sync.arCompleted, Task, NIL, TRUE, FALSE );
+                  AddTask( Task );
+               ELSE
+                  RemoveTask( Sync.arTimeout, Task );
+                  CheckEmpty := TRUE;
+               END;
+            END; // WHILE
+
+         ELSE
+            DEC( Status, windows.WAIT_OBJECT_0 );
+         END;
+
+         IF Status = WaitArray.Count THEN // a message has arrived
+            WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) <> 0 DO
+               IF Messages.Get( msg.message, OUT Task ) THEN // known waited message
+                  MSG[1] := msg.message; MSG[2] := msg.wParam; MSG[3] := PTR( msg.lParam );
+                  Completed( Sync.arCompleted, Task, ADR( MSG ), Task^.Task = tskMessageOnce, FALSE );
+                  IF Task^.Task = tskMessageOnce THEN
+                     Messages.Remove( Task^.Data );
+                     DISPOSE( Task );
+                  END;
+                  CheckEmpty := TRUE;
+               END;
+            END; // end of messages
+
+         ELSIF ( Status < WaitArray.Count ) AND ( Handles.Get( WaitArray[Status], OUT HandleList )) THEN // handle is signalized
+            b := HandleList^.GetFirst( OUT Task, OUT D );
+            WHILE b DO
+               b := HandleList^.NextOf( Task, OUT NextTask, OUT D );
+               Completed( Sync.arCompleted, Task, NIL, Task^.Task = tskHandleOnce, FALSE );
+               IF Task^.Task = tskHandleOnce THEN
+                  HandleList^.Remove( Task );
+                  DISPOSE( Task );
+               END; // IF tskHandleOnce
+               Task := NextTask;
+            END; // WHILE
+            IF HandleList^.Empty THEN
+               DISPOSE( HandleList );
+               Handles.Remove( WaitArray[Status] );
+               WaitArray.RemoveIndex( Status );
+               CheckEmpty := TRUE;
             END;
-            CheckEmpty := TRUE;
 
-          END;
-        END; // end of messages
-
-      ELSIF ( Status < WaitArray.Count ) AND ( Handles.Get( WaitArray[Status], OUT HandleList )) THEN // handle is signalized
-        b := HandleList^.GetFirst( OUT Task, OUT D );
-        WHILE b DO
-          b := HandleList^.NextOf( Task, OUT NextTask, OUT D );
-          Completed( Sync.arCompleted, Task, NIL, Task^.Task = tskHandleOnce, FALSE );
-          IF Task^.Task = tskHandleOnce THEN
-            HandleList^.Remove( Task );
-            DISPOSE( Task );
-          END; // IF tskHandleOnce
-          Task := NextTask;
-        END; // WHILE
-        IF HandleList^.Empty THEN
-          DISPOSE( HandleList );
-          Handles.Remove( WaitArray[Status] );
-          WaitArray.RemoveIndex( Status );
-          CheckEmpty := TRUE;
-        END;
-
-      END; // IF WaitResult
+         END; // IF WaitResult
       
-      // Run Workers
-      IF Workers.GetFirst( OUT Worker, OUT Task ) THEN
-        Workers.Remove( Worker );
-        Worker^.Run();
-        Completed( Sync.arCompleted, Task, NIL, TRUE, TRUE );
-        Worker^.Release();
-        IF Workers.Empty THEN // continue with self, but after checking or processing messages and exit event
-          CheckEmpty := TRUE;
-        END;
-      END;
+         // Run Workers
+         IF Workers.GetFirst( OUT Worker, OUT Task ) THEN
+            Workers.Remove( Worker );
+            Worker^.Run();
+            Completed( Sync.arCompleted, Task, NIL, TRUE, TRUE );
+            Worker^.Release();
+            IF Workers.Empty THEN // continue with self, but after checking or processing messages and exit event
+               CheckEmpty := TRUE;
+            END;
+         END;
       
-      IF CheckEmpty AND Empty THEN
-        Pool^.OnThreadEmpty();
-      END;
-    END; // LOOP
-    
-    Messager.Dispose();
-    RETURN 0;
-  END OnRun;
+         IF CheckEmpty AND Empty THEN
+            Pool^.OnThreadEmpty();
+         END;
+      END; // LOOP
+
+      Messager.Dispose();
+      RETURN 0;
+   END OnRun;
 
 //--------------------------------------------------------------------------------
 
@@ -520,6 +523,9 @@ CLASS IMPLEMENTATION CPoolThread;
     | tskTimeoutOnce, tskTimeoutRepeated :
       // do nothing
     | tskMessageOnce, tskMessageRepeated :
+      IF Messager.Handle = NIL THEN
+         Messager.Init();
+      END;
       Messages.Add( Task^.Data, Task );
     | tskHandleOnce, tskHandleRepeated :
       IF NOT Handles.Get( Task^.Data, OUT HandleList ) THEN
@@ -600,7 +606,7 @@ CLASS IMPLEMENTATION CPoolThread;
     Pool := NIL;
     MQueue.Init( 128, SIZE( TMessage ));
     MQueue.FlushIfFull := TRUE;
-    MQueue.Consumer := ADR( Messager );
+    MQueue.Consume := Sync.CreateSignal( FALSE, L"" );
     WithMessages := TRUE;
     WaitArray.Strategy := array.astrgListInArray;
     PendingHandles := 0; ASSERT( PTR( ADR( PendingHandles )) AND 03H = 0 );
@@ -633,6 +639,7 @@ CLASS IMPLEMENTATION CPoolThread;
     WHILE HTasks.GetFirstElapsed( OUT Task ) DO
       Completed( Sync.arAborted, Task, NIL, TRUE, TRUE );
     END; // WHILE
+    Sync.DeleteSignal( REF MQueue.Consume );
   END CPoolThread;
 
 //--------------------------------------------------------------------------------
@@ -706,7 +713,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG : TMessage;
     PoolThread : TPPoolThread;
   BEGIN
-    IF NOT LookupThread( FALSE, OUT PoolThread ) THEN
+    IF NOT LookupThread( FALSE, FALSE, OUT PoolThread ) THEN
       RETURN FALSE;
     END;
 
@@ -739,7 +746,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG : TMessage;
     PoolThread : TPPoolThread;
   BEGIN
-    IF NOT LookupThread( FALSE, OUT PoolThread ) THEN
+    IF NOT LookupThread( FALSE, FALSE, OUT PoolThread ) THEN
       RETURN FALSE;
     END;
 
@@ -775,7 +782,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG : TMessage;
     PoolThread : TPPoolThread;
   BEGIN
-    IF NOT LookupThread( FALSE, OUT PoolThread ) THEN
+    IF NOT LookupThread( FALSE, FALSE, OUT PoolThread ) THEN
       RETURN FALSE;
     END;
 
@@ -805,12 +812,12 @@ CLASS IMPLEMENTATION CThreadPool;
 
 //--------------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE RunWorker( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; Worker : TPPoolWorker; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
+  PUBLIC PROCEDURE RunWorker( CONST Delegate : TPPoolDelegate; UserId : PTR; ForceSelfThread : BOOLEAN; Worker : TPPoolWorker; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
   VAR
     MSG : TMessage;
     PoolThread : TPPoolThread;
   BEGIN
-    IF NOT LookupThread( TRUE, OUT PoolThread ) THEN
+    IF NOT LookupThread( TRUE, ForceSelfThread, OUT PoolThread ) THEN
       RETURN FALSE;
     END;
 
@@ -824,7 +831,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG.Task^.Task := tskWorker;
     MSG.Task^.UserId := UserId;
     MSG.Task^.Delegate := Delegate;
-    MSG.Task^.Timeout := TimeoutMS;
+    MSG.Task^.Timeout := 0;
     MSG.Task^.Data := Worker;
 
     // return value
@@ -915,18 +922,21 @@ CLASS IMPLEMENTATION CThreadPool;
 
 //--------------------------------------------------------------------------------
 
-  PRIVATE PROCEDURE LookupThread( WorkerFlag : BOOLEAN; OUT _PoolThread : PTR ) : BOOLEAN;
+  PRIVATE PROCEDURE LookupThread( WorkerFlag : BOOLEAN; ForceSelfThread : BOOLEAN; OUT _PoolThread : PTR ) : BOOLEAN;
   VAR
     PoolThread : TPPoolThread;
   BEGIN
-    Threads.Reset();
-    WHILE Threads.MoveNext() DO
-      IF     WorkerFlag AND TPPoolThread( Threads.Current )^.AbleRunWorkers OR
-         NOT WorkerFlag AND TPPoolThread( Threads.Current )^.AbleWait THEN
-        _PoolThread := TPPoolThread( Threads.Current );
-        RETURN TRUE;
-      END; // IF
-    END; // WHILE
+    IF NOT ForceSelfThread THEN
+       // lookup
+       Threads.Reset();
+       WHILE Threads.MoveNext() DO
+         IF     WorkerFlag AND TPPoolThread( Threads.Current )^.AbleRunWorkers OR
+            NOT WorkerFlag AND TPPoolThread( Threads.Current )^.AbleWait THEN
+           _PoolThread := TPPoolThread( Threads.Current );
+           RETURN TRUE;
+         END; // IF
+       END; // WHILE
+    END;
     IF Threads.Count >= MaxThreads THEN
       _PoolThread := NIL;
       RETURN FALSE;
@@ -936,10 +946,7 @@ CLASS IMPLEMENTATION CThreadPool;
     PoolThread^.Init( ADR( SELF ));
     Threads.Add( PoolThread, 0 );
 
-    PoolThread^.Run( FALSE ); // not wait here, we wait before SendMsg
-    WHILE PoolThread^.Messager.Handle = NIL DO // thread has not start yet
-      windows.Sleep( 0 );
-    END; // IF
+    PoolThread^.Run( TRUE );
 
     _PoolThread := PoolThread;
     RETURN TRUE;
