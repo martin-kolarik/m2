@@ -1,0 +1,105 @@
+DEFINITION MODULE HttpSrv;
+
+//================================================================================
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   httpapi,
+   IOO,
+   maps,
+   StringsO,
+   Sync;
+
+//================================================================================
+
+TYPE
+   TPContainer = POINTER TO CContainer; // model container
+   TPController = POINTER TO IController;
+   TPHttpServer = POINTER TO IHttpServer;
+   TPView = POINTER TO IView;
+   
+   TPHttpRequest = ADDRESS; // TODO
+   
+//================================================================================
+
+CLASS CContainer;
+   PRIVATE VAR
+      Models : maps.CStringMap;
+
+   PUBLIC PROCEDURE Clear();
+
+   PUBLIC PROCEDURE AddModel( CONST Name : ARRAY OF WCHAR; REF Model : maps.CStringMap );
+   PUBLIC PROCEDURE RemoveModel( CONST Name : ARRAY OF WCHAR );
+
+   PUBLIC PROCEDURE GetModelOA( CONST Name : ARRAY OF WCHAR; OUT PModel : maps.TPStringMap ) : BOOLEAN;
+   PUBLIC PROCEDURE GetModel( CONST Name : StringsO.CString; OUT PModel : maps.TPStringMap ) : BOOLEAN;
+END CContainer;
+   
+//--------------------------------------------------------------------------------
+
+INTERFACE IView;
+   PROPERTY
+      Server : TPHttpServer;
+      Container : TPContainer;
+
+   PROCEDURE Format() : BOOLEAN;
+
+   LOCAL PROCEDURE Respond( CONST Request : TPHttpRequest );
+END IView;
+
+//--------------------------------------------------------------------------------
+
+INTERFACE IController;
+   PROPERTY
+      Server : TPHttpServer;
+
+   PROCEDURE AppliesFor( CONST URL : ARRAY OF WCHAR ) : BOOLEAN;
+   PROCEDURE ProcessRequest( CONST Request : TPHttpRequest; CONST Container : TPContainer; OUT View : TPView ) : BOOLEAN;
+   
+   LOCAL PROCEDURE DoProcessRequest() : BOOLEAN;
+END IController;
+
+//--------------------------------------------------------------------------------
+
+TYPE
+   TMode = (
+      mdHttp,
+      mdHttps,
+      mdBoth
+   );
+
+INTERFACE IHttpServer;
+   READONLY PROPERTY
+      Running : BOOLEAN;
+   PROPERTY
+      Mode : TMode; // default is smHttp
+      Port : CARDINAL; // default is 8080
+      SslPort : CARDINAL; // default is 8443
+      RootName : StringsO.CString;
+
+   PROCEDURE Start() : Sync.TAsyncResult;
+   PROCEDURE Stop();
+   
+   PROCEDURE RegisterController( Controller : TPController );
+   PROCEDURE ForgetController( Controller : TPController );
+END IHttpServer;
+
+//================================================================================
+
+PROCEDURE srv() : TPHttpServer;
+PROCEDURE Cleanup();
+
+//--------------------------------------------------------------------------------
+
+PROCEDURE fileView( CONST Path : ARRAY OF WCHAR ) : TPView;
+PROCEDURE redirectView( CONST URL : ARRAY OF WCHAR ) : TPView;
+PROCEDURE modelView( CONST viewName : ARRAY OF WCHAR; REF model : maps.CStringMap ) : TPView;
+PROCEDURE modelViewStream( CONST viewName : ARRAY OF WCHAR; viewSource : IOO.TPStream; REF model : maps.CStringMap ) : TPView;
+PROCEDURE modelViewContainer( CONST viewName : ARRAY OF WCHAR; REF model : ARRAY OF maps.CStringMap ) : TPView;
+PROCEDURE modelViewContainerStream( CONST viewName : ARRAY OF WCHAR; viewSource : IOO.TPStream; REF model : ARRAY OF maps.CStringMap ) : TPView;
+
+//================================================================================
+
+END HttpSrv.
