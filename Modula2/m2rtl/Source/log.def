@@ -32,19 +32,13 @@ TYPE
     dl4 // exhaustive OR very low severity
   );
 
-CONST // for protocols
-  dlpIO       ::= dl1;
-  dlpProtocol ::= dl2;
-  dlpCtrl     ::= dl3;
-  dlpAll      ::= dl4;
-  
 CONST // for common purposes
   dlcSysError ::= dl1;
   dlcError    ::= dl2;
   dlcWarning  ::= dl3;
   dlcInfo     ::= dl4;
 
-CONST // for runtime
+CONST // for developing
   dldError    ::= dl1;
   dldInfo     ::= dl2;
   dldTrace    ::= dl3;

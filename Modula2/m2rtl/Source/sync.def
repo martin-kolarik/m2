@@ -83,6 +83,7 @@ END LOCK;
 
 // signalling
 PROCEDURE CreateSignal( InitiallySignalled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : SIGNAL;
+PROCEDURE CreateAutoresetSignal( InitiallySignalled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : SIGNAL;
 PROCEDURE Signal( S : SIGNAL );
 PROCEDURE SignalAndReset( S : SIGNAL );
 PROCEDURE Reset( S : SIGNAL );
@@ -107,6 +108,7 @@ PROCEDURE IGetPtr( REF Value : ADDRESS ) : ADDRESS;
 
 TYPE
   TpcqSignal = (
+    pcqStartingProduction,
     pcqProduced,
     pcqStartingConsumation,
     pcqConsumed

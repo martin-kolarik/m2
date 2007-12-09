@@ -462,6 +462,15 @@ BEGIN
   END;
 END CreateSignal;
 
+PROCEDURE CreateAutoresetSignal( InitiallySignalled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : SIGNAL;
+BEGIN
+  IF Name[0] = 0W THEN
+    RETURN windows.CreateEventW( NIL, windows.False, windows.BOOL( InitiallySignalled ), NIL );
+  ELSE
+    RETURN windows.CreateEventW( NIL, windows.False, windows.BOOL( InitiallySignalled ), ADR( Name ));
+  END;
+END CreateAutoresetSignal;
+
 PROCEDURE Signal( S : SIGNAL );
 BEGIN
   IF S = NIL THEN
@@ -577,6 +586,7 @@ CLASS IMPLEMENTATION OneToOneQueue;
   VAR
     LHead, Space : CARDINAL;
   BEGIN
+    Signal( pcqStartingProduction );
     LOOP
       // Space = H + L - T
       LHead := IExchgAdd( REF _Head, 0 );
@@ -726,6 +736,7 @@ CLASS IMPLEMENTATION NToOneQueue;
   VAR
     LHead, LTail : CARDINAL;
   BEGIN
+    Signal( pcqStartingProduction );
     LOOP // Space = H + L - T;
       LTail := IExchgAdd( REF _Tail, 1 ); // allocate speculatively
       LHead := IExchgAdd( REF _Head, 0 );
