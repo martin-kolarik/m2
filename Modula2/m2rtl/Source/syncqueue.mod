@@ -228,10 +228,11 @@ CLASS IMPLEMENTATION RingBuffer;
          RETURN Sync.arAborted;
       ELSE
          Signal( Sync.pcqProduced );
-         Sync.Sleep( 0 );
-      END;
-      IF Produce <> NIL THEN
-         Sync.Wait( Produce, Sync.INFINITE_TIME );
+         IF Produce = NIL THEN
+            Sync.Sleep( 0 );
+         ELSE
+            Sync.Wait( Produce, Sync.INFINITE_TIME );
+         END;
       END;
       RETURN Sync.arCompleted;
    END Flush;
@@ -647,10 +648,11 @@ CLASS IMPLEMENTATION CDatagramQueue;
          RETURN Sync.arAborted;
       ELSE
          Signal( Sync.pcqProduced );
-         Sync.Sleep( 0 );
-      END;
-      IF Produce <> NIL THEN
-         Sync.Wait( Produce, Sync.INFINITE_TIME );
+         IF Produce = NIL THEN
+            Sync.Sleep( 0 );
+         ELSE
+            Sync.Wait( Produce, Sync.INFINITE_TIME );
+         END;
       END;
       RETURN Sync.arCompleted;
    END Flush;

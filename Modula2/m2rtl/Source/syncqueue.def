@@ -11,6 +11,8 @@ TYPE
    TPRingBuffer = POINTER TO RingBuffer;
 
 CLASS RingBuffer( Sync.OneToOneQueue ); // SIGNALLING and FLUSHING, if needed, should be done using VIRTUAL PROCEDURE Flush/Signal.
+   // the problem is fully symmetric, but implementation prefers reader (because write side implements flush/wait semantics). Better
+   // results, in this case, will be achieved using Produce signal without Consume one.
    INTERNAL VAR
       Data        : ADDRESS;
       DataDoubled : BOOLEAN;
@@ -68,6 +70,9 @@ END QuadwordQueue;
 (*================================================================================*)
 
 CLASS CDatagramQueue( Sync.NToOneQueue );
+  // class dedicated for N to 1 receiving, usually consumer has more to do. It is better to leave CONSUMER to control
+  // flow (using Produce signal without defining Consume signal (delayed flush is automatic)) even if the problem
+  // is symmetric and control by Consume or Consume/Produce will work (less efficiently) too
   INTERNAL VAR
      Data      : ADDRESS;
      ItemISize : CARDINAL; // internal length, including length friend
