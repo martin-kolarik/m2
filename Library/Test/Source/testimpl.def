@@ -1,0 +1,14 @@
+DEFINITION MODULE testimpl;
+
+IMPORT
+   test;
+
+(*================================================================================*)
+// internal implementation, it is used by build system to compile the file in place
+// and to form using it interface to Test utility
+
+PROCEDURE tests() : test.TPTests;
+   
+(*================================================================================*)
+   
+END testimpl.
