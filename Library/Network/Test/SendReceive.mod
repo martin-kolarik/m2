@@ -8,6 +8,7 @@ FROM Storage IMPORT
   
 IMPORT
   IOO,
+  netinit,
   netsocket,
   netsrv,
   Strings,
@@ -155,26 +156,13 @@ END Test;
 
 (*========================================================================*)
 
-PROCEDURE StartupSockets() : CARDINAL;
-CONST
-  majorVer = 2;
-  minorVer = 2;
-VAR
-  RQVersion : CARD16;
-  WSAData   : winsock.WSADATA;
-BEGIN
-  winsock.WSASetLastError( 0 );
-  RQVersion := minorVer << 8 + majorVer; // low byte is major, high byte is minor ver number
-  RETURN CARDINAL( winsock.WSAStartup( RQVersion, ADR( WSAData )));
-END StartupSockets;
-
 #save, call( convention => cdecl )
 PROCEDURE wmain() : INTEGER;
 #restore
 VAR
   msg : windows.MSG;
 BEGIN
-  StartupSockets();
+  netinit.Startup();
   Test();
   WHILE windows.GetMessage( ADR( msg ), NIL, 0, 0 ) = windows.True DO
     windows.DispatchMessage( ADR( msg ));

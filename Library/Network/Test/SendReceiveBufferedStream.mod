@@ -11,6 +11,7 @@ IMPORT
   netsocket,
   netsrv,
   netstream,
+  netinit,
   Strings,
   Sync,
   Time,
@@ -42,8 +43,8 @@ BEGIN
   END; // WHILE
 END Wait;
   
-CLASS C_LN( netsrv.AStreamCreator );
-  LOCAL VIRTUAL PROCEDURE OnListen( ServerSocket : netsocket.TPSSocket );
+CLASS C_LN( netsrv.AListener );
+  LOCAL VIRTUAL PROCEDURE OnListen( CONST ServerSocket : netsocket.TPSSocket ); // stStream
 END C_LN;
 
 VAR  
@@ -89,14 +90,14 @@ END WRT;
   
 CLASS IMPLEMENTATION C_LN;
 
-  LOCAL VIRTUAL PROCEDURE OnListen( ServerSocket : netsocket.TPSSocket );
+  LOCAL VIRTUAL PROCEDURE OnListen( CONST ServerSocket : netsocket.TPSSocket ); // stStream
   VAR
     DS : netsocket.TPDSocket;
     Error : CARDINAL;
   BEGIN
     NEW( DS )^.Accept( ServerSocket, OUT Error );
     nRSX.FromSocket( DS, FALSE, IOO.accRead );
-    nRSX.Read( ADR( RD ), windows.INFINITE, FALSE );
+    // nRSX.Read( ADR( RD ), windows.INFINITE, FALSE );
   END OnListen;
 
 END C_LN;
@@ -121,7 +122,7 @@ BEGIN
   RD.Persistent := TRUE;
 
   netsrv.SetCallbackMode( netsrv.cbmPooled );
-  netsrv.StartListen( 4444, netsocket.stStream, ADR( LN ), 0, NIL );
+  netsrv.StartListen( netsocket.stStream, 4444, NIL, ADR( LN ), 0, NIL );
   Wait();
   nWRX.FromServer( L"127.0.0.1", 4444 );
   Wait();
@@ -148,6 +149,7 @@ BEGIN
     // IF NOT RSX.Reading THEN
     //   RSX.Read( ADR( RD ), windows.INFINITE, FALSE );
     // END;
+    Wait();
     IF NOT RSX.Reading THEN
       WHILE RSX.Read( ADR( RD ), windows.INFINITE, FALSE ) = Sync.arCompleted DO END;
     END;
@@ -157,26 +159,13 @@ END Test;
 
 (*========================================================================*)
 
-PROCEDURE StartupSockets() : CARDINAL;
-CONST
-  majorVer = 2;
-  minorVer = 2;
-VAR
-  RQVersion : CARD16;
-  WSAData   : winsock.WSADATA;
-BEGIN
-  winsock.WSASetLastError( 0 );
-  RQVersion := minorVer << 8 + majorVer; // low byte is major, high byte is minor ver number
-  RETURN CARDINAL( winsock.WSAStartup( RQVersion, ADR( WSAData )));
-END StartupSockets;
-
 #save, call( convention => cdecl )
 PROCEDURE wmain() : INTEGER;
 #restore
 VAR
   msg : windows.MSG;
 BEGIN
-  StartupSockets();
+  netinit.Startup();
   Test();
   WHILE windows.GetMessage( ADR( msg ), NIL, 0, 0 ) = windows.True DO
     windows.DispatchMessage( ADR( msg ));

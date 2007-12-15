@@ -1052,7 +1052,6 @@ CLASS IMPLEMENTATION CDispatcher;
 
 BEGIN
   MQueue.Init( 256, SIZE( TMessage ));
-  MQueue.FlushIfFull := TRUE;
   MQueue.Consumer := ADR( SELF );
   NEW( TPListener( PListener )); TPListener( PListener )^.PDispatcher := ADR( SELF );
   NEW( TPNotifier( PNotifier )); TPNotifier( PNotifier )^.PDispatcher := ADR( SELF );
