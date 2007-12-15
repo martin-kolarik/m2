@@ -20,8 +20,99 @@ TYPE
    TPHttpServer = POINTER TO IHttpServer;
    TPView = POINTER TO IView;
    
-   TPHttpRequest = ADDRESS; // TODO
+//================================================================================
+
+TYPE
+   TPHttpHeaders = POINTER TO CHttpHeaders;
+   TPHttpRequest = POINTER TO CHttpRequest;
    
+//--------------------------------------------------------------------------------
+
+TYPE
+   TKnownHeader = (
+      // Common Headers
+      CacheControl,
+      Connection,
+      Date,
+      KeepAlive,
+      Pragma,
+      Trailer,
+      TransferEncoding,
+      Upgrade,
+      Via,
+      Warning,
+
+      Allow,
+      ContentLength,
+      ContentType,
+      ContentEncoding,
+      ContentLanguage,
+      ContentLocation,
+      ContentMd5,
+      ContentRange,
+      Expires,
+      LastModified,
+      
+      // Request Headers
+      Accept,
+      AcceptCharset,
+      AcceptEncoding,
+      AcceptLanguage,
+      Authorization,
+      Cookie,
+      Expect,
+      From,
+      Host,
+      IfMatch,
+
+      IfModifiedSince,
+      IfNoneMatch,
+      IfRange,
+      IfUnmodifiedSince,
+      MaxForwards,
+      ProxyAuthorization,
+      Referer,
+      Range,
+      Te,
+      Translate,
+
+      UserAgent,
+
+      // Response Headers
+      AcceptRanges,
+      Age,
+      Etag,
+      Location,
+      ProxyAuthenticate,
+      RetryAfter,
+      Server,
+      SetCookie,
+      Vary,
+      WwwAuthenticate
+   );
+
+//--------------------------------------------------------------------------------
+
+INTERFACE IHttpHeaders;
+   PROCEDURE Contains( Header : TKnownHeader ) : BOOLEAN;
+   PROCEDURE Get( Header : TKnownHeader; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
+   PROCEDURE Add( Header : TKnownHeader; CONST Value : ARRAY OF WCHAR );
+   
+   PROCEDURE Enumerate( Known, Uknown : BOOLEAN; REF ES : PTR; OUT Name, Value : ARRAY OF WCHAR ) : BOOLEAN;
+
+   PROCEDURE ContainsUnknown( CONST Name : ARRAY OF WCHAR ) : BOOLEAN;
+   PROCEDURE GetUnknown( CONST Name : ARRAY OF WCHAR; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
+   PROCEDURE AddUnknown( CONST Name : ARRAY OF WCHAR; CONST Value : ARRAY OF WCHAR ) : BOOLEAN;
+END IHttpHeaders;
+
+//--------------------------------------------------------------------------------
+
+INTERFACE CHttpRequest;
+   READONLY PROPERTY
+      Headers : TPHttpHeaders;
+      Container : TPContainer; // there is model named ""
+END CHttpRequest;
+
 //================================================================================
 
 CLASS CContainer;

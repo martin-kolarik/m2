@@ -16,6 +16,119 @@ IMPORT
 
 //================================================================================
 
+CLASS CHeaders IMPLEMENTS IHttpHeaders;
+
+   // IHttpHeaders
+   PUBLIC VIRTUAL PROCEDURE Contains( Header : TKnownHeader ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Get( Header : TKnownHeader; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Add( Header : TKnownHeader; CONST Value : ARRAY OF WCHAR );
+   
+   PUBLIC VIRTUAL PROCEDURE Enumerate( Known, Uknown : BOOLEAN; REF ES : PTR; OUT Name, Value : ARRAY OF WCHAR ) : BOOLEAN;
+
+   PUBLIC VIRTUAL PROCEDURE ContainsUnknown( CONST Name : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetUnknown( CONST Name : ARRAY OF WCHAR; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE AddUnknown( CONST Name : ARRAY OF WCHAR; CONST Value : ARRAY OF WCHAR ) : BOOLEAN;
+
+   // CHeaders
+   PRIVATE VAR
+      Map : maps.CStringMap;
+      
+   LOCAL PROCEDURE FromRequest( Request : httpapi.TPHttpRequest );
+   
+   PRIVATE PROCEDURE FromSysApi( sysapiHeader : httpapi.HTTP_HEADER_ID; OUT header : THttpHeader ) : BOOLEAN;
+   PRIVATE PROCEDURE ToSysApi( header : THttpHeader; OUT sysapiHeader : httpapi.HTTP_HEADER_ID ) : BOOLEAN;
+END CHeaders;
+
+//--------------------------------------------------------------------------------
+
+CLASS CHeaders IMPLEMENTS IHttpHeaders;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE Contains( Header : TKnownHeader ) : BOOLEAN;
+   BEGIN
+      IF NOT ToSysApi( Header, OUT sysapiHeader ) THEN
+         RETURN FALSE;
+      END;
+      RETURN TRUE;
+   END Contains;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE Get( Header : TKnownHeader; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
+   BEGIN
+   END Get;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE Add( Header : TKnownHeader; CONST Value : ARRAY OF WCHAR );
+   BEGIN
+   END Add;
+   
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE Enumerate( Known, Uknown : BOOLEAN; REF ES : PTR; OUT Name, Value : ARRAY OF WCHAR ) : BOOLEAN;
+   BEGIN
+   END Enumerate;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE ContainsUnknown( CONST Name : ARRAY OF WCHAR ) : BOOLEAN;
+   BEGIN
+      RETURN FALSE;
+   END ContainsUnknown;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE GetUnknown( CONST Name : ARRAY OF WCHAR; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
+   BEGIN
+      RETURN FALSE;
+   END GetUnknown;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE AddUnknown( CONST Name : ARRAY OF WCHAR; CONST Value : ARRAY OF WCHAR );
+   BEGIN
+   END AddUnknown;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE FromRequest( Request : httpapi.TPHttpRequest );
+   VAR
+      len : CARDINAL;
+      pstr : PCHAR;
+   BEGIN
+      FOR hdr := httpapi.HttpHeaderCacheControl TO httpapi.HttpHeaderRequestMaximum-1 DO
+         len := Request^.Headers.KnownHeaders[hdr].RawValueLength;
+         IF len = 0 THEN
+            CONTINUE;
+         END;
+         pstr := Request^.Headers.KnownHeaders[hdr].pRawValue;
+         CASE hdr OF
+         END; // CASE
+      END;
+   END FromRequest;
+   
+//--------------------------------------------------------------------------------
+
+   PRIVATE PROCEDURE FromSysApi( sysapiHeader : httpapi.HTTP_HEADER_ID; OUT header : THttpHeader ) : BOOLEAN;
+   BEGIN
+      RETURN FALSE;
+   END FromSysApi;
+
+//--------------------------------------------------------------------------------
+
+   PRIVATE PROCEDURE ToSysApi( header : THttpHeader; OUT sysapiHeader : httpapi.HTTP_HEADER_ID ) : BOOLEAN;
+   BEGIN
+      RETURN FALSE;
+   END ToSysApi;
+
+//--------------------------------------------------------------------------------
+
+END CHeaders;
+
+//================================================================================
+
 CLASS IMPLEMENTATION CContainer;
 
 //--------------------------------------------------------------------------------
@@ -115,6 +228,7 @@ CLASS IMPLEMENTATION CHttpSrv;
    LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
    VAR
       EOF : BOOLEAN := FALSE;
+      request : httpapi.PHTTP_REQUEST;
       received : CARDINAL;
    BEGIN
       IF Result <> Sync.arCompleted THEN
@@ -136,8 +250,10 @@ CLASS IMPLEMENTATION CHttpSrv;
          EOF := TRUE;
       END;
       
-      // process
-      // TODO
+      // TODO long request
+      IF EOF THEN // OK, process
+         request := _HttpRequest.Data;
+      END;
       
       StartWaitingRequest();
    END OnHandle;
