@@ -16,22 +16,17 @@ TYPE
 CONST
   WM_MQ_PROCESS = 4096;
 
-TYPE
-  TMQOption = (
-    moFlushIfFull,
-    moLeaveLock
-  );
-  TMQOptions = SET OF TMQOption;
-  
 CLASS CMessageQueue( SyncQueue.CDatagramQueue );
-  PRIVATE VAR
-    Options     : TMQOptions;
-    Msg         : POINTER TO msghandler.Message;
-  PUBLIC VAR
-    Consumer    : TPMessageRecipient;
-  PUBLIC PROPERTY
-    ConsumerMsg : POINTER TO msghandler.Message; // if NIL then default WM_MQ_PROCESS is used
-    FlushIfFull : BOOLEAN;
+   // class dedicated for N to 1 receiving, blocking is usually consumer, so main control is from consumer side and it is
+   // done using msghandler.Message. The CLASS FULLY HIDES Flush/Signal semantics offered byt ANCESTOR, the class
+   // cannot be degraded to CDatagramQueue (= Consumer MUST NOT be NIL).
+   PRIVATE VAR
+      LeaveLock   : CARDINAL;
+      Msg         : POINTER TO msghandler.Message;
+   PUBLIC VAR
+      Consumer    : TPMessageRecipient;
+   PUBLIC PROPERTY
+      ConsumerMsg : POINTER TO msghandler.Message; // if NIL then default WM_MQ_PROCESS is used
 
   INTERNAL VIRTUAL PROCEDURE Flush() : Sync.TAsyncResult; // completed, timeout, aborted
   INTERNAL VIRTUAL PROCEDURE Signal( What : Sync.TpcqSignal ); // when produced, next producing SHOULD NOT be done (until signalling consumed)

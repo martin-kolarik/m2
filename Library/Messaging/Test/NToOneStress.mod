@@ -70,7 +70,6 @@ VAR
 BEGIN
   MH.Init();
   MQ.Init( 32, SIZE( CARDINAL ));
-  MQ.FlushIfFull := TRUE;
   MQ.Consumer := ADR( MH );
 
   // init

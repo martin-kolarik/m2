@@ -37,7 +37,6 @@ BEGIN
   FOR I := 0 TO 19 DO
     C[I] := 1;
     MQ[I].Init( 128, SIZE( CARDINAL ));
-    MQ[I].FlushIfFull := TRUE;
     windows.CreateThread( NIL, 0, Thread, ADDRESS( I ), 0, NIL );
   END;
   

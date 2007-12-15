@@ -985,8 +985,8 @@ BEGIN
   SingleThreadInterface := TRUE;
   CompletionInOwningThread := FALSE;
   Init();
+
   MQueue.Init( 128, SIZE( TMessage ));
-  MQueue.FlushIfFull := TRUE;
   MQueue.Consumer := ADR( SELF );
 FINALLY
   DisposeThreads( FALSE );

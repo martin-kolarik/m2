@@ -12,24 +12,6 @@ CLASS IMPLEMENTATION CMessageQueue;
   
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROPERTY FlushIfFull GET : BOOLEAN;
-  BEGIN
-    RETURN moFlushIfFull IN Options;
-  END FlushIfFull;
-
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROPERTY FlushIfFull SET( Value : BOOLEAN );
-  BEGIN
-    IF Value THEN
-      INCL( Options, moFlushIfFull )
-    ELSE
-      EXCL( Options, moFlushIfFull )
-    END;
-  END FlushIfFull;
-
-(*--------------------------------------------------------------------------------*)
-
   PUBLIC PROPERTY ConsumerMsg GET : POINTER TO msghandler.Message;
   BEGIN
     RETURN Msg;
@@ -51,20 +33,16 @@ CLASS IMPLEMENTATION CMessageQueue;
    VAR
       Result : Sync.TAsyncResult;
    BEGIN
-      Result := SUPER.Flush();
-      IF Consumer = NIL THEN
-         RETURN Result;
-      ELSIF NOT( moFlushIfFull IN Options ) THEN
-         RETURN Sync.arCompleted;
-      ELSIF msghandler.CurrentThread() = Consumer^.OfThread THEN // consumer is in my thread
+      ASSERT( Consumer <> NIL );
+      IF msghandler.CurrentThread() = Consumer^.OfThread THEN // consumer is in my thread
          IF Msg = NIL THEN
             NEW( msghandler.TPMessage( Msg )); Msg^.Message := WM_MQ_PROCESS;
          END;
-         INCL( Options, moLeaveLock );
+         Sync.IExchg( REF LeaveLock, 1 ); // lock over thread is safe ad here consumer/producer shares thread
          IF NOT Consumer^.Message( Msg^, msghandler.delSynchronous, NIL ) THEN
             ASSERT( FALSE );
          END;
-         EXCL( Options, moLeaveLock );
+         Sync.IExchg( REF LeaveLock, 0 );
       ELSE // consumer is in the other thread
          windows.Sleep( 0 );
       END;
@@ -75,27 +53,23 @@ CLASS IMPLEMENTATION CMessageQueue;
 
    INTERNAL VIRTUAL PROCEDURE Signal( What : Sync.TpcqSignal ); // when produced, next producing SHOULD NOT be done (until signalling consumed)
    BEGIN
+      ASSERT( Consumer <> NIL );
       CASE What OF
-      | Sync.pcqProduced : // overwrite SUPER
+      | Sync.pcqProduced :
          IF Sync.IExchg( REF Consuming, 1 ) = 0 THEN
-            IF Consumer <> NIL THEN
-               IF Msg = NIL THEN
-                  NEW( msghandler.TPMessage( Msg )); Msg^.Message := WM_MQ_PROCESS;
-               END;
-               IF NOT Consumer^.Message( Msg^, msghandler.delAsynchronous, NIL ) THEN
-                  ASSERT( FALSE );
-               END;
+            IF Msg = NIL THEN
+               NEW( msghandler.TPMessage( Msg )); Msg^.Message := WM_MQ_PROCESS;
             END;
-            Sync.Signal( Consume );
+            IF NOT Consumer^.Message( Msg^, msghandler.delAsynchronous, NIL ) THEN
+               ASSERT( FALSE );
+            END;
          END;
-      | Sync.pcqStartingConsumation : // overwrite SUPER
-         IF moLeaveLock IN Options THEN
+      | Sync.pcqStartingConsumation :
+         IF Sync.IGet( REF LeaveLock ) = 1 THEN
             // skip, do nothing
-         ELSIF Sync.IExchg( REF Consuming, 0 ) = 1 THEN
-            Sync.Reset( Consume );
+         ELSE
+            Sync.IExchg( REF Consuming, 0 );
          END;
-      ELSE // use default
-         SUPER.Signal( What );
       END; // CASE
   END Signal;
 
@@ -103,7 +77,7 @@ CLASS IMPLEMENTATION CMessageQueue;
 
 BEGIN
   Consuming := 0;
-  Options := TMQOptions{};
+  LeaveLock := 0;
   Msg := NIL;
   Consumer := NIL;
 FINALLY

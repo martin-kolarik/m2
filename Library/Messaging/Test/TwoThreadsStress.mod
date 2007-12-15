@@ -89,12 +89,14 @@ BEGIN
   HProduce := windows.CreateEvent( NIL, windows.True, windows.True, NIL );
 
   MQ.Init( 32, SIZE( CARDINAL ));
-  MQ.FlushIfFull := TRUE;
-  // MQ.Produce := HProduce;
+  // MQ.Produce := HProduce; // -- setting this and not setting Consume takes the best performance
+
   MQ.Consumer := ADR( MH );
   HThread := windows.CreateThread( NIL, 0, ThreadM, NIL, 0, NIL );
+
   // MQ.Consume := HConsume;
   // HThread := windows.CreateThread( NIL, 0, ThreadS, NIL, 0, NIL );
+
   windows.WaitForSingleObject( HStart, windows.INFINITE );
 
   LOOP
