@@ -57,7 +57,7 @@ CLASS IMPLEMENTATION ACreator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    BEGIN
       SUPER.Dispose();
    END Dispose;

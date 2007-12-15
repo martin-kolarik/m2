@@ -88,7 +88,7 @@ ABSTRACT CLASS ACreator( AObject ) IMPLEMENTS ILibrary;
       Type : TObjectType;
    PUBLIC FINAL PROPERTY
       Library : TPLibrary;
-   PUBLIC FINAL PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
 
    LOCAL VAR
       _Loader : ADDRESS;
