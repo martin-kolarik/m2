@@ -382,7 +382,7 @@ TYPE
     cpStdCall,
     cpFastCall,
 
-		eoIS,
+	 eoIS,
     eoLeakChecking,
     eoVolatile,
     eoExport,
@@ -1017,7 +1017,7 @@ TYPE
   TModuleNamePrefix  = (
     mprfC,
     mprfModula,
-    mprfWindows
+    mprfNamespaced
   );
 
 TYPE

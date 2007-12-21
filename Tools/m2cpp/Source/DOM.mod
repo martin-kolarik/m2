@@ -677,7 +677,10 @@ CLASS IMPLEMENTATION CSymbol;
        ( OfSymbol <> Project.Current()^.OD ) AND
        ( OfSymbol <> Project.Current()^.OI ) THEN
       WHILE OfSymbol <> NIL DO
-        NameFlag := ( OfSymbol^.UnitKind = ukDefinition ) AND ( TPModule( OfSymbol )^.MEnv.Prefix = mprfModula );
+        NameFlag := ( OfSymbol^.UnitKind = ukDefinition ) AND (
+                       ( TPModule( OfSymbol )^.MEnv.Prefix = mprfModula ) OR
+                       ( TPModule( OfSymbol )^.MEnv.Prefix = mprfNamespaced )
+                    );
         IF NameFlag THEN
           CS.PrependOA( L"::" );
           CS.Prepend( TPModule( OfSymbol )^.OH );
@@ -4598,8 +4601,7 @@ CLASS IMPLEMENTATION CModule;
         END;
         i := 0;
         WHILE ParseData( i, PragmaString, Key, Value ) DO
-          IF EQUALS( Key, L'library' ) THEN
-          ELSIF EQUALS( Key, L'prefix' ) THEN
+          IF EQUALS( Key, L'prefix' ) THEN
             M2^.Warning( wrn._PrefixShouldBeDecoration );
             GOTO Decoration;
           ELSIF EQUALS( Key, L'decoration' ) THEN
@@ -4608,8 +4610,8 @@ CLASS IMPLEMENTATION CModule;
               MEnv.Prefix := mprfC;
             ELSIF EQUALS( Value, L'modula' ) THEN
               MEnv.Prefix := mprfModula;
-            ELSIF EQUALS( Value, L'windows' ) THEN
-              MEnv.Prefix := mprfWindows;
+            ELSIF EQUALS( Value, L'namespaced' ) THEN
+              MEnv.Prefix := mprfNamespaced;
             ELSE
               SemErrS( err._IllegalDecorationPragmaValue, Value );
             END;
@@ -6816,7 +6818,7 @@ CLASS IMPLEMENTATION CModule;
     G^.EOL();
 
     CASE OD^.MEnv.Prefix OF
-    | mprfC, mprfWindows :
+    | mprfC :
       G^.LineS( L'extern "C" {' );
     | mprfModula :
       IF UnitKind <> ukProgram THEN
@@ -6825,6 +6827,11 @@ CLASS IMPLEMENTATION CModule;
           G^.OutS( L" { " );
         G^.EOL();
       END;
+    | mprfNamespaced :
+      G^.OutS( L"namespace " );
+        G^.OutCS( Name );
+        G^.OutS( L" { " );
+      G^.EOL();
     END;
     
     //*****
@@ -6895,12 +6902,14 @@ CLASS IMPLEMENTATION CModule;
 
     G^.EOL();
     CASE OD^.MEnv.Prefix OF
-    | mprfC, mprfWindows :
+    | mprfC :
       G^.LineRB();
     | mprfModula :
       IF UnitKind <> ukProgram THEN
         G^.LineRB();
       END;
+    | mprfNamespaced :
+      G^.LineRB();
     END; // CASE
     G^.LineS( L'#pragma pack(pop)' );
     G^.Indent();

@@ -1,5 +1,5 @@
 DEFINITION MODULE xmlDOM HEADER msxml2;
-#save, name( decoration => windows ), call( convention => stdcall )
+#save, name( decoration => c ), call( convention => stdcall )
 
 FROM wtypes IMPORT
   BSTR, VARIANT_BOOL;

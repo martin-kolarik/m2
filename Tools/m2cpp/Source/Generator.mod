@@ -95,18 +95,21 @@ CLASS IMPLEMENTATION CBuffer;
   VAR
     Count : CARDINAL;
   BEGIN
-    IF Data[CurrentData].Pos = 0 THEN
-      RETURN;
-    END;
     windows.GetOverlappedResult( HFile, ADR( Overlapped ), ADR( Count ), windows.True );
     INC( Overlapped.Offset, Count );
     Overlapped.OffsetHigh := 0;
+
+    IF Data[CurrentData].Pos = 0 THEN
+      RETURN;
+    END;
+
     IF Unicode THEN
       windows.WriteFile( HFile, ADR( Data[CurrentData].__X ), Data[CurrentData].Pos * SIZE( WCHAR ), NIL, ADR( Overlapped ));
     ELSE
       Strings.ToA( OA( Data[CurrentData].Pos-1, ADR( Data[CurrentData].__X )), 0, OUT OA( Data[CurrentData].Pos-1, ADR( AData ) ));
       windows.WriteFile( HFile, ADR( AData ), Data[CurrentData].Pos, NIL, ADR( Overlapped ));
     END;
+
     CurrentData := ( CurrentData + 1 ) AND 1;
     Data[CurrentData].Pos := 0;
     ResetWrap();
