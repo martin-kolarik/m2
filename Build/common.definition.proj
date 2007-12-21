@@ -4,6 +4,7 @@
     <PropertyGroup>
         <LeakDetector>Debug\LeakDetector</LeakDetector>
         <LicensingComponent>Licensing\Core</LicensingComponent>
+        <TestComponent></TestComponent>
     </PropertyGroup>
 
     <!-- defaults, which should be set in $(MSBuildProjectFile) -->
