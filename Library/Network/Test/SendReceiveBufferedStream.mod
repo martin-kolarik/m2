@@ -160,7 +160,7 @@ END Test;
 (*========================================================================*)
 
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE wmain03() : INTEGER;
 #restore
 VAR
   msg : windows.MSG;
@@ -171,6 +171,6 @@ BEGIN
     windows.DispatchMessage( ADR( msg ));
   END;
   RETURN 0;
-END wmain;
+END wmain03;
 
 END SendReceiveBufferedStream.

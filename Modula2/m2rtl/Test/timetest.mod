@@ -1,6 +1,7 @@
 MODULE timetest;
 
 IMPORT
+   testimpl,
    windows,
    Strings,
    time;
@@ -124,7 +125,7 @@ END NJD;
 (*===========================================================================*)
 
    #save, call( convention => cdecl )
-   PROCEDURE wmain() : INTEGER;
+   PROCEDURE wmain04() : INTEGER;
    #restore
    CONST
       crlf = 13W + 10W;
@@ -139,12 +140,9 @@ END NJD;
       S : ARRAY [0..255] OF WCHAR;
       t : time.TTime64;
       i : CARDINAL;
-
-      j : CARDINAL := 1;
-      rj : LONGREAL := 0.0000001;
    BEGIN
       jd := time.GetCurrentJD();
-      r := time.ToDays( jd );
+      time.JDCToDays( jd );
       
       time.iJD( jd, OUT y, OUT M, OUT d, OUT fd );
       time.fd2HMS( fd, OUT h, OUT m, OUT s, OUT ms );
@@ -205,7 +203,8 @@ END NJD;
       windows.OutputDebugStringW( ADR( crlf ));
 
       RETURN 0;
-   END wmain;
+   END wmain04;
 
 BEGIN
+   testimpl.tests()^.AddTest( L"IntJD", NIL );
 END timetest.

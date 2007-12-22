@@ -41,7 +41,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HttpSrv", "HttpSrv\HttpSrv.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ClassLoader", "ClassLoader\ClassLoader.vcproj", "{0AD95195-886F-46AE-88B3-76634C3B2E82}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Test", "Test\Test.vcproj", "{56521FAA-0599-4D66-9E9B-50E583FF2983}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Test", "..\Debug\Test\Test.vcproj", "{56521FAA-0599-4D66-9E9B-50E583FF2983}"
 EndProject
 Global
 	GlobalSection(TextTemplating) = postSolution

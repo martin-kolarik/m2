@@ -5,7 +5,7 @@ IMPORT
 	Rijndael;
   
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE wmain03() : INTEGER;
 #restore
 VAR
 	AES : Rijndael.CRijndael;
@@ -199,6 +199,6 @@ BEGIN
 	cphcommon.ToHex( in, OUT s );
 
 	RETURN 0;
-END wmain;
+END wmain03;
 
 END TAES.

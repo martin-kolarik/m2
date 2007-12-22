@@ -4,7 +4,7 @@ IMPORT
 	cphcommon;
   
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE wmain02() : INTEGER;
 #restore
 VAR
    c : CARDINAL;
@@ -22,6 +22,6 @@ BEGIN
    cphcommon.ToBASE64( C'su', OUT wa );
 
 	RETURN 0;
-END wmain;
+END wmain02;
 
 END TBase64D.

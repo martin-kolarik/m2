@@ -3,8 +3,8 @@ MODULE Match;
 IMPORT
 	Strings;
 
-	#save, call( entry_point => on )
-	PROCEDURE wmain() : INTEGER;
+	#save, call( convention => cdecl )
+	PROCEDURE wmain08() : INTEGER;
 	#restore
 	VAR
 		b : BOOLEAN;
@@ -28,6 +28,6 @@ IMPORT
 		b := Strings.MatchW( L"Abc.abc", L"*abc", FALSE );
 
 		RETURN 0;
-	END wmain;
+	END wmain08;
 
 END Match.

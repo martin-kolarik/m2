@@ -3,8 +3,8 @@ MODULE ToLONGREAL;
 IMPORT
   Strings;
 
-  #save, call( entry_point => on )
-  PROCEDURE wmain() : INTEGER;
+  #save, call( convention => cdecl )
+  PROCEDURE wmain03() : INTEGER;
   #restore
   VAR
 		i : CARDINAL;
@@ -41,7 +41,7 @@ IMPORT
 		b := Strings.ToLONGREALW( L'0.1E-2', OUT r );
 		
     RETURN 0;
-  END wmain;
+  END wmain03;
 
 BEGIN
 END ToLONGREAL.

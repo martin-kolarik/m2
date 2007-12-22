@@ -71,7 +71,7 @@ IMPORT
 
       FOR i := 0 TO HIGH( testA ) DO
          Out( L"==========" );
-         Strings.FromLONGREALW( testA[i], -1, -1, OUT S ); Out( S );
+         Strings.FromLONGREALExtW( testA[i], -1, -1, FALSE, L"", OUT S ); Out( S );
          lrconv.LONGREALToStrW( testA[i], -1, -1, FALSE, 0W, OUT S ); Out( S );
          FOR j := 0 TO 15 DO
             Out( L"----------" );

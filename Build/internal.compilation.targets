@@ -41,8 +41,8 @@
     </PropertyGroup>
 
     <PropertyGroup>
-        <M2CTRL Condition ="$(ExportSymbols)=='on'">$(M2CTRL) -LN$(LibraryName) -LD</M2CTRL>
-        <M2CTRL Condition ="$(ExportSymbols)!='on'">$(M2CTRL) -LN$(LibraryName)</M2CTRL>
+        <M2CTRL Condition ="$(PublishExports)=='on'">$(M2CTRL) -LN$(LibraryName) -LD</M2CTRL>
+        <M2CTRL Condition ="$(PublishExports)!='on'">$(M2CTRL) -LN$(LibraryName)</M2CTRL>
     </PropertyGroup>
 
     <PropertyGroup Condition ="$(ConfigurationName)=='Release'">

@@ -49,8 +49,8 @@
         <ClientLicensing Condition="$(Licensing)=='on' And $(ProductFlag)=='on'">on</ClientLicensing>
         <SetupLicensing Condition="$(Licensing)=='on' And $(ProductFlag)=='on'">on</SetupLicensing>
 
-        <ExportSymbols Condition="$(ExportSymbols)=='' And $(Result)=='Dynamic'">on</ExportSymbols>
-        <ExportSymbols Condition="$(ExportSymbols)=='' And $(Result)!='Dynamic'">off</ExportSymbols>
+        <PublishExports Condition="$(PublishExports)=='' And $(Result)=='Dynamic'">on</PublishExports>
+        <PublishExports Condition="$(PublishExports)=='' And $(Result)!='Dynamic'">off</PublishExports>
     </PropertyGroup>
 
     <!-- (constructed properties, DO NOT MODIFY) -->

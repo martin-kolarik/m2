@@ -1,10 +1,10 @@
 MODULE CString;
 
 IMPORT
-  Strings;
+  StringsO;
 
-  #save, call( entry_point => on )
-  PROCEDURE wmain() : INTEGER;
+  #save, call( convention => cdecl )
+  PROCEDURE wmain05() : INTEGER;
   #restore
   CONST
     cSA = C'KonstantnÌ ¯etÏzec ANSI';
@@ -12,9 +12,9 @@ IMPORT
   VAR
     SA : ARRAY [0..255] OF CHAR;
     SW : ARRAY [0..255] OF WCHAR;
-    S1, S2, Sast, Sabcd : Strings.CString;
-    SA1 : ARRAY [0..1] OF Strings.CString;
-    SA2 : ARRAY [0..5] OF Strings.CString;
+    S1, S2, Sast, Sabcd : StringsO.CString;
+    SA1 : ARRAY [0..1] OF StringsO.CString;
+    SA2 : ARRAY [0..5] OF StringsO.CString;
   VAR
     p, i : CARDINAL;
     t : TRISTATE;
@@ -30,11 +30,9 @@ IMPORT
     
     // conversions
     S1.FromOA( L'Text to test »ÿç' );
-    S1.ToOAA( OUT SA );
-    S1.FromMemory( LENGTH( cSW ), ADR( cSW ));
-    S2.FromOAA( C'ANSI text to test »ÿç' );
+    S1.ToOAA( 0, OUT SA, OUT p );
+    S2.FromOAA( 0, C'ANSI text to test »ÿç' );
     S2.ToOA( OUT SW );
-    S2.FromMemoryA( LENGTH( cSA ), ADR( cSA ));
     
     // information
     S1.FromOA( L'Text to compare' );
@@ -67,12 +65,12 @@ IMPORT
     // analysis
     S1.FromOA( L' Item1 Item2 Item3;Item4  ; ; ; ; ; ; ; ; Item5 ' );
     S2.FromOA( L'Item1 Item2' );
-    i := S1.Split( L' ;', 0, OUT p, OUT SA1 );
-    i := S1.Split( L' ;', i, OUT p, OUT SA1 );
-    i := S1.Split( L' ;', i, OUT p, OUT SA1 );
-    S2.Split( L' ;', 0, OUT p, OUT SA1 );
-    S1.Split( L' ;', 0, OUT p, OUT SA2 );
-    S2.Split( L' ;', 0, OUT p, OUT SA2 );
+    i := S1.Split( L' ;', 0, FALSE, OUT p, OUT SA1 );
+    i := S1.Split( L' ;', i, FALSE, OUT p, OUT SA1 );
+    i := S1.Split( L' ;', i, FALSE, OUT p, OUT SA1 );
+    S2.Split( L' ;', 0, FALSE, OUT p, OUT SA1 );
+    S1.Split( L' ;', 0, FALSE, OUT p, OUT SA2 );
+    S2.Split( L' ;', 0, FALSE, OUT p, OUT SA2 );
 
     S1.SubstringOA( 1, 5, OUT SW );
     S1.SubstringOA( 0, -1, OUT SW );
@@ -98,7 +96,7 @@ IMPORT
     i := S2.IndexOfOA( L'ItItEm', 0 );
     
     RETURN 0;
-  END wmain;
+  END wmain05;
 
 BEGIN
 END CString.

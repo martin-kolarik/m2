@@ -2,12 +2,12 @@ MODULE ringbuffer;
 
 IMPORT
   Sync,
-  IOO,
+  SyncQueue,
   time,
   windows;
   
 VAR
-  R : IOO.CRingBuffer;
+  R : SyncQueue.RingBuffer;
 
   Exit : CARDINAL;  
   HStart : windows.HANDLE;
@@ -57,14 +57,14 @@ BEGIN
 END Thread;
 
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE wmain12() : INTEGER;
 #restore
 VAR
   C : CARDINAL := 1; // sending must start from 1
   C64 : CARD64 := 1;
   T : time.TTime64;
 BEGIN
-  R.Length := 11;
+  R.Size := 11;
 
   HStart := windows.CreateEvent( NIL, windows.True, windows.False, NIL );
   HThread := windows.CreateThread( NIL, 0, Thread, NIL, 0, NIL );
@@ -94,6 +94,6 @@ BEGIN
   Exit := 1;
   windows.WaitForSingleObject( HThread, windows.INFINITE );
   RETURN 0;
-END wmain;
+END wmain12;
 
 END ringbuffer.

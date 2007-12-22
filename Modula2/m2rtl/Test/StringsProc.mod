@@ -1,10 +1,13 @@
 MODULE StringsProc;
 
+FROM Strings IMPORT
+   CapitalizeW, LowerizeW;
+
 IMPORT
   Strings;
 
-  #save, call( entry_point => on )
-  PROCEDURE wmain() : INTEGER;
+  #save, call( convention => cdecl )
+  PROCEDURE wmain05() : INTEGER;
   #restore
   VAR
     SA : ARRAY [0..255] OF CHAR;
@@ -64,10 +67,10 @@ IMPORT
     
     // analysis
     S1 := L' Item1 Item2 Item3;Item4  ; ; ; ; ; ; ; ; Item5 ';
-    i := Strings.ItemW( S1, WCHAR{L';'}, 0, 1, OUT S2 );
-    i := Strings.ItemW( S1, WCHAR{L';', L' '}, 0, 2, OUT S2 );
+    i := Strings.ItemW( S1, WCHAR{L';'}, 0, 1, FALSE, OUT S2 );
+    i := Strings.ItemW( S1, WCHAR{L';', L' '}, 0, 2, FALSE, OUT S2 );
     S2 := L'Item1 Item2';
-    i := Strings.ItemW( S1, WCHAR{L';', L' '}, 0, 20, OUT S2 );
+    i := Strings.ItemW( S1, WCHAR{L';', L' '}, 0, 20, FALSE, OUT S2 );
     // i := S1.Split( L' ;', 0, OUT p, OUT SA1 );
     // i := S1.Split( L' ;', i, OUT p, OUT SA1 );
     // i := S1.Split( L' ;', i, OUT p, OUT SA1 );
@@ -126,7 +129,7 @@ IMPORT
     LOW( S1 );
     
     RETURN 0;
-  END wmain;
+  END wmain05;
 
 BEGIN
 END StringsProc.

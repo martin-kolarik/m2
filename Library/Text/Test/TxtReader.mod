@@ -91,10 +91,10 @@ BEGIN
   END; // WHILE
 END Test;
 
-PROCEDURE wmain() : INTEGER;
+PROCEDURE wmain03() : INTEGER;
 BEGIN
   Test();
   RETURN 0;
-END wmain;
+END wmain03;
 
 END TxtReader.

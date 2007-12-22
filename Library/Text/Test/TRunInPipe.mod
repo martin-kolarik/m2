@@ -11,7 +11,7 @@ IMPORT
   TextWriter;
 
 #save, call( convention => cdecl )
-PROCEDURE wmain();
+PROCEDURE wmain04();
 #restore
 VAR
   out : FIOO.TPFileStream;
@@ -31,6 +31,6 @@ BEGIN
   CATCH e : IOO.CIOException DO
     tw^.WriteExc( e, TRUE );
   END;
-END wmain;
+END wmain04;
 
 END TRunInPipe.

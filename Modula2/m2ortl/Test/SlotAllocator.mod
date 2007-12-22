@@ -4,8 +4,8 @@ IMPORT
   Exceptions,
   StorageO;
 
-  #save, call( entry_point => on )
-  PROCEDURE wmain() : INTEGER;
+  #save, call( convention => cdecl )
+  PROCEDURE wmain01() : INTEGER;
   #restore
   VAR
     A : ARRAY [0..99] OF ADDRESS;
@@ -45,7 +45,7 @@ IMPORT
     END;
   
     RETURN 0;
-  END wmain;
+  END wmain01;
 
 BEGIN
 END SlotAllocator.

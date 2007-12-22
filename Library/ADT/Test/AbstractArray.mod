@@ -31,7 +31,7 @@ BEGIN
   END;
 END ArrayTest;
 
-#save, call( convention => cdecl, entry_point => on ) *)  
+#save, call( convention => cdecl ) *)  
 PROCEDURE wmain() : INTEGER;
 BEGIN
   ArrayTest();

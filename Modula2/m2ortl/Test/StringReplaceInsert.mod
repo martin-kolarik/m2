@@ -3,8 +3,8 @@ MODULE StringReplaceInsert;
 IMPORT
 	StringsO;
 
-	#save, call( entry_point => on )
-	PROCEDURE wmain() : INTEGER;
+	#save, call( convention => cdecl )
+	PROCEDURE wmain02() : INTEGER;
 	#restore
 	VAR
 		S : StringsO.CString;
@@ -15,7 +15,7 @@ IMPORT
 		S.ReplaceOA( L'XX', L'.' );
 		S.ReplaceOA( L'X', L'::' );
 		RETURN 0;
-	END wmain;
+	END wmain02;
 
 BEGIN
 END StringReplaceInsert.

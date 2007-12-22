@@ -72,11 +72,11 @@ BEGIN
 END Test;
 
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE wmain03() : INTEGER;
 #restore
 BEGIN
   Test();
   RETURN 0;
-END wmain;
+END wmain03;
 
 END messagedelegate.

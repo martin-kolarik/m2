@@ -11,13 +11,13 @@ IMPORT
   windows;
   
 CLASS CDNS( dns.ADNSNotifier );
-  INTERNAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF winsock.IN_ADDR );
-  INTERNAL VIRTUAL PROCEDURE OnNameFound( RequestId : PTR; Result : CARDINAL; CONST Name : StringsO.CString );
+  LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF winsock.IN_ADDR );
+  LOCAL VIRTUAL PROCEDURE OnNameFound( RequestId : PTR; Result : CARDINAL; CONST Name : StringsO.CString );
 END CDNS;
 
 CLASS IMPLEMENTATION CDNS;
 
-  INTERNAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF winsock.IN_ADDR );
+  LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF winsock.IN_ADDR );
   VAR
     f : FIO.File := windows.GetStdHandle( windows.STD_OUTPUT_HANDLE );
     i : CARDINAL;
@@ -33,9 +33,10 @@ CLASS IMPLEMENTATION CDNS;
     END;
   END OnAddressFound;
   
-  INTERNAL VIRTUAL PROCEDURE OnNameFound( RequestId : PTR; Result : CARDINAL; CONST Name : StringsO.CString );
+  LOCAL VIRTUAL PROCEDURE OnNameFound( RequestId : PTR; Result : CARDINAL; CONST Name : StringsO.CString );
   VAR
     f : FIO.File := windows.GetStdHandle( windows.STD_OUTPUT_HANDLE );
+    l : CARDINAL;
     n : ARRAY [0..255] OF CHAR;
     nw : ARRAY [0..15] OF WCHAR;
   BEGIN
@@ -46,7 +47,7 @@ CLASS IMPLEMENTATION CDNS;
     IF Result = winsock.WSAETIMEDOUT THEN
       FIO.WrStrA( f, C'<timed out>' );
     ELSE
-      Name.ToOAA( OUT n );
+      Name.ToOAA( 0, OUT n, OUT l );
       FIO.WrStrA( f, n );
     END;
     FIO.WrLnA( f );
@@ -93,7 +94,7 @@ BEGIN
 END StartupSockets;
 
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE wmain05() : INTEGER;
 #restore
 VAR
   msg : windows.MSG;
@@ -104,6 +105,6 @@ BEGIN
     windows.DispatchMessage( ADR( msg ));
   END;
   RETURN 0;
-END wmain;
+END wmain05;
 
 END dnsstress.

@@ -7,7 +7,7 @@ VAR
   MB1 : StorageO.CMemoryBuffer;
   MB2 : StorageO.CMemoryBuffer;
 
-#save, call( entry_point => on, convention => cdecl )
+#save, call( convention => cdecl )
 PROCEDURE wmain();
 #restore
 CONST

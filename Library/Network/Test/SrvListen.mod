@@ -14,28 +14,28 @@ IMPORT
   Strings,
   windows;
   
-CLASS C_LN( netsrv.AStreamCreator );
-  LOCAL VIRTUAL PROCEDURE OnListen( ServerSocket : netsocket.TPSSocket );
-  LOCAL VIRTUAL PROCEDURE OnDatagramReceived( ServerSocket : netsocket.TPSSocket );
-  LOCAL VIRTUAL PROCEDURE OnListenSocketClosed( ServerSocket : netsocket.TPSSocket );
+CLASS C_LN( netsrv.AListener );
+  LOCAL VIRTUAL PROCEDURE OnListen( CONST ServerSocket : netsocket.TPSSocket );
+  LOCAL VIRTUAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket );
+  LOCAL VIRTUAL PROCEDURE OnListenSocketClosed( CONST ServerSocket : netsocket.TPSSocket );
 END C_LN;
 
 CLASS IMPLEMENTATION C_LN;
 
-  LOCAL VIRTUAL PROCEDURE OnListen( ServerSocket : netsocket.TPSSocket );
+  LOCAL VIRTUAL PROCEDURE OnListen( CONST ServerSocket : netsocket.TPSSocket );
   BEGIN
     IF ServerSocket = NIL THEN
       OnDatagramReceived( NIL );
     END;
   END OnListen;
 
-  LOCAL VIRTUAL PROCEDURE OnDatagramReceived( ServerSocket : netsocket.TPSSocket );
+  LOCAL VIRTUAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket );
   BEGIN
     IF TRUE THEN
     END;
   END OnDatagramReceived;
 
-  LOCAL VIRTUAL PROCEDURE OnListenSocketClosed( ServerSocket : netsocket.TPSSocket );
+  LOCAL VIRTUAL PROCEDURE OnListenSocketClosed( CONST ServerSocket : netsocket.TPSSocket );
   BEGIN
     IF ServerSocket = NIL THEN
       OnListenSocketClosed( NIL );
@@ -53,11 +53,11 @@ VAR
 BEGIN
   // _LN.XOnListenSocketClosed( ADDRESS( 1 ));
 
-  netsrv.StartListen( 4444, netsocket.stStream, ADR( LN ), 0, ADR( S ));
-  netsrv.StartListen( 4444, netsocket.stDatagram, ADR( LN ), 0, ADR( S ));
-  netsrv.StopListenSocket( S );
-  netsrv.StopListenPort( 4444, netsocket.stStream );
-  netsrv.StartListen( 4445, netsocket.stStream, ADR( LN ), 50000, ADR( S ));
+  netsrv.StartListen( netsocket.stStream, 4444, NIL, ADR( LN ), 0, ADR( S ));
+  netsrv.StartListen( netsocket.stDatagram, 4444, NIL, ADR( LN ), 0, ADR( S ));
+  netsrv.StopListenSocket( OUT S );
+  netsrv.StopListenPort( netsocket.stStream, 4444 );
+  netsrv.StartListen( netsocket.stStream, 4445, NIL, ADR( LN ), 50000, ADR( S ));
 END Test;
 
 (*========================================================================*)
@@ -76,7 +76,7 @@ BEGIN
 END StartupSockets;
 
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE wmain01() : INTEGER;
 #restore
 VAR
   msg : windows.MSG;
@@ -90,6 +90,6 @@ BEGIN
   
   netpool.Cleanup();
   RETURN 0;
-END wmain;
+END wmain01;
 
 END SrvListen.

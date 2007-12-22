@@ -26,6 +26,7 @@ TYPE
 TYPE
    #save, call( convention => cdecl )
    TFactory = PROCEDURE( CONST ARRAY OF WCHAR, OUT TPObject ) : TResult;
+   TFactoryUntyped = PROCEDURE( CONST ARRAY OF WCHAR, OUT ADDRESS ) : TResult;
    #restore
 
 (*===========================================================================*)

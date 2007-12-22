@@ -2,16 +2,16 @@ MODULE TSHA;
 
 IMPORT
 	cphcommon,
-	sha;
+	sha256;
   
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE wmain01() : INTEGER;
 #restore
 VAR
-	d : sha.CDigest;
+	d : sha256.CDigest;
 	in : ARRAY [0..511] OF BYTE;
 	s : ARRAY [0..1023] OF WCHAR;
-	SHA : sha.CSHA256;
+	SHA : sha256.CSHA256;
 BEGIN
 	SHA.Digest( C"The quick brown fox jumps over the lazy dog", OUT d );
 	d.ToHex( OUT s );
@@ -26,6 +26,6 @@ BEGIN
 	// cphcommon.ToHex( in, OUT s );
 
 	RETURN 0;
-END wmain;
+END wmain01;
 
 END TSHA.

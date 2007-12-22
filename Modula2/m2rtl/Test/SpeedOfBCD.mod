@@ -113,7 +113,7 @@ TYPE
     T2BCD = ARRAY [0..39] OF CARD8;
     TPBCD = POINTER TO TBCD;
     TPC8 = POINTER TO CARD8;
-    #if #not X86 #then
+    #if #not( PlatformName #startswith L"WinCE" ) #then
       TC = RECORD
              L, H : CARD32;
            END;
@@ -124,7 +124,7 @@ TYPE
   VAR
     BCD : T2BCD := BCInit;
     PB : TPC8;
-    #if X86 #then
+    #if #not( PlatformName #startswith L"WinCE" ) #then
       FBCD : TBCD;
       PB2 : TPC8;
     #else
@@ -134,7 +134,7 @@ TYPE
       VL : CARD32;
     #endif
   BEGIN
-    #if X86 #then
+    #if #not( PlatformName #startswith L"WinCE" ) #then
       ASM
         fld    qword ptr [R]
         fbstp  tbyte ptr [FBCD]
@@ -190,8 +190,8 @@ TYPE
     #endif
   END LONGREALToBCD;
   
-  #save, call( entry_point => on )
-  PROCEDURE wmain() : INTEGER;
+  #save, call( convention => cdecl )
+  PROCEDURE wmain06() : INTEGER;
   #restore
   CONST
     sp = C'  ';
@@ -199,8 +199,6 @@ TYPE
   VAR
     i : CARDINAL;
     r : LONGREAL := 1178.0*LONGREAL( BN );
-    c : CARD64 := 1178*BN;
-    d : CARD64;
     B : TBCD;
     P : PackedBcd;
     s : ARRAY [0..19] OF WCHAR;
@@ -215,7 +213,7 @@ TYPE
       P := LongToBcd( r );
     END;
     t := windows.GetTickCount() - t;
-    Strings.Card32ToStrW( t, s, 10 );
+    Strings.FromCARD32W( t, 10, OUT s );
     windows.WriteFile( f, ADR( s ), 2*LENGTH( s ), ADR( i ), NIL );
     windows.WriteFile( f, ADR( sp ), LENGTH( sp ), ADR( i ), NIL );
 
@@ -224,11 +222,11 @@ TYPE
       B := LONGREALToBCD( r );
     END;
     t := windows.GetTickCount() - t;
-    Strings.Card32ToStrW( t, s, 10 );
+    Strings.FromCARD32W( t, 10, OUT s );
     windows.WriteFile( f, ADR( s ), 2*LENGTH( s ), ADR( i ), NIL );
     
     RETURN 0;
-  END wmain;
+  END wmain06;
 
 BEGIN
 END SpeedOfBCD.

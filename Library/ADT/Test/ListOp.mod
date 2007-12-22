@@ -45,12 +45,12 @@ BEGIN
   END;
 END ListTest;
 
-#save, call( prefix => cdecl, entry_point => on ) *)  
-PROCEDURE wmain() : INTEGER;
+#save, call( convention => cdecl ) *)  
+PROCEDURE wmain01() : INTEGER;
 BEGIN
   ListTest();
   RETURN 0;
-END wmain;
+END wmain01;
 #restore
   
 END ListOp.

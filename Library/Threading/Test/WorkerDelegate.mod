@@ -2,21 +2,22 @@ MODULE workerdelegate;
 
 IMPORT
   msghandler,
+  sync,
   threadpool,
   windows;
   
 VAR
   Count : CARDINAL := 0;
   
-CLASS CDelegate( threadpool.CPoolDelegate );
-  LOCAL VIRTUAL PROCEDURE OnWorker( Result : threadpool.TPoolResult; PoolHandle, UserId : PTR );
+CLASS CDelegate( threadpool.APoolDelegate );
+  LOCAL VIRTUAL PROCEDURE OnWorker( Result : sync.TAsyncResult; PoolHandle, UserId : PTR );
 END CDelegate;
   
 CLASS IMPLEMENTATION CDelegate;
 
-  LOCAL VIRTUAL PROCEDURE OnWorker( Result : threadpool.TPoolResult; PoolHandle, UserId : PTR );
+  LOCAL VIRTUAL PROCEDURE OnWorker( Result : sync.TAsyncResult; PoolHandle, UserId : PTR );
   BEGIN
-    windows.InterlockedIncrement( ADR( Count ));
+    windows.InterlockedIncrement( REF Count );
   END OnWorker;
   
 END CDelegate;
@@ -52,7 +53,7 @@ BEGIN
 
   FOR i := 0 TO 1499 DO
     WA[i].Delay := ( 1500 - i );
-    TP.RunWorker( ADR( DLG ), i, TIMEOUT, ADR( WA[i] ), OUT PH[i] );
+    TP.RunWorker( ADR( DLG ), i, FALSE, ADR( WA[i] ), OUT PH[i] );
   END; // FOR
 
   // windows.Sleep( 2000 );
@@ -83,11 +84,11 @@ BEGIN
 END Test;
 
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE wmain01() : INTEGER;
 #restore
 BEGIN
   Test();
   RETURN 0;
-END wmain;
+END wmain01;
 
 END workerdelegate.

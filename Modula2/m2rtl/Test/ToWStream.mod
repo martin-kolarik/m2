@@ -6,8 +6,8 @@ IMPORT
   Languages,
   winnls;
 
-  #save, call( entry_point => on )
-  PROCEDURE wmain() : INTEGER;
+  #save, call( convention => cdecl )
+  PROCEDURE wmain02() : INTEGER;
   #restore
   CONST
     s1250 = C'Aøè';
@@ -25,7 +25,7 @@ IMPORT
     Languages.ToWStream( OA( LENGTH( sa )-1, ADR( sa )), winnls.CP_UTF8, OUT sw, OUT c, OUT d ); // c should be 5, d should be 3
     Languages.ToWStream( OA( LENGTH( sa )-2, ADR( sa )), winnls.CP_UTF8, OUT sw, OUT c, OUT d ); // last UTF8 is incomplete, c should be 3, d should be 2
     RETURN 0;
-  END wmain;
+  END wmain02;
 
 BEGIN
 END ToWStream.

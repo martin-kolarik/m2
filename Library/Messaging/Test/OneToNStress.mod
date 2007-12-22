@@ -28,7 +28,7 @@ BEGIN
 END Thread;
 
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE xwmain() : INTEGER;
 #restore
 VAR
   C : ARRAY [0..19] OF CARDINAL;
@@ -53,6 +53,6 @@ BEGIN
   END;
 
   RETURN 0;
-END wmain;
+END xwmain;
 
 END OneToNStress.

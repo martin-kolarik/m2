@@ -57,7 +57,7 @@ BEGIN
 END Thread;
 
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE wmain01() : INTEGER;
 #restore
 VAR
   C : CARDINAL := 1; // sending must start from 1
@@ -94,6 +94,6 @@ BEGIN
   Exit := 1;
   windows.WaitForSingleObject( HThread, windows.INFINITE );
   RETURN 0;
-END wmain;
+END wmain01;
 
 END TQuadwordQueue.

@@ -1,11 +1,10 @@
 MODULE ringbufferpeek;
 
 IMPORT
-  Sync,
-  IOO;
+  SyncQueue;
   
 VAR
-  R : IOO.CRingBuffer;
+  R : SyncQueue.RingBuffer;
   
 PROCEDURE Test();
 CONST
@@ -17,7 +16,7 @@ VAR
   S3 : ARRAY [0..79] OF CHAR;
   b : BOOLEAN;
 BEGIN
-  R.Length := 100;
+  R.Size := 100;
   R.WriteOA( S1 );
   b := R.Peek( OUT A, OUT L ); // full block
   R.ReadOA( OUT S3 );
@@ -26,11 +25,11 @@ BEGIN
 END Test;  
 
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE wmain11() : INTEGER;
 #restore
 BEGIN
   Test();
   RETURN 0;
-END wmain;
+END wmain11;
 
 END ringbufferpeek.

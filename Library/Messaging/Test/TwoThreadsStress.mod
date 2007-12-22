@@ -79,7 +79,7 @@ BEGIN
 END ThreadS;
 
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE ywmain() : INTEGER;
 #restore
 VAR
   C : CARDINAL := 1; // sending must start from 1
@@ -110,6 +110,6 @@ BEGIN
   Exit := 1;
   windows.WaitForSingleObject( HThread, windows.INFINITE );
   RETURN 0;
-END wmain;
+END ywmain;
 
 END twothreadsstress.

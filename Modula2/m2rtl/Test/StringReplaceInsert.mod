@@ -3,8 +3,8 @@ MODULE StringReplaceInsert;
 IMPORT
 	Strings;
 
-	#save, call( entry_point => on )
-	PROCEDURE wmain() : INTEGER;
+	#save, call( convention => cdecl )
+	PROCEDURE wmain07() : INTEGER;
 	#restore
 	VAR
 		s : ARRAY [0..15] OF WCHAR;
@@ -15,7 +15,7 @@ IMPORT
 		Strings.ReplaceW( REF s, L'XX', L'.' );
 		Strings.ReplaceW( REF s, L'X', L'::' );
 		RETURN 0;
-	END wmain;
+	END wmain07;
 
 BEGIN
 END StringReplaceInsert.

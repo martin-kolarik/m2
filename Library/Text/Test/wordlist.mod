@@ -10,7 +10,7 @@ IMPORT
 	TextWriter;
 
 	#save, call( convention => cdecl )
-	PROCEDURE wmain() : INTEGER;
+	PROCEDURE wmain01() : INTEGER;
 	#restore
 	VAR
 	   bw : IOO.CBufferedStream;
@@ -70,6 +70,6 @@ IMPORT
 	   bw.Close( FALSE );
 
 		RETURN 0;
-	END wmain;
+	END wmain01;
 
 END wordlist.

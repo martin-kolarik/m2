@@ -30,12 +30,12 @@ BEGIN
   END;
 END ArrayTest;
 
-#save, call( convention => cdecl, entry_point => on ) *)  
-PROCEDURE wmain() : INTEGER;
+#save, call( convention => cdecl ) *)  
+PROCEDURE wmain02() : INTEGER;
 BEGIN
   ArrayTest();
   RETURN 0;
-END wmain;
+END wmain02;
 #restore
   
 END IntegerArray.

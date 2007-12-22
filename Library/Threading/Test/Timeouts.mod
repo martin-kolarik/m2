@@ -60,11 +60,11 @@ BEGIN
 END Test;
 
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE wmain02() : INTEGER;
 #restore
 BEGIN
   Test();
   RETURN 0;
-END wmain;
+END wmain02;
 
 END Timeouts.

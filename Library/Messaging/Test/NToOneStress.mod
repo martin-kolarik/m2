@@ -22,7 +22,7 @@ CLASS IMPLEMENTATION CMH;
     GetC : CARDINAL;
     I : CARDINAL;
   BEGIN
-    IF MSG.MSG <> msgqueue.WM_MQ_PROCESS THEN
+    IF MSG.Message <> msgqueue.WM_MQ_PROCESS THEN
       RETURN FALSE;
     END;
     
@@ -59,7 +59,7 @@ BEGIN
 END Thread;
 
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE zwmain() : INTEGER;
 #restore
 TYPE
   TCards = ARRAY [0..19] OF CARDINAL;
@@ -84,6 +84,6 @@ BEGIN
   END;
   
   RETURN 0;
-END wmain;
+END zwmain;
 
 END NToOneStress.

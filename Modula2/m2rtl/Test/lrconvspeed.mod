@@ -133,7 +133,7 @@ END F;
 *)
   
    #save, call( convention => cdecl )
-   PROCEDURE wmain() : INTEGER;
+   PROCEDURE wmain09() : INTEGER;
    #restore
    CONST
       crlf = 13W + 10W;
@@ -164,26 +164,26 @@ END F;
 
       t := Time.time();
       FOR i := 0 TO L-1 DO
-         Strings.FromLONGREALW( R, -1, -1, OUT S );
+         Strings.FromLONGREALExtW( R, -1, -1, FALSE, L"", OUT S );
       END;
       s := Time.difftime( Time.time(), t );
 
       windows.OutputDebugStringW( L"cpp: " );
       windows.OutputDebugStringW( ADR( S ));
-      Strings.FromLONGREALW( s, -1, -1, OUT S );
+      Strings.FromLONGREALExtW( s, -1, -1, FALSE, L"", OUT S );
       windows.OutputDebugStringW( L", time: " );
       windows.OutputDebugStringW( ADR( S ));
       windows.OutputDebugStringW( ADR( crlf ));
 
       t := Time.time();
       FOR i := 0 TO L-1 DO
-         lrconv.LONGREALToStrW( R, -1, -1, FALSE, 0W, 0W, OUT S );
+         lrconv.LONGREALToStrW( R, -1, -1, FALSE, 0W, OUT S );
       END;
       s := Time.difftime( Time.time(), t );
 
       windows.OutputDebugStringW( L"lrc: " );
       windows.OutputDebugStringW( ADR( S ));
-      Strings.FromLONGREALW( s, -1, -1, OUT S );
+      Strings.FromLONGREALExtW( s, -1, -1, FALSE, 0W, OUT S );
       windows.OutputDebugStringW( L", time: " );
       windows.OutputDebugStringW( ADR( S ));
       windows.OutputDebugStringW( ADR( crlf ));
@@ -213,6 +213,6 @@ END F;
 *)
 
       RETURN 0;
-   END wmain;
+   END wmain09;
 
 END lrconvspeed.

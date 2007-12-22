@@ -6,6 +6,7 @@
         <FileDescription>Modula 2 Runtime Library</FileDescription>
         <FileVersionMajor>1</FileVersionMajor>
         <FileVersionMinor>1</FileVersionMinor>
+        <Result>Dynamic</Result>
     </PropertyGroup>
 
     <!-- 2 -->
@@ -15,7 +16,6 @@
     <!-- 3 -->
     <ItemGroup>
         <Components Include="modula2\modula2;api\clib;API\win32"/>
-        <Definitions Include="itest"/>
         <Modules Include="Exceptions;Storage;lrconv;Strings;FIO;time;Languages;Sync;SyncQueue;Delegate;Log"/>
         <!-- Messages Include="XX1;XX2"/ -->
         <Libraries Include="user32"/>

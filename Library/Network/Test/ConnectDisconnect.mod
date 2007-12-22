@@ -26,8 +26,8 @@ BEGIN
 END Wait;
   
 CLASS C_LN( netsrv.AListener );
-  LOCAL VIRTUAL PROCEDURE OnListen( ServerSocket : netsocket.TPSSocket );
-  LOCAL VIRTUAL PROCEDURE OnListenSocketClosed( ServerSocket : netsocket.TPSSocket );
+  LOCAL VIRTUAL PROCEDURE OnListen( CONST ServerSocket : netsocket.TPSSocket );
+  LOCAL VIRTUAL PROCEDURE OnListenSocketClosed( CONST ServerSocket : netsocket.TPSSocket );
 END C_LN;
 
 CLASS C_SN( netsocket.ASocketNotifier );
@@ -42,7 +42,7 @@ VAR
 
 CLASS IMPLEMENTATION C_LN;
 
-  LOCAL VIRTUAL PROCEDURE OnListen( ServerSocket : netsocket.TPSSocket );
+  LOCAL VIRTUAL PROCEDURE OnListen( CONST ServerSocket : netsocket.TPSSocket );
   VAR
     DS : netsocket.TPDSocket;
     e : CARDINAL;
@@ -56,7 +56,7 @@ CLASS IMPLEMENTATION C_LN;
     // DS^.Release();
   END OnListen;
 
-  LOCAL VIRTUAL PROCEDURE OnListenSocketClosed( ServerSocket : netsocket.TPSSocket );
+  LOCAL VIRTUAL PROCEDURE OnListenSocketClosed( CONST ServerSocket : netsocket.TPSSocket );
   BEGIN
   END OnListenSocketClosed;
 
@@ -115,7 +115,7 @@ BEGIN
 END StartupSockets;
 
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE wmain06() : INTEGER;
 #restore
 VAR
   msg : windows.MSG;
@@ -126,6 +126,6 @@ BEGIN
     windows.DispatchMessage( ADR( msg ));
   END;
   RETURN 0;
-END wmain;
+END wmain06;
 
 END ConnectDisconnect.

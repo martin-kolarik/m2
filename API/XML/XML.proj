@@ -10,7 +10,7 @@
     <ItemGroup>
         <Definitions Condition="$(M2Compiler)=='Old'" Include="xmlDOM;xmlSAX;xmlSOM"/>
         <Components Include="API\COM"/>
-        <Libraries Include="msxml2"/>
+        <Interface Include="msxml2"/>
     </ItemGroup>
 
     <!-- 3 -->

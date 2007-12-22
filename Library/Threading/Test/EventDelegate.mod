@@ -1,21 +1,22 @@
 MODULE eventdelegate;
 
 IMPORT
+  sync,
   threadpool,
   windows;
   
 VAR
   Count : CARDINAL := 0;
   
-CLASS CDelegate( threadpool.CPoolDelegate );
-  LOCAL VIRTUAL PROCEDURE OnHandle( Result : threadpool.TPoolResult; PoolHandle, UserId : PTR );
+CLASS CDelegate( threadpool.APoolDelegate );
+  LOCAL VIRTUAL PROCEDURE OnHandle( Result : sync.TAsyncResult; PoolHandle, UserId : PTR );
 END CDelegate;
   
 CLASS IMPLEMENTATION CDelegate;
 
-  LOCAL VIRTUAL PROCEDURE OnHandle( Result : threadpool.TPoolResult; PoolHandle, UserId : PTR );
+  LOCAL VIRTUAL PROCEDURE OnHandle( Result : sync.TAsyncResult; PoolHandle, UserId : PTR );
   BEGIN
-    windows.InterlockedIncrement( ADR( Count ));
+    windows.InterlockedIncrement( REF Count );
   END OnHandle;
   
 END CDelegate;
@@ -37,7 +38,7 @@ BEGIN
 
     // 2.
     FOR j := 0 TO 9 DO
-      TP.WaitHandle( ADR( DLG ), i, windows.INFINITE, EA[i], OUT PH[i*10+j] );
+      TP.WaitHandle( ADR( DLG ), i, windows.INFINITE, TRUE, EA[i], OUT PH[i*10+j] );
     END;
   END; // FOR
 
@@ -76,11 +77,11 @@ BEGIN
 END Test;
 
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE wmain05() : INTEGER;
 #restore
 BEGIN
   Test();
   RETURN 0;
-END wmain;
+END wmain05;
 
 END eventdelegate.
