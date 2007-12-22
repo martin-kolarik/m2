@@ -677,10 +677,7 @@ CLASS IMPLEMENTATION CSymbol;
        ( OfSymbol <> Project.Current()^.OD ) AND
        ( OfSymbol <> Project.Current()^.OI ) THEN
       WHILE OfSymbol <> NIL DO
-        NameFlag := ( OfSymbol^.UnitKind = ukDefinition ) AND (
-                       ( TPModule( OfSymbol )^.MEnv.Prefix = mprfModula ) OR
-                       ( TPModule( OfSymbol )^.MEnv.Prefix = mprfNamespaced )
-                    );
+        NameFlag := ( OfSymbol^.UnitKind = ukDefinition ) AND ( TPModule( OfSymbol )^.MEnv.Prefix = mprfModula );
         IF NameFlag THEN
           CS.PrependOA( L"::" );
           CS.Prepend( TPModule( OfSymbol )^.OH );
@@ -4610,8 +4607,8 @@ CLASS IMPLEMENTATION CModule;
               MEnv.Prefix := mprfC;
             ELSIF EQUALS( Value, L'modula' ) THEN
               MEnv.Prefix := mprfModula;
-            ELSIF EQUALS( Value, L'namespaced' ) THEN
-              MEnv.Prefix := mprfNamespaced;
+            ELSIF EQUALS( Value, L'global' ) THEN
+              MEnv.Prefix := mprfGlobal;
             ELSE
               SemErrS( err._IllegalDecorationPragmaValue, Value );
             END;
@@ -6820,18 +6817,11 @@ CLASS IMPLEMENTATION CModule;
     CASE OD^.MEnv.Prefix OF
     | mprfC :
       G^.LineS( L'extern "C" {' );
-    | mprfModula :
-      IF UnitKind <> ukProgram THEN
-        G^.OutS( L"namespace " );
-          G^.OutCS( Name );
-          G^.OutS( L" { " );
-        G^.EOL();
-      END;
-    | mprfNamespaced :
-      G^.OutS( L"namespace " );
-        G^.OutCS( Name );
-        G^.OutS( L" { " );
       G^.EOL();
+    | mprfModula :
+      G^.OutS( L"namespace " ); G^.OutCS( Name ); G^.OutS( L" { " );
+      G^.EOL();
+    | mprfGlobal :
     END;
     
     //*****
@@ -6902,14 +6892,9 @@ CLASS IMPLEMENTATION CModule;
 
     G^.EOL();
     CASE OD^.MEnv.Prefix OF
-    | mprfC :
+    | mprfC, mprfModula :
       G^.LineRB();
-    | mprfModula :
-      IF UnitKind <> ukProgram THEN
-        G^.LineRB();
-      END;
-    | mprfNamespaced :
-      G^.LineRB();
+    | mprfGlobal :
     END; // CASE
     G^.LineS( L'#pragma pack(pop)' );
     G^.Indent();

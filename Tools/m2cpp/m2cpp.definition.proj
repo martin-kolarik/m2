@@ -9,6 +9,7 @@
         <Language Condition="$(Language)==''">Czech</Language>
         <CLib>Dynamic</CLib>
         <Result>Program</Result>
+        <Test>off</Test>
         <LeakChecking>off</LeakChecking>
     </PropertyGroup>
 
