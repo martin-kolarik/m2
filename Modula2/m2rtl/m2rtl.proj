@@ -6,7 +6,6 @@
         <FileDescription>Modula 2 Runtime Library</FileDescription>
         <FileVersionMajor>1</FileVersionMajor>
         <FileVersionMinor>1</FileVersionMinor>
-        <Result>Dynamic</Result>
     </PropertyGroup>
 
     <!-- 2 -->
@@ -18,7 +17,7 @@
         <Components Include="modula2\modula2;api\clib;API\win32"/>
         <Modules Include="Exceptions;Storage;lrconv;Strings;FIO;time;Languages;Sync;SyncQueue;Delegate;Log"/>
         <!-- Messages Include="XX1;XX2"/ -->
-        <Libraries Include="user32"/>
+        <Interface Include="advapi32"/>
     </ItemGroup>
 
     <!-- 4 -->

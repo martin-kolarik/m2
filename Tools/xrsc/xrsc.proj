@@ -4,7 +4,8 @@
 
     <!-- 1 PRODUCT NAME -->
     <PropertyGroup>
-        <ProductFlag>on</ProductFlag>
+        <ComponentType>Product</ComponentType>
+
         <ProductVersionMajor>1</ProductVersionMajor>
         <ProductVersionMinor>0</ProductVersionMinor>
         <FileDescription>XML Resource Compiler</FileDescription>

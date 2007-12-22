@@ -4,10 +4,11 @@
 
     <!-- 1 -->
     <PropertyGroup>
+        <ComponentType>Product</ComponentType>
+
         <ProductGUID>D207A286-98FA-420f-917F-F3AF8E9C43FB</ProductGUID>
         <ProductUpgradeGUID>8AC5313F-C205-4eab-90AE-3BB039D7CE65</ProductUpgradeGUID>
 
-        <ProductFlag>on</ProductFlag>
         <ProductId>SmartControl.EibDiscovery</ProductId>
         <ProductVersionMajor>1</ProductVersionMajor>
         <ProductVersionMinor>0</ProductVersionMinor>

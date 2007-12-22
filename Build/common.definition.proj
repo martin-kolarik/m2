@@ -13,17 +13,54 @@
     <!-- defaults, which should be set in $(MSBuildProjectFile) -->
     <PropertyGroup>
         <Manufacturer Condition="$(Manufacturer)==''">SmartControl</Manufacturer>
-        <ProductFlag Condition="$(ProductFlag)==''">off</ProductFlag>
-        <ComponentStandaloneFlag Condition="$(ComponentStandaloneFlag)==''">off</ComponentStandaloneFlag>
+        <ComponentType Condition="$(ComponentType)==''">Generic</ComponentType>
         <DynamicCLibInstallMethod Condition="$(DynamicCLibInstallMethod)==''">Private</DynamicCLibInstallMethod><!-- Private Shared -->
     </PropertyGroup>
 
     <!-- (constructed properties, DO NOT MODIFY) -->
+    <Choose>
+        <When Condition="$(ComponentType)=='Generic'">
+            <PropertyGroup>
+                <ProductFlag>off</ProductFlag>
+                <PropagateComponents>on</PropagateComponents>
+                <PropagateBuild>on</PropagateBuild>
+            </PropertyGroup>
+        </When>
+        <When Condition="$(ComponentType)=='Library'">
+            <PropertyGroup>
+                <ProductFlag>off</ProductFlag>
+                <PropagateComponents>on</PropagateComponents>
+                <PropagateBuild>off</PropagateBuild>
+            </PropertyGroup>
+        </When>
+        <When Condition="$(ComponentType)=='Module'">
+            <PropertyGroup>
+                <ProductFlag>off</ProductFlag>
+                <PropagateComponents>off</PropagateComponents>
+                <PropagateBuild>off</PropagateBuild>
+            </PropertyGroup>
+        </When>
+        <When Condition="$(ComponentType)=='Product'">
+            <PropertyGroup>
+                <ProductFlag>on</ProductFlag>
+                <PropagateComponents>off</PropagateComponents>
+                <PropagateBuild>off</PropagateBuild>
+            </PropertyGroup>
+        </When>
+        <Otherwise>
+            <PropertyGroup>
+                <ProductFlag>off</ProductFlag>
+                <PropagateComponents>on</PropagateComponents>
+                <PropagateBuild>on</PropagateBuild>
+            </PropertyGroup>
+        </Otherwise>
+    </Choose>
+
+
     <PropertyGroup Condition="$(ProductFlag)=='on'">
         <ProductId Condition="$(ProductId)==''">$(MSBuildProjectName)</ProductId>
         <ProductDisplayName Condition="$(ProductDisplayName)==''">$(FileDisplayName)</ProductDisplayName>
         <ProductDescription Condition="$(ProductDescription)==''">$(FileDescription)</ProductDescription>
-        <ComponentStandaloneFlag>on</ComponentStandaloneFlag>
     </PropertyGroup>
     <PropertyGroup>
         <ComponentDefinitionsPath>$(MSBuildProjectDirectory)\$(MSBuildProjectName).definition.proj</ComponentDefinitionsPath>
@@ -51,6 +88,8 @@
 
         <PublishExports Condition="$(PublishExports)=='' And $(Result)=='Dynamic'">on</PublishExports>
         <PublishExports Condition="$(PublishExports)=='' And $(Result)!='Dynamic'">off</PublishExports>
+
+        <Test>off</Test>
     </PropertyGroup>
 
     <!-- (constructed properties, DO NOT MODIFY) -->

@@ -4,7 +4,7 @@
 
     <!-- 1 -->
     <PropertyGroup>
-        <ComponentStandaloneFlag Condition="$(ComponentStandaloneFlag)==''">on</ComponentStandaloneFlag>
+        <ComponentType Condition="$(ComponentType)==''">Library</ComponentType>
 
         <FileDescription>Core Library</FileDescription>
 
@@ -19,7 +19,6 @@
     <ItemGroup>
         <Components Include="modula2\m2rtl;modula2\m2ortl;library\ADT;library\COM;library\Resources;library\Registry;library\Text"/>
         <Components Include="library\ciphering;library\messaging;library\threading;library\Network;library\Service"/>
-        <ExportToInterface Condition="$(ComponentStandaloneFlag)=='on'" Include="@(Components)"/>
     </ItemGroup>
 
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->

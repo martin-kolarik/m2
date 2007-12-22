@@ -106,6 +106,10 @@
 
     <!-- intermediates -->
     <ItemGroup>
+        <ExportToInterface Condition="$(ComponentType)=='Library'" Include="@(Components)"/>
+        <!-- library component is component, which condensates together more generic components to single library (DLL), it
+             must propagate interfaces (DEF, H) to users transparently -->
+        
         <CPPs Include="@(MODFiles -> '%(Filename).cpp')" />
         <CPPsDir Include="@(MODFiles -> '$(IntermediateDir)\%(Filename).cpp')" />
         <CPPsDir Condition="$(TypeLibCPP) !=''" Include="$(IntermediateDir)\$(TypeLibCPP)" />
@@ -171,7 +175,7 @@
     </PropertyGroup>
 
     <!-- build number -->
-    <Target Name="ProductBuildNumberGet" Condition="$(ProductFlag)=='on'">
+    <Target Name="ProductBuildNumberGet" Condition="$(ComponentType)=='Product'">
         <SvnVersion LocalPath="$(ProductPath)" Options="-c">
             <Output TaskParameter="Revision" PropertyName="ProductVersionBuild"/>
         </SvnVersion>
@@ -226,7 +230,7 @@
             <Output TaskParameter="Value" PropertyName="GetLibrariesToFilter"/>
         </CreateProperty>
 
-        <MSBuild Condition="@(ComponentsToParse)!=''"
+        <MSBuild Condition="@(ComponentsToParse)!='' And ($(PropagateComponents)=='on' Or $(Level)=='0')"
                  Projects="@(ComponentsToParse -> '$(RootDir)\%(Identity)\%(Filename).proj')"
                  Properties="GrabProcessFile=$(GrabProcessFile);GetLibrariesToFilter=$(GetLibrariesToFilter);$(ChildParameters)"
                  Targets="GrabComponent">
@@ -254,14 +258,15 @@
             <Output TaskParameter="Include" ItemName="Grabbed"/>
         </CreateItem>
 
-        <CreateItem Condition="$(Level)!='0' And $(ComponentStandaloneFlag)=='on'"
+        <!-- components which are not built must offer their runtimes -->
+        <CreateItem Condition="$(Level)!='0' And $(PropagateBuild)=='off'"
                     Include="$(OutputFilePath)"
                     AdditionalMetadata="Type=Runtime">
             <Output TaskParameter="Include" ItemName="Grabbed"/>
         </CreateItem>
         
         <!-- standalone/re-export component and component libs -->
-        <CreateItem Condition="$(FilterLibraries)=='true' And $(ComponentStandaloneFlag)=='off'"
+        <CreateItem Condition="$(FilterLibraries)=='true' And $(PropagateBuild)=='on'"
                     Include="@(SelfInterface -> '%(Identity).filtered')"
                     AdditionalMetadata="Type=LibraryToFilter">
             <Output TaskParameter="Include" ItemName="Grabbed"/>
@@ -497,7 +502,7 @@
         Inputs="@(TestOBJFiles);@(LinkDependencyLibraries)"
         Outputs="$(TestOutput)">
         <Exec WorkingDirectory="$(IntermediateDir)"
-              Command="$(LINK) /dll $(LINKTEST) /out:..\$(TestOutput) @(TestOBJFiles -> '%(Filename).obj', ' ') ..\$(OutputDir)\$(MSBuildProjectName).lib @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
+              Command="$(LINK) /dll $(LINKTEST) /out:..\$(TestOutput) @(Objects -> '%(Filename).obj', ' ') @(TestOBJFiles -> '%(Filename).obj', ' ') @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
         <Exec Command="$(MTT)"/>
     </Target>
 
@@ -533,7 +538,7 @@
                 ContinueOnError="true" />
     </Target>
     <Target Name="CleanAll"
-            Condition="$(Level)=='0' Or $(ComponentStandaloneFlag)=='off' Or $(DeepFlag)=='on'">
+            Condition="$(Level)=='0' Or $(PropagateBuild)=='on' Or $(DeepFlag)=='on'">
         <MSBuild Projects="@(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"
                  Targets="CleanAll"
                  Properties="DeepFlag=$(DeepFlag);Parameters=%(Components.Parameters);$(ChildParameters)"/>
@@ -557,7 +562,7 @@
     </Target>
     <Target Name="BuildAll"
             DependsOnTargets="ProductBuildNumberGet" 
-            Condition="$(Level)=='0' Or $(ComponentStandaloneFlag)=='off' Or $(DeepFlag)=='on'">
+            Condition="$(Level)=='0' Or $(PropagateBuild)=='on' Or $(DeepFlag)=='on'">
         <MSBuild Projects="@(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"
                  Targets="BuildAll"
                  Properties="DeepFlag=$(DeepFlag);Parameters=%(Components.Parameters);$(ChildParameters)"
@@ -587,7 +592,7 @@
     <Import Project="internal.wix.targets"/>
 
     <Target Name="CheckSetup">
-        <Error Condition="$(ProductFlag)=='off'" Text="Unable to create setup for not product project" />
+        <Error Condition="$(ComponentType)!='Product'" Text="Unable to create setup for not product project" />
         <Error Condition="$(ProductGUID)==''" Text="ProductGUID not defined" />
         <Error Condition="$(ProductUpgradeGUI)==''" Text="ProductUpgradeGUID not defined" />
     </Target>

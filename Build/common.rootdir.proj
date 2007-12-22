@@ -15,7 +15,7 @@
         <Level>0</Level>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(ProductFlag)=='on'">
+    <PropertyGroup Condition="$(ComponentType)=='Product'">
         <ProductPath>$(ComponentPath)</ProductPath>
 
         <ProductBuildPath>$(MSBuildProjectDirectory)</ProductBuildPath>
@@ -23,7 +23,7 @@
     </PropertyGroup>
 
     <PropertyGroup>
-        <LibraryName Condition="$(ComponentStandaloneFlag)=='on'">$(MSBuildProjectName)</LibraryName>
+        <LibraryName Condition="$(ComponentType)!='Generic'">$(MSBuildProjectName)</LibraryName>
         <LibraryName Condition="$(LibraryName)==''">$(MSBuildProjectName)</LibraryName>
     </PropertyGroup>
 

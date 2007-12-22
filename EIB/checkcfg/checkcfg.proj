@@ -4,10 +4,11 @@
 
     <!-- 1 -->
     <PropertyGroup>
+        <ComponentType>Product</ComponentType>
+
         <ProductGUID>C016DBAB-2F26-46ad-8B12-12C5C79D4B2A</ProductGUID>
         <ProductUpgradeGUID>3A80E4D6-DBDF-4ca6-8100-7E513A139764</ProductUpgradeGUID>
 
-        <ProductFlag>on</ProductFlag>
         <ProductId>SmartControl.EibCheckCfg</ProductId>
         <ProductVersionMajor>1</ProductVersionMajor>
         <ProductVersionMinor>0</ProductVersionMinor>

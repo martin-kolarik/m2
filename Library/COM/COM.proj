@@ -16,7 +16,7 @@
     <!-- 3 COMPOMENT DEFINITION -->
     <ItemGroup>
         <Components Include="modula2\modula2;api\clib;API\win32"/>
-        <Components Include="API\COM;modula2\m2rtl;Library\ADT"/>
+        <Components Include="API\COM;API\XML;modula2\m2rtl;Library\ADT"/><!-- API/XML is for test -->
         <Modules Include="com"/>
     </ItemGroup>
 

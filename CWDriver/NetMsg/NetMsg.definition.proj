@@ -16,7 +16,7 @@
         <Result>Dynamic</Result>
     </PropertyGroup>
     <PropertyGroup Condition="$(MSBuildProjectName)=='sccore'">
-        <ComponentStandaloneFlag>off</ComponentStandaloneFlag>
+        <ComponentType>Generic</ComponentType>
     </PropertyGroup>
 
     <PropertyGroup>

@@ -5,7 +5,7 @@
     <!-- 1 -->
     <PropertyGroup>
        <Manufacturer Condition="$(Manufacturer)==''">Inris</Manufacturer>
-       <ProductFlag>on</ProductFlag>
+        <ComponentType>Product</ComponentType>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(Manufacturer)=='SmartControl'">
