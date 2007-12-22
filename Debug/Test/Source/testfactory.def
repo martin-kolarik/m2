@@ -1,0 +1,7 @@
+DEFINITION MODULE testfactory;
+
+#save, call( convention => cdecl ), option( dll_export => on )
+PROCEDURE Factory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : ADDRESS ) : CARDINAL;
+#restore
+
+END testfactory.

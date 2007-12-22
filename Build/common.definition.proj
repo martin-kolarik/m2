@@ -2,9 +2,12 @@
 
     <!-- compiler -->
     <PropertyGroup>
-        <LeakDetector>Debug\LeakDetector</LeakDetector>
         <LicensingComponent>Licensing\Core</LicensingComponent>
-        <TestComponent></TestComponent>
+
+        <LeakDetectorComponent>Debug\LeakDetector</LeakDetectorComponent>
+
+        <TestComponent>Debug\Test</TestComponent>
+        <TestFactoryName>testfactory</TestFactoryName>
     </PropertyGroup>
 
     <!-- defaults, which should be set in $(MSBuildProjectFile) -->
@@ -45,6 +48,9 @@
         <SetupLicensing Condition="$(SetupLicensing)=='' Or $(ProductFlag)=='off'">off</SetupLicensing>
         <ClientLicensing Condition="$(Licensing)=='on' And $(ProductFlag)=='on'">on</ClientLicensing>
         <SetupLicensing Condition="$(Licensing)=='on' And $(ProductFlag)=='on'">on</SetupLicensing>
+
+        <ExportSymbols Condition="$(ExportSymbols)=='' And $(Result)=='Dynamic'">on</ExportSymbols>
+        <ExportSymbols Condition="$(ExportSymbols)=='' And $(Result)!='Dynamic'">off</ExportSymbols>
     </PropertyGroup>
 
     <!-- (constructed properties, DO NOT MODIFY) -->

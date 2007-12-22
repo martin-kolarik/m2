@@ -64,7 +64,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\Source\test.mod"
+				RelativePath=".\Source\testfactory.mod"
 				>
 			</File>
 			<File
@@ -82,10 +82,18 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Source\testfactory.def"
+				>
+			</File>
+			<File
 				RelativePath=".\Source\testimpl.def"
 				>
 			</File>
 		</Filter>
+		<File
+			RelativePath=".\Test.definition.proj"
+			>
+		</File>
 		<File
 			RelativePath=".\Test.proj"
 			>

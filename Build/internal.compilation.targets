@@ -8,6 +8,7 @@
         <LIB>&quot;$(VCD)lib&quot; /nodefaultlib</LIB>
         <RC>&quot;$(VCD)rc&quot; -r -DWIN32</RC><!-- -i&quot;$(VCD)\..\include&quot;</RC -->
         <MT>mt -manifest $(OutputFile).manifest -outputresource:$(OutputFile)</MT>
+        <MTT>mt -manifest $(TestOutput).manifest -outputresource:$(TestOutput)</MTT>
 
         <M2>&quot;$(RootBuildPath)\Bin\m2cpp&quot;</M2><!-- povolit CPPexc -->
         <M2D>&quot;$(RootBuildPath)\Bin\m2cpp&quot;</M2D>
@@ -40,8 +41,8 @@
     </PropertyGroup>
 
     <PropertyGroup>
-        <M2CTRL Condition ="$(ComponentResult)=='Dynamic'">$(M2CTRL) -LN$(LibraryName) -LD</M2CTRL>
-        <M2CTRL Condition ="$(ComponentResult)!='Dynamic'">$(M2CTRL) -LN$(LibraryName)</M2CTRL>
+        <M2CTRL Condition ="$(ExportSymbols)=='on'">$(M2CTRL) -LN$(LibraryName) -LD</M2CTRL>
+        <M2CTRL Condition ="$(ExportSymbols)!='on'">$(M2CTRL) -LN$(LibraryName)</M2CTRL>
     </PropertyGroup>
 
     <PropertyGroup Condition ="$(ConfigurationName)=='Release'">

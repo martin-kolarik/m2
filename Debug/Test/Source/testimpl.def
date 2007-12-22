@@ -7,7 +7,9 @@ IMPORT
 // internal implementation, it is used by build system to compile the file in place
 // and to form using it interface to Test utility
 
+#save, option( dll_export => on )
 PROCEDURE tests() : test.TPTests;
+#restore
    
 (*================================================================================*)
    

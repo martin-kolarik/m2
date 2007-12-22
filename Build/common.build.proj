@@ -37,7 +37,7 @@
         <ComponentResult Condition="$(Level)=='0'">$(Result)</ComponentResult>
         <ComponentResult Condition="$(Level)!='0'">$(ComponentResult)</ComponentResult>
 
-        <ChildParameters>Level=1+;ComponentDefinitionsPath=$(ComponentDefinitionsPath);LibraryName=$(LibraryName);ProductId=$(ProductId);ProductLinkMapFilePath=$(ProductLinkMapFilePath);ComponentResult=$(ComponentResult);Test=</ChildParameters>
+        <ChildParameters>Level=1+;ComponentDefinitionsPath=$(ComponentDefinitionsPath);LibraryName=$(LibraryName);ProductId=$(ProductId);ProductLinkMapFilePath=$(ProductLinkMapFilePath);ComponentResult=$(ComponentResult)</ChildParameters>
 
         <!-- M2 initializing code -->
         <Modula2InitCode>$(RootDir)\Modula2\Modula2\Header\m2init.cpp</Modula2InitCode>
@@ -64,6 +64,11 @@
         <InterfaceNamePath>$(OutputPath)\$(MSBuildProjectName)</InterfaceNamePath>
         <!-- !! without .lib -->
         <InterfacePath>$(OutputPath)\$(OutputName)</InterfacePath>
+
+        <TestOutput>$(OutputDir)\$(MSBuildProjectName).test.dll</TestOutput>
+        <TestFactoryDir>$(RootDir)\$(TestComponent)\$(SourceDir)</TestFactoryDir>
+        <TestFactoryDEF>$(TestFactoryDir)\$(TestFactoryName).def</TestFactoryDEF>
+        <TestFactoryMOD>$(TestFactoryDir)\$(TestFactoryName).mod</TestFactoryMOD>
     </PropertyGroup>
 
     <!-- compilation programs and parameters -->
@@ -80,9 +85,13 @@
         <DEFFilesDir Include = "@(MessagesDefDir)" />
 
         <DEFs Include = "@(Definitions);@(Modules)" />
-        <MODs Include = "@(Modules);@(Program)" />
         <DEFFiles Include = "@(DEFs -> '%(Filename).def')" />
         <DEFFilesDir Include = "@(DEFs -> '$(SourceDir)\%(Filename).def')" />
+
+        <MODs Include = "@(Modules);@(Program)" />
+        <MODFiles Include = "@(MODs -> '%(Filename).mod')" />
+        <MODFilesDir Include = "@(MODs -> '$(SourceDir)\%(Filename).mod')" />
+
         <HeadersDir Include="@(Definitions -> '$(HeaderDir)\%(Filename).h')"/>
     </ItemGroup>
 
@@ -95,30 +104,6 @@
         <LicensingSourceFiles Include="$(SourceDir)\cllv.def;$(SourceDir)\cllv.mod"/>
     </ItemGroup>
 
-    <!-- file names, sources, outputs for NOT for TESTs -->
-    <ItemGroup Condition="$(Test)==''">
-        <MODFiles Include = "@(MODs -> '%(Filename).mod')" />
-        <MODFilesDir Include = "@(MODs -> '$(SourceDir)\%(Filename).mod')" />
-    </ItemGroup>
-    <PropertyGroup Condition ="$(Test)==''">
-        <CodeTarget>Component</CodeTarget>
-        <M2SourceDir>$(SourceDir)</M2SourceDir>
-    </PropertyGroup>
-
-    <!-- file names, sources, outputs for TESTs -->
-    <ItemGroup Condition="$(Test)!=''">
-        <Tests Condition="$(Test)=='all'" Include="$(TestDir)\*.mod"/>
-        <Tests Condition="$(Test)!='all'" Include="$(TestDir)\$(Test).mod"/>
-        <MODFiles Include="@(Tests -> '%(Filename).mod')" />
-        <MODFilesDir Include="@(Tests)" />
-        <TestOutputs Include="@(Tests -> '..\$(OutputDir)\%(Filename).exe')"/>
-    </ItemGroup>
-    <PropertyGroup Condition ="$(Test)!=''">
-        <CodeTarget>Test</CodeTarget>
-        <M2SourceDir>$(TestDir)</M2SourceDir>
-        <M2TestInclude>-I&quot;..\$(SourceDir)&quot;</M2TestInclude>
-    </PropertyGroup>
-
     <!-- intermediates -->
     <ItemGroup>
         <CPPs Include="@(MODFiles -> '%(Filename).cpp')" />
@@ -126,14 +111,10 @@
         <CPPsDir Condition="$(TypeLibCPP) !=''" Include="$(IntermediateDir)\$(TypeLibCPP)" />
         <CPPsDir Condition="$(Result)!='Static' And $(Modula2InitCode)!=''" Include="$(IntermediateDir)\m2init.cpp"/>
 
-        <CPPsDir Condition="$(Test)!=''" Include="$(IntermediateDir)\m2init.cpp"/>
-
         <Objects Include="@(MODFiles -> '$(IntermediateDir)\%(Filename).obj')" />
         <Objects Condition="$(TypeLibOBJ) !=''" Include="$(TypeLibOBJ)" />
         <Objects Condition="$(Result)!='Static' And (@(ExportToInterface)!='' Or @(Objects)!='') And $(Modula2InitCode)!=''"
                  Include="$(IntermediateDir)\m2init.obj"/>
-
-        <Objects Condition="$(Test) != ''" Include="$(IntermediateDir)\m2init.obj"/>
 
         <RESFile Condition="$(Result)!='Static' And (@(ExportToInterface)!='' Or @(Objects)!='')"
                  Include="$(IntermediateDir)\$(MSBuildProjectName).res" />
@@ -144,12 +125,27 @@
 
         <MessagesBin Condition="@(Messages)!=''" Include="@(Messages -> '$(IntermediateDir)\$(MSBuildProjectName).%(FileName).brs')"/>
 
-        <Components Condition="$(LeakChecking)=='on' And $(LeakDetector)!='' And (@(ExportToInterface)!='' Or @(Objects)!='')"
-                    Include="$(LeakDetector)"/>
-
         <Components Condition="$(ClientLicensing)=='on' And $(LicensingComponent)!=''"
-                Include="$(LicensingComponent)"/>
+                    Include="$(LicensingComponent)"/>
 
+        <Components Condition="$(Test)!='off'"
+                    Include="$(TestComponent)"/>
+
+        <Components Condition="$(LeakChecking)=='on' And $(LeakDetectorComponent)!='' And (@(ExportToInterface)!='' Or @(Objects)!='')"
+                    Include="$(LeakDetectorComponent)"/>
+
+    </ItemGroup>
+
+    <!-- file names, sources, intermediates, outputs for TESTs -->
+    <ItemGroup>
+        <TestDEFFiles Condition="$(Test)!='off'" Include="$(TestDir)\*.def"/>
+        <TestMODFiles Condition="$(Test)!='off'" Include="$(TestDir)\*.mod"/>
+
+        <TestDEFFiles Condition="@(TestDEFFiles)!='' Or @(TestMODFiles)!=''" Include="$(TestFactoryDEF)"/>
+        <TestMODFiles Condition="@(TestDEFFiles)!='' Or @(TestMODFiles)!=''" Include="$(TestFactoryMOD)"/>
+
+        <TestCPPFiles Include="@(TestMODFiles -> '$(IntermediateDir)\%(Filename).cpp')"/>
+        <TestOBJFiles Include="@(TestMODFiles -> '$(IntermediateDir)\%(Filename).obj')"/>
     </ItemGroup>
 
     <!-- inner, invisible targets -->
@@ -363,8 +359,8 @@
 
 
     <Target Name="GrabOutOfDateFiles" Condition="@(DEFFiles)!='' Or @(MODFiles)!=''">
-        <Exec WorkingDirectory="$(M2SourceDir)"
-              Command="$(M2D) $(M2TDEF) $(M2TestInclude) -O&quot;..\$(IntermediateDir)&quot; @(DEFFiles, ' ') @(MODFiles, ' ')"/>
+        <Exec WorkingDirectory="$(SourceDir)"
+              Command="$(M2D) $(M2TDEF) -O&quot;..\$(IntermediateDir)&quot; @(DEFFiles, ' ') @(MODFiles, ' ')"/>
         <ReadLinesFromFile File="$(IntermediateDir)\OutOfDate.DEF.log">
             <Output TaskParameter="Lines" ItemName="OutOfDateDEFs"/>
         </ReadLinesFromFile>
@@ -381,8 +377,15 @@
     <Target Name="CPPs" Condition="(@(DEFFiles)!='' or @(MODFiles)!='')"
             Inputs="@(DEFFilesDir);@(MODFilesDir)"
             Outputs="@(DEFFilesDir -> '$(HeaderDir)\%(Filename).h');@(MODFilesDir -> '$(IntermediateDir)\%(Filename).cpp')">
-        <Exec WorkingDirectory="$(M2SourceDir)"
-              Command="$(M2) $(M2DEF) $(M2TestInclude) -O&quot;..\$(IntermediateDir)&quot; @(DEFFilesDir -> '%(FileName).def', ' ') @(MODFilesDir -> '%(FileName).mod', ' ')"/>
+        <Exec WorkingDirectory="$(SourceDir)"
+              Command="$(M2) $(M2DEF) -O&quot;..\$(IntermediateDir)&quot; @(DEFFilesDir -> '%(FileName).def', ' ') @(MODFilesDir -> '%(FileName).mod', ' ')"/>
+    </Target>
+
+    <Target Name="TestCPPs" Condition="@(TestDEFFiles)!='' or @(TestMODFiles)!=''"
+            Inputs="@(TestDEFFiles);@(TestMODFiles)"
+            Outputs="@(TestDEFFiles -> '$(HeaderDir)\%(Filename).h');@(TestMODFiles -> '$(IntermediateDir)\%(Filename).cpp')">
+        <Exec WorkingDirectory="$(TestDir)"
+              Command="$(M2) $(M2DEF) -I..\$(SourceDir) -O&quot;..\$(IntermediateDir)&quot; @(TestDEFFiles -> '%(FileName).def', ' ') @(TestMODFiles -> '%(FileName).mod', ' ')"/>
     </Target>
 
     <Target Name="Modula2InitCPP" Condition="$(Modula2InitCode)!=''"
@@ -402,7 +405,14 @@
               Command="$(CL) $(CLDEF) @(CPPsDir ->'%(FileName)%(Extension)', ' ')"/>
     </Target>
 
+    <Target Name="TestObjects" Condition="@(TestDEFFiles)!='' or @(TestMODFiles)!=''"
+            DependsOnTargets="TestCPPs"
+            Inputs="@(TestCPPFiles)" Outputs="@(TestCPPFiles -> '$(IntermediateDir)\%(Filename).obj')">
+        <Exec WorkingDirectory="$(IntermediateDir)"
+              Command="$(CL) $(CLDEF) @(TestCPPFiles ->'%(FileName)%(Extension)', ' ')"/>
+    </Target>
 
+    
     <Target Name="MessagesBin" Inputs="@(MessagesDir)" Outputs="@(MessagesBin)">
         <Exec Command="$(XRSBIN) @(MessagesDir, ' ')"/>
     </Target>
@@ -458,6 +468,11 @@
         <!-- Message Text="@(ExportToInterfaceObjects)" Importance="high" /-->
     </Target>
 
+    <Target Name="ComponentIncludes"
+            DependsOnTargets="CPPs;TestCPPs">
+        <!-- here CPPs are noted (and it is not left for automatic dependency by Object), because .h files from standalone .def files must be built too -->        
+    </Target>
+
     <Target Name="ComponentCode"
             Condition="@(ExportToInterface)!='' Or @(Objects)!=''"
             DependsOnTargets="Resources;$(UserPostRES);Objects;$(UserPostOBJ)"
@@ -472,8 +487,28 @@
         <Exec Condition="$(Result)=='Program'"
               WorkingDirectory="$(IntermediateDir)"
               Command="$(LINK) $(LINKDEF) @(Objects -> '%(Filename).obj', ' ') @(RESFile -> '%(Filename).res') @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
-        <Exec Condition="$(Result)!='Static' And $(CLib)!='static'"
+        <Exec Condition="$(Result)!='Static' And $(CLib)!='Static'"
               Command="$(MT)"/>
+    </Target>
+
+    <Target Name="ComponentTest"
+        Condition="(@(TestDEFFiles)!='' or @(TestMODFiles)!='') And $(Test)!='off'"
+        DependsOnTargets="TestObjects"
+        Inputs="@(TestOBJFiles);@(LinkDependencyLibraries)"
+        Outputs="$(TestOutput)">
+        <Exec WorkingDirectory="$(IntermediateDir)"
+              Command="$(LINK) /dll $(LINKTEST) /out:..\$(TestOutput) @(TestOBJFiles -> '%(Filename).obj', ' ') ..\$(OutputDir)\$(MSBuildProjectName).lib @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
+        <Exec Command="$(MTT)"/>
+    </Target>
+
+    <Target Name="ComponentRuntimes"
+            Condition="$(CopyRuntimes)=='on'"
+            Inputs="@(GrabbedRuntimes)"
+            Outputs="@(GrabbedRuntimes -> '$(OutputDir)\%(FileName)%(Extension)')">
+        <Copy SourceFiles="@(GrabbedRuntimes)"
+              DestinationFiles="@(GrabbedRuntimes -> '$(OutputDir)\%(FileName)%(Extension)')"
+              SkipUnchangedFiles="true"
+              ContinueOnError="false" />
     </Target>
 
     <Import Project="internal.licence.targets"/>
@@ -484,30 +519,8 @@
               Command="$(LICSIGN) *.tlic"/>
     </Target>
 
-    <Target Name="ComponentRuntimes"
-            Condition="$(CopyRuntimes)=='on'" 
-            Inputs="@(GrabbedRuntimes)"
-            Outputs="@(GrabbedRuntimes -> '$(OutputDir)\%(FileName)%(Extension)')">
-        <Copy SourceFiles="@(GrabbedRuntimes)"
-              DestinationFiles="@(GrabbedRuntimes -> '$(OutputDir)\%(FileName)%(Extension)')"
-              SkipUnchangedFiles="true"
-              ContinueOnError="false" />
-    </Target>
-
     <Target Name="Component"
-            DependsOnTargets="ComponentInterface;ComponentCode;ComponentRuntimes;BuildProductLicence"/>
-
-
-    <Target Name="Test" Condition="@(ExportToInterface)!='' Or @(Objects)!=''"
-            DependsOnTargets="Objects"
-            Inputs="@(Objects);@(LinkDependencyLibraries)" Outputs="@(TestOutputs)">
-        <Exec Condition="$(Result)=='Program'"
-              WorkingDirectory="$(IntermediateDir)"
-              Command="$(LINK) $(LINKTEST) /out:..\$(OutputDir)\%(Tests.Filename).exe m2init.obj %(Tests.Filename).obj @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
-        <Exec Condition="$(Result)!='Program'"
-              WorkingDirectory="$(IntermediateDir)"
-              Command="$(LINK) $(LINKTEST) /out:..\$(OutputDir)\%(Tests.Filename).exe m2init.obj %(Tests.Filename).obj @(Interface -> '%(Identity).lib') @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
-    </Target>
+            DependsOnTargets="ComponentInterface;ComponentCode;ComponentIncludes;ComponentTest;ComponentRuntimes;BuildProductLicence"/>
 
 
     <!-- outer, visible targets -->
@@ -535,7 +548,7 @@
 
 
     <Target Name="Build"
-            DependsOnTargets="ProductBuildNumberGet;Environment;GrabComponents;$(UserPreBuild);$(CodeTarget);$(UserPostBuild)"
+            DependsOnTargets="ProductBuildNumberGet;Environment;GrabComponents;$(UserPreBuild);Component;$(UserPostBuild)"
             Outputs="$(Compiled)">
         <CreateProperty Condition="@(Objects)!='' And $(Result)!='Static'"
                         Value="$(OutputPath)\$(OutputName)">

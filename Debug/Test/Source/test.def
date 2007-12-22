@@ -1,9 +1,7 @@
 DEFINITION MODULE test;
 
 IMPORT
-   lists,
-   log,
-   objlib;
+   log;
 
 (*================================================================================*)
 // interfaces
@@ -35,32 +33,13 @@ INTERFACE ITest;
 END ITest;
 
 INTERFACE ITests; // CID: Development.Tests
+   // for test run
+   PROCEDURE TestFactory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : ADDRESS ) : CARDINAL; // ClassPath can be empty, in the case default test class is created; return it objlib.TResult
    PROCEDURE EnumerateTests( REF ES : PTR; OUT Name : ARRAY OF WCHAR; OUT Test : TPTest ) : BOOLEAN;
+   // for test creation
+   PROCEDURE AddTest( CONST Name : ARRAY OF WCHAR; Test : TPTest );
 END ITests;
 
-(*================================================================================*)
-// helper implementations -- implementor can directly use the class, the only thing he
-// must do it to export Factory procedure and instantiate the class
-
-ABSTRACT CLASS ATests( objlib.ACreator ) IMPLEMENTS ITests;
-   PRIVATE VAR
-      Tests : lists.CPtrList;
-
-   // part of ILibrary
-   PUBLIC VIRTUAL PROCEDURE EnumerateClasses( REF EnumerateState : PTR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE GetLECData( OUT cllvData : objlib.TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
-
-   // ITests
-   PUBLIC VIRTUAL PROCEDURE EnumerateTests( REF ES : PTR; OUT Name : ARRAY OF WCHAR; OUT Test : TPTest ) : BOOLEAN;
-
-   // CTests
-   PUBLIC PROCEDURE AddTest( CONST Name : ARRAY OF WCHAR; Test : TPTest );
-   PUBLIC VIRTUAL PROCEDURE Dispose();
-
-   // ACreator
-   VIRTUAL PROCEDURE OnFactory( CONST QName : ARRAY OF WCHAR; OUT Object : objlib.TPObject ) : objlib.TResult;
-END ATests;
-   
 (*================================================================================*)
    
 END test.

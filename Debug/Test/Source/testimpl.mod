@@ -2,16 +2,124 @@ IMPLEMENTATION MODULE testimpl;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
+   
+IMPORT
+   lists,
+   objlib,
+   StringsO;
 
 (*================================================================================*)
 
-CLASS CTests( test.ATests );
+CONST
+   ctestClass = L"Development.Tests";
+
+(*================================================================================*)
+// abstract helper implementations -- implementor can directly use the class, the only thing he
+// must do it to export Factory procedure and instantiate the class
+
+CLASS CTests( objlib.ACreator ) IMPLEMENTS test.ITests;
+   PRIVATE VAR
+      Tests : lists.CPtrList;
+
+   // part of ILibrary
+   PUBLIC VIRTUAL PROCEDURE EnumerateClasses( REF EnumerateState : PTR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetLECData( OUT cllvData : objlib.TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
+
+   // ITests
+   PUBLIC VIRTUAL PROCEDURE TestFactory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : ADDRESS ) : CARDINAL;
+   PUBLIC VIRTUAL PROCEDURE EnumerateTests( REF ES : PTR; OUT Name : ARRAY OF WCHAR; OUT Test : test.TPTest ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE AddTest( CONST Name : ARRAY OF WCHAR; Test : test.TPTest );
+
+   // CTests
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+
+   // ACreator
    PUBLIC VIRTUAL PROCEDURE LibraryInfo( OUT Library, LibraryVersionString : ARRAY OF WCHAR );
+   VIRTUAL PROCEDURE OnFactory( CONST QName : ARRAY OF WCHAR; OUT Object : objlib.TPObject ) : objlib.TResult;
 END CTests;
+
+(*================================================================================*)
+
+CLASS IMPLEMENTATION CTests;
 
 (*--------------------------------------------------------------------------------*)
 
-CLASS IMPLEMENTATION CTests;
+   PUBLIC VIRTUAL PROCEDURE EnumerateClasses( REF EnumerateState : PTR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
+   BEGIN
+      IF EnumerateState > 0 THEN
+         RETURN FALSE;
+      END;
+      ClassName := ctestClass;
+      RETURN TRUE;
+   END EnumerateClasses;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE GetLECData( OUT cllvData : objlib.TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
+   BEGIN
+      RETURN FALSE;
+   END GetLECData;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE TestFactory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : ADDRESS ) : CARDINAL;
+   BEGIN
+      IF ClassPath = L"" THEN
+         RETURN CARDINAL( Factory( ctestClass, OUT Object ));
+      ELSE
+         RETURN CARDINAL( Factory( ClassPath, OUT Object ));
+      END;
+   END TestFactory;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE EnumerateTests( REF ES : PTR; OUT Name : ARRAY OF WCHAR; OUT Test : test.TPTest ) : BOOLEAN;
+   VAR
+      _S : StringsO.TPString;
+      _Test : test.TPTest;
+      b : BOOLEAN;
+   BEGIN
+      IF ES = 0 THEN
+         b := Tests.GetFirst( OUT _Test, OUT _S );
+      ELSE
+         b := Tests.NextOf( ES, OUT _Test, OUT _S );
+      END;
+      IF b THEN
+         ES := Tests.Current;
+         Test := _Test;
+         _S^.ToOA( OUT Name );
+      END;
+      RETURN b;
+   END EnumerateTests;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE AddTest( CONST Name : ARRAY OF WCHAR; Test : test.TPTest );
+   VAR
+      S : StringsO.TPString;
+   BEGIN
+      IF Tests.Contains( Test ) THEN
+         RETURN;
+      END;
+      S := NEW( StringsO.CString );
+      S^.FromOA( Name );
+      Tests.Add( Test, S );
+   END AddTest;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+   VAR
+      _S : POINTER TO StringsO.CString;
+   BEGIN
+      Tests.Reset();
+      WHILE Tests.MoveNext() DO
+         _S := Tests.CurrentData;
+         DISPOSE( _S );
+      END; // WHILE
+      Tests.Dispose();
+      SUPER.Dispose();
+   END Dispose;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -22,6 +130,18 @@ CLASS IMPLEMENTATION CTests;
    END LibraryInfo;
 
 (*---------------------------------------------------------------------------*)
+
+   VIRTUAL PROCEDURE OnFactory( CONST QName : ARRAY OF WCHAR; OUT Object : objlib.TPObject ) : objlib.TResult;
+   BEGIN
+      IF EQUALS( QName, ctestClass ) THEN
+         Object := ADR( AObject );
+         RETURN objlib.lrSuccess;
+      ELSE
+         RETURN objlib.lrClassNotFound;
+      END;
+   END OnFactory;
+
+(*--------------------------------------------------------------------------------*)
 
 END CTests;
 
