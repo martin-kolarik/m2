@@ -3,14 +3,14 @@ IMPLEMENTATION MODULE eibsrvdiface;
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
-FROM eibsrv IMPORT
+FROM srvcore IMPORT
    CEIBServer, R, TPEIBServer;
    
 IMPORT
-   eibsrv,
    netinit,
    Strings,
    StringsO,
+   srvcore,
    Texts;
 
 //================================================================================
@@ -41,49 +41,15 @@ END GetDriverInfoW;
 //--------------------------------------------------------------------------------
 
 PROCEDURE Check( VAR ErrorString : ARRAY OF CHAR; CWVersion, MajorVersion, MinorVersion, APIMajorVersion, APIMinorVersion : CARDINAL ): BOOLEAN;
-VAR
-   es : ARRAY [0..255] OF WCHAR;
-   b : BOOLEAN;
 BEGIN
-   b := CheckW( es, CWVersion, MajorVersion, MinorVersion, APIMajorVersion, APIMinorVersion );
-   Strings.ToA( es, 0, OUT ErrorString );
-   RETURN b;
+   RETURN TRUE;
 END Check;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE CheckW( VAR ErrorString : ARRAY OF WCHAR; CWVersion, MajorVersion, MinorVersion, APIMajorVersion, APIMinorVersion : CARDINAL ): BOOLEAN;
-(*/*
-CONST
-   ModuleName = C'DLEIBDRV';
-   DriverSignature = C'mii_dleibdrv';
-   DriverName = C'DataLab IF/EIB Driver';
-*/*)  
 BEGIN
    RETURN TRUE;
-(*/*
-(*%F RELEASE *)
-   RETURN TRUE; 
-(*%E RELEASE *)
-(*%F QCHECK *)
-   RETURN TRUE; 
-(*%E QCHECK *)
-(*%T QCHECK *)
-(*%T RELEASE *)
-(*%T CW4 *)
-   IF NOT qcheck.QCheck( CWVersion, DriverName, ModuleName, 48 ) THEN
-      ASSIGN( ErrorString, OAsz( R[ Texts._LicenceNotFound );
-      RETURN FALSE;
-   ELSE
-      RETURN TRUE; 
-   END;
-(*%E CW4 *)
-(*%F CW4 *)
-   RETURN TRUE;
-(*%E *)
-(*%E RELEASE *)
-(*%E QCHECK *)
-*/*)
 END CheckW;
 
 //--------------------------------------------------------------------------------
