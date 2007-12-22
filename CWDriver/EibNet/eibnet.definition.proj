@@ -2,7 +2,6 @@
     xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
 
     <PropertyGroup>
-        <M2Compiler>New</M2Compiler>
         <PlatformName Condition="$(PlatformName)==''">Win32</PlatformName>
         <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName>
         <LanguageStyle Condition="$(LanguageStyle)==''">UNICODE</LanguageStyle>
@@ -12,8 +11,12 @@
         <LeakChecking>off</LeakChecking>
     </PropertyGroup>
 
+    <PropertyGroup Condition="$(MSBuildProjectName)=='sccore'">
+        <ComponentType>Generic</ComponentType>
+    </PropertyGroup>
+
     <PropertyGroup Condition="$(MSBuildProjectName)=='eibsrv'">
-        <Result>Program</Result>
+        <Result>Dynamic</Result>
     </PropertyGroup>
 
     <PropertyGroup>
