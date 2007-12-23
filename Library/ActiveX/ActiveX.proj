@@ -15,8 +15,8 @@
 
     <!-- 3 COMPOMENT DEFINITION -->
     <ItemGroup>
-        <Components Include="modula2\modula2;api\clib;API\win32"/>
-        <Components Include="API\COM;modula2\m2rtl;Library\ADT;Library\Registry;Library\COM"/>
+        <Components Include="modula2\modula2;api\clib;API\win32;API\COM"/>
+        <Components Include="component\sccore"/>
         <Modules Include="ax_register;ax_automation"/>
     </ItemGroup>
 

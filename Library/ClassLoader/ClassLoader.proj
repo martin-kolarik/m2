@@ -14,7 +14,7 @@
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
         <Components Include="modula2\modula2;api\clib;API\win32" />
-        <Components Include="modula2\m2rtl;modula2\m2ortl;library\ADT"/>
+        <Components Include="component\sccore"/>
         <Modules Include="objlib;loader"/>
     </ItemGroup>
 

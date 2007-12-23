@@ -55,7 +55,7 @@
         <When Condition="$(ComponentType)=='Product'">
             <PropertyGroup>
                 <ProductFlag>on</ProductFlag>
-                <PropagateComponents>off</PropagateComponents>
+                <PropagateComponents>on</PropagateComponents>
                 <PropagateBuild>off</PropagateBuild>
             </PropertyGroup>
         </When>

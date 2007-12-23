@@ -19,7 +19,7 @@ note = $(ProductNote)</ProductLicenceFileContents>
         <Patch Value="$(ProductLicenceFileContents)" Keys="ProductVersionBuild" Patches="$(ProductVersionBuild)">
             <Output TaskParameter="Value" PropertyName="ProductLicenceFileContents"/>
         </Patch>
-        <WriteLinesToFile File="$(ProductLicenceFile)" Lines="$(ProductLicenceFileContents)"/>
+        <WriteLinesToFile File="$(ProductLicenceFile)" Overwrite="true" Lines="$(ProductLicenceFileContents)"/>
     </Target>
 
 </Project>
