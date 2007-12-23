@@ -17,6 +17,18 @@
         <DynamicCLibInstallMethod Condition="$(DynamicCLibInstallMethod)==''">Private</DynamicCLibInstallMethod><!-- Private Shared -->
     </PropertyGroup>
 
+    <PropertyGroup Condition="$(ComponentType)=='Product'">
+        <ProductId Condition="$(ProductId)==''">$(MSBuildProjectName)</ProductId>
+        <ProductDisplayName Condition="$(ProductDisplayName)==''">$(FileDisplayName)</ProductDisplayName>
+        <ProductDescription Condition="$(ProductDescription)==''">$(FileDescription)</ProductDescription>
+    </PropertyGroup>
+    <PropertyGroup>
+        <ComponentDefinitionsPath>$(MSBuildProjectDirectory)\$(MSBuildProjectName).definition.proj</ComponentDefinitionsPath>
+    </PropertyGroup>
+
+    <!-- configuration depended on component definition-->
+    <Import Condition="Exists('$(ComponentDefinitionsPath)')" Project="$(ComponentDefinitionsPath)"/>
+
     <!-- (constructed properties, DO NOT MODIFY) -->
     <Choose>
         <When Condition="$(ComponentType)=='Generic'">
@@ -56,19 +68,6 @@
         </Otherwise>
     </Choose>
 
-
-    <PropertyGroup Condition="$(ProductFlag)=='on'">
-        <ProductId Condition="$(ProductId)==''">$(MSBuildProjectName)</ProductId>
-        <ProductDisplayName Condition="$(ProductDisplayName)==''">$(FileDisplayName)</ProductDisplayName>
-        <ProductDescription Condition="$(ProductDescription)==''">$(FileDescription)</ProductDescription>
-    </PropertyGroup>
-    <PropertyGroup>
-        <ComponentDefinitionsPath>$(MSBuildProjectDirectory)\$(MSBuildProjectName).definition.proj</ComponentDefinitionsPath>
-    </PropertyGroup>
-
-    <!-- configuration depended on component definition-->
-    <Import Condition="Exists('$(ComponentDefinitionsPath)')" Project="$(ComponentDefinitionsPath)"/>
-
     <!-- default compilation control, CAN BE MODIFIED here as GLOBAL, or in product $(ComponentDefinitions) file -->
     <PropertyGroup>
         <PlatformName Condition="$(PlatformName)==''">Win32</PlatformName>
@@ -81,6 +80,11 @@
         <CPPExceptions Condition="$(CPPExceptions)==''">on</CPPExceptions>
         <CopyRuntimes Condition="$(CopyRuntimes)==''">$(ProductFlag)</CopyRuntimes>
 
+        <Test>off</Test>
+    </PropertyGroup>
+
+    <!-- (constructed properties, DO NOT MODIFY) -->
+    <PropertyGroup>
         <ClientLicensing Condition="$(ClientLicensing)=='' Or $(ProductFlag)=='off'">off</ClientLicensing>
         <SetupLicensing Condition="$(SetupLicensing)=='' Or $(ProductFlag)=='off'">off</SetupLicensing>
         <ClientLicensing Condition="$(Licensing)=='on' And $(ProductFlag)=='on'">on</ClientLicensing>
@@ -88,8 +92,6 @@
 
         <PublishExports Condition="$(PublishExports)=='' And $(Result)=='Dynamic'">on</PublishExports>
         <PublishExports Condition="$(PublishExports)=='' And $(Result)!='Dynamic'">off</PublishExports>
-
-        <Test>off</Test>
     </PropertyGroup>
 
     <!-- (constructed properties, DO NOT MODIFY) -->
@@ -99,6 +101,7 @@
         <LeakChecking Condition="$(LeakChecking)==''">off</LeakChecking>
     </PropertyGroup>
 
+    <!-- (constructed properties, DO NOT MODIFY) -->
     <PropertyGroup Condition ="$(ConfigurationName)!='Release'">
         <Licensing Condition="$(Licensing)==''">off</Licensing>
         <Debug Condition="$(Debug)==''">on</Debug>
