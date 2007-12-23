@@ -370,8 +370,9 @@ TYPE
   TData = ARRAY [0..13] OF BYTE;
 
 CLASS EMIPacket;
-  LOCAL VAR
+  PUBLIC VAR
     Code             : TEMICode;
+  LOCAL VAR
     LinkControl      : TLinkControl;      // link layer
     Source           : TPacketAddress;    // network layer
     Destination      : TPacketAddress;    // network layer
@@ -439,8 +440,9 @@ CONST
 (*--------------------------------------------------------------------------------*)
 
 CLASS cEMIPacket;
-   PRIVATE VAR
+   PUBLIC VAR
      Code             : TEMICode;
+   PRIVATE VAR
      AdditionalLength : CARD8;
      LinkControl      : TLinkControl;
      DAFAndRouting    : CARD8;

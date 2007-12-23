@@ -3191,6 +3191,7 @@ BEGIN
   Status := TStackStatusSet{};
   PEventSink := NIL;
   Storage.Zero( ADR( Layers ), SIZE( Layers ));
+  Lock.Init( sync.ltCS, L"", FALSE );
 END CEIBStack;
 
 (*================================================================================*)
