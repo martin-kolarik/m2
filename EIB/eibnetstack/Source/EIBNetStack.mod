@@ -29,6 +29,8 @@ CLASS CStackConnection( eibnet.CConnection );
    INTERNAL VIRTUAL PROCEDURE OnDisconnect();
    INTERNAL VIRTUAL PROCEDURE On_L_CON( Status : eib_status.TEIBStackStatus );
    INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : eib_def.TPacket );
+
+   INTERNAL VIRTUAL PROCEDURE TestSelfPacket( CONST packet : eib_def.TPacket ) : BOOLEAN;
 END CStackConnection;
 
 (*================================================================================*)
@@ -83,6 +85,13 @@ CLASS IMPLEMENTATION CStackConnection;
    BEGIN
       Stack^.Listener()^.Ph_Data_Ind( eib_def.TPPacket( ADR( packet )));
    END On_L_IND;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE TestSelfPacket( CONST packet : eib_def.TPacket ) : BOOLEAN;
+   BEGIN
+      RETURN Stack^.PStack^.IsSelfPacket( eib_def.TPPacket( ADR( packet )));
+   END TestSelfPacket;
 
 (*--------------------------------------------------------------------------------*)
 

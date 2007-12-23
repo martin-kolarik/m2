@@ -655,6 +655,7 @@ CLASS IMPLEMENTATION RoutingIndication;
    PUBLIC PROPERTY EMI SET( CONST Value : eib_def.TPacket );
    BEGIN
       _EMI.FromEMI( Value );
+      _EMI.Code := eib_def.L_Data_IND;
       Length := HEADER_SIZE_10 + _EMI.Length;
    END EMI;
 

@@ -110,6 +110,7 @@ CLASS CConnection( msghandler.MessageHandler );
    INTERNAL VIRTUAL PROCEDURE OnDisconnect();
    INTERNAL VIRTUAL PROCEDURE On_L_CON( Status : eib_status.TEIBStackStatus );
    INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : eib_def.TPacket );
+   INTERNAL VIRTUAL PROCEDURE TestSelfPacket( CONST packet : eib_def.TPacket ) : BOOLEAN;
 
    PRIVATE PROCEDURE OnRoutingIndication( CONST packet : core.RoutingIndication );
    PRIVATE PROCEDURE OnConnectResponse( CONST packet : core.ConnectResponse );

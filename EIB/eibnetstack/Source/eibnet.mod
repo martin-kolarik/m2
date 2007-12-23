@@ -69,9 +69,8 @@ CLASS IMPLEMENTATION CConnection;
       l : CARDINAL;
       wasConnected : BOOLEAN := NOT Disconnected;
    BEGIN
-      IF _Mode = Value THEN
-         RETURN;
-      ELSIF wasConnected THEN
+      // here test to Value = Mode should not be done, as for the first local IP must be read
+      IF wasConnected THEN
          Disconnect( TRUE );
       END;
 
@@ -565,12 +564,25 @@ CLASS IMPLEMENTATION CConnection;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE OnRoutingIndication( CONST packet : core.RoutingIndication );
+   INTERNAL VIRTUAL PROCEDURE TestSelfPacket( CONST packet : eib_def.TPacket ) : BOOLEAN;
    BEGIN
+      RETURN TRUE;
+   END TestSelfPacket;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE OnRoutingIndication( CONST packet : core.RoutingIndication );
+   VAR
+      EMI : eib_def.TPacket := packet.EMI;
+   BEGIN
+      IF TestSelfPacket( EMI ) THEN // not to accept telegram from self
+         RETURN;
+      END;
+
       logger()^.LogS( dldTrace, L"EIBNet Connection", L"ROUTED in" );
       logger()^.LogSB( dldDebug, L"EIBNet Connection", L"ROUTED: ", ADR( packet ), packet.Length );
 
-      On_L_IND( packet.EMI );
+      On_L_IND( EMI );
    END OnRoutingIndication;
 
 (*--------------------------------------------------------------------------------*)
