@@ -547,14 +547,22 @@ CLASS IMPLEMENTATION SSocket;
   INTERNAL PROCEDURE MulticastJoin() : CARDINAL;
   VAR
     MReq : WS2TcpIp.ip_mreq;
+    res : CARDINAL;
+    ttl : CARDINAL;
   BEGIN
-    IF winsock.IN_MULTICAST( REVERSE( MulticastGroup.s_addr )) THEN
-      MReq.imr_multiaddr.s_addr := MulticastGroup.s_addr;
-      MReq.imr_interface.s_addr := winsock.INADDR_ANY;
-      RETURN winsock.setsockopt( Socket, winsock.IPPROTO_IP, WS2TcpIp.IP_ADD_MEMBERSHIP, windows.PSTR( ADR( MReq )), SIZE( MReq ));
-    ELSE
+    IF NOT winsock.IN_MULTICAST( REVERSE( MulticastGroup.s_addr )) THEN
       RETURN 0;
     END;
+
+    MReq.imr_multiaddr.s_addr := MulticastGroup.s_addr;
+    MReq.imr_interface.s_addr := winsock.INADDR_ANY;
+    res := winsock.setsockopt( Socket, winsock.IPPROTO_IP, WS2TcpIp.IP_ADD_MEMBERSHIP, windows.PSTR( ADR( MReq )), SIZE( MReq ));
+    IF res <> 0 THEN
+      RETURN res;
+    END;
+
+    ttl := 32; // the same site
+    RETURN winsock.setsockopt( Socket, winsock.IPPROTO_IP, WS2TcpIp.IP_MULTICAST_TTL, windows.PSTR( ADR( ttl )), SIZE( ttl ));
   END MulticastJoin;
 
 (*--------------------------------------------------------------------------------*)
