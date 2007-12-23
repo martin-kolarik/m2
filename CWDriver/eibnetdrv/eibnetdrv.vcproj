@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8,00"
-	Name="EibNet"
+	Name="EibNetDrv"
 	ProjectGUID="{26BBC2F9-1B99-415B-AEF4-2D9F909B33DC}"
 	Keyword="MakeFileProj"
 	>
@@ -26,7 +26,6 @@
 				BuildCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj"
 				ReBuildCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild"
 				CleanCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean"
-				Output="EibNet.exe"
 				PreprocessorDefinitions="WIN32;_DEBUG"
 				IncludeSearchPath=""
 				ForcedIncludes=""
@@ -46,7 +45,6 @@
 				BuildCommandLine=""
 				ReBuildCommandLine=""
 				CleanCommandLine=""
-				Output="EibNet.exe"
 				PreprocessorDefinitions="WIN32;NDEBUG"
 				IncludeSearchPath=""
 				ForcedIncludes=""
@@ -100,11 +98,11 @@
 			</File>
 		</Filter>
 		<File
-			RelativePath=".\eibnet.definition.proj"
+			RelativePath=".\eibnetdrv.definition.proj"
 			>
 		</File>
 		<File
-			RelativePath=".\eibnet.proj"
+			RelativePath=".\eibnetdrv.proj"
 			>
 		</File>
 	</Files>

@@ -17,6 +17,10 @@
         <FileDescription>EIBNet/IP group object driver</FileDescription>
     </PropertyGroup>
 
+    <PropertyGroup>
+        <OutputName>EibNet.dll</OutputName>
+    </PropertyGroup>
+
     <!-- 2 INCLUDE DEFINITION -->
     <Import Project="..\..\Build\common.rootdir.proj"/>
     <Import Project="$(RootBuildDir)\common.definition.proj"/>
