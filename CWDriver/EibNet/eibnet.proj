@@ -14,6 +14,7 @@
         <ProductVersionMinor>0</ProductVersionMinor>
         <ProductNote></ProductNote>
 
+        <FileDisplayName>EIBNet/IP driver</FileDisplayName>
         <FileDescription>EIBNet/IP group object driver</FileDescription>
     </PropertyGroup>
 
@@ -23,16 +24,8 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <Components Include="modula2\modula2;api\clib;API\win32"/>
-        <Components Include="component\sccore"/>
-        <Components Include="EIB\srvcore;library\CWdriver"/>
-        <Messages Include="Texts"/>
-        <Modules Include="driver;diface"/>
+        <Components Include="CWDriver\eibnetdrv;EIB\checkcfg;EIB\discover"/>
     </ItemGroup>
-
-    <PropertyGroup>
-        <Export>export</Export>
-    </PropertyGroup>
 
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
     <Import Project="$(RootBuildDir)\common.build.proj"/>

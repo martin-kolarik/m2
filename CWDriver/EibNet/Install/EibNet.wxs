@@ -16,13 +16,13 @@
             <?endif ?>
             <Directory Id="ProgramFilesFolder">
                 <Directory Id="SmartControl" Name="SmartCtr" LongName="SmartControl">
-                    <Directory Id="INSTALLDIR" Name="EibSrv">
+                    <Directory Id="INSTALLDIR" Name="EibNet">
                         <Component Guid="7661D6C7-3F2E-4990-815B-36609A99DE62" Id="Program">
                             <File DiskId="1" Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt">
                             </File>
                             <File DiskId="1" Id="License.rtf" Name="License.rtf" Source="License.rtf">
                             </File>
-                            <File DiskId="1" Id="EibSrv.EXE" Name="EibSrv.exe" Source="EibSrv.exe" Vital="yes" KeyPath="yes">
+                            <File DiskId="1" Id="EibNet.DLL" Name="EibNet.dll" Source="EibNet.dll" Vital="yes" KeyPath="yes">
                             </File>
                             <File DiskId="1" Id="SCCore.DLL" Name="SCCore.dll" Source="SCCore.dll" Vital="yes">
                             </File>
@@ -98,7 +98,7 @@
         </Feature>
         <UIRef Id="WixUI_Licence" />
         <UI />
-        <Icon Id="AddRemoveIcon" SourceFile="EibSrv.ico" />
+        <Icon Id="AddRemoveIcon" SourceFile="EibNet.ico" />
         <?include $(var.BuildRoot)\Manufacturer.wxs ?>
     </Product>
 </Wix>

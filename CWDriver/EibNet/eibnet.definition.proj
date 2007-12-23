@@ -7,12 +7,12 @@
         <LanguageStyle Condition="$(LanguageStyle)==''">UNICODE</LanguageStyle>
         <Language Condition="$(Language)==''">Czech</Language>
         <CLib>Dynamic</CLib>
-        <Licensing>on</Licensing>
+        <SetupLicensing>on</SetupLicensing>
         <LeakChecking>off</LeakChecking>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='sccore'">
-        <ComponentType>Generic</ComponentType>
+    <PropertyGroup Condition="$(MSBuildProjectName)=='checkcfg' Or $(MSBuildProjectName)=='discover'">
+        <Result>Program</Result>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(MSBuildProjectName)=='eibnet'">
