@@ -15,7 +15,7 @@
         <ComponentType>Generic</ComponentType>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='eibsrv'">
+    <PropertyGroup Condition="$(MSBuildProjectName)=='eibnet'">
         <Result>Dynamic</Result>
     </PropertyGroup>
 

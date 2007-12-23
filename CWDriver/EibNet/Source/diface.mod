@@ -1,16 +1,16 @@
-IMPLEMENTATION MODULE eibsrvdiface;
+IMPLEMENTATION MODULE diface;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
-FROM srvcore IMPORT
-   CEIBServer, R, TPEIBServer;
+FROM driver IMPORT
+   CEIBDriver, TPEIBDriver;
    
 IMPORT
    netinit,
    Strings,
    StringsO,
-   srvcore,
+   driver,
    Texts;
 
 //================================================================================
@@ -28,14 +28,14 @@ END VersionW;
 
 PROCEDURE GetDriverInfo( VAR DriverName : ARRAY OF CHAR );
 BEGIN
-   Strings.ToA( OAsz( R[ Texts._DriverName ] ), 0, OUT DriverName );
+   Strings.ToA( OAsz( driver.R()^[ Texts._DriverName ] ), 0, OUT DriverName );
 END GetDriverInfo;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE GetDriverInfoW( VAR DriverNameW : ARRAY OF WCHAR );
 BEGIN
-   ASSIGN( DriverNameW, OAsz( R[ Texts._DriverName ] ));
+   ASSIGN( DriverNameW, OAsz( driver.R()^[ Texts._DriverName ] ));
 END GetDriverInfoW;
 
 //--------------------------------------------------------------------------------
@@ -61,14 +61,14 @@ BEGIN
    END;
    INC( RefCount );
 
-   RETURN NEW( CEIBServer );
+   RETURN NEW( CEIBDriver );
 END MakeDriverW;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE DisposeDriverW( PData : ADDRESS );
 BEGIN
-   DISPOSE( TPEIBServer( PData ));
+   DISPOSE( TPEIBDriver( PData ));
 
    DEC( RefCount );
    IF RefCount = 0 THEN
@@ -85,7 +85,7 @@ PROCEDURE InitCommon(    PData        : ADDRESS;
                                      PCallback    : drv_def.TDriverCallbackW;
                                VAR ErrorString  : ARRAY OF WCHAR ) : BOOLEAN;
 BEGIN
-   RETURN TPEIBServer( PData )^.Init( SymbolicName, CallbackId, PCallback );
+   RETURN TPEIBDriver( PData )^.Init( SymbolicName, CallbackId, PCallback );
 END InitCommon;
 
 PROCEDURE Init(      PData        : ADDRESS;
@@ -114,7 +114,7 @@ BEGIN
       END;
       RunW( PData );
    ELSIF em[0] = 0W THEN
-      Strings.ToA( OAsz( R[ Texts._InitError ] ), 0, OUT ErrorMessage );
+      Strings.ToA( OAsz( driver.R()^[ Texts._InitError ] ), 0, OUT ErrorMessage );
       RETURN FALSE;
    ELSE
       Strings.ToA( em, 0, OUT ErrorMessage );
@@ -160,7 +160,7 @@ BEGIN
       END;
       RunW( PData );
    ELSIF ErrorMessage[0] = 0W THEN
-      ASSIGN( ErrorMessage, OAsz( R[ Texts._InitError ] ));
+      ASSIGN( ErrorMessage, OAsz( driver.R()^[ Texts._InitError ] ));
       RETURN FALSE;
    ELSE
       RETURN FALSE;
@@ -189,14 +189,15 @@ PROCEDURE ReadParameters(             PData : ADDRESS;
                                         VAR HintOrHelp   : ARRAY OF CHAR ) : BOOLEAN;
 VAR
    em, pf : StringsO.CString;
+   l : CARDINAL;
    b : BOOLEAN;
 BEGIN
    ErrorColumn := 0;
    HintOrHelp := C'';
    
    pf.FromOAA( 0, ParFilePath );
-   b := TPEIBServer( PData )^.ReadParameters( pf, OUT em, OUT ErrorLine );
-   em.ToOAA( 0, OUT ErrorMessage );
+   b := TPEIBDriver( PData )^.ReadParameters( pf, OUT em, OUT ErrorLine );
+   em.ToOAA( 0, OUT ErrorMessage, OUT l );
    
    RETURN b;
 END ReadParameters;
@@ -215,7 +216,7 @@ BEGIN
    HintOrHelp := L'';
 
    pf.FromOA( ParFilePath );
-   b := TPEIBServer( PData )^.ReadParameters( pf, OUT em, OUT ErrorLine );
+   b := TPEIBDriver( PData )^.ReadParameters( pf, OUT em, OUT ErrorLine );
    em.ToOA( OUT ErrorMessage );
 
    RETURN b;
@@ -230,7 +231,7 @@ PROCEDURE EnumerateChannelsW( PData : ADDRESS;
                                              VAR HaveDescription : BOOLEAN
                                           ): BOOLEAN;
 BEGIN
-   RETURN TPEIBServer( PData )^.EnumerateChannels( EnumerateState, Type, Direction, DriverIndex, Count, HaveDescription );
+   RETURN TPEIBDriver( PData )^.EnumerateChannels( EnumerateState, Type, Direction, DriverIndex, Count, HaveDescription );
 END EnumerateChannelsW;
 
 PROCEDURE GetChannelDescription( PData : ADDRESS;
@@ -243,7 +244,7 @@ VAR
    id : ARRAY [0..64] OF WCHAR;
    b : BOOLEAN;
 BEGIN
-   b := TPEIBServer( PData )^.GetChannelDescription( DriverIndex, desc, id );
+   b := TPEIBDriver( PData )^.GetChannelDescription( DriverIndex, desc, id );
    IF b THEN
       Strings.ToA( desc, 0, OUT Description );
       Strings.ToA( id, 0, OUT Id );
@@ -257,7 +258,7 @@ PROCEDURE GetChannelDescriptionW( PData : ADDRESS;
                                                    VAR Id : ARRAY OF WCHAR
                                                 ) : BOOLEAN;
 BEGIN
-   RETURN TPEIBServer( PData )^.GetChannelDescription( DriverIndex, Description, Id );
+   RETURN TPEIBDriver( PData )^.GetChannelDescription( DriverIndex, Description, Id );
 END GetChannelDescriptionW;
 
 //--------------------------------------------------------------------------------
@@ -279,26 +280,22 @@ PROCEDURE QueryErrorCodeW(         PData : ADDRESS;
                                         VAR ErrorText : ARRAY OF WCHAR ) : BOOLEAN;
 BEGIN
    CASE ErrorCode OF
-   | eibsrv.ceDeviceUnplugged :
-      ASSIGN( ErrorText, OAsz( R[ Texts._E_DeviceUnplugged ] ));
-   | eibsrv.ceNoEIBConnection :
-      ASSIGN( ErrorText, OAsz( R[ Texts._E_NoEIBConnection ] ));
-   | eibsrv.ceBUSMONActive :
-      ASSIGN( ErrorText, OAsz( R[ Texts._E_BUSMONActive ] ));
-   | eibsrv.ceLCONError :
-      ASSIGN( ErrorText, OAsz( R[ Texts._E_LCONError ] ));
-   | eibsrv.ceRD_RES_Timeout :
-      ASSIGN( ErrorText, OAsz( R[ Texts._E_RD_RES_Timeout ] ));
-   | eibsrv.ceLineBusy :
-      ASSIGN( ErrorText, OAsz( R[ Texts._E_LineBusy ] ));
-   | eibsrv.ceTransceiverFault :
-      ASSIGN( ErrorText, OAsz( R[ Texts._E_TransceiverFault ] ));
-   | eibsrv.ceOutputQueueOverflow :
-      ASSIGN( ErrorText, OAsz( R[ Texts._E_OutputQueueOverflow ] ));
-   | eibsrv.ceReadQueueOverflow :
-      ASSIGN( ErrorText, OAsz( R[ Texts._E_ReadQueueOverflow ] ));
-   | eibsrv.ceWriteQueueOverflow :
-      ASSIGN( ErrorText, OAsz( R[ Texts._E_WriteQueueOverflow ] ));
+   | driver.ceDeviceUnplugged :
+      ASSIGN( ErrorText, OAsz( driver.R()^[ Texts._E_DeviceUnplugged ] ));
+   | driver.ceLCONError :
+      ASSIGN( ErrorText, OAsz( driver.R()^[ Texts._E_LCONError ] ));
+   | driver.ceRD_RES_Timeout :
+      ASSIGN( ErrorText, OAsz( driver.R()^[ Texts._E_RD_RES_Timeout ] ));
+   | driver.ceLineBusy :
+      ASSIGN( ErrorText, OAsz( driver.R()^[ Texts._E_LineBusy ] ));
+   | driver.ceTransceiverFault :
+      ASSIGN( ErrorText, OAsz( driver.R()^[ Texts._E_TransceiverFault ] ));
+   | driver.ceOutputQueueOverflow :
+      ASSIGN( ErrorText, OAsz( driver.R()^[ Texts._E_OutputQueueOverflow ] ));
+   | driver.ceReadQueueOverflow :
+      ASSIGN( ErrorText, OAsz( driver.R()^[ Texts._E_ReadQueueOverflow ] ));
+   | driver.ceWriteQueueOverflow :
+      ASSIGN( ErrorText, OAsz( driver.R()^[ Texts._E_WriteQueueOverflow ] ));
    ELSE
       RETURN FALSE;
    END;
@@ -309,21 +306,21 @@ END QueryErrorCodeW;
 
 PROCEDURE RunW( PData : ADDRESS );
 BEGIN
-   TPEIBServer( PData )^.Run( TRUE, TRUE );
+   TPEIBDriver( PData )^.Run( TRUE, TRUE );
 END RunW;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE StopW( PData : ADDRESS );
 BEGIN
-   TPEIBServer( PData )^.Stop( TRUE, TRUE );
+   TPEIBDriver( PData )^.Stop( TRUE, TRUE );
 END StopW;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE DoneW( PData : ADDRESS );
 BEGIN
-   TPEIBServer( PData )^.Dispose();
+   TPEIBDriver( PData )^.Dispose();
 END DoneW;
 
 //--------------------------------------------------------------------------------
@@ -350,49 +347,49 @@ END QueryProcW;
 
 PROCEDURE QueryProc3( PData : ADDRESS; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
 BEGIN
-   TPEIBServer( PData )^.QueryProc( FALSE, InValue1, InValue2, OutValue );
+   TPEIBDriver( PData )^.QueryProc( FALSE, InValue1, InValue2, OutValue );
 END QueryProc3;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE QueryProc3W( PData : ADDRESS; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
 BEGIN
-   TPEIBServer( PData )^.QueryProc( FALSE, InValue1, InValue2, OutValue );
+   TPEIBDriver( PData )^.QueryProc( FALSE, InValue1, InValue2, OutValue );
 END QueryProc3W;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE InputRequestStartW( PData : ADDRESS );
 BEGIN
-   TPEIBServer( PData )^.InputRequestStart();
+   TPEIBDriver( PData )^.InputRequestStart();
 END InputRequestStartW;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE InputRequestW( PData : ADDRESS; DriverIndex : CARDINAL );
 BEGIN
-   TPEIBServer( PData )^.InputRequest( DriverIndex );
+   TPEIBDriver( PData )^.InputRequest( DriverIndex );
 END InputRequestW;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE InputRequestCompletedW( PData : ADDRESS );
 BEGIN
-   TPEIBServer( PData )^.InputRequestCompleted();
+   TPEIBDriver( PData )^.InputRequestCompleted();
 END InputRequestCompletedW;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE InputFinalizedW( PData : ADDRESS; DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
 BEGIN
-   RETURN TPEIBServer( PData )^.InputFinalized( DriverIndex, ErrorCode );
+   RETURN TPEIBDriver( PData )^.InputFinalized( DriverIndex, ErrorCode );
 END InputFinalizedW;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE InputOOBDataQueryW( PData : ADDRESS; VAR EnumerateState : LONGWORD; VAR DriverIndex : CARDINAL ) : BOOLEAN;
 BEGIN
-   RETURN TPEIBServer( PData )^.InputOOBDataQuery( EnumerateState, DriverIndex );
+   RETURN TPEIBDriver( PData )^.InputOOBDataQuery( EnumerateState, DriverIndex );
 END InputOOBDataQueryW;
 
 //--------------------------------------------------------------------------------
@@ -408,7 +405,7 @@ END GetInput;
 
 PROCEDURE GetInput3( PData : ADDRESS; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue; VAR QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp; VAR ErrorCode : CARDINAL );
 BEGIN
-   TPEIBServer( PData )^.GetInput( FALSE, DriverIndex, InValue, QoS, TimeStamp, ErrorCode );
+   TPEIBDriver( PData )^.GetInput( FALSE, DriverIndex, InValue, QoS, TimeStamp, ErrorCode );
 END GetInput3;
 
 PROCEDURE GetInputW( PData : ADDRESS; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue );
@@ -422,14 +419,14 @@ END GetInputW;
 
 PROCEDURE GetInput3W( PData : ADDRESS; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue; VAR QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp; VAR ErrorCode : CARDINAL );
 BEGIN
-   TPEIBServer( PData )^.GetInput( TRUE, DriverIndex, InValue, QoS, TimeStamp, ErrorCode );
+   TPEIBDriver( PData )^.GetInput( TRUE, DriverIndex, InValue, QoS, TimeStamp, ErrorCode );
 END GetInput3W;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE OutputRequestStartW( PData : ADDRESS );
 BEGIN
-   TPEIBServer( PData )^.OutputRequestStart();
+   TPEIBDriver( PData )^.OutputRequestStart();
 END OutputRequestStartW;
 
 //--------------------------------------------------------------------------------
@@ -443,7 +440,7 @@ END OutputRequest;
 
 PROCEDURE OutputRequest3( PData : ADDRESS; DriverIndex : CARDINAL; OutValue : drv_def.TValue; QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp );
 BEGIN
-   TPEIBServer( PData )^.OutputRequest( FALSE, DriverIndex, OutValue, QoS, TimeStamp );
+   TPEIBDriver( PData )^.OutputRequest( FALSE, DriverIndex, OutValue, QoS, TimeStamp );
 END OutputRequest3;
 
 PROCEDURE OutputRequestW( PData : ADDRESS; DriverIndex : CARDINAL; OutValue : drv_def.TValue );
@@ -455,23 +452,23 @@ END OutputRequestW;
 
 PROCEDURE OutputRequest3W( PData : ADDRESS; DriverIndex : CARDINAL; OutValue : drv_def.TValue; QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp );
 BEGIN
-   TPEIBServer( PData )^.OutputRequest( TRUE, DriverIndex, OutValue, QoS, TimeStamp );
+   TPEIBDriver( PData )^.OutputRequest( TRUE, DriverIndex, OutValue, QoS, TimeStamp );
 END OutputRequest3W;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE OutputRequestCompletedW( PData : ADDRESS );
 BEGIN
-   TPEIBServer( PData )^.OutputRequestCompleted();
+   TPEIBDriver( PData )^.OutputRequestCompleted();
 END OutputRequestCompletedW;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE OutputFinalizedW( PData : ADDRESS; DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
 BEGIN
-   RETURN TPEIBServer( PData )^.OutputFinalized( DriverIndex, ErrorCode );
+   RETURN TPEIBDriver( PData )^.OutputFinalized( DriverIndex, ErrorCode );
 END OutputFinalizedW;
 
 //================================================================================
 
-END eibsrvdiface.
+END diface.

@@ -1,4 +1,4 @@
-DEFINITION MODULE eibsrvdiface;
+DEFINITION MODULE diface;
 
 IMPORT
   winsock,
@@ -123,4 +123,4 @@ PROCEDURE OutputFinalizedW( PData : ADDRESS; DriverIndex : CARDINAL; VAR ErrorCo
 
 //================================================================================
 
-END eibsrvdiface.
+END diface.

@@ -65,7 +65,11 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\Source\eibsrvdiface.mod"
+				RelativePath=".\Source\diface.mod"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\driver.mod"
 				>
 			</File>
 		</Filter>
@@ -75,7 +79,11 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\Source\eibsrvdiface.def"
+				RelativePath=".\Source\diface.def"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\driver.def"
 				>
 			</File>
 			<File
