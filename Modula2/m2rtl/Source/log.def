@@ -68,6 +68,8 @@ CLASS CLogger;
 
   PUBLIC PROCEDURE SetUpByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN;
 
+  PUBLIC PROCEDURE Filtered( Level : TDebugLevel ) : BOOLEAN;
+
   PUBLIC PROCEDURE LogS( Level : TDebugLevel; Prefix, S : ARRAY OF WCHAR );
   PUBLIC PROCEDURE LogSS( Level : TDebugLevel; Prefix, S1, S2 : ARRAY OF WCHAR );
   PUBLIC PROCEDURE LogSC( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL );
@@ -82,7 +84,6 @@ CLASS CLogger;
   
   PUBLIC PROCEDURE LogExc( Level : TDebugLevel; Prefix : ARRAY OF WCHAR; CONST e : Exceptions.CException );
 
-  PRIVATE INLINE PROCEDURE Filtered( Level : TDebugLevel ) : BOOLEAN;
   INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : TDebugLevel; CONST Prefix, S : ARRAY OF WCHAR );
   PRIVATE PROCEDURE LoadByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN;
 END CLogger;

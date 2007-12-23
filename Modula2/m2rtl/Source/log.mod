@@ -124,6 +124,17 @@ CLASS IMPLEMENTATION CLogger;
 
 //---------------------------------------------------------
 
+   PUBLIC PROCEDURE Filtered( Level : TDebugLevel ) : BOOLEAN;
+   BEGIN
+      IF TRStatus{rsDebugFile, rsDebugKernel} * RStatus = TRStatus{} THEN
+         RETURN TRUE;
+      ELSE
+         RETURN Level > DebugLevel;
+      END;
+   END Filtered;
+
+//---------------------------------------------------------
+
   PUBLIC PROCEDURE LogS( Level : TDebugLevel; Prefix, S : ARRAY OF WCHAR );
   BEGIN
     IF Filtered( Level ) THEN
@@ -351,17 +362,6 @@ CLASS IMPLEMENTATION CLogger;
 	   e.ToString( OUT S );
 	   Log( Level, Prefix, S );
 	END LogExc;
-
-//---------------------------------------------------------
-
-   PRIVATE INLINE PROCEDURE Filtered( Level : TDebugLevel ) : BOOLEAN;
-   BEGIN
-      IF TRStatus{rsDebugFile, rsDebugKernel} * RStatus = TRStatus{} THEN
-         RETURN TRUE;
-      ELSE
-         RETURN Level > DebugLevel;
-      END;
-   END Filtered;
 
 //---------------------------------------------------------
 
