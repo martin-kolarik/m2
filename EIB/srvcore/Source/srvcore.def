@@ -41,13 +41,12 @@ CLASS CObject( eib_user.CUserObject );
    ReadRepeatCount    : CARDINAL;
    RecoveryExpiration : CARDINAL;
 
+   PUBLIC PROCEDURE LogNumber() : CARDINAL;
+
    INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : eib_status.TEIBStackStatus );
    INTERNAL VIRTUAL PROCEDURE ValueRead( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN );
    INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN );
    INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : eib_status.TEIBStackStatus );
-
-   // private
-   LOCAL PROCEDURE LogNumber() : CARDINAL;
 END CObject;
 
 //--------------------------------------------------------------------------------
@@ -199,10 +198,13 @@ CLASS CEIBServer( msghandler.MessageHandler );
    PUBLIC PROCEDURE LoadConfiguration( CONST ConfigurationFile : StringsO.CString; OUT ErrorMessage : StringsO.CString; OUT ErrorLine : CARDINAL ) : BOOLEAN;
 
    PUBLIC PROCEDURE Run( OperateEIB, OperateSDAP : BOOLEAN );
-   PUBLIC PROCEDURE Connected();
    PUBLIC PROCEDURE Stop( OperateEIB, OperateSDAP : BOOLEAN );
-   PUBLIC PROCEDURE Disconnected();
    PUBLIC PROCEDURE Dispose();
+
+   PUBLIC PROCEDURE OnDeviceConnect();
+   PUBLIC PROCEDURE OnDeviceDisconnect();
+   
+   PUBLIC PROCEDURE GetObject( CONST Address : eib_def.TAddress; OUT PObject : TPObject ) : BOOLEAN;
 
    // internal
    PROCEDURE FindBehaviour( BehaviourName : ARRAY OF WCHAR; VAR Priority : eib_def.TPriority; VAR Flags : eib_def.TA_ObjectFlags ) : BOOLEAN;

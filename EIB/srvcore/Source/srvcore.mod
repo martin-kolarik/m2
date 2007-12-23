@@ -287,7 +287,7 @@ CLASS IMPLEMENTATION CObject;
 
 //--------------------------------------------------------------------------------
 
-   LOCAL PROCEDURE LogNumber() : CARDINAL;
+   PUBLIC PROCEDURE LogNumber() : CARDINAL;
    VAR
       G, M, S : CARDINAL;
       sa : eib_def.CAddress;
@@ -327,14 +327,14 @@ CLASS IMPLEMENTATION CStackSink;
 
    PUBLIC VIRTUAL PROCEDURE OnDeviceConnected();
    BEGIN
-      Server^.Connected();
+      Server^.OnDeviceConnect();
    END OnDeviceConnected;
 
 //--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROCEDURE OnDeviceDisconnected();
    BEGIN
-      Server^.Disconnected();
+      Server^.OnDeviceDisconnect();
    END OnDeviceDisconnected;
 
 //--------------------------------------------------------------------------------
@@ -1623,7 +1623,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE Connected();
+   PUBLIC PROCEDURE OnDeviceConnect();
    BEGIN
       IF EventSink <> NIL THEN
          EventSink^.OnConnect();
@@ -1639,16 +1639,16 @@ CLASS IMPLEMENTATION CEIBServer;
       ELSE
          DoInitRead( FALSE );
       END;
-   END Connected;
+   END OnDeviceConnect;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE Disconnected();
+   PUBLIC PROCEDURE OnDeviceDisconnect();
    BEGIN
       IF EventSink <> NIL THEN
          EventSink^.OnDisconnect();
       END;
-   END Disconnected;
+   END OnDeviceDisconnect;
 
 //--------------------------------------------------------------------------------
 
@@ -1681,6 +1681,25 @@ CLASS IMPLEMENTATION CEIBServer;
       END;
       SUPER.Dispose();
    END Dispose;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE GetObject( CONST Address : eib_def.TAddress; OUT PObject : TPObject ) : BOOLEAN;
+   VAR
+      c : CARDINAL;
+   BEGIN
+      IF Objects.Count = 0 THEN
+         RETURN FALSE;
+      END;
+
+      c := Address.GetGroupAddress1();
+      IF Groups[ CARD16( c ) ] = 0FFFFH THEN
+         RETURN FALSE;
+      END;
+
+      PObject := Objects[ CARDINAL( Groups[ CARD16( c ) ] ) ];
+      RETURN TRUE;
+   END GetObject;
 
 //--------------------------------------------------------------------------------
 
@@ -1937,10 +1956,7 @@ CLASS IMPLEMENTATION CEIBServer;
       EV : eib_def.TValue;
       i : CARDINAL;
       PObject : TPObject;
-      
-// TODO
-saddr : ARRAY [0..63] OF WCHAR;
-      
+      saddr : ARRAY [0..63] OF WCHAR;
    BEGIN
       IF NOT RepeatFlag THEN
          InitReadRepeat := InitReadRepeatCount;
@@ -1950,9 +1966,10 @@ saddr : ARRAY [0..63] OF WCHAR;
          IF NOT RepeatFlag AND ( eib_def.aofInitRead IN PObject^.GetFlags() ) OR
                 RepeatFlag AND ( eib_user.osInitReadRepeat IN PObject^.State ) THEN
 
-      // TODO
-      PObject^.ReadAddress.GetGroupAddress3( TRUE, saddr );
-      Log.logger()^.LogSS( Log.dlpIO, L"srv", "INIT: ", saddr );
+            IF NOT Log.logger()^.Filtered( Log.dldDebug ) THEN
+               PObject^.ReadAddress.GetGroupAddress3( TRUE, saddr );
+               Log.logger()^.LogSS( Log.dldDebug, L"srv", "INIT: ", saddr );
+            END;
 
             INC( InitReadItems );
             PObject^.State := PObject^.State - eib_user.TObjectState{eib_user.osInitReadRepeat} + eib_user.TObjectState{eib_user.osInitReadPending};
