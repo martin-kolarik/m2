@@ -1,0 +1,126 @@
+DEFINITION MODULE diface;
+
+IMPORT
+  winsock,
+  drv_def;
+
+//================================================================================
+// procedural interface
+
+# save, call( convention => cdecl, o_a_size => on ), option( dll_export => on )
+
+// SCANNING
+PROCEDURE VersionW() : CARDINAL;
+PROCEDURE Check( VAR ErrorString : ARRAY OF CHAR; CWVersion, MajorVersion, MinorVersion, APIMajorVersion, APIMinorVersion : CARDINAL ): BOOLEAN;
+PROCEDURE CheckW( VAR ErrorString : ARRAY OF WCHAR; CWVersion, MajorVersion, MinorVersion, APIMajorVersion, APIMinorVersion : CARDINAL ): BOOLEAN;
+PROCEDURE GetDriverInfo( VAR DriverNameW : ARRAY OF CHAR );
+PROCEDURE GetDriverInfoW( VAR DriverNameW : ARRAY OF WCHAR );
+
+// OBJECT DATA
+PROCEDURE MakeDriverW() : ADDRESS;
+PROCEDURE DisposeDriverW( PData : ADDRESS );
+
+// DRIVER MANAGEMENT
+// CW2K
+PROCEDURE Init(      PData        : ADDRESS;
+                 VAR ParFilePath  : ARRAY OF CHAR;
+                 VAR ErrorMessage : ARRAY OF CHAR;
+                     UserLevel    : CARDINAL;
+                     RunFlag      : BOOLEAN;
+                     CallbackId   : ADDRESS;
+                     PCallback    : drv_def.TDriverCallbackW ) : BOOLEAN;
+PROCEDURE InitW(     PData        : ADDRESS;
+                 VAR ParFilePath  : ARRAY OF WCHAR;
+                 VAR ErrorMessage : ARRAY OF WCHAR;
+                     UserLevel    : CARDINAL;
+                     RunFlag      : BOOLEAN;
+                     CallbackId   : ADDRESS;
+                     PCallback    : drv_def.TDriverCallbackW ) : BOOLEAN;
+// >= CW5
+PROCEDURE Init3(     PData        : ADDRESS;
+                     RunMode      : CARDINAL;
+                 VAR SymbolicName : ARRAY OF CHAR;
+                     CallbackId   : ADDRESS;
+                     PCallback    : drv_def.TDriverCallbackW ) : BOOLEAN;
+PROCEDURE Init3W(    PData        : ADDRESS;
+                     RunMode      : CARDINAL;
+                 VAR SymbolicName : ARRAY OF WCHAR;
+                     CallbackId   : ADDRESS;
+                     PCallback    : drv_def.TDriverCallbackW ) : BOOLEAN;
+PROCEDURE ReadParameters(             PData : ADDRESS;
+                           VAR ParFilePath  : ARRAY OF CHAR;
+                           VAR ErrorMessage : ARRAY OF CHAR;
+                           VAR ErrorLine    : CARDINAL;
+                           VAR ErrorColumn  : CARDINAL;
+                           VAR HintOrHelp   : ARRAY OF CHAR ) : BOOLEAN;
+PROCEDURE ReadParametersW(            PData : ADDRESS;
+                           VAR ParFilePath  : ARRAY OF WCHAR;
+                           VAR ErrorMessage : ARRAY OF WCHAR;
+                           VAR ErrorLine    : CARDINAL;
+                           VAR ErrorColumn  : CARDINAL;
+                           VAR HintOrHelp   : ARRAY OF WCHAR ) : BOOLEAN;
+PROCEDURE QueryErrorCode(          PData : ADDRESS;
+                               ErrorCode : CARDINAL;
+                           VAR ErrorText : ARRAY OF CHAR ) : BOOLEAN;
+PROCEDURE QueryErrorCodeW(         PData : ADDRESS;
+                               ErrorCode : CARDINAL;
+                           VAR ErrorText : ARRAY OF WCHAR ) : BOOLEAN;
+PROCEDURE EnumerateChannelsW( PData : ADDRESS;
+                              VAR EnumerateState : LONGWORD;
+                              VAR Type : CARDINAL;
+                              VAR Direction : CARDINAL;
+                              VAR DriverIndex : CARDINAL;
+                              VAR Count : CARDINAL;
+                              VAR HaveDescription : BOOLEAN
+                            ): BOOLEAN;
+PROCEDURE GetChannelDescription( PData : ADDRESS;
+                                 DriverIndex : CARDINAL;
+                                 VAR Description : ARRAY OF CHAR;
+                                 VAR Id : ARRAY OF CHAR
+                                ) : BOOLEAN;
+PROCEDURE GetChannelDescriptionW( PData : ADDRESS;
+                                  DriverIndex : CARDINAL;
+                                  VAR Description : ARRAY OF WCHAR;
+                                  VAR Id : ARRAY OF WCHAR
+                                 ) : BOOLEAN;
+
+PROCEDURE RunW( PData : ADDRESS );
+PROCEDURE StopW( PData : ADDRESS );
+PROCEDURE DoneW( PData : ADDRESS );
+
+PROCEDURE DriverProcW( PData : ADDRESS; Func, Param1, Param2, Param3, Param4 : CARDINAL );
+// CW2K
+PROCEDURE QueryProc( PData : ADDRESS; InValue : drv_def.TValue; VAR OutValue : drv_def.TValue );
+PROCEDURE QueryProcW( PData : ADDRESS; InValue : drv_def.TValue; VAR OutValue : drv_def.TValue );
+// >= CW5
+PROCEDURE QueryProc3( PData : ADDRESS; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
+PROCEDURE QueryProc3W( PData : ADDRESS; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
+
+// DATA FLOW
+PROCEDURE InputRequestStartW( PData : ADDRESS );
+PROCEDURE InputRequestW( PData : ADDRESS; DriverIndex : CARDINAL );
+PROCEDURE InputRequestCompletedW( PData : ADDRESS );
+PROCEDURE InputFinalizedW( PData : ADDRESS; DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
+PROCEDURE InputOOBDataQueryW( PData : ADDRESS; VAR EnumerateState : LONGWORD; VAR DriverIndex : CARDINAL ) : BOOLEAN;
+// CW2K
+PROCEDURE GetInput( PData : ADDRESS; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue );
+PROCEDURE GetInputW( PData : ADDRESS; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue );
+// >= CW5
+PROCEDURE GetInput3( PData : ADDRESS; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue; VAR QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp; VAR ErrorCode : CARDINAL );
+PROCEDURE GetInput3W( PData : ADDRESS; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue; VAR QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp; VAR ErrorCode : CARDINAL );
+
+PROCEDURE OutputRequestStartW( PData : ADDRESS );
+// CW2K
+PROCEDURE OutputRequest( PData : ADDRESS; DriverIndex : CARDINAL; OutValue : drv_def.TValue );
+PROCEDURE OutputRequestW( PData : ADDRESS; DriverIndex : CARDINAL; OutValue : drv_def.TValue );
+// >= CW5
+PROCEDURE OutputRequest3( PData : ADDRESS; DriverIndex : CARDINAL; OutValue : drv_def.TValue; QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp );
+PROCEDURE OutputRequest3W( PData : ADDRESS; DriverIndex : CARDINAL; OutValue : drv_def.TValue; QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp );
+PROCEDURE OutputRequestCompletedW( PData : ADDRESS );
+PROCEDURE OutputFinalizedW( PData : ADDRESS; DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
+
+# restore
+
+//================================================================================
+
+END diface.
