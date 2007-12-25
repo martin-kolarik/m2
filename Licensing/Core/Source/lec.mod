@@ -20,14 +20,14 @@ CONST
    expNotSet = MIN( INT64 );
    expNever = MAX( INT64 );
    
-   #if DEBUG #then
+   #if #false #and DEBUG #then
       demoExp = time.unitsInDay * 3 DIV 1440; // 3 minutes
       unactExp = time.unitsInDay * 1;
    #else
       demoExp = time.unitsInDay * 6 DIV 240; // 0.6 hours
       unactExp = time.unitsInDay * 33;
    #endif
-   countLimit = 1000;
+   countLimit = 10000;
 
 (*================================================================================*)
 
