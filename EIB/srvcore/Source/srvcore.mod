@@ -1592,7 +1592,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
    PUBLIC PROCEDURE Run( OperateEIB, OperateSDAP : BOOLEAN );
    VAR
-      s : FIO.PathStrW;
+      s : FIO.PathStrW := L"";
    BEGIN
       IF rsRunning IN RStatus THEN
          RETURN;
