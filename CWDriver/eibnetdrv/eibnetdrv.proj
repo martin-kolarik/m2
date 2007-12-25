@@ -5,6 +5,7 @@
     <!-- 1 -->
     <PropertyGroup>
         <ComponentType>Product</ComponentType>
+        <ClientLicensing>on</ClientLicensing>
 
         <ProductGUID>65043BBC-CBAB-4a79-92DF-BFAA545D0811</ProductGUID>
         <ProductUpgradeGUID>3A9E965F-7926-4c49-B119-F21E6E0109B2</ProductUpgradeGUID>
@@ -18,7 +19,7 @@
     </PropertyGroup>
 
     <PropertyGroup>
-        <OutputName>EibNet.dll</OutputName>
+        <ResultName>EibNet</ResultName>
     </PropertyGroup>
 
     <!-- 2 INCLUDE DEFINITION -->

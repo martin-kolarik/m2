@@ -7,7 +7,6 @@
         <LanguageStyle Condition="$(LanguageStyle)==''">UNICODE</LanguageStyle>
         <Language Condition="$(Language)==''">Czech</Language>
         <CLib>Dynamic</CLib>
-        <SetupLicensing>on</SetupLicensing>
         <LeakChecking>off</LeakChecking>
     </PropertyGroup>
 
@@ -15,7 +14,7 @@
         <Result>Program</Result>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='eibnet'">
+    <PropertyGroup Condition="$(MSBuildProjectName)=='eibnetdrv' Or $(MSBuildProjectName)=='sccore'">
         <Result>Dynamic</Result>
     </PropertyGroup>
 

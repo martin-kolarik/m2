@@ -8,10 +8,9 @@
         <Language Condition="$(Language)==''">Czech</Language>
         <CLib>Dynamic</CLib>
         <LeakChecking>off</LeakChecking>
-        <ClientLicensing>on</ClientLicensing>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='eibnetdrv'">
+    <PropertyGroup Condition="$(MSBuildProjectName)=='eibnetdrv' Or $(MSBuildProjectName)=='sccore'">
         <Result>Dynamic</Result>
     </PropertyGroup>
 

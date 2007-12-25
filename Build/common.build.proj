@@ -56,9 +56,9 @@
 
     <!-- outputs -->
     <PropertyGroup>
-        <OutputName Condition="$(OutputName)=='' And $(Result)=='Static'">$(MSBuildProjectName).lib</OutputName>
-        <OutputName Condition="$(OutputName)=='' And $(Result)=='Dynamic'">$(MSBuildProjectName).dll</OutputName>
-        <OutputName Condition="$(OutputName)=='' And $(Result)=='Program'">$(MSBuildProjectName).exe</OutputName>
+        <OutputName Condition="$(OutputName)=='' And $(Result)=='Static'">$(ResultName).lib</OutputName>
+        <OutputName Condition="$(OutputName)=='' And $(Result)=='Dynamic'">$(ResultName).dll</OutputName>
+        <OutputName Condition="$(OutputName)=='' And $(Result)=='Program'">$(ResultName).exe</OutputName>
         <OutputFile>$(OutputDir)\$(OutputName)</OutputFile>
         <OutputFilePath>$(OutputPath)\$(OutputName)</OutputFilePath>
         <InterfaceNamePath>$(OutputPath)\$(MSBuildProjectName)</InterfaceNamePath>
@@ -251,8 +251,8 @@
             <Output TaskParameter="Include" ItemName="Grabbed"/>
         </CreateItem>
 
-        <!-- SELF LIBRARY PATH and DLL/EXE -->
-        <CreateItem Condition="$(Level)!='0' And $(Result)!='Program'"
+        <!-- SELF LIBRARY PATH and DLL/EXE, the libs will be removed during link to not to link with self, here I cannot distinguish if I am doing self or not. -->
+        <CreateItem Condition="$(Result)!='Program'"
                     Include="@(Interface -> '%(Identity).lib')"
                     AdditionalMetadata="Type=Library">
             <Output TaskParameter="Include" ItemName="Grabbed"/>
@@ -288,8 +288,8 @@
                     Include="@(Grabbed -> '%(RootDir)%(Directory)%(FileName).lib')">
             <Output TaskParameter="Include" ItemName="GrabbedLibrariesToFilter"/>
         </CreateItem>
-        <!-- ...and filter them -->
-        <CreateItem Include="@(GrabbedUnfilteredLibraries)" Exclude="@(GrabbedLibrariesToFilter)">
+        <!-- ...and filter them, excluding SELF's one, see not above when these libs are added: I cannot link with myself -->
+        <CreateItem Include="@(GrabbedUnfilteredLibraries)" Exclude="@(GrabbedLibrariesToFilter);@(SelfInterface -> '%(Identity).lib')">
             <Output TaskParameter="Include" ItemName="GrabbedLibraries"/>
         </CreateItem>
         <!-- ...and create final libraries -->
@@ -455,10 +455,10 @@
 
 
     <Target Name="GrabComponentInterface"
-            Outputs="@(Grabbed)">
+            Outputs="@(GrabbedObjects)">
         <CreateItem Include="@(Objects -> '$(ComponentPath)\$(IntermediateDirName)\%(FileName).obj')"
                     AdditionalMetadata="Type=InterfaceObjects">
-            <Output TaskParameter="Include" ItemName="Grabbed"/>
+            <Output TaskParameter="Include" ItemName="GrabbedObjects"/>
         </CreateItem>
     </Target>
 
@@ -470,7 +470,7 @@
             <Output TaskParameter="TargetOutputs" ItemName="ExportToInterfaceObjects"/>
         </MSBuild>
 
-        <!-- Message Text="@(ExportToInterfaceObjects)" Importance="high" /-->
+        <!-- Message Text="## @(ExportToInterfaceObjects)" Importance="high" / -->
     </Target>
 
     <Target Name="ComponentIncludes"
@@ -546,7 +546,7 @@
     </Target>
     <Target Name="CleanAllComponents">
         <MSBuild Projects="@(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"
-                 Targets="CleanAllComponents"
+                 Targets="CleanAll"
                  Properties="DeepFlag=on;Parameters=%(Components.Parameters);$(ChildParameters)"/>
         <CallTarget Targets="CleanAll"/>
     </Target>
@@ -575,7 +575,7 @@
         <CallTarget Targets="ProductBuildNumberGet"/>
         <!-- duplicite if building BuildAllComponents target for product -->
         <MSBuild Projects="@(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"
-                 Targets="BuildAllComponents"
+                 Targets="BuildAll"
                  Properties="DeepFlag=on;Parameters=%(Components.Parameters);$(ChildParameters)"
                  StopOnFirstFailure="true">
             <Output TaskParameter="TargetOutputs" ItemName="Compiled"/>

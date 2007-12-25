@@ -23,8 +23,10 @@
     </PropertyGroup>
 
     <PropertyGroup>
-        <LibraryName Condition="$(ComponentType)!='Generic'">$(MSBuildProjectName)</LibraryName>
-        <LibraryName Condition="$(LibraryName)==''">$(MSBuildProjectName)</LibraryName>
+        <ResultName Condition="$(ResultName)==''">$(MSBuildProjectName)</ResultName>
+
+        <LibraryName Condition="$(ComponentType)!='Generic'">$(ResultName)</LibraryName>
+        <LibraryName Condition="$(LibraryName)==''">$(ResultName)</LibraryName>
     </PropertyGroup>
 
 </Project>
