@@ -16,7 +16,6 @@ CONST
 READONLY VAR
   WndClass : windows.ATOM;
   
-PROCEDURE CurrentThread() : CARDINAL;
 PROCEDURE HandleToHandler( CONST Handle : PTR; OUT Handler : msgOSAL.TPMessageHandler ) : BOOLEAN;
 
 CLASS Win32Message IMPLEMENTS msgOSAL.IMessage;
@@ -44,8 +43,8 @@ CLASS Win32MessageHandler IMPLEMENTS msgOSAL.IMessageHandler;
   INTERNAL VAR
     HWND : windows.HWND;
   PUBLIC VIRTUAL READONLY PROPERTY
+    SelfContext : BOOLEAN;
     Handle : PTR;
-    OfThread : CARDINAL;
 
   #save, option( leak_info => on )
   PUBLIC PROCEDURE Init();

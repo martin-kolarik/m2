@@ -91,11 +91,6 @@ BEGIN
   WndClass := windows.INVALID_ATOM;
 END DestroyWndClass;
 
-PROCEDURE CurrentThread() : CARDINAL;
-BEGIN
-  RETURN CARDINAL( windows.GetCurrentThreadId());
-END CurrentThread;
-
 PROCEDURE HandleToHandler( CONST Handle : PTR; OUT Handler : msgOSAL.TPMessageHandler ) : BOOLEAN;
 BEGIN
   IF Handle = NIL THEN
@@ -193,15 +188,15 @@ END Win32Message;
 
 CLASS IMPLEMENTATION Win32MessageHandler;
 
+  PUBLIC VIRTUAL READONLY PROPERTY Win32MessageHandler.SelfContext GET : BOOLEAN;
+  BEGIN
+    RETURN LOPTRLONGWORD( windows.GetWindowThreadProcessId( HWND, NIL )) = windows.GetCurrentThreadId();
+  END Win32MessageHandler.SelfContext;
+
   PUBLIC VIRTUAL READONLY PROPERTY Win32MessageHandler.Handle GET : PTR;
   BEGIN
     RETURN HWND;
   END Win32MessageHandler.Handle;
-
-  PUBLIC VIRTUAL READONLY PROPERTY Win32MessageHandler.OfThread GET : CARDINAL;
-  BEGIN
-    RETURN CARDINAL( LOPTRLONGWORD( windows.GetWindowThreadProcessId( HWND, NIL )));
-  END Win32MessageHandler.OfThread;
 
   PUBLIC PROCEDURE Win32MessageHandler.Init();
   BEGIN
@@ -219,7 +214,7 @@ CLASS IMPLEMENTATION Win32MessageHandler;
       Repeat : PTR;
       Timer : PTR;
    BEGIN
-      IF ( Delivery = msgOSAL.delSynchronous ) OR ( Delivery = msgOSAL.delSynchronousInThread ) AND ( OfThread = CurrentThread()) THEN
+      IF ( Delivery = msgOSAL.delSynchronous ) OR ( Delivery = msgOSAL.delSynchronousInThread ) AND SelfContext THEN
          IF MSG[1] = windows.WM_TIMER THEN
             Timer := MSG[2];
             IF NOT Timers.Get( Timer, OUT Repeat ) THEN

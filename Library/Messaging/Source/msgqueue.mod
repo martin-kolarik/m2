@@ -30,11 +30,9 @@ CLASS IMPLEMENTATION CMessageQueue;
 (*--------------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE Flush() : Sync.TAsyncResult; // completed, timeout, aborted
-   VAR
-      Result : Sync.TAsyncResult;
    BEGIN
       ASSERT( Consumer <> NIL );
-      IF msghandler.CurrentThread() = Consumer^.OfThread THEN // consumer is in my thread
+      IF Consumer^.SelfContext THEN // consumer is in my thread
          IF Msg = NIL THEN
             NEW( msghandler.TPMessage( Msg )); Msg^.Message := WM_MQ_PROCESS;
          END;

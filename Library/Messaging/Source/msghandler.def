@@ -29,7 +29,6 @@ TYPE
   TPMessageHandler = POINTER TO MessageHandler;
 
 CONST
-  CurrentThread ::= msgWin32.CurrentThread;
   HandleToHandler ::= msgWin32.HandleToHandler;
 
 (*===========================================================================*)

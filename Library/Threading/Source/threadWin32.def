@@ -20,7 +20,7 @@ ABSTRACT CLASS Win32Thread IMPLEMENTS threadOSAL.IThread;
     _HExit : sync.SIGNAL;
     _WMsg : TRISTATE;
   PUBLIC VIRTUAL READONLY PROPERTY
-    Thread : CARDINAL;
+    SelfContext : BOOLEAN;
   PUBLIC VIRTUAL PROPERTY
     WithMessages : BOOLEAN;
 

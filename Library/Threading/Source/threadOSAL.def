@@ -7,7 +7,7 @@ IMPORT
 
 INTERFACE IThread;
    PUBLIC READONLY PROPERTY
-      Thread : CARDINAL;
+      SelfContext : BOOLEAN;
    PUBLIC PROPERTY
       WithMessages : BOOLEAN;
 

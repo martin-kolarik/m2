@@ -113,10 +113,10 @@ CLASS IMPLEMENTATION Win32MsgQueueThread;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY OfThread GET : CARDINAL;
+   PUBLIC PROPERTY SelfContext GET : BOOLEAN;
    BEGIN
-      RETURN Thread;
-   END OfThread;
+      RETURN _Thread = windows.GetCurrentThreadId();
+   END SelfContext;
   
 (*---------------------------------------------------------------------------*)
   
@@ -125,13 +125,13 @@ CLASS IMPLEMENTATION Win32MsgQueueThread;
       LResult : PTR;
    BEGIN
       IF ( Delivery = msghandler.delSynchronous ) OR
-         ( Delivery = msghandler.delSynchronousInThread ) AND ( OfThread = msghandler.CurrentThread()) THEN
+         ( Delivery = msghandler.delSynchronousInThread ) AND SelfContext THEN
          IF Result = NIL THEN
             Result := ADR( LResult );
          END;
          RETURN OnMessage( Msg, OUT Result^ );
       ELSE
-         windows.PostThreadMessage( Thread, Msg.Message, windows.WPARAM( Msg[2] ), windows.LPARAM( Msg[3] ));
+         windows.PostThreadMessage( _Thread, Msg.Message, windows.WPARAM( Msg[2] ), windows.LPARAM( Msg[3] ));
       END;
       RETURN TRUE;
    END Message;

@@ -137,8 +137,10 @@ CLASS CPoolThread( thread.Thread );
     PendingWorkers : CARDINAL;
   LOCAL READONLY PROPERTY
     Empty : BOOLEAN;
-    AbleWait : BOOLEAN;
+    AbleWaitHandles : BOOLEAN;
     AbleRunWorkers : BOOLEAN;
+  LOCAL PROPERTY
+    AbleWaitMessages : BOOLEAN;
 
   INITIALLY CPoolThread();
   FINALLY CPoolThread();
@@ -332,6 +334,7 @@ TYPE
     topAdd,
     topRemoveTask,
     topRemoveDelegate, // not implemented yet
+    topStartWaitMessages,
     topOnCompletion,
     topOnThreadEmpty
   );
@@ -369,11 +372,11 @@ CLASS IMPLEMENTATION CPoolThread;
 
 //--------------------------------------------------------------------------------
 
-  LOCAL READONLY PROPERTY AbleWait GET : BOOLEAN;
+  LOCAL READONLY PROPERTY AbleWaitHandles GET : BOOLEAN;
   BEGIN
     RETURN ( Workers.Count + CARDINAL( Sync.IGet( REF PendingWorkers )) = 0 ) AND
            ( Handles.Count + CARDINAL( Sync.IGet( REF PendingHandles )) < windows.MAXIMUM_WAIT_OBJECTS-3 ); //-1-exit-queue
-  END AbleWait;
+  END AbleWaitHandles;
 
 //--------------------------------------------------------------------------------
 
@@ -383,6 +386,32 @@ CLASS IMPLEMENTATION CPoolThread;
            Messages.Empty AND
            ( Workers.Count + CARDINAL( Sync.IGet( REF PendingWorkers )) < Pool^.WorkerLoad );
   END AbleRunWorkers;
+
+//--------------------------------------------------------------------------------
+
+  LOCAL PROPERTY AbleWaitMessages GET : BOOLEAN;
+  BEGIN
+    RETURN Messager.Handle <> NIL;
+  END AbleWaitMessages;
+
+//--------------------------------------------------------------------------------
+
+  LOCAL PROPERTY AbleWaitMessages SET( Value : BOOLEAN );
+  VAR
+    MSG : TMessage;
+  BEGIN
+    IF Messager.Handle <> NIL THEN
+      RETURN;
+    ELSIF SelfContext THEN
+      Messager.Init();
+    ELSE
+      MSG.Operation := topStartWaitMessages;
+      ReqQueue.QueueOA( MSG );
+      WHILE NOT AbleWaitMessages DO // wait until message is truly processed
+        Sync.Sleep( 0 );
+      END;
+    END;
+  END AbleWaitMessages;
 
 //--------------------------------------------------------------------------------
 
@@ -435,6 +464,10 @@ CLASS IMPLEMENTATION CPoolThread;
                //---
                | topRemoveDelegate : // NOT IMPLEMENTED YET
                   ASSERT( FALSE );
+               | topStartWaitMessages :
+                  IF Messager.Handle = NIL THEN
+                     Messager.Init();
+                  END;
                //---
                ELSE
                   ASSERT( FALSE );
@@ -525,9 +558,7 @@ CLASS IMPLEMENTATION CPoolThread;
     | tskTimeoutOnce, tskTimeoutRepeated :
       // do nothing
     | tskMessageOnce, tskMessageRepeated :
-      IF Messager.Handle = NIL THEN
-         Messager.Init();
-      END;
+      ASSERT( Messager.Handle <> NIL ); // Init() should be done soonenr
       Messages.Add( Task^.Data, Task );
     | tskHandleOnce, tskHandleRepeated :
       IF NOT Handles.Get( Task^.Data, OUT HandleList ) THEN
@@ -714,7 +745,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG : TMessage;
     PoolThread : TPPoolThread;
   BEGIN
-    IF NOT LookupThread( FALSE, FALSE, OUT PoolThread ) THEN
+    IF NOT LookupThread( FALSE, FALSE, FALSE, OUT PoolThread ) THEN
       RETURN FALSE;
     END;
 
@@ -747,7 +778,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG : TMessage;
     PoolThread : TPPoolThread;
   BEGIN
-    IF NOT LookupThread( FALSE, FALSE, OUT PoolThread ) THEN
+    IF NOT LookupThread( FALSE, FALSE, TRUE, OUT PoolThread ) THEN
       RETURN FALSE;
     END;
 
@@ -783,7 +814,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG : TMessage;
     PoolThread : TPPoolThread;
   BEGIN
-    IF NOT LookupThread( FALSE, FALSE, OUT PoolThread ) THEN
+    IF NOT LookupThread( FALSE, FALSE, FALSE, OUT PoolThread ) THEN
       RETURN FALSE;
     END;
 
@@ -818,7 +849,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG : TMessage;
     PoolThread : TPPoolThread;
   BEGIN
-    IF NOT LookupThread( TRUE, ForceSelfThread, OUT PoolThread ) THEN
+    IF NOT LookupThread( TRUE, ForceSelfThread, FALSE, OUT PoolThread ) THEN
       RETURN FALSE;
     END;
 
@@ -899,7 +930,7 @@ CLASS IMPLEMENTATION CThreadPool;
   BEGIN
     IF Task^.Delegate = NIL THEN
       RETURN TRUE;
-    ELSIF ( msghandler.CurrentThread() = OfThread ) OR NOT CompletionInOwningThread THEN
+    ELSIF NOT CompletionInOwningThread OR SelfContext THEN
       CASE Task^.Task OF
       | tskTimeoutOnce, tskTimeoutRepeated :
         Task^.Delegate^.OnTimeout( Result, Task, Task^.UserId );
@@ -923,7 +954,7 @@ CLASS IMPLEMENTATION CThreadPool;
 
 //--------------------------------------------------------------------------------
 
-  PRIVATE PROCEDURE LookupThread( WorkerFlag : BOOLEAN; ForceSelfThread : BOOLEAN; OUT _PoolThread : PTR ) : BOOLEAN;
+  PRIVATE PROCEDURE LookupThread( WorkerFlag : BOOLEAN; ForceSelfThread, PrepareForMessages : BOOLEAN; OUT _PoolThread : PTR ) : BOOLEAN;
   VAR
     PoolThread : TPPoolThread;
   BEGIN
@@ -932,8 +963,11 @@ CLASS IMPLEMENTATION CThreadPool;
        Threads.Reset();
        WHILE Threads.MoveNext() DO
          IF     WorkerFlag AND TPPoolThread( Threads.Current )^.AbleRunWorkers OR
-            NOT WorkerFlag AND TPPoolThread( Threads.Current )^.AbleWait THEN
+            NOT WorkerFlag AND TPPoolThread( Threads.Current )^.AbleWaitHandles THEN
            _PoolThread := TPPoolThread( Threads.Current );
+           IF PrepareForMessages THEN
+             TPPoolThread( _PoolThread )^.AbleWaitMessages := TRUE;
+           END;
            RETURN TRUE;
          END; // IF
        END; // WHILE
@@ -950,6 +984,9 @@ CLASS IMPLEMENTATION CThreadPool;
     PoolThread^.Run( TRUE );
 
     _PoolThread := PoolThread;
+    IF PrepareForMessages THEN
+      TPPoolThread( _PoolThread )^.AbleWaitMessages := TRUE;
+    END;
     RETURN TRUE;
   END LookupThread;
 

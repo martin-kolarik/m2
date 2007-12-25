@@ -16,10 +16,10 @@ END Win32_thread;
 
 CLASS IMPLEMENTATION Win32Thread;
 
-  PUBLIC VIRTUAL READONLY PROPERTY Win32Thread.Thread GET : CARDINAL;
+  PUBLIC VIRTUAL READONLY PROPERTY Win32Thread.SelfContext GET : BOOLEAN;
   BEGIN
-    RETURN _Thread;
-  END Win32Thread.Thread;
+    RETURN _Thread = windows.GetCurrentThreadId();
+  END Win32Thread.SelfContext;
 
   PUBLIC VIRTUAL PROPERTY Win32Thread.WithMessages GET : BOOLEAN;
   BEGIN

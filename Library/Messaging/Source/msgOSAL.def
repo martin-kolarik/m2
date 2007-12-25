@@ -36,7 +36,7 @@ END IMessage;
   
 INTERFACE IMessageRecipient;
   PUBLIC ABSTRACT READONLY PROPERTY
-    OfThread : CARDINAL;
+    SelfContext : BOOLEAN;
 
   PUBLIC ABSTRACT PROCEDURE Message( CONST MSG : IMessage; Delivery : TDelivery; Result : PPTR ) : BOOLEAN;
   INTERNAL ABSTRACT PROCEDURE OnMessage( CONST MSG : IMessage; OUT Result : PTR ) : BOOLEAN;

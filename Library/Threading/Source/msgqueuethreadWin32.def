@@ -25,7 +25,7 @@ CLASS Win32MsgQueueThread( threadWin32.Win32Thread ) IMPLEMENTS msgqueuethreadOS
    INTERNAL VIRTUAL PROCEDURE MessageToHandler( CONST Msg : PTR; OUT Handler : msghandler.TPMessageHandler ) : BOOLEAN;
 
    // IMessageRecipient
-   PUBLIC VIRTUAL READONLY PROPERTY OfThread : CARDINAL;
+   PUBLIC VIRTUAL READONLY PROPERTY SelfContext : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE Message( CONST Msg : msghandler.IMessage; Delivery : msghandler.TDelivery; Result : PPTR ) : BOOLEAN; // if Msg.Target = NIL then the message must be processed by thread itself; Delivery is possible only delSynchronousInThread and delAsynchronous
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Msg : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN; // thread targetted messages
 
