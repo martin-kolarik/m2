@@ -69,8 +69,9 @@ CLASS IMPLEMENTATION CConnection;
       l : CARDINAL;
       wasConnected : BOOLEAN := NOT Disconnected;
    BEGIN
-      // here test to Value = Mode should not be done, as for the first local IP must be read
-      IF wasConnected THEN
+      IF _Mode = Value THEN
+         RETURN;
+      ELSIF wasConnected THEN
          Disconnect( TRUE );
       END;
 
