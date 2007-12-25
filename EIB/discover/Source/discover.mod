@@ -25,14 +25,32 @@ IMPORT
 VAR
    R : Resources.CResources;
 
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPThread = POINTER TO CThread;
+
+(*--------------------------------------------------------------------------------*)
+
 CLASS CResult( browser.CBrowserDelegate );
    LOCAL VAR
-      Thread : msgqueuethread.TPMsgQueueThread;
+      Thread : TPThread;
       IPs : lists.CStringList;
    LOCAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; CONST Servers : arrays.CPtrArray );
 END CResult;
 
 (*--------------------------------------------------------------------------------*)
+
+CLASS CThread( msgqueuethread.MsgQueueThread );
+   LOCAL VAR
+      ShowDots : CARDINAL := 1; // sync
+      Browser : browser.CBrowser;  
+      Result : CResult;
+   INTERNAL VIRTUAL PROCEDURE OnStart();
+   INTERNAL VIRTUAL PROCEDURE OnExit();
+END CThread;
+
+(*================================================================================*)
 
 CLASS IMPLEMENTATION CResult;
 
@@ -46,6 +64,7 @@ CLASS IMPLEMENTATION CResult;
       server : browser.TPServer;
       stdout : TextWriter.TPTextWriter := TextWriter.stdout();
    BEGIN
+      Sync.IExchg( REF Thread^.ShowDots, 0 ); // stop to show dots
       stdout^.LineEnd();
 
       IF Servers.Empty THEN
@@ -58,9 +77,12 @@ CLASS IMPLEMENTATION CResult;
             Strings.FromCARD32W( i+1, 10, OUT s );
             IF i < 10 THEN
                stdout^.WriteOA( L"     ", FALSE );
+            ELSE
+               stdout^.WriteOA( L"    ", FALSE );
             END;
-            stdout^.WriteOA( s, FALSE ); stdout^.WriteOA( L". MAC: ", FALSE );
-            stdout^.Write( server^.Description, FALSE );
+            stdout^.WriteOA( s, FALSE ); stdout^.WriteOA( L". ", FALSE ); stdout^.Write( server^.Description, TRUE );
+
+            stdout^.WriteOA( L"        MAC: ", FALSE ); stdout^.Write( server^.MAC, FALSE );
             
             Strings.FromIPV4( server^.Address.s_addr, OUT s );
             S.FromOA( s );
@@ -69,7 +91,7 @@ CLASS IMPLEMENTATION CResult;
             S.AppendOA( s );
             IPs.Add( S, 0 );
 
-            stdout^.WriteOA( L", IP address: ", FALSE ); stdout^.Write( S, TRUE );
+            stdout^.WriteOA( L", IP: ", FALSE ); stdout^.Write( S, TRUE );
          END;
       END;
       Thread^.Stop( FALSE );
@@ -82,16 +104,6 @@ BEGIN
 END CResult;
 
 (*================================================================================*)
-
-CLASS CThread( msgqueuethread.MsgQueueThread );
-   LOCAL VAR
-      Browser : browser.CBrowser;  
-      Result : CResult;
-   INTERNAL VIRTUAL PROCEDURE OnStart();
-   INTERNAL VIRTUAL PROCEDURE OnExit();
-END CThread;
-
-(*--------------------------------------------------------------------------------*)
 
 CLASS IMPLEMENTATION CThread;
 
@@ -168,7 +180,7 @@ BEGIN
 
    errout^.WriteOA( OAsz( R[Texts._Searching] ), FALSE );
    Thread.Run( FALSE );
-   WHILE Thread.WaitStop( 250 ) = Sync.arTimeout DO
+   WHILE ( Sync.IGet( REF Thread.ShowDots ) = 1 ) AND ( Thread.WaitStop( 250 ) = Sync.arTimeout ) DO
       errout^.WriteOA( L".", FALSE );
    END; // WHILE
    
