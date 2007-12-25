@@ -17,6 +17,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   cllv,
    drv_str,
    eib_def,
    eib_user,
@@ -41,7 +42,8 @@ TYPE
       schiEIBConnected,
       schiInitReadPending,
       schiInputQueueOverflow,
-      schiHavePromiscuousData
+      schiHavePromiscuousData,
+      schiValid
    );
    TStatusChannel = SET OF TStatusChannelItem;
 
@@ -415,6 +417,11 @@ CLASS IMPLEMENTATION CEIBDriver;
          END;
          IF srvcore.rsPromiscuousInQueue IN RStatus THEN
             INCL( Status, schiHavePromiscuousData );
+         END;
+         IF Result.Counted OR Result.Expired THEN
+            EXCL( Status, schiValid );
+         ELSE
+            INCL( Status, schiValid );
          END;
 
          drv_def.AssignValueCardinal( InValue, TRUE, CARDINAL( Status ));
@@ -838,6 +845,9 @@ BEGIN
    InputQueueLengthChannel := MAX( CARDINAL );   
    OutputQueueLengthChannel := MAX( CARDINAL );
    WriteQueueLengthChannel := MAX( CARDINAL );
+
+   cllvData := ADR( cllv.data );
+   cllvLength := cllv.length;
 END CEIBDriver;
 
 //================================================================================
@@ -855,7 +865,7 @@ END R;
 INITIALLY __I();
 BEGIN
    // messages
-   r.LoadRES2( EMIT( %dll ), L"eibnet.Texts" );
+   r.LoadRES2( EMITW( %dll ), L"eibnetdrv.Texts" );
    // logging
    Log.logger()^.SetUpByRegistry( LIBRARY );
 END __I;
