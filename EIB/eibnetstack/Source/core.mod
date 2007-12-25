@@ -193,7 +193,9 @@ CLASS IMPLEMENTATION SearchResponse;
             s.AppendOA( L"0" );
          END;
          s.Append( n );
-         s.AppendOA( L"-" );
+         IF i < HIGH( _DIB.MAC ) THEN
+            s.AppendOA( L"-" );
+         END;
       END; // FOR
       RETURN s;
    END MAC;
