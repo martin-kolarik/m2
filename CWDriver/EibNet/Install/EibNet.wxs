@@ -30,10 +30,6 @@
                             </File>
                             <File DiskId="1" Id="Discover.EXE" Name="Discover.exe" Source="Discover.exe">
                             </File>
-                            <ServiceInstall Id="SVC" Name="$(var.ProductId)" Type="ownProcess" Start="auto" ErrorControl="normal" DisplayName="$(var.ProductDisplayName)" Description="$(var.ProductDescription)">
-                                <ServiceDependency Id="Tcpip" />
-                            </ServiceInstall>
-                            <ServiceControl Id="SVCControl" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
                         </Component>
                         <Component Id="Licence" Guid="BC838025-578C-46E8-A079-40E8B2134B03">
                             <File Id="Licence" Name="Licence.lic" DiskId="1" LongName="$(var.ProductId).tlic" Source="$(var.ProductId).tlic" Vital="yes" />
