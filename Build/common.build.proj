@@ -34,10 +34,8 @@
         <GrabProcessFileName>GrabbedComponents.tmp</GrabProcessFileName>
         <GrabProcessFile>$(ComponentPath)\$(IntermediateDirName)\$(GrabProcessFileName)</GrabProcessFile>
 
-        <ComponentResult Condition="$(Level)=='0'">$(Result)</ComponentResult>
-        <ComponentResult Condition="$(Level)!='0'">$(ComponentResult)</ComponentResult>
-
-        <ChildParameters>Level=1+;ComponentDefinitionsPath=$(ComponentDefinitionsPath);LibraryName=$(LibraryName);ProductId=$(ProductId);ProductLinkMapFilePath=$(ProductLinkMapFilePath);ComponentResult=$(ComponentResult)</ChildParameters>
+        <InheritedProperties>InheritedComponentDefinitionsPath=$(ComponentDefinitionsPath);InheritedLibraryName=$(LibraryName)</InheritedProperties>
+        <ChildParameters>Level=1+;ProductId=$(ProductId);ProductLinkMapFilePath=$(ProductLinkMapFilePath);$(InheritedProperties)</ChildParameters>
 
         <!-- M2 initializing code -->
         <Modula2InitCode>$(RootDir)\Modula2\Modula2\Header\m2init.cpp</Modula2InitCode>
@@ -160,6 +158,9 @@
         <Error Condition="@(ExportToInterface)!='' And $(OriginalExport)!=''"
                Text="Both 'ExportToInterface' and 'Export' keys are defined, this is not allowed. Select only one of them. (project $(MSBuildProjectName))."
                HelpKeyword ="ExportToInterface"/>
+        <Warning Condition="$(DefinitionFileAllowed)=='off' And $(SelfDefinitionFileExists)=='on'"
+                 Text="Definition file $(ComponentDefinitionsPath) will not be used, component type or owning component denies it."
+                 HelpKeyword ="ComponentType, *.definition.proj"/>
         <!-- Exec Command="$(RootDir)\setenv.bat"/ -->
     </Target>
 
@@ -575,7 +576,7 @@
         <CallTarget Targets="ProductBuildNumberGet"/>
         <!-- duplicite if building BuildAllComponents target for product -->
         <MSBuild Projects="@(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"
-                 Targets="BuildAll"
+                 Targets="RebuildAll"
                  Properties="DeepFlag=on;Parameters=%(Components.Parameters);$(ChildParameters)"
                  StopOnFirstFailure="true">
             <Output TaskParameter="TargetOutputs" ItemName="Compiled"/>
@@ -586,7 +587,7 @@
 
     <Target Name="Rebuild" DependsOnTargets="Clean;Build" />
     <Target Name="RebuildAll" DependsOnTargets="CleanAll;BuildAll" />
-    <Target Name="RebuildAllComponents" DependsOnTargets="CleanAllComponents;BuildAllComponents" />
+    <Target Name="RebuildAllComponents" DependsOnTargets="BuildAllComponents" />
 
     <!-- installation tasks -->
     <Import Project="internal.wix.targets"/>

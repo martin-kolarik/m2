@@ -4,6 +4,7 @@
     <PropertyGroup>
         <ComponentDir></ComponentDir>
         <ComponentPath>$(MSBuildProjectDirectory)</ComponentPath>
+        <ComponentType Condition="$(ComponentType)==''">Generic</ComponentType>
 
         <!-- RootDir>$(ComponentDir)\..\..</RootDir -->
         <RootDir>..\..</RootDir>
@@ -25,8 +26,9 @@
     <PropertyGroup>
         <ResultName Condition="$(ResultName)==''">$(MSBuildProjectName)</ResultName>
 
-        <LibraryName Condition="$(ComponentType)!='Generic'">$(ResultName)</LibraryName>
-        <LibraryName Condition="$(LibraryName)==''">$(ResultName)</LibraryName>
+        <!-- the assignment should be the same as for ComponentDefinitionsPath -->
+        <LibraryName Condition="$(ComponentType)!='Bundle'">$(ResultName)</LibraryName>
+        <LibraryName Condition="$(ComponentType)=='Generic'">$(InheritedLibraryName)</LibraryName>
     </PropertyGroup>
 
 </Project>

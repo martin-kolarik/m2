@@ -13,7 +13,6 @@
     <!-- defaults, which should be set in $(MSBuildProjectFile) -->
     <PropertyGroup>
         <Manufacturer Condition="$(Manufacturer)==''">SmartControl</Manufacturer>
-        <ComponentType Condition="$(ComponentType)==''">Generic</ComponentType>
         <DynamicCLibInstallMethod Condition="$(DynamicCLibInstallMethod)==''">Private</DynamicCLibInstallMethod><!-- Private Shared -->
     </PropertyGroup>
 
@@ -23,11 +22,22 @@
         <ProductDescription Condition="$(ProductDescription)==''">$(FileDescription)</ProductDescription>
     </PropertyGroup>
     <PropertyGroup>
-        <ComponentDefinitionsPath>$(MSBuildProjectDirectory)\$(MSBuildProjectName).definition.proj</ComponentDefinitionsPath>
+        <!-- the assignment should be the same as for LibraryName -->
+        <!-- primarily use self definitions (bundle does not have defintions file)... -->
+        <SelfComponentDefinitionsPath Condition="$(ComponentType)!='Bundle'">$(MSBuildProjectDirectory)\$(MSBuildProjectName).definition.proj</SelfComponentDefinitionsPath>
+        <ComponentDefinitionsPath>$(SelfComponentDefinitionsPath)</ComponentDefinitionsPath>
+        <!-- ...and if I am controlled use global one -->
+        <ComponentDefinitionsPath Condition="$(ComponentType)=='Generic'">$(InheritedComponentDefinitionsPath)</ComponentDefinitionsPath>
     </PropertyGroup>
 
     <!-- configuration depended on component definition-->
-    <Import Condition="Exists('$(ComponentDefinitionsPath)')" Project="$(ComponentDefinitionsPath)"/>
+    <PropertyGroup>
+        <SelfDefinitionFileExists>off</SelfDefinitionFileExists>
+        <SelfDefinitionFileExists Condition="Exists('$(SelfComponentDefinitionsPath)')">on</SelfDefinitionFileExists>
+        <DefintionFileExists>off</DefintionFileExists>
+        <DefinitionFileExists Condition="Exists('$(ComponentDefinitionsPath)')">on</DefinitionFileExists>
+    </PropertyGroup>
+    <Import Condition="$(DefinitionFileExists)=='on'" Project="$(ComponentDefinitionsPath)"/>
 
     <!-- (constructed properties, DO NOT MODIFY) -->
     <Choose>
@@ -36,6 +46,7 @@
                 <ProductFlag>off</ProductFlag>
                 <PropagateComponents>on</PropagateComponents>
                 <PropagateBuild>on</PropagateBuild>
+                <DefinitionFileAllowed>off</DefinitionFileAllowed>
             </PropertyGroup>
         </When>
         <When Condition="$(ComponentType)=='Library'">
@@ -43,6 +54,7 @@
                 <ProductFlag>off</ProductFlag>
                 <PropagateComponents>on</PropagateComponents>
                 <PropagateBuild>off</PropagateBuild>
+                <DefinitionFileAllowed>on</DefinitionFileAllowed>
             </PropertyGroup>
         </When>
         <When Condition="$(ComponentType)=='Module'">
@@ -50,6 +62,7 @@
                 <ProductFlag>off</ProductFlag>
                 <PropagateComponents>off</PropagateComponents>
                 <PropagateBuild>off</PropagateBuild>
+                <DefinitionFileAllowed>on</DefinitionFileAllowed>
             </PropertyGroup>
         </When>
         <When Condition="$(ComponentType)=='Product'">
@@ -57,6 +70,15 @@
                 <ProductFlag>on</ProductFlag>
                 <PropagateComponents>on</PropagateComponents>
                 <PropagateBuild>off</PropagateBuild>
+                <DefinitionFileAllowed>on</DefinitionFileAllowed>
+            </PropertyGroup>
+        </When>
+        <When Condition="$(ComponentType)=='Bundle'">
+            <PropertyGroup>
+                <ProductFlag>on</ProductFlag>
+                <PropagateComponents>on</PropagateComponents>
+                <PropagateBuild>off</PropagateBuild>
+                <DefinitionFileAllowed>off</DefinitionFileAllowed>
             </PropertyGroup>
         </When>
         <Otherwise>
@@ -64,6 +86,7 @@
                 <ProductFlag>off</ProductFlag>
                 <PropagateComponents>on</PropagateComponents>
                 <PropagateBuild>on</PropagateBuild>
+                <DefinitionFileAllowed>off</DefinitionFileAllowed>
             </PropertyGroup>
         </Otherwise>
     </Choose>
