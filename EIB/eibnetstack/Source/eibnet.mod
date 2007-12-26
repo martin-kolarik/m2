@@ -380,14 +380,14 @@ CLASS IMPLEMENTATION CConnection;
    LOCAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket );
    VAR
       buffer : ARRAY [0..255] OF BYTE;
-      l : CARDINAL;
+      l : CARDINAL := 0;
       packet : core.TPPacket := core.TPPacket( ADR( buffer ));
    BEGIN
-      l := ServerSocket^.DataAvailable;
+      // not to test L before recvfrom, recvfrom is re-enabling function and should be called after notification even if dataavailable = 0
+      ServerSocket^.ReceiveOA( OUT buffer, OUT l );
       IF l = 0 THEN
          RETURN;
       END;
-      ServerSocket^.ReceiveOA( OUT OA( l-1, ADR( buffer )), OUT l );
       
       CASE _Mode OF
       //-----
