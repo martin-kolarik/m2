@@ -15,7 +15,7 @@
             <?endif ?>
             <?endif ?>
             <Directory Id="ProgramFilesFolder">
-                <Directory Id="SmartControl" Name="SmartCtr" LongName="SmartControl">
+                <Directory Id="NeNo" Name="NeNo">
                     <Directory Id="INSTALLDIR" Name="EibSrv">
                         <Component Guid="7661D6C7-3F2E-4990-815B-36609A99DE62" Id="Program">
                             <File DiskId="1" Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt">

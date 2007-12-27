@@ -183,6 +183,9 @@
         <CreateProperty Value="$(ProductVersionMajor).$(ProductVersionMinor).$(ProductVersionBuild)">
             <Output TaskParameter="Value" PropertyName="ProductVersion"></Output>
         </CreateProperty>
+        <CreateProperty Value="-DProductId:$(CompileProductId) -DProductVersion:$(ProductVersion)">
+            <Output TaskParameter="Value" PropertyName="M2PROD"></Output>
+        </CreateProperty>
     </Target>
 
     <!-- resources default -->
@@ -366,7 +369,7 @@
 
     <Target Name="GrabOutOfDateFiles" Condition="@(DEFFiles)!='' Or @(MODFiles)!=''">
         <Exec WorkingDirectory="$(SourceDir)"
-              Command="$(M2D) $(M2TDEF) -O&quot;..\$(IntermediateDir)&quot; @(DEFFiles, ' ') @(MODFiles, ' ')"/>
+              Command="$(M2D) $(M2PROD) $(M2TDEF) -O&quot;..\$(IntermediateDir)&quot; @(DEFFiles, ' ') @(MODFiles, ' ')"/>
         <ReadLinesFromFile File="$(IntermediateDir)\OutOfDate.DEF.log">
             <Output TaskParameter="Lines" ItemName="OutOfDateDEFs"/>
         </ReadLinesFromFile>
@@ -384,7 +387,7 @@
             Inputs="@(DEFFilesDir);@(MODFilesDir)"
             Outputs="@(DEFFilesDir -> '$(HeaderDir)\%(Filename).h');@(MODFilesDir -> '$(IntermediateDir)\%(Filename).cpp')">
         <Exec WorkingDirectory="$(SourceDir)"
-              Command="$(M2) $(M2DEF) -O&quot;..\$(IntermediateDir)&quot; @(DEFFilesDir -> '%(FileName).def', ' ') @(MODFilesDir -> '%(FileName).mod', ' ')"/>
+              Command="$(M2) $(M2PROD) $(M2DEF) -O&quot;..\$(IntermediateDir)&quot; @(DEFFilesDir -> '%(FileName).def', ' ') @(MODFilesDir -> '%(FileName).mod', ' ')"/>
     </Target>
 
     <Target Name="TestCPPs" Condition="@(TestDEFFiles)!='' or @(TestMODFiles)!=''"
