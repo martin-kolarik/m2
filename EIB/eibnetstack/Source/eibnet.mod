@@ -574,16 +574,17 @@ CLASS IMPLEMENTATION CConnection;
 
    PRIVATE PROCEDURE OnRoutingIndication( CONST packet : core.RoutingIndication );
    VAR
-      EMI : eib_def.TPacket := packet.EMI;
+      EMI : eib_def.TPacket;
    BEGIN
+      EMI := packet.EMI;
       IF TestSelfPacket( EMI ) THEN // not to accept telegram from self
-         RETURN;
+         logger()^.LogS( dldTrace, L"EIBNet Connection", L"ROUTED in (self)" );
+         logger()^.LogSB( dldDebug, L"EIBNet Connection", L"ROUTED (self): ", ADR( packet ), packet.Length );
+      ELSE
+         logger()^.LogS( dldTrace, L"EIBNet Connection", L"ROUTED in" );
+         logger()^.LogSB( dldDebug, L"EIBNet Connection", L"ROUTED: ", ADR( packet ), packet.Length );
+         On_L_IND( EMI );
       END;
-
-      logger()^.LogS( dldTrace, L"EIBNet Connection", L"ROUTED in" );
-      logger()^.LogSB( dldDebug, L"EIBNet Connection", L"ROUTED: ", ADR( packet ), packet.Length );
-
-      On_L_IND( EMI );
    END OnRoutingIndication;
 
 (*--------------------------------------------------------------------------------*)
@@ -665,6 +666,7 @@ CLASS IMPLEMENTATION CConnection;
 
    PRIVATE PROCEDURE OnTunnelingRequest( CONST packet : core.TunnelingRequest );
    VAR
+      EMI : eib_def.TPacket;
       tack : core.TunnelingACK;
       pSeq : CARD8 := packet.Sequence;
    BEGIN
@@ -680,13 +682,20 @@ CLASS IMPLEMENTATION CConnection;
 
       IF pSeq < CARD8( InSeq ) THEN
          logger()^.LogSCP( dldTrace, L"EIBNet Connection", L"RECEIVE previous: ", CARDINAL( ChannelId ), PTR( pSeq ));
+         RETURN;
+      END;
+
+      EMI := packet.EMI;
+      IF TestSelfPacket( EMI ) THEN // not to accept telegram from self
+         logger()^.LogSCP( dldTrace, L"EIBNet Connection", L"RECEIVE ok (self): ", CARDINAL( ChannelId ), PTR( pSeq ));
+         logger()^.LogSB( dldDebug, L"EIBNet Connection", L"RECEIVE (self): ", ADR( packet ), packet.Length );
       ELSE
          logger()^.LogSCP( dldTrace, L"EIBNet Connection", L"RECEIVE ok: ", CARDINAL( ChannelId ), PTR( pSeq ));
          logger()^.LogSB( dldDebug, L"EIBNet Connection", L"RECEIVE: ", ADR( packet ), packet.Length );
-
-         InSeq := CARDINAL( pSeq ) + 1;
-         On_L_IND( packet.EMI );
+         On_L_IND( EMI );
       END;
+
+      InSeq := CARDINAL( pSeq ) + 1;
    END OnTunnelingRequest;
 
 (*--------------------------------------------------------------------------------*)
