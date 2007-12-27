@@ -24,11 +24,13 @@
         <CompileProductId Condition="$(ProductId)!=''">$(ProductId)</CompileProductId>
         <CompileProductVersion Condition="$(ProductVersion)==''">0.0.0</CompileProductVersion>
         <CompileProductVersion Condition="$(ProductVersion)!=''">$(ProductVersion)</CompileProductVersion>
+
+        <M2PROD>-DProductId:$(CompileProductId) -DProductVersion:$(CompileProductVersion)</M2PROD>
     </PropertyGroup>
 
     <!-- CONTROLS -->
     <PropertyGroup>
-        <M2CTRL>-DProductId:$(CompileProductId) -DProductVersion:$(CompileProductVersion) -DManufacturer:$(Manufacturer) -DConfigurationName:$(ConfigurationName) -DPlatformName:$(PlatformName)</M2CTRL>
+        <M2CTRL>-DManufacturer:$(Manufacturer) -DConfigurationName:$(ConfigurationName) -DPlatformName:$(PlatformName)</M2CTRL>
         <M2CTRL>$(M2CTRL) -W8 -W9 -W10 -W11 -DDEBUG:$(Debug) </M2CTRL>
         <M2CTRL Condition="$(LeakChecking)=='on'">$(M2CTRL) -SM</M2CTRL>
         <CLCTRL>/Zp8 /J /Gy /GR /Gr /GF /GS- /Oi /DNO_STRICT /DWINVER=0x0501 /D_WIN32_WINNT=0x0501</CLCTRL>
