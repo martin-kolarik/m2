@@ -25,7 +25,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Threading", "..\..\Library\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Messaging", "..\..\Library\Messaging\Messaging.vcproj", "{A9ED5AF6-04BD-4B00-B7AF-7DAB307A658B}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "eibstack", "..\..\EIB\eibstack\eibstack.vcproj", "{3560FA24-B555-4408-91F0-77E822A074F0}"
+EndProject
 Global
+	GlobalSection(TextTemplating) = postSolution
+		TextTemplating = 1
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
 		Release|Win32 = Release|Win32
@@ -79,6 +84,10 @@ Global
 		{A9ED5AF6-04BD-4B00-B7AF-7DAB307A658B}.Debug|Win32.Build.0 = Debug|Win32
 		{A9ED5AF6-04BD-4B00-B7AF-7DAB307A658B}.Release|Win32.ActiveCfg = Release|Win32
 		{A9ED5AF6-04BD-4B00-B7AF-7DAB307A658B}.Release|Win32.Build.0 = Release|Win32
+		{3560FA24-B555-4408-91F0-77E822A074F0}.Debug|Win32.ActiveCfg = Debug|Win32
+		{3560FA24-B555-4408-91F0-77E822A074F0}.Debug|Win32.Build.0 = Debug|Win32
+		{3560FA24-B555-4408-91F0-77E822A074F0}.Release|Win32.ActiveCfg = Release|Win32
+		{3560FA24-B555-4408-91F0-77E822A074F0}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

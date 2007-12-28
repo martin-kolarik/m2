@@ -1,4 +1,13 @@
-Version 1.0.1310? beta 23.12.2007
+Version 1.0.1395 beta 28.12.2007
+- CHG: trace outputs changed, group address is now visible, if applicable. Error
+       codes are printed in all possible places.
+- BUG: Tunneling connection ignored negative ACKs. Thus, eib stack thought that
+       packet is sent and did not repeat packet.
+- CHG: Routing connection now waits 20 ms before generating L_CON. This gives
+       time to router to respond ROUTING_LOST_MESSAGE code. In that case, message
+       is repeated.
+
+Version 1.0.1315 beta 23.12.2007
 - NEW: communication via EIBNet/IP Routing service added
 
 Version 1.0.1135 beta 16.10.2007

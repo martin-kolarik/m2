@@ -17,6 +17,8 @@
 
         <FileDisplayName>EIBNet/IP driver</FileDisplayName>
         <FileDescription>EIBNet/IP group object driver</FileDescription>
+
+        <DynamicCLibInstallMethod>Shared</DynamicCLibInstallMethod>
     </PropertyGroup>
 
     <!-- 2 INCLUDE DEFINITION -->
