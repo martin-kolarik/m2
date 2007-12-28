@@ -11,8 +11,8 @@ IMPORT
 
 // SCANNING
 PROCEDURE VersionW() : CARDINAL;
-PROCEDURE Check( VAR ErrorString : ARRAY OF CHAR; CWVersion, MajorVersion, MinorVersion, APIMajorVersion, APIMinorVersion : CARDINAL ): BOOLEAN;
-PROCEDURE CheckW( VAR ErrorString : ARRAY OF WCHAR; CWVersion, MajorVersion, MinorVersion, APIMajorVersion, APIMinorVersion : CARDINAL ): BOOLEAN;
+PROCEDURE Check( VAR ErrorString : ARRAY OF CHAR; CWVersion, MajorVersion, MinorVersion, APIMajorVersion, APIMinorVersion : CARDINAL ) : BOOLEAN;
+PROCEDURE CheckW( VAR ErrorString : ARRAY OF WCHAR; CWVersion, MajorVersion, MinorVersion, APIMajorVersion, APIMinorVersion : CARDINAL ) : BOOLEAN;
 PROCEDURE GetDriverInfo( VAR DriverNameW : ARRAY OF CHAR );
 PROCEDURE GetDriverInfoW( VAR DriverNameW : ARRAY OF WCHAR );
 
