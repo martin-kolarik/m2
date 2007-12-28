@@ -8,6 +8,7 @@ IMPORT
 IMPORT
    arrays,
    core,
+   eib_def,
    eib_status,
    netsocket,
    netsrv,
@@ -113,6 +114,8 @@ CLASS CConnection( msghandler.MessageHandler );
    INTERNAL VIRTUAL PROCEDURE TestSelfPacket( CONST packet : eib_def.TPacket ) : BOOLEAN;
 
    PRIVATE PROCEDURE OnRoutingIndication( CONST packet : core.RoutingIndication );
+   PRIVATE PROCEDURE OnRoutingLostMessage( CONST packet : core.RoutingLostMessage );
+
    PRIVATE PROCEDURE OnConnectResponse( CONST packet : core.ConnectResponse );
    PRIVATE PROCEDURE OnConnectionStateResponse( CONST packet : core.ConnectionStateResponse );
    PRIVATE PROCEDURE OnDisconnectRequest( CONST packet : core.DisconnectRequest );
@@ -124,6 +127,7 @@ CLASS CConnection( msghandler.MessageHandler );
    PRIVATE PROCEDURE DataDisconnect(); // first phase
    PRIVATE PROCEDURE DeviceDisconnect(); // second phase
    PRIVATE PROCEDURE ProcessHbFailure();
+   PRIVATE PROCEDURE LogPacket( CONST text : ARRAY OF WCHAR; CONST packet : eib_def.TPacket; data : ADDRESS; dataLen : CARDINAL; selfPacket : BOOLEAN );
 END CConnection;
 
 (*================================================================================*)

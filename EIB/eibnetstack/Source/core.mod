@@ -608,6 +608,13 @@ CLASS IMPLEMENTATION TunnelingACK;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Status GET : TStatus;
+   BEGIN
+      RETURN TStatus( _CHDR._Data );
+   END Status;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY Success GET : BOOLEAN;
    BEGIN
       RETURN TStatus( _CHDR._Data ) = E_NO_ERROR;

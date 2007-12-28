@@ -21,6 +21,9 @@ CONST
    HEART_BEAT_TIMEOUT = 10 * 1000;
    TUNNELING_REQUEST_TIME_OUT = 1 * 1000;
 
+   // specific
+   ROUTING_L_CON_TIME_OUT = 20;
+
 (*--------------------------------------------------------------------------------*)
 // main service structures
 
@@ -388,6 +391,7 @@ TYPE
 CLASS TunnelingACK( TunnelingPacket );
    PUBLIC READONLY PROPERTY
       Valid : BOOLEAN;
+      Status : TStatus;
    PUBLIC PROPERTY
       Success : BOOLEAN;
 END TunnelingACK;
