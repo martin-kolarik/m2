@@ -50,13 +50,16 @@ TYPE
       ioDisconnected,
       ioConnecting,
       ioReady,
-      ioWaitACK1,
-      ioWaitACK2,
+      ioWaitTCON1, ioWaitTCON2,
       ioDisconnecting
    );
+   TIOStates = SET OF TIOState;
    
 CONST
    maximalHbRepeat = 3;
+
+   iosPending = TIOStates{ioWaitTCON1, ioWaitTCON2};
+   iosConnected = iosPending + TIOStates{ioReady};
 
 (*--------------------------------------------------------------------------------*)
 
@@ -109,6 +112,7 @@ CLASS CConnection( msghandler.MessageHandler );
 
    INTERNAL VIRTUAL PROCEDURE OnConnect();
    INTERNAL VIRTUAL PROCEDURE OnDisconnect();
+   INTERNAL VIRTUAL PROCEDURE On_P_Sent();
    INTERNAL VIRTUAL PROCEDURE On_L_CON( Status : eib_status.TEIBStackStatus );
    INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : eib_def.TPacket );
    INTERNAL VIRTUAL PROCEDURE TestSelfPacket( CONST packet : eib_def.TPacket ) : BOOLEAN;
@@ -127,7 +131,7 @@ CLASS CConnection( msghandler.MessageHandler );
    PRIVATE PROCEDURE DataDisconnect(); // first phase
    PRIVATE PROCEDURE DeviceDisconnect(); // second phase
    PRIVATE PROCEDURE ProcessHbFailure();
-   PRIVATE PROCEDURE LogPacket( CONST text : ARRAY OF WCHAR; CONST packet : eib_def.TPacket; data : ADDRESS; dataLen : CARDINAL; selfPacket : BOOLEAN );
+   PRIVATE PROCEDURE LogPacket( outputFlag : BOOLEAN; CONST text : ARRAY OF WCHAR; CONST packet : eib_def.TPacket; data : ADDRESS; dataLen : CARDINAL; selfPacket : BOOLEAN );
 END CConnection;
 
 (*================================================================================*)

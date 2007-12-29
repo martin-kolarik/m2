@@ -181,7 +181,7 @@ CLASS IMPLEMENTATION CConnection;
 
    PUBLIC PROPERTY Connected GET : BOOLEAN;
    BEGIN
-      RETURN ( IOState = ioReady ) OR ( IOState = ioWaitACK1 ) OR ( IOState = ioWaitACK2 );
+      RETURN IOState IN iosConnected;
    END Connected;
 
 (*--------------------------------------------------------------------------------*)
@@ -195,7 +195,7 @@ CLASS IMPLEMENTATION CConnection;
 
    PUBLIC PROPERTY Pending GET : BOOLEAN;
    BEGIN
-      RETURN ( IOState = ioWaitACK1 ) OR ( IOState = ioWaitACK2 );
+      RETURN IOState IN iosPending;
    END Pending;
 
 (*--------------------------------------------------------------------------------*)
@@ -217,7 +217,8 @@ CLASS IMPLEMENTATION CConnection;
 
       //-----
       | tiACK :
-         IF IOState = ioWaitACK1 THEN
+         CASE IOState OF
+         | ioWaitTCON1 :
             IF _Mode = cmRouting THEN // timeout elapsed without routing error notification, finish routing
                logger()^.LogS( dldTrace, L"EIBNet Connection", L"ROUTING L_CON ok" );
 
@@ -225,14 +226,14 @@ CLASS IMPLEMENTATION CConnection;
                On_L_CON( eib_status.essOK );
             
             ELSE  // resend data
-               logger()^.LogSC( dldTrace, L"EIBNet Connection", L"R_CON timeout, repeat SEND: ", CARDINAL( ChannelId ));
+               logger()^.LogSC( dldTrace, L"EIBNet Connection", L"T_CON timeout, repeat SEND: ", CARDINAL( ChannelId ));
 
-               IOState := ioWaitACK2;
+               IOState := ioWaitTCON2;
                DoSend();
             END;
 
-         ELSIF IOState = ioWaitACK2 THEN
-            logger()^.LogSC( dldTrace, L"EIBNet Connection", L"R_CON timeout, kill SEND: ", CARDINAL( ChannelId ));
+         | ioWaitTCON2 :
+            logger()^.LogSC( dldTrace, L"EIBNet Connection", L"T_CON timeout, kill SEND: ", CARDINAL( ChannelId ));
 
             // INC( OutSeq ); // prepare next writing -- unable to do, if remote peer does not ACKs packet, it expects ONLY the next one... Maybe, it should accept newer packets, but it does not do so
             INC( SendErr ); // increment connection recovery counter
@@ -271,18 +272,18 @@ CLASS IMPLEMENTATION CConnection;
       ELSIF IOState <> ioDisconnected THEN
          RETURN Sync.arAlreadyPending;
       END;
-
-      IF _Mode = cmScanning THEN
+      
+      CASE _Mode OF
+      | cmScanning :
          IF Timeout = 0 THEN
             timeout := BROWSE_TIMEOUT;
          ELSE
             timeout := Timeout;
          END;
-         b := FALSE;
-      ELSE
+         b := netsrv.StartListen( netsocket.stDatagram, 0, NIL, Listener, timeout, ADR( Socket )) = 0;
+      | cmRouting :
          b := netsrv.StartListen( netsocket.stDatagram, core.EIBNET_IPPORT, NIL, Listener, 0, ADR( Socket )) = 0;
-      END;
-      IF NOT b THEN
+      ELSE
          b := netsrv.StartListen( netsocket.stDatagram, 0, NIL, Listener, timeout, ADR( Socket )) = 0;
       END;
       IF b THEN
@@ -374,7 +375,7 @@ CLASS IMPLEMENTATION CConnection;
       END;
       SELF.EMI := EMI;
 
-      IOState := ioWaitACK1;
+      IOState := ioWaitTCON1;
 
       RETURN DoSend();
    END SendPacket;
@@ -427,7 +428,7 @@ CLASS IMPLEMENTATION CConnection;
            core.DISCONNECT_RESPONSE,
            core.TUNNELING_REQUEST,
            core.TUNNELING_ACK :
-            IF IOState < ioReady THEN
+            IF IOState NOT IN iosConnected THEN
                logger()^.LogSCP( dldDebug, L"EIBNet Connection", L"packet rejected as unexpected: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
                RETURN;
             END;
@@ -562,6 +563,12 @@ CLASS IMPLEMENTATION CConnection;
 
 (*--------------------------------------------------------------------------------*)
 
+   INTERNAL VIRTUAL PROCEDURE On_P_Sent();
+   BEGIN
+   END On_P_Sent;
+
+(*--------------------------------------------------------------------------------*)
+
    INTERNAL VIRTUAL PROCEDURE On_L_CON( Status : eib_status.TEIBStackStatus );
    BEGIN
    END On_L_CON;
@@ -587,9 +594,9 @@ CLASS IMPLEMENTATION CConnection;
    BEGIN
       EMI := packet.EMI;
       IF TestSelfPacket( EMI ) THEN // not to accept telegram from self
-         LogPacket( L"ROUTED in", EMI, ADR( packet ), packet.Length, TRUE );
+         LogPacket( FALSE, L"ROUTED in", EMI, ADR( packet ), packet.Length, TRUE );
       ELSE
-         LogPacket( L"ROUTED in", EMI, ADR( packet ), packet.Length, FALSE );
+         LogPacket( FALSE, L"ROUTED in", EMI, ADR( packet ), packet.Length, FALSE );
          On_L_IND( EMI );
       END;
    END OnRoutingIndication;
@@ -686,6 +693,7 @@ CLASS IMPLEMENTATION CConnection;
    PRIVATE PROCEDURE OnTunnelingRequest( CONST packet : core.TunnelingRequest );
    VAR
       EMI : eib_def.TPacket;
+      Error : BOOLEAN;
       tack : core.TunnelingACK;
       pSeq : CARD8 := packet.Sequence;
    BEGIN
@@ -705,11 +713,29 @@ CLASS IMPLEMENTATION CConnection;
       END;
 
       EMI := packet.EMI;
-      IF TestSelfPacket( EMI ) THEN
-         LogPacket( L"RECEIVE", EMI, ADR( packet ), packet.Length, TRUE );
-      ELSE
-         LogPacket( L"RECEIVE", EMI, ADR( packet ), packet.Length, FALSE );
+      CASE EMI.Code OF
+      | eib_def.L_Data_CON, eib_def.L_Data_CON_EMI2 : // L_CON
+         Error := EMI.GetError();
+         IF Error THEN
+            LogPacket( FALSE, L"SEND R_CON error", EMI, ADR( packet ), packet.Length, FALSE );
+         ELSE
+            LogPacket( FALSE, L"SEND R_CON ok", EMI, ADR( packet ), packet.Length, FALSE );
+         END;
+         logger()^.LogSCP( dldDebug, L"EIBNet Connection", L"SEND R_CON status: ", CARDINAL( ChannelId ), PTR( EMI.GetError() ));
+
+         IOState := ioReady;
+         IF Error THEN
+            On_L_CON( eib_status.essTransceiverFault );
+         ELSE
+            On_L_CON( eib_status.essOK );
+         END;
+
+      | eib_def.L_Data_IND, eib_def.L_Data_IND_EMI2 : // L_IND
+         LogPacket( FALSE, L"RECEIVE", EMI, ADR( packet ), packet.Length, FALSE );
          On_L_IND( EMI );
+
+      ELSE // L_REQ???
+         logger()^.LogSCP( dldTrace, L"EIBNet Connection", L"RECEIVE unexpected code: ", CARDINAL( ChannelId ), PTR( EMI.Code ));
       END;
 
       InSeq := CARDINAL( pSeq ) + 1;
@@ -722,27 +748,29 @@ CLASS IMPLEMENTATION CConnection;
       Status : core.TStatus;
    BEGIN
       Status := packet.Status;
-      IF Status = core.E_NO_ERROR THEN
-         logger()^.LogSC( dldTrace, L"EIBNet Connection", L"SEND R_CON ok: ", CARDINAL( ChannelId ));
-      ELSE
-         logger()^.LogSCP( dldTrace, L"EIBNet Connection", L"SEND R_CON error: ", CARDINAL( ChannelId ), PTR( Status ));
+      IF NOT logger()^.Filtered( dldDebug ) THEN
+         logger()^.LogSCP( dldDebug, L"EIBNet Connection", L"SEND T_CON status: ", CARDINAL( ChannelId ), PTR( Status ));
+         logger()^.LogSCP( dldDebug, L"EIBNet Connection", L"SEND T_CON seq: ", CARDINAL( ChannelId ), PTR( packet.Sequence ));
       END;
-      logger()^.LogSCP( dldDebug, L"EIBNet Connection", L"SEND R_CON seq: ", CARDINAL( ChannelId ), PTR( packet.Sequence ));
 
-      StopTimer( PTR( tiACK ));
-      IOState := ioReady;
       IF packet.Sequence = CARD8( OutSeq ) THEN
         INC( OutSeq ); // prepare next writing
       END;
-      SendErr := 0; // reset connection recovery counter
 
+      // stop TCON timeouting
+      StopTimer( PTR( tiACK ));
+      SendErr := 0; // reset connection recovery counter
+   
+      // notify stack about mine job finish   
+      On_P_Sent();
+
+      // and handle error
       CASE Status OF
       | core.E_NO_ERROR :
-         On_L_CON( eib_status.essOK );
+         // no L_CON must be done here, L_CON is received and processed when cEMI frame carries it, only notify send and leave timeouting etc. to Stack
       | core.E_SEQUENCE_NUMBER : // error in seq numbers, this is not recoverable
          On_L_CON( eib_status.essTransceiverFault );
          Disconnect( FALSE );
-
       | core.E_DATA_CONNECTION, core.E_KNX_CONNECTION :
          On_L_CON( eib_status.essTransceiverFault );
       ELSE
@@ -763,7 +791,7 @@ CLASS IMPLEMENTATION CConnection;
       IF _Mode = cmRouting THEN
          rr.EMI := EMI;
 
-         LogPacket( L"ROUTED out", EMI, ADR( rr ), rr.Length, FALSE );
+         LogPacket( TRUE, L"ROUTED out", EMI, ADR( rr ), rr.Length, FALSE );
 
          StartTimer( PTR( tiACK ), core.ROUTING_L_CON_TIME_OUT, FALSE );
          res := Socket^.SendOA( OA( rr.Length-1, ADR( rr ))); // send to internal multicast group
@@ -776,7 +804,7 @@ CLASS IMPLEMENTATION CConnection;
          tr.Sequence := CARD8( OutSeq );
          tr.EMI := EMI;
          
-         LogPacket( L"SEND", EMI, ADR( tr ), tr.Length, FALSE );
+         LogPacket( TRUE, L"SEND", EMI, ADR( tr ), tr.Length, FALSE );
 
          StartTimer( PTR( tiACK ), core.TUNNELING_REQUEST_TIME_OUT, FALSE );
          res := Socket^.SendToOA( OA( tr.Length-1, ADR( tr )), HPAIData.Address, HPAIData.Port ); // send to specified address
@@ -799,7 +827,7 @@ CLASS IMPLEMENTATION CConnection;
       StopTimer( PTR( tiHeartbeat ));
       SendErr := 0; // reset connection recovery counter
 
-      IF ( IOState = ioWaitACK1 ) OR ( IOState = ioWaitACK2 ) THEN
+      IF IOState IN iosPending THEN
          On_L_CON( eib_status.essTransceiverFault );
       END;
       
@@ -854,16 +882,17 @@ CLASS IMPLEMENTATION CConnection;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE LogPacket( CONST text : ARRAY OF WCHAR; CONST packet : eib_def.TPacket; data : ADDRESS; dataLen : CARDINAL; selfPacket : BOOLEAN );
+   PRIVATE PROCEDURE LogPacket( outputFlag : BOOLEAN; CONST text : ARRAY OF WCHAR; CONST packet : eib_def.TPacket; data : ADDRESS; dataLen : CARDINAL; selfPacket : BOOLEAN );
    VAR
       address : eib_def.TAddress;
       s : ARRAY [0..31] OF WCHAR;
+      seq : PTR;
       out : ARRAY [0..31] OF WCHAR;
    BEGIN
       IF NOT logger()^.Filtered( dldTrace ) THEN
          out := text;
          IF selfPacket THEN
-            Strings.AppendW( REF out, L" (s)" ); 
+            Strings.AppendW( REF out, L" [S]" ); 
          END;
       
          address := packet.GetDestinationAddress();
@@ -875,8 +904,13 @@ CLASS IMPLEMENTATION CConnection;
          END;
 
          IF NOT logger()^.Filtered( dldDebug ) THEN
-            Strings.ConcatW( OUT out, text, L" ctrl:" ); logger()^.LogSCP( dldDebug, L"EIBNet Connection", out, CARDINAL( ChannelId ), PTR( OutSeq ));
-            Strings.ConcatW( OUT out, text, L" data:" ); logger()^.LogSB( dldDebug, L"EIBNet Connection", out, data, dataLen );
+            IF outputFlag THEN
+               seq := PTR( CARD8( OutSeq ));
+            ELSE
+               seq := PTR( CARD8( InSeq ));
+            END;
+            Strings.ConcatW( OUT out, text, L" seq: " ); logger()^.LogSCP( dldDebug, L"EIBNet Connection", out, CARDINAL( ChannelId ), seq );
+            Strings.ConcatW( OUT out, text, L" data: " ); logger()^.LogSB( dldDebug, L"EIBNet Connection", out, data, dataLen );
          END;
       END;
    END LogPacket;

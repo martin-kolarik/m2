@@ -27,6 +27,8 @@ CLASS CStackConnection( eibnet.CConnection );
 
    INTERNAL VIRTUAL PROCEDURE OnConnect();
    INTERNAL VIRTUAL PROCEDURE OnDisconnect();
+
+   INTERNAL VIRTUAL PROCEDURE On_P_Sent();
    INTERNAL VIRTUAL PROCEDURE On_L_CON( Status : eib_status.TEIBStackStatus );
    INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : eib_def.TPacket );
 
@@ -71,6 +73,13 @@ CLASS IMPLEMENTATION CStackConnection;
    BEGIN
       Stack^.PStack^.OnDeviceDisconnected();
    END OnDisconnect;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE On_P_Sent();
+   BEGIN
+      Stack^.Ph_Data_Sent();
+   END On_P_Sent;
 
 (*--------------------------------------------------------------------------------*)
 
