@@ -281,7 +281,7 @@ CLASS IMPLEMENTATION CIPServer;
       Message.CloseTime := AutomaticCloseTimeMS;
       MQueue.QueueOA( Message );
     
-      // list must be started synchronously, to assure that send/receivings done immediatelly after StartListen will be catched
+      // listen must be started synchronously, to assure that send/receivings done immediatelly after StartListen will be catched
       Socket^.Notifier := ADR( SocketNotifier );
       Result := Socket^.Listen( OUT Error );
       IF Result IN Sync.arsStarts THEN
