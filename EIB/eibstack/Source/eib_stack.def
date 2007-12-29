@@ -196,11 +196,13 @@ CLASS CEIBStackPhysicalLayer( CEIBStackLayer );
     // Status : eib_status.TEIBStackStatus is generated inside
   );
 
-  PUBLIC VIRTUAL PROCEDURE Ph_Data_Req(
+  PUBLIC VIRTUAL PROCEDURE Ph_Data_Req( // procedure MUST call Ph_Data_Sent (or assure that Ph_Data_Sent will be called) if sending succeeded
       VAR Packet      : eib_def.TPacket
   );
   // default CALLS Ph_Data_Ind/Con to LinkLayer
-  
+
+  PUBLIC PROCEDURE Ph_Data_Sent( // extension, from the call LinkLayer starts to count timeouts, this is handshake/ACK to Ph_Data_Req
+  );
   PUBLIC VIRTUAL PROCEDURE Ph_Data_Ind(
     // Packet is received and created inside
   );
@@ -383,6 +385,8 @@ CLASS CEIBStackLinkLayer( CEIBStackLayer );
   LOCAL VIRTUAL PROCEDURE Timeout( TimeoutId : TTimeoutId; UserId : LONGWORD );
 
   // PHYSICAL LAYER RECEPTION, MAIN LINK LAYER INPUT
+  PUBLIC PROCEDURE Ph_Data_Sent( // extension, from the call LinkLayer starts to count timeouts, this is handshake/ACK to Ph_Data_Req
+  );
   PUBLIC PROCEDURE Ph_Data_Ind(
           PPacket     : eib_def.TPPacket
   );

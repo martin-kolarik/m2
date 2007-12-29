@@ -103,7 +103,7 @@ CONST
   // lc4                // always set
   lcNotRepeated         = 5;
   // lc6                // always unset
-  // lc7                // always set
+  lcStandardFrame       = 7;
 
   lcsPrioritySystem     = BITSET8{};
   lcsPriorityAlarm      = BITSET8{ lcPriority0 };
@@ -111,7 +111,7 @@ CONST
   lcsPriorityNormal     = BITSET8{ lcPriority0, lcPriority1 };
 
   lcmPriority           = BITSET8{ lcPriority0, lcPriority1 };
-  lcsDefault            = BITSET8{ 4, 7, lcNotRepeated } + lcsPriorityNormal;
+  lcsDefault            = BITSET8{ 4, lcStandardFrame, lcNotRepeated } + lcsPriorityNormal;
 
   // network control
   // nc0..nc3           // user data length

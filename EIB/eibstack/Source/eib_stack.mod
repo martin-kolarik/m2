@@ -329,6 +329,14 @@ CLASS IMPLEMENTATION CEIBStackPhysicalLayer;
 
 (*--------------------------------------------------------------------------------*)
 
+  PUBLIC PROCEDURE Ph_Data_Sent( // extension, from the call LinkLayer starts to count timeouts, this is handshake/ACK to Ph_Data_Req
+  );
+  BEGIN
+     Listener()^.Ph_Data_Sent();
+  END Ph_Data_Sent;
+
+(*--------------------------------------------------------------------------------*)
+
   PUBLIC VIRTUAL PROCEDURE Ph_Data_Ind(
   );
   BEGIN
@@ -743,12 +751,6 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
 
     //-----
     | tidL_ACKTimeout :
-
-(*?*)    
-(*%T DEBUG *)
-  // vwthread.DbgOutSH( 'TIME ', Time.UptimeMS() );
-(*%E DEBUG *)
-    
       Ph_Data_Con( eib_status.essL_Timeout );
 
     //-----
@@ -842,6 +844,19 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
     UNTIL NOT L_Data.Listeners.NextOf( PListener, OUT PListener );
     Leave();
   END ListenerGroupUpdated;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROCEDURE Ph_Data_Sent( // extension, from the call LinkLayer starts to count timeouts, this is handshake/ACK to Ph_Data_Req
+  );
+  BEGIN
+     Enter(); // possible rentrancy from Communicate
+
+     L_Data.ACKTimeouter.Start();
+     L_Data.LastSend := Time.UptimeMS();
+
+     Leave();
+  END Ph_Data_Sent;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1011,8 +1026,7 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
       END;
 
       IF Send THEN
-        L_Data.ACKTimeouter.Start();
-        L_Data.LastSend := Time.UptimeMS();
+        // no timeout setup, all is done inside Ph_Data_Sent
         Executive()^.Ph_Data_Req( Packet );
       END;
 
