@@ -5,6 +5,7 @@ FROM Storage IMPORT
 
 IMPORT
    FIO,
+   FIOO,
    Storage,
    Strings,
    Sync;
@@ -421,7 +422,7 @@ END PrepareStdHandles;
 
 (*--------------------------------------------------------------------------------*)
 
-PROCEDURE RunProgramInPipe( CONST Path, Parameters : ARRAY OF WCHAR; CONST InStream : IOO.TPStream; OUT OutStream : FIOO.TPFileStream ) THROWS IOO.CIOException;
+PROCEDURE RunProgramInPipe( CONST Path, Parameters : ARRAY OF WCHAR; CONST InStream : IOO.TPStream; OUT OutStream : IOO.TPStream ) THROWS IOO.CIOException;
 LABEL
    Error, ErrorCodeKnown;
 VAR
@@ -482,8 +483,8 @@ BEGIN
       END;
 
       // read data from program output
-      NEW( OutStream );
-      OutStream^.FromHandle( hReadBack, TRUE, IOO.accRead );
+      OutStream := NEW( FIOO.CFileStream );
+      FIOO.TPFileStream( OutStream )^.FromHandle( hReadBack, TRUE, IOO.accRead );
       hReadBack := windows.INVALID_HANDLE_VALUE;
      
       windows.CloseHandle( PI.hThread );

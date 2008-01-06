@@ -4,7 +4,6 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-   FIOO,
    IOO,
    StringsO,
    time,
@@ -84,7 +83,7 @@ PROCEDURE GetEnvVariable( CONST Variable : ARRAY OF WCHAR; OUT Data : StringsO.C
 
 (*================================================================================*)
 
-PROCEDURE RunProgramInPipe( CONST Path, Parameters : ARRAY OF WCHAR; CONST InStream : IOO.TPStream; OUT OutStream : FIOO.TPFileStream ) THROWS IOO.CIOException;
+PROCEDURE RunProgramInPipe( CONST Path, Parameters : ARRAY OF WCHAR; CONST InStream : IOO.TPStream; OUT OutStream : IOO.TPStream ) THROWS IOO.CIOException;
 
 (*================================================================================*)
 
