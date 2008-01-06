@@ -21,23 +21,9 @@
         <ProductDisplayName Condition="$(ProductDisplayName)==''">$(FileDisplayName)</ProductDisplayName>
         <ProductDescription Condition="$(ProductDescription)==''">$(FileDescription)</ProductDescription>
     </PropertyGroup>
-    <PropertyGroup>
-        <!-- the assignment should be the same as for LibraryName -->
-        <!-- primarily use self definitions (bundle does not have defintions file)... -->
-        <SelfComponentDefinitionsPath Condition="$(ComponentType)!='Bundle'">$(MSBuildProjectDirectory)\$(MSBuildProjectName).definition.proj</SelfComponentDefinitionsPath>
-        <ComponentDefinitionsPath>$(SelfComponentDefinitionsPath)</ComponentDefinitionsPath>
-        <!-- ...and if I am controlled use global one -->
-        <ComponentDefinitionsPath Condition="$(ComponentType)=='Generic'">$(InheritedComponentDefinitionsPath)</ComponentDefinitionsPath>
-    </PropertyGroup>
 
-    <!-- configuration depended on component definition-->
-    <PropertyGroup>
-        <SelfDefinitionFileExists>off</SelfDefinitionFileExists>
-        <SelfDefinitionFileExists Condition="Exists('$(SelfComponentDefinitionsPath)')">on</SelfDefinitionFileExists>
-        <DefintionFileExists>off</DefintionFileExists>
-        <DefinitionFileExists Condition="Exists('$(ComponentDefinitionsPath)')">on</DefinitionFileExists>
-    </PropertyGroup>
-    <Import Condition="$(DefinitionFileExists)=='on'" Project="$(ComponentDefinitionsPath)"/>
+    <!-- handle definitions file in separate file for clarity -->
+    <Import Project="internal.definitionfile.targets"/>
 
     <!-- (constructed properties, DO NOT MODIFY) -->
     <Choose>
@@ -103,7 +89,7 @@
         <CPPExceptions Condition="$(CPPExceptions)==''">on</CPPExceptions>
         <CopyRuntimes Condition="$(CopyRuntimes)==''">$(ProductFlag)</CopyRuntimes>
 
-        <Test>off</Test>
+        <Test Condition="$(Test)==''">on</Test>
     </PropertyGroup>
 
     <!-- (constructed properties, DO NOT MODIFY) -->

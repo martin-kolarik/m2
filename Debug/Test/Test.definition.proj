@@ -6,12 +6,11 @@
         <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName>
         <LanguageStyle Condition="$(LanguageStyle)==''">UNICODE</LanguageStyle>
         <Language Condition="$(Language)==''">Czech</Language>
-        <CLib>Static</CLib>
         <LeakChecking>off</LeakChecking>
         <Test>off</Test><!-- not to compile self -->
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='sccore'">
+    <PropertyGroup Condition="$(MSBuildProjectName)=='SCCore'">
         <ComponentType>Generic</ComponentType>
     </PropertyGroup>
 

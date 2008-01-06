@@ -43,6 +43,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ClassLoader", "ClassLoader\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Test", "..\Debug\Test\Test.vcproj", "{56521FAA-0599-4D66-9E9B-50E583FF2983}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "runtest", "..\Tools\runtest\runtest.vcproj", "{805E5314-E7FB-4D66-B0B5-DAA5DF24E011}"
+EndProject
 Global
 	GlobalSection(TextTemplating) = postSolution
 		TextTemplating = 1
@@ -266,6 +268,16 @@ Global
 		{56521FAA-0599-4D66-9E9B-50E583FF2983}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{56521FAA-0599-4D66-9E9B-50E583FF2983}.Release|Win32.ActiveCfg = Release|Win32
 		{56521FAA-0599-4D66-9E9B-50E583FF2983}.Release|Win32.Build.0 = Release|Win32
+		{805E5314-E7FB-4D66-B0B5-DAA5DF24E011}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{805E5314-E7FB-4D66-B0B5-DAA5DF24E011}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{805E5314-E7FB-4D66-B0B5-DAA5DF24E011}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{805E5314-E7FB-4D66-B0B5-DAA5DF24E011}.Debug|Win32.ActiveCfg = Debug|Win32
+		{805E5314-E7FB-4D66-B0B5-DAA5DF24E011}.Debug|Win32.Build.0 = Debug|Win32
+		{805E5314-E7FB-4D66-B0B5-DAA5DF24E011}.Release|Any CPU.ActiveCfg = Release|Win32
+		{805E5314-E7FB-4D66-B0B5-DAA5DF24E011}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{805E5314-E7FB-4D66-B0B5-DAA5DF24E011}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{805E5314-E7FB-4D66-B0B5-DAA5DF24E011}.Release|Win32.ActiveCfg = Release|Win32
+		{805E5314-E7FB-4D66-B0B5-DAA5DF24E011}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

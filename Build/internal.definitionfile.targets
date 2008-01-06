@@ -1,0 +1,31 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <!-- The file handles loading of configuration depended on top-component definition. -->
+
+    <!-- 1. compute paths, if I am bundle, ignore self and respect definitions of sub projects (usually modules or products -->
+    <PropertyGroup>
+        <!-- the assignment should be the same as for LibraryName -->
+        <!-- primarily use self definitions (bundle does not have defintions file)... -->
+        <SelfComponentDefinitionsPath Condition="$(ComponentType)!='Bundle'">$(MSBuildProjectDirectory)\$(MSBuildProjectName).definition.proj</SelfComponentDefinitionsPath>
+        <ComponentDefinitionsPath>$(SelfComponentDefinitionsPath)</ComponentDefinitionsPath>
+    </PropertyGroup>
+
+    <!-- 2. load existing definition file to adjust settings for self too (e.g., super component requires me to behave differently than me -->
+    <Import Condition="Exists('$(InheritedComponentDefinitionsPath)')" Project="$(InheritedComponentDefinitionsPath)"/>
+
+    <!-- 3. now, when i know what super component expects from me, create final definitions path if needed -->
+    <PropertyGroup>
+        <ComponentDefinitionsPath Condition="$(ComponentType)=='Generic'">$(InheritedComponentDefinitionsPath)</ComponentDefinitionsPath>
+    </PropertyGroup>
+    
+    <!-- 4. create flags for build -->
+    <PropertyGroup>
+        <SelfDefinitionFileExists>off</SelfDefinitionFileExists>
+        <SelfDefinitionFileExists Condition="Exists('$(SelfComponentDefinitionsPath)')">on</SelfDefinitionFileExists>
+        <DefintionFileExists>off</DefintionFileExists>
+        <DefinitionFileExists Condition="Exists('$(ComponentDefinitionsPath)')">on</DefinitionFileExists>
+    </PropertyGroup>
+
+    <!-- 5. load final definition file -->
+    <Import Condition="$(DefinitionFileExists)=='on' And $(InheritedComponentDefinitionsPath)!=$(ComponentDefinitionsPath)" Project="$(ComponentDefinitionsPath)"/>
+
+</Project>
