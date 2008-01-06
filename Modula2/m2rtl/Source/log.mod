@@ -392,6 +392,8 @@ CLASS IMPLEMENTATION CLogger;
     END;
     Strings.AppendW( REF SW, L": " ); 
     Strings.AppendW( REF SW, S ); 
+
+    OnLogOutputString( SW );
     IF rsDebugFile IN RStatus THEN
       DebugLock.Lock();
       f := FIO.AppendW( DebugFile, FIO.TFileShare{FIO.fsRead} );
@@ -412,6 +414,12 @@ CLASS IMPLEMENTATION CLogger;
       windows.OutputDebugStringW( ADR( SW ));
     END;
   END Log;
+
+//---------------------------------------------------------
+
+   INTERNAL VIRTUAL PROCEDURE OnLogOutputString( CONST OutputString : ARRAY OF WCHAR );
+   BEGIN
+   END OnLogOutputString;
 
 //---------------------------------------------------------
 

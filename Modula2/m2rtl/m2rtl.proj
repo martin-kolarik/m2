@@ -15,6 +15,7 @@
     <!-- 3 -->
     <ItemGroup>
         <Components Include="modula2\modula2;api\clib;API\win32"/>
+        <Definitions Include="iobject"/>
         <Modules Include="Exceptions;Storage;lrconv;Strings;FIO;time;Languages;Sync;SyncQueue;Delegate;Log"/>
         <!-- Messages Include="XX1;XX2"/ -->
         <Interface Include="advapi32"/>
