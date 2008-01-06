@@ -1,0 +1,30 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 PRODUCT NAME -->
+    <PropertyGroup>
+        <ComponentType>Product</ComponentType>
+
+        <ProductVersionMajor>1</ProductVersionMajor>
+        <ProductVersionMinor>0</ProductVersionMinor>
+        <FileDescription>Tool for running development tests</FileDescription>
+
+        <Result>Program</Result>
+    </PropertyGroup>
+
+    <!-- 2 ROOT DIRS (including ProjectBuildDir) -->
+    <Import Project="..\..\Build\common.rootdir.proj"/><!-- property CodeRoot affects this -->
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 PRODUCT DEFINITION -->
+    <ItemGroup>
+        <Components Include="modula2\modula2;api\clib;API\win32"/>
+        <Components Include="Debug\Test;Library\ClassLoader;Component\SCCore"/>
+        <Program Include="runtest"/>
+    </ItemGroup>
+
+    <!-- 5 -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>
