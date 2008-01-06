@@ -35,14 +35,13 @@ CLASS CLoader;
 
    PUBLIC PROCEDURE AddLibrary( CONST LibraryPath : ARRAY OF WCHAR ) : objlib.TResult;
    PUBLIC PROCEDURE RemoveLibrary( CONST LibraryPath : ARRAY OF WCHAR );
-   PUBLIC PROCEDURE EnumerateLibraryClasses( REF EnumerateState : PTR; CONST LibraryPath : ARRAY OF WCHAR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
    PUBLIC PROCEDURE ScanPath( CONST Path, LibraryNamePattern : ARRAY OF WCHAR; OUT Found : CARDINAL ) : objlib.TResult;
 
    PUBLIC PROCEDURE DisableLibrary( CONST LibraryPath : ARRAY OF WCHAR );
    PUBLIC PROCEDURE EnableLibrary( CONST LibraryPath : ARRAY OF WCHAR );
 
-   PUBLIC PROCEDURE EnumerateLibraries( REF EnumerateState : PTR; OUT LibraryPath : ARRAY OF WCHAR; OUT State : TState ) : BOOLEAN;
-   PUBLIC PROCEDURE EnumerateClasses( REF EnumerateState : PTR; CONST LibraryName : ARRAY OF WCHAR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC PROCEDURE EnumerateLibraries( REF EnumerateState : PTR; OUT LibraryName, LibraryPath : ARRAY OF WCHAR; OUT State : TState ) : BOOLEAN;
+   PUBLIC PROCEDURE EnumerateClasses( REF EnumerateState : PTR; CONST LibraryName : ARRAY OF WCHAR; FullClassPathFlag : BOOLEAN; OUT ClassNameOrPath : ARRAY OF WCHAR ) : BOOLEAN;
    
    PUBLIC PROCEDURE CreateObject( CONST ClassPath : ARRAY OF WCHAR; OUT Object : objlib.TPObject ) : objlib.TResult;
    PUBLIC PROCEDURE ReleaseObject( REF Object : objlib.TPObject );

@@ -4,6 +4,7 @@
 	Version="8,00"
 	Name="ClassLoader"
 	ProjectGUID="{0AD95195-886F-46AE-88B3-76634C3B2E82}"
+	RootNamespace="ClassLoader"
 	Keyword="MakeFileProj"
 	>
 	<Platforms>
@@ -66,11 +67,11 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\Source\loader.mod"
+				RelativePath=".\Source\helper.mod"
 				>
 			</File>
 			<File
-				RelativePath=".\Source\objlib.mod"
+				RelativePath=".\Source\loader.mod"
 				>
 			</File>
 		</Filter>
@@ -80,11 +81,11 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\Source\loader.def"
+				RelativePath=".\Source\helper.def"
 				>
 			</File>
 			<File
-				RelativePath=".\Source\objlib.def"
+				RelativePath=".\Source\loader.def"
 				>
 			</File>
 		</Filter>

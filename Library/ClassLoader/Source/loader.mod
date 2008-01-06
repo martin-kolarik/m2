@@ -206,13 +206,6 @@ CLASS IMPLEMENTATION CLoader;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE EnumerateLibraryClasses( REF EnumerateState : PTR; CONST LibraryPath : ARRAY OF WCHAR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
-   BEGIN
-      RETURN FALSE;
-   END EnumerateLibraryClasses;
-
-(*---------------------------------------------------------------------------*)
-
    PUBLIC PROCEDURE ScanPath( CONST Path, LibraryNamePattern : ARRAY OF WCHAR; OUT Found : CARDINAL ) : objlib.TResult;
    BEGIN
       RETURN objlib.lrSuccess;
@@ -248,14 +241,31 @@ CLASS IMPLEMENTATION CLoader;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE EnumerateLibraries( REF EnumerateState : PTR; OUT LibraryPath : ARRAY OF WCHAR; OUT State : TState ) : BOOLEAN;
+   PUBLIC PROCEDURE EnumerateLibraries( REF EnumerateState : PTR; OUT LibraryName, LibraryPath : ARRAY OF WCHAR; OUT State : TState ) : BOOLEAN;
+   VAR
+      b : BOOLEAN;
+      Data : PTR;
+      Library : TPLibrary;
    BEGIN
-      RETURN FALSE;
+      IF EnumerateState = 0 THEN
+         b := Libraries.GetFirst( OUT Library, OUT Data );
+      ELSE
+         b := Libraries.NextOf( EnumerateState, OUT Library, OUT Data );
+      END;
+      IF NOT b THEN
+         RETURN FALSE;
+      END;
+      
+      Library^.Name.ToOA( OUT LibraryName );
+      Library^.Path.ToOA( OUT LibraryPath );
+      
+      EnumerateState := Library;
+      RETURN TRUE;
    END EnumerateLibraries;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE EnumerateClasses( REF EnumerateState : PTR; CONST LibraryName : ARRAY OF WCHAR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC PROCEDURE EnumerateClasses( REF EnumerateState : PTR; CONST LibraryName : ARRAY OF WCHAR; FullClassPathFlag : BOOLEAN; OUT ClassNameOrPath : ARRAY OF WCHAR ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END EnumerateClasses;
@@ -268,7 +278,7 @@ CLASS IMPLEMENTATION CLoader;
       Library : TPLibrary;
       s : FIO.PathStrW;
    BEGIN
-      i := Strings.ItemSW( ClassPath, Strings.WCHARS{L"."}, 0, 0, FALSE, OUT s );
+      i := Strings.ItemSW( ClassPath, Strings.WCHARS{L"/"}, 0, 0, FALSE, OUT s );
       IF s[0] = 0W THEN
          RETURN objlib.lrLibraryNotFound;
       ELSIF NOT Names.GetOA( s, OUT Library ) THEN

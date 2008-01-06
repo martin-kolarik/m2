@@ -1,4 +1,4 @@
-IMPLEMENTATION MODULE objlib;
+IMPLEMENTATION MODULE helper;
 
 (*===========================================================================*)
 
@@ -6,14 +6,14 @@ CLASS IMPLEMENTATION AObject;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Library GET : TPLibrary;
+   PUBLIC VIRTUAL PROPERTY Library GET : iobject.TPLibrary;
    BEGIN
       RETURN _Library;
    END Library;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Library SET( Value : TPLibrary );
+   PUBLIC VIRTUAL PROPERTY Library SET( Value : iobject.TPLibrary );
    BEGIN
       _Library := Value;
    END Library;
@@ -36,21 +36,21 @@ CLASS IMPLEMENTATION ACreator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Type GET : TObjectType;
+   PUBLIC VIRTUAL PROPERTY Type GET : iobject.TObjectType;
    BEGIN
-      RETURN otSingleton;
+      RETURN iobject.otSingleton;
    END Type;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Library GET : TPLibrary;
+   PUBLIC FINAL PROPERTY Library GET : iobject.TPLibrary;
    BEGIN
       RETURN SUPER.Library;
    END Library;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Library SET( Value : TPLibrary );
+   PUBLIC FINAL PROPERTY Library SET( Value : iobject.TPLibrary );
    BEGIN
       SUPER.Library := Value;
    END Library;
@@ -88,17 +88,17 @@ CLASS IMPLEMENTATION ACreator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Factory( CONST QName : ARRAY OF WCHAR; OUT Object : TPObject ) : TResult;
+   PUBLIC PROCEDURE Factory( CONST QName : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
    VAR
-      Result : TResult;
+      Result : iobject.TResult;
    BEGIN
-      IF EQUALS( QName, nLibrary ) THEN
+      IF EQUALS( QName, iobject.cidLibrary ) THEN
          Object := ADR( ILibrary );
-         Result := lrSuccess;
+         Result := iobject.lrSuccess;
       ELSE
          Result := OnFactory( QName, OUT Object );
       END;
-      IF Result = lrSuccess THEN
+      IF Result = iobject.lrSuccess THEN
          Object^.Library := ADR( ILibrary );
       END;
       RETURN Result;
@@ -113,4 +113,4 @@ END ACreator;
 
 (*===========================================================================*)
 
-END objlib.
+END helper.

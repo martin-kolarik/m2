@@ -1,10 +1,6 @@
-DEFINITION MODULE objlib;
+DEFINITION MODULE iobject;
 
-FROM Storage IMPORT
-   ALLOCATE, DEALLOCATE;
-   
-IMPORT
-   StringsO;
+// Classes prepared to simplify implementation are in: ClassLoader\Helper.def
 
 (*===========================================================================*)
 
@@ -48,7 +44,7 @@ END IObject;
 (*---------------------------------------------------------------------------*)
 
 CONST
-   nLibrary = L"Library";
+   cidLibrary = L"Library";
    
 TYPE
    TcllvData = RECORD
@@ -71,44 +67,4 @@ END ILibrary;
 
 (*===========================================================================*)
 
-// prepared classes to simplify implementation
-ABSTRACT CLASS AObject IMPLEMENTS IObject;
-   PRIVATE VAR
-      _Library : TPLibrary;
-   PUBLIC VIRTUAL PROPERTY
-      Library : TPLibrary;
-   PUBLIC VIRTUAL PROCEDURE Dispose(); // aka destructor
-END AObject;
-
-(*---------------------------------------------------------------------------*)
-
-ABSTRACT CLASS ACreator( AObject ) IMPLEMENTS ILibrary;
-   
-   // IObject/ILibrary
-   PUBLIC VIRTUAL READONLY PROPERTY
-      Type : TObjectType;
-   PUBLIC FINAL PROPERTY
-      Library : TPLibrary;
-   PUBLIC VIRTUAL PROCEDURE Dispose();
-
-   LOCAL VAR
-      _Loader : ADDRESS;
-      _LoaderLibraryHandle : PTR;
-      _Host : StringsO.CString;
-      _HostVersion : StringsO.CString;
-   PUBLIC FINAL READONLY PROPERTY
-      Loader : ADDRESS;
-      LoaderLibraryHandle : PTR;
-   PUBLIC FINAL PROCEDURE HostInfo( Loader : ADDRESS; LoaderLibraryHandle : PTR; CONST Host, HostVersionString : ARRAY OF WCHAR ); // usually product id/product version
-
-   // ACreator
-   ABSTRACT PROCEDURE OnFactory( CONST QName : ARRAY OF WCHAR; OUT Object : TPObject ) : TResult;
-
-   // library caller -- use from procedure GetObject
-   PUBLIC PROCEDURE Factory( CONST QName : ARRAY OF WCHAR; OUT Object : TPObject ) : TResult;
-
-END ACreator;
-
-(*===========================================================================*)
-
-END objlib.
+END iobject.
