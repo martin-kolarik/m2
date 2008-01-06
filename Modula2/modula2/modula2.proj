@@ -3,6 +3,8 @@
     xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
 
     <!-- THE PROJECT IS EMPTY -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
 
     <Import Project="..\..\Build\common.build.proj"/>
 
