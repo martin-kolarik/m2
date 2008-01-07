@@ -4,8 +4,9 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
    
 IMPORT
+   iobject,
    lists,
-   objlib,
+   helper,
    StringsO;
 
 (*================================================================================*)
@@ -17,16 +18,22 @@ CONST
 // abstract helper implementations -- implementor can directly use the class, the only thing he
 // must do it to export Factory procedure and instantiate the class
 
-CLASS CTests( objlib.ACreator ) IMPLEMENTS test.ITests;
+CLASS CTests( helper.ACreator ) IMPLEMENTS test.ITests;
    PRIVATE VAR
       Tests : lists.CPtrList;
 
+   // ITests/IObject
+   PUBLIC FINAL READONLY PROPERTY
+      Type : iobject.TObjectType;
+   PUBLIC FINAL PROPERTY
+      Library : iobject.TPLibrary;
+
    // part of ILibrary
    PUBLIC VIRTUAL PROCEDURE EnumerateClasses( REF EnumerateState : PTR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE GetLECData( OUT cllvData : objlib.TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetLECData( OUT cllvData : iobject.TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
 
    // ITests
-   PUBLIC VIRTUAL PROCEDURE TestFactory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : ADDRESS ) : CARDINAL;
+   PUBLIC VIRTUAL PROCEDURE TestFactory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : CARDINAL;
    PUBLIC VIRTUAL PROCEDURE EnumerateTests( REF ES : PTR; OUT Name : ARRAY OF WCHAR; OUT Test : test.TPTest ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE AddTest( CONST Name : ARRAY OF WCHAR; Test : test.TPTest );
 
@@ -35,7 +42,7 @@ CLASS CTests( objlib.ACreator ) IMPLEMENTS test.ITests;
 
    // ACreator
    PUBLIC VIRTUAL PROCEDURE LibraryInfo( OUT Library, LibraryVersionString : ARRAY OF WCHAR );
-   VIRTUAL PROCEDURE OnFactory( CONST QName : ARRAY OF WCHAR; OUT Object : objlib.TPObject ) : objlib.TResult;
+   VIRTUAL PROCEDURE OnFactory( CONST QName : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
 END CTests;
 
 (*================================================================================*)
@@ -43,6 +50,27 @@ END CTests;
 CLASS IMPLEMENTATION CTests;
 
 (*--------------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROPERTY Type GET : iobject.TObjectType;
+   BEGIN
+      RETURN iobject.otSingleton;
+   END Type;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROPERTY Library GET : iobject.TPLibrary;
+   BEGIN
+      RETURN SUPER.Library;
+   END Library;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROPERTY Library SET( Value : iobject.TPLibrary );
+   BEGIN
+      SUPER.Library := Value;
+   END Library;
+
+(*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE EnumerateClasses( REF EnumerateState : PTR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
    BEGIN
@@ -55,14 +83,14 @@ CLASS IMPLEMENTATION CTests;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetLECData( OUT cllvData : objlib.TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetLECData( OUT cllvData : iobject.TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END GetLECData;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE TestFactory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : ADDRESS ) : CARDINAL;
+   PUBLIC VIRTUAL PROCEDURE TestFactory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : CARDINAL;
    BEGIN
       IF ClassPath = L"" THEN
          RETURN CARDINAL( Factory( ctestClass, OUT Object ));
@@ -85,7 +113,7 @@ CLASS IMPLEMENTATION CTests;
          b := Tests.NextOf( ES, OUT _Test, OUT _S );
       END;
       IF b THEN
-         ES := Tests.Current;
+         ES := _Test;
          Test := _Test;
          _S^.ToOA( OUT Name );
       END;
@@ -131,13 +159,13 @@ CLASS IMPLEMENTATION CTests;
 
 (*---------------------------------------------------------------------------*)
 
-   VIRTUAL PROCEDURE OnFactory( CONST QName : ARRAY OF WCHAR; OUT Object : objlib.TPObject ) : objlib.TResult;
+   VIRTUAL PROCEDURE OnFactory( CONST QName : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
    BEGIN
       IF EQUALS( QName, ctestClass ) THEN
-         Object := ADR( AObject );
-         RETURN objlib.lrSuccess;
+         Object := ADR( ITests );
+         RETURN iobject.lrSuccess;
       ELSE
-         RETURN objlib.lrClassNotFound;
+         RETURN iobject.lrClassNotFound;
       END;
    END OnFactory;
 

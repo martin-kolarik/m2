@@ -1,6 +1,7 @@
 DEFINITION MODULE test;
 
 IMPORT
+   iobject,
    log;
 
 (*================================================================================*)
@@ -8,8 +9,8 @@ IMPORT
    
 TYPE
    TTestResult = TRISTATE(
-      trSucceeded = 1,
-      trFailed = 0,
+      trSuccess = 1,
+      trFailure = 0,
       trUnknown = -1
    );
    
@@ -24,7 +25,7 @@ INTERFACE IHost;
    PROPERTY
       Progress : CARDINAL; // percent
    // optional
-   PROCEDURE StartPhase( Name : ARRAY OF WCHAR );
+   PROCEDURE StartPhase( CONST Name : ARRAY OF WCHAR );
    PROCEDURE StopPhase();
 END IHost;
 
@@ -32,9 +33,9 @@ INTERFACE ITest;
    PROCEDURE Run( CONST Host : TPHost; CONST Parameters : ARRAY OF PWCHAR ) : TTestResult;
 END ITest;
 
-INTERFACE ITests; // CID: Development.Tests
+INTERFACE ITests( iobject.IObject ); // CID in : Development.Tests
    // for test run
-   PROCEDURE TestFactory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : ADDRESS ) : CARDINAL; // ClassPath can be empty, in the case default test class is created; return it objlib.TResult
+   PROCEDURE TestFactory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : CARDINAL; // ClassPath can be empty, in the case default ITests class is created; return is objlib.TResult
    PROCEDURE EnumerateTests( REF ES : PTR; OUT Name : ARRAY OF WCHAR; OUT Test : TPTest ) : BOOLEAN;
    // for test creation
    PROCEDURE AddTest( CONST Name : ARRAY OF WCHAR; Test : TPTest );

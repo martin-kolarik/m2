@@ -16,9 +16,10 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			OutputDirectory="~$(ConfigurationName)"
+			IntermediateDirectory="~Build"
 			ConfigurationType="0"
+			BuildLogFile="$(OutDir)\BuildLog.htm"
 			>
 			<Tool
 				Name="VCNMakeTool"
@@ -36,9 +37,10 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			OutputDirectory="~$(ConfigurationName)"
+			IntermediateDirectory="~Build"
 			ConfigurationType="0"
+			BuildLogFile="$(OutDir)\BuildLog.htm"
 			>
 			<Tool
 				Name="VCNMakeTool"
