@@ -25,7 +25,7 @@ ABSTRACT CLASS ACreator( AObject ) IMPLEMENTS iobject.ILibrary;
    // IObject/ILibrary
    PUBLIC VIRTUAL READONLY PROPERTY
       Type : iobject.TObjectType;
-   PUBLIC FINAL PROPERTY
+   PUBLIC VIRTUAL PROPERTY
       Library : iobject.TPLibrary;
    PUBLIC VIRTUAL PROCEDURE Dispose();
 
@@ -42,7 +42,8 @@ ABSTRACT CLASS ACreator( AObject ) IMPLEMENTS iobject.ILibrary;
    // ACreator
    ABSTRACT PROCEDURE OnFactory( CONST QName : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
 
-   // library caller -- use from procedure GetObject
+   // Main creation entry point called from DLL procedure Factory. The procedure calls OnFactory, which should
+   // contain all user class creations.
    PUBLIC PROCEDURE Factory( CONST QName : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
 
 END ACreator;

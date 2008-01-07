@@ -4,9 +4,9 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   iobject,
    lists,
-   maps,
-   objlib;
+   maps;
 
 (*===========================================================================*)
 
@@ -33,9 +33,9 @@ CLASS CLoader;
       
    PUBLIC PROCEDURE SetHostInfo( CONST Host, HostVersionString : ARRAY OF WCHAR );
 
-   PUBLIC PROCEDURE AddLibrary( CONST LibraryPath : ARRAY OF WCHAR ) : objlib.TResult;
+   PUBLIC PROCEDURE AddLibrary( CONST LibraryPath : ARRAY OF WCHAR ) : iobject.TResult;
    PUBLIC PROCEDURE RemoveLibrary( CONST LibraryPath : ARRAY OF WCHAR );
-   PUBLIC PROCEDURE ScanPath( CONST Path, LibraryNamePattern : ARRAY OF WCHAR; OUT Found : CARDINAL ) : objlib.TResult;
+   PUBLIC PROCEDURE ScanPath( CONST Path, LibraryNamePattern : ARRAY OF WCHAR; OUT Found : CARDINAL ) : iobject.TResult;
 
    PUBLIC PROCEDURE DisableLibrary( CONST LibraryPath : ARRAY OF WCHAR );
    PUBLIC PROCEDURE EnableLibrary( CONST LibraryPath : ARRAY OF WCHAR );
@@ -43,8 +43,8 @@ CLASS CLoader;
    PUBLIC PROCEDURE EnumerateLibraries( REF EnumerateState : PTR; OUT LibraryName, LibraryPath : ARRAY OF WCHAR; OUT State : TState ) : BOOLEAN;
    PUBLIC PROCEDURE EnumerateClasses( REF EnumerateState : PTR; CONST LibraryName : ARRAY OF WCHAR; FullClassPathFlag : BOOLEAN; OUT ClassNameOrPath : ARRAY OF WCHAR ) : BOOLEAN;
    
-   PUBLIC PROCEDURE CreateObject( CONST ClassPath : ARRAY OF WCHAR; OUT Object : objlib.TPObject ) : objlib.TResult;
-   PUBLIC PROCEDURE ReleaseObject( REF Object : objlib.TPObject );
+   PUBLIC PROCEDURE CreateObject( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
+   PUBLIC PROCEDURE ReleaseObject( REF Object : iobject.TPObject );
    
    PUBLIC PROCEDURE Dispose();
    

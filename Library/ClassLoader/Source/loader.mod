@@ -19,15 +19,15 @@ CLASS CLibrary;
       RefCount : CARDINAL;
    PRIVATE VAR
       LibraryHandle : windows.HANDLE;
-      LibraryInfo : objlib.TPLibrary;
-      Factory : objlib.TFactory;
+      LibraryInfo : iobject.TPLibrary;
+      Factory : iobject.TFactory;
    LOCAL READONLY PROPERTY
       Name : StringsO.CString;
 
-   LOCAL PROCEDURE CreateObject( CONST ClassName : ARRAY OF WCHAR; OUT Object : objlib.TPObject ) : objlib.TResult;
-   LOCAL PROCEDURE ReleaseObject( Object : objlib.TPObject );
+   LOCAL PROCEDURE CreateObject( CONST ClassName : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
+   LOCAL PROCEDURE ReleaseObject( Object : iobject.TPObject );
    
-   PRIVATE PROCEDURE LoadLibrary() : objlib.TResult;
+   PRIVATE PROCEDURE LoadLibrary() : iobject.TResult;
    PRIVATE PROCEDURE UnloadLibrary();
 END CLibrary;
 
@@ -50,18 +50,18 @@ CLASS IMPLEMENTATION CLibrary;
 
 (*---------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE CreateObject( CONST ClassName : ARRAY OF WCHAR; OUT Object : objlib.TPObject ) : objlib.TResult;
+   LOCAL PROCEDURE CreateObject( CONST ClassName : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
    VAR
-      Result : objlib.TResult;
+      Result : iobject.TResult;
    BEGIN
       IF LibraryHandle = NIL THEN
          Result := LoadLibrary();
-         IF Result <> objlib.lrSuccess THEN
+         IF Result <> iobject.lrSuccess THEN
             RETURN Result;
          END;
       END;
       Result := Factory( ClassName, OUT Object );
-      IF Result = objlib.lrSuccess THEN
+      IF Result = iobject.lrSuccess THEN
          INC( RefCount );
       END;
       RETURN Result;
@@ -69,7 +69,7 @@ CLASS IMPLEMENTATION CLibrary;
 
 (*---------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE ReleaseObject( Object : objlib.TPObject );
+   LOCAL PROCEDURE ReleaseObject( Object : iobject.TPObject );
    BEGIN
       ASSERT(( LibraryHandle <> NIL ) AND ( RefCount > 0 ));
       Object^.Dispose();
@@ -81,35 +81,35 @@ CLASS IMPLEMENTATION CLibrary;
    
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE LoadLibrary() : objlib.TResult;
+   PRIVATE PROCEDURE LoadLibrary() : iobject.TResult;
    VAR
       EM : CARDINAL;
-      Result : objlib.TResult;
+      Result : iobject.TResult;
    BEGIN
       ASSERT( LibraryHandle = NIL );
       EM := windows.SetErrorMode( windows.SEM_FAILCRITICALERRORS );
       LibraryHandle := windows.LoadLibrary( Path.szData );
       windows.SetErrorMode( EM );
       IF LibraryHandle = NIL THEN
-         RETURN objlib.lrLibraryNotFound;
+         RETURN iobject.lrLibraryNotFound;
       END;
 
       Factory := windows.GetProcAddress( LibraryHandle, C"Factory" );
       IF Factory = NIL THEN
          UnloadLibrary();
-         RETURN objlib.lrLibraryFoundButIsUnloadable;
+         RETURN iobject.lrLibraryFoundButIsUnloadable;
       END;
-      Result := Factory( objlib.nLibrary, OUT LibraryInfo );
-      IF Result = objlib.lrSuccess THEN
+      Result := Factory( iobject.cidLibrary, OUT LibraryInfo );
+      IF Result = iobject.lrSuccess THEN
          INC( RefCount );
       ELSE
          UnloadLibrary();
-         RETURN objlib.lrLibraryFoundButIsUnloadable;
+         RETURN iobject.lrLibraryFoundButIsUnloadable;
       END;
 
       LibraryInfo^.HostInfo( Loader, ADR( SELF ), OA( Loader^.Host^.Length-1, Loader^.Host^.rawData ), OA( Loader^.HostVersionString^.Length-1, Loader^.HostVersionString^.rawData ));
 
-      RETURN objlib.lrSuccess;
+      RETURN iobject.lrSuccess;
    END LoadLibrary;
    
 (*---------------------------------------------------------------------------*)
@@ -169,7 +169,7 @@ CLASS IMPLEMENTATION CLoader;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE AddLibrary( CONST LibraryPath : ARRAY OF WCHAR ) : objlib.TResult;
+   PUBLIC PROCEDURE AddLibrary( CONST LibraryPath : ARRAY OF WCHAR ) : iobject.TResult;
    VAR
       Library : TPLibrary;
       LPath : FIO.PathStrW;
@@ -182,7 +182,7 @@ CLASS IMPLEMENTATION CLoader;
          Libraries.Add( Library, 0 );
       END;
       BuildNames();
-      RETURN objlib.lrSuccess;
+      RETURN iobject.lrSuccess;
    END AddLibrary;
 
 (*---------------------------------------------------------------------------*)
@@ -206,9 +206,9 @@ CLASS IMPLEMENTATION CLoader;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ScanPath( CONST Path, LibraryNamePattern : ARRAY OF WCHAR; OUT Found : CARDINAL ) : objlib.TResult;
+   PUBLIC PROCEDURE ScanPath( CONST Path, LibraryNamePattern : ARRAY OF WCHAR; OUT Found : CARDINAL ) : iobject.TResult;
    BEGIN
-      RETURN objlib.lrSuccess;
+      RETURN iobject.lrSuccess;
    END ScanPath;
 
 (*---------------------------------------------------------------------------*)
@@ -272,7 +272,7 @@ CLASS IMPLEMENTATION CLoader;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CreateObject( CONST ClassPath : ARRAY OF WCHAR; OUT Object : objlib.TPObject ) : objlib.TResult;
+   PUBLIC PROCEDURE CreateObject( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
    VAR
       i : INTEGER;
       Library : TPLibrary;
@@ -280,9 +280,9 @@ CLASS IMPLEMENTATION CLoader;
    BEGIN
       i := Strings.ItemSW( ClassPath, Strings.WCHARS{L"/"}, 0, 0, FALSE, OUT s );
       IF s[0] = 0W THEN
-         RETURN objlib.lrLibraryNotFound;
+         RETURN iobject.lrLibraryNotFound;
       ELSIF NOT Names.GetOA( s, OUT Library ) THEN
-         RETURN objlib.lrLibraryNotFound;
+         RETURN iobject.lrLibraryNotFound;
       ELSE
          Strings.SubstringW( ClassPath, i, -1, OUT s );
          RETURN Library^.CreateObject( s, OUT Object );
@@ -291,7 +291,7 @@ CLASS IMPLEMENTATION CLoader;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ReleaseObject( REF Object : objlib.TPObject );
+   PUBLIC PROCEDURE ReleaseObject( REF Object : iobject.TPObject );
    BEGIN
       IF ( Object = NIL ) OR ( Object^.Library = NIL ) THEN
          ASSERT( FALSE );
