@@ -38,14 +38,16 @@ INTERFACE IObject;
       Type : TObjectType;
    PROPERTY
       Library : TPLibrary;
-   PROCEDURE Dispose();
+   PROCEDURE Dispose(); // meant not as Command, but as Callback, usually, destroying of object is done with ReleaseObject of some loader.
 END IObject;
 
 (*---------------------------------------------------------------------------*)
 
+#save, option( dll_export => on )
 CONST
    cidLibrary = L"Library";
-   
+#restore   
+
 TYPE
    TcllvData = RECORD
       Length    : CARDINAL;

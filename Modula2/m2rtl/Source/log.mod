@@ -126,11 +126,7 @@ CLASS IMPLEMENTATION CLogger;
 
    PUBLIC PROCEDURE Filtered( Level : TDebugLevel ) : BOOLEAN;
    BEGIN
-      IF TRStatus{rsDebugFile, rsDebugKernel} * RStatus = TRStatus{} THEN
-         RETURN TRUE;
-      ELSE
-         RETURN Level > DebugLevel;
-      END;
+      RETURN Level > DebugLevel;
    END Filtered;
 
 //---------------------------------------------------------
