@@ -16,15 +16,16 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			OutputDirectory="~$(ConfigurationName)"
+			IntermediateDirectory="~Build"
 			ConfigurationType="0"
+			BuildLogFile="$(OutDir)\BuildLog.htm"
 			>
 			<Tool
 				Name="VCNMakeTool"
-				BuildCommandLine=""
-				ReBuildCommandLine=""
-				CleanCommandLine=""
+				BuildCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:BuildAll /p:ConfigurationName=$(ConfigurationName)"
+				ReBuildCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:RebuildAll /p:ConfigurationName=$(ConfigurationName)"
+				CleanCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:CleanAll /p:ConfigurationName=$(ConfigurationName)"
 				Output="SCCore.exe"
 				PreprocessorDefinitions="WIN32;_DEBUG"
 				IncludeSearchPath=""
@@ -36,15 +37,16 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			OutputDirectory="~$(ConfigurationName)"
+			IntermediateDirectory="~Build"
 			ConfigurationType="0"
+			BuildLogFile="$(OutDir)\BuildLog.htm"
 			>
 			<Tool
 				Name="VCNMakeTool"
-				BuildCommandLine=""
-				ReBuildCommandLine=""
-				CleanCommandLine=""
+				BuildCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:BuildAll /p:ConfigurationName=$(ConfigurationName)"
+				ReBuildCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:RebuildAll /p:ConfigurationName=$(ConfigurationName)"
+				CleanCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:CleanAll /p:ConfigurationName=$(ConfigurationName)"
 				Output="SCCore.exe"
 				PreprocessorDefinitions="WIN32;NDEBUG"
 				IncludeSearchPath=""
@@ -80,7 +82,7 @@
 			Name="Test"
 			>
 			<File
-				RelativePath="..\..\Library\Text\Test\TRunInPipe.mod"
+				RelativePath=".\Test\TRunInPipe.mod"
 				>
 			</File>
 		</Filter>

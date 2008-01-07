@@ -1,36 +1,67 @@
 MODULE TRunInPipe;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
   FIOO,
   FSO,
   IOO,
   Languages,
+  log,
   StringsO,
   Sync,
+  test,
+  testimpl,
   TextReader,
   TextWriter;
 
-#save, call( convention => cdecl )
-PROCEDURE wmain04();
-#restore
+(*===========================================================================*)
+
+CLASS CRunInPipe IMPLEMENTS test.ITest;
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+END CRunInPipe;
+
+(*---------------------------------------------------------------------------*)
+
 VAR
-  out : FIOO.TPFileStream;
-  s : StringsO.CString;
-  tr : TextReader.CTextReader;
-  tw : TextWriter.TPTextWriter := TextWriter.stdout();
+   RunInPipe : CRunInPipe;
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CRunInPipe;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   VAR
+     out : FIOO.TPFileStream;
+     s : StringsO.CString;
+     tr : TextReader.CTextReader;
+   BEGIN
+     TRY
+       FSO.RunProgramInPipe( L"C:\Program Files\Microsoft Visual Studio 8\VC\bin\dumpbin.exe", L"/directives ~Debug/Text.lib", NIL, OUT out );
+
+       tr.Stream := out;
+       tr.Encoding := Languages.cp_Console();
+       WHILE tr.ReadLine( OUT s, Sync.INFINITE_TIME, TRUE ) IN Sync.arsCompletions DO
+         Host^.Log^.LogS( log.dlcInfo, L"", OAsz( s.szData ));
+       END; // while
+
+     CATCH e : IOO.CIOException DO
+       Host^.Log^.LogExc( log.dlcError, L"", e );
+       RETURN test.trFailure;
+     END;
+     
+     RETURN test.trSuccess;
+   END Run;
+
+(*---------------------------------------------------------------------------*)
+
 BEGIN
-  TRY
-    FSO.RunProgramInPipe( L"C:\Program Files\Microsoft Visual Studio 8\VC\bin\dumpbin.exe", L"/directives ~Debug/Text.lib", NIL, OUT out );
-
-    tr.Stream := out;
-    tr.Encoding := Languages.cp_Console();
-    WHILE tr.ReadLine( OUT s, Sync.INFINITE_TIME, TRUE ) IN Sync.arsCompletions DO
-      tw^.Write( s, TRUE );
-    END; // while
-
-  CATCH e : IOO.CIOException DO
-    tw^.WriteExc( e, TRUE );
-  END;
-END wmain04;
+   testimpl.tests()^.AddTest( L"Run in pipe", ADR( RunInPipe ));
+END CRunInPipe;
+   
+(*===========================================================================*)
 
 END TRunInPipe.
