@@ -5,9 +5,9 @@ FROM Storage IMPORT
 
 IMPORT
    FIO,
+   iobject,
    loader,
    log,
-   objlib,
    Strings,
    StringsO,
    Sync,
@@ -19,6 +19,10 @@ IMPORT
 (*================================================================================*)
    
 CLASS CTestLogger( log.CLogger );
+   PRIVATE VAR
+      stdout : TextWriter.TPTextWriter := TextWriter.stdout();
+   LOCAL VAR
+      InsideTest : BOOLEAN := FALSE;
    INTERNAL VIRTUAL PROCEDURE OnLogOutputString( CONST OutputString : ARRAY OF WCHAR );
 END CTestLogger;
 
@@ -29,14 +33,24 @@ CLASS IMPLEMENTATION CTestLogger;
 (*--------------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE OnLogOutputString( CONST OutputString : ARRAY OF WCHAR );
+   VAR
+      i : CARDINAL;
    BEGIN
-      // log somewhere
+      IF InsideTest THEN
+         i := Strings.IndexOfCharW( OutputString, L"]", 0 );
+         stdout^.WriteOA( OA( i+4, ADR( OutputString )), FALSE ); 
+         stdout^.WriteOA( L"    ", FALSE );
+         stdout^.WriteOA( OA( HIGH( OutputString )-i-5, ADR( OutputString[i+5] )), TRUE );
+      ELSE
+         stdout^.WriteOA( OutputString, TRUE );
+      END;
    END OnLogOutputString;
 
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
    Method := log.dmNone;
+   Level := log.dlcInfo;
 END CTestLogger;
    
 (*================================================================================*)
@@ -45,8 +59,6 @@ CLASS CHost IMPLEMENTS test.IHost;
    PRIVATE VAR
       _Progress : CARDINAL := 0;
       _Logger : CTestLogger;
-   LOCAL VAR
-      stdout : TextWriter.TPTextWriter;
 
    // IHost
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -61,8 +73,6 @@ CLASS CHost IMPLEMENTS test.IHost;
    LOCAL PROCEDURE StartSuite( CONST Name : ARRAY OF WCHAR );
    LOCAL PROCEDURE StartTest( CONST Name : ARRAY OF WCHAR );
    LOCAL PROCEDURE StopTest( Result : test.TTestResult );
-
-   PRIVATE PROCEDURE PrintTime();
 END CHost;   
 
 (*--------------------------------------------------------------------------------*)
@@ -106,45 +116,32 @@ CLASS IMPLEMENTATION CHost;
 
    LOCAL PROCEDURE StartSuite( CONST Name : ARRAY OF WCHAR );
    BEGIN
-      PrintTime(); stdout^.WriteOA( "  Suite: ", FALSE ); stdout^.WriteOA( Name, TRUE );
+      _Logger.LogSS( log.dlcInfo, L"", "Suite: ", Name );
    END StartSuite;
 
 (*--------------------------------------------------------------------------------*)
 
    LOCAL PROCEDURE StartTest( CONST Name : ARRAY OF WCHAR );
    BEGIN
-      PrintTime(); stdout^.WriteOA( "  Test: ", FALSE ); stdout^.WriteOA( Name, FALSE );
+      _Logger.LogSS( log.dlcInfo, L"", "  Test: ", Name );
+      _Logger.InsideTest := TRUE;
    END StartTest;
 
 (*--------------------------------------------------------------------------------*)
 
    LOCAL PROCEDURE StopTest( Result : test.TTestResult );
    BEGIN
-      stdout^.LineEnd();
-      PrintTime(); 
+      _Logger.InsideTest := FALSE;
       IF Result = test.trSuccess THEN
-         stdout^.WriteOA( "    Result: success", TRUE );
+         _Logger.LogS( log.dlcInfo, L"", L"    Result: Success" );
       ELSE
-         stdout^.WriteOA( "    Result: failure", TRUE );
+         _Logger.LogS( log.dlcInfo, L"", L"    Result: Failure" );
       END;
    END StopTest;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE PrintTime();
-   VAR
-      dt : time.TDateTime;
-      SW : ARRAY [0..31] OF WCHAR;
-   BEGIN
-      time.GetCurrentUTCDateTime( dt );
-      time.DateTimeToString( dt, L"[yyyy-MM-dd HH:mm:ss.f] ", TRUE, TRUE, OUT SW );
-      stdout^.WriteOA( SW, FALSE );
-   END PrintTime;
-
-(*--------------------------------------------------------------------------------*)
-
 BEGIN
-   stdout := TextWriter.stdout();
 END CHost;
 
 (*================================================================================*)
@@ -168,12 +165,12 @@ VAR
    errout : TextWriter.TPTextWriter := TextWriter.errout();
    i : INTEGER;
    LibraryState : loader.TState;
-   LoadResult : objlib.TResult;
+   LoadResult : iobject.TResult;
    Name : ARRAY [0..127] OF WCHAR;
-   Object : objlib.TPObject;
    Path : FIO.PathStrW;
    StdOutFlag : BOOLEAN := FALSE;
    Test : test.TPTest;
+   TestResult : test.TTestResult;
    Tests : test.TPTests;
 BEGIN
    i := 1;
@@ -200,19 +197,24 @@ BEGIN
    ESl := 0;
    WHILE loader.ldr()^.EnumerateLibraries( REF ESl, OUT Name, OUT Path, OUT LibraryState ) DO
       Strings.ConcatW( OUT ClassPath, Name, L"/Development.Tests" );
-      LoadResult := loader.ldr()^.CreateObject( ClassPath, OUT Object );
-      IF LoadResult <> objlib.lrSuccess THEN
+      LoadResult := loader.ldr()^.CreateObject( ClassPath, OUT Tests );
+      IF LoadResult <> iobject.lrSuccess THEN
          errout^.WriteOA( L"  Error loading library: ", FALSE ); errout^.WriteOA( Name, TRUE );
          CONTINUE;
       END;
-      Tests := test.TPTests( Object );
+
+      Host.StartSuite( Name );
 
       ESt := 0;
       WHILE Tests^.EnumerateTests( REF ESt, OUT Name, OUT Test ) DO
-         Test^.Run( ADR( Host ), OA( -1, PPWCHAR( NIL )));
+         Host.StartTest( Name );
+      
+         TestResult := Test^.Run( ADR( Host ), OA( -1, PPWCHAR( NIL )));
+         
+         Host.StopTest( TestResult );
       END; // WHITE Tests
       
-      Object^.Dispose();
+      loader.ldr()^.ReleaseObject( REF Tests );
    END; // WHILE Libraries
 
    RETURN 0;
