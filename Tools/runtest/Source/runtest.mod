@@ -17,12 +17,22 @@ IMPORT
    time;
    
 (*================================================================================*)
+
+TYPE
+   TInside = (
+      insideSuite,
+      insideTest,
+      insidePhase
+   );
    
+(*--------------------------------------------------------------------------------*)
+
 CLASS CTestLogger( log.CLogger );
    PRIVATE VAR
       stdout : TextWriter.TPTextWriter := TextWriter.stdout();
    LOCAL VAR
-      InsideTest : BOOLEAN := FALSE;
+      Inside : TInside := insideSuite;
+   INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : log.TDebugLevel; CONST Prefix, S : ARRAY OF WCHAR );
    INTERNAL VIRTUAL PROCEDURE OnLogOutputString( CONST OutputString : ARRAY OF WCHAR );
 END CTestLogger;
 
@@ -32,18 +42,27 @@ CLASS IMPLEMENTATION CTestLogger;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnLogOutputString( CONST OutputString : ARRAY OF WCHAR );
+   INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : log.TDebugLevel; CONST Prefix, S : ARRAY OF WCHAR );
    VAR
-      i : CARDINAL;
+      Buffer : ARRAY [0..4095] OF WCHAR;
    BEGIN
-      IF InsideTest THEN
-         i := Strings.IndexOfCharW( OutputString, L"]", 0 );
-         stdout^.WriteOA( OA( i+4, ADR( OutputString )), FALSE ); 
-         stdout^.WriteOA( L"    ", FALSE );
-         stdout^.WriteOA( OA( HIGH( OutputString )-i-5, ADR( OutputString[i+5] )), TRUE );
-      ELSE
-         stdout^.WriteOA( OutputString, TRUE );
+      CASE Inside OF
+      | insideSuite :
+         SUPER.Log( LoggedLevel, Prefix, S );
+      | insideTest :
+         Strings.ConcatW( OUT Buffer, L"  ", S );
+         SUPER.Log( LoggedLevel, Prefix, Buffer );
+      | insidePhase :
+         Strings.ConcatW( OUT Buffer, L"        ", S );
+         SUPER.Log( LoggedLevel, Prefix, Buffer );
       END;
+   END Log;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE OnLogOutputString( CONST OutputString : ARRAY OF WCHAR );
+   BEGIN
+      stdout^.WriteOA( OutputString, TRUE );
    END OnLogOutputString;
 
 (*--------------------------------------------------------------------------------*)
@@ -104,12 +123,15 @@ CLASS IMPLEMENTATION CHost;
 
    PUBLIC VIRTUAL PROCEDURE StartPhase( CONST Name : ARRAY OF WCHAR );
    BEGIN
+      _Logger.LogSS( log.dlcInfo, L"", "    Phase: ", Name );
+      _Logger.Inside := insidePhase;
    END StartPhase;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE StopPhase();
    BEGIN
+      _Logger.Inside := insideTest;
    END StopPhase;
 
 (*--------------------------------------------------------------------------------*)
@@ -123,20 +145,20 @@ CLASS IMPLEMENTATION CHost;
 
    LOCAL PROCEDURE StartTest( CONST Name : ARRAY OF WCHAR );
    BEGIN
-      _Logger.LogSS( log.dlcInfo, L"", "  Test: ", Name );
-      _Logger.InsideTest := TRUE;
+      _Logger.Inside := insideTest;
+      _Logger.LogSS( log.dlcInfo, L"", "Test: ", Name );
    END StartTest;
 
 (*--------------------------------------------------------------------------------*)
 
    LOCAL PROCEDURE StopTest( Result : test.TTestResult );
    BEGIN
-      _Logger.InsideTest := FALSE;
       IF Result = test.trSuccess THEN
-         _Logger.LogS( log.dlcInfo, L"", L"    Result: Success" );
+         _Logger.LogS( log.dlcInfo, L"", L"  Result: Success" );
       ELSE
-         _Logger.LogS( log.dlcInfo, L"", L"    Result: Failure" );
+         _Logger.LogS( log.dlcInfo, L"", L"  Result: Failure" );
       END;
+      _Logger.Inside := insideSuite;
    END StopTest;
 
 (*--------------------------------------------------------------------------------*)
@@ -172,6 +194,8 @@ VAR
    Test : test.TPTest;
    TestResult : test.TTestResult;
    Tests : test.TPTests;
+   TimeStamps : BOOLEAN := FALSE;
+   TotalResult : BOOLEAN := TRUE;
 BEGIN
    i := 1;
    WHILE i < argc DO
@@ -182,6 +206,8 @@ BEGIN
             GOTO Error;
          | L'o' :
             StdOutFlag := TRUE;
+         | L't' :
+            TimeStamps := TRUE;
          ELSE
             errout^.WriteOA( L"runtest: invalid option ", FALSE ); errout^.WriteOA( argp^[i]^, TRUE );
             GOTO Error;
@@ -194,12 +220,14 @@ BEGIN
       INC( i );
    END; // WHILE
    
+   Host.Log^.TimeStamps := TimeStamps;
+   
    ESl := 0;
    WHILE loader.ldr()^.EnumerateLibraries( REF ESl, OUT Name, OUT Path, OUT LibraryState ) DO
       Strings.ConcatW( OUT ClassPath, Name, L"/Development.Tests" );
       LoadResult := loader.ldr()^.CreateObject( ClassPath, OUT Tests );
       IF LoadResult <> iobject.lrSuccess THEN
-         errout^.WriteOA( L"  Error loading library: ", FALSE ); errout^.WriteOA( Name, TRUE );
+         Host.Log^.LogSS( log.dlcSysError, L"", L"Error loading library: ", Name );
          CONTINUE;
       END;
 
@@ -208,19 +236,23 @@ BEGIN
       ESt := 0;
       WHILE Tests^.EnumerateTests( REF ESt, OUT Name, OUT Test ) DO
          Host.StartTest( Name );
-      
          TestResult := Test^.Run( ADR( Host ), OA( -1, PPWCHAR( NIL )));
-         
          Host.StopTest( TestResult );
+         
+         TotalResult := TotalResult AND ( TestResult = test.trSuccess );
       END; // WHITE Tests
       
       loader.ldr()^.ReleaseObject( REF Tests );
    END; // WHILE Libraries
 
-   RETURN 0;
+   IF TotalResult THEN
+      RETURN 0;
+   ELSE
+      RETURN 1;
+   END;
 
 Error:
-   errout^.WriteOA( L"  usage: runtest [-o] <test-dll-list> [-h]", TRUE );
+   errout^.WriteOA( L"  usage: runtest [-o] [-t] <test-dll-list> [-h]", TRUE );
    RETURN -1;
 END wmain;
   
