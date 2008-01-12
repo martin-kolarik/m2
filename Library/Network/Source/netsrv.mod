@@ -109,7 +109,7 @@ CLASS IMPLEMENTATION CSocketNotifier;
       Message.Command := cmAccept;
       Message.Socket := Socket;
       Message.Result := Result;
-      Server^.MQueue.QueueOA( Message );
+      Server^.MQueue.QueueOA( Message, TRUE, Sync.SAFETY_TIME );
     END;
   END OnListen;
 
@@ -121,7 +121,7 @@ CLASS IMPLEMENTATION CSocketNotifier;
       Message.Command := cmDataArrived;
       Message.Socket := Socket;
       Message.Result := Result;
-      Server^.MQueue.QueueOA( Message );
+      Server^.MQueue.QueueOA( Message, TRUE, Sync.SAFETY_TIME );
     END;
   END OnDataArrived;
 
@@ -167,7 +167,7 @@ CLASS IMPLEMENTATION CIPServer;
       RETURN TRUE;
     END;
 
-    WHILE MQueue.DequeueOA( OUT Message ) DO
+    WHILE MQueue.DequeueOA( OUT Message, FALSE, 0 ) = Sync.arCompleted DO
       CASE Message.Command OF
       //-----
       | cmRegister :
@@ -279,7 +279,11 @@ CLASS IMPLEMENTATION CIPServer;
       Message.Creator := PStreamCreator;
       Message.Socket := Socket;
       Message.CloseTime := AutomaticCloseTimeMS;
-      MQueue.QueueOA( Message );
+      Result := MQueue.QueueOA( Message, TRUE, Sync.SAFETY_TIME );
+      IF Result NOT IN Sync.arsStarts THEN
+         Socket^.Release();
+         RETURN -1;
+      END;
     
       // listen must be started synchronously, to assure that send/receivings done immediatelly after StartListen will be catched
       Socket^.Notifier := ADR( SocketNotifier );
@@ -304,7 +308,7 @@ CLASS IMPLEMENTATION CIPServer;
     Message.Command := cmForgetPort;
     Message.Port := Port;
     Message.Type := Type;
-    MQueue.QueueOA( Message );
+    MQueue.QueueOA( Message, TRUE, Sync.SAFETY_TIME );
   END StopListenPort;
   
 //--------------------------------------------------------------------------------
@@ -318,7 +322,7 @@ CLASS IMPLEMENTATION CIPServer;
     END;
     Message.Command := cmForgetSocket;
     Message.Socket := Socket;
-    MQueue.QueueOA( Message );
+    MQueue.QueueOA( Message, TRUE, Sync.SAFETY_TIME );
   END StopListenSocket;
 
 //--------------------------------------------------------------------------------

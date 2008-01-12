@@ -600,7 +600,7 @@ CLASS IMPLEMENTATION CDispatcher;
     CASE MSG.Message OF
     //-----
     | msgqueue.WM_MQ_PROCESS :
-      WHILE MQueue.DequeueOA( OUT Message ) DO
+      WHILE MQueue.DequeueOA( OUT Message, FALSE, 0 ) = Sync.arCompleted DO
         CASE Message.Command OF
         //-----
         | cmNetworkAccept :
@@ -888,7 +888,7 @@ CLASS IMPLEMENTATION CDispatcher;
     // OnListen is in GUI thread, so posting there is not neccessary
     Message.Command := cmNetworkAccept;
     Message.NServerSocket := ServerSocket;
-    MQueue.QueueOA( Message );
+    MQueue.QueueOA( Message, TRUE, 8 * Sync.SAFETY_TIME );
   END OnListen;
 
 //--------------------------------------------------------------------------------
@@ -901,7 +901,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.NCSocket := Socket;
     Message.NCError := Error;
     Message.NCLocal := Local;
-    MQueue.QueueOA( Message );
+    MQueue.QueueOA( Message, TRUE, 8 * Sync.SAFETY_TIME );
   END OnNetworkConnect;
 
 //--------------------------------------------------------------------------------
@@ -914,7 +914,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.NCSocket := Socket;
     Message.NCError := Error;
     Message.NCLocal := Local;
-    MQueue.QueueOA( Message );
+    MQueue.QueueOA( Message, TRUE, 8 * Sync.SAFETY_TIME );
   END OnNetworkDisconnect;
 
 //--------------------------------------------------------------------------------
@@ -943,7 +943,7 @@ CLASS IMPLEMENTATION CDispatcher;
       IRead^.ReadOut( l );
 
       // queue request
-      MQueue.QueueOA( Message );
+      MQueue.QueueOA( Message, TRUE, 8 * Sync.SAFETY_TIME );
     END; // WHILE
   END OnNetworkReceive;
 
@@ -988,9 +988,9 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.JPClient^.AddRef(); // temporary
     Message.JRemotePort := RemotePort;
     Message.JRemoteAddress := RemoteAddress;
-    MQueue.QueueOA( Message );
+    MQueue.QueueOA( Message, TRUE, 8 * Sync.SAFETY_TIME );
     // make Join synchronous (to allow clients synchronously store their records)
-    MQueue.PushToConsumer();
+    MQueue.PushToConsumer( TRUE, 8 * Sync.SAFETY_TIME );
   END Join;
 
 //--------------------------------------------------------------------------------
@@ -1003,9 +1003,9 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.CPClient := PClient;
     Message.CPClient^.AddRef(); // temporary
     Message.CPConnection := Connection;
-    MQueue.QueueOA( Message );
+    MQueue.QueueOA( Message, TRUE, 8 * Sync.SAFETY_TIME );
     // make Leave synchronous (to allow clients synchronously remove their records)
-    MQueue.PushToConsumer();
+    MQueue.PushToConsumer( TRUE, 8 * Sync.SAFETY_TIME );
   END Leave;
 
 //--------------------------------------------------------------------------------
@@ -1017,7 +1017,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.Command := cmClientConnect;
     Message.CPClient := PClient;
     Message.CPConnection := Connection;
-    MQueue.QueueOA( Message );
+    MQueue.QueueOA( Message, TRUE, 8 * Sync.SAFETY_TIME );
   END Connect;
 
 //--------------------------------------------------------------------------------
@@ -1029,7 +1029,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.Command := cmClientDisconnect;
     Message.CPClient := PClient;
     Message.CPConnection := Connection;
-    MQueue.QueueOA( Message );
+    MQueue.QueueOA( Message, TRUE, 8 * Sync.SAFETY_TIME );
   END Disconnect;
 
 //--------------------------------------------------------------------------------
@@ -1045,7 +1045,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.SLen := DataLen;
     ALLOCATE( Message.SData, DataLen );
     Storage.Move( PData, Message.SData, DataLen );
-    MQueue.QueueOA( Message );
+    MQueue.QueueOA( Message, TRUE, 8 * Sync.SAFETY_TIME );
   END Send;
 
 //--------------------------------------------------------------------------------
