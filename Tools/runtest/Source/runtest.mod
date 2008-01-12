@@ -6,6 +6,7 @@ FROM Storage IMPORT
 IMPORT
    FIO,
    iobject,
+   lists,
    loader,
    log,
    Strings,
@@ -185,6 +186,8 @@ VAR
    ESt : PTR;
    Host : CHost;
    errout : TextWriter.TPTextWriter := TextWriter.errout();
+   Filters : lists.CStringList;
+   Found : BOOLEAN;
    i : INTEGER;
    LibraryState : loader.TState;
    LoadResult : iobject.TResult;
@@ -202,6 +205,13 @@ BEGIN
       IF ( argp^[i]^[0] = L'/' ) OR ( argp^[i]^[0] = L'-' ) THEN // option
 
          CASE argp^[i]^[1] OF
+         | L'f' : // filter test
+            INC( i );
+            IF i = argc THEN
+               errout^.WriteOA( L"runtest: missing filter string for -f option ", TRUE );
+               GOTO Error;
+            END;
+            Filters.AddOA( OAsz( argp^[i] ), 0 );
          | L'h' :
             GOTO Error;
          | L'o' :
@@ -235,6 +245,20 @@ BEGIN
 
       ESt := 0;
       WHILE Tests^.EnumerateTests( REF ESt, OUT Name, OUT Test ) DO
+         IF NOT Filters.Empty THEN
+            Found := FALSE;
+            Filters.Reset();
+            WHILE Filters.MoveNext() DO
+               IF Strings.MatchW( Name, OA( Filters.Current^.Length-1, Filters.Current^.rawData ), FALSE ) THEN
+                  Found := TRUE;
+                  EXIT;
+               END;
+            END; // WHILE
+            IF NOT Found THEN
+               CONTINUE;
+            END;
+         END;
+
          Host.StartTest( Name );
          TestResult := Test^.Run( ADR( Host ), OA( -1, PPWCHAR( NIL )));
          Host.StopTest( TestResult );
@@ -252,7 +276,7 @@ BEGIN
    END;
 
 Error:
-   errout^.WriteOA( L"  usage: runtest [-o] [-t] <test-dll-list> [-h]", TRUE );
+   errout^.WriteOA( L"  usage: runtest [-o] [-t] [-f <filter>] <test-dll-list> [-h]", TRUE );
    RETURN -1;
 END wmain;
   
