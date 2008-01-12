@@ -3,6 +3,7 @@ MODULE twothreadsstress;
 IMPORT
   msghandler,
   msgqueue,
+  Sync,
   windows;
   
 VAR
@@ -38,7 +39,7 @@ BEGIN
     END;
 
     // QUEUE processing
-    WHILE MQ.Dequeue( ADR( C ), SIZE( C )) DO
+    WHILE MQ.Dequeue( ADR( C ), SIZE( C ), FALSE, 0 ) = Sync.arCompleted DO
       IF C <> PrevC+1 THEN
         ASSERT( FALSE );
       END;
@@ -66,7 +67,7 @@ BEGIN
     END;
 
     // QUEUE processing
-    WHILE MQ.Dequeue( ADR( C ), SIZE( C )) DO
+    WHILE MQ.Dequeue( ADR( C ), SIZE( C ), FALSE, 0 ) = Sync.arCompleted DO
       IF C <> PrevC+1 THEN
         ASSERT( FALSE );
       END;
@@ -100,7 +101,7 @@ BEGIN
   windows.WaitForSingleObject( HStart, windows.INFINITE );
 
   LOOP
-    MQ.Queue( ADR( C ), SIZE( CARDINAL ));
+    MQ.Queue( ADR( C ), SIZE( CARDINAL ), TRUE, Sync.INFINITE_TIME );
     INC( C );
     IF C > 50000000 THEN
       EXIT;

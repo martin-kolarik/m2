@@ -3,6 +3,7 @@ MODULE NToOneStress;
 IMPORT
   msghandler,
   msgqueue,
+  Sync,
   windows;
   
 TYPE
@@ -26,7 +27,7 @@ CLASS IMPLEMENTATION CMH;
       RETURN FALSE;
     END;
     
-    WHILE MQ.Dequeue( ADR( GetC ), SIZE( GetC )) DO
+    WHILE MQ.Dequeue( ADR( GetC ), SIZE( GetC ), FALSE, 0 ) = Sync.arCompleted DO
       I := GetC >> 24;
       IF GetC AND 0FFFFFFH <> LastC[I]+1 THEN
         ASSERT( FALSE );
@@ -49,7 +50,7 @@ VAR
   C : CARDINAL := 1 OR ( CARDINAL( Index ) << 24 );
 BEGIN
   LOOP
-    MQ.Queue( ADR( C ), SIZE( CARDINAL ));
+    MQ.Queue( ADR( C ), SIZE( CARDINAL ), TRUE, Sync.INFINITE_TIME );
     INC( C );
     IF C AND 0FFFFFFH >= 0FFFFFFH THEN
       EXIT;

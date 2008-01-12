@@ -3,6 +3,7 @@ MODULE OneToNStress;
 IMPORT
   msghandler,
   msgqueue,
+  Sync,
   windows;
   
 VAR
@@ -16,7 +17,7 @@ VAR
   C : CARDINAL := 1;
 BEGIN
   LOOP
-    IF NOT MQ[CARDINAL( Index )].Dequeue( ADR( C ), SIZE( CARDINAL )) THEN
+    IF MQ[CARDINAL( Index )].Dequeue( ADR( C ), SIZE( CARDINAL ), FALSE, 0 ) <> Sync.arCompleted THEN
       windows.Sleep( 0 );
     ELSIF C = LastC + 1 THEN
       INC( LastC );
@@ -42,7 +43,7 @@ BEGIN
   
   FOR I := 1 TO 10000000 DO
     FOR J := 0 TO 61 DO
-      MQ[K].Queue( ADR( C[K] ), SIZE( CARDINAL ));
+      MQ[K].Queue( ADR( C[K] ), SIZE( CARDINAL ), TRUE, Sync.INFINITE_TIME );
       INC( C[K] );
     END;
     IF K = 19 THEN
