@@ -4,6 +4,9 @@ IMPLEMENTATION MODULE SyncQueue;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE, REALLOCATE, Move, Zero;
+   
+IMPORT
+   time;
 
 (*================================================================================*)
 
@@ -129,6 +132,7 @@ CLASS IMPLEMENTATION RingBuffer;
   VAR
     A : ADDRESS := ADR( Data );
     Processed : CARDINAL;
+    Spent : CARDINAL;
     ToProcess : CARDINAL := HIGH( Data ) + 1;
   BEGIN
     WHILE ToProcess > 0 DO
@@ -136,7 +140,7 @@ CLASS IMPLEMENTATION RingBuffer;
         INC( A, Processed );
         DEC( ToProcess, Processed );
       ELSE
-        Sync.Sleep( 0 );
+        Flush( Sync.pcqConsumed, TRUE, Sync.INFINITE_TIME, OUT Spent );
       END;
     END;
   END ReadOA;
@@ -147,13 +151,15 @@ CLASS IMPLEMENTATION RingBuffer;
   VAR
     A : ADDRESS := ADR( Data );
     Processed : CARDINAL;
+    Spent : CARDINAL;
     ToProcess : CARDINAL := HIGH( Data ) + 1;
   BEGIN
     WHILE ToProcess > 0 DO
       IF Write( A, ToProcess, OUT Processed ) THEN
         INC( A, Processed );
         DEC( ToProcess, Processed );
-      // Sleep is not needed here as Flush should be implemented
+      ELSE
+        Flush( Sync.pcqProduced, TRUE, Sync.INFINITE_TIME, OUT Spent );
       END;
     END;
   END WriteOA;
@@ -220,46 +226,71 @@ CLASS IMPLEMENTATION RingBuffer;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE Flush() : Sync.TAsyncResult;
-   BEGIN
-      IF Empty THEN
-         RETURN Sync.arCompleted;
-      ELSIF Consume = NIL THEN
-         RETURN Sync.arAborted;
-      ELSE
-         Signal( Sync.pcqProduced );
-         IF Produce = NIL THEN
-            Sync.Sleep( 0 );
-         ELSE
-            Sync.Wait( Produce, Sync.INFINITE_TIME );
-         END;
-      END;
-      RETURN Sync.arCompleted;
-   END Flush;
-
-(*--------------------------------------------------------------------------------*)
-
    INTERNAL VIRTUAL PROCEDURE Signal( What : Sync.TpcqSignal ); // when produced, next producing SHOULD NOT be signalled (until signalling consumed)
    BEGIN
       CASE What OF
-      | Sync.pcqProduced :
-         IF Sync.IExchg( REF Consuming, 1 ) = 0 THEN
-            Sync.Signal( Consume );
-         END;
-      | Sync.pcqStartingConsumation :
-         IF Sync.IExchg( REF Consuming, 0 ) = 1 THEN
-            Sync.Reset( Consume );
-         END;
-      | Sync.pcqConsumed :
-         IF Sync.IExchg( REF Producing, 1 ) = 0 THEN
-            Sync.Signal( Produce );
-         END;
-      | Sync.pcqStartingProduction :
-         IF Sync.IExchg( REF Producing, 0 ) = 1 THEN
-            Sync.Reset( Produce );
-         END;
+      | Sync.pcqProduced, Sync.pcqProducedFlush : Sync.Signal( Consume );
+      | Sync.pcqConsumed, Sync.pcqConsumedFlush : Sync.Signal( Produce );
       END; // CASE
    END Signal;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE Flush( ForWhat : Sync.TpcqSignal; Wait : BOOLEAN; Timeout : CARDINAL; OUT SpentTime : CARDINAL ) : Sync.TAsyncResult;
+   VAR
+      Result : Sync.TAsyncResult;
+      Start : CARDINAL;
+   BEGIN
+      SpentTime := 0;
+      CASE ForWhat OF
+      | Sync.pcqProduced :   
+         IF Empty THEN
+            RETURN Sync.arCompleted;
+         END;
+         Signal( Sync.pcqProducedFlush );
+         IF NOT Wait THEN
+            RETURN Sync.arPending;
+         END;
+         Start := time.UptimeMS();
+         IF Produce = NIL THEN
+            LOOP
+               Sync.Sleep( 0 );
+               IF Empty THEN
+                  Result := Sync.arCompleted; EXIT;
+               ELSIF time.UptimeMS() - Start > Timeout THEN
+                  Result := Sync.arTimeout; EXIT;
+               END;
+            END; // LOOP
+         ELSE
+            Result := Sync.Wait( Produce, Timeout );
+         END;
+         SpentTime := time.UptimeMS() - Start;
+      | Sync.pcqConsumed :   
+         IF NOT Empty THEN // asymmetric, but it is safer than using Full (state change empty/not empty is more frequent than state empty/full
+            RETURN Sync.arCompleted;
+         END;
+         Signal( Sync.pcqConsumedFlush );
+         IF NOT Wait THEN
+            RETURN Sync.arPending;
+         END;
+         Start := time.UptimeMS();
+         IF Consume = NIL THEN
+            Start := time.UptimeMS();
+            LOOP
+               Sync.Sleep( 0 );
+               IF NOT Empty THEN
+                  Result := Sync.arCompleted; EXIT;
+               ELSIF time.UptimeMS() - Start > Timeout THEN
+                  Result := Sync.arTimeout; EXIT;
+               END;
+            END; // LOOP
+         ELSE
+            Result := Sync.Wait( Consume, Timeout );
+         END;
+         SpentTime := time.UptimeMS() - Start;
+      END;
+      RETURN Result;
+   END Flush;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -278,26 +309,39 @@ CLASS IMPLEMENTATION IntegerQueue;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Queue( I : INTEGER; Wait : BOOLEAN; Timeout : CARDINAL ) : BOOLEAN;
+   PUBLIC PROCEDURE Queue( I : INTEGER; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
    VAR
       allowed : CARDINAL;
       commit : CARDINAL;
       dst : PBYTE;
       src : PBYTE := PBYTE( ADR( I ));
       len : CARDINAL := SIZE( INTEGER );
+      Result : Sync.TAsyncResult;
+      Spent : CARDINAL;
    BEGIN
       LOOP
          IF Count + SIZE( INTEGER ) <= Size THEN // space is sufficient
             EXIT;
-         ELSIF NOT Wait OR ( Sync.Wait( Produce, Timeout ) <> Sync.arCompleted ) THEN
-            RETURN FALSE;
+         END;
+         Result := Flush( Sync.pcqProduced, Wait, Timeout, OUT Spent );
+         IF Timeout > Spent THEN
+            DEC( Timeout, Spent );
+         ELSE
+            RETURN Sync.arTimeout;
+         END;
+         IF Result = Sync.arPending THEN
+            RETURN Sync.arNoData;
+         ELSIF Result = Sync.arCompleted THEN
+            CONTINUE;
+         ELSE
+            RETURN Result;
          END;
       END; // LOOP
 
       // first part
       IF NOT StartWriting( len, OUT dst, OUT allowed ) THEN
          ASSERT( FALSE );
-         RETURN FALSE;
+         RETURN Sync.arAborted;
       END;
       commit := allowed;
       WHILE allowed > 0 DO
@@ -309,13 +353,13 @@ CLASS IMPLEMENTATION IntegerQueue;
       END;
       CommitWriting( commit );
       IF len = 0 THEN
-         RETURN TRUE;
+         RETURN Sync.arCompleted;
       END;
 
       // second part
       IF NOT StartWriting( len, OUT dst, OUT allowed ) THEN // should never occur
          ASSERT( FALSE );
-         RETURN FALSE;
+         RETURN Sync.arAborted;
       END;
       commit := allowed;
       WHILE allowed > 0 DO
@@ -327,35 +371,48 @@ CLASS IMPLEMENTATION IntegerQueue;
       END;
       CommitWriting( commit );
       IF len = 0 THEN
-         RETURN TRUE;
+         RETURN Sync.arCompleted;
       ELSE
          ASSERT( FALSE );
-         RETURN FALSE;
+         RETURN Sync.arAborted;
       END;
    END Queue;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Dequeue( OUT I : INTEGER; Wait : BOOLEAN; Timeout : CARDINAL ) : BOOLEAN;
+   PUBLIC PROCEDURE Dequeue( OUT I : INTEGER; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
    VAR
       allowed : CARDINAL;
       commit : CARDINAL;
       dst : PBYTE := PBYTE( ADR( I ));
       src : PBYTE;
       len : CARDINAL := SIZE( INTEGER );
+      Result : Sync.TAsyncResult;
+      Spent : CARDINAL;
    BEGIN
       LOOP
          IF Count >= SIZE( INTEGER ) THEN // data is sufficient
             EXIT;
-         ELSIF NOT Wait OR ( Sync.Wait( Consume, Timeout ) <> Sync.arCompleted ) THEN
-            RETURN FALSE;
+         END;   
+         Result := Flush( Sync.pcqConsumed, Wait, Timeout, OUT Spent );
+         IF Timeout > Spent THEN
+            DEC( Timeout, Spent );
+         ELSE
+            RETURN Sync.arTimeout;
+         END;
+         IF Result = Sync.arPending THEN
+            RETURN Sync.arNoData;
+         ELSIF Result = Sync.arCompleted THEN
+            CONTINUE;
+         ELSE
+            RETURN Result;
          END;
       END; // LOOP
 
       // first part
       IF NOT StartReading( len, OUT src, OUT allowed ) THEN
          ASSERT( FALSE );
-         RETURN FALSE;
+         RETURN Sync.arAborted;
       END;
       commit := allowed;
       WHILE allowed > 0 DO
@@ -367,13 +424,13 @@ CLASS IMPLEMENTATION IntegerQueue;
       END;
       CommitReading( commit );
       IF len = 0 THEN
-         RETURN TRUE;
+         RETURN Sync.arCompleted;
       END;
 
       // second part
       IF NOT StartReading( len, OUT src, OUT allowed ) THEN // should never occur
          ASSERT( FALSE );
-         RETURN FALSE;
+         RETURN Sync.arAborted;
       END;
       commit := allowed;
       WHILE allowed > 0 DO
@@ -385,10 +442,10 @@ CLASS IMPLEMENTATION IntegerQueue;
       END;
       CommitReading( commit );
       IF len = 0 THEN
-         RETURN TRUE;
+         RETURN Sync.arCompleted;
       ELSE
          ASSERT( FALSE );
-         RETURN FALSE;
+         RETURN Sync.arAborted;
       END;
    END Dequeue;
 
@@ -408,26 +465,39 @@ CLASS IMPLEMENTATION QuadwordQueue;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Queue( CONST Q : QUADWORD; Wait : BOOLEAN; Timeout : CARDINAL ) : BOOLEAN;
+   PUBLIC PROCEDURE Queue( CONST Q : QUADWORD; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
    VAR
       allowed : CARDINAL;
       commit : CARDINAL;
       dst : PBYTE;
       src : PBYTE := PBYTE( ADR( Q ));
       len : CARDINAL := SIZE( QUADWORD );
+      Result : Sync.TAsyncResult;
+      Spent : CARDINAL;
    BEGIN
       LOOP
          IF Count + SIZE( QUADWORD ) <= Size THEN // space is sufficient
             EXIT;
-         ELSIF NOT Wait OR ( Sync.Wait( Produce, Timeout ) <> Sync.arCompleted ) THEN
-            RETURN FALSE;
+         END;
+         Result := Flush( Sync.pcqProduced, Wait, Timeout, OUT Spent );
+         IF Timeout > Spent THEN
+            DEC( Timeout, Spent );
+         ELSE
+            RETURN Sync.arTimeout;
+         END;
+         IF Result = Sync.arPending THEN
+            RETURN Sync.arNoData;
+         ELSIF Result = Sync.arCompleted THEN
+            CONTINUE;
+         ELSE
+            RETURN Result;
          END;
       END; // LOOP
 
       // first part
       IF NOT StartWriting( len, OUT dst, OUT allowed ) THEN
          ASSERT( FALSE );
-         RETURN FALSE;
+         RETURN Sync.arAborted;
       END;
       commit := allowed;
       WHILE allowed > 0 DO
@@ -439,13 +509,13 @@ CLASS IMPLEMENTATION QuadwordQueue;
       END;
       CommitWriting( commit );
       IF len = 0 THEN
-         RETURN TRUE;
+         RETURN Sync.arCompleted;
       END;
 
       // second part
       IF NOT StartWriting( len, OUT dst, OUT allowed ) THEN // should never occur
          ASSERT( FALSE );
-         RETURN FALSE;
+         RETURN Sync.arAborted;
       END;
       commit := allowed;
       WHILE allowed > 0 DO
@@ -457,35 +527,48 @@ CLASS IMPLEMENTATION QuadwordQueue;
       END;
       CommitWriting( commit );
       IF len = 0 THEN
-         RETURN TRUE;
+         RETURN Sync.arCompleted;
       ELSE
          ASSERT( FALSE );
-         RETURN FALSE;
+         RETURN Sync.arAborted;
       END;
    END Queue;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Dequeue( OUT Q : QUADWORD; Wait : BOOLEAN; Timeout : CARDINAL ) : BOOLEAN;
+   PUBLIC PROCEDURE Dequeue( OUT Q : QUADWORD; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
    VAR
       allowed : CARDINAL;
       commit : CARDINAL;
       dst : PBYTE := PBYTE( ADR( Q ));
       src : PBYTE;
       len : CARDINAL := SIZE( QUADWORD );
+      Result : Sync.TAsyncResult;
+      Spent : CARDINAL;
    BEGIN
       LOOP
          IF Count >= SIZE( QUADWORD ) THEN // data is sufficient
             EXIT;
-         ELSIF NOT Wait OR ( Sync.Wait( Consume, Timeout ) <> Sync.arCompleted ) THEN
-            RETURN FALSE;
+         END;
+         Result := Flush( Sync.pcqConsumed, Wait, Timeout, OUT Spent );
+         IF Timeout > Spent THEN
+            DEC( Timeout, Spent );
+         ELSE
+            RETURN Sync.arTimeout;
+         END;
+         IF Result = Sync.arPending THEN
+            RETURN Sync.arNoData;
+         ELSIF Result = Sync.arCompleted THEN
+            CONTINUE;
+         ELSE
+            RETURN Result;
          END;
       END; // LOOP
 
       // first part
       IF NOT StartReading( len, OUT src, OUT allowed ) THEN
          ASSERT( FALSE );
-         RETURN FALSE;
+         RETURN Sync.arAborted;
       END;
       commit := allowed;
       WHILE allowed > 0 DO
@@ -497,13 +580,13 @@ CLASS IMPLEMENTATION QuadwordQueue;
       END;
       CommitReading( commit );
       IF len = 0 THEN
-         RETURN TRUE;
+         RETURN Sync.arCompleted;
       END;
 
       // second part
       IF NOT StartReading( len, OUT src, OUT allowed ) THEN // should never occur
          ASSERT( FALSE );
-         RETURN FALSE;
+         RETURN Sync.arAborted;
       END;
       commit := allowed;
       WHILE allowed > 0 DO
@@ -515,10 +598,10 @@ CLASS IMPLEMENTATION QuadwordQueue;
       END;
       CommitReading( commit );
       IF len = 0 THEN
-         RETURN TRUE;
+         RETURN Sync.arCompleted;
       ELSE
          ASSERT( FALSE );
-         RETURN FALSE;
+         RETURN Sync.arAborted;
       END;
    END Dequeue;
 
@@ -586,76 +669,92 @@ CLASS IMPLEMENTATION CDatagramQueue;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Dequeue( MessageBuffer : ADDRESS; MessageBufferLen : CARDINAL ) : BOOLEAN; // returns if data get
-  VAR
-    Block : CARDINAL;
-  BEGIN
-    IF NOT StartConsuming( OUT Block ) THEN
-      RETURN FALSE;
-    END;
-    Move( Data@[ Block*ItemISize + SIZE( CARDINAL )], MessageBuffer, MIN2( ItemISize-SIZE( CARDINAL ), MessageBufferLen ));
-    CommitConsuming();
-    RETURN TRUE;
-  END Dequeue;
+   PUBLIC PROCEDURE Dequeue( MessageBuffer : ADDRESS; MessageBufferLen : CARDINAL; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
+   VAR
+      Block : CARDINAL;
+      Result : Sync.TAsyncResult;
+      Spent : CARDINAL;
+   BEGIN
+      WHILE NOT StartConsuming( OUT Block ) DO
+         Result := Flush( Sync.pcqConsumed, Wait, Timeout, OUT Spent );
+         IF Timeout > Spent THEN
+            DEC( Timeout, Spent );
+         ELSE
+            RETURN Sync.arTimeout;
+         END;
+         IF Result = Sync.arPending THEN
+            RETURN Sync.arNoData;
+         ELSIF Result = Sync.arCompleted THEN
+            CONTINUE;
+         ELSE
+            RETURN Result;
+         END;
+      END; // WHILE
+
+      Move( Data@[ Block*ItemISize + SIZE( CARDINAL )], MessageBuffer, MIN2( ItemISize-SIZE( CARDINAL ), MessageBufferLen ));
+      CommitConsuming();
+
+      RETURN Sync.arCompleted;
+   END Dequeue;
   
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE DequeueOA( OUT Message : ARRAY OF BYTE ) : BOOLEAN;
+  PUBLIC PROCEDURE DequeueOA( OUT Message : ARRAY OF BYTE; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
   BEGIN
-    RETURN Dequeue( ADR( Message ), HIGH( Message )+1 );
+    RETURN Dequeue( ADR( Message ), HIGH( Message )+1, Wait, Timeout );
   END DequeueOA;
   
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Queue( Message : ADDRESS; MessageLen : CARDINAL ) : BOOLEAN; // returns if added, MANY threads
-  VAR
-    Block : CARDINAL;
-  BEGIN
-    IF MessageLen > ItemISize - SIZE( CARDINAL ) THEN
-      RETURN FALSE;
-    ELSIF MessageLen = 0 THEN
-      RETURN FALSE;
-    ELSIF NOT StartProducing( OUT Block ) THEN
-      RETURN FALSE;
-    ELSE // now Block is allocated index, move data
+   PUBLIC PROCEDURE Queue( Message : ADDRESS; MessageLen : CARDINAL; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
+   VAR
+      Block : CARDINAL;
+      Result : Sync.TAsyncResult;
+      Spent : CARDINAL;
+   BEGIN
+      IF MessageLen > ItemISize - SIZE( CARDINAL ) THEN
+         RETURN Sync.arAborted;
+      ELSIF MessageLen = 0 THEN
+         RETURN Sync.arAborted;
+      END;
+
+      WHILE NOT StartProducing( OUT Block ) DO
+         Result := Flush( Sync.pcqProduced, Wait, Timeout, OUT Spent );
+         IF Timeout > Spent THEN
+            DEC( Timeout, Spent );
+         ELSE
+            RETURN Sync.arTimeout;
+         END;
+         IF Result = Sync.arPending THEN
+            RETURN Sync.arNoData;
+         ELSIF Result = Sync.arCompleted THEN
+            CONTINUE;
+         ELSE
+            RETURN Result;
+         END;
+      END; // WHILE
+    
       Move( Message, Data@[ Block*ItemISize + SIZE( CARDINAL )], MessageLen );
       CommitProducing( Block );
-      RETURN TRUE;
-    END;
-  END Queue;
+
+      RETURN Sync.arCompleted;
+   END Queue;
   
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE QueueOA( CONST Message : ARRAY OF BYTE ) : BOOLEAN;
+  PUBLIC PROCEDURE QueueOA( CONST Message : ARRAY OF BYTE; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
   BEGIN
-    RETURN Queue( ADR( Message ), MIN2( ItemISize-SIZE( CARDINAL ), HIGH( Message )+1 ));
+    RETURN Queue( ADR( Message ), MIN2( ItemISize-SIZE( CARDINAL ), HIGH( Message )+1 ), Wait, Timeout );
   END QueueOA;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE PushToConsumer() : Sync.TAsyncResult;
-  BEGIN
-    RETURN Flush();
-  END PushToConsumer;
-
-(*--------------------------------------------------------------------------------*)
-
-   INTERNAL VIRTUAL PROCEDURE Flush() : Sync.TAsyncResult; // completed, timeout, aborted
+   PUBLIC PROCEDURE PushToConsumer( Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
+   VAR
+      Spent : CARDINAL;
    BEGIN
-      IF Empty THEN
-         RETURN Sync.arCompleted;
-      ELSIF Consume = NIL THEN
-         RETURN Sync.arAborted;
-      ELSE
-         Signal( Sync.pcqProduced );
-         IF Produce = NIL THEN
-            Sync.Sleep( 0 );
-         ELSE
-            Sync.Wait( Produce, Sync.INFINITE_TIME );
-         END;
-      END;
-      RETURN Sync.arCompleted;
-   END Flush;
+      RETURN Flush( Sync.pcqProduced, Wait, Timeout, OUT Spent );
+   END PushToConsumer;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -683,24 +782,68 @@ CLASS IMPLEMENTATION CDatagramQueue;
    INTERNAL VIRTUAL PROCEDURE Signal( What : Sync.TpcqSignal ); // when produced, next producing SHOULD NOT be signalled (until signalling consumed)
    BEGIN
       CASE What OF
-      | Sync.pcqProduced :
-         IF Sync.IExchg( REF Consuming, 1 ) = 0 THEN
-            Sync.Signal( Consume );
-         END;
-      | Sync.pcqStartingConsumation :
-         IF Sync.IExchg( REF Consuming, 0 ) = 1 THEN
-            Sync.Reset( Consume );
-         END;
-      | Sync.pcqConsumed :
-         IF Sync.IExchg( REF Producing, 1 ) = 0 THEN
-            Sync.Signal( Produce );
-         END;
-      | Sync.pcqStartingProduction :
-         IF Sync.IExchg( REF Producing, 0 ) = 1 THEN
-            Sync.Reset( Produce );
-         END;
+      | Sync.pcqProduced, Sync.pcqProducedFlush : Sync.Signal( Consume );
+      | Sync.pcqConsumed, Sync.pcqConsumedFlush : Sync.Signal( Produce );
       END; // CASE
    END Signal;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE Flush( ForWhat : Sync.TpcqSignal; Wait : BOOLEAN; Timeout : CARDINAL; OUT SpentTime : CARDINAL ) : Sync.TAsyncResult;
+   VAR
+      Result : Sync.TAsyncResult;
+      Start : CARDINAL;
+   BEGIN
+      SpentTime := 0;
+      CASE ForWhat OF
+      | Sync.pcqProduced :   
+         IF Empty THEN
+            RETURN Sync.arCompleted;
+         END;
+         Signal( Sync.pcqProducedFlush );
+         IF NOT Wait THEN
+            RETURN Sync.arPending;
+         END;
+         Start := time.UptimeMS();
+         IF Produce = NIL THEN
+            LOOP
+               Sync.Sleep( 0 );
+               IF Empty THEN
+                  Result := Sync.arCompleted; EXIT;
+               ELSIF time.UptimeMS() - Start > Timeout THEN
+                  Result := Sync.arTimeout; EXIT;
+               END;
+            END; // LOOP
+         ELSE
+            Result := Sync.Wait( Produce, Timeout );
+         END;
+         SpentTime := time.UptimeMS() - Start;
+      | Sync.pcqConsumed :   
+         IF NOT Empty THEN // asymmetric, but it is safer than using Full (state change empty/not empty is more frequent than state empty/full
+            RETURN Sync.arCompleted;
+         END;
+         Signal( Sync.pcqConsumedFlush );
+         IF NOT Wait THEN
+            RETURN Sync.arPending;
+         END;
+         Start := time.UptimeMS();
+         IF Consume = NIL THEN
+            Start := time.UptimeMS();
+            LOOP
+               Sync.Sleep( 0 );
+               IF NOT Empty THEN
+                  Result := Sync.arCompleted; EXIT;
+               ELSIF time.UptimeMS() - Start > Timeout THEN
+                  Result := Sync.arTimeout; EXIT;
+               END;
+            END; // LOOP
+         ELSE
+            Result := Sync.Wait( Consume, Timeout );
+         END;
+         SpentTime := time.UptimeMS() - Start;
+      END;
+      RETURN Result;
+   END Flush;
 
 (*--------------------------------------------------------------------------------*)
 

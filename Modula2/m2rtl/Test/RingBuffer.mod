@@ -14,6 +14,10 @@ IMPORT
   
 (*===========================================================================*)
 
+TYPE
+   TMode = ( NN, PN, NC, PC );
+
+
 CLASS CTest IMPLEMENTS test.ITest;
    PRIVATE VAR
       Host : test.TPHost := NIL;
@@ -21,7 +25,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       Exit : CARDINAL := 0;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
-   INTERNAL PROCEDURE Round( RingSize : CARDINAL ) : BOOLEAN;
+   INTERNAL PROCEDURE Round( Mode : TMode; RingSize : CARDINAL ) : BOOLEAN;
    
    LOCAL PROCEDURE Produce();
    LOCAL PROCEDURE Consume();
@@ -57,22 +61,22 @@ CLASS IMPLEMENTATION CTest;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   TYPE
+      TSizes = ARRAY [0..10] OF CARDINAL;
+   CONST
+      sizes = TSizes( 1, 2, 7, 8, 11, 24, 113, 256, 8191, 8192, 8193 );
    VAR
       Failure : BOOLEAN := FALSE;
+      Mode : TMode;
+      Size : CARDINAL;
    BEGIN
       SELF.Host := Host;
    
-      Failure := NOT Round( 1 ) OR Failure;
-      Failure := NOT Round( 2 ) OR Failure;
-      Failure := NOT Round( 7 ) OR Failure;
-      Failure := NOT Round( 8 ) OR Failure;
-      Failure := NOT Round( 11 ) OR Failure;
-      Failure := NOT Round( 24 ) OR Failure;
-      Failure := NOT Round( 113 ) OR Failure;
-      Failure := NOT Round( 256 ) OR Failure;
-      Failure := NOT Round( 8191 ) OR Failure;
-      Failure := NOT Round( 8192 ) OR Failure;
-      Failure := NOT Round( 8193 ) OR Failure;
+      FOR Mode := NN TO PC DO
+         FOR Size := 0 TO HIGH( sizes ) DO
+            Failure := NOT Round( Mode, sizes[Size] ) OR Failure;
+         END;
+      END;
 
       IF Failure THEN
          RETURN test.trFailure;
@@ -83,17 +87,38 @@ CLASS IMPLEMENTATION CTest;
    
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL PROCEDURE Round( RingSize : CARDINAL ) : BOOLEAN;
+   INTERNAL PROCEDURE Round( Mode : TMode; RingSize : CARDINAL ) : BOOLEAN;
    VAR
-      PT : windows.HANDLE := NIL;
+      CE : Sync.SIGNAL := Sync.CreateSignal( FALSE, L"" );
       CT : windows.HANDLE := NIL;
+      PE : Sync.SIGNAL := Sync.CreateSignal( TRUE, L"" );
+      PT : windows.HANDLE := NIL;
       Phase : ARRAY [0..31] OF WCHAR;
    BEGIN
       Exit := 0; // reset
-      Ring.Size := RingSize; 
-
+      Ring.Size := RingSize;
+      Ring.Clear();
+      
       Strings.FromCARD32W( RingSize, 10, OUT Phase );
-      Strings.PrependW( REF Phase, L"Ring size [bytes]: " );      
+      Strings.PrependW( REF Phase, L", bytes: " );      
+      CASE Mode OF
+      | NN :
+         Ring.Consume := NIL;
+         Ring.Produce := NIL;
+         Strings.PrependW( REF Phase, L"0/0" );
+      | PN :
+         Ring.Consume := NIL;
+         Ring.Produce := PE;
+         Strings.PrependW( REF Phase, L"P/0" );
+      | NC :
+         Ring.Consume := CE;
+         Ring.Produce := NIL;
+         Strings.PrependW( REF Phase, L"0/C" );
+      | PC :
+         Ring.Consume := CE;
+         Ring.Produce := PE;
+         Strings.PrependW( REF Phase, L"P/C" );
+      END; // CASE
       Host^.StartPhase( Phase );
 
       PT := windows.CreateThread( NIL, 0, ProducerThread, ADR( SELF ), 0, NIL );
@@ -101,7 +126,9 @@ CLASS IMPLEMENTATION CTest;
       Sync.Wait( PT, Sync.INFINITE_TIME );
       Sync.Wait( CT, Sync.INFINITE_TIME );
       windows.CloseHandle( PT );
+      Sync.DeleteSignal( REF PE );
       windows.CloseHandle( CT );
+      Sync.DeleteSignal( REF CE );
       
       Host^.StopPhase();
       RETURN Exit = 0;
@@ -114,7 +141,7 @@ CLASS IMPLEMENTATION CTest;
       C64 : CARD64 := 1;
    BEGIN
       LOOP
-         Ring.WriteOA( C64 );
+         Ring.WriteOA( C64 ); // also waits for Produce
          INC( C64 );
          IF C64 > 500000 THEN
             EXIT;
@@ -132,7 +159,7 @@ CLASS IMPLEMENTATION CTest;
       sC64, sP64 : ARRAY [0..15] OF WCHAR;
    BEGIN
       LOOP
-         Ring.ReadOA( OUT C64 );
+         Ring.ReadOA( OUT C64 ); // also waits for consume
          IF C64 <> P64+1 THEN
             Strings.FromCARD64W( C64, 10, OUT sC64 ); Strings.FromCARD64W( P64, 10, OUT sP64 );
             Host^.Log^.LogSSS( log.dlcError, L"", L"Failed on numbers: ", sC64, sP64 );
@@ -151,7 +178,7 @@ CLASS IMPLEMENTATION CTest;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
-   testimpl.tests()^.AddTest( L"Ring buffer", ADR( Test ));
+   testimpl.tests()^.AddTest( L"RingBuffer", ADR( Test ));
 END CTest;
 
 (*===========================================================================*)

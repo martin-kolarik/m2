@@ -39,6 +39,7 @@ CONST
   
 CONST
    INFINITE_TIME = 0FFFFFFFFH;
+   SAFETY_TIME   = 10000;
 
 PROCEDURE Sleep( Time : CARDINAL );
 
@@ -51,7 +52,8 @@ TYPE
 CLASS LOCK;
    INTERNAL VAR
       Type : TLockType := ltSpin;
-      Data : PTR;
+      Spin : CARDINAL;
+      Data : PTR := 0; // initially unlocked
    PUBLIC READONLY PROPERTY
       WaitHandle : WAITABLE;
 
@@ -82,8 +84,8 @@ CLASS LOCK;
 END LOCK;
 
 // signalling
-PROCEDURE CreateSignal( InitiallySignalled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : SIGNAL;
-PROCEDURE CreateAutoresetSignal( InitiallySignalled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : SIGNAL;
+PROCEDURE CreateSignal( InitiallySignaled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : SIGNAL;
+PROCEDURE CreateAutoresetSignal( InitiallySignaled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : SIGNAL;
 PROCEDURE Signal( S : SIGNAL );
 PROCEDURE SignalAndReset( S : SIGNAL );
 PROCEDURE Reset( S : SIGNAL );
@@ -104,14 +106,36 @@ PROCEDURE IInc( REF Addend : INT32 ): INT32;
 PROCEDURE IGet( REF Value : INT32 ) : INT32;
 PROCEDURE IGetPtr( REF Value : ADDRESS ) : ADDRESS;
 
+// atomic signalling
+TYPE
+   TStateType = ( stSpin, stSetReset, stAutoReset );
+
+CLASS STATE;
+   INTERNAL VAR
+      Type : TStateType := stSpin;
+      Spin : CARDINAL;
+      Data : PTR := 0; // initially reset
+   PUBLIC PROPERTY
+      State : BOOLEAN;
+   PUBLIC READONLY PROPERTY
+      WaitHandle : WAITABLE;
+
+   PUBLIC PROCEDURE Init( Type : TStateType; CONST Name : ARRAY OF WCHAR; InitiallySignaled : BOOLEAN );
+
+   PUBLIC PROCEDURE _Signal() : BOOLEAN; // returns Set SWITCHED value
+   PUBLIC PROCEDURE _Reset() : BOOLEAN; // returns Reset SWITCHED value
+   PUBLIC PROCEDURE Test() : BOOLEAN;
+   PUBLIC PROCEDURE _Wait( Timeout : CARDINAL ) : TAsyncResult;
+
+   PRIVATE PROCEDURE Dispose();
+END STATE;
+
 (*================================================================================*)
 
 TYPE
   TpcqSignal = (
-    pcqStartingProduction,
-    pcqProduced,
-    pcqStartingConsumation,
-    pcqConsumed
+    pcqProduced, pcqConsumed, // normal signals
+    pcqProducedFlush, pcqConsumedFlush // emergency signals called from Flush
   );
 
 (*--------------------------------------------------------------------------------*)
@@ -138,7 +162,6 @@ CLASS OneToOneQueue;
   // producer
   PUBLIC PROCEDURE StartProducing( LengthToProduce : CARDINAL; OUT ProduceTo : CARDINAL; OUT AllowedToProduce : CARDINAL ) : BOOLEAN;
   PUBLIC PROCEDURE CommitProducing( Produced : CARDINAL );
-  INTERNAL VIRTUAL PROCEDURE Flush() : TAsyncResult; // completed, aborted
 
   // consumer
   PUBLIC PROCEDURE StartConsuming( LengthToConsume : CARDINAL; OUT ConsumeFrom : CARDINAL; OUT AllowedToConsume : CARDINAL ) : BOOLEAN;
@@ -158,6 +181,7 @@ ABSTRACT CLASS NToOneQueue;
   PRIVATE VAR
     _Head : CARDINAL;
     _Tail : CARDINAL;
+    _Lock : CARDINAL;
   INTERNAL VAR
     _Size : CARDINAL := 256;
   PUBLIC READONLY PROPERTY
@@ -173,7 +197,6 @@ ABSTRACT CLASS NToOneQueue;
   // producer
   PUBLIC PROCEDURE StartProducing( OUT ProduceTo : CARDINAL ) : BOOLEAN;
   PUBLIC PROCEDURE CommitProducing( Produced : CARDINAL );
-  INTERNAL VIRTUAL PROCEDURE Flush() : TAsyncResult; // completed, timeout, aborted
   INTERNAL ABSTRACT PROCEDURE Validate( Block : CARDINAL );
 
   // consumer

@@ -13,16 +13,14 @@ TYPE
 CLASS RingBuffer( Sync.OneToOneQueue ); // SIGNALLING and FLUSHING, if needed, should be done using VIRTUAL PROCEDURE Flush/Signal.
    // the problem is fully symmetric, but implementation prefers reader (because write side implements flush/wait semantics). Better
    // results, in this case, will be achieved using Produce signal without Consume one.
-   INTERNAL VAR
-      Data        : ADDRESS;
-      DataDoubled : BOOLEAN;
-      Consuming   : CARDINAL := 0;
-      Producing   : CARDINAL := 1;
+  INTERNAL VAR
+     Data        : ADDRESS;
+     DataDoubled : BOOLEAN;
   PUBLIC VIRTUAL PROPERTY
-      Size        : CARDINAL;
+     Size        : CARDINAL;
   PUBLIC VAR
-      Consume     : Sync.SIGNAL := NIL;
-      Produce     : Sync.SIGNAL := NIL;
+     Consume     : Sync.SIGNAL := NIL;
+     Produce     : Sync.SIGNAL := NIL;
 
   // asynchronous GET API
   PUBLIC PROCEDURE StartReading( WantsRead : CARDINAL; OUT BufferToReadFrom : ADDRESS; OUT AllowedToRead : CARDINAL ) : BOOLEAN;
@@ -43,8 +41,8 @@ CLASS RingBuffer( Sync.OneToOneQueue ); // SIGNALLING and FLUSHING, if needed, s
   PUBLIC PROCEDURE Peek2( OUT Data1 : ADDRESS; OUT Length1 : CARDINAL; OUT Data2 : ADDRESS; OUT Length2 : CARDINAL ) : BOOLEAN; // does not allocate, does not move, returns two areas if data are splitted
   // use CommitReading for flushing out
 
-  INTERNAL VIRTUAL PROCEDURE Flush() : Sync.TAsyncResult;
   INTERNAL VIRTUAL PROCEDURE Signal( What : Sync.TpcqSignal ); // when produced, next producing SHOULD NOT be signalled (until signalling consumed)
+  INTERNAL VIRTUAL PROCEDURE Flush( ForWhat : Sync.TpcqSignal; Wait : BOOLEAN; Timeout : CARDINAL; OUT SpentTime : CARDINAL ) : Sync.TAsyncResult;
 END RingBuffer;
 
 (*================================================================================*)
@@ -52,9 +50,9 @@ END RingBuffer;
 TYPE
    TPIntegerQueue = POINTER TO IntegerQueue;
 
-CLASS IntegerQueue( RingBuffer );
-   PUBLIC PROCEDURE Queue( I : INTEGER; Wait : BOOLEAN; Timeout : CARDINAL ) : BOOLEAN;
-   PUBLIC PROCEDURE Dequeue( OUT I : INTEGER; Wait : BOOLEAN; Timeout : CARDINAL ) : BOOLEAN;
+CLASS IntegerQueue( RingBuffer ); // Size must not be < 4, Consume and Produce event should not be set, they are handled internally
+   PUBLIC PROCEDURE Queue( I : INTEGER; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE Dequeue( OUT I : INTEGER; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
 END IntegerQueue;
 
 (*--------------------------------------------------------------------------------*)
@@ -62,9 +60,9 @@ END IntegerQueue;
 TYPE
    TPQuadwordQueue = POINTER TO QuadwordQueue;
 
-CLASS QuadwordQueue( RingBuffer );
-   PUBLIC PROCEDURE Queue( CONST Q : QUADWORD; Wait : BOOLEAN; Timeout : CARDINAL ) : BOOLEAN; // if Wait is FALSE, alwasy is possible to wait in caller code
-   PUBLIC PROCEDURE Dequeue( OUT Q : QUADWORD; Wait : BOOLEAN; Timeout : CARDINAL ) : BOOLEAN;
+CLASS QuadwordQueue( RingBuffer ); // Size must not be < 8, Consume and Produce event should not be set, they are handled internally
+   PUBLIC PROCEDURE Queue( CONST Q : QUADWORD; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult; // if Wait is FALSE, alwasy is possible to wait in caller code
+   PUBLIC PROCEDURE Dequeue( OUT Q : QUADWORD; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
 END QuadwordQueue;
 
 (*================================================================================*)
@@ -76,8 +74,6 @@ CLASS CDatagramQueue( Sync.NToOneQueue );
   INTERNAL VAR
      Data      : ADDRESS;
      ItemISize : CARDINAL; // internal length, including length friend
-     Consuming : CARDINAL := 0;
-     Producing : CARDINAL := 1;
   PUBLIC VIRTUAL PROPERTY
      Size      : CARDINAL;
      ItemSize  : CARDINAL;
@@ -87,21 +83,22 @@ CLASS CDatagramQueue( Sync.NToOneQueue );
 
   // consumer
   PUBLIC PROCEDURE Init( QueueSize, MessageSize : CARDINAL );
-  PUBLIC PROCEDURE Dequeue( MessageBuffer : ADDRESS; MessageBufferSize : CARDINAL ) : BOOLEAN;
-  PUBLIC PROCEDURE DequeueOA( OUT Message : ARRAY OF BYTE ) : BOOLEAN; // if HIGH is less than MessageLen the message is trimmed
+  PUBLIC PROCEDURE Dequeue( MessageBuffer : ADDRESS; MessageBufferSize : CARDINAL; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE DequeueOA( OUT Message : ARRAY OF BYTE; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult; // if HIGH is less than MessageLen the message is trimmed
     // returns if data get
 
   // producers
-  PUBLIC PROCEDURE Queue( Message : ADDRESS; MessageSize : CARDINAL ) : BOOLEAN;
-  PUBLIC PROCEDURE QueueOA( CONST Message : ARRAY OF BYTE ) : BOOLEAN;
+  PUBLIC PROCEDURE Queue( Message : ADDRESS; MessageSize : CARDINAL; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE QueueOA( CONST Message : ARRAY OF BYTE; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
     // returns if added, for ANY thread
-  PUBLIC PROCEDURE PushToConsumer() : Sync.TAsyncResult;
+  PUBLIC PROCEDURE PushToConsumer( Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
 
-  INTERNAL VIRTUAL PROCEDURE Flush() : Sync.TAsyncResult; // completed, timeout, aborted
   INTERNAL VIRTUAL PROCEDURE Validate( Block : CARDINAL );
   INTERNAL VIRTUAL PROCEDURE IsValid( Block : CARDINAL ) : BOOLEAN;
   INTERNAL VIRTUAL PROCEDURE Invalidate( Block : CARDINAL );
   INTERNAL VIRTUAL PROCEDURE Signal( What : Sync.TpcqSignal ); // when produced, next producing SHOULD NOT be done (until signalling consumed)
+
+  INTERNAL VIRTUAL PROCEDURE Flush( ForWhat : Sync.TpcqSignal; Wait : BOOLEAN; Timeout : CARDINAL; OUT SpentTime : CARDINAL ) : Sync.TAsyncResult;
 END CDatagramQueue;
 
 (*================================================================================*)

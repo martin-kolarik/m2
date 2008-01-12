@@ -53,10 +53,16 @@ CLASS IMPLEMENTATION LOCK;
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC PROCEDURE Lock();
+  VAR
+    LSpin : CARDINAL := Spin;
   BEGIN
     IF Type = ltSpin THEN
       WHILE IExchgPtr( REF Data, ADDRESS( 1 )) = ADDRESS( 1 ) DO
-        windows.Sleep( 0 );
+        IF LSpin > 0 THEN
+          DEC( LSpin );
+        ELSE
+          windows.Sleep( 0 );
+        END;
       END; // WHILE
     ELSIF Type = ltCS THEN
       windows.EnterCriticalSection( windows.PCRITICAL_SECTION( Data ));
@@ -382,7 +388,7 @@ CLASS IMPLEMENTATION LOCK;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-  Data := 0;
+  Spin := 512;
 FINALLY
   Dispose();
 END LOCK;
@@ -527,6 +533,145 @@ BEGIN
 END State;
 
 (*================================================================================*)
+// atomic signalling
+
+CLASS IMPLEMENTATION STATE;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY State GET : BOOLEAN;
+   BEGIN
+      IF Type = stSpin THEN
+         RETURN IGetPtr( REF Data ) = ADDRESS( 1 );
+      ELSE
+         RETURN Sync.State( Data );
+      END;
+   END State;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY State SET( Value : BOOLEAN );
+   BEGIN
+      IF Type = stSpin THEN
+         IF Value THEN
+            IExchgPtr( REF Data, ADDRESS( Value ));
+         ELSE
+            IExchgPtr( REF Data, ADDRESS( Value ));
+         END;
+      ELSE
+         IF Value THEN
+            Sync.Signal( Data );
+         ELSE
+            Sync.Reset( Data );
+         END;
+      END;
+   END State;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROPERTY WaitHandle GET : WAITABLE;
+  BEGIN
+    IF Type = stSpin THEN
+      RETURN NIL;
+    ELSE
+      RETURN Data;
+    END;
+  END WaitHandle;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Init( Type : TStateType; CONST Name : ARRAY OF WCHAR; InitiallySignaled : BOOLEAN );
+   BEGIN
+     Dispose();
+     SELF.Type := Type;
+     IF Type = stSetReset THEN
+       Data := CreateSignal( InitiallySignaled, Name );
+     ELSIF Type = stAutoReset THEN
+       Data := CreateAutoresetSignal( InitiallySignaled, Name );
+     END;
+   END Init;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE _Signal() : BOOLEAN;
+   VAR
+      b : BOOLEAN;
+   BEGIN
+      IF Type = stSpin THEN
+         RETURN IExchgPtr( REF Data, ADDRESS( 1 )) = ADDRESS( 0 );
+      ELSE
+         b := Sync.State( Data );
+         Sync.Signal( Data );
+         RETURN NOT b;
+      END;
+   END _Signal;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE _Reset() : BOOLEAN;
+   VAR
+      b : BOOLEAN;
+   BEGIN
+      IF Type = stSpin THEN
+         RETURN IExchgPtr( REF Data, ADDRESS( 0 )) = ADDRESS( 1 );
+      ELSE
+         b := Sync.State( Data );
+         Sync.Reset( Data );
+         RETURN b;
+      END;
+   END _Reset;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Test() : BOOLEAN;
+   BEGIN
+      IF Type = stSpin THEN
+         RETURN IGetPtr( REF Data ) = ADDRESS( 1 );
+      ELSE
+         RETURN Sync.State( Data );
+      END;
+   END Test;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROCEDURE _Wait( Timeout : CARDINAL ) : TAsyncResult;
+  VAR
+    LSpin : CARDINAL := Spin;
+  BEGIN
+    IF Type = stSpin THEN
+      // TODO: Timeout
+      WHILE IExchgPtr( REF Data, ADDRESS( 0 )) = ADDRESS( 0 ) DO
+        IF LSpin > 0 THEN
+          DEC( LSpin );
+        ELSE
+          windows.Sleep( 0 );
+        END;
+      END; // WHILE
+      RETURN arCompleted;
+    ELSE
+      RETURN Sync.Wait( Data, Timeout );
+    END;
+  END _Wait;
+
+(*--------------------------------------------------------------------------------*)
+
+  PRIVATE PROCEDURE Dispose();
+  BEGIN
+    _Signal();
+    IF Data = 0 THEN
+      // do nothing
+    ELSIF Type <> stSpin THEN
+      DeleteSignal( REF Data );
+    END;
+  END Dispose;
+  
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+  Spin := 512;
+END STATE;
+
+(*================================================================================*)
 
 CLASS IMPLEMENTATION OneToOneQueue;
 
@@ -577,49 +722,44 @@ CLASS IMPLEMENTATION OneToOneQueue;
 
   PUBLIC PROCEDURE Clear();
   BEGIN
-    CommitConsuming( MAX( CARDINAL ));
+    CommitConsuming( Count );
   END Clear;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE StartProducing( LengthToProduce : CARDINAL; OUT ProduceTo : CARDINAL; OUT AllowedToProduce : CARDINAL ) : BOOLEAN;
-  VAR
-    LHead, Space : CARDINAL;
-  BEGIN
-    Signal( pcqStartingProduction );
-    LOOP
-      // Space = H + L - T
+   PUBLIC PROCEDURE StartProducing( LengthToProduce : CARDINAL; OUT ProduceTo : CARDINAL; OUT AllowedToProduce : CARDINAL ) : BOOLEAN;
+   VAR
+      LHead, Space : CARDINAL;
+   BEGIN
+      // Space = H + S - T
       LHead := IExchgAdd( REF _Head, 0 );
       // compute space as minimum from inbound and outboud pieces -- only these assures the area will be continuous
       Space := MIN2( LHead + _Size - _Tail, _Size - _Tail MOD _Size );
-      IF Space > 0 THEN
-        AllowedToProduce := MIN2( LengthToProduce, Space );
-        ProduceTo := _Tail MOD _Size;
-        RETURN TRUE;
-      ELSIF Flush() <> arCompleted THEN
-        RETURN FALSE;
+      IF Space = 0 THEN
+         RETURN FALSE;
       END;
-    END; // LOOP
-  END StartProducing;
+
+      AllowedToProduce := MIN2( LengthToProduce, Space );
+      ProduceTo := _Tail MOD _Size;
+      RETURN TRUE;
+   END StartProducing;
 
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC PROCEDURE CommitProducing( Produced : CARDINAL );
   VAR
-    LHead : CARDINAL;
+    LHead, LSpace : CARDINAL;
   BEGIN
-    // Space = H + L - T;
+    // Space = H + S - T;
     LHead := IExchgAdd( REF _Head, 0 );
-    IExchgAdd( REF _Tail, MIN2( LHead + _Size - _Tail, Produced ));
-    Signal( pcqProduced );
+    LSpace := LHead + _Size - _Tail;
+    ASSERT( Produced <= LSpace );
+    IExchgAdd( REF _Tail, Produced );
+
+    IF LSpace = _Size THEN // if queue becomes being occupied, signalize
+      Signal( pcqProduced );
+    END;
   END CommitProducing;
-
-(*--------------------------------------------------------------------------------*)
-
-  INTERNAL VIRTUAL PROCEDURE Flush() : TAsyncResult;
-  BEGIN
-    RETURN arAborted;
-  END Flush;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -631,7 +771,6 @@ CLASS IMPLEMENTATION OneToOneQueue;
     LTail := IExchgAdd( REF _Tail, 0 );
     // compute occupation as minimum from inbound and outboud pieces -- only these assures the area will be continuous
     Occupied := MIN2( LTail - _Head, _Size - _Head MOD _Size );
-    Signal( pcqStartingConsumation ); // allow producer signalling me again
     // continue consumation with *cached data
     IF Occupied > 0 THEN
       AllowedToConsume := MIN2( Occupied, LengthToConsume );
@@ -646,12 +785,17 @@ CLASS IMPLEMENTATION OneToOneQueue;
 
   PUBLIC PROCEDURE CommitConsuming( Consumed : CARDINAL );
   VAR
-    LTail : CARDINAL;
+    LCount, LTail : CARDINAL;
   BEGIN
     // order is significant, first LTail
     LTail := IExchgAdd( REF _Tail, 0 );
-    IExchgAdd( REF _Head, MIN2( LTail - _Head, Consumed ));
-    Signal( pcqConsumed );
+    LCount := LTail - _Head;
+    ASSERT( Consumed <= LCount );
+    IExchgAdd( REF _Head, Consumed );
+    
+    IF Consumed = LCount THEN // if queue becomes being empty, signalize
+      Signal( pcqConsumed );
+    END;
   END CommitConsuming;
 
 (*--------------------------------------------------------------------------------*)
@@ -732,84 +876,95 @@ CLASS IMPLEMENTATION NToOneQueue;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE StartProducing( OUT ProduceTo : CARDINAL ) : BOOLEAN;
-  VAR
-    LHead, LTail : CARDINAL;
-  BEGIN
-    Signal( pcqStartingProduction );
-    LOOP // Space = H + L - T;
+   PUBLIC PROCEDURE StartProducing( OUT ProduceTo : CARDINAL ) : BOOLEAN;
+   VAR
+      LHead, LTail : CARDINAL;
+      Spin : CARDINAL := 10;
+   BEGIN
+      // lock threads between self
+      WHILE IExchg( REF _Lock, 1 ) = 1 DO
+         IF Spin > 0 THEN
+            DEC( Spin );
+         ELSE
+            RETURN FALSE;
+         END;
+      END; // WHILE
+      // Space = H + L - T;
       LTail := IExchgAdd( REF _Tail, 1 ); // allocate speculatively
       LHead := IExchgAdd( REF _Head, 0 );
       IF INTEGER( LHead + _Size - LTail ) > 0 THEN // space found, allocated
-        EXIT;
+         ProduceTo := LTail MOD _Size;
+         IExchg( REF _Lock, 0 );
+         RETURN TRUE;
+      ELSE // space not found, revert speculative allocation
+         IDec( REF _Tail );
+         IExchg( REF _Lock, 0 );
+         RETURN FALSE;
       END;
-      // space not found, revert speculative allocation
-      IDec( REF _Tail );
-      IF Flush() <> arCompleted THEN
-        RETURN FALSE;
+   END StartProducing;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CommitProducing( Produced : CARDINAL ); // Produced is get from StartProducing
+   VAR
+      LHead : CARDINAL;
+   BEGIN
+      ASSERT( Produced < _Size );   
+      Validate( Produced );
+
+      LHead := IExchgAdd( REF _Head, 0 );
+      IF Produced - LHead MOD _Size = 1 THEN // now first item into empty queue was added, signal production
+         Signal( pcqProduced );
       END;
-    END; // LOOP
-    ProduceTo := LTail MOD _Size;
-    RETURN TRUE;
-  END StartProducing;
+   END CommitProducing;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CommitProducing( Produced : CARDINAL );
-  BEGIN
-    Validate( Produced MOD _Size ); // MOD for safety
-    Signal( pcqProduced );
-  END CommitProducing;
+   PUBLIC PROCEDURE StartConsuming( OUT ConsumeFrom : CARDINAL ) : BOOLEAN;
+   VAR
+      LHead, LTail : CARDINAL;
+   BEGIN
+      // get current indexes, Tail first
+      LTail := IExchgAdd( REF _Tail, 0 );
+      LHead := IExchgAdd( REF _Head, 0 );
+      // continue consumation with cached data
+      IF LHead = LTail THEN
+         RETURN FALSE;
+      ELSIF IsValid( LHead MOD _Size ) THEN // OK, slot is occupied
+         ConsumeFrom := LHead MOD _Size;
+         RETURN TRUE;
+      ELSE // slot is not marked as occupied yet
+         RETURN FALSE;
+       END;
+   END StartConsuming;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE Flush() : TAsyncResult;
-  BEGIN
-    RETURN arAborted;
-  END Flush;
+   PUBLIC PROCEDURE CommitConsuming();
+   VAR
+      LTail : CARDINAL;
+   BEGIN
+      Invalidate( _Head MOD _Size );
+      IInc( REF _Head );
+    
+      LTail := IExchgAdd( REF _Tail, 0 );
+      IF LTail = _Head THEN // if queue becomes empty, signalize
+         Signal( pcqConsumed );
+      END;
+   END CommitConsuming;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE StartConsuming( OUT ConsumeFrom : CARDINAL ) : BOOLEAN;
-  VAR
-    LHead, LTail : CARDINAL;
-  BEGIN
-    // get current indexes, Tail first
-    LTail := IExchgAdd( REF _Tail, 0 );
-    LHead := IExchgAdd( REF _Head, 0 );
-    // allow producer signalling me again
-    Signal( pcqStartingConsumation );
-    // continue consumation with cached data
-    IF LHead = LTail THEN
-      RETURN FALSE;
-    ELSIF IsValid( LHead MOD _Size ) THEN // OK, slot is occupied
-      ConsumeFrom := LHead MOD _Size;
-      RETURN TRUE;
-    ELSE // slot is not marked as occupied yet
-      RETURN FALSE;
-    END;
-  END StartConsuming;
-
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROCEDURE CommitConsuming();
-  BEGIN
-    Invalidate( _Head MOD _Size );
-    IInc( REF _Head );
-    Signal( pcqConsumed );
-  END CommitConsuming;
-
-(*--------------------------------------------------------------------------------*)
-
-  INTERNAL VIRTUAL PROCEDURE Signal( What : TpcqSignal ); // when produced, next producing SHOULD NOT be done (until signalling consumed)
-  BEGIN
-  END Signal;
+   INTERNAL VIRTUAL PROCEDURE Signal( What : TpcqSignal );
+   BEGIN
+   END Signal;
 
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
   _Head := 0;
   _Tail := 0;
+  _Lock := 0;
 END NToOneQueue;
 
 (*================================================================================*)

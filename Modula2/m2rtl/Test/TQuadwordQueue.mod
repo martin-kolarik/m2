@@ -1,99 +1,161 @@
 MODULE TQuadwordQueue;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
-  Sync,
-  SyncQueue,
-  time,
-  windows;
+   log,
+   Strings,
+   Sync,
+   SyncQueue,
+   test,
+   testimpl,
+   windows;
   
-VAR
-  Q : SyncQueue.QuadwordQueue;
+(*===========================================================================*)
 
-  Exit : CARDINAL;  
-  HStart : windows.HANDLE;
-  HThread : windows.HANDLE;
-  
+CLASS CTest IMPLEMENTS test.ITest;
+   PRIVATE VAR
+      Host : test.TPHost := NIL;
+      QQ   : SyncQueue.QuadwordQueue;
+      Exit : CARDINAL := 0;
+
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   INTERNAL PROCEDURE Round( RingSize : CARDINAL ) : BOOLEAN;
+   
+   LOCAL PROCEDURE Produce();
+   LOCAL PROCEDURE Consume();
+END CTest;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPTest = POINTER TO CTest;
+VAR
+   Test : CTest;
+
+(*---------------------------------------------------------------------------*)
+
 #save, call( convention => stdcall )
-PROCEDURE Thread( TP : ADDRESS ) : windows.DWORD;
+PROCEDURE ProducerThread( a : ADDRESS ) : windows.DWORD;
+BEGIN
+   TPTest( a )^.Produce();
+   RETURN 0;
+END ProducerThread;
+
+PROCEDURE ConsumerThread( a : ADDRESS ) : windows.DWORD;
+BEGIN
+   TPTest( a )^.Consume();
+   RETURN 0;
+END ConsumerThread;
 #restore  
-VAR
-  C, PrevC : CARDINAL := 0;
-  C64, PrevC64 : CARD64 := 0;
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CTest;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   TYPE
+      TSizes = ARRAY [0..8] OF CARDINAL;
+   CONST
+      sizes = TSizes( 8, 9, 11, 24, 113, 256, 8191, 8192, 8193 );
+   VAR
+      Failure : BOOLEAN := FALSE;
+      Size : CARDINAL;
+   BEGIN
+      SELF.Host := Host;
+   
+      FOR Size := 0 TO HIGH( sizes ) DO
+         Failure := NOT Round( sizes[Size] ) OR Failure;
+      END;
+
+      IF Failure THEN
+         RETURN test.trFailure;
+      ELSE
+         RETURN test.trSuccess;
+      END;
+   END Run;
+   
+(*---------------------------------------------------------------------------*)
+
+   INTERNAL PROCEDURE Round( RingSize : CARDINAL ) : BOOLEAN;
+   VAR
+      CE : Sync.SIGNAL := Sync.CreateSignal( FALSE, L"" );
+      CT : windows.HANDLE := NIL;
+      PE : Sync.SIGNAL := Sync.CreateSignal( TRUE, L"" );
+      PT : windows.HANDLE := NIL;
+      Phase : ARRAY [0..31] OF WCHAR;
+   BEGIN
+      Exit := 0; // reset
+      QQ.Size := RingSize;
+      QQ.Clear();
+      
+      Strings.FromCARD32W( RingSize, 10, OUT Phase );
+      Strings.PrependW( REF Phase, L"Bytes: " );      
+      Host^.StartPhase( Phase );
+
+      PT := windows.CreateThread( NIL, 0, ProducerThread, ADR( SELF ), 0, NIL );
+      CT := windows.CreateThread( NIL, 0, ConsumerThread, ADR( SELF ), 0, NIL );
+      Sync.Wait( PT, Sync.INFINITE_TIME );
+      Sync.Wait( CT, Sync.INFINITE_TIME );
+      windows.CloseHandle( PT );
+      Sync.DeleteSignal( REF PE );
+      windows.CloseHandle( CT );
+      Sync.DeleteSignal( REF CE );
+      
+      Host^.StopPhase();
+      RETURN Exit = 0;
+   END Round;
+
+(*---------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE Produce();
+   VAR
+      I64 : INT64 := 1;
+   BEGIN
+      LOOP
+         QQ.Queue( I64, TRUE, Sync.INFINITE_TIME );
+         INC( I64 );
+         IF I64 > 500000 THEN
+            EXIT;
+         ELSIF Exit = 1 THEN
+            EXIT;
+         END;
+      END;
+   END Produce;
+
+(*---------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE Consume();
+   VAR
+      I64, P64 : INT64 := 0;
+      sI64, sP64 : ARRAY [0..15] OF WCHAR;
+   BEGIN
+      LOOP
+         QQ.Dequeue( OUT I64, TRUE, Sync.INFINITE_TIME );
+         IF I64 <> P64+1 THEN
+            Strings.FromINT64W( I64, 10, OUT sI64 ); Strings.FromINT64W( P64, 10, OUT sP64 );
+            Host^.Log^.LogSSSS( log.dlcError, L"", L"Failed on numbers: ", sI64, L"/", sP64 );
+            Exit := 1;
+            EXIT;
+         END;
+         IF I64 = 500000 THEN
+            EXIT;
+         ELSIF Exit = 1 THEN
+            EXIT;
+         END;
+         INC( P64 );
+       END; // LOOP
+   END Consume;
+
+(*---------------------------------------------------------------------------*)
+
 BEGIN
-  windows.SetEvent( HStart );
-  LOOP
-    // windows.Sleep( 0 );
-    IF Exit = 1 THEN
-      EXIT;
-    END;
+   testimpl.tests()^.AddTest( L"QuadwordQueue", ADR( Test ));
+END CTest;
 
-    // QUEUE processing
-    (*
-    LOOP
-      Q.Dequeue( OUT C, TRUE, Sync.INFINITE_TIME );
-      IF C <> PrevC+1 THEN
-        ASSERT( FALSE );
-      END;
-      IF C = 10000000 THEN
-        EXIT;
-      END;
-      INC( PrevC );
-    END; // LOOP
-    *)
-    LOOP
-      Q.Dequeue( OUT C64, TRUE, Sync.INFINITE_TIME );
-      IF C64 <> PrevC64+1 THEN
-        ASSERT( FALSE );
-      END;
-      IF C64 = 10000000 THEN
-        EXIT;
-      END;
-      INC( PrevC64 );
-    END; // LOOP
-
-  END; // LOOP
-  
-  RETURN 0;
-END Thread;
-
-#save, call( convention => cdecl )
-PROCEDURE wmain01() : INTEGER;
-#restore
-VAR
-  C : CARDINAL := 1; // sending must start from 1
-  C64 : CARD64 := 1;
-  T : time.TTime64;
-BEGIN
-  Q.Size := 111;
-
-  HStart := windows.CreateEvent( NIL, windows.True, windows.False, NIL );
-  HThread := windows.CreateThread( NIL, 0, Thread, NIL, 0, NIL );
-  windows.WaitForSingleObject( HStart, Sync.INFINITE_TIME );
-
-  T := time.GetHiResTicks();
-  
-  (*
-  LOOP
-    Q.Queue( C, TRUE, Sync.INFINITE_TIME );
-    INC( C );
-    IF C > 10000000 THEN
-      EXIT;
-    END;
-  END;
-  *)
-  LOOP
-    Q.Queue( C64, TRUE, Sync.INFINITE_TIME );
-    INC( C64 );
-    IF C64 > 10000000 THEN
-      EXIT;
-    END;
-  END;
-
-  C := CARDINAL( time.HiResTicksToLRMS( time.GetHiResDifference( REF T )));
-  
-  Exit := 1;
-  windows.WaitForSingleObject( HThread, windows.INFINITE );
-  RETURN 0;
-END wmain01;
+(*===========================================================================*)
 
 END TQuadwordQueue.
