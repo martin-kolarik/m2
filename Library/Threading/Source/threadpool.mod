@@ -406,7 +406,7 @@ CLASS IMPLEMENTATION CPoolThread;
       Messager.Init();
     ELSE
       MSG.Operation := topStartWaitMessages;
-      ReqQueue.QueueOA( MSG );
+      ReqQueue.QueueOA( MSG, TRUE, Sync.SAFETY_TIME );
       WHILE NOT AbleWaitMessages DO // wait until message is truly processed
         Sync.Sleep( 0 );
       END;
@@ -450,7 +450,7 @@ CLASS IMPLEMENTATION CPoolThread;
 
          //-----
          | windows.WAIT_OBJECT_0 + 1 : // administrative message
-            WHILE ReqQueue.DequeueOA( OUT Message ) DO
+            WHILE ReqQueue.DequeueOA( OUT Message, FALSE, 0 ) = Sync.arCompleted DO
                CASE Message.Operation OF
                //---
                | topAdd :
@@ -713,7 +713,7 @@ CLASS IMPLEMENTATION CThreadPool;
     CASE MSG.Message OF
     //-----
     | msgqueue.WM_MQ_PROCESS :
-      WHILE MQueue.DequeueOA( OUT Message ) DO
+      WHILE MQueue.DequeueOA( OUT Message, FALSE, 0 ) = Sync.arCompleted DO
         CASE Message.Operation OF
         //---
         | topOnThreadEmpty : // if possible, remove thread
@@ -767,8 +767,7 @@ CLASS IMPLEMENTATION CThreadPool;
     // return value
     PoolHandle := MSG.Task^.HWait;
 
-    PoolThread^.ReqQueue.QueueOA( MSG );
-    RETURN TRUE;
+    RETURN PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.SAFETY_TIME ) = Sync.arCompleted;
   END WaitTimeout;
 
 //--------------------------------------------------------------------------------
@@ -803,8 +802,7 @@ CLASS IMPLEMENTATION CThreadPool;
     Message[1] := MSG.Task^.Data;
     Handler := ADR( PoolThread^.Messager );
 
-    PoolThread^.ReqQueue.QueueOA( MSG );
-    RETURN TRUE;
+    RETURN PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.SAFETY_TIME ) = Sync.arCompleted;
   END WaitMessage;
 
 //--------------------------------------------------------------------------------
@@ -838,8 +836,7 @@ CLASS IMPLEMENTATION CThreadPool;
     PoolHandle := MSG.Task^.HWait;
 
     Sync.IInc( REF PoolThread^.PendingHandles );
-    PoolThread^.ReqQueue.QueueOA( MSG );
-    RETURN TRUE;
+    RETURN PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.SAFETY_TIME ) = Sync.arCompleted;
   END WaitHandle;
 
 //--------------------------------------------------------------------------------
@@ -870,8 +867,7 @@ CLASS IMPLEMENTATION CThreadPool;
     PoolHandle := MSG.Task^.HWait;
 
     Sync.IInc( REF PoolThread^.PendingWorkers );
-    PoolThread^.ReqQueue.QueueOA( MSG );
-    RETURN TRUE;
+    RETURN PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.SAFETY_TIME ) = Sync.arCompleted;
   END RunWorker;
 
 //--------------------------------------------------------------------------------
@@ -891,7 +887,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG.HTask := PoolHandle;
     Threads.Reset();
     WHILE Threads.MoveNext() DO
-      TPPoolThread( Threads.Current )^.ReqQueue.QueueOA( MSG );
+      TPPoolThread( Threads.Current )^.ReqQueue.QueueOA( MSG, TRUE, Sync.SAFETY_TIME );
     END; // WHILE
     PoolHandle := NIL;
   END Abort;
@@ -906,7 +902,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG.Delegate := Delegate;
     Threads.Reset();
     WHILE Threads.MoveNext() DO
-      TPPoolThread( Threads.Current )^.ReqQueue.QueueOA( MSG );
+      TPPoolThread( Threads.Current )^.ReqQueue.QueueOA( MSG, TRUE, Sync.SAFETY_TIME );
     END; // WHILE
   END AbortAll;
 
@@ -917,7 +913,7 @@ CLASS IMPLEMENTATION CThreadPool;
     LMSG : TMessage;
   BEGIN
     LMSG.Operation := topOnThreadEmpty;
-    MQueue.QueueOA( LMSG ); 
+    MQueue.QueueOA( LMSG, TRUE, Sync.SAFETY_TIME ); 
   END OnThreadEmpty;
 
 //--------------------------------------------------------------------------------
@@ -947,7 +943,7 @@ CLASS IMPLEMENTATION CThreadPool;
       LMSG.Result := Result;
       LMSG.Task := Task;
       LMSG.MSG := MSG;
-      MQueue.QueueOA( LMSG ); 
+      MQueue.QueueOA( LMSG, TRUE, Sync.SAFETY_TIME ); 
       RETURN FALSE;
     END;
   END OnCompletion;
