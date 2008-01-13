@@ -106,15 +106,15 @@
 			Name="Test"
 			>
 			<File
+				RelativePath=".\Test\MessageQueue.mod"
+				>
+			</File>
+			<File
 				RelativePath=".\Test\NToOneStress.mod"
 				>
 			</File>
 			<File
 				RelativePath=".\Test\OneToNStress.mod"
-				>
-			</File>
-			<File
-				RelativePath=".\Test\TwoThreadsStress.mod"
 				>
 			</File>
 		</Filter>
