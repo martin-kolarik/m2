@@ -23,8 +23,13 @@ CLASS CTest IMPLEMENTS test.ITest;
       MQ : msgqueue.CMessageQueue;
       Exit : CARDINAL := 0;
 
+      ThreadCount : CARDINAL;
+      ThreadIndex : CARDINAL;
+      Threads : ARRAY [0..255] OF Sync.WAITABLE;
+      Last : ARRAY [0..255] OF CARDINAL; // should be as long as maximal threads number be
+
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
-   INTERNAL PROCEDURE Round( QueueSize : CARDINAL; ConsumeByEvent : BOOLEAN ) : BOOLEAN;
+   INTERNAL PROCEDURE Round( ConsumeByEvent : BOOLEAN; producentThreads : CARDINAL; QueueSize : CARDINAL ) : BOOLEAN;
    
    LOCAL PROCEDURE Produce();
    LOCAL PROCEDURE ConsumeByEvent();
@@ -68,19 +73,23 @@ CLASS IMPLEMENTATION CTest;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    TYPE
-      TSizes = ARRAY [0..8] OF CARDINAL;
+      TSizes = ARRAY [0..3] OF CARDINAL;
    CONST
-      sizes = TSizes( 1, 7, 8, 11, 24, 113, 512, 8191, 8193 );
+      producentThreads = TSizes( 1, 5, 25, 125 );
+      sizes = TSizes( 1, 23, 255, 8193 );
    VAR
       Failure : BOOLEAN := FALSE;
       Mode : BOOLEAN;
       Size : CARDINAL;
+      Thread : CARDINAL;
    BEGIN
       SELF.Host := Host;
    
       FOR Mode := FALSE TO TRUE DO
-         FOR Size := 0 TO HIGH( sizes ) DO
-            Failure := NOT Round( sizes[Size], Mode ) OR Failure;
+         FOR Thread := 0 TO HIGH( producentThreads ) DO
+            FOR Size := 0 TO HIGH( sizes ) DO
+               Failure := NOT Round( Mode, producentThreads[Thread], sizes[Size] ) OR Failure;
+            END;
          END;
       END;
 
@@ -93,11 +102,13 @@ CLASS IMPLEMENTATION CTest;
    
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL PROCEDURE Round( QueueSize : CARDINAL; ConsumeByEvent : BOOLEAN ) : BOOLEAN;
+   INTERNAL PROCEDURE Round( ConsumeByEvent : BOOLEAN; producentThreads : CARDINAL; QueueSize : CARDINAL ) : BOOLEAN;
    VAR
       CT : windows.HANDLE := NIL;
+      i : CARDINAL;
       PT : windows.HANDLE := NIL;
-      Phase : ARRAY [0..31] OF WCHAR;
+      Phase : ARRAY [0..47] OF WCHAR;
+      s : ARRAY [0..31] OF WCHAR;
       Success : BOOLEAN;
    BEGIN
       Exit := 0; // reset
@@ -109,9 +120,24 @@ CLASS IMPLEMENTATION CTest;
       ELSE
          MQ.Consumer := ADR( MH );
       END;
+      ThreadCount := producentThreads;
       
-      Strings.FromCARD32W( QueueSize, 10, OUT Phase );
-      Strings.PrependW( REF Phase, L"Queue length: " );      
+      ThreadIndex := 0;
+      FOR i := 0 TO ThreadCount DO // ThreadIndex is started from 1, so array must be filled up to ThreadCount
+         Last[i] := 0;
+      END;
+
+      IF ConsumeByEvent THEN
+         Phase := L"Evt";
+      ELSE
+         Phase := L"Msg";
+      END; // CASE
+      Strings.AppendW( REF Phase, L", threads: " );
+      Strings.FromCARD32W( ThreadCount, 10, OUT s );
+      Strings.AppendW( REF Phase, s );
+      Strings.AppendW( REF Phase, L", items: " );
+      Strings.FromCARD32W( QueueSize, 10, OUT s );
+      Strings.AppendW( REF Phase, s );
       Host^.StartPhase( Phase );
 
       IF ConsumeByEvent THEN
@@ -120,16 +146,22 @@ CLASS IMPLEMENTATION CTest;
          CT := windows.CreateThread( NIL, 0, ConsumerThreadByMessages, ADR( SELF ), 0, NIL );
       END;
       WHILE MH.Handle = NIL DO END;
-      PT := windows.CreateThread( NIL, 0, ProducerThread, ADR( SELF ), 0, NIL );
-      Sync.Wait( PT, Sync.INFINITE_TIME );
       
+      FOR i := 0 TO ThreadCount-1 DO
+         Threads[i] := windows.CreateThread( NIL, 0, ProducerThread, ADR( SELF ), 0, NIL );
+      END;
+      // wait for all producers      
+      FOR i := 0 TO ThreadCount-1 DO
+         Sync.Wait( Threads[i], Sync.INFINITE_TIME );
+         windows.CloseHandle( Threads[i] );
+      END;
+
       Success := Exit = 0;
+      // stop consumer thread
       Exit := 1;
-      
       Sync.Wait( CT, Sync.INFINITE_TIME );
-      windows.CloseHandle( PT );
       windows.CloseHandle( CT );
-      
+
       Host^.StopPhase();
       RETURN Success;
    END Round;
@@ -138,14 +170,26 @@ CLASS IMPLEMENTATION CTest;
 
    LOCAL PROCEDURE Produce();
    VAR
-      I32 : INT32 := 1;
+      Index : CARD32 := Sync.IInc( REF ThreadIndex );
+      C32 : CARD32 := 1 OR ( Index << 24 );
+      Items : CARD32;
+      Result : Sync.TAsyncResult;
    BEGIN
       LOOP
-         MQ.Queue( ADR( I32 ), SIZE( I32 ), TRUE, Sync.INFINITE_TIME );
-         INC( I32 );
-         IF I32 > 500000 THEN
+         LOOP
+            Result := MQ.Queue( ADR( C32 ), SIZE( C32 ), TRUE, 1000 );
+            IF Result = Sync.arCompleted THEN
+               EXIT;
+            ELSIF Exit = 1 THEN
+               EXIT;
+            END;
+         END;
+         IF Exit = 1 THEN
             EXIT;
-         ELSIF Exit = 1 THEN
+         END;
+
+         INC( C32 );
+         IF C32 AND 0FFFFFFH > 50000 DIV MAX2( 1, ThreadCount DIV 5 ) THEN
             EXIT;
          END;
       END;
@@ -155,27 +199,38 @@ CLASS IMPLEMENTATION CTest;
 
    LOCAL PROCEDURE ConsumeByEvent();
    VAR
-      I32, P32 : INT32 := 0;
-      sI32, sP32 : ARRAY [0..15] OF WCHAR;
+      C32 : CARD32 := 0;
+      Index : CARD32;
       msg : windows.MSG;
+      sC32, sP32 : ARRAY [0..15] OF WCHAR;
+      Result : Sync.TAsyncResult;
    BEGIN
       windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE );
       MH.Init();
 
       LOOP
-         MQ.Dequeue( ADR( I32 ), SIZE( I32 ), TRUE, Sync.INFINITE_TIME );
-         IF I32 <> P32+1 THEN
-            Strings.FromINT32W( I32, 10, OUT sI32 ); Strings.FromINT32W( P32, 10, OUT sP32 );
-            Host^.Log^.LogSSSS( log.dlcError, L"", L"Failed on numbers: ", sI32, L"/", sP32 );
+         LOOP
+            Result := MQ.DequeueOA( OUT C32, TRUE, 100 );
+            IF Result = Sync.arCompleted THEN
+               EXIT;
+            ELSIF Exit = 1 THEN
+               EXIT;
+            END;
+         END;
+         IF Exit = 1 THEN
+            EXIT;
+         END;
+
+         Index := C32 >> 24;
+         C32 := C32 AND 0FFFFFFH;
+         IF C32 <> Last[Index]+1 THEN
+            Strings.FromCARD32W( C32, 10, OUT sC32 ); Strings.FromCARD32W( Last[Index], 10, OUT sP32 );
+            Host^.Log^.LogSSSS( log.dlcError, L"", L"Failed on numbers: ", sC32, L"/", sP32 );
             Exit := 1;
             EXIT;
          END;
-         IF I32 = 500000 THEN
-            EXIT;
-         ELSIF Exit = 1 THEN
-            EXIT;
-         END;
-         INC( P32 );
+         INC( Last[Index] );
+
       END; // LOOP
    END ConsumeByEvent;
 
@@ -183,8 +238,9 @@ CLASS IMPLEMENTATION CTest;
 
    LOCAL PROCEDURE ConsumeByMessage();
    VAR
-      I32, P32 : INT32 := 0;
-      sI32, sP32 : ARRAY [0..15] OF WCHAR;
+      C32 : CARD32 := 0;
+      Index : CARD32;
+      sC32, sP32 : ARRAY [0..15] OF WCHAR;
       msg : windows.MSG;
       S : Sync.SIGNAL := Sync.CreateSignal( FALSE, L"" );
    BEGIN
@@ -203,14 +259,18 @@ CLASS IMPLEMENTATION CTest;
          END;
 
          // QUEUE processing
-         WHILE MQ.Dequeue( ADR( I32 ), SIZE( I32 ), FALSE, 0 ) = Sync.arCompleted DO
-            IF I32 <> P32+1 THEN
-               Strings.FromINT32W( I32, 10, OUT sI32 ); Strings.FromINT32W( P32, 10, OUT sP32 );
-               Host^.Log^.LogSSSS( log.dlcError, L"", L"Failed on numbers: ", sI32, L"/", sP32 );
+         WHILE MQ.Dequeue( ADR( C32 ), SIZE( C32 ), FALSE, 0 ) = Sync.arCompleted DO
+
+            Index := C32 >> 24;
+            C32 := C32 AND 0FFFFFFH;
+            IF C32 <> Last[Index]+1 THEN
+               Strings.FromCARD32W( C32, 10, OUT sC32 ); Strings.FromCARD32W( Last[Index], 10, OUT sP32 );
+               Host^.Log^.LogSSSS( log.dlcError, L"", L"Failed on numbers: ", sC32, L"/", sP32 );
                Exit := 1;
                EXIT;
             END;
-            INC( P32 );
+            INC( Last[Index] );
+
          END; // WHILE
      END; // LOOP
      
@@ -220,6 +280,11 @@ CLASS IMPLEMENTATION CTest;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
+   ThreadCount := 0;
+   ThreadIndex := 0;
+   Last[0] := 0;
+   Threads[0] := NIL;
+
    testimpl.tests()^.AddTest( L"MessageQueue", ADR( Test ));
 END CTest;
 
