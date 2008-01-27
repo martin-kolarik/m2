@@ -88,6 +88,7 @@ CLASS CHost IMPLEMENTS test.IHost;
    // optional
    PUBLIC VIRTUAL PROCEDURE StartPhase( CONST Name : ARRAY OF WCHAR );
    PUBLIC VIRTUAL PROCEDURE StopPhase();
+   PUBLIC VIRTUAL PROCEDURE StopPhaseWithResult( Result : test.TTestResult );
    
    // self
    LOCAL PROCEDURE StartSuite( CONST Name : ARRAY OF WCHAR );
@@ -132,8 +133,18 @@ CLASS IMPLEMENTATION CHost;
 
    PUBLIC VIRTUAL PROCEDURE StopPhase();
    BEGIN
-      _Logger.Inside := insideTest;
+      StopPhaseWithResult( test.trUnknown );
    END StopPhase;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE StopPhaseWithResult( Result : test.TTestResult );
+   BEGIN
+      _Logger.Inside := insideTest;
+      IF Result = test.trFailure THEN
+         _Logger.LogS( log.dlcInfo, L"", L"      Result: Failure" );
+      END;
+   END StopPhaseWithResult;
 
 (*--------------------------------------------------------------------------------*)
 

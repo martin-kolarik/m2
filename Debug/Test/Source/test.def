@@ -27,6 +27,7 @@ INTERFACE IHost;
    // optional
    PROCEDURE StartPhase( CONST Name : ARRAY OF WCHAR );
    PROCEDURE StopPhase();
+   PROCEDURE StopPhaseWithResult( Result : TTestResult );
 END IHost;
 
 INTERFACE ITest;
