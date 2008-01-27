@@ -913,7 +913,7 @@ CLASS IMPLEMENTATION NToOneQueue;
       Validate( Produced );
 
       LHead := IExchgAdd( REF _Head, 0 );
-      IF Produced - LHead MOD _Size = 1 THEN // now first item into empty queue was added, signal production
+      IF Produced - LHead MOD _Size = 0 THEN // now first item into empty queue was added, signal production
          Signal( pcqProduced );
       END;
    END CommitProducing;
@@ -927,7 +927,7 @@ CLASS IMPLEMENTATION NToOneQueue;
       // get current indexes, Tail first
       LTail := IExchgAdd( REF _Tail, 0 );
       LHead := IExchgAdd( REF _Head, 0 );
-      // continue consumation with cached data
+      // continue with snapshoted data
       IF LHead = LTail THEN
          RETURN FALSE;
       ELSIF IsValid( LHead MOD _Size ) THEN // OK, slot is occupied

@@ -245,6 +245,8 @@ BEGIN
    ThreadCount := 0;
    ThreadIndex := 0;
    Last[0] := 0;
+   Threads[0] := NIL;
+
    testimpl.tests()^.AddTest( L"DatagramQueue", ADR( Test ));
 END CTest;
 
