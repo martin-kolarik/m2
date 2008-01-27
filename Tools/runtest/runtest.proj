@@ -20,7 +20,7 @@
     <!-- 3 PRODUCT DEFINITION -->
     <ItemGroup>
         <Components Include="modula2\modula2;api\clib;API\win32"/>
-        <Components Include="Debug\Test;Library\ClassLoader;Component\SCCore"/>
+        <Components Include="Debug\Test;Component\SCCore"/>
         <Program Include="runtest"/>
     </ItemGroup>
 

@@ -8,6 +8,8 @@ IMPORT
    iobject,
    StringsO;
 
+#save, option( dll_export => on )
+
 (*===========================================================================*)
 
 ABSTRACT CLASS AObject IMPLEMENTS iobject.IObject;
@@ -49,5 +51,7 @@ ABSTRACT CLASS ACreator( AObject ) IMPLEMENTS iobject.ILibrary;
 END ACreator;
 
 (*===========================================================================*)
+
+#restore
 
 END helper.
