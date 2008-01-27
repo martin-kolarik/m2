@@ -150,7 +150,7 @@ CLASS CPoolThread( thread.Thread );
 
   PRIVATE PROCEDURE AddTask( Task : TPTask );
   PRIVATE PROCEDURE RemoveTask( Result : Sync.TAsyncResult; Task : TPTask );
-  PRIVATE PROCEDURE Completed( Result : Sync.TAsyncResult; Task : TPTask; PMSG : POINTER TO msghandler.Message; RemoveTask, DisposeTask : BOOLEAN );
+  PRIVATE PROCEDURE Completed( Result : Sync.TAsyncResult; Task : TPTask; PMSG : POINTER TO msghandler.Message; RemoveTask, DisposeTask : BOOLEAN; OUT CanBeDisposed : BOOLEAN );
 END CPoolThread;
 
 //================================================================================
@@ -374,17 +374,21 @@ CLASS IMPLEMENTATION CPoolThread;
 
   LOCAL READONLY PROPERTY AbleWaitHandles GET : BOOLEAN;
   BEGIN
-    RETURN ( Workers.Count + CARDINAL( Sync.IGet( REF PendingWorkers )) = 0 ) AND
-           ( Handles.Count + CARDINAL( Sync.IGet( REF PendingHandles )) < windows.MAXIMUM_WAIT_OBJECTS-3 ); //-1-exit-queue
+    // here, Pending counts must be get as the first, because they are decremented in opposite way: first Count, next PendingCount.
+    // PendingCount is atomic, so after reading it here one always get pesimistic variant of count.
+    RETURN ( CARDINAL( Sync.IGet( REF PendingWorkers )) + Workers.Count = 0 ) AND
+           ( CARDINAL( Sync.IGet( REF PendingHandles )) + Handles.Count < windows.MAXIMUM_WAIT_OBJECTS-3 ); //-1-exit-queue
   END AbleWaitHandles;
 
 //--------------------------------------------------------------------------------
 
   LOCAL READONLY PROPERTY AbleRunWorkers GET : BOOLEAN;
   BEGIN
-    RETURN ( Handles.Count + CARDINAL( Sync.IGet( REF PendingHandles )) = 0 ) AND
+    // here, Pending counts must be get as the first, because they are decremented in opposite way: first Count, next PendingCount.
+    // PendingCount is atomic, so after reading it here one always get pesimistic variant of count.
+    RETURN ( CARDINAL( Sync.IGet( REF PendingHandles )) + Handles.Count = 0 ) AND
            Messages.Empty AND
-           ( Workers.Count + CARDINAL( Sync.IGet( REF PendingWorkers )) < Pool^.WorkerLoad );
+           ( CARDINAL( Sync.IGet( REF PendingWorkers )) + Workers.Count < Pool^.WorkerLoad );
   END AbleRunWorkers;
 
 //--------------------------------------------------------------------------------
@@ -419,13 +423,16 @@ CLASS IMPLEMENTATION CPoolThread;
    VAR
       CheckEmpty : BOOLEAN;
       D : PTR;
+      disposable : BOOLEAN;
       HandleList : lists.TPPtrList;
       Message : TMessage;
       msg : windows.MSG;
       MSG : msghandler.Message;
+      removeTask : BOOLEAN;
       Status : CARDINAL;
       Task, NextTask : TPTask;
       Timeout : CARDINAL;
+      WaitAbandoned : BOOLEAN;
       Worker : TPPoolWorker;
       b : BOOLEAN;
    BEGIN
@@ -437,13 +444,14 @@ CLASS IMPLEMENTATION CPoolThread;
          Timeout := HTasks.GetTimeoutToFirstElapsed( windows.GetTickCount());
          Status := windows.MsgWaitForMultipleObjectsEx( WaitArray.Count, WaitArray.Data, Timeout, windows.QS_ALLINPUT, windows.MWMO_INPUTAVAILABLE OR windows.MWMO_ALERTABLE );
          HTasks.CurrentTime := windows.GetTickCount();
+         
          CASE Status OF
          //-----
-         | CARDINAL( windows.WAIT_FAILED ), windows.WAIT_ABANDONED : // some handle failed, this MUST not occur
+         | CARDINAL( windows.WAIT_FAILED ) : // something failed
             Status := windows.GetLastError();
             ASSERT( FALSE );
             EXIT;
-
+         
          //-----
          | windows.WAIT_OBJECT_0 : // graceful EXIT
             EXIT;
@@ -479,10 +487,10 @@ CLASS IMPLEMENTATION CPoolThread;
             WHILE HTasks.GetFirstElapsed( OUT Task ) DO
                CASE Task^.Task OF
                | tskTimeoutOnce :
-                  Completed( Sync.arCompleted, Task, NIL, TRUE, TRUE );
+                  Completed( Sync.arCompleted, Task, NIL, TRUE, TRUE, OUT disposable );
                   CheckEmpty := TRUE;
                | tskTimeoutRepeated :
-                  Completed( Sync.arCompleted, Task, NIL, TRUE, FALSE );
+                  Completed( Sync.arCompleted, Task, NIL, TRUE, FALSE, OUT disposable );
                   AddTask( Task );
                ELSE
                   RemoveTask( Sync.arTimeout, Task );
@@ -490,48 +498,64 @@ CLASS IMPLEMENTATION CPoolThread;
                END;
             END; // WHILE
 
+         //-----
          ELSE
-            DEC( Status, windows.WAIT_OBJECT_0 );
-         END;
-
-         IF Status = WaitArray.Count THEN // a message has arrived
-            WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) <> 0 DO
-               IF Messages.Get( msg.message, OUT Task ) THEN // known waited message
-                  MSG[1] := msg.message; MSG[2] := msg.wParam; MSG[3] := PTR( msg.lParam );
-                  Completed( Sync.arCompleted, Task, ADR( MSG ), Task^.Task = tskMessageOnce, FALSE );
-                  IF Task^.Task = tskMessageOnce THEN
-                     Messages.Remove( Task^.Data );
-                     DISPOSE( Task );
-                  END;
-                  CheckEmpty := TRUE;
-               END;
-            END; // end of messages
-
-         ELSIF ( Status < WaitArray.Count ) AND ( Handles.Get( WaitArray[Status], OUT HandleList )) THEN // handle is signalized
-            b := HandleList^.GetFirst( OUT Task, OUT D );
-            WHILE b DO
-               b := HandleList^.NextOf( Task, OUT NextTask, OUT D );
-               Completed( Sync.arCompleted, Task, NIL, Task^.Task = tskHandleOnce, FALSE );
-               IF Task^.Task = tskHandleOnce THEN
-                  HandleList^.Remove( Task );
-                  DISPOSE( Task );
-               END; // IF tskHandleOnce
-               Task := NextTask;
-            END; // WHILE
-            IF HandleList^.Empty THEN
-               DISPOSE( HandleList );
-               Handles.Remove( WaitArray[Status] );
-               WaitArray.RemoveIndex( Status );
-               CheckEmpty := TRUE;
+            IF Status > windows.WAIT_ABANDONED_0 THEN
+               DEC( Status, windows.WAIT_ABANDONED_0 );
+               WaitAbandoned := TRUE;
+            ELSE
+               DEC( Status, windows.WAIT_OBJECT_0 );
+               WaitAbandoned := FALSE;
             END;
 
-         END; // IF WaitResult
+            IF NOT WaitAbandoned AND ( Status = WaitArray.Count ) THEN // a message has arrived
+               WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) <> 0 DO
+                  IF Messages.Get( msg.message, OUT Task ) THEN // known waited message
+                     MSG[1] := msg.message; MSG[2] := msg.wParam; MSG[3] := PTR( msg.lParam );
+                     Completed( Sync.arCompleted, Task, ADR( MSG ), Task^.Task = tskMessageOnce, FALSE, OUT disposable );
+                     IF Task^.Task = tskMessageOnce THEN
+                        Messages.Remove( Task^.Data );
+                        IF disposable THEN
+                           DISPOSE( Task );
+                        END;
+                     END;
+                     CheckEmpty := TRUE;
+                  END;
+               END; // end of messages
+
+            ELSIF ( Status < WaitArray.Count ) AND ( Handles.Get( WaitArray[Status], OUT HandleList )) THEN // handle is signalized
+               b := HandleList^.GetFirst( OUT Task, OUT D );
+               WHILE b DO
+                  b := HandleList^.NextOf( Task, OUT NextTask, OUT D );
+                  removeTask := WaitAbandoned OR ( Task^.Task = tskHandleOnce );
+                  IF WaitAbandoned THEN
+                     Completed( Sync.arAborted, Task, NIL, TRUE, FALSE, OUT disposable );
+                  ELSE
+                     Completed( Sync.arCompleted, Task, NIL, removeTask, FALSE, OUT disposable );
+                  END;
+                  IF removeTask THEN
+                     HandleList^.Remove( Task );
+                     IF disposable THEN
+                        DISPOSE( Task );
+                     END;
+                  END; // IF tskHandleOnce
+                  Task := NextTask;
+               END; // WHILE
+               IF HandleList^.Empty THEN
+                  DISPOSE( HandleList );
+                  Handles.Remove( WaitArray[Status] );
+                  WaitArray.RemoveIndex( Status );
+                  CheckEmpty := TRUE;
+               END;
+
+            END; // IF WaitResult
+         END; // ELSE CASE
       
          // Run Workers
          IF Workers.GetFirst( OUT Worker, OUT Task ) THEN
             Workers.Remove( Worker );
             Worker^.Run();
-            Completed( Sync.arCompleted, Task, NIL, TRUE, TRUE );
+            Completed( Sync.arCompleted, Task, NIL, TRUE, TRUE, OUT disposable );
             Worker^.Release();
             IF Workers.Empty THEN // continue with self, but after checking or processing messages and exit event
                CheckEmpty := TRUE;
@@ -580,6 +604,7 @@ CLASS IMPLEMENTATION CPoolThread;
 
   PRIVATE PROCEDURE RemoveTask( Result : Sync.TAsyncResult; Task : TPTask );
   VAR
+    disposable : BOOLEAN;
     HandleList : lists.TPPtrList;
   BEGIN
     CASE Task^.Task OF
@@ -602,12 +627,12 @@ CLASS IMPLEMENTATION CPoolThread;
     ELSE
       ASSERT( FALSE );
     END; // CASE
-    Completed( Result, Task, NIL, TRUE, TRUE );
+    Completed( Result, Task, NIL, TRUE, TRUE, OUT disposable );
   END RemoveTask;
 
 //--------------------------------------------------------------------------------
 
-  PRIVATE PROCEDURE Completed( Result : Sync.TAsyncResult; Task : TPTask; PMSG : msghandler.TPMessage; RemoveTask, DisposeTask : BOOLEAN );
+  PRIVATE PROCEDURE Completed( Result : Sync.TAsyncResult; Task : TPTask; PMSG : msghandler.TPMessage; RemoveTask, DisposeTask : BOOLEAN; OUT CanBeDisposed : BOOLEAN );
   VAR
     Disposable : BOOLEAN;
     MSG : msghandler.Message;
@@ -630,6 +655,7 @@ CLASS IMPLEMENTATION CPoolThread;
     IF DisposeTask AND Disposable THEN
       DISPOSE( Task );
     END;
+    CanBeDisposed := Disposable;
   END Completed;
 
 //--------------------------------------------------------------------------------
@@ -638,38 +664,39 @@ CLASS IMPLEMENTATION CPoolThread;
   BEGIN
     Pool := NIL;
     ReqQueue.Init( 128, SIZE( TMessage ));
-    ReqQueue.Consume := Sync.CreateSignal( FALSE, L"" );
+    ReqQueue.Consume := Sync.CreateAutoresetSignal( FALSE, L"" );
     WithMessages := TRUE;
     WaitArray.Strategy := array.astrgListInArray;
-    PendingHandles := 0; ASSERT( PTR( ADR( PendingHandles )) AND 03H = 0 );
-    PendingWorkers := 0; ASSERT( PTR( ADR( PendingWorkers )) AND 03H = 0 );
+    PendingHandles := 0;
+    PendingWorkers := 0;
   END CPoolThread;
 
 //--------------------------------------------------------------------------------
 
   FINALLY CPoolThread();
   VAR
+    disposable : BOOLEAN;
     Task : TPTask;
   BEGIN
     Handles.Reset();
     WHILE Handles.MoveNext() DO
       lists.TPPtrList( Handles.CurrentData )^.Reset();
       WHILE lists.TPPtrList( Handles.CurrentData )^.MoveNext() DO
-        Completed( Sync.arAborted, lists.TPPtrList( Handles.CurrentData )^.Current, NIL, TRUE, TRUE );
+        Completed( Sync.arAborted, lists.TPPtrList( Handles.CurrentData )^.Current, NIL, TRUE, TRUE, OUT disposable );
       END; // WHILE
       DISPOSE( lists.TPPtrList( Handles.CurrentData ));
     END; // WHILE
     Messages.Reset();
     WHILE Messages.MoveNext() DO
-      Completed( Sync.arAborted, Messages.CurrentData, NIL, TRUE, TRUE );
+      Completed( Sync.arAborted, Messages.CurrentData, NIL, TRUE, TRUE, OUT disposable );
     END; // WHILE
     Workers.Reset();
     WHILE Workers.MoveNext() DO
-      Completed( Sync.arAborted, Workers.CurrentData, NIL, TRUE, TRUE );
+      Completed( Sync.arAborted, Workers.CurrentData, NIL, TRUE, TRUE, OUT disposable );
       TPPoolWorker( Workers.Current )^.Release();
     END; // WHILE
     WHILE HTasks.GetFirstElapsed( OUT Task ) DO
-      Completed( Sync.arAborted, Task, NIL, TRUE, TRUE );
+      Completed( Sync.arAborted, Task, NIL, TRUE, TRUE, OUT disposable );
     END; // WHILE
     Sync.DeleteSignal( REF ReqQueue.Consume );
   END CPoolThread;

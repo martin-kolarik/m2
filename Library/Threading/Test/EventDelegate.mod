@@ -4,6 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   log,
    sync,
    test,
    testimpl,
@@ -12,39 +13,60 @@ IMPORT
   
 (*===========================================================================*)
 
+CONST
+   count = 1500;
+
+TYPE
+   TPTest = POINTER TO CTest;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CDelegate( threadpool.APoolDelegate );
+   PUBLIC VAR
+      Test : TPTest;
+      ThreadId : CARDINAL;
+
+   LOCAL VIRTUAL PROCEDURE OnHandle( Result : sync.TAsyncResult; PoolHandle : sync.WAITABLE; UserId : PTR );
+END CDelegate;
+  
+(*---------------------------------------------------------------------------*)
+
 CLASS CTest IMPLEMENTS test.ITest;
    PUBLIC VAR
       Host : test.TPHost := NIL;
       Count : CARDINAL := 0;
+      Delegate : CDelegate;
+      Pool : threadpool.CThreadPool;
+
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   PRIVATE PROCEDURE Round( CompletionInOwningThread : BOOLEAN; CONST EA : ARRAY OF windows.HANDLE; CONST PH : ARRAY OF sync.WAITABLE ) : BOOLEAN;
+   PRIVATE PROCEDURE WaitForMessages( count : CARDINAL );
 END CTest;
 
 (*---------------------------------------------------------------------------*)
 
-TYPE
-   TPTest = POINTER TO CTest;
 VAR
    Test : CTest;
 
 (*===========================================================================*)
 
-CLASS CDelegate( threadpool.APoolDelegate );
-   PUBLIC VAR
-      Test : TPTest;
-   LOCAL VIRTUAL PROCEDURE OnHandle( Result : sync.TAsyncResult; PoolHandle, UserId : PTR );
-END CDelegate;
-  
-(*---------------------------------------------------------------------------*)
-
 CLASS IMPLEMENTATION CDelegate;
 
-  LOCAL VIRTUAL PROCEDURE OnHandle( Result : sync.TAsyncResult; PoolHandle, UserId : PTR );
-  BEGIN
-    sync.IInc( REF Test^.Count );
-  END OnHandle;
+(*---------------------------------------------------------------------------*)
+
+   LOCAL VIRTUAL PROCEDURE OnHandle( Result : sync.TAsyncResult; PoolHandle : sync.WAITABLE; UserId : PTR );
+   BEGIN
+      IF ( ThreadId <> 0 ) AND ( ThreadId <> windows.GetCurrentThreadId()) THEN
+         Test^.Host^.Log^.LogS( log.dlcError, L"", L"Completion in unexpected thread" );   
+      END;
+      sync.IInc( REF Test^.Count );
+   END OnHandle;
+
+(*---------------------------------------------------------------------------*)
 
 BEGIN
    Test := NIL;
+   ThreadId := 0;
 END CDelegate;
 
 (*===========================================================================*)
@@ -54,83 +76,31 @@ CLASS IMPLEMENTATION CTest;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
-   CONST
-      count = 1500;
    VAR
       EA : ARRAY [0..count-1] OF windows.HANDLE;
-      DLG : CDelegate;
-      Failure : BOOLEAN := FALSE;
-      i, j : CARDINAL;
+      Failure : BOOLEAN;
+      i : CARDINAL;
       PH : ARRAY [0..10*count-1] OF windows.HANDLE;
-      TP : threadpool.CThreadPool;
    BEGIN
+      PH[0] := NIL;
       SELF.Host := Host;
-      DLG.Test := ADR( SELF );
+      Delegate.Test := ADR( SELF );
 
       // create handles
       FOR i := 0 TO count-1 DO
          EA[i] := windows.CreateEvent( NIL, windows.True, windows.False, NIL );
       END; // FOR
       
-      //==========
-      Host^.StartPhase( L"SingleWait/SetEvent in reverted order" );
-         // reset
-         Count := 0;
-         // initiate
-         FOR i := 0 TO count-1 DO
-            TP.WaitHandle( NIL, i, windows.INFINITE, TRUE, EA[i], OUT PH[i] );
-         END; // FOR
-         // test
-         FOR i := count-1 TO 0 BY -1 DO
-            windows.SetEvent( EA[i] );
-         END; // FOR
-         windows.Sleep( 1000 );
-      // check
-      IF Count = count THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
-         Failure := TRUE;
-      END;
+      Failure := Round( FALSE, EA, PH );
 
-      //==========
-      Host^.StartPhase( L"SingleWait/Abort in reverted order" );
-         // reset
-         Count := 0;
-         FOR i := 0 TO count-1 DO
-            windows.ResetEvent( EA[i] );
-         END; // FOR
-         // initiate
-         FOR i := 0 TO count-1 DO
-            TP.WaitHandle( NIL, i, windows.INFINITE, TRUE, EA[i], OUT PH[i] );
-         END; // FOR
-         // test
-         FOR i := count-1 TO 0 BY -1 DO
-            TP.Abort( REF PH[i] );
-         END; // FOR
-         windows.Sleep( 1000 );
-      // check
-      IF Count = count THEN
-         Host^.StopPhaseWithResult( test.trSuccess );
-      ELSE
-         Host^.StopPhaseWithResult( test.trFailure );
-         Failure := TRUE;
-      END;
-
-(*
-      FOR i := 0 TO 1499 DO
-         FOR j := 0 TO 9 DO
-            TP.WaitHandle( ADR( DLG ), i, windows.INFINITE, TRUE, EA[i], OUT PH[i*10+j] );
-         END;
-      END; // FOR
-*)      
+      Failure := Round( TRUE, EA, PH ) OR Failure;
 
       // done handles
-      FOR i := 0 TO 1499 DO
+      FOR i := 0 TO count-1 DO
           windows.CloseHandle( EA[i] );
       END; // FOR
    
-      TP.FINALLY();
+      Pool.FINALLY();
       IF Failure THEN
          RETURN test.trFailure;
       ELSE
@@ -140,6 +110,206 @@ CLASS IMPLEMENTATION CTest;
    
 (*---------------------------------------------------------------------------*)
 
+   PRIVATE PROCEDURE Round( CompletionInOwningThread : BOOLEAN; CONST EA : ARRAY OF windows.HANDLE; CONST PH : ARRAY OF sync.WAITABLE ) : BOOLEAN;
+   VAR
+      Failure : BOOLEAN := FALSE;
+      i, j : CARDINAL;
+      lcount : CARDINAL;
+   BEGIN
+      IF CompletionInOwningThread THEN
+         lcount := count DIV 10;
+         Pool.CompletionInOwningThread := TRUE;
+         Delegate.ThreadId := windows.GetCurrentThreadId();
+      ELSE
+         lcount := count;
+         Pool.CompletionInOwningThread := FALSE;
+         Delegate.ThreadId := 0;
+      END;
+
+      //==========
+      IF CompletionInOwningThread THEN
+         Host^.StartPhase( L"1500e/01x SetEvent in reverted order, completed in own thread" );
+      ELSE
+         Host^.StartPhase( L"1500e/01x SetEvent in reverted order" );
+      END;
+         // reset
+         Count := 0;
+         // initiate
+         FOR i := 0 TO lcount-1 DO
+            IF NOT Pool.WaitHandle( ADR( Delegate ), i, windows.INFINITE, TRUE, EA[i], OUT PH[i] ) THEN
+               Host^.Log^.LogSC( log.dlcError, L"", L"Unable to start wait for index: ", i );
+               INC( Count ); // force failure reporting
+            END;
+         END; // FOR
+
+         // test
+         FOR i := lcount-1 TO 0 BY -1 DO
+            windows.SetEvent( EA[i] );
+            IF CompletionInOwningThread THEN
+               WaitForMessages( 5 );
+            END;
+         END; // FOR
+         IF CompletionInOwningThread THEN
+            WaitForMessages( 1000 );
+         ELSE
+            windows.Sleep( 1000 );
+         END;
+
+      // check
+      IF Count = lcount THEN
+         Host^.StopPhaseWithResult( test.trSuccess );
+      ELSE
+         Host^.StopPhaseWithResult( test.trFailure );
+         Failure := TRUE;
+      END;
+
+      //==========
+      IF CompletionInOwningThread THEN
+         Host^.StartPhase( L"1500e/01x Abort in reverted order, completed in own thread" );
+      ELSE
+         Host^.StartPhase( L"1500e/01x Abort in reverted order" );
+      END;
+         // reset
+         Count := 0;
+         FOR i := 0 TO lcount-1 DO
+            windows.ResetEvent( EA[i] );
+         END; // FOR
+         // initiate
+         FOR i := 0 TO lcount-1 DO
+            IF NOT Pool.WaitHandle( ADR( Delegate ), i, windows.INFINITE, TRUE, EA[i], OUT PH[i] ) THEN
+               Host^.Log^.LogSC( log.dlcError, L"", L"Unable to start wait for index: ", i );
+               INC( Count ); // force failure reporting
+            END;
+         END; // FOR
+         windows.Sleep( 2500 );
+
+         // test
+         FOR i := lcount-1 TO 0 BY -1 DO
+            Pool.Abort( REF PH[i] );
+            IF CompletionInOwningThread THEN
+               WaitForMessages( 5 );
+            END;
+         END; // FOR
+         IF CompletionInOwningThread THEN
+            WaitForMessages( 1000 );
+         ELSE
+            windows.Sleep( 1000 );
+         END;
+
+      // check
+      IF Count = lcount THEN
+         Host^.StopPhaseWithResult( test.trSuccess );
+      ELSE
+         Host^.StopPhaseWithResult( test.trFailure );
+         Failure := TRUE;
+      END;
+
+      //==========
+      IF CompletionInOwningThread THEN
+         Host^.StartPhase( L"1500e/10x SetEvent in reverted order, completed in own thread" );
+      ELSE
+         Host^.StartPhase( L"1500e/10x SetEvent in reverted order" );
+      END;
+         // reset
+         Count := 0;
+         FOR i := 0 TO lcount-1 DO
+            windows.ResetEvent( EA[i] );
+         END; // FOR
+         // initiate
+         FOR i := 0 TO lcount-1 DO
+            FOR j := 0 TO 10-1 DO
+               IF NOT Pool.WaitHandle( ADR( Delegate ), i, windows.INFINITE, TRUE, EA[i], OUT PH[i*10+j] ) THEN
+                  Host^.Log^.LogSC( log.dlcError, L"", L"Unable to start wait for index: ", i*10+j );
+                  INC( Count ); // force failure reporting
+               END;
+            END; // FOR
+         END; // FOR
+
+         // test
+         FOR i := lcount-1 TO 0 BY -1 DO
+            windows.SetEvent( EA[i] );
+            IF CompletionInOwningThread THEN
+               WaitForMessages( 5 );
+            END;
+         END; // FOR
+         IF CompletionInOwningThread THEN
+            WaitForMessages( 1000 );
+         ELSE
+            windows.Sleep( 1000 );
+         END;
+
+      // check
+      IF Count = 10*lcount THEN
+         Host^.StopPhaseWithResult( test.trSuccess );
+      ELSE
+         Host^.StopPhaseWithResult( test.trFailure );
+         Failure := TRUE;
+      END;
+
+      //==========
+      IF CompletionInOwningThread THEN
+         Host^.StartPhase( L"1500e/10x Abort in reverted order, completed in own thread" );
+      ELSE
+         Host^.StartPhase( L"1500e/10x Abort in reverted order" );
+      END;
+         // reset
+         Count := 0;
+         FOR i := 0 TO lcount-1 DO
+            windows.ResetEvent( EA[i] );
+         END; // FOR
+         // initiate
+         FOR i := 0 TO lcount-1 DO
+            FOR j := 0 TO 10-1 DO
+               IF NOT Pool.WaitHandle( ADR( Delegate ), i, windows.INFINITE, TRUE, EA[i], OUT PH[i*10+j] ) THEN
+                  Host^.Log^.LogSC( log.dlcError, L"", L"Unable to start wait for index: ", i*10+j );
+                  INC( Count ); // force failure reporting
+               END;
+            END; // FOR
+         END; // FOR
+         windows.Sleep( 2500 );
+
+         // test
+         FOR i := 10*lcount-1 TO 0 BY -1 DO
+            Pool.Abort( REF PH[i] );
+            IF CompletionInOwningThread THEN
+               WaitForMessages( 5 );
+            END;
+         END; // FOR
+         IF CompletionInOwningThread THEN
+            WaitForMessages( 1000 );
+         ELSE
+            windows.Sleep( 1000 );
+         END;
+
+      // check
+      IF Count = 10*lcount THEN
+         Host^.StopPhaseWithResult( test.trSuccess );
+      ELSE
+         Host^.StopPhaseWithResult( test.trFailure );
+         Failure := TRUE;
+      END;
+      
+      RETURN Failure;
+   END Round;
+
+(*---------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE WaitForMessages( count : CARDINAL );
+   VAR
+      i : CARDINAL := count;
+      msg : windows.MSG;
+   BEGIN
+      WHILE i > 0 DO
+         WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) = windows.True DO
+            windows.DispatchMessage( ADR( msg ));
+         END; // WHILE
+         DEC( i );
+         windows.Sleep( 0 );
+      END; // WHILE
+   END WaitForMessages;
+
+(*---------------------------------------------------------------------------*)
+
 BEGIN
    testimpl.tests()^.AddTest( L"ThreadPool::EventDelegate", ADR( Test ));
 END CTest;
@@ -147,22 +317,3 @@ END CTest;
 (*===========================================================================*)
 
 END EventDelegate.
-
-
-(*
-  // 4.
-  // TP.CompletionInOwningThread := TRUE;
-  // FOR i := 14999 TO 0 BY -1 DO
-  //   TP.Abort( PH[i] );
-  // END; // FOR
-
-  windows.Sleep( 1000 );
-
-  FOR i := 0 TO 1499 DO
-    windows.CloseHandle( EA[i] );
-  END;
-
-  WHILE windows.GetMessage( ADR( msg ), NIL, 0, 0 ) = windows.True DO
-    windows.DispatchMessage( ADR( msg ));
-  END; // WHILE
-*)  

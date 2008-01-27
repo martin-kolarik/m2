@@ -24,16 +24,16 @@ CLASS IMPLEMENTATION CDelegate;
   BEGIN
     Strings.FromCARD32W( CARDINAL( UserId ), 10, OUT nw );
     Strings.ToA( nw, 0, OUT n );
-    FIO.WrStrA( f, n );
+    // FIO.WrStrA( f, n );
     IF UserId = 1 THEN
-      FIO.WrLnA( f );
+      // FIO.WrLnA( f );
       INC( Count );
       Strings.FromCARD32W( CARDINAL( Count ), 10, OUT nw );
       Strings.ToA( nw, 0, OUT n );
-      FIO.WrStrA( f, n );
-      FIO.WrStrA( f, C': ' );
+      // FIO.WrStrA( f, n );
+      // FIO.WrStrA( f, C': ' );
     ELSE
-      FIO.WrStrA( f, C', ' );
+      // FIO.WrStrA( f, C', ' );
     END;
   END OnTimeout;
   

@@ -59,7 +59,7 @@ CLASS CThreadPool( msghandler.MessageHandler );
   PUBLIC VAR
     WorkerLoad : CARDINAL; // number of workers in single worker thread
     MaxThreads : CARDINAL; // if there is no space, the RunWorker request is queued
-    SingleThreadInterface : BOOLEAN; // default TRUE, FALSE not implemented yet
+    SingleThreadInterface : BOOLEAN; // default TRUE, FALSE not implemented yet !!!!!
     CompletionInOwningThread : BOOLEAN; // default FALSE
     
   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
