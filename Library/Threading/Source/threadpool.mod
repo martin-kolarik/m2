@@ -133,8 +133,9 @@ CLASS CPoolThread( thread.Thread );
     ReqQueue : syncqueue.CDatagramQueue;
     Messager : msghandler.MessageHandler;
   LOCAL VAR
-    PendingHandles : CARDINAL;
-    PendingWorkers : CARDINAL;
+    HandlesCount : CARDINAL; // synchronized version of unsafe Handles.Count, the count is used to limit amount of messages/handles/workers in the thread. It is not SingleThreadInterface = FALSE yet.
+    WorkersCount : CARDINAL; // synchronized version of unsafe Workers.Count, the count is used to limit amount of messages/handles/workers in the thread. It is not SingleThreadInterface = FALSE yet.
+    MessagesCount : CARDINAL; // synchronized version of unsafe Messages.Count, the count is used to limit amount of messages/handles/workers in the thread. It is not SingleThreadInterface = FALSE yet.
   LOCAL READONLY PROPERTY
     Empty : BOOLEAN;
     AbleWaitHandles : BOOLEAN;
@@ -374,21 +375,14 @@ CLASS IMPLEMENTATION CPoolThread;
 
   LOCAL READONLY PROPERTY AbleWaitHandles GET : BOOLEAN;
   BEGIN
-    // here, Pending counts must be get as the first, because they are decremented in opposite way: first Count, next PendingCount.
-    // PendingCount is atomic, so after reading it here one always get pesimistic variant of count.
-    RETURN ( CARDINAL( Sync.IGet( REF PendingWorkers )) + Workers.Count = 0 ) AND
-           ( CARDINAL( Sync.IGet( REF PendingHandles )) + Handles.Count < windows.MAXIMUM_WAIT_OBJECTS-3 ); //-1-exit-queue
+    RETURN ( Sync.IGet( REF WorkersCount ) = 0 ) AND ( Sync.IGet( REF HandlesCount ) < windows.MAXIMUM_WAIT_OBJECTS-3 ); //-1-exit-queue
   END AbleWaitHandles;
 
 //--------------------------------------------------------------------------------
 
   LOCAL READONLY PROPERTY AbleRunWorkers GET : BOOLEAN;
   BEGIN
-    // here, Pending counts must be get as the first, because they are decremented in opposite way: first Count, next PendingCount.
-    // PendingCount is atomic, so after reading it here one always get pesimistic variant of count.
-    RETURN ( CARDINAL( Sync.IGet( REF PendingHandles )) + Handles.Count = 0 ) AND
-           Messages.Empty AND
-           ( CARDINAL( Sync.IGet( REF PendingWorkers )) + Workers.Count < Pool^.WorkerLoad );
+    RETURN ( Sync.IGet( REF HandlesCount ) = 0 ) AND ( Sync.IGet( REF MessagesCount ) = 0 ) AND ( CARDINAL( Sync.IGet( REF WorkersCount )) < Pool^.WorkerLoad );
   END AbleRunWorkers;
 
 //--------------------------------------------------------------------------------
@@ -515,6 +509,7 @@ CLASS IMPLEMENTATION CPoolThread;
                      Completed( Sync.arCompleted, Task, ADR( MSG ), Task^.Task = tskMessageOnce, FALSE, OUT disposable );
                      IF Task^.Task = tskMessageOnce THEN
                         Messages.Remove( Task^.Data );
+                        Sync.IDec( REF MessagesCount );
                         IF disposable THEN
                            DISPOSE( Task );
                         END;
@@ -545,6 +540,7 @@ CLASS IMPLEMENTATION CPoolThread;
                   DISPOSE( HandleList );
                   Handles.Remove( WaitArray[Status] );
                   WaitArray.RemoveIndex( Status );
+                  Sync.IDec( REF HandlesCount );
                   CheckEmpty := TRUE;
                END;
 
@@ -556,6 +552,7 @@ CLASS IMPLEMENTATION CPoolThread;
             Workers.Remove( Worker );
             Worker^.Run();
             Completed( Sync.arCompleted, Task, NIL, TRUE, TRUE, OUT disposable );
+            Sync.IDec( REF WorkersCount );
             Worker^.Release();
             IF Workers.Empty THEN // continue with self, but after checking or processing messages and exit event
                CheckEmpty := TRUE;
@@ -585,16 +582,16 @@ CLASS IMPLEMENTATION CPoolThread;
       ASSERT( Messager.Handle <> NIL ); // Init() should be done soonenr
       Messages.Add( Task^.Data, Task );
     | tskHandleOnce, tskHandleRepeated :
-      IF NOT Handles.Get( Task^.Data, OUT HandleList ) THEN
-        NEW( HandleList );
-        Handles.Add( Task^.Data, HandleList );
-        WaitArray.Add( Task^.Data );
+      IF Handles.Get( Task^.Data, OUT HandleList ) THEN
+         Sync.IDec( REF HandlesCount ); // no resource was consumed, decrease count
+      ELSE
+         NEW( HandleList );
+         Handles.Add( Task^.Data, HandleList );
+         WaitArray.Add( Task^.Data );
       END;
       HandleList^.Add( Task, 0 );
-      Sync.IDec( REF PendingHandles );
     | tskWorker :
       Workers.Add( Task^.Data, Task );
-      Sync.IDec( REF PendingWorkers );
     ELSE
       ASSERT( FALSE );
     END; // CASE
@@ -612,6 +609,7 @@ CLASS IMPLEMENTATION CPoolThread;
       // do nothing
     | tskMessageOnce, tskMessageRepeated :
       Messages.Remove( Task^.Data );
+      Sync.IDec( REF MessagesCount );
     | tskHandleOnce, tskHandleRepeated :
       IF Handles.Get( Task^.Data, OUT HandleList ) THEN
         HandleList^.Remove( Task );
@@ -619,10 +617,12 @@ CLASS IMPLEMENTATION CPoolThread;
           DISPOSE( HandleList );
           Handles.Remove( Task^.Data );
           WaitArray.Remove( Task^.Data );
+          Sync.IDec( REF HandlesCount );
         END;
       END;
     | tskWorker :
       Workers.Remove( Task^.Data );
+      Sync.IDec( REF WorkersCount );
       TPPoolWorker( Task^.Data )^.Release();
     ELSE
       ASSERT( FALSE );
@@ -667,8 +667,9 @@ CLASS IMPLEMENTATION CPoolThread;
     ReqQueue.Consume := Sync.CreateAutoresetSignal( FALSE, L"" );
     WithMessages := TRUE;
     WaitArray.Strategy := array.astrgListInArray;
-    PendingHandles := 0;
-    PendingWorkers := 0;
+    HandlesCount := 0;
+    WorkersCount := 0;
+    MessagesCount := 0;
   END CPoolThread;
 
 //--------------------------------------------------------------------------------
@@ -708,6 +709,13 @@ END CPoolThread;
 //================================================================================
 
 CLASS IMPLEMENTATION CThreadPool;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROPERTY UndeliveredMessagesPending GET : BOOLEAN; // mostly for debug purposes
+   BEGIN
+      RETURN NOT MQueue.Empty;
+   END UndeliveredMessagesPending;
 
 //--------------------------------------------------------------------------------
 
@@ -829,6 +837,7 @@ CLASS IMPLEMENTATION CThreadPool;
     Message[1] := MSG.Task^.Data;
     Handler := ADR( PoolThread^.Messager );
 
+    Sync.IInc( REF PoolThread^.MessagesCount ); // do it as the first, here, as interface is single threaded only now
     RETURN PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.SAFETY_TIME ) = Sync.arCompleted;
   END WaitMessage;
 
@@ -862,7 +871,7 @@ CLASS IMPLEMENTATION CThreadPool;
     // return value
     PoolHandle := MSG.Task^.HWait;
 
-    Sync.IInc( REF PoolThread^.PendingHandles );
+    Sync.IInc( REF PoolThread^.HandlesCount ); // do it as the first, here, as interface is single threaded only now
     RETURN PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.SAFETY_TIME ) = Sync.arCompleted;
   END WaitHandle;
 
@@ -893,7 +902,7 @@ CLASS IMPLEMENTATION CThreadPool;
     // return value
     PoolHandle := MSG.Task^.HWait;
 
-    Sync.IInc( REF PoolThread^.PendingWorkers );
+    Sync.IInc( REF PoolThread^.WorkersCount ); // do it as the first, here, as interface is single threaded only now
     RETURN PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.SAFETY_TIME ) = Sync.arCompleted;
   END RunWorker;
 

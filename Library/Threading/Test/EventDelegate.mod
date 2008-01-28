@@ -128,7 +128,7 @@ CLASS IMPLEMENTATION CTest;
 
       //==========
       IF CompletionInOwningThread THEN
-         Host^.StartPhase( L"1500e/01x SetEvent in reverted order, completed in own thread" );
+         Host^.StartPhase( L"150e/01x SetEvent in reverted order, completed in own thread" );
       ELSE
          Host^.StartPhase( L"1500e/01x SetEvent in reverted order" );
       END;
@@ -150,7 +150,7 @@ CLASS IMPLEMENTATION CTest;
             END;
          END; // FOR
          IF CompletionInOwningThread THEN
-            WaitForMessages( 1000 );
+            WaitForMessages( 0 );
          ELSE
             windows.Sleep( 1000 );
          END;
@@ -165,7 +165,7 @@ CLASS IMPLEMENTATION CTest;
 
       //==========
       IF CompletionInOwningThread THEN
-         Host^.StartPhase( L"1500e/01x Abort in reverted order, completed in own thread" );
+         Host^.StartPhase( L"150e/01x Abort in reverted order, completed in own thread" );
       ELSE
          Host^.StartPhase( L"1500e/01x Abort in reverted order" );
       END;
@@ -191,7 +191,7 @@ CLASS IMPLEMENTATION CTest;
             END;
          END; // FOR
          IF CompletionInOwningThread THEN
-            WaitForMessages( 1000 );
+            WaitForMessages( 0 );
          ELSE
             windows.Sleep( 1000 );
          END;
@@ -206,7 +206,7 @@ CLASS IMPLEMENTATION CTest;
 
       //==========
       IF CompletionInOwningThread THEN
-         Host^.StartPhase( L"1500e/10x SetEvent in reverted order, completed in own thread" );
+         Host^.StartPhase( L"150e/10x SetEvent in reverted order, completed in own thread" );
       ELSE
          Host^.StartPhase( L"1500e/10x SetEvent in reverted order" );
       END;
@@ -233,7 +233,7 @@ CLASS IMPLEMENTATION CTest;
             END;
          END; // FOR
          IF CompletionInOwningThread THEN
-            WaitForMessages( 1000 );
+            WaitForMessages( 0 );
          ELSE
             windows.Sleep( 1000 );
          END;
@@ -248,7 +248,7 @@ CLASS IMPLEMENTATION CTest;
 
       //==========
       IF CompletionInOwningThread THEN
-         Host^.StartPhase( L"1500e/10x Abort in reverted order, completed in own thread" );
+         Host^.StartPhase( L"150e/10x Abort in reverted order, completed in own thread" );
       ELSE
          Host^.StartPhase( L"1500e/10x Abort in reverted order" );
       END;
@@ -276,7 +276,7 @@ CLASS IMPLEMENTATION CTest;
             END;
          END; // FOR
          IF CompletionInOwningThread THEN
-            WaitForMessages( 1000 );
+            WaitForMessages( 0 );
          ELSE
             windows.Sleep( 1000 );
          END;
@@ -299,13 +299,29 @@ CLASS IMPLEMENTATION CTest;
       i : CARDINAL := count;
       msg : windows.MSG;
    BEGIN
-      WHILE i > 0 DO
-         WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) = windows.True DO
-            windows.DispatchMessage( ADR( msg ));
+      IF i = 0 THEN
+         i := 5; // set
+         LOOP
+            IF Pool.UndeliveredMessagesPending THEN
+               WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) = windows.True DO
+                  windows.DispatchMessage( ADR( msg ));
+               END; // WHILE
+               i := 5; // reset
+            ELSIF i = 0 THEN
+               EXIT;
+            END;
+            DEC( i );
+            windows.Sleep( 1 );
          END; // WHILE
-         DEC( i );
-         windows.Sleep( 0 );
-      END; // WHILE
+      ELSE
+         WHILE i > 0 DO
+            WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) = windows.True DO
+               windows.DispatchMessage( ADR( msg ));
+            END; // WHILE
+            DEC( i );
+            windows.Sleep( 1 );
+         END; // WHILE
+      END;
    END WaitForMessages;
 
 (*---------------------------------------------------------------------------*)

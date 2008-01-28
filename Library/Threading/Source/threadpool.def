@@ -54,6 +54,8 @@ CLASS CThreadPool( msghandler.MessageHandler );
     Threads : lists.CPtrList;
     MQueue : msgqueue.CMessageQueue;
     _MinThreads : CARDINAL;
+  PUBLIC READONLY PROPERTY
+    UndeliveredMessagesPending : BOOLEAN; // mostly for debug purposes
   PUBLIC PROPERTY
     MinThreads : CARDINAL; // default is 1; moreover, the pool does not allocate all threads on start, the number of them increases lazily
   PUBLIC VAR
