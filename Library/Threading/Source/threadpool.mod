@@ -485,6 +485,7 @@ CLASS IMPLEMENTATION CPoolThread;
                   CheckEmpty := TRUE;
                | tskTimeoutRepeated :
                   Completed( Sync.arCompleted, Task, NIL, TRUE, FALSE, OUT disposable );
+                  Task^.Delegate^.Completed := FALSE;
                   AddTask( Task );
                ELSE
                   RemoveTask( Sync.arTimeout, Task );
@@ -513,6 +514,8 @@ CLASS IMPLEMENTATION CPoolThread;
                         IF disposable THEN
                            DISPOSE( Task );
                         END;
+                     ELSE
+                        Task^.Delegate^.Completed := FALSE;
                      END;
                      CheckEmpty := TRUE;
                   END;
@@ -533,6 +536,8 @@ CLASS IMPLEMENTATION CPoolThread;
                      IF disposable THEN
                         DISPOSE( Task );
                      END;
+                  ELSE
+                     Task^.Delegate^.Completed := FALSE;
                   END; // IF tskHandleOnce
                   Task := NextTask;
                END; // WHILE
@@ -642,9 +647,9 @@ CLASS IMPLEMENTATION CPoolThread;
     ELSE
       DisposeTask := FALSE; // for safety
     END;
-    IF Result = Sync.arCompleted THEN
-      windows.PulseEvent( Task^.HWait );
-    END;
+
+    Task^.Delegate^.Completed := TRUE;
+    windows.PulseEvent( Task^.HWait );
     IF Pool = NIL THEN
       Disposable := TRUE;
     ELSIF PMSG = NIL THEN
@@ -652,6 +657,7 @@ CLASS IMPLEMENTATION CPoolThread;
     ELSE
       Disposable := Pool^.OnCompletion( Result, Task, PMSG^ );
     END;
+
     IF DisposeTask AND Disposable THEN
       DISPOSE( Task );
     END;

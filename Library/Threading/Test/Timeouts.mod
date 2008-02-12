@@ -1,70 +1,227 @@
 MODULE Timeouts;
 
-IMPORT
-  FIO,
-  Strings,
-  Sync,
-  threadpool,
-  windows;
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
 
-VAR
-  Count : CARDINAL;
+IMPORT
+   log,
+   msghandler,
+   sync,
+   test,
+   testimpl,
+   threadpool,
+   windows;
   
+(*===========================================================================*)
+
+CONST
+   count = 100;
+
+TYPE
+   TPTest = POINTER TO CTest;
+
+(*---------------------------------------------------------------------------*)
+
 CLASS CDelegate( threadpool.APoolDelegate );
-  LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+   PUBLIC VAR
+      Test : TPTest;
+      ThreadId : CARDINAL;
+
+   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : sync.TAsyncResult; PoolHandle : sync.WAITABLE; UserId : PTR );
 END CDelegate;
   
+(*---------------------------------------------------------------------------*)
+
+CLASS CTest IMPLEMENTS test.ITest;
+   PUBLIC VAR
+      Host : test.TPHost := NIL;
+      Counts : ARRAY [0..count-1] OF CARDINAL;
+      Delegate : CDelegate;
+      Pool : threadpool.CThreadPool;
+
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   PRIVATE PROCEDURE Round( CompletionInOwningThread : BOOLEAN ) : BOOLEAN;
+   PRIVATE PROCEDURE WaitForMessages( count : CARDINAL );
+END CTest;
+
+VAR
+   Test : CTest;
+
+(*===========================================================================*)
+
 CLASS IMPLEMENTATION CDelegate;
 
-  LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
-  VAR
-    f : FIO.File := windows.GetStdHandle( windows.STD_OUTPUT_HANDLE );
-    n : ARRAY [0..255] OF CHAR;
-    nw : ARRAY [0..15] OF WCHAR;
-  BEGIN
-    Strings.FromCARD32W( CARDINAL( UserId ), 10, OUT nw );
-    Strings.ToA( nw, 0, OUT n );
-    // FIO.WrStrA( f, n );
-    IF UserId = 1 THEN
-      // FIO.WrLnA( f );
-      INC( Count );
-      Strings.FromCARD32W( CARDINAL( Count ), 10, OUT nw );
-      Strings.ToA( nw, 0, OUT n );
-      // FIO.WrStrA( f, n );
-      // FIO.WrStrA( f, C': ' );
-    ELSE
-      // FIO.WrStrA( f, C', ' );
-    END;
-  END OnTimeout;
-  
+(*---------------------------------------------------------------------------*)
+
+   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : sync.TAsyncResult; PoolHandle : sync.WAITABLE; UserId : PTR );
+   BEGIN
+      IF ( ThreadId <> 0 ) AND ( ThreadId <> windows.GetCurrentThreadId()) THEN
+         Test^.Host^.Log^.LogS( log.dlcError, L"", L"Completion in unexpected thread" );   
+      END;
+      sync.IInc( REF Test^.Counts[ CARDINAL( LOPTRLONGWORD( UserId )) ] );
+   END OnTimeout;
+
+(*---------------------------------------------------------------------------*)
+
+BEGIN
+   Test := NIL;
+   ThreadId := 0;
 END CDelegate;
 
-PROCEDURE Test();
-VAR
-  DLG : CDelegate;
-  i : CARDINAL;
-  msg : windows.MSG;
-  PH : ARRAY [0..1499] OF windows.HANDLE;
-  TP : threadpool.CThreadPool;
-BEGIN
-  Count := 1;
-  FOR i := 0 TO 119 DO
-    TP.WaitTimeout( ADR( DLG ), 120-i, (120-i)*500, FALSE, OUT PH[i] );
-  END; // FOR
+(*===========================================================================*)
 
-  WHILE windows.GetMessage( ADR( msg ), NIL, 0, 0 ) = windows.True DO
-    windows.DispatchMessage( ADR( msg ));
-  END; // WHILE
-  
-  TP.FINALLY();
-END Test;
+CLASS IMPLEMENTATION CTest;
 
-#save, call( convention => cdecl )
-PROCEDURE wmain02() : INTEGER;
-#restore
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   VAR
+      Failure : BOOLEAN;
+   BEGIN
+      SELF.Host := Host;
+      Delegate.Test := ADR( SELF );
+
+      Failure := Round( FALSE );
+
+      Failure := Round( TRUE ) OR Failure;
+
+      Pool.FINALLY();
+      IF Failure THEN
+         RETURN test.trFailure;
+      ELSE
+         RETURN test.trSuccess;
+      END;
+   END Run;
+   
+(*---------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE Round( CompletionInOwningThread : BOOLEAN ) : BOOLEAN;
+   VAR
+      Failure : BOOLEAN := FALSE;
+      i : CARDINAL;
+      PH : ARRAY [0..count-1] OF windows.HANDLE;
+   BEGIN
+      PH[0] := NIL;
+
+      IF CompletionInOwningThread THEN
+         Pool.CompletionInOwningThread := TRUE;
+         Delegate.ThreadId := windows.GetCurrentThreadId();
+      ELSE
+         Pool.CompletionInOwningThread := FALSE;
+         Delegate.ThreadId := 0;
+      END;
+
+      //==========
+      IF CompletionInOwningThread THEN
+         Host^.StartPhase( L"100t, completed in own thread" );
+      ELSE
+         Host^.StartPhase( L"100t" );
+      END;
+         // reset, initiate
+         FOR i := 1 TO count-2 DO
+            Counts[count-i-1] := 0;
+            IF NOT Pool.WaitTimeout( ADR( Delegate ), count-i-1, ( count-i-1 ) * 10, TRUE, OUT PH[i] ) THEN
+               Host^.Log^.LogSC( log.dlcError, L"", L"Unable to run worker of index: ", i );
+            END;
+         END; // FOR
+
+         // test
+         IF CompletionInOwningThread THEN
+            WaitForMessages( 500 );
+         ELSE
+            windows.Sleep( 1200 );
+         END;
+
+      // check
+      FOR i := 1 TO count-2 DO
+         IF Counts[i] <> 1 THEN // count DIV i THEN
+            Failure := TRUE;
+            Host^.Log^.LogSC( log.dlcError, L"", L"Failure with index: ", i );
+         END;
+      END;
+
+      //==========
+      IF CompletionInOwningThread THEN
+         Host^.StartPhase( L"100t Abort in reverted order, completed in own thread" );
+      ELSE
+         Host^.StartPhase( L"100t Abort in reverted order" );
+      END;
+         // reset, initiate
+         FOR i := 1 TO count-2 DO
+            Counts[count-i-1] := 0;
+            IF NOT Pool.WaitTimeout( ADR( Delegate ), count-i-1, ( count-i-1 ) * 10, TRUE, OUT PH[i] ) THEN
+               Host^.Log^.LogSC( log.dlcError, L"", L"Unable to run worker of index: ", i );
+            END;
+         END; // FOR
+
+         // test
+         FOR i := count-1 TO 0 BY -1 DO
+            Pool.Abort( REF PH[i] );
+            IF CompletionInOwningThread THEN
+               WaitForMessages( 5 );
+            END;
+         END; // FOR
+
+         IF CompletionInOwningThread THEN
+            WaitForMessages( 500 );
+         ELSE
+            windows.Sleep( 1200 );
+         END;
+
+      // check
+      FOR i := 1 TO count-2 DO
+         IF Counts[i] <> 1 THEN // count DIV i THEN
+            Host^.Log^.LogSC( log.dlcError, L"", L"Failure with index: ", i );
+         END;
+      END;
+
+      IF Failure THEN
+         Host^.StopPhaseWithResult( test.trFailure );
+      ELSE
+         Host^.StopPhaseWithResult( test.trSuccess );
+      END;
+
+      RETURN Failure;
+   END Round;
+
+(*---------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE WaitForMessages( count : CARDINAL );
+   VAR
+      i : CARDINAL := count;
+      msg : windows.MSG;
+   BEGIN
+      IF i = 0 THEN
+         i := 5; // set
+         LOOP
+            IF Pool.UndeliveredMessagesPending THEN
+               WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) = windows.True DO
+                  windows.DispatchMessage( ADR( msg ));
+               END; // WHILE
+               i := 5; // reset
+            ELSIF i = 0 THEN
+               EXIT;
+            END;
+            DEC( i );
+            windows.Sleep( 1 );
+         END; // WHILE
+      ELSE
+         WHILE i > 0 DO
+            WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) = windows.True DO
+               windows.DispatchMessage( ADR( msg ));
+            END; // WHILE
+            DEC( i );
+            windows.Sleep( 1 );
+         END; // WHILE
+      END;
+   END WaitForMessages;
+
+(*---------------------------------------------------------------------------*)
+
 BEGIN
-  Test();
-  RETURN 0;
-END wmain02;
+   testimpl.tests()^.AddTest( L"ThreadPool::Timeouts", ADR( Test ));
+END CTest;
+
+(*===========================================================================*)
 
 END Timeouts.
