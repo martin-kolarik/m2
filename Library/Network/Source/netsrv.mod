@@ -150,6 +150,7 @@ CLASS IMPLEMENTATION CIPServer;
     IF _FDHandle <> NIL THEN
       netpool.Pool()^.Abort( REF _FDHandle );
     END;
+    SUPER.Dispose();
   END Dispose;
 
 //--------------------------------------------------------------------------------

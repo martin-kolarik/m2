@@ -44,7 +44,7 @@ PROCEDURE StartListen(
             Port : CARDINAL; // if Port = 0 the ephemeral one is selected
             PMulticastGroup : winsock.PIN_ADDR; // can be NIL
             PStreamCreator : TPListener;
-            AutomaticCloseTimeMS : CARDINAL;	// can be 0 or INFINITE to INFINITE time
+            AutomaticCloseTimeMS : CARDINAL;	// can be 0 or INFINITE for INFINITE time
             PCreatedSocket : POINTER TO netsocket.TPSSocket // can be NIL
           ) : CARDINAL;
 

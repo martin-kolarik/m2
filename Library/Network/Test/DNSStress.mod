@@ -1,110 +1,197 @@
 MODULE dnsstress;
 
-IMPORT
-  winsock;
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
 
 IMPORT
-  dns,
-  FIO,
-  Strings,
-  StringsO,
-  windows;
+   dns,
+   log,
+   msghandler,
+   netinit,
+   Strings,
+   StringsO,
+   sync,
+   test,
+   testimpl,
+   winsock;
   
+(*===========================================================================*)
+
+TYPE
+   TPTest = POINTER TO CTest;
+
+(*---------------------------------------------------------------------------*)
+
 CLASS CDNS( dns.ADNSNotifier );
-  LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF winsock.IN_ADDR );
-  LOCAL VIRTUAL PROCEDURE OnNameFound( RequestId : PTR; Result : CARDINAL; CONST Name : StringsO.CString );
+   PUBLIC VAR
+      Test : TPTest;
+
+   LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF winsock.IN_ADDR );
+   LOCAL VIRTUAL PROCEDURE OnNameFound( RequestId : PTR; Result : CARDINAL; CONST Name : StringsO.CString );
 END CDNS;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CTest IMPLEMENTS test.ITest;
+   PUBLIC VAR
+      Host : test.TPHost := NIL;
+      Notifier : CDNS;
+      Results : ARRAY [0..63] OF TRISTATE;
+
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+END CTest;
+
+(*===========================================================================*)
 
 CLASS IMPLEMENTATION CDNS;
 
-  LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF winsock.IN_ADDR );
-  VAR
-    f : FIO.File := windows.GetStdHandle( windows.STD_OUTPUT_HANDLE );
-    i : CARDINAL;
-  BEGIN
-    IF Result = 0 THEN
-      FOR i := 0 TO HIGH( Address ) DO
-        FIO.WrStrA( f, OAsz( PCHAR( winsock.inet_ntoa( Address[i] )))); FIO.WrStrA( f, C', ' );
+(*---------------------------------------------------------------------------*)
+
+   LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF winsock.IN_ADDR );
+   VAR
+      i : CARDINAL;
+      s : ARRAY [0..255] OF WCHAR := L"";
+      request : ARRAY [0..15] OF WCHAR;
+   BEGIN
+      Strings.FromCARD32W( CARDINAL( RequestId ), 10, OUT request );
+      Strings.AppendW( REF request, L": " );
+      IF Result = 0 THEN
+         Test^.Results[ CARDINAL( LOPTRLONGWORD( RequestId )) ] := 1;
+         Test^.Host^.Log^.LogSS( log.dlcInfo, L"", L"Success: ", request );   
+         FOR i := 0 TO HIGH( Address ) DO
+            Strings.ToW( OAsz( PCHAR( winsock.inet_ntoa( Address[i] ))), 0, OUT s );
+         END;
+         Test^.Host^.Log^.LogSS( log.dlcInfo, L"", L"  found: ", s );   
+      ELSE
+         Test^.Results[ CARDINAL( LOPTRLONGWORD( RequestId )) ] := 0;
+         Strings.FromErrorW( Result, OUT s );
+         Test^.Host^.Log^.LogSSS( log.dlcError, L"", L"Failure: ", request, s );   
       END;
-      FIO.WrLnA( f );
-    ELSE
-      FIO.WrStrA( f, C'<not found>' );
-      FIO.WrLnA( f );
-    END;
   END OnAddressFound;
   
-  LOCAL VIRTUAL PROCEDURE OnNameFound( RequestId : PTR; Result : CARDINAL; CONST Name : StringsO.CString );
-  VAR
-    f : FIO.File := windows.GetStdHandle( windows.STD_OUTPUT_HANDLE );
-    l : CARDINAL;
-    n : ARRAY [0..255] OF CHAR;
-    nw : ARRAY [0..15] OF WCHAR;
-  BEGIN
-    Strings.FromCARD32W( CARDINAL( RequestId ), 10, OUT nw );
-    Strings.ToA( nw, 0, OUT n );
-    FIO.WrStrA( f, n );
-    FIO.WrStrA( f, C': ' );
-    IF Result = winsock.WSAETIMEDOUT THEN
-      FIO.WrStrA( f, C'<timed out>' );
-    ELSE
-      Name.ToOAA( 0, OUT n, OUT l );
-      FIO.WrStrA( f, n );
-    END;
-    FIO.WrLnA( f );
-  END OnNameFound;
+(*---------------------------------------------------------------------------*)
 
+   LOCAL VIRTUAL PROCEDURE OnNameFound( RequestId : PTR; Result : CARDINAL; CONST Name : StringsO.CString );
+   VAR
+      s : ARRAY [0..255] OF WCHAR;
+      request : ARRAY [0..15] OF WCHAR;
+   BEGIN
+      Strings.FromCARD32W( CARDINAL( RequestId ), 10, OUT request );
+      Strings.AppendW( REF request, L": " );
+      IF Result = 0 THEN
+         Test^.Results[ CARDINAL( LOPTRLONGWORD( RequestId )) ] := 1;
+         Name.ToOA( OUT s );
+         Test^.Host^.Log^.LogSSS( log.dlcInfo, L"", L"Success: ", request, s );   
+      ELSE
+         Test^.Results[ CARDINAL( LOPTRLONGWORD( RequestId )) ] := 0;
+         Strings.FromErrorW( Result, OUT s );
+         Test^.Host^.Log^.LogSSS( log.dlcError, L"", L"Failure: ", request, s );   
+      END;
+   END OnNameFound;
+
+(*---------------------------------------------------------------------------*)
+
+BEGIN
+   Test := NIL;
 END CDNS;
 
-VAR  
-  D : CDNS;
+(*===========================================================================*)
 
-PROCEDURE Test();
 VAR
-  A : winsock.IN_ADDR;
-  h : PTR;
-  i : CARDINAL;
-BEGIN
-  // FOR i := 1 TO 254 DO
-  //   A.s_addr := winsock.htonl( 10 << 24 + 128 << 16 + 1 << 8 + i );
-  FOR i := 1 TO 62 DO
-    A.s_addr := winsock.htonl( 217 << 24 + 115 << 16 + 241 << 8 + i );
-    dns.AddressToName( ADR( D ), i, A, i*750, OUT h );
-  END;
+   Test : CTest;
 
-  dns.NameToAddress( ADR( D ), 1, L"a.mii.cz", 1*4000, OUT h );
-  dns.NameToAddress( ADR( D ), 2, L"b.mii.cz", 2*4000, OUT h );
-  dns.NameToAddress( ADR( D ), 15, L"ariel.mii.cz", 15*4000, OUT h );
-  dns.NameToAddress( ADR( D ), 16, L"miranda.mii.cz", 16*4000, OUT h );
-  dns.NameToAddress( ADR( D ), 17, L"belinda.mii.cz", 17*4000, OUT h );
-  dns.NameToAddress( ADR( D ), 18, L"enceladus.mii.cz", 18*4000, OUT h );
-  dns.NameToAddress( ADR( D ), 19, L"oberon.mii.cz", 19*4000, OUT h );
-END Test;
+(*---------------------------------------------------------------------------*)
 
-PROCEDURE StartupSockets() : CARDINAL;
-CONST
-  majorVer = 1;
-  minorVer = 1;
-VAR
-  RQVersion : CARD16;
-  WSAData   : winsock.WSADATA;
-BEGIN
-  winsock.WSASetLastError( 0 );
-  RQVersion := minorVer << 8 + majorVer; // low byte is major, high byte is minor ver number
-  RETURN CARDINAL( winsock.WSAStartup( RQVersion, ADR( WSAData )));
-END StartupSockets;
+CLASS IMPLEMENTATION CTest;
 
-#save, call( convention => cdecl )
-PROCEDURE wmain05() : INTEGER;
-#restore
-VAR
-  msg : windows.MSG;
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   VAR
+      A : winsock.IN_ADDR;
+      Completed : BOOLEAN;
+      h : PTR;
+      i : CARDINAL;
+      Failure1, Failure2 : BOOLEAN;
+   BEGIN
+      SELF.Host := Host;
+      Notifier.Test := ADR( SELF );
+      netinit.Startup();
+
+      Host^.StartPhase( L"First 16 addresses of AVONET" );
+      // init
+      FOR i := 0 TO HIGH( Results ) DO
+         Results[i] := -1;
+      END;
+      // run
+      FOR i := 1 TO 16 DO
+         A.s_addr := winsock.htonl( 217 << 24 + 112 << 16 + 162 << 8 + i );
+         dns.AddressToName( ADR( Notifier ), i, A, i*750, OUT h );
+      END;
+      // wait
+      REPEAT
+         sync.Sleep( 100 );
+         Completed := TRUE;
+         FOR i := 1 TO 16 DO
+            IF Results[i] = -1 THEN
+               Completed := FALSE;
+               EXIT;
+            END;
+         END;
+      UNTIL Completed;
+      // check
+      Failure1 := FALSE;
+      FOR i := 1 TO 16 DO
+         Failure1 := Failure1 OR ( Results[i] = 0 );
+      END;      
+      IF Failure1 THEN
+         Host^.StopPhaseWithResult( test.trFailure );
+      ELSE
+         Host^.StopPhaseWithResult( test.trSuccess );
+      END;
+
+      Host^.StartPhase( L"Forward Queries" );
+      // init
+      FOR i := 0 TO HIGH( Results ) DO
+         Results[i] := -1;
+      END;
+      // run
+      dns.NameToAddress( ADR( Notifier ), 1, L"www.smartcontrol.cz", 1*2000, OUT h );
+      dns.NameToAddress( ADR( Notifier ), 2, L"home.smartcontrol.cz", 2*2000, OUT h );
+      dns.NameToAddress( ADR( Notifier ), 3, L"none.smartcontrol.cz", 3*2000, OUT h );
+      // wait
+      REPEAT
+         sync.Sleep( 100 );
+         Completed := TRUE;
+         FOR i := 1 TO 3 DO
+            IF Results[i] = -1 THEN
+               Completed := FALSE;
+               EXIT;
+            END;
+         END;
+      UNTIL Completed;
+      // check
+      Failure2 := ( Results[1] = 0 ) OR ( Results[2] = 0 ) OR ( Results[3] = 1 );
+      IF Failure2 THEN
+         Host^.StopPhaseWithResult( test.trFailure );
+      ELSE
+         Host^.StopPhaseWithResult( test.trSuccess );
+      END;
+
+      netinit.Cleanup();
+      IF Failure1 OR Failure2 THEN
+         RETURN test.trFailure;
+      ELSE
+         RETURN test.trSuccess;
+      END;
+   END Run;
+   
+(*---------------------------------------------------------------------------*)
+
 BEGIN
-  StartupSockets();
-  Test();
-  WHILE windows.GetMessage( ADR( msg ), NIL, 0, 0 ) = windows.True DO
-    windows.DispatchMessage( ADR( msg ));
-  END;
-  RETURN 0;
-END wmain05;
+   testimpl.tests()^.AddTest( L"Network::DNS", ADR( Test ));
+END CTest;
+
+(*===========================================================================*)
 
 END dnsstress.
