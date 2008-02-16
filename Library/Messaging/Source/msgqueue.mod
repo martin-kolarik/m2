@@ -24,7 +24,9 @@ CLASS IMPLEMENTATION CMessageQueue;
     IF Msg <> NIL THEN
       DISPOSE( Msg );
     END;
-    Msg := msghandler.TPMessage( Value^.Clone());
+    IF Value <> NIL THEN
+      Msg := msghandler.TPMessage( Value^.Clone());
+    END;
   END ConsumerMsg;
   
 (*--------------------------------------------------------------------------------*)
