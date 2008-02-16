@@ -181,9 +181,9 @@ CLASS IMPLEMENTATION CTest;
 
       //==========
       IF CompletionInOwningThread THEN
-         Host^.StartPhase( L"0150m Abort in reverted order, completed in own thread" );
+         Host^.StartPhase( L"0150w Abort in reverted order, completed in own thread" );
       ELSE
-         Host^.StartPhase( L"1500m Abort in reverted order" );
+         Host^.StartPhase( L"1500w Abort in reverted order" );
       END;
          // reset
          Count := 0;

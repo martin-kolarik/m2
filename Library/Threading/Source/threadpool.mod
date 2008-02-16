@@ -130,7 +130,7 @@ CLASS CPoolThread( thread.Thread );
     Workers : lists.CPtrList; // CTask.Data/PTask
     WaitArray : arrays.CPtrArray;
   LOCAL READONLY VAR
-    ReqQueue : syncqueue.CDatagramQueue;
+    ReqQueue : msgqueue.CMessageQueue; // MessageQueue is used instead of simple DatagramQueue, because it simplifies concurrent usage of messages (administrative and WaitMessage). If one creates WaitMessage and immediatelly send the message, message queue assures correct ordering without any add-on handling.
     Messager : msghandler.MessageHandler;
   LOCAL VAR
     HandlesCount : CARDINAL; // synchronized version of unsafe Handles.Count, the count is used to limit amount of messages/handles/workers in the thread. It is not SingleThreadInterface = FALSE yet.
@@ -140,8 +140,6 @@ CLASS CPoolThread( thread.Thread );
     Empty : BOOLEAN;
     AbleWaitHandles : BOOLEAN;
     AbleRunWorkers : BOOLEAN;
-  LOCAL PROPERTY
-    AbleWaitMessages : BOOLEAN;
 
   INITIALLY CPoolThread();
   FINALLY CPoolThread();
@@ -335,7 +333,6 @@ TYPE
     topAdd,
     topRemoveTask,
     topRemoveDelegate, // not implemented yet
-    topStartWaitMessages,
     topOnCompletion,
     topOnThreadEmpty
   );
@@ -375,7 +372,7 @@ CLASS IMPLEMENTATION CPoolThread;
 
   LOCAL READONLY PROPERTY AbleWaitHandles GET : BOOLEAN;
   BEGIN
-    RETURN ( Sync.IGet( REF WorkersCount ) = 0 ) AND ( Sync.IGet( REF HandlesCount ) < windows.MAXIMUM_WAIT_OBJECTS-3 ); //-1-exit-queue
+    RETURN ( Sync.IGet( REF WorkersCount ) = 0 ) AND ( Sync.IGet( REF HandlesCount ) < windows.MAXIMUM_WAIT_OBJECTS-2 ); //-1-exit
   END AbleWaitHandles;
 
 //--------------------------------------------------------------------------------
@@ -387,51 +384,153 @@ CLASS IMPLEMENTATION CPoolThread;
 
 //--------------------------------------------------------------------------------
 
-  LOCAL PROPERTY AbleWaitMessages GET : BOOLEAN;
-  BEGIN
-    RETURN Messager.Handle <> NIL;
-  END AbleWaitMessages;
-
-//--------------------------------------------------------------------------------
-
-  LOCAL PROPERTY AbleWaitMessages SET( Value : BOOLEAN );
-  VAR
-    MSG : TMessage;
-  BEGIN
-    IF Messager.Handle <> NIL THEN
-      RETURN;
-    ELSIF SelfContext THEN
-      Messager.Init();
-    ELSE
-      MSG.Operation := topStartWaitMessages;
-      ReqQueue.QueueOA( MSG, TRUE, Sync.SAFETY_TIME );
-      WHILE NOT AbleWaitMessages DO // wait until message is truly processed
-        Sync.Sleep( 0 );
-      END;
-    END;
-  END AbleWaitMessages;
-
-//--------------------------------------------------------------------------------
-
    INTERNAL VIRTUAL PROCEDURE OnRun() : CARDINAL;
+
+      //-----
+      
+      PROCEDURE HandleTimeouts() : BOOLEAN;
+      VAR
+         CheckEmpty : BOOLEAN := FALSE;
+         disposable : BOOLEAN;
+         Task : TPTask;
+      BEGIN
+         WHILE HTasks.GetFirstElapsed( OUT Task ) DO
+            CASE Task^.Task OF
+            | tskTimeoutOnce :
+               Completed( Sync.arCompleted, Task, NIL, TRUE, TRUE, OUT disposable );
+               CheckEmpty := TRUE;
+            | tskTimeoutRepeated :
+               Completed( Sync.arCompleted, Task, NIL, TRUE, FALSE, OUT disposable );
+               Task^.Delegate^.Completed := FALSE;
+               AddTask( Task );
+            ELSE
+               RemoveTask( Sync.arTimeout, Task );
+               CheckEmpty := TRUE;
+            END;
+         END; // WHILE
+
+         RETURN CheckEmpty;
+      END HandleTimeouts;
+      
+      //-----
+      
+      PROCEDURE HandleAdministrativeMessages() : BOOLEAN;
+      VAR
+         CheckEmpty : BOOLEAN := FALSE;
+         Message : TMessage;
+         Task : TPTask;
+      BEGIN
+         WHILE ReqQueue.DequeueOA( OUT Message, FALSE, 0 ) = Sync.arCompleted DO
+            CASE Message.Operation OF
+            //---
+            | topAdd :
+               AddTask( Message.Task );
+            //---
+            | topRemoveTask :
+               IF HTasks.Get( Message.HTask, OUT Task ) THEN
+                  RemoveTask( Sync.arAborted, Task );
+                  CheckEmpty := TRUE;
+               END;
+            //---
+            | topRemoveDelegate : // NOT IMPLEMENTED YET
+               ASSERT( FALSE );
+            //---
+            ELSE
+               ASSERT( FALSE );
+            END; // CASE
+         END; // WHILE
+
+         RETURN CheckEmpty;
+      END HandleAdministrativeMessages;
+
+      //-----
+      
+      PROCEDURE CheckAndHandleKnownMessage( CONST msg : windows.MSG ) : BOOLEAN;
+      VAR
+         disposable : BOOLEAN;
+         MSG : msghandler.Message;
+         Task : TPTask;
+      BEGIN
+         IF NOT Messages.Get( msg.message, OUT Task ) THEN // known waited message
+            RETURN FALSE; // check empty
+         END;
+
+         MSG[1] := msg.message; MSG[2] := msg.wParam; MSG[3] := PTR( msg.lParam );
+         Completed( Sync.arCompleted, Task, ADR( MSG ), Task^.Task = tskMessageOnce, FALSE, OUT disposable );
+         IF Task^.Task = tskMessageOnce THEN
+            Messages.Remove( Task^.Data );
+            Sync.IDec( REF MessagesCount );
+            IF disposable THEN
+               DISPOSE( Task );
+            END;
+         ELSE
+            Task^.Delegate^.Completed := FALSE;
+         END;
+
+         RETURN TRUE; // check empty
+      END CheckAndHandleKnownMessage;
+
+      //-----
+      
+      PROCEDURE CheckAndHandleKnownHandle( WaitAbandoned : BOOLEAN; Handle : PTR ) : BOOLEAN;
+      VAR
+         b : BOOLEAN;
+         D : PTR;
+         disposable : BOOLEAN;
+         HandleList : lists.TPPtrList;
+         removeTask : BOOLEAN;
+         Task, NextTask : TPTask;
+      BEGIN
+         IF NOT Handles.Get( Handle, OUT HandleList ) THEN
+            RETURN FALSE; // check empty
+         END;
+
+         b := HandleList^.GetFirst( OUT Task, OUT D );
+         WHILE b DO
+            b := HandleList^.NextOf( Task, OUT NextTask, OUT D );
+            removeTask := WaitAbandoned OR ( Task^.Task = tskHandleOnce );
+            IF WaitAbandoned THEN
+               Completed( Sync.arAborted, Task, NIL, TRUE, FALSE, OUT disposable );
+            ELSE
+               Completed( Sync.arCompleted, Task, NIL, removeTask, FALSE, OUT disposable );
+            END;
+            IF removeTask THEN
+               HandleList^.Remove( Task );
+               IF disposable THEN
+                  DISPOSE( Task );
+               END;
+            ELSE
+               Task^.Delegate^.Completed := FALSE;
+            END; // IF tskHandleOnce
+            Task := NextTask;
+         END; // WHILE
+
+         IF HandleList^.Empty THEN
+            DISPOSE( HandleList );
+            Handles.Remove( Handle );
+            Sync.IDec( REF HandlesCount );
+            RETURN TRUE; // check empty
+         ELSE
+            RETURN FALSE; // check empty
+         END;
+      END CheckAndHandleKnownHandle;
+      
+      //-----
+      
    VAR
       CheckEmpty : BOOLEAN;
-      D : PTR;
       disposable : BOOLEAN;
-      HandleList : lists.TPPtrList;
-      Message : TMessage;
       msg : windows.MSG;
-      MSG : msghandler.Message;
-      removeTask : BOOLEAN;
       Status : CARDINAL;
-      Task, NextTask : TPTask;
       Timeout : CARDINAL;
       WaitAbandoned : BOOLEAN;
       Worker : TPPoolWorker;
-      b : BOOLEAN;
+      WorkerTask : TPTask;
    BEGIN
       WaitArray.Add( _HExit );
-      WaitArray.Add( ReqQueue.Consume );
+      
+      Messager.Init();
+      ReqQueue.Consumer := ADR( Messager );
     
       LOOP
          CheckEmpty := FALSE;
@@ -451,47 +550,8 @@ CLASS IMPLEMENTATION CPoolThread;
             EXIT;
 
          //-----
-         | windows.WAIT_OBJECT_0 + 1 : // administrative message
-            WHILE ReqQueue.DequeueOA( OUT Message, FALSE, 0 ) = Sync.arCompleted DO
-               CASE Message.Operation OF
-               //---
-               | topAdd :
-                  AddTask( Message.Task );
-               //---
-               | topRemoveTask :
-                  IF HTasks.Get( Message.HTask, OUT Task ) THEN
-                     RemoveTask( Sync.arAborted, Task );
-                     CheckEmpty := TRUE;
-                  END;
-               //---
-               | topRemoveDelegate : // NOT IMPLEMENTED YET
-                  ASSERT( FALSE );
-               | topStartWaitMessages :
-                  IF Messager.Handle = NIL THEN
-                     Messager.Init();
-                  END;
-               //---
-               ELSE
-                  ASSERT( FALSE );
-               END; // CASE
-            END; // WHILE
-
-         //-----
          | windows.WAIT_TIMEOUT : // remove all timeouted tasks
-            WHILE HTasks.GetFirstElapsed( OUT Task ) DO
-               CASE Task^.Task OF
-               | tskTimeoutOnce :
-                  Completed( Sync.arCompleted, Task, NIL, TRUE, TRUE, OUT disposable );
-                  CheckEmpty := TRUE;
-               | tskTimeoutRepeated :
-                  Completed( Sync.arCompleted, Task, NIL, TRUE, FALSE, OUT disposable );
-                  Task^.Delegate^.Completed := FALSE;
-                  AddTask( Task );
-               ELSE
-                  RemoveTask( Sync.arTimeout, Task );
-                  CheckEmpty := TRUE;
-               END;
-            END; // WHILE
+            CheckEmpty := HandleTimeouts();
 
          //-----
          ELSE
@@ -503,60 +563,32 @@ CLASS IMPLEMENTATION CPoolThread;
                WaitAbandoned := FALSE;
             END;
 
+            //-----
             IF NOT WaitAbandoned AND ( Status = WaitArray.Count ) THEN // a message has arrived
                WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) <> 0 DO
-                  IF Messages.Get( msg.message, OUT Task ) THEN // known waited message
-                     MSG[1] := msg.message; MSG[2] := msg.wParam; MSG[3] := PTR( msg.lParam );
-                     Completed( Sync.arCompleted, Task, ADR( MSG ), Task^.Task = tskMessageOnce, FALSE, OUT disposable );
-                     IF Task^.Task = tskMessageOnce THEN
-                        Messages.Remove( Task^.Data );
-                        Sync.IDec( REF MessagesCount );
-                        IF disposable THEN
-                           DISPOSE( Task );
-                        END;
-                     ELSE
-                        Task^.Delegate^.Completed := FALSE;
-                     END;
-                     CheckEmpty := TRUE;
+                  IF msg.message = msgqueue.WM_MQ_PROCESS THEN // administrative message/queue
+                     CheckEmpty := HandleAdministrativeMessages() OR CheckEmpty;
+                  ELSE
+                     CheckEmpty := CheckAndHandleKnownMessage( msg ) OR CheckEmpty;
                   END;
-               END; // end of messages
+               END; // WHILE messages
 
-            ELSIF ( Status < WaitArray.Count ) AND ( Handles.Get( WaitArray[Status], OUT HandleList )) THEN // handle is signalized
-               b := HandleList^.GetFirst( OUT Task, OUT D );
-               WHILE b DO
-                  b := HandleList^.NextOf( Task, OUT NextTask, OUT D );
-                  removeTask := WaitAbandoned OR ( Task^.Task = tskHandleOnce );
-                  IF WaitAbandoned THEN
-                     Completed( Sync.arAborted, Task, NIL, TRUE, FALSE, OUT disposable );
-                  ELSE
-                     Completed( Sync.arCompleted, Task, NIL, removeTask, FALSE, OUT disposable );
-                  END;
-                  IF removeTask THEN
-                     HandleList^.Remove( Task );
-                     IF disposable THEN
-                        DISPOSE( Task );
-                     END;
-                  ELSE
-                     Task^.Delegate^.Completed := FALSE;
-                  END; // IF tskHandleOnce
-                  Task := NextTask;
-               END; // WHILE
-               IF HandleList^.Empty THEN
-                  DISPOSE( HandleList );
-                  Handles.Remove( WaitArray[Status] );
+            //-----
+            ELSIF Status < WaitArray.Count THEN
+               CheckEmpty := CheckAndHandleKnownHandle( WaitAbandoned, WaitArray[Status] );
+               IF CheckEmpty THEN // handle was removed
                   WaitArray.RemoveIndex( Status );
-                  Sync.IDec( REF HandlesCount );
-                  CheckEmpty := TRUE;
                END;
 
+            //-----
             END; // IF WaitResult
          END; // ELSE CASE
       
          // Run Workers
-         IF Workers.GetFirst( OUT Worker, OUT Task ) THEN
+         IF Workers.GetFirst( OUT Worker, OUT WorkerTask ) THEN
             Workers.Remove( Worker );
             Worker^.Run();
-            Completed( Sync.arCompleted, Task, NIL, TRUE, TRUE, OUT disposable );
+            Completed( Sync.arCompleted, WorkerTask, NIL, TRUE, TRUE, OUT disposable );
             Sync.IDec( REF WorkersCount );
             Worker^.Release();
             IF Workers.Empty THEN // continue with self, but after checking or processing messages and exit event
@@ -670,7 +702,6 @@ CLASS IMPLEMENTATION CPoolThread;
   BEGIN
     Pool := NIL;
     ReqQueue.Init( 128, SIZE( TMessage ));
-    ReqQueue.Consume := Sync.CreateAutoresetSignal( FALSE, L"" );
     WithMessages := TRUE;
     WaitArray.Strategy := array.astrgListInArray;
     HandlesCount := 0;
@@ -705,7 +736,6 @@ CLASS IMPLEMENTATION CPoolThread;
     WHILE HTasks.GetFirstElapsed( OUT Task ) DO
       Completed( Sync.arAborted, Task, NIL, TRUE, TRUE, OUT disposable );
     END; // WHILE
-    Sync.DeleteSignal( REF ReqQueue.Consume );
   END CPoolThread;
 
 //--------------------------------------------------------------------------------
@@ -786,7 +816,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG : TMessage;
     PoolThread : TPPoolThread;
   BEGIN
-    IF NOT LookupThread( FALSE, FALSE, FALSE, OUT PoolThread ) THEN
+    IF NOT LookupThread( FALSE, FALSE, OUT PoolThread ) THEN
       RETURN FALSE;
     END;
 
@@ -818,7 +848,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG : TMessage;
     PoolThread : TPPoolThread;
   BEGIN
-    IF NOT LookupThread( FALSE, FALSE, TRUE, OUT PoolThread ) THEN
+    IF NOT LookupThread( FALSE, FALSE, OUT PoolThread ) THEN
       RETURN FALSE;
     END;
 
@@ -854,7 +884,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG : TMessage;
     PoolThread : TPPoolThread;
   BEGIN
-    IF NOT LookupThread( FALSE, FALSE, FALSE, OUT PoolThread ) THEN
+    IF NOT LookupThread( FALSE, FALSE, OUT PoolThread ) THEN
       RETURN FALSE;
     END;
 
@@ -888,7 +918,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG : TMessage;
     PoolThread : TPPoolThread;
   BEGIN
-    IF NOT LookupThread( TRUE, ForceSelfThread, FALSE, OUT PoolThread ) THEN
+    IF NOT LookupThread( TRUE, ForceSelfThread, OUT PoolThread ) THEN
       RETURN FALSE;
     END;
 
@@ -992,7 +1022,7 @@ CLASS IMPLEMENTATION CThreadPool;
 
 //--------------------------------------------------------------------------------
 
-  PRIVATE PROCEDURE LookupThread( WorkerFlag : BOOLEAN; ForceSelfThread, PrepareForMessages : BOOLEAN; OUT _PoolThread : PTR ) : BOOLEAN;
+  PRIVATE PROCEDURE LookupThread( WorkerFlag : BOOLEAN; ForceSelfThread : BOOLEAN; OUT _PoolThread : PTR ) : BOOLEAN;
   VAR
     PoolThread : TPPoolThread;
   BEGIN
@@ -1003,9 +1033,6 @@ CLASS IMPLEMENTATION CThreadPool;
          IF     WorkerFlag AND TPPoolThread( Threads.Current )^.AbleRunWorkers OR
             NOT WorkerFlag AND TPPoolThread( Threads.Current )^.AbleWaitHandles THEN
            _PoolThread := TPPoolThread( Threads.Current );
-           IF PrepareForMessages THEN
-             TPPoolThread( _PoolThread )^.AbleWaitMessages := TRUE;
-           END;
            RETURN TRUE;
          END; // IF
        END; // WHILE
@@ -1020,11 +1047,11 @@ CLASS IMPLEMENTATION CThreadPool;
     Threads.Add( PoolThread, 0 );
 
     PoolThread^.Run( TRUE );
+    WHILE PoolThread^.ReqQueue.Consumer = NIL DO // wait thread is able to process administrative messages
+      Sync.Sleep( 0 );
+    END; // WHILE
 
     _PoolThread := PoolThread;
-    IF PrepareForMessages THEN
-      TPPoolThread( _PoolThread )^.AbleWaitMessages := TRUE;
-    END;
     RETURN TRUE;
   END LookupThread;
 

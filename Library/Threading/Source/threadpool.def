@@ -78,7 +78,7 @@ CLASS CThreadPool( msghandler.MessageHandler );
   LOCAL PROCEDURE OnThreadEmpty();
   LOCAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; Task : PTR; CONST MSG : msghandler.Message ) : BOOLEAN;
   
-  PRIVATE PROCEDURE LookupThread( WorkerFlag : BOOLEAN; ForceSelfThread, PrepareForMessages : BOOLEAN; OUT PoolThread : PTR ) : BOOLEAN;
+  PRIVATE PROCEDURE LookupThread( WorkerFlag : BOOLEAN; ForceSelfThread : BOOLEAN; OUT PoolThread : PTR ) : BOOLEAN;
   PRIVATE PROCEDURE DisposeThreads( RespectMinThreads : BOOLEAN );
 END CThreadPool;
 
