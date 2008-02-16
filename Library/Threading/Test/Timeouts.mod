@@ -15,7 +15,7 @@ IMPORT
 (*===========================================================================*)
 
 CONST
-   count = 100;
+   count = 10;
 
 TYPE
    TPTest = POINTER TO CTest;
@@ -97,7 +97,7 @@ CLASS IMPLEMENTATION CTest;
 
    PRIVATE PROCEDURE Round( CompletionInOwningThread : BOOLEAN ) : BOOLEAN;
    VAR
-      Failure : BOOLEAN := FALSE;
+      FirstFailure, Failure : BOOLEAN := FALSE;
       i : CARDINAL;
       PH : ARRAY [0..count-1] OF windows.HANDLE;
    BEGIN
@@ -113,46 +113,59 @@ CLASS IMPLEMENTATION CTest;
 
       //==========
       IF CompletionInOwningThread THEN
-         Host^.StartPhase( L"100t, completed in own thread" );
+         Host^.StartPhase( L"10t, completed in own thread" );
       ELSE
-         Host^.StartPhase( L"100t" );
+         Host^.StartPhase( L"10t" );
       END;
          // reset, initiate
          FOR i := 1 TO count-2 DO
             Counts[count-i-1] := 0;
-            IF NOT Pool.WaitTimeout( ADR( Delegate ), count-i-1, ( count-i-1 ) * 10, TRUE, OUT PH[i] ) THEN
+            IF NOT Pool.WaitTimeout( ADR( Delegate ), count-i-1, ( count-i-1 ) * 500, FALSE, OUT PH[i] ) THEN
                Host^.Log^.LogSC( log.dlcError, L"", L"Unable to run worker of index: ", i );
             END;
          END; // FOR
 
          // test
          IF CompletionInOwningThread THEN
-            WaitForMessages( 500 );
+            WaitForMessages( 5100 );
          ELSE
-            windows.Sleep( 1200 );
+            windows.Sleep( 5100 );
          END;
 
       // check
       FOR i := 1 TO count-2 DO
-         IF Counts[i] <> 1 THEN // count DIV i THEN
+         IF Counts[i] <> count DIV i THEN
             Failure := TRUE;
             Host^.Log^.LogSC( log.dlcError, L"", L"Failure with index: ", i );
+            Host^.Log^.LogSC( log.dlcError, L"", L"  expected: ", count DIV i );
+            Host^.Log^.LogSC( log.dlcError, L"", L"  found: ", Counts[i] );
          END;
       END;
 
+      IF Failure THEN
+         FirstFailure := TRUE;
+         Host^.StopPhaseWithResult( test.trFailure );
+      ELSE
+         Host^.StopPhaseWithResult( test.trSuccess );
+      END;
+      Failure := FALSE;
+
       //==========
       IF CompletionInOwningThread THEN
-         Host^.StartPhase( L"100t Abort in reverted order, completed in own thread" );
+         Host^.StartPhase( L"10t Abort in reverted order, completed in own thread" );
       ELSE
-         Host^.StartPhase( L"100t Abort in reverted order" );
+         Host^.StartPhase( L"10t Abort in reverted order" );
       END;
          // reset, initiate
          FOR i := 1 TO count-2 DO
             Counts[count-i-1] := 0;
-            IF NOT Pool.WaitTimeout( ADR( Delegate ), count-i-1, ( count-i-1 ) * 10, TRUE, OUT PH[i] ) THEN
-               Host^.Log^.LogSC( log.dlcError, L"", L"Unable to run worker of index: ", i );
-            END;
          END; // FOR
+
+         IF CompletionInOwningThread THEN
+            WaitForMessages( 5100 );
+         ELSE
+            windows.Sleep( 5100 );
+         END;
 
          // test
          FOR i := count-1 TO 0 BY -1 DO
@@ -163,15 +176,18 @@ CLASS IMPLEMENTATION CTest;
          END; // FOR
 
          IF CompletionInOwningThread THEN
-            WaitForMessages( 500 );
+            WaitForMessages( 50 );
          ELSE
-            windows.Sleep( 1200 );
+            windows.Sleep( 50 );
          END;
 
       // check
       FOR i := 1 TO count-2 DO
-         IF Counts[i] <> 1 THEN // count DIV i THEN
+         IF Counts[i] <> count DIV i + 1 THEN // +1 is for Abort
+            Failure := TRUE;
             Host^.Log^.LogSC( log.dlcError, L"", L"Failure with index: ", i );
+            Host^.Log^.LogSC( log.dlcError, L"", L"  expected: ", count DIV i + 1 );
+            Host^.Log^.LogSC( log.dlcError, L"", L"  found: ", Counts[i] );
          END;
       END;
 
@@ -181,7 +197,7 @@ CLASS IMPLEMENTATION CTest;
          Host^.StopPhaseWithResult( test.trSuccess );
       END;
 
-      RETURN Failure;
+      RETURN FirstFailure OR Failure;
    END Round;
 
 (*---------------------------------------------------------------------------*)
