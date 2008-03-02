@@ -1,57 +1,380 @@
 MODULE SendReceiveBufferedStream;
 
 IMPORT
-  winsock;
+   winsock;
 
 FROM Storage IMPORT
-  ALLOCATE, DEALLOCATE;
-  
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
-  IOO,
-  netsocket,
-  netsrv,
-  netstream,
-  netinit,
-  Strings,
-  Sync,
-  Time,
-  windows;
+   log,
+   netinit,
+   netpool,
+   netsocket,
+   netsrv,
+   netstream,
+   IOO,
+   sync,
+   test,
+   testimpl,
+   windows;
   
-CLASS RDR( IOO.CMemoryProxy );
-  VAR
-    LL : CARD64 := 0;
-    PrevC : CARDINAL := 0;
-  PUBLIC VIRTUAL PROCEDURE CompleteData( Completed : CARDINAL );
-END RDR;
+(*===========================================================================*)
 
-CLASS WRT( IOO.CMemoryProxy );
-  VAR
-    LL : CARD64 := 0;
-  PUBLIC VIRTUAL PROCEDURE CompleteData( Completed : CARDINAL );
-END WRT;
+TYPE
+   TPTest = POINTER TO CTest;
 
-PROCEDURE Wait();
-VAR
-  C : CARDINAL := 2;
-  msg : windows.MSG;
+(*---------------------------------------------------------------------------*)
+
+CLASS CServerListener( netsrv.AListener );
+   PUBLIC VAR
+      Test : TPTest;
+   LOCAL VIRTUAL PROCEDURE OnListen( CONST ServerSocket : netsocket.TPSSocket );
+END CServerListener;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CReader( IOO.CMemoryProxy );
+   PUBLIC VAR
+      DetectPrevious : BOOLEAN;
+      PrevCount : INTEGER := 0;
+      Summa : CARD64 := 0;
+      Test : TPTest;
+   PUBLIC VIRTUAL PROCEDURE CompleteData( Completed : CARDINAL );
+END CReader;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CWriter( IOO.CMemoryProxy );
+   PUBLIC VAR
+      Summa : CARD64 := 0;
+      Test : TPTest;
+   PUBLIC VIRTUAL PROCEDURE CompleteData( Completed : CARDINAL );
+END CWriter;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CTest IMPLEMENTS test.ITest;
+   PUBLIC VAR
+      Host : test.TPHost := NIL;
+      ServerListener : CServerListener;
+      ServerSocket : netsocket.DSocket;
+      
+      Reader : CReader;
+      Writer : CWriter;
+
+      ReadStream : netstream.CNetworkStream;
+      WriteStream : netstream.CNetworkStream;
+      
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   PRIVATE PROCEDURE WaitForMessages( count : CARDINAL );
+END CTest;
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CServerListener;
+
+(*---------------------------------------------------------------------------*)
+
+   LOCAL VIRTUAL PROCEDURE OnListen( CONST ServerSocket : netsocket.TPSSocket );
+   VAR
+      Error : CARDINAL;
+   BEGIN
+      Test^.ServerSocket.Accept( ServerSocket, OUT Error );
+      Test^.ReadStream.FromSocket( ADR( Test^.ServerSocket ), FALSE, IOO.accRead );
+      Test^.ReadStream.Read( ADR( Test^.Reader ), windows.INFINITE, FALSE );
+   END OnListen;
+
+(*---------------------------------------------------------------------------*)
+
 BEGIN
-  WHILE C > 0 DO 
-    windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE );
-    windows.DispatchMessage( ADR( msg ));
-    windows.Sleep( 0 );
-    DEC( C );
-  END; // WHILE
-END Wait;
-  
-CLASS C_LN( netsrv.AListener );
-  LOCAL VIRTUAL PROCEDURE OnListen( CONST ServerSocket : netsocket.TPSSocket ); // stStream
-END C_LN;
+   Test := NIL;
+END CServerListener;
 
-VAR  
-  // Buffer : ARRAY [0..9999] OF BYTE;
-  Buffer : ARRAY [0..9] OF BYTE;
-  LN : C_LN;
-  RD : RDR;
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CReader;
+
+(*---------------------------------------------------------------------------*)
+
+  PUBLIC VIRTUAL PROCEDURE CompleteData( Completed : CARDINAL );
+  BEGIN
+    INC( Summa, Completed );
+    SUPER.CompleteData( Completed );
+    _Ptr := 0; // reset reading
+
+    IF DetectPrevious AND ( PINTEGER( _Data )^ <> PrevCount+1 ) THEN
+       Test^.Host^.Log^.LogSC( log.dlcError, L"", L"Failed: ", PCARDINAL( _Data )^ );
+    END;
+    INC( PrevCount );
+  END CompleteData;
+
+(*---------------------------------------------------------------------------*)
+
+BEGIN
+   Test := NIL;
+   DetectPrevious := FALSE;
+END CReader;
+  
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CWriter;
+
+(*---------------------------------------------------------------------------*)
+
+  PUBLIC VIRTUAL PROCEDURE CompleteData( Completed : CARDINAL );
+  BEGIN
+    INC( Summa, Completed );
+    SUPER.CompleteData( Completed );
+  END CompleteData;
+
+(*---------------------------------------------------------------------------*)
+
+BEGIN
+   Test := NIL;
+END CWriter;
+  
+(*===========================================================================*)
+
+VAR
+   Test : CTest;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CTest;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   VAR
+      Buffer : ARRAY [0..1023] OF BYTE;
+      Count : INTEGER;
+      Failure : BOOLEAN := FALSE;
+      WriteStream : netstream.CNetworkStream;
+   BEGIN
+      SELF.Host := Host;
+      ServerListener.Test := ADR( SELF );
+      Reader.Test := ADR( SELF );
+      Writer.Test := ADR( SELF );
+
+      netinit.Startup();
+
+      // global init      
+      Reader.Init( ADR( Buffer ), SIZE( CARDINAL ), FALSE );
+      Reader.Persistent := TRUE;
+      Writer.Persistent := TRUE;
+      netsrv.SetCallbackMode( netsrv.cbmPooled );
+      netsrv.StartListen( netsocket.stStream, 4444, NIL, ADR( ServerListener ), 0, NIL );
+
+      //=====
+
+      Host^.StartPhase( L"Socket, 100000 * 4 bytes, WAIT" );
+      Reader.DetectPrevious := TRUE;
+      Reader.PrevCount := 0;
+      Reader.Summa := 0;
+      
+      // start
+      WriteStream.FromServer( L"127.0.0.1", 4444 );
+  
+      // run
+      Count := 1; // must start from 1, it is due to comparsion with PrevCount in receiver
+      LOOP
+         Writer.Init( ADR( Count ), SIZE( Count ), FALSE );
+         IF WriteStream.Write( ADR( Writer ), windows.INFINITE, TRUE ) = sync.arCompleted THEN
+            INC( Count );
+          END;
+          IF Count = 100000 THEN
+            EXIT;
+          END;
+      END; // LOOP
+
+      // flush receiving
+      WaitForMessages( 50 );
+      ServerSocket.AbortReceive();
+      WriteStream.Close( FALSE );
+      // flush disconnect
+      // WaitForMessages( 250 );
+      
+      // check
+      IF Count <> Reader.PrevCount+1 THEN
+         Failure := TRUE;
+         Host^.StopPhaseWithResult( test.trFailure );
+      ELSE
+         Host^.StopPhaseWithResult( test.trSuccess );
+      END;
+
+      //=====
+
+      Host^.StartPhase( L"Socket, 100000 * 4 bytes, POLL" );
+      Reader.DetectPrevious := TRUE;
+      Reader.PrevCount := 0;
+      Reader.Summa := 0;
+      
+      // start
+      WriteStream.FromServer( L"127.0.0.1", 4444 );
+  
+      // run
+      Count := 0; // must start from 0, it is due to comparsion with PrevCount in receiver, but here is Count incremented before send
+      LOOP
+         IF ( Count = 0 ) OR Writer.Completed THEN
+            INC( Count );
+            IF Count = 100000 THEN
+              EXIT;
+            END;
+
+            Writer.Init( ADR( Count ), SIZE( Count ), FALSE );
+            WriteStream.Write( ADR( Writer ), windows.INFINITE, FALSE );
+         END;
+      END; // LOOP
+
+      // flush receiving
+      WaitForMessages( 50 );
+      ServerSocket.AbortReceive();
+      WriteStream.Close( FALSE );
+      // flush disconnect
+      // WaitForMessages( 250 );
+      
+      // check
+      IF Count <> Reader.PrevCount+1 THEN
+         Failure := TRUE;
+         Host^.StopPhaseWithResult( test.trFailure );
+      ELSE
+         Host^.StopPhaseWithResult( test.trSuccess );
+      END;
+
+      //=====
+
+      // global
+      Reader.Init( ADR( Buffer ), SIZE( Buffer ), FALSE );
+
+      Host^.StartPhase( L"Socket, 100000 * 1024 bytes, WAIT" );
+      Reader.DetectPrevious := FALSE;
+      Reader.PrevCount := 0;
+      Reader.Summa := 0;
+      Writer.Summa := 0;
+      
+      // start
+      WriteStream.FromServer( L"127.0.0.1", 4444 );
+  
+      // run
+      Count := 1; // must start from 1, it is due to comparsion with PrevCount in receiver
+      LOOP
+         Writer.Init( ADR( Buffer ), SIZE( Buffer ), FALSE );
+         IF WriteStream.Write( ADR( Writer ), windows.INFINITE, TRUE ) = sync.arCompleted THEN
+            INC( Count );
+          END;
+          IF Count = 100000 THEN
+            EXIT;
+          END;
+      END; // LOOP
+
+      // flush receiving
+      WaitForMessages( 50 );
+      ServerSocket.AbortReceive();
+      WriteStream.Close( FALSE );
+      // flush disconnect
+      WaitForMessages( 250 );
+      
+      // check
+      IF Writer.Summa <> Reader.Summa THEN
+         Failure := TRUE;
+         Host^.StopPhaseWithResult( test.trFailure );
+      ELSE
+         Host^.StopPhaseWithResult( test.trSuccess );
+      END;
+
+      //=====
+
+      Host^.StartPhase( L"Socket, 100000 * 1024 bytes, POLL" );
+      Reader.DetectPrevious := FALSE;
+      Reader.PrevCount := 0;
+      Reader.Summa := 0;
+      Writer.Summa := 0;
+      
+      // start
+      WriteStream.FromServer( L"127.0.0.1", 4444 );
+  
+      // run
+      Count := 0; // must start from 0, it is due to comparsion with PrevCount in receiver, but here is Count incremented before send
+      LOOP
+         IF ( Count = 0 ) OR Writer.Completed THEN
+            INC( Count );
+            IF Count = 100000 THEN
+              EXIT;
+            END;
+
+            Writer.Init( ADR( Buffer ), SIZE( Buffer ), FALSE );
+            WriteStream.Write( ADR( Writer ), windows.INFINITE, FALSE );
+         END;
+      END; // LOOP
+
+      // flush receiving
+      WaitForMessages( 50 );
+      ServerSocket.AbortReceive();
+      WriteStream.Close( FALSE );
+      // flush disconnect
+      // WaitForMessages( 250 );
+      
+      // check
+      IF Writer.Summa <> Reader.Summa THEN
+         Failure := TRUE;
+         Host^.StopPhaseWithResult( test.trFailure );
+      ELSE
+         Host^.StopPhaseWithResult( test.trSuccess );
+      END;
+
+      //=====
+
+      netinit.Cleanup();
+      IF Failure THEN
+         RETURN test.trFailure;
+      ELSE
+         RETURN test.trSuccess;
+      END;
+   END Run;
+   
+(*---------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE WaitForMessages( count : CARDINAL );
+   VAR
+      i : CARDINAL := count;
+      msg : windows.MSG;
+   BEGIN
+      IF i = 0 THEN
+         i := 5; // set
+         LOOP
+            IF netpool.Pool()^.UndeliveredMessagesPending THEN
+               WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) = windows.True DO
+                  windows.DispatchMessage( ADR( msg ));
+               END; // WHILE
+               i := 5; // reset
+            ELSIF i = 0 THEN
+               EXIT;
+            END;
+            DEC( i );
+            windows.Sleep( 1 );
+         END; // WHILE
+      ELSE
+         WHILE i > 0 DO
+            WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) = windows.True DO
+               windows.DispatchMessage( ADR( msg ));
+            END; // WHILE
+            DEC( i );
+            windows.Sleep( 1 );
+         END; // WHILE
+      END;
+   END WaitForMessages;
+
+(*---------------------------------------------------------------------------*)
+
+BEGIN
+   testimpl.tests()^.AddTest( L"Network::SendReceiveBufferedStream", ADR( Test ));
+END CTest;
+
+(*===========================================================================*)
+
+END SendReceiveBufferedStream.
+
   
   nRSX : netstream.CNetworkStream;
   RSX : IOO.CBufferedStream;
@@ -76,17 +399,6 @@ CLASS IMPLEMENTATION RDR;
 
 BEGIN
 END RDR;
-  
-CLASS IMPLEMENTATION WRT;
-
-  PUBLIC VIRTUAL PROCEDURE CompleteData( Completed : CARDINAL );
-  BEGIN
-    INC( LL, Completed );
-    SUPER.CompleteData( Completed );
-  END CompleteData;
-
-BEGIN
-END WRT;
   
 CLASS IMPLEMENTATION C_LN;
 
@@ -158,19 +470,3 @@ BEGIN
 END Test;
 
 (*========================================================================*)
-
-#save, call( convention => cdecl )
-PROCEDURE wmain03() : INTEGER;
-#restore
-VAR
-  msg : windows.MSG;
-BEGIN
-  netinit.Startup();
-  Test();
-  WHILE windows.GetMessage( ADR( msg ), NIL, 0, 0 ) = windows.True DO
-    windows.DispatchMessage( ADR( msg ));
-  END;
-  RETURN 0;
-END wmain03;
-
-END SendReceiveBufferedStream.
