@@ -154,6 +154,21 @@ CLASS IMPLEMENTATION CLogger;
 
 //---------------------------------------------------------
 
+  PUBLIC PROCEDURE LogSE( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; ErrorCode : CARDINAL );
+  VAR
+    E : ARRAY [0..255] OF WCHAR;
+    S : ARRAY [0..511] OF WCHAR;
+  BEGIN
+    IF Filtered( Level ) THEN
+      RETURN;
+    END;
+    Strings.FromErrorW( ErrorCode, OUT E );
+    Strings.ConcatW( OUT S, S1, E );
+    Log( Level, Prefix, S );
+  END LogSE;
+
+//---------------------------------------------------------
+
   PUBLIC PROCEDURE LogSC( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL );
   VAR
     N : ARRAY [0..15] OF WCHAR;

@@ -168,7 +168,7 @@ CLASS IMPLEMENTATION CTest;
 
       //=====
 
-      Host^.StartPhase( L"Socket, 100000 * 4 bytes, WAIT" );
+      Host^.StartPhase( L"Stream, 100000 * 4 bytes, WAIT" );
       Reader.DetectPrevious := TRUE;
       Reader.PrevCount := 0;
       Reader.Summa := 0;
@@ -205,7 +205,7 @@ CLASS IMPLEMENTATION CTest;
 
       //=====
 
-      Host^.StartPhase( L"Socket, 100000 * 4 bytes, POLL" );
+      Host^.StartPhase( L"Stream, 100000 * 4 bytes, POLL" );
       Reader.DetectPrevious := TRUE;
       Reader.PrevCount := 0;
       Reader.Summa := 0;
@@ -247,7 +247,7 @@ CLASS IMPLEMENTATION CTest;
       // global
       Reader.Init( ADR( Buffer ), SIZE( Buffer ), FALSE );
 
-      Host^.StartPhase( L"Socket, 100000 * 1024 bytes, WAIT" );
+      Host^.StartPhase( L"Stream, 100000 * 1024 bytes, WAIT" );
       Reader.DetectPrevious := FALSE;
       Reader.PrevCount := 0;
       Reader.Summa := 0;
@@ -285,7 +285,7 @@ CLASS IMPLEMENTATION CTest;
 
       //=====
 
-      Host^.StartPhase( L"Socket, 100000 * 1024 bytes, POLL" );
+      Host^.StartPhase( L"Stream, 100000 * 1024 bytes, POLL" );
       Reader.DetectPrevious := FALSE;
       Reader.PrevCount := 0;
       Reader.Summa := 0;

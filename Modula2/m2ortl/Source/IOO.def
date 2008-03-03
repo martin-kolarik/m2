@@ -68,6 +68,7 @@ ABSTRACT CLASS ADataProxy( ADataInfo ); // !! for all proxies put inside stack c
   INTERNAL VAR
     _Status : TDataProxyStatus;
     _Signal : Sync.SIGNAL;
+    _Lock : Sync.LOCK;
   PUBLIC VAR
     Persistent : BOOLEAN := TRUE; // FALSE = object is after completion self-Released
   PUBLIC READONLY VAR
@@ -84,7 +85,7 @@ ABSTRACT CLASS ADataProxy( ADataInfo ); // !! for all proxies put inside stack c
   // used by client
   PUBLIC PROCEDURE Start(); // prepares waiting, clears Result
   PUBLIC PROCEDURE WaitCompletion( TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
-  // used by server -- request/response model
+  // used by server -- request/response model, POSSIBLY FOREIGN THREAD
   PUBLIC VIRTUAL PROCEDURE PrepareData( OUT Prepared : ADDRESS; OUT Length : CARDINAL ) : BOOLEAN; // TRUE == have next data
   PUBLIC VIRTUAL PROCEDURE CompleteData( Completed : CARDINAL );
   // can be used by both

@@ -96,12 +96,12 @@ CLASS IMPLEMENTATION ADataProxy;
 
   PUBLIC PROPERTY Completed GET : BOOLEAN;
   BEGIN
-    RETURN _Status = TDataProxyStatus{};
+    RETURN NOT _Lock.In( REF _Status, dpsPending );
   END Completed;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROPERTY SignalsCompleteData GET: BOOLEAN; // if TRUE then both DeviceFinish/CompleteData causes Signal
+  PUBLIC VIRTUAL PROPERTY SignalsCompleteData GET : BOOLEAN; // if TRUE then both DeviceFinish/CompleteData causes Signal
   BEGIN
     RETURN FALSE;
   END SignalsCompleteData;
@@ -110,9 +110,11 @@ CLASS IMPLEMENTATION ADataProxy;
 
   PUBLIC PROCEDURE Start(); // prepares waiting, clears Result
   BEGIN
-    INCL( _Status, dpsPending );
-    Result := Sync.arUnknown;
-    Reset();
+    _Lock.Lock();
+      INCL( _Status, dpsPending );
+      Result := Sync.arUnknown;
+      Reset();
+    _Lock.Unlock();
   END Start;
 
 (*--------------------------------------------------------------------------------*)
@@ -160,9 +162,12 @@ CLASS IMPLEMENTATION ADataProxy;
 
   PUBLIC VIRTUAL PROCEDURE DeviceFinish( Result : Sync.TAsyncResult );
   BEGIN
-    SELF.Result := Result;
-    Signal();
-    EXCL( _Status, dpsPending );
+    _Lock.Lock();
+      SELF.Result := Result;
+      Signal();
+      EXCL( _Status, dpsPending );
+    _Lock.Unlock();
+
     IF NOT Persistent THEN
       Release();
     END;
@@ -173,6 +178,7 @@ CLASS IMPLEMENTATION ADataProxy;
 BEGIN
   _Status := TDataProxyStatus{};
   _Signal := NIL;
+  _Lock.Init( Sync.ltSpin, L"", FALSE );
   Persistent := TRUE;
   Result := Sync.arCannotStart;
 FINALLY

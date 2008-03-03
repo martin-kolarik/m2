@@ -5,15 +5,23 @@ IMPORT
 
 #save, option( dll_export => on )
 
+INTERFACE IRunnable;
+   INTERNAL PROCEDURE OnRun() : CARDINAL;
+END IRunnable;
+
 INTERFACE IThread;
    PUBLIC READONLY PROPERTY
       SelfContext : BOOLEAN;
    PUBLIC PROPERTY
       WithMessages : BOOLEAN;
 
+   // controlled thread
    PUBLIC PROCEDURE Run( Wait : BOOLEAN ); // command
    PUBLIC PROCEDURE Stop( Wait : BOOLEAN ); // command
    PUBLIC PROCEDURE WaitStop( Timeout : CARDINAL ) : Sync.TAsyncResult; // wait to exit
+   
+   // worker thread
+   // PUBLIC PROCEDURE RunWithRunnable( Runnable : TPRunnable );
 
    INTERNAL PROCEDURE OnRun() : CARDINAL; // executive code
 END IThread;
