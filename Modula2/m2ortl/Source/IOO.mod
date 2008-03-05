@@ -86,7 +86,7 @@ CLASS IMPLEMENTATION ADataProxy;
       RETURN;
     END;
     IF Value THEN
-      _Signal := Sync.CreateSignal( FALSE, L'' );
+      _Signal := Sync.CreateAutoresetSignal( FALSE, L'' );
     ELSE
       Sync.DeleteSignal( REF _Signal );
     END;
@@ -113,8 +113,9 @@ CLASS IMPLEMENTATION ADataProxy;
     _Lock.Lock();
       INCL( _Status, dpsPending );
       Result := Sync.arUnknown;
-      Reset();
     _Lock.Unlock();
+
+    Reset();
   END Start;
 
 (*--------------------------------------------------------------------------------*)
@@ -125,7 +126,7 @@ CLASS IMPLEMENTATION ADataProxy;
   BEGIN
     LResult := Sync.Wait( _Signal, TimeoutMS );
     IF LResult = Sync.arCompleted THEN
-      RETURN SELF.Result;
+      RETURN Sync.TAsyncResult( _Lock.Get( REF Result ));
     ELSE
       RETURN LResult;
     END;
@@ -164,9 +165,10 @@ CLASS IMPLEMENTATION ADataProxy;
   BEGIN
     _Lock.Lock();
       SELF.Result := Result;
-      Signal();
       EXCL( _Status, dpsPending );
     _Lock.Unlock();
+
+    Signal();
 
     IF NOT Persistent THEN
       Release();
@@ -646,14 +648,14 @@ CLASS IMPLEMENTATION CBufferedStream;
 
   PUBLIC FINAL PROPERTY CanRead GET : BOOLEAN;
   BEGIN
-    RETURN ( _Stream <> NIL ) AND _Stream^.CanRead;
+    RETURN NOT _RBuffer.Empty OR ( _Stream <> NIL ) AND _Stream^.CanRead;
   END CanRead;
     
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC FINAL PROPERTY CanWrite GET : BOOLEAN;
   BEGIN
-    RETURN ( _Stream <> NIL ) AND _Stream^.CanWrite;
+    RETURN NOT _RBuffer.Full OR ( _Stream <> NIL ) AND _Stream^.CanWrite;
   END CanWrite;
     
 (*--------------------------------------------------------------------------------*)
@@ -705,6 +707,7 @@ CLASS IMPLEMENTATION CBufferedStream;
 
   PUBLIC FINAL PROPERTY Position SET( Value : CARD64 );
   BEGIN
+    _RBuffer.Clear();
     IF _Stream <> NIL THEN
       _Stream^.Position := Value;
     END;
@@ -924,6 +927,7 @@ CLASS IMPLEMENTATION CBufferedStream;
     IF Result IN Sync.arsCompletions THEN
       OperateDevice( Direction );
     ELSE
+      // should this be so relaxed ???
       Sync.IExchgPtr( REF _RPending, NIL );
       Sync.IExchgPtr( REF _WPending, NIL );
       SUPER.DeviceFinish( Direction, Result );
@@ -936,11 +940,14 @@ CLASS IMPLEMENTATION CBufferedStream;
    VAR
       CA, SA : ADDRESS;
       CL, SL : CARDINAL;
+      Partial : BOOLEAN;
    BEGIN
       IF Proxy = NIL THEN
          RETURN Sync.arCannotStart;
 
       ELSIF Direction = dirRead THEN
+
+         // chunked and cached querying need not to be synchronized
          IF RMode = bmChunked THEN
             IF _RBuffer.Count < RChunk THEN
                Sync.IExchgPtr( REF _RPending, Proxy );
@@ -953,49 +960,85 @@ CLASS IMPLEMENTATION CBufferedStream;
             END;
          END;
 
+         _RLock.Lock();      
          LOOP
-            SL := 0;
             IF NOT Proxy^.PrepareData( OUT CA, OUT CL ) THEN // finish
                Sync.IExchgPtr( REF _RPending, NIL );
+               _RLock.Unlock();      
+
                SUPER.DeviceFinish( dirRead, Sync.arCompleted );
                IF ( _Notifier <> NIL ) AND NOT _RBuffer.Empty THEN
                   _Notifier^.OnFlowPossible( dirRead, ADR( SELF ));
                END;
+
+               // already unlocked
                RETURN Sync.arCompleted;
 
-            ELSIF _RBuffer.StartReading( CL, OUT SA, OUT SL ) THEN
-               Storage.Move( SA, CA, SL );
-               _RBuffer.CommitReading( SL );
-               Proxy^.CompleteData( SL );
-            END; // ELSIF StartReading
-
-            IF SL < CL THEN
+            ELSIF NOT _RBuffer.StartReading( CL, OUT SA, OUT SL ) THEN // unable do read nothing, stay pending
                Sync.IExchgPtr( REF _RPending, Proxy );
+
+               _RLock.Unlock();      
                RETURN Sync.arPending;
-            END; // IF accepted less than required
+            END;
+            
+            // something can be read
+            Partial := SL < CL;
+            IF Partial THEN // but not everything, stay pending, see comment on write below
+               Sync.IExchgPtr( REF _RPending, Proxy );
+            END;
+            
+            // read data
+            Storage.Move( SA, CA, SL );
+            _RBuffer.CommitReading( SL );
+            Proxy^.CompleteData( SL );
+               
+            IF Partial THEN // stay pending, accepted less than required
+               _RLock.Unlock();      
+               RETURN Sync.arPending;
+            END; // IF 
          END; // LOOP
 
       ELSE // dirWrite :
+      
+         _WLock.Lock();      
          LOOP
-            SL := 0;
             IF NOT Proxy^.PrepareData( OUT CA, OUT CL ) THEN
                Sync.IExchgPtr( REF _WPending, NIL );
+               _WLock.Unlock();      
+      
                SUPER.DeviceFinish( dirWrite, Sync.arCompleted );
                IF _Notifier <> NIL THEN
                   _Notifier^.OnFlowPossible( dirWrite, ADR( SELF ));
                END;
+
+               // already unlocked
                RETURN Sync.arCompleted;
 
-            ELSIF _WBuffer.StartWriting( CL, OUT SA, OUT SL ) THEN
-               Storage.Move( CA, SA, SL );
-               _WBuffer.CommitWriting( SL );
-               Proxy^.CompleteData( SL );
-            END;  // ELSIF StartWriting
-
-            IF SL < CL THEN
+            ELSIF NOT _WBuffer.StartWriting( CL, OUT SA, OUT SL ) THEN // nothing can be sent, stay pending
                Sync.IExchgPtr( REF _WPending, Proxy );
+
+               _WLock.Unlock();      
                RETURN Sync.arPending;
-            END; // IF accepted less than required
+            END;
+            
+            // something can be sent
+            Partial := SL < CL;
+            IF Partial THEN // prepare pending operation: this must be done here,
+                            // as immediatelly after CommitWriting the buffer could be flushed and finished.
+                            // If during this finish _WPending is not set, no completion is signalized to client and
+                            // infinite waiting can occur.
+               Sync.IExchgPtr( REF _WPending, Proxy );
+            END;
+
+            // store data and commit     
+            Storage.Move( CA, SA, SL );
+            _WBuffer.CommitWriting( SL );
+            Proxy^.CompleteData( SL );
+               
+            IF Partial THEN // accepted less than required
+               _WLock.Unlock();      
+               RETURN Sync.arPending;
+            END;
          END; // LOOP
 
       END; // IF Direction
@@ -1004,18 +1047,20 @@ CLASS IMPLEMENTATION CBufferedStream;
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE OperateDevice( Direction : TDirection );
+   // Procedure needs no synchronization, even if is called from both device and client.
+   // _WBuffer.Empty/Count is safe and IO can be called with the same proxy more times (it returns pending or complete)
    BEGIN
       IF Direction = dirRead THEN
-         IF NOT _RBuffer.Full THEN
+         // IF NOT _RBuffer.Full THEN
             _Stream^.IO( dirRead, ADR( _RProxy ), Sync.INFINITE_TIME, FALSE );
-         END;
+         // END;
 
       ELSIF Direction = dirWrite THEN
          IF WMode = bmCommited THEN
             // wait for commit
+
          ELSIF NOT _WBuffer.Empty THEN
             ASSERT( WMode <> bmBypass );
-
             IF WMode = bmChunked THEN
                IF _WBuffer.Count >= WChunk THEN
                   _Stream^.IO( dirWrite, ADR( _WProxy ), Sync.INFINITE_TIME, FALSE );

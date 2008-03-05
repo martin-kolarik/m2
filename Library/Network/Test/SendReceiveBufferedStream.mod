@@ -117,7 +117,7 @@ CLASS IMPLEMENTATION CReader;
     IF _Ptr < _Length THEN
       RETURN;
     END;
-    _Ptr := 0; // reset reading
+    // _Ptr := 0; // reset reading
 
     IF DetectPrevious AND ( PINTEGER( _Data )^ <> PrevCount+1 ) THEN
        Test^.Host^.Log^.LogSC( log.dlcError, L"", L"Failed: ", PCARDINAL( _Data )^ );
@@ -160,9 +160,11 @@ CLASS IMPLEMENTATION CReaderThread;
    VAR
       c : CARDINAL;
    BEGIN
-      Test^.Reader.Init( ADR( c ), SIZE( c ), FALSE );
-
-      WHILE Test^.ReadStream.Read( ADR( Test^.Reader ), windows.INFINITE, TRUE ) = sync.arCompleted DO
+      LOOP
+         Test^.Reader.Init( ADR( c ), SIZE( c ), FALSE );
+         IF Test^.ReadStream.Read( ADR( Test^.Reader ), windows.INFINITE, TRUE ) <> sync.arCompleted THEN
+            Test^.Host^.Log^.LogSC( log.dlcError, L"", L"Read failure: ", Test^.Reader.PrevCount );
+         END;
          IF count = Test^.Reader.PrevCount + 1 THEN
             EXIT;
          END;
@@ -195,6 +197,8 @@ CLASS IMPLEMENTATION CTest;
       NetWriteStream : netstream.CNetworkStream;
       ReaderThread : CReaderThread;
       WriteStream : IOO.CBufferedStream;
+      
+      XXX : CARDINAL;
    BEGIN
       SELF.Host := Host;
       ServerListener.Test := ADR( SELF );
@@ -210,23 +214,25 @@ CLASS IMPLEMENTATION CTest;
       netsrv.StartListen( netsocket.stStream, 4444, NIL, ADR( ServerListener ), 0, NIL );
 
       ReadStream.Stream := ADR( NetReadStream );
-      ReadStream.BufferSize := 257;
-
       WriteStream.Stream := ADR( NetWriteStream );
-      WriteStream.BufferSize := 127;
 
       ReaderThread.Test := ADR( SELF );
 
       //=====
 
+(*
       Host^.StartPhase( L"BufferedStream, 100k * 4 bytes, W WAIT, 257/127, 1 T" );
+
+      ReadStream.BufferSize := 257;
+      WriteStream.BufferSize := 127;
+
       Reader.DetectPrevious := TRUE;
       Reader.PrevCount := 0;
       Reader.Summa := 0;
       
       // start
       NetWriteStream.FromServer( L"127.0.0.1", 4444 );
-      WaitForMessages( 50 );
+      WaitForMessages( 200 );
       ReaderThread.Run( TRUE );
   
       // run
@@ -244,60 +250,12 @@ CLASS IMPLEMENTATION CTest;
          END;
       END; // LOOP
 
-      // flush receiving
-      WaitForMessages( 50 );
-      ServerSocket.AbortReceive();
+      WriteStream.Flush();
+      WaitForMessages( 200 );
 
       WriteStream.Close( FALSE );
-      ReaderThread.WaitStop( sync.INFINITE_TIME );
-      
-      // check
-      IF Count <> Reader.PrevCount+1 THEN
-         Failure := TRUE;
-         Host^.StopPhaseWithResult( test.trFailure );
-      ELSE
-         Host^.StopPhaseWithResult( test.trSuccess );
-      END;
-
-(*
-      //=====
-
-      Host^.StartPhase( L"BufferedStream, 100k * 4 bytes, W WAIT, 2057/127 1 T" );
-      Reader.DetectPrevious := TRUE;
-      Reader.PrevCount := 0;
-      Reader.Summa := 0;
-      
-      // start
-      NetWriteStream.FromServer( L"127.0.0.1", 4444 );
-  
-      // run
-      Count := 1; // must start from 1, it is due to comparsion with PrevCount in receiver
-      LOOP
-         // write
-         Writer.Init( ADR( Count ), SIZE( Count ), FALSE );
-         IF WriteStream.Write( ADR( Writer ), windows.INFINITE, TRUE ) = sync.arCompleted THEN
-            INC( Count );
-            IF Count MOD 100 = 0 THEN
-              sync.Sleep( 0 );
-            END;
-         ELSE
-            Host^.Log^.LogSC( log.dlcError, L"", L"Write failure: ", Count );
-         END;
-
-         // flush
-         WHILE ReadStream.Read( ADR( Reader ), windows.INFINITE, FALSE ) = sync.arCompleted DO END;
-
-         IF Count = 100000 THEN
-            EXIT;
-         END;
-      END; // LOOP
-
-      // flush receiving
-      WaitForMessages( 50 );
-      WHILE ReadStream.Read( ADR( Reader ), 100, TRUE ) = sync.arCompleted DO END;
-      ServerSocket.AbortReceive();
-
-      WriteStream.Close( FALSE );
+      ReadStream.Close( FALSE );
+      ReaderThread.Stop( TRUE );
       
       // check
       IF Count <> Reader.PrevCount+1 THEN
@@ -307,6 +265,56 @@ CLASS IMPLEMENTATION CTest;
          Host^.StopPhaseWithResult( test.trSuccess );
       END;
 *)      
+
+      //=====
+
+      Host^.StartPhase( L"BufferedStream, 100k * 4 bytes, W WAIT, 2057/127 1 T" );
+
+      ReadStream.BufferSize := 2057;
+      WriteStream.BufferSize := 127;
+
+      Reader.DetectPrevious := TRUE;
+      Reader.PrevCount := 0;
+      Reader.Summa := 0;
+      
+      // start
+      NetWriteStream.FromServer( L"127.0.0.1", 4444 );
+      WaitForMessages( 200 );
+      ReaderThread.Run( TRUE );
+
+      // run
+      Count := 1; // must start from 1, it is due to comparsion with PrevCount in receiver
+      LOOP
+         // write
+         Writer.Init( ADR( Count ), SIZE( Count ), FALSE );
+         IF WriteStream.Write( ADR( Writer ), windows.INFINITE, TRUE ) = sync.arCompleted THEN
+            INC( Count );
+         ELSE
+            Host^.Log^.LogSC( log.dlcError, L"", L"Write failure: ", Count );
+         END;
+
+         IF Count = 100000 THEN
+            EXIT;
+         END;
+      END; // LOOP
+
+      // flush and close
+      WriteStream.Flush();
+      WaitForMessages( 200 );
+      WriteStream.Close( FALSE );
+
+      WaitForMessages( 500 );
+      ReadStream.Close( FALSE );
+
+      ReaderThread.Stop( TRUE );
+      
+      // check
+      IF Count <> Reader.PrevCount+1 THEN
+         Failure := TRUE;
+         Host^.StopPhaseWithResult( test.trFailure );
+      ELSE
+         Host^.StopPhaseWithResult( test.trSuccess );
+      END;
 
       //=====
 

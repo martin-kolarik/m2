@@ -68,7 +68,7 @@ ABSTRACT CLASS ADataProxy( ADataInfo ); // !! for all proxies put inside stack c
   INTERNAL VAR
     _Status : TDataProxyStatus;
     _Signal : Sync.SIGNAL;
-    _Lock : Sync.LOCK;
+    _Lock   : Sync.LOCK;
   PUBLIC VAR
     Persistent : BOOLEAN := TRUE; // FALSE = object is after completion self-Released
   PUBLIC READONLY VAR
@@ -263,9 +263,11 @@ CLASS CBufferedStream( AStream ) IMPLEMENTS IBufferedReader;
   PRIVATE VAR
     _Stream    : TPStream;
     _BSize     : CARDINAL := 4096;
+    _RLock     : Sync.LOCK; // to operate client
     _RPending  : TPDataProxy;
     _RProxy    : CStreamProxy;
     _RBuffer   : SyncQueue.RingBuffer;
+    _WLock     : Sync.LOCK; // to operate client
     _WPending  : TPDataProxy;
     _WBuffer   : SyncQueue.RingBuffer;
     _WProxy    : CStreamProxy;
