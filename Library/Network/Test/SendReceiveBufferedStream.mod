@@ -159,11 +159,14 @@ CLASS IMPLEMENTATION CReaderThread;
    INTERNAL VIRTUAL PROCEDURE OnRun() : CARDINAL;
    VAR
       c : CARDINAL;
+      r : sync.TAsyncResult;
    BEGIN
       LOOP
          Test^.Reader.Init( ADR( c ), SIZE( c ), FALSE );
-         IF Test^.ReadStream.Read( ADR( Test^.Reader ), windows.INFINITE, TRUE ) <> sync.arCompleted THEN
+         r := Test^.ReadStream.Read( ADR( Test^.Reader ), windows.INFINITE, TRUE );
+         IF r <> sync.arCompleted THEN
             Test^.Host^.Log^.LogSC( log.dlcError, L"", L"Read failure: ", Test^.Reader.PrevCount );
+            Test^.Host^.Log^.LogSC( log.dlcError, L"", L"      result: ", CARDINAL( r ));
          END;
          IF count = Test^.Reader.PrevCount + 1 THEN
             EXIT;
@@ -195,6 +198,7 @@ CLASS IMPLEMENTATION CTest;
       Count : INTEGER;
       Failure : BOOLEAN := FALSE;
       NetWriteStream : netstream.CNetworkStream;
+      r : sync.TAsyncResult;
       ReaderThread : CReaderThread;
       WriteStream : IOO.CBufferedStream;
       
@@ -220,7 +224,6 @@ CLASS IMPLEMENTATION CTest;
 
       //=====
 
-(*
       Host^.StartPhase( L"BufferedStream, 100k * 4 bytes, W WAIT, 257/127, 1 T" );
 
       ReadStream.BufferSize := 257;
@@ -251,10 +254,13 @@ CLASS IMPLEMENTATION CTest;
       END; // LOOP
 
       WriteStream.Flush();
-      WaitForMessages( 200 );
+      WHILE Reader.PrevCount+1 < Count DO
+         sync.Sleep( 0 );
+      END;
 
       WriteStream.Close( FALSE );
       ReadStream.Close( FALSE );
+
       ReaderThread.Stop( TRUE );
       
       // check
@@ -264,7 +270,6 @@ CLASS IMPLEMENTATION CTest;
       ELSE
          Host^.StopPhaseWithResult( test.trSuccess );
       END;
-*)      
 
       //=====
 
@@ -287,23 +292,26 @@ CLASS IMPLEMENTATION CTest;
       LOOP
          // write
          Writer.Init( ADR( Count ), SIZE( Count ), FALSE );
-         IF WriteStream.Write( ADR( Writer ), windows.INFINITE, TRUE ) = sync.arCompleted THEN
+         r := WriteStream.Write( ADR( Writer ), windows.INFINITE, TRUE );
+         IF r = sync.arCompleted THEN
             INC( Count );
          ELSE
             Host^.Log^.LogSC( log.dlcError, L"", L"Write failure: ", Count );
+            Host^.Log^.LogSC( log.dlcError, L"", L"      result: ", CARDINAL( r ));
          END;
 
-         IF Count = 100000 THEN
+         IF Count = count THEN
             EXIT;
          END;
       END; // LOOP
 
       // flush and close
       WriteStream.Flush();
-      WaitForMessages( 200 );
-      WriteStream.Close( FALSE );
+      WHILE Reader.PrevCount+1 < Count DO
+         sync.Sleep( 0 );
+      END;
 
-      WaitForMessages( 500 );
+      WriteStream.Close( FALSE );
       ReadStream.Close( FALSE );
 
       ReaderThread.Stop( TRUE );
@@ -318,7 +326,9 @@ CLASS IMPLEMENTATION CTest;
 
       //=====
 
+      WaitForMessages( 100 );
       netinit.Cleanup();
+
       IF Failure THEN
          RETURN test.trFailure;
       ELSE

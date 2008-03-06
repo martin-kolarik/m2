@@ -312,7 +312,7 @@ CLASS CBufferedStream( AStream ) IMPLEMENTS IBufferedReader;
    PUBLIC VIRTUAL PROCEDURE DeviceCompleteData( Direction : TDirection; Completed : CARDINAL );
    PUBLIC VIRTUAL PROCEDURE DeviceFinish( Direction : TDirection; Result : Sync.TAsyncResult );
 
-   PRIVATE PROCEDURE OperateClient( Direction : TDirection; Proxy : TPDataProxy ) : Sync.TAsyncResult;
+   PRIVATE PROCEDURE OperateClient( Direction : TDirection; FromDevice : BOOLEAN ) : Sync.TAsyncResult;
    PRIVATE PROCEDURE OperateDevice( Direction : TDirection );
 END CBufferedStream;
 
