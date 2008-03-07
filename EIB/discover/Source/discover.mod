@@ -180,8 +180,12 @@ BEGIN
 
    errout^.WriteOA( OAsz( R[Texts._Searching] ), FALSE );
    Thread.Run( FALSE );
-   WHILE ( Sync.IGet( REF Thread.ShowDots ) = 1 ) AND ( Thread.WaitStop( 250 ) = Sync.arTimeout ) DO
-      errout^.WriteOA( L".", FALSE );
+   WHILE Thread.WaitStop( 250 ) = Sync.arTimeout DO
+      IF Sync.IGet( REF Thread.ShowDots ) = 1 THEN
+         errout^.WriteOA( L".", FALSE );
+      ELSE
+         EXIT;
+      END;
    END; // WHILE
    
    IF NOT ConfigFile.Empty THEN
