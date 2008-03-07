@@ -154,13 +154,13 @@ CLASS IMPLEMENTATION CTest;
       CT := windows.CreateThread( NIL, 0, ConsumerThread, ADR( SELF ), 0, NIL );
       // wait for all producers      
       FOR i := 0 TO ThreadCount-1 DO
-         Sync.Wait( Threads[i], Sync.INFINITE_TIME );
+         Sync.Wait( Threads[i], Sync.FOREVER );
          windows.CloseHandle( Threads[i] );
       END;
       Success := Exit = 0;
       // stop consumer thread
       Exit := 1;
-      Sync.Wait( CT, Sync.INFINITE_TIME );
+      Sync.Wait( CT, Sync.FOREVER );
       windows.CloseHandle( CT );
 
       Sync.DeleteSignal( REF PE );

@@ -54,13 +54,16 @@ CLASS IMPLEMENTATION Win32Thread;
    END Win32Thread.Run;
   
   PUBLIC FINAL PROCEDURE Win32Thread.Stop( Wait : BOOLEAN );
+  VAR
+    Result : Sync.TAsyncResult;
   BEGIN
     IF _HThread = NIL THEN
       RETURN;
     END;
     sync.Signal( _HExit );
     IF Wait THEN
-      sync.Wait( _HThread, sync.INFINITE_TIME );
+      Result := sync.Wait( _HThread, 10 * sync.FORSAFETY );
+      ASSERT( Result <> Sync.arTimeout );
     END;
     IF _HThread <> NIL THEN
       windows.CloseHandle( _HThread );

@@ -264,7 +264,7 @@ END CTest;
   CATCH : IOO.CIOException DO
   END;
   R.Stream := ADR( F );
-  WHILE R.ReadLine( OUT S, Sync.INFINITE_TIME, TRUE ) = Sync.arCompleted DO
+  WHILE R.ReadLine( OUT S, Sync.FOREVER, TRUE ) = Sync.arCompleted DO
     FIO.WrStrW( f, OAsz( S.szData )); FIO.WrLnW( f );
   END; // WHILE
 
@@ -275,7 +275,7 @@ END CTest;
   S.FromOA( L"//" );
   R.Stream := ADR( F );
   R.CommentaryStart := S;
-  WHILE R.ReadLine( OUT S, Sync.INFINITE_TIME, TRUE ) = Sync.arCompleted DO
+  WHILE R.ReadLine( OUT S, Sync.FOREVER, TRUE ) = Sync.arCompleted DO
     FIO.WrStrW( f, OAsz( S.szData )); FIO.WrLnW( f );
   END; // WHILE
 
@@ -297,7 +297,7 @@ END CTest;
   R.Stream := ADR( F );
   R.StartReading();
   WHILE R.Peek( OUT a, OUT l ) DO
-    R.ReadLine( OUT S, Sync.INFINITE_TIME, TRUE );
+    R.ReadLine( OUT S, Sync.FOREVER, TRUE );
     FIO.WrStrW( f, OAsz( S.szData )); FIO.WrLnW( f );
   END; // WHILE
 END Test;

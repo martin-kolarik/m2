@@ -764,7 +764,7 @@ CLASS IMPLEMENTATION CDispatcher;
           END;
           WHILE b DO
             IF NOT Connection^.Connected THEN
-              NResult := Connection^.ConnectAddress( Connection^.RemoteAddress, Connection^.RemotePort, Sync.INFINITE_TIME );
+              NResult := Connection^.ConnectAddress( Connection^.RemoteAddress, Connection^.RemotePort, netsocket.FORSAFETY );
               IF NResult NOT IN Sync.arsStarts THEN
                 Message.CPClient^.OnConnect( Connection, TRUE, winsock.WSAECONNREFUSED );
               END;
@@ -835,13 +835,15 @@ CLASS IMPLEMENTATION CDispatcher;
             CASE SELF.Connection OF
             | ctStream :
                MDatagram.Init( Message.SData, Message.SLen, FALSE );
-               NResult := Connection^.IWrite^.Write( ADR( MDatagram ), Sync.INFINITE_TIME, TRUE );
+               NResult := Connection^.IWrite^.Write( ADR( MDatagram ), netsocket.FORSAFETY, TRUE );
+               ASSERT( NResult <> Sync.arTimeout );
                WHILE MDatagram.References > 1 DO // see note in IOO.CDataProxy
                   Sync.Sleep( 0 );
                END; // WHILE
             | ctDatagram :
                WDatagram.Init( Message.SData, Message.SLen, FALSE );
-               NResult := Connection^.IWrite^.Write( ADR( WDatagram ), Sync.INFINITE_TIME, TRUE );
+               NResult := Connection^.IWrite^.Write( ADR( WDatagram ), netsocket.FORSAFETY, TRUE );
+               ASSERT( NResult <> Sync.arTimeout );
                WHILE WDatagram.References > 1 DO // see note in IOO.CDataProxy
                   Sync.Sleep( 0 );
                END; // WHILE
@@ -884,11 +886,13 @@ CLASS IMPLEMENTATION CDispatcher;
   LOCAL PROCEDURE OnListen( CONST ServerSocket : netsocket.TPSSocket );
   VAR
     Message : TMessage;
+    Result : Sync.TAsyncResult;
   BEGIN
     // OnListen is in GUI thread, so posting there is not neccessary
     Message.Command := cmNetworkAccept;
     Message.NServerSocket := ServerSocket;
-    MQueue.QueueOA( Message, TRUE, 8 * Sync.SAFETY_TIME );
+    Result := MQueue.QueueOA( Message, TRUE, netsocket.FORSAFETY );
+    ASSERT( Result <> Sync.arTimeout );
   END OnListen;
 
 //--------------------------------------------------------------------------------
@@ -896,12 +900,14 @@ CLASS IMPLEMENTATION CDispatcher;
   LOCAL PROCEDURE OnNetworkConnect( Error : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN );
   VAR
     Message : TMessage;
+    Result : Sync.TAsyncResult;
   BEGIN
     Message.Command := cmNetworkConnect;
     Message.NCSocket := Socket;
     Message.NCError := Error;
     Message.NCLocal := Local;
-    MQueue.QueueOA( Message, TRUE, 8 * Sync.SAFETY_TIME );
+    Result := MQueue.QueueOA( Message, TRUE, netsocket.FORSAFETY );
+    ASSERT( Result <> Sync.arTimeout );
   END OnNetworkConnect;
 
 //--------------------------------------------------------------------------------
@@ -909,12 +915,14 @@ CLASS IMPLEMENTATION CDispatcher;
   LOCAL PROCEDURE OnNetworkDisconnect( Error : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN );
   VAR
     Message : TMessage;
+    Result : Sync.TAsyncResult;
   BEGIN
     Message.Command := cmNetworkDisconnect;
     Message.NCSocket := Socket;
     Message.NCError := Error;
     Message.NCLocal := Local;
-    MQueue.QueueOA( Message, TRUE, 8 * Sync.SAFETY_TIME );
+    Result := MQueue.QueueOA( Message, TRUE, netsocket.FORSAFETY );
+    ASSERT( Result <> Sync.arTimeout );
   END OnNetworkDisconnect;
 
 //--------------------------------------------------------------------------------
@@ -926,6 +934,7 @@ CLASS IMPLEMENTATION CDispatcher;
     IRead : IOO.TPBufferedReader;
     l : CARDINAL;
     Message : TMessage;
+    Result : Sync.TAsyncResult;
   BEGIN
     IF Length = 0 THEN
       RETURN;
@@ -943,7 +952,8 @@ CLASS IMPLEMENTATION CDispatcher;
       IRead^.ReadOut( l );
 
       // queue request
-      MQueue.QueueOA( Message, TRUE, 8 * Sync.SAFETY_TIME );
+      Result := MQueue.QueueOA( Message, TRUE, netsocket.FORSAFETY );
+      ASSERT( Result <> Sync.arTimeout );
     END; // WHILE
   END OnNetworkReceive;
 
@@ -982,15 +992,18 @@ CLASS IMPLEMENTATION CDispatcher;
   LOCAL PROCEDURE Join( PClient : TPClientInterface; RemotePort : CARDINAL; RemoteAddress : winsock.IN_ADDR ); // asynchronous, results in Client.OnConnect
   VAR
     Message : TMessage;
+    Result : Sync.TAsyncResult;
   BEGIN
     Message.Command := cmClientJoin;
     Message.JPClient := PClient;
     Message.JPClient^.AddRef(); // temporary
     Message.JRemotePort := RemotePort;
     Message.JRemoteAddress := RemoteAddress;
-    MQueue.QueueOA( Message, TRUE, 8 * Sync.SAFETY_TIME );
+    Result := MQueue.QueueOA( Message, TRUE, netsocket.FORSAFETY );
+    ASSERT( Result <> Sync.arTimeout );
     // make Join synchronous (to allow clients synchronously store their records)
-    MQueue.PushToConsumer( TRUE, 8 * Sync.SAFETY_TIME );
+    Result := MQueue.PushToConsumer( TRUE, netsocket.FORSAFETY );
+    ASSERT( Result <> Sync.arTimeout );
   END Join;
 
 //--------------------------------------------------------------------------------
@@ -998,14 +1011,17 @@ CLASS IMPLEMENTATION CDispatcher;
   LOCAL PROCEDURE Leave( PClient : TPClientInterface; Connection : TConnectionHandle ); // asynchronous, results in Client.OnDisconnect and Done
   VAR
     Message : TMessage;
+    Result : Sync.TAsyncResult;
   BEGIN
     Message.Command := cmClientLeave;
     Message.CPClient := PClient;
     Message.CPClient^.AddRef(); // temporary
     Message.CPConnection := Connection;
-    MQueue.QueueOA( Message, TRUE, 8 * Sync.SAFETY_TIME );
+    Result := MQueue.QueueOA( Message, TRUE, netsocket.FORSAFETY );
+    ASSERT( Result <> Sync.arTimeout );
     // make Leave synchronous (to allow clients synchronously remove their records)
-    MQueue.PushToConsumer( TRUE, 8 * Sync.SAFETY_TIME );
+    Result := MQueue.PushToConsumer( TRUE, netsocket.FORSAFETY );
+    ASSERT( Result <> Sync.arTimeout );
   END Leave;
 
 //--------------------------------------------------------------------------------
@@ -1013,11 +1029,13 @@ CLASS IMPLEMENTATION CDispatcher;
   LOCAL PROCEDURE Connect( PClient : TPClientInterface; Connection : TConnectionHandle ); // asynchronous, results in Client.OnConnect
   VAR
     Message : TMessage;
+    Result : Sync.TAsyncResult;
   BEGIN
     Message.Command := cmClientConnect;
     Message.CPClient := PClient;
     Message.CPConnection := Connection;
-    MQueue.QueueOA( Message, TRUE, 8 * Sync.SAFETY_TIME );
+    Result := MQueue.QueueOA( Message, TRUE, netsocket.FORSAFETY );
+    ASSERT( Result <> Sync.arTimeout );
   END Connect;
 
 //--------------------------------------------------------------------------------
@@ -1025,11 +1043,13 @@ CLASS IMPLEMENTATION CDispatcher;
   LOCAL PROCEDURE Disconnect( PClient : TPClientInterface; Connection : TConnectionHandle ); // asynchronous, results in Client.OnDisconnect
   VAR
     Message : TMessage;
+    Result : Sync.TAsyncResult;
   BEGIN
     Message.Command := cmClientDisconnect;
     Message.CPClient := PClient;
     Message.CPConnection := Connection;
-    MQueue.QueueOA( Message, TRUE, 8 * Sync.SAFETY_TIME );
+    Result := MQueue.QueueOA( Message, TRUE, netsocket.FORSAFETY );
+    ASSERT( Result <> Sync.arTimeout );
   END Disconnect;
 
 //--------------------------------------------------------------------------------
@@ -1037,6 +1057,7 @@ CLASS IMPLEMENTATION CDispatcher;
   LOCAL PROCEDURE Send( PClient : TPClientInterface; Connection : TConnectionHandle; ClientId : LONGWORD; PData : ADDRESS; DataLen : CARDINAL ); // asynchronous, results in Client.OnSend
   VAR
     Message : TMessage;
+    Result : Sync.TAsyncResult;
   BEGIN
     Message.Command := cmClientSend;
     Message.SPClient := PClient;
@@ -1045,7 +1066,8 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.SLen := DataLen;
     ALLOCATE( Message.SData, DataLen );
     Storage.Move( PData, Message.SData, DataLen );
-    MQueue.QueueOA( Message, TRUE, 8 * Sync.SAFETY_TIME );
+    Result := MQueue.QueueOA( Message, TRUE, netsocket.FORSAFETY );
+    ASSERT( Result <> Sync.arTimeout );
   END Send;
 
 //--------------------------------------------------------------------------------

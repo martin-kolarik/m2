@@ -406,7 +406,7 @@ CLASS IMPLEMENTATION CHttpSrv;
          END;
       END;
       
-      IF NOT netpool.Pool()^.WaitHandle( ADR( SELF ), 0, Sync.INFINITE_TIME, FALSE, _HRequestSignal, OUT _HPoolHandle ) THEN
+      IF NOT netpool.Pool()^.WaitHandle( ADR( SELF ), 0, Sync.FORSAFETY, FALSE, _HRequestSignal, OUT _HPoolHandle ) THEN
          RETURN Sync.arCannotStart;
       END;
       // force switching to another thread, waiting will be starte from the another thread

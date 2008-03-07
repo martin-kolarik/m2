@@ -81,16 +81,21 @@ CLASS IMPLEMENTATION CNetworkStream;
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC PROCEDURE FromServer( CONST Server : ARRAY OF WCHAR; Port : CARDINAL );
+  VAR
+    Result : Sync.TAsyncResult;
   BEGIN
     Close( FALSE );
 
     NEW( Socket );
     Socket^.Waitable := TRUE;
-    Socket^.Connect( Server, Port, Sync.INFINITE_TIME );
-    Socket^.WaitCompletion( Sync.INFINITE_TIME );
-
-    Access := IOO.accReadWrite;
-    OwnHandle := TRUE;
+    Result := Socket^.Connect( Server, Port, netsocket.FORSAFETY );
+    IF ( Result IN Sync.arsStarts ) AND ( Socket^.WaitCompletion( netsocket.FORSAFETY ) = Sync.arCompleted ) THEN
+       Access := IOO.accReadWrite;
+       OwnHandle := TRUE;
+    ELSE
+      Socket^.Release();
+      Socket := NIL;
+    END;
   END FromServer;
 
 (*--------------------------------------------------------------------------------*)
@@ -113,7 +118,7 @@ CLASS IMPLEMENTATION CNetworkStream;
     AbortWriting();
     IF Socket <> NIL THEN
       IF OwnHandle THEN
-        Socket^.Disconnect( FALSE, Sync.INFINITE_TIME );
+        Socket^.Disconnect( FALSE, netsocket.FORSAFETY );
       END;
       IF NOT Persist THEN
         Socket^.Release();

@@ -1047,8 +1047,8 @@ CLASS IMPLEMENTATION CEIBServer;
             RETURN FALSE;
          END; // try
          tr.Stream := ADR( fs );
-         tr.ReadLine( OUT so, Sync.INFINITE_TIME, TRUE ); // read first line comment
-         WHILE tr.ReadLine( OUT so, Sync.INFINITE_TIME, TRUE ) = Sync.arCompleted DO
+         tr.ReadLine( OUT so, Sync.FORSAFETY, TRUE ); // read first line comment
+         WHILE tr.ReadLine( OUT so, Sync.FORSAFETY, TRUE ) = Sync.arCompleted DO
             IF so.Empty THEN
                CONTINUE;
             END;

@@ -25,7 +25,7 @@ VAR
    T : CT;
 BEGIN
    T.Run( FALSE );
-   T.WaitStop( Sync.INFINITE_TIME );
+   T.WaitStop( Sync.FORSAFETY );
    RETURN 0;
 END wmain;
 

@@ -44,7 +44,7 @@ CLASS IMPLEMENTATION CRunInPipe;
 
        tr.Stream := out;
        tr.Encoding := Languages.cp_Console();
-       WHILE tr.ReadLine( OUT s, Sync.INFINITE_TIME, TRUE ) IN Sync.arsCompletions DO
+       WHILE tr.ReadLine( OUT s, Sync.FOREVER, TRUE ) IN Sync.arsCompletions DO
          Host^.Log^.LogS( log.dlcInfo, L"", OAsz( s.szData ));
        END; // while
 

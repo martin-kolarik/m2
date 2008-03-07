@@ -569,7 +569,7 @@ CLASS IMPLEMENTATION AStream;
     IF WaitForResult THEN
       _Proxy^.Waitable := TRUE;
       _Proxy^.Start();
-      Result := Start( Direction, Sync.INFINITE_TIME );
+      Result := Start( Direction, Sync.FOREVER );
       IF Result = Sync.arPending THEN
         Result := _Proxy^.WaitCompletion( TimeoutMS );
         IF Result = Sync.arTimeout THEN
@@ -777,7 +777,7 @@ CLASS IMPLEMENTATION CBufferedStream;
       RETURN;
     END;
     // flush self buffers
-    _Stream^.Write( ADR( _WProxy ), Sync.INFINITE_TIME, TRUE );
+    _Stream^.Write( ADR( _WProxy ), Sync.FOREVER, TRUE );
   END Flush;
 
 (*--------------------------------------------------------------------------------*)
@@ -819,7 +819,7 @@ CLASS IMPLEMENTATION CBufferedStream;
 
   PUBLIC VIRTUAL PROCEDURE StartReading();
   BEGIN
-    Start( dirRead, Sync.INFINITE_TIME );
+    Start( dirRead, Sync.FOREVER );
   END StartReading;
 
 (*--------------------------------------------------------------------------------*)
@@ -842,7 +842,7 @@ CLASS IMPLEMENTATION CBufferedStream;
   PUBLIC PROCEDURE CommitWrite();
   BEGIN
     IF NOT _WBuffer.Empty THEN
-      _Stream^.IO( dirWrite, ADR( _WProxy ), Sync.INFINITE_TIME, FALSE );
+      _Stream^.IO( dirWrite, ADR( _WProxy ), Sync.FOREVER, FALSE );
     END;
   END CommitWrite;
   
@@ -1059,7 +1059,7 @@ CLASS IMPLEMENTATION CBufferedStream;
    BEGIN
       IF Direction = dirRead THEN
          IF NOT _RBuffer.Full THEN
-            _Stream^.IO( dirRead, ADR( _RProxy ), Sync.INFINITE_TIME, FALSE );
+            _Stream^.IO( dirRead, ADR( _RProxy ), Sync.FOREVER, FALSE );
          END;
 
       ELSIF Direction = dirWrite THEN
@@ -1070,11 +1070,11 @@ CLASS IMPLEMENTATION CBufferedStream;
             ASSERT( WMode <> bmBypass );
             IF WMode = bmChunked THEN
                IF _WBuffer.Count >= WChunk THEN
-                  _Stream^.IO( dirWrite, ADR( _WProxy ), Sync.INFINITE_TIME, FALSE );
+                  _Stream^.IO( dirWrite, ADR( _WProxy ), Sync.FOREVER, FALSE );
                END;
             ELSIF WMode = bmCache THEN
                IF _WBuffer.Count > _WBuffer.Size DIV 2 THEN
-                  _Stream^.IO( dirWrite, ADR( _WProxy ), Sync.INFINITE_TIME, FALSE );
+                  _Stream^.IO( dirWrite, ADR( _WProxy ), Sync.FOREVER, FALSE );
                END;
             END;
 

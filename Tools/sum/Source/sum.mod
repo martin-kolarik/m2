@@ -107,7 +107,7 @@ BEGIN
          GOTO Error;
       END;
       tr.Stream := ADR( fs );
-      WHILE tr.ReadLine( OUT Line, Sync.INFINITE_TIME, TRUE ) = Sync.arCompleted DO
+      WHILE tr.ReadLine( OUT Line, Sync.FOREVER, TRUE ) = Sync.arCompleted DO
 
          i := Line.IndexOfOA( L" ", 0 );
          Line.Substring( 0, i, OUT Hash );
@@ -212,7 +212,7 @@ BEGIN
    digester^.Init();
 
    IF binaryMode = 1 THEN
-      WHILE file^.ReadOA( OUT buffer, OUT consumed, Sync.INFINITE_TIME ) = Sync.arCompleted DO
+      WHILE file^.ReadOA( OUT buffer, OUT consumed, Sync.FOREVER ) = Sync.arCompleted DO
          IF consumed > 0 THEN
             digester^.Update( OA( consumed-1, ADR( buffer )));
          END;

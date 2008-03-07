@@ -213,7 +213,7 @@ CLASS IMPLEMENTATION CXMLWriter;
 	VAR
 	   l : CARDINAL;
 	BEGIN
-		_Stream^.WriteOA( String, OUT l, Sync.INFINITE_TIME );
+		_Stream^.WriteOA( String, OUT l, Sync.FOREVER );
 	END WriteOAA;
 
 (*---------------------------------------------------------------------------*)

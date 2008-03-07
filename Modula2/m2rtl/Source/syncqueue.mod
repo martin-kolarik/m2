@@ -140,7 +140,7 @@ CLASS IMPLEMENTATION RingBuffer;
         INC( A, Processed );
         DEC( ToProcess, Processed );
       ELSE
-        Flush( Sync.pcqConsumed, TRUE, Sync.INFINITE_TIME, OUT Spent );
+        Flush( Sync.pcqConsumed, TRUE, Sync.FOREVER, OUT Spent );
       END;
     END;
   END ReadOA;
@@ -159,7 +159,7 @@ CLASS IMPLEMENTATION RingBuffer;
         INC( A, Processed );
         DEC( ToProcess, Processed );
       ELSE
-        Flush( Sync.pcqProduced, TRUE, Sync.INFINITE_TIME, OUT Spent );
+        Flush( Sync.pcqProduced, TRUE, Sync.FOREVER, OUT Spent );
       END;
     END;
   END WriteOA;

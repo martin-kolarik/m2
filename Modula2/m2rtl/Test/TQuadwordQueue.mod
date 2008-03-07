@@ -98,8 +98,8 @@ CLASS IMPLEMENTATION CTest;
 
       PT := windows.CreateThread( NIL, 0, ProducerThread, ADR( SELF ), 0, NIL );
       CT := windows.CreateThread( NIL, 0, ConsumerThread, ADR( SELF ), 0, NIL );
-      Sync.Wait( PT, Sync.INFINITE_TIME );
-      Sync.Wait( CT, Sync.INFINITE_TIME );
+      Sync.Wait( PT, Sync.FOREVER );
+      Sync.Wait( CT, Sync.FOREVER );
       windows.CloseHandle( PT );
       Sync.DeleteSignal( REF PE );
       windows.CloseHandle( CT );
@@ -116,7 +116,7 @@ CLASS IMPLEMENTATION CTest;
       I64 : INT64 := 1;
    BEGIN
       LOOP
-         QQ.Queue( I64, TRUE, Sync.INFINITE_TIME );
+         QQ.Queue( I64, TRUE, Sync.FOREVER );
          INC( I64 );
          IF I64 > 500000 THEN
             EXIT;
@@ -134,7 +134,7 @@ CLASS IMPLEMENTATION CTest;
       sI64, sP64 : ARRAY [0..15] OF WCHAR;
    BEGIN
       LOOP
-         QQ.Dequeue( OUT I64, TRUE, Sync.INFINITE_TIME );
+         QQ.Dequeue( OUT I64, TRUE, Sync.FOREVER );
          IF I64 <> P64+1 THEN
             Strings.FromINT64W( I64, 10, OUT sI64 ); Strings.FromINT64W( P64, 10, OUT sP64 );
             Host^.Log^.LogSSSS( log.dlcError, L"", L"Failed on numbers: ", sI64, L"/", sP64 );

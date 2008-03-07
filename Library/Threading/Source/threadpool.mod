@@ -159,7 +159,7 @@ BEGIN
   Task := tskUnknown;
   UserId := 0;
   Delegate := NIL;
-  Timeout := Sync.INFINITE_TIME;
+  Timeout := Sync.FOREVER;
   Data := NIL;
   HWait := Sync.CreateSignal( FALSE, L'' );
 FINALLY
@@ -235,8 +235,8 @@ CLASS IMPLEMENTATION CTaskMap;
     NEW( PI );
     PI^.Key := Key;
     PI^.Task := Task;
-    IF Timeout = Sync.INFINITE_TIME THEN
-      PI^.ElapsesOn := CARD64( Sync.INFINITE_TIME ) << 32 OR CARD64( Counter );
+    IF Timeout = Sync.FOREVER THEN
+      PI^.ElapsesOn := CARD64( Sync.FOREVER ) << 32 OR CARD64( Counter );
     ELSIF Timeout = 0 THEN
       PI^.ElapsesOn := CARD64( CurrentTime + 1 ) << 32 OR CARD64( Counter );
     ELSE
@@ -281,7 +281,7 @@ CLASS IMPLEMENTATION CTaskMap;
     IF GetFirstWithTimeout( TimeToCount, OUT Task, OUT Timeout ) THEN
       RETURN Timeout;
     ELSE
-      RETURN Sync.INFINITE_TIME;
+      RETURN Sync.FOREVER;
     END;
   END GetTimeoutToFirstElapsed;
 
@@ -305,7 +305,7 @@ CLASS IMPLEMENTATION CTaskMap;
       RETURN FALSE;
     END;
     ElapsesOn := CARDINAL( TI^.ElapsesOn >> 32 );
-    IF ElapsesOn = Sync.INFINITE_TIME THEN
+    IF ElapsesOn = Sync.FOREVER THEN
       RETURN FALSE;
     END;
     Task := TI^.Task;
@@ -815,6 +815,7 @@ CLASS IMPLEMENTATION CThreadPool;
   VAR
     MSG : TMessage;
     PoolThread : TPPoolThread;
+    Result : Sync.TAsyncResult;
   BEGIN
     IF NOT LookupThread( FALSE, FALSE, OUT PoolThread ) THEN
       RETURN FALSE;
@@ -838,7 +839,9 @@ CLASS IMPLEMENTATION CThreadPool;
     // return value
     PoolHandle := MSG.Task^.HWait;
 
-    RETURN PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.SAFETY_TIME ) = Sync.arCompleted;
+    Result := PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.FORSAFETY );
+    ASSERT( Result <> Sync.arTimeout );
+    RETURN Result = Sync.arCompleted;
   END WaitTimeout;
 
 //--------------------------------------------------------------------------------
@@ -847,6 +850,7 @@ CLASS IMPLEMENTATION CThreadPool;
   VAR
     MSG : TMessage;
     PoolThread : TPPoolThread;
+    Result : Sync.TAsyncResult;
   BEGIN
     IF NOT LookupThread( FALSE, FALSE, OUT PoolThread ) THEN
       RETURN FALSE;
@@ -874,7 +878,9 @@ CLASS IMPLEMENTATION CThreadPool;
     Handler := ADR( PoolThread^.Messager );
 
     Sync.IInc( REF PoolThread^.MessagesCount ); // do it as the first, here, as interface is single threaded only now
-    RETURN PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.SAFETY_TIME ) = Sync.arCompleted;
+    Result := PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.FORSAFETY );
+    ASSERT( Result <> Sync.arTimeout );
+    RETURN Result = Sync.arCompleted;
   END WaitMessage;
 
 //--------------------------------------------------------------------------------
@@ -883,6 +889,7 @@ CLASS IMPLEMENTATION CThreadPool;
   VAR
     MSG : TMessage;
     PoolThread : TPPoolThread;
+    Result : Sync.TAsyncResult;
   BEGIN
     IF NOT LookupThread( FALSE, FALSE, OUT PoolThread ) THEN
       RETURN FALSE;
@@ -908,7 +915,9 @@ CLASS IMPLEMENTATION CThreadPool;
     PoolHandle := MSG.Task^.HWait;
 
     Sync.IInc( REF PoolThread^.HandlesCount ); // do it as the first, here, as interface is single threaded only now
-    RETURN PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.SAFETY_TIME ) = Sync.arCompleted;
+    Result := PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.FORSAFETY );
+    ASSERT( Result <> Sync.arTimeout );
+    RETURN Result = Sync.arCompleted;
   END WaitHandle;
 
 //--------------------------------------------------------------------------------
@@ -917,6 +926,7 @@ CLASS IMPLEMENTATION CThreadPool;
   VAR
     MSG : TMessage;
     PoolThread : TPPoolThread;
+    Result : Sync.TAsyncResult;
   BEGIN
     IF NOT LookupThread( TRUE, ForceSelfThread, OUT PoolThread ) THEN
       RETURN FALSE;
@@ -939,7 +949,9 @@ CLASS IMPLEMENTATION CThreadPool;
     PoolHandle := MSG.Task^.HWait;
 
     Sync.IInc( REF PoolThread^.WorkersCount ); // do it as the first, here, as interface is single threaded only now
-    RETURN PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.SAFETY_TIME ) = Sync.arCompleted;
+    Result := PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.FORSAFETY );
+    ASSERT( Result <> Sync.arTimeout );
+    RETURN Result = Sync.arCompleted;
   END RunWorker;
 
 //--------------------------------------------------------------------------------
@@ -954,12 +966,14 @@ CLASS IMPLEMENTATION CThreadPool;
   PUBLIC PROCEDURE Abort( REF PoolHandle : Sync.WAITABLE );
   VAR
     MSG : TMessage;
+    Result : Sync.TAsyncResult;
   BEGIN
     MSG.Operation := topRemoveTask;
     MSG.HTask := PoolHandle;
     Threads.Reset();
     WHILE Threads.MoveNext() DO
-      TPPoolThread( Threads.Current )^.ReqQueue.QueueOA( MSG, TRUE, Sync.SAFETY_TIME );
+      Result := TPPoolThread( Threads.Current )^.ReqQueue.QueueOA( MSG, TRUE, Sync.FORSAFETY );
+      ASSERT( Result <> Sync.arTimeout );
     END; // WHILE
     PoolHandle := NIL;
   END Abort;
@@ -969,12 +983,14 @@ CLASS IMPLEMENTATION CThreadPool;
   PUBLIC PROCEDURE AbortAll( CONST Delegate : TPPoolDelegate );
   VAR
     MSG : TMessage;
+    Result : Sync.TAsyncResult;
   BEGIN
     MSG.Operation := topRemoveDelegate;
     MSG.Delegate := Delegate;
     Threads.Reset();
     WHILE Threads.MoveNext() DO
-      TPPoolThread( Threads.Current )^.ReqQueue.QueueOA( MSG, TRUE, Sync.SAFETY_TIME );
+      Result := TPPoolThread( Threads.Current )^.ReqQueue.QueueOA( MSG, TRUE, Sync.FORSAFETY );
+      ASSERT( Result <> Sync.arTimeout );
     END; // WHILE
   END AbortAll;
 
@@ -983,9 +999,11 @@ CLASS IMPLEMENTATION CThreadPool;
   LOCAL PROCEDURE OnThreadEmpty();
   VAR
     LMSG : TMessage;
+    Result : Sync.TAsyncResult;
   BEGIN
     LMSG.Operation := topOnThreadEmpty;
-    MQueue.QueueOA( LMSG, TRUE, Sync.SAFETY_TIME ); 
+    Result := MQueue.QueueOA( LMSG, TRUE, Sync.FORSAFETY ); 
+    ASSERT( Result <> Sync.arTimeout );
   END OnThreadEmpty;
 
 //--------------------------------------------------------------------------------
@@ -994,6 +1012,7 @@ CLASS IMPLEMENTATION CThreadPool;
   // !! returns if Task can be disposed
   VAR
     LMSG : TMessage;
+    LResult : Sync.TAsyncResult;
     Task : TPTask := TPTask( _Task );
   BEGIN
     IF Task^.Delegate = NIL THEN
@@ -1015,7 +1034,8 @@ CLASS IMPLEMENTATION CThreadPool;
       LMSG.Result := Result;
       LMSG.Task := Task;
       LMSG.MSG := MSG;
-      MQueue.QueueOA( LMSG, TRUE, Sync.SAFETY_TIME ); 
+      LResult := MQueue.QueueOA( LMSG, TRUE, Sync.FORSAFETY ); 
+      ASSERT( LResult <> Sync.arTimeout );
       RETURN FALSE;
     END;
   END OnCompletion;

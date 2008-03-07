@@ -152,14 +152,18 @@ CLASS IMPLEMENTATION CTest;
       END;
       // wait for all producers      
       FOR i := 0 TO ThreadCount-1 DO
-         Sync.Wait( Threads[i], Sync.INFINITE_TIME );
+         IF Sync.Wait( Threads[i], Sync.FORSAFETY ) = Sync.arTimeout THEN
+            // show error
+         END;
          windows.CloseHandle( Threads[i] );
       END;
 
       Success := Exit = 0;
       // stop consumer thread
       Exit := 1;
-      Sync.Wait( CT, Sync.INFINITE_TIME );
+      IF Sync.Wait( CT, Sync.FORSAFETY ) = Sync.arTimeout THEN
+         // show error
+      END;
       windows.CloseHandle( CT );
 
       Host^.StopPhase();

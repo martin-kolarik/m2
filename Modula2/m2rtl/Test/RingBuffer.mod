@@ -123,8 +123,8 @@ CLASS IMPLEMENTATION CTest;
 
       PT := windows.CreateThread( NIL, 0, ProducerThread, ADR( SELF ), 0, NIL );
       CT := windows.CreateThread( NIL, 0, ConsumerThread, ADR( SELF ), 0, NIL );
-      Sync.Wait( PT, Sync.INFINITE_TIME );
-      Sync.Wait( CT, Sync.INFINITE_TIME );
+      Sync.Wait( PT, Sync.FOREVER );
+      Sync.Wait( CT, Sync.FOREVER );
       windows.CloseHandle( PT );
       Sync.DeleteSignal( REF PE );
       windows.CloseHandle( CT );

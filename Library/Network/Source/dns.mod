@@ -264,8 +264,12 @@ BEGIN
   IF NOT NameToAddress( ADR( LDNSN ), 0, Name, TimeoutMS, OUT H ) THEN
     RETURN FALSE;
   END;
-  Sync.Wait( LDNSN.Signal, Sync.INFINITE_TIME );
-  RETURN LDNSN.Result = Sync.arCompleted;
+  IF Sync.Wait( LDNSN.Signal, Sync.FORSAFETY ) = Sync.arTimeout THEN
+    ASSERT( FALSE );
+    RETURN FALSE; 
+  ELSE
+    RETURN LDNSN.Result = Sync.arCompleted;
+  END;
 END NameToAddressWait;
 
 (*---------------------------------------------------------------------------*)
@@ -280,8 +284,12 @@ BEGIN
   IF NOT AddressToName( ADR( LDNSN ), 0, Address, TimeoutMS, OUT H ) THEN
     RETURN FALSE;
   END;
-  Sync.Wait( LDNSN.Signal, Sync.INFINITE_TIME );
-  RETURN LDNSN.Result = Sync.arCompleted;
+  IF Sync.Wait( LDNSN.Signal, Sync.FORSAFETY ) = Sync.arTimeout THEN
+    ASSERT( FALSE );
+    RETURN FALSE; 
+  ELSE
+    RETURN LDNSN.Result = Sync.arCompleted;
+  END;
 END AddressToNameWait;
 
 (*---------------------------------------------------------------------------*)

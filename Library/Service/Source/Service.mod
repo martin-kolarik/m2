@@ -209,13 +209,15 @@ CLASS IMPLEMENTATION AService;
    LOCAL PROCEDURE _OnStop( Dispatched : BOOLEAN );
    VAR
       Msg : msghandler.Message;
+      Result : Sync.TAsyncResult;
    BEGIN
       IF Dispatched OR ( Thread = NIL ) THEN
          OnStop();
       ELSE
          Msg.Message := CARDINAL( cmdStop );
          TPServiceThread( Thread )^.Message( Msg, msghandler.delDefault, NIL );
-         Thread^.WaitStop( Sync.INFINITE_TIME );
+         Result := Thread^.WaitStop( Sync.FORSAFETY );
+         ASSERT( Result <> Sync.arTimeout );
       END;
    END _OnStop;
 

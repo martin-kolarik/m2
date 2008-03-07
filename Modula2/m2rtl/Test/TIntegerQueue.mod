@@ -96,8 +96,8 @@ CLASS IMPLEMENTATION CTest;
 
       PT := windows.CreateThread( NIL, 0, ProducerThread, ADR( SELF ), 0, NIL );
       CT := windows.CreateThread( NIL, 0, ConsumerThread, ADR( SELF ), 0, NIL );
-      Sync.Wait( PT, Sync.INFINITE_TIME );
-      Sync.Wait( CT, Sync.INFINITE_TIME );
+      Sync.Wait( PT, Sync.FOREVER );
+      Sync.Wait( CT, Sync.FOREVER );
       windows.CloseHandle( PT );
       windows.CloseHandle( CT );
       
@@ -112,7 +112,7 @@ CLASS IMPLEMENTATION CTest;
       I32 : INT32 := 1;
    BEGIN
       LOOP
-         IQ.Queue( I32, TRUE, Sync.INFINITE_TIME );
+         IQ.Queue( I32, TRUE, Sync.FOREVER );
          INC( I32 );
          IF I32 > 500000 THEN
             EXIT;
@@ -130,7 +130,7 @@ CLASS IMPLEMENTATION CTest;
       sI32, sP32 : ARRAY [0..15] OF WCHAR;
    BEGIN
       LOOP
-         IQ.Dequeue( OUT I32, TRUE, Sync.INFINITE_TIME );
+         IQ.Dequeue( OUT I32, TRUE, Sync.FOREVER );
          IF I32 <> P32+1 THEN
             Strings.FromINT32W( I32, 10, OUT sI32 ); Strings.FromINT32W( P32, 10, OUT sP32 );
             Host^.Log^.LogSSSS( log.dlcError, L"", L"Failed on numbers: ", sI32, L"/", sP32 );

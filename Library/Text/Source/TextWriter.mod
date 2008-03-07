@@ -87,7 +87,7 @@ CLASS IMPLEMENTATION CTextWriter;
 			   l := MIN2( 2*HIGH( Buffer ) DIV 3 + 1, sl-i );
 			   Strings.ToAStream( OA( l-1, s ), _Encoding, OUT Buffer, OUT c, OUT p );
 			   IF p > 0 THEN
-				   _Stream^.WriteOA( OA( p-1, ADR( Buffer )), OUT l, Sync.INFINITE_TIME );
+				   _Stream^.WriteOA( OA( p-1, ADR( Buffer )), OUT l, Sync.FOREVER );
 			   END;
 			   IF c = 0 THEN // error
 			      ASSERT( FALSE );
@@ -135,15 +135,16 @@ CLASS IMPLEMENTATION CTextWriter;
 		END;
       IF ( _Encoding = Languages.cp_UTF16 ) OR ( _Encoding = Languages.cp_UTF16_BIG_ENDIAN ) THEN
          CASE _LineEndStyle OF
-         | lesWindows : _Stream^.WriteOA( WCHAR( 13 ) + WCHAR( 10 ), OUT l, Sync.INFINITE_TIME );
-         | lesUNIX : _Stream^.WriteOA( WCHAR( 10 ), OUT l, Sync.INFINITE_TIME );
-         | lesMAC : _Stream^.WriteOA( WCHAR( 13 ), OUT l, Sync.INFINITE_TIME );
+         | lesWindows : _Stream^.WriteOA( WCHAR( 13 ) + WCHAR( 10 ), OUT l, Sync.FOREVER );
+         | lesUNIX : _Stream^.WriteOA( WCHAR( 10 ), OUT l, Sync.FOREVER );
+         | lesMAC : _Stream^.WriteOA( WCHAR( 13 ), OUT l, Sync.FOREVER );
          END;
       ELSE
          CASE _LineEndStyle OF
-         | lesWindows : _Stream^.WriteOA( CHAR( 13 ) + CHAR( 10 ), OUT l, Sync.INFINITE_TIME );
-         | lesUNIX : _Stream^.WriteOA( CHAR( 10 ), OUT l, Sync.INFINITE_TIME );
-         | lesMAC : _Stream^.WriteOA( CHAR( 13 ), OUT l, Sync.INFINITE_TIME );
+         | lesWindows : _Stream^.WriteOA( CHAR( 13 ) + CHAR( 10 ), OUT l, Sync.FOREVER );
+         | lesUNIX : _Stream^.WriteOA( CHAR( 10 ), OUT l, Sync.FOREVER );
+         | lesMAC : _Stream^.WriteOA( CHAR( 13 ), OUT l, 
+         Sync.FOREVER );
          END;
       END;
    END LineEnd;

@@ -23,6 +23,9 @@ CONST
 	INADDR_ALL_VAL   = winsock.INADDR_BROADCAST;
 	INADDR_ALL       = winsock.IN_ADDR( 0, 255, 255, 255, 255 ); // local broadcast
 
+CONST // time	
+	FORSAFETY        = 34543;
+
 TYPE
   TPSSocket = POINTER TO SSocket;
   TPDSocket = POINTER TO DSocket;

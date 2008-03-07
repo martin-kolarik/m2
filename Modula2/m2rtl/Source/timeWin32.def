@@ -1,0 +1,22 @@
+DEFINITION MODULE TimeWin32;
+
+IMPORT
+  time,
+  windows;
+
+#save, option( dll_export => on )
+
+PROCEDURE SystemTimeToJD( CONST SystemTime : windows.SYSTEMTIME ) : time.TJD;
+PROCEDURE JDToSystemTime( JD : time.TJD; OUT SystemTime : windows.SYSTEMTIME );
+
+//=============================================================================
+// date and time support
+
+PROCEDURE DateTimeToSystemTime( CONST DateTime : time.TDateTime; OUT SystemTime : windows.SYSTEMTIME );
+PROCEDURE SystemTimeToDateTime( CONST SystemTime : windows.SYSTEMTIME; OUT DateTime : time.TDateTime );
+
+//=============================================================================
+
+#restore
+
+END TimeWin32.

@@ -38,8 +38,8 @@ CONST
    arsStarts = arsCompletions + TAsyncResults{arPending};
   
 CONST
-   INFINITE_TIME = 0FFFFFFFFH;
-   SAFETY_TIME   = 10000;
+   FOREVER   = 0FFFFFFFFH;
+   FORSAFETY = 12321;
 
 PROCEDURE Sleep( Time : CARDINAL );
 

@@ -103,25 +103,29 @@ CLASS IMPLEMENTATION CSocketNotifier;
 
   LOCAL VIRTUAL PROCEDURE OnListen( Result : CARDINAL; CONST Socket : netsocket.TPSSocket );
   VAR
+    LResult : Sync.TAsyncResult;
     Message : TMessage;
   BEGIN
     IF Result = 0 THEN
       Message.Command := cmAccept;
       Message.Socket := Socket;
       Message.Result := Result;
-      Server^.MQueue.QueueOA( Message, TRUE, Sync.SAFETY_TIME );
+      LResult := Server^.MQueue.QueueOA( Message, TRUE, Sync.FORSAFETY );
+      ASSERT( LResult <> Sync.arTimeout );
     END;
   END OnListen;
 
   LOCAL VIRTUAL PROCEDURE OnDataArrived( Result : CARDINAL; CONST Socket : netsocket.TPSSocket );
   VAR
+    LResult : Sync.TAsyncResult;
     Message : TMessage;
   BEGIN
     IF Result = 0 THEN
       Message.Command := cmDataArrived;
       Message.Socket := Socket;
       Message.Result := Result;
-      Server^.MQueue.QueueOA( Message, TRUE, Sync.SAFETY_TIME );
+      LResult := Server^.MQueue.QueueOA( Message, TRUE, Sync.FORSAFETY );
+      ASSERT( LResult <> Sync.arTimeout );
     END;
   END OnDataArrived;
 
@@ -173,7 +177,7 @@ CLASS IMPLEMENTATION CIPServer;
       //-----
       | cmRegister :
         Sockets.Add( Message.Socket, Message.Creator );
-        IF ( Message.CloseTime <> 0 ) AND ( Message.CloseTime <> Sync.INFINITE_TIME ) THEN
+        IF ( Message.CloseTime <> 0 ) AND ( Message.CloseTime <> Sync.FOREVER ) THEN
           StartTimer( Message.Socket, Message.CloseTime, FALSE );
         END; // IF
       //-----
@@ -233,7 +237,7 @@ CLASS IMPLEMENTATION CIPServer;
     CBMode := Mode;
     IF CBMode = cbmPooled THEN
       IF _FDHandle = NIL THEN
-        netpool.Pool()^.WaitMessage( ADR( _Delegate ), 0, Sync.INFINITE_TIME, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
+        netpool.Pool()^.WaitMessage( ADR( _Delegate ), 0, Sync.FOREVER, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
       END;
       MQueue.Consumer := _FDMessager;
       MQueue.ConsumerMsg := ADR( _FDMessage );
@@ -280,8 +284,9 @@ CLASS IMPLEMENTATION CIPServer;
       Message.Creator := PStreamCreator;
       Message.Socket := Socket;
       Message.CloseTime := AutomaticCloseTimeMS;
-      Result := MQueue.QueueOA( Message, TRUE, Sync.SAFETY_TIME );
+      Result := MQueue.QueueOA( Message, TRUE, Sync.FORSAFETY );
       IF Result NOT IN Sync.arsStarts THEN
+         ASSERT( Result <> Sync.arTimeout );
          Socket^.Release();
          RETURN -1;
       END;
@@ -302,6 +307,7 @@ CLASS IMPLEMENTATION CIPServer;
   LOCAL PROCEDURE StopListenPort( Port : CARDINAL; Type : netsocket.TSocketType );
   VAR
     Message : TMessage;
+    Result : Sync.TAsyncResult;
   BEGIN
     IF HWND = NIL THEN
       Init();
@@ -309,7 +315,8 @@ CLASS IMPLEMENTATION CIPServer;
     Message.Command := cmForgetPort;
     Message.Port := Port;
     Message.Type := Type;
-    MQueue.QueueOA( Message, TRUE, Sync.SAFETY_TIME );
+    Result := MQueue.QueueOA( Message, TRUE, Sync.FORSAFETY );
+    ASSERT( Result <> Sync.arTimeout );
   END StopListenPort;
   
 //--------------------------------------------------------------------------------
@@ -317,13 +324,15 @@ CLASS IMPLEMENTATION CIPServer;
   LOCAL PROCEDURE StopListenSocket( Socket : netsocket.TPSSocket );
   VAR
     Message : TMessage;
+    Result : Sync.TAsyncResult;
   BEGIN
     IF HWND = NIL THEN
       Init();
     END;
     Message.Command := cmForgetSocket;
     Message.Socket := Socket;
-    MQueue.QueueOA( Message, TRUE, Sync.SAFETY_TIME );
+    Result := MQueue.QueueOA( Message, TRUE, Sync.FORSAFETY );
+    ASSERT( Result <> Sync.arTimeout );
   END StopListenSocket;
 
 //--------------------------------------------------------------------------------

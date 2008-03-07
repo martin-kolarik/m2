@@ -8,7 +8,8 @@ IMPORT
    FIOO,
    Storage,
    Strings,
-   Sync;
+   Sync,
+   timeWin32;
 
 (*================================================================================*)
 
@@ -182,7 +183,7 @@ CLASS IMPLEMENTATION CDirectoryInfo; // 0W or '*' are equivalent in SearchPatter
          time.InitDateTime( OUT t );
       ELSE
          windows.FileTimeToSystemTime( ADR( _current.ftCreationTime ), ADR( st ));
-         time.SystemTimeToDateTime( st, OUT t );
+         timeWin32.SystemTimeToDateTime( st, OUT t );
       END;
       RETURN t;
    END CreationTime;
@@ -198,7 +199,7 @@ CLASS IMPLEMENTATION CDirectoryInfo; // 0W or '*' are equivalent in SearchPatter
          time.InitDateTime( OUT t );
       ELSE
          windows.FileTimeToSystemTime( ADR( _current.ftLastAccessTime ), ADR( st ));
-         time.SystemTimeToDateTime( st, OUT t );
+         timeWin32.SystemTimeToDateTime( st, OUT t );
       END;
       RETURN t;
    END LastAccessTime;
@@ -470,11 +471,11 @@ BEGIN
          // write data into program input
          fs.FromHandle( hWriteInto, FALSE, IOO.accWrite );
          LOOP
-            CASE InStream^.ReadOA( OUT Buffer, OUT Filled, Sync.INFINITE_TIME ) OF
+            CASE InStream^.ReadOA( OUT Buffer, OUT Filled, Sync.FOREVER ) OF
             | Sync.arNoData :
                EXIT;
             | Sync.arCompleted : // OK
-               Result := fs.WriteOA( OA( Filled-1, ADR( Buffer )), OUT Written, Sync.INFINITE_TIME );
+               Result := fs.WriteOA( OA( Filled-1, ADR( Buffer )), OUT Written, Sync.FOREVER );
             ELSE // error
                GOTO Error;
             END;

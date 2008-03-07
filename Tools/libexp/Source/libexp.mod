@@ -69,7 +69,7 @@ BEGIN
    stdout^.WriteOA( L"EXPORTS", TRUE );
 
    tr.Stream := Result;
-   WHILE tr.ReadLine( OUT Line, Sync.INFINITE_TIME, TRUE ) = Sync.arCompleted DO
+   WHILE tr.ReadLine( OUT Line, Sync.FOREVER, TRUE ) = Sync.arCompleted DO
       i := Line.IndexOfOA( L"fatal error", 0 );
       IF i <> -1 THEN
          errout^.WriteOA( L"libexp: error during parsing result line: ", FALSE ); 

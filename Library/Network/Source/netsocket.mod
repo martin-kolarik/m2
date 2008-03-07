@@ -537,7 +537,7 @@ CLASS IMPLEMENTATION SSocket;
     IF Events = 0 THEN // chyba : WSAAsyncSelect neprojde, asi ten NIL, ci co, prozkoumat
       RETURN winsock.WSAAsyncSelect( Socket, NIL, 0, 0 );
     ELSIF _FDHandle = NIL THEN
-      netpool.Pool()^.WaitMessage( ADR( SELF ), 0, Sync.INFINITE_TIME, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
+      netpool.Pool()^.WaitMessage( ADR( SELF ), 0, Sync.FOREVER, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
     END;
     RETURN winsock.WSAAsyncSelect( Socket, _FDMessager^.Handle, _FDMessage.Message, Events );
   END Select;
@@ -656,7 +656,7 @@ CLASS IMPLEMENTATION DSocket;
     IF Socket = winsock.INVALID_SOCKET THEN
       RETURN;
     END;
-    Result := ConnectAddress( Remote.sin_addr, RemotePort, Sync.INFINITE_TIME );
+    Result := ConnectAddress( Remote.sin_addr, RemotePort, FORSAFETY );
     IF ( Result NOT IN Sync.arsStarts ) AND ( _Notifier <> NIL ) THEN
       Error := winsock.WSAGetLastError();
       _Notifier^.OnConnect( Error, ADR( SELF ), TRUE );
@@ -687,7 +687,7 @@ CLASS IMPLEMENTATION DSocket;
     IF Socket = winsock.INVALID_SOCKET THEN
       RETURN;
     END;
-    Result := ConnectAddress( Remote.sin_addr, Value, Sync.INFINITE_TIME );
+    Result := ConnectAddress( Remote.sin_addr, Value, FORSAFETY );
     IF ( Result NOT IN Sync.arsStarts ) AND ( _Notifier <> NIL ) THEN
       Error := winsock.WSAGetLastError();
       _Notifier^.OnConnect( Error, ADR( SELF ), TRUE );
@@ -719,7 +719,7 @@ CLASS IMPLEMENTATION DSocket;
     END;
     Result := StartKeepAlive();
     IF Result <> 0 THEN
-      Disconnect( FALSE, Sync.INFINITE_TIME );
+      Disconnect( FALSE, FORSAFETY );
     END;
   END KeepAliveTime;
 
@@ -809,7 +809,7 @@ CLASS IMPLEMENTATION DSocket;
     Addr.s_addr := winsock.inet_addr( ADR( sa ));
 
     IF _Type = stStream THEN
-      IF TimeoutMS < Sync.INFINITE_TIME THEN
+      IF TimeoutMS < Sync.FOREVER THEN
         StartTimeout( poConnect, TimeoutMS );
         TimeoutMS := TimeoutMS DIV 2; // prepare for Disconnect
       ELSE
@@ -828,7 +828,7 @@ CLASS IMPLEMENTATION DSocket;
         dns.KillPending( REF ResolveAddr );
       END;
       AddRef();
-      dns.NameToAddress( ADR( DNS ), ADR( SELF ), Server, Sync.INFINITE_TIME, OUT ResolveAddr );
+      dns.NameToAddress( ADR( DNS ), ADR( SELF ), Server, FORSAFETY, OUT ResolveAddr );
     ELSIF Result = Sync.arPending THEN
       // result from Disconnect
     ELSE
@@ -849,7 +849,7 @@ CLASS IMPLEMENTATION DSocket;
     END;
 
     IF _Type = stStream THEN
-      IF TimeoutMS < Sync.INFINITE_TIME THEN
+      IF TimeoutMS < Sync.FOREVER THEN
         StartTimeout( poConnect, TimeoutMS );
         TimeoutMS := TimeoutMS DIV 2; // prepare for Disconnect
       ELSE
@@ -882,7 +882,7 @@ CLASS IMPLEMENTATION DSocket;
     IF _Type = stDatagram THEN
       RETURN Sync.arCannotStart;
     END;
-    Disconnect( TRUE, Sync.INFINITE_TIME );
+    Disconnect( TRUE, FORSAFETY );
 
     L := SIZE( Remote ); 
     Socket := winsock.accept( ServerSocket^.Socket, winsock.Psockaddr( ADR( Remote )), ADR( L ));
@@ -934,14 +934,14 @@ CLASS IMPLEMENTATION DSocket;
     IF _Type = stDatagram THEN
       RETURN Sync.arCannotStart;
     END;
-    Disconnect( TRUE, Sync.INFINITE_TIME );
+    Disconnect( TRUE, FORSAFETY );
 
     Local := SourceSocket^.Local;
     Remote := SourceSocket^.Remote;
     Socket := SourceSocket^.Socket;
 
     SourceSocket^.Socket := winsock.INVALID_SOCKET;
-    SourceSocket^.Disconnect( TRUE, Sync.INFINITE_TIME );
+    SourceSocket^.Disconnect( TRUE, FORSAFETY );
 
     _Lock.Incl( REF _Pending, poConnection );
     Result := Select( winsock.FD_READ OR winsock.FD_WRITE OR winsock.FD_CLOSE );
@@ -1211,7 +1211,7 @@ CLASS IMPLEMENTATION DSocket;
     MSG : msghandler.Message;
   BEGIN
     IF _FDHandle = NIL THEN
-      netpool.Pool()^.WaitMessage( ADR( SELF ), 0, Sync.INFINITE_TIME, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
+      netpool.Pool()^.WaitMessage( ADR( SELF ), 0, Sync.FOREVER, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
     END;
     MSG := _FDMessage;
     MSG[2] := PTR( Operation );
@@ -1514,7 +1514,7 @@ CLASS IMPLEMENTATION DSocket;
     KA : MSTcpIp.tcp_keepalive;
     L : CARDINAL;
   BEGIN
-    IF ( KeepAlive = 0 ) OR ( KeepAlive = Sync.INFINITE_TIME ) THEN
+    IF ( KeepAlive = 0 ) OR ( KeepAlive = Sync.FOREVER ) THEN
       KA.onoff := 0;
     ELSE
       KA.onoff := 1;
@@ -1545,7 +1545,7 @@ CLASS IMPLEMENTATION DSocket;
     IF Timeout[Operation] <> NIL THEN
       netpool.Pool()^.Abort( REF Timeout[Operation] );
     END;
-    IF _Timeout <> Sync.INFINITE_TIME THEN
+    IF _Timeout <> Sync.FOREVER THEN
       netpool.Pool()^.WaitTimeout( ADR( SELF ), PTR( Operation ), _Timeout, TRUE, OUT Timeout[Operation] );
     END;
   END StartTimeout;

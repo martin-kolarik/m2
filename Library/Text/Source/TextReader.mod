@@ -108,7 +108,7 @@ CLASS IMPLEMENTATION CTextReader;
             END;
          ELSE
             _WBuffer.ReadOA( OUT Ch );
-            ReadFromStream( Sync.INFINITE_TIME, FALSE, TRUE );
+            ReadFromStream( Sync.FOREVER, FALSE, TRUE );
             RETURN Sync.arCompleted;
          END;
       END; // LOOP
@@ -161,7 +161,7 @@ CLASS IMPLEMENTATION CTextReader;
                Line.AppendOA( OA( dl-1, a ));
             END;
 
-            ReadFromStream( Sync.INFINITE_TIME, FALSE, TRUE ); // start new reading
+            ReadFromStream( Sync.FOREVER, FALSE, TRUE ); // start new reading
             _WBuffer.CommitReading( cl<<1 );
 
             RETURN Sync.arCompleted;
@@ -209,7 +209,7 @@ CLASS IMPLEMENTATION CTextReader;
             _WBuffer.CommitReading( l );
             DEC( Length, l );
             IF Length = 0 THEN
-               ReadFromStream( Sync.INFINITE_TIME, FALSE, TRUE );
+               ReadFromStream( Sync.FOREVER, FALSE, TRUE );
                RETURN Sync.arCompleted;
             END;
          END;
@@ -232,14 +232,14 @@ CLASS IMPLEMENTATION CTextReader;
 
    PUBLIC PROCEDURE ReadCharS( OUT Ch : WCHAR ) : BOOLEAN;
    BEGIN
-      RETURN ReadChar( OUT Ch, Sync.INFINITE_TIME, TRUE ) = Sync.arCompleted;
+      RETURN ReadChar( OUT Ch, Sync.FOREVER, TRUE ) = Sync.arCompleted;
    END ReadCharS;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE ReadLineS( OUT Line : StringsO.IString ) : BOOLEAN;
    BEGIN
-      RETURN ReadLine( OUT Line, Sync.INFINITE_TIME, TRUE ) = Sync.arCompleted;
+      RETURN ReadLine( OUT Line, Sync.FOREVER, TRUE ) = Sync.arCompleted;
    END ReadLineS;
 
 (*--------------------------------------------------------------------------------*)
@@ -263,7 +263,7 @@ CLASS IMPLEMENTATION CTextReader;
    BEGIN
       _SBuffer.Clear();
       _WBuffer.Clear();
-      ReadFromStream( Sync.INFINITE_TIME, FALSE, FALSE );
+      ReadFromStream( Sync.FOREVER, FALSE, FALSE );
    END StartReading;
 
 (*--------------------------------------------------------------------------------*)
@@ -288,7 +288,7 @@ CLASS IMPLEMENTATION CTextReader;
    BEGIN
       _WBuffer.CommitReading( Length );
       // continue with reading
-      ReadFromStream( Sync.INFINITE_TIME, FALSE, TRUE );
+      ReadFromStream( Sync.FOREVER, FALSE, TRUE );
    END ReadOut;
 
 (*--------------------------------------------------------------------------------*)
@@ -300,7 +300,7 @@ CLASS IMPLEMENTATION CTextReader;
       IF AllowPredictioning AND ( _WBuffer.Count > _WBuffer.Size DIV 2 ) THEN
          RETURN Sync.arCompleted;
       END;
-      Result := _Stream^.Read( ADR( _SProxy ), Sync.INFINITE_TIME, FALSE );
+      Result := _Stream^.Read( ADR( _SProxy ), Sync.FOREVER, FALSE );
       IF Result <> Sync.arPending THEN
          RETURN Result;
       ELSIF WaitForResult THEN
