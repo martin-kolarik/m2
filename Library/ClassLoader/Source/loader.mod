@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE loader;
 
+FROM Strings IMPORT
+   LowerizeW;
+
 IMPORT
    FIO,
    Strings,
@@ -279,6 +282,7 @@ CLASS IMPLEMENTATION CLoader;
       s : FIO.PathStrW;
    BEGIN
       i := Strings.ItemSW( ClassPath, Strings.WCHARS{L"/"}, 0, 0, FALSE, OUT s );
+      LOW( s );
       IF s[0] = 0W THEN
          RETURN iobject.lrLibraryNotFound;
       ELSIF NOT Names.GetOA( s, OUT Library ) THEN
