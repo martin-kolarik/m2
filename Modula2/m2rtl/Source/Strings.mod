@@ -846,14 +846,16 @@ END ItemSMW;
 
 PROCEDURE ToA( CONST Source : ARRAY OF WCHAR; CodePage : CARDINAL; OUT Destination : ARRAY OF CHAR ); // CodePage can be 0
 VAR
-	l : CARDINAL;
+	f, l : CARDINAL;
 BEGIN
-	l := LENGTH( Source );
+	l := MIN2( LENGTH( Source ), HIGH( Destination )+1 );
+	f := l;
 	IF l > 0 THEN
 		IF CodePage = 0 THEN
 			CodePage := winnls.CP_ACP;
 		END;
 		l := winnls.WideCharToMultiByte( CodePage, 0, ADR( Source ), l, ADR( Destination ), HIGH( Destination ) + 1, NIL, NIL );
+		ASSERT(( f = 0 ) OR ( l > 0 ));
 	END;
 	IF l < HIGH( Destination ) THEN
 		Destination[l] := CHAR( 0 );
@@ -867,9 +869,10 @@ END ToAStream;
 
 PROCEDURE ToW( CONST Source : ARRAY OF CHAR; CodePage : CARDINAL; OUT Destination : ARRAY OF WCHAR ); // CodePage can be 0
 VAR
-	l : CARDINAL;
+	f, l : CARDINAL;
 BEGIN
 	l := LENGTH( Source );
+	f := l;
 	IF l > 0 THEN
 		IF CodePage = 0 THEN
 			CodePage := winnls.CP_ACP;
@@ -879,6 +882,7 @@ BEGIN
 		ELSE
 			l := winnls.MultiByteToWideChar( CodePage, winnls.MB_PRECOMPOSED, ADR( Source ), l, ADR( Destination ), HIGH( Destination ) + 1 );
 		END;
+		ASSERT(( f = 0 ) OR ( l > 0 ));
 	END;
 	IF l < HIGH( Destination ) THEN
 		Destination[l] := 0W;
