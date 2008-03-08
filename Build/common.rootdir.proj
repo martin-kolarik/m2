@@ -29,6 +29,7 @@
         <!-- the assignment should be the same as for ComponentDefinitionsPath -->
         <LibraryName Condition="$(ComponentType)!='Bundle'">$(ResultName)</LibraryName>
         <LibraryName Condition="$(ComponentType)=='Generic'">$(InheritedLibraryName)</LibraryName>
+        <LibraryName Condition="$(LibraryName)==''">$(ResultName)</LibraryName>
     </PropertyGroup>
 
 </Project>

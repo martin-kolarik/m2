@@ -204,6 +204,7 @@ VAR
    LoadResult : iobject.TResult;
    Name : ARRAY [0..127] OF WCHAR;
    Path : FIO.PathStrW;
+   RepeatCount, rc : CARDINAL := 1;
    StdOutFlag : BOOLEAN := FALSE;
    Test : test.TPTest;
    TestResult : test.TTestResult;
@@ -227,6 +228,15 @@ BEGIN
             GOTO Error;
          | L'o' :
             StdOutFlag := TRUE;
+         | L'r' :
+            INC( i );
+            IF i = argc THEN
+               errout^.WriteOA( L"runtest: missing repeat count for -r option ", TRUE );
+               GOTO Error;
+            END;
+            IF NOT Strings.ToCARD32W( OAsz( argp^[i] ), 10, OUT RepeatCount ) THEN
+               RepeatCount := 1;
+            END;
          | L't' :
             TimeStamps := TRUE;
          ELSE
@@ -243,42 +253,47 @@ BEGIN
    
    Host.Log^.TimeStamps := TimeStamps;
    
-   ESl := 0;
-   WHILE loader.ldr()^.EnumerateLibraries( REF ESl, OUT Name, OUT Path, OUT LibraryState ) DO
-      Strings.ConcatW( OUT ClassPath, Name, L"/Development.Tests" );
-      LoadResult := loader.ldr()^.CreateObject( ClassPath, OUT Tests );
-      IF LoadResult <> iobject.lrSuccess THEN
-         Host.Log^.LogSS( log.dlcSysError, L"", L"Error loading library: ", Name );
-         CONTINUE;
-      END;
-
-      Host.StartSuite( Name );
-
-      ESt := 0;
-      WHILE Tests^.EnumerateTests( REF ESt, OUT Name, OUT Test ) DO
-         IF NOT Filters.Empty THEN
-            Found := FALSE;
-            Filters.Reset();
-            WHILE Filters.MoveNext() DO
-               IF Strings.MatchW( Name, OA( Filters.Current^.Length-1, Filters.Current^.rawData ), FALSE ) THEN
-                  Found := TRUE;
-                  EXIT;
-               END;
-            END; // WHILE
-            IF NOT Found THEN
-               CONTINUE;
-            END;
+   FOR rc := 1 TO RepeatCount DO
+   
+      ESl := 0;
+      WHILE loader.ldr()^.EnumerateLibraries( REF ESl, OUT Name, OUT Path, OUT LibraryState ) DO
+         Strings.ConcatW( OUT ClassPath, Name, L"/Development.Tests" );
+         LoadResult := loader.ldr()^.CreateObject( ClassPath, OUT Tests );
+         IF LoadResult <> iobject.lrSuccess THEN
+            Host.Log^.LogSS( log.dlcSysError, L"", L"Error loading library: ", Name );
+            Host.Log^.LogSC( log.dlcSysError, L"", L"          load result: ", CARDINAL( LoadResult ));
+            CONTINUE;
          END;
 
-         Host.StartTest( Name );
-         TestResult := Test^.Run( ADR( Host ), OA( -1, PPWCHAR( NIL )));
-         Host.StopTest( TestResult );
+         Host.StartSuite( Name );
+
+         ESt := 0;
+         WHILE Tests^.EnumerateTests( REF ESt, OUT Name, OUT Test ) DO
+            IF NOT Filters.Empty THEN
+               Found := FALSE;
+               Filters.Reset();
+               WHILE Filters.MoveNext() DO
+                  IF Strings.MatchW( Name, OA( Filters.Current^.Length-1, Filters.Current^.rawData ), FALSE ) THEN
+                     Found := TRUE;
+                     EXIT;
+                  END;
+               END; // WHILE
+               IF NOT Found THEN
+                  CONTINUE;
+               END;
+            END;
+
+            Host.StartTest( Name );
+            TestResult := Test^.Run( ADR( Host ), OA( -1, PPWCHAR( NIL )));
+            Host.StopTest( TestResult );
+            
+            TotalResult := TotalResult AND ( TestResult = test.trSuccess );
+         END; // WHITE Tests
          
-         TotalResult := TotalResult AND ( TestResult = test.trSuccess );
-      END; // WHITE Tests
+         loader.ldr()^.ReleaseObject( REF Tests );
+      END; // WHILE Libraries
       
-      loader.ldr()^.ReleaseObject( REF Tests );
-   END; // WHILE Libraries
+   END; // FOR RepeatCount
 
    IF TotalResult THEN
       RETURN 0;
@@ -287,7 +302,7 @@ BEGIN
    END;
 
 Error:
-   errout^.WriteOA( L"  usage: runtest [-o] [-t] [-f <filter>] <test-dll-list> [-h]", TRUE );
+   errout^.WriteOA( L"  usage: runtest [-o] [-t] [-r <repeatcount>] [-f <filter>] <test-dll-list> [-h]", TRUE );
    RETURN -1;
 END wmain;
   
