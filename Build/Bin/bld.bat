@@ -1,0 +1,1 @@
+msbuild -nologo -v:m -clp:nosummary /l:FileLogger,Microsoft.Build.Engine;logfile=build.log %*
