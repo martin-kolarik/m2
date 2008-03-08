@@ -40,7 +40,9 @@ END InitValue;
 // sets vtNothing but checks for possible dynamic string and frees it
 PROCEDURE DoneValue( VAR Value : TValue );
 BEGIN
-  IF ( Value.Type = vtDString ) AND ( Value.ValDStringW <> NIL ) THEN
+  IF ( Value.Type = vtPString256 ) AND ( Value.ValPString256W <> NIL ) THEN
+    DISPOSE( Value.ValPString256W );
+  ELSIF ( Value.Type = vtDString ) AND ( Value.ValDStringW <> NIL ) THEN
     DISPOSE( Value.ValDStringW );
   ELSIF ( Value.Type = vtBuffer ) AND ( Value.PBuffer <> NIL ) THEN
     DISPOSE( Value.PBuffer );
@@ -140,107 +142,69 @@ END IOTypeToCWType;
 
 //==============================================================
 
-PROCEDURE SetValueBoolean( VAR Value : TValue; b : BOOLEAN );
+PROCEDURE SetValuePString256StringW( VAR Value : TValue; ValueUFlag : BOOLEAN; s : ARRAY OF WCHAR );
 BEGIN
   IF (Value.Type = vtDString) AND (Value.ValDStringW <> NIL) THEN
     DISPOSE( Value.ValDStringW );
   ELSIF (Value.Type = vtData) AND (Value.ValPData <> NIL) THEN
     DISPOSE( Value.ValPData );
   END;
-  Value.Type := vtBoolean;
-  Value.ValBoolean := b;
-END SetValueBoolean;
-
-//--------------------------------------------------------------
-
-PROCEDURE SetValueCard8( VAR Value : TValue; v : CARD8 );
-BEGIN
-  IF (Value.Type = vtDString) AND (Value.ValDStringW <> NIL) THEN
-    DISPOSE( Value.ValDStringW );
-  ELSIF (Value.Type = vtData) AND (Value.ValPData <> NIL) THEN
-    DISPOSE( Value.ValPData );
+  IF Value.Type <> vtPString256 THEN
+    Value.Type := vtPString256;
+    Value.ValPString256W := NIL; // ValPString256A shares place
   END;
-  Value.Type := vtShortCard;
-  Value.ValShortCard := v;
-END SetValueCard8;
-
-//--------------------------------------------------------------
-
-PROCEDURE SetValueCard32( VAR Value : TValue; v : CARD32 );
-BEGIN
-  IF (Value.Type = vtDString) AND (Value.ValDStringW <> NIL) THEN
-    DISPOSE( Value.ValDStringW );
-  ELSIF (Value.Type = vtData) AND (Value.ValPData <> NIL) THEN
-    DISPOSE( Value.ValPData );
+  IF s[0] = 0W THEN
+    DISPOSE( Value.ValPString256W ); // ValPString256A shares place
+  ELSE
+    IF Value.ValPString256W = NIL THEN
+      NEW( Value.ValPString256W ); // allocate WCHARs even if I can be A string. Simplify...
+    END;
+    IF ValueUFlag THEN
+      ASSIGN( OA( 255, Value.ValPString256W ), s );
+    ELSE
+      Strings.ToA( s, 0, OUT OA( 255, Value.ValPString256A ));
+    END;
   END;
-  Value.Type := vtLongCard;
-  Value.ValLongCard := v;
-END SetValueCard32;
+END SetValuePString256StringW;
 
 //--------------------------------------------------------------
 
-PROCEDURE SetValueInt8( VAR Value : TValue; v : INT8 );
+PROCEDURE SetValueStringW( VAR Value : TValue; ValueUFlag : BOOLEAN; s : ARRAY OF WCHAR );
+VAR
+  SW : drv_str.TPDStringW := NIL;
 BEGIN
-  IF (Value.Type = vtDString) AND (Value.ValDStringW <> NIL) THEN
-    DISPOSE( Value.ValDStringW );
+  IF (Value.Type = vtPString256) AND (Value.ValPString256W <> NIL) THEN
+    DISPOSE( Value.ValPString256W );
   ELSIF (Value.Type = vtData) AND (Value.ValPData <> NIL) THEN
-    DISPOSE( Value.ValPData );
-  END;
-  Value.Type := vtShortInt;
-  Value.ValShortInt := v;
-END SetValueInt8;
-
-//--------------------------------------------------------------
-
-PROCEDURE SetValueInt32( VAR Value : TValue; v : INT32 );
-BEGIN
-  IF (Value.Type = vtDString) AND (Value.ValDStringW <> NIL) THEN
-    DISPOSE( Value.ValDStringW );
-  ELSIF (Value.Type = vtData) AND (Value.ValPData <> NIL) THEN
-    DISPOSE( Value.ValPData );
-  END;
-  Value.Type := vtLongInt;
-  Value.ValLongInt := v;
-END SetValueInt32;
-
-//--------------------------------------------------------------
-
-PROCEDURE SetValueLongReal( VAR Value : TValue; r : LONGREAL );
-BEGIN
-  IF (Value.Type = vtDString) AND (Value.ValDStringW <> NIL) THEN
-    DISPOSE( Value.ValDStringW );
-  ELSIF (Value.Type = vtData) AND (Value.ValPData <> NIL) THEN
-    DISPOSE( Value.ValPData );
-  END;
-  Value.Type := vtLongReal;
-  Value.ValLongReal := r;
-END SetValueLongReal;
-
-//--------------------------------------------------------------
-
-PROCEDURE SetValueString( VAR Value : TValue; s : ARRAY OF WCHAR );
-BEGIN
-  IF (Value.Type = vtData) AND (Value.ValPData <> NIL) THEN
     DISPOSE( Value.ValPData );
   END;
   IF Value.Type <> vtDString THEN
     Value.Type := vtDString;
-    Value.ValDStringW := NIL;
+    Value.ValDStringW := NIL; // ValDStringA shares place
   END;
   IF s[0] = 0W THEN
-    IF Value.ValDStringW <> NIL THEN
-      DISPOSE( Value.ValDStringW );
-    END;
+    DISPOSE( Value.ValDStringW ); // ValDStringA shares place
   ELSE
-    drv_str.CopyStrToDStrW( Value.ValDStringW, s );
+    drv_str.CopyStrToDStrW( SW, s );
+    IF ValueUFlag THEN
+      Value.ValDStringW := SW;
+    ELSE
+      #if #not UNICODE #then
+        ASSERT( FALSE );
+      #endif
+      drv_str.CreateAFromTW( Value.ValDStringA, SW );
+      DISPOSE( SW );
+    END;
   END;
-END SetValueString;
+END SetValueStringW;
 
 //--------------------------------------------------------------
 
-PROCEDURE SetValueDString( VAR Value : TValue; S : drv_str.TPDStringW );
+PROCEDURE SetValueDStringW( VAR Value : TValue; ValueUFlag : BOOLEAN; S : drv_str.TPDStringW );
 BEGIN
-  IF ( Value.Type = vtData ) AND ( Value.ValPData <> NIL ) THEN
+  IF (Value.Type = vtPString256) AND (Value.ValPString256W <> NIL) THEN
+    DISPOSE( Value.ValPString256W );
+  ELSIF ( Value.Type = vtData ) AND ( Value.ValPData <> NIL ) THEN
     DISPOSE( Value.ValPData );
   END;
   IF S = NIL THEN
@@ -248,140 +212,149 @@ BEGIN
       Value.Type := vtDString;
       Value.ValDStringW := NIL;
     ELSIF Value.ValDStringW <> NIL THEN
-      DISPOSE( Value.ValDStringW );
+      DISPOSE( Value.ValDStringW ); // ValDStringA shares place
     END;
     RETURN;
   END;
   IF Value.Type <> vtDString THEN
     Value.Type := vtDString;
-    drv_str.AllocDStrW( Value.ValDStringW, S^.Len + 1 );
+    IF ValueUFlag THEN
+      drv_str.AllocDStrW( Value.ValDStringW, S^.Len + 1 );
+    ELSE
+      drv_str.AllocDStrA( Value.ValDStringA, S^.Len + 1 );
+    END;
   END;
-  drv_str.CopyDStrToDStrW( Value.ValDStringW, S );
-END SetValueDString;
+  IF ValueUFlag THEN
+    drv_str.CopyDStrToDStrW( Value.ValDStringW, S );
+  ELSE
+    #if #not UNICODE #then
+      ASSERT( FALSE );
+    #endif
+    drv_str.CreateAFromTW( Value.ValDStringA, S );
+  END;
+END SetValueDStringW;
 
 //==============================================================
 // helpers preserving value's type
 
-CONST
-(*%F UNICODE *)
-  valueUFlag = FALSE;
-(*%E UNICODE *)
-(*%T UNICODE *)
-  valueUFlag = TRUE;
-(*%E UNICODE *)
-
-PROCEDURE AssignValueBoolean( VAR Value : TValue; Saturate : BOOLEAN; v : BOOLEAN );
+PROCEDURE AssignValueBoolean( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; v : BOOLEAN );
 BEGIN
   IF v THEN
     CASE Value.Type OF
-    | vtBoolean   : Value.ValBoolean   := TRUE;
-    | vtShortCard : Value.ValShortCard := 1;
-    | vtCardinal  : Value.ValCardinal  := 1;
-    | vtLongCard  : Value.ValLongCard  := 1;
-    | vtShortInt  : Value.ValShortInt  := 1;
-    | vtInteger   : Value.ValInteger   := 1;
-    | vtLongInt   : Value.ValLongInt   := 1;
-    | vtLongReal  : Value.ValLongReal  := 1.0;
-    | vtDString   : SetValueString( Value, kwTRUE );
+    | vtBoolean    : Value.ValBoolean   := TRUE;
+    | vtShortCard  : Value.ValShortCard := 1;
+    | vtCardinal   : Value.ValCardinal  := 1;
+    | vtLongCard   : Value.ValLongCard  := 1;
+    | vtShortInt   : Value.ValShortInt  := 1;
+    | vtInteger    : Value.ValInteger   := 1;
+    | vtLongInt    : Value.ValLongInt   := 1;
+    | vtLongReal   : Value.ValLongReal  := 1.0;
+    | vtPString256 : SetValuePString256StringW( Value, ValueUFlag, kwTRUE );
+    | vtDString    : SetValueStringW( Value, ValueUFlag, kwTRUE );
     | vtDriverString
-                  : AssignDrvValueStringW( Value, valueUFlag, FALSE, kwTRUE );
+                   : AssignDrvValueStringW( Value, ValueUFlag, FALSE, kwTRUE );
     END;
   ELSE
     CASE Value.Type OF
-    | vtBoolean   : Value.ValBoolean   := FALSE;
-    | vtShortCard : Value.ValShortCard := 0;
-    | vtCardinal  : Value.ValCardinal  := 0;
-    | vtLongCard  : Value.ValLongCard  := 0;
-    | vtShortInt  : Value.ValShortInt  := 0;
-    | vtInteger   : Value.ValInteger   := 0;
-    | vtLongInt   : Value.ValLongInt   := 0;
-    | vtLongReal  : Value.ValLongReal  := 0.0;
-    | vtDString   : SetValueString( Value, kwFALSE );
+    | vtBoolean    : Value.ValBoolean   := FALSE;
+    | vtShortCard  : Value.ValShortCard := 0;
+    | vtCardinal   : Value.ValCardinal  := 0;
+    | vtLongCard   : Value.ValLongCard  := 0;
+    | vtShortInt   : Value.ValShortInt  := 0;
+    | vtInteger    : Value.ValInteger   := 0;
+    | vtLongInt    : Value.ValLongInt   := 0;
+    | vtLongReal   : Value.ValLongReal  := 0.0;
+    | vtPString256 : SetValuePString256StringW( Value, ValueUFlag, kwFALSE );
+    | vtDString    : SetValueStringW( Value, ValueUFlag, kwFALSE );
     | vtDriverString
-                  : AssignDrvValueStringW( Value, valueUFlag, FALSE, kwFALSE );
+                   : AssignDrvValueStringW( Value, ValueUFlag, FALSE, kwFALSE );
     END;
   END;
 END AssignValueBoolean;
 
 //--------------------------------------------------------------
 
-PROCEDURE AssignValueCard8( VAR Value : TValue; Saturate : BOOLEAN; v : CARD8 );
+PROCEDURE AssignValueCard8( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; v : CARD8 );
 VAR
   n : ARRAY [0..31] OF TCHAR;
 BEGIN
   CASE Value.Type OF
-  | vtBoolean   : Value.ValBoolean   := v <> 0;
-  | vtShortCard : Value.ValShortCard := v;
-  | vtCardinal  : Value.ValCardinal  := CARD16( v );
-  | vtLongCard  : Value.ValLongCard  := CARD32( v );
-  | vtShortInt  : IF NOT Saturate THEN
-                    Value.ValShortInt := INT8( v );
-                  ELSIF v > MAX( INT8 ) THEN
-                    Value.ValShortInt := MAX( INT8 );
-                  ELSE
-                    Value.ValShortInt := INT8( v );
-                  END;
-  | vtInteger   : Value.ValInteger   := INT16( v );
-  | vtLongInt   : Value.ValLongInt   := INT32( v );
-  | vtLongReal  : Value.ValLongReal  := LONGREAL( v );
-  | vtDString   : Strings.FromCARD32W( CARDINAL( v ), 10, OUT n );
-                  SetValueString( Value, n );
+  | vtBoolean    : Value.ValBoolean   := v <> 0;
+  | vtShortCard  : Value.ValShortCard := v;
+  | vtCardinal   : Value.ValCardinal  := CARD16( v );
+  | vtLongCard   : Value.ValLongCard  := CARD32( v );
+  | vtShortInt   : IF NOT Saturate THEN
+                     Value.ValShortInt := INT8( v );
+                   ELSIF v > MAX( INT8 ) THEN
+                     Value.ValShortInt := MAX( INT8 );
+                   ELSE
+                     Value.ValShortInt := INT8( v );
+                   END;
+  | vtInteger    : Value.ValInteger   := INT16( v );
+  | vtLongInt    : Value.ValLongInt   := INT32( v );
+  | vtLongReal   : Value.ValLongReal  := LONGREAL( v );
+  | vtPString256 : Strings.FromCARD32W( CARDINAL( v ), 10, OUT n );
+                   SetValuePString256StringW( Value, ValueUFlag, n );
+  | vtDString    : Strings.FromCARD32W( CARDINAL( v ), 10, OUT n );
+                   SetValueStringW( Value, ValueUFlag, n );
   | vtDriverString
-                : Strings.FromCARD32W( CARDINAL( v ), 10, OUT n );
-                  AssignDrvValueStringW( Value, valueUFlag, FALSE, n );
+                 : Strings.FromCARD32W( CARDINAL( v ), 10, OUT n );
+                   AssignDrvValueStringW( Value, ValueUFlag, FALSE, n );
   END;
 END AssignValueCard8;
 
 //--------------------------------------------------------------
 
-PROCEDURE AssignValueCard32( VAR Value : TValue; Saturate : BOOLEAN; v : CARD32 );
+PROCEDURE AssignValueCard32( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; v : CARD32 );
 VAR
   n : ARRAY [0..31] OF TCHAR;
 BEGIN
   CASE Value.Type OF
-  | vtBoolean   : Value.ValBoolean := v <> 0;
-  | vtShortCard : IF NOT Saturate THEN
-                    Value.ValShortCard := CARD8( v );
-                  ELSIF v > MAX( CARD8 ) THEN
-                    Value.ValShortCard := MAX( CARD8 );
-                  ELSE
-                    Value.ValShortCard := CARD8( v );
-                  END;
-  | vtCardinal  : IF NOT Saturate THEN
-                    Value.ValCardinal := CARD16( v );
-                  ELSIF v > MAX( CARD16 ) THEN
-                    Value.ValCardinal := MAX( CARD16 );
-                  ELSE
-                    Value.ValCardinal := CARD16( v );
-                  END;
-  | vtLongCard  : Value.ValLongCard := v;
-  | vtShortInt  : IF NOT Saturate THEN
-                    Value.ValShortInt := INT8( v );
-                  ELSIF v > MAX( INT8 ) THEN
-                    Value.ValShortInt := MAX( INT8 );
-                  ELSE
-                    Value.ValShortInt := INT8( v );
-                  END;
-  | vtInteger   : IF NOT Saturate THEN
-                    Value.ValInteger := INT16( v );
-                  ELSIF v > MAX( INT16 ) THEN
-                    Value.ValInteger := MAX( INT16 );
-                  ELSE
-                    Value.ValInteger := INT16( v );
-                  END;
-  | vtLongInt   : IF NOT Saturate THEN
-                    Value.ValLongInt := INT32( v );
-                  ELSIF v > MAX( INT32 ) THEN
-                    Value.ValLongInt := MAX( INT32 );
-                  ELSE
-                    Value.ValLongInt := INT32( v );
-                  END;
-  | vtLongReal  : Value.ValLongReal := LONGREAL( v );
-  | vtDString   : Strings.FromCARD32W( CARDINAL( v ), 10, OUT n );
-                  SetValueString( Value, n );
+  | vtBoolean    : Value.ValBoolean := v <> 0;
+  | vtShortCard  : IF NOT Saturate THEN
+                     Value.ValShortCard := CARD8( v );
+                   ELSIF v > MAX( CARD8 ) THEN
+                     Value.ValShortCard := MAX( CARD8 );
+                   ELSE
+                     Value.ValShortCard := CARD8( v );
+                   END;
+  | vtCardinal   : IF NOT Saturate THEN
+                     Value.ValCardinal := CARD16( v );
+                   ELSIF v > MAX( CARD16 ) THEN
+                     Value.ValCardinal := MAX( CARD16 );
+                   ELSE
+                     Value.ValCardinal := CARD16( v );
+                   END;
+  | vtLongCard   : Value.ValLongCard := v;
+  | vtShortInt   : IF NOT Saturate THEN
+                     Value.ValShortInt := INT8( v );
+                   ELSIF v > MAX( INT8 ) THEN
+                     Value.ValShortInt := MAX( INT8 );
+                   ELSE
+                     Value.ValShortInt := INT8( v );
+                   END;
+  | vtInteger    : IF NOT Saturate THEN
+                     Value.ValInteger := INT16( v );
+                   ELSIF v > MAX( INT16 ) THEN
+                     Value.ValInteger := MAX( INT16 );
+                   ELSE
+                     Value.ValInteger := INT16( v );
+                   END;
+  | vtLongInt    : IF NOT Saturate THEN
+                     Value.ValLongInt := INT32( v );
+                   ELSIF v > MAX( INT32 ) THEN
+                     Value.ValLongInt := MAX( INT32 );
+                   ELSE
+                     Value.ValLongInt := INT32( v );
+                   END;
+  | vtLongReal   : Value.ValLongReal := LONGREAL( v );
+  | vtPString256 : Strings.FromCARD32W( CARDINAL( v ), 10, OUT n );
+                   SetValuePString256StringW( Value, ValueUFlag, n );
+  | vtDString    : Strings.FromCARD32W( CARDINAL( v ), 10, OUT n );
+                   SetValueStringW( Value, ValueUFlag, n );
   | vtDriverString
-                : Strings.FromCARD32W( CARDINAL( v ), 10, OUT n );
-                  AssignDrvValueStringW( Value, valueUFlag, FALSE, n );
+                 : Strings.FromCARD32W( CARDINAL( v ), 10, OUT n );
+                   AssignDrvValueStringW( Value, ValueUFlag, FALSE, n );
   ELSE
     ASSERT( FALSE );
   END;
@@ -389,174 +362,180 @@ END AssignValueCard32;
 
 //--------------------------------------------------------------
 
-PROCEDURE AssignValueInt8( VAR Value : TValue; Saturate : BOOLEAN; v : INT8 );
+PROCEDURE AssignValueInt8( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; v : INT8 );
 VAR
   n : ARRAY [0..31] OF TCHAR;
 BEGIN
   CASE Value.Type OF
-  | vtBoolean   : Value.ValBoolean := v <> 0;
-  | vtShortCard : IF NOT Saturate THEN
-                    Value.ValShortCard := CARD8( v );
-                  ELSIF v < 0 THEN
-                    Value.ValShortCard := 0;
-                  ELSE
-                    Value.ValShortCard := CARD8( v );
-                  END;
-  | vtCardinal  : IF NOT Saturate THEN
-                    Value.ValCardinal := CARD16( v );
-                  ELSIF v < 0 THEN
-                    Value.ValCardinal := 0;
-                  ELSE
-                    Value.ValCardinal := CARD16( v );
-                  END;
-  | vtLongCard  : IF NOT Saturate THEN
-                    Value.ValLongCard := CARD32( v );
-                  ELSIF v < 0 THEN
-                    Value.ValLongCard := 0;
-                  ELSE
-                    Value.ValLongCard := CARD32( v );
-                  END;
-  | vtShortInt  : Value.ValShortInt := v;
-  | vtInteger   : Value.ValInteger := INT16( v );
-  | vtLongInt   : Value.ValLongInt := INT32( v );
-  | vtLongReal  : Value.ValLongReal := LONGREAL( v );
-  | vtDString   : Strings.FromINT32W( INTEGER( v ), 10, OUT n );
-                  SetValueString( Value, n );
+  | vtBoolean    : Value.ValBoolean := v <> 0;
+  | vtShortCard  : IF NOT Saturate THEN
+                     Value.ValShortCard := CARD8( v );
+                   ELSIF v < 0 THEN
+                     Value.ValShortCard := 0;
+                   ELSE
+                     Value.ValShortCard := CARD8( v );
+                   END;
+  | vtCardinal   : IF NOT Saturate THEN
+                     Value.ValCardinal := CARD16( v );
+                   ELSIF v < 0 THEN
+                     Value.ValCardinal := 0;
+                   ELSE
+                     Value.ValCardinal := CARD16( v );
+                   END;
+  | vtLongCard   : IF NOT Saturate THEN
+                     Value.ValLongCard := CARD32( v );
+                   ELSIF v < 0 THEN
+                     Value.ValLongCard := 0;
+                   ELSE
+                     Value.ValLongCard := CARD32( v );
+                   END;
+  | vtShortInt   : Value.ValShortInt := v;
+  | vtInteger    : Value.ValInteger := INT16( v );
+  | vtLongInt    : Value.ValLongInt := INT32( v );
+  | vtLongReal   : Value.ValLongReal := LONGREAL( v );
+  | vtPString256 : Strings.FromINT32W( INTEGER( v ), 10, OUT n );
+                   SetValuePString256StringW( Value, ValueUFlag, n );
+  | vtDString    : Strings.FromINT32W( INTEGER( v ), 10, OUT n );
+                   SetValueStringW( Value, ValueUFlag, n );
   | vtDriverString
-                : Strings.FromINT32W( INTEGER( v ), 10, OUT n );
-                  AssignDrvValueStringW( Value, valueUFlag, FALSE, n );
+                 : Strings.FromINT32W( INTEGER( v ), 10, OUT n );
+                   AssignDrvValueStringW( Value, ValueUFlag, FALSE, n );
   END;
 END AssignValueInt8;
 
 //--------------------------------------------------------------
 
-PROCEDURE AssignValueInt32( VAR Value : TValue; Saturate : BOOLEAN; v : INT32 );
+PROCEDURE AssignValueInt32( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; v : INT32 );
 VAR
   n : ARRAY [0..31] OF TCHAR;
 BEGIN
   CASE Value.Type OF
-  | vtBoolean   : Value.ValBoolean := v <> 0;
-  | vtShortCard : IF NOT Saturate THEN
-                    Value.ValShortCard := CARD8( v );
-                  ELSIF v < 0 THEN
-                    Value.ValShortCard := 0;
-                  ELSIF v > MAX( CARD8 ) THEN
-                    Value.ValShortCard := MAX( CARD8 );
-                  ELSE
-                    Value.ValShortCard := CARD8( v );
-                  END;
-  | vtCardinal  : IF NOT Saturate THEN
-                    Value.ValCardinal := CARD16( v );
-                  ELSIF v < 0 THEN
-                    Value.ValCardinal := 0;
-                  ELSIF v > MAX( CARD16 ) THEN
-                    Value.ValCardinal := MAX( CARD16 );
-                  ELSE
-                    Value.ValCardinal := CARD16( v );
-                  END;
-  | vtLongCard  : IF NOT Saturate THEN
-                    Value.ValLongCard := CARD32( v );
-                  ELSIF v < 0 THEN
-                    Value.ValLongCard := 0;
-                  ELSE
-                    Value.ValLongCard := CARD32( v );
-                  END;
-  | vtShortInt  : IF NOT Saturate THEN
-                    Value.ValShortInt := INT8( v );
-                  ELSIF v < MIN( INT8 ) THEN
-                    Value.ValShortInt := MIN( INT8 );
-                  ELSIF v > MAX( INT8 ) THEN
-                    Value.ValShortInt := MAX( INT8 );
-                  ELSE
-                    Value.ValShortInt := INT8( v );
-                  END;
-  | vtInteger   : IF NOT Saturate THEN
-                    Value.ValInteger := INT16( v );
-                  ELSIF v < MIN( INT16 ) THEN
-                    Value.ValInteger := MIN( INT16 );
-                  ELSIF v > MAX( INT16 ) THEN
-                    Value.ValInteger := MAX( INT16 );
-                  ELSE
-                    Value.ValInteger := INT16( v );
-                  END;
-  | vtLongInt   : Value.ValLongInt := INT32( v );
-  | vtLongReal  : Value.ValLongReal := LONGREAL( v );
-  | vtDString   : Strings.FromINT32W( INTEGER( v ), 10, OUT n );
-                  SetValueString( Value, n );
+  | vtBoolean    : Value.ValBoolean := v <> 0;
+  | vtShortCard  : IF NOT Saturate THEN
+                     Value.ValShortCard := CARD8( v );
+                   ELSIF v < 0 THEN
+                     Value.ValShortCard := 0;
+                   ELSIF v > MAX( CARD8 ) THEN
+                     Value.ValShortCard := MAX( CARD8 );
+                   ELSE
+                     Value.ValShortCard := CARD8( v );
+                   END;
+  | vtCardinal   : IF NOT Saturate THEN
+                     Value.ValCardinal := CARD16( v );
+                   ELSIF v < 0 THEN
+                     Value.ValCardinal := 0;
+                   ELSIF v > MAX( CARD16 ) THEN
+                     Value.ValCardinal := MAX( CARD16 );
+                   ELSE
+                     Value.ValCardinal := CARD16( v );
+                   END;
+  | vtLongCard   : IF NOT Saturate THEN
+                     Value.ValLongCard := CARD32( v );
+                   ELSIF v < 0 THEN
+                     Value.ValLongCard := 0;
+                   ELSE
+                     Value.ValLongCard := CARD32( v );
+                   END;
+  | vtShortInt   : IF NOT Saturate THEN
+                     Value.ValShortInt := INT8( v );
+                   ELSIF v < MIN( INT8 ) THEN
+                     Value.ValShortInt := MIN( INT8 );
+                   ELSIF v > MAX( INT8 ) THEN
+                     Value.ValShortInt := MAX( INT8 );
+                   ELSE
+                     Value.ValShortInt := INT8( v );
+                   END;
+  | vtInteger    : IF NOT Saturate THEN
+                     Value.ValInteger := INT16( v );
+                   ELSIF v < MIN( INT16 ) THEN
+                     Value.ValInteger := MIN( INT16 );
+                   ELSIF v > MAX( INT16 ) THEN
+                     Value.ValInteger := MAX( INT16 );
+                   ELSE
+                     Value.ValInteger := INT16( v );
+                   END;
+  | vtLongInt    : Value.ValLongInt := INT32( v );
+  | vtLongReal   : Value.ValLongReal := LONGREAL( v );
+  | vtPString256 : Strings.FromINT32W( INTEGER( v ), 10, OUT n );
+                   SetValuePString256StringW( Value, ValueUFlag, n );
+  | vtDString    : Strings.FromINT32W( INTEGER( v ), 10, OUT n );
+                   SetValueStringW( Value, ValueUFlag, n );
   | vtDriverString
-                : Strings.FromINT32W( INTEGER( v ), 10, OUT n );
-                  AssignDrvValueStringW( Value, valueUFlag, FALSE, n );
+                 : Strings.FromINT32W( INTEGER( v ), 10, OUT n );
+                   AssignDrvValueStringW( Value, ValueUFlag, FALSE, n );
   END;
 END AssignValueInt32;
 
 //--------------------------------------------------------------
 
-PROCEDURE AssignValueLongReal( VAR Value : TValue; Saturate : BOOLEAN; v : LONGREAL );
+PROCEDURE AssignValueLongReal( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; v : LONGREAL );
 VAR
   n : ARRAY [0..31] OF TCHAR;
 BEGIN
   CASE Value.Type OF
-  | vtBoolean   : Value.ValBoolean   := v <> 0.0;
-  | vtShortCard : IF NOT Saturate THEN
-                    Value.ValShortCard := CARD8( v );
-                  ELSIF v < 0.0 THEN
-                    Value.ValShortCard := 0;
-                  ELSIF v > LONGREAL( MAX( CARD8 )) THEN
-                    Value.ValShortCard := MAX( CARD8 );
-                  ELSE
-                    Value.ValShortCard := CARD8( v );
-                  END;
-  | vtCardinal  : IF NOT Saturate THEN
-                    Value.ValCardinal := CARD16( v );
-                  ELSIF v < 0.0 THEN
-                    Value.ValCardinal := 0;
-                  ELSIF v > LONGREAL( MAX( CARD16 )) THEN
-                    Value.ValCardinal := MAX( CARD16 );
-                  ELSE
-                    Value.ValCardinal := CARD16( v );
-                  END;
-  | vtLongCard  : IF NOT Saturate THEN
-                    Value.ValLongCard := CARD32( v );
-                  ELSIF v < 0.0 THEN
-                    Value.ValLongCard := 0;
-                  ELSIF v > LONGREAL( MAX( CARD32 )) THEN
-                    Value.ValLongCard := MAX( CARD32 );
-                  ELSE
-                    Value.ValLongCard := CARD32( v );
-                  END;
-  | vtShortInt  : IF NOT Saturate THEN
-                    Value.ValShortInt := INT8( v );
-                  ELSIF v < LONGREAL( MIN( INT8 )) THEN
-                    Value.ValShortInt := MIN( INT8 );
-                  ELSIF v > LONGREAL( MAX( INT8 )) THEN
-                    Value.ValShortInt := MAX( INT8 );
-                  ELSE
-                    Value.ValShortInt := INT8( v );
-                  END;
-  | vtInteger   : IF NOT Saturate THEN
-                    Value.ValInteger := INT16( v );
-                  ELSIF v < LONGREAL( MIN( INT16 )) THEN
-                    Value.ValInteger := MIN( INT16 );
-                  ELSIF v > LONGREAL( MAX( INT16 )) THEN
-                    Value.ValInteger := MAX( INT16 );
-                  ELSE
-                    Value.ValInteger := INT16( v );
-                  END;
-  | vtLongInt   : IF NOT Saturate THEN
-                    Value.ValLongInt := INT32( v );
-                  ELSIF v < LONGREAL( MIN( INT32 )) THEN
-                    Value.ValLongInt := MIN( INT32 );
-                  ELSIF v > LONGREAL( MAX( INT32 )) THEN
-                    Value.ValLongInt := MAX( INT32 );
-                  ELSE
-                    Value.ValLongInt := INT32( v );
-                  END;
-  | vtLongReal  : Value.ValLongReal  := v;
-  | vtDString   : Strings.FromLONGREALW( v, FALSE, OUT n );
-                  SetValueString( Value, n );
+  | vtBoolean    : Value.ValBoolean   := v <> 0.0;
+  | vtShortCard  : IF NOT Saturate THEN
+                     Value.ValShortCard := CARD8( v );
+                   ELSIF v < 0.0 THEN
+                     Value.ValShortCard := 0;
+                   ELSIF v > LONGREAL( MAX( CARD8 )) THEN
+                     Value.ValShortCard := MAX( CARD8 );
+                   ELSE
+                     Value.ValShortCard := CARD8( v );
+                   END;
+  | vtCardinal   : IF NOT Saturate THEN
+                     Value.ValCardinal := CARD16( v );
+                   ELSIF v < 0.0 THEN
+                     Value.ValCardinal := 0;
+                   ELSIF v > LONGREAL( MAX( CARD16 )) THEN
+                     Value.ValCardinal := MAX( CARD16 );
+                   ELSE
+                     Value.ValCardinal := CARD16( v );
+                   END;
+  | vtLongCard   : IF NOT Saturate THEN
+                     Value.ValLongCard := CARD32( v );
+                   ELSIF v < 0.0 THEN
+                     Value.ValLongCard := 0;
+                   ELSIF v > LONGREAL( MAX( CARD32 )) THEN
+                     Value.ValLongCard := MAX( CARD32 );
+                   ELSE
+                     Value.ValLongCard := CARD32( v );
+                   END;
+  | vtShortInt   : IF NOT Saturate THEN
+                     Value.ValShortInt := INT8( v );
+                   ELSIF v < LONGREAL( MIN( INT8 )) THEN
+                     Value.ValShortInt := MIN( INT8 );
+                   ELSIF v > LONGREAL( MAX( INT8 )) THEN
+                     Value.ValShortInt := MAX( INT8 );
+                   ELSE
+                     Value.ValShortInt := INT8( v );
+                   END;
+  | vtInteger    : IF NOT Saturate THEN
+                     Value.ValInteger := INT16( v );
+                   ELSIF v < LONGREAL( MIN( INT16 )) THEN
+                     Value.ValInteger := MIN( INT16 );
+                   ELSIF v > LONGREAL( MAX( INT16 )) THEN
+                     Value.ValInteger := MAX( INT16 );
+                   ELSE
+                     Value.ValInteger := INT16( v );
+                   END;
+  | vtLongInt    : IF NOT Saturate THEN
+                     Value.ValLongInt := INT32( v );
+                   ELSIF v < LONGREAL( MIN( INT32 )) THEN
+                     Value.ValLongInt := MIN( INT32 );
+                   ELSIF v > LONGREAL( MAX( INT32 )) THEN
+                     Value.ValLongInt := MAX( INT32 );
+                   ELSE
+                     Value.ValLongInt := INT32( v );
+                   END;
+  | vtLongReal   : Value.ValLongReal  := v;
+  | vtPString256 : Strings.FromLONGREALW( v, FALSE, OUT n );
+                   SetValuePString256StringW( Value, ValueUFlag, n );
+  | vtDString    : Strings.FromLONGREALW( v, FALSE, OUT n );
+                   SetValueStringW( Value, ValueUFlag, n );
   | vtDriverString
-                : Strings.FromLONGREALW( v, FALSE, OUT n );
-                  AssignDrvValueStringW( Value, valueUFlag, FALSE, n );
+                 : Strings.FromLONGREALW( v, FALSE, OUT n );
+                   AssignDrvValueStringW( Value, ValueUFlag, FALSE, n );
   ELSE
     ASSERT( FALSE );
   END;
@@ -564,7 +543,7 @@ END AssignValueLongReal;
 
 //--------------------------------------------------------------
 
-PROCEDURE AssignValueStringW( VAR Value : TValue; Saturate : BOOLEAN; sw : ARRAY OF WCHAR );
+PROCEDURE AssignValueStringW( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; sw : ARRAY OF WCHAR );
 VAR
   lr : LONGREAL;
   lsw : ARRAY [0..7] OF WCHAR;
@@ -585,27 +564,22 @@ BEGIN
       Value.ValBoolean := TRUE;
     END;
   | vtPString256 :
-    IF Value.ValPString256W = NIL THEN
-      NEW( Value.ValPString256W );
-    END;
-    ASSIGN( OA( 255, Value.ValPString256W ), sw );
+    SetValuePString256StringW( Value, ValueUFlag, sw );
   | vtDString :
-    drv_str.CopyStrToDStrW( Value.ValDStringW, sw );
+    SetValueStringW( Value, ValueUFlag, sw );
   | vtDriverString :
-    AssignDrvValueStringW( Value, valueUFlag, FALSE, sw );
+    AssignDrvValueStringW( Value, ValueUFlag, FALSE, sw );
   ELSE
     IF Strings.ToLONGREALW( sw, OUT lr ) THEN
-      AssignValueLongReal( Value, Saturate, lr );
+      AssignValueLongReal( Value, ValueUFlag, Saturate, lr );
     ELSE
-      AssignValueLongReal( Value, Saturate, 0.0 );
+      AssignValueLongReal( Value, ValueUFlag, Saturate, 0.0 );
     END;
   END;
 END AssignValueStringW;
 
-PROCEDURE AssignValueCStringW( VAR Value : TValue; Saturate : BOOLEAN; CONST CS : StringsO.CString );
+PROCEDURE AssignValueCStringW( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; CONST CS : StringsO.CString );
 VAR
-  a : ADDRESS;
-  l : CARDINAL;
   lsw : ARRAY [0..7] OF WCHAR;
 BEGIN
   CASE Value.Type OF
@@ -624,20 +598,16 @@ BEGIN
       Value.ValBoolean := TRUE;
     END;
   | vtPString256 :
-    IF Value.ValPString256W = NIL THEN
-      NEW( Value.ValPString256W );
-    END;
-    CS.ToOA( OUT Value.ValPString256W^ );
+    SetValuePString256StringW( Value, ValueUFlag, OA( CS.Length, CS.szData ));
   | vtDString :
-    drv_str.EnsureDStrLenW( Value.ValDStringW, CS.Length+1, a, l );
-    CS.ToOA( OUT OA( l-1, ADR( Value.ValDStringW^.Chars )));
+    SetValueStringW( Value, ValueUFlag, OA( CS.Length, CS.szData ));
   | vtDriverString :
-    AssignDrvValueCStringW( REF Value, valueUFlag, FALSE, CS );
+    AssignDrvValueCStringW( REF Value, ValueUFlag, FALSE, CS );
   ELSE
     TRY
-      AssignValueLongReal( Value, Saturate, CS.ToLONGREAL() );
+      AssignValueLongReal( Value, ValueUFlag, Saturate, CS.ToLONGREAL() );
     CATCH : StringsO.CStringException DO
-      AssignValueLongReal( Value, Saturate, 0.0 );
+      AssignValueLongReal( Value, ValueUFlag, Saturate, 0.0 );
     END;
   END;
 END AssignValueCStringW;
@@ -645,7 +615,7 @@ END AssignValueCStringW;
 //==============================================================
 // helpers converting value
 
-PROCEDURE ValueToBoolean( CONST Value : TValue; Saturate : BOOLEAN ) : BOOLEAN;
+PROCEDURE ValueToBoolean( CONST Value : TValue; ValueUFlag, Saturate : BOOLEAN ) : BOOLEAN;
 LABEL
   String;
 VAR
@@ -654,29 +624,30 @@ VAR
   r : LONGREAL;
 BEGIN
   CASE Value.Type OF
-  | vtBoolean   : RETURN Value.ValBoolean;
-  | vtShortCard : RETURN Value.ValShortCard <> 0;
-  | vtCardinal  : RETURN Value.ValCardinal  <> 0;
-  | vtLongCard  : RETURN Value.ValLongCard  <> 0;
-  | vtShortInt  : RETURN Value.ValShortInt  <> 0;
-  | vtInteger   : RETURN Value.ValInteger   <> 0;
-  | vtLongInt   : RETURN Value.ValLongInt   <> 0;
-  | vtLongReal  : RETURN Value.ValLongReal  <> 0.0;
-  | vtDString   : ValueToStringW( Value, valueUFlag, n );
+  | vtBoolean    : RETURN Value.ValBoolean;
+  | vtShortCard  : RETURN Value.ValShortCard <> 0;
+  | vtCardinal   : RETURN Value.ValCardinal  <> 0;
+  | vtLongCard   : RETURN Value.ValLongCard  <> 0;
+  | vtShortInt   : RETURN Value.ValShortInt  <> 0;
+  | vtInteger    : RETURN Value.ValInteger   <> 0;
+  | vtLongInt    : RETURN Value.ValLongInt   <> 0;
+  | vtLongReal   : RETURN Value.ValLongReal  <> 0.0;
+  | vtPString256,
+    vtDString    : ValueToStringW( Value, ValueUFlag, n );
     String:
-                  lsw := n;
-                  LOW( lsw );
-                  IF EQUALS( n, kwTRUE ) THEN
-                     RETURN TRUE;
-                  ELSIF EQUALS( n, kwFALSE ) THEN
-                     RETURN FALSE;
-                  ELSE
-                     Strings.ToLONGREALW( n, OUT r );
-                     RETURN r <> 0.0;
-                  END;
+                   lsw := n;
+                   LOW( lsw );
+                   IF EQUALS( n, kwTRUE ) THEN
+                      RETURN TRUE;
+                   ELSIF EQUALS( n, kwFALSE ) THEN
+                      RETURN FALSE;
+                   ELSE
+                      Strings.ToLONGREALW( n, OUT r );
+                      RETURN r <> 0.0;
+                   END;
   | vtDriverString
-                : DrvValueToStringW( Value, valueUFlag, n );
-                  GOTO String;
+                 : DrvValueToStringW( Value, ValueUFlag, n );
+                   GOTO String;
   ELSE
     RETURN FALSE;
   END;
@@ -684,7 +655,7 @@ END ValueToBoolean;
 
 //--------------------------------------------------------------
 
-PROCEDURE ValueToCard8( CONST Value : TValue; Saturate : BOOLEAN ) : CARD8;
+PROCEDURE ValueToCard8( CONST Value : TValue; ValueUFlag, Saturate : BOOLEAN ) : CARD8;
 LABEL
   LLongReal;
 VAR
@@ -692,64 +663,65 @@ VAR
   n : ARRAY [0..31] OF TCHAR;
 BEGIN
   CASE Value.Type OF
-  | vtBoolean   : IF Value.ValBoolean THEN RETURN 1; ELSE RETURN 0; END;
-  | vtShortCard : RETURN Value.ValShortCard;
-  | vtCardinal  : IF NOT Saturate THEN
-                    RETURN CARD8( Value.ValCardinal );
-                  ELSIF Value.ValCardinal > MAX( CARD8 ) THEN
-                    RETURN MAX( CARD8 );
-                  ELSE
-                    RETURN CARD8( Value.ValCardinal );
-                  END;
-  | vtLongCard  : IF NOT Saturate THEN
-                    RETURN CARD8( Value.ValLongCard );
-                  ELSIF Value.ValLongCard > MAX( CARD8 ) THEN
-                    RETURN MAX( CARD8 );
-                  ELSE
-                    RETURN CARD8( Value.ValLongCard );
-                  END;
-  | vtShortInt  : IF NOT Saturate THEN
-                    RETURN CARD8( Value.ValShortInt );
-                  ELSIF Value.ValShortInt < 0 THEN
-                    RETURN 0;
-                  ELSE
-                    RETURN CARD8( Value.ValShortInt );
-                  END;
-  | vtInteger   : IF NOT Saturate THEN
-                    RETURN CARD8( Value.ValInteger );
-                  ELSIF Value.ValInteger < 0 THEN
-                    RETURN 0;
-                  ELSIF Value.ValInteger > MAX( CARD8 ) THEN
-                    RETURN MAX( CARD8 );
-                  ELSE
-                    RETURN CARD8( Value.ValInteger );
-                  END;
-  | vtLongInt   : IF NOT Saturate THEN
-                    RETURN CARD8( Value.ValLongInt );
-                  ELSIF Value.ValLongInt < 0 THEN
-                    RETURN 0;
-                  ELSIF Value.ValLongInt > MAX( CARD8 ) THEN
-                    RETURN MAX( CARD8 );
-                  ELSE
-                    RETURN CARD8( Value.ValLongInt );
-                  END;
-  | vtLongReal  : lr := Value.ValLongReal;
-    LLongReal:    IF NOT Saturate THEN
-                    RETURN CARD8( lr );
-                  ELSIF lr < 0.0 THEN
-                    RETURN 0;
-                  ELSIF lr > LONGREAL( MAX( CARD8 )) THEN
-                    RETURN MAX( CARD8 );
-                  ELSE
-                    RETURN CARD8( lr );
-                  END;
-  | vtDString :   ValueToStringW( Value, TRUE, n );
-                  Strings.ToLONGREALW( n, OUT lr );
-                  GOTO LLongReal;
+  | vtBoolean    : IF Value.ValBoolean THEN RETURN 1; ELSE RETURN 0; END;
+  | vtShortCard  : RETURN Value.ValShortCard;
+  | vtCardinal   : IF NOT Saturate THEN
+                     RETURN CARD8( Value.ValCardinal );
+                   ELSIF Value.ValCardinal > MAX( CARD8 ) THEN
+                     RETURN MAX( CARD8 );
+                   ELSE
+                     RETURN CARD8( Value.ValCardinal );
+                   END;
+  | vtLongCard   : IF NOT Saturate THEN
+                     RETURN CARD8( Value.ValLongCard );
+                   ELSIF Value.ValLongCard > MAX( CARD8 ) THEN
+                     RETURN MAX( CARD8 );
+                   ELSE
+                     RETURN CARD8( Value.ValLongCard );
+                   END;
+  | vtShortInt   : IF NOT Saturate THEN
+                     RETURN CARD8( Value.ValShortInt );
+                   ELSIF Value.ValShortInt < 0 THEN
+                     RETURN 0;
+                   ELSE
+                     RETURN CARD8( Value.ValShortInt );
+                   END;
+  | vtInteger    : IF NOT Saturate THEN
+                     RETURN CARD8( Value.ValInteger );
+                   ELSIF Value.ValInteger < 0 THEN
+                     RETURN 0;
+                   ELSIF Value.ValInteger > MAX( CARD8 ) THEN
+                     RETURN MAX( CARD8 );
+                   ELSE
+                     RETURN CARD8( Value.ValInteger );
+                   END;
+  | vtLongInt    : IF NOT Saturate THEN
+                     RETURN CARD8( Value.ValLongInt );
+                   ELSIF Value.ValLongInt < 0 THEN
+                     RETURN 0;
+                   ELSIF Value.ValLongInt > MAX( CARD8 ) THEN
+                     RETURN MAX( CARD8 );
+                   ELSE
+                     RETURN CARD8( Value.ValLongInt );
+                   END;
+  | vtLongReal  :  lr := Value.ValLongReal;
+    LLongReal:     IF NOT Saturate THEN
+                     RETURN CARD8( lr );
+                   ELSIF lr < 0.0 THEN
+                     RETURN 0;
+                   ELSIF lr > LONGREAL( MAX( CARD8 )) THEN
+                     RETURN MAX( CARD8 );
+                   ELSE
+                     RETURN CARD8( lr );
+                   END;
+  | vtPString256,
+    vtDString :    ValueToStringW( Value, ValueUFlag, n );
+                   Strings.ToLONGREALW( n, OUT lr );
+                   GOTO LLongReal;
   | vtDriverString
-                : DrvValueToStringW( Value, valueUFlag, n );
-                  Strings.ToLONGREALW( n, OUT lr );
-                  GOTO LLongReal;
+                 : DrvValueToStringW( Value, ValueUFlag, n );
+                   Strings.ToLONGREALW( n, OUT lr );
+                   GOTO LLongReal;
   ELSE
     RETURN 0;
   END;
@@ -757,7 +729,7 @@ END ValueToCard8;
 
 //--------------------------------------------------------------
 
-PROCEDURE ValueToCard32( CONST Value : TValue; Saturate : BOOLEAN ) : CARD32;
+PROCEDURE ValueToCard32( CONST Value : TValue; ValueUFlag, Saturate : BOOLEAN ) : CARD32;
 LABEL
   LLongReal;
 VAR
@@ -800,11 +772,12 @@ BEGIN
                   ELSE
                     RETURN CARD32( lr );
                   END;
-  | vtDString :   ValueToStringW( Value, TRUE, n );
+  | vtPString256,
+    vtDString :   ValueToStringW( Value, ValueUFlag, n );
                   Strings.ToLONGREALW( n, OUT lr );
                   GOTO LLongReal;
   | vtDriverString
-                : DrvValueToStringW( Value, valueUFlag, n );
+                : DrvValueToStringW( Value, ValueUFlag, n );
                   Strings.ToLONGREALW( n, OUT lr );
                   GOTO LLongReal;
   ELSE
@@ -814,7 +787,7 @@ END ValueToCard32;
 
 //--------------------------------------------------------------
 
-PROCEDURE ValueToInt8( CONST Value : TValue; Saturate : BOOLEAN ) : INT8;
+PROCEDURE ValueToInt8( CONST Value : TValue; ValueUFlag, Saturate : BOOLEAN ) : INT8;
 LABEL
   LLongReal;
 VAR
@@ -873,11 +846,12 @@ BEGIN
                   ELSE
                     RETURN INT8( lr );
                   END;
-  | vtDString :   ValueToStringW( Value, TRUE, n );
+  | vtPString256,
+    vtDString :   ValueToStringW( Value, ValueUFlag, n );
                   Strings.ToLONGREALW( n, OUT lr );
                   GOTO LLongReal;
   | vtDriverString
-                : DrvValueToStringW( Value, valueUFlag, n );
+                : DrvValueToStringW( Value, ValueUFlag, n );
                   Strings.ToLONGREALW( n, OUT lr );
                   GOTO LLongReal;
   ELSE
@@ -887,7 +861,7 @@ END ValueToInt8;
 
 //--------------------------------------------------------------
 
-PROCEDURE ValueToInt32( CONST Value : TValue; Saturate : BOOLEAN ) : INT32;
+PROCEDURE ValueToInt32( CONST Value : TValue; ValueUFlag, Saturate : BOOLEAN ) : INT32;
 LABEL
   LLongReal;
 VAR
@@ -918,11 +892,12 @@ BEGIN
                   ELSE
                     RETURN INT32( lr );
                   END;
-  | vtDString :   ValueToStringW( Value, TRUE, n );
+  | vtPString256,
+    vtDString :   ValueToStringW( Value, ValueUFlag, n );
                   Strings.ToLONGREALW( n, OUT lr );
                   GOTO LLongReal;
   | vtDriverString
-                : DrvValueToStringW( Value, valueUFlag, n );
+                : DrvValueToStringW( Value, ValueUFlag, n );
                   Strings.ToLONGREALW( n, OUT lr );
                   GOTO LLongReal;
   ELSE
@@ -932,7 +907,7 @@ END ValueToInt32;
 
 //--------------------------------------------------------------
 
-PROCEDURE ValueToLongReal( CONST Value : TValue; Saturate : BOOLEAN ) : LONGREAL;
+PROCEDURE ValueToLongReal( CONST Value : TValue; ValueUFlag, Saturate : BOOLEAN ) : LONGREAL;
 VAR
   lr : LONGREAL;
   n : ARRAY [0..31] OF TCHAR;
@@ -946,11 +921,12 @@ BEGIN
   | vtInteger   : RETURN LONGREAL( Value.ValInteger );
   | vtLongInt   : RETURN LONGREAL( Value.ValLongInt );
   | vtLongReal  : RETURN Value.ValLongReal;
-  | vtDString :   ValueToStringW( Value, TRUE, n );
+  | vtPString256,
+    vtDString :   ValueToStringW( Value, ValueUFlag, n );
                   Strings.ToLONGREALW( n, OUT lr );
                   RETURN lr;
   | vtDriverString
-                : DrvValueToStringW( Value, valueUFlag, n );
+                : DrvValueToStringW( Value, ValueUFlag, n );
                   Strings.ToLONGREALW( n, OUT lr );
                   RETURN lr;
   ELSE
@@ -961,6 +937,9 @@ END ValueToLongReal;
 //--------------------------------------------------------------
 
 PROCEDURE ValueToStringW( CONST Value : TValue; ValueUFlag : BOOLEAN; VAR sw : ARRAY OF WCHAR );
+VAR
+  SA : drv_str.TPDStringA;
+  SW : drv_str.TPDStringW := NIL;
 BEGIN
   CASE Value.Type OF
   | vtBoolean   : IF Value.ValBoolean THEN
@@ -980,9 +959,19 @@ BEGIN
                   ELSE
                     Strings.ToW( OA( 255, Value.ValPString256A ), 0, OUT sw );
                   END;
-  | vtDString   : drv_str.CopyDStrToStrW( sw, drv_str.TPDStringW( Value.ValDStringW ));
+  | vtDString   : IF ValueUFlag THEN
+                    drv_str.CopyDStrToStrW( sw, drv_str.TPDStringW( Value.ValDStringW ));
+                  ELSE
+                    #if #not UNICODE #then
+                      ASSERT( FALSE );
+                    #endif
+                    SA := Value.ValDStringA;
+                    drv_str.CreateTFromA( SW, SA );
+                    drv_str.CopyDStrToStrW( sw, SW );
+                    DISPOSE( SW );
+                  END;
   | vtDriverString
-                : DrvValueToStringW( Value, valueUFlag, sw );
+                : DrvValueToStringW( Value, ValueUFlag, sw );
   ELSE
     sw := L'';
   END;
@@ -990,7 +979,7 @@ END ValueToStringW;
 
 //--------------------------------------------------------------
 
-PROCEDURE ValueToStringDecPlaces( CONST Value : TValue; DecPlaces : INTEGER; VAR s : ARRAY OF WCHAR );
+PROCEDURE ValueToStringDecPlaces( CONST Value : TValue; ValueUFlag : BOOLEAN; DecPlaces : INTEGER; VAR s : ARRAY OF WCHAR );
 
   PROCEDURE AdjustNumber();
   VAR
@@ -1071,7 +1060,7 @@ BEGIN
   | vtLongReal  : Strings.FromLONGREALExtW( Value.ValLongReal, -1, DecPlaces, FALSE, 0W, OUT s );
                   AdjustNumber();
   | vtDriverString
-                : DrvValueToStringW( Value, valueUFlag, s );
+                : DrvValueToStringW( Value, ValueUFlag, s );
   ELSE
     s := L'';
   END;
@@ -1397,7 +1386,7 @@ END FormatNumber;
 
 //--------------------------------------------------------------
 
-PROCEDURE ValueToStringFormat( CONST Value : TValue; Format : ARRAY OF TCHAR; VAR s : ARRAY OF WCHAR );
+PROCEDURE ValueToStringFormat( CONST Value : TValue; ValueUFlag : BOOLEAN; Format : ARRAY OF TCHAR; VAR s : ARRAY OF WCHAR );
 BEGIN
   IF Value.Type = vtBoolean THEN
     IF Value.ValBoolean THEN
@@ -1406,9 +1395,9 @@ BEGIN
       ASSIGN( s, kwFALSE );
     END;
   ELSIF Value.Type = vtDriverString THEN
-    DrvValueToStringW( Value, valueUFlag, s );
+    DrvValueToStringW( Value, ValueUFlag, s );
   ELSIF Format[0] <> 0W THEN
-    FormatNumber( ValueToLongReal( Value, TRUE ), Format, s );
+    FormatNumber( ValueToLongReal( Value, ValueUFlag, TRUE ), Format, s );
   ELSE
     CASE Value.Type OF
     | vtShortCard : Strings.FromCARD32W( CARDINAL( Value.ValShortCard ), 10, OUT s );
@@ -1426,77 +1415,10 @@ END ValueToStringFormat;
 
 //--------------------------------------------------------------
 
-PROCEDURE SetValueType( VAR Value : TValue; Saturate : BOOLEAN; NewValueType, DataType : TValueType; PData : ADDRESS );
-BEGIN
-  IF ( NewValueType = vtNothing ) OR ( Value.Type <> vtNothing ) THEN
-    DoneValue( Value );
-  END;
-  Storage.Fill( ADR( Value ), SIZE( Value ), 0 );
-  Value.Type := NewValueType;
-  IF DataType <> vtNothing THEN
-    AssignValueType( Value, Saturate, DataType, PData );
-  END;
-END SetValueType;
-
-//---------------------------------------------------------------------------
-
-TYPE
-  TPBOOLEAN  = POINTER TO BOOLEAN;
-  TPCARD8    = POINTER TO CARD8;
-  TPCARD32   = POINTER TO CARD32;
-  TPINT8     = POINTER TO INT8;
-  TPINT32    = POINTER TO INT32;
-  TPLONGREAL = POINTER TO LONGREAL;
-  TPPDATA    = POINTER TO TPData;
-
-PROCEDURE AssignValueType( VAR Value : TValue; Saturate : BOOLEAN; DataType : TValueType; PData : ADDRESS );
-BEGIN
-  CASE DataType OF
-  | vtBoolean   : AssignValueBoolean ( Value, Saturate, TPBOOLEAN ( PData )^ );
-  | vtShortCard : AssignValueCard8   ( Value, Saturate, TPCARD8   ( PData )^ );
-  | vtLongCard  : AssignValueCard32  ( Value, Saturate, TPCARD32  ( PData )^ );
-  | vtShortInt  : AssignValueInt8    ( Value, Saturate, TPINT8    ( PData )^ );
-  | vtLongInt   : AssignValueInt32   ( Value, Saturate, TPINT32   ( PData )^ );
-  | vtLongReal  : AssignValueLongReal( Value, Saturate, TPLONGREAL( PData )^ );
-  | vtDriverString
-                : AssignDrvValueStringW( Value, Saturate, UNICODE, OA( 1023, PWCHAR( PData )));
-  ELSE
-    ASSERT( FALSE );
-  END;
-END AssignValueType;
-
-//---------------------------------------------------------------------------
-
-PROCEDURE ValueToType( CONST Value : TValue; Saturate : BOOLEAN; Type : TValueType; PData : ADDRESS );
-BEGIN
-  CASE Type OF
-  | vtBoolean   : TPBOOLEAN ( PData )^ := ValueToBoolean ( Value, Saturate );
-  | vtLongCard  : TPCARD32  ( PData )^ := ValueToCard32  ( Value, Saturate );
-  | vtLongInt   : TPINT32   ( PData )^ := ValueToInt32   ( Value, Saturate );
-  | vtLongReal  : TPLONGREAL( PData )^ := ValueToLongReal( Value, Saturate );
-  ELSE
-    ASSERT( FALSE );
-  END;
-END ValueToType;
-
-//--------------------------------------------------------------
-
 PROCEDURE CopyValue( VAR RValue : TValue; CONST SValue : TValue );
 BEGIN
   RValue := SValue;
 END CopyValue;
-
-//---------------------------------------------------------------------------
-
-PROCEDURE AssignValue( VAR RValue : TValue; Saturate : BOOLEAN; CONST SValue : TValue );
-BEGIN
-  CASE RValue.Type OF
-  | vtNothing, vtUnknown :
-    CopyValue( RValue, SValue );
-  ELSE
-    AssignValueType( RValue, Saturate, SValue.Type, ADR( SValue.ValBoolean ));  // ValBoolean is variant with 
-  END;
-END AssignValue;
 
 //---------------------------------------------------------------------------
 
@@ -1508,7 +1430,7 @@ BEGIN
   | vtBoolean :
     RETURN ( Value2.Type = vtBoolean ) AND ( Value1.ValBoolean = Value2.ValBoolean );
   ELSE
-    RETURN ValueToLongReal( Value1, FALSE ) = ValueToLongReal( Value2, FALSE );
+    RETURN ValueToLongReal( Value1, UNICODE, FALSE ) = ValueToLongReal( Value2, UNICODE, FALSE );
   END; // CASE
 END CompareValues;
 
@@ -1516,6 +1438,7 @@ END CompareValues;
 
 PROCEDURE CopyDrvValueToValue( VAR Value : TValue; ValueUFlag, String256Flag : BOOLEAN; CONST DrvValue : TValue; DrvValueUFlag : BOOLEAN );
 VAR
+  S : ARRAY [0..255] OF WCHAR;
   PDS : drv_str.TPDStringW := NIL;
   PDSA : drv_str.TPDStringA;
 BEGIN
@@ -1537,7 +1460,12 @@ BEGIN
   IF String256Flag THEN
     Value.Type := vtPString256;
     NEW( Value.ValPString256W );
-    drv_str.CopyDStrToStrW( Value.ValPString256W^, PDS );
+    drv_str.CopyDStrToStrW( S, PDS );
+    IF NOT ValueUFlag THEN
+      ASSIGN( OA( 255, Value.ValPString256W ), S );
+    ELSE
+      Strings.ToA( S, 0, OUT OA( 255, Value.ValPString256A ));
+    END;
     IF PDS <> NIL THEN
       DISPOSE( PDS );
     END;
@@ -1687,29 +1615,29 @@ END AssignDrvValueCStringW;
 
 //==============================================================
 
-PROCEDURE IOValueToCWValue( CONST IOValue : iovalue.Value; DrvValueUFlag, TrimFlag : BOOLEAN; REF CWValue : TValue ) : BOOLEAN;
+PROCEDURE IOValueToCWValue( CONST IOValue : iovalue.Value; CWValueUFlag, TrimFlag : BOOLEAN; REF CWValue : TValue ) : BOOLEAN;
 BEGIN
    CASE IOValue.Type OF
    | iovalue.vtBoolean :
-      AssignValueBoolean( CWValue, TRUE, IOValue.Boolean );
+      AssignValueBoolean( CWValue, CWValueUFlag, TRUE, IOValue.Boolean );
 
    | iovalue.vtTristate :
-      AssignValueInt8( CWValue, TRUE, INT8( IOValue.Tristate ));
+      AssignValueInt8( CWValue, CWValueUFlag, TRUE, INT8( IOValue.Tristate ));
 
    | iovalue.vtInteger :
-      AssignValueInteger( CWValue, TRUE, IOValue.Integer );
+      AssignValueInteger( CWValue, CWValueUFlag, TRUE, IOValue.Integer );
 
    | iovalue.vtLong :
-      AssignValueLongReal( CWValue, TRUE, LONGREAL( IOValue.Long ));
+      AssignValueLongReal( CWValue, CWValueUFlag, TRUE, LONGREAL( IOValue.Long ));
 
    | iovalue.vtFloat :
-      AssignValueLongReal( CWValue, TRUE, IOValue.Float );
+      AssignValueLongReal( CWValue, CWValueUFlag, TRUE, IOValue.Float );
 
    | iovalue.vtString :
-      RETURN AssignDrvValueCStringW( REF CWValue, DrvValueUFlag, TrimFlag, IOValue.String );
+      RETURN AssignDrvValueCStringW( REF CWValue, CWValueUFlag, TrimFlag, IOValue.String );
 
    | iovalue.vtDate :
-      AssignValueLongReal( CWValue, TRUE, time.ToSJD( IOValue.Date ));
+      AssignValueLongReal( CWValue, CWValueUFlag, TRUE, time.ToSJD( IOValue.Date ));
 
    | iovalue.vtData : // TODO
       ASSERT( FALSE );

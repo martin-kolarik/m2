@@ -690,7 +690,7 @@ CLASS IMPLEMENTATION CDriverActiveX;
       IF b AND NOT POutput^.Pending THEN
         CommunicationState := csSuccess;
 
-        drv_def.AssignValueStringW( POutput^.Value, TRUE, Value );
+        drv_def.AssignValueStringW( POutput^.Value, TRUE, TRUE, Value );
 
       ELSIF b THEN // found and pending
         CommunicationState := csPending;
@@ -704,7 +704,7 @@ CLASS IMPLEMENTATION CDriverActiveX;
         // not needed, POutput^.Value is filled with 0 here -- POutput^.Value.ValDString := NIL;
         Outputs.Append( POutput );
 
-        drv_def.AssignValueStringW( POutput^.Value, TRUE, Value );
+        drv_def.AssignValueStringW( POutput^.Value, TRUE, TRUE, Value );
       END;
 
     END;   

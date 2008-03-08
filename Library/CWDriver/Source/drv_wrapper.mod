@@ -959,10 +959,10 @@ DLLInitFailure:
       PBuffer := NIL;
       FreeFlag := drv_str.CreateTFromU( PBuffer, PBufferW );
       IF FreeFlag THEN
-        drv_def.SetValueDString( ChannelValue, PBuffer );
+        drv_def.SetValueDStringW( ChannelValue, TRUE, PBuffer );
         DISPOSE( PBuffer );
       ELSE
-        drv_def.SetValueDString( ChannelValue, PBuffer );
+        drv_def.SetValueDStringW( ChannelValue, TRUE, PBuffer );
       END;
 
       RETURN TRUE;
@@ -992,10 +992,10 @@ DLLInitFailure:
       PBuffer := NIL;
       FreeFlag := drv_str.CreateTFromU( PBuffer, PBufferW );
       IF FreeFlag THEN
-        drv_def.SetValueDString( ChannelValue, PBuffer );
+        drv_def.SetValueDStringW( ChannelValue, TRUE, PBuffer );
         DISPOSE( PBuffer );
       ELSE
-        drv_def.SetValueDString( ChannelValue, PBuffer );
+        drv_def.SetValueDStringW( ChannelValue, TRUE, PBuffer );
       END;
 
       RETURN TRUE;
@@ -1025,10 +1025,10 @@ DLLInitFailure:
       PBuffer := NIL;
       FreeFlag := drv_str.CreateTFromU( PBuffer, PBufferW );
       IF FreeFlag THEN
-        drv_def.SetValueDString( ChannelValue, PBuffer );
+        drv_def.SetValueDStringW( ChannelValue, TRUE, PBuffer );
         DISPOSE( PBuffer );
       ELSE
-        drv_def.SetValueDString( ChannelValue, PBuffer );
+        drv_def.SetValueDStringW( ChannelValue, TRUE, PBuffer );
       END;
 
       RETURN TRUE;
@@ -1082,10 +1082,10 @@ DLLInitFailure:
       PBuffer := NIL;
       FreeFlag := drv_str.CreateTFromA( PBuffer, PBufferA );
       IF FreeFlag THEN
-        drv_def.SetValueDString( ChannelValue, PBuffer );
+        drv_def.SetValueDStringW( ChannelValue, FALSE, PBuffer );
         DISPOSE( PBuffer );
       ELSE
-        drv_def.SetValueDString( ChannelValue, PBuffer );
+        drv_def.SetValueDStringW( ChannelValue, FALSE, PBuffer );
       END;
 
       RETURN TRUE;
@@ -1115,10 +1115,10 @@ DLLInitFailure:
       PBuffer := NIL;
       FreeFlag := drv_str.CreateTFromA( PBuffer, PBufferA );
       IF FreeFlag THEN
-        drv_def.SetValueDString( ChannelValue, PBuffer );
+        drv_def.SetValueDStringW( ChannelValue, FALSE, PBuffer );
         DISPOSE( PBuffer );
       ELSE
-        drv_def.SetValueDString( ChannelValue, PBuffer );
+        drv_def.SetValueDStringW( ChannelValue, FALSE, PBuffer );
       END;
 
       RETURN TRUE;
@@ -1148,10 +1148,10 @@ DLLInitFailure:
       PBuffer := NIL;
       FreeFlag := drv_str.CreateTFromA( PBuffer, PBufferA );
       IF FreeFlag THEN
-        drv_def.SetValueDString( ChannelValue, PBuffer );
+        drv_def.SetValueDStringW( ChannelValue, FALSE, PBuffer );
         DISPOSE( PBuffer );
       ELSE
-        drv_def.SetValueDString( ChannelValue, PBuffer );
+        drv_def.SetValueDStringW( ChannelValue, FALSE, PBuffer );
       END;
 
       RETURN TRUE;
@@ -1741,12 +1741,12 @@ Fail:
           PBuffer := NIL;
           FreeFlag3 := drv_str.CreateTFromU( PBuffer, PBufferW );
           IF FreeFlag3 THEN
-            drv_def.SetValueDString( Param2, PBuffer );
+            drv_def.SetValueDStringW( Param2, TRUE, PBuffer );
             IF PBuffer <> NIL THEN
               DISPOSE( PBuffer );
             END;
           ELSE
-            drv_def.SetValueDString( Param2, PBuffer );
+            drv_def.SetValueDStringW( Param2, TRUE, PBuffer );
           END;
         END;
       END;
@@ -1820,7 +1820,7 @@ Fail:
           IF FreeFlag2 THEN // PLBufferA2 is newly allocated, so environment is ANSI
             PBuffer := NIL;
             b := drv_str.CreateTFromU( PBuffer, PLBufferW2 );
-            drv_def.SetValueDString( Param2, PBuffer );
+            drv_def.SetValueDStringW( Param2, TRUE, PBuffer );
             IF b AND ( PBuffer <> NIL ) THEN
               DISPOSE( PBuffer );
             END;
@@ -1930,12 +1930,12 @@ Fail:
           PBuffer := NIL;
           FreeFlag3 := drv_str.CreateTFromA( PBuffer, PBufferA );
           IF FreeFlag3 THEN
-            drv_def.SetValueDString( Param2, PBuffer );
+            drv_def.SetValueDStringW( Param2, FALSE, PBuffer );
             IF PBuffer <> NIL THEN
               DISPOSE( PBuffer );
             END;
           ELSE
-            drv_def.SetValueDString( Param2, PBuffer );
+            drv_def.SetValueDStringW( Param2, FALSE, PBuffer );
           END;
         END;
       END;
@@ -2008,7 +2008,7 @@ Fail:
           IF FreeFlag2 THEN // PLBufferA2 is newly allocated, so environment is UNICODE
             PBuffer := NIL;
             b := drv_str.CreateTFromA( PBuffer, PLBufferA2 );
-            drv_def.SetValueDString( Param2, PBuffer );
+            drv_def.SetValueDStringW( Param2, FALSE, PBuffer );
             IF b AND ( PBuffer <> NIL ) THEN
               DISPOSE( PBuffer );
             END;

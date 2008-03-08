@@ -109,30 +109,19 @@ PROCEDURE IOTypeToCWType( IOType : iovalue.TValueType ) : TValueType;
 
 //-----------------------------------------------------------------------------
 // helpers changing value's type
-// they check for possible dynamic string and free it
-PROCEDURE SetValueBoolean( VAR Value : TValue; b : BOOLEAN );
-PROCEDURE SetValueCard8( VAR Value : TValue; v : CARD8 );
-PROCEDURE SetValueCard32( VAR Value : TValue; v : CARD32 );
-PROCEDURE SetValueInt8( VAR Value : TValue; v : INT8 );
-PROCEDURE SetValueInt32( VAR Value : TValue; v : INT32 );
-PROCEDURE SetValueLongReal( VAR Value : TValue; r : LONGREAL );
-PROCEDURE SetValueString( VAR Value : TValue; s : ARRAY OF WCHAR  );
-PROCEDURE SetValueDString( VAR Value : TValue; s : drv_str.TPDStringW );
-
-//-----
-CONST
-  SetValueCardinal ::= SetValueCard32;
-  SetValueInteger  ::= SetValueInt32;
+PROCEDURE SetValuePString256StringW( VAR Value : TValue; ValueUFlag : BOOLEAN; s : ARRAY OF WCHAR );
+PROCEDURE SetValueStringW( VAR Value : TValue; ValueUFlag : BOOLEAN; s : ARRAY OF WCHAR  );
+PROCEDURE SetValueDStringW( VAR Value : TValue; ValueUFlag : BOOLEAN; s : drv_str.TPDStringW );
 
 // helpers preserving value's type
-PROCEDURE AssignValueBoolean( VAR Value : TValue; Saturate : BOOLEAN; b : BOOLEAN );
-PROCEDURE AssignValueCard8( VAR Value : TValue; Saturate : BOOLEAN; v : CARD8 );
-PROCEDURE AssignValueCard32( VAR Value : TValue; Saturate : BOOLEAN; v : CARD32 );
-PROCEDURE AssignValueInt8( VAR Value : TValue; Saturate : BOOLEAN; v : INT8 );
-PROCEDURE AssignValueInt32( VAR Value : TValue; Saturate : BOOLEAN; v : INT32 );
-PROCEDURE AssignValueLongReal( VAR Value : TValue; Saturate : BOOLEAN; r : LONGREAL );
-PROCEDURE AssignValueStringW( VAR Value : TValue; Saturate : BOOLEAN; s : ARRAY OF WCHAR );
-PROCEDURE AssignValueCStringW( VAR Value : TValue; Saturate : BOOLEAN; CONST CS : StringsO.CString );
+PROCEDURE AssignValueBoolean( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; b : BOOLEAN );
+PROCEDURE AssignValueCard8( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; v : CARD8 );
+PROCEDURE AssignValueCard32( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; v : CARD32 );
+PROCEDURE AssignValueInt8( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; v : INT8 );
+PROCEDURE AssignValueInt32( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; v : INT32 );
+PROCEDURE AssignValueLongReal( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; r : LONGREAL );
+PROCEDURE AssignValueStringW( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; s : ARRAY OF WCHAR );
+PROCEDURE AssignValueCStringW( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; CONST CS : StringsO.CString );
 
 //-----
 CONST
@@ -140,33 +129,28 @@ CONST
   AssignValueInteger  ::= AssignValueInt32;
 
 // helpers converting value
-PROCEDURE ValueToBoolean( CONST Value : TValue; Saturate : BOOLEAN ) : BOOLEAN;
-PROCEDURE ValueToCard8( CONST Value : TValue; Saturate : BOOLEAN ) : CARD8;
-PROCEDURE ValueToCard32( CONST Value : TValue; Saturate : BOOLEAN ) : CARD32;
-PROCEDURE ValueToInt8( CONST Value : TValue; Saturate : BOOLEAN ) : INT8;
-PROCEDURE ValueToInt32( CONST Value : TValue; Saturate : BOOLEAN ) : INT32;
-PROCEDURE ValueToLongReal( CONST Value : TValue; Saturate : BOOLEAN ) : LONGREAL;
+PROCEDURE ValueToBoolean( CONST Value : TValue; ValueUFlag, Saturate : BOOLEAN ) : BOOLEAN;
+PROCEDURE ValueToCard8( CONST Value : TValue; ValueUFlag, Saturate : BOOLEAN ) : CARD8;
+PROCEDURE ValueToCard32( CONST Value : TValue; ValueUFlag, Saturate : BOOLEAN ) : CARD32;
+PROCEDURE ValueToInt8( CONST Value : TValue; ValueUFlag, Saturate : BOOLEAN ) : INT8;
+PROCEDURE ValueToInt32( CONST Value : TValue; ValueUFlag, Saturate : BOOLEAN ) : INT32;
+PROCEDURE ValueToLongReal( CONST Value : TValue; ValueUFlag, Saturate : BOOLEAN ) : LONGREAL;
 PROCEDURE ValueToStringW( CONST Value : TValue; ValueUFlag : BOOLEAN; VAR sw : ARRAY OF WCHAR );
 
-PROCEDURE ValueToStringDecPlaces( CONST Value : TValue; DecPlaces : INTEGER; VAR s : ARRAY OF WCHAR );
+PROCEDURE ValueToStringDecPlaces( CONST Value : TValue; ValueUFlag : BOOLEAN; DecPlaces : INTEGER; VAR s : ARRAY OF WCHAR );
 
 PROCEDURE FormatNumber( Number : LONGREAL; Format : ARRAY OF WCHAR; VAR Result : ARRAY OF WCHAR );
-PROCEDURE ValueToStringFormat( CONST Value : TValue; Format : ARRAY OF WCHAR; VAR s : ARRAY OF WCHAR );
+PROCEDURE ValueToStringFormat( CONST Value : TValue; ValueUFlag : BOOLEAN; Format : ARRAY OF WCHAR; VAR s : ARRAY OF WCHAR );
 
 //-----
 CONST
   ValueToCardinal ::= ValueToCard32;
   ValueToInteger  ::= ValueToInt32;
 
-PROCEDURE SetValueType   ( VAR   Value : TValue; Saturate : BOOLEAN; NewValueType, DataType : TValueType; PData : ADDRESS );
-PROCEDURE AssignValueType( VAR   Value : TValue; Saturate : BOOLEAN; DataType : TValueType; PData : ADDRESS );
-PROCEDURE ValueToType    ( CONST Value : TValue; Saturate : BOOLEAN; DataType : TValueType; PData : ADDRESS );
+PROCEDURE CopyValue( VAR RValue : TValue; CONST SValue : TValue );
+PROCEDURE CompareValues( CONST Value1, Value2 : TValue ) : BOOLEAN;
 
-PROCEDURE CopyValue      ( VAR   RValue : TValue;                     CONST SValue : TValue );
-PROCEDURE AssignValue    ( VAR   RValue : TValue; Saturate : BOOLEAN; CONST SValue : TValue );
-PROCEDURE CompareValues  ( CONST Value1 : TValue;                     CONST Value2 : TValue ) : BOOLEAN;
-
-// vtDriverString repated helpers 
+// vtDriverString repeated helpers 
 #save, option( leak_info => on )
 PROCEDURE CopyDrvValueToValue( VAR Value : TValue; ValueUFlag, String256Flag : BOOLEAN; CONST DrvValue : TValue; DrvValueUFlag : BOOLEAN );
 #restore
