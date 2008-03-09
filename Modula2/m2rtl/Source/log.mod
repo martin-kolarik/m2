@@ -376,6 +376,43 @@ CLASS IMPLEMENTATION CLogger;
 
 //---------------------------------------------------------
 
+   PUBLIC PROCEDURE LogFilePos( Level : TDebugLevel; Prefix : ARRAY OF WCHAR; Path, S1 : ARRAY OF WCHAR; Line, Col : CARDINAL ); // Line, Col = 0/-1 means unused, unknown
+	VAR
+	   colFlag, lineFlag : BOOLEAN;
+		S : ARRAY [0..511] OF WCHAR;
+      N : ARRAY [0..15] OF WCHAR;
+   BEGIN
+      IF Filtered( Level ) THEN
+         RETURN;
+      END;
+
+      S := Path;
+      lineFlag := ( Line <> 0 ) OR ( Line <> -1 );
+      colFlag := ( Col <> 0 ) OR ( Col <> -1 );
+      IF colFlag OR lineFlag THEN
+         Strings.AppendW( REF S, L"(" );
+         IF lineFlag THEN
+            Strings.FromCARD32W( Line, 10, OUT N );
+            Strings.AppendW( REF S, N );
+            IF colFlag THEN
+               Strings.AppendW( REF S, L"," );
+            END;
+         END;
+         IF colFlag THEN
+            Strings.FromCARD32W( Col, 10, OUT N );
+            Strings.AppendW( REF S, N );
+         END;
+         Strings.AppendW( REF S, L"): " );
+      ELSE
+         Strings.AppendW( REF S, L": " );
+      END;
+      Strings.AppendW( REF S, S1 );
+      
+      Log( Level, Prefix, S );
+   END LogFilePos;
+
+//---------------------------------------------------------
+
   INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : TDebugLevel; CONST Prefix, S : ARRAY OF WCHAR );
   VAR
     dt : time.TDateTime;

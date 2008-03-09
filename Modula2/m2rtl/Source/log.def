@@ -84,6 +84,7 @@ CLASS CLogger;
   PUBLIC PROCEDURE LogSSSS( Level : TDebugLevel; Prefix, S1, S2, S3, S4 : ARRAY OF WCHAR );
   
   PUBLIC PROCEDURE LogExc( Level : TDebugLevel; Prefix : ARRAY OF WCHAR; CONST e : Exceptions.CException );
+  PUBLIC PROCEDURE LogFilePos( Level : TDebugLevel; Prefix : ARRAY OF WCHAR; Path, S1 : ARRAY OF WCHAR; Line, Col : CARDINAL ); // Line, Col = 0/-1 means unused, unknown
 
   INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : TDebugLevel; CONST Prefix, S : ARRAY OF WCHAR );
   INTERNAL VIRTUAL PROCEDURE OnLogOutputString( CONST OutputString : ARRAY OF WCHAR );
