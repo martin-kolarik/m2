@@ -289,6 +289,10 @@ CLASS IMPLEMENTATION CProject;
     END;
     Constant^.N.FromOA( Name );
     Constant^.UnitKind := DOM.ukCmdLineConstDecl;
+
+    IF CmdLine.Knows( Constant ) THEN
+      CmdLine.Forget( Constant );
+    END;
     CmdLine.Add( Constant );
   END CmdLineSymbol;
 
@@ -421,7 +425,7 @@ CLASS IMPLEMENTATION CProject;
   PROCEDURE GetComponentName( VAR Name : ARRAY OF WCHAR; OutputCPPSymbol, OutputCPPIfaceSymbol : BOOLEAN ) : BOOLEAN;
   BEGIN
     IF EQUALS( Component, L"" ) THEN
-      RETURN FALSE;
+      Name := L"UNKNOWN";
     ELSE
       ASSIGN( Name, Component );
     END;
