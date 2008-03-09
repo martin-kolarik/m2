@@ -1,0 +1,39 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 -->
+    <PropertyGroup>
+        <Manufacturer Condition="$(Manufacturer)==''">Inris</Manufacturer>
+        <ComponentType>Product</ComponentType>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <ProductGUID>84949580-E779-4e68-A4BA-8145554F2B7F</ProductGUID>
+        <ProductUpgradeGUID>4C73C97D-457A-4a08-8556-47B3B167C9AA</ProductUpgradeGUID>
+        <ProductId>Inris.DaliSCI.CWDriver</ProductId>
+        <ProductVersionMajor>1</ProductVersionMajor>
+        <ProductVersionMinor>0</ProductVersionMinor>
+        <FileDescription>Inris DALI-SCI Serial Interface Driver</FileDescription>
+    </PropertyGroup>
+
+    <!-- 2 INCLUDE DEFINITION -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 COMPONENT DEFINITION -->
+    <ItemGroup>
+        <Components Include="modula2\modula2;api\clib;API\win32"/>
+        <Components Include="modula2\m2rtl;modula2\m2ortl;library\ADT;library\Resources;library\Text;library\messaging;library\Network;library\CWdriver"/>
+        <Program Include="diface;driver;DaliSci"/>
+        <Messages Include="Texts"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <!-- Export>export</Export -->
+    </PropertyGroup>
+
+    <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>

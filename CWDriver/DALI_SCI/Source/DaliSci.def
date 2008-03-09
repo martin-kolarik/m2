@@ -1,0 +1,12 @@
+DEFINITION MODULE DaliSci;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+INTERFACE IEventSink;
+END IEventSink;
+
+CLASS CDaliSci;
+END CDaliSci;
+
+END DaliSci.

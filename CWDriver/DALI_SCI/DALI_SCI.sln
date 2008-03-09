@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 9.00
+# Visual Studio 2005
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DALI_SCI", "DALI_SCI.vcproj", "{666F1B1A-98F4-4B30-B975-2B80D2C38EBC}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Network", "..\..\Library\Network\Network.vcproj", "{1E0EB821-155B-4B83-83F7-A0588ED642B1}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "m2rtl", "..\..\Modula2\m2rtl\m2rtl.vcproj", "{8995D229-D00F-4F29-B235-14249D391D21}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{666F1B1A-98F4-4B30-B975-2B80D2C38EBC}.Debug|Win32.ActiveCfg = Debug|Win32
+		{666F1B1A-98F4-4B30-B975-2B80D2C38EBC}.Debug|Win32.Build.0 = Debug|Win32
+		{666F1B1A-98F4-4B30-B975-2B80D2C38EBC}.Release|Win32.ActiveCfg = Release|Win32
+		{666F1B1A-98F4-4B30-B975-2B80D2C38EBC}.Release|Win32.Build.0 = Release|Win32
+		{1E0EB821-155B-4B83-83F7-A0588ED642B1}.Debug|Win32.ActiveCfg = Debug|Win32
+		{1E0EB821-155B-4B83-83F7-A0588ED642B1}.Debug|Win32.Build.0 = Debug|Win32
+		{1E0EB821-155B-4B83-83F7-A0588ED642B1}.Release|Win32.ActiveCfg = Release|Win32
+		{1E0EB821-155B-4B83-83F7-A0588ED642B1}.Release|Win32.Build.0 = Release|Win32
+		{8995D229-D00F-4F29-B235-14249D391D21}.Debug|Win32.ActiveCfg = Debug|Win32
+		{8995D229-D00F-4F29-B235-14249D391D21}.Debug|Win32.Build.0 = Debug|Win32
+		{8995D229-D00F-4F29-B235-14249D391D21}.Release|Win32.ActiveCfg = Release|Win32
+		{8995D229-D00F-4F29-B235-14249D391D21}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

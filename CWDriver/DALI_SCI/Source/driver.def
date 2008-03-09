@@ -1,0 +1,62 @@
+DEFINITION MODULE driver;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   DaliSci,
+   drv_def,
+   log,
+   Resources,
+   StringsO;
+
+//================================================================================
+
+TYPE
+   TPDriver = POINTER TO CDriver;
+
+CONST // device specific error codes
+   ceDeviceUnplugged = 10001H;
+   ceLine_Timeout    = 10005H;
+
+CLASS CDriver IMPLEMENTS DaliSci.IEventSink;
+   PRIVATE VAR
+      CallbackId    : ADDRESS;
+      CallbackProc  : drv_def.TDriverCallbackW;
+      StatusChannel : CARDINAL;
+   
+      Dali          : DaliSci.CDaliSci;
+      Logger        : log.CLogger;
+
+
+   // binding to procedural interface
+   PUBLIC PROCEDURE Init( CONST SymbolicName : ARRAY OF WCHAR; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW ) : BOOLEAN;
+   PUBLIC PROCEDURE ReadParameters( CONST ParFilePath : StringsO.CString; REF Logger : log.CLogger ) : BOOLEAN;
+
+   PUBLIC PROCEDURE EnumerateChannels(  VAR EnumerateState : LONGWORD; VAR Type : CARDINAL; VAR Direction : CARDINAL; VAR DriverIndex : CARDINAL; VAR Count : CARDINAL; VAR HaveDescription : BOOLEAN ): BOOLEAN;
+   PUBLIC PROCEDURE GetChannelDescription( DriverIndex : CARDINAL; VAR Description : ARRAY OF WCHAR; VAR Id : ARRAY OF WCHAR ) : BOOLEAN;
+
+   PUBLIC PROCEDURE InputRequestStart();
+   PUBLIC PROCEDURE InputRequest( DriverIndex : CARDINAL );
+   PUBLIC PROCEDURE InputRequestCompleted();
+   PUBLIC PROCEDURE InputFinalized( DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
+   PUBLIC PROCEDURE InputOOBDataQuery( VAR EnumerateState : LONGWORD; VAR DriverIndex : CARDINAL ) : BOOLEAN;
+   PUBLIC PROCEDURE GetInput( UFlag : BOOLEAN; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue; VAR QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp; VAR ErrorCode : CARDINAL );
+
+   PUBLIC PROCEDURE OutputRequestStart();
+   PUBLIC PROCEDURE OutputRequest( UFlag : BOOLEAN; DriverIndex : CARDINAL; OutValue : drv_def.TValue; QoS : CARDINAL; TimeStamp : drv_def.TUTCStamp );
+   PUBLIC PROCEDURE OutputRequestCompleted();
+   PUBLIC PROCEDURE OutputFinalized( DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
+
+   PUBLIC PROCEDURE QueryProc( UFlag : BOOLEAN; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
+
+   // IEventSink
+END CDriver;
+
+//================================================================================
+
+PROCEDURE R() : Resources.TPResources;
+
+//================================================================================
+
+END driver.
