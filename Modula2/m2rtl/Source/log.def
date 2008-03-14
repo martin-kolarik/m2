@@ -1,6 +1,6 @@
 DEFINITION MODULE log;
 
-//=========================================================
+(*===========================================================================*)
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -9,87 +9,100 @@ IMPORT
    Exceptions,
    Sync;
 
-//=========================================================
+(*===========================================================================*)
 
 TYPE
-  TRStatusItem = (
-    rsDebugFile,
-    rsDebugKernel,
-    rsTimeStamps
-  );
-  TRStatus = SET OF TRStatusItem;
+   TRStatusItem = (
+      rsDebugFile,
+      rsDebugKernel,
+      rsTimeStamps
+   );
+   TRStatus = SET OF TRStatusItem;
 
-  TDebugMethod = (
-    dmNone,
-    dmFile,
-    dmKernel
-  );
+   TDebugMethod = (
+      dmNone,
+      dmFile,
+      dmKernel
+   );
 
-  TDebugLevel = (
-    dl1, // brief OR critical severity
-    dl2,
-    dl3,
-    dl4 // exhaustive OR very low severity
-  );
+   TDebugLevel = (
+      dl1, // brief OR critical severity
+      dl2,
+      dl3,
+      dl4 // exhaustive OR very low severity
+   );
 
 CONST // for common purposes
-  dlcSysError ::= dl1;
-  dlcError    ::= dl2;
-  dlcWarning  ::= dl3;
-  dlcInfo     ::= dl4;
+   dlcSysError ::= dl1;
+   dlcError    ::= dl2;
+   dlcWarning  ::= dl3;
+   dlcInfo     ::= dl4;
 
 CONST // for developing
-  dldError    ::= dl1;
-  dldInfo     ::= dl2;
-  dldTrace    ::= dl3;
-  dldDebug    ::= dl4;
+   dldError    ::= dl1;
+   dldInfo     ::= dl2;
+   dldTrace    ::= dl3;
+   dldDebug    ::= dl4;
 
 TYPE
-  TPLogger = POINTER TO CLogger;
+   TPLogger = POINTER TO CLogger;
+   TPBuffer = POINTER TO CBuffer;
 
 #save, option( dll_export => on )
 
 CLASS CLogger;
-  RStatus    : TRStatus;
-  Name       : ARRAY [0..63] OF WCHAR;
-  DebugLevel : TDebugLevel;
-  DebugFile  : ARRAY [0..260] OF WCHAR;
-  DebugLock  : Sync.LOCK;
+   PRIVATE VAR
+      RStatus    : TRStatus;
+      Name       : ARRAY [0..63] OF WCHAR;
+      DebugLevel : TDebugLevel;
+      DebugFile  : ARRAY [0..260] OF WCHAR;
+      DebugLock  : Sync.LOCK;
+      Buffer     : TPBuffer;
   
-  PUBLIC PROPERTY
-    Method : TDebugMethod;
-    Level : TDebugLevel; // what (and less) will be present in log
-    TimeStamps : BOOLEAN;
+   PUBLIC PROPERTY
+      Method : TDebugMethod;
+      Level : TDebugLevel; // what (and less) will be present in log
+      TimeStamps : BOOLEAN;
+      Buffered : BOOLEAN;
+      BufferSize : CARDINAL; // default 100
 
-  PUBLIC PROCEDURE SetLogName( CONST Name : ARRAY OF WCHAR );
-  PUBLIC PROCEDURE GetLogName( OUT Name : ARRAY OF WCHAR ) : BOOLEAN;
-  PUBLIC PROCEDURE SetLogFile( CONST LogFile : ARRAY OF WCHAR );
-  PUBLIC PROCEDURE GetLogFile( OUT LogFile : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC PROCEDURE SetLogName( CONST Name : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE GetLogName( OUT Name : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC PROCEDURE SetLogFile( CONST LogFile : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE GetLogFile( OUT LogFile : ARRAY OF WCHAR ) : BOOLEAN;
 
-  PUBLIC PROCEDURE SetUpByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC PROCEDURE SetUpByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN;
 
-  PUBLIC PROCEDURE Filtered( Level : TDebugLevel ) : BOOLEAN;
+   PUBLIC PROCEDURE Filtered( Level : TDebugLevel ) : BOOLEAN;
 
-  PUBLIC PROCEDURE LogS( Level : TDebugLevel; Prefix, S : ARRAY OF WCHAR );
-  PUBLIC PROCEDURE LogSS( Level : TDebugLevel; Prefix, S1, S2 : ARRAY OF WCHAR );
-  PUBLIC PROCEDURE LogSE( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; ErrorCode : CARDINAL );
-  PUBLIC PROCEDURE LogSC( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL );
-  PUBLIC PROCEDURE LogSH( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL );
-  PUBLIC PROCEDURE LogSP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; P : PTR );
-  PUBLIC PROCEDURE LogSCP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; P : PTR );
-  PUBLIC PROCEDURE LogSHP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL; P : PTR );
-  PUBLIC PROCEDURE LogSB( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; A : ADDRESS; Bytes : CARDINAL );
-  PUBLIC PROCEDURE LogSCB( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; A : ADDRESS; Bytes : CARDINAL );
-  PUBLIC PROCEDURE LogSSS( Level : TDebugLevel; Prefix, S1, S2, S3 : ARRAY OF WCHAR );
-  PUBLIC PROCEDURE LogSSSS( Level : TDebugLevel; Prefix, S1, S2, S3, S4 : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE LogS( Level : TDebugLevel; Prefix, S : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE LogSS( Level : TDebugLevel; Prefix, S1, S2 : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE LogSE( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; ErrorCode : CARDINAL );
+   PUBLIC PROCEDURE LogSC( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL );
+   PUBLIC PROCEDURE LogSH( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL );
+   PUBLIC PROCEDURE LogSP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; P : PTR );
+   PUBLIC PROCEDURE LogSCP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; P : PTR );
+   PUBLIC PROCEDURE LogSHP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL; P : PTR );
+   PUBLIC PROCEDURE LogSB( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; A : ADDRESS; Bytes : CARDINAL );
+   PUBLIC PROCEDURE LogSCB( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; A : ADDRESS; Bytes : CARDINAL );
+   PUBLIC PROCEDURE LogSSS( Level : TDebugLevel; Prefix, S1, S2, S3 : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE LogSSSS( Level : TDebugLevel; Prefix, S1, S2, S3, S4 : ARRAY OF WCHAR );
   
-  PUBLIC PROCEDURE LogExc( Level : TDebugLevel; Prefix : ARRAY OF WCHAR; CONST e : Exceptions.CException );
-  PUBLIC PROCEDURE LogFilePos( Level : TDebugLevel; Prefix : ARRAY OF WCHAR; Path, S1 : ARRAY OF WCHAR; Line, Col : CARDINAL ); // Line, Col = 0/-1 means unused, unknown
+   PUBLIC PROCEDURE LogExc( Level : TDebugLevel; Prefix : ARRAY OF WCHAR; CONST e : Exceptions.CException );
+   PUBLIC PROCEDURE LogFilePos( Level : TDebugLevel; Prefix : ARRAY OF WCHAR; Path, S1 : ARRAY OF WCHAR; Line, Col : CARDINAL ); // Line, Col = 0/-1 means unused, unknown
+   
+   // buffer read
+   PUBLIC READONLY PROPERTY
+      BufferCount : CARDINAL;
+   PUBLIC PROCEDURE BufferGetItem( Index : CARDINAL; OUT S : ARRAY OF WCHAR ) : BOOLEAN; // Index = 0 means first
+   PUBLIC PROCEDURE BufferClear();
 
-  INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : TDebugLevel; CONST Prefix, S : ARRAY OF WCHAR );
-  INTERNAL VIRTUAL PROCEDURE OnLogOutputString( CONST OutputString : ARRAY OF WCHAR );
+   // for internal rewrite
+   INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : TDebugLevel; CONST Prefix, S : ARRAY OF WCHAR );
+   // for user rewrite
+   INTERNAL VIRTUAL PROCEDURE OnLogOutputString( CONST OutputString : ARRAY OF WCHAR );
 
-  PRIVATE PROCEDURE LoadByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN;
+   PRIVATE PROCEDURE LoadByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN;
 END CLogger;
 
 // global system LOG
@@ -97,6 +110,6 @@ PROCEDURE logger() : TPLogger;
 
 #restore
 
-//=========================================================
+(*===========================================================================*)
 
 END log.

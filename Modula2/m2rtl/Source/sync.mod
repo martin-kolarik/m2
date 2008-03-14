@@ -673,6 +673,29 @@ END STATE;
 
 (*================================================================================*)
 
+PROCEDURE ToPowerOf2( Size : CARDINAL ) : CARDINAL;
+TYPE
+   TPower = ARRAY [0..32] OF CARDINAL;
+CONST
+   power = TPower(
+      1, 2, 4, 8, 16, 32, 64, 128,
+      256, 512, 1024, 2048, 4096, 8192, 16384, 32768,
+      65536, 2*65536, 4*65536, 8*65536, 16*65536, 32*65536, 64*65536, 128*65536,
+      256*65536, 512*65536, 1024*65536, 2048*65536, 4096*65536, 8192*65536, 16384*65536, 32768*65536,
+      0
+   );
+VAR
+   i : CARDINAL := 0;
+BEGIN
+   WHILE Size > power[i] DO
+      INC( i );
+   END;
+   ASSERT( i < 32 );
+   RETURN power[i];
+END ToPowerOf2;
+
+(*================================================================================*)
+
 CLASS IMPLEMENTATION OneToOneQueue;
 
 (*--------------------------------------------------------------------------------*)
@@ -713,7 +736,7 @@ CLASS IMPLEMENTATION OneToOneQueue;
 
   PUBLIC VIRTUAL PROPERTY OneToOneQueue.Size SET( Value : CARDINAL );
   BEGIN
-    _Size := Value;
+    _Size := ToPowerOf2( Value );
     _Head := 0;
     _Tail := 0;
   END OneToOneQueue.Size;
@@ -734,13 +757,13 @@ CLASS IMPLEMENTATION OneToOneQueue;
       // Space = H + S - T
       LHead := IExchgAdd( REF _Head, 0 );
       // compute space as minimum from inbound and outboud pieces -- only these assures the area will be continuous
-      Space := MIN2( LHead + _Size - _Tail, _Size - _Tail MOD _Size );
+      Space := MIN2( LHead + _Size - _Tail, _Size - ToOutIndex( _Tail ));
       IF Space = 0 THEN
          RETURN FALSE;
       END;
 
       AllowedToProduce := MIN2( LengthToProduce, Space );
-      ProduceTo := _Tail MOD _Size;
+      ProduceTo := ToOutIndex( _Tail );
       RETURN TRUE;
    END StartProducing;
 
@@ -770,11 +793,11 @@ CLASS IMPLEMENTATION OneToOneQueue;
     // order is significant, first *cache LTail
     LTail := IExchgAdd( REF _Tail, 0 );
     // compute occupation as minimum from inbound and outboud pieces -- only these assures the area will be continuous
-    Occupied := MIN2( LTail - _Head, _Size - _Head MOD _Size );
+    Occupied := MIN2( LTail - _Head, _Size - ToOutIndex( _Head ));
     // continue consumation with *cached data
     IF Occupied > 0 THEN
       AllowedToConsume := MIN2( Occupied, LengthToConsume );
-      ConsumeFrom := _Head MOD _Size;
+      ConsumeFrom := ToOutIndex( _Head );
       RETURN TRUE;
     ELSE
       RETURN FALSE;
@@ -806,10 +829,134 @@ CLASS IMPLEMENTATION OneToOneQueue;
 
 (*--------------------------------------------------------------------------------*)
 
+  INTERNAL INLINE PROCEDURE ToOutIndex( Index : CARDINAL ) : CARDINAL;
+  BEGIN
+    RETURN Index AND ( _Size - 1 );
+  END ToOutIndex;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
   _Head := 0;
   _Tail := 0;
 END OneToOneQueue;
+
+(*================================================================================*)
+
+CLASS IMPLEMENTATION WriteBuffer;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY WriteBuffer.Count GET : CARDINAL;
+   VAR
+      count : CARDINAL; 
+   BEGIN
+      _Lock.Lock();
+      count := _Tail - _Head;
+      _Lock.Unlock();
+      RETURN count;
+   END WriteBuffer.Count;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY WriteBuffer.Empty GET : BOOLEAN;
+   BEGIN
+      RETURN Count = 0;
+   END WriteBuffer.Empty;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY WriteBuffer.Full GET : BOOLEAN;
+   BEGIN
+      RETURN Count = _Size;
+   END WriteBuffer.Full;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY WriteBuffer.Size GET : CARDINAL;
+   BEGIN
+      RETURN _Size;
+   END WriteBuffer.Size;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY WriteBuffer.Size SET( Value : CARDINAL );
+   BEGIN
+      _Size := ToPowerOf2( Value );
+      _Head := 0;
+      _Tail := 0;
+   END WriteBuffer.Size;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Clear();
+   BEGIN
+      _Lock.Lock(); // can be called every time from any client
+      _Head := 0;
+      _Tail := 0;
+      _Lock.Unlock();
+   END Clear;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE StartProducing( OUT ProduceTo : CARDINAL ) : BOOLEAN;
+   BEGIN
+      _Lock.Lock();
+      IF _Head + _Size = _Tail THEN
+         INC( _Head );
+      END;
+      INC( _Tail );
+      ProduceTo := ToOutIndex( _Tail );
+      // stay in lock
+      RETURN TRUE;
+   END StartProducing;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CommitProducing();
+   BEGIN
+      // release lock
+      _Lock.Unlock();   
+   END CommitProducing;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE StartReading( Index : CARDINAL; OUT ReadFrom : CARDINAL ) : BOOLEAN;
+   VAR
+      readFrom : CARDINAL;
+   BEGIN
+      _Lock.Lock();
+      readFrom := _Head + Index;
+      IF INTEGER( readFrom - _Tail ) > 0 THEN
+         _Lock.Unlock();
+         RETURN FALSE;
+      END;
+      ReadFrom := ToOutIndex( readFrom );
+      // stay in lock
+      RETURN TRUE;
+   END StartReading;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CommitReading();
+   BEGIN
+      // release lock
+      _Lock.Unlock();
+   END CommitReading;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL INLINE PROCEDURE ToOutIndex( Index : CARDINAL ) : CARDINAL;
+   BEGIN
+     RETURN Index AND ( _Size - 1 );
+   END ToOutIndex;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+   _Head := 0;
+   _Tail := 0;
+END WriteBuffer;
 
 (*================================================================================*)
 
@@ -853,7 +1000,7 @@ CLASS IMPLEMENTATION NToOneQueue;
 
   PUBLIC VIRTUAL PROPERTY NToOneQueue.Size SET( Value : CARDINAL );
   BEGIN
-    _Size := Value;
+    _Size := ToPowerOf2( Value );
     _Head := 0;
     _Tail := 0;
   END NToOneQueue.Size;
@@ -868,7 +1015,7 @@ CLASS IMPLEMENTATION NToOneQueue;
     LTail := IExchgAdd( REF _Tail, 0 );
     LHead := IExchgAdd( REF _Head, 0 );
     WHILE LHead < LTail DO
-      Invalidate( LHead MOD _Size );
+      Invalidate( ToOutIndex( LHead ));
       LHead := IExchgAdd( REF _Head, 1 );
     END;
     Signal( pcqConsumed );
@@ -893,7 +1040,7 @@ CLASS IMPLEMENTATION NToOneQueue;
       LTail := IExchgAdd( REF _Tail, 1 ); // allocate speculatively
       LHead := IExchgAdd( REF _Head, 0 );
       IF INTEGER( LHead + _Size - LTail ) > 0 THEN // space found, allocated
-         ProduceTo := LTail MOD _Size;
+         ProduceTo := ToOutIndex( LTail );
          IExchg( REF _Lock, 0 );
          RETURN TRUE;
       ELSE // space not found, revert speculative allocation
@@ -913,7 +1060,7 @@ CLASS IMPLEMENTATION NToOneQueue;
       Validate( Produced );
 
       LHead := IExchgAdd( REF _Head, 0 );
-      IF Produced - LHead MOD _Size = 0 THEN // now first item into empty queue was added, signal production
+      IF Produced - ToOutIndex( LHead ) = 0 THEN // now first item into empty queue was added, signal production
          Signal( pcqProduced );
       END;
    END CommitProducing;
@@ -930,8 +1077,8 @@ CLASS IMPLEMENTATION NToOneQueue;
       // continue with snapshoted data
       IF LHead = LTail THEN
          RETURN FALSE;
-      ELSIF IsValid( LHead MOD _Size ) THEN // OK, slot is occupied
-         ConsumeFrom := LHead MOD _Size;
+      ELSIF IsValid( ToOutIndex( LHead )) THEN // OK, slot is occupied
+         ConsumeFrom := ToOutIndex( LHead );
          RETURN TRUE;
       ELSE // slot is not marked as occupied yet
          RETURN FALSE;
@@ -944,7 +1091,7 @@ CLASS IMPLEMENTATION NToOneQueue;
    VAR
       LTail : CARDINAL;
    BEGIN
-      Invalidate( _Head MOD _Size );
+      Invalidate( ToOutIndex( _Head ));
       IInc( REF _Head );
     
       LTail := IExchgAdd( REF _Tail, 0 );
@@ -958,6 +1105,13 @@ CLASS IMPLEMENTATION NToOneQueue;
    INTERNAL VIRTUAL PROCEDURE Signal( What : TpcqSignal );
    BEGIN
    END Signal;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL INLINE PROCEDURE ToOutIndex( Index : CARDINAL ) : CARDINAL;
+   BEGIN
+     RETURN Index AND ( _Size - 1 );
+   END ToOutIndex;
 
 (*--------------------------------------------------------------------------------*)
 

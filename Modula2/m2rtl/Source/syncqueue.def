@@ -11,8 +11,6 @@ TYPE
    TPRingBuffer = POINTER TO RingBuffer;
 
 CLASS RingBuffer( Sync.OneToOneQueue ); // SIGNALLING and FLUSHING, if needed, should be done using VIRTUAL PROCEDURE Flush/Signal.
-   // the problem is fully symmetric, but implementation prefers reader (because write side implements flush/wait semantics). Better
-   // results, in this case, will be achieved using Produce signal without Consume one.
   INTERNAL VAR
      Data        : ADDRESS;
      DataDoubled : BOOLEAN;

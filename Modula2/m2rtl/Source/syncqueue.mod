@@ -177,8 +177,8 @@ CLASS IMPLEMENTATION RingBuffer;
     IF LTail = _Head THEN
       RETURN FALSE;
     END;
-    LTail := LTail MOD _Size;
-    LHead := _Head MOD _Size;
+    LTail := ToOutIndex( LTail );
+    LHead := ToOutIndex( _Head );
     IF LTail <= LHead THEN // move is necessary, buffer is splitted
       IF NOT DataDoubled THEN
         DataDoubled := TRUE;
@@ -190,7 +190,7 @@ CLASS IMPLEMENTATION RingBuffer;
     IF LTail = LHead THEN
       Length := _Size;
     ELSE
-      Length := ( LTail-LHead+_Size ) MOD _Size;
+      Length := ToOutIndex( LTail-LHead+_Size );
     END;
     RETURN TRUE;
   END Peek;
@@ -208,8 +208,8 @@ CLASS IMPLEMENTATION RingBuffer;
     IF LTail = _Head THEN
       RETURN FALSE;
     END;
-    LTail := LTail MOD _Size;
-    LHead := _Head MOD _Size;
+    LTail := ToOutIndex( LTail );
+    LHead := ToOutIndex( _Head );
     IF LTail > LHead THEN // return single part
       Data1 := SELF.Data@[LHead];
       Length1 := LTail - LHead;

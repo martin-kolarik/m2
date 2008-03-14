@@ -145,7 +145,7 @@ TYPE
   TPOneToOneQueue = POINTER TO OneToOneQueue;
 
 CLASS OneToOneQueue;
-  INTERNAL VAR
+  INTERNAL READONLY VAR
     _Head : CARDINAL;
     _Tail : CARDINAL;
     _Size : CARDINAL := 4096;
@@ -169,7 +169,46 @@ CLASS OneToOneQueue;
 
   // both side, usualy implemented using ONE signal/message
   INTERNAL VIRTUAL PROCEDURE Signal( What : TpcqSignal ); // when produced, next producing SHOULD NOT be signalled (until signalling consumed)
+
+  // helper
+  INTERNAL INLINE PROCEDURE ToOutIndex( Index : CARDINAL ) : CARDINAL;
 END OneToOneQueue;
+
+(*--------------------------------------------------------------------------------*)
+
+// WriteBuffer: multiple producers, multiple clients GetItem, indexes turn around Size --
+// a modification of Reader/Writer lock which erases old items on write and does not consume anything on read
+TYPE
+   TPWriteBuffer = POINTER TO WriteBuffer;
+   
+CLASS WriteBuffer;
+  INTERNAL READONLY VAR
+    _Head : CARDINAL;
+    _Tail : CARDINAL;
+    _Lock : LOCK;
+  INTERNAL VAR
+    _Size : CARDINAL := 256;
+  PUBLIC READONLY PROPERTY
+    Count : CARDINAL;
+    Empty : BOOLEAN;
+    Full : BOOLEAN;
+  PUBLIC VIRTUAL PROPERTY
+    Size : CARDINAL;
+
+  // common
+  PUBLIC PROCEDURE Clear();
+
+  // writers
+  PUBLIC PROCEDURE StartProducing( OUT ProduceTo : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE CommitProducing();
+
+  // readers
+  PUBLIC PROCEDURE StartReading( Index : CARDINAL; OUT ReadFrom : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE CommitReading();
+
+  // helper
+  INTERNAL INLINE PROCEDURE ToOutIndex( Index : CARDINAL ) : CARDINAL;
+END WriteBuffer;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -178,12 +217,11 @@ TYPE
   TPNToOneQueue = POINTER TO NToOneQueue;
 
 ABSTRACT CLASS NToOneQueue;
-  PRIVATE VAR
+  INTERNAL READONLY VAR
     _Head : CARDINAL;
     _Tail : CARDINAL;
-    _Lock : CARDINAL;
-  INTERNAL VAR
     _Size : CARDINAL := 256;
+    _Lock : CARDINAL;
   PUBLIC READONLY PROPERTY
     Count : CARDINAL;
     Empty : BOOLEAN;
@@ -207,6 +245,9 @@ ABSTRACT CLASS NToOneQueue;
 
   // both side, usualy implemented using ONE signal/message
   INTERNAL VIRTUAL PROCEDURE Signal( What : TpcqSignal ); // when produced, next producing SHOULD NOT be done (until signalling consumed)
+
+  // helper
+  INTERNAL INLINE PROCEDURE ToOutIndex( Index : CARDINAL ) : CARDINAL;
 END NToOneQueue;
 
 (*================================================================================*)
