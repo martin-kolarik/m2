@@ -199,7 +199,7 @@ CLASS WriteBuffer;
   PUBLIC PROCEDURE Clear();
 
   // writers
-  PUBLIC PROCEDURE StartProducing( OUT ProduceTo : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE StartProducing( Overwrite : BOOLEAN; OUT ProduceTo : CARDINAL ) : BOOLEAN;
   PUBLIC PROCEDURE CommitProducing();
 
   // readers

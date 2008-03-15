@@ -37,7 +37,7 @@ CLASS CBuffer;
    LOCAL PROCEDURE GetItem( Index : CARDINAL; OUT S : ARRAY OF WCHAR ) : BOOLEAN; // Index = 0 means first
    LOCAL PROCEDURE Clear();
    
-   LOCAL PROCEDURE Store( CONST S : ARRAY OF WCHAR );
+   LOCAL PROCEDURE Store( OverWrite : BOOLEAN; CONST S : ARRAY OF WCHAR );
 END CBuffer;
 
 //=========================================================
@@ -89,12 +89,12 @@ CLASS IMPLEMENTATION CBuffer;
 
 //---------------------------------------------------------
 
-   LOCAL PROCEDURE Store( CONST S : ARRAY OF WCHAR );
+   LOCAL PROCEDURE Store( Overwrite : BOOLEAN; CONST S : ARRAY OF WCHAR );
    VAR
       ProduceTo : CARDINAL;
    BEGIN
       ASSERT( _Data <> NIL );
-      IF _W.StartProducing( OUT ProduceTo ) THEN
+      IF _W.StartProducing( Overwrite, OUT ProduceTo ) THEN
          _Data^[ ProduceTo ] := S;
          _W.CommitProducing();
       END;
@@ -211,6 +211,20 @@ CLASS IMPLEMENTATION CLogger;
       END;
       Buffer^.Size := Value;
    END BufferSize;
+
+//---------------------------------------------------------
+
+   PUBLIC PROPERTY BufferMode GET : TBufferMode;
+   BEGIN
+      RETURN _BufferMode;
+   END BufferMode;
+
+//---------------------------------------------------------
+
+   PUBLIC PROPERTY BufferMode SET( Value : TBufferMode );
+   BEGIN
+      _BufferMode := Value;
+   END BufferMode;
 
 //---------------------------------------------------------
 
@@ -609,7 +623,7 @@ CLASS IMPLEMENTATION CLogger;
     Strings.AppendW( REF SW, S ); 
 
     IF Buffer <> NIL THEN
-      Buffer^.Store( SW );
+      Buffer^.Store( _BufferMode = bmStoreLast, SW );
     END;
     OnLogOutputString( SW );
     IF rsDebugFile IN RStatus THEN

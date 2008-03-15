@@ -899,11 +899,17 @@ CLASS IMPLEMENTATION WriteBuffer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE StartProducing( OUT ProduceTo : CARDINAL ) : BOOLEAN;
+   PUBLIC PROCEDURE StartProducing( Overwrite : BOOLEAN; OUT ProduceTo : CARDINAL ) : BOOLEAN;
    BEGIN
       _Lock.Lock();
       IF _Head + _Size = _Tail THEN
-         INC( _Head );
+         IF Overwrite THEN
+            INC( _Head );
+         ELSE
+            // leave lock
+            _Lock.Unlock();
+            RETURN FALSE;
+         END;
       END;
       INC( _Tail );
       ProduceTo := ToOutIndex( _Tail );

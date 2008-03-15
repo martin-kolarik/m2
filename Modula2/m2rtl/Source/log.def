@@ -48,23 +48,31 @@ TYPE
    TPLogger = POINTER TO CLogger;
    TPBuffer = POINTER TO CBuffer;
 
+TYPE
+   TBufferMode = (
+      bmStoreFirst, // messages up to BufferLength will be stored
+      bmStoreLast // last BufferLength messages will be stored
+   );
+
 #save, option( dll_export => on )
 
 CLASS CLogger;
    PRIVATE VAR
-      RStatus    : TRStatus;
-      Name       : ARRAY [0..63] OF WCHAR;
-      DebugLevel : TDebugLevel;
-      DebugFile  : ARRAY [0..260] OF WCHAR;
-      DebugLock  : Sync.LOCK;
-      Buffer     : TPBuffer;
+      RStatus     : TRStatus;
+      Name        : ARRAY [0..63] OF WCHAR;
+      DebugLevel  : TDebugLevel;
+      DebugFile   : ARRAY [0..260] OF WCHAR;
+      DebugLock   : Sync.LOCK;
+      Buffer      : TPBuffer;
+      _BufferMode : TBufferMode := bmStoreLast;
   
    PUBLIC PROPERTY
       Method : TDebugMethod;
       Level : TDebugLevel; // what (and less) will be present in log
       TimeStamps : BOOLEAN;
       Buffered : BOOLEAN;
-      BufferSize : CARDINAL; // default 100
+      BufferSize : CARDINAL; // default 256
+      BufferMode : TBufferMode;
 
    PUBLIC PROCEDURE SetLogName( CONST Name : ARRAY OF WCHAR );
    PUBLIC PROCEDURE GetLogName( OUT Name : ARRAY OF WCHAR ) : BOOLEAN;
