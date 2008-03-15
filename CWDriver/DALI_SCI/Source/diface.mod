@@ -186,17 +186,21 @@ PROCEDURE ReadParameters(             PData : ADDRESS;
                                         VAR ErrorColumn  : CARDINAL;
                                         VAR HintOrHelp   : ARRAY OF CHAR ) : BOOLEAN;
 VAR
-   em, pf : StringsO.CString;
+   em : ARRAY [0..511] OF WCHAR;
+   pf : StringsO.CString;
    l : CARDINAL;
    lg : log.CLogger;
    b : BOOLEAN;
 BEGIN
+   lg.BufferSize := 1;
+   lg.BufferMode := log.bmStoreFirst;
    ErrorColumn := 0;
    HintOrHelp := C'';
    
    pf.FromOAA( 0, ParFilePath );
    b := driver.TPDriver( PData )^.ReadParameters( pf, REF lg );
-   em.ToOAA( 0, OUT ErrorMessage, OUT l );
+   lg.BufferGetItem( 0, OUT em );
+   Strings.ToA( em, 0, OUT ErrorMessage );
    
    RETURN b;
 END ReadParameters;
@@ -208,16 +212,18 @@ PROCEDURE ReadParametersW(            PData : ADDRESS;
                                         VAR ErrorColumn  : CARDINAL;
                                         VAR HintOrHelp   : ARRAY OF WCHAR ) : BOOLEAN;
 VAR
-   em, pf : StringsO.CString;
+   pf : StringsO.CString;
    lg : log.CLogger;
    b : BOOLEAN;
 BEGIN
+   lg.BufferSize := 1;
+   lg.BufferMode := log.bmStoreFirst;
    ErrorColumn := 0;
    HintOrHelp := L'';
 
    pf.FromOA( ParFilePath );
    b := driver.TPDriver( PData )^.ReadParameters( pf, REF lg );
-   em.ToOA( OUT ErrorMessage );
+   lg.BufferGetItem( 0, OUT ErrorMessage );
 
    RETURN b;
 END ReadParametersW;
@@ -292,14 +298,14 @@ END QueryErrorCodeW;
 
 PROCEDURE RunW( PData : ADDRESS );
 BEGIN
-   driver.TPDriver( PData )^.Run( TRUE, TRUE );
+   driver.TPDriver( PData )^.Run();
 END RunW;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE StopW( PData : ADDRESS );
 BEGIN
-   driver.TPDriver( PData )^.Stop( TRUE, TRUE );
+   driver.TPDriver( PData )^.Stop();
 END StopW;
 
 //--------------------------------------------------------------------------------

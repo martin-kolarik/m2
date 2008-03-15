@@ -6,6 +6,7 @@ FROM Storage IMPORT
 IMPORT
    DaliSci,
    drv_def,
+   lec,
    log,
    Resources,
    StringsO;
@@ -21,13 +22,15 @@ CONST // device specific error codes
 
 CLASS CDriver IMPLEMENTS DaliSci.IEventSink;
    PRIVATE VAR
+      ClientName    : ARRAY [0..63] OF WCHAR;
       CallbackId    : ADDRESS;
       CallbackProc  : drv_def.TDriverCallbackW;
       StatusChannel : CARDINAL;
    
       Dali          : DaliSci.CDaliSci;
-      Logger        : log.CLogger;
-
+      Result        : lec.CResult;
+      cllvData      : ADDRESS;
+      cllvLength    : CARDINAL;
 
    // binding to procedural interface
    PUBLIC PROCEDURE Init( CONST SymbolicName : ARRAY OF WCHAR; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW ) : BOOLEAN;
@@ -35,6 +38,10 @@ CLASS CDriver IMPLEMENTS DaliSci.IEventSink;
 
    PUBLIC PROCEDURE EnumerateChannels(  VAR EnumerateState : LONGWORD; VAR Type : CARDINAL; VAR Direction : CARDINAL; VAR DriverIndex : CARDINAL; VAR Count : CARDINAL; VAR HaveDescription : BOOLEAN ): BOOLEAN;
    PUBLIC PROCEDURE GetChannelDescription( DriverIndex : CARDINAL; VAR Description : ARRAY OF WCHAR; VAR Id : ARRAY OF WCHAR ) : BOOLEAN;
+   
+   PUBLIC PROCEDURE Run();
+   PUBLIC PROCEDURE Stop();
+   PUBLIC PROCEDURE Dispose();
 
    PUBLIC PROCEDURE InputRequestStart();
    PUBLIC PROCEDURE InputRequest( DriverIndex : CARDINAL );

@@ -2,11 +2,22 @@ DEFINITION MODULE DaliSci;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
+   
+IMPORT
+   INIFile,
+   log,
+   StringsO;
 
 INTERFACE IEventSink;
 END IEventSink;
 
 CLASS CDaliSci;
+
+   PUBLIC PROCEDURE LoadConfiguration( CONST INI : INIFile.CINIFile; REF logger : log.CLogger ) : BOOLEAN;
+   
+   PUBLIC PROCEDURE Run();
+   PUBLIC PROCEDURE Stop();
+      
 END CDaliSci;
 
 END DaliSci.
