@@ -486,14 +486,18 @@ ntMemberDefinition<Class : DOM.TPClass>                    (. AM : DOM.TAccessMo
     (                                                      (. AM := c^.MEnv.ClassAM; .)
       [ ntMemberAccessModifier<AM> ]
       (
-        SYNC "CONST"                                       (. c^.EnterNewUnit( DOM.ukConstDeclBlock ); .)
+        SYNC "CONST"                                       (. c^.PushOptions( c^.CurE^.Options + DOM.TEnvironmentOptions{DOM.eoClassInner} + Class^.Options * c^.eosIF );
+                                                              c^.EnterNewUnit( DOM.ukConstDeclBlock ); .)
         {
           ntConstantDeclaration<FALSE, DOM.ukClassConstDecl, AM> WEAK semicolon
-        }                                                  (. c^.LeaveUnit(); .)
-      | SYNC "TYPE"                                        (. c^.EnterNewUnit( DOM.ukTypeDefBlock ); .)
+        }                                                  (. c^.LeaveUnit();
+                                                              c^.PopOptions(); .)
+      | SYNC "TYPE"                                        (. c^.PushOptions( c^.CurE^.Options + DOM.TEnvironmentOptions{DOM.eoClassInner} + Class^.Options * c^.eosIF );
+                                                              c^.EnterNewUnit( DOM.ukTypeDefBlock ); .)
         {
           ntTypeDeclaration<DOM.ukClassTypeDef, AM> WEAK semicolon
-        }                                                  (. c^.LeaveUnit(); .)
+        }                                                  (. c^.LeaveUnit();
+                                                              c^.PopOptions(); .)
       | 
         [ ntClassMemberInheritanceModifier<REF IM>          (. IF ( DOM.imCOM IN IM ) AND ( DOM.cpsStdCall * c^.CurU^.Options = DOM.TEnvironmentOptions{} ) THEN
                                                                   SemErr( err._COMMemberMustBeSTDCall );

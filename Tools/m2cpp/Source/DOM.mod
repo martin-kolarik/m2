@@ -637,7 +637,7 @@ CLASS IMPLEMENTATION CSymbol;
   PROCEDURE IsProcedure( AllowTypes : BOOLEAN ) : BOOLEAN;
   BEGIN
     RETURN ( SymbolKind = skProcedure ) OR
-           ( SymbolKind = skMethod ) OR ( SymbolKind = skProperty ) OR ( SymbolKind = skIndexer ) OR
+           ( SymbolKind = skMethod ) OR ( SymbolKind = skProperty ) OR ( SymbolKind = skIndexer ) OR ( SymbolKind = skOperator ) OR
            ( SymbolKind = skType ) AND AllowTypes AND ( TPType( ADR( SELF ))^.Unwrap()^.TypeKind = tkProcedure ) OR
            ( SymbolKind = skVariable ) AND ( T^.Unwrap()^.TypeKind = tkProcedure );
   END IsProcedure;
@@ -652,7 +652,7 @@ CLASS IMPLEMENTATION CSymbol;
       CS.Append( N );
     ELSIF OfSymbol = NIL THEN
       GetQN( C, REF CS );
-    ELSIF gcNameNested IN C THEN
+    ELSIF ( gcNameNested IN C ) OR ( eoClassInner IN Options ) THEN
       CASE OfSymbol^.UnitKind OF
       | ukProcedureDecl, ukNestedProcedureDecl, ukSimpleClassDef, ukClassClassDef, ukMethodDecl..ukPropertyDeclW :
         OfSymbol^.GetN( C, TRUE, REF CS );
@@ -1624,7 +1624,7 @@ CLASS IMPLEMENTATION CType;
       RETURN gumSimple;
 
     ELSE
-      OutQN( G, C );
+      OutN( G, C );
       RETURN gumSimple;
     END;
   END GenHead;
@@ -2909,7 +2909,7 @@ CLASS IMPLEMENTATION CProcedureType;
       IF b THEN
         Stack.StoreData( PU );
         CASE PU^.UnitKind OF
-        | ukSimpleTypeDef :
+        | ukSimpleTypeDef, ukClassTypeDef :
           T := TPFormalType( PU );
           RETURN TRUE;
         | ukParameterList,
@@ -6851,6 +6851,13 @@ CLASS IMPLEMENTATION CModule;
       TypeC.Generate( G, C );
     END;
 
+    // this generates content of classes types and constants, which must be global to allow usage in other classes (if PUBLIC)
+    IF NOT NSD.Empty THEN
+      G^.EOL();
+      G^.LineS( L"// nested classes constants and types" );
+      NSD.Generate( G, C + TGenerateControl{gcNameNested} );
+    END;
+
     IF UnitKind <> ukDefinition THEN // nebo kdyz by se nedelalo H
       IF TEnvironmentOptions{eoInitially, eoFinally} * Options <> TEnvironmentOptions{} THEN
         G^.EOL();
@@ -8856,7 +8863,8 @@ CLASS IMPLEMENTATION CDesignator;
           G^.OutS( L'c_' );
           r.GO^.OutN( G, Cn );
           G^.OutS( L'->' );
-        | saChildProcedureCall, saPeerProcedureCall :
+        | saChildProcedureCall,
+          saPeerProcedureCall :
           r.GO^.OutN( G, gcsNameNested );
           G^.OutS( L'_' );
         END; // CASE
