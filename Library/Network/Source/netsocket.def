@@ -3,15 +3,47 @@ DEFINITION MODULE netsocket;
 IMPORT
   winsock;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
   Delegate,
   IOO,
   msghandler,
   StorageO,
+  StringsO,
   Sync,
   threadpool;
 
 #save, option( dll_export => on )
+
+(*================================================================================*)
+
+TYPE
+   TSpecialAddress = (
+      saEmpty,
+      saLoopback,
+      saLocalLink,
+      saLocalLinkRandom,
+      saPrivateRandom
+   );
+
+CLASS INETADDR;
+   PRIVATE VAR
+      storage : ARRAY [0..127] OF BYTE; // RFC2553
+   PUBLIC PROPERTY
+      V6 : BOOLEAN;
+      Port : CARDINAL;
+      Address : StringsO.CString; // numerical form in string
+
+   PUBLIC PROCEDURE GetAddressOA( OUT Address : ARRAY OF WCHAR ); // numerical form in string
+   PUBLIC PROCEDURE SetAddressOA( CONST Address : ARRAY OF WCHAR ); // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
+   
+   PUBLIC PROCEDURE SetV4( What : TSpecialAddress );
+   PUBLIC PROCEDURE SetV6( What : TSpecialAddress );
+
+   INITIALLY INETADDR();
+END INETADDR;
 
 (*================================================================================*)
 

@@ -1,8 +1,5 @@
 IMPLEMENTATION MODULE netsocket;
 
-FROM Storage IMPORT
-  ALLOCATE;
-
 IMPORT
   dns,
   MSTcpIp,
@@ -13,6 +10,167 @@ IMPORT
   windows,
   WS2TcpIp;
   
+(*================================================================================*)
+
+CONST
+   EMPTY_AI = WS2TcpIp.addrinfo( 0, 0, 0, 0, 0, NIL, NIL,NIL );
+
+(*================================================================================*)
+
+CLASS IMPLEMENTATION INETADDR;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY V6 GET : BOOLEAN;
+   BEGIN
+      RETURN PCARD16( ADR( storage ))^ = winsock.AF_INET6;
+   END V6;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY V6 SET( Value : BOOLEAN );
+   BEGIN
+      IF Value THEN
+         PCARD16( ADR( storage ))^ := winsock.AF_INET6;
+      ELSE
+         PCARD16( ADR( storage ))^ := winsock.AF_INET; // 4
+      END;
+   END V6;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Port GET : CARDINAL;
+   BEGIN
+      RETURN CARDINAL( REVERSE( PCARD16( ADR( storage )@[2] )^ ));
+   END Port;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Port SET( Value : CARDINAL );
+   BEGIN
+      PCARD16( ADR( storage )@[2] )^ := REVERSE( CARD16( Value ));
+   END Port;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Address GET : StringsO.CString; // numerical form in string
+   VAR
+      buffer : ARRAY [0..511] OF CHAR;
+      result : CARDINAL;
+      S : StringsO.CString;
+      salen : CARDINAL;
+      server : ARRAY [0..15] OF CHAR;
+   BEGIN
+      IF V6 THEN
+         salen := SIZE( WS2TcpIp.sockaddr_in6 );
+      ELSE
+         salen := SIZE( winsock.sockaddr_in );
+      END;
+
+      result := WS2TcpIp.getnameinfo(
+         winsock.Psockaddr( ADR( storage )), salen,
+         OUT buffer, SIZE( buffer ),
+         OUT server, SIZE( server ),
+         WS2TcpIp.NI_NUMERICHOST OR WS2TcpIp.NI_NUMERICSERV
+      );
+      IF result <> 0 THEN
+         ASSERT( FALSE );
+      ELSE
+         S.FromOAA( 0, buffer );
+      END;
+
+      RETURN S;
+   END Address;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Address SET( CONST Value : StringsO.CString ); // numerical form in string
+   BEGIN
+      SetAddressOA( OA( Value.Length-1, Value.rawData ));
+   END Address;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE GetAddressOA( OUT Address : ARRAY OF WCHAR ); // numerical form in string
+   BEGIN
+      SELF.Address.ToOA( OUT Address );
+   END GetAddressOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SetAddressOA( CONST Address : ARRAY OF WCHAR ); // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
+   VAR
+      ai : WS2TcpIp.Paddrinfo;
+      buffer : ARRAY [0..511] OF CHAR;
+      hints : WS2TcpIp.addrinfo := EMPTY_AI;
+      result : CARDINAL;
+   BEGIN
+      Strings.ToA( Address, 0, OUT buffer );
+
+      hints.ai_flags := WS2TcpIp.AI_NUMERICHOST;
+      result := WS2TcpIp.getaddrinfo( ADR( buffer ), NIL, ADR( hints ), OUT ai );
+      IF result <> 0 THEN
+         ASSERT( FALSE );
+      ELSIF ( ai <> NIL ) AND ( ai^.ai_addr <> NIL ) THEN
+         ASSERT( ai^.ai_addrlen <= SIZE( storage ));
+         Storage.Move( ai^.ai_addr, ADR( storage ), ai^.ai_addrlen );
+      END;
+
+      WS2TcpIp.freeaddrinfo( ai );      
+   END SetAddressOA;
+   
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SetV4( What : TSpecialAddress );
+   BEGIN
+      CASE What OF
+      | saEmpty :
+         SetAddressOA( L"0.0.0.0" );
+      | saLoopback :
+         SetAddressOA( L"127.0.0.1" );
+      | saLocalLink :
+         SetAddressOA( L"127.0.0.1" );
+      | saLocalLinkRandom :
+         SetAddressOA( L"127.0.0.1" );
+      | saPrivateRandom :
+         ASSERT( FALSE );
+      END; // CASE      
+   END SetV4;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SetV6( What : TSpecialAddress );
+   BEGIN
+      CASE What OF
+      | saEmpty :
+         SetAddressOA( L"::" );
+      | saLoopback :
+         SetAddressOA( L"::1" );
+      | saLocalLink :
+         SetAddressOA( L"fe80::1" );
+      | saLocalLinkRandom :
+         SetAddressOA( L"fe80::abcd:abcd" );
+      | saPrivateRandom :
+         SetAddressOA( L"fc00::1" );
+      END; // CASE      
+   END SetV6;
+
+(*--------------------------------------------------------------------------------*)
+
+   INITIALLY INETADDR();
+   VAR
+      i : CARDINAL;
+   BEGIN
+      FOR i := 0 TO HIGH( storage ) DO
+         storage[i] := 0;
+      END;
+      V6 := FALSE;
+   END INETADDR;
+   
+(*--------------------------------------------------------------------------------*)
+
+END INETADDR;
+
 (*================================================================================*)
 
 CONST

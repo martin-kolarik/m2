@@ -9,16 +9,79 @@ IMPORT
 	winsock;
 
 TYPE
+   in_addr6 = RECORD
+                 CASE : CARDINAL OF
+                 | 0 : Byte : ARRAY [0..15] OF CARD8;
+                 | 1 : Word : ARRAY [0..07] OF CARD16;
+                 END; // CASE
+              END; // RECORD
+
+   sockaddr_in6  = RECORD
+                      sin6_family   : CARD16; //* AF_INET6 */
+                      sin6_port     : CARD16; //* Transport level port number */
+                      sin6_flowinfo : CARD32; //* IPv6 flow information */
+                      sin6_addr     : in_addr6; //* IPv6 address */
+                      sin6_scope_id : CARD32; //* set of interfaces for a scope */
+                   END; // RECORD
+   Psockaddr_in6 = POINTER TO sockaddr_in6;
+
+TYPE
+   Paddrinfo = POINTER TO addrinfo;
+   addrinfo  = RECORD
+                  ai_flags     : INTEGER;
+                  ai_family    : INTEGER; // PF_xxx
+                  ai_socktype  : INTEGER; // SOCK_xxx
+                  ai_protocol  : INTEGER; // 0 or IPPROTO_xxx for IPv4 and IPv6
+                  ai_addrlen   : CARDINAL; // Length of ai_addr
+                  ai_canonname : PCHAR;   // Canonical name for nodename
+                  ai_addr      : winsock.Psockaddr;
+                  ai_next      : Paddrinfo;
+               END; // RECORD
+
+CONST
+   AI_PASSIVE     = 01H;
+   AI_CANONNAME   = 02H;
+   AI_NUMERICHOST = 04H;
+
+PROCEDURE getaddrinfo( 
+   CONST nodename : PCHAR;
+   CONST servname : PCHAR;
+   CONST hints    : Paddrinfo;
+     OUT res      : Paddrinfo
+    ) : INTEGER;
+
+PROCEDURE freeaddrinfo(
+         res      : Paddrinfo
+    );
+
+CONST
+   NI_NOFQDN      = 001H;  //* Only return nodename portion for local hosts */
+   NI_NUMERICHOST = 002H;  //* Return numeric form of the host's address */
+   NI_NAMEREQD    = 004H;  //* Error if the host's name not in DNS */
+   NI_NUMERICSERV = 008H;  //* Return numeric form of the service (port #) */
+   NI_DGRAM       = 010H;  //* Service is a datagram service */
+
+PROCEDURE getnameinfo(
+   CONST sa      : winsock.Psockaddr;
+         salen   : INTEGER;
+     OUT host    : ARRAY OF CHAR; // result buffer
+         hostlen : windows.DWORD;
+     OUT serv    : ARRAY OF CHAR; // result buffer    
+         servlen : windows.DWORD;
+         flags   : INTEGER
+    ) : INTEGER;
+
+TYPE
 	ip_mreq = RECORD
-							imr_multiaddr : winsock.in_addr;
-							imr_interface : winsock.in_addr;
-						END; // RECORD
+	             imr_multiaddr : winsock.in_addr;
+	             imr_interface : winsock.in_addr;
+	          END; // RECORD
 
 	ip_mreq_source  = RECORD
-											imr_multiaddr  : winsock.in_addr;
-											imr_sourceaddr : winsock.in_addr;
-											imr_interface  : winsock.in_addr;
-										END; // RECORD
+							   imr_multiaddr  : winsock.in_addr;
+								imr_sourceaddr : winsock.in_addr;
+								imr_interface  : winsock.in_addr;
+							END; // RECORD
 
 CONST
 	IP_MULTICAST_IF           = 09;
