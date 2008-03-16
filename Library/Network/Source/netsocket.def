@@ -31,13 +31,15 @@ TYPE
 CLASS INETADDR;
    PRIVATE VAR
       storage : ARRAY [0..127] OF BYTE; // RFC2553
+   PUBLIC READONLY PROPERTY
+      Data : ADDRESS;
+      Length : CARDINAL;
    PUBLIC PROPERTY
       V6 : BOOLEAN;
       Port : CARDINAL;
-      Address : StringsO.CString; // numerical form in string, including port
 
    PUBLIC PROCEDURE GetAddressOA( IncludePort : BOOLEAN; OUT Address : ARRAY OF WCHAR ); // numerical form in string
-   PUBLIC PROCEDURE SetAddressOA( CONST Address : ARRAY OF WCHAR ); // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
+   PUBLIC PROCEDURE SetAddressOA( CONST Address : ARRAY OF WCHAR ) : BOOLEAN; // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
    
    PUBLIC PROCEDURE SetV4( What : TSpecialAddress );
    PUBLIC PROCEDURE SetV6( What : TSpecialAddress );
@@ -150,6 +152,7 @@ CLASS SSocket( threadpool.APoolDelegate );
   PUBLIC PROCEDURE ReceiveOA( OUT Data : ARRAY OF BYTE; OUT Filled : CARDINAL ) : Sync.TAsyncResult;
   PUBLIC PROCEDURE SendOA( CONST Data : ARRAY OF BYTE ) : Sync.TAsyncResult; // uses multicast address
   PUBLIC PROCEDURE SendToOA( CONST Data : ARRAY OF BYTE; To : winsock.IN_ADDR; Port : CARDINAL ) : Sync.TAsyncResult; // uses given address
+  PUBLIC PROCEDURE SendTo6OA( CONST Data : ARRAY OF BYTE; CONST Address : INETADDR ) : Sync.TAsyncResult; // uses given address
 
   LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
   INTERNAL PROCEDURE Select( Events : CARDINAL ) : CARDINAL;

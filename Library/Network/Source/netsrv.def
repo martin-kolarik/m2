@@ -54,7 +54,7 @@ PROCEDURE StopListenPort(
 			);
 
 PROCEDURE StopListenSocket(
-				OUT Socket : netsocket.TPSSocket
+				REF Socket : netsocket.TPSSocket
 			 );
 
 #restore

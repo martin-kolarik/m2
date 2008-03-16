@@ -53,22 +53,17 @@ CLASS IMPLEMENTATION INETADDR;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Address GET : StringsO.CString; // numerical form in string
-   VAR
-      s : ARRAY [0..511] OF WCHAR;
-      S : StringsO.CString;
+   PUBLIC PROPERTY Data GET : ADDRESS;
    BEGIN
-      GetAddressOA( TRUE, OUT s );
-      S.FromOA( s );
-      RETURN S;
-   END Address;
+      RETURN ADR( storage );
+   END Data;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Address SET( CONST Value : StringsO.CString ); // numerical form in string
+   PUBLIC PROPERTY Length GET : CARDINAL;
    BEGIN
-      SetAddressOA( OA( Value.Length-1, Value.rawData ));
-   END Address;
+      RETURN SIZE( storage );
+   END Length;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -76,7 +71,6 @@ CLASS IMPLEMENTATION INETADDR;
    VAR
       buffer : ARRAY [0..511] OF CHAR;
       result : CARDINAL;
-      S : StringsO.CString;
       salen : CARDINAL;
       server : ARRAY [0..15] OF CHAR;
       serverU : ARRAY [0..15] OF WCHAR;
@@ -112,7 +106,7 @@ CLASS IMPLEMENTATION INETADDR;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE SetAddressOA( CONST Address : ARRAY OF WCHAR ); // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
+   PUBLIC PROCEDURE SetAddressOA( CONST Address : ARRAY OF WCHAR ) : BOOLEAN; // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
    VAR
       ai : WS2TcpIp.Paddrinfo;
       hostA : ARRAY [0..511] OF CHAR;
@@ -123,8 +117,7 @@ CLASS IMPLEMENTATION INETADDR;
       serviceA : ARRAY [0..15] OF CHAR;
    BEGIN
       IF NOT SplitAddressOA( Address, OUT host, OUT service ) THEN
-         ASSERT( FALSE );
-         RETURN;
+         RETURN FALSE;
       END;
       Strings.ToA( host, 0, OUT hostA );
       Strings.ToA( service, 0, OUT serviceA );
@@ -132,13 +125,14 @@ CLASS IMPLEMENTATION INETADDR;
       hints.ai_flags := WS2TcpIp.AI_NUMERICHOST;
       result := WS2TcpIp.getaddrinfo( ADR( hostA ), ADR( serviceA ), ADR( hints ), OUT ai );
       IF result <> 0 THEN
-         ASSERT( FALSE );
+         RETURN FALSE;
       ELSIF ( ai <> NIL ) AND ( ai^.ai_addr <> NIL ) THEN
          ASSERT( ai^.ai_addrlen <= SIZE( storage ));
          Storage.Move( ai^.ai_addr, ADR( storage ), ai^.ai_addrlen );
       END;
 
-      WS2TcpIp.freeaddrinfo( ai );      
+      WS2TcpIp.freeaddrinfo( ai );
+      RETURN TRUE;
    END SetAddressOA;
    
 (*--------------------------------------------------------------------------------*)
@@ -753,6 +747,25 @@ CLASS IMPLEMENTATION SSocket;
       RETURN Sync.arPartCompleted;
     END;
   END SendToOA;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROCEDURE SendTo6OA( CONST Data : ARRAY OF BYTE; CONST Address : INETADDR ) : Sync.TAsyncResult; // uses given address
+  VAR
+    l : CARDINAL;
+  BEGIN
+    IF _Type <> stDatagram THEN
+      RETURN Sync.arCannotStart;
+    END;
+    l := winsock.sendto( Socket, windows.PSTR( ADR( Data )), HIGH( Data )+1, 0, winsock.Psockaddr( Address.Data ), Address.Length );
+    IF l = 0 THEN
+      RETURN Sync.arCannotStart;
+    ELSIF l = HIGH( Data )+1 THEN
+      RETURN Sync.arCompleted;
+    ELSE
+      RETURN Sync.arPartCompleted;
+    END;
+  END SendTo6OA;
 
 (*--------------------------------------------------------------------------------*)
 

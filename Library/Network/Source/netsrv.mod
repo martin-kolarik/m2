@@ -411,7 +411,7 @@ BEGIN
   IPServer.StopListenPort( Port, Type );
 END StopListenPort;
 
-PROCEDURE StopListenSocket( OUT Socket : netsocket.TPSSocket );
+PROCEDURE StopListenSocket( REF Socket : netsocket.TPSSocket );
 BEGIN
   IPServer.StopListenSocket( Socket );
   Socket := NIL;
