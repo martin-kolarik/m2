@@ -41,6 +41,9 @@ CLASS INETADDR;
    
    PUBLIC PROCEDURE SetV4( What : TSpecialAddress );
    PUBLIC PROCEDURE SetV6( What : TSpecialAddress );
+   
+   PUBLIC PROCEDURE FromOA( CONST storage : ARRAY OF BYTE );
+   PUBLIC PROCEDURE ToOA( OUT storage : ARRAY OF BYTE );
 
    INITIALLY INETADDR();
 END INETADDR;

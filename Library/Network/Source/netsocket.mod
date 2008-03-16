@@ -157,6 +157,28 @@ CLASS IMPLEMENTATION INETADDR;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE FromOA( CONST storage : ARRAY OF BYTE );
+   VAR
+      i : CARDINAL;
+   BEGIN
+      FOR i := 0 TO MIN2( HIGH( SELF.storage ), HIGH( storage )) DO
+         SELF.storage[i] := storage[i];
+      END;
+   END FromOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ToOA( OUT storage : ARRAY OF BYTE );
+   VAR
+      i : CARDINAL;
+   BEGIN
+      FOR i := 0 TO MIN2( HIGH( SELF.storage ), HIGH( storage )) DO
+         storage[i] := SELF.storage[i];
+      END;
+   END ToOA;
+
+(*--------------------------------------------------------------------------------*)
+
    INITIALLY INETADDR();
    VAR
       i : CARDINAL;
