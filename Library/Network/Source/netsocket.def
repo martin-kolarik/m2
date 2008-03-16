@@ -34,9 +34,9 @@ CLASS INETADDR;
    PUBLIC PROPERTY
       V6 : BOOLEAN;
       Port : CARDINAL;
-      Address : StringsO.CString; // numerical form in string
+      Address : StringsO.CString; // numerical form in string, including port
 
-   PUBLIC PROCEDURE GetAddressOA( OUT Address : ARRAY OF WCHAR ); // numerical form in string
+   PUBLIC PROCEDURE GetAddressOA( IncludePort : BOOLEAN; OUT Address : ARRAY OF WCHAR ); // numerical form in string
    PUBLIC PROCEDURE SetAddressOA( CONST Address : ARRAY OF WCHAR ); // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
    
    PUBLIC PROCEDURE SetV4( What : TSpecialAddress );
@@ -47,6 +47,8 @@ CLASS INETADDR;
 
    INITIALLY INETADDR();
 END INETADDR;
+
+PROCEDURE SplitAddressOA( CONST HostWithService : ARRAY OF WCHAR; OUT Host, Service : ARRAY OF WCHAR ) : BOOLEAN;
 
 (*================================================================================*)
 

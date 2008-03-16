@@ -55,13 +55,34 @@ CLASS IMPLEMENTATION INETADDR;
 
    PUBLIC PROPERTY Address GET : StringsO.CString; // numerical form in string
    VAR
+      s : ARRAY [0..511] OF WCHAR;
+      S : StringsO.CString;
+   BEGIN
+      GetAddressOA( TRUE, OUT s );
+      S.FromOA( s );
+      RETURN S;
+   END Address;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Address SET( CONST Value : StringsO.CString ); // numerical form in string
+   BEGIN
+      SetAddressOA( OA( Value.Length-1, Value.rawData ));
+   END Address;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE GetAddressOA( IncludePort : BOOLEAN; OUT Address : ARRAY OF WCHAR ); // numerical form in string
+   VAR
       buffer : ARRAY [0..511] OF CHAR;
       result : CARDINAL;
       S : StringsO.CString;
       salen : CARDINAL;
       server : ARRAY [0..15] OF CHAR;
+      serverU : ARRAY [0..15] OF WCHAR;
+      v6 : BOOLEAN := V6;
    BEGIN
-      IF V6 THEN
+      IF v6 THEN
          salen := SIZE( WS2TcpIp.sockaddr_in6 );
       ELSE
          salen := SIZE( winsock.sockaddr_in );
@@ -76,24 +97,17 @@ CLASS IMPLEMENTATION INETADDR;
       IF result <> 0 THEN
          ASSERT( FALSE );
       ELSE
-         S.FromOAA( 0, buffer );
+         Strings.ToW( buffer, 0, OUT Address );
+         IF v6 THEN
+            Strings.PrependW( REF Address, L"[" );
+            Strings.AppendW( REF Address, L"]" );
+         END;
+         IF IncludePort AND ( server[0] <> 0C ) AND ( server[0] <> C"0" ) THEN
+            Strings.AppendW( REF Address, L":" );
+            Strings.ToW( server, 0, OUT serverU );
+            Strings.AppendW( REF Address, serverU );
+         END; 
       END;
-
-      RETURN S;
-   END Address;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Address SET( CONST Value : StringsO.CString ); // numerical form in string
-   BEGIN
-      SetAddressOA( OA( Value.Length-1, Value.rawData ));
-   END Address;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE GetAddressOA( OUT Address : ARRAY OF WCHAR ); // numerical form in string
-   BEGIN
-      SELF.Address.ToOA( OUT Address );
    END GetAddressOA;
 
 (*--------------------------------------------------------------------------------*)
@@ -101,14 +115,22 @@ CLASS IMPLEMENTATION INETADDR;
    PUBLIC PROCEDURE SetAddressOA( CONST Address : ARRAY OF WCHAR ); // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
    VAR
       ai : WS2TcpIp.Paddrinfo;
-      buffer : ARRAY [0..511] OF CHAR;
+      hostA : ARRAY [0..511] OF CHAR;
       hints : WS2TcpIp.addrinfo := EMPTY_AI;
+      host : ARRAY [0..511] OF WCHAR;
       result : CARDINAL;
+      service : ARRAY [0..15] OF WCHAR;
+      serviceA : ARRAY [0..15] OF CHAR;
    BEGIN
-      Strings.ToA( Address, 0, OUT buffer );
+      IF NOT SplitAddressOA( Address, OUT host, OUT service ) THEN
+         ASSERT( FALSE );
+         RETURN;
+      END;
+      Strings.ToA( host, 0, OUT hostA );
+      Strings.ToA( service, 0, OUT serviceA );
 
       hints.ai_flags := WS2TcpIp.AI_NUMERICHOST;
-      result := WS2TcpIp.getaddrinfo( ADR( buffer ), NIL, ADR( hints ), OUT ai );
+      result := WS2TcpIp.getaddrinfo( ADR( hostA ), ADR( serviceA ), ADR( hints ), OUT ai );
       IF result <> 0 THEN
          ASSERT( FALSE );
       ELSIF ( ai <> NIL ) AND ( ai^.ai_addr <> NIL ) THEN
@@ -192,6 +214,64 @@ CLASS IMPLEMENTATION INETADDR;
 (*--------------------------------------------------------------------------------*)
 
 END INETADDR;
+
+(*================================================================================*)
+
+PROCEDURE SplitAddressOA( CONST HostWithService : ARRAY OF WCHAR; OUT Host, Service : ARRAY OF WCHAR ) : BOOLEAN;
+LABEL
+   CheckPort;
+VAR
+   i : CARDINAL; 
+BEGIN
+   IF NOT INSIDE( 0, HostWithService ) THEN
+      Host[0] := 0W;
+      Service[0] := 0W;
+      RETURN TRUE;
+   END;
+
+   // check explicitely numerical form
+   IF HostWithService[0] = L"[" THEN // ok, search next ]
+      i := Strings.LastIndexOfCharW( HostWithService, L"]", 0 );
+      IF i = -1 THEN
+         RETURN FALSE;
+      END;
+      Strings.SubstringW( HostWithService, 0, i+1, OUT Host );
+      i := Strings.IndexOfCharW( HostWithService, L":", i );
+      GOTO CheckPort;
+   END;
+
+   // check FQDN and implicitely noted IPV4 address
+   // try to find ., if they are there, we can look for : (otherwise whole address is IPV6 and thus port cannot be delimited with :)
+   i := Strings.IndexOfCharW( HostWithService, L".", 0 );
+   IF i = -1 THEN
+      Host := HostWithService;
+      Strings.TrimW( REF Host );
+      Service[0] := 0W;
+      RETURN TRUE;
+   END;
+   
+   // we have ., try to find port
+   i := Strings.LastIndexOfCharW( HostWithService, L":", 0 );
+   IF i = -1 THEN // no port
+      Host := HostWithService;
+      Strings.TrimW( REF Host );
+      Service[0] := 0W;
+      RETURN TRUE;
+   END;
+   
+   // we have port, slice Host and continue with port
+   Strings.SubstringW( HostWithService, 0, i, OUT Host );
+   Strings.TrimW( REF Host );
+
+CheckPort: // i is prepared here
+   IF i = -1 THEN
+      Service[0] := 0W;
+   ELSE
+      Strings.SubstringW( HostWithService, i+1, -1, OUT Service );
+      Strings.TrimW( REF Service );
+   END;
+   RETURN TRUE;
+END SplitAddressOA;
 
 (*================================================================================*)
 

@@ -52,20 +52,20 @@ CLASS IMPLEMENTATION CTest;
       
       Expect := L"0.0.0.0";
       ia.SetV4( netsocket.saEmpty );
-      ia.GetAddressOA( OUT String );
+      ia.GetAddressOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
 
       Expect := L"127.0.0.1";
       ia.SetV4( netsocket.saLoopback );
-      ia.GetAddressOA( OUT String );
+      ia.GetAddressOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
 
       ia.SetV4( netsocket.saLocalLink );
-      ia.GetAddressOA( OUT String );
+      ia.GetAddressOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
 
       ia.SetV4( netsocket.saLocalLinkRandom );
-      ia.GetAddressOA( OUT String );
+      ia.GetAddressOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
 
       IF Failure1 THEN
@@ -78,27 +78,27 @@ CLASS IMPLEMENTATION CTest;
       
       Expect := L"::";
       ia.SetV6( netsocket.saEmpty );
-      ia.GetAddressOA( OUT String );
+      ia.GetAddressOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
 
       Expect := L"::1";
       ia.SetV6( netsocket.saLoopback );
-      ia.GetAddressOA( OUT String );
+      ia.GetAddressOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
 
       Expect := L"fe80::1";
       ia.SetV6( netsocket.saLocalLink );
-      ia.GetAddressOA( OUT String );
+      ia.GetAddressOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
 
       Expect := L"fe80::abcd:abcd";
       ia.SetV6( netsocket.saLocalLinkRandom );
-      ia.GetAddressOA( OUT String );
+      ia.GetAddressOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
 
       Expect := L"fc00::1";
       ia.SetV6( netsocket.saPrivateRandom );
-      ia.GetAddressOA( OUT String );
+      ia.GetAddressOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
 
       IF Failure1 THEN
@@ -109,15 +109,21 @@ CLASS IMPLEMENTATION CTest;
 
       Host^.StartPhase( L"Some other addresses" );
       
-      Expect := L"10.0.1.132";
+      Expect := L"10.0.1.132:1111";
       ia.SetAddressOA( Expect );
-      ia.GetAddressOA( OUT String );
+      ia.GetAddressOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
+      ia.GetAddressOA( FALSE, OUT String );
+      Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
+      Host^.Log^.LogSC( log.dlcInfo, L"", L"  port: ", ia.Port );
 
-      Expect := L"2001:1:1::a0:80";
+      Expect := L"[2001:1:1::a0:80]:1023";
       ia.SetAddressOA( Expect );
-      ia.GetAddressOA( OUT String );
+      ia.GetAddressOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
+      ia.GetAddressOA( FALSE, OUT String );
+      Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
+      Host^.Log^.LogSC( log.dlcInfo, L"", L"  port: ", ia.Port );
 
       IF Failure1 THEN
          Host^.StopPhaseWithResult( test.trFailure );
