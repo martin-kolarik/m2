@@ -35,9 +35,58 @@ END APoolDelegate;
 
 //================================================================================
 
+CLASS IMPLEMENTATION CSinkDelegate;
+
+//---------------------------------------------------------------------------
+
+   LOCAL FINAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+   BEGIN
+      IF TimeoutSink <> NIL THEN
+         TimeoutSink^.OnTimeout( Result, PoolHandle, UserId );
+      END;
+   END OnTimeout;
+
+//---------------------------------------------------------------------------
+
+   LOCAL FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
+   BEGIN
+      IF MessageSink <> NIL THEN
+         MessageSink^.OnMessage( Result, PoolHandle, UserId, MSG );
+      END;
+   END OnMessage;
+
+//---------------------------------------------------------------------------
+
+   LOCAL FINAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+   BEGIN
+      IF HandleSink <> NIL THEN
+         HandleSink^.OnHandle( Result, PoolHandle, UserId );
+      END;
+   END OnHandle;
+
+//---------------------------------------------------------------------------
+
+   LOCAL FINAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+   BEGIN
+      IF WorkerSink <> NIL THEN
+         WorkerSink^.OnWorker( Result, PoolHandle, UserId );
+      END;
+   END OnWorker;
+
+//---------------------------------------------------------------------------
+
+BEGIN
+   TimeoutSink := NIL;
+   MessageSink := NIL;
+   HandleSink := NIL;
+   WorkerSink := NIL;
+END CSinkDelegate;
+
+//================================================================================
+
 CLASS IMPLEMENTATION CMessageHandlerDelegate;
 
-   LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
+   LOCAL FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
    BEGIN
       IF Handler = NIL THEN
         RETURN;
