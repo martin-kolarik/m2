@@ -274,6 +274,25 @@ END DaliAddress;
 
 (*===============================================================================*)
 
+CLASS DaliRequest;
+   LOCAL VAR
+      Pending : BOOLEAN;
+      Address : DaliAddress;
+      Command : TDaliCommand;
+      Data    : CARD8;
+END DaliRequest;
+
+(*-------------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION DaliRequest;
+BEGIN
+   Pending := FALSE;
+   Command := cmdOff;
+   Data := 0;
+END DaliRequest;
+
+(*===============================================================================*)
+
 CLASS IMPLEMENTATION CDali;
 
 (*-------------------------------------------------------------------------------*)
@@ -300,8 +319,14 @@ CLASS IMPLEMENTATION CDali;
 (*-------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Command( CONST daliAddress : DaliAddress; _Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
+   VAR
+      Request : POINTER TO DaliRequest := NEW( DaliRequest );
    BEGIN
-      RETURN Sync.arCannotStart;
+      Request^.Address := daliAddress;
+      Request^.Command := _Command;
+      Request^.Data := Data;
+      Queue.Enqueue( Request, ClientId );
+      RETURN Communicate();
    END Command;
    
 (*-------------------------------------------------------------------------------*)
@@ -309,20 +334,66 @@ CLASS IMPLEMENTATION CDali;
    // ICommunicationSink -- in thread
    LOCAL VIRTUAL PROCEDURE OnTimeout();
    BEGIN
+      OnDaliData( Sync.arTimeout, OA( -1, NIL ));
    END OnTimeout;
 
 (*-------------------------------------------------------------------------------*)
 
    // ICommunicationSink -- in thread
    LOCAL VIRTUAL PROCEDURE OnDaliData( Result : Sync.TAsyncResult; Data : ARRAY OF BYTE );
+   VAR
+      ClientId : PTR;
+      Response : CARD8 := 0;
+      Request : POINTER TO DaliRequest;
    BEGIN
+      IF Queue.Dequeue( OUT Request, OUT ClientId ) THEN
+         IF EventSink <> NIL THEN
+            IF Result = Sync.arCompleted THEN
+               Response := Data[0];
+            END;            
+            EventSink^.OnCompletion( Result, ClientId, Request^.Address, Response );
+         END;
+         DISPOSE( Request );
+      END; // IF Dequeue
+         
+      Communicate();
    END OnDaliData;
+
+(*-------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE Communicate() : Sync.TAsyncResult;
+   VAR
+      DaliData : ARRAY [0..1] OF BYTE;
+      Data : PTR;
+      Result : Sync.TAsyncResult;
+      Request : POINTER TO DaliRequest;
+   BEGIN
+      IF NOT Queue.GetFirst( OUT Request, OUT Data ) THEN
+         RETURN Sync.arCompleted;
+      ELSIF Request^.Pending THEN
+         RETURN Sync.arAlreadyPending;
+      ELSE
+         Request^.Pending := TRUE;
+      END;
+      
+      // prepare Dali packet
+      DaliData[0] := Request^.Address.TransportAddress OR 01H; // now we always send command
+      DaliData[1] := BYTE( Request^.Command );
+      
+      Result := Communicator^.SendDaliData( DaliData );
+      IF Result IN Sync.arsStarts THEN
+         RETURN Sync.arPending;
+      ELSE
+         RETURN Result;
+      END;
+   END Communicate;
 
 (*-------------------------------------------------------------------------------*)
 
 BEGIN
    Communicator := NEW( CUDPCommunicator );
    Communicator^.EventSink := TPICommunicatorSink( ADR( SELF ));
+   EventSink := NIL;
 FINALLY
    IF Communicator <> NIL THEN
       Communicator^.Release();

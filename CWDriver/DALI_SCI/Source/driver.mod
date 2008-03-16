@@ -258,7 +258,7 @@ CLASS IMPLEMENTATION CDriver;
 
 //================================================================================
 
-   INTERNAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; ClientId : PTR; CONST daliAddress : DaliSci.DaliAddress; Data : CARD8 );
+   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; ClientId : PTR; CONST daliAddress : DaliSci.DaliAddress; Data : CARD8 );
    BEGIN
       IF daliAddress.Type = DaliSci.adrAll THEN
       END;

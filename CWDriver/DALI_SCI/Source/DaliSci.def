@@ -7,6 +7,7 @@ FROM Storage IMPORT
    
 IMPORT
    INIFile,
+   lists,
    log,
    StringsO;
 
@@ -48,7 +49,7 @@ END DaliAddress;
 (*-------------------------------------------------------------------------------*)
 
 INTERFACE IDaliEventSink; // in-thread
-   INTERNAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; ClientId : PTR; CONST daliAddress : DaliAddress; Data : CARD8 );
+   LOCAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; ClientId : PTR; CONST daliAddress : DaliAddress; Data : CARD8 );
 END IDaliEventSink;
 
 (*-------------------------------------------------------------------------------*)
@@ -56,6 +57,9 @@ END IDaliEventSink;
 CLASS CDali IMPLEMENTS ICommunicatorSink;
    PRIVATE VAR
       Communicator : TPCommunicator;
+      Queue : lists.CPtrList;
+   PUBLIC VAR
+      EventSink : POINTER TO IDaliEventSink;
 
    // client commands
    PUBLIC PROCEDURE LoadConfiguration( CONST INI : INIFile.CINIFile; REF logger : log.CLogger ) : BOOLEAN;
@@ -69,6 +73,8 @@ CLASS CDali IMPLEMENTS ICommunicatorSink;
    // ICommunicationSink -- in thread
    LOCAL VIRTUAL PROCEDURE OnTimeout();
    LOCAL VIRTUAL PROCEDURE OnDaliData( Result : Sync.TAsyncResult; Data : ARRAY OF BYTE );
+
+   PRIVATE PROCEDURE Communicate() : Sync.TAsyncResult;
 END CDali;
 
 (*===============================================================================*)

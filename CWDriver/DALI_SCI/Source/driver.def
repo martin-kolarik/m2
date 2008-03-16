@@ -58,7 +58,7 @@ CLASS CDriver IMPLEMENTS DaliSci.IDaliEventSink;
    PUBLIC PROCEDURE QueryProc( UFlag : BOOLEAN; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
 
    // IEventSink
-   INTERNAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; ClientId : PTR; CONST daliAddress : DaliSci.DaliAddress; Data : CARD8 );
+   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; ClientId : PTR; CONST daliAddress : DaliSci.DaliAddress; Data : CARD8 );
 END CDriver;
 
 //================================================================================
