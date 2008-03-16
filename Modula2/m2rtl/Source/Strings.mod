@@ -1160,7 +1160,7 @@ VAR
 BEGIN
 	V := 0;
 	IF StringLen = 0 THEN
-		RETURN tcrSuccess;
+		RETURN tcrEmptyString;
 	END;
 	CASE String^ OF
 	| L'+' : i := 1; 
