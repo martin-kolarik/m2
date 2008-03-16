@@ -60,7 +60,7 @@ CLASS IMPLEMENTATION CUDPCommunicator;
       IF Socket <> NIL THEN
          RETURN Sync.arAlreadyPending;
       END;
-      Result := netsrv.StartListen( netsocket.stStream, ListenPort, NIL, ADR( SELF ), 0, ADR( Socket ));
+      Result := netsrv.StartListen( netsocket.stDatagram, ListenPort, NIL, ADR( SELF ), 0, ADR( Socket ));
       IF Result = 0 THEN
          RETURN Sync.arCompleted;
       ELSE
@@ -105,7 +105,7 @@ CLASS IMPLEMENTATION CUDPCommunicator;
       IF Timeout <> NIL THEN
          netpool.Pool()^.Abort( REF Timeout );
       END;
-      IF Timeout <> NIL THEN
+      IF Timeout = NIL THEN
          netpool.Pool()^.WaitTimeout( TimerSink, 0, 200, TRUE, OUT Timeout );
       END;
       
@@ -131,7 +131,7 @@ CLASS IMPLEMENTATION CUDPCommunicator;
       IF l < 3 THEN // some damaged data
          RETURN;
       ELSIF EventSink <> NIL THEN
-         IF buffer[0] <> 052H THEN
+         IF ( buffer[0] <> 051H ) AND ( buffer[0] <> 052H ) THEN
             GOTO Error;   
          END;
       
@@ -297,8 +297,22 @@ CLASS IMPLEMENTATION CDali;
 
 (*-------------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE Dispose();
+   VAR
+      data : PTR;
+      Request : POINTER TO DaliRequest;
+   BEGIN
+      WHILE Queue.Dequeue( OUT Request, OUT data ) DO
+         DISPOSE( Request );
+      END; // WHILE
+   END Dispose;
+
+(*-------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE LoadConfiguration( CONST INI : INIFile.CINIFile; REF logger : log.CLogger ) : BOOLEAN;
    BEGIN
+      Communicator^.SetSciDeviceAddress( "10.0.0.10:4001", 4001 );
+   
       RETURN TRUE;
    END LoadConfiguration;
       
@@ -399,6 +413,7 @@ FINALLY
       Communicator^.Release();
       Communicator := NIL;
    END;
+   Dispose();
 END CDali;
 
 (*===============================================================================*)

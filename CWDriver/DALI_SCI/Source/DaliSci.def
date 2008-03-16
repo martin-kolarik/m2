@@ -31,7 +31,26 @@ TYPE
    );
 
    TDaliCommand = (
-      cmdOff
+      cmdDirect = 1024,
+
+      cmdOff = 0,
+      cmdDimUp, cmdDimDown, cmdStepUp, cmdStepDown,
+      cmdMax, cmdMin,
+      cmdStepDownOff, cmdStepUpOn,
+
+      cmdScene1 = 10H,
+
+      cmdReset = 20H, cmdStoreCurrentToDTR,
+      cmdDTRToMax = 2AH, cmdDTRToMin, cmdDTRToFail, cmdDTRToPowerOn, cmdDTRToFadeTime, cmdDTRToFadeRate,
+      
+      cmdSceneFromDTR1 = 040H,
+      cmdSceneRemove1 = 050H,
+      cmdGroupAdd1 = 060H,
+      cmdGroupRemove1 = 070H,
+      
+      cmdStatus = 090H, cmdWorking = 091H, cmdVersion = 097H, cmdDeviceType = 099H,
+      
+      cmdCurrentLevel = 0A0H
    );
 
 (*-------------------------------------------------------------------------------*)
@@ -60,6 +79,8 @@ CLASS CDali IMPLEMENTS ICommunicatorSink;
       Queue : lists.CPtrList;
    PUBLIC VAR
       EventSink : POINTER TO IDaliEventSink;
+
+   PUBLIC PROCEDURE Dispose();
 
    // client commands
    PUBLIC PROCEDURE LoadConfiguration( CONST INI : INIFile.CINIFile; REF logger : log.CLogger ) : BOOLEAN;

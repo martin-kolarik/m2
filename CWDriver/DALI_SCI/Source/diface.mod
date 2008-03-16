@@ -346,7 +346,7 @@ END QueryProc3;
 
 PROCEDURE QueryProc3W( PData : ADDRESS; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
 BEGIN
-   driver.TPDriver( PData )^.QueryProc( FALSE, InValue1, InValue2, OutValue );
+   driver.TPDriver( PData )^.QueryProc( TRUE, InValue1, InValue2, OutValue );
 END QueryProc3W;
 
 //--------------------------------------------------------------------------------

@@ -31,6 +31,7 @@ CLASS CDriver IMPLEMENTS DaliSci.IDaliEventSink;
       Result        : lec.CResult;
       cllvData      : ADDRESS;
       cllvLength    : CARDINAL;
+      Queue         : lists.CPtrList;
 
    // binding to procedural interface
    PUBLIC PROCEDURE Init( CONST SymbolicName : ARRAY OF WCHAR; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW ) : BOOLEAN;

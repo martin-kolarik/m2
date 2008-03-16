@@ -91,8 +91,21 @@ CLASS IMPLEMENTATION CDriver;
    BEGIN
       IF EnumerateState = LONGWORD( 0 ) THEN // start enumeration
          Index := 0;
-      ELSE // continue enumeration
       END;
+      Count := 1;
+      HaveDescription := TRUE;
+      
+      CASE Index OF
+      | 0 :
+         IF StatusChannel = MAX( CARDINAL ) THEN
+            RETURN FALSE;
+         END;
+         Type := CARDINAL( drv_def.vtLongCard );
+         Direction := CARDINAL( drv_def.dirInput );
+         DriverIndex := StatusChannel;
+      ELSE
+         RETURN FALSE;
+      END; // CASE
 
       INC( Index );
       EnumerateState := Index;
@@ -103,7 +116,7 @@ CLASS IMPLEMENTATION CDriver;
 
    PUBLIC PROCEDURE GetChannelDescription( DriverIndex : CARDINAL; VAR Description : ARRAY OF WCHAR; VAR Id : ARRAY OF WCHAR ) : BOOLEAN;
    CONST
-      _StatusId            = L'drvStatus';
+      _StatusId = L'drvStatus';
    BEGIN
       IF DriverIndex = StatusChannel THEN
          ASSIGN( Description, OAsz( R()^[ Texts._StatusComment ] ));
@@ -131,7 +144,12 @@ CLASS IMPLEMENTATION CDriver;
 //--------------------------------------------------------------------------------
 
    PUBLIC PROCEDURE Dispose();
+   VAR
+      Data, Request : PTR;
    BEGIN
+      WHILE Queue.Dequeue( OUT Request, OUT Data ) DO
+         // TODO
+      END;
    END Dispose;
 
 //--------------------------------------------------------------------------------
@@ -227,14 +245,131 @@ CLASS IMPLEMENTATION CDriver;
    LABEL
       Error;
    VAR
+      address : DaliSci.DaliAddress;
+      AsyncResult : Sync.TAsyncResult;
+      c : CARDINAL;
+      command : DaliSci.TDaliCommand;
       CS : StringsO.CString;
-      N : ARRAY [0..63] OF WCHAR;
+      data : PTR;
+      dimFlag : BOOLEAN;
+      i : CARDINAL;
+      Request : PTR;
+      S1, S2, S3 : ARRAY [0..63] OF WCHAR;
    BEGIN
       drv_def.DrvValueToCStringW( InValue1, UFlag, OUT CS );
-      CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 0, TRUE, OUT N );
+      i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 0, TRUE, OUT S1 ); Strings.TrimW( REF S1 );
+      i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S2 ); Strings.TrimW( REF S2 );
+      i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S3 ); Strings.TrimW( REF S3 );
+      
+      IF EQUALS( S1, L'event' ) THEN
 
-      IF EQUALS( N, L'send' ) THEN
-         CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 1, TRUE, OUT N );
+         IF EQUALS( S2, L'count' ) THEN
+            drv_def.AssignValueCardinal( REF OutValue, UFlag, TRUE, Queue.Count );
+            
+         ELSIF EQUALS( S2, L'get' ) THEN
+            IF Queue.Dequeue( OUT Request, OUT data ) THEN
+               DISPOSE( Request );
+            ELSE
+               CS.Clear();
+            END;
+
+         ELSE
+            CS.FromOA( L'error: unknown driver procedure' );
+         END;
+
+      ELSIF EQUALS( S1, L'get' ) THEN
+
+         IF NOT Strings.ToCARD32W( S2, 10, OUT c ) OR ( c > 63 ) THEN
+            CS.FromOA( L'error: bad device address' );
+            GOTO Error;
+         END;
+         address.Type := DaliSci.adrSingle;
+         address.Address := c;
+
+         IF EQUALS( S3, L'status' ) THEN
+            command := DaliSci.cmdStatus;
+         ELSIF EQUALS( S3, L'operating' ) THEN
+            command := DaliSci.cmdWorking;
+         ELSIF EQUALS( S3, L'type' ) THEN
+            command := DaliSci.cmdDeviceType;
+         ELSIF EQUALS( S3, L'version' ) THEN
+            command := DaliSci.cmdVersion;
+         ELSIF EQUALS( S3, L'level' ) THEN
+            command := DaliSci.cmdCurrentLevel;
+         ELSE
+            CS.FromOA( L'error: bad get command parameter' );
+            GOTO Error;
+         END;
+
+         AsyncResult := Dali.Command( address, command, 0, 1 );
+         IF AsyncResult <> Sync.arPending THEN
+            CS.FromOA( L'error: unable to send command' );
+            GOTO Error;
+         END;
+
+      ELSIF EQUALS( S1, L'set' ) OR EQUALS( S1, L'dim' ) THEN
+         dimFlag := S1[0] = L"d";
+
+         IF EQUALS( S2, L'all' ) THEN
+            address.Type := DaliSci.adrAll;
+         ELSIF S2[0] = L"g" THEN
+            Strings.RemoveW( REF S2, 0, 1 );
+            IF NOT Strings.ToCARD32W( S2, 10, OUT c ) OR ( c > 15 ) THEN
+               CS.FromOA( L'error: bad group address' );
+               GOTO Error;
+            END;
+            address.Type := DaliSci.adrGroup;
+            address.Address := c;
+         ELSE
+            IF NOT Strings.ToCARD32W( S2, 10, OUT c ) OR ( c > 63 ) THEN
+               CS.FromOA( L'error: bad device address' );
+               GOTO Error;
+            END;
+            address.Type := DaliSci.adrSingle;
+            address.Address := c;
+         END;
+
+         IF dimFlag THEN
+            IF EQUALS( S3, L"up" ) THEN
+               command := DaliSci.cmdDimUp;
+            ELSIF EQUALS( S3, L"down" ) THEN
+               command := DaliSci.cmdDimDown;
+            ELSIF EQUALS( S3, L"step_up" ) THEN
+               command := DaliSci.cmdStepUp;
+            ELSIF EQUALS( S3, L"step_down" ) THEN
+               command := DaliSci.cmdStepDown;
+            ELSIF EQUALS( S3, L"step_up_on" ) THEN
+               command := DaliSci.cmdStepUpOn;
+            ELSIF EQUALS( S3, L"step_down_off" ) THEN
+               command := DaliSci.cmdStepDownOff;
+            ELSE
+               CS.FromOA( L'error: bad dim command parameter' );
+               GOTO Error;
+            END;
+         ELSE         
+            IF EQUALS( S3, L"on" ) THEN
+               command := DaliSci.cmdStepUpOn;
+            ELSIF EQUALS( S3, L"off" ) THEN
+               command := DaliSci.cmdOff;
+            ELSIF EQUALS( S3, L"min" ) THEN
+               command := DaliSci.cmdMin;
+            ELSIF EQUALS( S3, L"max" ) THEN
+               command := DaliSci.cmdMax;
+            ELSE
+               IF Strings.ToCARD32W( S3, 10, OUT c ) AND ( c < 256 ) THEN
+                  command := DaliSci.cmdDirect;
+               ELSE
+                  CS.FromOA( L'error: bad set command parameter' );
+                  GOTO Error;
+               END;
+            END;
+         END;
+      
+         AsyncResult := Dali.Command( address, command, 0, 0 );
+         IF AsyncResult <> Sync.arPending THEN
+            CS.FromOA( L'error: unable to send command' );
+            GOTO Error;
+         END;
 
          IF Result.Counted THEN
             CS.Clear();
@@ -260,7 +395,11 @@ CLASS IMPLEMENTATION CDriver;
 
    LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; ClientId : PTR; CONST daliAddress : DaliSci.DaliAddress; Data : CARD8 );
    BEGIN
-      IF daliAddress.Type = DaliSci.adrAll THEN
+      IF Result <> Sync.arCompleted THEN
+      
+         IF CallbackProc <> NIL THEN
+            CallbackProc( CallbackId, drv_def.dcfException, NIL );
+         END;
       END;
    END OnCompletion;
 
@@ -275,6 +414,8 @@ BEGIN
 
    cllvData := ADR( cllv.data );
    cllvLength := cllv.length;
+   
+   Dali.EventSink := ADR( SELF );
 END CDriver;
 
 //================================================================================
