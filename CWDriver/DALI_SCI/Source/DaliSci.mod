@@ -1,20 +1,335 @@
 IMPLEMENTATION MODULE DaliSci;
 
-CLASS IMPLEMENTATION CDaliSci;
+IMPORT
+   Log,
+   netsocket,
+   netsrv,
+   netpool,
+   Sync,
+   threadpool;
+
+(*===============================================================================*)
+
+CLASS CUDPCommunicator( netsrv.AListener ) IMPLEMENTS threadpool.ITimeoutSink;
+   PRIVATE VAR
+      Address : netsocket.INETADDR;
+      ListenPort : CARDINAL;
+      Socket : netsocket.TPSSocket := NIL;
+      TimerSink : threadpool.TPSinkDelegate;
+      Timeout : Sync.WAITABLE;
+   LOCAL VAR
+      EventSink : TPICommunicatorSink;
+      
+   TYPE
+      TDaliSciPacket = ARRAY [0..7] OF BYTE; // 4 bytes SCI, 3 bytes DALI, 1 SCI XOR byte
+
+   PUBLIC PROCEDURE SetSciDeviceAddress( DeviceAddress : ARRAY OF WCHAR; LocalListenPort : CARDINAL );
+   PUBLIC PROCEDURE Run() : Sync.TAsyncResult;
+   PUBLIC PROCEDURE Stop();
+
+   PUBLIC PROCEDURE SendDaliData( Data : ARRAY OF BYTE ) : Sync.TAsyncResult;
+
+   // AListener
+   LOCAL VIRTUAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket ); // stDatagram
+   
+   // ITimeoutSink
+   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+END CUDPCommunicator;
+
+TYPE
+   TPCommunicator = POINTER TO CUDPCommunicator;
+
+(*-------------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CUDPCommunicator;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SetSciDeviceAddress( DeviceAddress : ARRAY OF WCHAR; LocalListenPort : CARDINAL );
+   BEGIN
+      Address.SetAddressOA( DeviceAddress );
+      ListenPort := LocalListenPort;
+   END SetSciDeviceAddress;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Run() : Sync.TAsyncResult;
+   VAR
+      Result : CARDINAL;
+   BEGIN
+      IF Socket <> NIL THEN
+         RETURN Sync.arAlreadyPending;
+      END;
+      Result := netsrv.StartListen( netsocket.stStream, ListenPort, NIL, ADR( SELF ), 0, ADR( Socket ));
+      IF Result = 0 THEN
+         RETURN Sync.arCompleted;
+      ELSE
+         Log.logger()^.LogSE( Log.dlcWarning, LIBRARY, L"Unable StartListen: ", Result );
+         RETURN Sync.arCannotStart;
+      END;
+   END Run;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Stop();
+   BEGIN
+      IF Socket = NIL THEN
+         RETURN;
+      END;
+      netsrv.StopListenSocket( REF Socket );
+   END Stop;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SendDaliData( Data : ARRAY OF BYTE ) : Sync.TAsyncResult;
+   VAR
+      i : CARDINAL;
+      SendData : TDaliSciPacket := TDaliSciPacket( 0A3H, 0, 0, 0, 0, 0, 0, 0 );
+      xor : BYTE;
+   BEGIN
+      IF Socket = NIL THEN
+         RETURN Sync.arCannotStart;
+      END;
+
+      // copy data and compute xor
+      xor := SendData[0];
+      FOR i := 1 TO 3 DO
+         xor := xor XOR SendData[i];
+      END;
+      FOR i := 0 TO HIGH( Data ) DO
+         SendData[4+i] := Data[i];
+         xor := xor XOR Data[i];
+      END;
+      SendData[4+HIGH( Data )+1] := xor;
+      
+      IF Timeout <> NIL THEN
+         netpool.Pool()^.Abort( REF Timeout );
+      END;
+      IF Timeout <> NIL THEN
+         netpool.Pool()^.WaitTimeout( TimerSink, 0, 200, TRUE, OUT Timeout );
+      END;
+      
+      RETURN Socket^.SendTo6OA( SendData, Address );
+   END SendDaliData;
+
+(*-------------------------------------------------------------------------------*)
+
+   LOCAL VIRTUAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket );
+   LABEL
+      Error;
+   VAR
+      buffer : TDaliSciPacket;
+      dali : TDaliSciPacket;
+      i, l : CARDINAL;
+      xor : BYTE;
+   BEGIN
+      IF Timeout <> NIL THEN
+         netpool.Pool()^.Abort( REF Timeout );
+      END;
+   
+      ServerSocket^.ReceiveOA( OUT buffer, OUT l );
+      IF l < 3 THEN // some damaged data
+         RETURN;
+      ELSIF EventSink <> NIL THEN
+         IF buffer[0] <> 052H THEN
+            GOTO Error;   
+         END;
+      
+         xor := buffer[0];
+         FOR i := 1 TO l-2 DO
+            xor := xor XOR buffer[i];
+            dali[i-1] := buffer[i];
+         END;
+         IF xor <> buffer[l-1] THEN // xor OK
+            GOTO Error;
+         END;
+
+         EventSink^.OnDaliData( Sync.arCompleted, OA( l-3, ADR( dali )));
+         RETURN;
+      END;
+      
+   Error:
+      EventSink^.OnDaliData( Sync.arAborted, OA( -1, NIL ));
+   END OnDatagramReceived;
+
+(*-------------------------------------------------------------------------------*)
+
+   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+   BEGIN
+      IF ( Result = Sync.arTimeout ) AND ( EventSink <> NIL ) THEN
+         EventSink^.OnTimeout();
+      END;
+   END OnTimeout;
+
+(*-------------------------------------------------------------------------------*)
+
+BEGIN
+   ListenPort := 0;
+
+   NEW( TimerSink );
+   TimerSink^.TimeoutSink := ADR( SELF );
+   Timeout := NIL;
+
+   EventSink := NIL;
+FINALLY
+   IF TimerSink <> NIL THEN
+      TimerSink^.Release();
+      TimerSink := NIL;
+   END;
+END CUDPCommunicator;
+
+(*===============================================================================*)
+
+CLASS IMPLEMENTATION DaliAddress;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Address GET : CARDINAL;
+   VAR
+      c8 : CARD8;
+   BEGIN
+      IF _Address AND 080H = 0 THEN
+         RETURN CARDINAL( _Address >> 1 );
+      END;
+      c8 := _Address AND 01100000B;
+      IF c8 = 0 THEN // group address
+         RETURN CARDINAL(( _Address >> 1 ) AND 0FH );
+      ELSIF c8 = 01100000B THEN // broadcast
+         RETURN MAX( CARD8 );
+      ELSIF c8 = 00100000B THEN // special command
+         RETURN MAX( CARDINAL );
+      ELSE
+         ASSERT( FALSE );
+         RETURN 0;
+      END;
+   END Address;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Address SET( Value : CARDINAL );
+   VAR
+      c8 : CARD8;
+   BEGIN
+      IF _Address AND 080H = 0 THEN
+         _Address := CARD8( Value AND 3FH ) << 1;
+         RETURN;
+      END;
+      c8 := _Address AND 01100000B;
+      IF c8 = 0 THEN // group address
+         _Address := CARD8( Value AND 0FH ) << 1;
+      ELSIF c8 = 01100000B THEN // broadcast
+         _Address := MAX( CARD8 );
+      ELSIF c8 = 00100000B THEN // special command
+         ASSERT( FALSE );
+      END;
+   END Address;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY TransportAddress GET : CARD8;
+   BEGIN
+      RETURN _Address;
+   END TransportAddress;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Type GET : TDaliAddress;
+   VAR
+      c8 : CARD8;
+   BEGIN
+      IF _Address AND 080H = 0 THEN
+         RETURN adrSingle;
+      END;
+      c8 := _Address AND 01100000B;
+      IF c8 = 0 THEN // group address
+         RETURN adrGroup;
+      ELSIF c8 = 01100000B THEN // broadcast
+         RETURN adrAll;
+      ELSE
+         RETURN adrUnknown;
+      END;
+   END Type;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Type SET( Value : TDaliAddress );
+   BEGIN
+      CASE Value OF
+      | adrUnknown :
+         _Address := 040H;
+      | adrSingle :
+         _Address := _Address AND NOT 0E0H;
+      | adrGroup :
+         _Address := _Address AND NOT 0E0H OR 080H;
+      | adrAll :
+         _Address := MAX( CARD8 );
+      END; // CASE
+   END Type;
+
+(*-------------------------------------------------------------------------------*)
+
+BEGIN
+   _Address := 0;
+END DaliAddress;
+
+(*===============================================================================*)
+
+CLASS IMPLEMENTATION CDali;
+
+(*-------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE LoadConfiguration( CONST INI : INIFile.CINIFile; REF logger : log.CLogger ) : BOOLEAN;
    BEGIN
       RETURN TRUE;
    END LoadConfiguration;
       
-   PUBLIC PROCEDURE Run();
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Run() : Sync.TAsyncResult;
    BEGIN
+      RETURN Communicator^.Run();
    END Run;
+
+(*-------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Stop();
    BEGIN
+      Communicator^.Stop();
    END Stop;
 
-END CDaliSci;
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Command( CONST daliAddress : DaliAddress; _Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
+   BEGIN
+      RETURN Sync.arCannotStart;
+   END Command;
+   
+(*-------------------------------------------------------------------------------*)
+
+   // ICommunicationSink -- in thread
+   LOCAL VIRTUAL PROCEDURE OnTimeout();
+   BEGIN
+   END OnTimeout;
+
+(*-------------------------------------------------------------------------------*)
+
+   // ICommunicationSink -- in thread
+   LOCAL VIRTUAL PROCEDURE OnDaliData( Result : Sync.TAsyncResult; Data : ARRAY OF BYTE );
+   BEGIN
+   END OnDaliData;
+
+(*-------------------------------------------------------------------------------*)
+
+BEGIN
+   Communicator := NEW( CUDPCommunicator );
+   Communicator^.EventSink := TPICommunicatorSink( ADR( SELF ));
+FINALLY
+   IF Communicator <> NIL THEN
+      Communicator^.Release();
+      Communicator := NIL;
+   END;
+END CDali;
+
+(*===============================================================================*)
 
 END DaliSci.

@@ -14,6 +14,7 @@ IMPORT
    Resources,
    Strings,
    StringsO,
+   Sync,
    TextReader,
    Texts;
 
@@ -254,6 +255,14 @@ CLASS IMPLEMENTATION CDriver;
       drv_def.AssignDrvValueCStringW( REF OutValue, UFlag, FALSE, CS );
       Result.Inc();
    END QueryProc;
+
+//================================================================================
+
+   INTERNAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; ClientId : PTR; CONST daliAddress : DaliSci.DaliAddress; Data : CARD8 );
+   BEGIN
+      IF daliAddress.Type = DaliSci.adrAll THEN
+      END;
+   END OnCompletion;
 
 //================================================================================
 

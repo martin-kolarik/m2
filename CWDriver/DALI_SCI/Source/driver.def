@@ -20,14 +20,14 @@ CONST // device specific error codes
    ceDeviceUnplugged = 10001H;
    ceLine_Timeout    = 10005H;
 
-CLASS CDriver IMPLEMENTS DaliSci.IEventSink;
+CLASS CDriver IMPLEMENTS DaliSci.IDaliEventSink;
    PRIVATE VAR
       ClientName    : ARRAY [0..63] OF WCHAR;
       CallbackId    : ADDRESS;
       CallbackProc  : drv_def.TDriverCallbackW;
       StatusChannel : CARDINAL;
    
-      Dali          : DaliSci.CDaliSci;
+      Dali          : DaliSci.CDali;
       Result        : lec.CResult;
       cllvData      : ADDRESS;
       cllvLength    : CARDINAL;
@@ -58,6 +58,7 @@ CLASS CDriver IMPLEMENTS DaliSci.IEventSink;
    PUBLIC PROCEDURE QueryProc( UFlag : BOOLEAN; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
 
    // IEventSink
+   INTERNAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; ClientId : PTR; CONST daliAddress : DaliSci.DaliAddress; Data : CARD8 );
 END CDriver;
 
 //================================================================================

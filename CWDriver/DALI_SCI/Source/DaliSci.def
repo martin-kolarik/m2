@@ -1,5 +1,7 @@
 DEFINITION MODULE DaliSci;
 
+(*===============================================================================*)
+
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
    
@@ -8,16 +10,67 @@ IMPORT
    log,
    StringsO;
 
-INTERFACE IEventSink;
-END IEventSink;
+(*===============================================================================*)
+// internal data
 
-CLASS CDaliSci;
+TYPE
+   TPCommunicator;
+   TPICommunicatorSink = POINTER TO ICommunicatorSink;
 
+LOCAL INTERFACE ICommunicatorSink; // in-thread
+   LOCAL PROCEDURE OnTimeout();
+   LOCAL PROCEDURE OnDaliData( Result : Sync.TAsyncResult; Data : ARRAY OF BYTE );
+END ICommunicatorSink;
+
+(*===============================================================================*)
+
+TYPE
+   TDaliAddress = (
+      adrUnknown, adrAll, adrGroup, adrSingle
+   );
+
+   TDaliCommand = (
+      cmdOff
+   );
+
+(*-------------------------------------------------------------------------------*)
+
+CLASS DaliAddress;
+   PRIVATE VAR
+      _Address : CARD8;
+   PUBLIC READONLY PROPERTY
+      TransportAddress : CARD8;
+   PUBLIC PROPERTY
+      Address : CARDINAL;
+      Type : TDaliAddress;
+END DaliAddress;
+
+(*-------------------------------------------------------------------------------*)
+
+INTERFACE IDaliEventSink; // in-thread
+   INTERNAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; ClientId : PTR; CONST daliAddress : DaliAddress; Data : CARD8 );
+END IDaliEventSink;
+
+(*-------------------------------------------------------------------------------*)
+
+CLASS CDali IMPLEMENTS ICommunicatorSink;
+   PRIVATE VAR
+      Communicator : TPCommunicator;
+
+   // client commands
    PUBLIC PROCEDURE LoadConfiguration( CONST INI : INIFile.CINIFile; REF logger : log.CLogger ) : BOOLEAN;
    
-   PUBLIC PROCEDURE Run();
+   PUBLIC PROCEDURE Run() : Sync.TAsyncResult;
    PUBLIC PROCEDURE Stop();
-      
-END CDaliSci;
+   
+   PUBLIC PROCEDURE Command( CONST daliAddress : DaliAddress; Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
+   // completes immediatelly or results to IEventSink callback
+   
+   // ICommunicationSink -- in thread
+   LOCAL VIRTUAL PROCEDURE OnTimeout();
+   LOCAL VIRTUAL PROCEDURE OnDaliData( Result : Sync.TAsyncResult; Data : ARRAY OF BYTE );
+END CDali;
+
+(*===============================================================================*)
 
 END DaliSci.
