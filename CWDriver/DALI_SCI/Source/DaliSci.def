@@ -63,6 +63,7 @@ CLASS DaliAddress;
    PUBLIC PROPERTY
       Address : CARDINAL;
       Type : TDaliAddress;
+   PUBLIC PROCEDURE ToString( OUT S : ARRAY OF WCHAR );
 END DaliAddress;
 
 (*-------------------------------------------------------------------------------*)

@@ -29,6 +29,25 @@ TYPE
 
 //================================================================================
 
+TYPE
+   TExceptionItemType = ( eitRead, eitWrite, eitStatus );
+   TPExceptionItem = POINTER TO ExceptionItem;
+
+CLASS ExceptionItem;
+   LOCAL VAR
+      Result : Sync.TAsyncResult := Sync.arCompleted;
+      Address : DaliSci.DaliAddress;
+      Value : CARD8 := 0;
+END ExceptionItem;
+
+//--------------------------------------------------------------------------------
+
+CLASS IMPLEMENTATION ExceptionItem;
+BEGIN
+END ExceptionItem;
+
+//================================================================================
+
 CLASS IMPLEMENTATION CDriver;
 
 //--------------------------------------------------------------------------------
@@ -145,10 +164,11 @@ CLASS IMPLEMENTATION CDriver;
 
    PUBLIC PROCEDURE Dispose();
    VAR
-      Data, Request : PTR;
+      Data : PTR;
+      ExceptionItem : TPExceptionItem;
    BEGIN
-      WHILE Queue.Dequeue( OUT Request, OUT Data ) DO
-         // TODO
+      WHILE Queue.Dequeue( OUT ExceptionItem, OUT Data ) DO
+         DISPOSE( ExceptionItem );
       END;
    END Dispose;
 
@@ -252,8 +272,11 @@ CLASS IMPLEMENTATION CDriver;
       CS : StringsO.CString;
       data : PTR;
       dimFlag : BOOLEAN;
+      ExceptionItem : TPExceptionItem;
+      ExceptionType : TExceptionItemType;
       i : CARDINAL;
-      Request : PTR;
+      Level : CARDINAL;
+      N : ARRAY [0..15] OF WCHAR;
       S1, S2, S3 : ARRAY [0..63] OF WCHAR;
    BEGIN
       drv_def.DrvValueToCStringW( InValue1, UFlag, OUT CS );
@@ -267,8 +290,32 @@ CLASS IMPLEMENTATION CDriver;
             drv_def.AssignValueCardinal( REF OutValue, UFlag, TRUE, Queue.Count );
             
          ELSIF EQUALS( S2, L'get' ) THEN
-            IF Queue.Dequeue( OUT Request, OUT data ) THEN
-               DISPOSE( Request );
+            IF Queue.Dequeue( OUT ExceptionItem, OUT data ) THEN
+
+               ExceptionItem^.Address.ToString( OUT N );
+               ExceptionType := TExceptionItemType( LOPTRLONGWORD( data ));
+               CASE ExceptionType OF
+               | eitRead, eitStatus :
+                  CS.FromOA( "get " ); CS.AppendOA( N ); CS.AppendOA( L" " ); 
+                  IF ExceptionItem^.Result = Sync.arCompleted THEN
+                     Strings.FromCARD32W( CARD32( ExceptionItem^.Value ), 10, OUT N );
+                     CS.AppendOA( N );
+                  ELSIF ExceptionItem^.Result = Sync.arTimeout THEN
+                     CS.AppendOA( L"timeout" );
+                  ELSE
+                     CS.AppendOA( L"error" );
+                  END;
+                  
+               | eitWrite :
+                  CS.FromOA( "set " ); CS.AppendOA( N ); CS.AppendOA( L" " ); 
+                  IF ExceptionItem^.Result = Sync.arTimeout THEN
+                     CS.AppendOA( L"timeout" );
+                  ELSE
+                     CS.AppendOA( L"error" );
+                  END;
+               END; // CASE
+
+               DISPOSE( ExceptionItem );
             ELSE
                CS.Clear();
             END;
@@ -288,7 +335,7 @@ CLASS IMPLEMENTATION CDriver;
 
          IF EQUALS( S3, L'status' ) THEN
             command := DaliSci.cmdStatus;
-         ELSIF EQUALS( S3, L'operating' ) THEN
+         ELSIF EQUALS( S3, L'present' ) THEN
             command := DaliSci.cmdWorking;
          ELSIF EQUALS( S3, L'type' ) THEN
             command := DaliSci.cmdDeviceType;
@@ -301,8 +348,10 @@ CLASS IMPLEMENTATION CDriver;
             GOTO Error;
          END;
 
-         AsyncResult := Dali.Command( address, command, 0, 1 );
-         IF AsyncResult <> Sync.arPending THEN
+         AsyncResult := Dali.Command( address, command, 0, PTR( eitRead ));
+         IF ( AsyncResult = Sync.arPending ) OR ( AsyncResult = Sync.arAlreadyPending ) THEN
+            CS.Clear(); // OK
+         ELSE
             CS.FromOA( L'error: unable to send command' );
             GOTO Error;
          END;
@@ -356,7 +405,7 @@ CLASS IMPLEMENTATION CDriver;
             ELSIF EQUALS( S3, L"max" ) THEN
                command := DaliSci.cmdMax;
             ELSE
-               IF Strings.ToCARD32W( S3, 10, OUT c ) AND ( c < 256 ) THEN
+               IF Strings.ToCARD32W( S3, 10, OUT Level ) AND ( Level < 256 ) THEN
                   command := DaliSci.cmdDirect;
                ELSE
                   CS.FromOA( L'error: bad set command parameter' );
@@ -365,8 +414,10 @@ CLASS IMPLEMENTATION CDriver;
             END;
          END;
       
-         AsyncResult := Dali.Command( address, command, 0, 0 );
-         IF AsyncResult <> Sync.arPending THEN
+         AsyncResult := Dali.Command( address, command, CARD8( Level ), PTR( eitWrite ));
+         IF ( AsyncResult = Sync.arPending ) OR ( AsyncResult = Sync.arAlreadyPending ) THEN
+            CS.Clear(); // OK
+         ELSE
             CS.FromOA( L'error: unable to send command' );
             GOTO Error;
          END;
@@ -380,8 +431,6 @@ CLASS IMPLEMENTATION CDriver;
             GOTO Error;
          END;
 
-         // prObjects[EIT].SetValue( EV );
-
       ELSE
          CS.FromOA( L'error: unknown driver procedure' );
       END;
@@ -394,12 +443,21 @@ CLASS IMPLEMENTATION CDriver;
 //================================================================================
 
    LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; ClientId : PTR; CONST daliAddress : DaliSci.DaliAddress; Data : CARD8 );
+   VAR
+      exceptionItem : TPExceptionItem;
    BEGIN
-      IF Result <> Sync.arCompleted THEN
+      IF ( Result = Sync.arCompleted ) AND ( ClientId = PTR( eitWrite )) THEN // successfull set is not reported
+         RETURN;
+      END;
       
-         IF CallbackProc <> NIL THEN
-            CallbackProc( CallbackId, drv_def.dcfException, NIL );
-         END;
+      NEW( exceptionItem );
+      exceptionItem^.Result := Result;
+      exceptionItem^.Address := daliAddress;
+      exceptionItem^.Value := Data;
+      Queue.Enqueue( exceptionItem, ClientId );
+      
+      IF CallbackProc <> NIL THEN
+         CallbackProc( CallbackId, drv_def.dcfException, NIL );
       END;
    END OnCompletion;
 

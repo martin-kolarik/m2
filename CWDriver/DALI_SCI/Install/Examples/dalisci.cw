@@ -31,11 +31,29 @@ instrument
        s : string;
     begin
        core.DebugOutput( 'Command: ', Output );
-       core.DriverQueryProc( 'dali', Output, s );
+       core.DriverQueryProc( 'dali', Output, &s );
        core.DebugOutput( 'Result:  ', s );
     end_procedure;
     
   end_string_control;
+
+  program ExceptionHandler;
+    driver_exception = dali;
+
+    procedure OnActivate();
+    var
+       Event : string;
+    begin
+       loop
+          core.DriverQueryProc( 'dali', 'event get', &Event );
+          if Event = '' then
+             exit;
+          end;
+          core.DebugOutput( 'Event:   ', Event );
+       end;
+    end_procedure;
+
+  end_program;
 
 end_instrument;
 

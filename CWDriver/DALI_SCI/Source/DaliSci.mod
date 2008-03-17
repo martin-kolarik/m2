@@ -5,6 +5,7 @@ IMPORT
    netsocket,
    netsrv,
    netpool,
+   Strings,
    Sync,
    threadpool;
 
@@ -156,7 +157,7 @@ CLASS IMPLEMENTATION CUDPCommunicator;
 
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
    BEGIN
-      IF ( Result = Sync.arTimeout ) AND ( EventSink <> NIL ) THEN
+      IF ( Result = Sync.arCompleted ) AND ( EventSink <> NIL ) THEN
          EventSink^.OnTimeout();
       END;
    END OnTimeout;
@@ -191,12 +192,12 @@ CLASS IMPLEMENTATION DaliAddress;
       IF _Address AND 080H = 0 THEN
          RETURN CARDINAL( _Address >> 1 );
       END;
-      c8 := _Address AND 01100000B;
+      c8 := _Address AND 060H;
       IF c8 = 0 THEN // group address
          RETURN CARDINAL(( _Address >> 1 ) AND 0FH );
-      ELSIF c8 = 01100000B THEN // broadcast
+      ELSIF c8 = 060H THEN // broadcast
          RETURN MAX( CARD8 );
-      ELSIF c8 = 00100000B THEN // special command
+      ELSIF c8 = 020H THEN // special command
          RETURN MAX( CARDINAL );
       ELSE
          ASSERT( FALSE );
@@ -214,12 +215,12 @@ CLASS IMPLEMENTATION DaliAddress;
          _Address := CARD8( Value AND 3FH ) << 1;
          RETURN;
       END;
-      c8 := _Address AND 01100000B;
+      c8 := _Address AND 060H;
       IF c8 = 0 THEN // group address
-         _Address := CARD8( Value AND 0FH ) << 1;
-      ELSIF c8 = 01100000B THEN // broadcast
+         _Address := ( _Address AND 0E0H ) OR ( CARD8( Value AND 0FH ) << 1 );
+      ELSIF c8 = 060H THEN // broadcast
          _Address := MAX( CARD8 );
-      ELSIF c8 = 00100000B THEN // special command
+      ELSIF c8 = 020H THEN // special command
          ASSERT( FALSE );
       END;
    END Address;
@@ -240,10 +241,10 @@ CLASS IMPLEMENTATION DaliAddress;
       IF _Address AND 080H = 0 THEN
          RETURN adrSingle;
       END;
-      c8 := _Address AND 01100000B;
+      c8 := _Address AND 060H;
       IF c8 = 0 THEN // group address
          RETURN adrGroup;
-      ELSIF c8 = 01100000B THEN // broadcast
+      ELSIF c8 = 060H THEN // broadcast
          RETURN adrAll;
       ELSE
          RETURN adrUnknown;
@@ -265,6 +266,23 @@ CLASS IMPLEMENTATION DaliAddress;
          _Address := MAX( CARD8 );
       END; // CASE
    END Type;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ToString( OUT S : ARRAY OF WCHAR );
+   BEGIN
+      CASE Type OF
+      | adrUnknown :
+         S := L"?";
+      | adrSingle :
+         Strings.FromCARD32W( Address, 10, OUT S );
+      | adrGroup :
+         Strings.FromCARD32W( Address, 10, OUT S );
+         Strings.PrependW( REF S, L"g" );
+      | adrAll :
+         S := L"all";
+      END; // CASE
+   END ToString;
 
 (*-------------------------------------------------------------------------------*)
 
@@ -363,7 +381,11 @@ CLASS IMPLEMENTATION CDali;
       IF Queue.Dequeue( OUT Request, OUT ClientId ) THEN
          IF EventSink <> NIL THEN
             IF Result = Sync.arCompleted THEN
-               Response := Data[0];
+               IF ( Request^.Command <> cmdCurrentLevel ) OR ( Data[0] < 0FFH ) THEN
+                  Response := Data[0];
+               ELSE
+                  Response := 0;
+               END;
             END;            
             EventSink^.OnCompletion( Result, ClientId, Request^.Address, Response );
          END;
@@ -391,8 +413,13 @@ CLASS IMPLEMENTATION CDali;
       END;
       
       // prepare Dali packet
-      DaliData[0] := Request^.Address.TransportAddress OR 01H; // now we always send command
-      DaliData[1] := BYTE( Request^.Command );
+      IF Request^.Command = cmdDirect THEN
+         DaliData[0] := Request^.Address.TransportAddress AND NOT 01H;
+         DaliData[1] := MIN2( 0FEH, Request^.Data );
+      ELSE
+         DaliData[0] := Request^.Address.TransportAddress OR 01H;
+         DaliData[1] := BYTE( Request^.Command );
+      END;
       
       Result := Communicator^.SendDaliData( DaliData );
       IF Result IN Sync.arsStarts THEN
