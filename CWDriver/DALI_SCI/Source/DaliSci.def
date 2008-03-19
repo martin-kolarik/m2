@@ -69,7 +69,7 @@ END DaliAddress;
 (*-------------------------------------------------------------------------------*)
 
 INTERFACE IDaliEventSink; // in-thread
-   LOCAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; ClientId : PTR; CONST daliAddress : DaliAddress; Data : CARD8 );
+   LOCAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; Command : TDaliCommand; ClientId : PTR; CONST daliAddress : DaliAddress; Data : CARD8 );
 END IDaliEventSink;
 
 (*-------------------------------------------------------------------------------*)

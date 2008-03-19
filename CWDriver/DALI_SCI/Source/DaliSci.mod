@@ -387,7 +387,7 @@ CLASS IMPLEMENTATION CDali;
                   Response := 0;
                END;
             END;            
-            EventSink^.OnCompletion( Result, ClientId, Request^.Address, Response );
+            EventSink^.OnCompletion( Result, Request^.Command, ClientId, Request^.Address, Response );
          END;
          DISPOSE( Request );
       END; // IF Dequeue

@@ -30,12 +30,13 @@ TYPE
 //================================================================================
 
 TYPE
-   TExceptionItemType = ( eitRead, eitWrite, eitStatus );
+   TExceptionItemType = ( eitRead, eitWrite );
    TPExceptionItem = POINTER TO ExceptionItem;
 
 CLASS ExceptionItem;
    LOCAL VAR
       Result : Sync.TAsyncResult := Sync.arCompleted;
+      Command : DaliSci.TDaliCommand := DaliSci.cmdOff;
       Address : DaliSci.DaliAddress;
       Value : CARD8 := 0;
 END ExceptionItem;
@@ -295,11 +296,41 @@ CLASS IMPLEMENTATION CDriver;
                ExceptionItem^.Address.ToString( OUT N );
                ExceptionType := TExceptionItemType( LOPTRLONGWORD( data ));
                CASE ExceptionType OF
-               | eitRead, eitStatus :
-                  CS.FromOA( "get " ); CS.AppendOA( N ); CS.AppendOA( L" " ); 
+               | eitRead :
                   IF ExceptionItem^.Result = Sync.arCompleted THEN
-                     Strings.FromCARD32W( CARD32( ExceptionItem^.Value ), 10, OUT N );
-                     CS.AppendOA( N );
+
+                     IF ExceptionItem^.Command = DaliSci.cmdStatus THEN
+                        CS.FromOA( "status " ); CS.AppendOA( N ); CS.AppendOA( L" " ); 
+                        IF 080H AND ExceptionItem^.Value <> 0 THEN
+                           CS.AppendOA( L"power_failure " );
+                        END;
+                        IF 040H AND ExceptionItem^.Value <> 0 THEN
+                           CS.AppendOA( L"noaddress " );
+                        END;
+                        IF 020H AND ExceptionItem^.Value <> 0 THEN
+                           CS.AppendOA( L"initstate " );
+                        END;
+                        IF 010H AND ExceptionItem^.Value <> 0 THEN
+                           CS.AppendOA( L"fading " );
+                        END;
+                        IF 008H AND ExceptionItem^.Value <> 0 THEN
+                           CS.AppendOA( L"limit_error " );
+                        END;
+                        IF 004H AND ExceptionItem^.Value <> 0 THEN
+                           CS.AppendOA( L"on " );
+                        ELSE
+                           CS.AppendOA( L"off " );
+                        END;
+                        IF 002H AND ExceptionItem^.Value <> 0 THEN
+                           CS.AppendOA( L"lamp_failure" );
+                        END;
+
+                     ELSE
+                        CS.FromOA( "get " ); CS.AppendOA( N ); CS.AppendOA( L" " ); 
+                        Strings.FromCARD32W( CARD32( ExceptionItem^.Value ), 10, OUT N );
+                        CS.AppendOA( N );
+                     END;
+
                   ELSIF ExceptionItem^.Result = Sync.arTimeout THEN
                      CS.AppendOA( L"timeout" );
                   ELSE
@@ -442,7 +473,7 @@ CLASS IMPLEMENTATION CDriver;
 
 //================================================================================
 
-   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; ClientId : PTR; CONST daliAddress : DaliSci.DaliAddress; Data : CARD8 );
+   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; Command : DaliSci.TDaliCommand; ClientId : PTR; CONST daliAddress : DaliSci.DaliAddress; Data : CARD8 );
    VAR
       exceptionItem : TPExceptionItem;
    BEGIN
@@ -452,6 +483,7 @@ CLASS IMPLEMENTATION CDriver;
       
       NEW( exceptionItem );
       exceptionItem^.Result := Result;
+      exceptionItem^.Command := Command;
       exceptionItem^.Address := daliAddress;
       exceptionItem^.Value := Data;
       Queue.Enqueue( exceptionItem, ClientId );
