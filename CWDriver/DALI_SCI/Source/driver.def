@@ -9,7 +9,8 @@ IMPORT
    lec,
    log,
    Resources,
-   StringsO;
+   StringsO,
+   threadpool;
 
 //================================================================================
 
@@ -20,7 +21,7 @@ CONST // device specific error codes
    ceDeviceUnplugged = 10001H;
    ceLine_Timeout    = 10005H;
 
-CLASS CDriver IMPLEMENTS DaliSci.IDaliEventSink;
+CLASS CDriver IMPLEMENTS threadpool.ITimeoutSink, DaliSci.IDaliEventSink;
    PRIVATE VAR
       ClientName    : ARRAY [0..63] OF WCHAR;
       CallbackId    : ADDRESS;
@@ -32,6 +33,11 @@ CLASS CDriver IMPLEMENTS DaliSci.IDaliEventSink;
       cllvData      : ADDRESS;
       cllvLength    : CARDINAL;
       Queue         : lists.CPtrList;
+      
+      StatusArray   : ARRAY [0..63] OF CARD8;
+      PollSink      : threadpool.TPSinkDelegate;
+      PollTimer     : Sync.WAITABLE;
+      PollIndex     : CARDINAL;
 
    // binding to procedural interface
    PUBLIC PROCEDURE Init( CONST SymbolicName : ARRAY OF WCHAR; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW ) : BOOLEAN;
@@ -58,6 +64,8 @@ CLASS CDriver IMPLEMENTS DaliSci.IDaliEventSink;
 
    PUBLIC PROCEDURE QueryProc( UFlag : BOOLEAN; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
 
+   // ITimeoutSink
+   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
    // IEventSink
    LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; Command : DaliSci.TDaliCommand; ClientId : PTR; CONST daliAddress : DaliSci.DaliAddress; Data : CARD8 );
 END CDriver;

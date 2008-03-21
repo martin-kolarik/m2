@@ -50,7 +50,9 @@ TYPE
       
       cmdStatus = 090H, cmdWorking = 091H, cmdVersion = 097H, cmdDeviceType = 099H,
       
-      cmdCurrentLevel = 0A0H
+      cmdCurrentLevel = 0A0H,
+      
+      cmdLoadDTR = 0A3H
    );
 
 (*-------------------------------------------------------------------------------*)

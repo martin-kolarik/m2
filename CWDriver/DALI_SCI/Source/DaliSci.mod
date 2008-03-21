@@ -107,7 +107,7 @@ CLASS IMPLEMENTATION CUDPCommunicator;
          netpool.Pool()^.Abort( REF Timeout );
       END;
       IF Timeout = NIL THEN
-         netpool.Pool()^.WaitTimeout( TimerSink, 0, 200, TRUE, OUT Timeout );
+         netpool.Pool()^.WaitTimeout( TimerSink, 0, 200, TRUE, TRUE, OUT Timeout );
       END;
       
       RETURN Socket^.SendTo6OA( SendData, Address );
@@ -413,7 +413,10 @@ CLASS IMPLEMENTATION CDali;
       END;
       
       // prepare Dali packet
-      IF Request^.Command = cmdDirect THEN
+      IF Request^.Command = cmdLoadDTR THEN
+         DaliData[0] := BYTE( Request^.Command );
+         DaliData[1] := MIN2( 0FEH, Request^.Data );
+      ELSIF Request^.Command = cmdDirect THEN
          DaliData[0] := Request^.Address.TransportAddress AND NOT 01H;
          DaliData[1] := MIN2( 0FEH, Request^.Data );
       ELSE

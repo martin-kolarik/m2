@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE driver;
 (*# call( o_a_copy => off ) *)
 
 FROM Storage IMPORT
-   ALLOCATE, DEALLOCATE;
+   ALLOCATE, DEALLOCATE, Fill;
 
 IMPORT
    cllv,
@@ -11,6 +11,7 @@ IMPORT
    INIFile,
    IOO,
    Log,
+   netpool,
    Resources,
    Strings,
    StringsO,
@@ -30,7 +31,7 @@ TYPE
 //================================================================================
 
 TYPE
-   TExceptionItemType = ( eitRead, eitWrite );
+   TExceptionItemType = ( eitRead, eitWrite, eitPollStatus, eitProgram );
    TPExceptionItem = POINTER TO ExceptionItem;
 
 CLASS ExceptionItem;
@@ -152,12 +153,18 @@ CLASS IMPLEMENTATION CDriver;
    PUBLIC PROCEDURE Run();
    BEGIN
       Dali.Run();
+      IF PollTimer = NIL THEN
+         // netpool.Pool()^.WaitTimeout( PollSink, 0, 1000, FALSE, TRUE, OUT PollTimer );
+      END;
    END Run;
 
 //--------------------------------------------------------------------------------
 
    PUBLIC PROCEDURE Stop();
    BEGIN
+      IF PollTimer <> NIL THEN
+         netpool.Pool()^.Abort( REF PollTimer );
+      END;
       Dali.Stop();
    END Stop;
 
@@ -168,6 +175,7 @@ CLASS IMPLEMENTATION CDriver;
       Data : PTR;
       ExceptionItem : TPExceptionItem;
    BEGIN
+      Stop();
       WHILE Queue.Dequeue( OUT ExceptionItem, OUT Data ) DO
          DISPOSE( ExceptionItem );
       END;
@@ -267,7 +275,6 @@ CLASS IMPLEMENTATION CDriver;
       Error;
    VAR
       address : DaliSci.DaliAddress;
-      AsyncResult : Sync.TAsyncResult;
       c : CARDINAL;
       command : DaliSci.TDaliCommand;
       CS : StringsO.CString;
@@ -279,6 +286,47 @@ CLASS IMPLEMENTATION CDriver;
       Level : CARDINAL;
       N : ARRAY [0..15] OF WCHAR;
       S1, S2, S3 : ARRAY [0..63] OF WCHAR;
+      
+      //-----
+
+      PROCEDURE Send( type : TExceptionItemType; CONST address : DaliSci.DaliAddress; command : DaliSci.TDaliCommand; value : CARDINAL ) : BOOLEAN;
+      VAR
+         AsyncResult : Sync.TAsyncResult;
+      BEGIN
+         AsyncResult := Dali.Command( address, command, CARD8( value ), PTR( type ));
+         IF ( AsyncResult = Sync.arPending ) OR ( AsyncResult = Sync.arAlreadyPending ) THEN
+            RETURN TRUE; // OK
+         ELSE
+            CS.FromOA( L'error: unable to send command' );
+            RETURN FALSE;
+         END;
+      END Send;
+      
+      //-----
+
+      PROCEDURE ProgramItem( command : DaliSci.TDaliCommand; REF S3 : ARRAY OF WCHAR ) : BOOLEAN;
+      VAR
+         c : CARDINAL;
+      BEGIN
+         IF S3[0] = 0W THEN
+            RETURN TRUE;
+         ELSIF NOT Strings.ToCARD32W( S3, 10, OUT c ) OR ( c > 255 ) THEN
+            CS.FromOA( L'error: bad power on level' );
+            RETURN FALSE;
+         ELSE
+            IF NOT Send( eitProgram, address, DaliSci.cmdLoadDTR, c ) THEN
+               RETURN FALSE;
+            END;
+            IF NOT Send( eitProgram, address, command, 0 ) THEN
+               RETURN FALSE;
+            END;
+            i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S3 ); Strings.TrimW( REF S3 );
+            RETURN TRUE;
+         END;
+      END ProgramItem;
+
+      //-----
+
    BEGIN
       drv_def.DrvValueToCStringW( InValue1, UFlag, OUT CS );
       i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 0, TRUE, OUT S1 ); Strings.TrimW( REF S1 );
@@ -296,25 +344,17 @@ CLASS IMPLEMENTATION CDriver;
                ExceptionItem^.Address.ToString( OUT N );
                ExceptionType := TExceptionItemType( LOPTRLONGWORD( data ));
                CASE ExceptionType OF
-               | eitRead :
+               | eitRead, eitPollStatus :
+                  IF ExceptionItem^.Command = DaliSci.cmdStatus THEN
+                     CS.FromOA( "status " ); CS.AppendOA( N ); CS.AppendOA( L" " ); 
+                  ELSE
+                     CS.FromOA( "value " ); CS.AppendOA( N ); CS.AppendOA( L" " ); 
+                  END;
                   IF ExceptionItem^.Result = Sync.arCompleted THEN
 
                      IF ExceptionItem^.Command = DaliSci.cmdStatus THEN
-                        CS.FromOA( "status " ); CS.AppendOA( N ); CS.AppendOA( L" " ); 
-                        IF 080H AND ExceptionItem^.Value <> 0 THEN
-                           CS.AppendOA( L"power_failure " );
-                        END;
                         IF 040H AND ExceptionItem^.Value <> 0 THEN
                            CS.AppendOA( L"noaddress " );
-                        END;
-                        IF 020H AND ExceptionItem^.Value <> 0 THEN
-                           CS.AppendOA( L"initstate " );
-                        END;
-                        IF 010H AND ExceptionItem^.Value <> 0 THEN
-                           CS.AppendOA( L"fading " );
-                        END;
-                        IF 008H AND ExceptionItem^.Value <> 0 THEN
-                           CS.AppendOA( L"limit_error " );
                         END;
                         IF 004H AND ExceptionItem^.Value <> 0 THEN
                            CS.AppendOA( L"on " );
@@ -324,9 +364,20 @@ CLASS IMPLEMENTATION CDriver;
                         IF 002H AND ExceptionItem^.Value <> 0 THEN
                            CS.AppendOA( L"lamp_failure" );
                         END;
+                        IF 080H AND ExceptionItem^.Value <> 0 THEN
+                           CS.AppendOA( L"power_failure " );
+                        END;
+                        IF 008H AND ExceptionItem^.Value <> 0 THEN
+                           CS.AppendOA( L"limit_error " );
+                        END;
+                        IF 020H AND ExceptionItem^.Value <> 0 THEN
+                           CS.AppendOA( L"initstate " );
+                        END;
+                        IF 010H AND ExceptionItem^.Value <> 0 THEN
+                           CS.AppendOA( L"fading " );
+                        END;
 
                      ELSE
-                        CS.FromOA( "get " ); CS.AppendOA( N ); CS.AppendOA( L" " ); 
                         Strings.FromCARD32W( CARD32( ExceptionItem^.Value ), 10, OUT N );
                         CS.AppendOA( N );
                      END;
@@ -356,7 +407,6 @@ CLASS IMPLEMENTATION CDriver;
          END;
 
       ELSIF EQUALS( S1, L'get' ) THEN
-
          IF NOT Strings.ToCARD32W( S2, 10, OUT c ) OR ( c > 63 ) THEN
             CS.FromOA( L'error: bad device address' );
             GOTO Error;
@@ -379,13 +429,10 @@ CLASS IMPLEMENTATION CDriver;
             GOTO Error;
          END;
 
-         AsyncResult := Dali.Command( address, command, 0, PTR( eitRead ));
-         IF ( AsyncResult = Sync.arPending ) OR ( AsyncResult = Sync.arAlreadyPending ) THEN
-            CS.Clear(); // OK
-         ELSE
-            CS.FromOA( L'error: unable to send command' );
+         IF NOT Send( eitRead, address, command, 0 ) THEN
             GOTO Error;
          END;
+         CS.Clear(); // return value
 
       ELSIF EQUALS( S1, L'set' ) OR EQUALS( S1, L'dim' ) THEN
          dimFlag := S1[0] = L"d";
@@ -445,13 +492,10 @@ CLASS IMPLEMENTATION CDriver;
             END;
          END;
       
-         AsyncResult := Dali.Command( address, command, CARD8( Level ), PTR( eitWrite ));
-         IF ( AsyncResult = Sync.arPending ) OR ( AsyncResult = Sync.arAlreadyPending ) THEN
-            CS.Clear(); // OK
-         ELSE
-            CS.FromOA( L'error: unable to send command' );
+         IF NOT Send( eitWrite, address, command, Level ) THEN
             GOTO Error;
          END;
+         CS.Clear(); // return value
 
          IF Result.Counted THEN
             CS.Clear();
@@ -461,6 +505,35 @@ CLASS IMPLEMENTATION CDriver;
             CS.Clear();
             GOTO Error;
          END;
+
+      ELSIF EQUALS( S1, L'param' )  THEN
+         IF NOT Strings.ToCARD32W( S2, 10, OUT c ) OR ( c > 63 ) THEN
+            CS.FromOA( L'error: bad device address' );
+            GOTO Error;
+         END;
+         address.Type := DaliSci.adrSingle;
+         address.Address := c;
+
+         // S3 already contains power on level
+         IF NOT ProgramItem( DaliSci.cmdDTRToPowerOn, REF S3 ) THEN
+            GOTO Error;
+         END;
+         IF NOT ProgramItem( DaliSci.cmdDTRToFail, REF S3 ) THEN
+            GOTO Error;
+         END;
+         IF NOT ProgramItem( DaliSci.cmdDTRToMin, REF S3 ) THEN
+            GOTO Error;
+         END;
+         IF NOT ProgramItem( DaliSci.cmdDTRToMax, REF S3 ) THEN
+            GOTO Error;
+         END;
+         IF NOT ProgramItem( DaliSci.cmdDTRToFadeRate, REF S3 ) THEN
+            GOTO Error;
+         END;
+         IF NOT ProgramItem( DaliSci.cmdDTRToFadeTime, REF S3 ) THEN
+            GOTO Error;
+         END;
+         CS.Clear(); // return value
 
       ELSE
          CS.FromOA( L'error: unknown driver procedure' );
@@ -473,13 +546,41 @@ CLASS IMPLEMENTATION CDriver;
 
 //================================================================================
 
+   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+   VAR
+      address : DaliSci.DaliAddress;
+   BEGIN
+      PollIndex := INC( PollIndex ) AND 63;
+      address.Type := DaliSci.adrSingle;
+      address.Address := PollIndex;
+      Dali.Command( address, DaliSci.cmdStatus, 0, PTR( eitPollStatus ));
+   END OnTimeout;
+
+//================================================================================
+
    LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; Command : DaliSci.TDaliCommand; ClientId : PTR; CONST daliAddress : DaliSci.DaliAddress; Data : CARD8 );
    VAR
+      address : CARDINAL;
       exceptionItem : TPExceptionItem;
    BEGIN
-      IF ( Result = Sync.arCompleted ) AND ( ClientId = PTR( eitWrite )) THEN // successfull set is not reported
-         RETURN;
-      END;
+      CASE TExceptionItemType( LOPTRLONGWORD( ClientId )) OF
+      | eitRead :
+         // all reads are reported
+      | eitWrite, eitProgram :
+         IF Result = Sync.arCompleted THEN // successfull set/program is not reported
+            RETURN;
+         END;
+      | eitPollStatus :
+         IF Result <> Sync.arCompleted THEN // unsuccessfull status get is not reported
+            RETURN;
+         END;
+         address := daliAddress.Address;
+         IF StatusArray[ address ] = Data THEN // unchanged status is not reported
+            RETURN;
+         ELSE
+            StatusArray[ address ] := Data;
+         END;
+      END; // CASE
       
       NEW( exceptionItem );
       exceptionItem^.Result := Result;
@@ -501,11 +602,22 @@ BEGIN
    CallbackProc := NIL;
 
    StatusChannel := MAX( CARDINAL );
+   Fill( ADR( StatusArray ), SIZE( StatusArray ), 0FFH );
+   PollTimer := NIL;
 
    cllvData := ADR( cllv.data );
    cllvLength := cllv.length;
    
+   NEW( PollSink );
+   PollSink^.TimeoutSink := ADR( SELF );
+   PollIndex := 0;
+
    Dali.EventSink := ADR( SELF );
+FINALLY
+   IF PollSink <> NIL THEN
+      PollSink^.Release();
+      PollSink := NIL;
+   END;
 END CDriver;
 
 //================================================================================
