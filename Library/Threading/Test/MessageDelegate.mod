@@ -128,7 +128,7 @@ CLASS IMPLEMENTATION CTest;
          Count := 0;
          // initiate
          FOR i := 0 TO lcount-1 DO
-            IF NOT Pool.WaitMessage( ADR( Delegate ), i, windows.INFINITE, TRUE, OUT MH[i], OUT MSGS[i], OUT PH[i] ) THEN
+            IF NOT Pool.WaitMessage( ADR( Delegate ), i, windows.INFINITE, TRUE, FALSE, OUT MH[i], OUT MSGS[i], OUT PH[i] ) THEN
                Host^.Log^.LogSC( log.dlcError, L"", L"Unable to start wait for index: ", i );
                INC( Count ); // force failure reporting
             END;
@@ -165,7 +165,7 @@ CLASS IMPLEMENTATION CTest;
          Count := 0;
          // initiate
          FOR i := 0 TO lcount-1 DO
-            IF NOT Pool.WaitMessage( ADR( Delegate ), i, windows.INFINITE, TRUE, OUT MH[i], OUT MSGS[i], OUT PH[i] ) THEN
+            IF NOT Pool.WaitMessage( ADR( Delegate ), i, windows.INFINITE, TRUE, FALSE, OUT MH[i], OUT MSGS[i], OUT PH[i] ) THEN
                Host^.Log^.LogSC( log.dlcError, L"", L"Unable to start wait for index: ", i );
                INC( Count ); // force failure reporting
             END;

@@ -136,7 +136,7 @@ CLASS IMPLEMENTATION CTest;
          Count := 0;
          // initiate
          FOR i := 0 TO lcount-1 DO
-            IF NOT Pool.WaitHandle( ADR( Delegate ), i, windows.INFINITE, TRUE, EA[i], OUT PH[i] ) THEN
+            IF NOT Pool.WaitHandle( ADR( Delegate ), i, windows.INFINITE, TRUE, FALSE, EA[i], OUT PH[i] ) THEN
                Host^.Log^.LogSC( log.dlcError, L"", L"Unable to start wait for index: ", i );
                INC( Count ); // force failure reporting
             END;
@@ -176,7 +176,7 @@ CLASS IMPLEMENTATION CTest;
          END; // FOR
          // initiate
          FOR i := 0 TO lcount-1 DO
-            IF NOT Pool.WaitHandle( ADR( Delegate ), i, windows.INFINITE, TRUE, EA[i], OUT PH[i] ) THEN
+            IF NOT Pool.WaitHandle( ADR( Delegate ), i, windows.INFINITE, TRUE, FALSE, EA[i], OUT PH[i] ) THEN
                Host^.Log^.LogSC( log.dlcError, L"", L"Unable to start wait for index: ", i );
                INC( Count ); // force failure reporting
             END;
@@ -218,7 +218,7 @@ CLASS IMPLEMENTATION CTest;
          // initiate
          FOR i := 0 TO lcount-1 DO
             FOR j := 0 TO 10-1 DO
-               IF NOT Pool.WaitHandle( ADR( Delegate ), i, windows.INFINITE, TRUE, EA[i], OUT PH[i*10+j] ) THEN
+               IF NOT Pool.WaitHandle( ADR( Delegate ), i, windows.INFINITE, TRUE, FALSE, EA[i], OUT PH[i*10+j] ) THEN
                   Host^.Log^.LogSC( log.dlcError, L"", L"Unable to start wait for index: ", i*10+j );
                   INC( Count ); // force failure reporting
                END;
@@ -260,7 +260,7 @@ CLASS IMPLEMENTATION CTest;
          // initiate
          FOR i := 0 TO lcount-1 DO
             FOR j := 0 TO 10-1 DO
-               IF NOT Pool.WaitHandle( ADR( Delegate ), i, windows.INFINITE, TRUE, EA[i], OUT PH[i*10+j] ) THEN
+               IF NOT Pool.WaitHandle( ADR( Delegate ), i, windows.INFINITE, TRUE, FALSE, EA[i], OUT PH[i*10+j] ) THEN
                   Host^.Log^.LogSC( log.dlcError, L"", L"Unable to start wait for index: ", i*10+j );
                   INC( Count ); // force failure reporting
                END;

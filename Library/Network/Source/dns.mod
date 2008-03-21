@@ -153,7 +153,7 @@ BEGIN
   Request^.RequestId := RequestId;
   Request^.AddRef();
  
-  netpool.Pool()^.WaitMessage( PNotifier, Request, TimeoutMS, TRUE, OUT Handler, OUT Message, OUT Handle );
+  netpool.Pool()^.WaitMessage( PNotifier, Request, TimeoutMS, TRUE, FALSE, OUT Handler, OUT Message, OUT Handle );
 
   Request^.HTask := winsock.WSAAsyncGetHostByName(
     Handler^.Handle, Message.Message,
@@ -183,7 +183,7 @@ BEGIN
   Request^.RequestId := RequestId;
   Request^.AddRef();
 
-  netpool.Pool()^.WaitMessage( PNotifier, Request, TimeoutMS, TRUE, OUT Handler, OUT Message, OUT Handle );
+  netpool.Pool()^.WaitMessage( PNotifier, Request, TimeoutMS, TRUE, FALSE, OUT Handler, OUT Message, OUT Handle );
 
   Request^.HTask := winsock.WSAAsyncGetHostByAddr(
      Handler^.Handle, Message.Message,

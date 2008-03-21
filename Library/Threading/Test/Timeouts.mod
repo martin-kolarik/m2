@@ -120,7 +120,7 @@ CLASS IMPLEMENTATION CTest;
          // reset, initiate
          FOR i := 1 TO count-2 DO
             Counts[count-i-1] := 0;
-            IF NOT Pool.WaitTimeout( ADR( Delegate ), count-i-1, ( count-i-1 ) * 500, FALSE, OUT PH[i] ) THEN
+            IF NOT Pool.WaitTimeout( ADR( Delegate ), count-i-1, ( count-i-1 ) * 500, FALSE, FALSE, OUT PH[i] ) THEN
                Host^.Log^.LogSC( log.dlcError, L"", L"Unable to run worker of index: ", i );
             END;
          END; // FOR

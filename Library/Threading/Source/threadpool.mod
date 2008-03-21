@@ -122,12 +122,13 @@ TYPE
   TPTask = POINTER TO CTask;
 
 CLASS CTask;
-  Task     : TTask;
-  Data     : PTR; // Handle, message, Worker
-  UserId   : PTR;
+  Task : TTask;
+  Data : PTR; // Handle, message, Worker
+  UserId : PTR;
   Delegate : TPPoolDelegate;
-  Timeout  : CARDINAL;
-  HWait    : Sync.SIGNAL;
+  Timeout : CARDINAL;
+  CompleteInOwningThread : BOOLEAN;
+  HWait : Sync.SIGNAL;
 END CTask;
 
 //================================================================================
@@ -210,6 +211,7 @@ BEGIN
   Delegate := NIL;
   Timeout := Sync.FOREVER;
   Data := NIL;
+  CompleteInOwningThread := FALSE;
   HWait := Sync.CreateSignal( FALSE, L'' );
 FINALLY
   IF Delegate <> NIL THEN
@@ -860,7 +862,7 @@ CLASS IMPLEMENTATION CThreadPool;
   
 //--------------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE WaitTimeout( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce : BOOLEAN; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
+  PUBLIC PROCEDURE WaitTimeout( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
   VAR
     MSG : TMessage;
     PoolThread : TPPoolThread;
@@ -884,6 +886,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG.Task^.UserId := UserId;
     MSG.Task^.Delegate := Delegate;
     MSG.Task^.Timeout := TimeoutMS;
+    MSG.Task^.CompleteInOwningThread := CompleteInOwningThread;
 
     // return value
     PoolHandle := MSG.Task^.HWait;
@@ -895,7 +898,7 @@ CLASS IMPLEMENTATION CThreadPool;
 
 //--------------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE WaitMessage( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce : BOOLEAN; OUT Handler : msghandler.TPMessageHandler; OUT Message : msghandler.Message; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
+  PUBLIC PROCEDURE WaitMessage( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; OUT Handler : msghandler.TPMessageHandler; OUT Message : msghandler.Message; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
   VAR
     MSG : TMessage;
     PoolThread : TPPoolThread;
@@ -920,6 +923,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG.Task^.Delegate := Delegate;
     MSG.Task^.Timeout := TimeoutMS;
     MSG.Task^.Data := PTR( MSG.Task^.HWait ) + msgqueue.WM_MQ_PROCESS;
+    MSG.Task^.CompleteInOwningThread := CompleteInOwningThread;
 
     // return values
     PoolHandle := MSG.Task^.HWait;
@@ -934,7 +938,7 @@ CLASS IMPLEMENTATION CThreadPool;
 
 //--------------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE WaitHandle( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce : BOOLEAN; Handle : windows.HANDLE; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
+  PUBLIC PROCEDURE WaitHandle( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; Handle : windows.HANDLE; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
   VAR
     MSG : TMessage;
     PoolThread : TPPoolThread;
@@ -959,6 +963,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG.Task^.Delegate := Delegate;
     MSG.Task^.Timeout := TimeoutMS;
     MSG.Task^.Data := Handle;
+    MSG.Task^.CompleteInOwningThread := CompleteInOwningThread;
 
     // return value
     PoolHandle := MSG.Task^.HWait;
@@ -971,7 +976,7 @@ CLASS IMPLEMENTATION CThreadPool;
 
 //--------------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE RunWorker( CONST Delegate : TPPoolDelegate; UserId : PTR; ForceSelfThread : BOOLEAN; Worker : TPPoolWorker; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
+  PUBLIC PROCEDURE RunWorker( CONST Delegate : TPPoolDelegate; UserId : PTR; ForceSelfThread : BOOLEAN; Worker : TPPoolWorker; CompleteInOwningThread : BOOLEAN; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
   VAR
     MSG : TMessage;
     PoolThread : TPPoolThread;
@@ -993,6 +998,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG.Task^.Delegate := Delegate;
     MSG.Task^.Timeout := 0;
     MSG.Task^.Data := Worker;
+    MSG.Task^.CompleteInOwningThread := CompleteInOwningThread;
 
     // return value
     PoolHandle := MSG.Task^.HWait;
@@ -1066,7 +1072,15 @@ CLASS IMPLEMENTATION CThreadPool;
   BEGIN
     IF Task^.Delegate = NIL THEN
       RETURN TRUE;
-    ELSIF NOT CompletionInOwningThread OR SelfContext THEN
+    ELSIF ( CompletionInOwningThread OR Task^.CompleteInOwningThread ) AND NOT SelfContext THEN
+      LMSG.Operation := topOnCompletion;
+      LMSG.Result := Result;
+      LMSG.Task := Task;
+      LMSG.MSG := MSG;
+      LResult := MQueue.QueueOA( LMSG, TRUE, Sync.FORSAFETY ); 
+      ASSERT( LResult <> Sync.arTimeout );
+      RETURN FALSE;
+    ELSE
       CASE Task^.Task OF
       | tskTimeoutOnce, tskTimeoutRepeated :
         Task^.Delegate^.OnTimeout( Result, Task, Task^.UserId );
@@ -1078,14 +1092,6 @@ CLASS IMPLEMENTATION CThreadPool;
         Task^.Delegate^.OnWorker( Result, Task, Task^.UserId );
       END;
       RETURN TRUE;
-    ELSE
-      LMSG.Operation := topOnCompletion;
-      LMSG.Result := Result;
-      LMSG.Task := Task;
-      LMSG.MSG := MSG;
-      LResult := MQueue.QueueOA( LMSG, TRUE, Sync.FORSAFETY ); 
-      ASSERT( LResult <> Sync.arTimeout );
-      RETURN FALSE;
     END;
   END OnCompletion;
 

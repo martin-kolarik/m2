@@ -810,7 +810,7 @@ CLASS IMPLEMENTATION SSocket;
     IF Events = 0 THEN // chyba : WSAAsyncSelect neprojde, asi ten NIL, ci co, prozkoumat
       RETURN winsock.WSAAsyncSelect( Socket, NIL, 0, 0 );
     ELSIF _FDHandle = NIL THEN
-      netpool.Pool()^.WaitMessage( ADR( SELF ), 0, Sync.FOREVER, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
+      netpool.Pool()^.WaitMessage( ADR( SELF ), 0, Sync.FOREVER, FALSE, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
     END;
     RETURN winsock.WSAAsyncSelect( Socket, _FDMessager^.Handle, _FDMessage.Message, Events );
   END Select;
@@ -1484,7 +1484,7 @@ CLASS IMPLEMENTATION DSocket;
     MSG : msghandler.Message;
   BEGIN
     IF _FDHandle = NIL THEN
-      netpool.Pool()^.WaitMessage( ADR( SELF ), 0, Sync.FOREVER, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
+      netpool.Pool()^.WaitMessage( ADR( SELF ), 0, Sync.FOREVER, FALSE, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
     END;
     MSG := _FDMessage;
     MSG[2] := PTR( Operation );
@@ -1819,7 +1819,7 @@ CLASS IMPLEMENTATION DSocket;
       netpool.Pool()^.Abort( REF Timeout[Operation] );
     END;
     IF _Timeout <> Sync.FOREVER THEN
-      netpool.Pool()^.WaitTimeout( ADR( SELF ), PTR( Operation ), _Timeout, TRUE, OUT Timeout[Operation] );
+      netpool.Pool()^.WaitTimeout( ADR( SELF ), PTR( Operation ), _Timeout, TRUE, FALSE, OUT Timeout[Operation] );
     END;
   END StartTimeout;
 

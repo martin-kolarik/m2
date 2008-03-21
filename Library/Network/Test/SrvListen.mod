@@ -84,7 +84,7 @@ CLASS IMPLEMENTATION CTest;
       // run
       netsrv.StartListen( netsocket.stStream, 4444, NIL, ADR( Listener ), 0, NIL );
       netsrv.StartListen( netsocket.stDatagram, 4444, NIL, ADR( Listener ), 0, ADR( S ));
-      netsrv.StopListenSocket( OUT S );
+      netsrv.StopListenSocket( REF S );
       netsrv.StopListenPort( netsocket.stStream, 4444 );
       netsrv.StartListen( netsocket.stStream, 4445, NIL, ADR( Listener ), 500, ADR( S ));
       // wait
@@ -104,7 +104,7 @@ CLASS IMPLEMENTATION CTest;
       // run
       netsrv.StartListen( netsocket.stStream, 4444, NIL, ADR( Listener ), 0, NIL );
       netsrv.StartListen( netsocket.stDatagram, 4444, NIL, ADR( Listener ), 0, ADR( S ));
-      netsrv.StopListenSocket( OUT S );
+      netsrv.StopListenSocket( REF S );
       netsrv.StopListenPort( netsocket.stStream, 4444 );
       netsrv.StartListen( netsocket.stStream, 4445, NIL, ADR( Listener ), 500, ADR( S ));
       // wait
