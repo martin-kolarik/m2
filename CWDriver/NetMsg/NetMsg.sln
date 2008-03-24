@@ -23,6 +23,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Text", "..\..\Library\Text\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DeviceIO", "..\..\Library\DeviceIO\DeviceIO.vcproj", "{A60809F1-641F-4ED7-9128-C41E7A6A9580}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ActiveX", "..\..\Library\ActiveX\ActiveX.vcproj", "{57418949-0922-46EC-824B-ED7B59897F4C}"
+EndProject
 Global
 	GlobalSection(TextTemplating) = postSolution
 		TextTemplating = 1
@@ -76,6 +78,10 @@ Global
 		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Debug|Win32.Build.0 = Debug|Win32
 		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Release|Win32.ActiveCfg = Release|Win32
 		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Release|Win32.Build.0 = Release|Win32
+		{57418949-0922-46EC-824B-ED7B59897F4C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{57418949-0922-46EC-824B-ED7B59897F4C}.Debug|Win32.Build.0 = Debug|Win32
+		{57418949-0922-46EC-824B-ED7B59897F4C}.Release|Win32.ActiveCfg = Release|Win32
+		{57418949-0922-46EC-824B-ED7B59897F4C}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
