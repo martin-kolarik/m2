@@ -31,7 +31,7 @@ TYPE
 //================================================================================
 
 TYPE
-   TExceptionItemType = ( eitRead, eitWrite, eitPollStatus, eitProgram );
+   TExceptionItemType = ( eitRead, eitWrite, eitPollStatus, eitParam );
    TPExceptionItem = POINTER TO ExceptionItem;
 
 CLASS ExceptionItem;
@@ -154,7 +154,7 @@ CLASS IMPLEMENTATION CDriver;
    BEGIN
       Dali.Run();
       IF PollTimer = NIL THEN
-         // netpool.Pool()^.WaitTimeout( PollSink, 0, 1000, FALSE, TRUE, OUT PollTimer );
+         netpool.Pool()^.WaitTimeout( PollSink, 0, 1000, FALSE, TRUE, OUT PollTimer );
       END;
    END Run;
 
@@ -304,20 +304,30 @@ CLASS IMPLEMENTATION CDriver;
       
       //-----
 
-      PROCEDURE ProgramItem( command : DaliSci.TDaliCommand; REF S3 : ARRAY OF WCHAR ) : BOOLEAN;
+      PROCEDURE ProgramItem( command : DaliSci.TDaliCommand; LimitTo15Steps : BOOLEAN; REF S3 : ARRAY OF WCHAR ) : BOOLEAN;
       VAR
          c : CARDINAL;
       BEGIN
          IF S3[0] = 0W THEN
             RETURN TRUE;
-         ELSIF NOT Strings.ToCARD32W( S3, 10, OUT c ) OR ( c > 255 ) THEN
-            CS.FromOA( L'error: bad power on level' );
+         ELSIF NOT Strings.ToCARD32W( S3, 10, OUT c ) THEN
+            IF LimitTo15Steps THEN
+               CS.FromOA( L'error: bad fade time/fade rate level' );
+            ELSE
+               CS.FromOA( L'error: bad light level' );
+            END;
+            RETURN FALSE;
+         ELSIF LimitTo15Steps AND ( c > 15 ) THEN
+            CS.FromOA( L'error: fade time/fade rate level too big' );
+            RETURN FALSE;
+         ELSIF NOT LimitTo15Steps AND ( c > 255 ) THEN
+            CS.FromOA( L'error: light level too big' );
             RETURN FALSE;
          ELSE
-            IF NOT Send( eitProgram, address, DaliSci.cmdLoadDTR, c ) THEN
+            IF NOT Send( eitParam, address, DaliSci.cmdLoadDTR, c ) THEN
                RETURN FALSE;
             END;
-            IF NOT Send( eitProgram, address, command, 0 ) THEN
+            IF NOT Send( eitParam, address, command, 0 ) THEN
                RETURN FALSE;
             END;
             i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S3 ); Strings.TrimW( REF S3 );
@@ -362,7 +372,7 @@ CLASS IMPLEMENTATION CDriver;
                            CS.AppendOA( L"off " );
                         END;
                         IF 002H AND ExceptionItem^.Value <> 0 THEN
-                           CS.AppendOA( L"lamp_failure" );
+                           CS.AppendOA( L"lamp_failure " );
                         END;
                         IF 080H AND ExceptionItem^.Value <> 0 THEN
                            CS.AppendOA( L"power_failure " );
@@ -374,7 +384,7 @@ CLASS IMPLEMENTATION CDriver;
                            CS.AppendOA( L"initstate " );
                         END;
                         IF 010H AND ExceptionItem^.Value <> 0 THEN
-                           CS.AppendOA( L"fading " );
+                           CS.AppendOA( L"fading" );
                         END;
 
                      ELSE
@@ -395,6 +405,15 @@ CLASS IMPLEMENTATION CDriver;
                   ELSE
                      CS.AppendOA( L"error" );
                   END;
+
+               | eitParam :
+                  CS.FromOA( "param " ); CS.AppendOA( N ); CS.AppendOA( L" " ); 
+                  IF ExceptionItem^.Result = Sync.arTimeout THEN
+                     CS.AppendOA( L"timeout" );
+                  ELSE
+                     CS.AppendOA( L"error" );
+                  END;
+
                END; // CASE
 
                DISPOSE( ExceptionItem );
@@ -515,22 +534,35 @@ CLASS IMPLEMENTATION CDriver;
          address.Address := c;
 
          // S3 already contains power on level
-         IF NOT ProgramItem( DaliSci.cmdDTRToPowerOn, REF S3 ) THEN
+         IF NOT ProgramItem( DaliSci.cmdDTRToPowerOn, FALSE, REF S3 ) THEN
             GOTO Error;
          END;
-         IF NOT ProgramItem( DaliSci.cmdDTRToFail, REF S3 ) THEN
+         IF NOT ProgramItem( DaliSci.cmdDTRToFail, FALSE, REF S3 ) THEN
             GOTO Error;
          END;
-         IF NOT ProgramItem( DaliSci.cmdDTRToMin, REF S3 ) THEN
+         IF NOT ProgramItem( DaliSci.cmdDTRToMin, FALSE, REF S3 ) THEN
             GOTO Error;
          END;
-         IF NOT ProgramItem( DaliSci.cmdDTRToMax, REF S3 ) THEN
+         IF NOT ProgramItem( DaliSci.cmdDTRToMax, FALSE, REF S3 ) THEN
             GOTO Error;
          END;
-         IF NOT ProgramItem( DaliSci.cmdDTRToFadeRate, REF S3 ) THEN
+         IF NOT ProgramItem( DaliSci.cmdDTRToFadeRate, TRUE, REF S3 ) THEN
             GOTO Error;
          END;
-         IF NOT ProgramItem( DaliSci.cmdDTRToFadeTime, REF S3 ) THEN
+         IF NOT ProgramItem( DaliSci.cmdDTRToFadeTime, TRUE, REF S3 ) THEN
+            GOTO Error;
+         END;
+         CS.Clear(); // return value
+
+      ELSIF EQUALS( S1, L'reset' )  THEN
+         IF NOT Strings.ToCARD32W( S2, 10, OUT c ) OR ( c > 63 ) THEN
+            CS.FromOA( L'error: bad device address' );
+            GOTO Error;
+         END;
+         address.Type := DaliSci.adrSingle;
+         address.Address := c;
+
+         IF NOT Send( eitWrite, address, DaliSci.cmdReset, 0 ) THEN
             GOTO Error;
          END;
          CS.Clear(); // return value
@@ -566,7 +598,7 @@ CLASS IMPLEMENTATION CDriver;
       CASE TExceptionItemType( LOPTRLONGWORD( ClientId )) OF
       | eitRead :
          // all reads are reported
-      | eitWrite, eitProgram :
+      | eitWrite, eitParam :
          IF Result = Sync.arCompleted THEN // successfull set/program is not reported
             RETURN;
          END;

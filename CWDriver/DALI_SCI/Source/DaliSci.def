@@ -19,6 +19,7 @@ TYPE
    TPICommunicatorSink = POINTER TO ICommunicatorSink;
 
 LOCAL INTERFACE ICommunicatorSink; // in-thread
+   LOCAL PROCEDURE OnSendable();
    LOCAL PROCEDURE OnTimeout();
    LOCAL PROCEDURE OnDaliData( Result : Sync.TAsyncResult; Data : ARRAY OF BYTE );
 END ICommunicatorSink;
@@ -54,6 +55,13 @@ TYPE
       
       cmdLoadDTR = 0A3H
    );
+   
+   TDaliCommands = SET OF TDaliCommand;
+   
+CONST
+   repeatedCommands = TDaliCommands{
+      cmdDTRToMax, cmdDTRToMin, cmdDTRToFail, cmdDTRToPowerOn, cmdDTRToFadeTime, cmdDTRToFadeRate
+   };
 
 (*-------------------------------------------------------------------------------*)
 
@@ -95,6 +103,7 @@ CLASS CDali IMPLEMENTS ICommunicatorSink;
    // completes immediatelly or results to IEventSink callback
    
    // ICommunicationSink -- in thread
+   LOCAL VIRTUAL PROCEDURE OnSendable();
    LOCAL VIRTUAL PROCEDURE OnTimeout();
    LOCAL VIRTUAL PROCEDURE OnDaliData( Result : Sync.TAsyncResult; Data : ARRAY OF BYTE );
 

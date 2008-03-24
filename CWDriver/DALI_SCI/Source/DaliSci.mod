@@ -7,19 +7,26 @@ IMPORT
    netpool,
    Strings,
    Sync,
-   threadpool;
+   threadpool,
+   time;
 
 (*===============================================================================*)
 
 CLASS CUDPCommunicator( netsrv.AListener ) IMPLEMENTS threadpool.ITimeoutSink;
+   CONST
+      timerTimeout = 1;
+      timerDelay = 2;
    PRIVATE VAR
       Address : netsocket.INETADDR;
       ListenPort : CARDINAL;
       Socket : netsocket.TPSSocket := NIL;
       TimerSink : threadpool.TPSinkDelegate;
       Timeout : Sync.WAITABLE;
+      Delay : Sync.WAITABLE;
+      LastSend : CARDINAL;
    LOCAL VAR
       EventSink : TPICommunicatorSink;
+      InterPacketDelay : CARDINAL;
       
    TYPE
       TDaliSciPacket = ARRAY [0..7] OF BYTE; // 4 bytes SCI, 3 bytes DALI, 1 SCI XOR byte
@@ -85,12 +92,21 @@ CLASS IMPLEMENTATION CUDPCommunicator;
    PUBLIC PROCEDURE SendDaliData( Data : ARRAY OF BYTE ) : Sync.TAsyncResult;
    VAR
       i : CARDINAL;
+      delay : INTEGER;
       SendData : TDaliSciPacket := TDaliSciPacket( 0A3H, 0, 0, 0, 0, 0, 0, 0 );
       xor : BYTE;
    BEGIN
       IF Socket = NIL THEN
          RETURN Sync.arCannotStart;
       END;
+      delay := INTEGER( time.UptimeMS() - LastSend );
+      IF ( InterPacketDelay > 0 ) AND ( delay < INTEGER( InterPacketDelay )) THEN // wait
+         IF Delay = NIL THEN
+            netpool.Pool()^.WaitTimeout( TimerSink, timerDelay, delay, TRUE, TRUE, OUT Timeout );
+         END;   
+         RETURN Sync.arAlreadyPending;
+      END;
+      LastSend := time.UptimeMS();
 
       // copy data and compute xor
       xor := SendData[0];
@@ -107,10 +123,10 @@ CLASS IMPLEMENTATION CUDPCommunicator;
          netpool.Pool()^.Abort( REF Timeout );
       END;
       IF Timeout = NIL THEN
-         netpool.Pool()^.WaitTimeout( TimerSink, 0, 200, TRUE, TRUE, OUT Timeout );
+         netpool.Pool()^.WaitTimeout( TimerSink, timerTimeout, 200, TRUE, TRUE, OUT Timeout );
       END;
       
-      RETURN Socket^.SendTo6OA( SendData, Address );
+      RETURN Socket^.SendTo6OA( OA( 4 + HIGH( Data ) + 1, ADR( SendData )), Address );
    END SendDaliData;
 
 (*-------------------------------------------------------------------------------*)
@@ -131,8 +147,16 @@ CLASS IMPLEMENTATION CUDPCommunicator;
       ServerSocket^.ReceiveOA( OUT buffer, OUT l );
       IF l < 3 THEN // some damaged data
          RETURN;
-      ELSIF EventSink <> NIL THEN
-         IF ( buffer[0] <> 051H ) AND ( buffer[0] <> 052H ) THEN
+      ELSIF EventSink = NIL THEN
+         RETURN;
+      ELSE
+         CASE CARD8( buffer[0] ) OF
+         | 051H, 052H : // OK
+            // fall down
+         | 053H : // denial, device is busy
+            EventSink^.OnDaliData( Sync.arAlreadyPending, OA( -1, NIL ));
+            RETURN;
+         ELSE
             GOTO Error;   
          END;
       
@@ -157,8 +181,23 @@ CLASS IMPLEMENTATION CUDPCommunicator;
 
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
    BEGIN
+      IF UserId = timerTimeout THEN
+         IF PoolHandle <> Timeout THEN // previous queued timeout is ignored
+            RETURN;
+         END;
+         Timeout := NIL;
+      ELSIF UserId = timerDelay THEN
+         IF PoolHandle <> Delay THEN // previous queued delay is ignored
+            RETURN;
+         END;
+         Delay := NIL;
+      END;
       IF ( Result = Sync.arCompleted ) AND ( EventSink <> NIL ) THEN
-         EventSink^.OnTimeout();
+         IF UserId = timerTimeout THEN
+            EventSink^.OnTimeout();
+         ELSE
+            EventSink^.OnSendable();
+         END;
       END;
    END OnTimeout;
 
@@ -170,9 +209,19 @@ BEGIN
    NEW( TimerSink );
    TimerSink^.TimeoutSink := ADR( SELF );
    Timeout := NIL;
+   Delay := NIL;
+   LastSend := 0;
 
    EventSink := NIL;
+   InterPacketDelay := 0;
 FINALLY
+   IF Timeout <> NIL THEN
+      netpool.Pool()^.Abort( REF Timeout );
+   END;
+   IF Delay <> NIL THEN
+      netpool.Pool()^.Abort( REF Delay );
+   END;
+
    IF TimerSink <> NIL THEN
       TimerSink^.Release();
       TimerSink := NIL;
@@ -295,9 +344,10 @@ END DaliAddress;
 CLASS DaliRequest;
    LOCAL VAR
       Pending : BOOLEAN;
+      Repeated : BOOLEAN;
       Address : DaliAddress;
       Command : TDaliCommand;
-      Data    : CARD8;
+      Data : CARD8;
 END DaliRequest;
 
 (*-------------------------------------------------------------------------------*)
@@ -305,6 +355,7 @@ END DaliRequest;
 CLASS IMPLEMENTATION DaliRequest;
 BEGIN
    Pending := FALSE;
+   Repeated := FALSE;
    Command := cmdOff;
    Data := 0;
 END DaliRequest;
@@ -357,10 +408,20 @@ CLASS IMPLEMENTATION CDali;
       Request^.Address := daliAddress;
       Request^.Command := _Command;
       Request^.Data := Data;
+      Request^.Repeated := _Command IN repeatedCommands;
       Queue.Enqueue( Request, ClientId );
+      
       RETURN Communicate();
    END Command;
    
+(*-------------------------------------------------------------------------------*)
+
+   // ICommunicationSink -- in thread
+   LOCAL VIRTUAL PROCEDURE OnSendable();
+   BEGIN
+      Communicate();
+   END OnSendable;
+
 (*-------------------------------------------------------------------------------*)
 
    // ICommunicationSink -- in thread
@@ -378,19 +439,27 @@ CLASS IMPLEMENTATION CDali;
       Response : CARD8 := 0;
       Request : POINTER TO DaliRequest;
    BEGIN
-      IF Queue.Dequeue( OUT Request, OUT ClientId ) THEN
-         IF EventSink <> NIL THEN
-            IF Result = Sync.arCompleted THEN
-               IF ( Request^.Command <> cmdCurrentLevel ) OR ( Data[0] < 0FFH ) THEN
-                  Response := Data[0];
-               ELSE
-                  Response := 0;
-               END;
-            END;            
-            EventSink^.OnCompletion( Result, Request^.Command, ClientId, Request^.Address, Response );
+      IF Queue.GetFirst( OUT Request, OUT ClientId ) THEN
+         IF Result = Sync.arAlreadyPending THEN
+            Request^.Pending := FALSE; // allow new send
+         ELSIF Request^.Repeated THEN
+            Request^.Repeated := FALSE;   
+            Request^.Pending := FALSE; // allow new send for the second time
+         ELSE
+            Queue.Dequeue( OUT Request, OUT ClientId );
+            IF EventSink <> NIL THEN
+               IF Result = Sync.arCompleted THEN
+                  IF ( Request^.Command <> cmdCurrentLevel ) OR ( Data[0] < 0FFH ) THEN
+                     Response := Data[0];
+                  ELSE
+                     Response := 0;
+                  END;
+               END;            
+               EventSink^.OnCompletion( Result, Request^.Command, ClientId, Request^.Address, Response );
+            END;
+            DISPOSE( Request );
          END;
-         DISPOSE( Request );
-      END; // IF Dequeue
+      END; // IF something in the Queue
          
       Communicate();
    END OnDaliData;
@@ -425,7 +494,10 @@ CLASS IMPLEMENTATION CDali;
       END;
       
       Result := Communicator^.SendDaliData( DaliData );
-      IF Result IN Sync.arsStarts THEN
+      IF Result = Sync.arAlreadyPending THEN // data were not sent, communicator is busy
+         Request^.Pending := FALSE; // prepare next send after a tick
+         RETURN Sync.arPending;
+      ELSIF Result IN Sync.arsStarts THEN
          RETURN Sync.arPending;
       ELSE
          RETURN Result;
