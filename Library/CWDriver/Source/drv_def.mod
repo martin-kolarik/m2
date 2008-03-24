@@ -1523,7 +1523,7 @@ VAR
   l : CARDINAL;
 BEGIN
   IF DrvValue.Type <> vtDriverString THEN
-    ValueToStringW( DrvValue, TRUE, s );
+    ValueToStringW( DrvValue, DrvValueUFlag, s );
     RETURN;
   END;
   l := MIN2( DrvValue.ValDriverStringCharLength, HIGH( s ) + 1 );
@@ -1546,7 +1546,7 @@ VAR
   s : ARRAY [0..63] OF WCHAR;
 BEGIN
   IF DrvValue.Type <> vtDriverString THEN
-    ValueToStringW( DrvValue, TRUE, s );
+    ValueToStringW( DrvValue, DrvValueUFlag, s );
     CS.FromOA( s );
     RETURN;
   END;
@@ -1565,7 +1565,17 @@ PROCEDURE AssignDrvValueStringW( VAR DrvValue : TValue; DrvValueUFlag, TrimFlag 
 VAR
   l : CARDINAL;
 BEGIN
-  IF DrvValue.Type <> vtDriverString THEN
+  IF DrvValue.Type = vtPString256 THEN
+    IF DrvValue.ValPString256A = NIL THEN
+      NEW( DrvValue.ValPString256W ); // create bigger one with reserve for ANSI characters
+    END;
+    IF DrvValueUFlag THEN
+      ASSIGN( DrvValue.ValPString256W^, s );
+    ELSE
+      Strings.ToA( s, 0, OUT DrvValue.ValPString256A^ );
+    END;
+    RETURN TRUE;
+  ELSIF DrvValue.Type <> vtDriverString THEN
     RETURN TRUE;
   ELSE
     l := LENGTH( s );
@@ -1592,7 +1602,17 @@ PROCEDURE AssignDrvValueCStringW( REF DrvValue : TValue; DrvValueUFlag, TrimFlag
 VAR
   l : CARDINAL;
 BEGIN
-  IF DrvValue.Type <> vtDriverString THEN
+  IF DrvValue.Type = vtPString256 THEN
+    IF DrvValue.ValPString256A = NIL THEN
+      NEW( DrvValue.ValPString256W ); // create bigger one with reserve for ANSI characters
+    END;
+    IF DrvValueUFlag THEN
+      CS.ToOA( OUT DrvValue.ValPString256W^ );
+    ELSE
+      CS.ToOAA( 0, OUT DrvValue.ValPString256A^, OUT l );
+    END;
+    RETURN TRUE;
+  ELSIF DrvValue.Type <> vtDriverString THEN
     RETURN TRUE;
   ELSE
     l := CS.Length;
