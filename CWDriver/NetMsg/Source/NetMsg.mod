@@ -488,13 +488,13 @@ CLASS IMPLEMENTATION CDriver;
         IF TS.GetKeyStr( knDebugLevel, OUT ErrorLine, OUT cs ) THEN
             cs.ToOA( OUT s );
           IF EQUALS( s, kvDebugBasic ) THEN
-            DebugLevel := log.dlpIO;
+            DebugLevel := log.dldError;
           ELSIF EQUALS( s, kvDebugExtended ) THEN
-            DebugLevel := log.dlpCtrl;
+            DebugLevel := log.dldInfo;
           ELSIF EQUALS( s, kvDebugAllProtocol ) THEN
-            DebugLevel := log.dlpProtocol;
+            DebugLevel := log.dldTrace;
           ELSIF EQUALS( s, kvDebugAll ) THEN
-            DebugLevel := log.dlpAll;
+            DebugLevel := log.dldDebug;
           END;
         END;
       END;
@@ -818,7 +818,7 @@ CLASS IMPLEMENTATION CDriver;
         c := Events.Count;
         logger()^.LogSC( dldDebug, logPrefix, L"Event.Count ", c );
 
-        drv_def.AssignValueCardinal( OutValue, TRUE, c );
+        drv_def.AssignValueCardinal( OutValue, UFlag, TRUE, c );
         RETURN;
       
       ELSIF EQUALS( si, L'get' ) THEN
@@ -1434,7 +1434,7 @@ CLASS IMPLEMENTATION CDriver;
          ELSE
             INCL( RStatus, rsValid );
          END;
-         drv_def.AssignValueCardinal( InValue, TRUE, CARDINAL( RStatus * rssUser ));
+         drv_def.AssignValueCardinal( InValue, UFlag, TRUE, CARDINAL( RStatus * rssUser ));
 
       ELSIF NOT FieldToValue.Get( DriverIndex, OUT Value ) THEN
          ErrorCode := drv_def.ecUnknownElement;

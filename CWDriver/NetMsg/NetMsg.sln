@@ -21,6 +21,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "m2ortl", "..\..\Modula2\m2o
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Text", "..\..\Library\Text\Text.vcproj", "{6B0CFB37-444C-41F6-A62A-4EEEEDB5968C}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DeviceIO", "..\..\Library\DeviceIO\DeviceIO.vcproj", "{A60809F1-641F-4ED7-9128-C41E7A6A9580}"
+EndProject
 Global
 	GlobalSection(TextTemplating) = postSolution
 		TextTemplating = 1
@@ -70,6 +72,10 @@ Global
 		{6B0CFB37-444C-41F6-A62A-4EEEEDB5968C}.Debug|Win32.Build.0 = Debug|Win32
 		{6B0CFB37-444C-41F6-A62A-4EEEEDB5968C}.Release|Win32.ActiveCfg = Release|Win32
 		{6B0CFB37-444C-41F6-A62A-4EEEEDB5968C}.Release|Win32.Build.0 = Release|Win32
+		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Debug|Win32.ActiveCfg = Debug|Win32
+		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Debug|Win32.Build.0 = Debug|Win32
+		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Release|Win32.ActiveCfg = Release|Win32
+		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
