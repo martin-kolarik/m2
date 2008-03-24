@@ -954,7 +954,9 @@ CLASS IMPLEMENTATION CBufferedStream;
             Proxy := _RPending;
          ELSE
             Proxy := Sync.IGetPtr( REF Reader );
-            ASSERT(( Proxy <> NIL ) AND ( _RPending = NIL ));
+            // ASSERT(( Proxy <> NIL ) AND ( _RPending = NIL )); -- Here, ASSERT must be allowed as stream
+            // can be used as device-buffer + client-peeker. Thus, if client peeks and it does not read,
+            // no Reader neither _RPending is set.
          END;
          IF Proxy = NIL THEN
             _RLock.Unlock();

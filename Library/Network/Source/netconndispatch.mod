@@ -831,26 +831,31 @@ CLASS IMPLEMENTATION CDispatcher;
           END;
 
           WHILE b DO
-
-            CASE SELF.Connection OF
-            | ctStream :
-               MDatagram.Init( Message.SData, Message.SLen, FALSE );
-               NResult := Connection^.IWrite^.Write( ADR( MDatagram ), netsocket.FORSAFETY, TRUE );
-               ASSERT( NResult <> Sync.arTimeout );
-               WHILE MDatagram.References > 1 DO // see note in IOO.CDataProxy
-                  Sync.Sleep( 0 );
-               END; // WHILE
-            | ctDatagram :
-               WDatagram.Init( Message.SData, Message.SLen, FALSE );
-               NResult := Connection^.IWrite^.Write( ADR( WDatagram ), netsocket.FORSAFETY, TRUE );
-               ASSERT( NResult <> Sync.arTimeout );
-               WHILE WDatagram.References > 1 DO // see note in IOO.CDataProxy
-                  Sync.Sleep( 0 );
-               END; // WHILE
-            | ctLine :
-               Writer.Stream := Connection^.IWrite;
-               Writer.WriteM( PWCHAR( Message.SData ), Message.SLen >> 1, TRUE );
+  
+            IF Connection^.Connected THEN
+               CASE SELF.Connection OF
+               | ctStream :
+                  MDatagram.Init( Message.SData, Message.SLen, FALSE );
+                  NResult := Connection^.IWrite^.Write( ADR( MDatagram ), netsocket.FORSAFETY, TRUE );
+                  ASSERT( NResult <> Sync.arTimeout );
+                  WHILE MDatagram.References > 1 DO // see note in IOO.CDataProxy
+                     Sync.Sleep( 0 );
+                  END; // WHILE
+               | ctDatagram :
+                  WDatagram.Init( Message.SData, Message.SLen, FALSE );
+                  NResult := Connection^.IWrite^.Write( ADR( WDatagram ), netsocket.FORSAFETY, TRUE );
+                  ASSERT( NResult <> Sync.arTimeout );
+                  WHILE WDatagram.References > 1 DO // see note in IOO.CDataProxy
+                     Sync.Sleep( 0 );
+                  END; // WHILE
+               | ctLine :
+                  Writer.Stream := Connection^.IWrite;
+                  Writer.WriteM( PWCHAR( Message.SData ), Message.SLen >> 1, TRUE );
+               END;
+            ELSE
+               NResult := Sync.arCannotStart;
             END;
+
             IF Message.SPClient <> NIL THEN
               IF NResult IN Sync.arsCompletions THEN
                 Message.SPClient^.OnSent( Connection, Message.SPId, 0 );
