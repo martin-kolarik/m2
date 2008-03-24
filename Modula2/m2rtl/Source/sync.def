@@ -28,7 +28,8 @@ TYPE
       arTimeout, // completed after timeout
       arAborted, // abortion, the operation was stopped
       // errors
-      arAlreadyPending, // not started -- something is pending now
+      arAlreadyPending, // not started -- something is pending now (= busy)
+         arBusy = arAlreadyPending,
       arCannotStart // not started, no resources
    );
    TAsyncResults = SET OF TAsyncResult;
