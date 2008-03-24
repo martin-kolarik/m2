@@ -842,7 +842,13 @@ CLASS IMPLEMENTATION CThreadPool;
           DisposeThreads( TRUE );
         //---
         | topOnCompletion :
-          OnCompletion( Message.Result, Message.Task, Message.MSG );
+          IF OnCompletion( Message.Result, Message.Task, Message.MSG ) THEN
+            CASE Message.Task^.Task OF // all disposable once-repeated tasks must be cleared
+            | tskHandleOnce, tskMessageOnce, tskTimeoutOnce, tskWorker :
+              DISPOSE( Message.Task );
+            END; // CASE           
+          END;
+
         END; // CASE
       END; // WHILE
 
@@ -1083,13 +1089,13 @@ CLASS IMPLEMENTATION CThreadPool;
     ELSE
       CASE Task^.Task OF
       | tskTimeoutOnce, tskTimeoutRepeated :
-        Task^.Delegate^.OnTimeout( Result, Task, Task^.UserId );
+        Task^.Delegate^.OnTimeout( Result, Task^.HWait, Task^.UserId );
       | tskMessageOnce, tskMessageRepeated :
-        Task^.Delegate^.OnMessage( Result, Task, Task^.UserId, MSG );
+        Task^.Delegate^.OnMessage( Result, Task^.HWait, Task^.UserId, MSG );
       | tskHandleOnce, tskHandleRepeated :
-        Task^.Delegate^.OnHandle( Result, Task, Task^.UserId );
+        Task^.Delegate^.OnHandle( Result, Task^.HWait, Task^.UserId );
       | tskWorker :
-        Task^.Delegate^.OnWorker( Result, Task, Task^.UserId );
+        Task^.Delegate^.OnWorker( Result, Task^.HWait, Task^.UserId );
       END;
       RETURN TRUE;
     END;
