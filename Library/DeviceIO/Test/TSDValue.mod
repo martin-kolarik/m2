@@ -1,11 +1,11 @@
 MODULE TSDValue;
 
 IMPORT
-   sdvalue,
+   iovalue,
    StringsO,
    time;
    
-   PROCEDURE TryAll( REF v : sdvalue.Value );
+   PROCEDURE TryAll( REF v : iovalue.Value );
    VAR
       S : StringsO.CString;
    BEGIN
@@ -24,12 +24,12 @@ IMPORT
 	PROCEDURE wmain() : INTEGER;
 	#restore
 	VAR
-	   t : sdvalue.TSDValueType;
-	   v1, v2, v3 : sdvalue.Value;
+	   t : iovalue.TValueType;
+	   v1, v2, v3 : iovalue.Value;
 	   s : StringsO.CString;
 	BEGIN
-	   FOR t := sdvalue.sdtVoid TO sdvalue.sdtDate DO
-	      IF t <> sdvalue.sdtObject THEN
+	   FOR t := iovalue.vtVoid TO iovalue.vtDate DO
+	      IF t <> iovalue.vtObject THEN
 	         v1.Type := t;
 	         TryAll( REF v1 );
 	         v1.Undefined := FALSE;
@@ -38,29 +38,29 @@ IMPORT
 
 	   v2 := v1;
 
-	   v1.Type := sdvalue.sdtLong;
+	   v1.Type := iovalue.vtLong;
 	   v1.Long := 10;
 
       s.FromOA( L"10" );
-	   v2.Type := sdvalue.sdtString;
+	   v2.Type := iovalue.vtString;
 	   v2.String := s;
 	   
 	   IF v1 > v2 THEN END;
 	   IF v1 < v2 THEN END;
 	   
-	   v3.Type := sdvalue.sdtLong;
+	   v3.Type := iovalue.vtLong;
 	   v3 := v1 + v1;
-	   v3.Type := sdvalue.sdtString;
+	   v3.Type := iovalue.vtString;
 	   v3 := v2 + v2;
 	   v3 := v1 + v2;
 
-	   v3.Type := sdvalue.sdtLong;
+	   v3.Type := iovalue.vtLong;
 	   v3 := v1 - v1;
-	   v3.Type := sdvalue.sdtString;
+	   v3.Type := iovalue.vtString;
 	   v3 := v2 - v2;
 	   v3 := v1 - v2;
 	   
-	   v3.Type := sdvalue.sdtLong;
+	   v3.Type := iovalue.vtLong;
 	   v1.Long := 10;
 
 	   v3 := v1 * v1;

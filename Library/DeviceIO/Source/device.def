@@ -1,7 +1,7 @@
 DEFINITION MODULE device;
 
 IMPORT
-   objlib,
+   iobject,
 	io,
 	log,
 	ns;
@@ -11,7 +11,7 @@ IMPORT
 TYPE
    TPDevice = POINTER TO IDevice;
 
-INTERFACE IDevice( objlib.IObject ); // aka device driver
+INTERFACE IDevice( iobject.IObject ); // aka device driver
 	PROCEDURE NS() : ns.TPns;
 	PROCEDURE IO() : io.TPIO;
 	PROCEDURE Configure( CONST Source : ARRAY OF PTR; CONST Log : log.TPLogger ) : Sync.TAsyncResult;

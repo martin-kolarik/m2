@@ -4,7 +4,7 @@ IMPORT
   Scrambler;
   
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE wmain8() : INTEGER;
 #restore
 VAR
 	b, c : ARRAY [0..11] OF BYTE;
@@ -31,6 +31,6 @@ BEGIN
 	END;
 
 	RETURN 0;
-END wmain;
+END wmain8;
 
 END TScrambler.

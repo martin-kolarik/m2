@@ -8,9 +8,10 @@ IMPORT
   StringsO;
   
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE wmain3() : INTEGER;
 #restore
 VAR
+(*
 	i, j : CARDINAL;
 	item : Items.TPItem;
 	items : arrays.CPtrArray;
@@ -21,7 +22,9 @@ VAR
 	S : Store.CFileStorage;
 	I : Store.CINIFilter;
 	X : Store.CXMLFilter;
+*)	
 BEGIN
+(*
 	com.COMInit();
 	
 	S.Filters^.Add( ADR( I ), 0 );
@@ -89,7 +92,9 @@ BEGIN
 	S.Store( items );
 
 	com.COMDone();
+*)	
+	
 	RETURN 0;
-END wmain;
+END wmain3;
 
 END TStore.

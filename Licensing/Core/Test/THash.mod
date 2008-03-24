@@ -7,7 +7,7 @@ IMPORT
   windows;
   
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE wmain4() : INTEGER;
 #restore
 VAR
    c : CARD64;
@@ -17,7 +17,9 @@ VAR
 	
 	PROCEDURE out( h : CARD64 );
 	BEGIN
+	(*
      Strings.FromCARD64W( h, 16, OUT s ); Strings.ToA( s, 0, OUT sa ); FIO.WrStrA( f, sa ); FIO.WrLnA( f );
+   *)     
 	END out;
 
 BEGIN
@@ -42,6 +44,6 @@ BEGIN
    hash.hashs( L"SmartControl.NetMsg.Common", OUT c  ); out( c );
 
 	RETURN 0;
-END wmain;
+END wmain4;
 
 END THash.

@@ -4,7 +4,7 @@ IMPORT
   DiskInfo;
   
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE wmain6() : INTEGER;
 #restore
 VAR
   DI : DiskInfo.CDiskInfo;
@@ -14,6 +14,6 @@ BEGIN
 		DiskInfo.LoadDiskInfo( i, OUT DI );
 	END;
 	RETURN 0;
-END wmain;
+END wmain6;
 
 END TDiskInfo.

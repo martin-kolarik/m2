@@ -6,7 +6,7 @@ IMPORT
   time;
   
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE wmain5() : INTEGER;
 #restore
 VAR
    res : lec.CResult;
@@ -33,6 +33,6 @@ BEGIN
    END;
    
 	RETURN 0;
-END wmain;
+END wmain5;
 
 END TClient.

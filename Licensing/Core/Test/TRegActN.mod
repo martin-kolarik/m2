@@ -10,7 +10,7 @@ IMPORT
   windows;
   
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE wmain7() : INTEGER;
 #restore
 CONST
    cpid = L"SmartControl.Test";
@@ -47,6 +47,6 @@ BEGIN
    Number.Decode( so, REF AN );
 
 	RETURN 0;
-END wmain;
+END wmain7;
 
 END TRegActN.

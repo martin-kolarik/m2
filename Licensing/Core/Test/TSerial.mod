@@ -1,40 +1,45 @@
-MODULE TCoder;
+MODULE TSerial;
 
 IMPORT
   FIO,
-  Coder,
+  Number,
   Strings,
+  StringsO,
   windows;
   
 #save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
+PROCEDURE wmain2() : INTEGER;
 #restore
 CONST
    cpid = L"SmartControl.NetMsg.CWDriver";
 VAR
+   E : StringsO.CString;
 	f : FIO.File := windows.GetStdHandle( windows.STD_OUTPUT_HANDLE );
 	i : CARDINAL;
-	SN : Coder.CSerial;
+	SN : Number.CSerial;
 	s : ARRAY [0..255] OF WCHAR;
+	S : StringsO.CString;
 	sa : ARRAY [0..255] OF CHAR;
-	pid : ARRAY [0..63] OF WCHAR;
+	pid : StringsO.CString;
 BEGIN
+(*
+   S.FromOA( L"Martin" );
 
-   pid := cpid;
+   pid.FromOA( cpid );
 	FOR i := 67 TO 87 DO
 	   pid[0] := WCHAR( i );
 		SN.SetPId( pid );
 
-		Coder.Code( SN, OUT s ); Strings.ToA( s, 0, OUT sa ); FIO.WrStrA( f, sa );
+		Number.Code( SN, OUT s ); Strings.ToA( s, 0, OUT sa ); FIO.WrStrA( f, sa );
 		FIO.WrLnA( f );
-		
-		SN.SetOwner( L'Martin' );
-		Coder.Code( SN, OUT s ); Strings.ToA( s, 0, OUT sa ); FIO.WrStrA( f, sa );
+	
+		SN.SetOwner( S );
+		Number.Code( SN, OUT s ); Strings.ToA( s, 0, OUT sa ); FIO.WrStrA( f, sa );
 		FIO.WrLnA( f );
-		Coder.Decode( s, OUT SN );
-		SN.CheckOwner( L'Martin' );
-		SN.CheckOwner( L'martin' );
-		SN.SetOwner( L'' );
+		Number.Decode( s, OUT SN );
+		SN.CheckOwner( S );
+		SN.CheckOwner( S );
+		SN.SetOwner( E );
 		
 		FIO.WrLnA( f );
 	END; // FOR
@@ -43,21 +48,22 @@ BEGIN
 	FOR i := 67 TO 87 DO
 		SN.GOrd := i;
 
-		Coder.Code( SN, OUT s ); Strings.ToA( s, 0, OUT sa ); FIO.WrStrA( f, sa );
+		Number.Code( SN, OUT s ); Strings.ToA( s, 0, OUT sa ); FIO.WrStrA( f, sa );
 		FIO.WrLnA( f );
 		
-		SN.SetOwner( L'Martin' );
-		Coder.Code( SN, OUT s ); Strings.ToA( s, 0, OUT sa ); FIO.WrStrA( f, sa );
+		SN.SetOwner( S );
+		Number.Code( SN, OUT s ); Strings.ToA( s, 0, OUT sa ); FIO.WrStrA( f, sa );
 		FIO.WrLnA( f );
-		Coder.Decode( s, OUT SN );
-		SN.CheckOwner( L'Martin' );
-		SN.CheckOwner( L'martin' );
-		SN.SetOwner( L'' );
+		Number.Decode( s, OUT SN );
+		SN.CheckOwner( S );
+		SN.CheckOwner( S );
+		SN.SetOwner( E );
 		
 		FIO.WrLnA( f );
 	END; // FOR
+*)
 	
 	RETURN 0;
-END wmain;
+END wmain2;
 
-END TCoder.
+END TSerial.
