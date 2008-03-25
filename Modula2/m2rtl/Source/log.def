@@ -15,7 +15,9 @@ TYPE
    TRStatusItem = (
       rsDebugFile,
       rsDebugKernel,
-      rsTimeStamps
+      rsTimeStamps,
+      rsLevelInfo,
+      rsNameInfo
    );
    TRStatus = SET OF TRStatusItem;
 
@@ -69,7 +71,9 @@ CLASS CLogger;
    PUBLIC PROPERTY
       Method : TDebugMethod;
       Level : TDebugLevel; // what (and less) will be present in log
-      TimeStamps : BOOLEAN;
+      TimeStamps : BOOLEAN; // prints timestamps, default TRUE
+      Levels : BOOLEAN; // prints debug level of message, default TRUE
+      Names : BOOLEAN; // prints names/prefixes of message, default TRUE
       Buffered : BOOLEAN;
       BufferSize : CARDINAL; // default 256
       BufferMode : TBufferMode;

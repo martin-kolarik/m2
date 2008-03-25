@@ -173,6 +173,42 @@ CLASS IMPLEMENTATION CLogger;
 
 //---------------------------------------------------------
 
+   PUBLIC PROPERTY Levels GET : BOOLEAN;
+   BEGIN
+      RETURN rsLevelInfo IN RStatus;
+   END Levels;
+
+//---------------------------------------------------------
+
+   PUBLIC PROPERTY Levels SET( Value : BOOLEAN );
+   BEGIN
+      IF Value THEN
+         INCL( RStatus, rsLevelInfo );
+      ELSE
+         EXCL( RStatus, rsLevelInfo );
+      END;
+   END Levels;
+
+//---------------------------------------------------------
+
+   PUBLIC PROPERTY Names GET : BOOLEAN;
+   BEGIN
+      RETURN rsNameInfo IN RStatus;
+   END Names;
+
+//---------------------------------------------------------
+
+   PUBLIC PROPERTY Names SET( Value : BOOLEAN );
+   BEGIN
+      IF Value THEN
+         INCL( RStatus, rsNameInfo );
+      ELSE
+         EXCL( RStatus, rsNameInfo );
+      END;
+   END Names;
+
+//---------------------------------------------------------
+
    PUBLIC PROPERTY Buffered GET : BOOLEAN;
    BEGIN
       RETURN Buffer = NIL;
@@ -569,8 +605,8 @@ CLASS IMPLEMENTATION CLogger;
       END;
 
       S := Path;
-      lineFlag := ( Line <> 0 ) OR ( Line <> -1 );
-      colFlag := ( Col <> 0 ) OR ( Col <> -1 );
+      lineFlag := ( Line <> 0 ) AND ( Line <> -1 );
+      colFlag := ( Col <> 0 ) AND ( Col <> -1 );
       IF colFlag OR lineFlag THEN
          Strings.AppendW( REF S, L"(" );
          IF lineFlag THEN
@@ -609,9 +645,9 @@ CLASS IMPLEMENTATION CLogger;
    PUBLIC PROCEDURE BufferGetItem( Index : CARDINAL; OUT S : ARRAY OF WCHAR ) : BOOLEAN; // Index = 0 means first
    BEGIN
       IF Buffer = NIL THEN
-         RETURN Buffer^.GetItem( Index, OUT S );
-      ELSE
          RETURN FALSE;
+      ELSE
+         RETURN Buffer^.GetItem( Index, OUT S );
       END;
    END BufferGetItem;
 
@@ -630,28 +666,37 @@ CLASS IMPLEMENTATION CLogger;
   VAR
     dt : time.TDateTime;
     f : FIO.File;
+    leading : BOOLEAN := FALSE;
     SW : TString;
     SA : ARRAY [0..strlen-1] OF CHAR;
   BEGIN
+    SW := L"";
     IF rsTimeStamps IN RStatus THEN
+      leading := TRUE;
       time.GetCurrentUTCDateTime( dt );
       time.DateTimeToString( dt, L"[yyyy-MM-dd HH:mm:ss.fff] ", TRUE, TRUE, OUT SW );
-    ELSE
-      SW := L"";
     END;
-    CASE LoggedLevel OF
-    | dl1 : Strings.AppendW( REF SW, L"F " );
-    | dl2 : Strings.AppendW( REF SW, L"E " );
-    | dl3 : Strings.AppendW( REF SW, L"W " );
-    | dl4 : Strings.AppendW( REF SW, L"I " );
+    IF rsLevelInfo IN RStatus THEN
+      leading := TRUE;
+      CASE LoggedLevel OF
+      | dl1 : Strings.AppendW( REF SW, L"F " );
+      | dl2 : Strings.AppendW( REF SW, L"E " );
+      | dl3 : Strings.AppendW( REF SW, L"W " );
+      | dl4 : Strings.AppendW( REF SW, L"I " );
+      END;
     END;
-    IF Name[0] <> 0W THEN
-      Strings.AppendW( REF SW, Name );
+    IF rsNameInfo IN RStatus THEN
+      leading := TRUE;
+      IF Name[0] <> 0W THEN
+        Strings.AppendW( REF SW, Name );
+      END;
+      IF Prefix[0] <> 0W THEN
+        Strings.AppendW( REF SW, L"/" ); Strings.AppendW( REF SW, Prefix );
+      END;
     END;
-    IF Prefix[0] <> 0W THEN
-      Strings.AppendW( REF SW, L"/" ); Strings.AppendW( REF SW, Prefix );
+    IF leading THEN
+      Strings.AppendW( REF SW, L": " ); 
     END;
-    Strings.AppendW( REF SW, L": " ); 
     Strings.AppendW( REF SW, S ); 
 
     IF Buffer <> NIL THEN
@@ -715,7 +760,7 @@ CLASS IMPLEMENTATION CLogger;
       LLibraryName := LibraryName;
 
       // defaults
-      RStatus := TRStatus{rsDebugKernel, rsTimeStamps};
+      RStatus := TRStatus{rsDebugKernel, rsTimeStamps, rsNameInfo, rsLevelInfo};
       Strings.ConcatW( OUT DebugFile, LibraryName, L".log" );
       #if DEBUG #then
          DebugLevel := dl3;
@@ -798,7 +843,7 @@ CLASS IMPLEMENTATION CLogger;
 BEGIN
    DebugLock.Init( Sync.ltSpin, L"", FALSE );
 
-   RStatus := TRStatus{rsDebugKernel, rsTimeStamps};
+   RStatus := TRStatus{rsDebugKernel, rsTimeStamps, rsLevelInfo, rsNameInfo};
    #if DEBUG #then
       DebugLevel := dl3;
    #else
