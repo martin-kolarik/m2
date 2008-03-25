@@ -1,15 +1,23 @@
 IMPLEMENTATION MODULE DaliSci;
 
+IMPORT
+   winsock;
+
 FROM log IMPORT
-  dldError, dldInfo, dldTrace, dldDebug;
+   dldError, dldInfo, dldTrace, dldDebug;
+  
+FROM driver IMPORT
+   R;
 
 IMPORT
+   dns,
    Log,
    netsocket,
    netsrv,
    netpool,
    Strings,
    Sync,
+   Texts,
    threadpool,
    time;
 
@@ -77,6 +85,9 @@ CLASS IMPLEMENTATION CUDPCommunicator;
       IF Socket <> NIL THEN
          RETURN Sync.arAlreadyPending;
       END;
+
+      Logger^.LogSC( Log.dldTrace, logPrefix, L"Listening on port: ", ListenPort );
+
       Result := netsrv.StartListen( netsocket.stDatagram, ListenPort, NIL, ADR( SELF ), 0, ADR( Socket ));
       IF Result = 0 THEN
          RETURN Sync.arCompleted;
@@ -394,9 +405,57 @@ CLASS IMPLEMENTATION CDali;
 
 (*-------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE LoadConfiguration( CONST INI : INIFile.CINIFile; REF logger : log.CLogger ) : BOOLEAN;
+   PUBLIC PROCEDURE LoadConfiguration( CONST ClientName, ParFilePath : ARRAY OF WCHAR; CONST INI : INIFile.CINIFile; REF logger : log.CLogger ) : BOOLEAN;
+   CONST
+      delim = StringsO.WCHARS{ L' ', L':' };
+   CONST
+      snInterface        = L"interface";
+         knListenPort    = L"listen_port";
+         knDeviceAddress = L"moxa_device_address";
+   VAR
+      Addr : winsock.IN_ADDR;
+      cs : StringsO.CString;
+      i : CARDINAL;
+      line : CARDINAL;
+      listenPort : CARDINAL;
+      s1, s2 : ARRAY [0..255] OF WCHAR;
    BEGIN
-      Communicator^.SetSciDeviceAddress( "10.0.0.10:4001", 4001 );
+      IF NOT INI.SetSection( snInterface ) THEN
+         logger.LogFilePos( log.dlcError, ClientName, ParFilePath, OAsz( R()^[ Texts._MissingInterfaceSection ] ), 0, 0 );
+         RETURN FALSE;
+      END;
+
+      // listen port
+      IF NOT INI.GetKeyInt( knListenPort, OUT line, OUT listenPort ) THEN
+         logger.LogFilePos( log.dlcError, ClientName, ParFilePath, OAsz( R()^[ Texts._BadOrMissingListenPort ] ), line, 0 );
+         RETURN FALSE;
+      END;
+      
+      // device address
+      IF NOT INI.GetKeyStr( knDeviceAddress, OUT line, OUT cs ) THEN
+         logger.LogFilePos( log.dlcError, ClientName, ParFilePath, OAsz( R()^[ Texts._MissingDeviceAddress ] ), line, 0 );
+         RETURN FALSE;
+      END;
+      i := cs.ItemSOA( delim, 0, 0, TRUE, OUT s1 );
+      cs.ItemSOA( delim, i, 0, TRUE, OUT s2 );
+      IF s1[0] = 0W THEN
+         logger.LogFilePos( log.dlcError, ClientName, ParFilePath, OAsz( R()^[ Texts._BadDeviceAddress ] ), line, 0 );
+         RETURN FALSE;
+      ELSIF NOT dns.NameToAddressWait( s1, 2000, OUT Addr ) THEN
+         logger.LogFilePos( log.dlcError, ClientName, ParFilePath, OAsz( R()^[ Texts._UnableToGetDeviceAddress ] ), line, 0 );
+         RETURN FALSE;
+      END;
+      Strings.FromIPV4( Addr.s_addr, OUT s1 );
+      IF s2[0] <> 0W THEN
+         IF NOT Strings.ToCARD32W( s2, 10, OUT i ) THEN
+            logger.LogFilePos( log.dlcError, ClientName, ParFilePath, OAsz( R()^[ Texts._BadDeviceAddressPort ] ), line, 0 );
+            RETURN FALSE;
+         END;
+         Strings.AppendW( REF s1, L":" );
+         Strings.AppendW( REF s1, s2 );
+      END;
+
+      Communicator^.SetSciDeviceAddress( s1, listenPort );
    
       RETURN TRUE;
    END LoadConfiguration;

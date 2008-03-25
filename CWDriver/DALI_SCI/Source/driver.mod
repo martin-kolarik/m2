@@ -108,7 +108,7 @@ CLASS IMPLEMENTATION CDriver;
          RETURN FALSE;
       END;
 
-      IF NOT Dali.LoadConfiguration( TS, REF Log ) THEN
+      IF NOT Dali.LoadConfiguration( ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), TS, REF Log ) THEN
          RETURN FALSE;
       END;
    

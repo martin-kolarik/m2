@@ -192,6 +192,10 @@ VAR
    lg : log.CLogger;
    b : BOOLEAN;
 BEGIN
+   lg.TimeStamps := FALSE;
+   lg.Levels := FALSE;
+   lg.Names := FALSE;
+   lg.Method := log.dmNone;
    lg.BufferSize := 1;
    lg.BufferMode := log.bmStoreFirst;
    ErrorColumn := 0;
@@ -216,6 +220,10 @@ VAR
    lg : log.CLogger;
    b : BOOLEAN;
 BEGIN
+   lg.TimeStamps := FALSE;
+   lg.Levels := FALSE;
+   lg.Names := FALSE;
+   lg.Method := log.dmNone;
    lg.BufferSize := 1;
    lg.BufferMode := log.bmStoreFirst;
    ErrorColumn := 0;

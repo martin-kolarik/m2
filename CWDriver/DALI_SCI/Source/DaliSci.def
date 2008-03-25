@@ -95,7 +95,7 @@ CLASS CDali IMPLEMENTS ICommunicatorSink;
    PUBLIC PROCEDURE Dispose();
 
    // client commands
-   PUBLIC PROCEDURE LoadConfiguration( CONST INI : INIFile.CINIFile; REF logger : log.CLogger ) : BOOLEAN;
+   PUBLIC PROCEDURE LoadConfiguration( CONST ClientName, ParFilePath : ARRAY OF WCHAR; CONST INI : INIFile.CINIFile; REF logger : log.CLogger ) : BOOLEAN;
    
    PUBLIC PROCEDURE Run() : Sync.TAsyncResult;
    PUBLIC PROCEDURE Stop();

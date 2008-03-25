@@ -15,11 +15,6 @@ driver
 end_driver;
 
 data
-
-  channel {driver = dali; direction = input};
-     status : longcard {driver_index = 1};
-  end_channel;
-
 end_data;
 
 instrument
@@ -29,7 +24,7 @@ instrument
 
     procedure OnActivate();
     begin
-      core.DebugOutput( 'ST: ', status );
+      core.DebugOutput( 'ST: ', dali.1 );
     end_procedure;
 
   end_program;

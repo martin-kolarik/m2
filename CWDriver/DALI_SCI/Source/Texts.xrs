@@ -28,16 +28,40 @@
             <item lang="cs-CZ">Chyba při otevření konfiguračního souboru</item>
         </string>
         <string name="_UnknownDebugMode">
-            <item lang="en-US">Bad or unknown debug_mode</item>
-            <item lang="cs-CZ">Chybný nebo neznámý způsob logování (debug_mode)</item>
+            <item lang="en-US">Bad or unknown "debug_mode"</item>
+            <item lang="cs-CZ">Chybný nebo neznámý způsob logování ("debug_mode")</item>
         </string>
         <string name="_UnknownDebugLevel">
-            <item lang="en-US">Bad or unknown debug_level</item>
-            <item lang="cs-CZ">Chybná nebo neznámá úroveň logování (debug_level)</item>
+            <item lang="en-US">Bad or unknown "debug_level"</item>
+            <item lang="cs-CZ">Chybná nebo neznámá úroveň logování ("debug_level")</item>
         </string>
         <string name="_FileDebugMissingFile">
-            <item lang="en-US">Missing debug_file key for debug_mode = file</item>
-            <item lang="cs-CZ">Chybí klíč debug_file pro debug_mode = file</item>
+            <item lang="en-US">Missing "debug_file" key for "debug_mode = file"</item>
+            <item lang="cs-CZ">Chybí klíč "debug_file" pro "debug_mode = file"</item>
+        </string>
+        <string name="_MissingInterfaceSection">
+            <item lang="en-US">Missing "interface" section</item>
+            <item lang="cs-CZ">Chybí sekce "interface"</item>
+        </string>
+        <string name="_BadOrMissingListenPort">
+            <item lang="en-US">"listen_port" parameter is missing or it is malformed</item>
+            <item lang="cs-CZ">Parametr "listen_port" chybí, nebo je špatně zapsán</item>
+        </string>
+        <string name="_MissingDeviceAddress">
+            <item lang="en-US">"moxa_device_address" parameter is missing</item>
+            <item lang="cs-CZ">Chybí parametr "moxa_device_address"</item>
+        </string>
+        <string name="_BadDeviceAddress">
+            <item lang="en-US">"moxa_device_address" parameter is bad</item>
+            <item lang="cs-CZ">Parametr "moxa_device_address" není správně zapsán</item>
+        </string>
+        <string name="_BadDeviceAddressPort">
+            <item lang="en-US">Port of "moxa_device_address" is bad</item>
+            <item lang="cs-CZ">Port parametru "moxa_device_address" není správně zapsán</item>
+        </string>
+        <string name="_UnableToGetDeviceAddress">
+            <item lang="en-US">Device address cannot be obtained</item>
+            <item lang="cs-CZ">Adresu zařízení Moxa nelze zjistit</item>
         </string>
 
         <comment>Descriptions</comment> 

@@ -1,0 +1,10 @@
+[device]
+status_channel = 1
+
+[debug]
+debug_mode = kernel
+
+[interface]
+listen_port = 4001
+moxa_device_address = 10.0.0.10:4001
+
