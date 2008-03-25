@@ -319,6 +319,38 @@ CLASS IMPLEMENTATION CLogger;
 
 //---------------------------------------------------------
 
+  PUBLIC PROCEDURE LogSR( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; Result : Sync.TAsyncResult );
+  VAR
+    S : TString;
+  BEGIN
+    IF Filtered( Level ) THEN
+      RETURN;
+    END;
+    CASE Result OF
+    | Sync.arUnknown :
+       Strings.ConcatW( OUT S, S1, L"!unknown" );
+    | Sync.arCompleted :
+       Strings.ConcatW( OUT S, S1, L"completed" );
+    | Sync.arPartCompleted :
+       Strings.ConcatW( OUT S, S1, L"completed partialy" );
+    | Sync.arNoData :
+       Strings.ConcatW( OUT S, S1, L"no data" );
+    | Sync.arPending :
+       Strings.ConcatW( OUT S, S1, L"pending" );
+    | Sync.arTimeout :
+       Strings.ConcatW( OUT S, S1, L"timeout" );
+    | Sync.arAborted :
+       Strings.ConcatW( OUT S, S1, L"aborted" );
+    | Sync.arAlreadyPending :
+       Strings.ConcatW( OUT S, S1, L"already pending (busy)" );
+    | Sync.arCannotStart :
+       Strings.ConcatW( OUT S, S1, L"cannot start" );
+    END;
+    Log( Level, Prefix, S );
+  END LogSR;
+
+//---------------------------------------------------------
+
   PUBLIC PROCEDURE LogSC( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL );
   VAR
     N : TNum;

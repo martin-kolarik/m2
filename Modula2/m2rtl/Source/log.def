@@ -86,6 +86,7 @@ CLASS CLogger;
    PUBLIC PROCEDURE LogS( Level : TDebugLevel; Prefix, S : ARRAY OF WCHAR );
    PUBLIC PROCEDURE LogSS( Level : TDebugLevel; Prefix, S1, S2 : ARRAY OF WCHAR );
    PUBLIC PROCEDURE LogSE( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; ErrorCode : CARDINAL );
+   PUBLIC PROCEDURE LogSR( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; Result : Sync.TAsyncResult );
    PUBLIC PROCEDURE LogSC( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL );
    PUBLIC PROCEDURE LogSH( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL );
    PUBLIC PROCEDURE LogSP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; P : PTR );
