@@ -63,7 +63,7 @@ CONST
 	INADDR_ALL       = winsock.IN_ADDR( 0, 255, 255, 255, 255 ); // local broadcast
 
 CONST // time	
-	FORSAFETY        = Sync.FORSAFETY;
+	FORSAFETY        = 34543;
 
 TYPE
   TPSSocket = POINTER TO SSocket;
