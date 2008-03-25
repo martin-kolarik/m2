@@ -90,6 +90,7 @@ CLASS CDali IMPLEMENTS ICommunicatorSink;
       Queue : lists.CPtrList;
    PUBLIC VAR
       EventSink : POINTER TO IDaliEventSink;
+      Logger : log.CLogger;
 
    PUBLIC PROCEDURE Dispose();
 

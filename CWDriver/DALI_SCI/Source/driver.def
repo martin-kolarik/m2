@@ -18,11 +18,24 @@ TYPE
    TPDriver = POINTER TO CDriver;
 
 CONST // device specific error codes
-   ceDeviceUnplugged = 10001H;
-   ceLine_Timeout    = 10005H;
+   ceLine_Timeout    = 10001H;
+
+TYPE
+   TStatusChannelItem = (
+      schiRunning,
+      schiValid,
+      schiEventsPending
+   );
+   TStatusChannel = SET OF TStatusChannelItem;
+
+CONST
+   schUser = TStatusChannel{schiRunning, schiValid, schiEventsPending};
+   
+//================================================================================
 
 CLASS CDriver IMPLEMENTS threadpool.ITimeoutSink, DaliSci.IDaliEventSink;
    PRIVATE VAR
+      RStatus       : TStatusChannel;
       ClientName    : ARRAY [0..63] OF WCHAR;
       CallbackId    : ADDRESS;
       CallbackProc  : drv_def.TDriverCallbackW;

@@ -15,9 +15,24 @@ driver
 end_driver;
 
 data
+
+  channel {driver = dali; direction = input};
+     status : longcard {driver_index = 1};
+  end_channel;
+
 end_data;
 
 instrument
+
+  program Status;
+    timer = 10.01;
+
+    procedure OnActivate();
+    begin
+      core.DebugOutput( 'ST: ', status );
+    end_procedure;
+
+  end_program;
 
   string_control string_control_2;
     owner = background;
@@ -49,7 +64,7 @@ instrument
           if Event = '' then
              exit;
           end;
-          core.DebugOutput( 'Event:   ', Event );
+          core.DebugOutput( 'Event: ', Event );
        end;
     end_procedure;
 

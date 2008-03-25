@@ -5,8 +5,12 @@ IMPLEMENTATION MODULE driver;
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE, Fill;
 
+FROM log IMPORT
+  dldTrace, dldDebug;
+
 IMPORT
    cllv,
+   FIO,
    FIOO,
    INIFile,
    IOO,
@@ -21,12 +25,8 @@ IMPORT
 
 //================================================================================
 
-TYPE
-   TStatusChannelItem = (
-      schiValid,
-      schiRun
-   );
-   TStatusChannel = SET OF TStatusChannelItem;
+CONST
+   logPrefix = L"DaliSci";
 
 //================================================================================
 
@@ -90,10 +90,6 @@ CLASS IMPLEMENTATION CDriver;
          RETURN FALSE;
       END;
 
-      IF NOT Dali.LoadConfiguration( TS, REF Log ) THEN
-         RETURN FALSE;
-      END;
-   
       StatusChannel := MAX( CARDINAL );
       IF TS.SetSection( snDevice ) THEN
          IF TS.GetKeyInt( knStatusChannel, OUT line, OUT c ) THEN
@@ -101,6 +97,21 @@ CLASS IMPLEMENTATION CDriver;
          END;
       END; // IF snDevice
 
+      Dali.Logger.SetUpByRegistry( LIBRARY );
+      CASE drv_def.ConfigureLog( TS, REF Dali.Logger, OUT line ) OF
+      | drv_def.clrUnknownDebugMode :
+         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._UnknownDebugMode ] ), line, 0 );
+      | drv_def.clrUnknownDebugLevel :
+         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._UnknownDebugLevel ] ), line, 0 );
+      | drv_def.clrFileDebugMissingFile :
+         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._FileDebugMissingFile ] ), line, 0 );
+         RETURN FALSE;
+      END;
+
+      IF NOT Dali.LoadConfiguration( TS, REF Log ) THEN
+         RETURN FALSE;
+      END;
+   
       RETURN TRUE;
    END ReadParameters;
 
@@ -122,7 +133,7 @@ CLASS IMPLEMENTATION CDriver;
             RETURN FALSE;
          END;
          Type := CARDINAL( drv_def.vtLongCard );
-         Direction := CARDINAL( drv_def.dirInput );
+         Direction := CARDINAL( drv_def.TDirection{ drv_def.dirInput } );
          DriverIndex := StatusChannel;
       ELSE
          RETURN FALSE;
@@ -151,8 +162,22 @@ CLASS IMPLEMENTATION CDriver;
 //--------------------------------------------------------------------------------
 
    PUBLIC PROCEDURE Run();
+   VAR
+      s : FIO.PathStrW;
    BEGIN
+      IF schiRunning IN RStatus THEN
+         RETURN;
+      END;
+      INCL( RStatus, schiRunning );
+      
+      Dali.Logger.LogS( log.dldError, logPrefix, L"RUN" );
+
+      Result.Reset( lec.bhBestCase );
+      FIO.GetModuleDirW( EMITW( %dll ), OUT s );
+      lec.QueryData( s, L"", ADR( cllv.data ), cllv.length, REF Result );
+
       Dali.Run();
+
       IF PollTimer = NIL THEN
          netpool.Pool()^.WaitTimeout( PollSink, 0, 1000, FALSE, TRUE, OUT PollTimer );
       END;
@@ -162,9 +187,17 @@ CLASS IMPLEMENTATION CDriver;
 
    PUBLIC PROCEDURE Stop();
    BEGIN
+      IF schiRunning NOT IN RStatus THEN
+         RETURN;
+      END;
+      EXCL( RStatus, schiRunning );
+
+      Dali.Logger.LogS( log.dldError, logPrefix, L"STOP" );
+
       IF PollTimer <> NIL THEN
          netpool.Pool()^.Abort( REF PollTimer );
       END;
+
       Dali.Stop();
    END Stop;
 
@@ -229,6 +262,7 @@ CLASS IMPLEMENTATION CDriver;
          QoS := drv_def.qosGood;
          ErrorCode := drv_def.ecSuccess;
 
+         Status := RStatus * schUser;
          IF Result.Counted OR Result.Expired THEN
             EXCL( Status, schiValid );
          ELSE
@@ -262,7 +296,7 @@ CLASS IMPLEMENTATION CDriver;
 
    PUBLIC PROCEDURE OutputFinalized( DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
    BEGIN
-      IF Result.Expired OR Result.Counted THEN
+      IF Result.Counted OR Result.Expired THEN
          RETURN FALSE;
       END;
       RETURN TRUE;
@@ -272,7 +306,7 @@ CLASS IMPLEMENTATION CDriver;
 
    PUBLIC PROCEDURE QueryProc( UFlag : BOOLEAN; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
    LABEL
-      Error;
+      Error, Success;
    VAR
       address : DaliSci.DaliAddress;
       c : CARDINAL;
@@ -293,6 +327,14 @@ CLASS IMPLEMENTATION CDriver;
       VAR
          AsyncResult : Sync.TAsyncResult;
       BEGIN
+         IF Result.Counted THEN
+            CS.Clear();
+            RETURN FALSE;
+         ELSIF Result.Expired THEN
+            CS.Clear();
+            RETURN FALSE;
+         END;
+
          AsyncResult := Dali.Command( address, command, CARD8( value ), PTR( type ));
          IF ( AsyncResult = Sync.arPending ) OR ( AsyncResult = Sync.arAlreadyPending ) THEN
             RETURN TRUE; // OK
@@ -346,13 +388,36 @@ CLASS IMPLEMENTATION CDriver;
       IF EQUALS( S1, L'event' ) THEN
 
          IF EQUALS( S2, L'count' ) THEN
-            drv_def.AssignValueCardinal( REF OutValue, UFlag, TRUE, Queue.Count );
+            c := Queue.Count;
+            drv_def.AssignValueCardinal( REF OutValue, UFlag, TRUE, c );
+
+            Dali.Logger.LogSC( dldDebug, logPrefix, L"Event.Count ", c );
             
          ELSIF EQUALS( S2, L'get' ) THEN
-            IF Queue.Dequeue( OUT ExceptionItem, OUT data ) THEN
+            IF Result.Counted OR Result.Expired THEN
+               Dali.Logger.LogS( dldDebug, logPrefix, L"Event.Get clear buffer" );
+               Dali.Logger.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
 
+               Queue.Dispose();
+               EXCL( RStatus, schiEventsPending );
+               GOTO Success;
+            END;
+         
+            IF Queue.Dequeue( OUT ExceptionItem, OUT data ) THEN
                ExceptionItem^.Address.ToString( OUT N );
                ExceptionType := TExceptionItemType( LOPTRLONGWORD( data ));
+
+               CASE ExceptionType OF
+               | eitRead :
+                  Dali.Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"read" );
+               | eitPollStatus :
+                  Dali.Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"poll status" );
+               | eitWrite :
+                  Dali.Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"write" );
+               | eitParam :
+                  Dali.Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"param" );
+               END; // CASE ExceptionType
+
                CASE ExceptionType OF
                | eitRead, eitPollStatus :
                   IF ExceptionItem^.Command = DaliSci.cmdStatus THEN
@@ -418,6 +483,9 @@ CLASS IMPLEMENTATION CDriver;
 
                DISPOSE( ExceptionItem );
             ELSE
+               Dali.Logger.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
+
+               EXCL( RStatus, schiEventsPending );
                CS.Clear();
             END;
 
@@ -516,15 +584,6 @@ CLASS IMPLEMENTATION CDriver;
          END;
          CS.Clear(); // return value
 
-         IF Result.Counted THEN
-            CS.Clear();
-            GOTO Error;
-
-         ELSIF Result.Expired THEN
-            CS.Clear();
-            GOTO Error;
-         END;
-
       ELSIF EQUALS( S1, L'param' )  THEN
          IF NOT Strings.ToCARD32W( S2, 10, OUT c ) OR ( c > 63 ) THEN
             CS.FromOA( L'error: bad device address' );
@@ -572,8 +631,13 @@ CLASS IMPLEMENTATION CDriver;
       END;
 
    Error:
-      drv_def.AssignDrvValueCStringW( REF OutValue, UFlag, FALSE, CS );
       Result.Inc();
+      drv_def.AssignDrvValueCStringW( REF OutValue, UFlag, FALSE, CS );
+      RETURN;
+
+   Success:
+      Result.Inc();
+      drv_def.AssignDrvValueStringW( REF OutValue, UFlag, FALSE, L'' );
    END QueryProc;
 
 //================================================================================
@@ -585,6 +649,9 @@ CLASS IMPLEMENTATION CDriver;
       PollIndex := INC( PollIndex ) AND 63;
       address.Type := DaliSci.adrSingle;
       address.Address := PollIndex;
+
+      Dali.Logger.LogSC( dldDebug, logPrefix, L"Poll status request for: ", PollIndex );
+
       Dali.Command( address, DaliSci.cmdStatus, 0, PTR( eitPollStatus ));
    END OnTimeout;
 
@@ -620,6 +687,12 @@ CLASS IMPLEMENTATION CDriver;
       exceptionItem^.Address := daliAddress;
       exceptionItem^.Value := Data;
       Queue.Enqueue( exceptionItem, ClientId );
+
+      IF schiEventsPending NOT IN RStatus THEN
+         Dali.Logger.LogS( dldDebug, logPrefix, L"RS+ rsEventPending" );
+
+         INCL( RStatus, schiEventsPending );
+      END;
       
       IF CallbackProc <> NIL THEN
          CallbackProc( CallbackId, drv_def.dcfException, NIL );
@@ -629,6 +702,7 @@ CLASS IMPLEMENTATION CDriver;
 //================================================================================
 
 BEGIN
+   RStatus := TStatusChannel{};
    ClientName := L"";
    CallbackId := NIL;
    CallbackProc := NIL;
@@ -668,8 +742,6 @@ INITIALLY __I();
 BEGIN
    // messages
    r.LoadRES2( EMITW( %dll ), L"Dali_SCI.Texts" );
-   // logging
-   Log.logger()^.SetUpByRegistry( LIBRARY );
 END __I;
 
 //================================================================================

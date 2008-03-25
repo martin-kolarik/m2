@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE DaliSci;
 
+FROM log IMPORT
+  dldError, dldInfo, dldTrace, dldDebug;
+
 IMPORT
    Log,
    netsocket,
@@ -9,6 +12,11 @@ IMPORT
    Sync,
    threadpool,
    time;
+
+(*===============================================================================*)
+
+CONST
+   logPrefix = L"DaliSci.UDP";
 
 (*===============================================================================*)
 
@@ -27,6 +35,7 @@ CLASS CUDPCommunicator( netsrv.AListener ) IMPLEMENTS threadpool.ITimeoutSink;
    LOCAL VAR
       EventSink : TPICommunicatorSink;
       InterPacketDelay : CARDINAL;
+      Logger : Log.TPLogger;
       
    TYPE
       TDaliSciPacket = ARRAY [0..7] OF BYTE; // 4 bytes SCI, 3 bytes DALI, 1 SCI XOR byte
@@ -72,7 +81,7 @@ CLASS IMPLEMENTATION CUDPCommunicator;
       IF Result = 0 THEN
          RETURN Sync.arCompleted;
       ELSE
-         Log.logger()^.LogSE( Log.dlcWarning, LIBRARY, L"Unable StartListen: ", Result );
+         Logger^.LogSE( Log.dldError, logPrefix, L"Unable StartListen: ", Result );
          RETURN Sync.arCannotStart;
       END;
    END Run;
@@ -146,6 +155,8 @@ CLASS IMPLEMENTATION CUDPCommunicator;
    
       ServerSocket^.ReceiveOA( OUT buffer, OUT l );
       IF l < 3 THEN // some damaged data
+         Logger^.LogSC( dldInfo, logPrefix, L"Corrupted data received, length: ", l );
+
          RETURN;
       ELSIF EventSink = NIL THEN
          RETURN;
@@ -154,6 +165,8 @@ CLASS IMPLEMENTATION CUDPCommunicator;
          | 051H, 052H : // OK
             // fall down
          | 053H : // denial, device is busy
+            Logger^.LogSC( dldTrace, logPrefix, L"Strange device response (busy?) ", 053H );
+
             EventSink^.OnDaliData( Sync.arAlreadyPending, OA( -1, NIL ));
             RETURN;
          ELSE
@@ -166,6 +179,8 @@ CLASS IMPLEMENTATION CUDPCommunicator;
             dali[i-1] := buffer[i];
          END;
          IF xor <> buffer[l-1] THEN // xor OK
+            Logger^.LogSC( dldInfo, logPrefix, L"XOR check error: ", CARDINAL( buffer[l-1] ));
+            Logger^.LogSC( dldInfo, logPrefix, L"       expected: ", CARDINAL( xor ));
             GOTO Error;
          END;
 
@@ -214,6 +229,7 @@ BEGIN
 
    EventSink := NIL;
    InterPacketDelay := 0;
+   Logger := NIL;
 FINALLY
    IF Timeout <> NIL THEN
       netpool.Pool()^.Abort( REF Timeout );
@@ -403,8 +419,12 @@ CLASS IMPLEMENTATION CDali;
 
    PUBLIC PROCEDURE Command( CONST daliAddress : DaliAddress; _Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
    VAR
-      Request : POINTER TO DaliRequest := NEW( DaliRequest );
+      Request : POINTER TO DaliRequest;
    BEGIN
+      Logger.LogSC( dldDebug, logPrefix, L"Start command: ", CARDINAL( _Command ));
+      Logger.LogSC( dldDebug, logPrefix, L"  for address: ", daliAddress.Address );
+
+      NEW( Request );
       Request^.Address := daliAddress;
       Request^.Command := _Command;
       Request^.Data := Data;
@@ -419,6 +439,7 @@ CLASS IMPLEMENTATION CDali;
    // ICommunicationSink -- in thread
    LOCAL VIRTUAL PROCEDURE OnSendable();
    BEGIN
+      Logger.LogS( dldDebug, logPrefix, L"Communicate after DELAY" );
       Communicate();
    END OnSendable;
 
@@ -427,6 +448,7 @@ CLASS IMPLEMENTATION CDali;
    // ICommunicationSink -- in thread
    LOCAL VIRTUAL PROCEDURE OnTimeout();
    BEGIN
+      Logger.LogS( dldTrace, logPrefix, L"Receive response TIMEOUT" );
       OnDaliData( Sync.arTimeout, OA( -1, NIL ));
    END OnTimeout;
 
@@ -455,10 +477,18 @@ CLASS IMPLEMENTATION CDali;
                      Response := 0;
                   END;
                END;            
+
+               Logger.LogSC( dldDebug, logPrefix, L"Completed command: ", CARDINAL( Request^.Command ));
+               Logger.LogSC( dldDebug, logPrefix, L"      for address: ", Request^.Address.Address );
+               Logger.LogSR( dldDebug, logPrefix, L"           result: ", Result );
+
                EventSink^.OnCompletion( Result, Request^.Command, ClientId, Request^.Address, Response );
             END;
             DISPOSE( Request );
          END;
+         
+      ELSE
+         Logger.LogS( dldInfo, logPrefix, L"Data received when nothing is expected" );
       END; // IF something in the Queue
          
       Communicate();
@@ -509,6 +539,7 @@ CLASS IMPLEMENTATION CDali;
 BEGIN
    Communicator := NEW( CUDPCommunicator );
    Communicator^.EventSink := TPICommunicatorSink( ADR( SELF ));
+   Communicator^.Logger := ADR( Logger );
    EventSink := NIL;
 FINALLY
    IF Communicator <> NIL THEN

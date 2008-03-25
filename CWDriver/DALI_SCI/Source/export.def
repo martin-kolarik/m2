@@ -1,4 +1,4 @@
-LIBRARY NetMsg.dll
+LIBRARY Dali_Sci.dll
 
 EXPORTS
   Version                 = VersionW
@@ -11,8 +11,8 @@ EXPORTS
   Done                    = DoneW
 
   EnumerateChannels       = EnumerateChannelsW
-  BufferInfo              = BufferInfoW
-  SetBufferAddr           = SetBufferAddrW
+  ;BufferInfo              = BufferInfoW
+  ;SetBufferAddr           = SetBufferAddrW
 
   DriverProc              = DriverProcW
 

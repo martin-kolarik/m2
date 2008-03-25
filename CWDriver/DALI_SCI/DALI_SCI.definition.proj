@@ -6,7 +6,7 @@
         <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName>
         <LanguageStyle>UNICODE</LanguageStyle>
         <Language Condition="$(Language)==''">Czech</Language>
-        <!-- CLib>Static</CLib -->
+        <CLib>Static</CLib>
         <Licensing>on</Licensing>
         <LeakChecking>off</LeakChecking>
     </PropertyGroup>
@@ -15,7 +15,7 @@
         <Result>Dynamic</Result>
     </PropertyGroup>
     <PropertyGroup Condition="$(MSBuildProjectName)=='sccore'">
-        <!-- ComponentType>Generic</ComponentType -->
+        <ComponentType>Generic</ComponentType>
     </PropertyGroup>
 
     <PropertyGroup>
