@@ -1706,4 +1706,70 @@ END CWValueToIOValue;
 
 //==============================================================
 
+PROCEDURE ConfigureLog( CONST ini : INIFile.CINIFile; REF logger : Log.CLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
+CONST
+   snDebug                = L'debug';
+   knDebugMode            = L'debug_mode';
+      kvDebugNone         = L'none';
+      kvDebugFile         = L'file';
+      kvDebugKernel1      = L'windows';
+      kvDebugKernel2      = L'kernel';
+   knDebugFile            = L'debug_file';
+   knDebugLevel           = L'debug_level';
+      kvDebugBasic        = L'basic';
+      kvFatal             = L'fatal'; 
+      kvDebugExtended     = L'extended';
+      kvError             = L'error'; 
+      kvDebugAllProtocol  = L'protocol';
+      kvWarning           = L'warning'; 
+      kvDebugAll          = L'all';
+      kvInfo              = L'info'; 
+VAR
+   cs : StringsO.CString;
+   DebugFile : StringsO.CString;
+   DebugLevel : Log.TDebugLevel := Log.dldInfo;
+   DebugMode : Log.TDebugMethod := Log.dmKernel;
+BEGIN
+   IF NOT ini.SetSection( snDebug ) THEN
+      // fall down
+
+   ELSIF ini.GetKeyStr( knDebugMode, OUT errorLine, OUT cs ) THEN
+      IF cs.EqualsOA( kvDebugNone ) THEN
+         DebugMode := Log.dmNone;
+      ELSIF cs.EqualsOA( kvDebugFile ) THEN
+         DebugMode := Log.dmFile;
+         IF NOT ini.GetKeyStr( knDebugFile, OUT errorLine, OUT DebugFile ) THEN
+            RETURN clrFileDebugMissingFile;
+         END;
+      ELSIF cs.EqualsOA( kvDebugKernel1 ) OR cs.EqualsOA( kvDebugKernel2 ) THEN
+         DebugMode := Log.dmKernel;
+      ELSE
+         RETURN clrUnknownDebugMode;
+      END;
+      IF DebugMode <> Log.dmNone THEN
+         IF ini.GetKeyStr( knDebugLevel, OUT errorLine, OUT cs ) THEN
+            IF cs.EqualsOA( kvDebugBasic ) OR cs.EqualsOA( kvFatal ) THEN
+               DebugLevel := Log.dldError;
+            ELSIF cs.EqualsOA( kvDebugExtended ) OR cs.EqualsOA( kvError ) THEN
+               DebugLevel := Log.dldInfo;
+            ELSIF cs.EqualsOA( kvDebugAllProtocol ) OR cs.EqualsOA( kvWarning ) THEN
+               DebugLevel := Log.dldTrace;
+            ELSIF cs.EqualsOA( kvDebugAll ) OR cs.EqualsOA( kvInfo ) THEN
+               DebugLevel := Log.dldDebug;
+            ELSE
+               RETURN clrUnknownDebugLevel;
+            END;
+         END;
+      END;
+   END;
+   
+   logger.SetLogFile( OA( DebugFile.Length-1, DebugFile.rawData ));
+   logger.Method := DebugMode;
+   logger.Level := DebugLevel;
+   
+   RETURN clrSuccess;
+END ConfigureLog;
+
+//==============================================================
+
 END drv_def.

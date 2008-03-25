@@ -4,6 +4,8 @@ DEFINITION MODULE drv_def;
 (*# warn( 4275 => off ) *)
 
 IMPORT
+  INIFile,
+  Log,
   Strings,
   StringsO;
 IMPORT
@@ -304,6 +306,19 @@ CONST
   drmCheck               = 2; // required activity: load, single read_par
   drmConfigure           = 3; // required activity: load, multiple read_par, multiple run, multiple stop
   drmSimulate            = 4; // required activity: --- (driver is not loaded)
+
+//=============================================================================
+// helpers
+
+TYPE
+   TConfigureLogResult = (
+      clrSuccess,
+      clrUnknownDebugMode,
+      clrUnknownDebugLevel,
+      clrFileDebugMissingFile
+   );
+
+PROCEDURE ConfigureLog( CONST ini : INIFile.CINIFile; REF logger : Log.CLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
 
 //=============================================================================
 
