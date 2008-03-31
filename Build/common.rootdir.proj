@@ -7,8 +7,8 @@
         <ComponentType Condition="$(ComponentType)==''">Generic</ComponentType>
 
         <!-- RootDir>$(ComponentDir)\..\..</RootDir -->
-        <RootDir>..\..</RootDir>
-        <RootPath>$(ComponentPath)\..\..</RootPath>
+        <RootDir Condition="$(RootDir)==''">..\..</RootDir>
+        <RootPath>$(ComponentPath)\$(RootDir)</RootPath>
 
         <RootBuildDir>$(RootDir)\Build</RootBuildDir>
         <RootBuildPath>$(RootPath)\Build</RootBuildPath>

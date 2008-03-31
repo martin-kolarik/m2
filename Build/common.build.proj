@@ -630,8 +630,8 @@
         <Error Condition="$(ProductUpgradeGUI)==''" Text="ProductUpgradeGUID not defined" />
     </Target>
     
-    <Target Name="SetupBuild" DependsOnTargets="CheckSetup;ProductBuildNumberGet;CreateSetup" />
+    <Target Name="SetupBuild" DependsOnTargets="Directories;CheckSetup;ProductBuildNumberGet;CreateSetup" />
     <Target Name="SetupClean" DependsOnTargets="CleanSetup" />
-    <Target Name="SetupRebuild" DependsOnTargets="CleanSetup;ProductBuildNumberGet;CreateSetup" />
+    <Target Name="SetupRebuild" DependsOnTargets="CleanSetup;Directories;ProductBuildNumberGet;CreateSetup" />
 
 </Project>
