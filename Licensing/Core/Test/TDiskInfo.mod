@@ -1,19 +1,77 @@
 MODULE TDiskInfo;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
-  DiskInfo;
+   DiskInfo,
+   log,
+   Strings,
+   StringsO,
+   sync,
+   test,
+   testimpl,
+   Uniquer;
   
-#save, call( convention => cdecl )
-PROCEDURE wmain6() : INTEGER;
-#restore
+(*===========================================================================*)
+
+TYPE
+   TPTest = POINTER TO CTest;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CTest IMPLEMENTS test.ITest;
+   PUBLIC VAR
+      Host : test.TPHost := NIL;
+
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+END CTest;
+
+(*===========================================================================*)
+
 VAR
-  DI : DiskInfo.CDiskInfo;
-  i : CARDINAL;
+   Test : CTest;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CTest;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   VAR
+      DI : DiskInfo.CDiskInfo;
+      i : CARDINAL;
+      MACSource : Uniquer.MACSource;
+      uid : Uniquer.TUId;
+   BEGIN
+      SELF.Host := Host;
+
+      Host^.StartPhase( L"Check drives" );
+      
+      FOR i := 0 TO 25 DO
+	      IF DiskInfo.LoadDiskInfo( i, OUT DI ) THEN
+	         Host^.Log^.LogS( log.dlcInfo, L"", OA( DI.Model.Length-1, DI.Model.rawData ));
+	      END;
+      END;
+      
+      Host^.StopPhaseWithResult( test.trSuccess );
+
+      Host^.StartPhase( L"MAC Source" );
+
+      uid := MACSource.UId;      
+      
+      Host^.StopPhaseWithResult( test.trSuccess );
+
+      RETURN test.trSuccess;
+   END Run;
+   
+(*---------------------------------------------------------------------------*)
+
 BEGIN
-	FOR i := 0 TO 25 DO
-		DiskInfo.LoadDiskInfo( i, OUT DI );
-	END;
-	RETURN 0;
-END wmain6;
+   testimpl.tests()^.AddTest( L"UniqueSource", ADR( Test ));
+END CTest;
+
+(*===========================================================================*)
 
 END TDiskInfo.

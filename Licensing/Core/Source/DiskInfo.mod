@@ -75,7 +75,7 @@ CLASS IMPLEMENTATION CDiskInfoQuery;
   BEGIN
     Strings.FromCARD32W( DiskNumber, 10, OUT DriveNumber );
     Strings.ConcatW( OUT DrivePath, L"\\.\PhysicalDrive", DriveNumber );
-    Disk := FIO.OpenW( DrivePath, FIO.TFileShare{FIO.fsWrite} );
+    Disk := FIO.OpenW( DrivePath, FIO.TFileShare{FIO.fsRead, FIO.fsWrite} ); // works on XP
     IF Disk = NIL THEN
       RETURN FALSE;
     END;

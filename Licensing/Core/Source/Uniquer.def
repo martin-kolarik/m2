@@ -53,4 +53,12 @@ END DiscSource;
 
 (*================================================================================*)
 
+CLASS MACSource( NullSource );
+	PUBLIC VIRTUAL READONLY PROPERTY
+		UId : TUId;
+	INITIALLY MACSource;
+END MACSource;
+
+(*================================================================================*)
+
 END Uniquer.
