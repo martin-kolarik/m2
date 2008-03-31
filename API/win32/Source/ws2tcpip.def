@@ -15,6 +15,7 @@ TYPE
                  | 1 : Word : ARRAY [0..07] OF CARD16;
                  END; // CASE
               END; // RECORD
+   Pin_addr6 = POINTER TO in_addr6;              
 
    sockaddr_in6  = RECORD
                       sin6_family   : CARD16; //* AF_INET6 */
@@ -24,6 +25,13 @@ TYPE
                       sin6_scope_id : CARD32; //* set of interfaces for a scope */
                    END; // RECORD
    Psockaddr_in6 = POINTER TO sockaddr_in6;
+
+#save, call( macro => on )
+PROCEDURE IN6_IS_ADDR_LOOPBACK( CONST addr : Pin_addr6 ) : BOOLEAN;
+PROCEDURE IN6_IS_ADDR_MULTICAST( CONST addr : Pin_addr6 ) : BOOLEAN;
+PROCEDURE IN6_IS_ADDR_LINKLOCAL( CONST addr : Pin_addr6 ) : BOOLEAN;
+PROCEDURE IN6_IS_ADDR_SITELOCAL( CONST addr : Pin_addr6 ) : BOOLEAN;
+#restore
 
 TYPE
    Paddrinfo = POINTER TO addrinfo;

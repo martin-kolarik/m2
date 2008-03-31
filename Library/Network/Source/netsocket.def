@@ -37,6 +37,9 @@ CLASS INETADDR;
    PUBLIC PROPERTY
       V6 : BOOLEAN;
       Port : CARDINAL;
+   PUBLIC READONLY PROPERTY
+      Loopback : BOOLEAN;
+      Multicast : BOOLEAN;
 
    PUBLIC PROCEDURE GetAddressOA( IncludePort : BOOLEAN; OUT Address : ARRAY OF WCHAR ); // numerical form in string
    PUBLIC PROCEDURE SetAddressOA( CONST Address : ARRAY OF WCHAR ) : BOOLEAN; // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
@@ -44,11 +47,18 @@ CLASS INETADDR;
    PUBLIC PROCEDURE SetV4( What : TSpecialAddress );
    PUBLIC PROCEDURE SetV6( What : TSpecialAddress );
    
-   PUBLIC PROCEDURE FromOA( CONST storage : ARRAY OF BYTE );
-   PUBLIC PROCEDURE ToOA( OUT storage : ARRAY OF BYTE );
+   PUBLIC PROCEDURE FromOA( CONST storage : ARRAY OF BYTE ); // e.g. winsock.SOCKET_ADDRESS, usually MUST be supplied with specific HIGH
+   PUBLIC PROCEDURE ToOA( OUT storage : ARRAY OF BYTE ); // e.g. winsock.SOCKET_ADDRESS
 
    INITIALLY INETADDR();
+   
+   PUBLIC READONLY PROPERTY // shortcut, can be NIL
+      IN_ADDR4 : ADDRESS;
+      IN_ADDR6 : ADDRESS;
 END INETADDR;
+
+TYPE
+   TPINETADDR = POINTER TO INETADDR;
 
 PROCEDURE SplitAddressOA( CONST HostWithService : ARRAY OF WCHAR; OUT Host, Service : ARRAY OF WCHAR ) : BOOLEAN;
 
@@ -134,7 +144,7 @@ CLASS SSocket( threadpool.APoolDelegate );
     Notifier       : TPSocketNotifier;
     LocalAddress   : winsock.IN_ADDR;
     LocalPort      : CARDINAL;
-    MulticastGroup : winsock.IN_ADDR;
+    MulticastGroup : INETADDR;
     MulticastPort  : CARDINAL;
     Waitable       : BOOLEAN;
   PUBLIC READONLY PROPERTY

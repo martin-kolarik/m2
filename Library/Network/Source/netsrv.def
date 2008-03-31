@@ -1,11 +1,73 @@
 DEFINITION MODULE netsrv;
 
-IMPORT
-  winsock;
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
 
 IMPORT
-  msghandler,
   netsocket;
+
+#save, option( dll_export => on )
+
+(*================================================================================*)
+
+(*  
+  Network server enumeration API
+*)
+
+TYPE
+   TState = (
+      stUnknown,
+      stUp,
+      stDown
+   );
+   
+   TMedium = (
+      medUnknown,
+      medLoopback,
+      medCSMACD,
+      med80211,
+      medPPP,
+      medTunnel,
+      medVLAN,
+      medOther
+   );
+   
+   TAssignment = (
+      assUnknown,
+      assFixed,
+      assDynamic
+   );
+   
+   TScope = (
+      scoUnknown,
+      scoLoopback,
+      scoLocalLink,
+      scoLocalSite,
+      scoGlobal
+   );
+   
+ABSTRACT CLASS AInterfaceEnumerator; // if single interface has more addresses, they are enumerated using InetAddess itself
+   PUBLIC ABSTRACT PROCEDURE Reset();
+   PUBLIC ABSTRACT PROCEDURE MoveNext() : BOOLEAN;
+   
+   PUBLIC ABSTRACT READONLY PROPERTY
+      Index : CARDINAL;
+      State : TState;
+      Medium : TMedium;
+      Addresses : CARDINAL;
+      
+   PUBLIC ABSTRACT PROCEDURE HWAddress( OUT Address : ARRAY OF BYTE; OUT Filled : CARDINAL );
+   PUBLIC ABSTRACT PROCEDURE InetAddress( Index : CARDINAL; OUT Address : netsocket.INETADDR; OUT Preferred : BOOLEAN; OUT Scope : TScope; OUT Assignment : TAssignment ) : BOOLEAN;
+   
+   PUBLIC VIRTUAL FINALLY AInterfaceEnumerator();
+END AInterfaceEnumerator;
+
+TYPE
+   TPInterfaceEnumerator = POINTER TO AInterfaceEnumerator;
+
+PROCEDURE newInterfaceEnumerator( IPV4 : BOOLEAN; IPV6 : BOOLEAN; OUT Enumerator : TPInterfaceEnumerator ) : BOOLEAN;
+  
+(*================================================================================*)
 
 (*  
   Network listening (TCP) / server receiving (UDP) API.
@@ -13,8 +75,6 @@ IMPORT
   Using main thread means AStreamCreator calls are dispatched to the main thread where they can be processed synchronously.
 *)
   
-#save, option( dll_export => on )
-
 (*================================================================================*)
 
 TYPE
@@ -42,7 +102,7 @@ PROCEDURE SetCallbackMode(
 PROCEDURE StartListen(
             Type : netsocket.TSocketType;
             Port : CARDINAL; // if Port = 0 the ephemeral one is selected
-            PMulticastGroup : winsock.PIN_ADDR; // can be NIL
+            PMulticastGroup : netsocket.TPINETADDR; // can be NIL
             PStreamCreator : TPListener;
             AutomaticCloseTimeMS : CARDINAL;	// can be 0 or INFINITE for INFINITE time
             PCreatedSocket : POINTER TO netsocket.TPSSocket // can be NIL

@@ -1,0 +1,195 @@
+DEFINITION MODULE iptypes;
+(* heavily incomplete *)
+
+(*# name( decoration => c ) *)
+(*# module( header  => off ) *)
+(*# call( o_a_size => off, convention => stdcall ) *)
+
+IMPORT
+   winsock;
+
+CONST
+   MAX_ADAPTER_ADDRESS_LENGTH = 8;
+
+TYPE
+   IP_PREFIX_ORIGIN = (
+      IpPrefixOriginOther = 0,
+      IpPrefixOriginManual,
+      IpPrefixOriginWellKnown,
+      IpPrefixOriginDhcp,
+      IpPrefixOriginRouterAdvertisement
+   );
+
+   IP_SUFFIX_ORIGIN = (
+      IpSuffixOriginOther = 0,
+      IpSuffixOriginManual,
+      IpSuffixOriginWellKnown,
+      IpSuffixOriginDhcp,
+      IpSuffixOriginLinkLayerAddress,
+      IpSuffixOriginRandom
+   );
+
+   IP_DAD_STATE = (
+      IpDadStateInvalid    = 0,
+      IpDadStateTentative,
+      IpDadStateDuplicate,
+      IpDadStateDeprecated,
+      IpDadStatePreferred
+   );
+
+TYPE
+   PIP_ADAPTER_UNICAST_ADDRESS = POINTER TO IP_ADAPTER_UNICAST_ADDRESS;
+   IP_ADAPTER_UNICAST_ADDRESS = RECORD
+      Length : CARDINAL;
+      Flags : LONGWORD;
+      Next : PIP_ADAPTER_UNICAST_ADDRESS;
+      Address : winsock.SOCKET_ADDRESS;
+
+      PrefixOrigin : IP_PREFIX_ORIGIN;
+      SuffixOrigin : IP_PREFIX_ORIGIN;
+      DadState : IP_DAD_STATE;
+      
+      ValidLifetime : CARDINAL;
+      PreferredLifetime : CARDINAL;
+      LeaseLifetime : CARDINAL;
+   END; // RECORD
+
+   PIP_ADAPTER_ANYCAST_ADDRESS = POINTER TO IP_ADAPTER_ANYCAST_ADDRESS;
+   IP_ADAPTER_ANYCAST_ADDRESS = RECORD
+      Length : CARDINAL;
+      Flags : LONGWORD;
+      Next : PIP_ADAPTER_ANYCAST_ADDRESS;
+      Address : winsock.SOCKET_ADDRESS;
+   END; // RECORD
+
+   PIP_ADAPTER_MULTICAST_ADDRESS = POINTER TO IP_ADAPTER_MULTICAST_ADDRESS;
+   IP_ADAPTER_MULTICAST_ADDRESS = RECORD
+      Length : CARDINAL;
+      Flags : LONGWORD;
+      Next : PIP_ADAPTER_MULTICAST_ADDRESS;
+      Address : winsock.SOCKET_ADDRESS;
+   END; // RECORD
+
+//
+// Per-address Flags
+//
+CONST
+   IP_ADAPTER_ADDRESS_DNS_ELIGIBLE = 001H;
+   IP_ADAPTER_ADDRESS_TRANSIENT    = 002H;
+   IP_ADAPTER_ADDRESS_PRIMARY      = 004H;
+
+TYPE
+   PIP_ADAPTER_DNS_SERVER_ADDRESS = POINTER TO IP_ADAPTER_DNS_SERVER_ADDRESS;
+   IP_ADAPTER_DNS_SERVER_ADDRESS = RECORD
+      Length : CARDINAL;
+      Flags : LONGWORD;
+      Next : PIP_ADAPTER_DNS_SERVER_ADDRESS;
+      Address : winsock.SOCKET_ADDRESS;
+   END; // RECORD
+
+   PIP_ADAPTER_PREFIX = POINTER TO IP_ADAPTER_PREFIX;
+   IP_ADAPTER_PREFIX = RECORD
+      Length : CARDINAL;
+      Flags : LONGWORD;
+      Next : POINTER TO IP_ADAPTER_PREFIX;
+      Address : winsock.SOCKET_ADDRESS;
+      PrefixLength : CARDINAL;
+   END; // RECORD
+
+//
+// Per-adapter Flags
+//
+CONST
+   IP_ADAPTER_DDNS_ENABLED               = 001H;
+   IP_ADAPTER_REGISTER_ADAPTER_SUFFIX    = 002H;
+   IP_ADAPTER_DHCP_ENABLED               = 004H;
+   IP_ADAPTER_RECEIVE_ONLY               = 008H;
+   IP_ADAPTER_NO_MULTICAST               = 010H;
+   IP_ADAPTER_IPV6_OTHER_STATEFUL_CONFIG = 020H;
+
+//
+// OperStatus values from RFC 2863
+//
+TYPE
+   IF_OPER_STATUS = (
+      IfOperStatusUp = 1,
+      IfOperStatusDown,
+      IfOperStatusTesting,
+      IfOperStatusUnknown,
+      IfOperStatusDormant,
+      IfOperStatusNotPresent,
+      IfOperStatusLowerLayerDown
+   );
+
+//
+// Scope levels from RFC 2373 used with ZoneIndices array.
+//
+TYPE
+   SCOPE_LEVEL = (
+      ScopeLevelInterface    = 1,
+      ScopeLevelLink         = 2,
+      ScopeLevelSubnet       = 3,
+      ScopeLevelAdmin        = 4,
+      ScopeLevelSite         = 5,
+      ScopeLevelOrganization = 8,
+      ScopeLevelGlobal       = 14
+   );
+
+   PIP_ADAPTER_ADDRESSES = POINTER TO IP_ADAPTER_ADDRESSES;
+   IP_ADAPTER_ADDRESSES = RECORD
+      Length : CARDINAL;
+      IfIndex : LONGWORD;
+      Next : PIP_ADAPTER_ADDRESSES;
+      AdapterName : PCHAR;
+
+      FirstUnicastAddress : PIP_ADAPTER_UNICAST_ADDRESS;
+      FirstAnycastAddress : PIP_ADAPTER_ANYCAST_ADDRESS;
+      FirstMulticastAddress : PIP_ADAPTER_MULTICAST_ADDRESS;
+      FirstDnsServerAddress : PIP_ADAPTER_DNS_SERVER_ADDRESS;
+
+      DnsSuffix : PWCHAR;
+      Description : PWCHAR;
+      FriendlyName : PWCHAR;
+    
+      PhysicalAddress : ARRAY [0..MAX_ADAPTER_ADDRESS_LENGTH-1] OF BYTE;
+      PhysicalAddressLength : LONGWORD;
+      Flags : LONGWORD;
+      Mtu : LONGWORD;
+      IfType : LONGWORD;
+      OperStatus : IF_OPER_STATUS;
+      Ipv6IfIndex : LONGWORD;
+      ZoneIndices : ARRAY [0..15] OF LONGWORD;
+      FirstPrefix : POINTER TO IP_ADAPTER_PREFIX;
+   END; // RECORD
+
+//
+// Flags used as argument to GetAdaptersAddresses().
+// "SKIP" flags are added when the default is to include the information.
+// "INCLUDE" flags are added when the default is to skip the information.
+//
+CONST
+   GAA_FLAG_SKIP_UNICAST       = 00001H;
+   GAA_FLAG_SKIP_ANYCAST       = 00002H;
+   GAA_FLAG_SKIP_MULTICAST     = 00004H;
+   GAA_FLAG_SKIP_DNS_SERVER    = 00008H;
+   GAA_FLAG_INCLUDE_PREFIX     = 00010H;
+   GAA_FLAG_SKIP_FRIENDLY_NAME = 00020H;
+
+CONST
+   IF_TYPE_OTHER               = 1;
+   IF_TYPE_ETHERNET_CSMACD     = 6;
+   IF_TYPE_IS088023_CSMACD     = 7;
+   IF_TYPE_PPP                 = 23;
+   IF_TYPE_SOFTWARE_LOOPBACK   = 24;
+   IF_TYPE_IEEE80212           = 55;
+   IF_TYPE_FIBRECHANNEL        = 56;
+   IF_TYPE_FASTETHER           = 62;
+   IF_TYPE_FASTETHER_FX        = 69;
+   IF_TYPE_IEEE80211           = 71;
+   IF_TYPE_GIGABITETHERNET     = 117;
+   IF_TYPE_TUNNEL              = 131;
+   IF_TYPE_L2_VLAN             = 135;
+   IF_TYPE_L3_IPVLAN           = 136;
+   IF_TYPE_IEEE1394            = 144;
+
+END iptypes.

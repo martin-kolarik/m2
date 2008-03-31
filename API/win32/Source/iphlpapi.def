@@ -1,0 +1,21 @@
+DEFINITION MODULE iphlpapi; (* heavily incomplete *)
+
+(*# name( decoration => c ) *)
+(*# module( header  => off ) *)
+(*# call( o_a_size => off, convention => stdcall ) *)
+
+IMPORT
+   iptypes,
+   windows;
+
+//
+// The following functions require Winsock2.
+//
+PROCEDURE GetAdaptersAddresses(
+   Family : CARDINAL;
+   Flags : LONGWORD;
+   Reserved : ADDRESS;
+   PAdapterAddresses : POINTER TO iptypes.IP_ADAPTER_ADDRESSES;
+   OutBufLen : windows.PULONG ) : LONGWORD;
+
+END iphlpapi.
