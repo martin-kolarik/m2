@@ -3,6 +3,7 @@
 
     <Property Id="PID" Value="$(var.ProductId)" />
     <Property Id="PIDLICENCE" Value="$(var.ProductId).tlic" />
+    <Property Id="PIDLICENCEMID" Value="$(var.LicenceMId)" />
     
     <Binary Id="WixUI_Bmp_Banner" SourceFile="$(var.ProductRoot)\Bitmaps\banner.$(var.Manufacturer).bmp" />
     <Binary Id="WixUI_Bmp_Dialog" SourceFile="$(var.ProductRoot)\Bitmaps\dialog.$(var.Manufacturer).bmp" />

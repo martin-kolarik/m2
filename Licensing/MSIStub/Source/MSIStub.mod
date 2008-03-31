@@ -80,6 +80,7 @@ CONST
    propPIDKey = 1;
    propPIDOwner = 2;
    propPIDLicence = 3;
+   propPIDLicenceMId = 4;
 VAR
    buffer : ARRAY[0..1023] OF WCHAR;
    count : CARDINAL;
@@ -89,12 +90,13 @@ VAR
    licenceItem : Items.TPLicence;
    ls : Store.CFileStorage;
    lsINI : Store.CINIFilter;
-   properties : ARRAY [0..3] OF StringsO.CString;
+   properties : ARRAY [0..4] OF StringsO.CString;
    s : StringsO.CString;
    l : CARDINAL;
    sn : Number.CSerial;
    uq : Uniquer.CUniquer;
    uqDisc : Uniquer.DiscSource;
+   uqMAC : Uniquer.MACSource;
    Valid : BOOLEAN := TRUE;
 BEGIN
    l := HIGH( buffer ) + 1;
@@ -128,7 +130,15 @@ BEGIN
    IF Valid THEN
       Engine.Canonize( REF data, L"*", FALSE, TRUE, TRUE );
 
-      uq.Sources^.Add( ADR( uqDisc ), 0 );
+      IF properties[propPIDLicenceMId].IndexOfOA( L"D", 0 ) <> -1 THEN
+         uq.Sources^.Add( ADR( uqDisc ), 0 );
+      END;
+      IF properties[propPIDLicenceMId].IndexOfOA( L"M", 0 ) <> -1 THEN
+         uq.Sources^.Add( ADR( uqMAC ), 0 );
+      END;
+      IF uq.Sources^.Empty THEN
+         uq.Sources^.Add( ADR( uqDisc ), 0 );
+      END;
 
       licenceItem := NIL;
       i := 0;

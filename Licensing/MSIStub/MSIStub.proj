@@ -6,11 +6,11 @@
         <ComponentType>Product</ComponentType>
 
         <ProductId>SmartControl.MSIHelper</ProductId>
-        <ProductVersionMajor>0</ProductVersionMajor>
-        <ProductVersionMinor>9</ProductVersionMinor>
+        <ProductVersionMajor>1</ProductVersionMajor>
+        <ProductVersionMinor>0</ProductVersionMinor>
         <FileDescription>MSI Helper</FileDescription>
-        <FileVersionMajor>0</FileVersionMajor>
-        <FileVersionMinor>9</FileVersionMinor>
+        <FileVersionMajor>1</FileVersionMajor>
+        <FileVersionMinor>0</FileVersionMinor>
     </PropertyGroup>
 
     <!-- 2 -->
@@ -20,7 +20,7 @@
     <!-- 3 -->
     <ItemGroup>
         <Components Include="modula2\modula2;api\Win32;api\Msi"/>
-        <Components Include="modula2\m2ortl;licensing\core"/>
+        <Components Include="component\sccore;licensing\core"/>
         <Program Include="MSIStub"/>
     </ItemGroup>
 

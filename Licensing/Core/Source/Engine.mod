@@ -8,6 +8,7 @@ IMPORT
    Items,
    lists,
    Store,
+   Strings,
    Validator;
 
 (*================================================================================*)
@@ -205,10 +206,20 @@ VAR
    lsINI : Store.CINIFilter;
    uq : Uniquer.CUniquer;
    uqDisc : Uniquer.DiscSource;
+   uqMAC : Uniquer.MACSource;
 BEGIN
    data.Strategy := array.astrgListInArray;
-   uq.Sources^.Add( ADR( uqDisc ), 0 );
    ls.Filters^.Add( ADR( lsINI ), 0 );
+
+   IF Strings.IndexOfCharW( LicenceMId, L"M", 0 ) <> -1 THEN
+      uq.Sources^.Add( ADR( uqMAC ), 0 );
+   END;
+   IF Strings.IndexOfCharW( LicenceMId, L"D", 0 ) <> -1 THEN
+      uq.Sources^.Add( ADR( uqDisc ), 0 );
+   END;
+   IF uq.Sources^.Empty THEN
+      uq.Sources^.Add( ADR( uqDisc ), 0 );
+   END;
 
    // first load common storage
    ls.Load( L"*", REF data, FALSE, TRUE );

@@ -86,6 +86,18 @@ TYPE
       #endif
    );
 
+#if Client #then
+   TYPE
+      TIdentityItem = (
+         idDisc,
+         idMAC
+      );
+      TIdentity = SET OF TIdentityItem;
+      
+   CONST
+      idAll = TIdentity{idDisc, idMAC};
+#endif   
+
 CONST
    dateFormat = L"yyyy.MM.dd";
   
@@ -144,12 +156,15 @@ VAR
       allFlag : BOOLEAN := FALSE;
       found : BOOLEAN;
       haveSome : BOOLEAN := FALSE;
+      identity : TIdentity := TIdentity{idDisc};
       j : INTEGER;
       jlist, klist : lists.TPPtrList;
       licenceItem : Items.TPLicence;
       uid : Uniquer.TUId;
       uq : Uniquer.CUniquer;
       uqDisc : Uniquer.DiscSource;
+      uqMAC : Uniquer.MACSource;
+      uqNone : Uniquer.NullSource;
       useCommonStorage : BOOLEAN := FALSE;
    #endif
 
@@ -368,10 +383,6 @@ VAR
    #endif
      
 BEGIN
-   #if Client #then
-      uq.Sources^.Add( ADR( uqDisc ), 0 );
-   #endif
-
    err^.WriteOA( L'Licence engine support tool', TRUE );
    err^.WriteOA( L'(c) SmartControl 2007', TRUE );
    err^.LineEnd();
@@ -406,6 +417,13 @@ BEGIN
             pathOrFilter.FromOA( OAsz( argp^[i] ));
          | 'c' : // common
             useCommonStorage := TRUE;
+         | 'C' : // computer identity
+            CASE TPString( argp^[i] )^[2] OF
+            | 'a' : identity := identity + idAll;
+            | 'd' : identity := TIdentity{idDisc};
+            | 'm' : identity := TIdentity{idMAC};
+            | 'n' : identity := TIdentity{};
+            END;
          #endif
          #if Licensor #then
          | 'G' :
@@ -563,6 +581,18 @@ BEGIN
          EXIT;
       END;
    END; // LOOP
+
+   #if Client #then
+      IF idDisc IN identity THEN
+         uq.Sources^.Add( ADR( uqDisc ), 0 );
+      END;
+      IF idMAC IN identity THEN
+         uq.Sources^.Add( ADR( uqMAC ), 0 );
+      END;
+      IF identity = TIdentity{} THEN
+         uq.Sources^.Add( ADR( uqNone ), 0 );
+      END;
+   #endif
    
    CASE op OF
    //-----

@@ -9,10 +9,16 @@
         <CLib>Static</CLib>
         <Result>Dynamic</Result>
         <LeakChecking>off</LeakChecking>
+
+        <Test>off</Test>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(MSBuildProjectName)!='MSIStub'">
         <Result>Static</Result>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="$(MSBuildProjectName)=='SCCore'">
+        <ComponentType>Generic</ComponentType>
     </PropertyGroup>
 
     <PropertyGroup>
