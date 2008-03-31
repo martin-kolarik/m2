@@ -263,6 +263,7 @@ CLASS IMPLEMENTATION CConnection;
 
    PUBLIC PROCEDURE Connect( Timeout : CARDINAL ) : Sync.TAsyncResult;
    VAR
+      ai : netsocket.INETADDR;
       cr : core.ConnectRequest;
       timeout : CARDINAL := 0;
       b : BOOLEAN;
@@ -302,7 +303,8 @@ CLASS IMPLEMENTATION CConnection;
       CASE _Mode OF
       //-----
       | cmScanning :
-         Socket^.MulticastGroup := core.EIBNET_DISCOVERY_ADDRESS;
+         ai.SetAddressOA( core.EIBNET_DISCOVERY_ADDRESS );
+         Socket^.MulticastGroup := ai;
          Socket^.MulticastPort := core.EIBNET_IPPORT;
          IOState := ioReady;
 
@@ -310,7 +312,8 @@ CLASS IMPLEMENTATION CConnection;
          RETURN Sync.arCompleted;
       //-----
       | cmRouting :
-         Socket^.MulticastGroup := HPAIData.Address;
+         ai.FromV4( HPAIData.Address );
+         Socket^.MulticastGroup := ai;
          Socket^.MulticastPort := core.EIBNET_IPPORT;
          IOState := ioReady;
          OnConnect();
@@ -847,7 +850,7 @@ CLASS IMPLEMENTATION CConnection;
 
       StopTimer( PTR( tiDisconnect ));
       IF Socket <> NIL THEN
-         netsrv.StopListenSocket( OUT Socket );
+         netsrv.StopListenSocket( REF Socket );
       END;
       IOState := ioDisconnected;
 
