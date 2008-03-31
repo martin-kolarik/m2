@@ -46,15 +46,16 @@ CLASS INETADDR;
    
    PUBLIC PROCEDURE SetV4( What : TSpecialAddress );
    PUBLIC PROCEDURE SetV6( What : TSpecialAddress );
-   
+
+   PUBLIC PROCEDURE FromV4( CONST IPAddr : ARRAY OF BYTE ); // IN_ADDR, network order
+   PUBLIC PROCEDURE FromV6( CONST IPAddr : ARRAY OF BYTE ); // IN_ADDR6
    PUBLIC PROCEDURE FromOA( CONST storage : ARRAY OF BYTE ); // e.g. winsock.SOCKET_ADDRESS, usually MUST be supplied with specific HIGH
+
+   PUBLIC PROCEDURE ToV4( OUT IPAddr : ARRAY OF BYTE ) : BOOLEAN; // IN_ADDR, 4 bytes
+   PUBLIC PROCEDURE ToV6( OUT IPAddr : ARRAY OF BYTE ) : BOOLEAN; // IN_ADDR6, 16 bytes
    PUBLIC PROCEDURE ToOA( OUT storage : ARRAY OF BYTE ); // e.g. winsock.SOCKET_ADDRESS
 
    INITIALLY INETADDR();
-   
-   PUBLIC READONLY PROPERTY // shortcut, can be NIL
-      IN_ADDR4 : ADDRESS;
-      IN_ADDR6 : ADDRESS;
 END INETADDR;
 
 TYPE

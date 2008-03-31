@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE netsocket;
 
+FROM Storage IMPORT
+   Move;
+
 IMPORT
   dns,
   MSTcpIp,
@@ -14,6 +17,28 @@ IMPORT
 
 CONST
    EMPTY_AI = WS2TcpIp.addrinfo( 0, 0, 0, 0, 0, NIL, NIL,NIL );
+   
+(*--------------------------------------------------------------------------------*)
+
+INLINE PROCEDURE IN_ADDR4( CONST ai : INETADDR ) : winsock.Pin_addr;
+BEGIN
+   IF ai.V6 THEN
+      RETURN NIL;
+   ELSE
+      RETURN ADR( winsock.Psockaddr_in( ai.Data )^.sin_addr );
+   END;
+END IN_ADDR4;
+
+(*--------------------------------------------------------------------------------*)
+
+INLINE PROCEDURE IN_ADDR6( CONST ai : INETADDR ) : WS2TcpIp.Pin_addr6;
+BEGIN
+   IF ai.V6 THEN
+      RETURN ADR( WS2TcpIp.Psockaddr_in6( ai.Data )^.sin6_addr );
+   ELSE
+      RETURN NIL;
+   END;
+END IN_ADDR6;
 
 (*================================================================================*)
 
@@ -56,9 +81,9 @@ CLASS IMPLEMENTATION INETADDR;
    PUBLIC PROPERTY Loopback GET : BOOLEAN;
    BEGIN
       IF V6 THEN
-         RETURN WS2TcpIp.IN6_IS_ADDR_LOOPBACK( WS2TcpIp.Pin_addr6( IN_ADDR6 ));
+         RETURN WS2TcpIp.IN6_IS_ADDR_LOOPBACK( IN_ADDR6( SELF ));
       ELSE
-         RETURN REVERSE( winsock.Pin_addr( IN_ADDR4 )^.s_addr ) = winsock.INADDR_LOOPBACK;
+         RETURN REVERSE( IN_ADDR4( SELF )^.s_addr ) = winsock.INADDR_LOOPBACK;
       END;
    END Loopback;
 
@@ -67,9 +92,9 @@ CLASS IMPLEMENTATION INETADDR;
    PUBLIC PROPERTY Multicast GET : BOOLEAN;
    BEGIN
       IF V6 THEN
-         RETURN WS2TcpIp.IN6_IS_ADDR_MULTICAST( WS2TcpIp.Pin_addr6( IN_ADDR6 ));
+         RETURN WS2TcpIp.IN6_IS_ADDR_MULTICAST( IN_ADDR6( SELF ));
       ELSE
-         RETURN winsock.IN_MULTICAST( REVERSE( winsock.Pin_addr( IN_ADDR4 )^.s_addr ));
+         RETURN winsock.IN_MULTICAST( REVERSE( IN_ADDR4( SELF )^.s_addr ));
       END;
    END Multicast;
 
@@ -199,6 +224,30 @@ CLASS IMPLEMENTATION INETADDR;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE FromV4( CONST IPAddr : ARRAY OF BYTE ); // IN_ADDR, network order
+   BEGIN
+      IF HIGH( IPAddr ) < SIZE( winsock.in_addr ) - 1 THEN
+         SetV4( saEmpty );
+      ELSE
+         V6 := FALSE;
+         Move( ADR( IPAddr ), IN_ADDR4( SELF ), SIZE( winsock.in_addr ));
+      END;
+   END FromV4;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE FromV6( CONST IPAddr : ARRAY OF BYTE ); // IN_ADDR6
+   BEGIN
+      IF HIGH( IPAddr ) < SIZE( WS2TcpIp.in_addr6 ) - 1 THEN
+         SetV6( saEmpty );
+      ELSE
+         V6 := TRUE;
+         Move( ADR( IPAddr ), IN_ADDR6( SELF ), SIZE( WS2TcpIp.in_addr6 ));
+      END;
+   END FromV6;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE FromOA( CONST storage : ARRAY OF BYTE );
    VAR
       i : CARDINAL;
@@ -210,6 +259,34 @@ CLASS IMPLEMENTATION INETADDR;
          SELF.storage[i] := storage[i];
       END;
    END FromOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ToV4( OUT IPAddr : ARRAY OF BYTE ) : BOOLEAN; // IN_ADDR, 4 bytes
+   BEGIN
+      IF V6 THEN
+         RETURN FALSE;
+      ELSIF HIGH( IPAddr ) < SIZE( winsock.in_addr ) - 1 THEN
+         RETURN FALSE;
+      ELSE
+         Move( IN_ADDR4( SELF ), ADR( IPAddr ), SIZE( winsock.in_addr ));
+         RETURN TRUE;
+      END;
+   END ToV4;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ToV6( OUT IPAddr : ARRAY OF BYTE ) : BOOLEAN; // IN_ADDR6, 16 bytes
+   BEGIN
+      IF NOT V6 THEN
+         RETURN FALSE;
+      ELSIF HIGH( IPAddr ) < SIZE( WS2TcpIp.in_addr6 ) - 1 THEN
+         RETURN FALSE;
+      ELSE
+         Move( IN_ADDR6( SELF ), ADR( IPAddr ), SIZE( WS2TcpIp.in_addr6 ));
+         RETURN TRUE;
+      END;
+   END ToV6;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -234,28 +311,6 @@ CLASS IMPLEMENTATION INETADDR;
       V6 := FALSE;
    END INETADDR;
    
-(*--------------------------------------------------------------------------------*)
-
-   LOCAL PROPERTY IN_ADDR4 GET : ADDRESS;
-   BEGIN
-      IF V6 THEN
-         RETURN NIL;
-      ELSE
-         RETURN ADR( winsock.PSOCKADDR_IN( ADR( storage ))^.sin_addr );
-      END;
-   END IN_ADDR4;
-
-(*--------------------------------------------------------------------------------*)
-
-   LOCAL PROPERTY IN_ADDR6 GET : ADDRESS;
-   BEGIN
-      IF V6 THEN
-         RETURN ADR( WS2TcpIp.Psockaddr_in6( ADR( storage ))^.sin6_addr );
-      ELSE
-         RETURN NIL;
-      END;
-   END IN_ADDR6;
-
 (*--------------------------------------------------------------------------------*)
 
 END INETADDR;
@@ -887,7 +942,7 @@ CLASS IMPLEMENTATION SSocket;
     IF MulticastGroup.V6 THEN
       ASSERT( FALSE ); // TODO
     ELSE
-      MReq.imr_multiaddr := winsock.Pin_addr( MulticastGroup.IN_ADDR4 )^;
+      MReq.imr_multiaddr := IN_ADDR4( MulticastGroup )^;
       MReq.imr_interface.s_addr := winsock.INADDR_ANY;
     END;
     res := winsock.setsockopt( Socket, winsock.IPPROTO_IP, WS2TcpIp.IP_ADD_MEMBERSHIP, windows.PSTR( ADR( MReq )), SIZE( MReq ));
@@ -913,7 +968,7 @@ CLASS IMPLEMENTATION SSocket;
       ASSERT( FALSE ); // TODO
       RETURN 0;
     ELSE
-      MReq.imr_multiaddr := winsock.Pin_addr( MulticastGroup.IN_ADDR4 )^;
+      MReq.imr_multiaddr := IN_ADDR4( MulticastGroup )^;
       MReq.imr_interface.s_addr := winsock.INADDR_ANY;
       RETURN winsock.setsockopt( Socket, winsock.IPPROTO_IP, WS2TcpIp.IP_DROP_MEMBERSHIP, windows.PSTR( ADR( MReq )), SIZE( MReq ));
     END;

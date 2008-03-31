@@ -23,6 +23,17 @@ IMPORT
 
 (*================================================================================*)
 
+INLINE PROCEDURE IN_ADDR6( CONST ai : netsocket.INETADDR ) : WS2TcpIp.Pin_addr6;
+BEGIN
+   IF ai.V6 THEN
+      RETURN ADR( WS2TcpIp.Psockaddr_in6( ai.Data )^.sin6_addr );
+   ELSE
+      RETURN NIL;
+   END;
+END IN_ADDR6;
+
+(*--------------------------------------------------------------------------------*)
+
 CLASS IMPLEMENTATION AInterfaceEnumerator;
 END AInterfaceEnumerator;
 
@@ -241,9 +252,9 @@ CLASS IMPLEMENTATION CInterfaceEnumerator;
       IF Address.Loopback THEN
          Scope := scoLoopback;
       ELSIF Address.V6 THEN
-         IF WS2TcpIp.IN6_IS_ADDR_LINKLOCAL( WS2TcpIp.Pin_addr6( Address.IN_ADDR6 )) THEN
+         IF WS2TcpIp.IN6_IS_ADDR_LINKLOCAL( IN_ADDR6( Address )) THEN
             Scope := scoLocalLink;
-         ELSIF WS2TcpIp.IN6_IS_ADDR_SITELOCAL( WS2TcpIp.Pin_addr6( Address.IN_ADDR6 )) THEN
+         ELSIF WS2TcpIp.IN6_IS_ADDR_SITELOCAL( IN_ADDR6( Address )) THEN
             Scope := scoLocalSite;
          ELSE
             Scope := scoGlobal;
