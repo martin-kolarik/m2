@@ -424,22 +424,22 @@ CLASS IMPLEMENTATION CEIBDriver;
             INCL( Status, schiValid );
          END;
 
-         drv_def.AssignValueCardinal( InValue, TRUE, CARDINAL( Status ));
+         drv_def.AssignValueCardinal( InValue, UFlag, TRUE, CARDINAL( Status ));
 
       ELSIF DriverIndex = InputQueueLengthChannel THEN
          QoS := drv_def.qosGood;
          ErrorCode := drv_def.ecSuccess;
-         drv_def.AssignValueCardinal( InValue, TRUE, CARDINAL( oobData.Count ));
+         drv_def.AssignValueCardinal( InValue, UFlag, TRUE, CARDINAL( oobData.Count ));
 
       ELSIF DriverIndex = OutputQueueLengthChannel THEN
          QoS := drv_def.qosGood;
          ErrorCode := drv_def.ecSuccess;
-         drv_def.AssignValueCardinal( InValue, TRUE, CARDINAL( EIB^.OutputQueueLength() ));
+         drv_def.AssignValueCardinal( InValue, UFlag, TRUE, CARDINAL( EIB^.OutputQueueLength() ));
 
       ELSIF DriverIndex = WriteQueueLengthChannel THEN
          QoS := drv_def.qosGood;
          ErrorCode := drv_def.ecSuccess;
-         drv_def.AssignValueCardinal( InValue, TRUE, CARDINAL( EIB^.WriteQueueLength() ));
+         drv_def.AssignValueCardinal( InValue, UFlag, TRUE, CARDINAL( EIB^.WriteQueueLength() ));
 
       ELSIF NOT LogNumber2Object( DriverIndex, PObject ) THEN
          QoS := drv_def.qosBad;
@@ -465,37 +465,37 @@ CLASS IMPLEMENTATION CEIBDriver;
          | eib_def.eitUnknown :
             ErrorCode := drv_def.ecValueProcessing;
          | eib_def.eitSwitch :
-            drv_def.AssignValueBoolean( InValue, TRUE, EV.GetSwitch() );
+            drv_def.AssignValueBoolean( InValue, UFlag, TRUE, EV.GetSwitch() );
          | eib_def.eitIncrease :
             c := EV.GetIncrease( b1, b2 );
             IF b1 THEN
-               drv_def.AssignValueInteger( InValue, TRUE, INTEGER( c ));
+               drv_def.AssignValueInteger( InValue, UFlag, TRUE, INTEGER( c ));
             ELSIF b2 THEN
-               drv_def.AssignValueInteger( InValue, TRUE, -INTEGER( c ));
+               drv_def.AssignValueInteger( InValue, UFlag, TRUE, -INTEGER( c ));
             ELSE
-               drv_def.AssignValueInteger( InValue, TRUE, 0 );
+               drv_def.AssignValueInteger( InValue, UFlag, TRUE, 0 );
             END;
          | eib_def.eitTime :
             EV.GetTime( Day, H, M, S );
-            drv_def.AssignValueCardinal( InValue, TRUE, CARDINAL( Day ) * 100000 + ( H * 60 + M ) * 60 + S );
+            drv_def.AssignValueCardinal( InValue, UFlag, TRUE, CARDINAL( Day ) * 100000 + ( H * 60 + M ) * 60 + S );
          | eib_def.eitDate :
             EV.GetDate( Y, M, D );
-            drv_def.AssignValueLongReal( InValue, TRUE, Time.ToSJD( Time.JD( Y, M, D, 0 )));
+            drv_def.AssignValueLongReal( InValue, UFlag, TRUE, Time.ToSJD( Time.JD( Y, M, D, 0 )));
          | eib_def.eitValue,
             eib_def.eitValueRange :
-            drv_def.AssignValueLongReal( InValue, TRUE, EV.GetValue() );
+            drv_def.AssignValueLongReal( InValue, UFlag, TRUE, EV.GetValue() );
          | eib_def.eitScaling :
-            drv_def.AssignValueCardinal( InValue, TRUE, EV.GetScaling() );
+            drv_def.AssignValueCardinal( InValue, UFlag, TRUE, EV.GetScaling() );
          | eib_def.eitScaling255 :
-            drv_def.AssignValueCardinal( InValue, TRUE, EV.GetScaling255() );
+            drv_def.AssignValueCardinal( InValue, UFlag, TRUE, EV.GetScaling255() );
          | eib_def.eitMove :
-            drv_def.AssignValueBoolean( InValue, TRUE, EV.GetMove() );
+            drv_def.AssignValueBoolean( InValue, UFlag, TRUE, EV.GetMove() );
          | eib_def.eitFloat :
-            drv_def.AssignValueLongReal( InValue, TRUE, EV.GetFloat() );
+            drv_def.AssignValueLongReal( InValue, UFlag, TRUE, EV.GetFloat() );
          | eib_def.eit16bit :
-            drv_def.AssignValueCardinal( InValue, TRUE, EV.Get16bit() );
+            drv_def.AssignValueCardinal( InValue, UFlag, TRUE, EV.Get16bit() );
          | eib_def.eit32bit :
-            drv_def.AssignValueCardinal( InValue, TRUE, EV.Get32bit() );
+            drv_def.AssignValueCardinal( InValue, UFlag, TRUE, EV.Get32bit() );
          | eib_def.eitChar :
             wch := EV.GetChar();
             InValue.ValDriverStringCharLength := 1;
@@ -505,7 +505,7 @@ CLASS IMPLEMENTATION CEIBDriver;
                Strings.ToA( OA( 0, ADR( wch )), 0, OUT OA( 0, PCHAR( InValue.ValDriverStringAddress )));
             END;
          | eib_def.eit8bit :
-            drv_def.AssignValueCardinal( InValue, TRUE, EV.Get8bit() );
+            drv_def.AssignValueCardinal( InValue, UFlag, TRUE, EV.Get8bit() );
          | eib_def.eitString :
             EV.GetString( s );
             InValue.ValDriverStringCharLength := MIN2( InValue.ValDriverStringCharLength, LENGTH( s ));
@@ -620,7 +620,7 @@ CLASS IMPLEMENTATION CEIBDriver;
          END;
 
          drv_def.InitValue( LValue );
-         drv_def.SetValueString( LValue, V );
+         drv_def.SetValueStringW( LValue, UFlag, V );
          CWValue2EIBValue( TRUE, LValue, EIT, OUT EV );
          prObjects[EIT].SetValue( EV );
          drv_def.DoneValue( LValue )
@@ -706,9 +706,9 @@ CLASS IMPLEMENTATION CEIBDriver;
       | eib_def.eitUnknown :
          RETURN;
       | eib_def.eitSwitch :
-         EV.SetSwitch( drv_def.ValueToBoolean( Value, TRUE ));
+         EV.SetSwitch( drv_def.ValueToBoolean( Value, UFlag, TRUE ));
       | eib_def.eitIncrease :
-         i := drv_def.ValueToInteger( Value, TRUE );
+         i := drv_def.ValueToInteger( Value, UFlag, TRUE );
          IF i = 0 THEN
             EV.SetIncrease( FALSE, FALSE, 0 );
          ELSIF i < 0 THEN
@@ -717,7 +717,7 @@ CLASS IMPLEMENTATION CEIBDriver;
             EV.SetIncrease( TRUE, FALSE, CARDINAL( i ));
          END;
       | eib_def.eitTime :
-         c := drv_def.ValueToCardinal( Value, TRUE );
+         c := drv_def.ValueToCardinal( Value, UFlag, TRUE );
          WD := c DIV 100000;
          c := c - WD * 100000;
          H := c DIV 3600;
@@ -735,26 +735,26 @@ CLASS IMPLEMENTATION CEIBDriver;
          END;
          EV.SetTime( Day, H, M, S );
       | eib_def.eitDate :
-         Time.iJD( Time.FromSJD( drv_def.ValueToLongReal( Value, TRUE )), OUT Y, OUT MM, OUT D, OUT fd );
+         Time.iJD( Time.FromSJD( drv_def.ValueToLongReal( Value, UFlag, TRUE )), OUT Y, OUT MM, OUT D, OUT fd );
          EV.SetDate( Y, MM, D );
       | eib_def.eitValue, eib_def.eitValueRange :
-         EV.SetValue( drv_def.ValueToLongReal( Value, TRUE ));
+         EV.SetValue( drv_def.ValueToLongReal( Value, UFlag, TRUE ));
       | eib_def.eitScaling :
-         EV.SetScaling( CARDINAL( drv_def.ValueToCard8( Value, TRUE )) );
+         EV.SetScaling( CARDINAL( drv_def.ValueToCard8( Value, UFlag, TRUE )));
       | eib_def.eitScaling255 :
-         EV.SetScaling255( drv_def.ValueToCard8( Value, TRUE ));
+         EV.SetScaling255( drv_def.ValueToCard8( Value, UFlag, TRUE ));
       | eib_def.eitMove :
-         EV.SetMove( drv_def.ValueToBoolean( Value, TRUE ));
+         EV.SetMove( drv_def.ValueToBoolean( Value, UFlag, TRUE ));
       | eib_def.eitFloat :
-         EV.SetFloat( drv_def.ValueToLongReal( Value, TRUE ));
+         EV.SetFloat( drv_def.ValueToLongReal( Value, UFlag, TRUE ));
       | eib_def.eit16bit :
-         c:= drv_def.ValueToCard32( Value, TRUE );
+         c:= drv_def.ValueToCard32( Value, UFlag, TRUE );
          IF c > MAX( CARD16 ) THEN
             c := MAX( CARD16 );
          END;
          EV.Set16bit( c );
       | eib_def.eit32bit :
-         EV.Set32bit( drv_def.ValueToCardinal( Value, TRUE ));
+         EV.Set32bit( drv_def.ValueToCardinal( Value, UFlag, TRUE ));
       | eib_def.eitChar :
          IF UFlag THEN
             Strings.MoveW( Value.ValDriverStringAddress, ADR( s ), 1 );
@@ -763,7 +763,7 @@ CLASS IMPLEMENTATION CEIBDriver;
          END;
          EV.SetChar( s[0] );
       | eib_def.eit8bit :
-         EV.Set8bit( CARDINAL( drv_def.ValueToCard8( Value, TRUE )) );
+         EV.Set8bit( CARDINAL( drv_def.ValueToCard8( Value, UFlag, TRUE )) );
       | eib_def.eitString :
          c := MIN2( SIZE( eib_def.TEISString ), Value.ValDriverStringCharLength );
          IF UFlag THEN
