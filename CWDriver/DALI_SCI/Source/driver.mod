@@ -68,10 +68,18 @@ CLASS IMPLEMENTATION CDriver;
    PUBLIC PROCEDURE ReadParameters( CONST ParFilePath : StringsO.CString; REF Log : log.CLogger ) : BOOLEAN;
    CONST
       snDevice = L'device';
-      knStatusChannel = L'status_channel';
+         knStatusChannel = L'status_channel';
+         knOutputQueueCountChannel = L'output_queue_count_channel';
+         knOutputQueueLength = L'output_queue_length';
+      snPolling = L'polling';
+         knPollPeriod = L'period';
+         knDev = L'dev00';
+         knAll = L'all';
    VAR
-      c, line : CARDINAL;
+      c, i, line : CARDINAL;
+      defaultPollingCount : CARDINAL;
       fs : FIOO.CFileStream;
+      strDev : ARRAY [0..31] OF WCHAR;
       tr : TextReader.CTextReader;
       TS : INIFile.CINIFile;
       b : BOOLEAN;
@@ -90,13 +98,6 @@ CLASS IMPLEMENTATION CDriver;
          RETURN FALSE;
       END;
 
-      StatusChannel := MAX( CARDINAL );
-      IF TS.SetSection( snDevice ) THEN
-         IF TS.GetKeyInt( knStatusChannel, OUT line, OUT c ) THEN
-            StatusChannel := c;
-         END;
-      END; // IF snDevice
-
       Dali.Logger.SetUpByRegistry( LIBRARY );
       CASE drv_def.ConfigureLog( TS, REF Dali.Logger, OUT line ) OF
       | drv_def.clrUnknownDebugMode :
@@ -106,6 +107,49 @@ CLASS IMPLEMENTATION CDriver;
       | drv_def.clrFileDebugMissingFile :
          Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._FileDebugMissingFile ] ), line, 0 );
          RETURN FALSE;
+      END;
+
+      StatusChannel := MAX( CARDINAL );
+      OutputQueueCountChannel := MAX( CARDINAL );
+      IF TS.SetSection( snDevice ) THEN
+         IF TS.GetKeyInt( knStatusChannel, OUT line, OUT c ) THEN
+            StatusChannel := c;
+         END;
+         IF TS.GetKeyInt( knOutputQueueCountChannel, OUT line, OUT c ) THEN
+            OutputQueueCountChannel := c;
+         END;
+         IF TS.GetKeyInt( knOutputQueueLength, OUT line, OUT c ) THEN
+            Dali.OutputQueueLength := c;
+         END;
+      END; // IF snDevice
+      
+      PollPeriod := Sync.FOREVER;
+      IF TS.SetSection( snPolling ) THEN
+         IF TS.GetKeyInt( knPollPeriod, OUT line, OUT c ) THEN
+            IF c < 75 THEN
+               Dali.Logger.LogS( log.dldTrace, logPrefix, L"Polling period too short, selecting 75" );
+               PollPeriod := 75;
+            ELSE
+               PollPeriod := c;
+            END;
+         END;
+
+         defaultPollingCount := -1;
+         IF TS.GetKeyInt( knAll, OUT line, OUT c ) THEN
+            Dali.Logger.LogSC( log.dldTrace, logPrefix, L"Setting polling count for all devices to: ", c );
+            defaultPollingCount := c;
+         END;
+
+         strDev := knDev;
+         FOR i := 0 TO 63 DO
+            strDev[3] := WCHAR( ORD( '0' ) + i DIV 10 );
+            strDev[4] := WCHAR( ORD( '0' ) + i MOD 10 );
+            IF TS.GetKeyInt( strDev, OUT line, OUT c ) AND ( c > 0 ) THEN
+               PollInitArray[i] := c;
+            ELSE
+               PollInitArray[i] := defaultPollingCount;
+            END;
+         END;
       END;
 
       IF NOT Dali.LoadConfiguration( ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), TS, REF Log ) THEN
@@ -127,14 +171,19 @@ CLASS IMPLEMENTATION CDriver;
       Count := 1;
       HaveDescription := TRUE;
       
-      CASE Index OF
-      | 0 :
-         IF StatusChannel = MAX( CARDINAL ) THEN
-            RETURN FALSE;
-         END;
+      IF Index > 1 THEN
+         RETURN FALSE;
+
+      ELSIF ( Index = 0 ) AND ( StatusChannel <> MAX( CARDINAL )) THEN
          Type := CARDINAL( drv_def.vtLongCard );
          Direction := CARDINAL( drv_def.TDirection{ drv_def.dirInput } );
          DriverIndex := StatusChannel;
+
+      ELSIF OutputQueueCountChannel <> MAX( CARDINAL ) THEN
+         Type := CARDINAL( drv_def.vtLongCard );
+         Direction := CARDINAL( drv_def.TDirection{ drv_def.dirInput } );
+         DriverIndex := OutputQueueCountChannel;
+
       ELSE
          RETURN FALSE;
       END; // CASE
@@ -149,10 +198,14 @@ CLASS IMPLEMENTATION CDriver;
    PUBLIC PROCEDURE GetChannelDescription( DriverIndex : CARDINAL; VAR Description : ARRAY OF WCHAR; VAR Id : ARRAY OF WCHAR ) : BOOLEAN;
    CONST
       _StatusId = L'drvStatus';
+      _OutputQueueCountId = L'drvOutputQueueCount';
    BEGIN
       IF DriverIndex = StatusChannel THEN
          ASSIGN( Description, OAsz( R()^[ Texts._StatusComment ] ));
          ASSIGN( Id, _StatusId );
+      ELSIF DriverIndex = OutputQueueCountChannel THEN
+         ASSIGN( Description, OAsz( R()^[ Texts._OutputQueueCountComment ] ));
+         ASSIGN( Id, _OutputQueueCountId );
       ELSE
          RETURN FALSE;
       END;
@@ -163,6 +216,7 @@ CLASS IMPLEMENTATION CDriver;
 
    PUBLIC PROCEDURE Run();
    VAR
+      i : CARDINAL;
       s : FIO.PathStrW;
    BEGIN
       IF schiRunning IN RStatus THEN
@@ -178,8 +232,13 @@ CLASS IMPLEMENTATION CDriver;
 
       Dali.Run();
 
-      IF PollTimer = NIL THEN
-         netpool.Pool()^.WaitTimeout( PollSink, 0, 1000, FALSE, TRUE, OUT PollTimer );
+      IF ( PollTimer = NIL ) AND ( PollPeriod <> Sync.FOREVER ) THEN
+         FOR i := 0 TO HIGH( PollInitArray ) DO
+            PollCountArray[i] := PollInitArray[i];
+         END;
+         netpool.Pool()^.WaitTimeout( PollSink, 0, PollPeriod, FALSE, TRUE, OUT PollTimer );
+      ELSIF ( PollTimer <> NIL ) AND ( PollPeriod = Sync.FOREVER ) THEN
+         netpool.Pool()^.Abort( REF PollTimer );
       END;
    END Run;
 
@@ -239,6 +298,8 @@ CLASS IMPLEMENTATION CDriver;
    BEGIN
       IF DriverIndex = StatusChannel THEN
          ErrorCode := drv_def.ecSuccess;
+      ELSIF DriverIndex = OutputQueueCountChannel THEN
+         ErrorCode := drv_def.ecSuccess;
       ELSIF Result.Expired OR Result.Counted THEN
          RETURN FALSE;
       END;
@@ -270,6 +331,12 @@ CLASS IMPLEMENTATION CDriver;
          END;
 
          drv_def.AssignValueCardinal( InValue, UFlag, TRUE, CARDINAL( Status ));
+
+      ELSIF DriverIndex = OutputQueueCountChannel THEN
+         QoS := drv_def.qosGood;
+         ErrorCode := drv_def.ecSuccess;
+
+         drv_def.AssignValueCardinal( InValue, UFlag, TRUE, CARDINAL( Dali.OutputQueueCount ));
       END;
    END GetInput;
 
@@ -446,7 +513,7 @@ CLASS IMPLEMENTATION CDriver;
                            CS.AppendOA( L"limit_error " );
                         END;
                         IF 020H AND ExceptionItem^.Value <> 0 THEN
-                           CS.AppendOA( L"initstate " );
+                           CS.AppendOA( L"init_state " );
                         END;
                         IF 010H AND ExceptionItem^.Value <> 0 THEN
                            CS.AppendOA( L"fading" );
@@ -645,14 +712,26 @@ CLASS IMPLEMENTATION CDriver;
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
    VAR
       address : DaliSci.DaliAddress;
+      i : CARDINAL;
    BEGIN
-      PollIndex := INC( PollIndex ) AND 63;
-      address.Type := DaliSci.adrSingle;
-      address.Address := PollIndex;
+      FOR i := 0 TO HIGH( PollCountArray ) DO
+         IF PollCountArray[i] = -1 THEN // not polled
+            CONTINUE;
+         ELSIF PollCountArray[i] = 1 THEN // elapsed
+            PollCountArray[i] := PollInitArray[i];
+         ELSE
+            DEC( PollCountArray[i] );
+            CONTINUE;
+         END;
+         
+         // now process elapsed item
+         address.Type := DaliSci.adrSingle;
+         address.Address := i;
 
-      Dali.Logger.LogSC( dldDebug, logPrefix, L"Poll status request for: ", PollIndex );
+         Dali.Logger.LogSC( dldDebug, logPrefix, L"Poll status request for: ", i );
 
-      Dali.Command( address, DaliSci.cmdStatus, 0, PTR( eitPollStatus ));
+         Dali.Command( address, DaliSci.cmdStatus, 0, PTR( eitPollStatus ));
+      END; // FOR
    END OnTimeout;
 
 //================================================================================
@@ -708,15 +787,18 @@ BEGIN
    CallbackProc := NIL;
 
    StatusChannel := MAX( CARDINAL );
+   OutputQueueCountChannel := MAX( CARDINAL );
    Fill( ADR( StatusArray ), SIZE( StatusArray ), 0FFH );
    PollTimer := NIL;
+   PollPeriod := Sync.FOREVER;
+   PollCountArray[0] := -1;
+   PollInitArray[0] := -1;
 
    cllvData := ADR( cllv.data );
    cllvLength := cllv.length;
    
    NEW( PollSink );
    PollSink^.TimeoutSink := ADR( SELF );
-   PollIndex := 0;
 
    Dali.EventSink := ADR( SELF );
 FINALLY

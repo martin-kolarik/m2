@@ -69,6 +69,10 @@
             <item lang="en-US">Status channel of the driver (information about connection and common actions)</item>
             <item lang="cs-CZ">Stavový kanál ovladače (informace o komunikaci a obecných akcích)</item>
         </string>
-    
-   </strings>
+        <string name="_OutputQueueCountComment">
+            <item lang="en-US">Count of commands still waiting to be sent to DALI</item>
+            <item lang="cs-CZ">Počet povelů čekajících na odeslání do DALI</item>
+        </string>
+
+    </strings>
 </resources>

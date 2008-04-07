@@ -119,9 +119,9 @@ CLASS IMPLEMENTATION CUDPCommunicator;
       IF Socket = NIL THEN
          RETURN Sync.arCannotStart;
       END;
-      delay := INTEGER( time.UptimeMS() - LastSend );
-      IF ( InterPacketDelay > 0 ) AND ( delay < INTEGER( InterPacketDelay )) THEN // wait
-         IF Delay = NIL THEN
+      IF InterPacketDelay > 0 THEN
+         delay := INTEGER( time.UptimeMS() - LastSend );
+         IF ( Delay = NIL ) AND ( delay < INTEGER( InterPacketDelay )) THEN // wait if not waiting yet
             netpool.Pool()^.WaitTimeout( TimerSink, timerDelay, delay, TRUE, TRUE, OUT Timeout );
          END;   
          RETURN Sync.arAlreadyPending;
@@ -393,6 +393,27 @@ CLASS IMPLEMENTATION CDali;
 
 (*-------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY OutputQueueCount GET : CARDINAL;
+   BEGIN
+      RETURN Queue.Count;
+   END OutputQueueCount;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY OutputQueueLength GET : CARDINAL;
+   BEGIN
+      RETURN QueueLength;
+   END OutputQueueLength;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY OutputQueueLength SET( Value : CARDINAL );
+   BEGIN
+      QueueLength := MAX2( 2, Value );
+   END OutputQueueLength;
+
+(*-------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE Dispose();
    VAR
       data : PTR;
@@ -544,6 +565,13 @@ CLASS IMPLEMENTATION CDali;
                EventSink^.OnCompletion( Result, Request^.Command, ClientId, Request^.Address, Response );
             END;
             DISPOSE( Request );
+            
+            // flush queue
+            WHILE Queue.Count > QueueLength DO
+               Queue.Dequeue( OUT Request, OUT ClientId );
+               DISPOSE( Request );
+            END; // WHILE
+
          END;
          
       ELSE
@@ -600,6 +628,7 @@ BEGIN
    Communicator^.EventSink := TPICommunicatorSink( ADR( SELF ));
    Communicator^.Logger := ADR( Logger );
    EventSink := NIL;
+   QueueLength := MAX( CARDINAL );
 FINALLY
    IF Communicator <> NIL THEN
       Communicator^.Release();

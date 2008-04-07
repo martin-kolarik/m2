@@ -35,22 +35,26 @@ CONST
 
 CLASS CDriver IMPLEMENTS threadpool.ITimeoutSink, DaliSci.IDaliEventSink;
    PRIVATE VAR
-      RStatus       : TStatusChannel;
-      ClientName    : ARRAY [0..63] OF WCHAR;
-      CallbackId    : ADDRESS;
-      CallbackProc  : drv_def.TDriverCallbackW;
-      StatusChannel : CARDINAL;
+      RStatus        : TStatusChannel;
+      ClientName     : ARRAY [0..63] OF WCHAR;
+      CallbackId     : ADDRESS;
+      CallbackProc   : drv_def.TDriverCallbackW;
+      StatusChannel  : CARDINAL;
+      OutputQueueCountChannel
+                     : CARDINAL;
    
-      Dali          : DaliSci.CDali;
-      Result        : lec.CResult;
-      cllvData      : ADDRESS;
-      cllvLength    : CARDINAL;
-      Queue         : lists.CPtrList;
+      Dali           : DaliSci.CDali;
+      Result         : lec.CResult;
+      cllvData       : ADDRESS;
+      cllvLength     : CARDINAL;
+      Queue          : lists.CPtrList;
       
-      StatusArray   : ARRAY [0..63] OF CARD8;
-      PollSink      : threadpool.TPSinkDelegate;
-      PollTimer     : Sync.WAITABLE;
-      PollIndex     : CARDINAL;
+      StatusArray    : ARRAY [0..63] OF CARD8;
+      PollSink       : threadpool.TPSinkDelegate;
+      PollPeriod     : CARDINAL;
+      PollTimer      : Sync.WAITABLE;
+      PollCountArray : ARRAY [0..63] OF CARDINAL;
+      PollInitArray  : ARRAY [0..63] OF CARDINAL;
 
    // binding to procedural interface
    PUBLIC PROCEDURE Init( CONST SymbolicName : ARRAY OF WCHAR; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW ) : BOOLEAN;

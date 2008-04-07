@@ -19,15 +19,15 @@ end_data;
 
 instrument
 
-  program Status;
-    timer = 10.01;
-
-    procedure OnActivate();
-    begin
-      core.DebugOutput( 'ST: ', dali.1 );
-    end_procedure;
-
-  end_program;
+  meter meter_1;
+    timer = 2;
+    owner = background;
+    position = 500, 250, 395, 75;
+    expression = dali.10;
+    mode = text_display;
+    range_to = 1E+016;
+    font = 'Arial Rounded MT Bold (Western)', 36, normal;
+  end_meter;
 
   string_control string_control_2;
     owner = background;
@@ -47,9 +47,19 @@ instrument
     
   end_string_control;
 
+  program Status;
+    timer = 10.01;
+    
+    procedure OnActivate();
+    begin
+      core.DebugOutput( 'ST: ', dali.1 );
+    end_procedure;
+    
+  end_program;
+
   program ExceptionHandler;
     driver_exception = dali;
-
+    
     procedure OnActivate();
     var
        Event : string;
@@ -62,7 +72,7 @@ instrument
           core.DebugOutput( 'Event: ', Event );
        end;
     end_procedure;
-
+    
   end_program;
 
 end_instrument;

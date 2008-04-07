@@ -88,9 +88,14 @@ CLASS CDali IMPLEMENTS ICommunicatorSink;
    PRIVATE VAR
       Communicator : TPCommunicator;
       Queue : lists.CPtrList;
+      QueueLength : CARDINAL;
    PUBLIC VAR
       EventSink : POINTER TO IDaliEventSink;
       Logger : log.CLogger;
+   PUBLIC READONLY PROPERTY
+      OutputQueueCount : CARDINAL;
+   PUBLIC PROPERTY
+      OutputQueueLength : CARDINAL;
 
    PUBLIC PROCEDURE Dispose();
 
