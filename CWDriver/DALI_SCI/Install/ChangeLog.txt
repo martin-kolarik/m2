@@ -1,3 +1,10 @@
-Version DEBUG 1.1.1499 25.3.2008
+Version DEBUG 1.0.1527 7.4.2008
+- NEW: output_queue_count_channel and output_queue_length parameters
+       of [device] section were addres. First for querying pending
+       communications, second for limiting occupied memory size
+- CHG: polling period for status reading can be defined separately for
+       each connected device: [polling] section with keys period/all/devXX
+
+Version DEBUG 1.0.1499 25.3.2008
 - INI: created
 - FEA: setup of device addresses is not present yet
