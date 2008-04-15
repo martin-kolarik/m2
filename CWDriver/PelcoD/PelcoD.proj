@@ -1,0 +1,38 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 -->
+    <PropertyGroup>
+        <Manufacturer>Inris</Manufacturer>
+        <ComponentType>Product</ComponentType>
+
+        <ProductId>Inris.PelcoD.CWDriver</ProductId>
+        <ProductVersionMajor>1</ProductVersionMajor>
+        <ProductVersionMinor>0</ProductVersionMinor>
+        <FileDescription>Inris PelcoD Camera Control Driver</FileDescription>
+
+        <ProductGUID>93FD7F16-F962-4d2b-8904-2BF8D7B5B5F9</ProductGUID>
+        <ProductUpgradeGUID>8FC4B411-1C7D-4a2b-B859-7788BECD6C44</ProductUpgradeGUID>
+    </PropertyGroup>
+
+    <!-- 2 INCLUDE DEFINITION -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 COMPONENT DEFINITION -->
+    <ItemGroup>
+			<Components Include="modula2\modula2;api\clib;API\win32"/>
+			<Components Include="component\sccore;library\serial;library\CWdriver"/>
+			<Modules Include="PelcoD"/>
+			<!-- Messages Include="Texts"/ -->
+		</ItemGroup>
+
+    <PropertyGroup>
+        <Export>export</Export>
+    </PropertyGroup>
+
+    <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>
