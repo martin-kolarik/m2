@@ -135,7 +135,7 @@ CLASS IMPLEMENTATION CDriver;
          END;
 
          defaultPollingCount := -1;
-         IF TS.GetKeyInt( knAll, OUT line, OUT c ) THEN
+         IF TS.GetKeyInt( knAll, OUT line, OUT c ) AND ( c > 0 ) THEN
             Dali.Logger.LogSC( log.dldTrace, logPrefix, L"Setting polling count for all devices to: ", c );
             defaultPollingCount := c;
          END;
@@ -487,11 +487,23 @@ CLASS IMPLEMENTATION CDriver;
 
                CASE ExceptionType OF
                | eitRead, eitPollStatus :
-                  IF ExceptionItem^.Command = DaliSci.cmdStatus THEN
-                     CS.FromOA( "status " ); CS.AppendOA( N ); CS.AppendOA( L" " ); 
+                  CASE ExceptionItem^.Command OF
+                  | DaliSci.cmdStatus :
+                     CS.FromOA( L"status " );  
+                  | DaliSci.cmdWorking :
+                     CS.FromOA( L"present " );
+                  | DaliSci.cmdDeviceType :
+                     CS.FromOA( L"type " );
+                  | DaliSci.cmdVersion :
+                     CS.FromOA( L"version " );
+                  | DaliSci.cmdCurrentLevel :
+                     CS.FromOA( L"level " );
                   ELSE
-                     CS.FromOA( "value " ); CS.AppendOA( N ); CS.AppendOA( L" " ); 
+                     CS.FromOA( L"value " );
                   END;
+                  CS.AppendOA( N );
+                  CS.AppendOA( L" " );
+            
                   IF ExceptionItem^.Result = Sync.arCompleted THEN
 
                      IF ExceptionItem^.Command = DaliSci.cmdStatus THEN
