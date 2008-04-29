@@ -13,8 +13,6 @@ FROM Log IMPORT
 CLASS IMPLEMENTATION CServer;
 BEGIN
    ServiceFamilies := core.TServiceFamilies{};
-   Address.s_addr := 0;
-   RoutingAddress.s_addr := 0;
 END CServer;
 
 (*================================================================================*)
@@ -82,18 +80,27 @@ CLASS IMPLEMENTATION CBrowser;
 
    INTERNAL VIRTUAL PROCEDURE OnSearchResponse( CONST packet : core.SearchResponse );
    VAR
+      ai : netsocket.INETADDR;
       Server : TPServer;
+      String : ARRAY [0..63] OF WCHAR;
    BEGIN
-      logger()^.LogSP( dldTrace, L"EIBNet Browser", "found server: ", PTR( REVERSE( packet.Address.s_addr )));
+      packet.Address.GetAddressOA( FALSE, OUT String );
+      logger()^.LogSS( dldTrace, L"EIBNet Browser", "found server: ", String );
 
       NEW( Server );
       Server^.HPAI := packet.HPAI;
       Server^.Description := packet.Name;
       Server^.ServiceFamilies := packet.SupportedFamilies;
       Server^.MAC := packet.MAC;
-      Server^.Address := packet.Address;
-      Server^.Port := packet.Port;
-      Server^.RoutingAddress := packet.RoutingAddress;
+
+      ai := packet.Address;
+      ai.Port := packet.Port;
+      Server^.Address := ai;
+
+      ai := packet.RoutingAddress;
+      ai.Port := core.EIBNET_IPPORT;
+      Server^.RoutingAddress := ai;
+
       Servers.Add( Server );
    END OnSearchResponse;
 

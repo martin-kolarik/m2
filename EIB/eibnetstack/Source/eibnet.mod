@@ -65,8 +65,6 @@ CLASS IMPLEMENTATION CConnection;
 
    PUBLIC PROPERTY Mode SET( Value : TConnectionMode );
    VAR
-      Address : winsock.IN_ADDR;
-      l : CARDINAL;
       wasConnected : BOOLEAN := NOT Disconnected;
    BEGIN
       IF _Mode = Value THEN
@@ -75,15 +73,7 @@ CLASS IMPLEMENTATION CConnection;
          Disconnect( TRUE );
       END;
 
-      // set itself
       _Mode := Value;
-      IF _Mode = cmTunnelingHPAI THEN
-         Address.s_addr := 0;
-         dns.GetLocalIPs( 5000, OUT OA( 0, ADR( Address )), OUT l );
-         HPAISelf.Address := Address;
-      ELSIF _Mode = cmTunnelingBlind THEN
-         HPAISelf.Address := netsocket.INADDR_EMPTY;
-      END;
 
       IF wasConnected THEN // reconnect if it was connected
          Connect( 0 );
@@ -92,16 +82,16 @@ CLASS IMPLEMENTATION CConnection;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY RemoteAddress GET : winsock.IN_ADDR; // routing or remote address
+   PUBLIC PROPERTY RemoteAddress GET : netsocket.INETADDR; // routing or remote address
    BEGIN
       RETURN HPAIData.Address;
    END RemoteAddress;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY RemoteAddress SET( CONST Value : winsock.IN_ADDR ); // routing or remote address
+   PUBLIC PROPERTY RemoteAddress SET( CONST Value : netsocket.INETADDR ); // routing or remote address
    VAR
-      Address : winsock.IN_ADDR;
+      Address : netsocket.INETADDR;
       wasConnected : BOOLEAN := NOT Disconnected;
    BEGIN
       Address := HPAIData.Address;
@@ -114,7 +104,7 @@ CLASS IMPLEMENTATION CConnection;
 
       // set itself
       HPAIData.Address := Value;
-      IF winsock.IN_MULTICAST( REVERSE( Value.s_addr )) THEN
+      IF Value.Multicast THEN
          HPAIData.Port := core.EIBNET_IPPORT;
       ELSE
          HPAICtrl.Address := Value;
@@ -124,38 +114,6 @@ CLASS IMPLEMENTATION CConnection;
          Connect( 0 );
       END;
    END RemoteAddress;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY RemotePort GET : CARDINAL;
-   BEGIN
-      RETURN HPAICtrl.Port;
-   END RemotePort;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY RemotePort SET( Value : CARDINAL ); // routing or remote address
-   VAR
-      wasConnected : BOOLEAN := NOT Disconnected;
-   BEGIN
-      IF HPAICtrl.Port = Value THEN
-         RETURN;
-      ELSIF wasConnected THEN
-         Disconnect( TRUE );
-      END;
-
-      // set itself
-      HPAICtrl.Port := Value;
-      IF winsock.IN_MULTICAST( REVERSE( HPAIData.Address.s_addr )) THEN
-         HPAIData.Port := core.EIBNET_IPPORT;
-      ELSIF _Mode = cmTunnelingBlind THEN
-         HPAIData.Port := HPAICtrl.Port;
-      END;
-
-      IF wasConnected THEN // reconnect if it was connected
-         Connect( 0 );
-      END;
-   END RemotePort;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -265,6 +223,7 @@ CLASS IMPLEMENTATION CConnection;
    VAR
       ai : netsocket.INETADDR;
       cr : core.ConnectRequest;
+      l : CARDINAL;
       timeout : CARDINAL := 0;
       b : BOOLEAN;
    BEGIN
@@ -312,8 +271,7 @@ CLASS IMPLEMENTATION CConnection;
          RETURN Sync.arCompleted;
       //-----
       | cmRouting :
-         ai.FromV4( HPAIData.Address );
-         Socket^.MulticastGroup := ai;
+         Socket^.MulticastGroup := HPAIData.Address;
          Socket^.MulticastPort := core.EIBNET_IPPORT;
          IOState := ioReady;
          OnConnect();
@@ -325,10 +283,21 @@ CLASS IMPLEMENTATION CConnection;
          IOState := ioConnecting;
          StartTimer( PTR( tiConnect ), CONNECT_TIMEOUT, FALSE );
       END;
+
+      IF _Mode = cmTunnelingHPAI THEN
+         dns.GetLocalIPs( TRUE, FALSE, OUT OA( 0, ADR( ai )), OUT l );
+         ai.Port := Socket^.LocalPort;
+         HPAISelf.Address := ai;
+      ELSIF _Mode = cmTunnelingBlind THEN
+         ai.SetV4( netsocket.saEmpty );
+         HPAISelf.Address := ai;
+      ELSE // TODO, FIXME, how to handle/check ports?
+         HPAISelf.Port := Socket^.LocalPort;
+      END;
       
       cr.ControlHPAI := HPAISelf;
       cr.DataHPAI := HPAISelf;
-      RETURN Socket^.SendToOA( OA( cr.Length-1, ADR( cr )), HPAICtrl.Address, HPAICtrl.Port );
+      RETURN Socket^.SendToOA( OA( cr.Length-1, ADR( cr )), HPAICtrl.Address );
    END Connect;
 
 (*--------------------------------------------------------------------------------*)
@@ -355,7 +324,7 @@ CLASS IMPLEMENTATION CConnection;
          StartTimer( PTR( tiDisconnect ), DISCONNECT_TIMEOUT, FALSE );
          dr.ControlHPAI := HPAISelf;
          dr.ChannelId := ChannelId;
-         RETURN Socket^.SendToOA( OA( dr.Length-1, ADR( dr )), HPAICtrl.Address, HPAICtrl.Port );
+         RETURN Socket^.SendToOA( OA( dr.Length-1, ADR( dr )), HPAICtrl.Address );
       ELSE
          DeviceDisconnect();
       END;
@@ -678,7 +647,7 @@ CLASS IMPLEMENTATION CConnection;
          DataDisconnect();
 
          dr.ChannelId := ChannelId;
-         Socket^.SendToOA( OA( dr.Length-1, ADR( dr )), HPAICtrl.Address, HPAICtrl.Port );
+         Socket^.SendToOA( OA( dr.Length-1, ADR( dr )), HPAICtrl.Address );
       END;
 
       DeviceDisconnect();
@@ -708,7 +677,7 @@ CLASS IMPLEMENTATION CConnection;
       tack.ChannelId := ChannelId;
       tack.Sequence := CARD8( InSeq );
       tack.Success := TRUE;
-      Socket^.SendToOA( OA( tack.Length-1, ADR( tack )), HPAIData.Address, HPAIData.Port );
+      Socket^.SendToOA( OA( tack.Length-1, ADR( tack )), HPAIData.Address );
 
       IF pSeq < CARD8( InSeq ) THEN
          logger()^.LogSCP( dldTrace, L"EIBNet Connection", L"RECEIVE previous: ", CARDINAL( ChannelId ), PTR( pSeq ));
@@ -810,7 +779,7 @@ CLASS IMPLEMENTATION CConnection;
          LogPacket( TRUE, L"SEND", EMI, ADR( tr ), tr.Length, FALSE );
 
          StartTimer( PTR( tiACK ), core.TUNNELING_REQUEST_TIME_OUT, FALSE );
-         res := Socket^.SendToOA( OA( tr.Length-1, ADR( tr )), HPAIData.Address, HPAIData.Port ); // send to specified address
+         res := Socket^.SendToOA( OA( tr.Length-1, ADR( tr )), HPAIData.Address ); // send to specified address
       END;
 
       RETURN res;
@@ -880,7 +849,7 @@ CLASS IMPLEMENTATION CConnection;
       hb.ControlHPAI := HPAISelf;
       hb.ChannelId := ChannelId;
       StartTimer( PTR( tiHeartbeatRepeat ), core.HEART_BEAT_TIMEOUT, FALSE );
-      Socket^.SendToOA( OA( hb.Length-1, ADR( hb )), HPAICtrl.Address, HPAICtrl.Port );
+      Socket^.SendToOA( OA( hb.Length-1, ADR( hb )), HPAICtrl.Address );
    END ProcessHbFailure;
 
 (*--------------------------------------------------------------------------------*)
@@ -921,19 +890,12 @@ CLASS IMPLEMENTATION CConnection;
 (*--------------------------------------------------------------------------------*)
 
    INITIALLY CConnection;
-   VAR
-      Address : winsock.IN_ADDR;
-      l : CARDINAL;
    BEGIN
       Init();
    
       Socket := NIL;
       NEW( Listener );
       Listener^.Connection := ADR( SELF );
-      
-      Address.s_addr := 0;
-      dns.GetLocalIPs( 5000, OUT OA( 0, ADR( Address )), OUT l );
-      HPAISelf.Address := Address;
    END CConnection;
 
 (*--------------------------------------------------------------------------------*)

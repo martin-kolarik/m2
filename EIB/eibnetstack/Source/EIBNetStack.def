@@ -3,7 +3,7 @@ DEFINITION MODULE EIBNetStack;
 (*================================================================================*)
 
 IMPORT
-   winsock; // must be first
+   winsock;
 
 IMPORT
   eib_status,

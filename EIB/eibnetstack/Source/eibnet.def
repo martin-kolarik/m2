@@ -3,9 +3,6 @@ DEFINITION MODULE eibnet;
 (*================================================================================*)
 
 IMPORT
-   winsock; // must be the first
-
-IMPORT
    arrays,
    core,
    eib_def,
@@ -85,8 +82,7 @@ CLASS CConnection( msghandler.MessageHandler );
       SendErr   : CARDINAL := 0; // correction of bad server behaviour: if server does not ACK correct send (heartbeats work correctly), the connection must be reconnected. The server does not ACK packet with low numbers, it could be caused with previous lost ACK packet.
    PUBLIC PROPERTY
       Mode          : TConnectionMode;
-      RemoteAddress : winsock.IN_ADDR; // routing or remote address
-      RemotePort    : CARDINAL;
+      RemoteAddress : netsocket.INETADDR; // routing or remote address
       AutoReconnectDelay
                     : CARDINAL; // if zero no reconnecting is done, reconnect is done after calling OnDisconnect when this time elapses
    PUBLIC READONLY PROPERTY

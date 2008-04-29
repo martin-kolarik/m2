@@ -12,16 +12,21 @@ CLASS IMPLEMENTATION HostProtocolAddressInformation;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Address GET : winsock.IN_ADDR;
+   PUBLIC PROPERTY Address GET : netsocket.INETADDR;
+   VAR
+      ai : netsocket.INETADDR;
    BEGIN
-      RETURN _IPAddress;
+      ai.FromV4( _IPAddress );
+      ai.Port := Port;
+      RETURN ai;
    END Address;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Address SET( CONST Value : winsock.IN_ADDR );
+   PUBLIC PROPERTY Address SET( CONST Value : netsocket.INETADDR );
    BEGIN
-      _IPAddress := Value;
+      Value.ToV4( OUT _IPAddress );
+      Port := Value.Port;
    END Address;
 
 (*--------------------------------------------------------------------------------*)
@@ -41,7 +46,7 @@ CLASS IMPLEMENTATION HostProtocolAddressInformation;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   _IPAddress.s_addr := 0;
+   _IPAddress := netsocket.IPV4_EMPTY;
 END HostProtocolAddressInformation;
 
 (*================================================================================*)
@@ -101,14 +106,14 @@ CLASS IMPLEMENTATION HPAIPacket;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Address GET : winsock.IN_ADDR;
+   PUBLIC PROPERTY Address GET : netsocket.INETADDR;
    BEGIN
       RETURN _HPAI.Address;
    END Address;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Address SET( CONST Value : winsock.IN_ADDR );
+   PUBLIC PROPERTY Address SET( CONST Value : netsocket.INETADDR );
    BEGIN
       _HPAI.Address := Value;
    END Address;
@@ -213,9 +218,12 @@ CLASS IMPLEMENTATION SearchResponse;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY RoutingAddress GET : winsock.IN_ADDR;
+   PUBLIC PROPERTY RoutingAddress GET : netsocket.INETADDR;
+   VAR
+      ai : netsocket.INETADDR;
    BEGIN
-      RETURN _DIB.RoutingAddress;
+      ai.FromV4( _DIB.RoutingAddress );
+      RETURN ai;
    END RoutingAddress;
 
 (*--------------------------------------------------------------------------------*)
@@ -303,9 +311,12 @@ CLASS IMPLEMENTATION DescriptionResponse;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY RoutingAddress GET : winsock.IN_ADDR;
+   PUBLIC PROPERTY RoutingAddress GET : netsocket.INETADDR;
+   VAR
+      ai : netsocket.INETADDR;
    BEGIN
-      RETURN _DIB.RoutingAddress;
+      ai.FromV4( _DIB.RoutingAddress );
+      RETURN ai;
    END RoutingAddress;
 
 (*--------------------------------------------------------------------------------*)

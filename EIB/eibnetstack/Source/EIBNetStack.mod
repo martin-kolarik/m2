@@ -13,6 +13,7 @@ IMPORT
    dns,
    eib_def,
    eibnet,
+   netsocket,
    Strings,
    Sync;
 
@@ -41,9 +42,8 @@ CLASS EIBNetPhysicalLayer( eib_stack.CEIBStackPhysicalLayer );
    PRIVATE VAR
       Connection : CStackConnection;
    PUBLIC PROPERTY
-      Mode          : eibnet.TConnectionMode;
-      RemoteAddress : winsock.IN_ADDR; // routing or remote/tunneling address
-      RemotePort    : CARDINAL;
+      Mode : eibnet.TConnectionMode;
+      RemoteAddress : netsocket.INETADDR; // routing or remote/tunneling address
 
    PUBLIC PROCEDURE Connect() : Sync.TAsyncResult;
    PUBLIC PROCEDURE Connected() : BOOLEAN;
@@ -127,31 +127,17 @@ CLASS IMPLEMENTATION EIBNetPhysicalLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY RemoteAddress GET : winsock.IN_ADDR;
+   PUBLIC PROPERTY RemoteAddress GET : netsocket.INETADDR;
    BEGIN
       RETURN Connection.RemoteAddress;
    END RemoteAddress;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY RemoteAddress SET( CONST Value : winsock.IN_ADDR );
+   PUBLIC PROPERTY RemoteAddress SET( CONST Value : netsocket.INETADDR );
    BEGIN
       Connection.RemoteAddress := Value;
    END RemoteAddress;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY RemotePort GET : CARDINAL;
-   BEGIN
-      RETURN Connection.RemotePort;
-   END RemotePort;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY RemotePort SET( Value : CARDINAL );
-   BEGIN
-      Connection.RemotePort := Value;
-   END RemotePort;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -290,9 +276,7 @@ CLASS IMPLEMENTATION CEIBNetStack;
 
    INTERNAL VIRTUAL PROCEDURE ParseParameter( CONST Parameter, Value : ARRAY OF WCHAR; OUT ErrorText : ARRAY OF WCHAR ) : TRISTATE; // -1 means unknown/unprocessed
    VAR
-      Addr : winsock.IN_ADDR;
-      c : CARDINAL;
-      s1, s2 : ARRAY [0..255] OF WCHAR;
+      Addr : netsocket.INETADDR;
    BEGIN
       IF EQUALS( Parameter, L"link.mode" ) THEN
          IF EQUALS( Value, L"routing" ) THEN
@@ -309,22 +293,12 @@ CLASS IMPLEMENTATION CEIBNetStack;
       ELSIF EQUALS( Parameter, L"link.connection" ) THEN
          ErrorText := L"Expected DNS name | IP address optionally followed by colon and port number (like 10.0.0.1:3778)";
 
-         c := Strings.ItemSW( Value, Strings.WCHARS{ L' ', L':' }, 0, 0, TRUE, OUT s1 );
-         Strings.ItemSW( Value, Strings.WCHARS{ L' ', L':' }, c, 0, TRUE, OUT s2 );
-         IF s1[0] = 0W THEN
-            RETURN 0;
-         ELSIF NOT dns.NameToAddressWait( s1, 2000, OUT Addr ) THEN
-            RETURN 0;
-         END;
+         Addr.SetAddressOA( Value ); // DNS !!!
+         // ELSIF NOT dns.NameToAddressWait( s1, 2000, OUT Addr ) THEN
+         //   RETURN 0;
+         // END;
          TPEIBNetPhysicalLayer( Layers[ eib_stack.eltPhysical ] )^.RemoteAddress := Addr;
          
-         IF s2[0] = 0W THEN
-            RETURN 1;
-         ELSIF NOT Strings.ToCARD32W( s2, 10, OUT c ) THEN
-            RETURN 0;
-         END;
-         TPEIBNetPhysicalLayer( Layers[ eib_stack.eltPhysical ] )^.RemotePort := c;
-
       ELSE
          RETURN -1;
       END;

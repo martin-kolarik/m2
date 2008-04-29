@@ -57,9 +57,9 @@ CLASS IMPLEMENTATION CTest;
       DSocket.Open( OUT Error );
 
       FOR i := 0 TO 100 DO
-         DSocket.SendToOA( swonall, winsock.IN_ADDR( 0, 10, 0, 0, 10 ), 4001 );
+         DSocket.SendTo4OA( swonall, winsock.IN_ADDR( 0, 10, 0, 0, 10 ), 4001 );
          sync.Sleep( 60 );
-         DSocket.SendToOA( swoffall, winsock.IN_ADDR( 0, 10, 0, 0, 10 ), 4001 );
+         DSocket.SendTo4OA( swoffall, winsock.IN_ADDR( 0, 10, 0, 0, 10 ), 4001 );
       END;
       
       netinit.Cleanup();

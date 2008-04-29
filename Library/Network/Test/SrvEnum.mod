@@ -4,6 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   dns,
    log,
    netinit,
    netsocket,
@@ -43,7 +44,11 @@ CLASS IMPLEMENTATION CTest;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
+      Addresses : ARRAY [0..255] OF netsocket.INETADDR;
       Enum : netsrv.TPInterfaceEnumerator;
+      Filled : CARDINAL := 0;
+      i : CARDINAL;
+      String : ARRAY [0..63] OF WCHAR;
    BEGIN
       SELF.Host := Host;
       netinit.Startup();
@@ -66,6 +71,21 @@ CLASS IMPLEMENTATION CTest;
       
       Host^.StopPhaseWithResult( test.trSuccess );
 
+      Host^.StartPhase( L"Enumeration of local addresses -- V4" );
+      
+      IF dns.GetLocalIPs( TRUE, FALSE, OUT Addresses, OUT Filled ) THEN
+         IF Filled = 0 THEN
+            Host^.Log^.LogS( log.dlcInfo, L"", L"no local addresses" );
+         ELSE
+            FOR i := 0 TO Filled-1 DO
+               Addresses[i].GetAddressOA( FALSE, OUT String );
+               Host^.Log^.LogS( log.dlcInfo, L"", String );
+            END; // FOR
+         END;
+      END;
+      
+      Host^.StopPhaseWithResult( test.trSuccess );
+
       netinit.Cleanup();
       RETURN test.trSuccess;
    END Run;
@@ -80,7 +100,7 @@ CLASS IMPLEMENTATION CTest;
       i, index, l : CARDINAL;
       n : ARRAY [0..31] OF WCHAR;
       preferred : BOOLEAN;
-      scope : netsrv.TScope;
+      scope : netsocket.TScope;
       String : ARRAY [0..511] OF WCHAR;
    BEGIN
       WHILE Enum^.MoveNext() DO
@@ -123,13 +143,13 @@ CLASS IMPLEMENTATION CTest;
                Strings.AppendW( REF String, L", preferred" );
             END;
             CASE scope OF
-            | netsrv.scoLoopback :
+            | netsocket.scoLoopback :
                Strings.AppendW( REF String, L", loopback" );
-            | netsrv.scoLocalLink :
+            | netsocket.scoLocalLink :
                Strings.AppendW( REF String, L", local link" );
-            | netsrv.scoLocalSite :
+            | netsocket.scoLocalSite :
                Strings.AppendW( REF String, L", local site" );
-            | netsrv.scoGlobal :
+            | netsocket.scoGlobal :
                Strings.AppendW( REF String, L", global" );
             END;
             CASE assignment OF

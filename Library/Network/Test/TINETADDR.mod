@@ -110,7 +110,7 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"Some other addresses" );
       
       Expect := L"10.0.1.132:1111";
-      ia.SetAddressOA( Expect );
+      ia.SetAddressOA( Expect, 0 );
       ia.GetAddressOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
       ia.GetAddressOA( FALSE, OUT String );
@@ -118,7 +118,7 @@ CLASS IMPLEMENTATION CTest;
       Host^.Log^.LogSC( log.dlcInfo, L"", L"  port: ", ia.Port );
 
       Expect := L"[2001:1:1::a0:80]:1023";
-      ia.SetAddressOA( Expect );
+      ia.SetAddressOA( Expect, 0 );
       ia.GetAddressOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
       ia.GetAddressOA( FALSE, OUT String );

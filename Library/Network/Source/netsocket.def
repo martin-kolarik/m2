@@ -20,6 +20,14 @@ IMPORT
 (*================================================================================*)
 
 TYPE
+   TScope = (
+      scoUnknown,
+      scoLoopback,
+      scoLocalLink,
+      scoLocalSite,
+      scoGlobal
+   );
+   
    TSpecialAddress = (
       saEmpty,
       saLoopback,
@@ -27,33 +35,40 @@ TYPE
       saLocalLinkRandom,
       saPrivateRandom
    );
+   
+   TIPV4    = ARRAY [0..3] OF BYTE;
+   TIPV6    = ARRAY [0..15] OF BYTE;
+   TRFC2553 = ARRAY [0..127] OF BYTE; // RFC2553 storage structure for all type of internet addresses
 
 CLASS INETADDR;
    PRIVATE VAR
-      storage : ARRAY [0..127] OF BYTE; // RFC2553
+      storage : TRFC2553;
+   LOCAL READONLY PROPERTY
+      Data : POINTER TO TRFC2553;
+
    PUBLIC READONLY PROPERTY
-      Data : ADDRESS;
-      Length : CARDINAL;
+      Length : CARDINAL; // duplicate to ToOA
    PUBLIC PROPERTY
       V6 : BOOLEAN;
       Port : CARDINAL;
    PUBLIC READONLY PROPERTY
       Loopback : BOOLEAN;
       Multicast : BOOLEAN;
+      Scope : TScope;
 
    PUBLIC PROCEDURE GetAddressOA( IncludePort : BOOLEAN; OUT Address : ARRAY OF WCHAR ); // numerical form in string
-   PUBLIC PROCEDURE SetAddressOA( CONST Address : ARRAY OF WCHAR ) : BOOLEAN; // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
+   PUBLIC PROCEDURE SetAddressOA( CONST Address : ARRAY OF WCHAR; DefaultPort : CARDINAL ) : BOOLEAN; // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
    
    PUBLIC PROCEDURE SetV4( What : TSpecialAddress );
    PUBLIC PROCEDURE SetV6( What : TSpecialAddress );
 
    PUBLIC PROCEDURE FromV4( CONST IPAddr : ARRAY OF BYTE ); // IN_ADDR, network order
    PUBLIC PROCEDURE FromV6( CONST IPAddr : ARRAY OF BYTE ); // IN_ADDR6
-   PUBLIC PROCEDURE FromOA( CONST storage : ARRAY OF BYTE ); // e.g. winsock.SOCKET_ADDRESS, usually MUST be supplied with specific HIGH
+   PUBLIC PROCEDURE FromOA( CONST storage : ARRAY OF BYTE ); // e.g. winsock.SOCKET_ADDRESS, SOCKADDR_IN, SOCKADDR_IN6, MUST be supplied with correct HIGH
 
    PUBLIC PROCEDURE ToV4( OUT IPAddr : ARRAY OF BYTE ) : BOOLEAN; // IN_ADDR, 4 bytes
    PUBLIC PROCEDURE ToV6( OUT IPAddr : ARRAY OF BYTE ) : BOOLEAN; // IN_ADDR6, 16 bytes
-   PUBLIC PROCEDURE ToOA( OUT storage : ARRAY OF BYTE ); // e.g. winsock.SOCKET_ADDRESS
+   PUBLIC PROCEDURE ToOA( OUT storage : ARRAY OF BYTE; OUT filled : CARDINAL ) : BOOLEAN; // filled is set by real length of address
 
    INITIALLY INETADDR();
 END INETADDR;
@@ -72,6 +87,8 @@ CONST
 	INADDR_SELF      = winsock.IN_ADDR( 0, 127, 0, 0, 1 );
 	INADDR_ALL_VAL   = winsock.INADDR_BROADCAST;
 	INADDR_ALL       = winsock.IN_ADDR( 0, 255, 255, 255, 255 ); // local broadcast
+	
+	IPV4_EMPTY       = TIPV4( 0, 0, 0, 0 );
 
 CONST // time	
 	FORSAFETY        = 34543;
@@ -135,7 +152,7 @@ CLASS SSocket( threadpool.APoolDelegate );
     _Backlog     : CARDINAL;
     Socket       : winsock.SOCKET;
     Local        : winsock.SOCKADDR_IN;
-    Remote       : winsock.SOCKADDR_IN; // here only for storing mcast data
+    Remote       : winsock.SOCKADDR_IN; // here in SSocket only for storing mcast data
   PUBLIC READONLY VAR
     Result       : Sync.TAsyncResult; // for WaitCompletion, useless for listen
 
@@ -162,8 +179,8 @@ CLASS SSocket( threadpool.APoolDelegate );
 	// for stDatagram
   PUBLIC PROCEDURE ReceiveOA( OUT Data : ARRAY OF BYTE; OUT Filled : CARDINAL ) : Sync.TAsyncResult;
   PUBLIC PROCEDURE SendOA( CONST Data : ARRAY OF BYTE ) : Sync.TAsyncResult; // uses multicast address
-  PUBLIC PROCEDURE SendToOA( CONST Data : ARRAY OF BYTE; To : winsock.IN_ADDR; Port : CARDINAL ) : Sync.TAsyncResult; // uses given address
-  PUBLIC PROCEDURE SendTo6OA( CONST Data : ARRAY OF BYTE; CONST Address : INETADDR ) : Sync.TAsyncResult; // uses given address
+  PUBLIC PROCEDURE SendTo4OA( CONST Data : ARRAY OF BYTE; To : winsock.IN_ADDR; Port : CARDINAL ) : Sync.TAsyncResult; // obsolete, uses given address
+  PUBLIC PROCEDURE SendToOA( CONST Data : ARRAY OF BYTE; CONST Address : INETADDR ) : Sync.TAsyncResult; // uses given address
 
   LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
   INTERNAL PROCEDURE Select( Events : CARDINAL ) : CARDINAL;
@@ -215,7 +232,7 @@ CLASS DSocket( SSocket );
 
   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
   LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
-  LOCAL PROCEDURE OnAddressFound( Result : CARDINAL; CONST Address : ARRAY OF winsock.IN_ADDR );
+  LOCAL PROCEDURE OnAddressFound( Result : CARDINAL; CONST Address : ARRAY OF INETADDR );
   LOCAL PROCEDURE OnNameFound( Result : CARDINAL; CONST Name : StringsO.CString );
 
   PRIVATE PROCEDURE SwitchContext( FromContext : CARDINAL; Operation : TPendingOperationItem; Result : CARDINAL );

@@ -1,13 +1,11 @@
 DEFINITION MODULE core;
 
-IMPORT
-   winsock;
-
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
    eib_def,
+   netsocket,
    StringsO;
 
 (*================================================================================*)
@@ -123,10 +121,10 @@ CLASS HostProtocolAddressInformation;
    LOCAL VAR
       _HPAILength       : CARD8 := 8; // default
       _HostProtocolCode : THostProtocolCode := IPV4_UDP;
-      _IPAddress        : winsock.IN_ADDR;
+      _IPAddress        : netsocket.TIPV4;
       _Port             : CARD16 := REVERSE( CARD16( EIBNET_IPPORT ));
    PUBLIC PROPERTY
-      Address : winsock.IN_ADDR;
+      Address : netsocket.INETADDR;
       Port    : CARDINAL;
 END HostProtocolAddressInformation;
 
@@ -139,7 +137,7 @@ TYPE
                 PhysicalAddress : eib_def.TPacketAddress;
                 ProjectId       : CARD16;
                 SerialNo        : ARRAY [0..5] OF BYTE;
-                RoutingAddress  : winsock.IN_ADDR;
+                RoutingAddress  : netsocket.TIPV4;
                 MAC             : ARRAY [0..5] OF BYTE;
                 Name            : ARRAY [0..29] OF CHAR;
              END; // RECORD
@@ -177,7 +175,7 @@ ABSTRACT CLASS HPAIPacket( Packet );
       _HPAI   : HostProtocolAddressInformation;
    PUBLIC PROPERTY
       HPAI    : HostProtocolAddressInformation;
-      Address : winsock.IN_ADDR;
+      Address : netsocket.INETADDR;
       Port    : CARDINAL;
 END HPAIPacket;
 #restore
@@ -202,7 +200,7 @@ CLASS SearchResponse( HPAIPacket );
       Name              : StringsO.CString;
       MAC               : StringsO.CString;
       PhysicalAddress   : eib_def.TAddress;
-      RoutingAddress    : winsock.IN_ADDR;
+      RoutingAddress    : netsocket.INETADDR;
 END SearchResponse;
 #restore
 
@@ -227,7 +225,7 @@ CLASS DescriptionResponse( Packet );
       Name              : StringsO.CString;
       MAC               : StringsO.CString;
       PhysicalAddress   : eib_def.TAddress;
-      RoutingAddress    : winsock.IN_ADDR;
+      RoutingAddress    : netsocket.INETADDR;
       ManufacturerId    : CARD16;
 END DescriptionResponse;
 #restore

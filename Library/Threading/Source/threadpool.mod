@@ -982,7 +982,7 @@ CLASS IMPLEMENTATION CThreadPool;
 
 //--------------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE RunWorker( CONST Delegate : TPPoolDelegate; UserId : PTR; ForceSelfThread : BOOLEAN; Worker : TPPoolWorker; CompleteInOwningThread : BOOLEAN; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
+  PUBLIC PROCEDURE RunWorker( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; ForceSelfThread : BOOLEAN; Worker : TPPoolWorker; CompleteInOwningThread : BOOLEAN; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
   VAR
     MSG : TMessage;
     PoolThread : TPPoolThread;
@@ -1002,7 +1002,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG.Task^.Task := tskWorker;
     MSG.Task^.UserId := UserId;
     MSG.Task^.Delegate := Delegate;
-    MSG.Task^.Timeout := 0;
+    MSG.Task^.Timeout := TimeoutMS;
     MSG.Task^.Data := Worker;
     MSG.Task^.CompleteInOwningThread := CompleteInOwningThread;
 

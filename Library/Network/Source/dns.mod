@@ -2,106 +2,212 @@ IMPLEMENTATION MODULE dns;
 
 (*===========================================================================*)
 
+IMPORT
+   winsock;
+
 FROM Storage IMPORT
-  ALLOCATE, DEALLOCATE;
+   ALLOCATE, DEALLOCATE;
   
 IMPORT
-  Delegate,
-  Exceptions,
-  msghandler,
-  netpool,
-  Storage,
-  Strings,
-  winerror;
+   Delegate,
+   Exceptions,
+   msghandler,
+   netpool,
+   netsrv,
+   Storage,
+   Strings,
+   winerror,
+   WS2TcpIp;
 
-(*---------------------------------------------------------------------------*)
+(*===========================================================================*)
+
+CONST
+   EMPTY_AI = WS2TcpIp.addrinfo( 0, 0, 0, 0, 0, NIL, NIL,NIL );
+   
+(*--------------------------------------------------------------------------------*)
 
 TYPE
-  TDNSAcquire  = ( dnsUnknown, dnsGetAddress, dnsGetName );
+   TPRequest = POINTER TO CRequest;
+   TPNameToAddressRequest = POINTER TO CNameToAddressRequest;
+   TPAddressToNameRequest = POINTER TO CAddressToNameRequest;
+  
+(*===========================================================================*)
 
-  TDNSBuffer   = ARRAY [0..winsock.MAXGETHOSTSTRUCT-1] OF CHAR;
-  TPDNSBuffer  = POINTER TO TDNSBuffer;
-
-  TPDNSRequest = POINTER TO CDNSRequest;
-
-CLASS CDNSRequest( Delegate.ADelegate );
-  // user
-  WhatToAcquire : TDNSAcquire;
-  RequestId     : PTR;
-  // process
-  RequestBuffer : TDNSBuffer;
-  HTask         : ADDRESS;
-END CDNSRequest;
+CLASS CDispatcher IMPLEMENTS threadpool.IWorkerSink;
+   LOCAL VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+END CDispatcher;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS IMPLEMENTATION CDNSRequest;
+ABSTRACT CLASS CRequest( threadpool.APoolWorker );
+   LOCAL VAR
+      Result : CARDINAL := winerror.ERROR_INVALID_PARAMETER;
+      PNotifier : TPDNSNotifier := NIL;
+      RequestId : PTR := 0;
+END CRequest;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CNameToAddressRequest( CRequest );
+   LOCAL VAR
+      Name : StringsO.CString;
+      DefaultPort : CARDINAL := 0;
+      AddrInfo : WS2TcpIp.Paddrinfo := NIL;
+   LOCAL VIRTUAL PROCEDURE Run();
+END CNameToAddressRequest;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CAddressToNameRequest( CRequest );
+   LOCAL VAR
+      Address : netsocket.INETADDR;
+      Name : StringsO.CString;
+   LOCAL VIRTUAL PROCEDURE Run();
+END CAddressToNameRequest;
+
+(*---------------------------------------------------------------------------*)
+
+VAR
+   SinkDelegate : threadpool.CSinkDelegate;
+   Dispatcher : CDispatcher;
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CDispatcher;
+
+(*---------------------------------------------------------------------------*)
+ 
+   LOCAL VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+   VAR
+      Addresses : POINTER TO ARRAY [0..0] OF netsocket.INETADDR := NIL;
+      ai : WS2TcpIp.Paddrinfo;
+      count : CARDINAL;
+      netResult : CARDINAL;
+      Request : TPRequest := TPRequest( UserId );
+   BEGIN
+      IF ( Request <> NIL ) AND ( Request^.PNotifier <> NIL ) THEN
+         CASE Result OF
+         | Sync.arCannotStart :
+            netResult := winsock.WSAENOBUFS;
+         | Sync.arCompleted :
+            netResult := Request^.Result;
+         | Sync.arAborted :
+            netResult := winerror.ERROR_OPERATION_ABORTED;
+         | Sync.arTimeout :
+            netResult := winsock.WSATRY_AGAIN;
+         ELSE
+            ASSERT( FALSE );
+         END; // CASE
+
+         IF Request^ IS CNameToAddressRequest THEN
+            IF netResult <> 0 THEN
+               Request^.PNotifier^.OnAddressFound( Request^.RequestId, netResult, OA( -1, netsocket.TPINETADDR( NIL )));
+
+            ELSIF ( TPNameToAddressRequest( Request )^.AddrInfo <> NIL ) AND
+                  ( TPNameToAddressRequest( Request )^.AddrInfo^.ai_addr <> NIL ) THEN
+               count := 0;
+               ai := TPNameToAddressRequest( Request )^.AddrInfo;
+               REPEAT
+                  INC( count );
+                  ai := ai^.ai_next;
+               UNTIL ai = NIL;
+               
+               ALLOCATE( Addresses, count * SIZE( Addresses ));
+               Storage.Zero( Addresses, count * SIZE( Addresses ));
+               count := 0;
+               ai := TPNameToAddressRequest( Request )^.AddrInfo;
+               REPEAT
+                  Addresses^[count].FromOA( OA( ai^.ai_addrlen-1, ai^.ai_addr ));
+                  INC( count );
+                  ai := ai^.ai_next;
+               UNTIL ai = NIL;
+               
+               (*?*)
+               // IF serviceA[0] = 0C THEN
+               //    Port := DefaultPort;
+               // END;
+
+               Request^.PNotifier^.OnAddressFound( Request^.RequestId, 0, Addresses^ );
+               
+               DEALLOCATE( Addresses );
+            END;
+
+         ELSIF Request^ IS CAddressToNameRequest THEN
+
+         END;
+      END; // IF have notifier
+      
+      IF Request <> NIL THEN
+         Request^.Release();
+      END;
+   END OnWorker;
+
+(*---------------------------------------------------------------------------*)
+
+END CDispatcher;
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CRequest;
 BEGIN
-  WhatToAcquire := dnsUnknown;
-  RequestId := 0;
-  Storage.Zero( ADR( RequestBuffer ), SIZE( RequestBuffer ));
-  HTask := NIL;
+END CRequest;
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CNameToAddressRequest;
+
+(*---------------------------------------------------------------------------*)
+
+   LOCAL VIRTUAL PROCEDURE Run();
+   VAR
+      hostA : ARRAY [0..511] OF CHAR;
+      hints : WS2TcpIp.addrinfo := EMPTY_AI;
+      host : ARRAY [0..511] OF WCHAR;
+      service : ARRAY [0..15] OF WCHAR;
+      serviceA : ARRAY [0..15] OF CHAR;
+   BEGIN
+      IF netsocket.SplitAddressOA( OA( Name.Length-1, Name.rawData ), OUT host, OUT service ) THEN
+         Strings.ToA( host, 0, OUT hostA );
+         Strings.ToA( service, 0, OUT serviceA );
+
+      (*?*)
+         hints.ai_flags := WS2TcpIp.AI_NUMERICHOST;
+         Result := WS2TcpIp.getaddrinfo( ADR( hostA ), ADR( serviceA ), ADR( hints ), OUT AddrInfo );
+      END;
+   END Run;
+
+(*---------------------------------------------------------------------------*)
+
+BEGIN
 FINALLY
-  IF HTask <> NIL THEN
-    winsock.WSACancelAsyncRequest( HTask );
-  END;
-END CDNSRequest;
+   IF AddrInfo <> NIL THEN
+      WS2TcpIp.freeaddrinfo( AddrInfo );
+      AddrInfo := NIL;
+   END;
+END CNameToAddressRequest;
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CAddressToNameRequest;
+
+(*---------------------------------------------------------------------------*)
+
+   LOCAL VIRTUAL PROCEDURE Run();
+   BEGIN
+   END Run;
+
+(*---------------------------------------------------------------------------*)
+
+BEGIN
+END CAddressToNameRequest;
 
 (*===========================================================================*)
 
 CLASS IMPLEMENTATION ADNSNotifier;
 
-  LOCAL FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
-  VAR
-    Address : ARRAY [0..15] OF winsock.IN_ADDR;
-    DNS : TPDNSRequest := TPDNSRequest( UserId );
-    i : CARDINAL;
-    Name : StringsO.CString;
-    netResult : CARDINAL;
-  BEGIN
-    CASE Result OF
-    | Sync.arCannotStart :
-      netResult := winsock.WSAENOBUFS;
-    | Sync.arCompleted :
-      netResult := CARDINAL( winsock.WSAGETASYNCERROR( MSG[3] ));
-    | Sync.arAborted :
-      netResult := winsock.WSAECONNABORTED;
-    | Sync.arTimeout :
-      netResult := winsock.WSATRY_AGAIN;
-    END; // CASE
-
-    CASE DNS^.WhatToAcquire OF
-    | dnsGetAddress :
-      i := 0;
-      IF netResult = 0 THEN
-        WHILE winsock.PHOSTENT( ADR( DNS^.RequestBuffer ))^.h_addr_list[i] <> NIL DO
-          Address[i] := winsock.Pin_addr( winsock.PHOSTENT( ADR( DNS^.RequestBuffer ))^.h_addr_list[i] )^;
-          INC( i );
-        END; // WHILE
-      END;
-      IF i = 0 THEN
-        Address[0].s_addr := 0;
-        i := 1;
-      END;
-      OnAddressFound( DNS^.RequestId, netResult, OA( i-1, ADR( Address[0] )) );
-    | dnsGetName :
-      IF ( netResult = 0 ) AND ( winsock.PHOSTENT( ADR( DNS^.RequestBuffer ))^.h_name <> NIL ) THEN
-        Name.FromOAA( 0, OAsz( PCHAR( winsock.PHOSTENT( ADR( DNS^.RequestBuffer ))^.h_name )));
-      END;
-      OnNameFound( DNS^.RequestId, netResult, Name );
-    ELSE
-      ASSERT( FALSE );
-    END; // CASE
-
-    IF Result = Sync.arCompleted THEN
-      DNS^.HTask := NIL;
-    END;
-    DNS^.Release();
-  END OnMessage;
-
 (*---------------------------------------------------------------------------*)
 
-  LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF winsock.IN_ADDR );
+  LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF netsocket.INETADDR );
   BEGIN
   END OnAddressFound;
 
@@ -131,86 +237,68 @@ END KillAllPending;
 
 (*===========================================================================*)
 
-PROCEDURE NameToAddress( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Name : ARRAY OF WCHAR; TimeoutMS : CARDINAL; OUT Handle : PTR ) : BOOLEAN;
+PROCEDURE NameToAddress( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Name : ARRAY OF WCHAR; DefaultPort : CARDINAL; TimeoutMS : CARDINAL; OUT Handle : PTR ) : BOOLEAN;
 VAR
-  Address : winsock.IN_ADDR;
-  Handler : msghandler.TPMessageHandler;
-  Message : msghandler.Message;
-  Request : TPDNSRequest;
-  StringA : ARRAY [0..511] OF CHAR;
+   Address : netsocket.INETADDR;
+   Request : TPNameToAddressRequest;
 BEGIN
-  Strings.ToA( Name, 0, OUT StringA );
-  Address.s_addr := winsock.inet_addr( ADR( StringA ));
-  IF Address.s_addr <> winsock.INADDR_NONE THEN
-    IF PNotifier <> NIL THEN
-      PNotifier^.OnAddressFound( RequestId, 0, OA( 0, ADR( Address )) );
-    END;
-    RETURN TRUE;
-  END;
+   IF Address.SetAddressOA( Name, DefaultPort ) THEN
+      IF PNotifier <> NIL THEN
+         PNotifier^.OnAddressFound( RequestId, 0, OA( 0, ADR( Address )) );
+      END;
+      RETURN TRUE;
+   END;
 
-  NEW( Request );
-  Request^.WhatToAcquire := dnsGetAddress;
-  Request^.RequestId := RequestId;
-  Request^.AddRef();
+   SinkDelegate.WorkerSink := ADR( Dispatcher );
+   PNotifier^.AddRef();
+
+   NEW( Request );
+   Request^.PNotifier := PNotifier;
+   Request^.RequestId := RequestId;
+   Request^.Name.FromOA( Name );
+   Request^.DefaultPort := DefaultPort;
  
-  netpool.Pool()^.WaitMessage( PNotifier, Request, TimeoutMS, TRUE, FALSE, OUT Handler, OUT Message, OUT Handle );
-
-  Request^.HTask := winsock.WSAAsyncGetHostByName(
-    Handler^.Handle, Message.Message,
-    ADR( StringA ),
-    ADR( Request^.RequestBuffer ), SIZE( Request^.RequestBuffer )
-  );
-  IF Request^.HTask = NIL THEN
-    netpool.Pool()^.Abort( REF Handle );
-    Request^.Release();
-    RETURN FALSE;
-  ELSE
-    Request^.Release();
-    RETURN TRUE;
-  END;
+   IF netpool.Pool()^.RunWorker( ADR( SinkDelegate ), Request, TimeoutMS, FALSE, Request, FALSE, OUT Handle ) THEN
+      RETURN TRUE;
+   ELSE
+      Request^.Release();
+      RETURN FALSE;
+   END;
 END NameToAddress;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE AddressToName( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Address : winsock.IN_ADDR; TimeoutMS : CARDINAL; OUT Handle : PTR ) : BOOLEAN;
+PROCEDURE AddressToName( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Address : netsocket.INETADDR; IncludePort : BOOLEAN; TimeoutMS : CARDINAL; OUT Handle : PTR ) : BOOLEAN;
 VAR
-  Handler : msghandler.TPMessageHandler;
-  Message : msghandler.Message;
-  Request : TPDNSRequest;
+   Request : TPAddressToNameRequest;
 BEGIN
-  NEW( Request );
-  Request^.WhatToAcquire := dnsGetName;
-  Request^.RequestId := RequestId;
-  Request^.AddRef();
+   SinkDelegate.WorkerSink := ADR( Dispatcher );
+   PNotifier^.AddRef();
 
-  netpool.Pool()^.WaitMessage( PNotifier, Request, TimeoutMS, TRUE, FALSE, OUT Handler, OUT Message, OUT Handle );
+   NEW( Request );
+   Request^.PNotifier := PNotifier;
+   Request^.RequestId := RequestId;
+   Request^.Address := Address;
 
-  Request^.HTask := winsock.WSAAsyncGetHostByAddr(
-     Handler^.Handle, Message.Message,
-     PCHAR( ADR( Address )), SIZE( Address ),
-     winsock.AF_INET,
-     ADR( Request^.RequestBuffer ), SIZE( Request^.RequestBuffer )
-  );
-  IF Request^.HTask = NIL THEN
-    netpool.Pool()^.Abort( REF Handle );
-    Request^.Release();
-    RETURN FALSE;
-  ELSE
-    Request^.Release();
-    RETURN TRUE;
-  END;
+   IF netpool.Pool()^.RunWorker( ADR( SinkDelegate ), Request, TimeoutMS, FALSE, Request, FALSE, OUT Handle ) THEN
+      RETURN TRUE;
+   ELSE
+      Request^.Release();
+      RETURN FALSE;
+   END;
 END AddressToName;
 
 (*===========================================================================*)
 
 CLASS CLocalDNSNotifier( ADNSNotifier );
   LOCAL VAR
-    Address : POINTER TO winsock.IN_ADDR;
-    Name : PWCHAR;
-    NameHigh : CARDINAL;
+    Addresses : POINTER TO ARRAY [0..0] OF netsocket.INETADDR := NIL;
+    AddressesHigh : CARDINAL := 0;
+    Name : PWCHAR := NIL;
+    NameHigh : CARDINAL := 0;
     Result : Sync.TAsyncResult := Sync.arCompleted;
     Signal : Sync.SIGNAL;
-  LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF winsock.IN_ADDR );
+  LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF netsocket.INETADDR );
   LOCAL VIRTUAL PROCEDURE OnNameFound( RequestId : PTR; Result : CARDINAL; CONST Name : StringsO.CString );
 END CLocalDNSNotifier;  
 
@@ -220,48 +308,50 @@ CLASS IMPLEMENTATION CLocalDNSNotifier;
 
 (*---------------------------------------------------------------------------*)
 
-  LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF winsock.IN_ADDR );
+   LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Addresses : ARRAY OF netsocket.INETADDR );
+   VAR
+      i : CARDINAL;
   BEGIN
-    IF ( Result = 0 ) AND ( SELF.Address <> NIL ) THEN
-      SELF.Address^ := Address[0];
-    ELSE
-      SELF.Result := Sync.arAborted;
-    END;
-    Sync.Signal( Signal );
-  END OnAddressFound;
+      IF ( Result = 0 ) AND ( SELF.Addresses <> NIL ) THEN
+         FOR i := 0 TO MIN2( HIGH( Addresses ), AddressesHigh ) DO
+            SELF.Addresses^[i] := Addresses[i];
+         END;
+      ELSE
+         SELF.Result := Sync.arAborted;
+      END;
+      Sync.Signal( Signal );
+   END OnAddressFound;
 
 (*---------------------------------------------------------------------------*)
 
-  LOCAL VIRTUAL PROCEDURE OnNameFound( RequestId : PTR; Result : CARDINAL; CONST Name : StringsO.CString );
-  BEGIN
-    IF ( Result = 0 ) AND ( SELF.Name <> NIL ) THEN
-      Name.ToOA( OUT OA( NameHigh, SELF.Name ));
-    ELSE
-      SELF.Result := Sync.arAborted;
-    END;
-    Sync.Signal( Signal );
-  END OnNameFound;
+   LOCAL VIRTUAL PROCEDURE OnNameFound( RequestId : PTR; Result : CARDINAL; CONST Name : StringsO.CString );
+   BEGIN
+      IF ( Result = 0 ) AND ( SELF.Name <> NIL ) THEN
+         Name.ToOA( OUT OA( NameHigh, SELF.Name ));
+      ELSE
+         SELF.Result := Sync.arAborted;
+       END;
+      Sync.Signal( Signal );
+   END OnNameFound;
 
 (*---------------------------------------------------------------------------*)
 
 BEGIN
-  Address := NIL;
-  Name := NIL;
-  NameHigh := 0;
-  Signal := Sync.CreateSignal( FALSE, L"" );
+   Signal := Sync.CreateSignal( FALSE, L"" );
 FINALLY
 	Sync.DeleteSignal( REF Signal );
 END CLocalDNSNotifier;  
 
 (*===========================================================================*)
 
-PROCEDURE NameToAddressWait( CONST Name : ARRAY OF WCHAR; TimeoutMS : CARDINAL; OUT Address : winsock.IN_ADDR ) : BOOLEAN;
+PROCEDURE NameToAddressWait( CONST Name : ARRAY OF WCHAR; DefaultPort : CARDINAL; TimeoutMS : CARDINAL; OUT Addresses : ARRAY OF netsocket.INETADDR ) : BOOLEAN;
 VAR
   LDNSN : CLocalDNSNotifier;
   H : PTR;
 BEGIN
-  LDNSN.Address := ADR( Address );
-  IF NOT NameToAddress( ADR( LDNSN ), 0, Name, TimeoutMS, OUT H ) THEN
+  LDNSN.Addresses := ADR( Addresses );
+  LDNSN.AddressesHigh := HIGH( Addresses );
+  IF NOT NameToAddress( ADR( LDNSN ), 0, Name, DefaultPort, TimeoutMS, OUT H ) THEN
     RETURN FALSE;
   END;
   IF Sync.Wait( LDNSN.Signal, Sync.FORSAFETY ) = Sync.arTimeout THEN
@@ -274,14 +364,14 @@ END NameToAddressWait;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE AddressToNameWait( CONST Address : winsock.IN_ADDR; TimeoutMS : CARDINAL; OUT Name : ARRAY OF WCHAR ) : BOOLEAN;
+PROCEDURE AddressToNameWait( CONST Address : netsocket.INETADDR; IncludePort : BOOLEAN; TimeoutMS : CARDINAL; OUT Name : ARRAY OF WCHAR ) : BOOLEAN;
 VAR
   LDNSN : CLocalDNSNotifier;
   H : PTR;
 BEGIN
   LDNSN.Name := ADR( Name );
   LDNSN.NameHigh := HIGH( Name );
-  IF NOT AddressToName( ADR( LDNSN ), 0, Address, TimeoutMS, OUT H ) THEN
+  IF NOT AddressToName( ADR( LDNSN ), 0, Address, IncludePort, TimeoutMS, OUT H ) THEN
     RETURN FALSE;
   END;
   IF Sync.Wait( LDNSN.Signal, Sync.FORSAFETY ) = Sync.arTimeout THEN
@@ -294,11 +384,11 @@ END AddressToNameWait;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE GetLocalName( TimeoutMS : CARDINAL; OUT Result : StringsO.CString ) : BOOLEAN;
+PROCEDURE GetLocalName( OUT Result : StringsO.CString ) : BOOLEAN;
 VAR
 	Name : ARRAY [0..511] OF WCHAR;
 BEGIN
-	IF GetLocalNameOA( TimeoutMS, OUT Name ) THEN
+	IF GetLocalNameOA( OUT Name ) THEN
 		Result.FromOA( Name );
 		RETURN TRUE;
 	ELSE
@@ -308,7 +398,7 @@ END GetLocalName;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE GetLocalNameOA( TimeoutMS : CARDINAL; OUT Result : ARRAY OF WCHAR ) : BOOLEAN;
+PROCEDURE GetLocalNameOA( OUT Result : ARRAY OF WCHAR ) : BOOLEAN;
 VAR
 	NameA : ARRAY [0..511] OF CHAR;
 BEGIN
@@ -319,16 +409,79 @@ END GetLocalNameOA;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE GetLocalIPs( TimeoutMS : CARDINAL; OUT Address : ARRAY OF winsock.IN_ADDR; OUT Filled : CARDINAL ) : BOOLEAN;
+PROCEDURE GetLocalIPsCount( IPV4, IPV6 : BOOLEAN ) : CARDINAL;
 VAR
-	Name : ARRAY [0..511] OF WCHAR;
+   address : netsocket.INETADDR;
+   count : CARDINAL;
+   enumerator : netsrv.TPInterfaceEnumerator;
+   i : CARDINAL;
+   preferred : BOOLEAN;
+   scope : netsocket.TScope;
+   assignment : netsrv.TAssignment;
 BEGIN
-	IF NOT GetLocalNameOA( TimeoutMS DIV 2, OUT Name ) THEN
-		RETURN FALSE;
-	ELSIF NOT NameToAddressWait( Name, TimeoutMS DIV 2, OUT Address[0] ) THEN
-	  RETURN FALSE;
-	END;
-	Filled := 1;
+   IF NOT netsrv.newInterfaceEnumerator( IPV4, IPV6, OUT enumerator ) THEN
+      RETURN 0;
+   END;
+   count := 0;
+
+   WHILE enumerator^.MoveNext() DO
+      IF enumerator^.State <> netsrv.stUp THEN
+         CONTINUE;
+      END;
+
+      i := 0;
+      WHILE enumerator^.InetAddress( i, OUT address, OUT preferred, OUT scope, OUT assignment ) DO
+         IF ( scope = netsocket.scoLocalSite ) OR ( scope = netsocket.scoGlobal ) THEN
+            INC( count );
+         END;
+         INC( i );
+      END; // WHILE
+
+   END; // WHILE
+
+   DISPOSE( enumerator );
+	RETURN count;
+END GetLocalIPsCount;
+
+(*---------------------------------------------------------------------------*)
+
+PROCEDURE GetLocalIPs( IPV4, IPV6 : BOOLEAN; OUT Address : ARRAY OF netsocket.INETADDR; OUT Filled : CARDINAL ) : BOOLEAN;
+VAR
+   address : netsocket.INETADDR;
+   enumerator : netsrv.TPInterfaceEnumerator;
+   i : CARDINAL;
+   preferred : BOOLEAN;
+   scope : netsocket.TScope;
+   assignment : netsrv.TAssignment;
+BEGIN
+   IF ( HIGH( Address ) = -1 ) OR
+      ( ADR( Address ) = NIL ) OR
+      NOT netsrv.newInterfaceEnumerator( IPV4, IPV6, OUT enumerator ) THEN
+      RETURN FALSE;
+   END;
+   Filled := 0;
+
+   WHILE enumerator^.MoveNext() DO
+      IF enumerator^.State <> netsrv.stUp THEN
+         CONTINUE;
+      END;
+
+      i := 0;
+      WHILE enumerator^.InetAddress( i, OUT address, OUT preferred, OUT scope, OUT assignment ) DO
+         IF ( scope = netsocket.scoLocalSite ) OR ( scope = netsocket.scoGlobal ) THEN
+            Address[Filled] := address;
+            INC( Filled );
+            IF Filled > HIGH( Address ) THEN
+               DISPOSE( enumerator );
+               RETURN TRUE;
+            END;
+         END;
+         INC( i );
+      END; // WHILE
+
+   END; // WHILE
+
+   DISPOSE( enumerator );
 	RETURN TRUE;
 END GetLocalIPs;
 

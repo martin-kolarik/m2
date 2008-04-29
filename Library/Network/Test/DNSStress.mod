@@ -8,6 +8,7 @@ IMPORT
    log,
    msghandler,
    netinit,
+   netsocket,
    Strings,
    StringsO,
    sync,
@@ -26,7 +27,7 @@ CLASS CDNS( dns.ADNSNotifier );
    PUBLIC VAR
       Test : TPTest;
 
-   LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF winsock.IN_ADDR );
+   LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF netsocket.INETADDR );
    LOCAL VIRTUAL PROCEDURE OnNameFound( RequestId : PTR; Result : CARDINAL; CONST Name : StringsO.CString );
 END CDNS;
 
@@ -47,7 +48,7 @@ CLASS IMPLEMENTATION CDNS;
 
 (*---------------------------------------------------------------------------*)
 
-   LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF winsock.IN_ADDR );
+   LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF netsocket.INETADDR );
    VAR
       i : CARDINAL;
       s : ARRAY [0..255] OF WCHAR := L"";
@@ -59,9 +60,9 @@ CLASS IMPLEMENTATION CDNS;
          Test^.Results[ CARDINAL( LOPTRLONGWORD( RequestId )) ] := 1;
          Test^.Host^.Log^.LogSS( log.dlcInfo, L"", L"Success: ", request );   
          FOR i := 0 TO HIGH( Address ) DO
-            Strings.ToW( OAsz( PCHAR( winsock.inet_ntoa( Address[i] ))), 0, OUT s );
+            Address[i].GetAddressOA( TRUE, OUT s );
+            Test^.Host^.Log^.LogSS( log.dlcInfo, L"", L"  found: ", s );   
          END;
-         Test^.Host^.Log^.LogSS( log.dlcInfo, L"", L"  found: ", s );   
       ELSE
          Test^.Results[ CARDINAL( LOPTRLONGWORD( RequestId )) ] := 0;
          Strings.FromErrorW( Result, OUT s );
@@ -108,7 +109,8 @@ CLASS IMPLEMENTATION CTest;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
-      A : winsock.IN_ADDR;
+      A : netsocket.INETADDR;
+      av4 : CARDINAL;
       Completed : BOOLEAN;
       h : PTR;
       i : CARDINAL;
@@ -125,8 +127,9 @@ CLASS IMPLEMENTATION CTest;
       END;
       // run
       FOR i := 1 TO 16 DO
-         A.s_addr := winsock.htonl( 217 << 24 + 112 << 16 + 162 << 8 + i );
-         dns.AddressToName( ADR( Notifier ), i, A, i*750, OUT h );
+         av4 := winsock.htonl( 217 << 24 + 112 << 16 + 162 << 8 + i );
+         A.FromV4( av4 );
+         dns.AddressToName( ADR( Notifier ), i, A, FALSE, i*750, OUT h );
       END;
       // wait
       REPEAT
@@ -156,9 +159,9 @@ CLASS IMPLEMENTATION CTest;
          Results[i] := -1;
       END;
       // run
-      dns.NameToAddress( ADR( Notifier ), 1, L"www.smartcontrol.cz", 1*2000, OUT h );
-      dns.NameToAddress( ADR( Notifier ), 2, L"home.smartcontrol.cz", 2*2000, OUT h );
-      dns.NameToAddress( ADR( Notifier ), 3, L"none.smartcontrol.cz", 3*2000, OUT h );
+      dns.NameToAddress( ADR( Notifier ), 1, L"www.smartcontrol.cz", 0, 1*2000, OUT h );
+      dns.NameToAddress( ADR( Notifier ), 2, L"home.smartcontrol.cz", 0, 2*2000, OUT h );
+      dns.NameToAddress( ADR( Notifier ), 3, L"none.smartcontrol.cz", 0, 3*2000, OUT h );
       // wait
       REPEAT
          sync.Sleep( 100 );

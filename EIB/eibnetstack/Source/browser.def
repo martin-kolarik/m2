@@ -2,9 +2,6 @@ DEFINITION MODULE browser;
 
 (*================================================================================*)
 
-IMPORT
-   winsock; // must be the first
-
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
@@ -12,6 +9,7 @@ IMPORT
    core,
    Delegate,
    eibnet,
+   netsocket,
    StringsO,
    Sync;
 
@@ -26,9 +24,8 @@ CLASS CServer;
       Description     : StringsO.CString;
       ServiceFamilies : core.TServiceFamilies;
       MAC             : StringsO.CString;
-      Address         : winsock.IN_ADDR;
-      Port            : CARDINAL := core.EIBNET_IPPORT;
-      RoutingAddress  : winsock.IN_ADDR;
+      Address         : netsocket.INETADDR;
+      RoutingAddress  : netsocket.INETADDR;
 END CServer;
 
 (*--------------------------------------------------------------------------------*)

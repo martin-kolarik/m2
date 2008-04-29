@@ -23,17 +23,6 @@ IMPORT
 
 (*================================================================================*)
 
-INLINE PROCEDURE IN_ADDR6( CONST ai : netsocket.INETADDR ) : WS2TcpIp.Pin_addr6;
-BEGIN
-   IF ai.V6 THEN
-      RETURN ADR( WS2TcpIp.Psockaddr_in6( ai.Data )^.sin6_addr );
-   ELSE
-      RETURN NIL;
-   END;
-END IN_ADDR6;
-
-(*--------------------------------------------------------------------------------*)
-
 CLASS IMPLEMENTATION AInterfaceEnumerator;
 END AInterfaceEnumerator;
 
@@ -57,7 +46,7 @@ CLASS CInterfaceEnumerator( AInterfaceEnumerator );
       Addresses : CARDINAL;
       
    PUBLIC VIRTUAL PROCEDURE HWAddress( OUT Address : ARRAY OF BYTE; OUT Filled : CARDINAL );
-   PUBLIC VIRTUAL PROCEDURE InetAddress( Index : CARDINAL; OUT Address : netsocket.INETADDR; OUT Preferred : BOOLEAN; OUT Scope : TScope; OUT Assignment : TAssignment ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE InetAddress( Index : CARDINAL; OUT Address : netsocket.INETADDR; OUT Preferred : BOOLEAN; OUT Scope : netsocket.TScope; OUT Assignment : TAssignment ) : BOOLEAN;
 END CInterfaceEnumerator;
 
 (*================================================================================*)
@@ -229,7 +218,7 @@ CLASS IMPLEMENTATION CInterfaceEnumerator;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE InetAddress( Index : CARDINAL; OUT Address : netsocket.INETADDR; OUT Preferred : BOOLEAN; OUT Scope : TScope; OUT Assignment : TAssignment ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE InetAddress( Index : CARDINAL; OUT Address : netsocket.INETADDR; OUT Preferred : BOOLEAN; OUT Scope : netsocket.TScope; OUT Assignment : TAssignment ) : BOOLEAN;
    VAR
       a : iptypes.PIP_ADAPTER_UNICAST_ADDRESS;
       index : CARDINAL := 0;
@@ -248,20 +237,7 @@ CLASS IMPLEMENTATION CInterfaceEnumerator;
 
       Address.FromOA( OA( a^.Address.iSockaddrLength-1, a^.Address.lpSockaddr ));
       Preferred := a^.DadState = iptypes.IpDadStatePreferred;
-
-      IF Address.Loopback THEN
-         Scope := scoLoopback;
-      ELSIF Address.V6 THEN
-         IF WS2TcpIp.IN6_IS_ADDR_LINKLOCAL( IN_ADDR6( Address )) THEN
-            Scope := scoLocalLink;
-         ELSIF WS2TcpIp.IN6_IS_ADDR_SITELOCAL( IN_ADDR6( Address )) THEN
-            Scope := scoLocalSite;
-         ELSE
-            Scope := scoGlobal;
-         END;
-      ELSE
-         Scope := scoGlobal;
-      END;
+      Scope := Address.Scope;
       
       CASE a^.PrefixOrigin OF
       | iptypes.IpPrefixOriginManual,

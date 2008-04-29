@@ -100,7 +100,26 @@ CLASS IMPLEMENTATION INETADDR;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Data GET : ADDRESS;
+   PUBLIC PROPERTY Scope GET : TScope;
+   BEGIN
+      IF Loopback THEN
+         RETURN scoLoopback;
+      ELSIF V6 THEN
+         IF WS2TcpIp.IN6_IS_ADDR_LINKLOCAL( IN_ADDR6( SELF )) THEN
+            RETURN scoLocalLink;
+         ELSIF WS2TcpIp.IN6_IS_ADDR_SITELOCAL( IN_ADDR6( SELF )) THEN
+            RETURN scoLocalSite;
+         ELSE
+            RETURN scoGlobal;
+         END;
+      ELSE
+         RETURN scoGlobal;
+      END;
+   END Scope;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROPERTY Data GET : POINTER TO TRFC2553;
    BEGIN
       RETURN ADR( storage );
    END Data;
@@ -157,7 +176,7 @@ CLASS IMPLEMENTATION INETADDR;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE SetAddressOA( CONST Address : ARRAY OF WCHAR ) : BOOLEAN; // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
+   PUBLIC PROCEDURE SetAddressOA( CONST Address : ARRAY OF WCHAR; DefaultPort : CARDINAL ) : BOOLEAN; // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
    VAR
       ai : WS2TcpIp.Paddrinfo;
       hostA : ARRAY [0..511] OF CHAR;
@@ -180,6 +199,9 @@ CLASS IMPLEMENTATION INETADDR;
       ELSIF ( ai <> NIL ) AND ( ai^.ai_addr <> NIL ) THEN
          ASSERT( ai^.ai_addrlen <= SIZE( storage ));
          Storage.Move( ai^.ai_addr, ADR( storage ), ai^.ai_addrlen );
+         IF serviceA[0] = 0C THEN
+            Port := DefaultPort;
+         END;
       END;
 
       WS2TcpIp.freeaddrinfo( ai );
@@ -192,13 +214,13 @@ CLASS IMPLEMENTATION INETADDR;
    BEGIN
       CASE What OF
       | saEmpty :
-         SetAddressOA( L"0.0.0.0" );
+         SetAddressOA( L"0.0.0.0", 0 );
       | saLoopback :
-         SetAddressOA( L"127.0.0.1" );
+         SetAddressOA( L"127.0.0.1", 0 );
       | saLocalLink :
-         SetAddressOA( L"127.0.0.1" );
+         SetAddressOA( L"127.0.0.1", 0 );
       | saLocalLinkRandom :
-         SetAddressOA( L"127.0.0.1" );
+         SetAddressOA( L"127.0.0.1", 0 );
       | saPrivateRandom :
          ASSERT( FALSE );
       END; // CASE      
@@ -210,15 +232,15 @@ CLASS IMPLEMENTATION INETADDR;
    BEGIN
       CASE What OF
       | saEmpty :
-         SetAddressOA( L"::" );
+         SetAddressOA( L"::", 0 );
       | saLoopback :
-         SetAddressOA( L"::1" );
+         SetAddressOA( L"::1", 0 );
       | saLocalLink :
-         SetAddressOA( L"fe80::1" );
+         SetAddressOA( L"fe80::1", 0 );
       | saLocalLinkRandom :
-         SetAddressOA( L"fe80::abcd:abcd" );
+         SetAddressOA( L"fe80::abcd:abcd", 0 );
       | saPrivateRandom :
-         SetAddressOA( L"fc00::1" );
+         SetAddressOA( L"fc00::1", 0 );
       END; // CASE      
    END SetV6;
 
@@ -290,13 +312,20 @@ CLASS IMPLEMENTATION INETADDR;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ToOA( OUT storage : ARRAY OF BYTE );
+   PUBLIC PROCEDURE ToOA( OUT storage : ARRAY OF BYTE; OUT Length : CARDINAL ) : BOOLEAN;
    VAR
       i : CARDINAL;
+      l : CARDINAL := SELF.Length;
    BEGIN
-      FOR i := 0 TO MIN2( HIGH( SELF.storage ), HIGH( storage )) DO
+      IF HIGH( storage )+1 < l THEN
+         RETURN FALSE;
+      ELSE
+         Length := l;
+      END;
+      FOR i := 0 TO l-1 DO
          storage[i] := SELF.storage[i];
       END;
+      RETURN TRUE;
    END ToOA;
 
 (*--------------------------------------------------------------------------------*)
@@ -621,8 +650,9 @@ CLASS IMPLEMENTATION SSocket;
   PUBLIC PROPERTY MulticastGroup SET( CONST Value : INETADDR );
   VAR
     Local : winsock.SOCKADDR_IN; // TODO
+    l : CARDINAL; // TODO
   BEGIN
-    Value.ToOA( OUT Local );
+    Value.ToOA( OUT Local, OUT l );
     IF Local.sin_addr = Remote.sin_addr THEN
       RETURN;
     END;
@@ -837,7 +867,7 @@ CLASS IMPLEMENTATION SSocket;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE SendToOA( CONST Data : ARRAY OF BYTE; To : winsock.IN_ADDR; Port : CARDINAL ) : Sync.TAsyncResult; // uses given address
+  PUBLIC PROCEDURE SendTo4OA( CONST Data : ARRAY OF BYTE; To : winsock.IN_ADDR; Port : CARDINAL ) : Sync.TAsyncResult; // uses given address
   VAR
     l : CARDINAL;
     r : winsock.SOCKADDR_IN;
@@ -858,11 +888,11 @@ CLASS IMPLEMENTATION SSocket;
     ELSE
       RETURN Sync.arPartCompleted;
     END;
-  END SendToOA;
+  END SendTo4OA;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE SendTo6OA( CONST Data : ARRAY OF BYTE; CONST Address : INETADDR ) : Sync.TAsyncResult; // uses given address
+  PUBLIC PROCEDURE SendToOA( CONST Data : ARRAY OF BYTE; CONST Address : INETADDR ) : Sync.TAsyncResult; // uses given address
   VAR
     l : CARDINAL;
   BEGIN
@@ -877,7 +907,7 @@ CLASS IMPLEMENTATION SSocket;
     ELSE
       RETURN Sync.arPartCompleted;
     END;
-  END SendTo6OA;
+  END SendToOA;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1002,7 +1032,7 @@ END SSocket;
 (*================================================================================*)
 
 CLASS CDNSNotifier( dns.ADNSNotifier );
-  LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF winsock.IN_ADDR );
+  LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF INETADDR );
   LOCAL VIRTUAL PROCEDURE OnNameFound( RequestId : PTR; Result : CARDINAL; CONST Name : StringsO.CString );
 END CDNSNotifier;
 
@@ -1010,7 +1040,7 @@ END CDNSNotifier;
 
 CLASS IMPLEMENTATION CDNSNotifier;
 
-  LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF winsock.IN_ADDR );
+  LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF INETADDR );
   BEGIN
     TPDSocket( RequestId )^.OnAddressFound( Result, Address );
   END OnAddressFound;
@@ -1222,7 +1252,7 @@ CLASS IMPLEMENTATION DSocket;
         dns.KillPending( REF ResolveAddr );
       END;
       AddRef();
-      dns.NameToAddress( ADR( DNS ), ADR( SELF ), Server, FORSAFETY, OUT ResolveAddr );
+      dns.NameToAddress( ADR( DNS ), ADR( SELF ), Server, 0, FORSAFETY, OUT ResolveAddr );
     ELSIF Result = Sync.arPending THEN
       // result from Disconnect
     ELSE
@@ -1584,9 +1614,12 @@ CLASS IMPLEMENTATION DSocket;
 
 (*--------------------------------------------------------------------------------*)
 
-  LOCAL PROCEDURE OnAddressFound( Result : CARDINAL; CONST Address : ARRAY OF winsock.IN_ADDR );
+  LOCAL PROCEDURE OnAddressFound( Result : CARDINAL; CONST Address : ARRAY OF INETADDR );
+  VAR
+    Filled : CARDINAL;
   BEGIN
-    Remote.sin_addr := Address[0];
+    Address[0].ToOA( OUT Remote, OUT Filled );
+    ASSERT( Filled = SIZE( Remote ));
     SwitchContext( FD_DNS, poResolveAddress, Result );
   END OnAddressFound;
 
