@@ -113,7 +113,7 @@ CLASS IMPLEMENTATION CTest;
       av4 : CARDINAL;
       Completed : BOOLEAN;
       h : PTR;
-      i : CARDINAL;
+      i, j : CARDINAL;
       Failure1, Failure2 : BOOLEAN;
    BEGIN
       SELF.Host := Host;
@@ -126,10 +126,13 @@ CLASS IMPLEMENTATION CTest;
          Results[i] := -1;
       END;
       // run
-      FOR i := 1 TO 16 DO
-         av4 := winsock.htonl( 217 << 24 + 112 << 16 + 162 << 8 + i );
-         A.FromV4( av4 );
-         dns.AddressToName( ADR( Notifier ), i, A, FALSE, i*750, OUT h );
+      FOR j := 1 TO 255 DO
+         FOR i := 1 TO 16 DO
+            av4 := winsock.htonl( 217 << 24 + 112 << 16 + 162 << 8 + i );
+            A.FromV4( av4 );
+            A.Port := 110;
+            dns.AddressToName( ADR( Notifier ), i, A, i MOD 2 = 1, OUT h );
+         END;
       END;
       // wait
       REPEAT
@@ -159,9 +162,10 @@ CLASS IMPLEMENTATION CTest;
          Results[i] := -1;
       END;
       // run
-      dns.NameToAddress( ADR( Notifier ), 1, L"www.smartcontrol.cz", 0, 1*2000, OUT h );
-      dns.NameToAddress( ADR( Notifier ), 2, L"home.smartcontrol.cz", 0, 2*2000, OUT h );
-      dns.NameToAddress( ADR( Notifier ), 3, L"none.smartcontrol.cz", 0, 3*2000, OUT h );
+      dns.NameToAddress( ADR( Notifier ), 1, L"www.smartcontrol.cz:1213", 0, OUT h );
+      dns.NameToAddress( ADR( Notifier ), 2, L"home.smartcontrol.cz", 0, OUT h );
+      dns.NameToAddress( ADR( Notifier ), 3, L"none.smartcontrol.cz", 0, OUT h );
+      dns.NameToAddress( ADR( Notifier ), 4, L"iris.smartcontrol.cz:80", 0, OUT h );
       // wait
       REPEAT
          sync.Sleep( 100 );

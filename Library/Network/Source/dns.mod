@@ -61,6 +61,7 @@ END CNameToAddressRequest;
 CLASS CAddressToNameRequest( CRequest );
    LOCAL VAR
       Address : netsocket.INETADDR;
+      IncludePort : BOOLEAN := FALSE;
       Name : StringsO.CString;
    LOCAL VIRTUAL PROCEDURE Run();
 END CAddressToNameRequest;
@@ -112,8 +113,8 @@ CLASS IMPLEMENTATION CDispatcher;
                   ai := ai^.ai_next;
                UNTIL ai = NIL;
                
-               ALLOCATE( Addresses, count * SIZE( Addresses ));
-               Storage.Zero( Addresses, count * SIZE( Addresses ));
+               ALLOCATE( Addresses, count * SIZE( Addresses^ ));
+               Storage.Zero( Addresses, count * SIZE( Addresses^ ));
                count := 0;
                ai := TPNameToAddressRequest( Request )^.AddrInfo;
                REPEAT
@@ -127,12 +128,13 @@ CLASS IMPLEMENTATION CDispatcher;
                //    Port := DefaultPort;
                // END;
 
-               Request^.PNotifier^.OnAddressFound( Request^.RequestId, 0, Addresses^ );
+               Request^.PNotifier^.OnAddressFound( Request^.RequestId, 0, OA( count-1, Addresses ));
                
                DEALLOCATE( Addresses );
             END;
 
          ELSIF Request^ IS CAddressToNameRequest THEN
+            Request^.PNotifier^.OnNameFound( Request^.RequestId, netResult, TPAddressToNameRequest( Request )^.Name );
 
          END;
       END; // IF have notifier
@@ -170,8 +172,8 @@ CLASS IMPLEMENTATION CNameToAddressRequest;
          Strings.ToA( host, 0, OUT hostA );
          Strings.ToA( service, 0, OUT serviceA );
 
-      (*?*)
-         hints.ai_flags := WS2TcpIp.AI_NUMERICHOST;
+      (*?*) // DefaultPort
+
          Result := WS2TcpIp.getaddrinfo( ADR( hostA ), ADR( serviceA ), ADR( hints ), OUT AddrInfo );
       END;
    END Run;
@@ -193,7 +195,31 @@ CLASS IMPLEMENTATION CAddressToNameRequest;
 (*---------------------------------------------------------------------------*)
 
    LOCAL VIRTUAL PROCEDURE Run();
+   VAR
+      hostA : ARRAY [0..511] OF CHAR;
+      service : ARRAY [0..15] OF WCHAR;
+      serviceA : ARRAY [0..15] OF CHAR;
    BEGIN
+      Result := WS2TcpIp.getnameinfo(
+         winsock.Psockaddr( Address.Data ), Address.Length,
+         OUT hostA, SIZE( hostA ),
+         OUT serviceA, SIZE( serviceA ),
+         WS2TcpIp.NI_NUMERICSERV
+      );
+      IF Result = 0 THEN
+         Name.FromOAA( 0, hostA );
+         IF Name.IndexOfOA( L":", 0 ) <> -1 THEN // numerical form
+            Name.PrependOA( L"[" );
+            Name.AppendOA( L"]" );
+         END;
+         IF IncludePort AND ( serviceA[0] <> 0C ) AND ( serviceA[0] <> C"0" ) THEN
+            Name.AppendOA( L":" );
+            Strings.ToW( serviceA, 0, OUT service );
+            Name.AppendOA( service );
+         END; 
+      ELSE
+         Result := winsock.WSAGetLastError();
+      END;
    END Run;
 
 (*---------------------------------------------------------------------------*)
@@ -237,7 +263,7 @@ END KillAllPending;
 
 (*===========================================================================*)
 
-PROCEDURE NameToAddress( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Name : ARRAY OF WCHAR; DefaultPort : CARDINAL; TimeoutMS : CARDINAL; OUT Handle : PTR ) : BOOLEAN;
+PROCEDURE NameToAddress( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Name : ARRAY OF WCHAR; DefaultPort : CARDINAL; OUT Handle : PTR ) : BOOLEAN;
 VAR
    Address : netsocket.INETADDR;
    Request : TPNameToAddressRequest;
@@ -258,7 +284,7 @@ BEGIN
    Request^.Name.FromOA( Name );
    Request^.DefaultPort := DefaultPort;
  
-   IF netpool.Pool()^.RunWorker( ADR( SinkDelegate ), Request, TimeoutMS, FALSE, Request, FALSE, OUT Handle ) THEN
+   IF netpool.Pool()^.RunWorker( ADR( SinkDelegate ), Request, FALSE, Request, FALSE, OUT Handle ) THEN
       RETURN TRUE;
    ELSE
       Request^.Release();
@@ -268,7 +294,7 @@ END NameToAddress;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE AddressToName( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Address : netsocket.INETADDR; IncludePort : BOOLEAN; TimeoutMS : CARDINAL; OUT Handle : PTR ) : BOOLEAN;
+PROCEDURE AddressToName( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Address : netsocket.INETADDR; IncludePort : BOOLEAN; OUT Handle : PTR ) : BOOLEAN;
 VAR
    Request : TPAddressToNameRequest;
 BEGIN
@@ -279,8 +305,9 @@ BEGIN
    Request^.PNotifier := PNotifier;
    Request^.RequestId := RequestId;
    Request^.Address := Address;
+   Request^.IncludePort := IncludePort;
 
-   IF netpool.Pool()^.RunWorker( ADR( SinkDelegate ), Request, TimeoutMS, FALSE, Request, FALSE, OUT Handle ) THEN
+   IF netpool.Pool()^.RunWorker( ADR( SinkDelegate ), Request, FALSE, Request, FALSE, OUT Handle ) THEN
       RETURN TRUE;
    ELSE
       Request^.Release();
@@ -351,7 +378,7 @@ VAR
 BEGIN
   LDNSN.Addresses := ADR( Addresses );
   LDNSN.AddressesHigh := HIGH( Addresses );
-  IF NOT NameToAddress( ADR( LDNSN ), 0, Name, DefaultPort, TimeoutMS, OUT H ) THEN
+  IF NOT NameToAddress( ADR( LDNSN ), 0, Name, DefaultPort, OUT H ) THEN
     RETURN FALSE;
   END;
   IF Sync.Wait( LDNSN.Signal, Sync.FORSAFETY ) = Sync.arTimeout THEN
@@ -371,7 +398,7 @@ VAR
 BEGIN
   LDNSN.Name := ADR( Name );
   LDNSN.NameHigh := HIGH( Name );
-  IF NOT AddressToName( ADR( LDNSN ), 0, Address, IncludePort, TimeoutMS, OUT H ) THEN
+  IF NOT AddressToName( ADR( LDNSN ), 0, Address, IncludePort, OUT H ) THEN
     RETURN FALSE;
   END;
   IF Sync.Wait( LDNSN.Signal, Sync.FORSAFETY ) = Sync.arTimeout THEN
