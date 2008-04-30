@@ -158,7 +158,7 @@ CLASS IMPLEMENTATION CTest;
          END; // FOR
 
          // test
-         i := 10;
+         i := 100;
          WHILE sync.IGet( REF Count ) < INTEGER( lcount ) DO
             IF CompletionInOwningThread THEN
                WaitForMessages( 300 );

@@ -454,6 +454,9 @@ CLASS IMPLEMENTATION CPoolThread;
                Completed( Sync.arCompleted, Task, NIL, TRUE, FALSE, OUT disposable );
                Task^.Delegate^.Completed := FALSE;
                AddTask( Task );
+            | tskWorker :
+               // workers are logically timeouted, but they must be removed after completion, allow worker run
+               RETURN FALSE; // workers set CheckEmpty by itself
             ELSE
                RemoveTask( Sync.arTimeout, Task );
                CheckEmpty := TRUE;
@@ -982,7 +985,7 @@ CLASS IMPLEMENTATION CThreadPool;
 
 //--------------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE RunWorker( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; ForceSelfThread : BOOLEAN; Worker : TPPoolWorker; CompleteInOwningThread : BOOLEAN; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
+  PUBLIC PROCEDURE RunWorker( CONST Delegate : TPPoolDelegate; UserId : PTR; ForceSelfThread : BOOLEAN; Worker : TPPoolWorker; CompleteInOwningThread : BOOLEAN; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
   VAR
     MSG : TMessage;
     PoolThread : TPPoolThread;
@@ -1002,7 +1005,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG.Task^.Task := tskWorker;
     MSG.Task^.UserId := UserId;
     MSG.Task^.Delegate := Delegate;
-    MSG.Task^.Timeout := TimeoutMS;
+    MSG.Task^.Timeout := 0;
     MSG.Task^.Data := Worker;
     MSG.Task^.CompleteInOwningThread := CompleteInOwningThread;
 
