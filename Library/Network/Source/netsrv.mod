@@ -346,7 +346,7 @@ CLASS CIPServer( msghandler.MessageHandler );
   INTERNAL VIRTUAL PROCEDURE OnTimer( Timer : PTR );
 
   LOCAL PROCEDURE SetCallbackMode( Mode : TCallbackMode );
-  LOCAL PROCEDURE StartListen( Type : netsocket.TSocketType; Port : CARDINAL; PMulticastGroup : netsocket.TPINETADDR; PStreamCreator : TPListener; AutomaticCloseTimeMS : CARDINAL; PCreatedSocket : POINTER TO netsocket.TPSSocket ) : CARDINAL;
+  LOCAL PROCEDURE StartListen( Type : netsocket.TSocketType; CONST LocalAddress : netsocket.INETADDR; PStreamCreator : TPListener; AutomaticCloseTimeMS : CARDINAL; PCreatedSocket : POINTER TO netsocket.TPSSocket ) : CARDINAL;
   LOCAL PROCEDURE StopListenPort( Port : CARDINAL; Type : netsocket.TSocketType );
   LOCAL PROCEDURE StopListenSocket( Socket : netsocket.TPSSocket );
 
@@ -506,7 +506,7 @@ CLASS IMPLEMENTATION CIPServer;
 
 //--------------------------------------------------------------------------------
 
-   LOCAL PROCEDURE StartListen( Type : netsocket.TSocketType; Port : CARDINAL; PMulticastGroup : netsocket.TPINETADDR; PStreamCreator : TPListener; AutomaticCloseTimeMS : CARDINAL; PCreatedSocket : POINTER TO netsocket.TPSSocket ) : CARDINAL;
+   LOCAL PROCEDURE StartListen( Type : netsocket.TSocketType; CONST LocalAddress : netsocket.INETADDR; PStreamCreator : TPListener; AutomaticCloseTimeMS : CARDINAL; PCreatedSocket : POINTER TO netsocket.TPSSocket ) : CARDINAL;
    VAR
       Error : CARDINAL;
       Message : TMessage;
@@ -524,9 +524,10 @@ CLASS IMPLEMENTATION CIPServer;
 
       NEW( Socket );
       Socket^.Type := Type;
-      Socket^.LocalPort := Port;
-      IF PMulticastGroup <> NIL THEN
-         Socket^.MulticastGroup := PMulticastGroup^;
+      IF LocalAddress.Multicast THEN
+         Socket^.MulticastGroup := LocalAddress;
+      ELSE
+         Socket^.LocalAddress := LocalAddress;
       END;
       Result := Socket^.Open( OUT Error );
       IF Result NOT IN Sync.arsStarts THEN
@@ -617,7 +618,7 @@ CLASS IMPLEMENTATION CIPServer;
     Sockets.Reset();
     WHILE Sockets.MoveNext() DO
       LSocket := Sockets.Current;
-      IF ( LSocket^.LocalPort = Port ) AND ( LSocket^.Type = Type ) THEN
+      IF ( LSocket^.LocalAddress.Port = Port ) AND ( LSocket^.Type = Type ) THEN
         Socket := LSocket;
         Creator := Sockets.CurrentData;
         RETURN TRUE;
@@ -653,14 +654,13 @@ END SetCallbackMode;
 
 PROCEDURE StartListen(
             Type : netsocket.TSocketType;
-            Port : CARDINAL;
-            PMulticastGroup : netsocket.TPINETADDR;
+            CONST LocalAddress : netsocket.INETADDR; // can be empty, can contain port only, can be multicast
             PStreamCreator : TPListener;
             AutomaticCloseTimeMS : CARDINAL;	// can be 0 or INFINITE
             PCreatedSocket : POINTER TO netsocket.TPSSocket // can be NIL
           ) : CARDINAL;
 BEGIN
-  RETURN IPServer.StartListen( Type, Port, PMulticastGroup, PStreamCreator, AutomaticCloseTimeMS, PCreatedSocket );
+  RETURN IPServer.StartListen( Type, LocalAddress, PStreamCreator, AutomaticCloseTimeMS, PCreatedSocket );
 END StartListen;
 
 PROCEDURE StopListenPort( Type : netsocket.TSocketType; Port : CARDINAL );

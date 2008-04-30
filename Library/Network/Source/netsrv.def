@@ -93,8 +93,7 @@ PROCEDURE SetCallbackMode(
 
 PROCEDURE StartListen(
             Type : netsocket.TSocketType;
-            Port : CARDINAL; // if Port = 0 the ephemeral one is selected
-            PMulticastGroup : netsocket.TPINETADDR; // can be NIL
+            CONST LocalAddress : netsocket.INETADDR; // can be empty (an ephemeral port is used), can contain port only, can be multicast
             PStreamCreator : TPListener;
             AutomaticCloseTimeMS : CARDINAL;	// can be 0 or INFINITE for INFINITE time
             PCreatedSocket : POINTER TO netsocket.TPSSocket // can be NIL

@@ -88,7 +88,7 @@ CLASS IMPLEMENTATION CNetworkStream;
 
     NEW( Socket );
     Socket^.Waitable := TRUE;
-    Result := Socket^.Connect( Server, Port, netsocket.FORSAFETY );
+    Result := Socket^.Connect( Server, netsocket.FORSAFETY );
     IF ( Result IN Sync.arsStarts ) AND ( Socket^.WaitCompletion( netsocket.FORSAFETY ) = Sync.arCompleted ) THEN
        Access := IOO.accReadWrite;
        OwnHandle := TRUE;

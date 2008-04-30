@@ -1,8 +1,5 @@
 DEFINITION MODULE netsocket;
 
-IMPORT
-  winsock;
-
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
@@ -43,7 +40,7 @@ TYPE
 CLASS INETADDR;
    PRIVATE VAR
       storage : TRFC2553;
-   LOCAL READONLY PROPERTY
+   PUBLIC READONLY PROPERTY
       Data : POINTER TO TRFC2553;
 
    PUBLIC READONLY PROPERTY
@@ -53,8 +50,11 @@ CLASS INETADDR;
       Port : CARDINAL;
    PUBLIC READONLY PROPERTY
       Loopback : BOOLEAN;
+      Broadcast : BOOLEAN; // meaningful for IPV4 only
       Multicast : BOOLEAN;
       Scope : TScope;
+      
+   PUBLIC OPERATOR =( CONST Operand : INETADDR ) : BOOLEAN;
 
    PUBLIC PROCEDURE GetAddressOA( IncludePort : BOOLEAN; OUT Address : ARRAY OF WCHAR ); // numerical form in string
    PUBLIC PROCEDURE SetAddressOA( CONST Address : ARRAY OF WCHAR; DefaultPort : CARDINAL ) : BOOLEAN; // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
@@ -81,17 +81,11 @@ PROCEDURE SplitAddressOA( CONST HostWithService : ARRAY OF WCHAR; OUT Host, Serv
 (*================================================================================*)
 
 CONST
-   INADDR_EMPTY_VAL = 0;
-   INADDR_EMPTY     = winsock.IN_ADDR( 0, 0, 0, 0, 0 );
-	INADDR_SELF_VAL  = 00100007FH; // big endian INADDR_LOOPBACK
-	INADDR_SELF      = winsock.IN_ADDR( 0, 127, 0, 0, 1 );
-	INADDR_ALL_VAL   = winsock.INADDR_BROADCAST;
-	INADDR_ALL       = winsock.IN_ADDR( 0, 255, 255, 255, 255 ); // local broadcast
-	
-	IPV4_EMPTY       = TIPV4( 0, 0, 0, 0 );
+	IPV4_EMPTY = TIPV4( 0, 0, 0, 0 );
+	IPV6_EMPTY = TIPV6( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 );
 
 CONST // time	
-	FORSAFETY        = 34543;
+	FORSAFETY = 34543;
 
 TYPE
   TPSSocket = POINTER TO SSocket;
@@ -150,9 +144,9 @@ CLASS SSocket( threadpool.APoolDelegate );
     _Notifier    : TPSocketNotifier;
     _HSignal     : Sync.SIGNAL;
     _Backlog     : CARDINAL;
-    Socket       : winsock.SOCKET;
-    Local        : winsock.SOCKADDR_IN;
-    Remote       : winsock.SOCKADDR_IN; // here in SSocket only for storing mcast data
+    Socket       : LONGWORD;
+    Local        : INETADDR;
+    Remote       : INETADDR; // here in SSocket only for storing mcast data
   PUBLIC READONLY VAR
     Result       : Sync.TAsyncResult; // for WaitCompletion, useless for listen
 
@@ -160,10 +154,8 @@ CLASS SSocket( threadpool.APoolDelegate );
     Type           : TSocketType;
     Backlog        : CARDINAL;
     Notifier       : TPSocketNotifier;
-    LocalAddress   : winsock.IN_ADDR;
-    LocalPort      : CARDINAL;
+    LocalAddress   : INETADDR;
     MulticastGroup : INETADDR;
-    MulticastPort  : CARDINAL;
     Waitable       : BOOLEAN;
   PUBLIC READONLY PROPERTY
     Listening      : BOOLEAN;
@@ -179,7 +171,6 @@ CLASS SSocket( threadpool.APoolDelegate );
 	// for stDatagram
   PUBLIC PROCEDURE ReceiveOA( OUT Data : ARRAY OF BYTE; OUT Filled : CARDINAL ) : Sync.TAsyncResult;
   PUBLIC PROCEDURE SendOA( CONST Data : ARRAY OF BYTE ) : Sync.TAsyncResult; // uses multicast address
-  PUBLIC PROCEDURE SendTo4OA( CONST Data : ARRAY OF BYTE; To : winsock.IN_ADDR; Port : CARDINAL ) : Sync.TAsyncResult; // obsolete, uses given address
   PUBLIC PROCEDURE SendToOA( CONST Data : ARRAY OF BYTE; CONST Address : INETADDR ) : Sync.TAsyncResult; // uses given address
 
   LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
@@ -192,7 +183,7 @@ END SSocket;
 
 CLASS DSocket( SSocket );
   INTERNAL VAR
-    // Remote     : winsock.SOCKADDR_IN; // moved to SSocket due to multicast issues
+    // Remote     : INETADDR; // moved to SSocket due to multicast issues
     RemoteName    : StringsO.CString;
     ResolveAddr   : Sync.WAITABLE;
     Timeout       : ARRAY [poConnect..poSend] OF Sync.WAITABLE;
@@ -203,8 +194,7 @@ CLASS DSocket( SSocket );
     WPending      : IOO.TPDataProxy;
 
   PUBLIC PROPERTY
-    RemoteAddress : winsock.IN_ADDR;
-    RemotePort    : CARDINAL;
+    RemoteAddress : INETADDR;
     KeepAliveTime : CARDINAL; // timeout after which KA probe is performed, default 300 s, INIFINITE means KA is off
   PUBLIC READONLY PROPERTY
     Connecting    : BOOLEAN;
@@ -217,8 +207,8 @@ CLASS DSocket( SSocket );
   // Close() comes from SSocket
   // WaitCompletion() comes from SSocket
 
-  PUBLIC PROCEDURE Connect( CONST Server : ARRAY OF WCHAR; Port : CARDINAL; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
-  PUBLIC PROCEDURE ConnectAddress( CONST Server : winsock.IN_ADDR; Port : CARDINAL; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE Connect( CONST Server : ARRAY OF WCHAR; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE ConnectAddress( CONST Server : INETADDR; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
   PUBLIC PROCEDURE Accept( CONST ServerSocket : TPSSocket; OUT Error : CARDINAL ) : Sync.TAsyncResult;
   PUBLIC PROCEDURE AcceptFrom( REF SourceSocket : TPDSocket; OUT Error : CARDINAL ) : Sync.TAsyncResult; // adopts SourceSocket.Socket and clears it
   PUBLIC PROCEDURE Disconnect( Abortive : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;

@@ -1,17 +1,20 @@
 IMPLEMENTATION MODULE netsocket;
 
+IMPORT
+   winsock;
+
 FROM Storage IMPORT
    Move;
 
 IMPORT
-  dns,
-  MSTcpIp,
-  netpool,
-  Storage,
-  Strings,
-  StringsO,
-  windows,
-  WS2TcpIp;
+   dns,
+   MSTcpIp,
+   netpool,
+   Storage,
+   Strings,
+   StringsO,
+   windows,
+   WS2TcpIp;
   
 (*================================================================================*)
 
@@ -89,6 +92,17 @@ CLASS IMPLEMENTATION INETADDR;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Broadcast GET : BOOLEAN;
+   BEGIN
+      IF V6 THEN
+         RETURN FALSE;
+      ELSE
+         RETURN IN_ADDR4( SELF )^.s_addr = winsock.INADDR_BROADCAST;
+      END;
+   END Broadcast;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY Multicast GET : BOOLEAN;
    BEGIN
       IF V6 THEN
@@ -137,23 +151,39 @@ CLASS IMPLEMENTATION INETADDR;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC OPERATOR =( CONST Operand : INETADDR ) : BOOLEAN;
+   VAR
+      a : ADDRESS := Operand.Data;
+      i : CARDINAL;
+      l : CARDINAL := Length;
+   BEGIN
+      IF l <> Operand.Length THEN
+         RETURN FALSE;
+      ELSIF l = 0 THEN
+         RETURN TRUE;
+      END;
+      
+      FOR i := 0 TO l-1 DO
+         IF storage[i] <> PBYTE( a@[i] )^ THEN
+            RETURN FALSE;
+         END;
+      END;
+      
+      RETURN TRUE;
+   END =;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE GetAddressOA( IncludePort : BOOLEAN; OUT Address : ARRAY OF WCHAR ); // numerical form in string
    VAR
       buffer : ARRAY [0..511] OF CHAR;
       result : CARDINAL;
-      salen : CARDINAL;
       server : ARRAY [0..15] OF CHAR;
       serverU : ARRAY [0..15] OF WCHAR;
       v6 : BOOLEAN := V6;
    BEGIN
-      IF v6 THEN
-         salen := SIZE( WS2TcpIp.sockaddr_in6 );
-      ELSE
-         salen := SIZE( winsock.sockaddr_in );
-      END;
-
       result := WS2TcpIp.getnameinfo(
-         winsock.Psockaddr( ADR( storage )), salen,
+         winsock.Psockaddr( ADR( storage )), Length,
          OUT buffer, SIZE( buffer ),
          OUT server, SIZE( server ),
          WS2TcpIp.NI_NUMERICHOST OR WS2TcpIp.NI_NUMERICSERV
@@ -569,55 +599,22 @@ CLASS IMPLEMENTATION SSocket;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROPERTY LocalPort GET : CARDINAL;
+  PUBLIC PROPERTY LocalAddress GET : INETADDR;
   BEGIN
-    RETURN CARDINAL( winsock.htons( Local.sin_port ));
-  END LocalPort;
-
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROPERTY LocalPort SET( Value : CARDINAL );
-  VAR
-    Error : CARDINAL;
-    NPort : CARD16;
-    Result : Sync.TAsyncResult;
-  BEGIN
-    NPort := winsock.htons( CARD16( Value ));
-    IF NPort = Local.sin_port THEN
-      RETURN;
-    END;
-    Local.sin_port := NPort;
-    IF Socket = winsock.INVALID_SOCKET THEN
-      RETURN;
-    END;
-    Result := Open( OUT Error );
-    IF _Lock.In( REF _Pending, poListen ) AND ( Result IN Sync.arsStarts ) THEN
-      Result := Listen( OUT Error );
-    END;
-    IF ( Result NOT IN Sync.arsStarts ) AND ( _Notifier <> NIL ) THEN
-      _Notifier^.OnListen( Error, ADR( SELF ));
-      _Notifier^.OnError( IOO.dirUnknown, Error, ADR( SELF ), opListen );
-    END;
-  END LocalPort;
-  
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROPERTY LocalAddress GET : winsock.IN_ADDR;
-  BEGIN
-    RETURN Local.sin_addr;
+    RETURN Local;
   END LocalAddress;
   
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROPERTY LocalAddress SET( CONST Value : winsock.IN_ADDR );
+  PUBLIC PROPERTY LocalAddress SET( CONST Value : INETADDR );
   VAR
     Error : CARDINAL;
     Result : Sync.TAsyncResult;
   BEGIN
-    IF Value = Local.sin_addr THEN
+    IF Value = Local THEN
       RETURN;
     END;
-    Local.sin_addr := Value;
+    Local := Value;
     IF Socket = winsock.INVALID_SOCKET THEN
       RETURN;
     END;
@@ -633,117 +630,90 @@ CLASS IMPLEMENTATION SSocket;
   
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROPERTY MulticastGroup GET : INETADDR;
-  VAR
-    address : INETADDR; // TODO
-  BEGIN
-    // ...now Remote is V4
-    IF winsock.IN_MULTICAST( REVERSE( Remote.sin_addr.s_addr )) THEN
-      address.V6 := FALSE;
-      address.FromOA( Remote );
-    END;
-    RETURN address;
-  END MulticastGroup;
-  
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROPERTY MulticastGroup SET( CONST Value : INETADDR );
-  VAR
-    Local : winsock.SOCKADDR_IN; // TODO
-    l : CARDINAL; // TODO
-  BEGIN
-    Value.ToOA( OUT Local, OUT l );
-    IF Local.sin_addr = Remote.sin_addr THEN
-      RETURN;
-    END;
-    MulticastLeave();
-    IF NOT winsock.IN_MULTICAST( REVERSE( Local.sin_addr.s_addr )) THEN
-      Remote.sin_addr := winsock.IN_ADDR( 0, 0, 0, 0, 0 );
-      RETURN;
-    END;
-    Remote.sin_addr := Local.sin_addr;
-    IF Socket = winsock.INVALID_SOCKET THEN
-      RETURN;
-    END;
-    MulticastJoin();
-  END MulticastGroup;
-  
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROPERTY MulticastPort GET : CARDINAL;
-  BEGIN
-    IF winsock.IN_MULTICAST( REVERSE( Remote.sin_addr.s_addr )) THEN
-      RETURN CARDINAL( winsock.htons( Remote.sin_port ));
-    ELSE
-      RETURN 0;
-    END;
-  END MulticastPort;
-
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROPERTY MulticastPort SET( Value : CARDINAL );
-  VAR
-    NPort : CARD16;
-  BEGIN
-    NPort := winsock.htons( CARD16( Value ));
-    IF NPort = Remote.sin_port THEN
-      RETURN;
-    END;
-    Remote.sin_port := NPort;
-  END MulticastPort;
-
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROCEDURE Open( OUT Error : CARDINAL ) : Sync.TAsyncResult;
-  LABEL
-    Failed;
-  VAR
-    len : CARDINAL;
-    na : winsock.SOCKADDR_IN;
-    Result : CARDINAL;
-  BEGIN
-    Close( TRUE );
-    // create socket
-    IF _Type = stDatagram THEN
-      Socket := winsock.socket( winsock.AF_INET, winsock.SOCK_DGRAM, 0 );
-    ELSE
-      Socket := winsock.socket( winsock.AF_INET, winsock.SOCK_STREAM, 0 );
-    END;
-    IF Socket = winsock.INVALID_SOCKET THEN
-      GOTO Failed;
-    END;
-    // bind it
-    Storage.Zero( ADR( na ), SIZE( na ));
-    WITH na DO
-      sin_family := winsock.AF_INET;
-      sin_port := Local.sin_port;
-      sin_addr := Local.sin_addr;
-    END;
-    Result := winsock.bind( Socket, winsock.Psockaddr( ADR( na )), SIZE( na ));
-    IF Result <> 0 THEN
-      GOTO Failed;
-    END;
-    IF _Type = stDatagram THEN
-      _Lock.Incl( REF _Pending, poConnection ); // allow reading data
-      MulticastJoin();
-    END;
-    // obtain real port number
-    IF Local.sin_port = 0 THEN
-      len := SIZE( na );
-      Result := winsock.getsockname( Socket, winsock.Psockaddr( ADR( na )), ADR( len ));
-      IF Result <> 0 THEN
-        GOTO Failed;
+   PUBLIC PROPERTY MulticastGroup GET : INETADDR;
+   VAR
+      address : INETADDR;
+   BEGIN
+      IF Remote.Multicast THEN
+         RETURN Remote;
+      ELSE
+         RETURN address;
       END;
-      Local.sin_port := na.sin_port;
-    END;
-    Error := 0;
-    RETURN Sync.arCompleted;
+   END MulticastGroup;
+  
+(*--------------------------------------------------------------------------------*)
 
-  Failed:
-    Error := winsock.WSAGetLastError();
-    Close( TRUE );
-    RETURN Sync.arAborted;
-  END Open;
+   PUBLIC PROPERTY MulticastGroup SET( CONST Value : INETADDR );
+   BEGIN
+      IF Value = Remote THEN
+         RETURN;
+      END;
+      MulticastLeave();
+      IF NOT Value.Multicast THEN
+         Remote.SetV6( saEmpty );
+         RETURN;
+      END;
+      Remote := Value;
+      IF Socket = winsock.INVALID_SOCKET THEN
+         RETURN;
+       END;
+      MulticastJoin();
+   END MulticastGroup;
+  
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Open( OUT Error : CARDINAL ) : Sync.TAsyncResult;
+   LABEL
+      Failed;
+   VAR
+      len : CARDINAL;
+      na : INETADDR;
+      Result : CARDINAL;
+   BEGIN
+      Close( TRUE );
+      // create socket
+      IF _Type = stDatagram THEN
+         IF Local.V6 THEN
+            Socket := winsock.socket( winsock.AF_INET6, winsock.SOCK_DGRAM, 0 );
+         ELSE
+            Socket := winsock.socket( winsock.AF_INET, winsock.SOCK_DGRAM, 0 );
+         END;
+      ELSE
+         IF Local.V6 THEN
+            Socket := winsock.socket( winsock.AF_INET6, winsock.SOCK_STREAM, 0 );
+         ELSE
+            Socket := winsock.socket( winsock.AF_INET, winsock.SOCK_STREAM, 0 );
+         END;
+      END;
+      IF Socket = winsock.INVALID_SOCKET THEN
+         GOTO Failed;
+      END;
+      // bind it
+      Result := winsock.bind( Socket, winsock.Psockaddr( Local.Data ), Local.Length );
+      IF Result <> 0 THEN
+         GOTO Failed;
+      END;
+      IF _Type = stDatagram THEN
+         _Lock.Incl( REF _Pending, poConnection ); // allow reading data
+         MulticastJoin();
+      END;
+      // obtain real port number
+      IF Local.Port = 0 THEN
+         len := SIZE( na );
+         Result := winsock.getsockname( Socket, winsock.Psockaddr( na.Data ), ADR( len ));
+         IF Result <> 0 THEN
+            GOTO Failed;
+         END;
+         Local.Port := na.Port;
+      END;
+      Error := 0;
+      RETURN Sync.arCompleted;
+
+   Failed:
+      Error := winsock.WSAGetLastError();
+      Close( TRUE );
+      RETURN Sync.arAborted;
+   END Open;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -835,14 +805,14 @@ CLASS IMPLEMENTATION SSocket;
 
   PUBLIC PROCEDURE ReceiveOA( OUT Data : ARRAY OF BYTE; OUT Filled : CARDINAL ) : Sync.TAsyncResult;
   VAR
-    fa : winsock.SOCKADDR_IN;
+    fa : INETADDR;
     la : CARDINAL := SIZE( fa );
   BEGIN
     IF _Type <> stDatagram THEN
       RETURN Sync.arCannotStart;
     END;
     Filled := MIN2( HIGH( Data )+1, DataAvailable );
-    Filled := winsock.recvfrom( Socket, windows.PSTR( ADR( Data )), Filled, 0, winsock.Psockaddr( ADR( fa )), ADR( la ));
+    Filled := winsock.recvfrom( Socket, windows.PSTR( ADR( Data )), Filled, 0, winsock.Psockaddr( fa.Data ), ADR( la ));
     RETURN Sync.arCompleted;
   END ReceiveOA;
 
@@ -855,7 +825,7 @@ CLASS IMPLEMENTATION SSocket;
     IF _Type <> stDatagram THEN
       RETURN Sync.arCannotStart;
     END;
-    l := winsock.sendto( Socket, windows.PSTR( ADR( Data )), HIGH( Data )+1, 0, winsock.Psockaddr( ADR( Remote )), SIZE( Remote ));
+    l := winsock.sendto( Socket, windows.PSTR( ADR( Data )), HIGH( Data )+1, 0, winsock.Psockaddr( Remote.Data ), Remote.Length );
     IF l = 0 THEN
       RETURN Sync.arCannotStart;
     ELSIF l = HIGH( Data )+1 THEN
@@ -864,31 +834,6 @@ CLASS IMPLEMENTATION SSocket;
       RETURN Sync.arPartCompleted;
     END;
   END SendOA;
-
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROCEDURE SendTo4OA( CONST Data : ARRAY OF BYTE; To : winsock.IN_ADDR; Port : CARDINAL ) : Sync.TAsyncResult; // uses given address
-  VAR
-    l : CARDINAL;
-    r : winsock.SOCKADDR_IN;
-  BEGIN
-    IF _Type <> stDatagram THEN
-      RETURN Sync.arCannotStart;
-    END;
-    WITH r DO
-      sin_family := winsock.AF_INET;
-      sin_addr := To;
-      sin_port := winsock.htons( CARD16( Port ));
-    END; // WITH
-    l := winsock.sendto( Socket, windows.PSTR( ADR( Data )), HIGH( Data )+1, 0, winsock.Psockaddr( ADR( r )), SIZE( r ));
-    IF l = 0 THEN
-      RETURN Sync.arCannotStart;
-    ELSIF l = HIGH( Data )+1 THEN
-      RETURN Sync.arCompleted;
-    ELSE
-      RETURN Sync.arPartCompleted;
-    END;
-  END SendTo4OA;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1016,10 +961,6 @@ BEGIN
   _HSignal := NIL;
   Result := Sync.arUnknown;
   Socket := winsock.INVALID_SOCKET;
-  Storage.Zero( ADR( Local ), SIZE( Local ));  
-  Local.sin_family := winsock.AF_INET;
-  Storage.Zero( ADR( Remote ), SIZE( Remote ));
-  Remote.sin_family := winsock.AF_INET;
 FINALLY
   Close( FALSE );
   IF _Notifier <> NIL THEN
@@ -1061,26 +1002,26 @@ CLASS IMPLEMENTATION DSocket;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROPERTY RemoteAddress GET : winsock.IN_ADDR;
+  PUBLIC PROPERTY RemoteAddress GET : INETADDR;
   BEGIN
-    RETURN Remote.sin_addr;
+    RETURN Remote;
   END RemoteAddress;
   
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROPERTY RemoteAddress SET( CONST Value : winsock.IN_ADDR );
+  PUBLIC PROPERTY RemoteAddress SET( CONST Value : INETADDR );
   VAR
     Error : CARDINAL;
     Result : Sync.TAsyncResult;
   BEGIN
-    IF Value = Remote.sin_addr THEN
+    IF Value = Remote THEN
       RETURN;
     END;
-    Remote.sin_addr := Value;
+    Remote := Value;
     IF Socket = winsock.INVALID_SOCKET THEN
       RETURN;
     END;
-    Result := ConnectAddress( Remote.sin_addr, RemotePort, FORSAFETY );
+    Result := ConnectAddress( Remote, FORSAFETY );
     IF ( Result NOT IN Sync.arsStarts ) AND ( _Notifier <> NIL ) THEN
       Error := winsock.WSAGetLastError();
       _Notifier^.OnConnect( Error, ADR( SELF ), TRUE );
@@ -1088,37 +1029,6 @@ CLASS IMPLEMENTATION DSocket;
     END;
   END RemoteAddress;
   
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROPERTY RemotePort GET : CARDINAL;
-  BEGIN
-    RETURN CARDINAL( winsock.htons( Remote.sin_port ));
-  END RemotePort;
-
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROPERTY RemotePort SET( Value : CARDINAL );
-  VAR
-    Error : CARDINAL;
-    NPort : CARD16;
-    Result : Sync.TAsyncResult;
-  BEGIN
-    NPort := winsock.htons( CARD16( Value ));
-    IF NPort = Remote.sin_port THEN
-      RETURN;
-    END;
-    Remote.sin_port := NPort;
-    IF Socket = winsock.INVALID_SOCKET THEN
-      RETURN;
-    END;
-    Result := ConnectAddress( Remote.sin_addr, Value, FORSAFETY );
-    IF ( Result NOT IN Sync.arsStarts ) AND ( _Notifier <> NIL ) THEN
-      Error := winsock.WSAGetLastError();
-      _Notifier^.OnConnect( Error, ADR( SELF ), TRUE );
-      _Notifier^.OnError( IOO.dirUnknown, Error, ADR( SELF ), opConnect );
-    END;
-  END RemotePort;
-
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC PROPERTY KeepAliveTime GET : CARDINAL;
@@ -1185,86 +1095,84 @@ CLASS IMPLEMENTATION DSocket;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Open( OUT Error : CARDINAL ) : Sync.TAsyncResult; // socket -- modified variant of SSocket.Open
-  VAR
-    na : winsock.SOCKADDR_IN;
-  BEGIN
-    Close( TRUE );
-    IF _Type = stDatagram THEN
-      Socket := winsock.socket( winsock.AF_INET, winsock.SOCK_DGRAM, 0 );
-    ELSE
-      Socket := winsock.socket( winsock.AF_INET, winsock.SOCK_STREAM, 0 );
-    END;
-    IF Socket = winsock.INVALID_SOCKET THEN
-      Error := winsock.WSAGetLastError();
-      RETURN Sync.arAborted;
-    END;
+   PUBLIC PROCEDURE Open( OUT Error : CARDINAL ) : Sync.TAsyncResult; // socket -- modified variant of SSocket.Open
+   BEGIN
+      Close( TRUE );
 
-    IF _Type = stDatagram THEN // datagram socket shout be bind to allow multicasting and receiving
-      Storage.Zero( ADR( na ), SIZE( na ));
-      WITH na DO
-        sin_family := winsock.AF_INET;
-        sin_port := Local.sin_port;
-        sin_addr := Local.sin_addr;
-      END;
-      Error := winsock.bind( Socket, winsock.Psockaddr( ADR( na )), SIZE( na ));
-      IF Error <> 0 THEN
-        Error := winsock.WSAGetLastError();
-        RETURN Sync.arAborted;
-      END;
-    END;
-
-    Error := 0;
-    RETURN Sync.arCompleted;
-  END Open;
-
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROCEDURE Connect( CONST Server : ARRAY OF WCHAR; Port : CARDINAL; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
-  VAR
-    Addr : winsock.IN_ADDR;
-    Result : Sync.TAsyncResult;
-    sa : ARRAY [0..511] OF CHAR;
-  BEGIN
-    IF poConnect IN TPendingOperation( _Lock.Incl( REF _Pending, poConnect )) THEN
-      RETURN Sync.arAlreadyPending;
-    END;
-    Strings.ToA( Server, 0, OUT sa );
-    Addr.s_addr := winsock.inet_addr( ADR( sa ));
-
-    IF _Type = stStream THEN
-      IF TimeoutMS < Sync.FOREVER THEN
-        StartTimeout( poConnect, TimeoutMS );
-        TimeoutMS := TimeoutMS DIV 2; // prepare for Disconnect
+      // create socket
+      IF _Type = stDatagram THEN
+         IF Local.V6 THEN
+            Socket := winsock.socket( winsock.AF_INET6, winsock.SOCK_DGRAM, 0 );
+         ELSE
+            Socket := winsock.socket( winsock.AF_INET, winsock.SOCK_DGRAM, 0 );
+         END;
       ELSE
-        StopTimeout( poConnect );
+         IF Local.V6 THEN
+            Socket := winsock.socket( winsock.AF_INET6, winsock.SOCK_STREAM, 0 );
+         ELSE
+            Socket := winsock.socket( winsock.AF_INET, winsock.SOCK_STREAM, 0 );
+         END;
       END;
-    END;
-    SELF.Result := Sync.arUnknown;
-    Sync.Reset( _HSignal );
-    Result := Disconnect( FALSE, TimeoutMS );
-
-    // set new connection parameters -- only port is known here
-    Remote.sin_port := REVERSE( CARD16( Port ));
-
-    IF Addr.s_addr = winsock.INADDR_NONE THEN
-      IF poResolveAddress IN TPendingOperation( _Lock.Incl( REF _Pending, poResolveAddress )) THEN
-        dns.KillPending( REF ResolveAddr );
+      IF Socket = winsock.INVALID_SOCKET THEN
+         Error := winsock.WSAGetLastError();
+         RETURN Sync.arAborted;
       END;
-      AddRef();
-      dns.NameToAddress( ADR( DNS ), ADR( SELF ), Server, 0, FORSAFETY, OUT ResolveAddr );
-    ELSIF Result = Sync.arPending THEN
-      // result from Disconnect
-    ELSE
-      Remote.sin_addr := Addr;
-      SwitchContext( FD_INIT, poConnect, 0 );
-    END;
-    RETURN Sync.arPending;
-  END Connect;
+
+      IF _Type = stDatagram THEN // datagram socket shout be bind to allow multicasting and receiving
+         Error := winsock.bind( Socket, winsock.Psockaddr( Local.Data ), Local.Length );
+         IF Error <> 0 THEN
+            Error := winsock.WSAGetLastError();
+            RETURN Sync.arAborted;
+         END;
+      END;
+
+      Error := 0;
+      RETURN Sync.arCompleted;
+   END Open;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE ConnectAddress( CONST Server : winsock.IN_ADDR; Port : CARDINAL; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE Connect( CONST Server : ARRAY OF WCHAR; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   VAR
+      Addr : INETADDR;
+      NumericAddress : BOOLEAN;
+      Result : Sync.TAsyncResult;
+   BEGIN
+      IF poConnect IN TPendingOperation( _Lock.Incl( REF _Pending, poConnect )) THEN
+         RETURN Sync.arAlreadyPending;
+      END;
+
+      IF _Type = stStream THEN
+         IF TimeoutMS < Sync.FOREVER THEN
+            StartTimeout( poConnect, TimeoutMS );
+            TimeoutMS := TimeoutMS DIV 2; // prepare for Disconnect
+         ELSE
+            StopTimeout( poConnect );
+         END;
+      END;
+      SELF.Result := Sync.arUnknown;
+      Sync.Reset( _HSignal );
+      Result := Disconnect( FALSE, TimeoutMS );
+
+      NumericAddress := Addr.SetAddressOA( Server, 0 );
+      IF NOT NumericAddress THEN
+         IF poResolveAddress IN TPendingOperation( _Lock.Incl( REF _Pending, poResolveAddress )) THEN
+            dns.KillPending( REF ResolveAddr );
+         END;
+         AddRef();
+         dns.NameToAddress( ADR( DNS ), ADR( SELF ), Server, 0, OUT ResolveAddr );
+      ELSIF Result = Sync.arPending THEN
+         // result from Disconnect
+      ELSE
+         Remote := Addr;
+         SwitchContext( FD_INIT, poConnect, 0 );
+      END;
+      RETURN Sync.arPending;
+   END Connect;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROCEDURE ConnectAddress( CONST Server : INETADDR; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
   VAR
     Result : Sync.TAsyncResult;
   BEGIN
@@ -1285,8 +1193,7 @@ CLASS IMPLEMENTATION DSocket;
     Result := Disconnect( FALSE, TimeoutMS );
 
     // set new connection parameters
-    Remote.sin_addr := Server;
-    Remote.sin_port := REVERSE( CARD16( Port ));
+    Remote := Server;
 
     IF Result <> Sync.arPending THEN
       SwitchContext( FD_INIT, poConnect, 0 );
@@ -1309,12 +1216,12 @@ CLASS IMPLEMENTATION DSocket;
     Disconnect( TRUE, FORSAFETY );
 
     L := SIZE( Remote ); 
-    Socket := winsock.accept( ServerSocket^.Socket, winsock.Psockaddr( ADR( Remote )), ADR( L ));
+    Socket := winsock.accept( ServerSocket^.Socket, winsock.Psockaddr( Remote.Data ), ADR( L ));
     IF Socket = winsock.INVALID_SOCKET THEN
       GOTO Failed;
     END;
     L := SIZE( Local );
-    Result := winsock.getsockname( Socket, winsock.Psockaddr( ADR( Local )), ADR( L ));
+    Result := winsock.getsockname( Socket, winsock.Psockaddr( Local.Data ), ADR( L ));
     IF Result <> 0 THEN
       GOTO Failed;
     END;
@@ -1648,47 +1555,47 @@ CLASS IMPLEMENTATION DSocket;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE StartConnect();
-  VAR
-    Error : CARDINAL;
-    Result : Sync.TAsyncResult;
-    wb : windows.BOOL := windows.True;
-  BEGIN
-    Result := Open( OUT Error );
+   PRIVATE PROCEDURE StartConnect();
+   VAR
+      Error : CARDINAL;
+      Result : Sync.TAsyncResult;
+      wb : windows.BOOL := windows.True;
+   BEGIN
+      Result := Open( OUT Error );
     
-    IF Result NOT IN Sync.arsStarts THEN
-      // fall down to process error
+      IF Result NOT IN Sync.arsStarts THEN
+         // fall down to process error
     
-    ELSIF _Type = stDatagram THEN
-      Error := Select( winsock.FD_READ OR winsock.FD_WRITE );
-      IF Error = 0 THEN // join multicast group
-        Error := MulticastJoin();
-      END;
-      IF ( Error = 0 ) AND ( Remote.sin_addr = INADDR_ALL ) THEN // set broadcast flag
-        Error := winsock.setsockopt( Socket, winsock.SOL_SOCKET, winsock.SO_BROADCAST, windows.PSTR( ADR( wb )), SIZE( wb ));
+      ELSIF _Type = stDatagram THEN
+         Error := Select( winsock.FD_READ OR winsock.FD_WRITE );
+         IF Error = 0 THEN // join multicast group
+            Error := MulticastJoin();
+         END;
+         IF ( Error = 0 ) AND Remote.Broadcast THEN // set broadcast flag
+            Error := winsock.setsockopt( Socket, winsock.SOL_SOCKET, winsock.SO_BROADCAST, windows.PSTR( ADR( wb )), SIZE( wb ));
+         END;
+
+      ELSE // _Type = stStream
+         Error := StartKeepAlive();
+         IF Error = 0 THEN
+            Error := Select( winsock.FD_CONNECT OR winsock.FD_READ OR winsock.FD_WRITE OR winsock.FD_CLOSE );
+         END;
+         IF Error = 0 THEN
+            Error := winsock.connect( Socket, winsock.Psockaddr( Remote.Data ), Remote.Length );
+         END;
       END;
 
-    ELSE // _Type = stStream
-      Error := StartKeepAlive();
-      IF Error = 0 THEN
-        Error := Select( winsock.FD_CONNECT OR winsock.FD_READ OR winsock.FD_WRITE OR winsock.FD_CLOSE );
+      IF Error <> 0 THEN
+         Error := winsock.WSAGetLastError();
       END;
-      IF Error = 0 THEN
-        Error := winsock.connect( Socket, winsock.Psockaddr( ADR( Remote )), SIZE( Remote ));
-      END;
-    END;
-
-    IF Error <> 0 THEN
-      Error := winsock.WSAGetLastError();
-    END;
-    IF _Type = stDatagram THEN // call OnConnect immediatelly
-      OnConnect( FD_INIT, Error );
-    ELSIF ( Error = 0 ) OR ( Error = winsock.WSAEWOULDBLOCK ) THEN
-      RETURN;
-    ELSE // stream error
-      OnConnect( FD_INIT, Error );
-    END;
-  END StartConnect;
+      IF _Type = stDatagram THEN // call OnConnect immediatelly
+         OnConnect( FD_INIT, Error );
+      ELSIF ( Error = 0 ) OR ( Error = winsock.WSAEWOULDBLOCK ) THEN
+         RETURN;
+      ELSE // stream error
+         OnConnect( FD_INIT, Error );
+       END;
+   END StartConnect;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1715,7 +1622,8 @@ CLASS IMPLEMENTATION DSocket;
     END;
     IF Error = 0 THEN
       Result := Sync.arCompleted;
-      winsock.getsockname( Socket, winsock.Psockaddr( ADR( Local )), ADR( L ));
+      L := SIZE( Local );
+      winsock.getsockname( Socket, winsock.Psockaddr( Local.Data ), ADR( L ));
     ELSE
       Result := Sync.arAborted;
       Close( TRUE );
@@ -1812,7 +1720,7 @@ CLASS IMPLEMENTATION DSocket;
     a : ADDRESS;
     AR : Sync.TAsyncResult := Sync.arCompleted;
     Buffer : IOO.TPDataProxy;
-    fa : winsock.SOCKADDR_IN;
+    fa : INETADDR;
     l : CARDINAL;
     la : CARDINAL := SIZE( fa );
     Result : CARDINAL := 0;
@@ -1834,13 +1742,13 @@ CLASS IMPLEMENTATION DSocket;
 
       IF Operation = poReceive THEN
         IF _Type = stDatagram THEN
-          l := winsock.recvfrom( Socket, a, l, 0, winsock.Psockaddr( ADR( fa )), ADR( la ));
+          l := winsock.recvfrom( Socket, a, l, 0, winsock.Psockaddr( fa.Data ), ADR( la ));
         ELSE
           l := winsock.recv( Socket, a, l, 0 );
         END;
       ELSE
         IF _Type = stDatagram THEN
-          l := winsock.sendto( Socket, a, l, 0, winsock.Psockaddr( ADR( Remote )), SIZE( Remote ));
+          l := winsock.sendto( Socket, a, l, 0, winsock.Psockaddr( Remote.Data ), Remote.Length );
         ELSE
           l := winsock.send( Socket, a, l, 0 );
         END;
@@ -1860,11 +1768,11 @@ CLASS IMPLEMENTATION DSocket;
           EXIT; // finish operation
 
         ELSIF Type = stDatagram THEN // datagrams are accepted only if they are mine
-          IF Remote.sin_addr = INADDR_ALL THEN
+          IF Remote.Broadcast THEN
             // I am receiving broadcast, pass down
           ELSIF Remote = fa THEN
             // I am receiving from expected partner, pass down
-          ELSIF winsock.IN_MULTICAST( REVERSE( RemoteAddress.s_addr )) THEN
+          ELSIF RemoteAddress.Multicast THEN
             // I am receiving multicast data, where source is never the same
           ELSE // and here -- discard unexpected packet
             CONTINUE; // LOOP
@@ -1989,8 +1897,6 @@ CLASS IMPLEMENTATION DSocket;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-  Storage.Zero( ADR( Remote ), SIZE( Remote ));
-  Remote.sin_family := winsock.AF_INET;
   ResolveAddr := NIL;
   Storage.Zero( ADR( Timeout ), SIZE( Timeout ));
   KeepAlive := 120000;

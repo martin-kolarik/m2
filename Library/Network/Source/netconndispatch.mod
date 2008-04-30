@@ -537,10 +537,13 @@ CONST
    logPrefix = L"Net.Dispatcher";
   
 PROCEDURE Log( Severity : TDebugLevel; Connection : TPConnection; Text : ARRAY OF WCHAR );
+VAR
+   address : ARRAY [0..63] OF WCHAR;
 BEGIN
+   Connection^.RemoteAddress.GetAddressOA( TRUE, OUT address );
+
    logger()^.LogS( Severity, logPrefix, Text );
-   logger()^.LogSH( Severity, logPrefix, "2 address ", Connection^.RemoteAddress.s_addr );
-   logger()^.LogSC( Severity, logPrefix, "3 port ", Connection^.RemotePort );
+   logger()^.LogSS( Severity, logPrefix, "2 address ", address );
 END Log;
   
 //--------------------------------------------------------------------------------
