@@ -2,7 +2,6 @@ DEFINITION MODULE NetMsg;
 (*# option( dll_export => on ) *)
 
 IMPORT
-  winsock,
   drv_def;
 
 //================================================================================

@@ -11,9 +11,6 @@ IMPLEMENTATION MODULE NetMsg;
 */*)
 //================================================================================
 
-IMPORT
-  windows;
-
 FROM Storage IMPORT
   REALLOCATE, ALLOCATE, DEALLOCATE;
   
@@ -30,6 +27,7 @@ IMPORT
   FIO,
   FIOO,
   INIFile,
+  inetaddr,
   IOO,
   iovalue,
   Languages,
@@ -107,8 +105,7 @@ CLASS CClientLE( list.CListElem );
   PClient : TPClient;
   Group   : ARRAY [0..63] OF WCHAR;
   Name    : ARRAY [0..63] OF WCHAR;
-  Port    : CARDINAL;
-  Address : winsock.IN_ADDR;
+  Address : inetaddr.INETADDR;
 END CClientLE;
 
 TYPE
@@ -181,8 +178,7 @@ TYPE
                  CASE Event : TEvent OF
                  | evConnect, evDisconnect :
                    Local : BOOLEAN;
-                   Address : winsock.IN_ADDR;
-                   Port : CARDINAL;
+                   Address : inetaddr.INETADDR;
                    Error : CARDINAL;
                  | evDataReceived1, evStructReceived1 :
                    PReceiveClient : TPClientLE;
@@ -212,7 +208,7 @@ CLASS CDriver( msghandler.MessageHandler );
   Result        : lec.CResult;
 
   // driver data
-  Port          : CARDINAL;
+  ListenAddress : inetaddr.INETADDR;
   Server        : CServer;
   Clients       : list.CList;
   Groups        : list.CList;
@@ -249,9 +245,9 @@ CLASS CDriver( msghandler.MessageHandler );
 
   // helpers
   PROCEDURE InitToDefault();
-  PROCEDURE Exists( Name : ARRAY OF WCHAR; Port : CARDINAL; Address : winsock.IN_ADDR ) : BOOLEAN;
+  PROCEDURE Exists( Name : ARRAY OF WCHAR; CONST Address : inetaddr.INETADDR ) : BOOLEAN;
   PROCEDURE SearchName( Name : ARRAY OF WCHAR; VAR PClientLE : TPClientLE ) : BOOLEAN;
-  PROCEDURE SearchNet( REF Clients : list.CList; Port : CARDINAL; Address : winsock.IN_ADDR; VAR PClientLE : TPClientLE ) : BOOLEAN;
+  PROCEDURE SearchNet( REF Clients : list.CList; CONST Address : inetaddr.INETADDR; VAR PClientLE : TPClientLE ) : BOOLEAN;
   PROCEDURE SearchGroup( Name : ARRAY OF WCHAR; VAR PGroupLE : TPGroupLE ) : BOOLEAN;
   PROCEDURE RemoveClientFromGroups( PClientLE : TPClientLE );
 
@@ -298,8 +294,6 @@ BEGIN
   PClient := NIL;
   Group[0] := WCHAR( 0 );
   Name[0] := WCHAR( 0 );
-  Port := 0;
-  Storage.Fill( ADR( Address ), SIZE( Address ), 0 );
 END CClientLE;
 
 //--------------------------------------------------------------------------------
@@ -682,7 +676,10 @@ CLASS IMPLEMENTATION CDriver;
       lec.QueryData( s, L"", ADR( cllv.data ), cllv.length, REF Result );
 
       IF rsListening IN RStatus THEN
-         netsrv.StartListen( netsocket.stStream, Port, NIL, Server.Listener, 0, NIL );
+         ListenAddress.V6 := FALSE;
+         netsrv.StartListen( netsocket.stStream, ListenAddress, NIL, Server.Listener, 0, NIL );
+         ListenAddress.V6 := TRUE;
+         netsrv.StartListen( netsocket.stStream, ListenAddress, NIL, Server.Listener, 0, NIL );
       END;
   END Run;
 
@@ -695,7 +692,10 @@ CLASS IMPLEMENTATION CDriver;
     END;
     EXCL( RStatus, rsRunning );
     IF rsListening IN RStatus THEN
-      netsrv.StopListenPort( netsocket.stStream, Port );
+      ListenAddress.V6 := FALSE;
+      netsrv.StopListenServer( netsocket.stStream, ListenAddress );
+      ListenAddress.V6 := TRUE;
+      netsrv.StopListenServer( netsocket.stStream, ListenAddress );
     END;
   END Stop;
 
@@ -753,7 +753,7 @@ CLASS IMPLEMENTATION CDriver;
   VAR
     c, i : CARDINAL;
     Group : ARRAY [0..63] OF WCHAR;
-    IAddress : winsock.IN_ADDR;
+    IAddress : inetaddr.INETADDR;
     len : CARDINAL;
     List : lists.TPPtrList;
     Payload : TTransport;
@@ -763,10 +763,9 @@ CLASS IMPLEMENTATION CDriver;
     PClientLE : TPClientLE;
     PELE : TPEventLE;
     PGroupLE : TPGroupLE;
-    RAddr : winsock.IN_ADDR;
+    RAddr : inetaddr.INETADDR;
     RPort : CARDINAL;
     Name : ARRAY [0..63] OF WCHAR;
-    na : ARRAY [0..63] OF CHAR;
     n, si : ARRAY [0..63] OF WCHAR;
     SW : StringsO.CString;
     S : StringsO.CString;
@@ -839,7 +838,7 @@ CLASS IMPLEMENTATION CDriver;
 
           CASE PELE^.Event.Event OF
           | evConnect :
-            IF SearchNet( REF Clients, PELE^.Event.Port, PELE^.Event.Address, PClientLE ) THEN
+            IF SearchNet( REF Clients, PELE^.Event.Address, PClientLE ) THEN
               ASSIGN( Name, PClientLE^.Name );
               ASSIGN( Group, PClientLE^.Group );
             ELSE
@@ -860,10 +859,10 @@ CLASS IMPLEMENTATION CDriver;
                END;
             END;
           | evDisconnect :
-            IF SearchNet( REF Clients, PELE^.Event.Port, PELE^.Event.Address, PClientLE ) THEN
+            IF SearchNet( REF Clients, PELE^.Event.Address, PClientLE ) THEN
               ASSIGN( Name, PClientLE^.Name );
               ASSIGN( Group, PClientLE^.Group );
-            ELSIF SearchNet( REF RemovedClients, PELE^.Event.Port, PELE^.Event.Address, PClientLE ) THEN
+            ELSIF SearchNet( REF RemovedClients, PELE^.Event.Address, PClientLE ) THEN
               ASSIGN( Name, PClientLE^.Name );
               ASSIGN( Group, PClientLE^.Group );
               RemovedClients.Remove( PClientLE );
@@ -949,18 +948,15 @@ CLASS IMPLEMENTATION CDriver;
           CASE PELE^.Event.Event OF
           | evConnect, evDisconnect :
             IAddress := PELE^.Event.Address;
-            Port := PELE^.Event.Port;
           | evDataReceived1, evStructReceived1 :
             IAddress := PELE^.Event.PReceiveClient^.Address;
-            Port := PELE^.Event.PReceiveClient^.Port;
           ELSE
             b := FALSE;
           END; // CASE
           IF b THEN
-            ASSIGNsz( na, winsock.inet_ntoa( IAddress ));
-            Strings.ToW( na, 0, OUT n );
+            IAddress.GetAddressOA( FALSE, OUT n );
             SW.AppendOA( n ); SW.AppendOA( L"-" );
-            Strings.FromCARD32W( Port, 10, OUT n );
+            Strings.FromCARD32W( IAddress.Port, 10, OUT n );
             SW.AppendOA( n );
           END;
 
@@ -1008,10 +1004,14 @@ CLASS IMPLEMENTATION CDriver;
       IF EQUALS( si, L'run' ) THEN
         IF TRStatus{rsListening} * RStatus <> TRStatus{} THEN
           GOTO Success;
-        ELSIF netsrv.StartListen( netsocket.stStream, Port, NIL, Server.Listener, 0, NIL ) <> 0 THEN
+        END;
+        ListenAddress.V6 := FALSE;
+        IF netsrv.StartListen( netsocket.stStream, ListenAddress, NIL, Server.Listener, 0, NIL ) <> 0 THEN
           SW.FromOA( OAsz( R[ Texts._ListenFailure ] ));
           GOTO Error;
         END;
+        ListenAddress.V6 := TRUE;
+        netsrv.StartListen( netsocket.stStream, ListenAddress, NIL, Server.Listener, 0, NIL );
         INCL( RStatus, rsListening );
 
       ELSIF EQUALS( si, L'stop' ) THEN
@@ -1019,7 +1019,10 @@ CLASS IMPLEMENTATION CDriver;
           GOTO Success;
         END;
         EXCL( RStatus, rsListening );
-        netsrv.StopListenPort( netsocket.stStream, Port );
+        ListenAddress.V6 := FALSE;
+        netsrv.StopListenServer( netsocket.stStream, ListenAddress );
+        ListenAddress.V6 := TRUE;
+        netsrv.StopListenServer( netsocket.stStream, ListenAddress );
 
       ELSIF EQUALS( si, L'port' ) THEN
         SW.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 2, TRUE, OUT n );
@@ -1028,11 +1031,17 @@ CLASS IMPLEMENTATION CDriver;
           GOTO Error;
         END;
         IF rsListening IN RStatus THEN
-          netsrv.StopListenPort( netsocket.stStream, Port );
-          Port := c;
-          netsrv.StartListen( netsocket.stStream, Port, NIL, Server.Listener, 0, NIL );
+          ListenAddress.V6 := FALSE;
+          netsrv.StopListenServer( netsocket.stStream, ListenAddress );
+          ListenAddress.V6 := TRUE;
+          netsrv.StopListenServer( netsocket.stStream, ListenAddress );
+          ListenAddress.Port := c;
+          ListenAddress.V6 := FALSE;
+          netsrv.StartListen( netsocket.stStream, ListenAddress, NIL, Server.Listener, 0, NIL );
+          ListenAddress.V6 := TRUE;
+          netsrv.StartListen( netsocket.stStream, ListenAddress, NIL, Server.Listener, 0, NIL );
         ELSE
-          Port := c;
+          ListenAddress.Port := c;
         END;
 
       #if DEBUG #then
@@ -1198,12 +1207,12 @@ CLASS IMPLEMENTATION CDriver;
           END;
           si[c] := WCHAR( 0 );
         END;
-        IF NOT dns.NameToAddressWait( si, 1000, OUT RAddr ) THEN
+        IF NOT dns.NameToAddressWait( si, RPort, 1000, OUT OA( 0, ADR( RAddr ))) THEN
           SW.FromOA( L"Bad client name/IP address" );
           GOTO Error;
         END;
 
-        IF Exists( Name, RPort, RAddr ) THEN
+        IF Exists( Name, RAddr ) THEN
           SW.FromOA( OAsz( R[ Texts._ClientAlreadyExists ] ));
           GOTO Error;
         END;
@@ -1225,13 +1234,12 @@ CLASS IMPLEMENTATION CDriver;
           PClientGroupLE^.PClientLE := PClientLE;
           PGroupLE^.Clients.Append( PClientGroupLE );
         END;
-        PClientLE^.Port := RPort;
         PClientLE^.Address := RAddr;
         NEW( PClientLE^.PClient );
         Clients.Append( PClientLE );
 
         PClientLE^.PClient^.BindDispatcher( ADR( Server ));
-        PClientLE^.PClient^.Join( RPort, RAddr );
+        PClientLE^.PClient^.Join( RAddr );
 
       ELSIF EQUALS( si, L'connect' ) THEN
         IF NOT SearchName( Name, PClientLE ) THEN
@@ -1486,14 +1494,14 @@ CLASS IMPLEMENTATION CDriver;
 
 //--------------------------------------------------------------------------------
 
-  PROCEDURE Exists( Name : ARRAY OF WCHAR; Port : CARDINAL; Address : winsock.IN_ADDR ) : BOOLEAN;
+  PROCEDURE Exists( Name : ARRAY OF WCHAR; CONST Address : inetaddr.INETADDR ) : BOOLEAN;
   VAR
     PClientLE : TPClientLE;
     b : BOOLEAN;
   BEGIN
     b := Clients.GetFirst( OUT PClientLE );
     WHILE b DO
-      IF ( PClientLE^.Port = Port ) AND ( PClientLE^.Address = Address ) THEN
+      IF PClientLE^.Address = Address THEN
         RETURN TRUE;
       ELSIF EQUALS( PClientLE^.Name, Name ) THEN
         RETURN TRUE;
@@ -1524,14 +1532,14 @@ CLASS IMPLEMENTATION CDriver;
 
 //--------------------------------------------------------------------------------
 
-  PROCEDURE SearchNet( REF _Clients : list.CList; Port : CARDINAL; Address : winsock.IN_ADDR; VAR PClientLE : TPClientLE ) : BOOLEAN;
+  PROCEDURE SearchNet( REF _Clients : list.CList; CONST Address : inetaddr.INETADDR; VAR PClientLE : TPClientLE ) : BOOLEAN;
   VAR
     LPClientLE : TPClientLE;
     b : BOOLEAN;
   BEGIN
     b := _Clients.GetFirst( OUT LPClientLE );
     WHILE b DO
-      IF ( LPClientLE^.Port = Port ) AND ( LPClientLE^.Address = Address ) THEN
+      IF LPClientLE^.Address = Address THEN
         PClientLE := LPClientLE;
         RETURN TRUE;
       END;
@@ -1596,13 +1604,12 @@ CLASS IMPLEMENTATION CDriver;
       PELE^.Event.Event := evConnect;
       PELE^.Event.Local := Local;
       PELE^.Event.Address := PConnection^.RemoteAddress;
-      PELE^.Event.Port := PConnection^.RemotePort;
       PELE^.Event.Error := Error;
       Events.Append( PELE );
 
       logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evConnect/client ", CARDINAL( evConnect ));
 
-      IF SearchNet( REF Clients, PELE^.Event.Port, PELE^.Event.Address, PClientLE ) THEN
+      IF SearchNet( REF Clients, PELE^.Event.Address, PClientLE ) THEN
         len := LENGTH( PClientLE^.Group ) << 1;
         PPacket^.TR := trGroup;
         ASSIGN( PPacket^.Group, PClientLE^.Group );
@@ -1618,7 +1625,7 @@ CLASS IMPLEMENTATION CDriver;
       END;
 
     ELSE // remote connect
-      IF SearchNet( REF Clients, PConnection^.RemotePort, PConnection^.RemoteAddress, PClientLE ) THEN
+      IF SearchNet( REF Clients, PConnection^.RemoteAddress, PClientLE ) THEN
         // a previous one exists, strange, but reuse it
       ELSE
         NEW( PClientLE );
@@ -1626,7 +1633,6 @@ CLASS IMPLEMENTATION CDriver;
       Strings.FromCARD64W( CARD64( PClientLE ), 16, OUT PClientLE^.Name );
       Strings.PrependW( REF PClientLE^.Name, L'$' );
       PClientLE^.Group := L' ';
-      PClientLE^.Port := PConnection^.RemotePort;
       PClientLE^.Address := PConnection^.RemoteAddress;
       Clients.Append( PClientLE );
       NEW( PClientLE^.PClient );
@@ -1655,14 +1661,13 @@ CLASS IMPLEMENTATION CDriver;
     PELE^.Event.Event := evDisconnect;
     PELE^.Event.Local := Local;
     PELE^.Event.Address := PConnection^.RemoteAddress;
-    PELE^.Event.Port := PConnection^.RemotePort;
     PELE^.Event.Error := Error;
     Events.Append( PELE );
 
     logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evDisconnect", CARDINAL( evDisconnect ));
 
     // remove remote client stub
-    IF SearchNet( REF Clients, PELE^.Event.Port, PELE^.Event.Address, PClientLE ) AND ( PClientLE^.Name[0] = L'$' ) THEN
+    IF SearchNet( REF Clients, PELE^.Event.Address, PClientLE ) AND ( PClientLE^.Name[0] = L'$' ) THEN
       // remove client from groups
       RemoveClientFromGroups( PClientLE );
 
@@ -1706,7 +1711,7 @@ CLASS IMPLEMENTATION CDriver;
 
     CASE TPPacket( PData )^.TR OF
     | trGroup :
-      SearchNet( REF Clients, PConnection^.RemotePort, PConnection^.RemoteAddress, PClientLE );
+      SearchNet( REF Clients, PConnection^.RemoteAddress, PClientLE );
       IF NOT CRCValid THEN
         PClientLE^.PClient^.Disconnect( PConnection );
 
@@ -1736,7 +1741,6 @@ CLASS IMPLEMENTATION CDriver;
       PELE^.Event.Event := evConnect;
       PELE^.Event.Local := FALSE;
       PELE^.Event.Address := PConnection^.RemoteAddress;
-      PELE^.Event.Port := PConnection^.RemotePort;
       PELE^.Event.Error := 0;
       Events.Append( PELE );
 
@@ -1759,7 +1763,7 @@ CLASS IMPLEMENTATION CDriver;
          PELE^.Event.Event := evStructReceived1;
          logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evStructReceived1 ", CARDINAL( evStructReceived1 ));
       END;
-      SearchNet( REF Clients, PConnection^.RemotePort, PConnection^.RemoteAddress, PELE^.Event.PReceiveClient );
+      SearchNet( REF Clients, PConnection^.RemoteAddress, PELE^.Event.PReceiveClient );
       Events.Append( PELE );
 
       NEW( PELE );
@@ -1809,7 +1813,7 @@ BEGIN
   Name := L'';
   CallbackId := NIL;
   CallbackProc := NIL;
-  Port := 6001;
+  ListenAddress.Port := 6001;
   Server.Driver := ADR( SELF );
   GlobalKey[0] := 0;
   Packet.Size := 272;
