@@ -5,16 +5,11 @@ FROM Storage IMPORT
 
 IMPORT
   lists,
-  msgOSAL,
-  windows;
+  msgOSAL;
   
 #save, option( dll_export => on )
 
-CONST
-  Win32MsgBase = windows.WM_USER + 64;
-  
-READONLY VAR
-  WndClass : windows.ATOM;
+PROCEDURE Win32MsgBase() : CARDINAL;
   
 PROCEDURE HandleToHandler( CONST Handle : PTR; OUT Handler : msgOSAL.TPMessageHandler ) : BOOLEAN;
 
@@ -41,7 +36,7 @@ CLASS Win32MessageHandler IMPLEMENTS msgOSAL.IMessageHandler;
   PRIVATE VAR
     Timers : lists.CPtrList;
   INTERNAL VAR
-    HWND : windows.HWND;
+    HWND : PTR;
   PUBLIC VIRTUAL READONLY PROPERTY
     SelfContext : BOOLEAN;
     Handle : PTR;

@@ -5,7 +5,8 @@ FROM Storage IMPORT
 
 IMPORT
   Storage,
-  Strings;
+  Strings,
+  windows;
 
 #if DEBUG #then
 IMPORT
@@ -24,7 +25,13 @@ BEGIN FINALLY
 END CChecker;
 #endif
 
+PROCEDURE Win32MsgBase() : CARDINAL;
+BEGIN
+   RETURN windows.WM_USER + 64;
+END Win32MsgBase;
+  
 VAR
+  WndClass : windows.ATOM;
   WndClassName : ARRAY [0..63] OF WCHAR;
 
 (*# save, call( convention=>stdcall ) *)
