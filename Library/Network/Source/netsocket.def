@@ -5,6 +5,7 @@ FROM Storage IMPORT
 
 IMPORT
   Delegate,
+  inetaddr,
   IOO,
   msghandler,
   StorageO,
@@ -15,74 +16,6 @@ IMPORT
 #save, option( dll_export => on )
 
 (*================================================================================*)
-
-TYPE
-   TScope = (
-      scoUnknown,
-      scoLoopback,
-      scoLocalLink,
-      scoLocalSite,
-      scoGlobal
-   );
-   
-   TSpecialAddress = (
-      saEmpty,
-      saLoopback,
-      saLocalLink,
-      saLocalLinkRandom,
-      saPrivateRandom
-   );
-   
-   TIPV4    = ARRAY [0..3] OF BYTE;
-   TIPV6    = ARRAY [0..15] OF BYTE;
-   TRFC2553 = ARRAY [0..127] OF BYTE; // RFC2553 storage structure for all type of internet addresses
-
-CLASS INETADDR;
-   PRIVATE VAR
-      storage : TRFC2553;
-   PUBLIC READONLY PROPERTY
-      Data : POINTER TO TRFC2553;
-
-   PUBLIC READONLY PROPERTY
-      Length : CARDINAL; // duplicate to ToOA
-   PUBLIC PROPERTY
-      V6 : BOOLEAN;
-      Port : CARDINAL;
-   PUBLIC READONLY PROPERTY
-      Loopback : BOOLEAN;
-      Broadcast : BOOLEAN; // meaningful for IPV4 only
-      Multicast : BOOLEAN;
-      Scope : TScope;
-      
-   PUBLIC OPERATOR =( CONST Operand : INETADDR ) : BOOLEAN;
-
-   PUBLIC PROCEDURE GetAddressOA( IncludePort : BOOLEAN; OUT Address : ARRAY OF WCHAR ); // numerical form in string
-   PUBLIC PROCEDURE SetAddressOA( CONST Address : ARRAY OF WCHAR; DefaultPort : CARDINAL ) : BOOLEAN; // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
-   
-   PUBLIC PROCEDURE SetV4( What : TSpecialAddress );
-   PUBLIC PROCEDURE SetV6( What : TSpecialAddress );
-
-   PUBLIC PROCEDURE FromV4( CONST IPAddr : ARRAY OF BYTE ); // IN_ADDR, network order
-   PUBLIC PROCEDURE FromV6( CONST IPAddr : ARRAY OF BYTE ); // IN_ADDR6
-   PUBLIC PROCEDURE FromOA( CONST storage : ARRAY OF BYTE ); // e.g. winsock.SOCKET_ADDRESS, SOCKADDR_IN, SOCKADDR_IN6, MUST be supplied with correct HIGH
-
-   PUBLIC PROCEDURE ToV4( OUT IPAddr : ARRAY OF BYTE ) : BOOLEAN; // IN_ADDR, 4 bytes
-   PUBLIC PROCEDURE ToV6( OUT IPAddr : ARRAY OF BYTE ) : BOOLEAN; // IN_ADDR6, 16 bytes
-   PUBLIC PROCEDURE ToOA( OUT storage : ARRAY OF BYTE; OUT filled : CARDINAL ) : BOOLEAN; // filled is set by real length of address
-
-   INITIALLY INETADDR();
-END INETADDR;
-
-TYPE
-   TPINETADDR = POINTER TO INETADDR;
-
-PROCEDURE SplitAddressOA( CONST HostWithService : ARRAY OF WCHAR; OUT Host, Service : ARRAY OF WCHAR ) : BOOLEAN;
-
-(*================================================================================*)
-
-CONST
-	IPV4_EMPTY = TIPV4( 0, 0, 0, 0 );
-	IPV6_EMPTY = TIPV6( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 );
 
 CONST // time	
 	FORSAFETY = 34543;
@@ -124,14 +57,19 @@ TYPE
     stStream,
     stDatagram
   );
+  
   TPendingOperationItem = (
     poUnknown,
     poListen, poConnection,
     poResolveAddress, poResolveName,
     poConnect, poDisconnect, // should be consequent to reserve space
+      poConnectResolved, poConnectDisconnected, // temporary statuses driving Connect in connected state. Asynchronous DNS and Disconnect must be handled, only after them I could connect.
     poReceive, poSend // should be consequent to reserve space
   );
   TPendingOperation = SET OF TPendingOperationItem;
+
+CONST
+  posConnectPrerequisities = TPendingOperation{poConnect, poConnectResolved, poConnectDisconnected};
   
 CLASS SSocket( threadpool.APoolDelegate );
   INTERNAL VAR
@@ -145,8 +83,8 @@ CLASS SSocket( threadpool.APoolDelegate );
     _HSignal     : Sync.SIGNAL;
     _Backlog     : CARDINAL;
     Socket       : LONGWORD;
-    Local        : INETADDR;
-    Remote       : INETADDR; // here in SSocket only for storing mcast data
+    Local        : inetaddr.INETADDR; // setting V4/V6 determines type of socket (also for DSocket and Connect)
+    Remote       : inetaddr.INETADDR; // here in SSocket only for storing mcast data
   PUBLIC READONLY VAR
     Result       : Sync.TAsyncResult; // for WaitCompletion, useless for listen
 
@@ -154,8 +92,8 @@ CLASS SSocket( threadpool.APoolDelegate );
     Type           : TSocketType;
     Backlog        : CARDINAL;
     Notifier       : TPSocketNotifier;
-    LocalAddress   : INETADDR;
-    MulticastGroup : INETADDR;
+    LocalAddress   : inetaddr.INETADDR;
+    MulticastGroup : inetaddr.INETADDR;
     Waitable       : BOOLEAN;
   PUBLIC READONLY PROPERTY
     Listening      : BOOLEAN;
@@ -171,7 +109,7 @@ CLASS SSocket( threadpool.APoolDelegate );
 	// for stDatagram
   PUBLIC PROCEDURE ReceiveOA( OUT Data : ARRAY OF BYTE; OUT Filled : CARDINAL ) : Sync.TAsyncResult;
   PUBLIC PROCEDURE SendOA( CONST Data : ARRAY OF BYTE ) : Sync.TAsyncResult; // uses multicast address
-  PUBLIC PROCEDURE SendToOA( CONST Data : ARRAY OF BYTE; CONST Address : INETADDR ) : Sync.TAsyncResult; // uses given address
+  PUBLIC PROCEDURE SendToOA( CONST Data : ARRAY OF BYTE; CONST Address : inetaddr.INETADDR ) : Sync.TAsyncResult; // uses given address
 
   LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
   INTERNAL PROCEDURE Select( Events : CARDINAL ) : CARDINAL;
@@ -183,7 +121,7 @@ END SSocket;
 
 CLASS DSocket( SSocket );
   INTERNAL VAR
-    // Remote     : INETADDR; // moved to SSocket due to multicast issues
+    // Remote     : inetaddr.INETADDR; // moved to SSocket due to multicast issues
     RemoteName    : StringsO.CString;
     ResolveAddr   : Sync.WAITABLE;
     Timeout       : ARRAY [poConnect..poSend] OF Sync.WAITABLE;
@@ -194,7 +132,7 @@ CLASS DSocket( SSocket );
     WPending      : IOO.TPDataProxy;
 
   PUBLIC PROPERTY
-    RemoteAddress : INETADDR;
+    RemoteAddress : inetaddr.INETADDR;
     KeepAliveTime : CARDINAL; // timeout after which KA probe is performed, default 300 s, INIFINITE means KA is off
   PUBLIC READONLY PROPERTY
     Connecting    : BOOLEAN;
@@ -202,13 +140,13 @@ CLASS DSocket( SSocket );
     Closed        : BOOLEAN;
     DataAvailable : CARDINAL;
 
-	// Open, Close pair is in DSocket covered with Connect/Disconnet. Use Open/Close only if you PRECISELY know, what you do.
-  PUBLIC PROCEDURE Open( OUT Error : CARDINAL ) : Sync.TAsyncResult; // socket -- modified variant of SSocket.Open
-  // Close() comes from SSocket
+	// Open, Close pair is in DSocket covered with Connect/Disconnet. Open/Close cannot be used (only as SSocket.Open/Close call)
+  PRIVATE PROCEDURE Open( OUT Error : CARDINAL ) : Sync.TAsyncResult; // socket -- modified variant of SSocket.Open
+  PRIVATE PROCEDURE Close( Persist : BOOLEAN );
   // WaitCompletion() comes from SSocket
 
   PUBLIC PROCEDURE Connect( CONST Server : ARRAY OF WCHAR; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
-  PUBLIC PROCEDURE ConnectAddress( CONST Server : INETADDR; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE ConnectAddress( CONST Server : inetaddr.INETADDR; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
   PUBLIC PROCEDURE Accept( CONST ServerSocket : TPSSocket; OUT Error : CARDINAL ) : Sync.TAsyncResult;
   PUBLIC PROCEDURE AcceptFrom( REF SourceSocket : TPDSocket; OUT Error : CARDINAL ) : Sync.TAsyncResult; // adopts SourceSocket.Socket and clears it
   PUBLIC PROCEDURE Disconnect( Abortive : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
@@ -222,7 +160,7 @@ CLASS DSocket( SSocket );
 
   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
   LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
-  LOCAL PROCEDURE OnAddressFound( Result : CARDINAL; CONST Address : ARRAY OF INETADDR );
+  LOCAL PROCEDURE OnAddressFound( Result : CARDINAL; CONST Address : ARRAY OF inetaddr.INETADDR );
   LOCAL PROCEDURE OnNameFound( Result : CARDINAL; CONST Name : StringsO.CString );
 
   PRIVATE PROCEDURE SwitchContext( FromContext : CARDINAL; Operation : TPendingOperationItem; Result : CARDINAL );

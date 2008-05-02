@@ -1,12 +1,10 @@
 MODULE SendReceive;
 
-IMPORT
-   winsock;
-
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   inetaddr,
    log,
    netinit,
    netpool,
@@ -142,6 +140,7 @@ CLASS IMPLEMENTATION CTest;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
+      ai : inetaddr.INETADDR;
       Buffer : ARRAY [0..1023] OF BYTE;
       ClientSocket : netsocket.DSocket;
       Count : INTEGER;
@@ -159,7 +158,9 @@ CLASS IMPLEMENTATION CTest;
       Reader.Persistent := TRUE;
       Writer.Persistent := TRUE;
       netsrv.SetCallbackMode( netsrv.cbmPooled );
-      netsrv.StartListen( netsocket.stStream, 4444, NIL, ADR( ServerListener ), 0, NIL );
+      
+      ai.Port := 4444;
+      netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( ServerListener ), 0, NIL );
 
       //=====
 
@@ -170,7 +171,9 @@ CLASS IMPLEMENTATION CTest;
       
       // start
       ClientSocket.Waitable := TRUE;
-      ClientSocket.ConnectAddress( winsock.IN_ADDR( 0, 07FH, 0, 0, 1 ), 4444, windows.INFINITE );
+      ai.SetV4( inetaddr.saLoopback );
+      ai.Port := 4444;
+      ClientSocket.ConnectAddress( ai, windows.INFINITE );
       ClientSocket.WaitCompletion( windows.INFINITE );
   
       // run
@@ -209,7 +212,7 @@ CLASS IMPLEMENTATION CTest;
       
       // start
       ClientSocket.Waitable := TRUE;
-      ClientSocket.ConnectAddress( winsock.IN_ADDR( 0, 07FH, 0, 0, 1 ), 4444, windows.INFINITE );
+      ClientSocket.ConnectAddress( ai, windows.INFINITE );
       ClientSocket.WaitCompletion( windows.INFINITE );
   
       // run
@@ -254,7 +257,7 @@ CLASS IMPLEMENTATION CTest;
       
       // start
       ClientSocket.Waitable := TRUE;
-      ClientSocket.ConnectAddress( winsock.IN_ADDR( 0, 07FH, 0, 0, 1 ), 4444, windows.INFINITE );
+      ClientSocket.ConnectAddress( ai, windows.INFINITE );
       ClientSocket.WaitCompletion( windows.INFINITE );
   
       // run
@@ -294,7 +297,7 @@ CLASS IMPLEMENTATION CTest;
       
       // start
       ClientSocket.Waitable := TRUE;
-      ClientSocket.ConnectAddress( winsock.IN_ADDR( 0, 07FH, 0, 0, 1 ), 4444, windows.INFINITE );
+      ClientSocket.ConnectAddress( ai, windows.INFINITE );
       ClientSocket.WaitCompletion( windows.INFINITE );
   
       // run

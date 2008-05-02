@@ -3,11 +3,8 @@ DEFINITION MODULE netconndispatch; // network connections dispatcher
 //--------------------------------------------------------------------------------
   
 IMPORT
-  winsock,
-  windows;
-
-IMPORT
   Delegate,
+  inetaddr,
   maps,
   msghandler,
   msgqueue,
@@ -32,7 +29,7 @@ CLASS CClientInterface( Delegate.ADelegate );
     PDispatcher : TPDispatcher;
   
   PUBLIC PROCEDURE BindDispatcher( PDispatcher : TPDispatcher );
-  PUBLIC PROCEDURE Join( RemotePort : CARDINAL; RemoteAddress : winsock.IN_ADDR );
+  PUBLIC PROCEDURE Join( RemoteAddress : inetaddr.INETADDR );
   PUBLIC PROCEDURE Leave( Connection : TConnectionHandle );
   PUBLIC PROCEDURE Connect( Connection : TConnectionHandle ); // not so needed
   PUBLIC PROCEDURE Disconnect( Connection : TConnectionHandle ); // not so needed
@@ -64,7 +61,7 @@ TYPE
 CLASS CDispatcher( msghandler.MessageHandler );
   PRIVATE VAR
     MQueue      : msgqueue.CMessageQueue;
-    Connections : maps.CQuadwordMap;
+    Connections : inetaddr.CINETADDRMap;
     PListener   : netsrv.TPListener;
     PNotifier   : netsocket.TPSocketNotifier;
   PUBLIC VAR
@@ -94,7 +91,7 @@ CLASS CDispatcher( msghandler.MessageHandler );
   INTERNAL VIRTUAL PROCEDURE OnClientLeave( PConnection : TConnectionHandle; PClientInterface : TPClientInterface );
 
   // internal, client requests, passed from client interface -- INTERNAL
-  LOCAL PROCEDURE Join( PClientInterface : TPClientInterface; RemotePort : CARDINAL; RemoteAddress : winsock.IN_ADDR ); // asynchronous, results in Client.OnJoin/Client.OnConnect
+  LOCAL PROCEDURE Join( PClientInterface : TPClientInterface; RemoteAddress : inetaddr.INETADDR ); // asynchronous, results in Client.OnJoin/Client.OnConnect
   LOCAL PROCEDURE Leave( PClientInterface : TPClientInterface; Connection : TConnectionHandle ); // asynchronous, results in Client.OnDisconnect/Client.OnLeave and Done
   LOCAL PROCEDURE Connect( PClientInterface : TPClientInterface; Connection : TConnectionHandle ); // asynchronous, results in Client.OnConnect
   LOCAL PROCEDURE Disconnect( PClientInterface : TPClientInterface; Connection : TConnectionHandle ); // asynchronous, results in Client.OnDisconnect

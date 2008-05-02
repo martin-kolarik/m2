@@ -80,7 +80,7 @@ CLASS IMPLEMENTATION CNetworkStream;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE FromServer( CONST Server : ARRAY OF WCHAR; Port : CARDINAL );
+  PUBLIC PROCEDURE FromServer( CONST Server : ARRAY OF WCHAR );
   VAR
     Result : Sync.TAsyncResult;
   BEGIN

@@ -18,12 +18,7 @@ IMPORT
   
 (*================================================================================*)
 
-CONST
-   EMPTY_AI = WS2TcpIp.addrinfo( 0, 0, 0, 0, 0, NIL, NIL,NIL );
-   
-(*--------------------------------------------------------------------------------*)
-
-INLINE PROCEDURE IN_ADDR4( CONST ai : INETADDR ) : winsock.Pin_addr;
+INLINE PROCEDURE IN_ADDR4( CONST ai : inetaddr.INETADDR ) : winsock.Pin_addr;
 BEGIN
    IF ai.V6 THEN
       RETURN NIL;
@@ -34,7 +29,7 @@ END IN_ADDR4;
 
 (*--------------------------------------------------------------------------------*)
 
-INLINE PROCEDURE IN_ADDR6( CONST ai : INETADDR ) : WS2TcpIp.Pin_addr6;
+INLINE PROCEDURE IN_ADDR6( CONST ai : inetaddr.INETADDR ) : WS2TcpIp.Pin_addr6;
 BEGIN
    IF ai.V6 THEN
       RETURN ADR( WS2TcpIp.Psockaddr_in6( ai.Data )^.sin6_addr );
@@ -42,395 +37,6 @@ BEGIN
       RETURN NIL;
    END;
 END IN_ADDR6;
-
-(*================================================================================*)
-
-CLASS IMPLEMENTATION INETADDR;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY V6 GET : BOOLEAN;
-   BEGIN
-      RETURN PCARD16( ADR( storage ))^ = winsock.AF_INET6;
-   END V6;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY V6 SET( Value : BOOLEAN );
-   BEGIN
-      IF Value THEN
-         PCARD16( ADR( storage ))^ := winsock.AF_INET6;
-      ELSE
-         PCARD16( ADR( storage ))^ := winsock.AF_INET; // 4
-      END;
-   END V6;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Port GET : CARDINAL;
-   BEGIN
-      RETURN CARDINAL( REVERSE( PCARD16( ADR( storage )@[2] )^ ));
-   END Port;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Port SET( Value : CARDINAL );
-   BEGIN
-      PCARD16( ADR( storage )@[2] )^ := REVERSE( CARD16( Value ));
-   END Port;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Loopback GET : BOOLEAN;
-   BEGIN
-      IF V6 THEN
-         RETURN WS2TcpIp.IN6_IS_ADDR_LOOPBACK( IN_ADDR6( SELF ));
-      ELSE
-         RETURN REVERSE( IN_ADDR4( SELF )^.s_addr ) = winsock.INADDR_LOOPBACK;
-      END;
-   END Loopback;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Broadcast GET : BOOLEAN;
-   BEGIN
-      IF V6 THEN
-         RETURN FALSE;
-      ELSE
-         RETURN IN_ADDR4( SELF )^.s_addr = winsock.INADDR_BROADCAST;
-      END;
-   END Broadcast;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Multicast GET : BOOLEAN;
-   BEGIN
-      IF V6 THEN
-         RETURN WS2TcpIp.IN6_IS_ADDR_MULTICAST( IN_ADDR6( SELF ));
-      ELSE
-         RETURN winsock.IN_MULTICAST( REVERSE( IN_ADDR4( SELF )^.s_addr ));
-      END;
-   END Multicast;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Scope GET : TScope;
-   BEGIN
-      IF Loopback THEN
-         RETURN scoLoopback;
-      ELSIF V6 THEN
-         IF WS2TcpIp.IN6_IS_ADDR_LINKLOCAL( IN_ADDR6( SELF )) THEN
-            RETURN scoLocalLink;
-         ELSIF WS2TcpIp.IN6_IS_ADDR_SITELOCAL( IN_ADDR6( SELF )) THEN
-            RETURN scoLocalSite;
-         ELSE
-            RETURN scoGlobal;
-         END;
-      ELSE
-         RETURN scoGlobal;
-      END;
-   END Scope;
-
-(*--------------------------------------------------------------------------------*)
-
-   LOCAL PROPERTY Data GET : POINTER TO TRFC2553;
-   BEGIN
-      RETURN ADR( storage );
-   END Data;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Length GET : CARDINAL;
-   BEGIN
-      IF V6 THEN
-         RETURN SIZE( WS2TcpIp.sockaddr_in6 );
-      ELSE
-         RETURN SIZE( winsock.sockaddr_in );
-      END;
-   END Length;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC OPERATOR =( CONST Operand : INETADDR ) : BOOLEAN;
-   VAR
-      a : ADDRESS := Operand.Data;
-      i : CARDINAL;
-      l : CARDINAL := Length;
-   BEGIN
-      IF l <> Operand.Length THEN
-         RETURN FALSE;
-      ELSIF l = 0 THEN
-         RETURN TRUE;
-      END;
-      
-      FOR i := 0 TO l-1 DO
-         IF storage[i] <> PBYTE( a@[i] )^ THEN
-            RETURN FALSE;
-         END;
-      END;
-      
-      RETURN TRUE;
-   END =;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE GetAddressOA( IncludePort : BOOLEAN; OUT Address : ARRAY OF WCHAR ); // numerical form in string
-   VAR
-      buffer : ARRAY [0..511] OF CHAR;
-      result : CARDINAL;
-      server : ARRAY [0..15] OF CHAR;
-      serverU : ARRAY [0..15] OF WCHAR;
-      v6 : BOOLEAN := V6;
-   BEGIN
-      result := WS2TcpIp.getnameinfo(
-         winsock.Psockaddr( ADR( storage )), Length,
-         OUT buffer, SIZE( buffer ),
-         OUT server, SIZE( server ),
-         WS2TcpIp.NI_NUMERICHOST OR WS2TcpIp.NI_NUMERICSERV
-      );
-      IF result <> 0 THEN
-         ASSERT( FALSE );
-      ELSE
-         Strings.ToW( buffer, 0, OUT Address );
-         IF v6 THEN
-            Strings.PrependW( REF Address, L"[" );
-            Strings.AppendW( REF Address, L"]" );
-         END;
-         IF IncludePort AND ( server[0] <> 0C ) AND ( server[0] <> C"0" ) THEN
-            Strings.AppendW( REF Address, L":" );
-            Strings.ToW( server, 0, OUT serverU );
-            Strings.AppendW( REF Address, serverU );
-         END; 
-      END;
-   END GetAddressOA;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE SetAddressOA( CONST Address : ARRAY OF WCHAR; DefaultPort : CARDINAL ) : BOOLEAN; // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
-   VAR
-      ai : WS2TcpIp.Paddrinfo;
-      hostA : ARRAY [0..511] OF CHAR;
-      hints : WS2TcpIp.addrinfo := EMPTY_AI;
-      host : ARRAY [0..511] OF WCHAR;
-      result : CARDINAL;
-      service : ARRAY [0..15] OF WCHAR;
-      serviceA : ARRAY [0..15] OF CHAR;
-   BEGIN
-      IF NOT SplitAddressOA( Address, OUT host, OUT service ) THEN
-         RETURN FALSE;
-      END;
-      Strings.ToA( host, 0, OUT hostA );
-      Strings.ToA( service, 0, OUT serviceA );
-
-      hints.ai_flags := WS2TcpIp.AI_NUMERICHOST;
-      result := WS2TcpIp.getaddrinfo( ADR( hostA ), ADR( serviceA ), ADR( hints ), OUT ai );
-      IF result <> 0 THEN
-         RETURN FALSE;
-      ELSIF ( ai <> NIL ) AND ( ai^.ai_addr <> NIL ) THEN
-         ASSERT( ai^.ai_addrlen <= SIZE( storage ));
-         Storage.Move( ai^.ai_addr, ADR( storage ), ai^.ai_addrlen );
-         IF serviceA[0] = 0C THEN
-            Port := DefaultPort;
-         END;
-      END;
-
-      WS2TcpIp.freeaddrinfo( ai );
-      RETURN TRUE;
-   END SetAddressOA;
-   
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE SetV4( What : TSpecialAddress );
-   BEGIN
-      CASE What OF
-      | saEmpty :
-         SetAddressOA( L"0.0.0.0", 0 );
-      | saLoopback :
-         SetAddressOA( L"127.0.0.1", 0 );
-      | saLocalLink :
-         SetAddressOA( L"127.0.0.1", 0 );
-      | saLocalLinkRandom :
-         SetAddressOA( L"127.0.0.1", 0 );
-      | saPrivateRandom :
-         ASSERT( FALSE );
-      END; // CASE      
-   END SetV4;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE SetV6( What : TSpecialAddress );
-   BEGIN
-      CASE What OF
-      | saEmpty :
-         SetAddressOA( L"::", 0 );
-      | saLoopback :
-         SetAddressOA( L"::1", 0 );
-      | saLocalLink :
-         SetAddressOA( L"fe80::1", 0 );
-      | saLocalLinkRandom :
-         SetAddressOA( L"fe80::abcd:abcd", 0 );
-      | saPrivateRandom :
-         SetAddressOA( L"fc00::1", 0 );
-      END; // CASE      
-   END SetV6;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE FromV4( CONST IPAddr : ARRAY OF BYTE ); // IN_ADDR, network order
-   BEGIN
-      IF HIGH( IPAddr ) < SIZE( winsock.in_addr ) - 1 THEN
-         SetV4( saEmpty );
-      ELSE
-         V6 := FALSE;
-         Move( ADR( IPAddr ), IN_ADDR4( SELF ), SIZE( winsock.in_addr ));
-      END;
-   END FromV4;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE FromV6( CONST IPAddr : ARRAY OF BYTE ); // IN_ADDR6
-   BEGIN
-      IF HIGH( IPAddr ) < SIZE( WS2TcpIp.in_addr6 ) - 1 THEN
-         SetV6( saEmpty );
-      ELSE
-         V6 := TRUE;
-         Move( ADR( IPAddr ), IN_ADDR6( SELF ), SIZE( WS2TcpIp.in_addr6 ));
-      END;
-   END FromV6;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE FromOA( CONST storage : ARRAY OF BYTE );
-   VAR
-      i : CARDINAL;
-   BEGIN
-      IF HIGH( storage ) = -1 THEN
-         RETURN;
-      END;
-      FOR i := 0 TO MIN2( HIGH( SELF.storage ), HIGH( storage )) DO
-         SELF.storage[i] := storage[i];
-      END;
-   END FromOA;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE ToV4( OUT IPAddr : ARRAY OF BYTE ) : BOOLEAN; // IN_ADDR, 4 bytes
-   BEGIN
-      IF V6 THEN
-         RETURN FALSE;
-      ELSIF HIGH( IPAddr ) < SIZE( winsock.in_addr ) - 1 THEN
-         RETURN FALSE;
-      ELSE
-         Move( IN_ADDR4( SELF ), ADR( IPAddr ), SIZE( winsock.in_addr ));
-         RETURN TRUE;
-      END;
-   END ToV4;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE ToV6( OUT IPAddr : ARRAY OF BYTE ) : BOOLEAN; // IN_ADDR6, 16 bytes
-   BEGIN
-      IF NOT V6 THEN
-         RETURN FALSE;
-      ELSIF HIGH( IPAddr ) < SIZE( WS2TcpIp.in_addr6 ) - 1 THEN
-         RETURN FALSE;
-      ELSE
-         Move( IN_ADDR6( SELF ), ADR( IPAddr ), SIZE( WS2TcpIp.in_addr6 ));
-         RETURN TRUE;
-      END;
-   END ToV6;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE ToOA( OUT storage : ARRAY OF BYTE; OUT Length : CARDINAL ) : BOOLEAN;
-   VAR
-      i : CARDINAL;
-      l : CARDINAL := SELF.Length;
-   BEGIN
-      IF HIGH( storage )+1 < l THEN
-         RETURN FALSE;
-      ELSE
-         Length := l;
-      END;
-      FOR i := 0 TO l-1 DO
-         storage[i] := SELF.storage[i];
-      END;
-      RETURN TRUE;
-   END ToOA;
-
-(*--------------------------------------------------------------------------------*)
-
-   INITIALLY INETADDR();
-   VAR
-      i : CARDINAL;
-   BEGIN
-      FOR i := 0 TO HIGH( storage ) DO
-         storage[i] := 0;
-      END;
-      V6 := FALSE;
-   END INETADDR;
-   
-(*--------------------------------------------------------------------------------*)
-
-END INETADDR;
-
-(*================================================================================*)
-
-PROCEDURE SplitAddressOA( CONST HostWithService : ARRAY OF WCHAR; OUT Host, Service : ARRAY OF WCHAR ) : BOOLEAN;
-LABEL
-   CheckPort;
-VAR
-   i : CARDINAL; 
-BEGIN
-   IF NOT INSIDE( 0, HostWithService ) THEN
-      Host[0] := 0W;
-      Service[0] := 0W;
-      RETURN TRUE;
-   END;
-
-   // check explicitely numerical form
-   IF HostWithService[0] = L"[" THEN // ok, search next ]
-      i := Strings.LastIndexOfCharW( HostWithService, L"]", 0 );
-      IF i = -1 THEN
-         RETURN FALSE;
-      END;
-      Strings.SubstringW( HostWithService, 0, i+1, OUT Host );
-      i := Strings.IndexOfCharW( HostWithService, L":", i );
-      GOTO CheckPort;
-   END;
-
-   // check FQDN and implicitely noted IPV4 address
-   // try to find ., if they are there, we can look for : (otherwise whole address is IPV6 and thus port cannot be delimited with :)
-   i := Strings.IndexOfCharW( HostWithService, L".", 0 );
-   IF i = -1 THEN
-      Host := HostWithService;
-      Strings.TrimW( REF Host );
-      Service[0] := 0W;
-      RETURN TRUE;
-   END;
-   
-   // we have ., try to find port
-   i := Strings.LastIndexOfCharW( HostWithService, L":", 0 );
-   IF i = -1 THEN // no port
-      Host := HostWithService;
-      Strings.TrimW( REF Host );
-      Service[0] := 0W;
-      RETURN TRUE;
-   END;
-   
-   // we have port, slice Host and continue with port
-   Strings.SubstringW( HostWithService, 0, i, OUT Host );
-   Strings.TrimW( REF Host );
-
-CheckPort: // i is prepared here
-   IF i = -1 THEN
-      Service[0] := 0W;
-   ELSE
-      Strings.SubstringW( HostWithService, i+1, -1, OUT Service );
-      Strings.TrimW( REF Service );
-   END;
-   RETURN TRUE;
-END SplitAddressOA;
 
 (*================================================================================*)
 
@@ -599,19 +205,19 @@ CLASS IMPLEMENTATION SSocket;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROPERTY LocalAddress GET : INETADDR;
+  PUBLIC PROPERTY LocalAddress GET : inetaddr.INETADDR;
   BEGIN
     RETURN Local;
   END LocalAddress;
   
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROPERTY LocalAddress SET( CONST Value : INETADDR );
+  PUBLIC PROPERTY LocalAddress SET( CONST Value : inetaddr.INETADDR );
   VAR
     Error : CARDINAL;
     Result : Sync.TAsyncResult;
   BEGIN
-    IF Value = Local THEN
+    IF Local = Value THEN
       RETURN;
     END;
     Local := Value;
@@ -630,9 +236,9 @@ CLASS IMPLEMENTATION SSocket;
   
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY MulticastGroup GET : INETADDR;
+   PUBLIC PROPERTY MulticastGroup GET : inetaddr.INETADDR;
    VAR
-      address : INETADDR;
+      address : inetaddr.INETADDR;
    BEGIN
       IF Remote.Multicast THEN
          RETURN Remote;
@@ -643,14 +249,14 @@ CLASS IMPLEMENTATION SSocket;
   
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY MulticastGroup SET( CONST Value : INETADDR );
+   PUBLIC PROPERTY MulticastGroup SET( CONST Value : inetaddr.INETADDR );
    BEGIN
-      IF Value = Remote THEN
+      IF Remote = Value THEN
          RETURN;
       END;
       MulticastLeave();
       IF NOT Value.Multicast THEN
-         Remote.SetV6( saEmpty );
+         Remote.SetV6( inetaddr.saEmpty );
          RETURN;
       END;
       Remote := Value;
@@ -667,7 +273,7 @@ CLASS IMPLEMENTATION SSocket;
       Failed;
    VAR
       len : CARDINAL;
-      na : INETADDR;
+      na : inetaddr.INETADDR;
       Result : CARDINAL;
    BEGIN
       Close( TRUE );
@@ -694,7 +300,7 @@ CLASS IMPLEMENTATION SSocket;
          GOTO Failed;
       END;
       IF _Type = stDatagram THEN
-         _Lock.Incl( REF _Pending, poConnection ); // allow reading data
+         _Lock.InclExcl( REF _Pending, BITSET32( TPendingOperation{poConnection} ), BITSET32( posConnectPrerequisities )); // allow reading data
          MulticastJoin();
       END;
       // obtain real port number
@@ -722,6 +328,7 @@ CLASS IMPLEMENTATION SSocket;
     IF Socket <> winsock.INVALID_SOCKET THEN
       IF _Type = stDatagram THEN
         MulticastLeave();
+        _Lock.Excl( REF _Pending, poConnection );
       END;
       Select( 0 );
       winsock.closesocket( Socket );
@@ -805,7 +412,7 @@ CLASS IMPLEMENTATION SSocket;
 
   PUBLIC PROCEDURE ReceiveOA( OUT Data : ARRAY OF BYTE; OUT Filled : CARDINAL ) : Sync.TAsyncResult;
   VAR
-    fa : INETADDR;
+    fa : inetaddr.INETADDR;
     la : CARDINAL := SIZE( fa );
   BEGIN
     IF _Type <> stDatagram THEN
@@ -837,7 +444,7 @@ CLASS IMPLEMENTATION SSocket;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE SendToOA( CONST Data : ARRAY OF BYTE; CONST Address : INETADDR ) : Sync.TAsyncResult; // uses given address
+  PUBLIC PROCEDURE SendToOA( CONST Data : ARRAY OF BYTE; CONST Address : inetaddr.INETADDR ) : Sync.TAsyncResult; // uses given address
   VAR
     l : CARDINAL;
   BEGIN
@@ -973,7 +580,7 @@ END SSocket;
 (*================================================================================*)
 
 CLASS CDNSNotifier( dns.ADNSNotifier );
-  LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF INETADDR );
+  LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF inetaddr.INETADDR );
   LOCAL VIRTUAL PROCEDURE OnNameFound( RequestId : PTR; Result : CARDINAL; CONST Name : StringsO.CString );
 END CDNSNotifier;
 
@@ -981,7 +588,7 @@ END CDNSNotifier;
 
 CLASS IMPLEMENTATION CDNSNotifier;
 
-  LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF INETADDR );
+  LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF inetaddr.INETADDR );
   BEGIN
     TPDSocket( RequestId )^.OnAddressFound( Result, Address );
   END OnAddressFound;
@@ -1002,23 +609,23 @@ CLASS IMPLEMENTATION DSocket;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROPERTY RemoteAddress GET : INETADDR;
+  PUBLIC PROPERTY RemoteAddress GET : inetaddr.INETADDR;
   BEGIN
     RETURN Remote;
   END RemoteAddress;
   
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROPERTY RemoteAddress SET( CONST Value : INETADDR );
+  PUBLIC PROPERTY RemoteAddress SET( CONST Value : inetaddr.INETADDR );
   VAR
     Error : CARDINAL;
     Result : Sync.TAsyncResult;
   BEGIN
-    IF Value = Remote THEN
+    IF Remote = Value THEN
       RETURN;
     END;
-    Remote := Value;
     IF Socket = winsock.INVALID_SOCKET THEN
+      Remote := Value;
       RETURN;
     END;
     Result := ConnectAddress( Remote, FORSAFETY );
@@ -1095,50 +702,42 @@ CLASS IMPLEMENTATION DSocket;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Open( OUT Error : CARDINAL ) : Sync.TAsyncResult; // socket -- modified variant of SSocket.Open
+   PRIVATE PROCEDURE Open( OUT Error : CARDINAL ) : Sync.TAsyncResult; // socket -- modified variant of SSocket.Open
    BEGIN
-      Close( TRUE );
-
-      // create socket
       IF _Type = stDatagram THEN
-         IF Local.V6 THEN
-            Socket := winsock.socket( winsock.AF_INET6, winsock.SOCK_DGRAM, 0 );
-         ELSE
-            Socket := winsock.socket( winsock.AF_INET, winsock.SOCK_DGRAM, 0 );
-         END;
+         RETURN SUPER.Open( OUT Error );
+      END;
+      // now solve stStream
+      Local.V6 := Remote.V6; // respect target address to use appropriate protocol
+      IF Local.V6 THEN
+         Socket := winsock.socket( winsock.AF_INET6, winsock.SOCK_STREAM, 0 );
       ELSE
-         IF Local.V6 THEN
-            Socket := winsock.socket( winsock.AF_INET6, winsock.SOCK_STREAM, 0 );
-         ELSE
-            Socket := winsock.socket( winsock.AF_INET, winsock.SOCK_STREAM, 0 );
-         END;
+         Socket := winsock.socket( winsock.AF_INET, winsock.SOCK_STREAM, 0 );
       END;
       IF Socket = winsock.INVALID_SOCKET THEN
          Error := winsock.WSAGetLastError();
          RETURN Sync.arAborted;
+      ELSE
+         Error := 0;
+         RETURN Sync.arCompleted;
       END;
-
-      IF _Type = stDatagram THEN // datagram socket shout be bind to allow multicasting and receiving
-         Error := winsock.bind( Socket, winsock.Psockaddr( Local.Data ), Local.Length );
-         IF Error <> 0 THEN
-            Error := winsock.WSAGetLastError();
-            RETURN Sync.arAborted;
-         END;
-      END;
-
-      Error := 0;
-      RETURN Sync.arCompleted;
    END Open;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE Close( Persist : BOOLEAN );
+   BEGIN
+      SUPER.Close( Persist );
+   END Close;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Connect( CONST Server : ARRAY OF WCHAR; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    VAR
-      Addr : INETADDR;
+      Addr : inetaddr.INETADDR;
       NumericAddress : BOOLEAN;
-      Result : Sync.TAsyncResult;
    BEGIN
-      IF poConnect IN TPendingOperation( _Lock.Incl( REF _Pending, poConnect )) THEN
+      IF poConnect IN TPendingOperation( _Lock.InclExcl( REF _Pending, BITSET32( TPendingOperation{poConnect} ), BITSET32( posConnectPrerequisities ))) THEN
          RETURN Sync.arAlreadyPending;
       END;
 
@@ -1152,31 +751,47 @@ CLASS IMPLEMENTATION DSocket;
       END;
       SELF.Result := Sync.arUnknown;
       Sync.Reset( _HSignal );
-      Result := Disconnect( FALSE, TimeoutMS );
 
       NumericAddress := Addr.SetAddressOA( Server, 0 );
-      IF NOT NumericAddress THEN
+      IF NumericAddress THEN // we know where to connect immediatelly
+         _Lock.Incl( REF _Pending, poConnectResolved ); // fulfill Connect prerequisity
+         Remote := Addr;
+
+         IF Disconnect( FALSE, TimeoutMS ) <> Sync.arPending THEN
+            // ok, disconnect is immediate, we were not connect
+            _Lock.Incl( REF _Pending, poConnectDisconnected ); // fulfill Connect prerequisity
+            SwitchContext( FD_INIT, poConnect, 0 ); // ok, everything fulfilled
+         END;
+      
+      ELSE // address is not numeric, it must be queried in DNS
+         IF Disconnect( FALSE, TimeoutMS ) <> Sync.arPending THEN
+            // ok, disconnect is immediate, we were not connect, probably, continue immedtiately
+            _Lock.Incl( REF _Pending, poConnectDisconnected ); // fulfill Connect prerequisity
+         END;
+
          IF poResolveAddress IN TPendingOperation( _Lock.Incl( REF _Pending, poResolveAddress )) THEN
             dns.KillPending( REF ResolveAddr );
          END;
-         AddRef();
+         // HACK: thread pool is now singlethreadinterfaced, and there is not possible to call SwitchContext.WaitMessage from OnNameFound, because
+         // it is called from DNS.WorkerThread => WaitMessage must be prepared here, sonner.
+         IF _FDHandle = NIL THEN
+            netpool.Pool()^.WaitMessage( ADR( SELF ), 0, Sync.FOREVER, FALSE, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
+         END;
+         // end of HACK
+
+         AddRef(); // allow DNS finish after my Release
          dns.NameToAddress( ADR( DNS ), ADR( SELF ), Server, 0, OUT ResolveAddr );
-      ELSIF Result = Sync.arPending THEN
-         // result from Disconnect
-      ELSE
-         Remote := Addr;
-         SwitchContext( FD_INIT, poConnect, 0 );
+         // now, wait for DNS and connect after its response
       END;
+
       RETURN Sync.arPending;
    END Connect;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE ConnectAddress( CONST Server : INETADDR; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
-  VAR
-    Result : Sync.TAsyncResult;
+  PUBLIC PROCEDURE ConnectAddress( CONST Server : inetaddr.INETADDR; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
   BEGIN
-    IF poConnect IN TPendingOperation( _Lock.Incl( REF _Pending, poConnect )) THEN
+    IF poConnect IN TPendingOperation( _Lock.InclExcl( REF _Pending, BITSET32( TPendingOperation{poConnect} ), BITSET32( posConnectPrerequisities ))) THEN
       RETURN Sync.arAlreadyPending;
     END;
 
@@ -1190,14 +805,17 @@ CLASS IMPLEMENTATION DSocket;
     END;
     SELF.Result := Sync.arUnknown;
     Sync.Reset( _HSignal );
-    Result := Disconnect( FALSE, TimeoutMS );
 
     // set new connection parameters
+    _Lock.Incl( REF _Pending, poConnectResolved ); // fulfill Connect prerequisity
     Remote := Server;
 
-    IF Result <> Sync.arPending THEN
-      SwitchContext( FD_INIT, poConnect, 0 );
+    // kill current connection after setting the address, Disconnect must not finish before assigning the address
+    IF Disconnect( FALSE, TimeoutMS ) <> Sync.arPending THEN
+       _Lock.Incl( REF _Pending, poConnectDisconnected ); // fulfill Connect prerequisity
+       SwitchContext( FD_INIT, poConnect, 0 );
     END;
+
     RETURN Sync.arPending;
   END ConnectAddress;
 
@@ -1309,9 +927,7 @@ CLASS IMPLEMENTATION DSocket;
     Result : CARDINAL;
   BEGIN
     IF _Type = stDatagram THEN
-      IF poConnection IN TPendingOperation( _Lock.Excl( REF _Pending, poConnection )) THEN
-        MulticastLeave();
-      END;
+      Close( TRUE );
       RETURN Sync.arCompleted;
 
     ELSIF NOT Abortive AND _Lock.In( REF _Pending, poDisconnect ) THEN
@@ -1497,12 +1113,13 @@ CLASS IMPLEMENTATION DSocket;
     | FD_DNS :
       CASE TPendingOperationItem( LOPTRLONGWORD( MSG[2] )) OF
       | poResolveAddress :
-        LPending := TPendingOperation( _Lock.Excl( REF _Pending, poResolveAddress ));
+        LPending := TPendingOperation( _Lock.InclExcl( REF _Pending, BITSET32( TPendingOperation{poConnectResolved} ), BITSET32( TPendingOperation{poResolveAddress} )));
+        LPending := LPending + TPendingOperation{poConnectResolved}; // local copy
         IF Error = winsock.WSAECONNABORTED THEN
           // request was aborted, I know this
         ELSIF Error <> 0 THEN
           OnConnect( FD_DNS, Error );
-        ELSIF poConnect IN LPending THEN
+        ELSIF LPending * posConnectPrerequisities = posConnectPrerequisities THEN
           StartConnect();
         END;
       | poResolveName :
@@ -1521,14 +1138,25 @@ CLASS IMPLEMENTATION DSocket;
 
 (*--------------------------------------------------------------------------------*)
 
-  LOCAL PROCEDURE OnAddressFound( Result : CARDINAL; CONST Address : ARRAY OF INETADDR );
-  VAR
-    Filled : CARDINAL;
-  BEGIN
-    Address[0].ToOA( OUT Remote, OUT Filled );
-    ASSERT( Filled = SIZE( Remote ));
-    SwitchContext( FD_DNS, poResolveAddress, Result );
-  END OnAddressFound;
+   LOCAL PROCEDURE OnAddressFound( Result : CARDINAL; CONST Address : ARRAY OF inetaddr.INETADDR );
+   VAR
+      Filled : CARDINAL;
+      i : CARDINAL;
+      v6 : BOOLEAN;
+   BEGIN
+      IF Result = 0 THEN
+         Result := winsock.WSAHOST_NOT_FOUND;
+         v6 := Local.V6;
+         FOR i := 0 TO HIGH( Address ) DO
+            IF v6 = Address[i].V6 THEN
+               Address[i].ToOA( OUT Remote, OUT Filled );
+               Result := 0;
+               EXIT;
+            END;
+         END;
+      END;
+      SwitchContext( FD_DNS, poResolveAddress, Result );
+   END OnAddressFound;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1561,6 +1189,7 @@ CLASS IMPLEMENTATION DSocket;
       Result : Sync.TAsyncResult;
       wb : windows.BOOL := windows.True;
    BEGIN
+      ASSERT( _Pending * posConnectPrerequisities = posConnectPrerequisities );
       Result := Open( OUT Error );
     
       IF Result NOT IN Sync.arsStarts THEN
@@ -1568,9 +1197,7 @@ CLASS IMPLEMENTATION DSocket;
     
       ELSIF _Type = stDatagram THEN
          Error := Select( winsock.FD_READ OR winsock.FD_WRITE );
-         IF Error = 0 THEN // join multicast group
-            Error := MulticastJoin();
-         END;
+         // multicast group already joined from Open
          IF ( Error = 0 ) AND Remote.Broadcast THEN // set broadcast flag
             Error := winsock.setsockopt( Socket, winsock.SOL_SOCKET, winsock.SO_BROADCAST, windows.PSTR( ADR( wb )), SIZE( wb ));
          END;
@@ -1607,9 +1234,9 @@ CLASS IMPLEMENTATION DSocket;
     IF NOT _Lock.In( REF _Pending, poConnect ) THEN
       RETURN;
     ELSIF Error = 0 THEN
-      LPending := TPendingOperation( _Lock.InclExcl( REF _Pending, BITSET32( TPendingOperation{poConnection} ), BITSET32( TPendingOperation{poConnect} )));
+      LPending := TPendingOperation( _Lock.InclExcl( REF _Pending, BITSET32( TPendingOperation{poConnection} ), BITSET32( posConnectPrerequisities )));
     ELSE
-      LPending := TPendingOperation( _Lock.Excl( REF _Pending, poConnect ));
+      LPending := TPendingOperation( _Lock.InclExcl( REF _Pending, {}, BITSET32( posConnectPrerequisities )));
     END;
 
     IF poResolveAddress IN LPending THEN
@@ -1646,11 +1273,13 @@ CLASS IMPLEMENTATION DSocket;
     IF _Lock.NotInSet( REF _Pending, BITSET32( TPendingOperation{poConnection, poConnect, poDisconnect} )) THEN // not connecting nor connected
       RETURN;
     END;
-    LPending := TPendingOperation( _Lock.InclExcl( REF _Pending, BITSET32{}, BITSET32( TPendingOperation{poConnection, poDisconnect} )));
+    LPending := TPendingOperation( _Lock.InclExcl( REF _Pending, BITSET32( TPendingOperation{poConnectDisconnected} ), BITSET32( TPendingOperation{poConnection, poDisconnect} )));
+    LPending := LPending + TPendingOperation{poConnectDisconnected};
     
     // abort pending IOs
     CompleteFlow( poSend, TRUE, Sync.arAborted, Error );
     CompleteFlow( poReceive, TRUE, Sync.arAborted, Error );
+    SELF.Local.Clear();
     
     IF Context = FD_TIMEOUT THEN
       Timeout[poDisconnect] := NIL;
@@ -1672,7 +1301,7 @@ CLASS IMPLEMENTATION DSocket;
         _Notifier^.OnError( IOO.dirUnknown, Error, ADR( SELF ), opDisconnect );
       END;
     END;
-    IF ( Context <> FD_ABORT ) AND ( TPendingOperation{poConnect, poResolveAddress} * LPending = TPendingOperation{poConnect} ) THEN // disconnect caused inside connect, connect is not waiting for DNS
+    IF ( Context <> FD_ABORT ) AND ( posConnectPrerequisities * LPending = posConnectPrerequisities ) THEN // disconnect caused inside connect, connect is not waiting for DNS
       StartConnect();
     END;
   END OnDisconnect;
@@ -1720,7 +1349,7 @@ CLASS IMPLEMENTATION DSocket;
     a : ADDRESS;
     AR : Sync.TAsyncResult := Sync.arCompleted;
     Buffer : IOO.TPDataProxy;
-    fa : INETADDR;
+    fa : inetaddr.INETADDR;
     l : CARDINAL;
     la : CARDINAL := SIZE( fa );
     Result : CARDINAL := 0;

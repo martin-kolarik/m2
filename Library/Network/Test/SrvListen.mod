@@ -1,12 +1,10 @@
 MODULE SrvListen;
 
-IMPORT
-   winsock;
-
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   inetaddr,
    log,
    netinit,
    netpool,
@@ -70,6 +68,7 @@ CLASS IMPLEMENTATION CTest;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
+      ai : inetaddr.INETADDR;
       Failure : BOOLEAN;
       S : netsocket.TPSSocket;
    BEGIN
@@ -82,15 +81,28 @@ CLASS IMPLEMENTATION CTest;
       netsrv.SetCallbackMode( netsrv.cbmPooled );
       Count := 0;
       // run
-      netsrv.StartListen( netsocket.stStream, 4444, NIL, ADR( Listener ), 0, NIL );
-      netsrv.StartListen( netsocket.stDatagram, 4444, NIL, ADR( Listener ), 0, ADR( S ));
+      // V4
+      ai.V6 := FALSE;
+      ai.Port := 4444;
+      netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( Listener ), 0, NIL );
+      netsrv.StartListen( netsocket.stDatagram, ai, NIL, ADR( Listener ), 0, ADR( S ));
       netsrv.StopListenSocket( REF S );
       netsrv.StopListenPort( netsocket.stStream, 4444 );
-      netsrv.StartListen( netsocket.stStream, 4445, NIL, ADR( Listener ), 500, ADR( S ));
+      ai.Port := 4445;
+      netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( Listener ), 500, ADR( S ));
+      // V6
+      ai.V6 := TRUE;
+      ai.Port := 4444;
+      netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( Listener ), 0, NIL );
+      netsrv.StartListen( netsocket.stDatagram, ai, NIL, ADR( Listener ), 0, ADR( S ));
+      netsrv.StopListenSocket( REF S );
+      netsrv.StopListenPort( netsocket.stStream, 4444 );
+      ai.Port := 4445;
+      netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( Listener ), 500, ADR( S ));
       // wait
       WaitForMessages( 550 );
       // check
-      IF Count = 3 THEN
+      IF Count = 6 THEN
          Host^.StopPhaseWithResult( test.trSuccess );
       ELSE
          Failure := TRUE;
@@ -102,15 +114,28 @@ CLASS IMPLEMENTATION CTest;
       netsrv.SetCallbackMode( netsrv.cbmMainThread );
       Count := 0;
       // run
-      netsrv.StartListen( netsocket.stStream, 4444, NIL, ADR( Listener ), 0, NIL );
-      netsrv.StartListen( netsocket.stDatagram, 4444, NIL, ADR( Listener ), 0, ADR( S ));
+      // V4
+      ai.V6 := FALSE;
+      ai.Port := 4444;
+      netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( Listener ), 0, NIL );
+      netsrv.StartListen( netsocket.stDatagram, ai, NIL, ADR( Listener ), 0, ADR( S ));
       netsrv.StopListenSocket( REF S );
       netsrv.StopListenPort( netsocket.stStream, 4444 );
-      netsrv.StartListen( netsocket.stStream, 4445, NIL, ADR( Listener ), 500, ADR( S ));
+      ai.Port := 4445;
+      netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( Listener ), 500, ADR( S ));
+      // V6
+      ai.V6 := TRUE;
+      ai.Port := 4444;
+      netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( Listener ), 0, NIL );
+      netsrv.StartListen( netsocket.stDatagram, ai, NIL, ADR( Listener ), 0, ADR( S ));
+      netsrv.StopListenSocket( REF S );
+      netsrv.StopListenPort( netsocket.stStream, 4444 );
+      ai.Port := 4445;
+      netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( Listener ), 500, ADR( S ));
       // wait
       WaitForMessages( 550 );
       // check
-      IF Count = 3 THEN
+      IF Count = 6 THEN
          Host^.StopPhaseWithResult( test.trSuccess );
       ELSE
          Failure := TRUE;

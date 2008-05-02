@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE netconndispatch; // network connections dispatcher
 
+IMPORT
+   winsock;
+
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
   
@@ -44,12 +47,12 @@ CLASS IMPLEMENTATION CClientInterface;
 
 //--------------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE Join( RemotePort : CARDINAL; RemoteAddress : winsock.IN_ADDR );
+  PUBLIC PROCEDURE Join( RemoteAddress : inetaddr.INETADDR );
   BEGIN
     IF PDispatcher = NIL THEN
       OnLeave( NIL, winsock.WSAENOTCONN );
     ELSE
-      PDispatcher^.Join( ADR( SELF ), RemotePort, RemoteAddress );
+      PDispatcher^.Join( ADR( SELF ), RemoteAddress );
     END;
   END Join;
 
@@ -198,8 +201,7 @@ TYPE
 
                 | cmClientJoin :
                   JPClient : TPClientInterface;
-                  JRemotePort : CARDINAL;
-                  JRemoteAddress : winsock.IN_ADDR;
+                  JRemoteAddress : inetaddr.INETADDR;
 
                 | cmClientLeave,
                   cmClientConnect,
@@ -216,13 +218,6 @@ TYPE
                 END; // CASE
               END;
   TPMessage = POINTER TO TMessage;
-
-//================================================================================
-
-PROCEDURE APQW( Address : winsock.IN_ADDR; Port : CARDINAL ) : QUADWORD;
-BEGIN
-  RETURN QUADWORD( Address ) << 32 OR QUADWORD( Port );
-END APQW;
 
 //================================================================================
 
@@ -590,7 +585,6 @@ CLASS IMPLEMENTATION CDispatcher;
     MDatagram : IOO.CMemoryProxy;
     Message : TMessage;
     NResult : Sync.TAsyncResult;
-    QWA : QUADWORD;
     WDatagram : IOO.CDatagramProxy;
     Writer : TextWriter.CTextWriter;
     b : BOOLEAN;
@@ -611,8 +605,7 @@ CLASS IMPLEMENTATION CDispatcher;
           IF Connection^.Accept( Message.NServerSocket, OUT Error ) = Sync.arCompleted THEN
             Log( dldTrace, Connection, "Accept.Net" );
 
-            QWA := APQW( Connection^.RemoteAddress, Connection^.RemotePort );
-            IF Connections.Get( QWA, OUT CurrentConnection ) THEN
+            IF Connections.Get( Connection^.RemoteAddress, OUT CurrentConnection ) THEN
               Log( dldError, Connection, "Accept connection already exists" );
 
               // this should not occur -- two same connections are impossible, but it can be state after undetected failure
@@ -620,7 +613,7 @@ CLASS IMPLEMENTATION CDispatcher;
               CurrentConnection^.AcceptFrom( REF Connection, OUT Error );
               Connection^.Release();
             ELSE
-              Connections.Add( QWA, Connection );
+              Connections.Add( Connection^.RemoteAddress, Connection );
             END;
           ELSE
             Connection^.Disconnect( FALSE );
@@ -630,7 +623,7 @@ CLASS IMPLEMENTATION CDispatcher;
         //-----
         | cmNetworkConnect :
           Connection := TPConnection( Message.NCSocket );
-          IF Connections.Contains( APQW( Connection^.RemoteAddress, Connection^.RemotePort )) THEN
+          IF Connections.Contains( Connection^.RemoteAddress ) THEN
             Log( dldTrace, Connection, L"Connect.Net" );
           ELSE
             Log( dldError, Connection, L"Connect on unknown connection" );
@@ -646,14 +639,13 @@ CLASS IMPLEMENTATION CDispatcher;
         | cmNetworkDisconnect :
           Connection := TPConnection( Message.NCSocket );
 
-          QWA := APQW( Connection^.RemoteAddress, Connection^.RemotePort );
-          IF Connections.Contains( QWA ) THEN
+          IF Connections.Contains( Connection^.RemoteAddress ) THEN
             Log( dldTrace, Connection, L"Disconnect.Net" );
 
             Connection^.OnDisconnect( Message.NCLocal, Message.NCError ); // dispatch event to the clients
             OnDisconnect( Connection, Message.NCLocal, Message.NCError );
             IF Connection^.Empty THEN
-              Connections.Remove( QWA );
+              Connections.Remove( Connection^.RemoteAddress );
               Connection^.Disconnect( FALSE );
               Connection^.Release();
             ELSE
@@ -671,8 +663,7 @@ CLASS IMPLEMENTATION CDispatcher;
           logger()^.LogSC( dldDebug, logPrefix, L"Receive bytes ", Message.NRLen );
           Log( dldDebug, Connection, L". from connection " );
 
-          QWA := APQW( Connection^.RemoteAddress, Connection^.RemotePort );
-          ASSERT( Connections.Contains( QWA ));
+          ASSERT( Connections.Contains( Connection^.RemoteAddress ));
 
           OnReceive( Connection, Message.NRData, Message.NRLen );
           Connection^.OnReceive( Message.NRData, Message.NRLen );
@@ -683,15 +674,13 @@ CLASS IMPLEMENTATION CDispatcher;
         | cmClientJoin :
           logger()^.LogSP( dldTrace, logPrefix, L"Join ", Message.CPClient );
 
-          QWA := APQW( Message.JRemoteAddress, Message.JRemotePort );
-          IF Connections.Get( QWA, OUT Connection ) THEN
+          IF Connections.Get( Message.JRemoteAddress, OUT Connection ) THEN
             Log( dldDebug, Connection, L". to existing connection" );
 
           ELSE
             NEW( Connection ); Connection^.Init( ADR( SELF ), PNotifier );
             Connection^.RemoteAddress := Message.JRemoteAddress;
-            Connection^.RemotePort := Message.JRemotePort;
-            Connections.Add( QWA, Connection );
+            Connections.Add( Message.JRemoteAddress, Connection );
 
             Log( dldDebug, Connection, L". to new connection" );
           END;
@@ -705,7 +694,7 @@ CLASS IMPLEMENTATION CDispatcher;
           Known := Message.CPConnection <> NIL;
           IF Known THEN // unknown/promiscuous client close
             logger()^.LogSP( dldTrace, logPrefix, L"Leave from single connection ", Message.CPClient );
-            IF Connections.Contains( APQW( Message.CPConnection^.RemoteAddress, Message.CPConnection^.RemotePort )) THEN
+            IF Connections.Contains( Message.CPConnection^.RemoteAddress ) THEN
                Log( dldDebug, TPConnection( Message.CPConnection ), L". from known connection" );
             ELSE
                Log( dldError, TPConnection( Message.CPConnection ), L". from unknown connection" );
@@ -730,7 +719,7 @@ CLASS IMPLEMENTATION CDispatcher;
               IF Connection^.Connected THEN
                 OnDisconnect( Connection, TRUE, 0 ); // network disconnect will not be accepted as Connection is removed now
               END;
-              Connections.Remove( APQW( Connection^.RemoteAddress, Connection^.RemotePort ));
+              Connections.Remove( Connection^.RemoteAddress );
               Connection^.Disconnect( FALSE );
               Connection^.Release();
               b := FALSE; // Connection was deleted
@@ -750,7 +739,7 @@ CLASS IMPLEMENTATION CDispatcher;
           Known := Message.CPConnection <> NIL;
           IF Known THEN // unknown/promiscuous client close
             logger()^.LogSP( dldTrace, logPrefix, L"Connect ", Message.CPClient );
-            IF Connections.Contains( APQW( Message.CPConnection^.RemoteAddress, Message.CPConnection^.RemotePort )) THEN
+            IF Connections.Contains( Message.CPConnection^.RemoteAddress ) THEN
                Log( dldDebug, TPConnection( Message.CPConnection ), L". to known connection" );
             ELSE
                Log( dldError, TPConnection( Message.CPConnection ), L". to unknown connection" );
@@ -767,7 +756,7 @@ CLASS IMPLEMENTATION CDispatcher;
           END;
           WHILE b DO
             IF NOT Connection^.Connected THEN
-              NResult := Connection^.ConnectAddress( Connection^.RemoteAddress, Connection^.RemotePort, netsocket.FORSAFETY );
+              NResult := Connection^.ConnectAddress( Connection^.RemoteAddress, netsocket.FORSAFETY );
               IF NResult NOT IN Sync.arsStarts THEN
                 Message.CPClient^.OnConnect( Connection, TRUE, winsock.WSAECONNREFUSED );
               END;
@@ -785,7 +774,7 @@ CLASS IMPLEMENTATION CDispatcher;
           Known := Message.CPConnection <> NIL;
           IF Known THEN // unknown/promiscuous client close
             logger()^.LogSP( dldTrace, logPrefix, L"Disconnect ", Message.CPClient );
-            IF Connections.Contains( APQW( Message.CPConnection^.RemoteAddress, Message.CPConnection^.RemotePort )) THEN
+            IF Connections.Contains( Message.CPConnection^.RemoteAddress ) THEN
                Log( dldDebug, TPConnection( Message.CPConnection ), L". from known connection" );
             ELSE
                Log( dldError, TPConnection( Message.CPConnection ), L". from unknown connection" );
@@ -815,7 +804,7 @@ CLASS IMPLEMENTATION CDispatcher;
           Known := Message.SPConnection <> NIL;
           IF Known THEN // unknown/promiscuous client close
             logger()^.LogSCP( dldDebug, logPrefix, L"Send bytes ", Message.SLen, Message.CPClient );
-            IF Connections.Contains( APQW( Message.CPConnection^.RemoteAddress, Message.CPConnection^.RemotePort )) THEN
+            IF Connections.Contains( Message.CPConnection^.RemoteAddress ) THEN
                Log( dldDebug, TPConnection( Message.CPConnection ), L". to known connection" );
                b := TRUE;
                Connection := TPConnection( Message.SPConnection );
@@ -997,7 +986,7 @@ CLASS IMPLEMENTATION CDispatcher;
 
 //--------------------------------------------------------------------------------
   
-  LOCAL PROCEDURE Join( PClient : TPClientInterface; RemotePort : CARDINAL; RemoteAddress : winsock.IN_ADDR ); // asynchronous, results in Client.OnConnect
+  LOCAL PROCEDURE Join( PClient : TPClientInterface; RemoteAddress : inetaddr.INETADDR ); // asynchronous, results in Client.OnConnect
   VAR
     Message : TMessage;
     Result : Sync.TAsyncResult;
@@ -1005,7 +994,6 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.Command := cmClientJoin;
     Message.JPClient := PClient;
     Message.JPClient^.AddRef(); // temporary
-    Message.JRemotePort := RemotePort;
     Message.JRemoteAddress := RemoteAddress;
     Result := MQueue.QueueOA( Message, TRUE, netsocket.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );

@@ -1,0 +1,619 @@
+IMPLEMENTATION MODULE inetaddr;
+
+IMPORT
+   winsock;
+
+FROM Storage IMPORT
+   Move;
+
+IMPORT
+   Strings,
+   WS2TcpIp;
+
+(*================================================================================*)
+
+CONST
+   EMPTY_AI = WS2TcpIp.addrinfo( 0, 0, 0, 0, 0, NIL, NIL,NIL );
+   
+(*--------------------------------------------------------------------------------*)
+
+INLINE PROCEDURE IN_ADDR4( CONST ai : INETADDR ) : winsock.Pin_addr;
+BEGIN
+   IF ai.V6 THEN
+      RETURN NIL;
+   ELSE
+      RETURN ADR( winsock.Psockaddr_in( ai.Data )^.sin_addr );
+   END;
+END IN_ADDR4;
+
+(*--------------------------------------------------------------------------------*)
+
+INLINE PROCEDURE IN_ADDR6( CONST ai : INETADDR ) : WS2TcpIp.Pin_addr6;
+BEGIN
+   IF ai.V6 THEN
+      RETURN ADR( WS2TcpIp.Psockaddr_in6( ai.Data )^.sin6_addr );
+   ELSE
+      RETURN NIL;
+   END;
+END IN_ADDR6;
+
+(*================================================================================*)
+
+CLASS IMPLEMENTATION INETADDR;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY V6 GET : BOOLEAN;
+   BEGIN
+      RETURN PCARD16( ADR( storage ))^ = winsock.AF_INET6;
+   END V6;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY V6 SET( Value : BOOLEAN );
+   BEGIN
+      IF Value THEN
+         PCARD16( ADR( storage ))^ := winsock.AF_INET6;
+      ELSE
+         PCARD16( ADR( storage ))^ := winsock.AF_INET; // 4
+      END;
+   END V6;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Port GET : CARDINAL;
+   BEGIN
+      RETURN CARDINAL( REVERSE( PCARD16( ADR( storage )@[2] )^ ));
+   END Port;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Port SET( Value : CARDINAL );
+   BEGIN
+      PCARD16( ADR( storage )@[2] )^ := REVERSE( CARD16( Value ));
+   END Port;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Loopback GET : BOOLEAN;
+   BEGIN
+      IF V6 THEN
+         RETURN WS2TcpIp.IN6_IS_ADDR_LOOPBACK( IN_ADDR6( SELF ));
+      ELSE
+         RETURN REVERSE( IN_ADDR4( SELF )^.s_addr ) = winsock.INADDR_LOOPBACK;
+      END;
+   END Loopback;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Broadcast GET : BOOLEAN;
+   BEGIN
+      IF V6 THEN
+         RETURN FALSE;
+      ELSE
+         RETURN IN_ADDR4( SELF )^.s_addr = winsock.INADDR_BROADCAST;
+      END;
+   END Broadcast;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Multicast GET : BOOLEAN;
+   BEGIN
+      IF V6 THEN
+         RETURN WS2TcpIp.IN6_IS_ADDR_MULTICAST( IN_ADDR6( SELF ));
+      ELSE
+         RETURN winsock.IN_MULTICAST( REVERSE( IN_ADDR4( SELF )^.s_addr ));
+      END;
+   END Multicast;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Scope GET : TScope;
+   BEGIN
+      IF Loopback THEN
+         RETURN scoLoopback;
+      ELSIF V6 THEN
+         IF WS2TcpIp.IN6_IS_ADDR_LINKLOCAL( IN_ADDR6( SELF )) THEN
+            RETURN scoLocalLink;
+         ELSIF WS2TcpIp.IN6_IS_ADDR_SITELOCAL( IN_ADDR6( SELF )) THEN
+            RETURN scoLocalSite;
+         ELSE
+            RETURN scoGlobal;
+         END;
+      ELSE
+         RETURN scoGlobal;
+      END;
+   END Scope;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROPERTY Data GET : POINTER TO TRFC2553;
+   BEGIN
+      RETURN ADR( storage );
+   END Data;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Length GET : CARDINAL;
+   BEGIN
+      IF V6 THEN
+         RETURN SIZE( WS2TcpIp.sockaddr_in6 );
+      ELSE
+         RETURN SIZE( winsock.sockaddr_in );
+      END;
+   END Length;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC OPERATOR =( CONST Operand : INETADDR ) : BOOLEAN;
+   VAR
+      a : ADDRESS := Operand.Data;
+      i : CARDINAL;
+      l : CARDINAL := Length;
+   BEGIN
+      IF l <> Operand.Length THEN
+         RETURN FALSE;
+      ELSIF l = 0 THEN
+         RETURN TRUE;
+      END;
+      
+      FOR i := 0 TO l-1 DO
+         IF storage[i] <> PBYTE( a@[i] )^ THEN
+            RETURN FALSE;
+         END;
+      END;
+      
+      RETURN TRUE;
+   END =;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE GetAddressOA( IncludePort : BOOLEAN; OUT Address : ARRAY OF WCHAR ); // numerical form in string
+   VAR
+      buffer : ARRAY [0..511] OF CHAR;
+      result : CARDINAL;
+      server : ARRAY [0..15] OF CHAR;
+      serverU : ARRAY [0..15] OF WCHAR;
+      v6 : BOOLEAN := V6;
+   BEGIN
+      result := WS2TcpIp.getnameinfo(
+         winsock.Psockaddr( ADR( storage )), Length,
+         OUT buffer, SIZE( buffer ),
+         OUT server, SIZE( server ),
+         WS2TcpIp.NI_NUMERICHOST OR WS2TcpIp.NI_NUMERICSERV
+      );
+      IF result <> 0 THEN
+         ASSERT( FALSE );
+      ELSE
+         Strings.ToW( buffer, 0, OUT Address );
+         IF v6 THEN
+            Strings.PrependW( REF Address, L"[" );
+            Strings.AppendW( REF Address, L"]" );
+         END;
+         IF IncludePort AND ( server[0] <> 0C ) AND ( server[0] <> C"0" ) THEN
+            Strings.AppendW( REF Address, L":" );
+            Strings.ToW( server, 0, OUT serverU );
+            Strings.AppendW( REF Address, serverU );
+         END; 
+      END;
+   END GetAddressOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SetAddressOA( CONST Address : ARRAY OF WCHAR; DefaultPort : CARDINAL ) : BOOLEAN; // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
+   VAR
+      ai : WS2TcpIp.Paddrinfo;
+      hostA : ARRAY [0..511] OF CHAR;
+      hints : WS2TcpIp.addrinfo := EMPTY_AI;
+      host : ARRAY [0..511] OF WCHAR;
+      result : CARDINAL;
+      service : ARRAY [0..15] OF WCHAR;
+      serviceA : ARRAY [0..15] OF CHAR;
+   BEGIN
+      IF NOT SplitAddressOA( Address, OUT host, OUT service ) THEN
+         RETURN FALSE;
+      END;
+      Strings.ToA( host, 0, OUT hostA );
+      Strings.ToA( service, 0, OUT serviceA );
+
+      hints.ai_flags := WS2TcpIp.AI_NUMERICHOST;
+      result := WS2TcpIp.getaddrinfo( ADR( hostA ), ADR( serviceA ), ADR( hints ), OUT ai );
+      IF result <> 0 THEN
+         RETURN FALSE;
+      ELSIF ( ai <> NIL ) AND ( ai^.ai_addr <> NIL ) THEN
+         ASSERT( ai^.ai_addrlen <= SIZE( storage ));
+         Move( ai^.ai_addr, ADR( storage ), ai^.ai_addrlen );
+         IF serviceA[0] = 0C THEN
+            Port := DefaultPort;
+         END;
+      END;
+
+      WS2TcpIp.freeaddrinfo( ai );
+      RETURN TRUE;
+   END SetAddressOA;
+   
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Clear();
+   VAR
+      i : CARDINAL;
+      v6 : BOOLEAN := V6;
+   BEGIN
+      FOR i := 0 TO HIGH( storage ) DO
+         storage[i] := 0;
+      END;
+      V6 := v6;
+   END Clear;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SetV4( What : TSpecialAddress );
+   BEGIN
+      CASE What OF
+      | saEmpty :
+         SetAddressOA( L"0.0.0.0", 0 );
+      | saLoopback :
+         SetAddressOA( L"127.0.0.1", 0 );
+      | saLocalLink :
+         SetAddressOA( L"127.0.0.1", 0 );
+      | saLocalLinkRandom :
+         SetAddressOA( L"127.0.0.1", 0 );
+      | saPrivateRandom :
+         ASSERT( FALSE );
+      END; // CASE      
+   END SetV4;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SetV6( What : TSpecialAddress );
+   BEGIN
+      CASE What OF
+      | saEmpty :
+         SetAddressOA( L"::", 0 );
+      | saLoopback :
+         SetAddressOA( L"::1", 0 );
+      | saLocalLink :
+         SetAddressOA( L"fe80::1", 0 );
+      | saLocalLinkRandom :
+         SetAddressOA( L"fe80::abcd:abcd", 0 );
+      | saPrivateRandom :
+         SetAddressOA( L"fc00::1", 0 );
+      END; // CASE      
+   END SetV6;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE FromV4( CONST IPAddr : ARRAY OF BYTE ); // IN_ADDR, network order
+   BEGIN
+      IF HIGH( IPAddr ) < SIZE( winsock.in_addr ) - 1 THEN
+         SetV4( saEmpty );
+      ELSE
+         V6 := FALSE;
+         Move( ADR( IPAddr ), IN_ADDR4( SELF ), SIZE( winsock.in_addr ));
+      END;
+   END FromV4;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE FromV6( CONST IPAddr : ARRAY OF BYTE ); // IN_ADDR6
+   BEGIN
+      IF HIGH( IPAddr ) < SIZE( WS2TcpIp.in_addr6 ) - 1 THEN
+         SetV6( saEmpty );
+      ELSE
+         V6 := TRUE;
+         Move( ADR( IPAddr ), IN_ADDR6( SELF ), SIZE( WS2TcpIp.in_addr6 ));
+      END;
+   END FromV6;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE FromOA( CONST storage : ARRAY OF BYTE );
+   VAR
+      i : CARDINAL;
+   BEGIN
+      IF HIGH( storage ) = -1 THEN
+         RETURN;
+      END;
+      FOR i := 0 TO MIN2( HIGH( SELF.storage ), HIGH( storage )) DO
+         SELF.storage[i] := storage[i];
+      END;
+   END FromOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ToV4( OUT IPAddr : ARRAY OF BYTE ) : BOOLEAN; // IN_ADDR, 4 bytes
+   BEGIN
+      IF V6 THEN
+         RETURN FALSE;
+      ELSIF HIGH( IPAddr ) < SIZE( winsock.in_addr ) - 1 THEN
+         RETURN FALSE;
+      ELSE
+         Move( IN_ADDR4( SELF ), ADR( IPAddr ), SIZE( winsock.in_addr ));
+         RETURN TRUE;
+      END;
+   END ToV4;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ToV6( OUT IPAddr : ARRAY OF BYTE ) : BOOLEAN; // IN_ADDR6, 16 bytes
+   BEGIN
+      IF NOT V6 THEN
+         RETURN FALSE;
+      ELSIF HIGH( IPAddr ) < SIZE( WS2TcpIp.in_addr6 ) - 1 THEN
+         RETURN FALSE;
+      ELSE
+         Move( IN_ADDR6( SELF ), ADR( IPAddr ), SIZE( WS2TcpIp.in_addr6 ));
+         RETURN TRUE;
+      END;
+   END ToV6;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ToOA( OUT storage : ARRAY OF BYTE; OUT Length : CARDINAL ) : BOOLEAN;
+   VAR
+      i : CARDINAL;
+      l : CARDINAL := SELF.Length;
+   BEGIN
+      IF HIGH( storage )+1 < l THEN
+         RETURN FALSE;
+      ELSE
+         Length := l;
+      END;
+      FOR i := 0 TO l-1 DO
+         storage[i] := SELF.storage[i];
+      END;
+      RETURN TRUE;
+   END ToOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   INITIALLY INETADDR();
+   VAR
+      i : CARDINAL;
+   BEGIN
+      FOR i := 0 TO HIGH( storage ) DO
+         storage[i] := 0;
+      END;
+      V6 := FALSE;
+   END INETADDR;
+   
+(*--------------------------------------------------------------------------------*)
+
+END INETADDR;
+
+(*================================================================================*)
+
+PROCEDURE SplitAddressOA( CONST HostWithService : ARRAY OF WCHAR; OUT Host, Service : ARRAY OF WCHAR ) : BOOLEAN;
+LABEL
+   CheckPort;
+VAR
+   i : CARDINAL; 
+BEGIN
+   IF NOT INSIDE( 0, HostWithService ) THEN
+      Host[0] := 0W;
+      Service[0] := 0W;
+      RETURN TRUE;
+   END;
+
+   // check explicitely numerical form
+   IF HostWithService[0] = L"[" THEN // ok, search next ]
+      i := Strings.LastIndexOfCharW( HostWithService, L"]", 0 );
+      IF i = -1 THEN
+         RETURN FALSE;
+      END;
+      Strings.SubstringW( HostWithService, 0, i+1, OUT Host );
+      Strings.TrimW( REF Host );
+
+      i := Strings.IndexOfCharW( HostWithService, L":", i );
+      GOTO CheckPort;
+   END;
+
+   // try to find port
+   i := Strings.LastIndexOfCharW( HostWithService, L":", 0 );
+   IF i = -1 THEN // no port
+      Host := HostWithService;
+      Strings.TrimW( REF Host );
+      Service[0] := 0W;
+      RETURN TRUE;
+   END;
+   
+   // we have port, slice Host and continue with port
+   Strings.SubstringW( HostWithService, 0, i, OUT Host );
+   Strings.TrimW( REF Host );
+
+CheckPort: // i is prepared here
+   IF i = -1 THEN
+      Service[0] := 0W;
+   ELSE
+      Strings.SubstringW( HostWithService, i+1, -1, OUT Service );
+      Strings.TrimW( REF Service );
+   END;
+   RETURN TRUE;
+END SplitAddressOA;
+
+(*================================================================================*)
+
+TYPE
+  TPINETADDRItem = POINTER TO CINETADDRItem;
+
+CLASS CINETADDRItem( avltree.CAVLTreeElem );
+  PUBLIC VAR
+    Key  : INETADDR;
+    Data : PTR;
+
+  PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
+
+  // OPERATOR NEW() : ADDRESS;
+  // OPERATOR DISPOSE( a : ADDRESS );
+END CINETADDRItem;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CINETADDRItem;
+
+   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
+   VAR
+      a1, a2 : ADDRESS;
+      l1, l2 : CARDINAL;
+   BEGIN
+      l1 := Key.Length;
+      l2 := TPINETADDRItem( pelem )^.Key.Length;
+      IF l1 < l2 THEN
+         RETURN -1;
+      ELSIF l1 > l2 THEN
+         RETURN 1;
+      ELSIF l1 = 0 THEN
+         RETURN -1;
+      END;
+      a1 := Key.Data;
+      a2 := TPINETADDRItem( pelem )^.Key.Data;
+      FOR i := 0 TO l1-1 DO
+         IF PBYTE( a1@[i] )^ < PBYTE( a2@[i] )^ THEN
+            RETURN -1;
+         ELSIF PBYTE( a1@[i] )^ > PBYTE( a2@[i] )^ THEN
+            RETURN 1;
+         END;
+      END;
+      RETURN 0;
+   END Compare;
+
+   // OPERATOR CINETADDRItem.NEW() : ADDRESS;
+   // VAR
+   //   a : ADDRESS;
+   // BEGIN
+   //   IF QuadwordAllocator.Allocate( OUT a, SIZE( CINETADDRItem )) THEN
+   //     RETURN a;
+   //   ELSE
+   //     RETURN NIL;
+   //   END;
+   // END CINETADDRItem.NEW;
+  
+   // OPERATOR CINETADDRItem.DISPOSE( a : ADDRESS );
+   // BEGIN
+   //   QuadwordAllocator.Deallocate( REF a );
+   // END CINETADDRItem.DISPOSE;
+
+BEGIN
+   Data := NIL;
+END CINETADDRItem;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CINETADDRMap;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC READONLY PROPERTY CINETADDRMap.Current GET : TPINETADDR;
+   BEGIN
+      ASSERT( _Current <> -1 );
+      RETURN ADR( TPINETADDRItem( _Current )^.Key );
+   END CINETADDRMap.Current;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC READONLY PROPERTY CINETADDRMap.CurrentData GET : PTR;
+   BEGIN
+      IF _Current = -1 THEN
+         ASSERT( FALSE );
+         RETURN NIL;
+      ELSE
+         RETURN TPINETADDRItem( _Current )^.Data;
+      END;
+   END CINETADDRMap.CurrentData;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY CINETADDRMap.CurrentData SET( Data : PTR );
+   BEGIN
+      IF _Current = -1 THEN
+         ASSERT( FALSE );
+         RETURN;
+      ELSE
+         TPINETADDRItem( _Current )^.Data := Data;
+      END;
+   END CINETADDRMap.CurrentData;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC READONLY INDEX CINETADDRMap GET( Index : CARDINAL ) : PTR;
+   VAR
+      PI : TPINETADDRItem;
+   BEGIN
+      PI := TPINETADDRItem( SUPER[ Index ] );
+      IF PI = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN PI^.Data;
+      END;
+   END CINETADDRMap;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CINETADDRMap.Add( CONST Key : INETADDR; Data : PTR );
+   VAR
+      PI : TPINETADDRItem;
+   BEGIN
+      NEW( PI );
+      PI^.Key := Key;
+      PI^.Data := Data;
+      Insert( PI );
+   END CINETADDRMap.Add;
+  
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CINETADDRMap.Remove( CONST Key : INETADDR );
+   VAR
+      I : CINETADDRItem;
+   BEGIN
+      I.Key := Key;
+      Delete( ADR( I ));
+   END CINETADDRMap.Remove;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CINETADDRMap.Contains( CONST Key : INETADDR ) : BOOLEAN;
+   VAR
+      I : CINETADDRItem;
+   BEGIN
+      I.Key := Key;
+      RETURN SUPER.Contains( ADR( I ));
+   END CINETADDRMap.Contains;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CINETADDRMap.Get( CONST Key : INETADDR; OUT Data : PTR ) : BOOLEAN; // similar as []
+   VAR
+      I : CINETADDRItem;
+      PI : TPINETADDRItem;
+   BEGIN
+      I.Key := Key;
+      IF NOT Search( ADR( I ), OUT PI ) THEN
+         RETURN FALSE;
+      END;
+      Data := PI^.Data;
+      RETURN TRUE;  
+   END CINETADDRMap.Get;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CINETADDRMap.ElementAt( Index : CARDINAL; OUT Key : INETADDR; OUT Data : PTR ) : BOOLEAN;
+   VAR
+      PI : TPINETADDRItem;
+   BEGIN
+      PI := TPINETADDRItem( SUPER[ Index ] );
+      IF PI = NIL THEN
+         RETURN FALSE;
+      ELSE
+         Key := PI^.Key;
+         Data := PI^.Data;
+      END;
+      RETURN TRUE;
+  END CINETADDRMap.ElementAt;
+
+(*--------------------------------------------------------------------------------*)
+
+END CINETADDRMap;
+
+(*================================================================================*)
+
+END inetaddr.

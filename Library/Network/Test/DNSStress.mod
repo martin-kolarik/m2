@@ -5,6 +5,7 @@ FROM Storage IMPORT
 
 IMPORT
    dns,
+   inetaddr,
    log,
    msghandler,
    netinit,
@@ -27,7 +28,7 @@ CLASS CDNS( dns.ADNSNotifier );
    PUBLIC VAR
       Test : TPTest;
 
-   LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF netsocket.INETADDR );
+   LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF inetaddr.INETADDR );
    LOCAL VIRTUAL PROCEDURE OnNameFound( RequestId : PTR; Result : CARDINAL; CONST Name : StringsO.CString );
 END CDNS;
 
@@ -48,7 +49,7 @@ CLASS IMPLEMENTATION CDNS;
 
 (*---------------------------------------------------------------------------*)
 
-   LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF netsocket.INETADDR );
+   LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF inetaddr.INETADDR );
    VAR
       i : CARDINAL;
       s : ARRAY [0..255] OF WCHAR := L"";
@@ -109,7 +110,7 @@ CLASS IMPLEMENTATION CTest;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
-      A : netsocket.INETADDR;
+      A : inetaddr.INETADDR;
       av4 : CARDINAL;
       Completed : BOOLEAN;
       h : PTR;
@@ -126,14 +127,14 @@ CLASS IMPLEMENTATION CTest;
          Results[i] := -1;
       END;
       // run
-      FOR j := 1 TO 255 DO
+      // FOR j := 1 TO 255 DO
          FOR i := 1 TO 16 DO
             av4 := winsock.htonl( 217 << 24 + 112 << 16 + 162 << 8 + i );
             A.FromV4( av4 );
             A.Port := 110;
             dns.AddressToName( ADR( Notifier ), i, A, i MOD 2 = 1, OUT h );
          END;
-      END;
+      // END;
       // wait
       REPEAT
          sync.Sleep( 100 );

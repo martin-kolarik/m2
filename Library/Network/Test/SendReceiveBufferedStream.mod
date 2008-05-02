@@ -1,12 +1,10 @@
 MODULE SendReceiveBufferedStream;
 
-IMPORT
-   winsock;
-
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   inetaddr,
    log,
    netinit,
    netpool,
@@ -195,6 +193,7 @@ CLASS IMPLEMENTATION CTest;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
+      ai : inetaddr.INETADDR;
       Count : INTEGER;
       Failure : BOOLEAN := FALSE;
       NetWriteStream : netstream.CNetworkStream;
@@ -210,7 +209,7 @@ CLASS IMPLEMENTATION CTest;
          Reader.Summa := 0;
 
          // start
-         NetWriteStream.FromServer( L"127.0.0.1", 4444 );
+         NetWriteStream.FromServer( L"127.0.0.1:4444" );
          WaitForMessages( 50 );
          ReaderThread.Run( TRUE );
      
@@ -261,7 +260,7 @@ CLASS IMPLEMENTATION CTest;
          Reader.Summa := 0;
 
          // start
-         NetWriteStream.FromServer( L"127.0.0.1", 4444 );
+         NetWriteStream.FromServer( L"127.0.0.1:4444" );
          WaitForMessages( 50 );
          
          IF BigBlock THEN
@@ -353,7 +352,9 @@ CLASS IMPLEMENTATION CTest;
       Reader.Persistent := TRUE;
       Writer.Persistent := TRUE;
       netsrv.SetCallbackMode( netsrv.cbmPooled );
-      netsrv.StartListen( netsocket.stStream, 4444, NIL, ADR( ServerListener ), 0, NIL );
+      
+      ai.Port := 4444;
+      netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( ServerListener ), 0, NIL );
 
       ReadStream.Stream := ADR( NetReadStream );
       WriteStream.Stream := ADR( NetWriteStream );

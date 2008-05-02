@@ -1,0 +1,107 @@
+DEFINITION MODULE inetaddr;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   avltree;
+
+#save, option( dll_export => on )
+
+(*================================================================================*)
+
+TYPE
+   TScope = (
+      scoUnknown,
+      scoLoopback,
+      scoLocalLink,
+      scoLocalSite,
+      scoGlobal
+   );
+   
+   TSpecialAddress = (
+      saEmpty,
+      saLoopback,
+      saLocalLink,
+      saLocalLinkRandom,
+      saPrivateRandom
+   );
+   
+   TIPV4    = ARRAY [0..3] OF BYTE;
+   TIPV6    = ARRAY [0..15] OF BYTE;
+   TRFC2553 = ARRAY [0..127] OF BYTE; // RFC2553 storage structure for all type of internet addresses
+
+CLASS INETADDR;
+   PRIVATE VAR
+      storage : TRFC2553;
+   PUBLIC READONLY PROPERTY
+      Data : POINTER TO TRFC2553;
+
+   PUBLIC READONLY PROPERTY
+      Length : CARDINAL; // duplicate to ToOA
+   PUBLIC PROPERTY
+      V6 : BOOLEAN;
+      Port : CARDINAL;
+   PUBLIC READONLY PROPERTY
+      Loopback : BOOLEAN;
+      Broadcast : BOOLEAN; // meaningful for IPV4 only
+      Multicast : BOOLEAN;
+      Scope : TScope;
+      
+   PUBLIC OPERATOR =( CONST Operand : INETADDR ) : BOOLEAN;
+
+   PUBLIC PROCEDURE GetAddressOA( IncludePort : BOOLEAN; OUT Address : ARRAY OF WCHAR ); // numerical form in string
+   PUBLIC PROCEDURE SetAddressOA( CONST Address : ARRAY OF WCHAR; DefaultPort : CARDINAL ) : BOOLEAN; // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
+   
+   PUBLIC PROCEDURE Clear();
+   PUBLIC PROCEDURE SetV4( What : TSpecialAddress );
+   PUBLIC PROCEDURE SetV6( What : TSpecialAddress );
+
+   PUBLIC PROCEDURE FromV4( CONST IPAddr : ARRAY OF BYTE ); // IN_ADDR, network order
+   PUBLIC PROCEDURE FromV6( CONST IPAddr : ARRAY OF BYTE ); // IN_ADDR6
+   PUBLIC PROCEDURE FromOA( CONST storage : ARRAY OF BYTE ); // e.g. winsock.SOCKET_ADDRESS, SOCKADDR_IN, SOCKADDR_IN6, MUST be supplied with correct HIGH
+
+   PUBLIC PROCEDURE ToV4( OUT IPAddr : ARRAY OF BYTE ) : BOOLEAN; // IN_ADDR, 4 bytes
+   PUBLIC PROCEDURE ToV6( OUT IPAddr : ARRAY OF BYTE ) : BOOLEAN; // IN_ADDR6, 16 bytes
+   PUBLIC PROCEDURE ToOA( OUT storage : ARRAY OF BYTE; OUT filled : CARDINAL ) : BOOLEAN; // filled is set by real length of address
+
+   INITIALLY INETADDR();
+END INETADDR;
+
+TYPE
+   TPINETADDR = POINTER TO INETADDR;
+
+PROCEDURE SplitAddressOA( CONST HostWithService : ARRAY OF WCHAR; OUT Host, Service : ARRAY OF WCHAR ) : BOOLEAN;
+
+(*================================================================================*)
+
+CONST
+	IPV4_EMPTY = TIPV4( 0, 0, 0, 0 );
+	IPV6_EMPTY = TIPV6( 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 );
+
+(*================================================================================*)
+
+TYPE
+  TPINETADDRMap = POINTER TO CINETADDRMap;
+
+CLASS CINETADDRMap( avltree.CAVLTreeWState );
+  PUBLIC READONLY PROPERTY
+    Current : TPINETADDR;
+  PUBLIC PROPERTY
+    CurrentData : PTR;
+
+  PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
+
+  PUBLIC PROCEDURE Add( CONST Key : INETADDR; Data : PTR );
+  PUBLIC PROCEDURE Remove( CONST Key : INETADDR );
+  PUBLIC PROCEDURE Contains( CONST Key : INETADDR ) : BOOLEAN;
+  PUBLIC PROCEDURE Get( CONST Key : INETADDR; OUT Data : PTR ) : BOOLEAN;
+  PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : INETADDR; OUT Data : PTR ) : BOOLEAN; // similar as []
+
+END CINETADDRMap;
+
+(*================================================================================*)
+
+#restore
+
+END inetaddr.

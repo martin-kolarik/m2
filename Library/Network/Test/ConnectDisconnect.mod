@@ -1,12 +1,10 @@
 MODULE ConnectDisconnect;
 
-IMPORT
-   winsock;
-
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   inetaddr,
    log,
    netinit,
    netpool,
@@ -47,7 +45,8 @@ CLASS CTest IMPLEMENTS test.ITest;
       ServerListener : CServerListener;
       ClientListener : CClientListener;
       ClientSocket : netsocket.TPDSocket;
-      Count : CARDINAL;
+      ClientCount : CARDINAL := 0;
+      ServerCount : CARDINAL := 0;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    PRIVATE PROCEDURE WaitForMessages( count : CARDINAL );
@@ -85,8 +84,13 @@ CLASS IMPLEMENTATION CClientListener;
 
   LOCAL VIRTUAL PROCEDURE OnConnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); 
   BEGIN
-    IF Result = 0 THEN
-      sync.IInc( REF Test^.Count );
+    IF Socket = Test^.ClientSocket THEN
+      sync.IInc( REF Test^.ClientCount );
+      IF Result <> 0 THEN // in case of error do dummy increment of unconnected server
+         sync.IInc( REF Test^.ServerCount );
+      END;
+    ELSE
+      sync.IInc( REF Test^.ServerCount );
     END;
   END OnConnect;
 
@@ -95,7 +99,6 @@ CLASS IMPLEMENTATION CClientListener;
   LOCAL VIRTUAL PROCEDURE OnDisconnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); 
   BEGIN
     IF Socket <> Test^.ClientSocket THEN
-      Socket^.Close( FALSE );
       Socket^.Release();
     END;
   END OnDisconnect;
@@ -119,6 +122,7 @@ CLASS IMPLEMENTATION CTest;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
+      ai : inetaddr.INETADDR;
       Failure : BOOLEAN := FALSE;
       lastCount : INTEGER;
    BEGIN
@@ -130,22 +134,30 @@ CLASS IMPLEMENTATION CTest;
       // global init      
       NEW( ClientSocket );
       ClientSocket^.Notifier := ADR( ClientListener );
-      netsrv.StartListen( netsocket.stStream, 4444, NIL, ADR( ServerListener ), 0, NIL );
+
+      ai.Port := 4444;
+      netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( ServerListener ), 0, NIL );
+      ai.V6 := TRUE;
+      netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( ServerListener ), 0, NIL );
 
       Host^.StartPhase( L"Connect/Disconnect on the same socket" );
 
       // start
-      Count := 0;
-      ClientSocket^.Connect( L'iris', 4444, windows.INFINITE );
+      ClientCount := 0;
+      ServerCount := 0;
+      lastCount := 0;
+      ClientSocket^.Connect( L'iris:4444', windows.INFINITE );
+      // ClientSocket^.Connect( L'localhost:4444', windows.INFINITE );
       // wait
       LOOP
-         lastCount := sync.IGet( REF Count );
          IF lastCount >= 10000 THEN
             EXIT;
          END;
          WaitForMessages( 2 );
-         IF lastCount < sync.IGet( REF Count ) THEN // reconnect
-            ClientSocket^.Connect( L'iris', 4444, windows.INFINITE );
+         IF ( lastCount < sync.IGet( REF ClientCount )) AND ( lastCount < sync.IGet( REF ServerCount )) THEN // reconnect
+            lastCount := sync.IGet( REF ClientCount );
+            ClientSocket^.Connect( L'iris:4444', windows.INFINITE );
+            // ClientSocket^.Connect( L'localhost:4444', windows.INFINITE );
          END;
       END; // WHILE
 

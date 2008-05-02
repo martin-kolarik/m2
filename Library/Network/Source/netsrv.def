@@ -4,7 +4,8 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-  netsocket;
+   inetaddr,
+   netsocket;
 
 #save, option( dll_export => on )
 
@@ -49,7 +50,7 @@ ABSTRACT CLASS AInterfaceEnumerator; // if single interface has more addresses, 
       Addresses : CARDINAL;
       
    PUBLIC ABSTRACT PROCEDURE HWAddress( OUT Address : ARRAY OF BYTE; OUT Filled : CARDINAL );
-   PUBLIC ABSTRACT PROCEDURE InetAddress( Index : CARDINAL; OUT Address : netsocket.INETADDR; OUT Preferred : BOOLEAN; OUT Scope : netsocket.TScope; OUT Assignment : TAssignment ) : BOOLEAN;
+   PUBLIC ABSTRACT PROCEDURE InetAddress( Index : CARDINAL; OUT Address : inetaddr.INETADDR; OUT Preferred : BOOLEAN; OUT Scope : inetaddr.TScope; OUT Assignment : TAssignment ) : BOOLEAN;
    
    PUBLIC VIRTUAL FINALLY AInterfaceEnumerator();
 END AInterfaceEnumerator;
@@ -93,7 +94,8 @@ PROCEDURE SetCallbackMode(
 
 PROCEDURE StartListen(
             Type : netsocket.TSocketType;
-            CONST LocalAddress : netsocket.INETADDR; // can be empty (an ephemeral port is used), can contain port only, can be multicast
+            CONST LocalAddress : inetaddr.INETADDR; // can be empty (an ephemeral port is used), can contain port only, or exact address/port pair
+            PMulticastGroup : inetaddr.TPINETADDR; // can be NIL
             PStreamCreator : TPListener;
             AutomaticCloseTimeMS : CARDINAL;	// can be 0 or INFINITE for INFINITE time
             PCreatedSocket : POINTER TO netsocket.TPSSocket // can be NIL

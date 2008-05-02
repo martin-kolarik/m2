@@ -5,9 +5,9 @@ FROM Storage IMPORT
 
 IMPORT
    dns,
+   inetaddr,
    log,
    netinit,
-   netsocket,
    netsrv,
    Strings,
    StringsO,
@@ -44,7 +44,7 @@ CLASS IMPLEMENTATION CTest;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
-      Addresses : ARRAY [0..255] OF netsocket.INETADDR;
+      Addresses : ARRAY [0..255] OF inetaddr.INETADDR;
       Enum : netsrv.TPInterfaceEnumerator;
       Filled : CARDINAL := 0;
       i : CARDINAL;
@@ -71,9 +71,24 @@ CLASS IMPLEMENTATION CTest;
       
       Host^.StopPhaseWithResult( test.trSuccess );
 
-      Host^.StartPhase( L"Enumeration of local addresses -- V4" );
+      Host^.StartPhase( L"Enumeration of local addresses -- V4, up" );
       
-      IF dns.GetLocalIPs( TRUE, FALSE, OUT Addresses, OUT Filled ) THEN
+      IF dns.GetLocalIPs( TRUE, FALSE, FALSE, OUT Addresses, OUT Filled ) THEN
+         IF Filled = 0 THEN
+            Host^.Log^.LogS( log.dlcInfo, L"", L"no local addresses" );
+         ELSE
+            FOR i := 0 TO Filled-1 DO
+               Addresses[i].GetAddressOA( FALSE, OUT String );
+               Host^.Log^.LogS( log.dlcInfo, L"", String );
+            END; // FOR
+         END;
+      END;
+      
+      Host^.StopPhaseWithResult( test.trSuccess );
+
+      Host^.StartPhase( L"Enumeration of local addresses -- V6, down too" );
+      
+      IF dns.GetLocalIPs( FALSE, TRUE, TRUE, OUT Addresses, OUT Filled ) THEN
          IF Filled = 0 THEN
             Host^.Log^.LogS( log.dlcInfo, L"", L"no local addresses" );
          ELSE
@@ -96,11 +111,11 @@ CLASS IMPLEMENTATION CTest;
    VAR
       assignment : netsrv.TAssignment;
       hwAddr : ARRAY [0..15] OF CARD8;
-      ia : netsocket.INETADDR;
+      ia : inetaddr.INETADDR;
       i, index, l : CARDINAL;
       n : ARRAY [0..31] OF WCHAR;
       preferred : BOOLEAN;
-      scope : netsocket.TScope;
+      scope : inetaddr.TScope;
       String : ARRAY [0..511] OF WCHAR;
    BEGIN
       WHILE Enum^.MoveNext() DO
@@ -143,13 +158,13 @@ CLASS IMPLEMENTATION CTest;
                Strings.AppendW( REF String, L", preferred" );
             END;
             CASE scope OF
-            | netsocket.scoLoopback :
+            | inetaddr.scoLoopback :
                Strings.AppendW( REF String, L", loopback" );
-            | netsocket.scoLocalLink :
+            | inetaddr.scoLocalLink :
                Strings.AppendW( REF String, L", local link" );
-            | netsocket.scoLocalSite :
+            | inetaddr.scoLocalSite :
                Strings.AppendW( REF String, L", local site" );
-            | netsocket.scoGlobal :
+            | inetaddr.scoGlobal :
                Strings.AppendW( REF String, L", global" );
             END;
             CASE assignment OF

@@ -3,10 +3,11 @@ DEFINITION MODULE dns;
 //--------------------------------------------------------------------------------
 
 IMPORT
-  netsocket,
-  StringsO,
-  Sync,
-  threadpool;
+   inetaddr,
+   netsocket,
+   StringsO,
+   Sync,
+   threadpool;
 
 #save, option( dll_export => on )
 
@@ -17,7 +18,7 @@ TYPE
   TPDNSNotifier = POINTER TO ADNSNotifier;
 
 CLASS ADNSNotifier( threadpool.APoolDelegate ); // possible foreign thread, delegates require AddRef/Release
-  LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF netsocket.INETADDR );
+  LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF inetaddr.INETADDR );
   LOCAL VIRTUAL PROCEDURE OnNameFound( RequestId : PTR; Result : CARDINAL; CONST Name : StringsO.CString );
 END ADNSNotifier;
 
@@ -29,16 +30,16 @@ PROCEDURE KillAllPending( PNotifier : TPDNSNotifier );
 //--------------------------------------------------------------------------------
 // asynchronous API, synchronous variant can wait to Handle
 PROCEDURE NameToAddress( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Name : ARRAY OF WCHAR; DefaultPort : CARDINAL; OUT Handle : PTR ) : BOOLEAN;
-PROCEDURE AddressToName( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Address : netsocket.INETADDR; IncludePort : BOOLEAN; OUT Handle : PTR ) : BOOLEAN;
+PROCEDURE AddressToName( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Address : inetaddr.INETADDR; IncludePort : BOOLEAN; OUT Handle : PTR ) : BOOLEAN;
 
 // synchronous API
-PROCEDURE NameToAddressWait( CONST Name : ARRAY OF WCHAR; DefaultPort : CARDINAL; TimeoutMS : CARDINAL; OUT Address : ARRAY OF netsocket.INETADDR ) : BOOLEAN;
-PROCEDURE AddressToNameWait( CONST Address : netsocket.INETADDR; IncludePort : BOOLEAN; TimeoutMS : CARDINAL; OUT Name : ARRAY OF WCHAR ) : BOOLEAN;
+PROCEDURE NameToAddressWait( CONST Name : ARRAY OF WCHAR; DefaultPort : CARDINAL; TimeoutMS : CARDINAL; OUT Address : ARRAY OF inetaddr.INETADDR ) : BOOLEAN;
+PROCEDURE AddressToNameWait( CONST Address : inetaddr.INETADDR; IncludePort : BOOLEAN; TimeoutMS : CARDINAL; OUT Name : ARRAY OF WCHAR ) : BOOLEAN;
 
 PROCEDURE GetLocalName( OUT Result : StringsO.CString ) : BOOLEAN;
 PROCEDURE GetLocalNameOA( OUT Result : ARRAY OF WCHAR ) : BOOLEAN;
-PROCEDURE GetLocalIPsCount( IPV4, IPV6 : BOOLEAN ) : CARDINAL;
-PROCEDURE GetLocalIPs( IPV4, IPV6 : BOOLEAN; OUT Address : ARRAY OF netsocket.INETADDR; OUT Filled : CARDINAL ) : BOOLEAN;
+PROCEDURE GetLocalIPsCount( IPV4, IPV6, IncludeDown : BOOLEAN ) : CARDINAL;
+PROCEDURE GetLocalIPs( IPV4, IPV6, IncludeDown : BOOLEAN; OUT Address : ARRAY OF inetaddr.INETADDR; OUT Filled : CARDINAL ) : BOOLEAN;
 
 //--------------------------------------------------------------------------------
 

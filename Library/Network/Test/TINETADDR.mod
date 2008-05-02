@@ -4,9 +4,9 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   inetaddr,
    log,
    netinit,
-   netsocket,
    Strings,
    StringsO,
    sync,
@@ -41,7 +41,7 @@ CLASS IMPLEMENTATION CTest;
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
       Expect : ARRAY [0..511] OF WCHAR;
-      ia : netsocket.INETADDR;
+      ia : inetaddr.INETADDR;
       Failure1, Failure2 : BOOLEAN := FALSE;
       String : ARRAY [0..511] OF WCHAR;
    BEGIN
@@ -51,20 +51,20 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"Special addresses V4" );
       
       Expect := L"0.0.0.0";
-      ia.SetV4( netsocket.saEmpty );
+      ia.SetV4( inetaddr.saEmpty );
       ia.GetAddressOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
 
       Expect := L"127.0.0.1";
-      ia.SetV4( netsocket.saLoopback );
+      ia.SetV4( inetaddr.saLoopback );
       ia.GetAddressOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
 
-      ia.SetV4( netsocket.saLocalLink );
+      ia.SetV4( inetaddr.saLocalLink );
       ia.GetAddressOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
 
-      ia.SetV4( netsocket.saLocalLinkRandom );
+      ia.SetV4( inetaddr.saLocalLinkRandom );
       ia.GetAddressOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
 
@@ -77,27 +77,27 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"Special addresses V6" );
       
       Expect := L"::";
-      ia.SetV6( netsocket.saEmpty );
+      ia.SetV6( inetaddr.saEmpty );
       ia.GetAddressOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
 
       Expect := L"::1";
-      ia.SetV6( netsocket.saLoopback );
+      ia.SetV6( inetaddr.saLoopback );
       ia.GetAddressOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
 
       Expect := L"fe80::1";
-      ia.SetV6( netsocket.saLocalLink );
+      ia.SetV6( inetaddr.saLocalLink );
       ia.GetAddressOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
 
       Expect := L"fe80::abcd:abcd";
-      ia.SetV6( netsocket.saLocalLinkRandom );
+      ia.SetV6( inetaddr.saLocalLinkRandom );
       ia.GetAddressOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
 
       Expect := L"fc00::1";
-      ia.SetV6( netsocket.saPrivateRandom );
+      ia.SetV6( inetaddr.saPrivateRandom );
       ia.GetAddressOA( TRUE, OUT String );
       Host^.Log^.LogSSS( log.dlcInfo, L"", Expect, L": ", String );
 

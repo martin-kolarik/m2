@@ -1,9 +1,6 @@
 DEFINITION MODULE netstream;
 
 IMPORT
-  winsock;
-
-IMPORT
   IOO,
   netsocket,
   Sync;
@@ -33,7 +30,7 @@ CLASS CNetworkStream( IOO.AStream );
     Position   : CARD64;
 
   PUBLIC PROCEDURE FromSocket( Socket : netsocket.TPDSocket; TakeSocketOwnership : BOOLEAN; Access : IOO.TAccess ); // Access tells the stream what should be allowed
-  PUBLIC PROCEDURE FromServer( CONST Server : ARRAY OF WCHAR; Port : CARDINAL );
+  PUBLIC PROCEDURE FromServer( CONST Server : ARRAY OF WCHAR );
 
   PUBLIC FINAL PROCEDURE Seek( Origin : IOO.TSeekOrigin; Position : INT64 ); 
   PUBLIC FINAL PROCEDURE Flush();

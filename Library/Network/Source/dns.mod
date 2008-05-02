@@ -60,7 +60,7 @@ END CNameToAddressRequest;
 
 CLASS CAddressToNameRequest( CRequest );
    LOCAL VAR
-      Address : netsocket.INETADDR;
+      Address : inetaddr.INETADDR;
       IncludePort : BOOLEAN := FALSE;
       Name : StringsO.CString;
    LOCAL VIRTUAL PROCEDURE Run();
@@ -80,7 +80,7 @@ CLASS IMPLEMENTATION CDispatcher;
  
    LOCAL VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
    VAR
-      Addresses : POINTER TO ARRAY [0..0] OF netsocket.INETADDR := NIL;
+      Addresses : POINTER TO ARRAY [0..0] OF inetaddr.INETADDR := NIL;
       ai : WS2TcpIp.Paddrinfo;
       count : CARDINAL;
       netResult : CARDINAL;
@@ -102,7 +102,7 @@ CLASS IMPLEMENTATION CDispatcher;
 
          IF Request^ IS CNameToAddressRequest THEN
             IF netResult <> 0 THEN
-               Request^.PNotifier^.OnAddressFound( Request^.RequestId, netResult, OA( -1, netsocket.TPINETADDR( NIL )));
+               Request^.PNotifier^.OnAddressFound( Request^.RequestId, netResult, OA( -1, inetaddr.TPINETADDR( NIL )));
 
             ELSIF ( TPNameToAddressRequest( Request )^.AddrInfo <> NIL ) AND
                   ( TPNameToAddressRequest( Request )^.AddrInfo^.ai_addr <> NIL ) THEN
@@ -168,7 +168,7 @@ CLASS IMPLEMENTATION CNameToAddressRequest;
       service : ARRAY [0..15] OF WCHAR;
       serviceA : ARRAY [0..15] OF CHAR;
    BEGIN
-      IF netsocket.SplitAddressOA( OA( Name.Length-1, Name.rawData ), OUT host, OUT service ) THEN
+      IF inetaddr.SplitAddressOA( OA( Name.Length-1, Name.rawData ), OUT host, OUT service ) THEN
          Strings.ToA( host, 0, OUT hostA );
          Strings.ToA( service, 0, OUT serviceA );
 
@@ -233,7 +233,7 @@ CLASS IMPLEMENTATION ADNSNotifier;
 
 (*---------------------------------------------------------------------------*)
 
-  LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF netsocket.INETADDR );
+  LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF inetaddr.INETADDR );
   BEGIN
   END OnAddressFound;
 
@@ -265,7 +265,7 @@ END KillAllPending;
 
 PROCEDURE NameToAddress( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Name : ARRAY OF WCHAR; DefaultPort : CARDINAL; OUT Handle : PTR ) : BOOLEAN;
 VAR
-   Address : netsocket.INETADDR;
+   Address : inetaddr.INETADDR;
    Request : TPNameToAddressRequest;
 BEGIN
    IF Address.SetAddressOA( Name, DefaultPort ) THEN
@@ -294,7 +294,7 @@ END NameToAddress;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE AddressToName( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Address : netsocket.INETADDR; IncludePort : BOOLEAN; OUT Handle : PTR ) : BOOLEAN;
+PROCEDURE AddressToName( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Address : inetaddr.INETADDR; IncludePort : BOOLEAN; OUT Handle : PTR ) : BOOLEAN;
 VAR
    Request : TPAddressToNameRequest;
 BEGIN
@@ -319,13 +319,13 @@ END AddressToName;
 
 CLASS CLocalDNSNotifier( ADNSNotifier );
   LOCAL VAR
-    Addresses : POINTER TO ARRAY [0..0] OF netsocket.INETADDR := NIL;
+    Addresses : POINTER TO ARRAY [0..0] OF inetaddr.INETADDR := NIL;
     AddressesHigh : CARDINAL := 0;
     Name : PWCHAR := NIL;
     NameHigh : CARDINAL := 0;
     Result : Sync.TAsyncResult := Sync.arCompleted;
     Signal : Sync.SIGNAL;
-  LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF netsocket.INETADDR );
+  LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF inetaddr.INETADDR );
   LOCAL VIRTUAL PROCEDURE OnNameFound( RequestId : PTR; Result : CARDINAL; CONST Name : StringsO.CString );
 END CLocalDNSNotifier;  
 
@@ -335,7 +335,7 @@ CLASS IMPLEMENTATION CLocalDNSNotifier;
 
 (*---------------------------------------------------------------------------*)
 
-   LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Addresses : ARRAY OF netsocket.INETADDR );
+   LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Addresses : ARRAY OF inetaddr.INETADDR );
    VAR
       i : CARDINAL;
   BEGIN
@@ -371,7 +371,7 @@ END CLocalDNSNotifier;
 
 (*===========================================================================*)
 
-PROCEDURE NameToAddressWait( CONST Name : ARRAY OF WCHAR; DefaultPort : CARDINAL; TimeoutMS : CARDINAL; OUT Addresses : ARRAY OF netsocket.INETADDR ) : BOOLEAN;
+PROCEDURE NameToAddressWait( CONST Name : ARRAY OF WCHAR; DefaultPort : CARDINAL; TimeoutMS : CARDINAL; OUT Addresses : ARRAY OF inetaddr.INETADDR ) : BOOLEAN;
 VAR
   LDNSN : CLocalDNSNotifier;
   H : PTR;
@@ -391,7 +391,7 @@ END NameToAddressWait;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE AddressToNameWait( CONST Address : netsocket.INETADDR; IncludePort : BOOLEAN; TimeoutMS : CARDINAL; OUT Name : ARRAY OF WCHAR ) : BOOLEAN;
+PROCEDURE AddressToNameWait( CONST Address : inetaddr.INETADDR; IncludePort : BOOLEAN; TimeoutMS : CARDINAL; OUT Name : ARRAY OF WCHAR ) : BOOLEAN;
 VAR
   LDNSN : CLocalDNSNotifier;
   H : PTR;
@@ -436,14 +436,14 @@ END GetLocalNameOA;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE GetLocalIPsCount( IPV4, IPV6 : BOOLEAN ) : CARDINAL;
+PROCEDURE GetLocalIPsCount( IPV4, IPV6, IncludeDown : BOOLEAN ) : CARDINAL;
 VAR
-   address : netsocket.INETADDR;
+   address : inetaddr.INETADDR;
    count : CARDINAL;
    enumerator : netsrv.TPInterfaceEnumerator;
    i : CARDINAL;
    preferred : BOOLEAN;
-   scope : netsocket.TScope;
+   scope : inetaddr.TScope;
    assignment : netsrv.TAssignment;
 BEGIN
    IF NOT netsrv.newInterfaceEnumerator( IPV4, IPV6, OUT enumerator ) THEN
@@ -452,13 +452,13 @@ BEGIN
    count := 0;
 
    WHILE enumerator^.MoveNext() DO
-      IF enumerator^.State <> netsrv.stUp THEN
+      IF NOT IncludeDown AND ( enumerator^.State <> netsrv.stUp ) THEN
          CONTINUE;
       END;
 
       i := 0;
       WHILE enumerator^.InetAddress( i, OUT address, OUT preferred, OUT scope, OUT assignment ) DO
-         IF ( scope = netsocket.scoLocalSite ) OR ( scope = netsocket.scoGlobal ) THEN
+         IF ( scope = inetaddr.scoLocalSite ) OR ( scope = inetaddr.scoGlobal ) THEN
             INC( count );
          END;
          INC( i );
@@ -472,13 +472,13 @@ END GetLocalIPsCount;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE GetLocalIPs( IPV4, IPV6 : BOOLEAN; OUT Address : ARRAY OF netsocket.INETADDR; OUT Filled : CARDINAL ) : BOOLEAN;
+PROCEDURE GetLocalIPs( IPV4, IPV6, IncludeDown : BOOLEAN; OUT Address : ARRAY OF inetaddr.INETADDR; OUT Filled : CARDINAL ) : BOOLEAN;
 VAR
-   address : netsocket.INETADDR;
+   address : inetaddr.INETADDR;
    enumerator : netsrv.TPInterfaceEnumerator;
    i : CARDINAL;
    preferred : BOOLEAN;
-   scope : netsocket.TScope;
+   scope : inetaddr.TScope;
    assignment : netsrv.TAssignment;
 BEGIN
    IF ( HIGH( Address ) = -1 ) OR
@@ -489,13 +489,13 @@ BEGIN
    Filled := 0;
 
    WHILE enumerator^.MoveNext() DO
-      IF enumerator^.State <> netsrv.stUp THEN
+      IF NOT IncludeDown AND ( enumerator^.State <> netsrv.stUp ) THEN
          CONTINUE;
       END;
 
       i := 0;
       WHILE enumerator^.InetAddress( i, OUT address, OUT preferred, OUT scope, OUT assignment ) DO
-         IF ( scope = netsocket.scoLocalSite ) OR ( scope = netsocket.scoGlobal ) THEN
+         IF ( scope = inetaddr.scoLocalSite ) OR ( scope = inetaddr.scoGlobal ) THEN
             Address[Filled] := address;
             INC( Filled );
             IF Filled > HIGH( Address ) THEN

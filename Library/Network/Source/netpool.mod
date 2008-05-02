@@ -23,6 +23,7 @@ PROCEDURE Startup();
 BEGIN
   IF NetPool = NIL THEN
     NEW( NetPool );
+    NetPool^.MinThreads := 2; // 1 for handles and messages, 1 for workers
   END;
 END Startup;
 

@@ -1,12 +1,10 @@
 MODULE SendReceiveStream;
 
-IMPORT
-   winsock;
-
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   inetaddr,
    log,
    netinit,
    netpool,
@@ -147,6 +145,7 @@ CLASS IMPLEMENTATION CTest;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
+      ai : inetaddr.INETADDR;
       Buffer : ARRAY [0..1023] OF BYTE;
       Count : INTEGER;
       Failure : BOOLEAN := FALSE;
@@ -164,7 +163,9 @@ CLASS IMPLEMENTATION CTest;
       Reader.Persistent := TRUE;
       Writer.Persistent := TRUE;
       netsrv.SetCallbackMode( netsrv.cbmPooled );
-      netsrv.StartListen( netsocket.stStream, 4444, NIL, ADR( ServerListener ), 0, NIL );
+      
+      ai.Port := 4444;
+      netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( ServerListener ), 0, NIL );
 
       //=====
 
@@ -174,7 +175,7 @@ CLASS IMPLEMENTATION CTest;
       Reader.Summa := 0;
       
       // start
-      WriteStream.FromServer( L"127.0.0.1", 4444 );
+      WriteStream.FromServer( L"127.0.0.1:4444" );
   
       // run
       Count := 1; // must start from 1, it is due to comparsion with PrevCount in receiver
@@ -211,7 +212,7 @@ CLASS IMPLEMENTATION CTest;
       Reader.Summa := 0;
       
       // start
-      WriteStream.FromServer( L"127.0.0.1", 4444 );
+      WriteStream.FromServer( L"127.0.0.1:4444" );
   
       // run
       Count := 0; // must start from 0, it is due to comparsion with PrevCount in receiver, but here is Count incremented before send
@@ -254,7 +255,7 @@ CLASS IMPLEMENTATION CTest;
       Writer.Summa := 0;
       
       // start
-      WriteStream.FromServer( L"127.0.0.1", 4444 );
+      WriteStream.FromServer( L"127.0.0.1:4444" );
   
       // run
       Count := 1; // must start from 1, it is due to comparsion with PrevCount in receiver
@@ -292,7 +293,7 @@ CLASS IMPLEMENTATION CTest;
       Writer.Summa := 0;
       
       // start
-      WriteStream.FromServer( L"127.0.0.1", 4444 );
+      WriteStream.FromServer( L"127.0.0.1:4444" );
   
       // run
       Count := 0; // must start from 0, it is due to comparsion with PrevCount in receiver, but here is Count incremented before send

@@ -46,7 +46,7 @@ CLASS CInterfaceEnumerator( AInterfaceEnumerator );
       Addresses : CARDINAL;
       
    PUBLIC VIRTUAL PROCEDURE HWAddress( OUT Address : ARRAY OF BYTE; OUT Filled : CARDINAL );
-   PUBLIC VIRTUAL PROCEDURE InetAddress( Index : CARDINAL; OUT Address : netsocket.INETADDR; OUT Preferred : BOOLEAN; OUT Scope : netsocket.TScope; OUT Assignment : TAssignment ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE InetAddress( Index : CARDINAL; OUT Address : inetaddr.INETADDR; OUT Preferred : BOOLEAN; OUT Scope : inetaddr.TScope; OUT Assignment : TAssignment ) : BOOLEAN;
 END CInterfaceEnumerator;
 
 (*================================================================================*)
@@ -218,7 +218,7 @@ CLASS IMPLEMENTATION CInterfaceEnumerator;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE InetAddress( Index : CARDINAL; OUT Address : netsocket.INETADDR; OUT Preferred : BOOLEAN; OUT Scope : netsocket.TScope; OUT Assignment : TAssignment ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE InetAddress( Index : CARDINAL; OUT Address : inetaddr.INETADDR; OUT Preferred : BOOLEAN; OUT Scope : inetaddr.TScope; OUT Assignment : TAssignment ) : BOOLEAN;
    VAR
       a : iptypes.PIP_ADAPTER_UNICAST_ADDRESS;
       index : CARDINAL := 0;
@@ -346,7 +346,7 @@ CLASS CIPServer( msghandler.MessageHandler );
   INTERNAL VIRTUAL PROCEDURE OnTimer( Timer : PTR );
 
   LOCAL PROCEDURE SetCallbackMode( Mode : TCallbackMode );
-  LOCAL PROCEDURE StartListen( Type : netsocket.TSocketType; CONST LocalAddress : netsocket.INETADDR; PStreamCreator : TPListener; AutomaticCloseTimeMS : CARDINAL; PCreatedSocket : POINTER TO netsocket.TPSSocket ) : CARDINAL;
+  LOCAL PROCEDURE StartListen( Type : netsocket.TSocketType; CONST LocalAddress : inetaddr.INETADDR; PMulticastGroup : inetaddr.TPINETADDR; PStreamCreator : TPListener; AutomaticCloseTimeMS : CARDINAL; PCreatedSocket : POINTER TO netsocket.TPSSocket ) : CARDINAL;
   LOCAL PROCEDURE StopListenPort( Port : CARDINAL; Type : netsocket.TSocketType );
   LOCAL PROCEDURE StopListenSocket( Socket : netsocket.TPSSocket );
 
@@ -506,7 +506,7 @@ CLASS IMPLEMENTATION CIPServer;
 
 //--------------------------------------------------------------------------------
 
-   LOCAL PROCEDURE StartListen( Type : netsocket.TSocketType; CONST LocalAddress : netsocket.INETADDR; PStreamCreator : TPListener; AutomaticCloseTimeMS : CARDINAL; PCreatedSocket : POINTER TO netsocket.TPSSocket ) : CARDINAL;
+   LOCAL PROCEDURE StartListen( Type : netsocket.TSocketType; CONST LocalAddress : inetaddr.INETADDR; PMulticastGroup : inetaddr.TPINETADDR; PStreamCreator : TPListener; AutomaticCloseTimeMS : CARDINAL; PCreatedSocket : POINTER TO netsocket.TPSSocket ) : CARDINAL;
    VAR
       Error : CARDINAL;
       Message : TMessage;
@@ -524,10 +524,9 @@ CLASS IMPLEMENTATION CIPServer;
 
       NEW( Socket );
       Socket^.Type := Type;
-      IF LocalAddress.Multicast THEN
-         Socket^.MulticastGroup := LocalAddress;
-      ELSE
-         Socket^.LocalAddress := LocalAddress;
+      Socket^.LocalAddress := LocalAddress;
+      IF PMulticastGroup <> NIL THEN
+         Socket^.MulticastGroup := PMulticastGroup^;
       END;
       Result := Socket^.Open( OUT Error );
       IF Result NOT IN Sync.arsStarts THEN
@@ -654,13 +653,14 @@ END SetCallbackMode;
 
 PROCEDURE StartListen(
             Type : netsocket.TSocketType;
-            CONST LocalAddress : netsocket.INETADDR; // can be empty, can contain port only, can be multicast
+            CONST LocalAddress : inetaddr.INETADDR; // can be empty, can contain port only, can be exact address/port pair
+            PMulticastGroup : inetaddr.TPINETADDR;  // can be NIL
             PStreamCreator : TPListener;
             AutomaticCloseTimeMS : CARDINAL;	// can be 0 or INFINITE
             PCreatedSocket : POINTER TO netsocket.TPSSocket // can be NIL
           ) : CARDINAL;
 BEGIN
-  RETURN IPServer.StartListen( Type, LocalAddress, PStreamCreator, AutomaticCloseTimeMS, PCreatedSocket );
+  RETURN IPServer.StartListen( Type, LocalAddress, PMulticastGroup, PStreamCreator, AutomaticCloseTimeMS, PCreatedSocket );
 END StartListen;
 
 PROCEDURE StopListenPort( Type : netsocket.TSocketType; Port : CARDINAL );
