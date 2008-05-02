@@ -24,6 +24,7 @@ BEGIN
   IF NetPool = NIL THEN
     NEW( NetPool );
     NetPool^.MinThreads := 2; // 1 for handles and messages, 1 for workers
+    NetPool^.SingleThreadInterface := FALSE;
   END;
 END Startup;
 

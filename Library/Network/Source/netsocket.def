@@ -58,6 +58,14 @@ TYPE
     stDatagram
   );
   
+  TV6Mode = (
+    v6mUnknown,
+    v6mV4,
+    v6mPreferV4,
+    v6mPreferV6,
+    v6mV6
+  );
+  
   TPendingOperationItem = (
     poUnknown,
     poListen, poConnection,
@@ -82,8 +90,9 @@ CLASS SSocket( threadpool.APoolDelegate );
     _Notifier    : TPSocketNotifier;
     _HSignal     : Sync.SIGNAL;
     _Backlog     : CARDINAL;
+    _V6Mode      : TV6Mode := v6mPreferV6;
     Socket       : LONGWORD;
-    Local        : inetaddr.INETADDR; // setting V4/V6 determines type of socket (also for DSocket and Connect)
+    Local        : inetaddr.INETADDR;
     Remote       : inetaddr.INETADDR; // here in SSocket only for storing mcast data
   PUBLIC READONLY VAR
     Result       : Sync.TAsyncResult; // for WaitCompletion, useless for listen
@@ -92,7 +101,8 @@ CLASS SSocket( threadpool.APoolDelegate );
     Type           : TSocketType;
     Backlog        : CARDINAL;
     Notifier       : TPSocketNotifier;
-    LocalAddress   : inetaddr.INETADDR;
+    V6Mode         : TV6Mode;
+    LocalAddress   : inetaddr.INETADDR; // setting V4/V6 determines type of socket (also for DSocket and Connect)
     MulticastGroup : inetaddr.INETADDR;
     Waitable       : BOOLEAN;
   PUBLIC READONLY PROPERTY

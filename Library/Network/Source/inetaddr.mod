@@ -269,15 +269,15 @@ CLASS IMPLEMENTATION INETADDR;
    BEGIN
       CASE What OF
       | saEmpty :
-         SetAddressOA( L"::", 0 );
+         SetAddressOA( L"[::]", 0 );
       | saLoopback :
-         SetAddressOA( L"::1", 0 );
+         SetAddressOA( L"[::1]", 0 );
       | saLocalLink :
-         SetAddressOA( L"fe80::1", 0 );
+         SetAddressOA( L"[fe80::1]", 0 );
       | saLocalLinkRandom :
-         SetAddressOA( L"fe80::abcd:abcd", 0 );
+         SetAddressOA( L"[fe80::abcd:abcd]", 0 );
       | saPrivateRandom :
-         SetAddressOA( L"fc00::1", 0 );
+         SetAddressOA( L"[fc00::1]", 0 );
       END; // CASE      
    END SetV6;
 

@@ -159,6 +159,7 @@ CLASS IMPLEMENTATION CTest;
       Writer.Persistent := TRUE;
       netsrv.SetCallbackMode( netsrv.cbmPooled );
       
+      ai.V6 := TRUE;
       ai.Port := 4444;
       netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( ServerListener ), 0, NIL );
 
@@ -171,7 +172,7 @@ CLASS IMPLEMENTATION CTest;
       
       // start
       ClientSocket.Waitable := TRUE;
-      ai.SetV4( inetaddr.saLoopback );
+      ai.SetV6( inetaddr.saLoopback );
       ai.Port := 4444;
       ClientSocket.ConnectAddress( ai, windows.INFINITE );
       ClientSocket.WaitCompletion( windows.INFINITE );

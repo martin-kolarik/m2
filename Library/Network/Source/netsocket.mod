@@ -205,6 +205,32 @@ CLASS IMPLEMENTATION SSocket;
 
 (*--------------------------------------------------------------------------------*)
 
+  PUBLIC PROPERTY V6Mode GET : TV6Mode;
+  BEGIN
+    RETURN _V6Mode;
+  END V6Mode;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROPERTY V6Mode SET( Value : TV6Mode );
+  VAR
+    ai : inetaddr.INETADDR;
+  BEGIN
+    IF _V6Mode = Value THEN
+      RETURN;
+    END;
+    ai := LocalAddress;
+    CASE _V6Mode OF
+    | v6mV4, v6mPreferV4 :
+      ai.V6 := FALSE;
+    | v6mPreferV6, v6mV6 :
+      ai.V6 := TRUE;
+    END; // CASE
+    LocalAddress := ai;
+  END V6Mode;
+
+(*--------------------------------------------------------------------------------*)
+
   PUBLIC PROPERTY LocalAddress GET : inetaddr.INETADDR;
   BEGIN
     RETURN Local;
@@ -708,8 +734,7 @@ CLASS IMPLEMENTATION DSocket;
          RETURN SUPER.Open( OUT Error );
       END;
       // now solve stStream
-      Local.V6 := Remote.V6; // respect target address to use appropriate protocol
-      IF Local.V6 THEN
+      IF Remote.V6 THEN
          Socket := winsock.socket( winsock.AF_INET6, winsock.SOCK_STREAM, 0 );
       ELSE
          Socket := winsock.socket( winsock.AF_INET, winsock.SOCK_STREAM, 0 );
@@ -1140,20 +1165,50 @@ CLASS IMPLEMENTATION DSocket;
 
    LOCAL PROCEDURE OnAddressFound( Result : CARDINAL; CONST Address : ARRAY OF inetaddr.INETADDR );
    VAR
+      aiV4, aiV6 : inetaddr.INETADDR;
       Filled : CARDINAL;
+      haveV4, haveV6 : BOOLEAN := FALSE;
       i : CARDINAL;
-      v6 : BOOLEAN;
    BEGIN
       IF Result = 0 THEN
          Result := winsock.WSAHOST_NOT_FOUND;
-         v6 := Local.V6;
          FOR i := 0 TO HIGH( Address ) DO
-            IF v6 = Address[i].V6 THEN
-               Address[i].ToOA( OUT Remote, OUT Filled );
-               Result := 0;
-               EXIT;
+            IF NOT haveV6 AND Address[i].V6 THEN
+               haveV6 := TRUE;
+               Address[i].ToOA( OUT aiV6, OUT Filled );
+            ELSIF NOT haveV4 AND NOT Address[i].V6 THEN
+               haveV4 := TRUE;
+               Address[i].ToOA( OUT aiV4, OUT Filled );
             END;
          END;
+         CASE _V6Mode OF
+         | v6mV4 :
+            IF haveV4 THEN
+               Result := 0;
+               Remote := aiV4;
+            END;            
+         | v6mPreferV4 :
+            IF haveV4 THEN
+               Result := 0;
+               Remote := aiV4;
+            ELSIF haveV6 THEN
+               Result := 0;
+               Remote := aiV6;
+            END;            
+         | v6mPreferV6 :
+            IF haveV6 THEN
+               Result := 0;
+               Remote := aiV6;
+            ELSIF haveV4 THEN
+               Result := 0;
+               Remote := aiV4;
+            END;            
+         | v6mV6 :
+            IF haveV6 THEN
+               Result := 0;
+               Remote := aiV6;
+            END;            
+         END; // CASE
       END;
       SwitchContext( FD_DNS, poResolveAddress, Result );
    END OnAddressFound;
