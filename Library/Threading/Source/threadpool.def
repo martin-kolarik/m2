@@ -6,8 +6,7 @@ IMPORT
   lists,
   msghandler,
   msgqueue,
-  Sync,
-  windows;
+  Sync;
 
 #save, option( dll_export => on )
 
@@ -94,31 +93,34 @@ CLASS CThreadPool( msghandler.MessageHandler );
   PRIVATE VAR
     Threads : lists.CPtrList;
     MQueue : msgqueue.CMessageQueue;
-    _MinThreads : CARDINAL;
+    _MinThreads : CARDINAL := 1;
+    _Thread : CARDINAL; // for safety, if interface is singlethread, no call to interface from different threads is allowed
+    _Lock : Sync.LOCK; // enumeration is locked (due to multihtreaded Abort)
   PUBLIC READONLY PROPERTY
     UndeliveredMessagesPending : BOOLEAN; // mostly for debug purposes
   PUBLIC PROPERTY
     MinThreads : CARDINAL; // default is 1; moreover, the pool does not allocate all threads on start, the number of them increases lazily
   PUBLIC VAR
-    WorkerLoad : CARDINAL; // number of workers in single worker thread
-    MaxThreads : CARDINAL; // if there is no space, the RunWorker request is queued
-    SingleThreadInterface : BOOLEAN; // default TRUE, FALSE not implemented yet !!!!!
-    CompletionInOwningThread : BOOLEAN; // default FALSE
+    WorkerLoad : CARDINAL := 32; // number of workers in single worker thread
+    MaxThreads : CARDINAL := -1; // if there is no space, the RunWorker request is queued
+    SingleThreadInterface : BOOLEAN := TRUE; // default TRUE, FALSE not implemented yet !!!!!
+    CompletionInOwningThread : BOOLEAN := FALSE; // default FALSE
     
   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
   PUBLIC PROCEDURE FinishAndWait();
 
   PUBLIC PROCEDURE WaitTimeout( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
   PUBLIC PROCEDURE WaitMessage( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; OUT Handler : msghandler.TPMessageHandler; OUT Message : msghandler.Message; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
-  PUBLIC PROCEDURE WaitHandle( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; Handle : windows.HANDLE; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
+  PUBLIC PROCEDURE WaitHandle( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; Handle : Sync.WAITABLE; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
   PUBLIC PROCEDURE RunWorker( CONST Delegate : TPPoolDelegate; UserId : PTR; ForceSelfThread : BOOLEAN; Worker : TPPoolWorker; CompleteInOwningThread : BOOLEAN; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
   PUBLIC PROCEDURE WaitCompletion( PoolHandle : Sync.WAITABLE; Timeout : CARDINAL ) : Sync.TAsyncResult;
-  PUBLIC PROCEDURE Abort( REF PoolHandle : Sync.WAITABLE );
-  PUBLIC PROCEDURE AbortAll( CONST Delegate : TPPoolDelegate ); // not implemented yet
+  PUBLIC PROCEDURE Abort( REF PoolHandle : Sync.WAITABLE ); // possible to call from more threads always
+  PUBLIC PROCEDURE AbortAll( CONST Delegate : TPPoolDelegate ); // possible to call from more threads always
   
   LOCAL PROCEDURE OnThreadEmpty();
   LOCAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; Task : PTR; CONST MSG : msghandler.Message ) : BOOLEAN;
   
+  PRIVATE PROCEDURE CheckThreadInterface();
   PRIVATE PROCEDURE LookupThread( WorkerFlag : BOOLEAN; ForceSelfThread : BOOLEAN; OUT PoolThread : PTR ) : BOOLEAN;
   PRIVATE PROCEDURE DisposeThreads( RespectMinThreads : BOOLEAN );
 END CThreadPool;

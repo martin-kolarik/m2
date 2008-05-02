@@ -150,7 +150,7 @@ CLASS IMPLEMENTATION CTest;
          Count := 0;
          // initiate
          FOR i := 0 TO lcount-1 DO
-            WA[i].Delay := 1500 - i;
+            WA[i].Delay := (lcount-i) DIV 10;
             IF NOT Pool.RunWorker( ADR( Delegate ), i, FALSE, ADR( WA[i] ), FALSE, OUT PH[i] ) THEN
                Host^.Log^.LogSC( log.dlcError, L"", L"Unable to run worker of index: ", i );
                INC( Count ); // force failure reporting
@@ -189,7 +189,7 @@ CLASS IMPLEMENTATION CTest;
          Count := 0;
          // initiate
          FOR i := 0 TO lcount-1 DO
-            WA[i].Delay := 1500 - i;
+            WA[i].Delay := (lcount-i) DIV 10;
             IF NOT Pool.RunWorker( ADR( Delegate ), i, FALSE, ADR( WA[i] ), FALSE, OUT PH[i] ) THEN
                Host^.Log^.LogSC( log.dlcError, L"", L"Unable to start wait for index: ", i );
                INC( Count ); // force failure reporting

@@ -9,7 +9,8 @@ IMPORT
   lists,
   maps,
   syncqueue,
-  thread;
+  thread,
+  windows;
   
 //================================================================================
 
@@ -804,6 +805,7 @@ CLASS IMPLEMENTATION CThreadPool;
 
    PUBLIC PROPERTY UndeliveredMessagesPending GET : BOOLEAN; // mostly for debug purposes
    BEGIN
+      CheckThreadInterface();
       RETURN NOT MQueue.Empty;
    END UndeliveredMessagesPending;
 
@@ -811,6 +813,7 @@ CLASS IMPLEMENTATION CThreadPool;
 
   PUBLIC PROPERTY MinThreads GET : CARDINAL;
   BEGIN
+    CheckThreadInterface();
     RETURN _MinThreads;
   END MinThreads;
 
@@ -818,6 +821,7 @@ CLASS IMPLEMENTATION CThreadPool;
 
   PUBLIC PROPERTY MinThreads SET( Value : CARDINAL );
   BEGIN
+    CheckThreadInterface();
     _MinThreads := Value;
     IF _MinThreads < Threads.Count THEN // try to decrease threads number
       OnThreadEmpty();
@@ -866,6 +870,7 @@ CLASS IMPLEMENTATION CThreadPool;
 
   PUBLIC PROCEDURE FinishAndWait();
   BEGIN
+    CheckThreadInterface();
     DisposeThreads( FALSE );
   END FinishAndWait;
   
@@ -1022,6 +1027,7 @@ CLASS IMPLEMENTATION CThreadPool;
 
   PUBLIC PROCEDURE WaitCompletion( PoolHandle : Sync.WAITABLE; Timeout : CARDINAL ) : Sync.TAsyncResult;
   BEGIN
+    CheckThreadInterface();
     RETURN Sync.Wait( PoolHandle, Timeout );
   END WaitCompletion;
 
@@ -1032,14 +1038,18 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG : TMessage;
     Result : Sync.TAsyncResult;
   BEGIN
+    // CheckThreadInterface(); -- not checked, the method can be called from all threads
     MSG.Operation := topRemoveTask;
     MSG.HTask := PoolHandle;
+    PoolHandle := NIL;
+
+    _Lock.Lock();
     Threads.Reset();
-    WHILE Threads.MoveNext() DO
+    WHILE Threads.MoveNext() DO // deliver the message to pool threads
       Result := TPPoolThread( Threads.Current )^.ReqQueue.QueueOA( MSG, TRUE, Sync.FORSAFETY );
       ASSERT( Result <> Sync.arTimeout );
     END; // WHILE
-    PoolHandle := NIL;
+    _Lock.Unlock();
   END Abort;
 
 //--------------------------------------------------------------------------------
@@ -1049,13 +1059,17 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG : TMessage;
     Result : Sync.TAsyncResult;
   BEGIN
+    // CheckThreadInterface(); -- not checked, the method can be called from all threads
     MSG.Operation := topRemoveDelegate;
     MSG.Delegate := Delegate;
+
+    _Lock.Lock();
     Threads.Reset();
-    WHILE Threads.MoveNext() DO
+    WHILE Threads.MoveNext() DO // deliver the message to pool threads
       Result := TPPoolThread( Threads.Current )^.ReqQueue.QueueOA( MSG, TRUE, Sync.FORSAFETY );
       ASSERT( Result <> Sync.arTimeout );
     END; // WHILE
+    _Lock.Unlock();
   END AbortAll;
 
 //--------------------------------------------------------------------------------
@@ -1106,10 +1120,20 @@ CLASS IMPLEMENTATION CThreadPool;
 
 //--------------------------------------------------------------------------------
 
+   PRIVATE PROCEDURE CheckThreadInterface();
+   BEGIN
+      ASSERT( NOT SingleThreadInterface OR ( windows.GetCurrentThreadId() = _Thread ));
+   END CheckThreadInterface;
+
+//--------------------------------------------------------------------------------
+
   PRIVATE PROCEDURE LookupThread( WorkerFlag : BOOLEAN; ForceSelfThread : BOOLEAN; OUT _PoolThread : PTR ) : BOOLEAN;
   VAR
     PoolThread : TPPoolThread;
   BEGIN
+    CheckThreadInterface();
+    
+    _Lock.Lock();
     IF NOT ForceSelfThread THEN
        // lookup
        Threads.Reset();
@@ -1117,23 +1141,26 @@ CLASS IMPLEMENTATION CThreadPool;
          IF     WorkerFlag AND TPPoolThread( Threads.Current )^.AbleRunWorkers OR
             NOT WorkerFlag AND TPPoolThread( Threads.Current )^.AbleWaitHandles THEN
            _PoolThread := TPPoolThread( Threads.Current );
+           _Lock.Unlock();
            RETURN TRUE;
          END; // IF
        END; // WHILE
     END;
     IF Threads.Count >= MaxThreads THEN
       _PoolThread := NIL;
+      _Lock.Unlock();
       RETURN FALSE;
     END;
 
     NEW( PoolThread );
     PoolThread^.Init( ADR( SELF ));
-    Threads.Add( PoolThread, 0 );
-
     PoolThread^.Run( TRUE );
     WHILE PoolThread^.ReqQueue.Consumer = NIL DO // wait thread is able to process administrative messages
       Sync.Sleep( 0 );
     END; // WHILE
+
+    Threads.Add( PoolThread, 0 );
+    _Lock.Unlock();
 
     _PoolThread := PoolThread;
     RETURN TRUE;
@@ -1143,33 +1170,41 @@ CLASS IMPLEMENTATION CThreadPool;
 
   PRIVATE PROCEDURE DisposeThreads( RespectMinThreads : BOOLEAN );
   VAR
+    LocalThreads : lists.CPtrList;
     PoolThread : TPPoolThread;
     b : BOOLEAN;
   BEGIN
+    CheckThreadInterface();
+
+    _Lock.Lock();
     Threads.Reset();
     b := Threads.MoveNext();
     WHILE b DO
-      IF RespectMinThreads AND ( Threads.Count <= _MinThreads ) THEN // kill not needed threads
+      IF RespectMinThreads AND ( Threads.Count <= _MinThreads ) THEN
         EXIT;
       END;
       PoolThread := TPPoolThread( Threads.Current );
       b := Threads.MoveNext();
       IF NOT RespectMinThreads OR PoolThread^.Empty THEN
+        LocalThreads.Add( PoolThread, 0 );
         Threads.Remove( PoolThread );
-        PoolThread^.Stop( TRUE );
-        DISPOSE( PoolThread );
       END;
     END; // WHILE
+    _Lock.Unlock();
+
+    LocalThreads.Reset();
+    WHILE LocalThreads.MoveNext() DO
+      PoolThread := TPPoolThread( LocalThreads.Current );
+      PoolThread^.Stop( TRUE );
+      DISPOSE( PoolThread );
+    END; // WHILE
+    LocalThreads.Dispose();
   END DisposeThreads;
 
 //--------------------------------------------------------------------------------
 
 BEGIN
-  _MinThreads := 1;
-  WorkerLoad := 32;
-  MaxThreads := -1;
-  SingleThreadInterface := TRUE;
-  CompletionInOwningThread := FALSE;
+  _Thread := windows.GetCurrentThreadId();
   Init();
 
   MQueue.Init( 128, SIZE( TMessage ));
