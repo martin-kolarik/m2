@@ -279,7 +279,7 @@ TYPE
 TYPE
   TCommand = (
     cmRegister,
-    cmForgetPort,
+    cmForgetServer,
     cmForgetSocket,
     cmAccept,
     cmDataArrived
@@ -291,8 +291,8 @@ TYPE
                   Socket    : netsocket.TPSSocket;
                   Creator   : TPListener;
                   CloseTime : CARDINAL;
-                | cmForgetPort :
-                  Port      : CARDINAL;
+                | cmForgetServer :
+                  Server    : inetaddr.INETADDR;
                   Type      : netsocket.TSocketType;
                 | cmAccept  :
                   __        : netsocket.TPSSocket;
@@ -347,11 +347,11 @@ CLASS CIPServer( msghandler.MessageHandler );
 
   LOCAL PROCEDURE SetCallbackMode( Mode : TCallbackMode );
   LOCAL PROCEDURE StartListen( Type : netsocket.TSocketType; CONST LocalAddress : inetaddr.INETADDR; PMulticastGroup : inetaddr.TPINETADDR; PStreamCreator : TPListener; AutomaticCloseTimeMS : CARDINAL; PCreatedSocket : POINTER TO netsocket.TPSSocket ) : CARDINAL;
-  LOCAL PROCEDURE StopListenPort( Port : CARDINAL; Type : netsocket.TSocketType );
+  LOCAL PROCEDURE StopListenServer( CONST LocalAddress : inetaddr.INETADDR; Type : netsocket.TSocketType );
   LOCAL PROCEDURE StopListenSocket( Socket : netsocket.TPSSocket );
 
   PRIVATE PROCEDURE CloseSocket( Socket : netsocket.TPSSocket; Creator : TPListener; Deregister : BOOLEAN );
-  PRIVATE PROCEDURE SearchSocket( Port : CARDINAL; Type : netsocket.TSocketType; OUT Socket : netsocket.TPSSocket; OUT Creator : TPListener ) : BOOLEAN;
+  PRIVATE PROCEDURE SearchSocket( CONST Server : inetaddr.INETADDR; Type : netsocket.TSocketType; OUT Socket : netsocket.TPSSocket; OUT Creator : TPListener ) : BOOLEAN;
 END CIPServer;
 
 //================================================================================
@@ -438,8 +438,8 @@ CLASS IMPLEMENTATION CIPServer;
           StartTimer( Message.Socket, Message.CloseTime, FALSE );
         END; // IF
       //-----
-      | cmForgetPort :
-        IF SearchSocket( Message.Port, Message.Type, OUT Socket, OUT Creator ) THEN
+      | cmForgetServer :
+        IF SearchSocket( Message.Server, Message.Type, OUT Socket, OUT Creator ) THEN
           CloseSocket( Socket, Creator, TRUE );
         END;
       //-----
@@ -561,7 +561,7 @@ CLASS IMPLEMENTATION CIPServer;
 
 //--------------------------------------------------------------------------------
 
-  LOCAL PROCEDURE StopListenPort( Port : CARDINAL; Type : netsocket.TSocketType );
+  LOCAL PROCEDURE StopListenServer( CONST LocalAddress : inetaddr.INETADDR; Type : netsocket.TSocketType );
   VAR
     Message : TMessage;
     Result : Sync.TAsyncResult;
@@ -569,12 +569,12 @@ CLASS IMPLEMENTATION CIPServer;
     IF HWND = NIL THEN
       Init();
     END;
-    Message.Command := cmForgetPort;
-    Message.Port := Port;
+    Message.Command := cmForgetServer;
+    Message.Server := LocalAddress;
     Message.Type := Type;
     Result := MQueue.QueueOA( Message, TRUE, Sync.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
-  END StopListenPort;
+  END StopListenServer;
   
 //--------------------------------------------------------------------------------
 
@@ -610,14 +610,14 @@ CLASS IMPLEMENTATION CIPServer;
 
 //--------------------------------------------------------------------------------
 
-  PRIVATE PROCEDURE SearchSocket( Port : CARDINAL; Type : netsocket.TSocketType; OUT Socket : netsocket.TPSSocket; OUT Creator : TPListener ) : BOOLEAN;
+  PRIVATE PROCEDURE SearchSocket( CONST Server : inetaddr.INETADDR; Type : netsocket.TSocketType; OUT Socket : netsocket.TPSSocket; OUT Creator : TPListener ) : BOOLEAN;
   VAR
     LSocket : netsocket.TPSSocket;
   BEGIN
     Sockets.Reset();
     WHILE Sockets.MoveNext() DO
       LSocket := Sockets.Current;
-      IF ( LSocket^.LocalAddress.Port = Port ) AND ( LSocket^.Type = Type ) THEN
+      IF LSocket^.LocalAddress = Server THEN
         Socket := LSocket;
         Creator := Sockets.CurrentData;
         RETURN TRUE;
@@ -663,10 +663,10 @@ BEGIN
   RETURN IPServer.StartListen( Type, LocalAddress, PMulticastGroup, PStreamCreator, AutomaticCloseTimeMS, PCreatedSocket );
 END StartListen;
 
-PROCEDURE StopListenPort( Type : netsocket.TSocketType; Port : CARDINAL );
+PROCEDURE StopListenServer( Type : netsocket.TSocketType; CONST LocalAddress : inetaddr.INETADDR );
 BEGIN
-  IPServer.StopListenPort( Port, Type );
-END StopListenPort;
+  IPServer.StopListenServer( LocalAddress, Type );
+END StopListenServer;
 
 PROCEDURE StopListenSocket( REF Socket : netsocket.TPSSocket );
 BEGIN

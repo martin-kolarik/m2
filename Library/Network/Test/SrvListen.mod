@@ -87,7 +87,7 @@ CLASS IMPLEMENTATION CTest;
       netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( Listener ), 0, NIL );
       netsrv.StartListen( netsocket.stDatagram, ai, NIL, ADR( Listener ), 0, ADR( S ));
       netsrv.StopListenSocket( REF S );
-      netsrv.StopListenPort( netsocket.stStream, 4444 );
+      netsrv.StopListenServer( netsocket.stStream, ai );
       ai.Port := 4445;
       netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( Listener ), 500, ADR( S ));
       // V6
@@ -96,7 +96,7 @@ CLASS IMPLEMENTATION CTest;
       netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( Listener ), 0, NIL );
       netsrv.StartListen( netsocket.stDatagram, ai, NIL, ADR( Listener ), 0, ADR( S ));
       netsrv.StopListenSocket( REF S );
-      netsrv.StopListenPort( netsocket.stStream, 4444 );
+      netsrv.StopListenServer( netsocket.stStream, ai );
       ai.Port := 4445;
       netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( Listener ), 500, ADR( S ));
       // wait
@@ -120,7 +120,7 @@ CLASS IMPLEMENTATION CTest;
       netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( Listener ), 0, NIL );
       netsrv.StartListen( netsocket.stDatagram, ai, NIL, ADR( Listener ), 0, ADR( S ));
       netsrv.StopListenSocket( REF S );
-      netsrv.StopListenPort( netsocket.stStream, 4444 );
+      netsrv.StopListenServer( netsocket.stStream, ai );
       ai.Port := 4445;
       netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( Listener ), 500, ADR( S ));
       // V6
@@ -129,7 +129,7 @@ CLASS IMPLEMENTATION CTest;
       netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( Listener ), 0, NIL );
       netsrv.StartListen( netsocket.stDatagram, ai, NIL, ADR( Listener ), 0, ADR( S ));
       netsrv.StopListenSocket( REF S );
-      netsrv.StopListenPort( netsocket.stStream, 4444 );
+      netsrv.StopListenServer( netsocket.stStream, ai );
       ai.Port := 4445;
       netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( Listener ), 500, ADR( S ));
       // wait

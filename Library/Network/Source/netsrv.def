@@ -101,9 +101,9 @@ PROCEDURE StartListen(
             PCreatedSocket : POINTER TO netsocket.TPSSocket // can be NIL
           ) : CARDINAL;
 
-PROCEDURE StopListenPort(
+PROCEDURE StopListenServer(
             Type : netsocket.TSocketType;
-            Port : CARDINAL
+            CONST LocalAddress : inetaddr.INETADDR
 			);
 
 PROCEDURE StopListenSocket(

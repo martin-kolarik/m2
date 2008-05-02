@@ -426,7 +426,7 @@ CLASS IMPLEMENTATION CTest;
       
       //=====
 
-      netsrv.StopListenPort( netsocket.stStream, 4444 );
+      netsrv.StopListenServer( netsocket.stStream, ai );
 
       WaitForMessages( 100 );
       netinit.Cleanup();
