@@ -103,8 +103,8 @@ CLASS CThreadPool( msghandler.MessageHandler );
   PUBLIC VAR
     WorkerLoad : CARDINAL := 32; // number of workers in single worker thread
     MaxThreads : CARDINAL := -1; // if there is no space, the RunWorker request is queued
-    SingleThreadInterface : BOOLEAN := TRUE; // default TRUE, FALSE not implemented yet !!!!!
-    CompletionInOwningThread : BOOLEAN := FALSE; // default FALSE
+    SingleThreadInterface : BOOLEAN := TRUE;
+    CompletionInOwningThread : BOOLEAN := FALSE;
     
   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
   PUBLIC PROCEDURE FinishAndWait();
@@ -114,8 +114,8 @@ CLASS CThreadPool( msghandler.MessageHandler );
   PUBLIC PROCEDURE WaitHandle( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; Handle : Sync.WAITABLE; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
   PUBLIC PROCEDURE RunWorker( CONST Delegate : TPPoolDelegate; UserId : PTR; ForceSelfThread : BOOLEAN; Worker : TPPoolWorker; CompleteInOwningThread : BOOLEAN; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
   PUBLIC PROCEDURE WaitCompletion( PoolHandle : Sync.WAITABLE; Timeout : CARDINAL ) : Sync.TAsyncResult;
-  PUBLIC PROCEDURE Abort( REF PoolHandle : Sync.WAITABLE ); // possible to call from more threads always
-  PUBLIC PROCEDURE AbortAll( CONST Delegate : TPPoolDelegate ); // possible to call from more threads always
+  PUBLIC PROCEDURE Abort( REF PoolHandle : Sync.WAITABLE );
+  PUBLIC PROCEDURE AbortAll( CONST Delegate : TPPoolDelegate );
   
   LOCAL PROCEDURE OnThreadEmpty();
   LOCAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; Task : PTR; CONST MSG : msghandler.Message ) : BOOLEAN;

@@ -184,9 +184,10 @@ CLASS CPoolThread( thread.Thread );
     ReqQueue : msgqueue.CMessageQueue; // MessageQueue is used instead of simple DatagramQueue, because it simplifies concurrent usage of messages (administrative and WaitMessage). If one creates WaitMessage and immediatelly send the message, message queue assures correct ordering without any add-on handling.
     Messager : msghandler.MessageHandler;
   LOCAL VAR
-    HandlesCount : CARDINAL; // synchronized version of unsafe Handles.Count, the count is used to limit amount of messages/handles/workers in the thread. It is not SingleThreadInterface = FALSE yet.
-    WorkersCount : CARDINAL; // synchronized version of unsafe Workers.Count, the count is used to limit amount of messages/handles/workers in the thread. It is not SingleThreadInterface = FALSE yet.
-    MessagesCount : CARDINAL; // synchronized version of unsafe Messages.Count, the count is used to limit amount of messages/handles/workers in the thread. It is not SingleThreadInterface = FALSE yet.
+    TasksCount : CARDINAL; // synchronized version of unsafe HTasks.Count, the count is used to determine if thread is empty.
+    HandlesCount : CARDINAL; // synchronized version of unsafe Handles.Count, the count is used to limit amount of messages/handles/workers in the thread.
+    WorkersCount : CARDINAL; // synchronized version of unsafe Workers.Count, the count is used to limit amount of messages/handles/workers in the thread.
+    MessagesCount : CARDINAL; // synchronized version of unsafe Messages.Count, the count is used to limit amount of messages/handles/workers in the thread.
   LOCAL READONLY PROPERTY
     Empty : BOOLEAN;
     AbleWaitHandles : BOOLEAN;
@@ -417,7 +418,7 @@ CLASS IMPLEMENTATION CPoolThread;
 
   LOCAL READONLY PROPERTY Empty GET : BOOLEAN;
   BEGIN
-    RETURN Handles.Empty AND Messages.Empty AND Workers.Empty AND ReqQueue.Empty;
+    RETURN Sync.IGet( REF TasksCount ) = 0;
   END Empty;
 
 //--------------------------------------------------------------------------------
@@ -731,6 +732,7 @@ CLASS IMPLEMENTATION CPoolThread;
   BEGIN
     IF RemoveTask THEN
       HTasks.Remove( Task^.HWait );
+      Sync.IDec( REF TasksCount );
     ELSE
       DisposeTask := FALSE; // for safety
     END;
@@ -759,6 +761,7 @@ CLASS IMPLEMENTATION CPoolThread;
     ReqQueue.Init( 128, SIZE( TMessage ));
     WithMessages := TRUE;
     WaitArray.Strategy := array.astrgListInArray;
+    TasksCount := 0;
     HandlesCount := 0;
     WorkersCount := 0;
     MessagesCount := 0;
@@ -882,9 +885,15 @@ CLASS IMPLEMENTATION CThreadPool;
     PoolThread : TPPoolThread;
     Result : Sync.TAsyncResult;
   BEGIN
+    CheckThreadInterface();
+    
+    _Lock.Lock();
     IF NOT LookupThread( FALSE, FALSE, OUT PoolThread ) THEN
+      _Lock.Unlock();
       RETURN FALSE;
     END;
+    Sync.IInc( REF PoolThread^.TasksCount );
+    _Lock.Unlock();
 
     IF Delegate <> NIL THEN
       Delegate^.AddRef();
@@ -918,9 +927,16 @@ CLASS IMPLEMENTATION CThreadPool;
     PoolThread : TPPoolThread;
     Result : Sync.TAsyncResult;
   BEGIN
+    CheckThreadInterface();
+    
+    _Lock.Lock();
     IF NOT LookupThread( FALSE, FALSE, OUT PoolThread ) THEN
+      _Lock.Unlock();
       RETURN FALSE;
     END;
+    Sync.IInc( REF PoolThread^.TasksCount );
+    Sync.IInc( REF PoolThread^.MessagesCount ); // do it as the first, here, as interface is single threaded only now
+    _Lock.Unlock();
 
     IF Delegate <> NIL THEN
       Delegate^.AddRef();
@@ -944,7 +960,6 @@ CLASS IMPLEMENTATION CThreadPool;
     Message[1] := MSG.Task^.Data;
     Handler := ADR( PoolThread^.Messager );
 
-    Sync.IInc( REF PoolThread^.MessagesCount ); // do it as the first, here, as interface is single threaded only now
     Result := PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
     RETURN Result = Sync.arCompleted;
@@ -958,9 +973,16 @@ CLASS IMPLEMENTATION CThreadPool;
     PoolThread : TPPoolThread;
     Result : Sync.TAsyncResult;
   BEGIN
+    CheckThreadInterface();
+    
+    _Lock.Lock();
     IF NOT LookupThread( FALSE, FALSE, OUT PoolThread ) THEN
+      _Lock.Unlock();
       RETURN FALSE;
     END;
+    Sync.IInc( REF PoolThread^.TasksCount );
+    Sync.IInc( REF PoolThread^.HandlesCount ); // do it as the first, here, as interface is single threaded only now
+    _Lock.Unlock();
 
     IF Delegate <> NIL THEN
       Delegate^.AddRef();
@@ -982,7 +1004,6 @@ CLASS IMPLEMENTATION CThreadPool;
     // return value
     PoolHandle := MSG.Task^.HWait;
 
-    Sync.IInc( REF PoolThread^.HandlesCount ); // do it as the first, here, as interface is single threaded only now
     Result := PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
     RETURN Result = Sync.arCompleted;
@@ -996,9 +1017,16 @@ CLASS IMPLEMENTATION CThreadPool;
     PoolThread : TPPoolThread;
     Result : Sync.TAsyncResult;
   BEGIN
+    CheckThreadInterface();
+    
+    _Lock.Lock();
     IF NOT LookupThread( TRUE, ForceSelfThread, OUT PoolThread ) THEN
+      _Lock.Unlock();
       RETURN FALSE;
     END;
+    Sync.IInc( REF PoolThread^.TasksCount );
+    Sync.IInc( REF PoolThread^.WorkersCount ); // do it as the first, here, as interface is single threaded only now
+    _Lock.Unlock();
 
     IF Delegate <> NIL THEN
       Delegate^.AddRef();
@@ -1017,7 +1045,6 @@ CLASS IMPLEMENTATION CThreadPool;
     // return value
     PoolHandle := MSG.Task^.HWait;
 
-    Sync.IInc( REF PoolThread^.WorkersCount ); // do it as the first, here, as interface is single threaded only now
     Result := PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
     RETURN Result = Sync.arCompleted;
@@ -1131,9 +1158,6 @@ CLASS IMPLEMENTATION CThreadPool;
   VAR
     PoolThread : TPPoolThread;
   BEGIN
-    CheckThreadInterface();
-    
-    _Lock.Lock();
     IF NOT ForceSelfThread THEN
        // lookup
        Threads.Reset();
@@ -1141,14 +1165,12 @@ CLASS IMPLEMENTATION CThreadPool;
          IF     WorkerFlag AND TPPoolThread( Threads.Current )^.AbleRunWorkers OR
             NOT WorkerFlag AND TPPoolThread( Threads.Current )^.AbleWaitHandles THEN
            _PoolThread := TPPoolThread( Threads.Current );
-           _Lock.Unlock();
            RETURN TRUE;
          END; // IF
        END; // WHILE
     END;
     IF Threads.Count >= MaxThreads THEN
       _PoolThread := NIL;
-      _Lock.Unlock();
       RETURN FALSE;
     END;
 
@@ -1158,9 +1180,7 @@ CLASS IMPLEMENTATION CThreadPool;
     WHILE PoolThread^.ReqQueue.Consumer = NIL DO // wait thread is able to process administrative messages
       Sync.Sleep( 0 );
     END; // WHILE
-
     Threads.Add( PoolThread, 0 );
-    _Lock.Unlock();
 
     _PoolThread := PoolThread;
     RETURN TRUE;
