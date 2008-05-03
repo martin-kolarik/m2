@@ -214,6 +214,7 @@ CLASS CDriver( msghandler.MessageHandler );
   Groups        : list.CList;
   RemovedClients: list.CList;
   GlobalKey     : sha256.TDigest;
+  Delimiter     : WCHAR := WCHAR(":");
 
   Packet        : StorageO.CMemoryBuffer;
   Events        : list.CList;
@@ -382,6 +383,7 @@ CLASS IMPLEMENTATION CDriver;
     // .PAR section names
     snDevice               = L'NetMsg';
       knKey                = L'key';
+      knDelimiter          = L'delimiter';
     // .PAR key names
     snRecordType           = L'record_type';
     snRecord               = L'record';
@@ -461,6 +463,14 @@ CLASS IMPLEMENTATION CDriver;
       ELSE
         INCL( RStatus, rsGlobalKey );
         digest.DigestOA( digest.sha256, OA( cs.Length-1, cs.rawData ), OUT GlobalKey );
+      END;
+    END;
+    IF TS.GetKeyStr( knDelimiter, OUT ErrorLine, OUT cs ) THEN
+      IF cs.Length <> 1 THEN
+        ASSIGN( ErrorMessage, OAsz( R[ Texts._DelimiterTooLong ] ));
+        GOTO Fail;
+      ELSE
+        Delimiter := cs[0];
       END;
     END;
 
@@ -837,6 +847,7 @@ CLASS IMPLEMENTATION CDriver;
           Events.Remove( PELE );
 
           CASE PELE^.Event.Event OF
+          //-----
           | evConnect :
             IF SearchNet( REF Clients, PELE^.Event.Address, PClientLE ) THEN
               ASSIGN( Name, PClientLE^.Name );
@@ -847,17 +858,19 @@ CLASS IMPLEMENTATION CDriver;
             END;
             IF Name[0] = L'$' THEN // PClientLE is server stub
                IF PELE^.Event.Local THEN
-                 SW.FromOA( L'server_connect:' );
+                 SW.FromOA( L'server_connect' );
                ELSE
-                 SW.FromOA( L'client_connect:' );
+                 SW.FromOA( L'client_connect' );
                END;
             ELSE
                IF PELE^.Event.Local THEN
-                 SW.FromOA( L'client_connect:' );
+                 SW.FromOA( L'client_connect' );
                ELSE
-                 SW.FromOA( L'server_connect:' );
+                 SW.FromOA( L'server_connect' );
                END;
             END;
+            SW.AppendOA( Delimiter );
+          //-----
           | evDisconnect :
             IF SearchNet( REF Clients, PELE^.Event.Address, PClientLE ) THEN
               ASSIGN( Name, PClientLE^.Name );
@@ -873,36 +886,42 @@ CLASS IMPLEMENTATION CDriver;
             END;
             IF Name[0] = L'$' THEN // disconnected is server stub
                IF PELE^.Event.Local THEN
-                 SW.FromOA( L'server_disconnect:' );
+                 SW.FromOA( L'server_disconnect' );
                ELSE
-                 SW.FromOA( L'client_disconnect:' );
+                 SW.FromOA( L'client_disconnect' );
                END;
                // finish remove from OnDisconnect
                Clients.Remove( PClientLE );
                DISPOSE( PClientLE );
             ELSE
                IF PELE^.Event.Local THEN
-                 SW.FromOA( L'client_disconnect:' );
+                 SW.FromOA( L'client_disconnect' );
                ELSE
-                 SW.FromOA( L'server_disconnect:' );
+                 SW.FromOA( L'server_disconnect' );
                END;
             END;
+            SW.AppendOA( Delimiter );
+          //-----
           | evDataReceived1 :
             ASSIGN( Name, PELE^.Event.PReceiveClient^.Name );
             ASSIGN( Group, PELE^.Event.PReceiveClient^.Group );
             IF Name[0] = L'$' THEN
-              SW.FromOA( L'client_data:' );
+              SW.FromOA( L'client_data' );
             ELSE
-              SW.FromOA( L'server_data:' );
+              SW.FromOA( L'server_data' );
             END;
+            SW.AppendOA( Delimiter );
+          //-----
           | evStructReceived1 :
             ASSIGN( Name, PELE^.Event.PReceiveClient^.Name );
             ASSIGN( Group, PELE^.Event.PReceiveClient^.Group );
             IF Name[0] = L'$' THEN
-              SW.FromOA( L'client_record:' );
+              SW.FromOA( L'client_record' );
             ELSE
-              SW.FromOA( L'server_record:' );
+              SW.FromOA( L'server_record' );
             END;
+            SW.AppendOA( Delimiter );
+          //-----
           | evDataReceived2Success, evStructReceived2Success :
             CASE PELE^.Event.PPacket^.TR OF
             | trString :
@@ -938,8 +957,9 @@ CLASS IMPLEMENTATION CDriver;
                   SW.ItemS( structItemSep, 0, 0, FALSE, OUT S );
                   SW := S;
 					  
-					END;
+		         END;
             END;
+          //-----
           | evDataReceived2BadCRC, evStructReceived2BadCRC :
             SW.FromOA( L'$badcrc' );
           END; // CASE
@@ -962,7 +982,7 @@ CLASS IMPLEMENTATION CDriver;
 
           CASE PELE^.Event.Event OF
           | evConnect, evDisconnect, evDataReceived1, evStructReceived1 :
-            SW.AppendOA( L":" );
+            SW.AppendOA( Delimiter );
             IF Group[0] <> WCHAR( 0 ) THEN
               SW.AppendOA( Group );
               SW.AppendOA( L"." );
@@ -972,7 +992,7 @@ CLASS IMPLEMENTATION CDriver;
 
           CASE PELE^.Event.Event OF
           | evConnect, evDisconnect :
-            SW.AppendOA( L":" );
+            SW.AppendOA( Delimiter );
             Strings.FromCARD32W( PELE^.Event.Error, 10, OUT n );
             SW.AppendOA( n );
           END;
@@ -1490,6 +1510,7 @@ CLASS IMPLEMENTATION CDriver;
 
   PROCEDURE InitToDefault();
   BEGIN
+    Delimiter := L":";
   END InitToDefault;
 
 //--------------------------------------------------------------------------------

@@ -42,6 +42,10 @@
             <item lang="en-US">Key must be at least 32 characters long</item>
             <item lang="cs-CZ">Klíč musí mít nejméně 32 znaků</item>
         </string>
+        <string name="_DelimiterTooLong">
+            <item lang="en-US">Delimiter must be one character</item>
+            <item lang="cs-CZ">Oddělovač musí být jeden znak</item>
+        </string>
 
         <string name="_MissingNameOfRecordType">
             <item lang="en-US">"name" key of "record_type" is missing</item>

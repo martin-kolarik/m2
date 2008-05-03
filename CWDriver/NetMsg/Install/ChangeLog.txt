@@ -1,14 +1,14 @@
 Version DEBUG 1.1.1490 24.3.2008
 - BUG: r1443-5, for multiprocessor machines receive and send queues can be left
        in incoherent state. Until there appeared new explicit send or receive request
-       nothing were transferred. For driver, where read operations are automatic,
+       nothing was transferred. For driver, where read operations are automatic,
        it could lead to stop of receiving (until peer side sent something).
 - BUG: r1452, r1489, CW2000 did not work with the driver, there was missing support
        for CW2K strings for both set and get operations
 - BUG: r1419, r1430, receive queue could have get full without signalizing reader.
        For driver it could cause indefinite stop of receiving.
 - BUG: r1377, internal network handler could have been used for socket notifications
-       before it was full prepared. This could have resulted to silent no-functional
+       before it was fully prepared. This could have resulted to silent no-functional
        behavior from driver start.
 
 Version DEBUG 1.1.1306 1.11.2007
