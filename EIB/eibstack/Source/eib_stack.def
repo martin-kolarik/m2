@@ -353,7 +353,7 @@ TYPE
             END; // RECORD
 
 CLASS CEIBStackLinkLayer( CEIBStackLayer );
-  CS           : windows.CRITICAL_SECTION;
+  Lock         : sync.LOCK;
   L_Parameters : TL_Parameters;
   L_Data       : TL_Data;
 

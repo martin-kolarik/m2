@@ -9,7 +9,7 @@ IMPORT
    core,
    Delegate,
    eibnet,
-   netsocket,
+   inetaddr,
    StringsO,
    Sync;
 
@@ -24,8 +24,8 @@ CLASS CServer;
       Description     : StringsO.CString;
       ServiceFamilies : core.TServiceFamilies;
       MAC             : StringsO.CString;
-      Address         : netsocket.INETADDR;
-      RoutingAddress  : netsocket.INETADDR;
+      Address         : inetaddr.INETADDR;
+      RoutingAddress  : inetaddr.INETADDR;
 END CServer;
 
 (*--------------------------------------------------------------------------------*)

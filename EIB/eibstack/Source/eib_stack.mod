@@ -207,7 +207,7 @@ CLASS IMPLEMENTATION CTimeouter;
   BEGIN
     IF SUPER.OnMessage( MSG, OUT Result ) THEN
       RETURN TRUE;
-    ELSIF MSG.Message = msghandler.MsgBase THEN
+    ELSIF MSG.Message = msghandler.MsgBase() THEN
       PLayer^.Timeout( TTimeoutId( LOPTRLONGWORD( MSG[3] )), LONGWORD( LOPTRLONGWORD( MSG[2] )));
     ELSE
       RETURN FALSE;
@@ -240,7 +240,7 @@ CLASS IMPLEMENTATION CTimeouter;
     MSG : msghandler.Message;
   BEGIN
     IF _TimeoutDelay = 0 THEN
-      MSG[1] := msghandler.MsgBase;
+      MSG[1] := msghandler.MsgBase();
       MSG[2] := PTR( _UserId );
       MSG[3] := PTR( _TimeoutId );
       Message( MSG, msghandler.delDefault, NIL );
@@ -687,7 +687,7 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
     ASSERT( L_Data.State <> lsWaitResetCon );
     L_Data.State := lsWaitResetCon;
 
-    windows.InitializeCriticalSection( ADR( CS ));
+    Lock.Init( sync.ltCS, L"", FALSE );
     L_Data.Queue.Init( ADR( L_Parameters.PriorityDistribution ));
 
     SUPER.Initialize_Req();
@@ -719,7 +719,6 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
     L_Data.BUSYDelayer.Stop();
     L_Data.SendDelayer.Stop();
     L_Data.Listeners.Dispose();
-    windows.DeleteCriticalSection( ADR( CS ));
     SUPER.Done_Con( Status );
   END Done_Con;
 
@@ -768,14 +767,14 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
 
   PROCEDURE Enter();
   BEGIN
-    windows.LeaveCriticalSection( ADR( CS ));
+    Lock.Lock();
   END Enter;
 
 (*--------------------------------------------------------------------------------*)
 
   PROCEDURE Leave();
   BEGIN
-    windows.LeaveCriticalSection( ADR( CS ));
+    Lock.Unlock();
   END Leave;
 
 (*--------------------------------------------------------------------------------*)
@@ -1108,7 +1107,6 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
 
 BEGIN
   LayerType := eltLink;
-  Storage.Zero( ADR( CS ), SIZE( CS ));
 
   L_Parameters.LinkMode := lmNormal;
   L_Parameters.NAK_Retry := 3;

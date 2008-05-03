@@ -12,9 +12,9 @@ CLASS IMPLEMENTATION HostProtocolAddressInformation;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Address GET : netsocket.INETADDR;
+   PUBLIC PROPERTY Address GET : inetaddr.INETADDR;
    VAR
-      ai : netsocket.INETADDR;
+      ai : inetaddr.INETADDR;
    BEGIN
       ai.FromV4( _IPAddress );
       ai.Port := Port;
@@ -23,7 +23,7 @@ CLASS IMPLEMENTATION HostProtocolAddressInformation;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Address SET( CONST Value : netsocket.INETADDR );
+   PUBLIC PROPERTY Address SET( CONST Value : inetaddr.INETADDR );
    BEGIN
       Value.ToV4( OUT _IPAddress );
       Port := Value.Port;
@@ -46,7 +46,7 @@ CLASS IMPLEMENTATION HostProtocolAddressInformation;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   _IPAddress := netsocket.IPV4_EMPTY;
+   _IPAddress := inetaddr.IPV4_EMPTY;
 END HostProtocolAddressInformation;
 
 (*================================================================================*)
@@ -106,14 +106,14 @@ CLASS IMPLEMENTATION HPAIPacket;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Address GET : netsocket.INETADDR;
+   PUBLIC PROPERTY Address GET : inetaddr.INETADDR;
    BEGIN
       RETURN _HPAI.Address;
    END Address;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Address SET( CONST Value : netsocket.INETADDR );
+   PUBLIC PROPERTY Address SET( CONST Value : inetaddr.INETADDR );
    BEGIN
       _HPAI.Address := Value;
    END Address;
@@ -218,9 +218,9 @@ CLASS IMPLEMENTATION SearchResponse;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY RoutingAddress GET : netsocket.INETADDR;
+   PUBLIC PROPERTY RoutingAddress GET : inetaddr.INETADDR;
    VAR
-      ai : netsocket.INETADDR;
+      ai : inetaddr.INETADDR;
    BEGIN
       ai.FromV4( _DIB.RoutingAddress );
       RETURN ai;
@@ -311,9 +311,9 @@ CLASS IMPLEMENTATION DescriptionResponse;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY RoutingAddress GET : netsocket.INETADDR;
+   PUBLIC PROPERTY RoutingAddress GET : inetaddr.INETADDR;
    VAR
-      ai : netsocket.INETADDR;
+      ai : inetaddr.INETADDR;
    BEGIN
       ai.FromV4( _DIB.RoutingAddress );
       RETURN ai;

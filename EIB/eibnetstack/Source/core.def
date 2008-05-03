@@ -5,7 +5,7 @@ FROM Storage IMPORT
 
 IMPORT
    eib_def,
-   netsocket,
+   inetaddr,
    StringsO;
 
 (*================================================================================*)
@@ -121,10 +121,10 @@ CLASS HostProtocolAddressInformation;
    LOCAL VAR
       _HPAILength       : CARD8 := 8; // default
       _HostProtocolCode : THostProtocolCode := IPV4_UDP;
-      _IPAddress        : netsocket.TIPV4;
+      _IPAddress        : inetaddr.TIPV4;
       _Port             : CARD16 := REVERSE( CARD16( EIBNET_IPPORT ));
    PUBLIC PROPERTY
-      Address : netsocket.INETADDR;
+      Address : inetaddr.INETADDR;
       Port    : CARDINAL;
 END HostProtocolAddressInformation;
 
@@ -137,7 +137,7 @@ TYPE
                 PhysicalAddress : eib_def.TPacketAddress;
                 ProjectId       : CARD16;
                 SerialNo        : ARRAY [0..5] OF BYTE;
-                RoutingAddress  : netsocket.TIPV4;
+                RoutingAddress  : inetaddr.TIPV4;
                 MAC             : ARRAY [0..5] OF BYTE;
                 Name            : ARRAY [0..29] OF CHAR;
              END; // RECORD
@@ -175,7 +175,7 @@ ABSTRACT CLASS HPAIPacket( Packet );
       _HPAI   : HostProtocolAddressInformation;
    PUBLIC PROPERTY
       HPAI    : HostProtocolAddressInformation;
-      Address : netsocket.INETADDR;
+      Address : inetaddr.INETADDR;
       Port    : CARDINAL;
 END HPAIPacket;
 #restore
@@ -200,7 +200,7 @@ CLASS SearchResponse( HPAIPacket );
       Name              : StringsO.CString;
       MAC               : StringsO.CString;
       PhysicalAddress   : eib_def.TAddress;
-      RoutingAddress    : netsocket.INETADDR;
+      RoutingAddress    : inetaddr.INETADDR;
 END SearchResponse;
 #restore
 
@@ -225,7 +225,7 @@ CLASS DescriptionResponse( Packet );
       Name              : StringsO.CString;
       MAC               : StringsO.CString;
       PhysicalAddress   : eib_def.TAddress;
-      RoutingAddress    : netsocket.INETADDR;
+      RoutingAddress    : inetaddr.INETADDR;
       ManufacturerId    : CARD16;
 END DescriptionResponse;
 #restore

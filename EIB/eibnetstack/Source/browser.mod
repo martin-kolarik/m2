@@ -80,7 +80,7 @@ CLASS IMPLEMENTATION CBrowser;
 
    INTERNAL VIRTUAL PROCEDURE OnSearchResponse( CONST packet : core.SearchResponse );
    VAR
-      ai : netsocket.INETADDR;
+      ai : inetaddr.INETADDR;
       Server : TPServer;
       String : ARRAY [0..63] OF WCHAR;
    BEGIN

@@ -88,6 +88,7 @@ IMPORT
 
 IMPORT
    INIFile,
+   inetaddr,
    netsocket,
    netsrv,
    TextReader;
@@ -350,15 +351,21 @@ CLASS IMPLEMENTATION CSDAPServer;
 //--------------------------------------------------------------------------------
 
   LOCAL PROCEDURE Start();
+  VAR
+    ai : inetaddr.INETADDR;
   BEGIN
-    netsrv.StartListen( netsocket.stStream, 6007, NIL, Listener, 0, NIL );
+    ai.Port := 6007;
+    netsrv.StartListen( netsocket.stStream, ai, NIL, Listener, 0, NIL );
   END Start;
 
 //--------------------------------------------------------------------------------
 
   LOCAL PROCEDURE Stop();
+  VAR
+    ai : inetaddr.INETADDR;
   BEGIN
-    netsrv.StopListenPort( netsocket.stStream, 6007 );
+    ai.Port := 6007;
+    netsrv.StopListenServer( netsocket.stStream, ai );
     // kill all connections
   END Stop;
 
@@ -390,6 +397,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       parametersFound : CARDINAL;
       PObject : TPObject;
       s : ARRAY [0..1] OF StringsO.CString; // sub parameters
+      sd : ARRAY [0..63] OF WCHAR;
       Subcommand : TsdapSubcommand;
       b : BOOLEAN;
    BEGIN
@@ -398,7 +406,8 @@ CLASS IMPLEMENTATION CSDAPServer;
          d.Length := d.Length - 2;
       END;
       Log.logger()^.LogSS( Log.dldDebug, L"sdap", "RCV: ", OA( d.Length-1, d.rawData ));
-      Log.logger()^.LogSH( Log.dldDebug, L"sdap", "from: ", PConnection^.RemoteAddress.s_addr );
+      PConnection^.RemoteAddress.GetAddressOA( TRUE, OUT sd );
+      Log.logger()^.LogSS( Log.dldDebug, L"sdap", "from: ", sd );
 
       d.SplitS( StringsO.WCHARS{L' '}, 0, TRUE, OUT parametersFound, OUT p );
       p[0].Lowerize();
@@ -487,7 +496,8 @@ CLASS IMPLEMENTATION CSDAPServer;
       CASE Command OF
       //-----
       | sdapEXIT :
-         Log.logger()^.LogSH( Log.dldTrace, L"sdap", "EXIT from: ", PConnection^.RemoteAddress.s_addr );
+         PConnection^.RemoteAddress.GetAddressOA( TRUE, OUT sd );
+         Log.logger()^.LogSS( Log.dldTrace, L"sdap", "EXIT from: ", sd );
 
          ACK( PConnection, sdap200 );
          Disconnect( NIL, PConnection );

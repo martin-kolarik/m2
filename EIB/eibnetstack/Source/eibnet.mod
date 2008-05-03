@@ -82,16 +82,16 @@ CLASS IMPLEMENTATION CConnection;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY RemoteAddress GET : netsocket.INETADDR; // routing or remote address
+   PUBLIC PROPERTY RemoteAddress GET : inetaddr.INETADDR; // routing or remote address
    BEGIN
       RETURN HPAIData.Address;
    END RemoteAddress;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY RemoteAddress SET( CONST Value : netsocket.INETADDR ); // routing or remote address
+   PUBLIC PROPERTY RemoteAddress SET( CONST Value : inetaddr.INETADDR ); // routing or remote address
    VAR
-      Address : netsocket.INETADDR;
+      Address : inetaddr.INETADDR;
       wasConnected : BOOLEAN := NOT Disconnected;
    BEGIN
       Address := HPAIData.Address;
@@ -105,7 +105,7 @@ CLASS IMPLEMENTATION CConnection;
       // set itself
       HPAIData.Address := Value;
       IF Value.Multicast THEN
-         HPAIData.Port := core.EIBNET_IPPORT;
+         HPAIData.Port := core.EIBNET_IPPORT; // to be sure
       ELSE
          HPAICtrl.Address := Value;
       END;
@@ -221,7 +221,7 @@ CLASS IMPLEMENTATION CConnection;
 
    PUBLIC PROCEDURE Connect( Timeout : CARDINAL ) : Sync.TAsyncResult;
    VAR
-      ai : netsocket.INETADDR;
+      ai : inetaddr.INETADDR;
       cr : core.ConnectRequest;
       l : CARDINAL;
       timeout : CARDINAL := 0;
@@ -240,11 +240,12 @@ CLASS IMPLEMENTATION CConnection;
          ELSE
             timeout := Timeout;
          END;
-         b := netsrv.StartListen( netsocket.stDatagram, 0, NIL, Listener, timeout, ADR( Socket )) = 0;
+         b := netsrv.StartListen( netsocket.stDatagram, ai, NIL, Listener, timeout, ADR( Socket )) = 0;
       | cmRouting :
-         b := netsrv.StartListen( netsocket.stDatagram, core.EIBNET_IPPORT, NIL, Listener, 0, ADR( Socket )) = 0;
+         ai.Port := core.EIBNET_IPPORT;
+         b := netsrv.StartListen( netsocket.stDatagram, ai, NIL, Listener, 0, ADR( Socket )) = 0;
       ELSE
-         b := netsrv.StartListen( netsocket.stDatagram, 0, NIL, Listener, timeout, ADR( Socket )) = 0;
+         b := netsrv.StartListen( netsocket.stDatagram, ai, NIL, Listener, timeout, ADR( Socket )) = 0;
       END;
       IF b THEN
          logger()^.LogSP( dldTrace, L"EIBNet Connection", L"CONNECT request: ", Socket );
@@ -256,15 +257,14 @@ CLASS IMPLEMENTATION CConnection;
       IF _Mode = cmTunnelingBlind THEN
         HPAISelf.Port := 0;
       ELSE
-        HPAISelf.Port := Socket^.LocalPort;
+        HPAISelf.Port := Socket^.LocalAddress.Port;
       END;
 
       CASE _Mode OF
       //-----
       | cmScanning :
-         ai.SetAddressOA( core.EIBNET_DISCOVERY_ADDRESS );
+         ai.SetAddressOA( core.EIBNET_DISCOVERY_ADDRESS, core.EIBNET_IPPORT );
          Socket^.MulticastGroup := ai;
-         Socket^.MulticastPort := core.EIBNET_IPPORT;
          IOState := ioReady;
 
          logger()^.LogSP( dldTrace, L"EIBNet Connection", L"CONNECTed in SCANNING mode: ", Socket );
@@ -272,7 +272,6 @@ CLASS IMPLEMENTATION CConnection;
       //-----
       | cmRouting :
          Socket^.MulticastGroup := HPAIData.Address;
-         Socket^.MulticastPort := core.EIBNET_IPPORT;
          IOState := ioReady;
          OnConnect();
 
@@ -285,14 +284,14 @@ CLASS IMPLEMENTATION CConnection;
       END;
 
       IF _Mode = cmTunnelingHPAI THEN
-         dns.GetLocalIPs( TRUE, FALSE, OUT OA( 0, ADR( ai )), OUT l );
-         ai.Port := Socket^.LocalPort;
+         dns.GetLocalIPs( TRUE, FALSE, FALSE, OUT OA( 0, ADR( ai )), OUT l );
+         ai.Port := Socket^.LocalAddress.Port;
          HPAISelf.Address := ai;
       ELSIF _Mode = cmTunnelingBlind THEN
-         ai.SetV4( netsocket.saEmpty );
+         ai.SetV4( inetaddr.saEmpty );
          HPAISelf.Address := ai;
-      ELSE // TODO, FIXME, how to handle/check ports?
-         HPAISelf.Port := Socket^.LocalPort;
+      ELSE
+         HPAISelf.Port := Socket^.LocalAddress.Port;
       END;
       
       cr.ControlHPAI := HPAISelf;

@@ -13,7 +13,7 @@ IMPORT
    dns,
    eib_def,
    eibnet,
-   netsocket,
+   inetaddr,
    Strings,
    Sync;
 
@@ -43,7 +43,7 @@ CLASS EIBNetPhysicalLayer( eib_stack.CEIBStackPhysicalLayer );
       Connection : CStackConnection;
    PUBLIC PROPERTY
       Mode : eibnet.TConnectionMode;
-      RemoteAddress : netsocket.INETADDR; // routing or remote/tunneling address
+      RemoteAddress : inetaddr.INETADDR; // routing or remote/tunneling address
 
    PUBLIC PROCEDURE Connect() : Sync.TAsyncResult;
    PUBLIC PROCEDURE Connected() : BOOLEAN;
@@ -127,14 +127,14 @@ CLASS IMPLEMENTATION EIBNetPhysicalLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY RemoteAddress GET : netsocket.INETADDR;
+   PUBLIC PROPERTY RemoteAddress GET : inetaddr.INETADDR;
    BEGIN
       RETURN Connection.RemoteAddress;
    END RemoteAddress;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY RemoteAddress SET( CONST Value : netsocket.INETADDR );
+   PUBLIC PROPERTY RemoteAddress SET( CONST Value : inetaddr.INETADDR );
    BEGIN
       Connection.RemoteAddress := Value;
    END RemoteAddress;
@@ -276,7 +276,7 @@ CLASS IMPLEMENTATION CEIBNetStack;
 
    INTERNAL VIRTUAL PROCEDURE ParseParameter( CONST Parameter, Value : ARRAY OF WCHAR; OUT ErrorText : ARRAY OF WCHAR ) : TRISTATE; // -1 means unknown/unprocessed
    VAR
-      Addr : netsocket.INETADDR;
+      Addr : inetaddr.INETADDR;
    BEGIN
       IF EQUALS( Parameter, L"link.mode" ) THEN
          IF EQUALS( Value, L"routing" ) THEN
@@ -292,11 +292,9 @@ CLASS IMPLEMENTATION CEIBNetStack;
 
       ELSIF EQUALS( Parameter, L"link.connection" ) THEN
          ErrorText := L"Expected DNS name | IP address optionally followed by colon and port number (like 10.0.0.1:3778)";
-
-         Addr.SetAddressOA( Value ); // DNS !!!
-         // ELSIF NOT dns.NameToAddressWait( s1, 2000, OUT Addr ) THEN
-         //   RETURN 0;
-         // END;
+         IF NOT dns.NameToAddressWait( Value, core.EIBNET_IPPORT, 2000, OUT OA( 0, ADR( Addr ))) THEN
+            RETURN 0;
+         END;
          TPEIBNetPhysicalLayer( Layers[ eib_stack.eltPhysical ] )^.RemoteAddress := Addr;
          
       ELSE
