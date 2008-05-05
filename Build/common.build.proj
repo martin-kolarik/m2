@@ -434,7 +434,7 @@
         <CompileCPPsDEP>$(UserPreCPP);Modula2InitCPP;CPPs</CompileCPPsDEP>
     </PropertyGroup>
     <Target Name="Objects" Condition="@(CPPs)!='' Or @(ExportToInterface)!=''"
-            DependsOnTargets="$(UserPreCompile);MessagesDef;LicensingSource;PrepareIDL;GrabOutOfDateFiles;TouchOutOfDateFiles;$(CompileCPPsDEP);$(UserPostCPP);$(UserPreOBJ)"
+            DependsOnTargets="$(UserPreCompile);MessagesDef;LicensingSource;GrabOutOfDateFiles;TouchOutOfDateFiles;$(CompileCPPsDEP);$(UserPostCPP);$(UserPreOBJ)"
             Inputs="@(CPPsDir)" Outputs="@(CPPsDir -> '$(IntermediateDir)\%(Filename).obj')">
         <Exec WorkingDirectory="$(IntermediateDir)"
               Command="$(CL) $(CLDEF) @(CPPsDir ->'%(FileName)%(Extension)', ' ')"/>
@@ -471,7 +471,7 @@
 
     <Target Name="BuildResources"
             Condition="$(Result)!='Static'"
-            DependsOnTargets="CreateRCFile"
+            DependsOnTargets="PrepareIDL;CreateRCFile"
             Inputs="$(RCFile)"
             Outputs="@(RESFile)">
         <Exec WorkingDirectory="$(IntermediateDir)"
