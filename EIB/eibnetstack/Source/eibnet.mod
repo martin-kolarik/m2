@@ -263,6 +263,10 @@ CLASS IMPLEMENTATION CConnection;
       CASE _Mode OF
       //-----
       | cmScanning :
+         dns.GetLocalIPs( TRUE, FALSE, FALSE, OUT OA( 0, ADR( ai )), OUT l );
+         ai.Port := Socket^.LocalAddress.Port;
+         HPAISelf.Address := ai;
+
          ai.SetAddressOA( core.EIBNET_DISCOVERY_ADDRESS, core.EIBNET_IPPORT );
          Socket^.MulticastGroup := ai;
          IOState := ioReady;
@@ -277,23 +281,24 @@ CLASS IMPLEMENTATION CConnection;
 
          logger()^.LogSP( dldTrace, L"EIBNet Connection", L"CONNECTed in ROUTING mode: ", Socket );
          RETURN Sync.arCompleted;
+
       //-----
-      | cmTunnelingHPAI, cmTunnelingBlind :
+      | cmTunnelingHPAI :
+         dns.GetLocalIPs( TRUE, FALSE, FALSE, OUT OA( 0, ADR( ai )), OUT l );
+         ai.Port := Socket^.LocalAddress.Port;
+         HPAISelf.Address := ai;
+
+         IOState := ioConnecting;
+         StartTimer( PTR( tiConnect ), CONNECT_TIMEOUT, FALSE );
+      //-----
+      | cmTunnelingBlind :
+         ai.SetV4( inetaddr.saEmpty );
+         HPAISelf.Address := ai;
+
          IOState := ioConnecting;
          StartTimer( PTR( tiConnect ), CONNECT_TIMEOUT, FALSE );
       END;
 
-      IF _Mode = cmTunnelingHPAI THEN
-         dns.GetLocalIPs( TRUE, FALSE, FALSE, OUT OA( 0, ADR( ai )), OUT l );
-         ai.Port := Socket^.LocalAddress.Port;
-         HPAISelf.Address := ai;
-      ELSIF _Mode = cmTunnelingBlind THEN
-         ai.SetV4( inetaddr.saEmpty );
-         HPAISelf.Address := ai;
-      ELSE
-         HPAISelf.Port := Socket^.LocalAddress.Port;
-      END;
-      
       cr.ControlHPAI := HPAISelf;
       cr.DataHPAI := HPAISelf;
       RETURN Socket^.SendToOA( OA( cr.Length-1, ADR( cr )), HPAICtrl.Address );
@@ -396,10 +401,14 @@ CLASS IMPLEMENTATION CConnection;
             END;
          | core.CONNECTIONSTATE_RESPONSE,
            core.DISCONNECT_REQUEST,
-           core.DISCONNECT_RESPONSE,
            core.TUNNELING_REQUEST,
            core.TUNNELING_ACK :
             IF IOState NOT IN iosConnected THEN
+               logger()^.LogSCP( dldDebug, L"EIBNet Connection", L"packet rejected as unexpected: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+               RETURN;
+            END;
+         | core.DISCONNECT_RESPONSE :
+            IF IOState <> ioDisconnecting THEN
                logger()^.LogSCP( dldDebug, L"EIBNet Connection", L"packet rejected as unexpected: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
                RETURN;
             END;
