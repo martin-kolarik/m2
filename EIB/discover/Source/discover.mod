@@ -84,11 +84,8 @@ CLASS IMPLEMENTATION CResult;
 
             stdout^.WriteOA( L"        MAC: ", FALSE ); stdout^.Write( server^.MAC, FALSE );
             
-            Strings.FromIPV4( server^.Address.s_addr, OUT s );
+            server^.Address.GetAddressOA( TRUE, OUT s );
             S.FromOA( s );
-            S.AppendOA( L":" );
-            Strings.FromCARD32W( server^.Port, 10, OUT s );
-            S.AppendOA( s );
             IPs.Add( S, 0 );
 
             stdout^.WriteOA( L", IP: ", FALSE ); stdout^.Write( S, TRUE );
