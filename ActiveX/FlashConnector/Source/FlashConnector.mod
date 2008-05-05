@@ -73,11 +73,11 @@ CONST
   // {963B0F3B-6C5D-449B-9E72-75DE9D82E06C}
   IID_IEvent  = com.TGUID( 0963B0F3BH, 06C5DH, 0449BH, 09EH, 072H, 075H, 0DEH, 09DH, 082H, 0E0H, 06CH );
 
-CLASS CClientConstructor( ax_automation.CAbstractClientConstructor );
-  VIRTUAL PROCEDURE CreateInstance( VAR PInstance : ax_automation.TPActiveXControl ) : wtypes.HRESULT;
-  VIRTUAL PROCEDURE QueryControlIIDs( VAR ControlIID, TypeLibIID, IDispatch_Native_IID, IDispatch_Event_IID : guiddef.IID );
-  VIRTUAL PROCEDURE QueryControlNames( VAR DLLName, ControlName, ProgId : ARRAY OF WCHAR; VAR ProgIdCurrentVersion : CARDINAL );
-  VIRTUAL PROCEDURE QueryTypeLibIndexes( VAR IControl, IDispatch_Native, IDispatch_Event : CARDINAL );
+CLASS CClientConstructor IMPLEMENTS ax_automation.CAbstractClientConstructor;
+  PUBLIC VIRTUAL PROCEDURE CreateInstance( VAR PInstance : ax_automation.TPActiveXControl ) : wtypes.HRESULT;
+  PUBLIC VIRTUAL PROCEDURE QueryControlIIDs( VAR ControlIID, TypeLibIID, IDispatch_Native_IID, IDispatch_Event_IID : guiddef.IID );
+  PUBLIC VIRTUAL PROCEDURE QueryControlNames( VAR DLLName, ControlName, ProgId : ARRAY OF WCHAR; VAR ProgIdCurrentVersion : CARDINAL );
+  PUBLIC VIRTUAL PROCEDURE QueryTypeLibIndexes( VAR IControl, IDispatch_Native, IDispatch_Event : CARDINAL );
 END CClientConstructor;
 
 //--------------------------------------------------------------------------------
@@ -99,8 +99,8 @@ CLASS CServer( netconndispatch.CDispatcher );
   VIRTUAL PROCEDURE OnDisconnect( PConnection : netconndispatch.TConnectionHandle; Local : BOOLEAN; ErrorCode : CARDINAL );
   VIRTUAL PROCEDURE OnReceive( PConnection : netconndispatch.TConnectionHandle; Data : ADDRESS; DataLen : CARDINAL );
 
-  PROCEDURE Parse( PConection : netconndispatch.TConnectionHandle; Data : ADDRESS; Len : CARDINAL );
-  PROCEDURE SendMMFData( PConnection : netconndispatch.TConnectionHandle; StartBatch, StopBatch : BOOLEAN; DataName, DataValue, DataAddOn : wtypes.BSTR );
+  PUBLIC PROCEDURE Parse( PConection : netconndispatch.TConnectionHandle; Data : ADDRESS; Len : CARDINAL );
+  PUBLIC PROCEDURE SendMMFData( PConnection : netconndispatch.TConnectionHandle; StartBatch, StopBatch : BOOLEAN; DataName, DataValue, DataAddOn : wtypes.BSTR );
 END CServer;
 
 //--------------------------------------------------------------------------------
@@ -149,23 +149,23 @@ CLASS CFlashConnectorAX( ax_automation.CActiveXControl );
   Listening   : BOOLEAN;
   BatchClient : netconndispatch.TConnectionHandle := NIL;
 
-  VIRTUAL PROCEDURE AddRef() : windows.ULONG;
-  VIRTUAL PROCEDURE Release() : windows.ULONG;
+  PUBLIC VIRTUAL PROCEDURE AddRef() : windows.ULONG;
+  PUBLIC VIRTUAL PROCEDURE Release() : windows.ULONG;
   // ActiveX inherited
   VIRTUAL PROCEDURE CreateNativeIDispatch( VAR PIDispatch : ax_automation.TPActiveXDispatch ) : BOOLEAN;
-  VIRTUAL PROCEDURE EnumerateEventIDispatch( VAR EnumerateState : LONGWORD; VAR IID : guiddef.IID; VAR TypeLibIndex : CARDINAL ) : BOOLEAN;
+  INTERNAL VIRTUAL PROCEDURE EnumerateEventIDispatch( VAR EnumerateState : LONGWORD; VAR IID : guiddef.IID; VAR TypeLibIndex : CARDINAL ) : BOOLEAN;
   // connection handling
-  PROCEDURE OnRemoteConnect( PConnection : netconndispatch.TConnectionHandle );
-  PROCEDURE OnRemoteDisconnect( PConnection : netconndispatch.TConnectionHandle; ErrorCode : CARDINAL );
-  PROCEDURE OnRemoteData( PConnection : netconndispatch.TConnectionHandle; Name, Value, AddOn : ARRAY OF WCHAR );
+  LOCAL PROCEDURE OnRemoteConnect( PConnection : netconndispatch.TConnectionHandle );
+  LOCAL PROCEDURE OnRemoteDisconnect( PConnection : netconndispatch.TConnectionHandle; ErrorCode : CARDINAL );
+  LOCAL PROCEDURE OnRemoteData( PConnection : netconndispatch.TConnectionHandle; Name, Value, AddOn : ARRAY OF WCHAR );
   // client handling
-  PROCEDURE Start();
-  PROCEDURE Stop();
-  PROCEDURE Send( Client : windows.LONG; DataName, DataValue, DataAddOn : wtypes.BSTR );
-  PROCEDURE StartBatch( Client : windows.LONG );
-  PROCEDURE AddToBatch( DataName, DataValue, DataAddOn : wtypes.BSTR );
-  PROCEDURE SendBatch();
-  PROCEDURE Disconnect( Client : windows.LONG );
+  PUBLIC PROCEDURE Start();
+  PUBLIC PROCEDURE Stop();
+  PUBLIC PROCEDURE Send( Client : windows.LONG; DataName, DataValue, DataAddOn : wtypes.BSTR );
+  PUBLIC PROCEDURE StartBatch( Client : windows.LONG );
+  PUBLIC PROCEDURE AddToBatch( DataName, DataValue, DataAddOn : wtypes.BSTR );
+  PUBLIC PROCEDURE SendBatch();
+  PUBLIC PROCEDURE Disconnect( Client : windows.LONG );
 END CFlashConnectorAX;
 
 (*# restore *)
@@ -176,7 +176,7 @@ CLASS IMPLEMENTATION CClientConstructor;
 
 //--------------------------------------------------------------------------------
 
-  VIRTUAL PROCEDURE CreateInstance( VAR PInstance : ax_automation.TPActiveXControl ) : wtypes.HRESULT;
+  PUBLIC VIRTUAL PROCEDURE CreateInstance( VAR PInstance : ax_automation.TPActiveXControl ) : wtypes.HRESULT;
   VAR
     ControlIID, IIDx : guiddef.IID;
     PAX : TPFlashConnectorAX;
@@ -194,7 +194,7 @@ CLASS IMPLEMENTATION CClientConstructor;
 
 (*---------------------------------------------------------------------------*)
 
-  VIRTUAL PROCEDURE QueryControlIIDs( VAR ControlIID, TypeLibIID, IDispatch_Native_IID, IDispatch_Event_IID : guiddef.IID );
+  PUBLIC VIRTUAL PROCEDURE QueryControlIIDs( VAR ControlIID, TypeLibIID, IDispatch_Native_IID, IDispatch_Event_IID : guiddef.IID );
   BEGIN
     ControlIID := guiddef.IID( IID_Control );
     TypeLibIID := guiddef.IID( IID_TypeLib );
@@ -204,7 +204,7 @@ CLASS IMPLEMENTATION CClientConstructor;
 
 //--------------------------------------------------------------------------------
 
-  VIRTUAL PROCEDURE QueryControlNames( VAR DLLName, ControlName, ProgId : ARRAY OF WCHAR; VAR ProgIdCurrentVersion : CARDINAL );
+  PUBLIC VIRTUAL PROCEDURE QueryControlNames( VAR DLLName, ControlName, ProgId : ARRAY OF WCHAR; VAR ProgIdCurrentVersion : CARDINAL );
   BEGIN
     ASSIGN( DLLName, EMITW( %dll ));
     ASSIGN( ControlName, OAsz( R[Texts._ProductName] ));
@@ -214,7 +214,7 @@ CLASS IMPLEMENTATION CClientConstructor;
 
 //--------------------------------------------------------------------------------
 
-  VIRTUAL PROCEDURE QueryTypeLibIndexes( VAR IControl, IDispatch_Native, IDispatch_Event : CARDINAL );
+  PUBLIC VIRTUAL PROCEDURE QueryTypeLibIndexes( VAR IControl, IDispatch_Native, IDispatch_Event : CARDINAL );
   BEGIN
     IControl := 2;
     IDispatch_Native := 0;
@@ -602,7 +602,7 @@ CLASS IMPLEMENTATION CFlashConnectorAX;
 
 //--------------------------------------------------------------------------------
 
-  VIRTUAL PROCEDURE AddRef() : windows.ULONG;
+  PUBLIC VIRTUAL PROCEDURE AddRef() : windows.ULONG;
   BEGIN
     IF RefCount = 0 THEN
       netinit.Startup();
@@ -616,7 +616,7 @@ CLASS IMPLEMENTATION CFlashConnectorAX;
 
 //--------------------------------------------------------------------------------
 
-  VIRTUAL PROCEDURE Release() : windows.ULONG;
+  PUBLIC VIRTUAL PROCEDURE Release() : windows.ULONG;
   BEGIN
     IF ReferenceCount = 1 THEN
       Stop();
@@ -672,7 +672,7 @@ CLASS IMPLEMENTATION CFlashConnectorAX;
 
 //--------------------------------------------------------------------------------
 
-  PROCEDURE OnRemoteConnect( PConnection : netconndispatch.TConnectionHandle );
+  LOCAL PROCEDURE OnRemoteConnect( PConnection : netconndispatch.TConnectionHandle );
   VAR
     IID, IIDx : guiddef.IID;
     Parameters : ARRAY [0..1] OF oaidl.VARIANT;
@@ -697,7 +697,7 @@ CLASS IMPLEMENTATION CFlashConnectorAX;
 
 //--------------------------------------------------------------------------------
 
-  PROCEDURE OnRemoteDisconnect( PConnection : netconndispatch.TConnectionHandle; ErrorCode : CARDINAL );
+  LOCAL PROCEDURE OnRemoteDisconnect( PConnection : netconndispatch.TConnectionHandle; ErrorCode : CARDINAL );
   VAR
     IID, IIDx : guiddef.IID;
     Parameters : ARRAY [0..0] OF oaidl.VARIANT;
@@ -715,7 +715,7 @@ CLASS IMPLEMENTATION CFlashConnectorAX;
 
 //--------------------------------------------------------------------------------
 
-  PROCEDURE OnRemoteData( PConnection : netconndispatch.TConnectionHandle; Name, Value, AddOn : ARRAY OF WCHAR );
+  LOCAL PROCEDURE OnRemoteData( PConnection : netconndispatch.TConnectionHandle; Name, Value, AddOn : ARRAY OF WCHAR );
   VAR
     IID, IIDx : guiddef.IID;
     Parameters : ARRAY [0..3] OF oaidl.VARIANT;
@@ -748,7 +748,7 @@ CLASS IMPLEMENTATION CFlashConnectorAX;
 
 //--------------------------------------------------------------------------------
 
-  PROCEDURE Start();
+  PUBLIC PROCEDURE Start();
   BEGIN
     IF NOT Listening THEN
       Listening := TRUE;
@@ -758,7 +758,7 @@ CLASS IMPLEMENTATION CFlashConnectorAX;
 
 //--------------------------------------------------------------------------------
 
-  PROCEDURE Stop();
+  PUBLIC PROCEDURE Stop();
   BEGIN
     IF Listening THEN
       Listening := FALSE;
@@ -768,14 +768,14 @@ CLASS IMPLEMENTATION CFlashConnectorAX;
 
 //--------------------------------------------------------------------------------
 
-  PROCEDURE Send( Client : windows.LONG; DataName, DataValue, DataAddOn : wtypes.BSTR );
+  PUBLIC PROCEDURE Send( Client : windows.LONG; DataName, DataValue, DataAddOn : wtypes.BSTR );
   BEGIN
     SRV.SendMMFData( netconndispatch.TConnectionHandle( Client ), TRUE, TRUE, DataName, DataValue, DataAddOn );
   END Send;
 
 //--------------------------------------------------------------------------------
 
-  PROCEDURE StartBatch( Client : windows.LONG );
+  PUBLIC PROCEDURE StartBatch( Client : windows.LONG );
   BEGIN
     BatchClient := netconndispatch.TConnectionHandle( Client );
     SRV.SendMMFData( BatchClient, TRUE, FALSE, NIL, NIL, NIL );
@@ -783,21 +783,21 @@ CLASS IMPLEMENTATION CFlashConnectorAX;
 
 //--------------------------------------------------------------------------------
 
-  PROCEDURE AddToBatch( DataName, DataValue, DataAddOn : wtypes.BSTR );
+  PUBLIC PROCEDURE AddToBatch( DataName, DataValue, DataAddOn : wtypes.BSTR );
   BEGIN
     SRV.SendMMFData( BatchClient, FALSE, FALSE, DataName, DataValue, DataAddOn );
   END AddToBatch;
 
 //--------------------------------------------------------------------------------
 
-  PROCEDURE SendBatch();
+  PUBLIC PROCEDURE SendBatch();
   BEGIN
     SRV.SendMMFData( BatchClient, FALSE, TRUE, NIL, NIL, NIL );
   END SendBatch;
 
 //--------------------------------------------------------------------------------
 
-  PROCEDURE Disconnect( Client : windows.LONG );
+  PUBLIC PROCEDURE Disconnect( Client : windows.LONG );
   BEGIN
   END Disconnect;
 

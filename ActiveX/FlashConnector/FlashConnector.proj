@@ -19,7 +19,7 @@
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
         <Components Include="modula2\modula2;api\clib;API\win32"/>
-        <Components Include="modula2\m2rtl;modula2\m2ortl;library\ADT;library\Resources;library\Text;library\messaging;library\Network;library\CWdriver"/>
+        <Components Include="component\sccore;library\CWdriver"/>
         <Modules Include="flashconnector"/>
         <Messages Include="Texts"/>
     </ItemGroup>
