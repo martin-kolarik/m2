@@ -1084,20 +1084,6 @@ BEGIN
 	END; // WHILE
 END FromErrorW;
 
-PROCEDURE FromIPV4( Address : LONGWORD; OUT S : ARRAY OF WCHAR ); // Address is Big endian as it is normal for network
-VAR
-   N : ARRAY [0..3] OF WCHAR;
-BEGIN
-   FromCARD32W( CARDINAL( LOBYTE( LOWORD( Address ))), 10, OUT S );
-   AppendW( REF S, L"." );
-   FromCARD32W( CARDINAL( HIBYTE( LOWORD( Address ))), 10, OUT N );
-   AppendW( REF S, N ); AppendW( REF S, L"." );
-   FromCARD32W( CARDINAL( LOBYTE( HIWORD( Address ))), 10, OUT N );
-   AppendW( REF S, N ); AppendW( REF S, L"." );
-   FromCARD32W( CARDINAL( HIBYTE( HIWORD( Address ))), 10, OUT N );
-   AppendW( REF S, N );
-END FromIPV4;
-
 PROCEDURE ToINT32W( CONST String : ARRAY OF WCHAR; Base : CARDINAL; OUT V : INT32 ) : BOOLEAN;
 VAR
 	LV : CARD64;
