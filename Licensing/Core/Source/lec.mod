@@ -10,6 +10,25 @@ IMPORT
    lists,
    StringsO,
    Validator;
+   
+(*================================================================================*)
+
+#if DEBUG #then
+FROM log IMPORT
+   CLogger, dldDebug;
+   
+VAR
+   Log : CLogger;
+
+PROCEDURE JDCToDate( date : time.TJDC; OUT dateString : ARRAY OF WCHAR );
+VAR
+   dt : time.TDateTime;
+BEGIN
+   time.JDToZonalDateTime( date, dt, 0, 0 );
+   time.DateTimeToString( dt, L"yy-MM-dd HH:mm", TRUE, TRUE, dateString );
+END JDCToDate;
+
+#endif   
 
 (*================================================================================*)
 
@@ -83,6 +102,9 @@ CLASS IMPLEMENTATION CResult;
       item : Items.TPItem := data;
       items, jitems : lists.TPPtrList;
       info : TInfo := riUnknown;
+      #if DEBUG #then
+         logs : ARRAY[0..255] OF WCHAR;
+      #endif
       trialFlag : BOOLEAN;
    BEGIN
       IF item = NIL THEN
@@ -90,10 +112,26 @@ CLASS IMPLEMENTATION CResult;
       END;
       ASSERT( item^ IS Items.CProduct );
 
+      #if DEBUG #then
+         Log.Level := dldDebug;
+      #endif
+
       IF item^.HasChilds THEN
+
+         #if DEBUG #then      
+            item^.ProductId.ToOA( OUT logs );
+            Log.LogSS( dldDebug, L"LEC", L"Product with licences: ", logs );
+         #endif
+
          time.GetCurrentUTCDateTime( now );
          expires := expNotSet;
       ELSE
+
+         #if DEBUG #then      
+            item^.ProductId.ToOA( OUT logs );
+            Log.LogSS( dldDebug, L"LEC", L"Product W/O licence: ", logs );
+         #endif
+
          info := riDemo;
          expires := _Start + demoExp;
          GOTO Done;
@@ -106,6 +144,11 @@ CLASS IMPLEMENTATION CResult;
          item := items^.Current;
          trialFlag := Items.ltTrial IN Items.TPLicence( item )^.Type;
          
+         #if DEBUG #then      
+            Items.TPLicence( item )^.Serial.ToOA( OUT logs );
+            Log.LogSS( dldDebug, L"LEC", L"  Licence, computing best hit: ", logs );
+         #endif
+
          IF item^.HasChilds THEN
 
             // parse activations
@@ -113,22 +156,60 @@ CLASS IMPLEMENTATION CResult;
             jitems^.Reset();
             WHILE jitems^.MoveNext() DO
                item := jitems^.Current;
-               
+
+               #if DEBUG #then      
+                  Items.TPActivation( item )^.ExpiresString.ToOA( OUT logs );
+                  Log.LogSS( dldDebug, L"LEC", L"  Activation, computing best hit, expires: ", logs );
+               #endif
+
                IF Items.TPActivation( item )^.ValidFor( now ) THEN
+               
                   info := ComputeInfo( bhBestCase, info, riActivated );
                   dt := Items.TPActivation( item )^.Expires;
                   IF dt.Year > 0 THEN
                      expires := ComputeExpiration( bhBestCase, expires, time.DateTimeToJD( dt ));
+
+                     #if DEBUG #then      
+                        Log.LogS( dldDebug, L"LEC", L"    valid limitedly" );
+                     #endif
                   ELSE
                      expires := expNever;
+
+                     #if DEBUG #then      
+                        Log.LogS( dldDebug, L"LEC", L"    valid forever" );
+                     #endif
                   END;
+                  
                ELSIF trialFlag THEN
                   info := ComputeInfo( bhBestCase, info, riDemo );
                   expires := ComputeExpiration( bhBestCase, expires, _Start + demoExp );
+
+                  #if DEBUG #then      
+                     JDCToDate( expires, OUT logs );
+                     Log.LogSS( dldDebug, L"LEC", L"    not valid, trial, expires: ", logs );
+                  #endif
                ELSE
                   info := ComputeInfo( bhBestCase, info, riNotActivated );
                   expires := ComputeExpiration( bhBestCase, expires, time.DateTimeToJD( Items.TPLicence( item )^.Created ) + unactExp );
+
+                  #if DEBUG #then      
+                     JDCToDate( expires, OUT logs );
+                     Log.LogSS( dldDebug, L"LEC", L"    not valid, not trial, expires: ", logs );
+                  #endif
                END;
+
+               #if DEBUG #then      
+                  CASE info OF
+                  | riUnknown :
+                     Log.LogS( dldDebug, L"LEC", L"  Partial activation result: unknown" );
+                  | riDemo :
+                     Log.LogS( dldDebug, L"LEC", L"  Partial activation result: demo" );
+                  | riNotActivated :
+                     Log.LogS( dldDebug, L"LEC", L"  Partial activation result: not activated" );
+                  | riActivated :
+                     Log.LogS( dldDebug, L"LEC", L"  Partial activation result: activated" );
+                  END; // CASE
+               #endif
 
             END; // WHILE activations
             
@@ -136,10 +217,34 @@ CLASS IMPLEMENTATION CResult;
             info := ComputeInfo( bhBestCase, info, riDemo );
             expires := ComputeExpiration( bhBestCase, expires, _Start + demoExp );
 
+            #if DEBUG #then      
+               JDCToDate( expires, OUT logs );
+               Log.LogSS( dldDebug, L"LEC", L"    not activated, trial, expires: ", logs );
+            #endif
+
          ELSE
             info := ComputeInfo( bhBestCase, info, riNotActivated );
             expires := ComputeExpiration( bhBestCase, expires, time.DateTimeToJD( Items.TPLicence( item )^.Created ) + unactExp );
+
+            #if DEBUG #then      
+               JDCToDate( expires, OUT logs );
+               Log.LogSS( dldDebug, L"LEC", L"    not activated, expires: ", logs );
+            #endif
+
          END;
+
+         #if DEBUG #then      
+            CASE info OF
+            | riUnknown :
+               Log.LogS( dldDebug, L"LEC", L"  Partial licence result: unknown" );
+            | riDemo :
+               Log.LogS( dldDebug, L"LEC", L"  Partial licence result: demo" );
+            | riNotActivated :
+               Log.LogS( dldDebug, L"LEC", L"  Partial licence result: not activated" );
+            | riActivated :
+               Log.LogS( dldDebug, L"LEC", L"  Partial licence result: activated" );
+            END; // CASE
+         #endif
 
       END; // WHILE licences
 
@@ -148,6 +253,26 @@ CLASS IMPLEMENTATION CResult;
       _Info := ComputeInfo( Behaviour, _Info, info );
       _Expires := ComputeExpiration( Behaviour, _Expires, expires );
       _Lock.Unlock();
+
+      #if DEBUG #then
+         IF Behaviour = bhBestCase THEN
+            Log.LogS( dldDebug, L"LEC", L"Computing best hit" );
+         ELSE
+            Log.LogS( dldDebug, L"LEC", L"Computing worst hit" );
+         END;
+         JDCToDate( _Expires, OUT logs );
+         CASE info OF
+         | riUnknown :
+            Log.LogSS( dldDebug, L"LEC", L"Result: unknown, expires: ", logs );
+         | riDemo :
+            Log.LogSS( dldDebug, L"LEC", L"Result: demo, expires: ", logs );
+         | riNotActivated :
+            Log.LogSS( dldDebug, L"LEC", L"Result: not activated, expires: ", logs );
+         | riActivated :
+            Log.LogS( dldDebug, L"LEC", L"Result: activated" );
+         END; // CASE
+      #endif
+
    END QueryData;
    
 (*--------------------------------------------------------------------------------*)
