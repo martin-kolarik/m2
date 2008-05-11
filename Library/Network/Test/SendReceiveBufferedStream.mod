@@ -38,6 +38,7 @@ END CServerListener;
 
 CLASS CReader( IOO.CMemoryProxy );
    PUBLIC VAR
+      Delay : CARDINAL := 0;
       DetectPrevious : BOOLEAN;
       PrevCount : INTEGER := 0;
       Summa : CARD64 := 0;
@@ -121,6 +122,10 @@ CLASS IMPLEMENTATION CReader;
        Test^.Host^.Log^.LogSC( log.dlcError, L"", L"Failed: ", PCARDINAL( _Data )^ );
     END;
     INC( PrevCount );
+    
+    IF Delay > 0 THEN
+       sync.Sleep( Delay );
+    END;
   END CompleteData;
 
 (*---------------------------------------------------------------------------*)
@@ -405,7 +410,7 @@ CLASS IMPLEMENTATION CTest;
       WriteStream.BufferSize := 4096;
 
       ReadWrite( FALSE );      
-      
+
       //=====
 
       Host^.StartPhase( L"BufferedStream, 10k * 4k bytes, -/- WAIT, 255/257 1 T" );

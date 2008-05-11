@@ -60,7 +60,8 @@ TYPE
 
 CLASS CDispatcher( msghandler.MessageHandler );
   PRIVATE VAR
-    MQueue      : msgqueue.CMessageQueue;
+    CQueue      : msgqueue.CMessageQueue;
+    NQueue      : msgqueue.CMessageQueue;
     Connections : inetaddr.CINETADDRMap;
     PListener   : netsrv.TPListener;
     PNotifier   : netsocket.TPSocketNotifier;
@@ -74,6 +75,7 @@ CLASS CDispatcher( msghandler.MessageHandler );
 
   // inherited
   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : CARDINAL ) : BOOLEAN;
+  PRIVATE PROCEDURE DoMessage( Message : ADDRESS );
 
   // events of server
   LOCAL PROCEDURE OnListen( CONST ServerSocket : netsocket.TPSSocket );
