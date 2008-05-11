@@ -870,7 +870,7 @@ CLASS IMPLEMENTATION CString;
 
 	PUBLIC VIRTUAL PROCEDURE CString.ToINT32( Base : CARDINAL ) : INT32;
 	VAR
-		C : CARD64;
+		C : INT64;
 	BEGIN
 		CASE Strings.ToCARD64MW( _Len, _Data, Base, OUT C ) OF
 		| Strings.tcrSuccess :
@@ -908,7 +908,7 @@ CLASS IMPLEMENTATION CString;
 
 	PUBLIC VIRTUAL PROCEDURE CString.ToINT64( Base : CARDINAL ) : INT64;
 	VAR
-		C : CARD64;
+		C : INT64;
 	BEGIN
 		CASE Strings.ToCARD64MW( _Len, _Data, Base, OUT C ) OF
 		| Strings.tcrSuccess :

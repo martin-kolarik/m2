@@ -1175,7 +1175,7 @@ BEGIN
 			V := nc + CARD64( Cipher );
 		END;
 	END; // FOR
-	IF String@[i<<1]^ = L'-' THEN
+	IF String@[0]^ = L'-' THEN
 		V := -V;
 	END;
 	RETURN tcrSuccess;

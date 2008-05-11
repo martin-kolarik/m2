@@ -5,7 +5,7 @@ FROM Storage IMPORT
   
 IMPORT
   Storage;
-
+  
 (*================================================================================*)
 
 CLASS IMPLEMENTATION CIOException;
