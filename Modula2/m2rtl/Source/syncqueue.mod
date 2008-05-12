@@ -324,14 +324,14 @@ CLASS IMPLEMENTATION IntegerQueue;
             EXIT;
          END;
          Result := Flush( Sync.pcqProduced, Wait, Timeout, OUT Spent );
-         IF Timeout > Spent THEN
+         IF NOT Wait THEN
+            // fall down
+         ELSIF Timeout > Spent THEN
             DEC( Timeout, Spent );
          ELSE
             RETURN Sync.arTimeout;
          END;
-         IF Result = Sync.arPending THEN
-            RETURN Sync.arNoData;
-         ELSIF Result = Sync.arCompleted THEN
+         IF Result = Sync.arCompleted THEN
             CONTINUE;
          ELSE
             RETURN Result;
@@ -395,7 +395,9 @@ CLASS IMPLEMENTATION IntegerQueue;
             EXIT;
          END;   
          Result := Flush( Sync.pcqConsumed, Wait, Timeout, OUT Spent );
-         IF Timeout > Spent THEN
+         IF NOT Wait THEN
+            // fall down
+         ELSIF Timeout > Spent THEN
             DEC( Timeout, Spent );
          ELSE
             RETURN Sync.arTimeout;
@@ -480,14 +482,14 @@ CLASS IMPLEMENTATION QuadwordQueue;
             EXIT;
          END;
          Result := Flush( Sync.pcqProduced, Wait, Timeout, OUT Spent );
-         IF Timeout > Spent THEN
+         IF NOT Wait THEN
+            // fall down
+         ELSIF Timeout > Spent THEN
             DEC( Timeout, Spent );
          ELSE
             RETURN Sync.arTimeout;
          END;
-         IF Result = Sync.arPending THEN
-            RETURN Sync.arNoData;
-         ELSIF Result = Sync.arCompleted THEN
+         IF Result = Sync.arCompleted THEN
             CONTINUE;
          ELSE
             RETURN Result;
@@ -551,7 +553,9 @@ CLASS IMPLEMENTATION QuadwordQueue;
             EXIT;
          END;
          Result := Flush( Sync.pcqConsumed, Wait, Timeout, OUT Spent );
-         IF Timeout > Spent THEN
+         IF NOT Wait THEN
+            // fall down
+         ELSIF Timeout > Spent THEN
             DEC( Timeout, Spent );
          ELSE
             RETURN Sync.arTimeout;
@@ -677,7 +681,9 @@ CLASS IMPLEMENTATION CDatagramQueue;
    BEGIN
       WHILE NOT StartConsuming( OUT Block ) DO
          Result := Flush( Sync.pcqConsumed, Wait, Timeout, OUT Spent );
-         IF Timeout > Spent THEN
+         IF NOT Wait THEN
+            // fall down
+         ELSIF Timeout > Spent THEN
             DEC( Timeout, Spent );
          ELSE
             RETURN Sync.arTimeout;
@@ -720,14 +726,14 @@ CLASS IMPLEMENTATION CDatagramQueue;
 
       WHILE NOT StartProducing( OUT Block ) DO
          Result := Flush( Sync.pcqProduced, Wait, Timeout, OUT Spent );
-         IF Timeout > Spent THEN
+         IF NOT Wait THEN
+            // fall down
+         ELSIF Timeout > Spent THEN
             DEC( Timeout, Spent );
          ELSE
             RETURN Sync.arTimeout;
          END;
-         IF Result = Sync.arPending THEN
-            RETURN Sync.arNoData;
-         ELSIF Result = Sync.arCompleted THEN
+         IF Result = Sync.arCompleted THEN
             CONTINUE;
          ELSE
             RETURN Result;
