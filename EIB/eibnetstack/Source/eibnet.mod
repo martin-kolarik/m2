@@ -275,6 +275,7 @@ CLASS IMPLEMENTATION CConnection;
          b := netsrv.StartListen( netsocket.stDatagram, ai, NIL, Listener, timeout, ADR( Socket )) = 0;
       END;
       IF b THEN
+         logger()^.LogSC( dldTrace, DEBUG_PREFIX, L"LISTENing on port: ", Socket^.LocalAddress.Port );
          LogSHPAI( dldTrace, DEBUG_PREFIX, L"CONNECT request: ", HPAIData );
       ELSE
          logger()^.LogS( dldTrace, DEBUG_PREFIX, L"CONNECT (listen) cannot start" );
@@ -524,7 +525,7 @@ CLASS IMPLEMENTATION CConnection;
 
    LOCAL PROCEDURE OnListenSocketClosed( CONST ServerSocket : netsocket.TPSSocket );
    BEGIN
-      logger()^.LogSC( dldTrace, DEBUG_PREFIX, L"socket closed: ", ServerSocket^.LocalAddress.Port );
+      logger()^.LogSC( dldTrace, DEBUG_PREFIX, L"Stop LISTENing on port: ", ServerSocket^.LocalAddress.Port );
       
       IF Socket = ServerSocket THEN
          Socket := NIL;
