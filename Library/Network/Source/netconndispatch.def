@@ -98,6 +98,9 @@ CLASS CDispatcher( msghandler.MessageHandler );
   LOCAL PROCEDURE Connect( PClientInterface : TPClientInterface; Connection : TConnectionHandle ); // asynchronous, results in Client.OnConnect
   LOCAL PROCEDURE Disconnect( PClientInterface : TPClientInterface; Connection : TConnectionHandle ); // asynchronous, results in Client.OnDisconnect
   LOCAL PROCEDURE Send( PClientInterface : TPClientInterface; Connection : TConnectionHandle; ClientId : LONGWORD; Data : ADDRESS; DataLen : CARDINAL ); // asynchronous, results in Client.OnSend
+
+  INITIALLY CDispatcher();
+  FINALLY CDispatcher();
 END CDispatcher;
 
 //--------------------------------------------------------------------------------

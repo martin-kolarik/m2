@@ -15,7 +15,7 @@ IMPORT
    StringsO,
    windows,
    WS2TcpIp;
-  
+   
 (*================================================================================*)
 
 INLINE PROCEDURE IN_ADDR4( CONST ai : inetaddr.INETADDR ) : winsock.Pin_addr;

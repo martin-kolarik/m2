@@ -149,7 +149,7 @@ CLASS DSocket( SSocket );
     Connected     : BOOLEAN;
     Closed        : BOOLEAN;
     DataAvailable : CARDINAL;
-
+    
 	// Open, Close pair is in DSocket covered with Connect/Disconnet. Open/Close cannot be used (only as SSocket.Open/Close call)
   PRIVATE PROCEDURE Open( OUT Error : CARDINAL ) : Sync.TAsyncResult; // socket -- modified variant of SSocket.Open
   PRIVATE PROCEDURE Close( Persist : BOOLEAN );

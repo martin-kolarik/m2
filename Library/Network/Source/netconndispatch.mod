@@ -581,7 +581,6 @@ CLASS IMPLEMENTATION CDispatcher;
 
   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : CARDINAL ) : BOOLEAN;
   VAR
-    HaveSomething : BOOLEAN;
     Message : TMessage;
   BEGIN
     IF SUPER.OnMessage( MSG, OUT Result ) THEN
@@ -591,20 +590,15 @@ CLASS IMPLEMENTATION CDispatcher;
     CASE MSG.Message OF
     //-----
     | msgqueue.WM_MQ_PROCESS :
-      LOOP
-         HaveSomething := FALSE;
-         IF CQueue.DequeueOA( OUT Message, FALSE, 0 ) = Sync.arCompleted THEN
-            DoMessage( ADR( Message ));
-            HaveSomething := TRUE;
-         END;
-         IF NQueue.DequeueOA( OUT Message, FALSE, 0 ) = Sync.arCompleted THEN
-            DoMessage( ADR( Message ));
-            HaveSomething := TRUE;
-         END;
-         IF NOT HaveSomething THEN
-            EXIT;
-         END;
-      END; // LOOP
+      WHILE CQueue.DequeueOA( OUT Message, FALSE, 0 ) = Sync.arCompleted DO
+         DoMessage( ADR( Message ));
+      END; // WHILE
+
+    //-----
+    | msgqueue.WM_MQ_PROCESS+1 :
+      WHILE NQueue.DequeueOA( OUT Message, FALSE, 0 ) = Sync.arCompleted DO
+         DoMessage( ADR( Message ));
+      END; // WHILE
 
     ELSE
       RETURN FALSE;
@@ -978,8 +972,11 @@ CLASS IMPLEMENTATION CDispatcher;
       Storage.Move( a, Message.NRData, l );
 
       // queue request
-      Result := NQueue.QueueOA( Message, TRUE, Sync.FORSAFETY );
-      IF Result = Sync.arTimeout THEN // if for a second nothing can be queued, leave loop, take receiver a chance and wait for next network message to run again (this could be a disadvantage)
+      Result := NQueue.QueueOA( Message, FALSE, 0 ); // to not to block receiving thread to long
+      IF Result = Sync.arCompleted THEN
+         IRead^.ReadOut( l ); // read out and signal next reading
+      
+      ELSE// if data cannot be queued, leave loop, take receiver a chance and wait for next network message to run again (this could be a disadvantage)
          DISPOSE( Message.NRData );
          Log( dldTrace, Connection, "Receive.Queue Timeout" );
          
@@ -987,13 +984,13 @@ CLASS IMPLEMENTATION CDispatcher;
          Message.Command := cmNetworkReceiveContinue;
          Message.NRSocket := Socket;
          Result := CQueue.QueueOA( Message, TRUE, netsocket.FORSAFETY );
-         ASSERT( Result <> Sync.arTimeout );
+         IF Result <> Sync.arCompleted THEN
+            Log( dldTrace, Connection, "Receive.Queue Timeout On SendQueue" );
+         END;
          
          EXIT;
       END;
 
-      // signal reading
-      IRead^.ReadOut( l );
     END; // WHILE
   END OnNetworkReceive;
 
@@ -1111,16 +1108,40 @@ CLASS IMPLEMENTATION CDispatcher;
 
 //--------------------------------------------------------------------------------
 
-BEGIN
-  CQueue.Init( 512, SIZE( TMessage ));
-  CQueue.Consumer := ADR( SELF );
-  NQueue.Init( 256, SIZE( TMessage ));
-  NQueue.Consumer := ADR( SELF );
+   INITIALLY CDispatcher();
+   VAR
+      MSG : msghandler.Message;
+   BEGIN
+      CQueue.Init( 256, SIZE( TMessage ));
+      CQueue.Consumer := ADR( SELF );
+      CQueue.Produce := Sync.CreateSignal( TRUE, L"" );
 
-  NEW( TPListener( PListener )); TPListener( PListener )^.PDispatcher := ADR( SELF );
-  NEW( TPNotifier( PNotifier )); TPNotifier( PNotifier )^.PDispatcher := ADR( SELF );
-FINALLY
-  Dispose();
+      NQueue.Init( 256, SIZE( TMessage ));
+      NQueue.Consumer := ADR( SELF );
+      NQueue.Produce := Sync.CreateSignal( TRUE, L"" );
+
+      MSG.Message := msgqueue.WM_MQ_PROCESS;
+      CQueue.ConsumerMsg := ADR( MSG );
+      
+      MSG.Message := msgqueue.WM_MQ_PROCESS+1;
+      NQueue.ConsumerMsg := ADR( MSG );
+
+      NEW( TPListener( PListener )); TPListener( PListener )^.PDispatcher := ADR( SELF );
+      NEW( TPNotifier( PNotifier )); TPNotifier( PNotifier )^.PDispatcher := ADR( SELF );
+   END CDispatcher;
+
+//--------------------------------------------------------------------------------
+
+   FINALLY CDispatcher();
+   BEGIN
+      Dispose();
+  
+      Sync.DeleteSignal( REF CQueue.Produce );
+      Sync.DeleteSignal( REF NQueue.Produce );
+   END CDispatcher;
+
+//--------------------------------------------------------------------------------
+
 END CDispatcher;
 
 //================================================================================
