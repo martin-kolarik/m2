@@ -7,11 +7,12 @@ FROM driver IMPORT
    CEIBDriver, TPEIBDriver;
    
 IMPORT
+   driver,
    netinit,
    Strings,
    StringsO,
-   driver,
-   Texts;
+   Texts,
+   threadpool;
 
 //================================================================================
 // procedural interface
@@ -58,6 +59,7 @@ PROCEDURE MakeDriverW() : ADDRESS;
 BEGIN
    IF RefCount = 0 THEN
      netinit.Startup();
+     threadpool.Startup();
    END;
    INC( RefCount );
 
@@ -72,6 +74,7 @@ BEGIN
 
    DEC( RefCount );
    IF RefCount = 0 THEN
+     threadpool.Cleanup();
      netinit.Cleanup();
    END;
 END DisposeDriverW;
@@ -306,14 +309,14 @@ END QueryErrorCodeW;
 
 PROCEDURE RunW( PData : ADDRESS );
 BEGIN
-   TPEIBDriver( PData )^.Run( TRUE, TRUE );
+   TPEIBDriver( PData )^.Run();
 END RunW;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE StopW( PData : ADDRESS );
 BEGIN
-   TPEIBDriver( PData )^.Stop( TRUE, TRUE );
+   TPEIBDriver( PData )^.Stop();
 END StopW;
 
 //--------------------------------------------------------------------------------

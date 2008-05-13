@@ -30,8 +30,10 @@ IMPORT
    Resources,
    Strings,
    StringsO,
+   Sync,
    TextReader,
    Texts,
+   threadpool,
    Time;
 
 //================================================================================
@@ -48,6 +50,9 @@ TYPE
    TStatusChannel = SET OF TStatusChannelItem;
 
 //-----
+
+CONST
+   WD_TICK = 1000;
 
 //================================================================================
 // helpers
@@ -118,6 +123,7 @@ CLASS IMPLEMENTATION CEIBDriver;
    CONST
       snDevice = L'device';
       knStatusChannel = L'status_channel';
+      knWatchDogChannel = L'watchdog_channel';
       knIQChannel = L'input_queue_length_channel';
       knOQChannel = L'output_queue_length_channel';
       knWQChannel = L'write_queue_length_channel';
@@ -149,12 +155,17 @@ CLASS IMPLEMENTATION CEIBDriver;
       END;
 
       StatusChannel := MAX( CARDINAL );
+      WatchDogChannel := MAX( CARDINAL );
       InputQueueLengthChannel := MAX( CARDINAL );
       OutputQueueLengthChannel := MAX( CARDINAL );
       WriteQueueLengthChannel := MAX( CARDINAL );
+
       IF TS.SetSection( snDevice ) THEN
          IF TS.GetKeyInt( knStatusChannel, OUT ErrorLine, OUT c ) THEN
             StatusChannel := c;
+         END;
+         IF TS.GetKeyInt( knWatchDogChannel, OUT ErrorLine, OUT c ) THEN
+            WatchDogChannel := c;
          END;
          IF TS.GetKeyInt( knIQChannel, OUT ErrorLine, OUT c ) THEN
             InputQueueLengthChannel := c;
@@ -169,6 +180,24 @@ CLASS IMPLEMENTATION CEIBDriver;
 
       RETURN TRUE;
    END ReadParameters;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE Run();
+   BEGIN
+      TimeoutLock.Lock();
+      DoRun();
+      TimeoutLock.Unlock();
+   END Run;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE Stop();
+   BEGIN
+      TimeoutLock.Lock();
+      DoStop();
+      TimeoutLock.Unlock();
+   END Stop;
 
 //--------------------------------------------------------------------------------
 
@@ -194,7 +223,7 @@ CLASS IMPLEMENTATION CEIBDriver;
          IF Index < OCount THEN
             // fall down
          ELSE
-            Direction := CARDINAL( drv_def.dirInput );
+            Direction := CARDINAL( drv_def.TDirection{ drv_def.dirInput } );
             HaveDescription := TRUE;
             Type := CARDINAL( drv_def.vtLongCard );
             LOOP
@@ -204,15 +233,20 @@ CLASS IMPLEMENTATION CEIBDriver;
                   // enumerate status channel
                   DriverIndex := StatusChannel;
                   GOTO Described;
-               ELSIF ( Index = OCount + 1 ) AND ( InputQueueLengthChannel <> MAX( CARDINAL )) THEN
+               ELSIF ( Index = OCount + 1 ) AND ( WatchDogChannel <> MAX( CARDINAL )) THEN
+                  // enumerate watch dog channel
+                  Direction := CARDINAL( drv_def.TDirection{drv_def.dirOutput} );
+                  DriverIndex := WatchDogChannel;
+                  GOTO Described;
+               ELSIF ( Index = OCount + 2 ) AND ( InputQueueLengthChannel <> MAX( CARDINAL )) THEN
                   // enumerate input_queue_length channel
                   DriverIndex := InputQueueLengthChannel;
                   GOTO Described;
-               ELSIF ( Index = OCount + 2 ) AND ( OutputQueueLengthChannel <> MAX( CARDINAL )) THEN
+               ELSIF ( Index = OCount + 3 ) AND ( OutputQueueLengthChannel <> MAX( CARDINAL )) THEN
                   // enumerate input_queue_length channel
                   DriverIndex := OutputQueueLengthChannel;
                   GOTO Described;
-               ELSIF ( Index = OCount + 3 ) AND ( WriteQueueLengthChannel <> MAX( CARDINAL )) THEN
+               ELSIF ( Index = OCount + 4 ) AND ( WriteQueueLengthChannel <> MAX( CARDINAL )) THEN
                   // enumerate input_queue_length channel
                   DriverIndex := WriteQueueLengthChannel;
                   GOTO Described;
@@ -265,6 +299,7 @@ CLASS IMPLEMENTATION CEIBDriver;
    PUBLIC PROCEDURE GetChannelDescription( DriverIndex : CARDINAL; VAR Description : ARRAY OF WCHAR; VAR Id : ARRAY OF WCHAR ) : BOOLEAN;
    CONST
       _StatusId            = L'drvStatus';
+      _WatchDogId          = L'drvWatchDog';
       _InputQueueLengthId  = L'drvInputQueueLength';
       _OutputQueueLengthId = L'drvOutputQueueLength';
       _WriteQueueLengthId  = L'drvWriteQueueLength';
@@ -274,6 +309,9 @@ CLASS IMPLEMENTATION CEIBDriver;
       IF DriverIndex = StatusChannel THEN
          ASSIGN( Description, OAsz( R()^[ Texts._StatusComment ] ));
          ASSIGN( Id, _StatusId );
+      ELSIF DriverIndex = WatchDogChannel THEN
+         ASSIGN( Description, OAsz( R()^[ Texts._WatchDogComment ] ));
+         ASSIGN( Id, _WatchDogId );
       ELSIF DriverIndex = InputQueueLengthChannel THEN
          ASSIGN( Description, OAsz( R()^[ Texts._InputQueueLengthComment ] ));
          ASSIGN( Id, _InputQueueLengthId );
@@ -307,9 +345,9 @@ CLASS IMPLEMENTATION CEIBDriver;
    BEGIN
       Result.Inc();
       IF ( DriverIndex = StatusChannel ) OR
-          ( DriverIndex = InputQueueLengthChannel ) OR
-          ( DriverIndex = OutputQueueLengthChannel ) OR
-          ( DriverIndex = WriteQueueLengthChannel ) THEN
+         ( DriverIndex = InputQueueLengthChannel ) OR
+         ( DriverIndex = OutputQueueLengthChannel ) OR
+         ( DriverIndex = WriteQueueLengthChannel ) THEN
          // pass down
       ELSIF NOT LogNumber2Object( DriverIndex, PObject ) THEN
          // pass down
@@ -339,9 +377,9 @@ CLASS IMPLEMENTATION CEIBDriver;
       PObject : srvcore.TPObject;
    BEGIN
       IF ( DriverIndex = StatusChannel ) OR
-          ( DriverIndex = InputQueueLengthChannel ) OR
-          ( DriverIndex = OutputQueueLengthChannel ) OR
-          ( DriverIndex = WriteQueueLengthChannel ) THEN
+         ( DriverIndex = InputQueueLengthChannel ) OR
+         ( DriverIndex = OutputQueueLengthChannel ) OR
+         ( DriverIndex = WriteQueueLengthChannel ) THEN
          ErrorCode := drv_def.ecSuccess;
       ELSIF NOT LogNumber2Object( DriverIndex, PObject ) THEN
          ErrorCode := drv_def.ecUnknownElement;
@@ -530,13 +568,25 @@ CLASS IMPLEMENTATION CEIBDriver;
 
    PUBLIC PROCEDURE OutputRequest( UFlag : BOOLEAN; DriverIndex : CARDINAL; OutValue : drv_def.TValue; QoS : CARDINAL; TimeStamp : drv_def.TUTCStamp );
    VAR
+      c : CARDINAL;
       EV : eib_def.TValue;
       PObject : srvcore.TPObject;
    BEGIN
       Result.Inc();
-      IF LogNumber2Object( DriverIndex, PObject ) THEN
+
+      IF DriverIndex = WatchDogChannel THEN
+         TimeoutLock.Lock();
+         c := WatchDogLeft + 1000 * drv_def.ValueToCardinal( OutValue, UFlag, TRUE );
+         IF c < WatchDogLeft THEN
+            WatchDogLeft := MAX( CARDINAL );
+         ELSE
+            WatchDogLeft := c;
+         END;
+
+      ELSIF LogNumber2Object( DriverIndex, PObject ) THEN
          CWValue2EIBValue( UFlag, OutValue, PObject^.Value.GetType(), OUT EV );
          PObject^.SetValue( EV );
+
       END;
    END OutputRequest;
 
@@ -584,7 +634,13 @@ CLASS IMPLEMENTATION CEIBDriver;
       drv_def.DrvValueToCStringW( InValue1, UFlag, OUT CS );
       CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 0, TRUE, OUT N );
 
-      IF EQUALS( N, L'send' ) THEN
+      IF EQUALS( N, L'run' ) THEN
+         Run();
+         
+      ELSIF EQUALS( N, L'stop' ) THEN
+         Stop();
+
+      ELSIF EQUALS( N, L'send' ) THEN
          CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 1, TRUE, OUT N );
          IF N[0] = WCHAR( 0 ) THEN
             CS.FromOA( L'error: "send" procedure, missing group address' );
@@ -780,6 +836,27 @@ CLASS IMPLEMENTATION CEIBDriver;
 
 //================================================================================
 
+   PRIVATE PROCEDURE DoRun();
+   BEGIN
+      SUPER.Run( TRUE, FALSE );
+      IF WatchDogChannel <> MAX( CARDINAL ) THEN
+         WatchDogLeft := 10 * WD_TICK;
+         threadpool.pool()^.WaitTimeout( ADR( WatchDogSink ), 0, WD_TICK, FALSE, FALSE, OUT WatchDogHandle );
+      END;
+   END DoRun;
+
+//================================================================================
+
+   PRIVATE PROCEDURE DoStop();
+   BEGIN
+      IF WatchDogHandle <> NIL THEN
+         threadpool.pool()^.Abort( REF WatchDogHandle );
+      END;
+      SUPER.Stop( TRUE, FALSE );
+   END DoStop;
+
+//================================================================================
+
    PUBLIC VIRTUAL PROCEDURE OnConnect();
    BEGIN
       CallbackProc( CallbackId, drv_def.dcfException, NIL );
@@ -835,16 +912,38 @@ CLASS IMPLEMENTATION CEIBDriver;
 
 //================================================================================
 
+   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+   BEGIN
+      IF Result <> Sync.arCompleted THEN
+         RETURN;
+      END;
+      TimeoutLock.Lock();
+      IF WatchDogLeft <= WD_TICK THEN
+         WatchDogLeft := 0;
+         DoStop();
+      ELSE
+         DEC( WatchDogLeft, WD_TICK );
+      END;
+      TimeoutLock.Unlock();
+   END OnTimeout;
+
+//================================================================================
+
 BEGIN
    CallbackId := NIL;
    CallbackProc := NIL;
 
    EventSink := ADR( SELF );
+   WatchDogSink.TimeoutSink := ADR( SELF );
    
    StatusChannel := MAX( CARDINAL );
+   WatchDogChannel := MAX( CARDINAL );
    InputQueueLengthChannel := MAX( CARDINAL );   
    OutputQueueLengthChannel := MAX( CARDINAL );
    WriteQueueLengthChannel := MAX( CARDINAL );
+
+   WatchDogLeft := MAX( CARDINAL );
+   WatchDogHandle := NIL;
 
    cllvData := ADR( cllv.data );
    cllvLength := cllv.length;

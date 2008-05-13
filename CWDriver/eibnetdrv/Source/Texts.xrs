@@ -61,6 +61,10 @@
             <item lang="en-US">Status channel of the driver (information about connection and common actions)</item>
             <item lang="cs-CZ">Stavový kanál ovladače (informace o komunikaci a obecných akcích)</item>
         </string>
+        <string name="_WatchDogComment">
+            <item lang="en-US">Watch dog channel (time in seconds written to it extends time of run)</item>
+            <item lang="cs-CZ">Watch dog kanál (zápisem času v sekundách se prodlouží doba běhu)</item>
+        </string>
         <string name="_InputQueueLengthComment">
             <item lang="en-US">Length of queue of packets received from the bus without being requested</item>
             <item lang="cs-CZ">Počet paketů přijatých ze sběrnice bez požadavku na jejich čtení</item>

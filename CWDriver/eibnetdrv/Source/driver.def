@@ -29,18 +29,27 @@ CONST // device specific error codes
    ceWriteQueueOverflow             = 1000AH;
    // cePromiscuousModeRunning         = 1000BH;
 
-CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS srvcore.IEIBServerSink;
+CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS srvcore.IEIBServerSink, threadpool.ITimeoutSink;
    CallbackId               : ADDRESS;
    CallbackProc             : drv_def.TDriverCallbackW;
 
    StatusChannel            : CARDINAL;
+   WatchDogChannel          : CARDINAL;
    InputQueueLengthChannel  : CARDINAL;
    OutputQueueLengthChannel : CARDINAL;
    WriteQueueLengthChannel  : CARDINAL;
+   
+   TimeoutLock              : Sync.LOCK;
+   WatchDogLeft             : CARDINAL;
+   WatchDogHandle           : Sync.WAITABLE;
+   WatchDogSink             : threadpool.CSinkDelegate;
 
    // binding to procedural interface
    PUBLIC PROCEDURE Init( CONST SymbolicName : ARRAY OF WCHAR; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW ) : BOOLEAN;
    PUBLIC PROCEDURE ReadParameters( CONST ParFilePath : StringsO.CString; OUT ErrorMessage : StringsO.CString; OUT ErrorLine : CARDINAL ) : BOOLEAN;
+   
+   PUBLIC PROCEDURE Run();
+   PUBLIC PROCEDURE Stop();
 
    PUBLIC PROCEDURE EnumerateChannels(  VAR EnumerateState : LONGWORD; VAR Type : CARDINAL; VAR Direction : CARDINAL; VAR DriverIndex : CARDINAL; VAR Count : CARDINAL; VAR HaveDescription : BOOLEAN ): BOOLEAN;
    PUBLIC PROCEDURE GetChannelDescription( DriverIndex : CARDINAL; VAR Description : ARRAY OF WCHAR; VAR Id : ARRAY OF WCHAR ) : BOOLEAN;
@@ -66,6 +75,8 @@ CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS srvcore.IEIBServerSink;
 
    // helpers
    INTERNAL PROCEDURE CWValue2EIBValue( UFlag : BOOLEAN; CONST Value : drv_def.TValue; DestEVType : eib_def.TEIBType; OUT EV : eib_def.TValue );
+   PRIVATE PROCEDURE DoRun();
+   PRIVATE PROCEDURE DoStop();
 
    // IEIBServerSink
    PUBLIC VIRTUAL PROCEDURE OnConnect();
@@ -75,6 +86,9 @@ CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS srvcore.IEIBServerSink;
    PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : srvcore.TPObject );
    PUBLIC VIRTUAL PROCEDURE OnInputQueueAdd();
    PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow();
+   
+   // ITimeoutSink
+   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
 END CEIBDriver;
 
 //================================================================================
