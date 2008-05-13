@@ -10,20 +10,21 @@ VAR
 
 (*===========================================================================*)
 
-PROCEDURE Pool() : threadpool.TPThreadPool;
+PROCEDURE pool() : threadpool.TPThreadPool;
 BEGIN
   IF NetPool = NIL THEN
     ASSERT( FALSE ); // netinit.Startup was not called
     Startup();
   END;
   RETURN NetPool;
-END Pool;
+END pool;
 
 PROCEDURE Startup();
 BEGIN
   IF NetPool = NIL THEN
     NEW( NetPool );
     NetPool^.MinThreads := 2; // 1 for handles and messages, 1 for workers
+    NetPool^.MaxThreads := 64;
     NetPool^.SingleThreadInterface := FALSE;
   END;
 END Startup;

@@ -350,7 +350,7 @@ CLASS IMPLEMENTATION CTest;
       IF i = 0 THEN
          i := 5; // set
          LOOP
-            IF netpool.Pool()^.UndeliveredMessagesPending THEN
+            IF netpool.pool()^.UndeliveredMessagesPending THEN
                WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) = windows.True DO
                   windows.DispatchMessage( ADR( msg ));
                END; // WHILE

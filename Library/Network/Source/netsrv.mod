@@ -409,7 +409,7 @@ CLASS IMPLEMENTATION CIPServer;
       Sockets.Dispose();
     END;
     IF _FDHandle <> NIL THEN
-      netpool.Pool()^.Abort( REF _FDHandle );
+      netpool.pool()^.Abort( REF _FDHandle );
     END;
     SUPER.Dispose();
   END Dispose;
@@ -494,7 +494,7 @@ CLASS IMPLEMENTATION CIPServer;
     CBMode := Mode;
     IF CBMode = cbmPooled THEN
       IF _FDHandle = NIL THEN
-        netpool.Pool()^.WaitMessage( ADR( _Delegate ), 0, Sync.FOREVER, FALSE, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
+        netpool.pool()^.WaitMessage( ADR( _Delegate ), 0, Sync.FOREVER, FALSE, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
       END;
       MQueue.Consumer := _FDMessager;
       MQueue.ConsumerMsg := ADR( _FDMessage );

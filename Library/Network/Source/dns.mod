@@ -251,14 +251,14 @@ END ADNSNotifier;
 
 PROCEDURE KillPending( REF Handle : PTR );
 BEGIN
-  netpool.Pool()^.Abort( REF Handle );
+  netpool.pool()^.Abort( REF Handle );
 END KillPending;
 
 (*---------------------------------------------------------------------------*)
 
 PROCEDURE KillAllPending( PNotifier : TPDNSNotifier );
 BEGIN
-  netpool.Pool()^.AbortAll( PNotifier );
+  netpool.pool()^.AbortAll( PNotifier );
 END KillAllPending;
 
 (*===========================================================================*)
@@ -284,7 +284,7 @@ BEGIN
    Request^.Name.FromOA( Name );
    Request^.DefaultPort := DefaultPort;
  
-   IF netpool.Pool()^.RunWorker( ADR( SinkDelegate ), Request, FALSE, Request, FALSE, OUT Handle ) THEN
+   IF netpool.pool()^.RunWorker( ADR( SinkDelegate ), Request, FALSE, Request, FALSE, OUT Handle ) THEN
       RETURN TRUE;
    ELSE
       Request^.Release();
@@ -307,7 +307,7 @@ BEGIN
    Request^.Address := Address;
    Request^.IncludePort := IncludePort;
 
-   IF netpool.Pool()^.RunWorker( ADR( SinkDelegate ), Request, FALSE, Request, FALSE, OUT Handle ) THEN
+   IF netpool.pool()^.RunWorker( ADR( SinkDelegate ), Request, FALSE, Request, FALSE, OUT Handle ) THEN
       RETURN TRUE;
    ELSE
       Request^.Release();

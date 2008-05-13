@@ -365,7 +365,7 @@ CLASS IMPLEMENTATION SSocket;
     END;
     _Lock.InclExcl( REF _Pending, BITSET32{}, BITSET32( NOT CARDINAL( TPendingOperation{poResolveName} )));
     IF _FDHandle <> NIL THEN
-      netpool.Pool()^.Abort( REF _FDHandle );
+      netpool.pool()^.Abort( REF _FDHandle );
     END;
   END Close;
 
@@ -530,7 +530,7 @@ CLASS IMPLEMENTATION SSocket;
     IF Events = 0 THEN // chyba : WSAAsyncSelect neprojde, asi ten NIL, ci co, prozkoumat
       RETURN winsock.WSAAsyncSelect( Socket, NIL, 0, 0 );
     ELSIF _FDHandle = NIL THEN
-      netpool.Pool()^.WaitMessage( ADR( SELF ), 0, Sync.FOREVER, FALSE, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
+      netpool.pool()^.WaitMessage( ADR( SELF ), 0, Sync.FOREVER, FALSE, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
     END;
     RETURN winsock.WSAAsyncSelect( Socket, _FDMessager^.Handle, _FDMessage.Message, Events );
   END Select;
@@ -800,7 +800,7 @@ CLASS IMPLEMENTATION DSocket;
          // HACK: thread pool is now singlethreadinterfaced, and there is not possible to call SwitchContext.WaitMessage from OnNameFound, because
          // it is called from DNS.WorkerThread => WaitMessage must be prepared here, sonner.
          IF _FDHandle = NIL THEN
-            netpool.Pool()^.WaitMessage( ADR( SELF ), 0, Sync.FOREVER, FALSE, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
+            netpool.pool()^.WaitMessage( ADR( SELF ), 0, Sync.FOREVER, FALSE, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
          END;
          // end of HACK
 
@@ -1228,7 +1228,7 @@ CLASS IMPLEMENTATION DSocket;
     MSG : msghandler.Message;
   BEGIN
     IF _FDHandle = NIL THEN
-      netpool.Pool()^.WaitMessage( ADR( SELF ), 0, Sync.FOREVER, FALSE, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
+      netpool.pool()^.WaitMessage( ADR( SELF ), 0, Sync.FOREVER, FALSE, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
     END;
     MSG := _FDMessage;
     MSG[2] := PTR( Operation );
@@ -1562,10 +1562,10 @@ CLASS IMPLEMENTATION DSocket;
   PRIVATE PROCEDURE StartTimeout( Operation : TPendingOperationItem; _Timeout : CARDINAL );
   BEGIN
     IF Timeout[Operation] <> NIL THEN
-      netpool.Pool()^.Abort( REF Timeout[Operation] );
+      netpool.pool()^.Abort( REF Timeout[Operation] );
     END;
     IF _Timeout <> Sync.FOREVER THEN
-      netpool.Pool()^.WaitTimeout( ADR( SELF ), PTR( Operation ), _Timeout, TRUE, FALSE, OUT Timeout[Operation] );
+      netpool.pool()^.WaitTimeout( ADR( SELF ), PTR( Operation ), _Timeout, TRUE, FALSE, OUT Timeout[Operation] );
     END;
   END StartTimeout;
 
@@ -1574,7 +1574,7 @@ CLASS IMPLEMENTATION DSocket;
   PRIVATE PROCEDURE StopTimeout( Operation : TPendingOperationItem );
   BEGIN
     IF Timeout[Operation] <> NIL THEN
-      netpool.Pool()^.Abort( REF Timeout[Operation] );
+      netpool.pool()^.Abort( REF Timeout[Operation] );
     END;
   END StopTimeout;
 

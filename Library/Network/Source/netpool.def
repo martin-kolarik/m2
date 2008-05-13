@@ -6,11 +6,9 @@ DEFINITION MODULE netpool;
 IMPORT
   threadpool;
 
-#save, option( dll_export => on )
+//--------------------------------------------------------------------------------
 
-PROCEDURE Pool() : threadpool.TPThreadPool;
-
-#restore
+PROCEDURE pool() : threadpool.TPThreadPool;
 
 //--------------------------------------------------------------------------------
 
