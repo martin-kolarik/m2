@@ -5,8 +5,6 @@ FROM Log IMPORT
    
 IMPORT
    lists,
-   netinit,
-   netpool,
    Storage,
    StorageO,
    Strings,
@@ -406,7 +404,7 @@ CLASS IMPLEMENTATION CHttpSrv;
          END;
       END;
       
-      IF NOT netpool.Pool()^.WaitHandle( ADR( SELF ), 0, Sync.FORSAFETY, FALSE, _HRequestSignal, OUT _HPoolHandle ) THEN
+      IF NOT threadpool.pool()^.WaitHandle( ADR( SELF ), 0, Sync.FORSAFETY, FALSE, _HRequestSignal, OUT _HPoolHandle ) THEN
          RETURN Sync.arCannotStart;
       END;
       // force switching to another thread, waiting will be starte from the another thread
@@ -425,7 +423,7 @@ CLASS IMPLEMENTATION CHttpSrv;
       END;
       
       IF _HPoolHandle <> NIL THEN
-         netpool.Pool()^.Abort( REF _HPoolHandle );
+         threadpool.pool()^.Abort( REF _HPoolHandle );
       END;
    END Stop;
    
@@ -530,8 +528,6 @@ VAR
 PROCEDURE srv() : TPHttpServer;
 BEGIN
    IF Server = NIL THEN
-      netinit.Startup();
-
       NEW( Server );
    END;
    RETURN Server;
@@ -545,8 +541,6 @@ BEGIN
       Server^.Dispose();
       Server^.Release();
       Server := NIL;
-
-      netinit.Cleanup();
    END;
 END Cleanup;
 
