@@ -1235,4 +1235,43 @@ END CThreadPool;
 
 //================================================================================
 
+VAR
+   Pool : TPThreadPool;
+
+//--------------------------------------------------------------------------------
+
+PROCEDURE Startup();
+BEGIN
+   IF Pool = NIL THEN
+      NEW( Pool );
+      Pool^.MinThreads := 1;
+      Pool^.MaxThreads := 64;
+      Pool^.SingleThreadInterface := FALSE;
+   END;
+END Startup;
+
+//--------------------------------------------------------------------------------
+
+PROCEDURE Cleanup();
+BEGIN
+   IF Pool <> NIL THEN
+      Pool^.FinishAndWait();
+      DISPOSE( Pool );
+   END;
+END Cleanup;
+
+//--------------------------------------------------------------------------------
+
+PROCEDURE pool() : TPThreadPool;
+BEGIN
+   ASSERT( Pool <> NIL );
+   RETURN Pool;
+END pool;
+
+//================================================================================
+
+BEGIN
+   Pool := NIL;
+FINALLY
+   ASSERT( Pool = NIL );
 END threadpool.

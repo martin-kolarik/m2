@@ -126,6 +126,14 @@ CLASS CThreadPool( msghandler.MessageHandler );
 END CThreadPool;
 
 //--------------------------------------------------------------------------------
+// global, universal purpose thread pool
+// Startup, Cleanup SHOULD NOT BE CALLED automatically of from init code -- they can operate threads.
+// Call these functions from some higher code.
+
+PROCEDURE Startup();
+PROCEDURE Cleanup();
+
+PROCEDURE pool() : TPThreadPool;
 
 #restore
 
