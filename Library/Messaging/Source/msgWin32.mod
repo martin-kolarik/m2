@@ -256,7 +256,10 @@ CLASS IMPLEMENTATION Win32MessageHandler;
   BEGIN
     IF HWND = NIL THEN
       RETURN;
-    ELSIF Timers.Contains( Timer ) THEN
+    END;
+    ASSERT( SelfContext );
+
+    IF Timers.Contains( Timer ) THEN
       windows.KillTimer( HWND, Timer );
       Timers.Remove( Timer );
     END;
@@ -276,7 +279,10 @@ CLASS IMPLEMENTATION Win32MessageHandler;
   BEGIN
     IF HWND = NIL THEN
       RETURN;
-    ELSIF Timers.Contains( Timer ) THEN
+    END;
+
+    ASSERT( SelfContext );
+    IF Timers.Contains( Timer ) THEN
       windows.KillTimer( HWND, Timer );
       Timers.Remove( Timer );
     END;
