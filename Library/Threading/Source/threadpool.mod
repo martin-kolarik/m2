@@ -9,26 +9,28 @@ IMPORT
   lists,
   maps,
   syncqueue,
+  time,
   thread,
+  TimeoutablePtrMap,
   windows;
   
 //================================================================================
 
 CLASS IMPLEMENTATION APoolDelegate;
 
-  LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+  LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
   BEGIN
   END OnTimeout;
 
-  LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
+  LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
   BEGIN
   END OnMessage;
 
-  LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+  LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
   BEGIN
   END OnHandle;
 
-  LOCAL VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+  LOCAL VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
   BEGIN
   END OnWorker;
 
@@ -40,7 +42,7 @@ CLASS IMPLEMENTATION CSinkDelegate;
 
 //---------------------------------------------------------------------------
 
-   LOCAL FINAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+   LOCAL FINAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
    BEGIN
       IF TimeoutSink <> NIL THEN
          TimeoutSink^.OnTimeout( Result, PoolHandle, UserId );
@@ -49,7 +51,7 @@ CLASS IMPLEMENTATION CSinkDelegate;
 
 //---------------------------------------------------------------------------
 
-   LOCAL FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
+   LOCAL FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
    BEGIN
       IF MessageSink <> NIL THEN
          MessageSink^.OnMessage( Result, PoolHandle, UserId, MSG );
@@ -58,7 +60,7 @@ CLASS IMPLEMENTATION CSinkDelegate;
 
 //---------------------------------------------------------------------------
 
-   LOCAL FINAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+   LOCAL FINAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
    BEGIN
       IF HandleSink <> NIL THEN
          HandleSink^.OnHandle( Result, PoolHandle, UserId );
@@ -67,7 +69,7 @@ CLASS IMPLEMENTATION CSinkDelegate;
 
 //---------------------------------------------------------------------------
 
-   LOCAL FINAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+   LOCAL FINAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
    BEGIN
       IF WorkerSink <> NIL THEN
          WorkerSink^.OnWorker( Result, PoolHandle, UserId );
@@ -87,7 +89,7 @@ END CSinkDelegate;
 
 CLASS IMPLEMENTATION CMessageHandlerDelegate;
 
-   LOCAL FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
+   LOCAL FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
    BEGIN
       IF Handler = NIL THEN
         RETURN;
@@ -121,6 +123,9 @@ TYPE
 
 TYPE
   TPTask = POINTER TO CTask;
+  
+VAR
+  GCurrentHandle : CARD32 := 1;
 
 CLASS CTask;
   Task : TTask;
@@ -129,45 +134,11 @@ CLASS CTask;
   Delegate : TPPoolDelegate;
   Timeout : CARDINAL;
   CompleteInOwningThread : BOOLEAN;
-  HWait : Sync.SIGNAL;
+  PUBLIC READONLY VAR
+    Handle : TPoolHandle;
 END CTask;
 
 //================================================================================
-
-TYPE
-  TPTaskItem = POINTER TO CTaskItem;
-
-CLASS CTaskItem( avltree.CAVLTreeElem2 ); // MUST BE BINARY COMPATIBLE WITH maps.CPtrMap !!!
-  PUBLIC VAR
-    Key : windows.HANDLE;
-    Task : TPTask;
-    ElapsesOn : CARD64;
-  PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
-  // OPERATOR NEW() : ADDRESS;
-  // OPERATOR DISPOSE( a : ADDRESS );
-END CTaskItem;
-
-//---------------------------------------------------------------------------
-
-CLASS CTaskMap( avltree.CAVLTree );
-  PRIVATE VAR
-    Counter : CARDINAL;
-  LOCAL VAR
-    CurrentTime : CARDINAL;
-
-  // map interface
-  PUBLIC PROCEDURE Add( Key : windows.HANDLE; Task : TPTask; Timeout : CARDINAL );
-  PUBLIC PROCEDURE Remove( Key : windows.HANDLE );
-  PUBLIC PROCEDURE Get( Key : windows.HANDLE; OUT Task : TPTask ) : BOOLEAN;
-
-  // pool thread interface
-  LOCAL PROCEDURE GetTimeoutToFirstElapsed( TimeToCount : CARDINAL ) : CARDINAL;
-  LOCAL PROCEDURE GetFirstElapsed( OUT Task : TPTask ) : BOOLEAN;
-
-  PRIVATE PROCEDURE GetFirstWithTimeout( CurrentTime : CARDINAL; OUT Task : TPTask; OUT Timeout : CARDINAL ) : BOOLEAN;
-END CTaskMap;
-
-//--------------------------------------------------------------------------------
 
 TYPE
   TPPoolThread = POINTER TO CPoolThread;
@@ -175,7 +146,7 @@ TYPE
 CLASS CPoolThread( thread.Thread );
   PRIVATE VAR
     Pool : TPThreadPool;
-    HTasks : CTaskMap; // CTask.HWait/PTask
+    HTasks : TimeoutablePtrMap.CTimeoutablePtrMap; // CTask.Handle/PTask
     Handles : maps.CPtrMap; // CTask.Data/PPtrList
     Messages : maps.CPtrMap; // CTask.Data/PTask
     Workers : lists.CPtrList; // CTask.Data/PTask
@@ -199,7 +170,7 @@ CLASS CPoolThread( thread.Thread );
   LOCAL PROCEDURE Init( Pool : TPThreadPool );
   INTERNAL VIRTUAL PROCEDURE OnRun() : CARDINAL;
 
-  PRIVATE PROCEDURE AddTask( Task : TPTask );
+  PRIVATE PROCEDURE AddTask( CurrentTime : CARDINAL; Task : TPTask );
   PRIVATE PROCEDURE RemoveTask( Result : Sync.TAsyncResult; Task : TPTask );
   PRIVATE PROCEDURE Completed( Result : Sync.TAsyncResult; Task : TPTask; PMSG : POINTER TO msghandler.Message; RemoveTask, DisposeTask : BOOLEAN; OUT CanBeDisposed : BOOLEAN );
 END CPoolThread;
@@ -214,169 +185,12 @@ BEGIN
   Timeout := Sync.FOREVER;
   Data := NIL;
   CompleteInOwningThread := FALSE;
-  HWait := Sync.CreateSignal( FALSE, L'' );
+  Handle := PTR( Sync.IInc( REF GCurrentHandle ));
 FINALLY
   IF Delegate <> NIL THEN
     Delegate^.Release();
   END;
-  Sync.DeleteSignal( REF HWait );
 END CTask;
-
-//================================================================================
-
-CLASS IMPLEMENTATION CTaskItem;
-
-//--------------------------------------------------------------------------------
-
-  PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
-  BEGIN
-    IF i = 0 THEN
-      IF PTR( Key ) < PTR( TPTaskItem( pelem )^.Key ) THEN
-        RETURN -1;
-      ELSIF PTR( Key ) > PTR( TPTaskItem( pelem )^.Key ) THEN
-        RETURN 1;
-      ELSE
-        RETURN 0;
-      END;
-    ELSIF i = 1 THEN
-      IF ElapsesOn < TPTaskItem( pelem )^.ElapsesOn THEN
-        RETURN -1;
-      ELSIF ElapsesOn > TPTaskItem( pelem )^.ElapsesOn THEN
-        RETURN 1;
-      ELSE
-        RETURN 0;
-      END;
-    ELSE
-      RETURN 1;
-    END;
-  END Compare;
-
-  // OPERATOR CTaskItem.NEW() : ADDRESS;
-  // VAR
-  //   a : ADDRESS;
-  // BEGIN
-  //   IF TaskAllocator.Allocate( OUT a, SIZE( CTaskItem )) THEN
-  //     RETURN a;
-  //   ELSE
-  //     RETURN NIL;
-  //   END;
-  // END CPtrItem.NEW;
-  
-  // OPERATOR CTaskItem.DISPOSE( a : ADDRESS );
-  // BEGIN
-  //   TaskAllocator.Deallocate( REF a );
-  // END CTaskItem.DISPOSE;
-
-//--------------------------------------------------------------------------------
-
-BEGIN
-  Key := NIL;
-  Task := NIL;
-  ElapsesOn := 0;
-END CTaskItem;
-
-//--------------------------------------------------------------------------------
-
-CLASS IMPLEMENTATION CTaskMap;
-
-//--------------------------------------------------------------------------------
-
-  PUBLIC PROCEDURE Add( Key : windows.HANDLE; Task : TPTask; Timeout : CARDINAL );
-  VAR
-    PI : TPTaskItem;
-  BEGIN
-    NEW( PI );
-    PI^.Key := Key;
-    PI^.Task := Task;
-    IF Timeout = Sync.FOREVER THEN
-      PI^.ElapsesOn := CARD64( Sync.FOREVER ) << 32 OR CARD64( Counter );
-    ELSIF Timeout = 0 THEN
-      PI^.ElapsesOn := CARD64( CurrentTime + 1 ) << 32 OR CARD64( Counter );
-    ELSE
-      PI^.ElapsesOn := CARD64( CurrentTime + Timeout ) << 32 OR CARD64( Counter );
-    END;
-    Insert( PI );
-    INC( Counter );
-  END Add;
-
-//--------------------------------------------------------------------------------
-
-  PUBLIC PROCEDURE Remove( Key : windows.HANDLE );
-  VAR
-    I : CTaskItem;
-  BEGIN
-    I.Key := Key;
-    Delete( ADR( I ));
-  END Remove;
-
-//--------------------------------------------------------------------------------
-
-  PUBLIC PROCEDURE Get( Key : windows.HANDLE; OUT Task : TPTask ) : BOOLEAN;
-  VAR
-    I : CTaskItem;
-    PI : TPTaskItem;
-  BEGIN
-    I.Key := Key;
-    IF NOT Search( ADR( I ), OUT PI ) THEN
-      RETURN FALSE;
-    END;
-    Task := PI^.Task;
-    RETURN TRUE;  
-  END Get;
-
-//--------------------------------------------------------------------------------
-
-  LOCAL PROCEDURE GetTimeoutToFirstElapsed( TimeToCount : CARDINAL ) : CARDINAL;
-  VAR
-    Task : TPTask;
-    Timeout : CARDINAL;
-  BEGIN
-    IF GetFirstWithTimeout( TimeToCount, OUT Task, OUT Timeout ) THEN
-      RETURN Timeout;
-    ELSE
-      RETURN Sync.FOREVER;
-    END;
-  END GetTimeoutToFirstElapsed;
-
-//--------------------------------------------------------------------------------
-
-  LOCAL PROCEDURE GetFirstElapsed( OUT Task : TPTask ) : BOOLEAN;
-  VAR
-    Timeout : CARDINAL;
-  BEGIN
-    RETURN GetFirstWithTimeout( CurrentTime, OUT Task, OUT Timeout ) AND ( Timeout = 0 );
-  END GetFirstElapsed;
-
-//--------------------------------------------------------------------------------
-
-  PRIVATE PROCEDURE GetFirstWithTimeout( CurrentTime : CARDINAL; OUT Task : TPTask; OUT Timeout : CARDINAL ) : BOOLEAN;
-  VAR
-    ElapsesOn : CARDINAL;
-    TI : TPTaskItem;
-  BEGIN
-    IF NOT GetFirstI( 1, OUT TI ) THEN
-      RETURN FALSE;
-    END;
-    ElapsesOn := CARDINAL( TI^.ElapsesOn >> 32 );
-    IF ElapsesOn = Sync.FOREVER THEN
-      RETURN FALSE;
-    END;
-    Task := TI^.Task;
-    IF ElapsesOn <= CurrentTime THEN
-      Timeout := 0;
-    ELSE
-      Timeout := ElapsesOn - CurrentTime;
-    END;
-    RETURN TRUE;
-  END GetFirstWithTimeout;
-
-//--------------------------------------------------------------------------------
-
-BEGIN
-  Counter := 0;
-  Indexes := 2;
-  CurrentTime := 0;
-END CTaskMap;
 
 //================================================================================
 
@@ -396,7 +210,7 @@ TYPE
                  MSG : msghandler.Message;
                  Result : Sync.TAsyncResult;
                | topRemoveTask :
-                 HTask : Sync.WAITABLE;
+                 HTask : TPoolHandle;
                | topRemoveDelegate :
                  Delegate : TPPoolDelegate;
                | topOnThreadEmpty :
@@ -441,13 +255,14 @@ CLASS IMPLEMENTATION CPoolThread;
 
       //-----
       
-      PROCEDURE HandleTimeouts() : BOOLEAN;
+      PROCEDURE HandleTimeouts( CurrentTime : CARDINAL ) : BOOLEAN;
       VAR
          CheckEmpty : BOOLEAN := FALSE;
          disposable : BOOLEAN;
+         Handle : TPoolHandle;
          Task : TPTask;
       BEGIN
-         WHILE HTasks.GetFirstElapsed( OUT Task ) DO
+         WHILE HTasks.GetFirstElapsed( CurrentTime, FALSE, OUT Handle, OUT Task ) DO
             CASE Task^.Task OF
             | tskTimeoutOnce :
                Completed( Sync.arCompleted, Task, NIL, TRUE, TRUE, OUT disposable );
@@ -455,7 +270,7 @@ CLASS IMPLEMENTATION CPoolThread;
             | tskTimeoutRepeated :
                Completed( Sync.arCompleted, Task, NIL, TRUE, FALSE, OUT disposable );
                Task^.Delegate^.Completed := FALSE;
-               AddTask( Task );
+               AddTask( CurrentTime, Task );
             | tskWorker :
                // workers are logically timeouted, but they must be removed after completion, allow worker run
                RETURN FALSE; // workers set CheckEmpty by itself
@@ -470,7 +285,7 @@ CLASS IMPLEMENTATION CPoolThread;
       
       //-----
       
-      PROCEDURE HandleAdministrativeMessages() : BOOLEAN;
+      PROCEDURE HandleAdministrativeMessages( CurrentTime : CARDINAL ) : BOOLEAN;
       VAR
          CheckEmpty : BOOLEAN := FALSE;
          Message : TMessage;
@@ -480,7 +295,7 @@ CLASS IMPLEMENTATION CPoolThread;
             CASE Message.Operation OF
             //---
             | topAdd :
-               AddTask( Message.Task );
+               AddTask( CurrentTime, Message.Task );
             //---
             | topRemoveTask :
                IF HTasks.Get( Message.HTask, OUT Task ) THEN
@@ -575,6 +390,7 @@ CLASS IMPLEMENTATION CPoolThread;
       
    VAR
       CheckEmpty : BOOLEAN;
+      CurrentTime : CARDINAL;
       disposable : BOOLEAN;
       msg : windows.MSG;
       Status : CARDINAL;
@@ -590,9 +406,9 @@ CLASS IMPLEMENTATION CPoolThread;
     
       LOOP
          CheckEmpty := FALSE;
-         Timeout := HTasks.GetTimeoutToFirstElapsed( windows.GetTickCount());
+         Timeout := HTasks.GetTimeoutToFirstElapsed( time.UptimeMS());
          Status := windows.MsgWaitForMultipleObjectsEx( WaitArray.Count, WaitArray.Data, Timeout, windows.QS_ALLINPUT, windows.MWMO_INPUTAVAILABLE OR windows.MWMO_ALERTABLE );
-         HTasks.CurrentTime := windows.GetTickCount();
+         CurrentTime := time.UptimeMS();
          
          CASE Status OF
          //-----
@@ -607,7 +423,7 @@ CLASS IMPLEMENTATION CPoolThread;
 
          //-----
          | windows.WAIT_TIMEOUT : // remove all timeouted tasks
-            CheckEmpty := HandleTimeouts();
+            CheckEmpty := HandleTimeouts( time.UptimeMS());
 
          //-----
          ELSE
@@ -623,7 +439,7 @@ CLASS IMPLEMENTATION CPoolThread;
             IF NOT WaitAbandoned AND ( Status = WaitArray.Count ) THEN // a message has arrived
                WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) <> 0 DO
                   IF msg.message = msgqueue.WM_MQ_PROCESS THEN // administrative message/queue
-                     CheckEmpty := HandleAdministrativeMessages() OR CheckEmpty;
+                     CheckEmpty := HandleAdministrativeMessages( CurrentTime ) OR CheckEmpty;
                   ELSE
                      CheckEmpty := CheckAndHandleKnownMessage( msg ) OR CheckEmpty;
                   END;
@@ -663,11 +479,11 @@ CLASS IMPLEMENTATION CPoolThread;
 
 //--------------------------------------------------------------------------------
 
-  PRIVATE PROCEDURE AddTask( Task : TPTask );
+  PRIVATE PROCEDURE AddTask( CurrentTime : CARDINAL; Task : TPTask );
   VAR
     HandleList : lists.TPPtrList;
   BEGIN
-    HTasks.Add( Task^.HWait, Task, Task^.Timeout );
+    HTasks.Add( CurrentTime, Task^.Handle, Task, Task^.Timeout );
     CASE Task^.Task OF
     | tskTimeoutOnce, tskTimeoutRepeated :
       // do nothing
@@ -731,14 +547,13 @@ CLASS IMPLEMENTATION CPoolThread;
     MSG : msghandler.Message;
   BEGIN
     IF RemoveTask THEN
-      HTasks.Remove( Task^.HWait );
+      HTasks.Remove( Task^.Handle );
       Sync.IDec( REF TasksCount );
     ELSE
       DisposeTask := FALSE; // for safety
     END;
 
     Task^.Delegate^.Completed := TRUE;
-    windows.PulseEvent( Task^.HWait );
     IF Pool = NIL THEN
       Disposable := TRUE;
     ELSIF PMSG = NIL THEN
@@ -772,6 +587,7 @@ CLASS IMPLEMENTATION CPoolThread;
   FINALLY CPoolThread();
   VAR
     disposable : BOOLEAN;
+    Key : PTR;
     Task : TPTask;
   BEGIN
     Handles.Reset();
@@ -791,7 +607,7 @@ CLASS IMPLEMENTATION CPoolThread;
       Completed( Sync.arAborted, Workers.CurrentData, NIL, TRUE, TRUE, OUT disposable );
       TPPoolWorker( Workers.Current )^.Release();
     END; // WHILE
-    WHILE HTasks.GetFirstElapsed( OUT Task ) DO
+    WHILE HTasks.GetFirstElapsed( time.UptimeMS(), FALSE, OUT Key, OUT Task ) DO
       Completed( Sync.arAborted, Task, NIL, TRUE, TRUE, OUT disposable );
     END; // WHILE
   END CPoolThread;
@@ -879,7 +695,7 @@ CLASS IMPLEMENTATION CThreadPool;
   
 //--------------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE WaitTimeout( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
+  PUBLIC PROCEDURE WaitTimeout( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; OUT PoolHandle : TPoolHandle ) : BOOLEAN;
   VAR
     MSG : TMessage;
     PoolThread : TPPoolThread;
@@ -912,7 +728,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG.Task^.CompleteInOwningThread := CompleteInOwningThread;
 
     // return value
-    PoolHandle := MSG.Task^.HWait;
+    PoolHandle := MSG.Task^.Handle;
 
     Result := PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
@@ -921,7 +737,7 @@ CLASS IMPLEMENTATION CThreadPool;
 
 //--------------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE WaitMessage( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; OUT Handler : msghandler.TPMessageHandler; OUT Message : msghandler.Message; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
+  PUBLIC PROCEDURE WaitMessage( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; OUT Handler : msghandler.TPMessageHandler; OUT Message : msghandler.Message; OUT PoolHandle : TPoolHandle ) : BOOLEAN;
   VAR
     MSG : TMessage;
     PoolThread : TPPoolThread;
@@ -952,11 +768,11 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG.Task^.UserId := UserId;
     MSG.Task^.Delegate := Delegate;
     MSG.Task^.Timeout := TimeoutMS;
-    MSG.Task^.Data := PTR( MSG.Task^.HWait ) + msgqueue.WM_MQ_PROCESS;
+    MSG.Task^.Data := PTR( MSG.Task^.Handle ) + msgqueue.WM_MQ_PROCESS;
     MSG.Task^.CompleteInOwningThread := CompleteInOwningThread;
 
     // return values
-    PoolHandle := MSG.Task^.HWait;
+    PoolHandle := MSG.Task^.Handle;
     Message[1] := MSG.Task^.Data;
     Handler := ADR( PoolThread^.Messager );
 
@@ -967,7 +783,7 @@ CLASS IMPLEMENTATION CThreadPool;
 
 //--------------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE WaitHandle( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; Handle : windows.HANDLE; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
+  PUBLIC PROCEDURE WaitHandle( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; Handle : Sync.WAITABLE; OUT PoolHandle : TPoolHandle ) : BOOLEAN;
   VAR
     MSG : TMessage;
     PoolThread : TPPoolThread;
@@ -1002,7 +818,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG.Task^.CompleteInOwningThread := CompleteInOwningThread;
 
     // return value
-    PoolHandle := MSG.Task^.HWait;
+    PoolHandle := MSG.Task^.Handle;
 
     Result := PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
@@ -1011,7 +827,7 @@ CLASS IMPLEMENTATION CThreadPool;
 
 //--------------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE RunWorker( CONST Delegate : TPPoolDelegate; UserId : PTR; ForceSelfThread : BOOLEAN; Worker : TPPoolWorker; CompleteInOwningThread : BOOLEAN; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
+  PUBLIC PROCEDURE RunWorker( CONST Delegate : TPPoolDelegate; UserId : PTR; ForceSelfThread : BOOLEAN; Worker : TPPoolWorker; CompleteInOwningThread : BOOLEAN; OUT PoolHandle : TPoolHandle ) : BOOLEAN;
   VAR
     MSG : TMessage;
     PoolThread : TPPoolThread;
@@ -1043,7 +859,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG.Task^.CompleteInOwningThread := CompleteInOwningThread;
 
     // return value
-    PoolHandle := MSG.Task^.HWait;
+    PoolHandle := MSG.Task^.Handle;
 
     Result := PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
@@ -1052,15 +868,7 @@ CLASS IMPLEMENTATION CThreadPool;
 
 //--------------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE WaitCompletion( PoolHandle : Sync.WAITABLE; Timeout : CARDINAL ) : Sync.TAsyncResult;
-  BEGIN
-    CheckThreadInterface();
-    RETURN Sync.Wait( PoolHandle, Timeout );
-  END WaitCompletion;
-
-//--------------------------------------------------------------------------------
-
-  PUBLIC PROCEDURE Abort( REF PoolHandle : Sync.WAITABLE );
+  PUBLIC PROCEDURE Abort( REF PoolHandle : TPoolHandle );
   VAR
     MSG : TMessage;
     Result : Sync.TAsyncResult;
@@ -1068,7 +876,7 @@ CLASS IMPLEMENTATION CThreadPool;
     // CheckThreadInterface(); -- not checked, the method can be called from all threads
     MSG.Operation := topRemoveTask;
     MSG.HTask := PoolHandle;
-    PoolHandle := NIL;
+    PoolHandle := 0;
 
     _Lock.Lock();
     Threads.Reset();
@@ -1133,13 +941,13 @@ CLASS IMPLEMENTATION CThreadPool;
     ELSE
       CASE Task^.Task OF
       | tskTimeoutOnce, tskTimeoutRepeated :
-        Task^.Delegate^.OnTimeout( Result, Task^.HWait, Task^.UserId );
+        Task^.Delegate^.OnTimeout( Result, Task^.Handle, Task^.UserId );
       | tskMessageOnce, tskMessageRepeated :
-        Task^.Delegate^.OnMessage( Result, Task^.HWait, Task^.UserId, MSG );
+        Task^.Delegate^.OnMessage( Result, Task^.Handle, Task^.UserId, MSG );
       | tskHandleOnce, tskHandleRepeated :
-        Task^.Delegate^.OnHandle( Result, Task^.HWait, Task^.UserId );
+        Task^.Delegate^.OnHandle( Result, Task^.Handle, Task^.UserId );
       | tskWorker :
-        Task^.Delegate^.OnWorker( Result, Task^.HWait, Task^.UserId );
+        Task^.Delegate^.OnWorker( Result, Task^.Handle, Task^.UserId );
       END;
       RETURN TRUE;
     END;

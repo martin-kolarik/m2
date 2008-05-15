@@ -27,7 +27,7 @@ CLASS CDelegate( threadpool.APoolDelegate );
       Test : TPTest;
       ThreadId : CARDINAL;
 
-   LOCAL VIRTUAL PROCEDURE OnWorker( Result : sync.TAsyncResult; PoolHandle : sync.WAITABLE; UserId : PTR );
+   LOCAL VIRTUAL PROCEDURE OnWorker( Result : sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
 END CDelegate;
   
 (*---------------------------------------------------------------------------*)
@@ -61,7 +61,7 @@ CLASS IMPLEMENTATION CDelegate;
 
 (*---------------------------------------------------------------------------*)
 
-   LOCAL VIRTUAL PROCEDURE OnWorker( Result : sync.TAsyncResult; PoolHandle : sync.WAITABLE; UserId : PTR );
+   LOCAL VIRTUAL PROCEDURE OnWorker( Result : sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    BEGIN
       IF ( ThreadId <> 0 ) AND ( ThreadId <> windows.GetCurrentThreadId()) THEN
          Test^.Host^.Log^.LogS( log.dlcError, L"", L"Completion in unexpected thread" );   

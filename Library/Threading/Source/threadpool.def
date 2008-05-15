@@ -13,25 +13,30 @@ IMPORT
 //--------------------------------------------------------------------------------
 
 TYPE
+   TPoolHandle = PTR;
+
+//--------------------------------------------------------------------------------
+
+TYPE
    TPITimeoutSink = POINTER TO ITimeoutSink;
    TPIMessageSink = POINTER TO IMessageSink;
    TPIHandleSink  = POINTER TO IHandleSink;
    TPIWorkerSink  = POINTER TO IWorkerSink;
    
 INTERFACE ITimeoutSink; 
-  LOCAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+  LOCAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
 END ITimeoutSink;
 
 INTERFACE IMessageSink;
-  LOCAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
+  LOCAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
 END IMessageSink;
 
 INTERFACE IHandleSink;
-  LOCAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+  LOCAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
 END IHandleSink;
 
 INTERFACE IWorkerSink;
-  LOCAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+  LOCAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
 END IWorkerSink;
 
 //--------------------------------------------------------------------------------
@@ -40,10 +45,10 @@ TYPE
   TPPoolDelegate = POINTER TO APoolDelegate;
 
 ABSTRACT CLASS APoolDelegate( Delegate.ADelegate ) IMPLEMENTS ITimeoutSink, IMessageSink, IHandleSink, IWorkerSink;
-  LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
-  LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
-  LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
-  LOCAL VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+  LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+  LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
+  LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+  LOCAL VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
 END APoolDelegate;
 
 //--------------------------------------------------------------------------------
@@ -57,10 +62,10 @@ CLASS CSinkDelegate( APoolDelegate );
     MessageSink : TPIMessageSink;
     HandleSink : TPIHandleSink;
     WorkerSink : TPIWorkerSink;
-  LOCAL FINAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
-  LOCAL FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
-  LOCAL FINAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
-  LOCAL FINAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+  LOCAL FINAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+  LOCAL FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
+  LOCAL FINAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+  LOCAL FINAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
 END CSinkDelegate;
 
 //--------------------------------------------------------------------------------
@@ -72,7 +77,7 @@ CLASS CMessageHandlerDelegate( APoolDelegate );
   PUBLIC VAR
     Handler : msghandler.TPMessageHandler;
     Delivery : msghandler.TDelivery := msghandler.delSynchronous;
-  LOCAL FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
+  LOCAL FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
 END CMessageHandlerDelegate;
 
 //--------------------------------------------------------------------------------
@@ -109,12 +114,11 @@ CLASS CThreadPool( msghandler.MessageHandler );
   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
   PUBLIC PROCEDURE FinishAndWait();
 
-  PUBLIC PROCEDURE WaitTimeout( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
-  PUBLIC PROCEDURE WaitMessage( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; OUT Handler : msghandler.TPMessageHandler; OUT Message : msghandler.Message; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
-  PUBLIC PROCEDURE WaitHandle( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; Handle : Sync.WAITABLE; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
-  PUBLIC PROCEDURE RunWorker( CONST Delegate : TPPoolDelegate; UserId : PTR; ForceSelfThread : BOOLEAN; Worker : TPPoolWorker; CompleteInOwningThread : BOOLEAN; OUT PoolHandle : Sync.WAITABLE ) : BOOLEAN;
-  PUBLIC PROCEDURE WaitCompletion( PoolHandle : Sync.WAITABLE; Timeout : CARDINAL ) : Sync.TAsyncResult;
-  PUBLIC PROCEDURE Abort( REF PoolHandle : Sync.WAITABLE );
+  PUBLIC PROCEDURE WaitTimeout( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; OUT PoolHandle : TPoolHandle ) : BOOLEAN;
+  PUBLIC PROCEDURE WaitMessage( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; OUT Handler : msghandler.TPMessageHandler; OUT Message : msghandler.Message; OUT PoolHandle : TPoolHandle ) : BOOLEAN;
+  PUBLIC PROCEDURE WaitHandle( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; Handle : Sync.WAITABLE; OUT PoolHandle : TPoolHandle ) : BOOLEAN;
+  PUBLIC PROCEDURE RunWorker( CONST Delegate : TPPoolDelegate; UserId : PTR; ForceSelfThread : BOOLEAN; Worker : TPPoolWorker; CompleteInOwningThread : BOOLEAN; OUT PoolHandle : TPoolHandle ) : BOOLEAN;
+  PUBLIC PROCEDURE Abort( REF PoolHandle : TPoolHandle );
   PUBLIC PROCEDURE AbortAll( CONST Delegate : TPPoolDelegate );
   
   LOCAL PROCEDURE OnThreadEmpty();

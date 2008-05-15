@@ -76,6 +76,10 @@
 				RelativePath=".\Source\threadWin32.mod"
 				>
 			</File>
+			<File
+				RelativePath=".\Source\TimeoutablePtrMap.mod"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -108,6 +112,10 @@
 			</File>
 			<File
 				RelativePath=".\Source\threadWin32.def"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\TimeoutablePtrMap.def"
 				>
 			</File>
 		</Filter>

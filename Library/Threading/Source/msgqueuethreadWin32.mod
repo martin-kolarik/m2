@@ -124,8 +124,7 @@ CLASS IMPLEMENTATION Win32MsgQueueThread;
    VAR
       LResult : PTR;
    BEGIN
-      IF ( Delivery = msghandler.delSynchronous ) OR
-         ( Delivery = msghandler.delSynchronousInThread ) AND SelfContext THEN
+      IF ( Delivery = msghandler.delSynchronous ) OR ( Delivery = msghandler.delSynchronousIfInThread ) AND SelfContext THEN
          IF Result = NIL THEN
             Result := ADR( LResult );
          END;

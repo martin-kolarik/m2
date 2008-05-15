@@ -26,7 +26,7 @@ CLASS CDelegate( threadpool.APoolDelegate );
       Test : TPTest;
       ThreadId : CARDINAL;
 
-   LOCAL VIRTUAL PROCEDURE OnHandle( Result : sync.TAsyncResult; PoolHandle : sync.WAITABLE; UserId : PTR );
+   LOCAL VIRTUAL PROCEDURE OnHandle( Result : sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
 END CDelegate;
   
 (*---------------------------------------------------------------------------*)
@@ -39,7 +39,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       Pool : threadpool.CThreadPool;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
-   PRIVATE PROCEDURE Round( CompletionInOwningThread : BOOLEAN; CONST EA : ARRAY OF windows.HANDLE; CONST PH : ARRAY OF sync.WAITABLE ) : BOOLEAN;
+   PRIVATE PROCEDURE Round( CompletionInOwningThread : BOOLEAN; CONST EA : ARRAY OF windows.HANDLE; REF PH : ARRAY OF sync.WAITABLE ) : BOOLEAN;
    PRIVATE PROCEDURE WaitForMessages( count : CARDINAL );
 END CTest;
 
@@ -54,7 +54,7 @@ CLASS IMPLEMENTATION CDelegate;
 
 (*---------------------------------------------------------------------------*)
 
-   LOCAL VIRTUAL PROCEDURE OnHandle( Result : sync.TAsyncResult; PoolHandle : sync.WAITABLE; UserId : PTR );
+   LOCAL VIRTUAL PROCEDURE OnHandle( Result : sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    BEGIN
       IF ( ThreadId <> 0 ) AND ( ThreadId <> windows.GetCurrentThreadId()) THEN
          Test^.Host^.Log^.LogS( log.dlcError, L"", L"Completion in unexpected thread" );   
@@ -91,9 +91,9 @@ CLASS IMPLEMENTATION CTest;
          EA[i] := windows.CreateEvent( NIL, windows.True, windows.False, NIL );
       END; // FOR
       
-      Failure := Round( FALSE, EA, PH );
+      Failure := Round( FALSE, EA, REF PH );
 
-      Failure := Round( TRUE, EA, PH ) OR Failure;
+      Failure := Round( TRUE, EA, REF PH ) OR Failure;
 
       // done handles
       FOR i := 0 TO count-1 DO
@@ -110,7 +110,7 @@ CLASS IMPLEMENTATION CTest;
    
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE Round( CompletionInOwningThread : BOOLEAN; CONST EA : ARRAY OF windows.HANDLE; CONST PH : ARRAY OF sync.WAITABLE ) : BOOLEAN;
+   PRIVATE PROCEDURE Round( CompletionInOwningThread : BOOLEAN; CONST EA : ARRAY OF windows.HANDLE; REF PH : ARRAY OF sync.WAITABLE ) : BOOLEAN;
    VAR
       Failure : BOOLEAN := FALSE;
       i, j : CARDINAL;
