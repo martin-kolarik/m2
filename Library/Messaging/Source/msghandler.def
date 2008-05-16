@@ -12,7 +12,7 @@ CONST
   delUnknown ::= msgOSAL.delUnknown;
   delDefault ::= msgOSAL.delDefault;
   delSynchronous ::= msgOSAL.delSynchronous;
-  delSynchronousInThread ::= msgOSAL.delSynchronousInThread;
+  delSynchronousIfInThread ::= msgOSAL.delSynchronousIfInThread;
   delAsynchronous ::= msgOSAL.delAsynchronous;
 
 CONST

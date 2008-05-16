@@ -8,7 +8,7 @@ TYPE
   TDelivery = (
     delUnknown,
     delSynchronous, // Message directly calls OnMessage
-    delSynchronousInThread, // Message directly calls OnMessage if Handler is of the current thread
+    delSynchronousIfInThread, // Message directly calls OnMessage if Handler is of the current thread
     delAsynchronous,
     delDefault = delAsynchronous
   );

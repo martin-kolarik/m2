@@ -34,7 +34,7 @@ TYPE
 (*===========================================================================*)
 
 CLASS CDispatcher IMPLEMENTS threadpool.IWorkerSink;
-   LOCAL VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+   LOCAL VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
 END CDispatcher;
 
 (*---------------------------------------------------------------------------*)
@@ -78,7 +78,7 @@ CLASS IMPLEMENTATION CDispatcher;
 
 (*---------------------------------------------------------------------------*)
  
-   LOCAL VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+   LOCAL VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    VAR
       Addresses : POINTER TO ARRAY [0..0] OF inetaddr.INETADDR := NIL;
       ai : WS2TcpIp.Paddrinfo;

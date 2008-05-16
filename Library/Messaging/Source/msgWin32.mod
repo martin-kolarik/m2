@@ -221,7 +221,7 @@ CLASS IMPLEMENTATION Win32MessageHandler;
       Repeat : PTR;
       Timer : PTR;
    BEGIN
-      IF ( Delivery = msgOSAL.delSynchronous ) OR ( Delivery = msgOSAL.delSynchronousInThread ) AND SelfContext THEN
+      IF ( Delivery = msgOSAL.delSynchronous ) OR ( Delivery = msgOSAL.delSynchronousIfInThread ) AND SelfContext THEN
          IF MSG[1] = windows.WM_TIMER THEN
             Timer := MSG[2];
             IF NOT Timers.Get( Timer, OUT Repeat ) THEN
