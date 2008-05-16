@@ -1,38 +1,51 @@
-DEFINITION MODULE msgqueuethreadWin32;
+DEFINITION MODULE Win32msgqueuethread;
+
+// DO NOT USE THIS MODULE DIRECTLY, USE msqqueuethread
 
 IMPORT
-   msghandler,
-   msgqueue,
-   msgqueuethreadOSAL,
-   threadWin32;
+   JoinLogic,
+   OSALmsg,
+   Win32thread;
   
 (*---------------------------------------------------------------------------*)
   
 #save, option( dll_export => on )
 
-CLASS Win32MsgQueueThread( threadWin32.Win32Thread ) IMPLEMENTS msgqueuethreadOSAL.IMsgQueueThread;
+CLASS Win32MsgQueueThread( Win32thread.Win32Thread ) IMPLEMENTS OSALmsg.IMessageQueueThread;
 // behavior: DispatchMessage for Root = NIL and MessageToHandler = FALSE == Win32 default
 // behavior: Root^.OnMessage for Root <> NIL
 // behavior: Handler^.OnMessage for Root = NIL
+   PRIVATE VAR
+      joinLogic : JoinLogic.TPJoinLogic;
 
    // IThread
    INTERNAL FINAL PROCEDURE OnRun() : CARDINAL;
    
    // IMessageQueueThread
-   INTERNAL VIRTUAL READONLY PROPERTY Root : msghandler.TPMessageHandler;
+   INTERNAL VIRTUAL READONLY PROPERTY Root : OSALmsg.TPMessageRecipient;
    INTERNAL VIRTUAL PROCEDURE OnStart();
    INTERNAL VIRTUAL PROCEDURE OnExit();
-   INTERNAL VIRTUAL PROCEDURE MessageToHandler( CONST Msg : PTR; OUT Handler : msghandler.TPMessageHandler ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE MessageToRecipient( CONST Msg : PTR; OUT Handler : OSALmsg.TPMessageRecipient ) : BOOLEAN;
 
    // IMessageRecipient
    PUBLIC VIRTUAL READONLY PROPERTY SelfContext : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE Message( CONST Msg : msghandler.IMessage; Delivery : msghandler.TDelivery; Result : PPTR ) : BOOLEAN; // if Msg.Target = NIL then the message must be processed by thread itself; Delivery is possible only delSynchronousInThread and delAsynchronous
-   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Msg : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN; // thread targetted messages
+   PUBLIC VIRTUAL PROCEDURE Message( CONST Msg : OSALmsg.IMessage; Delivery : OSALmsg.TDelivery; Result : PPTR ) : BOOLEAN; // if Msg.Target = NIL then the message must be processed by thread itself; Delivery is possible only delSynchronousInThread and delAsynchronous
+   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Msg : OSALmsg.IMessage; OUT Result : PTR ) : BOOLEAN; // thread targetted messages
 
+   // service of IMessageRecipient
+   PUBLIC VIRTUAL PROCEDURE Join( Recipient : OSALmsg.TPMessageRecipient );
+   PUBLIC VIRTUAL PROCEDURE Leave( Recipient : OSALmsg.TPMessageRecipient );
+
+   // IMessageRecipient dummies
+   PUBLIC FINAL READONLY PROPERTY JoinedTo : OSALmsg.TPMessageQueueThread;
+   PUBLIC FINAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread );
+   PUBLIC FINAL PROCEDURE LeaveMessageThread();
+   PUBLIC FINAL PROCEDURE OnJoin( JoinedTo : OSALmsg.TPMessageQueueThread );
+   PUBLIC FINAL PROCEDURE OnLeave();
 END Win32MsgQueueThread;
 
 #restore
 
 (*---------------------------------------------------------------------------*)
   
-END msgqueuethreadWin32.
+END Win32msgqueuethread.

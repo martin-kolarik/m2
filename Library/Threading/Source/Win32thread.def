@@ -1,33 +1,35 @@
-DEFINITION MODULE threadWin32;
+DEFINITION MODULE Win32thread;
+
+// DO NOT USE THIS MODULE DIRECTLY, USE thread
 
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
 
 IMPORT
   sync,
-  threadOSAL;
+  OSALthread;
   
 #save, option( dll_export => on )
 
-TYPE
-  THREAD = sync.WAITABLE;
-
-ABSTRACT CLASS Win32Thread IMPLEMENTS threadOSAL.IThread;
+ABSTRACT CLASS Win32Thread IMPLEMENTS OSALthread.IThread;
   INTERNAL READONLY VAR
     _RunLock : CARDINAL;
     _Thread : CARDINAL;
-    _HThread : THREAD;
+    _HThread : Sync.WAITABLE;
     _HExit : sync.SIGNAL;
     _WMsg : TRISTATE;
+    _Runnable : OSALthread.TPRunnable;
   PUBLIC VIRTUAL READONLY PROPERTY
     SelfContext : BOOLEAN;
-  PUBLIC VIRTUAL PROPERTY
+  PUBLIC PROPERTY
     WithMessages : BOOLEAN;
 
   PUBLIC FINAL PROCEDURE Run( Wait : BOOLEAN );
   PUBLIC FINAL PROCEDURE Stop( Wait : BOOLEAN );
   PUBLIC FINAL PROCEDURE WaitStop( Timeout : CARDINAL ) : sync.TAsyncResult;
   
+  PUBLIC FINAL PROCEDURE RunWithRunnable( Runnable : OSALthread.TPRunnable );
+
   INTERNAL VIRTUAL PROCEDURE OnRun() : CARDINAL;
 
   LOCAL PROCEDURE Exec() : CARDINAL;
@@ -36,4 +38,4 @@ END Win32Thread;
 
 #restore
 
-END threadWin32.
+END Win32thread.

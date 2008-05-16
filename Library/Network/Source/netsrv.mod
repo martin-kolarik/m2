@@ -342,7 +342,7 @@ CLASS CIPServer( msghandler.MessageHandler );
 
   PUBLIC PROCEDURE Dispose();
 
-  INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : CARDINAL ) : BOOLEAN;
+  INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
   INTERNAL VIRTUAL PROCEDURE OnTimer( Timer : PTR );
 
   LOCAL PROCEDURE SetCallbackMode( Mode : TCallbackMode );
@@ -416,7 +416,7 @@ CLASS IMPLEMENTATION CIPServer;
 
 //--------------------------------------------------------------------------------
 
-  INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : CARDINAL ) : BOOLEAN;
+  INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
   VAR
     Creator : TPListener;
     Message : TMessage;
@@ -425,7 +425,7 @@ CLASS IMPLEMENTATION CIPServer;
     Result := 0;
     IF SUPER.OnMessage( MSG, OUT Result ) THEN
       RETURN TRUE;
-    ELSIF (( _FDHandle = NIL ) OR ( _FDMessage.Message <> MSG.Message )) AND ( MSG.Message <> msgqueue.WM_MQ_PROCESS ) THEN
+    ELSIF (( _FDHandle = NIL ) OR ( _FDMessage.Message <> MSG.Message )) AND ( MSG.Message <> msgqueue.MSG_PROCESS_QUEUE()) THEN
       RETURN TRUE;
     END;
 
@@ -519,7 +519,7 @@ CLASS IMPLEMENTATION CIPServer;
          PStreamCreator^.AddRef();
       END;
       IF HWND = NIL THEN
-         Init();
+         Init( TRUE );
       END;
 
       NEW( Socket );
@@ -567,7 +567,7 @@ CLASS IMPLEMENTATION CIPServer;
     Result : Sync.TAsyncResult;
   BEGIN
     IF HWND = NIL THEN
-      Init();
+      Init( TRUE );
     END;
     Message.Command := cmForgetServer;
     Message.Server := LocalAddress;
@@ -584,7 +584,7 @@ CLASS IMPLEMENTATION CIPServer;
     Result : Sync.TAsyncResult;
   BEGIN
     IF HWND = NIL THEN
-      Init();
+      Init( TRUE );
     END;
     Message.Command := cmForgetSocket;
     Message.Socket := Socket;

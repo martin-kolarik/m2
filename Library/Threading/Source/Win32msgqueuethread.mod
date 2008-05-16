@@ -1,4 +1,4 @@
-IMPLEMENTATION MODULE msgqueuethreadWin32;
+IMPLEMENTATION MODULE Win32msgqueuethread;
 
 (*---------------------------------------------------------------------------*)
   
@@ -6,6 +6,8 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
   
 IMPORT
+   msghandler,
+   Win32msg,
    windows;
 
 (*===========================================================================*)
@@ -18,9 +20,9 @@ CLASS IMPLEMENTATION Win32MsgQueueThread;
    CONST
       waitHandles = 1;
    VAR
-      Handler : msghandler.TPMessageHandler;
       msg : windows.MSG;
-      Msg : msghandler.Message;
+      Msg : Win32msg.Win32Message;
+      Recipient : OSALmsg.TPMessageRecipient;
       Status : CARDINAL;
    BEGIN
       OnStart();
@@ -47,10 +49,11 @@ CLASS IMPLEMENTATION Win32MsgQueueThread;
             WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) <> 0 DO
 
                IF msg.hwnd = NIL THEN // a thread message
-                  Msg.Target := NIL;
+                  Msg.Source := ADR( SELF );
+                  Msg.Target := ADR( SELF );
                   Msg.Message := msg.message;
-                  Msg[2] := msg.wParam;
-                  Msg[3] := PTR( msg.lParam );
+                  Msg[ Win32msg.MI_WPARAM ] := msg.wParam;
+                  Msg[ Win32msg.MI_LPARAM ] := PTR( msg.lParam );
                   Message( Msg, msghandler.delSynchronous, NIL );
                   CONTINUE;
                END; // IF process thread's messages
@@ -58,21 +61,24 @@ CLASS IMPLEMENTATION Win32MsgQueueThread;
                // continue Win32 message loop
                windows.TranslateMessage( ADR( msg ));
 
-               IF MessageToHandler( ADR( msg ), OUT Handler ) THEN
-                  Msg.Target := Handler;
+               IF MessageToRecipient( ADR( msg ), OUT Recipient ) THEN
+                  Msg.Source := ADR( SELF );
+                  Msg.Target := Recipient;
                   Msg.Message := msg.message;
-                  Msg[2] := msg.wParam;
-                  Msg[3] := PTR( msg.lParam );
+                  Msg[ Win32msg.MI_WPARAM ] := msg.wParam;
+                  Msg[ Win32msg.MI_LPARAM ] := PTR( msg.lParam );
                   IF Root = NIL THEN
-                     Handler^.Message( Msg, msghandler.delSynchronous, NIL );
+                     Recipient^.Message( Msg, msghandler.delSynchronous, NIL );
                   ELSE
                      Root^.Message( Msg, msghandler.delSynchronous, NIL );
                   END;
 
                ELSIF Root <> NIL THEN
+                  Msg.Source := ADR( SELF );
+                  Msg.Target := Root;
                   Msg.Message := msg.message;
-                  Msg[2] := msg.wParam;
-                  Msg[3] := PTR( msg.lParam );
+                  Msg[ Win32msg.MI_WPARAM ] := msg.wParam;
+                  Msg[ Win32msg.MI_LPARAM ] := PTR( msg.lParam );
                   Root^.Message( Msg, msghandler.delSynchronous, NIL );
 
                ELSE
@@ -87,7 +93,7 @@ CLASS IMPLEMENTATION Win32MsgQueueThread;
    
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROPERTY Root GET : msghandler.TPMessageHandler;
+   INTERNAL VIRTUAL PROPERTY Root GET : msghandler.TPMessageRecipient;
    BEGIN
       RETURN NIL;
    END Root;
@@ -106,14 +112,14 @@ CLASS IMPLEMENTATION Win32MsgQueueThread;
 
 (*---------------------------------------------------------------------------*)
   
-   INTERNAL VIRTUAL PROCEDURE MessageToHandler( CONST Msg : PTR; OUT Handler : msghandler.TPMessageHandler ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE MessageToRecipient( CONST Msg : PTR; OUT Recipient : msghandler.TPMessageRecipient ) : BOOLEAN;
    BEGIN
-      RETURN msghandler.HandleToHandler( windows.PMSG( Msg )^.hwnd, OUT Handler );
-   END MessageToHandler;
+      RETURN Win32msg.HandleToRecipient( windows.PMSG( Msg )^.hwnd, OUT Recipient );
+   END MessageToRecipient;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY SelfContext GET : BOOLEAN;
+   PUBLIC VIRTUAL PROPERTY SelfContext GET : BOOLEAN;
    BEGIN
       RETURN _Thread = windows.GetCurrentThreadId();
    END SelfContext;
@@ -128,9 +134,11 @@ CLASS IMPLEMENTATION Win32MsgQueueThread;
          IF Result = NIL THEN
             Result := ADR( LResult );
          END;
-         RETURN OnMessage( Msg, OUT Result^ );
+         IF NOT joinLogic^.HandleJoinLogicMessage( Msg ) THEN
+            RETURN OnMessage( Msg, OUT Result^ );
+         END;
       ELSE
-         windows.PostThreadMessage( _Thread, Msg.Message, windows.WPARAM( Msg[2] ), windows.LPARAM( Msg[3] ));
+         windows.PostThreadMessage( _Thread, Msg.Message, windows.WPARAM( Msg[ Win32msg.MI_WPARAM ] ), windows.LPARAM( Msg[ Win32msg.MI_LPARAM ] ));
       END;
       RETURN TRUE;
    END Message;
@@ -144,10 +152,65 @@ CLASS IMPLEMENTATION Win32MsgQueueThread;
 
 (*---------------------------------------------------------------------------*)
   
+   PUBLIC VIRTUAL PROCEDURE Join( Recipient : OSALmsg.TPMessageRecipient );
+   BEGIN
+      joinLogic^.Join( Recipient );
+   END Join;
+
+(*---------------------------------------------------------------------------*)
+  
+   PUBLIC VIRTUAL PROCEDURE Leave( Recipient : OSALmsg.TPMessageRecipient );
+   BEGIN
+      joinLogic^.Leave( Recipient );
+   END Leave;
+
+(*---------------------------------------------------------------------------*)
+  
+   PUBLIC FINAL PROPERTY JoinedTo GET : OSALmsg.TPMessageQueueThread;
+   BEGIN
+      ASSERT( FALSE );
+      RETURN NIL;
+   END JoinedTo;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread );
+   BEGIN
+      ASSERT( FALSE );
+   END JoinMessageThread;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROCEDURE LeaveMessageThread();
+   BEGIN
+      ASSERT( FALSE );
+   END LeaveMessageThread;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROCEDURE OnJoin( JoinedTo : OSALmsg.TPMessageQueueThread );
+   BEGIN
+      ASSERT( FALSE );
+   END OnJoin;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROCEDURE OnLeave();
+   BEGIN
+      ASSERT( FALSE );
+   END OnLeave;
+
+(*---------------------------------------------------------------------------*)
+
 BEGIN
+   NEW( joinLogic );
+   joinLogic^.Init( ADR( SELF ));
    WithMessages := TRUE;
+FINALLY
+   joinLogic^.Dispose();
+   DISPOSE( joinLogic );
 END Win32MsgQueueThread;
 
 (*===========================================================================*)
 
-END msgqueuethreadWin32.
+END Win32msgqueuethread.

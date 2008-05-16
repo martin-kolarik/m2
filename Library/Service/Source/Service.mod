@@ -42,7 +42,7 @@ TYPE
 CLASS CServiceThread( msgqueuethread.MsgQueueThread );
    LOCAL VAR
       Service : TPService;
-   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Msg : msghandler.IMessage; OUT Result : CARDINAL ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Msg : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
 END CServiceThread;
 
 (*---------------------------------------------------------------------------*)
@@ -51,7 +51,7 @@ CLASS IMPLEMENTATION CServiceThread;
 
 (*---------------------------------------------------------------------------*)
   
-   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Msg : msghandler.IMessage; OUT Result : CARDINAL ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Msg : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
    BEGIN
       CASE TCommand( Msg.Message ) OF
       | cmdStart :

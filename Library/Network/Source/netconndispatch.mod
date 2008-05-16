@@ -579,7 +579,7 @@ CLASS IMPLEMENTATION CDispatcher;
 
 //--------------------------------------------------------------------------------
 
-  INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : CARDINAL ) : BOOLEAN;
+  INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
   VAR
     Message : TMessage;
   BEGIN
@@ -587,15 +587,13 @@ CLASS IMPLEMENTATION CDispatcher;
       RETURN TRUE;
     END;
     
-    CASE MSG.Message OF
-    //-----
-    | msgqueue.WM_MQ_PROCESS :
+    IF MSG.Message = msgqueue.MSG_PROCESS_QUEUE() THEN
       WHILE CQueue.DequeueOA( OUT Message, FALSE, 0 ) = Sync.arCompleted DO
          DoMessage( ADR( Message ));
       END; // WHILE
 
     //-----
-    | msgqueue.WM_MQ_PROCESS+1 :
+    ELSIF MSG.Message = msgqueue.MSG_PROCESS_QUEUE() + 1 THEN
       WHILE NQueue.DequeueOA( OUT Message, FALSE, 0 ) = Sync.arCompleted DO
          DoMessage( ADR( Message ));
       END; // WHILE
@@ -1120,10 +1118,10 @@ CLASS IMPLEMENTATION CDispatcher;
       NQueue.Consumer := ADR( SELF );
       NQueue.Produce := Sync.CreateSignal( TRUE, L"" );
 
-      MSG.Message := msgqueue.WM_MQ_PROCESS;
+      MSG.Message := msgqueue.MSG_PROCESS_QUEUE();
       CQueue.ConsumerMsg := ADR( MSG );
       
-      MSG.Message := msgqueue.WM_MQ_PROCESS+1;
+      MSG.Message := msgqueue.MSG_PROCESS_QUEUE() + 1;
       NQueue.ConsumerMsg := ADR( MSG );
 
       NEW( TPListener( PListener )); TPListener( PListener )^.PDispatcher := ADR( SELF );

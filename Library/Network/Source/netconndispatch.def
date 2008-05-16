@@ -74,7 +74,7 @@ CLASS CDispatcher( msghandler.MessageHandler );
   PUBLIC PROCEDURE Dispose();
 
   // inherited
-  INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : CARDINAL ) : BOOLEAN;
+  INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
   PRIVATE PROCEDURE DoMessage( Message : ADDRESS );
 
   // events of server

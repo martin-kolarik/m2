@@ -13,6 +13,7 @@ IMPORT
    Storage,
    Strings,
    StringsO,
+   Win32msg,
    windows,
    WS2TcpIp;
    
@@ -489,13 +490,13 @@ CLASS IMPLEMENTATION SSocket;
 
 (*--------------------------------------------------------------------------------*)
 
-  LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
+  LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
   VAR
     Event : CARDINAL;
   BEGIN
     CASE Result OF
     | Sync.arCompleted :
-      Event := CARDINAL( winsock.WSAGETSELECTEVENT( MSG[3] ));
+      Event := CARDINAL( winsock.WSAGETSELECTEVENT( MSG[ Win32msg.MI_LPARAM ] ));
       IF ( _Type = stDatagram ) AND ( Event <> winsock.FD_READ ) THEN
         RETURN;
       ELSIF ( _Type = stStream ) AND ( Event <> winsock.FD_ACCEPT ) THEN
@@ -516,9 +517,9 @@ CLASS IMPLEMENTATION SSocket;
     Sync.Signal( _HSignal ); Sync.Reset( _HSignal );
     IF _Notifier <> NIL THEN
       IF _Type = stDatagram THEN
-        _Notifier^.OnDataArrived( CARDINAL( winsock.WSAGETASYNCERROR( MSG[3] )), ADR( SELF ));
+        _Notifier^.OnDataArrived( CARDINAL( winsock.WSAGETASYNCERROR( MSG[ Win32msg.MI_LPARAM ] )), ADR( SELF ));
       ELSE
-        _Notifier^.OnListen( CARDINAL( winsock.WSAGETASYNCERROR( MSG[3] )), ADR( SELF ));
+        _Notifier^.OnListen( CARDINAL( winsock.WSAGETASYNCERROR( MSG[ Win32msg.MI_LPARAM ] )), ADR( SELF ));
       END;
     END;
   END OnMessage;
@@ -1052,7 +1053,7 @@ CLASS IMPLEMENTATION DSocket;
 
 (*--------------------------------------------------------------------------------*)
 
-  LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+  LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
   BEGIN
     IF Result = Sync.arCompleted THEN
       SwitchContext( FD_TIMEOUT, TPendingOperationItem( LOPTRLONGWORD( UserId )), winsock.WSAETIMEDOUT );
@@ -1061,7 +1062,7 @@ CLASS IMPLEMENTATION DSocket;
 
 (*--------------------------------------------------------------------------------*)
 
-  LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR; CONST MSG : msghandler.IMessage );
+  LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
   LABEL
     DoConnect, DoFDConnect;
   VAR
@@ -1072,12 +1073,12 @@ CLASS IMPLEMENTATION DSocket;
   BEGIN
     CASE Result OF
     | Sync.arCompleted :
-      Event := CARDINAL( winsock.WSAGETSELECTEVENT( MSG[3] ));
+      Event := CARDINAL( winsock.WSAGETSELECTEVENT( MSG[ Win32msg.MI_LPARAM ] ));
       IF Event = winsock.FD_ACCEPT THEN
         SUPER.OnMessage( Result, PoolHandle, UserId, MSG );
         RETURN;
       END;
-      Error := CARDINAL( winsock.WSAGETASYNCERROR( MSG[3] ));
+      Error := CARDINAL( winsock.WSAGETASYNCERROR( MSG[ Win32msg.MI_LPARAM ] ));
     | Sync.arAborted :
       LPending := TPendingOperation( _Lock.Get( REF _Pending ));
       IF poListen IN LPending THEN
@@ -1097,7 +1098,7 @@ CLASS IMPLEMENTATION DSocket;
     CASE Event OF
     //-----
     | FD_INIT :
-      CASE TPendingOperationItem( LOPTRLONGWORD( MSG[2] )) OF
+      CASE TPendingOperationItem( LOPTRLONGWORD( MSG[ Win32msg.MI_WPARAM ] )) OF
       | poConnect :
         StartConnect();
       | poDisconnect :
@@ -1114,7 +1115,7 @@ CLASS IMPLEMENTATION DSocket;
       END; // CASE
     //-----
     | FD_TIMEOUT :
-      CASE TPendingOperationItem( LOPTRLONGWORD( MSG[2] )) OF
+      CASE TPendingOperationItem( LOPTRLONGWORD( MSG[  Win32msg.MI_WPARAM  ] )) OF
       | poConnect :
         OnConnect( FD_TIMEOUT, Error );
       | poDisconnect :
@@ -1136,7 +1137,7 @@ CLASS IMPLEMENTATION DSocket;
       OnDisconnect( winsock.FD_CLOSE, Error, InDisconnect );
     //-----
     | FD_DNS :
-      CASE TPendingOperationItem( LOPTRLONGWORD( MSG[2] )) OF
+      CASE TPendingOperationItem( LOPTRLONGWORD( MSG[ Win32msg.MI_WPARAM ] )) OF
       | poResolveAddress :
         LPending := TPendingOperation( _Lock.InclExcl( REF _Pending, BITSET32( TPendingOperation{poConnectResolved} ), BITSET32( TPendingOperation{poResolveAddress} )));
         LPending := LPending + TPendingOperation{poConnectResolved}; // local copy
@@ -1231,8 +1232,8 @@ CLASS IMPLEMENTATION DSocket;
       netpool.pool()^.WaitMessage( ADR( SELF ), 0, Sync.FOREVER, FALSE, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
     END;
     MSG := _FDMessage;
-    MSG[2] := PTR( Operation );
-    MSG[3] := FromContext OR ( Result << 16 );
+    MSG[ Win32msg.MI_WPARAM ] := PTR( Operation );
+    MSG[ Win32msg.MI_LPARAM ] := FromContext OR ( Result << 16 );
     _FDMessager^.Message( MSG, msghandler.delDefault, NIL );
   END SwitchContext;
 

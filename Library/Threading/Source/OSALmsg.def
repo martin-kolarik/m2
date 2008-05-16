@@ -1,7 +1,9 @@
-DEFINITION MODULE msgOSAL;
+DEFINITION MODULE OSALmsg;
+
+// DO NOT USE THIS MODULE DIRECTLY, USE msghandler OR msqqueuethread
 
 IMPORT
-   threadOSAL;
+   OSALthread;
 
 #save, option( dll_export => on )
 
@@ -25,17 +27,18 @@ TYPE
 (*---------------------------------------------------------------------------*)
 
 CONST
-   MI_SOURCE  = 0;
-   MI_TARGET  = 1;
+   MI_SOURCE = 0;
+   MI_TARGET = 1;
    MI_MESSAGE = 2;
+   MI_PARAMETER = 3;
   
 INTERFACE IMessage;
   PUBLIC ABSTRACT PROPERTY
-    Source : TPMessageRecipient; // can be 0 // TODO inde
+    Source : ADDRESS; // can be NIL
     Target : TPMessageRecipient; // if Target is NIL the message's target is owner of Message method taking the message
     Message : CARDINAL;
   PUBLIC ABSTRACT READONLY PROPERTY
-    ParameterCount : CARDINAL; // including MSG and optional Target and Source
+    ParameterCount : CARDINAL; // including MSG and optional Target and Source, message must have AT LEAST 1 parameter
   PUBLIC ABSTRACT 
     INDEX( ParameterIndex : CARDINAL ) : PTR;
   PUBLIC ABSTRACT PROCEDURE
@@ -49,15 +52,15 @@ INTERFACE IMessageRecipient;
     JoinedTo : TPMessageQueueThread;
     SelfContext : BOOLEAN;
 
-  INTERNAL ABSTRACT PROCEDURE OnJoin();
-  INTERNAL ABSTRACT PROCEDURE OnLeave();
-
   PUBLIC ABSTRACT PROCEDURE Message( CONST MSG : IMessage; Delivery : TDelivery; Result : PPTR ) : BOOLEAN;
   INTERNAL ABSTRACT PROCEDURE OnMessage( CONST MSG : IMessage; OUT Result : PTR ) : BOOLEAN;
   
-  // administrative, do not call by user
-  PUBLIC ABSTRACT PROCEDURE Join( JoinedTo : TPMessageQueueThread );
-  PUBLIC ABSTRACT PROCEDURE Leave();
+  PUBLIC ABSTRACT PROCEDURE JoinMessageThread( JoinTo : TPMessageQueueThread );
+  PUBLIC ABSTRACT PROCEDURE LeaveMessageThread();
+
+  // do not call directly, leave system to call them
+  PUBLIC ABSTRACT PROCEDURE OnJoin( JoinedTo : TPMessageQueueThread );
+  PUBLIC ABSTRACT PROCEDURE OnLeave();
 END IMessageRecipient;  
 
 (*---------------------------------------------------------------------------*)
@@ -74,6 +77,16 @@ END IMessageHandler;
 
 (*===========================================================================*)
 
+CONST
+   // RAW messages are system/internal and cannot be used outer of this library
+   RAW_MESSAGE_SPACE = 64;
+
+   RAW_MESSAGE_JOIN  = 1;
+   RAW_MESSAGE_LEAVE = 2;
+   RAW_PROCESS_QUEUE = 3;
+
+(*---------------------------------------------------------------------------*)
+  
 INTERFACE IMessageQueueThread( IMessageRecipient );
 
    INTERNAL READONLY PROPERTY
@@ -84,13 +97,13 @@ INTERFACE IMessageQueueThread( IMessageRecipient );
 
    INTERNAL PROCEDURE MessageToRecipient( CONST Msg : PTR; OUT Recipient : TPMessageRecipient ) : BOOLEAN;
    
+   // called from Recipient's join/leave, do not call directly
    PUBLIC PROCEDURE Join( Recipient : TPMessageRecipient );
    PUBLIC PROCEDURE Leave( Recipient : TPMessageRecipient );
-
-END IMsgQueueThread;
+END IMessageQueueThread;
 
 (*===========================================================================*)
 
 #restore
 
-END msgOSAL.
+END OSALmsg.

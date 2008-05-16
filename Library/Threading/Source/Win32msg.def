@@ -1,53 +1,65 @@
-DEFINITION MODULE msgWin32;
+DEFINITION MODULE Win32msg;
+
+// DO NOT USE THIS MODULE DIRECTLY, USE msghandler
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
   lists,
-  msgOSAL;
+  OSALmsg;
   
 #save, option( dll_export => on )
 
+PROCEDURE Win32RawMsgBase() : CARDINAL;
 PROCEDURE Win32MsgBase() : CARDINAL;
   
-PROCEDURE HandleToHandler( CONST Handle : PTR; OUT Handler : msgOSAL.TPMessageHandler ) : BOOLEAN;
+PROCEDURE HandleToRecipient( CONST Handle : PTR; OUT Handler : OSALmsg.TPMessageRecipient ) : BOOLEAN;
 
-CLASS Win32Message IMPLEMENTS msgOSAL.IMessage;
+CONST
+   MI_WPARAM = 3;
+   MI_LPARAM = 4;
+
+CLASS Win32Message IMPLEMENTS OSALmsg.IMessage;
   PRIVATE VAR
-    target : msgOSAL.TPMessageHandler; // [0]
-    message : CARDINAL; // [1]
-    wParam : PTR; // [2]
-    lParam : PTR; // [3]
+    source : ADDRESS;
+    target : OSALmsg.TPMessageRecipient; // [1]
+    message : CARDINAL; // [2]
+    wParam : PTR; // [3]
+    lParam : PTR; // [4]
   PUBLIC VIRTUAL PROPERTY
-    Target : msgOSAL.TPMessageHandler;
+    Source : ADDRESS;
+    Target : OSALmsg.TPMessageRecipient;
     Message : CARDINAL;
   PUBLIC VIRTUAL READONLY PROPERTY
     ParameterCount : CARDINAL; // including handler and Message
   PUBLIC VIRTUAL
     INDEX( ParameterIndex : CARDINAL ) : PTR;
   PUBLIC VIRTUAL PROCEDURE
-    Clone() : POINTER TO msgOSAL.IMessage;
+    Clone() : POINTER TO OSALmsg.IMessage;
   PUBLIC OPERATOR
     :=( CONST MSG : Win32Message );
 END Win32Message;
 
-CLASS Win32MessageHandler IMPLEMENTS msgOSAL.IMessageHandler;
+CLASS Win32MessageHandler IMPLEMENTS OSALmsg.IMessageHandler;
   PRIVATE VAR
     Timers : lists.CPtrList;
   INTERNAL VAR
     HWND : PTR;
+    joinedTo : OSALmsg.TPMessageQueueThread;
   PUBLIC VIRTUAL READONLY PROPERTY
     SelfContext : BOOLEAN;
     Handle : PTR;
+    
+  PUBLIC VIRTUAL READONLY PROPERTY JoinedTo : OSALmsg.TPMessageQueueThread;
 
   #save, option( leak_info => on )
-  PUBLIC PROCEDURE Init();
+  PUBLIC PROCEDURE Init( AutomaticJoin : BOOLEAN ); // AutomaticJoin behaves defaultly: it creates HWND in Init, so it is caller thread
   PUBLIC PROCEDURE Dispose();
   #restore
 
-  PUBLIC VIRTUAL PROCEDURE Message( CONST MSG : msgOSAL.IMessage; Delivery : msgOSAL.TDelivery; Result : PPTR ) : BOOLEAN;
-  INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : msgOSAL.IMessage; OUT Result : PTR ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE Message( CONST MSG : OSALmsg.IMessage; Delivery : OSALmsg.TDelivery; Result : PPTR ) : BOOLEAN;
+  INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : OSALmsg.IMessage; OUT Result : PTR ) : BOOLEAN;
 
   INTERNAL VIRTUAL PROCEDURE StartTimer( Timer : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
   INTERNAL VIRTUAL PROCEDURE TimerRunning( Timer : PTR ) : BOOLEAN;
@@ -55,13 +67,16 @@ CLASS Win32MessageHandler IMPLEMENTS msgOSAL.IMessageHandler;
   INTERNAL VIRTUAL PROCEDURE OnTimer( Timer : PTR );
 
   #save, option( leak_info => on )
-  PRIVATE VIRTUAL PROCEDURE CreateHWND();
-  PRIVATE VIRTUAL PROCEDURE DestroyHWND();
+  PUBLIC VIRTUAL PROCEDURE OnJoin( JoinedTo : OSALmsg.TPMessageQueueThread );
+  PUBLIC VIRTUAL PROCEDURE OnLeave();
   #restore
+  
+  PUBLIC VIRTUAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread );
+  PUBLIC VIRTUAL PROCEDURE LeaveMessageThread();
 
   VIRTUAL FINALLY Win32MessageHandler();
 END Win32MessageHandler;
 
 #restore
 
-END msgWin32.
+END Win32msg.

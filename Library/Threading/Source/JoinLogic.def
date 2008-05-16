@@ -1,0 +1,40 @@
+DEFINITION MODULE JoinLogic;
+
+(*===========================================================================*)
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   maps,
+   OSALmsg,
+   Sync;
+
+(*===========================================================================*)
+
+TYPE
+   TPJoinLogic = POINTER TO CJoinLogic;
+   
+// THE CLASS SHOULD BE ALLOCATED DYNAMICALLY TO NOT TO MAKE NEED TO CALL CONTSRUCTOR FROM OTHER DLLs
+   
+CLASS CJoinLogic;
+   PRIVATE VAR
+      Joined : maps.CPtrMap;
+      Lock : Sync.LOCK;
+      OfThread : OSALmsg.TPMessageQueueThread;
+
+   PUBLIC PROCEDURE Init( OfThread : OSALmsg.TPMessageQueueThread );
+   PUBLIC PROCEDURE Dispose();
+   
+   // client (outer) side
+   PUBLIC PROCEDURE Join( Recipient : OSALmsg.TPMessageRecipient );
+   PUBLIC PROCEDURE Leave( Recipient : OSALmsg.TPMessageRecipient );
+   
+   // thread (inner) side
+   PUBLIC PROCEDURE HandleJoinLogicMessage( CONST Message : OSALmsg.IMessage ) : BOOLEAN; // if it is not join logic message it returns FALSE
+   PUBLIC PROCEDURE IsJoined( Recipient : OSALmsg.TPMessageRecipient ) : BOOLEAN;
+END CJoinLogic;
+
+(*===========================================================================*)
+
+END JoinLogic.

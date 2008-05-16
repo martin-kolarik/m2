@@ -14,7 +14,6 @@ IMPORT
    Log,
    netsocket,
    netsrv,
-   netpool,
    Strings,
    Sync,
    Texts,
@@ -122,7 +121,7 @@ CLASS IMPLEMENTATION CUDPCommunicator;
       IF InterPacketDelay > 0 THEN
          delay := INTEGER( time.UptimeMS() - LastSend );
          IF ( Delay = NIL ) AND ( delay < INTEGER( InterPacketDelay )) THEN // wait if not waiting yet
-            netpool.Pool()^.WaitTimeout( TimerSink, timerDelay, delay, TRUE, TRUE, OUT Timeout );
+            threadpool.pool()^.WaitTimeout( TimerSink, timerDelay, delay, TRUE, TRUE, OUT Timeout );
          END;   
          RETURN Sync.arAlreadyPending;
       END;
@@ -140,10 +139,10 @@ CLASS IMPLEMENTATION CUDPCommunicator;
       SendData[4+HIGH( Data )+1] := xor;
       
       IF Timeout <> NIL THEN
-         netpool.Pool()^.Abort( REF Timeout );
+         threadpool.pool()^.Abort( REF Timeout );
       END;
       IF Timeout = NIL THEN
-         netpool.Pool()^.WaitTimeout( TimerSink, timerTimeout, 200, TRUE, TRUE, OUT Timeout );
+         threadpool.pool()^.WaitTimeout( TimerSink, timerTimeout, 200, TRUE, TRUE, OUT Timeout );
       END;
       
       RETURN Socket^.SendTo6OA( OA( 4 + HIGH( Data ) + 1, ADR( SendData )), Address );
@@ -161,7 +160,7 @@ CLASS IMPLEMENTATION CUDPCommunicator;
       xor : BYTE;
    BEGIN
       IF Timeout <> NIL THEN
-         netpool.Pool()^.Abort( REF Timeout );
+         threadpool.pool()^.Abort( REF Timeout );
       END;
    
       ServerSocket^.ReceiveOA( OUT buffer, OUT l );
@@ -243,10 +242,10 @@ BEGIN
    Logger := NIL;
 FINALLY
    IF Timeout <> NIL THEN
-      netpool.Pool()^.Abort( REF Timeout );
+      threadpool.pool()^.Abort( REF Timeout );
    END;
    IF Delay <> NIL THEN
-      netpool.Pool()^.Abort( REF Delay );
+      threadpool.pool()^.Abort( REF Delay );
    END;
 
    IF TimerSink <> NIL THEN

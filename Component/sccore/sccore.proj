@@ -18,7 +18,7 @@
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
         <Components Include="modula2\m2rtl;modula2\m2ortl;library\ADT;library\COM;library\Resources;library\Registry;library\Text"/>
-        <Components Include="library\ciphering;library\messaging;library\threading;library\Network;library\Service;library\ClassLoader"/>
+        <Components Include="library\ciphering;library\threading;library\Network;library\Service;library\ClassLoader"/>
     </ItemGroup>
 
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->

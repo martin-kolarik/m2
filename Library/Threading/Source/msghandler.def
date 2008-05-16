@@ -4,32 +4,33 @@ DEFINITION MODULE msghandler;
 // Win32
 
 IMPORT
-  msgOSAL,
-  msgWin32;
+  OSALmsg,
+  Win32msg;
 
 CONST
-  TDelivery ::= msgOSAL.TDelivery;
-  delUnknown ::= msgOSAL.delUnknown;
-  delDefault ::= msgOSAL.delDefault;
-  delSynchronous ::= msgOSAL.delSynchronous;
-  delSynchronousIfInThread ::= msgOSAL.delSynchronousIfInThread;
-  delAsynchronous ::= msgOSAL.delAsynchronous;
+  TDelivery ::= OSALmsg.TDelivery;
+  delUnknown ::= OSALmsg.delUnknown;
+  delDefault ::= OSALmsg.delDefault;
+  delSynchronous ::= OSALmsg.delSynchronous;
+  delSynchronousIfInThread ::= OSALmsg.delSynchronousIfInThread;
+  delAsynchronous ::= OSALmsg.delAsynchronous;
 
 CONST
-  IMessage ::= msgOSAL.IMessage;
-  IMessageRecipient ::= msgOSAL.IMessageRecipient;
-  TPIMessage ::= msgOSAL.TPMessage;
-  TPMessageRecipient ::= msgOSAL.TPMessageRecipient;
+  IMessage ::= OSALmsg.IMessage;
+  IMessageRecipient ::= OSALmsg.IMessageRecipient;
+  TPIMessage ::= OSALmsg.TPMessage;
+  TPMessageRecipient ::= OSALmsg.TPMessageRecipient;
 CONST
-  MsgBase ::= msgWin32.Win32MsgBase;
-  Message ::= msgWin32.Win32Message;
-  MessageHandler ::= msgWin32.Win32MessageHandler;
+  RawMsgBase ::= Win32msg.Win32RawMsgBase; // for usage only inside this library
+  MsgBase ::= Win32msg.Win32MsgBase;
+  Message ::= Win32msg.Win32Message;
+  MessageHandler ::= Win32msg.Win32MessageHandler;
 TYPE
   TPMessage = POINTER TO Message;
   TPMessageHandler = POINTER TO MessageHandler;
 
 CONST
-  HandleToHandler ::= msgWin32.HandleToHandler;
+  HandleToRecipient ::= Win32msg.HandleToRecipient;
 
 (*===========================================================================*)
 

@@ -1,8 +1,11 @@
-IMPLEMENTATION MODULE threadWin32;
+IMPLEMENTATION MODULE Win32thread;
 
 IMPORT
   windows,
   Sync;
+
+CONST
+  STACK_SIZE = 81920;
 
 TYPE
   TPWin32Thread = POINTER TO Win32Thread;
@@ -21,12 +24,12 @@ CLASS IMPLEMENTATION Win32Thread;
     RETURN _Thread = windows.GetCurrentThreadId();
   END Win32Thread.SelfContext;
 
-  PUBLIC VIRTUAL PROPERTY Win32Thread.WithMessages GET : BOOLEAN;
+  PUBLIC PROPERTY Win32Thread.WithMessages GET : BOOLEAN;
   BEGIN
     RETURN _WMsg <> 0;
   END Win32Thread.WithMessages;
   
-  PUBLIC VIRTUAL PROPERTY Win32Thread.WithMessages SET( Value : BOOLEAN );
+  PUBLIC PROPERTY Win32Thread.WithMessages SET( Value : BOOLEAN );
   BEGIN
     IF ( _WMsg = 1 ) OR NOT Value THEN
       RETURN;
@@ -47,7 +50,7 @@ CLASS IMPLEMENTATION Win32Thread;
          RETURN;
       END;
       _RunLock := 0;
-      _HThread := windows.CreateThread( NIL, 81920, Win32_thread, ADR( SELF ), 0, ADR( _Thread ));
+      _HThread := windows.CreateThread( NIL, STACK_SIZE, windows.PTHREAD_START_ROUTINE( Win32_thread ), ADR( SELF ), 0, ADR( _Thread ));
       WHILE Wait AND ( Sync.IGet( REF _RunLock ) = 0 ) DO
          Sync.Sleep( 0 );
       END;
@@ -80,6 +83,13 @@ CLASS IMPLEMENTATION Win32Thread;
       RETURN sync.Wait( _HThread, Timeout );
    END WaitStop;
 
+   PUBLIC FINAL PROCEDURE RunWithRunnable( Runnable : OSALthread.TPRunnable );
+   BEGIN
+      ASSERT( _Runnable <> NIL );
+      _Runnable := Runnable;
+      Run( FALSE );
+   END RunWithRunnable;
+
    INTERNAL VIRTUAL PROCEDURE OnRun() : CARDINAL;
    BEGIN
       RETURN 0;
@@ -94,7 +104,11 @@ CLASS IMPLEMENTATION Win32Thread;
         _WMsg := 1;
      END;
      Sync.IExchg( REF _RunLock, 1 );
-     RETURN OnRun();
+     IF _Runnable = NIL THEN
+       RETURN OnRun();
+     ELSE
+       RETURN _Runnable^.OnRun();
+     END;
    END Exec;
 
    VIRTUAL FINALLY Win32Thread();
@@ -109,6 +123,7 @@ BEGIN
    _HThread := NIL;
    _HExit := Sync.CreateSignal( FALSE, L"" );
    _WMsg := 0;
+   _Runnable := NIL;
 END Win32Thread;
 
-END threadWin32.
+END Win32thread.

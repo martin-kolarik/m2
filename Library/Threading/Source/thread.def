@@ -4,14 +4,13 @@ DEFINITION MODULE thread;
 // Win32
 
 IMPORT
-  threadOSAL,
-  threadWin32;
+  OSALthread,
+  Win32thread;
 
 CONST
-  THREAD ::= threadWin32.THREAD;
-  IThread ::= threadOSAL.IThread;
+  IThread ::= OSALthread.IThread;
 CONST
-  Thread ::= threadWin32.Win32Thread;
+  Thread ::= Win32thread.Win32Thread;
 TYPE
   TPThread = POINTER TO Thread;
 

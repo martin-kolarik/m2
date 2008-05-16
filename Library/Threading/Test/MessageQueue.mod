@@ -115,6 +115,7 @@ CLASS IMPLEMENTATION CTest;
       MQ.Clear();
       MQ.Size := QueueSize;
       MQ.ItemSize := SIZE( INT32 );
+      MQ.Produce := Sync.CreateSignal( TRUE, L"" );
       IF ConsumeByEvent THEN
          MQ.Consume := Sync.CreateSignal( FALSE, L"" );
       ELSE
@@ -176,7 +177,6 @@ CLASS IMPLEMENTATION CTest;
    VAR
       Index : CARD32 := Sync.IInc( REF ThreadIndex );
       C32 : CARD32 := 1 OR ( Index << 24 );
-      Items : CARD32;
       Result : Sync.TAsyncResult;
    BEGIN
       LOOP
@@ -193,7 +193,7 @@ CLASS IMPLEMENTATION CTest;
          END;
 
          INC( C32 );
-         IF C32 AND 0FFFFFFH > 50000 DIV MAX2( 1, ThreadCount DIV 5 ) THEN
+         IF C32 AND 0FFFFFFH > 50000 DIV ( 2 * ThreadCount ) THEN
             EXIT;
          END;
       END;
@@ -210,7 +210,7 @@ CLASS IMPLEMENTATION CTest;
       Result : Sync.TAsyncResult;
    BEGIN
       windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE );
-      MH.Init();
+      MH.Init( TRUE );
 
       LOOP
          LOOP
@@ -249,7 +249,7 @@ CLASS IMPLEMENTATION CTest;
       S : Sync.SIGNAL := Sync.CreateSignal( FALSE, L"" );
    BEGIN
       windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE );
-      MH.Init();
+      MH.Init( TRUE );
   
       LOOP
          IF Exit = 1 THEN
@@ -258,7 +258,7 @@ CLASS IMPLEMENTATION CTest;
             windows.MsgWaitForMultipleObjectsEx( 1, ADR( S ), 100, windows.QS_ALLINPUT, windows.MWMO_INPUTAVAILABLE );
             windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE );
          END;
-         IF msg.message <> msgqueue.WM_MQ_PROCESS THEN
+         IF msg.message <> msgqueue.MSG_PROCESS_QUEUE() THEN
             CONTINUE;
          END;
 
@@ -278,6 +278,7 @@ CLASS IMPLEMENTATION CTest;
          END; // WHILE
      END; // LOOP
      
+     windows.Sleep( 100 );
      MH.Dispose();
   END ConsumeByMessage;
 
@@ -289,7 +290,7 @@ BEGIN
    Last[0] := 0;
    Threads[0] := NIL;
 
-   testimpl.tests()^.AddTest( L"MessageQueue", ADR( Test ));
+   testimpl.tests()^.AddTest( L"Threading::MessageQueue", ADR( Test ));
 END CTest;
 
 (*===========================================================================*)

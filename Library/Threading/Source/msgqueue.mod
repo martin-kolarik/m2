@@ -3,8 +3,16 @@ IMPLEMENTATION MODULE msgqueue;
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE, REALLOCATE;
 IMPORT
+  OSALmsg,
   Storage,
   windows;
+
+(*================================================================================*)
+
+PROCEDURE MSG_PROCESS_QUEUE() : CARDINAL;
+BEGIN
+   RETURN msghandler.RawMsgBase() + OSALmsg.RAW_PROCESS_QUEUE;
+END MSG_PROCESS_QUEUE;
 
 (*================================================================================*)
 
@@ -46,7 +54,8 @@ CLASS IMPLEMENTATION CMessageQueue;
       END;
 
       IF Msg = NIL THEN
-         NEW( msghandler.TPMessage( Msg )); Msg^.Message := WM_MQ_PROCESS;
+         NEW( msghandler.TPMessage( Msg ));
+         Msg^.Message := MSG_PROCESS_QUEUE();
       END;
       IF ( What = Sync.pcqProducedFlush ) AND Consumer^.SelfContext THEN // consumer is in my thread
          Delivery := msghandler.delSynchronous;

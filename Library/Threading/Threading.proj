@@ -15,12 +15,12 @@
     <!-- 3 -->
     <ItemGroup>
         <Components Include="modula2\modula2;api\clib;API\win32"/>
-        <Components Include="modula2\m2rtl;library\ADT;library\messaging"/>
-        <Definitions Include="threadOSAL;thread;msgqueuethread"/>
-        <Modules Include="threadWin32;msgqueuethreadWin32;TimeoutablePtrMap;threadpool"/>
+        <Components Include="modula2\m2rtl;library\ADT"/>
+        <Definitions Include="OSALthread;thread;msgqueuethread"/>
+        <Modules Include="JoinLogic;Win32thread;Win32msgqueuethread;TimeoutablePtrMap;threadpool"/>
 
-        <Definitions Include="msgOSAL;msghandler"/>
-        <Modules Include="msgWin32;msgqueue"/>
+        <Definitions Include="OSALmsg;msghandler"/>
+        <Modules Include="Win32msg;msgqueue"/>
 
         <Libraries Include="user32"/>
     </ItemGroup>

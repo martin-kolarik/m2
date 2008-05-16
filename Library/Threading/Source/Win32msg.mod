@@ -1,4 +1,4 @@
-IMPLEMENTATION MODULE msgWin32;
+IMPLEMENTATION MODULE Win32msg;
 
 FROM Storage IMPORT
   ALLOCATE;
@@ -25,9 +25,14 @@ BEGIN FINALLY
 END CChecker;
 #endif
 
+PROCEDURE Win32RawMsgBase() : CARDINAL;
+BEGIN
+   RETURN windows.WM_USER;
+END Win32RawMsgBase;
+  
 PROCEDURE Win32MsgBase() : CARDINAL;
 BEGIN
-   RETURN windows.WM_USER + 64;
+   RETURN Win32RawMsgBase() + OSALmsg.RAW_MESSAGE_SPACE;
 END Win32MsgBase;
   
 VAR
@@ -41,18 +46,19 @@ PROCEDURE WndProc( hwnd : windows.HWND;
                    lParam : windows.LPARAM ): windows.LRESULT;
 VAR
    Msg : Win32Message;
-   Handler : msgOSAL.TPMessageHandler;
+   Recipient : OSALmsg.TPMessageRecipient;
    Result : PTR;
 BEGIN
-   IF HandleToHandler( hwnd, OUT Handler ) THEN
-      Msg.Target := Handler;
+   IF HandleToRecipient( hwnd, OUT Recipient ) THEN
+      Msg.Source := NIL;
+      Msg.Target := Recipient;
       Msg.Message := message;
-      Msg[2] := wParam;
-      Msg[3] := PTR( lParam );
+      Msg[ MI_WPARAM ] := wParam;
+      Msg[ MI_LPARAM ] := PTR( lParam );
    ELSE
       RETURN windows.DefWindowProc( hwnd, message, wParam, lParam );
    END;
-   IF Handler^.Message( Msg, msgOSAL.delSynchronous, ADR( Result )) THEN
+   IF Recipient^.Message( Msg, OSALmsg.delSynchronous, ADR( Result )) THEN
       RETURN windows.LRESULT( Result );
    ELSE
       RETURN windows.DefWindowProc( hwnd, message, wParam, lParam );
@@ -98,17 +104,17 @@ BEGIN
   WndClass := windows.INVALID_ATOM;
 END DestroyWndClass;
 
-PROCEDURE HandleToHandler( CONST Handle : PTR; OUT Handler : msgOSAL.TPMessageHandler ) : BOOLEAN;
+PROCEDURE HandleToRecipient( CONST Handle : PTR; OUT Handler : OSALmsg.TPMessageRecipient ) : BOOLEAN;
 BEGIN
   IF Handle = NIL THEN
     RETURN FALSE;
   ELSIF windows.GetClassLongPtr( Handle, windows.GCW_ATOM ) = windows.ULONG_PTR( WndClass ) THEN
-    Handler := msgOSAL.TPMessageHandler( windows.GetWindowLongPtr( Handle, windows.GWL_USERDATA ));
+    Handler := OSALmsg.TPMessageHandler( windows.GetWindowLongPtr( Handle, windows.GWL_USERDATA ));
     RETURN Handler <> NIL;
   ELSE
     RETURN FALSE;
   END;
-END HandleToHandler;
+END HandleToRecipient;
 
 INITIALLY __I();
 BEGIN
@@ -123,12 +129,22 @@ END __F;
 
 CLASS IMPLEMENTATION Win32Message;
 
-  PUBLIC VIRTUAL PROPERTY Win32Message.Target GET : msgOSAL.TPMessageHandler;
+  PUBLIC VIRTUAL PROPERTY Win32Message.Source GET : ADDRESS;
+  BEGIN
+    RETURN source;
+  END Win32Message.Source;
+  
+  PUBLIC VIRTUAL PROPERTY Win32Message.Source SET( Value : ADDRESS );
+  BEGIN
+    source := Value;
+  END Win32Message.Source;
+  
+  PUBLIC VIRTUAL PROPERTY Win32Message.Target GET : OSALmsg.TPMessageRecipient;
   BEGIN
     RETURN target;
   END Win32Message.Target;
   
-  PUBLIC VIRTUAL PROPERTY Win32Message.Target SET( Value : msgOSAL.TPMessageHandler );
+  PUBLIC VIRTUAL PROPERTY Win32Message.Target SET( Value : OSALmsg.TPMessageRecipient );
   BEGIN
     target := Value;
   END Win32Message.Target;
@@ -151,10 +167,11 @@ CLASS IMPLEMENTATION Win32Message;
   PUBLIC VIRTUAL INDEX Win32Message GET( ParameterIndex : CARDINAL ) : PTR;
   BEGIN
     CASE ParameterIndex OF
-    | 0: RETURN target;
-    | 1: RETURN message;
-    | 2: RETURN wParam;
-    | 3: RETURN lParam;
+    | OSALmsg.MI_SOURCE : RETURN source;
+    | OSALmsg.MI_TARGET : RETURN target;
+    | OSALmsg.MI_MESSAGE : RETURN message;
+    | MI_WPARAM : RETURN wParam;
+    | MI_LPARAM : RETURN lParam;
     ELSE RETURN 0;
     END;
   END Win32Message;
@@ -162,14 +179,15 @@ CLASS IMPLEMENTATION Win32Message;
   PUBLIC VIRTUAL INDEX Win32Message SET( ParameterIndex : CARDINAL; Value : PTR );
   BEGIN
     CASE ParameterIndex OF
-    | 0: target := Value;
-    | 1: message := CARDINAL( LOPTRLONGWORD( Value ));
-    | 2: wParam := Value;
-    | 3: lParam := Value;
+    | OSALmsg.MI_SOURCE : source := Value;
+    | OSALmsg.MI_TARGET : target := Value;
+    | OSALmsg.MI_MESSAGE : message := CARDINAL( LOPTRLONGWORD( Value ));
+    | MI_WPARAM : wParam := Value;
+    | MI_LPARAM : lParam := Value;
     END;
   END Win32Message;
 
-  PUBLIC VIRTUAL PROCEDURE Clone() : POINTER TO msgOSAL.IMessage;
+  PUBLIC VIRTUAL PROCEDURE Clone() : POINTER TO OSALmsg.IMessage;
   VAR
     Message : POINTER TO Win32Message;
   BEGIN
@@ -180,6 +198,7 @@ CLASS IMPLEMENTATION Win32Message;
 
   PUBLIC OPERATOR :=( CONST MSG : Win32Message );
   BEGIN
+    source := MSG.source;
     target := MSG.target;
     message := MSG.message;
     wParam := MSG.wParam;
@@ -187,6 +206,7 @@ CLASS IMPLEMENTATION Win32Message;
   END :=;
 
 BEGIN
+  source := NIL;
   target := NIL;
   message := windows.WM_NULL;
   lParam := 0;
@@ -194,6 +214,11 @@ BEGIN
 END Win32Message;
 
 CLASS IMPLEMENTATION Win32MessageHandler;
+
+  PUBLIC VIRTUAL PROPERTY JoinedTo GET : OSALmsg.TPMessageQueueThread;
+  BEGIN
+    RETURN joinedTo;
+  END JoinedTo;
 
   PUBLIC VIRTUAL READONLY PROPERTY Win32MessageHandler.SelfContext GET : BOOLEAN;
   BEGIN
@@ -205,25 +230,27 @@ CLASS IMPLEMENTATION Win32MessageHandler;
     RETURN HWND;
   END Win32MessageHandler.Handle;
 
-  PUBLIC PROCEDURE Win32MessageHandler.Init();
+  PUBLIC PROCEDURE Win32MessageHandler.Init( AutomaticJoin : BOOLEAN );
   BEGIN
-    CreateHWND();
+    IF AutomaticJoin THEN
+      JoinMessageThread( NIL );
+    END;
   END Win32MessageHandler.Init;
   
   PUBLIC PROCEDURE Dispose();
   BEGIN
-    DestroyHWND();
+    LeaveMessageThread();
   END Dispose;
 
-   PUBLIC VIRTUAL PROCEDURE Message( CONST MSG : msgOSAL.IMessage; Delivery : msgOSAL.TDelivery; Result : PPTR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Message( CONST MSG : OSALmsg.IMessage; Delivery : OSALmsg.TDelivery; Result : PPTR ) : BOOLEAN;
    VAR
       LResult : PTR;
       Repeat : PTR;
       Timer : PTR;
    BEGIN
-      IF ( Delivery = msgOSAL.delSynchronous ) OR ( Delivery = msgOSAL.delSynchronousIfInThread ) AND SelfContext THEN
-         IF MSG[1] = windows.WM_TIMER THEN
-            Timer := MSG[2];
+      IF ( Delivery = OSALmsg.delSynchronous ) OR ( Delivery = OSALmsg.delSynchronousIfInThread ) AND SelfContext THEN
+         IF MSG[ OSALmsg.MI_MESSAGE ] = windows.WM_TIMER THEN
+            Timer := MSG[ MI_WPARAM ];
             IF NOT Timers.Get( Timer, OUT Repeat ) THEN
                RETURN FALSE;
             ELSIF Repeat = 0 THEN
@@ -239,7 +266,7 @@ CLASS IMPLEMENTATION Win32MessageHandler;
       ELSIF HWND = NIL THEN
          RETURN FALSE;
       ELSE // deffer message
-         windows.PostMessage( HWND, MSG.Message, windows.WPARAM( MSG[2] ), windows.LPARAM( MSG[3] ));
+         windows.PostMessage( HWND, MSG.Message, windows.WPARAM( MSG[ MI_WPARAM ] ), windows.LPARAM( MSG[ MI_LPARAM ] ));
       END;
       IF Result <> NIL THEN
          Result^ := 0;
@@ -247,7 +274,7 @@ CLASS IMPLEMENTATION Win32MessageHandler;
       RETURN TRUE;
    END Message;
 
-   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : msgOSAL.IMessage; OUT Result : PTR ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : OSALmsg.IMessage; OUT Result : PTR ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END Win32MessageHandler.OnMessage;
@@ -292,11 +319,13 @@ CLASS IMPLEMENTATION Win32MessageHandler;
    BEGIN
    END OnTimer;
 
-  PRIVATE VIRTUAL PROCEDURE CreateHWND();
+  PUBLIC VIRTUAL PROCEDURE OnJoin( JoinTo : OSALmsg.TPMessageQueueThread );
   BEGIN
     IF HWND <> NIL THEN
       RETURN;
     END;
+    joinedTo := JoinTo;
+
     __I();
     HWND := windows.CreateWindowEx(
               windows.WS_EX_TOOLWINDOW,
@@ -308,12 +337,13 @@ CLASS IMPLEMENTATION Win32MessageHandler;
       LeakALLOCATE( HWND, CARDINAL( LOPTRLONGWORD( HWND )) OR 08000000H );
       windows.SetWindowLongPtr( HWND, windows.GWL_USERDATA, PTR( ADR( SELF )));
     END;
+
     #if DEBUG #then
       Handlers.Add( ADR( SELF ), 0 );
     #endif
-  END CreateHWND;
+  END OnJoin;
 
-  PRIVATE VIRTUAL PROCEDURE DestroyHWND();
+  PUBLIC VIRTUAL PROCEDURE OnLeave();
   BEGIN
     IF HWND <> NIL THEN
       Timers.Reset();
@@ -330,12 +360,34 @@ CLASS IMPLEMENTATION Win32MessageHandler;
       HWND := NIL;
       __F();
     END;
-  END DestroyHWND;
+
+    joinedTo := NIL;
+  END OnLeave;
+  
+  PUBLIC VIRTUAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread );
+  BEGIN
+    IF JoinTo = NIL THEN
+      ASSERT( joinedTo = NIL );
+      OnJoin( JoinTo );
+    ELSE
+      JoinTo^.Join( ADR( SELF ));
+    END;
+  END JoinMessageThread;
+
+  PUBLIC VIRTUAL PROCEDURE LeaveMessageThread();
+  BEGIN
+    IF joinedTo = NIL THEN
+      OnLeave();
+    ELSE
+      JoinedTo^.Leave( ADR( SELF ));
+    END;
+  END LeaveMessageThread;
 
 BEGIN
+  joinedTo := NIL;
   HWND := NIL;
 FINALLY
   Dispose();
 END Win32MessageHandler;
 
-END msgWin32.
+END Win32msg.

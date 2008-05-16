@@ -13,8 +13,7 @@ CONST
 TYPE
   TPMessageQueue = POINTER TO CMessageQueue;
 
-CONST
-  WM_MQ_PROCESS = 4096;
+PROCEDURE MSG_PROCESS_QUEUE() : CARDINAL;
 
 CLASS CMessageQueue( SyncQueue.CDatagramQueue );
    // class dedicated for N to 1 receiving, blocking is usually consumer, so main control is from consumer side and it is
