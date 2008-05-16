@@ -449,7 +449,9 @@ CLASS IMPLEMENTATION CBYTE;
     PT : DOM.TPrimitiveType;
   BEGIN
     PWith := PWith^.Unwrap();
-    IF ( PWith = TBYTE ) OR ( PWith = TOrdinalNumber ) THEN
+    IF ( CM = DOM.cmExact ) AND ( PWith <> TBYTE ) THEN
+      RETURN FALSE;
+    ELSIF ( PWith = TBYTE ) OR ( PWith = TOrdinalNumber ) THEN
       RETURN TRUE;
     ELSIF PWith^.TypeKind = DOM.tkRange THEN
       RETURN Compatible( CM, PWith^.T );
@@ -477,7 +479,9 @@ CLASS IMPLEMENTATION CWORD;
     PT : DOM.TPrimitiveType;
   BEGIN
     PWith := PWith^.Unwrap();
-    IF ( PWith = TWORD ) OR ( PWith = TOrdinalNumber )THEN
+    IF ( CM = DOM.cmExact ) AND ( PWith <> TWORD ) THEN
+      RETURN FALSE;
+    ELSIF ( PWith = TWORD ) OR ( PWith = TOrdinalNumber )THEN
       RETURN TRUE;
     ELSIF PWith^.TypeKind = DOM.tkRange THEN
       RETURN Compatible( CM, PWith^.T );
@@ -505,7 +509,9 @@ CLASS IMPLEMENTATION CLONGWORD;
     PT : DOM.TPrimitiveType;
   BEGIN
     PWith := PWith^.Unwrap();
-    IF ( PWith = TLONGWORD ) OR ( PWith = TOrdinalNumber )THEN
+    IF ( CM = DOM.cmExact ) AND ( PWith <> TLONGWORD ) THEN
+      RETURN FALSE;
+    ELSIF ( PWith = TLONGWORD ) OR ( PWith = TOrdinalNumber )THEN
       RETURN TRUE;
     ELSIF PWith^.TypeKind = DOM.tkRange THEN
       RETURN Compatible( CM, PWith^.T );
@@ -539,7 +545,9 @@ CLASS IMPLEMENTATION CQUADWORD;
     PT : DOM.TPrimitiveType;
   BEGIN
     PWith := PWith^.Unwrap();
-    IF ( PWith = TQUADWORD ) OR ( PWith = TOrdinalNumber ) THEN
+    IF ( CM = DOM.cmExact ) AND ( PWith <> TQUADWORD ) THEN
+      RETURN FALSE;
+    ELSIF ( PWith = TQUADWORD ) OR ( PWith = TOrdinalNumber ) THEN
       RETURN TRUE;
     ELSIF PWith^.TypeKind = DOM.tkRange THEN
       RETURN Compatible( CM, PWith^.T );
@@ -571,7 +579,11 @@ CLASS IMPLEMENTATION CADDRESS;
   VIRTUAL PROCEDURE Compatible( CM : DOM.TCompatibilityMode; PWith : DOM.TPType ) : BOOLEAN;
   BEGIN
     PWith := PWith^.Unwrap();
-    RETURN ( PWith^.TypeKind = DOM.tkReference ) OR ( PWith = TPTR );
+    IF ( CM = DOM.cmExact ) AND ( PWith <> TADDRESS ) THEN
+      RETURN FALSE;
+    ELSE
+      RETURN ( PWith^.TypeKind = DOM.tkReference ) OR ( PWith = TPTR );
+    END;
   END Compatible;
 
 BEGIN
@@ -590,7 +602,9 @@ CLASS IMPLEMENTATION CPTR;
     PT : DOM.TPrimitiveType;
   BEGIN
     PWith := PWith^.Unwrap();
-    IF ( PWith = TPTR ) OR ( PWith = TOrdinalNumber ) THEN
+    IF ( CM = DOM.cmExact ) AND ( PWith <> TPTR ) THEN
+      RETURN FALSE;
+    ELSIF ( PWith = TPTR ) OR ( PWith = TOrdinalNumber ) THEN
       RETURN TRUE;
     ELSIF TADDRESS^.Compatible( CM, PWith ) THEN
       RETURN TRUE;

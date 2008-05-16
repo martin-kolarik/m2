@@ -1263,7 +1263,7 @@ CLASS IMPLEMENTATION CType;
     IF PWith^.TypeKind IN typeLinks THEN
       PWith := PWith^.Unwrap();
     END;
-    IF PWith^.TypeKind = tkMorphable THEN
+    IF ( CM <> cmExact ) AND ( PWith^.TypeKind = tkMorphable ) THEN
       RETURN PWith^.Compatible( cmOperation, ADR( SELF ));
     ELSIF TypeKind IN typeLinks THEN
       RETURN Unwrap()^.Compatible( CM, PWith );
@@ -1362,7 +1362,9 @@ CLASS IMPLEMENTATION CType;
     | tkReference :
       IF ADR( SELF ) = PWith THEN
         RETURN TRUE;
-      ELSIF ( CM <> cmExact ) AND (( PWith = Types.TADDRESS ) OR ( PWith = Types.TPTR )) THEN
+      ELSIF CM = cmExact THEN
+        RETURN T^.Compatible( CM, PWith^.T );
+      ELSIF ( PWith = Types.TADDRESS ) OR ( PWith = Types.TPTR ) THEN
         RETURN TRUE;
       // for special cases see CheckAndGenCast/CSAssignment too
       ELSIF PWith^.TypeKind = tkStringArray THEN
