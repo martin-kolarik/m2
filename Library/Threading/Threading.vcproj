@@ -65,7 +65,15 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\Source\msgqueue.mod"
+				>
+			</File>
+			<File
 				RelativePath=".\Source\msgqueuethreadWin32.mod"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\msgWin32.mod"
 				>
 			</File>
 			<File
@@ -87,11 +95,11 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\Source\msgqueuethread.def"
+				RelativePath=".\Source\msghandler.def"
 				>
 			</File>
 			<File
-				RelativePath=".\Source\msgqueuethreadOSAL.def"
+				RelativePath=".\Source\msgOSAL.def"
 				>
 			</File>
 			<File
@@ -99,7 +107,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Source\thread.def"
+				RelativePath=".\Source\msgWin32.def"
 				>
 			</File>
 			<File
@@ -107,15 +115,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Source\threadpool.def"
-				>
-			</File>
-			<File
 				RelativePath=".\Source\threadWin32.def"
-				>
-			</File>
-			<File
-				RelativePath=".\Source\TimeoutablePtrMap.def"
 				>
 			</File>
 		</Filter>
