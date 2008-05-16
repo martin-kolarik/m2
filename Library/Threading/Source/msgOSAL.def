@@ -1,5 +1,8 @@
 DEFINITION MODULE msgOSAL;
 
+IMPORT
+   threadOSAL;
+
 #save, option( dll_export => on )
 
 (*===========================================================================*)
@@ -17,29 +20,44 @@ TYPE
   TPMessage = POINTER TO IMessage;
   TPMessageRecipient = POINTER TO IMessageRecipient;
   TPMessageHandler = POINTER TO IMessageHandler;
+  TPMessageQueueThread = POINTER TO IMessageQueueThread;
 
 (*---------------------------------------------------------------------------*)
+
+CONST
+   MI_SOURCE  = 0;
+   MI_TARGET  = 1;
+   MI_MESSAGE = 2;
   
 INTERFACE IMessage;
   PUBLIC ABSTRACT PROPERTY
-    Target : TPMessageHandler; // [0], if Target is NIL the message's target is owner of Message method taking the message
-    Message : CARDINAL; // [1]
+    Source : TPMessageRecipient; // can be 0 // TODO inde
+    Target : TPMessageRecipient; // if Target is NIL the message's target is owner of Message method taking the message
+    Message : CARDINAL;
   PUBLIC ABSTRACT READONLY PROPERTY
-    ParameterCount : CARDINAL; // including MSG and optional Target
+    ParameterCount : CARDINAL; // including MSG and optional Target and Source
   PUBLIC ABSTRACT 
     INDEX( ParameterIndex : CARDINAL ) : PTR;
   PUBLIC ABSTRACT PROCEDURE
     Clone() : POINTER TO IMessage;
 END IMessage;
 
-(*---------------------------------------------------------------------------*)
-  
+(*===========================================================================*)
+
 INTERFACE IMessageRecipient;
   PUBLIC ABSTRACT READONLY PROPERTY
+    JoinedTo : TPMessageQueueThread;
     SelfContext : BOOLEAN;
+
+  INTERNAL ABSTRACT PROCEDURE OnJoin();
+  INTERNAL ABSTRACT PROCEDURE OnLeave();
 
   PUBLIC ABSTRACT PROCEDURE Message( CONST MSG : IMessage; Delivery : TDelivery; Result : PPTR ) : BOOLEAN;
   INTERNAL ABSTRACT PROCEDURE OnMessage( CONST MSG : IMessage; OUT Result : PTR ) : BOOLEAN;
+  
+  // administrative, do not call by user
+  PUBLIC ABSTRACT PROCEDURE Join( JoinedTo : TPMessageQueueThread );
+  PUBLIC ABSTRACT PROCEDURE Leave();
 END IMessageRecipient;  
 
 (*---------------------------------------------------------------------------*)
@@ -53,6 +71,23 @@ INTERFACE IMessageHandler( IMessageRecipient );
   INTERNAL ABSTRACT PROCEDURE StopTimer( Timer : PTR );
   INTERNAL ABSTRACT PROCEDURE OnTimer( Timer : PTR );
 END IMessageHandler;
+
+(*===========================================================================*)
+
+INTERFACE IMessageQueueThread( IMessageRecipient );
+
+   INTERNAL READONLY PROPERTY
+      Root : TPMessageRecipient;
+      
+   INTERNAL PROCEDURE OnStart();
+   INTERNAL PROCEDURE OnExit();
+
+   INTERNAL PROCEDURE MessageToRecipient( CONST Msg : PTR; OUT Recipient : TPMessageRecipient ) : BOOLEAN;
+   
+   PUBLIC PROCEDURE Join( Recipient : TPMessageRecipient );
+   PUBLIC PROCEDURE Leave( Recipient : TPMessageRecipient );
+
+END IMsgQueueThread;
 
 (*===========================================================================*)
 
