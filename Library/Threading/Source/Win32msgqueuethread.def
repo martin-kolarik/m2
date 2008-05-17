@@ -16,10 +16,10 @@ CLASS Win32MsgQueueThread( Win32thread.Win32Thread ) IMPLEMENTS OSALmsg.IMessage
 // behavior: Root^.OnMessage for Root <> NIL
 // behavior: Handler^.OnMessage for Root = NIL
    PRIVATE VAR
-      support : msgthreadsupport.TPSupport;
+      Support : msgthreadsupport.TPSupport;
 
-   // IThread
-   INTERNAL FINAL PROCEDURE OnRun() : CARDINAL;
+   // IThread/IRunnable
+   INTERNAL VIRTUAL PROCEDURE OnRun() : CARDINAL;
    
    // IMessageQueueThread
    INTERNAL VIRTUAL READONLY PROPERTY Root : OSALmsg.TPMessageRecipient;

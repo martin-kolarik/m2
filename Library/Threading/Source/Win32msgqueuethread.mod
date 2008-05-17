@@ -16,7 +16,7 @@ CLASS IMPLEMENTATION Win32MsgQueueThread;
 
 (*---------------------------------------------------------------------------*)
   
-   INTERNAL FINAL PROCEDURE OnRun() : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun() : CARDINAL;
    CONST
       waitHandles = 1;
    VAR
@@ -134,7 +134,7 @@ CLASS IMPLEMENTATION Win32MsgQueueThread;
          IF Result = NIL THEN
             Result := ADR( LResult );
          END;
-         IF NOT support^.HandleSupportMessage( Msg ) THEN
+         IF NOT Support^.HandleSupportMessage( Msg ) THEN
             RETURN OnMessage( Msg, OUT Result^ );
          END;
       ELSE
@@ -154,14 +154,14 @@ CLASS IMPLEMENTATION Win32MsgQueueThread;
   
    PUBLIC VIRTUAL PROCEDURE Join( Recipient : OSALmsg.TPMessageRecipient );
    BEGIN
-      support^.Join( Recipient );
+      Support^.Join( Recipient );
    END Join;
 
 (*---------------------------------------------------------------------------*)
   
    PUBLIC VIRTUAL PROCEDURE Leave( Recipient : OSALmsg.TPMessageRecipient );
    BEGIN
-      support^.Leave( Recipient );
+      Support^.Leave( Recipient );
    END Leave;
 
 (*---------------------------------------------------------------------------*)
@@ -203,12 +203,12 @@ CLASS IMPLEMENTATION Win32MsgQueueThread;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
-   NEW( support );
-   support^.Init( ADR( SELF ));
+   NEW( Support );
+   Support^.Init( ADR( SELF ));
    WithMessages := TRUE;
 FINALLY
-   support^.Dispose();
-   DISPOSE( support );
+   Support^.Dispose();
+   DISPOSE( Support );
 END Win32MsgQueueThread;
 
 (*===========================================================================*)

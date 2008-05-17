@@ -17,7 +17,7 @@ CLASS IMPLEMENTATION SCMsgQueueThread;
 
 (*---------------------------------------------------------------------------*)
   
-   INTERNAL FINAL PROCEDURE OnRun() : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun() : CARDINAL;
    CONST
       waitHandles = 2;
    VAR
@@ -27,7 +27,7 @@ CLASS IMPLEMENTATION SCMsgQueueThread;
       Status : CARDINAL;
    BEGIN
       WaitHandles[0] := _HExit;
-      WaitHandles[1] := queue.Consume;
+      WaitHandles[1] := Queue.Consume;
    
       OnStart();
       LOOP
@@ -47,7 +47,7 @@ CLASS IMPLEMENTATION SCMsgQueueThread;
 
          //-----
          | windows.WAIT_OBJECT_0 + 1 : // queue
-            WHILE queue.DequeueOA( OUT Msg, FALSE, 0 ) = Sync.arCompleted DO
+            WHILE Queue.DequeueOA( OUT Msg, FALSE, 0 ) = Sync.arCompleted DO
 
                IF Msg.Target <> NIL THEN // self or root
                   Target := Msg.Target;
@@ -106,17 +106,22 @@ CLASS IMPLEMENTATION SCMsgQueueThread;
    PUBLIC VIRTUAL PROCEDURE Message( CONST Msg : msghandler.IMessage; Delivery : msghandler.TDelivery; Result : PPTR ) : BOOLEAN; // if Msg.Target = NIL then the message must be processed by thread itself; Delivery is possible only delSynchronousInThread and delAsynchronous
    VAR
       AResult : Sync.TAsyncResult;
+      i : CARDINAL;
       LResult : PTR;
+      message : SCmsg.SCMessage;
    BEGIN
       IF ( Delivery = msghandler.delSynchronous ) OR ( Delivery = msghandler.delSynchronousIfInThread ) AND SelfContext THEN
          IF Result = NIL THEN
             Result := ADR( LResult );
          END;
-         IF NOT support^.HandleSupportMessage( Msg ) THEN
+         IF NOT Support^.HandleSupportMessage( Msg ) THEN
             RETURN OnMessage( Msg, OUT Result^ );
          END;
       ELSE
-         AResult := queue.QueueOA( Msg, TRUE, Sync.FORSAFETY );
+         FOR i := 0 TO MIN2( Msg.ParameterCount, message.ParameterCount )-1 DO
+            message[i] := Msg[i];
+         END; // FOR
+         AResult := Queue.QueueOA( message, TRUE, Sync.FORSAFETY );
          ASSERT( AResult <> Sync.arTimeout );
       END;
       RETURN TRUE;
@@ -133,14 +138,14 @@ CLASS IMPLEMENTATION SCMsgQueueThread;
   
    PUBLIC VIRTUAL PROCEDURE Join( Recipient : OSALmsg.TPMessageRecipient );
    BEGIN
-      support^.Join( Recipient );
+      Support^.Join( Recipient );
    END Join;
 
 (*---------------------------------------------------------------------------*)
   
    PUBLIC VIRTUAL PROCEDURE Leave( Recipient : OSALmsg.TPMessageRecipient );
    BEGIN
-      support^.Leave( Recipient );
+      Support^.Leave( Recipient );
    END Leave;
 
 (*---------------------------------------------------------------------------*)
@@ -182,13 +187,13 @@ CLASS IMPLEMENTATION SCMsgQueueThread;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
-   NEW( support );
-   support^.Init( ADR( SELF ));
-   queue.Consume := Sync.CreateAutoresetSignal( FALSE, L"" );
-   queue.Size := 2048;
+   NEW( Support );
+   Support^.Init( ADR( SELF ));
+   Queue.Init( 2048, SIZE( msghandler.Message ));
+   Queue.Consume := Sync.CreateAutoresetSignal( FALSE, L"" );
 FINALLY
-   support^.Dispose();
-   DISPOSE( support );
+   Support^.Dispose();
+   DISPOSE( Support );
 END SCMsgQueueThread;
 
 (*===========================================================================*)

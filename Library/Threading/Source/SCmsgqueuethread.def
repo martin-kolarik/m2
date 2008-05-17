@@ -13,12 +13,12 @@ IMPORT
 #save, option( dll_export => on )
 
 CLASS SCMsgQueueThread( Win32thread.Win32Thread ) IMPLEMENTS OSALmsg.IMessageQueueThread;
-   PRIVATE VAR
-      support : msgthreadsupport.TPSupport;
-      queue : msgqueue.CMessageQueue;
+   INTERNAL VAR
+      Support : msgthreadsupport.TPSupport;
+      Queue : msgqueue.CMessageQueue;
 
-   // IThread
-   INTERNAL FINAL PROCEDURE OnRun() : CARDINAL;
+   // IThread/IRunnable
+   INTERNAL VIRTUAL PROCEDURE OnRun() : CARDINAL;
    
    // IMessageQueueThread
    INTERNAL VIRTUAL READONLY PROPERTY Root : OSALmsg.TPMessageRecipient;

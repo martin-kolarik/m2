@@ -9,11 +9,9 @@ IMPORT
   lists,
   maps,
   msghandler,
-  syncqueue,
+  SCmsgqueuethread,
   time,
-  thread,
   TimeoutablePtrMap,
-  Win32msg,
   windows;
   
 //================================================================================
@@ -145,7 +143,7 @@ END CTask;
 TYPE
   TPPoolThread = POINTER TO CPoolThread;
 
-CLASS CPoolThread( thread.Thread );
+CLASS CPoolThread( SCmsgqueuethread.SCMsgQueueThread );
   PRIVATE VAR
     Pool : TPThreadPool;
     HTasks : TimeoutablePtrMap.CTimeoutablePtrMap; // CTask.Handle/PTask
@@ -155,7 +153,6 @@ CLASS CPoolThread( thread.Thread );
     WaitArray : arrays.CPtrArray;
   LOCAL READONLY VAR
     ReqQueue : msgqueue.CMessageQueue; // MessageQueue is used instead of simple DatagramQueue, because it simplifies concurrent usage of messages (administrative and WaitMessage). If one creates WaitMessage and immediatelly send the message, message queue assures correct ordering without any add-on handling.
-    Messager : msghandler.MessageHandler;
   LOCAL VAR
     TasksCount : CARDINAL; // synchronized version of unsafe HTasks.Count, the count is used to determine if thread is empty.
     HandlesCount : CARDINAL; // synchronized version of unsafe Handles.Count, the count is used to limit amount of messages/handles/workers in the thread.
@@ -174,7 +171,7 @@ CLASS CPoolThread( thread.Thread );
 
   PRIVATE PROCEDURE AddTask( CurrentTime : CARDINAL; Task : TPTask );
   PRIVATE PROCEDURE RemoveTask( Result : Sync.TAsyncResult; Task : TPTask );
-  PRIVATE PROCEDURE Completed( Result : Sync.TAsyncResult; Task : TPTask; PMSG : POINTER TO msghandler.Message; RemoveTask, DisposeTask : BOOLEAN; OUT CanBeDisposed : BOOLEAN );
+  PRIVATE PROCEDURE Completed( Result : Sync.TAsyncResult; Task : TPTask; PMSG : msghandler.TPMessage; RemoveTask, DisposeTask : BOOLEAN; OUT CanBeDisposed : BOOLEAN );
 END CPoolThread;
 
 //================================================================================
@@ -241,7 +238,7 @@ CLASS IMPLEMENTATION CPoolThread;
 
   LOCAL READONLY PROPERTY AbleWaitHandles GET : BOOLEAN;
   BEGIN
-    RETURN ( Sync.IGet( REF WorkersCount ) = 0 ) AND ( Sync.IGet( REF HandlesCount ) < windows.MAXIMUM_WAIT_OBJECTS-2 ); //-1-exit
+    RETURN ( Sync.IGet( REF WorkersCount ) = 0 ) AND ( Sync.IGet( REF HandlesCount ) < windows.MAXIMUM_WAIT_OBJECTS-3 ); //-1-exit-queue.Consume
   END AbleWaitHandles;
 
 //--------------------------------------------------------------------------------
@@ -318,18 +315,16 @@ CLASS IMPLEMENTATION CPoolThread;
 
       //-----
       
-      PROCEDURE CheckAndHandleKnownMessage( CONST msg : windows.MSG ) : BOOLEAN;
+      PROCEDURE CheckAndHandleKnownMessage( CONST Message : msghandler.Message ) : BOOLEAN;
       VAR
          disposable : BOOLEAN;
-         MSG : msghandler.Message;
          Task : TPTask;
       BEGIN
-         IF NOT Messages.Get( msg.message, OUT Task ) THEN // known waited message
+         IF NOT Messages.Get( Message.Message, OUT Task ) THEN // known waited message
             RETURN FALSE; // check empty
          END;
 
-         MSG.Message := msg.message; MSG[ Win32msg.MI_WPARAM ] := msg.wParam; MSG[ Win32msg.MI_LPARAM ] := PTR( msg.lParam );
-         Completed( Sync.arCompleted, Task, ADR( MSG ), Task^.Task = tskMessageOnce, FALSE, OUT disposable );
+         Completed( Sync.arCompleted, Task, msghandler.TPMessage( ADR( Message )), Task^.Task = tskMessageOnce, FALSE, OUT disposable );
          IF Task^.Task = tskMessageOnce THEN
             Messages.Remove( Task^.Data );
             Sync.IDec( REF MessagesCount );
@@ -394,22 +389,24 @@ CLASS IMPLEMENTATION CPoolThread;
       CheckEmpty : BOOLEAN;
       CurrentTime : CARDINAL;
       disposable : BOOLEAN;
-      msg : windows.MSG;
+      Message : msghandler.Message;
       Status : CARDINAL;
       Timeout : CARDINAL;
       WaitAbandoned : BOOLEAN;
       Worker : TPPoolWorker;
       WorkerTask : TPTask;
    BEGIN
+      OnStart();
+   
       WaitArray.Add( _HExit );
+      WaitArray.Add( Queue.Consume );
       
-      Messager.Init( TRUE );
-      ReqQueue.Consumer := ADR( Messager );
+      ReqQueue.Consumer := ADR( SELF );
     
       LOOP
          CheckEmpty := FALSE;
          Timeout := HTasks.GetTimeoutToFirstElapsed( time.UptimeMS());
-         Status := windows.MsgWaitForMultipleObjectsEx( WaitArray.Count, WaitArray.Data, Timeout, windows.QS_ALLINPUT, windows.MWMO_INPUTAVAILABLE OR windows.MWMO_ALERTABLE );
+         Status := windows.WaitForMultipleObjectsEx( WaitArray.Count, WaitArray.Data, windows.False, Timeout, windows.True );
          CurrentTime := time.UptimeMS();
          
          CASE Status OF
@@ -424,6 +421,16 @@ CLASS IMPLEMENTATION CPoolThread;
             EXIT;
 
          //-----
+         | windows.WAIT_OBJECT_0 + 1 : // message received
+            WHILE Queue.DequeueOA( OUT Message, FALSE, 0 ) = Sync.arCompleted DO
+               IF Message.Message = msgqueue.MSG_PROCESS_QUEUE THEN // administrative message/queue
+                  CheckEmpty := HandleAdministrativeMessages( CurrentTime ) OR CheckEmpty;
+               ELSE
+                  CheckEmpty := CheckAndHandleKnownMessage( Message ) OR CheckEmpty;
+               END;
+            END; // WHILE messages
+
+         //-----
          | windows.WAIT_TIMEOUT : // remove all timeouted tasks
             CheckEmpty := HandleTimeouts( time.UptimeMS());
 
@@ -436,26 +443,12 @@ CLASS IMPLEMENTATION CPoolThread;
                DEC( Status, windows.WAIT_OBJECT_0 );
                WaitAbandoned := FALSE;
             END;
+            CheckEmpty := CheckAndHandleKnownHandle( WaitAbandoned, WaitArray[Status] );
+            IF CheckEmpty THEN // handle was removed
+               WaitArray.RemoveIndex( Status );
+            END;
 
-            //-----
-            IF NOT WaitAbandoned AND ( Status = WaitArray.Count ) THEN // a message has arrived
-               WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) <> 0 DO
-                  IF msg.message = msgqueue.MSG_PROCESS_QUEUE THEN // administrative message/queue
-                     CheckEmpty := HandleAdministrativeMessages( CurrentTime ) OR CheckEmpty;
-                  ELSE
-                     CheckEmpty := CheckAndHandleKnownMessage( msg ) OR CheckEmpty;
-                  END;
-               END; // WHILE messages
-
-            //-----
-            ELSIF Status < WaitArray.Count THEN
-               CheckEmpty := CheckAndHandleKnownHandle( WaitAbandoned, WaitArray[Status] );
-               IF CheckEmpty THEN // handle was removed
-                  WaitArray.RemoveIndex( Status );
-               END;
-
-            //-----
-            END; // IF WaitResult
+         //-----
          END; // ELSE CASE
       
          // Run Workers
@@ -475,7 +468,7 @@ CLASS IMPLEMENTATION CPoolThread;
          END;
       END; // LOOP
 
-      Messager.Dispose();
+      OnExit();
       RETURN 0;
    END OnRun;
 
@@ -490,7 +483,6 @@ CLASS IMPLEMENTATION CPoolThread;
     | tskTimeoutOnce, tskTimeoutRepeated :
       // do nothing
     | tskMessageOnce, tskMessageRepeated :
-      ASSERT( Messager.Handle <> NIL ); // Init() should be done soonenr
       Messages.Add( Task^.Data, Task );
     | tskHandleOnce, tskHandleRepeated :
       IF Handles.Get( Task^.Data, OUT HandleList ) THEN
@@ -574,9 +566,9 @@ CLASS IMPLEMENTATION CPoolThread;
 
   INITIALLY CPoolThread();
   BEGIN
+    Queue.Size := 128;
     Pool := NIL;
     ReqQueue.Init( 128, SIZE( TMessage ));
-    WithMessages := TRUE;
     WaitArray.Strategy := array.astrgListInArray;
     TasksCount := 0;
     HandlesCount := 0;
@@ -739,7 +731,7 @@ CLASS IMPLEMENTATION CThreadPool;
 
 //--------------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE WaitMessage( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; OUT Recipient : msghandler.TPMessageRecipient; OUT Message : msghandler.Message; OUT PoolHandle : TPoolHandle ) : BOOLEAN;
+  PUBLIC PROCEDURE WaitMessage( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; OUT Recipient : msghandler.TPMessageRecipient; OUT Message : msghandler.IMessage; OUT PoolHandle : TPoolHandle ) : BOOLEAN;
   VAR
     message : CARDINAL;
     MSG : TMessage;
@@ -778,7 +770,8 @@ CLASS IMPLEMENTATION CThreadPool;
     // return values
     PoolHandle := MSG.Task^.Handle;
     Message.Message := message;
-    Recipient := ADR( PoolThread^.Messager );
+    Message.Target := PoolThread;
+    Recipient := PoolThread;
 
     Result := PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );

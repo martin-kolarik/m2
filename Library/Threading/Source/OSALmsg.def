@@ -93,9 +93,8 @@ CONST
 (*---------------------------------------------------------------------------*)
   
 INTERFACE IMessageQueueThread( IMessageRecipient );
-
    INTERNAL READONLY PROPERTY
-      Root : TPMessageRecipient;
+      Root : TPMessageRecipient; // thread can have some special processing
       
    INTERNAL PROCEDURE OnStart();
    INTERNAL PROCEDURE OnExit();
