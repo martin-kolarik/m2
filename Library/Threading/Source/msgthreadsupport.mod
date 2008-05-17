@@ -1,4 +1,4 @@
-IMPLEMENTATION MODULE JoinLogic;
+IMPLEMENTATION MODULE msgthreadsupport;
 
 (*===========================================================================*)
 
@@ -7,7 +7,16 @@ IMPORT
    
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION CJoinLogic;
+TYPE
+   TTimerParameter = RECORD
+      Timer : PTR;
+      Repeat : BOOLEAN;
+      Signal : Sync.SIGNAL;
+   END;
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CSupport;
 
 (*---------------------------------------------------------------------------*)
 
@@ -71,11 +80,73 @@ CLASS IMPLEMENTATION CJoinLogic;
    
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE HandleJoinLogicMessage( CONST Message : OSALmsg.IMessage ) : BOOLEAN; // if it is not join logic message it returns FALSE
+   PUBLIC PROCEDURE SetTimer( Recipient : OSALmsg.TPMessageRecipient; Timer : PTR; Repeat : BOOLEAN );
+   VAR
+      MSG : msghandler.Message;
+      parameter : POINTER TO TimerParameter;
+      Result : Sync.TAsyncResult;
+      Signal : Sync.SIGNAL := Sync.CreateSignal( FALSE, L"" );
+   BEGIN
+      ASSERT( OfThread <> NIL );
+
+      MSG.Source := Recipient;
+      MSG.Target := Recipient;
+      MSG.Message := msghandler.RawMsgBase() + OSALmsg.RAW_MESSAGE_SETTIMER;
+
+      NEW( parameter );
+      parameter^.Timer := Timer;
+      parameter^.Repeat := Repeat;
+      parameter^.Signal := Signal;
+
+      MSG.Parameter := parameter;
+      
+      OfThread^.Message( MSG, OSALmsg.delSynchronousIfInThread, NIL );
+      
+      Result := Sync.Wait( Signal, Sync.FORSAFETY );
+      ASSERT( Result <> Sync.arTimeout );
+      
+      Sync.DeleteSignal( REF Signal );
+   END SetTimer;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ResetTimer( Recipient : OSALmsg.TPMessageRecipient; Timer : PTR );
+   VAR
+      MSG : msghandler.Message;
+      parameter : POINTER TO TimerParameter;
+      Result : Sync.TAsyncResult;
+      Signal : Sync.SIGNAL := Sync.CreateSignal( FALSE, L"" );
+   BEGIN
+      ASSERT( OfThread <> NIL );
+
+      MSG.Source := Recipient;
+      MSG.Target := OfThread;
+      MSG.Message := msghandler.RawMsgBase() + OSALmsg.RAW_MESSAGE_RESETTIMER;
+
+      NEW( parameter );
+      parameter^.Timer := Timer;
+      parameter^.Signal := Signal;
+
+      MSG.Parameter := parameter;
+
+      OfThread^.Message( MSG, OSALmsg.delSynchronousIfInThread, NIL );
+
+      Result := Sync.Wait( Signal, Sync.FORSAFETY );
+      ASSERT( Result <> Sync.arTimeout );
+      
+      Sync.DeleteSignal( REF Signal );
+   END ResetTimer;
+   
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE HandleSupportMessage( CONST Message : OSALmsg.IMessage ) : BOOLEAN; // if it is not join logic message it returns FALSE
    VAR
       message : CARDINAL := Message.Message;
+      parameter : 
    BEGIN
-      IF message = msghandler.RawMsgBase() + OSALmsg.RAW_MESSAGE_JOIN THEN
+      CASE message OF
+      //-----
+      | msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_JOIN :
          ASSERT( NOT IsJoined( OSALmsg.TPMessageRecipient( Message.Source )));
 
          Lock.Lock();
@@ -85,7 +156,8 @@ CLASS IMPLEMENTATION CJoinLogic;
          OSALmsg.TPMessageRecipient( Message.Source )^.OnJoin( OfThread );
          Sync.Signal( Sync.SIGNAL( Message[ OSALmsg.MI_PARAMETER ] ));
 
-      ELSIF message = msghandler.RawMsgBase() + OSALmsg.RAW_MESSAGE_LEAVE THEN
+      //-----
+      | msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_LEAVE :
          ASSERT( IsJoined( OSALmsg.TPMessageRecipient( Message.Source )));
 
          Lock.Lock();
@@ -99,7 +171,7 @@ CLASS IMPLEMENTATION CJoinLogic;
          RETURN FALSE;
       END;
       RETURN TRUE;
-   END HandleJoinLogicMessage;
+   END HandleSupportMessage;
 
 (*---------------------------------------------------------------------------*)
 
@@ -119,8 +191,8 @@ BEGIN
    OfThread := NIL;
 FINALLY
    Dispose();
-END CJoinLogic;
+END CSupport;
 
 (*===========================================================================*)
 
-END JoinLogic.
+END msgthreadsupport.

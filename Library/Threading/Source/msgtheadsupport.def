@@ -1,4 +1,4 @@
-DEFINITION MODULE JoinLogic;
+DEFINITION MODULE msgthreadsupport;
 
 (*===========================================================================*)
 
@@ -13,11 +13,11 @@ IMPORT
 (*===========================================================================*)
 
 TYPE
-   TPJoinLogic = POINTER TO CJoinLogic;
+   TPSupport = POINTER TO CSupport;
    
 // THE CLASS SHOULD BE ALLOCATED DYNAMICALLY TO NOT TO MAKE NEED TO CALL CONTSRUCTOR FROM OTHER DLLs
    
-CLASS CJoinLogic;
+CLASS CSupport;
    PRIVATE VAR
       Joined : maps.CPtrMap;
       Lock : Sync.LOCK;
@@ -29,12 +29,14 @@ CLASS CJoinLogic;
    // client (outer) side
    PUBLIC PROCEDURE Join( Recipient : OSALmsg.TPMessageRecipient );
    PUBLIC PROCEDURE Leave( Recipient : OSALmsg.TPMessageRecipient );
+   PUBLIC PROCEDURE SetTimer( Recipient : OSALmsg.TPMessageRecipient; TimerId : PTR );
+   PUBLIC PROCEDURE ResetTimer( Recipient : OSALmsg.TPMessageRecipient; TimerId : PTR );
    
    // thread (inner) side
-   PUBLIC PROCEDURE HandleJoinLogicMessage( CONST Message : OSALmsg.IMessage ) : BOOLEAN; // if it is not join logic message it returns FALSE
+   PUBLIC PROCEDURE HandleSupportMessage( CONST Message : OSALmsg.IMessage ) : BOOLEAN; // if it is not support logic message it returns FALSE
    PUBLIC PROCEDURE IsJoined( Recipient : OSALmsg.TPMessageRecipient ) : BOOLEAN;
-END CJoinLogic;
+END CSupport;
 
 (*===========================================================================*)
 
-END JoinLogic.
+END msgthreadsupport.
