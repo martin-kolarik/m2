@@ -16,6 +16,7 @@ IMPORT
    netsrv,
    Storage,
    Strings,
+   threadpool,
    winerror,
    WS2TcpIp;
 
@@ -33,8 +34,8 @@ TYPE
   
 (*===========================================================================*)
 
-CLASS CDispatcher IMPLEMENTS threadpool.IWorkerSink;
-   LOCAL VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
+CLASS CDispatcher IMPLEMENTS threadpoolsink.IWorkerSink;
+   PUBLIC VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
 END CDispatcher;
 
 (*---------------------------------------------------------------------------*)
@@ -69,7 +70,7 @@ END CAddressToNameRequest;
 (*---------------------------------------------------------------------------*)
 
 VAR
-   SinkDelegate : threadpool.CSinkDelegate;
+   SinkDelegate : threadpoolsink.CSinkDelegate;
    Dispatcher : CDispatcher;
 
 (*===========================================================================*)
@@ -78,7 +79,7 @@ CLASS IMPLEMENTATION CDispatcher;
 
 (*---------------------------------------------------------------------------*)
  
-   LOCAL VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
+   PUBLIC VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    VAR
       Addresses : POINTER TO ARRAY [0..0] OF inetaddr.INETADDR := NIL;
       ai : WS2TcpIp.Paddrinfo;

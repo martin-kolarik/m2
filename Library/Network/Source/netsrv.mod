@@ -17,7 +17,7 @@ IMPORT
   netpool,
   Storage,
   Sync,
-  threadpool,
+  threadpoolsink,
   winerror,
   WS2TcpIp;
 
@@ -333,7 +333,7 @@ CLASS CIPServer( msghandler.MessageHandler );
   _FDHandle : Sync.WAITABLE;
   _FDMessager : msghandler.TPMessageHandler;
   _FDMessage : msghandler.Message;
-  _Delegate : threadpool.CMessageHandlerDelegate;
+  _Delegate : threadpoolsink.CMessageHandlerDelegate;
 
   CBMode : TCallbackMode := cbmDefault;
   MQueue : msgqueue.CMessageQueue;
@@ -518,7 +518,7 @@ CLASS IMPLEMENTATION CIPServer;
       ELSE
          PStreamCreator^.AddRef();
       END;
-      IF HWND = NIL THEN
+      IF JoinedTo = NIL THEN
          Init( TRUE );
       END;
 
@@ -566,7 +566,7 @@ CLASS IMPLEMENTATION CIPServer;
     Message : TMessage;
     Result : Sync.TAsyncResult;
   BEGIN
-    IF HWND = NIL THEN
+    IF JoinedTo = NIL THEN
       Init( TRUE );
     END;
     Message.Command := cmForgetServer;
@@ -583,7 +583,7 @@ CLASS IMPLEMENTATION CIPServer;
     Message : TMessage;
     Result : Sync.TAsyncResult;
   BEGIN
-    IF HWND = NIL THEN
+    IF JoinedTo = NIL THEN
       Init( TRUE );
     END;
     Message.Command := cmForgetSocket;

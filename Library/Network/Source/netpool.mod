@@ -25,7 +25,6 @@ BEGIN
     NEW( NetPool );
     NetPool^.MinThreads := 2; // 1 for handles and messages, 1 for workers
     NetPool^.MaxThreads := 64;
-    NetPool^.SingleThreadInterface := FALSE;
   END;
 END Startup;
 

@@ -13,6 +13,7 @@ IMPORT
    sync,
    test,
    testimpl,
+   threadpool,
    windows;
   
 (*===========================================================================*)
@@ -74,7 +75,9 @@ CLASS IMPLEMENTATION CTest;
    BEGIN
       SELF.Host := Host;
       Listener.Test := ADR( SELF );
+
       netinit.Startup();
+      threadpool.Startup();
 
       Host^.StartPhase( L"Listen and stop listen -- pooled notification" );
       // init
@@ -143,6 +146,8 @@ CLASS IMPLEMENTATION CTest;
       END;
 
       netinit.Cleanup();
+      threadpool.Cleanup();
+
       IF Failure THEN
          RETURN test.trFailure;
       ELSE

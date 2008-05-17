@@ -13,6 +13,7 @@ IMPORT
    sync,
    test,
    testimpl,
+   threadpool,
    windows;
   
 (*===========================================================================*)
@@ -129,6 +130,8 @@ CLASS IMPLEMENTATION CTest;
       SELF.Host := Host;
       ServerListener.Test := ADR( SELF );
       ClientListener.Test := ADR( SELF );
+
+      threadpool.Startup();
       netinit.Startup();
 
       // global init      
@@ -164,7 +167,10 @@ CLASS IMPLEMENTATION CTest;
       Host^.StopPhaseWithResult( test.trSuccess );
 
       ClientSocket^.Release();
+
+      threadpool.Cleanup();
       netinit.Cleanup();
+
       IF Failure THEN
          RETURN test.trFailure;
       ELSE
