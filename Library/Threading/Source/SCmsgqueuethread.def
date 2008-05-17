@@ -1,9 +1,10 @@
-DEFINITION MODULE Win32msgqueuethread;
+DEFINITION MODULE SCmsgqueuethread;
 
 // DO NOT USE THIS MODULE DIRECTLY, USE msqqueuethread
 
 IMPORT
    msgthreadsupport,
+   msgqueue,
    OSALmsg,
    Win32thread;
   
@@ -11,12 +12,10 @@ IMPORT
   
 #save, option( dll_export => on )
 
-CLASS Win32MsgQueueThread( Win32thread.Win32Thread ) IMPLEMENTS OSALmsg.IMessageQueueThread;
-// behavior: DispatchMessage for Root = NIL and MessageToHandler = FALSE == Win32 default
-// behavior: Root^.OnMessage for Root <> NIL
-// behavior: Handler^.OnMessage for Root = NIL
+CLASS SCMsgQueueThread( Win32thread.Win32Thread ) IMPLEMENTS OSALmsg.IMessageQueueThread;
    PRIVATE VAR
       support : msgthreadsupport.TPSupport;
+      queue : msgqueue.CMessageQueue;
 
    // IThread
    INTERNAL FINAL PROCEDURE OnRun() : CARDINAL;
@@ -42,12 +41,10 @@ CLASS Win32MsgQueueThread( Win32thread.Win32Thread ) IMPLEMENTS OSALmsg.IMessage
    PUBLIC FINAL PROCEDURE LeaveMessageThread();
    PUBLIC FINAL PROCEDURE OnJoin( JoinedTo : OSALmsg.TPMessageQueueThread );
    PUBLIC FINAL PROCEDURE OnLeave();
-END Win32MsgQueueThread;
-
-PROCEDURE Win32GlobalMsgQueueThread() : POINTER TO OSALmsg.IMessageQueueThread;
+END SCMsgQueueThread;
 
 #restore
 
 (*---------------------------------------------------------------------------*)
   
-END Win32msgqueuethread.
+END SCmsgqueuethread.

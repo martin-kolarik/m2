@@ -425,7 +425,7 @@ CLASS IMPLEMENTATION CIPServer;
     Result := 0;
     IF SUPER.OnMessage( MSG, OUT Result ) THEN
       RETURN TRUE;
-    ELSIF (( _FDHandle = NIL ) OR ( _FDMessage.Message <> MSG.Message )) AND ( MSG.Message <> msgqueue.MSG_PROCESS_QUEUE()) THEN
+    ELSIF (( _FDHandle = NIL ) OR ( _FDMessage.Message <> MSG.Message )) AND ( MSG.Message <> msgqueue.MSG_PROCESS_QUEUE ) THEN
       RETURN TRUE;
     END;
 

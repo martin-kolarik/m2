@@ -159,9 +159,19 @@ CLASS IMPLEMENTATION Win32Message;
     message := Value;
   END Win32Message.Message;
   
+  PUBLIC VIRTUAL PROPERTY Win32Message.Parameter GET : PTR;
+  BEGIN
+    RETURN wParam;
+  END Win32Message.Parameter;
+  
+  PUBLIC VIRTUAL PROPERTY Win32Message.Parameter SET( Value : PTR );
+  BEGIN
+    wParam := Value;
+  END Win32Message.Parameter;
+  
   PUBLIC VIRTUAL READONLY PROPERTY Win32Message.ParameterCount GET : CARDINAL;
   BEGIN
-    RETURN 4;
+    RETURN 5;
   END Win32Message.ParameterCount;
 
   PUBLIC VIRTUAL INDEX Win32Message GET( ParameterIndex : CARDINAL ) : PTR;

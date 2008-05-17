@@ -37,6 +37,7 @@ INTERFACE IMessage;
     Source : ADDRESS; // can be NIL
     Target : TPMessageRecipient; // if Target is NIL the message's target is owner of Message method taking the message
     Message : CARDINAL;
+    Parameter : PTR;
   PUBLIC ABSTRACT READONLY PROPERTY
     ParameterCount : CARDINAL; // including MSG and optional Target and Source, message must have AT LEAST 1 parameter
   PUBLIC ABSTRACT 
@@ -81,9 +82,13 @@ CONST
    // RAW messages are system/internal and cannot be used outer of this library
    RAW_MESSAGE_SPACE = 64;
 
-   RAW_MESSAGE_JOIN  = 1;
-   RAW_MESSAGE_LEAVE = 2;
-   RAW_PROCESS_QUEUE = 3;
+   RAW_PROCESS_QUEUE = 1;
+   RAW_MESSAGE_JOIN = 2;
+   RAW_MESSAGE_LEAVE = 3;
+
+   RAW_MESSAGE_SETTIMER = 4;
+   RAW_MESSAGE_RESETTIMER = 5;
+   RAW_MESSAGE_ONTIMER = 6;
 
 (*---------------------------------------------------------------------------*)
   

@@ -8,6 +8,7 @@ IMPORT
 
 CONST
   MsgQueueThread ::= Win32msgqueuethread.Win32MsgQueueThread;
+  globalMsgQueueThread ::= Win32msgqueuethread.Win32GlobalMsgQueueThread;
 TYPE
   TPMsgQueueThread = POINTER TO MsgQueueThread;
 

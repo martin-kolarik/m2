@@ -8,6 +8,7 @@ IMPORT
   arrays,
   lists,
   maps,
+  msghandler,
   syncqueue,
   time,
   thread,
@@ -439,7 +440,7 @@ CLASS IMPLEMENTATION CPoolThread;
             //-----
             IF NOT WaitAbandoned AND ( Status = WaitArray.Count ) THEN // a message has arrived
                WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) <> 0 DO
-                  IF msg.message = msgqueue.MSG_PROCESS_QUEUE() THEN // administrative message/queue
+                  IF msg.message = msgqueue.MSG_PROCESS_QUEUE THEN // administrative message/queue
                      CheckEmpty := HandleAdministrativeMessages( CurrentTime ) OR CheckEmpty;
                   ELSE
                      CheckEmpty := CheckAndHandleKnownMessage( msg ) OR CheckEmpty;
@@ -659,9 +660,9 @@ CLASS IMPLEMENTATION CThreadPool;
     END;
 
     Result := 0;
-    IF MSG.Message = msgqueue.MSG_PROCESS_QUEUE() THEN
+    CASE MSG.Message OF
     //-----
-
+    | msgqueue.MSG_PROCESS_QUEUE :
       WHILE MQueue.DequeueOA( OUT Message, FALSE, 0 ) = Sync.arCompleted DO
         CASE Message.Operation OF
         //---
@@ -762,7 +763,7 @@ CLASS IMPLEMENTATION CThreadPool;
     MSG.Operation := topAdd;
 
     NEW( MSG.Task );
-    message := CARDINAL( LOPTRLONGWORD( MSG.Task^.Handle )) + msgqueue.MSG_PROCESS_QUEUE();
+    message := CARDINAL( LOPTRLONGWORD( MSG.Task^.Handle )) + msgqueue.MSG_PROCESS_QUEUE;
     IF WaitOnce THEN
       MSG.Task^.Task := tskMessageOnce;
     ELSE

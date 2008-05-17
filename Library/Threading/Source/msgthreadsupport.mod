@@ -7,15 +7,6 @@ IMPORT
    
 (*===========================================================================*)
 
-TYPE
-   TTimerParameter = RECORD
-      Timer : PTR;
-      Repeat : BOOLEAN;
-      Signal : Sync.SIGNAL;
-   END;
-
-(*===========================================================================*)
-
 CLASS IMPLEMENTATION CSupport;
 
 (*---------------------------------------------------------------------------*)
@@ -44,7 +35,7 @@ CLASS IMPLEMENTATION CSupport;
 
       MSG.Source := Recipient;
       MSG.Target := OfThread;
-      MSG.Message := msghandler.RawMsgBase() + OSALmsg.RAW_MESSAGE_JOIN;
+      MSG.Message := msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_JOIN;
       MSG[ OSALmsg.MI_PARAMETER ] := Signal;
       
       OfThread^.Message( MSG, OSALmsg.delSynchronousIfInThread, NIL );
@@ -67,7 +58,7 @@ CLASS IMPLEMENTATION CSupport;
 
       MSG.Source := Recipient;
       MSG.Target := OfThread;
-      MSG.Message := msghandler.RawMsgBase() + OSALmsg.RAW_MESSAGE_LEAVE;
+      MSG.Message := msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_LEAVE;
       MSG[ OSALmsg.MI_PARAMETER ] := Signal;
 
       OfThread^.Message( MSG, OSALmsg.delSynchronousIfInThread, NIL );
@@ -80,69 +71,9 @@ CLASS IMPLEMENTATION CSupport;
    
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE SetTimer( Recipient : OSALmsg.TPMessageRecipient; Timer : PTR; Repeat : BOOLEAN );
-   VAR
-      MSG : msghandler.Message;
-      parameter : POINTER TO TimerParameter;
-      Result : Sync.TAsyncResult;
-      Signal : Sync.SIGNAL := Sync.CreateSignal( FALSE, L"" );
-   BEGIN
-      ASSERT( OfThread <> NIL );
-
-      MSG.Source := Recipient;
-      MSG.Target := Recipient;
-      MSG.Message := msghandler.RawMsgBase() + OSALmsg.RAW_MESSAGE_SETTIMER;
-
-      NEW( parameter );
-      parameter^.Timer := Timer;
-      parameter^.Repeat := Repeat;
-      parameter^.Signal := Signal;
-
-      MSG.Parameter := parameter;
-      
-      OfThread^.Message( MSG, OSALmsg.delSynchronousIfInThread, NIL );
-      
-      Result := Sync.Wait( Signal, Sync.FORSAFETY );
-      ASSERT( Result <> Sync.arTimeout );
-      
-      Sync.DeleteSignal( REF Signal );
-   END SetTimer;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE ResetTimer( Recipient : OSALmsg.TPMessageRecipient; Timer : PTR );
-   VAR
-      MSG : msghandler.Message;
-      parameter : POINTER TO TimerParameter;
-      Result : Sync.TAsyncResult;
-      Signal : Sync.SIGNAL := Sync.CreateSignal( FALSE, L"" );
-   BEGIN
-      ASSERT( OfThread <> NIL );
-
-      MSG.Source := Recipient;
-      MSG.Target := OfThread;
-      MSG.Message := msghandler.RawMsgBase() + OSALmsg.RAW_MESSAGE_RESETTIMER;
-
-      NEW( parameter );
-      parameter^.Timer := Timer;
-      parameter^.Signal := Signal;
-
-      MSG.Parameter := parameter;
-
-      OfThread^.Message( MSG, OSALmsg.delSynchronousIfInThread, NIL );
-
-      Result := Sync.Wait( Signal, Sync.FORSAFETY );
-      ASSERT( Result <> Sync.arTimeout );
-      
-      Sync.DeleteSignal( REF Signal );
-   END ResetTimer;
-   
-(*---------------------------------------------------------------------------*)
-
    PUBLIC PROCEDURE HandleSupportMessage( CONST Message : OSALmsg.IMessage ) : BOOLEAN; // if it is not join logic message it returns FALSE
    VAR
       message : CARDINAL := Message.Message;
-      parameter : 
    BEGIN
       CASE message OF
       //-----

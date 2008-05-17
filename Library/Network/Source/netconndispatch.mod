@@ -587,17 +587,20 @@ CLASS IMPLEMENTATION CDispatcher;
       RETURN TRUE;
     END;
     
-    IF MSG.Message = msgqueue.MSG_PROCESS_QUEUE() THEN
+    CASE MSG.Message OF
+    //-----
+    | msgqueue.MSG_PROCESS_QUEUE :
       WHILE CQueue.DequeueOA( OUT Message, FALSE, 0 ) = Sync.arCompleted DO
          DoMessage( ADR( Message ));
       END; // WHILE
 
     //-----
-    ELSIF MSG.Message = msgqueue.MSG_PROCESS_QUEUE() + 1 THEN
+    | msgqueue.MSG_PROCESS_QUEUE + 1 :
       WHILE NQueue.DequeueOA( OUT Message, FALSE, 0 ) = Sync.arCompleted DO
          DoMessage( ADR( Message ));
       END; // WHILE
 
+    //-----
     ELSE
       RETURN FALSE;
     END; // CASE
@@ -1118,10 +1121,10 @@ CLASS IMPLEMENTATION CDispatcher;
       NQueue.Consumer := ADR( SELF );
       NQueue.Produce := Sync.CreateSignal( TRUE, L"" );
 
-      MSG.Message := msgqueue.MSG_PROCESS_QUEUE();
+      MSG.Message := msgqueue.MSG_PROCESS_QUEUE;
       CQueue.ConsumerMsg := ADR( MSG );
       
-      MSG.Message := msgqueue.MSG_PROCESS_QUEUE() + 1;
+      MSG.Message := msgqueue.MSG_PROCESS_QUEUE + 1;
       NQueue.ConsumerMsg := ADR( MSG );
 
       NEW( TPListener( PListener )); TPListener( PListener )^.PDispatcher := ADR( SELF );

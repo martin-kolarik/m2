@@ -1,4 +1,4 @@
-IMPLEMENTATION MODULE Win32msgqueuethread;
+IMPLEMENTATION MODULE SCmsgqueuethread;
 
 (*---------------------------------------------------------------------------*)
   
@@ -7,27 +7,31 @@ FROM Storage IMPORT
   
 IMPORT
    msghandler,
-   Win32msg,
+   SCmsg,
+   Sync,
    windows;
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION Win32MsgQueueThread;
+CLASS IMPLEMENTATION SCMsgQueueThread;
 
 (*---------------------------------------------------------------------------*)
   
    INTERNAL FINAL PROCEDURE OnRun() : CARDINAL;
    CONST
-      waitHandles = 1;
+      waitHandles = 2;
    VAR
-      msg : windows.MSG;
-      Msg : Win32msg.Win32Message;
-      Recipient : OSALmsg.TPMessageRecipient;
+      WaitHandles : ARRAY [0..1] OF Sync.WAITABLE;
+      Msg : SCmsg.SCMessage;
+      Target : OSALmsg.TPMessageRecipient;
       Status : CARDINAL;
    BEGIN
+      WaitHandles[0] := _HExit;
+      WaitHandles[1] := queue.Consume;
+   
       OnStart();
       LOOP
-         Status := windows.MsgWaitForMultipleObjectsEx( waitHandles, ADR( _HExit ), windows.INFINITE, windows.QS_ALLINPUT, windows.MWMO_INPUTAVAILABLE OR windows.MWMO_ALERTABLE );
+         Status := windows.WaitForMultipleObjectsEx( waitHandles, ADR( WaitHandles ), windows.False, windows.INFINITE, windows.True );
          CASE Status OF
          //-----
          | CARDINAL( windows.WAIT_FAILED ), windows.WAIT_ABANDONED : // some handle failed, this MUST not occur
@@ -42,51 +46,24 @@ CLASS IMPLEMENTATION Win32MsgQueueThread;
             RETURN 0;
 
          //-----
+         | windows.WAIT_OBJECT_0 + 1 : // queue
+            WHILE queue.DequeueOA( OUT Msg, FALSE, 0 ) = Sync.arCompleted DO
+
+               IF Msg.Target <> NIL THEN // self or root
+                  Target := Msg.Target;
+               ELSIF Root <> NIL THEN
+                  Target := Root;
+               ELSE
+                  Target := ADR( SELF );
+               END;
+               Target^.Message( Msg, msghandler.delSynchronous, NIL );
+
+            END; // WHILE
+
+         //-----
          | windows.WAIT_IO_COMPLETION :
 
          //-----
-         | windows.WAIT_OBJECT_0 + waitHandles : // a message received
-            WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) <> 0 DO
-
-               IF msg.hwnd = NIL THEN // a thread message
-                  Msg.Source := ADR( SELF );
-                  Msg.Target := ADR( SELF );
-                  Msg.Message := msg.message;
-                  Msg[ Win32msg.MI_WPARAM ] := msg.wParam;
-                  Msg[ Win32msg.MI_LPARAM ] := PTR( msg.lParam );
-                  Message( Msg, msghandler.delSynchronous, NIL );
-                  CONTINUE;
-               END; // IF process thread's messages
-
-               // continue Win32 message loop
-               windows.TranslateMessage( ADR( msg ));
-
-               IF MessageToRecipient( ADR( msg ), OUT Recipient ) THEN
-                  Msg.Source := ADR( SELF );
-                  Msg.Target := Recipient;
-                  Msg.Message := msg.message;
-                  Msg[ Win32msg.MI_WPARAM ] := msg.wParam;
-                  Msg[ Win32msg.MI_LPARAM ] := PTR( msg.lParam );
-                  IF Root = NIL THEN
-                     Recipient^.Message( Msg, msghandler.delSynchronous, NIL );
-                  ELSE
-                     Root^.Message( Msg, msghandler.delSynchronous, NIL );
-                  END;
-
-               ELSIF Root <> NIL THEN
-                  Msg.Source := ADR( SELF );
-                  Msg.Target := Root;
-                  Msg.Message := msg.message;
-                  Msg[ Win32msg.MI_WPARAM ] := msg.wParam;
-                  Msg[ Win32msg.MI_LPARAM ] := PTR( msg.lParam );
-                  Root^.Message( Msg, msghandler.delSynchronous, NIL );
-
-               ELSE
-                  windows.DispatchMessage( ADR( msg ));
-
-               END;
-            END; // MessageLoop
-
          END; // CASE
       END; // LOOP
    END OnRun;
@@ -114,7 +91,7 @@ CLASS IMPLEMENTATION Win32MsgQueueThread;
   
    INTERNAL VIRTUAL PROCEDURE MessageToRecipient( CONST Msg : PTR; OUT Recipient : msghandler.TPMessageRecipient ) : BOOLEAN;
    BEGIN
-      RETURN Win32msg.HandleToRecipient( windows.PMSG( Msg )^.hwnd, OUT Recipient );
+      RETURN SCmsg.HandleToRecipient( SCmsg.TPMessage( Msg )^.Target, OUT Recipient );
    END MessageToRecipient;
 
 (*---------------------------------------------------------------------------*)
@@ -128,6 +105,7 @@ CLASS IMPLEMENTATION Win32MsgQueueThread;
   
    PUBLIC VIRTUAL PROCEDURE Message( CONST Msg : msghandler.IMessage; Delivery : msghandler.TDelivery; Result : PPTR ) : BOOLEAN; // if Msg.Target = NIL then the message must be processed by thread itself; Delivery is possible only delSynchronousInThread and delAsynchronous
    VAR
+      AResult : Sync.TAsyncResult;
       LResult : PTR;
    BEGIN
       IF ( Delivery = msghandler.delSynchronous ) OR ( Delivery = msghandler.delSynchronousIfInThread ) AND SelfContext THEN
@@ -138,7 +116,8 @@ CLASS IMPLEMENTATION Win32MsgQueueThread;
             RETURN OnMessage( Msg, OUT Result^ );
          END;
       ELSE
-         windows.PostThreadMessage( _Thread, Msg.Message, windows.WPARAM( Msg[ Win32msg.MI_WPARAM ] ), windows.LPARAM( Msg[ Win32msg.MI_LPARAM ] ));
+         AResult := queue.QueueOA( Msg, TRUE, Sync.FORSAFETY );
+         ASSERT( AResult <> Sync.arTimeout );
       END;
       RETURN TRUE;
    END Message;
@@ -205,19 +184,27 @@ CLASS IMPLEMENTATION Win32MsgQueueThread;
 BEGIN
    NEW( support );
    support^.Init( ADR( SELF ));
-   WithMessages := TRUE;
+   queue.Consume := Sync.CreateAutoresetSignal( FALSE, L"" );
+   queue.Size := 2048;
 FINALLY
    support^.Dispose();
    DISPOSE( support );
-END Win32MsgQueueThread;
+END SCMsgQueueThread;
 
 (*===========================================================================*)
 
-PROCEDURE Win32GlobalMsgQueueThread() : POINTER TO OSALmsg.IMessageQueueThread;
+VAR
+   GMQT : SCMsgQueueThread;
+
+PROCEDURE SCGlobalMsgQueueThread() : POINTER TO OSALmsg.IMessageQueueThread;
 BEGIN
-   RETURN NIL; // there is no global thread, the default one is used
-END Win32GlobalMsgQueueThread;
+   RETURN ADR( GMQT );
+END SCGlobalMsgQueueThread;
 
 (*===========================================================================*)
 
-END Win32msgqueuethread.
+BEGIN
+   GMQT.Run( TRUE );
+FINALLY
+   GMQT.Stop( TRUE );
+END SCmsgqueuethread.

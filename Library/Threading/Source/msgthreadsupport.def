@@ -29,8 +29,6 @@ CLASS CSupport;
    // client (outer) side
    PUBLIC PROCEDURE Join( Recipient : OSALmsg.TPMessageRecipient );
    PUBLIC PROCEDURE Leave( Recipient : OSALmsg.TPMessageRecipient );
-   PUBLIC PROCEDURE SetTimer( Recipient : OSALmsg.TPMessageRecipient; TimerId : PTR );
-   PUBLIC PROCEDURE ResetTimer( Recipient : OSALmsg.TPMessageRecipient; TimerId : PTR );
    
    // thread (inner) side
    PUBLIC PROCEDURE HandleSupportMessage( CONST Message : OSALmsg.IMessage ) : BOOLEAN; // if it is not support logic message it returns FALSE

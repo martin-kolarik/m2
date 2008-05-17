@@ -258,7 +258,7 @@ CLASS IMPLEMENTATION CTest;
             windows.MsgWaitForMultipleObjectsEx( 1, ADR( S ), 100, windows.QS_ALLINPUT, windows.MWMO_INPUTAVAILABLE );
             windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE );
          END;
-         IF msg.message <> msgqueue.MSG_PROCESS_QUEUE() THEN
+         IF msg.message <> msgqueue.MSG_PROCESS_QUEUE THEN
             CONTINUE;
          END;
 
