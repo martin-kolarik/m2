@@ -16,94 +16,6 @@ IMPORT
   
 //================================================================================
 
-CLASS IMPLEMENTATION APoolDelegate;
-
-  LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
-  BEGIN
-  END OnTimeout;
-
-  LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
-  BEGIN
-  END OnMessage;
-
-  LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
-  BEGIN
-  END OnHandle;
-
-  LOCAL VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
-  BEGIN
-  END OnWorker;
-
-END APoolDelegate;
-
-//================================================================================
-
-CLASS IMPLEMENTATION CSinkDelegate;
-
-//---------------------------------------------------------------------------
-
-   LOCAL FINAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
-   BEGIN
-      IF TimeoutSink <> NIL THEN
-         TimeoutSink^.OnTimeout( Result, PoolHandle, UserId );
-      END;
-   END OnTimeout;
-
-//---------------------------------------------------------------------------
-
-   LOCAL FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
-   BEGIN
-      IF MessageSink <> NIL THEN
-         MessageSink^.OnMessage( Result, PoolHandle, UserId, MSG );
-      END;
-   END OnMessage;
-
-//---------------------------------------------------------------------------
-
-   LOCAL FINAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
-   BEGIN
-      IF HandleSink <> NIL THEN
-         HandleSink^.OnHandle( Result, PoolHandle, UserId );
-      END;
-   END OnHandle;
-
-//---------------------------------------------------------------------------
-
-   LOCAL FINAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
-   BEGIN
-      IF WorkerSink <> NIL THEN
-         WorkerSink^.OnWorker( Result, PoolHandle, UserId );
-      END;
-   END OnWorker;
-
-//---------------------------------------------------------------------------
-
-BEGIN
-   TimeoutSink := NIL;
-   MessageSink := NIL;
-   HandleSink := NIL;
-   WorkerSink := NIL;
-END CSinkDelegate;
-
-//================================================================================
-
-CLASS IMPLEMENTATION CMessageHandlerDelegate;
-
-   LOCAL FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
-   BEGIN
-      IF Handler = NIL THEN
-        RETURN;
-      ELSIF Result = Sync.arCompleted THEN
-        Handler^.Message( MSG, Delivery, NIL );
-      END;
-   END OnMessage;
-  
-BEGIN
-   Handler := NIL;
-END CMessageHandlerDelegate;
-
-//================================================================================
-
 CLASS IMPLEMENTATION APoolWorker;
 END APoolWorker;
 
@@ -401,8 +313,6 @@ CLASS IMPLEMENTATION CPoolThread;
       WaitArray.Add( _HExit );
       WaitArray.Add( Queue.Consume );
       
-      ReqQueue.Consumer := ADR( SELF );
-    
       LOOP
          CheckEmpty := FALSE;
          Timeout := HTasks.GetTimeoutToFirstElapsed( time.UptimeMS());
@@ -569,6 +479,8 @@ CLASS IMPLEMENTATION CPoolThread;
     Queue.Size := 128;
     Pool := NIL;
     ReqQueue.Init( 128, SIZE( TMessage ));
+    ReqQueue.Produce := Sync.CreateSignal( FALSE, L"" );
+    ReqQueue.Consumer := ADR( SELF );
     WaitArray.Strategy := array.astrgListInArray;
     TasksCount := 0;
     HandlesCount := 0;
@@ -584,6 +496,7 @@ CLASS IMPLEMENTATION CPoolThread;
     Key : PTR;
     Task : TPTask;
   BEGIN
+    Sync.DeleteSignal( REF ReqQueue.Produce );
     Handles.Reset();
     WHILE Handles.MoveNext() DO
       lists.TPPtrList( Handles.CurrentData )^.Reset();
@@ -618,7 +531,6 @@ CLASS IMPLEMENTATION CThreadPool;
 
    PUBLIC PROPERTY UndeliveredMessagesPending GET : BOOLEAN; // mostly for debug purposes
    BEGIN
-      CheckThreadInterface();
       RETURN NOT MQueue.Empty;
    END UndeliveredMessagesPending;
 
@@ -626,7 +538,6 @@ CLASS IMPLEMENTATION CThreadPool;
 
   PUBLIC PROPERTY MinThreads GET : CARDINAL;
   BEGIN
-    CheckThreadInterface();
     RETURN _MinThreads;
   END MinThreads;
 
@@ -634,7 +545,6 @@ CLASS IMPLEMENTATION CThreadPool;
 
   PUBLIC PROPERTY MinThreads SET( Value : CARDINAL );
   BEGIN
-    CheckThreadInterface();
     _MinThreads := Value;
     IF _MinThreads < Threads.Count THEN // try to decrease threads number
       OnThreadEmpty();
@@ -683,7 +593,6 @@ CLASS IMPLEMENTATION CThreadPool;
 
   PUBLIC PROCEDURE FinishAndWait();
   BEGIN
-    CheckThreadInterface();
     DisposeThreads( FALSE );
   END FinishAndWait;
   
@@ -695,8 +604,6 @@ CLASS IMPLEMENTATION CThreadPool;
     PoolThread : TPPoolThread;
     Result : Sync.TAsyncResult;
   BEGIN
-    CheckThreadInterface();
-    
     _Lock.Lock();
     IF NOT LookupThread( FALSE, FALSE, OUT PoolThread ) THEN
       _Lock.Unlock();
@@ -738,8 +645,6 @@ CLASS IMPLEMENTATION CThreadPool;
     PoolThread : TPPoolThread;
     Result : Sync.TAsyncResult;
   BEGIN
-    CheckThreadInterface();
-    
     _Lock.Lock();
     IF NOT LookupThread( FALSE, FALSE, OUT PoolThread ) THEN
       _Lock.Unlock();
@@ -786,8 +691,6 @@ CLASS IMPLEMENTATION CThreadPool;
     PoolThread : TPPoolThread;
     Result : Sync.TAsyncResult;
   BEGIN
-    CheckThreadInterface();
-    
     _Lock.Lock();
     IF NOT LookupThread( FALSE, FALSE, OUT PoolThread ) THEN
       _Lock.Unlock();
@@ -830,8 +733,6 @@ CLASS IMPLEMENTATION CThreadPool;
     PoolThread : TPPoolThread;
     Result : Sync.TAsyncResult;
   BEGIN
-    CheckThreadInterface();
-    
     _Lock.Lock();
     IF NOT LookupThread( TRUE, ForceSelfThread, OUT PoolThread ) THEN
       _Lock.Unlock();
@@ -952,13 +853,6 @@ CLASS IMPLEMENTATION CThreadPool;
 
 //--------------------------------------------------------------------------------
 
-   PRIVATE PROCEDURE CheckThreadInterface();
-   BEGIN
-      ASSERT( NOT SingleThreadInterface OR ( windows.GetCurrentThreadId() = _Thread ));
-   END CheckThreadInterface;
-
-//--------------------------------------------------------------------------------
-
   PRIVATE PROCEDURE LookupThread( WorkerFlag : BOOLEAN; ForceSelfThread : BOOLEAN; OUT _PoolThread : PTR ) : BOOLEAN;
   VAR
     PoolThread : TPPoolThread;
@@ -999,8 +893,6 @@ CLASS IMPLEMENTATION CThreadPool;
     PoolThread : TPPoolThread;
     b : BOOLEAN;
   BEGIN
-    CheckThreadInterface();
-
     _Lock.Lock();
     Threads.Reset();
     b := Threads.MoveNext();
@@ -1029,9 +921,7 @@ CLASS IMPLEMENTATION CThreadPool;
 //--------------------------------------------------------------------------------
 
 BEGIN
-  _Thread := windows.GetCurrentThreadId();
   Init( TRUE );
-
   MQueue.Init( 128, SIZE( TMessage ));
   MQueue.Consumer := ADR( SELF );
 FINALLY
@@ -1051,7 +941,6 @@ BEGIN
       NEW( Pool );
       Pool^.MinThreads := 1;
       Pool^.MaxThreads := 64;
-      Pool^.SingleThreadInterface := FALSE;
    END;
 END Startup;
 

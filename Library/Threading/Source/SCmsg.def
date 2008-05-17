@@ -9,7 +9,7 @@ IMPORT
   maps,
   OSALmsg,
   Sync,
-  threadpool;
+  threadpoolsink;
   
 #save, option( dll_export => on )
 
@@ -51,10 +51,10 @@ CLASS SCMessage IMPLEMENTS OSALmsg.IMessage;
     :=( CONST MSG : SCMessage );
 END SCMessage;
 
-CLASS SCMessageHandler IMPLEMENTS OSALmsg.IMessageHandler, threadpool.ITimeoutSink;
+CLASS SCMessageHandler IMPLEMENTS OSALmsg.IMessageHandler, threadpoolsink.ITimeoutSink;
   PRIVATE VAR
     Timers : maps.CPtrMap;
-    PoolSink : threadpool.CSinkDelegate;
+    PoolSink : threadpoolsink.CSinkDelegate;
   INTERNAL VAR
     joinedTo : OSALmsg.TPMessageQueueThread;
   PUBLIC VIRTUAL READONLY PROPERTY
@@ -86,7 +86,7 @@ CLASS SCMessageHandler IMPLEMENTS OSALmsg.IMessageHandler, threadpool.ITimeoutSi
   PUBLIC VIRTUAL PROCEDURE LeaveMessageThread();
 
   // ITimeoutSink
-  LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
+  PUBLIC VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpoolsink.TPoolHandle; UserId : PTR );
 
   VIRTUAL FINALLY SCMessageHandler();
 END SCMessageHandler;

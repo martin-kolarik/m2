@@ -1,14 +1,13 @@
 DEFINITION MODULE msgqueuethread;
 
 (*===========================================================================*)
-// Win32
 
 IMPORT
-  Win32msgqueuethread;
+  SCmsgqueuethread;
 
 CONST
-  MsgQueueThread ::= Win32msgqueuethread.Win32MsgQueueThread;
-  globalMsgQueueThread ::= Win32msgqueuethread.Win32GlobalMsgQueueThread;
+  MsgQueueThread ::= SCmsgqueuethread.SCMsgQueueThread;
+  global ::= SCmsgqueuethread.SCGlobalMsgQueueThread;
 TYPE
   TPMsgQueueThread = POINTER TO MsgQueueThread;
 

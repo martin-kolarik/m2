@@ -6,10 +6,12 @@ FROM Storage IMPORT
 IMPORT
    log,
    msghandler,
+   msgqueuethread,
    sync,
    test,
    testimpl,
    threadpool,
+   threadpoolsink,
    windows;
   
 (*===========================================================================*)
@@ -22,12 +24,12 @@ TYPE
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CDelegate( threadpool.APoolDelegate );
+CLASS CDelegate( threadpoolsink.APoolDelegate );
    PUBLIC VAR
       Test : TPTest;
-      ThreadId : CARDINAL;
+      CheckThread : BOOLEAN;
 
-   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
+   PUBLIC VIRTUAL PROCEDURE OnTimeout( Result : sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
 END CDelegate;
   
 (*---------------------------------------------------------------------------*)
@@ -37,7 +39,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       Host : test.TPHost := NIL;
       Counts : ARRAY [0..count-1] OF CARDINAL;
       Delegate : CDelegate;
-      Pool : threadpool.CThreadPool;
+      Pool : threadpool.TPThreadPool;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    PRIVATE PROCEDURE Round( CompletionInOwningThread : BOOLEAN ) : BOOLEAN;
@@ -53,9 +55,9 @@ CLASS IMPLEMENTATION CDelegate;
 
 (*---------------------------------------------------------------------------*)
 
-   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
+   PUBLIC VIRTUAL PROCEDURE OnTimeout( Result : sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    BEGIN
-      IF ( ThreadId <> 0 ) AND ( ThreadId <> windows.GetCurrentThreadId()) THEN
+      IF CheckThread AND NOT msgqueuethread.global()^.SelfContext THEN
          Test^.Host^.Log^.LogS( log.dlcError, L"", L"Completion in unexpected thread" );   
       END;
       sync.IInc( REF Test^.Counts[ CARDINAL( LOPTRLONGWORD( UserId )) ] );
@@ -65,7 +67,7 @@ CLASS IMPLEMENTATION CDelegate;
 
 BEGIN
    Test := NIL;
-   ThreadId := 0;
+   CheckThread := FALSE;
 END CDelegate;
 
 (*===========================================================================*)
@@ -78,6 +80,8 @@ CLASS IMPLEMENTATION CTest;
    VAR
       Failure : BOOLEAN;
    BEGIN
+      NEW( Pool );
+   
       SELF.Host := Host;
       Delegate.Test := ADR( SELF );
 
@@ -85,7 +89,7 @@ CLASS IMPLEMENTATION CTest;
 
       Failure := Round( TRUE ) OR Failure;
 
-      Pool.FINALLY();
+      DISPOSE( Pool );
       IF Failure THEN
          RETURN test.trFailure;
       ELSE
@@ -104,11 +108,11 @@ CLASS IMPLEMENTATION CTest;
       PH[0] := NIL;
 
       IF CompletionInOwningThread THEN
-         Pool.CompletionInOwningThread := TRUE;
-         Delegate.ThreadId := windows.GetCurrentThreadId();
+         Pool^.CompletionInOwningThread := TRUE;
+         Delegate.CheckThread := TRUE;
       ELSE
-         Pool.CompletionInOwningThread := FALSE;
-         Delegate.ThreadId := 0;
+         Pool^.CompletionInOwningThread := FALSE;
+         Delegate.CheckThread := FALSE;
       END;
 
       //==========
@@ -120,7 +124,7 @@ CLASS IMPLEMENTATION CTest;
          // reset, initiate
          FOR i := 1 TO count-2 DO
             Counts[count-i-1] := 0;
-            IF NOT Pool.WaitTimeout( ADR( Delegate ), count-i-1, ( count-i-1 ) * 500, FALSE, FALSE, OUT PH[i] ) THEN
+            IF NOT Pool^.WaitTimeout( ADR( Delegate ), count-i-1, ( count-i-1 ) * 500, FALSE, FALSE, OUT PH[i] ) THEN
                Host^.Log^.LogSC( log.dlcError, L"", L"Unable to run worker of index: ", i );
             END;
          END; // FOR
@@ -169,7 +173,7 @@ CLASS IMPLEMENTATION CTest;
 
          // test
          FOR i := count-1 TO 0 BY -1 DO
-            Pool.Abort( REF PH[i] );
+            Pool^.Abort( REF PH[i] );
             IF CompletionInOwningThread THEN
                WaitForMessages( 5 );
             END;
@@ -210,7 +214,7 @@ CLASS IMPLEMENTATION CTest;
       IF i = 0 THEN
          i := 5; // set
          LOOP
-            IF Pool.UndeliveredMessagesPending THEN
+            IF Pool^.UndeliveredMessagesPending THEN
                WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) = windows.True DO
                   windows.DispatchMessage( ADR( msg ));
                END; // WHILE
@@ -235,6 +239,7 @@ CLASS IMPLEMENTATION CTest;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
+   Pool := NIL;
    testimpl.tests()^.AddTest( L"ThreadPool::Timeouts", ADR( Test ));
 END CTest;
 

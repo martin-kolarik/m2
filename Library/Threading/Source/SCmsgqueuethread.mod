@@ -199,17 +199,22 @@ END SCMsgQueueThread;
 (*===========================================================================*)
 
 VAR
-   GMQT : SCMsgQueueThread;
+   GMQT : POINTER TO SCMsgQueueThread := NIL;
 
 PROCEDURE SCGlobalMsgQueueThread() : POINTER TO OSALmsg.IMessageQueueThread;
 BEGIN
-   RETURN ADR( GMQT );
+   IF GMQT = NIL THEN
+      NEW( GMQT );
+      GMQT^.Run( TRUE );
+   END;
+   RETURN GMQT;
 END SCGlobalMsgQueueThread;
 
-(*===========================================================================*)
+(*---------------------------------------------------------------------------*)
 
-BEGIN
-   GMQT.Run( TRUE );
-FINALLY
-   GMQT.Stop( TRUE );
+BEGIN FINALLY
+   IF GMQT <> NIL THEN
+      GMQT^.Stop( TRUE );
+      DISPOSE( GMQT );
+   END;
 END SCmsgqueuethread.

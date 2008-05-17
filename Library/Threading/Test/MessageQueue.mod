@@ -14,12 +14,25 @@ IMPORT
    testimpl,
    windows;
   
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPTest = POINTER TO CTest;
+
 (*===========================================================================*)
+
+CLASS CMH( msghandler.MessageHandler );
+   PUBLIC VAR
+      Test : TPTest := NIL;
+   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
+END CMH;
+
+(*---------------------------------------------------------------------------*)
 
 CLASS CTest IMPLEMENTS test.ITest;
    PRIVATE VAR
       Host : test.TPHost := NIL;
-      MH : msghandler.MessageHandler;
+      MH : CMH;
       MQ : msgqueue.CMessageQueue;
       Exit : CARDINAL := 0;
 
@@ -38,8 +51,6 @@ END CTest;
 
 (*---------------------------------------------------------------------------*)
 
-TYPE
-   TPTest = POINTER TO CTest;
 VAR
    Test : CTest;
 
@@ -57,13 +68,24 @@ BEGIN
    TPTest( a )^.ConsumeByEvent();
    RETURN 0;
 END ConsumerThreadByEvent;
-
-PROCEDURE ConsumerThreadByMessages( a : ADDRESS ) : windows.DWORD;
-BEGIN
-   TPTest( a )^.ConsumeByMessage();
-   RETURN 0;
-END ConsumerThreadByMessages;
 #restore  
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CMH;
+
+   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
+   BEGIN
+      IF MSG.Message = msgqueue.MSG_PROCESS_QUEUE THEN
+         Test^.ConsumeByMessage();
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END OnMessage;
+
+BEGIN
+END CMH;
 
 (*===========================================================================*)
 
@@ -84,7 +106,9 @@ CLASS IMPLEMENTATION CTest;
       Thread : CARDINAL;
    BEGIN
       SELF.Host := Host;
-   
+      MH.Test := ADR( SELF );
+      MH.Init( TRUE );
+
       FOR Mode := FALSE TO TRUE DO
          FOR Thread := 0 TO HIGH( producentThreads ) DO
             FOR Size := 0 TO HIGH( sizes ) DO
@@ -118,7 +142,9 @@ CLASS IMPLEMENTATION CTest;
       MQ.Produce := Sync.CreateSignal( TRUE, L"" );
       IF ConsumeByEvent THEN
          MQ.Consume := Sync.CreateSignal( FALSE, L"" );
+         MQ.Consumer := NIL;
       ELSE
+         MQ.Consume := NIL;
          MQ.Consumer := ADR( MH );
       END;
       ThreadCount := producentThreads;
@@ -144,9 +170,8 @@ CLASS IMPLEMENTATION CTest;
       IF ConsumeByEvent THEN
          CT := windows.CreateThread( NIL, 0, ConsumerThreadByEvent, ADR( SELF ), 0, NIL );
       ELSE
-         CT := windows.CreateThread( NIL, 0, ConsumerThreadByMessages, ADR( SELF ), 0, NIL );
+         CT := NIL;
       END;
-      WHILE MH.Handle = NIL DO END;
       
       FOR i := 0 TO ThreadCount-1 DO
          Threads[i] := windows.CreateThread( NIL, 0, ProducerThread, ADR( SELF ), 0, NIL );
@@ -160,12 +185,18 @@ CLASS IMPLEMENTATION CTest;
       END;
 
       Success := Exit = 0;
-      // stop consumer thread
-      Exit := 1;
-      IF Sync.Wait( CT, Sync.FORSAFETY ) = Sync.arTimeout THEN
-         // show error
+
+      IF CT = NIL THEN
+         // wait for consumer
+         windows.Sleep( 1000 );
+      ELSE
+         // stop consumer thread
+         Exit := 1;
+         IF Sync.Wait( CT, Sync.FORSAFETY ) = Sync.arTimeout THEN
+            // show error
+         END;
+         windows.CloseHandle( CT );
       END;
-      windows.CloseHandle( CT );
 
       Host^.StopPhase();
       RETURN Success;
@@ -205,14 +236,11 @@ CLASS IMPLEMENTATION CTest;
    VAR
       C32 : CARD32 := 0;
       Index : CARD32;
-      msg : windows.MSG;
       sC32, sP32 : ARRAY [0..15] OF WCHAR;
       Result : Sync.TAsyncResult;
    BEGIN
-      windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE );
-      MH.Init( TRUE );
-
       LOOP
+
          LOOP
             Result := MQ.DequeueOA( OUT C32, TRUE, 100 );
             IF Result = Sync.arCompleted THEN
@@ -245,42 +273,22 @@ CLASS IMPLEMENTATION CTest;
       C32 : CARD32 := 0;
       Index : CARD32;
       sC32, sP32 : ARRAY [0..15] OF WCHAR;
-      msg : windows.MSG;
-      S : Sync.SIGNAL := Sync.CreateSignal( FALSE, L"" );
    BEGIN
-      windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE );
-      MH.Init( TRUE );
-  
-      LOOP
-         IF Exit = 1 THEN
+      // QUEUE processing
+      WHILE MQ.Dequeue( ADR( C32 ), SIZE( C32 ), FALSE, 0 ) = Sync.arCompleted DO
+
+         Index := C32 >> 24;
+         C32 := C32 AND 0FFFFFFH;
+         IF C32 <> Last[Index]+1 THEN
+            Strings.FromCARD32W( C32, 10, OUT sC32 ); Strings.FromCARD32W( Last[Index], 10, OUT sP32 );
+            Host^.Log^.LogSSSS( log.dlcError, L"", L"Failed on numbers: ", sC32, L"/", sP32 );
+            Exit := 1;
             EXIT;
-         ELSE
-            windows.MsgWaitForMultipleObjectsEx( 1, ADR( S ), 100, windows.QS_ALLINPUT, windows.MWMO_INPUTAVAILABLE );
-            windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE );
          END;
-         IF msg.message <> msgqueue.MSG_PROCESS_QUEUE THEN
-            CONTINUE;
-         END;
+         INC( Last[Index] );
 
-         // QUEUE processing
-         WHILE MQ.Dequeue( ADR( C32 ), SIZE( C32 ), FALSE, 0 ) = Sync.arCompleted DO
-
-            Index := C32 >> 24;
-            C32 := C32 AND 0FFFFFFH;
-            IF C32 <> Last[Index]+1 THEN
-               Strings.FromCARD32W( C32, 10, OUT sC32 ); Strings.FromCARD32W( Last[Index], 10, OUT sP32 );
-               Host^.Log^.LogSSSS( log.dlcError, L"", L"Failed on numbers: ", sC32, L"/", sP32 );
-               Exit := 1;
-               EXIT;
-            END;
-            INC( Last[Index] );
-
-         END; // WHILE
-     END; // LOOP
-     
-     windows.Sleep( 100 );
-     MH.Dispose();
-  END ConsumeByMessage;
+      END; // WHILE
+   END ConsumeByMessage;
 
 (*---------------------------------------------------------------------------*)
 

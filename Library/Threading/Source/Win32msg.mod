@@ -258,6 +258,7 @@ CLASS IMPLEMENTATION Win32MessageHandler;
       Repeat : PTR;
       Timer : PTR;
    BEGIN
+      OSALmsg.TPMessage( ADR( MSG ))^.Target := ADR( SELF );
       IF ( Delivery = OSALmsg.delSynchronous ) OR ( Delivery = OSALmsg.delSynchronousIfInThread ) AND SelfContext THEN
          IF MSG[ OSALmsg.MI_MESSAGE ] = windows.WM_TIMER THEN
             Timer := MSG[ MI_WPARAM ];

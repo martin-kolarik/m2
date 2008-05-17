@@ -7,7 +7,8 @@ FROM Storage IMPORT
 
 IMPORT
   msghandler,
-  msgqueuethread;
+  msgqueuethread,
+  threadpool;
 
 (*================================================================================*)
 
@@ -231,8 +232,9 @@ CLASS IMPLEMENTATION SCMessageHandler;
       b : BOOLEAN;
       LResult : PTR;
       parameter : TPTimerParameter;
-      PoolHandle : threadpool.TPoolHandle;
+      PoolHandle : threadpoolsink.TPoolHandle;
    BEGIN
+      OSALmsg.TPMessage( ADR( MSG ))^.Target := ADR( SELF );
       IF ( Delivery = OSALmsg.delSynchronous ) OR ( Delivery = OSALmsg.delSynchronousIfInThread ) AND SelfContext THEN
       
          CASE MSG.Message OF
@@ -397,7 +399,7 @@ CLASS IMPLEMENTATION SCMessageHandler;
    PUBLIC VIRTUAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread );
    BEGIN
       IF JoinTo = NIL THEN
-         JoinTo := msgqueuethread.globalMsgQueueThread();
+         JoinTo := msgqueuethread.global();
       END;
       JoinTo^.Join( ADR( SELF ));
    END JoinMessageThread;
@@ -413,7 +415,7 @@ CLASS IMPLEMENTATION SCMessageHandler;
 
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
+   PUBLIC VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpoolsink.TPoolHandle; UserId : PTR );
    VAR
       MSG : msghandler.Message;
    BEGIN

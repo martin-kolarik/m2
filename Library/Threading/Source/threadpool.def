@@ -1,83 +1,17 @@
 DEFINITION MODULE threadpool;
 
 IMPORT
-  avltree,
-  Delegate,
-  lists,
-  msgqueue,
-  Sync;
+   avltree,
+   Delegate,
+   lists,
+   msgqueue,
+   Sync;
+
+FROM threadpoolsink IMPORT
+   TPoolHandle,
+   TPPoolDelegate;
 
 #save, option( dll_export => on )
-
-//--------------------------------------------------------------------------------
-
-TYPE
-   TPoolHandle = PTR;
-
-//--------------------------------------------------------------------------------
-
-TYPE
-   TPITimeoutSink = POINTER TO ITimeoutSink;
-   TPIMessageSink = POINTER TO IMessageSink;
-   TPIHandleSink  = POINTER TO IHandleSink;
-   TPIWorkerSink  = POINTER TO IWorkerSink;
-   
-INTERFACE ITimeoutSink; 
-  LOCAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
-END ITimeoutSink;
-
-INTERFACE IMessageSink;
-  LOCAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
-END IMessageSink;
-
-INTERFACE IHandleSink;
-  LOCAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
-END IHandleSink;
-
-INTERFACE IWorkerSink;
-  LOCAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
-END IWorkerSink;
-
-//--------------------------------------------------------------------------------
-
-TYPE
-  TPPoolDelegate = POINTER TO APoolDelegate;
-
-ABSTRACT CLASS APoolDelegate( Delegate.ADelegate ) IMPLEMENTS ITimeoutSink, IMessageSink, IHandleSink, IWorkerSink;
-  LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
-  LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
-  LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
-  LOCAL VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
-END APoolDelegate;
-
-//--------------------------------------------------------------------------------
-
-TYPE
-  TPSinkDelegate = POINTER TO CSinkDelegate;
-  
-CLASS CSinkDelegate( APoolDelegate );
-  PUBLIC VAR
-    TimeoutSink : TPITimeoutSink;
-    MessageSink : TPIMessageSink;
-    HandleSink : TPIHandleSink;
-    WorkerSink : TPIWorkerSink;
-  LOCAL FINAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
-  LOCAL FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
-  LOCAL FINAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
-  LOCAL FINAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
-END CSinkDelegate;
-
-//--------------------------------------------------------------------------------
-
-TYPE
-  TPMessageHandlerDelegate = POINTER TO CMessageHandlerDelegate;
-  
-CLASS CMessageHandlerDelegate( APoolDelegate );
-  PUBLIC VAR
-    Handler : msghandler.TPMessageHandler;
-    Delivery : msghandler.TDelivery := msghandler.delSynchronous;
-  LOCAL FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
-END CMessageHandlerDelegate;
 
 //--------------------------------------------------------------------------------
 
@@ -93,13 +27,13 @@ END APoolWorker;
 TYPE
   TPThreadPool = POINTER TO CThreadPool;
   
+// CThreadPool must be allocated dynamically -- it must not be created as static or inside startup code
 CLASS CThreadPool( msghandler.MessageHandler );
   PRIVATE VAR
     Threads : lists.CPtrList;
     MQueue : msgqueue.CMessageQueue;
     _MinThreads : CARDINAL := 1;
-    _Thread : CARDINAL; // for safety, if interface is singlethread, no call to interface from different threads is allowed
-    _Lock : Sync.LOCK; // enumeration is locked (due to multihtreaded Abort)
+    _Lock : Sync.LOCK; // enumeration is locked (due to multihtreaded access)
   PUBLIC READONLY PROPERTY
     UndeliveredMessagesPending : BOOLEAN; // mostly for debug purposes
   PUBLIC PROPERTY
@@ -107,7 +41,6 @@ CLASS CThreadPool( msghandler.MessageHandler );
   PUBLIC VAR
     WorkerLoad : CARDINAL := 32; // number of workers in single worker thread
     MaxThreads : CARDINAL := -1; // if there is no space, the RunWorker request is queued
-    SingleThreadInterface : BOOLEAN := TRUE;
     CompletionInOwningThread : BOOLEAN := FALSE;
     
   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
@@ -123,7 +56,6 @@ CLASS CThreadPool( msghandler.MessageHandler );
   LOCAL PROCEDURE OnThreadEmpty();
   LOCAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; Task : PTR; CONST MSG : msghandler.Message ) : BOOLEAN;
   
-  PRIVATE PROCEDURE CheckThreadInterface();
   PRIVATE PROCEDURE LookupThread( WorkerFlag : BOOLEAN; ForceSelfThread : BOOLEAN; OUT PoolThread : PTR ) : BOOLEAN;
   PRIVATE PROCEDURE DisposeThreads( RespectMinThreads : BOOLEAN );
 END CThreadPool;

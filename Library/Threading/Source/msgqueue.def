@@ -15,9 +15,6 @@ CONST
    MSG_PROCESS_QUEUE = msghandler.RAW_MSG_BASE + OSALmsg.RAW_PROCESS_QUEUE;
 
 CLASS CMessageQueue( SyncQueue.CDatagramQueue );
-   // class dedicated for N to 1 receiving, blocking is usually consumer, so main control is from consumer side and it is
-   // done using msghandler.Message. The CLASS FULLY HIDES Flush/Signal semantics offered byt ANCESTOR, the class
-   // cannot be degraded to CDatagramQueue (= Consumer MUST NOT be NIL).
    PRIVATE VAR
       Msg : POINTER TO msghandler.Message;
    PUBLIC VAR

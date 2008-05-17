@@ -43,6 +43,10 @@ CLASS SCMsgQueueThread( Win32thread.Win32Thread ) IMPLEMENTS OSALmsg.IMessageQue
    PUBLIC FINAL PROCEDURE OnLeave();
 END SCMsgQueueThread;
 
+(*---------------------------------------------------------------------------*)
+  
+PROCEDURE SCGlobalMsgQueueThread() : POINTER TO OSALmsg.IMessageQueueThread;
+
 #restore
 
 (*---------------------------------------------------------------------------*)
