@@ -50,8 +50,12 @@ CLASS IMPLEMENTATION CMessageQueue;
          NEW( msghandler.TPMessage( Msg ));
          Msg^.Message := MSG_PROCESS_QUEUE;
       END;
-      IF ( What = Sync.pcqProducedFlush ) AND Consumer^.SelfContext THEN // consumer is in my thread
-         Delivery := msghandler.delSynchronous;
+      IF What = Sync.pcqProducedFlush THEN
+         IF Consumer^.SelfContext THEN // consumer is in my thread, allow flushing by forcible read
+            Delivery := msghandler.delSynchronous;
+         ELSE // consumer is not in my thread, do not exhaust queue with next and next messages (one message is already sent from pcqProduced)
+            RETURN;
+         END;
       ELSE // consumer is in the other thread or I am signalled to have new data
          Delivery := msghandler.delAsynchronous;
       END; // CASE

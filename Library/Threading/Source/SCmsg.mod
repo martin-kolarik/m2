@@ -304,7 +304,9 @@ CLASS IMPLEMENTATION SCMessageHandler;
       Signal : Sync.SIGNAL;
    BEGIN
       ASSERT( joinedTo <> NIL );
-      IF NOT SelfContext THEN
+      IF SelfContext THEN
+         Signal := NIL;
+      ELSE
          Signal := Sync.CreateSignal( FALSE, L"" );
       END;
  
@@ -344,8 +346,10 @@ CLASS IMPLEMENTATION SCMessageHandler;
       Signal : Sync.SIGNAL;
    BEGIN
       ASSERT( joinedTo <> NIL );
-      IF NOT SelfContext THEN
+      IF SelfContext THEN
          Signal := Sync.CreateSignal( FALSE, L"" );
+      ELSE  
+         Signal := NIL;
       END;
  
       NEW( parameter );

@@ -29,9 +29,16 @@ CLASS IMPLEMENTATION CSupport;
    VAR
       MSG : msghandler.Message;
       Result : Sync.TAsyncResult;
-      Signal : Sync.SIGNAL := Sync.CreateSignal( FALSE, L"" );
+      SelfContext : BOOLEAN;
+      Signal : Sync.SIGNAL;
    BEGIN
       ASSERT( OfThread <> NIL );
+      SelfContext := OfThread^.SelfContext;
+      IF SelfContext THEN
+         Signal := NIL;
+      ELSE
+         Signal := Sync.CreateSignal( FALSE, L"" );
+      END;
 
       MSG.Source := Recipient;
       MSG.Target := OfThread;
@@ -42,7 +49,6 @@ CLASS IMPLEMENTATION CSupport;
       
       Result := Sync.Wait( Signal, Sync.FORSAFETY );
       ASSERT( Result <> Sync.arTimeout );
-      
       Sync.DeleteSignal( REF Signal );
    END Join;
 
@@ -52,9 +58,16 @@ CLASS IMPLEMENTATION CSupport;
    VAR
       MSG : msghandler.Message;
       Result : Sync.TAsyncResult;
-      Signal : Sync.SIGNAL := Sync.CreateSignal( FALSE, L"" );
+      SelfContext : BOOLEAN;
+      Signal : Sync.SIGNAL;
    BEGIN
       ASSERT( OfThread <> NIL );
+      SelfContext := OfThread^.SelfContext;
+      IF SelfContext THEN
+         Signal := NIL;
+      ELSE
+         Signal := Sync.CreateSignal( FALSE, L"" );
+      END;
 
       MSG.Source := Recipient;
       MSG.Target := OfThread;
@@ -65,7 +78,6 @@ CLASS IMPLEMENTATION CSupport;
 
       Result := Sync.Wait( Signal, Sync.FORSAFETY );
       ASSERT( Result <> Sync.arTimeout );
-      
       Sync.DeleteSignal( REF Signal );
    END Leave;
    
