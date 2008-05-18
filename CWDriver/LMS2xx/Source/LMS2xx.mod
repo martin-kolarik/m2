@@ -43,6 +43,8 @@ IMPORT
    Log,
    msghandler,
    Resources,
+   OSALmsg,
+   scinit,
    serial,
    StorageO,
    Strings,
@@ -218,6 +220,7 @@ CLASS CDriver( msghandler.MessageHandler );
   RStatus                  : TRStatus;
   OS                       : TOperationState;
   Name                     : ARRAY [0..63] OF WCHAR;
+  _Lock					   : Sync.LOCK;
 
   CallbackId               : ADDRESS;
   CallbackProc             : drv_def.TDriverCallbackW;
@@ -275,6 +278,9 @@ CLASS CDriver( msghandler.MessageHandler );
 
   PUBLIC PROCEDURE BufferInfo( DriverIndex : CARDINAL; BType : CARD8; BLen : CARDINAL ) : BOOLEAN;
   PUBLIC PROCEDURE SetBufferAddr( DriverIndex : CARDINAL; PBuffer : ADDRESS );
+  
+  PUBLIC PROCEDURE Lock();
+  PUBLIC PROCEDURE Unlock();
 
   PUBLIC PROCEDURE Run();
   PUBLIC PROCEDURE Stop();
@@ -335,7 +341,9 @@ CLASS IMPLEMENTATION CCCTSerial;
 
   VIRTUAL PROCEDURE OnRxTick();
   BEGIN
+	PDriver^.Lock();
     PDriver^.OnRxTick();
+	PDriver^.Unlock();
   END OnRxTick;
 
 //--------------------------------------------------------------------------------
@@ -408,14 +416,18 @@ CLASS IMPLEMENTATION CCCTSerial;
 
   VIRTUAL PROCEDURE OnRx( Result : Sync.TAsyncResult; CONST Data : StorageO.AMemoryBuffer );
   BEGIN
+	PDriver^.Lock();
     PDriver^.OnReceive( Result, Data );
+	PDriver^.Unlock();
   END OnRx;
 
 //--------------------------------------------------------------------------------
 
   VIRTUAL PROCEDURE OnTx( Result : Sync.TAsyncResult );
   BEGIN
+	PDriver^.Lock();
     PDriver^.OnSend( Result );
+	PDriver^.Unlock();
   END OnTx;
 
 //--------------------------------------------------------------------------------
@@ -520,6 +532,7 @@ END CZone;
 
 VAR
    GR : Resources.CResources;
+   RefCount : CARDINAL;
 
 //--------------------------------------------------------------------------------
 
@@ -537,13 +550,13 @@ CLASS IMPLEMENTATION CDriver;
       | tiScan :
          Automaton( osTick );
       END; // CASE
-  END OnTimer;
+   END OnTimer;
 
 //--------------------------------------------------------------------------------
 
   PUBLIC PROCEDURE Init( _RunMode : CARDINAL; VAR SymbolicName : ARRAY OF WCHAR; _CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW ) : BOOLEAN;
   BEGIN
-    SUPER.Init();
+    SUPER.Init( TRUE );
 
     CallbackId := _CallbackId;
     CallbackProc := PCallback;
@@ -616,7 +629,7 @@ CLASS IMPLEMENTATION CDriver;
     ComChannel := L'';
     ComDriver := L'';
     DebugMode := Log.dmNone;
-    DebugLevel := Log.dlpIO;
+    DebugLevel := Log.dldError;
     ReadBack := FALSE;
 
     IF NOT TS.SetSection( snDevice ) THEN
@@ -628,7 +641,7 @@ CLASS IMPLEMENTATION CDriver;
       END;
     END;
 
-    IF NOT TS.GetKeyStr( knComDriver, OUT so ) THEN
+    IF NOT TS.GetKeyStr( knComDriver, OUT ErrorLine, OUT so ) THEN
       ASSIGNsz( ErrorMessage, GR[Texts._MissingDevice] );
       GOTO Fail;
     END;
@@ -639,30 +652,30 @@ CLASS IMPLEMENTATION CDriver;
       GOTO Fail;
     END;
 
-    TS.GetKeyInt( knACKTimeout, OUT RxACKTimeout );
-    TS.GetKeyInt( knSafetyTimeout, OUT RxSafetyTimeout );
-    TS.GetKeyBool( knReadBack, OUT ReadBack );
+    TS.GetKeyInt( knACKTimeout, OUT ErrorLine, OUT RxACKTimeout );
+    TS.GetKeyInt( knSafetyTimeout, OUT ErrorLine, OUT RxSafetyTimeout );
+    TS.GetKeyBool( knReadBack, OUT ErrorLine, OUT ReadBack );
 
-    IF TS.GetKeyInt( knAddress, OUT c ) THEN
+    IF TS.GetKeyInt( knAddress, OUT ErrorLine, OUT c ) THEN
       Address := CARD8( c );
     END;
-    IF TS.GetKeyInt( knScanRate, OUT c ) THEN
+    IF TS.GetKeyInt( knScanRate, OUT ErrorLine, OUT c ) THEN
       ScanPeriod := c;
     END;
-    IF TS.GetKeyInt( knScanFactor, OUT c ) THEN
+    IF TS.GetKeyInt( knScanFactor, OUT ErrorLine, OUT c ) THEN
       ScanFactor := c;
     END;
 
-    IF TS.GetKeyInt( knMeanCount, OUT c ) AND ( c > 0 ) THEN
+    IF TS.GetKeyInt( knMeanCount, OUT ErrorLine, OUT c ) AND ( c > 0 ) THEN
       MeanCount := c;
     END;
 
-    IF TS.GetKeyStr( knDebugMode, OUT so ) THEN
+    IF TS.GetKeyStr( knDebugMode, OUT ErrorLine, OUT so ) THEN
       IF so.EqualsOA( kvDebugNone ) THEN
         DebugMode := Log.dmNone;
       ELSIF so.EqualsOA( kvDebugFile ) THEN
         DebugMode := Log.dmFile;
-        IF NOT TS.GetKeyStr( knDebugFile, OUT so ) THEN
+        IF NOT TS.GetKeyStr( knDebugFile, OUT ErrorLine, OUT so ) THEN
           ASSIGNsz( ErrorMessage, GR[Texts._FileDebugMissingFile] );
           GOTO Fail;
         END;
@@ -671,13 +684,13 @@ CLASS IMPLEMENTATION CDriver;
         DebugMode := Log.dmKernel;
       END;
       IF DebugMode <> Log.dmNone THEN
-        IF TS.GetKeyStr( knDebugLevel, OUT so ) THEN
+        IF TS.GetKeyStr( knDebugLevel, OUT ErrorLine, OUT so ) THEN
           IF so.EqualsOA( kvDebugBasic ) THEN
-            DebugLevel := Log.dlpIO;
+            DebugLevel := Log.dldError;
           ELSIF so.EqualsOA( kvDebugExtended ) THEN
-            DebugLevel := Log.dlpCtrl;
+            DebugLevel := Log.dldTrace;
           ELSIF so.EqualsOA( kvDebugAll ) THEN
-            DebugLevel := Log.dlpAll;
+            DebugLevel := Log.dldDebug;
           END;
         END;
       END;
@@ -687,14 +700,14 @@ CLASS IMPLEMENTATION CDriver;
       INCL( RStatus, rsSerialInitialized );
 
       Serial.ReadBack := ReadBack;
-      // Serial.SetInBoundaryStrings( WCHAR( 2 ), L'' );
-      Serial.SetOutBoundaryStrings( WCHAR( 2 ), L'' );
+      // Serial.SetInBoundaryStrings( CHAR( 2 ), C'' );
+      Serial.SetOutBoundaryStrings( CHAR( 2 ), C'' );
 
       Serial.Logger.SetLogFile( DebugFile );
-      Serial.Logger.Mode := DebugMode;
+      Serial.Logger.Method := DebugMode;
       Serial.Logger.Level := DebugLevel;
 
-      RETURN Serial.Init( Name, ComChannel, ComDriver, ParFilePath, OUT ErrorMessage );
+      RETURN Serial.Init( Name, ComChannel, ComDriver, ParFilePath, NIL );
     ELSE
       RETURN TRUE;
     END;
@@ -798,6 +811,20 @@ CLASS IMPLEMENTATION CDriver;
 
 //--------------------------------------------------------------------------------
 
+  PUBLIC PROCEDURE Lock();
+  BEGIN
+	_Lock.Lock();
+  END Lock;
+
+//--------------------------------------------------------------------------------
+
+  PUBLIC PROCEDURE Unlock();
+  BEGIN
+	_Lock.Unlock();
+  END Unlock;
+
+//--------------------------------------------------------------------------------
+
   PUBLIC PROCEDURE Run();
   VAR
     s : FIO.PathStrW;
@@ -863,6 +890,7 @@ CLASS IMPLEMENTATION CDriver;
     i : CARDINAL;
     N : ARRAY [0..31] OF WCHAR;
     lr : LONGREAL;
+    MSG : msghandler.Message;
     PELE : TPEventListElem;
     R : ARRAY [0..255] OF WCHAR;
     Zone : TPZone;
@@ -876,15 +904,16 @@ CLASS IMPLEMENTATION CDriver;
       RETURN;
     ELSIF EQUALS( N, L'scan' ) THEN
       INCL( RStatus, rsOOBScan );
-      windows.PostMessage( HWND, windows.WM_TIMER, tiScan, 0 );
+      MSG.Message := msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_ONTIMER;
+      Message( MSG, msghandler.delAsynchronous, NIL );
       RETURN;
     ELSIF EQUALS( N, L'get_event' ) THEN
       // get event
-      IF Result.Counted OR Result.Expired THEN
-         Events.Dispose();
-         DSW.Clear();
-         GOTO Error;
-      END;
+      //IF Result.Counted OR Result.Expired THEN
+      //   Events.Dispose();
+      //   DSW.Clear();
+      //   GOTO Error;
+      //END;
       
     ELSIF EQUALS( N, L'debug' ) THEN
       // debug
@@ -1272,28 +1301,28 @@ CLASS IMPLEMENTATION CDriver;
 
     CASE DriverIndex OF
     | chStatus :
-      drv_def.AssignValueCardinal( InValue, TRUE, CARDINAL( RStatus * rssUser ));
+      drv_def.AssignValueCardinal( InValue, UFlag, TRUE, CARDINAL( RStatus * rssUser ));
     | chMode :
-      drv_def.AssignValueCardinal( InValue, TRUE, ScanMode );
+      drv_def.AssignValueCardinal( InValue, UFlag, TRUE, ScanMode );
     | chFieldSet :
-      drv_def.AssignValueCardinal( InValue, TRUE, ActiveFieldSet );
+      drv_def.AssignValueCardinal( InValue, UFlag, TRUE, ActiveFieldSet );
     | chScanningAngle :
-      drv_def.AssignValueCardinal( InValue, TRUE, ScanningAngle );
+      drv_def.AssignValueCardinal( InValue, UFlag, TRUE, ScanningAngle );
     | chResolution :
-      drv_def.AssignValueLongReal( InValue, TRUE, Resolution );
+      drv_def.AssignValueLongReal( InValue, UFlag, TRUE, Resolution );
     | chMean, chCurrent :
     | chFS1A :
-      drv_def.AssignValueBoolean( InValue, TRUE, Fields[1]['A'] );
+      drv_def.AssignValueBoolean( InValue, UFlag, TRUE, Fields[1]['A'] );
     | chFS1B :
-      drv_def.AssignValueBoolean( InValue, TRUE, Fields[1]['B'] );
+      drv_def.AssignValueBoolean( InValue, UFlag, TRUE, Fields[1]['B'] );
     | chFS1C :
-      drv_def.AssignValueBoolean( InValue, TRUE, Fields[1]['C'] );
+      drv_def.AssignValueBoolean( InValue, UFlag, TRUE, Fields[1]['C'] );
     | chFS2A :
-      drv_def.AssignValueBoolean( InValue, TRUE, Fields[2]['A'] );
+      drv_def.AssignValueBoolean( InValue, UFlag, TRUE, Fields[2]['A'] );
     | chFS2B :
-      drv_def.AssignValueBoolean( InValue, TRUE, Fields[2]['B'] );
+      drv_def.AssignValueBoolean( InValue, UFlag, TRUE, Fields[2]['B'] );
     | chFS2C :
-      drv_def.AssignValueBoolean( InValue, TRUE, Fields[2]['C'] );
+      drv_def.AssignValueBoolean( InValue, UFlag, TRUE, Fields[2]['C'] );
     END; // CASE
 
   END GetInput;
@@ -1351,7 +1380,7 @@ CLASS IMPLEMENTATION CDriver;
         CASE PCARD8( PFrame )^ OF
         | 006H :
           IF rsWaitACK IN RStatus THEN
-            Serial.Logger.LogS( Log.dlpCtrl, Name, L'RX ACK during expect ACK' );
+            Serial.Logger.LogS( Log.dldTrace, Name, L'RX ACK during expect ACK' );
             RStatus := RStatus - TRStatus{rsWaitACK} + TRStatus{rsWaitResponse};
             CASE Expect OF
             | 0B1H, 0B0H, 0CAH :
@@ -1362,7 +1391,7 @@ CLASS IMPLEMENTATION CDriver;
           END;
         | 015H :
           IF rsWaitACK IN RStatus THEN
-            Serial.Logger.LogSC( Log.dlpCtrl, Name, L'RX NAK during expect ACK ', CARDINAL( PFrame^.F.Cmd ));
+            Serial.Logger.LogSC( Log.dldTrace, Name, L'RX NAK during expect ACK ', CARDINAL( PFrame^.F.Cmd ));
             RStatus := RStatus - TRStatus{rsWaitACK};
             ResetRxTimeout();
           END;
@@ -1377,14 +1406,14 @@ CLASS IMPLEMENTATION CDriver;
       CASE PFrame^.F.Cmd OF
       //-----
       | 092H : // NAK = NAK, NAK = unrecognized command
-        Serial.Logger.LogSC( Log.dlpCtrl, Name, L'RX NAK during expect ACK ', CARDINAL( PFrame^.F.Cmd ));
+        Serial.Logger.LogSC( Log.dldTrace, Name, L'RX NAK during expect ACK ', CARDINAL( PFrame^.F.Cmd ));
       //-----
       | 090H, 091, 0A0H : // power-on message, reset confirmation, mode switched
         Automaton( osInit );
       //-----
       | 0B1H, 0C1H, 0B0H, 0CAH :
         IF ( rsWaitResponse IN RStatus ) AND ( PFrame^.F.Cmd = Expect ) THEN
-          Serial.Logger.LogSC( Log.dlpCtrl, Name, L'RX DATA during expect DATA ', CARDINAL( Expect ));
+          Serial.Logger.LogSC( Log.dldTrace, Name, L'RX DATA during expect DATA ', CARDINAL( Expect ));
           RStatus := RStatus - TRStatus{rsWaitResponse} + TRStatus{rsHaveData};
           ResetRxTimeout();
         END;
@@ -1393,14 +1422,14 @@ CLASS IMPLEMENTATION CDriver;
           IF OS >= osRunning1 THEN
             ParseData( PFrame, L );
           ELSE
-            Serial.Logger.LogS( Log.dlpAll, Name, L'RX DATA before initialization finish' );
+            Serial.Logger.LogS( Log.dldDebug, Name, L'RX DATA before initialization finish' );
           END;
         ELSE
           ParseData( PFrame, L );
         END;
       //-----
       ELSE // log unparsed data
-        Serial.Logger.LogSC( Log.dlpAll, Name, L'RX unparsed data ', CARDINAL( PFrame^.F.Cmd ));
+        Serial.Logger.LogSC( Log.dldDebug, Name, L'RX unparsed data ', CARDINAL( PFrame^.F.Cmd ));
       END;
 
     ELSE
@@ -1410,10 +1439,10 @@ CLASS IMPLEMENTATION CDriver;
 
       IF Result = Sync.arTimeout THEN
         LastErrorCode := ceRxTimeout;
-        Serial.Logger.LogS( Log.dlpIO, Name, L'RX timeout' );
+        Serial.Logger.LogS( Log.dldError, Name, L'RX timeout' );
       ELSIF Result <> Sync.arCompleted THEN
         LastErrorCode := drv_def.ecValueProcessing;
-        Serial.Logger.LogS( Log.dlpIO, Name, L'RX ? unknown error ' );
+        Serial.Logger.LogS( Log.dldError, Name, L'RX ? unknown error ' );
       END;
 
     END;
@@ -1464,8 +1493,8 @@ CLASS IMPLEMENTATION CDriver;
     END;
     IF ( OS = osIdle ) OR ( OS = osFailure ) THEN
       RETURN;
-    ELSIF Result.Counted OR Result.Expired THEN
-      RETURN;
+    //ELSIF Result.Counted OR Result.Expired THEN
+    //  RETURN;
     ELSIF OS = osRunning1 THEN
       IF rsOOBScan IN RStatus THEN
         // pass down
@@ -1520,7 +1549,7 @@ CLASS IMPLEMENTATION CDriver;
       Expect := 0CAH;
     END; // CASE OS
 
-    Serial.Logger.LogSC( Log.dlpIO, Name, L'TX request ', CARDINAL( Frame.F.Cmd ));
+    Serial.Logger.LogSC( Log.dldError, Name, L'TX request ', CARDINAL( Frame.F.Cmd ));
 
     SetRxTimeout( RxACKTimeout, Length + 3 );
     Serial.Tx( OA( Length-1, ADR( Frame )), FALSE, 0, 0, RxSafetyTimeout );
@@ -1579,7 +1608,7 @@ CLASS IMPLEMENTATION CDriver;
     Overflow : INTEGER;
     Step : CARDINAL;
   BEGIN
-    Serial.Logger.LogSC( Log.dlpIO, Name, L'RX parsing ', CARDINAL( PData^.F.Cmd ));
+    Serial.Logger.LogSC( Log.dldError, Name, L'RX parsing ', CARDINAL( PData^.F.Cmd ));
 
     CASE PData^.F.Cmd OF
     //-----
@@ -1594,7 +1623,7 @@ CLASS IMPLEMENTATION CDriver;
         Automaton( osHaveStatus );
       ELSE
         Automaton( osFailure );
-        Serial.Logger.LogSC( Log.dlpIO, Name, L'RX unsupported mode, switching OFF ', ScanMode );
+        Serial.Logger.LogSC( Log.dldError, Name, L'RX unsupported mode, switching OFF ', ScanMode );
       END;
 
     //-----
@@ -1614,7 +1643,7 @@ CLASS IMPLEMENTATION CDriver;
       END;
       Count := CARDINAL( TPCurrentResponse( PData )^.Description AND 001FFH );
       IF Count = 0 THEN
-        Serial.Logger.LogS( Log.dlpIO, Name, L'RX data zero count' );
+        Serial.Logger.LogS( Log.dldError, Name, L'RX data zero count' );
         RETURN;
       END;
       IF ScanningAngle = 100 THEN
@@ -1685,7 +1714,7 @@ CLASS IMPLEMENTATION CDriver;
       CopyToBuffers();
       CheckZones();
 
-      Automaton( osRunning2 );
+      // Automaton( osRunning2 );
 
       IF ( Nev < Events.Count ) AND NOT( rsEventsReportPending IN RStatus ) THEN
         INCL( RStatus, rsEventsReportPending );
@@ -1698,28 +1727,28 @@ CLASS IMPLEMENTATION CDriver;
 
       Fields[ActiveFieldSet]['A'] := TPFieldsStatus( PData )^.FieldA;
       IF Fields[ActiveFieldSet]['A'] AND NOT FieldsPrevious[ActiveFieldSet]['A'] THEN
-        Serial.Logger.LogS( Log.dlpIO, Name, L'RX field A FINISH' );
+        Serial.Logger.LogS( Log.dldError, Name, L'RX field A FINISH' );
         AddEvent( NIL, evFinish, etField, 1, 0, 0, 0 );
       ELSIF NOT Fields[ActiveFieldSet]['A'] AND FieldsPrevious[ActiveFieldSet]['A'] THEN
-        Serial.Logger.LogS( Log.dlpIO, Name, L'RX field A ALARM' );
+        Serial.Logger.LogS( Log.dldError, Name, L'RX field A ALARM' );
         AddEvent( NIL, evSetOff, etField, 1, 0, 0, 0 );
       END;
       FieldsPrevious[ActiveFieldSet]['A'] := Fields[ActiveFieldSet]['A'];
       Fields[ActiveFieldSet]['B'] := TPFieldsStatus( PData )^.FieldB;
       IF Fields[ActiveFieldSet]['B'] AND NOT FieldsPrevious[ActiveFieldSet]['B'] THEN
-        Serial.Logger.LogS( Log.dlpIO, Name, L'RX field B FINISH' );
+        Serial.Logger.LogS( Log.dldError, Name, L'RX field B FINISH' );
         AddEvent( NIL, evFinish, etField, 2, 0, 0, 0 );
       ELSIF NOT Fields[ActiveFieldSet]['B'] AND FieldsPrevious[ActiveFieldSet]['B'] THEN
-        Serial.Logger.LogS( Log.dlpIO, Name, L'RX field B ALARM' );
+        Serial.Logger.LogS( Log.dldError, Name, L'RX field B ALARM' );
         AddEvent( NIL, evSetOff, etField, 2, 0, 0, 0 );
       END;
       FieldsPrevious[ActiveFieldSet]['B'] := Fields[ActiveFieldSet]['B'];
       Fields[ActiveFieldSet]['C'] := TPFieldsStatus( PData )^.FieldC;
       IF Fields[ActiveFieldSet]['C']  AND NOT FieldsPrevious[ActiveFieldSet]['C'] THEN
-        Serial.Logger.LogS( Log.dlpIO, Name, L'RX field C FINISH' );
+        Serial.Logger.LogS( Log.dldError, Name, L'RX field C FINISH' );
         AddEvent( NIL, evFinish, etField, 3, 0, 0, 0 );
       ELSIF NOT Fields[ActiveFieldSet]['C']  AND FieldsPrevious[ActiveFieldSet]['C'] THEN
-        Serial.Logger.LogS( Log.dlpIO, Name, L'RX field C ALARM' );
+        Serial.Logger.LogS( Log.dldError, Name, L'RX field C ALARM' );
         AddEvent( NIL, evSetOff, etField, 3, 0, 0, 0 );
       END;
       FieldsPrevious[ActiveFieldSet]['C'] := Fields[ActiveFieldSet]['C'];
@@ -1770,7 +1799,7 @@ CLASS IMPLEMENTATION CDriver;
     ResetRxTimeout();
     IF RxDataTimeout > 0 THEN
       INCL( RStatus, rsRxTimeout );
-      Serial.Logger.LogSC( Log.dlpCtrl, Name, L'RX timeout set to: ', RxDataTimeout + AddOn );
+      Serial.Logger.LogSC( Log.dldTrace, Name, L'RX timeout set to: ', RxDataTimeout + AddOn );
       StartTimer( tiRx, RxDataTimeout, TRUE );
       RxTimeoutPeriod := RxDataTimeout + AddOn;
       RxTimeoutTime := time.UptimeMS() + RxTimeoutPeriod;
@@ -1783,7 +1812,7 @@ CLASS IMPLEMENTATION CDriver;
   BEGIN
     IF rsRxTimeout IN RStatus THEN
       EXCL( RStatus, rsRxTimeout );
-      Serial.Logger.LogS( Log.dlpCtrl, Name, L'RX timeout reset' );
+      Serial.Logger.LogS( Log.dldTrace, Name, L'RX timeout reset' );
       StopTimer( tiRx );
     END;
   END ResetRxTimeout;
@@ -1839,21 +1868,21 @@ CLASS IMPLEMENTATION CDriver;
         ELSIF i - CandidateToNew > MovementThreshold THEN
           IF SampleActive THEN
             // STOP EVENT
-            Serial.Logger.LogSS( Log.dlpIO, Name, L'EV finish 1 on zone: ', Zone^.Id );
+            Serial.Logger.LogSS( Log.dldError, Name, L'EV finish 1 on zone: ', Zone^.Id );
             AddEvent( Zone, evFinish, etZone, i, A[i], MeanData[i], 0 );
             A[i] := 0;
           END;
           // NEW EVENT
           INC( CurrentId );
           A[CandidateToNew] := CurrentId;
-          Serial.Logger.LogSS( Log.dlpIO, Name, L'EV set off 1 on zone: ', Zone^.Id );
+          Serial.Logger.LogSS( Log.dldError, Name, L'EV set off 1 on zone: ', Zone^.Id );
           AddEvent( Zone, evSetOff, etZone, CandidateToNew, CurrentId, LMean, LDiff );
           CandidateToNew := -1;
           LMean := 0; LDiff := 0; LNAVG := 0;
         ELSIF SampleActive AND ( CandidateToNew <> i ) THEN
           // MOVED EVENT
           A[CandidateToNew] := A[i];
-          Serial.Logger.LogSS( Log.dlpIO, Name, L'EV moved 1 on zone: ', Zone^.Id );
+          Serial.Logger.LogSS( Log.dldError, Name, L'EV moved 1 on zone: ', Zone^.Id );
           AddEvent( Zone, evMovement, etZone, CandidateToNew, A[CandidateToNew], LMean, LDiff );
           CandidateToNew := -1;
           LMean := 0; LDiff := 0; LNAVG := 0;
@@ -1881,24 +1910,24 @@ CLASS IMPLEMENTATION CDriver;
             CandidateToNew := Middle;
           ELSIF ABS( Middle - CandidateToFinish ) > MovementThreshold THEN // the event is new, stop previous
             // STOP EVENT
-            Serial.Logger.LogSS( Log.dlpIO, Name, L'EV finish 2 on zone: ', Zone^.Id );
+            Serial.Logger.LogSS( Log.dldError, Name, L'EV finish 2 on zone: ', Zone^.Id );
             AddEvent( Zone, evFinish, etZone, CandidateToFinish, A[CandidateToFinish], MeanData[CandidateToFinish], 0 );
             A[CandidateToFinish] := 0;
             // NEW EVENT
             INC( CurrentId );
             A[Middle] := CurrentId;
-            Serial.Logger.LogSS( Log.dlpIO, Name, L'EV set off 2 on zone: ', Zone^.Id );
+            Serial.Logger.LogSS( Log.dldError, Name, L'EV set off 2 on zone: ', Zone^.Id );
             AddEvent( Zone, evSetOff, etZone, Middle, CurrentId, LMean, LDiff );
           ELSIF CandidateToFinish <> Middle THEN
             // MOVED EVENT
             A[Middle] := A[CandidateToFinish];
             A[CandidateToFinish] := 0;
-            Serial.Logger.LogSS( Log.dlpIO, Name, L'EV moved 2 on zone: ', Zone^.Id );
+            Serial.Logger.LogSS( Log.dldError, Name, L'EV moved 2 on zone: ', Zone^.Id );
             AddEvent( Zone, evMovement, etZone, Middle, A[Middle], LMean, LDiff );
           END;
         ELSIF CandidateToFinish > -1 THEN
           // STOP EVENT
-          Serial.Logger.LogSS( Log.dlpIO, Name, L'EV finish on 3 zone: ', Zone^.Id );
+          Serial.Logger.LogSS( Log.dldError, Name, L'EV finish on 3 zone: ', Zone^.Id );
           AddEvent( Zone, evFinish, etZone, CandidateToFinish, A[CandidateToFinish], MeanData[CandidateToFinish], 0 );
           A[CandidateToFinish] := 0;
         END;
@@ -1997,7 +2026,7 @@ CLASS IMPLEMENTATION CDriver;
           // NEW EVENT
           INC( CurrentId );
           A[CandidateToNew] := CurrentId;
-          Serial.Logger.LogSS( Log.dlpIO, Name, L'EV set off 3 on zone: ', Zone^.Id );
+          Serial.Logger.LogSS( Log.dldError, Name, L'EV set off 3 on zone: ', Zone^.Id );
           AddEvent( Zone, evSetOff, etZone, CandidateToNew, CurrentId, LMean, LDiff );
         END;
 
@@ -2018,6 +2047,7 @@ BEGIN
   CallbackId := NIL;
   CallbackProc := NIL;
   Serial.PDriver := ADR( SELF );
+  _Lock.Init( Sync.ltCS, L"", FALSE );
 
   RateTimer := 0;
 
@@ -2079,6 +2109,11 @@ END CheckW;
 
 PROCEDURE MakeDriverW() : ADDRESS;
 BEGIN
+  IF RefCount = 0 THEN
+    scinit.Startup();
+  END;
+  INC( RefCount );
+
   RETURN NEW( CDriver );
 END MakeDriverW;
 
@@ -2087,6 +2122,11 @@ END MakeDriverW;
 PROCEDURE DisposeDriverW( PData : ADDRESS );
 BEGIN
    DISPOSE( TPDriver( PData ));
+
+  DEC( RefCount );
+  IF RefCount = 0 THEN
+    scinit.Cleanup();
+  END;
 END DisposeDriverW;
 
 //--------------------------------------------------------------------------------
@@ -2283,17 +2323,23 @@ END SetBufferAddrW;
 
 PROCEDURE RunW( PData : ADDRESS );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.Run();
+  TPDriver( PData )^.Unlock();
 END RunW;
 
 PROCEDURE StopW( PData : ADDRESS );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.Stop();
+  TPDriver( PData )^.Unlock();
 END StopW;
 
 PROCEDURE DoneW( PData : ADDRESS );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.Done();
+  TPDriver( PData )^.Unlock();
 END DoneW;
 
 (*--------------------------------------------------------------------------------*)
@@ -2316,39 +2362,59 @@ END QueryProcW;
 
 PROCEDURE QueryProc3( PData : ADDRESS; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.QueryProc( FALSE, InValue1, InValue2, OutValue );
+  TPDriver( PData )^.Unlock();
 END QueryProc3;
 
 PROCEDURE QueryProc3W( PData : ADDRESS; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.QueryProc( TRUE, InValue1, InValue2, OutValue );
+  TPDriver( PData )^.Unlock();
 END QueryProc3W;
 
 (*--------------------------------------------------------------------------------*)
 
 PROCEDURE InputRequestStartW( PData : ADDRESS );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.InputRequestStart();
+  TPDriver( PData )^.Unlock();
 END InputRequestStartW;
 
 PROCEDURE InputRequestW( PData : ADDRESS; DriverIndex : CARDINAL );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.InputRequest( DriverIndex );
+  TPDriver( PData )^.Unlock();
 END InputRequestW;
 
 PROCEDURE InputRequestCompletedW( PData : ADDRESS );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.InputRequestCompleted();
+  TPDriver( PData )^.Unlock();
 END InputRequestCompletedW;
 
 PROCEDURE InputFinalizedW( PData : ADDRESS; DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
+VAR
+  b : BOOLEAN;
 BEGIN
-  RETURN TPDriver( PData )^.InputFinalized( DriverIndex, ErrorCode );
+  TPDriver( PData )^.Lock();
+  b := TPDriver( PData )^.InputFinalized( DriverIndex, ErrorCode );
+  TPDriver( PData )^.Unlock();
+  RETURN b;
 END InputFinalizedW;
 
 PROCEDURE InputOOBDataQueryW( PData : ADDRESS; VAR EnumerateState : LONGWORD; VAR DriverIndex : CARDINAL ) : BOOLEAN;
+VAR
+  b : BOOLEAN;
 BEGIN
-  RETURN TPDriver( PData )^.InputOOBDataQuery( EnumerateState, DriverIndex );
+  TPDriver( PData )^.Lock();
+  b := TPDriver( PData )^.InputOOBDataQuery( EnumerateState, DriverIndex );
+  TPDriver( PData )^.Unlock();
+  RETURN b;
 END InputOOBDataQueryW;
 
 (*--------------------------------------------------------------------------------*)
@@ -2364,7 +2430,9 @@ END GetInput;
 
 PROCEDURE GetInput3( PData : ADDRESS; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue; VAR QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp; VAR ErrorCode : CARDINAL );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.GetInput( FALSE, DriverIndex, InValue, QoS, TimeStamp, ErrorCode );
+  TPDriver( PData )^.Unlock();
 END GetInput3;
 
 PROCEDURE GetInputW( PData : ADDRESS; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue );
@@ -2378,14 +2446,18 @@ END GetInputW;
 
 PROCEDURE GetInput3W( PData : ADDRESS; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue; VAR QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp; VAR ErrorCode : CARDINAL );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.GetInput( TRUE, DriverIndex, InValue, QoS, TimeStamp, ErrorCode );
+  TPDriver( PData )^.Unlock();
 END GetInput3W;
 
 (*--------------------------------------------------------------------------------*)
 
 PROCEDURE OutputRequestStartW( PData : ADDRESS );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.OutputRequestStart();
+  TPDriver( PData )^.Unlock();
 END OutputRequestStartW;
 
 PROCEDURE OutputRequest( PData : ADDRESS; DriverIndex : CARDINAL; OutValue : drv_def.TValue );
@@ -2397,7 +2469,9 @@ END OutputRequest;
 
 PROCEDURE OutputRequest3( PData : ADDRESS; DriverIndex : CARDINAL; OutValue : drv_def.TValue; QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.OutputRequest( FALSE, DriverIndex, OutValue, QoS, TimeStamp );
+  TPDriver( PData )^.Unlock();
 END OutputRequest3;
 
 PROCEDURE OutputRequestW( PData : ADDRESS; DriverIndex : CARDINAL; OutValue : drv_def.TValue );
@@ -2409,22 +2483,32 @@ END OutputRequestW;
 
 PROCEDURE OutputRequest3W( PData : ADDRESS; DriverIndex : CARDINAL; OutValue : drv_def.TValue; QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.OutputRequest( TRUE, DriverIndex, OutValue, QoS, TimeStamp );
+  TPDriver( PData )^.Unlock();
 END OutputRequest3W;
 
 PROCEDURE OutputRequestCompletedW( PData : ADDRESS );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.OutputRequestCompleted();
+  TPDriver( PData )^.Unlock();
 END OutputRequestCompletedW;
 
 PROCEDURE OutputFinalizedW( PData : ADDRESS; DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
+VAR
+  b : BOOLEAN;
 BEGIN
-  RETURN TPDriver( PData )^.OutputFinalized( DriverIndex, ErrorCode );
+  TPDriver( PData )^.Lock();
+  b := TPDriver( PData )^.OutputFinalized( DriverIndex, ErrorCode );
+  TPDriver( PData )^.Unlock();
+  RETURN b;
 END OutputFinalizedW;
 
 //================================================================================
 
 BEGIN
+  RefCount := 0;
   GR.LoadRES2( EMITW( %dll ), L'LMS2xx.Texts' );
   GR.Lang := Languages.GetDefaultLanguage( Languages.dlUser );
 END LMS2xx.
