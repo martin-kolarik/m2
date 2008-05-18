@@ -3,11 +3,13 @@ DEFINITION MODULE msgqueuethread;
 (*===========================================================================*)
 
 IMPORT
-  SCmsgqueuethread;
+   SCmsgqueuethread;
 
 CONST
-  MsgQueueThread ::= SCmsgqueuethread.SCMsgQueueThread;
-  global ::= SCmsgqueuethread.SCGlobalMsgQueueThread;
+   MsgQueueThread ::= SCmsgqueuethread.SCMsgQueueThread;
+   global ::= SCmsgqueuethread.SCGlobalMsgQueueThread;
+   Startup ::= SCmsgqueuethread.Startup;
+   Cleanup ::= SCmsgqueuethread.Cleanup;
 TYPE
   TPMsgQueueThread = POINTER TO MsgQueueThread;
 
