@@ -38,16 +38,17 @@ IMPORT
   maps,
   msghandler,
   netconndispatch,
-  netinit,
   netsrv,
   netsocket,
   Resources,
   rijndael,
+  scinit,
   sha256,
   Storage,
   StorageO,
   Strings,
   StringsO,
+  Sync,
   TextReader,
   Texts;
 
@@ -201,6 +202,7 @@ CLASS CDriver( msghandler.MessageHandler );
   R             : Resources.CResources;
   RStatus       : TRStatus;
   Name          : ARRAY [0..63] OF WCHAR;
+  _Lock         : Sync.LOCK;
 
   CallbackId    : ADDRESS;
   CallbackProc  : drv_def.TDriverCallbackW;
@@ -225,6 +227,9 @@ CLASS CDriver( msghandler.MessageHandler );
   LOCAL PROCEDURE Init( RunMode : CARDINAL; VAR SymbolicName : ARRAY OF WCHAR; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW ) : BOOLEAN;
   LOCAL PROCEDURE ReadParameters( VAR ParFilePath, ErrorMessage : ARRAY OF WCHAR; VAR ErrorLine, ErrorColumn : CARDINAL; VAR HintOrHelp : ARRAY OF WCHAR ) : BOOLEAN;
   LOCAL PROCEDURE EnumerateChannels(  VAR EnumerateState : LONGWORD; VAR Type : CARDINAL; VAR Direction : CARDINAL; VAR DriverIndex : CARDINAL; VAR Count : CARDINAL; VAR HaveDescription : BOOLEAN ): BOOLEAN;
+
+  LOCAL PROCEDURE Lock();
+  LOCAL PROCEDURE Unlock();
 
   LOCAL PROCEDURE Run();
   LOCAL PROCEDURE Stop();
@@ -319,21 +324,27 @@ CLASS IMPLEMENTATION CServer;
 
   VIRTUAL PROCEDURE OnConnect( PConnection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
   BEGIN
+    Driver^.Lock();
     Driver^.OnConnect( PConnection, Local, Error );
+    Driver^.Unlock();
   END OnConnect;
 
 //--------------------------------------------------------------------------------
 
   VIRTUAL PROCEDURE OnDisconnect( PConnection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
   BEGIN
+    Driver^.Lock();
     Driver^.OnDisconnect( PConnection, Local, Error );
+    Driver^.Unlock();
   END OnDisconnect;
 
 //--------------------------------------------------------------------------------
 
   VIRTUAL PROCEDURE OnReceive( PConnection : netconndispatch.TConnectionHandle; PData : ADDRESS; DataLen : CARDINAL );
   BEGIN
+    Driver^.Lock();
     Driver^.OnReceive( PConnection, PData, DataLen );
+    Driver^.Unlock();
   END OnReceive;
 
 //--------------------------------------------------------------------------------
@@ -363,13 +374,13 @@ CLASS IMPLEMENTATION CDriver;
 
   LOCAL PROCEDURE Init( _RunMode : CARDINAL; VAR SymbolicName : ARRAY OF WCHAR; _CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW ) : BOOLEAN;
   BEGIN
-    SUPER.Init();
+    SUPER.Init( TRUE );
 
     CallbackId := _CallbackId;
     CallbackProc := PCallback;
     RunMode := _RunMode;
     ASSIGN( Name, SymbolicName );
-    Server.Init();
+    Server.Init( TRUE );
 
     RETURN TRUE;
   END Init;
@@ -669,6 +680,20 @@ CLASS IMPLEMENTATION CDriver;
     INC( EnumerateState );
     RETURN TRUE;
   END EnumerateChannels;
+
+//--------------------------------------------------------------------------------
+
+   LOCAL PROCEDURE Lock();
+   BEGIN
+      _Lock.Lock();
+   END Lock;
+
+//--------------------------------------------------------------------------------
+
+   LOCAL PROCEDURE Unlock();
+   BEGIN
+      _Lock.Unlock();
+   END Unlock;
 
 //--------------------------------------------------------------------------------
 
@@ -1832,6 +1857,7 @@ BEGIN
   RStatus := TRStatus{rsValid};
   RunMode := drv_def.drmEdit;
   Name := L'';
+  _Lock.Init( Sync.ltCS, L"", FALSE );
   CallbackId := NIL;
   CallbackProc := NIL;
   ListenAddress.Port := 6001;
@@ -1892,7 +1918,7 @@ VAR
   PDriver : TPDriver;
 BEGIN
   IF RefCount = 0 THEN
-    netinit.Startup();
+    scinit.Startup();
   END;
   INC( RefCount );
 
@@ -1908,7 +1934,7 @@ BEGIN
 
   DEC( RefCount );
   IF RefCount = 0 THEN
-    netinit.Cleanup();
+    scinit.Cleanup();
   END;
 END DisposeDriverW;
 
@@ -2102,21 +2128,27 @@ END SetBufferAddrW;
 
 PROCEDURE RunW( PData : ADDRESS );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.Run();
+  TPDriver( PData )^.Unlock();
 END RunW;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE StopW( PData : ADDRESS );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.Stop();
+  TPDriver( PData )^.Unlock();
 END StopW;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE DoneW( PData : ADDRESS );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.Done();
+  TPDriver( PData )^.Unlock();
 END DoneW;
 
 //--------------------------------------------------------------------------------
@@ -2143,49 +2175,69 @@ END QueryProcW;
 
 PROCEDURE QueryProc3( PData : ADDRESS; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.QueryProc( FALSE, InValue1, InValue2, OutValue );
+  TPDriver( PData )^.Unlock();
 END QueryProc3;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE QueryProc3W( PData : ADDRESS; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.QueryProc( TRUE, InValue1, InValue2, OutValue );
+  TPDriver( PData )^.Unlock();
 END QueryProc3W;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE InputRequestStartW( PData : ADDRESS );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.InputRequestStart();
+  TPDriver( PData )^.Unlock();
 END InputRequestStartW;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE InputRequestW( PData : ADDRESS; DriverIndex : CARDINAL );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.InputRequest( DriverIndex );
+  TPDriver( PData )^.Unlock();
 END InputRequestW;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE InputRequestCompletedW( PData : ADDRESS );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.InputRequestCompleted();
+  TPDriver( PData )^.Unlock();
 END InputRequestCompletedW;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE InputFinalizedW( PData : ADDRESS; DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
+VAR
+  b : BOOLEAN;
 BEGIN
-  RETURN TPDriver( PData )^.InputFinalized( DriverIndex, ErrorCode );
+  TPDriver( PData )^.Lock();
+  b := TPDriver( PData )^.InputFinalized( DriverIndex, ErrorCode );
+  TPDriver( PData )^.Unlock();
+  RETURN b;
 END InputFinalizedW;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE InputOOBDataQueryW( PData : ADDRESS; VAR EnumerateState : LONGWORD; VAR DriverIndex : CARDINAL ) : BOOLEAN;
+VAR
+  b : BOOLEAN;
 BEGIN
-  RETURN TPDriver( PData )^.InputOOBDataQuery( EnumerateState, DriverIndex );
+  TPDriver( PData )^.Lock();
+  b := TPDriver( PData )^.InputOOBDataQuery( EnumerateState, DriverIndex );
+  TPDriver( PData )^.Unlock();
+  RETURN b;
 END InputOOBDataQueryW;
 
 //--------------------------------------------------------------------------------
@@ -2201,7 +2253,9 @@ END GetInput;
 
 PROCEDURE GetInput3( PData : ADDRESS; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue; VAR QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp; VAR ErrorCode : CARDINAL );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.GetInput( FALSE, DriverIndex, InValue, QoS, TimeStamp, ErrorCode );
+  TPDriver( PData )^.Unlock();
 END GetInput3;
 
 PROCEDURE GetInputW( PData : ADDRESS; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue );
@@ -2215,14 +2269,18 @@ END GetInputW;
 
 PROCEDURE GetInput3W( PData : ADDRESS; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue; VAR QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp; VAR ErrorCode : CARDINAL );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.GetInput( TRUE, DriverIndex, InValue, QoS, TimeStamp, ErrorCode );
+  TPDriver( PData )^.Unlock();
 END GetInput3W;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE OutputRequestStartW( PData : ADDRESS );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.OutputRequestStart();
+  TPDriver( PData )^.Unlock();
 END OutputRequestStartW;
 
 //--------------------------------------------------------------------------------
@@ -2236,7 +2294,9 @@ END OutputRequest;
 
 PROCEDURE OutputRequest3( PData : ADDRESS; DriverIndex : CARDINAL; OutValue : drv_def.TValue; QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.OutputRequest( FALSE, DriverIndex, OutValue, QoS, TimeStamp );
+  TPDriver( PData )^.Unlock();
 END OutputRequest3;
 
 PROCEDURE OutputRequestW( PData : ADDRESS; DriverIndex : CARDINAL; OutValue : drv_def.TValue );
@@ -2248,21 +2308,30 @@ END OutputRequestW;
 
 PROCEDURE OutputRequest3W( PData : ADDRESS; DriverIndex : CARDINAL; OutValue : drv_def.TValue; QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.OutputRequest( TRUE, DriverIndex, OutValue, QoS, TimeStamp );
+  TPDriver( PData )^.Unlock();
 END OutputRequest3W;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE OutputRequestCompletedW( PData : ADDRESS );
 BEGIN
+  TPDriver( PData )^.Lock();
   TPDriver( PData )^.OutputRequestCompleted();
+  TPDriver( PData )^.Unlock();
 END OutputRequestCompletedW;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE OutputFinalizedW( PData : ADDRESS; DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
+VAR
+  b : BOOLEAN;
 BEGIN
-  RETURN TPDriver( PData )^.OutputFinalized( DriverIndex, ErrorCode );
+  TPDriver( PData )^.Lock();
+  b := TPDriver( PData )^.OutputFinalized( DriverIndex, ErrorCode );
+  TPDriver( PData )^.Unlock();
+  RETURN b;
 END OutputFinalizedW;
 
 //================================================================================

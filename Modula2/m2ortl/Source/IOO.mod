@@ -1,10 +1,15 @@
 IMPLEMENTATION MODULE IOO;
 
 FROM Storage IMPORT
-  ALLOCATE, DEALLOCATE, REALLOCATE, Move;
+   ALLOCATE, DEALLOCATE, REALLOCATE, Move;
   
 IMPORT
-  Storage;
+   Storage;
+  
+(*?*)  
+IMPORT
+   log,
+   windows;  
 
 (*================================================================================*)
 
@@ -868,7 +873,17 @@ CLASS IMPLEMENTATION CBufferedStream;
       END;
     END;
 
+
+(*?*)      
+IF Direction = dirWrite THEN
+   log.logger()^.LogSP( log.dlcError, L"", L"e START ", PTR( windows.GetCurrentThreadId()) );
+END;
+
     OperateDevice( Direction );
+
+IF Direction = dirWrite THEN
+   log.logger()^.LogSP( log.dlcError, L"", L"l START ", PTR( windows.GetCurrentThreadId()) );
+END;
 
     RETURN Result;
   END Start;
@@ -927,7 +942,19 @@ CLASS IMPLEMENTATION CBufferedStream;
   PUBLIC VIRTUAL PROCEDURE DeviceFinish( Direction : TDirection; Result : Sync.TAsyncResult );
   BEGIN
     IF Result IN Sync.arsCompletions THEN
+
+(*?*)      
+IF Direction = dirWrite THEN
+   log.logger()^.LogSCP( log.dlcError, L"", L"e DEV_FIN ", _WBuffer.Count, PTR( windows.GetCurrentThreadId()) );
+END;
+
       OperateDevice( Direction );
+
+(*?*)      
+IF Direction = dirWrite THEN
+   log.logger()^.LogSCP( log.dlcError, L"", L"l DEV_FIN ", _WBuffer.Count, PTR( windows.GetCurrentThreadId()) );
+END;
+
     ELSE
       // should this be so relaxed ???
       _RLock.ExchgPtr( REF _RPending, NIL );
@@ -1072,6 +1099,10 @@ CLASS IMPLEMENTATION CBufferedStream;
             ASSERT( WMode <> bmBypass );
             IF WMode = bmChunked THEN
                IF _WBuffer.Count >= WChunk THEN
+
+(*?*)      
+log.logger()^.LogSCP( log.dlcError, L"", L"STRM_IO ", _WBuffer.Count, PTR( windows.GetCurrentThreadId()) );
+
                   _Stream^.IO( dirWrite, ADR( _WProxy ), Sync.FOREVER, FALSE );
                END;
             ELSIF WMode = bmCache THEN

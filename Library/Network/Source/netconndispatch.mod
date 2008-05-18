@@ -1113,11 +1113,11 @@ CLASS IMPLEMENTATION CDispatcher;
    VAR
       MSG : msghandler.Message;
    BEGIN
-      CQueue.Init( 256, SIZE( TMessage ));
+      CQueue.Init( 128, SIZE( TMessage ));
       CQueue.Consumer := ADR( SELF );
       CQueue.Produce := Sync.CreateSignal( TRUE, L"" );
 
-      NQueue.Init( 256, SIZE( TMessage ));
+      NQueue.Init( 256, SIZE( TMessage )); // NQueue for network receiving must be longer than CQueue used for send -- to not to block channel over TCP window if communicating inside one host
       NQueue.Consumer := ADR( SELF );
       NQueue.Produce := Sync.CreateSignal( TRUE, L"" );
 

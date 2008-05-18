@@ -16,6 +16,10 @@ IMPORT
    windows,
    WS2TcpIp;
    
+(*?*)   
+IMPORT
+   log;
+   
 (*================================================================================*)
 
 INLINE PROCEDURE IN_ADDR4( CONST ai : inetaddr.INETADDR ) : winsock.Pin_addr;
@@ -506,10 +510,8 @@ CLASS IMPLEMENTATION SSocket;
       //-----
       | Sync.arCompleted :
          // network
-         IF Socket = winsock.INVALID_SOCKET THEN
-            Sync.Reset( _FDSignal );
-         ELSE
-            wsaResult := winsock.WSAEnumNetworkEvents( Socket, _FDSignal, ADR( NetworkEvents ));
+         IF Socket <> winsock.INVALID_SOCKET THEN
+            wsaResult := winsock.WSAEnumNetworkEvents( Socket, NIL, ADR( NetworkEvents ));
             IF ( wsaResult = 0 ) AND ( NetworkEvents.lNetworkEvents <> 0 ) THEN
                IF winsock.FD_ACCEPT_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
                   OnFD( winsock.FD_ACCEPT, poListen, NetworkEvents.iErrorCode[ winsock.FD_ACCEPT_BIT ] );
@@ -624,7 +626,7 @@ BEGIN
   _Notifier := NIL;
   _Pending := TPendingOperation{};
   _FDHandle := 0;
-  _FDSignal := Sync.CreateSignal( FALSE, L"" );
+  _FDSignal := Sync.CreateAutoresetSignal( FALSE, L"" );
   _FDSwitch.Init( 32, SIZE( TSwitchMessage ));
   _FDSwitch.Consume := _FDSignal;
   _HSignal := NIL;
@@ -1104,10 +1106,8 @@ CLASS IMPLEMENTATION DSocket;
       //-----
       | Sync.arCompleted :
          // network
-         IF Socket = winsock.INVALID_SOCKET THEN
-            Sync.Reset( _FDSignal );
-         ELSE
-            wsaResult := winsock.WSAEnumNetworkEvents( Socket, _FDSignal, ADR( NetworkEvents ));
+         IF Socket <> winsock.INVALID_SOCKET THEN
+            wsaResult := winsock.WSAEnumNetworkEvents( Socket, NIL, ADR( NetworkEvents ));
             IF ( wsaResult = 0 ) AND ( NetworkEvents.lNetworkEvents <> 0 ) THEN
                IF winsock.FD_ACCEPT_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
                   SUPER.OnFD( winsock.FD_ACCEPT, poListen, NetworkEvents.iErrorCode[ winsock.FD_ACCEPT_BIT ] );
@@ -1171,7 +1171,15 @@ CLASS IMPLEMENTATION DSocket;
             OnFlow( poReceive );
          | poSend :
             Sync.IExchgPtr( REF WPending, Writer );
+      
+(*?*)      
+log.logger()^.LogSP( log.dlcError, L"", L"e FD_INIT ", PTR( windows.GetCurrentThreadId()) );
+      
             OnFlow( poSend );
+      
+(*?*)      
+log.logger()^.LogSP( log.dlcError, L"", L"l FD_INIT ", PTR( windows.GetCurrentThreadId()) );
+      
          END; // CASE
 
       //-----
@@ -1223,8 +1231,16 @@ CLASS IMPLEMENTATION DSocket;
 
       //-----
       | winsock.FD_WRITE :
+      
+(*?*)      
+log.logger()^.LogSP( log.dlcError, L"", L"e FD_WRITE ", PTR( windows.GetCurrentThreadId()) );
+      
          OnFlow( poSend );
 
+      
+(*?*)      
+log.logger()^.LogSP( log.dlcError, L"", L"l FD_WRITE ", PTR( windows.GetCurrentThreadId()) );
+      
       //-----
       END; // CASE
    END OnFD;
@@ -1513,6 +1529,12 @@ CLASS IMPLEMENTATION DSocket;
       IF l = winsock.SOCKET_ERROR THEN // error for send/receive
         Result := winsock.WSAGetLastError();
         IF Result = winsock.WSAEWOULDBLOCK THEN
+
+(*?*)
+IF Operation = poSend THEN
+   log.logger()^.LogS( log.dlcError, L"", L"!!WLD_BLOCK " );
+END; 
+
           RETURN;
         END;
         AR := Sync.arAborted;
@@ -1573,6 +1595,10 @@ CLASS IMPLEMENTATION DSocket;
       IF ( Buffer <> NIL ) OR NOT Device THEN
         Buffer := Sync.IExchgPtr( REF Writer, NIL );
       END;
+      
+(*?*)      
+log.logger()^.LogS( log.dlcError, L"", L"COMP_FLW" );
+      
       SocketOperation := opSend;
     END;
     _Lock.Excl( REF _Pending, Operation );
