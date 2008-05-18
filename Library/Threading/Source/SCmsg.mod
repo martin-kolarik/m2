@@ -347,9 +347,9 @@ CLASS IMPLEMENTATION SCMessageHandler;
    BEGIN
       ASSERT( joinedTo <> NIL );
       IF SelfContext THEN
-         Signal := Sync.CreateSignal( FALSE, L"" );
-      ELSE  
          Signal := NIL;
+      ELSE  
+         Signal := Sync.CreateSignal( FALSE, L"" );
       END;
  
       NEW( parameter );
@@ -423,11 +423,13 @@ CLASS IMPLEMENTATION SCMessageHandler;
    VAR
       MSG : msghandler.Message;
    BEGIN
-      MSG.Source := ADR( SELF );
-      MSG.Target := ADR( SELF );
-      MSG.Message := msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_ONTIMER;
-      MSG.Parameter := UserId;
-      Message( MSG, OSALmsg.delAsynchronous, NIL ); // we are in pool thread here
+      IF Result = Sync.arCompleted THEN
+         MSG.Source := ADR( SELF );
+         MSG.Target := ADR( SELF );
+         MSG.Message := msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_ONTIMER;
+         MSG.Parameter := UserId;
+         Message( MSG, OSALmsg.delAsynchronous, NIL ); // we are in pool thread here
+      END;
    END OnTimeout;
 
 (*--------------------------------------------------------------------------------*)
