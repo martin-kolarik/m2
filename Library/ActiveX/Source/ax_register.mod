@@ -5,14 +5,13 @@ IMPLEMENTATION MODULE ax_register;
 
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
-FROM Registry IMPORT
-  CLASSES_ROOT, CRegistry;
 
 IMPORT
   oaidl,
   objbase,
   oleauto,
   olectl,
+  registry,
   windows,
   winerror;
 
@@ -79,7 +78,7 @@ VAR
   ProgIdCommon : ARRAY [0..255] OF WCHAR;
   ProgIdCurrent : ARRAY [0..255] OF WCHAR;
   ProgIdVersion : CARDINAL;
-  Registry : CRegistry;
+  Registry : registry.CRegistry;
 BEGIN
   IF ax_automation.GetClientConstructor() = NIL THEN
     RETURN olectl.SELFREG_E_CLASS;
@@ -99,7 +98,7 @@ BEGIN
   END;
 
 // create HKCR/CLSID/{clsidClassCWClusAdmExt}
-  IF NOT Registry.Open( L'', CLASSES_ROOT, keyCLSID ) THEN 
+  IF NOT Registry.Open( L'', registry.CLASSES_ROOT, keyCLSID ) THEN 
     RETURN olectl.SELFREG_E_CLASS;
   END;
   IF Registry.CreateSection( CLSID1 ) THEN
@@ -113,7 +112,7 @@ BEGIN
 // HKCR/CLSID/{clsidClassCWClusAdmExt}/InProcServer32,ProgId,VersionIndependentProgId,TypeLib,Programmable
   Strings.ConcatW( OUT Path, keyCLSID, L'\' );
   Strings.AppendW( REF Path, CLSID1 );
-  IF NOT Registry.Open( L'', CLASSES_ROOT, Path ) THEN
+  IF NOT Registry.Open( L'', registry.CLASSES_ROOT, Path ) THEN
     RETURN olectl.SELFREG_E_CLASS;
   END;
   // InProcServer32
@@ -162,7 +161,7 @@ BEGIN
 
 // cross reference entries
 // HKCR/ProgIdCommon/CLSID,CurVer and HKCR/nameProIdCurrent/CLSID 
-  IF NOT Registry.Open( L'', CLASSES_ROOT, L'' ) THEN 
+  IF NOT Registry.Open( L'', registry.CLASSES_ROOT, L'' ) THEN 
     RETURN olectl.SELFREG_E_CLASS;
   END;
   IF Registry.CreateSection( ProgIdCommon ) THEN 
@@ -171,7 +170,7 @@ BEGIN
   ELSE
     RETURN olectl.SELFREG_E_CLASS;
   END;
-  IF NOT Registry.Open( L'', CLASSES_ROOT, ProgIdCommon ) THEN
+  IF NOT Registry.Open( L'', registry.CLASSES_ROOT, ProgIdCommon ) THEN
     RETURN olectl.SELFREG_E_CLASS;
   END;
 
@@ -190,7 +189,7 @@ BEGIN
   END;
 
 // HKCR/ProgIdCurrent/CLSID
-  IF NOT Registry.Open( L'', CLASSES_ROOT, L'' ) THEN 
+  IF NOT Registry.Open( L'', registry.CLASSES_ROOT, L'' ) THEN 
     RETURN olectl.SELFREG_E_CLASS;
   END;
   IF Registry.CreateSection( ProgIdCurrent ) THEN 
@@ -199,7 +198,7 @@ BEGIN
   ELSE
     RETURN olectl.SELFREG_E_CLASS;
   END;
-  IF NOT Registry.Open( L'', CLASSES_ROOT, ProgIdCurrent ) THEN
+  IF NOT Registry.Open( L'', registry.CLASSES_ROOT, ProgIdCurrent ) THEN
     RETURN olectl.SELFREG_E_CLASS;
   END;
 
@@ -233,7 +232,7 @@ VAR
   ProgIdCommon : ARRAY [0..255] OF WCHAR;
   ProgIdCurrent : ARRAY [0..255] OF WCHAR;
   ProgIdVersion : CARDINAL;
-  Registry : CRegistry;
+  Registry : registry.CRegistry;
 BEGIN
   IF ax_automation.GetClientConstructor() = NIL THEN
     RETURN olectl.SELFREG_E_CLASS;
@@ -250,7 +249,7 @@ BEGIN
   END;
 
 // HKCR/CLSID/{clsidClassCWClusAdmExt}
-  IF NOT Registry.Open( L'', CLASSES_ROOT, keyCLSID ) THEN 
+  IF NOT Registry.Open( L'', registry.CLASSES_ROOT, keyCLSID ) THEN 
     RETURN olectl.SELFREG_E_CLASS;
   END;
   IF Registry.DeleteSection( CLSID1 ) THEN
@@ -260,7 +259,7 @@ BEGIN
   END;
 
 // HKCR/ProgIdCommon
-  IF NOT Registry.Open( L'', CLASSES_ROOT, L'' ) THEN 
+  IF NOT Registry.Open( L'', registry.CLASSES_ROOT, L'' ) THEN 
     RETURN olectl.SELFREG_E_CLASS;
   END;
   IF Registry.DeleteSection( ProgIdCommon ) THEN 
@@ -270,7 +269,7 @@ BEGIN
   END;
 
 // HKCR/ProgIdCurrent/CLSID
-  IF NOT Registry.Open( L'', CLASSES_ROOT, L'' ) THEN 
+  IF NOT Registry.Open( L'', registry.CLASSES_ROOT, L'' ) THEN 
     RETURN olectl.SELFREG_E_CLASS;
   END;
   IF Registry.DeleteSection( ProgIdCurrent ) THEN 

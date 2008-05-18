@@ -990,7 +990,7 @@ BEGIN
   UsesRunStop := FALSE;
   Driver.PActiveX := ADR( SELF );
   Messager.PActiveX := ADR( SELF );
-  Messager.Init(); 
+  Messager.Init( TRUE ); 
 END CDriverActiveX;
 
 (*===========================================================================*)
