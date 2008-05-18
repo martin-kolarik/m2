@@ -4,21 +4,20 @@
 
     <!-- 1 -->
     <PropertyGroup>
-        <ComponentType Condition="$(ComponentType)==''">Library</ComponentType>
-
-        <FileDescription>Core Library</FileDescription>
-
-        <Result>Dynamic</Result>
+        <FileDescription>Initialization for SCCore</FileDescription>
+        <FileVersionMajor>1</FileVersionMajor>
+        <FileVersionMinor>0</FileVersionMinor>
     </PropertyGroup>
 
     <!-- 2 INCLUDE DEFINITION -->
     <Import Project="..\..\Build\common.rootdir.proj"/>
     <Import Project="$(RootBuildDir)\common.definition.proj"/>
 
-    <!-- 3 COMPONENT DEFINITION -->
+    <!-- 3 COMPOMENT DEFINITION -->
     <ItemGroup>
-        <Components Include="modula2\m2rtl;modula2\m2ortl;library\ADT;library\COM;library\Resources;library\Registry;library\Text"/>
-        <Components Include="library\ciphering;library\threading;library\Network;library\Service;library\ClassLoader;component\scinit"/>
+        <Components Include="modula2\modula2;api\clib;API\win32"/>
+        <Components Include="library\threading;library\network"/>
+        <Modules Include="scinit"/>
     </ItemGroup>
 
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->

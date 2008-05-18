@@ -189,9 +189,14 @@ CLASS IMPLEMENTATION SCMsgQueueThread;
 BEGIN
    NEW( Support );
    Support^.Init( ADR( SELF ));
+
    Queue.Init( 2048, SIZE( msghandler.Message ));
    Queue.Consume := Sync.CreateAutoresetSignal( FALSE, L"" );
+   Queue.Produce := Sync.CreateSignal( TRUE, L"" );
 FINALLY
+   Sync.DeleteSignal( REF Queue.Consume );
+   Sync.DeleteSignal( REF Queue.Produce );
+
    Support^.Dispose();
    DISPOSE( Support );
 END SCMsgQueueThread;
@@ -203,18 +208,30 @@ VAR
 
 PROCEDURE SCGlobalMsgQueueThread() : POINTER TO OSALmsg.IMessageQueueThread;
 BEGIN
-   IF GMQT = NIL THEN
-      NEW( GMQT );
-      GMQT^.Run( TRUE );
-   END;
+   ASSERT( GMQT <> NIL );
    RETURN GMQT;
 END SCGlobalMsgQueueThread;
 
 (*---------------------------------------------------------------------------*)
 
-BEGIN FINALLY
+PROCEDURE Startup();
+BEGIN
+   IF GMQT = NIL THEN
+      NEW( GMQT );
+      GMQT^.Run( TRUE );
+   END;
+END Startup;
+
+(*---------------------------------------------------------------------------*)
+
+PROCEDURE Cleanup();
+BEGIN
    IF GMQT <> NIL THEN
       GMQT^.Stop( TRUE );
       DISPOSE( GMQT );
    END;
+END Cleanup;
+
+(*---------------------------------------------------------------------------*)
+
 END SCmsgqueuethread.

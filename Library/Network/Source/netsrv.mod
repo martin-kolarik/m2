@@ -518,9 +518,6 @@ CLASS IMPLEMENTATION CIPServer;
       ELSE
          PStreamCreator^.AddRef();
       END;
-      IF JoinedTo = NIL THEN
-         Init( TRUE );
-      END;
 
       NEW( Socket );
       Socket^.Type := Type;
@@ -566,9 +563,6 @@ CLASS IMPLEMENTATION CIPServer;
     Message : TMessage;
     Result : Sync.TAsyncResult;
   BEGIN
-    IF JoinedTo = NIL THEN
-      Init( TRUE );
-    END;
     Message.Command := cmForgetServer;
     Message.Server := LocalAddress;
     Message.Type := Type;
@@ -583,9 +577,6 @@ CLASS IMPLEMENTATION CIPServer;
     Message : TMessage;
     Result : Sync.TAsyncResult;
   BEGIN
-    IF JoinedTo = NIL THEN
-      Init( TRUE );
-    END;
     Message.Command := cmForgetSocket;
     Message.Socket := Socket;
     Result := MQueue.QueueOA( Message, TRUE, Sync.FORSAFETY );
@@ -642,13 +633,14 @@ END CIPServer;
 //================================================================================
 
 VAR
-  IPServer : CIPServer;
+  IPServer : POINTER TO CIPServer;
 
 PROCEDURE SetCallbackMode(
             Mode : TCallbackMode
           );
 BEGIN
-  IPServer.SetCallbackMode( Mode );
+   ASSERT( IPServer <> NIL );
+   IPServer^.SetCallbackMode( Mode );
 END SetCallbackMode;
 
 PROCEDURE StartListen(
@@ -660,23 +652,35 @@ PROCEDURE StartListen(
             PCreatedSocket : POINTER TO netsocket.TPSSocket // can be NIL
           ) : CARDINAL;
 BEGIN
-  RETURN IPServer.StartListen( Type, LocalAddress, PMulticastGroup, PStreamCreator, AutomaticCloseTimeMS, PCreatedSocket );
+   ASSERT( IPServer <> NIL );
+   RETURN IPServer^.StartListen( Type, LocalAddress, PMulticastGroup, PStreamCreator, AutomaticCloseTimeMS, PCreatedSocket );
 END StartListen;
 
 PROCEDURE StopListenServer( Type : netsocket.TSocketType; CONST LocalAddress : inetaddr.INETADDR );
 BEGIN
-  IPServer.StopListenServer( LocalAddress, Type );
+   ASSERT( IPServer <> NIL );
+   IPServer^.StopListenServer( LocalAddress, Type );
 END StopListenServer;
 
 PROCEDURE StopListenSocket( REF Socket : netsocket.TPSSocket );
 BEGIN
-  IPServer.StopListenSocket( Socket );
-  Socket := NIL;
+   ASSERT( IPServer <> NIL );
+   IPServer^.StopListenSocket( Socket );
+   Socket := NIL;
 END StopListenSocket;
+
+PROCEDURE Startup();
+BEGIN
+   IF IPServer = NIL THEN
+      NEW( IPServer )^.Init( TRUE );
+   END;
+END Startup;
 
 PROCEDURE Cleanup();
 BEGIN
-  IPServer.Dispose();
+   IF IPServer <> NIL THEN
+      DISPOSE( IPServer );
+   END;
 END Cleanup;
 
 //================================================================================

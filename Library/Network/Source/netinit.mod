@@ -21,6 +21,7 @@ BEGIN
   Result := CARDINAL( winsock.WSAStartup( RQVersion, ADR( WSAData )));
 
   netpool.Startup();
+  netsrv.Startup();
 
   RETURN Result;
 END Startup;
@@ -31,6 +32,7 @@ PROCEDURE Cleanup();
 BEGIN
   netsrv.Cleanup();
   netpool.Cleanup();
+
   winsock.WSACleanup();
 END Cleanup;
 

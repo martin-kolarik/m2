@@ -1,0 +1,10 @@
+DEFINITION MODULE scinit;
+
+(*# save, option( dll_export => on ) *)
+
+PROCEDURE Startup();
+PROCEDURE Cleanup();
+
+(*# restore *)
+
+END scinit.

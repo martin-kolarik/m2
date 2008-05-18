@@ -62,14 +62,14 @@ END CThreadPool;
 
 //--------------------------------------------------------------------------------
 // global, universal purpose thread pool
-// Startup, Cleanup SHOULD NOT BE CALLED automatically of from init code -- they can operate threads.
-// Call these functions from some higher code.
-
-PROCEDURE Startup();
-PROCEDURE Cleanup();
 
 PROCEDURE pool() : TPThreadPool;
 
 #restore
+
+// Startup, Cleanup SHOULD NOT BE CALLED automatically of from init code -- they can operate threads.
+// Procedures should not be called from the outside of the module, use threadinit instead.
+PROCEDURE Startup();
+PROCEDURE Cleanup();
 
 END threadpool.
