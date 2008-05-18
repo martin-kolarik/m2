@@ -212,6 +212,7 @@ CLASS IMPLEMENTATION CTest;
          Reader.DetectPrevious := TRUE;
          Reader.PrevCount := 0;
          Reader.Summa := 0;
+         Writer.Summa := 0;
 
          // start
          NetWriteStream.FromServer( L"127.0.0.1:4444" );
@@ -263,6 +264,7 @@ CLASS IMPLEMENTATION CTest;
          Reader.DetectPrevious := NOT BigBlock;
          Reader.PrevCount := 0;
          Reader.Summa := 0;
+         Writer.Summa := 0;
 
          // start
          NetWriteStream.FromServer( L"127.0.0.1:4444" );
@@ -308,7 +310,7 @@ CLASS IMPLEMENTATION CTest;
                ReadStream.Read( ADR( Reader ), windows.INFINITE, FALSE );
             END;
             IF BigBlock THEN
-               IF Reader.Summa < CARD64( lcount-1 ) * SIZE( bb ) THEN
+               IF Reader.Summa < CARD64( lcount ) * SIZE( bb ) THEN
                   sync.Sleep( 0 );
                ELSE
                   EXIT;
@@ -327,7 +329,7 @@ CLASS IMPLEMENTATION CTest;
 
          // check
          IF BigBlock THEN
-            IF CARD64( lcount - 1 ) * SIZE( bb ) <> Reader.Summa THEN
+            IF CARD64( lcount ) * SIZE( bb ) <> Reader.Summa THEN
                Failure := TRUE;
                Host^.StopPhaseWithResult( test.trFailure );
             ELSE

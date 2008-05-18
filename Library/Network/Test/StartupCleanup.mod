@@ -50,9 +50,9 @@ CLASS IMPLEMENTATION CTest;
 
 BEGIN
    IF ADR( TestStartup ) = ADR( SELF ) THEN
-      testimpl.tests()^.AddTest( L"aa::Network::Startup", ADR( TestStartup ));
+      testimpl.tests()^.AddTest( L"Network::Startup", ADR( TestStartup ));
    ELSE
-      testimpl.tests()^.AddTest( L"zz::Network::Cleanup", ADR( TestCleanup ));
+      testimpl.tests()^.AddTest( L"Network::Cleanup", ADR( TestCleanup ));
    END;
 END CTest;
 
