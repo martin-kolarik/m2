@@ -10,8 +10,8 @@ IMPORT
    sync,
    test,
    testimpl,
+   threadinit,
    threadpool,
-   threadpoolsink,
    windows;
   
 (*===========================================================================*)
@@ -24,7 +24,7 @@ TYPE
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CDelegate( threadpoolsink.APoolDelegate );
+CLASS CDelegate( threadpool.APoolDelegate );
    PUBLIC VAR
       Test : TPTest;
       CheckThread : BOOLEAN;
@@ -80,6 +80,7 @@ CLASS IMPLEMENTATION CTest;
    VAR
       Failure : BOOLEAN;
    BEGIN
+      threadinit.Startup();
       NEW( Pool );
    
       SELF.Host := Host;
@@ -90,6 +91,8 @@ CLASS IMPLEMENTATION CTest;
       Failure := Round( TRUE ) OR Failure;
 
       DISPOSE( Pool );
+      threadinit.Cleanup();
+
       IF Failure THEN
          RETURN test.trFailure;
       ELSE
@@ -240,6 +243,7 @@ CLASS IMPLEMENTATION CTest;
 
 BEGIN
    Pool := NIL;
+   Counts[0] := 0;
    testimpl.tests()^.AddTest( L"ThreadPool::Timeouts", ADR( Test ));
 END CTest;
 

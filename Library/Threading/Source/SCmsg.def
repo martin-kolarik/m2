@@ -8,8 +8,7 @@ FROM Storage IMPORT
 IMPORT
   maps,
   OSALmsg,
-  Sync,
-  threadpoolsink;
+  Sync;
   
 #save, option( dll_export => on )
 
@@ -51,10 +50,7 @@ CLASS SCMessage IMPLEMENTS OSALmsg.IMessage;
     :=( CONST MSG : SCMessage );
 END SCMessage;
 
-CLASS SCMessageHandler IMPLEMENTS OSALmsg.IMessageHandler, threadpoolsink.ITimeoutSink;
-  PRIVATE VAR
-    Timers : maps.CPtrMap;
-    PoolSink : threadpoolsink.CSinkDelegate;
+CLASS SCMessageHandler IMPLEMENTS OSALmsg.IMessageHandler;
   INTERNAL VAR
     joinedTo : OSALmsg.TPMessageQueueThread;
   PUBLIC VIRTUAL READONLY PROPERTY
@@ -64,7 +60,7 @@ CLASS SCMessageHandler IMPLEMENTS OSALmsg.IMessageHandler, threadpoolsink.ITimeo
   PUBLIC VIRTUAL READONLY PROPERTY JoinedTo : OSALmsg.TPMessageQueueThread;
 
   #save, option( leak_info => on )
-  PUBLIC PROCEDURE Init( AutomaticJoin : BOOLEAN ); // AutomaticJoin behaves defaultly: it creates HWND in Init, so it is caller thread
+  PUBLIC PROCEDURE Init( AutomaticJoin : BOOLEAN ); // AutomaticJoin defaultly calls OnJoin in thread
   PUBLIC PROCEDURE Dispose();
   #restore
 
@@ -72,21 +68,19 @@ CLASS SCMessageHandler IMPLEMENTS OSALmsg.IMessageHandler, threadpoolsink.ITimeo
   PUBLIC VIRTUAL PROCEDURE Message( CONST MSG : OSALmsg.IMessage; Delivery : OSALmsg.TDelivery; Result : PPTR ) : BOOLEAN;
   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : OSALmsg.IMessage; OUT Result : PTR ) : BOOLEAN;
 
-  INTERNAL VIRTUAL PROCEDURE StartTimer( Timer : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
-  INTERNAL VIRTUAL PROCEDURE TimerRunning( Timer : PTR ) : BOOLEAN;
-  INTERNAL VIRTUAL PROCEDURE StopTimer( Timer : PTR );
+  PUBLIC VIRTUAL PROCEDURE StartTimer( Timer : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
+  PUBLIC VIRTUAL PROCEDURE TimerRunning( Timer : PTR ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE StopTimer( Timer : PTR );
   INTERNAL VIRTUAL PROCEDURE OnTimer( Timer : PTR );
 
+  // called from joined IMessageQueueThread etc., do not call directly
   #save, option( leak_info => on )
   PUBLIC VIRTUAL PROCEDURE OnJoin( JoinedTo : OSALmsg.TPMessageQueueThread );
   PUBLIC VIRTUAL PROCEDURE OnLeave();
   #restore
   
-  PUBLIC VIRTUAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread );
-  PUBLIC VIRTUAL PROCEDURE LeaveMessageThread();
-
-  // ITimeoutSink
-  PUBLIC VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpoolsink.TPoolHandle; UserId : PTR );
+  PUBLIC VIRTUAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread; CallOnJoinInThread : BOOLEAN );
+  PUBLIC VIRTUAL PROCEDURE LeaveMessageThread( CallOnLeaveInThread : BOOLEAN );
 
   VIRTUAL FINALLY SCMessageHandler();
 END SCMessageHandler;

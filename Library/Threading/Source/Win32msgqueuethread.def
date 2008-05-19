@@ -33,13 +33,13 @@ CLASS Win32MsgQueueThread( Win32thread.Win32Thread ) IMPLEMENTS OSALmsg.IMessage
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Msg : OSALmsg.IMessage; OUT Result : PTR ) : BOOLEAN; // thread targetted messages
 
    // service of IMessageRecipient
-   PUBLIC VIRTUAL PROCEDURE Join( Recipient : OSALmsg.TPMessageRecipient );
-   PUBLIC VIRTUAL PROCEDURE Leave( Recipient : OSALmsg.TPMessageRecipient );
+   PUBLIC VIRTUAL PROCEDURE Join( Recipient : OSALmsg.TPMessageRecipient; CallOnJoinInThread : BOOLEAN );
+   PUBLIC VIRTUAL PROCEDURE Leave( Recipient : OSALmsg.TPMessageRecipient; CallOnLeaveInThread : BOOLEAN );
 
    // IMessageRecipient dummies
    PUBLIC FINAL READONLY PROPERTY JoinedTo : OSALmsg.TPMessageQueueThread;
-   PUBLIC FINAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread );
-   PUBLIC FINAL PROCEDURE LeaveMessageThread();
+   PUBLIC FINAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread; CallOnJoinInThread : BOOLEAN );
+   PUBLIC FINAL PROCEDURE LeaveMessageThread( CallOnLeaveInThread : BOOLEAN );
    PUBLIC FINAL PROCEDURE OnJoin( JoinedTo : OSALmsg.TPMessageQueueThread );
    PUBLIC FINAL PROCEDURE OnLeave();
 END Win32MsgQueueThread;

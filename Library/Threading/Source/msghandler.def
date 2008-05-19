@@ -23,6 +23,8 @@ CONST
 CONST
   RAW_MSG_BASE ::= SCmsg.SC_RAW_MSG_BASE; // for usage only inside this library
   MSG_BASE = SCmsg.SC_RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_SPACE;
+  MSG_ON_TIMER = SCmsg.SC_RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_ONTIMER;
+CONST
   Message ::= SCmsg.SCMessage;
   MessageHandler ::= SCmsg.SCMessageHandler;
 TYPE

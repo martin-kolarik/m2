@@ -11,9 +11,97 @@ IMPORT
   msghandler,
   SCmsgqueuethread,
   time,
-  TimeoutableQuadwordMap,
+  TimeoutableTwoPtrMap,
   windows;
   
+//================================================================================
+
+CLASS IMPLEMENTATION APoolDelegate;
+
+  PUBLIC VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+  BEGIN
+  END OnTimeout;
+
+  PUBLIC VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
+  BEGIN
+  END OnMessage;
+
+  PUBLIC VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+  BEGIN
+  END OnHandle;
+
+  PUBLIC VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+  BEGIN
+  END OnWorker;
+
+END APoolDelegate;
+
+//================================================================================
+
+CLASS IMPLEMENTATION CSinkDelegate;
+
+//---------------------------------------------------------------------------
+
+   PUBLIC FINAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+   BEGIN
+      IF TimeoutSink <> NIL THEN
+         TimeoutSink^.OnTimeout( Result, PoolHandle, UserId );
+      END;
+   END OnTimeout;
+
+//---------------------------------------------------------------------------
+
+   PUBLIC FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
+   BEGIN
+      IF MessageSink <> NIL THEN
+         MessageSink^.OnMessage( Result, PoolHandle, UserId, MSG );
+      END;
+   END OnMessage;
+
+//---------------------------------------------------------------------------
+
+   PUBLIC FINAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+   BEGIN
+      IF HandleSink <> NIL THEN
+         HandleSink^.OnHandle( Result, PoolHandle, UserId );
+      END;
+   END OnHandle;
+
+//---------------------------------------------------------------------------
+
+   PUBLIC FINAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+   BEGIN
+      IF WorkerSink <> NIL THEN
+         WorkerSink^.OnWorker( Result, PoolHandle, UserId );
+      END;
+   END OnWorker;
+
+//---------------------------------------------------------------------------
+
+BEGIN
+   TimeoutSink := NIL;
+   MessageSink := NIL;
+   HandleSink := NIL;
+   WorkerSink := NIL;
+END CSinkDelegate;
+
+//================================================================================
+
+CLASS IMPLEMENTATION CMessageHandlerDelegate;
+
+   PUBLIC FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
+   BEGIN
+      IF Handler = NIL THEN
+        RETURN;
+      ELSIF Result = Sync.arCompleted THEN
+        Handler^.Message( MSG, Delivery, NIL );
+      END;
+   END OnMessage;
+  
+BEGIN
+   Handler := NIL;
+END CMessageHandlerDelegate;
+
 //================================================================================
 
 CLASS IMPLEMENTATION APoolWorker;
@@ -58,7 +146,7 @@ TYPE
 CLASS CPoolThread( SCmsgqueuethread.SCMsgQueueThread );
   PRIVATE VAR
     Pool : TPThreadPool;
-    HTasks : TimeoutablePtrMap.CTimeoutableQuadwordMap; // CTask.Handle/PTask
+    HTasks : TimeoutableTwoPtrMap.CTimeoutableTwoPtrMap; // CTask.Handle/PTask
     Handles : maps.CPtrMap; // CTask.Data/PPtrList
     Messages : maps.CPtrMap; // CTask.Data/PTask
     Workers : lists.CPtrList; // CTask.Data/PTask
@@ -171,11 +259,10 @@ CLASS IMPLEMENTATION CPoolThread;
          CheckEmpty : BOOLEAN := FALSE;
          disposable : BOOLEAN;
          Handle : TPoolHandle;
-         QHandle : QUADWORD;
+         Key2 : PTR;
          Task : TPTask;
       BEGIN
-         WHILE HTasks.GetFirstElapsed( CurrentTime, FALSE, OUT QHandle, OUT Task ) DO
-            Handle := TPoolHandle( QHandle );
+         WHILE HTasks.GetFirstElapsed( CurrentTime, FALSE, OUT Handle, OUT Key2,  OUT Task ) DO
             CASE Task^.Task OF
             | tskTimeoutOnce :
                Completed( Sync.arCompleted, Task, NIL, TRUE, TRUE, OUT disposable );
@@ -211,7 +298,7 @@ CLASS IMPLEMENTATION CPoolThread;
                AddTask( CurrentTime, Message.Task );
             //---
             | topRemoveTask :
-               IF HTasks.Get( QUADWORD( Message.HTask ), OUT Task ) THEN
+               IF HTasks.Get( Message.HTask, 0, OUT Task ) THEN
                   RemoveTask( Sync.arAborted, Task );
                   CheckEmpty := TRUE;
                END;
@@ -390,7 +477,7 @@ CLASS IMPLEMENTATION CPoolThread;
   VAR
     HandleList : lists.TPPtrList;
   BEGIN
-    HTasks.Add( CurrentTime, QUADWORD( Task^.Handle ), Task, Task^.Timeout );
+    HTasks.Add( CurrentTime, Task^.Handle, 0, Task, Task^.Timeout );
     CASE Task^.Task OF
     | tskTimeoutOnce, tskTimeoutRepeated :
       // do nothing
@@ -453,7 +540,7 @@ CLASS IMPLEMENTATION CPoolThread;
     MSG : msghandler.Message;
   BEGIN
     IF RemoveTask THEN
-      HTasks.Remove( QUADWORD( Task^.Handle ));
+      HTasks.Remove( Task^.Handle, 0 );
       Sync.IDec( REF TasksCount );
     ELSE
       DisposeTask := FALSE; // for safety
@@ -470,8 +557,10 @@ CLASS IMPLEMENTATION CPoolThread;
 
     IF DisposeTask AND Disposable THEN
       DISPOSE( Task );
+      CanBeDisposed := FALSE;
+    ELSE
+      CanBeDisposed := Disposable;
     END;
-    CanBeDisposed := Disposable;
   END Completed;
 
 //--------------------------------------------------------------------------------
@@ -495,7 +584,7 @@ CLASS IMPLEMENTATION CPoolThread;
   FINALLY CPoolThread();
   VAR
     disposable : BOOLEAN;
-    QKey : QUADWORD;
+    Key1, Key2 : PTR;
     Task : TPTask;
   BEGIN
     Sync.DeleteSignal( REF ReqQueue.Produce );
@@ -516,7 +605,7 @@ CLASS IMPLEMENTATION CPoolThread;
       Completed( Sync.arAborted, Workers.CurrentData, NIL, TRUE, TRUE, OUT disposable );
       TPPoolWorker( Workers.Current )^.Release();
     END; // WHILE
-    WHILE HTasks.GetFirstElapsed( time.UptimeMS(), FALSE, OUT QKey, OUT Task ) DO
+    WHILE HTasks.GetFirstElapsed( time.UptimeMS(), FALSE, OUT Key1, OUT Key2, OUT Task ) DO
       Completed( Sync.arAborted, Task, NIL, TRUE, TRUE, OUT disposable );
     END; // WHILE
   END CPoolThread;

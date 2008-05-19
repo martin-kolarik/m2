@@ -10,8 +10,8 @@ IMPORT
    sync,
    test,
    testimpl,
+   threadinit,
    threadpool,
-   threadpoolsink,
    windows;
   
 (*===========================================================================*)
@@ -24,12 +24,12 @@ TYPE
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CDelegate( threadpoolsink.APoolDelegate );
+CLASS CDelegate( threadpool.APoolDelegate );
    PUBLIC VAR
       Test : TPTest;
       CheckThread : BOOLEAN;
 
-   PUBLIC VIRTUAL PROCEDURE OnMessage( Result : sync.TAsyncResult; PoolHandle : threadpoolsink.TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
+   PUBLIC VIRTUAL PROCEDURE OnMessage( Result : sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
 END CDelegate;
   
 (*---------------------------------------------------------------------------*)
@@ -57,7 +57,7 @@ CLASS IMPLEMENTATION CDelegate;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnMessage( Result : sync.TAsyncResult; PoolHandle : threadpoolsink.TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
+   PUBLIC VIRTUAL PROCEDURE OnMessage( Result : sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
    BEGIN
       IF CheckThread AND NOT msgqueuethread.global()^.SelfContext THEN
          Test^.Host^.Log^.LogS( log.dlcError, L"", L"Completion in unexpected thread" );   
@@ -82,6 +82,7 @@ CLASS IMPLEMENTATION CTest;
    VAR
       Failure : BOOLEAN;
    BEGIN
+      threadinit.Startup();
       NEW( Pool );
    
       SELF.Host := Host;
@@ -91,7 +92,10 @@ CLASS IMPLEMENTATION CTest;
 
       Failure := Round( TRUE ) OR Failure;
 
+      windows.Sleep( 1000 );
       DISPOSE( Pool );
+      threadinit.Cleanup();
+      
       IF Failure THEN
          RETURN test.trFailure;
       ELSE

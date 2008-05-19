@@ -1,4 +1,4 @@
-IMPLEMENTATION MODULE TimeoutablePtrMap;
+IMPLEMENTATION MODULE TimeoutableTwoPtrMap;
 
 IMPORT
    Sync;
@@ -10,7 +10,7 @@ TYPE
 
 CLASS CTimeoutableItem( avltree.CAVLTreeElem2 );
   PUBLIC VAR
-    Key : QUADWORD;
+    Key1, Key2 : PTR;
     Data : PTR;
     ElapsesOn : CARD64;
 
@@ -29,9 +29,13 @@ CLASS IMPLEMENTATION CTimeoutableItem;
   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
   BEGIN
     IF i = 0 THEN
-      IF Key < TPTimeoutableItem( pelem )^.Key THEN
+      IF Key1 < TPTimeoutableItem( pelem )^.Key1 THEN
         RETURN -1;
-      ELSIF Key > TPTimeoutableItem( pelem )^.Key THEN
+      ELSIF Key1 > TPTimeoutableItem( pelem )^.Key1 THEN
+        RETURN 1;
+      ELSIF Key2 < TPTimeoutableItem( pelem )^.Key2 THEN
+        RETURN -1;
+      ELSIF Key2 > TPTimeoutableItem( pelem )^.Key2 THEN
         RETURN 1;
       ELSE
         RETURN 0;
@@ -68,56 +72,69 @@ CLASS IMPLEMENTATION CTimeoutableItem;
 //--------------------------------------------------------------------------------
 
 BEGIN
-  Key := 0;
+  Key1 := 0;
+  Key2 := 0;
   Data := 0;
   ElapsesOn := 0;
 END CTimeoutableItem;
 
 //================================================================================
 
-CLASS IMPLEMENTATION CTimeoutableQuadwordMap;
+CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC READONLY PROPERTY CTimeoutableQuadwordMap.Current GET : QUADWORD;
+   PUBLIC READONLY PROPERTY CTimeoutableTwoPtrMap.Current1 GET : PTR;
    BEGIN
       IF _Current = -1 THEN
          RETURN 0;
       ELSE
-         RETURN TPTimeoutableItem( _Current )^.Key;
+         RETURN TPTimeoutableItem( _Current )^.Key1;
       END;
-   END CTimeoutableQuadwordMap.Current;
+   END CTimeoutableTwoPtrMap.Current1;
 
 //---------------------------------------------------------------------------
 
-   PUBLIC READONLY PROPERTY CTimeoutableQuadwordMap.CurrentData GET : PTR;
+   PUBLIC READONLY PROPERTY CTimeoutableTwoPtrMap.Current2 GET : PTR;
+   BEGIN
+      IF _Current = -1 THEN
+         RETURN 0;
+      ELSE
+         RETURN TPTimeoutableItem( _Current )^.Key2;
+      END;
+   END CTimeoutableTwoPtrMap.Current2;
+
+//---------------------------------------------------------------------------
+
+   PUBLIC READONLY PROPERTY CTimeoutableTwoPtrMap.CurrentData GET : PTR;
    BEGIN
       IF _Current = -1 THEN
          RETURN NIL;
       ELSE
          RETURN TPTimeoutableItem( _Current )^.Data;
       END;
-   END CTimeoutableQuadwordMap.CurrentData;
+   END CTimeoutableTwoPtrMap.CurrentData;
 
 //---------------------------------------------------------------------------
 
-   PUBLIC PROPERTY CTimeoutableQuadwordMap.CurrentData SET( Data : PTR );
+   PUBLIC PROPERTY CTimeoutableTwoPtrMap.CurrentData SET( Data : PTR );
    BEGIN
       IF _Current = -1 THEN
          RETURN;
       ELSE
          TPTimeoutableItem( _Current )^.Data := Data;
       END;
-   END CTimeoutableQuadwordMap.CurrentData;
+   END CTimeoutableTwoPtrMap.CurrentData;
 
 //---------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE Add( CurrentTime : CARDINAL; Key : QUADWORD; Data : PTR; Timeout : CARDINAL );
+   PUBLIC PROCEDURE Add( CurrentTime : CARDINAL; Key1, Key2 : PTR; Data : PTR; Timeout : CARDINAL );
    VAR
       PI : TPTimeoutableItem;
    BEGIN
       NEW( PI );
-      PI^.Key := Key;
+      PI^.Key1 := Key1;
+      PI^.Key2 := Key2;
       PI^.Data := Data;
       IF Timeout = Sync.FOREVER THEN
          PI^.ElapsesOn := CARD64( Sync.FOREVER ) << 32 OR CARD64( Counter );
@@ -132,32 +149,35 @@ CLASS IMPLEMENTATION CTimeoutableQuadwordMap;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE Remove( Key : QUADWORD );
+   PUBLIC PROCEDURE Remove( Key1, Key2 : PTR );
    VAR
       I : CTimeoutableItem;
    BEGIN
-      I.Key := Key;
+      I.Key1 := Key1;
+      I.Key2 := Key2;
       Delete( ADR( I ));
    END Remove;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE Contains( Key : QUADWORD ) : BOOLEAN;
+   PUBLIC PROCEDURE Contains( Key1, Key2 : PTR ) : BOOLEAN;
    VAR
       I : CTimeoutableItem;
    BEGIN
-      I.Key := Key;
+      I.Key1 := Key1;
+      I.Key2 := Key2;
       RETURN SUPER.Contains( ADR( I ));
    END Contains;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE Get( Key : QUADWORD; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Get( Key1, Key2 : PTR; OUT Data : PTR ) : BOOLEAN;
    VAR
       I : CTimeoutableItem;
       PI : TPTimeoutableItem;
    BEGIN
-      I.Key := Key;
+      I.Key1 := Key1;
+      I.Key2 := Key2;
       IF NOT Search( ADR( I ), OUT PI ) THEN
          RETURN FALSE;
       END;
@@ -167,14 +187,15 @@ CLASS IMPLEMENTATION CTimeoutableQuadwordMap;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE ElementByKeyAt( Index : CARDINAL; OUT Key : QUADWORD; OUT Data : PTR ) : BOOLEAN; // similar as []
+   PUBLIC PROCEDURE ElementByKeyAt( Index : CARDINAL; OUT Key1, Key2 : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
    VAR
       PI : TPTimeoutableItem;
    BEGIN
       IF NOT OfIndexI( 0, Index, OUT PI ) THEN
          RETURN FALSE;
       ELSE
-         Key := PI^.Key;
+         Key1 := PI^.Key1;
+         Key2 := PI^.Key2;
          Data := PI^.Data;
       END;
       RETURN TRUE;
@@ -182,14 +203,15 @@ CLASS IMPLEMENTATION CTimeoutableQuadwordMap;
   
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE ElementByTimeoutAt( Index : CARDINAL; OUT Key : QUADWORD; OUT Data : PTR ) : BOOLEAN; // similar as []
+   PUBLIC PROCEDURE ElementByTimeoutAt( Index : CARDINAL; OUT Key1, Key2 : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
    VAR
       PI : TPTimeoutableItem;
    BEGIN
       IF NOT OfIndexI( 1, Index, OUT PI ) THEN
          RETURN FALSE;
       ELSE
-         Key := PI^.Key;
+         Key1 := PI^.Key1;
+         Key2 := PI^.Key2;
          Data := PI^.Data;
       END;
       RETURN TRUE;
@@ -199,11 +221,11 @@ CLASS IMPLEMENTATION CTimeoutableQuadwordMap;
 
    PUBLIC PROCEDURE GetTimeoutToFirstElapsed( CurrentTime : CARDINAL ) : CARDINAL;
    VAR
-      Key : QUADWORD;
+      Key1, Key2 : PTR;
       Data : PTR;
       Timeout : CARDINAL;
    BEGIN
-      IF GetFirstWithTimeout( CurrentTime, OUT Key, OUT Data, OUT Timeout ) THEN
+      IF GetFirstWithTimeout( CurrentTime, OUT Key1, OUT Key2, OUT Data, OUT Timeout ) THEN
          RETURN Timeout;
       ELSE
          RETURN Sync.FOREVER;
@@ -212,21 +234,21 @@ CLASS IMPLEMENTATION CTimeoutableQuadwordMap;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE GetFirstElapsed( CurrentTime : CARDINAL; RemoveKey : BOOLEAN; OUT Key : QUADWORD; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE GetFirstElapsed( CurrentTime : CARDINAL; RemoveKey : BOOLEAN; OUT Key1, Key2 : PTR; OUT Data : PTR ) : BOOLEAN;
    VAR
       Timeout : CARDINAL;
    BEGIN
-      IF NOT GetFirstWithTimeout( CurrentTime, OUT Key, OUT Data, OUT Timeout ) OR ( Timeout > 0 ) THEN
+      IF NOT GetFirstWithTimeout( CurrentTime, OUT Key1, OUT Key2, OUT Data, OUT Timeout ) OR ( Timeout > 0 ) THEN
          RETURN FALSE;
       ELSIF RemoveKey THEN
-         Remove( Key );
+         Remove( Key1, Key2 );
       END;
       RETURN TRUE;
    END GetFirstElapsed;
 
 //--------------------------------------------------------------------------------
 
-   PRIVATE PROCEDURE GetFirstWithTimeout( CurrentTime : CARDINAL; OUT Key : QUADWORD; OUT Data : PTR; OUT Timeout : CARDINAL ) : BOOLEAN;
+   PRIVATE PROCEDURE GetFirstWithTimeout( CurrentTime : CARDINAL; OUT Key1, Key2 : PTR; OUT Data : PTR; OUT Timeout : CARDINAL ) : BOOLEAN;
    VAR
       ElapsesOn : CARDINAL;
       TI : TPTimeoutableItem;
@@ -238,7 +260,8 @@ CLASS IMPLEMENTATION CTimeoutableQuadwordMap;
       IF ElapsesOn = Sync.FOREVER THEN
          RETURN FALSE;
       END;
-      Key := TI^.Key;
+      Key1 := TI^.Key1;
+      Key2 := TI^.Key2;
       Data := TI^.Data;
       IF ElapsesOn <= CurrentTime THEN
          Timeout := 0;
@@ -253,8 +276,8 @@ CLASS IMPLEMENTATION CTimeoutableQuadwordMap;
 BEGIN
   Counter := 0;
   Indexes := 2;
-END CTimeoutableQuadwordMap;
+END CTimeoutableTwoPtrMap;
 
 //================================================================================
 
-END TimeoutablePtrMap.
+END TimeoutableTwoPtrMap.

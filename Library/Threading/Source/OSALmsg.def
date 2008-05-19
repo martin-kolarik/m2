@@ -56,8 +56,8 @@ INTERFACE IMessageRecipient;
   PUBLIC ABSTRACT PROCEDURE Message( CONST MSG : IMessage; Delivery : TDelivery; Result : PPTR ) : BOOLEAN;
   INTERNAL ABSTRACT PROCEDURE OnMessage( CONST MSG : IMessage; OUT Result : PTR ) : BOOLEAN;
   
-  PUBLIC ABSTRACT PROCEDURE JoinMessageThread( JoinTo : TPMessageQueueThread );
-  PUBLIC ABSTRACT PROCEDURE LeaveMessageThread();
+  PUBLIC ABSTRACT PROCEDURE JoinMessageThread( JoinTo : TPMessageQueueThread; CallOnJoinInThread : BOOLEAN );
+  PUBLIC ABSTRACT PROCEDURE LeaveMessageThread( CallOnLeaveInThread : BOOLEAN );
 
   // do not call directly, leave system to call them
   PUBLIC ABSTRACT PROCEDURE OnJoin( JoinedTo : TPMessageQueueThread );
@@ -70,9 +70,9 @@ INTERFACE IMessageHandler( IMessageRecipient );
   PUBLIC ABSTRACT READONLY PROPERTY
     Handle : PTR;
 
-  INTERNAL ABSTRACT PROCEDURE StartTimer( Timer : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
-  INTERNAL ABSTRACT PROCEDURE TimerRunning( Timer : PTR ) : BOOLEAN;
-  INTERNAL ABSTRACT PROCEDURE StopTimer( Timer : PTR );
+  PUBLIC ABSTRACT PROCEDURE StartTimer( Timer : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
+  PUBLIC ABSTRACT PROCEDURE TimerRunning( Timer : PTR ) : BOOLEAN;
+  PUBLIC ABSTRACT PROCEDURE StopTimer( Timer : PTR );
   INTERNAL ABSTRACT PROCEDURE OnTimer( Timer : PTR );
 END IMessageHandler;
 
@@ -102,8 +102,8 @@ INTERFACE IMessageQueueThread( IMessageRecipient );
    INTERNAL PROCEDURE MessageToRecipient( CONST Msg : PTR; OUT Recipient : TPMessageRecipient ) : BOOLEAN;
    
    // called from Recipient's join/leave, do not call directly
-   PUBLIC PROCEDURE Join( Recipient : TPMessageRecipient );
-   PUBLIC PROCEDURE Leave( Recipient : TPMessageRecipient );
+   PUBLIC PROCEDURE Join( Recipient : TPMessageRecipient; CallOnJoinInThread : BOOLEAN );
+   PUBLIC PROCEDURE Leave( Recipient : TPMessageRecipient; CallOnLeaveInThread : BOOLEAN );
 END IMessageQueueThread;
 
 (*===========================================================================*)

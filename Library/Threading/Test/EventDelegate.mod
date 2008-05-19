@@ -9,7 +9,7 @@ IMPORT
    sync,
    test,
    testimpl,
-   threadpoolsink,
+   threadinit,
    threadpool,
    windows;
   
@@ -23,12 +23,12 @@ TYPE
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CDelegate( threadpoolsink.APoolDelegate );
+CLASS CDelegate( threadpool.APoolDelegate );
    PUBLIC VAR
       Test : TPTest;
       CheckThread : BOOLEAN;
 
-   PUBLIC VIRTUAL PROCEDURE OnHandle( Result : sync.TAsyncResult; PoolHandle : threadpoolsink.TPoolHandle; UserId : PTR );
+   PUBLIC VIRTUAL PROCEDURE OnHandle( Result : sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
 END CDelegate;
   
 (*---------------------------------------------------------------------------*)
@@ -84,6 +84,7 @@ CLASS IMPLEMENTATION CTest;
       i : CARDINAL;
       PH : ARRAY [0..10*count-1] OF windows.HANDLE;
    BEGIN
+      threadinit.Startup();
       NEW( Pool );
 
       PH[0] := NIL;
@@ -105,6 +106,8 @@ CLASS IMPLEMENTATION CTest;
       END; // FOR
    
       DISPOSE( Pool );
+      threadinit.Cleanup();
+
       IF Failure THEN
          RETURN test.trFailure;
       ELSE

@@ -62,9 +62,9 @@ CLASS Win32MessageHandler IMPLEMENTS OSALmsg.IMessageHandler;
   PUBLIC VIRTUAL PROCEDURE Message( CONST MSG : OSALmsg.IMessage; Delivery : OSALmsg.TDelivery; Result : PPTR ) : BOOLEAN;
   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : OSALmsg.IMessage; OUT Result : PTR ) : BOOLEAN;
 
-  INTERNAL VIRTUAL PROCEDURE StartTimer( Timer : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
-  INTERNAL VIRTUAL PROCEDURE TimerRunning( Timer : PTR ) : BOOLEAN;
-  INTERNAL VIRTUAL PROCEDURE StopTimer( Timer : PTR );
+  PUBLIC VIRTUAL PROCEDURE StartTimer( Timer : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
+  PUBLIC VIRTUAL PROCEDURE TimerRunning( Timer : PTR ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE StopTimer( Timer : PTR );
   INTERNAL VIRTUAL PROCEDURE OnTimer( Timer : PTR );
 
   #save, option( leak_info => on )
@@ -72,8 +72,8 @@ CLASS Win32MessageHandler IMPLEMENTS OSALmsg.IMessageHandler;
   PUBLIC VIRTUAL PROCEDURE OnLeave();
   #restore
   
-  PUBLIC VIRTUAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread );
-  PUBLIC VIRTUAL PROCEDURE LeaveMessageThread();
+  PUBLIC VIRTUAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread; CallOnJoinInThread : BOOLEAN );
+  PUBLIC VIRTUAL PROCEDURE LeaveMessageThread( CallOnLeaveInThread : BOOLEAN );
 
   VIRTUAL FINALLY Win32MessageHandler();
 END Win32MessageHandler;

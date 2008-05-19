@@ -34,7 +34,7 @@ TYPE
   
 (*===========================================================================*)
 
-CLASS CDispatcher IMPLEMENTS threadpoolsink.IWorkerSink;
+CLASS CDispatcher IMPLEMENTS threadpool.IWorkerSink;
    PUBLIC VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
 END CDispatcher;
 
@@ -70,7 +70,7 @@ END CAddressToNameRequest;
 (*---------------------------------------------------------------------------*)
 
 VAR
-   SinkDelegate : threadpoolsink.CSinkDelegate;
+   SinkDelegate : threadpool.CSinkDelegate;
    Dispatcher : CDispatcher;
 
 (*===========================================================================*)

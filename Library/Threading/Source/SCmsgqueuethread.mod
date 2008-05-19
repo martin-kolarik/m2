@@ -9,6 +9,7 @@ IMPORT
    msghandler,
    SCmsg,
    Sync,
+   time,
    windows;
 
 (*===========================================================================*)
@@ -21,17 +22,22 @@ CLASS IMPLEMENTATION SCMsgQueueThread;
    CONST
       waitHandles = 2;
    VAR
-      WaitHandles : ARRAY [0..1] OF Sync.WAITABLE;
+      CurrentTime : CARDINAL;
       Msg : SCmsg.SCMessage;
       Target : OSALmsg.TPMessageRecipient;
+      Timeout : CARDINAL;
+      Timer : PTR;
       Status : CARDINAL;
+      WaitHandles : ARRAY [0..1] OF Sync.WAITABLE;
    BEGIN
       WaitHandles[0] := _HExit;
       WaitHandles[1] := Queue.Consume;
    
       OnStart();
       LOOP
-         Status := windows.WaitForMultipleObjectsEx( waitHandles, ADR( WaitHandles ), windows.False, windows.INFINITE, windows.True );
+         Timeout := Support^.GetTimeoutToFirstElapsed( time.UptimeMS());
+         Status := windows.WaitForMultipleObjectsEx( waitHandles, ADR( WaitHandles ), windows.False, Timeout, windows.True );
+
          CASE Status OF
          //-----
          | CARDINAL( windows.WAIT_FAILED ), windows.WAIT_ABANDONED : // some handle failed, this MUST not occur
@@ -64,6 +70,19 @@ CLASS IMPLEMENTATION SCMsgQueueThread;
          | windows.WAIT_IO_COMPLETION :
 
          //-----
+         | windows.WAIT_TIMEOUT :
+            CurrentTime := time.UptimeMS();
+            WHILE Support^.GetFirstElapsed( CurrentTime, OUT Target, OUT Timer ) DO
+               
+               Msg.Source := ADR( SELF );
+               Msg.Target := Target;
+               Msg.Message := msghandler.MSG_ON_TIMER;
+               Msg.Parameter := Timer;
+               Target^.Message( Msg, msghandler.delSynchronous, NIL );
+
+            END; // WHILE
+
+         //-----         
          END; // CASE
       END; // LOOP
    END OnRun;
@@ -136,36 +155,35 @@ CLASS IMPLEMENTATION SCMsgQueueThread;
 
 (*---------------------------------------------------------------------------*)
   
-   PUBLIC VIRTUAL PROCEDURE Join( Recipient : OSALmsg.TPMessageRecipient );
+   PUBLIC VIRTUAL PROCEDURE Join( Recipient : OSALmsg.TPMessageRecipient; CallOnJoinInThread : BOOLEAN );
    BEGIN
-      Support^.Join( Recipient );
+      Support^.Join( Recipient, CallOnJoinInThread );
    END Join;
 
 (*---------------------------------------------------------------------------*)
   
-   PUBLIC VIRTUAL PROCEDURE Leave( Recipient : OSALmsg.TPMessageRecipient );
+   PUBLIC VIRTUAL PROCEDURE Leave( Recipient : OSALmsg.TPMessageRecipient; CallOnLeaveInThread : BOOLEAN );
    BEGIN
-      Support^.Leave( Recipient );
+      Support^.Leave( Recipient, CallOnLeaveInThread );
    END Leave;
 
 (*---------------------------------------------------------------------------*)
   
    PUBLIC FINAL PROPERTY JoinedTo GET : OSALmsg.TPMessageQueueThread;
    BEGIN
-      ASSERT( FALSE );
-      RETURN NIL;
+      RETURN ADR( SELF );
    END JoinedTo;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread );
+   PUBLIC FINAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread; CallOnJoinInThread : BOOLEAN );
    BEGIN
       ASSERT( FALSE );
    END JoinMessageThread;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROCEDURE LeaveMessageThread();
+   PUBLIC FINAL PROCEDURE LeaveMessageThread( CallOnLeaveInThread : BOOLEAN );
    BEGIN
       ASSERT( FALSE );
    END LeaveMessageThread;
@@ -183,6 +201,27 @@ CLASS IMPLEMENTATION SCMsgQueueThread;
    BEGIN
       ASSERT( FALSE );
    END OnLeave;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE StartTimer( Recipient : OSALmsg.TPMessageRecipient; TimerId : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
+   BEGIN
+      Support^.StartTimer( Recipient, TimerId, PeriodMS, Repeat );
+   END StartTimer;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE StopTimer( Recipient : OSALmsg.TPMessageRecipient; TimerId : PTR );
+   BEGIN
+      Support^.StopTimer( Recipient, TimerId );
+   END StopTimer;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE TimerRunning( Recipient : OSALmsg.TPMessageRecipient; TimerId : PTR ) : BOOLEAN;
+   BEGIN
+      RETURN Support^.TimerRunning( Recipient, TimerId );
+   END TimerRunning;
 
 (*---------------------------------------------------------------------------*)
 
@@ -232,6 +271,6 @@ BEGIN
    END;
 END Cleanup;
 
-(*---------------------------------------------------------------------------*)
+(*===========================================================================*)
 
 END SCmsgqueuethread.

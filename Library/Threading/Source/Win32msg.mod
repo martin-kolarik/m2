@@ -243,13 +243,13 @@ CLASS IMPLEMENTATION Win32MessageHandler;
   PUBLIC PROCEDURE Win32MessageHandler.Init( AutomaticJoin : BOOLEAN );
   BEGIN
     IF AutomaticJoin THEN
-      JoinMessageThread( NIL );
+      JoinMessageThread( NIL, TRUE );
     END;
   END Win32MessageHandler.Init;
   
   PUBLIC PROCEDURE Dispose();
   BEGIN
-    LeaveMessageThread();
+    LeaveMessageThread( TRUE );
   END Dispose;
 
    PUBLIC VIRTUAL PROCEDURE Message( CONST MSG : OSALmsg.IMessage; Delivery : OSALmsg.TDelivery; Result : PPTR ) : BOOLEAN;
@@ -290,7 +290,7 @@ CLASS IMPLEMENTATION Win32MessageHandler;
       RETURN FALSE;
    END Win32MessageHandler.OnMessage;
 
-  INTERNAL VIRTUAL PROCEDURE StartTimer( Timer : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
+  PUBLIC VIRTUAL PROCEDURE StartTimer( Timer : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
   BEGIN
     IF HWND = NIL THEN
       RETURN;
@@ -304,7 +304,7 @@ CLASS IMPLEMENTATION Win32MessageHandler;
     Timers.Add( windows.SetTimer( HWND, Timer, PeriodMS, NIL ), PTR( Repeat )); // IA64PTR
   END StartTimer;
   
-  INTERNAL VIRTUAL PROCEDURE TimerRunning( Timer : PTR ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE TimerRunning( Timer : PTR ) : BOOLEAN;
   BEGIN
     IF HWND = NIL THEN
       RETURN FALSE;
@@ -313,7 +313,7 @@ CLASS IMPLEMENTATION Win32MessageHandler;
     END;
   END TimerRunning;
 
-  INTERNAL VIRTUAL PROCEDURE StopTimer( Timer : PTR );
+  PUBLIC VIRTUAL PROCEDURE StopTimer( Timer : PTR );
   BEGIN
     IF HWND = NIL THEN
       RETURN;
@@ -375,22 +375,22 @@ CLASS IMPLEMENTATION Win32MessageHandler;
     joinedTo := NIL;
   END OnLeave;
   
-  PUBLIC VIRTUAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread );
+  PUBLIC VIRTUAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread; CallOnJoinInThread : BOOLEAN );
   BEGIN
     IF JoinTo = NIL THEN
       ASSERT( joinedTo = NIL );
       OnJoin( JoinTo );
     ELSE
-      JoinTo^.Join( ADR( SELF ));
+      JoinTo^.Join( ADR( SELF ), CallOnJoinInThread );
     END;
   END JoinMessageThread;
 
-  PUBLIC VIRTUAL PROCEDURE LeaveMessageThread();
+  PUBLIC VIRTUAL PROCEDURE LeaveMessageThread( CallOnLeaveInThread : BOOLEAN );
   BEGIN
     IF joinedTo = NIL THEN
       OnLeave();
     ELSE
-      JoinedTo^.Leave( ADR( SELF ));
+      JoinedTo^.Leave( ADR( SELF ), CallOnLeaveInThread );
     END;
   END LeaveMessageThread;
 

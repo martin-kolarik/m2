@@ -17,7 +17,7 @@ IMPORT
   netpool,
   Storage,
   Sync,
-  threadpoolsink,
+  threadpool,
   winerror,
   WS2TcpIp;
 
@@ -333,7 +333,7 @@ CLASS CIPServer( msghandler.MessageHandler );
   _FDHandle : Sync.WAITABLE;
   _FDMessager : msghandler.TPMessageHandler;
   _FDMessage : msghandler.Message;
-  _Delegate : threadpoolsink.CMessageHandlerDelegate;
+  _Delegate : threadpool.CMessageHandlerDelegate;
 
   CBMode : TCallbackMode := cbmDefault;
   MQueue : msgqueue.CMessageQueue;

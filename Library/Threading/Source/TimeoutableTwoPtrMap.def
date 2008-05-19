@@ -1,0 +1,45 @@
+DEFINITION MODULE TimeoutableTwoPtrMap;
+
+FROM Storage IMPORT
+  ALLOCATE, DEALLOCATE;
+
+IMPORT
+  avltree;
+
+#save, option( dll_export => on )
+
+//--------------------------------------------------------------------------------
+
+CLASS CTimeoutableTwoPtrMap( avltree.CAVLTreeWState );
+   PRIVATE VAR
+     Counter : CARDINAL;
+
+   // WState
+   PUBLIC READONLY PROPERTY
+      Current1 : PTR;
+      Current2 : PTR;
+   PUBLIC PROPERTY
+      CurrentData : PTR;
+
+   // map interface
+   // PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR; -- no index as keys are two
+
+   PUBLIC PROCEDURE Add( CurrentTime : CARDINAL; Key1, Key2 : PTR; Data : PTR; Timeout : CARDINAL );
+   PUBLIC PROCEDURE Remove( Key1, Key2 : PTR );
+   PUBLIC PROCEDURE Contains( Key1, Key2 : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Get( Key1, Key2 : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE ElementByKeyAt( Index : CARDINAL; OUT Key1, Key2 : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
+   PUBLIC PROCEDURE ElementByTimeoutAt( Index : CARDINAL; OUT Key1, Key2 : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
+
+   // timeoutable interface
+   PUBLIC PROCEDURE GetTimeoutToFirstElapsed( CurrentTime : CARDINAL ) : CARDINAL;
+   PUBLIC PROCEDURE GetFirstElapsed( CurrentTime : CARDINAL; RemoveKey : BOOLEAN; OUT Key1, Key2 : PTR; OUT Data : PTR ) : BOOLEAN;
+
+   PRIVATE PROCEDURE GetFirstWithTimeout( CurrentTime : CARDINAL; OUT Key1, Key2 : PTR; OUT Data : PTR; OUT Timeout : CARDINAL ) : BOOLEAN;
+END CTimeoutableTwoPtrMap;
+
+//--------------------------------------------------------------------------------
+
+#restore
+
+END TimeoutableTwoPtrMap.

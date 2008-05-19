@@ -12,6 +12,7 @@ IMPORT
    SyncQueue,
    test,
    testimpl,
+   threadinit,
    windows;
   
 (*---------------------------------------------------------------------------*)
@@ -105,6 +106,8 @@ CLASS IMPLEMENTATION CTest;
       Size : CARDINAL;
       Thread : CARDINAL;
    BEGIN
+      threadinit.Startup();
+   
       SELF.Host := Host;
       MH.Test := ADR( SELF );
       MH.Init( TRUE );
@@ -116,6 +119,11 @@ CLASS IMPLEMENTATION CTest;
             END;
          END;
       END;
+      
+      MH.Dispose();
+
+      windows.Sleep( 1000 );
+      threadinit.Cleanup();
 
       IF Failure THEN
          RETURN test.trFailure;

@@ -152,36 +152,35 @@ CLASS IMPLEMENTATION Win32MsgQueueThread;
 
 (*---------------------------------------------------------------------------*)
   
-   PUBLIC VIRTUAL PROCEDURE Join( Recipient : OSALmsg.TPMessageRecipient );
+   PUBLIC VIRTUAL PROCEDURE Join( Recipient : OSALmsg.TPMessageRecipient; CallOnJoinInThread : BOOLEAN );
    BEGIN
-      Support^.Join( Recipient );
+      Support^.Join( Recipient, CallOnJoinInThread );
    END Join;
 
 (*---------------------------------------------------------------------------*)
   
-   PUBLIC VIRTUAL PROCEDURE Leave( Recipient : OSALmsg.TPMessageRecipient );
+   PUBLIC VIRTUAL PROCEDURE Leave( Recipient : OSALmsg.TPMessageRecipient; CallOnLeaveInThread : BOOLEAN );
    BEGIN
-      Support^.Leave( Recipient );
+      Support^.Leave( Recipient, CallOnLeaveInThread );
    END Leave;
 
 (*---------------------------------------------------------------------------*)
   
    PUBLIC FINAL PROPERTY JoinedTo GET : OSALmsg.TPMessageQueueThread;
    BEGIN
-      ASSERT( FALSE );
-      RETURN NIL;
+      RETURN ADR( SELF );
    END JoinedTo;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread );
+   PUBLIC FINAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread; CallOnJoinInThread : BOOLEAN );
    BEGIN
       ASSERT( FALSE );
    END JoinMessageThread;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROCEDURE LeaveMessageThread();
+   PUBLIC FINAL PROCEDURE LeaveMessageThread( CallOnLeaveInThread : BOOLEAN );
    BEGIN
       ASSERT( FALSE );
    END LeaveMessageThread;

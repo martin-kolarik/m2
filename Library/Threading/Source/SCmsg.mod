@@ -2,13 +2,11 @@ IMPLEMENTATION MODULE SCmsg;
 
 (*================================================================================*)
 
-FROM Storage IMPORT
-  ALLOCATE;
-
 IMPORT
-  msghandler,
-  msgqueuethread,
-  threadpool;
+   msghandler,
+   msgqueuethread,
+   SCmsgqueuethread,
+   threadpool;
 
 (*================================================================================*)
 
@@ -20,8 +18,8 @@ CLASS CChecker;
 END CChecker;
 
 VAR
-  Handlers : lists.CPtrList;
-  Checked : CChecker;
+   Handlers : lists.CPtrList;
+   Checked : CChecker;
 
 CLASS IMPLEMENTATION CChecker;
 BEGIN FINALLY
@@ -29,18 +27,10 @@ BEGIN FINALLY
 END CChecker;
 #endif
 
-(*================================================================================*)
-
 TYPE
-   TTimerParameter = RECORD
-      Timer : PTR;
-      PeriodMS : CARDINAL;
-      Repeat : BOOLEAN;
-      Signal : Sync.SIGNAL;
-   END; // RECORD
-   TPTimerParameter = POINTER TO TTimerParameter;
+   TPSCMsgQueueThread = POINTER TO SCmsgqueuethread.SCMsgQueueThread;
 
-(*--------------------------------------------------------------------------------*)
+(*================================================================================*)
 
 PROCEDURE HandleToRecipient( CONST Handle : PTR; OUT Handler : OSALmsg.TPMessageRecipient ) : BOOLEAN;
 BEGIN
@@ -214,7 +204,7 @@ CLASS IMPLEMENTATION SCMessageHandler;
    PUBLIC PROCEDURE SCMessageHandler.Init( AutomaticJoin : BOOLEAN );
    BEGIN
       IF AutomaticJoin THEN
-         JoinMessageThread( NIL );
+         JoinMessageThread( NIL, TRUE );
       END;
    END SCMessageHandler.Init;
   
@@ -222,51 +212,22 @@ CLASS IMPLEMENTATION SCMessageHandler;
 
    PUBLIC PROCEDURE Dispose();
    BEGIN
-      LeaveMessageThread();
+      LeaveMessageThread( TRUE );
    END Dispose;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Message( CONST MSG : OSALmsg.IMessage; Delivery : OSALmsg.TDelivery; Result : PPTR ) : BOOLEAN;
    VAR
-      b : BOOLEAN;
       LResult : PTR;
-      parameter : TPTimerParameter;
-      PoolHandle : threadpoolsink.TPoolHandle;
    BEGIN
       OSALmsg.TPMessage( ADR( MSG ))^.Target := ADR( SELF );
       IF ( Delivery = OSALmsg.delSynchronous ) OR ( Delivery = OSALmsg.delSynchronousIfInThread ) AND SelfContext THEN
       
          CASE MSG.Message OF
          //-----
-         | msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_SETTIMER :
-            parameter := TPTimerParameter( MSG.Parameter );
-            IF Timers.Get( parameter^.Timer, OUT PoolHandle ) THEN
-               Timers.Remove( parameter^.Timer );
-               threadpool.pool()^.Abort( REF PoolHandle );
-            END;
-            b := threadpool.pool()^.WaitTimeout( ADR( PoolSink ), parameter^.Timer, parameter^.PeriodMS, NOT parameter^.Repeat, FALSE, OUT PoolHandle );
-            ASSERT( b );
-            Timers.Add( parameter^.Timer, PoolHandle );
-            Sync.Signal( parameter^.Signal );
-            DISPOSE( parameter );
-
-         //-----
-         | msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_RESETTIMER :
-            parameter := TPTimerParameter( MSG.Parameter );
-            IF Timers.Get( parameter^.Timer, OUT PoolHandle ) THEN
-               Timers.Remove( parameter^.Timer );
-               threadpool.pool()^.Abort( REF PoolHandle );
-            END;
-            Sync.Signal( parameter^.Signal );
-            DISPOSE( parameter );
-
-         //-----
-         | msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_ONTIMER :
-            IF Timers.Contains( MSG.Parameter ) THEN
-               OnTimer( MSG.Parameter );
-            END;
-
+         | msghandler.MSG_ON_TIMER :
+            OnTimer( MSG.Parameter );
          //-----
          ELSE
             IF Result = NIL THEN
@@ -295,77 +256,26 @@ CLASS IMPLEMENTATION SCMessageHandler;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE StartTimer( Timer : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
-   VAR
-      MSG : msghandler.Message;
-      parameter : POINTER TO TTimerParameter;
-      Result : Sync.TAsyncResult;
-      SelfContext : BOOLEAN := SELF.SelfContext;
-      Signal : Sync.SIGNAL;
+   PUBLIC VIRTUAL PROCEDURE StartTimer( Timer : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
    BEGIN
       ASSERT( joinedTo <> NIL );
-      IF SelfContext THEN
-         Signal := NIL;
-      ELSE
-         Signal := Sync.CreateSignal( FALSE, L"" );
-      END;
- 
-      NEW( parameter );
-      parameter^.Timer := Timer;
-      parameter^.PeriodMS := PeriodMS;
-      parameter^.Repeat := Repeat;
-      parameter^.Signal := Signal;
-
-      MSG.Source := ADR( SELF );
-      MSG.Target := ADR( SELF );
-      MSG.Message := msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_SETTIMER;
-      MSG.Parameter := parameter;
-      
-      Message( MSG, OSALmsg.delSynchronousIfInThread, NIL );
-      
-      Result := Sync.Wait( Signal, Sync.FORSAFETY );
-      ASSERT( Result <> Sync.arTimeout );
-      Sync.DeleteSignal( REF Signal );
+      TPSCMsgQueueThread( joinedTo )^.StartTimer( ADR( SELF ), Timer, PeriodMS, Repeat );
    END StartTimer;
   
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE TimerRunning( Timer : PTR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE TimerRunning( Timer : PTR ) : BOOLEAN;
    BEGIN
-      RETURN Timers.Contains( Timer );
+      ASSERT( joinedTo <> NIL );
+      RETURN TPSCMsgQueueThread( joinedTo )^.TimerRunning( ADR( SELF ), Timer );
    END TimerRunning;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE StopTimer( Timer : PTR );
-   VAR
-      MSG : msghandler.Message;
-      parameter : POINTER TO TTimerParameter;
-      Result : Sync.TAsyncResult;
-      SelfContext : BOOLEAN := SELF.SelfContext;
-      Signal : Sync.SIGNAL;
+   PUBLIC VIRTUAL PROCEDURE StopTimer( Timer : PTR );
    BEGIN
       ASSERT( joinedTo <> NIL );
-      IF SelfContext THEN
-         Signal := NIL;
-      ELSE  
-         Signal := Sync.CreateSignal( FALSE, L"" );
-      END;
- 
-      NEW( parameter );
-      parameter^.Timer := Timer;
-      parameter^.Signal := Signal;
-
-      MSG.Source := ADR( SELF );
-      MSG.Target := ADR( SELF );
-      MSG.Message := msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_RESETTIMER;
-      MSG.Parameter := parameter;
-      
-      Message( MSG, OSALmsg.delSynchronousIfInThread, NIL );
-      
-      Result := Sync.Wait( Signal, Sync.FORSAFETY );
-      ASSERT( Result <> Sync.arTimeout );
-      Sync.DeleteSignal( REF Signal );
+      TPSCMsgQueueThread( joinedTo )^.StopTimer( ADR( SELF ), Timer );
    END StopTimer;
   
 (*--------------------------------------------------------------------------------*)
@@ -400,43 +310,27 @@ CLASS IMPLEMENTATION SCMessageHandler;
   
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread );
+   PUBLIC VIRTUAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread; CallOnJoinInThread : BOOLEAN );
    BEGIN
       IF JoinTo = NIL THEN
          JoinTo := msgqueuethread.global();
       END;
-      JoinTo^.Join( ADR( SELF ));
+      JoinTo^.Join( ADR( SELF ), CallOnJoinInThread );
    END JoinMessageThread;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE LeaveMessageThread();
+   PUBLIC VIRTUAL PROCEDURE LeaveMessageThread( CallOnLeaveInThread : BOOLEAN );
    BEGIN
       IF joinedTo <> NIL THEN
-         joinedTo^.Leave( ADR( SELF ));
+         joinedTo^.Leave( ADR( SELF ), CallOnLeaveInThread );
       END;
    END LeaveMessageThread;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpoolsink.TPoolHandle; UserId : PTR );
-   VAR
-      MSG : msghandler.Message;
-   BEGIN
-      IF Result = Sync.arCompleted THEN
-         MSG.Source := ADR( SELF );
-         MSG.Target := ADR( SELF );
-         MSG.Message := msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_ONTIMER;
-         MSG.Parameter := UserId;
-         Message( MSG, OSALmsg.delAsynchronous, NIL ); // we are in pool thread here
-      END;
-   END OnTimeout;
-
-(*--------------------------------------------------------------------------------*)
-
 BEGIN
    joinedTo := NIL;
-   PoolSink.TimeoutSink := ADR( SELF );
 FINALLY
    Dispose();
 END SCMessageHandler;
