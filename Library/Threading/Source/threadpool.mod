@@ -11,7 +11,7 @@ IMPORT
   msghandler,
   SCmsgqueuethread,
   time,
-  TimeoutablePtrMap,
+  TimeoutableQuadwordMap,
   windows;
   
 //================================================================================
@@ -58,7 +58,7 @@ TYPE
 CLASS CPoolThread( SCmsgqueuethread.SCMsgQueueThread );
   PRIVATE VAR
     Pool : TPThreadPool;
-    HTasks : TimeoutablePtrMap.CTimeoutablePtrMap; // CTask.Handle/PTask
+    HTasks : TimeoutablePtrMap.CTimeoutableQuadwordMap; // CTask.Handle/PTask
     Handles : maps.CPtrMap; // CTask.Data/PPtrList
     Messages : maps.CPtrMap; // CTask.Data/PTask
     Workers : lists.CPtrList; // CTask.Data/PTask
@@ -171,9 +171,11 @@ CLASS IMPLEMENTATION CPoolThread;
          CheckEmpty : BOOLEAN := FALSE;
          disposable : BOOLEAN;
          Handle : TPoolHandle;
+         QHandle : QUADWORD;
          Task : TPTask;
       BEGIN
-         WHILE HTasks.GetFirstElapsed( CurrentTime, FALSE, OUT Handle, OUT Task ) DO
+         WHILE HTasks.GetFirstElapsed( CurrentTime, FALSE, OUT QHandle, OUT Task ) DO
+            Handle := TPoolHandle( QHandle );
             CASE Task^.Task OF
             | tskTimeoutOnce :
                Completed( Sync.arCompleted, Task, NIL, TRUE, TRUE, OUT disposable );
@@ -209,7 +211,7 @@ CLASS IMPLEMENTATION CPoolThread;
                AddTask( CurrentTime, Message.Task );
             //---
             | topRemoveTask :
-               IF HTasks.Get( Message.HTask, OUT Task ) THEN
+               IF HTasks.Get( QUADWORD( Message.HTask ), OUT Task ) THEN
                   RemoveTask( Sync.arAborted, Task );
                   CheckEmpty := TRUE;
                END;
@@ -388,7 +390,7 @@ CLASS IMPLEMENTATION CPoolThread;
   VAR
     HandleList : lists.TPPtrList;
   BEGIN
-    HTasks.Add( CurrentTime, Task^.Handle, Task, Task^.Timeout );
+    HTasks.Add( CurrentTime, QUADWORD( Task^.Handle ), Task, Task^.Timeout );
     CASE Task^.Task OF
     | tskTimeoutOnce, tskTimeoutRepeated :
       // do nothing
@@ -451,7 +453,7 @@ CLASS IMPLEMENTATION CPoolThread;
     MSG : msghandler.Message;
   BEGIN
     IF RemoveTask THEN
-      HTasks.Remove( Task^.Handle );
+      HTasks.Remove( QUADWORD( Task^.Handle ));
       Sync.IDec( REF TasksCount );
     ELSE
       DisposeTask := FALSE; // for safety
@@ -493,7 +495,7 @@ CLASS IMPLEMENTATION CPoolThread;
   FINALLY CPoolThread();
   VAR
     disposable : BOOLEAN;
-    Key : PTR;
+    QKey : QUADWORD;
     Task : TPTask;
   BEGIN
     Sync.DeleteSignal( REF ReqQueue.Produce );
@@ -514,7 +516,7 @@ CLASS IMPLEMENTATION CPoolThread;
       Completed( Sync.arAborted, Workers.CurrentData, NIL, TRUE, TRUE, OUT disposable );
       TPPoolWorker( Workers.Current )^.Release();
     END; // WHILE
-    WHILE HTasks.GetFirstElapsed( time.UptimeMS(), FALSE, OUT Key, OUT Task ) DO
+    WHILE HTasks.GetFirstElapsed( time.UptimeMS(), FALSE, OUT QKey, OUT Task ) DO
       Completed( Sync.arAborted, Task, NIL, TRUE, TRUE, OUT disposable );
     END; // WHILE
   END CPoolThread;

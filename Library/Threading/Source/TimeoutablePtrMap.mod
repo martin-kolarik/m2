@@ -10,7 +10,7 @@ TYPE
 
 CLASS CTimeoutableItem( avltree.CAVLTreeElem2 );
   PUBLIC VAR
-    Key : PTR;
+    Key : QUADWORD;
     Data : PTR;
     ElapsesOn : CARD64;
 
@@ -75,44 +75,44 @@ END CTimeoutableItem;
 
 //================================================================================
 
-CLASS IMPLEMENTATION CTimeoutablePtrMap;
+CLASS IMPLEMENTATION CTimeoutableQuadwordMap;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC READONLY PROPERTY CTimeoutablePtrMap.Current GET : PTR;
+   PUBLIC READONLY PROPERTY CTimeoutableQuadwordMap.Current GET : QUADWORD;
    BEGIN
       IF _Current = -1 THEN
          RETURN 0;
       ELSE
          RETURN TPTimeoutableItem( _Current )^.Key;
       END;
-   END CTimeoutablePtrMap.Current;
+   END CTimeoutableQuadwordMap.Current;
 
 //---------------------------------------------------------------------------
 
-   PUBLIC READONLY PROPERTY CTimeoutablePtrMap.CurrentData GET : PTR;
+   PUBLIC READONLY PROPERTY CTimeoutableQuadwordMap.CurrentData GET : PTR;
    BEGIN
       IF _Current = -1 THEN
          RETURN NIL;
       ELSE
          RETURN TPTimeoutableItem( _Current )^.Data;
       END;
-   END CTimeoutablePtrMap.CurrentData;
+   END CTimeoutableQuadwordMap.CurrentData;
 
 //---------------------------------------------------------------------------
 
-   PUBLIC PROPERTY CTimeoutablePtrMap.CurrentData SET( Data : PTR );
+   PUBLIC PROPERTY CTimeoutableQuadwordMap.CurrentData SET( Data : PTR );
    BEGIN
       IF _Current = -1 THEN
          RETURN;
       ELSE
          TPTimeoutableItem( _Current )^.Data := Data;
       END;
-   END CTimeoutablePtrMap.CurrentData;
+   END CTimeoutableQuadwordMap.CurrentData;
 
 //---------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE Add( CurrentTime : CARDINAL; Key : PTR; Data : PTR; Timeout : CARDINAL );
+   PUBLIC PROCEDURE Add( CurrentTime : CARDINAL; Key : QUADWORD; Data : PTR; Timeout : CARDINAL );
    VAR
       PI : TPTimeoutableItem;
    BEGIN
@@ -132,7 +132,7 @@ CLASS IMPLEMENTATION CTimeoutablePtrMap;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE Remove( Key : PTR );
+   PUBLIC PROCEDURE Remove( Key : QUADWORD );
    VAR
       I : CTimeoutableItem;
    BEGIN
@@ -142,7 +142,7 @@ CLASS IMPLEMENTATION CTimeoutablePtrMap;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE Contains( Key : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Contains( Key : QUADWORD ) : BOOLEAN;
    VAR
       I : CTimeoutableItem;
    BEGIN
@@ -152,7 +152,7 @@ CLASS IMPLEMENTATION CTimeoutablePtrMap;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE Get( Key : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Get( Key : QUADWORD; OUT Data : PTR ) : BOOLEAN;
    VAR
       I : CTimeoutableItem;
       PI : TPTimeoutableItem;
@@ -167,7 +167,7 @@ CLASS IMPLEMENTATION CTimeoutablePtrMap;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE ElementByKeyAt( Index : CARDINAL; OUT Key : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
+   PUBLIC PROCEDURE ElementByKeyAt( Index : CARDINAL; OUT Key : QUADWORD; OUT Data : PTR ) : BOOLEAN; // similar as []
    VAR
       PI : TPTimeoutableItem;
    BEGIN
@@ -182,7 +182,7 @@ CLASS IMPLEMENTATION CTimeoutablePtrMap;
   
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE ElementByTimeoutAt( Index : CARDINAL; OUT Key : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
+   PUBLIC PROCEDURE ElementByTimeoutAt( Index : CARDINAL; OUT Key : QUADWORD; OUT Data : PTR ) : BOOLEAN; // similar as []
    VAR
       PI : TPTimeoutableItem;
    BEGIN
@@ -199,7 +199,8 @@ CLASS IMPLEMENTATION CTimeoutablePtrMap;
 
    PUBLIC PROCEDURE GetTimeoutToFirstElapsed( CurrentTime : CARDINAL ) : CARDINAL;
    VAR
-      Key, Data : PTR;
+      Key : QUADWORD;
+      Data : PTR;
       Timeout : CARDINAL;
    BEGIN
       IF GetFirstWithTimeout( CurrentTime, OUT Key, OUT Data, OUT Timeout ) THEN
@@ -211,7 +212,7 @@ CLASS IMPLEMENTATION CTimeoutablePtrMap;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE GetFirstElapsed( CurrentTime : CARDINAL; RemoveKey : BOOLEAN; OUT Key : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE GetFirstElapsed( CurrentTime : CARDINAL; RemoveKey : BOOLEAN; OUT Key : QUADWORD; OUT Data : PTR ) : BOOLEAN;
    VAR
       Timeout : CARDINAL;
    BEGIN
@@ -225,7 +226,7 @@ CLASS IMPLEMENTATION CTimeoutablePtrMap;
 
 //--------------------------------------------------------------------------------
 
-   PRIVATE PROCEDURE GetFirstWithTimeout( CurrentTime : CARDINAL; OUT Key : PTR; OUT Data : PTR; OUT Timeout : CARDINAL ) : BOOLEAN;
+   PRIVATE PROCEDURE GetFirstWithTimeout( CurrentTime : CARDINAL; OUT Key : QUADWORD; OUT Data : PTR; OUT Timeout : CARDINAL ) : BOOLEAN;
    VAR
       ElapsesOn : CARDINAL;
       TI : TPTimeoutableItem;
@@ -252,7 +253,7 @@ CLASS IMPLEMENTATION CTimeoutablePtrMap;
 BEGIN
   Counter := 0;
   Indexes := 2;
-END CTimeoutablePtrMap;
+END CTimeoutableQuadwordMap;
 
 //================================================================================
 
