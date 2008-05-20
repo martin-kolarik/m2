@@ -217,6 +217,14 @@ BEGIN
    RETURN NIL; // there is no global thread, the default one is used
 END Win32GlobalMessageQueueThread;
 
+PROCEDURE Startup();
+BEGIN
+END Startup;
+
+PROCEDURE Cleanup();
+BEGIN
+END Cleanup;
+
 (*===========================================================================*)
 
 END Win32msgqueuethread.

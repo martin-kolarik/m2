@@ -48,6 +48,11 @@ PROCEDURE Win32GlobalMessageQueueThread() : POINTER TO OSALmsg.IMessageQueueThre
 
 #restore
 
+// Startup, Cleanup SHOULD NOT BE CALLED automatically of from init code -- they can operate threads.
+// Procedures should not be called from the outside of the module, use threadinit instead.
+PROCEDURE Startup();
+PROCEDURE Cleanup();
+
 (*---------------------------------------------------------------------------*)
   
 END Win32msgqueuethread.

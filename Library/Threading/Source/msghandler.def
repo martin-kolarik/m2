@@ -5,7 +5,8 @@ DEFINITION MODULE msghandler;
 
 IMPORT
   OSALmsg,
-  SCmsg;
+  // SCmsg;
+  Win32msg;
 
 CONST
   TDelivery ::= OSALmsg.TDelivery;
@@ -21,18 +22,24 @@ CONST
   TPIMessage ::= OSALmsg.TPMessage;
   TPMessageRecipient ::= OSALmsg.TPMessageRecipient;
 CONST
-  RAW_MSG_BASE ::= SCmsg.SC_RAW_MSG_BASE; // for usage only inside this library
-  MSG_BASE = SCmsg.SC_RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_SPACE;
-  MSG_ON_TIMER = SCmsg.SC_RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_ONTIMER;
+  // RAW_MSG_BASE ::= SCmsg.SC_RAW_MSG_BASE; // for usage only inside this library
+  // MSG_BASE = SCmsg.SC_RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_SPACE;
+  // MSG_ON_TIMER = SCmsg.SC_RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_ONTIMER;
+  RAW_MSG_BASE ::= Win32msg.WIN32_RAW_MSG_BASE; // for usage only inside this library
+  MSG_BASE = Win32msg.WIN32_RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_SPACE;
+  MSG_ON_TIMER = Win32msg.WIN32_RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_ONTIMER;
 CONST
-  Message ::= SCmsg.SCMessage;
-  MessageHandler ::= SCmsg.SCMessageHandler;
+  // Message ::= SCmsg.SCMessage;
+  // MessageHandler ::= SCmsg.SCMessageHandler;
+  Message ::= Win32msg.Win32Message;
+  MessageHandler ::= Win32msg.Win32MessageHandler;
 TYPE
   TPMessage = POINTER TO Message;
   TPMessageHandler = POINTER TO MessageHandler;
 
 CONST
-  HandleToRecipient ::= SCmsg.HandleToRecipient;
+  // HandleToRecipient ::= SCmsg.HandleToRecipient;
+  HandleToRecipient ::= Win32msg.HandleToRecipient;
 
 (*===========================================================================*)
 

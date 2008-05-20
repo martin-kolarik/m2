@@ -21,8 +21,8 @@
 
         <Modules Include="SCmsg;SCmsgqueuethread"/>
 
-        <!-- Modules Include="Win32msg;Win32msgqueuethread"/ -->
-        <!-- Libraries Include="user32"/ -->
+        <Modules Include="Win32msg;Win32msgqueuethread"/>
+        <Libraries Include="user32"/>
 
     </ItemGroup>
 
