@@ -12,7 +12,7 @@ IMPORT
    Strings,
    StringsO,
    Texts,
-   threadpool;
+   threadinit;
 
 //================================================================================
 // procedural interface
@@ -59,7 +59,7 @@ PROCEDURE MakeDriverW() : ADDRESS;
 BEGIN
    IF RefCount = 0 THEN
      netinit.Startup();
-     threadpool.Startup();
+     threadinit.Startup();
    END;
    INC( RefCount );
 
@@ -74,7 +74,7 @@ BEGIN
 
    DEC( RefCount );
    IF RefCount = 0 THEN
-     threadpool.Cleanup();
+     threadinit.Cleanup();
      netinit.Cleanup();
    END;
 END DisposeDriverW;

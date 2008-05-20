@@ -195,61 +195,38 @@ CLASS IMPLEMENTATION CTimeouter;
   LOCAL PROCEDURE Init( _PLayer : TPEIBStackLayer; _TimeoutId : TTimeoutId; _TimeoutDelay : CARDINAL; _UserId : LONGWORD );
   BEGIN
     PLayer := _PLayer;
-    TimeoutDelay := _TimeoutDelay;
     TimeoutId := _TimeoutId;
+    TimeoutDelay := _TimeoutDelay;
     UserId := _UserId;
-    SUPER.Init();
+    SUPER.Init( TRUE );
   END Init;
-
-(*--------------------------------------------------------------------------------*)
-
-  INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
-  BEGIN
-    IF SUPER.OnMessage( MSG, OUT Result ) THEN
-      RETURN TRUE;
-    ELSIF MSG.Message = msghandler.MsgBase() THEN
-      PLayer^.Timeout( TTimeoutId( LOPTRLONGWORD( MSG[3] )), LONGWORD( LOPTRLONGWORD( MSG[2] )));
-    ELSE
-      RETURN FALSE;
-    END;
-    Result := 0;
-    RETURN TRUE;
-  END OnMessage;
 
 (*--------------------------------------------------------------------------------*)
 
   INTERNAL VIRTUAL PROCEDURE OnTimer( Timer : PTR );
   BEGIN
-    IF ( TimerId <> 0 ) AND ( INTEGER( Time.UptimeMS() - WaitTime ) >= 0 ) THEN
-      Stop();
-      PLayer^.Timeout( TimeoutId, UserId );
-    END;
+    PLayer^.Timeout( TimeoutId, UserId );
   END OnTimer;
 
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE Start();
   BEGIN
-    StartEx( TimeoutId, TimeoutDelay, UserId );
+    StartEx( TimeoutId, TimeoutDelay );
   END Start;
 
 (*--------------------------------------------------------------------------------*)
 
-  LOCAL PROCEDURE StartEx( _TimeoutId : TTimeoutId; _TimeoutDelay : CARDINAL; _UserId : LONGWORD );
+  LOCAL PROCEDURE StartEx( _TimeoutId : TTimeoutId; _TimeoutDelay : CARDINAL );
   VAR
     MSG : msghandler.Message;
   BEGIN
+    TimeoutId := _TimeoutId;
+    TimeoutDelay := _TimeoutDelay;
     IF _TimeoutDelay = 0 THEN
-      MSG[1] := msghandler.MsgBase();
-      MSG[2] := PTR( _UserId );
-      MSG[3] := PTR( _TimeoutId );
-      Message( MSG, msghandler.delDefault, NIL );
+      MSG.Message := msghandler.MSG_ON_TIMER;
+      Message( MSG, msghandler.delAsynchronous, NIL ); // tick over thread loop
     ELSE
-      TimeoutId := _TimeoutId;
-      TimeoutDelay := _TimeoutDelay;
-      UserId := _UserId;
-      WaitTime := Time.UptimeMS() + TimeoutDelay;
-      TimerId := 1;
       StartTimer( 1, TimeoutDelay, TRUE );
     END;
   END StartEx;
@@ -258,29 +235,23 @@ CLASS IMPLEMENTATION CTimeouter;
 
   LOCAL PROCEDURE Stop();
   BEGIN
-    IF TimerId <> 0 THEN
-      WaitTime := Time.UptimeMS() - 1;
-      StopTimer( 1 );
-      TimerId := 0;
-    END;
+    StopTimer( 1 );
   END Stop;
 
 (*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE Pending() : BOOLEAN;
   BEGIN
-    RETURN TimerId <> 0;
+    RETURN TimerRunning( 1 );
   END Pending;
 
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
   PLayer := NIL;
-  TimerId := 0;
   TimeoutDelay := 50; // msec, overwritten in L_Layer init
   TimeoutId := tidU_Unknown;
   UserId := 0;
-  WaitTime := 0;
 FINALLY
   Stop();
 END CTimeouter;
@@ -1003,11 +974,11 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
           ELSIF delay >= L_Parameters.SendDelay THEN
             Send := TRUE; // immediately send 
           ELSE // wait for elapsing rest time
-            L_Data.SendDelayer.StartEx( tidL_SendDelay, delay + 1, 0 ); // delay is rest of time
+            L_Data.SendDelayer.StartEx( tidL_SendDelay, delay + 1 ); // delay is rest of time
           END;
         END;
       | crtL_LayerContinueAfterCon1 :
-        L_Data.SendDelayer.StartEx( tidL_Communicate, 0, 0 ); // send next packed after a minimal delay to cut-off recursive Req/Con/Req calls during continuous writting
+        L_Data.SendDelayer.StartEx( tidL_Communicate, 0 ); // send next packed after a minimal delay to cut-off recursive Req/Con/Req calls during continuous writting
       | crtL_LayerContinueAfterCon2 :
         Send := TRUE;
       | crtL_LayerWithBUSYDelay :
@@ -1016,7 +987,7 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
         L_Data.BUSYDelayer.Stop();
         Send := TRUE;
       | crtL_LayerWithSendDelay :
-        L_Data.SendDelayer.StartEx( tidL_SendDelay, L_Parameters.SendDelay, 0 );
+        L_Data.SendDelayer.StartEx( tidL_SendDelay, L_Parameters.SendDelay );
       | crtL_LayerAfterSendDelay :
         L_Data.SendDelayer.Stop();
         Send := TRUE;
@@ -2571,7 +2542,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
     ELSIF A_Parameters.PendingDelay[ WhatIsPending ] = 0 THEN
       A_StartPendingOperation( WhatIsPending, NIL );
     ELSE
-      A_Data.Timeouter[ WhatIsPending ].StartEx( tidA_PendingDelay, A_Parameters.PendingDelay[ WhatIsPending ], LONGWORD( WhatIsPending ));
+      A_Data.Timeouter[ WhatIsPending ].StartEx( tidA_PendingDelay, A_Parameters.PendingDelay[ WhatIsPending ] );
     END;
     Leave();
   END A_PendingOperationFinished;
@@ -2595,7 +2566,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
       ELSE
         delay := Time.UptimeMS() - A_Data.LastSend[ WhatIsPending ];
         IF delay < A_Parameters.PendingDelay[ WhatIsPending ] THEN // wait for send spare
-          A_Data.Timeouter[ WhatIsPending ].StartEx( tidA_PendingDelay, delay, LONGWORD( WhatIsPending ));
+          A_Data.Timeouter[ WhatIsPending ].StartEx( tidA_PendingDelay, delay );
           RETURN;
         END;
       END;
@@ -2605,7 +2576,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
 	PSPO^.Pending := TRUE;
     IF A_Parameters.PendingTimeout[ WhatIsPending ] > 0 THEN
-      A_Data.Timeouter[ WhatIsPending ].StartEx( tidA_PendingTimeout, A_Parameters.PendingTimeout[ WhatIsPending ], LONGWORD( WhatIsPending )); // timeouter MUST be three times !!!, now it is single, which is BAD !!!
+      A_Data.Timeouter[ WhatIsPending ].StartEx( tidA_PendingTimeout, A_Parameters.PendingTimeout[ WhatIsPending ] ); // timeouter MUST be three times !!!, now it is single, which is BAD !!!
     END;
     CASE WhatIsPending OF
     | pendingGroupRead :

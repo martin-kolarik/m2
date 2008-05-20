@@ -101,7 +101,7 @@ CLASS IMPLEMENTATION CEIBDriver;
       SELF.CallbackId := CallbackId;
       SELF.CallbackProc := PCallback;
 
-      SUPER.Init();
+      SUPER.Init( TRUE );
       RETURN TRUE;
    END Init;
 
@@ -185,18 +185,14 @@ CLASS IMPLEMENTATION CEIBDriver;
 
    PUBLIC PROCEDURE Run();
    BEGIN
-      TimeoutLock.Lock();
       DoRun();
-      TimeoutLock.Unlock();
    END Run;
 
 //--------------------------------------------------------------------------------
 
    PUBLIC PROCEDURE Stop();
    BEGIN
-      TimeoutLock.Lock();
       DoStop();
-      TimeoutLock.Unlock();
    END Stop;
 
 //--------------------------------------------------------------------------------
@@ -575,7 +571,6 @@ CLASS IMPLEMENTATION CEIBDriver;
       Result.Inc();
 
       IF DriverIndex = WatchDogChannel THEN
-         TimeoutLock.Lock();
          c := WatchDogLeft + 1000 * drv_def.ValueToCardinal( OutValue, UFlag, TRUE );
          IF c < WatchDogLeft THEN
             WatchDogLeft := MAX( CARDINAL );
@@ -841,7 +836,6 @@ CLASS IMPLEMENTATION CEIBDriver;
       SUPER.Run( TRUE, FALSE );
       IF WatchDogChannel <> MAX( CARDINAL ) THEN
          WatchDogLeft := 10 * WD_TICK;
-         threadpool.pool()^.WaitTimeout( ADR( WatchDogSink ), 0, WD_TICK, FALSE, FALSE, OUT WatchDogHandle );
       END;
    END DoRun;
 
@@ -849,9 +843,6 @@ CLASS IMPLEMENTATION CEIBDriver;
 
    PRIVATE PROCEDURE DoStop();
    BEGIN
-      IF WatchDogHandle <> NIL THEN
-         threadpool.pool()^.Abort( REF WatchDogHandle );
-      END;
       SUPER.Stop( TRUE, FALSE );
    END DoStop;
 
@@ -912,29 +903,11 @@ CLASS IMPLEMENTATION CEIBDriver;
 
 //================================================================================
 
-   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
-   BEGIN
-      IF Result <> Sync.arCompleted THEN
-         RETURN;
-      END;
-      TimeoutLock.Lock();
-      IF WatchDogLeft <= WD_TICK THEN
-         WatchDogLeft := 0;
-         DoStop();
-      ELSE
-         DEC( WatchDogLeft, WD_TICK );
-      END;
-      TimeoutLock.Unlock();
-   END OnTimeout;
-
-//================================================================================
-
 BEGIN
    CallbackId := NIL;
    CallbackProc := NIL;
 
    EventSink := ADR( SELF );
-   WatchDogSink.TimeoutSink := ADR( SELF );
    
    StatusChannel := MAX( CARDINAL );
    WatchDogChannel := MAX( CARDINAL );
@@ -943,7 +916,6 @@ BEGIN
    WriteQueueLengthChannel := MAX( CARDINAL );
 
    WatchDogLeft := MAX( CARDINAL );
-   WatchDogHandle := NIL;
 
    cllvData := ADR( cllv.data );
    cllvLength := cllv.length;

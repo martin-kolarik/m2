@@ -144,6 +144,7 @@ CLASS CEIBServer( msghandler.MessageHandler );
 
    Stack                    : TStack;
    EIB                      : eib_stack.TPEIBStack;
+   EIBBoundaryLock          : Sync.LOCK;
    Sink                     : CStackSink;
    SDAP                     : CSDAPServer;
    EventSink                : TPEIBServerSink;

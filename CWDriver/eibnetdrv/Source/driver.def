@@ -1,11 +1,12 @@
 DEFINITION MODULE driver;
 
+IMPORT
+   winsock;
+
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-   winsock,
-
    drv_def,
    Resources,
    srvcore,
@@ -29,7 +30,7 @@ CONST // device specific error codes
    ceWriteQueueOverflow             = 1000AH;
    // cePromiscuousModeRunning         = 1000BH;
 
-CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS srvcore.IEIBServerSink, threadpool.ITimeoutSink;
+CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS srvcore.IEIBServerSink;
    CallbackId               : ADDRESS;
    CallbackProc             : drv_def.TDriverCallbackW;
 
@@ -39,10 +40,7 @@ CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS srvcore.IEIBServerSink, thread
    OutputQueueLengthChannel : CARDINAL;
    WriteQueueLengthChannel  : CARDINAL;
    
-   TimeoutLock              : Sync.LOCK;
-   WatchDogLeft             : CARDINAL;
-   WatchDogHandle           : Sync.WAITABLE;
-   WatchDogSink             : threadpool.CSinkDelegate;
+   WatchDogLeft             : CARDINAL; // threaded
 
    // binding to procedural interface
    PUBLIC PROCEDURE Init( CONST SymbolicName : ARRAY OF WCHAR; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW ) : BOOLEAN;
@@ -86,9 +84,6 @@ CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS srvcore.IEIBServerSink, thread
    PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : srvcore.TPObject );
    PUBLIC VIRTUAL PROCEDURE OnInputQueueAdd();
    PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow();
-   
-   // ITimeoutSink
-   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
 END CEIBDriver;
 
 //================================================================================

@@ -2182,7 +2182,7 @@ BEGIN
    EIB := NIL;
    Sink.Server := ADR( SELF );
    SDAP.Server := ADR( SELF );
-   SDAP.Init();
+   SDAP.Init( TRUE );
    EventSink := NIL;
    
    cllvdata := NIL;

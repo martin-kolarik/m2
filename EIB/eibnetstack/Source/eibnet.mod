@@ -927,7 +927,7 @@ CLASS IMPLEMENTATION CConnection;
 
    INITIALLY CConnection;
    BEGIN
-      Init();
+      Init( TRUE );
    
       Socket := NIL;
       NEW( Listener );

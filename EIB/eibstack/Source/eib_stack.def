@@ -147,18 +147,15 @@ END CEIBStackLayer;
 
 CLASS CTimeouter( msghandler.MessageHandler );
   PLayer       : TPEIBStackLayer;
-  TimerId      : CARDINAL;
-  TimeoutDelay : CARDINAL;
   TimeoutId    : TTimeoutId;
+  TimeoutDelay : CARDINAL;
   UserId       : LONGWORD;
-  WaitTime     : CARDINAL;
 
   LOCAL PROCEDURE Init( PLayer : TPEIBStackLayer; TimeoutId : TTimeoutId; TimeoutDelay : CARDINAL; UserId : LONGWORD );
-  INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
   INTERNAL VIRTUAL PROCEDURE OnTimer( Timer : PTR );
 
   LOCAL PROCEDURE Start();
-  LOCAL PROCEDURE StartEx( TimeoutId : TTimeoutId; TimeoutDelay : CARDINAL; UserId : LONGWORD );
+  LOCAL PROCEDURE StartEx( TimeoutId : TTimeoutId; TimeoutDelay : CARDINAL );
   LOCAL PROCEDURE Stop();
   LOCAL PROCEDURE Pending() : BOOLEAN;
 END CTimeouter;
