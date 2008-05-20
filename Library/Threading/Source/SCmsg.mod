@@ -28,7 +28,7 @@ END CChecker;
 #endif
 
 TYPE
-   TPSCMsgQueueThread = POINTER TO SCmsgqueuethread.SCMsgQueueThread;
+   TPSCMessageQueueThread = POINTER TO SCmsgqueuethread.SCMessageQueueThread;
 
 (*================================================================================*)
 
@@ -259,7 +259,7 @@ CLASS IMPLEMENTATION SCMessageHandler;
    PUBLIC VIRTUAL PROCEDURE StartTimer( Timer : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
    BEGIN
       ASSERT( joinedTo <> NIL );
-      TPSCMsgQueueThread( joinedTo )^.StartTimer( ADR( SELF ), Timer, PeriodMS, Repeat );
+      TPSCMessageQueueThread( joinedTo )^.StartTimer( ADR( SELF ), Timer, PeriodMS, Repeat );
    END StartTimer;
   
 (*--------------------------------------------------------------------------------*)
@@ -267,7 +267,7 @@ CLASS IMPLEMENTATION SCMessageHandler;
    PUBLIC VIRTUAL PROCEDURE TimerRunning( Timer : PTR ) : BOOLEAN;
    BEGIN
       ASSERT( joinedTo <> NIL );
-      RETURN TPSCMsgQueueThread( joinedTo )^.TimerRunning( ADR( SELF ), Timer );
+      RETURN TPSCMessageQueueThread( joinedTo )^.TimerRunning( ADR( SELF ), Timer );
    END TimerRunning;
 
 (*--------------------------------------------------------------------------------*)
@@ -275,7 +275,7 @@ CLASS IMPLEMENTATION SCMessageHandler;
    PUBLIC VIRTUAL PROCEDURE StopTimer( Timer : PTR );
    BEGIN
       ASSERT( joinedTo <> NIL );
-      TPSCMsgQueueThread( joinedTo )^.StopTimer( ADR( SELF ), Timer );
+      TPSCMessageQueueThread( joinedTo )^.StopTimer( ADR( SELF ), Timer );
    END StopTimer;
   
 (*--------------------------------------------------------------------------------*)

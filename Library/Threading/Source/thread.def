@@ -7,6 +7,7 @@ IMPORT
   Win32thread;
 
 CONST
+  IRunnable ::= OSALthread.IRunnable;
   IThread ::= OSALthread.IThread;
 CONST
   Thread ::= Win32thread.Win32Thread;

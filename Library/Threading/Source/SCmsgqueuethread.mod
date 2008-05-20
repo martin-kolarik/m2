@@ -14,7 +14,7 @@ IMPORT
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION SCMsgQueueThread;
+CLASS IMPLEMENTATION SCMessageQueueThread;
 
 (*---------------------------------------------------------------------------*)
   
@@ -238,18 +238,18 @@ FINALLY
 
    Support^.Dispose();
    DISPOSE( Support );
-END SCMsgQueueThread;
+END SCMessageQueueThread;
 
 (*===========================================================================*)
 
 VAR
-   GMQT : POINTER TO SCMsgQueueThread := NIL;
+   GMQT : POINTER TO SCMessageQueueThread := NIL;
 
-PROCEDURE SCGlobalMsgQueueThread() : POINTER TO OSALmsg.IMessageQueueThread;
+PROCEDURE SCGlobalMessageQueueThread() : POINTER TO OSALmsg.IMessageQueueThread;
 BEGIN
    ASSERT( GMQT <> NIL );
    RETURN GMQT;
-END SCGlobalMsgQueueThread;
+END SCGlobalMessageQueueThread;
 
 (*---------------------------------------------------------------------------*)
 

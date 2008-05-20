@@ -12,7 +12,7 @@ IMPORT
   
 #save, option( dll_export => on )
 
-CLASS SCMsgQueueThread( Win32thread.Win32Thread ) IMPLEMENTS OSALmsg.IMessageQueueThread;
+CLASS SCMessageQueueThread( Win32thread.Win32Thread ) IMPLEMENTS OSALmsg.IMessageQueueThread;
    INTERNAL VAR
       Support : msgthreadsupport.TPSupport;
       Queue : msgqueue.CMessageQueue;
@@ -46,11 +46,11 @@ CLASS SCMsgQueueThread( Win32thread.Win32Thread ) IMPLEMENTS OSALmsg.IMessageQue
    PUBLIC PROCEDURE StartTimer( Recipient : OSALmsg.TPMessageRecipient; TimerId : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
    PUBLIC PROCEDURE StopTimer( Recipient : OSALmsg.TPMessageRecipient; TimerId : PTR );
    PUBLIC PROCEDURE TimerRunning( Recipient : OSALmsg.TPMessageRecipient; TimerId : PTR ) : BOOLEAN;
-END SCMsgQueueThread;
+END SCMessageQueueThread;
 
 (*---------------------------------------------------------------------------*)
   
-PROCEDURE SCGlobalMsgQueueThread() : POINTER TO OSALmsg.IMessageQueueThread;
+PROCEDURE SCGlobalMessageQueueThread() : POINTER TO OSALmsg.IMessageQueueThread;
 
 #restore
 

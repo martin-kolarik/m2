@@ -11,7 +11,7 @@ IMPORT
   
 #save, option( dll_export => on )
 
-CLASS Win32MsgQueueThread( Win32thread.Win32Thread ) IMPLEMENTS OSALmsg.IMessageQueueThread;
+CLASS Win32MessageQueueThread( Win32thread.Win32Thread ) IMPLEMENTS OSALmsg.IMessageQueueThread;
 // behavior: DispatchMessage for Root = NIL and MessageToHandler = FALSE == Win32 default
 // behavior: Root^.OnMessage for Root <> NIL
 // behavior: Handler^.OnMessage for Root = NIL
@@ -42,9 +42,9 @@ CLASS Win32MsgQueueThread( Win32thread.Win32Thread ) IMPLEMENTS OSALmsg.IMessage
    PUBLIC FINAL PROCEDURE LeaveMessageThread( CallOnLeaveInThread : BOOLEAN );
    PUBLIC FINAL PROCEDURE OnJoin( JoinedTo : OSALmsg.TPMessageQueueThread );
    PUBLIC FINAL PROCEDURE OnLeave();
-END Win32MsgQueueThread;
+END Win32MessageQueueThread;
 
-PROCEDURE Win32GlobalMsgQueueThread() : POINTER TO OSALmsg.IMessageQueueThread;
+PROCEDURE Win32GlobalMessageQueueThread() : POINTER TO OSALmsg.IMessageQueueThread;
 
 #restore
 

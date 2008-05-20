@@ -39,7 +39,7 @@ TYPE
 
 (*---------------------------------------------------------------------------*)
   
-CLASS CServiceThread( msgqueuethread.MsgQueueThread );
+CLASS CServiceThread( msgqueuethread.MessageQueueThread );
    LOCAL VAR
       Service : TPService;
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Msg : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;

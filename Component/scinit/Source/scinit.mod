@@ -16,6 +16,4 @@ BEGIN
    threadinit.Cleanup();
 END Cleanup;
 
-(*# restore *)
-
 END scinit.

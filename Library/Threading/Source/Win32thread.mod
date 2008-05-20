@@ -85,7 +85,7 @@ CLASS IMPLEMENTATION Win32Thread;
 
    PUBLIC FINAL PROCEDURE RunWithRunnable( Runnable : OSALthread.TPRunnable );
    BEGIN
-      ASSERT( _Runnable <> NIL );
+      ASSERT( _Runnable = NIL );
       _Runnable := Runnable;
       Run( FALSE );
    END RunWithRunnable;

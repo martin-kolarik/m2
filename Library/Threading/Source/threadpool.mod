@@ -143,10 +143,10 @@ END CTask;
 TYPE
   TPPoolThread = POINTER TO CPoolThread;
 
-CLASS CPoolThread( SCmsgqueuethread.SCMsgQueueThread );
+CLASS CPoolThread( SCmsgqueuethread.SCMessageQueueThread );
   PRIVATE VAR
     Pool : TPThreadPool;
-    HTasks : TimeoutableTwoPtrMap.CTimeoutableTwoPtrMap; // CTask.Handle/PTask
+    HTasks : TimeoutableTwoPtrMap.CTimeoutableTwoPtrMapSimplified; // CTask.Handle/PTask
     Handles : maps.CPtrMap; // CTask.Data/PPtrList
     Messages : maps.CPtrMap; // CTask.Data/PTask
     Workers : lists.CPtrList; // CTask.Data/PTask
@@ -259,10 +259,9 @@ CLASS IMPLEMENTATION CPoolThread;
          CheckEmpty : BOOLEAN := FALSE;
          disposable : BOOLEAN;
          Handle : TPoolHandle;
-         Key2 : PTR;
          Task : TPTask;
       BEGIN
-         WHILE HTasks.GetFirstElapsed( CurrentTime, FALSE, OUT Handle, OUT Key2,  OUT Task ) DO
+         WHILE HTasks.GetFirstElapsed( CurrentTime, FALSE, OUT Handle, OUT Task ) DO
             CASE Task^.Task OF
             | tskTimeoutOnce :
                Completed( Sync.arCompleted, Task, NIL, TRUE, TRUE, OUT disposable );
@@ -477,7 +476,7 @@ CLASS IMPLEMENTATION CPoolThread;
   VAR
     HandleList : lists.TPPtrList;
   BEGIN
-    HTasks.Add( CurrentTime, Task^.Handle, 0, Task, Task^.Timeout );
+    HTasks.Add( CurrentTime, Task^.Handle, Task, Task^.Timeout );
     CASE Task^.Task OF
     | tskTimeoutOnce, tskTimeoutRepeated :
       // do nothing
@@ -540,7 +539,7 @@ CLASS IMPLEMENTATION CPoolThread;
     MSG : msghandler.Message;
   BEGIN
     IF RemoveTask THEN
-      HTasks.Remove( Task^.Handle, 0 );
+      HTasks.Remove( Task^.Handle );
       Sync.IDec( REF TasksCount );
     ELSE
       DisposeTask := FALSE; // for safety
@@ -584,7 +583,7 @@ CLASS IMPLEMENTATION CPoolThread;
   FINALLY CPoolThread();
   VAR
     disposable : BOOLEAN;
-    Key1, Key2 : PTR;
+    Key : PTR;
     Task : TPTask;
   BEGIN
     Sync.DeleteSignal( REF ReqQueue.Produce );
@@ -605,7 +604,7 @@ CLASS IMPLEMENTATION CPoolThread;
       Completed( Sync.arAborted, Workers.CurrentData, NIL, TRUE, TRUE, OUT disposable );
       TPPoolWorker( Workers.Current )^.Release();
     END; // WHILE
-    WHILE HTasks.GetFirstElapsed( time.UptimeMS(), FALSE, OUT Key1, OUT Key2, OUT Task ) DO
+    WHILE HTasks.GetFirstElapsed( time.UptimeMS(), FALSE, OUT Key, OUT Task ) DO
       Completed( Sync.arAborted, Task, NIL, TRUE, TRUE, OUT disposable );
     END; // WHILE
   END CPoolThread;

@@ -240,12 +240,14 @@ CLASS IMPLEMENTATION CSupport;
    PUBLIC PROCEDURE GetFirstElapsed( CurrentTime : CARDINAL; OUT Recipient : OSALmsg.TPMessageRecipient; OUT TimerId : PTR ) : BOOLEAN;
    VAR
       b : BOOLEAN;
+      ElapsedOn : CARDINAL;
+      PeriodMS : CARDINAL;
       RepeatPTR : PTR;
    BEGIN
       TimersLock.Lock();
-      b := Timers.GetFirstElapsed( CurrentTime, FALSE, OUT Recipient, OUT TimerId, OUT RepeatPTR );
-      IF b AND ( RepeatPTR = 0 ) THEN
-         Timers.Remove( Recipient, TimerId );
+      b := Timers.GetFirstElapsed( CurrentTime, TRUE, OUT Recipient, OUT TimerId, OUT RepeatPTR, OUT PeriodMS, OUT ElapsedOn );
+      IF b AND ( RepeatPTR = 1 ) THEN
+         Timers.Add( ElapsedOn, Recipient, TimerId, RepeatPTR, PeriodMS );
       END;
       TimersLock.Unlock();
       RETURN b;

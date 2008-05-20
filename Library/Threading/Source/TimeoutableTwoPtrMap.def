@@ -28,15 +28,28 @@ CLASS CTimeoutableTwoPtrMap( avltree.CAVLTreeWState );
    PUBLIC PROCEDURE Remove( Key1, Key2 : PTR );
    PUBLIC PROCEDURE Contains( Key1, Key2 : PTR ) : BOOLEAN;
    PUBLIC PROCEDURE Get( Key1, Key2 : PTR; OUT Data : PTR ) : BOOLEAN;
-   PUBLIC PROCEDURE ElementByKeyAt( Index : CARDINAL; OUT Key1, Key2 : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
-   PUBLIC PROCEDURE ElementByTimeoutAt( Index : CARDINAL; OUT Key1, Key2 : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
+   PUBLIC PROCEDURE ElementByKeyAt( Index : CARDINAL; OUT Key1, Key2 : PTR; OUT Data : PTR; OUT Timeout : CARDINAL ) : BOOLEAN; // similar as []
+   PUBLIC PROCEDURE ElementByTimeoutAt( Index : CARDINAL; OUT Key1, Key2 : PTR; OUT Data : PTR; OUT Timeout : CARDINAL ) : BOOLEAN; // similar as []
 
-   // timeoutable interface
+   // main timeoutable interface
    PUBLIC PROCEDURE GetTimeoutToFirstElapsed( CurrentTime : CARDINAL ) : CARDINAL;
-   PUBLIC PROCEDURE GetFirstElapsed( CurrentTime : CARDINAL; RemoveKey : BOOLEAN; OUT Key1, Key2 : PTR; OUT Data : PTR ) : BOOLEAN;
-
-   PRIVATE PROCEDURE GetFirstWithTimeout( CurrentTime : CARDINAL; OUT Key1, Key2 : PTR; OUT Data : PTR; OUT Timeout : CARDINAL ) : BOOLEAN;
+   PUBLIC PROCEDURE GetFirstElapsed( CurrentTime : CARDINAL; RemoveKey : BOOLEAN; OUT Key1, Key2 : PTR; OUT Data : PTR; OUT Timeout, ElapsedOn : CARDINAL ) : BOOLEAN;
+   
+   PRIVATE PROCEDURE GetFirstWithTimeout( CurrentTime : CARDINAL; OUT Key1, Key2 : PTR; OUT Data : PTR; OUT Timeout, ElapsesOn : CARDINAL; OUT ElapsesBy : CARDINAL ) : BOOLEAN;
 END CTimeoutableTwoPtrMap;
+
+//--------------------------------------------------------------------------------
+
+CLASS CTimeoutableTwoPtrMapSimplified( CTimeoutableTwoPtrMap );
+
+   PUBLIC PROCEDURE Add( CurrentTime : CARDINAL; Key : PTR; Data : PTR; Timeout : CARDINAL );
+   PUBLIC PROCEDURE Remove( Key : PTR );
+   PUBLIC PROCEDURE Contains( Key : PTR ) : BOOLEAN;
+
+   // main timeoutable interface
+   PUBLIC PROCEDURE GetFirstElapsed( CurrentTime : CARDINAL; RemoveKey : BOOLEAN; OUT Key : PTR; OUT Data : PTR ) : BOOLEAN;
+
+END CTimeoutableTwoPtrMapSimplified;
 
 //--------------------------------------------------------------------------------
 

@@ -11,7 +11,7 @@ IMPORT
   
 #save, option( dll_export => on )
 
-ABSTRACT CLASS Win32Thread IMPLEMENTS OSALthread.IThread;
+CLASS Win32Thread IMPLEMENTS OSALthread.IThread;
   INTERNAL READONLY VAR
     _RunLock : CARDINAL;
     _Thread : CARDINAL;

@@ -12,7 +12,7 @@ IMPORT
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION Win32MsgQueueThread;
+CLASS IMPLEMENTATION Win32MessageQueueThread;
 
 (*---------------------------------------------------------------------------*)
   
@@ -208,14 +208,14 @@ BEGIN
 FINALLY
    Support^.Dispose();
    DISPOSE( Support );
-END Win32MsgQueueThread;
+END Win32MessageQueueThread;
 
 (*===========================================================================*)
 
-PROCEDURE Win32GlobalMsgQueueThread() : POINTER TO OSALmsg.IMessageQueueThread;
+PROCEDURE Win32GlobalMessageQueueThread() : POINTER TO OSALmsg.IMessageQueueThread;
 BEGIN
    RETURN NIL; // there is no global thread, the default one is used
-END Win32GlobalMsgQueueThread;
+END Win32GlobalMessageQueueThread;
 
 (*===========================================================================*)
 

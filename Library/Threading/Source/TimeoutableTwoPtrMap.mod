@@ -12,6 +12,7 @@ CLASS CTimeoutableItem( avltree.CAVLTreeElem2 );
   PUBLIC VAR
     Key1, Key2 : PTR;
     Data : PTR;
+    Timeout : CARDINAL;
     ElapsesOn : CARD64;
 
   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
@@ -75,6 +76,7 @@ BEGIN
   Key1 := 0;
   Key2 := 0;
   Data := 0;
+  Timeout := 0;
   ElapsesOn := 0;
 END CTimeoutableItem;
 
@@ -136,6 +138,7 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
       PI^.Key1 := Key1;
       PI^.Key2 := Key2;
       PI^.Data := Data;
+      PI^.Timeout := Timeout;
       IF Timeout = Sync.FOREVER THEN
          PI^.ElapsesOn := CARD64( Sync.FOREVER ) << 32 OR CARD64( Counter );
       ELSIF Timeout = 0 THEN
@@ -187,7 +190,7 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE ElementByKeyAt( Index : CARDINAL; OUT Key1, Key2 : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
+   PUBLIC PROCEDURE ElementByKeyAt( Index : CARDINAL; OUT Key1, Key2 : PTR; OUT Data : PTR; OUT Timeout : CARDINAL ) : BOOLEAN; // similar as []
    VAR
       PI : TPTimeoutableItem;
    BEGIN
@@ -197,13 +200,14 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
          Key1 := PI^.Key1;
          Key2 := PI^.Key2;
          Data := PI^.Data;
+         Timeout := PI^.Timeout;
       END;
       RETURN TRUE;
    END ElementByKeyAt;
   
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE ElementByTimeoutAt( Index : CARDINAL; OUT Key1, Key2 : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
+   PUBLIC PROCEDURE ElementByTimeoutAt( Index : CARDINAL; OUT Key1, Key2 : PTR; OUT Data : PTR; OUT Timeout : CARDINAL ) : BOOLEAN; // similar as []
    VAR
       PI : TPTimeoutableItem;
    BEGIN
@@ -213,6 +217,7 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
          Key1 := PI^.Key1;
          Key2 := PI^.Key2;
          Data := PI^.Data;
+         Timeout := PI^.Timeout;
       END;
       RETURN TRUE;
    END ElementByTimeoutAt;
@@ -221,12 +226,14 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
 
    PUBLIC PROCEDURE GetTimeoutToFirstElapsed( CurrentTime : CARDINAL ) : CARDINAL;
    VAR
-      Key1, Key2 : PTR;
       Data : PTR;
+      ElapsesBy : CARDINAL;
+      ElapsesOn : CARDINAL;
+      Key1, Key2 : PTR;
       Timeout : CARDINAL;
    BEGIN
-      IF GetFirstWithTimeout( CurrentTime, OUT Key1, OUT Key2, OUT Data, OUT Timeout ) THEN
-         RETURN Timeout;
+      IF GetFirstWithTimeout( CurrentTime, OUT Key1, OUT Key2, OUT Data, OUT Timeout, OUT ElapsesOn, OUT ElapsesBy ) THEN
+         RETURN ElapsesBy;
       ELSE
          RETURN Sync.FOREVER;
       END;
@@ -234,11 +241,11 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE GetFirstElapsed( CurrentTime : CARDINAL; RemoveKey : BOOLEAN; OUT Key1, Key2 : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE GetFirstElapsed( CurrentTime : CARDINAL; RemoveKey : BOOLEAN; OUT Key1, Key2 : PTR; OUT Data : PTR; OUT Timeout, ElapsedOn : CARDINAL ) : BOOLEAN;
    VAR
-      Timeout : CARDINAL;
+      ElapsesBy : CARDINAL;
    BEGIN
-      IF NOT GetFirstWithTimeout( CurrentTime, OUT Key1, OUT Key2, OUT Data, OUT Timeout ) OR ( Timeout > 0 ) THEN
+      IF NOT GetFirstWithTimeout( CurrentTime, OUT Key1, OUT Key2, OUT Data, OUT Timeout, OUT ElapsedOn, OUT ElapsesBy ) OR ( ElapsesBy > 0 ) THEN
          RETURN FALSE;
       ELSIF RemoveKey THEN
          Remove( Key1, Key2 );
@@ -248,9 +255,8 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
 
 //--------------------------------------------------------------------------------
 
-   PRIVATE PROCEDURE GetFirstWithTimeout( CurrentTime : CARDINAL; OUT Key1, Key2 : PTR; OUT Data : PTR; OUT Timeout : CARDINAL ) : BOOLEAN;
+   PRIVATE PROCEDURE GetFirstWithTimeout( CurrentTime : CARDINAL; OUT Key1, Key2 : PTR; OUT Data : PTR; OUT Timeout, ElapsesOn : CARDINAL; OUT ElapsesBy : CARDINAL ) : BOOLEAN;
    VAR
-      ElapsesOn : CARDINAL;
       TI : TPTimeoutableItem;
    BEGIN
       IF NOT GetFirstI( 1, OUT TI ) THEN
@@ -263,10 +269,11 @@ CLASS IMPLEMENTATION CTimeoutableTwoPtrMap;
       Key1 := TI^.Key1;
       Key2 := TI^.Key2;
       Data := TI^.Data;
+      Timeout := TI^.Timeout;
       IF ElapsesOn <= CurrentTime THEN
-         Timeout := 0;
+         ElapsesBy := 0;
       ELSE
-         Timeout := ElapsesOn - CurrentTime;
+         ElapsesBy := ElapsesOn - CurrentTime;
       END;
       RETURN TRUE;
   END GetFirstWithTimeout;
@@ -277,6 +284,46 @@ BEGIN
   Counter := 0;
   Indexes := 2;
 END CTimeoutableTwoPtrMap;
+
+//================================================================================
+
+CLASS IMPLEMENTATION CTimeoutableTwoPtrMapSimplified;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE Add( CurrentTime : CARDINAL; Key : PTR; Data : PTR; Timeout : CARDINAL );
+   BEGIN
+      SUPER.Add( CurrentTime, Key, 0, Data, Timeout );
+   END Add;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE Remove( Key : PTR );
+   BEGIN
+      SUPER.Remove( Key, 0 );
+   END Remove;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE Contains( Key : PTR ) : BOOLEAN;
+   BEGIN
+      RETURN SUPER.Contains( Key, 0 );
+   END Contains;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE GetFirstElapsed( CurrentTime : CARDINAL; RemoveKey : BOOLEAN; OUT Key : PTR; OUT Data : PTR ) : BOOLEAN;
+   VAR
+      Key2 : PTR;
+      Timeout : CARDINAL;
+      ElapsedOn : CARDINAL;
+   BEGIN
+      RETURN SUPER.GetFirstElapsed( CurrentTime, RemoveKey, OUT Key, OUT Key2, OUT Data, OUT Timeout, OUT ElapsedOn );
+   END GetFirstElapsed;
+
+//--------------------------------------------------------------------------------
+
+END CTimeoutableTwoPtrMapSimplified;
 
 //================================================================================
 
