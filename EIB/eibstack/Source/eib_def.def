@@ -197,7 +197,9 @@ TYPE
     aofForceRead,    // extension, the object will always be communicated from EIB
     aofAdvise,       // extension, the object notify back itself value notwithstanding fact it cannot notify (is e.g. only aofTransmit)
     aofInitRead,     // extension, the object after creating read self first value from EIB
-    aofEIBValue      // extension, user, the object has sent/received the value to/from EIB, so it is synchronized
+    aofEIBValue,     // extension, user, the object has sent/received the value to/from EIB, so it is synchronized
+    
+    aofPromiscuous   // extension, user, the object listens to all data of the proper length
   );
   TA_ObjectFlags = SET OF TA_ObjectFlags_Item;
 

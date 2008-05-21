@@ -100,6 +100,16 @@ END CSDAPServer;
 //--------------------------------------------------------------------------------
 
 TYPE
+   TPPromiscuousData = POINTER TO PromiscuousData;
+
+CLASS PromiscuousData;
+   Address : eib_def.CAddress;
+   Value   : eib_def.CValue;
+END PromiscuousData;
+
+//--------------------------------------------------------------------------------
+
+TYPE
    TStack = (
       stackUnknown,
       stackUSB,
@@ -135,8 +145,8 @@ INTERFACE IEIBServerSink;
    PROCEDURE OnInitReadCompleted();
    PROCEDURE OnRead( PObject : TPObject );
    PROCEDURE OnWritten( PObject : TPObject );
-   PROCEDURE OnInputQueueAdd();
-   PROCEDURE OnInputQueueOverflow();
+   PROCEDURE OnInputQueueAdd( OOBQueue, PromiscuousQueue : BOOLEAN );
+   PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
 END IEIBServerSink;
 
 CLASS CEIBServer( msghandler.MessageHandler );

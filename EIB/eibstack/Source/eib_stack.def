@@ -790,9 +790,9 @@ CONST
 TYPE
   TPendingOperation = (
     pendingGroupRead,
-    pendingGroupWrite,
-    pendingPropertyRead,
-    pendingPropertyWrite
+    pendingGroupWrite
+    // pendingPropertyRead,
+    // pendingPropertyWrite
   );
 
 TYPE
@@ -892,75 +892,6 @@ CLASS CEIBStackApplicationLayer( CEIBStackLayer );
   );
 
   // APPLICATION LAYER itself
-  // unicast data
-  PUBLIC PROCEDURE A_PropertyValue_Send(
-          APDU        : TA_PDU;
-          Destination : eib_def.TAddress;
-          Class       : eib_def.TPriority;
-          ObjectIndex : CARDINAL;
-          PropertyId  : CARDINAL;
-          NoOfElem    : CARDINAL;
-          StartIndex  : CARDINAL;
-          PData       : ADDRESS;
-          DataLength  : CARDINAL // zero if some failure occurred
-  );
-  PUBLIC PROCEDURE A_PropertyValue_Read_Req(
-          Destination : eib_def.TAddress;
-          Class       : eib_def.TPriority;
-          ObjectIndex : CARDINAL;
-          PropertyId  : CARDINAL;
-          NoOfElem    : CARDINAL;
-          StartIndex  : CARDINAL
-  );
-  PUBLIC PROCEDURE A_PropertyValue_Read_Res(
-          Destination : eib_def.TAddress;
-          Class       : eib_def.TPriority;
-          ObjectIndex : CARDINAL;
-          PropertyId  : CARDINAL;
-          NoOfElem    : CARDINAL;
-          StartIndex  : CARDINAL;
-          PData       : ADDRESS;
-          DataLength  : CARDINAL // zero if some failure occurred
-  );
-  PUBLIC PROCEDURE A_PropertyValue_Write_Req(
-          Destination : eib_def.TAddress;
-          Class       : eib_def.TPriority;
-          ObjectIndex : CARDINAL;
-          PropertyId  : CARDINAL;
-          NoOfElem    : CARDINAL;
-          StartIndex  : CARDINAL;
-          PData       : ADDRESS;
-          DataLength  : CARDINAL // zero if some failure occurred
-  );
-  PUBLIC PROCEDURE A_PropertyValue_Write_Res(
-          Destination : eib_def.TAddress;
-          Class       : eib_def.TPriority;
-          ObjectIndex : CARDINAL;
-          PropertyId  : CARDINAL;
-          NoOfElem    : CARDINAL;
-          StartIndex  : CARDINAL;
-          PData       : ADDRESS;
-          DataLength  : CARDINAL // zero if some failure occurred
-  );
-  PUBLIC PROCEDURE A_PropertyDescription_Read_Req(
-          Destination   : eib_def.TAddress;
-          Class         : eib_def.TPriority;
-          ObjectIndex   : CARDINAL;
-          PropertyId    : CARDINAL;
-          PropertyIndex : CARDINAL
-  );
-  PUBLIC PROCEDURE A_PropertyDescription_Read_Res(
-          Destination   : eib_def.TAddress;
-          Class         : eib_def.TPriority;
-          ObjectIndex   : CARDINAL;
-          PropertyId    : CARDINAL;
-          PropertyIndex : CARDINAL;
-          Type          : CARDINAL; // eib_def.TPropertyType;
-          MaxNoOfElem   : CARDINAL;
-          ReadLevel     : CARDINAL;
-          WriteLevel    : CARDINAL
-  );
-
   // multicast data
   PUBLIC PROCEDURE A_GroupValue_Read_Req(
           POriginator : TPSAP;
@@ -988,6 +919,17 @@ CLASS CEIBStackApplicationLayer( CEIBStackLayer );
           Destination : eib_def.TAddress;
     CONST PPacket     : eib_def.TPPacket
   );
+  PRIVATE PROCEDURE A_GroupValue_Process_Single( // rewritting allow tracking of all groups
+          Status      : eib_status.TEIBStackStatus; // if needed, e.g. for pphCON
+          POriginator : TPSAP;
+          Phase       : TProcessPhase;
+          APDU        : TA_PDU;
+          Class       : eib_def.TPriority;
+          Destination : eib_def.TAddress;
+    CONST PPacket     : eib_def.TPPacket;
+          Promiscuous : BOOLEAN;
+          PGroup      : TPA_Group
+  );
 
   PUBLIC PROCEDURE A_Subscribe(
           Update_L_Layer : BOOLEAN;
@@ -1014,10 +956,10 @@ CLASS CEIBStackApplicationLayer( CEIBStackLayer );
   PRIVATE PROCEDURE GetAPDU( PPacket : eib_def.TPPacket ) : TA_PDU;
   PRIVATE PROCEDURE SetAPDU( VAR Packet : eib_def.TPacket; APCI : TA_PDU );
 
-  PRIVATE PROCEDURE A_AppendPendingOperation( WhatIsPending : TPendingOperation; POriginator : ADDRESS; Class : eib_def.TPriority; CONST Destination : eib_def.TAddress; CONST Packet : eib_def.TPacket );
+  PRIVATE PROCEDURE A_AppendPendingOperation( WhatIsPending : TPendingOperation; ForceConcurrency : BOOLEAN; POriginator : ADDRESS; Class : eib_def.TPriority; CONST Destination : eib_def.TAddress; CONST Packet : eib_def.TPacket );
   PRIVATE PROCEDURE A_GetPendingDestination( WhatIsPending : TPendingOperation; Class : eib_def.TPriority; VAR Destination : eib_def.TAddress ) : BOOLEAN;
   PRIVATE PROCEDURE A_PendingOperationFinished( WhatIsPending : TPendingOperation; Status : eib_status.TEIBStackStatus; Class : eib_def.TPriority; CONST Destination : eib_def.TAddress );
-  PRIVATE PROCEDURE A_StartPendingOperation( WhatIsPending : TPendingOperation; PClass : eib_def.TPPriority ); // CAN be NIL, if start could select packet automatically
+  PRIVATE PROCEDURE A_StartPendingOperation( WhatIsPending : TPendingOperation; ForceConcurrency : BOOLEAN; PClass : eib_def.TPPriority ); // CAN be NIL, if start could select packet automatically
   PRIVATE PROCEDURE A_PendingIsSingleOperation( PendingOperation : TPendingOperation ) : BOOLEAN;
 
   PRIVATE PROCEDURE A_Group_SearchGroup( CONST Address : eib_def.TAddress; VAR PGroup : TPA_Group ) : BOOLEAN;
@@ -1059,6 +1001,8 @@ INTERFACE IUserObject;
       ReadAddress        : eib_def.TAddress;
       SendAddress        : eib_def.TAddress;
       PromiscuousAddress : eib_def.TAddress;
+   READONLY PROPERTY
+      Promiscuous        : BOOLEAN;
 
 END IUserObject;
 

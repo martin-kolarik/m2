@@ -72,7 +72,6 @@ CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS srvcore.IEIBServerSink;
    PROCEDURE HWConnected( VAR ErrorCode : CARDINAL ) : BOOLEAN;
 
    // helpers
-   INTERNAL PROCEDURE CWValue2EIBValue( UFlag : BOOLEAN; CONST Value : drv_def.TValue; DestEVType : eib_def.TEIBType; OUT EV : eib_def.TValue );
    PRIVATE PROCEDURE DoRun();
    PRIVATE PROCEDURE DoStop();
 
@@ -82,8 +81,8 @@ CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS srvcore.IEIBServerSink;
    PUBLIC VIRTUAL PROCEDURE OnInitReadCompleted();
    PUBLIC VIRTUAL PROCEDURE OnRead( PObject : srvcore.TPObject );
    PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : srvcore.TPObject );
-   PUBLIC VIRTUAL PROCEDURE OnInputQueueAdd();
-   PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow();
+   PUBLIC VIRTUAL PROCEDURE OnInputQueueAdd( OOBQueue, PromiscuousQueue : BOOLEAN );
+   PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
 END CEIBDriver;
 
 //================================================================================

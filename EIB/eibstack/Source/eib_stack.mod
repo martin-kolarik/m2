@@ -1733,7 +1733,7 @@ END CA_PendingOperation;
 
 CLASS IMPLEMENTATION CA_PendingOperation;
 BEGIN
-  WhatIsPending := pendingPropertyRead;
+  WhatIsPending := pendingGroupRead;
   ObjectIndex := 0;
   PropertyId := 0;
 END CA_PendingOperation;
@@ -1895,7 +1895,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
         END;
       END;
       A_Data.Timeouter[i].Stop();
-      IF i = pendingPropertyWrite THEN
+      IF i = pendingGroupWrite THEN
         EXIT;
       END;
       INC( i );
@@ -1918,7 +1918,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
         A_GroupValue_Process( eib_status.essA_Timeout, NIL, pphIND, apduGroupValue_RS, PSPO^.Class, PSPO^.Destination, NIL ); // informs all SAPs
       END;
     | tidA_PendingDelay :
-      A_StartPendingOperation( TPendingOperation( UserId ), NIL );
+      A_StartPendingOperation( TPendingOperation( UserId ), FALSE, NIL );
     END;
   END Timeout;
 
@@ -1941,108 +1941,6 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
   );
   BEGIN
   END T_Data_Unack_Ind;
-
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROCEDURE A_PropertyValue_Send(
-          APDU        : TA_PDU;
-          Destination : eib_def.TAddress;
-          Class       : eib_def.TPriority;
-          ObjectIndex : CARDINAL;
-          PropertyId  : CARDINAL;
-          NoOfElem    : CARDINAL;
-          StartIndex  : CARDINAL;
-          PData       : ADDRESS;
-          DataLength  : CARDINAL // zero if some failure occurred
-  );
-  BEGIN
-  END A_PropertyValue_Send;
-
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROCEDURE A_PropertyValue_Read_Req(
-          Destination : eib_def.TAddress;
-          Class       : eib_def.TPriority;
-          ObjectIndex : CARDINAL;
-          PropertyId  : CARDINAL;
-          NoOfElem    : CARDINAL;
-          StartIndex  : CARDINAL
-  );
-  BEGIN
-  END A_PropertyValue_Read_Req;
-
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROCEDURE A_PropertyValue_Read_Res(
-          Destination : eib_def.TAddress;
-          Class       : eib_def.TPriority;
-          ObjectIndex : CARDINAL;
-          PropertyId  : CARDINAL;
-          NoOfElem    : CARDINAL;
-          StartIndex  : CARDINAL;
-          PData       : ADDRESS;
-          DataLength  : CARDINAL // zero if some failure occurred
-  );
-  BEGIN
-  END A_PropertyValue_Read_Res;
-
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROCEDURE A_PropertyValue_Write_Req(
-          Destination : eib_def.TAddress;
-          Class       : eib_def.TPriority;
-          ObjectIndex : CARDINAL;
-          PropertyId  : CARDINAL;
-          NoOfElem    : CARDINAL;
-          StartIndex  : CARDINAL;
-          PData       : ADDRESS;
-          DataLength  : CARDINAL // zero if some failure occurred
-  );
-  BEGIN
-  END A_PropertyValue_Write_Req;
-
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROCEDURE A_PropertyValue_Write_Res(
-          Destination : eib_def.TAddress;
-          Class       : eib_def.TPriority;
-          ObjectIndex : CARDINAL;
-          PropertyId  : CARDINAL;
-          NoOfElem    : CARDINAL;
-          StartIndex  : CARDINAL;
-          PData       : ADDRESS;
-          DataLength  : CARDINAL // zero if some failure occurred
-  );
-  BEGIN
-  END A_PropertyValue_Write_Res;
-
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROCEDURE A_PropertyDescription_Read_Req(
-          Destination   : eib_def.TAddress;
-          Class         : eib_def.TPriority;
-          ObjectIndex   : CARDINAL;
-          PropertyId    : CARDINAL;
-          PropertyIndex : CARDINAL
-  );
-  BEGIN
-  END A_PropertyDescription_Read_Req;
-
-(*--------------------------------------------------------------------------------*)
-
-  PUBLIC PROCEDURE A_PropertyDescription_Read_Res(
-          Destination   : eib_def.TAddress;
-          Class         : eib_def.TPriority;
-          ObjectIndex   : CARDINAL;
-          PropertyId    : CARDINAL;
-          PropertyIndex : CARDINAL;
-          Type          : CARDINAL; // eib_def.TPropertyType;
-          MaxNoOfElem   : CARDINAL;
-          ReadLevel     : CARDINAL;
-          WriteLevel    : CARDINAL
-  );
-  BEGIN
-  END A_PropertyDescription_Read_Res;
 
 (*--------------------------------------------------------------------------------*)
 (*--------------------------------------------------------------------------------*)
@@ -2164,7 +2062,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
   BEGIN
     SetAPDU( LPacket, apduGroupValue_RD );
     LPacket.SetDataLength( 1 );
-    A_AppendPendingOperation( pendingGroupRead, POriginator, Class, Destination, LPacket );
+    A_AppendPendingOperation( pendingGroupRead, POriginator^.Promiscuous, POriginator, Class, Destination, LPacket );
   END A_GroupValue_Read_Req;
 
 (*--------------------------------------------------------------------------------*)
@@ -2193,7 +2091,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
   );
   BEGIN
     SetAPDU( Packet, apduGroupValue_WR );
-    A_AppendPendingOperation( pendingGroupWrite, POriginator, Class, Destination, Packet );
+    A_AppendPendingOperation( pendingGroupWrite, FALSE, POriginator, Class, Destination, Packet );
   END A_GroupValue_Write_Req;
 
 (*--------------------------------------------------------------------------------*)
@@ -2208,24 +2106,38 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
     CONST PPacket     : eib_def.TPPacket
   );
   VAR
+    PGroup : TPA_Group;
+  BEGIN
+    IF A_Group_SearchGroup( Destination, PGroup ) THEN
+      A_GroupValue_Process_Single( Status, POriginator, Phase, APDU, Class, Destination, PPacket, FALSE, PGroup );
+    END;
+    IF A_Parameters.PromiscuousMode AND ( PPacket <> NIL ) AND A_Group_SearchPromiscuousGroupByLength( PPacket, OUT PGroup ) THEN // repeat processing for promiscuous mode
+      A_GroupValue_Process_Single( Status, POriginator, Phase, APDU, Class, Destination, PPacket, TRUE, PGroup );
+    END;
+  END A_GroupValue_Process;
+
+(*--------------------------------------------------------------------------------*)
+
+  PRIVATE PROCEDURE A_GroupValue_Process_Single(
+          Status      : eib_status.TEIBStackStatus; // if needed, e.g. for pphCON
+          POriginator : TPSAP;
+          Phase       : TProcessPhase;
+          APDU        : TA_PDU;
+          Class       : eib_def.TPriority;
+          Destination : eib_def.TAddress;
+    CONST PPacket     : eib_def.TPPacket;
+          Promiscuous : BOOLEAN;
+          PGroup      : TPA_Group
+  );
+  VAR
     ES : PTR;
     PendingDestination : eib_def.TAddress;
     PendingObjectAddress : eib_def.TAddress;
-    PGroup : TPA_Group;
     PObject : TPSAP;
     WhatIsPending : TPendingOperation;
     PendingFound : BOOLEAN;
     RegisteredPending : BOOLEAN;
   BEGIN
-    IF A_Parameters.PromiscuousMode THEN
-      IF NOT A_Group_SearchPromiscuousGroupByLength( PPacket, OUT PGroup ) THEN
-        RETURN; // ignore
-      END;
-    ELSE // not PromiscuousMode
-      IF NOT A_Group_SearchGroup( Destination, PGroup ) THEN
-        RETURN; // ignore
-      END;
-    END;
     RegisteredPending := FALSE;
     PendingFound := TRUE;
 
@@ -2278,7 +2190,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
                             ( PendingObjectAddress = PendingDestination );
          END;
 
-      IF A_Parameters.PromiscuousMode THEN
+      IF Promiscuous THEN
         PObject^.PromiscuousAddress := PPacket^.GetDestinationAddress();
       END;
       CASE Phase OF
@@ -2308,7 +2220,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
       // this is a pending apduGroupRead operation, which needs further proceib_status.essing
       A_PendingOperationFinished( WhatIsPending, Status, Class, PendingDestination );
     END;
-  END A_GroupValue_Process;
+  END A_GroupValue_Process_Single;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -2479,7 +2391,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE A_AppendPendingOperation( WhatIsPending : TPendingOperation; POriginator : ADDRESS; Class : eib_def.TPriority; CONST Destination : eib_def.TAddress; CONST Packet : eib_def.TPacket );
+  PRIVATE PROCEDURE A_AppendPendingOperation( WhatIsPending : TPendingOperation; ForceConcurrency : BOOLEAN; POriginator : ADDRESS; Class : eib_def.TPriority; CONST Destination : eib_def.TAddress; CONST Packet : eib_def.TPacket );
   VAR
     PPendingData : TPPendingData;
   BEGIN
@@ -2504,7 +2416,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
     Enter();
     A_Data.Pending[ WhatIsPending ][Class].Append( PPendingData );
-    A_StartPendingOperation( WhatIsPending, ADR( Class ));
+    A_StartPendingOperation( WhatIsPending, ForceConcurrency, ADR( Class ));
     Leave();
   END A_AppendPendingOperation;
 
@@ -2540,7 +2452,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
     IF NOT A_PendingIsSingleOperation( WhatIsPending ) THEN
       // pass down
     ELSIF A_Parameters.PendingDelay[ WhatIsPending ] = 0 THEN
-      A_StartPendingOperation( WhatIsPending, NIL );
+      A_StartPendingOperation( WhatIsPending, FALSE, NIL );
     ELSE
       A_Data.Timeouter[ WhatIsPending ].StartEx( tidA_PendingDelay, A_Parameters.PendingDelay[ WhatIsPending ] );
     END;
@@ -2549,12 +2461,12 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE A_StartPendingOperation( WhatIsPending : TPendingOperation; PClass : eib_def.TPPriority ); // CAN be NIL, if start could select packet automatically
+  PRIVATE PROCEDURE A_StartPendingOperation( WhatIsPending : TPendingOperation; ForceConcurrency : BOOLEAN; PClass : eib_def.TPPriority ); // CAN be NIL, if start could select packet automatically
   VAR
     delay : CARDINAL;
     PSPO : TPPendingData;
   BEGIN
-    IF A_PendingIsSingleOperation( WhatIsPending ) THEN
+    IF NOT ForceConcurrency AND A_PendingIsSingleOperation( WhatIsPending ) THEN
       IF NOT A_GetFirstPending( WhatIsPending, PClass, PSPO ) THEN
         RETURN; // nothing to send
       ELSIF PSPO^.Pending THEN // already sent
@@ -2574,8 +2486,8 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
       RETURN; // nothing to send
     END;
 
-	PSPO^.Pending := TRUE;
-    IF A_Parameters.PendingTimeout[ WhatIsPending ] > 0 THEN
+	 PSPO^.Pending := TRUE;
+    IF NOT ForceConcurrency AND ( A_Parameters.PendingTimeout[ WhatIsPending ] > 0 ) THEN
       A_Data.Timeouter[ WhatIsPending ].StartEx( tidA_PendingTimeout, A_Parameters.PendingTimeout[ WhatIsPending ] ); // timeouter MUST be three times !!!, now it is single, which is BAD !!!
     END;
     CASE WhatIsPending OF
@@ -2596,9 +2508,9 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE A_PendingIsSingleOperation( PendingOperation : TPendingOperation ) : BOOLEAN;
+  PRIVATE PROCEDURE A_PendingIsSingleOperation( PendingOperation : TPendingOperation ) : BOOLEAN; // can run only as single, not in parallel
   BEGIN
-    IF PendingOperation <> pendingGroupWrite THEN
+    IF PendingOperation = pendingGroupRead THEN
       RETURN TRUE;
     END;
     RETURN ( A_Parameters.PendingDelay[ PendingOperation ] > 0 ) OR ( A_Parameters.PendingTimeout[ PendingOperation ] > 0 );
@@ -2740,12 +2652,10 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 BEGIN
   LayerType := eltApplication;
   Storage.Zero( ADR( A_Parameters ), SIZE( A_Parameters ));
-  A_Parameters.PendingTimeout[ pendingGroupRead  ] := 2500;
+  A_Parameters.PendingTimeout[ pendingGroupRead ] := 2500;
 
-  A_Data.Timeouter[ pendingGroupRead     ].Init( ADR( SELF ), tidA_PendingTimeout, A_Parameters.PendingTimeout[ pendingGroupRead     ], pendingGroupRead     );
-  A_Data.Timeouter[ pendingGroupWrite    ].Init( ADR( SELF ), tidA_PendingTimeout, A_Parameters.PendingTimeout[ pendingGroupWrite    ], pendingGroupWrite    );
-  A_Data.Timeouter[ pendingPropertyRead  ].Init( ADR( SELF ), tidA_PendingTimeout, A_Parameters.PendingTimeout[ pendingPropertyRead  ], pendingPropertyRead  );
-  A_Data.Timeouter[ pendingPropertyWrite ].Init( ADR( SELF ), tidA_PendingTimeout, A_Parameters.PendingTimeout[ pendingPropertyWrite ], pendingPropertyWrite );
+  A_Data.Timeouter[ pendingGroupRead  ].Init( ADR( SELF ), tidA_PendingTimeout, A_Parameters.PendingTimeout[ pendingGroupRead     ], pendingGroupRead     );
+  A_Data.Timeouter[ pendingGroupWrite ].Init( ADR( SELF ), tidA_PendingTimeout, A_Parameters.PendingTimeout[ pendingGroupWrite    ], pendingGroupWrite    );
 
   Storage.Zero( ADR( A_Data.LastSend ), SIZE( A_Data.LastSend ));
 

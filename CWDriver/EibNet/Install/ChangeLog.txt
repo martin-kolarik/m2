@@ -1,4 +1,10 @@
-Version 1.0.1598 beta 13.5.2008
+Version 1.0.1599 beta 21.5.2008
+- BUG: Not all promiscuous objects were bound (e.g. scaling255). Accessing them
+       caused process crash.  
+- NEW: Full support for DriverQueryProc (get, send, event).
+- CHG: Promiscuous mode can now run in parallel with normal objects (defined in CFG).
+
+Version 1.0.1568 beta 13.5.2008
 
 Version 1.0.1396 beta 28.12.2007
 - CHG: trace outputs changed, group address is now visible, if applicable. Error

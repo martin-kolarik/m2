@@ -68,6 +68,8 @@ CLASS CUserObject IMPLEMENTS eib_stack.IUserObject;
       ReadAddress        : eib_def.TAddress;
       SendAddress        : eib_def.TAddress;
       PromiscuousAddress : eib_def.TAddress;
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Promiscuous        : BOOLEAN;
 
   // helpers
   PUBLIC PROCEDURE GetFlags() : eib_def.TA_ObjectFlags;
@@ -93,6 +95,7 @@ CLASS CUserObject IMPLEMENTS eib_stack.IUserObject;
   PUBLIC PROCEDURE SetValue( CONST Value : eib_def.TValue ) : eib_status.TEIBStackStatus;
   PUBLIC PROCEDURE GetValue( VAR Value : eib_def.TValue; UseCached, ForceReadOutOfOrder : BOOLEAN ) : eib_status.TEIBStackStatus;
   PUBLIC PROCEDURE Transmit() : eib_status.TEIBStackStatus;
+  PUBLIC PROCEDURE InitiateGetValue( CONST Address : eib_def.TAddress ) : eib_status.TEIBStackStatus;
 
   // client callback
   INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : eib_status.TEIBStackStatus );

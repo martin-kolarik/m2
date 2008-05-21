@@ -262,6 +262,13 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
+  PUBLIC PROPERTY Promiscuous GET : BOOLEAN;
+  BEGIN
+    RETURN eib_def.aofPromiscuous IN Flags;
+  END Promiscuous;
+
+(*--------------------------------------------------------------------------------*)
+
   PUBLIC PROCEDURE GetFlags() : eib_def.TA_ObjectFlags;
   BEGIN
     RETURN Flags;
@@ -481,7 +488,7 @@ CLASS IMPLEMENTATION CUserObject;
     PGroup : TPAU_Group;
     b : BOOLEAN;
   BEGIN
-    IF PExecutive^.A_Parameters.PromiscuousMode THEN
+    IF eib_def.aofPromiscuous IN Flags THEN
       _Value.CopyFrom( Value );
     ELSIF NOT Groups.GetFirst( OUT PGroup ) THEN
       RETURN eib_status.essAU_NoAddress;
@@ -501,8 +508,7 @@ CLASS IMPLEMENTATION CUserObject;
       ELSE
         State := State + TObjectState{osTransmitting, osReading};
       END;
-      Executive()^.A_GroupValue_Read_Req( ADR( SELF ), PGroup^.Address, Class );
-      RETURN eib_status.essAU_Pending;
+      RETURN InitiateGetValue( PGroup^.Address );
     ELSE
       _Value.CopyFrom( Value );
     END;
@@ -517,7 +523,7 @@ CLASS IMPLEMENTATION CUserObject;
     PAddress : eib_def.TPAddress;
     PGroup : TPAU_Group;
   BEGIN
-    IF PExecutive^.A_Parameters.PromiscuousMode THEN
+    IF eib_def.aofPromiscuous IN Flags THEN
       PAddress := ADR( prAddress );
     ELSIF NOT Groups.GetFirst( OUT PGroup ) THEN
       RETURN eib_status.essAU_NoAddress;
@@ -533,6 +539,14 @@ CLASS IMPLEMENTATION CUserObject;
     Executive()^.A_GroupValue_Write_Req( ADR( SELF ), PAddress^, Class, LPacket );
     RETURN eib_status.essAU_Pending;
   END Transmit;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROCEDURE InitiateGetValue( CONST Address : eib_def.TAddress ) : eib_status.TEIBStackStatus;
+  BEGIN
+      Executive()^.A_GroupValue_Read_Req( ADR( SELF ), Address, Class );
+      RETURN eib_status.essAU_Pending;
+  END InitiateGetValue;
 
 (*--------------------------------------------------------------------------------*)
 

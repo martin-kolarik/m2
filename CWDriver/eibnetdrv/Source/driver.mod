@@ -18,7 +18,6 @@ FROM Storage IMPORT
 
 IMPORT
    cllv,
-   drv_str,
    eib_def,
    eib_user,
    eib_status,
@@ -26,6 +25,7 @@ IMPORT
    FIOO,
    INIFile,
    IOO,
+   iovalue,
    Log,
    Resources,
    Strings,
@@ -89,6 +89,30 @@ BEGIN
       Address.SetGroupAddress2( M, S, G );
    END;
 END LogNumber2Address;
+
+//================================================================================
+
+PROCEDURE EITToCWType( EIT : eib_def.TEIBType ) : drv_def.TValueType;
+BEGIN
+   CASE EIT OF
+   | eib_def.eitSwitch :     RETURN drv_def.vtBoolean;
+   | eib_def.eitIncrease :   RETURN drv_def.vtShortInt;
+   | eib_def.eitTime :       RETURN drv_def.vtLongCard;
+   | eib_def.eitDate :       RETURN drv_def.vtLongReal;
+   | eib_def.eitValue,
+     eib_def.eitValueRange : RETURN drv_def.vtLongReal;
+   | eib_def.eitScaling,
+     eib_def.eitScaling255 : RETURN drv_def.vtShortCard;
+   | eib_def.eitMove :       RETURN drv_def.vtBoolean;
+   | eib_def.eitFloat :      RETURN drv_def.vtLongReal;
+   | eib_def.eit16bit :      RETURN drv_def.vtLongCard;
+   | eib_def.eit32bit :      RETURN drv_def.vtLongCard;
+   | eib_def.eitChar :       RETURN drv_def.vtDString;
+   | eib_def.eit8bit :       RETURN drv_def.vtShortCard;
+   | eib_def.eitString :     RETURN drv_def.vtDString;
+   END; // CASE EV.Type
+   RETURN drv_def.vtUnknown;
+END EITToCWType;
 
 //================================================================================
 
@@ -253,23 +277,7 @@ CLASS IMPLEMENTATION CEIBDriver;
       END;
 
       PObject := srvcore.TPObject( Objects[ Index ] );
-      CASE PObject^.Value.GetType() OF
-      | eib_def.eitSwitch :     Type := CARDINAL( drv_def.vtBoolean );
-      | eib_def.eitIncrease :   Type := CARDINAL( drv_def.vtShortInt );
-      | eib_def.eitTime :       Type := CARDINAL( drv_def.vtLongCard );
-      | eib_def.eitDate :       Type := CARDINAL( drv_def.vtLongReal );
-      | eib_def.eitValue,
-        eib_def.eitValueRange : Type := CARDINAL( drv_def.vtLongReal );
-      | eib_def.eitScaling,
-        eib_def.eitScaling255 : Type := CARDINAL( drv_def.vtShortCard );
-      | eib_def.eitMove :       Type := CARDINAL( drv_def.vtBoolean );
-      | eib_def.eitFloat :      Type := CARDINAL( drv_def.vtLongReal );
-      | eib_def.eit16bit :      Type := CARDINAL( drv_def.vtLongCard );
-      | eib_def.eit32bit :      Type := CARDINAL( drv_def.vtLongCard );
-      | eib_def.eitChar :       Type := CARDINAL( drv_def.vtDString );
-      | eib_def.eit8bit :       Type := CARDINAL( drv_def.vtShortCard );
-      | eib_def.eitString :     Type := CARDINAL( drv_def.vtDString);
-      END; // CASE EV.Type
+      Type := CARDINAL( EITToCWType( PObject^.Value.GetType() ));
 
       IF directionOutput * PObject^.Flags = eib_def.TA_ObjectFlags{} THEN
          Direction := CARDINAL( drv_def.TDirection{drv_def.dirInput} );
@@ -416,15 +424,10 @@ CLASS IMPLEMENTATION CEIBDriver;
    PUBLIC PROCEDURE GetInput( UFlag : BOOLEAN; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue; VAR QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp; VAR ErrorCode : CARDINAL );
    VAR
       c : CARDINAL;
-      Day : eib_def.TDay;
       EV : eib_def.TValue;
+      IO : iovalue.Value;
       PObject : srvcore.TPObject;
-      s : ARRAY [0..31] OF WCHAR;
       Status : TStatusChannel;
-      Y, M, D, H, S : CARDINAL;
-      wch : WCHAR;
-      b1 : BOOLEAN;
-      b2 : BOOLEAN;
    BEGIN
       IF DriverIndex = StatusChannel THEN
          QoS := drv_def.qosGood;
@@ -494,62 +497,8 @@ CLASS IMPLEMENTATION CEIBDriver;
          IF srvcore.rsProcessingOOB IN RStatus THEN
             oobData.Current^.ToOA( OUT EV.Data, OUT c );
          END;
-
-         CASE EV.GetType() OF
-         | eib_def.eitUnknown :
-            ErrorCode := drv_def.ecValueProcessing;
-         | eib_def.eitSwitch :
-            drv_def.AssignValueBoolean( InValue, UFlag, TRUE, EV.GetSwitch() );
-         | eib_def.eitIncrease :
-            c := EV.GetIncrease( b1, b2 );
-            IF b1 THEN
-               drv_def.AssignValueInteger( InValue, UFlag, TRUE, INTEGER( c ));
-            ELSIF b2 THEN
-               drv_def.AssignValueInteger( InValue, UFlag, TRUE, -INTEGER( c ));
-            ELSE
-               drv_def.AssignValueInteger( InValue, UFlag, TRUE, 0 );
-            END;
-         | eib_def.eitTime :
-            EV.GetTime( Day, H, M, S );
-            drv_def.AssignValueCardinal( InValue, UFlag, TRUE, CARDINAL( Day ) * 100000 + ( H * 60 + M ) * 60 + S );
-         | eib_def.eitDate :
-            EV.GetDate( Y, M, D );
-            drv_def.AssignValueLongReal( InValue, UFlag, TRUE, Time.ToSJD( Time.JD( Y, M, D, 0 )));
-         | eib_def.eitValue,
-            eib_def.eitValueRange :
-            drv_def.AssignValueLongReal( InValue, UFlag, TRUE, EV.GetValue() );
-         | eib_def.eitScaling :
-            drv_def.AssignValueCardinal( InValue, UFlag, TRUE, EV.GetScaling() );
-         | eib_def.eitScaling255 :
-            drv_def.AssignValueCardinal( InValue, UFlag, TRUE, EV.GetScaling255() );
-         | eib_def.eitMove :
-            drv_def.AssignValueBoolean( InValue, UFlag, TRUE, EV.GetMove() );
-         | eib_def.eitFloat :
-            drv_def.AssignValueLongReal( InValue, UFlag, TRUE, EV.GetFloat() );
-         | eib_def.eit16bit :
-            drv_def.AssignValueCardinal( InValue, UFlag, TRUE, EV.Get16bit() );
-         | eib_def.eit32bit :
-            drv_def.AssignValueCardinal( InValue, UFlag, TRUE, EV.Get32bit() );
-         | eib_def.eitChar :
-            wch := EV.GetChar();
-            InValue.ValDriverStringCharLength := 1;
-            IF UFlag THEN
-               Strings.MoveW( ADR( wch ), InValue.ValDriverStringAddress, 1 );
-            ELSE
-               Strings.ToA( OA( 0, ADR( wch )), 0, OUT OA( 0, PCHAR( InValue.ValDriverStringAddress )));
-            END;
-         | eib_def.eit8bit :
-            drv_def.AssignValueCardinal( InValue, UFlag, TRUE, EV.Get8bit() );
-         | eib_def.eitString :
-            EV.GetString( s );
-            InValue.ValDriverStringCharLength := MIN2( InValue.ValDriverStringCharLength, LENGTH( s ));
-            IF UFlag THEN
-               Strings.MoveW( ADR( s ), InValue.ValDriverStringAddress, InValue.ValDriverStringCharLength );
-            ELSE
-               c := InValue.ValDriverStringCharLength-1;
-               Strings.ToA( OA( c, ADR( s )), 0, OUT OA( c, PCHAR( InValue.ValDriverStringAddress )));
-            END;
-         END; // CASE EV.Type
+         EIBValue2IOValue( EV, OUT IO );
+         drv_def.IOValueToCWValue( IO, UFlag, TRUE, REF InValue );
 
       END;
    END GetInput;
@@ -566,6 +515,7 @@ CLASS IMPLEMENTATION CEIBDriver;
    VAR
       c : CARDINAL;
       EV : eib_def.TValue;
+      IO : iovalue.Value;
       PObject : srvcore.TPObject;
    BEGIN
       Result.Inc();
@@ -579,7 +529,8 @@ CLASS IMPLEMENTATION CEIBDriver;
          END;
 
       ELSIF LogNumber2Object( DriverIndex, PObject ) THEN
-         CWValue2EIBValue( UFlag, OutValue, PObject^.Value.GetType(), OUT EV );
+         drv_def.CWValueToIOValue( OutValue, UFlag, REF IO );
+         IOValue2EIBValue( IO, PObject^.Value.GetType(), OUT EV );
          PObject^.SetValue( EV );
 
       END;
@@ -620,33 +571,106 @@ CLASS IMPLEMENTATION CEIBDriver;
       Error;
    VAR
       CS : StringsO.CString;
+      d : PTR;
       EIT : eib_def.TEIBType;
       EV : eib_def.TValue;
-      LValue : drv_def.TValue;
+      i : CARDINAL;
+      IO : iovalue.Value;
       N, V : ARRAY [0..63] OF WCHAR;
+      promiscuousData : srvcore.PromiscuousData;
       s : ARRAY [0..15] OF WCHAR;
    BEGIN
       drv_def.DrvValueToCStringW( InValue1, UFlag, OUT CS );
       CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 0, TRUE, OUT N );
 
+      //=====
       IF EQUALS( N, L'run' ) THEN
          Run();
          
+      //=====
       ELSIF EQUALS( N, L'stop' ) THEN
          Stop();
 
-      ELSIF EQUALS( N, L'send' ) THEN
+      //=====
+      ELSIF EQUALS( N, L'event' ) THEN
          CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 1, TRUE, OUT N );
+
+         //-----
+         IF EQUALS( N, L'count' ) THEN
+            CS.FromCARD32( prData.Count, 10 );
+
+         //-----
+         ELSIF EQUALS( N, L'get' ) THEN
+            IF prData.Count = 0 THEN
+               CS.Clear();
+               GOTO Error;
+            END;
+           
+            prData.DequeueOA( OUT promiscuousData, OUT i, OUT d );
+            IF prData.Count = 0 THEN
+               EXCL( RStatus, srvcore.rsPromiscuousInQueue );
+            END;
+
+            promiscuousData.Address.GetGroupAddress3( TRUE, s );
+            CS.FromOA( s ); CS.AppendOA( L' ' );
+            eib_def.TypeToString( promiscuousData.Value.GetType(), s );
+            CS.AppendOA( s ); CS.AppendOA( L' ' );
+
+            EIBValue2IOValue( promiscuousData.Value, OUT IO );
+            CS.Append( IO.String );
+
+         ELSE
+           CS.FromOA( L'error: "event" procedure, unknown command' );
+           GOTO Error;
+         END;
+         
+      //=====
+      ELSIF EQUALS( N, L'get' ) THEN
+         i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 1, TRUE, OUT N );
+         IF N[0] = WCHAR( 0 ) THEN
+            CS.FromOA( L'error: "get" procedure, missing group address' );
+            GOTO Error;
+         END;
+         CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT s );
+         IF s[0] = WCHAR( 0 ) THEN
+            CS.FromOA( L'error: "get" procedure, missing value type' );
+            GOTO Error;
+         END;
+
+         IF Result.Counted THEN
+            CS.Clear();
+            GOTO Error;
+         ELSIF NOT eib_def.StringToType( s, EIT ) THEN
+            CS.FromOA( L'error: "send" procedure, bad type name (' );
+            CS.AppendOA( s );
+            CS.AppendOA( L')' );
+            GOTO Error;
+         ELSIF NOT prObjects[EIT].prAddress.SetGroupAddress3( N ) THEN
+            CS.FromOA( L'error: "send" procedure, bad group address (' );
+            CS.AppendOA( N );
+            CS.AppendOA( L')' );
+            GOTO Error;
+         ELSIF Result.Expired THEN
+            CS.Clear();
+            GOTO Error;
+         END;
+
+         // initiate read
+         prObjects[EIT].InitiateGetValue( prObjects[EIT].prAddress );
+
+      //=====
+      ELSIF EQUALS( N, L'send' ) THEN
+         i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 1, TRUE, OUT N );
          IF N[0] = WCHAR( 0 ) THEN
             CS.FromOA( L'error: "send" procedure, missing group address' );
             GOTO Error;
          END;
-         CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 2, TRUE, OUT s );
+         i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT s );
          IF s[0] = WCHAR( 0 ) THEN
             CS.FromOA( L'error: "send" procedure, missing value type' );
             GOTO Error;
          END;
-         CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 3, TRUE, OUT V );
+         CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT V );
          IF V[0] = WCHAR( 0 ) THEN
             CS.FromOA( L'error: "send" procedure, missing value' );
             GOTO Error;
@@ -670,11 +694,9 @@ CLASS IMPLEMENTATION CEIBDriver;
             GOTO Error;
          END;
 
-         drv_def.InitValue( LValue );
-         drv_def.SetValueStringW( LValue, UFlag, V );
-         CWValue2EIBValue( TRUE, LValue, EIT, OUT EV );
+         IO.FromStringOA( V, FALSE );
+         IOValue2EIBValue( IO, EIT, OUT EV );
          prObjects[EIT].SetValue( EV );
-         drv_def.DoneValue( LValue )
 
       ELSE
          CS.FromOA( L'error: unknown driver procedure' );
@@ -740,97 +762,6 @@ CLASS IMPLEMENTATION CEIBDriver;
 
 //--------------------------------------------------------------------------------
 
-   INTERNAL PROCEDURE CWValue2EIBValue( UFlag : BOOLEAN; CONST Value : drv_def.TValue; DestEVType : eib_def.TEIBType; OUT EV : eib_def.TValue );
-   VAR
-      c : CARDINAL;
-      Day : eib_def.TDay;
-      fd : CARDINAL;
-      H, M, S, WD : CARDINAL;
-      i : INTEGER;
-      s : ARRAY [0..31] OF WCHAR;
-      ST : windows.SYSTEMTIME;
-      Y, MM, D : INTEGER;
-   BEGIN
-      EV.SetType( DestEVType );
-
-      CASE EV.GetType() OF
-      | eib_def.eitUnknown :
-         RETURN;
-      | eib_def.eitSwitch :
-         EV.SetSwitch( drv_def.ValueToBoolean( Value, UFlag, TRUE ));
-      | eib_def.eitIncrease :
-         i := drv_def.ValueToInteger( Value, UFlag, TRUE );
-         IF i = 0 THEN
-            EV.SetIncrease( FALSE, FALSE, 0 );
-         ELSIF i < 0 THEN
-            EV.SetIncrease( FALSE, TRUE, CARDINAL( -i ));
-         ELSE
-            EV.SetIncrease( TRUE, FALSE, CARDINAL( i ));
-         END;
-      | eib_def.eitTime :
-         c := drv_def.ValueToCardinal( Value, UFlag, TRUE );
-         WD := c DIV 100000;
-         c := c - WD * 100000;
-         H := c DIV 3600;
-         c := c - H * 3600;
-         M := c DIV 60;
-         S := c MOD 60;
-         CASE WD OF
-         | 0 :
-            windows.GetLocalTime( ADR( ST ));
-            Day := eib_def.TDay( 1 + ( CARDINAL( ST.wDayOfWeek ) + 6 ) MOD 7 );
-         | 1..7 :
-            Day := eib_def.TDay( WD );
-         ELSE
-            Day := eib_def.dayNo;
-         END;
-         EV.SetTime( Day, H, M, S );
-      | eib_def.eitDate :
-         Time.iJD( Time.FromSJD( drv_def.ValueToLongReal( Value, UFlag, TRUE )), OUT Y, OUT MM, OUT D, OUT fd );
-         EV.SetDate( Y, MM, D );
-      | eib_def.eitValue, eib_def.eitValueRange :
-         EV.SetValue( drv_def.ValueToLongReal( Value, UFlag, TRUE ));
-      | eib_def.eitScaling :
-         EV.SetScaling( CARDINAL( drv_def.ValueToCard8( Value, UFlag, TRUE )));
-      | eib_def.eitScaling255 :
-         EV.SetScaling255( drv_def.ValueToCard8( Value, UFlag, TRUE ));
-      | eib_def.eitMove :
-         EV.SetMove( drv_def.ValueToBoolean( Value, UFlag, TRUE ));
-      | eib_def.eitFloat :
-         EV.SetFloat( drv_def.ValueToLongReal( Value, UFlag, TRUE ));
-      | eib_def.eit16bit :
-         c:= drv_def.ValueToCard32( Value, UFlag, TRUE );
-         IF c > MAX( CARD16 ) THEN
-            c := MAX( CARD16 );
-         END;
-         EV.Set16bit( c );
-      | eib_def.eit32bit :
-         EV.Set32bit( drv_def.ValueToCardinal( Value, UFlag, TRUE ));
-      | eib_def.eitChar :
-         IF UFlag THEN
-            Strings.MoveW( Value.ValDriverStringAddress, ADR( s ), 1 );
-         ELSE
-            Strings.ToW( OA( 0, PCHAR( Value.ValDriverStringAddress )), 0, OUT OA( 0, ADR( s )) );
-         END;
-         EV.SetChar( s[0] );
-      | eib_def.eit8bit :
-         EV.Set8bit( CARDINAL( drv_def.ValueToCard8( Value, UFlag, TRUE )) );
-      | eib_def.eitString :
-         c := MIN2( SIZE( eib_def.TEISString ), Value.ValDriverStringCharLength );
-         IF UFlag THEN
-            Strings.MoveW( Value.ValDriverStringAddress, ADR( s ), c );
-         ELSE
-            DEC( c );
-            Strings.ToW( OA( c, PCHAR( Value.ValDriverStringAddress )), 0, OUT OA( c, ADR( s )) );
-         END;
-         s[c] := 0W;
-         EV.SetString( s );
-      END; // CASE EV.Type
-   
-   END CWValue2EIBValue;
-
-//================================================================================
-
    PRIVATE PROCEDURE DoRun();
    BEGIN
       SUPER.Run( TRUE, FALSE );
@@ -885,18 +816,18 @@ CLASS IMPLEMENTATION CEIBDriver;
 
 //================================================================================
 
-   PUBLIC VIRTUAL PROCEDURE OnInputQueueAdd();
+   PUBLIC VIRTUAL PROCEDURE OnInputQueueAdd( OOBQueue, PromiscuousQueue : BOOLEAN );
    BEGIN
-      IF PromiscuousMode THEN // promiscuous mode queueing
+      IF PromiscuousQueue THEN
          CallbackProc( CallbackId, drv_def.dcfException, NIL );
-      ELSE
+      ELSIF OOBQueue THEN
          CallbackProc( CallbackId, drv_def.dcfOOBDataAdvise, NIL );
       END;
    END OnInputQueueAdd;
 
 //================================================================================
 
-   PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow();
+   PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
    BEGIN
       CallbackProc( CallbackId, drv_def.dcfException, NIL );
    END OnInputQueueOverflow;

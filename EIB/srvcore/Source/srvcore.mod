@@ -144,16 +144,6 @@ END CBehaviour;
 //-----
 
 TYPE
-   TPPromiscuousData = POINTER TO PromiscuousData;
-
-CLASS PromiscuousData;
-   Address : eib_def.CAddress;
-   Value   : eib_def.CValue;
-END PromiscuousData;
-
-//-----
-
-TYPE
    TStatusChannelItem = (
       schiUSBConnected,
       schiEIBConnected,
@@ -1575,9 +1565,8 @@ CLASS IMPLEMENTATION CEIBServer;
             Server := ADR( SELF );
             Init( EIB, EIT, eib_user.obNone );
             SetClass( eib_def.priorityNormal );
-            SetFlags( fullIOFlags );
+            SetFlags( fullIOFlags + eib_def.TA_ObjectFlags{eib_def.aofPromiscuous} );
             SubscribePromiscuous();
-            INC( EIT );
          END; END; // WITH // FOR
       END; // IF PromiscuousMode
 
@@ -1882,10 +1871,10 @@ CLASS IMPLEMENTATION CEIBServer;
       END;
 
       // this code takes sense for cw driver only
-      IF PromiscuousMode THEN // promiscuous mode queueing
+      IF eib_def.aofPromiscuous IN PObject^.GetFlags() THEN // promiscuous mode queueing
 
          IF prData.Count >= InputQueueLength THEN
-            EventSink^.OnInputQueueOverflow();
+            EventSink^.OnInputQueueOverflow( FALSE, TRUE );
             RETURN;
          END;
          
@@ -1894,19 +1883,19 @@ CLASS IMPLEMENTATION CEIBServer;
          prData.EnqueueOA( prItem, 0 );
 
          INCL( RStatus, rsPromiscuousInQueue );
-         EventSink^.OnInputQueueAdd();
+         EventSink^.OnInputQueueAdd( FALSE, TRUE );
 
-      ELSE // not promiscuous mode queueing
+      ELSE // oobData promiscuous mode queueing
 
          IF oobData.Count >= InputQueueLength THEN
-            EventSink^.OnInputQueueOverflow();
+            EventSink^.OnInputQueueOverflow( TRUE, FALSE );
             RETURN;
          END;
 
          PObject^.GetValue( EValue, TRUE, FALSE );
          oobData.EnqueueOA( EValue.Data, PObject );
 
-         EventSink^.OnInputQueueAdd();
+         EventSink^.OnInputQueueAdd( TRUE, FALSE );
       END;
    END ValueUpdated;
 
@@ -2070,7 +2059,7 @@ CLASS IMPLEMENTATION CEIBServer;
          EV.SetValue( Value.Float );
 
       | eib_def.eitScaling :
-         EV.SetScaling( Value.LimitedInteger( 8, FALSE, TRUE ));
+         EV.SetScaling( MIN2( 100, Value.LimitedInteger( 8, FALSE, TRUE )));
 
       | eib_def.eitScaling255 :
          EV.SetScaling255( CARD8( Value.LimitedInteger( 8, FALSE, TRUE )));
