@@ -8,35 +8,16 @@ dsr_flow = false
 dtr_control = disable
 rts_control = disable
 
-tx_char_timeout = 3
-tx_timeout = 5
-
-rx_timeout = 25
-rx_char_timeout = 5
-rx_interchar_timeout = 14
+rx_buffer = 4096
+tx_buffer = 4096
+rx_frame_buffer = 4096
+tx_frame_buffer = 4096
 
 
 [LMS2xx]
-com_driver = CWCOMM.DLL COM7
+com_driver = CWCOMM4.DLL COM7
 read_back = false
 debug_mode = windows
 debug_level = all
 detect_from = 25
 scan_factor = 1
-
-[xcomm]
-baudrate = 9600
-baudrate = 56000
-parity = no
-databits = 8
-stopbits = 1
-rx_buffer = 260
-tx_buffer = 260
-rx_frame_buffer = 260
-tx_frame_buffer = 260
-dts_flow = false
-dsr_flow = false
-dtr_control = disable
-rts_control = disable
-dsr_sense = low
-

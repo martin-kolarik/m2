@@ -47,6 +47,49 @@ instrument
     end_colors;
   end_panel;
 
+  label label_1;
+    owner = panel_6;
+    position = 105, 450;
+    win_disable = zoom, maximize;
+    text_list
+      text = 'mean lock';
+    end_text_list;
+  end_label;
+
+  switch switch_1;
+    owner = panel_6;
+    position = 110, 400, 46, 46;
+    win_disable = zoom, maximize;
+    
+    procedure OnOutput( Output : boolean );
+    var
+      result : string;
+    begin
+      core.DriverQueryProc( 'LMS', 'lock_mean ' + Output:s, 0 );
+      core.DriverQueryProc( 'LMS', 'mean_locked', &result );
+      core.DebugOutput( 'Mean lock status: ', result );
+    end_procedure;
+    
+  end_switch;
+
+  label label_1;
+    owner = panel_6;
+    position = 70, 450;
+    win_disable = zoom, maximize;
+    text_list
+      text = 'scan';
+    end_text_list;
+  end_label;
+
+  label label_1;
+    owner = panel_6;
+    position = 25, 450;
+    win_disable = zoom, maximize;
+    text_list
+      text = 'reset';
+    end_text_list;
+  end_label;
+
   control control_1;
     owner = panel_6;
     position = 275, 60, 465, 43;
@@ -55,13 +98,13 @@ instrument
     range_from = -40;
     range_to = 40;
     dec_places = 0;
-
+    
     procedure OnOutput( r : real );
     begin
       offset := r;
       DBG.OnOutput( false );
     end_procedure;
-
+    
   end_control;
 
   switch DBG;
@@ -73,7 +116,7 @@ instrument
     owner = panel_6;
     position = 695, 15, 46, 46;
     win_disable = zoom, maximize;
-
+    
     procedure OnStartup();
     var
       s : string;

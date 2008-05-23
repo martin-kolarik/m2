@@ -259,6 +259,7 @@ CLASS CDriver( msghandler.MessageHandler );
   NAVG                     : INTEGER;
   MeanCount                : INTEGER;
   CurrentId                : INTEGER;
+  MeanLocked               : BOOLEAN;
 
   PCurrentDataChannel      : ADDRESS;
   PMeanDataChannel         : ADDRESS;
@@ -516,7 +517,7 @@ BEGIN
   Zero( ADR( C ), SIZE( C ));
   Zero( ADR( A ), SIZE( A ));
 
-  MeanCount  := 1;
+  MeanCount := 1;
   NAVG := 0;
 
   FarLimit := 100;
@@ -901,19 +902,34 @@ CLASS IMPLEMENTATION CDriver;
 
     IF EQUALS( N, L'reset' ) THEN
       NAVG := 0;
-      RETURN;
+      DSW.Clear();
+	  GOTO Error;
     ELSIF EQUALS( N, L'scan' ) THEN
       INCL( RStatus, rsOOBScan );
       MSG.Message := msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_ONTIMER;
       Message( MSG, msghandler.delAsynchronous, NIL );
-      RETURN;
+      DSW.Clear();
+	  GOTO Error;
+    ELSIF EQUALS( N, L'lock_mean' ) THEN
+      DSW.ItemSOA( delimS, 0, 1, TRUE, OUT N ); LOW( N );
+      MeanLocked := EQUALS( N, L'true' );
+      DSW.Clear();
+	  GOTO Error;
+    ELSIF EQUALS( N, L'mean_locked' ) THEN
+	  IF MeanLocked THEN
+	    DSW.FromOA( L'true' );
+	  ELSE
+	    DSW.FromOA( L'false' );
+	  END;
+	  GOTO Error;
+    
     ELSIF EQUALS( N, L'get_event' ) THEN
-      // get event
-      //IF Result.Counted OR Result.Expired THEN
-      //   Events.Dispose();
-      //   DSW.Clear();
-      //   GOTO Error;
-      //END;
+      // get event, fall down
+      IF Result.Counted OR Result.Expired THEN
+        Events.Dispose();
+        DSW.Clear();
+        GOTO Error;
+      END;
       
     ELSIF EQUALS( N, L'debug' ) THEN
       // debug
@@ -1485,16 +1501,14 @@ CLASS IMPLEMENTATION CDriver;
     IF NewOS <> osUnknown THEN
       IF NewOS <> osTick THEN
         OS := NewOS;
-      ELSIF OS < osRunning1 THEN
-        RETURN;
       ELSE
         OS := osRunning1;
       END;
     END;
     IF ( OS = osIdle ) OR ( OS = osFailure ) THEN
       RETURN;
-    //ELSIF Result.Counted OR Result.Expired THEN
-    //  RETURN;
+    ELSIF Result.Counted OR Result.Expired THEN
+      RETURN;
     ELSIF OS = osRunning1 THEN
       IF rsOOBScan IN RStatus THEN
         // pass down
@@ -1703,18 +1717,20 @@ CLASS IMPLEMENTATION CDriver;
           END;
         END;
 
-        MeanData[j] := NAVG * MeanData[j] + BV;
-        MeanData[j] := MeanData[j] DIV ( NAVG + 1 );
+		IF NOT MeanLocked THEN
+          MeanData[j] := NAVG * MeanData[j] + BV;
+          MeanData[j] := MeanData[j] DIV ( NAVG + 1 );
+        END;
       END; // FOR
       
-      IF NAVG < MeanCount THEN
+      IF NOT MeanLocked AND ( NAVG < MeanCount ) THEN
         INC( NAVG );
       END;
 
       CopyToBuffers();
       CheckZones();
 
-      // Automaton( osRunning2 );
+      Automaton( osRunning2 );
 
       IF ( Nev < Events.Count ) AND NOT( rsEventsReportPending IN RStatus ) THEN
         INCL( RStatus, rsEventsReportPending );
@@ -1790,6 +1806,7 @@ CLASS IMPLEMENTATION CDriver;
     ScanPeriod := 250;
     ScanFactor := 8;
     MeanCount := 25;
+    MeanLocked := FALSE;
   END InitToDefault;
 
 //--------------------------------------------------------------------------------
