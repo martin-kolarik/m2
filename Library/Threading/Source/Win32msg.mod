@@ -345,7 +345,7 @@ CLASS IMPLEMENTATION Win32MessageHandler;
               windows.GetModuleHandleW( NIL ), NIL
             );
     IF HWND <> NIL THEN        
-      LeakALLOCATE( HWND, CARDINAL( LOPTRLONGWORD( HWND )) OR 08000000H );
+      LeakALLOCATE( ADDRESS( HWND ), CARDINAL( LOPTRLONGWORD( HWND )) OR 08000000H );
       windows.SetWindowLongPtr( HWND, windows.GWL_USERDATA, PTR( ADR( SELF )));
     END;
 
@@ -367,7 +367,7 @@ CLASS IMPLEMENTATION Win32MessageHandler;
       #endif
       windows.SetWindowLongPtr( HWND, windows.GWL_USERDATA, windows.LONG_PTR( 0 ));
       windows.DestroyWindow( HWND );
-      LeakDEALLOCATE( HWND );
+      LeakDEALLOCATE( ADDRESS( HWND ));
       HWND := NIL;
       __F();
     END;

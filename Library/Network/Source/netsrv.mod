@@ -266,8 +266,12 @@ END CInterfaceEnumerator;
 (*================================================================================*)
 
 PROCEDURE newInterfaceEnumerator( IPV4 : BOOLEAN; IPV6 : BOOLEAN; OUT Enumerator : TPInterfaceEnumerator ) : BOOLEAN;
+VAR
+   IE : POINTER TO CInterfaceEnumerator;
 BEGIN
-   Enumerator := NEW( CInterfaceEnumerator )^.Init( IPV4, IPV6 );
+   NEW( IE );
+   IE^.Init( IPV4, IPV6 );
+   Enumerator := IE;
    RETURN TRUE;
 END newInterfaceEnumerator;
   
@@ -672,7 +676,8 @@ END StopListenSocket;
 PROCEDURE Startup();
 BEGIN
    IF IPServer = NIL THEN
-      NEW( IPServer )^.Init( TRUE );
+      NEW( IPServer );
+      IPServer^.Init( TRUE );
    END;
 END Startup;
 
