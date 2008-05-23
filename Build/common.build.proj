@@ -36,7 +36,7 @@
         <GrabProcessFile Condition="$(ComponentType)=='Generic' And $(InheritedGrabProcessFile)!=''">$(InheritedGrabProcessFile)</GrabProcessFile>
 
         <InheritedProperties>InheritedComponentDefinitionsPath=$(ComponentDefinitionsPath);InheritedLibraryName=$(LibraryName)</InheritedProperties>
-        <ChildParameters>Level=1+;ProductId=$(ProductId);ProductLinkMapFilePath=$(ProductLinkMapFilePath);$(InheritedProperties)</ChildParameters>
+        <ChildParameters>Level=1+;ProductPath=$(ProductPath);ProductId=$(ProductId);ProductLinkMapFilePath=$(ProductLinkMapFilePath);$(InheritedProperties)</ChildParameters>
         <ChildParameters Condition="$(Test)=='off'">Test=off;$(ChildParameters)</ChildParameters>
 
         <!-- M2 initializing code -->
@@ -178,7 +178,7 @@
     </PropertyGroup>
 
     <!-- build number -->
-    <Target Name="ProductBuildNumberGet" Condition="$(ComponentType)=='Product'">
+    <Target Name="ProductBuildNumberGet" Condition="$(ProductPath)!=''">
         <SvnVersion LocalPath="$(ProductPath)" Options="-c">
             <Output TaskParameter="Revision" PropertyName="ProductVersionBuild"/>
         </SvnVersion>
