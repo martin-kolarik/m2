@@ -2,13 +2,15 @@
     xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
 
     <PropertyGroup>
-        <M2Compiler>New</M2Compiler>
+        <Manufacturer>Inris</Manufacturer>
+
         <PlatformName Condition="$(PlatformName)==''">Win32</PlatformName>
         <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName>
         <LanguageStyle>UNICODE</LanguageStyle>
         <Language Condition="$(Language)==''">Czech</Language>
         <CLib>Static</CLib>
         <Licensing>on</Licensing>
+        <LicenceMId>D</LicenceMId>
         <LeakChecking>off</LeakChecking>
     </PropertyGroup>
 

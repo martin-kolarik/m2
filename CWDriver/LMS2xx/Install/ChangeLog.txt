@@ -1,3 +1,13 @@
+Version 1.1.1605 23.5.2008
+- BUG: some of receive timeouts were not stopped which can cause unexpected
+       end of communication
+- BUG: startup sequence required all communications to be finished in time. If
+       timeout occured during this sequence, driver did not connect to device. Now
+       startup sequence repeats until link with device is established.
+- NEW: DriverQueryProc lock_mean and mean_locked added
+- TST: Leaks; IOs with device connected at 500 KBd/RS-422
+- CHG: core runs on sc message threads   
+
 Version 1.1.1077 3.10.2007
 - BUG: division by zero for certain zones
 - CHG: modified documentation
@@ -8,7 +18,7 @@ Version 1.0.1046 23.9.2007
        when zones PAR.mean_count was less than 6, no data were prepared for zones and
        zones did not work.
 - CHG: created events are logged now
-- ADD: test licensing
+- NEW: test licensing
 
 Version -- 17.9.2007
 - CHG: source code base changed, using of MemoryBuffers instead of DStrA.
