@@ -1,4 +1,4 @@
-Version 1.1.1605 23.5.2008
+Version 1.1.1607 23.5.2008
 - BUG: some of receive timeouts were not stopped which can cause unexpected
        end of communication
 - BUG: startup sequence required all communications to be finished in time. If
@@ -7,6 +7,7 @@ Version 1.1.1605 23.5.2008
 - NEW: DriverQueryProc lock_mean and mean_locked added
 - TST: Leaks; IOs with device connected at 500 KBd/RS-422
 - CHG: core runs on sc message threads   
+- CHG: PDB file added to debug installation
 
 Version 1.1.1077 3.10.2007
 - BUG: division by zero for certain zones

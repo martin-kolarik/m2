@@ -27,6 +27,10 @@
                             </File>
                             <File DiskId="1" Id="lms2xx.DLL" Name="lms2xx.dll" Source="lms2xx.dll" Vital="yes">
                             </File>
+                            <?if $(var.ConfigurationName)=Debug ?>
+                            <File DiskId="1" Id="lms2xx.PDB" Name="lms2xx.pdb" Source="lms2xx.pdb" Vital="yes">
+                            </File>
+                            <?endif ?>
                         </Component>
                         <Component Id="Licence" Guid="BC838025-578C-46E8-A079-40E8B2134B03">
                             <File Id="Licence" Name="Licence.lic" DiskId="1" LongName="$(var.ProductId).tlic" Source="$(var.ProductId).tlic" Vital="yes" />
