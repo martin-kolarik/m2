@@ -4,22 +4,22 @@ DEFINITION MODULE msgqueuethread;
 
 IMPORT
    OSALmsg,
-   // SCmsgqueuethread;
-   Win32msgqueuethread;
+   SCmsgqueuethread;
+   // Win32msgqueuethread;
 
 CONST
    IMessageQueueThread ::= OSALmsg.IMessageQueueThread;
    TPIMessageQueueThread ::= OSALmsg.TPMessageQueueThread;
 CONST
-   // MessageQueueThread ::= SCmsgqueuethread.SCMessageQueueThread;
-   /// global ::= SCmsgqueuethread.SCGlobalMessageQueueThread;
-   MessageQueueThread ::= Win32msgqueuethread.Win32MessageQueueThread;
-   global ::= Win32msgqueuethread.Win32GlobalMessageQueueThread;
+   MessageQueueThread ::= SCmsgqueuethread.SCMessageQueueThread;
+   global ::= SCmsgqueuethread.SCGlobalMessageQueueThread;
+   // MessageQueueThread ::= Win32msgqueuethread.Win32MessageQueueThread;
+   // global ::= Win32msgqueuethread.Win32GlobalMessageQueueThread;
 CONST
-   // Startup ::= SCmsgqueuethread.Startup;
-   // Cleanup ::= SCmsgqueuethread.Cleanup;
-   Startup ::= Win32msgqueuethread.Startup;
-   Cleanup ::= Win32msgqueuethread.Cleanup;
+   Startup ::= SCmsgqueuethread.Startup;
+   Cleanup ::= SCmsgqueuethread.Cleanup;
+   // Startup ::= Win32msgqueuethread.Startup;
+   // Cleanup ::= Win32msgqueuethread.Cleanup;
 TYPE
    TPMessageQueueThread = POINTER TO MessageQueueThread;
 
