@@ -592,6 +592,10 @@ CLASS IMPLEMENTATION CEIBDriver;
          Stop();
 
       //=====
+      ELSIF NOT PromiscuousMode THEN
+         CS.FromOA( L'error: driver procedure requires promiscuous mode' );
+
+      //=====
       ELSIF EQUALS( N, L'event' ) THEN
          CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 1, TRUE, OUT N );
 
