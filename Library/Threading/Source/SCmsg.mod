@@ -32,11 +32,11 @@ TYPE
 
 (*================================================================================*)
 
-PROCEDURE HandleToRecipient( CONST Handle : PTR; OUT Handler : OSALmsg.TPMessageRecipient ) : BOOLEAN;
+PROCEDURE HandleToTarget( CONST Handle : PTR; OUT Target : msghandler.TPMessageTarget ) : BOOLEAN;
 BEGIN
-   Handler := OSALmsg.TPMessageRecipient( Handle );
+   Target := msghandler.TPMessageTarget( Handle );
    RETURN TRUE;
-END HandleToRecipient;
+END HandleToTarget;
 
 (*================================================================================*)
 
@@ -58,14 +58,14 @@ CLASS IMPLEMENTATION SCMessage;
   
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY SCMessage.Target GET : OSALmsg.TPMessageRecipient;
+   PUBLIC VIRTUAL PROPERTY SCMessage.Target GET : msghandler.TPMessageTarget;
    BEGIN
       RETURN target;
    END SCMessage.Target;
   
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY SCMessage.Target SET( Value : OSALmsg.TPMessageRecipient );
+   PUBLIC VIRTUAL PROPERTY SCMessage.Target SET( Value : msghandler.TPMessageTarget );
    BEGIN
       target := Value;
    END SCMessage.Target;
@@ -204,7 +204,7 @@ CLASS IMPLEMENTATION SCMessageHandler;
    PUBLIC PROCEDURE SCMessageHandler.Init( AutomaticJoin : BOOLEAN );
    BEGIN
       IF AutomaticJoin THEN
-         JoinMessageThread( NIL, TRUE );
+         JoinMessageThread( SCmsgqueuethread.SCGlobalMessageQueueThread()^, TRUE );
       END;
    END SCMessageHandler.Init;
   
@@ -224,17 +224,14 @@ CLASS IMPLEMENTATION SCMessageHandler;
       OSALmsg.TPMessage( ADR( MSG ))^.Target := ADR( SELF );
       IF ( Delivery = OSALmsg.delSynchronous ) OR ( Delivery = OSALmsg.delSynchronousIfInThread ) AND SelfContext THEN
       
-         CASE MSG.Message OF
-         //-----
-         | msghandler.MSG_ON_TIMER :
+         IF MSG.Message = msghandler.MSG_ON_TIMER THEN
             OnTimer( MSG.Parameter );
-         //-----
          ELSE
             IF Result = NIL THEN
                Result := ADR( LResult );
             END;
             RETURN OnMessage( MSG, OUT Result^ );
-         END; // CASE
+         END;
          
       ELSE // deffer message
          ASSERT( joinedTo <> NIL );
@@ -259,7 +256,7 @@ CLASS IMPLEMENTATION SCMessageHandler;
    PUBLIC VIRTUAL PROCEDURE StartTimer( Timer : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
    BEGIN
       ASSERT( joinedTo <> NIL );
-      TPSCMessageQueueThread( joinedTo )^.StartTimer( ADR( SELF ), Timer, PeriodMS, Repeat );
+      TPSCMessageQueueThread( joinedTo )^.StartTimer( SELF, Timer, PeriodMS, Repeat );
    END StartTimer;
   
 (*--------------------------------------------------------------------------------*)
@@ -267,7 +264,7 @@ CLASS IMPLEMENTATION SCMessageHandler;
    PUBLIC VIRTUAL PROCEDURE TimerRunning( Timer : PTR ) : BOOLEAN;
    BEGIN
       ASSERT( joinedTo <> NIL );
-      RETURN TPSCMessageQueueThread( joinedTo )^.TimerRunning( ADR( SELF ), Timer );
+      RETURN TPSCMessageQueueThread( joinedTo )^.TimerRunning( SELF, Timer );
    END TimerRunning;
 
 (*--------------------------------------------------------------------------------*)
@@ -275,7 +272,7 @@ CLASS IMPLEMENTATION SCMessageHandler;
    PUBLIC VIRTUAL PROCEDURE StopTimer( Timer : PTR );
    BEGIN
       ASSERT( joinedTo <> NIL );
-      TPSCMessageQueueThread( joinedTo )^.StopTimer( ADR( SELF ), Timer );
+      TPSCMessageQueueThread( joinedTo )^.StopTimer( SELF, Timer );
    END StopTimer;
   
 (*--------------------------------------------------------------------------------*)
@@ -286,10 +283,10 @@ CLASS IMPLEMENTATION SCMessageHandler;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnJoin( JoinTo : OSALmsg.TPMessageQueueThread );
+   PUBLIC VIRTUAL PROCEDURE OnJoin( CONST JoinTo : OSALmsg.IMessageQueueThread );
    BEGIN
       IF joinedTo = NIL THEN
-         joinedTo := JoinTo;
+         joinedTo := OSALmsg.TPMessageQueueThread( ADR( JoinTo ));
          #if DEBUG #then
             Handlers.Add( ADR( SELF ), 0 );
          #endif
@@ -310,12 +307,9 @@ CLASS IMPLEMENTATION SCMessageHandler;
   
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread; CallOnJoinInThread : BOOLEAN );
+   PUBLIC VIRTUAL PROCEDURE JoinMessageThread( CONST JoinTo : OSALmsg.IMessageQueueThread; CallOnJoinInThread : BOOLEAN );
    BEGIN
-      IF JoinTo = NIL THEN
-         JoinTo := msgqueuethread.global();
-      END;
-      JoinTo^.Join( ADR( SELF ), CallOnJoinInThread );
+      JoinTo.Join( ADR( SELF ), CallOnJoinInThread );
    END JoinMessageThread;
 
 (*--------------------------------------------------------------------------------*)

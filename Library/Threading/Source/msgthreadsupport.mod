@@ -39,7 +39,7 @@ CLASS IMPLEMENTATION CSupport;
    
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Join( Recipient : OSALmsg.TPMessageRecipient; CallOnJoinInThread : BOOLEAN );
+   PUBLIC PROCEDURE Join( Handler : OSALmsg.TPMessageHandler; CallOnJoinInThread : BOOLEAN );
    VAR
       MSG : msghandler.Message;
       Result : Sync.TAsyncResult;
@@ -48,11 +48,11 @@ CLASS IMPLEMENTATION CSupport;
       ASSERT( OfThread <> NIL );
 
       IF OfThread^.SelfContext OR NOT CallOnJoinInThread THEN
-         DoJoin( Recipient );
+         DoJoin( Handler );
       ELSE
          Signal := Sync.CreateSignal( FALSE, L"" );
 
-         MSG.Source := Recipient;
+         MSG.Source := Handler;
          MSG.Target := OfThread;
          MSG.Message := msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_JOIN;
          MSG[ OSALmsg.MI_PARAMETER ] := Signal;
@@ -67,7 +67,7 @@ CLASS IMPLEMENTATION CSupport;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Leave( Recipient : OSALmsg.TPMessageRecipient; CallOnLeaveInThread : BOOLEAN );
+   PUBLIC PROCEDURE Leave( Handler : OSALmsg.TPMessageHandler; CallOnLeaveInThread : BOOLEAN );
    VAR
       MSG : msghandler.Message;
       Result : Sync.TAsyncResult;
@@ -76,11 +76,11 @@ CLASS IMPLEMENTATION CSupport;
       ASSERT( OfThread <> NIL );
 
       IF OfThread^.SelfContext OR NOT CallOnLeaveInThread THEN
-         DoLeave( Recipient );
+         DoLeave( Handler );
       ELSE
          Signal := Sync.CreateSignal( FALSE, L"" );
 
-         MSG.Source := Recipient;
+         MSG.Source := Handler;
          MSG.Target := OfThread;
          MSG.Message := msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_LEAVE;
          MSG[ OSALmsg.MI_PARAMETER ] := Signal;
@@ -95,7 +95,7 @@ CLASS IMPLEMENTATION CSupport;
    
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE StartTimer( Recipient : OSALmsg.TPMessageRecipient; TimerId : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
+   PUBLIC PROCEDURE StartTimer( Target : OSALmsg.TPMessageTarget; TimerId : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
    VAR
       MSG : msghandler.Message;
       parameter : TPTimerParameter;
@@ -105,7 +105,7 @@ CLASS IMPLEMENTATION CSupport;
       ASSERT( OfThread <> NIL );
 
       IF OfThread^.SelfContext THEN
-         DoStartTimer( Recipient, TimerId, PeriodMS, Repeat );
+         DoStartTimer( Target, TimerId, PeriodMS, Repeat );
       ELSE
          Signal := Sync.CreateSignal( FALSE, L"" );
 
@@ -115,7 +115,7 @@ CLASS IMPLEMENTATION CSupport;
          parameter^.Repeat := Repeat;
          parameter^.Signal := Signal;
 
-         MSG.Source := Recipient;
+         MSG.Source := Target;
          MSG.Target := OfThread;
          MSG.Message := msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_SETTIMER;
          MSG.Parameter := parameter;
@@ -124,13 +124,15 @@ CLASS IMPLEMENTATION CSupport;
          
          Result := Sync.Wait( Signal, Sync.FORSAFETY );
          ASSERT( Result <> Sync.arTimeout );
+         
+         DISPOSE( parameter );
          Sync.DeleteSignal( REF Signal );
       END;
    END StartTimer;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE StopTimer( Recipient : OSALmsg.TPMessageRecipient; TimerId : PTR );
+   PUBLIC PROCEDURE StopTimer( Target : OSALmsg.TPMessageTarget; TimerId : PTR );
    VAR
       MSG : msghandler.Message;
       parameter : TPTimerParameter;
@@ -140,7 +142,7 @@ CLASS IMPLEMENTATION CSupport;
       ASSERT( OfThread <> NIL );
 
       IF OfThread^.SelfContext THEN
-         DoStopTimer( Recipient, TimerId );
+         DoStopTimer( Target, TimerId );
       ELSE
          Signal := Sync.CreateSignal( FALSE, L"" );
 
@@ -148,7 +150,7 @@ CLASS IMPLEMENTATION CSupport;
          parameter^.Timer := TimerId;
          parameter^.Signal := Signal;
 
-         MSG.Source := Recipient;
+         MSG.Source := Target;
          MSG.Target := OfThread;
          MSG.Message := msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_RESETTIMER;
          MSG.Parameter := parameter;
@@ -157,6 +159,8 @@ CLASS IMPLEMENTATION CSupport;
          
          Result := Sync.Wait( Signal, Sync.FORSAFETY );
          ASSERT( Result <> Sync.arTimeout );
+
+         DISPOSE( parameter );
          Sync.DeleteSignal( REF Signal );
       END;
    END StopTimer;
@@ -171,27 +175,25 @@ CLASS IMPLEMENTATION CSupport;
       CASE message OF
       //-----
       | msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_JOIN :
-         DoJoin( OSALmsg.TPMessageRecipient( Message.Source ));
+         DoJoin( OSALmsg.TPMessageHandler( Message.Source ));
          Sync.Signal( Sync.SIGNAL( Message[ OSALmsg.MI_PARAMETER ] ));
 
       //-----
       | msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_LEAVE :
-         DoLeave( OSALmsg.TPMessageRecipient( Message.Source ));
+         DoLeave( OSALmsg.TPMessageHandler( Message.Source ));
          Sync.Signal( Sync.SIGNAL( Message[ OSALmsg.MI_PARAMETER ] ));
 
       //-----
       | msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_SETTIMER :
          parameter := TPTimerParameter( Message.Parameter );
-         DoStartTimer( OSALmsg.TPMessageRecipient( Message.Source ), parameter^.Timer, parameter^.PeriodMS, parameter^.Repeat );
+         DoStartTimer( OSALmsg.TPMessageTarget( Message.Source ), parameter^.Timer, parameter^.PeriodMS, parameter^.Repeat );
          Sync.Signal( parameter^.Signal );
-         DISPOSE( parameter );
 
       //-----
       | msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_RESETTIMER :
          parameter := TPTimerParameter( Message.Parameter );
-         DoStopTimer( OSALmsg.TPMessageRecipient( Message.Source ), parameter^.Timer );
+         DoStopTimer( OSALmsg.TPMessageTarget( Message.Source ), parameter^.Timer );
          Sync.Signal( parameter^.Signal );
-         DISPOSE( parameter );
 
       ELSE
          RETURN FALSE;
@@ -201,24 +203,24 @@ CLASS IMPLEMENTATION CSupport;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE IsJoined( Recipient : OSALmsg.TPMessageRecipient ) : BOOLEAN;
+   PUBLIC PROCEDURE IsJoined( Handler : OSALmsg.TPMessageHandler ) : BOOLEAN;
    VAR
       joined : BOOLEAN;
    BEGIN
       JoinedLock.Lock();
-      joined := Joined.Contains( Recipient );
+      joined := Joined.Contains( Handler );
       JoinedLock.Unlock();
       RETURN joined;
    END IsJoined;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE TimerRunning( Recipient : OSALmsg.TPMessageRecipient; TimerId : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE TimerRunning( Target : OSALmsg.TPMessageTarget; TimerId : PTR ) : BOOLEAN;
    VAR
       running : BOOLEAN;
    BEGIN
       TimersLock.Lock();
-      running := Timers.Contains( Recipient, TimerId );
+      running := Timers.Contains( Target, TimerId );
       TimersLock.Unlock();
       RETURN running;
    END TimerRunning;
@@ -237,7 +239,7 @@ CLASS IMPLEMENTATION CSupport;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE GetFirstElapsed( CurrentTime : CARDINAL; OUT Recipient : OSALmsg.TPMessageRecipient; OUT TimerId : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE GetFirstElapsed( CurrentTime : CARDINAL; OUT Target : OSALmsg.TPMessageTarget; OUT TimerId : PTR ) : BOOLEAN;
    VAR
       b : BOOLEAN;
       ElapsedOn : CARDINAL;
@@ -245,9 +247,9 @@ CLASS IMPLEMENTATION CSupport;
       RepeatPTR : PTR;
    BEGIN
       TimersLock.Lock();
-      b := Timers.GetFirstElapsed( CurrentTime, TRUE, OUT Recipient, OUT TimerId, OUT RepeatPTR, OUT PeriodMS, OUT ElapsedOn );
+      b := Timers.GetFirstElapsed( CurrentTime, TRUE, OUT Target, OUT TimerId, OUT RepeatPTR, OUT PeriodMS, OUT ElapsedOn );
       IF b AND ( RepeatPTR = 1 ) THEN
-         Timers.Add( ElapsedOn, Recipient, TimerId, RepeatPTR, PeriodMS );
+         Timers.Add( ElapsedOn, Target, TimerId, RepeatPTR, PeriodMS );
       END;
       TimersLock.Unlock();
       RETURN b;
@@ -255,33 +257,33 @@ CLASS IMPLEMENTATION CSupport;
 
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE DoJoin( Recipient : OSALmsg.TPMessageRecipient );
+   PRIVATE PROCEDURE DoJoin( Handler : OSALmsg.TPMessageHandler );
    BEGIN
-      ASSERT( NOT IsJoined( Recipient ));
+      ASSERT( NOT IsJoined( Handler ));
 
       JoinedLock.Lock();
-      Joined.Add( Recipient, 0 );
+      Joined.Add( Handler, 0 );
       JoinedLock.Unlock();
 
-      Recipient^.OnJoin( OfThread );
+      Handler^.OnJoin( OfThread^ );
    END DoJoin;
 
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE DoLeave( Recipient : OSALmsg.TPMessageRecipient );
+   PRIVATE PROCEDURE DoLeave( Handler : OSALmsg.TPMessageHandler );
    BEGIN
-      ASSERT( IsJoined( Recipient ));
+      ASSERT( IsJoined( Handler ));
 
       JoinedLock.Lock();
-      Joined.Remove( Recipient );
+      Joined.Remove( Handler );
       JoinedLock.Unlock();
 
-      Recipient^.OnLeave();
+      Handler^.OnLeave();
    END DoLeave;
 
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE DoStartTimer( Recipient : OSALmsg.TPMessageRecipient; TimerId : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
+   PRIVATE PROCEDURE DoStartTimer( Target : OSALmsg.TPMessageTarget; TimerId : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
    VAR
       CurrentTime : CARDINAL;
       Data : PTR;
@@ -294,21 +296,21 @@ CLASS IMPLEMENTATION CSupport;
          RepeatPTR := 0;
       END;
       TimersLock.Lock();
-      IF Timers.Get( Recipient, TimerId, OUT Data ) THEN
-         Timers.Remove( Recipient, TimerId );
+      IF Timers.Get( Target, TimerId, OUT Data ) THEN
+         Timers.Remove( Target, TimerId );
       END;
-      Timers.Add( CurrentTime, Recipient, TimerId, RepeatPTR, PeriodMS );
+      Timers.Add( CurrentTime, Target, TimerId, RepeatPTR, PeriodMS );
       TimersLock.Unlock();
    END DoStartTimer;
 
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE DoStopTimer( Recipient : OSALmsg.TPMessageRecipient; TimerId : PTR );
+   PRIVATE PROCEDURE DoStopTimer( Target : OSALmsg.TPMessageTarget; TimerId : PTR );
    VAR
       Data : PTR;
    BEGIN
       TimersLock.Lock();
-      Timers.Remove( Recipient, TimerId );
+      Timers.Remove( Target, TimerId );
       TimersLock.Unlock();
    END DoStopTimer;
 

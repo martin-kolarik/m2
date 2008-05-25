@@ -3,6 +3,7 @@ DEFINITION MODULE Win32msgqueuethread;
 // DO NOT USE THIS MODULE DIRECTLY, USE msqqueuethread
 
 IMPORT
+   msghandler,
    msgthreadsupport,
    OSALmsg,
    Win32thread;
@@ -21,27 +22,25 @@ CLASS Win32MessageQueueThread( Win32thread.Win32Thread ) IMPLEMENTS OSALmsg.IMes
    // IThread/IRunnable
    INTERNAL VIRTUAL PROCEDURE OnRun() : CARDINAL;
    
+   // IMessageTarget
+   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Msg : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN; // thread targetted messages
+   INTERNAL VIRTUAL PROCEDURE OnTimer( Timer : PTR ); // thread targetted timers
+
    // IMessageQueueThread
-   INTERNAL VIRTUAL READONLY PROPERTY Root : OSALmsg.TPMessageRecipient;
+   INTERNAL VIRTUAL READONLY PROPERTY Root : msghandler.TPIMessageHandler;
+   PUBLIC VIRTUAL READONLY PROPERTY SelfContext : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Message( CONST Msg : msghandler.IMessage; Delivery : msghandler.TDelivery; Result : PPTR ) : BOOLEAN; // if Msg.Target = NIL then the message must be processed by thread itself; Delivery is possible only delSynchronousInThread and delAsynchronous
+   PUBLIC VIRTUAL PROCEDURE StartTimer( CONST Target : msghandler.IMessageTarget; TimerId : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
+   PUBLIC VIRTUAL PROCEDURE StopTimer( CONST Target : msghandler.IMessageTarget; TimerId : PTR );
+   PUBLIC VIRTUAL PROCEDURE TimerRunning( CONST Target : msghandler.IMessageTarget; TimerId : PTR ) : BOOLEAN;
+
    INTERNAL VIRTUAL PROCEDURE OnStart();
    INTERNAL VIRTUAL PROCEDURE OnExit();
-   INTERNAL VIRTUAL PROCEDURE MessageToRecipient( CONST Msg : PTR; OUT Handler : OSALmsg.TPMessageRecipient ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE MessageToTarget( CONST Msg : PTR; OUT Handler : msghandler.TPMessageTarget ) : BOOLEAN;
 
-   // IMessageRecipient
-   PUBLIC VIRTUAL READONLY PROPERTY SelfContext : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE Message( CONST Msg : OSALmsg.IMessage; Delivery : OSALmsg.TDelivery; Result : PPTR ) : BOOLEAN; // if Msg.Target = NIL then the message must be processed by thread itself; Delivery is possible only delSynchronousInThread and delAsynchronous
-   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Msg : OSALmsg.IMessage; OUT Result : PTR ) : BOOLEAN; // thread targetted messages
-
-   // service of IMessageRecipient
-   PUBLIC VIRTUAL PROCEDURE Join( Recipient : OSALmsg.TPMessageRecipient; CallOnJoinInThread : BOOLEAN );
-   PUBLIC VIRTUAL PROCEDURE Leave( Recipient : OSALmsg.TPMessageRecipient; CallOnLeaveInThread : BOOLEAN );
-
-   // IMessageRecipient dummies
-   PUBLIC FINAL READONLY PROPERTY JoinedTo : OSALmsg.TPMessageQueueThread;
-   PUBLIC FINAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread; CallOnJoinInThread : BOOLEAN );
-   PUBLIC FINAL PROCEDURE LeaveMessageThread( CallOnLeaveInThread : BOOLEAN );
-   PUBLIC FINAL PROCEDURE OnJoin( JoinedTo : OSALmsg.TPMessageQueueThread );
-   PUBLIC FINAL PROCEDURE OnLeave();
+   // service of IMessageTarget
+   PUBLIC VIRTUAL PROCEDURE Join( Handler : msghandler.TPIMessageHandler; CallOnJoinInThread : BOOLEAN );
+   PUBLIC VIRTUAL PROCEDURE Leave( Handler : msghandler.TPIMessageHandler; CallOnLeaveInThread : BOOLEAN );
 END Win32MessageQueueThread;
 
 PROCEDURE Win32GlobalMessageQueueThread() : POINTER TO OSALmsg.IMessageQueueThread;

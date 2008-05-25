@@ -30,23 +30,23 @@ CLASS CSupport;
    PUBLIC PROCEDURE Dispose();
    
    // client (outer) side
-   PUBLIC PROCEDURE Join( Recipient : OSALmsg.TPMessageRecipient; CallOnJoinInThread : BOOLEAN );
-   PUBLIC PROCEDURE Leave( Recipient : OSALmsg.TPMessageRecipient; CallOnLeaveInThread : BOOLEAN );
-   PUBLIC PROCEDURE StartTimer( Recipient : OSALmsg.TPMessageRecipient; TimerId : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
-   PUBLIC PROCEDURE StopTimer( Recipient : OSALmsg.TPMessageRecipient; TimerId : PTR );
+   PUBLIC PROCEDURE Join( Handler : OSALmsg.TPMessageHandler; CallOnJoinInThread : BOOLEAN );
+   PUBLIC PROCEDURE Leave( Handler : OSALmsg.TPMessageHandler; CallOnLeaveInThread : BOOLEAN );
+   PUBLIC PROCEDURE StartTimer( Target : OSALmsg.TPMessageTarget; TimerId : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
+   PUBLIC PROCEDURE StopTimer( Target : OSALmsg.TPMessageTarget; TimerId : PTR );
    
    // thread (inner) side
    PUBLIC PROCEDURE HandleSupportMessage( CONST Message : OSALmsg.IMessage ) : BOOLEAN; // if it is not support logic message it returns FALSE
-   PUBLIC PROCEDURE IsJoined( Recipient : OSALmsg.TPMessageRecipient ) : BOOLEAN;
-   PUBLIC PROCEDURE TimerRunning( Recipient : OSALmsg.TPMessageRecipient; TimerId : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE IsJoined( Handler : OSALmsg.TPMessageHandler ) : BOOLEAN;
+   PUBLIC PROCEDURE TimerRunning( Target : OSALmsg.TPMessageTarget; TimerId : PTR ) : BOOLEAN;
    PUBLIC PROCEDURE GetTimeoutToFirstElapsed( CurrentTime : CARDINAL ) : CARDINAL;
-   PUBLIC PROCEDURE GetFirstElapsed( CurrentTime : CARDINAL; OUT Recipient : OSALmsg.TPMessageRecipient; OUT TimerId : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE GetFirstElapsed( CurrentTime : CARDINAL; OUT Target : OSALmsg.TPMessageTarget; OUT TimerId : PTR ) : BOOLEAN;
 
    // helpers
-   PRIVATE PROCEDURE DoJoin( Recipient : OSALmsg.TPMessageRecipient );
-   PRIVATE PROCEDURE DoLeave( Recipient : OSALmsg.TPMessageRecipient );
-   PRIVATE PROCEDURE DoStartTimer( Recipient : OSALmsg.TPMessageRecipient; TimerId : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
-   PRIVATE PROCEDURE DoStopTimer( Recipient : OSALmsg.TPMessageRecipient; TimerId : PTR );
+   PRIVATE PROCEDURE DoJoin( Handler : OSALmsg.TPMessageHandler );
+   PRIVATE PROCEDURE DoLeave( Handler : OSALmsg.TPMessageHandler );
+   PRIVATE PROCEDURE DoStartTimer( Target : OSALmsg.TPMessageTarget; TimerId : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
+   PRIVATE PROCEDURE DoStopTimer( Target : OSALmsg.TPMessageTarget; TimerId : PTR );
 END CSupport;
 
 (*===========================================================================*)

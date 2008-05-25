@@ -22,8 +22,9 @@ CLASS IMPLEMENTATION Win32MessageQueueThread;
    VAR
       msg : windows.MSG;
       Msg : Win32msg.Win32Message;
-      Recipient : OSALmsg.TPMessageRecipient;
+      Return : CARDINAL := -1;
       Status : CARDINAL;
+      Target : OSALmsg.TPMessageTarget;
    BEGIN
       OnStart();
       LOOP
@@ -33,13 +34,12 @@ CLASS IMPLEMENTATION Win32MessageQueueThread;
          | CARDINAL( windows.WAIT_FAILED ), windows.WAIT_ABANDONED : // some handle failed, this MUST not occur
             Status := windows.GetLastError();
             ASSERT( FALSE );
-            OnExit();
-            RETURN -1;
+            EXIT;
 
          //-----
          | windows.WAIT_OBJECT_0 : // graceful EXIT
-            OnExit();
-            RETURN 0;
+            Return := 0;
+            EXIT;
 
          //-----
          | windows.WAIT_IO_COMPLETION :
@@ -47,39 +47,15 @@ CLASS IMPLEMENTATION Win32MessageQueueThread;
          //-----
          | windows.WAIT_OBJECT_0 + waitHandles : // a message received
             WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) <> 0 DO
-
-               IF msg.hwnd = NIL THEN // a thread message
-                  Msg.Source := ADR( SELF );
-                  Msg.Target := ADR( SELF );
-                  Msg.Message := msg.message;
-                  Msg[ Win32msg.MI_WPARAM ] := msg.wParam;
-                  Msg[ Win32msg.MI_LPARAM ] := PTR( msg.lParam );
-                  Message( Msg, msghandler.delSynchronous, NIL );
-                  CONTINUE;
-               END; // IF process thread's messages
-
-               // continue Win32 message loop
                windows.TranslateMessage( ADR( msg ));
 
-               IF MessageToRecipient( ADR( msg ), OUT Recipient ) THEN
+               IF MessageToTarget( ADR( msg ), OUT Target ) THEN
                   Msg.Source := ADR( SELF );
-                  Msg.Target := Recipient;
+                  Msg.Target := Target;
                   Msg.Message := msg.message;
                   Msg[ Win32msg.MI_WPARAM ] := msg.wParam;
                   Msg[ Win32msg.MI_LPARAM ] := PTR( msg.lParam );
-                  IF Root = NIL THEN
-                     Recipient^.Message( Msg, msghandler.delSynchronous, NIL );
-                  ELSE
-                     Root^.Message( Msg, msghandler.delSynchronous, NIL );
-                  END;
-
-               ELSIF Root <> NIL THEN
-                  Msg.Source := ADR( SELF );
-                  Msg.Target := Root;
-                  Msg.Message := msg.message;
-                  Msg[ Win32msg.MI_WPARAM ] := msg.wParam;
-                  Msg[ Win32msg.MI_LPARAM ] := PTR( msg.lParam );
-                  Root^.Message( Msg, msghandler.delSynchronous, NIL );
+                  Target^.Message( Msg, msghandler.delSynchronous, NIL );
 
                ELSE
                   windows.DispatchMessage( ADR( msg ));
@@ -89,34 +65,31 @@ CLASS IMPLEMENTATION Win32MessageQueueThread;
 
          END; // CASE
       END; // LOOP
+
+      OnExit();
+      RETURN Return;
    END OnRun;
    
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROPERTY Root GET : msghandler.TPMessageRecipient;
+   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Msg : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN; // thread targetted messages
+   BEGIN
+      RETURN FALSE;
+   END OnMessage;
+
+(*---------------------------------------------------------------------------*)
+  
+   INTERNAL VIRTUAL PROCEDURE OnTimer( TimerId : PTR ); // thread targetted timer
+   BEGIN
+   END OnTimer;
+
+(*---------------------------------------------------------------------------*)
+  
+   INTERNAL VIRTUAL PROPERTY Root GET : msghandler.TPIMessageHandler;
    BEGIN
       RETURN NIL;
    END Root;
   
-(*---------------------------------------------------------------------------*)
-
-   INTERNAL VIRTUAL PROCEDURE OnStart();
-   BEGIN
-   END OnStart;
-
-(*---------------------------------------------------------------------------*)
-
-   INTERNAL VIRTUAL PROCEDURE OnExit();
-   BEGIN
-   END OnExit;
-
-(*---------------------------------------------------------------------------*)
-  
-   INTERNAL VIRTUAL PROCEDURE MessageToRecipient( CONST Msg : PTR; OUT Recipient : msghandler.TPMessageRecipient ) : BOOLEAN;
-   BEGIN
-      RETURN Win32msg.HandleToRecipient( windows.PMSG( Msg )^.hwnd, OUT Recipient );
-   END MessageToRecipient;
-
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY SelfContext GET : BOOLEAN;
@@ -135,7 +108,11 @@ CLASS IMPLEMENTATION Win32MessageQueueThread;
             Result := ADR( LResult );
          END;
          IF NOT Support^.HandleSupportMessage( Msg ) THEN
-            RETURN OnMessage( Msg, OUT Result^ );
+            IF Msg.Message = windows.WM_TIMER THEN
+               ASSERT( FALSE ); // not implemented yet
+            ELSE
+               RETURN OnMessage( Msg, OUT Result^ );
+            END;
          END;
       ELSE
          windows.PostThreadMessage( _Thread, Msg.Message, windows.WPARAM( Msg[ Win32msg.MI_WPARAM ] ), windows.LPARAM( Msg[ Win32msg.MI_LPARAM ] ));
@@ -145,62 +122,71 @@ CLASS IMPLEMENTATION Win32MessageQueueThread;
 
 (*---------------------------------------------------------------------------*)
   
-   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Msg : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN; // thread targetted messages
+   PUBLIC VIRTUAL PROCEDURE StartTimer( CONST Target : msghandler.IMessageTarget; TimerId : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
    BEGIN
+      ASSERT( FALSE ); // not implemented yet
+   END StartTimer;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE StopTimer( CONST Target : msghandler.IMessageTarget; TimerId : PTR );
+   BEGIN
+      ASSERT( FALSE ); // not implemented yet
+   END StopTimer;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE TimerRunning( CONST Target : msghandler.IMessageTarget; TimerId : PTR ) : BOOLEAN;
+   BEGIN
+      ASSERT( FALSE ); // not implemented yet
       RETURN FALSE;
-   END OnMessage;
+   END TimerRunning;
+
+(*---------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE OnStart();
+   BEGIN
+   END OnStart;
+
+(*---------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE OnExit();
+   BEGIN
+   END OnExit;
 
 (*---------------------------------------------------------------------------*)
   
-   PUBLIC VIRTUAL PROCEDURE Join( Recipient : OSALmsg.TPMessageRecipient; CallOnJoinInThread : BOOLEAN );
+   INTERNAL VIRTUAL PROCEDURE MessageToTarget( CONST Msg : PTR; OUT Target : msghandler.TPMessageTarget ) : BOOLEAN;
    BEGIN
-      Support^.Join( Recipient, CallOnJoinInThread );
+      IF windows.PMSG( Msg )^.hwnd = NIL THEN // mine thread message
+         Target := ADR( SELF );
+         RETURN TRUE;
+      ELSIF Win32msg.HandleToTarget( windows.PMSG( Msg )^.hwnd, OUT Target ) THEN
+         RETURN TRUE;
+      ELSIF Root <> NIL THEN
+         Target := Root;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END MessageToTarget;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Join( Handler : OSALmsg.TPMessageHandler; CallOnJoinInThread : BOOLEAN );
+   BEGIN
+      Support^.Join( Handler, CallOnJoinInThread );
    END Join;
 
 (*---------------------------------------------------------------------------*)
   
-   PUBLIC VIRTUAL PROCEDURE Leave( Recipient : OSALmsg.TPMessageRecipient; CallOnLeaveInThread : BOOLEAN );
+   PUBLIC VIRTUAL PROCEDURE Leave( Handler : OSALmsg.TPMessageHandler; CallOnLeaveInThread : BOOLEAN );
    BEGIN
-      Support^.Leave( Recipient, CallOnLeaveInThread );
+      Support^.Leave( Handler, CallOnLeaveInThread );
    END Leave;
 
 (*---------------------------------------------------------------------------*)
   
-   PUBLIC FINAL PROPERTY JoinedTo GET : OSALmsg.TPMessageQueueThread;
-   BEGIN
-      RETURN ADR( SELF );
-   END JoinedTo;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC FINAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread; CallOnJoinInThread : BOOLEAN );
-   BEGIN
-      ASSERT( FALSE );
-   END JoinMessageThread;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC FINAL PROCEDURE LeaveMessageThread( CallOnLeaveInThread : BOOLEAN );
-   BEGIN
-      ASSERT( FALSE );
-   END LeaveMessageThread;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC FINAL PROCEDURE OnJoin( JoinedTo : OSALmsg.TPMessageQueueThread );
-   BEGIN
-      ASSERT( FALSE );
-   END OnJoin;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC FINAL PROCEDURE OnLeave();
-   BEGIN
-      ASSERT( FALSE );
-   END OnLeave;
-
-(*---------------------------------------------------------------------------*)
-
 BEGIN
    NEW( Support );
    Support^.Init( ADR( SELF ));
@@ -212,17 +198,29 @@ END Win32MessageQueueThread;
 
 (*===========================================================================*)
 
+VAR
+   GMQT : POINTER TO Win32MessageQueueThread := NIL;
+
 PROCEDURE Win32GlobalMessageQueueThread() : POINTER TO OSALmsg.IMessageQueueThread;
 BEGIN
-   RETURN NIL; // there is no global thread, the default one is used
+   ASSERT( GMQT <> NIL );
+   RETURN GMQT;
 END Win32GlobalMessageQueueThread;
 
 PROCEDURE Startup();
 BEGIN
+   IF GMQT = NIL THEN
+      NEW( GMQT );
+      // GMQT^.Run( TRUE ); -- for Win32 global thread MUST not be run, because default thread runs in Win32 process context
+   END;
 END Startup;
 
 PROCEDURE Cleanup();
 BEGIN
+   IF GMQT <> NIL THEN
+      // GMQT^.Stop( TRUE ); -- for Win32 global thread MUST not be stopped, because default thread runs in Win32 process context
+      DISPOSE( GMQT );
+   END;
 END Cleanup;
 
 (*===========================================================================*)

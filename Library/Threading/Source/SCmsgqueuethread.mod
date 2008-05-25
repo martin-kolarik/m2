@@ -24,7 +24,7 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
    VAR
       CurrentTime : CARDINAL;
       Msg : SCmsg.SCMessage;
-      Target : OSALmsg.TPMessageRecipient;
+      Target : msghandler.TPMessageTarget;
       Timeout : CARDINAL;
       Timer : PTR;
       Status : CARDINAL;
@@ -55,14 +55,9 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
          | windows.WAIT_OBJECT_0 + 1 : // queue
             WHILE Queue.DequeueOA( OUT Msg, FALSE, 0 ) = Sync.arCompleted DO
 
-               IF Msg.Target <> NIL THEN // self or root
-                  Target := Msg.Target;
-               ELSIF Root <> NIL THEN
-                  Target := Root;
-               ELSE
-                  Target := ADR( SELF );
+               IF MessageToTarget( ADR( Msg ), OUT Target ) THEN
+                  Target^.Message( Msg, msghandler.delSynchronous, NIL );
                END;
-               Target^.Message( Msg, msghandler.delSynchronous, NIL );
 
             END; // WHILE
 
@@ -89,30 +84,24 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
    
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROPERTY Root GET : msghandler.TPMessageRecipient;
+   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Msg : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN; // thread targetted messages
+   BEGIN
+      RETURN FALSE;
+   END OnMessage;
+
+(*---------------------------------------------------------------------------*)
+  
+   INTERNAL VIRTUAL PROCEDURE OnTimer( Timer : PTR ); // thread targetted timers
+   BEGIN
+   END OnTimer;
+
+(*---------------------------------------------------------------------------*)
+  
+   INTERNAL VIRTUAL PROPERTY Root GET : msghandler.TPIMessageHandler;
    BEGIN
       RETURN NIL;
    END Root;
   
-(*---------------------------------------------------------------------------*)
-
-   INTERNAL VIRTUAL PROCEDURE OnStart();
-   BEGIN
-   END OnStart;
-
-(*---------------------------------------------------------------------------*)
-
-   INTERNAL VIRTUAL PROCEDURE OnExit();
-   BEGIN
-   END OnExit;
-
-(*---------------------------------------------------------------------------*)
-  
-   INTERNAL VIRTUAL PROCEDURE MessageToRecipient( CONST Msg : PTR; OUT Recipient : msghandler.TPMessageRecipient ) : BOOLEAN;
-   BEGIN
-      RETURN SCmsg.HandleToRecipient( SCmsg.TPMessage( Msg )^.Target, OUT Recipient );
-   END MessageToRecipient;
-
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY SelfContext GET : BOOLEAN;
@@ -134,7 +123,14 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
             Result := ADR( LResult );
          END;
          IF NOT Support^.HandleSupportMessage( Msg ) THEN
-            RETURN OnMessage( Msg, OUT Result^ );
+            IF Msg.Message = msghandler.MSG_ON_TIMER THEN
+               Msg.Target^.OnTimer( Msg.Parameter );
+            ELSE
+               IF Result = NIL THEN
+                  Result := ADR( LResult );
+               END;
+               RETURN OnMessage( Msg, OUT Result^ );
+            END;
          END;
       ELSE
          FOR i := 0 TO MIN2( Msg.ParameterCount, message.ParameterCount )-1 DO
@@ -148,83 +144,69 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
 
 (*---------------------------------------------------------------------------*)
   
-   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Msg : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN; // thread targetted messages
+   PUBLIC VIRTUAL PROCEDURE StartTimer( CONST Target : msghandler.IMessageTarget; TimerId : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
    BEGIN
-      RETURN FALSE;
-   END OnMessage;
-
-(*---------------------------------------------------------------------------*)
-  
-   PUBLIC VIRTUAL PROCEDURE Join( Recipient : OSALmsg.TPMessageRecipient; CallOnJoinInThread : BOOLEAN );
-   BEGIN
-      Support^.Join( Recipient, CallOnJoinInThread );
-   END Join;
-
-(*---------------------------------------------------------------------------*)
-  
-   PUBLIC VIRTUAL PROCEDURE Leave( Recipient : OSALmsg.TPMessageRecipient; CallOnLeaveInThread : BOOLEAN );
-   BEGIN
-      Support^.Leave( Recipient, CallOnLeaveInThread );
-   END Leave;
-
-(*---------------------------------------------------------------------------*)
-  
-   PUBLIC FINAL PROPERTY JoinedTo GET : OSALmsg.TPMessageQueueThread;
-   BEGIN
-      RETURN ADR( SELF );
-   END JoinedTo;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC FINAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread; CallOnJoinInThread : BOOLEAN );
-   BEGIN
-      ASSERT( FALSE );
-   END JoinMessageThread;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC FINAL PROCEDURE LeaveMessageThread( CallOnLeaveInThread : BOOLEAN );
-   BEGIN
-      ASSERT( FALSE );
-   END LeaveMessageThread;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC FINAL PROCEDURE OnJoin( JoinedTo : OSALmsg.TPMessageQueueThread );
-   BEGIN
-      ASSERT( FALSE );
-   END OnJoin;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC FINAL PROCEDURE OnLeave();
-   BEGIN
-      ASSERT( FALSE );
-   END OnLeave;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE StartTimer( Recipient : OSALmsg.TPMessageRecipient; TimerId : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
-   BEGIN
-      Support^.StartTimer( Recipient, TimerId, PeriodMS, Repeat );
+      Support^.StartTimer( msghandler.TPMessageTarget( ADR( Target )), TimerId, PeriodMS, Repeat );
    END StartTimer;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE StopTimer( Recipient : OSALmsg.TPMessageRecipient; TimerId : PTR );
+   PUBLIC VIRTUAL PROCEDURE StopTimer( CONST Target : msghandler.IMessageTarget; TimerId : PTR );
    BEGIN
-      Support^.StopTimer( Recipient, TimerId );
+      Support^.StopTimer( msghandler.TPMessageTarget( ADR( Target )), TimerId );
    END StopTimer;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE TimerRunning( Recipient : OSALmsg.TPMessageRecipient; TimerId : PTR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE TimerRunning( CONST Target : msghandler.IMessageTarget; TimerId : PTR ) : BOOLEAN;
    BEGIN
-      RETURN Support^.TimerRunning( Recipient, TimerId );
+      RETURN Support^.TimerRunning( msghandler.TPMessageTarget( ADR( Target )), TimerId );
    END TimerRunning;
 
 (*---------------------------------------------------------------------------*)
 
+   INTERNAL VIRTUAL PROCEDURE OnStart();
+   BEGIN
+   END OnStart;
+
+(*---------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE OnExit();
+   BEGIN
+   END OnExit;
+
+(*---------------------------------------------------------------------------*)
+  
+   INTERNAL VIRTUAL PROCEDURE MessageToTarget( CONST Msg : PTR; OUT Target : msghandler.TPMessageTarget ) : BOOLEAN;
+   VAR
+      target : msghandler.TPMessageTarget := SCmsg.TPMessage( Msg )^.Target;
+   BEGIN
+      IF target <> NIL THEN
+         Target := target;
+      ELSIF Root <> NIL THEN
+         Target := Root;
+      ELSE
+         Target := ADR( SELF );
+      END;
+      RETURN TRUE;
+   END MessageToTarget;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Join( Handler : msghandler.TPIMessageHandler; CallOnJoinInThread : BOOLEAN );
+   BEGIN
+      Support^.Join( Handler, CallOnJoinInThread );
+   END Join;
+
+(*---------------------------------------------------------------------------*)
+  
+   PUBLIC VIRTUAL PROCEDURE Leave( Handler : msghandler.TPIMessageHandler; CallOnLeaveInThread : BOOLEAN );
+   BEGIN
+      Support^.Leave( Handler, CallOnLeaveInThread );
+   END Leave;
+
+(*---------------------------------------------------------------------------*)
+  
 BEGIN
    NEW( Support );
    Support^.Init( ADR( SELF ));

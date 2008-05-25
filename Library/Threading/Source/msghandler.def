@@ -18,9 +18,11 @@ CONST
 
 CONST
   IMessage ::= OSALmsg.IMessage;
-  IMessageRecipient ::= OSALmsg.IMessageRecipient;
+  IMessageTarget ::= OSALmsg.IMessageTarget;
+  IMessageHandler ::= OSALmsg.IMessageHandler;
   TPIMessage ::= OSALmsg.TPMessage;
-  TPMessageRecipient ::= OSALmsg.TPMessageRecipient;
+  TPMessageTarget ::= OSALmsg.TPMessageTarget;
+  TPIMessageHandler ::= OSALmsg.TPMessageHandler;
 CONST
   RAW_MSG_BASE ::= SCmsg.SC_RAW_MSG_BASE; // for usage only inside this library
   MSG_BASE = SCmsg.SC_RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_SPACE;
@@ -38,8 +40,8 @@ TYPE
   TPMessageHandler = POINTER TO MessageHandler;
 
 CONST
-  HandleToRecipient ::= SCmsg.HandleToRecipient;
-  // HandleToRecipient ::= Win32msg.HandleToRecipient;
+  HandleToTarget ::= SCmsg.HandleToTarget;
+  // HandleToHandler ::= Win32msg.HandleToTarget;
 
 (*===========================================================================*)
 

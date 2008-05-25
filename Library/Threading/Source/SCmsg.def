@@ -12,13 +12,19 @@ IMPORT
   
 #save, option( dll_export => on )
 
+(*===============================================================================*)
+
 TYPE
    TPMessage = POINTER TO SCMessage;
 
 CONST
    SC_RAW_MSG_BASE = 1024; // to be compatible with Win32
   
-PROCEDURE HandleToRecipient( CONST Handle : PTR; OUT Handler : OSALmsg.TPMessageRecipient ) : BOOLEAN;
+(*===============================================================================*)
+
+PROCEDURE HandleToTarget( CONST Handle : PTR; OUT Handler : OSALmsg.TPMessageTarget ) : BOOLEAN;
+
+(*===============================================================================*)
 
 CONST
    MI_PARAM_1 = 3;
@@ -29,7 +35,7 @@ CONST
 CLASS SCMessage IMPLEMENTS OSALmsg.IMessage;
   PRIVATE VAR
     source : ADDRESS;
-    target : OSALmsg.TPMessageRecipient;
+    target : OSALmsg.TPMessageTarget;
     message : CARDINAL;
     param1 : PTR;
     param2 : PTR;
@@ -37,7 +43,7 @@ CLASS SCMessage IMPLEMENTS OSALmsg.IMessage;
     param4 : PTR;
   PUBLIC VIRTUAL PROPERTY
     Source : ADDRESS;
-    Target : OSALmsg.TPMessageRecipient;
+    Target : OSALmsg.TPMessageTarget;
     Message : CARDINAL;
     Parameter : PTR;
   PUBLIC VIRTUAL READONLY PROPERTY
@@ -49,6 +55,8 @@ CLASS SCMessage IMPLEMENTS OSALmsg.IMessage;
   PUBLIC OPERATOR
     :=( CONST MSG : SCMessage );
 END SCMessage;
+
+(*===============================================================================*)
 
 CLASS SCMessageHandler IMPLEMENTS OSALmsg.IMessageHandler;
   INTERNAL VAR
@@ -73,17 +81,19 @@ CLASS SCMessageHandler IMPLEMENTS OSALmsg.IMessageHandler;
   PUBLIC VIRTUAL PROCEDURE StopTimer( Timer : PTR );
   INTERNAL VIRTUAL PROCEDURE OnTimer( Timer : PTR );
 
+  PUBLIC VIRTUAL PROCEDURE JoinMessageThread( CONST JoinTo : OSALmsg.IMessageQueueThread; CallOnJoinInThread : BOOLEAN );
+  PUBLIC VIRTUAL PROCEDURE LeaveMessageThread( CallOnLeaveInThread : BOOLEAN );
+
   // called from joined IMessageQueueThread etc., do not call directly
   #save, option( leak_info => on )
-  PUBLIC VIRTUAL PROCEDURE OnJoin( JoinedTo : OSALmsg.TPMessageQueueThread );
+  PUBLIC VIRTUAL PROCEDURE OnJoin( CONST JoinedTo : OSALmsg.IMessageQueueThread );
   PUBLIC VIRTUAL PROCEDURE OnLeave();
   #restore
   
-  PUBLIC VIRTUAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread; CallOnJoinInThread : BOOLEAN );
-  PUBLIC VIRTUAL PROCEDURE LeaveMessageThread( CallOnLeaveInThread : BOOLEAN );
-
   VIRTUAL FINALLY SCMessageHandler();
 END SCMessageHandler;
+
+(*===============================================================================*)
 
 #restore
 

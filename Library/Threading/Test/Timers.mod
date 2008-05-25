@@ -36,7 +36,7 @@ END CWorker;
 CLASS CMH( msghandler.MessageHandler );
    PUBLIC VAR
       Test : TPTest;
-   PUBLIC VIRTUAL PROCEDURE OnJoin( JoinedTo : msgqueuethread.TPIMessageQueueThread );
+   PUBLIC VIRTUAL PROCEDURE OnJoin( CONST JoinedTo : msgqueuethread.IMessageQueueThread );
    INTERNAL VIRTUAL PROCEDURE OnTimer( TimerId : PTR );
 END CMH;
 
@@ -89,7 +89,7 @@ CLASS IMPLEMENTATION CMH;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnJoin( JoinedTo : msgqueuethread.TPIMessageQueueThread );
+   PUBLIC VIRTUAL PROCEDURE OnJoin( CONST JoinedTo : msgqueuethread.IMessageQueueThread );
    BEGIN
       SUPER.OnJoin( JoinedTo );
    

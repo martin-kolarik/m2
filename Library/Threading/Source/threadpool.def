@@ -75,7 +75,7 @@ TYPE
   
 CLASS CMessageHandlerDelegate( APoolDelegate );
   PUBLIC VAR
-    Handler : msghandler.TPMessageRecipient;
+    Handler : msghandler.TPMessageHandler;
     Delivery : msghandler.TDelivery := msghandler.delSynchronous;
   PUBLIC FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
 END CMessageHandlerDelegate;
@@ -114,7 +114,7 @@ CLASS CThreadPool( msghandler.MessageHandler );
   PUBLIC PROCEDURE FinishAndWait();
 
   PUBLIC PROCEDURE WaitTimeout( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; OUT PoolHandle : TPoolHandle ) : BOOLEAN;
-  PUBLIC PROCEDURE WaitMessage( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; OUT Recipient : msghandler.TPMessageRecipient; OUT Message : msghandler.IMessage; OUT PoolHandle : TPoolHandle ) : BOOLEAN;
+  PUBLIC PROCEDURE WaitMessage( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; OUT Target : msghandler.TPMessageTarget; OUT Message : msghandler.IMessage; OUT PoolHandle : TPoolHandle ) : BOOLEAN;
   PUBLIC PROCEDURE WaitHandle( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; Handle : Sync.WAITABLE; OUT PoolHandle : TPoolHandle ) : BOOLEAN;
   PUBLIC PROCEDURE RunWorker( CONST Delegate : TPPoolDelegate; UserId : PTR; ForceSelfThread : BOOLEAN; Worker : TPPoolWorker; CompleteInOwningThread : BOOLEAN; OUT PoolHandle : TPoolHandle ) : BOOLEAN;
   PUBLIC PROCEDURE Abort( REF PoolHandle : TPoolHandle );

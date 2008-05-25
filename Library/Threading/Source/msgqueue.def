@@ -1,29 +1,80 @@
 DEFINITION MODULE msgqueue;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
-  msghandler,
-  OSALmsg,
-  Sync,
-  SyncQueue;
+   lists,
+   msghandler,
+   OSALmsg,
+   Sync,
+   SyncQueue;
 
 #save, option( dll_export => on )
 
-TYPE
-  TPMessageQueue = POINTER TO CMessageQueue;
+(*===============================================================================*)
 
 CONST
    MSG_PROCESS_QUEUE = msghandler.RAW_MSG_BASE + OSALmsg.RAW_PROCESS_QUEUE;
+
+(*===============================================================================*)
+// fast queue with atomic synchronization, of fixed size, with defined item length, no allocations
+
+TYPE
+  TPMessageQueue = POINTER TO CMessageQueue;
 
 CLASS CMessageQueue( SyncQueue.CDatagramQueue );
    PRIVATE VAR
       Msg : POINTER TO msghandler.Message;
    PUBLIC VAR
-      Consumer : msghandler.TPMessageRecipient;
+      Consumer : msghandler.TPMessageTarget;
    PUBLIC PROPERTY
       ConsumerMsg : POINTER TO msghandler.Message; // if NIL then default MSG_PROCESS_QUEUE is used
 
   INTERNAL VIRTUAL PROCEDURE Signal( What : Sync.TpcqSignal ); // when produced, next producing SHOULD NOT be done (until signalling consumed)
 END CMessageQueue;
+
+(*===============================================================================*)
+// normal queue with LOCK synchronization, unlimited size, PTR item length => items must be allocated, deallocated
+// roughly the same interface as the queue above
+
+TYPE
+   TPPtrQueue = POINTER TO CPtrQueue;
+   
+CLASS CPtrQueue;
+   PRIVATE VAR
+      Lock : Sync.LOCK;
+      _Queue : lists.CPtrList;
+      Msg : POINTER TO msghandler.Message;
+
+   PUBLIC READONLY PROPERTY
+      Count : CARDINAL;
+      Empty : BOOLEAN;
+      Full : BOOLEAN;
+      Size : CARDINAL;
+   PUBLIC VAR
+      Consume : Sync.SIGNAL := NIL;
+      Produce : Sync.SIGNAL := NIL;
+   PUBLIC VAR
+      Consumer : msghandler.TPMessageTarget;
+   PUBLIC PROPERTY
+      ConsumerMsg : POINTER TO msghandler.Message; // if NIL then default MSG_PROCESS_QUEUE is used
+
+   // common
+   PUBLIC PROCEDURE Clear();
+
+   // consumer/s
+   PUBLIC PROCEDURE Dequeue( OUT Message : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Peek( OUT Message : PTR ) : BOOLEAN;
+
+   // producers
+   PUBLIC PROCEDURE Queue( CONST Message : PTR );
+
+   // both side, usualy implemented using ONE signal/message
+   INTERNAL VIRTUAL PROCEDURE Signal( What : Sync.TpcqSignal ); // when produced, next producing SHOULD NOT be done (until signalling consumed)
+END CPtrQueue;
+
+(*===============================================================================*)
 
 #restore
 

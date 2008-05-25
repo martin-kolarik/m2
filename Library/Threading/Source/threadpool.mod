@@ -728,7 +728,7 @@ CLASS IMPLEMENTATION CThreadPool;
 
 //--------------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE WaitMessage( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; OUT Recipient : msghandler.TPMessageRecipient; OUT Message : msghandler.IMessage; OUT PoolHandle : TPoolHandle ) : BOOLEAN;
+  PUBLIC PROCEDURE WaitMessage( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; OUT Target : msghandler.TPMessageTarget; OUT Message : msghandler.IMessage; OUT PoolHandle : TPoolHandle ) : BOOLEAN;
   VAR
     message : CARDINAL;
     MSG : TMessage;
@@ -766,7 +766,7 @@ CLASS IMPLEMENTATION CThreadPool;
     PoolHandle := MSG.Task^.Handle;
     Message.Message := message;
     Message.Target := PoolThread;
-    Recipient := PoolThread;
+    Target := PoolThread;
 
     Result := PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );

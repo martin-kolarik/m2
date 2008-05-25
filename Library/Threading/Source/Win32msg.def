@@ -11,10 +11,19 @@ IMPORT
   
 #save, option( dll_export => on )
 
+(*===============================================================================*)
+
+TYPE
+   TPMessage = POINTER TO Win32Message;
+
 CONST
    WIN32_RAW_MSG_BASE = 1024; // to be compatible with Win32 = WM_USER
   
-PROCEDURE HandleToRecipient( CONST Handle : PTR; OUT Handler : OSALmsg.TPMessageRecipient ) : BOOLEAN;
+(*===============================================================================*)
+
+PROCEDURE HandleToTarget( CONST Handle : PTR; OUT Handler : OSALmsg.TPMessageTarget ) : BOOLEAN;
+
+(*===============================================================================*)
 
 CONST
    MI_WPARAM = 3;
@@ -23,13 +32,13 @@ CONST
 CLASS Win32Message IMPLEMENTS OSALmsg.IMessage;
   PRIVATE VAR
     source : ADDRESS;
-    target : OSALmsg.TPMessageRecipient; // [1]
+    target : OSALmsg.TPMessageTarget; // [1]
     message : CARDINAL; // [2]
     wParam : PTR; // [3]
     lParam : PTR; // [4]
   PUBLIC VIRTUAL PROPERTY
     Source : ADDRESS;
-    Target : OSALmsg.TPMessageRecipient;
+    Target : OSALmsg.TPMessageTarget;
     Message : CARDINAL;
     Parameter : PTR;
   PUBLIC VIRTUAL READONLY PROPERTY
@@ -41,6 +50,8 @@ CLASS Win32Message IMPLEMENTS OSALmsg.IMessage;
   PUBLIC OPERATOR
     :=( CONST MSG : Win32Message );
 END Win32Message;
+
+(*===============================================================================*)
 
 CLASS Win32MessageHandler IMPLEMENTS OSALmsg.IMessageHandler;
   PRIVATE VAR
@@ -68,15 +79,17 @@ CLASS Win32MessageHandler IMPLEMENTS OSALmsg.IMessageHandler;
   INTERNAL VIRTUAL PROCEDURE OnTimer( Timer : PTR );
 
   #save, option( leak_info => on )
-  PUBLIC VIRTUAL PROCEDURE OnJoin( JoinedTo : OSALmsg.TPMessageQueueThread );
+  PUBLIC VIRTUAL PROCEDURE OnJoin( CONST JoinedTo : OSALmsg.IMessageQueueThread );
   PUBLIC VIRTUAL PROCEDURE OnLeave();
   #restore
   
-  PUBLIC VIRTUAL PROCEDURE JoinMessageThread( JoinTo : OSALmsg.TPMessageQueueThread; CallOnJoinInThread : BOOLEAN );
+  PUBLIC VIRTUAL PROCEDURE JoinMessageThread( CONST JoinTo : OSALmsg.IMessageQueueThread; CallOnJoinInThread : BOOLEAN );
   PUBLIC VIRTUAL PROCEDURE LeaveMessageThread( CallOnLeaveInThread : BOOLEAN );
 
   VIRTUAL FINALLY Win32MessageHandler();
 END Win32MessageHandler;
+
+(*===============================================================================*)
 
 #restore
 

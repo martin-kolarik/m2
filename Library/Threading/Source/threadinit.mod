@@ -1,14 +1,16 @@
 IMPLEMENTATION MODULE threadinit;
 
 IMPORT
-   msgqueuethread,
-   threadpool;
+   SCmsgqueuethread,
+   threadpool,
+   Win32msgqueuethread;
 
 (*================================================================================*)
 
 PROCEDURE Startup();
 BEGIN
-   msgqueuethread.Startup();
+   Win32msgqueuethread.Startup();
+   SCmsgqueuethread.Startup();
    threadpool.Startup();
 END Startup;
 
@@ -17,7 +19,8 @@ END Startup;
 PROCEDURE Cleanup();
 BEGIN
    threadpool.Cleanup();
-   msgqueuethread.Cleanup();
+   SCmsgqueuethread.Startup();
+   Win32msgqueuethread.Cleanup();
 END Cleanup;
 
 (*================================================================================*)

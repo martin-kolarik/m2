@@ -20,63 +20,11 @@ TYPE
 
 TYPE
   TPMessage = POINTER TO IMessage;
-  TPMessageRecipient = POINTER TO IMessageRecipient;
+  TPMessageTarget = POINTER TO IMessageTarget;
   TPMessageHandler = POINTER TO IMessageHandler;
   TPMessageQueueThread = POINTER TO IMessageQueueThread;
 
 (*---------------------------------------------------------------------------*)
-
-CONST
-   MI_SOURCE = 0;
-   MI_TARGET = 1;
-   MI_MESSAGE = 2;
-   MI_PARAMETER = 3;
-  
-INTERFACE IMessage;
-  PUBLIC ABSTRACT PROPERTY
-    Source : ADDRESS; // can be NIL
-    Target : TPMessageRecipient; // if Target is NIL the message's target is owner of Message method taking the message
-    Message : CARDINAL;
-    Parameter : PTR;
-  PUBLIC ABSTRACT READONLY PROPERTY
-    ParameterCount : CARDINAL; // including MSG and optional Target and Source, message must have AT LEAST 1 parameter
-  PUBLIC ABSTRACT 
-    INDEX( ParameterIndex : CARDINAL ) : PTR;
-  PUBLIC ABSTRACT PROCEDURE
-    Clone() : POINTER TO IMessage;
-END IMessage;
-
-(*===========================================================================*)
-
-INTERFACE IMessageRecipient;
-  PUBLIC ABSTRACT READONLY PROPERTY
-    JoinedTo : TPMessageQueueThread;
-    SelfContext : BOOLEAN;
-
-  PUBLIC ABSTRACT PROCEDURE Message( CONST MSG : IMessage; Delivery : TDelivery; Result : PPTR ) : BOOLEAN;
-  INTERNAL ABSTRACT PROCEDURE OnMessage( CONST MSG : IMessage; OUT Result : PTR ) : BOOLEAN;
-  
-  PUBLIC ABSTRACT PROCEDURE JoinMessageThread( JoinTo : TPMessageQueueThread; CallOnJoinInThread : BOOLEAN );
-  PUBLIC ABSTRACT PROCEDURE LeaveMessageThread( CallOnLeaveInThread : BOOLEAN );
-
-  // do not call directly, leave system to call them
-  PUBLIC ABSTRACT PROCEDURE OnJoin( JoinedTo : TPMessageQueueThread );
-  PUBLIC ABSTRACT PROCEDURE OnLeave();
-END IMessageRecipient;  
-
-(*---------------------------------------------------------------------------*)
-  
-INTERFACE IMessageHandler( IMessageRecipient );
-  PUBLIC ABSTRACT READONLY PROPERTY
-    Handle : PTR;
-
-  PUBLIC ABSTRACT PROCEDURE StartTimer( Timer : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
-  PUBLIC ABSTRACT PROCEDURE TimerRunning( Timer : PTR ) : BOOLEAN;
-  PUBLIC ABSTRACT PROCEDURE StopTimer( Timer : PTR );
-  INTERNAL ABSTRACT PROCEDURE OnTimer( Timer : PTR );
-END IMessageHandler;
-
-(*===========================================================================*)
 
 CONST
    // RAW messages are system/internal and cannot be used outer of this library
@@ -90,21 +38,86 @@ CONST
    RAW_MESSAGE_RESETTIMER = 5;
    RAW_MESSAGE_ONTIMER = 6;
 
-(*---------------------------------------------------------------------------*)
+CONST
+   MI_SOURCE = 0;
+   MI_TARGET = 1;
+   MI_MESSAGE = 2;
+   MI_PARAMETER = 3;
   
-INTERFACE IMessageQueueThread( IMessageRecipient );
+(*---------------------------------------------------------------------------*)
+
+INTERFACE IMessage;
+  PUBLIC ABSTRACT PROPERTY
+    Source : ADDRESS; // can be NIL
+    Target : TPMessageTarget; // if Target is NIL the message's target is owner of Message method taking the message
+    Message : CARDINAL;
+    Parameter : PTR;
+  PUBLIC ABSTRACT READONLY PROPERTY
+    ParameterCount : CARDINAL; // including MSG and optional Target and Source, message must have AT LEAST 1 parameter
+  PUBLIC ABSTRACT 
+    INDEX( ParameterIndex : CARDINAL ) : PTR;
+  PUBLIC ABSTRACT PROCEDURE
+    Clone() : POINTER TO IMessage;
+END IMessage;
+
+(*===========================================================================*)
+
+INTERFACE IMessageTarget; // for delivery of messages, now they are IMessageHandler and IMessageQueueThread
+  PUBLIC ABSTRACT READONLY PROPERTY
+    SelfContext : BOOLEAN;
+  PUBLIC ABSTRACT PROCEDURE Message( CONST MSG : IMessage; Delivery : TDelivery; Result : PPTR ) : BOOLEAN;
+  INTERNAL ABSTRACT PROCEDURE OnMessage( CONST MSG : IMessage; OUT Result : PTR ) : BOOLEAN;
+  INTERNAL ABSTRACT PROCEDURE OnTimer( Timer : PTR );
+END IMessageTarget;
+  
+(*===========================================================================*)
+
+INTERFACE IMessageQueueThread( IMessageTarget );
    INTERNAL READONLY PROPERTY
-      Root : TPMessageRecipient; // thread can have some special processing
-      
+      Root : TPMessageTarget; // thread can have some special processing
+   PUBLIC READONLY PROPERTY
+      SelfContext : BOOLEAN;
+ 
+   // to behave as MsgHandler     
+   PUBLIC PROCEDURE StartTimer( CONST Target : IMessageTarget; TimerId : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
+   PUBLIC PROCEDURE StopTimer( CONST Target : IMessageTarget; TimerId : PTR );
+   PUBLIC PROCEDURE TimerRunning( CONST Target : IMessageTarget; TimerId : PTR ) : BOOLEAN;
+
+   // more thread's
    INTERNAL PROCEDURE OnStart();
    INTERNAL PROCEDURE OnExit();
 
-   INTERNAL PROCEDURE MessageToRecipient( CONST Msg : PTR; OUT Recipient : TPMessageRecipient ) : BOOLEAN;
+   // helper
+   INTERNAL PROCEDURE MessageToTarget( CONST Msg : PTR; OUT Target : TPMessageTarget ) : BOOLEAN;
    
-   // called from Recipient's join/leave, do not call directly
-   PUBLIC PROCEDURE Join( Recipient : TPMessageRecipient; CallOnJoinInThread : BOOLEAN );
-   PUBLIC PROCEDURE Leave( Recipient : TPMessageRecipient; CallOnLeaveInThread : BOOLEAN );
+   // called from Target's join/leave, do not call directly
+   PUBLIC PROCEDURE Join( Handler : TPMessageHandler; CallOnJoinInThread : BOOLEAN );
+   PUBLIC PROCEDURE Leave( Handler : TPMessageHandler; CallOnLeaveInThread : BOOLEAN );
 END IMessageQueueThread;
+
+(*===========================================================================*)
+
+INTERFACE IMessageHandler( IMessageTarget );
+  PUBLIC ABSTRACT READONLY PROPERTY
+    JoinedTo : TPMessageQueueThread;
+    Handle : PTR;
+
+  // interface
+  // ...IMessageTarget.Message
+  // ...IMessageTarget.OnMessage
+
+  PUBLIC ABSTRACT PROCEDURE JoinMessageThread( CONST JoinTo : IMessageQueueThread; CallOnJoinInThread : BOOLEAN );
+  PUBLIC ABSTRACT PROCEDURE LeaveMessageThread( CallOnLeaveInThread : BOOLEAN );
+
+  PUBLIC ABSTRACT PROCEDURE StartTimer( Timer : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
+  PUBLIC ABSTRACT PROCEDURE TimerRunning( Timer : PTR ) : BOOLEAN;
+  PUBLIC ABSTRACT PROCEDURE StopTimer( Timer : PTR );
+  // ...IMessageTarget.OnTimer
+
+  // helper -- DO NOT call directly, it is called by joined thread
+  PUBLIC ABSTRACT PROCEDURE OnJoin( CONST JoinedTo : IMessageQueueThread );
+  PUBLIC ABSTRACT PROCEDURE OnLeave();
+END IMessageHandler;
 
 (*===========================================================================*)
 
