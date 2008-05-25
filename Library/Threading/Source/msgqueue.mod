@@ -178,7 +178,7 @@ CLASS IMPLEMENTATION CPtrQueue;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Queue( CONST Message : PTR );
+   PUBLIC PROCEDURE Enqueue( CONST Message : PTR );
    BEGIN
       Lock.Lock();
       _Queue.Enqueue( Message, 0 );
@@ -186,7 +186,7 @@ CLASS IMPLEMENTATION CPtrQueue;
          Signal( Sync.pcqProduced );
       END;
       Lock.Unlock();
-   END Queue;
+   END Enqueue;
 
 (*--------------------------------------------------------------------------------*)
 

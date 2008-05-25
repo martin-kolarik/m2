@@ -49,7 +49,7 @@ TYPE
    TPIntegerQueue = POINTER TO IntegerQueue;
 
 CLASS IntegerQueue( RingBuffer ); // Size must not be < 4, Consume and Produce event should not be set, they are handled internally
-   PUBLIC PROCEDURE Queue( I : INTEGER; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE Enqueue( I : INTEGER; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
    PUBLIC PROCEDURE Dequeue( OUT I : INTEGER; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
 END IntegerQueue;
 
@@ -59,7 +59,7 @@ TYPE
    TPQuadwordQueue = POINTER TO QuadwordQueue;
 
 CLASS QuadwordQueue( RingBuffer ); // Size must not be < 8, Consume and Produce event should not be set, they are handled internally
-   PUBLIC PROCEDURE Queue( CONST Q : QUADWORD; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult; // if Wait is FALSE, alwasy is possible to wait in caller code
+   PUBLIC PROCEDURE Enqueue( CONST Q : QUADWORD; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult; // if Wait is FALSE, alwasy is possible to wait in caller code
    PUBLIC PROCEDURE Dequeue( OUT Q : QUADWORD; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
 END QuadwordQueue;
 
@@ -86,8 +86,8 @@ CLASS CDatagramQueue( Sync.NToOneQueue );
     // returns if data get
 
   // producers
-  PUBLIC PROCEDURE Queue( Message : ADDRESS; MessageSize : CARDINAL; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
-  PUBLIC PROCEDURE QueueOA( CONST Message : ARRAY OF BYTE; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE Enqueue( Message : ADDRESS; MessageSize : CARDINAL; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE EnqueueOA( CONST Message : ARRAY OF BYTE; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
     // returns if added, for ANY thread
   PUBLIC PROCEDURE PushToConsumer( Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
 

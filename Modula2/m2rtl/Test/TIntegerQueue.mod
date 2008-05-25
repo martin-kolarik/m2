@@ -112,7 +112,7 @@ CLASS IMPLEMENTATION CTest;
       I32 : INT32 := 1;
    BEGIN
       LOOP
-         IQ.Queue( I32, TRUE, Sync.FOREVER );
+         IQ.Enqueue( I32, TRUE, Sync.FOREVER );
          INC( I32 );
          IF I32 > 500000 THEN
             EXIT;

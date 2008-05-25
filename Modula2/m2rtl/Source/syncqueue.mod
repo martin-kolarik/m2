@@ -309,7 +309,7 @@ CLASS IMPLEMENTATION IntegerQueue;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Queue( I : INTEGER; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE Enqueue( I : INTEGER; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
    VAR
       allowed : CARDINAL;
       commit : CARDINAL;
@@ -376,7 +376,7 @@ CLASS IMPLEMENTATION IntegerQueue;
          ASSERT( FALSE );
          RETURN Sync.arAborted;
       END;
-   END Queue;
+   END Enqueue;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -467,7 +467,7 @@ CLASS IMPLEMENTATION QuadwordQueue;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Queue( CONST Q : QUADWORD; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE Enqueue( CONST Q : QUADWORD; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
    VAR
       allowed : CARDINAL;
       commit : CARDINAL;
@@ -534,7 +534,7 @@ CLASS IMPLEMENTATION QuadwordQueue;
          ASSERT( FALSE );
          RETURN Sync.arAborted;
       END;
-   END Queue;
+   END Enqueue;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -712,7 +712,7 @@ CLASS IMPLEMENTATION CDatagramQueue;
   
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Queue( Message : ADDRESS; MessageLen : CARDINAL; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE Enqueue( Message : ADDRESS; MessageLen : CARDINAL; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
    VAR
       Block : CARDINAL;
       Result : Sync.TAsyncResult;
@@ -744,14 +744,14 @@ CLASS IMPLEMENTATION CDatagramQueue;
       CommitProducing( Block );
 
       RETURN Sync.arCompleted;
-   END Queue;
+   END Enqueue;
   
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE QueueOA( CONST Message : ARRAY OF BYTE; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE EnqueueOA( CONST Message : ARRAY OF BYTE; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult;
   BEGIN
-    RETURN Queue( ADR( Message ), MIN2( ItemISize-SIZE( CARDINAL ), HIGH( Message )+1 ), Wait, Timeout );
-  END QueueOA;
+    RETURN Enqueue( ADR( Message ), MIN2( ItemISize-SIZE( CARDINAL ), HIGH( Message )+1 ), Wait, Timeout );
+  END EnqueueOA;
 
 (*--------------------------------------------------------------------------------*)
 

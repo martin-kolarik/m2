@@ -220,7 +220,7 @@ CLASS IMPLEMENTATION CTest;
    BEGIN
       LOOP
          LOOP
-            Result := MQ.Queue( ADR( C32 ), SIZE( C32 ), TRUE, 1000 );
+            Result := MQ.Enqueue( ADR( C32 ), SIZE( C32 ), TRUE, 1000 );
             IF Result = Sync.arCompleted THEN
                EXIT;
             ELSIF Exit = 1 THEN

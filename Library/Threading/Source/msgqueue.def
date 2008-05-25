@@ -68,7 +68,7 @@ CLASS CPtrQueue;
    PUBLIC PROCEDURE Peek( OUT Message : PTR ) : BOOLEAN;
 
    // producers
-   PUBLIC PROCEDURE Queue( CONST Message : PTR );
+   PUBLIC PROCEDURE Enqueue( CONST Message : PTR );
 
    // both side, usualy implemented using ONE signal/message
    INTERNAL VIRTUAL PROCEDURE Signal( What : Sync.TpcqSignal ); // when produced, next producing SHOULD NOT be done (until signalling consumed)

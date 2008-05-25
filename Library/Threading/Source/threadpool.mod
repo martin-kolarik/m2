@@ -18,19 +18,19 @@ IMPORT
 
 CLASS IMPLEMENTATION APoolDelegate;
 
-  PUBLIC VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+  LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
   BEGIN
   END OnTimeout;
 
-  PUBLIC VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
+  LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
   BEGIN
   END OnMessage;
 
-  PUBLIC VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+  LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
   BEGIN
   END OnHandle;
 
-  PUBLIC VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+  LOCAL VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
   BEGIN
   END OnWorker;
 
@@ -42,7 +42,7 @@ CLASS IMPLEMENTATION CSinkDelegate;
 
 //---------------------------------------------------------------------------
 
-   PUBLIC FINAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+   LOCAL FINAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
    BEGIN
       IF TimeoutSink <> NIL THEN
          TimeoutSink^.OnTimeout( Result, PoolHandle, UserId );
@@ -51,7 +51,7 @@ CLASS IMPLEMENTATION CSinkDelegate;
 
 //---------------------------------------------------------------------------
 
-   PUBLIC FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
+   LOCAL FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
    BEGIN
       IF MessageSink <> NIL THEN
          MessageSink^.OnMessage( Result, PoolHandle, UserId, MSG );
@@ -60,7 +60,7 @@ CLASS IMPLEMENTATION CSinkDelegate;
 
 //---------------------------------------------------------------------------
 
-   PUBLIC FINAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+   LOCAL FINAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
    BEGIN
       IF HandleSink <> NIL THEN
          HandleSink^.OnHandle( Result, PoolHandle, UserId );
@@ -69,7 +69,7 @@ CLASS IMPLEMENTATION CSinkDelegate;
 
 //---------------------------------------------------------------------------
 
-   PUBLIC FINAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+   LOCAL FINAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
    BEGIN
       IF WorkerSink <> NIL THEN
          WorkerSink^.OnWorker( Result, PoolHandle, UserId );
@@ -89,7 +89,7 @@ END CSinkDelegate;
 
 CLASS IMPLEMENTATION CMessageHandlerDelegate;
 
-   PUBLIC FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
+   LOCAL FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
    BEGIN
       IF Handler = NIL THEN
         RETURN;
@@ -721,7 +721,7 @@ CLASS IMPLEMENTATION CThreadPool;
     // return value
     PoolHandle := MSG.Task^.Handle;
 
-    Result := PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.FORSAFETY );
+    Result := PoolThread^.ReqQueue.EnqueueOA( MSG, TRUE, Sync.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
     RETURN Result = Sync.arCompleted;
   END WaitTimeout;
@@ -768,7 +768,7 @@ CLASS IMPLEMENTATION CThreadPool;
     Message.Target := PoolThread;
     Target := PoolThread;
 
-    Result := PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.FORSAFETY );
+    Result := PoolThread^.ReqQueue.EnqueueOA( MSG, TRUE, Sync.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
     RETURN Result = Sync.arCompleted;
   END WaitMessage;
@@ -810,7 +810,7 @@ CLASS IMPLEMENTATION CThreadPool;
     // return value
     PoolHandle := MSG.Task^.Handle;
 
-    Result := PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.FORSAFETY );
+    Result := PoolThread^.ReqQueue.EnqueueOA( MSG, TRUE, Sync.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
     RETURN Result = Sync.arCompleted;
   END WaitHandle;
@@ -849,7 +849,7 @@ CLASS IMPLEMENTATION CThreadPool;
     // return value
     PoolHandle := MSG.Task^.Handle;
 
-    Result := PoolThread^.ReqQueue.QueueOA( MSG, TRUE, Sync.FORSAFETY );
+    Result := PoolThread^.ReqQueue.EnqueueOA( MSG, TRUE, Sync.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
     RETURN Result = Sync.arCompleted;
   END RunWorker;
@@ -869,7 +869,7 @@ CLASS IMPLEMENTATION CThreadPool;
     _Lock.Lock();
     Threads.Reset();
     WHILE Threads.MoveNext() DO // deliver the message to pool threads
-      Result := TPPoolThread( Threads.Current )^.ReqQueue.QueueOA( MSG, TRUE, Sync.FORSAFETY );
+      Result := TPPoolThread( Threads.Current )^.ReqQueue.EnqueueOA( MSG, TRUE, Sync.FORSAFETY );
       ASSERT( Result <> Sync.arTimeout );
     END; // WHILE
     _Lock.Unlock();
@@ -889,7 +889,7 @@ CLASS IMPLEMENTATION CThreadPool;
     _Lock.Lock();
     Threads.Reset();
     WHILE Threads.MoveNext() DO // deliver the message to pool threads
-      Result := TPPoolThread( Threads.Current )^.ReqQueue.QueueOA( MSG, TRUE, Sync.FORSAFETY );
+      Result := TPPoolThread( Threads.Current )^.ReqQueue.EnqueueOA( MSG, TRUE, Sync.FORSAFETY );
       ASSERT( Result <> Sync.arTimeout );
     END; // WHILE
     _Lock.Unlock();
@@ -903,7 +903,7 @@ CLASS IMPLEMENTATION CThreadPool;
     Result : Sync.TAsyncResult;
   BEGIN
     LMSG.Operation := topOnThreadEmpty;
-    Result := MQueue.QueueOA( LMSG, TRUE, Sync.FORSAFETY ); 
+    Result := MQueue.EnqueueOA( LMSG, TRUE, Sync.FORSAFETY ); 
     ASSERT( Result <> Sync.arTimeout );
   END OnThreadEmpty;
 
@@ -923,7 +923,7 @@ CLASS IMPLEMENTATION CThreadPool;
       LMSG.Result := Result;
       LMSG.Task := Task;
       LMSG.MSG := MSG;
-      LResult := MQueue.QueueOA( LMSG, TRUE, Sync.FORSAFETY ); 
+      LResult := MQueue.EnqueueOA( LMSG, TRUE, Sync.FORSAFETY ); 
       ASSERT( LResult <> Sync.arTimeout );
       RETURN FALSE;
     ELSE

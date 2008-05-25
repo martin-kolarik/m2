@@ -116,7 +116,7 @@ CLASS IMPLEMENTATION CTest;
       I64 : INT64 := 1;
    BEGIN
       LOOP
-         QQ.Queue( I64, TRUE, Sync.FOREVER );
+         QQ.Enqueue( I64, TRUE, Sync.FOREVER );
          INC( I64 );
          IF I64 > 500000 THEN
             EXIT;

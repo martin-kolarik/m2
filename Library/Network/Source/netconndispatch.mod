@@ -915,7 +915,7 @@ CLASS IMPLEMENTATION CDispatcher;
     // OnListen is in GUI thread, so posting there is not neccessary
     Message.Command := cmNetworkAccept;
     Message.NServerSocket := ServerSocket;
-    Result := NQueue.QueueOA( Message, TRUE, netsocket.FORSAFETY );
+    Result := NQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
   END OnListen;
 
@@ -930,7 +930,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.NCSocket := Socket;
     Message.NCError := Error;
     Message.NCLocal := Local;
-    Result := NQueue.QueueOA( Message, TRUE, netsocket.FORSAFETY );
+    Result := NQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
   END OnNetworkConnect;
 
@@ -945,7 +945,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.NCSocket := Socket;
     Message.NCError := Error;
     Message.NCLocal := Local;
-    Result := NQueue.QueueOA( Message, TRUE, netsocket.FORSAFETY );
+    Result := NQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
   END OnNetworkDisconnect;
 
@@ -973,7 +973,7 @@ CLASS IMPLEMENTATION CDispatcher;
       Storage.Move( a, Message.NRData, l );
 
       // queue request
-      Result := NQueue.QueueOA( Message, FALSE, 0 ); // to not to block receiving thread to long
+      Result := NQueue.EnqueueOA( Message, FALSE, 0 ); // to not to block receiving thread to long
       IF Result = Sync.arCompleted THEN
          IRead^.ReadOut( l ); // read out and signal next reading
       
@@ -984,7 +984,7 @@ CLASS IMPLEMENTATION CDispatcher;
          // inform second queue, after its flush reading will continue
          Message.Command := cmNetworkReceiveContinue;
          Message.NRSocket := Socket;
-         Result := CQueue.QueueOA( Message, TRUE, netsocket.FORSAFETY );
+         Result := CQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
          IF Result <> Sync.arCompleted THEN
             Log( dldTrace, Connection, "Receive.Queue Timeout On SendQueue" );
          END;
@@ -1036,7 +1036,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.JPClient := PClient;
     Message.JPClient^.AddRef(); // temporary
     Message.JRemoteAddress := RemoteAddress;
-    Result := CQueue.QueueOA( Message, TRUE, netsocket.FORSAFETY );
+    Result := CQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
     // make Join synchronous (to allow clients synchronously store their records)
     Result := CQueue.PushToConsumer( TRUE, netsocket.FORSAFETY );
@@ -1054,7 +1054,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.CPClient := PClient;
     Message.CPClient^.AddRef(); // temporary
     Message.CPConnection := Connection;
-    Result := CQueue.QueueOA( Message, TRUE, netsocket.FORSAFETY );
+    Result := CQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
     // make Leave synchronous (to allow clients synchronously remove their records)
     Result := CQueue.PushToConsumer( TRUE, netsocket.FORSAFETY );
@@ -1071,7 +1071,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.Command := cmClientConnect;
     Message.CPClient := PClient;
     Message.CPConnection := Connection;
-    Result := CQueue.QueueOA( Message, TRUE, netsocket.FORSAFETY );
+    Result := CQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
   END Connect;
 
@@ -1085,7 +1085,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.Command := cmClientDisconnect;
     Message.CPClient := PClient;
     Message.CPConnection := Connection;
-    Result := CQueue.QueueOA( Message, TRUE, netsocket.FORSAFETY );
+    Result := CQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
   END Disconnect;
 
@@ -1103,7 +1103,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.SLen := DataLen;
     ALLOCATE( Message.SData, DataLen );
     Storage.Move( PData, Message.SData, DataLen );
-    Result := CQueue.QueueOA( Message, TRUE, netsocket.FORSAFETY );
+    Result := CQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
   END Send;
 

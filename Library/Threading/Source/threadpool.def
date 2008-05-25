@@ -24,19 +24,19 @@ TYPE
    TPIWorkerSink  = POINTER TO IWorkerSink;
    
 INTERFACE ITimeoutSink; 
-  PUBLIC PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+  LOCAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
 END ITimeoutSink;
 
 INTERFACE IMessageSink;
-  PUBLIC PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
+  LOCAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
 END IMessageSink;
 
 INTERFACE IHandleSink;
-  PUBLIC PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+  LOCAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
 END IHandleSink;
 
 INTERFACE IWorkerSink;
-  PUBLIC PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+  LOCAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
 END IWorkerSink;
 
 //--------------------------------------------------------------------------------
@@ -45,10 +45,10 @@ TYPE
   TPPoolDelegate = POINTER TO APoolDelegate;
 
 ABSTRACT CLASS APoolDelegate( Delegate.ADelegate ) IMPLEMENTS ITimeoutSink, IMessageSink, IHandleSink, IWorkerSink;
-  PUBLIC VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
-  PUBLIC VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
-  PUBLIC VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
-  PUBLIC VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+  LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+  LOCAL VIRTUAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
+  LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+  LOCAL VIRTUAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
 END APoolDelegate;
 
 //--------------------------------------------------------------------------------
@@ -62,10 +62,10 @@ CLASS CSinkDelegate( APoolDelegate );
     MessageSink : TPIMessageSink;
     HandleSink : TPIHandleSink;
     WorkerSink : TPIWorkerSink;
-  PUBLIC FINAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
-  PUBLIC FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
-  PUBLIC FINAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
-  PUBLIC FINAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+  LOCAL FINAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+  LOCAL FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
+  LOCAL FINAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
+  LOCAL FINAL PROCEDURE OnWorker( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR );
 END CSinkDelegate;
 
 //--------------------------------------------------------------------------------
@@ -77,7 +77,7 @@ CLASS CMessageHandlerDelegate( APoolDelegate );
   PUBLIC VAR
     Handler : msghandler.TPMessageHandler;
     Delivery : msghandler.TDelivery := msghandler.delSynchronous;
-  PUBLIC FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
+  LOCAL FINAL PROCEDURE OnMessage( Result : Sync.TAsyncResult; PoolHandle : TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
 END CMessageHandlerDelegate;
 
 //--------------------------------------------------------------------------------

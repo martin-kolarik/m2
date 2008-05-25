@@ -121,7 +121,7 @@ CLASS SSocket( threadpool.APoolDelegate );
   PUBLIC PROCEDURE SendOA( CONST Data : ARRAY OF BYTE ) : Sync.TAsyncResult; // uses multicast address
   PUBLIC PROCEDURE SendToOA( CONST Data : ARRAY OF BYTE; CONST Address : inetaddr.INETADDR ) : Sync.TAsyncResult; // uses given address
 
-  PUBLIC VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
+  LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
   INTERNAL VIRTUAL PROCEDURE OnFD( Context : CARDINAL; Operation : TPendingOperationItem; ErrorCode : CARDINAL );
 
   INTERNAL PROCEDURE Select( Events : BITSET ) : CARDINAL;
@@ -170,8 +170,8 @@ CLASS DSocket( SSocket );
   PUBLIC PROCEDURE SendOA( CONST Data : ARRAY OF BYTE; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
   PUBLIC PROCEDURE AbortSend();
 
-  PUBLIC VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
-  PUBLIC VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
+  LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
+  LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
   INTERNAL VIRTUAL PROCEDURE OnFD( Context : CARDINAL; Operation : TPendingOperationItem; ErrorCode : CARDINAL );
   LOCAL PROCEDURE OnAddressFound( Result : CARDINAL; CONST Address : ARRAY OF inetaddr.INETADDR );
   LOCAL PROCEDURE OnNameFound( Result : CARDINAL; CONST Name : StringsO.CString );

@@ -186,7 +186,7 @@ CLASS IMPLEMENTATION CTest;
       END;
       LOOP
          LOOP
-            Result := DQ.QueueOA( C32, TRUE, 1000 );
+            Result := DQ.EnqueueOA( C32, TRUE, 1000 );
             IF Result = Sync.arCompleted THEN
                EXIT;
             ELSIF Exit = 1 THEN

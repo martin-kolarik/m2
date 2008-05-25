@@ -136,7 +136,7 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
          FOR i := 0 TO MIN2( Msg.ParameterCount, message.ParameterCount )-1 DO
             message[i] := Msg[i];
          END; // FOR
-         AResult := Queue.QueueOA( message, TRUE, Sync.FORSAFETY );
+         AResult := Queue.EnqueueOA( message, TRUE, Sync.FORSAFETY );
          ASSERT( AResult <> Sync.arTimeout );
       END;
       RETURN TRUE;

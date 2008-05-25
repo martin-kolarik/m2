@@ -371,7 +371,7 @@ CLASS IMPLEMENTATION CSocketNotifier;
       Message.Command := cmAccept;
       Message.Socket := Socket;
       Message.Result := Result;
-      LResult := Server^.MQueue.QueueOA( Message, TRUE, Sync.FORSAFETY );
+      LResult := Server^.MQueue.EnqueueOA( Message, TRUE, Sync.FORSAFETY );
       ASSERT( LResult <> Sync.arTimeout );
     END;
   END OnListen;
@@ -385,7 +385,7 @@ CLASS IMPLEMENTATION CSocketNotifier;
       Message.Command := cmDataArrived;
       Message.Socket := Socket;
       Message.Result := Result;
-      LResult := Server^.MQueue.QueueOA( Message, TRUE, Sync.FORSAFETY );
+      LResult := Server^.MQueue.EnqueueOA( Message, TRUE, Sync.FORSAFETY );
       ASSERT( LResult <> Sync.arTimeout );
     END;
   END OnDataArrived;
@@ -542,7 +542,7 @@ CLASS IMPLEMENTATION CIPServer;
       Message.Creator := PStreamCreator;
       Message.Socket := Socket;
       Message.CloseTime := AutomaticCloseTimeMS;
-      Result := MQueue.QueueOA( Message, TRUE, Sync.FORSAFETY );
+      Result := MQueue.EnqueueOA( Message, TRUE, Sync.FORSAFETY );
       IF Result NOT IN Sync.arsStarts THEN
          ASSERT( Result <> Sync.arTimeout );
          Socket^.Release();
@@ -570,7 +570,7 @@ CLASS IMPLEMENTATION CIPServer;
     Message.Command := cmForgetServer;
     Message.Server := LocalAddress;
     Message.Type := Type;
-    Result := MQueue.QueueOA( Message, TRUE, Sync.FORSAFETY );
+    Result := MQueue.EnqueueOA( Message, TRUE, Sync.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
   END StopListenServer;
   
@@ -583,7 +583,7 @@ CLASS IMPLEMENTATION CIPServer;
   BEGIN
     Message.Command := cmForgetSocket;
     Message.Socket := Socket;
-    Result := MQueue.QueueOA( Message, TRUE, Sync.FORSAFETY );
+    Result := MQueue.EnqueueOA( Message, TRUE, Sync.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
   END StopListenSocket;
 
