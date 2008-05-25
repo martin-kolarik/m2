@@ -9,6 +9,8 @@ IMPORT
    INIFile,
    lists,
    log,
+   msghandler,
+   msgqueue,
    StringsO;
 
 (*===============================================================================*)
@@ -84,10 +86,10 @@ END IDaliEventSink;
 
 (*-------------------------------------------------------------------------------*)
 
-CLASS CDali IMPLEMENTS ICommunicatorSink;
+CLASS CDali( msghandler.MessageHandler ) IMPLEMENTS ICommunicatorSink;
    PRIVATE VAR
       Communicator : TPCommunicator;
-      Queue : lists.CPtrList;
+      Queue : msgqueue.CPtrQueue;
       QueueLength : CARDINAL;
    PUBLIC VAR
       EventSink : POINTER TO IDaliEventSink;
@@ -107,6 +109,9 @@ CLASS CDali IMPLEMENTS ICommunicatorSink;
    
    PUBLIC PROCEDURE Command( CONST daliAddress : DaliAddress; Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
    // completes immediatelly or results to IEventSink callback
+   
+   // MessageHandler -- in thread
+   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
    
    // ICommunicationSink -- in thread
    LOCAL VIRTUAL PROCEDURE OnSendable();

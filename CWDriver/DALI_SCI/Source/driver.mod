@@ -236,9 +236,9 @@ CLASS IMPLEMENTATION CDriver;
          FOR i := 0 TO HIGH( PollInitArray ) DO
             PollCountArray[i] := PollInitArray[i];
          END;
-         netpool.Pool()^.WaitTimeout( PollSink, 0, PollPeriod, FALSE, TRUE, OUT PollTimer );
+         threadpool.pool()^.WaitTimeout( PollSink, 0, PollPeriod, FALSE, TRUE, OUT PollTimer );
       ELSIF ( PollTimer <> NIL ) AND ( PollPeriod = Sync.FOREVER ) THEN
-         netpool.Pool()^.Abort( REF PollTimer );
+         threadpool.pool()^.Abort( REF PollTimer );
       END;
    END Run;
 
@@ -254,7 +254,7 @@ CLASS IMPLEMENTATION CDriver;
       Dali.Logger.LogS( log.dldError, logPrefix, L"STOP" );
 
       IF PollTimer <> NIL THEN
-         netpool.Pool()^.Abort( REF PollTimer );
+         threadpool.pool()^.Abort( REF PollTimer );
       END;
 
       Dali.Stop();
@@ -383,6 +383,7 @@ CLASS IMPLEMENTATION CDriver;
       dimFlag : BOOLEAN;
       ExceptionItem : TPExceptionItem;
       ExceptionType : TExceptionItemType;
+      haveEvent : BOOLEAN;
       i : CARDINAL;
       Level : CARDINAL;
       N : ARRAY [0..15] OF WCHAR;
@@ -455,7 +456,9 @@ CLASS IMPLEMENTATION CDriver;
       IF EQUALS( S1, L'event' ) THEN
 
          IF EQUALS( S2, L'count' ) THEN
+            Lock.Lock();
             c := Queue.Count;
+            Lock.Unlock();
             drv_def.AssignValueCardinal( REF OutValue, UFlag, TRUE, c );
 
             Dali.Logger.LogSC( dldDebug, logPrefix, L"Event.Count ", c );
@@ -465,12 +468,26 @@ CLASS IMPLEMENTATION CDriver;
                Dali.Logger.LogS( dldDebug, logPrefix, L"Event.Get clear buffer" );
                Dali.Logger.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
 
+               Lock.Lock();
                Queue.Dispose();
                EXCL( RStatus, schiEventsPending );
+               Lock.Unlock();
+               
                GOTO Success;
             END;
          
+            Lock.Lock();
             IF Queue.Dequeue( OUT ExceptionItem, OUT data ) THEN
+               haveEvent := TRUE;
+            ELSE
+               haveEvent := FALSE;
+               Dali.Logger.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
+
+               EXCL( RStatus, schiEventsPending );
+            END;
+            Lock.Unlock();
+
+            IF haveEvent THEN
                ExceptionItem^.Address.ToString( OUT N );
                ExceptionType := TExceptionItemType( LOPTRLONGWORD( data ));
 
@@ -562,9 +579,6 @@ CLASS IMPLEMENTATION CDriver;
 
                DISPOSE( ExceptionItem );
             ELSE
-               Dali.Logger.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
-
-               EXCL( RStatus, schiEventsPending );
                CS.Clear();
             END;
 
@@ -721,7 +735,7 @@ CLASS IMPLEMENTATION CDriver;
 
 //================================================================================
 
-   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    VAR
       address : DaliSci.DaliAddress;
       i : CARDINAL;
@@ -777,6 +791,8 @@ CLASS IMPLEMENTATION CDriver;
       exceptionItem^.Command := Command;
       exceptionItem^.Address := daliAddress;
       exceptionItem^.Value := Data;
+      
+      Lock.Lock();
       Queue.Enqueue( exceptionItem, ClientId );
 
       IF schiEventsPending NOT IN RStatus THEN
@@ -784,6 +800,7 @@ CLASS IMPLEMENTATION CDriver;
 
          INCL( RStatus, schiEventsPending );
       END;
+      Lock.Unlock();
       
       IF CallbackProc <> NIL THEN
          CallbackProc( CallbackId, drv_def.dcfException, NIL );
@@ -812,12 +829,14 @@ BEGIN
    NEW( PollSink );
    PollSink^.TimeoutSink := ADR( SELF );
 
+   Dali.Init( TRUE );
    Dali.EventSink := ADR( SELF );
 FINALLY
    IF PollSink <> NIL THEN
       PollSink^.Release();
       PollSink := NIL;
    END;
+   Dali.Dispose();
 END CDriver;
 
 //================================================================================

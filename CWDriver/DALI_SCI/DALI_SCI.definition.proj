@@ -2,6 +2,8 @@
     xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
 
     <PropertyGroup>
+        <Manufacturer>Inris</Manufacturer>
+
         <PlatformName Condition="$(PlatformName)==''">Win32</PlatformName>
         <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName>
         <LanguageStyle>UNICODE</LanguageStyle>

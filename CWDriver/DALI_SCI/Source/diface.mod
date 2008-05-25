@@ -6,7 +6,7 @@ FROM Storage IMPORT
 IMPORT
    driver,
    log,
-   netinit,
+   scinit,
    Strings,
    StringsO,
    Texts;
@@ -55,7 +55,7 @@ END CheckW;
 PROCEDURE MakeDriverW() : ADDRESS;
 BEGIN
    IF RefCount = 0 THEN
-     netinit.Startup();
+     scinit.Startup();
    END;
    INC( RefCount );
 
@@ -70,7 +70,7 @@ BEGIN
 
    DEC( RefCount );
    IF RefCount = 0 THEN
-     netinit.Cleanup();
+     scinit.Cleanup();
    END;
 END DisposeDriverW;
 

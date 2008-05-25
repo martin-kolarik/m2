@@ -20,7 +20,9 @@ end_data;
 instrument
 
   meter meter_1;
+  (*
     timer = 2;
+   *)
     owner = background;
     position = 500, 250, 395, 75;
     expression = dali.10;

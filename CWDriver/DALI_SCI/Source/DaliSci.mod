@@ -1,8 +1,5 @@
 IMPLEMENTATION MODULE DaliSci;
 
-IMPORT
-   winsock;
-
 FROM log IMPORT
    dldError, dldInfo, dldTrace, dldDebug;
   
@@ -11,6 +8,7 @@ FROM driver IMPORT
 
 IMPORT
    dns,
+   inetaddr,
    Log,
    netsocket,
    netsrv,
@@ -32,12 +30,12 @@ CLASS CUDPCommunicator( netsrv.AListener ) IMPLEMENTS threadpool.ITimeoutSink;
       timerTimeout = 1;
       timerDelay = 2;
    PRIVATE VAR
-      Address : netsocket.INETADDR;
+      Address : inetaddr.INETADDR;
       ListenPort : CARDINAL;
       Socket : netsocket.TPSSocket := NIL;
       TimerSink : threadpool.TPSinkDelegate;
-      Timeout : Sync.WAITABLE;
-      Delay : Sync.WAITABLE;
+      Timeout : threadpool.TPoolHandle;
+      Delay : threadpool.TPoolHandle;
       LastSend : CARDINAL;
    LOCAL VAR
       EventSink : TPICommunicatorSink;
@@ -45,9 +43,9 @@ CLASS CUDPCommunicator( netsrv.AListener ) IMPLEMENTS threadpool.ITimeoutSink;
       Logger : Log.TPLogger;
       
    TYPE
-      TDaliSciPacket = ARRAY [0..7] OF BYTE; // 4 bytes SCI, 3 bytes DALI, 1 SCI XOR byte
+      TDaliSciPacket = ARRAY [0..2] OF BYTE; // 3 bytes DALI
 
-   PUBLIC PROCEDURE SetSciDeviceAddress( DeviceAddress : ARRAY OF WCHAR; LocalListenPort : CARDINAL );
+   PUBLIC PROCEDURE SetSciDeviceAddress( CONST DeviceAddress : inetaddr.INETADDR; LocalListenPort : CARDINAL );
    PUBLIC PROCEDURE Run() : Sync.TAsyncResult;
    PUBLIC PROCEDURE Stop();
 
@@ -57,7 +55,7 @@ CLASS CUDPCommunicator( netsrv.AListener ) IMPLEMENTS threadpool.ITimeoutSink;
    LOCAL VIRTUAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket ); // stDatagram
    
    // ITimeoutSink
-   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
 END CUDPCommunicator;
 
 TYPE
@@ -69,9 +67,9 @@ CLASS IMPLEMENTATION CUDPCommunicator;
 
 (*-------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE SetSciDeviceAddress( DeviceAddress : ARRAY OF WCHAR; LocalListenPort : CARDINAL );
+   PUBLIC PROCEDURE SetSciDeviceAddress( CONST DeviceAddress : inetaddr.INETADDR; LocalListenPort : CARDINAL );
    BEGIN
-      Address.SetAddressOA( DeviceAddress );
+      Address := DeviceAddress;
       ListenPort := LocalListenPort;
    END SetSciDeviceAddress;
 
@@ -80,6 +78,7 @@ CLASS IMPLEMENTATION CUDPCommunicator;
    PUBLIC PROCEDURE Run() : Sync.TAsyncResult;
    VAR
       Result : CARDINAL;
+      IA : inetaddr.INETADDR;
    BEGIN
       IF Socket <> NIL THEN
          RETURN Sync.arAlreadyPending;
@@ -87,7 +86,8 @@ CLASS IMPLEMENTATION CUDPCommunicator;
 
       Logger^.LogSC( Log.dldTrace, logPrefix, L"Listening on port: ", ListenPort );
 
-      Result := netsrv.StartListen( netsocket.stDatagram, ListenPort, NIL, ADR( SELF ), 0, ADR( Socket ));
+      IA.Port := ListenPort;
+      Result := netsrv.StartListen( netsocket.stDatagram, IA, NIL, ADR( SELF ), 0, ADR( Socket ));
       IF Result = 0 THEN
          RETURN Sync.arCompleted;
       ELSE
@@ -112,8 +112,7 @@ CLASS IMPLEMENTATION CUDPCommunicator;
    VAR
       i : CARDINAL;
       delay : INTEGER;
-      SendData : TDaliSciPacket := TDaliSciPacket( 0A3H, 0, 0, 0, 0, 0, 0, 0 );
-      xor : BYTE;
+      SendData : TDaliSciPacket := TDaliSciPacket( 08H, 0, 0 );
    BEGIN
       IF Socket = NIL THEN
          RETURN Sync.arCannotStart;
@@ -127,16 +126,10 @@ CLASS IMPLEMENTATION CUDPCommunicator;
       END;
       LastSend := time.UptimeMS();
 
-      // copy data and compute xor
-      xor := SendData[0];
-      FOR i := 1 TO 3 DO
-         xor := xor XOR SendData[i];
-      END;
+      // copy data to packet
       FOR i := 0 TO HIGH( Data ) DO
-         SendData[4+i] := Data[i];
-         xor := xor XOR Data[i];
+         SendData[1+i] := Data[i];
       END;
-      SendData[4+HIGH( Data )+1] := xor;
       
       IF Timeout <> NIL THEN
          threadpool.pool()^.Abort( REF Timeout );
@@ -145,66 +138,49 @@ CLASS IMPLEMENTATION CUDPCommunicator;
          threadpool.pool()^.WaitTimeout( TimerSink, timerTimeout, 200, TRUE, TRUE, OUT Timeout );
       END;
       
-      RETURN Socket^.SendTo6OA( OA( 4 + HIGH( Data ) + 1, ADR( SendData )), Address );
+      RETURN Socket^.SendToOA( OA( 1 + HIGH( Data ), ADR( SendData )), Address );
    END SendDaliData;
 
 (*-------------------------------------------------------------------------------*)
 
    LOCAL VIRTUAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket );
-   LABEL
-      Error;
    VAR
       buffer : TDaliSciPacket;
       dali : TDaliSciPacket;
       i, l : CARDINAL;
-      xor : BYTE;
    BEGIN
       IF Timeout <> NIL THEN
          threadpool.pool()^.Abort( REF Timeout );
       END;
    
       ServerSocket^.ReceiveOA( OUT buffer, OUT l );
-      IF l < 3 THEN // some damaged data
+      IF l < 2 THEN // some damaged data
          Logger^.LogSC( dldInfo, logPrefix, L"Corrupted data received, length: ", l );
-
-         RETURN;
+         EventSink^.OnDaliData( Sync.arAborted, OA( -1, NIL ));
       ELSIF EventSink = NIL THEN
-         RETURN;
+         // fall down
       ELSE
-         CASE CARD8( buffer[0] ) OF
-         | 051H, 052H : // OK
-            // fall down
-         | 053H : // denial, device is busy
+         CASE CARD8( buffer[0] ) AND 03FH OF
+         | 008H : // OK, response to 6
+         | 03FH : // OK, event data
+         ELSE // busy
             Logger^.LogSC( dldTrace, logPrefix, L"Strange device response (busy?) ", 053H );
 
             EventSink^.OnDaliData( Sync.arAlreadyPending, OA( -1, NIL ));
             RETURN;
-         ELSE
-            GOTO Error;   
          END;
       
-         xor := buffer[0];
-         FOR i := 1 TO l-2 DO
-            xor := xor XOR buffer[i];
+         FOR i := 1 TO l-1 DO
             dali[i-1] := buffer[i];
-         END;
-         IF xor <> buffer[l-1] THEN // xor OK
-            Logger^.LogSC( dldInfo, logPrefix, L"XOR check error: ", CARDINAL( buffer[l-1] ));
-            Logger^.LogSC( dldInfo, logPrefix, L"       expected: ", CARDINAL( xor ));
-            GOTO Error;
-         END;
+         END; // FOR
 
-         EventSink^.OnDaliData( Sync.arCompleted, OA( l-3, ADR( dali )));
-         RETURN;
+         EventSink^.OnDaliData( Sync.arCompleted, OA( l-1, ADR( dali )));
       END;
-      
-   Error:
-      EventSink^.OnDaliData( Sync.arAborted, OA( -1, NIL ));
    END OnDatagramReceived;
 
 (*-------------------------------------------------------------------------------*)
 
-   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    BEGIN
       IF UserId = timerTimeout THEN
          IF PoolHandle <> Timeout THEN // previous queued timeout is ignored
@@ -371,6 +347,7 @@ CLASS DaliRequest;
    LOCAL VAR
       Pending : BOOLEAN;
       Repeated : BOOLEAN;
+      ClientId : PTR;
       Address : DaliAddress;
       Command : TDaliCommand;
       Data : CARD8;
@@ -382,6 +359,7 @@ CLASS IMPLEMENTATION DaliRequest;
 BEGIN
    Pending := FALSE;
    Repeated := FALSE;
+   ClientId := 0;
    Command := cmdOff;
    Data := 0;
 END DaliRequest;
@@ -415,10 +393,9 @@ CLASS IMPLEMENTATION CDali;
 
    PUBLIC PROCEDURE Dispose();
    VAR
-      data : PTR;
       Request : POINTER TO DaliRequest;
    BEGIN
-      WHILE Queue.Dequeue( OUT Request, OUT data ) DO
+      WHILE Queue.Dequeue( OUT Request ) DO
          DISPOSE( Request );
       END; // WHILE
    END Dispose;
@@ -427,18 +404,14 @@ CLASS IMPLEMENTATION CDali;
 
    PUBLIC PROCEDURE LoadConfiguration( CONST ClientName, ParFilePath : ARRAY OF WCHAR; CONST INI : INIFile.CINIFile; REF logger : log.CLogger ) : BOOLEAN;
    CONST
-      delim = StringsO.WCHARS{ L' ', L':' };
-   CONST
       snInterface        = L"interface";
          knListenPort    = L"listen_port";
          knDeviceAddress = L"moxa_device_address";
    VAR
-      Addr : winsock.IN_ADDR;
+      Addr : ARRAY [0..0] OF inetaddr.INETADDR;
       cs : StringsO.CString;
-      i : CARDINAL;
       line : CARDINAL;
       listenPort : CARDINAL;
-      s1, s2 : ARRAY [0..255] OF WCHAR;
    BEGIN
       IF NOT INI.SetSection( snInterface ) THEN
          logger.LogFilePos( log.dlcError, ClientName, ParFilePath, OAsz( R()^[ Texts._MissingInterfaceSection ] ), 0, 0 );
@@ -455,27 +428,12 @@ CLASS IMPLEMENTATION CDali;
       IF NOT INI.GetKeyStr( knDeviceAddress, OUT line, OUT cs ) THEN
          logger.LogFilePos( log.dlcError, ClientName, ParFilePath, OAsz( R()^[ Texts._MissingDeviceAddress ] ), line, 0 );
          RETURN FALSE;
-      END;
-      i := cs.ItemSOA( delim, 0, 0, TRUE, OUT s1 );
-      cs.ItemSOA( delim, i, 0, TRUE, OUT s2 );
-      IF s1[0] = 0W THEN
-         logger.LogFilePos( log.dlcError, ClientName, ParFilePath, OAsz( R()^[ Texts._BadDeviceAddress ] ), line, 0 );
-         RETURN FALSE;
-      ELSIF NOT dns.NameToAddressWait( s1, 2000, OUT Addr ) THEN
+      ELSIF NOT dns.NameToAddressWait( OA( cs.Length-1, cs.rawData ), listenPort, 2000, OUT Addr ) THEN
          logger.LogFilePos( log.dlcError, ClientName, ParFilePath, OAsz( R()^[ Texts._UnableToGetDeviceAddress ] ), line, 0 );
          RETURN FALSE;
       END;
-      Strings.FromIPV4( Addr.s_addr, OUT s1 );
-      IF s2[0] <> 0W THEN
-         IF NOT Strings.ToCARD32W( s2, 10, OUT i ) THEN
-            logger.LogFilePos( log.dlcError, ClientName, ParFilePath, OAsz( R()^[ Texts._BadDeviceAddressPort ] ), line, 0 );
-            RETURN FALSE;
-         END;
-         Strings.AppendW( REF s1, L":" );
-         Strings.AppendW( REF s1, s2 );
-      END;
 
-      Communicator^.SetSciDeviceAddress( s1, listenPort );
+      Communicator^.SetSciDeviceAddress( Addr[0], listenPort );
    
       RETURN TRUE;
    END LoadConfiguration;
@@ -504,15 +462,29 @@ CLASS IMPLEMENTATION CDali;
       Logger.LogSC( dldDebug, logPrefix, L"  for address: ", daliAddress.Address );
 
       NEW( Request );
+      Request^.ClientId := ClientId;
       Request^.Address := daliAddress;
       Request^.Command := _Command;
       Request^.Data := Data;
       Request^.Repeated := _Command IN repeatedCommands;
-      Queue.Enqueue( Request, ClientId );
+      Queue.Enqueue( Request );
       
-      RETURN Communicate();
+      RETURN Sync.arPending; // all processing is moved into thread
    END Command;
    
+(*-------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
+   BEGIN
+      IF Message.Message = msgqueue.MSG_PROCESS_QUEUE THEN
+         Logger.LogS( dldDebug, logPrefix, L"Start Communicate after SWITCH" );
+         Communicate();
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END OnMessage;
+
 (*-------------------------------------------------------------------------------*)
 
    // ICommunicationSink -- in thread
@@ -536,18 +508,17 @@ CLASS IMPLEMENTATION CDali;
    // ICommunicationSink -- in thread
    LOCAL VIRTUAL PROCEDURE OnDaliData( Result : Sync.TAsyncResult; Data : ARRAY OF BYTE );
    VAR
-      ClientId : PTR;
       Response : CARD8 := 0;
       Request : POINTER TO DaliRequest;
    BEGIN
-      IF Queue.GetFirst( OUT Request, OUT ClientId ) THEN
+      IF Queue.Peek( OUT Request ) THEN
          IF Result = Sync.arAlreadyPending THEN
             Request^.Pending := FALSE; // allow new send
          ELSIF Request^.Repeated THEN
             Request^.Repeated := FALSE;   
             Request^.Pending := FALSE; // allow new send for the second time
          ELSE
-            Queue.Dequeue( OUT Request, OUT ClientId );
+            Queue.Dequeue( OUT Request );
             IF EventSink <> NIL THEN
                IF Result = Sync.arCompleted THEN
                   IF ( Request^.Command <> cmdCurrentLevel ) OR ( Data[0] < 0FFH ) THEN
@@ -561,13 +532,13 @@ CLASS IMPLEMENTATION CDali;
                Logger.LogSC( dldDebug, logPrefix, L"      for address: ", Request^.Address.Address );
                Logger.LogSR( dldDebug, logPrefix, L"           result: ", Result );
 
-               EventSink^.OnCompletion( Result, Request^.Command, ClientId, Request^.Address, Response );
+               EventSink^.OnCompletion( Result, Request^.Command, Request^.ClientId, Request^.Address, Response );
             END;
             DISPOSE( Request );
             
             // flush queue
             WHILE Queue.Count > QueueLength DO
-               Queue.Dequeue( OUT Request, OUT ClientId );
+               Queue.Dequeue( OUT Request );
                DISPOSE( Request );
             END; // WHILE
 
@@ -585,11 +556,10 @@ CLASS IMPLEMENTATION CDali;
    PRIVATE PROCEDURE Communicate() : Sync.TAsyncResult;
    VAR
       DaliData : ARRAY [0..1] OF BYTE;
-      Data : PTR;
       Result : Sync.TAsyncResult;
       Request : POINTER TO DaliRequest;
    BEGIN
-      IF NOT Queue.GetFirst( OUT Request, OUT Data ) THEN
+      IF NOT Queue.Peek( OUT Request ) THEN
          RETURN Sync.arCompleted;
       ELSIF Request^.Pending THEN
          RETURN Sync.arAlreadyPending;
@@ -628,6 +598,7 @@ BEGIN
    Communicator^.Logger := ADR( Logger );
    EventSink := NIL;
    QueueLength := MAX( CARDINAL );
+   Queue.Consumer := ADR( SELF );
 FINALLY
    IF Communicator <> NIL THEN
       Communicator^.Release();

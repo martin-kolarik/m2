@@ -7,14 +7,15 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   inetaddr,
    log,
    netinit,
-   netpool,
    netsocket,
    netsrv,
    sync,
    test,
    testimpl,
+   threadpool,
    windows;
   
 (*===========================================================================*)
@@ -49,17 +50,20 @@ CLASS IMPLEMENTATION CTest;
       DSocket : netsocket.DSocket;
       Error : CARDINAL;
       i : CARDINAL;
+      IA : inetaddr.INETADDR;
    BEGIN
       netinit.Startup();
       
       DSocket.Type := netsocket.stDatagram;
-      DSocket.LocalPort := 4001;
-      DSocket.Open( OUT Error );
+      IA.Port := 10001;
+      DSocket.LocalAddress := IA;
+      DSocket.SSocket.Open( OUT Error );
 
+      IA.SetAddressOA( L"10.0.0.100:10001", 0 );
       FOR i := 0 TO 100 DO
-         DSocket.SendTo4OA( swonall, winsock.IN_ADDR( 0, 10, 0, 0, 10 ), 4001 );
+         DSocket.SendToOA( swonall, IA );
          sync.Sleep( 60 );
-         DSocket.SendTo4OA( swoffall, winsock.IN_ADDR( 0, 10, 0, 0, 10 ), 4001 );
+         DSocket.SendToOA( swoffall, IA );
       END;
       
       netinit.Cleanup();

@@ -8,11 +8,11 @@ debug_mode = kernel
 debug_level = all
 
 [interface]
-listen_port = 4001
-moxa_device_address = 10.0.0.10:4001
+listen_port = 10001
+moxa_device_address = 10.0.0.100:10001
 
 [polling]
-period = 50
+;period = 1
 dev04 = 1
 dev05 = 1
 dev10 = 2
