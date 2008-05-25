@@ -29,7 +29,7 @@ CLASS CDelegate( threadpool.APoolDelegate );
       Test : TPTest;
       CheckThread : BOOLEAN;
 
-   PUBLIC VIRTUAL PROCEDURE OnMessage( Result : sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
+   LOCAL VIRTUAL PROCEDURE OnMessage( Result : sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
 END CDelegate;
   
 (*---------------------------------------------------------------------------*)
@@ -57,7 +57,7 @@ CLASS IMPLEMENTATION CDelegate;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnMessage( Result : sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
+   LOCAL VIRTUAL PROCEDURE OnMessage( Result : sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR; CONST MSG : msghandler.IMessage );
    BEGIN
       IF CheckThread AND NOT msgqueuethread.global()^.SelfContext THEN
          Test^.Host^.Log^.LogS( log.dlcError, L"", L"Completion in unexpected thread" );   
