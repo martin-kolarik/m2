@@ -178,7 +178,7 @@
     </PropertyGroup>
 
     <!-- build number -->
-    <Target Name="ProductBuildNumberGet" Condition="$(ProductPath)!=''">
+    <Target Name="ProductBuildNumberGet" Condition="$(ComponentType)=='Product'">
         <SvnVersion LocalPath="$(ProductPath)" Options="-c">
             <Output TaskParameter="Revision" PropertyName="ProductVersionBuild"/>
         </SvnVersion>
