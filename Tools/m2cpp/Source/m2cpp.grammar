@@ -371,6 +371,9 @@ ntClassDefinition<DLLInterface, ClassInterface : BOOLEAN; AM : DOM.TAccessModifi
                                                               IF DLLInterface THEN
                                                                 Class^.Options := Class^.Options + c^.eosIF;
                                                               END;
+                                                              IF ClassInterface THEN
+                                                                INCL( Class^.Options, DOM.eoVMT );
+                                                              END;
                                                               Class^.Packing := c^.CurE^.Packing;
                                                               Class^.AM := AM;
                                                               Class^.IM := IM;
@@ -3366,7 +3369,7 @@ ntCommonExpression<VR : TValueReq; VAR E : DOM.TPExpression; VAR VI : DOM.TValue
                                                               | DOM.tkArray, DOM.tkRecord, DOM.tkSet, DOM.tkReference, DOM.tkProcedure :
                                                                 SemErr( err._BadRelationalOperand );
                                                               END; END;
-                                                                IF E^.N^.r.O = DOM.opIS THEN
+                                                                IF ( E^.N^.r.O = DOM.opISExact ) OR ( E^.N^.r.O = DOM.opISInherits ) THEN
                                                                     INCL( c^.Options, DOM.eoIS );
                                                                     INCL( VR, vrAllowSingleType );
                                                                 END; .)
@@ -3383,12 +3386,12 @@ ntCommonExpression<VR : TValueReq; VAR E : DOM.TPExpression; VAR VI : DOM.TValue
                                                                   IF ( E^.N^.r.L^.r.N = DOM.enOperation ) AND ( E^.N^.r.L^.r.O = DOM.opNotB ) THEN
                                                                     Warning( wrn._PossibleBadNOTUsage );
                                                                   END;
-                                                                ELSIF E^.N^.r.O = DOM.opIS THEN
+                                                                ELSIF ( E^.N^.r.O = DOM.opISExact ) OR ( E^.N^.r.O = DOM.opISInherits ) THEN
                                                                     T := E^.N^.r.L^.T^.Unwrap();
                                                                     RType := E^.N^.r.R^.T^.Unwrap();
                                                                     IF ( T^.SymbolKind <> DOM.skClass ) OR NOT( DOM.eoVMT IN T^.Options ) THEN
                                                                         SemErr( err._ISExpectsClassOnLeft );
-                                                                    ELSIF ( RType^.SymbolKind = DOM.skClass ) OR ( Types.TBString^.Compatible( DOM.cmOperation, RType )) THEN
+                                                                    ELSIF ( RType^.SymbolKind = DOM.skClass ) OR (( E^.N^.r.O = DOM.opISExact ) AND Types.TBString^.Compatible( DOM.cmOperation, RType )) THEN
                                                                         // OK
                                                                     ELSE
                                                                         SemErr( err._ISExpectsClassOrBStringOnRight );
@@ -3694,7 +3697,8 @@ ntRelationalOperator<VAR O : DOM.TEO>
   | greaterThanOrEqual                                     (. O := DOM.opGTE; .)
   | "IN"                                                   (. O := DOM.opIN; .)
   | "NOT" "IN"                                             (. O := DOM.opNotIN; .)
-  | "IS"                                                   (. O := DOM.opIS; .)
+  | "IS"                                                   (. O := DOM.opISExact; .)
+  | "INHERITS"                                             (. O := DOM.opISInherits; .)
 .
   
 ntAdditiveOperator<VAR O : DOM.TEO>

@@ -8273,20 +8273,26 @@ CLASS IMPLEMENTATION CENode;
         G^.OutS( L')' );
         RETURN;
       
-		ELSIF r.O = opIS THEN
+		ELSIF ( r.O = opISExact ) OR ( r.O = opISInherits ) THEN
 			UT := r.R^.T^.Unwrap();
-			IF UT^.SymbolKind = skClass THEN // check with class type
-				G^.OutS( L'typeid( ' );
-					r.L^.Generate( G, C );
-				G^.OutS( L' ) == typeid( ' );
-					r.R^.Generate( G, C );
-				G^.OutS( L' )' );
-			ELSE // check with class name
+			IF UT^.SymbolKind <> skClass THEN // check with class name
 				G^.OutS( L'EQUALSB_( OA_MAX, typeid( ' );
 					r.L^.Generate( G, C );
 				G^.OutS( L' ).name(), OA_MAX, "class "' );
 					r.R^.Generate( G, C + TGenerateControl{gcCharLiteralAsStringForOA} );
 				G^.OutS( L' )' );
+			ELSIF r.O = opISExact THEN // check with class type
+				G^.OutS( L'typeid( ' );
+					r.L^.Generate( G, C );
+				G^.OutS( L' ) == typeid( ' );
+					r.R^.Generate( G, C );
+				G^.OutS( L' )' );
+			ELSE // opISInherits
+				G^.OutS( L'dynamic_cast<' );
+					r.R^.Generate( G, C );
+				G^.OutS( L'*>(&' );
+					r.L^.Generate( G, C );
+				G^.OutS( L') != NULL' );
 			END;
 			RETURN;
 
