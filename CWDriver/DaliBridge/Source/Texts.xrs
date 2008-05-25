@@ -3,14 +3,10 @@
     <strings version="1.0">
 
         <string name="_DriverName">
-            <item lang="en-US">DALI_SCI/Moxa UDP Dali Interface Driver</item>
-            <item lang="cs-CZ">Ovladač pro DALI_SCI/Moxa UDP rozhraní</item>
+            <item lang="en-US">Inris DALI bridge driver</item>
+            <item lang="cs-CZ">Ovladač pro Inris DALI bridge</item>
         </string>
 
-        <string name="_LicenceNotFound">
-            <item lang="en-US">Licence information not found</item>
-            <item lang="cs-CZ">Nenalezena informace o licenci</item>
-        </string>
         <string name="_InitError">
             <item lang="en-US">Initialization failed</item>
             <item lang="cs-CZ">Chyba inicializace ovladače</item>
@@ -48,16 +44,12 @@
             <item lang="cs-CZ">Parametr "listen_port" chybí, nebo je špatně zapsán</item>
         </string>
         <string name="_MissingDeviceAddress">
-            <item lang="en-US">"moxa_device_address" parameter is missing</item>
-            <item lang="cs-CZ">Chybí parametr "moxa_device_address"</item>
+            <item lang="en-US">"device_address" parameter is missing</item>
+            <item lang="cs-CZ">Chybí parametr "device_address"</item>
         </string>
         <string name="_BadDeviceAddress">
-            <item lang="en-US">"moxa_device_address" parameter is bad</item>
-            <item lang="cs-CZ">Parametr "moxa_device_address" není správně zapsán</item>
-        </string>
-        <string name="_BadDeviceAddressPort">
-            <item lang="en-US">Port of "moxa_device_address" is bad</item>
-            <item lang="cs-CZ">Port parametru "moxa_device_address" není správně zapsán</item>
+            <item lang="en-US">"device_address" parameter is bad</item>
+            <item lang="cs-CZ">Parametr "device_address" není správně zapsán</item>
         </string>
         <string name="_UnableToGetDeviceAddress">
             <item lang="en-US">Device address cannot be obtained</item>

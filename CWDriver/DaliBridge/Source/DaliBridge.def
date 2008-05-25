@@ -64,6 +64,9 @@ CONST
    repeatedCommands = TDaliCommands{
       cmdDTRToMax, cmdDTRToMin, cmdDTRToFail, cmdDTRToPowerOn, cmdDTRToFadeTime, cmdDTRToFadeRate
    };
+   respondedCommands = TDaliCommands{
+      cmdStatus, cmdWorking, cmdVersion, cmdDeviceType, cmdCurrentLevel
+   };
 
 (*-------------------------------------------------------------------------------*)
 
@@ -81,7 +84,7 @@ END DaliAddress;
 (*-------------------------------------------------------------------------------*)
 
 INTERFACE IDaliEventSink; // in-thread
-   LOCAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; Command : TDaliCommand; ClientId : PTR; CONST daliAddress : DaliAddress; Data : CARD8 );
+   LOCAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; Command : TDaliCommand; ClientId : PTR; Linie : CARDINAL; CONST daliAddress : DaliAddress; Data : CARD8 );
 END IDaliEventSink;
 
 (*-------------------------------------------------------------------------------*)
@@ -107,7 +110,7 @@ CLASS CDali( msghandler.MessageHandler ) IMPLEMENTS ICommunicatorSink;
    PUBLIC PROCEDURE Run() : Sync.TAsyncResult;
    PUBLIC PROCEDURE Stop();
    
-   PUBLIC PROCEDURE Command( CONST daliAddress : DaliAddress; Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE Command( Linie : CARDINAL; CONST daliAddress : DaliAddress; Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
    // completes immediatelly or results to IEventSink callback
    
    // MessageHandler -- in thread

@@ -85,7 +85,7 @@ CLASS CDriver IMPLEMENTS threadpool.ITimeoutSink, DaliBridge.IDaliEventSink;
    // ITimeoutSink
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    // IEventSink
-   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; Command : DaliBridge.TDaliCommand; ClientId : PTR; CONST daliAddress : DaliBridge.DaliAddress; Data : CARD8 );
+   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; Command : DaliBridge.TDaliCommand; ClientId : PTR; Linie : CARDINAL; CONST daliAddress : DaliBridge.DaliAddress; Data : CARD8 );
 END CDriver;
 
 //================================================================================

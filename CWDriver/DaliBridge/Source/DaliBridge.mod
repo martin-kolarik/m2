@@ -49,7 +49,7 @@ CLASS CUDPCommunicator( netsrv.AListener ) IMPLEMENTS threadpool.ITimeoutSink;
    PUBLIC PROCEDURE Run() : Sync.TAsyncResult;
    PUBLIC PROCEDURE Stop();
 
-   PUBLIC PROCEDURE SendDaliData( Data : ARRAY OF BYTE ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE SendDaliData( Linie : CARDINAL; Data : ARRAY OF BYTE; ExpectResponse, Repeat : BOOLEAN ) : Sync.TAsyncResult;
 
    // AListener
    LOCAL VIRTUAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket ); // stDatagram
@@ -108,11 +108,11 @@ CLASS IMPLEMENTATION CUDPCommunicator;
 
 (*-------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE SendDaliData( Data : ARRAY OF BYTE ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE SendDaliData( Linie : CARDINAL; Data : ARRAY OF BYTE; ExpectResponse, Repeat : BOOLEAN ) : Sync.TAsyncResult;
    VAR
       i : CARDINAL;
       delay : INTEGER;
-      SendData : TDaliPacket := TDaliPacket( 08H, 0, 0 );
+      SendData : TDaliPacket := TDaliPacket( 0, 0, 0 );
    BEGIN
       IF Socket = NIL THEN
          RETURN Sync.arCannotStart;
@@ -127,6 +127,14 @@ CLASS IMPLEMENTATION CUDPCommunicator;
       LastSend := time.UptimeMS();
 
       // copy data to packet
+      IF ExpectResponse THEN
+         SendData[0] := 08H; // send, wait 100 ms and receive response
+      ELSIF Repeat THEN
+         SendData[0] := 07H; // send and repeat only
+      ELSE
+         SendData[0] := 06H; // send only
+      END;
+      SendData[0] := SendData[0] OR ( CARD8( Linie ) << 5 ); // address is in three highest bits
       FOR i := 0 TO HIGH( Data ) DO
          SendData[1+i] := Data[i];
       END;
@@ -134,6 +142,8 @@ CLASS IMPLEMENTATION CUDPCommunicator;
       IF Timeout <> NIL THEN
          threadpool.pool()^.Abort( REF Timeout );
       END;
+      
+      // we have no ACK, we cannot do timeouts, but the code rely on them
       IF Timeout = NIL THEN
          threadpool.pool()^.WaitTimeout( TimerSink, timerTimeout, 200, TRUE, TRUE, OUT Timeout );
       END;
@@ -164,7 +174,7 @@ CLASS IMPLEMENTATION CUDPCommunicator;
          | 008H : // OK, response to 6
          | 03FH : // OK, event data
          ELSE // busy
-            Logger^.LogSC( dldTrace, logPrefix, L"Strange device response (busy?) ", 053H );
+            Logger^.LogSC( dldTrace, logPrefix, L"Strange device response (busy?) ", CARDINAL( buffer[0] ));
 
             EventSink^.OnDaliData( Sync.arAlreadyPending, OA( -1, NIL ));
             RETURN;
@@ -346,7 +356,7 @@ END DaliAddress;
 CLASS DaliRequest;
    LOCAL VAR
       Pending : BOOLEAN;
-      Repeated : BOOLEAN;
+      Linie : CARDINAL;
       ClientId : PTR;
       Address : DaliAddress;
       Command : TDaliCommand;
@@ -358,7 +368,7 @@ END DaliRequest;
 CLASS IMPLEMENTATION DaliRequest;
 BEGIN
    Pending := FALSE;
-   Repeated := FALSE;
+   Linie := 0;
    ClientId := 0;
    Command := cmdOff;
    Data := 0;
@@ -406,7 +416,7 @@ CLASS IMPLEMENTATION CDali;
    CONST
       snInterface        = L"interface";
          knListenPort    = L"listen_port";
-         knDeviceAddress = L"moxa_device_address";
+         knDeviceAddress = L"device_address";
    VAR
       Addr : ARRAY [0..0] OF inetaddr.INETADDR;
       cs : StringsO.CString;
@@ -454,19 +464,20 @@ CLASS IMPLEMENTATION CDali;
 
 (*-------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Command( CONST daliAddress : DaliAddress; _Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE Command( Linie : CARDINAL; CONST daliAddress : DaliAddress; _Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
    VAR
       Request : POINTER TO DaliRequest;
    BEGIN
       Logger.LogSC( dldDebug, logPrefix, L"Start command: ", CARDINAL( _Command ));
+      Logger.LogSC( dldDebug, logPrefix, L"    for linie: ", Linie );
       Logger.LogSC( dldDebug, logPrefix, L"  for address: ", daliAddress.Address );
 
       NEW( Request );
+      Request^.Linie := Linie;
       Request^.ClientId := ClientId;
       Request^.Address := daliAddress;
       Request^.Command := _Command;
       Request^.Data := Data;
-      Request^.Repeated := _Command IN repeatedCommands;
       Queue.Enqueue( Request );
       
       RETURN Sync.arPending; // all processing is moved into thread
@@ -514,9 +525,6 @@ CLASS IMPLEMENTATION CDali;
       IF Queue.Peek( OUT Request ) THEN
          IF Result = Sync.arAlreadyPending THEN
             Request^.Pending := FALSE; // allow new send
-         ELSIF Request^.Repeated THEN
-            Request^.Repeated := FALSE;   
-            Request^.Pending := FALSE; // allow new send for the second time
          ELSE
             Queue.Dequeue( OUT Request );
             IF EventSink <> NIL THEN
@@ -529,10 +537,11 @@ CLASS IMPLEMENTATION CDali;
                END;            
 
                Logger.LogSC( dldDebug, logPrefix, L"Completed command: ", CARDINAL( Request^.Command ));
+               Logger.LogSC( dldDebug, logPrefix, L"        for linie: ", Request^.Linie );
                Logger.LogSC( dldDebug, logPrefix, L"      for address: ", Request^.Address.Address );
                Logger.LogSR( dldDebug, logPrefix, L"           result: ", Result );
 
-               EventSink^.OnCompletion( Result, Request^.Command, Request^.ClientId, Request^.Address, Response );
+               EventSink^.OnCompletion( Result, Request^.Command, Request^.ClientId, Request^.Linie, Request^.Address, Response );
             END;
             DISPOSE( Request );
             
@@ -579,7 +588,7 @@ CLASS IMPLEMENTATION CDali;
          DaliData[1] := BYTE( Request^.Command );
       END;
       
-      Result := Communicator^.SendDaliData( DaliData );
+      Result := Communicator^.SendDaliData( Request^.Linie, DaliData, Request^.Command IN respondedCommands, Request^.Command IN repeatedCommands );
       IF Result = Sync.arAlreadyPending THEN // data were not sent, communicator is busy
          Request^.Pending := FALSE; // prepare next send after a tick
          RETURN Sync.arPending;

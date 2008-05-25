@@ -11,7 +11,7 @@ settings
 end_settings;
 
 driver
-  dali : 'dali_sci.dll', '', 'dalisci.par';
+  dali : 'dalibridge.dll', '', 'dalisci.par';
 end_driver;
 
 data
