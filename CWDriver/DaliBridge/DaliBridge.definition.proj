@@ -14,7 +14,7 @@
         <LeakChecking>off</LeakChecking>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='DALI_SCI'">
+    <PropertyGroup Condition="$(MSBuildProjectName)=='DaliBridge'">
         <Result>Dynamic</Result>
     </PropertyGroup>
     <PropertyGroup Condition="$(MSBuildProjectName)=='sccore'">

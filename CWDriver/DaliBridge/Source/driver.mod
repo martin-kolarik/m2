@@ -26,7 +26,7 @@ IMPORT
 //================================================================================
 
 CONST
-   logPrefix = L"DaliSci";
+   logPrefix = L"Dali";
 
 //================================================================================
 
@@ -37,8 +37,8 @@ TYPE
 CLASS ExceptionItem;
    LOCAL VAR
       Result : Sync.TAsyncResult := Sync.arCompleted;
-      Command : DaliSci.TDaliCommand := DaliSci.cmdOff;
-      Address : DaliSci.DaliAddress;
+      Command : DaliBridge.TDaliCommand := DaliBridge.cmdOff;
+      Address : DaliBridge.DaliAddress;
       Value : CARD8 := 0;
 END ExceptionItem;
 
@@ -375,9 +375,9 @@ CLASS IMPLEMENTATION CDriver;
    LABEL
       Error, Success;
    VAR
-      address : DaliSci.DaliAddress;
+      address : DaliBridge.DaliAddress;
       c : CARDINAL;
-      command : DaliSci.TDaliCommand;
+      command : DaliBridge.TDaliCommand;
       CS : StringsO.CString;
       data : PTR;
       dimFlag : BOOLEAN;
@@ -391,7 +391,7 @@ CLASS IMPLEMENTATION CDriver;
       
       //-----
 
-      PROCEDURE Send( type : TExceptionItemType; CONST address : DaliSci.DaliAddress; command : DaliSci.TDaliCommand; value : CARDINAL ) : BOOLEAN;
+      PROCEDURE Send( type : TExceptionItemType; CONST address : DaliBridge.DaliAddress; command : DaliBridge.TDaliCommand; value : CARDINAL ) : BOOLEAN;
       VAR
          AsyncResult : Sync.TAsyncResult;
       BEGIN
@@ -414,7 +414,7 @@ CLASS IMPLEMENTATION CDriver;
       
       //-----
 
-      PROCEDURE ProgramItem( command : DaliSci.TDaliCommand; LimitTo15Steps : BOOLEAN; REF S3 : ARRAY OF WCHAR ) : BOOLEAN;
+      PROCEDURE ProgramItem( command : DaliBridge.TDaliCommand; LimitTo15Steps : BOOLEAN; REF S3 : ARRAY OF WCHAR ) : BOOLEAN;
       VAR
          c : CARDINAL;
       BEGIN
@@ -434,7 +434,7 @@ CLASS IMPLEMENTATION CDriver;
             CS.FromOA( L'error: light level too big' );
             RETURN FALSE;
          ELSE
-            IF NOT Send( eitParam, address, DaliSci.cmdLoadDTR, c ) THEN
+            IF NOT Send( eitParam, address, DaliBridge.cmdLoadDTR, c ) THEN
                RETURN FALSE;
             END;
             IF NOT Send( eitParam, address, command, 0 ) THEN
@@ -505,15 +505,15 @@ CLASS IMPLEMENTATION CDriver;
                CASE ExceptionType OF
                | eitRead, eitPollStatus :
                   CASE ExceptionItem^.Command OF
-                  | DaliSci.cmdStatus :
+                  | DaliBridge.cmdStatus :
                      CS.FromOA( L"status " );  
-                  | DaliSci.cmdWorking :
+                  | DaliBridge.cmdWorking :
                      CS.FromOA( L"present " );
-                  | DaliSci.cmdDeviceType :
+                  | DaliBridge.cmdDeviceType :
                      CS.FromOA( L"type " );
-                  | DaliSci.cmdVersion :
+                  | DaliBridge.cmdVersion :
                      CS.FromOA( L"version " );
-                  | DaliSci.cmdCurrentLevel :
+                  | DaliBridge.cmdCurrentLevel :
                      CS.FromOA( L"level " );
                   ELSE
                      CS.FromOA( L"value " );
@@ -523,7 +523,7 @@ CLASS IMPLEMENTATION CDriver;
             
                   IF ExceptionItem^.Result = Sync.arCompleted THEN
 
-                     IF ExceptionItem^.Command = DaliSci.cmdStatus THEN
+                     IF ExceptionItem^.Command = DaliBridge.cmdStatus THEN
                         IF 040H AND ExceptionItem^.Value <> 0 THEN
                            CS.AppendOA( L"noaddress " );
                         END;
@@ -591,19 +591,19 @@ CLASS IMPLEMENTATION CDriver;
             CS.FromOA( L'error: bad device address' );
             GOTO Error;
          END;
-         address.Type := DaliSci.adrSingle;
+         address.Type := DaliBridge.adrSingle;
          address.Address := c;
 
          IF EQUALS( S3, L'status' ) THEN
-            command := DaliSci.cmdStatus;
+            command := DaliBridge.cmdStatus;
          ELSIF EQUALS( S3, L'present' ) THEN
-            command := DaliSci.cmdWorking;
+            command := DaliBridge.cmdWorking;
          ELSIF EQUALS( S3, L'type' ) THEN
-            command := DaliSci.cmdDeviceType;
+            command := DaliBridge.cmdDeviceType;
          ELSIF EQUALS( S3, L'version' ) THEN
-            command := DaliSci.cmdVersion;
+            command := DaliBridge.cmdVersion;
          ELSIF EQUALS( S3, L'level' ) THEN
-            command := DaliSci.cmdCurrentLevel;
+            command := DaliBridge.cmdCurrentLevel;
          ELSE
             CS.FromOA( L'error: bad get command parameter' );
             GOTO Error;
@@ -618,53 +618,53 @@ CLASS IMPLEMENTATION CDriver;
          dimFlag := S1[0] = L"d";
 
          IF EQUALS( S2, L'all' ) THEN
-            address.Type := DaliSci.adrAll;
+            address.Type := DaliBridge.adrAll;
          ELSIF S2[0] = L"g" THEN
             Strings.RemoveW( REF S2, 0, 1 );
             IF NOT Strings.ToCARD32W( S2, 10, OUT c ) OR ( c > 15 ) THEN
                CS.FromOA( L'error: bad group address' );
                GOTO Error;
             END;
-            address.Type := DaliSci.adrGroup;
+            address.Type := DaliBridge.adrGroup;
             address.Address := c;
          ELSE
             IF NOT Strings.ToCARD32W( S2, 10, OUT c ) OR ( c > 63 ) THEN
                CS.FromOA( L'error: bad device address' );
                GOTO Error;
             END;
-            address.Type := DaliSci.adrSingle;
+            address.Type := DaliBridge.adrSingle;
             address.Address := c;
          END;
 
          IF dimFlag THEN
             IF EQUALS( S3, L"up" ) THEN
-               command := DaliSci.cmdDimUp;
+               command := DaliBridge.cmdDimUp;
             ELSIF EQUALS( S3, L"down" ) THEN
-               command := DaliSci.cmdDimDown;
+               command := DaliBridge.cmdDimDown;
             ELSIF EQUALS( S3, L"step_up" ) THEN
-               command := DaliSci.cmdStepUp;
+               command := DaliBridge.cmdStepUp;
             ELSIF EQUALS( S3, L"step_down" ) THEN
-               command := DaliSci.cmdStepDown;
+               command := DaliBridge.cmdStepDown;
             ELSIF EQUALS( S3, L"step_up_on" ) THEN
-               command := DaliSci.cmdStepUpOn;
+               command := DaliBridge.cmdStepUpOn;
             ELSIF EQUALS( S3, L"step_down_off" ) THEN
-               command := DaliSci.cmdStepDownOff;
+               command := DaliBridge.cmdStepDownOff;
             ELSE
                CS.FromOA( L'error: bad dim command parameter' );
                GOTO Error;
             END;
          ELSE         
             IF EQUALS( S3, L"on" ) THEN
-               command := DaliSci.cmdStepUpOn;
+               command := DaliBridge.cmdStepUpOn;
             ELSIF EQUALS( S3, L"off" ) THEN
-               command := DaliSci.cmdOff;
+               command := DaliBridge.cmdOff;
             ELSIF EQUALS( S3, L"min" ) THEN
-               command := DaliSci.cmdMin;
+               command := DaliBridge.cmdMin;
             ELSIF EQUALS( S3, L"max" ) THEN
-               command := DaliSci.cmdMax;
+               command := DaliBridge.cmdMax;
             ELSE
                IF Strings.ToCARD32W( S3, 10, OUT Level ) AND ( Level < 256 ) THEN
-                  command := DaliSci.cmdDirect;
+                  command := DaliBridge.cmdDirect;
                ELSE
                   CS.FromOA( L'error: bad set command parameter' );
                   GOTO Error;
@@ -682,26 +682,26 @@ CLASS IMPLEMENTATION CDriver;
             CS.FromOA( L'error: bad device address' );
             GOTO Error;
          END;
-         address.Type := DaliSci.adrSingle;
+         address.Type := DaliBridge.adrSingle;
          address.Address := c;
 
          // S3 already contains power on level
-         IF NOT ProgramItem( DaliSci.cmdDTRToPowerOn, FALSE, REF S3 ) THEN
+         IF NOT ProgramItem( DaliBridge.cmdDTRToPowerOn, FALSE, REF S3 ) THEN
             GOTO Error;
          END;
-         IF NOT ProgramItem( DaliSci.cmdDTRToFail, FALSE, REF S3 ) THEN
+         IF NOT ProgramItem( DaliBridge.cmdDTRToFail, FALSE, REF S3 ) THEN
             GOTO Error;
          END;
-         IF NOT ProgramItem( DaliSci.cmdDTRToMin, FALSE, REF S3 ) THEN
+         IF NOT ProgramItem( DaliBridge.cmdDTRToMin, FALSE, REF S3 ) THEN
             GOTO Error;
          END;
-         IF NOT ProgramItem( DaliSci.cmdDTRToMax, FALSE, REF S3 ) THEN
+         IF NOT ProgramItem( DaliBridge.cmdDTRToMax, FALSE, REF S3 ) THEN
             GOTO Error;
          END;
-         IF NOT ProgramItem( DaliSci.cmdDTRToFadeRate, TRUE, REF S3 ) THEN
+         IF NOT ProgramItem( DaliBridge.cmdDTRToFadeRate, TRUE, REF S3 ) THEN
             GOTO Error;
          END;
-         IF NOT ProgramItem( DaliSci.cmdDTRToFadeTime, TRUE, REF S3 ) THEN
+         IF NOT ProgramItem( DaliBridge.cmdDTRToFadeTime, TRUE, REF S3 ) THEN
             GOTO Error;
          END;
          CS.Clear(); // return value
@@ -711,10 +711,10 @@ CLASS IMPLEMENTATION CDriver;
             CS.FromOA( L'error: bad device address' );
             GOTO Error;
          END;
-         address.Type := DaliSci.adrSingle;
+         address.Type := DaliBridge.adrSingle;
          address.Address := c;
 
-         IF NOT Send( eitWrite, address, DaliSci.cmdReset, 0 ) THEN
+         IF NOT Send( eitWrite, address, DaliBridge.cmdReset, 0 ) THEN
             GOTO Error;
          END;
          CS.Clear(); // return value
@@ -737,7 +737,7 @@ CLASS IMPLEMENTATION CDriver;
 
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    VAR
-      address : DaliSci.DaliAddress;
+      address : DaliBridge.DaliAddress;
       i : CARDINAL;
    BEGIN
       FOR i := 0 TO HIGH( PollCountArray ) DO
@@ -751,18 +751,18 @@ CLASS IMPLEMENTATION CDriver;
          END;
          
          // now process elapsed item
-         address.Type := DaliSci.adrSingle;
+         address.Type := DaliBridge.adrSingle;
          address.Address := i;
 
          Dali.Logger.LogSC( dldDebug, logPrefix, L"Poll status request for: ", i );
 
-         Dali.Command( address, DaliSci.cmdStatus, 0, PTR( eitPollStatus ));
+         Dali.Command( address, DaliBridge.cmdStatus, 0, PTR( eitPollStatus ));
       END; // FOR
    END OnTimeout;
 
 //================================================================================
 
-   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; Command : DaliSci.TDaliCommand; ClientId : PTR; CONST daliAddress : DaliSci.DaliAddress; Data : CARD8 );
+   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; Command : DaliBridge.TDaliCommand; ClientId : PTR; CONST daliAddress : DaliBridge.DaliAddress; Data : CARD8 );
    VAR
       address : CARDINAL;
       exceptionItem : TPExceptionItem;
@@ -854,7 +854,7 @@ END R;
 INITIALLY __I();
 BEGIN
    // messages
-   r.LoadRES2( EMITW( %dll ), L"Dali_SCI.Texts" );
+   r.LoadRES2( EMITW( %dll ), L"DaliBridge.Texts" );
 END __I;
 
 //================================================================================

@@ -4,7 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-   DaliSci,
+   DaliBridge,
    drv_def,
    lec,
    log,
@@ -33,7 +33,7 @@ CONST
    
 //================================================================================
 
-CLASS CDriver IMPLEMENTS threadpool.ITimeoutSink, DaliSci.IDaliEventSink;
+CLASS CDriver IMPLEMENTS threadpool.ITimeoutSink, DaliBridge.IDaliEventSink;
    PRIVATE VAR
       Lock           : Sync.LOCK;
       RStatus        : TStatusChannel; // accessed from Dali/CW threads
@@ -44,7 +44,7 @@ CLASS CDriver IMPLEMENTS threadpool.ITimeoutSink, DaliSci.IDaliEventSink;
       OutputQueueCountChannel
                      : CARDINAL;
    
-      Dali           : DaliSci.CDali;
+      Dali           : DaliBridge.CDali;
       Result         : lec.CResult;
       cllvData       : ADDRESS;
       cllvLength     : CARDINAL;
@@ -85,7 +85,7 @@ CLASS CDriver IMPLEMENTS threadpool.ITimeoutSink, DaliSci.IDaliEventSink;
    // ITimeoutSink
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    // IEventSink
-   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; Command : DaliSci.TDaliCommand; ClientId : PTR; CONST daliAddress : DaliSci.DaliAddress; Data : CARD8 );
+   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; Command : DaliBridge.TDaliCommand; ClientId : PTR; CONST daliAddress : DaliBridge.DaliAddress; Data : CARD8 );
 END CDriver;
 
 //================================================================================

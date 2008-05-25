@@ -1,4 +1,4 @@
-IMPLEMENTATION MODULE DaliSci;
+IMPLEMENTATION MODULE DaliBridge;
 
 FROM log IMPORT
    dldError, dldInfo, dldTrace, dldDebug;
@@ -21,7 +21,7 @@ IMPORT
 (*===============================================================================*)
 
 CONST
-   logPrefix = L"DaliSci.UDP";
+   logPrefix = L"Dali.UDP";
 
 (*===============================================================================*)
 
@@ -43,9 +43,9 @@ CLASS CUDPCommunicator( netsrv.AListener ) IMPLEMENTS threadpool.ITimeoutSink;
       Logger : Log.TPLogger;
       
    TYPE
-      TDaliSciPacket = ARRAY [0..2] OF BYTE; // 3 bytes DALI
+      TDaliPacket = ARRAY [0..2] OF BYTE; // 3 bytes DALI
 
-   PUBLIC PROCEDURE SetSciDeviceAddress( CONST DeviceAddress : inetaddr.INETADDR; LocalListenPort : CARDINAL );
+   PUBLIC PROCEDURE SetDeviceAddress( CONST DeviceAddress : inetaddr.INETADDR; LocalListenPort : CARDINAL );
    PUBLIC PROCEDURE Run() : Sync.TAsyncResult;
    PUBLIC PROCEDURE Stop();
 
@@ -67,11 +67,11 @@ CLASS IMPLEMENTATION CUDPCommunicator;
 
 (*-------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE SetSciDeviceAddress( CONST DeviceAddress : inetaddr.INETADDR; LocalListenPort : CARDINAL );
+   PUBLIC PROCEDURE SetDeviceAddress( CONST DeviceAddress : inetaddr.INETADDR; LocalListenPort : CARDINAL );
    BEGIN
       Address := DeviceAddress;
       ListenPort := LocalListenPort;
-   END SetSciDeviceAddress;
+   END SetDeviceAddress;
 
 (*-------------------------------------------------------------------------------*)
 
@@ -112,7 +112,7 @@ CLASS IMPLEMENTATION CUDPCommunicator;
    VAR
       i : CARDINAL;
       delay : INTEGER;
-      SendData : TDaliSciPacket := TDaliSciPacket( 08H, 0, 0 );
+      SendData : TDaliPacket := TDaliPacket( 08H, 0, 0 );
    BEGIN
       IF Socket = NIL THEN
          RETURN Sync.arCannotStart;
@@ -145,8 +145,8 @@ CLASS IMPLEMENTATION CUDPCommunicator;
 
    LOCAL VIRTUAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket );
    VAR
-      buffer : TDaliSciPacket;
-      dali : TDaliSciPacket;
+      buffer : TDaliPacket;
+      dali : TDaliPacket;
       i, l : CARDINAL;
    BEGIN
       IF Timeout <> NIL THEN
@@ -433,7 +433,7 @@ CLASS IMPLEMENTATION CDali;
          RETURN FALSE;
       END;
 
-      Communicator^.SetSciDeviceAddress( Addr[0], listenPort );
+      Communicator^.SetDeviceAddress( Addr[0], listenPort );
    
       RETURN TRUE;
    END LoadConfiguration;
@@ -609,4 +609,4 @@ END CDali;
 
 (*===============================================================================*)
 
-END DaliSci.
+END DaliBridge.

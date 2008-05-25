@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8,00"
-	Name="DALI_SCI"
+	Name="DaliBridge"
 	ProjectGUID="{666F1B1A-98F4-4B30-B975-2B80D2C38EBC}"
 	Keyword="MakeFileProj"
 	>
@@ -66,6 +66,10 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\Source\DaliBridge.mod"
+				>
+			</File>
+			<File
 				RelativePath=".\Source\DaliSci.mod"
 				>
 			</File>
@@ -83,6 +87,10 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath=".\Source\DaliBridge.def"
+				>
+			</File>
 			<File
 				RelativePath=".\Source\DaliSci.def"
 				>
@@ -110,6 +118,14 @@
 		</File>
 		<File
 			RelativePath=".\DALI_SCI.proj"
+			>
+		</File>
+		<File
+			RelativePath=".\DaliBridge.definition.proj"
+			>
+		</File>
+		<File
+			RelativePath=".\DaliBridge.proj"
 			>
 		</File>
 		<File
