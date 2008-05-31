@@ -6,14 +6,12 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-   winsock, // must be the first
    arrays,
    browser,
    INIFile,
    lists,
-   msgqueuethread,
-   netinit,
    Resources,
+   scinit,
    Strings,
    StringsO,
    Sync,
@@ -27,28 +25,12 @@ VAR
 
 (*--------------------------------------------------------------------------------*)
 
-TYPE
-   TPThread = POINTER TO CThread;
-
-(*--------------------------------------------------------------------------------*)
-
 CLASS CResult( browser.CBrowserDelegate );
    LOCAL VAR
-      Thread : TPThread;
+      ShowDots : CARDINAL := 1; // sync
       IPs : lists.CStringList;
    LOCAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; CONST Servers : arrays.CPtrArray );
 END CResult;
-
-(*--------------------------------------------------------------------------------*)
-
-CLASS CThread( msgqueuethread.MsgQueueThread );
-   LOCAL VAR
-      ShowDots : CARDINAL := 1; // sync
-      Browser : browser.CBrowser;  
-      Result : CResult;
-   INTERNAL VIRTUAL PROCEDURE OnStart();
-   INTERNAL VIRTUAL PROCEDURE OnExit();
-END CThread;
 
 (*================================================================================*)
 
@@ -64,7 +46,7 @@ CLASS IMPLEMENTATION CResult;
       server : browser.TPServer;
       stdout : TextWriter.TPTextWriter := TextWriter.stdout();
    BEGIN
-      Sync.IExchg( REF Thread^.ShowDots, 0 ); // stop to show dots
+      Sync.IExchg( REF ShowDots, 0 ); // stop to show dots
       stdout^.LineEnd();
 
       IF Servers.Empty THEN
@@ -91,44 +73,12 @@ CLASS IMPLEMENTATION CResult;
             stdout^.WriteOA( L", IP: ", FALSE ); stdout^.Write( S, TRUE );
          END;
       END;
-      Thread^.Stop( FALSE );
    END OnCompleted;
 
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   Thread := NIL;
 END CResult;
-
-(*================================================================================*)
-
-CLASS IMPLEMENTATION CThread;
-
-(*--------------------------------------------------------------------------------*)
-
-   INTERNAL VIRTUAL PROCEDURE OnStart();
-   BEGIN
-      Browser.Init();
-      CASE Browser.Browse( ADR( Result ), 0 ) OF
-      | Sync.arCompleted, Sync.arPending : // OK
-      ELSE
-         TextWriter.errout()^.WriteOA( OAsz( R[Texts._UnableToStartDiscovery] ), TRUE );
-         Stop( FALSE );
-      END;
-   END OnStart;
-
-(*--------------------------------------------------------------------------------*)
-
-   INTERNAL VIRTUAL PROCEDURE OnExit();
-   BEGIN
-      Browser.Dispose();
-   END OnExit;
-
-(*--------------------------------------------------------------------------------*)
-
-BEGIN
-   Result.Thread := ADR( SELF );
-END CThread;
 
 (*================================================================================*)
 
@@ -142,13 +92,14 @@ PROCEDURE wmain( argc : INTEGER; argp : TPParamStringArray; enpv : TPParamString
 LABEL
    Error, Stop;
 VAR
+   Browser : browser.CBrowser;  
    ConfigFile : StringsO.CString;
    errout : TextWriter.TPTextWriter := TextWriter.errout();
    First : BOOLEAN := TRUE;
    ForceFlag : BOOLEAN := FALSE;
    i : INTEGER;
    Id : StringsO.CString;
-   Thread : CThread;
+   Result : CResult;
    TS : INIFile.CINIFile;
 BEGIN
    R.LoadRES2( EMIT( %exe ), L"discover.Texts" );
@@ -175,26 +126,30 @@ BEGIN
       INC( i );
    END; // WHILE
 
+   CASE Browser.Browse( ADR( Result ), 0 ) OF
+   | Sync.arCompleted, Sync.arPending : // OK
+   ELSE
+      TextWriter.errout()^.WriteOA( OAsz( R[Texts._UnableToStartDiscovery] ), TRUE );
+      GOTO Stop;
+   END;
+
+   // browsing runs in separate thread
    errout^.WriteOA( OAsz( R[Texts._Searching] ), FALSE );
-   Thread.Run( FALSE );
-   WHILE Thread.WaitStop( 250 ) = Sync.arTimeout DO
-      IF Sync.IGet( REF Thread.ShowDots ) = 1 THEN
-         errout^.WriteOA( L".", FALSE );
-      ELSE
-         EXIT;
-      END;
+   WHILE Sync.IGet( REF Result.ShowDots ) = 1 DO
+      errout^.WriteOA( L".", FALSE );
+      Sync.Sleep( 250 );
    END; // WHILE
    
    IF NOT ConfigFile.Empty THEN
       TS.LoadPath( OA( ConfigFile.Length-1, ConfigFile.rawData ));
       TS.CreateSection( L"device", FALSE );
-      IF Thread.Result.IPs.Empty THEN
+      IF Result.IPs.Empty THEN
          TS.SetKeyStr( L"id", Id, FALSE );
       ELSE
-         Thread.Result.IPs.Reset();
-         WHILE Thread.Result.IPs.MoveNext() DO
+         Result.IPs.Reset();
+         WHILE Result.IPs.MoveNext() DO
             Id.FromOA( L"eibnet:" );
-            Id.Append( Thread.Result.IPs.Current^ );
+            Id.Append( Result.IPs.Current^ );
             IF ForceFlag AND First THEN
                TS.SetKeyStr( L"id", Id, NOT First );
                First := FALSE;
@@ -221,7 +176,7 @@ END wmain;
 (*================================================================================*)
 
 BEGIN
-   netinit.Startup();
+   scinit.Startup();
 FINALLY
-   netinit.Cleanup();
+   scinit.Cleanup();
 END discover.

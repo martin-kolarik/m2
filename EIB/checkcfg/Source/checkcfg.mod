@@ -9,8 +9,8 @@ IMPORT
    winsock,
    FSO,
    lists,
-   netinit,
    Resources,
+   scinit,
    srvcore,
    Strings,
    StringsO,
@@ -39,7 +39,6 @@ VAR
    R : Resources.CResources;
    stdout : TextWriter.TPTextWriter := TextWriter.stdout();
 BEGIN
-   netinit.Startup();
    R.LoadRES2( EMIT( %exe ), L"checkcfg.Texts" );
 
    i := 1;
@@ -79,16 +78,18 @@ BEGIN
    END; // WHILE
    EIB.Dispose();
 
-   netinit.Cleanup();
    RETURN 0;
 
 Error:
    errout^.WriteOA( OAsz( R[Texts._UsageInfo] ), TRUE );
 
-   netinit.Cleanup();
    RETURN -1;
 END wmain;
   
 (*================================================================================*)
 
+BEGIN
+   scinit.Startup();
+FINALLY
+   scinit.Cleanup();
 END checkcfg.

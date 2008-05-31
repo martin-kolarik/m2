@@ -2,27 +2,26 @@ MODULE srvsvc;
 
 (*================================================================================*)
 
+IMPORT
+   winsock;
+
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
-IMPORT
-   winsock;
-   
 IMPORT
    cllv,
    FIO,
    FIOO,
    Log,
-   netinit,
+   msgqueuethread,
    Registry,
+   scinit,
    Service,
    srvcore,
    Strings,
-   StringsO;
+   StringsO,
+   threadcall;
    
-IMPORT
-  windows;
-
 (*================================================================================*)
 
 CONST
@@ -32,17 +31,37 @@ CONST
 
 (*================================================================================*)
 
-CLASS CEibSvc( Service.AService );
+TYPE  
+   TCommand = (
+      cmdStart,
+      cmdContinue,
+      cmdPause,
+      cmdStop
+   );
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CEibSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarget;
    LOCAL VIRTUAL READONLY PROPERTY
       Name : PWCHAR;
       
    PRIVATE VAR
       EIB : srvcore.TPEIBServer := NIL;
 
-   INTERNAL VIRTUAL PROCEDURE OnStart();
-   INTERNAL VIRTUAL PROCEDURE OnPause();
-   INTERNAL VIRTUAL PROCEDURE OnContinue();
-   INTERNAL VIRTUAL PROCEDURE OnStop();
+   // service, OS thread
+   LOCAL VIRTUAL PROCEDURE OnStart();
+   LOCAL VIRTUAL PROCEDURE OnPause();
+   LOCAL VIRTUAL PROCEDURE OnContinue();
+   LOCAL VIRTUAL PROCEDURE OnStop();
+   
+   // IThreadProcedureCallTarget
+   PUBLIC VIRTUAL PROCEDURE Invoke( Operation : CARDINAL; CONST Parameters : ARRAY OF PTR ) : PTR;
+   
+   // self message thread
+   PRIVATE PROCEDURE _OnStart();
+   PRIVATE PROCEDURE _OnPause();
+   PRIVATE PROCEDURE _OnContinue();
+   PRIVATE PROCEDURE _OnStop();
 END CEibSvc;
 
 (*================================================================================*)
@@ -61,7 +80,50 @@ CLASS IMPLEMENTATION CEibSvc;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnStart();
+   LOCAL VIRTUAL PROCEDURE OnStart();
+   BEGIN
+      scinit.Startup();
+      msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdStart ), OA( -1, NIL ), NIL, FALSE, 0 );
+   END OnStart;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL VIRTUAL PROCEDURE OnPause();
+   BEGIN
+      msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdPause ), OA( -1, NIL ), NIL, FALSE, 0 );
+   END OnPause;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL VIRTUAL PROCEDURE OnContinue();
+   BEGIN
+      msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdContinue ), OA( -1, NIL ), NIL, FALSE, 0 );
+   END OnContinue;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL VIRTUAL PROCEDURE OnStop();
+   BEGIN
+      msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdStop ), OA( -1, NIL ), NIL, FALSE, 0 );
+      scinit.Cleanup();
+   END OnStop;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Invoke( Operation : CARDINAL; CONST Parameters : ARRAY OF PTR ) : PTR;
+   BEGIN
+      CASE TCommand( Operation ) OF
+      | cmdStart : _OnStart();
+      | cmdContinue : _OnContinue();
+      | cmdPause : _OnPause();
+      | cmdStop : _OnStop();
+      END; // CASE
+      RETURN 0;
+   END Invoke;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE _OnStart();
    VAR
       Data : ARRAY [0..511] OF WCHAR;
       line : CARDINAL;
@@ -70,7 +132,6 @@ CLASS IMPLEMENTATION CEibSvc;
       s1, s2 : StringsO.CString;
    BEGIN
       Log.logger()^.SetUpByRegistry( LIBRARY );
-      netinit.Startup();
       
       Strings.ConcatW( OUT Path, L"SOFTWARE\", Manufacturer ); Strings.AppendW( REF Path, L"\" ); Strings.AppendW( REF Path, ProductId );
       IF RS.OpenRead( L"", Registry.LOCAL_MACHINE, Path ) THEN
@@ -92,7 +153,7 @@ CLASS IMPLEMENTATION CEibSvc;
       END;
       
       ASSERT( EIB = NIL );
-      NEW( EIB )^.Init();
+      NEW( EIB )^.Init( TRUE );
       EIB^.EXEFlag := TRUE;
       EIB^.cllvData := ADR( cllv.data );
       EIB^.cllvLength := cllv.length;
@@ -107,11 +168,11 @@ CLASS IMPLEMENTATION CEibSvc;
       END;
 
       SetServiceState( Service.ssRunning, 0 );
-   END OnStart;
+   END _OnStart;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnPause();
+   PRIVATE PROCEDURE _OnPause();
    BEGIN
       IF EIB = NIL THEN
          LogEvent( -1, L"Svc.OnPause called for EIB = NIL" );
@@ -120,11 +181,11 @@ CLASS IMPLEMENTATION CEibSvc;
       END;
 
       SetServiceState( Service.ssPaused, 0 );
-   END OnPause;
+   END _OnPause;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnContinue();
+   PRIVATE PROCEDURE _OnContinue();
    BEGIN
       IF EIB = NIL THEN
          LogEvent( -1, L"Svc.OnContinue called for EIB = NIL" );
@@ -133,11 +194,11 @@ CLASS IMPLEMENTATION CEibSvc;
       END;
 
       SetServiceState( Service.ssRunning, 0 );
-   END OnContinue;
+   END _OnContinue;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnStop();
+   PRIVATE PROCEDURE _OnStop();
    BEGIN
       IF EIB <> NIL THEN
          EIB^.Stop( TRUE, TRUE );
@@ -145,15 +206,12 @@ CLASS IMPLEMENTATION CEibSvc;
          DISPOSE( EIB );
       END;
 
-      netinit.Cleanup();
-
       SetServiceState( Service.ssStopped, 0 );
-   END OnStop;
+   END _OnStop;
 
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   Threaded := TRUE;
 END CEibSvc;
 
 (*================================================================================*)

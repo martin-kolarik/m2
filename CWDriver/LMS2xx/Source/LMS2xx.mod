@@ -20,6 +20,20 @@ FA 06-02 / 36,5 / 6 / 42,5
 
 1, 2, 2, 1, 21.9.8-12 Blansko + cesta
 
+10.5.2008
+5 rozjíždìní komunikace
+
+17.5.2008
+5 rozjíždìní komunikace + hledání chyb
+
+20.5.2008
+1 konzultace DAD
+
+23.5.2008
+3 oprava chyby pøi startu + testy + instalace + balení
+
+FA 08-?? / 24h / 200km / 13 kKè
+
 */*)
 //================================================================================
 
