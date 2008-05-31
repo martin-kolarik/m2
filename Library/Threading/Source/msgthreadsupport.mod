@@ -46,15 +46,21 @@ CLASS IMPLEMENTATION CSupport;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Join( Handler : OSALmsg.TPMessageHandler; CallOnJoinInThread : BOOLEAN );
+   VAR
+      Result : Sync.TAsyncResult;
    BEGIN
-      ThreadCall( ADR( SELF ), OP_JOIN, OA( 0, ADR( Handler )), NIL, TRUE, Sync.FORSAFETY );
+      Result := ThreadCall( ADR( SELF ), OP_JOIN, OA( 0, ADR( Handler )), NIL, TRUE, Sync.FORSAFETY );
+      ASSERT( Result <> Sync.arTimeout );
    END Join;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Leave( Handler : OSALmsg.TPMessageHandler; CallOnLeaveInThread : BOOLEAN );
+   VAR
+      Result : Sync.TAsyncResult;
    BEGIN
-      ThreadCall( ADR( SELF ), OP_LEAVE, OA( 0, ADR( Handler )), NIL, TRUE, Sync.FORSAFETY );
+      Result := ThreadCall( ADR( SELF ), OP_LEAVE, OA( 0, ADR( Handler )), NIL, TRUE, Sync.FORSAFETY );
+      ASSERT( Result <> Sync.arTimeout );
    END Leave;
    
 (*---------------------------------------------------------------------------*)
@@ -62,12 +68,14 @@ CLASS IMPLEMENTATION CSupport;
    PUBLIC PROCEDURE StartTimer( Target : OSALmsg.TPMessageTarget; TimerId : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
    VAR
       Parameters : ARRAY [0..3] OF PTR;
+      Result : Sync.TAsyncResult;
    BEGIN
       Parameters[0] := Target;
       Parameters[1] := TimerId;
       Parameters[2] := PeriodMS;
       Parameters[3] := PTR( Repeat );
-      ThreadCall( ADR( SELF ), OP_START_TIMER, Parameters, NIL, TRUE, Sync.FORSAFETY );
+      Result := ThreadCall( ADR( SELF ), OP_START_TIMER, Parameters, NIL, TRUE, Sync.FORSAFETY );
+      ASSERT( Result <> Sync.arTimeout );
    END StartTimer;
 
 (*---------------------------------------------------------------------------*)
@@ -75,10 +83,12 @@ CLASS IMPLEMENTATION CSupport;
    PUBLIC PROCEDURE StopTimer( Target : OSALmsg.TPMessageTarget; TimerId : PTR );
    VAR
       Parameters : ARRAY [0..1] OF PTR;
+      Result : Sync.TAsyncResult;
    BEGIN
       Parameters[0] := Target;
       Parameters[1] := TimerId;
-      ThreadCall( ADR( SELF ), OP_STOP_TIMER, Parameters, NIL, TRUE, Sync.FORSAFETY );
+      Result := ThreadCall( ADR( SELF ), OP_STOP_TIMER, Parameters, NIL, TRUE, Sync.FORSAFETY );
+      ASSERT( Result <> Sync.arTimeout );
    END StopTimer;
 
 (*---------------------------------------------------------------------------*)
@@ -113,6 +123,7 @@ CLASS IMPLEMENTATION CSupport;
          END;
          
          ReturnValue := Call^.ReturnValue;
+         ASSERT( Call^.References > 0 );
          Call^.Release();
       END;
 

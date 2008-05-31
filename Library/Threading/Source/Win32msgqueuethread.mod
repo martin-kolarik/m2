@@ -210,7 +210,7 @@ END Win32MessageQueueThread;
 VAR
    GMQT : POINTER TO Win32MessageQueueThread := NIL;
 
-PROCEDURE Win32GlobalMessageQueueThread() : POINTER TO OSALmsg.IMessageQueueThread;
+PROCEDURE Win32GlobalMessageQueueThread() : POINTER TO Win32MessageQueueThread;
 BEGIN
    ASSERT( GMQT <> NIL );
    RETURN GMQT;

@@ -235,7 +235,7 @@ END SCMessageQueueThread;
 VAR
    GMQT : POINTER TO SCMessageQueueThread := NIL;
 
-PROCEDURE SCGlobalMessageQueueThread() : POINTER TO OSALmsg.IMessageQueueThread;
+PROCEDURE SCGlobalMessageQueueThread() : POINTER TO SCMessageQueueThread;
 BEGIN
    ASSERT( GMQT <> NIL );
    RETURN GMQT;
