@@ -13,7 +13,8 @@ IMPORT
    eib_def,
    eib_status,
    list,
-   msghandler,
+   msghandlersink,
+   msgqueue,
    sync;
   
 (*================================================================================*)
@@ -135,10 +136,6 @@ CLASS CEIBStackLayer;
   LOCAL VIRTUAL PROCEDURE TimeoutUpdated( TimeoutId : TTimeoutId; UserId : LONGWORD );
   LOCAL VIRTUAL PROCEDURE Timeout( TimeoutId : TTimeoutId; UserId : LONGWORD );
 
-  // helpers
-  INTERNAL PROCEDURE Enter();
-  INTERNAL PROCEDURE Leave();
-  
   VIRTUAL FINALLY CEIBStackLayer();
 END CEIBStackLayer;
 
@@ -350,7 +347,6 @@ TYPE
             END; // RECORD
 
 CLASS CEIBStackLinkLayer( CEIBStackLayer );
-  Lock         : sync.LOCK;
   L_Parameters : TL_Parameters;
   L_Data       : TL_Data;
 
@@ -372,8 +368,6 @@ CLASS CEIBStackLinkLayer( CEIBStackLayer );
   );
 
   // listeners registration and multiplexing
-  INTERNAL PROCEDURE Enter();
-  INTERNAL PROCEDURE Leave();
   LOCAL PROCEDURE RegisterListener( PListener : TPL_Data_Listener );
   LOCAL PROCEDURE ForgetListener( PListener : TPL_Data_Listener );
   LOCAL PROCEDURE ListenerGroupUpdated( PListener : TPL_Data_Listener );
@@ -820,9 +814,14 @@ TYPE
 
 (*--------------------------------------------------------------------------------*)
 
-CLASS CEIBStackApplicationLayer( CEIBStackLayer );
-  A_Parameters : TA_Parameters;
-  A_Data       : TA_Data;
+CLASS CEIBStackApplicationLayer( CEIBStackLayer ) IMPLEMENTS msghandlersink.IMessageSink;
+   PRIVATE VAR
+      Handler : msghandlersink.SinkMessageHandler;
+      Queue : msgqueue.CPtrQueue;
+      DataLock : Sync.LOCK;
+   LOCAL VAR
+      A_Parameters : TA_Parameters;
+      A_Data : TA_Data;
 
   // chaining
   PRIVATE PROCEDURE Executive() : TPEIBStackTransportLayer;
@@ -941,7 +940,6 @@ CLASS CEIBStackApplicationLayer( CEIBStackLayer );
     CONST Address        : eib_def.TAddress;
           PObject        : TPSAP
   ) : eib_status.TEIBStackStatus;
-  PUBLIC PROCEDURE Update_L_Layer();
 
   PUBLIC PROCEDURE A_SubscribePromiscuous(
           Length         : TprLength;
@@ -952,15 +950,20 @@ CLASS CEIBStackApplicationLayer( CEIBStackLayer );
           PObject        : TPSAP
   ) : eib_status.TEIBStackStatus;
 
+  PUBLIC PROCEDURE Update_L_Layer();
+  
+  // IMessageSink
+  PUBLIC VIRTUAL PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
+
   // HELPERS
   PRIVATE PROCEDURE GetAPDU( PPacket : eib_def.TPPacket ) : TA_PDU;
   PRIVATE PROCEDURE SetAPDU( VAR Packet : eib_def.TPacket; APCI : TA_PDU );
 
-  PRIVATE PROCEDURE A_AppendPendingOperation( WhatIsPending : TPendingOperation; ForceConcurrency : BOOLEAN; POriginator : ADDRESS; Class : eib_def.TPriority; CONST Destination : eib_def.TAddress; CONST Packet : eib_def.TPacket );
+  PRIVATE PROCEDURE A_AppendPendingOperation( WhatIsPending : TPendingOperation; POriginator : TPSAP; Class : eib_def.TPriority; CONST Destination : eib_def.TAddress; CONST Packet : eib_def.TPacket );
   PRIVATE PROCEDURE A_GetPendingDestination( WhatIsPending : TPendingOperation; Class : eib_def.TPriority; VAR Destination : eib_def.TAddress ) : BOOLEAN;
   PRIVATE PROCEDURE A_PendingOperationFinished( WhatIsPending : TPendingOperation; Status : eib_status.TEIBStackStatus; Class : eib_def.TPriority; CONST Destination : eib_def.TAddress );
   PRIVATE PROCEDURE A_StartPendingOperation( WhatIsPending : TPendingOperation; ForceConcurrency : BOOLEAN; PClass : eib_def.TPPriority ); // CAN be NIL, if start could select packet automatically
-  PRIVATE PROCEDURE A_PendingIsSingleOperation( PendingOperation : TPendingOperation ) : BOOLEAN;
+  PRIVATE PROCEDURE A_PendingIsTransactional( PendingOperation : TPendingOperation ) : BOOLEAN;
 
   PRIVATE PROCEDURE A_Group_SearchGroup( CONST Address : eib_def.TAddress; VAR PGroup : TPA_Group ) : BOOLEAN;
   PRIVATE PROCEDURE A_Group_SearchPromiscuousGroupByLength( CONST PPacket : eib_def.TPPacket; OUT PGroup : TPA_Group ) : BOOLEAN;
@@ -977,22 +980,22 @@ END CEIBStackApplicationLayer;
 INTERFACE IUserObject;
 
   // USER LAYER
-  PROCEDURE AU_GroupValue_Read_Req();
+  PROCEDURE AU_GroupValue_Read_Req(); // possible different thread
 
-  PROCEDURE AU_GroupValue_Read_Con( 
+  PROCEDURE AU_GroupValue_Read_Con(  // possible different thread
           Status : eib_status.TEIBStackStatus
   );
 
-  PROCEDURE AU_GroupValue_Read_Res(
+  PROCEDURE AU_GroupValue_Read_Res( // possible different thread
           Status : eib_status.TEIBStackStatus;
     CONST PPacket : eib_def.TPPacket
   );
 
-  PROCEDURE AU_GroupValue_Write_Ind(
+  PROCEDURE AU_GroupValue_Write_Ind( // possible different thread
     CONST PPacket : eib_def.TPPacket
   );
 
-  PROCEDURE AU_GroupValue_Write_Con(
+  PROCEDURE AU_GroupValue_Write_Con( // possible different thread
           Status : eib_status.TEIBStackStatus
   );
   
@@ -1022,7 +1025,6 @@ TYPE
   TStackStatusSet = SET OF TStackStatus;
 
 CLASS CEIBStack;
-  Lock       : Sync.LOCK;
   Status     : TStackStatusSet;
   PEventSink : TPEIBStackEventSink;
   Layers     : TStackLayers;
@@ -1072,8 +1074,6 @@ CLASS CEIBStack;
 
   // private methods
   PRIVATE PROCEDURE CreateLayerInternal( Layer : TEIBStackLayerType; VAR PLayer : TPEIBStackLayer ) : BOOLEAN;
-  LOCAL PROCEDURE Enter();
-  LOCAL PROCEDURE Leave();
 END CEIBStack;
 
 (*--------------------------------------------------------------------------------*)

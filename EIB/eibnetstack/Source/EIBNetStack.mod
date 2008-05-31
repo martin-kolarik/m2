@@ -190,7 +190,6 @@ CLASS IMPLEMENTATION EIBNetPhysicalLayer;
    PUBLIC VIRTUAL PROCEDURE Ph_Data_Req( VAR Packet : eib_def.TPacket );
    BEGIN
       IF NOT Connection.Connected THEN
-         Connection.Connect( 0 ); // try connect again
          Listener()^.Ph_Data_Con( eib_status.essLineBusy );
       ELSIF Connection.SendPacket( Packet ) NOT IN Sync.arsStarts THEN
          Listener()^.Ph_Data_Con( eib_status.essLineBusy );

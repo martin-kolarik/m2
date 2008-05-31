@@ -42,10 +42,11 @@ FROM eib_def IMPORT
   do8, do9, do10, do11, do12, do13, do14, do15, do16, do17, do18, do19, do20, do21;
 
 IMPORT
-  Storage,
-  Strings,
-  Time,
-  windows;
+   msghandler,
+   Storage,
+   Strings,
+   Time,
+   windows;
 
 (*================================================================================*)
 
@@ -155,20 +156,6 @@ CLASS IMPLEMENTATION CEIBStackLayer;
   LOCAL VIRTUAL PROCEDURE Timeout( TimeoutId : TTimeoutId; UserId : LONGWORD );
   BEGIN
   END Timeout;
-
-(*--------------------------------------------------------------------------------*)
-
-  INTERNAL PROCEDURE Enter();
-  BEGIN
-    PStack^.Enter();
-  END Enter;
-
-(*--------------------------------------------------------------------------------*)
-
-  INTERNAL PROCEDURE Leave();
-  BEGIN
-    PStack^.Leave();
-  END Leave;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -658,7 +645,6 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
     ASSERT( L_Data.State <> lsWaitResetCon );
     L_Data.State := lsWaitResetCon;
 
-    Lock.Init( sync.ltCS, L"", FALSE );
     L_Data.Queue.Init( ADR( L_Parameters.PriorityDistribution ));
 
     SUPER.Initialize_Req();
@@ -736,27 +722,11 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  PROCEDURE Enter();
-  BEGIN
-    Lock.Lock();
-  END Enter;
-
-(*--------------------------------------------------------------------------------*)
-
-  PROCEDURE Leave();
-  BEGIN
-    Lock.Unlock();
-  END Leave;
-
-(*--------------------------------------------------------------------------------*)
-
   LOCAL PROCEDURE RegisterListener( PListener : TPL_Data_Listener );
   VAR
     ListenerGroups : TGroupInfo;
   BEGIN
-    Enter();
     IF L_Data.Listeners.Contains( PListener ) THEN
-      Leave();
       RETURN;
     END;
     L_Data.Listeners.Append( PListener );
@@ -764,8 +734,6 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
     PListener^.PExecutive := ADR( SELF );
     PListener^.GetGroups( ListenerGroups );
     L_Data.Groups := L_Data.Groups + ListenerGroups;
-
-    Leave();
   END RegisterListener;
 
 (*--------------------------------------------------------------------------------*)
@@ -774,22 +742,18 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
   VAR
     ListenerGroups : TGroupInfo;
   BEGIN
-    Enter();
     IF NOT L_Data.Listeners.Contains( PListener ) THEN
-      Leave();
       RETURN;
     END;
     L_Data.Listeners.Remove( PListener );
     L_Data.Groups := TGroupInfo{};
     IF NOT L_Data.Listeners.GetFirst( OUT PListener ) THEN
-      Leave();
       RETURN;
     END;
     REPEAT
       PListener^.GetGroups( ListenerGroups );
       L_Data.Groups := L_Data.Groups + ListenerGroups;
     UNTIL NOT L_Data.Listeners.NextOf( PListener, OUT PListener );
-    Leave();
   END ForgetListener;
 
 (*--------------------------------------------------------------------------------*)
@@ -798,21 +762,17 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
   VAR
     ListenerGroups : TGroupInfo;
   BEGIN
-    Enter();
     IF NOT L_Data.Listeners.Contains( PListener ) THEN
-      Leave();
       RETURN;
     END;
     L_Data.Groups := TGroupInfo{};
     IF NOT L_Data.Listeners.GetFirst( OUT PListener ) THEN
-      Leave();
       RETURN;
     END;
     REPEAT
       PListener^.GetGroups( ListenerGroups );
       L_Data.Groups := L_Data.Groups + ListenerGroups;
     UNTIL NOT L_Data.Listeners.NextOf( PListener, OUT PListener );
-    Leave();
   END ListenerGroupUpdated;
 
 (*--------------------------------------------------------------------------------*)
@@ -820,12 +780,8 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
   PUBLIC PROCEDURE Ph_Data_Sent( // extension, from the call LinkLayer starts to count timeouts, this is handshake/ACK to Ph_Data_Req
   );
   BEGIN
-     Enter(); // possible rentrancy from Communicate
-
      L_Data.ACKTimeouter.Start();
      L_Data.LastSend := Time.UptimeMS();
-
-     Leave();
   END Ph_Data_Sent;
 
 (*--------------------------------------------------------------------------------*)
@@ -900,7 +856,7 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
     ELSE
       CRT := crtL_LayerWithSendDelay;
     END;
-    Enter();
+
     IF L_Data.Queue.GetActiveRequest( PListener, LPacket, Pending ) AND Pending THEN
       L_Data.ACKTimeouter.Stop();
       L_Data.BUSYDelayer.Stop();
@@ -911,7 +867,7 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
         L_Data_Con( PListener, Status, LPacket.GetDestinationAddress(), ADR( LPacket ));
       END;
     END; // IF
-    Leave();
+
     Communicate( CRT );
   END Ph_Data_Con;
 
@@ -935,7 +891,7 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
     Packet.SetPriority( Class );
     Packet.SetSourceAddress( L_Parameters.SelfAddress );
     Packet.SetDestinationAddress( Destination );
-    Enter();
+
     IF ( L_Parameters.OutputQueueLength = 0 ) OR ( L_Parameters.OutputQueueLength = MAX( CARDINAL )) THEN
       L_Data.Queue.AppendPacket( _PListener, ADR( Packet ), L_Parameters.NAK_Retry, L_Parameters.BUSY_Retry );
     ELSIF L_Data.Queue.PacketsPending() < L_Parameters.OutputQueueLength THEN
@@ -943,7 +899,6 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
     ELSE
       L_Data_Con( _PListener, eib_status.essL_OutputQueueOverflow, Destination, ADR( Packet ));
     END;
-    Leave();
   END L_Data_Req;
 
 (*--------------------------------------------------------------------------------*)
@@ -957,7 +912,6 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
   BEGIN
     Send := FALSE;
     // direct stack variant
-    Enter();
     IF L_Data.Queue.GetPacketToSend( Packet, Pending ) THEN
 
       CASE RequestType OF
@@ -1001,7 +955,6 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
       END;
 
     END;
-    Leave();
   END Communicate;
 
 (*--------------------------------------------------------------------------------*)
@@ -1028,13 +981,11 @@ CLASS IMPLEMENTATION CEIBStackLinkLayer;
     PListener : TPL_Data_Listener;
     b : BOOLEAN;
   BEGIN
-    Enter();
     b := L_Data.Listeners.GetFirst( OUT PListener );
     WHILE b DO
       L_Data_Ind( PListener, PPacket^.GetSourceAddress(), PPacket^.GetDestinationAddress(), PPacket^.GetPriority(), PPacket );
       b := L_Data.Listeners.NextOf( PListener, OUT PListener );
     END; // WHILE
-    Leave();
   END Process_L_Data_Ind;
 
 (*--------------------------------------------------------------------------------*)
@@ -1823,17 +1774,19 @@ TYPE
   TPPendingData = POINTER TO CPendingData;
 
 CLASS CPendingData( list.CListElem );
-  POriginator : ADDRESS;
-  Destination : eib_def.TAddress;
-  Class       : eib_def.TPriority;
-  Packet      : eib_def.TPacket;
-  Pending     : BOOLEAN;
+  WhatIsPending : TPendingOperation;
+  POriginator   : TPSAP;
+  Destination   : eib_def.TAddress;
+  Class         : eib_def.TPriority;
+  Packet        : eib_def.TPacket;
+  Pending       : BOOLEAN;
 END CPendingData;
 
 (*--------------------------------------------------------------------------------*)
 
 CLASS IMPLEMENTATION CPendingData;
 BEGIN
+  WhatIsPending := pendingGroupRead;
   POriginator := NIL;
   Class := eib_def.priorityNormal;
   Pending := FALSE;
@@ -2062,7 +2015,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
   BEGIN
     SetAPDU( LPacket, apduGroupValue_RD );
     LPacket.SetDataLength( 1 );
-    A_AppendPendingOperation( pendingGroupRead, POriginator^.Promiscuous, POriginator, Class, Destination, LPacket );
+    A_AppendPendingOperation( pendingGroupRead, POriginator, Class, Destination, LPacket );
   END A_GroupValue_Read_Req;
 
 (*--------------------------------------------------------------------------------*)
@@ -2091,7 +2044,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
   );
   BEGIN
     SetAPDU( Packet, apduGroupValue_WR );
-    A_AppendPendingOperation( pendingGroupWrite, FALSE, POriginator, Class, Destination, Packet );
+    A_AppendPendingOperation( pendingGroupWrite, POriginator, Class, Destination, Packet );
   END A_GroupValue_Write_Req;
 
 (*--------------------------------------------------------------------------------*)
@@ -2131,15 +2084,15 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
   );
   VAR
     ES : PTR;
+    Found : BOOLEAN;
     PendingDestination : eib_def.TAddress;
     PendingObjectAddress : eib_def.TAddress;
     PObject : TPSAP;
+    Registered : BOOLEAN;
     WhatIsPending : TPendingOperation;
-    PendingFound : BOOLEAN;
-    RegisteredPending : BOOLEAN;
   BEGIN
-    RegisteredPending := FALSE;
-    PendingFound := TRUE;
+    Registered := FALSE;
+    Found := TRUE;
 
     CASE Phase OF
     //-----
@@ -2147,8 +2100,8 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
       IF APDU = apduGroupValue_RS THEN
         // IND, both EIB RS data and self Timeout appear here
         WhatIsPending := pendingGroupRead;
-        RegisteredPending := TRUE;
-        PendingFound := FALSE;
+        Registered := TRUE;
+        Found := FALSE;
       END;
     //-----
     | pphCON :
@@ -2157,37 +2110,35 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
         IF Status <> eib_status.essOK THEN
           // errorneous CON (e.g. UNACKED), so the pending Read must be removed
           WhatIsPending := pendingGroupRead;
-          RegisteredPending := TRUE;
-          PendingFound := FALSE;
+          Registered := TRUE;
+          Found := FALSE;
         // ELSE do nothing and wait for pphIND (Timeout or proper Read_RS)
         END;
       | apduGroupValue_WR :
         // all forms of CON, WR is now finished, so pending one must be removed and sending can continue with the next write packet
         WhatIsPending := pendingGroupWrite;
-        RegisteredPending := TRUE;
-        PendingFound := FALSE;
+        Registered := TRUE;
+        Found := FALSE;
       END;
     //-----
     END; // CASE
-    IF RegisteredPending AND NOT A_GetPendingDestination( WhatIsPending, Class, PendingDestination ) THEN
-      RegisteredPending := FALSE;
+    IF Registered AND NOT A_GetPendingDestination( WhatIsPending, Class, PendingDestination ) THEN
+      Registered := FALSE;
     END;
 
     ES := 0;
     WHILE PGroup^.EnumerateObjects( ES, PObject ) DO IF POriginator <> PObject THEN
 
-         IF PendingFound OR NOT RegisteredPending THEN
+         IF NOT Registered OR Found THEN
             // do nothing
          ELSIF WhatIsPending = pendingGroupRead THEN
             // check ReadAddress
             PendingObjectAddress := PObject^.ReadAddress;
-            PendingFound := ( PendingObjectAddress.GetAddressType() <> eib_def.addressUnknown ) AND
-                            ( PendingObjectAddress = PendingDestination );
+            Found := ( PendingObjectAddress.GetAddressType() <> eib_def.addressUnknown ) AND ( PendingObjectAddress = PendingDestination );
          ELSIF WhatIsPending <> pendingGroupRead THEN
             // check SendAddress
             PendingObjectAddress := PObject^.SendAddress;
-            PendingFound := ( PendingObjectAddress.GetAddressType() <> eib_def.addressUnknown ) AND
-                            ( PendingObjectAddress = PendingDestination );
+            Found := ( PendingObjectAddress.GetAddressType() <> eib_def.addressUnknown ) AND ( PendingObjectAddress = PendingDestination );
          END;
 
       IF Promiscuous THEN
@@ -2216,7 +2167,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
       END; // CASE
     END; END; // IF not proceib_status.essing self // WHILE
 
-    IF RegisteredPending AND PendingFound THEN
+    IF Registered AND Found THEN
       // this is a pending apduGroupRead operation, which needs further proceib_status.essing
       A_PendingOperationFinished( WhatIsPending, Status, Class, PendingDestination );
     END;
@@ -2234,6 +2185,8 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
     PGroup : TPA_Group;
     b : BOOLEAN;
   BEGIN
+    DataLock.Lock();
+ 
     IF NOT A_Group_SearchGroup( Address, PGroup ) THEN
       NEW( PGroup );
       PGroup^.Address := Address;
@@ -2256,6 +2209,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
       PGroup^.Objects.Append( PA_Object );
     END;
 
+    DataLock.Unlock();
     RETURN eib_status.essOK;
   END A_Subscribe;
 
@@ -2271,8 +2225,11 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
     PGroup : TPA_Group;
     b : BOOLEAN;
   BEGIN
+    DataLock.Lock();
+
     IF NOT A_Group_SearchGroup( Address, PGroup ) THEN
-      RETURN eib_status.essOK;
+       DataLock.Unlock();
+       RETURN eib_status.essOK;
     END;
 
     b := PGroup^.Objects.GetFirst( OUT PA_Object );
@@ -2292,6 +2249,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
       END;
     END;
 
+    DataLock.Unlock();
     RETURN eib_status.essOK;
   END A_Unsubscribe;
 
@@ -2306,8 +2264,11 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
     PGroup : TPA_Group;
     b : BOOLEAN;
   BEGIN
+    DataLock.Lock();
+
     IF NOT A_Parameters.PromiscuousMode THEN
-      RETURN eib_status.essA_PromiscuousSubscribeDisallowed;
+       DataLock.Unlock();
+       RETURN eib_status.essA_PromiscuousSubscribeDisallowed;
     END;
 
     PGroup := A_Data.prGroup[Length];
@@ -2322,6 +2283,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
       PGroup^.Objects.Append( PA_Object );
     END;
 
+    DataLock.Unlock();
     RETURN eib_status.essOK;
   END A_SubscribePromiscuous;
 
@@ -2336,8 +2298,11 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
     PGroup : TPA_Group;
     b : BOOLEAN;
   BEGIN
+    DataLock.Lock();
+
     IF NOT A_Parameters.PromiscuousMode THEN
-      RETURN eib_status.essA_PromiscuousSubscribeDisallowed;
+       DataLock.Unlock();
+       RETURN eib_status.essA_PromiscuousSubscribeDisallowed;
     END;
 
     PGroup := A_Data.prGroup[Length];
@@ -2350,6 +2315,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
       PGroup^.Objects.Delete( PA_Object );
     END;
 
+    DataLock.Unlock();
     RETURN eib_status.essOK;
   END A_UnsubscribePromiscuous;
 
@@ -2357,12 +2323,35 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
   PUBLIC PROCEDURE Update_L_Layer();
   BEGIN
+    DataLock.Lock();
+
     IF PStack^.Layers[ eltNetwork ] <> NIL THEN
       TPEIBStackNetworkLayer( PStack^.Layers[ eltNetwork ] )^.N_Data.PL_Listener^.GroupsUpdated();
     END;
+
+    DataLock.Unlock();
   END Update_L_Layer;
 
 (*--------------------------------------------------------------------------------*)
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
+   VAR
+      PPendingData : TPPendingData;
+   BEGIN
+      IF MSG.Message = msgqueue.MSG_PROCESS_QUEUE THEN
+
+         WHILE Queue.Dequeue( OUT PPendingData ) DO
+            A_Data.Pending[ PPendingData^.WhatIsPending ][ PPendingData^.Class ].Append( PPendingData );
+            A_StartPendingOperation( PPendingData^.WhatIsPending, PPendingData^.POriginator^.Promiscuous, ADR( PPendingData^.Class ));
+         END; // while
+
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END; 
+   END OnMessage;
+
 (*--------------------------------------------------------------------------------*)
 
   PRIVATE PROCEDURE GetAPDU( PPacket : eib_def.TPPacket ) : TA_PDU;
@@ -2391,7 +2380,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE A_AppendPendingOperation( WhatIsPending : TPendingOperation; ForceConcurrency : BOOLEAN; POriginator : ADDRESS; Class : eib_def.TPriority; CONST Destination : eib_def.TAddress; CONST Packet : eib_def.TPacket );
+  PRIVATE PROCEDURE A_AppendPendingOperation( WhatIsPending : TPendingOperation; POriginator : TPSAP; Class : eib_def.TPriority; CONST Destination : eib_def.TAddress; CONST Packet : eib_def.TPacket );
   VAR
     PPendingData : TPPendingData;
   BEGIN
@@ -2409,15 +2398,13 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
     END;
 
     NEW( PPendingData );
+    PPendingData^.WhatIsPending := WhatIsPending;
     PPendingData^.POriginator := POriginator;
     PPendingData^.Destination := Destination;
     PPendingData^.Class := Class;
     PPendingData^.Packet := Packet;
-
-    Enter();
-    A_Data.Pending[ WhatIsPending ][Class].Append( PPendingData );
-    A_StartPendingOperation( WhatIsPending, ForceConcurrency, ADR( Class ));
-    Leave();
+    
+    Queue.Enqueue( PPendingData ); // dequeue is OnMessage
   END A_AppendPendingOperation;
 
 (*--------------------------------------------------------------------------------*)
@@ -2425,17 +2412,13 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
   PRIVATE PROCEDURE A_GetPendingDestination( WhatIsPending : TPendingOperation; Class : eib_def.TPriority; VAR Destination : eib_def.TAddress ) : BOOLEAN;
   VAR
     PSPO : TPPendingData;
-    b : BOOLEAN;
   BEGIN
-    Enter();
     IF A_Data.Pending[ WhatIsPending ][Class].GetFirst( OUT PSPO ) THEN
       Destination := PSPO^.Destination;
-      b := TRUE;
+      RETURN TRUE;
     ELSE
-      b := FALSE;
+      RETURN FALSE;
     END;
-    Leave();
-    RETURN b;
   END A_GetPendingDestination;
 
 (*--------------------------------------------------------------------------------*)
@@ -2444,19 +2427,17 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
   VAR
     PSPO : TPPendingData;
   BEGIN
-    Enter();
     IF A_Data.Pending[ WhatIsPending ][Class].GetFirst( OUT PSPO ) AND ( PSPO^.Destination = Destination ) THEN // PSPO^.Pending ignored
       A_Data.Timeouter[ WhatIsPending ].Stop();
       A_Data.Pending[ WhatIsPending ][Class].Delete( PSPO );
     END;
-    IF NOT A_PendingIsSingleOperation( WhatIsPending ) THEN
+    IF NOT A_PendingIsTransactional( WhatIsPending ) THEN
       // pass down
     ELSIF A_Parameters.PendingDelay[ WhatIsPending ] = 0 THEN
       A_StartPendingOperation( WhatIsPending, FALSE, NIL );
     ELSE
       A_Data.Timeouter[ WhatIsPending ].StartEx( tidA_PendingDelay, A_Parameters.PendingDelay[ WhatIsPending ] );
     END;
-    Leave();
   END A_PendingOperationFinished;
 
 (*--------------------------------------------------------------------------------*)
@@ -2466,7 +2447,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
     delay : CARDINAL;
     PSPO : TPPendingData;
   BEGIN
-    IF NOT ForceConcurrency AND A_PendingIsSingleOperation( WhatIsPending ) THEN
+    IF NOT ForceConcurrency AND A_PendingIsTransactional( WhatIsPending ) THEN
       IF NOT A_GetFirstPending( WhatIsPending, PClass, PSPO ) THEN
         RETURN; // nothing to send
       ELSIF PSPO^.Pending THEN // already sent
@@ -2508,13 +2489,13 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE A_PendingIsSingleOperation( PendingOperation : TPendingOperation ) : BOOLEAN; // can run only as single, not in parallel
+  PRIVATE PROCEDURE A_PendingIsTransactional( PendingOperation : TPendingOperation ) : BOOLEAN; // can run only as single, not in parallel
   BEGIN
     IF PendingOperation = pendingGroupRead THEN
       RETURN TRUE;
     END;
     RETURN ( A_Parameters.PendingDelay[ PendingOperation ] > 0 ) OR ( A_Parameters.PendingTimeout[ PendingOperation ] > 0 );
-  END A_PendingIsSingleOperation;
+  END A_PendingIsTransactional;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -2614,7 +2595,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
     c := 0;
     j := eib_def.priorityLowest;
     LOOP
-      c := c + A_Data.Pending[ WhatIsPending ][j].Count;
+      c := c + A_Data.Pending[ WhatIsPending ][j].Count + Queue.Count;
       IF j = eib_def.priorityHighest THEN
         EXIT;
       ELSE
@@ -2653,9 +2634,14 @@ BEGIN
   LayerType := eltApplication;
   Storage.Zero( ADR( A_Parameters ), SIZE( A_Parameters ));
   A_Parameters.PendingTimeout[ pendingGroupRead ] := 2500;
+  
+   DataLock.Init( sync.ltSpin, L"", FALSE );
+   Handler.Init( TRUE );
+   Handler.MessageSink := ADR( SELF );
+   Queue.Consumer := ADR( Handler );
 
-  A_Data.Timeouter[ pendingGroupRead  ].Init( ADR( SELF ), tidA_PendingTimeout, A_Parameters.PendingTimeout[ pendingGroupRead     ], pendingGroupRead     );
-  A_Data.Timeouter[ pendingGroupWrite ].Init( ADR( SELF ), tidA_PendingTimeout, A_Parameters.PendingTimeout[ pendingGroupWrite    ], pendingGroupWrite    );
+  A_Data.Timeouter[ pendingGroupRead  ].Init( ADR( SELF ), tidA_PendingTimeout, A_Parameters.PendingTimeout[ pendingGroupRead  ], pendingGroupRead  );
+  A_Data.Timeouter[ pendingGroupWrite ].Init( ADR( SELF ), tidA_PendingTimeout, A_Parameters.PendingTimeout[ pendingGroupWrite ], pendingGroupWrite );
 
   Storage.Zero( ADR( A_Data.LastSend ), SIZE( A_Data.LastSend ));
 
@@ -3066,25 +3052,10 @@ CLASS IMPLEMENTATION CEIBStack;
 
 (*--------------------------------------------------------------------------------*)
 
-  LOCAL PROCEDURE Enter();
-  BEGIN
-    Lock.Lock();
-  END Enter;
-
-(*--------------------------------------------------------------------------------*)
-
-  LOCAL PROCEDURE Leave();
-  BEGIN
-    Lock.Unlock();
-  END Leave;
-
-(*--------------------------------------------------------------------------------*)
-
 BEGIN
   Status := TStackStatusSet{};
   PEventSink := NIL;
   Storage.Zero( ADR( Layers ), SIZE( Layers ));
-  Lock.Init( sync.ltCS, L"", FALSE );
 END CEIBStack;
 
 (*================================================================================*)

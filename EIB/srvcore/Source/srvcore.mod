@@ -241,6 +241,87 @@ CLASS IMPLEMENTATION CObject;
 
 //--------------------------------------------------------------------------------
 
+   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Req();
+   BEGIN
+      Server^.LockObjects();
+      SUPER.AU_GroupValue_Read_Req();
+      Server^.UnlockObjects();
+   END AU_GroupValue_Read_Req;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Con( Status : eib_status.TEIBStackStatus );
+   BEGIN
+      Server^.LockObjects();
+      SUPER.AU_GroupValue_Read_Con( Status );
+      Server^.UnlockObjects();
+   END AU_GroupValue_Read_Con;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Res( Status : eib_status.TEIBStackStatus; CONST PPacket : eib_def.TPPacket );
+   BEGIN
+      Server^.LockObjects();
+      SUPER.AU_GroupValue_Read_Res( Status, PPacket );
+      Server^.UnlockObjects();
+   END AU_GroupValue_Read_Res;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Ind( CONST PPacket : eib_def.TPPacket );
+   BEGIN
+      Server^.LockObjects();
+      SUPER.AU_GroupValue_Write_Ind( PPacket );
+      Server^.UnlockObjects();
+   END AU_GroupValue_Write_Ind;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Con( Status : eib_status.TEIBStackStatus );
+   BEGIN
+      Server^.LockObjects();
+      SUPER.AU_GroupValue_Write_Con( Status );
+      Server^.UnlockObjects();
+   END AU_GroupValue_Write_Con;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE SetValue( CONST Value : eib_def.TValue ) : eib_status.TEIBStackStatus;
+   VAR
+      Result : eib_status.TEIBStackStatus;
+   BEGIN
+      Server^.LockObjects();
+      Result := SUPER.SetValue( Value );
+      Server^.UnlockObjects();
+      RETURN Result;
+   END SetValue;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE GetValue( VAR Value : eib_def.TValue; UseCached, ForceReadOutOfOrder : BOOLEAN ) : eib_status.TEIBStackStatus;
+   VAR
+      Result : eib_status.TEIBStackStatus;
+   BEGIN
+      Server^.LockObjects();
+      Result := SUPER.GetValue( Value, UseCached, ForceReadOutOfOrder );
+      Server^.UnlockObjects();
+      RETURN Result;
+   END GetValue;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE Transmit() : eib_status.TEIBStackStatus;
+   VAR
+      Result : eib_status.TEIBStackStatus;
+   BEGIN
+      Server^.LockObjects();
+      Result := SUPER.Transmit();
+      Server^.UnlockObjects();
+      RETURN Result;
+   END Transmit;
+
+//--------------------------------------------------------------------------------
+
    INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : eib_status.TEIBStackStatus );
    BEGIN
       RSStatus := Status;
@@ -1873,27 +1954,34 @@ CLASS IMPLEMENTATION CEIBServer;
       // this code takes sense for cw driver only
       IF eib_def.aofPromiscuous IN PObject^.GetFlags() THEN // promiscuous mode queueing
 
+         QueueLock.Lock();
          IF prData.Count >= InputQueueLength THEN
+            QueueLock.Unlock();
             EventSink^.OnInputQueueOverflow( FALSE, TRUE );
             RETURN;
          END;
          
          prItem.Address := PObject^.prAddress;
          PObject^.GetValue( prItem.Value, TRUE, FALSE );
+         
          prData.EnqueueOA( prItem, 0 );
-
          INCL( RStatus, rsPromiscuousInQueue );
+         QueueLock.Unlock();
+
          EventSink^.OnInputQueueAdd( FALSE, TRUE );
 
       ELSE // oobData promiscuous mode queueing
 
+         QueueLock.Lock();
          IF oobData.Count >= InputQueueLength THEN
+            QueueLock.Unlock();
             EventSink^.OnInputQueueOverflow( TRUE, FALSE );
             RETURN;
          END;
 
          PObject^.GetValue( EValue, TRUE, FALSE );
          oobData.EnqueueOA( EValue.Data, PObject );
+         QueueLock.Unlock();
 
          EventSink^.OnInputQueueAdd( TRUE, FALSE );
       END;
@@ -1999,6 +2087,20 @@ CLASS IMPLEMENTATION CEIBServer;
          StartTimer( tiInitReadDelay, InitReadRepeatDelay, FALSE );
       END;
    END InitReadFinished;
+
+//--------------------------------------------------------------------------------
+
+   LOCAL PROCEDURE LockObjects();
+   BEGIN
+      ObjectLock.Lock();
+   END LockObjects;
+
+//--------------------------------------------------------------------------------
+
+   LOCAL PROCEDURE UnlockObjects();
+   BEGIN
+      ObjectLock.Unlock();
+   END UnlockObjects;
 
 //--------------------------------------------------------------------------------
 
@@ -2173,6 +2275,9 @@ BEGIN
    SDAP.Server := ADR( SELF );
    SDAP.Init( TRUE );
    EventSink := NIL;
+   
+   ObjectLock.Init( Sync.ltCS, L"", FALSE );
+   QueueLock.Init( Sync.ltSpin, L"", FALSE );
    
    cllvdata := NIL;
    cllvlength := 0;

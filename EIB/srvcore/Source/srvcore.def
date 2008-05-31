@@ -43,6 +43,19 @@ CLASS CObject( eib_user.CUserObject );
 
    PUBLIC PROCEDURE LogNumber() : CARDINAL;
 
+   // rewritten due to locking
+   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Req();
+   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Con( Status : eib_status.TEIBStackStatus );
+   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Res( Status : eib_status.TEIBStackStatus; CONST PPacket : eib_def.TPPacket );
+   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Ind( CONST PPacket : eib_def.TPPacket );
+   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Con( Status : eib_status.TEIBStackStatus );
+
+   // due to locking
+   PUBLIC PROCEDURE SetValue( CONST Value : eib_def.TValue ) : eib_status.TEIBStackStatus;
+   PUBLIC PROCEDURE GetValue( VAR Value : eib_def.TValue; UseCached, ForceReadOutOfOrder : BOOLEAN ) : eib_status.TEIBStackStatus;
+   PUBLIC PROCEDURE Transmit() : eib_status.TEIBStackStatus;
+
+   // handling events, no need to lock, lock is done inside AU_* methods
    INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : eib_status.TEIBStackStatus );
    INTERNAL VIRTUAL PROCEDURE ValueRead( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN );
    INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN );
@@ -181,6 +194,7 @@ CLASS CEIBServer( msghandler.MessageHandler );
 
    Behaviours               : list.CList;
 
+   ObjectLock               : Sync.LOCK;
    Groups                   : ARRAY CARD16 OF CARD16; // maps group addresses to object indexes
    Objects                  : arrays.CPtrArray;
    prObjects                : ARRAY eib_def.TEIBType OF CObject; // promiscuous objects
@@ -188,6 +202,7 @@ CLASS CEIBServer( msghandler.MessageHandler );
    InitReadItems            : CARDINAL;
    InitReadRepeat           : CARDINAL;
 
+   QueueLock                : Sync.LOCK;
    // OOB management
    oobData                  : lists.CBufferList;
    // promiscuous data management
@@ -232,6 +247,9 @@ CLASS CEIBServer( msghandler.MessageHandler );
    PROCEDURE DoInitRead( RepeatFlag : BOOLEAN );
    PROCEDURE InitToDefault();
    PROCEDURE InitReadFinished();
+   
+   LOCAL PROCEDURE LockObjects();
+   LOCAL PROCEDURE UnlockObjects();
 
    LOCAL PROCEDURE IOValue2EIBValue( CONST Value : iovalue.Value; DestEVType : eib_def.TEIBType; OUT EV : eib_def.TValue );
    LOCAL PROCEDURE EIBValue2IOValue( CONST EV : eib_def.TValue; OUT Value : iovalue.Value );
