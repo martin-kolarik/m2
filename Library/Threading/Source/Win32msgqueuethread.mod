@@ -7,6 +7,7 @@ FROM Storage IMPORT
   
 IMPORT
    msghandler,
+   Sync,
    Win32msg,
    windows;
 
@@ -70,6 +71,14 @@ CLASS IMPLEMENTATION Win32MessageQueueThread;
       RETURN Return;
    END OnRun;
    
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROCEDURE ThreadCall( Target : threadcall.TPIThreadProcedureCallTarget; Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;
+                                      WaitForResult : BOOLEAN; WaitTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   BEGIN
+      RETURN Support^.ThreadCall( Target, Operation, Parameters, PReturnValue, WaitForResult, WaitTimeoutMS );
+   END ThreadCall;
+
 (*---------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Msg : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN; // thread targetted messages

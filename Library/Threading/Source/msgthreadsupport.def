@@ -9,6 +9,7 @@ IMPORT
    maps,
    OSALmsg,
    Sync,
+   threadcall,
    TimeoutableTwoPtrMap;
 
 (*===========================================================================*)
@@ -18,7 +19,7 @@ TYPE
    
 // THE CLASS SHOULD BE ALLOCATED DYNAMICALLY TO NOT TO MAKE NEED TO CALL CONTSRUCTOR FROM OTHER DLLs
    
-CLASS CSupport;
+CLASS CSupport IMPLEMENTS threadcall.IThreadProcedureCallTarget;
    PRIVATE VAR
       OfThread : OSALmsg.TPMessageQueueThread;
       Joined : maps.CPtrMap;
@@ -34,8 +35,11 @@ CLASS CSupport;
    PUBLIC PROCEDURE Leave( Handler : OSALmsg.TPMessageHandler; CallOnLeaveInThread : BOOLEAN );
    PUBLIC PROCEDURE StartTimer( Target : OSALmsg.TPMessageTarget; TimerId : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
    PUBLIC PROCEDURE StopTimer( Target : OSALmsg.TPMessageTarget; TimerId : PTR );
+   PUBLIC PROCEDURE ThreadCall( Target : threadcall.TPIThreadProcedureCallTarget; Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;
+                                WaitForResult : BOOLEAN; WaitTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    
    // thread (inner) side
+   PUBLIC VIRTUAL PROCEDURE Invoke( Operation : CARDINAL; CONST Parameters : ARRAY OF PTR ) : PTR;
    PUBLIC PROCEDURE HandleSupportMessage( CONST Message : OSALmsg.IMessage ) : BOOLEAN; // if it is not support logic message it returns FALSE
    PUBLIC PROCEDURE IsJoined( Handler : OSALmsg.TPMessageHandler ) : BOOLEAN;
    PUBLIC PROCEDURE TimerRunning( Target : OSALmsg.TPMessageTarget; TimerId : PTR ) : BOOLEAN;

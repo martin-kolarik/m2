@@ -1,0 +1,42 @@
+DEFINITION MODULE msghandlersink;
+
+(*===========================================================================*)
+
+IMPORT
+  msghandler;
+
+(*===========================================================================*)
+
+#save, option( dll_export => on )
+
+TYPE
+   TPIMessageSink = POINTER TO IMessageSink;
+
+INTERFACE IMessageSink;
+   PUBLIC PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
+END IMessageSink;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPITimerSink = POINTER TO ITimerSink;
+
+INTERFACE ITimerSink;
+   PUBLIC PROCEDURE OnTimer( TimerId : PTR );
+END ITimerSink;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS SinkMessageHandler( msghandler.MessageHandler );
+   PUBLIC VAR 
+      MessageSink : TPIMessageSink;
+      TimerSink : TPITimerSink;
+   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE OnTimer( TimerId : PTR );
+END SinkMessageHandler;
+
+#restore
+
+(*===========================================================================*)
+
+END msghandlersink.

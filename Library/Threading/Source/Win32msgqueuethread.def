@@ -6,13 +6,14 @@ IMPORT
    msghandler,
    msgthreadsupport,
    OSALmsg,
+   threadcall,
    Win32thread;
   
 (*---------------------------------------------------------------------------*)
   
 #save, option( dll_export => on )
 
-CLASS Win32MessageQueueThread( Win32thread.Win32Thread ) IMPLEMENTS OSALmsg.IMessageQueueThread;
+CLASS Win32MessageQueueThread( Win32thread.Win32Thread ) IMPLEMENTS threadcall.IThreadProcedureCallHandler, OSALmsg.IMessageQueueThread;
 // behavior: DispatchMessage for Root = NIL and MessageToHandler = FALSE == Win32 default
 // behavior: Root^.OnMessage for Root <> NIL
 // behavior: Handler^.OnMessage for Root = NIL
@@ -21,6 +22,10 @@ CLASS Win32MessageQueueThread( Win32thread.Win32Thread ) IMPLEMENTS OSALmsg.IMes
 
    // IThread/IRunnable
    INTERNAL VIRTUAL PROCEDURE OnRun() : CARDINAL;
+   
+   // IThreadProcedureCallHandler
+   PUBLIC FINAL PROCEDURE ThreadCall( Target : threadcall.TPIThreadProcedureCallTarget; Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;
+                                      WaitForResult : BOOLEAN; WaitTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    
    // IMessageTarget
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Msg : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN; // thread targetted messages

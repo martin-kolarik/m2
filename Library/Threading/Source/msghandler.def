@@ -27,9 +27,11 @@ CONST
   RAW_MSG_BASE ::= SCmsg.SC_RAW_MSG_BASE; // for usage only inside this library
   MSG_BASE = SCmsg.SC_RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_SPACE;
   MSG_ON_TIMER = SCmsg.SC_RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_ONTIMER;
+  MSG_TPC = SCmsg.SC_RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_TPC;
   // RAW_MSG_BASE ::= Win32msg.WIN32_RAW_MSG_BASE; // for usage only inside this library
   // MSG_BASE = Win32msg.WIN32_RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_SPACE;
   // MSG_ON_TIMER = Win32msg.WIN32_RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_ONTIMER;
+  // MSG_TPC = Win32msg.SC_RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_TPC;
 CONST
   Message ::= SCmsg.SCMessage;
   MessageHandler ::= SCmsg.SCMessageHandler;

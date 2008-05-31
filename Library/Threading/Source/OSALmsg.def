@@ -30,13 +30,10 @@ CONST
    // RAW messages are system/internal and cannot be used outer of this library
    RAW_MESSAGE_SPACE = 64;
 
-   RAW_PROCESS_QUEUE = 1;
-   RAW_MESSAGE_JOIN = 2;
-   RAW_MESSAGE_LEAVE = 3;
+   RAW_MESSAGE_TPC = 1;
+   RAW_PROCESS_QUEUE = 2;
 
-   RAW_MESSAGE_SETTIMER = 4;
-   RAW_MESSAGE_RESETTIMER = 5;
-   RAW_MESSAGE_ONTIMER = 6;
+   RAW_MESSAGE_ONTIMER = 16;
 
 CONST
    MI_SOURCE = 0;

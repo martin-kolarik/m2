@@ -84,6 +84,14 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
    
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC FINAL PROCEDURE ThreadCall( Target : threadcall.TPIThreadProcedureCallTarget; Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;
+                                      WaitForResult : BOOLEAN; WaitTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   BEGIN
+      RETURN Support^.ThreadCall( Target, Operation, Parameters, PReturnValue, WaitForResult, WaitTimeoutMS );
+   END ThreadCall;
+
+(*---------------------------------------------------------------------------*)
+
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Msg : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN; // thread targetted messages
    BEGIN
       RETURN FALSE;

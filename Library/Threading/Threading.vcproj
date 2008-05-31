@@ -66,6 +66,14 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\Source\msghandler.mod"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\msghandlersink.mod"
+				>
+			</File>
+			<File
 				RelativePath=".\Source\msgqueue.mod"
 				>
 			</File>
@@ -83,6 +91,14 @@
 			</File>
 			<File
 				RelativePath=".\Source\SCmsgqueuethread.mod"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\thread.mod"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\threadcall.mod"
 				>
 			</File>
 			<File
@@ -120,6 +136,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Source\msghandlersink.def"
+				>
+			</File>
+			<File
 				RelativePath=".\Source\msgqueue.def"
 				>
 			</File>
@@ -149,6 +169,10 @@
 			</File>
 			<File
 				RelativePath=".\Source\thread.def"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\threadcall.def"
 				>
 			</File>
 			<File

@@ -1,5 +1,4 @@
 DEFINITION MODULE OSALthread;
-
 // DO NOT USE THIS MODULE DIRECTLY, USE thread
 
 IMPORT
@@ -7,13 +6,19 @@ IMPORT
 
 #save, option( dll_export => on )
 
+(*===========================================================================*)
+
 TYPE
    TPRunnable = POINTER TO IRunnable;
    TPThread = POINTER TO IThread;
 
+(*---------------------------------------------------------------------------*)
+
 INTERFACE IRunnable;
    INTERNAL PROCEDURE OnRun() : CARDINAL;
 END IRunnable;
+
+(*---------------------------------------------------------------------------*)
 
 INTERFACE IThread( IRunnable );
    PUBLIC READONLY PROPERTY
@@ -26,9 +31,27 @@ INTERFACE IThread( IRunnable );
    
    // worker thread
    PUBLIC PROCEDURE RunWithRunnable( Runnable : TPRunnable );
-
+   
    // inherited INTERNAL PROCEDURE OnRun() : CARDINAL; // executive code
 END IThread;
+
+(*===========================================================================*)
+
+TYPE
+   TPIThreadProcedureCallTarget = POINTER TO IThreadProcedureCallTarget;
+
+INTERFACE IThreadProcedureCallTarget;
+   PUBLIC PROCEDURE Invoke( Operation : CARDINAL; CONST Parameters : ARRAY OF PTR ) : PTR;
+END IThreadProcedureCallTarget;
+
+(*---------------------------------------------------------------------------*)
+
+INTERFACE IThreadProcedureCallHandler;
+   PUBLIC PROCEDURE ThreadCall( Target : TPIThreadProcedureCallTarget; Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;
+                                WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+END IThreadProcedureCallHandler;
+
+(*===========================================================================*)
 
 #restore
 

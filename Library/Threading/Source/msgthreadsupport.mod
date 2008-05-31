@@ -8,6 +8,12 @@ IMPORT
    
 (*===========================================================================*)
 
+CONST
+   OP_JOIN = 1;
+   OP_LEAVE = 2;
+   OP_START_TIMER = 3;
+   OP_STOP_TIMER = 4;
+
 TYPE
    TTimerParameter = RECORD
       Timer : PTR;
@@ -40,161 +46,93 @@ CLASS IMPLEMENTATION CSupport;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Join( Handler : OSALmsg.TPMessageHandler; CallOnJoinInThread : BOOLEAN );
-   VAR
-      MSG : msghandler.Message;
-      Result : Sync.TAsyncResult;
-      Signal : Sync.SIGNAL;
    BEGIN
-      ASSERT( OfThread <> NIL );
-
-      IF OfThread^.SelfContext OR NOT CallOnJoinInThread THEN
-         DoJoin( Handler );
-      ELSE
-         Signal := Sync.CreateSignal( FALSE, L"" );
-
-         MSG.Source := Handler;
-         MSG.Target := OfThread;
-         MSG.Message := msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_JOIN;
-         MSG[ OSALmsg.MI_PARAMETER ] := Signal;
-
-         OfThread^.Message( MSG, OSALmsg.delAsynchronous, NIL );
-         
-         Result := Sync.Wait( Signal, Sync.FORSAFETY );
-         ASSERT( Result <> Sync.arTimeout );
-         Sync.DeleteSignal( REF Signal );
-      END;
+      ThreadCall( ADR( SELF ), OP_JOIN, OA( 0, ADR( Handler )), NIL, TRUE, Sync.FORSAFETY );
    END Join;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Leave( Handler : OSALmsg.TPMessageHandler; CallOnLeaveInThread : BOOLEAN );
-   VAR
-      MSG : msghandler.Message;
-      Result : Sync.TAsyncResult;
-      Signal : Sync.SIGNAL;
    BEGIN
-      ASSERT( OfThread <> NIL );
-
-      IF OfThread^.SelfContext OR NOT CallOnLeaveInThread THEN
-         DoLeave( Handler );
-      ELSE
-         Signal := Sync.CreateSignal( FALSE, L"" );
-
-         MSG.Source := Handler;
-         MSG.Target := OfThread;
-         MSG.Message := msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_LEAVE;
-         MSG[ OSALmsg.MI_PARAMETER ] := Signal;
-
-         OfThread^.Message( MSG, OSALmsg.delAsynchronous, NIL );
-
-         Result := Sync.Wait( Signal, Sync.FORSAFETY );
-         ASSERT( Result <> Sync.arTimeout );
-         Sync.DeleteSignal( REF Signal );
-      END;
+      ThreadCall( ADR( SELF ), OP_LEAVE, OA( 0, ADR( Handler )), NIL, TRUE, Sync.FORSAFETY );
    END Leave;
    
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE StartTimer( Target : OSALmsg.TPMessageTarget; TimerId : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
    VAR
-      MSG : msghandler.Message;
-      parameter : TPTimerParameter;
-      Result : Sync.TAsyncResult;
-      Signal : Sync.SIGNAL;
+      Parameters : ARRAY [0..3] OF PTR;
    BEGIN
-      ASSERT( OfThread <> NIL );
-
-      IF OfThread^.SelfContext THEN
-         DoStartTimer( Target, TimerId, PeriodMS, Repeat );
-      ELSE
-         Signal := Sync.CreateSignal( FALSE, L"" );
-
-         NEW( parameter );
-         parameter^.Timer := TimerId;
-         parameter^.PeriodMS := PeriodMS;
-         parameter^.Repeat := Repeat;
-         parameter^.Signal := Signal;
-
-         MSG.Source := Target;
-         MSG.Target := OfThread;
-         MSG.Message := msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_SETTIMER;
-         MSG.Parameter := parameter;
-         
-         OfThread^.Message( MSG, OSALmsg.delAsynchronous, NIL );
-         
-         Result := Sync.Wait( Signal, Sync.FORSAFETY );
-         ASSERT( Result <> Sync.arTimeout );
-         
-         DISPOSE( parameter );
-         Sync.DeleteSignal( REF Signal );
-      END;
+      Parameters[0] := Target;
+      Parameters[1] := TimerId;
+      Parameters[2] := PeriodMS;
+      Parameters[3] := PTR( Repeat );
+      ThreadCall( ADR( SELF ), OP_START_TIMER, Parameters, NIL, TRUE, Sync.FORSAFETY );
    END StartTimer;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE StopTimer( Target : OSALmsg.TPMessageTarget; TimerId : PTR );
    VAR
+      Parameters : ARRAY [0..1] OF PTR;
+   BEGIN
+      Parameters[0] := Target;
+      Parameters[1] := TimerId;
+      ThreadCall( ADR( SELF ), OP_STOP_TIMER, Parameters, NIL, TRUE, Sync.FORSAFETY );
+   END StopTimer;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ThreadCall( Target : threadcall.TPIThreadProcedureCallTarget; Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;
+                                WaitForResult : BOOLEAN; WaitTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   VAR
+      Call : threadcall.TPThreadProcedureCall;
       MSG : msghandler.Message;
-      parameter : TPTimerParameter;
       Result : Sync.TAsyncResult;
-      Signal : Sync.SIGNAL;
+      ReturnValue : PTR;
    BEGIN
       ASSERT( OfThread <> NIL );
 
       IF OfThread^.SelfContext THEN
-         DoStopTimer( Target, TimerId );
+         ReturnValue := Target^.Invoke( Operation, Parameters );
+
       ELSE
-         Signal := Sync.CreateSignal( FALSE, L"" );
-
-         NEW( parameter );
-         parameter^.Timer := TimerId;
-         parameter^.Signal := Signal;
-
+         NEW( Call );
+         Call^.Init( Target, Operation, Parameters );
+         Call^.AddRef();
+         
          MSG.Source := Target;
          MSG.Target := OfThread;
-         MSG.Message := msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_RESETTIMER;
-         MSG.Parameter := parameter;
-         
+         MSG.Message := msghandler.MSG_TPC;
+         MSG.Parameter := Call;
          OfThread^.Message( MSG, OSALmsg.delAsynchronous, NIL );
-         
-         Result := Sync.Wait( Signal, Sync.FORSAFETY );
-         ASSERT( Result <> Sync.arTimeout );
 
-         DISPOSE( parameter );
-         Sync.DeleteSignal( REF Signal );
+         Result := Call^.WaitCompletion( WaitForResult, WaitTimeoutMS );
+         IF Result <> Sync.arCompleted THEN
+            RETURN Result;
+         END;
+         
+         ReturnValue := Call^.ReturnValue;
+         Call^.Release();
       END;
-   END StopTimer;
+
+      IF PReturnValue <> NIL THEN
+         PReturnValue^ := ReturnValue;
+      END;
+      RETURN Sync.arCompleted;
+   END ThreadCall;                         
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE HandleSupportMessage( CONST Message : OSALmsg.IMessage ) : BOOLEAN; // if it is not join logic message it returns FALSE
    VAR
       message : CARDINAL := Message.Message;
-      parameter : TPTimerParameter;
    BEGIN
       CASE message OF
       //-----
-      | msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_JOIN :
-         DoJoin( OSALmsg.TPMessageHandler( Message.Source ));
-         Sync.Signal( Sync.SIGNAL( Message[ OSALmsg.MI_PARAMETER ] ));
-
-      //-----
-      | msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_LEAVE :
-         DoLeave( OSALmsg.TPMessageHandler( Message.Source ));
-         Sync.Signal( Sync.SIGNAL( Message[ OSALmsg.MI_PARAMETER ] ));
-
-      //-----
-      | msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_SETTIMER :
-         parameter := TPTimerParameter( Message.Parameter );
-         DoStartTimer( OSALmsg.TPMessageTarget( Message.Source ), parameter^.Timer, parameter^.PeriodMS, parameter^.Repeat );
-         Sync.Signal( parameter^.Signal );
-
-      //-----
-      | msghandler.RAW_MSG_BASE + OSALmsg.RAW_MESSAGE_RESETTIMER :
-         parameter := TPTimerParameter( Message.Parameter );
-         DoStopTimer( OSALmsg.TPMessageTarget( Message.Source ), parameter^.Timer );
-         Sync.Signal( parameter^.Signal );
-
+      | msghandler.MSG_TPC :
+         threadcall.TPThreadProcedureCall( Message.Parameter )^.Do();
+         threadcall.TPThreadProcedureCall( Message.Parameter )^.Release();
       ELSE
          RETURN FALSE;
       END;
@@ -254,6 +192,23 @@ CLASS IMPLEMENTATION CSupport;
       TimersLock.Unlock();
       RETURN b;
    END GetFirstElapsed;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Invoke( Operation : CARDINAL; CONST Parameters : ARRAY OF PTR ) : PTR;
+   BEGIN
+      CASE Operation OF
+      | OP_JOIN :
+         DoJoin( OSALmsg.TPMessageHandler( Parameters[0] ));
+      | OP_LEAVE :
+         DoLeave( OSALmsg.TPMessageHandler( Parameters[0] ));
+      | OP_START_TIMER :
+         DoStartTimer( OSALmsg.TPMessageTarget( Parameters[0] ), Parameters[1], CARDINAL( LOPTRLONGWORD( Parameters[2] )), BOOLEAN( LOPTRLONGWORD( Parameters[3] )));
+      | OP_STOP_TIMER :
+         DoStopTimer( OSALmsg.TPMessageTarget( Parameters[0] ), Parameters[1] );
+      END;
+      RETURN 0;
+   END Invoke;
 
 (*---------------------------------------------------------------------------*)
 

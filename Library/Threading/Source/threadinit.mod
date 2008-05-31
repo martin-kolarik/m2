@@ -19,7 +19,7 @@ END Startup;
 PROCEDURE Cleanup();
 BEGIN
    threadpool.Cleanup();
-   SCmsgqueuethread.Startup();
+   SCmsgqueuethread.Cleanup();
    Win32msgqueuethread.Cleanup();
 END Cleanup;
 

@@ -1,0 +1,48 @@
+DEFINITION MODULE threadcall;
+
+(*===========================================================================*)
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE, Move;
+
+IMPORT
+   Delegate,
+   OSALthread,
+   Sync;
+
+CONST
+   IThreadProcedureCallTarget ::= OSALthread.IThreadProcedureCallTarget;
+   TPIThreadProcedureCallTarget ::= OSALthread.TPIThreadProcedureCallTarget;
+   IThreadProcedureCallHandler ::= OSALthread.IThreadProcedureCallHandler;
+
+(*===========================================================================*)
+
+#save, option( dll_export => on )
+
+TYPE
+   TPThreadProcedureCall = POINTER TO ThreadProcedureCall;
+
+CLASS ThreadProcedureCall( Delegate.ADelegate );
+   PRIVATE VAR
+      _Target : TPIThreadProcedureCallTarget := NIL;
+      _High : CARDINAL := -1;
+      _Operation : CARDINAL;
+      _Parameters : POINTER TO PTR := NIL;
+      _ReturnValue : PTR := 0;
+      _Sync : Sync.STATE;
+   
+   // caller thread
+   PUBLIC READONLY PROPERTY
+      ReturnValue : PTR;
+   PUBLIC PROCEDURE Init( Target : TPIThreadProcedureCallTarget; Operation : CARDINAL; CONST Parameters : ARRAY OF PTR );
+   PUBLIC PROCEDURE WaitCompletion( WaitForResult : BOOLEAN; WaitTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+
+   // called thread
+   PUBLIC PROCEDURE Do();
+END ThreadProcedureCall;
+
+#restore
+
+(*===========================================================================*)
+
+END threadcall.
