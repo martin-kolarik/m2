@@ -5,7 +5,6 @@ FROM Storage IMPORT
 
 IMPORT
    Sync,
-   thread,
    windows,
    winsvc;
 
@@ -28,33 +27,23 @@ TYPE
    );
 
 ABSTRACT CLASS AService;
-   PRIVATE VAR
-      Thread : thread.TPThread;
    LOCAL VAR
       StatusHandle : winsvc.SERVICE_STATUS_HANDLE;
       ServiceStatus : winsvc.SERVICE_STATUS;
    LOCAL ABSTRACT READONLY PROPERTY
       Name : PWCHAR;
-   LOCAL PROPERTY
-      Threaded : BOOLEAN; // mainly used for services with message handling: default service thread has NO message queue
 
    // controls      
    LOCAL PROCEDURE SetServiceState( State : TServiceState; ErrorCode : CARDINAL ) : BOOLEAN;
    LOCAL PROCEDURE RequestAdditionalTime( TimeMS : CARDINAL );
    LOCAL PROCEDURE LogEvent( ErrorCode : CARDINAL; CONST Text : ARRAY OF WCHAR );
 
-   // callbacks -- called from service thread, if Threaded = false, or from self thread, if Threaded = true
-   // In case of calling self thread, prcedures can last longer if they report PENDING states
-   INTERNAL ABSTRACT PROCEDURE OnStart(); // SetServiceState( RUNNING ) must be called inside
-   INTERNAL VIRTUAL PROCEDURE OnPause(); // SetServiceState( PAUSED ) must be called inside
-   INTERNAL VIRTUAL PROCEDURE OnContinue(); // SetServiceState( RUNNING ) must be called inside
-   INTERNAL ABSTRACT PROCEDURE OnStop(); // SetServiceState( STOPPED ) must be called inside
-   
-   // private controls
-   LOCAL PROCEDURE _OnStart( Dispatched : BOOLEAN );
-   LOCAL PROCEDURE _OnPause( Dispatched : BOOLEAN );
-   LOCAL PROCEDURE _OnContinue( Dispatched : BOOLEAN );
-   LOCAL PROCEDURE _OnStop( Dispatched : BOOLEAN );
+   // callbacks -- called from service thread
+   LOCAL ABSTRACT PROCEDURE OnStart(); // SetServiceState( RUNNING ) must be called inside
+   LOCAL VIRTUAL PROCEDURE OnPause(); // SetServiceState( PAUSED ) must be called inside
+   LOCAL VIRTUAL PROCEDURE OnContinue(); // SetServiceState( RUNNING ) must be called inside
+   LOCAL ABSTRACT PROCEDURE OnStop(); // SetServiceState( STOPPED ) must be called inside
+
 END AService;
 
 (*--------------------------------------------------------------------------------*)
