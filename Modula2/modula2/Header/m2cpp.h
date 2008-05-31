@@ -100,7 +100,7 @@ typedef CARD64                 LONGSET;
 # define EVEN_(n)              (((n)& 1) == 0)
 # define MIN2_(a,b)            ((a)<(b) ? (a) : (b))
 # define MAX2_(a,b)            ((a)>(b) ? (a) : (b))
-# define TRUNC_(n)             (((INTEGER)(n))) // t stands for float, double or other number type
+# define TRUNC_(n)             (((INTEGER)(n)))
 # define FRAC_(t,n)            (((t)(n)-(t)(INT64)(n))) // t stands for float, double or other number type
 # define VAL_(t,n)             ((t)(n))
 
@@ -316,7 +316,7 @@ inline BOOLEAN INSIDEB_(CARDINAL HIGH_, const CHAR* S, ORDINAL I) throw()
 {
   return I <= (int)HIGH_ && S[I] != 0;
 }
-// strings -- LASTCHAR UNICODE
+// strings -- INSIDE UNICODE
 inline BOOLEAN INSIDEW_(CARDINAL HIGH_, const WCHAR* S, ORDINAL I) throw()
 {
   return I <= (int)HIGH_ && S[I] != 0;
