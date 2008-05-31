@@ -48,7 +48,7 @@ CLASS Win32MessageQueueThread( Win32thread.Win32Thread ) IMPLEMENTS threadcall.I
    PUBLIC VIRTUAL PROCEDURE Leave( Handler : msghandler.TPIMessageHandler; CallOnLeaveInThread : BOOLEAN );
 END Win32MessageQueueThread;
 
-PROCEDURE Win32GlobalMessageQueueThread() : POINTER TO OSALmsg.IMessageQueueThread;
+PROCEDURE Win32GlobalMessageQueueThread() : POINTER TO Win32MessageQueueThread;
 
 #restore
 

@@ -50,7 +50,7 @@ END SCMessageQueueThread;
 
 (*---------------------------------------------------------------------------*)
   
-PROCEDURE SCGlobalMessageQueueThread() : POINTER TO OSALmsg.IMessageQueueThread;
+PROCEDURE SCGlobalMessageQueueThread() : POINTER TO SCMessageQueueThread;
 
 #restore
 
