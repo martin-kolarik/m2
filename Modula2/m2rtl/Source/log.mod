@@ -679,10 +679,14 @@ CLASS IMPLEMENTATION CLogger;
     IF rsLevelInfo IN RStatus THEN
       leading := TRUE;
       CASE LoggedLevel OF
-      | dl1 : Strings.AppendW( REF SW, L"F " );
-      | dl2 : Strings.AppendW( REF SW, L"E " );
-      | dl3 : Strings.AppendW( REF SW, L"W " );
-      | dl4 : Strings.AppendW( REF SW, L"I " );
+      | dlcSysError : Strings.AppendW( REF SW, L"F " );
+      | dldError : Strings.AppendW( REF SW, L"e " );
+      | dlcError : Strings.AppendW( REF SW, L"E " );
+      | dldMessage : Strings.AppendW( REF SW, L"m " );
+      | dlcWarning : Strings.AppendW( REF SW, L"W " );
+      | dldTrace : Strings.AppendW( REF SW, L"t " );
+      | dlcInfo : Strings.AppendW( REF SW, L"I " );
+      | dldDebug : Strings.AppendW( REF SW, L"d " );
       END;
     END;
     IF rsNameInfo IN RStatus THEN
@@ -763,9 +767,9 @@ CLASS IMPLEMENTATION CLogger;
       RStatus := TRStatus{rsDebugKernel, rsTimeStamps, rsNameInfo, rsLevelInfo};
       Strings.ConcatW( OUT DebugFile, LibraryName, L".log" );
       #if DEBUG #then
-         DebugLevel := dl3;
+         DebugLevel := dldTrace;
       #else
-         DebugLevel := dl1;
+         DebugLevel := dldError;
       #endif
 
       LOOP
@@ -823,13 +827,13 @@ CLASS IMPLEMENTATION CLogger;
          IF ( winreg.RegQueryValueExW( hkey, keyLevel, NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
             LOW( OAsz( PWCHAR( PData )));
             IF EQUALS( OAsz( PWCHAR( PData )), valSystemError ) THEN
-               DebugLevel := dl1;
+               DebugLevel := dldError;
             ELSIF EQUALS( OAsz( PWCHAR( PData )), valError ) THEN
-               DebugLevel := dl2;
+               DebugLevel := dldMessage;
             ELSIF EQUALS( OAsz( PWCHAR( PData )), valWarning ) THEN
-               DebugLevel := dl3;
+               DebugLevel := dldTrace;
             ELSIF EQUALS( OAsz( PWCHAR( PData )), valInfo ) THEN
-               DebugLevel := dl4;
+               DebugLevel := dldDebug;
             END;
          END;
 
@@ -845,9 +849,9 @@ BEGIN
 
    RStatus := TRStatus{rsDebugKernel, rsTimeStamps, rsLevelInfo, rsNameInfo};
    #if DEBUG #then
-      DebugLevel := dl3;
+      DebugLevel := dldTrace;
    #else
-      DebugLevel := dl1;
+      DebugLevel := dldError;
    #endif
    Name[0] := 0W;
    DebugFile := 0W;

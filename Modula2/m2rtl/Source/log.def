@@ -28,23 +28,11 @@ TYPE
    );
 
    TDebugLevel = (
-      dl1, // brief OR critical severity
-      dl2,
-      dl3,
-      dl4 // exhaustive OR very low severity
+      dlcSysError, dldError, // critical severity OR brief         // Fatal,   debug Xtra problem
+      dlcError,    dldMessage,                                     // Error,   debug Message
+      dlcWarning,  dldTrace,                                       // Warning, debug Trace
+      dlcInfo,     dldDebug // very low severity OR exhaustive     // Info,    debug Debug
    );
-
-CONST // for common purposes
-   dlcSysError ::= dl1;
-   dlcError    ::= dl2;
-   dlcWarning  ::= dl3;
-   dlcInfo     ::= dl4;
-
-CONST // for developing
-   dldError    ::= dl1;
-   dldInfo     ::= dl2;
-   dldTrace    ::= dl3;
-   dldDebug    ::= dl4;
 
 TYPE
    TPLogger = POINTER TO CLogger;
