@@ -27,6 +27,7 @@ IMPORT
    IOO,
    iovalue,
    Log,
+   msgqueuethread,
    Resources,
    Strings,
    StringsO,
@@ -35,6 +36,16 @@ IMPORT
    Texts,
    threadpool,
    Time;
+
+//================================================================================
+
+CONST
+   OP_RUN = 1;
+   OP_STOP = 2;
+   OP_DISPOSE = 3;
+   OP_FINALLY = 4;
+   
+   TIMER_WATCH_DOG = 1305;
 
 //================================================================================
 
@@ -209,15 +220,29 @@ CLASS IMPLEMENTATION CEIBDriver;
 
    PUBLIC PROCEDURE Run();
    BEGIN
-      DoRun();
+      msgqueuethread.global()^.ThreadCall( ADR( SELF ), OP_RUN, OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
    END Run;
 
 //--------------------------------------------------------------------------------
 
    PUBLIC PROCEDURE Stop();
    BEGIN
-      DoStop();
+      msgqueuethread.global()^.ThreadCall( ADR( SELF ), OP_STOP, OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
    END Stop;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE Dispose();
+   BEGIN
+      msgqueuethread.global()^.ThreadCall( ADR( SELF ), OP_DISPOSE, OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
+   END Dispose;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE Finally();
+   BEGIN
+      msgqueuethread.global()^.ThreadCall( ADR( SELF ), OP_FINALLY, OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
+   END Finally;
 
 //--------------------------------------------------------------------------------
 
@@ -405,17 +430,22 @@ CLASS IMPLEMENTATION CEIBDriver;
 
    PUBLIC PROCEDURE InputOOBDataQuery( VAR EnumerateState : LONGWORD; VAR DriverIndex : CARDINAL ) : BOOLEAN;
    BEGIN
+      QueueLock.Lock();
       IF CARDINAL( EnumerateState ) >= oobData.Count THEN
          EXCL( RStatus, srvcore.rsProcessingOOB );
          oobData.Dispose();
+         QueueLock.Unlock();
          RETURN FALSE;
       ELSIF srvcore.rsProcessingOOB NOT IN RStatus THEN
          INCL( RStatus, srvcore.rsProcessingOOB );
          oobData.Reset();
       END;
       oobData.MoveNext();
+      QueueLock.Unlock();
+
       DriverIndex := srvcore.TPObject( oobData.CurrentData )^.LogNumber();
       EnumerateState := CARDINAL( EnumerateState ) + 1;
+
       RETURN TRUE;
    END InputOOBDataQuery;
 
@@ -437,6 +467,8 @@ CLASS IMPLEMENTATION CEIBDriver;
          IF EIB^.DeviceConnected() THEN
             INCL( Status, schiUSBConnected );
          END;
+
+         QueueLock.Lock();
          IF PromiscuousMode THEN
             IF prData.Count >= InputQueueLength THEN
                INCL( Status, schiInputQueueOverflow );
@@ -446,14 +478,16 @@ CLASS IMPLEMENTATION CEIBDriver;
                INCL( Status, schiInputQueueOverflow );
             END;
          END;
+         IF srvcore.rsPromiscuousInQueue IN RStatus THEN
+            INCL( Status, schiHavePromiscuousData );
+         END;
+         QueueLock.Unlock();
+
          IF EIB^.EIBConnected() THEN
             INCL( Status, schiEIBConnected );
          END;
          IF NOT( srvcore.rsInitReadFinished IN RStatus ) THEN
             INCL( Status, schiInitReadPending );
-         END;
-         IF srvcore.rsPromiscuousInQueue IN RStatus THEN
-            INCL( Status, schiHavePromiscuousData );
          END;
          IF Result.Counted OR Result.Expired THEN
             EXCL( Status, schiValid );
@@ -466,7 +500,10 @@ CLASS IMPLEMENTATION CEIBDriver;
       ELSIF DriverIndex = InputQueueLengthChannel THEN
          QoS := drv_def.qosGood;
          ErrorCode := drv_def.ecSuccess;
+
+         QueueLock.Lock();
          drv_def.AssignValueCardinal( InValue, UFlag, TRUE, CARDINAL( oobData.Count ));
+         QueueLock.Unlock();
 
       ELSIF DriverIndex = OutputQueueLengthChannel THEN
          QoS := drv_def.qosGood;
@@ -495,7 +532,7 @@ CLASS IMPLEMENTATION CEIBDriver;
 
          PObject^.GetValue( EV, TRUE, FALSE );
          IF srvcore.rsProcessingOOB IN RStatus THEN
-            oobData.Current^.ToOA( OUT EV.Data, OUT c );
+            oobData.Current^.ToOA( OUT EV.Data, OUT c ); // iteration depends on client (GetFirst/NextOf), no need for sync
          END;
          EIBValue2IOValue( EV, OUT IO );
          drv_def.IOValueToCWValue( IO, UFlag, TRUE, REF InValue );
@@ -521,12 +558,9 @@ CLASS IMPLEMENTATION CEIBDriver;
       Result.Inc();
 
       IF DriverIndex = WatchDogChannel THEN
-         c := WatchDogLeft + 1000 * drv_def.ValueToCardinal( OutValue, UFlag, TRUE );
-         IF c < WatchDogLeft THEN
-            WatchDogLeft := MAX( CARDINAL );
-         ELSE
-            WatchDogLeft := c;
-         END;
+         WatchDogLock.Lock();
+         WatchDogLeft := 1000 * drv_def.ValueToCardinal( OutValue, UFlag, TRUE );
+         WatchDogLock.Unlock();
 
       ELSIF LogNumber2Object( DriverIndex, PObject ) THEN
          drv_def.CWValueToIOValue( OutValue, UFlag, REF IO );
@@ -601,11 +635,15 @@ CLASS IMPLEMENTATION CEIBDriver;
 
          //-----
          IF EQUALS( N, L'count' ) THEN
+            QueueLock.Lock();
             CS.FromCARD32( prData.Count, 10 );
+            QueueLock.Unlock();
 
          //-----
          ELSIF EQUALS( N, L'get' ) THEN
+            QueueLock.Lock();
             IF prData.Count = 0 THEN
+               QueueLock.Unlock();
                CS.Clear();
                GOTO Error;
             END;
@@ -614,6 +652,7 @@ CLASS IMPLEMENTATION CEIBDriver;
             IF prData.Count = 0 THEN
                EXCL( RStatus, srvcore.rsPromiscuousInQueue );
             END;
+            QueueLock.Unlock();
 
             promiscuousData.Address.GetGroupAddress3( TRUE, s );
             CS.FromOA( s ); CS.AppendOA( L' ' );
@@ -766,29 +805,46 @@ CLASS IMPLEMENTATION CEIBDriver;
 
 //--------------------------------------------------------------------------------
 
-   PRIVATE PROCEDURE DoRun();
+   PUBLIC VIRTUAL PROCEDURE Invoke( Operation : CARDINAL; CONST Parameters : ARRAY OF PTR ) : PTR;
    BEGIN
-      SUPER.Run( TRUE, FALSE );
-      IF WatchDogChannel <> MAX( CARDINAL ) THEN
-         WatchDogLeft := 10 * WD_TICK;
+      CASE Operation OF
+      //-----
+      | OP_RUN :
+         SUPER.Run( TRUE, FALSE );
+
+         IF WatchDogChannel <> MAX( CARDINAL ) THEN
+            WatchDogLock.Lock();
+            WatchDogLeft := 10 * WD_TICK;
+            WatchDogLock.Unlock();
+            StartTimer( TIMER_WATCH_DOG, WD_TICK, TRUE );
+         END;
+
+      //-----         
+      | OP_STOP :
+         StopTimer( TIMER_WATCH_DOG );
+
+         SUPER.Stop( TRUE, FALSE );
+
+      //-----         
+      | OP_DISPOSE :
+         SUPER.Dispose();
+      //-----         
+      | OP_FINALLY :
+         CEIBDriver.FINALLY();
+
+      //-----         
       END;
-   END DoRun;
+      RETURN 0;
+   END Invoke;
 
-//================================================================================
-
-   PRIVATE PROCEDURE DoStop();
-   BEGIN
-      SUPER.Stop( TRUE, FALSE );
-   END DoStop;
-
-//================================================================================
+//--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROCEDURE OnConnect();
    BEGIN
       CallbackProc( CallbackId, drv_def.dcfException, NIL );
    END OnConnect;
 
-//================================================================================
+//--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROCEDURE OnDisconnect();
    BEGIN
@@ -797,28 +853,28 @@ CLASS IMPLEMENTATION CEIBDriver;
       CallbackProc( CallbackId, drv_def.dcfException, NIL );
    END OnDisconnect;
 
-//================================================================================
+//--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROCEDURE OnInitReadCompleted();
    BEGIN
       CallbackProc( CallbackId, drv_def.dcfException, NIL );
    END OnInitReadCompleted;
 
-//================================================================================
+//--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROCEDURE OnRead( PObject : srvcore.TPObject );
    BEGIN
       CallbackProc( CallbackId, drv_def.dcfInputFinalized, NIL );
    END OnRead;
 
-//================================================================================
+//--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : srvcore.TPObject );
    BEGIN
       CallbackProc( CallbackId, drv_def.dcfOutputFinalized, NIL );
    END OnWritten;
 
-//================================================================================
+//--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROCEDURE OnInputQueueAdd( OOBQueue, PromiscuousQueue : BOOLEAN );
    BEGIN
@@ -829,14 +885,40 @@ CLASS IMPLEMENTATION CEIBDriver;
       END;
    END OnInputQueueAdd;
 
-//================================================================================
+//--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
    BEGIN
       CallbackProc( CallbackId, drv_def.dcfException, NIL );
    END OnInputQueueOverflow;
 
-//================================================================================
+//--------------------------------------------------------------------------------
+
+   INTERNAL VIRTUAL PROCEDURE OnTimer( TimerId : PTR );
+   VAR
+      stop : BOOLEAN := FALSE;
+   BEGIN
+      IF TimerId = TIMER_WATCH_DOG THEN
+
+         WatchDogLock.Lock();
+         IF WatchDogLeft <= WD_TICK THEN
+            WatchDogLeft := 0;
+            stop := TRUE;
+         ELSE
+            DEC( WatchDogLeft, WD_TICK );
+         END;
+         WatchDogLock.Unlock();
+         
+         IF stop THEN
+            SUPER.Stop( TRUE, FALSE );
+         END;
+         
+      ELSE
+         SUPER.OnTimer( TimerId );
+      END;
+   END OnTimer;
+
+//--------------------------------------------------------------------------------
 
 BEGIN
    CallbackId := NIL;

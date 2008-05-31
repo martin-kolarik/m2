@@ -10,7 +10,8 @@ IMPORT
    drv_def,
    Resources,
    srvcore,
-   StringsO;
+   StringsO,
+   threadcall;
 
 //================================================================================
 
@@ -30,7 +31,7 @@ CONST // device specific error codes
    ceWriteQueueOverflow             = 1000AH;
    // cePromiscuousModeRunning         = 1000BH;
 
-CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS srvcore.IEIBServerSink;
+CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureCallTarget;
    CallbackId               : ADDRESS;
    CallbackProc             : drv_def.TDriverCallbackW;
 
@@ -40,7 +41,8 @@ CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS srvcore.IEIBServerSink;
    OutputQueueLengthChannel : CARDINAL;
    WriteQueueLengthChannel  : CARDINAL;
    
-   WatchDogLeft             : CARDINAL; // threaded
+   WatchDogLock             : Sync.LOCK;
+   WatchDogLeft             : CARDINAL;
 
    // binding to procedural interface
    PUBLIC PROCEDURE Init( CONST SymbolicName : ARRAY OF WCHAR; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW ) : BOOLEAN;
@@ -48,6 +50,8 @@ CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS srvcore.IEIBServerSink;
    
    PUBLIC PROCEDURE Run();
    PUBLIC PROCEDURE Stop();
+   PUBLIC PROCEDURE Dispose();
+   PUBLIC PROCEDURE Finally();
 
    PUBLIC PROCEDURE EnumerateChannels(  VAR EnumerateState : LONGWORD; VAR Type : CARDINAL; VAR Direction : CARDINAL; VAR DriverIndex : CARDINAL; VAR Count : CARDINAL; VAR HaveDescription : BOOLEAN ): BOOLEAN;
    PUBLIC PROCEDURE GetChannelDescription( DriverIndex : CARDINAL; VAR Description : ARRAY OF WCHAR; VAR Id : ARRAY OF WCHAR ) : BOOLEAN;
@@ -71,9 +75,8 @@ CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS srvcore.IEIBServerSink;
    PROCEDURE EIBStatus2ErrorCode( Status : eib_status.TEIBStackStatus ) : CARDINAL;
    PROCEDURE HWConnected( VAR ErrorCode : CARDINAL ) : BOOLEAN;
 
-   // helpers
-   PRIVATE PROCEDURE DoRun();
-   PRIVATE PROCEDURE DoStop();
+   // IThreadProcedureCallTarget
+   PUBLIC VIRTUAL PROCEDURE Invoke( Operation : CARDINAL; CONST Parameters : ARRAY OF PTR ) : PTR;
 
    // IEIBServerSink
    PUBLIC VIRTUAL PROCEDURE OnConnect();
@@ -83,6 +86,9 @@ CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS srvcore.IEIBServerSink;
    PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : srvcore.TPObject );
    PUBLIC VIRTUAL PROCEDURE OnInputQueueAdd( OOBQueue, PromiscuousQueue : BOOLEAN );
    PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
+
+   // MessageHandlers
+   INTERNAL VIRTUAL PROCEDURE OnTimer( TimerId : PTR );
 END CEIBDriver;
 
 //================================================================================

@@ -8,11 +8,10 @@ FROM driver IMPORT
    
 IMPORT
    driver,
-   netinit,
+   scinit,
    Strings,
    StringsO,
-   Texts,
-   threadinit;
+   Texts;
 
 //================================================================================
 // procedural interface
@@ -58,8 +57,7 @@ END CheckW;
 PROCEDURE MakeDriverW() : ADDRESS;
 BEGIN
    IF RefCount = 0 THEN
-     netinit.Startup();
-     threadinit.Startup();
+     scinit.Startup();
    END;
    INC( RefCount );
 
@@ -70,12 +68,12 @@ END MakeDriverW;
 
 PROCEDURE DisposeDriverW( PData : ADDRESS );
 BEGIN
+   TPEIBDriver( PData )^.Finally(); // defer this to driver's thread
    DISPOSE( TPEIBDriver( PData ));
 
    DEC( RefCount );
    IF RefCount = 0 THEN
-     threadinit.Cleanup();
-     netinit.Cleanup();
+     scinit.Cleanup();
    END;
 END DisposeDriverW;
 
