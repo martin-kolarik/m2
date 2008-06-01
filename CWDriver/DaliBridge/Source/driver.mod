@@ -779,6 +779,10 @@ CLASS IMPLEMENTATION CDriver;
          END;
          CS.Clear(); // return value
 
+      ELSIF EQUALS( S1, L'program_addresses' )  THEN
+         // TODO: linie as parameter
+         Dali.StartProgramming( 0 );
+
       ELSE
          CS.FromOA( L'error: unknown driver procedure' );
       END;

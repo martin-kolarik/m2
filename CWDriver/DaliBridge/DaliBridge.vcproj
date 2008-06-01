@@ -70,10 +70,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Source\DaliSci.mod"
-				>
-			</File>
-			<File
 				RelativePath=".\Source\diface.mod"
 				>
 			</File>
@@ -92,10 +88,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Source\DaliSci.def"
-				>
-			</File>
-			<File
 				RelativePath=".\Source\diface.def"
 				>
 			</File>
@@ -107,6 +99,10 @@
 		<Filter
 			Name="Test"
 			>
+			<File
+				RelativePath=".\Test\AddressProgrammer.mod"
+				>
+			</File>
 			<File
 				RelativePath=".\Test\UDPSend.mod"
 				>

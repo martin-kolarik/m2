@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE DaliBridge;
 
 FROM log IMPORT
-   dldError, dldInfo, dldTrace, dldDebug;
+   dldError, dldMessage, dldTrace, dldDebug;
   
 FROM driver IMPORT
    R;
@@ -22,6 +22,7 @@ IMPORT
 
 CONST
    logPrefix = L"Dali.UDP";
+   MSG_START_PROGRAMMING = msghandler.MSG_BASE + 1;
 
 (*===============================================================================*)
 
@@ -165,7 +166,7 @@ CLASS IMPLEMENTATION CUDPCommunicator;
    
       ServerSocket^.ReceiveOA( OUT buffer, OUT l );
       IF l < 2 THEN // some damaged data
-         Logger^.LogSC( dldInfo, logPrefix, L"Corrupted data received, length: ", l );
+         Logger^.LogSC( dldMessage, logPrefix, L"Corrupted data received, length: ", l );
          EventSink^.OnDaliData( Sync.arAborted, OA( -1, NIL ));
       ELSIF EventSink = NIL THEN
          // fall down
@@ -353,6 +354,199 @@ END DaliAddress;
 
 (*===============================================================================*)
 
+CLASS IMPLEMENTATION CDaliAddressSeeker;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Init();
+   BEGIN
+      H := 1 << 24 - 1;
+      L := 0;
+      State := dasSeek;
+   END Init;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE GetAddressToCheck( OUT Address : TProgramAddress ) : TRISTATE;
+   BEGIN
+      IF L > H THEN
+         CASE State OF
+         | dasSeek, dasCheck :
+            State := dasCheck;
+            Address.C24 := L;
+            RETURN getTRUE;
+         | dasFailure :
+            RETURN getFALSE;
+         | dasSuccess :
+            Address.C24 := L;
+            RETURN getFOUND;
+         END; // CASE
+      END;
+      M := ( L + H ) DIV 2;
+      Address.C24 := M;
+      RETURN getTRUE;
+   END GetAddressToCheck;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE HandleResponse( Positive : BOOLEAN );
+   BEGIN
+      IF State = dasSeek THEN
+         IF Positive THEN
+            H := M - 1;
+         ELSE
+            L := M + 1;
+         END;
+      ELSIF State = dasCheck THEN
+         IF Positive THEN
+            State := dasSuccess;
+         ELSE
+            State := dasFailure;
+         END;
+      END;
+   END HandleResponse;
+
+(*-------------------------------------------------------------------------------*)
+
+BEGIN
+   H := 0;
+   L := 0;
+   M := 0;
+   State := dasSeek;
+END CDaliAddressSeeker;
+
+(*===============================================================================*)
+
+CLASS IMPLEMENTATION CDaliAddressProgrammer;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY CurrentLongAddress GET : TProgramAddress;
+   VAR
+      Address : TProgramAddress;
+   BEGIN
+      Address.C24 := CurrentSelected;
+      RETURN Address;
+   END CurrentLongAddress;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY CurrentShortAddress GET : CARD8;
+   BEGIN
+      RETURN CurrentShort;
+   END CurrentShortAddress;
+      
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE InitProgramming();
+   BEGIN
+      Current := addressesNone;
+      ReaddressMode := FALSE;
+      State := dapInit;
+      CurrentSelected := 0;
+      CurrentShort := 0;
+      HaveAddresses := FALSE;
+   END InitProgramming;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE InitReaddressing( Readdress : TAddresses ) : BOOLEAN;
+   BEGIN
+      IF NOT HaveAddresses THEN
+         RETURN FALSE;
+      END;
+      ReaddressMode := TRUE;
+      SELF.Readdress := Readdress;
+      State := dapInit;
+      RETURN TRUE;
+   END InitReaddressing;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE WhatNext() : TCommand;
+   BEGIN
+      RETURN State;
+   END WhatNext;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE HandleResponse( Positive : BOOLEAN; Data : INTEGER );
+   BEGIN
+      CASE State OF
+      | dapInit :
+         IF Positive THEN
+            IF ReaddressMode THEN
+               CurrentSelected := Current[Readdress[CurrentShort]];
+               State := dapSelectOne;
+            ELSE
+               State := dapRandomize;
+            END;
+         END;
+      | dapRandomize :
+         IF Positive THEN
+            State := dapStartSeek;
+         ELSE
+            State := dapInit;
+         END;
+      | dapStartSeek :
+         State := dapSeekOne;
+      | dapSeekOne :
+         IF Positive THEN
+            Current[CurrentShort] := Data;
+            CurrentSelected := Data;
+            State := dapProgramOne;
+         ELSE
+            State := dapFinish;
+         END;
+      | dapSelectOne :
+         IF Positive THEN
+            State := dapProgramOne;
+         END;   
+      | dapProgramOne :
+         IF Positive THEN
+            State := dapCheckOne;
+         END;
+      | dapCheckOne :
+         IF Positive THEN
+            IF ReaddressMode THEN
+               New[CurrentShort] := CurrentSelected;
+            END;
+            INC( CurrentShort );
+            IF ReaddressMode THEN
+               CurrentSelected := Current[Readdress[CurrentShort]];
+               State := dapSelectOne;
+            ELSE
+               State := dapDisableOne; // CurrentSelected is left
+            END;     
+         END;
+      | dapDisableOne :
+         IF Positive THEN
+            State := dapSeekOne;
+         END;
+      | dapFinish :
+         IF Positive THEN
+            IF ReaddressMode THEN
+               Current := New;
+            END;
+         END;
+      END; // CASE
+   END HandleResponse;
+
+(*-------------------------------------------------------------------------------*)
+
+BEGIN
+   Current := addressesNone;
+   New := addressesNone;
+   Readdress := addressesNone;
+   State := dapInit;
+   CurrentSelected := 0;
+   CurrentShort := 0;
+   ReaddressMode := FALSE;
+   HaveAddresses := FALSE;
+END CDaliAddressProgrammer;
+
+(*===============================================================================*)
+
 CLASS DaliRequest;
    LOCAL VAR
       Pending : BOOLEAN;
@@ -465,35 +659,65 @@ CLASS IMPLEMENTATION CDali;
 (*-------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Command( Linie : CARDINAL; CONST daliAddress : DaliAddress; _Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
-   VAR
-      Request : POINTER TO DaliRequest;
    BEGIN
-      Logger.LogSC( dldDebug, logPrefix, L"Start command: ", CARDINAL( _Command ));
-      Logger.LogSC( dldDebug, logPrefix, L"    for linie: ", Linie );
-      Logger.LogSC( dldDebug, logPrefix, L"  for address: ", daliAddress.Address );
-
-      NEW( Request );
-      Request^.Linie := Linie;
-      Request^.ClientId := ClientId;
-      Request^.Address := daliAddress;
-      Request^.Command := _Command;
-      Request^.Data := Data;
-      Queue.Enqueue( Request );
-      
-      RETURN Sync.arPending; // all processing is moved into thread
+      IF Programming THEN
+         Logger.LogSC( dldMessage, logPrefix, L"Unable to send command in programming mode: ", CARDINAL( _Command ));
+         RETURN Sync.arCannotStart;
+      ELSE
+         RETURN FeedCommand( Linie, TPDaliAddress( ADR( daliAddress )), _Command, Data, ClientId );
+      END;
    END Command;
+   
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE StartProgramming( Linie : CARDINAL );
+   VAR
+      Msg : msghandler.Message;
+   BEGIN
+      IF Programming THEN
+         RETURN;
+      END;
+
+      Programmer.InitProgramming();
+      Programming := TRUE;
+      ProgrammedLinie := Linie;
+
+      Msg.Message := MSG_START_PROGRAMMING;
+      Message( Msg, msghandler.delDefault, NIL );
+   END StartProgramming;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Readdress( Linie : CARDINAL; Readdressed : TAddresses ) : BOOLEAN;
+   VAR
+      Msg : msghandler.Message;
+   BEGIN
+      IF Programming OR NOT Programmer.InitReaddressing( Readdressed ) THEN
+         RETURN FALSE;
+      END;
+
+      Programming := TRUE;
+      ProgrammedLinie := Linie;
+
+      Msg.Message := MSG_START_PROGRAMMING;
+      Message( Msg, msghandler.delDefault, NIL );
+      RETURN TRUE;
+   END Readdress;
    
 (*-------------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
    BEGIN
-      IF Message.Message = msgqueue.MSG_PROCESS_QUEUE THEN
+      CASE Message.Message OF
+      | msgqueue.MSG_PROCESS_QUEUE :
          Logger.LogS( dldDebug, logPrefix, L"Start Communicate after SWITCH" );
          Communicate();
-         RETURN TRUE;
+      | MSG_START_PROGRAMMING :
+         ProgrammingStep();
       ELSE
          RETURN FALSE;
       END;
+      RETURN TRUE;
    END OnMessage;
 
 (*-------------------------------------------------------------------------------*)
@@ -527,14 +751,25 @@ CLASS IMPLEMENTATION CDali;
             Request^.Pending := FALSE; // allow new send
          ELSE
             Queue.Dequeue( OUT Request );
-            IF EventSink <> NIL THEN
-               IF Result = Sync.arCompleted THEN
-                  IF ( Request^.Command <> cmdCurrentLevel ) OR ( Data[0] < 0FFH ) THEN
-                     Response := Data[0];
-                  ELSE
-                     Response := 0;
-                  END;
-               END;            
+
+            IF Result = Sync.arCompleted THEN
+               IF ( Request^.Command <> cmdCurrentLevel ) OR ( Data[0] < 0FFH ) THEN
+                  Response := Data[0];
+               ELSE
+                  Response := 0;
+               END;
+            END;            
+
+            IF Programming THEN
+               Logger.LogSC( dldDebug, logPrefix, L"Completed programming command: ", CARDINAL( Request^.Command ));
+               Logger.LogSC( dldDebug, logPrefix, L"                    for linie: ", Request^.Linie );
+               Logger.LogSR( dldDebug, logPrefix, L"                       result: ", Result );
+
+               // Programmer.HandleResponse( Result = Sync.arCompleted, INTEGER( Response ));
+               Programmer.HandleResponse( TRUE, INTEGER( Response ));
+               ProgrammingStep();
+
+            ELSIF EventSink <> NIL THEN
 
                Logger.LogSC( dldDebug, logPrefix, L"Completed command: ", CARDINAL( Request^.Command ));
                Logger.LogSC( dldDebug, logPrefix, L"        for linie: ", Request^.Linie );
@@ -554,11 +789,36 @@ CLASS IMPLEMENTATION CDali;
          END;
          
       ELSE
-         Logger.LogS( dldInfo, logPrefix, L"Data received when nothing is expected" );
+         Logger.LogS( dldMessage, logPrefix, L"Data received when nothing is expected" );
       END; // IF something in the Queue
          
       Communicate();
    END OnDaliData;
+
+(*-------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE FeedCommand( Linie : CARDINAL; daliAddress : TPDaliAddress; _Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
+   VAR
+      Request : POINTER TO DaliRequest;
+   BEGIN
+      Logger.LogSC( dldDebug, logPrefix, L"Start command: ", CARDINAL( _Command ));
+      Logger.LogSC( dldDebug, logPrefix, L"    for linie: ", Linie );
+      IF daliAddress <> NIL THEN
+         Logger.LogSC( dldDebug, logPrefix, L"  for address: ", daliAddress^.Address );
+      END;
+
+      NEW( Request );
+      Request^.Linie := Linie;
+      Request^.ClientId := ClientId;
+      IF daliAddress <> NIL THEN
+         Request^.Address := daliAddress^;
+      END;
+      Request^.Command := _Command;
+      Request^.Data := Data;
+      Queue.Enqueue( Request );
+      
+      RETURN Sync.arPending; // all processing is moved into thread
+   END FeedCommand;
 
 (*-------------------------------------------------------------------------------*)
 
@@ -577,7 +837,7 @@ CLASS IMPLEMENTATION CDali;
       END;
       
       // prepare Dali packet
-      IF Request^.Command = cmdLoadDTR THEN
+      IF Request^.Command IN specialCommands THEN
          DaliData[0] := BYTE( Request^.Command );
          DaliData[1] := MIN2( 0FEH, Request^.Data );
       ELSIF Request^.Command = cmdDirect THEN
@@ -601,7 +861,76 @@ CLASS IMPLEMENTATION CDali;
 
 (*-------------------------------------------------------------------------------*)
 
+   PRIVATE PROCEDURE ProgrammingStep();
+   VAR
+      Address : TProgramAddress;
+   BEGIN
+      LOOP
+         CASE Programmer.WhatNext() OF
+         | dapInit :
+            FeedCommand( ProgrammedLinie, NIL, cmdInitialize, 0, -1 );
+            EXIT;
+
+         | dapRandomize :
+            FeedCommand( ProgrammedLinie, NIL, cmdRandomize, 0, -1 );
+            EXIT;
+
+         | dapStartSeek :
+            Seeker.Init();
+            LastProgrammedAddress.C24 := 0;
+            Programmer.HandleResponse( TRUE, 0 );
+
+         | dapSeekOne :
+            IF Seeker.GetAddressToCheck( OUT Address ) = getTRUE THEN
+               IF Address.H8 <> LastProgrammedAddress.H8 THEN
+                  FeedCommand( ProgrammedLinie, NIL, cmdStoreH, Address.H8, -1 );
+               END;
+               IF Address.M8 <> LastProgrammedAddress.M8 THEN
+                  FeedCommand( ProgrammedLinie, NIL, cmdStoreM, Address.M8, -1 );
+               END;
+               IF Address.L8 <> LastProgrammedAddress.L8 THEN
+                  FeedCommand( ProgrammedLinie, NIL, cmdStoreL, Address.L8, -1 );
+               END;
+               FeedCommand( ProgrammedLinie, NIL, cmdCompare, 0, -1 );
+
+               LastProgrammedAddress := Address;
+               EXIT;
+            ELSE
+               Programmer.HandleResponse( FALSE, 0 );
+            END;
+            
+         | dapSelectOne :
+            Address := Programmer.CurrentLongAddress;
+            FeedCommand( ProgrammedLinie, NIL, cmdStoreH, Address.H8, -1 );
+            FeedCommand( ProgrammedLinie, NIL, cmdStoreM, Address.M8, -1 );
+            FeedCommand( ProgrammedLinie, NIL, cmdStoreL, Address.L8, -1 );
+            EXIT;
+
+         | dapProgramOne :
+            FeedCommand( ProgrammedLinie, NIL, cmdSetAddress, Programmer.CurrentShortAddress, -1 );
+            EXIT;
+
+         | dapCheckOne :
+            FeedCommand( ProgrammedLinie, NIL, cmdGetAddress, 0, -1 );
+            EXIT;
+
+         | dapDisableOne :
+            FeedCommand( ProgrammedLinie, NIL, cmdWithdraw, 0, -1 );
+            EXIT;
+
+         | dapFinish :
+            FeedCommand( ProgrammedLinie, NIL, cmdTerminate, 0, -1 );
+            EXIT;
+
+         END; // CASE
+      END; // LOOP
+   END ProgrammingStep;
+
+(*-------------------------------------------------------------------------------*)
+
 BEGIN
+   Programming := FALSE;
+   ProgrammedLinie := 0;
    Communicator := NEW( CUDPCommunicator );
    Communicator^.EventSink := TPICommunicatorSink( ADR( SELF ));
    Communicator^.Logger := ADR( Logger );
