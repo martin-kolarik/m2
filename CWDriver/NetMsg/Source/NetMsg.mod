@@ -506,7 +506,7 @@ CLASS IMPLEMENTATION CDriver;
           IF EQUALS( s, kvDebugBasic ) THEN
             DebugLevel := log.dldError;
           ELSIF EQUALS( s, kvDebugExtended ) THEN
-            DebugLevel := log.dldInfo;
+            DebugLevel := log.dldMessage;
           ELSIF EQUALS( s, kvDebugAllProtocol ) THEN
             DebugLevel := log.dldTrace;
           ELSIF EQUALS( s, kvDebugAll ) THEN

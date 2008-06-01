@@ -1727,7 +1727,7 @@ CONST
 VAR
    cs : StringsO.CString;
    DebugFile : StringsO.CString;
-   DebugLevel : Log.TDebugLevel := Log.dldInfo;
+   DebugLevel : Log.TDebugLevel := Log.dldMessage;
    DebugMode : Log.TDebugMethod := Log.dmKernel;
 BEGIN
    IF NOT ini.SetSection( snDebug ) THEN
@@ -1751,7 +1751,7 @@ BEGIN
             IF cs.EqualsOA( kvDebugBasic ) OR cs.EqualsOA( kvFatal ) THEN
                DebugLevel := Log.dldError;
             ELSIF cs.EqualsOA( kvDebugExtended ) OR cs.EqualsOA( kvError ) THEN
-               DebugLevel := Log.dldInfo;
+               DebugLevel := Log.dldMessage;
             ELSIF cs.EqualsOA( kvDebugAllProtocol ) OR cs.EqualsOA( kvWarning ) THEN
                DebugLevel := Log.dldTrace;
             ELSIF cs.EqualsOA( kvDebugAll ) OR cs.EqualsOA( kvInfo ) THEN
