@@ -378,6 +378,8 @@ CLASS IMPLEMENTATION CEIBDriver;
          ( DriverIndex = OutputQueueLengthChannel ) OR
          ( DriverIndex = WriteQueueLengthChannel ) THEN
          // pass down
+      ELSIF Result.Counted OR Result.Expired THEN
+         // pass down
       ELSIF NOT LogNumber2Object( DriverIndex, PObject ) THEN
          // pass down
       ELSIF eib_user.TObjectState{eib_user.osInitReadPending, eib_user.osReading} * PObject^.State <> eib_user.TObjectState{} THEN
@@ -410,6 +412,8 @@ CLASS IMPLEMENTATION CEIBDriver;
          ( DriverIndex = OutputQueueLengthChannel ) OR
          ( DriverIndex = WriteQueueLengthChannel ) THEN
          ErrorCode := drv_def.ecSuccess;
+      ELSIF Result.Counted OR Result.Expired THEN
+         RETURN FALSE;
       ELSIF NOT LogNumber2Object( DriverIndex, PObject ) THEN
          ErrorCode := drv_def.ecUnknownElement;
       ELSIF NOT HWConnected( ErrorCode ) THEN
@@ -431,7 +435,7 @@ CLASS IMPLEMENTATION CEIBDriver;
    PUBLIC PROCEDURE InputOOBDataQuery( VAR EnumerateState : LONGWORD; VAR DriverIndex : CARDINAL ) : BOOLEAN;
    BEGIN
       QueueLock.Lock();
-      IF CARDINAL( EnumerateState ) >= oobData.Count THEN
+      IF ( CARDINAL( EnumerateState ) >= oobData.Count ) OR Result.Counted OR Result.Expired THEN
          EXCL( RStatus, srvcore.rsProcessingOOB );
          oobData.Dispose();
          QueueLock.Unlock();
@@ -561,6 +565,9 @@ CLASS IMPLEMENTATION CEIBDriver;
          WatchDogLeft := 1000 * drv_def.ValueToCardinal( OutValue, UFlag, TRUE );
          WatchDogLock.Unlock();
 
+      ELSIF Result.Counted OR Result.Expired THEN
+         // do nothing
+
       ELSIF LogNumber2Object( DriverIndex, PObject ) THEN
          IF PObject^.Value.GetType() = eib_def.eitDate THEN
             IO.Type := iovalue.vtDate;
@@ -586,6 +593,8 @@ CLASS IMPLEMENTATION CEIBDriver;
    BEGIN
       IF DriverIndex = WatchDogChannel THEN
          ErrorCode := drv_def.ecSuccess;
+      ELSIF Result.Counted OR Result.Expired THEN
+         RETURN FALSE;
       ELSIF NOT LogNumber2Object( DriverIndex, PObject ) THEN
          ErrorCode := drv_def.ecUnknownElement;
       ELSIF NOT HWConnected( ErrorCode ) THEN
