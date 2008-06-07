@@ -1,36 +1,44 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
-  <PropertyGroup>
-      <WixBin>c:\program files\wix</WixBin>
-      <Candle>$(WixBin)\candle</Candle>
-      <Light>$(WixBin)\light</Light>
-      <WixSrc>..\$(RootBuildDir)\WiX</WixSrc>
+    <PropertyGroup>
+        <WixBin>c:\program files\wix</WixBin>
+        <Candle>$(WixBin)\candle</Candle>
+        <Light>$(WixBin)\light</Light>
+        <WixSrc>..\$(RootBuildDir)\WiX</WixSrc>
 
-      <SetupFile>..\$(SetupDir)\$(MSBuildProjectName).wxs</SetupFile>
-      <SetupObj>$(IntermediateDir)\$(MSBuildProjectName).wixobj</SetupObj>
-      <SetupResult>$(MSBuildProjectName).msi</SetupResult>
-      <SetupResultDir>$(OutputDir)\$(MSBuildProjectName).msi</SetupResultDir>
+        <SetupFile>..\$(SetupDir)\$(MSBuildProjectName).wxs</SetupFile>
+        <SetupObj>$(IntermediateDir)\$(MSBuildProjectName).wixobj</SetupObj>
+        <SetupResult>$(MSBuildProjectName).msi</SetupResult>
+        <SetupResultDir>$(OutputDir)\$(MSBuildProjectName).msi</SetupResultDir>
 
-      <CandleDefs>-dBuildRoot=&quot;$(WiXSrc)&quot; -dProductRoot=&quot;$(ComponentPath)\Install&quot; -dProductId=&quot;$(ProductId)&quot;</CandleDefs>
-      <CandleDefs>$(CandleDefs) -dContact=&quot;$(Contact)&quot; -dSupport=&quot;$(Support)&quot; -dPhone=&quot;$(Phone)&quot; -dURL=&quot;$(URL)&quot; -dUpdateURL=&quot;$(UpdateURL)&quot;</CandleDefs>
-      <CandleDefs>$(CandleDefs) -dManufacturer=&quot;$(Manufacturer)&quot; -dProductDisplayName=&quot;$(ProductDisplayName)&quot; -dProductDescription=&quot;$(ProductDescription)&quot;</CandleDefs>
-      <CandleDefs>$(CandleDefs) -dProductGUID=$(ProductGUID) -dUpgradeGUID=$(ProductUpgradeGUID) -dLicenceMId=$(LicenceMId)</CandleDefs>
-      <CandleDefs>$(CandleDefs) -dLanguage=$(LangIdDec) -dCodePage=$(OriginalCodePageDec) -dConfigurationName=$(ConfigurationName) -dLeakChecking=$(LeakChecking)</CandleDefs>
-      <CandleDefs Condition="$(CLib)=='static'">$(CandleDefs) -dCLib=$(CLib)</CandleDefs>
-      <CandleDefs Condition="$(CLib)!='static'">$(CandleDefs) -dCLib=$(DynamicCLibInstallMethod)</CandleDefs>
-  </PropertyGroup>
+        <CandleDefs>-dBuildRoot=&quot;$(WiXSrc)&quot; -dProductRoot=&quot;$(ComponentPath)\Install&quot; -dProductId=&quot;$(ProductId)&quot;</CandleDefs>
+        <CandleDefs>$(CandleDefs) -dContact=&quot;$(Contact)&quot; -dSupport=&quot;$(Support)&quot; -dPhone=&quot;$(Phone)&quot; -dURL=&quot;$(URL)&quot; -dUpdateURL=&quot;$(UpdateURL)&quot;</CandleDefs>
+        <CandleDefs>$(CandleDefs) -dManufacturer=&quot;$(Manufacturer)&quot; -dProductDisplayName=&quot;$(ProductDisplayName)&quot; -dProductDescription=&quot;$(ProductDescription)&quot;</CandleDefs>
+        <CandleDefs>$(CandleDefs) -dUpgradeGUID=$(ProductUpgradeGUID) -dLicenceMId=$(LicenceMId)</CandleDefs>
+        <CandleDefs>$(CandleDefs) -dLanguage=$(LangIdDec) -dCodePage=$(OriginalCodePageDec) -dConfigurationName=$(ConfigurationName) -dLeakChecking=$(LeakChecking)</CandleDefs>
+        <CandleDefs Condition="$(CLib)=='static'">$(CandleDefs) -dCLib=$(CLib)</CandleDefs>
+        <CandleDefs Condition="$(CLib)!='static'">$(CandleDefs) -dCLib=$(DynamicCLibInstallMethod)</CandleDefs>
+    </PropertyGroup>
 
-  <ItemGroup>
-      <SetupSource Include="$(SetupDir)\*;$(SetupDir)\**\*.bmp;$(SetupDir)\**\*.ico" />
-      <IntermediateSetupFiles Include="$(SetupDir)\License.rtf;$(IntermediateDir)\*.wixobj;$(OutputDir)\$(SetupResult)"/>
-  </ItemGroup>
+    <ItemGroup>
+        <SetupSource Include="$(SetupDir)\*;$(SetupDir)\**\*.bmp;$(SetupDir)\**\*.ico" />
+        <IntermediateSetupFiles Include="$(SetupDir)\License.rtf;$(IntermediateDir)\*.wixobj;$(OutputDir)\$(SetupResult)"/>
+    </ItemGroup>
 
-  <Target Name="CleanSetup">
-      <Delete Files="@(IntermediateSetupFiles)" ContinueOnError="true" />
-  </Target>
+    <UsingTask TaskName="GenerateGUID" AssemblyFile="BuildTasks.dll"/>
+
+    <Target Name="CleanSetup">
+        <Delete Files="@(IntermediateSetupFiles)" ContinueOnError="true" />
+    </Target>
 
     <Target Name="CreateSetup"
-            DependsOnTargets="MSI;Digests"/>
+            DependsOnTargets="GUID;MSI;Digests"/>
+
+    <Target Name="GUID" Condition="$(ProductGUID)==''">
+        <GenerateGUID>
+            <Output TaskParameter="GUID" PropertyName="ProductGUID"/>
+        </GenerateGUID>
+    </Target>
 
     <Target Name="MSI"
             Inputs="$(Compiled);@(SetupSource)"
@@ -38,7 +46,7 @@
         <Copy SourceFiles="$(SetupDir)\License.$(Manufacturer).rtf"
               DestinationFiles="$(SetupDir)\License.rtf" />
         <Exec WorkingDirectory="$(IntermediateDir)"
-              Command="&quot;$(Candle)&quot; $(SetupFile) -dProductVersion=$(ProductVersion) $(CandleDefs)"/>
+              Command="&quot;$(Candle)&quot; $(SetupFile) -dProductVersion=$(ProductVersion) -dProductGUID=$(ProductGUID) $(CandleDefs)"/>
         <Exec WorkingDirectory="$(OutputDir)"
               Command="&quot;$(Light)&quot; -b &quot;..\$(SetupDir)&quot; &quot;..\$(SetupObj)&quot; &quot;$(WiXSrc)\WixUI_Licence.wixlib&quot; -loc &quot;$(WiXSrc)\WixUI_cs-CZ.wxl&quot; -loc &quot;$(WixSrc)\WixUI_Licence_cs-CZ.wxl&quot; -out $(SetupResult)"/>
     </Target>
