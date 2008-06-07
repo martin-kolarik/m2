@@ -233,6 +233,10 @@ CLASS IMPLEMENTATION CPtrQueue;
 BEGIN
    Consumer := NIL;
    Msg := NIL;
+FINALLY
+   IF Msg <> NIL THEN
+      DISPOSE( Msg );
+   END;
 END CPtrQueue;
 
 (*================================================================================*)
