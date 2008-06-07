@@ -132,10 +132,11 @@
         <Components Condition="$(ClientLicensing)=='on' And $(LicensingComponent)!=''"
                     Include="$(LicensingComponent)"/>
 
-        <Components Condition="$(Test)!='off'"
+        <Components Condition="$(Test)=='on' And $(TestComponent)!='' And $(LibraryName)!=$(TestComponentName)"
                     Include="$(TestComponent)"/>
 
-        <Components Condition="$(LeakChecking)=='on' And $(LeakDetectorComponent)!='' And (@(ExportToInterface)!='' Or @(Objects)!='')"
+        <Components Condition="$(LeakChecking)=='on' And $(LeakDetectorComponent)!='' And $(LibraryName)!=$(LeakDetectorComponentName) And
+                               (@(ExportToInterface)!='' Or @(Objects)!='')"
                     Include="$(LeakDetectorComponent)"/>
 
     </ItemGroup>
@@ -570,10 +571,10 @@
                 ContinueOnError="true" />
     </Target>
     <Target Name="CleanAll"
-            Condition="$(Level)=='0' Or $(PropagateBuild)=='on' Or $(DeepFlag)=='on'">
+            Condition="$(Level)=='0' Or $(PropagateBuild)=='on' Or ($(DeepFlag)=='on' And $(RespectDeepFlag)=='on')">
         <MSBuild Projects="@(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"
                  Targets="CleanAll"
-                 Properties="DeepFlag=$(DeepFlag);Parameters=%(Components.Parameters);$(ChildParameters)"/>
+                 Properties="DeepFlag=off;Parameters=%(Components.Parameters);$(ChildParameters)"/>
         <CallTarget Targets="Clean"/>
     </Target>
     <Target Name="CleanAllComponents">
@@ -593,11 +594,11 @@
         </CreateProperty>
     </Target>
     <Target Name="BuildAll"
-            DependsOnTargets="ProductBuildNumberGet" 
-            Condition="$(Level)=='0' Or $(PropagateBuild)=='on' Or $(DeepFlag)=='on'">
+            Condition="$(Level)=='0' Or $(PropagateBuild)=='on' Or ($(DeepFlag)=='on' And $(RespectDeepFlag)=='on')"
+            DependsOnTargets="ProductBuildNumberGet">
         <MSBuild Projects="@(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"
                  Targets="BuildAll"
-                 Properties="DeepFlag=$(DeepFlag);Parameters=%(Components.Parameters);$(ChildParameters)"
+                 Properties="DeepFlag=off;Parameters=%(Components.Parameters);$(ChildParameters)"
                  StopOnFirstFailure="true">
             <Output TaskParameter="TargetOutputs" ItemName="Compiled"/>
         </MSBuild>
@@ -613,7 +614,7 @@
                  StopOnFirstFailure="true">
             <Output TaskParameter="TargetOutputs" ItemName="Compiled"/>
         </MSBuild>
-        <CallTarget Targets="RebuildAll"/>
+        <CallTarget Targets="Rebuild"/>
     </Target>
 
 
