@@ -550,7 +550,6 @@ CLASS IMPLEMENTATION CEIBDriver;
 
    PUBLIC PROCEDURE OutputRequest( UFlag : BOOLEAN; DriverIndex : CARDINAL; OutValue : drv_def.TValue; QoS : CARDINAL; TimeStamp : drv_def.TUTCStamp );
    VAR
-      c : CARDINAL;
       EV : eib_def.TValue;
       IO : iovalue.Value;
       PObject : srvcore.TPObject;
@@ -585,7 +584,9 @@ CLASS IMPLEMENTATION CEIBDriver;
    VAR
       PObject : srvcore.TPObject;
    BEGIN
-      IF NOT LogNumber2Object( DriverIndex, PObject ) THEN
+      IF DriverIndex = WatchDogChannel THEN
+         ErrorCode := drv_def.ecSuccess;
+      ELSIF NOT LogNumber2Object( DriverIndex, PObject ) THEN
          ErrorCode := drv_def.ecUnknownElement;
       ELSIF NOT HWConnected( ErrorCode ) THEN
          PObject^.CancelIO();
@@ -650,7 +651,17 @@ CLASS IMPLEMENTATION CEIBDriver;
                CS.Clear();
                GOTO Error;
             END;
-           
+
+            // check licensing           
+            IF Result.Counted OR Result.Expired THEN
+               prData.Dispose();
+               EXCL( RStatus, srvcore.rsPromiscuousInQueue );
+
+               QueueLock.Unlock();
+               CS.Clear();
+               GOTO Error;
+            END;
+
             prData.DequeueOA( OUT promiscuousData, OUT i, OUT d );
             IF prData.Count = 0 THEN
                EXCL( RStatus, srvcore.rsPromiscuousInQueue );
