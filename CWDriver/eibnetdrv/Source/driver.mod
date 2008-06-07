@@ -272,7 +272,7 @@ CLASS IMPLEMENTATION CEIBDriver;
             HaveDescription := TRUE;
             Type := CARDINAL( drv_def.vtLongCard );
             LOOP
-               IF Index > OCount + 3 THEN
+               IF Index > OCount + 4 THEN
                   RETURN FALSE;
                ELSIF ( Index = OCount ) AND ( StatusChannel <> MAX( CARDINAL )) THEN
                   // enumerate status channel
