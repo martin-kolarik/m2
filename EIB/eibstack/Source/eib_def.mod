@@ -460,8 +460,8 @@ CLASS IMPLEMENTATION CValue;
     | eitUnknown:    RETURN TRUE;
     | eitSwitch:     RETURN ( PVD^.State      = PSD^.State );
     | eitIncrease:   RETURN ( PVD^.How        = PSD^.How )        AND ( PVD^.Amount  = PSD^.Amount );
-    | eitTime:       RETURN ( PVD^.Day        = PSD^.Day )        AND ( PVD^.H        = PSD^.H  )       AND ( PVD^.Mi      = PSD^.Mi ) AND ( PVD^.S = PSD^.S );
-    | eitDate:       RETURN ( PVD^.Y          = PSD^.Y )          AND ( PVD^.Mo       = PSD^.Mo )       AND ( PVD^.D       = PSD^.D  );
+    | eitTime:       RETURN ( PVD^.Day        = PSD^.Day )        AND ( PVD^.H       = PSD^.H  )       AND ( PVD^.Mi      = PSD^.Mi ) AND ( PVD^.S = PSD^.S );
+    | eitDate:       RETURN ( PVD^.Y          = PSD^.Y )          AND ( PVD^.Mo      = PSD^.Mo )       AND ( PVD^.D       = PSD^.D  );
     | eitValue:      RETURN ( PVD^.Value      = PSD^.Value );
     | eitValueRange: RETURN ( PVD^.Value      = PSD^.Value )      AND ( PVD^.LoRange = PSD^.LoRange ) AND ( PVD^.HiRange = PSD^.HiRange );
     | eitScaling:    RETURN ( PVD^.Percent    = PSD^.Percent );
@@ -1106,9 +1106,9 @@ CLASS IMPLEMENTATION EMIPacket;
     //-----
     | eitDate:
       IF CARDINAL( Data[2] ) < 90 THEN
-        Value.SetDate( CARDINAL( Data[0] ), CARDINAL( Data[1] ), CARDINAL( Data[2] ) + 2000 );
+        Value.SetDate( 2000 + CARDINAL( Data[2] ), CARDINAL( Data[1] ), CARDINAL( Data[0] ));
       ELSE
-        Value.SetDate( CARDINAL( Data[0] ), CARDINAL( Data[1] ), CARDINAL( Data[2] ) + 1900 );
+        Value.SetDate( 1900 + CARDINAL( Data[2] ), CARDINAL( Data[1] ), CARDINAL( Data[0] ));
       END;
     //-----
     | eitValue, eitValueRange:

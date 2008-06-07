@@ -563,6 +563,9 @@ CLASS IMPLEMENTATION CEIBDriver;
          WatchDogLock.Unlock();
 
       ELSIF LogNumber2Object( DriverIndex, PObject ) THEN
+         IF PObject^.Value.GetType() = eib_def.eitDate THEN
+            IO.Type := iovalue.vtDate;
+         END;
          drv_def.CWValueToIOValue( OutValue, UFlag, REF IO );
          IOValue2EIBValue( IO, PObject^.Value.GetType(), OUT EV );
          PObject^.SetValue( EV );
@@ -659,6 +662,9 @@ CLASS IMPLEMENTATION CEIBDriver;
             eib_def.TypeToString( promiscuousData.Value.GetType(), s );
             CS.AppendOA( s ); CS.AppendOA( L' ' );
 
+            IF promiscuousData.Value.GetType() = eib_def.eitDate THEN
+               IO.Type := iovalue.vtFloat;
+            END;
             EIBValue2IOValue( promiscuousData.Value, OUT IO );
             CS.Append( IO.String );
 
@@ -737,6 +743,9 @@ CLASS IMPLEMENTATION CEIBDriver;
             GOTO Error;
          END;
 
+         IF EIT = eib_def.eitDate THEN
+            IO.Type := iovalue.vtFloat;
+         END;
          IO.FromStringOA( V, FALSE );
          IOValue2EIBValue( IO, EIT, OUT EV );
          prObjects[EIT].SetValue( EV );

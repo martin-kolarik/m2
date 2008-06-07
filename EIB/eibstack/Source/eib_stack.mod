@@ -214,7 +214,7 @@ CLASS IMPLEMENTATION CTimeouter;
       MSG.Message := msghandler.MSG_ON_TIMER;
       Message( MSG, msghandler.delAsynchronous, NIL ); // tick over thread loop
     ELSE
-      StartTimer( 1, TimeoutDelay, TRUE );
+      StartTimer( 1, TimeoutDelay, FALSE );
     END;
   END StartEx;
 
