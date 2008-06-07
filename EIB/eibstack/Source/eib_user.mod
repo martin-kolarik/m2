@@ -584,7 +584,7 @@ CLASS IMPLEMENTATION CUserObject;
   PRIVATE PROCEDURE eit2prl( eit : eib_def.TEIBType; VAR prl : eib_stack.TprLength ) : BOOLEAN;
   BEGIN
     CASE eit OF
-    | eib_def.eitSwitch, eib_def.eitIncrease :
+    | eib_def.eitSwitch, eib_def.eitIncrease, eib_def.eitMove, eib_def.eitPriority :
       prl := eib_stack.prl1;
     | eib_def.eitScaling, eib_def.eitScaling255, eib_def.eitChar, eib_def.eit8bit :
       prl := eib_stack.prl2;

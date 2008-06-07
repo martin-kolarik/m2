@@ -2169,6 +2169,9 @@ CLASS IMPLEMENTATION CEIBServer;
       | eib_def.eitMove :
          EV.SetMove( Value.Boolean );
 
+      | eib_def.eitPriority :
+         EV.SetPriority( Value.LimitedInteger( 2, FALSE, TRUE ));
+
       | eib_def.eitFloat :
          EV.SetFloat( Value.Float );
 
@@ -2240,6 +2243,9 @@ CLASS IMPLEMENTATION CEIBServer;
 
       | eib_def.eitMove :
          Value.Boolean := EV.GetMove();
+      
+      | eib_def.eitPriority :
+         Value.Integer := EV.GetPriority();
 
       | eib_def.eitFloat :
          Value.Float := EV.GetFloat();

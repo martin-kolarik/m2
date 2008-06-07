@@ -295,6 +295,7 @@ BEGIN
   | eitScaling : ASSIGN( string, L'scaling' );
   | eitScaling255 : ASSIGN( string, L'scaling255' );
   | eitMove : ASSIGN( string, L'updown' );
+  | eitPriority : ASSIGN( string, L'priority' );
   | eitFloat : ASSIGN( string, L'float' );
   | eit16bit : ASSIGN( string, L'counter16' );
   | eit32bit : ASSIGN( string, L'counter32' );
@@ -361,6 +362,8 @@ BEGIN
     EIT := eitScaling255;
   ELSIF EQUALS( String, L'eis7'  ) OR EQUALS( String, L'updown'     ) THEN
     EIT := eitMove;        
+  ELSIF EQUALS( String, L'eis8'  ) OR EQUALS( String, L'priority'   ) THEN
+    EIT := eitPriority;        
   ELSIF EQUALS( String, L'eis9'  ) OR EQUALS( String, L'float'      ) THEN
     EIT := eitFloat;
   ELSIF EQUALS( String, L'eis10' ) OR EQUALS( String, L'counter16'  ) THEN
@@ -405,6 +408,7 @@ TYPE
                    | eitScaling:    Percent    : CARDINAL;
                    | eitScaling255: Scaling    : CARD8;
                    | eitMove:       Up         : BOOLEAN;
+                   | eitPriority:   Priority   : CARD8;
                    | eitFloat:      Float      : LONGREAL;
                    | eit16bit:      Count16    : CARD16;
                    | eit32bit:      Count32    : CARD32;
@@ -467,6 +471,7 @@ CLASS IMPLEMENTATION CValue;
     | eitScaling:    RETURN ( PVD^.Percent    = PSD^.Percent );
     | eitScaling255: RETURN ( PVD^.Scaling    = PSD^.Scaling );
     | eitMove:       RETURN ( PVD^.Up         = PSD^.Up );
+    | eitPriority:   RETURN ( PVD^.Priority   = PSD^.Priority );
     | eitFloat:      RETURN ( PVD^.Float      = PSD^.Float );
     | eit16bit:      RETURN ( PVD^.Count16    = PSD^.Count16 );
     | eit32bit:      RETURN ( PVD^.Count32    = PSD^.Count32 );
@@ -572,6 +577,14 @@ CLASS IMPLEMENTATION CValue;
     Type := eitMove;
     TPVariantData( ADR( Data ))^.Up := Up;
   END SetStep;
+
+(*---------------------------------------------------------------------------*)
+
+  PUBLIC PROCEDURE SetPriority( Priority : CARDINAL );
+  BEGIN
+    Type := eitPriority;
+    TPVariantData( ADR( Data ))^.Priority := MIN2( 3, Priority );
+  END SetPriority;
 
 (*---------------------------------------------------------------------------*)
 
@@ -719,6 +732,14 @@ CLASS IMPLEMENTATION CValue;
     ASSERT( Type = eitMove );
     RETURN TPVariantData( ADR( Data ))^.Up;
   END GetStep;
+
+(*---------------------------------------------------------------------------*)
+
+  PUBLIC PROCEDURE GetPriority() : CARDINAL;
+  BEGIN
+    ASSERT( Type = eitPriority );
+    RETURN CARDINAL( TPVariantData( ADR( Data ))^.Priority );
+  END GetPriority;
 
 (*---------------------------------------------------------------------------*)
 
@@ -1133,6 +1154,9 @@ CLASS IMPLEMENTATION EMIPacket;
     | eitMove :
       Value.SetMove( NOT( le2be[0] IN TransportControl ));
     //-----
+    | eitPriority :
+      Value.SetPriority( CARDINAL( TransportControl * TTransportControl{ le2be[0], le2be[1] } ) >> 8 );
+    //-----
     | eitFloat:
       T4B( Float ).b3 := Data[0];
       T4B( Float ).b2 := Data[1];
@@ -1332,6 +1356,10 @@ CLASS IMPLEMENTATION EMIPacket;
       ELSE
         TransportControl := TransportControl - acmEISData + BITSET16{ le2be[0] };
       END;
+    //-----
+    | eitPriority :
+      NetworkControl := NetworkControl - ncmDataLength + ncsDataLength1;
+      TransportControl := TransportControl + BITSET16( PValue^.GetPriority() << 8 );
     //-----
     | eitFloat:
       NetworkControl := NetworkControl - ncmDataLength + ncsDataLength5;

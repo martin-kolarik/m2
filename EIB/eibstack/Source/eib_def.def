@@ -267,7 +267,7 @@ TYPE
     eitScaling,      // EIS 6 typed internally as percent
       eitScaling255, // EIS 6 typed internally as CARD8
     eitMove,         // EIS 7, it has negative logic to eitSwitch
-    // eitPriority,
+    eitPriority,     // EIS 8, 2bit priority
     eitFloat,        // EIS 9, 4byte IEEE float
     eit16bit,        // EIS 10
     eit32bit,        // EIS 11
@@ -292,6 +292,7 @@ CONST
   eis6         ::= eitScaling;
   eis7Move     ::= eitMove;
   eis7Step     ::= eitMove;
+  eis8         ::= eitPriority;
   eis9         ::= eitFloat;
   eis10        ::= eit16bit;
   eis11        ::= eit32bit;
@@ -326,6 +327,7 @@ CLASS CValue;
   PUBLIC PROCEDURE SetScaling255( Value : CARD8 );
   PUBLIC PROCEDURE SetMove      ( Open : BOOLEAN );
   PUBLIC PROCEDURE SetStep      ( Up : BOOLEAN );
+  PUBLIC PROCEDURE SetPriority  ( Priority : CARDINAL );
   PUBLIC PROCEDURE SetFloat     ( Value : LONGREAL );
   PUBLIC PROCEDURE Set16bit     ( Value : CARDINAL );
   PUBLIC PROCEDURE Set32bit     ( Value : CARDINAL );
@@ -344,6 +346,7 @@ CLASS CValue;
   PUBLIC PROCEDURE GetScaling255() : CARDINAL;
   PUBLIC PROCEDURE GetMove      () : BOOLEAN;
   PUBLIC PROCEDURE GetStep      () : BOOLEAN;
+  PUBLIC PROCEDURE GetPriority  () : CARDINAL;
   PUBLIC PROCEDURE GetFloat     () : LONGREAL;
   PUBLIC PROCEDURE Get16bit     () : CARDINAL;
   PUBLIC PROCEDURE Get32bit     () : CARDINAL;

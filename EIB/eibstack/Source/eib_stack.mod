@@ -2515,7 +2515,7 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
       RETURN FALSE;
     END;
     CASE PPacket^.GetDataLength() OF
-    | CARDINAL( eib_def.ncsDataLength1 ) : // eitSwitch, eitIncrease
+    | CARDINAL( eib_def.ncsDataLength1 ) : // eitSwitch, eitIncrease, eitPriority
       PGroup := A_Data.prGroup[prl1];
     | CARDINAL( eib_def.ncsDataLength2 ) : // eitScaling, eitScaling255, eitChar, eit8bit
       PGroup := A_Data.prGroup[prl2];
