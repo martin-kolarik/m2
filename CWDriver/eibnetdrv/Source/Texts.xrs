@@ -7,13 +7,21 @@
             <item lang="cs-CZ">EIB/KNX Group Object Driver</item>
         </string>
 
-        <string name="_LicenceNotFound">
-            <item lang="en-US">Licence information not found</item>
-            <item lang="cs-CZ">Nenalezena informace o licenci</item>
-        </string>
         <string name="_InitError">
             <item lang="en-US">Initialization failed</item>
             <item lang="cs-CZ">Chyba inicializace ovladače</item>
+        </string>
+        <string name="_UnknownDebugMode">
+            <item lang="en-US">Bad or unknown "debug_mode"</item>
+            <item lang="cs-CZ">Chybný nebo neznámý způsob logování ("debug_mode")</item>
+        </string>
+        <string name="_UnknownDebugLevel">
+            <item lang="en-US">Bad or unknown "debug_level"</item>
+            <item lang="cs-CZ">Chybná nebo neznámá úroveň logování ("debug_level")</item>
+        </string>
+        <string name="_FileDebugMissingFile">
+            <item lang="en-US">Missing "debug_file" key for "debug_mode = file"</item>
+            <item lang="cs-CZ">Chybí klíč "debug_file" pro "debug_mode = file"</item>
         </string>
 
         <comment>error code texts</comment>

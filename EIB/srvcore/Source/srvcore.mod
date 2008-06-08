@@ -79,7 +79,6 @@ IMPORT
    FIO,
    FIOO,
    IOO,
-   Log,
    Storage,
    Strings,
    StringsO,
@@ -476,9 +475,9 @@ CLASS IMPLEMENTATION CSDAPServer;
       IF d.EndsWithOA( 13W + 10W ) THEN
          d.Length := d.Length - 2;
       END;
-      Log.logger()^.LogSS( Log.dldDebug, L"sdap", "RCV: ", OA( d.Length-1, d.rawData ));
+      Logger^.LogSS( log.dldDebug, L"sdap", "RCV: ", OA( d.Length-1, d.rawData ));
       PConnection^.RemoteAddress.GetAddressOA( TRUE, OUT sd );
-      Log.logger()^.LogSS( Log.dldDebug, L"sdap", "from: ", sd );
+      Logger^.LogSS( log.dldDebug, L"sdap", "from: ", sd );
 
       d.SplitS( StringsO.WCHARS{L' '}, 0, TRUE, OUT parametersFound, OUT p );
       p[0].Lowerize();
@@ -568,7 +567,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       //-----
       | sdapEXIT :
          PConnection^.RemoteAddress.GetAddressOA( TRUE, OUT sd );
-         Log.logger()^.LogSS( Log.dldTrace, L"sdap", "EXIT from: ", sd );
+         Logger^.LogSS( log.dldTrace, L"sdap", "EXIT from: ", sd );
 
          ACK( PConnection, sdap200 );
          Disconnect( NIL, PConnection );
@@ -578,7 +577,7 @@ CLASS IMPLEMENTATION CSDAPServer;
          // recode parameters
          d.Substring( p[0].Length + 1, -1, OUT p[1] );
 
-         Log.logger()^.LogSS( Log.dldTrace, L"sdap", "LOAD: ", OA( p[1].Length-1, p[1].rawData ));
+         Logger^.LogSS( log.dldTrace, L"sdap", "LOAD: ", OA( p[1].Length-1, p[1].rawData ));
 
          // stop, load
          b := Server^.Running;
@@ -602,7 +601,7 @@ CLASS IMPLEMENTATION CSDAPServer;
 
       //-----
       | sdapRUN :
-         Log.logger()^.LogS( Log.dldTrace, L"sdap", "RUN" );
+         Logger^.LogS( log.dldTrace, L"sdap", "RUN" );
 
          Server^.Run( TRUE, FALSE );
          IF Server^.Running THEN
@@ -613,7 +612,7 @@ CLASS IMPLEMENTATION CSDAPServer;
 
       //-----
       | sdapSTOP :
-         Log.logger()^.LogS( Log.dldTrace, L"sdap", "STOP" );
+         Logger^.LogS( log.dldTrace, L"sdap", "STOP" );
 
          Server^.Stop( TRUE, FALSE );
          ACK( PConnection, sdap200 );
@@ -621,9 +620,9 @@ CLASS IMPLEMENTATION CSDAPServer;
        //-----
       | sdapSET, sdapGET :
          IF Command = sdapSET THEN
-            Log.logger()^.LogSSSS( Log.dldTrace, L"sdap", "SET ", OA( p[1].Length-1, p[1].rawData ), L" ", OA( p[2].Length-1, p[2].rawData ));
+            Logger^.LogSSSS( log.dldTrace, L"sdap", "SET ", OA( p[1].Length-1, p[1].rawData ), L" ", OA( p[2].Length-1, p[2].rawData ));
          ELSE
-            Log.logger()^.LogSS( Log.dldTrace, L"sdap", "GET ", OA( p[1].Length-1, p[1].rawData ));
+            Logger^.LogSS( log.dldTrace, L"sdap", "GET ", OA( p[1].Length-1, p[1].rawData ));
          END;
 
          IF ( Command = sdapSET ) AND NOT Server^.Running THEN
@@ -669,7 +668,7 @@ CLASS IMPLEMENTATION CSDAPServer;
    BEGIN
       s.FromCARD32( CARDINAL( ack ), 10 );
 
-      Log.logger()^.LogSS( Log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
+      Logger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
 
       Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
    END ACK;
@@ -682,7 +681,7 @@ CLASS IMPLEMENTATION CSDAPServer;
    BEGIN
       s.FromCARD32( CARDINAL( ack ), 10 );
 
-      Log.logger()^.LogSS( Log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
+      Logger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
       
       Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
    END ACKs;
@@ -697,7 +696,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       s.AppendOA( L" " );
       s.Append( S );
 
-      Log.logger()^.LogSS( Log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
+      Logger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
       
       Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
    END ACKS;
@@ -711,13 +710,13 @@ CLASS IMPLEMENTATION CSDAPServer;
       s.FromCARD32( CARDINAL( ack ), 10 );
       s.AppendOA( ' 1' );
 
-      Log.logger()^.LogSS( Log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
+      Logger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
       
       Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
 
       s := address; s.AppendOA( L" " ); s.Append( value.String );
 
-      Log.logger()^.LogSS( Log.dldDebug, L"sdap", "DATA: ", OA( s.Length-1, s.rawData ));
+      Logger^.LogSS( log.dldDebug, L"sdap", "DATA: ", OA( s.Length-1, s.rawData ));
       
       Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
    END ACKd;
@@ -1322,6 +1321,9 @@ CLASS IMPLEMENTATION CEIBServer;
       END;
       InitToDefault();
 
+      // setup logger
+      // Logger.SetUpByRegistry( LIBRARY ); -- done from init code
+
       // read device id
       DeviceId := -1;
       PromiscuousMode := FALSE;
@@ -1362,6 +1364,7 @@ CLASS IMPLEMENTATION CEIBServer;
       END;
 
       EIB^.Init( FALSE, eib_stack.eltUndefined, eib_stack.eltUndefined, ADR( Sink ));
+      eibnetstack.TPEIBNetStack( EIB )^.SetLogger( ADR( Logger ));
 
       IF NOT EIB^.SetParameter( L"link.connection", Connection, OUT s ) THEN
          ErrorMessage.FromOA( OAsz( R[ Texts._BadConnection ] ));
@@ -2053,9 +2056,9 @@ CLASS IMPLEMENTATION CEIBServer;
          IF NOT RepeatFlag AND ( eib_def.aofInitRead IN PObject^.GetFlags() ) OR
                 RepeatFlag AND ( eib_user.osInitReadRepeat IN PObject^.State ) THEN
 
-            IF NOT Log.logger()^.Filtered( Log.dldDebug ) THEN
+            IF NOT Logger.Filtered( log.dldDebug ) THEN
                PObject^.ReadAddress.GetGroupAddress3( TRUE, saddr );
-               Log.logger()^.LogSS( Log.dldDebug, L"srv", "INIT: ", saddr );
+               Logger.LogSS( log.dldDebug, L"srv", "INIT: ", saddr );
             END;
 
             INC( InitReadItems );
@@ -2279,8 +2282,10 @@ BEGIN
    EIB := NIL;
    Sink.Server := ADR( SELF );
    SDAP.Server := ADR( SELF );
+   SDAP.Logger := ADR( Logger );
    SDAP.Init( TRUE );
    EventSink := NIL;
+   Logger.SetUpByRegistry( LIBRARY );
    
    ObjectLock.Init( Sync.ltCS, L"", FALSE );
    QueueLock.Init( Sync.ltSpin, L"", FALSE );

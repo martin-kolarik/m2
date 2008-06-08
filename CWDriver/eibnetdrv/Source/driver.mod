@@ -135,6 +135,7 @@ CLASS IMPLEMENTATION CEIBDriver;
    BEGIN
       SELF.CallbackId := CallbackId;
       SELF.CallbackProc := PCallback;
+      SELF.ClientName := SymbolicName;
 
       SUPER.Init( TRUE );
       RETURN TRUE;
@@ -142,7 +143,7 @@ CLASS IMPLEMENTATION CEIBDriver;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE ReadParameters( CONST ParFilePath : StringsO.CString; OUT ErrorMessage : StringsO.CString; OUT ErrorLine : CARDINAL ) : BOOLEAN;
+   PUBLIC PROCEDURE ReadParameters( CONST ParFilePath : StringsO.CString; REF Logger : log.CLogger ) : BOOLEAN;
 
    //----------
    
@@ -165,11 +166,14 @@ CLASS IMPLEMENTATION CEIBDriver;
    VAR
       c : CARDINAL;
       fs : FIOO.CFileStream;
+      ErrorLine : CARDINAL;
+      ErrorMessage : StringsO.CString;
       tr : TextReader.CTextReader;
       TS : INIFile.CINIFile;
       b : BOOLEAN;
    BEGIN
       IF NOT LoadConfiguration( ParFilePath, OUT ErrorMessage, OUT ErrorLine ) THEN
+         Logger.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OA( ErrorMessage.Length-1, ErrorMessage.rawData ), ErrorLine, 0 );
          RETURN FALSE;
       END;
    
@@ -186,6 +190,16 @@ CLASS IMPLEMENTATION CEIBDriver;
       IF NOT b THEN
          ErrorMessage.FromOA( OAsz( R()^[ Texts._CannotOpenPar ] ));
          AppendErrorId( REF ErrorMessage, OA( ParFilePath.Length-1, ParFilePath.rawData ));
+         RETURN FALSE;
+      END;
+
+      CASE drv_def.ConfigureLog( TS, REF Logger, OUT ErrorLine ) OF
+      | drv_def.clrUnknownDebugMode :
+         Logger.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._UnknownDebugMode ] ), ErrorLine, 0 );
+      | drv_def.clrUnknownDebugLevel :
+         Logger.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._UnknownDebugLevel ] ), ErrorLine, 0 );
+      | drv_def.clrFileDebugMissingFile :
+         Logger.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._FileDebugMissingFile ] ), ErrorLine, 0 );
          RETURN FALSE;
       END;
 
@@ -952,6 +966,7 @@ CLASS IMPLEMENTATION CEIBDriver;
 BEGIN
    CallbackId := NIL;
    CallbackProc := NIL;
+   ClientName := L"";
 
    EventSink := ADR( SELF );
    
@@ -983,8 +998,6 @@ INITIALLY __I();
 BEGIN
    // messages
    r.LoadRES2( EMITW( %dll ), L"eibnetdrv.Texts" );
-   // logging
-   Log.logger()^.SetUpByRegistry( LIBRARY );
 END __I;
 
 //================================================================================

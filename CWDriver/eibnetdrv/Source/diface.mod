@@ -8,6 +8,7 @@ FROM driver IMPORT
    
 IMPORT
    driver,
+   log,
    scinit,
    Strings,
    StringsO,
@@ -191,13 +192,21 @@ PROCEDURE ReadParameters(             PData : ADDRESS;
 VAR
    em, pf : StringsO.CString;
    l : CARDINAL;
+   lg : log.CLogger;
    b : BOOLEAN;
 BEGIN
+   lg.TimeStamps := FALSE;
+   lg.Levels := FALSE;
+   lg.Names := FALSE;
+   lg.Method := log.dmNone;
+   lg.BufferSize := 1;
+   lg.BufferMode := log.bmStoreFirst;
+
    ErrorColumn := 0;
    HintOrHelp := C'';
    
    pf.FromOAA( 0, ParFilePath );
-   b := TPEIBDriver( PData )^.ReadParameters( pf, OUT em, OUT ErrorLine );
+   b := TPEIBDriver( PData )^.ReadParameters( pf, REF lg );
    em.ToOAA( 0, OUT ErrorMessage, OUT l );
    
    RETURN b;
@@ -211,13 +220,21 @@ PROCEDURE ReadParametersW(            PData : ADDRESS;
                                         VAR HintOrHelp   : ARRAY OF WCHAR ) : BOOLEAN;
 VAR
    em, pf : StringsO.CString;
+   lg : log.CLogger;
    b : BOOLEAN;
 BEGIN
+   lg.TimeStamps := FALSE;
+   lg.Levels := FALSE;
+   lg.Names := FALSE;
+   lg.Method := log.dmNone;
+   lg.BufferSize := 1;
+   lg.BufferMode := log.bmStoreFirst;
+
    ErrorColumn := 0;
    HintOrHelp := L'';
 
    pf.FromOA( ParFilePath );
-   b := TPEIBDriver( PData )^.ReadParameters( pf, OUT em, OUT ErrorLine );
+   b := TPEIBDriver( PData )^.ReadParameters( pf, REF lg );
    em.ToOA( OUT ErrorMessage );
 
    RETURN b;

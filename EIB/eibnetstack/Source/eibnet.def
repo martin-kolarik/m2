@@ -3,11 +3,11 @@ DEFINITION MODULE eibnet;
 (*================================================================================*)
 
 IMPORT
-   arrays,
    core,
    eib_def,
    eib_status,
    inetaddr,
+   log,
    netsocket,
    netsrv,
    Sync;
@@ -64,6 +64,7 @@ CONST
 CLASS CConnection( msghandler.MessageHandler );
    INTERNAL VAR
       // management
+      _Logger   : log.TPLogger := NIL;
       _Mode     : TConnectionMode := cmTunnelingHPAI;
       Socket    : netsocket.TPSSocket := NIL;
       Listener  : POINTER TO EIBNetListener := NIL; // it should not be static to allow Listener exist independently on CConnection
@@ -82,6 +83,7 @@ CLASS CConnection( msghandler.MessageHandler );
       HbRepeat  : CARDINAL := maximalHbRepeat; // heartbeat, if it falls to zero, connection is killed
       SendErr   : CARDINAL := 0; // correction of bad server behaviour: if server does not ACK correct send (heartbeats work correctly), the connection must be reconnected. The server does not ACK packet with low numbers, it could be caused with previous lost ACK packet.
    PUBLIC PROPERTY
+      Logger        : log.TPLogger;
       Mode          : TConnectionMode;
       RemoteAddress : inetaddr.INETADDR; // routing or remote address
       AutoReconnectDelay

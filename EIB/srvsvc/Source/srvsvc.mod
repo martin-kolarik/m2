@@ -131,8 +131,6 @@ CLASS IMPLEMENTATION CEibSvc;
       RS : Registry.CRegistry;
       s1, s2 : StringsO.CString;
    BEGIN
-      Log.logger()^.SetUpByRegistry( LIBRARY );
-      
       Strings.ConcatW( OUT Path, L"SOFTWARE\", Manufacturer ); Strings.AppendW( REF Path, L"\" ); Strings.AppendW( REF Path, ProductId );
       IF RS.OpenRead( L"", Registry.LOCAL_MACHINE, Path ) THEN
          IF RS.GetKeyStr( keyStorage, OUT Data ) THEN

@@ -3,11 +3,9 @@ DEFINITION MODULE EIBNetStack;
 (*================================================================================*)
 
 IMPORT
-   winsock;
-
-IMPORT
   eib_status,
-  eib_stack;
+  eib_stack,
+  log;
 
 (*================================================================================*)
 // EIBNet connection
@@ -16,6 +14,9 @@ TYPE
    TPEIBNetStack = POINTER TO CEIBNetStack;
 
 CLASS CEIBNetStack( eib_stack.CEIBStack );
+
+   PUBLIC PROCEDURE SetLogger( Logger : log.TPLogger );
+
    PUBLIC VIRTUAL PROCEDURE SetTimeout( TimeoutId : eib_stack.TTimeoutId; Timeout : CARDINAL; AuxiliarySpecification : LONGWORD );
 
    INTERNAL VIRTUAL PROCEDURE Initialize() : eib_status.TEIBStackStatus;

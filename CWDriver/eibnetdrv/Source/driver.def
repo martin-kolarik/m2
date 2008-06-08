@@ -8,6 +8,7 @@ FROM Storage IMPORT
 
 IMPORT
    drv_def,
+   log,
    Resources,
    srvcore,
    StringsO,
@@ -34,6 +35,7 @@ CONST // device specific error codes
 CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureCallTarget;
    CallbackId               : ADDRESS;
    CallbackProc             : drv_def.TDriverCallbackW;
+   ClientName               : ARRAY [0..63] OF WCHAR;
 
    StatusChannel            : CARDINAL;
    WatchDogChannel          : CARDINAL;
@@ -46,7 +48,7 @@ CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS srvcore.IEIBServerSink, thread
 
    // binding to procedural interface
    PUBLIC PROCEDURE Init( CONST SymbolicName : ARRAY OF WCHAR; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW ) : BOOLEAN;
-   PUBLIC PROCEDURE ReadParameters( CONST ParFilePath : StringsO.CString; OUT ErrorMessage : StringsO.CString; OUT ErrorLine : CARDINAL ) : BOOLEAN;
+   PUBLIC PROCEDURE ReadParameters( CONST ParFilePath : StringsO.CString; REF Logger : log.CLogger ) : BOOLEAN;
    
    PUBLIC PROCEDURE Run();
    PUBLIC PROCEDURE Stop();

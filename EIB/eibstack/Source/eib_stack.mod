@@ -2694,7 +2694,7 @@ CLASS IMPLEMENTATION CEIBStack;
         INC( Layer );
       END;
     END; // LOOP
-
+    
     Result := Initialize();
     IF Result = eib_status.essOK THEN
       INCL( Status, ssInitialized );

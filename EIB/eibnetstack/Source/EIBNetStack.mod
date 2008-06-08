@@ -14,6 +14,7 @@ IMPORT
    eib_def,
    eibnet,
    inetaddr,
+   log,
    Strings,
    Sync;
 
@@ -42,6 +43,7 @@ CLASS EIBNetPhysicalLayer( eib_stack.CEIBStackPhysicalLayer );
    PRIVATE VAR
       Connection : CStackConnection;
    PUBLIC PROPERTY
+      Logger : log.TPLogger;
       Mode : eibnet.TConnectionMode;
       RemoteAddress : inetaddr.INETADDR; // routing or remote/tunneling address
 
@@ -110,6 +112,20 @@ END CStackConnection;
 (*================================================================================*)
 
 CLASS IMPLEMENTATION EIBNetPhysicalLayer;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Logger GET : log.TPLogger;
+   BEGIN
+      RETURN Connection.Logger;
+   END Logger;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Logger SET( Value : log.TPLogger );
+   BEGIN
+      Connection.Logger := Value;
+   END Logger;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -205,6 +221,13 @@ END EIBNetPhysicalLayer;
 (*================================================================================*)
 
 CLASS IMPLEMENTATION CEIBNetStack;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SetLogger( Logger : log.TPLogger );
+   BEGIN
+      TPEIBNetPhysicalLayer( Layers[ eib_stack.eltPhysical ] )^.Logger := Logger;
+   END SetLogger;
 
 (*--------------------------------------------------------------------------------*)
 

@@ -17,6 +17,7 @@ IMPORT
    lec,
    list,
    lists,
+   log,
    msghandler,
    netconndispatch,
    Resources,
@@ -96,6 +97,7 @@ TYPE
 CLASS CSDAPServer( netconndispatch.CDispatcher );
    LOCAL VAR
       Server : TPEIBServer := NIL;
+      Logger : log.TPLogger := NIL;
 
    LOCAL PROCEDURE Start();
    LOCAL PROCEDURE Stop();
@@ -171,6 +173,7 @@ CLASS CEIBServer( msghandler.MessageHandler );
    Sink                     : CStackSink;
    SDAP                     : CSDAPServer;
    EventSink                : TPEIBServerSink;
+   Logger                   : log.CLogger;
 
    Result                   : lec.CResult;
    cllvdata                 : ADDRESS;
