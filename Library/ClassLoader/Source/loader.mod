@@ -75,7 +75,7 @@ CLASS IMPLEMENTATION CLibrary;
    LOCAL PROCEDURE ReleaseObject( Object : iobject.TPObject );
    BEGIN
       ASSERT(( LibraryHandle <> NIL ) AND ( RefCount > 0 ));
-      Object^.Dispose();
+      Object^.OnDispose();
       DEC( RefCount );
       IF RefCount = 1 THEN // the last one is LibraryInfo
          UnloadLibrary();

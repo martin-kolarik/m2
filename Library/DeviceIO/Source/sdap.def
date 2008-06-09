@@ -1,0 +1,77 @@
+DEFINITION MODULE sdap;
+
+(*================================================================================*)
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+   
+IMPORT
+   device,
+   inetaddr,
+   iovalue,
+   log,
+   netconndispatch,
+   StringsO;
+
+(*================================================================================*)
+
+TYPE
+   // if any sdap result is followed by number then next number of lines contains information bound with response
+   TsdapACK = (
+      // successes
+      sdap200 = 200, // OK
+      sdap201 = 201, // OK, but cached without connection
+
+      // client problems
+      sdap400 = 400, // empty command
+      sdap401 = 401, // unknown command
+      sdap402 = 402, // unknown/unsupported subcommand
+      sdap403 = 403, // bad parameter count
+      sdap404 = 404, // bad parameter value
+      sdap405 = 405, // resource not found
+      sdap406 = 406, // resource error
+
+      // server problems
+      sdap500 = 500, // internal server error
+      sdap501 = 501, // common service not available
+      sdap502 = 502, // unsupported command
+      sdap503 = 503  // operation is pending
+   );
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPSDAPServer = POINTER TO CSDAPServer;
+
+CLASS CSDAPServer( netconndispatch.CDispatcher );
+   PRIVATE VAR
+      _Device : device.TPDevice := NIL;
+      _Logger : log.TPLogger := NIL;
+      _ListenAddress : inetaddr.INETADDR;
+      _Running : BOOLEAN := FALSE;
+      _ConfigLogger : log.CLogger;
+
+   PUBLIC PROPERTY
+      Device : device.TPDevice;
+      Logger : log.TPLogger;
+      ListenAddress : inetaddr.INETADDR;
+   PUBLIC READONLY PROPERTY
+      Running : BOOLEAN;
+
+   PUBLIC PROCEDURE Start();
+   PUBLIC PROCEDURE Stop();
+
+   INTERNAL VIRTUAL PROCEDURE OnConnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
+   INTERNAL VIRTUAL PROCEDURE OnDisconnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
+   INTERNAL VIRTUAL PROCEDURE OnReceive( Connection : netconndispatch.TConnectionHandle; PData : ADDRESS; DataLen : CARDINAL );
+
+   PRIVATE PROCEDURE Run( Connection : netconndispatch.TConnectionHandle );
+   PRIVATE PROCEDURE ACK( Connection : netconndispatch.TConnectionHandle; ack : TsdapACK );
+   PRIVATE PROCEDURE ACKS( Connection : netconndispatch.TConnectionHandle; ack : TsdapACK; CONST S : StringsO.CString );
+   PRIVATE PROCEDURE ACKs( Connection : netconndispatch.TConnectionHandle; ack : TsdapACK; subCode : CARDINAL );
+   PRIVATE PROCEDURE ACKd( Connection : netconndispatch.TConnectionHandle; ack : TsdapACK; CONST address : StringsO.CString; CONST value : iovalue.Value );
+END CSDAPServer;
+
+(*================================================================================*)
+
+END sdap.

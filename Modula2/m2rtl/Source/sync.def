@@ -19,18 +19,24 @@ TYPE
    TAsyncResult = ( // Sync this with IDLs !!!
       // initial, undefined value
       arUnknown,
+
       // successes
       arCompleted, // whole sucessfull completion
-        arPartCompleted, // partial sucessfull completion
+        arSucceeded = arCompleted,
+      arPartCompleted, // partial sucessfull completion
+        arCompletedFromCache = arPartCompleted,
+
       // processing
       arNoData, // success, but nothing
       arPending, // sucesfully started
       arTimeout, // completed after timeout
       arAborted, // abortion, the operation was stopped
+
       // errors
       arAlreadyPending, // not started -- something is pending now (= busy)
          arBusy = arAlreadyPending,
-      arCannotStart // not started, no resources
+      arCannotStart, // not started, no resources
+         arFailed = arCannotStart
    );
    TAsyncResults = SET OF TAsyncResult;
 

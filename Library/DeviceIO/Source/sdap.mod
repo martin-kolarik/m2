@@ -1,0 +1,436 @@
+IMPLEMENTATION MODULE sdap;
+
+(*================================================================================*)
+
+IMPORT   
+   IOO,
+   netsocket,
+   netsrv,
+   ns,
+   Sync;
+
+(*================================================================================*)
+
+TYPE
+   TsdapCommand = (
+      sdapEXIT,
+      sdapLOAD,
+      sdapSET,
+      sdapGET,
+      sdapRUN,
+      sdapSTOP,
+      sdapLOCK,
+      sdapUNLOCK
+   );
+
+   TsdapSubcommand = (
+      sdapName,
+      sdapGlobal,
+      sdapDevice
+   );
+   
+(*================================================================================*)
+
+CLASS IMPLEMENTATION CSDAPServer;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Device GET : device.TPDevice;
+   BEGIN
+      RETURN _Device;
+   END Device;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Device SET( Value : device.TPDevice );
+   BEGIN
+      _Device := Value;
+   END Device;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Logger GET : log.TPLogger;
+   BEGIN
+      RETURN _Logger;
+   END Logger;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Logger SET( Value : log.TPLogger );
+   BEGIN
+      _Logger := Value;
+   END Logger;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY ListenAddress GET : inetaddr.INETADDR;
+   BEGIN
+      RETURN _ListenAddress;
+   END ListenAddress;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY ListenAddress SET( CONST Value : inetaddr.INETADDR );
+   BEGIN
+      IF _ListenAddress = Value THEN
+         RETURN;
+      END;
+      IF _Running THEN
+         Stop();
+         _ListenAddress := Value;
+         Start();
+      ELSE
+         _ListenAddress := Value;
+      END;
+   END ListenAddress;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Running GET : BOOLEAN;
+   BEGIN
+      RETURN _Running;
+   END Running;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Start();
+   BEGIN
+      IF _Running THEN
+         RETURN;
+      ELSE
+         _Running := TRUE;
+      END;
+      netsrv.StartListen( netsocket.stStream, _ListenAddress, NIL, Listener, 0, NIL );
+   END Start;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Stop();
+   BEGIN
+      IF _Running THEN
+         _Running := FALSE;
+      ELSE
+         RETURN;
+      END;
+      netsrv.StopListenServer( netsocket.stStream, _ListenAddress );
+      // kill all connections
+   END Stop;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE OnConnect( PConnection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
+   BEGIN
+   END OnConnect;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE OnDisconnect( PConnection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
+   BEGIN
+   END OnDisconnect;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE OnReceive( PConnection : netconndispatch.TConnectionHandle; PData : ADDRESS; DataLen : CARDINAL );
+   VAR
+      Command : TsdapCommand;
+      configuration : ARRAY [0..0] OF device.TConfigureItem;
+      count : INTEGER;
+      d : StringsO.CString; // data
+      error : ARRAY [0..511] OF WCHAR;
+      Hash : ns.THash;
+      i : CARDINAL;
+      IOValue : iovalue.Value;
+      l : CARDINAL;
+      p : ARRAY [0..3] OF StringsO.CString; // parameters
+      parametersCount : CARDINAL;
+      parametersFound : CARDINAL;
+      Result : Sync.TAsyncResult;
+      s : ARRAY [0..1] OF StringsO.CString; // sub parameters
+      sd : ARRAY [0..63] OF WCHAR;
+      Subcommand : TsdapSubcommand;
+      b : BOOLEAN;
+   BEGIN
+      d.FromOA( OA( DataLen>>1-1, PWCHAR( PData )));
+      IF d.EndsWithOA( 13W + 10W ) THEN
+         d.Length := d.Length - 2;
+      END;
+      Logger^.LogSS( log.dldDebug, L"sdap", "RCV: ", OA( d.Length-1, d.rawData ));
+      PConnection^.RemoteAddress.GetAddressOA( TRUE, OUT sd );
+      Logger^.LogSS( log.dldDebug, L"sdap", "from: ", sd );
+
+      d.SplitS( StringsO.WCHARS{L' '}, 0, TRUE, OUT parametersFound, OUT p );
+      p[0].Lowerize();
+      IF p[0].Empty THEN
+         ACK( PConnection, sdap400 );
+         RETURN;
+      END;
+
+      // split command and subcommand
+      parametersCount := 2;
+      p[0].SplitS( StringsO.WCHARS{L'.'}, 0, FALSE, OUT l, OUT s );
+      IF s[0].EqualsOA( L"exit" ) THEN
+         Command := sdapEXIT;
+         parametersCount := 0;
+      ELSIF s[0].EqualsOA( L"load" ) THEN
+         Command := sdapLOAD;
+         parametersCount := 2;
+      ELSIF s[0].EqualsOA( L"set" ) THEN
+         Command := sdapSET;
+         parametersCount := 3;
+      ELSIF s[0].EqualsOA( L"get" ) THEN
+         Command := sdapGET;
+       ELSIF s[0].EqualsOA( L"run" ) THEN
+         Command := sdapRUN;
+         parametersCount := 1;
+      ELSIF s[0].EqualsOA( L"stop" ) THEN
+         Command := sdapSTOP;
+         parametersCount := 1;
+      ELSIF s[0].EqualsOA( L"lock" ) THEN
+         Command := sdapLOCK;
+      ELSIF s[0].EqualsOA( L"unlock" ) THEN
+         Command := sdapUNLOCK;
+      ELSE
+         ACK( PConnection, sdap401 );
+         RETURN;
+      END;
+      IF parametersFound < parametersCount THEN
+         ACK( PConnection, sdap403 );
+         RETURN;
+      END;
+
+      // decoding and check    
+      CASE Command OF
+      //-----
+      | sdapEXIT :
+      //-----
+      | sdapLOAD :
+      //-----
+      | sdapSET, sdapGET :
+         IF s[1].Empty THEN
+            Subcommand := sdapName;
+         ELSIF s[1].EqualsOA( L"global" ) THEN
+            Subcommand := sdapGlobal;
+            ACK( PConnection, sdap402 );
+            RETURN;
+         ELSIF s[1].EqualsOA( L"device" ) THEN
+            Subcommand := sdapDevice;
+            ACK( PConnection, sdap402 );
+            RETURN;
+         ELSE
+            ACK( PConnection, sdap402 );
+            RETURN;
+         END;
+       //-----
+      | sdapRUN :
+       //-----
+      | sdapSTOP :
+       //-----
+      ELSE
+         ACK( PConnection, sdap502 ); // not supported
+         RETURN;
+      END; // CASE
+      // presence of parameter
+      FOR i := 0 TO parametersCount-1 DO
+         IF p[i].Empty THEN
+            ACKs( PConnection, sdap403, i );
+            RETURN;
+         END;
+      END;
+
+      CASE Command OF
+      //-----
+      | sdapEXIT :
+         PConnection^.RemoteAddress.GetAddressOA( TRUE, OUT sd );
+         Logger^.LogSS( log.dldTrace, L"sdap", "EXIT from: ", sd );
+
+         ACK( PConnection, sdap200 );
+         Disconnect( NIL, PConnection );
+
+      //-----
+      | sdapLOAD :
+         // recode parameters
+         d.Substring( p[0].Length + 1, -1, OUT p[1] );
+
+         Logger^.LogSS( log.dldTrace, L"sdap", "LOAD: ", OA( p[1].Length-1, p[1].rawData ));
+
+         // stop, load
+         b := Device^.IO()^.Running;
+         Device^.IO()^.Stop();
+         
+         configuration[0].Type := device.citIString;
+         configuration[0].iString := ADR( p[1] );
+         Result := Device^.Configure( configuration, ADR( _ConfigLogger ));
+         CASE Result OF
+         | Sync.arCompleted :
+            IF b THEN
+               Run( PConnection );
+            ELSE
+               ACK( PConnection, sdap200 );
+            END;
+         ELSE
+            // count of errors
+            count := _ConfigLogger.BufferCount;
+            p[0].FromINT32( count, 10 );
+            ACKS( PConnection, sdap406, p[0] );
+            // errors
+            FOR i := 0 TO count-1 DO
+               _ConfigLogger.BufferGetItem( i, OUT error );
+
+               Logger^.LogSS( log.dldDebug, L"sdap", "  406: ", error );
+
+               Send( NIL, PConnection, 0, ADR( error ), LENGTH( error ) << 1 );
+            END; // FOR
+         END; // CASE
+
+      //-----
+      | sdapRUN :
+         Logger^.LogS( log.dldTrace, L"sdap", "RUN" );
+
+         Run( PConnection );
+
+      //-----
+      | sdapSTOP :
+         Logger^.LogS( log.dldTrace, L"sdap", "STOP" );
+
+         Device^.IO()^.Stop();
+         ACK( PConnection, sdap200 );
+
+       //-----
+      | sdapSET, sdapGET :
+         IF Command = sdapSET THEN
+            Logger^.LogSSSS( log.dldTrace, L"sdap", "SET ", OA( p[1].Length-1, p[1].rawData ), L" ", OA( p[2].Length-1, p[2].rawData ));
+         ELSE
+            Logger^.LogSS( log.dldTrace, L"sdap", "GET ", OA( p[1].Length-1, p[1].rawData ));
+         END;
+
+         IF ( Command = sdapSET ) AND NOT Device^.IO()^.Running THEN
+            ACK( PConnection, sdap501 );
+
+         ELSIF NOT Device^.NS()^.Map( OA( p[1].Length-1, p[1].rawData ), OUT Hash ) THEN
+            ACKs( PConnection, sdap404, 1 );
+
+         ELSE
+
+            IF Command = sdapSET THEN // expect data.name (aka data.x/x/x)
+               IOValue.String := p[2];
+
+               Result := Device^.IO()^.IOh( IOO.dirWrite, Hash, REF IOValue, NIL );
+               IF Result = Sync.arCompleted THEN
+                  ACK( PConnection, sdap200 );
+               ELSE
+                  ACK( PConnection, sdap501 );
+               END;
+       
+            ELSE
+        
+               Result := Device^.IO()^.IOh( IOO.dirRead, Hash, REF IOValue, NIL );
+               CASE Result OF
+               | Sync.arCompleted :
+                  ACKd( PConnection, sdap200, p[1], IOValue );
+               | Sync.arCompletedFromCache :
+                  ACKd( PConnection, sdap201, p[1], IOValue );
+               ELSE
+                  ACK( PConnection, sdap501 );
+               END;
+       
+            END; // IF SET or GET
+
+         END;
+      END; // CASE
+  END OnReceive;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE Run( Connection : netconndispatch.TConnectionHandle );
+   VAR
+      Result : Sync.TAsyncResult;
+   BEGIN
+      Result := Device^.IO()^.Run();
+      CASE Result OF
+      | Sync.arPending :
+         ACK( Connection, sdap503 );
+      | Sync.arCompleted :
+         ACK( Connection, sdap200 );
+      ELSE
+         ACK( Connection, sdap501 );
+      END;
+   END Run;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ACK( PConnection : netconndispatch.TConnectionHandle; ack : TsdapACK );
+   VAR
+      s : StringsO.CString;
+   BEGIN
+      s.FromCARD32( CARDINAL( ack ), 10 );
+
+      Logger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
+
+      Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
+   END ACK;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ACKs( PConnection : netconndispatch.TConnectionHandle; ack : TsdapACK; subCode : CARDINAL );
+   VAR
+      s : StringsO.CString;
+   BEGIN
+      s.FromCARD32( CARDINAL( ack ), 10 );
+
+      Logger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
+      
+      Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
+   END ACKs;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ACKS( PConnection : netconndispatch.TConnectionHandle; ack : TsdapACK; CONST S : StringsO.CString );
+   VAR
+      s : StringsO.CString;
+   BEGIN
+      s.FromCARD32( CARDINAL( ack ), 10 );
+      s.AppendOA( L" " );
+      s.Append( S );
+
+      Logger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
+      
+      Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
+   END ACKS;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ACKd( PConnection : netconndispatch.TConnectionHandle; ack : TsdapACK; CONST address : StringsO.CString; CONST value : iovalue.Value );
+   VAR
+      s : StringsO.CString;
+   BEGIN
+      s.FromCARD32( CARDINAL( ack ), 10 );
+      s.AppendOA( ' 1' );
+
+      Logger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
+      
+      Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
+
+      s := address; s.AppendOA( L" " ); s.Append( value.String );
+
+      Logger^.LogSS( log.dldDebug, L"sdap", "DATA: ", OA( s.Length-1, s.rawData ));
+      
+      Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
+   END ACKd;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+   Connection := netconndispatch.ctLine;
+   PieceSize := -1;
+
+   _ConfigLogger.TimeStamps := FALSE;
+   _ConfigLogger.Levels := FALSE;
+   _ConfigLogger.Names := FALSE;
+   _ConfigLogger.Method := log.dmNone;
+   _ConfigLogger.BufferSize := 16;
+   _ConfigLogger.BufferMode := log.bmStoreFirst;
+END CSDAPServer;
+
+(*================================================================================*)
+
+END sdap.

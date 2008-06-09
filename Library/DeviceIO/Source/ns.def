@@ -84,9 +84,9 @@ ABSTRACT CLASS Ans;
 
    PUBLIC PROCEDURE Get( CONST Name : StringsO.IString; OUT Item : TPnsItem ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE GetOA( CONST Name : ARRAY OF WCHAR; OUT Item : TPnsItem ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetByHash( Hash : THash; OUT Item : TPnsItem ) : BOOLEAN;
 
    PUBLIC VIRTUAL PROCEDURE Map( CONST Name : ARRAY OF WCHAR; OUT Hash : THash ) : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE GetHash( Hash : THash; OUT Item : TPnsItem ) : BOOLEAN;
 
    PUBLIC PROCEDURE Dump( CONST Writer : TextWriter.TPTextWriter );
 END Ans;

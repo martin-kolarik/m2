@@ -1,3 +1,10 @@
+Version 1.0.1611 beta 2.6.2008
+- NEW: Optional watchdog_channel
+- CHG: Switch to separate messaging thread to make stack/ControlWeb
+       interface independent
+- BUG: Promiscuous mode DriverQueryProc's commands are now disallowed, they
+       return error message
+
 Version 1.0.1599 beta 21.5.2008
 - BUG: Not all promiscuous objects were bound (e.g. scaling255). Accessing them
        caused process crash.  

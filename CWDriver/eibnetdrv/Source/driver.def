@@ -50,8 +50,8 @@ CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS srvcore.IEIBServerSink, thread
    PUBLIC PROCEDURE Init( CONST SymbolicName : ARRAY OF WCHAR; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW ) : BOOLEAN;
    PUBLIC PROCEDURE ReadParameters( CONST ParFilePath : StringsO.CString; REF Logger : log.CLogger ) : BOOLEAN;
    
-   PUBLIC PROCEDURE Run();
-   PUBLIC PROCEDURE Stop();
+   PUBLIC VIRTUAL PROCEDURE Run() : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Stop();
    PUBLIC PROCEDURE Dispose();
    PUBLIC PROCEDURE Finally();
 

@@ -1,25 +1,24 @@
 DEFINITION MODULE srvcore;
 
-IMPORT
-   winsock,
-   windows;
-   
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
    arrays,
+   device,
    eib_def,
    eib_stack,
    eib_status,
    eib_user,
+   io,
+   iobject,
    iovalue,
    lec,
    list,
    lists,
    log,
    msghandler,
-   netconndispatch,
+   ns,
    Resources,
    StringsO;
 
@@ -74,47 +73,6 @@ END CStackSink;
 //--------------------------------------------------------------------------------
 
 TYPE
-   TsdapACK = (
-      // successes
-      sdap200 = 200, // OK
-      sdap201 = 201, // OK, but cached without connection
-
-      // client problems
-      sdap400 = 400, // empty command
-      sdap401 = 401, // unknown command
-      sdap402 = 402, // unknown/unsupported subcommand
-      sdap403 = 403, // bad parameter count
-      sdap404 = 404, // bad parameter value
-      sdap405 = 405, // resource not found
-      sdap406 = 406, // resource error -- followed by error text
-
-      // server problems
-      sdap500 = 500, // internal server error
-      sdap501 = 501, // common service not available
-      sdap502 = 502  // unsupported command
-   );
-
-CLASS CSDAPServer( netconndispatch.CDispatcher );
-   LOCAL VAR
-      Server : TPEIBServer := NIL;
-      Logger : log.TPLogger := NIL;
-
-   LOCAL PROCEDURE Start();
-   LOCAL PROCEDURE Stop();
-
-   INTERNAL VIRTUAL PROCEDURE OnConnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
-   INTERNAL VIRTUAL PROCEDURE OnDisconnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
-   INTERNAL VIRTUAL PROCEDURE OnReceive( Connection : netconndispatch.TConnectionHandle; PData : ADDRESS; DataLen : CARDINAL );
-
-   PRIVATE PROCEDURE ACK( Connection : netconndispatch.TConnectionHandle; ack : TsdapACK );
-   PRIVATE PROCEDURE ACKS( Connection : netconndispatch.TConnectionHandle; ack : TsdapACK; CONST S : StringsO.CString );
-   PRIVATE PROCEDURE ACKs( Connection : netconndispatch.TConnectionHandle; ack : TsdapACK; subCode : CARDINAL );
-   PRIVATE PROCEDURE ACKd( Connection : netconndispatch.TConnectionHandle; ack : TsdapACK; CONST address : StringsO.CString; CONST value : iovalue.Value );
-END CSDAPServer;
-
-//--------------------------------------------------------------------------------
-
-TYPE
    TPPromiscuousData = POINTER TO PromiscuousData;
 
 CLASS PromiscuousData;
@@ -164,16 +122,16 @@ INTERFACE IEIBServerSink;
    PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
 END IEIBServerSink;
 
-CLASS CEIBServer( msghandler.MessageHandler );
+CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, io.IIO;
    RStatus                  : TRStatus;
 
    Stack                    : TStack;
    EIB                      : eib_stack.TPEIBStack;
    EIBBoundaryLock          : Sync.LOCK;
    Sink                     : CStackSink;
-   SDAP                     : CSDAPServer;
    EventSink                : TPEIBServerSink;
    Logger                   : log.CLogger;
+   NameSpace                : ns.TPns := NIL;
 
    Result                   : lec.CResult;
    cllvdata                 : ADDRESS;
@@ -212,7 +170,6 @@ CLASS CEIBServer( msghandler.MessageHandler );
    prData                   : lists.CBufferList;
 
    PUBLIC READONLY PROPERTY
-     Running                : BOOLEAN;
      PResult                : POINTER TO lec.CResult;
    PUBLIC WRITEONLY PROPERTY
      cllvData               : ADDRESS;
@@ -223,18 +180,41 @@ CLASS CEIBServer( msghandler.MessageHandler );
    // inherited
    INTERNAL VIRTUAL PROCEDURE OnTimer( TimerId : PTR );
 
-   // self
-   PUBLIC PROCEDURE LoadConfiguration( CONST ConfigurationFile : StringsO.CString; OUT ErrorMessage : StringsO.CString; OUT ErrorLine : CARDINAL ) : BOOLEAN;
+   // IObject
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Type : iobject.TObjectType;
+   PUBLIC VIRTUAL PROPERTY
+      Library : iobject.TPLibrary;
+   PUBLIC VIRTUAL PROCEDURE OnDispose(); // here meant also as a Command
 
-   PUBLIC PROCEDURE Run( OperateEIB, OperateSDAP : BOOLEAN );
-   PUBLIC PROCEDURE Stop( OperateEIB, OperateSDAP : BOOLEAN );
+   // IDevice
+	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
+	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
+	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+	
+	// IIO
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Capabilities : io.TCapabilities;
+      Pending : BOOLEAN;
+      Running : BOOLEAN;
+   PUBLIC VIRTUAL PROPERTY
+      Advise : io.TAdvise;
+
+   PUBLIC VIRTUAL PROCEDURE Run() : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Stop();
+
+   PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOha( Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
+
+   // self
+   PUBLIC PROCEDURE LoadConfiguration( CONST ConfigurationFile : StringsO.IString; OUT ErrorMessage : StringsO.CString; OUT ErrorLine : CARDINAL ) : BOOLEAN;
    PUBLIC PROCEDURE Dispose();
 
    PUBLIC PROCEDURE OnDeviceConnect();
    PUBLIC PROCEDURE OnDeviceDisconnect();
    
    PUBLIC PROCEDURE GetObject( CONST Address : eib_def.TAddress; OUT PObject : TPObject ) : BOOLEAN;
-
+   
    // internal
    PROCEDURE FindBehaviour( BehaviourName : ARRAY OF WCHAR; VAR Priority : eib_def.TPriority; VAR Flags : eib_def.TA_ObjectFlags ) : BOOLEAN;
    PROCEDURE AddObject( Class : eib_def.TPriority; Flags : eib_def.TA_ObjectFlags; Type : eib_def.TEIBType ) : TPObject;

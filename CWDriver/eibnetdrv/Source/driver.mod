@@ -232,14 +232,15 @@ CLASS IMPLEMENTATION CEIBDriver;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE Run();
+   PUBLIC VIRTUAL PROCEDURE Run() : Sync.TAsyncResult;
    BEGIN
       msgqueuethread.global()^.ThreadCall( ADR( SELF ), OP_RUN, OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
+      RETURN Sync.arPending;
    END Run;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE Stop();
+   PUBLIC VIRTUAL PROCEDURE Stop();
    BEGIN
       msgqueuethread.global()^.ThreadCall( ADR( SELF ), OP_STOP, OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
    END Stop;
@@ -853,7 +854,7 @@ CLASS IMPLEMENTATION CEIBDriver;
       CASE Operation OF
       //-----
       | OP_RUN :
-         SUPER.Run( TRUE, FALSE );
+         SUPER.Run();
 
          IF WatchDogChannel <> MAX( CARDINAL ) THEN
             WatchDogLock.Lock();
@@ -866,7 +867,7 @@ CLASS IMPLEMENTATION CEIBDriver;
       | OP_STOP :
          StopTimer( TIMER_WATCH_DOG );
 
-         SUPER.Stop( TRUE, FALSE );
+         SUPER.Stop();
 
       //-----         
       | OP_DISPOSE :
@@ -953,7 +954,7 @@ CLASS IMPLEMENTATION CEIBDriver;
          WatchDogLock.Unlock();
          
          IF stop THEN
-            SUPER.Stop( TRUE, FALSE );
+            SUPER.Stop();
          END;
          
       ELSE

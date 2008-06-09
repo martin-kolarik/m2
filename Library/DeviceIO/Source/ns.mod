@@ -191,6 +191,17 @@ CLASS IMPLEMENTATION Ans;
 
 (*---------------------------------------------------------------------------*)
 
+	PUBLIC VIRTUAL PROCEDURE GetByHash( Hash : THash; OUT Item : TPnsItem ) : BOOLEAN;
+	BEGIN
+		IF Hash = 0 THEN
+			RETURN FALSE;
+		END;
+		Item := TPnsItem( Hash );
+		RETURN TRUE;
+	END GetByHash;
+
+(*---------------------------------------------------------------------------*)
+
 	PUBLIC VIRTUAL PROCEDURE Map( CONST Name : ARRAY OF WCHAR; OUT Hash : THash ) : BOOLEAN;
 	VAR
 		Item : TPnsItem;
@@ -203,17 +214,6 @@ CLASS IMPLEMENTATION Ans;
 			RETURN TRUE;
 		END;
 	END Map;
-
-(*---------------------------------------------------------------------------*)
-
-	PUBLIC VIRTUAL PROCEDURE GetHash( Hash : THash; OUT Item : TPnsItem ) : BOOLEAN;
-	BEGIN
-		IF Hash = 0 THEN
-			RETURN FALSE;
-		END;
-		Item := TPnsItem( Hash );
-		RETURN TRUE;
-	END GetHash;
 
 (*---------------------------------------------------------------------------*)
 

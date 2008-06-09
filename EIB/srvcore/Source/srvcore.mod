@@ -72,10 +72,6 @@ IMPLEMENTATION MODULE srvcore;
 //================================================================================
 
 IMPORT
-   winsock,
-   windows;
-
-IMPORT
    FIO,
    FIOO,
    IOO,
@@ -152,26 +148,6 @@ TYPE
    );
    TStatusChannel = SET OF TStatusChannelItem;
 
-//-----
-
-TYPE
-   TsdapCommand = (
-      sdapEXIT,
-      sdapLOAD,
-      sdapSET,
-      sdapGET,
-      sdapRUN,
-      sdapSTOP,
-      sdapLOCK,
-      sdapUNLOCK
-   );
-
-   TsdapSubcommand = (
-      sdapName,
-      sdapGlobal,
-      sdapDevice
-   );
-   
 //================================================================================
 // helpers
 
@@ -416,328 +392,7 @@ END CStackSink;
 
 //================================================================================
 
-CLASS IMPLEMENTATION CSDAPServer;
-
-//--------------------------------------------------------------------------------
-
-  LOCAL PROCEDURE Start();
-  VAR
-    ai : inetaddr.INETADDR;
-  BEGIN
-    ai.Port := 6007;
-    netsrv.StartListen( netsocket.stStream, ai, NIL, Listener, 0, NIL );
-  END Start;
-
-//--------------------------------------------------------------------------------
-
-  LOCAL PROCEDURE Stop();
-  VAR
-    ai : inetaddr.INETADDR;
-  BEGIN
-    ai.Port := 6007;
-    netsrv.StopListenServer( netsocket.stStream, ai );
-    // kill all connections
-  END Stop;
-
-//--------------------------------------------------------------------------------
-
-  INTERNAL VIRTUAL PROCEDURE OnConnect( PConnection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
-  BEGIN
-  END OnConnect;
-
-//--------------------------------------------------------------------------------
-
-  INTERNAL VIRTUAL PROCEDURE OnDisconnect( PConnection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
-  BEGIN
-  END OnDisconnect;
-
-//--------------------------------------------------------------------------------
-
-   INTERNAL VIRTUAL PROCEDURE OnReceive( PConnection : netconndispatch.TConnectionHandle; PData : ADDRESS; DataLen : CARDINAL );
-   VAR
-      Command : TsdapCommand;
-      d : StringsO.CString; // data
-      eadr : eib_def.CAddress;
-      EV : eib_def.TValue;
-      i : CARDINAL;
-      IOValue : iovalue.Value;
-      l : CARDINAL;
-      p : ARRAY [0..3] OF StringsO.CString; // parameters
-      parametersCount : CARDINAL;
-      parametersFound : CARDINAL;
-      PObject : TPObject;
-      s : ARRAY [0..1] OF StringsO.CString; // sub parameters
-      sd : ARRAY [0..63] OF WCHAR;
-      Subcommand : TsdapSubcommand;
-      b : BOOLEAN;
-   BEGIN
-      d.FromOA( OA( DataLen>>1-1, PWCHAR( PData )));
-      IF d.EndsWithOA( 13W + 10W ) THEN
-         d.Length := d.Length - 2;
-      END;
-      Logger^.LogSS( log.dldDebug, L"sdap", "RCV: ", OA( d.Length-1, d.rawData ));
-      PConnection^.RemoteAddress.GetAddressOA( TRUE, OUT sd );
-      Logger^.LogSS( log.dldDebug, L"sdap", "from: ", sd );
-
-      d.SplitS( StringsO.WCHARS{L' '}, 0, TRUE, OUT parametersFound, OUT p );
-      p[0].Lowerize();
-      IF p[0].Empty THEN
-         ACK( PConnection, sdap400 );
-         RETURN;
-      END;
-      Server^.PResult^.Inc();
-
-      // split command and subcommand
-      parametersCount := 2;
-      p[0].SplitS( StringsO.WCHARS{L'.'}, 0, FALSE, OUT l, OUT s );
-      IF s[0].EqualsOA( L"exit" ) THEN
-         Command := sdapEXIT;
-         parametersCount := 0;
-      ELSIF s[0].EqualsOA( L"load" ) THEN
-         Command := sdapLOAD;
-         parametersCount := 2;
-      ELSIF s[0].EqualsOA( L"set" ) THEN
-         Command := sdapSET;
-         parametersCount := 3;
-      ELSIF s[0].EqualsOA( L"get" ) THEN
-         Command := sdapGET;
-       ELSIF s[0].EqualsOA( L"run" ) THEN
-         Command := sdapRUN;
-         parametersCount := 1;
-      ELSIF s[0].EqualsOA( L"stop" ) THEN
-         Command := sdapSTOP;
-         parametersCount := 1;
-      ELSIF s[0].EqualsOA( L"lock" ) THEN
-         Command := sdapLOCK;
-      ELSIF s[0].EqualsOA( L"unlock" ) THEN
-         Command := sdapUNLOCK;
-      ELSE
-         ACK( PConnection, sdap401 );
-         RETURN;
-      END;
-      IF parametersFound < parametersCount THEN
-         ACK( PConnection, sdap403 );
-         RETURN;
-      END;
-
-      // decoding and check    
-      CASE Command OF
-      //-----
-      | sdapEXIT :
-      //-----
-      | sdapLOAD :
-      //-----
-      | sdapSET, sdapGET :
-         IF s[1].Empty THEN
-            Subcommand := sdapName;
-         ELSIF s[1].EqualsOA( L"global" ) THEN
-            Subcommand := sdapGlobal;
-            ACK( PConnection, sdap402 );
-            RETURN;
-         ELSIF s[1].EqualsOA( L"device" ) THEN
-            Subcommand := sdapDevice;
-            ACK( PConnection, sdap402 );
-            RETURN;
-         ELSE
-            ACK( PConnection, sdap402 );
-            RETURN;
-         END;
-       //-----
-      | sdapRUN :
-       //-----
-      | sdapSTOP :
-       //-----
-      ELSE
-         ACK( PConnection, sdap502 ); // not supported
-         RETURN;
-      END; // CASE
-      // presence of parameter
-      FOR i := 0 TO parametersCount-1 DO
-         IF p[i].Empty THEN
-            ACKs( PConnection, sdap403, i );
-            RETURN;
-         END;
-      END;
-      IF ( Command <> sdapEXIT ) AND ( Server^.PResult^.Counted OR Server^.PResult^.Expired ) THEN
-         ACK( PConnection, sdap501 );
-         RETURN;
-      END;
-
-      CASE Command OF
-      //-----
-      | sdapEXIT :
-         PConnection^.RemoteAddress.GetAddressOA( TRUE, OUT sd );
-         Logger^.LogSS( log.dldTrace, L"sdap", "EXIT from: ", sd );
-
-         ACK( PConnection, sdap200 );
-         Disconnect( NIL, PConnection );
-
-      //-----
-      | sdapLOAD :
-         // recode parameters
-         d.Substring( p[0].Length + 1, -1, OUT p[1] );
-
-         Logger^.LogSS( log.dldTrace, L"sdap", "LOAD: ", OA( p[1].Length-1, p[1].rawData ));
-
-         // stop, load
-         b := Server^.Running;
-         Server^.Stop( TRUE, FALSE );
-         Server^.Dispose();
-         IF NOT Server^.LoadConfiguration( p[1], OUT p[0], OUT l ) THEN
-            p[1].FromINT32( l, 10 );
-            p[0].PrependOA( L" " );
-            p[0].Prepend( p[1] );
-            ACKS( PConnection, sdap406, p[0] );
-         ELSIF b THEN
-            Server^.Run( TRUE, FALSE );
-            IF Server^.Running THEN
-               ACK( PConnection, sdap200 );
-            ELSE
-               ACK( PConnection, sdap501 );
-            END;
-         ELSE
-            ACK( PConnection, sdap200 );
-         END;
-
-      //-----
-      | sdapRUN :
-         Logger^.LogS( log.dldTrace, L"sdap", "RUN" );
-
-         Server^.Run( TRUE, FALSE );
-         IF Server^.Running THEN
-            ACK( PConnection, sdap200 );
-         ELSE
-            ACK( PConnection, sdap501 );
-         END;
-
-      //-----
-      | sdapSTOP :
-         Logger^.LogS( log.dldTrace, L"sdap", "STOP" );
-
-         Server^.Stop( TRUE, FALSE );
-         ACK( PConnection, sdap200 );
-
-       //-----
-      | sdapSET, sdapGET :
-         IF Command = sdapSET THEN
-            Logger^.LogSSSS( log.dldTrace, L"sdap", "SET ", OA( p[1].Length-1, p[1].rawData ), L" ", OA( p[2].Length-1, p[2].rawData ));
-         ELSE
-            Logger^.LogSS( log.dldTrace, L"sdap", "GET ", OA( p[1].Length-1, p[1].rawData ));
-         END;
-
-         IF ( Command = sdapSET ) AND NOT Server^.Running THEN
-            ACK( PConnection, sdap501 );
-
-         ELSIF NOT eadr.SetGroupAddress3( OA( p[1].Length-1, p[1].rawData )) THEN
-            ACKs( PConnection, sdap404, 1 );
-
-         ELSIF Server^.Groups[ CARD16( eadr.GetGroupAddress1()) ] = 0FFFFH THEN
-            ACKs( PConnection, sdap404, 1 );
-
-         ELSE
-            PObject := Server^.Objects[ INTEGER( Server^.Groups[ CARD16( eadr.GetGroupAddress1()) ] ) ];
-            IF Command = sdapSET THEN // expect data.name (aka data.x/x/x)
-               IOValue.String := p[2];
-               Server^.IOValue2EIBValue( IOValue, PObject^.Type, OUT EV );
-               PObject^.SetValue( EV );
-               ACK( PConnection, sdap200 );
-
-               // for notification using EventSink, if it exists
-               Server^.ValueUpdated( PObject );
-       
-            ELSE
-        
-               PObject^.GetValue( EV, TRUE, FALSE );
-               Server^.EIBValue2IOValue( EV, OUT IOValue );
-               IF Server^.Running THEN
-                  ACKd( PConnection, sdap200, p[1], IOValue );
-               ELSE
-                  ACKd( PConnection, sdap201, p[1], IOValue );
-               END;
-       
-            END;
-         END;
-      END; // CASE
-  END OnReceive;
-
-//--------------------------------------------------------------------------------
-
-   PRIVATE PROCEDURE ACK( PConnection : netconndispatch.TConnectionHandle; ack : TsdapACK );
-   VAR
-      s : StringsO.CString;
-   BEGIN
-      s.FromCARD32( CARDINAL( ack ), 10 );
-
-      Logger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
-
-      Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
-   END ACK;
-
-//--------------------------------------------------------------------------------
-
-   PRIVATE PROCEDURE ACKs( PConnection : netconndispatch.TConnectionHandle; ack : TsdapACK; subCode : CARDINAL );
-   VAR
-      s : StringsO.CString;
-   BEGIN
-      s.FromCARD32( CARDINAL( ack ), 10 );
-
-      Logger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
-      
-      Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
-   END ACKs;
-
-//--------------------------------------------------------------------------------
-
-   PRIVATE PROCEDURE ACKS( PConnection : netconndispatch.TConnectionHandle; ack : TsdapACK; CONST S : StringsO.CString );
-   VAR
-      s : StringsO.CString;
-   BEGIN
-      s.FromCARD32( CARDINAL( ack ), 10 );
-      s.AppendOA( L" " );
-      s.Append( S );
-
-      Logger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
-      
-      Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
-   END ACKS;
-
-//--------------------------------------------------------------------------------
-
-   PRIVATE PROCEDURE ACKd( PConnection : netconndispatch.TConnectionHandle; ack : TsdapACK; CONST address : StringsO.CString; CONST value : iovalue.Value );
-   VAR
-      s : StringsO.CString;
-   BEGIN
-      s.FromCARD32( CARDINAL( ack ), 10 );
-      s.AppendOA( ' 1' );
-
-      Logger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
-      
-      Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
-
-      s := address; s.AppendOA( L" " ); s.Append( value.String );
-
-      Logger^.LogSS( log.dldDebug, L"sdap", "DATA: ", OA( s.Length-1, s.rawData ));
-      
-      Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
-   END ACKd;
-
-//--------------------------------------------------------------------------------
-
-BEGIN
-   Connection := netconndispatch.ctLine;
-   PieceSize := -1;
-END CSDAPServer;
-
-//================================================================================
-
 CLASS IMPLEMENTATION CEIBServer;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROPERTY Running GET : BOOLEAN;
-   BEGIN
-      RETURN ( rsRunning IN RStatus ) AND ( EIB <> NIL ) AND EIB^.DeviceConnected();
-   END Running;
 
 //--------------------------------------------------------------------------------
 
@@ -789,7 +444,177 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE LoadConfiguration( CONST ConfigurationFile : StringsO.CString; OUT ErrorMessage : StringsO.CString; OUT ErrorLine : CARDINAL ) : BOOLEAN;
+   PUBLIC VIRTUAL READONLY PROPERTY Type GET : iobject.TObjectType;
+   BEGIN
+      RETURN iobject.otEphemeral
+   END Type;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROPERTY Library GET : iobject.TPLibrary;
+   BEGIN
+      RETURN NIL;
+   END Library;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROPERTY Library SET( Value : iobject.TPLibrary );
+   BEGIN
+   END Library;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE OnDispose(); // here meant also as a Command
+   BEGIN
+      Dispose();
+   END OnDispose;
+
+//--------------------------------------------------------------------------------
+
+	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
+	BEGIN
+	   RETURN NameSpace;
+	END NS;
+
+//--------------------------------------------------------------------------------
+
+	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
+	BEGIN
+	   RETURN ADR( SELF );
+	END IO;
+
+//--------------------------------------------------------------------------------
+
+	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+	VAR
+	   line : CARDINAL;
+	   message : StringsO.CString;
+	BEGIN
+	   IF ( HIGH( Source ) = -1 ) OR ( Source[0].Type <> device.citIString ) THEN
+	      RETURN Sync.arCannotStart;
+	   END;
+	   IF LoadConfiguration( Source[0].iString^, OUT message, OUT line ) THEN
+	      RETURN Sync.arCompleted;
+	   ELSE
+         Log^.LogFilePos( log.dlcError, L"", L"", OA( message.Length-1, message.rawData ), line, 0 );
+	      RETURN Sync.arCannotStart;
+	   END;
+	END Configure;
+	
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROPERTY Capabilities GET : io.TCapabilities;
+   BEGIN
+      RETURN io.TCapabilities{};
+   END Capabilities;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROPERTY Pending GET : BOOLEAN;
+   BEGIN
+      RETURN FALSE;
+   END Pending;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROPERTY Running GET : BOOLEAN;
+   BEGIN
+      RETURN ( rsRunning IN RStatus ) AND ( EIB <> NIL ) AND EIB^.DeviceConnected();
+   END Running;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROPERTY Advise GET : io.TAdvise;
+   BEGIN
+      RETURN io.advNone;
+   END Advise;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROPERTY Advise SET( Value : io.TAdvise );
+   BEGIN
+   END Advise;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE Run() : Sync.TAsyncResult;
+   VAR
+      s : FIO.PathStrW := L"";
+   BEGIN
+      IF rsRunning IN RStatus THEN
+         RETURN Sync.arCompleted;
+      ELSE
+         INCL( RStatus, rsRunning );
+      END;
+   
+      Result.Reset( lec.bhBestCase );
+      IF rsEXEFlag IN RStatus THEN
+         FIO.GetModuleDirW( L"", OUT s );
+      ELSE
+         FIO.GetModuleDirW( EMITW( %dll ), OUT s );
+      END;
+      ASSERT( cllvdata <> NIL );
+      IF cllvdata <> NIL THEN
+         lec.QueryData( s, L"", cllvdata, cllvlength, REF Result );
+      END;
+
+      EXCL( RStatus, rsInitReadFinished );
+      EIB^.Connect();
+
+      IF Running THEN
+         RETURN Sync.arCompleted;
+      ELSE
+         RETURN Sync.arPending;
+      END;
+   END Run;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE Stop();
+   BEGIN
+      IF rsRunning IN RStatus THEN
+         EXCL( RStatus, rsRunning );
+      ELSE
+         RETURN;
+      END;
+      EIB^.Disconnect();
+   END Stop;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
+   VAR
+      EV : eib_def.CValue;
+      PObject : TPObject;
+   BEGIN
+      IF Result.Counted OR Result.Expired THEN
+         RETURN Sync.arCannotStart;
+      END;
+      
+      PObject := TPObject( Item );
+      IF Direction = IOO.dirRead THEN
+         PObject^.GetValue( EV, TRUE, FALSE );
+         EIBValue2IOValue( EV, OUT Value );
+      ELSE // dirWrite
+         IOValue2EIBValue( Value, PObject^.Type, OUT EV );
+         PObject^.SetValue( EV );
+         // for notification using EventSink, if it exists
+         ValueUpdated( PObject );
+      END;
+      
+      RETURN Sync.arCompleted;
+   END IOh;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE IOha( Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
+   BEGIN
+      RETURN Sync.arCannotStart;
+   END IOha;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE LoadConfiguration( CONST ConfigurationFile : StringsO.IString; OUT ErrorMessage : StringsO.CString; OUT ErrorLine : CARDINAL ) : BOOLEAN;
    LABEL
       Fail;
    CONST
@@ -1673,36 +1498,16 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE Run( OperateEIB, OperateSDAP : BOOLEAN );
-   VAR
-      s : FIO.PathStrW := L"";
+   PUBLIC PROCEDURE Dispose();
    BEGIN
-      IF rsRunning IN RStatus THEN
-         RETURN;
-      ELSE
-         INCL( RStatus, rsRunning );
+      DoneObjects( TRUE );
+      Behaviours.Dispose();
+      IF EIB <> NIL THEN
+         EIB^.Done();
+         DISPOSE( EIB );
       END;
-   
-      Result.Reset( lec.bhBestCase );
-      IF rsEXEFlag IN RStatus THEN
-         FIO.GetModuleDirW( L"", OUT s );
-      ELSE
-         FIO.GetModuleDirW( EMITW( %dll ), OUT s );
-      END;
-      ASSERT( cllvdata <> NIL );
-      IF cllvdata <> NIL THEN
-         lec.QueryData( s, L"", cllvdata, cllvlength, REF Result );
-      END;
-
-      IF OperateEIB AND ( EIB <> NIL ) THEN
-         EXCL( RStatus, rsInitReadFinished );
-         EIB^.Connect();
-      END;
-
-      IF OperateSDAP THEN
-         SDAP.Start();
-      END;
-   END Run;
+      SUPER.Dispose();
+   END Dispose;
 
 //--------------------------------------------------------------------------------
 
@@ -1732,38 +1537,6 @@ CLASS IMPLEMENTATION CEIBServer;
          EventSink^.OnDisconnect();
       END;
    END OnDeviceDisconnect;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE Stop( OperateEIB, OperateSDAP : BOOLEAN );
-   BEGIN
-      IF rsRunning IN RStatus THEN
-         EXCL( RStatus, rsRunning );
-      ELSE
-         RETURN;
-      END;
-
-      IF OperateSDAP THEN
-         SDAP.Stop();
-      END;
-
-      IF OperateEIB AND ( EIB <> NIL ) THEN
-         EIB^.Disconnect();
-      END;
-   END Stop;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE Dispose();
-   BEGIN
-      DoneObjects( TRUE );
-      Behaviours.Dispose();
-      IF EIB <> NIL THEN
-         EIB^.Done();
-         DISPOSE( EIB );
-      END;
-      SUPER.Dispose();
-   END Dispose;
 
 //--------------------------------------------------------------------------------
 
@@ -1904,7 +1677,7 @@ CLASS IMPLEMENTATION CEIBServer;
             IF c = 0 THEN
                PObject^.RecoveryExpiration := 0;
             ELSE
-               PObject^.RecoveryExpiration := CARDINAL( windows.GetTickCount()) + c;
+               PObject^.RecoveryExpiration := Time.UptimeMS() + c;
                IF PObject^.RecoveryExpiration = 0 THEN
                   PObject^.RecoveryExpiration := 1;
                END;
@@ -2111,11 +1884,11 @@ CLASS IMPLEMENTATION CEIBServer;
    VAR
       c : CARDINAL;
       Day : eib_def.TDay;
+      DT : Time.TDateTime;
       fd : CARDINAL;
       H, M, S, WD : CARDINAL;
       i : INTEGER;
       s : ARRAY [0..31] OF WCHAR;
-      ST : windows.SYSTEMTIME;
       Y, MM, D : INTEGER;
    BEGIN
       EV.SetType( DestEVType );
@@ -2147,8 +1920,8 @@ CLASS IMPLEMENTATION CEIBServer;
          S := c MOD 60;
          CASE WD OF
          | 0 :
-            windows.GetLocalTime( ADR( ST ));
-            Day := eib_def.TDay( 1 + ( CARDINAL( ST.wDayOfWeek ) + 6 ) MOD 7 );
+            Time.GetCurrentLocalDateTime( DT );
+            Day := eib_def.TDay( 1 + ( CARDINAL( DT.DayOfWeek ) + 6 ) MOD 7 );
          | 1..7 :
             Day := eib_def.TDay( WD );
          ELSE
@@ -2281,9 +2054,6 @@ BEGIN
 
    EIB := NIL;
    Sink.Server := ADR( SELF );
-   SDAP.Server := ADR( SELF );
-   SDAP.Logger := ADR( Logger );
-   SDAP.Init( TRUE );
    EventSink := NIL;
    Logger.SetUpByRegistry( LIBRARY );
    
@@ -2297,15 +2067,12 @@ BEGIN
    InitReadItems := 0;
    oobData.ItemType := lists.blitSlot32;
    prData.ItemType := lists.blitSlot64;
-FINALLY
-   SDAP.Dispose();
 END CEIBServer;
 
 //================================================================================
 
 INITIALLY __I();
 BEGIN
-   // messages
    R.LoadRES2( L"", L"srvcore.Texts" );
 END __I;
 

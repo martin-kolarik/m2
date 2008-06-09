@@ -65,6 +65,18 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\Source\io.mod"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\iovalue.mod"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\ns.mod"
+				>
+			</File>
+			<File
 				RelativePath=".\Source\nsitem.mod"
 				>
 			</File>
@@ -73,15 +85,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Source\io.mod"
-				>
-			</File>
-			<File
-				RelativePath=".\Source\ns.mod"
-				>
-			</File>
-			<File
-				RelativePath=".\Source\iovalue.mod"
+				RelativePath=".\Source\sdap.mod"
 				>
 			</File>
 		</Filter>
@@ -91,14 +95,6 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\Source\nsitem.def"
-				>
-			</File>
-			<File
-				RelativePath=".\Source\nslookup.def"
-				>
-			</File>
-			<File
 				RelativePath=".\Source\device.def"
 				>
 			</File>
@@ -107,11 +103,23 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Source\iovalue.def"
+				>
+			</File>
+			<File
 				RelativePath=".\Source\ns.def"
 				>
 			</File>
 			<File
-				RelativePath=".\Source\iovalue.def"
+				RelativePath=".\Source\nsitem.def"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\nslookup.def"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\sdap.def"
 				>
 			</File>
 		</Filter>
