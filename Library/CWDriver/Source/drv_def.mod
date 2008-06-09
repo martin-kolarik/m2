@@ -1543,7 +1543,7 @@ END DrvValueToStringW;
 
 PROCEDURE DrvValueToCStringW( CONST DrvValue : TValue; DrvValueUFlag : BOOLEAN; OUT CS : StringsO.CString );
 VAR
-  s : ARRAY [0..63] OF WCHAR;
+  s : ARRAY [0..255] OF WCHAR; // PString256 is not longer
 BEGIN
   IF DrvValue.Type <> vtDriverString THEN
     ValueToStringW( DrvValue, DrvValueUFlag, s );
@@ -1669,6 +1669,9 @@ END IOValueToCWValue;
 //--------------------------------------------------------------
 
 PROCEDURE CWValueToIOValue( CONST CWValue : TValue; DrvValueUFlag : BOOLEAN; REF IOValue : iovalue.Value );
+VAR
+   CS : StringsO.CString;
+   s : ARRAY [0..255] OF WCHAR;
 BEGIN
    CASE CWValue.Type OF
    | vtBoolean :
@@ -1694,6 +1697,11 @@ BEGIN
 
    | vtLongReal :
       IOValue.Float := CWValue.ValLongReal;
+   
+   | vtPString256 :
+      ValueToStringW( CWValue, DrvValueUFlag, s );
+      CS.FromOA( s );
+      IOValue.String := CS;
 
    | vtDriverString :
       DrvValueToCStringW( CWValue, DrvValueUFlag, OUT IOValue.String );

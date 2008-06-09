@@ -457,7 +457,7 @@ CLASS IMPLEMENTATION CDriver;
 
     InitToDefault();
     DebugMode := log.dmNone;
-    DebugLevel := log.dl1;
+    DebugLevel := log.dldError;
 
     IF NOT TS.SetSection( snDevice ) THEN
       IF RunMode = drv_def.drmRun THEN
