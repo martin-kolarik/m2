@@ -5,7 +5,7 @@ output_queue_length = 50
 
 [debug]
 debug_mode = kernel
-debug_level = all
+debug_level = trace
 
 [interface]
 listen_port = 10001

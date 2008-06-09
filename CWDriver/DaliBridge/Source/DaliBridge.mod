@@ -22,6 +22,7 @@ IMPORT
 
 CONST
    logPrefix = L"Dali.UDP";
+   logProgramPrefix = L"Dali.PRG";
    MSG_START_PROGRAMMING = msghandler.MSG_BASE + 1;
 
 (*===============================================================================*)
@@ -172,11 +173,12 @@ CLASS IMPLEMENTATION CUDPCommunicator;
          // fall down
       ELSE
          CASE CARD8( buffer[0] ) AND 03FH OF
+         | 001H : // OK, switch on
          | 008H : // OK, response to 6
-         | 03FH : // OK, event data
-         ELSE // busy
-            Logger^.LogSC( dldTrace, logPrefix, L"Strange device response (busy?) ", CARDINAL( buffer[0] ));
-
+         | 01FH : // OK, event data
+            Logger^.LogSB( dldDebug, logPrefix, L"Event data: ", ADR( buffer ), l );
+         ELSE
+            Logger^.LogSB( dldMessage, logPrefix, L"Strange device response: ", ADR( buffer ), l );
             EventSink^.OnDaliData( Sync.arAlreadyPending, OA( -1, NIL ));
             RETURN;
          END;
@@ -236,6 +238,7 @@ FINALLY
    END;
 
    IF TimerSink <> NIL THEN
+      TimerSink^.TimeoutSink := NIL;
       TimerSink^.Release();
       TimerSink := NIL;
    END;
@@ -354,6 +357,10 @@ END DaliAddress;
 
 (*===============================================================================*)
 
+CONST
+   EXPECTED_RESPONSE = -1;
+   DUMMY_RESPONSE = -2;
+
 CLASS IMPLEMENTATION CDaliAddressSeeker;
 
 (*-------------------------------------------------------------------------------*)
@@ -363,6 +370,7 @@ CLASS IMPLEMENTATION CDaliAddressSeeker;
       H := 1 << 24 - 1;
       L := 0;
       State := dasSeek;
+      SeekRepeatCount := 10;
    END Init;
 
 (*-------------------------------------------------------------------------------*)
@@ -404,7 +412,19 @@ CLASS IMPLEMENTATION CDaliAddressSeeker;
             State := dasFailure;
          END;
       END;
+      SeekRepeatCount := 10; // reset counter
    END HandleResponse;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SeekRepeatCountElapsed() : BOOLEAN;
+   BEGIN
+      IF SeekRepeatCount = 0 THEN
+         RETURN TRUE;
+      END;
+      DEC( SeekRepeatCount );
+      RETURN FALSE;
+   END SeekRepeatCountElapsed;
 
 (*-------------------------------------------------------------------------------*)
 
@@ -413,6 +433,7 @@ BEGIN
    L := 0;
    M := 0;
    State := dasSeek;
+   SeekRepeatCount := 0;
 END CDaliAddressSeeker;
 
 (*===============================================================================*)
@@ -431,7 +452,7 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
 
 (*-------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY CurrentShortAddress GET : CARD8;
+   PUBLIC PROPERTY CurrentShortAddress GET : CARDINAL;
    BEGIN
       RETURN CurrentShort;
    END CurrentShortAddress;
@@ -471,13 +492,19 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
 (*-------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE HandleResponse( Positive : BOOLEAN; Data : INTEGER );
+   VAR
+      DA : DaliAddress;
    BEGIN
       CASE State OF
       | dapInit :
          IF Positive THEN
             IF ReaddressMode THEN
                CurrentSelected := Current[Readdress[CurrentShort]];
-               State := dapSelectOne;
+               IF CurrentSelected = -1 THEN
+                  State := dapFinish;
+               ELSE
+                  State := dapSelectOne;
+               END;
             ELSE
                State := dapRandomize;
             END;
@@ -507,21 +534,38 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
             State := dapCheckOne;
          END;
       | dapCheckOne :
-         IF Positive THEN
-            IF ReaddressMode THEN
-               New[CurrentShort] := CurrentSelected;
-            END;
-            INC( CurrentShort );
-            IF ReaddressMode THEN
-               CurrentSelected := Current[Readdress[CurrentShort]];
-               State := dapSelectOne;
+         State := dapDisableOne;
+         IF NOT Positive THEN
+            RETURN;
+         END;
+         DA.Type := DaliBridge.adrSingle;
+         DA.Address := CurrentShort;
+         IF INTEGER( DA.TransportAddress OR 01H ) <> Data THEN
+            Logger^.LogSC( dldMessage, logProgramPrefix, L"Check address failed for: ", CurrentShort );
+            Logger^.LogSC( dldMessage, logProgramPrefix, L"                received: ", Data );
+            RETURN;
+         END;
+         IF ReaddressMode THEN
+            New[CurrentShort] := CurrentSelected;
+         END;
+         INC( CurrentShort );
+         IF ReaddressMode THEN
+            CurrentSelected := Current[Readdress[CurrentShort]];
+            IF CurrentSelected = -1 THEN
+               State := dapFinish;
             ELSE
-               State := dapDisableOne; // CurrentSelected is left
-            END;     
+               State := dapSelectOne;
+            END;
+         ELSE
+            State := dapShowOne; // CurrentSelected is left
+         END;
+      | dapShowOne :
+         IF Positive THEN
+            State := dapDisableOne;
          END;
       | dapDisableOne :
          IF Positive THEN
-            State := dapSeekOne;
+            State := dapStartSeek;
          END;
       | dapFinish :
          IF Positive THEN
@@ -529,6 +573,7 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
                Current := New;
             END;
          END;
+         State := dapEnd;
       END; // CASE
    END HandleResponse;
 
@@ -543,6 +588,7 @@ BEGIN
    CurrentShort := 0;
    ReaddressMode := FALSE;
    HaveAddresses := FALSE;
+   Logger := NIL;
 END CDaliAddressProgrammer;
 
 (*===============================================================================*)
@@ -766,8 +812,20 @@ CLASS IMPLEMENTATION CDali;
                Logger.LogSR( dldDebug, logPrefix, L"                       result: ", Result );
 
                // Programmer.HandleResponse( Result = Sync.arCompleted, INTEGER( Response ));
-               Programmer.HandleResponse( TRUE, INTEGER( Response ));
-               ProgrammingStep();
+               // IF Timeout...
+               IF Request^.ClientId = EXPECTED_RESPONSE THEN
+                  IF Programmer.WhatNext() <> dapSeekOne THEN
+                     Programmer.HandleResponse( TRUE, INTEGER( Response ));
+                  ELSIF Result = Sync.arCompleted THEN
+                     Seeker.HandleResponse( Response <> 0 );
+                  ELSE // stop querying in case of error or timeout
+                     IF Seeker.SeekRepeatCountElapsed() THEN
+                        Logger.LogS( dldMessage, logProgramPrefix, L"Programming stopped due to timeout" );
+                        Programmer.HandleResponse( FALSE, 0 ); //?? -- should this be done, it could stop programming before end in the case of normal communication timeout !!
+                     END;
+                  END;
+                  ProgrammingStep();
+               END;
 
             ELSIF EventSink <> NIL THEN
 
@@ -839,7 +897,7 @@ CLASS IMPLEMENTATION CDali;
       // prepare Dali packet
       IF Request^.Command IN specialCommands THEN
          DaliData[0] := BYTE( Request^.Command );
-         DaliData[1] := MIN2( 0FEH, Request^.Data );
+         DaliData[1] := Request^.Data;
       ELSIF Request^.Command = cmdDirect THEN
          DaliData[0] := Request^.Address.TransportAddress AND NOT 01H;
          DaliData[1] := MIN2( 0FEH, Request^.Data );
@@ -864,15 +922,23 @@ CLASS IMPLEMENTATION CDali;
    PRIVATE PROCEDURE ProgrammingStep();
    VAR
       Address : TProgramAddress;
+      DA : DaliAddress;
    BEGIN
       LOOP
          CASE Programmer.WhatNext() OF
          | dapInit :
-            FeedCommand( ProgrammedLinie, NIL, cmdInitialize, 0, -1 );
+            FeedCommand( ProgrammedLinie, NIL, cmdTerminate, 0, DUMMY_RESPONSE );
+
+            DA.Type := DaliBridge.adrAll;
+            FeedCommand( ProgrammedLinie, ADR( DA ), cmdMin, 0, DUMMY_RESPONSE );
+            FeedCommand( ProgrammedLinie, NIL, cmdLoadDTR, 0FFH, DUMMY_RESPONSE );
+            FeedCommand( ProgrammedLinie, ADR( DA ), cmdDTRToAddress, 0FFH, DUMMY_RESPONSE );
+
+            FeedCommand( ProgrammedLinie, NIL, cmdInitialize, 0FFH, EXPECTED_RESPONSE );
             EXIT;
 
          | dapRandomize :
-            FeedCommand( ProgrammedLinie, NIL, cmdRandomize, 0, -1 );
+            FeedCommand( ProgrammedLinie, NIL, cmdRandomize, 0, EXPECTED_RESPONSE );
             EXIT;
 
          | dapStartSeek :
@@ -881,47 +947,66 @@ CLASS IMPLEMENTATION CDali;
             Programmer.HandleResponse( TRUE, 0 );
 
          | dapSeekOne :
-            IF Seeker.GetAddressToCheck( OUT Address ) = getTRUE THEN
+            CASE Seeker.GetAddressToCheck( OUT Address ) OF
+            | getTRUE :
                IF Address.H8 <> LastProgrammedAddress.H8 THEN
-                  FeedCommand( ProgrammedLinie, NIL, cmdStoreH, Address.H8, -1 );
+                  FeedCommand( ProgrammedLinie, NIL, cmdStoreH, Address.H8, DUMMY_RESPONSE );
                END;
                IF Address.M8 <> LastProgrammedAddress.M8 THEN
-                  FeedCommand( ProgrammedLinie, NIL, cmdStoreM, Address.M8, -1 );
+                  FeedCommand( ProgrammedLinie, NIL, cmdStoreM, Address.M8, DUMMY_RESPONSE );
                END;
                IF Address.L8 <> LastProgrammedAddress.L8 THEN
-                  FeedCommand( ProgrammedLinie, NIL, cmdStoreL, Address.L8, -1 );
+                  FeedCommand( ProgrammedLinie, NIL, cmdStoreL, Address.L8, DUMMY_RESPONSE );
                END;
-               FeedCommand( ProgrammedLinie, NIL, cmdCompare, 0, -1 );
+               FeedCommand( ProgrammedLinie, NIL, cmdCompare, 0, EXPECTED_RESPONSE );
 
                LastProgrammedAddress := Address;
                EXIT;
-            ELSE
-               Programmer.HandleResponse( FALSE, 0 );
+            | getFALSE :
+               Logger.LogS( dldMessage, logProgramPrefix, L"Programming stopped, no next device found" );
+               Programmer.HandleResponse( FALSE, 0 ); //??
+            | getFOUND :
+               Logger.LogSC( dldTrace, logProgramPrefix, L"Found device: ", Address.C24 );
+               Programmer.HandleResponse( TRUE, Address.C24 );
             END;
             
          | dapSelectOne :
             Address := Programmer.CurrentLongAddress;
-            FeedCommand( ProgrammedLinie, NIL, cmdStoreH, Address.H8, -1 );
-            FeedCommand( ProgrammedLinie, NIL, cmdStoreM, Address.M8, -1 );
-            FeedCommand( ProgrammedLinie, NIL, cmdStoreL, Address.L8, -1 );
+            FeedCommand( ProgrammedLinie, NIL, cmdStoreH, Address.H8, DUMMY_RESPONSE );
+            FeedCommand( ProgrammedLinie, NIL, cmdStoreM, Address.M8, DUMMY_RESPONSE );
+            FeedCommand( ProgrammedLinie, NIL, cmdStoreL, Address.L8, EXPECTED_RESPONSE );
             EXIT;
 
          | dapProgramOne :
-            FeedCommand( ProgrammedLinie, NIL, cmdSetAddress, Programmer.CurrentShortAddress, -1 );
+            Logger.LogSC( dldTrace, logProgramPrefix, L"Programm address: ", Programmer.CurrentShortAddress );
+            DA.Type := DaliBridge.adrSingle;
+            DA.Address := Programmer.CurrentShortAddress;
+            FeedCommand( ProgrammedLinie, NIL, cmdSetAddress, DA.TransportAddress OR 01H, EXPECTED_RESPONSE );
             EXIT;
 
          | dapCheckOne :
-            FeedCommand( ProgrammedLinie, NIL, cmdGetAddress, 0, -1 );
+            Logger.LogSC( dldTrace, logProgramPrefix, L"Check address: ", Programmer.CurrentShortAddress );
+            FeedCommand( ProgrammedLinie, NIL, cmdGetAddress, 0, EXPECTED_RESPONSE );
+            EXIT;
+
+         | dapShowOne :
+            Logger.LogSC( dldTrace, logProgramPrefix, L"Address checked: ", Programmer.CurrentShortAddress-1 );
+            DA.Type := DaliBridge.adrSingle;
+            DA.Address := Programmer.CurrentShortAddress-1; // dapCheckOne moved address forward
+            FeedCommand( ProgrammedLinie, ADR( DA ), cmdMax, 0, EXPECTED_RESPONSE );
             EXIT;
 
          | dapDisableOne :
-            FeedCommand( ProgrammedLinie, NIL, cmdWithdraw, 0, -1 );
+            FeedCommand( ProgrammedLinie, NIL, cmdWithdraw, 0, EXPECTED_RESPONSE );
             EXIT;
 
          | dapFinish :
-            FeedCommand( ProgrammedLinie, NIL, cmdTerminate, 0, -1 );
+            FeedCommand( ProgrammedLinie, NIL, cmdTerminate, 0, EXPECTED_RESPONSE );
             EXIT;
 
+         | dapEnd :
+            Programming := FALSE;
+            EXIT;
          END; // CASE
       END; // LOOP
    END ProgrammingStep;
@@ -931,6 +1016,7 @@ CLASS IMPLEMENTATION CDali;
 BEGIN
    Programming := FALSE;
    ProgrammedLinie := 0;
+   Programmer.Logger := ADR( Logger );
    Communicator := NEW( CUDPCommunicator );
    Communicator^.EventSink := TPICommunicatorSink( ADR( SELF ));
    Communicator^.Logger := ADR( Logger );

@@ -19,13 +19,13 @@
             <?endif ?>
             <Directory Id="ProgramFilesFolder">
                 <Directory Id="Inris" Name="Inris">
-                    <Directory Id="INSTALLDIR" Name="DaliSci">
+                    <Directory Id="INSTALLDIR" Name="DaliBrg" LongName="DaliBridge">
                         <Component Guid="EAAA6D5F-84DE-4bbe-9B34-BFB3714AD361" Id="Program">
                             <File DiskId="1" Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" Vital="yes">
                             </File>
                             <File DiskId="1" Id="License.rtf" Name="License.rtf" Source="License.rtf" Vital="yes">
                             </File>
-                            <File DiskId="1" Id="Dali_Sci.dll" Name="Dali_Sci.dll" Source="Dali_Sci.dll" Vital="yes">
+                            <File DiskId="1" Id="DaliBridge.dll" Name="DaliBrg.dll" LongName="DaliBridge.dll" Source="DaliBridge.dll" Vital="yes">
                             </File>
                         </Component>
                         <Component Id="Licence" Guid="52F6C8CC-1D96-41A0-BA19-41BAB82FE687">
@@ -33,8 +33,8 @@
                         </Component>
                         <Directory Id="EXAMPLES" Name="Examples">
                             <Component Id="Examples" Guid="504E174F-A539-4C95-B1BA-51674C84ECD4">
-                                <File Id="dalisci.cw" Name="dalisci.cw" Source="Examples\dalisci.cw" DiskId="1" />
-                                <File Id="dalisci.par" Name="dalisci.par" Source="Examples\dalisci.par" DiskId="1" />
+                                <File Id="dalibridge.cw" Name="dalibrg.cw" LongName="dalibridge.cw" Source="Examples\dalibridge.cw" DiskId="1" />
+                                <File Id="dalibridge.par" Name="dalibrg.par" LongName="dalibridge.par" Source="Examples\dalibridge.par" DiskId="1" />
                             </Component>
                         </Directory>
                         <?if $(var.LeakChecking)=on ?>

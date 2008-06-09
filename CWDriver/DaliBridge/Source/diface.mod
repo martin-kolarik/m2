@@ -198,6 +198,7 @@ BEGIN
    lg.Method := log.dmNone;
    lg.BufferSize := 1;
    lg.BufferMode := log.bmStoreFirst;
+
    ErrorColumn := 0;
    HintOrHelp := C'';
    
@@ -226,6 +227,7 @@ BEGIN
    lg.Method := log.dmNone;
    lg.BufferSize := 1;
    lg.BufferMode := log.bmStoreFirst;
+
    ErrorColumn := 0;
    HintOrHelp := L'';
 

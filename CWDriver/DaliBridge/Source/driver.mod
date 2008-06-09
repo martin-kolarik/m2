@@ -385,10 +385,11 @@ CLASS IMPLEMENTATION CDriver;
       ExceptionItem : TPExceptionItem;
       ExceptionType : TExceptionItemType;
       haveEvent : BOOLEAN;
-      i : CARDINAL;
+      i, index : CARDINAL;
       Level : CARDINAL;
       Linie : CARDINAL;
       N : ARRAY [0..15] OF WCHAR;
+      ReaddressArray : DaliBridge.TAddresses;
       S1, S2, S3 : ARRAY [0..63] OF WCHAR;
       
       //-----
@@ -780,8 +781,42 @@ CLASS IMPLEMENTATION CDriver;
          CS.Clear(); // return value
 
       ELSIF EQUALS( S1, L'program_addresses' )  THEN
-         // TODO: linie as parameter
-         Dali.StartProgramming( 0 );
+         IF S2[0] = 0W THEN
+            CS.FromOA( L'error: missing linie number' );
+            GOTO Error;
+         ELSIF NOT Strings.ToCARD32W( S2, 10, OUT Linie ) THEN
+            CS.FromOA( L'error: bad linie number' );
+            GOTO Error;
+         END;
+
+         Dali.StartProgramming( Linie );
+
+      ELSIF EQUALS( S1, L'readdress' )  THEN
+         IF S2[0] = 0W THEN
+            CS.FromOA( L'error: missing linie number' );
+            GOTO Error;
+         ELSIF NOT Strings.ToCARD32W( S2, 10, OUT Linie ) THEN
+            CS.FromOA( L'error: bad linie number' );
+            GOTO Error;
+         END;
+
+         ReaddressArray := DaliBridge.addressesNone;
+         index := 0;
+         i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 2, TRUE, OUT S3 ); Strings.TrimW( REF S3 );
+         LOOP
+            IF S3[0] = 0W THEN
+               EXIT;
+            END;
+            IF NOT Strings.ToCARD32W( S3, 10, OUT ReaddressArray[index] ) OR ( ReaddressArray[index] > 63 ) THEN
+               CS.FromOA( L'error: bad device address: ' );
+               CS.AppendOA( S3 );
+               GOTO Error;
+            END;
+            i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S3 ); Strings.TrimW( REF S3 );
+            INC( index );
+         END; // LOOP
+         
+         Dali.Readdress( 0, ReaddressArray );
 
       ELSE
          CS.FromOA( L'error: unknown driver procedure' );

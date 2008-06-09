@@ -19,10 +19,20 @@ end_data;
 
 instrument
 
+  switch switch_1;
+    owner = background;
+    position = 225, 290, 145, 110;
+    window = normal;
+    win_disable = zoom, maximize;
+    
+    procedure OnOutput( b : boolean );
+    begin
+      core.DriverQueryProc( 'dali', 'program_addresses 0', '' );
+    end_procedure;
+    
+  end_switch;
+
   meter meter_1;
-  (*
-    timer = 2;
-   *)
     owner = background;
     position = 500, 250, 395, 75;
     expression = dali.10;

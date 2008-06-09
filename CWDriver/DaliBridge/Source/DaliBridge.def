@@ -51,7 +51,7 @@ TYPE
       cmdGroupAdd1 = 060H,
       cmdGroupRemove1 = 070H,
       
-      cmdStatus = 090H, cmdWorking = 091H, cmdVersion = 097H, cmdDeviceType = 099H,
+      cmdDTRToAddress = 080H, cmdStatus = 090H, cmdWorking = 091H, cmdVersion = 097H, cmdDeviceType = 099H,
       
       cmdCurrentLevel = 0A0H,
       
@@ -63,13 +63,13 @@ TYPE
    
 CONST
    repeatedCommands = TDaliCommands{
-      cmdDTRToMax, cmdDTRToMin, cmdDTRToFail, cmdDTRToPowerOn, cmdDTRToFadeTime, cmdDTRToFadeRate
+      cmdDTRToMax, cmdDTRToMin, cmdDTRToFail, cmdDTRToPowerOn, cmdDTRToFadeTime, cmdDTRToFadeRate, cmdDTRToAddress, cmdRandomize, cmdInitialize, cmdTerminate
    };
    respondedCommands = TDaliCommands{
-      cmdStatus, cmdWorking, cmdVersion, cmdDeviceType, cmdCurrentLevel
+      cmdStatus, cmdWorking, cmdVersion, cmdDeviceType, cmdCurrentLevel, cmdCompare, cmdCheckAddress, cmdGetAddress
    };
    specialCommands = TDaliCommands{
-      cmdTerminate, cmdLoadDTR, cmdInitialize, cmdRandomize, cmdCompare, cmdWithdraw, cmdStoreH, cmdStoreM, cmdStoreL, cmdSetAddress, cmdCheckAddress
+      cmdTerminate, cmdLoadDTR, cmdInitialize, cmdRandomize, cmdCompare, cmdWithdraw, cmdStoreH, cmdStoreM, cmdStoreL, cmdSetAddress, cmdCheckAddress, cmdGetAddress
    };
 
 (*-------------------------------------------------------------------------------*)
@@ -117,9 +117,11 @@ CLASS CDaliAddressSeeker;
    PRIVATE VAR
       H, L, M : INTEGER;
       State : TDaliAddressProgrammerState;
+      SeekRepeatCount : CARDINAL;
    PUBLIC PROCEDURE Init();
    PUBLIC PROCEDURE GetAddressToCheck( OUT Address : TProgramAddress ) : TRISTATE;
    PUBLIC PROCEDURE HandleResponse( Positive : BOOLEAN ); // Positive means "have less" as DALI stands, return TRUE means found, FALSE means not found
+   PUBLIC PROCEDURE SeekRepeatCountElapsed() : BOOLEAN;
 END CDaliAddressSeeker;
 
 (*-------------------------------------------------------------------------------*)
@@ -140,8 +142,10 @@ TYPE
       dapSelectOne,
       dapProgramOne,
       dapCheckOne,
+      dapShowOne,
       dapDisableOne,
-      dapFinish
+      dapFinish,
+      dapEnd
    );   
 
 CLASS CDaliAddressProgrammer;
@@ -151,12 +155,14 @@ CLASS CDaliAddressProgrammer;
       Readdress : TAddresses;
       State : TCommand;
       CurrentSelected : INTEGER;
-      CurrentShort : CARD8;
+      CurrentShort : CARDINAL;
       ReaddressMode : BOOLEAN;
       HaveAddresses : BOOLEAN;
+   LOCAL VAR
+      Logger : log.TPLogger;
    PUBLIC READONLY PROPERTY
       CurrentLongAddress : TProgramAddress;
-      CurrentShortAddress : CARD8;
+      CurrentShortAddress : CARDINAL;
    PUBLIC PROCEDURE InitProgramming();
    PUBLIC PROCEDURE InitReaddressing( Readdress : TAddresses ) : BOOLEAN;
    PUBLIC PROCEDURE WhatNext() : TCommand;
