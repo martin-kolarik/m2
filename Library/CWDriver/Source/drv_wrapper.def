@@ -9,7 +9,6 @@ FROM Storage IMPORT
 
 IMPORT
   avltree,
-  drv_str,
   drv_def,
   FIO,
   windows;

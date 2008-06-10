@@ -9,7 +9,6 @@ IMPORT
   Strings,
   StringsO;
 IMPORT
-  drv_str,
   iovalue;
   
 #if #not UNICODE #then
@@ -35,10 +34,10 @@ TYPE
     vtPString256   = 11,
     vtBuffer       = 12,
     vtUnknown      = 13,
-    vtDString_A    = 914,
-    vtDString      = 14,
-    vtDriverString = 15,
-    vtData         = 20
+    // vtDString_A = 914, // unsupported
+    vtDString      = 14, // supported ONLY for mapping from iovalue.TValueType
+    vtDriverString = 15
+    // vtData      = 20 // unsupported
   );
 
 //-----------------------------------------------------------------------------
@@ -59,8 +58,6 @@ TYPE
     | vtLongReal      : ValLongReal    : LONGREAL;
     | vtPString256    : ValPString256W : POINTER TO ARRAY [0..255] OF WCHAR;
     | vtPString256_A  : ValPString256A : POINTER TO ARRAY [0..255] OF CHAR;
-    | vtDString       : ValDStringW    : drv_str.TPDStringW;
-    | vtDString_A     : ValDStringA    : drv_str.TPDStringA;
     | vtDriverString  : // internal, see vtDriverString definition
                         ValDriverStringCharLength  : CARDINAL;
                         ValDriverStringAddress     : ADDRESS;
@@ -68,7 +65,6 @@ TYPE
                         BType          : CARD8;
                         BLen256        : CARD16;
                         PBuffer        : ADDRESS;
-    | vtData          : ValPData       : drv_str.TPDStringW;
     END; // CASE
   END; // TValue
 
@@ -93,79 +89,8 @@ TYPE
 (*# restore *) // pack 1
 
 //-----------------------------------------------------------------------------
-// basic helpers
-
-// sets vtNothing, does not check dynamic string, used to initialize new values
-PROCEDURE InitValue( VAR Value : TValue );
-// sets vtNothing but check for possible dynamic string and free it
-PROCEDURE DoneValue( VAR Value : TValue );
-// allocates PBuffer if type is vtBuffer
-PROCEDURE ValueDataLength( Type : TValueType ) : CARDINAL;
-
-PROCEDURE IsValidValue( CONST Value : TValue ) : BOOLEAN;// all types except vtError (including vtUnknown) // ( CONST Value : TValue ) : BOOLEAN;
-PROCEDURE IsKnownValue( CONST Value : TValue ) : BOOLEAN;// all types except both vtError and vtUnknown // ( CONST Value : TValue ) : BOOLEAN;
-
-//-----------------------------------------------------------------------------
 
 PROCEDURE IOTypeToCWType( IOType : iovalue.TValueType ) : TValueType;
-
-//-----------------------------------------------------------------------------
-// helpers changing value's type
-PROCEDURE SetValuePString256StringW( VAR Value : TValue; ValueUFlag : BOOLEAN; s : ARRAY OF WCHAR );
-PROCEDURE SetValueStringW( VAR Value : TValue; ValueUFlag : BOOLEAN; s : ARRAY OF WCHAR  );
-PROCEDURE SetValueDStringW( VAR Value : TValue; ValueUFlag : BOOLEAN; s : drv_str.TPDStringW );
-
-// helpers preserving value's type
-PROCEDURE AssignValueBoolean( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; b : BOOLEAN );
-PROCEDURE AssignValueCard8( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; v : CARD8 );
-PROCEDURE AssignValueCard32( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; v : CARD32 );
-PROCEDURE AssignValueInt8( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; v : INT8 );
-PROCEDURE AssignValueInt32( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; v : INT32 );
-PROCEDURE AssignValueLongReal( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; r : LONGREAL );
-PROCEDURE AssignValueStringW( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; s : ARRAY OF WCHAR );
-PROCEDURE AssignValueCStringW( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; CONST CS : StringsO.CString );
-
-//-----
-CONST
-  AssignValueCardinal ::= AssignValueCard32;
-  AssignValueInteger  ::= AssignValueInt32;
-
-// helpers converting value
-PROCEDURE ValueToBoolean( CONST Value : TValue; ValueUFlag, Saturate : BOOLEAN ) : BOOLEAN;
-PROCEDURE ValueToCard8( CONST Value : TValue; ValueUFlag, Saturate : BOOLEAN ) : CARD8;
-PROCEDURE ValueToCard32( CONST Value : TValue; ValueUFlag, Saturate : BOOLEAN ) : CARD32;
-PROCEDURE ValueToInt8( CONST Value : TValue; ValueUFlag, Saturate : BOOLEAN ) : INT8;
-PROCEDURE ValueToInt32( CONST Value : TValue; ValueUFlag, Saturate : BOOLEAN ) : INT32;
-PROCEDURE ValueToLongReal( CONST Value : TValue; ValueUFlag, Saturate : BOOLEAN ) : LONGREAL;
-PROCEDURE ValueToStringW( CONST Value : TValue; ValueUFlag : BOOLEAN; VAR sw : ARRAY OF WCHAR );
-
-PROCEDURE ValueToStringDecPlaces( CONST Value : TValue; ValueUFlag : BOOLEAN; DecPlaces : INTEGER; VAR s : ARRAY OF WCHAR );
-
-PROCEDURE FormatNumber( Number : LONGREAL; Format : ARRAY OF WCHAR; VAR Result : ARRAY OF WCHAR );
-PROCEDURE ValueToStringFormat( CONST Value : TValue; ValueUFlag : BOOLEAN; Format : ARRAY OF WCHAR; VAR s : ARRAY OF WCHAR );
-
-//-----
-CONST
-  ValueToCardinal ::= ValueToCard32;
-  ValueToInteger  ::= ValueToInt32;
-
-PROCEDURE CopyValue( VAR RValue : TValue; CONST SValue : TValue );
-PROCEDURE CompareValues( CONST Value1, Value2 : TValue ) : BOOLEAN;
-
-// vtDriverString repeated helpers 
-#save, option( leak_info => on )
-PROCEDURE CopyDrvValueToValue( VAR Value : TValue; ValueUFlag, String256Flag : BOOLEAN; CONST DrvValue : TValue; DrvValueUFlag : BOOLEAN );
-#restore
-PROCEDURE CopyValueToDrvValue( VAR DrvValue : TValue; DrvValueUFlag, TrimFlag : BOOLEAN; CONST Value : TValue; ValueUFlag : BOOLEAN ) : BOOLEAN;
-
-PROCEDURE DrvValueToStringW( CONST DrvValue : TValue; DrvValueUFlag : BOOLEAN; VAR s : ARRAY OF WCHAR );
-#save, option( leak_info => on )
-PROCEDURE DrvValueToCStringW( CONST DrvValue : TValue; DrvValueUFlag : BOOLEAN; OUT CS : StringsO.CString );
-#restore
-PROCEDURE AssignDrvValueStringW( VAR DrvValue : TValue; DrvValueUFlag, TrimFlag : BOOLEAN; s : ARRAY OF WCHAR ): BOOLEAN;
-PROCEDURE AssignDrvValueCStringW( REF DrvValue : TValue; DrvValueUFlag, TrimFlag : BOOLEAN; CONST CS : StringsO.CString ): BOOLEAN;
-
-//=============================================================================
 
 PROCEDURE IOValueToCWValue( CONST IOValue : iovalue.Value; DrvValueUFlag, TrimFlag : BOOLEAN; REF CWValue : TValue ) : BOOLEAN;
 PROCEDURE CWValueToIOValue( CONST CWValue : TValue; DrvValueUFlag : BOOLEAN; REF IOValue : iovalue.Value );
