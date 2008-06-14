@@ -1,29 +1,22 @@
-IMPLEMENTATION MODULE NetMsg;
+MODULE NetMsg;
 
 (*# call( o_a_copy => off ) *)
 
-//================================================================================
-(*/* changes:
-
-19.09.2004 -- V1.1, build ???
-24.03
-
-*/*)
-//================================================================================
+(*================================================================================*)
 
 FROM Storage IMPORT
   REALLOCATE, ALLOCATE, DEALLOCATE;
   
 FROM log IMPORT
-  logger, dldTrace, dldDebug;
+  dldTrace, dldDebug;
 
 IMPORT
-  avltree,
   cllv,
   crc,
+  diface,
   digest,
   dns,
-  drv_str,
+  drv_def,
   FIO,
   FIOO,
   INIFile,
@@ -52,22 +45,22 @@ IMPORT
   TextReader,
   Texts;
 
-//================================================================================
+(*================================================================================*)
 
 CONST // device specific error codes
-  ecRxTimeout     = drv_def.ecCommunicationTimeout;
-  ecChkSumError   = drv_def.ecCheckSumError;
-  ecDeviceStopped = 10001H;
+  ecRxTimeout = drv_def.ecCommunicationTimeout;
+  ecChkSumError = drv_def.ecCheckSumError;
+  ecDeviceStopped = drv_def.ecUser + 1;
 
 CONST
    logPrefix = L"NetMsg";
 
-//================================================================================
+(*--------------------------------------------------------------------------------*)
 
 CONST // driver channels
   chStatus = 1;
 
-//================================================================================
+(*================================================================================*)
 
 TYPE
   TPDriver = POINTER TO CDriver;
@@ -90,7 +83,7 @@ CONST
     0FCH, 090H, 06EH, 080H, 02EH, 08DH, 045H, 0BAH, 08DH, 019H, 06AH, 0EBH, 09EH, 0B6H, 06AH, 03EH
   );
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 CLASS CClient( netconndispatch.CClientInterface );
   Connection : netconndispatch.TConnectionHandle;
@@ -112,7 +105,7 @@ END CClientLE;
 TYPE
   TPClientLE = POINTER TO CClientLE;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 CLASS CGroupLE( list.CListElem );
   Name : ARRAY [0..63] OF WCHAR;
@@ -129,7 +122,7 @@ END CClientGroupLE;
 TYPE
   TPClientGroupLE = POINTER TO CClientGroupLE; 
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 CLASS CServer( netconndispatch.CDispatcher );
   Driver : TPDriver;
@@ -138,7 +131,7 @@ CLASS CServer( netconndispatch.CDispatcher );
   VIRTUAL PROCEDURE OnReceive( PConnection : netconndispatch.TConnectionHandle; PData : ADDRESS; DataLen : CARDINAL );
 END CServer;
 
-//--------------------------------------------------------------------------------
+(*================================================================================*)
 
 TYPE
   TTransport = (
@@ -198,11 +191,13 @@ CLASS CEventLE( list.CListElem );
   Event : TEventData;
 END CEventLE;
 
-CLASS CDriver( msghandler.MessageHandler );
+(*--------------------------------------------------------------------------------*)
+
+CLASS CDriver( msghandler.MessageHandler ) IMPLEMENTS diface.ICWDriver;
   R             : Resources.CResources;
   RStatus       : TRStatus;
-  Name          : ARRAY [0..63] OF WCHAR;
-  _Lock         : Sync.LOCK;
+  Name          : StringsO.CString;
+  Logger        : log.CLogger;
 
   CallbackId    : ADDRESS;
   CallbackProc  : drv_def.TDriverCallbackW;
@@ -212,42 +207,45 @@ CLASS CDriver( msghandler.MessageHandler );
   // driver data
   ListenAddress : inetaddr.INETADDR;
   Server        : CServer;
-  Clients       : list.CList;
-  Groups        : list.CList;
-  RemovedClients: list.CList;
   GlobalKey     : sha256.TDigest;
   Delimiter     : WCHAR := WCHAR(":");
 
-  Packet        : StorageO.CMemoryBuffer;
+  ClientsLock   : Sync.LOCK;
+  Clients       : list.CList;
+  Groups        : list.CList;
+  RemovedClients: list.CList;
+
+  EventsLock    : Sync.LOCK;
   Events        : list.CList;
+  Packet        : StorageO.CMemoryBuffer;
   FieldToValue  : maps.CIntegerMap; // Map OF PTR TO iovalue.Value
   Records       : maps.CStringMap; // Map OF Array OF PTR to iovalue.Value in above structure
 
   // binding to procedural interface
-  LOCAL PROCEDURE Init( RunMode : CARDINAL; VAR SymbolicName : ARRAY OF WCHAR; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW ) : BOOLEAN;
-  LOCAL PROCEDURE ReadParameters( VAR ParFilePath, ErrorMessage : ARRAY OF WCHAR; VAR ErrorLine, ErrorColumn : CARDINAL; VAR HintOrHelp : ARRAY OF WCHAR ) : BOOLEAN;
-  LOCAL PROCEDURE EnumerateChannels(  VAR EnumerateState : LONGWORD; VAR Type : CARDINAL; VAR Direction : CARDINAL; VAR DriverIndex : CARDINAL; VAR Count : CARDINAL; VAR HaveDescription : BOOLEAN ): BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE Initialize( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; CallbackProc : drv_def.TDriverCallbackW );
+  PUBLIC VIRTUAL PROCEDURE ReadParameters( CONST ParametersFilePath : StringsO.CString; CONST Logger : log.CLogger ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE QueryErrorCode( ErrorCode : CARDINAL; OUT ErrorText : StringsO.CString ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE EnumerateChannels( REF EnumerateState : LONGWORD; OUT Type : drv_def.TValueType; OUT Direction : drv_def.TDirection; OUT DriverIndex, Count : CARDINAL; OUT HaveDescription : BOOLEAN ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE GetChannelDescription( DriverIndex : CARDINAL; OUT Description : StringsO.CString; OUT Id : StringsO.CString ) : BOOLEAN;
 
-  LOCAL PROCEDURE Lock();
-  LOCAL PROCEDURE Unlock();
+  PUBLIC VIRTUAL PROCEDURE Run();
+  PUBLIC VIRTUAL PROCEDURE Stop();
+  PUBLIC VIRTUAL PROCEDURE Dispose();
 
-  LOCAL PROCEDURE Run();
-  LOCAL PROCEDURE Stop();
-  LOCAL PROCEDURE Done();
+  PUBLIC VIRTUAL PROCEDURE DriverProc( Func, Param1, Param2, Param3, Param4 : CARDINAL );
+  PUBLIC VIRTUAL PROCEDURE QueryProc( CONST InValue1, InValue2 : iovalue.Value; OutValueLimit : CARDINAL; OUT OutValue : iovalue.Value );
 
-  LOCAL PROCEDURE QueryProc( UFlag : BOOLEAN; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
+  PUBLIC VIRTUAL PROCEDURE InputRequestStart();
+  PUBLIC VIRTUAL PROCEDURE InputRequest( DriverIndex : CARDINAL );
+  PUBLIC VIRTUAL PROCEDURE InputRequestCompleted();
+  PUBLIC VIRTUAL PROCEDURE InputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE InputOOBDataQuery( REF EnumerateState : LONGWORD; OUT DriverIndex : CARDINAL ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE GetInput( DriverIndex : CARDINAL; InValueLimit : CARDINAL; OUT InValue : iovalue.Value; OUT QoS : CARDINAL; OUT TimeStamp : drv_def.TUTCStamp; OUT ErrorCode : CARDINAL );
 
-  LOCAL PROCEDURE InputRequestStart();
-  LOCAL PROCEDURE InputRequest( DriverIndex : CARDINAL );
-  LOCAL PROCEDURE InputRequestCompleted();
-  LOCAL PROCEDURE InputFinalized( DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
-  LOCAL PROCEDURE InputOOBDataQuery( VAR EnumerateState : LONGWORD; VAR DriverIndex : CARDINAL ) : BOOLEAN;
-  LOCAL PROCEDURE GetInput( UFlag : BOOLEAN; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue; VAR QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp; VAR ErrorCode : CARDINAL );
-
-  LOCAL PROCEDURE OutputRequestStart();
-  LOCAL PROCEDURE OutputRequest( UFlag : BOOLEAN; DriverIndex : CARDINAL; OutValue : drv_def.TValue; QoS : CARDINAL; TimeStamp : drv_def.TUTCStamp );
-  LOCAL PROCEDURE OutputRequestCompleted();
-  LOCAL PROCEDURE OutputFinalized( DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE OutputRequestStart();
+  PUBLIC VIRTUAL PROCEDURE OutputRequest( DriverIndex : CARDINAL; CONST OutValue : iovalue.Value; QoS : CARDINAL; CONST TimeStamp : drv_def.TUTCStamp );
+  PUBLIC VIRTUAL PROCEDURE OutputRequestCompleted();
+  PUBLIC VIRTUAL PROCEDURE OutputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
 
   // helpers
   PROCEDURE InitToDefault();
@@ -262,38 +260,38 @@ CLASS CDriver( msghandler.MessageHandler );
   LOCAL PROCEDURE OnReceive( PConnection : netconndispatch.TConnectionHandle; PData : ADDRESS; DataLen : CARDINAL );
 END CDriver;
 
-//================================================================================
+(*================================================================================*)
 
 CLASS IMPLEMENTATION CClient;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE OnJoin( _Connection : netconndispatch.TConnectionHandle );
   BEGIN
     Connection := _Connection;
   END OnJoin;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE OnConnect( _Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
   BEGIN
     // Connection := _Connection;
   END OnConnect;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
   LOCAL VIRTUAL PROCEDURE OnDisconnect( _Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
   BEGIN
     Connection := _Connection;
   END OnDisconnect;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 BEGIN
   Connection := NIL;
 END CClient;
 
-//================================================================================
+(*================================================================================*)
 
 CLASS IMPLEMENTATION CClientLE;
 BEGIN
@@ -302,52 +300,46 @@ BEGIN
   Name[0] := WCHAR( 0 );
 END CClientLE;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 CLASS IMPLEMENTATION CGroupLE;
 BEGIN
   Name[0] := WCHAR( 0 );
 END CGroupLE;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 CLASS IMPLEMENTATION CClientGroupLE;
 BEGIN
   PClientLE := NIL;
 END CClientGroupLE;
 
-//================================================================================
+(*================================================================================*)
 
 CLASS IMPLEMENTATION CServer;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
   VIRTUAL PROCEDURE OnConnect( PConnection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
   BEGIN
-    Driver^.Lock();
     Driver^.OnConnect( PConnection, Local, Error );
-    Driver^.Unlock();
   END OnConnect;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
   VIRTUAL PROCEDURE OnDisconnect( PConnection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
   BEGIN
-    Driver^.Lock();
     Driver^.OnDisconnect( PConnection, Local, Error );
-    Driver^.Unlock();
   END OnDisconnect;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
   VIRTUAL PROCEDURE OnReceive( PConnection : netconndispatch.TConnectionHandle; PData : ADDRESS; DataLen : CARDINAL );
   BEGIN
-    Driver^.Lock();
     Driver^.OnReceive( PConnection, PData, DataLen );
-    Driver^.Unlock();
   END OnReceive;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 BEGIN
   Connection := netconndispatch.ctDatagram;
@@ -355,7 +347,7 @@ BEGIN
   Driver := NIL;
 END CServer;
 
-//================================================================================
+(*================================================================================*)
 
 CLASS IMPLEMENTATION CEventLE;
 BEGIN
@@ -366,28 +358,28 @@ FINALLY
   END;
 END CEventLE;
 
-//================================================================================
+(*================================================================================*)
 
 CLASS IMPLEMENTATION CDriver;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
-  LOCAL PROCEDURE Init( _RunMode : CARDINAL; VAR SymbolicName : ARRAY OF WCHAR; _CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE Initialize( _RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; CallbackProc : drv_def.TDriverCallbackW );
   BEGIN
-    SUPER.Init( TRUE );
+    Init( TRUE );
 
-    CallbackId := _CallbackId;
-    CallbackProc := PCallback;
+    SELF.CallbackId := CallbackId;
+    SELF.CallbackProc := CallbackProc;
     RunMode := _RunMode;
-    ASSIGN( Name, SymbolicName );
+    Name := SymbolicName;
+
     Server.Init( TRUE );
+  END Initialize;
 
-    RETURN TRUE;
-  END Init;
+(*--------------------------------------------------------------------------------*)
 
-//--------------------------------------------------------------------------------
+  PUBLIC VIRTUAL PROCEDURE ReadParameters( CONST ParametersFilePath : StringsO.CString; CONST Logger : log.CLogger ) : BOOLEAN;
 
-  LOCAL PROCEDURE ReadParameters( VAR ParFilePath, ErrorMessage : ARRAY OF WCHAR; VAR ErrorLine, ErrorColumn : CARDINAL; VAR HintOrHelp : ARRAY OF WCHAR ) : BOOLEAN;
   LABEL
     Fail;
   CONST
@@ -399,16 +391,6 @@ CLASS IMPLEMENTATION CDriver;
     snRecordType           = L'record_type';
     snRecord               = L'record';
     // .PAR key names 
-    knDebugMode            = L'debug_mode';
-      kvDebugNone          = L'none';
-      kvDebugFile          = L'file';
-      kvDebugKernel        = L'windows';
-    knDebugFile            = L'debug_file';
-    knDebugLevel           = L'debug_level';
-      kvDebugBasic         = L'basic';
-      kvDebugExtended      = L'extended';
-      kvDebugAllProtocol   = L'protocol';
-      kvDebugAll           = L'all';
     knFields               = L'fields';
       kvBoolean            = L'boolean';
       kvTristate           = L'tristate';
@@ -420,13 +402,18 @@ CLASS IMPLEMENTATION CDriver;
     knRecordType           ::= snRecordType;
 
   //----------
+  
+      PROCEDURE Error( ErrorCode, ErrorLine : CARDINAL );
+      BEGIN
+         Logger.LogFilePos( log.dlcError, L"", OA( ParametersFilePath.Length-1, ParametersFilePath.rawData ), OAsz( R[ ErrorCode ] ), ErrorLine, 0 );
+      END Error;
+
+  //----------
 
   VAR
     cs : StringsO.CString;
     ChannelIndex : CARDINAL;
-    DebugFile : FIO.PathStrW;
-    DebugLevel : log.TDebugLevel;
-    DebugMode : log.TDebugMethod;
+    ErrorLine : CARDINAL;
     ES : PTR;
     fs : FIOO.CFileStream;
     I : StringsO.CString;
@@ -440,98 +427,72 @@ CLASS IMPLEMENTATION CDriver;
     Value : iovalue.TPValue;
     ValueList : lists.TPPtrList;
   BEGIN
-    HintOrHelp[0] := WCHAR( 0 );
-
       TRY
-         fs.FromPath( ParFilePath, FIOO.imOpenRead );
+         fs.FromPath( OA( ParametersFilePath.Length-1, ParametersFilePath.rawData ), FIOO.imOpenRead );
       CATCH : IOO.CIOException DO
-         ASSIGN( ErrorMessage, OAsz( R[ Texts._CannotOpenPar ] ));
+         Error( Texts._CannotOpenPar, 0 );
          GOTO Fail;
       END; // TRY
       tr.Stream := ADR( fs );
       IF NOT TS.Load( tr ) THEN
-         ASSIGN( ErrorMessage, OAsz( R[ Texts._CannotOpenPar ] ));
+         Error( Texts._CannotOpenPar, 0 );
          GOTO Fail;
       END;
       fs.Close( FALSE );
 
-    InitToDefault();
-    DebugMode := log.dmNone;
-    DebugLevel := log.dldError;
+      InitToDefault();
 
-    IF NOT TS.SetSection( snDevice ) THEN
-      IF RunMode = drv_def.drmRun THEN
-        ASSIGN( ErrorMessage, OAsz( R[ Texts._MissingDeviceSection ] ));
-        GOTO Fail;
-      ELSE
-        RETURN TRUE;
+      IF NOT TS.SetSection( snDevice ) THEN
+         IF RunMode = drv_def.drmRun THEN
+            Error( Texts._MissingDeviceSection, 0 );
+            GOTO Fail;
+         ELSE
+            RETURN TRUE;
+         END;
       END;
-    END;
-    IF TS.GetKeyStr( knKey, OUT ErrorLine, OUT cs ) THEN
-      IF cs.Length < 32 THEN
-        ASSIGN( ErrorMessage, OAsz( R[ Texts._KeyTooShort ] ));
-        GOTO Fail;
-      ELSE
-        INCL( RStatus, rsGlobalKey );
-        digest.DigestOA( digest.sha256, OA( cs.Length-1, cs.rawData ), OUT GlobalKey );
+      IF TS.GetKeyStr( knKey, OUT ErrorLine, OUT cs ) THEN
+         IF cs.Length < 32 THEN
+            Error( Texts._KeyTooShort, ErrorLine );
+            GOTO Fail;
+         ELSE
+            INCL( RStatus, rsGlobalKey );
+            digest.DigestOA( digest.sha256, OA( cs.Length-1, cs.rawData ), OUT GlobalKey );
+         END;
       END;
-    END;
-    IF TS.GetKeyStr( knDelimiter, OUT ErrorLine, OUT cs ) THEN
-      IF cs.Length <> 1 THEN
-        ASSIGN( ErrorMessage, OAsz( R[ Texts._DelimiterTooLong ] ));
-        GOTO Fail;
-      ELSE
-        Delimiter := cs[0];
+      IF TS.GetKeyStr( knDelimiter, OUT ErrorLine, OUT cs ) THEN
+         IF cs.Length <> 1 THEN
+            Error( Texts._DelimiterTooLong, ErrorLine );
+            GOTO Fail;
+         ELSE
+            Delimiter := cs[0];
+         END;
       END;
-    END;
 
-    IF TS.GetKeyStr( knDebugMode, OUT ErrorLine, OUT cs ) THEN
-      cs.ToOA( OUT s );
-
-      IF EQUALS( s, kvDebugNone ) THEN
-        DebugMode := log.dmNone;
-      ELSIF EQUALS( s, kvDebugFile ) THEN
-        DebugMode := log.dmFile;
-        IF NOT TS.GetKeyStr( knDebugFile, OUT ErrorLine, OUT cs ) THEN
-          ASSIGN( ErrorMessage, OAsz( R[ Texts._FileDebugMissingFile ] ));
-          GOTO Fail;
-        END;
-         cs.ToOA( OUT DebugFile );
-      ELSIF EQUALS( s, kvDebugKernel ) THEN
-        DebugMode := log.dmKernel;
-      END;
-      IF DebugMode <> log.dmNone THEN
-        IF TS.GetKeyStr( knDebugLevel, OUT ErrorLine, OUT cs ) THEN
-            cs.ToOA( OUT s );
-          IF EQUALS( s, kvDebugBasic ) THEN
-            DebugLevel := log.dldError;
-          ELSIF EQUALS( s, kvDebugExtended ) THEN
-            DebugLevel := log.dldMessage;
-          ELSIF EQUALS( s, kvDebugAllProtocol ) THEN
-            DebugLevel := log.dldTrace;
-          ELSIF EQUALS( s, kvDebugAll ) THEN
-            DebugLevel := log.dldDebug;
-          END;
-        END;
-      END;
-    END;
-
+      CASE drv_def.ConfigureLog( TS, REF SELF.Logger, OUT ErrorLine ) OF
+      | drv_def.clrUnknownDebugMode :
+         Error( Texts._UnknownDebugMode, ErrorLine );
+      | drv_def.clrUnknownDebugLevel :
+         Error( Texts._UnknownDebugLevel, ErrorLine );
+      | drv_def.clrFileDebugMissingFile :
+         Error( Texts._FileDebugMissingFile, ErrorLine );
+      END; // CASE
+    
       // get all record types
       ES := 0;
       WHILE TS.EnumerateSections( REF ES, OUT ErrorLine, OUT s, TRUE ) DO
          IF EQUALS( s, snRecordType ) THEN
             IF NOT TS.GetKeyStr( knName, OUT ErrorLine, OUT S ) THEN
-               ErrorMessage := OAsz( R[ Texts._MissingNameOfRecordType ] );
+               Error( Texts._MissingNameOfRecordType, ErrorLine );
                GOTO Fail;
             ELSIF RecordTypes.Contains( S ) THEN
-               ErrorMessage := OAsz( R[ Texts._RecordTypeDuplicated ] );
+               Error( Texts._RecordTypeDuplicated, ErrorLine );
                GOTO Fail;
             ELSE
                TypeList := NEW( lists.CIntegerList );
                RecordTypes.Add( S, TypeList );
             END;
             IF NOT TS.GetKeyStr( knFields, OUT ErrorLine, OUT S ) THEN
-               ErrorMessage := OAsz( R[ Texts._MissingFieldsOfRecordType ] );
+               Error( Texts._MissingFieldsOfRecordType, ErrorLine );
                GOTO Fail;
             END;
             i := S.ItemS( StringsO.WCHARS{ L"," }, 0, 0, TRUE, OUT I );
@@ -547,7 +508,7 @@ CLASS IMPLEMENTATION CDriver;
                   I.Remove( number, -1 );
                   number := cs.IndexOfOA( L"]", 0 );
                   IF number = -1 THEN
-                     ErrorMessage := OAsz( R[ Texts._MalformedTypeArray ] );
+                     Error( Texts._MalformedTypeArray, ErrorLine );
                      GOTO Fail;
                   END;
                   cs.Remove( number, -1 );
@@ -555,11 +516,11 @@ CLASS IMPLEMENTATION CDriver;
                   TRY
                      number := cs.ToINT32( 10 );
                   CATCH e : StringsO.CStringException DO
-                     ErrorMessage := OAsz( R[ Texts._MalformedArrayRange ] );
+                     Error( Texts._MalformedArrayRange, ErrorLine );
                      GOTO Fail;
                   END;
                   IF number < 1 THEN
-                     ErrorMessage := OAsz( R[ Texts._BadArrayRange ] );
+                     Error( Texts._BadArrayRange, ErrorLine );
                      GOTO Fail;
                   END;
                END;
@@ -576,7 +537,7 @@ CLASS IMPLEMENTATION CDriver;
                ELSIF I.EqualsOA( kvString ) THEN
                   TypeList^.Add( INTEGER( iovalue.vtString ), number );
                ELSE
-                  ErrorMessage := OAsz( R[ Texts._UnknownFieldType ] );
+                  Error( Texts._UnknownFieldType, ErrorLine );
                   GOTO Fail;
                END;
                i := S.ItemS( StringsO.WCHARS{ L"," }, i, 0, TRUE, OUT I );
@@ -589,19 +550,19 @@ CLASS IMPLEMENTATION CDriver;
       WHILE TS.EnumerateSections( REF ES, OUT ErrorLine, OUT s, TRUE ) DO
          IF EQUALS( s, snRecord ) THEN
             IF NOT TS.GetKeyStr( knRecordType, OUT ErrorLine, OUT S ) THEN
-               ErrorMessage := OAsz( R[ Texts._MissingRecordTypeInRecord ] );
+               Error( Texts._MissingRecordTypeInRecord, ErrorLine );
                GOTO Fail;
             ELSIF NOT RecordTypes.Get( S, OUT TypeList ) THEN
-               ErrorMessage := OAsz( R[ Texts._UnknownRecordType ] );
+               Error( Texts._UnknownRecordType, ErrorLine );
                GOTO Fail;
             ELSIF NOT TS.GetKeyStr( knName, OUT ErrorLine, OUT S ) THEN
-               ErrorMessage := OAsz( R[ Texts._MissingNameOfRecord ] );
+               Error( Texts._MissingNameOfRecord, ErrorLine );
                GOTO Fail;
             ELSIF Records.Contains( S ) THEN
-               ErrorMessage := OAsz( R[ Texts._RecordDuplicated ] );
+               Error( Texts._RecordDuplicated, ErrorLine );
                GOTO Fail;
             ELSIF NOT TS.GetKeyInt( knFirstChannel, OUT ErrorLine, OUT ChannelIndex ) THEN
-               ErrorMessage := OAsz( R[ Texts._MissingFirstChannelRecord ] );
+               Error( Texts._MissingFirstChannelRecord, ErrorLine );
                GOTO Fail;
 
             ELSE
@@ -610,12 +571,12 @@ CLASS IMPLEMENTATION CDriver;
                TypeList^.Reset();
                WHILE TypeList^.MoveNext() DO
                   IF ChannelIndex = 1 THEN
-                     ErrorMessage := OAsz( R[ Texts._ChannelOneReserved ] );
+                     Error( Texts._ChannelOneReserved, ErrorLine );
                      GOTO Fail;
                   END;
                   FOR i := 0 TO CARDINAL( LOPTRLONGWORD( TypeList^.CurrentData )) - 1 DO
                      IF FieldToValue.Contains( ChannelIndex ) THEN
-                        ErrorMessage := OAsz( R[ Texts._ChannelIndexDuplicated ] );
+                        Error( Texts._ChannelIndexDuplicated, ErrorLine );
                         GOTO Fail;
                      END;
                      Value := NEW( iovalue.Value );
@@ -638,8 +599,6 @@ CLASS IMPLEMENTATION CDriver;
       END; // WHILE
       RecordTypes.Dispose();
 
-      IF RunMode = drv_def.drmRun THEN
-      END;
       RETURN TRUE;
 
    Fail:
@@ -653,51 +612,55 @@ CLASS IMPLEMENTATION CDriver;
       RETURN FALSE;
    END ReadParameters;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
-  LOCAL PROCEDURE EnumerateChannels( VAR EnumerateState : LONGWORD; VAR Type : CARDINAL; VAR Direction : CARDINAL; VAR DriverIndex : CARDINAL; VAR Count : CARDINAL; VAR HaveDescription : BOOLEAN ): BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE QueryErrorCode( ErrorCode : CARDINAL; OUT ErrorText : StringsO.CString ) : BOOLEAN;
+   BEGIN
+      CASE ErrorCode OF
+      | ecDeviceStopped :
+         ErrorText.FromOA( OAsz( R[ Texts._E_DeviceStopped ] ));
+      ELSE
+         RETURN FALSE;
+      END; // CASE
+      RETURN TRUE;
+   END QueryErrorCode;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC VIRTUAL PROCEDURE EnumerateChannels( REF EnumerateState : LONGWORD; OUT Type : drv_def.TValueType; OUT Direction : drv_def.TDirection; OUT DriverIndex, Count : CARDINAL; OUT HaveDescription : BOOLEAN ): BOOLEAN;
   VAR
     Value : iovalue.TPValue;
   BEGIN
     IF EnumerateState = 0 THEN
       // status channel
-      Direction := CARDINAL( drv_def.TDirection{drv_def.dirInput} );
+      Direction := drv_def.TDirection{drv_def.dirInput};
       DriverIndex := chStatus;
-      Type := CARDINAL( drv_def.vtLongCard );
-
+      Type := drv_def.vtLongCard;
     ELSIF NOT FieldToValue.ElementAt( CARDINAL( EnumerateState )-1, OUT DriverIndex, OUT Value ) THEN
       RETURN FALSE;
-      
     ELSE
-       Direction := CARDINAL( drv_def.TDirection{drv_def.dirInput, drv_def.dirOutput} );
+       Direction := drv_def.TDirection{drv_def.dirInput, drv_def.dirOutput};
        // DriverIndex already set
-       Type := CARDINAL( drv_def.IOTypeToCWType( Value^.Type ));
-
+       Type := drv_def.IOTypeToCWType( Value^.Type );
     END;
 
     Count := 1;
     HaveDescription := FALSE;
     INC( EnumerateState );
+
     RETURN TRUE;
   END EnumerateChannels;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE Lock();
+   PUBLIC VIRTUAL PROCEDURE GetChannelDescription( DriverIndex : CARDINAL; OUT Description : StringsO.CString; OUT Id : StringsO.CString ) : BOOLEAN;
    BEGIN
-      _Lock.Lock();
-   END Lock;
+      RETURN FALSE;
+   END GetChannelDescription;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE Unlock();
-   BEGIN
-      _Lock.Unlock();
-   END Unlock;
-
-//--------------------------------------------------------------------------------
-
-   LOCAL PROCEDURE Run();
+   PUBLIC VIRTUAL PROCEDURE Run();
    VAR
       s : FIO.PathStrW;
    BEGIN
@@ -716,35 +679,39 @@ CLASS IMPLEMENTATION CDriver;
          ListenAddress.V6 := TRUE;
          netsrv.StartListen( netsocket.stStream, ListenAddress, NIL, Server.Listener, 0, NIL );
       END;
-  END Run;
+   END Run;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
-  LOCAL PROCEDURE Stop();
-  BEGIN
-    IF TRStatus{rsRunning} * RStatus = TRStatus{} THEN
-      RETURN;
-    END;
-    EXCL( RStatus, rsRunning );
-    IF rsListening IN RStatus THEN
-      ListenAddress.V6 := FALSE;
-      netsrv.StopListenServer( netsocket.stStream, ListenAddress );
-      ListenAddress.V6 := TRUE;
-      netsrv.StopListenServer( netsocket.stStream, ListenAddress );
-    END;
-  END Stop;
+   PUBLIC VIRTUAL PROCEDURE Stop();
+   BEGIN
+      IF TRStatus{rsRunning} * RStatus = TRStatus{} THEN
+         RETURN;
+      END;
+      EXCL( RStatus, rsRunning );
 
-//--------------------------------------------------------------------------------
+      IF rsListening IN RStatus THEN
+         ListenAddress.V6 := FALSE;
+         netsrv.StopListenServer( netsocket.stStream, ListenAddress );
+         ListenAddress.V6 := TRUE;
+         netsrv.StopListenServer( netsocket.stStream, ListenAddress );
+      END;
+   END Stop;
 
-  LOCAL PROCEDURE Done();
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC VIRTUAL PROCEDURE Dispose();
   VAR
     List : lists.TPPtrList;
     PClientLE : TPClientLE;
     PGroupLE : TPGroupLE;
   BEGIN
     Server.Dispose();
-    Events.Dispose();
     Packet.Dispose();
+    
+    EventsLock.Lock();
+    Events.Dispose();
+    EventsLock.Unlock();
 
     // kill user records structures
     FieldToValue.Reset();
@@ -762,6 +729,7 @@ CLASS IMPLEMENTATION CDriver;
     Records.Dispose();
 
     // kill client/server groups
+    ClientsLock.Lock();
     WHILE Groups.GetFirst( OUT PGroupLE ) DO
       PGroupLE^.Clients.Dispose();
       Groups.Remove( PGroupLE );
@@ -775,11 +743,12 @@ CLASS IMPLEMENTATION CDriver;
       Clients.Remove( PClientLE );
       DISPOSE( PClientLE );
     END; // WHILE
-  END Done;
+    ClientsLock.Unlock();
+  END Dispose;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
-  LOCAL PROCEDURE QueryProc( UFlag : BOOLEAN; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
+  PUBLIC VIRTUAL PROCEDURE QueryProc( CONST InValue1, InValue2 : iovalue.Value; OutValueLimit : CARDINAL; OUT OutValue : iovalue.Value );
   LABEL
     DoSend, Error, Success;
   CONST
@@ -791,6 +760,7 @@ CLASS IMPLEMENTATION CDriver;
     IAddress : inetaddr.INETADDR;
     len : CARDINAL;
     List : lists.TPPtrList;
+    
     Payload : TTransport;
     PPacket : TPPacket;
     PClient : TPClient;
@@ -832,7 +802,7 @@ CLASS IMPLEMENTATION CDriver;
           Payload := trStruct;
 
        ELSE // record not requested, send user data
-          drv_def.DrvValueToCStringW( InValue2, UFlag, OUT SW );
+          SW := InValue2.String;
           Payload := trString;
 
        END;
@@ -842,7 +812,7 @@ CLASS IMPLEMENTATION CDriver;
   //----------
 
   BEGIN
-    drv_def.DrvValueToCStringW( InValue1, UFlag, OUT SW );
+    SW := InValue1.String;
     SW.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 0, TRUE, OUT si );
     Result.Inc();
 
@@ -850,30 +820,44 @@ CLASS IMPLEMENTATION CDriver;
       SW.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 1, TRUE, OUT si );
 
       IF EQUALS( si, L'count' ) THEN
+        EventsLock.Lock();
         c := Events.Count;
-        logger()^.LogSC( dldDebug, logPrefix, L"Event.Count ", c );
+        EventsLock.Unlock();
 
-        drv_def.AssignValueCardinal( OutValue, UFlag, TRUE, c );
+        Logger.LogSC( dldDebug, logPrefix, L"Event.Count ", c );
+
+        OutValue.Integer := c; 
         RETURN;
       
       ELSIF EQUALS( si, L'get' ) THEN
         IF Result.Counted OR Result.Expired THEN
-          logger()^.LogS( dldDebug, logPrefix, L"Event.Get clear buffer" );
-          logger()^.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
+          Logger.LogS( dldDebug, logPrefix, L"Event.Get clear buffer" );
+          Logger.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
 
+          EventsLock.Lock();
           Events.Dispose();
           EXCL( RStatus, rsEventsPending );
+          EventsLock.Unlock();
+
           GOTO Success;
         END;
 
-        IF Events.GetFirst( OUT PELE ) THEN
-          logger()^.LogSC( dldDebug, logPrefix, L"Event.Dequeue ", CARDINAL( PELE^.Event.Event ));
-
+        EventsLock.Lock();
+        b := Events.GetFirst( OUT PELE );
+        IF b THEN
           Events.Remove( PELE );
+        ELSE  
+          EXCL( RStatus, rsEventsPending );
+        END;
+        EventsLock.Unlock();
+
+        IF b THEN
+          Logger.LogSC( dldDebug, logPrefix, L"Event.Dequeue ", CARDINAL( PELE^.Event.Event ));
 
           CASE PELE^.Event.Event OF
           //-----
           | evConnect :
+            ClientsLock.Lock();
             IF SearchNet( REF Clients, PELE^.Event.Address, PClientLE ) THEN
               ASSIGN( Name, PClientLE^.Name );
               ASSIGN( Group, PClientLE^.Group );
@@ -881,6 +865,8 @@ CLASS IMPLEMENTATION CDriver;
               Name := L'';
               Group := L'';
             END;
+            ClientsLock.Unlock();
+
             IF Name[0] = L'$' THEN // PClientLE is server stub
                IF PELE^.Event.Local THEN
                  SW.FromOA( L'server_connect' );
@@ -894,9 +880,12 @@ CLASS IMPLEMENTATION CDriver;
                  SW.FromOA( L'server_connect' );
                END;
             END;
+
             SW.AppendOA( Delimiter );
+
           //-----
           | evDisconnect :
+            ClientsLock.Lock();
             IF SearchNet( REF Clients, PELE^.Event.Address, PClientLE ) THEN
               ASSIGN( Name, PClientLE^.Name );
               ASSIGN( Group, PClientLE^.Group );
@@ -909,6 +898,7 @@ CLASS IMPLEMENTATION CDriver;
               Name := L'';
               Group := L'';
             END;
+
             IF Name[0] = L'$' THEN // disconnected is server stub
                IF PELE^.Event.Local THEN
                  SW.FromOA( L'server_disconnect' );
@@ -925,7 +915,10 @@ CLASS IMPLEMENTATION CDriver;
                  SW.FromOA( L'server_disconnect' );
                END;
             END;
+            ClientsLock.Unlock();
+
             SW.AppendOA( Delimiter );
+
           //-----
           | evDataReceived1 :
             ASSIGN( Name, PELE^.Event.PReceiveClient^.Name );
@@ -936,6 +929,7 @@ CLASS IMPLEMENTATION CDriver;
               SW.FromOA( L'server_data' );
             END;
             SW.AppendOA( Delimiter );
+
           //-----
           | evStructReceived1 :
             ASSIGN( Name, PELE^.Event.PReceiveClient^.Name );
@@ -946,6 +940,7 @@ CLASS IMPLEMENTATION CDriver;
               SW.FromOA( L'server_record' );
             END;
             SW.AppendOA( Delimiter );
+
           //-----
           | evDataReceived2Success, evStructReceived2Success :
             CASE PELE^.Event.PPacket^.TR OF
@@ -984,6 +979,7 @@ CLASS IMPLEMENTATION CDriver;
 					  
 		         END;
             END;
+
           //-----
           | evDataReceived2BadCRC, evStructReceived2BadCRC :
             SW.FromOA( L'$badcrc' );
@@ -1022,19 +1018,21 @@ CLASS IMPLEMENTATION CDriver;
             SW.AppendOA( n );
           END;
 
-          IF drv_def.AssignDrvValueCStringW( REF OutValue, UFlag, FALSE, SW ) THEN
+          OutValue.String := SW;
+          IF SW.Length < OutValueLimit THEN
             DISPOSE( PELE );
           ELSE // wait for longer string, enter record back
-            logger()^.LogS( dldDebug, logPrefix, L"Event.Enqueue back" );
+            Logger.LogS( dldDebug, logPrefix, L"Event.Enqueue back" );
 
+            EventsLock.Lock();
             Events.InsertFirst( PELE );
+            EventsLock.Unlock();
           END;
           RETURN;
 
         ELSE
-          logger()^.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
+          Logger.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
 
-          EXCL( RStatus, rsEventsPending );
           GOTO Success;
         END;
         
@@ -1106,20 +1104,23 @@ CLASS IMPLEMENTATION CDriver;
       ELSIF EQUALS( si, L'send' ) THEN
         SW.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 2, TRUE, OUT Name );
 
+        ClientsLock.Lock();
         IF EQUALS( Name, L'all' ) THEN
           PClientLE := NIL;
         ELSIF Name[0] <> L'$' THEN
           SW.FromOA( OAsz( R[ Texts._UnknownClient ] ));
+          ClientsLock.Unlock();
           GOTO Error;
         ELSIF NOT SearchName( Name, PClientLE ) THEN
           SW.FromOA( OAsz( R[ Texts._UnknownClient ] ));
+          ClientsLock.Unlock();
           GOTO Error;
         END;
+        ClientsLock.Unlock();
+
         IF Result.Counted OR Result.Expired THEN
           GOTO Success;
-        END;
-
-        IF NOT PreparePayload( OUT Payload ) THEN
+        ELSIF NOT PreparePayload( OUT Payload ) THEN
           GOTO Error;
         END;
 
@@ -1140,6 +1141,7 @@ CLASS IMPLEMENTATION CDriver;
         IF PClientLE <> NIL THEN // send single client
           PClientLE^.PClient^.Send( PClientLE^.PClient^.Connection, 0, PPacket, len );
         ELSE // send all clients
+          ClientsLock.Lock();
           b := Clients.GetFirst( OUT PClientLE );
           WHILE b DO
             IF ( PClientLE^.PClient <> NIL ) AND ( PClientLE^.Name[0] = L'$' ) AND ( PClientLE^.Group[0] <> L' ' ) THEN
@@ -1147,6 +1149,7 @@ CLASS IMPLEMENTATION CDriver;
             END;
             b := Clients.NextOf( PClientLE, OUT PClientLE );
           END; // WHILE
+          ClientsLock.Unlock();
         END;
 
       ELSE
@@ -1160,17 +1163,25 @@ CLASS IMPLEMENTATION CDriver;
       SW.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 2, TRUE, OUT Name );
 
       IF EQUALS( si, L'create' ) THEN
+        ClientsLock.Lock();
+
         IF SearchGroup( Name, PGroupLE ) THEN
           SW.FromOA( OAsz( R[ Texts._GroupAlreadyExists ] ));
+          ClientsLock.Unlock();
           GOTO Error;
         END;
         NEW( PGroupLE );
         ASSIGN( PGroupLE^.Name, Name );
         Groups.Append( PGroupLE );
+
+        ClientsLock.Unlock();
       
       ELSIF EQUALS( si, L'connect' ) THEN
+        ClientsLock.Lock();
+
         IF NOT SearchGroup( Name, PGroupLE ) THEN
           SW.FromOA( OAsz( R[ Texts._UnknownGroup ] ));
+          ClientsLock.Unlock();
           GOTO Error;
         END;
         b := PGroupLE^.Clients.GetFirst( OUT PClientGroupLE );
@@ -1179,9 +1190,14 @@ CLASS IMPLEMENTATION CDriver;
           b := PGroupLE^.Clients.NextOf( PClientGroupLE, OUT PClientGroupLE );
         END; // WHILE
 
+        ClientsLock.Unlock();
+
       ELSIF EQUALS( si, L'disconnect' ) THEN
+        ClientsLock.Lock();
+
         IF NOT SearchGroup( Name, PGroupLE ) THEN
           SW.FromOA( OAsz( R[ Texts._UnknownGroup ] ));
+          ClientsLock.Unlock();
           GOTO Error;
         END;
         b := PGroupLE^.Clients.GetFirst( OUT PClientGroupLE );
@@ -1190,16 +1206,22 @@ CLASS IMPLEMENTATION CDriver;
           b := PGroupLE^.Clients.NextOf( PClientGroupLE, OUT PClientGroupLE );
         END; // WHILE
 
+        ClientsLock.Unlock();
+
       ELSIF EQUALS( si, L'send' ) THEN
+        ClientsLock.Lock();
+
         IF NOT SearchGroup( Name, PGroupLE ) THEN
           SW.FromOA( OAsz( R[ Texts._UnknownGroup ] ));
+          ClientsLock.Unlock();
           GOTO Error;
         END;
+
+        ClientsLock.Unlock();
+
         IF Result.Counted OR Result.Expired THEN
           GOTO Success;
-        END;
-          
-        IF NOT PreparePayload( OUT Payload ) THEN
+        ELSIF NOT PreparePayload( OUT Payload ) THEN
           GOTO Error;
         END;
 
@@ -1217,6 +1239,8 @@ CLASS IMPLEMENTATION CDriver;
           rijndael.Encrypt( rijndael.cphmStreamEncrypt, rijndael.rkl256, ck, GlobalKey, OA( len-1, PPacket ), OUT OA( len-1, PPacket ), OUT len );
         END;
 
+        ClientsLock.Lock();
+
         b := PGroupLE^.Clients.GetFirst( OUT PClientGroupLE );
         WHILE b DO
           IF PClientGroupLE^.PClientLE <> NIL THEN
@@ -1224,6 +1248,8 @@ CLASS IMPLEMENTATION CDriver;
           END;
           b := PGroupLE^.Clients.NextOf( PClientGroupLE, OUT PClientGroupLE );
         END; // WHILE
+
+        ClientsLock.Unlock();
 
       ELSE
         SW.FromOA( OAsz( R[ Texts._UnrecognizedGroupCommand ] ));
@@ -1257,8 +1283,11 @@ CLASS IMPLEMENTATION CDriver;
           GOTO Error;
         END;
 
+        ClientsLock.Lock();
+
         IF Exists( Name, RAddr ) THEN
           SW.FromOA( OAsz( R[ Texts._ClientAlreadyExists ] ));
+          ClientsLock.Unlock();
           GOTO Error;
         END;
 
@@ -1283,29 +1312,45 @@ CLASS IMPLEMENTATION CDriver;
         NEW( PClientLE^.PClient );
         Clients.Append( PClientLE );
 
+        ClientsLock.Unlock();
+
         PClientLE^.PClient^.BindDispatcher( ADR( Server ));
         PClientLE^.PClient^.Join( RAddr );
 
       ELSIF EQUALS( si, L'connect' ) THEN
+        ClientsLock.Lock();
+
         IF NOT SearchName( Name, PClientLE ) THEN
           SW.FromOA( OAsz( R[ Texts._UnknownClient ] ));
+          ClientsLock.Unlock();
           GOTO Error;
         END;
         PClientLE^.PClient^.Connect( PClientLE^.PClient^.Connection );
 
+        ClientsLock.Unlock();
+
       ELSIF EQUALS( si, L'disconnect' ) THEN
+        ClientsLock.Lock();
+
         IF NOT SearchName( Name, PClientLE ) THEN
           SW.FromOA( OAsz( R[ Texts._UnknownClient ] ));
+          ClientsLock.Unlock();
           GOTO Error;
         END;
         PClientLE^.PClient^.Disconnect( PClientLE^.PClient^.Connection );
 
+        ClientsLock.Unlock();
+
       ELSIF EQUALS( si, L'remove' ) THEN
+        ClientsLock.Lock();
+
         IF Name[0] = L'$' THEN
           SW.FromOA( OAsz( R[ Texts._ClientNameReserved ] ));
+          ClientsLock.Unlock();
           GOTO Error;
         ELSIF NOT SearchName( Name, PClientLE ) THEN
           SW.FromOA( OAsz( R[ Texts._UnknownClient ] ));
+          ClientsLock.Unlock();
           GOTO Error;
         END;
 
@@ -1315,18 +1360,24 @@ CLASS IMPLEMENTATION CDriver;
         // removed clients store data to allow notify correct information
         RemovedClients.Append( PClientLE );
 
+        ClientsLock.Unlock();
+
         PClient^.Disconnect( PClient^.Connection );
         PClient^.Leave( PClient^.Connection );
         PClient^.Release();
 
       ELSIF EQUALS( si, L'join' ) THEN
+        ClientsLock.Lock();
+
         IF NOT SearchName( Name, PClientLE ) THEN
           SW.FromOA( OAsz( R[ Texts._UnknownClient ] ));
+          ClientsLock.Unlock();
           GOTO Error;
         END;
         SW.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 3, TRUE, OUT Name ); // group id
         IF NOT SearchGroup( Name, PGroupLE ) THEN
           SW.FromOA( OAsz( R[ Texts._UnknownGroup ] ));
+          ClientsLock.Unlock();
           GOTO Error;
         END;
         b := PGroupLE^.Clients.GetFirst( OUT PClientGroupLE );
@@ -1342,14 +1393,20 @@ CLASS IMPLEMENTATION CDriver;
           b := PGroupLE^.Clients.NextOf( PClientGroupLE, OUT PClientGroupLE );
         END; // WHILE
 
+        ClientsLock.Unlock();
+
       ELSIF EQUALS( si, L'leave' ) THEN
+        ClientsLock.Lock();
+
         IF NOT SearchName( Name, PClientLE ) THEN
           SW.FromOA( OAsz( R[ Texts._UnknownClient ] ));
+          ClientsLock.Unlock();
           GOTO Error;
         END;
         SW.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 3, TRUE, OUT Name ); // group id
         IF NOT SearchGroup( Name, PGroupLE ) THEN
           SW.FromOA( OAsz( R[ Texts._UnknownGroup ] ));
+          ClientsLock.Unlock();
           GOTO Error;
         END;
         b := PGroupLE^.Clients.GetFirst( OUT PClientGroupLE );
@@ -1364,21 +1421,28 @@ CLASS IMPLEMENTATION CDriver;
           b := PGroupLE^.Clients.NextOf( PClientGroupLE, OUT PClientGroupLE );
         END; // WHILE
 
+        ClientsLock.Unlock();
+
       ELSIF EQUALS( si, L'send' ) THEN
+        ClientsLock.Lock();
+
         IF EQUALS( Name, L'all' ) THEN
           PClientLE := NIL;
         ELSIF Name[0] = L'$' THEN
           SW.FromOA( OAsz( R[ Texts._UnknownClient ] ));
+          ClientsLock.Unlock();
           GOTO Error;
         ELSIF NOT SearchName( Name, PClientLE ) THEN
           SW.FromOA( OAsz( R[ Texts._UnknownClient ] ));
+          ClientsLock.Unlock();
           GOTO Error;
         END;
+
+        ClientsLock.Unlock();
+
         IF Result.Counted OR Result.Expired THEN
           GOTO Success;
-        END;
-
-        IF NOT PreparePayload( OUT Payload ) THEN
+        ELSIF NOT PreparePayload( OUT Payload ) THEN
           GOTO Error;
         END;
 
@@ -1397,6 +1461,7 @@ CLASS IMPLEMENTATION CDriver;
         END;
 
         IF PClientLE = NIL THEN // send all clients
+          ClientsLock.Lock();
           b := Clients.GetFirst( OUT PClientLE );
           WHILE b DO
             IF ( PClientLE^.PClient <> NIL ) AND ( PClientLE^.Name[0] <> L'$' ) THEN
@@ -1404,6 +1469,7 @@ CLASS IMPLEMENTATION CDriver;
             END;
             b := Clients.NextOf( PClientLE, OUT PClientLE );
           END; // WHILE
+          ClientsLock.Unlock();
         ELSE
           PClientLE^.PClient^.Send( PClientLE^.PClient^.Connection, 0, PPacket, len );
         END;
@@ -1421,34 +1487,42 @@ CLASS IMPLEMENTATION CDriver;
     END;
 
   Error:
-    drv_def.AssignDrvValueCStringW( REF OutValue, UFlag, FALSE, SW );
+    OutValue.String := SW;
     RETURN;
+
   Success:
-    drv_def.AssignDrvValueStringW( REF OutValue, UFlag, FALSE, L'' );
+    SW.Clear();
+    OutValue.String := SW;
   END QueryProc;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
-  LOCAL PROCEDURE InputRequestStart();
-  BEGIN
-  END InputRequestStart;
-
-//--------------------------------------------------------------------------------
-
-   LOCAL PROCEDURE InputRequest( DriverIndex : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE DriverProc( Func, Param1, Param2, Param3, Param4 : CARDINAL );
    BEGIN
-      Result.Inc();
+   END DriverProc;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE InputRequestStart();
+   BEGIN
+   END InputRequestStart;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE InputRequest( DriverIndex : CARDINAL );
+   BEGIN
+      Result.Inc(); // locked by self
    END InputRequest;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
-  LOCAL PROCEDURE InputRequestCompleted();
-  BEGIN
-  END InputRequestCompleted;
+   PUBLIC VIRTUAL PROCEDURE InputRequestCompleted();
+   BEGIN
+   END InputRequestCompleted;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE InputFinalized( DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE InputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
    VAR
       Finalized : BOOLEAN;
    BEGIN
@@ -1458,24 +1532,24 @@ CLASS IMPLEMENTATION CDriver;
          // return always OK
       ELSIF TRStatus{rsRunning} * RStatus = TRStatus{} THEN
          ErrorCode := ecDeviceStopped;
-      ELSIF Result.Expired OR Result.Counted THEN
+      ELSIF Result.Expired OR Result.Counted THEN // locked by self
          RETURN FALSE;
       ELSE
          ////
       END;
       RETURN Finalized;
-  END InputFinalized;
+   END InputFinalized;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
-  LOCAL PROCEDURE InputOOBDataQuery( VAR EnumerateState : LONGWORD; VAR DriverIndex : CARDINAL ) : BOOLEAN;
-  BEGIN
-    RETURN FALSE;
-  END InputOOBDataQuery;
+   PUBLIC VIRTUAL PROCEDURE InputOOBDataQuery( REF EnumerateState : LONGWORD; OUT DriverIndex : CARDINAL ) : BOOLEAN;
+   BEGIN
+      RETURN FALSE;
+   END InputOOBDataQuery;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE GetInput( UFlag : BOOLEAN; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue; VAR QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp; VAR ErrorCode : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE GetInput( DriverIndex : CARDINAL; InValueLimit : CARDINAL; OUT InValue : iovalue.Value; OUT QoS : CARDINAL; OUT TimeStamp : drv_def.TUTCStamp; OUT ErrorCode : CARDINAL );
    VAR
       Value : iovalue.TPValue;
    BEGIN
@@ -1483,62 +1557,61 @@ CLASS IMPLEMENTATION CDriver;
       QoS := drv_def.qosGood;
 
       IF DriverIndex = chStatus THEN
-         IF Result.Counted OR Result.Expired THEN
+         IF Result.Counted OR Result.Expired THEN // locked by self
             EXCL( RStatus, rsValid );
          ELSE
             INCL( RStatus, rsValid );
          END;
-         drv_def.AssignValueCardinal( InValue, UFlag, TRUE, CARDINAL( RStatus * rssUser ));
+         InValue.Integer := CARDINAL( RStatus * rssUser );
 
       ELSIF NOT FieldToValue.Get( DriverIndex, OUT Value ) THEN
          ErrorCode := drv_def.ecUnknownElement;
       
       ELSE
-         drv_def.IOValueToCWValue( Value^, UFlag, FALSE, REF InValue );
-
-      END; // CASE
+         InValue := Value^;
+      END;
    END GetInput;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
-  LOCAL PROCEDURE OutputRequestStart();
-  BEGIN
-  END OutputRequestStart;
+   PUBLIC VIRTUAL PROCEDURE OutputRequestStart();
+   BEGIN
+   END OutputRequestStart;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE OutputRequest( UFlag : BOOLEAN; DriverIndex : CARDINAL; OutValue : drv_def.TValue; QoS : CARDINAL; TimeStamp : drv_def.TUTCStamp );
+   PUBLIC VIRTUAL PROCEDURE OutputRequest( DriverIndex : CARDINAL; CONST OutValue : iovalue.Value; QoS : CARDINAL; CONST TimeStamp : drv_def.TUTCStamp );
    VAR
       Value : iovalue.TPValue;
    BEGIN
-      Result.Inc();
+      Result.Inc(); // locked by self
       IF FieldToValue.Get( DriverIndex, OUT Value ) THEN
-         drv_def.CWValueToIOValue( OutValue, UFlag, REF Value^ );
+         Value^ := OutValue;
       END;
    END OutputRequest;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
-  LOCAL PROCEDURE OutputRequestCompleted();
+  PUBLIC VIRTUAL PROCEDURE OutputRequestCompleted();
   BEGIN
   END OutputRequestCompleted;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
-  LOCAL PROCEDURE OutputFinalized( DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE OutputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
   BEGIN
     ErrorCode := 0;
-    RETURN NOT Result.Expired AND NOT Result.Counted;
+    RETURN NOT Result.Expired AND NOT Result.Counted; // locked by self
   END OutputFinalized;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
   PROCEDURE InitToDefault();
   BEGIN
     Delimiter := L":";
   END InitToDefault;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
   PROCEDURE Exists( Name : ARRAY OF WCHAR; CONST Address : inetaddr.INETADDR ) : BOOLEAN;
   VAR
@@ -1557,7 +1630,7 @@ CLASS IMPLEMENTATION CDriver;
     RETURN FALSE;
   END Exists;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
   PROCEDURE SearchName( Name : ARRAY OF WCHAR; VAR PClientLE : TPClientLE ) : BOOLEAN;
   VAR
@@ -1576,7 +1649,7 @@ CLASS IMPLEMENTATION CDriver;
     RETURN FALSE;
   END SearchName;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
   PROCEDURE SearchNet( REF _Clients : list.CList; CONST Address : inetaddr.INETADDR; VAR PClientLE : TPClientLE ) : BOOLEAN;
   VAR
@@ -1594,7 +1667,7 @@ CLASS IMPLEMENTATION CDriver;
     RETURN FALSE;
   END SearchNet;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
   PROCEDURE SearchGroup( Name : ARRAY OF WCHAR; VAR PGroupLE : TPGroupLE ) : BOOLEAN;
   VAR
@@ -1612,7 +1685,7 @@ CLASS IMPLEMENTATION CDriver;
     RETURN FALSE;
   END SearchGroup;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
   PROCEDURE RemoveClientFromGroups( PClientLE : TPClientLE );
   VAR
@@ -1635,10 +1708,11 @@ CLASS IMPLEMENTATION CDriver;
     END; // WHILE
   END RemoveClientFromGroups;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE OnConnect( PConnection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
   VAR
+    b : BOOLEAN;
     len : CARDINAL;
     PPacket : TPPacket := Packet.Data;
     PClientLE : TPClientLE;
@@ -1651,11 +1725,18 @@ CLASS IMPLEMENTATION CDriver;
       PELE^.Event.Local := Local;
       PELE^.Event.Address := PConnection^.RemoteAddress;
       PELE^.Event.Error := Error;
+
+      EventsLock.Lock();
       Events.Append( PELE );
+      EventsLock.Unlock();
 
-      logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evConnect/client ", CARDINAL( evConnect ));
+      Logger.LogSC( dldDebug, logPrefix, L"Event.Add evConnect/client ", CARDINAL( evConnect ));
 
-      IF SearchNet( REF Clients, PELE^.Event.Address, PClientLE ) THEN
+      ClientsLock.Lock();
+      b := SearchNet( REF Clients, PELE^.Event.Address, PClientLE );
+      ClientsLock.Unlock();
+      IF b THEN
+
         len := LENGTH( PClientLE^.Group ) << 1;
         PPacket^.TR := trGroup;
         ASSIGN( PPacket^.Group, PClientLE^.Group );
@@ -1671,6 +1752,8 @@ CLASS IMPLEMENTATION CDriver;
       END;
 
     ELSE // remote connect
+      ClientsLock.Lock();
+
       IF SearchNet( REF Clients, PConnection^.RemoteAddress, PClientLE ) THEN
         // a previous one exists, strange, but reuse it
       ELSE
@@ -1682,21 +1765,28 @@ CLASS IMPLEMENTATION CDriver;
       PClientLE^.Address := PConnection^.RemoteAddress;
       Clients.Append( PClientLE );
       NEW( PClientLE^.PClient );
+
+      ClientsLock.Unlock();
+
       PClientLE^.PClient^.BindDispatcher( ADR( Server ));
       PClientLE^.PClient^.Connection := PConnection;
 
     END;
 
+    EventsLock.Lock();
     IF rsEventsPending IN RStatus THEN
+      EventsLock.Unlock();
       RETURN;
+    ELSE
+      INCL( RStatus, rsEventsPending );
     END;
-    logger()^.LogS( dldDebug, logPrefix, L"RS+ rsEventPending, fire dcfException (1)" );
+    EventsLock.Unlock();
+    Logger.LogS( dldDebug, logPrefix, L"RS+ rsEventPending, fire dcfException (1)" );
 
-    INCL( RStatus, rsEventsPending );
     CallbackProc( CallbackId, drv_def.dcfException, NIL );
   END OnConnect;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE OnDisconnect( PConnection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
   VAR
@@ -1708,11 +1798,16 @@ CLASS IMPLEMENTATION CDriver;
     PELE^.Event.Local := Local;
     PELE^.Event.Address := PConnection^.RemoteAddress;
     PELE^.Event.Error := Error;
-    Events.Append( PELE );
 
-    logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evDisconnect", CARDINAL( evDisconnect ));
+    EventsLock.Lock();
+    Events.Append( PELE );
+    EventsLock.Unlock();
+
+    Logger.LogSC( dldDebug, logPrefix, L"Event.Add evDisconnect", CARDINAL( evDisconnect ));
 
     // remove remote client stub
+    ClientsLock.Lock();
+
     IF SearchNet( REF Clients, PELE^.Event.Address, PClientLE ) AND ( PClientLE^.Name[0] = L'$' ) THEN
       // remove client from groups
       RemoveClientFromGroups( PClientLE );
@@ -1725,16 +1820,22 @@ CLASS IMPLEMENTATION CDriver;
       // DISPOSE( PClientLE );
     END;
 
-    IF rsEventsPending IN RStatus THEN
-      RETURN;
-    END;
-    logger()^.LogS( dldDebug, logPrefix, L"RS+ rsEventPending, fire dcfException (2)" );
+    ClientsLock.Unlock();
 
-    INCL( RStatus, rsEventsPending );
+    EventsLock.Lock();
+    IF rsEventsPending IN RStatus THEN
+      EventsLock.Unlock();
+      RETURN;
+    ELSE
+      INCL( RStatus, rsEventsPending );
+    END;
+    EventsLock.Unlock();
+    Logger.LogS( dldDebug, logPrefix, L"RS+ rsEventPending, fire dcfException (2)" );
+
     CallbackProc( CallbackId, drv_def.dcfException, NIL );
   END OnDisconnect;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
   LOCAL PROCEDURE OnReceive( PConnection : netconndispatch.TConnectionHandle; PData : ADDRESS; DataLen : CARDINAL );
   VAR
@@ -1753,15 +1854,18 @@ CLASS IMPLEMENTATION CDriver;
     CRC := TPPacket( PData )^.CRC; TPPacket( PData )^.CRC := 0;
     CRCValid := crc.crc32( crc.crc32i, OA( DataLen-1, PData )) = CRC;
 
-    logger()^.LogSC( dldDebug, logPrefix, L"OnReceive bytes ", DataLen );
+    Logger.LogSC( dldDebug, logPrefix, L"OnReceive bytes ", DataLen );
 
     CASE TPPacket( PData )^.TR OF
     | trGroup :
+      ClientsLock.Lock();
+
       SearchNet( REF Clients, PConnection^.RemoteAddress, PClientLE );
       IF NOT CRCValid THEN
         PClientLE^.PClient^.Disconnect( PConnection );
 
-        logger()^.LogS( dldDebug, logPrefix, L"Disconnect, bad CRC" );
+        Logger.LogS( dldDebug, logPrefix, L"Disconnect, bad CRC" );
+        ClientsLock.Unlock();
         RETURN;
 
       ELSIF TPPacket( PData )^.Length = hdr THEN
@@ -1782,44 +1886,56 @@ CLASS IMPLEMENTATION CDriver;
       ASSIGN( PClientGroupLE^.PClientLE^.Group, Name );
       PGroupLE^.Clients.Append( PClientGroupLE );
 
+      ClientsLock.Unlock();
+
       // remote connect
       NEW( PELE );
       PELE^.Event.Event := evConnect;
       PELE^.Event.Local := FALSE;
       PELE^.Event.Address := PConnection^.RemoteAddress;
       PELE^.Event.Error := 0;
+
+      Logger.LogSC( dldDebug, logPrefix, L"Event.Add evConnect/remote ", CARDINAL( evConnect ));
+
+      EventsLock.Lock();
       Events.Append( PELE );
-
-      logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evConnect/remote ", CARDINAL( evConnect ));
-
       IF rsEventsPending IN RStatus THEN
+        EventsLock.Unlock();
         RETURN;
+      ELSE
+        INCL( RStatus, rsEventsPending );
       END;
-      logger()^.LogS( dldDebug, logPrefix, L"RS+ rsEventPending, fire dcfException (3)" );
+      EventsLock.Unlock();
+      Logger.LogS( dldDebug, logPrefix, L"RS+ rsEventPending, fire dcfException (3)" );
 
-      INCL( RStatus, rsEventsPending );
       CallbackProc( CallbackId, drv_def.dcfException, NIL );
 
     | trString, trStruct :
       NEW( PELE );
       IF TPPacket( PData )^.TR = trString THEN
          PELE^.Event.Event := evDataReceived1;
-         logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evDataReceived1 ", CARDINAL( evDataReceived1 ));
+         Logger.LogSC( dldDebug, logPrefix, L"Event.Add evDataReceived1 ", CARDINAL( evDataReceived1 ));
       ELSE
          PELE^.Event.Event := evStructReceived1;
-         logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evStructReceived1 ", CARDINAL( evStructReceived1 ));
+         Logger.LogSC( dldDebug, logPrefix, L"Event.Add evStructReceived1 ", CARDINAL( evStructReceived1 ));
       END;
+      
+      ClientsLock.Lock();
       SearchNet( REF Clients, PConnection^.RemoteAddress, PELE^.Event.PReceiveClient );
+      ClientsLock.Unlock();
+
+      EventsLock.Lock();
       Events.Append( PELE );
+      EventsLock.Unlock();
 
       NEW( PELE );
       IF CRCValid THEN
          IF TPPacket( PData )^.TR = trString THEN
             PELE^.Event.Event := evDataReceived2Success;
-            logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evDataReceived2Success ", CARDINAL( evDataReceived2Success ));
+            Logger.LogSC( dldDebug, logPrefix, L"Event.Add evDataReceived2Success ", CARDINAL( evDataReceived2Success ));
          ELSE
             PELE^.Event.Event := evStructReceived2Success;
-            logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evStructReceived2Success ", CARDINAL( evStructReceived2Success ));
+            Logger.LogSC( dldDebug, logPrefix, L"Event.Add evStructReceived2Success ", CARDINAL( evStructReceived2Success ));
          END;
          PELE^.Event.PacketLen := DataLen;
          ALLOCATE( PELE^.Event.PPacket, DataLen );
@@ -1827,37 +1943,39 @@ CLASS IMPLEMENTATION CDriver;
       ELSE
          IF TPPacket( PData )^.TR = trString THEN
             PELE^.Event.Event := evDataReceived2BadCRC;
-            logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evDataReceived2BadCRC ", CARDINAL( evDataReceived2BadCRC ));
+            Logger.LogSC( dldDebug, logPrefix, L"Event.Add evDataReceived2BadCRC ", CARDINAL( evDataReceived2BadCRC ));
          ELSE
             PELE^.Event.Event := evStructReceived2BadCRC;
-            logger()^.LogSC( dldDebug, logPrefix, L"Event.Add evStructReceived2BadCRC ", CARDINAL( evStructReceived2BadCRC ));
+            Logger.LogSC( dldDebug, logPrefix, L"Event.Add evStructReceived2BadCRC ", CARDINAL( evStructReceived2BadCRC ));
          END;
       END;
-      Events.Append( PELE );
-      
-      IF rsEventsPending IN RStatus THEN
-        RETURN;
-      END;
-      logger()^.LogS( dldDebug, logPrefix, L"RS+ rsEventPending, fire dcfException (4)" );
 
-      INCL( RStatus, rsEventsPending );
+      EventsLock.Lock();
+      Events.Append( PELE );
+      IF rsEventsPending IN RStatus THEN
+        EventsLock.Unlock();
+        RETURN;
+      ELSE
+        INCL( RStatus, rsEventsPending );
+      END;
+      EventsLock.Unlock();
+      Logger.LogS( dldDebug, logPrefix, L"RS+ rsEventPending, fire dcfException (4)" );
+
       CallbackProc( CallbackId, drv_def.dcfException, NIL );
 
     ELSE
-      logger()^.LogSC( dldTrace, logPrefix, L"Unrecognized packet ", CARDINAL( TPPacket( PData )^.TR  ));
+      Logger.LogSC( dldTrace, logPrefix, L"Unrecognized packet ", CARDINAL( TPPacket( PData )^.TR  ));
     
     END;
   END OnReceive;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 BEGIN
   R.LoadRES2( EMITW( %dll ), L'NetMsg.Texts' );
   R.Lang := Languages.GetDefaultLanguage( Languages.dlUser );
   RStatus := TRStatus{rsValid};
   RunMode := drv_def.drmEdit;
-  Name := L'';
-  _Lock.Init( Sync.ltCS, L"", FALSE );
   CallbackId := NIL;
   CallbackProc := NIL;
   ListenAddress.Port := 6001;
@@ -1866,489 +1984,65 @@ BEGIN
   Packet.Size := 272;
 END CDriver;
 
-//================================================================================
-// procedural interface
+(*================================================================================*)
+
+CLASS CFactory IMPLEMENTS diface.ICWDriverFactory;
+   PRIVATE VAR
+      R : Resources.CResources;
+   PUBLIC VIRTUAL READONLY PROPERTY
+      DriverName : StringsO.CString;
+   PUBLIC VIRTUAL PROCEDURE CreateInstance( OUT Instance : diface.TPCWDriver ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE DeleteInstance( Instance : diface.TPCWDriver );
+END CFactory;   
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CFactory;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY DriverName GET : StringsO.CString;
+   VAR
+      Name : StringsO.CString;
+   BEGIN
+      Name.FromOA( OAsz( R[ Texts._DriverName ] ));
+      RETURN Name;
+   END DriverName;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE CreateInstance( OUT Instance : diface.TPCWDriver ) : BOOLEAN;
+   VAR
+      Driver : TPDriver;
+   BEGIN
+      NEW( Driver );
+      Instance := Driver;
+      RETURN TRUE;
+   END CreateInstance;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE DeleteInstance( Instance : diface.TPCWDriver );
+   VAR
+      Driver : TPDriver := TPDriver( Instance );
+   BEGIN
+      DISPOSE( Driver );
+   END DeleteInstance;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+   R.LoadRES2( EMITW( %dll ), L'NetMsg.Texts' );
+   R.Lang := Languages.GetDefaultLanguage( Languages.dlUser );
+END CFactory;
+
+(*--------------------------------------------------------------------------------*)
 
 VAR
-  RefCount  : CARDINAL;
-  GR : Resources.CResources;
+   Factory : CFactory;
 
-PROCEDURE VersionW() : CARDINAL;
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
-  RETURN 030000H;
-END VersionW;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE GetDriverInfo( VAR DriverName : ARRAY OF CHAR );
-BEGIN
-  Strings.ToA( OAsz( GR[ Texts._DriverName ] ), 0, OUT DriverName );
-END GetDriverInfo;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE GetDriverInfoW( VAR DriverNameW : ARRAY OF WCHAR );
-BEGIN
-  ASSIGN( DriverNameW, OAsz( GR[ Texts._DriverName ] ));
-END GetDriverInfoW;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE Check( VAR ErrorString : ARRAY OF CHAR; CWVersion, MajorVersion, MinorVersion, APIMajorVersion, APIMinorVersion : CARDINAL ): BOOLEAN;
-VAR
-  es : ARRAY [0..255] OF WCHAR;
-  b : BOOLEAN;
-BEGIN
-  b := CheckW( es, CWVersion, MajorVersion, MinorVersion, APIMajorVersion, APIMinorVersion );
-  Strings.ToA( es, 0, OUT ErrorString );
-  RETURN b;
-END Check;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE CheckW( VAR ErrorString : ARRAY OF WCHAR; CWVersion, MajorVersion, MinorVersion, APIMajorVersion, APIMinorVersion : CARDINAL ): BOOLEAN;
-BEGIN
-  RETURN TRUE;
-END CheckW;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE MakeDriverW() : ADDRESS;
-VAR
-  PDriver : TPDriver;
-BEGIN
-  IF RefCount = 0 THEN
-    scinit.Startup();
-  END;
-  INC( RefCount );
-
-  NEW( PDriver );
-  RETURN PDriver;
-END MakeDriverW;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE DisposeDriverW( PData : ADDRESS );
-BEGIN
-  DISPOSE( TPDriver( PData ));
-
-  DEC( RefCount );
-  IF RefCount = 0 THEN
-    scinit.Cleanup();
-  END;
-END DisposeDriverW;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE InitCommon(    PData        : ADDRESS;
-                         RunMode      : CARDINAL;
-                     VAR SymbolicName : ARRAY OF WCHAR;
-                         CallbackId   : ADDRESS;
-                         PCallback    : drv_def.TDriverCallbackW;
-                     VAR ErrorString  : ARRAY OF WCHAR ) : BOOLEAN;
-BEGIN
-  RETURN TPDriver( PData )^.Init( RunMode, SymbolicName, CallbackId, PCallback );
-END InitCommon;
-
-PROCEDURE Init(      PData        : ADDRESS;
-                 VAR ParFilePath  : ARRAY OF CHAR;
-                 VAR ErrorMessage : ARRAY OF CHAR;
-                     UserLevel    : CARDINAL;
-                     RunFlag      : BOOLEAN;
-                     CallbackId   : ADDRESS;
-                     PCallback    : drv_def.TDriverCallbackW ) : BOOLEAN;
-VAR
-  ec, el  : CARDINAL;
-  em : ARRAY [0..255] OF WCHAR;
-  hoh : ARRAY [0..3] OF CHAR;
-  RunMode : CARDINAL;
-  s : ARRAY [0..7] OF WCHAR;
-BEGIN
-  IF RunFlag THEN
-    RunMode := drv_def.drmRun;
-  ELSE
-    RunMode := drv_def.drmEdit;
-  END;
-  ErrorMessage[0] := CHAR( 0 );
-  ASSIGN( s, L'NetMsg' );
-  IF InitCommon( PData, RunMode, s, CallbackId, drv_def.TDriverCallbackW( PCallback ), em ) THEN
-    IF NOT ReadParameters( PData, ParFilePath, ErrorMessage, el, ec, hoh ) THEN
-      RETURN FALSE;
-    END;
-    RunW( PData );
-  ELSIF em[0] = WCHAR( 0 ) THEN
-    Strings.ToA( OAsz( GR[ Texts._InitError ] ), 0, OUT ErrorMessage );
-    RETURN FALSE;
-  ELSE
-    Strings.ToA( em, 0, OUT ErrorMessage );
-    RETURN FALSE;
-  END;
-  RETURN TRUE;
-END Init;
-
-PROCEDURE Init3(     PData        : ADDRESS;
-                     RunMode      : CARDINAL;
-                 VAR SymbolicName : ARRAY OF CHAR;
-                     CallbackId   : ADDRESS;
-                     PCallback    : drv_def.TDriverCallbackW ) : BOOLEAN;
-VAR
-  ES : ARRAY [0..3] OF WCHAR;
-  sn : ARRAY [0..255] OF WCHAR;
-BEGIN
-  Strings.ToW( SymbolicName, 0, OUT sn );
-  RETURN InitCommon( PData, RunMode, sn, CallbackId, PCallback, ES );
-END Init3;
-
-PROCEDURE InitW(     PData        : ADDRESS;
-                 VAR ParFilePath  : ARRAY OF WCHAR;
-                 VAR ErrorMessage : ARRAY OF WCHAR;
-                     UserLevel    : CARDINAL;
-                     RunFlag      : BOOLEAN;
-                     CallbackId   : ADDRESS;
-                     PCallback    : drv_def.TDriverCallbackW ) : BOOLEAN;
-VAR
-  ec, el  : CARDINAL;
-  hoh     : ARRAY [0..3] OF WCHAR;
-  RunMode : CARDINAL;
-BEGIN
-  IF RunFlag THEN
-    RunMode := drv_def.drmRun;
-  ELSE
-    RunMode := drv_def.drmEdit;
-  END;
-  ErrorMessage[0] := WCHAR( 0 );
-  IF InitCommon( PData, RunMode, hoh, CallbackId, PCallback, ErrorMessage ) THEN
-    IF NOT ReadParametersW( PData, ParFilePath, ErrorMessage, el, ec, hoh ) THEN
-      RETURN FALSE;
-    END;
-    RunW( PData );
-  ELSIF ErrorMessage[0] = WCHAR( 0 ) THEN
-    ASSIGN( ErrorMessage, OAsz( GR[ Texts._InitError ] ));
-    RETURN FALSE;
-  ELSE
-    RETURN FALSE;
-  END;
-  RETURN TRUE;
-END InitW;
-
-PROCEDURE Init3W(    PData        : ADDRESS;
-                     RunMode      : CARDINAL;
-                 VAR SymbolicName : ARRAY OF WCHAR;
-                     CallbackId   : ADDRESS;
-                     PCallback    : drv_def.TDriverCallbackW ) : BOOLEAN;
-VAR
-  ES : ARRAY [0..3] OF WCHAR;
-BEGIN
-  RETURN InitCommon( PData, RunMode, SymbolicName, CallbackId, PCallback, ES );
-END Init3W;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE ReadParameters(             PData : ADDRESS;
-                           VAR ParFilePath  : ARRAY OF CHAR;
-                           VAR ErrorMessage : ARRAY OF CHAR;
-                           VAR ErrorLine    : CARDINAL;
-                           VAR ErrorColumn  : CARDINAL;
-                           VAR HintOrHelp   : ARRAY OF CHAR ) : BOOLEAN;
-VAR
-  pf, em, hoh : ARRAY [0..287] OF WCHAR;
-  b : BOOLEAN;
-BEGIN
-  Strings.ToW( ParFilePath, 0, OUT pf );
-  b := TPDriver( PData )^.ReadParameters( pf, em, ErrorLine, ErrorColumn, hoh );
-  Strings.ToA( em, 0, OUT ErrorMessage );
-  Strings.ToA( hoh, 0, OUT HintOrHelp );
-  RETURN b;
-END ReadParameters;
-
-PROCEDURE ReadParametersW(            PData : ADDRESS;
-                           VAR ParFilePath  : ARRAY OF WCHAR;
-                           VAR ErrorMessage : ARRAY OF WCHAR;
-                           VAR ErrorLine    : CARDINAL;
-                           VAR ErrorColumn  : CARDINAL;
-                           VAR HintOrHelp   : ARRAY OF WCHAR ) : BOOLEAN;
-BEGIN
-  RETURN TPDriver( PData )^.ReadParameters( ParFilePath, ErrorMessage, ErrorLine, ErrorColumn, HintOrHelp );
-END ReadParametersW;
-
-PROCEDURE EnumerateChannelsW( PData : ADDRESS;
-                              VAR EnumerateState : LONGWORD;
-                              VAR Type : CARDINAL;
-                              VAR Direction : CARDINAL;
-                              VAR DriverIndex : CARDINAL;
-                              VAR Count : CARDINAL;
-                              VAR HaveDescription : BOOLEAN
-                            ): BOOLEAN;
-BEGIN
-  RETURN TPDriver( PData )^.EnumerateChannels( EnumerateState, Type, Direction, DriverIndex, Count, HaveDescription );
-END EnumerateChannelsW;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE QueryErrorCode(          PData : ADDRESS;
-                               ErrorCode : CARDINAL;
-                           VAR ErrorText : ARRAY OF CHAR ) : BOOLEAN;
-VAR
-  et : ARRAY [0..255] OF WCHAR;
-  b : BOOLEAN;
-BEGIN
-  b := QueryErrorCodeW( PData, ErrorCode, et );
-  Strings.ToA( et, 0, OUT ErrorText );
-  RETURN b;
-END QueryErrorCode;
-
-PROCEDURE QueryErrorCodeW(         PData : ADDRESS;
-                               ErrorCode : CARDINAL;
-                           VAR ErrorText : ARRAY OF WCHAR ) : BOOLEAN;
-BEGIN
-  CASE ErrorCode OF
-  | ecDeviceStopped :
-    ASSIGN( ErrorText, OAsz( GR[ Texts._E_DeviceStopped ] ));
-  ////
-  ELSE
-    RETURN FALSE;
-  END;
-  RETURN TRUE;
-END QueryErrorCodeW;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE BufferInfoW( PData : ADDRESS; DriverIndex : CARDINAL; BType : CARD8; BLen : CARDINAL ) : BOOLEAN;
-BEGIN
-  RETURN FALSE;
-END BufferInfoW;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE SetBufferAddrW( PData : ADDRESS; DriverIndex : CARDINAL; PBuffer : ADDRESS );
-BEGIN
-END SetBufferAddrW;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE RunW( PData : ADDRESS );
-BEGIN
-  TPDriver( PData )^.Lock();
-  TPDriver( PData )^.Run();
-  TPDriver( PData )^.Unlock();
-END RunW;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE StopW( PData : ADDRESS );
-BEGIN
-  TPDriver( PData )^.Lock();
-  TPDriver( PData )^.Stop();
-  TPDriver( PData )^.Unlock();
-END StopW;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE DoneW( PData : ADDRESS );
-BEGIN
-  TPDriver( PData )^.Lock();
-  TPDriver( PData )^.Done();
-  TPDriver( PData )^.Unlock();
-END DoneW;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE DriverProcW( PData : ADDRESS; Func, Param1, Param2, Param3, Param4 : CARDINAL );
-BEGIN
-END DriverProcW;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE QueryProc( PData : ADDRESS; InValue : drv_def.TValue; VAR OutValue : drv_def.TValue );
-BEGIN
-  QueryProc3( PData, InValue, OutValue, OutValue );
-END QueryProc;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE QueryProcW( PData : ADDRESS; InValue : drv_def.TValue; VAR OutValue : drv_def.TValue );
-BEGIN
-  QueryProc3W( PData, InValue, OutValue, OutValue );
-END QueryProcW;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE QueryProc3( PData : ADDRESS; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
-BEGIN
-  TPDriver( PData )^.Lock();
-  TPDriver( PData )^.QueryProc( FALSE, InValue1, InValue2, OutValue );
-  TPDriver( PData )^.Unlock();
-END QueryProc3;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE QueryProc3W( PData : ADDRESS; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
-BEGIN
-  TPDriver( PData )^.Lock();
-  TPDriver( PData )^.QueryProc( TRUE, InValue1, InValue2, OutValue );
-  TPDriver( PData )^.Unlock();
-END QueryProc3W;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE InputRequestStartW( PData : ADDRESS );
-BEGIN
-  TPDriver( PData )^.Lock();
-  TPDriver( PData )^.InputRequestStart();
-  TPDriver( PData )^.Unlock();
-END InputRequestStartW;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE InputRequestW( PData : ADDRESS; DriverIndex : CARDINAL );
-BEGIN
-  TPDriver( PData )^.Lock();
-  TPDriver( PData )^.InputRequest( DriverIndex );
-  TPDriver( PData )^.Unlock();
-END InputRequestW;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE InputRequestCompletedW( PData : ADDRESS );
-BEGIN
-  TPDriver( PData )^.Lock();
-  TPDriver( PData )^.InputRequestCompleted();
-  TPDriver( PData )^.Unlock();
-END InputRequestCompletedW;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE InputFinalizedW( PData : ADDRESS; DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
-VAR
-  b : BOOLEAN;
-BEGIN
-  TPDriver( PData )^.Lock();
-  b := TPDriver( PData )^.InputFinalized( DriverIndex, ErrorCode );
-  TPDriver( PData )^.Unlock();
-  RETURN b;
-END InputFinalizedW;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE InputOOBDataQueryW( PData : ADDRESS; VAR EnumerateState : LONGWORD; VAR DriverIndex : CARDINAL ) : BOOLEAN;
-VAR
-  b : BOOLEAN;
-BEGIN
-  TPDriver( PData )^.Lock();
-  b := TPDriver( PData )^.InputOOBDataQuery( EnumerateState, DriverIndex );
-  TPDriver( PData )^.Unlock();
-  RETURN b;
-END InputOOBDataQueryW;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE GetInput( PData : ADDRESS; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue );
-VAR
-  ec : CARDINAL;
-  QoS : CARDINAL;
-  ts : drv_def.TUTCStamp;
-BEGIN
-  GetInput3( PData, DriverIndex, InValue, QoS, ts, ec );
-END GetInput;
-
-PROCEDURE GetInput3( PData : ADDRESS; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue; VAR QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp; VAR ErrorCode : CARDINAL );
-BEGIN
-  TPDriver( PData )^.Lock();
-  TPDriver( PData )^.GetInput( FALSE, DriverIndex, InValue, QoS, TimeStamp, ErrorCode );
-  TPDriver( PData )^.Unlock();
-END GetInput3;
-
-PROCEDURE GetInputW( PData : ADDRESS; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue );
-VAR
-  ec : CARDINAL;
-  QoS : CARDINAL;
-  ts : drv_def.TUTCStamp;
-BEGIN
-  GetInput3W( PData, DriverIndex, InValue, QoS, ts, ec );
-END GetInputW;
-
-PROCEDURE GetInput3W( PData : ADDRESS; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue; VAR QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp; VAR ErrorCode : CARDINAL );
-BEGIN
-  TPDriver( PData )^.Lock();
-  TPDriver( PData )^.GetInput( TRUE, DriverIndex, InValue, QoS, TimeStamp, ErrorCode );
-  TPDriver( PData )^.Unlock();
-END GetInput3W;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE OutputRequestStartW( PData : ADDRESS );
-BEGIN
-  TPDriver( PData )^.Lock();
-  TPDriver( PData )^.OutputRequestStart();
-  TPDriver( PData )^.Unlock();
-END OutputRequestStartW;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE OutputRequest( PData : ADDRESS; DriverIndex : CARDINAL; OutValue : drv_def.TValue );
-VAR
-  ts : drv_def.TUTCStamp;
-BEGIN
-  OutputRequest3( PData, DriverIndex, OutValue, drv_def.qosGood, ts );
-END OutputRequest;
-
-PROCEDURE OutputRequest3( PData : ADDRESS; DriverIndex : CARDINAL; OutValue : drv_def.TValue; QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp );
-BEGIN
-  TPDriver( PData )^.Lock();
-  TPDriver( PData )^.OutputRequest( FALSE, DriverIndex, OutValue, QoS, TimeStamp );
-  TPDriver( PData )^.Unlock();
-END OutputRequest3;
-
-PROCEDURE OutputRequestW( PData : ADDRESS; DriverIndex : CARDINAL; OutValue : drv_def.TValue );
-VAR
-  ts : drv_def.TUTCStamp;
-BEGIN
-  OutputRequest3W( PData, DriverIndex, OutValue, drv_def.qosGood, ts );
-END OutputRequestW;
-
-PROCEDURE OutputRequest3W( PData : ADDRESS; DriverIndex : CARDINAL; OutValue : drv_def.TValue; QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp );
-BEGIN
-  TPDriver( PData )^.Lock();
-  TPDriver( PData )^.OutputRequest( TRUE, DriverIndex, OutValue, QoS, TimeStamp );
-  TPDriver( PData )^.Unlock();
-END OutputRequest3W;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE OutputRequestCompletedW( PData : ADDRESS );
-BEGIN
-  TPDriver( PData )^.Lock();
-  TPDriver( PData )^.OutputRequestCompleted();
-  TPDriver( PData )^.Unlock();
-END OutputRequestCompletedW;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE OutputFinalizedW( PData : ADDRESS; DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
-VAR
-  b : BOOLEAN;
-BEGIN
-  TPDriver( PData )^.Lock();
-  b := TPDriver( PData )^.OutputFinalized( DriverIndex, ErrorCode );
-  TPDriver( PData )^.Unlock();
-  RETURN b;
-END OutputFinalizedW;
-
-//================================================================================
-
-INITIALLY __I();
-BEGIN
-  // self
-  RefCount := 0;
-  // global resources
-  GR.LoadRES2( EMITW( %dll ), L'NetMsg.Texts' );
-  GR.Lang := Languages.GetDefaultLanguage( Languages.dlUser );
-END __I;
-
-FINALLY __F();
-BEGIN
-END __F;
-
-//================================================================================
-
+   diface.RegisterFactory( ADR( Factory ));
 END NetMsg.

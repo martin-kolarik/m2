@@ -12,13 +12,17 @@
             <item lang="en-US">Network Messaging Driver</item>
             <item lang="cs-CZ">Ovladač pro síťové zprávy</item>
         </string>
-        <string name="_LicenceNotFound">
-            <item lang="en-US">Licence information not found</item>
-            <item lang="cs-CZ">Nenalezena informace o licenci</item>
+        <string name="_UnknownDebugMode">
+            <item lang="en-US">Bad or unknown "debug_mode"</item>
+            <item lang="cs-CZ">Chybný nebo neznámý způsob logování ("debug_mode")</item>
         </string>
-        <string name="_InitError">
-            <item lang="en-US">Initialization failed</item>
-            <item lang="cs-CZ">Chyba inicializace ovladače</item>
+        <string name="_UnknownDebugLevel">
+            <item lang="en-US">Bad or unknown "debug_level"</item>
+            <item lang="cs-CZ">Chybná nebo neznámá úroveň logování ("debug_level")</item>
+        </string>
+        <string name="_FileDebugMissingFile">
+            <item lang="en-US">Missing "debug_file" key for "debug_mode = file"</item>
+            <item lang="cs-CZ">Chybí klíč "debug_file" pro "debug_mode = file"</item>
         </string>
 
         <string name="_E_DeviceStopped">
@@ -33,10 +37,6 @@
         <string name="_MissingDeviceSection">
             <item lang="en-US">Device definition section is missing ([NetMsg])</item>
             <item lang="cs-CZ">Chybí definice sekce zařízení ([NetMsg])</item>
-        </string>
-        <string name="_FileDebugMissingFile">
-            <item lang="en-US">Debug output file definition is missing (debug_file = ...)</item>
-            <item lang="cs-CZ">Chybí definice souboru s ladicími výpisy (debug_file = ...)</item>
         </string>
         <string name="_KeyTooShort">
             <item lang="en-US">Key must be at least 32 characters long</item>

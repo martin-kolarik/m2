@@ -4,12 +4,11 @@
 
     <!-- 1 -->
     <PropertyGroup>
-       <Manufacturer Condition="$(Manufacturer)==''">Inris</Manufacturer>
+        <Manufacturer Condition="$(Manufacturer)==''">Inris</Manufacturer>
         <ComponentType>Product</ComponentType>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(Manufacturer)=='SmartControl'">
-      <ProductGUID>C6856B33-D2AA-4566-9D81-6B61F1A6D896</ProductGUID>
       <ProductUpgradeGUID>F38E039F-0B92-4c7b-860E-5660BD6F58C5</ProductUpgradeGUID>
       <ProductId>SmartControl.NetMsg.CWDriver</ProductId>
       <ProductVersionMajor>1</ProductVersionMajor>
@@ -18,7 +17,6 @@
     </PropertyGroup>
 
     <PropertyGroup Condition="$(Manufacturer)=='Inris'">
-      <ProductGUID>8A4C0568-56C9-4c7d-AA5F-4959CBDD3371</ProductGUID>
       <ProductUpgradeGUID>02C64EE3-CC35-4a26-A5EF-0F56CC2AC484</ProductUpgradeGUID>
       <ProductId>Inris.NetMsg.CWDriver</ProductId>
       <ProductVersionMajor>1</ProductVersionMajor>
@@ -34,7 +32,7 @@
     <ItemGroup>
 			<Components Include="modula2\modula2;api\clib;API\win32"/>
 			<Components Include="component\SCCore;library\CWdriver"/>
-			<Modules Include="netmsg"/>
+			<Program Include="netmsg"/>
 			<Messages Include="Texts"/>
 		</ItemGroup>
 

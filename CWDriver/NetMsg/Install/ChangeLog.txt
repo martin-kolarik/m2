@@ -1,3 +1,20 @@
+Version DEBUG 1.1.1656 14.6.2008
+- BUG: local in process connection could block infinitely when transfering
+       huge message blocks
+- TST: Leaks
+- CHG: algorithm for recovering from full input queue state was redesigned, now
+       it is more robust          
+- CHG: driver interface changed to common unified interface using sc iovalue
+- CHG: core runs on sc message threads, separation from CW thread   
+- CHG: PDB file added to debug installation
+
+Version DEBUG 1.1.1638 12.6.2008
+- BUG: Strings longer than 64 characters caused assertion in CW 2K ANSI version.
+- BUG: Strings written to driver using CW output channel were sent as empty. Strings
+       sent by DriverQueryProc were unaffected.
+- BUG: Installation running on MS Vista with elevated privileges (launched by
+       standard user) did not write licence to licence file.
+
 Version DEBUG 1.1.1490 24.3.2008
 - BUG: r1443-5, for multiprocessor machines receive and send queues can be left
        in incoherent state. Until there appeared new explicit send or receive request
