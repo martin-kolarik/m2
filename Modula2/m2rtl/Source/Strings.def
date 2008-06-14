@@ -61,9 +61,9 @@ PROCEDURE ItemW( CONST Source : ARRAY OF WCHAR; CONST Delimiters : SET OF WCHAR;
 PROCEDURE ItemSMW( SourceLen : CARDINAL; CONST Source : POINTER TO WCHAR; CONST Delimiters : SET OF WCHARS; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT Substring : ARRAY OF WCHAR ) : CARDINAL;
 PROCEDURE ItemMW( SourceLen : CARDINAL; CONST Source : POINTER TO WCHAR; CONST Delimiters : SET OF WCHAR; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT Substring : ARRAY OF WCHAR ) : CARDINAL;
 
-PROCEDURE ToA( CONST Source : ARRAY OF WCHAR; CodePage : CARDINAL; OUT Destination : ARRAY OF CHAR ); // CodePage can be 0
+PROCEDURE ToA( CONST Source : ARRAY OF WCHAR; CodePage : CARDINAL; OUT Destination : ARRAY OF CHAR ) : BOOLEAN; // CodePage can be 0, FALSE is returned mostly if Destination is too small
 PROCEDURE ToAStream( CONST Source : ARRAY OF WCHAR; CodePage : CARDINAL; OUT Destination : ARRAY OF BYTE; OUT Consumed, Produced : CARDINAL ) : BOOLEAN; // returns if something consumed
-PROCEDURE ToW( CONST Source : ARRAY OF CHAR; CodePage : CARDINAL; OUT Destination : ARRAY OF WCHAR );
+PROCEDURE ToW( CONST Source : ARRAY OF CHAR; CodePage : CARDINAL; OUT Destination : ARRAY OF WCHAR ) : BOOLEAN; // FALSE is returned mostly if Destination is too small
 PROCEDURE ToWStream( CONST Source : ARRAY OF BYTE; CodePage : CARDINAL; OUT Destination : ARRAY OF WCHAR; OUT Consumed, Produced : CARDINAL ) : BOOLEAN; // returns if something consumed
 
 PROCEDURE FromINT32W( V : INT32; Base : CARDINAL; OUT S : ARRAY OF WCHAR ) : BOOLEAN; // returns OK

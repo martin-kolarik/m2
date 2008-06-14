@@ -621,7 +621,7 @@ BEGIN
 	IF ( HIGH( String ) = 0 ) OR ( String[1] = 0W) THEN
 		RETURN LastIndexOfCharW( Source, String[0], IndexFromRight );
 	ELSE
-		(*?*)
+	   ASSERT( FALSE );
 		RETURN -1;
 	END;
 END LastIndexOfW;
@@ -844,7 +844,7 @@ BEGIN
 	END;
 END ItemSMW;
 
-PROCEDURE ToA( CONST Source : ARRAY OF WCHAR; CodePage : CARDINAL; OUT Destination : ARRAY OF CHAR ); // CodePage can be 0
+PROCEDURE ToA( CONST Source : ARRAY OF WCHAR; CodePage : CARDINAL; OUT Destination : ARRAY OF CHAR ) : BOOLEAN; // CodePage can be 0
 VAR
 	f, l : CARDINAL;
 BEGIN
@@ -855,11 +855,15 @@ BEGIN
 			CodePage := winnls.CP_ACP;
 		END;
 		l := winnls.WideCharToMultiByte( CodePage, 0, ADR( Source ), l, ADR( Destination ), HIGH( Destination ) + 1, NIL, NIL );
-		ASSERT(( f = 0 ) OR ( l > 0 ));
+		ASSERT( l > 0 );
+		IF l = 0 THEN
+		   RETURN FALSE;
+		END;
 	END;
 	IF l < HIGH( Destination ) THEN
 		Destination[l] := CHAR( 0 );
 	END;
+	RETURN TRUE;
 END ToA;
 
 PROCEDURE ToAStream( CONST Source : ARRAY OF WCHAR; CodePage : CARDINAL; OUT Destination : ARRAY OF BYTE; OUT Consumed, Produced : CARDINAL ) : BOOLEAN; // returns if something consumed
@@ -867,7 +871,7 @@ BEGIN
 	RETURN Languages.ToAStream( Source, CodePage, OUT Destination, OUT Consumed, OUT Produced );
 END ToAStream;
 
-PROCEDURE ToW( CONST Source : ARRAY OF CHAR; CodePage : CARDINAL; OUT Destination : ARRAY OF WCHAR ); // CodePage can be 0
+PROCEDURE ToW( CONST Source : ARRAY OF CHAR; CodePage : CARDINAL; OUT Destination : ARRAY OF WCHAR ) : BOOLEAN; // CodePage can be 0
 VAR
 	f, l : CARDINAL;
 BEGIN
@@ -882,11 +886,15 @@ BEGIN
 		ELSE
 			l := winnls.MultiByteToWideChar( CodePage, winnls.MB_PRECOMPOSED, ADR( Source ), l, ADR( Destination ), HIGH( Destination ) + 1 );
 		END;
-		ASSERT(( f = 0 ) OR ( l > 0 ));
+		ASSERT( l > 0 );
+		IF l = 0 THEN
+		   RETURN FALSE;
+		END;
 	END;
 	IF l < HIGH( Destination ) THEN
 		Destination[l] := 0W;
 	END;
+	RETURN TRUE;
 END ToW;
 
 PROCEDURE ToWStream( CONST Source : ARRAY OF BYTE; CodePage : CARDINAL; OUT Destination : ARRAY OF WCHAR; OUT Consumed, Produced : CARDINAL ) : BOOLEAN; // returns if something consumed
