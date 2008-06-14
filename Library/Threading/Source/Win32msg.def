@@ -67,7 +67,7 @@ CLASS Win32MessageHandler IMPLEMENTS OSALmsg.IMessageHandler;
 
   #save, option( leak_info => on )
   PUBLIC PROCEDURE Init( AutomaticJoin : BOOLEAN ); // AutomaticJoin behaves defaultly: it creates HWND in Init, so it is caller thread
-  PUBLIC PROCEDURE Dispose();
+  PUBLIC VIRTUAL PROCEDURE Dispose();
   #restore
 
   PUBLIC VIRTUAL PROCEDURE Message( CONST MSG : OSALmsg.IMessage; Delivery : OSALmsg.TDelivery; Result : PPTR ) : BOOLEAN;

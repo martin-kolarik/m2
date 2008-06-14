@@ -69,7 +69,7 @@ CLASS SCMessageHandler IMPLEMENTS OSALmsg.IMessageHandler;
 
   #save, option( leak_info => on )
   PUBLIC PROCEDURE Init( AutomaticJoin : BOOLEAN ); // AutomaticJoin defaultly calls OnJoin in thread
-  PUBLIC PROCEDURE Dispose();
+  PUBLIC VIRTUAL PROCEDURE Dispose();
   #restore
 
   // IMessageHandler

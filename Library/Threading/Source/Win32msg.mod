@@ -310,7 +310,7 @@ CLASS IMPLEMENTATION Win32MessageHandler;
   
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Dispose();
+  PUBLIC VIRTUAL PROCEDURE Dispose();
   BEGIN
     LeaveMessageThread( TRUE );
   END Dispose;

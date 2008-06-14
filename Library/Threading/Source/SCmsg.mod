@@ -210,7 +210,7 @@ CLASS IMPLEMENTATION SCMessageHandler;
   
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    BEGIN
       LeaveMessageThread( TRUE );
    END Dispose;
