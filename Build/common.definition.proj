@@ -95,7 +95,7 @@
         <LeakChecking Condition="$(LeakChecking)==''">off</LeakChecking>
         <CPPExceptions Condition="$(CPPExceptions)==''">on</CPPExceptions>
         <CopyRuntimes Condition="$(CopyRuntimes)==''">$(ProductFlag)</CopyRuntimes>
-        <LicenceMId Condition="$(LicenceMId)==''">M</LicenceMId><!-- M = MAC, D = disc, MD = MAC + Disc -->
+        <LicenceMachineId Condition="$(LicenceMachineId)==''">M</LicenceMachineId><!-- M = MAC, D = disc, MD = MAC + Disc -->
 
         <Test Condition="$(Test)==''">on</Test>
     </PropertyGroup>
