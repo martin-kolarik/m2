@@ -16,10 +16,6 @@ IMPORT
    windows,
    WS2TcpIp;
    
-(*?*)   
-IMPORT
-   log;
-   
 (*================================================================================*)
 
 INLINE PROCEDURE IN_ADDR4( CONST ai : inetaddr.INETADDR ) : winsock.Pin_addr;
@@ -1171,15 +1167,7 @@ CLASS IMPLEMENTATION DSocket;
             OnFlow( poReceive );
          | poSend :
             Sync.IExchgPtr( REF WPending, Writer );
-      
-(*?*)      
-log.logger()^.LogSP( log.dlcError, L"", L"e FD_INIT ", PTR( windows.GetCurrentThreadId()) );
-      
             OnFlow( poSend );
-      
-(*?*)      
-log.logger()^.LogSP( log.dlcError, L"", L"l FD_INIT ", PTR( windows.GetCurrentThreadId()) );
-      
          END; // CASE
 
       //-----
@@ -1231,15 +1219,7 @@ log.logger()^.LogSP( log.dlcError, L"", L"l FD_INIT ", PTR( windows.GetCurrentTh
 
       //-----
       | winsock.FD_WRITE :
-      
-(*?*)      
-log.logger()^.LogSP( log.dlcError, L"", L"e FD_WRITE ", PTR( windows.GetCurrentThreadId()) );
-      
          OnFlow( poSend );
-
-      
-(*?*)      
-log.logger()^.LogSP( log.dlcError, L"", L"l FD_WRITE ", PTR( windows.GetCurrentThreadId()) );
       
       //-----
       END; // CASE
@@ -1529,12 +1509,6 @@ log.logger()^.LogSP( log.dlcError, L"", L"l FD_WRITE ", PTR( windows.GetCurrentT
       IF l = winsock.SOCKET_ERROR THEN // error for send/receive
         Result := winsock.WSAGetLastError();
         IF Result = winsock.WSAEWOULDBLOCK THEN
-
-(*?*)
-IF Operation = poSend THEN
-   log.logger()^.LogS( log.dlcError, L"", L"!!WLD_BLOCK " );
-END; 
-
           RETURN;
         END;
         AR := Sync.arAborted;
@@ -1595,10 +1569,6 @@ END;
       IF ( Buffer <> NIL ) OR NOT Device THEN
         Buffer := Sync.IExchgPtr( REF Writer, NIL );
       END;
-      
-(*?*)      
-log.logger()^.LogS( log.dlcError, L"", L"COMP_FLW" );
-      
       SocketOperation := opSend;
     END;
     _Lock.Excl( REF _Pending, Operation );

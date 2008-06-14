@@ -344,7 +344,7 @@ CLASS CIPServer( msghandler.MessageHandler );
   SocketNotifier : CSocketNotifier;
   Sockets : lists.CPtrList;
 
-  PUBLIC PROCEDURE Dispose();
+  PUBLIC VIRTUAL PROCEDURE Dispose();
 
   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
   INTERNAL VIRTUAL PROCEDURE OnTimer( Timer : PTR );
@@ -400,7 +400,7 @@ CLASS IMPLEMENTATION CIPServer;
 
 //--------------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE Dispose();
+  PUBLIC VIRTUAL PROCEDURE Dispose();
   VAR
     Socket : netsocket.TPSSocket;
   BEGIN

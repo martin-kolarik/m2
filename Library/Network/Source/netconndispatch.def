@@ -3,6 +3,7 @@ DEFINITION MODULE netconndispatch; // network connections dispatcher
 //--------------------------------------------------------------------------------
   
 IMPORT
+  arrays,
   Delegate,
   inetaddr,
   maps,
@@ -11,6 +12,7 @@ IMPORT
   netsocket,
   netsrv,
   netstream,
+  sync,
   StringsO;
 
 #save, option( dll_export => on )
@@ -60,9 +62,10 @@ TYPE
 
 CLASS CDispatcher( msghandler.MessageHandler );
   PRIVATE VAR
-    CQueue      : msgqueue.CMessageQueue;
-    NQueue      : msgqueue.CMessageQueue;
+    Queue       : msgqueue.CMessageQueue;
     Connections : inetaddr.CINETADDRMap;
+    Defered     : arrays.CPtrArray; // Connections which were not able to put data into queue and were delayed. They must be restarted after queue is flushed.
+    DeferLock   : sync.LOCK;
     PListener   : netsrv.TPListener;
     PNotifier   : netsocket.TPSocketNotifier;
   PUBLIC VAR
@@ -71,11 +74,12 @@ CLASS CDispatcher( msghandler.MessageHandler );
   PUBLIC READONLY PROPERTY
     Listener    : netsrv.TPListener; // for registering to IP server
 
-  PUBLIC PROCEDURE Dispose();
+  PUBLIC VIRTUAL PROCEDURE Dispose();
 
   // inherited
   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
-  PRIVATE PROCEDURE DoMessage( Message : ADDRESS );
+   PRIVATE PROCEDURE DoMessage( Message : ADDRESS );
+   PRIVATE PROCEDURE RestartDefered();
 
   // events of server
   LOCAL PROCEDURE OnListen( CONST ServerSocket : netsocket.TPSSocket );
