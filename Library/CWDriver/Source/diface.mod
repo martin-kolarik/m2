@@ -189,10 +189,11 @@ END Init3W;
 
 PROCEDURE ReadParameters( PData : ADDRESS; VAR ParFilePath  : ARRAY OF CHAR; VAR ErrorMessage : ARRAY OF CHAR; VAR ErrorLine : CARDINAL; VAR ErrorColumn  : CARDINAL; VAR HintOrHelp   : ARRAY OF CHAR ) : BOOLEAN;
 VAR
-   em, pf : StringsO.CString;
+   b : BOOLEAN;
+   em : ARRAY [0..511] OF WCHAR; 
    l : CARDINAL;
    lg : log.CLogger;
-   b : BOOLEAN;
+   pf : StringsO.CString;
 BEGIN
    lg.TimeStamps := FALSE;
    lg.Levels := FALSE;
@@ -207,16 +208,16 @@ BEGIN
    pf.FromOAA( 0, ParFilePath );
    b := TPCWDriver( PData )^.ReadParameters( pf, lg );
    lg.BufferGetItem( 0, OUT em );
-   em.ToOAA( 0, OUT ErrorMessage, OUT l );
+   Strings.ToA( em, 0, OUT ErrorMessage );
    
    RETURN b;
 END ReadParameters;
 
 PROCEDURE ReadParametersW( PData : ADDRESS; VAR ParFilePath  : ARRAY OF WCHAR; VAR ErrorMessage : ARRAY OF WCHAR; VAR ErrorLine    : CARDINAL; VAR ErrorColumn  : CARDINAL; VAR HintOrHelp   : ARRAY OF WCHAR ) : BOOLEAN;
 VAR
-   em, pf : StringsO.CString;
-   lg : log.CLogger;
    b : BOOLEAN;
+   lg : log.CLogger;
+   pf : StringsO.CString;
 BEGIN
    lg.TimeStamps := FALSE;
    lg.Levels := FALSE;
@@ -230,8 +231,7 @@ BEGIN
 
    pf.FromOA( ParFilePath );
    b := TPCWDriver( PData )^.ReadParameters( pf, lg );
-   lg.BufferGetItem( 0, OUT em );
-   em.ToOA( OUT ErrorMessage );
+   lg.BufferGetItem( 0, OUT ErrorMessage );
 
    RETURN b;
 END ReadParametersW;
