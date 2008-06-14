@@ -366,8 +366,13 @@ CLASS IMPLEMENTATION CResult;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Counted GET : BOOLEAN;
+   VAR
+      counted : BOOLEAN;
    BEGIN
-      RETURN _Counter >= countLimit;
+      _Lock.Lock();
+      counted := _Counter >= countLimit;
+      _Lock.Unlock();
+      RETURN counted;
    END Counted;
 
 (*--------------------------------------------------------------------------------*)
@@ -386,7 +391,9 @@ CLASS IMPLEMENTATION CResult;
    PUBLIC PROCEDURE Inc();
    BEGIN
       IF _Info <= riDemo THEN
+         _Lock.Lock();
          _Counter := MIN2( _Counter + 1, countLimit );
+         _Lock.Unlock();
       END;
    END Inc;
 

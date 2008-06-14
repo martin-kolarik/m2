@@ -211,10 +211,10 @@ BEGIN
    data.Strategy := array.astrgListInArray;
    ls.Filters^.Add( ADR( lsINI ), 0 );
 
-   IF Strings.IndexOfCharW( LicenceMId, L"M", 0 ) <> -1 THEN
+   IF Strings.IndexOfCharW( LicenceMachineId, L"M", 0 ) <> -1 THEN
       uq.Sources^.Add( ADR( uqMAC ), 0 );
    END;
-   IF Strings.IndexOfCharW( LicenceMId, L"D", 0 ) <> -1 THEN
+   IF Strings.IndexOfCharW( LicenceMachineId, L"D", 0 ) <> -1 THEN
       uq.Sources^.Add( ADR( uqDisc ), 0 );
    END;
    IF uq.Sources^.Empty THEN

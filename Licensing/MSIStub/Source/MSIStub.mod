@@ -80,7 +80,7 @@ CONST
    propPIDKey = 1;
    propPIDOwner = 2;
    propPIDLicence = 3;
-   propPIDLicenceMId = 4;
+   propPIDLicenceMachineId = 4;
 VAR
    buffer : ARRAY[0..1023] OF WCHAR;
    count : CARDINAL;
@@ -130,10 +130,10 @@ BEGIN
    IF Valid THEN
       Engine.Canonize( REF data, L"*", FALSE, TRUE, TRUE );
 
-      IF properties[propPIDLicenceMId].IndexOfOA( L"D", 0 ) <> -1 THEN
+      IF properties[propPIDLicenceMachineId].IndexOfOA( L"D", 0 ) <> -1 THEN
          uq.Sources^.Add( ADR( uqDisc ), 0 );
       END;
-      IF properties[propPIDLicenceMId].IndexOfOA( L"M", 0 ) <> -1 THEN
+      IF properties[propPIDLicenceMachineId].IndexOfOA( L"M", 0 ) <> -1 THEN
          uq.Sources^.Add( ADR( uqMAC ), 0 );
       END;
       IF uq.Sources^.Empty THEN
