@@ -8,6 +8,7 @@
         <Language Condition="$(Language)==''">Czech</Language>
         <CLib>Static</CLib>
         <Licensing>on</Licensing>
+        <LicenceMachineId>D</LicenceMachineId>
         <LeakChecking>off</LeakChecking>
     </PropertyGroup>
 
