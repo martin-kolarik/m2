@@ -66,6 +66,14 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\Source\diface.mod"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\diface_device.mod"
+				>
+			</File>
+			<File
 				RelativePath=".\Source\drv_ax.mod"
 				>
 			</File>
@@ -91,6 +99,14 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath=".\Source\diface.def"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\diface_device.def"
+				>
+			</File>
 			<File
 				RelativePath=".\Source\drv_ax.def"
 				>
@@ -118,6 +134,10 @@
 		</Filter>
 		<File
 			RelativePath=".\CWDriver.proj"
+			>
+		</File>
+		<File
+			RelativePath=".\Source\export.def"
 			>
 		</File>
 	</Files>

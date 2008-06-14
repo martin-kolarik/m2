@@ -1,0 +1,70 @@
+DEFINITION MODULE diface_device;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   device,
+   diface,
+   drv_def,
+   iovalue,
+   StringsO;
+
+(*================================================================================*)
+
+TYPE
+   TDriverSignal = (
+      dsInputFinalized,
+      dsOutputFinalized,
+      dsOOBData,
+      dsException
+   );
+
+CLASS CCWDriverSkeleton;
+   PRIVATE VAR
+      CallbackId : ADDRESS;
+      CallbackProc : drv_def.TDriverCallbackW;
+   INTERNAL VAR
+      RunMode : CARDINAL;
+      SymbolicName : StringsO.CString;
+
+   INTERNAL PROCEDURE DoInit( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW );
+
+   // helpers   
+   PUBLIC PROCEDURE Signal( What : TDriverSignal );
+END CCWDriverSkeleton;
+
+(*--------------------------------------------------------------------------------*)
+
+ABSTRACT CLASS ADeviceAsCWDriver( CCWDriverSkeleton ) IMPLEMENTS device.IDevice, diface.ICWDriver;
+
+   // device.IDevice
+	
+	// ICWDriver
+   // INIT
+   PUBLIC VIRTUAL PROCEDURE Init( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW );
+
+   // CONTROL
+   PUBLIC VIRTUAL PROCEDURE Run();
+   PUBLIC VIRTUAL PROCEDURE Stop();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE DriverProc( Func, Param1, Param2, Param3, Param4 : CARDINAL );
+
+   // DATA FLOW
+   PUBLIC VIRTUAL PROCEDURE InputRequestStart();
+   PUBLIC VIRTUAL PROCEDURE InputRequest( DriverIndex : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE InputRequestCompleted();
+   PUBLIC VIRTUAL PROCEDURE InputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE InputOOBDataQuery( REF EnumerateState : LONGWORD; OUT DriverIndex : CARDINAL ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetInput( DriverIndex : CARDINAL; InValueStringLimit : CARDINAL; OUT InValue : iovalue.Value; OUT QoS : CARDINAL; OUT TimeStamp : drv_def.TUTCStamp; OUT ErrorCode : CARDINAL );
+
+   PUBLIC VIRTUAL PROCEDURE OutputRequestStart();
+   PUBLIC VIRTUAL PROCEDURE OutputRequest( DriverIndex : CARDINAL; CONST OutValue : iovalue.Value; QoS : CARDINAL; CONST TimeStamp : drv_def.TUTCStamp );
+   PUBLIC VIRTUAL PROCEDURE OutputRequestCompleted();
+   PUBLIC VIRTUAL PROCEDURE OutputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
+
+END ADeviceAsCWDriver;
+
+(*================================================================================*)
+
+END diface_device.

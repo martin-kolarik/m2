@@ -1,51 +1,62 @@
 IMPLEMENTATION MODULE drv_def;
 
-////////////////////////////////////////////////////////////////
-// Control Web Administrator                                  //
-//    basic CW stuff, used in Remote/Local client and cw_main //
-//                              (C) 2001 Moravian Instruments //
-////////////////////////////////////////////////////////////////
-
-(*# call( o_a_copy => off ) *)
-(*# warn ( 4554 => off ) *) // check >> operator precedence
+(*================================================================================*)
 
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
 
-FROM Strings IMPORT
-  LowerizeW;
-
 IMPORT
-  Storage,
   time;
 
-//-----------------------------------------------------------------------------
+(*================================================================================*)
 
 CONST
-  kwFALSE = L'false';
-  kwTRUE = L'true';
+   kwFALSE = L'false';
+   kwTRUE = L'true';
 
-//-----------------------------------------------------------------------------
+(*================================================================================*)
+
+PROCEDURE InitValue( VAR Value : TValue );
+// sets vtNothing, does not check dynamic string
+// used to initialize new values
+BEGIN
+  Value.Type := vtNothing;
+END InitValue;
+
+(*--------------------------------------------------------------------------------*)
+
+// sets vtNothing but checks for possible dynamic string and frees it
+PROCEDURE DoneValue( VAR Value : TValue );
+BEGIN
+  IF ( Value.Type = vtPString256 ) AND ( Value.ValPString256W <> NIL ) THEN
+    DISPOSE( Value.ValPString256W );
+  ELSIF ( Value.Type = vtBuffer ) AND ( Value.PBuffer <> NIL ) THEN
+    DISPOSE( Value.PBuffer );
+  END;
+  Value.Type := vtNothing;
+END DoneValue;
+
+(*--------------------------------------------------------------------------------*)
 
 PROCEDURE ValueDataLength( Type : TValueType ) : CARDINAL;
 BEGIN
-  CASE Type OF
-  | vtNothing, vtError, vtUnknown :
-    RETURN 0;
-  | vtBoolean, vtShortInt, vtShortCard :
-    RETURN 1;
-  | vtCardinal, vtInteger :
-    RETURN 4;
-  | vtLongCard, vtLongInt, vtPString256 :
-    RETURN 4;
-  | vtLongReal :
-    RETURN 8;
-  ELSE
-    RETURN 0;
-  END;
+   CASE Type OF
+   | vtNothing, vtError, vtUnknown :
+      RETURN 0;
+   | vtBoolean, vtShortInt, vtShortCard :
+      RETURN 1;
+   | vtCardinal, vtInteger :
+      RETURN 4;
+   | vtLongCard, vtLongInt, vtPString256 :
+      RETURN 4;
+   | vtLongReal :
+      RETURN 8;
+   ELSE
+      RETURN 0;
+   END;
 END ValueDataLength;
 
-//--------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 PROCEDURE IOTypeToCWType( IOType : iovalue.TValueType ) : TValueType;
 BEGIN
@@ -68,9 +79,38 @@ BEGIN
    RETURN vtUnknown;
 END IOTypeToCWType;
 
-//==============================================================
+(*================================================================================*)
 
-PROCEDURE AssignDrvValueMW( VAR DrvValue : TValue; DrvValueUFlag, TrimFlag : BOOLEAN; l : CARDINAL; s : PWCHAR ): BOOLEAN;
+PROCEDURE CWTypeToIOType( CWType : TValueType ) : iovalue.TValueType;
+BEGIN
+   CASE CWType OF
+   | vtBoolean :
+      RETURN iovalue.vtBoolean;
+   | vtShortCard :
+      RETURN iovalue.vtInteger;
+   | vtCardinal :
+      RETURN iovalue.vtInteger;
+   | vtLongCard :
+      RETURN iovalue.vtLong;
+   | vtShortInt :
+      RETURN iovalue.vtInteger;
+   | vtInteger :
+      RETURN iovalue.vtInteger;
+   | vtLongInt :
+      RETURN iovalue.vtInteger;
+   | vtLongReal :
+      RETURN iovalue.vtFloat;
+   | vtPString256 :
+      RETURN iovalue.vtString;
+   | vtDriverString :
+      RETURN iovalue.vtString;
+   END; // CASE
+   RETURN iovalue.vtUnknown;
+END CWTypeToIOType;
+
+(*================================================================================*)
+
+PROCEDURE AssignDrvValueStringMW( VAR DrvValue : TValue; DrvValueUFlag, TrimFlag : BOOLEAN; l : CARDINAL; s : PWCHAR ): BOOLEAN;
 BEGIN
    IF DrvValue.Type = vtPString256 THEN
       IF l = 0 THEN
@@ -110,23 +150,23 @@ BEGIN
       END;
    END;
    RETURN TRUE;
-END AssignDrvValueMW;
+END AssignDrvValueStringMW;
 
-//--------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 PROCEDURE AssignDrvValueStringW( VAR DrvValue : TValue; DrvValueUFlag, TrimFlag : BOOLEAN; s : ARRAY OF WCHAR ): BOOLEAN;
 BEGIN
-   RETURN AssignDrvValueMW( DrvValue, DrvValueUFlag, TrimFlag, LENGTH( s ), ADR( s ));
+   RETURN AssignDrvValueStringMW( DrvValue, DrvValueUFlag, TrimFlag, LENGTH( s ), ADR( s ));
 END AssignDrvValueStringW;
 
-//--------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 PROCEDURE AssignDrvValueCStringW( REF DrvValue : TValue; DrvValueUFlag, TrimFlag : BOOLEAN; CONST CS : StringsO.CString ): BOOLEAN;
 BEGIN
-   RETURN AssignDrvValueMW( DrvValue, DrvValueUFlag, TrimFlag, CS.Length, PWCHAR( CS.rawData ));
+   RETURN AssignDrvValueStringMW( DrvValue, DrvValueUFlag, TrimFlag, CS.Length, PWCHAR( CS.rawData ));
 END AssignDrvValueCStringW;
 
-//==============================================================
+(*================================================================================*)
 
 PROCEDURE SetValuePString256StringW( VAR Value : TValue; ValueUFlag : BOOLEAN; s : ARRAY OF WCHAR );
 BEGIN
@@ -145,7 +185,7 @@ BEGIN
   END;
 END SetValuePString256StringW;
 
-//--------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 PROCEDURE AssignValueBoolean( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; v : BOOLEAN );
 BEGIN
@@ -180,7 +220,7 @@ BEGIN
   END;
 END AssignValueBoolean;
 
-//--------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 PROCEDURE AssignValueCard8( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; v : CARD8 );
 VAR
@@ -209,7 +249,7 @@ BEGIN
   END;
 END AssignValueCard8;
 
-//--------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 PROCEDURE AssignValueCard32( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; v : CARD32 );
 VAR
@@ -264,7 +304,7 @@ BEGIN
   END;
 END AssignValueCard32;
 
-//--------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 PROCEDURE AssignValueInt8( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; v : INT8 );
 VAR
@@ -305,7 +345,7 @@ BEGIN
   END;
 END AssignValueInt8;
 
-//--------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 PROCEDURE AssignValueInt32( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; v : INT32 );
 VAR
@@ -366,7 +406,7 @@ BEGIN
   END;
 END AssignValueInt32;
 
-//--------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 PROCEDURE AssignValueLongReal( VAR Value : TValue; ValueUFlag, Saturate : BOOLEAN; v : LONGREAL );
 VAR
@@ -439,63 +479,63 @@ BEGIN
   END;
 END AssignValueLongReal;
 
-//==============================================================
-
-PROCEDURE ValueToStringW( CONST Value : TValue; ValueUFlag : BOOLEAN; VAR sw : ARRAY OF WCHAR );
-BEGIN
-   CASE Value.Type OF
-   | vtBoolean :
-      IF Value.ValBoolean THEN
-         ASSIGN( sw, kwTRUE );
-      ELSE
-         ASSIGN( sw, kwFALSE );
-      END;
-   | vtShortCard :
-      Strings.FromCARD32W( CARD32( Value.ValShortCard ), 10, OUT sw );
-   | vtCardinal :
-      Strings.FromCARD32W( CARD32( Value.ValCardinal ), 10, OUT sw );
-   | vtLongCard :
-      Strings.FromCARD32W( Value.ValLongCard, 10, OUT sw );
-   | vtShortInt :
-      Strings.FromINT32W( INT32( Value.ValShortInt ), 10, OUT sw );
-   | vtInteger :
-      Strings.FromINT32W( INT32( Value.ValInteger ), 10, OUT sw );
-   | vtLongInt :
-      Strings.FromINT32W( Value.ValLongInt, 10, OUT sw );
-   | vtLongReal :
-      Strings.FromLONGREALW( Value.ValLongReal, FALSE, OUT sw );
-   | vtPString256 :
-      IF ValueUFlag THEN
-         ASSIGN( sw, OA( 255, Value.ValPString256W ));
-      ELSE
-         Strings.ToW( OA( 255, Value.ValPString256A ), 0, OUT sw );
-      END;
-   | vtDriverString :
-      ASSERT( FALSE );
-   ELSE
-      sw := L'';
-   END;
-END ValueToStringW;
-
-//--------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 PROCEDURE DrvValueToCStringW( CONST DrvValue : TValue; DrvValueUFlag : BOOLEAN; OUT CS : StringsO.CString );
-VAR
-   s : ARRAY [0..255] OF WCHAR; // PString256 is not longer
 BEGIN
-   IF DrvValue.Type <> vtDriverString THEN
-      ValueToStringW( DrvValue, DrvValueUFlag, s );
-      CS.FromOA( s );
-   ELSIF DrvValue.ValDriverStringCharLength = 0 THEN
-      CS.Clear();
-   ELSIF DrvValueUFlag THEN
-      CS.FromOA( OA( DrvValue.ValDriverStringCharLength-1, PWCHAR( DrvValue.ValDriverStringAddress )));
+   CASE DrvValue.Type OF
+   | vtBoolean :
+      IF DrvValue.ValBoolean THEN
+         CS.FromOA( kwTRUE );
+      ELSE
+         CS.FromOA( kwFALSE );
+      END;
+
+   | vtShortCard :
+      CS.FromCARD32( CARD32( DrvValue.ValShortCard ), 10 );
+
+   | vtCardinal :
+      CS.FromCARD32( CARD32( DrvValue.ValCardinal ), 10 );
+
+   | vtLongCard :
+      CS.FromCARD32( DrvValue.ValLongCard, 10 );
+
+   | vtShortInt :
+      CS.FromINT32( INT32( DrvValue.ValShortInt ), 10 );
+
+   | vtInteger :
+      CS.FromINT32( INT32( DrvValue.ValInteger ), 10 );
+
+   | vtLongInt :
+      CS.FromINT32( DrvValue.ValLongInt, 10 );
+
+   | vtLongReal :
+      CS.FromLONGREAL( DrvValue.ValLongReal, FALSE );
+
+   | vtPString256 :
+      IF DrvValue.ValPString256W = NIL THEN
+         CS.Clear();
+      ELSIF DrvValueUFlag THEN
+         CS.FromOA( OA( 255, DrvValue.ValPString256W ));
+      ELSE
+         CS.FromOAA( 0, OA( 255, DrvValue.ValPString256A ));
+      END;
+
+   | vtDriverString :
+      IF DrvValue.ValDriverStringCharLength = 0 THEN
+         CS.Clear();
+      ELSIF DrvValueUFlag THEN
+         CS.FromOA( OA( DrvValue.ValDriverStringCharLength-1, PWCHAR( DrvValue.ValDriverStringAddress )));
+      ELSE
+         CS.FromOAA( 0, OA( DrvValue.ValDriverStringCharLength-1, PCHAR( DrvValue.ValDriverStringAddress )));
+      END;
+
    ELSE
-      CS.FromOAA( 0, OA( DrvValue.ValDriverStringCharLength-1, PCHAR( DrvValue.ValDriverStringAddress )));
+      CS.Clear();
    END;
 END DrvValueToCStringW;
 
-//==============================================================
+(*================================================================================*)
 
 PROCEDURE IOValueToCWValue( CONST IOValue : iovalue.Value; CWValueUFlag, TrimFlag : BOOLEAN; REF CWValue : TValue ) : BOOLEAN;
 BEGIN
@@ -525,7 +565,7 @@ BEGIN
    RETURN TRUE;
 END IOValueToCWValue;
 
-//--------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 PROCEDURE CWValueToIOValue( CONST CWValue : TValue; DrvValueUFlag : BOOLEAN; REF IOValue : iovalue.Value );
 BEGIN
@@ -560,7 +600,7 @@ BEGIN
    END;
 END CWValueToIOValue;
 
-//==============================================================
+(*================================================================================*)
 
 PROCEDURE ConfigureLog( CONST ini : INIFile.CINIFile; REF logger : Log.CLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
 CONST
@@ -626,6 +666,6 @@ BEGIN
    RETURN clrSuccess;
 END ConfigureLog;
 
-//==============================================================
+(*================================================================================*)
 
 END drv_def.

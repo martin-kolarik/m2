@@ -23,6 +23,7 @@ IMPORT
 
 IMPORT
   FIO,
+  iovalue,
   msghandler,
   Storage,
   list;
@@ -86,8 +87,8 @@ TYPE
 TYPE
   TCommunicationState = (
     csSuccess = 0,
-  	csPending = 1,
-	  csFailure = 2,
+  	 csPending = 1,
+	 csFailure = 2,
     csNotRunning = 3,
     csBadIndex = 4,
     csBadDirection = 5
@@ -152,7 +153,7 @@ TYPE
 
 CLASS CPendingItem( list.CListElem );
   Index   : CARDINAL;
-  Value   : drv_def.TValue;
+  Value   : iovalue.Value;
   Pending : BOOLEAN;
   PUBLIC VIRTUAL PROCEDURE Done();
 END CPendingItem;
@@ -442,14 +443,13 @@ CLASS IMPLEMENTATION CPendingItem;
 
   PUBLIC VIRTUAL PROCEDURE Done();
   BEGIN
-    drv_def.DoneValue( Value );
+    Value.Dispose();
   END Done;
 
 (*---------------------------------------------------------------------------*)
 
 BEGIN
   Index := -1;
-  Storage.Fill( ADR( Value ), SIZE( Value ), 0 );
   Pending := FALSE;
 END CPendingItem;
 
@@ -690,7 +690,7 @@ CLASS IMPLEMENTATION CDriverActiveX;
       IF b AND NOT POutput^.Pending THEN
         CommunicationState := csSuccess;
 
-        drv_def.AssignValueStringW( POutput^.Value, TRUE, TRUE, Value );
+        POutput^.Value.FromStringOA( Value, FALSE );
 
       ELSIF b THEN // found and pending
         CommunicationState := csPending;
@@ -700,11 +700,11 @@ CLASS IMPLEMENTATION CDriverActiveX;
 
         NEW( POutput );
         POutput^.Index := OutputIndex;
-        POutput^.Value.Type := Type;
+        POutput^.Value.Type := drv_def.CWTypeToIOType( Type );
         // not needed, POutput^.Value is filled with 0 here -- POutput^.Value.ValDString := NIL;
         Outputs.Append( POutput );
 
-        drv_def.AssignValueStringW( POutput^.Value, TRUE, TRUE, Value );
+        POutput^.Value.FromStringOA( Value, FALSE );
       END;
 
     END;   
@@ -736,6 +736,7 @@ CLASS IMPLEMENTATION CDriverActiveX;
       b := Outputs.GetFirst( OUT POutput );
       WHILE b DO
         b := Outputs.NextOf( POutput, OUT PNext );
+        
         IF Driver.OutputRequest( EC, POutput^.Index, POutput^.Value, drv_def.qosGood, TS ) THEN
           POutput^.Pending := TRUE;
         ELSE
@@ -746,8 +747,10 @@ CLASS IMPLEMENTATION CDriverActiveX;
           POutput^.Done();
           DISPOSE( POutput );
         END;
+
         POutput := PNext;
       END; // WHILE
+
       Driver.OutputRequestCompleted();
       Driver.DriverCallBackW( drv_def.dcfOutputFinalized, NIL );
     END;    
@@ -863,29 +866,26 @@ CLASS IMPLEMENTATION CDriverActiveX;
 
   INTERNAL PROCEDURE InputRead( CommunicationState : TCommunicationState; Index : CARDINAL; EC : CARDINAL );
   VAR
+    CWType : drv_def.TValueType;
     Direction : drv_def.TDirection;
     ES : ARRAY [0..3] OF WCHAR;
     IID, IIDx : guiddef.IID;
     QOS : CARDINAL;
     Parameters : ARRAY [0..3] OF oaidl.VARIANTARG;
-    Value : drv_def.TValue;
-    ValueS : ARRAY [0..255] OF WCHAR;
+    Value : iovalue.Value;
     TS : drv_def.TUTCStamp;
   BEGIN
-    drv_def.InitValue( Value );
-    Value.ValDStringW := NIL;
-
     IF ( CommunicationState = csSuccess ) AND ( EC <> drv_def.ecSuccess ) THEN
       CommunicationState := csFailure;
-    ELSIF NOT Map.Get( ES, Index, Value.Type, Direction ) THEN
+    ELSIF Map.Get( ES, Index, CWType, Direction ) THEN
+       Value.Type := drv_def.CWTypeToIOType( CWType );
+       IF NOT Driver.GetInput( EC, Index, Value, QOS, TS ) THEN
+         CommunicationState := csFailure;
+       END;
+    ELSE
       EC := drv_def.ecUnknownElement;
       CommunicationState := csFailure;
-    ELSIF NOT Driver.GetInput( EC, Index, Value, QOS, TS ) THEN
-      CommunicationState := csFailure;
-    ELSE
-      drv_def.ValueToStringW( Value, TRUE, ValueS );
     END;
-    drv_def.DoneValue( Value );
 
     // parameters are of reveresed order
     oleauto.VariantInit( ADR( Parameters[3] ));
@@ -902,7 +902,7 @@ CLASS IMPLEMENTATION CDriverActiveX;
 
     oleauto.VariantInit( ADR( Parameters[0] ));
     Parameters[0].vt := wtypes.VT_BSTR;
-    Parameters[0].bstrVal := oleauto.SysAllocString( ADR( ValueS ));
+    Parameters[0].bstrVal := oleauto.SysAllocString( Value.String.rawData );
 
     ax_automation.GetClientConstructor()^.QueryControlIIDs( IIDx, IIDx, IIDx, IID );
     DispatchEvent( IID, LONGWORD( eidRead ), Parameters );

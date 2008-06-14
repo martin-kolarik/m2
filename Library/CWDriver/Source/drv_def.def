@@ -1,142 +1,125 @@
 DEFINITION MODULE drv_def;
 
-(*# warn( 4251 => off ) *)
-(*# warn( 4275 => off ) *)
-
 IMPORT
-  INIFile,
-  Log,
-  Strings,
-  StringsO;
-IMPORT
-  iovalue;
+   INIFile,
+   iovalue,
+   Log,
+   Strings,
+   StringsO;
   
 #if #not UNICODE #then
   #error
 #endif
 
-//=============================================================================
+(*================================================================================*)
 // values used inside Control Web
 
 TYPE
-  TValueType = (
-    vtNothing      = 0,
-    vtError        = 1,
-    vtBoolean      = 2,
-    vtShortCard    = 3,
-    vtCardinal     = 4,
-    vtLongCard     = 5,
-    vtShortInt     = 6,
-    vtInteger      = 7,
-    vtLongInt      = 8,
-    vtLongReal     = 10,
-    vtPString256_A = 911,
-    vtPString256   = 11,
-    vtBuffer       = 12,
-    vtUnknown      = 13,
-    // vtDString_A = 914, // unsupported
-    vtDString      = 14, // supported ONLY for mapping from iovalue.TValueType
-    vtDriverString = 15
-    // vtData      = 20 // unsupported
-  );
+   TValueType = (
+      vtNothing = 0,
+      vtError = 1,
+      vtBoolean = 2,
+      vtShortCard = 3,
+      vtCardinal = 4,
+      vtLongCard = 5,
+      vtShortInt = 6,
+      vtInteger = 7,
+      vtLongInt = 8,
+      vtLongReal = 10,
 
-//-----------------------------------------------------------------------------
+      vtPString256_A = 911,
+      vtPString256 = 11,
+      vtBuffer = 12,
+      vtUnknown = 13,
+      // vtDString_A = 914, // unsupported
+      vtDString = 14, // supported ONLY for mapping from iovalue.TValueType
+      vtDriverString = 15
+      // vtData = 20 // unsupported
+   );
 
-(*# save, option( pack => 1 ) *) // pack 1
+(*--------------------------------------------------------------------------------*)
 
+(*# save, option( pack => 1 ) *)
 TYPE
-  TPValue = POINTER TO TValue;
-  TValue = RECORD
-    CASE Type : TValueType OF
-    | vtBoolean       : ValBoolean     : BOOLEAN;
-    | vtShortCard     : ValShortCard   : CARD8;
-    | vtCardinal      : ValCardinal    : CARD16;
-    | vtLongCard      : ValLongCard    : CARD32;
-    | vtShortInt      : ValShortInt    : INT8;
-    | vtInteger       : ValInteger     : INT16;
-    | vtLongInt       : ValLongInt     : INT32;
-    | vtLongReal      : ValLongReal    : LONGREAL;
-    | vtPString256    : ValPString256W : POINTER TO ARRAY [0..255] OF WCHAR;
-    | vtPString256_A  : ValPString256A : POINTER TO ARRAY [0..255] OF CHAR;
-    | vtDriverString  : // internal, see vtDriverString definition
-                        ValDriverStringCharLength  : CARDINAL;
-                        ValDriverStringAddress     : ADDRESS;
-    | vtBuffer        : // obsolete
-                        BType          : CARD8;
-                        BLen256        : CARD16;
-                        PBuffer        : ADDRESS;
-    END; // CASE
-  END; // TValue
+   TPValue = POINTER TO TValue;
+   TValue = RECORD
+      CASE Type : TValueType OF
+      | vtBoolean :
+         ValBoolean : BOOLEAN;
+      | vtShortCard :
+         ValShortCard : CARD8;
+      | vtCardinal :
+         ValCardinal : CARD16;
+      | vtLongCard :
+         ValLongCard : CARD32;
+      | vtShortInt :
+         ValShortInt : INT8;
+      | vtInteger :
+         ValInteger : INT16;
+      | vtLongInt :
+         ValLongInt : INT32;
+      | vtLongReal :
+         ValLongReal : LONGREAL;
+      | vtPString256 :
+         ValPString256W : POINTER TO ARRAY [0..255] OF WCHAR;
+      | vtPString256_A :
+         ValPString256A : POINTER TO ARRAY [0..255] OF CHAR;
+      | vtDriverString : // internal, see vtDriverString definition
+         ValDriverStringCharLength  : CARDINAL;
+         ValDriverStringAddress     : ADDRESS;
+      | vtBuffer : // obsolete
+         BType : CARD8;
+         BLen256 : CARD16;
+         PBuffer : ADDRESS;
+      END; // CASE
+   END; // TValue
 
-  TValueArray  = ARRAY [0..0] OF TValue;
-  TPValueArray = POINTER TO TValueArray;
+   TValueArray  = ARRAY [0..0] OF TValue;
+   TPValueArray = POINTER TO TValueArray;
 
-  TBufferHeader  = RECORD
-                     CASE HeaderKind : CARD16 OF
-                     | 0 :
-                         Channels   : CARD16;
-                         NumSamples : CARDINAL;
-                         CurSamples : CARDINAL;
-                         SampFreq   : LONGREAL;
-                         SampStruct : CARD16;
-                         DataType   : CARD16; // resolution
-                         Status     : BITSET16;
-                         Any1       : CARD16; // reserve
-                         Time       : REAL;
-                     END;
-                   END;
-  TPBufferHeader = POINTER TO TBufferHeader;
-(*# restore *) // pack 1
-
-//-----------------------------------------------------------------------------
-
-PROCEDURE IOTypeToCWType( IOType : iovalue.TValueType ) : TValueType;
-
-PROCEDURE IOValueToCWValue( CONST IOValue : iovalue.Value; DrvValueUFlag, TrimFlag : BOOLEAN; REF CWValue : TValue ) : BOOLEAN;
-PROCEDURE CWValueToIOValue( CONST CWValue : TValue; DrvValueUFlag : BOOLEAN; REF IOValue : iovalue.Value );
-
-//=============================================================================
-// definitions common to drivers
-//=============================================================================
-
-// COMPILER and DLL API internal errors
-CONST
-  res_FacilityCore                   = 001200000H; // ControlWeb itself
-  res_ErrorMask                      = 0C0000000H;
-  res_CustomerMask                   = 020000000H;
-  res_Error                          = res_ErrorMask OR res_FacilityCore OR res_CustomerMask;
-  // errors itself
-  ecSucces                           = 0;
-  ecFirst                            = res_Error + 2048 + 2048 + 64;
-  // drivers
-  ecDriverMissingBufferInfo          = ecFirst + 1;
-  ecDriverMissingSetBufferAddr       = ecFirst + 2;
-  ecDriverMissingQueryProc           = ecFirst + 3;
-  ecDriverBufferInfoFailure          = ecFirst + 4;
-  ecDriverBadAllocation              = ecFirst + 5;
-  ecDriverBadInputRoutine            = ecFirst + 6;
-  ecDriverBadInputFinalizedRoutine   = ecFirst + 7;
-  ecDriverBadOutputRoutine           = ecFirst + 8;
-  ecDriverBadOutputFinalizedRoutine  = ecFirst + 9;
-  ecDriverBadDriverMajorVersion      = ecFirst + 10;
-  ecDriverOverwrittenString          = ecFirst + 11;
-  ecDriverOverwrittenBuffer          = ecFirst + 12;
-  ecDriverRequestForLessMemory       = ecFirst + 13;
-  ecDriverSecondRequestForAllocation = ecFirst + 14;
+   TBufferHeader = RECORD
+      CASE HeaderKind : CARD16 OF
+      | 0 :
+         Channels : CARD16;
+         NumSamples : CARDINAL;
+         CurSamples : CARDINAL;
+         SampFreq : LONGREAL;
+         SampStruct : CARD16;
+         DataType : CARD16; // resolution
+         Status : BITSET16;
+         Any1 : CARD16; // reserve
+         Time : REAL;
+      END; // CASE
+   END; // RECORD
+   TPBufferHeader = POINTER TO TBufferHeader;
+(*# restore *)
 
 (*# save, call( convention => cdecl ) *)
 TYPE
   TDriverCallbackW = PROCEDURE( ADDRESS, CARDINAL, ADDRESS ) : CARDINAL;
 (*# restore *)
 
-CONST
-// DRIVER Check procedure CWVersion parameter
-  cwDevelopment          = 0;
-  cwRuntime              = 1;
-  cwDemonstration        = 2;
-  cwFreeBeta             = 3;
+(*--------------------------------------------------------------------------------*)
 
-// DRIVER ERROR CODES
+PROCEDURE InitValue( VAR Value : TValue );
+PROCEDURE DoneValue( VAR Value : TValue );
+
+PROCEDURE IOTypeToCWType( IOType : iovalue.TValueType ) : TValueType;
+PROCEDURE CWTypeToIOType( CWType : TValueType ) : iovalue.TValueType;
+
+PROCEDURE IOValueToCWValue( CONST IOValue : iovalue.Value; DrvValueUFlag, TrimFlag : BOOLEAN; REF CWValue : TValue ) : BOOLEAN;
+PROCEDURE CWValueToIOValue( CONST CWValue : TValue; DrvValueUFlag : BOOLEAN; REF IOValue : iovalue.Value );
+
+(*================================================================================*)
+
+CONST
+  // DRIVER Check procedure CWVersion parameter
+  cwDevelopment = 0;
+  cwRuntime = 1;
+  cwDemonstration = 2;
+  cwFreeBeta = 3;
+
+  // DRIVER ERROR CODES
   ecSuccess              = 000000000H;
   ecCommunicationTimeout = 000000001H; // e.g. PLC did not respond
   ecValueProcessing      = 000000002H; // e.g. invalid real number received
@@ -150,30 +133,31 @@ CONST
   ecUser                 = 000010000H;
   //--07FFFFFFFH
 
-//=============================================================================
-// TIME STAMP
+(*--------------------------------------------------------------------------------*)
+// timestamp
+
 (*# save, option( pack => 1 ) *)
 TYPE
-  TUTCStamp  = RECORD
-                 MillisecondsInDay : CARDINAL;
-                 Day : CARD8;
-                 Month : CARD8;
-                 Year : INT16;
-               END;
+   TUTCStamp = RECORD
+      MillisecondsInDay : CARDINAL;
+      Day : CARD8;
+      Month : CARD8;
+      Year : INT16;
+  END;
   TPUTCStamp = POINTER TO TUTCStamp;
 (*# restore *)
 
-//=============================================================================
+(*--------------------------------------------------------------------------------*)
 // quality of service
 
 CONST
   // quality of service values
-  qosUnknown   = MAX( CARDINAL );
-  qosBad       = 0;
+  qosUnknown = MAX( CARDINAL );
+  qosBad = 0;
   qosUncertain = 250;
-  qosGood      = 500;
+  qosGood = 500;
 
-//=============================================================================
+(*--------------------------------------------------------------------------------*)
 // enumerating of channels
 
 TYPE
@@ -184,7 +168,7 @@ TYPE
   );
   TDirection = SET OF TDirectionItem;
 
-//=============================================================================
+(*--------------------------------------------------------------------------------*)
 // DriverProc and DriverCallback
 
 CONST
@@ -232,7 +216,35 @@ CONST
   drmConfigure           = 3; // required activity: load, multiple read_par, multiple run, multiple stop
   drmSimulate            = 4; // required activity: --- (driver is not loaded)
 
-//=============================================================================
+(*--------------------------------------------------------------------------------*)
+// definitions common to driver interface -- mainly for wrapper
+
+CONST
+  // COMPILER and DLL API internal errors
+  res_FacilityCore                   = 001200000H; // ControlWeb itself
+  res_ErrorMask                      = 0C0000000H;
+  res_CustomerMask                   = 020000000H;
+  res_Error                          = res_ErrorMask OR res_FacilityCore OR res_CustomerMask;
+  // errors itself
+  ecSucces                           = 0;
+  ecFirst                            = res_Error + 2048 + 2048 + 64;
+  // drivers
+  ecDriverMissingBufferInfo          = ecFirst + 1;
+  ecDriverMissingSetBufferAddr       = ecFirst + 2;
+  ecDriverMissingQueryProc           = ecFirst + 3;
+  ecDriverBufferInfoFailure          = ecFirst + 4;
+  ecDriverBadAllocation              = ecFirst + 5;
+  ecDriverBadInputRoutine            = ecFirst + 6;
+  ecDriverBadInputFinalizedRoutine   = ecFirst + 7;
+  ecDriverBadOutputRoutine           = ecFirst + 8;
+  ecDriverBadOutputFinalizedRoutine  = ecFirst + 9;
+  ecDriverBadDriverMajorVersion      = ecFirst + 10;
+  ecDriverOverwrittenString          = ecFirst + 11;
+  ecDriverOverwrittenBuffer          = ecFirst + 12;
+  ecDriverRequestForLessMemory       = ecFirst + 13;
+  ecDriverSecondRequestForAllocation = ecFirst + 14;
+
+(*================================================================================*)
 // helpers
 
 TYPE
@@ -245,6 +257,6 @@ TYPE
 
 PROCEDURE ConfigureLog( CONST ini : INIFile.CINIFile; REF logger : Log.CLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
 
-//=============================================================================
+(*================================================================================*)
 
 END drv_def.

@@ -11,7 +11,8 @@ IMPORT
   avltree,
   drv_def,
   FIO,
-  windows;
+  iovalue,
+  StorageO;
 
 //=============================================================================
 // API linkage
@@ -289,9 +290,9 @@ TYPE
 
 CLASS CDriverComponentDLLHelper;
   State     : TDCDHState;
-  DLLHandle : windows.HANDLE;
+  DLLHandle : ADDRESS;
   // init
-  PUBLIC PROCEDURE Init( VAR ErrorString : ARRAY OF WCHAR; HModule : windows.HANDLE ) : BOOLEAN;
+  PUBLIC PROCEDURE Init( VAR ErrorString : ARRAY OF WCHAR; HModule : ADDRESS ) : BOOLEAN;
   // queries
   PUBLIC PROCEDURE Version( VAR Version : CARDINAL ) : BOOLEAN;
   PUBLIC PROCEDURE GetDriverDescription( VAR Description : ARRAY OF WCHAR ) : BOOLEAN;
@@ -309,7 +310,7 @@ CLASS CDriver;
   DriverHandle     : CARDINAL;
   DriverDLLVersion : CARDINAL;     // comes in Initialize
   DriverRunHandle  : CARDINAL;     // cw_comp sets it
-  DriverDLLName    : ARRAY [0..255] OF WCHAR;
+  DriverDLLName    : FIO.PathStrW;
   DriverAppName    : ARRAY [0..63] OF WCHAR;
   DriverRunMode    : CARDINAL;
   ComponentHelper  : CDriverComponentDLLHelper;
@@ -317,8 +318,8 @@ CLASS CDriver;
   ParFilePath      : FIO.PathStrW;
   PObjectData      : ADDRESS;
 
-  PBufferA         : drv_str.TPDStringA;
-  PBufferW         : drv_str.TPDStringW;
+  BufferA          : StorageO.CMemoryBuffer;
+  BufferW          : StorageO.CMemoryBuffer;
 
   // procedure variables from DLL
   // ANSI -----------------------
@@ -396,7 +397,7 @@ CLASS CDriver;
   __QueryProc3W               : TQueryProc3W;
 
   // methods
-  PUBLIC PROCEDURE Init( DLLHandle : windows.HANDLE );
+  PUBLIC PROCEDURE Init( DLLHandle : ADDRESS );
     // DriverDLLHandle MUST not be NIL
 
   PUBLIC VIRTUAL PROCEDURE Version( VAR DLLVersion : CARDINAL ) : BOOLEAN;
@@ -428,16 +429,16 @@ CLASS CDriver;
   PUBLIC VIRTUAL PROCEDURE InputRequestCompleted();
   PUBLIC VIRTUAL PROCEDURE InputFinalized( ChannelNumber : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
   PUBLIC VIRTUAL PROCEDURE InputOOBDataQuery( VAR QueryEnumerateState : LONGWORD; VAR ChannelNumber : CARDINAL ) : BOOLEAN;
-  PUBLIC VIRTUAL PROCEDURE GetInput( VAR ErrorCode : CARDINAL; ChannelNumber : CARDINAL; VAR ChannelValue : drv_def.TValue; VAR QOS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE GetInput( VAR ErrorCode : CARDINAL; ChannelNumber : CARDINAL; VAR ChannelValue : iovalue.Value; VAR QOS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp ) : BOOLEAN;
   PUBLIC VIRTUAL PROCEDURE OutputRequestStart();
-  PUBLIC VIRTUAL PROCEDURE OutputRequest( VAR ErrorCode : CARDINAL; ChannelNumber : CARDINAL; ChannelValue : drv_def.TValue; QOS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE OutputRequest( VAR ErrorCode : CARDINAL; ChannelNumber : CARDINAL; ChannelValue : iovalue.Value; QOS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp ) : BOOLEAN;
   PUBLIC VIRTUAL PROCEDURE OutputRequestCompleted();
   PUBLIC VIRTUAL PROCEDURE OutputFinalized( ChannelNumber : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
 
   PUBLIC VIRTUAL PROCEDURE BufferInfo( VAR ErrorCode : CARDINAL; ChannelNumber : CARDINAL; BType : CARD8; BLen : CARDINAL ) : BOOLEAN;
   PUBLIC VIRTUAL PROCEDURE SetBufferAddr( VAR ErrorCode : CARDINAL; ChannelNumber : CARDINAL; PBuffer : ADDRESS ) : BOOLEAN;
   PUBLIC VIRTUAL PROCEDURE DriverProc( Func, Param1, Param2, Param3, Param4 : CARDINAL );
-  PUBLIC VIRTUAL PROCEDURE QueryProc( VAR ErrorCode : CARDINAL; Param1 : drv_def.TValue; VAR Param2 : drv_def.TValue ) : BOOLEAN;
+  PUBLIC VIRTUAL PROCEDURE QueryProc( VAR ErrorCode : CARDINAL; Param1 : iovalue.Value; VAR Param2 : iovalue.Value ) : BOOLEAN;
 
   // API is always identical in both ANSI and UNICODE versions, thus there is no pragmas here
   PUBLIC VIRTUAL PROCEDURE DriverCallBackA( Func : CARDINAL; Param : ADDRESS ) : CARDINAL;

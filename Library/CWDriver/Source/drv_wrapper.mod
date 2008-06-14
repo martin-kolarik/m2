@@ -17,7 +17,8 @@ IMPLEMENTATION MODULE drv_wrapper;
 IMPORT
   windows,
   Storage,
-  Strings;
+  Strings,
+  StringsO;
 
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
@@ -231,7 +232,7 @@ CLASS IMPLEMENTATION CDriver;
 
 (*----------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Init( _DLLHandle : windows.HANDLE );
+  PUBLIC PROCEDURE Init( _DLLHandle : ADDRESS );
   VAR
     es : ARRAY [0..3] OF WCHAR;
   BEGIN
@@ -534,8 +535,6 @@ CLASS IMPLEMENTATION CDriver;
     DLLFailure,
     DLLInitFailure;
   VAR
-    a : ADDRESS;
-    l : CARDINAL;
     uf : BOOLEAN;
   BEGIN
     DriverRunMode := _DriverRunMode;
@@ -552,7 +551,7 @@ CLASS IMPLEMENTATION CDriver;
       IF NOT InitializeDriverW( ErrorString ) THEN
         GOTO DLLInitFailure;
       END;
-      drv_str.EnsureDStrLenW( PBufferW, initialBufferSize, a, l );
+      BufferW.Size := initialBufferSize;
     ELSE
       IF NOT InitializeDLLA( ErrorString ) THEN
         GOTO DLLFailure;
@@ -560,7 +559,7 @@ CLASS IMPLEMENTATION CDriver;
       IF NOT InitializeDriverA( ErrorString ) THEN
         GOTO DLLInitFailure;
       END;
-      drv_str.EnsureDStrLenA( PBufferA, initialBufferSize, a, l );
+      BufferA.Size := initialBufferSize;
     END;
 
     RETURN TRUE;
@@ -831,12 +830,8 @@ DLLInitFailure:
       __DisposeDriver( PObjectData );
     END;
 
-    IF PBufferA <> NIL THEN
-      DISPOSE( PBufferA );
-    END;
-    IF PBufferW <> NIL THEN
-      DISPOSE( PBufferW );
-    END;
+    BufferA.Dispose();
+    BufferW.Dispose();
   END Done;
 
 (*----------------------------------------------------------------------------*)
@@ -907,7 +902,7 @@ DLLInitFailure:
 
   PUBLIC VIRTUAL PROCEDURE GetInput( VAR ErrorCode : CARDINAL;
                                      ChannelNumber : CARDINAL; 
-                                     VAR ChannelValue : drv_def.TValue; 
+                                     VAR ChannelValue : iovalue.Value; 
                                      VAR QOS : CARDINAL; 
                                      VAR TimeStamp : drv_def.TUTCStamp ) : BOOLEAN;
 
@@ -917,21 +912,15 @@ DLLInitFailure:
     LABEL
       GoAgain;
     VAR
-      BL         : CARDINAL;
       LocalValue : drv_def.TValue;
-      PB         : ADDRESS;
-      PBuffer    : drv_str.TPDStringW;
       FirstPass  : BOOLEAN;
-      FreeFlag   : BOOLEAN;
     BEGIN
-      drv_str.GetDStrAddrLenW( PBufferW, PB, BL );
+      FirstPass := TRUE;
       LocalValue.Type := drv_def.vtDriverString;
 
-      FirstPass := TRUE;
     GoAgain:
-      BL := PBufferW^.Size;
-      LocalValue.ValDriverStringCharLength := BL;
-      LocalValue.ValDriverStringAddress := PB;
+      LocalValue.ValDriverStringCharLength := BufferW.Size;
+      LocalValue.ValDriverStringAddress := BufferW.Data;
 
       __GetInput3W( PObjectData, ChannelNumber, LocalValue, QOS, TimeStamp, ErrorCode );
       IF ErrorCode <> drv_def.ecSuccess THEN
@@ -942,28 +931,21 @@ DLLInitFailure:
         IF NOT FirstPass THEN
           ErrorCode := drv_def.ecDriverSecondRequestForAllocation;
           RETURN FALSE;
-        ELSIF ( LocalValue.ValDriverStringCharLength <= BL ) THEN // error, driver cannot requested less than is allocated
+        ELSIF ( LocalValue.ValDriverStringCharLength <= BufferW.Size ) THEN // error, driver cannot requested less than is allocated
           ErrorCode := drv_def.ecDriverRequestForLessMemory;
           RETURN FALSE;
         ELSE
           FirstPass := FALSE;
-          drv_str.EnsureDStrLenW( PBufferW, ( LocalValue.ValDriverStringCharLength + 31 ) >> 5 << 5, PB, BL );
+          BufferW.Size := ( LocalValue.ValDriverStringCharLength + 31 ) >> 5 << 5;
           GOTO GoAgain;
         END;
-      ELSIF LocalValue.ValDriverStringAddress <> PB THEN
+      ELSIF LocalValue.ValDriverStringAddress <> BufferW.Data THEN
         ErrorCode := drv_def.ecDriverOverwrittenString;
         RETURN FALSE;
       END;
 
-      PBufferW^.Len := LocalValue.ValDriverStringCharLength;
-      PBuffer := NIL;
-      FreeFlag := drv_str.CreateTFromU( PBuffer, PBufferW );
-      IF FreeFlag THEN
-        drv_def.SetValueDStringW( ChannelValue, TRUE, PBuffer );
-        DISPOSE( PBuffer );
-      ELSE
-        drv_def.SetValueDStringW( ChannelValue, TRUE, PBuffer );
-      END;
+      drv_def.CWValueToIOValue( LocalValue, TRUE, REF ChannelValue );
+      drv_def.DoneValue( LocalValue );
 
       RETURN TRUE;
     END GetString3W;
@@ -972,31 +954,19 @@ DLLInitFailure:
    
     PROCEDURE GetString2W() : BOOLEAN;
     VAR
-      BL         : CARDINAL;
       LocalValue : drv_def.TValue;
-      PBuffer    : drv_str.TPDStringW;
-      PB         : ADDRESS;
-      FreeFlag   : BOOLEAN;
     BEGIN
-      drv_str.GetDStrAddrLenW( PBufferW, PB, BL );
       LocalValue.Type := drv_def.vtPString256;
-      LocalValue.ValPString256W := PB;
+      LocalValue.ValPString256W := BufferW.Data;
 
       __GetInput2W( PObjectData, ChannelNumber, LocalValue, QOS, TimeStamp );
-      IF LocalValue.ValPString256W <> PB THEN
+      IF LocalValue.ValPString256W <> BufferW.Data THEN
         ErrorCode := drv_def.ecDriverOverwrittenString;
         RETURN FALSE;
       END;
 
-      PBufferW^.Len := LENGTH( OA( 255, LocalValue.ValPString256W ) );
-      PBuffer := NIL;
-      FreeFlag := drv_str.CreateTFromU( PBuffer, PBufferW );
-      IF FreeFlag THEN
-        drv_def.SetValueDStringW( ChannelValue, TRUE, PBuffer );
-        DISPOSE( PBuffer );
-      ELSE
-        drv_def.SetValueDStringW( ChannelValue, TRUE, PBuffer );
-      END;
+      drv_def.CWValueToIOValue( LocalValue, TRUE, REF ChannelValue );
+      drv_def.DoneValue( LocalValue );
 
       RETURN TRUE;
     END GetString2W;
@@ -1005,31 +975,19 @@ DLLInitFailure:
 
     PROCEDURE GetString1W() : BOOLEAN;
     VAR
-      BL         : CARDINAL;
       LocalValue : drv_def.TValue;
-      PBuffer    : drv_str.TPDStringW;
-      PB         : ADDRESS;
-      FreeFlag   : BOOLEAN;
     BEGIN
-      drv_str.GetDStrAddrLenW( PBufferW, PB, BL );
       LocalValue.Type := drv_def.vtPString256;
-      LocalValue.ValPString256W := PB;
+      LocalValue.ValPString256W := BufferW.Data;
 
       __GetInput1W( PObjectData, ChannelNumber, LocalValue );
-      IF LocalValue.ValPString256W <> PB THEN
+      IF LocalValue.ValPString256W <> BufferW.Data THEN
         ErrorCode := drv_def.ecDriverOverwrittenString;
         RETURN FALSE;
       END;
 
-      PBufferW^.Len := LENGTH( OA( 255, LocalValue.ValPString256W ));
-      PBuffer := NIL;
-      FreeFlag := drv_str.CreateTFromU( PBuffer, PBufferW );
-      IF FreeFlag THEN
-        drv_def.SetValueDStringW( ChannelValue, TRUE, PBuffer );
-        DISPOSE( PBuffer );
-      ELSE
-        drv_def.SetValueDStringW( ChannelValue, TRUE, PBuffer );
-      END;
+      drv_def.CWValueToIOValue( LocalValue, TRUE, REF ChannelValue );
+      drv_def.DoneValue( LocalValue );
 
       RETURN TRUE;
     END GetString1W;
@@ -1040,21 +998,15 @@ DLLInitFailure:
     LABEL
       GoAgain;
     VAR
-      BL         : CARDINAL;
       LocalValue : drv_def.TValue;
-      PB         : ADDRESS;
-      PBuffer    : drv_str.TPDStringW;
       FirstPass  : BOOLEAN;
-      FreeFlag   : BOOLEAN;
     BEGIN
-      drv_str.GetDStrAddrLenA( PBufferA, PB, BL ); BL := PBufferA^.Size;
+      FirstPass := TRUE;
       LocalValue.Type := drv_def.vtDriverString;
 
-      FirstPass := TRUE;
     GoAgain:
-      BL := PBufferA^.Size;
-      LocalValue.ValDriverStringCharLength := BL;
-      LocalValue.ValDriverStringAddress := PB;
+      LocalValue.ValDriverStringCharLength := BufferA.Size;
+      LocalValue.ValDriverStringAddress := BufferA.Data;
 
       __GetInput3( PObjectData, ChannelNumber, LocalValue, QOS, TimeStamp, ErrorCode );
       IF ErrorCode <> drv_def.ecSuccess THEN
@@ -1065,28 +1017,21 @@ DLLInitFailure:
         IF NOT FirstPass THEN
           ErrorCode := drv_def.ecDriverSecondRequestForAllocation;
           RETURN FALSE;
-        ELSIF ( LocalValue.ValDriverStringCharLength <= BL ) THEN // error, driver cannot requested less than is allocated
+        ELSIF ( LocalValue.ValDriverStringCharLength <= BufferA.Size ) THEN // error, driver cannot requested less than is allocated
           ErrorCode := drv_def.ecDriverRequestForLessMemory;
           RETURN FALSE;
         ELSE
           FirstPass := FALSE;
-          drv_str.EnsureDStrLenA( PBufferA, ( LocalValue.ValDriverStringCharLength + 31 ) >> 5 << 5, PB, BL );
+          BufferA.Size := ( LocalValue.ValDriverStringCharLength + 31 ) >> 5 << 5;
           GOTO GoAgain;
         END;
-      ELSIF LocalValue.ValDriverStringAddress <> PB THEN
+      ELSIF LocalValue.ValDriverStringAddress <> BufferA.Data THEN
         ErrorCode := drv_def.ecDriverOverwrittenString;
         RETURN FALSE;
       END;
 
-      PBufferA^.Len := LocalValue.ValDriverStringCharLength;
-      PBuffer := NIL;
-      FreeFlag := drv_str.CreateTFromA( PBuffer, PBufferA );
-      IF FreeFlag THEN
-        drv_def.SetValueDStringW( ChannelValue, FALSE, PBuffer );
-        DISPOSE( PBuffer );
-      ELSE
-        drv_def.SetValueDStringW( ChannelValue, FALSE, PBuffer );
-      END;
+      drv_def.CWValueToIOValue( LocalValue, FALSE, REF ChannelValue );
+      drv_def.DoneValue( LocalValue );
 
       RETURN TRUE;
     END GetString3;
@@ -1095,31 +1040,19 @@ DLLInitFailure:
    
     PROCEDURE GetString2() : BOOLEAN;
     VAR
-      BL         : CARDINAL;
       LocalValue : drv_def.TValue;
-      PBuffer    : drv_str.TPDStringW;
-      PB         : ADDRESS;
-      FreeFlag   : BOOLEAN;
     BEGIN
-      drv_str.GetDStrAddrLenA( PBufferA, PB, BL );
       LocalValue.Type := drv_def.vtPString256;
-      LocalValue.ValPString256A := PB;
+      LocalValue.ValPString256A := BufferA.Data;
 
       __GetInput2( PObjectData, ChannelNumber, LocalValue, QOS, TimeStamp );
-      IF LocalValue.ValPString256A <> PB THEN
+      IF LocalValue.ValPString256A <> BufferA.Data THEN
         ErrorCode := drv_def.ecDriverOverwrittenString;
         RETURN FALSE;
       END;
 
-      PBufferA^.Len := LENGTH( OA( 255, LocalValue.ValPString256A ) );
-      PBuffer := NIL;
-      FreeFlag := drv_str.CreateTFromA( PBuffer, PBufferA );
-      IF FreeFlag THEN
-        drv_def.SetValueDStringW( ChannelValue, FALSE, PBuffer );
-        DISPOSE( PBuffer );
-      ELSE
-        drv_def.SetValueDStringW( ChannelValue, FALSE, PBuffer );
-      END;
+      drv_def.CWValueToIOValue( LocalValue, FALSE, REF ChannelValue );
+      drv_def.DoneValue( LocalValue );
 
       RETURN TRUE;
     END GetString2;
@@ -1128,195 +1061,86 @@ DLLInitFailure:
 
     PROCEDURE GetString1() : BOOLEAN;
     VAR
-      BL         : CARDINAL;
       LocalValue : drv_def.TValue;
-      PBuffer    : drv_str.TPDStringW;
-      PB         : ADDRESS;
-      FreeFlag   : BOOLEAN;
     BEGIN
-      drv_str.GetDStrAddrLenA( PBufferA, PB, BL );
       LocalValue.Type := drv_def.vtPString256;
-      LocalValue.ValPString256A := PB;
+      LocalValue.ValPString256A := BufferA.Data;
 
       __GetInput1( PObjectData, ChannelNumber, LocalValue );
-      IF LocalValue.ValPString256A <> PB THEN
+      IF LocalValue.ValPString256A <> BufferA.Data THEN
         ErrorCode := drv_def.ecDriverOverwrittenString;
         RETURN FALSE;
       END;
 
-      PBufferA^.Len := LENGTH( OA( 255, LocalValue.ValPString256A ) );
-      PBuffer := NIL;
-      FreeFlag := drv_str.CreateTFromA( PBuffer, PBufferA );
-      IF FreeFlag THEN
-        drv_def.SetValueDStringW( ChannelValue, FALSE, PBuffer );
-        DISPOSE( PBuffer );
-      ELSE
-        drv_def.SetValueDStringW( ChannelValue, FALSE, PBuffer );
-      END;
+      drv_def.CWValueToIOValue( LocalValue, FALSE, REF ChannelValue );
+      drv_def.DoneValue( LocalValue );
 
       RETURN TRUE;
     END GetString1;
 
   (*---------*)
 
-    PROCEDURE GetBuffer3W() : BOOLEAN;
-    VAR
-      PBuffer : ADDRESS;
-    BEGIN
-      PBuffer := ChannelValue.PBuffer;
-      __GetInput3W( PObjectData, ChannelNumber, ChannelValue, QOS, TimeStamp, ErrorCode );
-      IF ChannelValue.PBuffer <> PBuffer THEN
-        ErrorCode := drv_def.ecDriverOverwrittenBuffer;
-        RETURN FALSE;
-      END;
-      RETURN TRUE;
-    END GetBuffer3W;
-
-  (*---------*)
-
-    PROCEDURE GetBuffer2W() : BOOLEAN;
-    VAR
-      PBuffer : ADDRESS;
-    BEGIN
-      PBuffer := ChannelValue.PBuffer;
-      __GetInput2W( PObjectData, ChannelNumber, ChannelValue, QOS, TimeStamp );
-      IF ChannelValue.PBuffer <> PBuffer THEN
-        ErrorCode := drv_def.ecDriverOverwrittenBuffer;
-        RETURN FALSE;
-      END;
-      RETURN TRUE;
-    END GetBuffer2W;
-
-  (*---------*)
-
-    PROCEDURE GetBuffer1W() : BOOLEAN;
-    VAR
-      PBuffer : ADDRESS;
-    BEGIN
-      PBuffer := ChannelValue.PBuffer;
-      __GetInput1W( PObjectData, ChannelNumber, ChannelValue );
-      IF ChannelValue.PBuffer <> PBuffer THEN
-        ErrorCode := drv_def.ecDriverOverwrittenBuffer;
-        RETURN FALSE;
-      END;
-      RETURN TRUE;
-    END GetBuffer1W;
-
-  (*---------*)
-
-    PROCEDURE GetBuffer3() : BOOLEAN;
-    VAR
-      PBuffer : ADDRESS;
-    BEGIN
-      PBuffer := ChannelValue.PBuffer;
-      __GetInput3( PObjectData, ChannelNumber, ChannelValue, QOS, TimeStamp, ErrorCode );
-      IF ChannelValue.PBuffer <> PBuffer THEN
-        ErrorCode := drv_def.ecDriverOverwrittenBuffer;
-        RETURN FALSE;
-      END;
-      RETURN TRUE;
-    END GetBuffer3;
-
-  (*---------*)
-
-    PROCEDURE GetBuffer2() : BOOLEAN;
-    VAR
-      PBuffer : ADDRESS;
-    BEGIN
-      PBuffer := ChannelValue.PBuffer;
-      __GetInput2( PObjectData, ChannelNumber, ChannelValue, QOS, TimeStamp );
-      IF ChannelValue.PBuffer <> PBuffer THEN
-        ErrorCode := drv_def.ecDriverOverwrittenBuffer;
-        RETURN FALSE;
-      END;
-      RETURN TRUE;
-    END GetBuffer2;
-
-  (*---------*)
-
-    PROCEDURE GetBuffer1() : BOOLEAN;
-    VAR
-      PBuffer : ADDRESS;
-    BEGIN
-      PBuffer := ChannelValue.PBuffer;
-      __GetInput1( PObjectData, ChannelNumber, ChannelValue );
-      IF ChannelValue.PBuffer <> PBuffer THEN
-        ErrorCode := drv_def.ecDriverOverwrittenBuffer;
-        RETURN FALSE;
-      END;
-      RETURN TRUE;
-    END GetBuffer1;
-
-  (*---------*)
-
   LABEL
     Fail;
+  VAR
+    CWValue : drv_def.TValue;
   BEGIN
     ErrorCode := drv_def.ecSuccess;
+    drv_def.InitValue( CWValue );
+    CWValue.Type := drv_def.IOTypeToCWType( ChannelValue.Type );
 
     IF ADDRESS( __GetInput3W ) <> NIL THEN
-      CASE ChannelValue.Type OF
-      | drv_def.vtBuffer :
-        IF NOT GetBuffer3W() THEN GOTO Fail; END;
-      | drv_def.vtDString :
+      IF ChannelValue.Type = iovalue.vtString THEN
         IF NOT GetString3W() THEN GOTO Fail; END;
       ELSE
-        __GetInput3W( PObjectData, ChannelNumber, ChannelValue, QOS, TimeStamp, ErrorCode );
+        __GetInput3W( PObjectData, ChannelNumber, CWValue, QOS, TimeStamp, ErrorCode );
+        drv_def.CWValueToIOValue( CWValue, TRUE, REF ChannelValue );
       END;
     ELSIF ADDRESS( __GetInput2W ) <> NIL THEN
-      CASE ChannelValue.Type OF
-      | drv_def.vtBuffer :
-        IF NOT GetBuffer2W() THEN GOTO Fail; END;
-      | drv_def.vtDString :
+      IF ChannelValue.Type = iovalue.vtString THEN
         IF NOT GetString2W() THEN GOTO Fail; END;
       ELSE
-        __GetInput2W( PObjectData, ChannelNumber, ChannelValue, QOS, TimeStamp );
+        __GetInput2W( PObjectData, ChannelNumber, CWValue, QOS, TimeStamp );
+        drv_def.CWValueToIOValue( CWValue, TRUE, REF ChannelValue );
       END;
     ELSIF ADDRESS( __GetInput1W ) <> NIL THEN
-      CASE ChannelValue.Type OF
-      | drv_def.vtBuffer :
-        IF NOT GetBuffer1W() THEN GOTO Fail; END;
-      | drv_def.vtDString :
+      IF ChannelValue.Type = iovalue.vtString THEN
         IF NOT GetString1W() THEN GOTO Fail; END;
       ELSE
         QOS := drv_def.qosGood;
-        __GetInput1W( PObjectData, ChannelNumber, ChannelValue );
+        __GetInput1W( PObjectData, ChannelNumber, CWValue );
+        drv_def.CWValueToIOValue( CWValue, TRUE, REF ChannelValue );
       END;
     ELSIF ADDRESS( __GetInput3 ) <> NIL THEN
-      CASE ChannelValue.Type OF
-      | drv_def.vtBuffer :
-        IF NOT GetBuffer3() THEN GOTO Fail; END;
-      | drv_def.vtDString :
+      IF ChannelValue.Type = iovalue.vtString THEN
         IF NOT GetString3() THEN GOTO Fail; END;
       ELSE
-        __GetInput3( PObjectData, ChannelNumber, ChannelValue, QOS, TimeStamp, ErrorCode );
+        __GetInput3( PObjectData, ChannelNumber, CWValue, QOS, TimeStamp, ErrorCode );
+        drv_def.CWValueToIOValue( CWValue, FALSE, REF ChannelValue );
       END;
     ELSIF ADDRESS( __GetInput2 ) <> NIL THEN
-      CASE ChannelValue.Type OF
-      | drv_def.vtBuffer :
-        IF NOT GetBuffer2() THEN GOTO Fail; END;
-      | drv_def.vtDString :
+      IF ChannelValue.Type = iovalue.vtString THEN
         IF NOT GetString2() THEN GOTO Fail; END;
       ELSE
-        __GetInput2( PObjectData, ChannelNumber, ChannelValue, QOS, TimeStamp );
+        __GetInput2( PObjectData, ChannelNumber, CWValue, QOS, TimeStamp );
+        drv_def.CWValueToIOValue( CWValue, FALSE, REF ChannelValue );
       END;
     ELSIF ADDRESS( __GetInput1 ) <> NIL THEN
-      CASE ChannelValue.Type OF
-      | drv_def.vtBuffer :
-        IF NOT GetBuffer1() THEN GOTO Fail; END;
-      | drv_def.vtDString :
+      IF ChannelValue.Type = iovalue.vtString THEN
         IF NOT GetString1() THEN GOTO Fail; END;
       ELSE
         QOS := drv_def.qosGood;
-        __GetInput1( PObjectData, ChannelNumber, ChannelValue );
+        __GetInput1( PObjectData, ChannelNumber, CWValue );
+        drv_def.CWValueToIOValue( CWValue, FALSE, REF ChannelValue );
       END;
     ELSE
       ErrorCode := drv_def.ecDriverBadInputRoutine;
 Fail:
-      Storage.Fill( ADR( ChannelValue ), SIZE( drv_def.TValue ), 0 );
+      ChannelValue.Dispose();
       RETURN FALSE;
     END;
 
+    drv_def.DoneValue( CWValue );
     RETURN ErrorCode = drv_def.ecSuccess;
   END GetInput;
 
@@ -1335,7 +1159,7 @@ Fail:
 
   PUBLIC VIRTUAL PROCEDURE OutputRequest( VAR ErrorCode : CARDINAL; 
                                           ChannelNumber : CARDINAL;  
-                                          ChannelValue : drv_def.TValue; 
+                                          ChannelValue : iovalue.Value; 
                                           QOS : CARDINAL; 
                                           VAR TimeStamp : drv_def.TUTCStamp ) : BOOLEAN;
 
@@ -1343,27 +1167,17 @@ Fail:
    
     PROCEDURE OutputString3W() : BOOLEAN;
     VAR
-      a, as      : ADDRESS;
-      l          : CARDINAL;
+      as : ADDRESS;
       LocalValue : drv_def.TValue;
-      PLBufferW  : drv_str.TPDStringW;
-      FreeFlag   : BOOLEAN;
     BEGIN
-      PLBufferW := NIL;
-      FreeFlag := drv_str.CreateUFromT( PLBufferW, ChannelValue.ValDStringW );
-      drv_str.GetDStrAddrLenW( PLBufferW, a, l );
-
       LocalValue.Type := drv_def.vtDriverString;
-      LocalValue.ValDriverStringCharLength := l;
-      LocalValue.ValDriverStringAddress := a;
+      drv_def.IOValueToCWValue( ChannelValue, TRUE, TRUE, REF LocalValue );
       as := LocalValue.ValDriverStringAddress;
 
       __OutputRequest3W( PObjectData, ChannelNumber, LocalValue, QOS, TimeStamp );
-      IF FreeFlag THEN
-        DISPOSE( PLBufferW );
-      END;
 
       IF as = LocalValue.ValDriverStringAddress THEN
+        drv_def.DoneValue( LocalValue );
         RETURN TRUE;
       ELSE
         ErrorCode := drv_def.ecDriverOverwrittenString;
@@ -1375,26 +1189,18 @@ Fail:
 
     PROCEDURE OutputString2W() : BOOLEAN;
     VAR
-      as         : ADDRESS;
+      as : ADDRESS;
       LocalValue : drv_def.TValue;
-      PLBufferW  : drv_str.TPDStringW;
-      s          : ARRAY [0..255] OF WCHAR;
-      FreeFlag   : BOOLEAN;
     BEGIN
-      PLBufferW := NIL;
-      FreeFlag := drv_str.CreateUFromT( PLBufferW, ChannelValue.ValDStringW );
-      drv_str.CopyDStrToStrW( s, PLBufferW );
-
       LocalValue.Type := drv_def.vtPString256;
-      LocalValue.ValPString256W := ADR( s );
+      LocalValue.ValPString256W := NIL;
+      drv_def.IOValueToCWValue( ChannelValue, TRUE, TRUE, REF LocalValue );
       as := LocalValue.ValPString256W;
-
+    
       __OutputRequest2W( PObjectData, ChannelNumber, LocalValue, QOS, TimeStamp );
-      IF FreeFlag THEN
-        DISPOSE( PLBufferW );
-      END;
 
       IF as = LocalValue.ValPString256W THEN
+        drv_def.DoneValue( LocalValue );
         RETURN TRUE;
       ELSE
         ErrorCode := drv_def.ecDriverOverwrittenString;
@@ -1406,26 +1212,18 @@ Fail:
 
     PROCEDURE OutputString1W() : BOOLEAN;
     VAR
-      as         : ADDRESS;
+      as : ADDRESS;
       LocalValue : drv_def.TValue;
-      PLBufferW  : drv_str.TPDStringW;
-      s          : ARRAY [0..255] OF WCHAR;
-      FreeFlag   : BOOLEAN;
     BEGIN
-      PLBufferW := NIL;
-      FreeFlag := drv_str.CreateUFromT( PLBufferW, ChannelValue.ValDStringW );
-      drv_str.CopyDStrToStrW( s, PLBufferW );
-
       LocalValue.Type := drv_def.vtPString256;
-      LocalValue.ValPString256W := ADR( s );
+      LocalValue.ValPString256W := NIL;
+      drv_def.IOValueToCWValue( ChannelValue, TRUE, TRUE, REF LocalValue );
       as := LocalValue.ValPString256W;
-
+    
       __OutputRequest1W( PObjectData, ChannelNumber, LocalValue );
-      IF FreeFlag THEN
-        DISPOSE( PLBufferW );
-      END;
 
       IF as = LocalValue.ValPString256W THEN
+        drv_def.DoneValue( LocalValue );
         RETURN TRUE;
       ELSE
         ErrorCode := drv_def.ecDriverOverwrittenString;
@@ -1437,27 +1235,17 @@ Fail:
 
     PROCEDURE OutputString3() : BOOLEAN;
     VAR
-      a, as      : ADDRESS;
-      l          : CARDINAL;
+      as : ADDRESS;
       LocalValue : drv_def.TValue;
-      PLBufferA  : drv_str.TPDStringA;
-      FreeFlag   : BOOLEAN;
     BEGIN
-      PLBufferA := NIL;
-      FreeFlag := drv_str.CreateAFromT( PLBufferA, ChannelValue.ValDStringW );
-      drv_str.GetDStrAddrLenA( PLBufferA, a, l );
-
-      LocalValue.Type := drv_def.vtDriverString;
-      LocalValue.ValDriverStringCharLength := l;
-      LocalValue.ValDriverStringAddress := a;
+      LocalValue.Type := drv_def.vtPString256;
+      drv_def.IOValueToCWValue( ChannelValue, FALSE, TRUE, REF LocalValue );
       as := LocalValue.ValDriverStringAddress;
 
       __OutputRequest3( PObjectData, ChannelNumber, LocalValue, QOS, TimeStamp );
-      IF FreeFlag THEN
-        DISPOSE( PLBufferA );
-      END;
 
       IF as = LocalValue.ValDriverStringAddress THEN
+        drv_def.DoneValue( LocalValue );
         RETURN TRUE;
       ELSE
         ErrorCode := drv_def.ecDriverOverwrittenString;
@@ -1469,26 +1257,18 @@ Fail:
 
     PROCEDURE OutputString2() : BOOLEAN;
     VAR
-      as         : ADDRESS;
+      as : ADDRESS;
       LocalValue : drv_def.TValue;
-      PLBufferA  : drv_str.TPDStringA;
-      s          : ARRAY [0..255] OF CHAR;
-      FreeFlag   : BOOLEAN;
     BEGIN
-      PLBufferA := NIL;
-      FreeFlag := drv_str.CreateAFromT( PLBufferA, ChannelValue.ValDStringW );
-      drv_str.CopyDStrToStrA( s, PLBufferA );
-
       LocalValue.Type := drv_def.vtPString256;
-      LocalValue.ValPString256A := ADR( s );
+      LocalValue.ValPString256A := NIL;
+      drv_def.IOValueToCWValue( ChannelValue, FALSE, TRUE, REF LocalValue );
       as := LocalValue.ValPString256A;
 
       __OutputRequest2( PObjectData, ChannelNumber, LocalValue, QOS, TimeStamp );
-      IF FreeFlag THEN
-        DISPOSE( PLBufferA );
-      END;
 
       IF as = LocalValue.ValPString256A THEN
+        drv_def.DoneValue( LocalValue );
         RETURN TRUE;
       ELSE
         ErrorCode := drv_def.ecDriverOverwrittenString;
@@ -1500,26 +1280,18 @@ Fail:
 
     PROCEDURE OutputString1() : BOOLEAN;
     VAR
-      as         : ADDRESS;
+      as : ADDRESS;
       LocalValue : drv_def.TValue;
-      PLBufferA  : drv_str.TPDStringA;
-      s          : ARRAY [0..255] OF CHAR;
-      FreeFlag   : BOOLEAN;
     BEGIN
-      PLBufferA := NIL;
-      FreeFlag := drv_str.CreateAFromT( PLBufferA, ChannelValue.ValDStringW );
-      drv_str.CopyDStrToStrA( s, PLBufferA );
-
       LocalValue.Type := drv_def.vtPString256;
-      LocalValue.ValPString256A := ADR( s );
+      LocalValue.ValPString256A := NIL;
+      drv_def.IOValueToCWValue( ChannelValue, FALSE, TRUE, REF LocalValue );
       as := LocalValue.ValPString256A;
 
       __OutputRequest1( PObjectData, ChannelNumber, LocalValue );
-      IF FreeFlag THEN
-        DISPOSE( PLBufferA );
-      END;
 
       IF as = LocalValue.ValPString256A THEN
+        drv_def.DoneValue( LocalValue );
         RETURN TRUE;
       ELSE
         ErrorCode := drv_def.ecDriverOverwrittenString;
@@ -1531,40 +1303,50 @@ Fail:
 
   LABEL
     Fail;
+  VAR
+    CWValue : drv_def.TValue;
   BEGIN
+    drv_def.InitValue( CWValue );
+  
     IF ADDRESS( __OutputRequest3W ) <> NIL THEN
-      IF ChannelValue.Type <> drv_def.vtDString THEN
-        __OutputRequest3W( PObjectData, ChannelNumber, ChannelValue, QOS, TimeStamp );
+      IF ChannelValue.Type <> iovalue.vtString THEN
+        drv_def.IOValueToCWValue( ChannelValue, TRUE, TRUE, REF CWValue );
+        __OutputRequest3W( PObjectData, ChannelNumber, CWValue, QOS, TimeStamp );
       ELSIF NOT OutputString3W() THEN
         GOTO Fail;
       END;
     ELSIF ADDRESS( __OutputRequest2W ) <> NIL THEN
-      IF ChannelValue.Type <> drv_def.vtDString THEN
-        __OutputRequest2W( PObjectData, ChannelNumber, ChannelValue, QOS, TimeStamp );
+      IF ChannelValue.Type <> iovalue.vtString THEN
+        drv_def.IOValueToCWValue( ChannelValue, TRUE, TRUE, REF CWValue );
+        __OutputRequest2W( PObjectData, ChannelNumber, CWValue, QOS, TimeStamp );
       ELSIF NOT OutputString2W() THEN
         GOTO Fail;
       END;
     ELSIF ADDRESS( __OutputRequest1W ) <> NIL THEN
-      IF ChannelValue.Type <> drv_def.vtDString THEN
-        __OutputRequest1W( PObjectData, ChannelNumber, ChannelValue );
+      IF ChannelValue.Type <> iovalue.vtString THEN
+        drv_def.IOValueToCWValue( ChannelValue, TRUE, TRUE, REF CWValue );
+        __OutputRequest1W( PObjectData, ChannelNumber, CWValue );
       ELSIF NOT OutputString1W() THEN
         GOTO Fail;
       END;
     ELSIF ADDRESS( __OutputRequest3 ) <> NIL THEN
-      IF ChannelValue.Type <> drv_def.vtDString THEN
-        __OutputRequest3( PObjectData, ChannelNumber, ChannelValue, QOS, TimeStamp );
+      IF ChannelValue.Type <> iovalue.vtString THEN
+        drv_def.IOValueToCWValue( ChannelValue, FALSE, TRUE, REF CWValue );
+        __OutputRequest3( PObjectData, ChannelNumber, CWValue, QOS, TimeStamp );
       ELSIF NOT OutputString3() THEN // converts string from UNICODE if needed
         GOTO Fail;
       END;
     ELSIF ADDRESS( __OutputRequest2 ) <> NIL THEN
-      IF ChannelValue.Type <> drv_def.vtDString THEN
-        __OutputRequest2( PObjectData, ChannelNumber, ChannelValue, QOS, TimeStamp );
+      IF ChannelValue.Type <> iovalue.vtString THEN
+        drv_def.IOValueToCWValue( ChannelValue, FALSE, TRUE, REF CWValue );
+        __OutputRequest2( PObjectData, ChannelNumber, CWValue, QOS, TimeStamp );
       ELSIF NOT OutputString2() THEN // converts string from UNICODE if needed
         GOTO Fail;
       END;
     ELSIF ADDRESS( __OutputRequest1 ) <> NIL THEN
-      IF ChannelValue.Type <> drv_def.vtDString THEN
-        __OutputRequest1( PObjectData, ChannelNumber, ChannelValue );
+      IF ChannelValue.Type <> iovalue.vtString THEN
+        drv_def.IOValueToCWValue( ChannelValue, FALSE, TRUE, REF CWValue );
+        __OutputRequest1( PObjectData, ChannelNumber, CWValue );
       ELSIF NOT OutputString1() THEN // converts string from UNICODE if needed
         GOTO Fail;
       END;
@@ -1652,8 +1434,8 @@ Fail:
 
 (*----------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE QueryProc( VAR ErrorCode : CARDINAL; Param1 : drv_def.TValue; VAR Param2 : drv_def.TValue ) : BOOLEAN;
-
+  PUBLIC VIRTUAL PROCEDURE QueryProc( VAR ErrorCode : CARDINAL; Param1 : iovalue.Value; VAR Param2 : iovalue.Value ) : BOOLEAN;
+(*
   (*----------*)
 
     PROCEDURE QueryProcString3W() : BOOLEAN;
@@ -2035,7 +1817,9 @@ Fail:
 
   LABEL
     Fail;
+*)    
   BEGIN
+(*
     IF ADDRESS( __QueryProc3W ) <> NIL THEN
       IF ( Param1.Type <> drv_def.vtDString ) AND ( Param2.Type <> drv_def.vtDString ) THEN
         __QueryProc3W( PObjectData, Param1, Param2, Param2 );
@@ -2065,6 +1849,7 @@ Fail:
   Fail:
       RETURN FALSE;
     END;
+*)
 
     RETURN TRUE;
   END QueryProc;
@@ -2095,9 +1880,6 @@ BEGIN
   DriverRunHandle := MAX( CARDINAL );
   DriverDLLVersion := 10000H * cwDriversAPIMajorVersion + cwDriversAPIMinorVersionGenericDriver;
   DriverRunMode := drv_def.drmRun;
-
-  PBufferA := NIL;
-  PBufferW := NIL;
 
   ParFilePath := '';
   PObjectData := NIL;
@@ -2345,12 +2127,12 @@ TYPE
   TPMapTreeElem = POINTER TO CMapTreeElem;
 
 CLASS CMapTreeElem( avltree.CAVLTreeElem );
-  From         : CARDINAL;
-  Count        : CARDINAL;
-  Type         : drv_def.TValueType;
-  Direction    : drv_def.TDirection;
-  PId          : drv_str.TPDStringW;
-  PDescription : drv_str.TPDStringW;
+  From        : CARDINAL;
+  Count       : CARDINAL;
+  Type        : drv_def.TValueType;
+  Direction   : drv_def.TDirection;
+  Id          : StringsO.CString;
+  Description : StringsO.CString;
   PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
   OPERATOR :=( CONST E : CMapTreeElem );
 END CMapTreeElem;
@@ -2387,15 +2169,6 @@ BEGIN
   Count := 0;
   Type := drv_def.vtNothing;
   Direction := drv_def.TDirection{};
-  PId := NIL;
-  PDescription := NIL;
-FINALLY
-  IF PId <> NIL THEN
-    DISPOSE( PId );
-  END;
-  IF PDescription <> NIL THEN
-    DISPOSE( PDescription );
-  END;
 END CMapTreeElem;
 
 //-----------------------------------------------------------------------------
@@ -2440,12 +2213,8 @@ CLASS IMPLEMENTATION CChannelMap;
           PME^ := ME; PME^.From := i; PME^.Count := 1;
           Channels.Insert( PME );
           IF PDriver^.GetChannelDescription( i, Description, Id ) THEN
-            IF Id[0] <> 0W THEN
-              drv_str.CopyStrToDStrW( PME^.PId, Id );
-            END;
-            IF Description[0] <> 0W THEN
-              drv_str.CopyStrToDStrW( PME^.PDescription, Description );
-            END;
+            PME^.Id.FromOA( Id );
+            PME^.Description.FromOA( Description );
           END;
         END;
       END;
@@ -2454,297 +2223,6 @@ CLASS IMPLEMENTATION CChannelMap;
 
     RETURN TRUE;
   END LoadFromDriver;
-
-//-----------------------------------------------------------------------------
-
-(*/*
-  PROCEDURE LoadFromDString( VAR ErrorString : ARRAY OF TCHAR; PString : vdstr.TPDString ) : BOOLEAN;
-  LABEL
-    Failure;
-  CONST
-    kwBegin = 'begin';
-    kwEnd = 'end';
-    kwREAL = 'real';
-    kwBOOLEAN = 'boolean';
-    kwBUFFER = 'buffer';
-    kwSTRING = 'string';
-    kwINTEGER = 'integer';
-    kwLONGINT = 'longint';
-    kwLONGCARD = 'longcard';
-    kwCARDINAL = 'cardinal';
-    kwSHORTREAL = 'shortreal';
-    kwSHORTCARD = 'shortcard';
-    kwSHORTINT = 'shortint';
-    kwInput = 'input';
-    kwInputShort = 'in';
-    kwInputAbbreviation = 'i';
-    kwOutput = 'output';
-    kwOutputShort = 'out';
-    kwOutputAbbreviation = 'o';
-    kwBidirectional = 'bidirectional';
-    kwBidirectionalShort = 'bidirect';
-    kwBidirectionalAbbreviation = 'b';
-  TYPE
-    TExpect = (
-      expectBegin,
-      expectLoRange,
-      expectInterval,
-      expectHiRange,
-      expectType,
-      expectDirection,
-      expectDot
-    );
-  VAR
-    ec : CARDINAL;
-    Expect : TExpect;
-    ME : CMapTreeElem;
-    PME : TPMapTreeElem;
-    Token : vtape.TToken;
-    TR : vtape.CStringTapeReader;
-    Id : BOOLEAN;
-    b : BOOLEAN;
-  BEGIN
-    TR.InitDString( PString );
-    Expect := expectBegin;
-
-    LOOP
-      IF NOT TR.ReadToken( ec, Token, TRUE ) THEN
-        CASE ec OF
-        | 
-        END;
-        EXIT;
-      ELSIF Token.Kind = vtape.tokenEndOfSource THEN
-        EXIT;
-      ELSIF Token.Kind = vtape.tokenIdentifier THEN
-        Id := TRUE;
-        Str.Lows( Token.PString^ );
-      ELSE
-        Id := FALSE;
-      END;
-
-      CASE Expect OF
-      //----------
-      | expectBegin :
-        IF Id AND ( Str.Compare( Token.PString^, kwBegin ) = 0 ) THEN
-          Expect := expectLoRange;
-        END;
-        TR.ReadToken( ec, Token, FALSE );
-
-      //----------
-      | expectLoRange :
-        IF Token.Kind = vtape.tokenNumberLiteral THEN
-          ME.From := Str.StrToCard( Token.PString^, 10, b );
-          IF NOT b THEN
-            Str.Copy( ErrorString, drv_wrapper_._Bad_number_in_map_file );
-            Str.Append( ErrorString, ' (' );
-            Str.Append( ErrorString, Token.PString^ );
-            Str.Append( ErrorString, ')' );
-            GOTO Failure;
-          END;
-          TR.ReadToken( ec, Token, FALSE );
-          Expect := expectInterval;
-        ELSIF Id AND ( Str.Compare( Token.PString^, kwEnd ) = 0 ) THEN
-          TR.ReadToken( ec, Token, FALSE );
-          Expect := expectDot;
-        ELSE
-          Str.Copy( ErrorString, drv_wrapper_._Bad_number_in_map_file );
-          GOTO Failure;
-        END;
-
-      //----------
-      | expectInterval :
-        IF Token.Kind = vtape.tokenMinus THEN
-          TR.ReadToken( ec, Token, FALSE );
-          Expect := expectHiRange;
-        ELSE
-          ME.Count := 1;
-          Expect := expectType;
-        END;
-
-      //----------
-      | expectHiRange :
-        IF Token.Kind = vtape.tokenNumberLiteral THEN
-          ec := Str.StrToCard( Token.PString^, 10, b );
-          IF NOT b THEN
-            Str.Copy( ErrorString, drv_wrapper_._Bad_number_in_map_file );
-            Str.Append( ErrorString, ' (' );
-            Str.Append( ErrorString, Token.PString^ );
-            Str.Append( ErrorString, ')' );
-            GOTO Failure;
-          END;
-          IF ec < ME.From THEN
-            Str.Copy( ErrorString, drv_wrapper_._Hi_less_than_Lo );
-            Str.Append( ErrorString, ' (' );
-            Str.Append( ErrorString, Token.PString^ );
-            Str.Append( ErrorString, ')' );
-            GOTO Failure;
-          ELSE
-            ME.Count := ec - ME.From + 1;
-          END;
-          TR.ReadToken( ec, Token, FALSE );
-          Expect := expectType;
-        ELSE
-          Str.Copy( ErrorString, drv_wrapper_._Bad_number_in_map_file );
-          GOTO Failure;
-        END;
-
-      //----------
-      | expectType :
-        IF NOT Id THEN
-          Str.Copy( ErrorString, drv_wrapper_._Expected_Type );
-          GOTO Failure;
-        END;
-        IF Str.Compare( Token.PString^, kwREAL ) = 0 THEN
-          ME.Type := cw_def.vtLongReal;
-        ELSIF Str.Compare( Token.PString^, kwBOOLEAN ) = 0 THEN
-          ME.Type := cw_def.vtBoolean;
-        ELSIF Str.Compare( Token.PString^, kwBUFFER ) = 0 THEN
-          ME.Type := cw_def.vtBuffer;
-        ELSIF Str.Compare( Token.PString^, kwSTRING ) = 0 THEN
-          ME.Type := cw_def.vtDString;
-        ELSIF Str.Compare( Token.PString^, kwINTEGER ) = 0 THEN
-          ME.Type := cw_def.vtInteger;
-        ELSIF Str.Compare( Token.PString^, kwLONGINT ) = 0 THEN
-          ME.Type := cw_def.vtLongInt;
-        ELSIF Str.Compare( Token.PString^, kwLONGCARD ) = 0 THEN
-          ME.Type := cw_def.vtLongCard;
-        ELSIF Str.Compare( Token.PString^, kwCARDINAL ) = 0 THEN
-          ME.Type := cw_def.vtCardinal;
-        ELSIF Str.Compare( Token.PString^, kwSHORTREAL ) = 0 THEN
-          ME.Type := cw_def.vtReal;
-        ELSIF Str.Compare( Token.PString^, kwSHORTCARD ) = 0 THEN
-          ME.Type := cw_def.vtShortCard;
-        ELSIF Str.Compare( Token.PString^, kwSHORTINT ) = 0 THEN
-          ME.Type := cw_def.vtShortInt;
-        ELSE
-          Str.Copy( ErrorString, drv_wrapper_._Unknown_Type );
-          Str.Append( ErrorString, ' (' );
-          Str.Append( ErrorString, Token.PString^ );
-          Str.Append( ErrorString, ')' );
-          GOTO Failure;
-        END;
-        TR.ReadToken( ec, Token, FALSE );
-        Expect := expectDirection;
-
-      //----------
-      | expectDirection :
-        IF NOT Id THEN
-          Str.Copy( ErrorString, drv_wrapper_._Expected_Direction );
-          GOTO Failure;
-        END;
-        IF Str.Compare( Token.PString^, kwInput ) = 0 THEN
-          ME.Direction := cw_def.TDirection{cw_def.dirInput};
-        ELSIF Str.Compare( Token.PString^, kwInputShort ) = 0 THEN
-          ME.Direction := cw_def.TDirection{cw_def.dirInput};
-        ELSIF Str.Compare( Token.PString^, kwInputAbbreviation ) = 0 THEN
-          ME.Direction := cw_def.TDirection{cw_def.dirInput};
-        ELSIF Str.Compare( Token.PString^, kwOutput ) = 0 THEN
-          ME.Direction := cw_def.TDirection{cw_def.dirOutput};
-        ELSIF Str.Compare( Token.PString^, kwOutputShort ) = 0 THEN
-          ME.Direction := cw_def.TDirection{cw_def.dirOutput};
-        ELSIF Str.Compare( Token.PString^, kwOutputAbbreviation ) = 0 THEN
-          ME.Direction := cw_def.TDirection{cw_def.dirOutput};
-        ELSIF Str.Compare( Token.PString^, kwBidirectional ) = 0 THEN
-          ME.Direction := cw_def.TDirection{cw_def.dirInput, cw_def.dirOutput};
-        ELSIF Str.Compare( Token.PString^, kwBidirectionalShort ) = 0 THEN
-          ME.Direction := cw_def.TDirection{cw_def.dirInput, cw_def.dirOutput};
-        ELSIF Str.Compare( Token.PString^, kwBidirectionalAbbreviation ) = 0 THEN
-          ME.Direction := cw_def.TDirection{cw_def.dirInput, cw_def.dirOutput};
-        ELSE
-          Str.Copy( ErrorString, drv_wrapper_._Unknown_Direction );
-          Str.Append( ErrorString, ' (' );
-          Str.Append( ErrorString, Token.PString^ );
-          Str.Append( ErrorString, ')' );
-          GOTO Failure;
-        END;
-
-        // check and append item into the tree
-        IF Channels.Search( ADR( ME ), PME ) THEN
-          Str.Copy( ErrorString, drv_wrapper_._Channel_number_redefined );
-          GOTO Failure;
-        ELSE
-          NEW( PME );
-          PME^ := ME;
-          Channels.Insert( PME );
-        END;
-
-        // go again
-        TR.ReadToken( ec, Token, FALSE );
-        Expect := expectLoRange;
-
-      //----------
-      | expectDot :
-        IF Token.Kind = vtape.tokenPoint THEN
-          EXIT;
-        ELSE
-          EXIT;
-        END;
-      END; // CASE
-
-    END; // LOOP
-
-    TR.Done();
-    RETURN TRUE;
-
-  Failure:
-    TR.Done();
-    RETURN FALSE;
-  END LoadFromDString;
-
-//-----------------------------------------------------------------------------
-
-  PROCEDURE LoadFromFile( VAR ErrorString : ARRAY OF TCHAR; Path : ARRAY OF TCHAR ) : BOOLEAN;
-  VAR
-    a : ADDRESS;
-    c : CARDINAL;
-    F : FIO.File;
-    l, s : CARDINAL;
-    PS : vdstr.TPDString;
-    PSA : vdstr.TPDStringA;
-    PSW : vdstr.TPDStringW;
-    f : BOOLEAN;
-    Result : BOOLEAN;
-    u : BOOLEAN;
-  BEGIN
-    F := FIO.OpenRead( Path, FIO.fsRead );
-    IF F = FIO.FileError THEN
-      Str.Copy( ErrorString, drv_wrapper_._Cannot_find_map_file );
-      RETURN FALSE;
-    END;
-
-    PS := NIL;
-    PSA := NIL;
-    PSW := NIL;
-    s := FIO.Size( F );
-    u := FIO.IsUnicodeFile( F );
-    IF u THEN
-      c := ( s + 1 ) DIV SIZE( TCHAR );
-      vdstr.EnsureDStrLenW( PSW, c, a, l );
-      PSW^.Len := c;
-      FIO.RdBin( F, a^, s );
-      f := vdstr.CreateTFromU( PS, PSW );
-    ELSE
-      vdstr.EnsureDStrLenA( PSA, s, a, l );
-      PSA^.Len := s;
-      FIO.RdBin( F, a^, s );
-      f := vdstr.CreateTFromA( PS, PSA );
-    END;  
-    Result := LoadFromDString( ErrorString, PS );
-
-    IF f THEN
-      DISPOSE( PS );
-    END;
-    IF PSA <> NIL THEN
-      DISPOSE( PSA );
-    END;
-    IF PSW <> NIL THEN
-      DISPOSE( PSW );
-    END;
-
-    FIO.Close( F );
-    RETURN Result;
-  END LoadFromFile;
-*/*)
 
 //-----------------------------------------------------------------------------
 
@@ -2827,8 +2305,8 @@ CLASS IMPLEMENTATION CChannelMap;
     ME.From := DriverIndex;
     ME.Count := 1;
     IF Channels.Search( ADR( ME ), OUT PME ) THEN
-      drv_str.CopyDStrToStrW( Id, PME^.PId );
-      drv_str.CopyDStrToStrW( Description, PME^.PDescription );
+      PME^.Id.ToOA( OUT Id );
+      PME^.Description.ToOA( OUT Description );
       RETURN TRUE;
     ELSE
       // channel number not found in the tree
