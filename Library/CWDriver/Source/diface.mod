@@ -206,6 +206,7 @@ BEGIN
    
    pf.FromOAA( 0, ParFilePath );
    b := TPCWDriver( PData )^.ReadParameters( pf, lg );
+   lg.BufferGetItem( 0, OUT em );
    em.ToOAA( 0, OUT ErrorMessage, OUT l );
    
    RETURN b;
@@ -229,6 +230,7 @@ BEGIN
 
    pf.FromOA( ParFilePath );
    b := TPCWDriver( PData )^.ReadParameters( pf, lg );
+   lg.BufferGetItem( 0, OUT em );
    em.ToOA( OUT ErrorMessage );
 
    RETURN b;
