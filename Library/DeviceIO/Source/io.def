@@ -15,17 +15,28 @@ IMPORT
 
 TYPE
   TPIO = POINTER TO IIO;
+  TPIDataInfo = POINTER TO IDataInfo;
   TPDataInfo = POINTER TO CDataInfo;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CDataInfo( Delegate.ADelegate );
-   // called in case of any error (so for operations which has not started it is called)
-   PUBLIC VIRTUAL PROCEDURE OnError( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL );
-   // called on completion of io operation (so for operations which has not started it is not called)
-   PUBLIC VIRTUAL PROCEDURE OnIO( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL; CONST Value : ARRAY OF iovalue.Value );
+INTERFACE IDataInfo;
+   // called in case of any error (so for operations which has not started it is called too), for started operation OnError is called together with OnIO
+   PROCEDURE OnError( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL );
+   // called on completion of io operation (so for operations which has not started it is not called), for started operation OnIO is called together with OnError (if error occured)
+   PROCEDURE OnIO( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL; CONST Value : ARRAY OF iovalue.Value );
    // notification from device
-   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   PROCEDURE OnAdvise( Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+END IDataInfo;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CDataInfo( Delegate.ADelegate );
+   PUBLIC VAR
+      Sink : TPIDataInfo;
+   PUBLIC PROCEDURE OnError( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL );
+   PUBLIC PROCEDURE OnIO( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC PROCEDURE OnAdvise( Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
 END CDataInfo;
 
 (*---------------------------------------------------------------------------*)
@@ -33,7 +44,9 @@ END CDataInfo;
 TYPE
    TCapability = (
       capArray,
-      capAdvise
+      capAdvise,
+      capCache, // io has self cache, used in complex devices
+      capSyncIO // io has synchronous interface, used in complex devices (asynchronous operations are default)
    );
    TCapabilities = SET OF TCapability;
 
@@ -46,7 +59,10 @@ TYPE
 
 (*---------------------------------------------------------------------------*)
 
-INTERFACE IIO;
+INTERFACE IIO; // single device, purpose is to have minimalistic interface, which can be implemented in the device without big effort.
+               // So IIO can be very simple, it can do no caching, it can accept only single communication, or so. Everything more
+               // complicated should be left to layers with higer abstraction like ICachedIO.
+               // It is expected IOha will behave as a single operation -- items will not be callbacked by single.
    READONLY PROPERTY
       Capabilities : TCapabilities;
       Pending : BOOLEAN;
@@ -59,20 +75,18 @@ INTERFACE IIO;
 
    PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
    PROCEDURE IOha( Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
+      // if operation is asynchronous input, then REF Value is not used and everything is returned to Callback
+
+   PROCEDURE AbortAll(); // As IIO is allowed to run single operation only Abort does not need more parameters. But because ancestors
+                         // will have need to Abort selectively the name here is AbortAll to avoid future conflicts.
 END IIO;
 
 (*---------------------------------------------------------------------------*)
 
 ABSTRACT CLASS AItemizedIO IMPLEMENTS IIO; // used for devices with single item operations
-   PUBLIC ABSTRACT READONLY PROPERTY
-      Pending : BOOLEAN;
    PUBLIC VIRTUAL READONLY PROPERTY
       Capabilities : TCapabilities;
-
-   PUBLIC ABSTRACT PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Delegate : TPDataInfo ) : Sync.TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE IOha( Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
-   
-   PUBLIC ABSTRACT PROCEDURE Abort();
 END AItemizedIO;
 
 (*---------------------------------------------------------------------------*)

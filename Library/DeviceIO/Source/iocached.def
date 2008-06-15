@@ -1,0 +1,48 @@
+DEFINITION MODULE iocached;
+
+IMPORT
+   io,
+   IOO,
+   iovalue,
+   ns,
+   Sync;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPIOCached = POINTER TO IIOCached;
+  
+TYPE
+   TIOMode = (
+      iomUnknown,
+      iomAsynchronous, // means STRICTLY asynchronous, IOmh/a NEVER return arCompleted, successes are reported using Callback only
+         iomDefault = iomAsynchronous,
+      iomSynchronous,
+      iomCached,
+      iomPrefetch // like iomAsynchronous, but it does not reports result by Callback. State can be obtained by polling only (Pendingh/a)
+   );
+
+(*---------------------------------------------------------------------------*)
+
+INTERFACE IIOCached( io.IIO ); // complex device, purpose is to hide lower, single operation, only synchronous, devices, and to allow
+                               // aggregate more physical devices into single logical one. Interface (by defined capabilities)
+                               // allows caching and sycnhronous IO.
+
+   // inherited IOh, IOha are STRICTLY asynchronous
+                               
+   PROCEDURE IOmh( Mode : TIOMode; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo; Timeout : CARDINAL ) : Sync.TAsyncResult;
+   PROCEDURE IOmha( Mode : TIOMode; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo; Timeout : CARDINAL ) : Sync.TAsyncResult;
+      // if operation is asynchronous input, then Value is not used, it can be NIL and everything is returned to Callback
+      // Callback is ignored for iomSynchronous, iomCache, iomPrefetch
+      // Timeout is ignored for iomCache, iomPrefetch
+
+   PROCEDURE Pendingh( Direction : IOO.TDirection; Item : ns.THash; OUT Pending : BOOLEAN ); 
+   PROCEDURE Pendingha( Direction : IOO.TDirection; Item : ARRAY OF ns.THash; OUT Pending : ARRAY OF BOOLEAN ); 
+
+   PROCEDURE Aborth( Direction : IOO.TDirection; Item : ns.THash ); 
+   PROCEDURE Abortha( Direction : IOO.TDirection; Item : ARRAY OF ns.THash ); 
+END IIOCached;
+
+(*---------------------------------------------------------------------------*)
+
+END iocached.

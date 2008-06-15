@@ -1,0 +1,30 @@
+DEFINITION MODULE cache;
+
+IMPORT
+   device,
+   iobject,
+   iocached,
+	log,
+	ns;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPCache = POINTER TO ICache;
+
+INTERFACE ICache( iobject.IObject ); // aka device driver
+	PROCEDURE NS() : ns.TPns;
+	PROCEDURE IO() : iocached.TPIOCached;
+	PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+END ICache;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+#save, call( convention => cdecl )
+	TGetCache = PROCEDURE( OUT ADDRESS ) : BOOLEAN;
+#restore
+
+(*---------------------------------------------------------------------------*)
+
+END cache.

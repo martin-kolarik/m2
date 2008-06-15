@@ -6,24 +6,35 @@ CLASS IMPLEMENTATION CDataInfo;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnError( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL );
+   PUBLIC PROCEDURE OnError( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL );
    BEGIN
+      IF Sink <> NIL THEN
+         Sink^.OnError( Direction, Source, Result, Item, DeviceSpecificError );
+      END;
    END OnError;
   
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnIO( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC PROCEDURE OnIO( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL; CONST Value : ARRAY OF iovalue.Value );
    BEGIN
+      IF Sink <> NIL THEN
+         Sink^.OnIO( Direction, Source, Result, Item, DeviceSpecificError, Value );
+      END;
    END OnIO;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC PROCEDURE OnAdvise( Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
    BEGIN
+      IF Sink <> NIL THEN
+         Sink^.OnAdvise( Source, Result, Item, Value );
+      END;
    END OnAdvise;
 
 (*---------------------------------------------------------------------------*)
 
+BEGIN
+   Sink := NIL;
 END CDataInfo;
 
 (*===========================================================================*)
