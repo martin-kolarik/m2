@@ -102,6 +102,7 @@ TYPE
    
 TYPE
    TDaliAddressProgrammerState = (
+      dasSeekFirst,
       dasSeek,
       dasCheck,
       dasFailure,
@@ -121,6 +122,7 @@ CLASS CDaliAddressSeeker;
    PUBLIC PROCEDURE Init();
    PUBLIC PROCEDURE GetAddressToCheck( OUT Address : TProgramAddress ) : TRISTATE;
    PUBLIC PROCEDURE HandleResponse( Positive : BOOLEAN ); // Positive means "have less" as DALI stands, return TRUE means found, FALSE means not found
+   PUBLIC PROCEDURE OnStart() : BOOLEAN;
    PUBLIC PROCEDURE SeekRepeatCountElapsed() : BOOLEAN;
 END CDaliAddressSeeker;
 
@@ -196,10 +198,10 @@ CLASS CDali( msghandler.MessageHandler ) IMPLEMENTS ICommunicatorSink;
    PUBLIC PROPERTY
       OutputQueueLength : CARDINAL;
 
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
 
    // client commands
-   PUBLIC PROCEDURE LoadConfiguration( CONST ClientName, ParFilePath : ARRAY OF WCHAR; CONST INI : INIFile.CINIFile; REF logger : log.CLogger ) : BOOLEAN;
+   PUBLIC PROCEDURE LoadConfiguration( CONST ClientName, ParFilePath : ARRAY OF WCHAR; CONST INI : INIFile.CINIFile; CONST logger : log.CLogger ) : BOOLEAN;
    
    PUBLIC PROCEDURE Run() : Sync.TAsyncResult;
    PUBLIC PROCEDURE Stop();

@@ -1,5 +1,7 @@
-Version DEBUG
-- CHG: renamed to DaliBridge
+Version 1.0.1664 beta 15.6.2008
+- CHG: Renamed to DaliBridge
+- CHG: Driver interface changed to common unified interface using sc iovalue.
+- CHG: Driver modified to new GDE (with ACKs etc.)
 
 Version DEBUG 1.0.1527 7.4.2008
 - NEW: output_queue_count_channel and output_queue_length parameters

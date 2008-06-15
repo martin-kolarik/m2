@@ -5,7 +5,9 @@ FROM Storage IMPORT
 
 IMPORT
    DaliBridge,
+   diface,
    drv_def,
+   iovalue,
    lec,
    log,
    Resources,
@@ -33,7 +35,7 @@ CONST
    
 //================================================================================
 
-CLASS CDriver IMPLEMENTS threadpool.ITimeoutSink, DaliBridge.IDaliEventSink;
+CLASS CDriver IMPLEMENTS diface.ICWDriver, threadpool.ITimeoutSink, DaliBridge.IDaliEventSink;
    PRIVATE VAR
       Lock           : Sync.LOCK;
       RStatus        : TStatusChannel; // accessed from Dali/CW threads
@@ -57,30 +59,30 @@ CLASS CDriver IMPLEMENTS threadpool.ITimeoutSink, DaliBridge.IDaliEventSink;
       PollCountArray : ARRAY [0..63] OF CARDINAL;
       PollInitArray  : ARRAY [0..63] OF CARDINAL;
 
-   // binding to procedural interface
-   PUBLIC PROCEDURE Init( CONST SymbolicName : ARRAY OF WCHAR; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW ) : BOOLEAN;
-   PUBLIC PROCEDURE ReadParameters( CONST ParFilePath : StringsO.CString; REF Logger : log.CLogger ) : BOOLEAN;
-
-   PUBLIC PROCEDURE EnumerateChannels(  VAR EnumerateState : LONGWORD; VAR Type : CARDINAL; VAR Direction : CARDINAL; VAR DriverIndex : CARDINAL; VAR Count : CARDINAL; VAR HaveDescription : BOOLEAN ): BOOLEAN;
-   PUBLIC PROCEDURE GetChannelDescription( DriverIndex : CARDINAL; VAR Description : ARRAY OF WCHAR; VAR Id : ARRAY OF WCHAR ) : BOOLEAN;
+   // ICWDriver
+   PUBLIC VIRTUAL PROCEDURE Initialize( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW );
+   PUBLIC VIRTUAL PROCEDURE ReadParameters( CONST ParFilePath : StringsO.CString; CONST Logger : log.CLogger ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE QueryErrorCode( ErrorCode : CARDINAL; OUT ErrorText : StringsO.CString ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE EnumerateChannels( REF EnumerateState : LONGWORD; OUT Type : drv_def.TValueType; OUT Direction : drv_def.TDirection; OUT DriverIndex, Count : CARDINAL; OUT HaveDescription : BOOLEAN ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetChannelDescription( DriverIndex : CARDINAL; OUT Description, Id : StringsO.CString ) : BOOLEAN;
    
-   PUBLIC PROCEDURE Run();
-   PUBLIC PROCEDURE Stop();
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE DriverRun();
+   PUBLIC VIRTUAL PROCEDURE DriverStop();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE DriverProc( Func, Param1, Param2, Param3, Param4 : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE QueryProc( CONST InValue1, InValue2 : iovalue.Value; OutValueLimit : CARDINAL; OUT OutValue : iovalue.Value );
 
-   PUBLIC PROCEDURE InputRequestStart();
-   PUBLIC PROCEDURE InputRequest( DriverIndex : CARDINAL );
-   PUBLIC PROCEDURE InputRequestCompleted();
-   PUBLIC PROCEDURE InputFinalized( DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
-   PUBLIC PROCEDURE InputOOBDataQuery( VAR EnumerateState : LONGWORD; VAR DriverIndex : CARDINAL ) : BOOLEAN;
-   PUBLIC PROCEDURE GetInput( UFlag : BOOLEAN; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue; VAR QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp; VAR ErrorCode : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE InputRequestStart();
+   PUBLIC VIRTUAL PROCEDURE InputRequest( DriverIndex : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE InputRequestCompleted();
+   PUBLIC VIRTUAL PROCEDURE InputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE InputOOBDataQuery( REF EnumerateState : LONGWORD; OUT DriverIndex : CARDINAL ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetInput( DriverIndex : CARDINAL; InValueLimit : CARDINAL; OUT InValue : iovalue.Value; OUT QoS : CARDINAL; OUT TimeStamp : drv_def.TUTCStamp; OUT ErrorCode : CARDINAL );
 
-   PUBLIC PROCEDURE OutputRequestStart();
-   PUBLIC PROCEDURE OutputRequest( UFlag : BOOLEAN; DriverIndex : CARDINAL; OutValue : drv_def.TValue; QoS : CARDINAL; TimeStamp : drv_def.TUTCStamp );
-   PUBLIC PROCEDURE OutputRequestCompleted();
-   PUBLIC PROCEDURE OutputFinalized( DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
-
-   PUBLIC PROCEDURE QueryProc( UFlag : BOOLEAN; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
+   PUBLIC VIRTUAL PROCEDURE OutputRequestStart();
+   PUBLIC VIRTUAL PROCEDURE OutputRequest( DriverIndex : CARDINAL; CONST OutValue : iovalue.Value; QoS : CARDINAL; CONST TimeStamp : drv_def.TUTCStamp );
+   PUBLIC VIRTUAL PROCEDURE OutputRequestCompleted();
+   PUBLIC VIRTUAL PROCEDURE OutputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
 
    // ITimeoutSink
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );

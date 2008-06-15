@@ -70,10 +70,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Source\diface.mod"
-				>
-			</File>
-			<File
 				RelativePath=".\Source\driver.mod"
 				>
 			</File>
@@ -85,10 +81,6 @@
 			>
 			<File
 				RelativePath=".\Source\DaliBridge.def"
-				>
-			</File>
-			<File
-				RelativePath=".\Source\diface.def"
 				>
 			</File>
 			<File
@@ -109,14 +101,6 @@
 			</File>
 		</Filter>
 		<File
-			RelativePath=".\DALI_SCI.definition.proj"
-			>
-		</File>
-		<File
-			RelativePath=".\DALI_SCI.proj"
-			>
-		</File>
-		<File
 			RelativePath=".\DaliBridge.definition.proj"
 			>
 		</File>
@@ -126,6 +110,10 @@
 		</File>
 		<File
 			RelativePath=".\Install\DaliBridge.wxs"
+			>
+		</File>
+		<File
+			RelativePath=".\Source\export.def"
 			>
 		</File>
 		<File

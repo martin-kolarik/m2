@@ -55,18 +55,16 @@ CLASS IMPLEMENTATION CDriver;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE Init( CONST SymbolicName : ARRAY OF WCHAR; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Initialize( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW );
    BEGIN
-      ClientName := SymbolicName;
+      SymbolicName.ToOA( OUT ClientName );
       SELF.CallbackId := CallbackId;
       SELF.CallbackProc := PCallback;
-
-      RETURN TRUE;
-   END Init;
+   END Initialize;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE ReadParameters( CONST ParFilePath : StringsO.CString; REF Log : log.CLogger ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE ReadParameters( CONST ParFilePath : StringsO.CString; CONST Log : log.CLogger ) : BOOLEAN;
    CONST
       snDevice = L'device';
          knStatusChannel = L'status_channel';
@@ -153,7 +151,7 @@ CLASS IMPLEMENTATION CDriver;
          END;
       END;
 
-      IF NOT Dali.LoadConfiguration( ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), TS, REF Log ) THEN
+      IF NOT Dali.LoadConfiguration( ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), TS, Log ) THEN
          RETURN FALSE;
       END;
    
@@ -162,7 +160,20 @@ CLASS IMPLEMENTATION CDriver;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE EnumerateChannels( VAR EnumerateState : LONGWORD; VAR Type : CARDINAL; VAR Direction : CARDINAL; VAR DriverIndex : CARDINAL; VAR Count : CARDINAL; VAR HaveDescription : BOOLEAN ): BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE QueryErrorCode( ErrorCode : CARDINAL; OUT ErrorText : StringsO.CString ) : BOOLEAN;
+   BEGIN
+      CASE ErrorCode OF
+      | driver.ceLine_Timeout :
+         ErrorText.FromOA( OAsz( R()^[ Texts._E_Line_Timeout ] ));
+      ELSE
+         RETURN FALSE;
+      END;
+      RETURN TRUE;
+   END QueryErrorCode;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE EnumerateChannels( REF EnumerateState : LONGWORD; OUT Type : drv_def.TValueType; OUT Direction : drv_def.TDirection; OUT DriverIndex, Count : CARDINAL; OUT HaveDescription : BOOLEAN ): BOOLEAN;
    VAR
       Index : CARDINAL;
    BEGIN
@@ -176,13 +187,13 @@ CLASS IMPLEMENTATION CDriver;
          RETURN FALSE;
 
       ELSIF ( Index = 0 ) AND ( StatusChannel <> MAX( CARDINAL )) THEN
-         Type := CARDINAL( drv_def.vtLongCard );
-         Direction := CARDINAL( drv_def.TDirection{ drv_def.dirInput } );
+         Type := drv_def.vtLongCard;
+         Direction := drv_def.TDirection{ drv_def.dirInput };
          DriverIndex := StatusChannel;
 
       ELSIF OutputQueueCountChannel <> MAX( CARDINAL ) THEN
-         Type := CARDINAL( drv_def.vtLongCard );
-         Direction := CARDINAL( drv_def.TDirection{ drv_def.dirInput } );
+         Type := drv_def.vtLongCard;
+         Direction := drv_def.TDirection{ drv_def.dirInput };
          DriverIndex := OutputQueueCountChannel;
 
       ELSE
@@ -196,17 +207,17 @@ CLASS IMPLEMENTATION CDriver;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE GetChannelDescription( DriverIndex : CARDINAL; VAR Description : ARRAY OF WCHAR; VAR Id : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetChannelDescription( DriverIndex : CARDINAL; OUT Description, Id : StringsO.CString ) : BOOLEAN;
    CONST
       _StatusId = L'drvStatus';
       _OutputQueueCountId = L'drvOutputQueueCount';
    BEGIN
       IF DriverIndex = StatusChannel THEN
-         ASSIGN( Description, OAsz( R()^[ Texts._StatusComment ] ));
-         ASSIGN( Id, _StatusId );
+         Description.FromOA( OAsz( R()^[ Texts._StatusComment ] ));
+         Id.FromOA( _StatusId );
       ELSIF DriverIndex = OutputQueueCountChannel THEN
-         ASSIGN( Description, OAsz( R()^[ Texts._OutputQueueCountComment ] ));
-         ASSIGN( Id, _OutputQueueCountId );
+         Description.FromOA( OAsz( R()^[ Texts._OutputQueueCountComment ] ));
+         Id.FromOA( _OutputQueueCountId );
       ELSE
          RETURN FALSE;
       END;
@@ -215,7 +226,7 @@ CLASS IMPLEMENTATION CDriver;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE Run();
+   PUBLIC VIRTUAL PROCEDURE DriverRun();
    VAR
       i : CARDINAL;
       s : FIO.PathStrW;
@@ -241,11 +252,11 @@ CLASS IMPLEMENTATION CDriver;
       ELSIF ( PollTimer <> NIL ) AND ( PollPeriod = Sync.FOREVER ) THEN
          threadpool.pool()^.Abort( REF PollTimer );
       END;
-   END Run;
+   END DriverRun;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE Stop();
+   PUBLIC VIRTUAL PROCEDURE DriverStop();
    BEGIN
       IF schiRunning NOT IN RStatus THEN
          RETURN;
@@ -259,16 +270,16 @@ CLASS IMPLEMENTATION CDriver;
       END;
 
       Dali.Stop();
-   END Stop;
+   END DriverStop;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    VAR
       Data : PTR;
       ExceptionItem : TPExceptionItem;
    BEGIN
-      Stop();
+      DriverStop();
       WHILE Queue.Dequeue( OUT ExceptionItem, OUT Data ) DO
          DISPOSE( ExceptionItem );
       END;
@@ -276,26 +287,32 @@ CLASS IMPLEMENTATION CDriver;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE InputRequestStart();
+   PUBLIC VIRTUAL PROCEDURE DriverProc( Func, Param1, Param2, Param3, Param4 : CARDINAL );
+   BEGIN
+   END DriverProc;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE InputRequestStart();
    BEGIN
    END InputRequestStart;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE InputRequest( DriverIndex : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE InputRequest( DriverIndex : CARDINAL );
    BEGIN
       Result.Inc();
    END InputRequest;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE InputRequestCompleted();
+   PUBLIC VIRTUAL PROCEDURE InputRequestCompleted();
    BEGIN
    END InputRequestCompleted;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE InputFinalized( DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE InputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
    BEGIN
       IF DriverIndex = StatusChannel THEN
          ErrorCode := drv_def.ecSuccess;
@@ -309,14 +326,14 @@ CLASS IMPLEMENTATION CDriver;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE InputOOBDataQuery( VAR EnumerateState : LONGWORD; VAR DriverIndex : CARDINAL ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE InputOOBDataQuery( REF EnumerateState : LONGWORD; OUT DriverIndex : CARDINAL ) : BOOLEAN;
    BEGIN
-      RETURN TRUE;
+      RETURN FALSE;
    END InputOOBDataQuery;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE GetInput( UFlag : BOOLEAN; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue; VAR QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp; VAR ErrorCode : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE GetInput( DriverIndex : CARDINAL; InValueLimit : CARDINAL; OUT InValue : iovalue.Value; OUT QoS : CARDINAL; OUT TimeStamp : drv_def.TUTCStamp; OUT ErrorCode : CARDINAL );
    VAR
       Status : TStatusChannel := TStatusChannel{};
    BEGIN
@@ -331,38 +348,38 @@ CLASS IMPLEMENTATION CDriver;
             INCL( Status, schiValid );
          END;
 
-         drv_def.AssignValueCardinal( InValue, UFlag, TRUE, CARDINAL( Status ));
+         InValue.Integer := CARDINAL( Status );
 
       ELSIF DriverIndex = OutputQueueCountChannel THEN
          QoS := drv_def.qosGood;
          ErrorCode := drv_def.ecSuccess;
 
-         drv_def.AssignValueCardinal( InValue, UFlag, TRUE, CARDINAL( Dali.OutputQueueCount ));
+         InValue.Integer := Dali.OutputQueueCount;
       END;
    END GetInput;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE OutputRequestStart();
+   PUBLIC VIRTUAL PROCEDURE OutputRequestStart();
    BEGIN
    END OutputRequestStart;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE OutputRequest( UFlag : BOOLEAN; DriverIndex : CARDINAL; OutValue : drv_def.TValue; QoS : CARDINAL; TimeStamp : drv_def.TUTCStamp );
+   PUBLIC VIRTUAL PROCEDURE OutputRequest( DriverIndex : CARDINAL; CONST OutValue : iovalue.Value; QoS : CARDINAL; CONST TimeStamp : drv_def.TUTCStamp );
    BEGIN
       Result.Inc();
    END OutputRequest;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE OutputRequestCompleted();
+   PUBLIC VIRTUAL PROCEDURE OutputRequestCompleted();
    BEGIN
    END OutputRequestCompleted;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE OutputFinalized( DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE OutputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
    BEGIN
       IF Result.Counted OR Result.Expired THEN
          RETURN FALSE;
@@ -372,7 +389,7 @@ CLASS IMPLEMENTATION CDriver;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE QueryProc( UFlag : BOOLEAN; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
+   PUBLIC VIRTUAL PROCEDURE QueryProc( CONST InValue1, InValue2 : iovalue.Value; OutValueLimit : CARDINAL; OUT OutValue : iovalue.Value );
    LABEL
       Error, Success;
    VAR
@@ -520,7 +537,7 @@ CLASS IMPLEMENTATION CDriver;
       //-----
 
    BEGIN
-      drv_def.DrvValueToCStringW( InValue1, UFlag, OUT CS );
+      CS := InValue1.String;
       i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 0, TRUE, OUT S1 ); Strings.TrimW( REF S1 );
       i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S2 ); Strings.TrimW( REF S2 );
       i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S3 ); Strings.TrimW( REF S3 );
@@ -531,7 +548,7 @@ CLASS IMPLEMENTATION CDriver;
             Lock.Lock();
             c := Queue.Count;
             Lock.Unlock();
-            drv_def.AssignValueCardinal( REF OutValue, UFlag, TRUE, c );
+            OutValue.Integer := c;
 
             Dali.Logger.LogSC( dldDebug, logPrefix, L"Event.Count ", c );
             
@@ -824,12 +841,13 @@ CLASS IMPLEMENTATION CDriver;
 
    Error:
       Result.Inc();
-      drv_def.AssignDrvValueCStringW( REF OutValue, UFlag, FALSE, CS );
+      OutValue.String := CS;
       RETURN;
 
    Success:
       Result.Inc();
-      drv_def.AssignDrvValueStringW( REF OutValue, UFlag, FALSE, L'' );
+      CS.Clear();
+      OutValue.String := CS;
    END QueryProc;
 
 //================================================================================
@@ -933,6 +951,7 @@ BEGIN
    Dali.EventSink := ADR( SELF );
 FINALLY
    IF PollSink <> NIL THEN
+      PollSink^.TimeoutSink := NIL;
       PollSink^.Release();
       PollSink := NIL;
    END;
@@ -949,14 +968,63 @@ BEGIN
    RETURN ADR( r );
 END R;
 
-//================================================================================
+(*================================================================================*)
 
-INITIALLY __I();
+CLASS CFactory IMPLEMENTS diface.ICWDriverFactory;
+   PUBLIC VIRTUAL READONLY PROPERTY
+      DriverName : StringsO.CString;
+   PUBLIC VIRTUAL PROCEDURE CreateInstance( OUT Instance : diface.TPCWDriver ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE DeleteInstance( Instance : diface.TPCWDriver );
+END CFactory;   
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CFactory;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY DriverName GET : StringsO.CString;
+   VAR
+      Name : StringsO.CString;
+   BEGIN
+      Name.FromOA( OAsz( R()^[ Texts._DriverName ] ));
+      RETURN Name;
+   END DriverName;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE CreateInstance( OUT Instance : diface.TPCWDriver ) : BOOLEAN;
+   VAR
+      Driver : TPDriver;
+   BEGIN
+      NEW( Driver );
+      Instance := Driver;
+      RETURN TRUE;
+   END CreateInstance;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE DeleteInstance( Instance : diface.TPCWDriver );
+   VAR
+      Driver : TPDriver := TPDriver( Instance );
+   BEGIN
+      DISPOSE( Driver );
+   END DeleteInstance;
+
+(*--------------------------------------------------------------------------------*)
+
+END CFactory;
+
+(*--------------------------------------------------------------------------------*)
+
+VAR
+   Factory : CFactory;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
-   // messages
    r.LoadRES2( EMITW( %dll ), L"DaliBridge.Texts" );
-END __I;
-
-//================================================================================
-
+   diface.RegisterFactory( ADR( Factory ));
 END driver.
+
+(*================================================================================*)

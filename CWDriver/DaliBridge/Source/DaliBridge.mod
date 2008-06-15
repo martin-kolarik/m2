@@ -27,6 +27,24 @@ CONST
 
 (*===============================================================================*)
 
+TYPE
+   TGDECommand = CARD8(
+      gdecReset = 0,
+      gdecWrite = 6,
+      gdecWriteTwice = 7,
+      gdecRead = 8
+   );
+   
+   TGDEResponse = CARD8(
+      gderReset = 0,
+      gderStatus = 1,
+      gderRead = 8,
+      gderReadFailure = 01CH,
+      gderACK = 01DH,
+      gderNAK = 01EH,
+      gderEvent = 01FH
+   );
+
 CLASS CUDPCommunicator( netsrv.AListener ) IMPLEMENTS threadpool.ITimeoutSink;
    CONST
       timerTimeout = 1;
@@ -39,6 +57,8 @@ CLASS CUDPCommunicator( netsrv.AListener ) IMPLEMENTS threadpool.ITimeoutSink;
       Timeout : threadpool.TPoolHandle;
       Delay : threadpool.TPoolHandle;
       LastSend : CARDINAL;
+      WaitReset : BOOLEAN;
+      WaitResponse : BOOLEAN;
    LOCAL VAR
       EventSink : TPICommunicatorSink;
       InterPacketDelay : CARDINAL;
@@ -51,7 +71,7 @@ CLASS CUDPCommunicator( netsrv.AListener ) IMPLEMENTS threadpool.ITimeoutSink;
    PUBLIC PROCEDURE Run() : Sync.TAsyncResult;
    PUBLIC PROCEDURE Stop();
 
-   PUBLIC PROCEDURE SendDaliData( Linie : CARDINAL; Data : ARRAY OF BYTE; ExpectResponse, Repeat : BOOLEAN ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE SendDaliData( Linie : CARDINAL; Data : ARRAY OF BYTE; Reset, ExpectResponse, Repeat : BOOLEAN ) : Sync.TAsyncResult;
 
    // AListener
    LOCAL VIRTUAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket ); // stDatagram
@@ -91,6 +111,9 @@ CLASS IMPLEMENTATION CUDPCommunicator;
       IA.Port := ListenPort;
       Result := netsrv.StartListen( netsocket.stDatagram, IA, NIL, ADR( SELF ), 0, ADR( Socket ));
       IF Result = 0 THEN
+      
+         SendDaliData( 0, OA( -1, NIL ), TRUE, FALSE, FALSE ); // reset
+      
          RETURN Sync.arCompleted;
       ELSE
          Logger^.LogSE( Log.dldError, logPrefix, L"Unable StartListen: ", Result );
@@ -110,16 +133,19 @@ CLASS IMPLEMENTATION CUDPCommunicator;
 
 (*-------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE SendDaliData( Linie : CARDINAL; Data : ARRAY OF BYTE; ExpectResponse, Repeat : BOOLEAN ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE SendDaliData( Linie : CARDINAL; Data : ARRAY OF BYTE; Reset, ExpectResponse, Repeat : BOOLEAN ) : Sync.TAsyncResult;
    VAR
-      i : CARDINAL;
+      i : INTEGER;
       delay : INTEGER;
       SendData : TDaliPacket := TDaliPacket( 0, 0, 0 );
    BEGIN
       IF Socket = NIL THEN
          RETURN Sync.arCannotStart;
-      END;
-      IF InterPacketDelay > 0 THEN
+
+      ELSIF WaitReset OR WaitResponse THEN
+         RETURN Sync.arAlreadyPending;
+
+      ELSIF InterPacketDelay > 0 THEN
          delay := INTEGER( time.UptimeMS() - LastSend );
          IF ( Delay = NIL ) AND ( delay < INTEGER( InterPacketDelay )) THEN // wait if not waiting yet
             threadpool.pool()^.WaitTimeout( TimerSink, timerDelay, delay, TRUE, TRUE, OUT Timeout );
@@ -129,12 +155,18 @@ CLASS IMPLEMENTATION CUDPCommunicator;
       LastSend := time.UptimeMS();
 
       // copy data to packet
-      IF ExpectResponse THEN
-         SendData[0] := 08H; // send, wait 100 ms and receive response
+      WaitReset := FALSE;
+      WaitResponse := FALSE;
+      IF Reset THEN
+         WaitReset := TRUE;
+         SendData[0] := gdecReset; // reset device
+      ELSIF ExpectResponse THEN
+         WaitResponse := TRUE;
+         SendData[0] := gdecRead; // send, wait 100 ms and receive response
       ELSIF Repeat THEN
-         SendData[0] := 07H; // send and repeat only
+         SendData[0] := gdecWriteTwice; // send and repeat only
       ELSE
-         SendData[0] := 06H; // send only
+         SendData[0] := gdecWrite; // send only
       END;
       SendData[0] := SendData[0] OR ( CARD8( Linie ) << 5 ); // address is in three highest bits
       FOR i := 0 TO HIGH( Data ) DO
@@ -147,7 +179,11 @@ CLASS IMPLEMENTATION CUDPCommunicator;
       
       // we have no ACK, we cannot do timeouts, but the code rely on them
       IF Timeout = NIL THEN
-         threadpool.pool()^.WaitTimeout( TimerSink, timerTimeout, 200, TRUE, TRUE, OUT Timeout );
+         IF WaitReset THEN
+            threadpool.pool()^.WaitTimeout( TimerSink, timerTimeout, 10000, TRUE, TRUE, OUT Timeout ); // reset has long timeout
+         ELSE
+            threadpool.pool()^.WaitTimeout( TimerSink, timerTimeout, 200, TRUE, TRUE, OUT Timeout );
+         END;
       END;
       
       RETURN Socket^.SendToOA( OA( 1 + HIGH( Data ), ADR( SendData )), Address );
@@ -166,20 +202,35 @@ CLASS IMPLEMENTATION CUDPCommunicator;
       END;
    
       ServerSocket^.ReceiveOA( OUT buffer, OUT l );
-      IF l < 2 THEN // some damaged data
+      IF l < 1 THEN // some damaged data
          Logger^.LogSC( dldMessage, logPrefix, L"Corrupted data received, length: ", l );
          EventSink^.OnDaliData( Sync.arAborted, OA( -1, NIL ));
       ELSIF EventSink = NIL THEN
          // fall down
       ELSE
-         CASE CARD8( buffer[0] ) AND 03FH OF
-         | 001H : // OK, switch on
-         | 008H : // OK, response to 6
-         | 01FH : // OK, event data
+         CASE TGDEResponse( buffer[0] AND 03FH ) OF
+         | gderReset : // OK, switch on
+            Logger^.LogS( dldDebug, logPrefix, L"Reset OK" );
+         | gderStatus : // OK, status
+            Logger^.LogS( dldDebug, logPrefix, L"Status" );
+         | gderRead : // OK, response to 8
+            Logger^.LogSB( dldDebug, logPrefix, L"Expected device response received: ", ADR( buffer ), l );
+         | gderReadFailure : // 008H timeout
+            Logger^.LogS( dldDebug, logPrefix, L"Expected device response not received" );
+         | gderACK : // ACK
+            IF WaitResponse THEN
+               Logger^.LogS( dldDebug, logPrefix, L"ACK" );
+            ELSE
+               Logger^.LogS( dldDebug, logPrefix, L"ACK, but continue waiting for device response" );
+               RETURN;
+            END;
+         | gderNAK : // NAK
+            Logger^.LogS( dldDebug, logPrefix, L"NAK" );
+         | gderEvent : // OK, event data
             Logger^.LogSB( dldDebug, logPrefix, L"Event data: ", ADR( buffer ), l );
          ELSE
             Logger^.LogSB( dldMessage, logPrefix, L"Strange device response: ", ADR( buffer ), l );
-            EventSink^.OnDaliData( Sync.arAlreadyPending, OA( -1, NIL ));
+            EventSink^.OnDaliData( Sync.arAlreadyPending, OA( -1, NIL )); // repeat command
             RETURN;
          END;
       
@@ -187,7 +238,11 @@ CLASS IMPLEMENTATION CUDPCommunicator;
             dali[i-1] := buffer[i];
          END; // FOR
 
-         EventSink^.OnDaliData( Sync.arCompleted, OA( l-1, ADR( dali )));
+         IF CARD8( buffer[0] ) AND 03FH = 01EH THEN // NAK
+            EventSink^.OnDaliData( Sync.arAlreadyPending, OA( l-1, ADR( dali ))); // repeat command
+         ELSE
+            EventSink^.OnDaliData( Sync.arCompleted, OA( l-1, ADR( dali )));
+         END;
       END;
    END OnDatagramReceived;
 
@@ -225,6 +280,8 @@ BEGIN
    Timeout := NIL;
    Delay := NIL;
    LastSend := 0;
+   WaitReset := FALSE;
+   WaitResponse := FALSE;
 
    EventSink := NIL;
    InterPacketDelay := 0;
@@ -369,7 +426,7 @@ CLASS IMPLEMENTATION CDaliAddressSeeker;
    BEGIN
       H := 1 << 24 - 1;
       L := 0;
-      State := dasSeek;
+      State := dasSeekFirst;
       SeekRepeatCount := 10;
    END Init;
 
@@ -390,7 +447,11 @@ CLASS IMPLEMENTATION CDaliAddressSeeker;
             RETURN getFOUND;
          END; // CASE
       END;
-      M := ( L + H ) DIV 2;
+      IF State = dasSeekFirst THEN
+         M := H;
+      ELSE
+         M := ( L + H ) DIV 2;
+      END;
       Address.C24 := M;
       RETURN getTRUE;
    END GetAddressToCheck;
@@ -399,13 +460,21 @@ CLASS IMPLEMENTATION CDaliAddressSeeker;
 
    PUBLIC PROCEDURE HandleResponse( Positive : BOOLEAN );
    BEGIN
-      IF State = dasSeek THEN
+      CASE State OF
+      | dasSeekFirst :
+         IF Positive THEN
+            State := dasSeek;
+         ELSIF SeekRepeatCountElapsed() THEN
+            State := dasFailure;
+            RETURN; // and continue with the query
+         END;
+      | dasSeek :
          IF Positive THEN
             H := M - 1;
          ELSE
             L := M + 1;
          END;
-      ELSIF State = dasCheck THEN
+      | dasCheck :
          IF Positive THEN
             State := dasSuccess;
          ELSE
@@ -414,6 +483,13 @@ CLASS IMPLEMENTATION CDaliAddressSeeker;
       END;
       SeekRepeatCount := 10; // reset counter
    END HandleResponse;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE OnStart() : BOOLEAN;
+   BEGIN
+      RETURN State = dasSeekFirst;
+   END OnStart;
 
 (*-------------------------------------------------------------------------------*)
 
@@ -432,7 +508,7 @@ BEGIN
    H := 0;
    L := 0;
    M := 0;
-   State := dasSeek;
+   State := dasSeekFirst;
    SeekRepeatCount := 0;
 END CDaliAddressSeeker;
 
@@ -641,7 +717,7 @@ CLASS IMPLEMENTATION CDali;
 
 (*-------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    VAR
       Request : POINTER TO DaliRequest;
    BEGIN
@@ -652,7 +728,7 @@ CLASS IMPLEMENTATION CDali;
 
 (*-------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE LoadConfiguration( CONST ClientName, ParFilePath : ARRAY OF WCHAR; CONST INI : INIFile.CINIFile; REF logger : log.CLogger ) : BOOLEAN;
+   PUBLIC PROCEDURE LoadConfiguration( CONST ClientName, ParFilePath : ARRAY OF WCHAR; CONST INI : INIFile.CINIFile; CONST logger : log.CLogger ) : BOOLEAN;
    CONST
       snInterface        = L"interface";
          knListenPort    = L"listen_port";
@@ -811,20 +887,19 @@ CLASS IMPLEMENTATION CDali;
                Logger.LogSC( dldDebug, logPrefix, L"                    for linie: ", Request^.Linie );
                Logger.LogSR( dldDebug, logPrefix, L"                       result: ", Result );
 
-               // Programmer.HandleResponse( Result = Sync.arCompleted, INTEGER( Response ));
-               // IF Timeout...
-               IF Request^.ClientId = EXPECTED_RESPONSE THEN
+               IF Result <> Sync.arCompleted THEN // arTimeout, etc.
+                  Logger.LogSC( dldMessage, logProgramPrefix, L"Programming stopped, receive error occured, result: ", CARDINAL( Result ));
+
+                  Programming := FALSE; // kill
+
+               ELSIF Request^.ClientId = EXPECTED_RESPONSE THEN
                   IF Programmer.WhatNext() <> dapSeekOne THEN
                      Programmer.HandleResponse( TRUE, INTEGER( Response ));
-                  ELSIF Result = Sync.arCompleted THEN
+                  ELSE
                      Seeker.HandleResponse( Response <> 0 );
-                  ELSE // stop querying in case of error or timeout
-                     IF Seeker.SeekRepeatCountElapsed() THEN
-                        Logger.LogS( dldMessage, logProgramPrefix, L"Programming stopped due to timeout" );
-                        Programmer.HandleResponse( FALSE, 0 ); //?? -- should this be done, it could stop programming before end in the case of normal communication timeout !!
-                     END;
                   END;
                   ProgrammingStep();
+
                END;
 
             ELSIF EventSink <> NIL THEN
@@ -906,7 +981,7 @@ CLASS IMPLEMENTATION CDali;
          DaliData[1] := BYTE( Request^.Command );
       END;
       
-      Result := Communicator^.SendDaliData( Request^.Linie, DaliData, Request^.Command IN respondedCommands, Request^.Command IN repeatedCommands );
+      Result := Communicator^.SendDaliData( Request^.Linie, DaliData, FALSE, Request^.Command IN respondedCommands, Request^.Command IN repeatedCommands );
       IF Result = Sync.arAlreadyPending THEN // data were not sent, communicator is busy
          Request^.Pending := FALSE; // prepare next send after a tick
          RETURN Sync.arPending;
@@ -964,7 +1039,7 @@ CLASS IMPLEMENTATION CDali;
                EXIT;
             | getFALSE :
                Logger.LogS( dldMessage, logProgramPrefix, L"Programming stopped, no next device found" );
-               Programmer.HandleResponse( FALSE, 0 ); //??
+               Programmer.HandleResponse( FALSE, 0 );
             | getFOUND :
                Logger.LogSC( dldTrace, logProgramPrefix, L"Found device: ", Address.C24 );
                Programmer.HandleResponse( TRUE, Address.C24 );

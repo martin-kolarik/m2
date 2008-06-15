@@ -24,8 +24,8 @@
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
         <Components Include="modula2\modula2;api\clib;API\win32"/>
-        <Components Include="modula2\m2rtl;modula2\m2ortl;library\ADT;library\Resources;library\Text;library\threading;library\Network;library\CWdriver"/>
-        <Modules Include="diface;driver;DaliBridge"/>
+        <Components Include="component\sccore;library\CWdriver"/>
+        <Modules Include="DaliBridge;driver"/>
         <Messages Include="Texts"/>
     </ItemGroup>
 
