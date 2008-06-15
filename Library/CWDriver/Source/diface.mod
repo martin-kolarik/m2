@@ -314,12 +314,12 @@ END QueryErrorCodeW;
 
 PROCEDURE RunW( PData : ADDRESS );
 BEGIN
-   TPCWDriver( PData )^.Run();
+   TPCWDriver( PData )^.DriverRun();
 END RunW;
 
 PROCEDURE StopW( PData : ADDRESS );
 BEGIN
-   TPCWDriver( PData )^.Stop();
+   TPCWDriver( PData )^.DriverStop();
 END StopW;
 
 PROCEDURE DoneW( PData : ADDRESS );

@@ -35,8 +35,8 @@ INTERFACE ICWDriver;
    PROCEDURE GetChannelDescription( DriverIndex : CARDINAL; OUT Description : StringsO.CString; OUT Id : StringsO.CString ) : BOOLEAN;
 
    // CONTROL
-   PROCEDURE Run();
-   PROCEDURE Stop();
+   PROCEDURE DriverRun();
+   PROCEDURE DriverStop();
    PROCEDURE Dispose();
    PROCEDURE DriverProc( Func, Param1, Param2, Param3, Param4 : CARDINAL );
    PROCEDURE QueryProc( CONST InValue1, InValue2 : iovalue.Value; OutValueStringLimit : CARDINAL; OUT OutValue : iovalue.Value );

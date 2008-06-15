@@ -1,18 +1,21 @@
 IMPLEMENTATION MODULE diface_device;
 
+IMPORT
+   iocached;
+
 (*================================================================================*)
 
 CLASS IMPLEMENTATION CCWDriverSkeleton;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL PROCEDURE DoInit( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW );
+   INTERNAL PROCEDURE Init( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW );
    BEGIN
       SELF.RunMode := RunMode;
       SELF.SymbolicName := SymbolicName;
       SELF.CallbackId := CallbackId;
       SELF.CallbackProc := CallbackProc;
-   END DoInit;
+   END Init;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -47,24 +50,48 @@ ABSTRACT CLASS IMPLEMENTATION ADeviceAsCWDriver;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Init( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW );
+   PUBLIC FINAL PROCEDURE OnError( Direction : IOO.TDirection; Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL );
    BEGIN
-      DoInit( RunMode, SymbolicName, CallbackId, PCallback );
-   END Init;
+      // do nothing
+   END OnError;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Run();
+   PUBLIC FINAL PROCEDURE OnIO( Direction : IOO.TDirection; Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL; CONST Value : ARRAY OF iovalue.Value );
+   BEGIN
+      IF Direction = IOO.dirRead THEN
+         Signal( dsInputFinalized );
+      ELSE
+         Signal( dsOutputFinalized );
+      END;      
+   END OnIO;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   BEGIN
+   END OnAdvise;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Initialize( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW );
+   BEGIN
+      Init( RunMode, SymbolicName, CallbackId, PCallback );
+   END Initialize;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROCEDURE DriverRun();
    BEGIN
       IO()^.Run();
-   END Run;
+   END DriverRun;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Stop();
+   PUBLIC FINAL PROCEDURE DriverStop();
    BEGIN
       IO()^.Stop();
-   END Stop;
+   END DriverStop;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -87,7 +114,13 @@ ABSTRACT CLASS IMPLEMENTATION ADeviceAsCWDriver;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE InputRequest( DriverIndex : CARDINAL );
+   VAR
+      Hash : ns.THash;
+      io : iovalue.Value;
    BEGIN
+      IF DriverIndexToHash( DriverIndex, OUT Hash ) THEN
+         IO()^.IOmh( iocached.iomAsynchronous, IOO.dirRead, Hash, REF io, NIL, 0 );
+      END;
    END InputRequest;
 
 (*--------------------------------------------------------------------------------*)
@@ -99,8 +132,21 @@ ABSTRACT CLASS IMPLEMENTATION ADeviceAsCWDriver;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE InputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
+   VAR
+      Hash : ns.THash;
+      Pending : BOOLEAN;
    BEGIN
-      RETURN FALSE;
+      IF NOT DriverIndexToHash( DriverIndex, OUT Hash ) THEN
+         ErrorCode := drv_def.ecUnknownElement;
+         RETURN TRUE;
+      END;
+      IO()^.Pendingh( IOO.dirRead, Hash, OUT Pending );
+      IF Pending THEN
+         RETURN FALSE;
+      ELSE
+         ErrorCode := drv_def.ecSuccess;
+         RETURN TRUE;
+      END;
    END InputFinalized;
 
 (*--------------------------------------------------------------------------------*)
@@ -113,7 +159,15 @@ ABSTRACT CLASS IMPLEMENTATION ADeviceAsCWDriver;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE GetInput( DriverIndex : CARDINAL; InValueLimit : CARDINAL; OUT InValue : iovalue.Value; OUT QoS : CARDINAL; OUT TimeStamp : drv_def.TUTCStamp; OUT ErrorCode : CARDINAL );
+   VAR
+      Hash : ns.THash;
    BEGIN
+      IF DriverIndexToHash( DriverIndex, OUT Hash ) THEN
+         ErrorCode := drv_def.ecSuccess;
+         IO()^.IOmh( iocached.iomCached, IOO.dirRead, Hash, REF InValue, NIL, 0 );
+      ELSE
+         ErrorCode := drv_def.ecUnknownElement;
+      END;
    END GetInput;
 
 (*--------------------------------------------------------------------------------*)
@@ -125,7 +179,12 @@ ABSTRACT CLASS IMPLEMENTATION ADeviceAsCWDriver;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE OutputRequest( DriverIndex : CARDINAL; CONST OutValue : iovalue.Value; QoS : CARDINAL; CONST TimeStamp : drv_def.TUTCStamp );
+   VAR
+      Hash : ns.THash;
    BEGIN
+      IF DriverIndexToHash( DriverIndex, OUT Hash ) THEN
+         IO()^.IOmh( iocached.iomAsynchronous, IOO.dirRead, Hash, REF iovalue.TPValue( ADR( OutValue ))^, NIL, 0 );
+      END;
    END OutputRequest;
 
 (*--------------------------------------------------------------------------------*)
@@ -137,12 +196,30 @@ ABSTRACT CLASS IMPLEMENTATION ADeviceAsCWDriver;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE OutputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
+   VAR
+      Hash : ns.THash;
+      Pending : BOOLEAN;
    BEGIN
-      RETURN FALSE;
+      IF NOT DriverIndexToHash( DriverIndex, OUT Hash ) THEN
+         ErrorCode := drv_def.ecUnknownElement;
+         RETURN TRUE;
+      END;
+      IO()^.Pendingh( IOO.dirWrite, Hash, OUT Pending );
+      IF Pending THEN
+         RETURN FALSE;
+      ELSE
+         ErrorCode := drv_def.ecSuccess;
+         RETURN TRUE;
+      END;
    END OutputFinalized;
 
 (*--------------------------------------------------------------------------------*)
 
+BEGIN
+   NEW( DataInfo );
+   DataInfo^.Sink := ADR( SELF );
+FINALLY
+   DataInfo^.Release();
 END ADeviceAsCWDriver;
 
 (*================================================================================*)

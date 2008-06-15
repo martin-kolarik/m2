@@ -4,11 +4,15 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-   device,
+   cache,
    diface,
    drv_def,
+   io,
+   IOO,
    iovalue,
-   StringsO;
+   ns,
+   StringsO,
+   Sync;
 
 (*================================================================================*)
 
@@ -28,7 +32,7 @@ CLASS CCWDriverSkeleton;
       RunMode : CARDINAL;
       SymbolicName : StringsO.CString;
 
-   INTERNAL PROCEDURE DoInit( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW );
+   INTERNAL PROCEDURE Init( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW );
 
    // helpers   
    PUBLIC PROCEDURE Signal( What : TDriverSignal );
@@ -36,21 +40,27 @@ END CCWDriverSkeleton;
 
 (*--------------------------------------------------------------------------------*)
 
-ABSTRACT CLASS ADeviceAsCWDriver( CCWDriverSkeleton ) IMPLEMENTS device.IDevice, diface.ICWDriver;
+ABSTRACT CLASS ADeviceAsCWDriver( CCWDriverSkeleton ) IMPLEMENTS io.IDataInfo, cache.ICache, diface.ICWDriver;
+   PRIVATE VAR
+      DataInfo : io.TPDataInfo;
 
-   // device.IDevice
+   // IDataInfo
+   PUBLIC FINAL PROCEDURE OnError( Direction : IOO.TDirection; Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL );
+   PUBLIC FINAL PROCEDURE OnIO( Direction : IOO.TDirection; Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC FINAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+
+   // cache.ICache is left to ancestor
 	
-	// ICWDriver
-   // INIT
-   PUBLIC VIRTUAL PROCEDURE Init( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW );
+	// ICWDriver.INIT
+   PUBLIC VIRTUAL PROCEDURE Initialize( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; CallbackProc : drv_def.TDriverCallbackW );
 
-   // CONTROL
-   PUBLIC VIRTUAL PROCEDURE Run();
-   PUBLIC VIRTUAL PROCEDURE Stop();
+   // ICWDriver.CONTROL
+   PUBLIC FINAL PROCEDURE DriverRun();
+   PUBLIC FINAL PROCEDURE DriverStop();
    PUBLIC VIRTUAL PROCEDURE Dispose();
    PUBLIC VIRTUAL PROCEDURE DriverProc( Func, Param1, Param2, Param3, Param4 : CARDINAL );
 
-   // DATA FLOW
+   // ICWDriver.DATA FLOW
    PUBLIC VIRTUAL PROCEDURE InputRequestStart();
    PUBLIC VIRTUAL PROCEDURE InputRequest( DriverIndex : CARDINAL );
    PUBLIC VIRTUAL PROCEDURE InputRequestCompleted();
@@ -62,7 +72,10 @@ ABSTRACT CLASS ADeviceAsCWDriver( CCWDriverSkeleton ) IMPLEMENTS device.IDevice,
    PUBLIC VIRTUAL PROCEDURE OutputRequest( DriverIndex : CARDINAL; CONST OutValue : iovalue.Value; QoS : CARDINAL; CONST TimeStamp : drv_def.TUTCStamp );
    PUBLIC VIRTUAL PROCEDURE OutputRequestCompleted();
    PUBLIC VIRTUAL PROCEDURE OutputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
-
+   
+   // SELF
+   INTERNAL ABSTRACT PROCEDURE HashToDriverIndex( Hash : ns.THash; OUT DriverIndex : CARDINAL ) : BOOLEAN;
+   INTERNAL ABSTRACT PROCEDURE DriverIndexToHash( DriverIndex : CARDINAL; OUT Hash : ns.THash ) : BOOLEAN;
 END ADeviceAsCWDriver;
 
 (*================================================================================*)
