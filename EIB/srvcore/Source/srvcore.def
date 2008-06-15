@@ -205,10 +205,11 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, io.IIO;
 
    PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE IOha( Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE AbortAll();
 
    // self
    PUBLIC PROCEDURE LoadConfiguration( CONST ConfigurationFile : StringsO.IString; OUT ErrorMessage : StringsO.CString; OUT ErrorLine : CARDINAL ) : BOOLEAN;
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
 
    PUBLIC PROCEDURE OnDeviceConnect();
    PUBLIC PROCEDURE OnDeviceDisconnect();

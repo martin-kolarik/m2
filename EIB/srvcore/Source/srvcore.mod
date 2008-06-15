@@ -614,6 +614,12 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
+   PUBLIC VIRTUAL PROCEDURE AbortAll();
+   BEGIN
+   END AbortAll;
+
+//--------------------------------------------------------------------------------
+
    PUBLIC PROCEDURE LoadConfiguration( CONST ConfigurationFile : StringsO.IString; OUT ErrorMessage : StringsO.CString; OUT ErrorLine : CARDINAL ) : BOOLEAN;
    LABEL
       Fail;
@@ -1498,7 +1504,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    BEGIN
       DoneObjects( TRUE );
       Behaviours.Dispose();

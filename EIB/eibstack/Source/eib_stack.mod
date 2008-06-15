@@ -2129,21 +2129,21 @@ CLASS IMPLEMENTATION CEIBStackApplicationLayer;
     ES := 0;
     WHILE PGroup^.EnumerateObjects( ES, PObject ) DO IF POriginator <> PObject THEN
 
-         IF NOT Registered OR Found THEN
-            // do nothing
-         ELSIF WhatIsPending = pendingGroupRead THEN
-            // check ReadAddress
-            PendingObjectAddress := PObject^.ReadAddress;
-            Found := ( PendingObjectAddress.GetAddressType() <> eib_def.addressUnknown ) AND ( PendingObjectAddress = PendingDestination );
-         ELSIF WhatIsPending <> pendingGroupRead THEN
-            // check SendAddress
-            PendingObjectAddress := PObject^.SendAddress;
+         IF Promiscuous THEN // for promiscuous mode only valid information is in packet
+            PObject^.PromiscuousAddress := PPacket^.GetDestinationAddress();
+         END;
+
+         IF Registered AND NOT Found THEN // we did not find correspoding object yet
+            IF PObject^.Promiscuous THEN
+               PendingObjectAddress := PObject^.PromiscuousAddress;
+            ELSIF WhatIsPending = pendingGroupRead THEN // check ReadAddress
+               PendingObjectAddress := PObject^.ReadAddress;
+            ELSE // check SendAddress
+               PendingObjectAddress := PObject^.SendAddress;
+            END;
             Found := ( PendingObjectAddress.GetAddressType() <> eib_def.addressUnknown ) AND ( PendingObjectAddress = PendingDestination );
          END;
 
-      IF Promiscuous THEN
-        PObject^.PromiscuousAddress := PPacket^.GetDestinationAddress();
-      END;
       CASE Phase OF
       | pphIND :
         CASE APDU OF
