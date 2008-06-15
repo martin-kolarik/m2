@@ -1,28 +1,69 @@
 EXPORTS
-  Version                 = VersionW
+   VersionW
+   Version                 = VersionW
+   Check
+   CheckW
+   GetDriverInfo
+   GetDriverInfoW
 
-  MakeDriver              = MakeDriverW
-  DisposeDriver           = DisposeDriverW
+   MakeDriverW
+   MakeDriver              = MakeDriverW
+   DisposeDriverW
+   DisposeDriver           = DisposeDriverW
 
-  Run                     = RunW
-  Stop                    = StopW
-  Done                    = DoneW
+   Init
+   InitW
+   Init3
+   Init3W
+   ReadParameters
+   ReadParametersW
+   QueryErrorCode
+   QueryErrorCodeW
+   EnumerateChannelsW
+   EnumerateChannels       = EnumerateChannelsW
+   GetChannelDescription
+   GetChannelDescriptionW
 
-  EnumerateChannels       = EnumerateChannelsW
+   RunW
+   Run                     = RunW
+   StopW
+   Stop                    = StopW
+   DoneW
+   Done                    = DoneW
 
-  DriverProc              = DriverProcW
-  QueryProc               = QueryProcW
-  QueryProc3              = QueryProc3W
+   DriverProcW
+   DriverProc              = DriverProcW
+   QueryProc
+   QueryProcW
+   QueryProc3
+   QueryProc3W
 
-  InputRequestStart       = InputRequestStartW
-  InputRequest            = InputRequestW
-  InputRequestCompleted   = InputRequestCompletedW
-  InputFinalized          = InputFinalizedW
-  InputOOBDataQuery       = InputOOBDataQueryW
+   InputRequestStartW
+   InputRequestStart       = InputRequestStartW
+   InputRequestW
+   InputRequest            = InputRequestW
+   InputRequestCompletedW
+   InputRequestCompleted   = InputRequestCompletedW
+   InputFinalizedW
+   InputFinalized          = InputFinalizedW
+   InputOOBDataQueryW
+   InputOOBDataQuery       = InputOOBDataQueryW
 
-  OutputRequestStart      = OutputRequestStartW
-  OutputRequestCompleted  = OutputRequestCompletedW
-  OutputFinalized         = OutputFinalizedW
+   GetInput
+   GetInputW
+   GetInput3
+   GetInput3W
 
-  BufferInfo              = VersionW
-  SetBufferAddr           = VersionW
+   OutputRequestStartW
+   OutputRequestStart      = OutputRequestStartW
+   OutputRequest
+   OutputRequestW
+   OutputRequest3
+   OutputRequest3W
+   OutputRequestCompletedW
+   OutputRequestCompleted  = OutputRequestCompletedW
+   OutputFinalizedW
+   OutputFinalized         = OutputFinalizedW
+
+   BufferInfo              = VersionW
+   SetBufferAddr           = VersionW

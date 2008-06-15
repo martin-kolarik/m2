@@ -29,7 +29,7 @@
         <Components Include="component\sccore"/>
         <Components Include="EIB\srvcore;library\CWdriver"/>
         <Messages Include="Texts"/>
-        <Modules Include="driver;diface"/>
+        <Program Include="driver"/>
     </ItemGroup>
 
     <PropertyGroup>

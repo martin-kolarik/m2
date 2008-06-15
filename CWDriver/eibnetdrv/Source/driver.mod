@@ -1,4 +1,4 @@
-IMPLEMENTATION MODULE driver;
+MODULE driver;
 
 (*# call( o_a_copy => off ) *)
 
@@ -10,14 +10,13 @@ IMPLEMENTATION MODULE driver;
 */*)
 //================================================================================
 
-IMPORT
-   windows;
-
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
    cllv,
+   diface,
+   drv_def,
    eib_def,
    eib_user,
    eib_status,
@@ -26,16 +25,27 @@ IMPORT
    INIFile,
    IOO,
    iovalue,
-   Log,
+   log,
    msgqueuethread,
    Resources,
+   srvcore,
    Strings,
    StringsO,
    Sync,
    TextReader,
    Texts,
-   threadpool,
+   threadcall,
    Time;
+
+//================================================================================
+
+VAR
+   r : Resources.CResources;
+
+PROCEDURE R() : Resources.TPResources;
+BEGIN
+   RETURN ADR( r );
+END R;
 
 //================================================================================
 
@@ -127,23 +137,102 @@ END EITToCWType;
 
 //================================================================================
 
+TYPE
+   TPEIBDriver = POINTER TO CEIBDriver;
+
+CONST // device specific error codes
+   ceDeviceUnplugged                = 10001H;
+   // ceNoEIBConnection                = 10002H;
+   // ceBUSMONActive                   = 10003H;
+   ceLCONError                      = 10004H;
+   ceRD_RES_Timeout                 = 10005H;
+   ceLineBusy                       = 10006H;
+   ceTransceiverFault               = 10007H;
+   ceOutputQueueOverflow            = 10008H;
+   ceReadQueueOverflow              = 10009H;
+   ceWriteQueueOverflow             = 1000AH;
+   // cePromiscuousModeRunning         = 1000BH;
+
+//--------------------------------------------------------------------------------
+
+CLASS CEIBDriver( srvcore.CEIBServer ) IMPLEMENTS diface.ICWDriver, srvcore.IEIBServerSink, threadcall.IThreadProcedureCallTarget;
+   CallbackId               : ADDRESS;
+   CallbackProc             : drv_def.TDriverCallbackW;
+   ClientName               : ARRAY [0..63] OF WCHAR;
+
+   StatusChannel            : CARDINAL;
+   WatchDogChannel          : CARDINAL;
+   InputQueueLengthChannel  : CARDINAL;
+   OutputQueueLengthChannel : CARDINAL;
+   WriteQueueLengthChannel  : CARDINAL;
+   
+   WatchDogLock             : Sync.LOCK;
+   WatchDogLeft             : CARDINAL;
+
+   // ICWDriver
+   PUBLIC VIRTUAL PROCEDURE Initialize( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; CallbackProc : drv_def.TDriverCallbackW );
+   PUBLIC VIRTUAL PROCEDURE ReadParameters( CONST ParFilePath : StringsO.CString; CONST Logger : log.CLogger ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE QueryErrorCode( ErrorCode : CARDINAL; OUT ErrorText : StringsO.CString ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE EnumerateChannels( REF EnumerateState : LONGWORD; OUT Type : drv_def.TValueType; OUT Direction : drv_def.TDirection; OUT DriverIndex, Count : CARDINAL; OUT HaveDescription : BOOLEAN ): BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetChannelDescription( DriverIndex : CARDINAL; OUT Description, Id : StringsO.CString ) : BOOLEAN;
+   
+   PUBLIC VIRTUAL PROCEDURE DriverRun();
+   PUBLIC VIRTUAL PROCEDURE DriverStop();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+
+   PUBLIC VIRTUAL PROCEDURE DriverProc( Func, Param1, Param2, Param3, Param4 : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE QueryProc( CONST InValue1, InValue2 : iovalue.Value; OutValueStringLimit : CARDINAL; OUT OutValue : iovalue.Value );
+
+   PUBLIC VIRTUAL PROCEDURE InputRequestStart();
+   PUBLIC VIRTUAL PROCEDURE InputRequest( DriverIndex : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE InputRequestCompleted();
+   PUBLIC VIRTUAL PROCEDURE InputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE InputOOBDataQuery( REF EnumerateState : LONGWORD; OUT DriverIndex : CARDINAL ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetInput( DriverIndex : CARDINAL; InValueStringLimit : CARDINAL; OUT InValue : iovalue.Value; OUT QoS : CARDINAL; OUT TimeStamp : drv_def.TUTCStamp; OUT ErrorCode : CARDINAL );
+
+   PUBLIC VIRTUAL PROCEDURE OutputRequestStart();
+   PUBLIC VIRTUAL PROCEDURE OutputRequest( DriverIndex : CARDINAL; CONST OutValue : iovalue.Value; QoS : CARDINAL; CONST TimeStamp : drv_def.TUTCStamp );
+   PUBLIC VIRTUAL PROCEDURE OutputRequestCompleted();
+   PUBLIC VIRTUAL PROCEDURE OutputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
+
+   // index/log number management
+   LOCAL PROCEDURE LogNumber2Object( LogNumber : CARDINAL; VAR PObject : srvcore.TPObject ) : BOOLEAN;
+   PROCEDURE EIBStatus2ErrorCode( Status : eib_status.TEIBStackStatus ) : CARDINAL;
+   PROCEDURE HWConnected( VAR ErrorCode : CARDINAL ) : BOOLEAN;
+
+   // IThreadProcedureCallTarget
+   PUBLIC VIRTUAL PROCEDURE Invoke( Operation : CARDINAL; CONST Parameters : ARRAY OF PTR ) : PTR;
+
+   // IEIBServerSink
+   PUBLIC VIRTUAL PROCEDURE OnConnect();
+   PUBLIC VIRTUAL PROCEDURE OnDisconnect();
+   PUBLIC VIRTUAL PROCEDURE OnInitReadCompleted();
+   PUBLIC VIRTUAL PROCEDURE OnRead( PObject : srvcore.TPObject );
+   PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : srvcore.TPObject );
+   PUBLIC VIRTUAL PROCEDURE OnInputQueueAdd( OOBQueue, PromiscuousQueue : BOOLEAN );
+   PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
+
+   // MessageHandlers
+   INTERNAL VIRTUAL PROCEDURE OnTimer( TimerId : PTR );
+END CEIBDriver;
+
+//================================================================================
+
 CLASS IMPLEMENTATION CEIBDriver;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE Init( CONST SymbolicName : ARRAY OF WCHAR; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Initialize( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; CallbackProc : drv_def.TDriverCallbackW );
    BEGIN
       SELF.CallbackId := CallbackId;
-      SELF.CallbackProc := PCallback;
-      SELF.ClientName := SymbolicName;
-
+      SELF.CallbackProc := CallbackProc;
+      SymbolicName.ToOA( OUT ClientName );
       SUPER.Init( TRUE );
-      RETURN TRUE;
-   END Init;
+   END Initialize;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE ReadParameters( CONST ParFilePath : StringsO.CString; REF Logger : log.CLogger ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE ReadParameters( CONST ParFilePath : StringsO.CString; CONST Logger : log.CLogger ) : BOOLEAN;
 
    //----------
    
@@ -193,7 +282,7 @@ CLASS IMPLEMENTATION CEIBDriver;
          RETURN FALSE;
       END;
 
-      CASE drv_def.ConfigureLog( TS, REF Logger, OUT ErrorLine ) OF
+      CASE drv_def.ConfigureLog( TS, REF SELF.Logger, OUT ErrorLine ) OF
       | drv_def.clrUnknownDebugMode :
          Logger.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._UnknownDebugMode ] ), ErrorLine, 0 );
       | drv_def.clrUnknownDebugLevel :
@@ -232,36 +321,7 @@ CLASS IMPLEMENTATION CEIBDriver;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROCEDURE Run() : Sync.TAsyncResult;
-   BEGIN
-      msgqueuethread.global()^.ThreadCall( ADR( SELF ), OP_RUN, OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
-      RETURN Sync.arPending;
-   END Run;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC VIRTUAL PROCEDURE Stop();
-   BEGIN
-      msgqueuethread.global()^.ThreadCall( ADR( SELF ), OP_STOP, OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
-   END Stop;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE Dispose();
-   BEGIN
-      msgqueuethread.global()^.ThreadCall( ADR( SELF ), OP_DISPOSE, OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
-   END Dispose;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE Finally();
-   BEGIN
-      msgqueuethread.global()^.ThreadCall( ADR( SELF ), OP_FINALLY, OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
-   END Finally;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE EnumerateChannels( VAR EnumerateState : LONGWORD; VAR Type : CARDINAL; VAR Direction : CARDINAL; VAR DriverIndex : CARDINAL; VAR Count : CARDINAL; VAR HaveDescription : BOOLEAN ): BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE EnumerateChannels( REF EnumerateState : LONGWORD; OUT Type : drv_def.TValueType; OUT Direction : drv_def.TDirection; OUT DriverIndex, Count : CARDINAL; OUT HaveDescription : BOOLEAN ): BOOLEAN;
    LABEL
       Described;
    CONST
@@ -283,9 +343,9 @@ CLASS IMPLEMENTATION CEIBDriver;
          IF Index < OCount THEN
             // fall down
          ELSE
-            Direction := CARDINAL( drv_def.TDirection{ drv_def.dirInput } );
+            Direction := drv_def.TDirection{ drv_def.dirInput };
             HaveDescription := TRUE;
-            Type := CARDINAL( drv_def.vtLongCard );
+            Type := drv_def.vtLongCard;
             LOOP
                IF Index > OCount + 4 THEN
                   RETURN FALSE;
@@ -295,7 +355,7 @@ CLASS IMPLEMENTATION CEIBDriver;
                   GOTO Described;
                ELSIF ( Index = OCount + 1 ) AND ( WatchDogChannel <> MAX( CARDINAL )) THEN
                   // enumerate watch dog channel
-                  Direction := CARDINAL( drv_def.TDirection{drv_def.dirOutput} );
+                  Direction := drv_def.TDirection{drv_def.dirOutput};
                   DriverIndex := WatchDogChannel;
                   GOTO Described;
                ELSIF ( Index = OCount + 2 ) AND ( InputQueueLengthChannel <> MAX( CARDINAL )) THEN
@@ -317,14 +377,14 @@ CLASS IMPLEMENTATION CEIBDriver;
       END;
 
       PObject := srvcore.TPObject( Objects[ Index ] );
-      Type := CARDINAL( EITToCWType( PObject^.Value.GetType() ));
+      Type := EITToCWType( PObject^.Value.GetType());
 
       IF directionOutput * PObject^.Flags = eib_def.TA_ObjectFlags{} THEN
-         Direction := CARDINAL( drv_def.TDirection{drv_def.dirInput} );
+         Direction := drv_def.TDirection{drv_def.dirInput};
       ELSIF directionInput * PObject^.Flags = eib_def.TA_ObjectFlags{} THEN
-         Direction := CARDINAL( drv_def.TDirection{drv_def.dirOutput} );
+         Direction := drv_def.TDirection{drv_def.dirOutput};
       ELSE
-         Direction := CARDINAL( drv_def.TDirection{drv_def.dirInput, drv_def.dirOutput} );
+         Direction := drv_def.TDirection{drv_def.dirInput, drv_def.dirOutput};
       END;
 
       DriverIndex := PObject^.LogNumber();
@@ -340,7 +400,7 @@ CLASS IMPLEMENTATION CEIBDriver;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE GetChannelDescription( DriverIndex : CARDINAL; VAR Description : ARRAY OF WCHAR; VAR Id : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetChannelDescription( DriverIndex : CARDINAL; OUT Description, Id : StringsO.CString ) : BOOLEAN;
    CONST
       _StatusId            = L'drvStatus';
       _WatchDogId          = L'drvWatchDog';
@@ -351,23 +411,23 @@ CLASS IMPLEMENTATION CEIBDriver;
       PObject : srvcore.TPObject;
    BEGIN
       IF DriverIndex = StatusChannel THEN
-         ASSIGN( Description, OAsz( R()^[ Texts._StatusComment ] ));
-         ASSIGN( Id, _StatusId );
+         Description.FromOA( OAsz( R()^[ Texts._StatusComment ] ));
+         Id.FromOA( _StatusId );
       ELSIF DriverIndex = WatchDogChannel THEN
-         ASSIGN( Description, OAsz( R()^[ Texts._WatchDogComment ] ));
-         ASSIGN( Id, _WatchDogId );
+         Description.FromOA( OAsz( R()^[ Texts._WatchDogComment ] ));
+         Id.FromOA( _WatchDogId );
       ELSIF DriverIndex = InputQueueLengthChannel THEN
-         ASSIGN( Description, OAsz( R()^[ Texts._InputQueueLengthComment ] ));
-         ASSIGN( Id, _InputQueueLengthId );
+         Description.FromOA( OAsz( R()^[ Texts._InputQueueLengthComment ] ));
+         Id.FromOA( _InputQueueLengthId );
       ELSIF DriverIndex = OutputQueueLengthChannel THEN
-         ASSIGN( Description, OAsz( R()^[ Texts._OutputQueueLengthComment ] ));
-         ASSIGN( Id, _OutputQueueLengthId );
+         Description.FromOA( OAsz( R()^[ Texts._OutputQueueLengthComment ] ));
+         Id.FromOA( _OutputQueueLengthId );
       ELSIF DriverIndex = WriteQueueLengthChannel THEN
-         ASSIGN( Description, OAsz( R()^[ Texts._WriteQueueLengthComment ] ));
-         ASSIGN( Id, _WriteQueueLengthId );
+         Description.FromOA( OAsz( R()^[ Texts._WriteQueueLengthComment ] ));
+         Id.FromOA( _WriteQueueLengthId );
       ELSIF LogNumber2Object( DriverIndex, PObject ) THEN
-         PObject^.Name.ToOA( OUT Id );
-         PObject^.Comment.ToOA( OUT Description );
+         Id := PObject^.Name;
+         Description := PObject^.Comment;
       ELSE
          RETURN FALSE;
       END;
@@ -376,13 +436,61 @@ CLASS IMPLEMENTATION CEIBDriver;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE InputRequestStart();
+   PUBLIC VIRTUAL PROCEDURE QueryErrorCode( ErrorCode : CARDINAL; OUT ErrorText : StringsO.CString ) : BOOLEAN;
+   BEGIN
+      CASE ErrorCode OF
+      | driver.ceDeviceUnplugged :
+         ErrorText.FromOA( OAsz( driver.R()^[ Texts._E_DeviceUnplugged ] ));
+      | driver.ceLCONError :
+         ErrorText.FromOA( OAsz( driver.R()^[ Texts._E_LCONError ] ));
+      | driver.ceRD_RES_Timeout :
+         ErrorText.FromOA( OAsz( driver.R()^[ Texts._E_RD_RES_Timeout ] ));
+      | driver.ceLineBusy :
+         ErrorText.FromOA( OAsz( driver.R()^[ Texts._E_LineBusy ] ));
+      | driver.ceTransceiverFault :
+         ErrorText.FromOA( OAsz( driver.R()^[ Texts._E_TransceiverFault ] ));
+      | driver.ceOutputQueueOverflow :
+         ErrorText.FromOA( OAsz( driver.R()^[ Texts._E_OutputQueueOverflow ] ));
+      | driver.ceReadQueueOverflow :
+         ErrorText.FromOA( OAsz( driver.R()^[ Texts._E_ReadQueueOverflow ] ));
+      | driver.ceWriteQueueOverflow :
+         ErrorText.FromOA( OAsz( driver.R()^[ Texts._E_WriteQueueOverflow ] ));
+      ELSE
+         RETURN FALSE;
+      END;
+      RETURN TRUE;
+   END QueryErrorCode;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE DriverRun();
+   BEGIN
+      msgqueuethread.global()^.ThreadCall( ADR( SELF ), OP_RUN, OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
+   END DriverRun;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE DriverStop();
+   BEGIN
+      msgqueuethread.global()^.ThreadCall( ADR( SELF ), OP_STOP, OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
+   END DriverStop;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+   BEGIN
+      msgqueuethread.global()^.ThreadCall( ADR( SELF ), OP_DISPOSE, OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
+   END Dispose;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE InputRequestStart();
    BEGIN
    END InputRequestStart;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE InputRequest( DriverIndex : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE InputRequest( DriverIndex : CARDINAL );
    VAR
       EV : eib_def.TValue;
       PObject : srvcore.TPObject;
@@ -400,7 +508,7 @@ CLASS IMPLEMENTATION CEIBDriver;
       ELSIF eib_user.TObjectState{eib_user.osInitReadPending, eib_user.osReading} * PObject^.State <> eib_user.TObjectState{} THEN
          // pass down
       ELSIF eib_def.aofForceRead IN PObject^.GetFlags() THEN
-         IF ( PObject^.RecoveryExpiration <> 0 ) AND ( INTEGER( PObject^.RecoveryExpiration - CARDINAL( windows.GetTickCount())) < 0 ) THEN
+         IF ( PObject^.RecoveryExpiration <> 0 ) AND ( INTEGER( PObject^.RecoveryExpiration - CARDINAL( Time.UptimeMS())) < 0 ) THEN
             // still cannot read, pass away
             RETURN;
          END;
@@ -412,13 +520,13 @@ CLASS IMPLEMENTATION CEIBDriver;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE InputRequestCompleted();
+   PUBLIC VIRTUAL PROCEDURE InputRequestCompleted();
    BEGIN
    END InputRequestCompleted;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE InputFinalized( DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE InputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
    VAR
       PObject : srvcore.TPObject;
    BEGIN
@@ -447,7 +555,7 @@ CLASS IMPLEMENTATION CEIBDriver;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE InputOOBDataQuery( VAR EnumerateState : LONGWORD; VAR DriverIndex : CARDINAL ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE InputOOBDataQuery( REF EnumerateState : LONGWORD; OUT DriverIndex : CARDINAL ) : BOOLEAN;
    BEGIN
       QueueLock.Lock();
       IF ( CARDINAL( EnumerateState ) >= oobData.Count ) OR Result.Counted OR Result.Expired THEN
@@ -470,11 +578,10 @@ CLASS IMPLEMENTATION CEIBDriver;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE GetInput( UFlag : BOOLEAN; DriverIndex : CARDINAL; VAR InValue : drv_def.TValue; VAR QoS : CARDINAL; VAR TimeStamp : drv_def.TUTCStamp; VAR ErrorCode : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE GetInput( DriverIndex : CARDINAL; InValueLimit : CARDINAL; OUT InValue : iovalue.Value; OUT QoS : CARDINAL; OUT TimeStamp : drv_def.TUTCStamp; OUT ErrorCode : CARDINAL );
    VAR
       c : CARDINAL;
       EV : eib_def.TValue;
-      IO : iovalue.Value;
       PObject : srvcore.TPObject;
       Status : TStatusChannel;
    BEGIN
@@ -514,25 +621,25 @@ CLASS IMPLEMENTATION CEIBDriver;
             INCL( Status, schiValid );
          END;
 
-         drv_def.AssignValueCardinal( InValue, UFlag, TRUE, CARDINAL( Status ));
+         InValue.Integer := CARDINAL( Status );
 
       ELSIF DriverIndex = InputQueueLengthChannel THEN
          QoS := drv_def.qosGood;
          ErrorCode := drv_def.ecSuccess;
 
          QueueLock.Lock();
-         drv_def.AssignValueCardinal( InValue, UFlag, TRUE, CARDINAL( oobData.Count ));
+         InValue.Integer := oobData.Count;
          QueueLock.Unlock();
 
       ELSIF DriverIndex = OutputQueueLengthChannel THEN
          QoS := drv_def.qosGood;
          ErrorCode := drv_def.ecSuccess;
-         drv_def.AssignValueCardinal( InValue, UFlag, TRUE, CARDINAL( EIB^.OutputQueueLength() ));
+         InValue.Integer := EIB^.OutputQueueLength();
 
       ELSIF DriverIndex = WriteQueueLengthChannel THEN
          QoS := drv_def.qosGood;
          ErrorCode := drv_def.ecSuccess;
-         drv_def.AssignValueCardinal( InValue, UFlag, TRUE, CARDINAL( EIB^.WriteQueueLength() ));
+         InValue.Integer := EIB^.WriteQueueLength();
 
       ELSIF NOT LogNumber2Object( DriverIndex, PObject ) THEN
          QoS := drv_def.qosBad;
@@ -553,21 +660,20 @@ CLASS IMPLEMENTATION CEIBDriver;
          IF srvcore.rsProcessingOOB IN RStatus THEN
             oobData.Current^.ToOA( OUT EV.Data, OUT c ); // iteration depends on client (GetFirst/NextOf), no need for sync
          END;
-         EIBValue2IOValue( EV, OUT IO );
-         drv_def.IOValueToCWValue( IO, UFlag, TRUE, REF InValue );
+         EIBValue2IOValue( EV, OUT InValue );
 
       END;
    END GetInput;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE OutputRequestStart();
+   PUBLIC VIRTUAL PROCEDURE OutputRequestStart();
    BEGIN
    END OutputRequestStart;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE OutputRequest( UFlag : BOOLEAN; DriverIndex : CARDINAL; OutValue : drv_def.TValue; QoS : CARDINAL; TimeStamp : drv_def.TUTCStamp );
+   PUBLIC VIRTUAL PROCEDURE OutputRequest( DriverIndex : CARDINAL; CONST OutValue : iovalue.Value; QoS : CARDINAL; CONST TimeStamp : drv_def.TUTCStamp );
    VAR
       EV : eib_def.TValue;
       IO : iovalue.Value;
@@ -577,7 +683,7 @@ CLASS IMPLEMENTATION CEIBDriver;
 
       IF DriverIndex = WatchDogChannel THEN
          WatchDogLock.Lock();
-         WatchDogLeft := 1000 * drv_def.ValueToCardinal( OutValue, UFlag, TRUE );
+         WatchDogLeft := 1000 * OutValue.Integer;
          WatchDogLock.Unlock();
 
       ELSIF Result.Counted OR Result.Expired THEN
@@ -586,9 +692,11 @@ CLASS IMPLEMENTATION CEIBDriver;
       ELSIF LogNumber2Object( DriverIndex, PObject ) THEN
          IF PObject^.Value.GetType() = eib_def.eitDate THEN
             IO.Type := iovalue.vtDate;
+            IO := OutValue;
+            IOValue2EIBValue( IO, eib_def.eitDate, OUT EV );
+         ELSE
+            IOValue2EIBValue( OutValue, PObject^.Value.GetType(), OUT EV );
          END;
-         drv_def.CWValueToIOValue( OutValue, UFlag, REF IO );
-         IOValue2EIBValue( IO, PObject^.Value.GetType(), OUT EV );
          PObject^.SetValue( EV );
 
       END;
@@ -596,13 +704,13 @@ CLASS IMPLEMENTATION CEIBDriver;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE OutputRequestCompleted();
+   PUBLIC VIRTUAL PROCEDURE OutputRequestCompleted();
    BEGIN
    END OutputRequestCompleted;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE OutputFinalized( DriverIndex : CARDINAL; VAR ErrorCode : CARDINAL ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE OutputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
    VAR
       PObject : srvcore.TPObject;
    BEGIN
@@ -628,7 +736,13 @@ CLASS IMPLEMENTATION CEIBDriver;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE QueryProc( UFlag : BOOLEAN; InValue1, InValue2 : drv_def.TValue; VAR OutValue : drv_def.TValue );
+   PUBLIC VIRTUAL PROCEDURE DriverProc( Func, Param1, Param2, Param3, Param4 : CARDINAL );
+   BEGIN
+   END DriverProc;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE QueryProc( CONST InValue1, InValue2 : iovalue.Value; OutValueLimit : CARDINAL; OUT OutValue : iovalue.Value );
    LABEL
       Error;
    VAR
@@ -642,7 +756,7 @@ CLASS IMPLEMENTATION CEIBDriver;
       promiscuousData : srvcore.PromiscuousData;
       s : ARRAY [0..15] OF WCHAR;
    BEGIN
-      drv_def.DrvValueToCStringW( InValue1, UFlag, OUT CS );
+      CS := InValue1.String;
       CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 0, TRUE, OUT N );
 
       //=====
@@ -790,7 +904,7 @@ CLASS IMPLEMENTATION CEIBDriver;
       END;
 
    Error:
-      drv_def.AssignDrvValueCStringW( REF OutValue, UFlag, FALSE, CS );
+      OutValue.String := CS;
       Result.Inc();
    END QueryProc;
 
@@ -872,8 +986,6 @@ CLASS IMPLEMENTATION CEIBDriver;
       //-----         
       | OP_DISPOSE :
          SUPER.Dispose();
-      //-----         
-      | OP_FINALLY :
          CEIBDriver.FINALLY();
 
       //-----         
@@ -983,24 +1095,63 @@ BEGIN
    cllvLength := cllv.length;
 END CEIBDriver;
 
-//================================================================================
+(*================================================================================*)
+
+CLASS CFactory IMPLEMENTS diface.ICWDriverFactory;
+   PUBLIC VIRTUAL READONLY PROPERTY
+      DriverName : StringsO.CString;
+   PUBLIC VIRTUAL PROCEDURE CreateInstance( OUT Instance : diface.TPCWDriver ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE DeleteInstance( Instance : diface.TPCWDriver );
+END CFactory;   
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CFactory;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY DriverName GET : StringsO.CString;
+   VAR
+      Name : StringsO.CString;
+   BEGIN
+      Name.FromOA( OAsz( R()^[ Texts._DriverName ] ));
+      RETURN Name;
+   END DriverName;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE CreateInstance( OUT Instance : diface.TPCWDriver ) : BOOLEAN;
+   VAR
+      Driver : TPEIBDriver;
+   BEGIN
+      NEW( Driver );
+      Instance := Driver;
+      RETURN TRUE;
+   END CreateInstance;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE DeleteInstance( Instance : diface.TPCWDriver );
+   VAR
+      Driver : TPEIBDriver := TPEIBDriver( Instance );
+   BEGIN
+      DISPOSE( Driver );
+   END DeleteInstance;
+
+(*--------------------------------------------------------------------------------*)
+
+END CFactory;
+
+(*--------------------------------------------------------------------------------*)
 
 VAR
-   r : Resources.CResources;
+   Factory : CFactory;
 
-PROCEDURE R() : Resources.TPResources;
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
-   RETURN ADR( r );
-END R;
-
-//================================================================================
-
-INITIALLY __I();
-BEGIN
-   // messages
    r.LoadRES2( EMITW( %dll ), L"eibnetdrv.Texts" );
-END __I;
-
-//================================================================================
-
+   diface.RegisterFactory( ADR( Factory ));
 END driver.
+
+(*================================================================================*)

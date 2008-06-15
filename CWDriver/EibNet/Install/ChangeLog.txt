@@ -1,7 +1,16 @@
+Version 1.0.1662 beta 15.6.2008
+- TST: Leaks
+- CHG: Driver interface changed to common unified interface using sc iovalue.
+- BUG: Configurable channels except status and watch_dog were not enumerated.
+- BUG: Promiscuous mode operations (send, get) were not removed from driver
+       queue after L_CON. This caused memory exhaustion after some time
+       (after cca 20 000 000 requests).
+
 Version 1.0.1611 beta 2.6.2008
 - NEW: Optional watchdog_channel
 - CHG: Switch to separate messaging thread to make stack/ControlWeb
-       interface independent
+       interface independent, core runs on sc message threads
+- CHG: PDB file added to debug installation
 - BUG: Promiscuous mode DriverQueryProc's commands are now disallowed, they
        return error message
 
