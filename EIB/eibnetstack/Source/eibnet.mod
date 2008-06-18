@@ -749,7 +749,8 @@ CLASS IMPLEMENTATION CConnection;
          END;
          _Logger^.LogSCP( dldDebug, DEBUG_PREFIX, L"SEND R_CON status: ", CARDINAL( ChannelId ), PTR( EMI.GetError() ));
 
-         IOState := ioReady;
+         // IOState := ioReady; -- not to set here, CConnection is ready after T_CON, L_ACK is matter of EIB and stack itself (and ACKTimeout is set there, of course)
+         // ioReady is set in OnTunnelingACK.
          IF Error THEN
             On_L_CON( eib_status.essTransceiverFault );
          ELSE
@@ -786,7 +787,10 @@ CLASS IMPLEMENTATION CConnection;
       // stop TCON timeouting
       StopTimer( PTR( tiACK ));
       SendErr := 0; // reset connection recovery counter
-   
+
+      // Set ioReady here, CConnection is ready after T_CON. L_ACK is matter of EIB and stack itself (and ACKTimeout is set there, of course, and counted too).
+      IOState := ioReady;
+
       // notify stack about mine job finish   
       On_P_Sent();
 

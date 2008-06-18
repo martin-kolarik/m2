@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="windows-1250"?>
+<document file="WagoLib" xmlns="http://www.mii.cz/2004/XML/Document/Common">
+  <header creator="martin" doc_type="generic" last_modified="2008-03-27"
+          last_modifier="martin" version="1.0.1516.0"></header>
+  <adjustment>
+    <classes>
+      <tableclass class="tblParameters" frame="yes" offset="3pt">
+        <setupcolumn halign="right" valign="top" which="first" width="4.5cm" />
+        <setupcolumn halign="middle" valign="top" which="2" width="0.7cm" />
+        <setupcolumn valign="top" which="last" width="12cm" />
+      </tableclass>
+    </classes>
+  </adjustment>
+  <text>
+    <section level="1" selfnumbered="no">
+      <title>Sada knihoven WagoLib</title>
+      <text>
+        <p>Knihovny WagoLib jsou určeny k vývoji aplikací pro automaty Wago
+        řady 750-8xx. Knihovny jsou vytvořeny a dají se použít ve vývojovém
+        prostředí CodeSys V2.3, které se dodává jako základní vývojový nástroj
+        k automatům Wago uvedené řady.</p>
+        <section level="2">
+          <title>Výpočet topné (ekvitermní) křivky</title>
+          <text>
+            <dl>
+              <dt>Knihovna</dt>
+              <dd><p><type>ekviterma.lib</type></p></dd>
+              <dt>Funkční blok CodeSys</dt>
+              <dd><p><type>EQUITHERMIC_CURVE</type></p></dd>
+              <dt>Vstupy</dt>
+              <dd><t.table class="">
+                  <table class="tblParameters">
+                    <tr>
+                      <td><type>InnerSetpoint</type></td>
+                      <td><c.special what="degree" />C</td>
+                      <td>požadovaná vnitřní teplota (teplota
+                      v místnostech)</td>
+                    </tr>
+                    <tr>
+                      <td><type>OuterActual</type></td>
+                      <td><c.special what="degree" />C</td>
+                      <td>aktuální venkovní teplota</td>
+                    </tr>
+                  </table>
+                </t.table></dd>
+              <dt>Výstupy</dt>
+              <dd><t.table>
+                  <table class="tblParameters">
+                    <tr>
+                      <td><type>HeatTo</type></td>
+                      <td><c.special what="degree" />C</td>
+                      <td>teplota vody vypočtená podle topné křivky</td>
+                    </tr>
+                  </table>
+                </t.table></dd>
+              <dt>Parametry</dt>
+              <dd><t.table>
+                  <table class="tblParameters">
+                    <tr>
+                      <td><type>InnerOffset</type></td>
+                      <td>K</td>
+                      <td>posunutí topné křivky, výchozí hodnota je 0.</td>
+                    </tr>
+                    <tr>
+                      <td><type>Slope</type></td>
+                      <td>1</td>
+                      <td>sklon topné křivky, výchozí hodnota je
+                      <number>1.3</number>, parametr je omezený na interval
+                      <number>0.2</number><c.special
+                      what="interval" /><number>3.5</number>.</td>
+                    </tr>
+                  </table>
+                </t.table></dd>
+              <dt>Popis</dt>
+              <dd><p><type>EQUITHERMIC_CURVE</type> v každém kroku vypočítává
+              teplotu topné vody podle svých parametrů a vstupů. Pro výpočet
+              se vnitřní teplota (<type>InnerSetpoint</type>) sčítá
+              s posunutím (<type>InnerOffset</type>), stejného účinku se tak
+              dá dosahovat podle potřeby oběma těmito údaji.</p><p>Pro výpočet
+              topné křivky je použit vztah:</p><p.math>
+                  <mathtex>t_{Eq} = (t_{In} + t_{Ofs}) + 2 S (t_{In} + t_{Ofs} - t_{Out})^{0,8}</mathtex>
+                </p.math><p>Omezení výpočtu nedovoluje vztah použít při
+              vnitřní teplotě nižší než je venkovní (nedovoluje chlazení).
+              Knihovna proto v takovém případě vrací teplotu topné vody
+              (<type>HeatTo</type>) stejnou jako je požadovaná vnitřní teplota
+              (<type>InnerSetpoint</type> + <type>InnerOffset</type>).</p><p>Parametr
+              <type>Slope</type> je omezen specifikací na interval
+              <number>0.2</number><c.special
+              what="interval" /><number>3.5</number>. Výpočet při zadání
+              jiných hodnot použije mezní hodnoty tohoto intervalu (např. při
+              zadání <type>Slope = 4</type> bude použito <type>Slope = 3.5</type>).</p></dd>
+              <dt>Příklad v CodeSys (strukturovaný text):</dt>
+              <dd><p.type>VAR
+    EQT : EQUITHERMIC_CURVE;
+
+    heatTo : REAL;
+    outer : REAL;
+    wish : REAL;
+END_VAR
+
+...
+
+EQT(
+    OuterActual := outer,
+    InnerSetpoint := wish,
+    Slope:= 1.0,
+    HeatTo =&gt; heatTo );</p.type></dd>
+            </dl>
+          </text>
+        </section>
+        <section level="2">
+          <title>Regulátor směšovacího ventilu</title>
+          <text>
+            <dl>
+              <dt>Knihovna</dt>
+              <dd><p><type>regulator.lib</type></p></dd>
+              <dt>Funkční blok CodeSys</dt>
+              <dd><p><type>REGULATOR</type></p></dd>
+              <dt>Vstupy</dt>
+              <dd><t.table class="">
+                  <table class="tblParameters">
+                    <tr>
+                      <td><type>Setpoint</type></td>
+                      <td><c.special what="degree" />C</td>
+                      <td><p>požadovaná teplota</p></td>
+                    </tr>
+                    <tr>
+                      <td><type>Actual</type></td>
+                      <td><c.special what="degree" />C</td>
+                      <td><p>aktuální měřená teplota</p></td>
+                    </tr>
+                  </table>
+                </t.table></dd>
+              <dt>Výstupy</dt>
+              <dd><t.table>
+                  <table class="tblParameters">
+                    <tr>
+                      <td><type>Output</type></td>
+                      <td>%</td>
+                      <td><p>regulační zásah, rozmezí 0<c.special
+                      what="interval" />100<c.special what="thinspace" />%,
+                      0<c.special what="thinspace" />% odpovídá plnému průtoku
+                      chladnější vody, 100<c.special what="thinspace" />%
+                      odpovídá plnému průtoku teplejší vody</p></td>
+                    </tr>
+                  </table>
+                </t.table></dd>
+              <dt>Parametry</dt>
+              <dd><t.table>
+                  <table class="tblParameters">
+                    <tr>
+                      <td><type>T1</type></td>
+                      <td>s</td>
+                      <td>doba náběhu, výchozí hodnota je 3<c.special
+                      what="thinspace" />s (viz obrázek)</td>
+                    </tr>
+                    <tr>
+                      <td><type>T2</type></td>
+                      <td>s</td>
+                      <td>doba průtahu, výchozí hodnota je 6<c.special
+                      what="thinspace" />s (viz obrázek)</td>
+                    </tr>
+                    <tr>
+                      <td><type>TemperatureDifference</type></td>
+                      <td>K</td>
+                      <td>rozdíl teplot mezi teplejší a chladnější vodou,
+                      výchozí hodnota je 40<c.special
+                      what="thinspace" />K</td>
+                    </tr>
+                    <tr>
+                      <td><type>Force</type></td>
+                      <td>%</td>
+                      <td>ostrost regulátoru, výchozí hodnota je 33<c.special
+                      what="thinspace" />%</td>
+                    </tr>
+                  </table>
+                </t.table></dd>
+              <dt>Popis</dt>
+              <dd><p><type>REGULATOR</type> v každém kroku vypočítává otevření
+              směšovacího ventilu v rozmezí 0<c.special
+              what="interval" />100<c.special what="thinspace" />%. To
+              znamená, že při výstupní hodnotě 50<c.special
+              what="thinspace" />% je ventil v polovině a směšuje stejným
+              poměrem obě vstupní vody.</p><p>Pro regulaci je použit knihovní
+              PID regulátor v uspořádání PI (D složka není aktivní).
+              Koeficienty regulátoru se počítají podle pravidel Chiena,
+              Hronese a Reswicka pro aperiodický pochod s regulací žádané
+              hodnoty:</p><p.math>
+                  <mathtex>\eqalign{
+r_0 &amp;= 0,35 {T_2 \over K T_1} \cr
+T_I &amp;= 1,2 T_2
+}</mathtex>
+                </p.math><p>kde za <math>
+                  <mathtex>K</mathtex>
+                </math> (statické zesílení) se bere <type>TemperatureDifference</type>
+              / 100.</p><p>Parametr <type>Force</type> upravuje koeficienty
+              <math>
+                  <mathtex>r_0</mathtex>
+                </math> a <math>
+                  <mathtex>T_I</mathtex>
+                </math> v rozmezí 0,5<c.special what="interval" />2násobku
+              jejich vypočtené hodnoty. Počáteční hodnota tohoto parametru,
+              33<c.special what="thinspace" />%, odpovídá násobku 1 (a tedy
+              koeficienty jsou ponechány jak byly vpočteny).</p><p>Parametry
+              regulátoru <type>TemperatureDifference</type>, <type>T1</type> a
+              <type>T2</type> je nutné určit na místě konkrétního směšovače.
+              <type>TemperatureDifference</type> je obyčejně známa z projektu
+              vytápění, časy <type>T1</type> a <type>T2</type> by měly být
+              změřeny podle obrázku. Směšovací ventil se jednorázově otevře
+              z 0 na 100<c.special what="thinspace" />% a při tomto otevření
+              se zaznamená průběh teploty v čase. Výsledný graf bude podobný
+              grafu na obrázku a z něj se po zákresu tečny odečtou oba časy
+              <type>T1</type> i <type>T2</type>.</p><p.figure file="T1T2"
+                  format="pdf" width="12cm">
+                  <caption></caption>
+                </p.figure></dd>
+              <dt>Příklad v CodeSys (strukturovaný text):</dt>
+              <dd><p.type>VAR
+    REG: REGULATOR;
+
+    y : REAL;
+    w : REAL;
+    u : REAL;
+    f : REAL;
+END_VAR
+
+...
+
+REG(
+    Actual:= y,
+    Setpoint:= w,
+    Force := f,
+    Output=&gt; u );</p.type></dd>
+            </dl>
+          </text>
+        </section>
+      </text>
+    </section>
+  </text>
+</document>

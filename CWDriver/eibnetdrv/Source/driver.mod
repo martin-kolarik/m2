@@ -332,48 +332,38 @@ CLASS IMPLEMENTATION CEIBDriver;
       OCount : CARDINAL := Objects.Count;
       PObject : srvcore.TPObject;
    BEGIN
-      IF EnumerateState = LONGWORD( 0 ) THEN // start enumeration
-         IF OCount = 0 THEN
-            RETURN FALSE;
-         ELSE
-            Index := CARDINAL( EnumerateState );
-         END;
-      ELSE // continue enumeration
-         Index := CARDINAL( EnumerateState );
-         IF Index < OCount THEN
-            // fall down
-         ELSE
-            Direction := drv_def.TDirection{ drv_def.dirInput };
-            HaveDescription := TRUE;
-            Type := drv_def.vtLongCard;
-            LOOP
-               IF Index > OCount + 4 THEN
-                  RETURN FALSE;
-               ELSIF ( Index = OCount ) AND ( StatusChannel <> MAX( CARDINAL )) THEN
-                  // enumerate status channel
-                  DriverIndex := StatusChannel;
-                  GOTO Described;
-               ELSIF ( Index = OCount + 1 ) AND ( WatchDogChannel <> MAX( CARDINAL )) THEN
-                  // enumerate watch dog channel
-                  Direction := drv_def.TDirection{drv_def.dirOutput};
-                  DriverIndex := WatchDogChannel;
-                  GOTO Described;
-               ELSIF ( Index = OCount + 2 ) AND ( InputQueueLengthChannel <> MAX( CARDINAL )) THEN
-                  // enumerate input_queue_length channel
-                  DriverIndex := InputQueueLengthChannel;
-                  GOTO Described;
-               ELSIF ( Index = OCount + 3 ) AND ( OutputQueueLengthChannel <> MAX( CARDINAL )) THEN
-                  // enumerate input_queue_length channel
-                  DriverIndex := OutputQueueLengthChannel;
-                  GOTO Described;
-               ELSIF ( Index = OCount + 4 ) AND ( WriteQueueLengthChannel <> MAX( CARDINAL )) THEN
-                  // enumerate input_queue_length channel
-                  DriverIndex := WriteQueueLengthChannel;
-                  GOTO Described;
-               END;
-               INC( Index );
-            END; // LOOP
-         END;
+      Index := CARDINAL( EnumerateState );
+      IF Index >= OCount THEN // process special channels, not objects
+         Direction := drv_def.TDirection{ drv_def.dirInput };
+         HaveDescription := TRUE;
+         Type := drv_def.vtLongCard;
+         LOOP
+            IF Index > OCount + 4 THEN
+               RETURN FALSE;
+            ELSIF ( Index = OCount ) AND ( StatusChannel <> MAX( CARDINAL )) THEN
+               // enumerate status channel
+               DriverIndex := StatusChannel;
+               GOTO Described;
+            ELSIF ( Index = OCount + 1 ) AND ( WatchDogChannel <> MAX( CARDINAL )) THEN
+               // enumerate watch dog channel
+               Direction := drv_def.TDirection{drv_def.dirOutput};
+               DriverIndex := WatchDogChannel;
+               GOTO Described;
+            ELSIF ( Index = OCount + 2 ) AND ( InputQueueLengthChannel <> MAX( CARDINAL )) THEN
+               // enumerate input_queue_length channel
+               DriverIndex := InputQueueLengthChannel;
+               GOTO Described;
+            ELSIF ( Index = OCount + 3 ) AND ( OutputQueueLengthChannel <> MAX( CARDINAL )) THEN
+               // enumerate input_queue_length channel
+               DriverIndex := OutputQueueLengthChannel;
+               GOTO Described;
+            ELSIF ( Index = OCount + 4 ) AND ( WriteQueueLengthChannel <> MAX( CARDINAL )) THEN
+               // enumerate input_queue_length channel
+               DriverIndex := WriteQueueLengthChannel;
+               GOTO Described;
+            END;
+            INC( Index );
+         END; // LOOP
       END;
 
       PObject := srvcore.TPObject( Objects[ Index ] );
