@@ -223,6 +223,7 @@ CLASS CDali( msghandler.MessageHandler ) IMPLEMENTS ICommunicatorSink;
    PRIVATE PROCEDURE FeedCommand( Linie : CARDINAL; daliAddress : TPDaliAddress; Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
    PRIVATE PROCEDURE Communicate() : Sync.TAsyncResult;
    PRIVATE PROCEDURE ProgrammingStep();
+   PRIVATE PROCEDURE LogRequest( Level : log.TDebugLevel; LeadingText : ARRAY OF WCHAR; Request : ADDRESS; Result : Sync.TAsyncResult; PrintAddress, PrintResult, PrintData : BOOLEAN );
 END CDali;
 
 (*===============================================================================*)
