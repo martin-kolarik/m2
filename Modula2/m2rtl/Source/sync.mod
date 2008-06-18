@@ -9,6 +9,35 @@ FROM Storage IMPORT
   
 (*================================================================================*)
 
+PROCEDURE ResultToName( Result : TAsyncResult; OUT Name : ARRAY OF WCHAR ) : BOOLEAN;
+BEGIN
+   CASE Result OF
+   | Sync.arUnknown :
+      Name := L"!unknown";
+   | Sync.arCompleted :
+      Name := L"completed";
+   | Sync.arPartCompleted :
+      Name := L"completed partialy";
+   | Sync.arNoData :
+      Name := L"no data";
+   | Sync.arPending :
+      Name := L"pending";
+   | Sync.arTimeout :
+      Name := L"timeout";
+   | Sync.arAborted :
+      Name := L"aborted";
+   | Sync.arAlreadyPending :
+      Name := L"already pending (busy)";
+   | Sync.arCannotStart :
+      Name := L"cannot start";
+   ELSE
+      RETURN FALSE;
+   END; // CASE
+   RETURN TRUE;
+END ResultToName;
+  
+(*================================================================================*)
+
 PROCEDURE Sleep( Time : CARDINAL );
 BEGIN
    windows.Sleep( Time );

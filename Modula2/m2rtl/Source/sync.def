@@ -43,7 +43,11 @@ TYPE
 CONST
    arsCompletions = TAsyncResults{arCompleted, arPartCompleted};
    arsStarts = arsCompletions + TAsyncResults{arPending};
+
+PROCEDURE ResultToName( Result : TAsyncResult; OUT Name : ARRAY OF WCHAR ) : BOOLEAN;
   
+(*================================================================================*)
+
 CONST
    FOREVER   = 0FFFFFFFFH;
    FORSAFETY = 12321;

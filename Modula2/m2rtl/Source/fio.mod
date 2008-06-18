@@ -180,6 +180,9 @@ BEGIN
    IF fsWrite IN ShareMode THEN
       fs := fs OR windows.FILE_SHARE_WRITE;
    END;
+   IF fsDelete IN ShareMode THEN
+      fs := fs OR windows.FILE_SHARE_DELETE;
+   END;
    f := windows.CreateFileW(
       ADR( ln ),
       windows.GENERIC_READ OR windows.GENERIC_WRITE,

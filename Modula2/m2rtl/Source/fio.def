@@ -18,7 +18,8 @@ TYPE
 TYPE
    TFileShareItem = (
       fsRead,
-      fsWrite
+      fsWrite,
+      fsDelete
    );
    TFileShare = SET OF TFileShareItem;
 
