@@ -51,7 +51,7 @@ CLASS IMPLEMENTATION CTest;
       
       FOR i := 0 TO 25 DO
 	      IF DiskInfo.LoadDiskInfo( i, OUT DI ) THEN
-	         Host^.Log^.LogS( log.dlcInfo, L"", OA( DI.Model.Length-1, DI.Model.rawData ));
+	         Host^.Log^.LogS( log.dlcError, L"", OA( DI.Model.Length-1, DI.Model.rawData ));
 	      END;
       END;
       
