@@ -654,6 +654,7 @@ CLASS IMPLEMENTATION CConnection;
          
          ChannelId := packet.ChannelId;
          InSeq := 0;
+         AltInSeq := 0;
          OutSeq := 0;
 
          LogSCHPAI( _Logger, dldTrace, DEBUG_PREFIX, L"CONNECTed in TUNNELING mode: ", CARDINAL( ChannelId ), HPAIData );
@@ -679,7 +680,7 @@ CLASS IMPLEMENTATION CConnection;
          StopTimer( PTR( tiHeartbeatRepeat ));
          HbRepeat := maximalHbRepeat;
          
-         IF SendErr > 0 THEN // server doed not ACKed anything, reset the connection
+         IF SendErr > 0 THEN // server does not ACKed anything, reset the connection
             Disconnect( FALSE );
          END;
       ELSE
@@ -723,17 +724,17 @@ CLASS IMPLEMENTATION CConnection;
       tack : core.TunnelingACK;
       pSeq : CARD8 := packet.Sequence;
    BEGIN
-      IF pSeq + 1 < CARD8( InSeq ) THEN
+      IF pSeq + 1 < CARD8( AltInSeq ) THEN
          _Logger^.LogSCP( dldTrace, DEBUG_PREFIX, L"RECEIVE out of order: ", CARDINAL( ChannelId ), PTR( pSeq ));
          RETURN; // ignore
       END;
 
       tack.ChannelId := ChannelId;
-      tack.Sequence := CARD8( InSeq );
+      tack.Sequence := pSeq;
       tack.Success := TRUE;
       Socket^.SendToOA( OA( tack.Length-1, ADR( tack )), HPAIData.Address );
 
-      IF pSeq < CARD8( InSeq ) THEN
+      IF pSeq < CARD8( AltInSeq ) THEN
          _Logger^.LogSCP( dldTrace, DEBUG_PREFIX, L"RECEIVE previous: ", CARDINAL( ChannelId ), PTR( pSeq ));
          RETURN;
       END;
@@ -765,6 +766,7 @@ CLASS IMPLEMENTATION CConnection;
          _Logger^.LogSCP( dldTrace, DEBUG_PREFIX, L"RECEIVE unexpected code: ", CARDINAL( ChannelId ), PTR( EMI.Code ));
       END;
 
+      AltInSeq := InSeq + 1;
       InSeq := CARDINAL( pSeq ) + 1;
    END OnTunnelingRequest;
 
@@ -931,6 +933,9 @@ CLASS IMPLEMENTATION CConnection;
             Strings.AppendW( REF out, L" group: " ); _Logger^.LogSS( dldTrace, DEBUG_PREFIX, out, s );
          ELSE
             Strings.AppendW( REF out, L" not group" ); _Logger^.LogS( dldTrace, DEBUG_PREFIX, out );
+         END;
+         IF NOT outputFlag AND ( InSeq <> AltInSeq ) THEN
+            Strings.ConcatW( OUT out, text, L" altseq: " ); _Logger^.LogSCP( dldTrace, DEBUG_PREFIX, out, CARDINAL( ChannelId ), AltInSeq );
          END;
 
          IF NOT _Logger^.Filtered( dldDebug ) THEN

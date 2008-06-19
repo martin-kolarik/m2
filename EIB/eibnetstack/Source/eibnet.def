@@ -80,6 +80,7 @@ CLASS CConnection( msghandler.MessageHandler );
       EMI       : eib_def.TPacket;
       OutSeq    : CARDINAL := 0;
       InSeq     : CARDINAL := 0;
+      AltInSeq  : CARDINAL := 0; // AltInSeq contains InSeq one step backward, this works around curious bug, when there is in single RECEIVE packet unexpectedly high SeqNo. This work around allows returning back to SeqNo before.
       HbRepeat  : CARDINAL := maximalHbRepeat; // heartbeat, if it falls to zero, connection is killed
       SendErr   : CARDINAL := 0; // correction of bad server behaviour: if server does not ACK correct send (heartbeats work correctly), the connection must be reconnected. The server does not ACK packet with low numbers, it could be caused with previous lost ACK packet.
    PUBLIC PROPERTY
