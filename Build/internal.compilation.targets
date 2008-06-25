@@ -35,7 +35,7 @@
         <M2CTRL Condition="$(LeakChecking)=='on'">$(M2CTRL) -SM</M2CTRL>
         <CLCTRL>/Zp8 /J /Gy /GR /Gr /GF /GS- /Oi /Zi /DNO_STRICT /DWINVER=0x0501 /D_WIN32_WINNT=0x0501</CLCTRL>
         <CLCTRL Condition="$(CPPExceptions)=='on'">$(CLCTRL) /EHsc</CLCTRL>
-        <CLCTRL Condition="$(CLib)!='Static' And $(DynamicCLibInstallMethod)=='Private'">$(CLCTRL) /D_USE_RTM_VERSION</CLCTRL>
+        <!-- CLCTRL Condition="$(CLib)!='Static' And $(DynamicCLibInstallMethod)=='Private'">$(CLCTRL) /D_USE_RTM_VERSION</CLCTRL -->
         <LINKCTRL Condition="$(CLib)=='Static'">/OPT:REF /OPT:NOWIN98 /MANIFEST:NO</LINKCTRL>
         <LINKCTRL Condition="$(CLib)!='Static'">/OPT:REF /OPT:NOWIN98 /MANIFEST</LINKCTRL>
         <MT Condition="$(Result)=='Program'">$(MT);#1</MT>
