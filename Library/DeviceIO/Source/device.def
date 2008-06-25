@@ -34,12 +34,25 @@ TYPE
 (*---------------------------------------------------------------------------*)
 
 TYPE
+   TCapability = (
+      capMultipleConfiguration,
+      capNamespace
+   );
+   TCapabilities = SET OF TCapability;
+
+TYPE
    TPDevice = POINTER TO IDevice;
 
 INTERFACE IDevice( iobject.IObject ); // aka device driver
-	PROCEDURE NS() : ns.TPns;
-	PROCEDURE IO() : io.TPIO;
+   PUBLIC READONLY PROPERTY
+      DeviceCapabilities : TCapabilities;
+
 	PROCEDURE Configure( CONST Source : ARRAY OF TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+
+   PROCEDURE Mapper() : ns.TPMapper; // required
+	PROCEDURE NS() : ns.TPns; // optional
+
+	PROCEDURE IO() : io.TPIO; // required
 END IDevice;
 
 (*---------------------------------------------------------------------------*)

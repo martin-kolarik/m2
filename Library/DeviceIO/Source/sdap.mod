@@ -154,7 +154,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       IF d.EndsWithOA( 13W + 10W ) THEN
          d.Length := d.Length - 2;
       END;
-      Logger^.LogSS( log.dldDebug, L"sdap", "RCV: ", OA( d.Length-1, d.rawData ));
+      Logger^.LogSS( log.dldTrace, L"sdap", "RCV: ", OA( d.Length-1, d.rawData ));
       PConnection^.RemoteAddress.GetAddressOA( TRUE, OUT sd );
       Logger^.LogSS( log.dldDebug, L"sdap", "from: ", sd );
 
@@ -306,7 +306,7 @@ CLASS IMPLEMENTATION CSDAPServer;
          IF ( Command = sdapSET ) AND NOT Device^.IO()^.Running THEN
             ACK( PConnection, sdap501 );
 
-         ELSIF NOT Device^.NS()^.Map( OA( p[1].Length-1, p[1].rawData ), OUT Hash ) THEN
+         ELSIF NOT Device^.Mapper()^.NameToHash( p[1], OUT Hash ) THEN
             ACKs( PConnection, sdap404, 1 );
 
          ELSE
@@ -348,7 +348,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       Result := Device^.IO()^.Run();
       CASE Result OF
       | Sync.arPending :
-         ACK( Connection, sdap503 );
+         ACK( Connection, sdap300 );
       | Sync.arCompleted :
          ACK( Connection, sdap200 );
       ELSE
@@ -422,6 +422,7 @@ CLASS IMPLEMENTATION CSDAPServer;
 BEGIN
    Connection := netconndispatch.ctLine;
    PieceSize := -1;
+   Logger := log.logger();
 
    _ConfigLogger.TimeStamps := FALSE;
    _ConfigLogger.Levels := FALSE;

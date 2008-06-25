@@ -64,7 +64,7 @@ INTERFACE IIO; // single device, purpose is to have minimalistic interface, whic
                // complicated should be left to layers with higer abstraction like ICachedIO.
                // It is expected IOha will behave as a single operation -- items will not be callbacked by single.
    READONLY PROPERTY
-      Capabilities : TCapabilities;
+      IOCapabilities : TCapabilities;
       Pending : BOOLEAN;
       Running : BOOLEAN;
    PROPERTY
@@ -79,6 +79,10 @@ INTERFACE IIO; // single device, purpose is to have minimalistic interface, whic
 
    PROCEDURE AbortAll(); // As IIO is allowed to run single operation only Abort does not need more parameters. But because ancestors
                          // will have need to Abort selectively the name here is AbortAll to avoid future conflicts.
+                         
+   // for Advise <> advNone
+   // PROCEDURE AddAdviseListener( Listener : TPIDataInfo );
+   // PROCEDURE RemoveAdviseListener( Listener : TPIDataInfo );
 END IIO;
 
 (*---------------------------------------------------------------------------*)

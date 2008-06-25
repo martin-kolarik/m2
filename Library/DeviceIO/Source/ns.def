@@ -23,6 +23,7 @@ TYPE
 (*---------------------------------------------------------------------------*)
 
 TYPE
+   TPMapper = POINTER TO IMapper; // simple name mapper
    TPns = POINTER TO Ans;
    TPnsItem = POINTER TO AnsItem;
    TPnsIterator = POINTER TO CnsIterator;
@@ -74,7 +75,14 @@ END CnsIterator;
 
 (*---------------------------------------------------------------------------*)
 
-ABSTRACT CLASS Ans;
+INTERFACE IMapper;
+   PUBLIC PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : THash ) : BOOLEAN;
+   PUBLIC PROCEDURE HashToName( CONST Hash : THash; OUT Name : StringsO.IString ) : BOOLEAN;
+END IMapper;
+
+(*---------------------------------------------------------------------------*)
+
+ABSTRACT CLASS Ans IMPLEMENTS IMapper;
    PUBLIC ABSTRACT READONLY PROPERTY
       Root : TPnsItem;
    PUBLIC READONLY PROPERTY
@@ -86,7 +94,7 @@ ABSTRACT CLASS Ans;
    PUBLIC VIRTUAL PROCEDURE GetOA( CONST Name : ARRAY OF WCHAR; OUT Item : TPnsItem ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE GetByHash( Hash : THash; OUT Item : TPnsItem ) : BOOLEAN;
 
-   PUBLIC VIRTUAL PROCEDURE Map( CONST Name : ARRAY OF WCHAR; OUT Hash : THash ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : THash ) : BOOLEAN;
 
    PUBLIC PROCEDURE Dump( CONST Writer : TextWriter.TPTextWriter );
 END Ans;

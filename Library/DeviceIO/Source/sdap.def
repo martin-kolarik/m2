@@ -21,6 +21,9 @@ TYPE
       // successes
       sdap200 = 200, // OK
       sdap201 = 201, // OK, but cached without connection
+      
+      // temporary states
+      sdap300 = 300, // operation is pending
 
       // client problems
       sdap400 = 400, // empty command
@@ -33,9 +36,8 @@ TYPE
 
       // server problems
       sdap500 = 500, // internal server error
-      sdap501 = 501, // common service not available
-      sdap502 = 502, // unsupported command
-      sdap503 = 503  // operation is pending
+      sdap501 = 501, // service not available (common error)
+      sdap502 = 502  // unsupported command
    );
 
 (*--------------------------------------------------------------------------------*)

@@ -202,18 +202,18 @@ CLASS IMPLEMENTATION Ans;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE Map( CONST Name : ARRAY OF WCHAR; OUT Hash : THash ) : BOOLEAN;
+	PUBLIC VIRTUAL PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : THash ) : BOOLEAN;
 	VAR
 		Item : TPnsItem;
 	BEGIN
-		IF NOT GetOA( Name, OUT Item ) THEN
+		IF NOT Get( Name, OUT Item ) THEN
 			Hash := 0;
 			RETURN FALSE;
 		ELSE
 			Hash := ns.THash( Item );
 			RETURN TRUE;
 		END;
-	END Map;
+	END NameToHash;
 
 (*---------------------------------------------------------------------------*)
 
