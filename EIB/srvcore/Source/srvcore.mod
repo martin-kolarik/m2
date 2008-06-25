@@ -471,17 +471,10 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
-	BEGIN
-	   RETURN NameSpace;
-	END NS;
-
-//--------------------------------------------------------------------------------
-
-	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
-	BEGIN
-	   RETURN ADR( SELF );
-	END IO;
+   PUBLIC VIRTUAL PROPERTY DeviceCapabilities GET : device.TCapabilities;
+   BEGIN
+      RETURN device.TCapabilities{};
+   END DeviceCapabilities;
 
 //--------------------------------------------------------------------------------
 
@@ -503,10 +496,66 @@ CLASS IMPLEMENTATION CEIBServer;
 	
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROPERTY Capabilities GET : io.TCapabilities;
+	PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper;
+	BEGIN
+	   RETURN ADR( SELF );
+	END Mapper;
+
+//--------------------------------------------------------------------------------
+
+	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
+	BEGIN
+	   RETURN NIL;
+	END NS;
+
+//--------------------------------------------------------------------------------
+
+	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
+	BEGIN
+	   RETURN ADR( SELF );
+	END IO;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : ns.THash ) : BOOLEAN;
+   VAR
+      address : eib_def.TAddress;
+      PObject : TPObject;
+   BEGIN
+      address.SetGroupAddress3( OA( Name.Length-1, Name.rawData ));
+      IF NOT GetObject( address, OUT PObject ) THEN
+         RETURN FALSE;
+      END;
+      Hash := PObject;
+      RETURN TRUE;
+   END NameToHash;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : ns.THash; OUT Name : StringsO.IString ) : BOOLEAN;
+   VAR
+      address : eib_def.TAddress;
+      PObject : TPObject;
+      s : ARRAY [0..31] OF WCHAR;
+   BEGIN
+      IF Hash = NIL THEN
+         RETURN FALSE;
+      END;
+      address := TPObject( Hash )^.SendAddress;
+      IF GetObject( address, OUT PObject ) THEN
+         address.GetGroupAddress3( TRUE, OUT s );
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END HashToName;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROPERTY IOCapabilities GET : io.TCapabilities;
    BEGIN
       RETURN io.TCapabilities{};
-   END Capabilities;
+   END IOCapabilities;
 
 //--------------------------------------------------------------------------------
 
@@ -1357,7 +1406,6 @@ CLASS IMPLEMENTATION CEIBServer;
       END; // IF snBehaviours
 
       // read objects
-      DoneObjects( FALSE );
       INCL( RStatus, rsInitReadFinished );
 
       IF TS.SetSection( snObjects ) THEN
@@ -1506,12 +1554,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
    BEGIN
-      DoneObjects( TRUE );
-      Behaviours.Dispose();
-      IF EIB <> NIL THEN
-         EIB^.Done();
-         DISPOSE( EIB );
-      END;
+      InitToDefault();
       SUPER.Dispose();
    END Dispose;
 
@@ -1811,11 +1854,13 @@ CLASS IMPLEMENTATION CEIBServer;
          Delay := 0;
          RecoveryTime := 0;
       END;
-      Storage.Fill( ADR( Groups ), SIZE( Groups ), 0FFH );
+      DoneObjects( TRUE );
+      Behaviours.Dispose();
       IF EIB <> NIL THEN
          EIB^.Done();
          DISPOSE( EIB );
       END;
+      Storage.Fill( ADR( Groups ), SIZE( Groups ), 0FFH );
    END InitToDefault;
 
 //--------------------------------------------------------------------------------
@@ -2073,6 +2118,8 @@ BEGIN
    InitReadItems := 0;
    oobData.ItemType := lists.blitSlot32;
    prData.ItemType := lists.blitSlot64;
+FINALLY
+   Dispose();
 END CEIBServer;
 
 //================================================================================

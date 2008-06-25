@@ -122,7 +122,7 @@ INTERFACE IEIBServerSink;
    PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
 END IEIBServerSink;
 
-CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, io.IIO;
+CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMapper, io.IIO;
    RStatus                  : TRStatus;
 
    Stack                    : TStack;
@@ -131,7 +131,6 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, io.IIO;
    Sink                     : CStackSink;
    EventSink                : TPEIBServerSink;
    Logger                   : log.CLogger;
-   NameSpace                : ns.TPns := NIL;
 
    Result                   : lec.CResult;
    cllvdata                 : ADDRESS;
@@ -188,13 +187,20 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, io.IIO;
    PUBLIC VIRTUAL PROCEDURE OnDispose(); // here meant also as a Command
 
    // IDevice
+   PUBLIC VIRTUAL READONLY PROPERTY
+      DeviceCapabilities : device.TCapabilities;
+	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+	PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper;
 	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
 	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
-	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+
+   // IMapper
+   PUBLIC VIRTUAL PROCEDURE NameToHash( CONST Name : StringsO.IString; OUT Hash : ns.THash ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : ns.THash; OUT Name : StringsO.IString ) : BOOLEAN;
 	
 	// IIO
    PUBLIC VIRTUAL READONLY PROPERTY
-      Capabilities : io.TCapabilities;
+      IOCapabilities : io.TCapabilities;
       Pending : BOOLEAN;
       Running : BOOLEAN;
    PUBLIC VIRTUAL PROPERTY

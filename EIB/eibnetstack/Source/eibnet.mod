@@ -929,7 +929,7 @@ CLASS IMPLEMENTATION CConnection;
       
          address := packet.GetDestinationAddress();
          IF address.GetAddressType() = eib_def.addressGroup THEN
-            EMI.GetDestinationAddress().GetGroupAddress3( TRUE, OUT s );
+            address.GetGroupAddress3( TRUE, OUT s );
             Strings.AppendW( REF out, L" group: " ); _Logger^.LogSS( dldTrace, DEBUG_PREFIX, out, s );
          ELSE
             Strings.AppendW( REF out, L" not group" ); _Logger^.LogS( dldTrace, DEBUG_PREFIX, out );
