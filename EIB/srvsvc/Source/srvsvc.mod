@@ -2,9 +2,6 @@ MODULE srvsvc;
 
 (*================================================================================*)
 
-IMPORT
-   winsock;
-
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
@@ -12,14 +9,17 @@ IMPORT
    cllv,
    FIO,
    FIOO,
+   inetaddr,
    Log,
    msgqueuethread,
    Registry,
    scinit,
+   sdap,
    Service,
    srvcore,
    Strings,
    StringsO,
+   Sync,
    threadcall;
    
 (*================================================================================*)
@@ -47,6 +47,7 @@ CLASS CEibSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarg
       
    PRIVATE VAR
       EIB : srvcore.TPEIBServer := NIL;
+      SDAP : sdap.TPSDAPServer := NIL;
 
    // service, OS thread
    LOCAL VIRTUAL PROCEDURE OnStart();
@@ -83,28 +84,28 @@ CLASS IMPLEMENTATION CEibSvc;
    LOCAL VIRTUAL PROCEDURE OnStart();
    BEGIN
       scinit.Startup();
-      msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdStart ), OA( -1, NIL ), NIL, FALSE, 0 );
+      msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdStart ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
    END OnStart;
 
 (*--------------------------------------------------------------------------------*)
 
    LOCAL VIRTUAL PROCEDURE OnPause();
    BEGIN
-      msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdPause ), OA( -1, NIL ), NIL, FALSE, 0 );
+      msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdPause ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
    END OnPause;
 
 (*--------------------------------------------------------------------------------*)
 
    LOCAL VIRTUAL PROCEDURE OnContinue();
    BEGIN
-      msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdContinue ), OA( -1, NIL ), NIL, FALSE, 0 );
+      msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdContinue ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
    END OnContinue;
 
 (*--------------------------------------------------------------------------------*)
 
    LOCAL VIRTUAL PROCEDURE OnStop();
    BEGIN
-      msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdStop ), OA( -1, NIL ), NIL, FALSE, 0 );
+      msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdStop ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
       scinit.Cleanup();
    END OnStop;
 
@@ -126,6 +127,7 @@ CLASS IMPLEMENTATION CEibSvc;
    PRIVATE PROCEDURE _OnStart();
    VAR
       Data : ARRAY [0..511] OF WCHAR;
+      IA : inetaddr.INETADDR;
       line : CARDINAL;
       Path : ARRAY [0..255] OF WCHAR;
       RS : Registry.CRegistry;
@@ -151,19 +153,27 @@ CLASS IMPLEMENTATION CEibSvc;
       END;
       
       ASSERT( EIB = NIL );
-      NEW( EIB )^.Init( TRUE );
+      NEW( EIB );
+      EIB^.Init( TRUE );
       EIB^.EXEFlag := TRUE;
       EIB^.cllvData := ADR( cllv.data );
       EIB^.cllvLength := cllv.length;
 
       FIOO.PathAdd( REF s1, s2 );
       IF EIB^.LoadConfiguration( s1, OUT s2, OUT line ) THEN
-         EIB^.Run( TRUE, TRUE );
+         EIB^.Run();
       ELSE
          s2.AppendOA( L", line: " ); s1.FromCARD32( line, 10 ); s2.Append( s1 );
          LogEvent( -1, OA( s2.Length-1, s2.rawData ));
-         EIB^.Run( FALSE, TRUE );
       END;
+      
+      ASSERT( SDAP = NIL );
+      NEW( SDAP );
+      SDAP^.Device := EIB;
+      IA.Port := 6007;
+      SDAP^.ListenAddress := IA;
+      SDAP^.Init( TRUE );
+      SDAP^.Start();
 
       SetServiceState( Service.ssRunning, 0 );
    END _OnStart;
@@ -175,7 +185,7 @@ CLASS IMPLEMENTATION CEibSvc;
       IF EIB = NIL THEN
          LogEvent( -1, L"Svc.OnPause called for EIB = NIL" );
       ELSE
-         EIB^.Stop( TRUE, TRUE );
+         EIB^.Stop();
       END;
 
       SetServiceState( Service.ssPaused, 0 );
@@ -188,7 +198,7 @@ CLASS IMPLEMENTATION CEibSvc;
       IF EIB = NIL THEN
          LogEvent( -1, L"Svc.OnContinue called for EIB = NIL" );
       ELSE
-         EIB^.Run( TRUE, TRUE );
+         EIB^.Run();
       END;
 
       SetServiceState( Service.ssRunning, 0 );
@@ -198,8 +208,13 @@ CLASS IMPLEMENTATION CEibSvc;
 
    PRIVATE PROCEDURE _OnStop();
    BEGIN
+      IF SDAP <> NIL THEN
+         SDAP^.Stop();
+         DISPOSE( SDAP );
+      END;
+   
       IF EIB <> NIL THEN
-         EIB^.Stop( TRUE, TRUE );
+         EIB^.Stop();
          EIB^.Dispose();
          DISPOSE( EIB );
       END;
