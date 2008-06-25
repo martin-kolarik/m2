@@ -1,0 +1,35 @@
+DEFINITION MODULE xmlsocket;
+
+(*================================================================================*)
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPXMLSocket = POINTER TO CXMLSocket;
+
+CLASS CXMLSocket( netconndispatch.CDispatcher );
+   PRIVATE VAR
+      _Device : device.TPDevice := NIL;
+      _Logger : log.TPLogger := NIL;
+      _ListenAddress : inetaddr.INETADDR;
+      _Running : BOOLEAN := FALSE;
+
+   PUBLIC PROPERTY
+      Device : device.TPDevice;
+      Logger : log.TPLogger;
+      ListenAddress : inetaddr.INETADDR;
+   PUBLIC READONLY PROPERTY
+      Running : BOOLEAN;
+
+   PUBLIC PROCEDURE Start();
+   PUBLIC PROCEDURE Stop();
+
+   INTERNAL VIRTUAL PROCEDURE OnConnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
+   INTERNAL VIRTUAL PROCEDURE OnDisconnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
+   INTERNAL VIRTUAL PROCEDURE OnReceive( Connection : netconndispatch.TConnectionHandle; PData : ADDRESS; DataLen : CARDINAL );
+
+END CXMLSocket;
+
+(*================================================================================*)
+
+END xmlsocket.
