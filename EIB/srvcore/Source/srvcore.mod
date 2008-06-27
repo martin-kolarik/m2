@@ -607,6 +607,7 @@ CLASS IMPLEMENTATION CEIBServer;
          lec.QueryData( s, L"", cllvdata, cllvlength, REF Result );
       END;
 
+      StopTimer( tiInitReadDelay );
       EXCL( RStatus, rsInitReadFinished );
       EIB^.Connect();
 
@@ -626,6 +627,7 @@ CLASS IMPLEMENTATION CEIBServer;
       ELSE
          RETURN;
       END;
+      StopTimer( tiInitReadDelay );
       EIB^.Disconnect();
    END Stop;
 
@@ -1901,6 +1903,7 @@ CLASS IMPLEMENTATION CEIBServer;
          RStatus := RStatus - TRStatus{rsInitReadPending} + TRStatus{rsInitReadFinished};
          EIB^.SetTimeout( eib_stack.tidA_PendingDelay, ReadDuringRun.Delay, eib_stack.pendingGroupRead );
          EIB^.SetTimeout( eib_stack.tidA_PendingTimeout, ReadDuringRun.Timeout, eib_stack.pendingGroupRead );
+         StopTimer( tiInitReadDelay );
          IF EventSink <> NIL THEN
             EventSink^.OnInitReadCompleted();
          END;

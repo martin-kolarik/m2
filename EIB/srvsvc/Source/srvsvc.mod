@@ -12,6 +12,7 @@ IMPORT
    inetaddr,
    Log,
    msgqueuethread,
+   netinit,
    Registry,
    scinit,
    sdap,
@@ -166,7 +167,7 @@ CLASS IMPLEMENTATION CEibSvc;
          s2.AppendOA( L", line: " ); s1.FromCARD32( line, 10 ); s2.Append( s1 );
          LogEvent( -1, OA( s2.Length-1, s2.rawData ));
       END;
-      
+
       ASSERT( SDAP = NIL );
       NEW( SDAP );
       SDAP^.Device := EIB;
@@ -218,6 +219,9 @@ CLASS IMPLEMENTATION CEibSvc;
          EIB^.Dispose();
          DISPOSE( EIB );
       END;
+
+      // do this sooner than scinit.Cleanup, because scinit.Cleanup is called from different thread
+      netinit.Cleanup();
 
       SetServiceState( Service.ssStopped, 0 );
    END _OnStop;
