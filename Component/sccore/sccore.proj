@@ -7,13 +7,17 @@
         <ComponentType Condition="$(ComponentType)==''">Library</ComponentType>
 
         <FileDescription>Core Library</FileDescription>
-
+        
         <Result>Dynamic</Result>
     </PropertyGroup>
 
     <!-- 2 INCLUDE DEFINITION -->
     <Import Project="..\..\Build\common.rootdir.proj"/>
     <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <PropertyGroup>
+        <BuildVersionSource>$(RootDir)\Library</BuildVersionSource>
+    </PropertyGroup>
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>

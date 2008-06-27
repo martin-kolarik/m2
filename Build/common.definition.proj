@@ -96,6 +96,7 @@
         <CPPExceptions Condition="$(CPPExceptions)==''">on</CPPExceptions>
         <CopyRuntimes Condition="$(CopyRuntimes)==''">$(ProductFlag)</CopyRuntimes>
         <LicenceMachineId Condition="$(LicenceMachineId)==''">M</LicenceMachineId><!-- M = MAC, D = disc, MD = MAC + Disc -->
+        <BuildVersionSource Condition="$(BuildVersionSource)==''">$(ComponentPath)</BuildVersionSource><!-- if some component uses version from another source, e.g. SCCore from Library, fill it -->
 
         <Test Condition="$(Test)==''">on</Test>
     </PropertyGroup>
