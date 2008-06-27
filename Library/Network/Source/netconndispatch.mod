@@ -920,10 +920,15 @@ CLASS IMPLEMENTATION CDispatcher;
          FOR i := 0 TO count-1 DO
             Connection := Defered[i];
 
-            ASSERT( Connections.Contains( Connection^.RemoteAddress ));
-            Log( dldTrace, Connection, L"Receive continue" );
+            // here, connections could be already removed
+            IF Connections.Contains( Connection^.RemoteAddress ) THEN
+               Log( dldTrace, Connection, L"Receive continue" );
+               Connection^.StartReading();
+            ELSE
+               Log( dldTrace, Connection, L"Receive should continue, but it cannot, as it is already disconnected" );
+            END;
 
-            Connection^.StartReading();
+            Connection^.Release(); // clean up, AddRef is done before queueing
          END; // FOR
          Defered.Clear();
       END;
@@ -1022,6 +1027,7 @@ CLASS IMPLEMENTATION CDispatcher;
          
          DeferLock.Lock();
          IF NOT Defered.Contains( Connection ) THEN
+            Connection^.AddRef(); // force leaving over disconnect done before StartReceive
             Defered.Add( Connection );
          END;
          DeferLock.Unlock();
