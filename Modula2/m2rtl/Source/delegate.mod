@@ -59,6 +59,7 @@ CLASS IMPLEMENTATION ADelegate;
     LReferences : CARDINAL;
   BEGIN
     IF _References = 0 THEN
+      ASSERT( FALSE );
       RETURN 0;
     END;
     LReferences := Sync.IDec( REF _References );
