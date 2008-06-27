@@ -189,12 +189,20 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
    VAR
       target : msghandler.TPMessageTarget := SCmsg.TPMessage( Msg )^.Target;
    BEGIN
-      IF target <> NIL THEN
-         Target := target;
-      ELSIF Root <> NIL THEN
-         Target := Root;
+      IF target = NIL THEN // message for me, realize about delivery
+         IF Root <> NIL THEN
+            Target := Root;
+         ELSE
+            Target := ADR( SELF );
+         END;
       ELSE
-         Target := ADR( SELF );
+         IF target = ADR( IMessageTarget ) THEN // self
+            Target := ADR( SELF );
+         ELSIF Support^.IsJoined( msghandler.TPMessageHandler( target )) THEN
+            Target := target;
+         ELSE
+            RETURN FALSE; // target is not known, e.g. deallocated
+         END;
       END;
       RETURN TRUE;
    END MessageToTarget;
