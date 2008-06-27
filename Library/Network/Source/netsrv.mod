@@ -599,6 +599,7 @@ CLASS IMPLEMENTATION CIPServer;
       Sockets.Remove( Socket );
       StopTimer( Socket );
     END;
+    Socket^.Notifier := NIL;
     Socket^.Close( FALSE );
     Socket^.Release();
   END CloseSocket;

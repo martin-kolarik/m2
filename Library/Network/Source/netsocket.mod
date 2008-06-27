@@ -525,10 +525,12 @@ CLASS IMPLEMENTATION SSocket;
 
       //-----
       | Sync.arAborted :
-         IF _Type = stDatagram THEN
-            _Notifier^.OnDataArrived( winsock.WSAECONNABORTED, ADR( SELF ));
-         ELSE
-            _Notifier^.OnListen( winsock.WSAECONNABORTED, ADR( SELF ));
+         IF _Notifier <> NIL THEN
+            IF _Type = stDatagram THEN
+               _Notifier^.OnDataArrived( winsock.WSAECONNABORTED, ADR( SELF ));
+            ELSE
+               _Notifier^.OnListen( winsock.WSAECONNABORTED, ADR( SELF ));
+            END;
          END;
          _FDHandle := NIL;
 
@@ -540,9 +542,9 @@ CLASS IMPLEMENTATION SSocket;
    INTERNAL VIRTUAL PROCEDURE OnFD( Context : CARDINAL; Operation : TPendingOperationItem; ErrorCode : CARDINAL );
    BEGIN
       IF ( _Type = stDatagram ) AND ( Context <> winsock.FD_READ ) THEN
-        RETURN;
+         RETURN;
       ELSIF ( _Type = stStream ) AND ( Context <> winsock.FD_ACCEPT ) THEN
-        RETURN;
+         RETURN;
       END;
     
       Sync.SignalAndReset( _HSignal );
