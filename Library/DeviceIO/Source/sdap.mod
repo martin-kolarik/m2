@@ -154,7 +154,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       IF d.EndsWithOA( 13W + 10W ) THEN
          d.Length := d.Length - 2;
       END;
-      Logger^.LogSS( log.dldTrace, L"sdap", "RCV: ", OA( d.Length-1, d.rawData ));
+      Logger^.LogSS( log.dldDebug, L"sdap", "RCV: ", OA( d.Length-1, d.rawData ));
       PConnection^.RemoteAddress.GetAddressOA( TRUE, OUT sd );
       Logger^.LogSS( log.dldDebug, L"sdap", "from: ", sd );
 
