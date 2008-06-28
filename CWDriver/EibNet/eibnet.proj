@@ -26,7 +26,7 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <Components Include="EIB\checkcfg;EIB\discover;CWDriver\eibnetdrv"/>
+        <Components Include="component\sccore;CWDriver\eibnetdrv;EIB\checkcfg;EIB\discover"/>
     </ItemGroup>
 
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
