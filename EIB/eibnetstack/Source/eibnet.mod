@@ -4,7 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
    
 FROM Log IMPORT
-   logger, TDebugLevel, dldTrace, dldDebug;
+   logger, TDebugLevel, dldMessage, dldTrace, dldDebug;
 
 IMPORT
    dns,
@@ -278,6 +278,7 @@ CLASS IMPLEMENTATION CConnection;
          RETURN Sync.arAlreadyPending;
       END;
       
+      ChannelId := 0;
       CASE _Mode OF
       | cmScanning :
          IF Timeout = 0 THEN
@@ -724,8 +725,13 @@ CLASS IMPLEMENTATION CConnection;
       tack : core.TunnelingACK;
       pSeq : CARD8 := packet.Sequence;
    BEGIN
-      IF pSeq + 1 < CARD8( AltInSeq ) THEN
-         _Logger^.LogSCP( dldTrace, DEBUG_PREFIX, L"RECEIVE out of order: ", CARDINAL( ChannelId ), PTR( pSeq ));
+      IF packet.ChannelId <> ChannelId THEN
+         _Logger^.LogSC( dldMessage, DEBUG_PREFIX, L"RECEIVE unexpected channel: ", CARDINAL( ChannelId ));
+         _Logger^.LogSB( dldMessage, DEBUG_PREFIX, L"RECEIVE unexpected data: ", ADR( packet ), packet.Length );
+         RETURN; // ignore
+
+      ELSIF pSeq + 1 < CARD8( AltInSeq ) THEN
+         _Logger^.LogSCP( dldMessage, DEBUG_PREFIX, L"RECEIVE out of order: ", CARDINAL( ChannelId ), PTR( pSeq ));
          RETURN; // ignore
       END;
 
@@ -766,8 +772,9 @@ CLASS IMPLEMENTATION CConnection;
          _Logger^.LogSCP( dldTrace, DEBUG_PREFIX, L"RECEIVE unexpected code: ", CARDINAL( ChannelId ), PTR( EMI.Code ));
       END;
 
-      AltInSeq := InSeq + 1;
-      InSeq := CARDINAL( pSeq ) + 1;
+      AltInSeq := InSeq + 1; // use self -- this could be less in case of error
+      InSeq := CARDINAL( pSeq ) + 1; // use packet's -- this could skip missing packets
+      AltInSeq := MIN2( AltInSeq, InSeq ); // AltInSeq must be always less than InSeq
    END OnTunnelingRequest;
 
 (*--------------------------------------------------------------------------------*)
@@ -776,10 +783,16 @@ CLASS IMPLEMENTATION CConnection;
    VAR
       Status : core.TStatus;
    BEGIN
+      IF packet.ChannelId <> ChannelId THEN
+         _Logger^.LogSC( dldMessage, DEBUG_PREFIX, L"SEND T_CON unexpected channel: ", CARDINAL( ChannelId ));
+         _Logger^.LogSB( dldMessage, DEBUG_PREFIX, L"SEND T_CON unexpected data: ", ADR( packet ), packet.Length );
+         RETURN; // ignore
+      END;
+         
       Status := packet.Status;
       IF NOT _Logger^.Filtered( dldDebug ) THEN
          _Logger^.LogSCP( dldDebug, DEBUG_PREFIX, L"SEND T_CON status: ", CARDINAL( ChannelId ), PTR( Status ));
-         _Logger^.LogSCP( dldDebug, DEBUG_PREFIX, L"SEND T_CON seq: ", CARDINAL( ChannelId ), PTR( packet.Sequence ));
+         _Logger^.LogSH( dldDebug, DEBUG_PREFIX, L"SEND T_CON seq: ", packet.Sequence );
       END;
 
       IF packet.Sequence = CARD8( OutSeq ) THEN
@@ -918,14 +931,19 @@ CLASS IMPLEMENTATION CConnection;
    VAR
       address : eib_def.TAddress;
       s : ARRAY [0..31] OF WCHAR;
-      seq : PTR;
-      out : ARRAY [0..31] OF WCHAR;
+      seq : CARDINAL;
+      out : ARRAY [0..63] OF WCHAR;
    BEGIN
       IF NOT _Logger^.Filtered( dldTrace ) THEN
          out := text;
          IF selfPacket THEN
             Strings.AppendW( REF out, L" [S]" ); 
          END;
+
+         // channel id
+         Strings.FromCARD32W( CARDINAL( ChannelId ), 10, OUT s );
+         Strings.AppendW( REF out, L" " ); 
+         Strings.AppendW( REF out, s ); 
       
          address := packet.GetDestinationAddress();
          IF address.GetAddressType() = eib_def.addressGroup THEN
@@ -935,16 +953,16 @@ CLASS IMPLEMENTATION CConnection;
             Strings.AppendW( REF out, L" not group" ); _Logger^.LogS( dldTrace, DEBUG_PREFIX, out );
          END;
          IF NOT outputFlag AND ( InSeq <> AltInSeq ) THEN
-            Strings.ConcatW( OUT out, text, L" altseq: " ); _Logger^.LogSCP( dldTrace, DEBUG_PREFIX, out, CARDINAL( ChannelId ), AltInSeq );
+            Strings.ConcatW( OUT out, text, L" altseq: " ); _Logger^.LogSH( dldTrace, DEBUG_PREFIX, out, AltInSeq );
          END;
 
          IF NOT _Logger^.Filtered( dldDebug ) THEN
             IF outputFlag THEN
-               seq := PTR( CARD8( OutSeq ));
+               seq := CARDINAL( CARD8( OutSeq ));
             ELSE
-               seq := PTR( CARD8( InSeq ));
+               seq := CARDINAL( CARD8( InSeq ));
             END;
-            Strings.ConcatW( OUT out, text, L" seq: " ); _Logger^.LogSCP( dldDebug, DEBUG_PREFIX, out, CARDINAL( ChannelId ), seq );
+            Strings.ConcatW( OUT out, text, L" seq: " ); _Logger^.LogSH( dldDebug, DEBUG_PREFIX, out, seq );
             Strings.ConcatW( OUT out, text, L" data: " ); _Logger^.LogSB( dldDebug, DEBUG_PREFIX, out, data, dataLen );
          END;
       END;
