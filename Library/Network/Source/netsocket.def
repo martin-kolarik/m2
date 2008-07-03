@@ -118,6 +118,7 @@ CLASS SSocket( threadpool.APoolDelegate );
   
 	// for stDatagram
   PUBLIC PROCEDURE ReceiveOA( OUT Data : ARRAY OF BYTE; OUT Filled : CARDINAL ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE ReceiveFromOA( OUT Data : ARRAY OF BYTE; OUT Filled : CARDINAL; OUT Address : inetaddr.INETADDR ) : Sync.TAsyncResult;
   PUBLIC PROCEDURE SendOA( CONST Data : ARRAY OF BYTE ) : Sync.TAsyncResult; // uses multicast address
   PUBLIC PROCEDURE SendToOA( CONST Data : ARRAY OF BYTE; CONST Address : inetaddr.INETADDR ) : Sync.TAsyncResult; // uses given address
 

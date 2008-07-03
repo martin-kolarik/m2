@@ -446,15 +446,37 @@ CLASS IMPLEMENTATION SSocket;
   PUBLIC PROCEDURE ReceiveOA( OUT Data : ARRAY OF BYTE; OUT Filled : CARDINAL ) : Sync.TAsyncResult;
   VAR
     fa : inetaddr.INETADDR;
-    la : CARDINAL := SIZE( fa );
   BEGIN
-    IF _Type <> stDatagram THEN
-      RETURN Sync.arCannotStart;
-    END;
-    Filled := MIN2( HIGH( Data )+1, DataAvailable );
-    Filled := winsock.recvfrom( Socket, windows.PSTR( ADR( Data )), Filled, 0, winsock.Psockaddr( fa.Data ), ADR( la ));
-    RETURN Sync.arCompleted;
+    RETURN ReceiveFromOA( OUT Data, OUT Filled, OUT fa );
   END ReceiveOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ReceiveFromOA( OUT Data : ARRAY OF BYTE; OUT Filled : CARDINAL; OUT Address : inetaddr.INETADDR ) : Sync.TAsyncResult;
+   VAR
+      la : CARDINAL := SIZE( Address );
+      l : CARDINAL;
+      Result : CARDINAL;
+   BEGIN
+      IF _Type <> stDatagram THEN
+         RETURN Sync.arCannotStart;
+      END;
+
+      l := MIN2( HIGH( Data )+1, DataAvailable );
+      l := winsock.recvfrom( Socket, windows.PSTR( ADR( Data )), l, 0, winsock.Psockaddr( Address.Data ), ADR( la ));
+      IF l = winsock.SOCKET_ERROR THEN
+         Filled := 0;
+         IF winsock.WSAGetLastError() = winsock.WSAEWOULDBLOCK THEN // OK, no data
+            RETURN Sync.arNoData;
+         ELSE
+            RETURN Sync.arAborted;
+         END;
+
+      ELSE // l contains data
+         Filled := l;
+         RETURN Sync.arCompleted;
+      END;
+   END ReceiveFromOA;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1325,6 +1347,9 @@ CLASS IMPLEMENTATION DSocket;
          // multicast group already joined from Open
          IF ( Error = 0 ) AND Remote.Broadcast THEN // set broadcast flag
             Error := winsock.setsockopt( Socket, winsock.SOL_SOCKET, winsock.SO_BROADCAST, windows.PSTR( ADR( wb )), SIZE( wb ));
+         END;
+         IF Error = 0 THEN
+            Error := winsock.connect( Socket, winsock.Psockaddr( Remote.Data ), Remote.Length );
          END;
 
       ELSE // _Type = stStream

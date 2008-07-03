@@ -49,6 +49,7 @@ CLASS INETADDR;
       Scope : TScope;
       
    PUBLIC OPERATOR =( CONST Operand : INETADDR ) : BOOLEAN;
+   PUBLIC OPERATOR <>( CONST Operand : INETADDR ) : BOOLEAN;
 
    PUBLIC PROCEDURE GetAddressOA( IncludePort : BOOLEAN; OUT Address : ARRAY OF WCHAR ); // numerical form in string
    PUBLIC PROCEDURE SetAddressOA( CONST Address : ARRAY OF WCHAR; DefaultPort : CARDINAL ) : BOOLEAN; // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations

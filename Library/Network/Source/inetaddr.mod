@@ -168,6 +168,13 @@ CLASS IMPLEMENTATION INETADDR;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC OPERATOR <>( CONST Operand : INETADDR ) : BOOLEAN;
+   BEGIN
+      RETURN NOT( SELF = Operand );
+   END <>;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE GetAddressOA( IncludePort : BOOLEAN; OUT Address : ARRAY OF WCHAR ); // numerical form in string
    VAR
       buffer : ARRAY [0..511] OF CHAR;
@@ -183,6 +190,7 @@ CLASS IMPLEMENTATION INETADDR;
          WS2TcpIp.NI_NUMERICHOST OR WS2TcpIp.NI_NUMERICSERV
       );
       IF result <> 0 THEN
+         Address := L"";
          ASSERT( FALSE );
       ELSE
          Strings.ToW( buffer, 0, OUT Address );
