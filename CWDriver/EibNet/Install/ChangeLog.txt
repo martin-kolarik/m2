@@ -1,8 +1,12 @@
-Version 1.0.xxxx beta
+Version 1.0.1693 beta
 - CHG: Sequence correction algorithm from #1672 was modified to accept
-       not only skipping of sequence number, but also an omission or insertion
-       of sequence number
+       not only skipping of sequence number, but also an insertion of sequence number.
 - CHG: Tunneling connection now discards packets coming with unexpected ChannelId.
+- BUG: Connection did not corectly resolved socket state, when no data were
+       returned after notification that data are prepared. This ocassionaly
+       resulted to mismatched receiving (not really received packet, possible
+       from different source, was processed).
+- BUG: Configuration errors (debug, id, mode, ...) were badly reported.
 
 Version 1.0.1672 beta
 - CHG: Some packets from tunneling device come with unexpectedly high SequenceNumber.

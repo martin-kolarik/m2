@@ -131,6 +131,7 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    Sink                     : CStackSink;
    EventSink                : TPEIBServerSink;
    Logger                   : log.CLogger;
+   R                        : Resources.CResources;
 
    Result                   : lec.CResult;
    cllvdata                 : ADDRESS;

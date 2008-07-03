@@ -102,11 +102,6 @@ FROM Strings IMPORT
 
 //================================================================================
 
-VAR
-   R : Resources.CResources;
-
-//================================================================================
-
 CONST // behaviour names
    bnReader                         = L'reader';
    bnTracker                        = L'tracker';
@@ -747,6 +742,15 @@ CLASS IMPLEMENTATION CEIBServer;
 
    //----------
    
+      PROCEDURE CreateParameterError( Key : CARDINAL; CONST ParameterError : ARRAY OF WCHAR; REF ErrorMessage : StringsO.CString );
+      BEGIN
+         ErrorMessage.FromOA( OAsz( R[ Key ] ));
+         ErrorMessage.AppendOA( L": " );
+         ErrorMessage.AppendOA( ParameterError );
+      END CreateParameterError;
+   
+   //----------
+   
       PROCEDURE AddGroup( CONST Address : eib_def.TAddress ) : BOOLEAN;
       VAR
          addr : CARD16 := CARD16( Address.GetGroupAddress1());
@@ -1184,6 +1188,11 @@ CLASS IMPLEMENTATION CEIBServer;
       TS : INIFile.CINIFile;
       b : BOOLEAN;
    BEGIN
+	   IF EXEFlag THEN
+         R.LoadRES2( L"", L"srvcore.Texts" );
+      ELSE
+         R.LoadRES2( EMITW( %dll ), L"srvcore.Texts" );
+      END;
       ErrorLine := 0;
    
       TRY
@@ -1248,30 +1257,34 @@ CLASS IMPLEMENTATION CEIBServer;
       EIB^.Init( FALSE, eib_stack.eltUndefined, eib_stack.eltUndefined, ADR( Sink ));
       eibnetstack.TPEIBNetStack( EIB )^.SetLogger( ADR( Logger ));
 
-      IF NOT EIB^.SetParameter( L"link.connection", Connection, OUT s ) THEN
-         ErrorMessage.FromOA( OAsz( R[ Texts._BadConnection ] ));
-         ErrorMessage.AppendOA( L": " );
-         ErrorMessage.AppendOA( s );
+      IF NOT EIB^.SetParameter( L"link.connection", Connection, OUT ErrorMessageOA ) THEN
+         CreateParameterError( Texts._BadConnection, ErrorMessageOA, REF ErrorMessage );
          GOTO Fail;
       END;
       // still inside snDevice
       IF TS.GetKeyStr( knMode, OUT ErrorLine, OUT so ) THEN
-         EIB^.SetParameter( L"link.mode", OA( so.Length-1, so.rawData ), OUT ErrorMessageOA ); // TODO error message
+         IF NOT EIB^.SetParameter( L"link.mode", OA( so.Length-1, so.rawData ), OUT ErrorMessageOA ) THEN
+            CreateParameterError( Texts._BadMode, ErrorMessageOA, REF ErrorMessage );
+            GOTO Fail;
+         END;
       END;
 
       // read interface options
       IF TS.SetSection( snInterface ) THEN
-      
-         // TO DO error messages
-
          IF TS.GetKeyInt( knInputQueueLength, OUT ErrorLine, OUT c ) THEN
             InputQueueLength := c;
          END;
          IF TS.GetKeyStr( knOutputQueueLength, OUT ErrorLine, OUT so ) THEN
-            EIB^.SetParameter( L"link.outputQueueLength", OA( so.Length-1, so.rawData ), OUT ErrorMessageOA ); // TODO error message
+            IF NOT EIB^.SetParameter( L"link.outputQueueLength", OA( so.Length-1, so.rawData ), OUT ErrorMessageOA ) THEN
+               CreateParameterError( Texts._BadOutputQueueLength, ErrorMessageOA, REF ErrorMessage );
+               GOTO Fail;
+            END;
          END;
          IF TS.GetKeyStr( knWriteQueueLength, OUT ErrorLine, OUT so ) THEN
-            EIB^.SetParameter( L"application.pendingQueueLength.write", OA( so.Length-1, so.rawData ), OUT ErrorMessageOA ); // TODO error message
+            IF NOT EIB^.SetParameter( L"application.pendingQueueLength.write", OA( so.Length-1, so.rawData ), OUT ErrorMessageOA ) THEN
+               CreateParameterError( Texts._BadWriteQueueLength, ErrorMessageOA, REF ErrorMessage );
+               GOTO Fail;
+            END;
          END;
          IF TS.GetKeyStr( knAddress, OUT ErrorLine, OUT so ) THEN
             so.ToOA( OUT s );
@@ -1286,8 +1299,7 @@ CLASS IMPLEMENTATION CEIBServer;
          END;
          IF TS.GetKeyStr( knACKMethod, OUT ErrorLine, OUT so ) THEN
             IF NOT EIB^.SetParameter( L"link.ackMethod", OA( so.Length-1, so.rawData ), OUT ErrorMessageOA ) THEN
-               ErrorMessage.FromOA( ErrorMessageOA );
-               AppendErrorId( REF ErrorMessage, OA( so.Length-1, so.rawData ));
+               CreateParameterError( Texts._BadACKMethod, ErrorMessageOA, REF ErrorMessage );
                GOTO Fail;
             END;
          END;
@@ -1524,7 +1536,6 @@ CLASS IMPLEMENTATION CEIBServer;
       ELSE
          EIB^.SetParameter( L"application.promiscuousMode", L"false", OUT ErrorMessageOA );
       END;
-      ErrorMessage.FromOA( ErrorMessageOA ); // TODO error message
       IF PromiscuousMode THEN
          FOR EIT := eib_def.eitSwitch TO eib_def.eitString DO WITH prObjects[EIT] DO
             Server := ADR( SELF );
@@ -2124,13 +2135,6 @@ BEGIN
 FINALLY
    Dispose();
 END CEIBServer;
-
-//================================================================================
-
-INITIALLY __I();
-BEGIN
-   R.LoadRES2( L"", L"srvcore.Texts" );
-END __I;
 
 //================================================================================
 

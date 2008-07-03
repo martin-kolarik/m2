@@ -24,6 +24,10 @@
     <Import Project="..\..\Build\common.rootdir.proj"/>
     <Import Project="$(RootBuildDir)\common.definition.proj"/>
 
+    <PropertyGroup>
+        <BuildVersionSource>$(RootDir)\CWDriver\eibnetdrv</BuildVersionSource>
+    </PropertyGroup>
+
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
         <Components Include="component\sccore;CWDriver\eibnetdrv;EIB\checkcfg;EIB\discover"/>

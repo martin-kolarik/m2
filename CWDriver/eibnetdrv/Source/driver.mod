@@ -40,12 +40,12 @@ IMPORT
 //================================================================================
 
 VAR
-   r : Resources.CResources;
+   dr : Resources.CResources;
 
-PROCEDURE R() : Resources.TPResources;
+PROCEDURE DR() : Resources.TPResources;
 BEGIN
-   RETURN ADR( r );
-END R;
+   RETURN ADR( dr );
+END DR;
 
 //================================================================================
 
@@ -269,7 +269,7 @@ CLASS IMPLEMENTATION CEIBDriver;
       TRY
          fs.FromPath( OA( ParFilePath.Length-1, ParFilePath.rawData ), FIOO.imOpenRead );
       CATCH e : IOO.CIOException DO
-         ErrorMessage.FromOA( OAsz( R()^[ Texts._CannotOpenPar ] ));
+         ErrorMessage.FromOA( OAsz( DR()^[ Texts._CannotOpenPar ] ));
          AppendErrorId( REF ErrorMessage, OA( ParFilePath.Length-1, ParFilePath.rawData ));
          RETURN FALSE;
       END; // try
@@ -277,18 +277,20 @@ CLASS IMPLEMENTATION CEIBDriver;
       b := TS.Load( tr );
       fs.Close( FALSE );
       IF NOT b THEN
-         ErrorMessage.FromOA( OAsz( R()^[ Texts._CannotOpenPar ] ));
+         ErrorMessage.FromOA( OAsz( DR()^[ Texts._CannotOpenPar ] ));
          AppendErrorId( REF ErrorMessage, OA( ParFilePath.Length-1, ParFilePath.rawData ));
          RETURN FALSE;
       END;
 
       CASE drv_def.ConfigureLog( TS, REF SELF.Logger, OUT ErrorLine ) OF
       | drv_def.clrUnknownDebugMode :
-         Logger.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._UnknownDebugMode ] ), ErrorLine, 0 );
+         Logger.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( DR()^[ Texts._UnknownDebugMode ] ), ErrorLine, 0 );
+         RETURN FALSE;
       | drv_def.clrUnknownDebugLevel :
-         Logger.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._UnknownDebugLevel ] ), ErrorLine, 0 );
+         Logger.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( DR()^[ Texts._UnknownDebugLevel ] ), ErrorLine, 0 );
+         RETURN FALSE;
       | drv_def.clrFileDebugMissingFile :
-         Logger.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._FileDebugMissingFile ] ), ErrorLine, 0 );
+         Logger.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( DR()^[ Texts._FileDebugMissingFile ] ), ErrorLine, 0 );
          RETURN FALSE;
       END;
 
@@ -401,19 +403,19 @@ CLASS IMPLEMENTATION CEIBDriver;
       PObject : srvcore.TPObject;
    BEGIN
       IF DriverIndex = StatusChannel THEN
-         Description.FromOA( OAsz( R()^[ Texts._StatusComment ] ));
+         Description.FromOA( OAsz( DR()^[ Texts._StatusComment ] ));
          Id.FromOA( _StatusId );
       ELSIF DriverIndex = WatchDogChannel THEN
-         Description.FromOA( OAsz( R()^[ Texts._WatchDogComment ] ));
+         Description.FromOA( OAsz( DR()^[ Texts._WatchDogComment ] ));
          Id.FromOA( _WatchDogId );
       ELSIF DriverIndex = InputQueueLengthChannel THEN
-         Description.FromOA( OAsz( R()^[ Texts._InputQueueLengthComment ] ));
+         Description.FromOA( OAsz( DR()^[ Texts._InputQueueLengthComment ] ));
          Id.FromOA( _InputQueueLengthId );
       ELSIF DriverIndex = OutputQueueLengthChannel THEN
-         Description.FromOA( OAsz( R()^[ Texts._OutputQueueLengthComment ] ));
+         Description.FromOA( OAsz( DR()^[ Texts._OutputQueueLengthComment ] ));
          Id.FromOA( _OutputQueueLengthId );
       ELSIF DriverIndex = WriteQueueLengthChannel THEN
-         Description.FromOA( OAsz( R()^[ Texts._WriteQueueLengthComment ] ));
+         Description.FromOA( OAsz( DR()^[ Texts._WriteQueueLengthComment ] ));
          Id.FromOA( _WriteQueueLengthId );
       ELSIF LogNumber2Object( DriverIndex, PObject ) THEN
          Id := PObject^.Name;
@@ -430,21 +432,21 @@ CLASS IMPLEMENTATION CEIBDriver;
    BEGIN
       CASE ErrorCode OF
       | driver.ceDeviceUnplugged :
-         ErrorText.FromOA( OAsz( driver.R()^[ Texts._E_DeviceUnplugged ] ));
+         ErrorText.FromOA( OAsz( DR()^[ Texts._E_DeviceUnplugged ] ));
       | driver.ceLCONError :
-         ErrorText.FromOA( OAsz( driver.R()^[ Texts._E_LCONError ] ));
+         ErrorText.FromOA( OAsz( DR()^[ Texts._E_LCONError ] ));
       | driver.ceRD_RES_Timeout :
-         ErrorText.FromOA( OAsz( driver.R()^[ Texts._E_RD_RES_Timeout ] ));
+         ErrorText.FromOA( OAsz( DR()^[ Texts._E_RD_RES_Timeout ] ));
       | driver.ceLineBusy :
-         ErrorText.FromOA( OAsz( driver.R()^[ Texts._E_LineBusy ] ));
+         ErrorText.FromOA( OAsz( DR()^[ Texts._E_LineBusy ] ));
       | driver.ceTransceiverFault :
-         ErrorText.FromOA( OAsz( driver.R()^[ Texts._E_TransceiverFault ] ));
+         ErrorText.FromOA( OAsz( DR()^[ Texts._E_TransceiverFault ] ));
       | driver.ceOutputQueueOverflow :
-         ErrorText.FromOA( OAsz( driver.R()^[ Texts._E_OutputQueueOverflow ] ));
+         ErrorText.FromOA( OAsz( DR()^[ Texts._E_OutputQueueOverflow ] ));
       | driver.ceReadQueueOverflow :
-         ErrorText.FromOA( OAsz( driver.R()^[ Texts._E_ReadQueueOverflow ] ));
+         ErrorText.FromOA( OAsz( DR()^[ Texts._E_ReadQueueOverflow ] ));
       | driver.ceWriteQueueOverflow :
-         ErrorText.FromOA( OAsz( driver.R()^[ Texts._E_WriteQueueOverflow ] ));
+         ErrorText.FromOA( OAsz( DR()^[ Texts._E_WriteQueueOverflow ] ));
       ELSE
          RETURN FALSE;
       END;
@@ -1104,7 +1106,7 @@ CLASS IMPLEMENTATION CFactory;
    VAR
       Name : StringsO.CString;
    BEGIN
-      Name.FromOA( OAsz( R()^[ Texts._DriverName ] ));
+      Name.FromOA( OAsz( DR()^[ Texts._DriverName ] ));
       RETURN Name;
    END DriverName;
 
@@ -1140,7 +1142,7 @@ VAR
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   r.LoadRES2( EMITW( %dll ), L"eibnetdrv.Texts" );
+   dr.LoadRES2( EMITW( %dll ), L"eibnetdrv.Texts" );
    diface.RegisterFactory( ADR( Factory ));
 END driver.
 

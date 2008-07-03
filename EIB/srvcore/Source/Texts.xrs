@@ -7,10 +7,24 @@
             <item lang="en-US">Error during opening configuration file</item>
             <item lang="cs-CZ">Chyba při otevření konfiguračního souboru</item>
         </string>
+
         <string name="_BadConnection">
             <item lang="en-US">Bad connection definition</item>
             <item lang="cs-CZ">Chybný zápis definice spojení</item>
         </string>
+        <string name="_BadMode">
+            <item lang="en-US">Bad connection mode</item>
+            <item lang="cs-CZ">Neznámý způsob komunikace</item>
+        </string>
+        <string name="_BadOutputQueueLength">
+            <item lang="en-US">Bad output queue length</item>
+            <item lang="cs-CZ">Chybný zápis délky fronty paketů k odeslání</item>
+        </string>
+        <string name="_BadWriteQueueLength">
+            <item lang="en-US">Bad write queue length</item>
+            <item lang="cs-CZ">Chybný zápis délky fronty požadavků na zápis</item>
+        </string>
+
         <string name="_UnsupportedStack">
             <item lang="en-US">Unsupported stack</item>
             <item lang="cs-CZ">Nepodporovaný způsob spojení s EIB</item>
@@ -23,7 +37,8 @@
             <item lang="en-US">Bad or badly typed physical address</item>
             <item lang="cs-CZ">Chybná nebo chybně zapsaná adresa zařízení</item>
         </string>
-        <string name="_UnknownACKMethod">
+
+        <string name="_BadACKMethod">
             <item lang="en-US">Unknown ACK method</item>
             <item lang="cs-CZ">Neznámá metoda ACK</item>
         </string>
