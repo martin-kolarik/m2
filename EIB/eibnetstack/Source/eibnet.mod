@@ -408,14 +408,26 @@ CLASS IMPLEMENTATION CConnection;
    LOCAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket );
    VAR
       buffer : ARRAY [0..255] OF BYTE;
+      ia : inetaddr.INETADDR;
       l : CARDINAL := 0;
       packet : core.TPPacket := core.TPPacket( ADR( buffer ));
+      Result : Sync.TAsyncResult;
    BEGIN
       // not to test L before recvfrom, recvfrom is re-enabling function and should be called after notification even if dataavailable = 0
-      ServerSocket^.ReceiveOA( OUT buffer, OUT l );
-      IF l = 0 THEN
+      Result := ServerSocket^.ReceiveFromOA( OUT buffer, OUT l, OUT ia );
+      IF Result NOT IN Sync.arsCompletions THEN
          RETURN;
       END;
+      
+      // check sender
+      CASE _Mode OF
+      | cmScanning, cmRouting : // do nohing, unfortunately, for routing source of UDP packet contains unicast address, not multicast, so checking cannot be done
+      ELSE // some tunneling mode
+         IF DEBUG AND ( ia <> HPAIData.Address ) THEN // check for error
+            _Logger^.LogSH( dldMessage, DEBUG_PREFIX, L"Packet from unexpected source, REJECTED: ", CARDINAL( packet^.Service ));
+            _Logger^.LogSB( dldMessage, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
+         END;
+      END; // CASE
       
       CASE _Mode OF
       //-----
@@ -424,7 +436,8 @@ CLASS IMPLEMENTATION CConnection;
          | core.SEARCH_RESPONSE,
            core.DESCRIPTION_RESPONSE :
          ELSE
-            _Logger^.LogSCP( dldDebug, DEBUG_PREFIX, L"packet rejected in SCANNING mode: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+            _Logger^.LogSCP( dldMessage, DEBUG_PREFIX, L"packet rejected in SCANNING mode: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+            _Logger^.LogSB( dldMessage, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
             RETURN;
          END; // Service
       //-----
@@ -434,7 +447,8 @@ CLASS IMPLEMENTATION CConnection;
            core.ROUTING_INDICATION,
            core.ROUTING_LOST_MESSAGE :
          ELSE
-            _Logger^.LogSCP( dldDebug, DEBUG_PREFIX, L"packet rejected in ROUTING mode: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+            _Logger^.LogSCP( dldMessage, DEBUG_PREFIX, L"packet rejected in ROUTING mode: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+            _Logger^.LogSB( dldMessage, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
             RETURN;
          END; // Service
       //-----
@@ -443,7 +457,8 @@ CLASS IMPLEMENTATION CConnection;
          | core.DESCRIPTION_RESPONSE :
          | core.CONNECT_RESPONSE :
             IF IOState <> ioConnecting THEN
-               _Logger^.LogSCP( dldDebug, DEBUG_PREFIX, L"packet rejected as unexpected: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+               _Logger^.LogSCP( dldMessage, DEBUG_PREFIX, L"packet rejected as unexpected: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+               _Logger^.LogSB( dldMessage, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
                RETURN;
             END;
          | core.CONNECTIONSTATE_RESPONSE,
@@ -451,16 +466,19 @@ CLASS IMPLEMENTATION CConnection;
            core.TUNNELING_REQUEST,
            core.TUNNELING_ACK :
             IF IOState NOT IN iosConnected THEN
-               _Logger^.LogSCP( dldDebug, DEBUG_PREFIX, L"packet rejected as unexpected: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+               _Logger^.LogSCP( dldMessage, DEBUG_PREFIX, L"packet rejected as unexpected: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+               _Logger^.LogSB( dldMessage, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
                RETURN;
             END;
          | core.DISCONNECT_RESPONSE :
             IF IOState <> ioDisconnecting THEN
-               _Logger^.LogSCP( dldDebug, DEBUG_PREFIX, L"packet rejected as unexpected: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+               _Logger^.LogSCP( dldMessage, DEBUG_PREFIX, L"packet rejected as unexpected: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+               _Logger^.LogSB( dldMessage, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
                RETURN;
             END;
          ELSE
-            _Logger^.LogSCP( dldDebug, DEBUG_PREFIX, L"packet rejected in TUNNELING mode: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+            _Logger^.LogSCP( dldMessage, DEBUG_PREFIX, L"packet rejected in TUNNELING mode: ", CARDINAL( ChannelId ), PTR( packet^.Service ));
+            _Logger^.LogSB( dldMessage, DEBUG_PREFIX, L"  rejected data: ", packet, packet^.Length );
             RETURN;
          END;
       //-----
@@ -472,70 +490,70 @@ CLASS IMPLEMENTATION CConnection;
          IF core.TPSearchResponse( packet )^.Valid THEN
             OnSearchResponse( core.TPSearchResponse( packet )^ );
          ELSE
-            _Logger^.LogSCB( dldDebug, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            _Logger^.LogSCB( dldMessage, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.DESCRIPTION_RESPONSE :
          IF core.TPDescriptionResponse( packet )^.Valid THEN
             OnDescriptionResponse( core.TPDescriptionResponse( packet )^ );
          ELSE
-            _Logger^.LogSCB( dldDebug, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            _Logger^.LogSCB( dldMessage, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.ROUTING_INDICATION :
          IF core.TPRoutingIndication( packet )^.Valid THEN
             OnRoutingIndication( core.TPRoutingIndication( packet )^ );
          ELSE
-            _Logger^.LogSCB( dldDebug, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            _Logger^.LogSCB( dldMessage, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.ROUTING_LOST_MESSAGE :
          IF core.TPRoutingLostMessage( packet )^.Valid THEN
             OnRoutingLostMessage( core.TPRoutingLostMessage( packet )^ );
          ELSE
-            _Logger^.LogSCB( dldDebug, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            _Logger^.LogSCB( dldMessage, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.CONNECT_RESPONSE :
          IF core.TPConnectResponse( packet )^.Valid THEN
             OnConnectResponse( core.TPConnectResponse( packet )^ );
          ELSE
-            _Logger^.LogSCB( dldDebug, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            _Logger^.LogSCB( dldMessage, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.CONNECTIONSTATE_RESPONSE :
          IF core.TPConnectionStateResponse( packet )^.Valid THEN
             OnConnectionStateResponse( core.TPConnectionStateResponse( packet )^ );
          ELSE
-            _Logger^.LogSCB( dldDebug, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            _Logger^.LogSCB( dldMessage, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.DISCONNECT_REQUEST :
          IF core.TPDisconnectRequest( packet )^.Valid THEN
             OnDisconnectRequest( core.TPDisconnectRequest( packet )^ );
          ELSE
-            _Logger^.LogSCB( dldDebug, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            _Logger^.LogSCB( dldMessage, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.DISCONNECT_RESPONSE :
          IF core.TPDisconnectResponse( packet )^.Valid THEN
             OnDisconnectResponse( core.TPDisconnectResponse( packet )^ );
          ELSE
-            _Logger^.LogSCB( dldDebug, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            _Logger^.LogSCB( dldMessage, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.TUNNELING_REQUEST :
          IF core.TPTunnelingRequest( packet )^.Valid THEN
             OnTunnelingRequest( core.TPTunnelingRequest( packet )^ );
          ELSE
-            _Logger^.LogSCB( dldDebug, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            _Logger^.LogSCB( dldMessage, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       //-----
       | core.TUNNELING_ACK :
          IF core.TPTunnelingACK( packet )^.Valid THEN
             OnTunnelingACK( core.TPTunnelingACK( packet )^ );
          ELSE
-            _Logger^.LogSCB( dldDebug, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
+            _Logger^.LogSCB( dldMessage, DEBUG_PREFIX, L"invalid packet ", CARDINAL( ChannelId ), packet, l );
          END;
       END; // main case
    END OnDatagramReceived;
@@ -792,7 +810,7 @@ CLASS IMPLEMENTATION CConnection;
       Status := packet.Status;
       IF NOT _Logger^.Filtered( dldDebug ) THEN
          _Logger^.LogSCP( dldDebug, DEBUG_PREFIX, L"SEND T_CON status: ", CARDINAL( ChannelId ), PTR( Status ));
-         _Logger^.LogSH( dldDebug, DEBUG_PREFIX, L"SEND T_CON seq: ", packet.Sequence );
+         _Logger^.LogSH( dldDebug, DEBUG_PREFIX, L"SEND T_CON seq: ", CARDINAL( packet.Sequence ));
       END;
 
       IF packet.Sequence = CARD8( OutSeq ) THEN
