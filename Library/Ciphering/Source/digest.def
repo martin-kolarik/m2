@@ -36,6 +36,7 @@ ABSTRACT CLASS Digester;
 	PUBLIC ABSTRACT PROCEDURE Finish( OUT digest : ADigest );
 
 	PUBLIC PROCEDURE Digest( CONST input : ARRAY OF BYTE; OUT digest : ADigest );
+	PUBLIC PROCEDURE DigestSalt( CONST input, salt : ARRAY OF BYTE; OUT digest : ADigest );
 END Digester;
 
 (*================================================================================*)
@@ -46,10 +47,12 @@ TYPE
       sha1,
       sha256
    );
-
+   
 PROCEDURE Digest( Type : TDigestType; CONST input : ARRAY OF BYTE; OUT digest : ADigest );
+PROCEDURE DigestSalt( Type : TDigestType; CONST input, salt : ARRAY OF BYTE; OUT digest : ADigest );
 
 PROCEDURE DigestOA( Type : TDigestType; CONST input : ARRAY OF BYTE; OUT digest : ARRAY OF BYTE );
+PROCEDURE DigestSaltOA( Type : TDigestType; CONST input, salt : ARRAY OF BYTE; OUT digest : ARRAY OF BYTE );
 
 (*================================================================================*)
 

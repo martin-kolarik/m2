@@ -45,8 +45,10 @@ END CSHA1;
 
 // shortcut
 PROCEDURE Digest( CONST input : ARRAY OF BYTE; OUT D : digest.ADigest );
+PROCEDURE DigestSalt( CONST input, salt : ARRAY OF BYTE; OUT D : digest.ADigest );
 
 PROCEDURE DigestOA( CONST input : ARRAY OF BYTE; OUT D : TDigest );
+PROCEDURE DigestSaltOA( CONST input, salt : ARRAY OF BYTE; OUT D : TDigest );
 
 (*================================================================================*)
 

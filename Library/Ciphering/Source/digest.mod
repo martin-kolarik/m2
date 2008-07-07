@@ -102,6 +102,24 @@ CLASS IMPLEMENTATION Digester;
 
 (*--------------------------------------------------------------------------------*)
 
+	PUBLIC PROCEDURE DigestSalt( CONST input, salt : ARRAY OF BYTE; OUT digest : ADigest );
+	VAR
+	   salted : ARRAY [0..31] OF BYTE;
+	   saltedCount : CARDINAL;
+	BEGIN
+		Init();
+	   cphcommon.Salt( input, salt, OUT salted, OUT saltedCount );
+		IF saltedCount > 0 THEN
+         Update( OA( saltedCount-1, ADR( salted )));
+      END;
+      IF HIGH( input )+1 > saltedCount THEN
+	      Update( OA( HIGH( input )-saltedCount, ADR( input[saltedCount] )));
+	   END;
+		Finish( OUT digest );
+	END DigestSalt;
+
+(*--------------------------------------------------------------------------------*)
+
 END Digester;
 
 (*================================================================================*)
@@ -117,6 +135,20 @@ BEGIN
       Sha256.Digest( input, OUT digest );
    END;
 END Digest;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE DigestSalt( Type : TDigestType; CONST input, salt : ARRAY OF BYTE; OUT digest : ADigest );
+BEGIN
+   CASE Type OF
+   | md5 :
+      Md5.DigestSalt( input, salt, OUT digest );
+   | sha1 :
+      Sha1.DigestSalt( input, salt, OUT digest );
+   | sha256 :
+      Sha256.DigestSalt( input, salt, OUT digest );
+   END;
+END DigestSalt;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -147,6 +179,36 @@ BEGIN
       END;
    END;
 END DigestOA;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE DigestSaltOA( Type : TDigestType; CONST input, salt : ARRAY OF BYTE; OUT digest : ARRAY OF BYTE );
+TYPE
+   TPmd5digest = POINTER TO Md5.TDigest;
+   TPsha1digest = POINTER TO Sha1.TDigest;
+   TPsha256digest = POINTER TO Sha256.TDigest;
+BEGIN
+   CASE Type OF
+   | md5 :
+      IF HIGH( digest ) < SIZE( Md5.TDigest )-1 THEN
+         ASSERT( FALSE );
+      ELSE
+         Md5.DigestSaltOA( input, salt, OUT TPmd5digest( ADR( digest ))^ );
+      END;
+   | sha1 :
+      IF HIGH( digest ) < SIZE( Sha1.TDigest )-1 THEN
+         ASSERT( FALSE );
+      ELSE
+         Sha1.DigestSaltOA( input, salt, OUT TPsha1digest( ADR( digest ))^ );
+      END;
+   | sha256 :
+      IF HIGH( digest ) < SIZE( Sha256.TDigest )-1 THEN
+         ASSERT( FALSE );
+      ELSE
+         Sha256.DigestSaltOA( input, salt, OUT TPsha256digest( ADR( digest ))^ );
+      END;
+   END;
+END DigestSaltOA;
 
 (*================================================================================*)
 

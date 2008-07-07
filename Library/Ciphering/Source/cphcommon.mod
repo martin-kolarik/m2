@@ -236,5 +236,22 @@ END ToBASE64;
 
 (*================================================================================*)
 
+PROCEDURE Salt( CONST salt, data : ARRAY OF BYTE; OUT salted : ARRAY OF BYTE; OUT saltedCount : CARDINAL ); // max salt bytes from data are salted
+VAR
+   i, l : INTEGER;
+BEGIN
+   IF ( ADR( salt ) = NIL ) OR ( ADR( data ) = NIL ) OR ( ADR( salted ) = NIL ) THEN
+      saltedCount := 0;
+      RETURN;
+   END;
+   l := MIN2( MIN2( HIGH( salt ), HIGH( salted )), HIGH( data )) + 1;
+   FOR i := 0 TO l-1 DO
+      salted[i] := data[i] XOR salt[i];
+   END; // FOR
+   saltedCount := l;
+END Salt;
+
+(*================================================================================*)
+
 END cphcommon.
 

@@ -291,6 +291,15 @@ END Digest;
 
 (*--------------------------------------------------------------------------------*)
 
+PROCEDURE DigestSalt( CONST input, salt : ARRAY OF BYTE; OUT D : digest.ADigest );
+VAR
+	S : CMD5;
+BEGIN
+   S.DigestSalt( input, salt, OUT D );
+END DigestSalt;
+
+(*--------------------------------------------------------------------------------*)
+
 PROCEDURE DigestOA( CONST input : ARRAY OF BYTE; OUT D : TDigest );
 VAR
 	S : CMD5;
@@ -299,6 +308,17 @@ BEGIN
 	S.Digest( input, OUT _D );
 	_D.ToOA( OUT D );
 END DigestOA;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE DigestSaltOA( CONST input, salt : ARRAY OF BYTE; OUT D : TDigest );
+VAR
+	S : CMD5;
+	_D : CDigest;
+BEGIN
+   S.DigestSalt( input, salt, OUT _D );
+	_D.ToOA( OUT D );
+END DigestSaltOA;
 
 (*================================================================================*)
 
