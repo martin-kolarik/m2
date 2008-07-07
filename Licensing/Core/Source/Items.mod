@@ -28,6 +28,11 @@ TYPE
 CONST
    nk = TK( 08BH, 0BCH, 087H, 038H, 0C9H, 027H, 0D9H, 05DH, 0FEH, 074H, 003H, 0CDH, 029H, 001H, 017H, 0ABH, 02FH, 069H, 01FH, 041H, 054H, 031H, 0CDH, 0FDH, 0F9H, 052H, 013H, 081H, 06DH, 07DH, 0E3H, 0AAH );
 
+TYPE
+   TSalt = ARRAY [0..15] OF BYTE;
+CONST
+   salt = TSalt( 0D8H, 0B1H, 0C2H, 7FH, 0BH, 050H, 04AH, 0C1H, 0BEH, 07AH, 0ACH, 066H, 0F4H, 09CH, 08DH, 0D9H );
+
 (*================================================================================*)
 
 CLASS IMPLEMENTATION CItem;
@@ -156,9 +161,9 @@ CLASS IMPLEMENTATION CItem;
       CreateHash( OUT Hash );
       len := Hash.Length;
       IF len = 0 THEN
-         SHA256.DigestOA( SELF, OUT digest ); // this products undecryptable data
+         SHA256.DigestSaltOA( SELF, salt, OUT digest ); // this products undecryptable data
       ELSE
-         SHA256.DigestOA( OA( 2*len-1, Hash.rawData ), OUT digest );
+         SHA256.DigestSaltOA( OA( 2*len-1, Hash.rawData ), salt, OUT digest );
       END;
       
       LanguagesO.ToMB( _TransportData, Languages.cp_UTF8, OUT M );
@@ -185,7 +190,7 @@ CLASS IMPLEMENTATION CItem;
       
       // add transport digest
       pdigest := TD( M.Data@[len] );
-      SHA256.DigestOA( OA( len-1, data ), OUT pdigest^ );
+      SHA256.DigestSaltOA( OA( len-1, data ), salt, OUT pdigest^ );
       INC( len, 32 );
       
       i := cphcommon.BASE64CharCount( len );
@@ -221,7 +226,7 @@ CLASS IMPLEMENTATION CItem;
       
       // check transport digest
       DEC( len, 32 );
-      SHA256.DigestOA( OA( len-1, data ), OUT digest );
+      SHA256.DigestSaltOA( OA( len-1, data ), salt, OUT digest );
       IF digest <> TD( data@[len] )^ THEN
          RETURN FALSE;
       END;
@@ -231,7 +236,7 @@ CLASS IMPLEMENTATION CItem;
       IF i = 0 THEN
          RETURN FALSE;
       ELSE
-         SHA256.DigestOA( OA( 2*i-1, Hash.rawData ), OUT digest );
+         SHA256.DigestSaltOA( OA( 2*i-1, Hash.rawData ), salt, OUT digest );
       END;
 
       // uncrypt it

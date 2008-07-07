@@ -8,6 +8,14 @@ IMPORT
 
 (*================================================================================*)
 
+TYPE
+   TSalt = ARRAY [0..15] OF BYTE;
+   
+CONST
+   salt = TSalt( 0FH, 1CH, 14H, 10H, 1AH, 89H, 3AH, 4CH, 0BCH, 93H, 74H, 28H, 0E5H, 082H, 09BH, 0EAH );
+
+(*================================================================================*)
+
 CLASS IMPLEMENTATION CUniquer;
 
 (*--------------------------------------------------------------------------------*)
@@ -20,13 +28,15 @@ CLASS IMPLEMENTATION CUniquer;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE UId( CONST S : StringsO.IString ) : TUId;
+   CONST
+      salt = C"";
    VAR
       i : INTEGER;
       uid, suid : TUId;
       seed : sha256.TDigest;
       source : POINTER TO IUniquerSource;
    BEGIN
-      sha256.DigestOA( OA( 2*S.Length-1, S.rawData ), OUT seed );
+      sha256.DigestSaltOA( OA( 2*S.Length-1, S.rawData ), salt, OUT seed );
       FOR i := 0 TO HIGH( uid ) DO
          IF DEBUGGED() THEN
             uid[i] := 58 - i;

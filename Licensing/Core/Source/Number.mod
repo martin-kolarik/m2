@@ -15,6 +15,14 @@ IMPORT
 (*================================================================================*)
 
 TYPE
+   TSalt = ARRAY [0..15] OF BYTE;
+   
+CONST
+   salt = TSalt( 0ABH, 27H, 0E1H, 56H, 0F5H, 28H, 45H, 0EFH, 0A5H, 49H, 6EH, 0B9H, 7FH, 39H, 1CH, 0D1H );
+
+(*================================================================================*)
+
+TYPE
 	T32 = ARRAY [0..31] OF BYTE;
 
 (*--------------------------------------------------------------------------------*)
@@ -176,7 +184,7 @@ CLASS IMPLEMENTATION CSerial;
 		P.HOrd[1] := BYTE( _GOrd >> 08 );
 		P.HOrd[2] := BYTE( _GOrd >> 00 );
 
-		SHA256.DigestOA( P, OUT d );
+		SHA256.DigestSaltOA( P, salt, OUT d );
 		c := crc.crc16( crc.crc16i, d );
 		// encrypt packet
 		Permute( c, REF K, REF IV );
@@ -212,7 +220,7 @@ CLASS IMPLEMENTATION CSerial;
 		Permute( c, REF K, REF IV );
 		A.Init( Rijndael.cphmOFBd, Rijndael.rkl256, K, IV );
 		A.Decrypt( P, OUT P, OUT l );
-		SHA256.DigestOA( P, OUT d );
+		SHA256.DigestSaltOA( P, salt, OUT d );
 		IF c <> crc.crc16( crc.crc16i, d ) THEN
 			RETURN FALSE;
 		END;
@@ -340,7 +348,7 @@ CLASS IMPLEMENTATION CRegistration;
 		P.HOrd[0] := BYTE( _GOrd >> 16 );
 		P.HOrd[1] := BYTE( _GOrd >> 08 );
 		P.HOrd[2] := BYTE( _GOrd >> 00 );
-		SHA256.DigestOA( P, OUT d );
+		SHA256.DigestSaltOA( P, salt, OUT d );
 		c := crc.crc16( crc.crc16i, d );
 		// encrypt packet
 		Permute( c, REF K, REF IV );
@@ -374,7 +382,7 @@ CLASS IMPLEMENTATION CRegistration;
 		Permute( c, REF K, REF IV );
 		A.Init( Rijndael.cphmOFBd, Rijndael.rkl256, K, IV );
 		A.Decrypt( P, OUT P, OUT l );
-		SHA256.DigestOA( P, OUT d );
+		SHA256.DigestSaltOA( P, salt, OUT d );
 		IF c <> crc.crc16( crc.crc16i, d ) THEN
 			RETURN FALSE;
 		END;
@@ -574,7 +582,7 @@ CLASS IMPLEMENTATION CActivation;
 		P.HOrd[0] := BYTE( _GOrd >> 16 );
 		P.HOrd[1] := BYTE( _GOrd >> 08 );
 		P.HOrd[2] := BYTE( _GOrd >> 00 );
-		SHA256.DigestOA( P, OUT d );
+		SHA256.DigestSaltOA( P, salt, OUT d );
 		c := crc.crc16( crc.crc16i, d );
 		// encrypt packet
 		Permute( c, REF K, REF IV );
@@ -608,7 +616,7 @@ CLASS IMPLEMENTATION CActivation;
 		Permute( c, REF K, REF IV );
 		A.Init( Rijndael.cphmOFBd, Rijndael.rkl256, K, IV );
 		A.Decrypt( P, OUT P, OUT l );
-		SHA256.DigestOA( P, OUT d );
+		SHA256.DigestSaltOA( P, salt, OUT d );
 		IF c <> crc.crc16( crc.crc16i, d ) THEN
 			RETURN FALSE;
 		END;
