@@ -59,8 +59,10 @@
         <OutputName Condition="$(OutputName)=='' And $(Result)=='Static'">$(ResultName).lib</OutputName>
         <OutputName Condition="$(OutputName)=='' And $(Result)=='Dynamic'">$(ResultName).dll</OutputName>
         <OutputName Condition="$(OutputName)=='' And $(Result)=='Program'">$(ResultName).exe</OutputName>
+        <OutputPDBName Condition="$(OutputPDBName)=='' And $(Result)!='Static'">$(ResultName).pdb</OutputPDBName>
         <OutputFile>$(OutputDir)\$(OutputName)</OutputFile>
         <OutputFilePath>$(OutputPath)\$(OutputName)</OutputFilePath>
+        <OutputPDBFilePath Condition="$(OutputPDBName)!=''">$(OutputPath)\$(OutputPDBName)</OutputPDBFilePath>
         <InterfaceNamePath>$(OutputPath)\$(MSBuildProjectName)</InterfaceNamePath>
         <!-- !! without .lib -->
         <InterfacePath>$(OutputPath)\$(OutputName)</InterfacePath>
@@ -285,7 +287,7 @@
 
         <!-- components which are not built must offer their runtimes -->
         <CreateItem Condition="$(Level)!='0' And $(PropagateBuild)=='off'"
-                    Include="$(OutputFilePath)"
+                    Include="$(OutputFilePath);$(OutputPDBFilePath)"
                     AdditionalMetadata="Type=Runtime">
             <Output TaskParameter="Include" ItemName="Grabbed"/>
         </CreateItem>

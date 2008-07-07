@@ -156,7 +156,7 @@ VAR
       allFlag : BOOLEAN := FALSE;
       found : BOOLEAN;
       haveSome : BOOLEAN := FALSE;
-      identity : TIdentity := TIdentity{idDisc};
+      identity : TIdentity := TIdentity{idMAC};
       j : INTEGER;
       jlist, klist : lists.TPPtrList;
       licenceItem : Items.TPLicence;
