@@ -43,6 +43,7 @@ CLASS INETADDR;
       V6 : BOOLEAN;
       Port : CARDINAL;
    PUBLIC READONLY PROPERTY
+      Empty : BOOLEAN;
       Loopback : BOOLEAN;
       Broadcast : BOOLEAN; // meaningful for IPV4 only
       Multicast : BOOLEAN;

@@ -75,6 +75,26 @@ CLASS IMPLEMENTATION INETADDR;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Empty GET : BOOLEAN;
+   VAR
+      i : CARDINAL;
+      PV6 : WS2TcpIp.Pin_addr6;
+   BEGIN
+      IF V6 THEN
+         PV6 := IN_ADDR6( SELF );
+         FOR i := 0 TO HIGH( PV6^.Byte ) DO
+            IF PBYTE( PV6@[i] )^ <> 0 THEN
+               RETURN FALSE;
+            END;
+         END; // FOR
+         RETURN TRUE;
+      ELSE
+         RETURN IN_ADDR4( SELF )^.s_addr = 0;
+      END;
+   END Empty;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY Loopback GET : BOOLEAN;
    BEGIN
       IF V6 THEN

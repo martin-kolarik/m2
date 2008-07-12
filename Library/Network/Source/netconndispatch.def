@@ -62,11 +62,10 @@ TYPE
 
 CLASS CDispatcher( msghandler.MessageHandler );
   PRIVATE VAR
-    CQueue      : msgqueue.CMessageQueue; // clients
+    Queue       : msgqueue.CMessageQueue; // clients
     Connections : inetaddr.CINETADDRMap;
     Defered     : arrays.CPtrArray; // Connections which were not able to put data into queue and were delayed. They must be restarted after queue is flushed.
     DeferLock   : sync.LOCK;
-    NQueue      : msgqueue.CMessageQueue; // network
     PListener   : netsrv.TPListener;
     PNotifier   : netsocket.TPSocketNotifier;
   PUBLIC VAR

@@ -918,31 +918,35 @@ CLASS IMPLEMENTATION DSocket;
       GOTO Failed;
     END;
     L := SIZE( Local );
-    Result := winsock.getsockname( Socket, winsock.Psockaddr( Local.Data ), ADR( L ));
-    IF Result <> 0 THEN
-      GOTO Failed;
-    END;
+    winsock.getsockname( Socket, winsock.Psockaddr( Local.Data ), ADR( L ));
 
     _Lock.Incl( REF _Pending, poConnection );
-    Result := Select( {winsock.FD_READ_BIT, winsock.FD_WRITE_BIT, winsock.FD_CLOSE_BIT} );
+    Result := StartKeepAlive();
     IF Result = 0 THEN
-      Result := StartKeepAlive();
+       Result := Select( {winsock.FD_READ_BIT, winsock.FD_WRITE_BIT} ); // allow read, write, not close -- close will be registered ASAP after notification. This
+                                                                        // prevents FD_CLOSE processing which could from socket thread disrupt Accept processing:
+                                                                        // it could close socket prematurely or preempt OnDisconnect call before OnAccept/OnConnect calls.
+                                                                        // This dirty trick (calliong Select twice) solves it.
     END;
     IF Result <> 0 THEN
-      GOTO Failed;
+       GOTO Failed;
     END;
 
     IF _Notifier <> NIL THEN
       _Notifier^.OnAccept( 0, ADR( SELF ));
       _Notifier^.OnConnect( 0, ADR( SELF ), FALSE );
     END;
+
+    Result := Select( {winsock.FD_READ_BIT, winsock.FD_WRITE_BIT, winsock.FD_CLOSE_BIT} ); // ...finish the trick started above
+    ASSERT( Result = 0 );
     Error := 0;
     RETURN Sync.arCompleted;
 
   Failed:
+    Result := winsock.WSAGetLastError();
     _Lock.Excl( REF _Pending, poConnection );
     Close( TRUE );
-    Result := winsock.WSAGetLastError();
+
     IF _Notifier <> NIL THEN
       _Notifier^.OnAccept( Result, ADR( SELF ));
       _Notifier^.OnError( IOO.dirUnknown, Result, ADR( SELF ), opAccept );
@@ -972,9 +976,9 @@ CLASS IMPLEMENTATION DSocket;
     SourceSocket^.Disconnect( TRUE, FORSAFETY );
 
     _Lock.Incl( REF _Pending, poConnection );
-    Result := Select( {winsock.FD_READ_BIT, winsock.FD_WRITE_BIT, winsock.FD_CLOSE_BIT} );
+    Result := StartKeepAlive();
     IF Result = 0 THEN
-      Result := StartKeepAlive();
+      Result := Select( {winsock.FD_READ_BIT, winsock.FD_WRITE_BIT, winsock.FD_CLOSE_BIT} );
     END;
     IF Result <> 0 THEN
       GOTO Failed;
@@ -1451,6 +1455,7 @@ CLASS IMPLEMENTATION DSocket;
         _Notifier^.OnError( IOO.dirUnknown, Error, ADR( SELF ), opDisconnect );
       END;
     END;
+
     IF ( Context <> FD_ABORT ) AND ( posConnectPrerequisities * LPending = posConnectPrerequisities ) THEN // disconnect caused inside connect, connect is not waiting for DNS
       StartConnect();
     END;
