@@ -228,8 +228,8 @@ CLASS CDriver( msghandler.MessageHandler ) IMPLEMENTS diface.ICWDriver;
   PUBLIC VIRTUAL PROCEDURE EnumerateChannels( REF EnumerateState : LONGWORD; OUT Type : drv_def.TValueType; OUT Direction : drv_def.TDirection; OUT DriverIndex, Count : CARDINAL; OUT HaveDescription : BOOLEAN ) : BOOLEAN;
   PUBLIC VIRTUAL PROCEDURE GetChannelDescription( DriverIndex : CARDINAL; OUT Description : StringsO.CString; OUT Id : StringsO.CString ) : BOOLEAN;
 
-  PUBLIC VIRTUAL PROCEDURE Run();
-  PUBLIC VIRTUAL PROCEDURE Stop();
+  PUBLIC VIRTUAL PROCEDURE DriverRun();
+  PUBLIC VIRTUAL PROCEDURE DriverStop();
   PUBLIC VIRTUAL PROCEDURE Dispose();
 
   PUBLIC VIRTUAL PROCEDURE DriverProc( Func, Param1, Param2, Param3, Param4 : CARDINAL );
@@ -660,7 +660,7 @@ CLASS IMPLEMENTATION CDriver;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Run();
+   PUBLIC VIRTUAL PROCEDURE DriverRun();
    VAR
       s : FIO.PathStrW;
    BEGIN
@@ -679,11 +679,11 @@ CLASS IMPLEMENTATION CDriver;
          ListenAddress.V6 := TRUE;
          netsrv.StartListen( netsocket.stStream, ListenAddress, NIL, Server.Listener, 0, NIL );
       END;
-   END Run;
+   END DriverRun;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Stop();
+   PUBLIC VIRTUAL PROCEDURE DriverStop();
    BEGIN
       IF TRStatus{rsRunning} * RStatus = TRStatus{} THEN
          RETURN;
@@ -696,7 +696,7 @@ CLASS IMPLEMENTATION CDriver;
          ListenAddress.V6 := TRUE;
          netsrv.StopListenServer( netsocket.stStream, ListenAddress );
       END;
-   END Stop;
+   END DriverStop;
 
 (*--------------------------------------------------------------------------------*)
 
