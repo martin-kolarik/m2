@@ -217,7 +217,7 @@ VAR
 BEGIN
 	wp[0] := 0W;
 	IF Separator = 0W THEN
-		l := 0; // no prefix is detectable
+		l := -1; // no prefix is detectable
 	ELSE
 		l := Strings.IndexOfCharW( In, Separator, 0 );
 		IF l <> -1 THEN
