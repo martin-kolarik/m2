@@ -802,6 +802,8 @@ CLASS IMPLEMENTATION CBufferedStream;
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC VIRTUAL PROPERTY Notifier SET( Value : TPDataInfo );
+  VAR
+    _LNotifier : TPDataInfo;
   BEGIN
     IF _Notifier = Value THEN
       RETURN;
@@ -809,10 +811,11 @@ CLASS IMPLEMENTATION CBufferedStream;
     IF Value <> NIL THEN
       Value^.AddRef();
     END;
-    IF _Notifier <> NIL THEN
-      _Notifier^.Release();
-    END;
+    _LNotifier := _Notifier; // use local variable to avoid recursion
     _Notifier := Value;
+    IF _LNotifier <> NIL THEN
+      _LNotifier^.Release();
+    END;
   END Notifier;
 
 (*--------------------------------------------------------------------------------*)
