@@ -35,7 +35,7 @@
         <GrabProcessFile>$(ComponentPath)\$(IntermediateDirName)\$(GrabProcessFileName)</GrabProcessFile>
         <GrabProcessFile Condition="$(ComponentType)=='Generic' And $(InheritedGrabProcessFile)!=''">$(InheritedGrabProcessFile)</GrabProcessFile>
 
-        <InheritedProperties>InheritedComponentDefinitionsPath=$(ComponentDefinitionsPath);InheritedLibraryName=$(LibraryName)</InheritedProperties>
+        <InheritedProperties>InheritedComponentDefinitionsPath=$(ComponentDefinitionsPath);InheritedManufacturer=$(Manufacturer);InheritedLibraryName=$(LibraryName)</InheritedProperties>
         <ChildParameters>Level=1+;ProductPath=$(ProductPath);ProductId=$(ProductId);ProductLinkMapFilePath=$(ProductLinkMapFilePath);$(InheritedProperties)</ChildParameters>
         <ChildParameters Condition="$(Test)=='off'">Test=off;$(ChildParameters)</ChildParameters>
 
