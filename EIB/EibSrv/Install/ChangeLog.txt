@@ -1,3 +1,10 @@
+Version 1.0.1702 beta 13.7.2008
+- BUG: many bugs in SDAP processing (locking under heavy load, problems with
+       connection close during accept)
+- BUG: EIBNet processing could read packet from different source, if the source
+       was present in the net and if process has heavily loaded.
+- CHG: development changes in support code
+
 Version 1.0.1134 beta 15.10.2007
 - NEW: reading ESF file (export from ETS)
 - NEW: initial version of sdap
