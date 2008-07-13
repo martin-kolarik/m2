@@ -25,6 +25,8 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
+        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\EIB\srvsvc"/>
+
         <Components Include="Component\sccore;EIB\srvsvc;EIB\checkcfg;EIB\discover"/>
     </ItemGroup>
 

@@ -15,12 +15,10 @@
     <Import Project="..\..\Build\common.rootdir.proj"/>
     <Import Project="$(RootBuildDir)\common.definition.proj"/>
 
-    <PropertyGroup>
-        <BuildVersionSource>$(RootDir)\Library</BuildVersionSource>
-    </PropertyGroup>
-
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
+        <BuildVersionSource Include="$(RootPath)\Library"/>
+
         <Components Include="modula2\m2rtl;modula2\m2ortl;library\ADT;library\COM;library\Resources;library\Registry;library\Text"/>
         <Components Include="library\ciphering;library\threading;library\Network;library\Service;library\ClassLoader;component\scinit"/>
     </ItemGroup>

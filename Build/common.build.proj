@@ -182,9 +182,12 @@
 
     <!-- build number -->
     <Target Name="ProductBuildNumberGet" Condition="$(ComponentType)=='Product'">
-        <SvnVersion LocalPath="$(ProductPath)" Options="-c">
-            <Output TaskParameter="Revision" PropertyName="ProductVersionBuild"/>
+        <SvnVersion Condition="%(Identity)!=''" LocalPath="@(BuildVersionSource)" Options="-c">
+            <Output TaskParameter="Revision" ItemName="ProductVersionBuilds"/>
         </SvnVersion>
+        <MinMax Input="@(ProductVersionBuilds)">
+            <Output TaskParameter="Maximum" PropertyName="ProductVersionBuild"/>
+        </MinMax>
         <CreateProperty Value="$(ProductVersionMajor).$(ProductVersionMinor).$(ProductVersionBuild)">
             <Output TaskParameter="Value" PropertyName="ProductVersion"></Output>
         </CreateProperty>
@@ -195,6 +198,7 @@
 
     <!-- resources default -->
     <UsingTask TaskName="SvnVersion" AssemblyFile="BuildTasks.dll"/>
+    <UsingTask TaskName="MinMax" AssemblyFile="BuildTasks.dll"/>
     <Import Project="internal.resource.targets"/>
 
 
@@ -456,9 +460,12 @@
     </Target>
 
     <Target Name="CheckRevision">
-        <SvnVersion LocalPath="$(BuildVersionSource)" Options="-c">
-            <Output TaskParameter="Revision" PropertyName="FileVersionBuild"/>
+        <SvnVersion Condition="%(Identity)!=''" LocalPath="@(BuildVersionSource)" Options="-c">
+            <Output TaskParameter="Revision" ItemName="FileVersionBuilds"/>
         </SvnVersion>
+        <MinMax Input="@(FileVersionBuilds)">
+            <Output TaskParameter="Maximum" PropertyName="FileVersionBuild"/>
+        </MinMax>
         <ReadLinesFromFile File="$(RCFile).lastrev" ContinueOnError="true">
             <Output TaskParameter="Lines" PropertyName="LastRev"/>
         </ReadLinesFromFile>

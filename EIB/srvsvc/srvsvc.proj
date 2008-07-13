@@ -27,6 +27,8 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
+        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\EIB\EibSrv"/>
+
         <Components Include="modula2\modula2;api\clib;API\win32"/>
         <Components Include="component\sccore;library\DeviceIO;EIB\srvcore"/>
         <Program Include="srvsvc"/>
