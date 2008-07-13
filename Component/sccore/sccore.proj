@@ -25,7 +25,7 @@
         <Components Include="library\ciphering;library\threading;library\Network;library\Service;library\ClassLoader;component\scinit"/>
     </ItemGroup>
 
-    <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
+    <!-- 4 LAST INCLUDE COMPILATION CODE ITSELF -->
     <Import Project="$(RootBuildDir)\common.build.proj"/>
 
 </Project>
