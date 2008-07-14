@@ -1,4 +1,6 @@
-Version 1.0.1705 beta 13.7.2008
+Version 1.0.1707 beta 14.7.2008
+- BUG: receiving of many small packets could cause double processing
+       ot received packets
 - CHG: corrected version numbers of bundled components
 
 Version 1.0.1702 beta 13.7.2008
