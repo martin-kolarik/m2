@@ -24,6 +24,12 @@ IMPORT
 
 //================================================================================
 
+CONST
+   MQUEUE_MSG = msgqueue.MSG_PROCESS_QUEUE + 1;
+   SQUEUE_MSG = msgqueue.MSG_PROCESS_QUEUE + 2;
+   
+//================================================================================
+
 CLASS IMPLEMENTATION CClientInterface;
   
 //--------------------------------------------------------------------------------
@@ -184,6 +190,7 @@ TYPE
                   NCLocal : BOOLEAN;
                 | cmNetworkReceive :
                   NRSocket : netsocket.TPDSocket;
+                  NRData : ADDRESS;
                   NRLength : CARDINAL;
 
                 | cmClientJoin :
@@ -578,13 +585,19 @@ CLASS IMPLEMENTATION CDispatcher;
     
       CASE MSG.Message OF
       //-----
-      | msgqueue.MSG_PROCESS_QUEUE :
-         WHILE Queue.DequeueOA( OUT Message, FALSE, 0 ) = Sync.arCompleted DO
+      | MQUEUE_MSG :
+         WHILE MQueue.DequeueOA( OUT Message, FALSE, 0 ) = Sync.arCompleted DO
             DoMessage( ADR( Message ));
          END; // WHILE
 
          // restart receiving for defered clients
          RestartDefered();
+
+      //-----
+      | SQUEUE_MSG :
+         WHILE SQueue.DequeueOA( OUT Message, FALSE, 0 ) = Sync.arCompleted DO
+            DoMessage( ADR( Message ));
+         END; // WHILE
 
       //-----
       ELSE
@@ -599,14 +612,11 @@ CLASS IMPLEMENTATION CDispatcher;
   
   PRIVATE PROCEDURE DoMessage( message : ADDRESS );
   VAR
-    a : ADDRESS;
     b : BOOLEAN;
     Connection : TPConnection;
     CurrentConnection : TPConnection;
     Error : CARDINAL;
-    IRead : IOO.TPBufferedReader;
     Known : BOOLEAN;
-    l : CARDINAL;
     MDatagram : IOO.CMemoryProxy;
     Message : TPMessage := TPMessage( message );
     NResult : Sync.TAsyncResult;
@@ -691,27 +701,17 @@ CLASS IMPLEMENTATION CDispatcher;
      //-----
      | cmNetworkReceive :
        Connection := TPConnection( Message^.NRSocket );
-       IF Connections.Contains( Connection^.RemoteAddress ) THEN
-         Log( dldDebug, Connection, L"Receive.Net " );
 
-          IRead := Connection^.IRead;
-          WHILE IRead^.Peek( OUT a, OUT l ) DO
-            logger()^.LogSC( dldDebug, logPrefix, L"  count ", l );
+       logger()^.LogSC( dldDebug, logPrefix, L"Receive bytes ", Message^.NRLength );
+       Log( dldDebug, Connection, L"  from known connection " );
 
-            OnReceive( Connection, a, l );
-            Connection^.OnReceive( a, l );
+       ASSERT( Connections.Contains( Connection^.RemoteAddress )); // there only an error could cause that connection is not known
 
-            IRead^.ReadOut( l ); // read out and signal next reading
+       OnReceive( Connection, Message^.NRData, Message^.NRLength );
+       Connection^.OnReceive( Message^.NRData, Message^.NRLength );
 
-            IF Connection^.Peer <> NIL THEN // connection is self to self in single process, signal that peer can continue with send
-               Connection^.Peer^.PeerSignal._Signal();
-            END;
-          END; // WHILE 
-            
-       ELSE // ignore unknown connection
-         Log( dldDebug, Connection, L"Receive from unknown connection " );
-       END;
-       
+       DISPOSE( Message^.NRData ); // cleanup
+
      //-----
      | cmClientJoin :
        logger()^.LogSP( dldTrace, logPrefix, L"Join ", Message^.CPClient );
@@ -958,7 +958,7 @@ CLASS IMPLEMENTATION CDispatcher;
   BEGIN
     Message.Command := cmNetworkAccept;
     Message.NServerSocket := ServerSocket;
-    Result := Queue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
+    Result := MQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
   END OnListen;
 
@@ -973,7 +973,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.NCSocket := Socket;
     Message.NCError := Error;
     Message.NCLocal := Local;
-    Result := Queue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
+    Result := MQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
   END OnNetworkConnect;
 
@@ -998,39 +998,58 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.NCSocket := Socket;
     Message.NCError := Error;
     Message.NCLocal := Local;
-    Result := Queue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
+    Result := MQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
   END OnNetworkDisconnect;
 
 //--------------------------------------------------------------------------------
   
-  LOCAL PROCEDURE OnNetworkReceive( CONST Socket : netsocket.TPDSocket; Length : CARDINAL );
-  VAR
-    Message : TMessage;
-    Result : Sync.TAsyncResult;
-  BEGIN
-    IF Length = 0 THEN
-       RETURN;
-    END;
+   LOCAL PROCEDURE OnNetworkReceive( CONST Socket : netsocket.TPDSocket; Length : CARDINAL );
+   VAR
+      a : ADDRESS;
+      Connection : TPConnection := TPConnection( Socket );
+      IRead : IOO.TPBufferedReader;
+      l : CARDINAL;
+      Message : TMessage;
+      Result : Sync.TAsyncResult;
+   BEGIN
+      IF Length = 0 THEN
+         RETURN;
+      END;
 
-    Message.Command := cmNetworkReceive;
-    Message.NRSocket := Socket;
-    Message.NRLength := Length;
+      IRead := Connection^.IRead;
+      WHILE IRead^.Peek( OUT a, OUT l ) DO
+         Message.Command := cmNetworkReceive;
+         Message.NRSocket := Socket;
+         Message.NRLength := l;
+         ALLOCATE( Message.NRData, l );
+         Storage.Move( a, Message.NRData, l );
 
-    // queue request
-    Result := Queue.EnqueueOA( Message, FALSE, 0 ); // to not to block receiving thread to long
-    IF Result <> Sync.arCompleted THEN
-       Log( dldTrace, TPConnection( Socket ), "Receive.Queue Timeout" );
+      // queue request
+         Result := MQueue.EnqueueOA( Message, FALSE, 0 ); // to not to block receiving thread to long
+         IF Result = Sync.arCompleted THEN
+            IRead^.ReadOut( l ); // read out and signal next reading
+
+            IF Connection^.Peer <> NIL THEN // connection is self to self in single process, signal that peer can continue with send
+               Connection^.Peer^.PeerSignal._Signal();
+            END;
          
-       DeferLock.Lock();
-       IF NOT Defered.Contains( Socket ) THEN
-          Socket^.AddRef(); // force leaving over disconnect done before StartReceive
-          Defered.Add( Socket );
-       END;
-       DeferLock.Unlock();
+         ELSE // if data cannot be queued, leave loop, and store connection in Defered, which will be restarted after Queue flush
+            DISPOSE( Message.NRData );
+            Log( dldTrace, Connection, "Receive.Queue Timeout" );
+       
+            DeferLock.Lock();
+            IF NOT Defered.Contains( Connection ) THEN
+               Connection^.AddRef(); // force leaving over disconnect done before StartReceive
+               Defered.Add( Connection );
+            END;
+            DeferLock.Unlock();
 
-    END; // IF
-  END OnNetworkReceive;
+            EXIT;
+         END;
+
+      END; // WHILE
+   END OnNetworkReceive;
 
 //--------------------------------------------------------------------------------
   
@@ -1073,10 +1092,10 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.JPClient := PClient;
     Message.JPClient^.AddRef(); // temporary
     Message.JRemoteAddress := RemoteAddress;
-    Result := Queue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
+    Result := MQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
     // make Join synchronous (to allow clients synchronously store their records)
-    Result := Queue.PushToConsumer( TRUE, netsocket.FORSAFETY );
+    Result := MQueue.PushToConsumer( TRUE, netsocket.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
   END Join;
 
@@ -1091,10 +1110,10 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.CPClient := PClient;
     Message.CPClient^.AddRef(); // temporary
     Message.CPConnection := Connection;
-    Result := Queue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
+    Result := MQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
     // make Leave synchronous (to allow clients synchronously remove their records)
-    Result := Queue.PushToConsumer( TRUE, netsocket.FORSAFETY );
+    Result := MQueue.PushToConsumer( TRUE, netsocket.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
   END Leave;
 
@@ -1108,7 +1127,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.Command := cmClientConnect;
     Message.CPClient := PClient;
     Message.CPConnection := Connection;
-    Result := Queue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
+    Result := MQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
   END Connect;
 
@@ -1122,7 +1141,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.Command := cmClientDisconnect;
     Message.CPClient := PClient;
     Message.CPConnection := Connection;
-    Result := Queue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
+    Result := MQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
     ASSERT( Result <> Sync.arTimeout );
   END Disconnect;
 
@@ -1155,18 +1174,27 @@ CLASS IMPLEMENTATION CDispatcher;
       ALLOCATE( Message.SData, DataLen );
       Storage.Move( PData, Message.SData, DataLen );
 
-      Result := Queue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
+      Result := SQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
       ASSERT( Result <> Sync.arTimeout );
    END Send;
 
 //--------------------------------------------------------------------------------
 
    INITIALLY CDispatcher();
+   VAR
+      Msg : msghandler.Message;
    BEGIN
       Defered.Strategy := array.astrgListInArray;
 
-      Queue.Init( 256, SIZE( TMessage ));
-      Queue.Consumer := ADR( SELF );
+      Msg.Message := MQUEUE_MSG;
+      MQueue.Init( 256, SIZE( TMessage ));
+      MQueue.Consumer := ADR( SELF );
+      MQueue.ConsumerMsg := ADR( Msg );
+
+      Msg.Message := SQUEUE_MSG;
+      SQueue.Init( 256, SIZE( TMessage ));
+      SQueue.Consumer := ADR( SELF );
+      SQueue.ConsumerMsg := ADR( Msg );
 
       NEW( TPListener( PListener )); TPListener( PListener )^.PDispatcher := ADR( SELF );
       NEW( TPNotifier( PNotifier )); TPNotifier( PNotifier )^.PDispatcher := ADR( SELF );
