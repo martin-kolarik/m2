@@ -1,3 +1,9 @@
+Version 1.0.1710 beta
+- BUG: Group object communication status for CW driver interface was badly
+       synchronized. This caused step-by-step stopping of synchronous CW
+       communication. The effect was hidden sometimes, because the driver forces
+       CW to accept asychronous values as well.    
+
 Version 1.0.1693 beta
 - CHG: Sequence correction algorithm from #1672 was modified to accept
        not only skipping of sequence number, but also an insertion of sequence number.
