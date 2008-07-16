@@ -416,6 +416,12 @@ VAR
 BEGIN
    Engine.LoadProducts( Path1, Path2, ProductId, OUT data );
 
+   #if DEBUG #then
+      IF data.Count = 0 THEN      
+         Log.LogSSSS( dldDebug, L"LEC", L"No products found in: ", Path1, Path2, ProductId );
+      END;
+   #endif
+
    Result.QueryStarted();
    FOR i := 0 TO data.Count-1 DO
       Result.QueryData( data[i] );
