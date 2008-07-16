@@ -26,7 +26,7 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <BuildVersionSource Include="$(RootPath)\CWDriver\eibnetdrv"/>
+        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\EIB\eibnetstack;$(RootPath)\EIB\srvcore;$(RootPath)\CWDriver\eibnetdrv"/>
 
         <Components Include="component\sccore;CWDriver\eibnetdrv;EIB\checkcfg;EIB\discover"/>
     </ItemGroup>

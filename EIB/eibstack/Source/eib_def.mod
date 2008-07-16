@@ -1082,7 +1082,7 @@ CLASS IMPLEMENTATION EMIPacket;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE ToValue( VAR Value : CValue );
+  PUBLIC PROCEDURE ToValue( OUT Value : CValue );
   TYPE
     T4B = RECORD b0, b1, b2, b3 : BYTE; END;
   VAR
@@ -1197,7 +1197,7 @@ CLASS IMPLEMENTATION EMIPacket;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE FromValue( PValue : TPValue );
+  PUBLIC PROCEDURE FromValue( CONST Value : CValue );
   TYPE
     T4B = RECORD b0, b1, b2, b3 : BYTE; END;
   VAR
@@ -1216,14 +1216,14 @@ CLASS IMPLEMENTATION EMIPacket;
     b : BOOLEAN;
     Up, Down : BOOLEAN;
   BEGIN
-    CASE PValue^.Type OF
+    CASE Value.Type OF
     //-----
     | eitUnknown:
       ASSERT( FALSE );
     //-----
     | eitSwitch:
       NetworkControl := NetworkControl - ncmDataLength + ncsDataLength1;
-      IF PValue^.GetSwitch() THEN
+      IF Value.GetSwitch() THEN
         TransportControl := TransportControl - acmEISData + BITSET16{ le2be[0] };
       ELSE
         TransportControl := TransportControl - acmEISData;
@@ -1231,7 +1231,7 @@ CLASS IMPLEMENTATION EMIPacket;
     //-----
     | eitIncrease:
       NetworkControl := NetworkControl - ncmDataLength + ncsDataLength1;
-      i := PValue^.GetIncrease( Up, Down );
+      i := Value.GetIncrease( Up, Down );
       IF i = 0 THEN // Stop
         TransportControl := TransportControl - acmEISData;
         RETURN;
@@ -1264,7 +1264,7 @@ CLASS IMPLEMENTATION EMIPacket;
     | eitTime:
       NetworkControl := NetworkControl - ncmDataLength + ncsDataLength4;
       TransportControl := TransportControl - acmEISData;
-      PValue^.GetTime( Day, H, M, S );
+      Value.GetTime( Day, H, M, S );
       Data[0] := BYTE(( CARDINAL( Day ) << 5 ) OR H );
       Data[1] := BYTE( M );
       Data[2] := BYTE( S );
@@ -1272,7 +1272,7 @@ CLASS IMPLEMENTATION EMIPacket;
     | eitDate:
       NetworkControl := NetworkControl - ncmDataLength + ncsDataLength4;
       TransportControl := TransportControl - acmEISData;
-      PValue^.GetDate( Y, M, D );
+      Value.GetDate( Y, M, D );
       Data[0] := BYTE( D );
       Data[1] := BYTE( M );
       IF Y < 2000 THEN
@@ -1284,7 +1284,7 @@ CLASS IMPLEMENTATION EMIPacket;
     | eitValue:
       NetworkControl := NetworkControl - ncmDataLength + ncsDataLength3;
       TransportControl := TransportControl - acmEISData;
-      LR := PValue^.GetValue();
+      LR := Value.GetValue();
       IF LR = 0.0 THEN
         Data[0] := 0; Data[2] := 0;
         RETURN;
@@ -1310,7 +1310,7 @@ CLASS IMPLEMENTATION EMIPacket;
     | eitValueRange:
       NetworkControl := NetworkControl - ncmDataLength + ncsDataLength3;
       TransportControl := TransportControl - acmEISData;
-      LR := PValue^.GetValueRange( LoRange, HiRange );
+      LR := Value.GetValueRange( LoRange, HiRange );
       IF LR = 0.0 THEN
         Data[0] := 0; Data[1] := 0;
         RETURN;
@@ -1342,16 +1342,16 @@ CLASS IMPLEMENTATION EMIPacket;
     | eitScaling:
       NetworkControl := NetworkControl - ncmDataLength + ncsDataLength2;
       TransportControl := TransportControl - acmEISData;
-      Data[0] := BYTE(( 255 * PValue^.GetScaling() + 50 ) DIV 100 );
+      Data[0] := BYTE(( 255 * Value.GetScaling() + 50 ) DIV 100 );
     //-----
     | eitScaling255:
       NetworkControl := NetworkControl - ncmDataLength + ncsDataLength2;
       TransportControl := TransportControl - acmEISData;
-      Data[0] := BYTE( PValue^.GetScaling255() );
+      Data[0] := BYTE( Value.GetScaling255() );
     //-----
     | eitMove :
       NetworkControl := NetworkControl - ncmDataLength + ncsDataLength1;
-      IF PValue^.GetMove() THEN
+      IF Value.GetMove() THEN
         TransportControl := TransportControl - acmEISData;
       ELSE
         TransportControl := TransportControl - acmEISData + BITSET16{ le2be[0] };
@@ -1359,12 +1359,12 @@ CLASS IMPLEMENTATION EMIPacket;
     //-----
     | eitPriority :
       NetworkControl := NetworkControl - ncmDataLength + ncsDataLength1;
-      TransportControl := TransportControl + BITSET16( PValue^.GetPriority() << 8 );
+      TransportControl := TransportControl + BITSET16( Value.GetPriority() << 8 );
     //-----
     | eitFloat:
       NetworkControl := NetworkControl - ncmDataLength + ncsDataLength5;
       TransportControl := TransportControl - acmEISData;
-      LR := LONGREAL( PValue^.GetFloat());
+      LR := LONGREAL( Value.GetFloat());
       Data[0] := T4B( LR ).b3;
       Data[1] := T4B( LR ).b2;
       Data[2] := T4B( LR ).b1;
@@ -1373,14 +1373,14 @@ CLASS IMPLEMENTATION EMIPacket;
     | eit16bit:
       NetworkControl := NetworkControl - ncmDataLength + ncsDataLength3;
       TransportControl := TransportControl - acmEISData;
-      i := PValue^.Get16bit();
+      i := Value.Get16bit();
       Data[0] := BYTE( i DIV 256 );
       Data[1] := BYTE( i AND 255 );
     //-----
     | eit32bit:
       NetworkControl := NetworkControl - ncmDataLength + ncsDataLength5;
       TransportControl := TransportControl - acmEISData;
-      i := PValue^.Get32bit();
+      i := Value.Get32bit();
       Data[0] := BYTE( i DIV ( 65536 * 256 ));
       Data[1] := BYTE(( i DIV 65536 ) AND 255 );
       Data[2] := BYTE(( i DIV 256 ) AND 255 );
@@ -1389,14 +1389,14 @@ CLASS IMPLEMENTATION EMIPacket;
     | eitAccess:
       NetworkControl := NetworkControl - ncmDataLength + ncsDataLength5;
       TransportControl := TransportControl - acmEISData;
-      PValue^.GetAccess( i, Flags, Index );
+      Value.GetAccess( i, Flags, Index );
       Data[0] := BYTE( i >> 16 );
       Data[1] := BYTE(( i >> 8 ) AND 0FFH );
       Data[2] := BYTE( i AND 0FFH );
       Data[3] := BYTE( CARDINAL( Flags ) << 4 OR Index AND 0FH );
     //-----
     | eitChar:
-      sw[0] := PValue^.GetChar();
+      sw[0] := Value.GetChar();
       sw[1] := WCHAR( 0 );
       Strings.ToA( sw, 0, OUT sa );
       NetworkControl := NetworkControl - ncmDataLength + ncsDataLength2;
@@ -1406,10 +1406,10 @@ CLASS IMPLEMENTATION EMIPacket;
     | eit8bit:
       NetworkControl := NetworkControl - ncmDataLength + ncsDataLength2;
       TransportControl := TransportControl - acmEISData;
-      Data[0] := BYTE( PValue^.Get8bit() );
+      Data[0] := BYTE( Value.Get8bit() );
     //-----
     | eitString:
-      PValue^.GetString( EISStringW );
+      Value.GetString( EISStringW );
       Strings.ToA( EISStringW, 0, OUT EISString );
       NetworkControl := NetworkControl - ncmDataLength + ncsDataLength15;
       TransportControl := TransportControl - acmEISData;

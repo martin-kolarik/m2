@@ -44,22 +44,14 @@ CLASS CObject( eib_user.CUserObject );
    PUBLIC PROCEDURE LogNumber() : CARDINAL;
 
    // rewritten due to locking
-   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Req();
-   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Con( Status : eib_status.TEIBStackStatus );
-   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Res( Status : eib_status.TEIBStackStatus; CONST PPacket : eib_def.TPPacket );
-   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Ind( CONST PPacket : eib_def.TPPacket );
-   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Con( Status : eib_status.TEIBStackStatus );
+   INTERNAL VIRTUAL PROCEDURE Lock();
+   INTERNAL VIRTUAL PROCEDURE Unlock();
 
-   // due to locking
-   PUBLIC PROCEDURE SetValue( CONST Value : eib_def.TValue ) : eib_status.TEIBStackStatus;
-   PUBLIC PROCEDURE GetValue( VAR Value : eib_def.TValue; UseCached, ForceReadOutOfOrder : BOOLEAN ) : eib_status.TEIBStackStatus;
-   PUBLIC PROCEDURE Transmit() : eib_status.TEIBStackStatus;
-
-   // handling events, no need to lock, lock is done inside AU_* methods
-   INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : eib_status.TEIBStackStatus );
-   INTERNAL VIRTUAL PROCEDURE ValueRead( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN );
-   INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN );
-   INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : eib_status.TEIBStackStatus );
+   // handling events, NOT synchronized, if there is a need (e.g. if synchronized helper is not called) accessing object data inside MUST be synchronized
+   INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : eib_status.TEIBStackStatus; ObjectState : eib_user.TObjectState );
+   INTERNAL VIRTUAL PROCEDURE ValueRead( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN; ObjectState : eib_user.TObjectState );
+   INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN; ObjectState : eib_user.TObjectState );
+   INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : eib_status.TEIBStackStatus; ObjectState : eib_user.TObjectState );
 END CObject;
 
 //--------------------------------------------------------------------------------
@@ -229,10 +221,10 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    PROCEDURE DoneObjects( NILExecutive : BOOLEAN );
 
    // object callbacks
-   LOCAL PROCEDURE ValueReadRequestSent( PObject : TPObject );
-   LOCAL PROCEDURE ValueRead( PObject : TPObject );
-   LOCAL PROCEDURE ValueUpdated( PObject : TPObject );
-   LOCAL PROCEDURE ValueWritten( PObject : TPObject );
+   LOCAL PROCEDURE ValueReadRequestSent( PObject : TPObject; ObjectState : eib_user.TObjectState ); // ObjectState is a synchronous copy
+   LOCAL PROCEDURE ValueRead( PObject : TPObject; ObjectState : eib_user.TObjectState ); // dtto
+   LOCAL PROCEDURE ValueUpdated( PObject : TPObject; ObjectState : eib_user.TObjectState ); // dtto
+   LOCAL PROCEDURE ValueWritten( PObject : TPObject; ObjectState : eib_user.TObjectState ); // dtto
 
    // helpers
    PROCEDURE DoInitRead( RepeatFlag : BOOLEAN );

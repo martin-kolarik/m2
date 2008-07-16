@@ -78,6 +78,18 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
+   INTERNAL VIRTUAL PROCEDURE Lock(); // hook to lock synchronized data, by default empty
+   BEGIN
+   END Lock;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE Unlock(); // hook to lock synchronized data, by default empty
+   BEGIN
+   END Unlock;
+
+(*--------------------------------------------------------------------------------*)
+
   PUBLIC PROCEDURE Executive() : eib_stack.TPEIBStackApplicationLayer;
   BEGIN
     RETURN PExecutive;
@@ -90,12 +102,17 @@ CLASS IMPLEMENTATION CUserObject;
     LPacket : eib_def.TPacket;
     PGroup : TPAU_Group;
   BEGIN
+    Lock();
     IF NOT Groups.GetFirst( OUT PGroup ) THEN
+      Unlock();
       RETURN;
     ELSIF eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofReadable} * Flags <> eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofReadable} THEN
+      Unlock();
       RETURN;
     END;
-    LPacket.FromValue( ADR( Value ));
+    LPacket.FromValue( Value );
+    Unlock();
+
     // now, response is done to the first address
     Executive()^.A_GroupValue_Read_Res( ADR( SELF ), PGroup^.Address, Class, LPacket );
   END AU_GroupValue_Read_Req;
@@ -103,21 +120,29 @@ CLASS IMPLEMENTATION CUserObject;
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Con( Status : eib_status.TEIBStackStatus );
+  VAR
+    LState : TObjectState;
   BEGIN
     IF eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofUpdate} * Flags <> eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofUpdate} THEN
       RETURN;
     END;
+
+    Lock();
     State := State - TObjectState{osTransmitting} + TObjectState{osTransmitted};
-    ValueReadRequestSent( Status );
+    LState := State;
     IF Status <> eib_status.essOK THEN // errorneous request kills reading
       State := State - TObjectState{osTransmitted, osReading};
     END;
+    Unlock();
+
+    ValueReadRequestSent( Status, LState );
   END AU_GroupValue_Read_Con;
 
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Res( Status : eib_status.TEIBStackStatus; CONST PPacket : eib_def.TPPacket );
   VAR
+    LState : TObjectState;
     LValue : eib_def.TValue;
     eq : BOOLEAN;
   BEGIN
@@ -126,7 +151,9 @@ CLASS IMPLEMENTATION CUserObject;
 
     ELSIF Status = eib_status.essOK THEN
       LValue.SetType( Value.GetType());
-      PPacket^.ToValue( LValue );
+      PPacket^.ToValue( OUT LValue );
+
+      Lock();
       eq := Value.Equals( LValue );
       IF eq THEN
         State := State - TObjectState{osTransmitting} + TObjectState{osTransmitted, osUpdated};
@@ -134,21 +161,28 @@ CLASS IMPLEMENTATION CUserObject;
         State := State - TObjectState{osTransmitting} + TObjectState{osTransmitted, osUpdated, osChanged};
         Value := LValue;
       END;
+      LState := State;
+      State := State - TObjectState{osTransmitted, osReading, osUpdated, osChanged};
+      Unlock();
 
-      ValueRead( eib_status.essOK, NOT eq );
-      ValueUpdated( eib_status.essOK, NOT eq );
+      ValueRead( eib_status.essOK, NOT eq, LState );
+      ValueUpdated( eib_status.essOK, NOT eq, LState );
     ELSE
+      Lock();
+      LState := State;
+      State := State - TObjectState{osTransmitted, osReading, osUpdated, osChanged};
+      Unlock();
 
-      ValueRead( Status, FALSE );
+      ValueRead( Status, FALSE, LState );
     END;
 
-    State := State - TObjectState{osTransmitted, osReading, osUpdated, osChanged};
   END AU_GroupValue_Read_Res;
 
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Ind( CONST PPacket : eib_def.TPPacket );
   VAR
+    LState : TObjectState;
     LValue : eib_def.TValue;
     eq : BOOLEAN;
   BEGIN
@@ -157,7 +191,9 @@ CLASS IMPLEMENTATION CUserObject;
     END;
 
     LValue.SetType( Value.GetType());
-    PPacket^.ToValue( LValue );
+    PPacket^.ToValue( OUT LValue );
+
+    Lock();
     eq := Value.Equals( LValue );
     IF eq THEN
       State := State + TObjectState{osUpdated};
@@ -165,21 +201,30 @@ CLASS IMPLEMENTATION CUserObject;
       State := State + TObjectState{osUpdated, osChanged};
       Value := LValue;
     END;
-    ValueUpdated( eib_status.essOK, NOT eq );
-
+    LState := State;
     State := State - TObjectState{osUpdated, osChanged};
+    Unlock();
+
+    ValueUpdated( eib_status.essOK, NOT eq, LState );
   END AU_GroupValue_Write_Ind;
 
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Con( Status : eib_status.TEIBStackStatus );
+  VAR
+    LState : TObjectState;
   BEGIN
     IF eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofTransmit} * Flags <> eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofTransmit} THEN
       RETURN;
     END;
+
+    Lock();
     State := State - TObjectState{osTransmitting} + TObjectState{osTransmitted};
-    ValueWritten( Status );
-    State := State - TObjectState{osTransmitted, osWritting};
+    LState := State;
+    State := State - TObjectState{osTransmitted, osWriting};
+    Unlock();
+
+    ValueWritten( Status, LState );
   END AU_GroupValue_Write_Con;
 
 (*--------------------------------------------------------------------------------*)
@@ -476,24 +521,36 @@ CLASS IMPLEMENTATION CUserObject;
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC PROCEDURE SetValue( CONST _Value : eib_def.TValue ) : eib_status.TEIBStackStatus;
+  VAR
+    Result : eib_status.TEIBStackStatus;
   BEGIN
+    Lock();
     Value.CopyFrom( _Value );
-    RETURN Transmit();
+    Result := Transmit();
+    Unlock();
+    RETURN Result;
   END SetValue;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE GetValue( VAR _Value : eib_def.TValue; UseCached, ForceReadOutOfOrder : BOOLEAN ) : eib_status.TEIBStackStatus;
+  PUBLIC PROCEDURE GetValue( OUT _Value : eib_def.TValue; UseCached, ForceReadOutOfOrder : BOOLEAN ) : eib_status.TEIBStackStatus;
   VAR
-    PGroup : TPAU_Group;
     b : BOOLEAN;
+    PGroup : TPAU_Group;
+    Result : eib_status.TEIBStackStatus := eib_status.essOK;
   BEGIN
+    Lock();
+
     IF eib_def.aofPromiscuous IN Flags THEN
       _Value.CopyFrom( Value );
+
     ELSIF NOT Groups.GetFirst( OUT PGroup ) THEN
+      Unlock();
       RETURN eib_status.essAU_NoAddress;
+
     ELSIF UseCached THEN
       _Value.CopyFrom( Value );
+
     ELSIF ForceReadOutOfOrder OR ( eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofForceRead} * Flags = eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofForceRead} ) THEN
       b := TRUE;
       WHILE b AND NOT PGroup^.ReadFlag DO
@@ -508,37 +565,55 @@ CLASS IMPLEMENTATION CUserObject;
       ELSE
         State := State + TObjectState{osTransmitting, osReading};
       END;
-      RETURN InitiateGetValue( PGroup^.Address );
+      Result := InitiateGetValue( PGroup^.Address );
+
     ELSE
       _Value.CopyFrom( Value );
     END;
-    RETURN eib_status.essOK;
+
+    Unlock();
+    RETURN Result;
   END GetValue;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Transmit() : eib_status.TEIBStackStatus;
+   PUBLIC PROCEDURE Transmit() : eib_status.TEIBStackStatus;
+   VAR
+      Address : eib_def.TAddress;
+      PGroup : TPAU_Group;
+      Result : eib_status.TEIBStackStatus;
+   BEGIN
+      Lock();
+   
+      IF eib_def.aofPromiscuous IN Flags THEN
+         Address := PromiscuousAddress;
+      ELSIF NOT Groups.GetFirst( OUT PGroup ) THEN
+         Unlock();
+         RETURN eib_status.essAU_NoAddress;
+      ELSIF eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofTransmit} * Flags <> eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofTransmit} THEN
+         Unlock();
+         RETURN eib_status.essAU_TransmitDisallowed;
+      ELSE
+         Address := PGroup^.Address;
+      END;
+
+      State := State + TObjectState{osTransmitting, osWriting};
+      Result := InitiateTransmit( Address, Value );
+
+      Unlock();
+      RETURN Result;
+   END Transmit;
+
+(*--------------------------------------------------------------------------------*)
+
+  PUBLIC PROCEDURE InitiateTransmit( CONST Address : eib_def.TAddress; CONST Value : eib_def.TValue ) : eib_status.TEIBStackStatus;
   VAR
     LPacket : eib_def.TPacket;
-    PAddress : eib_def.TPAddress;
-    PGroup : TPAU_Group;
   BEGIN
-    IF eib_def.aofPromiscuous IN Flags THEN
-      PAddress := ADR( prAddress );
-    ELSIF NOT Groups.GetFirst( OUT PGroup ) THEN
-      RETURN eib_status.essAU_NoAddress;
-    ELSIF eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofTransmit} * Flags <> eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofTransmit} THEN
-      RETURN eib_status.essAU_TransmitDisallowed;
-    ELSE
-      PAddress := ADR( PGroup^.Address );
-    END;
-
-    State := State + TObjectState{osTransmitting, osWritting};
-    LPacket.FromValue( ADR( Value ));
-    // transmit is done to the first address only
-    Executive()^.A_GroupValue_Write_Req( ADR( SELF ), PAddress^, Class, LPacket );
+    LPacket.FromValue( Value );
+    Executive()^.A_GroupValue_Write_Req( ADR( SELF ), Address, Class, LPacket );
     RETURN eib_status.essAU_Pending;
-  END Transmit;
+  END InitiateTransmit;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -550,32 +625,102 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE CancelIO();
-  BEGIN
-    State := State - TObjectState{osTransmitting, osTransmitted, osReading, osWritting, osUpdated, osChanged};
-  END CancelIO;
+   PUBLIC PROPERTY InitReadState GET : TInitReadState; // should be sync
+   BEGIN
+      Lock();
+      IF osInitReadPending IN State THEN
+         Unlock();
+         RETURN irsPending;
+      ELSIF osInitReadRepeat IN State THEN
+         Unlock();
+         RETURN irsWillRepeat;
+      ELSE
+         Unlock();
+         RETURN irsUnknown;
+      END;
+   END InitReadState;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : eib_status.TEIBStackStatus );
+   PUBLIC PROPERTY InitReadState SET( Value : TInitReadState ); // should be sync
+   BEGIN
+      Lock();
+      IF Value = irsPending THEN
+         State := State - TObjectState{osInitReadRepeat} + TObjectState{osInitReadPending};
+      ELSIF Value = irsWillRepeat THEN
+         State := State - TObjectState{osInitReadPending} + TObjectState{osInitReadRepeat};
+      ELSE
+         State := State - TObjectState{osInitReadPending, osInitReadRepeat};
+      END;
+      Unlock();
+   END InitReadState;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY CommunicationState GET : TObjectState; // should be sync
+   VAR
+      Result : TObjectState;
+   BEGIN
+      Lock();
+      Result := State;
+      Unlock();
+      RETURN Result;
+   END CommunicationState;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Reading GET : BOOLEAN; // should be sync
+   VAR
+      Result : BOOLEAN;
+   BEGIN
+      Lock();
+      Result := TObjectState{osInitReadPending, osReading} * State <> TObjectState{};
+      Unlock();
+      RETURN Result;
+   END Reading;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Writing GET : BOOLEAN; // should be sync
+   VAR
+      Result : BOOLEAN;
+   BEGIN
+      Lock();
+      Result := osWriting IN State;
+      Unlock();
+      RETURN Result;
+   END Writing;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CancelIO();
+   BEGIN
+      Lock();
+      State := State - TObjectState{osTransmitting, osTransmitted, osReading, osWriting, osUpdated, osChanged};
+      Unlock();
+   END CancelIO;
+
+(*--------------------------------------------------------------------------------*)
+
+  INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : eib_status.TEIBStackStatus; ObjectState : TObjectState );
   BEGIN
   END ValueReadRequestSent;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE ValueRead( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN );
+  INTERNAL VIRTUAL PROCEDURE ValueRead( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN; ObjectState : TObjectState );
   BEGIN
   END ValueRead;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN );
+  INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN; ObjectState : TObjectState );
   BEGIN
   END ValueUpdated;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : eib_status.TEIBStackStatus );
+  INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : eib_status.TEIBStackStatus; ObjectState : TObjectState );
   BEGIN
   END ValueWritten;
 

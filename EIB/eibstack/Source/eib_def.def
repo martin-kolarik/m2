@@ -432,8 +432,8 @@ CLASS EMIPacket;
   PUBLIC PROCEDURE SetValueDirection( Direction : TValueDirection );
   PUBLIC PROCEDURE GetValueDirection() : TValueDirection;
 
-  PUBLIC PROCEDURE FromValue( PValue : TPValue );
-  PUBLIC PROCEDURE ToValue( VAR Value : CValue );
+  PUBLIC PROCEDURE FromValue( CONST Value : CValue );
+  PUBLIC PROCEDURE ToValue( OUT Value : CValue );
 
   PUBLIC PROCEDURE FromDataArray( Data : ARRAY OF BYTE; Len : CARDINAL );
   PUBLIC PROCEDURE ToDataArray( VAR Data : ARRAY OF BYTE; VAR Len : CARDINAL );

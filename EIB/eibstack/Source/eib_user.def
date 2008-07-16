@@ -23,7 +23,7 @@ TYPE
          osChanged,
       // mainly user-level hint states
       osReading,
-      osWritting,
+      osWriting,
       osInitReadPending,
       osInitReadRepeat
    );
@@ -36,16 +36,25 @@ TYPE
       obTracker,               // object passively GETS value upon EIB network change
       obReader                 // object actively COMMUNICATES value from EIB network
    );
+   
+   TInitReadState = (
+      irsUnknown,
+      irsPending,
+      irsWillRepeat
+   );
 
 CLASS CUserObject IMPLEMENTS eib_stack.IUserObject;
+   // internal
    PExecutive : eib_stack.TPEIBStackApplicationLayer;
 
-   State      : TObjectState;
-   Value      : eib_def.TValue;
-   Flags      : eib_def.TA_ObjectFlags;
-   Class      : eib_def.TPriority;
-   Groups     : list.CList; // the first address is used for sending
-   prAddress  : eib_def.CAddress; // promiscuous address
+   PRIVATE VAR // runtime states, MUST be synchronized, using setter, getter or some method
+      State : TObjectState;
+      Value : eib_def.TValue;
+      prAddress : eib_def.CAddress; // promiscuous address
+   PUBLIC VAR // parameters settable during startup, NOT synchronized
+      Flags : eib_def.TA_ObjectFlags;
+      Class : eib_def.TPriority;
+      Groups : list.CList; // the first address is used for sending
 
    PUBLIC READONLY PROPERTY   
       Type : eib_def.TEIBType;
@@ -53,15 +62,18 @@ CLASS CUserObject IMPLEMENTS eib_stack.IUserObject;
    PUBLIC PROCEDURE Init( POfStack : eib_stack.TPEIBStack; Type : eib_def.TEIBType; Behaviour : TObjectBehaviour );
    VIRTUAL FINALLY CUserObject();
 
+   INTERNAL VIRTUAL PROCEDURE Lock(); // hook to lock synchronized data, by default empty
+   INTERNAL VIRTUAL PROCEDURE Unlock(); // hook to lock synchronized data, by default empty
+
    // chaining
    PUBLIC PROCEDURE Executive() : eib_stack.TPEIBStackApplicationLayer;
 
    // USER LAYER
-   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Req();
-   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Con( Status : eib_status.TEIBStackStatus );
-   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Res( Status : eib_status.TEIBStackStatus; CONST PPacket : eib_def.TPPacket );
-   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Ind( CONST PPacket : eib_def.TPPacket );
-   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Con( Status : eib_status.TEIBStackStatus );
+   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Req(); // should sync access to data
+   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Con( Status : eib_status.TEIBStackStatus ); // should sync access to data
+   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Res( Status : eib_status.TEIBStackStatus; CONST PPacket : eib_def.TPPacket ); // should sync access to data
+   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Ind( CONST PPacket : eib_def.TPPacket ); // should sync access to data
+   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Con( Status : eib_status.TEIBStackStatus ); // should sync access to data
 
    // USER LAYER ADDRESSES
    PUBLIC VIRTUAL PROPERTY
@@ -90,18 +102,25 @@ CLASS CUserObject IMPLEMENTS eib_stack.IUserObject;
   // helper
   PUBLIC PROCEDURE EnumerateAddress( VAR EnumerationState : PTR; VAR Address : eib_def.TAddress ) : BOOLEAN;
 
-  // client request
-  PUBLIC PROCEDURE CancelIO();
-  PUBLIC PROCEDURE SetValue( CONST Value : eib_def.TValue ) : eib_status.TEIBStackStatus;
-  PUBLIC PROCEDURE GetValue( VAR Value : eib_def.TValue; UseCached, ForceReadOutOfOrder : BOOLEAN ) : eib_status.TEIBStackStatus;
+   // client request
+   PUBLIC PROPERTY
+      InitReadState : TInitReadState; // should sync access to data
+   PUBLIC READONLY PROPERTY
+      CommunicationState : TObjectState;
+      Reading : BOOLEAN; // should sync access to data
+      Writing : BOOLEAN; // should sync access to data
+  PUBLIC PROCEDURE CancelIO(); // should sync access to data 
+  PUBLIC PROCEDURE SetValue( CONST Value : eib_def.TValue ) : eib_status.TEIBStackStatus; // should sync access to data
+  PUBLIC PROCEDURE GetValue( OUT Value : eib_def.TValue; UseCached, ForceReadOutOfOrder : BOOLEAN ) : eib_status.TEIBStackStatus; // should sync access to data
   PUBLIC PROCEDURE Transmit() : eib_status.TEIBStackStatus;
-  PUBLIC PROCEDURE InitiateGetValue( CONST Address : eib_def.TAddress ) : eib_status.TEIBStackStatus;
+  PUBLIC PROCEDURE InitiateTransmit( CONST Address : eib_def.TAddress; CONST Value : eib_def.TValue ) : eib_status.TEIBStackStatus; // getting of address and value should be sync
+  PUBLIC PROCEDURE InitiateGetValue( CONST Address : eib_def.TAddress ) : eib_status.TEIBStackStatus; // getting of Address should be sync
 
-  // client callback
-  INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : eib_status.TEIBStackStatus );
-  INTERNAL VIRTUAL PROCEDURE ValueRead( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN );
-  INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN );
-  INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : eib_status.TEIBStackStatus );
+  // client callback, NOT in synchronized context
+  INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : eib_status.TEIBStackStatus; ObjectState : TObjectState ); // ObjectState is copy of synchronous state to avoid new synchronized state get
+  INTERNAL VIRTUAL PROCEDURE ValueRead( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN; ObjectState : TObjectState ); // Object.State is already cleared in time of method call.
+  INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN; ObjectState : TObjectState ); // dtto
+  INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : eib_status.TEIBStackStatus; ObjectState : TObjectState ); // dtto
 
   // private
   PRIVATE PROCEDURE eit2prl( eit : eib_def.TEIBType; VAR prl : eib_stack.TprLength ) : BOOLEAN;

@@ -369,7 +369,7 @@ CLASS IMPLEMENTATION CEIBDriver;
       END;
 
       PObject := srvcore.TPObject( Objects[ Index ] );
-      Type := EITToCWType( PObject^.Value.GetType());
+      Type := EITToCWType( PObject^.Type );
 
       IF directionOutput * PObject^.Flags = eib_def.TA_ObjectFlags{} THEN
          Direction := drv_def.TDirection{drv_def.dirInput};
@@ -497,7 +497,7 @@ CLASS IMPLEMENTATION CEIBDriver;
          // pass down
       ELSIF NOT LogNumber2Object( DriverIndex, PObject ) THEN
          // pass down
-      ELSIF eib_user.TObjectState{eib_user.osInitReadPending, eib_user.osReading} * PObject^.State <> eib_user.TObjectState{} THEN
+      ELSIF PObject^.Reading THEN
          // pass down
       ELSIF eib_def.aofForceRead IN PObject^.GetFlags() THEN
          IF ( PObject^.RecoveryExpiration <> 0 ) AND ( INTEGER( PObject^.RecoveryExpiration - CARDINAL( Time.UptimeMS())) < 0 ) THEN
@@ -506,7 +506,7 @@ CLASS IMPLEMENTATION CEIBDriver;
          END;
          // start reading itself
          PObject^.ReadRepeatCount := ReadDuringRun.RepeatCount;
-         PObject^.GetValue( EV, FALSE, FALSE );
+         PObject^.GetValue( OUT EV, FALSE, FALSE );
       END;
    END InputRequest;
 
@@ -533,7 +533,7 @@ CLASS IMPLEMENTATION CEIBDriver;
          ErrorCode := drv_def.ecUnknownElement;
       ELSIF NOT HWConnected( ErrorCode ) THEN
          PObject^.CancelIO();
-      ELSIF eib_user.osReading IN PObject^.State THEN
+      ELSIF PObject^.Reading THEN
          RETURN FALSE;
       ELSIF Result.Expired OR Result.Counted THEN
          RETURN FALSE;
@@ -648,7 +648,7 @@ CLASS IMPLEMENTATION CEIBDriver;
             QoS := drv_def.qosBad;
          END;
 
-         PObject^.GetValue( EV, TRUE, FALSE );
+         PObject^.GetValue( OUT EV, TRUE, FALSE );
          IF srvcore.rsProcessingOOB IN RStatus THEN
             oobData.Current^.ToOA( OUT EV.Data, OUT c ); // iteration depends on client (GetFirst/NextOf), no need for sync
          END;
@@ -682,12 +682,12 @@ CLASS IMPLEMENTATION CEIBDriver;
          // do nothing
 
       ELSIF LogNumber2Object( DriverIndex, PObject ) THEN
-         IF PObject^.Value.GetType() = eib_def.eitDate THEN
+         IF PObject^.Type = eib_def.eitDate THEN
             IO.Type := iovalue.vtDate;
             IO := OutValue;
             IOValue2EIBValue( IO, eib_def.eitDate, OUT EV );
          ELSE
-            IOValue2EIBValue( OutValue, PObject^.Value.GetType(), OUT EV );
+            IOValue2EIBValue( OutValue, PObject^.Type, OUT EV );
          END;
          PObject^.SetValue( EV );
 
@@ -714,7 +714,7 @@ CLASS IMPLEMENTATION CEIBDriver;
          ErrorCode := drv_def.ecUnknownElement;
       ELSIF NOT HWConnected( ErrorCode ) THEN
          PObject^.CancelIO();
-      ELSIF eib_user.osWritting IN PObject^.State THEN
+      ELSIF PObject^.Writing THEN
          RETURN FALSE;
       ELSIF Result.Expired OR Result.Counted THEN
          RETURN FALSE;
@@ -738,6 +738,7 @@ CLASS IMPLEMENTATION CEIBDriver;
    LABEL
       Error;
    VAR
+      Address : eib_def.TAddress;
       CS : StringsO.CString;
       d : PTR;
       EIT : eib_def.TEIBType;
@@ -835,7 +836,7 @@ CLASS IMPLEMENTATION CEIBDriver;
             CS.AppendOA( s );
             CS.AppendOA( L')' );
             GOTO Error;
-         ELSIF NOT prObjects[EIT].prAddress.SetGroupAddress3( N ) THEN
+         ELSIF NOT Address.SetGroupAddress3( N ) THEN
             CS.FromOA( L'error: "send" procedure, bad group address (' );
             CS.AppendOA( N );
             CS.AppendOA( L')' );
@@ -846,7 +847,7 @@ CLASS IMPLEMENTATION CEIBDriver;
          END;
 
          // initiate read
-         prObjects[EIT].InitiateGetValue( prObjects[EIT].prAddress );
+         prObjects[EIT].InitiateGetValue( Address );
 
       //=====
       ELSIF EQUALS( N, L'send' ) THEN
@@ -874,7 +875,7 @@ CLASS IMPLEMENTATION CEIBDriver;
             CS.AppendOA( s );
             CS.AppendOA( L')' );
             GOTO Error;
-         ELSIF NOT prObjects[EIT].prAddress.SetGroupAddress3( N ) THEN
+         ELSIF NOT Address.SetGroupAddress3( N ) THEN
             CS.FromOA( L'error: "send" procedure, bad group address (' );
             CS.AppendOA( N );
             CS.AppendOA( L')' );
@@ -889,7 +890,7 @@ CLASS IMPLEMENTATION CEIBDriver;
          END;
          IO.FromStringOA( V, FALSE );
          IOValue2EIBValue( IO, EIT, OUT EV );
-         prObjects[EIT].SetValue( EV );
+         prObjects[EIT].InitiateTransmit( Address, EV );
 
       ELSE
          CS.FromOA( L'error: unknown driver procedure' );

@@ -211,121 +211,54 @@ CLASS IMPLEMENTATION CObject;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Req();
-   BEGIN
-      Server^.LockObjects();
-      SUPER.AU_GroupValue_Read_Req();
-      Server^.UnlockObjects();
-   END AU_GroupValue_Read_Req;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Con( Status : eib_status.TEIBStackStatus );
-   BEGIN
-      Server^.LockObjects();
-      SUPER.AU_GroupValue_Read_Con( Status );
-      Server^.UnlockObjects();
-   END AU_GroupValue_Read_Con;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Res( Status : eib_status.TEIBStackStatus; CONST PPacket : eib_def.TPPacket );
-   BEGIN
-      Server^.LockObjects();
-      SUPER.AU_GroupValue_Read_Res( Status, PPacket );
-      Server^.UnlockObjects();
-   END AU_GroupValue_Read_Res;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Ind( CONST PPacket : eib_def.TPPacket );
-   BEGIN
-      Server^.LockObjects();
-      SUPER.AU_GroupValue_Write_Ind( PPacket );
-      Server^.UnlockObjects();
-   END AU_GroupValue_Write_Ind;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Con( Status : eib_status.TEIBStackStatus );
-   BEGIN
-      Server^.LockObjects();
-      SUPER.AU_GroupValue_Write_Con( Status );
-      Server^.UnlockObjects();
-   END AU_GroupValue_Write_Con;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE SetValue( CONST Value : eib_def.TValue ) : eib_status.TEIBStackStatus;
-   VAR
-      Result : eib_status.TEIBStackStatus;
-   BEGIN
-      Server^.LockObjects();
-      Result := SUPER.SetValue( Value );
-      Server^.UnlockObjects();
-      RETURN Result;
-   END SetValue;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE GetValue( VAR Value : eib_def.TValue; UseCached, ForceReadOutOfOrder : BOOLEAN ) : eib_status.TEIBStackStatus;
-   VAR
-      Result : eib_status.TEIBStackStatus;
-   BEGIN
-      Server^.LockObjects();
-      Result := SUPER.GetValue( Value, UseCached, ForceReadOutOfOrder );
-      Server^.UnlockObjects();
-      RETURN Result;
-   END GetValue;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE Transmit() : eib_status.TEIBStackStatus;
-   VAR
-      Result : eib_status.TEIBStackStatus;
-   BEGIN
-      Server^.LockObjects();
-      Result := SUPER.Transmit();
-      Server^.UnlockObjects();
-      RETURN Result;
-   END Transmit;
-
-//--------------------------------------------------------------------------------
-
-   INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : eib_status.TEIBStackStatus );
+   INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : eib_status.TEIBStackStatus; ObjectState : eib_user.TObjectState );
    BEGIN
       RSStatus := Status;
-      Server^.ValueReadRequestSent( ADR( SELF ));
+      Server^.ValueReadRequestSent( ADR( SELF ), ObjectState );
    END ValueReadRequestSent;
 
 //--------------------------------------------------------------------------------
 
-   INTERNAL VIRTUAL PROCEDURE ValueRead( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN );
+   INTERNAL VIRTUAL PROCEDURE ValueRead( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN; ObjectState : eib_user.TObjectState );
    BEGIN
       RSStatus := Status;
-      Server^.ValueRead( ADR( SELF ));
+      Server^.ValueRead( ADR( SELF ), ObjectState );
    END ValueRead;
 
 //--------------------------------------------------------------------------------
 
-   INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN );
+   INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN; ObjectState : eib_user.TObjectState );
    BEGIN
       RSStatus := Status;
-      Server^.ValueUpdated( ADR( SELF ));
+      Server^.ValueUpdated( ADR( SELF ), ObjectState );
    END ValueUpdated;
 
 //--------------------------------------------------------------------------------
 
-   INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : eib_status.TEIBStackStatus );
+   INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : eib_status.TEIBStackStatus; ObjectState : eib_user.TObjectState );
    BEGIN
       WSStatus := Status;
-      Server^.ValueWritten( ADR( SELF ));
+      Server^.ValueWritten( ADR( SELF ), ObjectState );
       IF ( Status = eib_status.essOK ) AND ( eib_def.TA_ObjectFlags{eib_def.aofForceRead, eib_def.aofWritable} * GetFlags() = eib_def.TA_ObjectFlags{eib_def.aofWritable} ) THEN
          // element always read from EIB cannot be reset for reading;
          // only writable elements can be reset for reading too
          RSStatus := eib_status.essOK;
       END;
    END ValueWritten;
+
+//--------------------------------------------------------------------------------
+
+   INTERNAL VIRTUAL PROCEDURE Lock();
+   BEGIN
+      Server^.LockObjects();
+   END Lock;
+
+//--------------------------------------------------------------------------------
+
+   INTERNAL VIRTUAL PROCEDURE Unlock();
+   BEGIN
+      Server^.UnlockObjects();
+   END Unlock;
 
 //--------------------------------------------------------------------------------
 
@@ -639,13 +572,13 @@ CLASS IMPLEMENTATION CEIBServer;
       
       PObject := TPObject( Item );
       IF Direction = IOO.dirRead THEN
-         PObject^.GetValue( EV, TRUE, FALSE );
+         PObject^.GetValue( OUT EV, TRUE, FALSE );
          EIBValue2IOValue( EV, OUT Value );
       ELSE // dirWrite
          IOValue2EIBValue( Value, PObject^.Type, OUT EV );
          PObject^.SetValue( EV );
          // for notification using EventSink, if it exists
-         ValueUpdated( PObject );
+         ValueUpdated( PObject, PObject^.CommunicationState );
       END;
       
       RETURN Sync.arCompleted;
@@ -1706,16 +1639,16 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   LOCAL PROCEDURE ValueReadRequestSent( PObject : TPObject );
+   LOCAL PROCEDURE ValueReadRequestSent( PObject : TPObject; ObjectState : eib_user.TObjectState );
    BEGIN
       IF PObject^.RSStatus <> eib_status.essOK THEN
-         ValueRead( PObject );
+         ValueRead( PObject, ObjectState );
       END;
    END ValueReadRequestSent;
 
 //--------------------------------------------------------------------------------
 
-   LOCAL PROCEDURE ValueRead( PObject : TPObject );
+   LOCAL PROCEDURE ValueRead( PObject : TPObject; ObjectState : eib_user.TObjectState );
    VAR
       c : CARDINAL;
       EV : eib_def.TValue;
@@ -1731,7 +1664,7 @@ CLASS IMPLEMENTATION CEIBServer;
          // -- handle repeating and delaying after error
          DEC( PObject^.ReadRepeatCount );
          IF PObject^.ReadRepeatCount = 0 THEN // finalize operation after all allowed counts
-            IF eib_user.osInitReadPending IN PObject^.State THEN
+            IF PObject^.InitReadState = eib_user.irsPending THEN
                c := ReadOnStart.RecoveryTime;
             ELSE
                c := ReadDuringRun.RecoveryTime;
@@ -1746,7 +1679,7 @@ CLASS IMPLEMENTATION CEIBServer;
             END;
             // fall down, continue...
          ELSE // continue with reading again
-            PObject^.GetValue( EV, FALSE, FALSE );
+            PObject^.GetValue( OUT EV, FALSE, FALSE );
             RETURN;
          END;
          // ++ handle repeating and delaying after error
@@ -1754,33 +1687,33 @@ CLASS IMPLEMENTATION CEIBServer;
       END; // CASE
 
       // normal value read processing
-      IF eib_user.osInitReadPending IN PObject^.State THEN
+      IF PObject^.InitReadState = eib_user.irsPending THEN
          IF PObject^.RSStatus = eib_status.essOK THEN
-            PObject^.State := PObject^.State - eib_user.TObjectState{eib_user.osInitReadPending, eib_user.osInitReadRepeat};
+            PObject^.InitReadState := eib_user.irsUnknown;
          ELSIF InitReadRepeat <= 1 THEN // repeated init read will not be performed, so notify error
-            PObject^.State := PObject^.State - eib_user.TObjectState{eib_user.osInitReadPending, eib_user.osInitReadRepeat};
-            ValueUpdated( PObject );
+            PObject^.InitReadState := eib_user.irsUnknown;
+            ValueUpdated( PObject, ObjectState );
          ELSE
             INCL( RStatus, rsInitReadRepeat );
-            PObject^.State := PObject^.State - eib_user.TObjectState{eib_user.osInitReadPending} + eib_user.TObjectState{eib_user.osInitReadRepeat};
+            PObject^.InitReadState := eib_user.irsWillRepeat;
          END;
          DEC( InitReadItems );
          IF InitReadItems = 0 THEN
             InitReadFinished();
          END;
-      ELSIF ( eib_user.osReading IN PObject^.State ) AND ( EventSink <> NIL ) THEN
+      ELSIF ( eib_user.osReading IN ObjectState ) AND ( EventSink <> NIL ) THEN
          EventSink^.OnRead( PObject );
       END;
    END ValueRead;
 
 //--------------------------------------------------------------------------------
 
-   LOCAL PROCEDURE ValueUpdated( PObject : TPObject );
+   LOCAL PROCEDURE ValueUpdated( PObject : TPObject; ObjectState : eib_user.TObjectState );
    VAR
       EValue : eib_def.CValue;
       prItem : PromiscuousData;
    BEGIN
-      IF eib_user.osReading IN PObject^.State THEN // value is NOT OOB
+      IF eib_user.osReading IN ObjectState THEN // value is NOT OOB
          RETURN;
       ELSIF PObject^.RSStatus = eib_status.essOK THEN
          INCL( PObject^.Flags, eib_def.aofEIBValue );
@@ -1799,8 +1732,8 @@ CLASS IMPLEMENTATION CEIBServer;
             RETURN;
          END;
          
-         prItem.Address := PObject^.prAddress;
-         PObject^.GetValue( prItem.Value, TRUE, FALSE );
+         prItem.Address := PObject^.PromiscuousAddress;
+         PObject^.GetValue( OUT prItem.Value, TRUE, FALSE );
          
          prData.EnqueueOA( prItem, 0 );
          INCL( RStatus, rsPromiscuousInQueue );
@@ -1817,7 +1750,7 @@ CLASS IMPLEMENTATION CEIBServer;
             RETURN;
          END;
 
-         PObject^.GetValue( EValue, TRUE, FALSE );
+         PObject^.GetValue( OUT EValue, TRUE, FALSE );
          oobData.EnqueueOA( EValue.Data, PObject );
          QueueLock.Unlock();
 
@@ -1827,16 +1760,16 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   LOCAL PROCEDURE ValueWritten( PObject : TPObject );
+   LOCAL PROCEDURE ValueWritten( PObject : TPObject; ObjectState : eib_user.TObjectState );
    BEGIN
       IF PObject^.WSStatus = eib_status.essOK THEN
          INCL( PObject^.Flags, eib_def.aofEIBValue );
       END;
-      IF ( eib_user.osWritting IN PObject^.State ) AND ( EventSink <> NIL ) THEN
+      IF ( eib_user.osWriting IN ObjectState ) AND ( EventSink <> NIL ) THEN
          EventSink^.OnWritten( PObject );
       END;
       IF eib_def.aofAdvise IN PObject^.GetFlags() THEN
-         ValueUpdated( PObject );
+         ValueUpdated( PObject, ObjectState );
       END;
    END ValueWritten;
 
@@ -1888,10 +1821,12 @@ CLASS IMPLEMENTATION CEIBServer;
       IF NOT RepeatFlag THEN
          InitReadRepeat := InitReadRepeatCount;
       END;
+
+      LockObjects();
       FOR i := 0 TO Objects.Count - 1 DO
          PObject := TPObject( Objects[i] );
-         IF NOT RepeatFlag AND ( eib_def.aofInitRead IN PObject^.GetFlags() ) OR
-                RepeatFlag AND ( eib_user.osInitReadRepeat IN PObject^.State ) THEN
+         IF NOT RepeatFlag AND ( eib_def.aofInitRead IN PObject^.GetFlags()) OR
+                RepeatFlag AND ( PObject^.InitReadState = eib_user.irsWillRepeat ) THEN
 
             IF NOT Logger.Filtered( log.dldDebug ) THEN
                PObject^.ReadAddress.GetGroupAddress3( TRUE, saddr );
@@ -1899,11 +1834,13 @@ CLASS IMPLEMENTATION CEIBServer;
             END;
 
             INC( InitReadItems );
-            PObject^.State := PObject^.State - eib_user.TObjectState{eib_user.osInitReadRepeat} + eib_user.TObjectState{eib_user.osInitReadPending};
+            PObject^.InitReadState := eib_user.irsPending;
             PObject^.ReadRepeatCount := ReadOnStart.RepeatCount;
-            PObject^.GetValue( EV, FALSE, TRUE );
+            PObject^.GetValue( OUT EV, FALSE, TRUE );
          END;
       END; // FOR
+      UnlockObjects();
+
    END DoInitRead;
 
 //--------------------------------------------------------------------------------
