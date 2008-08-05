@@ -211,34 +211,34 @@ CLASS IMPLEMENTATION CObject;
 
 //--------------------------------------------------------------------------------
 
-   INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : eib_status.TEIBStackStatus; ObjectState : eib_user.TObjectState );
+   INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : eib_status.TEIBStackStatus; CurrentState : eib_user.TObjectState );
    BEGIN
       RSStatus := Status;
-      Server^.ValueReadRequestSent( ADR( SELF ), ObjectState );
+      Server^.ValueReadRequestSent( ADR( SELF ), CurrentState );
    END ValueReadRequestSent;
 
 //--------------------------------------------------------------------------------
 
-   INTERNAL VIRTUAL PROCEDURE ValueRead( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN; ObjectState : eib_user.TObjectState );
+   INTERNAL VIRTUAL PROCEDURE ValueRead( Status : eib_status.TEIBStackStatus; CurrentState : eib_user.TObjectState; CurrentInitReadState : eib_user.TInitReadState );
    BEGIN
       RSStatus := Status;
-      Server^.ValueRead( ADR( SELF ), ObjectState );
+      Server^.ValueRead( ADR( SELF ), CurrentState, CurrentInitReadState );
    END ValueRead;
 
 //--------------------------------------------------------------------------------
 
-   INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN; ObjectState : eib_user.TObjectState );
+   INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : eib_status.TEIBStackStatus; CurrentState : eib_user.TObjectState );
    BEGIN
       RSStatus := Status;
-      Server^.ValueUpdated( ADR( SELF ), ObjectState );
+      Server^.ValueUpdated( ADR( SELF ), CurrentState );
    END ValueUpdated;
 
 //--------------------------------------------------------------------------------
 
-   INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : eib_status.TEIBStackStatus; ObjectState : eib_user.TObjectState );
+   INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : eib_status.TEIBStackStatus; CurrentState : eib_user.TObjectState );
    BEGIN
       WSStatus := Status;
-      Server^.ValueWritten( ADR( SELF ), ObjectState );
+      Server^.ValueWritten( ADR( SELF ), CurrentState );
       IF ( Status = eib_status.essOK ) AND ( eib_def.TA_ObjectFlags{eib_def.aofForceRead, eib_def.aofWritable} * GetFlags() = eib_def.TA_ObjectFlags{eib_def.aofWritable} ) THEN
          // element always read from EIB cannot be reset for reading;
          // only writable elements can be reset for reading too
@@ -1639,20 +1639,24 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   LOCAL PROCEDURE ValueReadRequestSent( PObject : TPObject; ObjectState : eib_user.TObjectState );
+   LOCAL PROCEDURE ValueReadRequestSent( PObject : TPObject; CurrentState : eib_user.TObjectState );
    BEGIN
       IF PObject^.RSStatus <> eib_status.essOK THEN
-         ValueRead( PObject, ObjectState );
+         ValueRead( PObject, CurrentState, PObject^.InitReadState );
       END;
    END ValueReadRequestSent;
 
 //--------------------------------------------------------------------------------
 
-   LOCAL PROCEDURE ValueRead( PObject : TPObject; ObjectState : eib_user.TObjectState );
+   LOCAL PROCEDURE ValueRead( PObject : TPObject; CurrentState : eib_user.TObjectState; CurrentInitReadState : eib_user.TInitReadState );
    VAR
       c : CARDINAL;
       EV : eib_def.TValue;
    BEGIN
+      IF eib_def.aofPromiscuous IN PObject^.GetFlags() THEN // promiscuous mode object, no need to count repeats or do init read
+         RETURN;
+      END;
+
       CASE PObject^.RSStatus OF
       //-----
       | eib_status.essOK :
@@ -1663,8 +1667,8 @@ CLASS IMPLEMENTATION CEIBServer;
         eib_status.essA_Timeout : // A_Read with L_ACK but without READ
          // -- handle repeating and delaying after error
          DEC( PObject^.ReadRepeatCount );
-         IF PObject^.ReadRepeatCount = 0 THEN // finalize operation after all allowed counts
-            IF PObject^.InitReadState = eib_user.irsPending THEN
+         IF INTEGER( PObject^.ReadRepeatCount ) <= 0 THEN // finalize operation after all allowed counts
+            IF CurrentInitReadState = eib_user.irsPending THEN
                c := ReadOnStart.RecoveryTime;
             ELSE
                c := ReadDuringRun.RecoveryTime;
@@ -1687,12 +1691,12 @@ CLASS IMPLEMENTATION CEIBServer;
       END; // CASE
 
       // normal value read processing
-      IF PObject^.InitReadState = eib_user.irsPending THEN
+      IF CurrentInitReadState = eib_user.irsPending THEN
          IF PObject^.RSStatus = eib_status.essOK THEN
             PObject^.InitReadState := eib_user.irsUnknown;
          ELSIF InitReadRepeat <= 1 THEN // repeated init read will not be performed, so notify error
             PObject^.InitReadState := eib_user.irsUnknown;
-            ValueUpdated( PObject, ObjectState );
+            ValueUpdated( PObject, CurrentState );
          ELSE
             INCL( RStatus, rsInitReadRepeat );
             PObject^.InitReadState := eib_user.irsWillRepeat;
@@ -1701,19 +1705,20 @@ CLASS IMPLEMENTATION CEIBServer;
          IF InitReadItems = 0 THEN
             InitReadFinished();
          END;
-      ELSIF ( eib_user.osReading IN ObjectState ) AND ( EventSink <> NIL ) THEN
+
+      ELSIF ( eib_user.osReading IN CurrentState ) AND ( EventSink <> NIL ) THEN
          EventSink^.OnRead( PObject );
       END;
    END ValueRead;
 
 //--------------------------------------------------------------------------------
 
-   LOCAL PROCEDURE ValueUpdated( PObject : TPObject; ObjectState : eib_user.TObjectState );
+   LOCAL PROCEDURE ValueUpdated( PObject : TPObject; CurrentState : eib_user.TObjectState );
    VAR
       EValue : eib_def.CValue;
       prItem : PromiscuousData;
    BEGIN
-      IF eib_user.osReading IN ObjectState THEN // value is NOT OOB
+      IF eib_user.osReading IN CurrentState THEN // value is NOT OOB
          RETURN;
       ELSIF PObject^.RSStatus = eib_status.essOK THEN
          INCL( PObject^.Flags, eib_def.aofEIBValue );
@@ -1760,16 +1765,16 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   LOCAL PROCEDURE ValueWritten( PObject : TPObject; ObjectState : eib_user.TObjectState );
+   LOCAL PROCEDURE ValueWritten( PObject : TPObject; CurrentState : eib_user.TObjectState );
    BEGIN
       IF PObject^.WSStatus = eib_status.essOK THEN
          INCL( PObject^.Flags, eib_def.aofEIBValue );
       END;
-      IF ( eib_user.osWriting IN ObjectState ) AND ( EventSink <> NIL ) THEN
+      IF ( eib_user.osWriting IN CurrentState ) AND ( EventSink <> NIL ) THEN
          EventSink^.OnWritten( PObject );
       END;
       IF eib_def.aofAdvise IN PObject^.GetFlags() THEN
-         ValueUpdated( PObject, ObjectState );
+         ValueUpdated( PObject, CurrentState );
       END;
    END ValueWritten;
 

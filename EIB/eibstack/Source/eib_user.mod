@@ -121,7 +121,7 @@ CLASS IMPLEMENTATION CUserObject;
 
   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Con( Status : eib_status.TEIBStackStatus );
   VAR
-    LState : TObjectState;
+    CurrentState : TObjectState;
   BEGIN
     IF eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofUpdate} * Flags <> eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofUpdate} THEN
       RETURN;
@@ -129,20 +129,21 @@ CLASS IMPLEMENTATION CUserObject;
 
     Lock();
     State := State - TObjectState{osTransmitting} + TObjectState{osTransmitted};
-    LState := State;
+    CurrentState := State;
     IF Status <> eib_status.essOK THEN // errorneous request kills reading
       State := State - TObjectState{osTransmitted, osReading};
     END;
     Unlock();
 
-    ValueReadRequestSent( Status, LState );
+    ValueReadRequestSent( Status, CurrentState );
   END AU_GroupValue_Read_Con;
 
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Read_Res( Status : eib_status.TEIBStackStatus; CONST PPacket : eib_def.TPPacket );
   VAR
-    LState : TObjectState;
+    CurrentInitReadState : TInitReadState;
+    CurrentState : TObjectState;
     LValue : eib_def.TValue;
     eq : BOOLEAN;
   BEGIN
@@ -156,24 +157,26 @@ CLASS IMPLEMENTATION CUserObject;
       Lock();
       eq := Value.Equals( LValue );
       IF eq THEN
-        State := State - TObjectState{osTransmitting} + TObjectState{osTransmitted, osUpdated};
+        State := State - TObjectState{osTransmitting, osChanged} + TObjectState{osTransmitted, osUpdated};
       ELSE
         State := State - TObjectState{osTransmitting} + TObjectState{osTransmitted, osUpdated, osChanged};
         Value := LValue;
       END;
-      LState := State;
+      CurrentState := State;
+      CurrentInitReadState := InitReadState;
       State := State - TObjectState{osTransmitted, osReading, osUpdated, osChanged};
       Unlock();
 
-      ValueRead( eib_status.essOK, NOT eq, LState );
-      ValueUpdated( eib_status.essOK, NOT eq, LState );
+      ValueRead( eib_status.essOK, CurrentState, CurrentInitReadState );
+      ValueUpdated( eib_status.essOK, CurrentState );
     ELSE
       Lock();
-      LState := State;
+      CurrentState := State;
+      CurrentInitReadState := InitReadState;
       State := State - TObjectState{osTransmitted, osReading, osUpdated, osChanged};
       Unlock();
 
-      ValueRead( Status, FALSE, LState );
+      ValueRead( Status, CurrentState, CurrentInitReadState );
     END;
 
   END AU_GroupValue_Read_Res;
@@ -182,7 +185,7 @@ CLASS IMPLEMENTATION CUserObject;
 
   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Ind( CONST PPacket : eib_def.TPPacket );
   VAR
-    LState : TObjectState;
+    CurrentState : TObjectState;
     LValue : eib_def.TValue;
     eq : BOOLEAN;
   BEGIN
@@ -196,23 +199,23 @@ CLASS IMPLEMENTATION CUserObject;
     Lock();
     eq := Value.Equals( LValue );
     IF eq THEN
-      State := State + TObjectState{osUpdated};
+      State := State - TObjectState{osChanged} + TObjectState{osUpdated};
     ELSE
       State := State + TObjectState{osUpdated, osChanged};
       Value := LValue;
     END;
-    LState := State;
+    CurrentState := State;
     State := State - TObjectState{osUpdated, osChanged};
     Unlock();
 
-    ValueUpdated( eib_status.essOK, NOT eq, LState );
+    ValueUpdated( eib_status.essOK, CurrentState );
   END AU_GroupValue_Write_Ind;
 
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC VIRTUAL PROCEDURE AU_GroupValue_Write_Con( Status : eib_status.TEIBStackStatus );
   VAR
-    LState : TObjectState;
+    CurrentState : TObjectState;
   BEGIN
     IF eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofTransmit} * Flags <> eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofTransmit} THEN
       RETURN;
@@ -220,11 +223,11 @@ CLASS IMPLEMENTATION CUserObject;
 
     Lock();
     State := State - TObjectState{osTransmitting} + TObjectState{osTransmitted};
-    LState := State;
+    CurrentState := State;
     State := State - TObjectState{osTransmitted, osWriting};
     Unlock();
 
-    ValueWritten( Status, LState );
+    ValueWritten( Status, CurrentState );
   END AU_GroupValue_Write_Con;
 
 (*--------------------------------------------------------------------------------*)
@@ -702,25 +705,25 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : eib_status.TEIBStackStatus; ObjectState : TObjectState );
+  INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : eib_status.TEIBStackStatus; CurrentState : TObjectState );
   BEGIN
   END ValueReadRequestSent;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE ValueRead( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN; ObjectState : TObjectState );
+  INTERNAL VIRTUAL PROCEDURE ValueRead( Status : eib_status.TEIBStackStatus; CurrentState : TObjectState; CurrentInitReadState : TInitReadState );
   BEGIN
   END ValueRead;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN; ObjectState : TObjectState );
+  INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : eib_status.TEIBStackStatus; CurrentState : TObjectState );
   BEGIN
   END ValueUpdated;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : eib_status.TEIBStackStatus; ObjectState : TObjectState );
+  INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : eib_status.TEIBStackStatus; CurrentState : TObjectState );
   BEGIN
   END ValueWritten;
 

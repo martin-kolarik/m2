@@ -117,10 +117,10 @@ CLASS CUserObject IMPLEMENTS eib_stack.IUserObject;
   PUBLIC PROCEDURE InitiateGetValue( CONST Address : eib_def.TAddress ) : eib_status.TEIBStackStatus; // getting of Address should be sync
 
   // client callback, NOT in synchronized context
-  INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : eib_status.TEIBStackStatus; ObjectState : TObjectState ); // ObjectState is copy of synchronous state to avoid new synchronized state get
-  INTERNAL VIRTUAL PROCEDURE ValueRead( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN; ObjectState : TObjectState ); // Object.State is already cleared in time of method call.
-  INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : eib_status.TEIBStackStatus; Changed : BOOLEAN; ObjectState : TObjectState ); // dtto
-  INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : eib_status.TEIBStackStatus; ObjectState : TObjectState ); // dtto
+  INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : eib_status.TEIBStackStatus; CurrentState : TObjectState ); // CurrentState is copy of synchronous state to avoid new synchronized state get
+  INTERNAL VIRTUAL PROCEDURE ValueRead( Status : eib_status.TEIBStackStatus; CurrentState : TObjectState; CurrentInitReadState : TInitReadState ); // Object.State is already cleared in time of method call.
+  INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : eib_status.TEIBStackStatus; CurrentState : TObjectState ); // dtto
+  INTERNAL VIRTUAL PROCEDURE ValueWritten( Status : eib_status.TEIBStackStatus; CurrentState : TObjectState ); // dtto
 
   // private
   PRIVATE PROCEDURE eit2prl( eit : eib_def.TEIBType; VAR prl : eib_stack.TprLength ) : BOOLEAN;
