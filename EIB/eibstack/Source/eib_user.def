@@ -111,7 +111,7 @@ CLASS CUserObject IMPLEMENTS eib_stack.IUserObject;
       Writing : BOOLEAN; // should sync access to data
   PUBLIC PROCEDURE CancelIO(); // should sync access to data 
   PUBLIC PROCEDURE SetValue( CONST Value : eib_def.TValue ) : eib_status.TEIBStackStatus; // should sync access to data
-  PUBLIC PROCEDURE GetValue( OUT Value : eib_def.TValue; UseCached, ForceReadOutOfOrder : BOOLEAN ) : eib_status.TEIBStackStatus; // should sync access to data
+  PUBLIC PROCEDURE GetValue( OUT Value : eib_def.TValue; UseCached, ForceReadIgnoringObjectFlags : BOOLEAN ) : eib_status.TEIBStackStatus; // should sync access to data
   PUBLIC PROCEDURE Transmit() : eib_status.TEIBStackStatus;
   PUBLIC PROCEDURE InitiateTransmit( CONST Address : eib_def.TAddress; CONST Value : eib_def.TValue ) : eib_status.TEIBStackStatus; // getting of address and value should be sync
   PUBLIC PROCEDURE InitiateGetValue( CONST Address : eib_def.TAddress ) : eib_status.TEIBStackStatus; // getting of Address should be sync

@@ -536,7 +536,7 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE GetValue( OUT _Value : eib_def.TValue; UseCached, ForceReadOutOfOrder : BOOLEAN ) : eib_status.TEIBStackStatus;
+  PUBLIC PROCEDURE GetValue( OUT _Value : eib_def.TValue; UseCached, ForceReadIgnoringObjectFlags : BOOLEAN ) : eib_status.TEIBStackStatus;
   VAR
     b : BOOLEAN;
     PGroup : TPAU_Group;
@@ -554,7 +554,7 @@ CLASS IMPLEMENTATION CUserObject;
     ELSIF UseCached THEN
       _Value.CopyFrom( Value );
 
-    ELSIF ForceReadOutOfOrder OR ( eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofForceRead} * Flags = eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofForceRead} ) THEN
+    ELSIF ForceReadIgnoringObjectFlags OR ( eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofForceRead} * Flags = eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofForceRead} ) THEN
       b := TRUE;
       WHILE b AND NOT PGroup^.ReadFlag DO
         b := Groups.NextOf( PGroup, OUT PGroup );
@@ -563,7 +563,7 @@ CLASS IMPLEMENTATION CUserObject;
         Groups.GetFirst( OUT PGroup );
         PGroup^.ReadFlag := TRUE;
       END;
-      IF ForceReadOutOfOrder THEN
+      IF ForceReadIgnoringObjectFlags THEN
         State := State + TObjectState{osTransmitting}; // this is NOT synchronous reading
       ELSE
         State := State + TObjectState{osTransmitting, osReading};

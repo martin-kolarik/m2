@@ -1651,7 +1651,7 @@ CLASS IMPLEMENTATION CEIBServer;
    LOCAL PROCEDURE ValueRead( PObject : TPObject; CurrentState : eib_user.TObjectState; CurrentInitReadState : eib_user.TInitReadState );
    VAR
       c : CARDINAL;
-      EV : eib_def.TValue;
+      ResponseAwaited : BOOLEAN;
    BEGIN
       IF eib_def.aofPromiscuous IN PObject^.GetFlags() THEN // promiscuous mode object, no need to count repeats or do init read
          RETURN;
@@ -1681,10 +1681,6 @@ CLASS IMPLEMENTATION CEIBServer;
                   PObject^.RecoveryExpiration := 1;
                END;
             END;
-            // fall down, continue...
-         ELSE // continue with reading again
-            PObject^.GetValue( OUT EV, FALSE, FALSE );
-            RETURN;
          END;
          // ++ handle repeating and delaying after error
       //-----
@@ -1692,21 +1688,29 @@ CLASS IMPLEMENTATION CEIBServer;
 
       // normal value read processing
       IF CurrentInitReadState = eib_user.irsPending THEN
+         ResponseAwaited := TRUE;
+
          IF PObject^.RSStatus = eib_status.essOK THEN
             PObject^.InitReadState := eib_user.irsUnknown;
          ELSIF InitReadRepeat <= 1 THEN // repeated init read will not be performed, so notify error
             PObject^.InitReadState := eib_user.irsUnknown;
-            ValueUpdated( PObject, CurrentState );
          ELSE
             INCL( RStatus, rsInitReadRepeat );
             PObject^.InitReadState := eib_user.irsWillRepeat;
          END;
+         
          DEC( InitReadItems );
          IF InitReadItems = 0 THEN
             InitReadFinished();
          END;
 
-      ELSIF ( eib_user.osReading IN CurrentState ) AND ( EventSink <> NIL ) THEN
+      ELSE
+         ResponseAwaited := eib_user.osReading IN CurrentState;
+      END;
+
+      // for both osReading and osInitReadPending the reading must be announced by callback -- CW driver, e.g., can wait
+      // with InputFinalized = FALSE, and if it does not receive asynchronous notification, it will never ask for value again   
+      IF ResponseAwaited AND ( EventSink <> NIL ) THEN
          EventSink^.OnRead( PObject );
       END;
    END ValueRead;

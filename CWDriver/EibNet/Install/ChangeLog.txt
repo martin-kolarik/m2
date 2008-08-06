@@ -1,3 +1,7 @@
+Version 1.0.1717 beta
+- BUG: initially read channels were not always notified to CW if during the initial reading
+       the channel was requested by normal CW measuring cycle.
+
 Version 1.0.1710 beta
 - BUG: Group object communication status for CW driver interface was badly
        synchronized. This caused step-by-step stopping of synchronous CW
