@@ -1,0 +1,387 @@
+<?xml version="1.0" encoding="windows-1250"?>
+<document file="WagoLib" xmlns="http://www.mii.cz/2004/XML/Document/Common">
+  <header creator="martin" doc_type="generic" last_modified="2008-03-27"
+          last_modifier="martin" version="1.0.1516.0"></header>
+  <adjustment>
+    <classes>
+      <tableclass class="tblParameters" frame="yes" offset="3pt">
+        <setupcolumn halign="right" valign="top" which="first" width="4.5cm" />
+        <setupcolumn halign="middle" valign="top" which="2" width="0.7cm" />
+        <setupcolumn valign="top" which="last" width="12cm" />
+      </tableclass>
+    </classes>
+  </adjustment>
+  <text>
+    <section level="1" selfnumbered="no">
+      <title>SmartServer</title>
+      <text>
+        <p>SmartServer pro KNX/EIB je produkt, který dovoluje vzdáleným
+        klientům (vizualizačním programům) číst a zapisovat data KNX/EIB
+        sběrnice. SmartServer je určen pro trvalý běh, v operačním systému je
+        přítomen jako služba. SmartServer KNX/EIB data udržuje v cache, takže
+        jejich aktuální hodnoty jsou klientům dostupné nepřetržitě. Server lze
+        vzdáleně administrovat pomocí webového rozhraní (HTTP/HTML).</p>
+        <p>Server klientům poskytuje dvě rozhraní: XMLSocket a řádkově
+        orientované textové TCP/IP rozhraní.</p>
+        <il>
+          <caption>Softwarové a hardwarové požadavky:</caption>
+          <li><p>operační systémy MS Windows XP SP2 a vyšší, XP Embedded SP2 a
+          vyšší nebo Vista RTM a vyšší,</p></li>
+          <li><p>10<c.special what="thinspace" />MB volného místa na
+          disku,</p></li>
+          <li><p>aktivní síťové připojení pro spojení s klienty a
+          KNX/EIB,</p></li>
+          <li><p>na straně KNX/EIB zařízení s protokolem EIBNet/IP (součást
+          standardu KNX).</p></li>
+        </il>
+        <section level="2">
+          <title>Instalace a licence</title>
+          <text>
+            <p>Instalační balíček SmartServer (v podobě MSI souboru, MSI =
+            Microsoft Installer) se nainstaluje po spuštění automaticky do
+            složky <file>Program Files\NeNo\EibSrv</file>. Během instalace je
+            třeba vložit správné licenční údaje (z licenčního certifikátu),
+            nebo je možné SmartServer nainstalovat jako demoverzi.</p>
+            <il>
+              <caption>Demoverze je vůči plné verzi omezená
+              následovně:</caption>
+              <li><p>dovoluje klientům souhrnně provést pouze cca
+              <number>10000</number> klientských operací,</p></li>
+              <li><p>poskytuje klientům data pouze cca 30 minut od
+              spuštění,</p></li>
+              <li><p>omezení nezastavuje službu a neuzavírá spojení s klienty,
+              klienti zůstanou připojení, server jim pouze neposkytne žádná
+              data.</p></li>
+            </il>
+            <p>Nainstalovaný SmartServer je nutné do 35 dnů od instalace
+            aktivovat. Aktivaci lze provést dálkově (s připojením k internetu)
+            nebo z příkazové řádky; vždy pomocí nástroje, který se nainstaluje
+            spolu se SmartServerem. Pokud se během uvedených 35 dnů
+            SmartServer neaktivuje, poběží po uvedené době jako demoverze.</p>
+          </text>
+        </section>
+        <section level="2">
+          <title>Konfigurace</title>
+          <text>
+            <p>SmartServer běží jako služba operačního systému a rozbíhá se
+            bezprostředně po instalaci. Všechna svá nastavení (KNX/EIB
+            objekty, komunikace, EIBNet/IP rozhraní) načítá z textového
+            souboru na disku (popis viz dále), který se serveru přiřadí pomocí
+            administračního webového rozhraní. Konfigurační soubor nelze
+            pomocí administračního rozhraní upravovat, soubor musí být na disk
+            zapsán jiným způsobem (místně, pomocí RDP, VNC, apod.).</p>
+            <p>Bez úpravy administračním rozhraním server hledá a načítá jako
+            výchozí konfigurační soubor <file>default.cfg</file>, který je
+            umístěn ve stejné složce jako je program serveru
+            (<file>EibSrv.exe</file>).</p>
+            <p>Program běžící jako služba má omezené možnosti interakce
+            s uživatelem, a proto není možné přímo zjistit, jestli byl
+            konfigurační soubor správně načten. Chybová hlášení o konfiguraci
+            jsou dostupná pouze v administračním rozhraní. Konfiguraci je také
+            možné prověřit ještě před nasazením pomocí nástroje příkazové
+            řádky <file>checkcfg.exe</file>, který je dodán spolu s instalací
+            serveru.</p>
+            <p>Konfigurační soubory pro server jsou textové, členěné do sekcí
+            (jména sekcí jsou uzavřena mezi znaky <type>[</type> a <type>]</type>)
+            a řádkově orientované (parametry jsou zapisovány uvnitř sekcí na
+            samostatných řádcích).</p>
+            <p>Ukázkové konfigurační soubory jsou uloženy ve složce Examples
+            složky s programem serveru.</p>
+            <section level="3">
+              <title><type>[device]</type></title>
+              <text>
+                <dl>
+                  <caption>Sekce <type>[device]</type> rozeznává následující
+                  parametry:</caption>
+                  <dt><type>id</type></dt>
+                  <dd><p>pro definici IP adresy a portu EIBNet/IP zařízení;
+                  podle způsobu komunikace IP adresa musí být buď vícesměrová
+                  (multicast, pro <type>mode = routing</type>), nebo
+                  jednosměrová (unicast, pro <type>mode = tunneling</type>
+                  nebo mode = <type>tunneling-ACK</type>). Zápis parametru je
+                  složen ze tří částí, parametr lze nalézt ve všech
+                  ukázkách:</p><p.type>id = eibnet:192.168.0.100:3671</p.type><p>přičemž
+                  poslední část (<number>3671</number>, číslo portu) je
+                  nepovinná. Pokud není port zapsán, použije se výchozí port
+                  podle standardu KNX (tj. právě
+                  <number>3671</number>).</p><p>V režimu routing je nutné
+                  použít vícesměrovou adresu. Aby server s EIBNet/IP routery
+                  správně komunikoval, musí být stejná vícesměrová adresa
+                  zapsána jak v parametru <type>id</type>, tak
+                  i v konfiguracích jednotlivých routerů. Jako dobrá volba se
+                  nabízí výchozí adresa podle standardu KNX: 224.0.23.12.
+                  Konfigurace pak vypadá například:</p><p.type>id = eibnet:224.0.23.12</p.type></dd>
+                  <dt><type>mode</type></dt>
+                  <dd><p>pro definici způsobu spojení s EIBNet/IP zařízením.
+                  Možné hodnoty parametru jsou:</p><t.table>
+                      <table>
+                        <tr>
+                          <td>hodnota</td>
+                          <td>význam</td>
+                          <td>ukázka</td>
+                        </tr>
+                        <tr>
+                          <td><type>tunneling</type></td>
+                          <td>komunikace bod-bod, komunikace se zařízením je
+                          výhradní (KNX Std. 3.8.4)</td>
+                          <td>01 test direct.cfg</td>
+                        </tr>
+                        <tr>
+                          <td><type>routing</type></td>
+                          <td>vícesměrová komunikace (multicasting),
+                          nekomunikuje se s konkrétním zařízením, není
+                          výhradní (KNX Std. 3.8.5)</td>
+                          <td>???</td>
+                        </tr>
+                        <tr>
+                          <td><type>tunneling-NAT</type></td>
+                          <td>stejné jako tunneling, avšak dokáže procházet
+                          přes IP routery s funkcí NAT (překlad adres);
+                          rozšíření Siemens, není ověřena funkce mimo zařízení
+                          Siemens</td>
+                          <td>02 test nat.cfg</td>
+                        </tr>
+                      </table>
+                    </t.table></dd>
+                </dl>
+              </text>
+            </section>
+            <section level="3">
+              <title><type>[interface]</type></title>
+              <text>
+                <dl>
+                  <caption>Sekce <type>[interface]</type> definuje následující
+                  parametry:</caption>
+                  <dt><type>address</type></dt>
+                  <dd><p>pro definici fyzické KNX adresy, kterou server
+                  použije při odesílání dat do KNX/EIB sběrnice. Parametr je
+                  přítomen ve všech ukázkách. Příklad:</p><p.type>address = 1.2.1</p.type></dd>
+                </dl>
+              </text>
+            </section>
+            <section level="3">
+              <title><type>[objects]</type> a <type>[blocks]</type></title>
+              <text>
+                <p>Sekce <type>[objects]</type> a <type>[blocks]</type>
+                shrnují všechny definice datových bodů KNX, které má server
+                znát a se kterými má komunikovat. Pro každý datový bod je
+                v konfiguraci třeba znát jeho adresu(y), datový typ a způsob
+                jeho komunikace. Sekce <type>[objects]</type> a <type>[blocks]</type>
+                se od sebe navzájem liší způsobem zápisu těchto údajů.</p>
+                <p>Obě sekce zapisují definice objektů do řádků, <type>[objects]</type>
+                vyžaduje na každém řádku o datových bodech kompletní
+                informaci, <type>[blocks]</type> naopak pro celou skupinu
+                datových bodů definuje jeden datový typ a jeden způsob
+                komunikace. <type>[objects]</type> se tak dobře hodí pro
+                rychlou definici několika datových bodů, zatímco <type>[blocks]</type>
+                dovoluje větší strukturovanost konfigurace.</p>
+                <p>V obou sekcích lze datové objekty definovat pomocí
+                parametrů <type>objects</type> a <type>object</type>. Jejich
+                odlišení je jednoduché: <type>objects</type> dovoluje najednou
+                definovat více datových bodů (každý s jednou skupinovou
+                adresou); <type>object</type> definuje jediný datový bod
+                spojený případně s více skupinovými adresami (model je stejný
+                jako při spojování komunikačních objektů se skupinovými
+                adresami při běžném programování EIB v ETS).</p>
+                <p>V definicích datových bodů se používají pro popis
+                podporovaných datových typů tato klíčová slova (tučně jsou
+                vyznačeny nejběžnější typy):</p>
+                <p.table>
+                  <caption></caption>
+                  <table>
+                    <tr>
+                      <td>KNX/EIB datový typ (Std. 2.6)</td>
+                      <td>klíčové slovo 1</td>
+                      <td>klíčové slovo 2</td>
+                      <td>rozšíření</td>
+                    </tr>
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />1 Switching</td>
+                      <td><type>eis1</type></td>
+                      <td><em><type>switch</type></em></td>
+                      <td></td>
+                    </tr>
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />2 Dimming</td>
+                      <td><type>eis2</type></td>
+                      <td><type>increase</type></td>
+                      <td></td>
+                    </tr>
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />3 Time</td>
+                      <td><type>eis3</type></td>
+                      <td><type>time</type></td>
+                      <td></td>
+                    </tr>
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />4 Date</td>
+                      <td><type>eis4</type></td>
+                      <td><type>date</type></td>
+                      <td></td>
+                    </tr>
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />5 Value</td>
+                      <td><type>eis5</type></td>
+                      <td><em><type>value</type></em></td>
+                      <td></td>
+                    </tr>
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />6 Scaling</td>
+                      <td><type>eis6</type></td>
+                      <td><em><type>scaling</type></em></td>
+                      <td><type>scaling255</type></td>
+                    </tr>
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />7 Drive
+                      Control</td>
+                      <td><type>eis7</type></td>
+                      <td><type>updown</type></td>
+                      <td></td>
+                    </tr>
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />8 Priority
+                      (2-bit)</td>
+                      <td><type>eis8</type></td>
+                      <td><type>priority</type></td>
+                      <td></td>
+                    </tr>
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />9 Float</td>
+                      <td><type>eis9</type></td>
+                      <td><type>float</type></td>
+                      <td></td>
+                    </tr>
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />10 16-bit</td>
+                      <td><type>eis10</type></td>
+                      <td><type>counter16</type></td>
+                      <td></td>
+                    </tr>
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />11 32-bit</td>
+                      <td><type>eis11</type></td>
+                      <td><type>counter32</type></td>
+                      <td></td>
+                    </tr>
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />13 ASCII Char</td>
+                      <td><type>eis13</type></td>
+                      <td><type>char</type></td>
+                      <td></td>
+                    </tr>
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />14 8-bit</td>
+                      <td><type>eis14</type></td>
+                      <td><type>counter8</type></td>
+                      <td></td>
+                    </tr>
+                    <tr>
+                      <td>EIS<c.special what="thinspace" />15 ASCII
+                      String</td>
+                      <td><type>eis15</type></td>
+                      <td><type>string</type></td>
+                      <td></td>
+                    </tr>
+                  </table>
+                </p.table>
+                <p>Poznámka: rozšiřující typ scaling255 mění standardní význam
+                typu EIS<c.special what="thinspace" />6. Zatímco datový bod
+                typu <type>scaling</type> nabízí klientům standardní rozsah
+                0<c.special what="interval" />100 (%), datový bod <type>scaling255</type>
+                s klienty komunikuje nepřevedenou hodnotu v rozsahu
+                0<c.special what="interval" />255.</p>
+                <p>Pro určení způsobu komunikace používá server v konfiguraci
+                následující klíčová slova (opět jsou tučně vyznačeny
+                nejčastější volby):</p>
+                <p.table>
+                  <caption></caption>
+                  <table>
+                    <tr>
+                      <td><type>tracker</type></td>
+                      <td>Datový bod se nezapisuje do EIB, obsahuje poslední
+                      hodnotu, která sběrnicí protekla</td>
+                    </tr>
+                    <tr>
+                      <td><em><type>tracker_init</type></em></td>
+                      <td>Jako <type>tracker</type>, avšak při rozběhu
+                      serveru, nebo při obnově spojení s KNX/EIB, vyčítá
+                      nuceně aktuální hodnotu z EIB. V EIB musí existovat
+                      zařízení, které na tento požadavek odpoví.</td>
+                    </tr>
+                    <tr>
+                      <td><em><type>transmitter</type></em></td>
+                      <td>Datový bod se zapisuje do EIB, obsahuje poslední
+                      hodnotu, kterou do něj některý z klientů zapsal,
+                      nepřijímá hodnoty z EIB</td>
+                    </tr>
+                    <tr>
+                      <td><type>transmitter_with_status</type></td>
+                      <td>Datový bod se zapisuje do EIB a přijímá hodnoty
+                      z EIB. Obsahuje poslední hodnotu buď z EIB nebo
+                      z klientů.</td>
+                    </tr>
+                    <tr>
+                      <td><type><em>transmitter_with_status_init</em></type></td>
+                      <td>Jako <type>transmitter_with_status</type>, avšak při
+                      rozběhu či obnovení spojení nuceně vyčítá hodnotu z EIB
+                      stejně jako <type>tracker_init</type>.</td>
+                    </tr>
+                  </table>
+                </p.table>
+                <p>Poslední část definice datových bodů, tj. skupinové adresy,
+                lze v konfiguraci zapisovat dvojím způsobem: buď jako
+                samostatné skupinové adresy, nebo jako interval skupinových
+                adres.</p>
+                <p>Příklad zápisů datových bodů pomocí sekce <type>[objects]</type>:</p>
+                <p.type>[objects]
+objects = tracker, switch, 3/0/0..3/0/19
+objects = transmitter, switch, 5/3/100..5/3/119
+object = tracker_init, value, 2/0/0
+object = transmitter_with_status_init, switch, 3/3/10, 3/5/10</p.type>
+                <p>Příklad zápisu datových bodů pomocí sekce <type>[blocks]</type>:</p>
+                <p.type>[blocks]
+block = statuses
+block = controls
+
+[statuses]
+type = switch
+behaviour = tracker
+objects = 3/0/0..3/0/19
+
+[controls]
+type = switch
+behaviour = transmitter
+objects = 5/3/100..5/3/119</p.type>
+                <p>Je zřejmé, že v definicích pomocí <type>[blocks]</type> je
+                nejprve uveden výčet bloků (sekcí), které jsou následně
+                zapsány. Aby se v definicích objektů nemusely typ a způsob
+                komunikace opisovat, jsou vytknuty do parametru <type>type</type>
+                a <type>behaviour</type>. Druhá ukázka přitom definuje stejné
+                objekty, jako první dva řádky v ukázce použití <type>[objects]</type>.</p>
+                <p>Další ukázky zápisu datových bodů lze najít v souborech:
+                <file>03 init-read.cfg</file> (datové body s vynuceným
+                počátečním čtením), <file>05 complex-object.cfg</file> (datové
+                body spojené s více skupinovými adresami), <file>07
+                blocks.cfg</file> (definice datových bodů pomocí sekce <type>[blocks]</type>).</p>
+              </text>
+            </section>
+            <section level="3">
+              <title>Import datových bodů z ETS</title>
+              <text>
+                <p>Definice datových bodů serveru může být významně urychlena
+                ve spolupráci s programem ETS. ETS umí (podle své konfigurace)
+                exportovat skupinové adresy projektu do textového souboru
+                určeného pro OPC Server (produkt KNX Association, stejně jako
+                ETS). Tento soubor (s příponou ESF) umí konfigurace serveru
+                přijmout a všechny datové body z něj použít. ESF soubor nemusí
+                obsahovat vždy všechny potřebné informace, avšak server se umí
+                s chybějícími údaji vypořádat (podle nastavení, viz níže).</p>
+                <p></p>
+              </text>
+            </section>
+          </text>
+        </section>
+      </text>
+    </section>
+  </text>
+</document>
