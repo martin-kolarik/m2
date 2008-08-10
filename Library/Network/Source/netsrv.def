@@ -5,6 +5,7 @@ FROM Storage IMPORT
 
 IMPORT
    inetaddr,
+   ioo,
    netsocket;
 
 #save, option( dll_export => on )
@@ -81,15 +82,8 @@ END AListener;
 
 (*================================================================================*)
 
-TYPE
-  TCallbackMode = (
-    cbmPooled,
-    cbmMainThread,
-    cbmDefault = cbmMainThread
-  );
-
 PROCEDURE SetCallbackMode(
-            Mode : TCallbackMode
+            Mode : ioo.TCallbackMode
           );
 
 PROCEDURE StartListen(

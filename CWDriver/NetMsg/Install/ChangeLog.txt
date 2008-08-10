@@ -1,3 +1,7 @@
+Version DEBUG 1.1.xxxx
+- BUG: If connection was dropped just during accept processing driver could
+       stop in ASSERT due to unexpected state.
+
 Version DEBUG 1.1.1659 14.6.2008
 - BUG: local in process connection could block infinitely when transfering
        huge message blocks
