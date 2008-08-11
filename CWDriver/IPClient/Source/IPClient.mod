@@ -109,7 +109,9 @@ CLASS CDriver IMPLEMENTS diface.ICWDriver;
    Connection    : netconnection.TCPConnection;
    Events        : msgqueue.CPtrQueue;
    Delimiter     : WCHAR;
-   Buffer        : StorageO.CMemoryBuffer;
+   WBuffer       : StorageO.CMemoryBuffer;
+   RBufferLock   : Sync.LOCK;
+   RBuffer       : StorageO.CMemoryBuffer;
 
    // binding to procedural interface
    PUBLIC VIRTUAL PROCEDURE Initialize( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; CallbackProc : drv_def.TDriverCallbackW );
@@ -323,7 +325,6 @@ CLASS IMPLEMENTATION CDriver;
    PUBLIC VIRTUAL PROCEDURE Dispose();
    BEGIN
       Events.Clear();
-      Connection.Close();
    END Dispose;
 
 (*--------------------------------------------------------------------------------*)
@@ -332,7 +333,7 @@ CLASS IMPLEMENTATION CDriver;
    LABEL
       DoSend, Error, Success;
    VAR
-      c : CARDINAL;
+      c, l : CARDINAL;
       Event : POINTER TO TEventData;
       n : ARRAY [0..31] OF WCHAR;
       si : StringsO.CString;
@@ -413,6 +414,11 @@ CLASS IMPLEMENTATION CDriver;
          sw.ItemS( StringsO.WCHARS{ L' ' }, 0, 1, TRUE, OUT si );
 
          IF si.EqualsOA( L'connect' ) THEN
+            IF Connection.Connected THEN
+               sw.FromOA( OAsz( R[ Texts._AlreadyConnected ] ));
+               GOTO Error;
+            END;
+         
             sw.ItemS( StringsO.WCHARS{ L' ' }, 0, 2, TRUE, OUT si );
             Connection.Open( si, FALSE, netsocket.FORSAFETY );
 
@@ -426,41 +432,44 @@ CLASS IMPLEMENTATION CDriver;
             END;
          
             sw.ItemS( StringsO.WCHARS{ L' ' }, 0, 2, TRUE, OUT si );
+
+            l := WBuffer.Size - WBuffer.Length;
             IF si.Length MOD 2 = 1 THEN
                sw.FromOA( OAsz( R[ Texts._BadSendData ] ));
                GOTO Error;
-            ELSIF si.Length DIV 2 > Connection.Stream^.WriteSpace THEN
+            ELSIF si.Length DIV 2 > l THEN
+               sw.FromOA( OAsz( R[ Texts._NotEnoughWriteSpace ] ));
+               GOTO Error;
+            ELSIF WBuffer.Length + si.Length DIV 2 > Connection.Stream^.WriteSpace THEN
                sw.FromOA( OAsz( R[ Texts._NotEnoughWriteSpace ] ));
                GOTO Error;
             END;
-            IF NOT cphcommon.FromHex( OA( si.Length-1, si.rawData ), OUT OA( Buffer.Size-1, ADDRESS( Buffer.Data )), OUT c ) THEN
+
+            IF NOT cphcommon.FromHex( OA( si.Length-1, si.rawData ), OUT OA( l-1, ADDRESS( WBuffer.Data@[WBuffer.Length] )), OUT c ) THEN
                sw.FromOA( OAsz( R[ Texts._BadCharacterInDataToSend ] ));
                GOTO Error;
-            ELSIF c = 0 THEN
-               sw.FromOA( OAsz( R[ Texts._NoDataToSend ] ));
-               GOTO Error;
             ELSE
-               Buffer.Length := c;
-               Connection.Stream^.WriteBuffer( Buffer, OUT c, netsocket.FORSAFETY );
+               INC( WBuffer.Length, c );
+               Connection.Stream^.WriteBuffer( WBuffer, OUT c, netsocket.FORSAFETY );
+               WBuffer.RemoveStart( c );
             END;
 
          ELSIF si.EqualsOA( L'receive' ) THEN
-            c := MIN2( (*OutValueLimit DIV 2*)100, Connection.Stream^.Length32 );
-            IF c > 0 THEN
-               Buffer.Clear();
-               Connection.Stream^.ReadBuffer( c, REF Buffer, Sync.FORSAFETY ); // read only what is immediatelly possible
-               c := Buffer.Length << 1;
-            END;
-            IF c > 0 THEN
-               sw.Size := c;
-               sw.Length := c;
-               cphcommon.ToHex( OA( Buffer.Length-1, ADDRESS( Buffer.Data )), OUT OA( sw.Size-1, PWCHAR( sw.rawData )));
+
+            RBufferLock.Lock();
+            c := MIN2( OutValueLimit DIV 2, RBuffer.Length );
+            l := c << 1;
+            IF l > 0 THEN
+               sw.Size := l;
+               sw.Length := l;
+               cphcommon.ToHex( OA( c-1, ADDRESS( RBuffer.Data )), OUT OA( l-1, PWCHAR( sw.rawData )));
+               RBuffer.RemoveStart( c );
             ELSE
                sw.Clear();
             END;
-            OutValue.String := sw;
+            RBufferLock.Unlock();
             
-            Connection.Stream^.StartReading(); // restart reading
+            OutValue.String := sw;
             RETURN;
          
          ELSIF si.EqualsOA( L'available' ) THEN
@@ -635,15 +644,23 @@ CLASS IMPLEMENTATION CDriver;
    LOCAL PROCEDURE OnDataReceived( Length : CARDINAL );
    VAR
       Event : POINTER TO TEventData;
+      l : CARDINAL;
    BEGIN
       Logger.LogSC( dldDebug, logPrefix, L"Event.Add evDataReceived bytes ", Length );
+      
+      RBufferLock.Lock();
+      Connection.Stream^.ReadBuffer( RBuffer.Size - RBuffer.Length, REF RBuffer, 0 ); // read only what is immediatelly possible
+      l := RBuffer.Length;
+      RBufferLock.Unlock();
 
       NEW( Event );
       Event^.Event := evDataReceived;
-      Event^.Length := Connection.Stream^.Length32;
+      Event^.Length := l;
       Events.Enqueue( Event );
 
       Logger.LogS( dldDebug, logPrefix, L"Event.Queued, fire dcfException (3)" );
+
+      Connection.Stream^.StartReading(); // continue with advised reading
 
       CallbackProc( CallbackId, drv_def.dcfException, NIL );
    END OnDataReceived;
@@ -660,9 +677,12 @@ BEGIN
    
    Connection.CallbackMode := IOO.cbmPooled;
    Connection.Notifier := ADR( Notifier );
+   // Connection.Stream^.BufferSize := 16384;
+
    Notifier.Driver := ADR( SELF );
    Delimiter := L" ";
-   Buffer.Size := 4096;
+   RBuffer.Size := 16384;
+   WBuffer.Size := 16384;
 END CDriver;
 
 (*================================================================================*)
