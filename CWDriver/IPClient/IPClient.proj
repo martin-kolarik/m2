@@ -1,0 +1,35 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 -->
+    <PropertyGroup>
+        <ComponentType>Product</ComponentType>
+
+        <ProductUpgradeGUID>DF087C54-FB1E-429f-A485-7C7FAB551D35</ProductUpgradeGUID>
+        <ProductId>Inris.IPClient.CWDriver</ProductId>
+        <ProductVersionMajor>1</ProductVersionMajor>
+        <ProductVersionMinor>1</ProductVersionMinor>
+        <FileDescription>Inris IP Client Driver</FileDescription>
+    </PropertyGroup>
+
+    <!-- 2 INCLUDE DEFINITION -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 COMPONENT DEFINITION -->
+    <ItemGroup>
+        <Components Include="modula2\modula2;api\clib;API\win32"/>
+        <Components Include="component\SCCore;library\CWdriver"/>
+        <Program Include="ipclient"/>
+        <Messages Include="Texts"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <Export>export</Export>
+    </PropertyGroup>
+
+    <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>
