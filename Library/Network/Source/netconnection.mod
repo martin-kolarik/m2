@@ -89,7 +89,7 @@ CLASS IMPLEMENTATION CConnectionNotifier;
    VAR
       p : PTR := ADR( Direction );
    BEGIN
-      IF Source <> ADR( Connection^._Socket ) THEN
+      IF Source = ADR( Connection^._Socket ) THEN
          // accept only notifications from stream
       ELSIF Notifier = NIL THEN
          // do nothing
@@ -280,21 +280,21 @@ CLASS IMPLEMENTATION TCPConnection;
 
    PUBLIC PROPERTY Connected GET : BOOLEAN;
    BEGIN
-      RETURN _Socket.Connected;
+      RETURN _Socket^.Connected;
    END Connected;
    
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY LocalAddress GET : inetaddr.INETADDR;
    BEGIN
-      RETURN _Socket.LocalAddress;
+      RETURN _Socket^.LocalAddress;
    END LocalAddress;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY RemoteAddress GET : inetaddr.INETADDR;
    BEGIN
-      RETURN _Socket.RemoteAddress;
+      RETURN _Socket^.RemoteAddress;
    END RemoteAddress;
 
 (*--------------------------------------------------------------------------------*)
@@ -317,15 +317,15 @@ CLASS IMPLEMENTATION TCPConnection;
    BEGIN
       Close();
       
-      _Socket.Waitable := WaitForResult;
-      _Socket.Connect( Host, TimeoutMS );
+      _Socket^.Waitable := WaitForResult;
+      _Socket^.Connect( Host, TimeoutMS );
       
       IF NOT WaitForResult THEN
          RETURN Sync.arPending;
       ELSIF TimeoutMS < Sync.FOREVER - 100 THEN
-         RETURN _Socket.WaitCompletion( TimeoutMS + 100 );
+         RETURN _Socket^.WaitCompletion( TimeoutMS + 100 );
       ELSE
-         RETURN _Socket.WaitCompletion( Sync.FOREVER );
+         RETURN _Socket^.WaitCompletion( Sync.FOREVER );
       END;
    END OpenOA;
 
@@ -341,18 +341,24 @@ CLASS IMPLEMENTATION TCPConnection;
 BEGIN
    NEW( _Notifier );
    _Notifier^.Connection := ADR( SELF );
-   _Socket.Notifier := _Notifier;
+   
+   NEW( _Socket );
+   _Socket^.Notifier := _Notifier;
 
    _BStream.Stream := ADR( _NStream );
    _BStream.Notifier := _Notifier;
 
-   _NStream.FromSocket( ADR( _Socket ), TRUE, IOO.accReadWrite );
+   _NStream.FromSocket( _Socket, TRUE, IOO.accReadWrite );
 
 FINALLY
+   _Socket^.Notifier := NIL;
+   // socket is close from _NStream, as it is owned by it
+   
    _BStream.Close( FALSE );
    _BStream.Stream := NIL;
    
-   _Notifier^.Release(); _Notifier := NIL;
+   _Notifier^.Release();
+   _Notifier := NIL;
 END TCPConnection;
 
 (*================================================================================*)

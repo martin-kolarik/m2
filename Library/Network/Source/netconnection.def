@@ -28,7 +28,7 @@ CLASS TCPConnection;
       _BStream : IOO.CBufferedStream;
       _NStream : netstream.CNetworkStream;
       _Notifier : TPConnectionNotifier;
-      _Socket : netsocket.DSocket;
+      _Socket : netsocket.TPDSocket;
 
    PUBLIC PROPERTY
       CallbackMode : IOO.TCallbackMode; // default ioo.cbmPooled
