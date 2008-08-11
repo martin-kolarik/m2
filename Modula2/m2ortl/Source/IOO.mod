@@ -434,7 +434,7 @@ CLASS IMPLEMENTATION AStream;
       R : Sync.TAsyncResult;
    BEGIN
       Data.Size := l + MaximalReadLength; // reserve space
-      a := Data.Data;
+      a := Data.Data@[l];
       R := ReadOA( OUT OA( MaximalReadLength-1, a ), OUT l, TimeoutMS );
       INC( Data.Length, l );
       RETURN R;
