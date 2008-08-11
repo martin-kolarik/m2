@@ -435,7 +435,7 @@ CLASS IMPLEMENTATION AStream;
    BEGIN
       Data.Size := l + MaximalReadLength; // reserve space
       a := Data.Data;
-      R := ReadOA( OUT OA( l-1, a ), OUT l, TimeoutMS );
+      R := ReadOA( OUT OA( MaximalReadLength-1, a ), OUT l, TimeoutMS );
       INC( Data.Length, l );
       RETURN R;
    END ReadBuffer;
@@ -677,9 +677,9 @@ CLASS IMPLEMENTATION CBufferedStream;
   PUBLIC FINAL PROPERTY Length GET : CARD64;
   BEGIN
     IF _Stream = NIL THEN
-      RETURN 0;
+      RETURN CARD64( _RBuffer.Count );
     ELSE
-      RETURN _Stream^.Length;
+      RETURN CARD64( _RBuffer.Count ) + _Stream^.Length;
     END;
   END Length;
 
@@ -754,6 +754,13 @@ CLASS IMPLEMENTATION CBufferedStream;
     AbortWriting();
     _Stream := Value;
   END Stream;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY WriteSpace GET : CARD32; // space in output buffer
+   BEGIN
+      RETURN _WBuffer.Size - _WBuffer.Count; 
+   END WriteSpace;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1177,7 +1184,7 @@ CLASS IMPLEMENTATION CDatagramReader;
 
   PUBLIC VIRTUAL PROCEDURE StartReading();
   BEGIN
-    IF _Buffer <> NIL THEN
+    IF _Buffer <> NIL THEN // it should not be here? it should be moved to connection close, not after connection start; current implementation denies calling StartReading more times !!!!
       _Buffer^.Clear();
       _BufferDataLength := 0;
     END;

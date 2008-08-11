@@ -2,12 +2,16 @@ IMPLEMENTATION MODULE cphcommon;
 
 (*================================================================================*)
 
-PROCEDURE FromHex( CONST String : ARRAY OF WCHAR; OUT Bin : ARRAY OF BYTE; OUT Filled : CARDINAL ); // expects even number of characters in String
+PROCEDURE FromHex( CONST String : ARRAY OF WCHAR; OUT Bin : ARRAY OF BYTE; OUT Filled : CARDINAL ) : BOOLEAN; // expects even number of characters in String
 VAR
-	i, j, u : CARDINAL;
+	i, j, u : INTEGER;
 	ch : WCHAR;
 	lo, hi : CARD8;
 BEGIN
+   IF ( HIGH( String ) = -1 ) OR ( HIGH( Bin ) = -1 ) THEN
+      Filled := 0;
+      RETURN TRUE;
+   END;
 	u := MIN2( HIGH( String ) DIV 2, HIGH( Bin ));
 	j := 0;
 	FOR i := 0 TO u DO
@@ -16,6 +20,8 @@ BEGIN
 		| L'0'..L'9' : hi := CARD8( ch ) - CARD8( L'0' );
 		| L'a'..L'f' : hi := CARD8( ch ) - CARD8( L'a' ) + 10;
 		| L'A'..L'F' : hi := CARD8( ch ) - CARD8( L'A' ) + 10;
+		ELSE
+		   RETURN FALSE;
 		END; // CASE
 		INC( j );
 		ch := String[j];
@@ -23,11 +29,14 @@ BEGIN
 		| L'0'..L'9' : lo := CARD8( ch ) - CARD8( L'0' );
 		| L'a'..L'f' : lo := CARD8( ch ) - CARD8( L'a' ) + 10;
 		| L'A'..L'F' : lo := CARD8( ch ) - CARD8( L'A' ) + 10;
+		ELSE
+		   RETURN FALSE;
 		END; // CASE
 		INC( j );
 		Bin[i] := hi << 4 OR lo;
 	END; // WHILE
 	Filled := u+1;
+	RETURN TRUE;
 END FromHex;
 
 (*--------------------------------------------------------------------------------*)
@@ -37,6 +46,12 @@ VAR
 	b : CARD8;
 	i, j, u : CARDINAL;
 BEGIN
+   IF HIGH( String ) = -1 THEN
+      RETURN;
+   ELSIF HIGH( Bin ) = -1 THEN
+      String[0] := 0W;
+      RETURN;
+   END;
 	u := MIN2( HIGH( Bin ), HIGH( String ) DIV 2 );
 	j := 0;
 	FOR i := 0 TO u DO

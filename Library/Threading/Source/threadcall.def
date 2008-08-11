@@ -11,8 +11,11 @@ IMPORT
    Sync;
 
 CONST
+   // MAIN client interface, consumer of thread call
    IThreadProcedureCallTarget ::= OSALthread.IThreadProcedureCallTarget;
    TPIThreadProcedureCallTarget ::= OSALthread.TPIThreadProcedureCallTarget;
+
+   // usually message thread
    IThreadProcedureCallHandler ::= OSALthread.IThreadProcedureCallHandler;
 
 (*===========================================================================*)

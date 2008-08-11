@@ -290,6 +290,8 @@ CLASS CBufferedStream( AStream ) IMPLEMENTS IBufferedReader;
   PUBLIC PROPERTY
     BufferSize : CARD32; // default 4096
     Stream     : TPStream;
+  PUBLIC READONLY PROPERTY
+    WriteSpace : CARD32; // space in output buffer
   PUBLIC VAR
     RMode      : TBufferingMode := bmChunked;
     RChunk     : CARDINAL := 0;

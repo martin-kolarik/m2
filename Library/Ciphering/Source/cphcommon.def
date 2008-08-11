@@ -4,7 +4,7 @@ DEFINITION MODULE cphcommon;
 
 (*================================================================================*)
 
-PROCEDURE FromHex( CONST String : ARRAY OF WCHAR; OUT Bin : ARRAY OF BYTE; OUT Filled : CARDINAL ); // expects event number of characters in String
+PROCEDURE FromHex( CONST String : ARRAY OF WCHAR; OUT Bin : ARRAY OF BYTE; OUT Filled : CARDINAL ) : BOOLEAN; // expects event number of characters in String
 PROCEDURE ToHex( CONST Bin : ARRAY OF BYTE; OUT String : ARRAY OF WCHAR );
 
 (*--------------------------------------------------------------------------------*)
