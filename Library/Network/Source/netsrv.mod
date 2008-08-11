@@ -9,6 +9,7 @@ IMPORT
   winsock;
 
 IMPORT
+  IOO,
   iphlpapi,
   iptypes,
   lists,
@@ -339,7 +340,7 @@ CLASS CIPServer( msghandler.MessageHandler );
   _FDMessage : msghandler.Message;
   _Delegate : threadpool.CMessageHandlerDelegate;
 
-  CBMode : TCallbackMode := cbmDefault;
+  CBMode : IOO.TCallbackMode := IOO.cbmDefault;
   MQueue : msgqueue.CMessageQueue;
   SocketNotifier : CSocketNotifier;
   Sockets : lists.CPtrList;
@@ -349,7 +350,7 @@ CLASS CIPServer( msghandler.MessageHandler );
   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST MSG : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
   INTERNAL VIRTUAL PROCEDURE OnTimer( Timer : PTR );
 
-  LOCAL PROCEDURE SetCallbackMode( Mode : TCallbackMode );
+  LOCAL PROCEDURE SetCallbackMode( Mode : IOO.TCallbackMode );
   LOCAL PROCEDURE StartListen( Type : netsocket.TSocketType; CONST LocalAddress : inetaddr.INETADDR; PMulticastGroup : inetaddr.TPINETADDR; PStreamCreator : TPListener; AutomaticCloseTimeMS : CARDINAL; PCreatedSocket : POINTER TO netsocket.TPSSocket ) : CARDINAL;
   LOCAL PROCEDURE StopListenServer( CONST LocalAddress : inetaddr.INETADDR; Type : netsocket.TSocketType );
   LOCAL PROCEDURE StopListenSocket( Socket : netsocket.TPSSocket );
@@ -490,13 +491,13 @@ CLASS IMPLEMENTATION CIPServer;
 
 //--------------------------------------------------------------------------------
 
-  LOCAL PROCEDURE SetCallbackMode( Mode : TCallbackMode );
+  LOCAL PROCEDURE SetCallbackMode( Mode : IOO.TCallbackMode );
   BEGIN
     IF CBMode = Mode THEN
       RETURN;
     END;
     CBMode := Mode;
-    IF CBMode = cbmPooled THEN
+    IF CBMode = IOO.cbmPooled THEN
       IF _FDHandle = NIL THEN
         netpool.pool()^.WaitMessage( ADR( _Delegate ), 0, Sync.FOREVER, FALSE, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
       END;
@@ -641,7 +642,7 @@ VAR
   IPServer : POINTER TO CIPServer;
 
 PROCEDURE SetCallbackMode(
-            Mode : TCallbackMode
+            Mode : IOO.TCallbackMode
           );
 BEGIN
    ASSERT( IPServer <> NIL );

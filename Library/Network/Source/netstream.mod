@@ -11,7 +11,7 @@ CLASS IMPLEMENTATION CNetworkStream;
 
   PUBLIC FINAL READONLY PROPERTY CanRead GET : BOOLEAN;
   BEGIN
-    RETURN ( Socket <> NIL ) AND Socket^.Connected AND (( Access = IOO.accRead ) OR ( Access = IOO.accReadWrite ));
+    RETURN ( Socket <> NIL ) AND Socket^.Readable AND (( Access = IOO.accRead ) OR ( Access = IOO.accReadWrite ));
   END CanRead;
 
 (*--------------------------------------------------------------------------------*)
@@ -89,7 +89,7 @@ CLASS IMPLEMENTATION CNetworkStream;
     NEW( Socket );
     Socket^.Waitable := TRUE;
     Result := Socket^.Connect( Server, netsocket.FORSAFETY );
-    IF ( Result IN Sync.arsStarts ) AND ( Socket^.WaitCompletion( netsocket.FORSAFETY ) = Sync.arCompleted ) THEN
+    IF ( Result IN Sync.arsStarts ) AND ( Socket^.WaitCompletion( netsocket.FORSAFETY + 100 ) = Sync.arCompleted ) THEN
        Access := IOO.accReadWrite;
        OwnHandle := TRUE;
     ELSE

@@ -72,6 +72,7 @@ TYPE
     poResolveAddress, poResolveName,
     poConnect, poDisconnect, // should be consequent to reserve space
       poConnectResolved, poConnectDisconnected, // temporary statuses driving Connect in connected state. Asynchronous DNS and Disconnect must be handled, only after them I could connect.
+      poFinalReadoutPossible, // temporary state allowing reading out data which could be sent from remote side during/after FD_CLOSE signalling
     poReceive, poSend // should be consequent to reserve space
   );
   TPendingOperation = SET OF TPendingOperationItem;
@@ -151,6 +152,7 @@ CLASS DSocket( SSocket );
     Connecting    : BOOLEAN;
     Connected     : BOOLEAN;
     Closed        : BOOLEAN;
+    Readable      : BOOLEAN; // after remote shutdown the socked is formally closed, but it still can offer data
     DataAvailable : CARDINAL;
     
 	// Open, Close pair is in DSocket covered with Connect/Disconnet. Open/Close cannot be used (only as SSocket.Open/Close call)

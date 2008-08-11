@@ -4,6 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   IOO,
    inetaddr,
    log,
    netinit,
@@ -81,7 +82,7 @@ CLASS IMPLEMENTATION CTest;
 
       Host^.StartPhase( L"Listen and stop listen -- pooled notification" );
       // init
-      netsrv.SetCallbackMode( netsrv.cbmPooled );
+      netsrv.SetCallbackMode( IOO.cbmPooled );
       Count := 0;
       // run
       // V4
@@ -114,7 +115,7 @@ CLASS IMPLEMENTATION CTest;
 
       Host^.StartPhase( L"Listen and stop listen -- main thread notification" );
       // init
-      netsrv.SetCallbackMode( netsrv.cbmMainThread );
+      netsrv.SetCallbackMode( IOO.cbmMainThread );
       Count := 0;
       // run
       // V4

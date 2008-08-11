@@ -4,6 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   IOO,
    inetaddr,
    log,
    netinit,
@@ -358,7 +359,7 @@ CLASS IMPLEMENTATION CTest;
       // global init      
       Reader.Persistent := TRUE;
       Writer.Persistent := TRUE;
-      netsrv.SetCallbackMode( netsrv.cbmPooled );
+      netsrv.SetCallbackMode( IOO.cbmPooled );
       
       ai.Port := 4444;
       netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( ServerListener ), 0, NIL );

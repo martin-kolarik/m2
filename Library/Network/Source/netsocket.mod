@@ -362,6 +362,8 @@ CLASS IMPLEMENTATION SSocket;
       IF _Type = stDatagram THEN
         MulticastLeave();
         _Lock.Excl( REF _Pending, poConnection );
+      ELSE
+        _Lock.Excl( REF _Pending, poFinalReadoutPossible );
       END;
       Select( {} );
       winsock.closesocket( Socket );
@@ -773,11 +775,18 @@ CLASS IMPLEMENTATION DSocket;
 
 (*--------------------------------------------------------------------------------*)
 
+  PUBLIC PROPERTY Readable GET : BOOLEAN;
+  BEGIN
+    RETURN _Lock.In( REF _Pending, poConnection ) OR _Lock.In( REF _Pending, poFinalReadoutPossible );
+  END Readable;
+
+(*--------------------------------------------------------------------------------*)
+
   PUBLIC PROPERTY DataAvailable GET : CARDINAL;
   VAR
     L : CARDINAL;
   BEGIN
-    IF NOT _Lock.In( REF _Pending, poConnection ) THEN
+    IF NOT Readable THEN
       RETURN 0;
     ELSIF winsock.ioctlsocket( Socket, winsock.FIONREAD, winsock.Pu_long( ADR( L ))) = winsock.SOCKET_ERROR THEN
       RETURN 0;
@@ -792,6 +801,8 @@ CLASS IMPLEMENTATION DSocket;
    BEGIN
       IF _Type = stDatagram THEN
          RETURN SUPER.Open( OUT Error );
+      ELSE
+         Close( TRUE );
       END;
       // now solve stStream
       IF Remote.V6 THEN
@@ -992,9 +1003,10 @@ CLASS IMPLEMENTATION DSocket;
     RETURN Sync.arCompleted;
 
   Failed:
+    Result := winsock.WSAGetLastError();
     _Lock.Excl( REF _Pending, poConnection );
     Close( TRUE );
-    Result := winsock.WSAGetLastError();
+
     IF _Notifier <> NIL THEN
       _Notifier^.OnAccept( Result, ADR( SELF ));
       _Notifier^.OnError( IOO.dirUnknown, Result, ADR( SELF ), opAccept );
@@ -1017,6 +1029,10 @@ CLASS IMPLEMENTATION DSocket;
       RETURN Sync.arAlreadyPending;
     ELSIF Socket = winsock.INVALID_SOCKET THEN
       RETURN Sync.arCannotStart;
+    ELSIF _Lock.In( REF _Pending, poFinalReadoutPossible ) THEN // Socket has been left unclosed after previous FD_CLOSE
+      Close( TRUE );
+      RETURN Sync.arCannotStart;
+
     ELSE
       _Lock.Incl( REF _Pending, poDisconnect );
     END;
@@ -1146,6 +1162,7 @@ CLASS IMPLEMENTATION DSocket;
                   OnFD( winsock.FD_READ, poReceive, NetworkEvents.iErrorCode[ winsock.FD_READ_BIT ] );
                END;
                IF winsock.FD_CLOSE_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
+                  OnFD( winsock.FD_READ, poReceive, NetworkEvents.iErrorCode[ winsock.FD_CLOSE_BIT ] ); // FD_READ is not posted for FD_CLOSE notification, so to be sure that final reading is allowed and notified
                   OnFD( winsock.FD_CLOSE, poDisconnect, NetworkEvents.iErrorCode[ winsock.FD_CLOSE_BIT ] );
                END;
             END;
@@ -1429,6 +1446,10 @@ CLASS IMPLEMENTATION DSocket;
     END;
     LPending := TPendingOperation( _Lock.InclExcl( REF _Pending, BITSET32( TPendingOperation{poConnectDisconnected} ), BITSET32( TPendingOperation{poConnection, poDisconnect} )));
     LPending := LPending + TPendingOperation{poConnectDisconnected};
+    IF NOT Local AND ( TPendingOperation{poConnect, poConnection} * LPending = TPendingOperation{poConnection} ) THEN // pure remote disconnect
+      _Lock.Incl( REF _Pending, poFinalReadoutPossible );
+      INCL( LPending, poFinalReadoutPossible );
+    END;
     
     // abort pending IOs
     CompleteFlow( poSend, TRUE, Sync.arAborted, Error );
@@ -1440,8 +1461,12 @@ CLASS IMPLEMENTATION DSocket;
     ELSE
       StopTimeout( poDisconnect );
     END;
-    Close( poConnect IN LPending );
-    IF poConnect NOT IN LPending THEN
+    IF poConnect IN LPending THEN
+      Close( TRUE );
+    ELSE
+      IF poFinalReadoutPossible NOT IN LPending THEN // otherwise here Close is not called for remote close to preserve socket for final reading out of data. Socket is closed sometime later.
+         Close( TRUE );
+      END;
       IF Error = 0 THEN
         Result := Sync.arCompleted;
       ELSE
@@ -1468,11 +1493,15 @@ CLASS IMPLEMENTATION DSocket;
     LBuffer : IOO.TPDataProxy;
     Result : Sync.TAsyncResult;
   BEGIN
-    IF NOT _Lock.In( REF _Pending, poConnection ) THEN
-      RETURN Sync.arCannotStart;
-    ELSIF Operation = poReceive THEN
+    IF Operation = poReceive THEN
+      IF NOT Readable THEN
+         RETURN Sync.arCannotStart;
+      END;
       LBuffer := Sync.ICmpExchgPtr( REF Reader, Buffer, NIL );
     ELSE
+      IF NOT Connected THEN
+         RETURN Sync.arCannotStart;
+      END;
       LBuffer := Sync.ICmpExchgPtr( REF Writer, Buffer, NIL );
     END;
     IF LBuffer <> NIL THEN // previous value

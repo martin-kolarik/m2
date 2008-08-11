@@ -1,0 +1,53 @@
+DEFINITION MODULE netconnection;
+
+(*================================================================================*)
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+   
+IMPORT
+   inetaddr,
+   IOO,
+   netsocket,
+   netstream,
+   StringsO,
+   Sync;
+   
+TYPE
+   TPConnectionNotifier = POINTER TO CConnectionNotifier;
+
+#save, option( dll_export => on )
+
+(*================================================================================*)
+
+TYPE
+   TPTCPConnection = POINTER TO TCPConnection;
+
+CLASS TCPConnection;
+   LOCAL VAR
+      _BStream : IOO.CBufferedStream;
+      _NStream : netstream.CNetworkStream;
+      _Notifier : TPConnectionNotifier;
+      _Socket : netsocket.DSocket;
+
+   PUBLIC PROPERTY
+      CallbackMode : IOO.TCallbackMode; // default ioo.cbmPooled
+      Notifier : netsocket.TPSocketNotifier;
+
+   PUBLIC READONLY PROPERTY
+      Connected : BOOLEAN;
+      LocalAddress : inetaddr.INETADDR;
+      RemoteAddress : inetaddr.INETADDR;
+      Stream : IOO.TPBufferedStream;
+   
+   PUBLIC PROCEDURE Open( Host : StringsO.CString; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE OpenOA( Host : ARRAY OF WCHAR; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE Close();
+
+END TCPConnection;
+
+(*================================================================================*)
+
+#restore
+
+END netconnection.
