@@ -19,7 +19,7 @@
             <?endif ?>
             <Directory Id="ProgramFilesFolder">
                 <Directory Id="Inris" Name="Inris">
-                    <Directory Id="INSTALLDIR" Name="RemoteASCIIDrv">
+                    <Directory Id="INSTALLDIR" Name="ReAscDrv" LongName="RemoteASCIIDrv">
                         <Component Guid="8BE583C9-4D99-443c-9B44-7760B33D7479" Id="Program">
                             <File DiskId="1" Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" Vital="yes">
                             </File>
@@ -39,6 +39,7 @@
                         <?endif ?>
                     </Directory>
                 </Directory>
+            </Directory>
         </Directory>
         <?if $(var.CLib)!=Static ?>
         <Feature Id="VC8RuntimeFeature" Level="1" AllowAdvertise="no" Display="hidden">

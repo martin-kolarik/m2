@@ -17,7 +17,7 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <BuildVersionSource Include="$(RootPath)\Library"/>
+        <BuildVersionSource Include="$(RootPath)\Library;$(RootPath)\Modula2"/>
 
         <Components Include="modula2\m2rtl;modula2\m2ortl;library\ADT;library\COM;library\Resources;library\Registry;library\Text"/>
         <Components Include="library\ciphering;library\threading;library\Network;library\Service;library\ClassLoader;component\scinit"/>
