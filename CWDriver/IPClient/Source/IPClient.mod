@@ -109,9 +109,12 @@ CLASS CDriver IMPLEMENTS diface.ICWDriver;
    Connection    : netconnection.TCPConnection;
    Events        : msgqueue.CPtrQueue;
    Delimiter     : WCHAR;
+
    WBuffer       : StorageO.CMemoryBuffer;
+   WIndex        : CARDINAL;
    RBufferLock   : Sync.LOCK;
    RBuffer       : StorageO.CMemoryBuffer;
+   RIndex        : CARDINAL;
 
    // binding to procedural interface
    PUBLIC VIRTUAL PROCEDURE Initialize( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; CallbackProc : drv_def.TDriverCallbackW );
@@ -138,6 +141,10 @@ CLASS CDriver IMPLEMENTS diface.ICWDriver;
    PUBLIC VIRTUAL PROCEDURE OutputRequest( DriverIndex : CARDINAL; CONST OutValue : iovalue.Value; QoS : CARDINAL; CONST TimeStamp : drv_def.TUTCStamp );
    PUBLIC VIRTUAL PROCEDURE OutputRequestCompleted();
    PUBLIC VIRTUAL PROCEDURE OutputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
+
+   PRIVATE PROCEDURE EncodeASCIIString( REF String : StringsO.CString );
+   PRIVATE PROCEDURE DecodeASCIIString( REF String : StringsO.CString );
+   PRIVATE PROCEDURE ProcessASCIICommand( CONST Command : StringsO.CString; CONST InValue2 : iovalue.Value; OUT OutValue : iovalue.Value ) : BOOLEAN;
 
    // callbacks
    LOCAL PROCEDURE OnConnect( Local : BOOLEAN; Error : CARDINAL );
@@ -455,7 +462,6 @@ CLASS IMPLEMENTATION CDriver;
             END;
 
          ELSIF si.EqualsOA( L'receive' ) THEN
-
             RBufferLock.Lock();
             c := MIN2( OutValueLimit DIV 2, RBuffer.Length );
             l := c << 1;
@@ -473,7 +479,7 @@ CLASS IMPLEMENTATION CDriver;
             RETURN;
          
          ELSIF si.EqualsOA( L'available' ) THEN
-            c := Connection.Stream^.Length32;
+            c := RBuffer.Length;
             Logger.LogSC( dldDebug, logPrefix, L"Client.Available ", c );
 
             OutValue.Integer := c; 
@@ -484,6 +490,9 @@ CLASS IMPLEMENTATION CDriver;
             GOTO Error;
          END;
          GOTO Success;
+         
+      ELSIF ProcessASCIICommand( si, InValue2, OUT OutValue ) THEN
+         RETURN;
 
       ELSE
          sw.FromOA( OAsz( R[ Texts._UnrecognizedCommand ] ));
@@ -601,6 +610,138 @@ CLASS IMPLEMENTATION CDriver;
 
 (*--------------------------------------------------------------------------------*)
 
+   PRIVATE PROCEDURE DecodeASCIIString( REF String : StringsO.CString );
+   VAR
+      byte : BYTE;
+      c, i, l : INTEGER;
+   BEGIN
+      l := String.Length;
+      i := 0;
+      WHILE i < l-3 DO // If escape character expects something more, it still cannot be read. Concurrently this allows safe accessing index i+1, i+2 of String in the while loop.
+         IF String[i] = L"~" THEN
+            IF String[i+1] = L"~" THEN // reduce ~ escape
+               String.Remove( i, 1 );
+            ELSE // reduce time value
+               String.Remove( i, 3 );
+            END;
+            l := String.Length;
+         ELSIF String[i] = L"#" THEN
+            IF String[i+1] = L"#" THEN // reduce # escapce
+               String.Remove( i, 1 );
+            ELSIF cphcommon.FromHex( OA( 1, String.rawData@[2*(i+1)] ), OUT byte, OUT c ) THEN // reduce hexadecimal character
+               String.Remove( i, 2 );
+               String[i] := WCHAR( byte );
+            END;
+         END;
+      END; // WHILE
+   END DecodeASCIIString;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE EncodeASCIIString( REF String : StringsO.CString );
+   VAR
+      code : ARRAY [0..1] OF WCHAR;
+      encoded : StringsO.CString;
+      ei, i : INTEGER;
+   BEGIN
+      encoded.Size := String.Length + 16;
+      ei := 0;
+      FOR i := 0 TO String.Length-1 DO
+         IF String[i] >= L" " THEN
+            encoded[ei] := String[i];
+            INC( ei );
+         ELSE
+            cphcommon.ToHex( BYTE( String[i] ), OUT code );
+            encoded[ei] := L"#";
+            encoded.Length := ei;
+            encoded.AppendOA( code );
+            ei := encoded.Length;
+         END;
+      END;
+      encoded.Length := ei;
+      String := encoded;
+   END EncodeASCIIString;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ProcessASCIICommand( CONST Command : StringsO.CString; CONST InValue2 : iovalue.Value; OUT OutValue : iovalue.Value ) : BOOLEAN;
+   VAR
+      b : BOOLEAN;
+      empty, s : StringsO.CString;
+   BEGIN
+      IF Command.EqualsOA( L"GetExcStatus" ) THEN
+      ELSIF Command.EqualsOA( L"GetErrorCode" ) THEN
+      ELSIF Command.EqualsOA( L"EnableException" ) THEN
+      
+      ELSIF Command.EqualsOA( L"GetRxCount" ) THEN
+         RBufferLock.Lock();
+         OutValue.Integer := RBuffer.Length;
+         RBufferLock.Unlock();
+      
+      ELSIF Command.EqualsOA( L"ClearRxQueue" ) THEN
+         RBufferLock.Lock();
+         RBuffer.Clear();
+         RBufferLock.Unlock();
+
+         RIndex := 0;         
+         OutValue.String := empty;
+
+      ELSIF Command.EqualsOA( L"GetCharSeq" ) THEN
+         RBufferLock.Lock();
+         b := RIndex < RBuffer.Length;
+         IF b THEN
+            s.Size := 1;
+            s[0] := WCHAR( RBuffer[RIndex] );
+         END;
+         RBufferLock.Unlock();
+
+         IF b THEN
+            s.Length := 1;
+            EncodeASCIIString( REF s );
+            OutValue.String := s;
+            INC( RIndex );
+         ELSE
+            OutValue.String := empty;
+         END;
+
+      ELSIF Command.EqualsOA( L"SetRxIndex" ) THEN
+         RIndex := 0;
+         OutValue.String := empty;
+      
+      ELSIF Command.EqualsOA( L"GetTxCount" ) THEN
+         OutValue.Integer := WBuffer.Length;
+
+      ELSIF Command.EqualsOA( L"ClearTxQueue" ) THEN
+         WBuffer.Clear();
+         WIndex := 0;
+         OutValue.String := empty;
+      
+      ELSIF Command.EqualsOA( L"PutCharSeq" ) THEN
+         s := InValue2.String;
+         DecodeASCIIString( REF s );
+         IF WIndex < WBuffer.Length THEN
+            WBuffer[WIndex] := BYTE( s[0] );
+            INC( WIndex );
+         END;
+         OutValue.String := empty;
+      
+      ELSIF Command.EqualsOA( L"SetTxIndex" ) THEN
+         WIndex := 0;
+         OutValue.String := empty;
+      
+      ELSIF Command.EqualsOA( L"SendAsync" ) THEN
+         WBuffer.Length := InValue2.Integer;
+         OutValue.String := empty;
+         // TODO send
+      
+      ELSE
+         RETURN FALSE;
+      END;
+      RETURN TRUE;
+   END ProcessASCIICommand;
+
+(*--------------------------------------------------------------------------------*)
+
    LOCAL PROCEDURE OnConnect( Local : BOOLEAN; Error : CARDINAL );
    VAR
       Event : POINTER TO TEventData;
@@ -677,12 +818,14 @@ BEGIN
    
    Connection.CallbackMode := IOO.cbmPooled;
    Connection.Notifier := ADR( Notifier );
-   // Connection.Stream^.BufferSize := 16384;
+   Connection.Stream^.BufferSize := 16384;
 
    Notifier.Driver := ADR( SELF );
    Delimiter := L" ";
-   RBuffer.Size := 16384;
    WBuffer.Size := 16384;
+   WIndex := 0;
+   RBuffer.Size := 16384;
+   RIndex := 0;
 END CDriver;
 
 (*================================================================================*)
