@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8,00"
-	Name="IPClient"
+	Name="RemoteASCIIDrv"
 	ProjectGUID="{BB5A86DE-7A22-4314-AA65-46FA22F5020F}"
-	RootNamespace="IPClient"
+	RootNamespace="RemoteASCIIDrv"
 	Keyword="MakeFileProj"
 	>
 	<Platforms>
@@ -47,7 +47,7 @@
 				BuildCommandLine=""
 				ReBuildCommandLine=""
 				CleanCommandLine=""
-				Output="IPClient.exe"
+				Output="RemoteASCIIDrv.exe"
 				PreprocessorDefinitions="WIN32;NDEBUG"
 				IncludeSearchPath=""
 				ForcedIncludes=""
@@ -66,7 +66,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\Source\IPClient.mod"
+				RelativePath=".\Source\RemoteASCIIDrv.mod"
 				>
 			</File>
 			<File
@@ -91,15 +91,15 @@
 			>
 		</Filter>
 		<File
-			RelativePath=".\IPClient.definition.proj"
+			RelativePath=".\RemoteASCIIDrv.definition.proj"
 			>
 		</File>
 		<File
-			RelativePath=".\IPClient.proj"
+			RelativePath=".\RemoteASCIIDrv.proj"
 			>
 		</File>
 		<File
-			RelativePath=".\Install\IPClient.wxs"
+			RelativePath=".\Install\RemoteASCIIDrv.wxs"
 			>
 		</File>
 	</Files>

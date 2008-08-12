@@ -14,7 +14,7 @@
         <LeakChecking>off</LeakChecking>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='IPClient'">
+    <PropertyGroup Condition="$(MSBuildProjectName)=='RemoteASCIIDrv'">
         <Result>Dynamic</Result>
     </PropertyGroup>
 
