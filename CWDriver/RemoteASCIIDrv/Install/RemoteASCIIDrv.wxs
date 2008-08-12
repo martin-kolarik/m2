@@ -27,10 +27,18 @@
                             </File>
                             <File DiskId="1" Id="RemoteASCIIDrv.DLL" Name="ReAscDrv.dll" LongName="RemoteASCIIDrv.dll" Source="RemoteASCIIDrv.dll" Vital="yes">
                             </File>
+                            <File DiskId="1" Id="SCCore.DLL" Name="SCCore.dll" Source="SCCore.dll" Vital="yes">
+                            </File>
                         </Component>
                         <Component Id="Licence" Guid="E328ECA5-454E-409a-98A4-98510C323E9D">
                             <File Id="Licence" Name="Licence.lic" DiskId="1" LongName="$(var.ProductId).tlic" Source="$(var.ProductId).tlic" Vital="yes" />
                         </Component>
+                        <Directory Id="EXAMPLES" Name="Examples">
+                            <Component Id="Examples" Guid="93229FA0-7EC6-4190-9345-AC1FA1E8B63C">
+                                <File Id="RemoteASCIIDrv.cw" Name="ReAscDrv.cw" LongName="RemoteASCIIDrv.cw" Source="Examples\RemoteASCIIDrv.cw" DiskId="1" />
+                                <File Id="RemoteASCIIDrv.par" Name="ReAscDrv.par" LongName="RemoteASCIIDrv.par" Source="Examples\RemoteASCIIDrv.par" DiskId="1" />
+                            </Component>
+                        </Directory>
                         <?if $(var.LeakChecking)=on ?>
                         <Component Guid="7CEF39D9-4408-4f00-821E-B330B0E246D9" Id="LeakDetector">
                             <File DiskId="1" Id="LeakDetector.DLL" LongName="LeakDetector.dll" Name="LeakDet.dll" Source="LeakDetector.dll" Vital="yes">
@@ -50,6 +58,7 @@
         <Feature ConfigurableDirectory="INSTALLDIR" Id="Complete" Level="1">
             <ComponentRef Id="Program" />
             <ComponentRef Id="Licence" />
+            <ComponentRef Id="Examples" />
             <?if $(var.LeakChecking)=on ?>
             <ComponentRef Id="LeakDetector" />
             <?endif ?>
