@@ -4,13 +4,13 @@
     <strings version="1.0.0.0">
 
         <string name="StringId">
-            <item lang="en-US">IPClient</item>
-            <item lang="cs-CZ">IPClient</item>
+            <item lang="en-US">RemoteASCIIDrv</item>
+            <item lang="cs-CZ">RemoteASCIIDrv</item>
         </string>
 
         <string name="_DriverName">
-            <item lang="en-US">IP Client Driver</item>
-            <item lang="cs-CZ">Ovladač IP klient</item>
+            <item lang="en-US">Remote (TCP/IP) ASCII Driver</item>
+            <item lang="cs-CZ">ASCII Ovladač se vzdáleným přístupem (TCP/IP)</item>
         </string>
         <string name="_UnknownDebugMode">
             <item lang="en-US">Bad or unknown "debug_mode"</item>
@@ -35,8 +35,8 @@
             <item lang="cs-CZ">Chyba při otevření souboru s parametry</item>
         </string>
         <string name="_MissingDeviceSection">
-            <item lang="en-US">Device definition section is missing ([IPClient])</item>
-            <item lang="cs-CZ">Chybí definice sekce zařízení ([IPClient])</item>
+            <item lang="en-US">Device definition section is missing ([RemoteASCIIDrv])</item>
+            <item lang="cs-CZ">Chybí definice sekce zařízení ([RemoteASCIIDrv])</item>
         </string>
         <string name="_DelimiterTooLong">
             <item lang="en-US">Delimiter must be one character</item>

@@ -18,36 +18,27 @@
             <?endif ?>
             <?endif ?>
             <Directory Id="ProgramFilesFolder">
-                <?if $(var.Manufacturer)=Inris ?>
                 <Directory Id="Inris" Name="Inris">
-                    <?else ?>
-                    <Directory Id="SmartControl" LongName="SmartControl" Name="SmartCon">
+                    <Directory Id="INSTALLDIR" Name="RemoteASCIIDrv">
+                        <Component Guid="8BE583C9-4D99-443c-9B44-7760B33D7479" Id="Program">
+                            <File DiskId="1" Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" Vital="yes">
+                            </File>
+                            <File DiskId="1" Id="License.rtf" Name="License.rtf" Source="License.rtf" Vital="yes">
+                            </File>
+                            <File DiskId="1" Id="RemoteASCIIDrv.DLL" Name="ReAscDrv.dll" LongName="RemoteASCIIDrv.dll" Source="RemoteASCIIDrv.dll" Vital="yes">
+                            </File>
+                        </Component>
+                        <Component Id="Licence" Guid="E328ECA5-454E-409a-98A4-98510C323E9D">
+                            <File Id="Licence" Name="Licence.lic" DiskId="1" LongName="$(var.ProductId).tlic" Source="$(var.ProductId).tlic" Vital="yes" />
+                        </Component>
+                        <?if $(var.LeakChecking)=on ?>
+                        <Component Guid="7CEF39D9-4408-4f00-821E-B330B0E246D9" Id="LeakDetector">
+                            <File DiskId="1" Id="LeakDetector.DLL" LongName="LeakDetector.dll" Name="LeakDet.dll" Source="LeakDetector.dll" Vital="yes">
+                            </File>
+                        </Component>
                         <?endif ?>
-                        <Directory Id="INSTALLDIR" Name="IPClient">
-                            <Component Guid="8BE583C9-4D99-443c-9B44-7760B33D7479" Id="Program">
-                                <File DiskId="1" Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" Vital="yes">
-                                </File>
-                                <File DiskId="1" Id="License.rtf" Name="License.rtf" Source="License.rtf" Vital="yes">
-                                </File>
-                                <File DiskId="1" Id="IPClient.DLL" Name="IPClient.dll" Source="IPClient.dll" Vital="yes">
-                                </File>
-                            </Component>
-                            <Component Id="Licence" Guid="E328ECA5-454E-409a-98A4-98510C323E9D">
-                                <File Id="Licence" Name="Licence.lic" DiskId="1" LongName="$(var.ProductId).tlic" Source="$(var.ProductId).tlic" Vital="yes" />
-                            </Component>
-                            <?if $(var.LeakChecking)=on ?>
-                            <Component Guid="7CEF39D9-4408-4f00-821E-B330B0E246D9" Id="LeakDetector">
-                                <File DiskId="1" Id="LeakDetector.DLL" LongName="LeakDetector.dll" Name="LeakDet.dll" Source="LeakDetector.dll" Vital="yes">
-                                </File>
-                            </Component>
-                            <?endif ?>
-                        </Directory>
                     </Directory>
-                    <?if $(var.Manufacturer)=Inris ?>
                 </Directory>
-                <?else ?>
-            </Directory>
-            <?endif ?>
         </Directory>
         <?if $(var.CLib)!=Static ?>
         <Feature Id="VC8RuntimeFeature" Level="1" AllowAdvertise="no" Display="hidden">
