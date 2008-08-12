@@ -1,4 +1,4 @@
-MODULE IPClient;
+MODULE RemoteASCIIDrv;
 
 (*# call( o_a_copy => off ) *)
 
@@ -6,6 +6,9 @@ MODULE IPClient;
 
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
+  
+FROM Strings IMPORT
+  CapitalizeW;  
   
 FROM log IMPORT
   dldTrace, dldDebug;
@@ -41,7 +44,7 @@ CONST // device specific error codes
    ecDeviceStopped = drv_def.ecUser + 1;
 
 CONST
-   logPrefix = L"IPClient";
+   logPrefix = L"RemoteASCIIDrv";
 
 CONST // driver channels
    chStatus = 1;
@@ -68,6 +71,7 @@ CLASS CNotifier( netsocket.ASocketNotifier );
    Driver : TPDriver;
    LOCAL VIRTUAL PROCEDURE OnConnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); 
    LOCAL VIRTUAL PROCEDURE OnDisconnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); // calling Socket^.Release is safe if OnDisconnect is called from OnHandle. Otherwise (when OnDisconnect is called synchronously from Disconnect) it can be dangerous.
+   PUBLIC VIRTUAL PROCEDURE OnFlowPossible( Direction : IOO.TDirection; Source : ADDRESS );
    PUBLIC VIRTUAL PROCEDURE OnReadable( Length : CARDINAL; Source : ADDRESS );
 END CNotifier;
 
@@ -75,18 +79,36 @@ END CNotifier;
 
 TYPE
    TEvent = (
-      evConnect,
-      evDisconnect,
-      evDataReceived
+      evNone = 0,
+      evRxError = 1,
+      evTxError = 2,
+      evDataReceived = 3,
+      evDriverError = 4,
+      
+      evConnect = 100,
+      evDisconnect = 101
+   );
+   
+   TASCIIError = (
+      erOK = 0,
+      erTxBufferFull = 1018,
+      erRxBufferFull = 1019,
+      erBadQueryProcedureParameter = 1020,
+      erNoData = 1021,
+      erUnknownQueryProcedure = 1022,
+      erNotConnected = 1025,
+      erBadHexString = 1027
    );
 
    TEventData   = RECORD
                      CASE Event : TEvent OF
-                     | evConnect, evDisconnect :
-                        Local : BOOLEAN;
-                        Error : CARDINAL;
+                     | evRxError, evTxError :
+                        ASCIIError : TASCIIError;
                      | evDataReceived :
                         Length : CARDINAL;
+                     | evConnect, evDisconnect :
+                        NetError : CARDINAL;
+                        Local : BOOLEAN;
                      END; // CASE
                   END; // RECORD
    TPEventData  = POINTER TO TEventData;
@@ -108,6 +130,8 @@ CLASS CDriver IMPLEMENTS diface.ICWDriver;
    Notifier      : CNotifier;
    Connection    : netconnection.TCPConnection;
    Events        : msgqueue.CPtrQueue;
+   EventsSignal  : Sync.SIGNAL;
+   LastError     : TASCIIError;
    Delimiter     : WCHAR;
 
    WBuffer       : StorageO.CMemoryBuffer;
@@ -142,14 +166,16 @@ CLASS CDriver IMPLEMENTS diface.ICWDriver;
    PUBLIC VIRTUAL PROCEDURE OutputRequestCompleted();
    PUBLIC VIRTUAL PROCEDURE OutputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
 
+   PRIVATE PROCEDURE DecodeASCIIString( REF String : StringsO.CString ) : BOOLEAN;
    PRIVATE PROCEDURE EncodeASCIIString( REF String : StringsO.CString );
-   PRIVATE PROCEDURE DecodeASCIIString( REF String : StringsO.CString );
    PRIVATE PROCEDURE ProcessASCIICommand( CONST Command : StringsO.CString; CONST InValue2 : iovalue.Value; OUT OutValue : iovalue.Value ) : BOOLEAN;
+   PRIVATE PROCEDURE AddEvent( Event : POINTER TO TEventData );
 
    // callbacks
    LOCAL PROCEDURE OnConnect( Local : BOOLEAN; Error : CARDINAL );
    LOCAL PROCEDURE OnDisconnect( Local : BOOLEAN; Error : CARDINAL );
    LOCAL PROCEDURE OnDataReceived( Length : CARDINAL );
+   LOCAL PROCEDURE OnFlowPossible( Direction : IOO.TDirection );
 END CDriver;
 
 (*================================================================================*)
@@ -179,6 +205,13 @@ CLASS IMPLEMENTATION CNotifier;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE OnFlowPossible( Direction : IOO.TDirection; Source : ADDRESS );
+   BEGIN
+      Driver^.OnFlowPossible( Direction );
+   END OnFlowPossible;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
    Driver := NIL;
 END CNotifier;
@@ -203,7 +236,7 @@ CLASS IMPLEMENTATION CDriver;
    LABEL
       Fail;
    CONST
-      snDevice = L'IPClient';
+      snDevice = L'RemoteASCIIDrv';
 
   //----------
   
@@ -368,14 +401,33 @@ CLASS IMPLEMENTATION CDriver;
                GOTO Success;
 
             ELSIF Events.Peek( OUT Event ) THEN
-               Logger.LogSC( dldDebug, logPrefix, L"Event.Dequeue ", CARDINAL( Event^.Event ));
+               Logger.LogSC( dldDebug, logPrefix, L"Event.Peek ", CARDINAL( Event^.Event ));
 
                CASE Event^.Event OF
+               //-----
+               | evRxError :
+                  sw.FromOA( L'rx_error' );
+                  sw.AppendOA( Delimiter );
+                  Strings.FromCARD32W( CARDINAL( Event^.ASCIIError ), 10, OUT n );
+                  sw.AppendOA( n );
+               //-----
+               | evTxError :
+                  sw.FromOA( L'tx_error' );
+                  sw.AppendOA( Delimiter );
+                  Strings.FromCARD32W( CARDINAL( Event^.ASCIIError ), 10, OUT n );
+                  sw.AppendOA( n );
+               //-----
+               | evDriverError :
+                  sw.FromOA( L'driver_error' );
+                  sw.AppendOA( Delimiter );
+                  Strings.FromCARD32W( CARDINAL( Event^.ASCIIError ), 10, OUT n );
+                  sw.AppendOA( n );
+               
                //-----
                | evConnect :
                   sw.FromOA( L'client_connect' );
                   sw.AppendOA( Delimiter );
-                  Strings.FromCARD32W( Event^.Error, 10, OUT n );
+                  Strings.FromCARD32W( Event^.NetError, 10, OUT n );
                   sw.AppendOA( n );
                //-----
                | evDisconnect :
@@ -385,7 +437,7 @@ CLASS IMPLEMENTATION CDriver;
                      sw.FromOA( L'server_disconnect' );
                   END;
                   sw.AppendOA( Delimiter );
-                  Strings.FromCARD32W( Event^.Error, 10, OUT n );
+                  Strings.FromCARD32W( Event^.NetError, 10, OUT n );
                   sw.AppendOA( n );
                   
                   Connection.Close();
@@ -610,14 +662,14 @@ CLASS IMPLEMENTATION CDriver;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE DecodeASCIIString( REF String : StringsO.CString );
+   PRIVATE PROCEDURE DecodeASCIIString( REF String : StringsO.CString ) : BOOLEAN;
    VAR
       byte : BYTE;
       c, i, l : INTEGER;
    BEGIN
       l := String.Length;
       i := 0;
-      WHILE i < l-3 DO // If escape character expects something more, it still cannot be read. Concurrently this allows safe accessing index i+1, i+2 of String in the while loop.
+      WHILE i <= l-3 DO // If escape character expects something more, it still cannot be read. Concurrently this allows safe accessing index i+1, i+2 of String in the while loop.
          IF String[i] = L"~" THEN
             IF String[i+1] = L"~" THEN // reduce ~ escape
                String.Remove( i, 1 );
@@ -631,9 +683,15 @@ CLASS IMPLEMENTATION CDriver;
             ELSIF cphcommon.FromHex( OA( 1, String.rawData@[2*(i+1)] ), OUT byte, OUT c ) THEN // reduce hexadecimal character
                String.Remove( i, 2 );
                String[i] := WCHAR( byte );
+            ELSE
+               RETURN FALSE;
             END;
+            l := String.Length;
          END;
+         INC( i );
       END; // WHILE
+
+      RETURN TRUE;
    END DecodeASCIIString;
 
 (*--------------------------------------------------------------------------------*)
@@ -651,9 +709,9 @@ CLASS IMPLEMENTATION CDriver;
             encoded[ei] := String[i];
             INC( ei );
          ELSE
-            cphcommon.ToHex( BYTE( String[i] ), OUT code );
+            cphcommon.ToHex( BYTE( String[i] ), OUT code ); CAP( code );
             encoded[ei] := L"#";
-            encoded.Length := ei;
+            encoded.Length := ei+1;
             encoded.AppendOA( code );
             ei := encoded.Length;
          END;
@@ -667,24 +725,69 @@ CLASS IMPLEMENTATION CDriver;
    PRIVATE PROCEDURE ProcessASCIICommand( CONST Command : StringsO.CString; CONST InValue2 : iovalue.Value; OUT OutValue : iovalue.Value ) : BOOLEAN;
    VAR
       b : BOOLEAN;
+      c : CARDINAL;
       empty, s : StringsO.CString;
+      Event : POINTER TO TEventData;
    BEGIN
-      IF Command.EqualsOA( L"GetExcStatus" ) THEN
+      IF Command.EqualsOA( L"GetResult" ) THEN
+         OutValue.Integer := INTEGER( LastError );
+      
+      ELSIF Command.EqualsOA( L"GetExcStatus" ) THEN
+         IF Events.Peek( OUT Event ) THEN
+            OutValue.Integer := INTEGER( Event^.Event );
+         ELSE
+            OutValue.Integer := INTEGER( evNone );
+         END;
+
+         LastError := erOK;
+         // OutValue.Integer := INTEGER( LastError );
+      
       ELSIF Command.EqualsOA( L"GetErrorCode" ) THEN
+         IF Events.Peek( OUT Event ) THEN
+            CASE Event^.Event OF
+            | evRxError, evTxError, evDriverError :
+               OutValue.Integer := INTEGER( Event^.ASCIIError );
+            | evConnect, evDisconnect :
+               OutValue.Integer := INTEGER( Event^.NetError );
+            ELSE
+               OutValue.Integer := 0;
+            END;
+         ELSE
+            OutValue.Integer := 0;
+         END;
+      
+         LastError := erOK;
+         // OutValue.Integer := INTEGER( LastError );
+      
       ELSIF Command.EqualsOA( L"EnableException" ) THEN
+         c := Events.Count;
+         IF c > 0 THEN
+            Events.Dequeue( OUT Event );
+            DISPOSE( Event );
+            IF c > 1 THEN
+               CallbackProc( CallbackId, drv_def.dcfException, NIL );
+            END;
+         END;
+
+         LastError := erOK;
+         OutValue.Integer := INTEGER( LastError );
       
       ELSIF Command.EqualsOA( L"GetRxCount" ) THEN
          RBufferLock.Lock();
          OutValue.Integer := RBuffer.Length;
          RBufferLock.Unlock();
+
+         LastError := erOK;
+         // OutValue.Integer := INTEGER( LastError );
       
       ELSIF Command.EqualsOA( L"ClearRxQueue" ) THEN
          RBufferLock.Lock();
          RBuffer.Clear();
          RBufferLock.Unlock();
-
          RIndex := 0;         
-         OutValue.String := empty;
+
+         LastError := erOK;
+         OutValue.Integer := INTEGER( LastError );
 
       ELSIF Command.EqualsOA( L"GetCharSeq" ) THEN
          RBufferLock.Lock();
@@ -696,17 +799,25 @@ CLASS IMPLEMENTATION CDriver;
          RBufferLock.Unlock();
 
          IF b THEN
+            LastError := erOK;
             s.Length := 1;
             EncodeASCIIString( REF s );
             OutValue.String := s;
             INC( RIndex );
          ELSE
-            OutValue.String := empty;
+            // NEW( Event ); // error
+            // Event^.Event := evRxError;
+            // Event^.ASCIIError := erNoData;
+            // AddEvent( Event );
+            LastError := erNoData;
+            OutValue.Integer := INTEGER( LastError );
          END;
 
       ELSIF Command.EqualsOA( L"SetRxIndex" ) THEN
          RIndex := 0;
-         OutValue.String := empty;
+
+         LastError := erOK;
+         OutValue.Integer := INTEGER( LastError );
       
       ELSIF Command.EqualsOA( L"GetTxCount" ) THEN
          OutValue.Integer := WBuffer.Length;
@@ -714,27 +825,72 @@ CLASS IMPLEMENTATION CDriver;
       ELSIF Command.EqualsOA( L"ClearTxQueue" ) THEN
          WBuffer.Clear();
          WIndex := 0;
-         OutValue.String := empty;
+         
+         LastError := erOK;
+         OutValue.Integer := INTEGER( LastError );
       
       ELSIF Command.EqualsOA( L"PutCharSeq" ) THEN
          s := InValue2.String;
-         DecodeASCIIString( REF s );
-         IF WIndex < WBuffer.Length THEN
+         IF NOT DecodeASCIIString( REF s ) THEN
+            LastError := erBadHexString;
+            // NEW( Event ); // error
+            // Event^.Event := evTxError;
+            // Event^.ASCIIError := erBadHexString;
+            // AddEvent( Event );
+         ELSIF WIndex < WBuffer.Size THEN
+            LastError := erOK;
+            WBuffer.Length := MAX2( WBuffer.Length, WIndex+1 );
             WBuffer[WIndex] := BYTE( s[0] );
             INC( WIndex );
+         ELSE
+            LastError := erTxBufferFull;
+            // NEW( Event ); // error
+            // Event^.Event := evTxError;
+            // Event^.ASCIIError := erTxBufferFull;
+            // AddEvent( Event );
          END;
-         OutValue.String := empty;
+
+         OutValue.Integer := INTEGER( LastError );
       
       ELSIF Command.EqualsOA( L"SetTxIndex" ) THEN
          WIndex := 0;
-         OutValue.String := empty;
+
+         LastError := erOK;
+         OutValue.Integer := INTEGER( LastError );
       
       ELSIF Command.EqualsOA( L"SendAsync" ) THEN
          WBuffer.Length := InValue2.Integer;
-         OutValue.String := empty;
-         // TODO send
+
+         IF NOT Connection.Connected THEN
+            LastError := erNotConnected;
+            // NEW( Event ); // error
+            // Event^.Event := evTxError;
+            // Event^.ASCIIError := erNotConnected;
+            // AddEvent( Event );
+         ELSIF WBuffer.Length > Connection.Stream^.WriteSpace THEN
+            LastError := erTxBufferFull;
+            // NEW( Event ); // error
+            // Event^.Event := evTxError;
+            // Event^.ASCIIError := erTxBufferFull;
+            // AddEvent( Event );
+
+         ELSE
+            LastError := erOK;
+            Connection.Stream^.WriteBuffer( WBuffer, OUT c, netsocket.FORSAFETY );
+            WBuffer.RemoveStart( c );
+         END;
+
+         OutValue.Integer := INTEGER( LastError );
       
       ELSE
+         // NEW( Event ); // error
+         // Event^.Event := evDriverError;
+         // Event^.ASCIIError := erUnknownQueryProcedure;
+         // AddEvent( Event );
+
+         LastError := erUnknownQueryProcedure;
+         OutValue.Integer := INTEGER( LastError );
+
          RETURN FALSE;
       END;
       RETURN TRUE;
@@ -742,23 +898,33 @@ CLASS IMPLEMENTATION CDriver;
 
 (*--------------------------------------------------------------------------------*)
 
+   PRIVATE PROCEDURE AddEvent( Event : POINTER TO TEventData );
+   BEGIN
+      Events.Enqueue( Event );
+      IF Sync.State( EventsSignal ) THEN
+         Logger.LogSC( dldDebug, logPrefix, L"Event.Queued, fire dcfException ", CARDINAL( Event^.Event ));
+         CallbackProc( CallbackId, drv_def.dcfException, NIL );
+      ELSE
+         Logger.LogSC( dldDebug, logPrefix, L"Event.Queued, NOT FIRED dcfException ", CARDINAL( Event^.Event ));
+      END;
+   END AddEvent;
+
+(*--------------------------------------------------------------------------------*)
+
    LOCAL PROCEDURE OnConnect( Local : BOOLEAN; Error : CARDINAL );
    VAR
       Event : POINTER TO TEventData;
    BEGIN
-      Connection.Stream^.StartReading();
-   
       Logger.LogSC( dldDebug, logPrefix, L"Event.Add evConnect ", CARDINAL( Error ));
 
       NEW( Event );
       Event^.Event := evConnect;
+      Event^.NetError := Error;
       Event^.Local := Local;
-      Event^.Error := Error;
-      Events.Enqueue( Event );
 
-      Logger.LogS( dldDebug, logPrefix, L"Event.Queued, fire dcfException (1)" );
+      AddEvent( Event );
 
-      CallbackProc( CallbackId, drv_def.dcfException, NIL );
+      Connection.Stream^.StartReading(); // start advise reading
    END OnConnect;
 
 (*--------------------------------------------------------------------------------*)
@@ -771,13 +937,10 @@ CLASS IMPLEMENTATION CDriver;
 
       NEW( Event );
       Event^.Event := evDisconnect;
+      Event^.NetError := Error;
       Event^.Local := Local;
-      Event^.Error := Error;
-      Events.Enqueue( Event );
 
-      Logger.LogS( dldDebug, logPrefix, L"Event.Queued, fire dcfException (2)" );
-
-      CallbackProc( CallbackId, drv_def.dcfException, NIL );
+      AddEvent( Event );
    END OnDisconnect;
 
 (*--------------------------------------------------------------------------------*)
@@ -787,29 +950,51 @@ CLASS IMPLEMENTATION CDriver;
       Event : POINTER TO TEventData;
       l : CARDINAL;
    BEGIN
-      Logger.LogSC( dldDebug, logPrefix, L"Event.Add evDataReceived bytes ", Length );
-      
       RBufferLock.Lock();
+
+      IF RBuffer.Length + Length > RBuffer.Size THEN
+         Logger.LogSC( dldDebug, logPrefix, L"Event.Add evRxError", CARDINAL( erRxBufferFull ));
+
+         NEW( Event );
+         Event^.Event := evRxError;
+         Event^.ASCIIError := erRxBufferFull;
+         AddEvent( Event );
+      END;
       Connection.Stream^.ReadBuffer( RBuffer.Size - RBuffer.Length, REF RBuffer, 0 ); // read only what is immediatelly possible
       l := RBuffer.Length;
+
       RBufferLock.Unlock();
+
+      Logger.LogSC( dldDebug, logPrefix, L"Event.Add evDataReceived bytes ", Length );
 
       NEW( Event );
       Event^.Event := evDataReceived;
       Event^.Length := l;
-      Events.Enqueue( Event );
-
-      Logger.LogS( dldDebug, logPrefix, L"Event.Queued, fire dcfException (3)" );
+      AddEvent( Event );
 
       Connection.Stream^.StartReading(); // continue with advised reading
-
-      CallbackProc( CallbackId, drv_def.dcfException, NIL );
    END OnDataReceived;
 
 (*--------------------------------------------------------------------------------*)
 
+   LOCAL PROCEDURE OnFlowPossible( Direction : IOO.TDirection );
+   VAR
+      Event : POINTER TO TEventData;
+   BEGIN
+      IF Direction = IOO.dirWrite THEN
+         Logger.LogS( dldDebug, logPrefix, L"Event.Add evTxError OK -- tx allowed" );
+
+         NEW( Event );
+         Event^.Event := evTxError;
+         Event^.ASCIIError := erOK;
+         AddEvent( Event );
+      END;
+   END OnFlowPossible;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
-   R.LoadRES2( EMITW( %dll ), L'IPClient.Texts' );
+   R.LoadRES2( EMITW( %dll ), L'RemoteASCIIDrv.Texts' );
    R.Lang := Languages.GetDefaultLanguage( Languages.dlUser );
    RStatus := TRStatus{rsValid};
    RunMode := drv_def.drmEdit;
@@ -821,11 +1006,18 @@ BEGIN
    Connection.Stream^.BufferSize := 16384;
 
    Notifier.Driver := ADR( SELF );
+
+   EventsSignal := Sync.CreateAutoresetSignal( TRUE, L"" );
+   Events.Produce := EventsSignal;
+   LastError := erOK;
+
    Delimiter := L" ";
    WBuffer.Size := 16384;
    WIndex := 0;
    RBuffer.Size := 16384;
    RIndex := 0;
+FINALLY
+   Sync.DeleteSignal( REF EventsSignal );   
 END CDriver;
 
 (*================================================================================*)
@@ -876,7 +1068,7 @@ CLASS IMPLEMENTATION CFactory;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   R.LoadRES2( EMITW( %dll ), L'IPClient.Texts' );
+   R.LoadRES2( EMITW( %dll ), L'RemoteASCIIDrv.Texts' );
    R.Lang := Languages.GetDefaultLanguage( Languages.dlUser );
 END CFactory;
 
@@ -889,4 +1081,4 @@ VAR
 
 BEGIN
    diface.RegisterFactory( ADR( Factory ));
-END IPClient.
+END RemoteASCIIDrv.
