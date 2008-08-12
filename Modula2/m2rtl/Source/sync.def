@@ -126,6 +126,7 @@ CLASS STATE;
       Type : TStateType := stSpin;
       Spin : CARDINAL;
       Data : PTR := 0; // initially reset
+      Lock : LOCK;
    PUBLIC PROPERTY
       State : BOOLEAN;
    PUBLIC READONLY PROPERTY
@@ -133,8 +134,9 @@ CLASS STATE;
 
    PUBLIC PROCEDURE Init( Type : TStateType; CONST Name : ARRAY OF WCHAR; InitiallySignaled : BOOLEAN );
 
-   PUBLIC PROCEDURE _Signal() : BOOLEAN; // returns Set SWITCHED value
-   PUBLIC PROCEDURE _Reset() : BOOLEAN; // returns Reset SWITCHED value
+   PUBLIC PROCEDURE _Signal() : BOOLEAN; // returns if state was SWITCHED
+   PUBLIC PROCEDURE _SignalAndReset();
+   PUBLIC PROCEDURE _Reset() : BOOLEAN; // returns if state was SWITCHED
    PUBLIC PROCEDURE Test() : BOOLEAN;
    PUBLIC PROCEDURE _Wait( Timeout : CARDINAL ) : TAsyncResult;
 

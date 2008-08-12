@@ -558,7 +558,7 @@ END Wait;
 
 PROCEDURE State( W : WAITABLE ) : BOOLEAN; // TRUE = Signalled, FALSE = Nonsignalled
 BEGIN
-  RETURN windows.WaitForSingleObject( W, 0 ) = windows.WAIT_OBJECT_0;
+  RETURN windows.WaitForSingleObject( W, 0 ) <> windows.WAIT_TIMEOUT;
 END State;
 
 (*================================================================================*)
@@ -613,6 +613,11 @@ CLASS IMPLEMENTATION STATE;
    BEGIN
      Dispose();
      SELF.Type := Type;
+     IF Type = stSpin THEN
+       Lock.Init( ltSpin, L"", FALSE );
+     ELSE
+       Lock.Init( ltCS, L"", FALSE );
+     END;
      IF Type = stSetReset THEN
        Data := CreateSignal( InitiallySignaled, Name );
      ELSIF Type = stAutoReset THEN
@@ -629,11 +634,29 @@ CLASS IMPLEMENTATION STATE;
       IF Type = stSpin THEN
          RETURN IExchgPtr( REF Data, ADDRESS( 1 )) = ADDRESS( 0 );
       ELSE
+         Lock.Lock();
          b := Sync.State( Data );
          Sync.Signal( Data );
+         Lock.Unlock();
          RETURN NOT b;
       END;
    END _Signal;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE _SignalAndReset();
+   BEGIN
+      IF Type = stSpin THEN
+         Lock.Lock();
+         IExchgPtr( REF Data, ADDRESS( 1 ));
+         IExchgPtr( REF Data, ADDRESS( 0 ));
+         Lock.Unlock();
+      ELSE
+         // Lock.Lock(); -- for atomic os SignalAndReset there is no need to lock
+         Sync.SignalAndReset( Data );
+         // Lock.Unlock();
+      END;
+   END _SignalAndReset;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -644,8 +667,10 @@ CLASS IMPLEMENTATION STATE;
       IF Type = stSpin THEN
          RETURN IExchgPtr( REF Data, ADDRESS( 0 )) = ADDRESS( 1 );
       ELSE
+         Lock.Lock();
          b := Sync.State( Data );
          Sync.Reset( Data );
+         Lock.Unlock();
          RETURN b;
       END;
    END _Reset;
@@ -654,11 +679,7 @@ CLASS IMPLEMENTATION STATE;
 
    PUBLIC PROCEDURE Test() : BOOLEAN;
    BEGIN
-      IF Type = stSpin THEN
-         RETURN IGetPtr( REF Data ) = ADDRESS( 1 );
-      ELSE
-         RETURN Sync.State( Data );
-      END;
+      RETURN State;
    END Test;
 
 (*--------------------------------------------------------------------------------*)
