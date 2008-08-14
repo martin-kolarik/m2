@@ -162,11 +162,12 @@ CLASS CDaliAddressProgrammer;
       HaveAddresses : BOOLEAN;
    LOCAL VAR
       Logger : log.TPLogger;
+      VerifyFlag : BOOLEAN; // programmed addresses are verifified by cmdCheckAddress, not by cmdGetAddress
    PUBLIC READONLY PROPERTY
       CurrentLongAddress : TProgramAddress;
       CurrentShortAddress : CARDINAL;
-   PUBLIC PROCEDURE InitProgramming();
-   PUBLIC PROCEDURE InitReaddressing( Readdress : TAddresses ) : BOOLEAN;
+   PUBLIC PROCEDURE InitProgramming( VerifyFlag : BOOLEAN );
+   PUBLIC PROCEDURE InitReaddressing( Readdress : TAddresses; VerifyFlag : BOOLEAN ) : BOOLEAN;
    PUBLIC PROCEDURE WhatNext() : TCommand;
    PUBLIC PROCEDURE HandleResponse( Positive : BOOLEAN; Data : INTEGER );
 END CDaliAddressProgrammer;
@@ -209,8 +210,8 @@ CLASS CDali( msghandler.MessageHandler ) IMPLEMENTS ICommunicatorSink;
    PUBLIC PROCEDURE Command( Linie : CARDINAL; CONST daliAddress : DaliAddress; Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
    // completes immediatelly or results to IEventSink callback
    
-   PUBLIC PROCEDURE StartProgramming( Linie : CARDINAL );
-   PUBLIC PROCEDURE Readdress( Linie : CARDINAL; Readdressed : TAddresses ) : BOOLEAN;
+   PUBLIC PROCEDURE StartProgramming( Linie : CARDINAL; VerifyFlag : BOOLEAN ); // VerifyFlag = TRUE means cmdCheckAddress instead of cmdGetAddress will be used
+   PUBLIC PROCEDURE Readdress( Linie : CARDINAL; Readdressed : TAddresses; VerifyFlag : BOOLEAN ) : BOOLEAN;
    
    // MessageHandler -- in thread
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;

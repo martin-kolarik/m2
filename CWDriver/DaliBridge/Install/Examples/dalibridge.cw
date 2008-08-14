@@ -27,6 +27,9 @@ instrument
     
     procedure OnOutput( b : boolean );
     begin
+    (*
+      core.DriverQueryProc( 'dali', 'program_addresses 0 use_verify', '' );
+    *)
       core.DriverQueryProc( 'dali', 'program_addresses 0', '' );
     end_procedure;
     

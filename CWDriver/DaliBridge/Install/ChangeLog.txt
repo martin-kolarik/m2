@@ -1,3 +1,11 @@
+Version 1.0.1737 beta 14.8.2008
+- BUG: Commands to two-cipher addresses were sent to first-cipher-only address
+       (get 27 status asked device with address 2)
+- NEW: Added variant checking of programmed addreses (use_verify)
+- CHG: Reset command and expected response changed according to new firmware
+- CHG: DLL layout changed to SCCore.dll and shared CRT libraries
+- CHG: Salted licensing
+
 Version 1.0.1664 beta 15.6.2008
 - CHG: Renamed to DaliBridge
 - CHG: Driver interface changed to common unified interface using sc iovalue.

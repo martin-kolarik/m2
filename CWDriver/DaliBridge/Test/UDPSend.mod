@@ -9,9 +9,9 @@ FROM Storage IMPORT
 IMPORT
    inetaddr,
    log,
-   netinit,
    netsocket,
    netsrv,
+   scinit,
    sync,
    test,
    testimpl,
@@ -52,7 +52,7 @@ CLASS IMPLEMENTATION CTest;
       i : CARDINAL;
       IA : inetaddr.INETADDR;
    BEGIN
-      netinit.Startup();
+      scinit.Startup();
       
       DSocket.Type := netsocket.stDatagram;
       IA.Port := 10001;
@@ -66,7 +66,7 @@ CLASS IMPLEMENTATION CTest;
          DSocket.SendToOA( swoffall, IA );
       END;
       
-      netinit.Cleanup();
+      scinit.Cleanup();
       
       RETURN test.trSuccess;
    END Run;

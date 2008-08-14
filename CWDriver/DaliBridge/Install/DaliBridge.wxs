@@ -27,6 +27,8 @@
                             </File>
                             <File DiskId="1" Id="DaliBridge.dll" Name="DaliBrg.dll" LongName="DaliBridge.dll" Source="DaliBridge.dll" Vital="yes">
                             </File>
+                            <File DiskId="1" Id="SCCore.dll" Name="SCCore.dll" Source="SCCore.dll" Vital="yes">
+                            </File>
                         </Component>
                         <Component Id="Licence" Guid="52F6C8CC-1D96-41A0-BA19-41BAB82FE687">
                             <File Id="Licence" Name="Licence.lic" DiskId="1" LongName="$(var.ProductId).tlic" Source="$(var.ProductId).tlic" Vital="yes" />

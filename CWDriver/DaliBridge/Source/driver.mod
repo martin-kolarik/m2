@@ -432,7 +432,7 @@ CLASS IMPLEMENTATION CDriver;
          ELSE
             IF EQUALS( OAsz( PL ), L"all" ) THEN
                c := 7; // broadcast
-            ELSIF NOT Strings.ToCARD32W( PL^, 10, OUT c ) OR ( c > 3 ) THEN
+            ELSIF NOT Strings.ToCARD32W( OAsz( PL ), 10, OUT c ) OR ( c > 3 ) THEN
                CS.FromOA( L'error: bad linie address' );
                RETURN FALSE;
             END;
@@ -455,7 +455,7 @@ CLASS IMPLEMENTATION CDriver;
                   CS.FromOA( L'error: all address is not allowed for the command' );
                   RETURN FALSE;
                END;
-            ELSIF NOT Strings.ToCARD32W( PA^, 10, OUT c ) THEN
+            ELSIF NOT Strings.ToCARD32W( OAsz( PA ), 10, OUT c ) THEN
                CS.FromOA( L'error: bad device address' );
                RETURN FALSE;
             ELSIF GroupFlag THEN
@@ -806,7 +806,7 @@ CLASS IMPLEMENTATION CDriver;
             GOTO Error;
          END;
 
-         Dali.StartProgramming( Linie );
+         Dali.StartProgramming( Linie, EQUALS( S3, L"use_verify" ));
 
       ELSIF EQUALS( S1, L'readdress' )  THEN
          IF S2[0] = 0W THEN
@@ -833,7 +833,7 @@ CLASS IMPLEMENTATION CDriver;
             INC( index );
          END; // LOOP
          
-         Dali.Readdress( 0, ReaddressArray );
+         Dali.Readdress( 0, ReaddressArray, TRUE );
 
       ELSE
          CS.FromOA( L'error: unknown driver procedure' );

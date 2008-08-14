@@ -8,7 +8,7 @@
         <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName>
         <LanguageStyle>UNICODE</LanguageStyle>
         <Language Condition="$(Language)==''">Czech</Language>
-        <CLib>Static</CLib>
+        <CLib>Dynamic</CLib>
         <Licensing>on</Licensing>
         <LicenceMachineId>D</LicenceMachineId>
         <LeakChecking>off</LeakChecking>
@@ -16,9 +16,6 @@
 
     <PropertyGroup Condition="$(MSBuildProjectName)=='DaliBridge'">
         <Result>Dynamic</Result>
-    </PropertyGroup>
-    <PropertyGroup Condition="$(MSBuildProjectName)=='sccore'">
-        <ComponentType>Generic</ComponentType>
     </PropertyGroup>
 
     <PropertyGroup>
