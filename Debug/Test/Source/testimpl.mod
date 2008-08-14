@@ -27,6 +27,7 @@ CLASS CTests( helper.ACreator ) IMPLEMENTS test.ITests;
       Type : iobject.TObjectType;
    PUBLIC FINAL PROPERTY
       Library : iobject.TPLibrary;
+   PUBLIC FINAL PROCEDURE OnDispose(); // meant not as Command, but as Callback, usually, destroying of object is done with ReleaseObject of some loader.
 
    // part of ILibrary
    PUBLIC VIRTUAL PROCEDURE EnumerateClasses( REF EnumerateState : PTR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
@@ -69,6 +70,12 @@ CLASS IMPLEMENTATION CTests;
    BEGIN
       SUPER.Library := Value;
    END Library;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROCEDURE OnDispose(); // meant not as Command, but as Callback, usually, destroying of object is done with ReleaseObject of some loader.
+   BEGIN
+   END OnDispose;
 
 (*---------------------------------------------------------------------------*)
 
