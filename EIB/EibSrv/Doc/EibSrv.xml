@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="windows-1250"?>
 <document file="WagoLib" xmlns="http://www.mii.cz/2004/XML/Document/Common">
-  <header creator="martin" doc_type="generic" last_modified="2008-03-27"
+  <header creator="martin" doc_type="generic" last_modified="2008-08-15"
           last_modifier="martin" version="1.0.1516.0"></header>
   <adjustment>
     <classes>
@@ -61,7 +61,7 @@
           </text>
         </section>
         <section level="2">
-          <title>Konfigurace</title>
+          <title>Konfigurační soubory</title>
           <text>
             <p>SmartServer běží jako služba operačního systému a rozbíhá se
             bezprostředně po instalaci. Všechna svá nastavení (KNX/EIB
@@ -186,7 +186,7 @@
                 <p>V definicích datových bodů se používají pro popis
                 podporovaných datových typů tato klíčová slova (tučně jsou
                 vyznačeny nejběžnější typy):</p>
-                <p.table>
+                <t.table>
                   <caption></caption>
                   <table>
                     <tr>
@@ -283,7 +283,7 @@
                       <td></td>
                     </tr>
                   </table>
-                </p.table>
+                </t.table>
                 <p>Poznámka: rozšiřující typ scaling255 mění standardní význam
                 typu EIS<c.special what="thinspace" />6. Zatímco datový bod
                 typu <type>scaling</type> nabízí klientům standardní rozsah
@@ -293,7 +293,7 @@
                 <p>Pro určení způsobu komunikace používá server v konfiguraci
                 následující klíčová slova (opět jsou tučně vyznačeny
                 nejčastější volby):</p>
-                <p.table>
+                <t.table>
                   <caption></caption>
                   <table>
                     <tr>
@@ -327,7 +327,7 @@
                       stejně jako <type>tracker_init</type>.</td>
                     </tr>
                   </table>
-                </p.table>
+                </t.table>
                 <p>Poslední část definice datových bodů, tj. skupinové adresy,
                 lze v konfiguraci zapisovat dvojím způsobem: buď jako
                 samostatné skupinové adresy, nebo jako interval skupinových
@@ -376,7 +376,278 @@ objects = 5/3/100..5/3/119</p.type>
                 přijmout a všechny datové body z něj použít. ESF soubor nemusí
                 obsahovat vždy všechny potřebné informace, avšak server se umí
                 s chybějícími údaji vypořádat (podle nastavení, viz níže).</p>
-                <p></p>
+                <p>Datové objekty z ESF souboru server přijme uvnitř sekce
+                <type>[objects]</type> pomocí parametrů <type>esf_adapt</type>,
+                <type>esf_strict</type> a <type>esf_ignore</type>
+                s významem:</p>
+                <t.table>
+                  <caption></caption>
+                  <table>
+                    <tr>
+                      <td><type>esf_adapt</type></td>
+                      <td>datové body bez přesného datového typu budou
+                      přijaty, jejich typ bude upraven podle typického použití
+                      a konfigurace bude načtena</td>
+                    </tr>
+                    <tr>
+                      <td><type>esf_strict</type></td>
+                      <td>datové body bez přesného typu budou odmítnuty a
+                      konfigurace nebude načtena (budou hlášeny chyby)</td>
+                    </tr>
+                    <tr>
+                      <td><type>esf_ignore</type></td>
+                      <td>datové body bez přesného typu budou ignorovány a
+                      konfigurace bude načtena (datové bez typu body server
+                      nebude znát)</td>
+                    </tr>
+                  </table>
+                </t.table>
+                <p>Za přesné datové typy se považují všechny typy zapsané jako
+                <type>EIS<c.special what="thinspace" />1</type><c.special
+                what="interval" /><type>EIS<c.special what="thinspace" />15</type>.
+                Nepřesné datové typy jsou v ESF souboru uvedené v podobě např.
+                <type>Uncertain (3 Byte)</type>, což dovoluje (jak již bylo
+                psáno) při použití parametru <type>esf_adapt</type> zvolit
+                vhodný typ automaticky. Pokud se to nepodaří, načítání
+                konfigurace skončí hlášením chyby.</p>
+                <p>Server při načítání konfigurace <type>esf_adapt</type>
+                převede nepřesné typy na přesné následovně:</p>
+                <t.table>
+                  <caption></caption>
+                  <table>
+                    <tr>
+                      <td>1 Bit</td>
+                      <td>4 Bit</td>
+                      <td>1 Byte</td>
+                      <td>2 Byte</td>
+                      <td>3 Byte</td>
+                      <td>4 Byte</td>
+                      <td>14 Byte</td>
+                    </tr>
+                    <tr>
+                      <td>switch</td>
+                      <td>increase</td>
+                      <td>scaling</td>
+                      <td>value</td>
+                      <td>time</td>
+                      <td>counter32</td>
+                      <td>string</td>
+                    </tr>
+                  </table>
+                </t.table>
+                <p>Ukázka konfigurace serveru pomocí ESF je zapsána
+                v souborech <type>08 ETS-Opc.cfg</type> a <type>08 test.esf</type>.</p>
+              </text>
+            </section>
+            <section level="3">
+              <title>Ladicí výpisy a informace</title>
+              <text>
+                <p>Server dokáže při běhu zapisovat informace o aktuálním
+                stavu a probíhajících operacích. To může být užitečné např.
+                při řešení problémů s komunikacemi.</p>
+                <p>Výpisy nejsou ve výchozím stavu zapnuty, pro jejich zapnutí
+                a konfiguraci slouží záznamy v registru operačního systému.
+                V případě potřeby kontaktujte technickou podporu.</p>
+              </text>
+            </section>
+          </text>
+        </section>
+        <section level="2">
+          <title>Webové rozhraní</title>
+          <text>
+            <p></p>
+          </text>
+        </section>
+        <section level="2">
+          <title>Rozhraní pro klienty</title>
+          <text>
+            <section level="3">
+              <title>SDAP, řádkově orientované textové rozhraní</title>
+              <text>
+                <p>SDAP (Simple Data Access Protocol) dovoluje vzdálený
+                přístup k datovým bodům serveru a současně umožňuje také
+                provádět některé administrační úkoly. SDAP je textový řádkový
+                protokol, který se přenáší pomocí TCP ze serveru na portu
+                6007. Po připojení k serveru se protokolem nepřenášejí žádná
+                řídicí data. Spojení je po navázání trvalé až do ukončení
+                klientem. V případě nerozpoznaného výpadku sítě server spojení
+                ukončí cca do 2 minut.</p>
+                <p>SDAP všechny příkazy/požadavky pro server (request)
+                potvrzuje (response). Pokud po odeslání příkazu potvrzení
+                nepřijde, nebyl příkaz přijat ani zpracován. Všechny příkazy
+                i odpovědi jsou ukončeny znaky CR a LF.</p>
+                <p>SDAP odpovídá na požadavky řádkem se stavovým kódem, za
+                kterým v některých odpovědích může následovat více dalších
+                řádků s informacemi. Formát stavového kódu je:</p>
+                <p.type>XXX.Y</p.type>
+                <p>nebo</p>
+                <p.type>XXX.Y N</p.type>
+                <p>kde <type>XXX.Y</type> je samotný stavový kód, <type>N</type>
+                je počet následujících řádků s dalšími informacemi a <type>.Y</type>
+                je nepovinná část blíže určující místo chyby (např. číslo
+                parametru, který byl chybný).</p>
+                <dl>
+                  <caption>Význam jednotlivých stavových kódů je (2XX jsou
+                  kladné odpovědi, 3XX jsou dočasné stavy, 4XX jsou chyby na
+                  straně klienta a 5XX jsou chyby na straně
+                  serveru):</caption>
+                  <dt>200</dt>
+                  <dd><p>Požadavek byl kompletně vyřízen.</p></dd>
+                  <dt>201</dt>
+                  <dd><p>Požadavek byl vyřízen, avšak server nemá spojení
+                  s EIB a data byla pouze uložena v cache serveru.</p></dd>
+                  <dt>300</dt>
+                  <dd><p>Operace probíhá.</p></dd>
+                  <dt>400</dt>
+                  <dd><p>V požadavku chybí příkaz.</p></dd>
+                  <dt>401</dt>
+                  <dd><p>Požadavek obsahuje neznámý příkaz.</p></dd>
+                  <dt>402</dt>
+                  <dd><p>Příkaz je znám, avšak jeho podpříkaz není
+                  znám.</p></dd>
+                  <dt>403</dt>
+                  <dd><p>Chybný počet parametrů.</p></dd>
+                  <dt>404</dt>
+                  <dd><p>Chybná hodnota parametru.</p></dd>
+                  <dt>405</dt>
+                  <dd><p>Neznámý, neexistující zdroj (například neexistující
+                  datový bod).</p></dd>
+                  <dt>500</dt>
+                  <dd><p>Vnitřní nerozlišená chyba serveru.</p></dd>
+                  <dt>501</dt>
+                  <dd><p>Služba není dostupná (např. server neběží
+                  apod.).</p></dd>
+                  <dt>502</dt>
+                  <dd><p>Nepodporovaný požadavek nebo příkaz. Příkaz je v SDAP
+                  dovolen, ale server jej nepodporuje.</p></dd>
+                </dl>
+                <dl>
+                  <caption>SDAP rozeznává následující příkazy:</caption>
+                  <dt><type>exit</type></dt>
+                  <dd><p>Server ukončí spojení s klientem (a zůstává dále
+                  v činnosti). Návratový kód není.</p></dd>
+                  <dt><type>set</type></dt>
+                  <dd><p>Zapíše data do serveru. Formát příkazu je <type>set group value</type>,
+                  kde <type>group</type> je datový bod serveru (nějaká
+                  skupinová adresa) a <type>value</type> je hodnota
+                  odpovídající datovému typu bodu. Příklad: <type>set 3/1/0 true</type>.</p><p>Možné
+                  návratové kódy jsou: 200, 201, 405 a 5XX.</p><p>Příklad
+                  komunikace se serverem:</p><p.type>set 3/1/0 false
+201</p.type></dd>
+                  <dt><type>get</type></dt>
+                  <dd><p>Přečte data ze serveru. Formát příkazu je <type>get group</type>,
+                  kde <type>group</type> je datový bod serveru (nějaká
+                  skupinová adresa). Příklad: <type>get 3/1/1</type>.</p><p>Server
+                  odpovídá návratovým kódem 200 N, 201 N, 405 a 5XX, přičemž N
+                  označuje počet následujících řádků s hodnotami datových bodů
+                  ve tvaru <type>group value</type>. <type>Value</type> je
+                  hodnota přečtená z datového bodu serveru.</p><p>Příklad
+                  komunikace se serverem:</p><p.type>get 3/1/1
+200 1
+3/1/1 30.5</p.type></dd>
+                  <dt><type>run</type></dt>
+                  <dd><p>Server se rozběhne, možné návratové kódy jsou 200,
+                  300 a 5XX.</p></dd>
+                  <dt><type>stop</type></dt>
+                  <dd><p>Server se zastaví (odpojí se od EIB), možné návratové
+                  kódy jsou 200 a 5XX.</p></dd>
+                </dl>
+              </text>
+            </section>
+            <section level="3">
+              <title>XMLSocket</title>
+              <text>
+                <p>Rozhraní XMLSocket dovoluje výměnu dat ze serverem.
+                XMLSocket je řádkový textový protokol, který se přenáší pomocí
+                TCP ze serveru na portu 6006. Každý řádek protokolu obsahuje
+                well formed XML s údaji o datech. Spojení je po navázání
+                trvalé až do ukončení klientem. V případě nerozpoznaného
+                výpadku sítě server spojení ukončí cca do 2 minut.</p>
+                <p>XML v protokolu má následující formát (ukázka skutečného
+                XML):</p>
+                <p.type>&lt;xmlsocket&gt;
+  &lt;item&gt;
+    &lt;name&gt;3/1/0&lt;/name&gt;
+    &lt;value&gt;true&lt;/value&gt;
+  &lt;/item&gt;
+&lt;/xmlsocket&gt;</p.type>
+                <p>Skupinová adresa ve značce <type>name</type> nemusí být
+                serveru známa, server v takovém případě požadavek ignoruje.
+                Značek item může být uvnitř jedné značky xmlsocket více, což
+                dovoluje přenáše více hodnot jedinou komunikací.</p>
+                <p>XMLSocket protokol je výhradně událostní. Klient nepožaduje
+                po serveru data, server klientovi data posílá sám, pokud dojde
+                k jejich změně. Stejným způsobem pracuje také klient, který
+                data do serveru posílá jen pokud u něj došlo ke změně.</p>
+              </text>
+            </section>
+          </text>
+        </section>
+        <section level="2">
+          <title>Ukázky klientů</title>
+          <text>
+            <p>V instalaci SmartServeru jsou zařazeny dvě ukázky klientů.
+            První klient (<file>Examples\Philips Pronto</file>) používá pro
+            komunikaci SDAP, druhý klient (<file>Examples\Adobe Flash</file>)
+            používá pro komunikaci XMLSocket.</p>
+            <section level="3">
+              <title>Philips Pronto</title>
+              <text>
+                <p>Philips Pronto je univerzální dálkový ovladač s podporou
+                grafiky, dotykovým displejem, WiFi komunikací a plnou podporou
+                programování. Podpora pro obecné programy dovoluje v Prontu
+                vytvořit komunikační rozhraní pro SDAP, pomocí něhož se
+                dovnitř Pronto aplikace dostanou informace z EIB a naopak,
+                pomocí něhož program (uživatel) může EIB vzdáleně ovládat.</p>
+                <p>Jazyk programování Pronta je JavaScript (stejný jazyk se
+                používá pro klientské programování v internetových stránkách),
+                pro programování Pronta slouží ProntoEdit Professional,
+                program volně dostupný ke stažení na stránkách <type>http://www.pronto.philips.com</type>
+                (kde lze samozřejmě najít také mnoho jiných informací o Prontu
+                a jeho použití).</p>
+                <dl>
+                  <caption>V ukázce jsou soubory:</caption>
+                  <dt><file>template.xcf</file></dt>
+                  <dd><p>Soubor s kostrou aplikace pro Pronto. Aplikaci lze
+                  přímo načíst do ProntoEdit a dále ji upravovat. Aplikace
+                  obsahuje několik obrazovek pro ovládání A/V zařízení a dvě
+                  obrazovky (uvnitř zařízení EIB), které dovolují ovládat
+                  světla a rolety.</p><p>V ukázce je bezprostředně zřejmý
+                  způsob komunikace s EIB: Hlavní JavaScript spojený se
+                  zařízením EIB zajišťuje komunikaci pomocí SDAP; co a jak se
+                  má komunikovat každá z obou vnořených obrazovek plní do při
+                  svém zobrazení do hlavního JavaScriptu a sama pak reaguje na
+                  příchozí hodnoty.</p></dd>
+                  <dt><file>main.js</file></dt>
+                  <dd><p>Hlavní JavaScript z předchozího souboru samostatně
+                  vydělený pro jednodušší náhled.</p></dd>
+                  <dt><file>lights.js</file></dt>
+                  <dd><p>JavaScript ze stránky pro ovládání světel.</p></dd>
+                </dl>
+              </text>
+            </section>
+            <section level="3">
+              <title>Adobe (Macromedia) Flash</title>
+              <text>
+                <p>Adobe Flash je podobně jako Pronto plně programovatelné.
+                Shodou náhod Macromedia pro Flash použila také programovací
+                jazyk JavaScript, byť jej obchodně pojmenovala ActionScript.
+                ActionScript přímo podporuje XMLSocket rozhraní, takže výměna
+                dat se SmartServerem je snadná (spočívá v rozkladu a
+                sestavování XML).</p>
+                <dl>
+                  <caption>V ukázce pro Adobe Flash jsou soubory:</caption>
+                  <dt><file>send.as</file></dt>
+                  <dd><p>Soubor s ukázkou sestavení a odeslání dat z Flashe do
+                  SmartServeru.</p></dd>
+                  <dt><file>main.as</file></dt>
+                  <dd><p>Soubor s ukázkou hlavního komunikačního skriptu,
+                  který jednak analyzuje XML a jednak volá potřebným prvkům
+                  v animaci procedury oznamující změnu hodnoty (prvkům které
+                  se zaregistrovaly).</p></dd>
+                </dl>
+                <p>Ukázkové skripty je možné do aplikace pro Adobe Flash
+                vložit například pomocí schránky.</p>
               </text>
             </section>
           </text>
