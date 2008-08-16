@@ -30,6 +30,8 @@
                             </File>
                             <File DiskId="1" Id="Discover.EXE" Name="Discover.exe" Source="Discover.exe">
                             </File>
+                            <File DiskId="1" Id="EibSrv.pdf" Name="EibSrv.pdf" Source="..\Doc\EibSrv.pdf">
+                            </File>
                             <ServiceInstall Id="SVC" Name="$(var.ProductId)" Type="ownProcess" Start="auto" ErrorControl="normal" DisplayName="$(var.ProductDisplayName)" Description="$(var.ProductDescription)">
                                 <ServiceDependency Id="Tcpip" />
                             </ServiceInstall>
@@ -50,6 +52,21 @@
                                 <File Id="_08_ETS_Opc.cfg" LongName="08 ETS-Opc.cfg" Name="08ETS.CFG" Source="Examples\08 ETS-Opc.cfg" DiskId="1" />
                                 <File Id="_08_test.esf" LongName="08 test.esf" Name="08TEST.ESF" Source="Examples\08 test.esf" DiskId="1" />
                             </Component>
+                            <Directory Id="Adobe_Flash" LongName="Adobe Flash" Name="Flash">
+                                <Component Id="ExamplesFlash" Guid="61E9CC52-47B5-48f3-8EC6-99D1894F9C20">
+                                    <File Id="Main.as" LongName="Main.as" Name="MAIN.AS" Source="Examples\Adobe Flash\Main.as" DiskId="1" />
+                                    <File Id="Send.as" LongName="Send.as" Name="SEND.AS" Source="Examples\Adobe Flash\Send.as" DiskId="1" />
+                                </Component>
+                            </Directory>
+                            <Directory Id="Philips_Pronto" LongName="Philips Pronto" Name="Pronto">
+                                <Component Id="ExamplesPronto" Guid="CA0905D8-C0F5-4cf5-81EE-8427C8D63071">
+                                    <File Id="ButtonDim.js" LongName="ButtonDim.js" Name="BUTTOND.JS" Source="Examples\Philips Pronto\ButtonDim.js" DiskId="1" />
+                                    <File Id="ButtonSwitch.js" LongName="ButtonSwitch.js" Name="BUTTONS.JS" Source="Examples\Philips Pronto\ButtonSwitch.js" DiskId="1" />
+                                    <File Id="Main.js" LongName="Main.js" Name="MAIN.JS" Source="Examples\Philips Pronto\Main.js" DiskId="1" />
+                                    <File Id="Page.js" LongName="Page.js" Name="PAGE.JS" Source="Examples\Philips Pronto\Page.js" DiskId="1" />
+                                    <File Id="Template.xcf" LongName="Template.xcf" Name="TEMPLAT.XCF" Source="Examples\Philips Pronto\Template.xcf" DiskId="1" />
+                                </Component>
+                            </Directory>
                         </Directory>
                         <?if $(var.LeakChecking)=on ?>
                         <Component Guid="B77FFC41-B032-47C6-841B-12239073885D" Id="LeakDetector">
@@ -92,6 +109,8 @@
             <ComponentRef Id="Program" />
             <ComponentRef Id="Licence" />
             <ComponentRef Id="Examples" />
+            <ComponentRef Id="ExamplesFlash" />
+            <ComponentRef Id="ExamplesPronto" />
             <?if $(var.LeakChecking)=on ?>
             <ComponentRef Id="LeakDetector" />
             <?endif ?>

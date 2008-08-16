@@ -124,14 +124,14 @@
                           <td><type>tunneling</type></td>
                           <td>komunikace bod-bod, komunikace se zaøízením je
                           vıhradní (KNX Std. 3.8.4)</td>
-                          <td>01 test direct.cfg</td>
+                          <td>01 test-direct.cfg</td>
                         </tr>
                         <tr>
                           <td><type>routing</type></td>
                           <td>vícesmìrová komunikace (multicasting),
                           nekomunikuje se s konkrétním zaøízením, není
                           vıhradní (KNX Std. 3.8.5)</td>
-                          <td>???</td>
+                          <td>02 test-routing.cfg</td>
                         </tr>
                         <tr>
                           <td><type>tunneling-NAT</type></td>
@@ -139,7 +139,7 @@
                           pøes IP routery s funkcí NAT (pøeklad adres);
                           rozšíøení Siemens, není ovìøena funkce mimo zaøízení
                           Siemens</td>
-                          <td>02 test nat.cfg</td>
+                          <td>03 test-nat.cfg</td>
                         </tr>
                       </table>
                     </t.table></dd>
@@ -359,9 +359,9 @@ objects = 5/3/100..5/3/119</p.type>
                 a <type>behaviour</type>. Druhá ukázka pøitom definuje stejné
                 objekty, jako první dva øádky v ukázce pouití <type>[objects]</type>.</p>
                 <p>Další ukázky zápisu datovıch bodù lze najít v souborech:
-                <file>03 init-read.cfg</file> (datové body s vynucenım
-                poèáteèním ètením), <file>05 complex-object.cfg</file> (datové
-                body spojené s více skupinovımi adresami), <file>07
+                <file>04 init-read.cfg</file> (datové body s vynucenım
+                poèáteèním ètením), <file>06 complex-object.cfg</file> (datové
+                body spojené s více skupinovımi adresami), <file>08
                 blocks.cfg</file> (definice datovıch bodù pomocí sekce <type>[blocks]</type>).</p>
               </text>
             </section>
@@ -436,7 +436,7 @@ objects = 5/3/100..5/3/119</p.type>
                   </table>
                 </t.table>
                 <p>Ukázka konfigurace serveru pomocí ESF je zapsána
-                v souborech <type>08 ETS-Opc.cfg</type> a <type>08 test.esf</type>.</p>
+                v souborech <type>09 ETS-Opc.cfg</type> a <type>09 test.esf</type>.</p>
               </text>
             </section>
             <section level="3">
@@ -607,7 +607,7 @@ objects = 5/3/100..5/3/119</p.type>
                 a jeho pouití).</p>
                 <dl>
                   <caption>V ukázce jsou soubory:</caption>
-                  <dt><file>template.xcf</file></dt>
+                  <dt><file>Template.xcf</file></dt>
                   <dd><p>Soubor s kostrou aplikace pro Pronto. Aplikaci lze
                   pøímo naèíst do ProntoEdit a dále ji upravovat. Aplikace
                   obsahuje nìkolik obrazovek pro ovládání A/V zaøízení a dvì
@@ -617,12 +617,44 @@ objects = 5/3/100..5/3/119</p.type>
                   zaøízením EIB zajišuje komunikaci pomocí SDAP; co a jak se
                   má komunikovat kadá z obou vnoøenıch obrazovek plní do pøi
                   svém zobrazení do hlavního JavaScriptu a sama pak reaguje na
-                  pøíchozí hodnoty.</p></dd>
-                  <dt><file>main.js</file></dt>
+                  pøíchozí hodnoty.</p><p>Hlavní komunikaèní skript je uloen
+                  ve vìtvi <gui>EIB/EIB Properties</gui> v záloce
+                  <gui>Advanced</gui>.</p></dd>
+                  <dt><file>Main.js</file></dt>
                   <dd><p>Hlavní JavaScript z pøedchozího souboru samostatnì
-                  vydìlenı pro jednodušší náhled.</p></dd>
-                  <dt><file>lights.js</file></dt>
-                  <dd><p>JavaScript ze stránky pro ovládání svìtel.</p></dd>
+                  vydìlenı pro jednodušší náhled. V úvodu skriptu je
+                  definovaná promìnná <type>IP_ADDRESS</type>, kterou je nutné
+                  pøi pouití nastavit na správnou adresu
+                  SmartServeru.</p><p>Souèástí skriptu jsou metody <type>System.SetReadObjects</type>,
+                  <type>System.PageUpdate</type> a <type>System.ConnectionCheck</type>.
+                  Tyto metody pouívají skripty stránek pro nastavení
+                  komunikace poadovanıch datovıch bodù, reakci na jejich
+                  novou hodnotu a reakci na aktuální stav
+                  komunikace.</p><p>Spojení se serverem se opakovanì navazuje
+                  a ukonèuje, protoe Pronto Script pøi pøechodu do StandBy
+                  módu nesprávnì uzavírá TCP spojení.</p></dd>
+                  <dt><file>Page.js</file></dt>
+                  <dd><p>JavaScript ze stránky pro ovládání svìtel.
+                  V Template.xcf je skript zapsán ve vìtvi
+                  <gui>EIB/Lights</gui> v záloce
+                  <gui>Advanced</gui>.</p><p>Ve skriptu jsou názornì pouity
+                  vıše zmínìné metody ze skriptu
+                  <file>Main.js</file>.</p></dd>
+                  <dt><file>ButtonSwitch.js</file></dt>
+                  <dd><p>JavaScript z tlaèítka pro zapínání a vypínání
+                  svìtla.V Template.xcf je skript zapsán ve vìtvi
+                  <gui>Templates/Lights</gui> v tlaèítku <gui>Light</gui>
+                  v záloce <gui>Actions</gui>.</p><p>Skript pro zmìnu stavu
+                  datového objektu serveru, skript se odkazuje na promìnné
+                  definované ve skriptu <file>Page.js</file>.</p></dd>
+                  <dt><file>ButtonDim.js</file></dt>
+                  <dd><p>JavaScript z tlaèítka pro stmívání (sniování jasu).
+                  V Template.xcf je skript zapsán ve vìtvi
+                  <gui>Templates/Lights</gui> v tlaèítku <gui>Dimming</gui>
+                  v záloce <gui>Actions</gui>.</p><p>Skript pro sniování
+                  jasu (pøi drení tlaèítka se jas prùbìnì sniuje), skript
+                  se odkazuje na promìnné definované ve skriptu
+                  <file>Page.js</file>.</p></dd>
                 </dl>
               </text>
             </section>
@@ -637,14 +669,24 @@ objects = 5/3/100..5/3/119</p.type>
                 sestavování XML).</p>
                 <dl>
                   <caption>V ukázce pro Adobe Flash jsou soubory:</caption>
-                  <dt><file>send.as</file></dt>
-                  <dd><p>Soubor s ukázkou sestavení a odeslání dat z Flashe do
-                  SmartServeru.</p></dd>
                   <dt><file>main.as</file></dt>
                   <dd><p>Soubor s ukázkou hlavního komunikaèního skriptu,
                   kterı jednak analyzuje XML a jednak volá potøebnım prvkùm
                   v animaci procedury oznamující zmìnu hodnoty (prvkùm které
-                  se zaregistrovaly).</p></dd>
+                  se zaregistrovaly). </p><p>Implementace komunikace je
+                  zapouzdøena do tøídy <type>SmartServerConnector</type>,
+                  tøída programu ve Flashi nabízí metody <type>Connect</type>,
+                  <type>Close</type> a <type>Send</type> a události (které
+                  program mùe poslouchat) <type>onConnect</type>, <type>onClose</type>
+                  a <type>onReceive</type>.</p></dd>
+                  <dt><file>send.as</file></dt>
+                  <dd><p>Soubor s ukázkou sestavení a odeslání dat z Flashe do
+                  SmartServeru.</p><p>Skript pro ukázku definuje promìnnou
+                  <type>Connection</type>, která je komunikaèní tøídou ze
+                  skriptu <file>main.as</file>, a volá jeho metodu <type>Connect</type>.
+                  Tento kód ve skuteèné aplikaci pravdìpodobnì bude umístìn
+                  v jiném místì, ne v obsluze uivatelské události
+                  tlaèítka.</p></dd>
                 </dl>
                 <p>Ukázkové skripty je moné do aplikace pro Adobe Flash
                 vloit napøíklad pomocí schránky.</p>
