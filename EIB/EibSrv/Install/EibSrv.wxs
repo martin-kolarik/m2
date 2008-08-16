@@ -44,13 +44,12 @@
                             <Component Id="Examples" Guid="504E174F-A539-4C95-B1BA-51674C84ECD4">
                                 <File Id="_01_test_direct.cfg" LongName="01 test-direct.cfg" Name="01TEST.CFG" Source="Examples\01 test-direct.cfg" DiskId="1" />
                                 <File Id="_02_test_nat.cfg" LongName="02 test-nat.cfg" Name="02TEST.CFG" Source="Examples\02 test-nat.cfg" DiskId="1" />
-                                <File Id="_03_init_read.cfg" LongName="03 init-read.cfg" Name="03INIT.CFG" Source="Examples\03 init-read.cfg" DiskId="1" />
-                                <File Id="_04_forced_read.cfg" LongName="04 forced-read.cfg" Name="04FORCE.CFG" Source="Examples\04 forced-read.cfg" DiskId="1" />
-                                <File Id="_05_complex_object.cfg" LongName="05 complex-object.cfg" Name="05COMPL.CFG" Source="Examples\05 complex-object.cfg" DiskId="1" />
-                                <File Id="_06_complex_object_forced_read.cfg" LongName="06 complex-object-forced-read.cfg" Name="06COMPL.CFG" Source="Examples\06 complex-object-forced-read.cfg" DiskId="1" />
-                                <File Id="_07_blocks.cfg" LongName="07 blocks.cfg" Name="07BLOCK.CFG" Source="Examples\07 blocks.cfg" DiskId="1" />
-                                <File Id="_08_ETS_Opc.cfg" LongName="08 ETS-Opc.cfg" Name="08ETS.CFG" Source="Examples\08 ETS-Opc.cfg" DiskId="1" />
-                                <File Id="_08_test.esf" LongName="08 test.esf" Name="08TEST.ESF" Source="Examples\08 test.esf" DiskId="1" />
+                                <File Id="_03_test_routing.cfg" LongName="03 test-routing.cfg" Name="03TEST.CFG" Source="Examples\03 test-routing.cfg" DiskId="1" />
+                                <File Id="_04_init_read.cfg" LongName="04 init-read.cfg" Name="04INIT.CFG" Source="Examples\04 init-read.cfg" DiskId="1" />
+                                <File Id="_06_complex_object.cfg" LongName="06 complex-object.cfg" Name="06COMPL.CFG" Source="Examples\06 complex-object.cfg" DiskId="1" />
+                                <File Id="_08_blocks.cfg" LongName="08 blocks.cfg" Name="08BLOCK.CFG" Source="Examples\08 blocks.cfg" DiskId="1" />
+                                <File Id="_09_ETS_Opc.cfg" LongName="09 ETS-Opc.cfg" Name="09ETS.CFG" Source="Examples\09 ETS-Opc.cfg" DiskId="1" />
+                                <File Id="_09_test.esf" LongName="09 test.esf" Name="09TEST.ESF" Source="Examples\09 test.esf" DiskId="1" />
                             </Component>
                             <Directory Id="Adobe_Flash" LongName="Adobe Flash" Name="Flash">
                                 <Component Id="ExamplesFlash" Guid="61E9CC52-47B5-48f3-8EC6-99D1894F9C20">
