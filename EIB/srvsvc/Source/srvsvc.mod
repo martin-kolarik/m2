@@ -6,6 +6,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   adviser,
    cllv,
    FIO,
    FIOO,
@@ -21,7 +22,8 @@ IMPORT
    Strings,
    StringsO,
    Sync,
-   threadcall;
+   threadcall,
+   xmlsocket;
    
 (*================================================================================*)
 
@@ -48,7 +50,9 @@ CLASS CEibSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarg
       
    PRIVATE VAR
       EIB : srvcore.TPEIBServer := NIL;
+      Adviser : adviser.TPAdvisedDevice := NIL;
       SDAP : sdap.TPSDAPServer := NIL;
+      XMLS : xmlsocket.TPXMLSocketServer := NIL;
 
    // service, OS thread
    LOCAL VIRTUAL PROCEDURE OnStart();
@@ -167,14 +171,27 @@ CLASS IMPLEMENTATION CEibSvc;
          s2.AppendOA( L", line: " ); s1.FromCARD32( line, 10 ); s2.Append( s1 );
          LogEvent( -1, OA( s2.Length-1, s2.rawData ));
       END;
+      
+      ASSERT( Adviser = NIL );
+      NEW( Adviser );
+      Adviser^.Device := EIB;
+      Adviser^.Start();
 
       ASSERT( SDAP = NIL );
       NEW( SDAP );
-      SDAP^.Device := EIB;
+      SDAP^.Device := Adviser;
       IA.Port := 6007;
       SDAP^.ListenAddress := IA;
       SDAP^.Init( TRUE );
       SDAP^.Start();
+      
+      ASSERT( XMLS = NIL );
+      NEW( XMLS );
+      XMLS^.Device := Adviser;
+      IA.Port := 6006;
+      XMLS^.ListenAddress := IA;
+      XMLS^.Init( TRUE );
+      XMLS^.Start();
 
       SetServiceState( Service.ssRunning, 0 );
    END _OnStart;
@@ -209,6 +226,11 @@ CLASS IMPLEMENTATION CEibSvc;
 
    PRIVATE PROCEDURE _OnStop();
    BEGIN
+      IF XMLS <> NIL THEN
+         XMLS^.Stop();
+         DISPOSE( XMLS );
+      END;
+   
       IF SDAP <> NIL THEN
          SDAP^.Stop();
          DISPOSE( SDAP );
