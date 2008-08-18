@@ -15,24 +15,33 @@ IMPORT
 
 TYPE
   TPIO = POINTER TO IIO;
+  TPIAdviseInfo = POINTER TO IAdviseInfo;
   TPIDataInfo = POINTER TO IDataInfo;
   TPDataInfo = POINTER TO CDataInfo;
 
 (*---------------------------------------------------------------------------*)
 
-INTERFACE IDataInfo;
+INTERFACE IAdviseInfo;
+   // notification from device
+   PROCEDURE OnAdvise( Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+END IAdviseInfo;
+
+(*---------------------------------------------------------------------------*)
+
+INTERFACE IDataInfo( IAdviseInfo );
    // called in case of any error (so for operations which has not started it is called too), for started operation OnError is called together with OnIO
    PROCEDURE OnError( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL );
    // called on completion of io operation (so for operations which has not started it is not called), for started operation OnIO is called together with OnError (if error occured)
    PROCEDURE OnIO( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL; CONST Value : ARRAY OF iovalue.Value );
-   // notification from device
-   PROCEDURE OnAdvise( Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   // notification from device inherited
+   // PROCEDURE OnAdvise( Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
 END IDataInfo;
 
 (*---------------------------------------------------------------------------*)
 
 CLASS CDataInfo( Delegate.ADelegate );
    PUBLIC VAR
+      AdviseSink : TPIAdviseInfo;
       Sink : TPIDataInfo;
    PUBLIC PROCEDURE OnError( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL );
    PUBLIC PROCEDURE OnIO( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL; CONST Value : ARRAY OF iovalue.Value );
@@ -69,6 +78,7 @@ INTERFACE IIO; // single device, purpose is to have minimalistic interface, whic
       Running : BOOLEAN;
    PROPERTY
       Advise : TAdvise;
+      AdviseListener : TPIAdviseInfo; // for Advise <> advNone
 
    PROCEDURE Run() : Sync.TAsyncResult;
    PROCEDURE Stop();
@@ -79,10 +89,6 @@ INTERFACE IIO; // single device, purpose is to have minimalistic interface, whic
 
    PROCEDURE AbortAll(); // As IIO is allowed to run single operation only Abort does not need more parameters. But because ancestors
                          // will have need to Abort selectively the name here is AbortAll to avoid future conflicts.
-                         
-   // for Advise <> advNone
-   // PROCEDURE AddAdviseListener( Listener : TPIDataInfo );
-   // PROCEDURE RemoveAdviseListener( Listener : TPIDataInfo );
 END IIO;
 
 (*---------------------------------------------------------------------------*)

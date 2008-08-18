@@ -65,6 +65,10 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\Source\adviser.mod"
+				>
+			</File>
+			<File
 				RelativePath=".\Source\io.mod"
 				>
 			</File>
@@ -98,6 +102,10 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath=".\Source\adviser.def"
+				>
+			</File>
 			<File
 				RelativePath=".\Source\cache.def"
 				>
@@ -142,6 +150,10 @@
 		<Filter
 			Name="Test"
 			>
+			<File
+				RelativePath=".\Test\TAdviser.mod"
+				>
+			</File>
 			<File
 				RelativePath=".\Test\TSDValue.mod"
 				>

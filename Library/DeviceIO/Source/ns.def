@@ -28,6 +28,9 @@ TYPE
    TPnsItem = POINTER TO AnsItem;
    TPnsIterator = POINTER TO CnsIterator;
    THash = PTR;
+   
+CONST
+   hashINVALID = NIL;
 
 (*---------------------------------------------------------------------------*)
 

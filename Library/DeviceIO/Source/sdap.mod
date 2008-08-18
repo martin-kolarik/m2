@@ -3,6 +3,7 @@ IMPLEMENTATION MODULE sdap;
 (*================================================================================*)
 
 IMPORT   
+   device,
    IOO,
    netsocket,
    netsrv,
@@ -20,7 +21,9 @@ TYPE
       sdapRUN,
       sdapSTOP,
       sdapLOCK,
-      sdapUNLOCK
+      sdapUNLOCK,
+      sdapADVISE, // advise <N> or advise all
+      sdapUNADVISE
    );
 
    TsdapSubcommand = (
@@ -35,14 +38,14 @@ CLASS IMPLEMENTATION CSDAPServer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Device GET : device.TPDevice;
+   PUBLIC PROPERTY Device GET : adviser.TPAdvisedDevice;
    BEGIN
       RETURN _Device;
    END Device;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Device SET( Value : device.TPDevice );
+   PUBLIC PROPERTY Device SET( Value : adviser.TPAdvisedDevice );
    BEGIN
       _Device := Value;
    END Device;
@@ -307,7 +310,7 @@ CLASS IMPLEMENTATION CSDAPServer;
             ACK( PConnection, sdap501 );
 
          ELSIF NOT Device^.Mapper()^.NameToHash( p[1], OUT Hash ) THEN
-            ACKs( PConnection, sdap404, 1 );
+            ACKs( PConnection, sdap405, 1 );
 
          ELSE
 

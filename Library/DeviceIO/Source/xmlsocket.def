@@ -1,21 +1,30 @@
 DEFINITION MODULE xmlsocket;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+   
+IMPORT
+   adviser,
+   inetaddr,
+   log,
+   netconndispatch;
+
 (*================================================================================*)
 
-(*--------------------------------------------------------------------------------*)
-
 TYPE
-   TPXMLSocket = POINTER TO CXMLSocket;
+   TPXMLSocketServer = POINTER TO CXMLSocketServer;
 
-CLASS CXMLSocket( netconndispatch.CDispatcher );
+CLASS CXMLSocketServer( netconndispatch.CDispatcher );
    PRIVATE VAR
-      _Device : device.TPDevice := NIL;
+      _Device : adviser.TPAdvisedDevice := NIL;
       _Logger : log.TPLogger := NIL;
       _ListenAddress : inetaddr.INETADDR;
       _Running : BOOLEAN := FALSE;
+      _RBuffer : StorageO.CMemoryBuffer;
+      _WBuffer : StorageO.CMemoryBuffer;
 
    PUBLIC PROPERTY
-      Device : device.TPDevice;
+      Device : adviser.TPAdvisedDevice;
       Logger : log.TPLogger;
       ListenAddress : inetaddr.INETADDR;
    PUBLIC READONLY PROPERTY
@@ -24,11 +33,10 @@ CLASS CXMLSocket( netconndispatch.CDispatcher );
    PUBLIC PROCEDURE Start();
    PUBLIC PROCEDURE Stop();
 
-   INTERNAL VIRTUAL PROCEDURE OnConnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
-   INTERNAL VIRTUAL PROCEDURE OnDisconnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
    INTERNAL VIRTUAL PROCEDURE OnReceive( Connection : netconndispatch.TConnectionHandle; PData : ADDRESS; DataLen : CARDINAL );
 
-END CXMLSocket;
+   PRIVATE PROCEDURE Parse( Connection : netconndispatch.TConnectionHandle; Data : ARRAY OF CHAR );
+END CXMLSocketServer;
 
 (*================================================================================*)
 

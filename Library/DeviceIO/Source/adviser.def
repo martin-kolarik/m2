@@ -1,0 +1,88 @@
+DEFINITION MODULE adviser;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   device,
+   io,
+   iobject,
+   IOO,
+   iovalue,
+   log,
+   maps,
+   ns,
+   StringsO,
+   Sync;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPAdviser = POINTER TO CAdviser;
+   TPAdvisedDevice = POINTER TO CAdvisedDevice; // wrapper around device with CAdviser functionality
+   
+(*---------------------------------------------------------------------------*)
+
+CLASS CAdviser IMPLEMENTS io.IAdviseInfo;
+
+   PRIVATE VAR
+      _Advising : Sync.STATE;
+      _Clients : maps.CPtrMap; // map of client/PtrList of joined clients
+      _Advised : maps.CPtrMap; // map of item/PtrArray of clients/client data
+   INTERNAL VAR
+      _Device : device.TPDevice;
+   
+   // IAdviseInfo
+   PUBLIC FINAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+
+   // SELF
+   PUBLIC PROPERTY
+      Device : device.TPDevice; // this device will be advised
+   PUBLIC READONLY PROPERTY
+      Empty : BOOLEAN;
+      
+   PUBLIC PROCEDURE JoinClient( Client : io.TPIAdviseInfo; Advise : io.TAdvise );
+   PUBLIC PROCEDURE LeaveClient( Client : io.TPIAdviseInfo );
+   
+   PUBLIC PROCEDURE Advise( Client : io.TPIAdviseInfo; CONST Name : StringsO.CString ) : BOOLEAN; // returns if Name is known
+   PUBLIC PROCEDURE AdviseAll( Client : io.TPIAdviseInfo );
+   PUBLIC PROCEDURE Unadvise( Client : io.TPIAdviseInfo; CONST Name : StringsO.CString ) : BOOLEAN; // returns if Name is known
+   PUBLIC PROCEDURE UnadviseAll( Client : io.TPIAdviseInfo );
+   
+   PUBLIC PROCEDURE Start();
+   PUBLIC PROCEDURE Stop();
+
+   PUBLIC PROCEDURE Dispose();
+
+   // helpers
+   PRIVATE PROCEDURE DoAdvise( ClientData : ADDRESS; CONST Name : StringsO.TPString ) : BOOLEAN;
+   PRIVATE PROCEDURE DoUnadvise( ClientData : ADDRESS; CONST Name : StringsO.TPString; UnadviseCompletely : BOOLEAN ) : BOOLEAN;
+END CAdviser;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CAdvisedDevice( CAdviser ) IMPLEMENTS device.IDevice; // wrapper around device with CAdviser functionality
+
+   // IObject
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Type : iobject.TObjectType;
+   PUBLIC VIRTUAL PROPERTY
+      Library : iobject.TPLibrary;
+   PUBLIC VIRTUAL PROCEDURE OnDispose(); // meant not as Command, but as Callback, usually, destroying of object is done with ReleaseObject of some loader.
+
+   // IDevice
+   PUBLIC VIRTUAL READONLY PROPERTY
+      DeviceCapabilities : device.TCapabilities;
+
+	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+
+   PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper; // required
+	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns; // optional
+
+	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO; // required
+
+END CAdvisedDevice;
+
+(*---------------------------------------------------------------------------*)
+
+END adviser.

@@ -26,6 +26,9 @@ CLASS IMPLEMENTATION CDataInfo;
 
    PUBLIC PROCEDURE OnAdvise( Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
    BEGIN
+      IF AdviseSink <> NIL THEN
+         AdviseSink^.OnAdvise( Source, Result, Item, Value );
+      END;
       IF Sink <> NIL THEN
          Sink^.OnAdvise( Source, Result, Item, Value );
       END;
@@ -34,6 +37,7 @@ CLASS IMPLEMENTATION CDataInfo;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
+   AdviseSink := NIL;
    Sink := NIL;
 END CDataInfo;
 

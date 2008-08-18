@@ -6,7 +6,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
    
 IMPORT
-   device,
+   adviser,
    inetaddr,
    iovalue,
    log,
@@ -47,14 +47,14 @@ TYPE
 
 CLASS CSDAPServer( netconndispatch.CDispatcher );
    PRIVATE VAR
-      _Device : device.TPDevice := NIL;
+      _Device : adviser.TPAdvisedDevice := NIL;
       _Logger : log.TPLogger := NIL;
       _ListenAddress : inetaddr.INETADDR;
       _Running : BOOLEAN := FALSE;
       _ConfigLogger : log.CLogger;
 
    PUBLIC PROPERTY
-      Device : device.TPDevice;
+      Device : adviser.TPAdvisedDevice;
       Logger : log.TPLogger;
       ListenAddress : inetaddr.INETADDR;
    PUBLIC READONLY PROPERTY
