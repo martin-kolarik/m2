@@ -503,14 +503,29 @@ CLASS IMPLEMENTATION CEIBServer;
 
    PUBLIC VIRTUAL PROPERTY Advise GET : io.TAdvise;
    BEGIN
-      RETURN io.advNone;
+      RETURN _Advise;
    END Advise;
 
 //--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROPERTY Advise SET( Value : io.TAdvise );
    BEGIN
+      _Advise := Value;
    END Advise;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROPERTY AdviseListener GET : io.TPIAdviseInfo;
+   BEGIN
+      RETURN _AdviseListener;
+   END AdviseListener;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROPERTY AdviseListener SET( Value : io.TPIAdviseInfo );
+   BEGIN
+      _AdviseListener := Value;
+   END AdviseListener;
 
 //--------------------------------------------------------------------------------
 
@@ -2067,6 +2082,8 @@ BEGIN
    Sink.Server := ADR( SELF );
    EventSink := NIL;
    Logger.SetUpByRegistry( LIBRARY );
+   _Advise := io.advWithData;
+   _AdviseListener := NIL;
    
    ObjectLock.Init( Sync.ltCS, L"", FALSE );
    QueueLock.Init( Sync.ltSpin, L"", FALSE );

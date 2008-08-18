@@ -124,6 +124,8 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    EventSink                : TPEIBServerSink;
    Logger                   : log.CLogger;
    R                        : Resources.CResources;
+   _Advise                  : io.TAdvise;
+   _AdviseListener          : io.TPIAdviseInfo;
 
    Result                   : lec.CResult;
    cllvdata                 : ADDRESS;
@@ -198,6 +200,7 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
       Running : BOOLEAN;
    PUBLIC VIRTUAL PROPERTY
       Advise : io.TAdvise;
+      AdviseListener : io.TPIAdviseInfo;
 
    PUBLIC VIRTUAL PROCEDURE Run() : Sync.TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE Stop();
