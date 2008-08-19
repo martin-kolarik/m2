@@ -472,6 +472,7 @@ CLASS IMPLEMENTATION CEIBServer;
       address := TPObject( Hash )^.SendAddress;
       IF GetObject( address, OUT PObject ) THEN
          address.GetGroupAddress3( TRUE, OUT s );
+         Name.FromOA( s );
          RETURN TRUE;
       ELSE
          RETURN FALSE;
@@ -1735,50 +1736,68 @@ CLASS IMPLEMENTATION CEIBServer;
    LOCAL PROCEDURE ValueUpdated( PObject : TPObject; CurrentState : eib_user.TObjectState );
    VAR
       EValue : eib_def.CValue;
+      io : iovalue.Value;
       prItem : PromiscuousData;
+      Result : Sync.TAsyncResult := Sync.arCompleted;
    BEGIN
       IF eib_user.osReading IN CurrentState THEN // value is NOT OOB
          RETURN;
       ELSIF PObject^.RSStatus = eib_status.essOK THEN
          INCL( PObject^.Flags, eib_def.aofEIBValue );
       END;
-      IF EventSink = NIL THEN
-         RETURN;
-      END;
-
-      // this code takes sense for cw driver only
+      
       IF eib_def.aofPromiscuous IN PObject^.GetFlags() THEN // promiscuous mode queueing
 
-         QueueLock.Lock();
-         IF prData.Count >= InputQueueLength THEN
-            QueueLock.Unlock();
-            EventSink^.OnInputQueueOverflow( FALSE, TRUE );
-            RETURN;
+         IF EventSink <> NIL THEN
+            QueueLock.Lock();
+            IF prData.Count >= InputQueueLength THEN
+               QueueLock.Unlock();
+               EventSink^.OnInputQueueOverflow( FALSE, TRUE );
+               RETURN;
+            END;
          END;
          
          prItem.Address := PObject^.PromiscuousAddress;
          PObject^.GetValue( OUT prItem.Value, TRUE, FALSE );
          
-         prData.EnqueueOA( prItem, 0 );
-         INCL( RStatus, rsPromiscuousInQueue );
-         QueueLock.Unlock();
+         IF EventSink <> NIL THEN
+            prData.EnqueueOA( prItem, 0 );
+            INCL( RStatus, rsPromiscuousInQueue );
+            QueueLock.Unlock();
 
-         EventSink^.OnInputQueueAdd( FALSE, TRUE );
+            EventSink^.OnInputQueueAdd( FALSE, TRUE );
+         END;
+         
+         IF _AdviseListener <> NIL THEN
+            EIBValue2IOValue( EValue, OUT io );
+            _AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( PObject )), OA( 0, ADR( io )) );
+         END;
 
       ELSE // oobData promiscuous mode queueing
 
-         QueueLock.Lock();
-         IF oobData.Count >= InputQueueLength THEN
-            QueueLock.Unlock();
-            EventSink^.OnInputQueueOverflow( TRUE, FALSE );
-            RETURN;
+         IF EventSink <> NIL THEN
+            QueueLock.Lock();
+            IF oobData.Count >= InputQueueLength THEN
+               QueueLock.Unlock();
+               EventSink^.OnInputQueueOverflow( TRUE, FALSE );
+               RETURN;
+            END;
          END;
 
          PObject^.GetValue( OUT EValue, TRUE, FALSE );
-         oobData.EnqueueOA( EValue.Data, PObject );
-         QueueLock.Unlock();
 
-         EventSink^.OnInputQueueAdd( TRUE, FALSE );
+         IF EventSink <> NIL THEN
+            oobData.EnqueueOA( EValue.Data, PObject );
+            QueueLock.Unlock();
+
+            EventSink^.OnInputQueueAdd( TRUE, FALSE );
+         END;
+
+         IF _AdviseListener <> NIL THEN
+            EIBValue2IOValue( EValue, OUT io );
+            _AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( PObject )), OA( 0, ADR( io )) );
+         END;
+
       END;
    END ValueUpdated;
 

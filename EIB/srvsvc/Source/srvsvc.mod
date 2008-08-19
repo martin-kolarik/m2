@@ -236,6 +236,11 @@ CLASS IMPLEMENTATION CEibSvc;
          DISPOSE( SDAP );
       END;
    
+      IF Adviser <> NIL THEN
+         Adviser^.Stop();
+         DISPOSE( Adviser );
+      END;
+
       IF EIB <> NIL THEN
          EIB^.Stop();
          EIB^.Dispose();

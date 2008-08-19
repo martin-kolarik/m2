@@ -7,6 +7,7 @@ IMPORT
    adviser,
    inetaddr,
    log,
+   maps,
    netconndispatch;
 
 (*================================================================================*)
@@ -20,9 +21,9 @@ CLASS CXMLSocketServer( netconndispatch.CDispatcher );
       _Logger : log.TPLogger := NIL;
       _ListenAddress : inetaddr.INETADDR;
       _Running : BOOLEAN := FALSE;
-      _RBuffer : StorageO.CMemoryBuffer;
-      _WBuffer : StorageO.CMemoryBuffer;
-
+      _Clients : maps.CPtrMap;
+      
+   // SELF
    PUBLIC PROPERTY
       Device : adviser.TPAdvisedDevice;
       Logger : log.TPLogger;
@@ -33,9 +34,13 @@ CLASS CXMLSocketServer( netconndispatch.CDispatcher );
    PUBLIC PROCEDURE Start();
    PUBLIC PROCEDURE Stop();
 
+   INTERNAL VIRTUAL PROCEDURE OnConnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
+   INTERNAL VIRTUAL PROCEDURE OnDisconnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
    INTERNAL VIRTUAL PROCEDURE OnReceive( Connection : netconndispatch.TConnectionHandle; PData : ADDRESS; DataLen : CARDINAL );
 
-   PRIVATE PROCEDURE Parse( Connection : netconndispatch.TConnectionHandle; Data : ARRAY OF CHAR );
+   PRIVATE PROCEDURE Parse( Data : ARRAY OF CHAR );
+   PRIVATE PROCEDURE HandleItem( CONST Name, Value : ARRAY OF WCHAR );
+   LOCAL PROCEDURE Send( Client : ADDRESS; CONST Buffer : StorageO.AMemoryBuffer );
 END CXMLSocketServer;
 
 (*================================================================================*)

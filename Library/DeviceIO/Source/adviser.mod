@@ -37,6 +37,7 @@ CLASS IMPLEMENTATION CAdviser;
       IF NOT _Advising.State THEN
          RETURN;
       END;
+      _OnAdviseLock.Lock();
    
       // handle addressed advising
       FOR i := 0 TO HIGH( Item ) DO
@@ -74,6 +75,8 @@ CLASS IMPLEMENTATION CAdviser;
 
          END; // WHILE
       END;
+
+      _OnAdviseLock.Unlock();
    END OnAdvise;
 
 (*---------------------------------------------------------------------------*)
