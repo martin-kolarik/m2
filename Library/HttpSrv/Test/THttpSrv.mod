@@ -5,7 +5,7 @@ IMPORT
    msgqueuethread,
    Sync;
   
-CLASS CT( msgqueuethread.MsgQueueThread );
+CLASS CT( msgqueuethread.MessageQueueThread );
    INTERNAL VIRTUAL PROCEDURE OnStart();
 END CT;
 

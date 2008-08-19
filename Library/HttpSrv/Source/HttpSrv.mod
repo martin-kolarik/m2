@@ -18,111 +18,440 @@ CLASS CHeaders IMPLEMENTS IHttpHeaders;
 
    // IHttpHeaders
    PUBLIC VIRTUAL PROCEDURE Contains( Header : TKnownHeader ) : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE Get( Header : TKnownHeader; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE Add( Header : TKnownHeader; CONST Value : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE Get( Header : TKnownHeader; OUT Value : StringsO.IString ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Add( Header : TKnownHeader; CONST Value : StringsO.IString );
    
-   PUBLIC VIRTUAL PROCEDURE Enumerate( Known, Uknown : BOOLEAN; REF ES : PTR; OUT Name, Value : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Enumerate( Known, Uknown : BOOLEAN; REF ES : PTR; OUT Name, Value : StringsO.IString ) : BOOLEAN;
 
    PUBLIC VIRTUAL PROCEDURE ContainsUnknown( CONST Name : ARRAY OF WCHAR ) : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE GetUnknown( CONST Name : ARRAY OF WCHAR; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE AddUnknown( CONST Name : ARRAY OF WCHAR; CONST Value : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetUnknown( CONST Name : ARRAY OF WCHAR; OUT Value : StringsO.IString ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE AddUnknown( CONST Name : ARRAY OF WCHAR; CONST Value : StringsO.IString );
 
    // CHeaders
    PRIVATE VAR
-      Map : maps.CStringMap;
+      RequestFlag : BOOLEAN := FALSE; // by default headers are output
+      Request : httpapi.PHTTP_REQUEST := NIL;
+      KnownCache : maps.CCardinalMap; // cache for known headers
+      UnknownCache : maps.CStringMap; // cache for unknown headers
       
-   LOCAL PROCEDURE FromRequest( Request : httpapi.TPHttpRequest );
+   LOCAL PROCEDURE FromRequest( Request : httpapi.PHTTP_REQUEST );
    
-   PRIVATE PROCEDURE FromSysApi( sysapiHeader : httpapi.HTTP_HEADER_ID; OUT header : THttpHeader ) : BOOLEAN;
-   PRIVATE PROCEDURE ToSysApi( header : THttpHeader; OUT sysapiHeader : httpapi.HTTP_HEADER_ID ) : BOOLEAN;
+   PRIVATE PROCEDURE FromSysApi( sysapiHeader : httpapi.HTTP_HEADER_ID; OUT header : TKnownHeader ) : BOOLEAN;
+   PRIVATE PROCEDURE ToSysApi( header : TKnownHeader; OUT sysapiHeader : httpapi.HTTP_HEADER_ID ) : BOOLEAN;
 END CHeaders;
 
 //--------------------------------------------------------------------------------
 
-CLASS CHeaders IMPLEMENTS IHttpHeaders;
+CLASS IMPLEMENTATION CHeaders;
 
 //--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROCEDURE Contains( Header : TKnownHeader ) : BOOLEAN;
+   VAR
+      s : StringsO.CString;
    BEGIN
-      IF NOT ToSysApi( Header, OUT sysapiHeader ) THEN
-         RETURN FALSE;
-      END;
-      RETURN TRUE;
+      RETURN Get( Header, OUT s );
    END Contains;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROCEDURE Get( Header : TKnownHeader; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Get( Header : TKnownHeader; OUT Value : StringsO.IString ) : BOOLEAN;
+   VAR
+      sysapiHeader : httpapi.HTTP_HEADER_ID;
+      s : StringsO.TPString;
    BEGIN
+      IF KnownCache.Get( CARDINAL( Header ), OUT s ) THEN
+         // fall down
+      ELSIF NOT RequestFlag THEN
+         RETURN FALSE;
+      ELSIF NOT ToSysApi( Header, OUT sysapiHeader ) THEN
+         RETURN FALSE;
+      ELSIF Request^.Headers.KnownHeaders[CARDINAL( sysapiHeader )].RawValueLength = 0 THEN
+         RETURN FALSE;
+      ELSE
+         s := NEW( StringsO.CString );
+         s^.FromOAA(
+            0,
+            OA( CARDINAL( Request^.Headers.KnownHeaders[CARDINAL( sysapiHeader )].RawValueLength )-1, Request^.Headers.KnownHeaders[CARDINAL( sysapiHeader )].pRawValue ));
+         KnownCache.Add( CARDINAL( Header ), s );
+         // fall down
+      END;
+
+      Value := s^;
+      RETURN TRUE;
    END Get;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROCEDURE Add( Header : TKnownHeader; CONST Value : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE Add( Header : TKnownHeader; CONST Value : StringsO.IString );
+   VAR
+      s : StringsO.TPString;
    BEGIN
+      IF RequestFlag THEN
+         RETURN;
+      ELSIF KnownCache.Get( CARDINAL( Header ), OUT s ) THEN
+         s^ := Value;
+      ELSE
+         s := NEW( StringsO.CString );
+         KnownCache.Add( CARDINAL( Header ), s );
+      END;
    END Add;
    
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROCEDURE Enumerate( Known, Uknown : BOOLEAN; REF ES : PTR; OUT Name, Value : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Enumerate( Known, Uknown : BOOLEAN; REF ES : PTR; OUT Name, Value : StringsO.IString ) : BOOLEAN;
    BEGIN
+      ASSERT( FALSE );
+      RETURN FALSE;
    END Enumerate;
 
 //--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROCEDURE ContainsUnknown( CONST Name : ARRAY OF WCHAR ) : BOOLEAN;
+   VAR
+      s : StringsO.CString;
    BEGIN
-      RETURN FALSE;
+      RETURN GetUnknown( Name, OUT s );
    END ContainsUnknown;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROCEDURE GetUnknown( CONST Name : ARRAY OF WCHAR; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetUnknown( CONST Name : ARRAY OF WCHAR; OUT Value : StringsO.IString ) : BOOLEAN;
+   VAR
+      c : CARDINAL;
+      found : BOOLEAN := FALSE;
+      header : httpapi.PHTTP_UNKNOWN_HEADER;
+      i : INTEGER;
+      n : StringsO.CString;
+      na : ARRAY [0..255] OF CHAR;      
+      s : StringsO.TPString;
    BEGIN
-      RETURN FALSE;
+      n.FromOA( Name );
+      n.Lowerize();
+
+      IF UnknownCache.Get( n, OUT s ) THEN
+         Value := s^;
+         RETURN TRUE;
+
+      ELSIF NOT RequestFlag THEN
+         RETURN FALSE;
+      END;
+
+      n.ToOAA( 0, OUT na, OUT c );
+      header := Request^.Headers.pUnknownHeaders;
+      FOR i := 0 TO INTEGER( Request^.Headers.UnknownHeaderCount )-1 DO
+         IF EQUALS( na, OA( CARDINAL( header^.NameLength )-1, header^.pName )) THEN
+            found := TRUE;
+            EXIT;
+         END;
+         INC( header, SIZE( httpapi.HTTP_UNKNOWN_HEADER ));
+      END; // FOR
+      IF NOT found THEN
+         RETURN FALSE;
+
+      ELSE
+         s := NEW( StringsO.CString );
+         s^.FromOAA( 0, OA( CARDINAL( header^.RawValueLength )-1, header^.pRawValue ));
+         UnknownCache.Add( n, s );
+
+         Value := s^;
+         RETURN TRUE;
+      END;
    END GetUnknown;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROCEDURE AddUnknown( CONST Name : ARRAY OF WCHAR; CONST Value : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE AddUnknown( CONST Name : ARRAY OF WCHAR; CONST Value : StringsO.IString );
+   VAR
+      n : StringsO.CString;
+      s : StringsO.TPString;
    BEGIN
+      IF RequestFlag THEN
+         RETURN;
+      END;
+
+      n.FromOA( Name );
+      n.Lowerize();
+      IF UnknownCache.Get( n, OUT s ) THEN
+         s^ := Value;
+      ELSE
+         s := NEW( StringsO.CString );
+         UnknownCache.Add( n, s );
+      END;
    END AddUnknown;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROCEDURE FromRequest( Request : httpapi.TPHttpRequest );
-   VAR
-      len : CARDINAL;
-      pstr : PCHAR;
+   LOCAL PROCEDURE FromRequest( Request : httpapi.PHTTP_REQUEST );
    BEGIN
-      FOR hdr := httpapi.HttpHeaderCacheControl TO httpapi.HttpHeaderRequestMaximum-1 DO
-         len := Request^.Headers.KnownHeaders[hdr].RawValueLength;
-         IF len = 0 THEN
-            CONTINUE;
-         END;
-         pstr := Request^.Headers.KnownHeaders[hdr].pRawValue;
-         CASE hdr OF
-         END; // CASE
-      END;
+      RequestFlag := TRUE;
+      SELF.Request := Request;
    END FromRequest;
    
 //--------------------------------------------------------------------------------
 
-   PRIVATE PROCEDURE FromSysApi( sysapiHeader : httpapi.HTTP_HEADER_ID; OUT header : THttpHeader ) : BOOLEAN;
+   PRIVATE PROCEDURE FromSysApi( sysapiHeader : httpapi.HTTP_HEADER_ID; OUT header : TKnownHeader ) : BOOLEAN;
+   VAR
+      found : BOOLEAN := TRUE;
    BEGIN
-      RETURN FALSE;
+      CASE sysapiHeader OF
+      | httpapi.HttpHeaderCacheControl :
+         header := CacheControl;
+      | httpapi.HttpHeaderConnection :
+         header := Connection;
+      | httpapi.HttpHeaderDate :
+         header := Date;
+      | httpapi.HttpHeaderKeepAlive :
+         header := KeepAlive;
+      | httpapi.HttpHeaderPragma :
+         header := Pragma;
+      | httpapi.HttpHeaderTrailer :
+         header := Trailer;
+      | httpapi.HttpHeaderTransferEncoding :
+         header := TransferEncoding;
+      | httpapi.HttpHeaderUpgrade :
+         header := Upgrade;
+      | httpapi.HttpHeaderVia :
+         header := Via;
+      | httpapi.HttpHeaderWarning :
+         header := Warning;
+
+      | httpapi.HttpHeaderAllow :
+         header := Allow;
+      | httpapi.HttpHeaderContentLength :
+         header := ContentLength;
+      | httpapi.HttpHeaderContentType :
+         header := ContentType;
+      | httpapi.HttpHeaderContentEncoding :
+         header := ContentEncoding;
+      | httpapi.HttpHeaderContentLanguage :
+         header := ContentLanguage;
+      | httpapi.HttpHeaderContentLocation :
+         header := ContentLocation;
+      | httpapi.HttpHeaderContentMd5 :
+         header := ContentMd5;
+      | httpapi.HttpHeaderContentRange :
+         header := ContentRange;
+      | httpapi.HttpHeaderExpires :
+         header := Expires;
+      | httpapi.HttpHeaderLastModified :
+         header := LastModified;
+      ELSE
+         found := FALSE;
+      END;
+      IF found THEN
+         RETURN TRUE;
+      END;
+      
+      IF RequestFlag THEN
+         CASE sysapiHeader OF
+         // Request Headers
+         | httpapi.HttpHeaderAccept :
+            header := Accept;
+         | httpapi.HttpHeaderAcceptCharset :
+            header := AcceptCharset;
+         | httpapi.HttpHeaderAcceptEncoding :
+            header := AcceptEncoding;
+         | httpapi.HttpHeaderAcceptLanguage :
+            header := AcceptLanguage;
+         | httpapi.HttpHeaderAuthorization :
+            header := Authorization;
+         | httpapi.HttpHeaderCookie :
+            header := Cookie;
+         | httpapi.HttpHeaderExpect :
+            header := Expect;
+         | httpapi.HttpHeaderFrom :
+            header := From;
+         | httpapi.HttpHeaderHost :
+            header := Host;
+         | httpapi.HttpHeaderIfMatch :
+            header := IfMatch;
+
+         | httpapi.HttpHeaderIfModifiedSince :
+            header := IfModifiedSince;
+         | httpapi.HttpHeaderIfNoneMatch :
+            header := IfNoneMatch;
+         | httpapi.HttpHeaderIfRange :
+            header := IfRange;
+         | httpapi.HttpHeaderIfUnmodifiedSince :
+            header := IfUnmodifiedSince;
+         | httpapi.HttpHeaderMaxForwards :
+            header := MaxForwards;
+         | httpapi.HttpHeaderProxyAuthorization :
+            header := ProxyAuthorization;
+         | httpapi.HttpHeaderReferer :
+            header := Referer;
+         | httpapi.HttpHeaderRange :
+            header := Range;
+         | httpapi.HttpHeaderTe :
+            header := Te;
+         | httpapi.HttpHeaderTranslate :
+            header := Translate;
+
+         | httpapi.HttpHeaderUserAgent :
+            header := UserAgent;
+         ELSE
+            RETURN FALSE;
+         END;
+
+      ELSE
+         CASE sysapiHeader OF
+         // Response Headers
+         | httpapi.HttpHeaderAcceptRanges :
+            header := AcceptRanges;
+         | httpapi.HttpHeaderAge :
+            header := Age;
+         | httpapi.HttpHeaderEtag :
+            header := Etag;
+         | httpapi.HttpHeaderLocation :
+            header := Location;
+         | httpapi.HttpHeaderProxyAuthenticate :
+            header := ProxyAuthenticate;
+         | httpapi.HttpHeaderRetryAfter :
+            header := RetryAfter;
+         | httpapi.HttpHeaderServer :
+            header := Server;
+         | httpapi.HttpHeaderSetCookie :
+            header := SetCookie;
+         | httpapi.HttpHeaderVary :
+            header := Vary;
+         | httpapi.HttpHeaderWwwAuthenticate :
+            header := WwwAuthenticate;
+         ELSE
+            RETURN FALSE;
+         END;
+      
+      END;
+      RETURN TRUE;
    END FromSysApi;
 
 //--------------------------------------------------------------------------------
 
-   PRIVATE PROCEDURE ToSysApi( header : THttpHeader; OUT sysapiHeader : httpapi.HTTP_HEADER_ID ) : BOOLEAN;
+   PRIVATE PROCEDURE ToSysApi( header : TKnownHeader; OUT sysapiHeader : httpapi.HTTP_HEADER_ID ) : BOOLEAN;
    BEGIN
-      RETURN FALSE;
+      CASE header OF
+      | CacheControl :
+         sysapiHeader := httpapi.HttpHeaderCacheControl;
+      | Connection :
+         sysapiHeader := httpapi.HttpHeaderConnection;
+      | Date :
+         sysapiHeader := httpapi.HttpHeaderDate;
+      | KeepAlive :
+         sysapiHeader := httpapi.HttpHeaderKeepAlive;
+      | Pragma :
+         sysapiHeader := httpapi.HttpHeaderPragma;
+      | Trailer :
+         sysapiHeader := httpapi.HttpHeaderTrailer;
+      | TransferEncoding :
+         sysapiHeader := httpapi.HttpHeaderTransferEncoding;
+      | Upgrade :
+         sysapiHeader := httpapi.HttpHeaderUpgrade;
+      | Via :
+         sysapiHeader := httpapi.HttpHeaderVia;
+      | Warning :
+         sysapiHeader := httpapi.HttpHeaderWarning;
+
+      | Allow :
+         sysapiHeader := httpapi.HttpHeaderAllow;
+      | ContentLength :
+         sysapiHeader := httpapi.HttpHeaderContentLength;
+      | ContentType :
+         sysapiHeader := httpapi.HttpHeaderContentType;
+      | ContentEncoding :
+         sysapiHeader := httpapi.HttpHeaderContentEncoding;
+      | ContentLanguage :
+         sysapiHeader := httpapi.HttpHeaderContentLanguage;
+      | ContentLocation :
+         sysapiHeader := httpapi.HttpHeaderContentLocation;
+      | ContentMd5 :
+         sysapiHeader := httpapi.HttpHeaderContentMd5;
+      | ContentRange :
+         sysapiHeader := httpapi.HttpHeaderContentRange;
+      | Expires :
+         sysapiHeader := httpapi.HttpHeaderExpires;
+      | LastModified :
+         sysapiHeader := httpapi.HttpHeaderLastModified;
+      
+      // Request Headers
+      | Accept :
+         sysapiHeader := httpapi.HttpHeaderAccept;
+      | AcceptCharset :
+         sysapiHeader := httpapi.HttpHeaderAcceptCharset;
+      | AcceptEncoding :
+         sysapiHeader := httpapi.HttpHeaderAcceptEncoding;
+      | AcceptLanguage :
+         sysapiHeader := httpapi.HttpHeaderAcceptLanguage;
+      | Authorization :
+         sysapiHeader := httpapi.HttpHeaderAuthorization;
+      | Cookie :
+         sysapiHeader := httpapi.HttpHeaderCookie;
+      | Expect :
+         sysapiHeader := httpapi.HttpHeaderExpect;
+      | From :
+         sysapiHeader := httpapi.HttpHeaderFrom;
+      | Host :
+         sysapiHeader := httpapi.HttpHeaderHost;
+      | IfMatch :
+         sysapiHeader := httpapi.HttpHeaderIfMatch;
+
+      | IfModifiedSince :
+         sysapiHeader := httpapi.HttpHeaderIfModifiedSince;
+      | IfNoneMatch :
+         sysapiHeader := httpapi.HttpHeaderIfNoneMatch;
+      | IfRange :
+         sysapiHeader := httpapi.HttpHeaderIfRange;
+      | IfUnmodifiedSince :
+         sysapiHeader := httpapi.HttpHeaderIfUnmodifiedSince;
+      | MaxForwards :
+         sysapiHeader := httpapi.HttpHeaderMaxForwards;
+      | ProxyAuthorization :
+         sysapiHeader := httpapi.HttpHeaderProxyAuthorization;
+      | Referer :
+         sysapiHeader := httpapi.HttpHeaderReferer;
+      | Range :
+         sysapiHeader := httpapi.HttpHeaderRange;
+      | Te :
+         sysapiHeader := httpapi.HttpHeaderTe;
+      | Translate :
+         sysapiHeader := httpapi.HttpHeaderTranslate;
+
+      | UserAgent :
+         sysapiHeader := httpapi.HttpHeaderUserAgent;
+
+      // Response Headers
+      | AcceptRanges :
+         sysapiHeader := httpapi.HttpHeaderAcceptRanges;
+      | Age :
+         sysapiHeader := httpapi.HttpHeaderAge;
+      | Etag :
+         sysapiHeader := httpapi.HttpHeaderEtag;
+      | Location :
+         sysapiHeader := httpapi.HttpHeaderLocation;
+      | ProxyAuthenticate :
+         sysapiHeader := httpapi.HttpHeaderProxyAuthenticate;
+      | RetryAfter :
+         sysapiHeader := httpapi.HttpHeaderRetryAfter;
+      | Server :
+         sysapiHeader := httpapi.HttpHeaderServer;
+      | SetCookie :
+         sysapiHeader := httpapi.HttpHeaderSetCookie;
+      | Vary :
+         sysapiHeader := httpapi.HttpHeaderVary;
+      | WwwAuthenticate :
+         sysapiHeader := httpapi.HttpHeaderWwwAuthenticate;
+      
+      ELSE
+         RETURN FALSE;
+      END;
+      RETURN TRUE;
    END ToSysApi;
 
 //--------------------------------------------------------------------------------
 
+BEGIN
+FINALLY
+   KnownCache.Dispose(); // TODO loop over inner strings
+   UnknownCache.Dispose(); // TODO loop over inner strings
 END CHeaders;
 
 //================================================================================
@@ -178,7 +507,7 @@ END CContainer;
 CLASS CHttpSrv( threadpool.APoolDelegate ) IMPLEMENTS IHttpServer;
 
    // APoolDelegate
-   LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+   LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
 
    // IHttpSrv
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -223,7 +552,7 @@ CLASS IMPLEMENTATION CHttpSrv;
 
 //--------------------------------------------------------------------------------
 
-   LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : Sync.WAITABLE; UserId : PTR );
+   LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    VAR
       EOF : BOOLEAN := FALSE;
       request : httpapi.PHTTP_REQUEST;
@@ -404,7 +733,7 @@ CLASS IMPLEMENTATION CHttpSrv;
          END;
       END;
       
-      IF NOT threadpool.pool()^.WaitHandle( ADR( SELF ), 0, Sync.FORSAFETY, FALSE, _HRequestSignal, OUT _HPoolHandle ) THEN
+      IF NOT threadpool.pool()^.WaitHandle( ADR( SELF ), 0, Sync.FORSAFETY, FALSE, FALSE, _HRequestSignal, OUT _HPoolHandle ) THEN
          RETURN Sync.arCannotStart;
       END;
       // force switching to another thread, waiting will be starte from the another thread
@@ -521,26 +850,26 @@ END CHttpSrv;
 //================================================================================
 
 VAR
-   Server : POINTER TO CHttpSrv := NIL;
+   HttpServer : POINTER TO CHttpSrv := NIL;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE srv() : TPHttpServer;
 BEGIN
-   IF Server = NIL THEN
-      NEW( Server );
+   IF HttpServer = NIL THEN
+      NEW( HttpServer );
    END;
-   RETURN Server;
+   RETURN HttpServer;
 END srv;
 
 //--------------------------------------------------------------------------------
 
 PROCEDURE Cleanup();
 BEGIN
-   IF Server <> NIL THEN
-      Server^.Dispose();
-      Server^.Release();
-      Server := NIL;
+   IF HttpServer <> NIL THEN
+      HttpServer^.Dispose();
+      HttpServer^.Release();
+      HttpServer := NIL;
    END;
 END Cleanup;
 

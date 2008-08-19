@@ -30,6 +30,8 @@ TYPE
 
 TYPE
    TKnownHeader = (
+      Unknown,
+   
       // Common Headers
       CacheControl,
       Connection,
@@ -95,14 +97,14 @@ TYPE
 
 INTERFACE IHttpHeaders;
    PROCEDURE Contains( Header : TKnownHeader ) : BOOLEAN;
-   PROCEDURE Get( Header : TKnownHeader; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
-   PROCEDURE Add( Header : TKnownHeader; CONST Value : ARRAY OF WCHAR );
+   PROCEDURE Get( Header : TKnownHeader; OUT Value : StringsO.IString ) : BOOLEAN;
+   PROCEDURE Add( Header : TKnownHeader; CONST Value : StringsO.IString );
    
-   PROCEDURE Enumerate( Known, Uknown : BOOLEAN; REF ES : PTR; OUT Name, Value : ARRAY OF WCHAR ) : BOOLEAN;
+   PROCEDURE Enumerate( Known, Uknown : BOOLEAN; REF ES : PTR; OUT Name, Value : StringsO.IString ) : BOOLEAN;
 
    PROCEDURE ContainsUnknown( CONST Name : ARRAY OF WCHAR ) : BOOLEAN;
-   PROCEDURE GetUnknown( CONST Name : ARRAY OF WCHAR; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
-   PROCEDURE AddUnknown( CONST Name : ARRAY OF WCHAR; CONST Value : ARRAY OF WCHAR ) : BOOLEAN;
+   PROCEDURE GetUnknown( CONST Name : ARRAY OF WCHAR; OUT Value : StringsO.IString ) : BOOLEAN;
+   PROCEDURE AddUnknown( CONST Name : ARRAY OF WCHAR; CONST Value : StringsO.IString );
 END IHttpHeaders;
 
 //--------------------------------------------------------------------------------
