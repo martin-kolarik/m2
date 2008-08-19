@@ -6,28 +6,36 @@ IMPORT
 
 (*================================================================================*)
 
-PROCEDURE ToMB( CONST String : StringsO.IString; CodePage : CARDINAL; OUT Buffer : StorageO.AMemoryBuffer );
+PROCEDURE ToMB( CONST String : StringsO.IString; CodePage : CARDINAL; BufferAppendFlag : BOOLEAN; REF Buffer : StorageO.AMemoryBuffer );
 VAR
    a : PBYTE;
+   bl : CARDINAL;
    l, min, max, s : CARDINAL;
    f : BOOLEAN;
 BEGIN
+   IF BufferAppendFlag THEN
+      bl := Buffer.Length;
+   ELSE
+      Buffer.Clear();
+      bl := 0;
+   END;
+
    l := String.Length;
    IF l = 0 THEN
-      Buffer.Clear();
+      // do nothing
    ELSIF ( CodePage = Languages.cp_UTF16 ) OR ( CodePage = Languages.cp_UTF16_BIG_ENDIAN ) THEN
-      Buffer.Size := l << 1;
-      Buffer.Length := l << 1;
-      Storage.Move( String.rawData, Buffer.Data, l );
+      Buffer.Size := bl + l << 1;
+      Buffer.Length := bl + l << 1;
+      Storage.Move( String.rawData, Buffer.Data@[bl], l );
    ELSE
       Languages.BytesPerCharacter( CodePage, OUT f, OUT min, OUT max );
       s := l * max; // the worst case
-      Buffer.Size := s;
-      a := Buffer.Data;
+      Buffer.Size := bl + s;
+      a := Buffer.Data@[bl];
       IF Languages.ToAStream( OA( l-1, String.rawData ), CodePage, OUT OA( s-1, a ), OUT s, OUT l ) THEN
-         Buffer.Length := l;
-      ELSE
-         Buffer.Clear();
+         Buffer.Length := bl + l;
+      ELSE // reset buffer back to previous length
+         Buffer.Length := bl;
       END;
    END;
 END ToMB;

@@ -166,7 +166,7 @@ CLASS IMPLEMENTATION CItem;
          SHA256.DigestSaltOA( OA( 2*len-1, Hash.rawData ), salt, OUT digest );
       END;
       
-      LanguagesO.ToMB( _TransportData, Languages.cp_UTF8, OUT M );
+      LanguagesO.ToMB( _TransportData, Languages.cp_UTF8, FALSE, REF M );
       mlen := M.Length;
       len := mlen AND NOT 31 + 32; // extend source to multiple of 32
       M.Size := len + 32; // reserve extra space for hash
