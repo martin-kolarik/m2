@@ -156,8 +156,6 @@ CLASS IMPLEMENTATION CTest;
 
       // global init      
       Reader.Init( ADR( Buffer ), SIZE( CARDINAL ), FALSE );
-      Reader.Persistent := TRUE;
-      Writer.Persistent := TRUE;
       netsrv.SetCallbackMode( IOO.cbmPooled );
       
       ai.V6 := TRUE;

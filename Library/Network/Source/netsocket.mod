@@ -1030,7 +1030,7 @@ CLASS IMPLEMENTATION DSocket;
     ELSIF Socket = winsock.INVALID_SOCKET THEN
       RETURN Sync.arCannotStart;
     ELSIF _Lock.In( REF _Pending, poFinalReadoutPossible ) THEN // Socket has been left unclosed after previous FD_CLOSE
-      Close( TRUE );
+      Close( NOT Abortive );
       RETURN Sync.arCannotStart;
 
     ELSE
@@ -1075,11 +1075,10 @@ CLASS IMPLEMENTATION DSocket;
 
   PUBLIC PROCEDURE ReceiveOA( OUT Data : ARRAY OF BYTE; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
   VAR
-    Chunk : IOO.CMemoryProxy;
+    Chunk : IOO.CMemoryProxy; // by default Persistent
     R : Sync.TAsyncResult;
   BEGIN
     Chunk.Init( ADR( Data ), HIGH( Data )+1, FALSE );
-    Chunk.Persistent := TRUE; // stack variable cannot be freed
     R := Receive( ADR( Chunk ), TimeoutMS, TRUE );
     WHILE Chunk.References > 1 DO
       Sync.Sleep( 0 );
@@ -1105,11 +1104,10 @@ CLASS IMPLEMENTATION DSocket;
 
   PUBLIC PROCEDURE SendOA( CONST Data : ARRAY OF BYTE; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
   VAR
-    Chunk : IOO.CMemoryProxy;
+    Chunk : IOO.CMemoryProxy; // by default persistent
     R : Sync.TAsyncResult;
   BEGIN
     Chunk.Init( ADR( Data ), HIGH( Data )+1, TRUE );
-    Chunk.Persistent := TRUE; // stack variable cannot be freed
     R := Send( ADR( Chunk ), TimeoutMS, TRUE );
     WHILE Chunk.References > 1 DO
       Sync.Sleep( 0 );

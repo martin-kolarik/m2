@@ -357,8 +357,6 @@ CLASS IMPLEMENTATION CTest;
       netinit.Startup();
 
       // global init      
-      Reader.Persistent := TRUE;
-      Writer.Persistent := TRUE;
       netsrv.SetCallbackMode( IOO.cbmPooled );
       
       ai.Port := 4444;

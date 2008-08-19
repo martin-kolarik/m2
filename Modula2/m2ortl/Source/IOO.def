@@ -108,7 +108,7 @@ END ADataProxy;
 TYPE
   TPMemoryProxy = POINTER TO CMemoryProxy;
 
-CLASS CMemoryProxy( ADataProxy ); // default: Persistent = FALSE
+CLASS CMemoryProxy( ADataProxy ); // default: Persistent = TRUE
   PRIVATE VAR
     _Private : BOOLEAN;
   INTERNAL VAR

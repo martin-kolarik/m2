@@ -181,7 +181,6 @@ BEGIN
   _Status := TDataProxyStatus{};
   _Signal := NIL;
   _Lock.Init( Sync.ltSpin, L"", FALSE );
-  Persistent := TRUE;
   Result := Sync.arCannotStart;
 FINALLY
   Sync.DeleteSignal( REF _Signal );
@@ -243,7 +242,6 @@ CLASS IMPLEMENTATION CMemoryProxy;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-  Persistent := FALSE;
   _Private := FALSE;
   _Data := NIL;
   _Length := 0;
@@ -293,8 +291,6 @@ CLASS IMPLEMENTATION CDatagramProxy;
 
 (*--------------------------------------------------------------------------------*)
 
-BEGIN
-  Persistent := TRUE;
 END CDatagramProxy;
 
 (*================================================================================*)
@@ -344,7 +340,6 @@ CLASS IMPLEMENTATION CRingBufferProxy;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-  Persistent := TRUE;
   RingBuffer := NIL;
 END CRingBufferProxy;
 
@@ -412,11 +407,10 @@ CLASS IMPLEMENTATION AStream;
 
    PUBLIC PROCEDURE ReadOA( OUT Data : ARRAY OF BYTE; OUT Filled : CARDINAL; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    VAR
-      Chunk : CMemoryProxy;
+      Chunk : CMemoryProxy; // by default persistent
       R : Sync.TAsyncResult;
    BEGIN
       Chunk.Init( ADR( Data ), HIGH( Data )+1, FALSE );
-      Chunk.Persistent := TRUE; // stack variable cannot be freed
       R := IO( dirRead, ADR( Chunk ), TimeoutMS, TRUE );
       WHILE Chunk.References > 1 DO
          Sync.Sleep( 0 );
@@ -458,11 +452,10 @@ CLASS IMPLEMENTATION AStream;
 
    PUBLIC PROCEDURE WriteOA( CONST Data : ARRAY OF BYTE; OUT Consumed : CARDINAL; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    VAR
-      Chunk : CMemoryProxy;
+      Chunk : CMemoryProxy; // by default persistent
       R : Sync.TAsyncResult;
    BEGIN
       Chunk.Init( ADR( Data ), HIGH( Data )+1, FALSE );
-      Chunk.Persistent := TRUE; // stack variable cannot be freed
       R := IO( dirWrite, ADR( Chunk ), TimeoutMS, TRUE );
       WHILE Chunk.References > 1 DO
          Sync.Sleep( 0 );

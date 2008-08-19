@@ -118,7 +118,7 @@ CLASS IMPLEMENTATION CNetworkStream;
     AbortWriting();
     IF Socket <> NIL THEN
       IF OwnHandle THEN
-        Socket^.Disconnect( FALSE, netsocket.FORSAFETY );
+        Socket^.Disconnect( NOT Socket^.Connected, netsocket.FORSAFETY );
       END;
       IF NOT Persist THEN
         Socket^.Release();
