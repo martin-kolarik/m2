@@ -489,22 +489,39 @@ END IGetPtr;
 // signalling
 
 PROCEDURE CreateSignal( InitiallySignalled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : SIGNAL;
+VAR
+   Signal : SIGNAL;
 BEGIN
   IF Name[0] = 0W THEN
-    RETURN windows.CreateEventW( NIL, windows.True, windows.BOOL( InitiallySignalled ), NIL );
+    Signal := windows.CreateEventW( NIL, windows.True, windows.BOOL( InitiallySignalled ), NIL );
   ELSE
-    RETURN windows.CreateEventW( NIL, windows.True, windows.BOOL( InitiallySignalled ), ADR( Name ));
+    Signal := windows.CreateEventW( NIL, windows.True, windows.BOOL( InitiallySignalled ), ADR( Name ));
   END;
+  LeakALLOCATE( Signal, 1 );
+  RETURN Signal;
 END CreateSignal;
 
 PROCEDURE CreateAutoresetSignal( InitiallySignalled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : SIGNAL;
+VAR
+   Signal : SIGNAL;
 BEGIN
   IF Name[0] = 0W THEN
-    RETURN windows.CreateEventW( NIL, windows.False, windows.BOOL( InitiallySignalled ), NIL );
+    Signal := windows.CreateEventW( NIL, windows.False, windows.BOOL( InitiallySignalled ), NIL );
   ELSE
-    RETURN windows.CreateEventW( NIL, windows.False, windows.BOOL( InitiallySignalled ), ADR( Name ));
+    Signal := windows.CreateEventW( NIL, windows.False, windows.BOOL( InitiallySignalled ), ADR( Name ));
   END;
+  LeakALLOCATE( Signal, 1 );
+  RETURN Signal;
 END CreateAutoresetSignal;
+
+PROCEDURE DeleteSignal( REF S : SIGNAL );
+BEGIN
+  IF S <> NIL THEN
+    windows.CloseHandle( S );
+    LeakDEALLOCATE( S );
+    S := NIL;
+  END;
+END DeleteSignal;
 
 PROCEDURE Signal( S : SIGNAL );
 BEGIN
@@ -529,14 +546,6 @@ BEGIN
   END;
   windows.ResetEvent( S );
 END Reset;
-
-PROCEDURE DeleteSignal( REF S : SIGNAL );
-BEGIN
-  IF S <> NIL THEN
-    windows.CloseHandle( S );
-    S := NIL;
-  END;
-END DeleteSignal;
 
 (*================================================================================*)
 // waiting

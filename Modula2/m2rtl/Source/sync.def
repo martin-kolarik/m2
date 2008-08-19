@@ -95,12 +95,14 @@ CLASS LOCK;
 END LOCK;
 
 // signalling
+#save, option( leak_info => on )
 PROCEDURE CreateSignal( InitiallySignaled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : SIGNAL;
 PROCEDURE CreateAutoresetSignal( InitiallySignaled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : SIGNAL;
+PROCEDURE DeleteSignal( REF S : SIGNAL );
+#restore
 PROCEDURE Signal( S : SIGNAL );
 PROCEDURE SignalAndReset( S : SIGNAL );
 PROCEDURE Reset( S : SIGNAL );
-PROCEDURE DeleteSignal( REF S : SIGNAL );
 
 // waiting
 PROCEDURE Wait( W : WAITABLE; Timeout : CARDINAL ) : TAsyncResult;

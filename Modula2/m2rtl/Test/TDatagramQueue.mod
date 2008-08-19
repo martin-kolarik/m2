@@ -101,15 +101,18 @@ CLASS IMPLEMENTATION CTest;
 
    INTERNAL PROCEDURE Round( Mode : TMode; ThreadCount : CARDINAL; RingSize : CARDINAL ) : BOOLEAN;
    VAR
-      CE : Sync.SIGNAL := Sync.CreateSignal( FALSE, L"" );
+      CE : Sync.SIGNAL;
       CT : windows.HANDLE := NIL;
       i : CARDINAL;
-      PE : Sync.SIGNAL := Sync.CreateSignal( TRUE, L"" );
+      PE : Sync.SIGNAL;
       PT : windows.HANDLE := NIL;
       Phase : ARRAY [0..47] OF WCHAR;
       s : ARRAY [0..31] OF WCHAR;
       Success : BOOLEAN;
    BEGIN
+      CE := Sync.CreateSignal( FALSE, L"" );
+      PE := Sync.CreateSignal( TRUE, L"" );
+   
       Exit := 0; // reset
       SELF.ThreadCount := ThreadCount;
       
