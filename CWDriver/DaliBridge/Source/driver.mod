@@ -31,7 +31,7 @@ CONST
 //================================================================================
 
 TYPE
-   TExceptionItemType = ( eitRead, eitWrite, eitPollStatus, eitParam, eitReset );
+   TExceptionItemType = ( eitRead, eitWrite, eitPollStatus, eitParam, eitReset, eitProgram );
    TPExceptionItem = POINTER TO ExceptionItem;
 
 CLASS ExceptionItem;
@@ -247,6 +247,7 @@ CLASS IMPLEMENTATION CDriver;
       IF ( PollTimer = NIL ) AND ( PollPeriod <> Sync.FOREVER ) THEN
          FOR i := 0 TO HIGH( PollInitArray ) DO
             PollCountArray[i] := PollInitArray[i];
+            PollWaitArray[i] := FALSE;
          END;
          threadpool.pool()^.WaitTimeout( PollSink, 0, PollPeriod, FALSE, TRUE, OUT PollTimer );
       ELSIF ( PollTimer <> NIL ) AND ( PollPeriod = Sync.FOREVER ) THEN
@@ -346,6 +347,11 @@ CLASS IMPLEMENTATION CDriver;
             EXCL( Status, schiValid );
          ELSE
             INCL( Status, schiValid );
+         END;
+         IF Dali.ProgrammingInProgress THEN
+            INCL( Status, schiProgramming );
+         ELSE
+            EXCL( Status, schiProgramming );
          END;
 
          InValue.Integer := CARDINAL( Status );
@@ -592,6 +598,8 @@ CLASS IMPLEMENTATION CDriver;
                   Dali.Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"param" );
                | eitReset :
                   Dali.Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"reset" );
+               | eitProgram :
+                  Dali.Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"program" );
                END; // CASE ExceptionType
 
                CASE ExceptionType OF
@@ -673,6 +681,15 @@ CLASS IMPLEMENTATION CDriver;
                   CS.AppendOA( S1 ); CS.AppendOA( L"." ); CS.AppendOA( S2 ); CS.AppendOA( L" " );
                   IF ExceptionItem^.Result = Sync.arTimeout THEN
                      CS.AppendOA( L"timeout" );
+                  ELSE
+                     CS.AppendOA( L"error" );
+                  END;
+
+               | eitProgram :
+                  CS.FromOA( "program " );
+                  CS.AppendOA( S1 ); CS.AppendOA( L" " );
+                  IF ExceptionItem^.Result = Sync.arCompleted THEN
+                     CS.AppendOA( L"success" );
                   ELSE
                      CS.AppendOA( L"error" );
                   END;
@@ -806,6 +823,7 @@ CLASS IMPLEMENTATION CDriver;
             GOTO Error;
          END;
 
+         Fill( ADR( StatusArray ), SIZE( StatusArray ), 0FFH ); // force report new statuses
          Dali.StartProgramming( Linie, EQUALS( S3, L"use_verify" ));
 
       ELSIF EQUALS( S1, L'readdress' )  THEN
@@ -832,8 +850,12 @@ CLASS IMPLEMENTATION CDriver;
             i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S3 ); Strings.TrimW( REF S3 );
             INC( index );
          END; // LOOP
-         
-         Dali.Readdress( 0, ReaddressArray, TRUE );
+
+         Fill( ADR( StatusArray ), SIZE( StatusArray ), 0FFH ); // force report new statuses
+         IF NOT Dali.Readdress( 0, ReaddressArray, FALSE ) THEN
+            CS.FromOA( L'error: readdressing cannot start (maybe no addressing was started yet?)' );
+            GOTO Error;
+         END;
 
       ELSE
          CS.FromOA( L'error: unknown driver procedure' );
@@ -855,10 +877,17 @@ CLASS IMPLEMENTATION CDriver;
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    VAR
       address : DaliBridge.DaliAddress;
+      AsyncResult : Sync.TAsyncResult;
       i : CARDINAL;
    BEGIN
-      FOR i := 0 TO HIGH( PollCountArray ) DO
+      IF Dali.ProgrammingInProgress THEN
+         RETURN;
+      END;
+         
+      FOR i := PollActive TO HIGH( PollCountArray ) DO
          IF PollCountArray[i] = -1 THEN // not polled
+            CONTINUE;
+         ELSIF PollWaitArray[i] THEN // no response yet
             CONTINUE;
          ELSIF PollCountArray[i] = 1 THEN // elapsed
             PollCountArray[i] := PollInitArray[i];
@@ -873,9 +902,44 @@ CLASS IMPLEMENTATION CDriver;
 
          Dali.Logger.LogSC( dldDebug, logPrefix, L"Poll status request for: ", i );
 
-         Dali.Command( 0, address, DaliBridge.cmdStatus, 0, PTR( eitPollStatus ));
+         AsyncResult := Dali.Command( 0, address, DaliBridge.cmdStatus, 0, PTR( eitPollStatus ));
+         IF ( AsyncResult = Sync.arPending ) OR ( AsyncResult = Sync.arAlreadyPending ) THEN // OK
+            PollWaitArray[i] := TRUE;
+
+            PollActive := i + 1;
+            IF PollActive > 63 THEN
+               PollActive := 0;
+            END;
+         END;
+
+         EXIT;
       END; // FOR
    END OnTimeout;
+
+//================================================================================
+
+   LOCAL VIRTUAL PROCEDURE OnProgrammingStopped( Result : Sync.TAsyncResult; Linie : CARDINAL );
+   VAR
+      exceptionItem : TPExceptionItem;
+   BEGIN
+      NEW( exceptionItem );
+      exceptionItem^.Result := Result;
+      exceptionItem^.Linie := Linie;
+
+      Lock.Lock();
+      Queue.Enqueue( exceptionItem, PTR( eitProgram ));
+
+      IF schiEventsPending NOT IN RStatus THEN
+         Dali.Logger.LogS( dldDebug, logPrefix, L"RS+ rsEventPending" );
+
+         INCL( RStatus, schiEventsPending );
+      END;
+      Lock.Unlock();
+      
+      IF CallbackProc <> NIL THEN
+         CallbackProc( CallbackId, drv_def.dcfException, NIL );
+      END;
+   END OnProgrammingStopped;
 
 //================================================================================
 
@@ -892,11 +956,11 @@ CLASS IMPLEMENTATION CDriver;
             RETURN;
          END;
       | eitPollStatus :
+         address := daliAddress.Address;
+         PollWaitArray[address] := FALSE;
          IF Result <> Sync.arCompleted THEN // unsuccessfull status get is not reported
             RETURN;
-         END;
-         address := daliAddress.Address;
-         IF StatusArray[ address ] = Data THEN // unchanged status is not reported
+         ELSIF StatusArray[ address ] = Data THEN // unchanged status is not reported
             RETURN;
          ELSE
             StatusArray[ address ] := Data;
@@ -940,6 +1004,8 @@ BEGIN
    PollPeriod := Sync.FOREVER;
    PollCountArray[0] := -1;
    PollInitArray[0] := -1;
+   PollWaitArray[0] := FALSE;
+   PollActive := 0;
 
    cllvData := ADR( cllv.data );
    cllvLength := cllv.length;

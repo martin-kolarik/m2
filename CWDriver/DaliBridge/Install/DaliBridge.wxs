@@ -37,6 +37,8 @@
                             <Component Id="Examples" Guid="504E174F-A539-4C95-B1BA-51674C84ECD4">
                                 <File Id="dalibridge.cw" Name="dalibrg.cw" LongName="dalibridge.cw" Source="Examples\dalibridge.cw" DiskId="1" />
                                 <File Id="dalibridge.par" Name="dalibrg.par" LongName="dalibridge.par" Source="Examples\dalibridge.par" DiskId="1" />
+                                <File Id="daliprogram.cw" Name="daliprg.cw" LongName="daliprogram.cw" Source="Examples\daliprogram.cw" DiskId="1" />
+                                <File Id="daliprogram.par" Name="daliprg.par" LongName="daliprogram.par" Source="Examples\daliprogram.par" DiskId="1" />
                             </Component>
                         </Directory>
                         <?if $(var.LeakChecking)=on ?>

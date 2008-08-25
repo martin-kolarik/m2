@@ -293,6 +293,9 @@ CLASS IMPLEMENTATION CUDPCommunicator;
 
          IF processResult <> Sync.arNoData THEN
             EventSink^.OnDaliData( processResult, OA( l-1, ADR( dali )));
+
+         ELSIF ( gdeResponse = gderReset ) OR ( gdeResponse = gderStatus ) THEN
+            EventSink^.OnSendable();
          END;
 
          Buffer.RemoveStart( gderl[ gdeResponse ] );
@@ -591,7 +594,11 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
 
    PUBLIC PROPERTY CurrentShortAddress GET : CARDINAL;
    BEGIN
-      RETURN CurrentShort;
+      IF ReaddressMode THEN
+         RETURN Readdress[CurrentShort];
+      ELSE
+         RETURN CurrentShort;
+      END;
    END CurrentShortAddress;
       
 (*-------------------------------------------------------------------------------*)
@@ -618,6 +625,7 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
       SELF.VerifyFlag := VerifyFlag;
       SELF.Readdress := Readdress;
       State := dapInit;
+      CurrentShort := 0;
       RETURN TRUE;
    END InitReaddressing;
 
@@ -633,15 +641,18 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
    PUBLIC PROCEDURE HandleResponse( Positive : BOOLEAN; Data : INTEGER );
    VAR
       DA : DaliAddress;
+      Next : CARDINAL;
    BEGIN
       CASE State OF
       | dapInit :
          IF Positive THEN
             IF ReaddressMode THEN
-               CurrentSelected := Current[Readdress[CurrentShort]];
-               IF CurrentSelected = -1 THEN
+               Next := CurrentShortAddress;
+               IF Next = -1 THEN
+                  Failed := FALSE;
                   State := dapFinish;
                ELSE
+                  CurrentSelected := Current[CurrentShort];
                   State := dapSelectOne;
                END;
             ELSE
@@ -662,6 +673,7 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
             CurrentSelected := Data;
             State := dapProgramOne;
          ELSE
+            Failed := FALSE;
             State := dapFinish;
          END;
       | dapSelectOne :
@@ -673,11 +685,16 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
             State := dapCheckOne;
          END;
       | dapCheckOne :
-         State := dapDisableOne;
+         IF ReaddressMode THEN
+            Failed := TRUE;
+            State := dapFinish;
+         ELSE
+            State := dapDisableOne;
+         END;
 
          IF VerifyFlag THEN
             IF NOT Positive THEN
-               Logger^.LogSC( dldMessage, logProgramPrefix, L"Check address failed for: ", CurrentShort );
+               Logger^.LogSC( dldMessage, logProgramPrefix, L"Check address failed for: ", CurrentShortAddress );
                RETURN;
             END;
          ELSE
@@ -686,23 +703,25 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
             END;
 
             DA.Type := DaliBridge.adrSingle;
-            DA.Address := CurrentShort;
+            DA.Address := CurrentShortAddress;
             IF INTEGER( DA.TransportAddress OR 01H ) <> Data THEN
-               Logger^.LogSC( dldMessage, logProgramPrefix, L"Check address failed for: ", CurrentShort );
+               Logger^.LogSC( dldMessage, logProgramPrefix, L"Check address failed for: ", DA.Address );
                Logger^.LogSC( dldMessage, logProgramPrefix, L"                received: ", Data );
                RETURN;
             END;
          END;
          
          IF ReaddressMode THEN
-            New[CurrentShort] := CurrentSelected;
+            New[CurrentShortAddress] := CurrentSelected;
          END;
          INC( CurrentShort );
          IF ReaddressMode THEN
-            CurrentSelected := Current[Readdress[CurrentShort]];
-            IF CurrentSelected = -1 THEN
+            Next := CurrentShortAddress;
+            IF Next = -1 THEN
+               Failed := FALSE;
                State := dapFinish;
             ELSE
+               CurrentSelected := Current[CurrentShort];
                State := dapSelectOne;
             END;
          ELSE
@@ -721,6 +740,7 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
             IF ReaddressMode THEN
                Current := New;
             END;
+            HaveAddresses := TRUE;
          END;
          State := dapEnd;
       END; // CASE
@@ -737,6 +757,7 @@ BEGIN
    CurrentShort := 0;
    ReaddressMode := FALSE;
    VerifyFlag := FALSE;
+   Failed := FALSE;
    HaveAddresses := FALSE;
    Logger := NIL;
 END CDaliAddressProgrammer;
@@ -770,6 +791,13 @@ END DaliRequest;
 (*===============================================================================*)
 
 CLASS IMPLEMENTATION CDali;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY ProgrammingInProgress GET : BOOLEAN;
+   BEGIN
+      RETURN Programming;
+   END ProgrammingInProgress;
 
 (*-------------------------------------------------------------------------------*)
 
@@ -924,7 +952,7 @@ CLASS IMPLEMENTATION CDali;
    // ICommunicationSink -- in thread
    LOCAL VIRTUAL PROCEDURE OnSendable();
    BEGIN
-      Logger.LogS( dldDebug, logPrefix, L"CTR: Communicate after DELAY" );
+      Logger.LogS( dldDebug, logPrefix, L"CTR: Communicate after DELAY/RESET" );
       Communicate();
    END OnSendable;
 
@@ -969,6 +997,9 @@ CLASS IMPLEMENTATION CDali;
                   Logger.LogSC( dldMessage, logProgramPrefix, L"Programming stopped, result: ", CARDINAL( Result ));
 
                   Programming := FALSE; // kill
+                  IF EventSink <> NIL THEN
+                     EventSink^.OnProgrammingStopped( Sync.arAborted, ProgrammedLinie );
+                  END;
 
                ELSIF Request^.ClientId = EXPECTED_RESPONSE THEN
                   CurrentNext := Programmer.WhatNext();
@@ -1173,7 +1204,15 @@ CLASS IMPLEMENTATION CDali;
 
          | dapEnd :
             Programming := FALSE;
+            IF EventSink <> NIL THEN
+               IF Programmer.Failed THEN
+                  EventSink^.OnProgrammingStopped( Sync.arAborted, ProgrammedLinie );
+               ELSE
+                  EventSink^.OnProgrammingStopped( Sync.arCompleted, ProgrammedLinie );
+               END;
+            END;
             EXIT;
+
          END; // CASE
       END; // LOOP
    END ProgrammingStep;

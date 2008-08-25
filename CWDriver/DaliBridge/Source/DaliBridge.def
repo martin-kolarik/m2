@@ -34,7 +34,7 @@ TYPE
    );
 
    TDaliCommand = (
-      cmdDirect = 1024,
+      cmdDirect = 1024, // private
 
       cmdOff = 0,
       cmdDimUp, cmdDimDown, cmdStepUp, cmdStepDown,
@@ -163,6 +163,7 @@ CLASS CDaliAddressProgrammer;
    LOCAL VAR
       Logger : log.TPLogger;
       VerifyFlag : BOOLEAN; // programmed addresses are verifified by cmdCheckAddress, not by cmdGetAddress
+      Failed : BOOLEAN;
    PUBLIC READONLY PROPERTY
       CurrentLongAddress : TProgramAddress;
       CurrentShortAddress : CARDINAL;
@@ -175,6 +176,7 @@ END CDaliAddressProgrammer;
 (*-------------------------------------------------------------------------------*)
 
 INTERFACE IDaliEventSink; // in-thread
+   LOCAL PROCEDURE OnProgrammingStopped( Result : Sync.TAsyncResult; Linie : CARDINAL );
    LOCAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; Command : TDaliCommand; ClientId : PTR; Linie : CARDINAL; CONST daliAddress : DaliAddress; Data : CARD8 );
 END IDaliEventSink;
 
@@ -195,6 +197,7 @@ CLASS CDali( msghandler.MessageHandler ) IMPLEMENTS ICommunicatorSink;
       EventSink : POINTER TO IDaliEventSink;
       Logger : log.CLogger;
    PUBLIC READONLY PROPERTY
+      ProgrammingInProgress : BOOLEAN;
       OutputQueueCount : CARDINAL;
    PUBLIC PROPERTY
       OutputQueueLength : CARDINAL;
