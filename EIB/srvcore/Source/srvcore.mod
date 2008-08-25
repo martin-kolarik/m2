@@ -1711,6 +1711,8 @@ CLASS IMPLEMENTATION CEIBServer;
          ELSIF InitReadRepeat <= 1 THEN // repeated init read will not be performed, so notify error
             PObject^.InitReadState := eib_user.irsUnknown;
          ELSE
+            ResponseAwaited := FALSE; // wait until all tries are done
+
             INCL( RStatus, rsInitReadRepeat );
             PObject^.InitReadState := eib_user.irsWillRepeat;
          END;
