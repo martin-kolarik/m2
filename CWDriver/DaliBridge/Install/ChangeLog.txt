@@ -1,3 +1,14 @@
+Version 1.0.1756 beta 20.8.2008
+- BUG: commands sent to DALI before interface booting up were not passed to DALI
+       and the communication stopped
+- NEW: end of addressing/readdressing is notified to client with driver exception
+       with new event type: program <linie> success/error
+- NEW: new status (bit 4, 0x8) added to signalize pending addressing/readdressing
+- NEW: addressing/readdressing example application for ControlWeb
+- CHG: polling changed to send request for only one device during one tick
+- ISS: polling does not work with more linies and it sometimes stops if
+       addressing/readdressing is stopped
+
 Version 1.0.1737 beta 14.8.2008
 - BUG: Commands to two-cipher addresses were sent to first-cipher-only address
        (get 27 status asked device with address 2)
