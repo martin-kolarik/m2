@@ -803,6 +803,13 @@ END NLSCallback;
 //--------------------------------------------------------------
 
 PROCEDURE StringToDateTime( String, Format : ARRAY OF WCHAR; VAR DateTime : TDateTime ) : BOOLEAN;
+BEGIN
+   RETURN StringToDateTimeLang( Languages.GetDefaultLanguage( Languages.dlUser ), String, Format, DateTime );
+END StringToDateTime;
+
+//--------------------------------------------------------------
+
+PROCEDURE StringToDateTimeLang( Language : Languages.TLanguage; String, Format : ARRAY OF WCHAR; VAR DateTime : TDateTime ) : BOOLEAN;
   // returns FALSE if String does not match Format
 TYPE
   TExpectInString = (
@@ -962,7 +969,7 @@ CONST
     END;
     i := 0;
     WHILE PE2NLS^[i] <> 0 DO
-      winnls.EnumCalendarInfo( winnls.CALINFO_ENUMPROC( NLSCallback ), windows.LOCALE_USER_DEFAULT, winnls.ENUM_ALL_CALENDARS, PE2NLS^[i] );
+      winnls.EnumCalendarInfo( winnls.CALINFO_ENUMPROC( NLSCallback ), Language, winnls.ENUM_ALL_CALENDARS, PE2NLS^[i] );
       IF Strings.EqualsIgnoreCaseW( SNLSCallback, S ) THEN
         FillDateTime( LocalDateTime, Expect, i + 1 );
         RETURN;
@@ -1234,7 +1241,7 @@ BEGIN
   END;
   DateTime := LocalDateTime;
   RETURN TRUE;
-END StringToDateTime;
+END StringToDateTimeLang;
 
 //--------------------------------------------------------------
 
@@ -1510,11 +1517,23 @@ END UnwrapDateProtection;
 
 //--------------------------------------------------------------
 
-PROCEDURE DateTimeToString( CONST   DateTime : TDateTime;
-                                      Format : ARRAY OF WCHAR;
-                                  FormatDate : BOOLEAN;
-                                  FormatTime : BOOLEAN;
-                              VAR   String   : ARRAY OF WCHAR ) : BOOLEAN;
+PROCEDURE DateTimeToString( CONST DateTime : TDateTime;
+                                    Format : ARRAY OF WCHAR;
+                                FormatDate : BOOLEAN;
+                                FormatTime : BOOLEAN;
+                                VAR String : ARRAY OF WCHAR ) : BOOLEAN;
+BEGIN
+   RETURN DateTimeToStringLang( Languages.GetDefaultLanguage( Languages.dlUser ), DateTime, Format, FormatDate, FormatTime, String );
+END DateTimeToString;
+
+//--------------------------------------------------------------
+
+PROCEDURE DateTimeToStringLang( Language : Languages.TLanguage;
+                      CONST DateTime : TDateTime;
+                              Format : ARRAY OF WCHAR;
+                          FormatDate : BOOLEAN;
+                          FormatTime : BOOLEAN;
+                          VAR String : ARRAY OF WCHAR ) : BOOLEAN;
 TYPE
   TLS = ARRAY [0..4095] OF WCHAR;
   TPLS = POINTER TO TLS;
@@ -1540,19 +1559,19 @@ BEGIN
   IF FormatDate AND FormatTime THEN
     IF Format[0] = WCHAR( 0 ) THEN
       PPrepared := NIL;
-      IF ( winnls.GetDateFormatW( windows.LOCALE_USER_DEFAULT, 0, ADR( st ), PPrepared, ADR( String ),       HIGH( String )) = 0 ) OR
-         ( winnls.GetTimeFormatW( windows.LOCALE_USER_DEFAULT, 0, ADR( st ), PPrepared, ADR( Intermediate ), SIZE( Intermediate ) >> 1 ) = 0 ) THEN
+      IF ( winnls.GetDateFormatW( Language, 0, ADR( st ), PPrepared, ADR( String ),       HIGH( String )) = 0 ) OR
+         ( winnls.GetTimeFormatW( Language, 0, ADR( st ), PPrepared, ADR( Intermediate ), SIZE( Intermediate ) >> 1 ) = 0 ) THEN
         RETURN FALSE;
       END;
       Strings.AppendW( REF String, L' ' );
       Strings.AppendW( REF String, Intermediate );
     ELSE
       PrepareTwiceFormattedStringProtectDate( Format, Prepared, HaveFraction );
-      IF winnls.GetTimeFormatW( windows.LOCALE_USER_DEFAULT, 0, ADR( st ), ADR( Prepared ), ADR( Intermediate ), SIZE( Intermediate ) >> 1 ) = 0 THEN
+      IF winnls.GetTimeFormatW( Language, 0, ADR( st ), ADR( Prepared ), ADR( Intermediate ), SIZE( Intermediate ) >> 1 ) = 0 THEN
         RETURN FALSE;
       END;
       UnwrapDateProtection( Intermediate, Prepared );
-      IF winnls.GetDateFormatW( windows.LOCALE_USER_DEFAULT, 0, ADR( st ), ADR( Prepared ), ADR( String ), HIGH( String )) = 0 THEN
+      IF winnls.GetDateFormatW( Language, 0, ADR( st ), ADR( Prepared ), ADR( String ), HIGH( String )) = 0 THEN
         RETURN FALSE;
       END;
     END;
@@ -1564,10 +1583,10 @@ BEGIN
       PrepareSingleFormattedString( Format, Prepared, HaveFraction );
     END;
        IF FormatDate AND
-          ( winnls.GetDateFormatW( windows.LOCALE_USER_DEFAULT, 0, ADR( st ), PPrepared, ADR( String ), HIGH( String )) = 0 ) THEN
+          ( winnls.GetDateFormatW( Language, 0, ADR( st ), PPrepared, ADR( String ), HIGH( String )) = 0 ) THEN
       RETURN FALSE;
     ELSIF FormatTime AND
-          ( winnls.GetTimeFormatW( windows.LOCALE_USER_DEFAULT, 0, ADR( st ), PPrepared, ADR( String ), HIGH( String )) = 0 ) THEN
+          ( winnls.GetTimeFormatW( Language, 0, ADR( st ), PPrepared, ADR( String ), HIGH( String )) = 0 ) THEN
       RETURN FALSE;
     END;
   END;
@@ -1636,7 +1655,7 @@ BEGIN
   END; // LOOP
 
   RETURN TRUE;
-END DateTimeToString;
+END DateTimeToStringLang;
 
 //==============================================================
 

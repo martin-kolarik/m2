@@ -304,9 +304,97 @@ END ToAStream;
 
 //===========================================================================
 
+PROCEDURE IsUTF8( CONST Source : ARRAY OF BYTE ) : BOOLEAN;
+CONST
+       maskASCII2 = 000008080H;
+        resASCII2 = 000000000H;
+  maskASCII1UTF8A = 000C0E080H;
+   resASCII1UTF8A = 00080C000H;
+  maskASCII1UTF8B = 0C0C0F080H;
+   resASCII1UTF8B = 08080E000H;
+        maskUTF8A = 00000C0E0H;
+         resUTF8A = 0000080C0H;
+        maskUTF8B = 000C0C0F0H;
+         resUTF8B = 0008080E0H;
+        maskUTF8C = 0C0C0C0F8H;
+         resUTF8C = 0808080F0H;
+TYPE
+   (*# save, option( pack => 1 ) *)
+   T3B = RECORD
+            CASE : CARDINAL OF
+            | 0 : dd  : CARD32;
+            | 1 : ll  : CARD8;
+                  lh  : CARD8;
+                  hl  : CARD8;
+                  hh  : CARD8;
+            | 2 : xx  : CARD8;
+                  dwh : CARD16;
+            | 3 : dwl : CARD16;
+            END;
+         END;
+  (*# restore *)
+
+VAR
+   a : ADDRESS := ADR( Source );
+   d3b : T3B;
+   l : INTEGER := HIGH( Source )+1;
+BEGIN
+   IF l = 0 THEN
+      RETURN FALSE;
+   END;
+   WHILE l > 3 DO
+      IF PLONGWORD( a )^ AND maskASCII2 = resASCII2 THEN
+         INC( a, 2 );
+         DEC( l, 2 );
+      ELSIF PLONGWORD( a )^ AND maskASCII1UTF8A = resASCII1UTF8A THEN
+         INC( a, 3 );
+         DEC( l, 3 );
+      ELSIF PLONGWORD( a )^ AND maskASCII1UTF8A = resASCII1UTF8A THEN
+         INC( a, 3 );
+         DEC( l, 3 );
+      ELSIF PLONGWORD( a )^ AND maskUTF8A = resUTF8A THEN
+         INC( a, 2 );
+         DEC( l, 2 );
+      ELSIF PLONGWORD( a )^ AND maskASCII1UTF8B = resASCII1UTF8B THEN
+         INC( a, 4 );
+         DEC( l, 4 );
+      ELSIF PLONGWORD( a )^ AND maskUTF8B = resUTF8B THEN
+         INC( a, 3 );
+         DEC( l, 3 );
+      ELSIF PLONGWORD( a )^ AND maskUTF8C = resUTF8C THEN
+         INC( a, 4 );
+         DEC( l, 4 );
+      ELSE
+         RETURN FALSE;
+      END;
+   END; // WHILE
+   CASE l OF
+   | 0 :
+      RETURN TRUE;
+   | 1 :
+      RETURN ( PBYTE( a )^ AND 080H = 000H );
+   | 2 :
+      RETURN ( PWORD( a )^ AND 08080H = 00000H ) OR ( PWORD( a )^ AND maskUTF8A = resUTF8A );
+   | 3 :
+      d3b.ll := PBYTE( a )^; INC( a );
+      d3b.lh := PBYTE( a )^; INC( a );
+      d3b.hl := PBYTE( a )^;
+      d3b.hh := 0;
+      RETURN ( d3b.dd AND 0808080H = 0000000H ) OR
+             ( d3b.dd AND maskUTF8B = resUTF8B ) OR
+             ( d3b.ll AND 080H = 000H ) AND ( d3b.dwh AND maskUTF8A = resUTF8A ) OR
+             ( d3b.hl AND 080H = 000H ) AND ( d3b.dwl AND maskUTF8A = resUTF8A );
+   ELSE
+      RETURN FALSE;
+   END;
+END IsUTF8;
+
+//===========================================================================
+
 PROCEDURE GetDefaultLanguage( Default : TDefaultLanguage ) : TLanguage;
 BEGIN
   CASE Default OF
+  | dlNeutral : RETURN LCID_EN;
   | dlThread : RETURN winnls.GetThreadLocale();
   | dlUser : RETURN winnls.GetUserDefaultLCID();
   | dlSystem : RETURN winnls.GetSystemDefaultLCID();

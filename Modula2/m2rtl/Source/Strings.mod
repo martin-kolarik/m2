@@ -902,6 +902,11 @@ BEGIN
 	RETURN Languages.ToWStream( Source, CodePage, OUT Destination, OUT Consumed, OUT Produced );
 END ToWStream;
 
+PROCEDURE IsUTF8( CONST Source : ARRAY OF BYTE ) : BOOLEAN;
+BEGIN
+   RETURN Languages.IsUTF8( Source );
+END IsUTF8;
+
 CONST
 	ConvStrW = L'0123456789ABCDEF';
 

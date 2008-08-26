@@ -11,7 +11,9 @@ CONST
    cp_UTF16            = 1200;
    cp_UTF16_BIG_ENDIAN = 1201;
    cp_Win1250          = 1250;
+   cp_Win1252          = 1252;
    cp_ISO8859_2        = 28592;
+   cp_RAW              = cp_Win1252;
    
 PROCEDURE cp_Console() : CARDINAL;
 
@@ -31,10 +33,12 @@ PROCEDURE BytesPerCharacter( CodePage : CARDINAL; OUT FixedCount : BOOLEAN; OUT 
 PROCEDURE ToWStream( CONST Source : ARRAY OF BYTE; CodePage : CARDINAL; OUT Destination : ARRAY OF WCHAR; OUT Consumed, Produced : CARDINAL ) : BOOLEAN; // returns if something consumed
 PROCEDURE ToAStream( CONST Source : ARRAY OF WCHAR; CodePage : CARDINAL; OUT Destination : ARRAY OF BYTE; OUT Consumed, Produced : CARDINAL ) : BOOLEAN; // returns if something consumed
 
+PROCEDURE IsUTF8( CONST Source : ARRAY OF BYTE ) : BOOLEAN;
+
 (*================================================================================*)
 
 TYPE
-  TDefaultLanguage = ( dlThread, dlUser, dlSystem );
+  TDefaultLanguage = ( dlNeutral, dlThread, dlUser, dlSystem );
 
 PROCEDURE GetDefaultLanguage( Default : TDefaultLanguage ) : TLanguage;
 

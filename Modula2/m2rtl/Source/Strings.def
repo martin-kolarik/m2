@@ -65,6 +65,7 @@ PROCEDURE ToA( CONST Source : ARRAY OF WCHAR; CodePage : CARDINAL; OUT Destinati
 PROCEDURE ToAStream( CONST Source : ARRAY OF WCHAR; CodePage : CARDINAL; OUT Destination : ARRAY OF BYTE; OUT Consumed, Produced : CARDINAL ) : BOOLEAN; // returns if something consumed
 PROCEDURE ToW( CONST Source : ARRAY OF CHAR; CodePage : CARDINAL; OUT Destination : ARRAY OF WCHAR ) : BOOLEAN; // FALSE is returned mostly if Destination is too small
 PROCEDURE ToWStream( CONST Source : ARRAY OF BYTE; CodePage : CARDINAL; OUT Destination : ARRAY OF WCHAR; OUT Consumed, Produced : CARDINAL ) : BOOLEAN; // returns if something consumed
+PROCEDURE IsUTF8( CONST Source : ARRAY OF BYTE ) : BOOLEAN;
 
 PROCEDURE FromINT32W( V : INT32; Base : CARDINAL; OUT S : ARRAY OF WCHAR ) : BOOLEAN; // returns OK
 PROCEDURE FromINT64W( V : INT64; Base : CARDINAL; OUT S : ARRAY OF WCHAR ) : BOOLEAN; // returns OK

@@ -1,5 +1,8 @@
 DEFINITION MODULE Time;
 
+IMPORT
+   Languages;
+
 #save, option( dll_export => on )
 
 TYPE
@@ -129,15 +132,25 @@ PROCEDURE dstActive( CONST DateTime : TDateTime ) : BOOLEAN;
 //=============================================================================
 // extended formatting helper
 
-PROCEDURE StringToDateTime(         String : ARRAY OF WCHAR;
-                                    Format : ARRAY OF WCHAR;
-                              VAR DateTime : TDateTime ) : BOOLEAN;
+PROCEDURE StringToDateTime( String : ARRAY OF WCHAR;
+                            Format : ARRAY OF WCHAR;
+                      VAR DateTime : TDateTime ) : BOOLEAN;
+PROCEDURE StringToDateTimeLang( Language : Languages.TLanguage;
+                                  String : ARRAY OF WCHAR;
+                                  Format : ARRAY OF WCHAR;
+                            VAR DateTime : TDateTime ) : BOOLEAN;
 
-PROCEDURE DateTimeToString( CONST   DateTime : TDateTime;
-                                      Format : ARRAY OF WCHAR;
-                                  FormatDate : BOOLEAN;
-                                  FormatTime : BOOLEAN;
-                              VAR     String : ARRAY OF WCHAR ) : BOOLEAN;
+PROCEDURE DateTimeToString( CONST DateTime : TDateTime;
+                                    Format : ARRAY OF WCHAR;
+                                FormatDate : BOOLEAN;
+                                FormatTime : BOOLEAN;
+                                VAR String : ARRAY OF WCHAR ) : BOOLEAN;
+PROCEDURE DateTimeToStringLang( Language : Languages.TLanguage;
+                          CONST DateTime : TDateTime;
+                                  Format : ARRAY OF WCHAR;
+                              FormatDate : BOOLEAN;
+                              FormatTime : BOOLEAN;
+                              VAR String : ARRAY OF WCHAR ) : BOOLEAN;
 
 //=============================================================================
 
