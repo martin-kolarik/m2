@@ -349,6 +349,20 @@ CLASS IMPLEMENTATION INETADDR;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE FromM( CONST storage : PBYTE ); // e.g. SOCKADDR_IN, SOCKADDR_IN6, length is determined by sa_family member
+   VAR
+      high : INTEGER;
+   BEGIN
+      IF PCARD16( storage )^ = winsock.AF_INET THEN
+         high := SIZE( winsock.sockaddr_in )-1;
+      ELSE
+         high := SIZE( WS2TcpIp.sockaddr_in6 )-1;
+      END;
+      FromOA( OA( high, storage ));
+   END FromM;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE ToV4( OUT IPAddr : ARRAY OF BYTE ) : BOOLEAN; // IN_ADDR, 4 bytes
    BEGIN
       IF V6 THEN
