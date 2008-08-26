@@ -2,6 +2,65 @@ IMPLEMENTATION MODULE cphcommon;
 
 (*================================================================================*)
 
+PROCEDURE FromHexByte( CONST String : ARRAY OF WCHAR; OUT Bin : BYTE  ) : BOOLEAN; // expects event number of characters in String
+VAR
+   ch : WCHAR;
+	lo, hi : CARD8;
+BEGIN
+   IF HIGH( String ) < 1 THEN
+      RETURN FALSE;
+   END;
+   ch := String[0];
+	CASE ch OF
+	| L'0'..L'9' : hi := CARD8( ch ) - CARD8( L'0' );
+	| L'a'..L'f' : hi := CARD8( ch ) - CARD8( L'a' ) + 10;
+	| L'A'..L'F' : hi := CARD8( ch ) - CARD8( L'A' ) + 10;
+	ELSE
+	   RETURN FALSE;
+	END; // CASE
+   ch := String[1];
+	CASE ch OF
+	| L'0'..L'9' : lo := CARD8( ch ) - CARD8( L'0' );
+	| L'a'..L'f' : lo := CARD8( ch ) - CARD8( L'a' ) + 10;
+	| L'A'..L'F' : lo := CARD8( ch ) - CARD8( L'A' ) + 10;
+	ELSE
+	   RETURN FALSE;
+	END; // CASE
+	Bin := hi << 4 OR lo;
+	RETURN TRUE;
+END FromHexByte;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE ToHexByte( Bin : BYTE; OUT String : ARRAY OF WCHAR );
+VAR
+	b : CARD8;
+BEGIN
+   IF HIGH( String ) < 0 THEN
+      RETURN;
+   ELSIF HIGH( String ) = 0 THEN
+      String[0] := 0W;
+      RETURN;
+   END;
+	b := Bin >> 4;
+	IF b < 10 THEN
+		String[0] := WCHAR( ORD( '0' ) + b );
+	ELSE
+		String[0] := WCHAR( ORD( 'a' ) + b - 10 );
+	END;
+	b := Bin AND 0FH;
+	IF b < 10 THEN
+		String[1] := WCHAR( ORD( '0' ) + b );
+	ELSE
+		String[1] := WCHAR( ORD( 'a' ) + b - 10 );
+	END;
+	IF HIGH( String ) > 1 THEN
+		String[2] := 0W;
+	END;
+END ToHexByte;
+
+(*--------------------------------------------------------------------------------*)
+
 PROCEDURE FromHex( CONST String : ARRAY OF WCHAR; OUT Bin : ARRAY OF BYTE; OUT Filled : CARDINAL ) : BOOLEAN; // expects even number of characters in String
 VAR
 	i, j, u : INTEGER;
