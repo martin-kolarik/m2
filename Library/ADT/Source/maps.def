@@ -127,6 +127,33 @@ CLASS CStringMap( avltree.CAVLTreeWState );
 
 END CStringMap;
 
+//---------------------------------------------------------------------------
+
+TYPE
+  TPStringStringMap = POINTER TO CStringStringMap;
+
+CLASS CStringStringMap( avltree.CAVLTreeWState );
+  PUBLIC READONLY PROPERTY
+    Current : POINTER TO CString;
+  PUBLIC PROPERTY
+    CurrentData : POINTER TO CString;
+
+  PUBLIC READONLY INDEX( Index : CARDINAL ) : POINTER TO CString;
+
+  PUBLIC PROCEDURE Add( CONST Key : CString; CONST Data : CString );
+  PUBLIC PROCEDURE Remove( CONST Key : CString );
+  PUBLIC PROCEDURE Contains( CONST Key : CString ) : BOOLEAN;
+  PUBLIC PROCEDURE Get( CONST Key : CString; OUT Data : CString ) : BOOLEAN;
+  PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : CString; OUT Data : CString ) : BOOLEAN; // similar as []
+
+  PUBLIC PROCEDURE AddOA( CONST Key : ARRAY OF WCHAR; Data : CString );
+  PUBLIC PROCEDURE RemoveOA( CONST Key : ARRAY OF WCHAR );
+  PUBLIC PROCEDURE ContainsOA( CONST Key : ARRAY OF WCHAR ) : BOOLEAN;
+  PUBLIC PROCEDURE GetOA( CONST Key : ARRAY OF WCHAR; OUT Data : CString ) : BOOLEAN;
+  PUBLIC PROCEDURE ElementAtOA( Index : CARDINAL; OUT Key : ARRAY OF WCHAR; OUT Data : CString ) : BOOLEAN; // similar as []
+
+END CStringStringMap;
+
 //===========================================================================
 
 #restore
