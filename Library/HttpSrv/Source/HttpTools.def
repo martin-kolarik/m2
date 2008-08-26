@@ -1,0 +1,35 @@
+DEFINITION MODULE HttpTools;
+
+IMPORT
+   maps,
+   StringsO,
+   time;
+
+(*===========================================================================*)
+
+PROCEDURE FormatDate( CONST Date : time.TDateTime ) : StringsO.CString;
+PROCEDURE FormatDateJD( Date : time.TJD ) : StringsO.CString;
+
+(*---------------------------------------------------------------------------*)
+
+PROCEDURE FormatSIDCookie( CONST SID : StringsO.IString; Expires : time.TJD; CONST Path, Domain : StringsO.IString ) : StringsO.CString;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TContent = (
+      contentUnknown,
+      contentTextPlain,
+      contentTextHTML
+   );
+
+PROCEDURE FormatContent( Content : TContent; CONST RFC1766Code : StringsO.IString ) : StringsO.CString;
+PROCEDURE FormatContentOA( Content : TContent; CONST RFC1766Code : ARRAY OF WCHAR ) : StringsO.CString;
+
+(*---------------------------------------------------------------------------*)
+
+PROCEDURE DecodeQueryURL( XFormFlag : BOOLEAN; FirstCharsSkipCount : INTEGER; CONST Encoded : ARRAY OF WCHAR; OUT Decoded : maps.CStringStringMap ); // Key of list (String) contains NAME, Data of list (PTR) contains allocated VALUE -- client must dispose them
+
+(*===========================================================================*)
+
+END HttpTools.

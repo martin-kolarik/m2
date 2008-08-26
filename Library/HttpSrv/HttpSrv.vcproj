@@ -4,6 +4,7 @@
 	Version="8,00"
 	Name="HttpSrv"
 	ProjectGUID="{65A66F79-2007-4373-A8EB-BBEA905DEC45}"
+	RootNamespace="HttpSrv"
 	Keyword="MakeFileProj"
 	>
 	<Platforms>
@@ -68,6 +69,10 @@
 				RelativePath=".\Source\HttpSrv.mod"
 				>
 			</File>
+			<File
+				RelativePath=".\Source\HttpTools.mod"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -76,6 +81,18 @@
 			>
 			<File
 				RelativePath=".\Source\HttpSrv.def"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\HttpTools.def"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Test"
+			>
+			<File
+				RelativePath=".\Test\THttpSrv.mod"
 				>
 			</File>
 		</Filter>

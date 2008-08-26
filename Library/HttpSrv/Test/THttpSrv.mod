@@ -1,32 +1,131 @@
 MODULE THttpSrv;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
    httpsrv,
+   log,
    msgqueuethread,
-   Sync;
+   scinit,
+   StringsO,
+   Sync,
+   test,
+   testimpl;
   
-CLASS CT( msgqueuethread.MessageQueueThread );
-   INTERNAL VIRTUAL PROCEDURE OnStart();
-END CT;
+(*===========================================================================*)
 
-CLASS IMPLEMENTATION CT;
+TYPE
+   TPTest = POINTER TO CTest;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CTest IMPLEMENTS test.ITest;
+   PUBLIC VAR
+      Host : test.TPHost := NIL;
+
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+END CTest;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CServerThread( msgqueuethread.MessageQueueThread );
+   INTERNAL VIRTUAL PROCEDURE OnStart();
+END CServerThread;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CController IMPLEMENTS httpsrv.IController;
+   PUBLIC VIRTUAL PROCEDURE AppliesFor( Verb : httpsrv.TVerb; CONST URL : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( CONST Request : httpsrv.TPHttpRequest; CONST Container : httpsrv.TPContainer; OUT View : httpsrv.TPView ) : BOOLEAN;
+END CController;
+
+(*---------------------------------------------------------------------------*)
+
+VAR
+   Test : CTest;
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CTest;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   VAR
+      Failure1, Failure2 : BOOLEAN := FALSE;
+      T : CServerThread;
+   BEGIN
+      SELF.Host := Host;
+      scinit.Startup();
+
+      (*==========*)
+
+      Host^.StartPhase( L"Run HTTP server" );
+      
+      T.Run( FALSE );
+      T.WaitStop( Sync.FOREVER );
+
+      IF Failure1 OR Failure2 THEN
+         Host^.StopPhaseWithResult( test.trFailure );
+      ELSE
+         Host^.StopPhaseWithResult( test.trSuccess );
+      END;
+
+      (*==========*)
+
+      scinit.Cleanup();
+      IF Failure1 OR Failure2 THEN
+         RETURN test.trFailure;
+      ELSE
+         RETURN test.trSuccess;
+      END;
+   END Run;
+   
+(*---------------------------------------------------------------------------*)
+
+BEGIN
+   testimpl.tests()^.AddTest( L"HttpSrv", ADR( Test ));
+END CTest;
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CServerThread;
+
+(*---------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE OnStart();
    BEGIN
       httpsrv.srv()^.Start();
+      httpsrv.srv()^.RegisterController( NEW( CController ));
    END OnStart;
 
-END CT;
-  
-#save, call( convention => cdecl )
-PROCEDURE wmain() : INTEGER;
-#restore
-VAR
-   T : CT;
-BEGIN
-   T.Run( FALSE );
-   T.WaitStop( Sync.FORSAFETY );
-   RETURN 0;
-END wmain;
+(*---------------------------------------------------------------------------*)
+
+END CServerThread;
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CController;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE AppliesFor( Verb : httpsrv.TVerb; CONST URL : ARRAY OF WCHAR ) : BOOLEAN;
+   BEGIN
+      RETURN TRUE;
+   END AppliesFor;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( CONST Request : httpsrv.TPHttpRequest; CONST Container : httpsrv.TPContainer; OUT View : httpsrv.TPView ) : BOOLEAN;
+   BEGIN
+      RETURN FALSE;
+   END ProcessRequest;
+
+(*---------------------------------------------------------------------------*)
+
+END CController;
+
+(*===========================================================================*)
 
 END THttpSrv.

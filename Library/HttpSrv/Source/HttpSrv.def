@@ -15,6 +15,7 @@ IMPORT
 //================================================================================
 
 TYPE
+   TPSession = POINTER TO ISession;
    TPContainer = POINTER TO CContainer; // model container
    TPController = POINTER TO IController;
    TPHttpServer = POINTER TO IHttpServer;
@@ -23,8 +24,8 @@ TYPE
 //================================================================================
 
 TYPE
-   TPHttpHeaders = POINTER TO CHttpHeaders;
-   TPHttpRequest = POINTER TO CHttpRequest;
+   TPHttpHeaders = POINTER TO IHttpHeaders;
+   TPHttpRequest = POINTER TO IHttpRequest;
    
 //--------------------------------------------------------------------------------
 
@@ -92,13 +93,22 @@ TYPE
       Vary,
       WwwAuthenticate
    );
+   
+   TVerb = (
+      verbUnknown,
+      verbGET,
+      verbPOST,
+      verbHEAD
+   );
 
 //--------------------------------------------------------------------------------
 
 INTERFACE IHttpHeaders;
    PROCEDURE Contains( Header : TKnownHeader ) : BOOLEAN;
    PROCEDURE Get( Header : TKnownHeader; OUT Value : StringsO.IString ) : BOOLEAN;
+   PROCEDURE GetOA( Header : TKnownHeader; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
    PROCEDURE Add( Header : TKnownHeader; CONST Value : StringsO.IString );
+   PROCEDURE AddOA( Header : TKnownHeader; CONST Value : ARRAY OF WCHAR );
    
    PROCEDURE Enumerate( Known, Uknown : BOOLEAN; REF ES : PTR; OUT Name, Value : StringsO.IString ) : BOOLEAN;
 
@@ -109,11 +119,21 @@ END IHttpHeaders;
 
 //--------------------------------------------------------------------------------
 
-INTERFACE CHttpRequest;
+INTERFACE IHttpRequest;
    READONLY PROPERTY
       Headers : TPHttpHeaders;
-      Container : TPContainer; // there is model named ""
-END CHttpRequest;
+      Container : TPContainer; // there is model named "" and model named "session"
+      Session : TPSession;
+END IHttpRequest;
+
+//--------------------------------------------------------------------------------
+
+INTERFACE ISession;
+   READONLY PROPERTY
+      Data : maps.TPStringMap; // the same as Container["session"]
+      SID : StringsO.CString;
+   PROCEDURE Invalidate();
+END ISession;
 
 //================================================================================
 
@@ -123,35 +143,26 @@ CLASS CContainer;
 
    PUBLIC PROCEDURE Clear();
 
-   PUBLIC PROCEDURE AddModel( CONST Name : ARRAY OF WCHAR; REF Model : maps.CStringMap );
+   PUBLIC PROCEDURE AddModel( CONST Name : ARRAY OF WCHAR; REF Model : maps.CStringStringMap );
    PUBLIC PROCEDURE RemoveModel( CONST Name : ARRAY OF WCHAR );
 
-   PUBLIC PROCEDURE GetModelOA( CONST Name : ARRAY OF WCHAR; OUT PModel : maps.TPStringMap ) : BOOLEAN;
-   PUBLIC PROCEDURE GetModel( CONST Name : StringsO.CString; OUT PModel : maps.TPStringMap ) : BOOLEAN;
+   PUBLIC PROCEDURE GetModelOA( CONST Name : ARRAY OF WCHAR; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
+   PUBLIC PROCEDURE GetModel( CONST Name : StringsO.CString; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
 END CContainer;
    
 //--------------------------------------------------------------------------------
 
 INTERFACE IView;
    PROPERTY
-      Server : TPHttpServer;
       Container : TPContainer;
-
    PROCEDURE Format() : BOOLEAN;
-
-   LOCAL PROCEDURE Respond( CONST Request : TPHttpRequest );
 END IView;
 
 //--------------------------------------------------------------------------------
 
 INTERFACE IController;
-   PROPERTY
-      Server : TPHttpServer;
-
-   PROCEDURE AppliesFor( CONST URL : ARRAY OF WCHAR ) : BOOLEAN;
+   PROCEDURE AppliesFor( Verb : TVerb; CONST URL : ARRAY OF WCHAR ) : BOOLEAN;
    PROCEDURE ProcessRequest( CONST Request : TPHttpRequest; CONST Container : TPContainer; OUT View : TPView ) : BOOLEAN;
-   
-   LOCAL PROCEDURE DoProcessRequest() : BOOLEAN;
 END IController;
 
 //--------------------------------------------------------------------------------
@@ -170,7 +181,7 @@ INTERFACE IHttpServer;
       Mode : TMode; // default is smHttp
       Port : CARDINAL; // default is 8080
       SslPort : CARDINAL; // default is 8443
-      RootName : StringsO.CString;
+      RootPath : StringsO.CString;
 
    PROCEDURE Start() : Sync.TAsyncResult;
    PROCEDURE Stop();
@@ -188,10 +199,10 @@ PROCEDURE Cleanup();
 
 PROCEDURE fileView( CONST Path : ARRAY OF WCHAR ) : TPView;
 PROCEDURE redirectView( CONST URL : ARRAY OF WCHAR ) : TPView;
-PROCEDURE modelView( CONST viewName : ARRAY OF WCHAR; REF model : maps.CStringMap ) : TPView;
-PROCEDURE modelViewStream( CONST viewName : ARRAY OF WCHAR; viewSource : IOO.TPStream; REF model : maps.CStringMap ) : TPView;
-PROCEDURE modelViewContainer( CONST viewName : ARRAY OF WCHAR; REF model : ARRAY OF maps.CStringMap ) : TPView;
-PROCEDURE modelViewContainerStream( CONST viewName : ARRAY OF WCHAR; viewSource : IOO.TPStream; REF model : ARRAY OF maps.CStringMap ) : TPView;
+PROCEDURE modelView( CONST viewName : ARRAY OF WCHAR; REF model : maps.CStringStringMap ) : TPView;
+PROCEDURE modelViewStream( CONST viewName : ARRAY OF WCHAR; viewSource : IOO.TPStream; REF model : maps.CStringStringMap ) : TPView;
+PROCEDURE modelViewContainer( CONST viewName : ARRAY OF WCHAR; REF model : ARRAY OF maps.CStringStringMap ) : TPView;
+PROCEDURE modelViewContainerStream( CONST viewName : ARRAY OF WCHAR; viewSource : IOO.TPStream; REF model : ARRAY OF maps.CStringStringMap ) : TPView;
 
 //================================================================================
 
