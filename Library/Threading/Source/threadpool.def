@@ -106,7 +106,7 @@ CLASS CThreadPool( msghandler.MessageHandler );
   PUBLIC PROPERTY
     MinThreads : CARDINAL; // default is 1; moreover, the pool does not allocate all threads on start, the number of them increases lazily
   PUBLIC VAR
-    WorkerLoad : CARDINAL := 32; // number of workers in single worker thread
+    WorkerLoad : CARDINAL := 1; // number of workers in single worker thread
     MaxThreads : CARDINAL := -1; // if there is no space, the RunWorker request is queued
     CompletionInOwningThread : BOOLEAN := FALSE;
     
