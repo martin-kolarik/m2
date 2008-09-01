@@ -1,3 +1,11 @@
+Version 1.0.1758 beta 1.9.2008
+- BUG: server did not finish XMLSocket data with trailing zero, data were
+       not received with Flash
+
+Version 1.0.1752 beta 12.8.2008
+- NEW: added XMLSocket interface, configuration examples and first version
+       of documentation
+
 Version 1.0.1707 beta 14.7.2008
 - BUG: receiving of many small packets could cause double processing
        ot received packets

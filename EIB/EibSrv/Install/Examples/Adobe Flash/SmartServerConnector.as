@@ -8,7 +8,7 @@ class SmartServerConnector extends XMLSocket {
     private var Dispatcher : EventDispatcher;
     private var Event : Object;
 
-    function CWConnector() {
+    function SmartServerConnector() {
         Container = new XML( "" );
         Dispatcher = new EventDispatcher();
         Event = new Object();

@@ -53,7 +53,7 @@
                             </Component>
                             <Directory Id="Adobe_Flash" LongName="Adobe Flash" Name="Flash">
                                 <Component Id="ExamplesFlash" Guid="61E9CC52-47B5-48f3-8EC6-99D1894F9C20">
-                                    <File Id="Main.as" LongName="Main.as" Name="MAIN.AS" Source="Examples\Adobe Flash\Main.as" DiskId="1" />
+                                    <File Id="SmartServerConnector.as" LongName="SmartServerConnector.as" Name="SRVCONN.AS" Source="Examples\Adobe Flash\SmartServerConnector.as" DiskId="1" />
                                     <File Id="Send.as" LongName="Send.as" Name="SEND.AS" Source="Examples\Adobe Flash\Send.as" DiskId="1" />
                                 </Component>
                             </Directory>
