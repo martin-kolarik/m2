@@ -8,6 +8,7 @@ IMPORT
    iovalue,
    Languages,
    LanguagesO,
+   msghandler,
    netsocket,
    netsrv,
    ns,
@@ -22,6 +23,8 @@ TYPE
    TPClient = POINTER TO CClient;
 
 CLASS CClient IMPLEMENTS io.IAdviseInfo;
+   PRIVATE VAR
+      BatchLock : Sync.LOCK;
    LOCAL VAR
       Server : TPXMLSocketServer;
       Connection : netconndispatch.TConnectionHandle;
@@ -30,7 +33,11 @@ CLASS CClient IMPLEMENTS io.IAdviseInfo;
 
    // IAdviseInfo
    PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
-
+   
+   // SELF
+   PUBLIC PROCEDURE StartBatch();
+   PUBLIC PROCEDURE AddItem( CONST Item : ns.THash; CONST Value : iovalue.Value );
+   PUBLIC PROCEDURE StopAndSendBatch();
 END CClient;
 
 (*================================================================================*)
@@ -38,16 +45,44 @@ END CClient;
 CONST
   LEAD_XMLSOCKET = C'<xmlsocket';
   TRAIL_XMLSOCKET = C'</xmlsocket';
-  LEAD_ITEM = C'<item';
-  TRAIL_ITEM = C'</item';
+  LEAD_NOTIFY = C'<notify';
+  TRAIL_NOTIFY = C'</notify';
+  LEAD_ASK = C'<ask';
+  TRAIL_ASK = C'</ask';
   LEAD_NAME = C'<name';
   TRAIL_NAME = C'</name';
   LEAD_VALUE = C'<value';
   TRAIL_VALUE = C'</value';
+  TRAIL = C'>';
+  
+CONST
+   MSG_SCHEDULED_SEND = msghandler.MSG_BASE;
 
 (*================================================================================*)
 
 CLASS IMPLEMENTATION CXMLSocketServer;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
+   VAR
+      SendData : arrays.TPPtrArray;
+   BEGIN
+      IF SUPER.OnMessage( Message, OUT Result ) THEN
+         RETURN TRUE;
+
+      ELSIF Message.Message = MSG_SCHEDULED_SEND THEN
+         WHILE _SendQueue.Dequeue( OUT SendData  ) DO
+            RealizeSend( SendData );
+            DISPOSE( SendData );
+         END; // _SendQueue
+
+         RETURN TRUE;
+      
+      ELSE
+         RETURN FALSE;
+      END;
+   END OnMessage;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -215,7 +250,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
             RETURN;
          END;
          
-         Parse( OA( i - SIZE( LEAD_XMLSOCKET )-1, PCHAR( Client^.RBuffer.Data@[SIZE( LEAD_XMLSOCKET )-1] ) )); // slice data inside LEADING and TRAILING
+         Parse( Client, OA( i - SIZE( LEAD_XMLSOCKET )-1, PCHAR( Client^.RBuffer.Data@[SIZE( LEAD_XMLSOCKET )-1] ) )); // slice data inside LEADING and TRAILING
          
          Client^.RBuffer.RemoveStart( i + SIZE( TRAIL_XMLSOCKET )-1 );
       END; // LOOP
@@ -223,12 +258,52 @@ CLASS IMPLEMENTATION CXMLSocketServer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE Parse( Data : ARRAY OF CHAR );
+   PRIVATE PROCEDURE ScheduleSend( Client : ADDRESS; Items : arrays.TPPtrArray );
+   BEGIN
+      Items^.Insert( 0, Client );      
+      _SendQueue.Enqueue( Items );
+   END ScheduleSend;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE RealizeSend( Items : arrays.TPPtrArray );
    VAR
+      Client : TPClient;
+      i, l : CARDINAL;
+      IO : io.TPIO;
+      name : StringsO.CString;
+      value : iovalue.Value;
+   BEGIN
+      IO := Device^.IO();
+      IF IO = NIL THEN
+         ASSERT( FALSE );
+         RETURN;
+      END; // IF
+
+      Client := Items^[0];
+      Client^.StartBatch();
+
+      i := 1;
+      l := Items^.Count;
+      WHILE i < l DO
+         IO^.IOh( IOO.dirRead, Items^[i], REF value, NIL );
+         Client^.AddItem( Items^[i], value );
+         INC( i );
+      END; // WHILE
+      
+      Client^.StopAndSendBatch();
+   END RealizeSend;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE Parse( Client : ADDRESS; Data : ARRAY OF CHAR );
+   VAR
+      ask : BOOLEAN;
       high : INTEGER;
-      i, j, current : INTEGER;
+      ia, in, i, j, current : INTEGER;
       Name, Value : ARRAY [0..511] OF WCHAR;
       pos, nextpos : INTEGER := 0;
+      readRequests : arrays.TPPtrArray := NIL;
    BEGIN
       LOOP
 
@@ -238,18 +313,41 @@ CLASS IMPLEMENTATION CXMLSocketServer;
             EXIT; // done
          END;
 
-         i := Strings.IndexOfA( OA( high, ADR( Data[pos] )), LEAD_ITEM, pos );
-         IF i = -1 THEN
+         ia := Strings.IndexOfA( OA( high, ADR( Data[pos] )), LEAD_ASK, pos );
+         in := Strings.IndexOfA( OA( high, ADR( Data[pos] )), LEAD_NOTIFY, pos );
+         IF ( ia = -1 ) AND ( in = -1 ) THEN
             EXIT; // done
          END;
-         j := Strings.IndexOfA( OA( high, ADR( Data[pos] )), TRAIL_ITEM, i );
-         IF j = -1 THEN
-            EXIT; // done
+         IF ia = -1 THEN // NOTIFY found
+            ask := FALSE;
+            i := in;
+         ELSIF in = -1 THEN // ASK found
+            ask := TRUE;
+            i := ia;
+         ELSIF ia < in THEN // both found, ASK fisrt
+            ask := TRUE;
+            i := ia;
+         ELSE
+            ask := FALSE;            
+            i := in;
          END;
-         current := i + SIZE( LEAD_ITEM )-1;
-         nextpos := j + SIZE( TRAIL_ITEM )-1;
+         IF ask THEN
+            j := Strings.IndexOfA( OA( high, ADR( Data[pos] )), TRAIL_ASK, ia );
+            IF j = -1 THEN
+               EXIT; // done
+            END;
+            current := i + SIZE( LEAD_ASK )-1;
+            nextpos := j + SIZE( TRAIL_ASK )-1;
+         ELSE
+            j := Strings.IndexOfA( OA( high, ADR( Data[pos] )), TRAIL_NOTIFY, in );
+            IF j = -1 THEN
+               EXIT; // done
+            END;
+            current := i + SIZE( LEAD_NOTIFY )-1;
+            nextpos := j + SIZE( TRAIL_NOTIFY )-1;
+         END;
 
-         // get NAME
+         // parse NAME
          i := Strings.IndexOfA( OA( high, ADR( Data[pos] )), LEAD_NAME, current );
          IF ( i = -1 ) OR ( i >= nextpos ) THEN
             CONTINUE; // the item is empty
@@ -261,17 +359,19 @@ CLASS IMPLEMENTATION CXMLSocketServer;
          INC( i, SIZE( LEAD_NAME )-1 );
          Strings.ToW( OA( j-i, ADR( Data[i] )), Languages.cp_UTF8, OUT Name );
          
-         // get VALUE
-         i := Strings.IndexOfA( OA( high, ADR( Data[pos] )), LEAD_VALUE, current );
-         IF ( i = -1 ) OR ( i >= nextpos ) THEN
-            CONTINUE; // the item is empty
+         IF NOT ask THEN
+            // parse VALUE
+            i := Strings.IndexOfA( OA( high, ADR( Data[pos] )), LEAD_VALUE, current );
+            IF ( i = -1 ) OR ( i >= nextpos ) THEN
+               CONTINUE; // the item is empty
+            END;
+            j := Strings.IndexOfA( OA( high, ADR( Data[pos] )), TRAIL_VALUE, i );
+            IF ( j = -1 ) OR ( j >= nextpos ) THEN
+               CONTINUE; // something bad
+            END;
+            INC( i, SIZE( LEAD_VALUE )-1 );
+            Strings.ToW( OA( j-i, ADR( Data[i] )), Languages.cp_UTF8, OUT Value );
          END;
-         j := Strings.IndexOfA( OA( high, ADR( Data[pos] )), TRAIL_VALUE, i );
-         IF ( j = -1 ) OR ( j >= nextpos ) THEN
-            CONTINUE; // something bad
-         END;
-         INC( i, SIZE( LEAD_VALUE )-1 );
-         Strings.ToW( OA( j-i, ADR( Data[i] )), Languages.cp_UTF8, OUT Value );
 
          // correct strings
          i := Strings.IndexOfCharW( Name, L">", 0 );
@@ -283,24 +383,62 @@ CLASS IMPLEMENTATION CXMLSocketServer;
          Strings.RemoveW( REF Name, 0, i+1 );
          Strings.TrimW( REF Name );
          
-         i := Strings.IndexOfCharW( Value, L">", 0 );
-         j := Strings.IndexOfCharW( Value, L"<", i );
-         IF ( i = -1 ) OR ( j = -1 ) THEN // bad XML
-            CONTINUE;
+         IF NOT ask THEN
+            i := Strings.IndexOfCharW( Value, L">", 0 );
+            j := Strings.IndexOfCharW( Value, L"<", i );
+            IF ( i = -1 ) OR ( j = -1 ) THEN // bad XML
+               CONTINUE;
+            END;
+            Value[j] := 0W;
+            Strings.RemoveW( REF Value, 0, i+1 );
+            Strings.TrimW( REF Value );
          END;
-         Value[j] := 0W;
-         Strings.RemoveW( REF Value, 0, i+1 );
-         Strings.TrimW( REF Value );
          
          // call back on name and value
-         HandleItem( Name, Value );
+         IF ask THEN
+            IF readRequests = NIL THEN
+               NEW( readRequests );
+            END;
+            HandleRead( Name, REF readRequests );
+         ELSE
+            HandleWrite( Name, Value );
+         END;
          
+      END;
+      
+      IF readRequests <> NIL THEN
+         ScheduleSend( Client, readRequests );
       END;
    END Parse;
   
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE HandleItem( CONST NameOA, Value : ARRAY OF WCHAR );
+   PRIVATE PROCEDURE HandleRead( CONST NameOA : ARRAY OF WCHAR; REF readRequests : arrays.TPPtrArray );
+   VAR
+      Hash : ns.THash;
+      io : iovalue.Value;
+      Name : StringsO.CString;
+   BEGIN
+      Name.FromOA( NameOA );
+      Logger^.LogSS( log.dldTrace, L"xmls", "GET ", NameOA );
+
+      IF NOT Device^.IO()^.Running THEN
+         Logger^.LogS( log.dldDebug, L"xmls", "  device is not running, nothing GET" );
+         RETURN;
+
+      ELSIF NOT Device^.Mapper()^.NameToHash( Name, OUT Hash ) THEN
+         Logger^.LogSS( log.dldTrace, L"xmls", "  unknown name, nothing GET: ", NameOA );
+         RETURN;
+
+      ELSE
+         readRequests^.Add( Hash );
+
+      END;         
+   END HandleRead;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE HandleWrite( CONST NameOA, Value : ARRAY OF WCHAR );
    VAR
       Hash : ns.THash;
       io : iovalue.Value;
@@ -321,7 +459,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
          io.FromStringOA( Value, FALSE );
          Device^.IO()^.IOh( IOO.dirWrite, Hash, REF io, NIL );
       END;         
-   END HandleItem;
+   END HandleWrite;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -332,8 +470,27 @@ CLASS IMPLEMENTATION CXMLSocketServer;
 
 (*--------------------------------------------------------------------------------*)
 
-BEGIN
-   Logger := log.logger();
+   INITIALLY CXMLSocketServer();
+   VAR
+      msg : msghandler.Message;
+   BEGIN
+      Logger := log.logger();
+
+      msg.Message := MSG_SCHEDULED_SEND;
+      _SendQueue.ConsumerMsg := ADR( msg );
+      _SendQueue.Consumer := ADR( SELF );
+   END CXMLSocketServer;
+
+(*--------------------------------------------------------------------------------*)
+
+   FINALLY CXMLSocketServer();
+   BEGIN
+      _Clients.Dispose();
+      _SendQueue.Clear();
+   END CXMLSocketServer;
+
+(*--------------------------------------------------------------------------------*)
+
 END CXMLSocketServer;
 
 (*================================================================================*)
@@ -343,55 +500,82 @@ CLASS IMPLEMENTATION CClient;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
-   CONST
-      TCL = C'>';
    VAR
       i : INTEGER;
-      S : StringsO.CString;
+      n : StringsO.CString;
+      s : StringsO.CString;
    BEGIN
-      // INIT..
-      WBuffer.Clear();
-      WBuffer.AppendOA( OA( SIZE( LEAD_XMLSOCKET )-2, ADR( LEAD_XMLSOCKET ))); WBuffer.AppendByte( TCL );
-      // ..INIT
+      StartBatch();
    
       FOR i := 0 TO HIGH( Item ) DO
+
+         IF NOT Server^.Logger^.Filtered( log.dldTrace ) THEN
+            Server^.Device^.Mapper()^.HashToName( Item[i], OUT n );
+            s := Value[i].String;
+            Server^.Logger^.LogSSSS( log.dldTrace, L"xmls", "ADV ", OA( n.Length-1, n.rawData ), L" ", OA( s.Length-1, s.rawData ));
+         END;
+
          IF Result[i] IN Sync.arsCompletions THEN
-            WBuffer.AppendOA( OA( SIZE( LEAD_ITEM )-2, ADR( LEAD_ITEM ))); WBuffer.AppendByte( TCL );
-
-            WBuffer.AppendOA( OA( SIZE( LEAD_NAME )-2, ADR( LEAD_NAME ))); WBuffer.AppendByte( TCL );
-            Server^.Device^.Mapper()^.HashToName( Item[i], OUT S );
-            LanguagesO.ToMB( S, Languages.cp_UTF8, TRUE, REF WBuffer );
-            WBuffer.AppendOA( OA( SIZE( TRAIL_NAME )-2, ADR( TRAIL_NAME ))); WBuffer.AppendByte( TCL );
-            
-            WBuffer.AppendOA( OA( SIZE( LEAD_VALUE )-2, ADR( LEAD_VALUE ))); WBuffer.AppendByte( TCL );
-            S := Value[i].String;
-            LanguagesO.ToMB( S, Languages.cp_UTF8, TRUE, REF WBuffer );
-            WBuffer.AppendOA( OA( SIZE( TRAIL_VALUE )-2, ADR( TRAIL_VALUE ))); WBuffer.AppendByte( TCL );
-            
-            WBuffer.AppendOA( OA( SIZE( TRAIL_ITEM )-2, ADR( TRAIL_ITEM ))); WBuffer.AppendByte( TCL );
-            
-            IF WBuffer.Length > 9 * WBuffer.Size DIV 10 THEN // send block and create new one
-               // SEND..
-               WBuffer.AppendOA( OA( SIZE( TRAIL_XMLSOCKET )-2, ADR( TRAIL_XMLSOCKET ))); WBuffer.AppendByte( TCL );
-               WBuffer.AppendByte( 13 ); WBuffer.AppendByte( 10 );
-               Server^.Send( ADR( SELF ), WBuffer );
-               // ..SEND
-
-               // INIT..
-               WBuffer.Clear();
-               WBuffer.AppendOA( OA( SIZE( LEAD_XMLSOCKET )-2, ADR( LEAD_XMLSOCKET ))); WBuffer.AppendByte( TCL );
-               // ..INIT
-            END;
-
+            AddItem( Item[i], Value[i] );
          END;
       END; // FOR
 
-      // SEND..
-      WBuffer.AppendOA( OA( SIZE( TRAIL_XMLSOCKET )-2, ADR( TRAIL_XMLSOCKET ))); WBuffer.AppendByte( TCL );
-      WBuffer.AppendByte( 13 ); WBuffer.AppendByte( 10 );
-      Server^.Send( ADR( SELF ), WBuffer );
-      // ..SEND
+      StopAndSendBatch();
    END OnAdvise;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE StartBatch();
+   BEGIN
+      BatchLock.Lock();
+   
+      WBuffer.Clear();
+      WBuffer.AppendOA( OA( SIZE( LEAD_XMLSOCKET )-2, ADR( LEAD_XMLSOCKET ))); WBuffer.AppendByte( TRAIL );
+   END StartBatch;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE AddItem( CONST Item : ns.THash; CONST Value : iovalue.Value );
+   VAR
+      S : StringsO.CString;
+   BEGIN
+      WBuffer.AppendOA( OA( SIZE( LEAD_NOTIFY )-2, ADR( LEAD_NOTIFY ))); WBuffer.AppendByte( TRAIL );
+
+      WBuffer.AppendOA( OA( SIZE( LEAD_NAME )-2, ADR( LEAD_NAME ))); WBuffer.AppendByte( TRAIL );
+      Server^.Device^.Mapper()^.HashToName( Item, OUT S );
+      LanguagesO.ToMB( S, Languages.cp_UTF8, TRUE, REF WBuffer );
+      WBuffer.AppendOA( OA( SIZE( TRAIL_NAME )-2, ADR( TRAIL_NAME ))); WBuffer.AppendByte( TRAIL );
+      
+      WBuffer.AppendOA( OA( SIZE( LEAD_VALUE )-2, ADR( LEAD_VALUE ))); WBuffer.AppendByte( TRAIL );
+      S := Value.String;
+      LanguagesO.ToMB( S, Languages.cp_UTF8, TRUE, REF WBuffer );
+      WBuffer.AppendOA( OA( SIZE( TRAIL_VALUE )-2, ADR( TRAIL_VALUE ))); WBuffer.AppendByte( TRAIL );
+      
+      WBuffer.AppendOA( OA( SIZE( TRAIL_NOTIFY )-2, ADR( TRAIL_NOTIFY ))); WBuffer.AppendByte( TRAIL );
+      
+      IF WBuffer.Length > 9 * WBuffer.Size DIV 10 THEN // send block and create new one
+         // like in StopAndSendBatch
+         WBuffer.AppendOA( OA( SIZE( TRAIL_XMLSOCKET )-2, ADR( TRAIL_XMLSOCKET ))); WBuffer.AppendByte( TRAIL );
+         WBuffer.AppendByte( 13 ); WBuffer.AppendByte( 10 ); WBuffer.AppendByte( 0 ); // XMLSocket requires trailing zero
+         Server^.Send( ADR( SELF ), WBuffer );
+
+         // like in StartBatch
+         WBuffer.Clear();
+         WBuffer.AppendOA( OA( SIZE( LEAD_XMLSOCKET )-2, ADR( LEAD_XMLSOCKET ))); WBuffer.AppendByte( TRAIL );
+      END;
+   END AddItem;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE StopAndSendBatch();
+   BEGIN
+      WBuffer.AppendOA( OA( SIZE( TRAIL_XMLSOCKET )-2, ADR( TRAIL_XMLSOCKET ))); WBuffer.AppendByte( TRAIL );
+      WBuffer.AppendByte( 13 ); WBuffer.AppendByte( 10 ); WBuffer.AppendByte( 0 ); // XMLSocket requires trailing zero
+
+      Server^.Send( ADR( SELF ), WBuffer );
+      
+      BatchLock.Unlock();
+   END StopAndSendBatch;
 
 (*--------------------------------------------------------------------------------*)
 
