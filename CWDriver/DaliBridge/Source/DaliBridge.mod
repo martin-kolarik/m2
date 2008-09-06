@@ -630,8 +630,9 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
       ELSE
          RETURN FALSE;
       END;
-      CurrentShort := 0;
       CurrentSelected := 0;
+      CurrentShort := 0;
+      New := addressesNone;
       
       RETURN TRUE;
    END InitProgramming;
@@ -650,6 +651,8 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
 
       State := dapInitReaddressing;
       CurrentShort := 0;
+      New := addressesNone;
+
       RETURN TRUE;
    END InitReaddressing;
 
@@ -674,7 +677,8 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
          END;
       | dapInitPairing :
          IF Positive THEN
-            State := dapCheckOne;
+            CurrentSelected := Current[CurrentShort];
+            State := dapSelectOne;
          END;
       | dapInitPartial:
          IF Positive THEN
@@ -691,14 +695,17 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
                State := dapSelectOne;
             END;
          END;
+
       | dapRandomize :
          IF Positive THEN
             State := dapStartSeek;
          ELSE
             State := dapInitPartial;
          END;
+
       | dapStartSeek :
          State := dapSeekOne;
+
       | dapSeekOne :
          IF Positive THEN
             Current[CurrentShort] := Data;
@@ -708,18 +715,23 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
             Failed := FALSE;
             State := dapFinish;
          END;
+
       | dapSelectOne :
          IF Positive THEN
-            State := dapProgramOne;
+            IF Pairing THEN
+               State := dapReadOne;
+            ELSE
+               State := dapProgramOne;
+            END;
          END;   
+
       | dapProgramOne :
          IF Positive THEN
             State := dapCheckOne;
          END;
+
       | dapCheckOne :
-         IF Pairing THEN
-            State := dapFinish; // state is set always for Pairing, but for sure:
-         ELSIF ReaddressMode THEN
+         IF ReaddressMode THEN
             Failed := TRUE;
             State := dapFinish;
          ELSE
@@ -727,25 +739,16 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
          END;
 
          // check response
-         IF Positive THEN
-            // fall down
-         ELSIF Pairing THEN // the device with address is not found, remember this
-            Current[CurrentShort] := -1;
-         ELSE // error
+         IF NOT Positive THEN
             Logger^.LogSC( dldMessage, logProgramPrefix, L"Check address failed for: ", CurrentShortAddress );
             RETURN;
          END;
          
          IF PreserveExisting THEN
-            INC( CurrentShort );
-            IF CurrentShort >= HIGH( New ) THEN
-               // we are over
-            ELSIF NOT Pairing THEN // we are programming, get address corresponding to some hole in addresses
-               FOR i := CurrentShort TO HIGH( New ) DO
-                  IF New[i] = -1 THEN // we found hole in addresses
-                     CurrentShort := i;
-                     EXIT;
-                  END;
+            FOR i := CurrentShort+1 TO HIGH( New ) DO
+               IF New[i] = -1 THEN // we found hole in addresses
+                  CurrentShort := i;
+                  EXIT;
                END;
             END;
          ELSIF ReaddressMode THEN
@@ -755,16 +758,7 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
             INC( CurrentShort );
          END;
 
-         IF Pairing THEN
-            Next := CurrentShortAddress;
-            IF Next = -1 THEN // everything scanned, try to assign address to new devices
-               New := Current; // remember existing, only unknown will be filled
-               Pairing := FALSE;
-               State := dapInitPartial; // continue with addressing of new devices in new loop
-            ELSE
-               State := dapCheckOne;
-            END;
-         ELSIF ReaddressMode THEN
+         IF ReaddressMode THEN
             Next := CurrentShortAddress;
             IF Next = -1 THEN
                Failed := FALSE;
@@ -775,6 +769,27 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
             END;
          ELSE
             State := dapShowOne; // CurrentSelected is left
+         END;
+
+      | dapReadOne :
+         IF NOT Positive THEN
+            Logger^.LogSC( dldTrace, logProgramPrefix, L"Address not found: ", CurrentSelected );
+            New[CurrentShort] := -1;
+         ELSE
+            Logger^.LogSC( dldTrace, logProgramPrefix, L"Address found: ", CurrentSelected );
+            Logger^.LogSC( dldTrace, logProgramPrefix, L"  at position: ", CurrentShort );
+            Logger^.LogSC( dldTrace, logProgramPrefix, L"  with short: ", Data );
+            New[Data] := Current[CurrentShort];
+         END;
+         INC( CurrentShort );
+
+         Next := CurrentShortAddress;
+         IF Next = -1 THEN // everything scanned, try to assign address to new devices
+            Pairing := FALSE;
+            State := dapInitPartial; // continue with addressing of new devices in new loop
+         ELSE
+            CurrentSelected := Current[CurrentShort];
+            State := dapSelectOne;
          END;
 
       | dapShowOne :
@@ -1089,12 +1104,13 @@ CLASS IMPLEMENTATION CDali;
 
                ELSIF Request^.ClientId = EXPECTED_RESPONSE THEN
                   CurrentNext := Programmer.WhatNext();
-                  IF CurrentNext = dapSeekOne THEN
+                  CASE CurrentNext OF
+                  | dapSeekOne :
                      Seeker.HandleResponse( Result = Sync.arCompleted );
-                  ELSIF CurrentNext <> dapCheckOne THEN                           
-                     Programmer.HandleResponse( TRUE, INTEGER( Response ));
-                  ELSE
+                  | dapCheckOne, dapReadOne :
                      Programmer.HandleResponse( Result = Sync.arCompleted, INTEGER( Response ));
+                  ELSE
+                     Programmer.HandleResponse( TRUE, INTEGER( Response ));
                   END;
                   ProgrammingStep();
 
@@ -1271,6 +1287,11 @@ CLASS IMPLEMENTATION CDali;
             FeedCommand( ProgrammedLinie, NIL, cmdStoreH, Address.H8, DUMMY_RESPONSE );
             FeedCommand( ProgrammedLinie, NIL, cmdStoreM, Address.M8, DUMMY_RESPONSE );
             FeedCommand( ProgrammedLinie, NIL, cmdStoreL, Address.L8, EXPECTED_RESPONSE );
+            EXIT;
+
+         | dapReadOne :
+            Logger.LogSC( dldTrace, logProgramPrefix, L"Read address: ", Programmer.CurrentShortAddress );
+            FeedCommand( ProgrammedLinie, NIL, cmdGetAddress, 0, EXPECTED_RESPONSE );
             EXIT;
 
          | dapProgramOne :
