@@ -994,6 +994,7 @@ VAR
   si : CARDINAL;
   PMFlag : BOOLEAN;
   TwelveFlag : BOOLEAN;
+  Year2Flag : BOOLEAN;
 BEGIN
   IF ( HIGH( String ) = -1 ) OR ( ADR( String ) = NIL ) THEN
     RETURN FALSE;
@@ -1003,6 +1004,7 @@ BEGIN
   si := 0;
   PMFlag := FALSE;
   TwelveFlag := FALSE;
+  Year2Flag := FALSE;
   InitDateTime( OUT LocalDateTime );
 
   LOOP
@@ -1063,6 +1065,7 @@ BEGIN
         END;
       END; // loop over leading characters
     END;
+    Year2Flag := Year2Flag OR ( Expect = eisYearTwoDigit ) OR ( Expect = eisYearTwoDigitLZ );
 
     // check is String contains required characters
     i := si + minimalStringLen[Expect] - 1; // si now points to the first unprocessed character
@@ -1239,6 +1242,10 @@ BEGIN
   IF PMFlag AND TwelveFlag AND ( LocalDateTime.Hour > 0 ) AND ( LocalDateTime.Hour < 13 ) THEN
     INC( LocalDateTime.Hour, 12 );
   END;
+  IF Year2Flag THEN
+    INC( LocalDateTime.Year, 2000 );
+  END;
+  
   DateTime := LocalDateTime;
   RETURN TRUE;
 END StringToDateTimeLang;

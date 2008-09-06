@@ -517,8 +517,8 @@ END CreateAutoresetSignal;
 PROCEDURE DeleteSignal( REF S : SIGNAL );
 BEGIN
   IF S <> NIL THEN
-    windows.CloseHandle( S );
     LeakDEALLOCATE( S );
+    windows.CloseHandle( S );
     S := NIL;
   END;
 END DeleteSignal;

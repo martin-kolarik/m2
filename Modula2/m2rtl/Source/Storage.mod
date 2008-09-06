@@ -51,13 +51,13 @@ BEGIN
   IF a = NIL THEN
     RETURN;
   ELSE
+    LeakDEALLOCATE( a );
     #if DEBUG #then
       malloc.free( a );
       // ASSERT( malloc._heapchk() = malloc._HEAPOK );
     #else
       windows.HeapFree( GHeap, 0, a );
     #endif
-    LeakDEALLOCATE( a );
   END;
   a := NIL;
 END M2DEALLOCATE;
