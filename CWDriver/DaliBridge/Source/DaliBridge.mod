@@ -594,8 +594,20 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
 
    PUBLIC PROPERTY CurrentShortAddress GET : CARDINAL;
    BEGIN
-      IF ReaddressMode THEN
-         RETURN Readdress[CurrentShort];
+      IF Pairing THEN
+         IF CurrentShort > 63 THEN
+            RETURN -1;
+         ELSIF Current[CurrentShort] = -1 THEN
+            RETURN -1;
+         ELSE
+            RETURN CurrentShort;
+         END;
+      ELSIF ReaddressMode THEN
+         IF CurrentShort > 63 THEN
+            RETURN -1;
+         ELSE
+            RETURN Readdress[CurrentShort];
+         END;
       ELSE
          RETURN CurrentShort;
       END;
@@ -603,28 +615,40 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
       
 (*-------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE InitProgramming( VerifyFlag : BOOLEAN );
+   PUBLIC PROCEDURE InitProgramming( PreserveExisting : BOOLEAN ) : BOOLEAN;
    BEGIN
       Current := addressesNone;
       ReaddressMode := FALSE;
-      SELF.VerifyFlag := VerifyFlag;
-      State := dapInit;
-      CurrentSelected := 0;
+      SELF.PreserveExisting := PreserveExisting;
+      SELF.Pairing := PreserveExisting;
+
+      IF NOT Pairing THEN
+         State := dapInitFull;
+         HaveAddresses := FALSE;
+      ELSIF HaveAddresses THEN
+         State := dapInitPairing;
+      ELSE
+         RETURN FALSE;
+      END;
       CurrentShort := 0;
-      HaveAddresses := FALSE;
+      CurrentSelected := 0;
+      
+      RETURN TRUE;
    END InitProgramming;
 
 (*-------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE InitReaddressing( Readdress : TAddresses; VerifyFlag : BOOLEAN ) : BOOLEAN;
+   PUBLIC PROCEDURE InitReaddressing( Readdress : TAddresses ) : BOOLEAN;
    BEGIN
       IF NOT HaveAddresses THEN
          RETURN FALSE;
       END;
       ReaddressMode := TRUE;
-      SELF.VerifyFlag := VerifyFlag;
       SELF.Readdress := Readdress;
-      State := dapInit;
+      SELF.PreserveExisting := FALSE;
+      SELF.Pairing := FALSE;
+
+      State := dapInitReaddressing;
       CurrentShort := 0;
       RETURN TRUE;
    END InitReaddressing;
@@ -640,30 +664,38 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
 
    PUBLIC PROCEDURE HandleResponse( Positive : BOOLEAN; Data : INTEGER );
    VAR
-      DA : DaliAddress;
+      i : CARDINAL;
       Next : CARDINAL;
    BEGIN
       CASE State OF
-      | dapInit :
+      | dapInitFull :
          IF Positive THEN
-            IF ReaddressMode THEN
-               Next := CurrentShortAddress;
-               IF Next = -1 THEN
-                  Failed := FALSE;
-                  State := dapFinish;
-               ELSE
-                  CurrentSelected := Current[CurrentShort];
-                  State := dapSelectOne;
-               END;
+            State := dapRandomize;
+         END;
+      | dapInitPairing :
+         IF Positive THEN
+            State := dapCheckOne;
+         END;
+      | dapInitPartial:
+         IF Positive THEN
+            State := dapRandomize;
+         END;
+      | dapInitReaddressing :
+         IF Positive THEN
+            Next := CurrentShortAddress;
+            IF Next = -1 THEN
+               Failed := FALSE;
+               State := dapFinish;
             ELSE
-               State := dapRandomize;
+               CurrentSelected := Current[CurrentShort];
+               State := dapSelectOne;
             END;
          END;
       | dapRandomize :
          IF Positive THEN
             State := dapStartSeek;
          ELSE
-            State := dapInit;
+            State := dapInitPartial;
          END;
       | dapStartSeek :
          State := dapSeekOne;
@@ -685,37 +717,54 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
             State := dapCheckOne;
          END;
       | dapCheckOne :
-         IF ReaddressMode THEN
+         IF Pairing THEN
+            State := dapFinish; // state is set always for Pairing, but for sure:
+         ELSIF ReaddressMode THEN
             Failed := TRUE;
             State := dapFinish;
          ELSE
             State := dapDisableOne;
          END;
 
-         IF VerifyFlag THEN
-            IF NOT Positive THEN
-               Logger^.LogSC( dldMessage, logProgramPrefix, L"Check address failed for: ", CurrentShortAddress );
-               RETURN;
-            END;
-         ELSE
-            IF NOT Positive THEN // should not occur
-               RETURN;
-            END;
-
-            DA.Type := DaliBridge.adrSingle;
-            DA.Address := CurrentShortAddress;
-            IF INTEGER( DA.TransportAddress OR 01H ) <> Data THEN
-               Logger^.LogSC( dldMessage, logProgramPrefix, L"Check address failed for: ", DA.Address );
-               Logger^.LogSC( dldMessage, logProgramPrefix, L"                received: ", Data );
-               RETURN;
-            END;
+         // check response
+         IF Positive THEN
+            // fall down
+         ELSIF Pairing THEN // the device with address is not found, remember this
+            Current[CurrentShort] := -1;
+         ELSE // error
+            Logger^.LogSC( dldMessage, logProgramPrefix, L"Check address failed for: ", CurrentShortAddress );
+            RETURN;
          END;
          
-         IF ReaddressMode THEN
+         IF PreserveExisting THEN
+            INC( CurrentShort );
+            IF CurrentShort >= HIGH( New ) THEN
+               // we are over
+            ELSIF NOT Pairing THEN // we are programming, get address corresponding to some hole in addresses
+               FOR i := CurrentShort TO HIGH( New ) DO
+                  IF New[i] = -1 THEN // we found hole in addresses
+                     CurrentShort := i;
+                     EXIT;
+                  END;
+               END;
+            END;
+         ELSIF ReaddressMode THEN
             New[CurrentShortAddress] := CurrentSelected;
+            INC( CurrentShort );
+         ELSE
+            INC( CurrentShort );
          END;
-         INC( CurrentShort );
-         IF ReaddressMode THEN
+
+         IF Pairing THEN
+            Next := CurrentShortAddress;
+            IF Next = -1 THEN // everything scanned, try to assign address to new devices
+               New := Current; // remember existing, only unknown will be filled
+               Pairing := FALSE;
+               State := dapInitPartial; // continue with addressing of new devices in new loop
+            ELSE
+               State := dapCheckOne;
+            END;
+         ELSIF ReaddressMode THEN
             Next := CurrentShortAddress;
             IF Next = -1 THEN
                Failed := FALSE;
@@ -727,6 +776,7 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
          ELSE
             State := dapShowOne; // CurrentSelected is left
          END;
+
       | dapShowOne :
          IF Positive THEN
             State := dapDisableOne;
@@ -748,15 +798,36 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
 
 (*-------------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE GetLongAddresses( OUT Addresses : TAddresses ) : BOOLEAN;
+   BEGIN
+      IF HaveAddresses THEN
+         Addresses := Current;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END GetLongAddresses;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE LoadLongAddresses( CONST Addresses : TAddresses );
+   BEGIN
+      Current := Addresses;
+      HaveAddresses := TRUE;
+   END LoadLongAddresses;
+
+(*-------------------------------------------------------------------------------*)
+
 BEGIN
    Current := addressesNone;
    New := addressesNone;
    Readdress := addressesNone;
-   State := dapInit;
+   State := dapInitFull;
    CurrentSelected := 0;
    CurrentShort := 0;
    ReaddressMode := FALSE;
-   VerifyFlag := FALSE;
+   PreserveExisting := FALSE;
+   Pairing := FALSE;
    Failed := FALSE;
    HaveAddresses := FALSE;
    Logger := NIL;
@@ -897,29 +968,30 @@ CLASS IMPLEMENTATION CDali;
    
 (*-------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE StartProgramming( Linie : CARDINAL; VerifyFlag : BOOLEAN );
+   PUBLIC PROCEDURE StartProgramming( Linie : CARDINAL; PreserveExisting : BOOLEAN ) : BOOLEAN;
    VAR
       Msg : msghandler.Message;
    BEGIN
-      IF Programming THEN
-         RETURN;
+      IF Programming OR NOT Programmer.InitProgramming( PreserveExisting ) THEN
+         RETURN FALSE;
       END;
 
-      Programmer.InitProgramming( VerifyFlag );
       Programming := TRUE;
       ProgrammedLinie := Linie;
 
       Msg.Message := MSG_START_PROGRAMMING;
       Message( Msg, msghandler.delDefault, NIL );
+      
+      RETURN TRUE;
    END StartProgramming;
 
 (*-------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Readdress( Linie : CARDINAL; Readdressed : TAddresses; VerifyFlag : BOOLEAN ) : BOOLEAN;
+   PUBLIC PROCEDURE Readdress( Linie : CARDINAL; CONST Readdressed : TAddresses ) : BOOLEAN;
    VAR
       Msg : msghandler.Message;
    BEGIN
-      IF Programming OR NOT Programmer.InitReaddressing( Readdressed, VerifyFlag ) THEN
+      IF Programming OR NOT Programmer.InitReaddressing( Readdressed ) THEN
          RETURN FALSE;
       END;
 
@@ -931,6 +1003,20 @@ CLASS IMPLEMENTATION CDali;
       RETURN TRUE;
    END Readdress;
    
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE LoadLongAddresses( CONST Addresses : TAddresses );
+   BEGIN
+      Programmer.LoadLongAddresses( Addresses );
+   END LoadLongAddresses;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE GetLongAddresses( OUT Addresses : TAddresses ) : BOOLEAN;
+   BEGIN
+      RETURN Programmer.GetLongAddresses( OUT Addresses );
+   END GetLongAddresses;
+
 (*-------------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
@@ -1008,11 +1094,7 @@ CLASS IMPLEMENTATION CDali;
                   ELSIF CurrentNext <> dapCheckOne THEN                           
                      Programmer.HandleResponse( TRUE, INTEGER( Response ));
                   ELSE
-                     IF Programmer.VerifyFlag THEN // programmed addresses are verified by cmdCheckAddress, not by cmdGetAddress
-                        Programmer.HandleResponse( Result = Sync.arCompleted, INTEGER( Response ));
-                     ELSE
-                        Programmer.HandleResponse( TRUE, INTEGER( Response ));
-                     END;
+                     Programmer.HandleResponse( Result = Sync.arCompleted, INTEGER( Response ));
                   END;
                   ProgrammingStep();
 
@@ -1118,7 +1200,29 @@ CLASS IMPLEMENTATION CDali;
    BEGIN
       LOOP
          CASE Programmer.WhatNext() OF
-         | dapInit :
+         | dapInitFull :
+            FeedCommand( ProgrammedLinie, NIL, cmdTerminate, 0, DUMMY_RESPONSE );
+
+            DA.Type := DaliBridge.adrAll;
+            FeedCommand( ProgrammedLinie, ADR( DA ), cmdMin, 0, DUMMY_RESPONSE );
+            FeedCommand( ProgrammedLinie, NIL, cmdLoadDTR, 0FFH, DUMMY_RESPONSE );
+            FeedCommand( ProgrammedLinie, ADR( DA ), cmdDTRToAddress, 0FFH, DUMMY_RESPONSE );
+
+            FeedCommand( ProgrammedLinie, NIL, cmdInitialize, 0FFH, EXPECTED_RESPONSE );
+            EXIT;
+
+         | dapInitPairing :
+            FeedCommand( ProgrammedLinie, NIL, cmdTerminate, 0, DUMMY_RESPONSE );
+            EXIT;
+
+         | dapInitPartial :
+            DA.Type := DaliBridge.adrAll;
+            FeedCommand( ProgrammedLinie, ADR( DA ), cmdMin, 0, DUMMY_RESPONSE );
+
+            FeedCommand( ProgrammedLinie, NIL, cmdInitialize, 0FFH, EXPECTED_RESPONSE );
+            EXIT;
+
+         | dapInitReaddressing :
             FeedCommand( ProgrammedLinie, NIL, cmdTerminate, 0, DUMMY_RESPONSE );
 
             DA.Type := DaliBridge.adrAll;
@@ -1178,13 +1282,9 @@ CLASS IMPLEMENTATION CDali;
 
          | dapCheckOne :
             Logger.LogSC( dldTrace, logProgramPrefix, L"Check address: ", Programmer.CurrentShortAddress );
-            IF Programmer.VerifyFlag THEN
-               DA.Type := DaliBridge.adrSingle;
-               DA.Address := Programmer.CurrentShortAddress;
-               FeedCommand( ProgrammedLinie, NIL, cmdCheckAddress, DA.TransportAddress OR 01H, EXPECTED_RESPONSE );
-            ELSE
-               FeedCommand( ProgrammedLinie, NIL, cmdGetAddress, 0, EXPECTED_RESPONSE );
-            END;
+            DA.Type := DaliBridge.adrSingle;
+            DA.Address := Programmer.CurrentShortAddress;
+            FeedCommand( ProgrammedLinie, NIL, cmdCheckAddress, DA.TransportAddress OR 01H, EXPECTED_RESPONSE );
             EXIT;
 
          | dapShowOne :

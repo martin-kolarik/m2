@@ -175,11 +175,8 @@ CLASS IMPLEMENTATION CDriver;
 
    PUBLIC VIRTUAL PROCEDURE EnumerateChannels( REF EnumerateState : LONGWORD; OUT Type : drv_def.TValueType; OUT Direction : drv_def.TDirection; OUT DriverIndex, Count : CARDINAL; OUT HaveDescription : BOOLEAN ): BOOLEAN;
    VAR
-      Index : CARDINAL;
+      Index : CARDINAL := EnumerateState;
    BEGIN
-      IF EnumerateState = LONGWORD( 0 ) THEN // start enumeration
-         Index := 0;
-      END;
       Count := 1;
       HaveDescription := TRUE;
       
@@ -400,6 +397,7 @@ CLASS IMPLEMENTATION CDriver;
       Error, Success;
    VAR
       address : DaliBridge.DaliAddress;
+      AddressArray : DaliBridge.TAddresses;
       c : CARDINAL;
       command : DaliBridge.TDaliCommand;
       CS : StringsO.CString;
@@ -412,7 +410,6 @@ CLASS IMPLEMENTATION CDriver;
       Level : CARDINAL;
       Linie : CARDINAL;
       N : ARRAY [0..15] OF WCHAR;
-      ReaddressArray : DaliBridge.TAddresses;
       S1, S2, S3 : ARRAY [0..63] OF WCHAR;
       
       //-----
@@ -824,7 +821,29 @@ CLASS IMPLEMENTATION CDriver;
          END;
 
          Fill( ADR( StatusArray ), SIZE( StatusArray ), 0FFH ); // force report new statuses
-         Dali.StartProgramming( Linie, EQUALS( S3, L"use_verify" ));
+         IF Dali.StartProgramming( Linie, FALSE ) THEN
+            CS.Clear(); // return value
+         ELSE
+            CS.FromOA( L'error: addressing cannot start (maybe addressing is already running?)' );
+            GOTO Error;
+         END;
+
+      ELSIF EQUALS( S1, L'program_missing_addresses' )  THEN
+         IF S2[0] = 0W THEN
+            CS.FromOA( L'error: missing linie number' );
+            GOTO Error;
+         ELSIF NOT Strings.ToCARD32W( S2, 10, OUT Linie ) THEN
+            CS.FromOA( L'error: bad linie number' );
+            GOTO Error;
+         END;
+
+         Fill( ADR( StatusArray ), SIZE( StatusArray ), 0FFH ); // force report new statuses
+         IF Dali.StartProgramming( Linie, TRUE ) THEN
+            CS.Clear(); // return value
+         ELSE
+            CS.FromOA( L'error: addressing cannot start (maybe no addresses was loaded yet?)' );
+            GOTO Error;
+         END;
 
       ELSIF EQUALS( S1, L'readdress' )  THEN
          IF S2[0] = 0W THEN
@@ -835,14 +854,14 @@ CLASS IMPLEMENTATION CDriver;
             GOTO Error;
          END;
 
-         ReaddressArray := DaliBridge.addressesNone;
+         AddressArray := DaliBridge.addressesNone;
          index := 0;
          i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 2, TRUE, OUT S3 ); Strings.TrimW( REF S3 );
          LOOP
             IF S3[0] = 0W THEN
                EXIT;
             END;
-            IF NOT Strings.ToCARD32W( S3, 10, OUT ReaddressArray[index] ) OR ( ReaddressArray[index] > 63 ) THEN
+            IF NOT Strings.ToCARD32W( S3, 10, OUT AddressArray[index] ) OR ( AddressArray[index] > 63 ) THEN
                CS.FromOA( L'error: bad device address: ' );
                CS.AppendOA( S3 );
                GOTO Error;
@@ -852,10 +871,48 @@ CLASS IMPLEMENTATION CDriver;
          END; // LOOP
 
          Fill( ADR( StatusArray ), SIZE( StatusArray ), 0FFH ); // force report new statuses
-         IF NOT Dali.Readdress( 0, ReaddressArray, FALSE ) THEN
-            CS.FromOA( L'error: readdressing cannot start (maybe no addressing was started yet?)' );
+         IF Dali.Readdress( 0, AddressArray ) THEN
+            CS.Clear();
+         ELSE
+            CS.FromOA( L'error: readdressing cannot start (maybe no addresses are known yet?)' );
             GOTO Error;
          END;
+
+      ELSIF EQUALS( S1, L'get_addresses' )  THEN
+         IF Dali.GetLongAddresses( OUT AddressArray ) THEN
+            CS.Clear();
+         ELSE
+            CS.FromOA( L'error: addresses cannot be get (maybe no addresses are known yet?)' );
+            GOTO Error;
+         END;
+         
+         i := 0;
+         WHILE AddressArray[i] <> -1 DO
+            Strings.FromCARD32W( AddressArray[i], 10, OUT S1 );
+            CS.AppendOA( S1 );
+            CS.AppendOA( L" " );
+            INC( i );
+         END; // WHILE
+
+      ELSIF EQUALS( S1, L'load_addresses' )  THEN
+         AddressArray := DaliBridge.addressesNone;
+         index := 0;
+         i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 2, TRUE, OUT S3 ); Strings.TrimW( REF S3 );
+         LOOP
+            IF S3[0] = 0W THEN
+               EXIT;
+            END;
+            IF NOT Strings.ToCARD32W( S3, 10, OUT AddressArray[index] ) OR ( AddressArray[index] > 2<<24-1 ) THEN
+               CS.FromOA( L'error: bad device long address: ' );
+               CS.AppendOA( S3 );
+               GOTO Error;
+            END;
+            i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S3 ); Strings.TrimW( REF S3 );
+            INC( index );
+         END; // LOOP
+
+         Dali.LoadLongAddresses( AddressArray );
+         CS.Clear(); // return value
 
       ELSE
          CS.FromOA( L'error: unknown driver procedure' );

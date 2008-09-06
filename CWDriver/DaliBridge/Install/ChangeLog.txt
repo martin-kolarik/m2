@@ -1,3 +1,9 @@
+Version 1.0.1771 beta 6.9.2008
+- BUG: enumeration of known channels sometimes failed, there was used uninitialized
+       variable
+- NEW: three new commands were added: program_missing_addresses, get_addresses,
+       load_addresses       
+
 Version 1.0.1756 beta 20.8.2008
 - BUG: commands sent to DALI before interface booting up were not passed to DALI
        and the communication stopped

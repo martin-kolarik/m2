@@ -137,7 +137,7 @@ CONST
    
 TYPE
    TCommand = (
-      dapInit,
+      dapInitFull, dapInitPairing, dapInitPartial, dapInitReaddressing,
       dapRandomize,
       dapStartSeek,
       dapSeekOne,
@@ -159,18 +159,22 @@ CLASS CDaliAddressProgrammer;
       CurrentSelected : INTEGER;
       CurrentShort : CARDINAL;
       ReaddressMode : BOOLEAN;
+      PreserveExisting : BOOLEAN;
+      Pairing : BOOLEAN;
       HaveAddresses : BOOLEAN;
    LOCAL VAR
       Logger : log.TPLogger;
-      VerifyFlag : BOOLEAN; // programmed addresses are verifified by cmdCheckAddress, not by cmdGetAddress
       Failed : BOOLEAN;
    PUBLIC READONLY PROPERTY
       CurrentLongAddress : TProgramAddress;
       CurrentShortAddress : CARDINAL;
-   PUBLIC PROCEDURE InitProgramming( VerifyFlag : BOOLEAN );
-   PUBLIC PROCEDURE InitReaddressing( Readdress : TAddresses; VerifyFlag : BOOLEAN ) : BOOLEAN;
+   PUBLIC PROCEDURE InitProgramming( PreserveExisting : BOOLEAN ) : BOOLEAN;
+   PUBLIC PROCEDURE InitReaddressing( Readdress : TAddresses ) : BOOLEAN;
    PUBLIC PROCEDURE WhatNext() : TCommand;
    PUBLIC PROCEDURE HandleResponse( Positive : BOOLEAN; Data : INTEGER );
+   
+   PUBLIC PROCEDURE GetLongAddresses( OUT Addresses : TAddresses ) : BOOLEAN;
+   PUBLIC PROCEDURE LoadLongAddresses( CONST Addresses : TAddresses );
 END CDaliAddressProgrammer;
 
 (*-------------------------------------------------------------------------------*)
@@ -213,8 +217,10 @@ CLASS CDali( msghandler.MessageHandler ) IMPLEMENTS ICommunicatorSink;
    PUBLIC PROCEDURE Command( Linie : CARDINAL; CONST daliAddress : DaliAddress; Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
    // completes immediatelly or results to IEventSink callback
    
-   PUBLIC PROCEDURE StartProgramming( Linie : CARDINAL; VerifyFlag : BOOLEAN ); // VerifyFlag = TRUE means cmdCheckAddress instead of cmdGetAddress will be used
-   PUBLIC PROCEDURE Readdress( Linie : CARDINAL; Readdressed : TAddresses; VerifyFlag : BOOLEAN ) : BOOLEAN;
+   PUBLIC PROCEDURE StartProgramming( Linie : CARDINAL; PreserveExisting : BOOLEAN ) : BOOLEAN;
+   PUBLIC PROCEDURE Readdress( Linie : CARDINAL; CONST Readdressed : TAddresses ) : BOOLEAN;
+   PUBLIC PROCEDURE LoadLongAddresses( CONST Addresses : TAddresses );
+   PUBLIC PROCEDURE GetLongAddresses( OUT Addresses : TAddresses ) : BOOLEAN;
    
    // MessageHandler -- in thread
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
