@@ -1,3 +1,12 @@
+Version 1.0.1770 beta 6.9.2008
+- BUG: CheckCfg.exe did not display error messages
+- CHG: XMLSocket <item> tag renamed to <notify> without changing the meaning
+- NEW: XMLSocket <ask> tag added, client can use it to ask value from server,
+       server responses asynchronously
+- NEW: Server is now able to convert time and date values from/to strings using
+       format mask. There are new parameters time_as_string, date_as_string,
+       time_format and date_format in configuration file.    
+
 Version 1.0.1758 beta 1.9.2008
 - BUG: server did not finish XMLSocket data with trailing zero, data were
        not received with Flash

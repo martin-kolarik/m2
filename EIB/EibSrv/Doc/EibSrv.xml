@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="windows-1250"?>
-<document file="WagoLib" xmlns="http://www.mii.cz/2004/XML/Document/Common">
+<document file="SmartServer"
+          xmlns="http://www.mii.cz/2004/XML/Document/Common">
   <header creator="martin" doc_type="generic" last_modified="2008-08-15"
           last_modifier="martin" version="1.0.1516.0"></header>
   <adjustment>
@@ -363,6 +364,63 @@ objects = 5/3/100..5/3/119</p.type>
                 počátečním čtením), <file>06 complex-object.cfg</file> (datové
                 body spojené s více skupinovými adresami), <file>08
                 blocks.cfg</file> (definice datových bodů pomocí sekce <type>[blocks]</type>).</p>
+              </text>
+            </section>
+            <section level="3">
+              <title><type>[formats]</type></title>
+              <text>
+                <dl>
+                  <caption>Sekce <type>[formats]</type> definuje následující
+                  parametry:</caption>
+                  <dt><type>time_as_string</type> a <type>date_as_string</type></dt>
+                  <dd><p>pro zapnutí převodu časových a datumových údajů do
+                  textového formátu a naopak. Server ve výchozím stavu pracuje
+                  s datem i časem jako s čísly, která mohou být v klientech
+                  obtížně převoditelná. Server pro převod použije masku
+                  určenou parametrem <type>time_format</type> nebo <type>date_format</type>.
+                  Příklad:</p><p.type>time_as_string = true
+date_as_string = true</p.type></dd>
+                  <dt><type>time_format</type> a <type>date_format</type></dt>
+                  <dd><p>maska pro převod časových a datumových údajů do
+                  textového formátu a naopak. Maska se uplatní pouze pokud je
+                  parametr <type>time_as_string</type> nebo <type>date_as_string</type>
+                  nastaven na hodnotu <type>true</type>. Příklad:</p><p.type>time_format = HH:mm
+date_format = dd. MMMM yyyy</p.type><p>Ve formátech jsou platné následující
+                  kombinace formátovacích znaků:</p><t.table>
+                      <table>
+                        <tr>
+                          <td>kombinace</td>
+                          <td>význam</td>
+                        </tr>
+                        <tr>
+                          <td><type>h</type>, <type>hh</type>, <type>H</type>,
+                          <type>HH</type></td>
+                          <td>12hodinový čas bez a s vedoucí nulou, 24hodinový
+                          čas bez a s vedoucí nulou</td>
+                        </tr>
+                        <tr>
+                          <td><type>m</type>, <type>mm</type>, <type>s</type>,
+                          <type>ss</type></td>
+                          <td>minuty bez a s vedoucí nulou, sekundy bez a
+                          s vedoucí nulou</td>
+                        </tr>
+                        <tr>
+                          <td><type>d</type>, <type>dd</type></td>
+                          <td>číslo dne bez a s vedoucí nulou</td>
+                        </tr>
+                        <tr>
+                          <td><type>M</type>, <type>MM</type>, <type>MMM</type>,
+                          <type>MMMM</type></td>
+                          <td>číslo měsíce bez a s vedoucí nulou, zkratka
+                          názvu měsíce, název měsíce</td>
+                        </tr>
+                        <tr>
+                          <td><type>yy</type>, <type>yyyy</type></td>
+                          <td>dvouciferné a plné číslo roku</td>
+                        </tr>
+                      </table>
+                    </t.table></dd>
+                </dl>
               </text>
             </section>
             <section level="3">
