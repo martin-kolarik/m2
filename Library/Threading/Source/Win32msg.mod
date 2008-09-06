@@ -444,9 +444,9 @@ CLASS IMPLEMENTATION Win32MessageHandler;
       #if DEBUG #then
         Handlers.Remove( ADR( SELF ));
       #endif
+      LeakDEALLOCATE( ADDRESS( HWND ));
       windows.SetWindowLongPtr( HWND, windows.GWL_USERDATA, windows.LONG_PTR( 0 ));
       windows.DestroyWindow( HWND );
-      LeakDEALLOCATE( ADDRESS( HWND ));
       HWND := NIL;
       __F();
     END;
