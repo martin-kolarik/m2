@@ -39,6 +39,7 @@ VAR
    R : Resources.CResources;
    stdout : TextWriter.TPTextWriter := TextWriter.stdout();
 BEGIN
+   EIB.EXEFlag := TRUE;
    R.LoadRES2( EMIT( %exe ), L"checkcfg.Texts" );
 
    i := 1;

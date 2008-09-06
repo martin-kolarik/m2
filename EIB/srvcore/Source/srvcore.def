@@ -142,6 +142,11 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    IgnoreRepeated           : BOOLEAN;
    WriteDelay               : CARDINAL;
 
+   DateAsString             : BOOLEAN;
+   DateFormat               : StringsO.CString;
+   TimeAsString             : BOOLEAN;
+   TimeFormat               : StringsO.CString;
+
    ReadOnStart              : TReadParameters;
    ReadDuringRun            : TReadParameters;
    InitReadRepeatDelay      : CARDINAL;

@@ -61,7 +61,7 @@ class SmartServerConnector extends XMLSocket {
         Root = Container.createElement( "xmlsocket" );
         Container.appendChild( Root );
 
-        I = Container.createElement( "item" );
+        I = Container.createElement( "notify" );
         Root.appendChild( I );
 
         N = Container.createElement( "name" );
@@ -70,6 +70,29 @@ class SmartServerConnector extends XMLSocket {
 
         N = Container.createElement( "value" );
         N.appendChild( Container.createTextNode( DataValue ));
+        I.appendChild( N );  
+
+        super.send( Root.toString());
+    }
+    
+    function AskValue( DataName : String ) {
+        var I, N : XMLNode;
+        
+        if( !Connected || DataName == "" ) {
+          return;
+        }
+
+        if( Root != null ) {
+            Root.removeNode();
+        }
+        Root = Container.createElement( "xmlsocket" );
+        Container.appendChild( Root );
+
+        I = Container.createElement( "ask" );
+        Root.appendChild( I );
+
+        N = Container.createElement( "name" );
+        N.appendChild( Container.createTextNode( DataName ));  
         I.appendChild( N );  
 
         super.send( Root.toString());
@@ -86,12 +109,16 @@ class SmartServerConnector extends XMLSocket {
         };
         I = I.firstChild;
         while (I != null) {
-            if( I.nodeName == "item" ) {
+            if( I.nodeName == "notify" ) {
                 N = I.firstChild;
                 if( N != null && N.nodeName == "name" ) {
                     Name = N.firstChild.toString();
                     N = N.nextSibling;
-                    Value = N.firstChild.toString();
+                    if( N.firstChild == null ) {
+                        Value = "";
+                    } else {
+                        Value = N.firstChild.toString();
+                    }
                     N = N.nextSibling;
 
                     Event.type = "onReceive";

@@ -566,19 +566,28 @@ objects = 5/3/100..5/3/119</p.type>
                 <p>XML v protokolu má následující formát (ukázka skuteèného
                 XML):</p>
                 <p.type>&lt;xmlsocket&gt;
-  &lt;item&gt;
+  &lt;notify&gt;
     &lt;name&gt;3/1/0&lt;/name&gt;
     &lt;value&gt;true&lt;/value&gt;
-  &lt;/item&gt;
+  &lt;/notify&gt;
 &lt;/xmlsocket&gt;</p.type>
                 <p>Skupinová adresa ve znaèce <type>name</type> nemusí být
                 serveru známa, server v takovém pøípadì požadavek ignoruje.
-                Znaèek item mùže být uvnitø jedné znaèky xmlsocket více, což
-                dovoluje pøenáše více hodnot jedinou komunikací.</p>
-                <p>XMLSocket protokol je výhradnì událostní. Klient nepožaduje
-                po serveru data, server klientovi data posílá sám, pokud dojde
-                k jejich zmìnì. Stejným zpùsobem pracuje také klient, který
-                data do serveru posílá jen pokud u nìj došlo ke zmìnì.</p>
+                Znaèek <type>notify</type> mùže být uvnitø jedné znaèky <type>xmlsocket</type>
+                více, což dovoluje pøenáše více hodnot jedinou komunikací.</p>
+                <p>XMLSocket protokol je pøedevším událostní, server posílá
+                klientovi data pøi jejich zmìnì. Klient však také má možnost
+                server o data požádat, napøíklad pokud se animace ve Flash
+                startuje. Formát dat požadujících hodnotu ze serveru je
+                (ukázka skuteèného XML):</p>
+                <p.type>&lt;xmlsocket&gt;
+  &lt;ask&gt;
+    &lt;name&gt;2/0/0&lt;/name&gt;
+  &lt;/ask&gt;
+&lt;/xmlsocket&gt;</p.type>
+                <p>Znaèek <type>ask</type> uvnitø <type>xmlsocket</type> mùže
+                být rovnìž více, takže klient mùže jedinou komunikací požádat
+                o více dat najednou.</p>
               </text>
             </section>
           </text>
@@ -669,24 +678,29 @@ objects = 5/3/100..5/3/119</p.type>
                 sestavování XML).</p>
                 <dl>
                   <caption>V ukázce pro Adobe Flash jsou soubory:</caption>
-                  <dt><file>main.as</file></dt>
+                  <dt><file>SmartServerConnector.as</file></dt>
                   <dd><p>Soubor s ukázkou hlavního komunikaèního skriptu,
                   který jednak analyzuje XML a jednak volá potøebným prvkùm
                   v animaci procedury oznamující zmìnu hodnoty (prvkùm které
                   se zaregistrovaly). </p><p>Implementace komunikace je
                   zapouzdøena do tøídy <type>SmartServerConnector</type>,
                   tøída programu ve Flashi nabízí metody <type>Connect</type>,
-                  <type>Close</type> a <type>Send</type> a události (které
-                  program mùže poslouchat) <type>onConnect</type>, <type>onClose</type>
-                  a <type>onReceive</type>.</p></dd>
+                  <type>Close</type>, <type>AskValue</type> a <type>Send</type>
+                  a události (které program mùže poslouchat) <type>onConnect</type>,
+                  <type>onClose</type> a <type>onReceive</type>.</p></dd>
                   <dt><file>send.as</file></dt>
                   <dd><p>Soubor s ukázkou sestavení a odeslání dat z Flashe do
                   SmartServeru.</p><p>Skript pro ukázku definuje promìnnou
                   <type>Connection</type>, která je komunikaèní tøídou ze
-                  skriptu <file>main.as</file>, a volá jeho metodu <type>Connect</type>.
-                  Tento kód ve skuteèné aplikaci pravdìpodobnì bude umístìn
-                  v jiném místì, než v obsluze uživatelské události
-                  tlaèítka.</p></dd>
+                  skriptu <file>SmartServerConnector.as</file>, a volá jeho
+                  metodu <type>Connect</type>. Tento kód ve skuteèné aplikaci
+                  pravdìpodobnì bude umístìn v jiném místì, než v obsluze
+                  uživatelské události tlaèítka.</p></dd>
+                  <dt><file>SmartServer.fla</file></dt>
+                  <dd><p>Zdrojový soubor velmi jednoduché animace se dvìma
+                  tlaèítky (jedno pro ètení hodnoty, druhé pro zápis). Soubor
+                  obsahuje odkaz na zmínìný hlavní skript
+                  <file>SmartServerConnector.as</file> a využívá jej.</p></dd>
                 </dl>
                 <p>Ukázkové skripty je možné do aplikace pro Adobe Flash
                 vložit napøíklad pomocí schránky.</p>

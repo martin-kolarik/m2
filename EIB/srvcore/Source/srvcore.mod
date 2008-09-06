@@ -667,6 +667,11 @@ CLASS IMPLEMENTATION CEIBServer;
       knESFAdapt             = L'esf_adapt';
       knBlock                = L'block';
       knType                 = L'type';
+      snFormats              = L'formats';
+      knDateAsString         = L'date_as_string';
+      knDateFormat           = L'date_format';
+      knTimeAsString         = L'time_as_string';               
+      knTimeFormat           = L'time_format';
 
    //----------
 
@@ -1477,6 +1482,23 @@ CLASS IMPLEMENTATION CEIBServer;
          END; // WHILE knObject        
 
       END; // WHILE Blocks
+      
+      // read formats
+      IF TS.SetSection( snFormats ) THEN
+         IF TS.GetKeyBool( knDateAsString, OUT ErrorLine, OUT b ) THEN
+            DateAsString := b;
+         END;
+         IF TS.GetKeyStr( knDateFormat, OUT ErrorLine, OUT so ) THEN
+            DateFormat := so;
+         END;
+
+         IF TS.GetKeyBool( knTimeAsString, OUT ErrorLine, OUT b ) THEN
+            TimeAsString := b;
+         END;
+         IF TS.GetKeyStr( knTimeFormat, OUT ErrorLine, OUT so ) THEN
+            TimeFormat := so;
+         END;
+      END; // IF snFormats
 
       EIB^.SetStackAddress( Address );
 
@@ -1833,6 +1855,8 @@ CLASS IMPLEMENTATION CEIBServer;
       IgnoreRepeated := TRUE;
       InitReadRepeatDelay := 5000;
       InitReadRepeatCount := 3;
+      TimeAsString := FALSE;
+      DateAsString := FALSE;
       WITH ReadOnStart DO
          Timeout := 1500;
          RepeatCount := 1;
@@ -1936,6 +1960,7 @@ CLASS IMPLEMENTATION CEIBServer;
       H, M, S, WD : CARDINAL;
       i : INTEGER;
       s : ARRAY [0..31] OF WCHAR;
+      so : StringsO.CString;
       Y, MM, D : INTEGER;
    BEGIN
       EV.SetType( DestEVType );
@@ -1958,13 +1983,31 @@ CLASS IMPLEMENTATION CEIBServer;
          END;
 
       | eib_def.eitTime :
-         c := Value.Integer;
-         WD := c DIV 100000;
-         c := c - WD * 100000;
-         H := c DIV 3600;
-         c := c - H * 3600;
-         M := c DIV 60;
-         S := c MOD 60;
+         IF TimeAsString THEN
+            Time.InitDateTime( OUT DT );
+            so := Value.String;
+            IF TimeFormat.Empty THEN
+               IF NOT Time.StringToDateTime( OA( so.Length-1, so.rawData ), L"HH:mm:ss", OUT DT ) THEN
+                  Logger.LogSSSS( log.dldError, L"srv", L"string to time conversion failure: ", OA( so.Length-1, so.rawData ), L", format: HH:mm:ss", L"" );
+               END;
+            ELSE
+               IF NOT Time.StringToDateTime( OA( so.Length-1, so.rawData ), OA( TimeFormat.Length-1, TimeFormat.rawData ), OUT DT ) THEN
+                  Logger.LogSSSS( log.dldError, L"srv", L"string to time conversion failure: ", OA( so.Length-1, so.rawData ), L", format: ", OA( TimeFormat.Length-1, TimeFormat.rawData ));
+               END;
+            END;
+            WD := 0;
+            H := DT.Hour;
+            M := DT.Minute;
+            S := DT.Second;
+         ELSE
+            c := Value.Integer;
+            WD := c DIV 100000;
+            c := c - WD * 100000;
+            H := c DIV 3600;
+            c := c - H * 3600;
+            M := c DIV 60;
+            S := c MOD 60;
+         END;
          CASE WD OF
          | 0 :
             Time.GetCurrentLocalDateTime( DT );
@@ -1977,7 +2020,24 @@ CLASS IMPLEMENTATION CEIBServer;
          EV.SetTime( Day, H, M, S );
 
       | eib_def.eitDate :
-         Time.iJD( Value.Date, OUT Y, OUT MM, OUT D, OUT fd );
+         IF DateAsString THEN
+            Time.InitDateTime( OUT DT );
+            so := Value.String;
+            IF DateFormat.Empty THEN
+               IF NOT Time.StringToDateTime( OA( so.Length-1, so.rawData ), L"yyyy-MM-dd", OUT DT ) THEN
+                  Logger.LogSSSS( log.dldError, L"srv", L"string to date conversion failure: ", OA( so.Length-1, so.rawData ), L", format: yyyy-MM-dd", L"" );
+               END;
+            ELSE
+               IF NOT Time.StringToDateTime( OA( so.Length-1, so.rawData ), OA( DateFormat.Length-1, DateFormat.rawData ), OUT DT ) THEN
+                  Logger.LogSSSS( log.dldError, L"srv", L"string to date conversion failure: ", OA( so.Length-1, so.rawData ), L", format: ", OA( DateFormat.Length-1, DateFormat.rawData ));
+               END;
+            END;
+            Y := DT.Year;
+            MM := DT.Month;
+            D := DT.Day;
+         ELSE
+            Time.iJD( Value.Date, OUT Y, OUT MM, OUT D, OUT fd );
+         END;
          EV.SetDate( Y, MM, D );
 
       | eib_def.eitValue, eib_def.eitValueRange :
@@ -2023,7 +2083,8 @@ CLASS IMPLEMENTATION CEIBServer;
    VAR
       c : CARDINAL;
       Day : eib_def.TDay;
-      s : ARRAY [0..31] OF WCHAR;
+      dt : Time.TDateTime;
+      s : ARRAY [0..255] OF WCHAR;
       Y, M, D, H, S : CARDINAL;
       b1 : BOOLEAN;
       b2 : BOOLEAN;
@@ -2049,11 +2110,45 @@ CLASS IMPLEMENTATION CEIBServer;
 
       | eib_def.eitTime :
          EV.GetTime( Day, H, M, S );
-         Value.Integer := CARDINAL( Day ) * 100000 + ( H * 60 + M ) * 60 + S;
+         IF TimeAsString THEN
+            Time.InitDateTime( OUT dt );
+            dt.Hour := H;
+            dt.Minute := M;
+            dt.Second := S;
+            IF TimeFormat.Empty THEN // use default format
+               b1 := Time.DateTimeToString( dt, L"HH:mm:ss", FALSE, TRUE, s );
+            ELSE
+               b1 := Time.DateTimeToString( dt, OA( TimeFormat.Length-1, TimeFormat.rawData ), FALSE, TRUE, s );
+            END;
+            IF b1 THEN
+               Value.FromStringOA( s, FALSE );
+            ELSE
+               Value.FromStringOA( L"", FALSE );
+            END;
+         ELSE
+            Value.Integer := CARDINAL( Day ) * 100000 + ( H * 60 + M ) * 60 + S;
+         END;
 
       | eib_def.eitDate :
          EV.GetDate( Y, M, D );
-         Value.Date := Time.JD( Y, M, D, 0 );
+         IF DateAsString THEN
+            Time.InitDateTime( OUT dt );
+            dt.Year := Y;
+            dt.Month := M;
+            dt.Day := D;
+            IF DateFormat.Empty THEN
+               b1 := Time.DateTimeToString( dt, L"yyyy-MM-dd", TRUE, FALSE, s );
+            ELSE
+               b1 := Time.DateTimeToString( dt, OA( DateFormat.Length-1, DateFormat.rawData ), TRUE, FALSE, s );
+            END;
+            IF b1 THEN
+               Value.FromStringOA( s, FALSE );
+            ELSE
+               Value.FromStringOA( L"", FALSE );
+            END;
+         ELSE
+            Value.Date := Time.JD( Y, M, D, 0 );
+         END;
 
       | eib_def.eitValue, eib_def.eitValueRange :
          Value.Float := EV.GetValue();
