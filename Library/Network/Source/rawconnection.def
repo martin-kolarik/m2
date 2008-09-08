@@ -1,4 +1,4 @@
-DEFINITION MODULE netconnection;
+DEFINITION MODULE rawconnection;
 
 (*================================================================================*)
 
@@ -6,6 +6,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
    
 IMPORT
+   connection,
    inetaddr,
    IOO,
    netsocket,
@@ -23,26 +24,27 @@ TYPE
 TYPE
    TPTCPConnection = POINTER TO TCPConnection;
 
-CLASS TCPConnection;
+CLASS TCPConnection IMPLEMENTS connection.IBufferedClientConnection;
    LOCAL VAR
       _BStream : IOO.CBufferedStream;
       _NStream : netstream.CNetworkStream;
       _Notifier : TPConnectionNotifier;
       _Socket : netsocket.TPDSocket;
 
-   PUBLIC PROPERTY
+   PUBLIC VIRTUAL PROPERTY
       CallbackMode : IOO.TCallbackMode; // default ioo.cbmPooled
       Notifier : netsocket.TPSocketNotifier;
 
-   PUBLIC READONLY PROPERTY
+   PUBLIC VIRTUAL READONLY PROPERTY
       Connected : BOOLEAN;
       LocalAddress : inetaddr.INETADDR;
       RemoteAddress : inetaddr.INETADDR;
-      Stream : IOO.TPBufferedStream;
+      Stream : IOO.TPStream;
+      BufferedStream : IOO.TPBufferedStream;
    
-   PUBLIC PROCEDURE Open( Host : StringsO.CString; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
-   PUBLIC PROCEDURE OpenOA( Host : ARRAY OF WCHAR; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
-   PUBLIC PROCEDURE Close();
+   PUBLIC VIRTUAL PROCEDURE Open( Host : ARRAY OF WCHAR; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE OpenS( Host : StringsO.CString; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Close();
 
 END TCPConnection;
 
@@ -50,4 +52,4 @@ END TCPConnection;
 
 #restore
 
-END netconnection.
+END rawconnection.

@@ -1,4 +1,4 @@
-IMPLEMENTATION MODULE netconnection;
+IMPLEMENTATION MODULE rawconnection;
 
 IMPORT
    msgqueuethread,
@@ -250,70 +250,77 @@ CLASS IMPLEMENTATION TCPConnection;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY CallbackMode GET : IOO.TCallbackMode;
+   PUBLIC VIRTUAL PROPERTY CallbackMode GET : IOO.TCallbackMode;
    BEGIN
       RETURN _Notifier^.CallbackMode;
    END CallbackMode;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY CallbackMode SET( Value : IOO.TCallbackMode );
+   PUBLIC VIRTUAL PROPERTY CallbackMode SET( Value : IOO.TCallbackMode );
    BEGIN
       _Notifier^.CallbackMode := Value;
    END CallbackMode;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Notifier GET : netsocket.TPSocketNotifier;
+   PUBLIC VIRTUAL PROPERTY Notifier GET : netsocket.TPSocketNotifier;
    BEGIN
       RETURN _Notifier^.Notifier;
    END Notifier;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Notifier SET( Value: netsocket.TPSocketNotifier );
+   PUBLIC VIRTUAL PROPERTY Notifier SET( Value: netsocket.TPSocketNotifier );
    BEGIN
       _Notifier^.Notifier := Value;
    END Notifier;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Connected GET : BOOLEAN;
+   PUBLIC VIRTUAL PROPERTY Connected GET : BOOLEAN;
    BEGIN
       RETURN _Socket^.Connected;
    END Connected;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY LocalAddress GET : inetaddr.INETADDR;
+   PUBLIC VIRTUAL PROPERTY LocalAddress GET : inetaddr.INETADDR;
    BEGIN
       RETURN _Socket^.LocalAddress;
    END LocalAddress;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY RemoteAddress GET : inetaddr.INETADDR;
+   PUBLIC VIRTUAL PROPERTY RemoteAddress GET : inetaddr.INETADDR;
    BEGIN
       RETURN _Socket^.RemoteAddress;
    END RemoteAddress;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Stream GET : IOO.TPBufferedStream;
+   PUBLIC VIRTUAL PROPERTY Stream GET : IOO.TPStream;
    BEGIN
       RETURN ADR( _BStream );
    END Stream;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Open( Host : StringsO.CString; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROPERTY BufferedStream GET : IOO.TPBufferedStream;
    BEGIN
-      RETURN OpenOA( OA( Host.Length-1, Host.rawData ), WaitForResult, TimeoutMS );
-   END Open;
+      RETURN ADR( _BStream );
+   END BufferedStream;
+   
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE OpenS( Host : StringsO.CString; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   BEGIN
+      RETURN Open( OA( Host.Length-1, Host.rawData ), WaitForResult, TimeoutMS );
+   END OpenS;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE OpenOA( Host : ARRAY OF WCHAR; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Open( Host : ARRAY OF WCHAR; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    BEGIN
       Close();
       
@@ -327,11 +334,11 @@ CLASS IMPLEMENTATION TCPConnection;
       ELSE
          RETURN _Socket^.WaitCompletion( Sync.FOREVER );
       END;
-   END OpenOA;
+   END Open;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Close();
+   PUBLIC VIRTUAL PROCEDURE Close();
    BEGIN
       _BStream.Close( TRUE );
    END Close;
@@ -363,4 +370,4 @@ END TCPConnection;
 
 (*================================================================================*)
 
-END netconnection.
+END rawconnection.
