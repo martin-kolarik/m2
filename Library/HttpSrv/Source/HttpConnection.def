@@ -1,0 +1,24 @@
+DEFINITION MODULE HttpConnection;
+
+(*================================================================================*)
+
+IMPORT
+   connection,
+   HttpCommon;
+   
+(*================================================================================*)
+
+TYPE
+   TPIHttpSrvConnection = POINTER TO IHttpSrvConnection;
+
+INTERFACE IHttpSrvConnection( connection.IServerConnection );
+
+   READONLY PROPERTY
+      RequestHeaders : HttpCommon.TPHttpHeaders;
+      ResponseHeaders : HttpCommon.TPHttpHeaders;
+
+END IHttpSrvConnection;
+
+(*================================================================================*)
+
+END HttpConnection.

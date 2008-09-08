@@ -6,8 +6,8 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-   httpapi,
    IOO,
+   HttpCommon,
    maps,
    StringsO,
    Sync;
@@ -15,113 +15,18 @@ IMPORT
 //================================================================================
 
 TYPE
+   TPHttpRequest = POINTER TO IHttpRequest;
    TPSession = POINTER TO ISession;
    TPContainer = POINTER TO CContainer; // model container
    TPController = POINTER TO IController;
    TPHttpServer = POINTER TO IHttpServer;
    TPView = POINTER TO IView;
    
-//================================================================================
-
-TYPE
-   TPHttpHeaders = POINTER TO IHttpHeaders;
-   TPHttpRequest = POINTER TO IHttpRequest;
-   
-//--------------------------------------------------------------------------------
-
-TYPE
-   TKnownHeader = (
-      Unknown,
-   
-      // Common Headers
-      CacheControl,
-      Connection,
-      Date,
-      KeepAlive,
-      Pragma,
-      Trailer,
-      TransferEncoding,
-      Upgrade,
-      Via,
-      Warning,
-
-      Allow,
-      ContentLength,
-      ContentType,
-      ContentEncoding,
-      ContentLanguage,
-      ContentLocation,
-      ContentMd5,
-      ContentRange,
-      Expires,
-      LastModified,
-      
-      // Request Headers
-      Accept,
-      AcceptCharset,
-      AcceptEncoding,
-      AcceptLanguage,
-      Authorization,
-      Cookie,
-      Expect,
-      From,
-      Host,
-      IfMatch,
-
-      IfModifiedSince,
-      IfNoneMatch,
-      IfRange,
-      IfUnmodifiedSince,
-      MaxForwards,
-      ProxyAuthorization,
-      Referer,
-      Range,
-      Te,
-      Translate,
-
-      UserAgent,
-
-      // Response Headers
-      AcceptRanges,
-      Age,
-      Etag,
-      Location,
-      ProxyAuthenticate,
-      RetryAfter,
-      Server,
-      SetCookie,
-      Vary,
-      WwwAuthenticate
-   );
-   
-   TVerb = (
-      verbUnknown,
-      verbGET,
-      verbPOST,
-      verbHEAD
-   );
-
-//--------------------------------------------------------------------------------
-
-INTERFACE IHttpHeaders;
-   PROCEDURE Contains( Header : TKnownHeader ) : BOOLEAN;
-   PROCEDURE Get( Header : TKnownHeader; OUT Value : StringsO.IString ) : BOOLEAN;
-   PROCEDURE GetOA( Header : TKnownHeader; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
-   PROCEDURE Add( Header : TKnownHeader; CONST Value : StringsO.IString );
-   PROCEDURE AddOA( Header : TKnownHeader; CONST Value : ARRAY OF WCHAR );
-   
-   PROCEDURE Enumerate( Known, Uknown : BOOLEAN; REF ES : PTR; OUT Name, Value : StringsO.IString ) : BOOLEAN;
-
-   PROCEDURE ContainsUnknown( CONST Name : ARRAY OF WCHAR ) : BOOLEAN;
-   PROCEDURE GetUnknown( CONST Name : ARRAY OF WCHAR; OUT Value : StringsO.IString ) : BOOLEAN;
-   PROCEDURE AddUnknown( CONST Name : ARRAY OF WCHAR; CONST Value : StringsO.IString );
-END IHttpHeaders;
-
 //--------------------------------------------------------------------------------
 
 INTERFACE IHttpRequest;
    READONLY PROPERTY
-      Headers : TPHttpHeaders;
+      Headers : HttpCommon.TPHttpHeaders;
       Container : TPContainer; // there is model named "" and model named "session"
       Session : TPSession;
 END IHttpRequest;
@@ -161,7 +66,7 @@ END IView;
 //--------------------------------------------------------------------------------
 
 INTERFACE IController;
-   PROCEDURE AppliesFor( Verb : TVerb; CONST URL : ARRAY OF WCHAR ) : BOOLEAN;
+   PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR ) : BOOLEAN;
    PROCEDURE ProcessRequest( CONST Request : TPHttpRequest; CONST Container : TPContainer; OUT View : TPView ) : BOOLEAN;
 END IController;
 

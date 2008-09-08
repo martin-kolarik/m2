@@ -174,4 +174,23 @@ END DecodeQueryURL;
 
 (*===========================================================================*)
 
+PROCEDURE GetRedirectCode( Redirect : TRedirect; HTTP10Flag : BOOLEAN ) : HttpCommon.THttpResponse; // HTTP status code
+BEGIN
+   IF Redirect = redirectPermanently THEN
+      IF HTTP10Flag THEN
+         RETURN HttpCommon.httpres_302;
+      ELSE
+         RETURN HttpCommon.httpres_302;
+      END;
+   ELSE
+      IF HTTP10Flag THEN
+         RETURN HttpCommon.httpres_302;
+      ELSE
+         RETURN HttpCommon.httpres_302;
+      END;
+   END;
+END GetRedirectCode;
+
+(*===========================================================================*)
+
 END HttpTools.

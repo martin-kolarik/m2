@@ -1,0 +1,132 @@
+DEFINITION MODULE HttpCommon;
+
+(*================================================================================*)
+
+IMPORT
+   maps,
+   StringsO,
+   Sync;
+
+(*================================================================================*)
+
+TYPE
+   THttpResponse = (
+      httpres_200 = 200,
+      httpres_204 = 204,
+
+      httpres_301 = 301,
+      httpres_302 = 302,
+      httpres_303 = 303,
+      httpres_304 = 304,
+      httpres_307 = 307,
+
+      httpres_400 = 400,
+      httpres_401 = 401,
+      httpres_403 = 403,
+      httpres_404 = 404,
+      httpres_405 = 405,
+      httpres_412 = 412,
+
+      httpres_500 = 500,
+      httpres_501 = 501,
+      httpres_503 = 503
+   );
+
+(*================================================================================*)
+
+TYPE
+   TPHttpHeaders = POINTER TO IHttpHeaders;
+   
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TKnownHeader = (
+      Unknown,
+   
+      // Common Headers
+      CacheControl,
+      Connection,
+      Date,
+      KeepAlive,
+      Pragma,
+      Trailer,
+      TransferEncoding,
+      Upgrade,
+      Via,
+      Warning,
+
+      Allow,
+      ContentLength,
+      ContentType,
+      ContentEncoding,
+      ContentLanguage,
+      ContentLocation,
+      ContentMd5,
+      ContentRange,
+      Expires,
+      LastModified,
+      
+      // Request Headers
+      Accept,
+      AcceptCharset,
+      AcceptEncoding,
+      AcceptLanguage,
+      Authorization,
+      Cookie,
+      Expect,
+      From,
+      Host,
+      IfMatch,
+
+      IfModifiedSince,
+      IfNoneMatch,
+      IfRange,
+      IfUnmodifiedSince,
+      MaxForwards,
+      ProxyAuthorization,
+      Referer,
+      Range,
+      Te,
+      Translate,
+
+      UserAgent,
+
+      // Response Headers
+      AcceptRanges,
+      Age,
+      Etag,
+      Location,
+      ProxyAuthenticate,
+      RetryAfter,
+      Server,
+      SetCookie,
+      Vary,
+      WwwAuthenticate
+   );
+   
+   TVerb = (
+      verbUnknown,
+      verbGET,
+      verbPOST,
+      verbHEAD
+   );
+
+(*--------------------------------------------------------------------------------*)
+
+INTERFACE IHttpHeaders;
+   PROCEDURE Contains( Header : TKnownHeader ) : BOOLEAN;
+   PROCEDURE Get( Header : TKnownHeader; OUT Value : StringsO.IString ) : BOOLEAN;
+   PROCEDURE GetOA( Header : TKnownHeader; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
+   PROCEDURE Add( Header : TKnownHeader; CONST Value : StringsO.IString );
+   PROCEDURE AddOA( Header : TKnownHeader; CONST Value : ARRAY OF WCHAR );
+   
+   PROCEDURE Enumerate( Known, Uknown : BOOLEAN; REF ES : PTR; OUT Name, Value : StringsO.IString ) : BOOLEAN;
+
+   PROCEDURE ContainsUnknown( CONST Name : ARRAY OF WCHAR ) : BOOLEAN;
+   PROCEDURE GetUnknown( CONST Name : ARRAY OF WCHAR; OUT Value : StringsO.IString ) : BOOLEAN;
+   PROCEDURE AddUnknown( CONST Name : ARRAY OF WCHAR; CONST Value : StringsO.IString );
+END IHttpHeaders;
+
+(*================================================================================*)
+
+END HttpCommon.

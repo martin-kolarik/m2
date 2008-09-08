@@ -1,6 +1,7 @@
 DEFINITION MODULE HttpTools;
 
 IMPORT
+   HttpCommon,
    maps,
    StringsO,
    time;
@@ -29,6 +30,17 @@ PROCEDURE FormatContentOA( Content : TContent; CONST RFC1766Code : ARRAY OF WCHA
 (*---------------------------------------------------------------------------*)
 
 PROCEDURE DecodeQueryURL( XFormFlag : BOOLEAN; FirstCharsSkipCount : INTEGER; CONST Encoded : ARRAY OF WCHAR; OUT Decoded : maps.CStringStringMap ); // Key of list (String) contains NAME, Data of list (PTR) contains allocated VALUE -- client must dispose them
+
+(*===========================================================================*)
+
+TYPE
+   TRedirect = (
+      redirectUnknown,
+      redirectTemporarily,
+      redirectPermanently
+   );
+
+PROCEDURE GetRedirectCode( Redirect : TRedirect; HTTP10Flag : BOOLEAN ) : HttpCommon.THttpResponse;
 
 (*===========================================================================*)
 
