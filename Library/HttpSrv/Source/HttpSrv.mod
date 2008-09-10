@@ -28,6 +28,7 @@ IMPORT
 
 TYPE
    TPHeaders = POINTER TO CHeaders;
+   TPHttpConnection = POINTER TO CHttpConnection;
 
 //================================================================================
 
@@ -555,6 +556,236 @@ FINALLY
 END CHeaders;
 
 //================================================================================
+
+CLASS CHttpApiStream( IOO.AStream ); // synchronous implementation only
+
+   // AStream
+   PUBLIC VIRTUAL READONLY PROPERTY
+      CanRead : BOOLEAN;
+      CanWrite : BOOLEAN;
+      CanSeek : BOOLEAN;
+      Long : BOOLEAN;
+   PUBLIC VIRTUAL PROPERTY
+      Length : CARD64;
+      Position : CARD64;
+
+   PUBLIC VIRTUAL PROCEDURE Seek( Origin : IOO.TSeekOrigin; Position : INT64 ); 
+   PUBLIC VIRTUAL PROCEDURE Flush();
+   PUBLIC VIRTUAL PROCEDURE Close( Persist : BOOLEAN );
+  
+   INTERNAL VIRTUAL PROCEDURE Start( Direction : IOO.TDirection; OperationTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   INTERNAL VIRTUAL PROCEDURE Abort( Direction : IOO.TDirection );
+
+   // SELF
+   PRIVATE VAR
+      _HttpHandle : Sync.WAITABLE;
+      _Request : httpapi.PHTTP_REQUEST;
+      _Connection : TPHttpConnection;
+      _ReadOut : BOOLEAN;
+      _HeaderSent : BOOLEAN;
+      _DataSent : BOOLEAN;
+
+   PROCEDURE FromHttpApiRequest( httpHandle : Sync.WAITABLE; request : httpapi.PHTTP_REQUEST; connection : TPHttpConnection );
+   
+END CHttpApiStream;
+
+
+(*================================================================================*)
+
+CLASS IMPLEMENTATION CHttpApiStream;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY CanRead GET : BOOLEAN;
+   BEGIN
+      RETURN NOT _ReadOut;
+   END CanRead;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY CanWrite GET : BOOLEAN;
+   BEGIN
+      RETURN NOT _DataSent;
+   END CanWrite;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY CanSeek GET : BOOLEAN;
+   BEGIN
+      RETURN FALSE;
+   END CanSeek;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Long GET : BOOLEAN;
+   BEGIN
+      RETURN TRUE;
+   END Long;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Length GET : CARD64;
+   BEGIN
+      IF _ReadOut THEN
+         RETURN 0;
+      ELSE
+         RETURN -1;
+      END;
+   END Length;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Length SET( Value : CARD64 );
+   BEGIN // unusable
+   END Length;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Position GET : CARD64;
+   BEGIN
+      RETURN -1;
+   END Position;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Position SET( Value : CARD64 );
+   BEGIN
+      Seek( IOO.soBegin, Value );
+   END Position;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Seek( Origin : IOO.TSeekOrigin; Position : INT64 ); 
+   BEGIN
+      ASSERT( FALSE ); // not seekable      
+   END Seek;
+   
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Flush();
+   VAR
+      FlushOutBuffer : ARRAY [0..4095] OF BYTE;
+      l : CARDINAL;
+   BEGIN
+      // only read side can be flushed
+      IF NOT _ReadOut THEN
+         _ReadOut := TRUE;
+         WHILE httpapi.HttpReceiveRequestEntityBody( _HttpHandle, _Request^.RequestId, 0, ADR( FlushOutBuffer ), SIZE( FlushOutBuffer ), OUT l, NIL ) = winerror.ERROR_MORE_DATA DO END;
+      END;
+   END Flush;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Close( Persist : BOOLEAN );
+   BEGIN
+      // persist takes no sense
+      SendHeaders();
+      IF NOT _DataSent THEN
+         _DataSent := TRUE;
+         httpapi.HttpSendHttpResponse( _HttpHandle, _Request^.RequestId, 0, ADR( _Response ), NIL, NIL, NIL, 0, NIL, NIL );
+      END;
+   END Close;
+  
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE Start( Direction : IOO.TDirection; OperationTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   VAR
+      Chunk : httpapi.HTTP_DATA_CHUNK;
+      error : CARDINAL;
+      L2 : CARDINAL;
+      Result : Sync.TAsyncResult;
+   BEGIN
+      IF ( Direction = IOO.dirRead ) AND _ReadOut THEN
+         Result := Sync.arNoData;
+         
+      ELSIF ( Direction = IOO.dirWrite ) AND _DataSent THEN
+         Result := Sync.arCannotStart;
+
+      ELSE
+        Chunk.DataChunkType := httpapi.HttpDataChunkFromMemory;
+         WHILE DevicePrepareData( Direction, OUT Chunk.pBuffer, OUT Chunk.BufferLength ) DO
+            L2 := 0;
+            IF Direction = IOO.dirRead THEN
+               error := httpapi.HttpReceiveRequestEntityBody(
+                           _HttpHandle, _Request^.RequestId, 0,
+                           Chunk.pBuffer, Chunk.BufferLength, OUT L2,
+                           NIL );
+               IF L2 < Chunk.BufferLength THEN
+                  IF ( error <> winerror.ERROR_SUCCESS ) AND ( error <> winerror.ERROR_HANDLE_EOF ) THEN
+                     _ReadOut := TRUE;
+                     Result := Sync.arAborted;
+                  ELSIF L2 = 0 THEN
+                     _ReadOut := TRUE;
+                     Result := Sync.arNoData;
+                  ELSE
+                     Result := Sync.arCompleted;
+                  END;
+               ELSIF error = winerror.ERROR_MORE_DATA THEN
+                  Result := Sync.arCompleted;
+               ELSE
+                  Result := Sync.arAborted;
+               END;
+
+            ELSE // write
+               SendHeaders();
+               error := httpapi.HttpSendResponseEntityBody(
+                           _HttpHandle, _Request^.RequestId, httpapi.HTTP_SEND_RESPONSE_FLAG_MORE_DATA,
+                           1, ADR( Chunk ), ADR( L2 ),
+                           NIL, 0, NIL, NIL );
+               IF ( error <> 0 ) OR ( L2 < Chunk.BufferLength ) THEN
+                  Result := Sync.arAborted;
+               END;
+
+            END; // IF direction
+
+            DeviceCompleteData( Direction, L2 );
+            IF ( error <> 0 ) OR ( L2 < Chunk.BufferLength ) THEN
+               EXIT;
+            END;
+         END; // WHILE
+      END; // IF Direction
+      
+      CASE Result OF
+      |  Sync.arPending,
+         Sync.arAlreadyPending,
+         Sync.arCannotStart :
+      ELSE
+         DeviceFinish( Direction, Result );
+      END;
+      RETURN Result;
+   END Start;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE Abort( Direction : IOO.TDirection );
+   BEGIN
+      DeviceFinish( Direction, Sync.arAborted );
+   END Abort;
+
+(*--------------------------------------------------------------------------------*)
+
+   PROCEDURE FromHttpApiRequest( httpHandle : Sync.WAITABLE; request : httpapi.PHTTP_REQUEST; connection : TPHttpConnection );
+   BEGIN
+      _HttpHandle := httpHandle;
+      _Request := request;
+      _Connection := connection;
+      _ReadOut := FALSE;
+      _HeaderSent := FALSE;
+      _DataSent := FALSE;
+   END FromHttpApiRequest;
+   
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+   _HttpHandle := NIL;
+   _Request := NIL;
+   _Connection := NIL;
+   _ReadOut := FALSE;
+   _HeaderSent := FALSE;
+   _DataSent := FALSE;
+END CHttpApiStream;
+
+(*================================================================================*)
 
 CLASS CHttpConnection IMPLEMENTS HttpConnection.IHttpSrvConnection;
 
