@@ -9,7 +9,7 @@ IMPORT
 (*================================================================================*)
 
 TYPE
-   TPIHttpSrvConnection = POINTER TO IHttpSrvConnection;
+   TPHttpSrvConnection = POINTER TO IHttpSrvConnection;
 
 INTERFACE IHttpSrvConnection( connection.IServerConnection );
 

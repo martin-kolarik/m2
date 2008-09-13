@@ -8,6 +8,7 @@ FROM Storage IMPORT
 IMPORT
    IOO,
    HttpCommon,
+   HttpConnection,
    maps,
    StringsO,
    Sync;
@@ -15,6 +16,7 @@ IMPORT
 //================================================================================
 
 TYPE
+   TPHttpProcessor = POINTER TO IHttpProcessor;
    TPHttpRequest = POINTER TO IHttpRequest;
    TPSession = POINTER TO ISession;
    TPContainer = POINTER TO CContainer; // model container
@@ -22,6 +24,13 @@ TYPE
    TPHttpServer = POINTER TO IHttpServer;
    TPView = POINTER TO IView;
    
+//--------------------------------------------------------------------------------
+
+INTERFACE IHttpProcessor;
+   PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT WantsSession : BOOLEAN ) : BOOLEAN;
+   PROCEDURE ProcessRequest( CONST Connection : HttpConnection.TPHttpSrvConnection; CONST Session : TPSession );
+END IHttpProcessor;
+
 //--------------------------------------------------------------------------------
 
 INTERFACE IHttpRequest;
@@ -91,8 +100,8 @@ INTERFACE IHttpServer;
    PROCEDURE Start() : Sync.TAsyncResult;
    PROCEDURE Stop();
    
-   PROCEDURE RegisterController( Controller : TPController );
-   PROCEDURE ForgetController( Controller : TPController );
+   PROCEDURE RegisterProcessor( Processor : TPHttpProcessor );
+   PROCEDURE ForgetProcessor( Processor : TPHttpProcessor );
 END IHttpServer;
 
 //================================================================================

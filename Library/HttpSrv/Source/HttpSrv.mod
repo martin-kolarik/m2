@@ -27,7 +27,7 @@ IMPORT
 //================================================================================
 
 TYPE
-   TPHeaders = POINTER TO CHeaders;
+   TPHttpApiStream = POINTER TO CHttpApiStream;
    TPHttpConnection = POINTER TO CHttpConnection;
 
 //================================================================================
@@ -577,18 +577,35 @@ CLASS CHttpApiStream( IOO.AStream ); // synchronous implementation only
    INTERNAL VIRTUAL PROCEDURE Abort( Direction : IOO.TDirection );
 
    // SELF
+   PUBLIC READONLY PROPERTY
+      RequestHeaders : HttpCommon.TPHttpHeaders;
+      ResponseHeaders : HttpCommon.TPHttpHeaders;
+   PUBLIC PROPERTY
+      StatusCode : HttpCommon.THttpResponse;
+   
+   LOCAL WRITEONLY PROPERTY
+      HttpHandle : Sync.WAITABLE;
+   LOCAL READONLY PROPERTY
+      Request : httpapi.PHTTP_REQUEST;
+      RequestSpace : CARDINAL;
+   PUBLIC PROCEDURE RequestBufferComplete();
+   
    PRIVATE VAR
       _HttpHandle : Sync.WAITABLE;
-      _Request : httpapi.PHTTP_REQUEST;
-      _Connection : TPHttpConnection;
+      _Request : StorageO.CMemoryBuffer;
+      _Response : httpapi.HTTP_RESPONSE;
+      _RequestHeaders : CHeaders;
+      _ResponseHeaders : CHeaders;
       _ReadOut : BOOLEAN;
       _HeaderSent : BOOLEAN;
       _DataSent : BOOLEAN;
 
-   PROCEDURE FromHttpApiRequest( httpHandle : Sync.WAITABLE; request : httpapi.PHTTP_REQUEST; connection : TPHttpConnection );
-   
+   // helpers
+   PRIVATE PROCEDURE PrepareResponse();
+   PRIVATE PROCEDURE FillStatus( Status : HttpCommon.THttpResponse );
+   PRIVATE PROCEDURE AddDefaultHeaders();
+   PRIVATE PROCEDURE SendHeaders();
 END CHttpApiStream;
-
 
 (*================================================================================*)
 
@@ -670,19 +687,18 @@ CLASS IMPLEMENTATION CHttpApiStream;
       // only read side can be flushed
       IF NOT _ReadOut THEN
          _ReadOut := TRUE;
-         WHILE httpapi.HttpReceiveRequestEntityBody( _HttpHandle, _Request^.RequestId, 0, ADR( FlushOutBuffer ), SIZE( FlushOutBuffer ), OUT l, NIL ) = winerror.ERROR_MORE_DATA DO END;
+         WHILE httpapi.HttpReceiveRequestEntityBody( _HttpHandle, Request^.RequestId, 0, ADR( FlushOutBuffer ), SIZE( FlushOutBuffer ), OUT l, NIL ) = winerror.ERROR_MORE_DATA DO END;
       END;
    END Flush;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Close( Persist : BOOLEAN );
+   PUBLIC VIRTUAL PROCEDURE Close( Persist : BOOLEAN ); // persist takes no sense
    BEGIN
-      // persist takes no sense
       SendHeaders();
       IF NOT _DataSent THEN
          _DataSent := TRUE;
-         httpapi.HttpSendHttpResponse( _HttpHandle, _Request^.RequestId, 0, ADR( _Response ), NIL, NIL, NIL, 0, NIL, NIL );
+         httpapi.HttpSendHttpResponse( _HttpHandle, Request^.RequestId, 0, ADR( _Response ), NIL, NIL, NIL, 0, NIL, NIL );
       END;
    END Close;
   
@@ -702,12 +718,12 @@ CLASS IMPLEMENTATION CHttpApiStream;
          Result := Sync.arCannotStart;
 
       ELSE
-        Chunk.DataChunkType := httpapi.HttpDataChunkFromMemory;
+         Chunk.DataChunkType := httpapi.HttpDataChunkFromMemory;
          WHILE DevicePrepareData( Direction, OUT Chunk.pBuffer, OUT Chunk.BufferLength ) DO
             L2 := 0;
             IF Direction = IOO.dirRead THEN
                error := httpapi.HttpReceiveRequestEntityBody(
-                           _HttpHandle, _Request^.RequestId, 0,
+                           _HttpHandle, Request^.RequestId, 0,
                            Chunk.pBuffer, Chunk.BufferLength, OUT L2,
                            NIL );
                IF L2 < Chunk.BufferLength THEN
@@ -729,7 +745,7 @@ CLASS IMPLEMENTATION CHttpApiStream;
             ELSE // write
                SendHeaders();
                error := httpapi.HttpSendResponseEntityBody(
-                           _HttpHandle, _Request^.RequestId, httpapi.HTTP_SEND_RESPONSE_FLAG_MORE_DATA,
+                           _HttpHandle, Request^.RequestId, httpapi.HTTP_SEND_RESPONSE_FLAG_MORE_DATA,
                            1, ADR( Chunk ), ADR( L2 ),
                            NIL, 0, NIL, NIL );
                IF ( error <> 0 ) OR ( L2 < Chunk.BufferLength ) THEN
@@ -764,22 +780,135 @@ CLASS IMPLEMENTATION CHttpApiStream;
 
 (*--------------------------------------------------------------------------------*)
 
-   PROCEDURE FromHttpApiRequest( httpHandle : Sync.WAITABLE; request : httpapi.PHTTP_REQUEST; connection : TPHttpConnection );
+   PUBLIC VIRTUAL PROPERTY RequestHeaders GET : HttpCommon.TPHttpHeaders;
    BEGIN
-      _HttpHandle := httpHandle;
-      _Request := request;
-      _Connection := connection;
-      _ReadOut := FALSE;
-      _HeaderSent := FALSE;
-      _DataSent := FALSE;
-   END FromHttpApiRequest;
+      RETURN ADR( _RequestHeaders );
+   END RequestHeaders;
    
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY ResponseHeaders GET : HttpCommon.TPHttpHeaders;
+   BEGIN
+      RETURN ADR( _ResponseHeaders );
+   END ResponseHeaders;
+      
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY StatusCode GET : HttpCommon.THttpResponse;
+   BEGIN
+      RETURN HttpCommon.THttpResponse( _Response.StatusCode );
+   END StatusCode;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROPERTY HttpHandle SET( Value : Sync.WAITABLE );
+   BEGIN
+      _HttpHandle := Value;
+   END HttpHandle;
+   
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROPERTY Request GET : httpapi.PHTTP_REQUEST;
+   BEGIN
+      RETURN _Request.Data;
+   END Request;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROPERTY RequestSpace GET : CARDINAL;
+   BEGIN
+      RETURN _Request.Size;
+   END RequestSpace;
+   
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE RequestBufferComplete();
+   BEGIN
+      _RequestHeaders.FromRequest( _Request.Data );
+   END RequestBufferComplete;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY StatusCode SET( Value : HttpCommon.THttpResponse );
+   BEGIN
+      _Response.StatusCode := CARD16( Value );
+      CASE _Response.StatusCode OF
+      | HttpCommon.httpres_200 :
+         _Response.pReason := ADR( RESPONSE_200 );
+         _Response.ReasonLength := SIZE( RESPONSE_200 )-1;
+      | HttpCommon.httpres_404 :
+         _Response.pReason := ADR( RESPONSE_404 );
+         _Response.ReasonLength := SIZE( RESPONSE_404 )-1;
+      | HttpCommon.httpres_501 :
+         _Response.pReason := ADR( RESPONSE_501 );
+         _Response.ReasonLength := SIZE( RESPONSE_501 )-1;
+      ELSE
+         _Response.pReason := NIL;
+         _Response.ReasonLength := 0;
+      END;
+   END StatusCode;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE PrepareResponse();
+   BEGIN
+      _Response.Flags := 0;
+      _Response.Version.MajorVersion := Request^.Version.MajorVersion;
+      _Response.Version.MinorVersion := Request^.Version.MinorVersion;
+      _Response.EntityChunkCount := 0;
+      _Response.pEntityChunks := NIL;
+      
+      // default headers
+      AddDefaultHeaders();
+      
+      _ResponseHeaders.ToResponse( REF _Response );
+   END PrepareResponse;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE AddDefaultHeaders();
+   VAR
+      dt : Time.TDateTime;
+   BEGIN
+      // Date
+      Time.GetCurrentUTCDateTime( dt );
+      _ResponseHeaders.Add( HttpCommon.Date, httptools.FormatDate( dt ));
+      
+      // Server
+      _ResponseHeaders.AddOA( HttpCommon.Server, L"SmartControl/1.0 (cfg)" );
+      
+      // Caching
+      IF NOT _ResponseHeaders.Contains( HttpCommon.CacheControl ) THEN
+         _ResponseHeaders.AddOA( HttpCommon.Pragma, L"no-cache" );
+         _ResponseHeaders.AddOA( HttpCommon.CacheControl, L"no-cache" );
+      END;
+
+      // Content
+      IF NOT _ResponseHeaders.Contains( HttpCommon.ContentType ) THEN
+         _ResponseHeaders.Add( HttpCommon.ContentType, httptools.FormatContentOA( httptools.contentTextPlain, L"utf-8" ));
+      END;
+   END AddDefaultHeaders;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE SendHeaders();
+   BEGIN
+      IF _HeaderSent THEN
+         RETURN;
+      END;
+      _HeaderSent := TRUE;
+      
+      PrepareResponse();
+      httpapi.HttpSendHttpResponse( _HttpHandle, Request^.RequestId, httpapi.HTTP_SEND_RESPONSE_FLAG_MORE_DATA, ADR( _Response ), NIL, NIL, NIL, 0, NIL, NIL );
+   END SendHeaders;
+
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
    _HttpHandle := NIL;
-   _Request := NIL;
-   _Connection := NIL;
+   _Request.Size := 16384;
+   _Response.StatusCode := CARD16( HttpCommon.httpres_200 ); // at least StatusCode must be filled, it is used in outer property StatusCode
+
    _ReadOut := FALSE;
    _HeaderSent := FALSE;
    _DataSent := FALSE;
@@ -801,69 +930,81 @@ CLASS CHttpConnection IMPLEMENTS HttpConnection.IHttpSrvConnection;
       ResponseHeaders : HttpCommon.TPHttpHeaders;
       
    // SELF
-   PRIVATE VAR
-      _HttpHandle : Sync.WAITABLE;
-      _Request : httpapi.PHTTP_REQUEST;
-      _Stream : CHttpApiStream;
-      _RequestHeaders : CHeaders;
-      _ResponseHeaders : CHeaders;
+   PUBLIC VIRTUAL PROPERTY
+      StatusCode : HttpCommon.THttpResponse;
    
-   PROCEDURE FromHttpApiRequest( httpHandle : Sync.WAITABLE; request : httpapi.PHTTP_REQUEST );
+   PRIVATE VAR
+      _Stream : TPHttpApiStream;
+   
+   LOCAL PROCEDURE FromStream( stream : TPHttpApiStream );
       
 END CHttpConnection;
 
-//--------------------------------------------------------------------------------
+(*================================================================================*)
 
 CLASS IMPLEMENTATION CHttpConnection;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
    VIRTUAL PROPERTY LocalAddress GET : inetaddr.INETADDR;
    BEGIN
    END LocalAddress;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
    VIRTUAL PROPERTY RemoteAddress GET : inetaddr.INETADDR;
    BEGIN
    END RemoteAddress;
 
-//--------------------------------------------------------------------------------
-   
+(*--------------------------------------------------------------------------------*)
+
    VIRTUAL PROPERTY Stream GET : IOO.TPStream;
    BEGIN
-      RETURN ADR( _Stream );
+      RETURN _Stream;
    END Stream;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY RequestHeaders GET : HttpCommon.TPHttpHeaders;
    BEGIN
-      RETURN ADR( _RequestHeaders );
+      RETURN _Stream^.RequestHeaders;
    END RequestHeaders;
    
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY ResponseHeaders GET : HttpCommon.TPHttpHeaders;
    BEGIN
-      RETURN ADR( _ResponseHeaders );
+      RETURN _Stream^.ResponseHeaders;
    END ResponseHeaders;
       
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
-   PROCEDURE FromHttpApiRequest( httpHandle : Sync.WAITABLE; request : httpapi.PHTTP_REQUEST );
+   PUBLIC VIRTUAL PROPERTY StatusCode GET : HttpCommon.THttpResponse;
    BEGIN
-      // TODO
-   END FromHttpApiRequest;
+      RETURN _Stream^.StatusCode;
+   END StatusCode;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY StatusCode SET( Value : HttpCommon.THttpResponse );
+   BEGIN
+      _Stream^.StatusCode := Value;
+   END StatusCode;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE FromStream( stream : TPHttpApiStream );
+   BEGIN
+      _Stream := stream;
+   END FromStream;
+      
+(*--------------------------------------------------------------------------------*)
 
 BEGIN
-   _HttpHandle := NIL;
-   _Request := NIL;
+   _Stream := NIL;
 END CHttpConnection;
 
-//================================================================================
+(*================================================================================*)
 
 CLASS CSession IMPLEMENTS ISession;
 
@@ -889,25 +1030,25 @@ CLASS CSession IMPLEMENTS ISession;
    PUBLIC PROCEDURE SetData( data : maps.TPStringMap );
 END CSession;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 CLASS IMPLEMENTATION CSession;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY Data GET : maps.TPStringMap; // the same as Container["session"]
    BEGIN
       RETURN _Data;
    END Data;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY SID GET : StringsO.CString;
    BEGIN
       RETURN _SID;
    END SID;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Invalidate();
    BEGIN
@@ -916,14 +1057,14 @@ CLASS IMPLEMENTATION CSession;
       _SID.Clear();
    END Invalidate;
    
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Valid GET : BOOLEAN;
    BEGIN
       RETURN _Valid;
    END Valid;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Init( CONST sid : StringsO.IString; CONST rootPath : StringsO.IString );
    BEGIN
@@ -931,14 +1072,14 @@ CLASS IMPLEMENTATION CSession;
       RootPath.Assign( rootPath );
    END Init;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE SetData( data : maps.TPStringMap );
    BEGIN
       _Data := data;
    END SetData;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 BEGIN
    _Created := Time.GetCurrentJD();
@@ -1039,200 +1180,61 @@ CONST
 
 //--------------------------------------------------------------------------------
 
-ABSTRACT CLASS RequestWorker( threadpool.APoolWorker );
+CLASS HttpWorker( threadpool.APoolWorker );
 
    // APoolWorker
    LOCAL VIRTUAL PROCEDURE Run();
 
    // SELF
    PRIVATE VAR
-      httpHandle : Sync.WAITABLE := NIL;
-      request : httpapi.PHTTP_REQUEST := NIL;
-      requestHeaders : TPHeaders := NIL;
-      responseHeaders : CHeaders;
-      session : POINTER TO CSession := NIL;
-      controller : TPController := NIL;
+      _Processor : TPHttpProcessor := NIL;
+      _Stream : TPHttpApiStream := NIL;
+      _Session : POINTER TO CSession := NIL;
 
-   LOCAL PROCEDURE Init( httpHandle : Sync.WAITABLE; request : httpapi.PHTTP_REQUEST; headers : TPHeaders; session : POINTER TO CSession; controller : TPController ); // headers are cleared by SELF!!
-   INTERNAL ABSTRACT PROCEDURE HandleRequest( httpHandle : Sync.WAITABLE; request : httpapi.PHTTP_REQUEST; headers : TPHeaders; session : POINTER TO CSession; controller : TPController );
-   
-   // helpers
-   INTERNAL PROCEDURE PrepareResponse( Response : HttpCommon.THttpResponse; OUT response : httpapi.HTTP_RESPONSE );
+   LOCAL PROCEDURE Init( processor : TPHttpProcessor; stream : TPHttpApiStream; session : POINTER TO CSession );
 
-   PRIVATE PROCEDURE FillStatus( REF response : httpapi.HTTP_RESPONSE; Response : HttpCommon.THttpResponse );
-   PRIVATE PROCEDURE AddDefaultHeaders( REF headers : CHeaders );
-END RequestWorker;      
+END HttpWorker;
 
 //--------------------------------------------------------------------------------
 
-TYPE
-   TPSimpleResponseWorker = POINTER TO SimpleResponseWorker;
-
-CLASS SimpleResponseWorker( RequestWorker );
-   PRIVATE VAR
-      Response : HttpCommon.THttpResponse := HttpCommon.httpres_200;
-   LOCAL PROCEDURE Init( httpHandle : Sync.WAITABLE; request : httpapi.PHTTP_REQUEST; headers : TPHeaders; Response : HttpCommon.THttpResponse );
-   INTERNAL VIRTUAL PROCEDURE HandleRequest( httpHandle : Sync.WAITABLE; request : httpapi.PHTTP_REQUEST; headers : TPHeaders; session : POINTER TO CSession; controller : TPController );
-END SimpleResponseWorker;
-
-//--------------------------------------------------------------------------------
-
-TYPE
-   TPMVCWorker = POINTER TO MVCWorker;
-
-CLASS MVCWorker( RequestWorker );
-   INTERNAL VIRTUAL PROCEDURE HandleRequest( httpHandle : Sync.WAITABLE; request : httpapi.PHTTP_REQUEST; headers : TPHeaders; session : POINTER TO CSession; controller : TPController );
-END MVCWorker;
-
-//================================================================================
-
-CLASS IMPLEMENTATION RequestWorker;
+CLASS IMPLEMENTATION HttpWorker;
    
 //--------------------------------------------------------------------------------
 
    LOCAL VIRTUAL PROCEDURE Run();
+   VAR
+      Connection : CHttpConnection;
+      l : CARDINAL;
+      s : StringsO.CString;
    BEGIN
-      HandleRequest( httpHandle, request, requestHeaders, session, controller );            
+      Connection.FromStream( _Stream );
+      IF ( _Session <> NIL ) AND _Session^.New THEN
+         _Stream^.ResponseHeaders^.Add( HttpCommon.SetCookie, httptools.FormatSIDCookie( _Session^.SID, 0, _Session^.RootPath, s ));
+      END;
+
+      IF _Processor = NIL THEN
+         _Stream^.WriteOA( C"Error, request was not processesed", OUT l, Sync.FORSAFETY );
+      ELSE
+         _Processor^.ProcessRequest( ADR( Connection ), _Session );
+      END;
+      
+      _Stream^.Close( FALSE );
+      DISPOSE( _Stream );
    END Run;
 
 //--------------------------------------------------------------------------------
 
-   LOCAL PROCEDURE Init( httpHandle : Sync.WAITABLE; request : httpapi.PHTTP_REQUEST; headers : TPHeaders; session : POINTER TO CSession; controller : TPController );
+   LOCAL PROCEDURE Init( processor : TPHttpProcessor; stream : TPHttpApiStream; session : POINTER TO CSession );
    BEGIN
-      SELF.httpHandle := httpHandle;
-      SELF.request := request;
-      SELF.requestHeaders := headers;
-      SELF.session := session;
-      SELF.controller := controller;
+      SELF._Processor := processor;
+      SELF._Stream := stream;
+      SELF._Session := session;
    END Init;
-
-//--------------------------------------------------------------------------------
-
-   INTERNAL PROCEDURE PrepareResponse( Response : HttpCommon.THttpResponse; OUT response : httpapi.HTTP_RESPONSE );
-   VAR
-      s : StringsO.CString;
-   BEGIN
-      response.Flags := 0;
-      response.Version.MajorVersion := 1;
-      response.Version.MinorVersion := 1;
-      response.EntityChunkCount := 0;
-      response.pEntityChunks := NIL;
-      
-      // status
-      FillStatus( REF response, Response );
-      
-      // headers
-      AddDefaultHeaders( REF responseHeaders );
-      IF ( session <> NIL ) AND session^.New THEN
-         responseHeaders.Add( HttpCommon.SetCookie, httptools.FormatSIDCookie( session^.SID, 0, session^.RootPath, s ));
-      END;
-      responseHeaders.ToResponse( REF response );
-   END PrepareResponse;
-
-//--------------------------------------------------------------------------------
-
-   PRIVATE PROCEDURE FillStatus( REF response : httpapi.HTTP_RESPONSE; Response : HttpCommon.THttpResponse );
-   BEGIN
-      response.StatusCode := CARD16( Response );
-      CASE Response OF
-      | HttpCommon.httpres_200 :
-         response.pReason := ADR( RESPONSE_200 );
-         response.ReasonLength := SIZE( RESPONSE_200 )-1;
-      | HttpCommon.httpres_404 :
-         response.pReason := ADR( RESPONSE_404 );
-         response.ReasonLength := SIZE( RESPONSE_404 )-1;
-      | HttpCommon.httpres_501 :
-         response.pReason := ADR( RESPONSE_501 );
-         response.ReasonLength := SIZE( RESPONSE_501 )-1;
-      ELSE
-         response.pReason := NIL;
-         response.ReasonLength := 0;
-      END;
-   END FillStatus;
-
-//--------------------------------------------------------------------------------
-
-   PRIVATE PROCEDURE AddDefaultHeaders( REF headers : CHeaders );
-   VAR
-      dt : Time.TDateTime;
-   BEGIN
-      // Date
-      Time.GetCurrentUTCDateTime( dt );
-      headers.Add( HttpCommon.Date, httptools.FormatDate( dt ));
-      
-      // Server
-      headers.AddOA( HttpCommon.Server, L"SmartControl/1.0 (cfg)" );
-      
-      // Caching
-      IF NOT headers.Contains( HttpCommon.CacheControl ) THEN
-         headers.AddOA( HttpCommon.Pragma, L"no-cache" );
-         headers.AddOA( HttpCommon.CacheControl, L"no-cache" );
-      END;
-
-      // Content
-      IF NOT headers.Contains( HttpCommon.ContentType ) THEN
-         headers.Add( HttpCommon.ContentType, httptools.FormatContentOA( httptools.contentTextPlain, L"utf-8" ));
-      END;
-   END AddDefaultHeaders;
 
 //--------------------------------------------------------------------------------
 
 BEGIN
-FINALLY
-   DISPOSE( requestHeaders );
-END RequestWorker;
-
-//================================================================================
-
-CLASS IMPLEMENTATION SimpleResponseWorker;
-
-//--------------------------------------------------------------------------------
-
-   LOCAL PROCEDURE Init( httpHandle : Sync.WAITABLE; request : httpapi.PHTTP_REQUEST; headers : TPHeaders; response : HttpCommon.THttpResponse );
-   BEGIN
-      SUPER.Init( httpHandle, request, headers, NIL, NIL );
-      SELF.Response := response;
-   END Init;
-   
-//--------------------------------------------------------------------------------
-
-   INTERNAL VIRTUAL PROCEDURE HandleRequest( httpHandle : Sync.WAITABLE; request : httpapi.PHTTP_REQUEST; headers : TPHeaders; session : POINTER TO CSession; controller : TPController );
-   VAR
-      response : httpapi.HTTP_RESPONSE;
-   BEGIN
-      PrepareResponse( Response, OUT response );
-      httpapi.HttpSendHttpResponse( httpHandle, request^.RequestId, 0, ADR( response ), NIL, NIL, NIL, 0, NIL, NIL );
-   END HandleRequest;
-
-//--------------------------------------------------------------------------------
-
-BEGIN   
-END SimpleResponseWorker;
-
-//================================================================================
-
-CLASS IMPLEMENTATION MVCWorker;
-
-//--------------------------------------------------------------------------------
-
-   INTERNAL VIRTUAL PROCEDURE HandleRequest( httpHandle : Sync.WAITABLE; request : httpapi.PHTTP_REQUEST; headers : TPHeaders; session : POINTER TO CSession; controller : TPController );
-   VAR
-      response : httpapi.HTTP_RESPONSE;
-      status : HttpCommon.THttpResponse := HttpCommon.httpres_200;
-   BEGIN
-      IF controller = NIL THEN
-         PrepareResponse( HttpCommon.httpres_500, OUT response );
-         httpapi.HttpSendHttpResponse( httpHandle, request^.RequestId, 0, ADR( response ), NIL, NIL, NIL, 0, NIL, NIL );
-      END;
-      
-      PrepareResponse( status, OUT response );
-      httpapi.HttpSendHttpResponse( httpHandle, request^.RequestId, 0, ADR( response ), NIL, NIL, NIL, 0, NIL, NIL );
-   END HandleRequest;
-
-//--------------------------------------------------------------------------------
-
-BEGIN   
-END MVCWorker;
+END HttpWorker;
 
 //================================================================================
 
@@ -1253,17 +1255,17 @@ CLASS CHttpSrv( threadpool.APoolDelegate ) IMPLEMENTS IHttpServer;
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE Stop();
    
-   PUBLIC VIRTUAL PROCEDURE RegisterController( Controller : TPController );
-   PUBLIC VIRTUAL PROCEDURE ForgetController( Controller : TPController );
+   PUBLIC VIRTUAL PROCEDURE RegisterProcessor( Processor : TPHttpProcessor );
+   PUBLIC VIRTUAL PROCEDURE ForgetProcessor( Processor : TPHttpProcessor );
 
-   // CHttpSrv
+   // SELF
    PRIVATE VAR
       _Running : BOOLEAN := FALSE;
       _Mode : TMode := mdHttp;
       _Port : CARDINAL := 8080;
       _SslPort : CARDINAL := 8443;
       _RootPath : StringsO.CString;
-      _Controllers : lists.CPtrList;
+      _Processors : lists.CPtrList;
 
       _Sessions : maps.CStringMap; 
       _SessionsExpiration : TimeoutableTwoPtrMap.CTimeoutableTwoPtrMapSimplified;
@@ -1272,16 +1274,17 @@ CLASS CHttpSrv( threadpool.APoolDelegate ) IMPLEMENTS IHttpServer;
       _Pool : threadpool.CThreadPool;
 
       _HttpHandle : Sync.WAITABLE := NIL;
-      _HttpRequest : StorageO.CMemoryBuffer;
       _HttpOverlapped : windows.OVERLAPPED;
       _HRequestSignal : Sync.WAITABLE := NIL;
       _HPoolHandle : Sync.WAITABLE := NIL;
+      
+      _PreparedStream : TPHttpApiStream;
    
    PUBLIC PROCEDURE Dispose();
 
    PRIVATE PROCEDURE StartWaitingRequest() : Sync.TAsyncResult;
-   PRIVATE PROCEDURE ProcessRequest( request : httpapi.PHTTP_REQUEST );
-   PRIVATE PROCEDURE GetSession( request : httpapi.PHTTP_REQUEST; headers : TPHeaders ) : POINTER TO CSession;
+   PRIVATE PROCEDURE ProcessRequest( _PreparedStream : TPHttpApiStream );
+   PRIVATE PROCEDURE GetSession( request : httpapi.PHTTP_REQUEST; headers : HttpCommon.TPHttpHeaders ) : POINTER TO CSession;
    
    INITIALLY CHttpSrv();
    FINALLY CHttpSrv();
@@ -1319,7 +1322,7 @@ CLASS IMPLEMENTATION CHttpSrv;
       
       // TODO long request
       IF EOF THEN // OK, process
-         ProcessRequest( _HttpRequest.Data );
+         ProcessRequest( _PreparedStream );
       END;
       
       StartWaitingRequest();
@@ -1498,24 +1501,24 @@ CLASS IMPLEMENTATION CHttpSrv;
    
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROCEDURE RegisterController( Controller : TPController );
+   PUBLIC VIRTUAL PROCEDURE RegisterProcessor( Processor : TPHttpProcessor );
    BEGIN
-      _Controllers.Add( Controller, 0 );
-   END RegisterController;
+      _Processors.Add( Processor, 0 );
+   END RegisterProcessor;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROCEDURE ForgetController( Controller : TPController );
+   PUBLIC VIRTUAL PROCEDURE ForgetProcessor( Processor : TPHttpProcessor );
    BEGIN
-      _Controllers.Remove( Controller );
-   END ForgetController;
+      _Processors.Remove( Processor );
+   END ForgetProcessor;
 
 //--------------------------------------------------------------------------------
 
    PUBLIC PROCEDURE Dispose();
    BEGIN
       Stop();
-      _Controllers.Dispose();
+      _Processors.Dispose();
    END Dispose;
 
 //--------------------------------------------------------------------------------
@@ -1528,12 +1531,15 @@ CLASS IMPLEMENTATION CHttpSrv;
       Storage.Zero( ADR( _HttpOverlapped ), SIZE( _HttpOverlapped ));
       _HttpOverlapped.hEvent := _HRequestSignal;
 
-      LOOP      
-         Error := httpapi.HttpReceiveHttpRequest( _HttpHandle, httpapi.HTTP_NULL_ID, 0, _HttpRequest.Data, _HttpRequest.Size, NIL, ADR( _HttpOverlapped ));
+      LOOP
+         NEW( _PreparedStream );
+         _PreparedStream^.HttpHandle := _HttpHandle;
+            
+         Error := httpapi.HttpReceiveHttpRequest( _HttpHandle, httpapi.HTTP_NULL_ID, 0, _PreparedStream^.Request, _PreparedStream^.RequestSpace, NIL, ADR( _HttpOverlapped ));
 
          CASE Error OF
          | winerror.NO_ERROR : // OK, have request
-            ProcessRequest( _HttpRequest.Data );
+            ProcessRequest( _PreparedStream );
 
          | winerror.ERROR_IO_PENDING :
             RETURN Sync.arPending;
@@ -1546,18 +1552,21 @@ CLASS IMPLEMENTATION CHttpSrv;
 
 //--------------------------------------------------------------------------------
 
-   PRIVATE PROCEDURE ProcessRequest( request : httpapi.PHTTP_REQUEST );
+   PRIVATE PROCEDURE ProcessRequest( Stream : TPHttpApiStream );
    VAR
-      controller : TPController;
-      headers : TPHeaders := NIL;
+      currentProcessor : TPHttpProcessor;
+      foundProcessor : TPHttpProcessor := NIL;
       ph : threadpool.TPoolHandle;
       Reported : BOOLEAN := FALSE;
-      Status : HttpCommon.THttpResponse;
+      Session : POINTER TO CSession;
       Timeout : CARDINAL := Time.UptimeMS() + netsocket.FORSAFETY;
       Verb : HttpCommon.TVerb := HttpCommon.verbUnknown;
-      Worker : POINTER TO RequestWorker := NIL;
+      WantsSession : BOOLEAN := FALSE;
+      Worker : POINTER TO HttpWorker;
    BEGIN
-      CASE request^.Verb OF
+      Stream^.RequestBufferComplete();
+
+      CASE Stream^.Request^.Verb OF
       | httpapi.HttpVerbGET, httpapi.HttpVerbHEAD :
          Verb := HttpCommon.verbGET;
       | httpapi.HttpVerbPOST :
@@ -1565,33 +1574,30 @@ CLASS IMPLEMENTATION CHttpSrv;
       END;
 
       IF Verb = HttpCommon.verbUnknown THEN
-         Status := HttpCommon.httpres_501; // unsupported
-      ELSE
-         // prepare headers
-         headers := NEW( CHeaders );
-         headers^.FromRequest( request );
-      
-         // search controller
-         _Controllers.Reset();
-         WHILE _Controllers.MoveNext() DO
-            controller := _Controllers.Current;
-            IF controller^.AppliesFor( Verb, OA( CARDINAL( request^.CookedUrl.AbsPathLength >> 1 )-1, request^.CookedUrl.pAbsPath )) THEN
-               NEW( TPMVCWorker( Worker ));
+         Stream^.StatusCode := HttpCommon.httpres_501; // unsupported
+
+      ELSE // verb OK, search processor
+         _Processors.Reset();
+         WHILE _Processors.MoveNext() DO
+            currentProcessor := _Processors.Current;
+            IF currentProcessor^.AppliesFor( Verb, OA( CARDINAL( Stream^.Request^.CookedUrl.AbsPathLength >> 1 )-1, Stream^.Request^.CookedUrl.pAbsPath ), OUT WantsSession ) THEN
+               foundProcessor := currentProcessor;
                EXIT;
             END;
          END; // WHILE
 
-         IF Worker = NIL THEN
-            Status := HttpCommon.httpres_404; // resource not found
-         ELSE // search session, init worker
-            Worker^.Init( _HttpHandle, request, headers, GetSession( request, headers ), controller );
+         IF foundProcessor = NIL THEN
+            Stream^.StatusCode := HttpCommon.httpres_404; // resource not found
          END;
       END; // IF Verb
 
-      IF Worker = NIL THEN
-         NEW( TPSimpleResponseWorker( Worker ));
-         TPSimpleResponseWorker( Worker )^.Init( _HttpHandle, request, headers, Status );
+      IF WantsSession THEN
+         Session := GetSession( Stream^.Request, Stream^.RequestHeaders );
+      ELSE
+         Session := NIL;
       END;
+      NEW( Worker );
+      Worker^.Init( foundProcessor, Stream, Session );
 
       LOOP
          IF _Pool.RunWorker( ADR( SELF ), 0, FALSE, Worker, FALSE, OUT ph ) THEN
@@ -1614,7 +1620,7 @@ CLASS IMPLEMENTATION CHttpSrv;
 
 //--------------------------------------------------------------------------------
 
-   PRIVATE PROCEDURE GetSession( request : httpapi.PHTTP_REQUEST; headers : TPHeaders ) : POINTER TO CSession;
+   PRIVATE PROCEDURE GetSession( request : httpapi.PHTTP_REQUEST; headers : HttpCommon.TPHttpHeaders ) : POINTER TO CSession;
    CONST
       SESSION_VALIDITY = 30*60*1000; // milliseconds, 30 minutes
    VAR
@@ -1711,7 +1717,7 @@ CLASS IMPLEMENTATION CHttpSrv;
          RETURN;
       END;
       
-      _HttpRequest.Size := 16384;
+      _PreparedStream := NIL;
    END CHttpSrv;
 
 //--------------------------------------------------------------------------------
