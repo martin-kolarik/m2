@@ -56,7 +56,9 @@ TYPE
       cmdCurrentLevel = 0A0H,
       
       cmdTerminate = 0A1H, cmdLoadDTR = 0A3H, cmdInitialize = 0A5H, cmdRandomize = 0A7H, cmdCompare = 0A9H, cmdWithdraw = 0ABH,
-      cmdStoreH = 0B1H, cmdStoreM = 0B3H, cmdStoreL = 0B5H, cmdSetAddress = 0B7H, cmdCheckAddress = 0B9H, cmdGetAddress = 0BBH
+      cmdStoreH = 0B1H, cmdStoreM = 0B3H, cmdStoreL = 0B5H, cmdSetAddress = 0B7H, cmdCheckAddress = 0B9H, cmdGetAddress = 0BBH,
+      
+      cmdReadLongH = 0C2H, cmdReadLongM = 0C3H, cmdReadLongL = 0C4H
    );
    
    TDaliCommands = SET OF TDaliCommand;
@@ -66,7 +68,7 @@ CONST
       cmdDTRToMax, cmdDTRToMin, cmdDTRToFail, cmdDTRToPowerOn, cmdDTRToFadeTime, cmdDTRToFadeRate, cmdDTRToAddress, cmdRandomize, cmdInitialize, cmdTerminate
    };
    respondedCommands = TDaliCommands{
-      cmdStatus, cmdWorking, cmdVersion, cmdDeviceType, cmdCurrentLevel, cmdCompare, cmdCheckAddress, cmdGetAddress
+      cmdStatus, cmdWorking, cmdVersion, cmdDeviceType, cmdCurrentLevel, cmdCompare, cmdCheckAddress, cmdGetAddress, cmdReadLongH, cmdReadLongM, cmdReadLongL
    };
    specialCommands = TDaliCommands{
       cmdTerminate, cmdLoadDTR, cmdInitialize, cmdRandomize, cmdCompare, cmdWithdraw, cmdStoreH, cmdStoreM, cmdStoreL, cmdSetAddress, cmdCheckAddress, cmdGetAddress
@@ -77,9 +79,8 @@ CONST
 CLASS DaliAddress;
    PRIVATE VAR
       _Address : CARD8;
-   PUBLIC READONLY PROPERTY
-      TransportAddress : CARD8;
    PUBLIC PROPERTY
+      TransportAddress : CARD8;
       Address : CARDINAL;
       Type : TDaliAddress;
    PUBLIC PROCEDURE ToString( OUT S : ARRAY OF WCHAR );
@@ -137,50 +138,60 @@ CONST
    
 TYPE
    TCommand = (
-      dapInitFull, dapInitPairing, dapInitPartial, dapInitReaddressing,
+      dapInitFull, dapInitSpecific, dapInitScanning, dapInitReaddressing,
       dapRandomize,
       dapStartSeek,
       dapSeekOne,
-      dapReadOne,
       dapSelectOne,
+      dapScanOneH, dapScanOneM, dapScanOneL, dapScannedOne,
       dapProgramOne,
       dapCheckOne,
       dapShowOne,
       dapDisableOne,
       dapFinish,
       dapEnd
-   );   
+   );
+   
+   TAddressMode = (
+      amUnknown,
+      amAddress,
+      amScan,
+      amReaddress
+   );
 
 CLASS CDaliAddressProgrammer;
    PRIVATE VAR
+      AddressMode : TAddressMode;
       Current : TAddresses; // physical
       New : TAddresses; // physial
       Readdress : TAddresses;
+      SpecificFlag : BOOLEAN;
       State : TCommand;
       CurrentSelected : INTEGER;
       CurrentShort : CARDINAL;
-      ReaddressMode : BOOLEAN;
-      PreserveExisting : BOOLEAN;
-      Pairing : BOOLEAN;
       HaveAddresses : BOOLEAN;
    LOCAL VAR
-      Logger : log.TPLogger;
       Failed : BOOLEAN;
+      Logger : log.TPLogger;
+      SpecificAddress : DaliAddress;
+
    PUBLIC READONLY PROPERTY
       CurrentLongAddress : TProgramAddress;
       CurrentShortAddress : CARDINAL;
-   PUBLIC PROCEDURE InitProgramming( PreserveExisting : BOOLEAN ) : BOOLEAN;
+
+   PUBLIC PROCEDURE InitAddressing( Specific : BOOLEAN; CONST SpecificAddress : DaliAddress ) : BOOLEAN;
+   PUBLIC PROCEDURE InitScanning();
    PUBLIC PROCEDURE InitReaddressing( Readdress : TAddresses ) : BOOLEAN;
    PUBLIC PROCEDURE WhatNext() : TCommand;
    PUBLIC PROCEDURE HandleResponse( Positive : BOOLEAN; Data : INTEGER );
-   
-   PUBLIC PROCEDURE GetLongAddresses( OUT Addresses : TAddresses ) : BOOLEAN;
-   PUBLIC PROCEDURE LoadLongAddresses( CONST Addresses : TAddresses );
+
+   PRIVATE PROCEDURE LookupNextReaddressed() : CARDINAL;
 END CDaliAddressProgrammer;
 
 (*-------------------------------------------------------------------------------*)
 
 INTERFACE IDaliEventSink; // in-thread
+   LOCAL PROCEDURE OnDeviceFound( Linie : CARDINAL; CONST Address : DaliAddress; LongAddress : CARDINAL );
    LOCAL PROCEDURE OnProgrammingStopped( Result : Sync.TAsyncResult; Linie : CARDINAL );
    LOCAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; Command : TDaliCommand; ClientId : PTR; Linie : CARDINAL; CONST daliAddress : DaliAddress; Data : CARD8 );
 END IDaliEventSink;
@@ -218,10 +229,9 @@ CLASS CDali( msghandler.MessageHandler ) IMPLEMENTS ICommunicatorSink;
    PUBLIC PROCEDURE Command( Linie : CARDINAL; CONST daliAddress : DaliAddress; Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
    // completes immediatelly or results to IEventSink callback
    
-   PUBLIC PROCEDURE StartProgramming( Linie : CARDINAL; PreserveExisting : BOOLEAN ) : BOOLEAN;
+   PUBLIC PROCEDURE Address( Linie : CARDINAL; Specific : BOOLEAN; CONST SpecificAddress : DaliAddress ) : BOOLEAN;
+   PUBLIC PROCEDURE Scan( Linie : CARDINAL ) : BOOLEAN;
    PUBLIC PROCEDURE Readdress( Linie : CARDINAL; CONST Readdressed : TAddresses ) : BOOLEAN;
-   PUBLIC PROCEDURE LoadLongAddresses( CONST Addresses : TAddresses );
-   PUBLIC PROCEDURE GetLongAddresses( OUT Addresses : TAddresses ) : BOOLEAN;
    
    // MessageHandler -- in thread
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;

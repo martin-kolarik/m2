@@ -1,18 +1,39 @@
+Version 1.0.1778 beta 13.9.2008
+- BUG: Polling of device stopped if during waiting for response some addressing
+       command was requested.
+- NEW: Driver now reports change of status if status was previously known and
+       now it is unavailable (device does not respond).
+- NEW: New command "program_scan" was added, the command scans selected linie
+       and fills internal address structures. The command is always run before
+       programming, when "program_added" is requested.
+- NEW: Addressing commands (including "program_scan") fire event about found devices.
+       The event starts with "found ...".
+- NEW: Command "reset_address <adr>" was added, using <adr> all or specific device
+       address can be reset.
+- CHG: Command "program_missing_addresses" was renamed to "program_added", command
+       "program_addresses" was renamed to "program_all", and command "readdress"
+       was renamed to "program_readdress".
+- CHG: Commands "get_addresses" and "load_addresses" were removed.
+- INF: "program_readdress" still requires internal address structures filled
+       (using "program_scan" or "program_all" command).
+- INF: "program_added" command starts internally before self run "program_scan"
+       command to be sure the addresses will be correct.
+
 Version 1.0.1772 beta 6.9.2008
-- BUG: enumeration of known channels sometimes failed, there was used uninitialized
+- BUG: Enumeration of known channels sometimes failed, there was used uninitialized
        variable
-- NEW: three new commands were added: program_missing_addresses, get_addresses,
-       load_addresses       
+- NEW: Three new commands were added: "program_missing_addresses", "get_addresses",
+       "load_addresses"      
 
 Version 1.0.1756 beta 20.8.2008
-- BUG: commands sent to DALI before interface booting up were not passed to DALI
+- BUG: Commands sent to DALI before interface booting up were not passed to DALI
        and the communication stopped
-- NEW: end of addressing/readdressing is notified to client with driver exception
+- NEW: End of addressing/readdressing is notified to client with driver exception
        with new event type: program <linie> success/error
-- NEW: new status (bit 4, 0x8) added to signalize pending addressing/readdressing
-- NEW: addressing/readdressing example application for ControlWeb
-- CHG: polling changed to send request for only one device during one tick
-- ISS: polling does not work with more linies and it sometimes stops if
+- NEW: New status (bit 4, 0x8) added to signalize pending addressing/readdressing
+- NEW: Addressing/readdressing example application for ControlWeb
+- CHG: Polling changed to send request for only one device during one tick
+- ISS: Polling does not work with more linies and it sometimes stops if
        addressing/readdressing is stopped
 
 Version 1.0.1737 beta 14.8.2008

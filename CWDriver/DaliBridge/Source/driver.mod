@@ -31,7 +31,7 @@ CONST
 //================================================================================
 
 TYPE
-   TExceptionItemType = ( eitRead, eitWrite, eitPollStatus, eitParam, eitReset, eitProgram );
+   TExceptionItemType = ( eitRead, eitWrite, eitPollStatus, eitParam, eitReset, eitProgram, eitAddressFound );
    TPExceptionItem = POINTER TO ExceptionItem;
 
 CLASS ExceptionItem;
@@ -40,6 +40,7 @@ CLASS ExceptionItem;
       Command : DaliBridge.TDaliCommand := DaliBridge.cmdOff;
       Linie : CARDINAL := 0;
       Address : DaliBridge.DaliAddress;
+      LongAddress : CARDINAL := 0;
       Value : CARD8 := 0;
 END ExceptionItem;
 
@@ -538,7 +539,7 @@ CLASS IMPLEMENTATION CDriver;
       END ProgramItem;
 
       //-----
-
+      
    BEGIN
       CS := InValue1.String;
       i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 0, TRUE, OUT S1 ); Strings.TrimW( REF S1 );
@@ -597,6 +598,8 @@ CLASS IMPLEMENTATION CDriver;
                   Dali.Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"reset" );
                | eitProgram :
                   Dali.Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"program" );
+               | eitAddressFound :
+                  Dali.Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"address found" );
                END; // CASE ExceptionType
 
                CASE ExceptionType OF
@@ -690,6 +693,12 @@ CLASS IMPLEMENTATION CDriver;
                   ELSE
                      CS.AppendOA( L"error" );
                   END;
+
+               | eitAddressFound :
+                  CS.FromOA( "found " );
+                  CS.AppendOA( S1 ); CS.AppendOA( L"." ); CS.AppendOA( S2 ); CS.AppendOA( L" " );
+                  Strings.FromCARD32W( ExceptionItem^.LongAddress, 10, OUT S1 );
+                  CS.AppendOA( S1 );
 
                END; // CASE
 
@@ -811,7 +820,20 @@ CLASS IMPLEMENTATION CDriver;
          END;
          CS.Clear(); // return value
 
-      ELSIF EQUALS( S1, L'program_addresses' )  THEN
+      ELSIF EQUALS( S1, L'reset_address' ) THEN
+         IF NOT SplitAddress( FALSE, TRUE, TRUE, REF S2, OUT Linie, REF address ) THEN
+            GOTO Error;
+         END;
+
+         IF NOT Send( eitReset, Linie, address, DaliBridge.cmdLoadDTR, 0FFH ) THEN
+            GOTO Error;
+         END;
+         IF NOT Send( eitReset, Linie, address, DaliBridge.cmdDTRToAddress, 0 ) THEN
+            GOTO Error;
+         END;
+         CS.Clear(); // return value
+
+      ELSIF EQUALS( S1, L'program_all' )  THEN
          IF S2[0] = 0W THEN
             CS.FromOA( L'error: missing linie number' );
             GOTO Error;
@@ -821,14 +843,32 @@ CLASS IMPLEMENTATION CDriver;
          END;
 
          Fill( ADR( StatusArray ), SIZE( StatusArray ), 0FFH ); // force report new statuses
-         IF Dali.StartProgramming( Linie, FALSE ) THEN
+         IF Dali.Address( Linie, FALSE, address ) THEN
             CS.Clear(); // return value
          ELSE
             CS.FromOA( L'error: addressing cannot start (maybe addressing is already running?)' );
             GOTO Error;
          END;
 
-      ELSIF EQUALS( S1, L'program_missing_addresses' )  THEN
+      ELSIF EQUALS( S1, L'program_added' )  THEN
+         IF S2[0] = 0W THEN
+            CS.FromOA( L'error: missing linie number' );
+            GOTO Error;
+         ELSIF NOT Strings.ToCARD32W( S2, 10, OUT Linie ) THEN
+            CS.FromOA( L'error: bad linie number' );
+            GOTO Error;
+         END;
+         address.Type := DaliBridge.adrAll;
+
+         Fill( ADR( StatusArray ), SIZE( StatusArray ), 0FFH ); // force report new statuses
+         IF Dali.Address( Linie, TRUE, address ) THEN
+            CS.Clear(); // return value
+         ELSE
+            CS.FromOA( L'error: addressing cannot start (maybe addressing is already running?)' );
+            GOTO Error;
+         END;
+
+      ELSIF EQUALS( S1, L'program_scan' )  THEN
          IF S2[0] = 0W THEN
             CS.FromOA( L'error: missing linie number' );
             GOTO Error;
@@ -837,15 +877,14 @@ CLASS IMPLEMENTATION CDriver;
             GOTO Error;
          END;
 
-         Fill( ADR( StatusArray ), SIZE( StatusArray ), 0FFH ); // force report new statuses
-         IF Dali.StartProgramming( Linie, TRUE ) THEN
+         IF Dali.Scan( Linie ) THEN
             CS.Clear(); // return value
          ELSE
-            CS.FromOA( L'error: addressing cannot start (maybe no addresses was loaded yet?)' );
+            CS.FromOA( L'error: scanning cannot start (maybe addressing is already running?)' );
             GOTO Error;
          END;
 
-      ELSIF EQUALS( S1, L'readdress' )  THEN
+      ELSIF EQUALS( S1, L'program_readdress' )  THEN
          IF S2[0] = 0W THEN
             CS.FromOA( L'error: missing linie number' );
             GOTO Error;
@@ -877,42 +916,6 @@ CLASS IMPLEMENTATION CDriver;
             CS.FromOA( L'error: readdressing cannot start (maybe no addresses are known yet?)' );
             GOTO Error;
          END;
-
-      ELSIF EQUALS( S1, L'get_addresses' )  THEN
-         IF Dali.GetLongAddresses( OUT AddressArray ) THEN
-            CS.Clear();
-         ELSE
-            CS.FromOA( L'error: addresses cannot be get (maybe no addresses are known yet?)' );
-            GOTO Error;
-         END;
-         
-         i := 0;
-         WHILE AddressArray[i] <> -1 DO
-            Strings.FromCARD32W( AddressArray[i], 10, OUT S1 );
-            CS.AppendOA( S1 );
-            CS.AppendOA( L" " );
-            INC( i );
-         END; // WHILE
-
-      ELSIF EQUALS( S1, L'load_addresses' )  THEN
-         AddressArray := DaliBridge.addressesNone;
-         index := 0;
-         i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 2, TRUE, OUT S3 ); Strings.TrimW( REF S3 );
-         LOOP
-            IF S3[0] = 0W THEN
-               EXIT;
-            END;
-            IF NOT Strings.ToCARD32W( S3, 10, OUT AddressArray[index] ) OR ( AddressArray[index] > 2<<24-1 ) THEN
-               CS.FromOA( L'error: bad device long address: ' );
-               CS.AppendOA( S3 );
-               GOTO Error;
-            END;
-            i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S3 ); Strings.TrimW( REF S3 );
-            INC( index );
-         END; // LOOP
-
-         Dali.LoadLongAddresses( AddressArray );
-         CS.Clear(); // return value
 
       ELSE
          CS.FromOA( L'error: unknown driver procedure' );
@@ -957,7 +960,7 @@ CLASS IMPLEMENTATION CDriver;
          address.Type := DaliBridge.adrSingle;
          address.Address := i;
 
-         Dali.Logger.LogSC( dldDebug, logPrefix, L"Poll status request for: ", i );
+         Dali.Logger.LogSC( dldTrace, logPrefix, L"Poll status request for: ", i );
 
          AsyncResult := Dali.Command( 0, address, DaliBridge.cmdStatus, 0, PTR( eitPollStatus ));
          IF ( AsyncResult = Sync.arPending ) OR ( AsyncResult = Sync.arAlreadyPending ) THEN // OK
@@ -975,13 +978,47 @@ CLASS IMPLEMENTATION CDriver;
 
 //================================================================================
 
-   LOCAL VIRTUAL PROCEDURE OnProgrammingStopped( Result : Sync.TAsyncResult; Linie : CARDINAL );
+   LOCAL VIRTUAL PROCEDURE OnDeviceFound( Linie : CARDINAL; CONST Address : DaliBridge.DaliAddress; LongAddress : CARDINAL );
    VAR
       exceptionItem : TPExceptionItem;
    BEGIN
       NEW( exceptionItem );
+      exceptionItem^.Linie := Linie;
+      exceptionItem^.Address := Address;
+      exceptionItem^.LongAddress := LongAddress;
+
+      Lock.Lock();
+      Queue.Enqueue( exceptionItem, PTR( eitAddressFound ));
+
+      IF schiEventsPending NOT IN RStatus THEN
+         Dali.Logger.LogS( dldDebug, logPrefix, L"RS+ rsEventPending" );
+
+         INCL( RStatus, schiEventsPending );
+      END;
+      Lock.Unlock();
+      
+      IF CallbackProc <> NIL THEN
+         CallbackProc( CallbackId, drv_def.dcfException, NIL );
+      END;
+   END OnDeviceFound;
+
+//================================================================================
+
+   LOCAL VIRTUAL PROCEDURE OnProgrammingStopped( Result : Sync.TAsyncResult; Linie : CARDINAL );
+   VAR
+      exceptionItem : TPExceptionItem;
+      i : CARDINAL;
+   BEGIN
+      NEW( exceptionItem );
       exceptionItem^.Result := Result;
       exceptionItem^.Linie := Linie;
+
+      // reset polling
+      FOR i := 0 TO HIGH( PollInitArray ) DO
+         PollCountArray[i] := PollInitArray[i];
+         PollWaitArray[i] := FALSE;
+         StatusArray[i] := 0FFH;
+      END;
 
       Lock.Lock();
       Queue.Enqueue( exceptionItem, PTR( eitProgram ));
@@ -1015,12 +1052,18 @@ CLASS IMPLEMENTATION CDriver;
       | eitPollStatus :
          address := daliAddress.Address;
          PollWaitArray[address] := FALSE;
-         IF Result <> Sync.arCompleted THEN // unsuccessfull status get is not reported
-            RETURN;
-         ELSIF StatusArray[ address ] = Data THEN // unchanged status is not reported
-            RETURN;
+         IF Result = Sync.arCompleted THEN
+            IF StatusArray[ address ] = Data THEN // unchanged status is not reported
+               RETURN;
+            ELSE
+               StatusArray[ address ] := Data;
+            END;
          ELSE
-            StatusArray[ address ] := Data;
+            IF StatusArray[ address ] = 0FFH THEN // device still not yet found, do not report
+               RETURN;
+            ELSE // device was found sooner, but now it is unknown
+               StatusArray[ address ] := 0FFH;
+            END;
          END;
       END; // CASE
       

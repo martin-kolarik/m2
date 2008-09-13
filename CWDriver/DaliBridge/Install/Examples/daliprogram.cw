@@ -9,6 +9,9 @@ settings
     activate_receivers = false;
     output_action = set_local;
   end_startup_options;
+  backup
+    method = on_demand;
+  end_backup;
   expression_exceptions
     string_conversion = false;
   end_expression_exceptions;
@@ -20,11 +23,11 @@ end_driver;
 
 data
 
-  var GLOBAL;
+  var GLOBAL {backuped = false};
     ActiveLinie : cardinal {init_value = 0};
   end_var;
 
-  channel DALI;
+  channel DALI {backuped = false};
     Status : longcard {driver = dali; driver_index = 1; direction = input};
     OutputQueueLength : longcard {driver = dali; driver_index = 10; direction = input};
   end_channel;
@@ -40,6 +43,623 @@ instrument
     win_title = 'Adresace DALI';
     win_disable = zoom;
   end_panel;
+
+  switch switch_scan_address;
+    timer = 0.1;
+    owner = Addressing;
+    position = 150, 10, 70, 27;
+    mode = text_button;
+    init_value = true;
+    font = font_caption;
+    true_text = 'SCAN';
+    logic = set_true;
+    colors
+      true_paper = green;
+      true_ink = lyellow;
+      true_tshadow = 99, 255, 99;
+      true_bshadow = 1, 75, 1;
+      false_paper = lgray;
+    end_colors;
+    
+    procedure OnActivate();
+    begin
+       if bitget( DALI.Status, 3 ) = 1 then
+         SetColor( 'true_ink', 'lred' );
+         switch_readdress.SetColor( 'true_ink', 'lred' );
+       else
+         SetColor( 'true_ink', 'lyellow' );
+         switch_readdress.SetColor( 'true_ink', 'lyellow' );
+       end;
+    end_procedure;
+    
+    procedure OnOutput( b : boolean );
+    var
+      error : string;
+    begin
+      ExceptionHandler.ResetStatus();
+      core.DriverQueryProc( 'dali', 'program_scan ' + ActiveLinie:s, &error );
+      if error = '' then
+        error := '<ok>';
+      end;
+      core.DebugOutput( 'program_scan ' + ActiveLinie:s + ': ' + error );
+    end_procedure;
+    
+  end_switch;
+
+  switch switch_address_all;
+    timer = 0.1;
+    owner = Addressing;
+    position = 225, 10, 70, 27;
+    mode = text_button;
+    init_value = true;
+    font = font_caption;
+    true_text = 'ADR ALL';
+    logic = set_true;
+    colors
+      true_paper = green;
+      true_ink = lyellow;
+      true_tshadow = 99, 255, 99;
+      true_bshadow = 1, 75, 1;
+      false_paper = lgray;
+    end_colors;
+    
+    procedure OnActivate();
+    begin
+       if bitget( DALI.Status, 3 ) = 1 then
+         SetColor( 'true_ink', 'lred' );
+         switch_readdress.SetColor( 'true_ink', 'lred' );
+       else
+         SetColor( 'true_ink', 'lyellow' );
+         switch_readdress.SetColor( 'true_ink', 'lyellow' );
+       end;
+    end_procedure;
+    
+    procedure OnOutput( b : boolean );
+    var
+      error : string;
+    begin
+      ExceptionHandler.ResetStatus();
+      core.DriverQueryProc( 'dali', 'program_all ' + ActiveLinie:s, &error );
+      if error = '' then
+        error := '<ok>';
+      end;
+      core.DebugOutput( 'program_all ' + ActiveLinie:s + ': ' + error );
+    end_procedure;
+    
+  end_switch;
+
+  switch switch_readdress;
+    owner = Addressing;
+    position = 300, 10, 70, 27;
+    mode = text_button;
+    init_value = true;
+    font = font_caption;
+    true_text = 'READR';
+    logic = set_true;
+    colors
+      true_paper = green;
+      true_ink = lyellow;
+      true_tshadow = 99, 255, 99;
+      true_bshadow = 1, 75, 1;
+      false_paper = lgray;
+    end_colors;
+    
+    procedure GetReaddressString( var result : string; var error : string ): boolean;
+    var
+      found : array [0..63] of boolean;
+      s : string;
+    begin
+      result := '';
+      error := '';
+    
+      s := new_00.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_01.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_02.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_03.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_04.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_05.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_06.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_07.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_08.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_09.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_10.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_11.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_12.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_13.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_14.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_15.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_16.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_17.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_18.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_19.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_20.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_21.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_22.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_23.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_24.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_25.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_26.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_27.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_28.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_29.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_30.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_31.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_32.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_33.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_34.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_35.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_36.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_37.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_38.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_39.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_40.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_41.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_42.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_43.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_44.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_45.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_46.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_47.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_48.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_49.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_50.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_51.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_52.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_53.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_54.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_55.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_56.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_57.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_58.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_59.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_60.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_61.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_62.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      s := new_63.GetValue();
+      if s = '' then
+      elsif not CheckAndAdd( s, found, result, error ) then
+        return false;
+      end;
+    
+      return true;
+    end_procedure;
+    
+    procedure CheckAndAdd( input : string; found : array of boolean; var result : string; var error : string ): boolean;
+    var
+      addr : longcard;
+    begin
+      if input = '' then
+        return false;
+      end;
+      addr = val( input, 10 );
+      if last_error() <> 0 then
+        error := 'Adresa "' + input + '" není èíslo';
+        return false;
+      elsif found[addr] then
+        error := 'Adresa "' + input + '" je zdvojená';
+        return false;
+      else
+        found[addr] := true;
+        result = result + input + ' ';
+        return true;
+      end;
+    end_procedure;
+    
+    procedure OnOutput( b : boolean );
+    var
+      error : string;
+      result : string;
+    begin
+      SetColor( 'true_ink', 'lred' );
+      ExceptionHandler.ResetStatus();
+    
+      if GetReaddressString( result, error ) then
+        core.DebugOutput( 'Readdress prepared string:', result );
+    
+        core.DriverQueryProc( 'dali', 'program_readdress ' + ActiveLinie:s + ' ' + result, &error );
+    
+        if error = '' then
+          SetColor( 'true_ink', 'lyellow' );
+        else
+          core.DebugOutput( 'Readdress error:', error );
+        end;
+    
+      else
+        core.DebugOutput( 'Readdress prepare:', error );
+      end;
+    end_procedure;
+    
+  end_switch;
+
+  switch switch_new_address;
+    timer = 0.1;
+    owner = Addressing;
+    position = 375, 10, 70, 27;
+    mode = text_button;
+    init_value = true;
+    font = font_caption;
+    true_text = 'ADR NEW';
+    logic = set_true;
+    colors
+      true_paper = green;
+      true_ink = lyellow;
+      true_tshadow = 99, 255, 99;
+      true_bshadow = 1, 75, 1;
+      false_paper = lgray;
+    end_colors;
+    
+    procedure OnActivate();
+    begin
+       if bitget( DALI.Status, 3 ) = 1 then
+         SetColor( 'true_ink', 'lred' );
+         switch_readdress.SetColor( 'true_ink', 'lred' );
+       else
+         SetColor( 'true_ink', 'lyellow' );
+         switch_readdress.SetColor( 'true_ink', 'lyellow' );
+       end;
+    end_procedure;
+    
+    procedure OnOutput( b : boolean );
+    var
+      error : string;
+    begin
+      ExceptionHandler.ResetStatus();
+      core.DriverQueryProc( 'dali', 'program_added ' + ActiveLinie:s, &error );
+      if error = '' then
+        error := '<ok>';
+      end;
+      core.DebugOutput( 'program_added ' + ActiveLinie:s + ': ' + error );
+    end_procedure;
+    
+  end_switch;
+
+  switch switch_clear_address;
+    owner = Addressing;
+    position = 450, 10, 70, 27;
+    mode = text_button;
+    init_value = true;
+    font = font_caption;
+    true_text = 'CLR ALL';
+    logic = set_true;
+    colors
+      true_paper = green;
+      true_ink = lyellow;
+      true_tshadow = 99, 255, 99;
+      true_bshadow = 1, 75, 1;
+      false_paper = lgray;
+    end_colors;
+    
+    procedure OnOutput( b : boolean );
+    var
+      error : string;
+    begin
+      core.DriverQueryProc( 'dali', 'reset_address ' + ActiveLinie:s + '.all', &error );
+      SetColor( 'true_ink', 'lred' );
+    
+      if error = '' then
+        SetColor( 'true_ink', 'lyellow' );
+        ExceptionHandler.ResetStatus();
+      else
+        core.DebugOutput( 'Reset address:', error );
+      end;
+    end_procedure;
+    
+  end_switch;
 
   panel panel_97;
     owner = Addressing;
@@ -57,7 +677,6 @@ instrument
     timer = infinite;
     owner = panel_97;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -90,7 +709,6 @@ instrument
 
     owner = panel_97;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -130,7 +748,6 @@ instrument
     timer = infinite;
     owner = panel_96;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -163,7 +780,6 @@ instrument
 
     owner = panel_96;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -203,7 +819,6 @@ instrument
     timer = infinite;
     owner = panel_95;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -236,7 +851,6 @@ instrument
 
     owner = panel_95;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -276,7 +890,6 @@ instrument
     timer = infinite;
     owner = panel_94;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -309,7 +922,6 @@ instrument
 
     owner = panel_94;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -349,7 +961,6 @@ instrument
     timer = infinite;
     owner = panel_93;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -382,7 +993,6 @@ instrument
 
     owner = panel_93;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -422,7 +1032,6 @@ instrument
     timer = infinite;
     owner = panel_92;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -455,7 +1064,6 @@ instrument
 
     owner = panel_92;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -495,7 +1103,6 @@ instrument
     timer = infinite;
     owner = panel_91;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -528,7 +1135,6 @@ instrument
 
     owner = panel_91;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -568,7 +1174,6 @@ instrument
     timer = infinite;
     owner = panel_90;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -601,7 +1206,6 @@ instrument
 
     owner = panel_90;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -641,7 +1245,6 @@ instrument
     timer = infinite;
     owner = panel_89;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -674,7 +1277,6 @@ instrument
 
     owner = panel_89;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -714,7 +1316,6 @@ instrument
     timer = infinite;
     owner = panel_88;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -747,7 +1348,6 @@ instrument
 
     owner = panel_88;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -787,7 +1387,6 @@ instrument
     timer = infinite;
     owner = panel_87;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -820,7 +1419,6 @@ instrument
 
     owner = panel_87;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -860,7 +1458,6 @@ instrument
     timer = infinite;
     owner = panel_86;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -893,7 +1490,6 @@ instrument
 
     owner = panel_86;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -933,7 +1529,6 @@ instrument
     timer = infinite;
     owner = panel_85;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -966,7 +1561,6 @@ instrument
 
     owner = panel_85;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -1006,7 +1600,6 @@ instrument
     timer = infinite;
     owner = panel_84;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -1039,7 +1632,6 @@ instrument
 
     owner = panel_84;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -1079,7 +1671,6 @@ instrument
     timer = infinite;
     owner = panel_83;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -1112,7 +1703,6 @@ instrument
 
     owner = panel_83;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -1152,7 +1742,6 @@ instrument
     timer = infinite;
     owner = panel_82;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -1185,7 +1774,6 @@ instrument
 
     owner = panel_82;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -1225,7 +1813,6 @@ instrument
     timer = infinite;
     owner = panel_81;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -1258,7 +1845,6 @@ instrument
 
     owner = panel_81;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -1298,7 +1884,6 @@ instrument
     timer = infinite;
     owner = panel_80;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -1331,7 +1916,6 @@ instrument
 
     owner = panel_80;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -1371,7 +1955,6 @@ instrument
     timer = infinite;
     owner = panel_79;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -1404,7 +1987,6 @@ instrument
 
     owner = panel_79;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -1444,7 +2026,6 @@ instrument
     timer = infinite;
     owner = panel_78;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -1477,7 +2058,6 @@ instrument
 
     owner = panel_78;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -1517,7 +2097,6 @@ instrument
     timer = infinite;
     owner = panel_77;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -1550,7 +2129,6 @@ instrument
 
     owner = panel_77;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -1590,7 +2168,6 @@ instrument
     timer = infinite;
     owner = panel_76;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -1623,7 +2200,6 @@ instrument
 
     owner = panel_76;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -1663,7 +2239,6 @@ instrument
     timer = infinite;
     owner = panel_75;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -1696,7 +2271,6 @@ instrument
 
     owner = panel_75;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -1736,7 +2310,6 @@ instrument
     timer = infinite;
     owner = panel_74;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -1769,7 +2342,6 @@ instrument
 
     owner = panel_74;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -1809,7 +2381,6 @@ instrument
     timer = infinite;
     owner = panel_73;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -1842,7 +2413,6 @@ instrument
 
     owner = panel_73;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -1882,7 +2452,6 @@ instrument
     timer = infinite;
     owner = panel_72;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -1915,7 +2484,6 @@ instrument
 
     owner = panel_72;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -1955,7 +2523,6 @@ instrument
     timer = infinite;
     owner = panel_71;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -1988,7 +2555,6 @@ instrument
 
     owner = panel_71;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -2028,7 +2594,6 @@ instrument
     timer = infinite;
     owner = panel_70;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -2061,7 +2626,6 @@ instrument
 
     owner = panel_70;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -2101,7 +2665,6 @@ instrument
     timer = infinite;
     owner = panel_69;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -2134,7 +2697,6 @@ instrument
 
     owner = panel_69;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -2174,7 +2736,6 @@ instrument
     timer = infinite;
     owner = panel_68;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -2207,7 +2768,6 @@ instrument
 
     owner = panel_68;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -2247,7 +2807,6 @@ instrument
     timer = infinite;
     owner = panel_67;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -2280,7 +2839,6 @@ instrument
 
     owner = panel_67;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -2320,7 +2878,6 @@ instrument
     timer = infinite;
     owner = panel_66;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -2353,7 +2910,6 @@ instrument
 
     owner = panel_66;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -2393,7 +2949,6 @@ instrument
     timer = infinite;
     owner = panel_65;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -2426,7 +2981,6 @@ instrument
 
     owner = panel_65;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -2466,7 +3020,6 @@ instrument
     timer = infinite;
     owner = panel_64;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -2499,7 +3052,6 @@ instrument
 
     owner = panel_64;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -2539,7 +3091,6 @@ instrument
     timer = infinite;
     owner = panel_63;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -2572,7 +3123,6 @@ instrument
 
     owner = panel_63;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -2612,7 +3162,6 @@ instrument
     timer = infinite;
     owner = panel_62;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -2645,7 +3194,6 @@ instrument
 
     owner = panel_62;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -2685,7 +3233,6 @@ instrument
     timer = infinite;
     owner = panel_61;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -2718,7 +3265,6 @@ instrument
 
     owner = panel_61;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -2758,7 +3304,6 @@ instrument
     timer = infinite;
     owner = panel_60;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -2791,7 +3336,6 @@ instrument
 
     owner = panel_60;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -2831,7 +3375,6 @@ instrument
     timer = infinite;
     owner = panel_59;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -2864,7 +3407,6 @@ instrument
 
     owner = panel_59;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -2904,7 +3446,6 @@ instrument
     timer = infinite;
     owner = panel_58;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -2937,7 +3478,6 @@ instrument
 
     owner = panel_58;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -2977,7 +3517,6 @@ instrument
     timer = infinite;
     owner = panel_57;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -3010,7 +3549,6 @@ instrument
 
     owner = panel_57;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -3050,7 +3588,6 @@ instrument
     timer = infinite;
     owner = panel_56;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -3083,7 +3620,6 @@ instrument
 
     owner = panel_56;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -3123,7 +3659,6 @@ instrument
     timer = infinite;
     owner = panel_55;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -3156,7 +3691,6 @@ instrument
 
     owner = panel_55;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -3196,7 +3730,6 @@ instrument
     timer = infinite;
     owner = panel_54;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -3229,7 +3762,6 @@ instrument
 
     owner = panel_54;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -3269,7 +3801,6 @@ instrument
     timer = infinite;
     owner = panel_53;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -3302,7 +3833,6 @@ instrument
 
     owner = panel_53;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -3342,7 +3872,6 @@ instrument
     timer = infinite;
     owner = panel_52;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -3375,7 +3904,6 @@ instrument
 
     owner = panel_52;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -3415,7 +3943,6 @@ instrument
     timer = infinite;
     owner = panel_51;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -3448,7 +3975,6 @@ instrument
 
     owner = panel_51;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -3488,7 +4014,6 @@ instrument
     timer = infinite;
     owner = panel_50;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -3521,7 +4046,6 @@ instrument
 
     owner = panel_50;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -3561,7 +4085,6 @@ instrument
     timer = infinite;
     owner = panel_48;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -3594,7 +4117,6 @@ instrument
 
     owner = panel_48;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -3634,7 +4156,6 @@ instrument
     timer = infinite;
     owner = panel_40;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -3667,7 +4188,6 @@ instrument
 
     owner = panel_40;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -3707,7 +4227,6 @@ instrument
     timer = infinite;
     owner = panel_08;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -3740,7 +4259,6 @@ instrument
 
     owner = panel_08;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -3780,7 +4298,6 @@ instrument
     timer = infinite;
     owner = panel_38;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -3813,7 +4330,6 @@ instrument
 
     owner = panel_38;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -3853,7 +4369,6 @@ instrument
     timer = infinite;
     owner = panel_37;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -3886,7 +4401,6 @@ instrument
 
     owner = panel_37;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -3926,7 +4440,6 @@ instrument
     timer = infinite;
     owner = panel_36;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -3959,7 +4472,6 @@ instrument
 
     owner = panel_36;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -3999,7 +4511,6 @@ instrument
     timer = infinite;
     owner = panel_35;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -4032,7 +4543,6 @@ instrument
 
     owner = panel_35;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -4072,7 +4582,6 @@ instrument
     timer = infinite;
     owner = panel_34;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -4105,7 +4614,6 @@ instrument
 
     owner = panel_34;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -4145,7 +4653,6 @@ instrument
     timer = infinite;
     owner = panel_06;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -4178,7 +4685,6 @@ instrument
 
     owner = panel_06;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -4218,7 +4724,6 @@ instrument
     timer = infinite;
     owner = panel_07;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -4251,7 +4756,6 @@ instrument
 
     owner = panel_07;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -4291,7 +4795,6 @@ instrument
     timer = infinite;
     owner = panel_02;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -4324,7 +4827,6 @@ instrument
 
     owner = panel_02;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -4364,7 +4866,6 @@ instrument
     timer = infinite;
     owner = panel_03;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -4397,7 +4898,6 @@ instrument
 
     owner = panel_03;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -4437,7 +4937,6 @@ instrument
     timer = infinite;
     owner = panel_05;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -4470,7 +4969,6 @@ instrument
 
     owner = panel_05;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -4510,7 +5008,6 @@ instrument
     timer = infinite;
     owner = panel_04;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -4543,7 +5040,6 @@ instrument
 
     owner = panel_04;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -4583,7 +5079,6 @@ instrument
     timer = infinite;
     owner = panel_01;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -4616,7 +5111,6 @@ instrument
 
     owner = panel_01;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -4656,7 +5150,6 @@ instrument
     timer = infinite;
     owner = panel_00;
     position = 5, 5, 90, 20;
-    win_disable = zoom, maximize;
     expression = ID;
     frame = 0;
     font = font_caption;
@@ -4689,7 +5182,6 @@ instrument
 
     owner = panel_00;
     position = 5, 30, 26, 26;
-    win_disable = zoom, maximize;
     output = dummy;
     true_icon = 'sw20on.ico';
     false_icon = 'sw20off.ico';
@@ -4725,7 +5217,6 @@ instrument
   switch switch_allon;
     owner = panel_top;
     position = 605, 5, 85, 27;
-    win_disable = zoom, maximize;
     mode = text_button;
     init_value = true;
     font = font_caption;
@@ -4755,7 +5246,6 @@ instrument
   switch switch_alloff;
     owner = panel_top;
     position = 695, 5, 85, 27;
-    win_disable = zoom, maximize;
     mode = text_button;
     init_value = true;
     font = font_caption;
@@ -4782,527 +5272,6 @@ instrument
     
   end_switch;
 
-  switch switch_readdress;
-    owner = panel_top;
-    position = 275, 5, 110, 27;
-    win_disable = zoom, maximize;
-    mode = text_button;
-    init_value = true;
-    font = font_caption;
-    true_text = 'Readresace';
-    logic = set_true;
-    colors
-      true_paper = green;
-      true_ink = lyellow;
-      true_tshadow = 99, 255, 99;
-      true_bshadow = 1, 75, 1;
-      false_paper = lgray;
-    end_colors;
-    
-    procedure GetReaddressString( var result : string; var error : string ): boolean;
-    var
-      found : array [0..63] of boolean;
-      s : string;
-    begin
-      result := '';
-      error := '';
-    
-      s := new_00.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_01.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_02.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_03.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_04.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_05.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_06.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_07.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_08.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_09.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_10.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_11.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_12.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_13.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_14.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_15.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_16.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_17.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_18.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_19.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_20.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_21.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_22.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_23.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_24.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_25.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_26.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_27.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_28.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_29.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_30.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_31.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_32.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_33.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_34.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_35.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_36.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_37.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_38.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_39.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_40.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_41.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_42.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_43.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_44.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_45.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_46.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_47.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_48.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_49.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_50.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_51.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_52.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_53.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_54.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_55.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_56.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_57.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_58.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_59.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_60.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_61.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_62.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    
-      s := new_63.GetValue();
-      if s = '' then
-        return true;
-      elsif not CheckAndAdd( s, found, result, error ) then
-        return false;
-      end;
-    end_procedure;
-    
-    procedure CheckAndAdd( input : string; found : array of boolean; var result : string; var error : string ): boolean;
-    var
-      addr : longcard;
-    begin
-      if input = '' then
-        return false;
-      end;
-      addr = val( input, 10 );
-      if last_error() <> 0 then
-        error := 'Adresa "' + input + '" není èíslo';
-        return false;
-      elsif found[addr] then
-        error := 'Adresa "' + input + '" je zdvojená';
-        return false;
-      else
-        found[addr] := true;
-        result = result + input + ' ';
-        return true;
-      end;
-    end_procedure;
-    
-    procedure OnOutput( b : boolean );
-    var
-      error : string;
-      result : string;
-    begin
-      SetColor( 'true_ink', 'lred' );
-      ExceptionHandler.ResetStatus();
-    
-      if GetReaddressString( result, error ) then
-        core.DebugOutput( 'Readdress prepared string:', result );
-    
-        core.DriverQueryProc( 'dali', 'readdress ' + ActiveLinie:s + ' ' + result, &error );
-    
-        if error = '' then
-          SetColor( 'true_ink', 'lyellow' );
-        else
-          core.DebugOutput( 'Readdress error:', error );
-        end;
-    
-      else
-        core.DebugOutput( 'Readdress prepare:', error );
-      end;
-    end_procedure;
-    
-  end_switch;
-
   meter meter_11;
     timer = 0.1;
     owner = panel_top;
@@ -5325,43 +5294,6 @@ instrument
       high_limit = red;
     end_colors;
   end_meter;
-
-  switch switch_address;
-    timer = 0.1;
-    owner = panel_top;
-    position = 160, 5, 110, 27;
-    win_disable = zoom, maximize;
-    mode = text_button;
-    init_value = true;
-    font = font_caption;
-    true_text = 'Nová adresace';
-    logic = set_true;
-    colors
-      true_paper = green;
-      true_ink = lyellow;
-      true_tshadow = 99, 255, 99;
-      true_bshadow = 1, 75, 1;
-      false_paper = lgray;
-    end_colors;
-    
-    procedure OnActivate();
-    begin
-       if bitget( DALI.Status, 3 ) = 1 then
-         SetColor( 'true_ink', 'lred' );
-         switch_readdress.SetColor( 'true_ink', 'lred' );
-       else
-         SetColor( 'true_ink', 'lyellow' );
-         switch_readdress.SetColor( 'true_ink', 'lyellow' );
-       end;
-    end_procedure;
-    
-    procedure OnOutput( b : boolean );
-    begin
-      ExceptionHandler.ResetStatus();
-      core.DriverQueryProc( 'dali', 'program_addresses ' + ActiveLinie:s, '' );
-    end_procedure;
-    
-  end_switch;
 
   label state_top;
     owner = panel_top;
@@ -5390,7 +5322,6 @@ instrument
     end_colors;
     item
       text = '1';
-      selected;
     end_item;
     item
       text = '2';
@@ -5415,6 +5346,7 @@ instrument
     procedure OnActivate();
     var
        Event : string;
+       error : boolean;
        failure : boolean;
        i : integer;
        j : integer;
@@ -5444,15 +5376,16 @@ instrument
 
                on := pos( Event, 'on ' ) <> -1;
                failure := pos( Event, 'failure' ) <> -1;
+               error := ( pos( Event, 'error' ) <> -1 ) or ( pos( Event, 'timeout' ) <> -1 );
 
-               SetLabel( s, on, failure );
+               SetLabel( s, on, failure, error );
              end;
 
           end;
        end;
     end_procedure;
     
-    procedure SetLabel( addr : string; on, failure : boolean );
+    procedure SetLabel( addr : string; on, failure, error : boolean );
     var
       ink : string;
       paper : string;
@@ -5462,10 +5395,12 @@ instrument
        else
          ink := 'lgray';
        end;
-       if failure then
+       if error then
+         paper := 'dgray';
+       elsif failure then
          paper := 'red';
        else
-         paper := 'dgray';
+         paper := 'blue';
        end;
 
        switch addr of
@@ -5733,7 +5668,7 @@ instrument
       i : integer;
     begin
       for i := 0 to 63 do
-        SetLabel( i:s, false, false );
+        SetLabel( i:s, false, false, true );
       end;
     end_procedure;
     
