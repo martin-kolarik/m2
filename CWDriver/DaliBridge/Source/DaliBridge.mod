@@ -673,8 +673,6 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
 (*-------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE HandleResponse( Positive : BOOLEAN; Data : INTEGER );
-   VAR
-      i : CARDINAL;
    BEGIN
       CASE State OF
       | dapInitFull :
@@ -683,7 +681,13 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
          END;
       | dapInitSpecific :
          IF Positive THEN
-            State := dapRandomize;
+            CurrentShort := LookupNextEmptyShort( 0 );
+            IF CurrentShortAddress = -1 THEN
+               Failed := FALSE;
+               State := dapFinish;
+            ELSE
+               State := dapRandomize;
+            END;
          END;
       | dapInitScanning :
          IF Positive THEN
@@ -769,7 +773,6 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
          IF CurrentShortAddress <> -1 THEN // continue
             State := dapScanOneH;
          ELSIF SpecificFlag THEN // now program
-            CurrentShort := 0;
             State := dapInitSpecific;
          ELSE
             State := dapFinish;
@@ -824,13 +827,8 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
          IF Positive THEN
          
             // disable is done during addressing only, select new empty address
-            FOR i := CurrentShort+1 TO HIGH( Current ) DO
-               IF Current[i] = -1 THEN // we found hole in addresses
-                  CurrentShort := i;
-                  EXIT;
-               END;
-            END;
-            IF CurrentShortAddress = -1 THEN // we are on the end
+            CurrentShort := LookupNextEmptyShort( CurrentShort+1 );
+            IF CurrentShortAddress = -1 THEN
                Failed := FALSE;
                State := dapFinish;
             ELSE
@@ -850,6 +848,20 @@ CLASS IMPLEMENTATION CDaliAddressProgrammer;
 
       END; // CASE
    END HandleResponse;
+
+(*-------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE LookupNextEmptyShort( StartWith : CARDINAL ) : CARDINAL;
+   VAR
+      i : CARDINAL;
+   BEGIN
+      FOR i := StartWith TO HIGH( Current ) DO
+         IF Current[i] = -1 THEN // we found hole in addresses
+            RETURN i;
+         END;
+      END;
+      RETURN HIGH( Current )+1; // CurrentShort over limit
+   END LookupNextEmptyShort;
 
 (*-------------------------------------------------------------------------------*)
 

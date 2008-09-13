@@ -186,6 +186,7 @@ CLASS CDaliAddressProgrammer;
    PUBLIC PROCEDURE HandleResponse( Positive : BOOLEAN; Data : INTEGER );
 
    PRIVATE PROCEDURE LookupNextReaddressed() : CARDINAL;
+   PRIVATE PROCEDURE LookupNextEmptyShort( StartWith : CARDINAL ) : CARDINAL;
 END CDaliAddressProgrammer;
 
 (*-------------------------------------------------------------------------------*)
