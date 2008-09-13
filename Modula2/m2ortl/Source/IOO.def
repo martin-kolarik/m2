@@ -195,7 +195,7 @@ ABSTRACT CLASS AStream;
   PUBLIC ABSTRACT PROCEDURE Close( Persist : BOOLEAN ); // Close closes data flow and, if NOT Persist, also all owned/allocated structures. E.g., if Persist, the stream will not call closesocket, if not Persist it will be.
   
   INTERNAL ABSTRACT PROCEDURE Start( Direction : TDirection; OperationTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
-    // Start should always call Complete, except it returns arPending, arCannotStart or arAlreadyPending.
+    // Start should always call DeviceFinish, except it returns arPending, arCannotStart or arAlreadyPending.
     // For data access Start uses Reader/Writer.PrepareData/CompleteData.
   INTERNAL ABSTRACT PROCEDURE Abort( Direction : TDirection );
 
