@@ -8,7 +8,6 @@ FROM driver IMPORT
 
 IMPORT
    dns,
-   inetaddr,
    Log,
    netsocket,
    netsrv,
@@ -81,7 +80,7 @@ CLASS CUDPCommunicator( netsrv.AListener ) IMPLEMENTS threadpool.ITimeoutSink;
    PUBLIC PROCEDURE Run() : Sync.TAsyncResult;
    PUBLIC PROCEDURE Stop();
 
-   PUBLIC PROCEDURE SendDaliData( Linie : CARDINAL; Data : ARRAY OF BYTE; Reset, ExpectResponse, Repeat : BOOLEAN ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE SendDaliData( Linie : TDaliLinie; Data : ARRAY OF BYTE; Reset, ExpectResponse, Repeat : BOOLEAN ) : Sync.TAsyncResult;
 
    // AListener
    LOCAL VIRTUAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket ); // stDatagram
@@ -122,7 +121,7 @@ CLASS IMPLEMENTATION CUDPCommunicator;
       Result := netsrv.StartListen( netsocket.stDatagram, IA, NIL, ADR( SELF ), 0, ADR( Socket ));
       IF Result = 0 THEN
       
-         SendDaliData( 0, OA( -1, NIL ), TRUE, FALSE, FALSE ); // reset
+         SendDaliData( l1, OA( -1, NIL ), TRUE, FALSE, FALSE ); // reset
       
          RETURN Sync.arCompleted;
       ELSE
@@ -143,7 +142,7 @@ CLASS IMPLEMENTATION CUDPCommunicator;
 
 (*-------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE SendDaliData( Linie : CARDINAL; Data : ARRAY OF BYTE; Reset, ExpectResponse, Repeat : BOOLEAN ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE SendDaliData( Linie : TDaliLinie; Data : ARRAY OF BYTE; Reset, ExpectResponse, Repeat : BOOLEAN ) : Sync.TAsyncResult;
    VAR
       i : INTEGER;
       delay : INTEGER;
@@ -912,7 +911,7 @@ TYPE
 CLASS DaliRequest;
    LOCAL VAR
       Pending : BOOLEAN;
-      Linie : CARDINAL;
+      Linie : TDaliLinie;
       ClientId : PTR;
       Address : DaliAddress;
       Command : TDaliCommand;
@@ -924,7 +923,7 @@ END DaliRequest;
 CLASS IMPLEMENTATION DaliRequest;
 BEGIN
    Pending := FALSE;
-   Linie := 0;
+   Linie := l1;
    ClientId := 0;
    Command := cmdOff;
    Data := 0;
@@ -932,7 +931,7 @@ END DaliRequest;
 
 (*===============================================================================*)
 
-CLASS IMPLEMENTATION CDali;
+CLASS IMPLEMENTATION CDaliDevice;
 
 (*-------------------------------------------------------------------------------*)
 
@@ -975,41 +974,13 @@ CLASS IMPLEMENTATION CDali;
 
 (*-------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE LoadConfiguration( CONST ClientName, ParFilePath : ARRAY OF WCHAR; CONST INI : INIFile.CINIFile; CONST logger : log.CLogger ) : BOOLEAN;
-   CONST
-      snInterface        = L"interface";
-         knListenPort    = L"listen_port";
-         knDeviceAddress = L"device_address";
-   VAR
-      Addr : ARRAY [0..0] OF inetaddr.INETADDR;
-      cs : StringsO.CString;
-      line : CARDINAL;
-      listenPort : CARDINAL;
+   PUBLIC PROCEDURE SetConfiguration( CONST ClientName : ARRAY OF WCHAR; ListenPort : CARDINAL; Server : inetaddr.INETADDR );
    BEGIN
-      IF NOT INI.SetSection( snInterface ) THEN
-         logger.LogFilePos( log.dlcError, ClientName, ParFilePath, OAsz( R()^[ Texts._MissingInterfaceSection ] ), 0, 0 );
-         RETURN FALSE;
-      END;
-
-      // listen port
-      IF NOT INI.GetKeyInt( knListenPort, OUT line, OUT listenPort ) THEN
-         logger.LogFilePos( log.dlcError, ClientName, ParFilePath, OAsz( R()^[ Texts._BadOrMissingListenPort ] ), line, 0 );
-         RETURN FALSE;
-      END;
-      
-      // device address
-      IF NOT INI.GetKeyStr( knDeviceAddress, OUT line, OUT cs ) THEN
-         logger.LogFilePos( log.dlcError, ClientName, ParFilePath, OAsz( R()^[ Texts._MissingDeviceAddress ] ), line, 0 );
-         RETURN FALSE;
-      ELSIF NOT dns.NameToAddressWait( OA( cs.Length-1, cs.rawData ), listenPort, 2000, OUT Addr ) THEN
-         logger.LogFilePos( log.dlcError, ClientName, ParFilePath, OAsz( R()^[ Texts._UnableToGetDeviceAddress ] ), line, 0 );
-         RETURN FALSE;
-      END;
-
-      Communicator^.SetDeviceAddress( Addr[0], listenPort );
-   
-      RETURN TRUE;
-   END LoadConfiguration;
+      Name.FromOA( ClientName );
+      Logger.SetLogName( ClientName );
+      Communicator^.Stop();
+      Communicator^.SetDeviceAddress( Server, ListenPort );
+   END SetConfiguration;
       
 (*-------------------------------------------------------------------------------*)
 
@@ -1027,7 +998,7 @@ CLASS IMPLEMENTATION CDali;
 
 (*-------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Command( Linie : CARDINAL; CONST daliAddress : DaliAddress; _Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE Command( Linie : TDaliLinie; CONST daliAddress : DaliAddress; _Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
    BEGIN
       IF Programming THEN
          Logger.LogSC( dldMessage, logPrefix, L"Unable to send command in programming mode: ", CARDINAL( _Command ));
@@ -1039,7 +1010,7 @@ CLASS IMPLEMENTATION CDali;
    
 (*-------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Address( Linie : CARDINAL; Specific : BOOLEAN; CONST SpecificAddress : DaliAddress ) : BOOLEAN;
+   PUBLIC PROCEDURE Address( Linie : TDaliLinie; Specific : BOOLEAN; CONST SpecificAddress : DaliAddress ) : BOOLEAN;
    VAR
       Msg : msghandler.Message;
    BEGIN
@@ -1058,7 +1029,7 @@ CLASS IMPLEMENTATION CDali;
 
 (*-------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Scan( Linie : CARDINAL ) : BOOLEAN;
+   PUBLIC PROCEDURE Scan( Linie : TDaliLinie ) : BOOLEAN;
    VAR
       Msg : msghandler.Message;
    BEGIN
@@ -1077,7 +1048,7 @@ CLASS IMPLEMENTATION CDali;
 
 (*-------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Readdress( Linie : CARDINAL; CONST Readdressed : TAddresses ) : BOOLEAN;
+   PUBLIC PROCEDURE Readdress( Linie : TDaliLinie; CONST Readdressed : TAddresses ) : BOOLEAN;
    VAR
       Msg : msghandler.Message;
    BEGIN
@@ -1160,7 +1131,7 @@ CLASS IMPLEMENTATION CDali;
 
                   Programming := FALSE; // kill
                   IF EventSink <> NIL THEN
-                     EventSink^.OnProgrammingStopped( Sync.arAborted, ProgrammedLinie );
+                     EventSink^.OnProgrammingStopped( Sync.arAborted, Name, ProgrammedLinie );
                   END;
 
                ELSIF Request^.ClientId = EXPECTED_RESPONSE THEN
@@ -1180,7 +1151,7 @@ CLASS IMPLEMENTATION CDali;
             ELSIF EventSink <> NIL THEN
                LogRequest( dldDebug, L"FIN: ", Request, Result, TRUE, TRUE, FALSE );
 
-               EventSink^.OnCompletion( Result, Request^.Command, Request^.ClientId, Request^.Linie, Request^.Address, Response );
+               EventSink^.OnCompletion( Result, Name, Request^.Linie, Request^.Address, Request^.Command, Response, Request^.ClientId );
             END;
             DISPOSE( Request );
             
@@ -1201,7 +1172,7 @@ CLASS IMPLEMENTATION CDali;
 
 (*-------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE FeedCommand( Linie : CARDINAL; daliAddress : TPDaliAddress; _Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
+   PRIVATE PROCEDURE FeedCommand( Linie : TDaliLinie; daliAddress : TPDaliAddress; _Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
    VAR
       Request : TPDaliRequest;
    BEGIN
@@ -1379,7 +1350,7 @@ CLASS IMPLEMENTATION CDali;
 
                DA.Type := DaliBridge.adrSingle;
                DA.Address := Programmer.CurrentShortAddress;
-               EventSink^.OnDeviceFound( ProgrammedLinie, DA, Programmer.CurrentLongAddress.C24 );
+               EventSink^.OnDeviceFound( Name, ProgrammedLinie, DA, Programmer.CurrentLongAddress.C24 );
             END;
             Programmer.HandleResponse( TRUE, 0 ); // move to next state
             
@@ -1402,7 +1373,7 @@ CLASS IMPLEMENTATION CDali;
             DA.Type := DaliBridge.adrSingle;
             DA.Address := Programmer.CurrentShortAddress;
             FeedCommand( ProgrammedLinie, ADR( DA ), cmdMax, 0, EXPECTED_RESPONSE );
-            EventSink^.OnDeviceFound( ProgrammedLinie, DA, Programmer.CurrentLongAddress.C24 );
+            EventSink^.OnDeviceFound( Name, ProgrammedLinie, DA, Programmer.CurrentLongAddress.C24 );
             EXIT;
 
          | dapDisableOne :
@@ -1417,9 +1388,9 @@ CLASS IMPLEMENTATION CDali;
             Programming := FALSE;
             IF EventSink <> NIL THEN
                IF Programmer.Failed THEN
-                  EventSink^.OnProgrammingStopped( Sync.arAborted, ProgrammedLinie );
+                  EventSink^.OnProgrammingStopped( Sync.arAborted, Name, ProgrammedLinie );
                ELSE
-                  EventSink^.OnProgrammingStopped( Sync.arCompleted, ProgrammedLinie );
+                  EventSink^.OnProgrammingStopped( Sync.arCompleted, Name, ProgrammedLinie );
                END;
             END;
             EXIT;
@@ -1499,7 +1470,7 @@ CLASS IMPLEMENTATION CDali;
 
 BEGIN
    Programming := FALSE;
-   ProgrammedLinie := 0;
+   ProgrammedLinie := l1;
    Programmer.Logger := ADR( Logger );
    Communicator := NEW( CUDPCommunicator );
    Communicator^.EventSink := TPICommunicatorSink( ADR( SELF ));
@@ -1513,6 +1484,177 @@ FINALLY
       Communicator := NIL;
    END;
    Dispose();
+END CDaliDevice;
+
+(*===============================================================================*)
+
+CLASS IMPLEMENTATION CDali;
+      
+(*-------------------------------------------------------------------------------*)
+
+   LOCAL VIRTUAL PROCEDURE OnDeviceFound( CONST Dali : StringsO.CString; Linie : TDaliLinie; CONST Address : DaliAddress; LongAddress : CARDINAL );
+   BEGIN
+      IF EventSink <> NIL THEN
+         EventSink^.OnDeviceFound( Dali, Linie, Address, LongAddress );
+      END;
+   END OnDeviceFound;
+
+(*-------------------------------------------------------------------------------*)
+
+   LOCAL VIRTUAL PROCEDURE OnProgrammingStopped( Result : Sync.TAsyncResult; CONST Dali : StringsO.CString; Linie : TDaliLinie );
+   BEGIN
+      IF EventSink <> NIL THEN
+         EventSink^.OnProgrammingStopped( Result, Dali, Linie );
+      END;
+   END OnProgrammingStopped;
+
+(*-------------------------------------------------------------------------------*)
+
+   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; CONST Dali : StringsO.CString; Linie : TDaliLinie; CONST daliAddress : DaliAddress; Command : TDaliCommand; Data : CARD8; ClientId : PTR );
+   BEGIN
+      IF EventSink <> NIL THEN
+         EventSink^.OnCompletion( Result, Dali, Linie, daliAddress, Command, Data, ClientId );
+      END;
+   END OnCompletion;
+   
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CreateDali( CONST Name : StringsO.CString; Server, Port : ARRAY OF WCHAR; OUT Error : StringsO.CString ) : BOOLEAN;
+   VAR
+      Addr : ARRAY [0..0] OF inetaddr.INETADDR;
+      DaliDevice : POINTER TO CDaliDevice;
+      listenPort : CARDINAL;
+   BEGIN
+      IF Dali.Contains( Name ) THEN
+         Error.FromOA( OAsz( R()^[ Texts._DaliAlreadyExists ] ));
+      END;
+      
+      IF ( Port[0] = 0W ) OR NOT Strings.ToCARD32W( Port, 10, OUT listenPort ) THEN
+         Error.FromOA( OAsz( R()^[ Texts._BadOrMissingListenPort ] ));
+         RETURN FALSE;
+      END;
+      
+      // device address
+      IF Server[0] = 0W THEN
+         Error.FromOA( OAsz( R()^[ Texts._MissingDeviceAddress ] ));
+         RETURN FALSE;
+      ELSIF NOT dns.NameToAddressWait( Server, listenPort, 2000, OUT Addr ) THEN
+         Error.FromOA( OAsz( R()^[ Texts._UnableToGetDeviceAddress ] ));
+         RETURN FALSE;
+      END;
+      
+      NEW( DaliDevice );
+      DaliDevice^.SetConfiguration( OA( Name.Length-1, Name.rawData ), listenPort, Addr[0] );
+      Dali.Add( Name, DaliDevice );
+      
+      IF Running THEN
+         DaliDevice^.Run();
+      END;
+      RETURN TRUE;
+   END CreateDali;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE GetDali( CONST Name : StringsO.CString; OUT DaliDevice : PTR ) : BOOLEAN;
+   BEGIN
+      RETURN Dali.Get( Name, OUT DaliDevice );
+   END GetDali;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE RemoveDali( CONST Name : StringsO.CString );
+   VAR
+      DaliDevice : POINTER TO CDaliDevice;
+   BEGIN
+      IF Dali.Get( Name, OUT DaliDevice ) THEN
+         Dali.Remove( Name );
+         DaliDevice^.Stop();
+         DISPOSE( DaliDevice );
+      END;
+   END RemoveDali;
+   
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Run() : Sync.TAsyncResult;
+   VAR
+      DaliDevice : POINTER TO CDaliDevice;
+   BEGIN
+      Dali.Reset();
+      WHILE Dali.MoveNext() DO
+         DaliDevice := Dali.CurrentData;
+         DaliDevice^.Run();
+      END; // WHILE
+      RETURN Sync.arCompleted;
+   END Run;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Stop();
+   VAR
+      DaliDevice : POINTER TO CDaliDevice;
+   BEGIN
+      Dali.Reset();
+      WHILE Dali.MoveNext() DO
+         DaliDevice := Dali.CurrentData;
+         DaliDevice^.Stop();
+      END; // WHILE
+   END Stop;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Command( Dali : PTR; Linie : TDaliLinie; CONST daliAddress : DaliAddress; _Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
+   VAR
+      DaliDevice : POINTER TO CDaliDevice := Dali;
+   BEGIN
+      RETURN DaliDevice^.Command( Linie, daliAddress, _Command, Data, ClientId );
+   END Command;
+   
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Address( Dali : PTR; Linie : TDaliLinie; Specific : BOOLEAN; CONST SpecificAddress : DaliAddress ) : BOOLEAN;
+   VAR
+      DaliDevice : POINTER TO CDaliDevice := Dali;
+   BEGIN
+      RETURN DaliDevice^.Address( Linie, Specific, SpecificAddress );
+   END Address;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Scan( Dali : PTR; Linie : TDaliLinie ) : BOOLEAN;
+   VAR
+      DaliDevice : POINTER TO CDaliDevice := Dali;
+   BEGIN
+      RETURN DaliDevice^.Scan( Linie );
+   END Scan;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Readdress( Dali : PTR; Linie : TDaliLinie; CONST Readdressed : TAddresses ) : BOOLEAN;
+   VAR
+      DaliDevice : POINTER TO CDaliDevice := Dali;
+   BEGIN
+      RETURN DaliDevice^.Readdress( Linie, Readdressed );
+   END Readdress;
+   
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Dispose();
+   VAR
+      DaliDevice : POINTER TO CDaliDevice;
+   BEGIN
+      Dali.Reset();
+      WHILE Dali.MoveNext() DO
+         DaliDevice := Dali.CurrentData;
+         DISPOSE( DaliDevice );
+      END; // WHILE
+      Dali.Dispose();
+   END Dispose;
+
+(*-------------------------------------------------------------------------------*)
+
+BEGIN
+   EventSink := NIL;
+   Running := FALSE;
 END CDali;
 
 (*===============================================================================*)

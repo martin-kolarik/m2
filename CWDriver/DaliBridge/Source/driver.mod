@@ -38,7 +38,8 @@ CLASS ExceptionItem;
    LOCAL VAR
       Result : Sync.TAsyncResult := Sync.arCompleted;
       Command : DaliBridge.TDaliCommand := DaliBridge.cmdOff;
-      Linie : CARDINAL := 0;
+      Name : StringsO.CString;
+      Linie : DaliBridge.TDaliLinie := DaliBridge.l1;
       Address : DaliBridge.DaliAddress;
       LongAddress : CARDINAL := 0;
       Value : CARD8 := 0;
@@ -403,36 +404,55 @@ CLASS IMPLEMENTATION CDriver;
       command : DaliBridge.TDaliCommand;
       CS : StringsO.CString;
       data : PTR;
+      daliDevice : PTR;
       dimFlag : BOOLEAN;
       ExceptionItem : TPExceptionItem;
       ExceptionType : TExceptionItemType;
       haveEvent : BOOLEAN;
       i, index : CARDINAL;
       Level : CARDINAL;
-      Linie : CARDINAL;
+      Linie : DaliBridge.TDaliLinie;
       N : ARRAY [0..15] OF WCHAR;
       S1, S2, S3 : ARRAY [0..63] OF WCHAR;
       
       //-----
       
-      PROCEDURE SplitAddress( GroupFlag, AllowGroup, AllowAll : BOOLEAN; REF S : ARRAY OF WCHAR; OUT Linie : CARDINAL; REF Address : DaliBridge.DaliAddress ) : BOOLEAN; // Linie = 0 is default
+      PROCEDURE SplitAddress( GroupFlag, AllowGroup, AllowAll : BOOLEAN; REF S : ARRAY OF WCHAR; OUT DaliDevice : PTR; OUT Linie : DaliBridge.TDaliLinie; REF Address : DaliBridge.DaliAddress ) : BOOLEAN; // Linie = 0 is default
       VAR
-         i : CARDINAL;
+         i, j : CARDINAL;
+         PN : PWCHAR;
          PA : PWCHAR;
          PL : PWCHAR;
+         so : StringsO.CString;
       BEGIN
          i := Strings.IndexOfCharW( S, L".", 0 );
          IF i = -1 THEN
-            PL := NIL;
-            PA := PWCHAR( ADR( S ));
-         ELSE
-            PL := PWCHAR( ADR( S ));
-            PA := PWCHAR( ADR( S[i+1] ));
-            S[i] := 0W;
+            CS.FromOA( L'error: missing device name' );
+            RETURN FALSE;
          END;
 
+         PN := ADR( S );
+         S[i] := 0W;
+
+         j := Strings.IndexOfCharW( S, L".", i );
+         IF j = -1 THEN
+            PL := NIL;
+            PA := PWCHAR( ADR( S[j+1] ));
+         ELSE
+            PL := PWCHAR( ADR( S[i+1] ));
+            PA := PWCHAR( ADR( S[j+1] ));
+            S[j] := 0W;
+         END;
+         
+         so.FromOA( OAsz( PN ));
+         IF NOT Dali.Get( so, OUT DaliDevice ) THEN
+            CS.FromOA( L'error: unknown device: ' );
+            CS.AppendOA( OAsz( PN ));
+            RETURN FALSE;
+         END; 
+
          IF PL = NIL THEN
-            Linie := 0;
+            Linie := DaliBridge.l1;
          ELSE
             IF EQUALS( OAsz( PL ), L"all" ) THEN
                c := 7; // broadcast
@@ -440,7 +460,7 @@ CLASS IMPLEMENTATION CDriver;
                CS.FromOA( L'error: bad linie address' );
                RETURN FALSE;
             END;
-            Linie := c;
+            Linie := DaliBridge.TDaliLinie( c );
          END;
 
          IF PA <> NIL THEN
@@ -484,7 +504,7 @@ CLASS IMPLEMENTATION CDriver;
 
       //-----
 
-      PROCEDURE Send( type : TExceptionItemType; Linie : CARDINAL; CONST address : DaliBridge.DaliAddress; command : DaliBridge.TDaliCommand; value : CARDINAL ) : BOOLEAN;
+      PROCEDURE Send( type : TExceptionItemType; DaliDevice : PTR; Linie : DaliBridge.TDaliLinie; CONST address : DaliBridge.DaliAddress; command : DaliBridge.TDaliCommand; value : CARDINAL ) : BOOLEAN;
       VAR
          AsyncResult : Sync.TAsyncResult;
       BEGIN
@@ -496,7 +516,7 @@ CLASS IMPLEMENTATION CDriver;
             RETURN FALSE;
          END;
 
-         AsyncResult := Dali.Command( Linie, address, command, CARD8( value ), PTR( type ));
+         AsyncResult := Dali.Command( DaliDevice, Linie, address, command, CARD8( value ), PTR( type ));
          IF ( AsyncResult = Sync.arPending ) OR ( AsyncResult = Sync.arAlreadyPending ) THEN
             RETURN TRUE; // OK
          ELSE
@@ -507,7 +527,7 @@ CLASS IMPLEMENTATION CDriver;
       
       //-----
 
-      PROCEDURE ProgramItem( Linie : CARDINAL; command : DaliBridge.TDaliCommand; LimitTo15Steps : BOOLEAN; REF S3 : ARRAY OF WCHAR ) : BOOLEAN;
+      PROCEDURE ProgramItem( DaliDevice : PTR; Linie : DaliBridge.TDaliLinie; command : DaliBridge.TDaliCommand; LimitTo15Steps : BOOLEAN; REF S3 : ARRAY OF WCHAR ) : BOOLEAN;
       VAR
          c : CARDINAL;
       BEGIN
@@ -527,10 +547,10 @@ CLASS IMPLEMENTATION CDriver;
             CS.FromOA( L'error: light level too big' );
             RETURN FALSE;
          ELSE
-            IF NOT Send( eitParam, Linie, address, DaliBridge.cmdLoadDTR, c ) THEN
+            IF NOT Send( eitParam, DaliDevice, Linie, address, DaliBridge.cmdLoadDTR, c ) THEN
                RETURN FALSE;
             END;
-            IF NOT Send( eitParam, Linie, address, command, 0 ) THEN
+            IF NOT Send( eitParam, DaliDevice, Linie, address, command, 0 ) THEN
                RETURN FALSE;
             END;
             i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S3 ); Strings.TrimW( REF S3 );
@@ -581,7 +601,7 @@ CLASS IMPLEMENTATION CDriver;
             Lock.Unlock();
 
             IF haveEvent THEN
-               Strings.FromCARD32W( ExceptionItem^.Linie, 10, OUT S1 );
+               Strings.FromCARD32W( CARD32( ExceptionItem^.Linie ), 10, OUT S1 );
                ExceptionItem^.Address.ToString( OUT S2 );
                ExceptionType := TExceptionItemType( LOPTRLONGWORD( data ));
 
@@ -712,7 +732,7 @@ CLASS IMPLEMENTATION CDriver;
          END;
 
       ELSIF EQUALS( S1, L'get' ) THEN
-         IF NOT SplitAddress( FALSE, FALSE, FALSE, REF S2, OUT Linie, REF address ) THEN
+         IF NOT SplitAddress( FALSE, FALSE, FALSE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
             GOTO Error;
          END;
 
@@ -731,7 +751,7 @@ CLASS IMPLEMENTATION CDriver;
             GOTO Error;
          END;
 
-         IF NOT Send( eitRead, Linie, address, command, 0 ) THEN
+         IF NOT Send( eitRead, daliDevice, Linie, address, command, 0 ) THEN
             GOTO Error;
          END;
          CS.Clear(); // return value
@@ -739,7 +759,7 @@ CLASS IMPLEMENTATION CDriver;
       ELSIF EQUALS( S1, L'set' ) OR EQUALS( S1, L'dim' ) THEN
          dimFlag := S1[0] = L"d";
 
-         IF NOT SplitAddress( FALSE, TRUE, TRUE, REF S2, OUT Linie, REF address ) THEN
+         IF NOT SplitAddress( FALSE, TRUE, TRUE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
             GOTO Error;
          END;
 
@@ -779,56 +799,56 @@ CLASS IMPLEMENTATION CDriver;
             END;
          END;
       
-         IF NOT Send( eitWrite, Linie, address, command, Level ) THEN
+         IF NOT Send( eitWrite, daliDevice, Linie, address, command, Level ) THEN
             GOTO Error;
          END;
          CS.Clear(); // return value
 
       ELSIF EQUALS( S1, L'param' )  THEN
-         IF NOT SplitAddress( FALSE, FALSE, FALSE, REF S2, OUT Linie, REF address ) THEN
+         IF NOT SplitAddress( FALSE, FALSE, FALSE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
             GOTO Error;
          END;
 
          // S3 already contains power on level
-         IF NOT ProgramItem( Linie, DaliBridge.cmdDTRToPowerOn, FALSE, REF S3 ) THEN
+         IF NOT ProgramItem( daliDevice, Linie, DaliBridge.cmdDTRToPowerOn, FALSE, REF S3 ) THEN
             GOTO Error;
          END;
-         IF NOT ProgramItem( Linie, DaliBridge.cmdDTRToFail, FALSE, REF S3 ) THEN
+         IF NOT ProgramItem( daliDevice, Linie, DaliBridge.cmdDTRToFail, FALSE, REF S3 ) THEN
             GOTO Error;
          END;
-         IF NOT ProgramItem( Linie, DaliBridge.cmdDTRToMin, FALSE, REF S3 ) THEN
+         IF NOT ProgramItem( daliDevice, Linie, DaliBridge.cmdDTRToMin, FALSE, REF S3 ) THEN
             GOTO Error;
          END;
-         IF NOT ProgramItem( Linie, DaliBridge.cmdDTRToMax, FALSE, REF S3 ) THEN
+         IF NOT ProgramItem( daliDevice, Linie, DaliBridge.cmdDTRToMax, FALSE, REF S3 ) THEN
             GOTO Error;
          END;
-         IF NOT ProgramItem( Linie, DaliBridge.cmdDTRToFadeRate, TRUE, REF S3 ) THEN
+         IF NOT ProgramItem( daliDevice, Linie, DaliBridge.cmdDTRToFadeRate, TRUE, REF S3 ) THEN
             GOTO Error;
          END;
-         IF NOT ProgramItem( Linie, DaliBridge.cmdDTRToFadeTime, TRUE, REF S3 ) THEN
+         IF NOT ProgramItem( daliDevice, Linie, DaliBridge.cmdDTRToFadeTime, TRUE, REF S3 ) THEN
             GOTO Error;
          END;
          CS.Clear(); // return value
 
       ELSIF EQUALS( S1, L'reset' )  THEN
-         IF NOT SplitAddress( FALSE, FALSE, FALSE, REF S2, OUT Linie, REF address ) THEN
+         IF NOT SplitAddress( FALSE, FALSE, FALSE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
             GOTO Error;
          END;
 
-         IF NOT Send( eitReset, Linie, address, DaliBridge.cmdReset, 0 ) THEN
+         IF NOT Send( eitReset, daliDevice, Linie, address, DaliBridge.cmdReset, 0 ) THEN
             GOTO Error;
          END;
          CS.Clear(); // return value
 
       ELSIF EQUALS( S1, L'reset_address' ) THEN
-         IF NOT SplitAddress( FALSE, TRUE, TRUE, REF S2, OUT Linie, REF address ) THEN
+         IF NOT SplitAddress( FALSE, TRUE, TRUE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
             GOTO Error;
          END;
 
-         IF NOT Send( eitReset, Linie, address, DaliBridge.cmdLoadDTR, 0FFH ) THEN
+         IF NOT Send( eitReset, daliDevice, Linie, address, DaliBridge.cmdLoadDTR, 0FFH ) THEN
             GOTO Error;
          END;
-         IF NOT Send( eitReset, Linie, address, DaliBridge.cmdDTRToAddress, 0 ) THEN
+         IF NOT Send( eitReset, daliDevice, Linie, address, DaliBridge.cmdDTRToAddress, 0 ) THEN
             GOTO Error;
          END;
          CS.Clear(); // return value
@@ -843,7 +863,7 @@ CLASS IMPLEMENTATION CDriver;
          END;
 
          Fill( ADR( StatusArray ), SIZE( StatusArray ), 0FFH ); // force report new statuses
-         IF Dali.Address( Linie, FALSE, address ) THEN
+         IF Dali.Address( daliDevice, Linie, FALSE, address ) THEN
             CS.Clear(); // return value
          ELSE
             CS.FromOA( L'error: addressing cannot start (maybe addressing is already running?)' );
@@ -861,7 +881,7 @@ CLASS IMPLEMENTATION CDriver;
          address.Type := DaliBridge.adrAll;
 
          Fill( ADR( StatusArray ), SIZE( StatusArray ), 0FFH ); // force report new statuses
-         IF Dali.Address( Linie, TRUE, address ) THEN
+         IF Dali.Address( daliDevice, Linie, TRUE, address ) THEN
             CS.Clear(); // return value
          ELSE
             CS.FromOA( L'error: addressing cannot start (maybe addressing is already running?)' );
@@ -877,7 +897,7 @@ CLASS IMPLEMENTATION CDriver;
             GOTO Error;
          END;
 
-         IF Dali.Scan( Linie ) THEN
+         IF Dali.Scan( daliDevice, Linie ) THEN
             CS.Clear(); // return value
          ELSE
             CS.FromOA( L'error: scanning cannot start (maybe addressing is already running?)' );
@@ -910,7 +930,7 @@ CLASS IMPLEMENTATION CDriver;
          END; // LOOP
 
          Fill( ADR( StatusArray ), SIZE( StatusArray ), 0FFH ); // force report new statuses
-         IF Dali.Readdress( 0, AddressArray ) THEN
+         IF Dali.Readdress( daliDevice, Linie, AddressArray ) THEN
             CS.Clear();
          ELSE
             CS.FromOA( L'error: readdressing cannot start (maybe no addresses are known yet?)' );
@@ -962,7 +982,7 @@ CLASS IMPLEMENTATION CDriver;
 
          Dali.Logger.LogSC( dldTrace, logPrefix, L"Poll status request for: ", i );
 
-         AsyncResult := Dali.Command( 0, address, DaliBridge.cmdStatus, 0, PTR( eitPollStatus ));
+         AsyncResult := Dali.Command( daliDevice, l1, address, DaliBridge.cmdStatus, 0, PTR( eitPollStatus ));
          IF ( AsyncResult = Sync.arPending ) OR ( AsyncResult = Sync.arAlreadyPending ) THEN // OK
             PollWaitArray[i] := TRUE;
 
@@ -978,11 +998,12 @@ CLASS IMPLEMENTATION CDriver;
 
 //================================================================================
 
-   LOCAL VIRTUAL PROCEDURE OnDeviceFound( Linie : CARDINAL; CONST Address : DaliBridge.DaliAddress; LongAddress : CARDINAL );
+   LOCAL VIRTUAL PROCEDURE OnDeviceFound( CONST DaliName : StringsO.CString; Linie : DaliBridge.TDaliLinie; CONST Address : DaliBridge.DaliAddress; LongAddress : CARDINAL );
    VAR
       exceptionItem : TPExceptionItem;
    BEGIN
       NEW( exceptionItem );
+      exceptionItem^.Name := DaliName;
       exceptionItem^.Linie := Linie;
       exceptionItem^.Address := Address;
       exceptionItem^.LongAddress := LongAddress;
@@ -1004,12 +1025,13 @@ CLASS IMPLEMENTATION CDriver;
 
 //================================================================================
 
-   LOCAL VIRTUAL PROCEDURE OnProgrammingStopped( Result : Sync.TAsyncResult; Linie : CARDINAL );
+   LOCAL VIRTUAL PROCEDURE OnProgrammingStopped( Result : Sync.TAsyncResult; CONST DaliName : StringsO.CString; Linie : DaliBridge.TDaliLinie );
    VAR
       exceptionItem : TPExceptionItem;
       i : CARDINAL;
    BEGIN
       NEW( exceptionItem );
+      exceptionItem^.Name := DaliName;
       exceptionItem^.Result := Result;
       exceptionItem^.Linie := Linie;
 
@@ -1037,7 +1059,7 @@ CLASS IMPLEMENTATION CDriver;
 
 //================================================================================
 
-   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; Command : DaliBridge.TDaliCommand; ClientId : PTR; Linie : CARDINAL; CONST daliAddress : DaliBridge.DaliAddress; Data : CARD8 );
+   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; CONST DaliName : StringsO.CString; Linie : DaliBridge.TDaliLinie; CONST daliAddress : DaliBridge.DaliAddress;  Command : DaliBridge.TDaliCommand; Data : CARD8; ClientId : PTR );
    VAR
       address : CARDINAL;
       exceptionItem : TPExceptionItem;
@@ -1068,6 +1090,7 @@ CLASS IMPLEMENTATION CDriver;
       END; // CASE
       
       NEW( exceptionItem );
+      exceptionItem^.Name := DaliName;
       exceptionItem^.Result := Result;
       exceptionItem^.Command := Command;
       exceptionItem^.Linie := Linie;

@@ -39,21 +39,27 @@
             <item lang="en-US">Missing "interface" section</item>
             <item lang="cs-CZ">Chybí sekce "interface"</item>
         </string>
+
+        <comment>Driver query procedure errors</comment>
+        <string name="_DaliAlreadyExists">
+            <item lang="en-US">error: device with the name already exists</item>
+            <item lang="cs-CZ">error: device with the name already exists</item>
+        </string>
         <string name="_BadOrMissingListenPort">
-            <item lang="en-US">"listen_port" parameter is missing or it is malformed</item>
-            <item lang="cs-CZ">Parametr "listen_port" chybí, nebo je špatně zapsán</item>
+            <item lang="en-US">error: "listen_port" is missing or it is malformed</item>
+            <item lang="cs-CZ">error: "listen_port" is missing or it is malformed</item>
         </string>
         <string name="_MissingDeviceAddress">
-            <item lang="en-US">"device_address" parameter is missing</item>
-            <item lang="cs-CZ">Chybí parametr "device_address"</item>
+            <item lang="en-US">error: "device_address" parameter is missing</item>
+            <item lang="cs-CZ">error: "device_address" parameter is missing</item>
         </string>
         <string name="_BadDeviceAddress">
-            <item lang="en-US">"device_address" parameter is bad</item>
-            <item lang="cs-CZ">Parametr "device_address" není správně zapsán</item>
+            <item lang="en-US">error: "device_address" parameter is bad</item>
+            <item lang="cs-CZ">error: "device_address" parameter is bad</item>
         </string>
         <string name="_UnableToGetDeviceAddress">
-            <item lang="en-US">Device address cannot be obtained</item>
-            <item lang="cs-CZ">Adresu zařízení Moxa nelze zjistit</item>
+            <item lang="en-US">error: device address cannot be obtained</item>
+            <item lang="cs-CZ">error: device address cannot be obtained</item>
         </string>
 
         <comment>Descriptions</comment> 

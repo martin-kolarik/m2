@@ -90,9 +90,9 @@ CLASS CDriver IMPLEMENTS diface.ICWDriver, threadpool.ITimeoutSink, DaliBridge.I
    // ITimeoutSink
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    // IEventSink
-   LOCAL VIRTUAL PROCEDURE OnDeviceFound( Linie : CARDINAL; CONST Address : DaliBridge.DaliAddress; LongAddress : CARDINAL );
-   LOCAL VIRTUAL PROCEDURE OnProgrammingStopped( Result : Sync.TAsyncResult; Linie : CARDINAL );
-   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; Command : DaliBridge.TDaliCommand; ClientId : PTR; Linie : CARDINAL; CONST daliAddress : DaliBridge.DaliAddress; Data : CARD8 );
+   LOCAL VIRTUAL PROCEDURE OnDeviceFound( CONST DaliName : StringsO.CString; Linie : DaliBridge.TDaliLinie; CONST Address : DaliBridge.DaliAddress; LongAddress : CARDINAL );
+   LOCAL VIRTUAL PROCEDURE OnProgrammingStopped( Result : Sync.TAsyncResult; CONST DaliName : StringsO.CString; Linie : DaliBridge.TDaliLinie );
+   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; CONST DaliName : StringsO.CString; Linie : DaliBridge.TDaliLinie; CONST daliAddress : DaliBridge.DaliAddress; Command : DaliBridge.TDaliCommand; Data : CARD8; ClientId : PTR );
 END CDriver;
 
 //================================================================================
