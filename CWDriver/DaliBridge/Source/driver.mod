@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE driver;
 (*# call( o_a_copy => off ) *)
 
 FROM Storage IMPORT
-   ALLOCATE, DEALLOCATE, Fill;
+   ALLOCATE, DEALLOCATE;
 
 FROM log IMPORT
   dldTrace, dldDebug;
@@ -26,12 +26,13 @@ IMPORT
 //================================================================================
 
 CONST
-   logPrefix = L"Dali";
+   logName = L"Dali";
+   logPrefix = L"DRV";
 
 //================================================================================
 
 TYPE
-   TExceptionItemType = ( eitRead, eitWrite, eitPollStatus, eitParam, eitReset, eitProgram, eitAddressFound );
+   TExceptionItemType = ( eitEvent, eitRead, eitWrite, eitPollStatus, eitParam, eitReset, eitProgram, eitAddressFound );
    TPExceptionItem = POINTER TO ExceptionItem;
 
 CLASS ExceptionItem;
@@ -72,15 +73,9 @@ CLASS IMPLEMENTATION CDriver;
          knStatusChannel = L'status_channel';
          knOutputQueueCountChannel = L'output_queue_count_channel';
          knOutputQueueLength = L'output_queue_length';
-      snPolling = L'polling';
-         knPollPeriod = L'period';
-         knDev = L'dev00';
-         knAll = L'all';
    VAR
-      c, i, line : CARDINAL;
-      defaultPollingCount : CARDINAL;
+      c, line : CARDINAL;
       fs : FIOO.CFileStream;
-      strDev : ARRAY [0..31] OF WCHAR;
       tr : TextReader.CTextReader;
       TS : INIFile.CINIFile;
       b : BOOLEAN;
@@ -99,19 +94,20 @@ CLASS IMPLEMENTATION CDriver;
          RETURN FALSE;
       END;
 
-      Dali.Logger.SetUpByRegistry( LIBRARY );
-      CASE drv_def.ConfigureLog( TS, REF Dali.Logger, OUT line ) OF
+      Logger.SetUpByRegistry( LIBRARY );
+      CASE drv_def.ConfigureLog( TS, REF Logger, OUT line ) OF
       | drv_def.clrUnknownDebugMode :
          Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._UnknownDebugMode ] ), line, 0 );
+         RETURN FALSE;
       | drv_def.clrUnknownDebugLevel :
          Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._UnknownDebugLevel ] ), line, 0 );
+         RETURN FALSE;
       | drv_def.clrFileDebugMissingFile :
          Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._FileDebugMissingFile ] ), line, 0 );
          RETURN FALSE;
       END;
 
       StatusChannel := MAX( CARDINAL );
-      OutputQueueCountChannel := MAX( CARDINAL );
       IF TS.SetSection( snDevice ) THEN
          IF TS.GetKeyInt( knStatusChannel, OUT line, OUT c ) THEN
             StatusChannel := c;
@@ -120,43 +116,10 @@ CLASS IMPLEMENTATION CDriver;
             OutputQueueCountChannel := c;
          END;
          IF TS.GetKeyInt( knOutputQueueLength, OUT line, OUT c ) THEN
-            Dali.OutputQueueLength := c;
+            OutputQueueLength := c;
          END;
       END; // IF snDevice
       
-      PollPeriod := Sync.FOREVER;
-      IF TS.SetSection( snPolling ) THEN
-         IF TS.GetKeyInt( knPollPeriod, OUT line, OUT c ) THEN
-            IF c < 75 THEN
-               Dali.Logger.LogS( log.dldTrace, logPrefix, L"Polling period too short, selecting 75" );
-               PollPeriod := 75;
-            ELSE
-               PollPeriod := c;
-            END;
-         END;
-
-         defaultPollingCount := -1;
-         IF TS.GetKeyInt( knAll, OUT line, OUT c ) AND ( c > 0 ) THEN
-            Dali.Logger.LogSC( log.dldTrace, logPrefix, L"Setting polling count for all devices to: ", c );
-            defaultPollingCount := c;
-         END;
-
-         strDev := knDev;
-         FOR i := 0 TO 63 DO
-            strDev[3] := WCHAR( ORD( '0' ) + i DIV 10 );
-            strDev[4] := WCHAR( ORD( '0' ) + i MOD 10 );
-            IF TS.GetKeyInt( strDev, OUT line, OUT c ) AND ( c > 0 ) THEN
-               PollInitArray[i] := c;
-            ELSE
-               PollInitArray[i] := defaultPollingCount;
-            END;
-         END;
-      END;
-
-      IF NOT Dali.LoadConfiguration( ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), TS, Log ) THEN
-         RETURN FALSE;
-      END;
-   
       RETURN TRUE;
    END ReadParameters;
 
@@ -227,7 +190,6 @@ CLASS IMPLEMENTATION CDriver;
 
    PUBLIC VIRTUAL PROCEDURE DriverRun();
    VAR
-      i : CARDINAL;
       s : FIO.PathStrW;
    BEGIN
       IF schiRunning IN RStatus THEN
@@ -235,23 +197,13 @@ CLASS IMPLEMENTATION CDriver;
       END;
       INCL( RStatus, schiRunning );
       
-      Dali.Logger.LogS( log.dldError, logPrefix, L"RUN" );
+      Logger.LogS( log.dldError, logPrefix, L"RUN" );
 
       Result.Reset( lec.bhBestCase );
       FIO.GetModuleDirW( EMITW( %dll ), OUT s );
       lec.QueryData( s, L"", ADR( cllv.data ), cllv.length, REF Result );
 
       Dali.Run();
-
-      IF ( PollTimer = NIL ) AND ( PollPeriod <> Sync.FOREVER ) THEN
-         FOR i := 0 TO HIGH( PollInitArray ) DO
-            PollCountArray[i] := PollInitArray[i];
-            PollWaitArray[i] := FALSE;
-         END;
-         threadpool.pool()^.WaitTimeout( PollSink, 0, PollPeriod, FALSE, TRUE, OUT PollTimer );
-      ELSIF ( PollTimer <> NIL ) AND ( PollPeriod = Sync.FOREVER ) THEN
-         threadpool.pool()^.Abort( REF PollTimer );
-      END;
    END DriverRun;
 
 //--------------------------------------------------------------------------------
@@ -263,11 +215,7 @@ CLASS IMPLEMENTATION CDriver;
       END;
       EXCL( RStatus, schiRunning );
 
-      Dali.Logger.LogS( log.dldError, logPrefix, L"STOP" );
-
-      IF PollTimer <> NIL THEN
-         threadpool.pool()^.Abort( REF PollTimer );
-      END;
+      Logger.LogS( log.dldError, logPrefix, L"STOP" );
 
       Dali.Stop();
    END DriverStop;
@@ -409,21 +357,20 @@ CLASS IMPLEMENTATION CDriver;
       ExceptionItem : TPExceptionItem;
       ExceptionType : TExceptionItemType;
       haveEvent : BOOLEAN;
-      i, index : CARDINAL;
+      i, j, index : CARDINAL;
       Level : CARDINAL;
       Linie : DaliBridge.TDaliLinie;
       N : ARRAY [0..15] OF WCHAR;
-      S1, S2, S3 : ARRAY [0..63] OF WCHAR;
+      S1, S2, S3, S4 : ARRAY [0..63] OF WCHAR;
       
       //-----
       
-      PROCEDURE SplitAddress( GroupFlag, AllowGroup, AllowAll : BOOLEAN; REF S : ARRAY OF WCHAR; OUT DaliDevice : PTR; OUT Linie : DaliBridge.TDaliLinie; REF Address : DaliBridge.DaliAddress ) : BOOLEAN; // Linie = 0 is default
+      PROCEDURE SplitAddress( GroupFlag, AllowGroup, AllowAll, PreferLinie : BOOLEAN; REF S : ARRAY OF WCHAR; OUT DaliDevice : PTR; OUT Linie : DaliBridge.TDaliLinie; REF Address : DaliBridge.DaliAddress ) : BOOLEAN; // Linie = 0 is default
       VAR
          i, j : CARDINAL;
          PN : PWCHAR;
          PA : PWCHAR;
          PL : PWCHAR;
-         so : StringsO.CString;
       BEGIN
          i := Strings.IndexOfCharW( S, L".", 0 );
          IF i = -1 THEN
@@ -432,22 +379,25 @@ CLASS IMPLEMENTATION CDriver;
          END;
 
          PN := ADR( S );
+         j := Strings.IndexOfCharW( S, L".", i+1 );
          S[i] := 0W;
 
-         j := Strings.IndexOfCharW( S, L".", i );
          IF j = -1 THEN
-            PL := NIL;
-            PA := PWCHAR( ADR( S[j+1] ));
+            IF PreferLinie THEN
+               PA := NIL;
+               PL := PWCHAR( ADR( S[i+1] ));
+            ELSE
+               PL := NIL;
+               PA := PWCHAR( ADR( S[i+1] ));
+            END;
          ELSE
             PL := PWCHAR( ADR( S[i+1] ));
             PA := PWCHAR( ADR( S[j+1] ));
             S[j] := 0W;
          END;
          
-         so.FromOA( OAsz( PN ));
-         IF NOT Dali.Get( so, OUT DaliDevice ) THEN
-            CS.FromOA( L'error: unknown device: ' );
-            CS.AppendOA( OAsz( PN ));
+         IF NOT Dali.GetDali( OAsz( PN ), OUT DaliDevice ) THEN
+            CS.FromOA( L'error: unknown device' );
             RETURN FALSE;
          END; 
 
@@ -565,6 +515,7 @@ CLASS IMPLEMENTATION CDriver;
       i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 0, TRUE, OUT S1 ); Strings.TrimW( REF S1 );
       i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S2 ); Strings.TrimW( REF S2 );
       i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S3 ); Strings.TrimW( REF S3 );
+      i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S4 ); Strings.TrimW( REF S4 );
       
       IF EQUALS( S1, L'event' ) THEN
 
@@ -574,12 +525,12 @@ CLASS IMPLEMENTATION CDriver;
             Lock.Unlock();
             OutValue.Integer := c;
 
-            Dali.Logger.LogSC( dldDebug, logPrefix, L"Event.Count ", c );
+            Logger.LogSC( dldDebug, logPrefix, L"Event.Count ", c );
             
          ELSIF EQUALS( S2, L'get' ) THEN
             IF Result.Counted OR Result.Expired THEN
-               Dali.Logger.LogS( dldDebug, logPrefix, L"Event.Get clear buffer" );
-               Dali.Logger.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
+               Logger.LogS( dldDebug, logPrefix, L"Event.Get clear buffer" );
+               Logger.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
 
                Lock.Lock();
                Queue.Dispose();
@@ -594,36 +545,41 @@ CLASS IMPLEMENTATION CDriver;
                haveEvent := TRUE;
             ELSE
                haveEvent := FALSE;
-               Dali.Logger.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
+               Logger.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
 
                EXCL( RStatus, schiEventsPending );
             END;
             Lock.Unlock();
 
             IF haveEvent THEN
-               Strings.FromCARD32W( CARD32( ExceptionItem^.Linie ), 10, OUT S1 );
+               ExceptionItem^.Name.ToOA( OUT S1 );
+               Strings.FromCARD32W( CARD32( ExceptionItem^.Linie ), 10, OUT S2 );
+               Strings.AppendW( REF S1, L"." );
+               Strings.AppendW( REF S1, S2 );
                ExceptionItem^.Address.ToString( OUT S2 );
                ExceptionType := TExceptionItemType( LOPTRLONGWORD( data ));
 
                CASE ExceptionType OF
+               | eitEvent :
+                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"event" );
                | eitRead :
-                  Dali.Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"read" );
+                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"read" );
                | eitPollStatus :
-                  Dali.Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"poll status" );
+                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"poll status" );
                | eitWrite :
-                  Dali.Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"write" );
+                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"write" );
                | eitParam :
-                  Dali.Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"param" );
+                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"param" );
                | eitReset :
-                  Dali.Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"reset" );
+                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"reset" );
                | eitProgram :
-                  Dali.Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"program" );
+                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"program" );
                | eitAddressFound :
-                  Dali.Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"address found" );
+                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"address found" );
                END; // CASE ExceptionType
 
                CASE ExceptionType OF
-               | eitRead, eitPollStatus :
+               | eitEvent, eitRead, eitPollStatus :
                   CASE ExceptionItem^.Command OF
                   | DaliBridge.cmdStatus :
                      CS.FromOA( L"status " );  
@@ -635,6 +591,8 @@ CLASS IMPLEMENTATION CDriver;
                      CS.FromOA( L"version " );
                   | DaliBridge.cmdCurrentLevel :
                      CS.FromOA( L"level " );
+                  | DaliBridge.cmdEvent :
+                     CS.FromOA( L"value " );
                   ELSE
                      CS.FromOA( L"value " );
                   END;
@@ -731,8 +689,39 @@ CLASS IMPLEMENTATION CDriver;
             CS.FromOA( L'error: unknown driver procedure' );
          END;
 
+      ELSIF EQUALS( S1, L'create' ) THEN
+         IF S2[0] = 0W THEN
+            CS.FromOA( L'error: unknown device name' );
+            GOTO Error;
+         END;
+         IF S3[0] = 0W THEN
+            CS.FromOA( L'error: unknown listen port' );
+            GOTO Error;
+         END;
+         IF S4[0] = 0W THEN
+            CS.FromOA( L'error: unknown device address' );
+            GOTO Error;
+         END;
+         
+         IF NOT Dali.CreateDali( Logger, S2, S4, S3, PTR( eitPollStatus ), OutputQueueLength, OUT CS ) THEN
+            GOTO Error;
+         END;
+         CS.Clear(); // return value
+
+      ELSIF EQUALS( S1, L'delete' ) THEN
+         IF S2[0] = 0W THEN
+            CS.FromOA( L'error: missing device name' );
+            GOTO Error;
+         END;
+         
+         IF NOT Dali.RemoveDali( S2 ) THEN
+            CS.FromOA( L'error: unknown device' );
+            GOTO Error;
+         END;
+         CS.Clear(); // return value
+
       ELSIF EQUALS( S1, L'get' ) THEN
-         IF NOT SplitAddress( FALSE, FALSE, FALSE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
+         IF NOT SplitAddress( FALSE, FALSE, FALSE, FALSE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
             GOTO Error;
          END;
 
@@ -759,7 +748,7 @@ CLASS IMPLEMENTATION CDriver;
       ELSIF EQUALS( S1, L'set' ) OR EQUALS( S1, L'dim' ) THEN
          dimFlag := S1[0] = L"d";
 
-         IF NOT SplitAddress( FALSE, TRUE, TRUE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
+         IF NOT SplitAddress( FALSE, TRUE, TRUE, FALSE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
             GOTO Error;
          END;
 
@@ -805,7 +794,7 @@ CLASS IMPLEMENTATION CDriver;
          CS.Clear(); // return value
 
       ELSIF EQUALS( S1, L'param' )  THEN
-         IF NOT SplitAddress( FALSE, FALSE, FALSE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
+         IF NOT SplitAddress( FALSE, FALSE, FALSE, FALSE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
             GOTO Error;
          END;
 
@@ -831,7 +820,7 @@ CLASS IMPLEMENTATION CDriver;
          CS.Clear(); // return value
 
       ELSIF EQUALS( S1, L'reset' )  THEN
-         IF NOT SplitAddress( FALSE, FALSE, FALSE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
+         IF NOT SplitAddress( FALSE, FALSE, FALSE, FALSE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
             GOTO Error;
          END;
 
@@ -840,8 +829,33 @@ CLASS IMPLEMENTATION CDriver;
          END;
          CS.Clear(); // return value
 
+      ELSIF EQUALS( S1, L'set_poll_period' ) THEN
+         IF NOT SplitAddress( FALSE, FALSE, FALSE, TRUE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
+            GOTO Error;
+         END;
+
+         IF NOT Strings.ToCARD32W( S3, 10, OUT c ) THEN
+            CS.FromOA( L'error: bad polling period' );
+            GOTO Error;
+         END;
+         Dali.SetPollPeriod( daliDevice, Linie, c );
+         CS.Clear(); // return value
+
+      ELSIF EQUALS( S1, L'get_queue_count' ) THEN
+         IF S2[0] = 0W THEN
+            CS.FromOA( L'error: missing device name' );
+            GOTO Error;
+         END;
+         IF NOT Dali.GetDali( S2, OUT daliDevice ) THEN
+            CS.FromOA( L'error: unknown device: ' );
+            CS.AppendOA( S2 );
+            GOTO Error;
+         END;
+         Strings.FromCARD32W( Dali.GetOutputQueueCount( daliDevice ), 10, OUT S3 );
+         CS.FromOA( S3 );
+
       ELSIF EQUALS( S1, L'reset_address' ) THEN
-         IF NOT SplitAddress( FALSE, TRUE, TRUE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
+         IF NOT SplitAddress( FALSE, TRUE, TRUE, FALSE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
             GOTO Error;
          END;
 
@@ -854,15 +868,10 @@ CLASS IMPLEMENTATION CDriver;
          CS.Clear(); // return value
 
       ELSIF EQUALS( S1, L'program_all' )  THEN
-         IF S2[0] = 0W THEN
-            CS.FromOA( L'error: missing linie number' );
-            GOTO Error;
-         ELSIF NOT Strings.ToCARD32W( S2, 10, OUT Linie ) THEN
-            CS.FromOA( L'error: bad linie number' );
+         IF NOT SplitAddress( FALSE, FALSE, FALSE, TRUE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
             GOTO Error;
          END;
 
-         Fill( ADR( StatusArray ), SIZE( StatusArray ), 0FFH ); // force report new statuses
          IF Dali.Address( daliDevice, Linie, FALSE, address ) THEN
             CS.Clear(); // return value
          ELSE
@@ -871,16 +880,11 @@ CLASS IMPLEMENTATION CDriver;
          END;
 
       ELSIF EQUALS( S1, L'program_added' )  THEN
-         IF S2[0] = 0W THEN
-            CS.FromOA( L'error: missing linie number' );
-            GOTO Error;
-         ELSIF NOT Strings.ToCARD32W( S2, 10, OUT Linie ) THEN
-            CS.FromOA( L'error: bad linie number' );
+         IF NOT SplitAddress( FALSE, FALSE, FALSE, TRUE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
             GOTO Error;
          END;
          address.Type := DaliBridge.adrAll;
 
-         Fill( ADR( StatusArray ), SIZE( StatusArray ), 0FFH ); // force report new statuses
          IF Dali.Address( daliDevice, Linie, TRUE, address ) THEN
             CS.Clear(); // return value
          ELSE
@@ -889,15 +893,11 @@ CLASS IMPLEMENTATION CDriver;
          END;
 
       ELSIF EQUALS( S1, L'program_scan' )  THEN
-         IF S2[0] = 0W THEN
-            CS.FromOA( L'error: missing linie number' );
-            GOTO Error;
-         ELSIF NOT Strings.ToCARD32W( S2, 10, OUT Linie ) THEN
-            CS.FromOA( L'error: bad linie number' );
+         IF NOT SplitAddress( FALSE, FALSE, FALSE, TRUE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
             GOTO Error;
          END;
 
-         IF Dali.Scan( daliDevice, Linie ) THEN
+         IF Dali.Scan( daliDevice, Linie, FALSE ) THEN
             CS.Clear(); // return value
          ELSE
             CS.FromOA( L'error: scanning cannot start (maybe addressing is already running?)' );
@@ -905,11 +905,7 @@ CLASS IMPLEMENTATION CDriver;
          END;
 
       ELSIF EQUALS( S1, L'program_readdress' )  THEN
-         IF S2[0] = 0W THEN
-            CS.FromOA( L'error: missing linie number' );
-            GOTO Error;
-         ELSIF NOT Strings.ToCARD32W( S2, 10, OUT Linie ) THEN
-            CS.FromOA( L'error: bad linie number' );
+         IF NOT SplitAddress( FALSE, FALSE, FALSE, TRUE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
             GOTO Error;
          END;
 
@@ -929,13 +925,56 @@ CLASS IMPLEMENTATION CDriver;
             INC( index );
          END; // LOOP
 
-         Fill( ADR( StatusArray ), SIZE( StatusArray ), 0FFH ); // force report new statuses
          IF Dali.Readdress( daliDevice, Linie, AddressArray ) THEN
             CS.Clear();
          ELSE
             CS.FromOA( L'error: readdressing cannot start (maybe no addresses are known yet?)' );
             GOTO Error;
          END;
+
+      ELSIF EQUALS( S1, L'get_addresses' )  THEN
+         IF NOT SplitAddress( FALSE, FALSE, FALSE, TRUE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
+            GOTO Error;
+         END;
+
+         IF Dali.GetLongAddresses( daliDevice, Linie, OUT AddressArray ) THEN
+            CS.Clear();
+         ELSE
+            CS.FromOA( L'error: addresses cannot be get (maybe no addresses are known yet?)' );
+            GOTO Error;
+         END;
+         
+         FOR j := 0 TO HIGH( AddressArray ) DO
+            IF AddressArray[j] <> -1 THEN
+               Strings.FromCARD32W( AddressArray[j], 10, OUT S1 );
+               CS.AppendOA( S1 );
+               CS.AppendOA( L" " );
+            END;
+         END; // WHILE
+
+      ELSIF EQUALS( S1, L'load_addresses' )  THEN
+         IF NOT SplitAddress( FALSE, FALSE, FALSE, TRUE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
+            GOTO Error;
+         END;
+
+         AddressArray := DaliBridge.addressesNone;
+         index := 0;
+         i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 2, TRUE, OUT S3 ); Strings.TrimW( REF S3 );
+         LOOP
+            IF S3[0] = 0W THEN
+               EXIT;
+            END;
+            IF NOT Strings.ToCARD32W( S3, 10, OUT AddressArray[index] ) THEN
+               CS.FromOA( L'error: bad device long address: ' );
+               CS.AppendOA( S3 );
+               GOTO Error;
+            END;
+            i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S3 ); Strings.TrimW( REF S3 );
+            INC( index );
+         END; // LOOP
+
+         Dali.LoadLongAddresses( daliDevice, Linie, AddressArray );
+         CS.Clear(); // return value
 
       ELSE
          CS.FromOA( L'error: unknown driver procedure' );
@@ -954,50 +993,6 @@ CLASS IMPLEMENTATION CDriver;
 
 //================================================================================
 
-   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
-   VAR
-      address : DaliBridge.DaliAddress;
-      AsyncResult : Sync.TAsyncResult;
-      i : CARDINAL;
-   BEGIN
-      IF Dali.ProgrammingInProgress THEN
-         RETURN;
-      END;
-         
-      FOR i := PollActive TO HIGH( PollCountArray ) DO
-         IF PollCountArray[i] = -1 THEN // not polled
-            CONTINUE;
-         ELSIF PollWaitArray[i] THEN // no response yet
-            CONTINUE;
-         ELSIF PollCountArray[i] = 1 THEN // elapsed
-            PollCountArray[i] := PollInitArray[i];
-         ELSE
-            DEC( PollCountArray[i] );
-            CONTINUE;
-         END;
-         
-         // now process elapsed item
-         address.Type := DaliBridge.adrSingle;
-         address.Address := i;
-
-         Dali.Logger.LogSC( dldTrace, logPrefix, L"Poll status request for: ", i );
-
-         AsyncResult := Dali.Command( daliDevice, l1, address, DaliBridge.cmdStatus, 0, PTR( eitPollStatus ));
-         IF ( AsyncResult = Sync.arPending ) OR ( AsyncResult = Sync.arAlreadyPending ) THEN // OK
-            PollWaitArray[i] := TRUE;
-
-            PollActive := i + 1;
-            IF PollActive > 63 THEN
-               PollActive := 0;
-            END;
-         END;
-
-         EXIT;
-      END; // FOR
-   END OnTimeout;
-
-//================================================================================
-
    LOCAL VIRTUAL PROCEDURE OnDeviceFound( CONST DaliName : StringsO.CString; Linie : DaliBridge.TDaliLinie; CONST Address : DaliBridge.DaliAddress; LongAddress : CARDINAL );
    VAR
       exceptionItem : TPExceptionItem;
@@ -1008,19 +1003,7 @@ CLASS IMPLEMENTATION CDriver;
       exceptionItem^.Address := Address;
       exceptionItem^.LongAddress := LongAddress;
 
-      Lock.Lock();
-      Queue.Enqueue( exceptionItem, PTR( eitAddressFound ));
-
-      IF schiEventsPending NOT IN RStatus THEN
-         Dali.Logger.LogS( dldDebug, logPrefix, L"RS+ rsEventPending" );
-
-         INCL( RStatus, schiEventsPending );
-      END;
-      Lock.Unlock();
-      
-      IF CallbackProc <> NIL THEN
-         CallbackProc( CallbackId, drv_def.dcfException, NIL );
-      END;
+      EnqueueEvent( exceptionItem, PTR( eitAddressFound ));
    END OnDeviceFound;
 
 //================================================================================
@@ -1028,40 +1011,19 @@ CLASS IMPLEMENTATION CDriver;
    LOCAL VIRTUAL PROCEDURE OnProgrammingStopped( Result : Sync.TAsyncResult; CONST DaliName : StringsO.CString; Linie : DaliBridge.TDaliLinie );
    VAR
       exceptionItem : TPExceptionItem;
-      i : CARDINAL;
    BEGIN
       NEW( exceptionItem );
       exceptionItem^.Name := DaliName;
       exceptionItem^.Result := Result;
       exceptionItem^.Linie := Linie;
 
-      // reset polling
-      FOR i := 0 TO HIGH( PollInitArray ) DO
-         PollCountArray[i] := PollInitArray[i];
-         PollWaitArray[i] := FALSE;
-         StatusArray[i] := 0FFH;
-      END;
-
-      Lock.Lock();
-      Queue.Enqueue( exceptionItem, PTR( eitProgram ));
-
-      IF schiEventsPending NOT IN RStatus THEN
-         Dali.Logger.LogS( dldDebug, logPrefix, L"RS+ rsEventPending" );
-
-         INCL( RStatus, schiEventsPending );
-      END;
-      Lock.Unlock();
-      
-      IF CallbackProc <> NIL THEN
-         CallbackProc( CallbackId, drv_def.dcfException, NIL );
-      END;
+      EnqueueEvent( exceptionItem, PTR( eitProgram ));
    END OnProgrammingStopped;
 
 //================================================================================
 
    LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; CONST DaliName : StringsO.CString; Linie : DaliBridge.TDaliLinie; CONST daliAddress : DaliBridge.DaliAddress;  Command : DaliBridge.TDaliCommand; Data : CARD8; ClientId : PTR );
    VAR
-      address : CARDINAL;
       exceptionItem : TPExceptionItem;
    BEGIN
       CASE TExceptionItemType( LOPTRLONGWORD( ClientId )) OF
@@ -1072,21 +1034,7 @@ CLASS IMPLEMENTATION CDriver;
             RETURN;
          END;
       | eitPollStatus :
-         address := daliAddress.Address;
-         PollWaitArray[address] := FALSE;
-         IF Result = Sync.arCompleted THEN
-            IF StatusArray[ address ] = Data THEN // unchanged status is not reported
-               RETURN;
-            ELSE
-               StatusArray[ address ] := Data;
-            END;
-         ELSE
-            IF StatusArray[ address ] = 0FFH THEN // device still not yet found, do not report
-               RETURN;
-            ELSE // device was found sooner, but now it is unknown
-               StatusArray[ address ] := 0FFH;
-            END;
-         END;
+         // pass everything, filtering is done in caller
       END; // CASE
       
       NEW( exceptionItem );
@@ -1096,12 +1044,19 @@ CLASS IMPLEMENTATION CDriver;
       exceptionItem^.Linie := Linie;
       exceptionItem^.Address := daliAddress;
       exceptionItem^.Value := Data;
-      
+
+      EnqueueEvent( exceptionItem, ClientId );      
+   END OnCompletion;
+
+//================================================================================
+
+   PRIVATE PROCEDURE EnqueueEvent( exceptionItem : ADDRESS; ClientId : PTR );
+   BEGIN
       Lock.Lock();
       Queue.Enqueue( exceptionItem, ClientId );
 
       IF schiEventsPending NOT IN RStatus THEN
-         Dali.Logger.LogS( dldDebug, logPrefix, L"RS+ rsEventPending" );
+         Logger.LogS( dldDebug, logPrefix, L"RS+ rsEventPending" );
 
          INCL( RStatus, schiEventsPending );
       END;
@@ -1110,7 +1065,7 @@ CLASS IMPLEMENTATION CDriver;
       IF CallbackProc <> NIL THEN
          CallbackProc( CallbackId, drv_def.dcfException, NIL );
       END;
-   END OnCompletion;
+   END EnqueueEvent;
 
 //================================================================================
 
@@ -1120,30 +1075,16 @@ BEGIN
    CallbackId := NIL;
    CallbackProc := NIL;
 
+   Logger.SetLogName( logName );
    StatusChannel := MAX( CARDINAL );
    OutputQueueCountChannel := MAX( CARDINAL );
-   Fill( ADR( StatusArray ), SIZE( StatusArray ), 0FFH );
-   PollTimer := NIL;
-   PollPeriod := Sync.FOREVER;
-   PollCountArray[0] := -1;
-   PollInitArray[0] := -1;
-   PollWaitArray[0] := FALSE;
-   PollActive := 0;
+   OutputQueueLength := MAX( CARDINAL );
 
    cllvData := ADR( cllv.data );
    cllvLength := cllv.length;
    
-   NEW( PollSink );
-   PollSink^.TimeoutSink := ADR( SELF );
-
-   Dali.Init( TRUE );
    Dali.EventSink := ADR( SELF );
 FINALLY
-   IF PollSink <> NIL THEN
-      PollSink^.TimeoutSink := NIL;
-      PollSink^.Release();
-      PollSink := NIL;
-   END;
    Dali.Dispose();
 END CDriver;
 

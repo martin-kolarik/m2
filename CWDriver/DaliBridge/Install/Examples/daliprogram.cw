@@ -23,6 +23,10 @@ end_driver;
 
 data
 
+  const
+    DEVICE = 'Test';
+  end_const;
+
   var GLOBAL {backuped = false};
     ActiveLinie : cardinal {init_value = 0};
   end_var;
@@ -42,6 +46,24 @@ instrument
     window = normal;
     win_title = 'Adresace DALI';
     win_disable = zoom;
+
+    procedure OnStartup();
+    var
+       error : string;
+    begin
+      core.DriverQueryProc( 'dali', 'create ' + DEVICE + ' 10001 10.0.0.100', &error );
+      if error = '' then
+        error := '<ok>';
+      end;
+      core.DebugOutput( 'create device ' + DEVICE + ': ' + error );
+
+      core.DriverQueryProc( 'dali', 'set_poll_period ' + DEVICE + '.0 250', &error );
+      if error = '' then
+        error := '<ok>';
+      end;
+      core.DebugOutput( 'set_poll_period: ' + error );
+    end_procedure;
+
   end_panel;
 
   switch switch_scan_address;
@@ -77,11 +99,11 @@ instrument
       error : string;
     begin
       ExceptionHandler.ResetStatus();
-      core.DriverQueryProc( 'dali', 'program_scan ' + ActiveLinie:s, &error );
+      core.DriverQueryProc( 'dali', 'program_scan ' + DEVICE + '.' + ActiveLinie:s, &error );
       if error = '' then
         error := '<ok>';
       end;
-      core.DebugOutput( 'program_scan ' + ActiveLinie:s + ': ' + error );
+      core.DebugOutput( 'program_scan ' + DEVICE + '.' + ActiveLinie:s + ': ' + error );
     end_procedure;
     
   end_switch;
@@ -119,11 +141,11 @@ instrument
       error : string;
     begin
       ExceptionHandler.ResetStatus();
-      core.DriverQueryProc( 'dali', 'program_all ' + ActiveLinie:s, &error );
+      core.DriverQueryProc( 'dali', 'program_all ' + DEVICE + '.' + ActiveLinie:s, &error );
       if error = '' then
         error := '<ok>';
       end;
-      core.DebugOutput( 'program_all ' + ActiveLinie:s + ': ' + error );
+      core.DebugOutput( 'program_all ' + DEVICE + '.' + ActiveLinie:s + ': ' + error );
     end_procedure;
     
   end_switch;
@@ -571,12 +593,12 @@ instrument
       if GetReaddressString( result, error ) then
         core.DebugOutput( 'Readdress prepared string:', result );
     
-        core.DriverQueryProc( 'dali', 'program_readdress ' + ActiveLinie:s + ' ' + result, &error );
+        core.DriverQueryProc( 'dali', 'program_readdress ' + DEVICE + '.' + ActiveLinie:s + ' ' + result, &error );
     
         if error = '' then
           SetColor( 'true_ink', 'lyellow' );
         else
-          core.DebugOutput( 'Readdress error:', error );
+          core.DebugOutput( 'Readdress:', error );
         end;
     
       else
@@ -619,11 +641,11 @@ instrument
       error : string;
     begin
       ExceptionHandler.ResetStatus();
-      core.DriverQueryProc( 'dali', 'program_added ' + ActiveLinie:s, &error );
+      core.DriverQueryProc( 'dali', 'program_added ' + DEVICE + '.' + ActiveLinie:s, &error );
       if error = '' then
         error := '<ok>';
       end;
-      core.DebugOutput( 'program_added ' + ActiveLinie:s + ': ' + error );
+      core.DebugOutput( 'program_added ' + DEVICE + '.' + ActiveLinie:s + ': ' + error );
     end_procedure;
     
   end_switch;
@@ -648,7 +670,7 @@ instrument
     var
       error : string;
     begin
-      core.DriverQueryProc( 'dali', 'reset_address ' + ActiveLinie:s + '.all', &error );
+      core.DriverQueryProc( 'dali', 'reset_address ' + DEVICE + '.' + ActiveLinie:s + '.all', &error );
       SetColor( 'true_ink', 'lred' );
     
       if error = '' then
@@ -718,7 +740,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -789,7 +811,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -860,7 +882,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -931,7 +953,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -1002,7 +1024,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -1073,7 +1095,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -1144,7 +1166,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -1215,7 +1237,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -1286,7 +1308,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -1357,7 +1379,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -1428,7 +1450,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -1499,7 +1521,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -1570,7 +1592,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -1641,7 +1663,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -1712,7 +1734,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -1783,7 +1805,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -1854,7 +1876,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -1925,7 +1947,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -1996,7 +2018,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -2067,7 +2089,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -2138,7 +2160,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -2209,7 +2231,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -2280,7 +2302,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -2351,7 +2373,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -2422,7 +2444,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -2493,7 +2515,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -2564,7 +2586,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -2635,7 +2657,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -2706,7 +2728,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -2777,7 +2799,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -2848,7 +2870,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -2919,7 +2941,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -2990,7 +3012,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -3061,7 +3083,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -3132,7 +3154,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -3203,7 +3225,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -3274,7 +3296,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -3345,7 +3367,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -3416,7 +3438,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -3487,7 +3509,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -3558,7 +3580,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -3629,7 +3651,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -3700,7 +3722,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -3771,7 +3793,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -3842,7 +3864,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -3913,7 +3935,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -3984,7 +4006,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -4055,7 +4077,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -4126,7 +4148,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -4197,7 +4219,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -4268,7 +4290,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -4339,7 +4361,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -4410,7 +4432,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -4481,7 +4503,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -4552,7 +4574,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -4623,7 +4645,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -4694,7 +4716,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -4765,7 +4787,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -4836,7 +4858,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -4907,7 +4929,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -4978,7 +5000,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -5049,7 +5071,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -5120,7 +5142,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -5191,7 +5213,7 @@ instrument
       adr : string;
       error : string;
     begin
-       adr := ActiveLinie:s + '.' + ID:s;
+       adr := DEVICE + '.' + ActiveLinie:s + '.' + ID:s;
        if Output then
          core.DriverQueryProc( 'dali', 'set ' + adr + ' on', &error );
        else
@@ -5234,11 +5256,11 @@ instrument
     var
       error : string;
     begin
-       core.DriverQueryProc( 'dali', 'set ' + ActiveLinie:s + '.all on', &error );
+       core.DriverQueryProc( 'dali', 'set ' + DEVICE + '.' + ActiveLinie:s + '.all on', &error );
        if error = '' then
          error := '<ok>';
        end;
-       core.DebugOutput( 'set ' + ActiveLinie:s + '.all result: ' + error );
+       core.DebugOutput( 'set ' + DEVICE + '.' + ActiveLinie:s + '.all result: ' + error );
     end_procedure;
     
   end_switch;
@@ -5263,11 +5285,11 @@ instrument
     var
       error : string;
     begin
-       core.DriverQueryProc( 'dali', 'set ' + ActiveLinie:s + '.all off', &error );
+       core.DriverQueryProc( 'dali', 'set ' + DEVICE + '.' + ActiveLinie:s + '.all off', &error );
        if error = '' then
          error := '<ok>';
        end;
-       core.DebugOutput( 'set ' + ActiveLinie:s + '.all result: ' + error );
+       core.DebugOutput( 'set ' + DEVICE + '.' + ActiveLinie:s + '.all result: ' + error );
     end_procedure;
     
   end_switch;
@@ -5359,7 +5381,9 @@ instrument
           if Event = '' then
              exit;
           end;
+          (*
           core.DebugOutput( 'Event: ', Event );
+          *)
 
           i = pos( Event, ' ' );
           s = slice( Event, 0, i );
@@ -5369,6 +5393,9 @@ instrument
              s = slice( Event, 0, j );
              i = pos( Event, '.' );
              Event = trim( delete( Event, 0, j ));
+
+             s = slice( s, i+1, -1 );
+             i = pos( s, '.' );
              linie = slice( s, 0, i-1 );
 
              if linie:value_real = ActiveLinie then

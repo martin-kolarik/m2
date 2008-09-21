@@ -1,3 +1,26 @@
+Version 1.0.1782 beta 21.9.2008
+- INF: The majority of changes was done to adhere (non-standard) behavior of
+       Helvar buttons.
+- BUG: Event commands (dali events, reset notifications) could stop timeout
+       measuring. This caused infinite waiting for timeout and communication
+       was stopped.
+- NEW: Polling is enabled for all four linies using new "set_poll_period"
+       command.
+- NEW: Commands "get_addresses" and "load_addreses" added, sequence of
+       address contains both short and long addresses. 
+- NEW: Driver is able to connect more devices -- endpoints are created using
+       "create" command a removed by "delete" command.
+- NEW: Asynchronous events from DALI are now passed to driver exception.
+- CHG: All addresses are extended by device name, e.g. "Device.2.all" for all
+       devices in line 2. 
+- CHG: Check of programmed addresses changed from DALI Check Address command to
+       DALI Read Address command.
+- CHG: Polling and connection definitions were moved from parametric file to
+       driver query procedures.
+- CHG: Addressing added devices does not scan linie before addresing and it
+       requires valid addresses to be set.
+- CHG: More descriptive labels of log records.
+
 Version 1.0.1779 beta 13.9.2008
 - BUG: Polling of device stopped if during waiting for response some addressing
        command was requested.
