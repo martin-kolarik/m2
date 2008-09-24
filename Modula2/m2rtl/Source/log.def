@@ -71,7 +71,8 @@ CLASS CLogger;
    PUBLIC PROCEDURE SetLogFile( CONST LogFile : ARRAY OF WCHAR );
    PUBLIC PROCEDURE GetLogFile( OUT LogFile : ARRAY OF WCHAR ) : BOOLEAN;
 
-   PUBLIC PROCEDURE SetUpByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC PROCEDURE SetUpByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN; // gets config from registry
+   PUBLIC PROCEDURE SetUpByLogger( CONST Logger : CLogger ) : BOOLEAN; // gets config from another existing logger
 
    PUBLIC PROCEDURE Filtered( Level : TDebugLevel ) : BOOLEAN;
 
@@ -104,6 +105,7 @@ CLASS CLogger;
    INTERNAL VIRTUAL PROCEDURE OnLogOutputString( CONST OutputString : ARRAY OF WCHAR );
 
    PRIVATE PROCEDURE LoadByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN;
+   PRIVATE PROCEDURE LoadByLogger( CONST Logger : CLogger ) : BOOLEAN;
 END CLogger;
 
 // global system LOG

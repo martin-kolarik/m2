@@ -310,6 +310,13 @@ CLASS IMPLEMENTATION CLogger;
 
 //---------------------------------------------------------
 
+   PUBLIC PROCEDURE SetUpByLogger( CONST Logger : CLogger ) : BOOLEAN; // gets config from another existing logger
+   BEGIN
+      RETURN LoadByLogger( Logger );
+   END SetUpByLogger;
+
+//---------------------------------------------------------
+
    PUBLIC PROCEDURE Filtered( Level : TDebugLevel ) : BOOLEAN;
    BEGIN
       RETURN Level > DebugLevel;
@@ -824,6 +831,23 @@ CLASS IMPLEMENTATION CLogger;
          RETURN TRUE;
       END; // LOOP
    END LoadByRegistry;
+
+//---------------------------------------------------------
+
+   PRIVATE PROCEDURE LoadByLogger( CONST Logger : CLogger ) : BOOLEAN;
+   VAR
+      bufferSize : CARDINAL;
+   BEGIN
+      SELF.RStatus := Logger.RStatus;
+      SELF.Name := Logger.Name;
+      SELF.DebugLevel := Logger.DebugLevel;
+      SELF.DebugFile := Logger.DebugFile;
+      bufferSize := Logger.BufferSize;
+      IF bufferSize > 0 THEN
+         SELF.BufferSize := bufferSize;
+      END;
+      RETURN TRUE;
+   END LoadByLogger;
 
 //---------------------------------------------------------
 
