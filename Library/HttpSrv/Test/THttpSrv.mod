@@ -1,9 +1,11 @@
 MODULE THttpSrv;
 
 FROM Storage IMPORT
-   ALLOCATE, DEALLOCATE;
+   ALLOCATE, DEALLOCATE, Move;
 
 IMPORT
+   HttpCommon,
+   HttpConnection,
    httpsrv,
    log,
    msgqueuethread,
@@ -35,10 +37,10 @@ END CServerThread;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CController IMPLEMENTS httpsrv.IController;
-   PUBLIC VIRTUAL PROCEDURE AppliesFor( Verb : httpsrv.TVerb; CONST URL : ARRAY OF WCHAR ) : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE ProcessRequest( CONST Request : httpsrv.TPHttpRequest; CONST Container : httpsrv.TPContainer; OUT View : httpsrv.TPView ) : BOOLEAN;
-END CController;
+CLASS CProcessor IMPLEMENTS httpsrv.IHttpProcessor;
+   PUBLIC VIRTUAL PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT WantsSession : BOOLEAN ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( CONST Connection : HttpConnection.TPHttpSrvConnection; CONST Session : httpsrv.TPSession );
+END CProcessor;
 
 (*---------------------------------------------------------------------------*)
 
@@ -95,9 +97,13 @@ CLASS IMPLEMENTATION CServerThread;
 (*---------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE OnStart();
+   VAR
+      root : StringsO.CString;
    BEGIN
+      root.FromOA( '/oa' );
+      httpsrv.srv()^.RootPath := root;
       httpsrv.srv()^.Start();
-      httpsrv.srv()^.RegisterController( NEW( CController ));
+      httpsrv.srv()^.RegisterProcessor( NEW( CProcessor ));
    END OnStart;
 
 (*---------------------------------------------------------------------------*)
@@ -106,25 +112,33 @@ END CServerThread;
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION CController;
+CLASS IMPLEMENTATION CProcessor;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE AppliesFor( Verb : httpsrv.TVerb; CONST URL : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT WantsSession : BOOLEAN ) : BOOLEAN;
    BEGIN
+      WantsSession := FALSE;
       RETURN TRUE;
    END AppliesFor;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE ProcessRequest( CONST Request : httpsrv.TPHttpRequest; CONST Container : httpsrv.TPContainer; OUT View : httpsrv.TPView ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( CONST Connection : HttpConnection.TPHttpSrvConnection; CONST Session : httpsrv.TPSession );
+   CONST
+      cs = C"Hello, world!";
+   VAR
+      l : CARDINAL;
+      s : PBYTE;
    BEGIN
-      RETURN FALSE;
+      ALLOCATE( s, 150 );
+      Move( ADR( cs ), s, SIZE( cs ));
+      Connection^.Stream^.WriteOA( OA( 11, s ), OUT l, Sync.FORSAFETY );
    END ProcessRequest;
 
 (*---------------------------------------------------------------------------*)
 
-END CController;
+END CProcessor;
 
 (*===========================================================================*)
 

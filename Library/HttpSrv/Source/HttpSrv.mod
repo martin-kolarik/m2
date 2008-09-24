@@ -29,7 +29,7 @@ IMPORT
 TYPE
    TPHttpApiStream = POINTER TO CHttpApiStream;
    TPHttpConnection = POINTER TO CHttpConnection;
-
+   
 //================================================================================
 
 CLASS CHeaders IMPLEMENTS HttpCommon.IHttpHeaders;
@@ -602,9 +602,8 @@ CLASS CHttpApiStream( IOO.AStream ); // synchronous implementation only
 
    // helpers
    PRIVATE PROCEDURE PrepareResponse();
-   PRIVATE PROCEDURE FillStatus( Status : HttpCommon.THttpResponse );
    PRIVATE PROCEDURE AddDefaultHeaders();
-   PRIVATE PROCEDURE SendHeaders();
+   PUBLIC PROCEDURE SendHeaders();
 END CHttpApiStream;
 
 (*================================================================================*)
@@ -682,23 +681,35 @@ CLASS IMPLEMENTATION CHttpApiStream;
    PUBLIC VIRTUAL PROCEDURE Flush();
    VAR
       FlushOutBuffer : ARRAY [0..4095] OF BYTE;
-      l : CARDINAL;
    BEGIN
       // only read side can be flushed
       IF NOT _ReadOut THEN
          _ReadOut := TRUE;
-         WHILE httpapi.HttpReceiveRequestEntityBody( _HttpHandle, Request^.RequestId, 0, ADR( FlushOutBuffer ), SIZE( FlushOutBuffer ), OUT l, NIL ) = winerror.ERROR_MORE_DATA DO END;
+         WHILE httpapi.HttpReceiveRequestEntityBody( _HttpHandle, Request^.RequestId, 0, ADR( FlushOutBuffer ), SIZE( FlushOutBuffer ), NIL, NIL ) = winerror.ERROR_MORE_DATA DO END;
       END;
    END Flush;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Close( Persist : BOOLEAN ); // persist takes no sense
+   VAR
+      error : CARDINAL;
+      L : CARDINAL;
    BEGIN
       SendHeaders();
       IF NOT _DataSent THEN
          _DataSent := TRUE;
-         httpapi.HttpSendHttpResponse( _HttpHandle, Request^.RequestId, 0, ADR( _Response ), NIL, NIL, NIL, 0, NIL, NIL );
+         IF _ResponseHeaders.Contains( HttpCommon.ContentLength ) OR _ResponseHeaders.Contains( HttpCommon.TransferEncoding ) THEN // length is known, suppose data are sent correctly
+            error := httpapi.HttpSendResponseEntityBody(
+                        _HttpHandle, Request^.RequestId, 0,
+                        0, NIL, ADR( L ),
+                        NIL, 0, NIL, NIL );
+         ELSE // length is unknown, close connection explicitly
+            error := httpapi.HttpSendResponseEntityBody(
+                        _HttpHandle, Request^.RequestId, httpapi.HTTP_SEND_RESPONSE_FLAG_DISCONNECT,
+                        0, NIL, ADR( L ),
+                        NIL, 0, NIL, NIL );
+         END;
       END;
    END Close;
   
@@ -718,15 +729,17 @@ CLASS IMPLEMENTATION CHttpApiStream;
          Result := Sync.arCannotStart;
 
       ELSE
+         Storage.Fill( ADR( Chunk ), SIZE( Chunk ), 0 );
          Chunk.DataChunkType := httpapi.HttpDataChunkFromMemory;
-         WHILE DevicePrepareData( Direction, OUT Chunk.pBuffer, OUT Chunk.BufferLength ) DO
+
+         WHILE DevicePrepareData( Direction, OUT Chunk.FromMemory.pBuffer, OUT Chunk.FromMemory.BufferLength ) DO
             L2 := 0;
             IF Direction = IOO.dirRead THEN
                error := httpapi.HttpReceiveRequestEntityBody(
                            _HttpHandle, Request^.RequestId, 0,
-                           Chunk.pBuffer, Chunk.BufferLength, OUT L2,
+                           Chunk.FromMemory.pBuffer, Chunk.FromMemory.BufferLength, ADR( L2 ),
                            NIL );
-               IF L2 < Chunk.BufferLength THEN
+               IF L2 < Chunk.FromMemory.BufferLength THEN
                   IF ( error <> winerror.ERROR_SUCCESS ) AND ( error <> winerror.ERROR_HANDLE_EOF ) THEN
                      _ReadOut := TRUE;
                      Result := Sync.arAborted;
@@ -745,17 +758,41 @@ CLASS IMPLEMENTATION CHttpApiStream;
             ELSE // write
                SendHeaders();
                error := httpapi.HttpSendResponseEntityBody(
+                           _HttpHandle, Request^.RequestId, 0, // httpapi.HTTP_SEND_RESPONSE_FLAG_MORE_DATA,
+                           1, ADR( Chunk ), ADR( L2 ),
+                           NIL, 0, NIL, NIL );
+               error := httpapi.HttpSendResponseEntityBody(
                            _HttpHandle, Request^.RequestId, httpapi.HTTP_SEND_RESPONSE_FLAG_MORE_DATA,
                            1, ADR( Chunk ), ADR( L2 ),
                            NIL, 0, NIL, NIL );
-               IF ( error <> 0 ) OR ( L2 < Chunk.BufferLength ) THEN
+               error := httpapi.HttpSendResponseEntityBody(
+                           _HttpHandle, Request^.RequestId, httpapi.HTTP_SEND_RESPONSE_FLAG_MORE_DATA,
+                           1, ADR( Chunk ), ADR( L2 ),
+                           NIL, 0, NIL, NIL );
+               error := httpapi.HttpSendResponseEntityBody(
+                           _HttpHandle, Request^.RequestId, httpapi.HTTP_SEND_RESPONSE_FLAG_MORE_DATA,
+                           1, ADR( Chunk ), ADR( L2 ),
+                           NIL, 0, NIL, NIL );
+               error := httpapi.HttpSendResponseEntityBody(
+                           _HttpHandle, Request^.RequestId, httpapi.HTTP_SEND_RESPONSE_FLAG_MORE_DATA,
+                           1, ADR( Chunk ), ADR( L2 ),
+                           NIL, 0, NIL, NIL );
+               error := httpapi.HttpSendResponseEntityBody(
+                           _HttpHandle, Request^.RequestId, httpapi.HTTP_SEND_RESPONSE_FLAG_MORE_DATA,
+                           1, ADR( Chunk ), ADR( L2 ),
+                           NIL, 0, NIL, NIL );
+               error := httpapi.HttpSendResponseEntityBody(
+                           _HttpHandle, Request^.RequestId, httpapi.HTTP_SEND_RESPONSE_FLAG_MORE_DATA,
+                           1, ADR( Chunk ), ADR( L2 ),
+                           NIL, 0, NIL, NIL );
+               IF ( error <> 0 ) OR ( L2 < Chunk.FromMemory.BufferLength ) THEN
                   Result := Sync.arAborted;
                END;
 
             END; // IF direction
 
             DeviceCompleteData( Direction, L2 );
-            IF ( error <> 0 ) OR ( L2 < Chunk.BufferLength ) THEN
+            IF ( error <> 0 ) OR ( L2 < Chunk.FromMemory.BufferLength ) THEN
                EXIT;
             END;
          END; // WHILE
@@ -830,15 +867,61 @@ CLASS IMPLEMENTATION CHttpApiStream;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY StatusCode SET( Value : HttpCommon.THttpResponse );
+   CONST
+   (*
+      RESPONSE_100 = C"Continue";
+      RESPONSE_101 = C"Switching Protocols";
+      // success
+      RESPONSE_201 = C"Created";
+      RESPONSE_202 = C"Accepted";
+      RESPONSE_203 = C"Non-Authoritative Information";
+      RESPONSE_204 = C"No Content";
+      RESPONSE_205 = C"Reset Content";
+      RESPONSE_206 = C"Partial Content";
+      // redirection
+      RESPONSE_300 = C"Multiple Choices";
+      RESPONSE_301 = C"Moved Permanently";
+      RESPONSE_302 = C"Moved Temporarily";
+      RESPONSE_303 = C"See Other";
+      RESPONSE_304 = C"Not Modified";
+      RESPONSE_305 = C"Use Proxy";
+      // client error
+      RESPONSE_400 = C"Bad Request";
+      RESPONSE_401 = C"Unauthorized";
+      RESPONSE_402 = C"Payment Required";
+      RESPONSE_403 = C"Forbidden";
+      RESPONSE_405 = C"Method Not Allowed";
+      RESPONSE_406 = C"Not Acceptable";
+      RESPONSE_407 = C"Proxy Authentication Required";
+      RESPONSE_408 = C"Request Time-out";
+      RESPONSE_409 = C"Conflict";
+      RESPONSE_410 = C"Gone";
+      RESPONSE_411 = C"Length Required";
+      RESPONSE_412 = C"Precondition Failed";
+      RESPONSE_413 = C"Request Entity Too Large";
+      RESPONSE_414 = C"Request-URI Too Large";
+      RESPONSE_415 = C"Unsupported Media Type";
+      // server error
+      RESPONSE_502 = C"Bad Gateway";
+      RESPONSE_503 = C"Service Unavailable";
+      RESPONSE_504 = C"Gateway Timeout";
+      RESPONSE_505 = C"HTTP Version Not Supported";
+   *)
+      RESPONSE_200 = C"OK";
+      RESPONSE_404 = C"Not Found";
+      RESPONSE_500 = C"Internal Server Error";
+      RESPONSE_501 = C"Not Implemented";
    BEGIN
-      _Response.StatusCode := CARD16( Value );
-      CASE _Response.StatusCode OF
+      CASE Value OF
       | HttpCommon.httpres_200 :
          _Response.pReason := ADR( RESPONSE_200 );
          _Response.ReasonLength := SIZE( RESPONSE_200 )-1;
       | HttpCommon.httpres_404 :
          _Response.pReason := ADR( RESPONSE_404 );
          _Response.ReasonLength := SIZE( RESPONSE_404 )-1;
+      | HttpCommon.httpres_500 :
+         _Response.pReason := ADR( RESPONSE_500 );
+         _Response.ReasonLength := SIZE( RESPONSE_500 )-1;
       | HttpCommon.httpres_501 :
          _Response.pReason := ADR( RESPONSE_501 );
          _Response.ReasonLength := SIZE( RESPONSE_501 )-1;
@@ -846,11 +929,14 @@ CLASS IMPLEMENTATION CHttpApiStream;
          _Response.pReason := NIL;
          _Response.ReasonLength := 0;
       END;
+      _Response.StatusCode := CARD16( Value );
    END StatusCode;
 
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE PrepareResponse();
+   VAR
+      Chunk : httpapi.PHTTP_DATA_CHUNK;
    BEGIN
       _Response.Flags := 0;
       _Response.Version.MajorVersion := Request^.Version.MajorVersion;
@@ -875,7 +961,7 @@ CLASS IMPLEMENTATION CHttpApiStream;
       _ResponseHeaders.Add( HttpCommon.Date, httptools.FormatDate( dt ));
       
       // Server
-      _ResponseHeaders.AddOA( HttpCommon.Server, L"SmartControl/1.0 (cfg)" );
+      _ResponseHeaders.AddOA( HttpCommon.Server, L"SmartControl/1.0" );
       
       // Caching
       IF NOT _ResponseHeaders.Contains( HttpCommon.CacheControl ) THEN
@@ -887,19 +973,27 @@ CLASS IMPLEMENTATION CHttpApiStream;
       IF NOT _ResponseHeaders.Contains( HttpCommon.ContentType ) THEN
          _ResponseHeaders.Add( HttpCommon.ContentType, httptools.FormatContentOA( httptools.contentTextPlain, L"utf-8" ));
       END;
+      
+      (*?*)
+      _ResponseHeaders.AddOA( HttpCommon.ContentLength, L"10" );
    END AddDefaultHeaders;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE SendHeaders();
+   PUBLIC PROCEDURE SendHeaders();
+   VAR
+      error : CARDINAL;
+      L : CARDINAL;
    BEGIN
       IF _HeaderSent THEN
          RETURN;
       END;
       _HeaderSent := TRUE;
       
+      Flush();
       PrepareResponse();
-      httpapi.HttpSendHttpResponse( _HttpHandle, Request^.RequestId, httpapi.HTTP_SEND_RESPONSE_FLAG_MORE_DATA, ADR( _Response ), NIL, NIL, NIL, 0, NIL, NIL );
+
+      error := httpapi.HttpSendHttpResponse( _HttpHandle, Request^.RequestId, httpapi.HTTP_SEND_RESPONSE_FLAG_MORE_DATA, ADR( _Response ), NIL, ADR( L ), NIL, 0, NIL, NIL );
    END SendHeaders;
 
 (*--------------------------------------------------------------------------------*)
@@ -907,7 +1001,9 @@ CLASS IMPLEMENTATION CHttpApiStream;
 BEGIN
    _HttpHandle := NIL;
    _Request.Size := 16384;
-   _Response.StatusCode := CARD16( HttpCommon.httpres_200 ); // at least StatusCode must be filled, it is used in outer property StatusCode
+   Storage.Fill( ADR( _Response ), SIZE( _Response ), 0 );
+
+   StatusCode := HttpCommon.httpres_200; // at least StatusCode must be filled, it is used in outer property StatusCode
 
    _ReadOut := FALSE;
    _HeaderSent := FALSE;
@@ -947,13 +1043,21 @@ CLASS IMPLEMENTATION CHttpConnection;
 (*--------------------------------------------------------------------------------*)
 
    VIRTUAL PROPERTY LocalAddress GET : inetaddr.INETADDR;
+   VAR
+      ia : inetaddr.INETADDR;
    BEGIN
+      ia.FromM( PBYTE( _Stream^.Request^.Address.pLocalAddress ));
+      RETURN ia;
    END LocalAddress;
 
 (*--------------------------------------------------------------------------------*)
 
    VIRTUAL PROPERTY RemoteAddress GET : inetaddr.INETADDR;
+   VAR
+      ia : inetaddr.INETADDR;
    BEGIN
+      ia.FromM( PBYTE( _Stream^.Request^.Address.pRemoteAddress ));
+      RETURN ia;
    END RemoteAddress;
 
 (*--------------------------------------------------------------------------------*)
@@ -1135,51 +1239,6 @@ END CContainer;
 
 //================================================================================
 
-CONST
-  RESPONSE_100 = C"Continue";
-  RESPONSE_101 = C"Switching Protocols";
-  // success
-  RESPONSE_200 = C"OK";
-  RESPONSE_201 = C"Created";
-  RESPONSE_202 = C"Accepted";
-  RESPONSE_203 = C"Non-Authoritative Information";
-  RESPONSE_204 = C"No Content";
-  RESPONSE_205 = C"Reset Content";
-  RESPONSE_206 = C"Partial Content";
-  // redirection
-  RESPONSE_300 = C"Multiple Choices";
-  RESPONSE_301 = C"Moved Permanently";
-  RESPONSE_302 = C"Moved Temporarily";
-  RESPONSE_303 = C"See Other";
-  RESPONSE_304 = C"Not Modified";
-  RESPONSE_305 = C"Use Proxy";
-  // client error
-  RESPONSE_400 = C"Bad Request";
-  RESPONSE_401 = C"Unauthorized";
-  RESPONSE_402 = C"Payment Required";
-  RESPONSE_403 = C"Forbidden";
-  RESPONSE_404 = C"Not Found";
-  RESPONSE_405 = C"Method Not Allowed";
-  RESPONSE_406 = C"Not Acceptable";
-  RESPONSE_407 = C"Proxy Authentication Required";
-  RESPONSE_408 = C"Request Time-out";
-  RESPONSE_409 = C"Conflict";
-  RESPONSE_410 = C"Gone";
-  RESPONSE_411 = C"Length Required";
-  RESPONSE_412 = C"Precondition Failed";
-  RESPONSE_413 = C"Request Entity Too Large";
-  RESPONSE_414 = C"Request-URI Too Large";
-  RESPONSE_415 = C"Unsupported Media Type";
-  // server error
-  RESPONSE_500 = C"Internal Server Error";
-  RESPONSE_501 = C"Not Implemented";
-  RESPONSE_502 = C"Bad Gateway";
-  RESPONSE_503 = C"Service Unavailable";
-  RESPONSE_504 = C"Gateway Timeout";
-  RESPONSE_505 = C"HTTP Version Not Supported";
-
-//--------------------------------------------------------------------------------
-
 CLASS HttpWorker( threadpool.APoolWorker );
 
    // APoolWorker
@@ -1207,14 +1266,15 @@ CLASS IMPLEMENTATION HttpWorker;
       l : CARDINAL;
       s : StringsO.CString;
    BEGIN
-      Connection.FromStream( _Stream );
       IF ( _Session <> NIL ) AND _Session^.New THEN
          _Stream^.ResponseHeaders^.Add( HttpCommon.SetCookie, httptools.FormatSIDCookie( _Session^.SID, 0, _Session^.RootPath, s ));
       END;
 
       IF _Processor = NIL THEN
-         _Stream^.WriteOA( C"Error, request was not processesed", OUT l, Sync.FORSAFETY );
+         _Stream^.StatusCode := HttpCommon.httpres_500;
+         _Stream^.WriteOA( C"Internal server error, unable to process request", OUT l, Sync.FORSAFETY );
       ELSE
+         Connection.FromStream( _Stream );
          _Processor^.ProcessRequest( ADR( Connection ), _Session );
       END;
       
@@ -1303,26 +1363,27 @@ CLASS IMPLEMENTATION CHttpSrv;
    BEGIN
       IF Result <> Sync.arCompleted THEN
          RETURN;
-      END;
-   
-      logger()^.LogS( dlcInfo, L"HTTP", L"HTTP request received" );
 
-      IF windows.GetOverlappedResult( _HttpHandle, ADR( _HttpOverlapped ), ADR( received ), windows.False ) = windows.False THEN
-         CASE CARDINAL( windows.GetLastError()) OF
-         | winerror.ERROR_HANDLE_EOF : // OK
-            EOF := TRUE;
-         | winerror.ERROR_IO_PENDING : // nothing received yet
-            RETURN;
+      ELSIF _PreparedStream <> NIL THEN // we are waiting now
+         logger()^.LogS( dlcInfo, L"HTTP", L"HTTP request received" );
+
+         IF windows.GetOverlappedResult( _HttpHandle, ADR( _HttpOverlapped ), ADR( received ), windows.False ) = windows.False THEN
+            CASE CARDINAL( windows.GetLastError()) OF
+            | winerror.ERROR_HANDLE_EOF : // OK
+               EOF := TRUE;
+            | winerror.ERROR_IO_PENDING : // nothing received yet
+               RETURN;
+            ELSE
+               // Start or some error, start operation again
+            END;
          ELSE
-            // Start or some error, start operation again
+            EOF := TRUE;
          END;
-      ELSE
-         EOF := TRUE;
-      END;
-      
-      // TODO long request
-      IF EOF THEN // OK, process
-         ProcessRequest( _PreparedStream );
+         
+         // TODO long request
+         IF EOF THEN // OK, process
+            ProcessRequest( _PreparedStream );
+         END;
       END;
       
       StartWaitingRequest();
@@ -1430,7 +1491,12 @@ CLASS IMPLEMENTATION CHttpSrv;
          Stop();
       END;
 
-      _RootPath := Value;
+      IF Value[0] <> L"/" THEN
+         _RootPath.FromOA( L"/" );
+         _RootPath.Append( Value );
+      ELSE
+         _RootPath := Value;
+      END;
       IF _RootPath[_RootPath.Length-1] <> L"/" THEN
          _RootPath.AppendOA( L"/" );
       END;
@@ -1598,7 +1664,7 @@ CLASS IMPLEMENTATION CHttpSrv;
       END;
       NEW( Worker );
       Worker^.Init( foundProcessor, Stream, Session );
-
+      
       LOOP
          IF _Pool.RunWorker( ADR( SELF ), 0, FALSE, Worker, FALSE, OUT ph ) THEN
             EXIT;

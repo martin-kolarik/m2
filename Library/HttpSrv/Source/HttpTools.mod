@@ -65,11 +65,11 @@ VAR
 BEGIN
    CASE Content OF
    | contentTextPlain :
-      s.FromOA( L"text/plain" );
+      s.FromOA( L"text/plain; charset=" );
    | contentTextHTML :
       s.FromOA( L"text/html; charset=" );
-      s.Append( RFC1766Code );
    END;
+   s.Append( RFC1766Code );
    RETURN s;
 END FormatContent;
 
