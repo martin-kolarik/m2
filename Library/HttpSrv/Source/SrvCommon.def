@@ -1,0 +1,151 @@
+DEFINITION MODULE SrvCommon;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   HttpCommon,
+   HttpSrv,
+   inetaddr,
+   lists,
+   sha256,
+   StringsO,
+   Sync,
+   TimeoutableTwoPtrMap,
+   threadpool;
+
+(*================================================================================*)
+
+// rewrite class to access internal VARs
+ABSTRACT CLASS CHeaders IMPLEMENTS HttpCommon.IHttpHeaders;
+
+   // IHttpHeaders
+   PUBLIC VIRTUAL PROCEDURE Contains( Header : HttpCommon.TKnownHeader ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Get( Header : HttpCommon.TKnownHeader; OUT Value : StringsO.IString ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetOA( Header : HttpCommon.TKnownHeader; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Add( Header : HttpCommon.TKnownHeader; CONST Value : StringsO.IString );
+   PUBLIC VIRTUAL PROCEDURE AddOA( Header : HttpCommon.TKnownHeader; CONST Value : ARRAY OF WCHAR );
+   
+   PUBLIC VIRTUAL PROCEDURE Enumerate( Known, Uknown : BOOLEAN; REF ES : PTR; OUT Name, Value : StringsO.IString ) : BOOLEAN;
+
+   PUBLIC VIRTUAL PROCEDURE ContainsUnknown( CONST Name : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetUnknown( CONST Name : ARRAY OF WCHAR; OUT Value : StringsO.IString ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE AddUnknown( CONST Name : ARRAY OF WCHAR; CONST Value : StringsO.IString );
+
+   // SELF
+   INTERNAL VAR
+      RequestFlag : BOOLEAN := FALSE; // by default headers are output
+      KnownCache : maps.CCardinalMap; // cache for known headers
+      UnknownCache : maps.CStringMap; // cache for unknown headers
+      
+   PUBLIC PROCEDURE Dispose();
+END CHeaders;
+
+(*================================================================================*)
+
+TYPE
+   TPSrvStream = POINTER TO ASrvStream;
+
+ABSTRACT CLASS ASrvStream( IOO.AStream ); // synchronous implementation only
+
+   // AStream
+   PUBLIC FINAL READONLY PROPERTY
+      CanRead : BOOLEAN;
+      CanWrite : BOOLEAN;
+      CanSeek : BOOLEAN;
+      Long : BOOLEAN;
+   PUBLIC FINAL PROPERTY
+      Length : CARD64;
+      Position : CARD64;
+
+   PUBLIC FINAL PROCEDURE Seek( Origin : IOO.TSeekOrigin; Position : INT64 ); 
+   PUBLIC FINAL PROCEDURE Flush();
+   PUBLIC FINAL PROCEDURE Close( Persist : BOOLEAN );
+  
+   INTERNAL FINAL PROCEDURE Start( Direction : IOO.TDirection; OperationTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   INTERNAL FINAL PROCEDURE Abort( Direction : IOO.TDirection );
+
+   // SELF
+   PUBLIC ABSTRACT READONLY PROPERTY
+      RequestVerb : HttpCommon.TVerb;
+      RequestURI : StringsO.CString;
+      RequestHeaders : HttpCommon.TPHttpHeaders;
+      ResponseHeaders : HttpCommon.TPHttpHeaders;
+      LocalAddress : inetaddr.INETADDR;
+      RemoteAddress : inetaddr.INETADDR;
+   PUBLIC ABSTRACT PROPERTY
+      StatusCode : HttpCommon.THttpResponse;
+      
+   // all methods can return arCompleted, arNoData, arAbort, arTimeout
+   INTERNAL ABSTRACT PROCEDURE ReceiveHeaders() : Sync.TAsyncResult;
+   INTERNAL ABSTRACT PROCEDURE ReceiveData( OUT Data : StorageO.AMemoryBuffer ) : Sync.TAsyncResult; // all headers read out
+   INTERNAL ABSTRACT PROCEDURE SendHeaders() : Sync.TAsyncResult; // prepare output data if needed, first of all response routines, all headers and status code is already prepared hered
+   INTERNAL ABSTRACT PROCEDURE SendData( CONST Data : StorageO.AMemoryBuffer ) : Sync.TAsyncResult; // after SendHeaders
+   INTERNAL ABSTRACT PROCEDURE EndResponse() : Sync.TAsyncResult; // finishes response
+
+   LOCAL PROCEDURE StartHandleRequest() : Sync.TAsyncResult;
+   
+   // private   
+   PRIVATE VAR
+      _ReadOut : BOOLEAN;
+      _HeaderSent : BOOLEAN;
+      _DataSent : BOOLEAN;
+
+   // helpers
+   PRIVATE PROCEDURE AddDefaultHeaders();
+   PUBLIC PROCEDURE StartResponse() : Sync.TAsyncResult; // PUBLIC for DEBUG
+END ASrvStream;
+
+(*================================================================================*)
+
+TYPE
+   TPSrvSession = POINTER TO CSession;
+
+ABSTRACT CLASS ASrvCommon( threadpool.APoolDelegate ) IMPLEMENTS HttpSrv.IHttpServer;
+
+   // APoolDelegate
+   LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
+
+   // IHttpSrv
+   PUBLIC FINAL PROPERTY
+      Mode : HttpSrv.TMode;
+      Port : CARDINAL;
+      SslPort : CARDINAL;
+      RootPath : StringsO.CString;
+   PUBLIC FINAL PROCEDURE RegisterProcessor( Processor : HttpSrv.TPHttpProcessor );
+   PUBLIC FINAL PROCEDURE ForgetProcessor( Processor : HttpSrv.TPHttpProcessor );
+
+   // SELF
+   PUBLIC PROCEDURE Dispose();
+
+   INTERNAL READONLY PROPERTY
+      PreparedStream : TPSrvStream;
+   INTERNAL PROCEDURE PrepareStream(); // calls GetNewStream
+   INTERNAL PROCEDURE ProcessPreparedStream();
+
+   // to create stream of proper function
+   INTERNAL ABSTRACT PROCEDURE GetNewStream() : TPSrvStream;
+
+   // private
+   PRIVATE VAR
+      _Mode : HttpSrv.TMode := HttpSrv.mdHttp;
+      _Port : CARDINAL := 8080;
+      _SslPort : CARDINAL := 8443;
+      _RootPath : StringsO.CString;
+      _Processors : lists.CPtrList;
+      _Pool : threadpool.CThreadPool;
+      _PreparedStream : TPSrvStream;
+
+      _Sessions : maps.CStringMap; 
+      _SessionsExpiration : TimeoutableTwoPtrMap.CTimeoutableTwoPtrMapSimplified;
+      _SessionSeed : sha256.TDigest;
+      
+   PRIVATE PROCEDURE GetSessionForPreparedStream() : TPSrvSession;
+   
+   INITIALLY ASrvCommon();
+   FINALLY ASrvCommon();
+END ASrvCommon;
+
+(*================================================================================*)
+
+END SrvCommon.

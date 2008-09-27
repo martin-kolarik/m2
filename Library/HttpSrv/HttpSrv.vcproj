@@ -73,6 +73,18 @@
 				RelativePath=".\Source\HttpTools.mod"
 				>
 			</File>
+			<File
+				RelativePath=".\Source\MVC.mod"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\SrvCommon.mod"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\SrvHttpApi.mod"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -93,6 +105,18 @@
 			</File>
 			<File
 				RelativePath=".\Source\HttpTools.def"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\MVC.def"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\SrvCommon.def"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\SrvHttpApi.def"
 				>
 			</File>
 		</Filter>

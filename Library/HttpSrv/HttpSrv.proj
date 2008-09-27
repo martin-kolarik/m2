@@ -17,7 +17,7 @@
         <Components Include="modula2\modula2;api\clib;API\win32;API\httpapi"/>
         <Components Include="component\sccore"/>
         <Definitions Include="httpcommon;httpconnection"/>
-        <Modules Include="httptools;httpsrv"/>
+        <Modules Include="httptools;srvcommon;srvhttpapi;httpsrv"/>
     </ItemGroup>
 
     <!-- 4 -->

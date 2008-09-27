@@ -1,0 +1,123 @@
+DEFINITION MODULE HttpSrv;
+
+//================================================================================
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   IOO,
+   HttpCommon,
+   HttpConnection,
+   maps,
+   StringsO,
+   Sync;
+
+//================================================================================
+
+TYPE
+   TPHttpProcessor = POINTER TO IHttpProcessor;
+   TPHttpRequest = POINTER TO IHttpRequest;
+   TPSession = POINTER TO ISession;
+   TPContainer = POINTER TO CContainer; // model container
+   TPController = POINTER TO IController;
+   TPHttpServer = POINTER TO IHttpServer;
+   TPView = POINTER TO IView;
+   
+//--------------------------------------------------------------------------------
+
+INTERFACE IHttpProcessor;
+   PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT WantsSession : BOOLEAN ) : BOOLEAN;
+   PROCEDURE ProcessRequest( CONST Connection : HttpConnection.TPHttpSrvConnection; CONST Session : TPSession );
+END IHttpProcessor;
+
+//--------------------------------------------------------------------------------
+
+INTERFACE IHttpRequest;
+   READONLY PROPERTY
+      Headers : HttpCommon.TPHttpHeaders;
+      Container : TPContainer; // there is model named "" and model named "session"
+      Session : TPSession;
+END IHttpRequest;
+
+//--------------------------------------------------------------------------------
+
+INTERFACE ISession;
+   READONLY PROPERTY
+      Data : maps.TPStringMap; // the same as Container["session"]
+      SID : StringsO.CString;
+   PROCEDURE Invalidate();
+END ISession;
+
+//================================================================================
+
+CLASS CContainer;
+   PRIVATE VAR
+      Models : maps.CStringMap;
+
+   PUBLIC PROCEDURE Clear();
+
+   PUBLIC PROCEDURE AddModel( CONST Name : ARRAY OF WCHAR; REF Model : maps.CStringStringMap );
+   PUBLIC PROCEDURE RemoveModel( CONST Name : ARRAY OF WCHAR );
+
+   PUBLIC PROCEDURE GetModelOA( CONST Name : ARRAY OF WCHAR; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
+   PUBLIC PROCEDURE GetModel( CONST Name : StringsO.CString; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
+END CContainer;
+   
+//--------------------------------------------------------------------------------
+
+INTERFACE IView;
+   PROPERTY
+      Container : TPContainer;
+   PROCEDURE Format() : BOOLEAN;
+END IView;
+
+//--------------------------------------------------------------------------------
+
+INTERFACE IController;
+   PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR ) : BOOLEAN;
+   PROCEDURE ProcessRequest( CONST Request : TPHttpRequest; CONST Container : TPContainer; OUT View : TPView ) : BOOLEAN;
+END IController;
+
+//--------------------------------------------------------------------------------
+
+TYPE
+   TMode = (
+      mdHttp,
+      mdHttps,
+      mdBoth
+   );
+
+INTERFACE IHttpServer;
+   READONLY PROPERTY
+      Running : BOOLEAN;
+   PROPERTY
+      Mode : TMode; // default is smHttp
+      Port : CARDINAL; // default is 8080
+      SslPort : CARDINAL; // default is 8443
+      RootPath : StringsO.CString;
+
+   PROCEDURE Start() : Sync.TAsyncResult;
+   PROCEDURE Stop();
+   
+   PROCEDURE RegisterProcessor( Processor : TPHttpProcessor );
+   PROCEDURE ForgetProcessor( Processor : TPHttpProcessor );
+END IHttpServer;
+
+//================================================================================
+
+PROCEDURE srv() : TPHttpServer;
+PROCEDURE Cleanup();
+
+//--------------------------------------------------------------------------------
+
+PROCEDURE fileView( CONST Path : ARRAY OF WCHAR ) : TPView;
+PROCEDURE redirectView( CONST URL : ARRAY OF WCHAR ) : TPView;
+PROCEDURE modelView( CONST viewName : ARRAY OF WCHAR; REF model : maps.CStringStringMap ) : TPView;
+PROCEDURE modelViewStream( CONST viewName : ARRAY OF WCHAR; viewSource : IOO.TPStream; REF model : maps.CStringStringMap ) : TPView;
+PROCEDURE modelViewContainer( CONST viewName : ARRAY OF WCHAR; REF model : ARRAY OF maps.CStringStringMap ) : TPView;
+PROCEDURE modelViewContainerStream( CONST viewName : ARRAY OF WCHAR; viewSource : IOO.TPStream; REF model : ARRAY OF maps.CStringStringMap ) : TPView;
+
+//================================================================================
+
+END HttpSrv.

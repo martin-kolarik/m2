@@ -1,0 +1,13 @@
+DEFINITION MODULE SrvHttpApi;
+
+IMPORT
+   HttpSrv;
+
+//================================================================================
+
+PROCEDURE srv() : HttpSrv.TPHttpServer;
+PROCEDURE Cleanup();
+
+//================================================================================
+
+END SrvHttpApi.
