@@ -190,6 +190,8 @@ ABSTRACT CLASS AStream;
     Reading    : BOOLEAN;
     Writing    : BOOLEAN;
 
+  PUBLIC VIRTUAL FINALLY AStream();
+
   PUBLIC ABSTRACT PROCEDURE Seek( Origin : TSeekOrigin; Position : INT64 ); 
   PUBLIC ABSTRACT PROCEDURE Flush();
   PUBLIC ABSTRACT PROCEDURE Close( Persist : BOOLEAN ); // Close closes data flow and, if NOT Persist, also all owned/allocated structures. E.g., if Persist, the stream will not call closesocket, if not Persist it will be.

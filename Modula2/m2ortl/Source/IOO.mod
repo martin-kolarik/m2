@@ -398,6 +398,12 @@ CLASS IMPLEMENTATION AStream;
 
 (*--------------------------------------------------------------------------------*)
 
+  PUBLIC VIRTUAL FINALLY AStream();
+  BEGIN
+  END AStream;
+
+(*--------------------------------------------------------------------------------*)
+
   PUBLIC PROCEDURE Read( _Reader : TPDataProxy; TimeoutMS : CARDINAL; WaitForResult : BOOLEAN ) : Sync.TAsyncResult;
   BEGIN
     RETURN IO( dirRead, _Reader, TimeoutMS, WaitForResult );
