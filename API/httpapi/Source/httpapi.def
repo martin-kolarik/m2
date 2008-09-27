@@ -272,6 +272,19 @@ TYPE
 // This structure describes an individual data chunk.
 //
 TYPE
+   TFromMemory =  RECORD
+                     pBuffer : ADDRESS;
+                     BufferLength : CARD32;
+                  END;
+   TFromFileHandle = RECORD
+                        ByteRange : HTTP_BYTE_RANGE;
+                        FileHandle : HANDLE;
+                     END;
+   TFromFragmentCache = RECORD
+                           FragmentNameLength : CARD16; // in bytes not including the NUL
+                           pFragmentName : PCWSTR;
+                        END;
+
    HTTP_DATA_CHUNK = RECORD
       //
       // The type of this data chunk.
@@ -288,20 +301,17 @@ TYPE
          //
          // From-memory data chunk.
          //
-         pBuffer : ADDRESS;
-         BufferLength : CARD32;
+         FromMemory : TFromMemory;
       | 1 :
          //
          // From-file handle data chunk.
          //
-         ByteRange : HTTP_BYTE_RANGE;
-         FileHandle : HANDLE;
+         FromFileHandle : TFromFileHandle;
       | 2 :
          //
          // From-fragment cache data chunk.
          //
-         FragmentNameLength : CARD16; // in bytes not including the NUL
-         pFragmentName : PCWSTR;
+         FromFragmentCache : TFromFragmentCache;
       END; // CASE
 
    END; // RECORD HTTP_DATA_CHUNK
@@ -915,7 +925,7 @@ HttpReceiveRequestEntityBody(
     Flags : CARD32;
     pBuffer : ADDRESS;
     BufferLength : CARD32;
-    OUT BytesReceived : CARD32;
+    pBytesReceived : PULONG;
     pOverlapped : POVERLAPPED
     ) : CARD32;
 
