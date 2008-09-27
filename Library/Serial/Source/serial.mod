@@ -117,7 +117,7 @@ CLASS IMPLEMENTATION CSerialHandler;
 
 //---------------------------------------------------------
 
-	PUBLIC PROCEDURE Dispose();
+	PUBLIC VIRTUAL PROCEDURE Dispose();
 	BEGIN
 		Stop();
 		IF ComLink <> NIL THEN

@@ -78,7 +78,7 @@ CLASS CSerialHandler( msghandler.MessageHandler );
       RxW             : BOOLEAN;
 
    PUBLIC PROCEDURE Init( Name, Channel, Driver, Parameters : ARRAY OF WCHAR; CONST log : Log.TPLogger ) : BOOLEAN;
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    
    PUBLIC PROCEDURE Run();
    PUBLIC PROCEDURE Stop();
