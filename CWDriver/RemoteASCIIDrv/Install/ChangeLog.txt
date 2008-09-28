@@ -1,2 +1,11 @@
+Version DEBUG 1.1.1792 28.9.2008
+- BUG: # characters were not escaped when data from ASCDRV
+       compatible DriverQueryProc procedures have been returned. This
+       could lead to confusion in # character interpretation.
+- BUG: ASCDRV compatible DriverQueryProc procedures set result of
+       operation to output parameter even if the parameter was used
+       for operation result. This could lead to confusion of output
+       parameter meaning.
+
 Version DEBUG 1.1.1735 12.8.2008
 - NEW: Created.

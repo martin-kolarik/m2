@@ -27,8 +27,8 @@ IMPORT
    lec,
    log,
    msgqueue,
-   netconnection,
    netsocket,
+   rawconnection,
    Resources,
    Strings,
    StringsO,
@@ -128,7 +128,7 @@ CLASS CDriver IMPLEMENTS diface.ICWDriver;
 
    // driver data
    Notifier      : CNotifier;
-   Connection    : netconnection.TCPConnection;
+   Connection    : rawconnection.TCPConnection;
    Events        : msgqueue.CPtrQueue;
    EventsSignal  : Sync.SIGNAL;
    LastError     : TASCIIError;
@@ -479,7 +479,7 @@ CLASS IMPLEMENTATION CDriver;
             END;
          
             sw.ItemS( StringsO.WCHARS{ L' ' }, 0, 2, TRUE, OUT si );
-            Connection.Open( si, FALSE, netsocket.FORSAFETY );
+            Connection.OpenS( si, FALSE, netsocket.FORSAFETY );
 
          ELSIF si.EqualsOA( L'disconnect' ) THEN
             Connection.Close();
@@ -499,7 +499,7 @@ CLASS IMPLEMENTATION CDriver;
             ELSIF si.Length DIV 2 > l THEN
                sw.FromOA( OAsz( R[ Texts._NotEnoughWriteSpace ] ));
                GOTO Error;
-            ELSIF WBuffer.Length + si.Length DIV 2 > Connection.Stream^.WriteSpace THEN
+            ELSIF WBuffer.Length + si.Length DIV 2 > Connection.BufferedStream^.WriteSpace THEN
                sw.FromOA( OAsz( R[ Texts._NotEnoughWriteSpace ] ));
                GOTO Error;
             END;
@@ -705,7 +705,7 @@ CLASS IMPLEMENTATION CDriver;
       encoded.Size := String.Length + 16;
       ei := 0;
       FOR i := 0 TO String.Length-1 DO
-         IF String[i] >= L" " THEN
+         IF ( String[i] >= L" " ) AND ( String[i] <> L"#" ) THEN
             encoded[ei] := String[i];
             INC( ei );
          ELSE
@@ -740,7 +740,6 @@ CLASS IMPLEMENTATION CDriver;
          END;
 
          LastError := erOK;
-         // OutValue.Integer := INTEGER( LastError );
       
       ELSIF Command.EqualsOA( L"GetErrorCode" ) THEN
          IF Events.Peek( OUT Event ) THEN
@@ -755,9 +754,8 @@ CLASS IMPLEMENTATION CDriver;
          ELSE
             OutValue.Integer := 0;
          END;
-      
+
          LastError := erOK;
-         // OutValue.Integer := INTEGER( LastError );
       
       ELSIF Command.EqualsOA( L"EnableException" ) THEN
          c := Events.Count;
@@ -770,7 +768,6 @@ CLASS IMPLEMENTATION CDriver;
          END;
 
          LastError := erOK;
-         OutValue.Integer := INTEGER( LastError );
       
       ELSIF Command.EqualsOA( L"GetRxCount" ) THEN
          RBufferLock.Lock();
@@ -778,7 +775,6 @@ CLASS IMPLEMENTATION CDriver;
          RBufferLock.Unlock();
 
          LastError := erOK;
-         // OutValue.Integer := INTEGER( LastError );
       
       ELSIF Command.EqualsOA( L"ClearRxQueue" ) THEN
          RBufferLock.Lock();
@@ -787,7 +783,6 @@ CLASS IMPLEMENTATION CDriver;
          RIndex := 0;         
 
          LastError := erOK;
-         OutValue.Integer := INTEGER( LastError );
 
       ELSIF Command.EqualsOA( L"GetCharSeq" ) THEN
          RBufferLock.Lock();
@@ -799,88 +794,85 @@ CLASS IMPLEMENTATION CDriver;
          RBufferLock.Unlock();
 
          IF b THEN
-            LastError := erOK;
             s.Length := 1;
             EncodeASCIIString( REF s );
             OutValue.String := s;
             INC( RIndex );
+
+            LastError := erOK;
          ELSE
             // NEW( Event ); // error
             // Event^.Event := evRxError;
             // Event^.ASCIIError := erNoData;
             // AddEvent( Event );
+
             LastError := erNoData;
-            OutValue.Integer := INTEGER( LastError );
          END;
 
       ELSIF Command.EqualsOA( L"SetRxIndex" ) THEN
          RIndex := 0;
-
          LastError := erOK;
-         OutValue.Integer := INTEGER( LastError );
       
       ELSIF Command.EqualsOA( L"GetTxCount" ) THEN
          OutValue.Integer := WBuffer.Length;
+         LastError := erOK;
 
       ELSIF Command.EqualsOA( L"ClearTxQueue" ) THEN
          WBuffer.Clear();
          WIndex := 0;
-         
          LastError := erOK;
-         OutValue.Integer := INTEGER( LastError );
       
       ELSIF Command.EqualsOA( L"PutCharSeq" ) THEN
          s := InValue2.String;
          IF NOT DecodeASCIIString( REF s ) THEN
-            LastError := erBadHexString;
             // NEW( Event ); // error
             // Event^.Event := evTxError;
             // Event^.ASCIIError := erBadHexString;
             // AddEvent( Event );
+
+            LastError := erBadHexString;
          ELSIF WIndex < WBuffer.Size THEN
-            LastError := erOK;
             WBuffer.Length := MAX2( WBuffer.Length, WIndex+1 );
             WBuffer[WIndex] := BYTE( s[0] );
             INC( WIndex );
+
+            LastError := erOK;
          ELSE
-            LastError := erTxBufferFull;
             // NEW( Event ); // error
             // Event^.Event := evTxError;
             // Event^.ASCIIError := erTxBufferFull;
             // AddEvent( Event );
+
+            LastError := erTxBufferFull;
          END;
 
-         OutValue.Integer := INTEGER( LastError );
-      
       ELSIF Command.EqualsOA( L"SetTxIndex" ) THEN
          WIndex := 0;
-
          LastError := erOK;
-         OutValue.Integer := INTEGER( LastError );
       
       ELSIF Command.EqualsOA( L"SendAsync" ) THEN
          WBuffer.Length := InValue2.Integer;
 
          IF NOT Connection.Connected THEN
-            LastError := erNotConnected;
             // NEW( Event ); // error
             // Event^.Event := evTxError;
             // Event^.ASCIIError := erNotConnected;
             // AddEvent( Event );
-         ELSIF WBuffer.Length > Connection.Stream^.WriteSpace THEN
-            LastError := erTxBufferFull;
+
+            LastError := erNotConnected;
+         ELSIF WBuffer.Length > Connection.BufferedStream^.WriteSpace THEN
             // NEW( Event ); // error
             // Event^.Event := evTxError;
             // Event^.ASCIIError := erTxBufferFull;
             // AddEvent( Event );
 
+            LastError := erTxBufferFull;
          ELSE
-            LastError := erOK;
             Connection.Stream^.WriteBuffer( WBuffer, OUT c, netsocket.FORSAFETY );
             WBuffer.RemoveStart( c );
-         END;
 
-         OutValue.Integer := INTEGER( LastError );
+            LastError := erOK;
+         END;
       
       ELSE
          // NEW( Event ); // error
@@ -889,7 +881,6 @@ CLASS IMPLEMENTATION CDriver;
          // AddEvent( Event );
 
          LastError := erUnknownQueryProcedure;
-         OutValue.Integer := INTEGER( LastError );
 
          RETURN FALSE;
       END;
@@ -924,7 +915,7 @@ CLASS IMPLEMENTATION CDriver;
 
       AddEvent( Event );
 
-      Connection.Stream^.StartReading(); // start advise reading
+      Connection.BufferedStream^.StartReading(); // start advise reading
    END OnConnect;
 
 (*--------------------------------------------------------------------------------*)
@@ -972,7 +963,7 @@ CLASS IMPLEMENTATION CDriver;
       Event^.Length := l;
       AddEvent( Event );
 
-      Connection.Stream^.StartReading(); // continue with advised reading
+      Connection.BufferedStream^.StartReading(); // continue with advised reading
    END OnDataReceived;
 
 (*--------------------------------------------------------------------------------*)
@@ -1003,7 +994,7 @@ BEGIN
    
    Connection.CallbackMode := IOO.cbmPooled;
    Connection.Notifier := ADR( Notifier );
-   Connection.Stream^.BufferSize := 16384;
+   Connection.BufferedStream^.BufferSize := 16384;
 
    Notifier.Driver := ADR( SELF );
 

@@ -160,6 +160,7 @@ instrument
       delimiter = ' ';
     var
       c : cardinal;
+      error : cardinal;
       i : cardinal;
       s : string;
       t : string;
@@ -191,6 +192,11 @@ instrument
           s := '';
           for i := 0 to c-1 do
             core.DriverQueryProc( 'nm', 'GetCharSeq', &t );
+            core.DriverQueryProc( 'nm', 'GetLastError', &error );
+            if error <> 0 then
+              core.DebugOutput( 'GetCharSeq error: ', error );
+            end;
+
             s := s + t;
             if (i+1) % 100 = 0 then
               core.DebugOutput( 'Data: ', s );
