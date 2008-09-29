@@ -979,33 +979,32 @@ CLASS IMPLEMENTATION CThreadPool;
 
   PRIVATE PROCEDURE DisposeThreads( RespectMinThreads : BOOLEAN );
   VAR
-    LocalThreads : lists.CPtrList;
     PoolThread : TPPoolThread;
-    b : BOOLEAN;
+    ThreadsToLeave : lists.CPtrList;
+    ThreadsToRemove : lists.CPtrList;
   BEGIN
     _Lock.Lock();
     Threads.Reset();
-    b := Threads.MoveNext();
-    WHILE b DO
-      IF RespectMinThreads AND ( Threads.Count <= _MinThreads ) THEN
-        EXIT;
-      END;
+    WHILE Threads.MoveNext() DO
       PoolThread := TPPoolThread( Threads.Current );
-      b := Threads.MoveNext();
-      IF NOT RespectMinThreads OR PoolThread^.Empty THEN
-        LocalThreads.Add( PoolThread, 0 );
-        Threads.Remove( PoolThread );
+      IF NOT RespectMinThreads OR ( ThreadsToLeave.Count > _MinThreads ) AND PoolThread^.Empty THEN
+        ThreadsToRemove.Add( PoolThread, 0 );
+      ELSE
+        ThreadsToLeave.Add( PoolThread, 0 );
       END;
     END; // WHILE
+    // switch thread lists
+    Threads.Dispose();
+    Threads.AppendList( REF ThreadsToLeave );
     _Lock.Unlock();
 
-    LocalThreads.Reset();
-    WHILE LocalThreads.MoveNext() DO
-      PoolThread := TPPoolThread( LocalThreads.Current );
+    ThreadsToRemove.Reset();
+    WHILE ThreadsToRemove.MoveNext() DO
+      PoolThread := TPPoolThread( ThreadsToRemove.Current );
       PoolThread^.Stop( TRUE );
       DISPOSE( PoolThread );
     END; // WHILE
-    LocalThreads.Dispose();
+    ThreadsToRemove.Dispose();
   END DisposeThreads;
 
 //--------------------------------------------------------------------------------
