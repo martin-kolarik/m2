@@ -909,6 +909,7 @@ END IsUTF8;
 
 CONST
 	ConvStrW = L'0123456789ABCDEF';
+	ConvStrA = C'0123456789ABCDEF';
 
 PROCEDURE FromINT32W( _V : INT32; Base : CARDINAL; OUT S : ARRAY OF WCHAR ) : BOOLEAN; // returns OK
 VAR
@@ -1031,6 +1032,38 @@ BEGIN
 	ASSIGN( S, ADR( Buffer )@[i<<1]^ );
 	RETURN TRUE;
 END FromCARD32W;
+
+PROCEDURE FromCARD64A( V : CARD64; Base : CARDINAL; OUT S : ARRAY OF CHAR ) : BOOLEAN; // returns OK
+VAR
+	B : CARD64;
+	Buffer : ARRAY [0..67] OF CHAR;
+	i, l : CARDINAL;
+BEGIN
+	IF ( Base < 2 ) OR ( Base > 16 ) THEN
+		RETURN FALSE;
+	ELSE
+		B := CARD64( Base);
+	END;
+	i := 66;
+	l := 0;
+	LOOP
+		Buffer[i] := ConvStrA[ V MOD B ];
+		V := V DIV B;
+		IF V = 0 THEN
+			EXIT;
+		ELSIF i = 0 THEN
+			EXIT;
+		ELSIF l > HIGH( S ) THEN
+			RETURN FALSE;
+		ELSE
+			DEC( i );
+			INC( l );
+		END;
+	END; // LOOP
+	Buffer[67] := 0C;
+	ASSIGN( S, ADR( Buffer )@[i]^ );
+	RETURN TRUE;
+END FromCARD64A;
 
 PROCEDURE FromCARD64W( V : CARD64; Base : CARDINAL; OUT S : ARRAY OF WCHAR ) : BOOLEAN; // returns OK
 VAR
