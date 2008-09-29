@@ -233,9 +233,11 @@ CLASS IMPLEMENTATION CList;
 
   PUBLIC PROCEDURE AppendList( REF List : CList );
   BEGIN
-    Append( List.PFirst );
-    INC( Count, List.Count );
-    List.Clear();
+    IF List.PFirst <> NIL THEN
+      Append( List.PFirst );
+      INC( Count, List.Count - 1 );
+      List.Clear();
+    END;
   END AppendList;
 
 (*---------------------------------------------------------------------------*)

@@ -180,6 +180,161 @@ END CIntegerMap;
 //===========================================================================
 
 TYPE
+  TPIntegerStringItem = POINTER TO CIntegerStringItem;
+
+CLASS CIntegerStringItem( avltree.CAVLTreeElem );
+  PUBLIC VAR
+    Key  : INTEGER;
+    Data : CString;
+
+  PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
+
+  // OPERATOR NEW() : ADDRESS;
+  // OPERATOR DISPOSE( a : ADDRESS );
+END CIntegerStringItem;
+
+//---------------------------------------------------------------------------
+
+CLASS IMPLEMENTATION CIntegerStringItem;
+
+  PUBLIC VIRTUAL PROCEDURE Compare( i : CARDINAL; pelem : avltree.TPAVLTreeKey ) : TRISTATE;
+  BEGIN
+    IF Key < TPIntegerItem( pelem )^.Key THEN
+      RETURN -1;
+    ELSIF Key > TPIntegerItem( pelem )^.Key THEN
+      RETURN 1;
+    ELSE
+      RETURN 0;
+    END;
+  END Compare;
+
+  // OPERATOR CIntegerItem.NEW() : ADDRESS;
+  // VAR
+  //   a : ADDRESS;
+  // BEGIN
+  //   IF IntegerAllocator.Allocate( OUT a, SIZE( CIntegerItem )) THEN
+  //     RETURN a;
+  //   ELSE
+  //     RETURN NIL;
+  //   END;
+  // END CIntegerItem.NEW;
+  
+  // OPERATOR CIntegerItem.DISPOSE( a : ADDRESS );
+  // BEGIN
+  //   IntegerAllocator.Deallocate( REF a );
+  // END CIntegerItem.DISPOSE;
+
+BEGIN
+  Key := -1;
+END CIntegerStringItem;
+
+//---------------------------------------------------------------------------
+
+CLASS IMPLEMENTATION CIntegerStringMap;
+
+  PUBLIC READONLY PROPERTY CIntegerStringMap.Current GET : INTEGER;
+  BEGIN
+    IF _Current = -1 THEN
+      RETURN 0;
+    ELSE
+      RETURN TPIntegerStringItem( _Current )^.Key;
+    END;
+  END CIntegerStringMap.Current;
+
+//---------------------------------------------------------------------------
+
+  PUBLIC READONLY PROPERTY CIntegerStringMap.CurrentData GET : POINTER TO CString;
+  BEGIN
+    IF _Current = -1 THEN
+      RETURN NIL;
+    ELSE
+      RETURN ADR( TPIntegerStringItem( _Current )^.Data );
+    END;
+  END CIntegerStringMap.CurrentData;
+
+//---------------------------------------------------------------------------
+
+  PUBLIC PROPERTY CIntegerStringMap.CurrentData SET( Data : POINTER TO CString );
+  BEGIN
+    IF _Current = -1 THEN
+      RETURN;
+    ELSE
+      TPIntegerStringItem( _Current )^.Data := Data^;
+    END;
+  END CIntegerStringMap.CurrentData;
+
+//---------------------------------------------------------------------------
+
+  PUBLIC READONLY INDEX CIntegerStringMap GET ( Index : CARDINAL ) : POINTER TO CString;
+  VAR
+    PI : TPIntegerStringItem;
+  BEGIN
+    PI := TPIntegerStringItem( SUPER[ Index ] );
+    IF PI = NIL THEN
+      RETURN NIL;
+    ELSE
+      RETURN ADR( PI^.Data );
+    END;
+  END CIntegerStringMap;
+
+  PUBLIC PROCEDURE CIntegerStringMap.Add( Key : INTEGER; CONST Data : IString );
+  VAR
+    PI : TPIntegerStringItem;
+  BEGIN
+    NEW( PI );
+    PI^.Key := Key;
+    PI^.Data.Assign( Data );
+    Insert( PI );
+  END CIntegerStringMap.Add;
+  
+  PUBLIC PROCEDURE CIntegerStringMap.Remove( Key : INTEGER );
+  VAR
+    I : CIntegerStringItem;
+  BEGIN
+    I.Key := Key;
+    Delete( ADR( I ));
+  END CIntegerStringMap.Remove;
+
+  PUBLIC PROCEDURE CIntegerStringMap.Contains( Key : INTEGER ) : BOOLEAN;
+  VAR
+    I : CIntegerStringItem;
+  BEGIN
+    I.Key := Key;
+    RETURN SUPER.Contains( ADR( I ));
+  END CIntegerStringMap.Contains;
+
+  PUBLIC PROCEDURE CIntegerStringMap.Get( Key : INTEGER; OUT Data : IString ) : BOOLEAN; // similar as []
+  VAR
+    I : CIntegerStringItem;
+    PI : TPIntegerStringItem;
+  BEGIN
+    I.Key := Key;
+    IF NOT Search( ADR( I ), OUT PI ) THEN
+      RETURN FALSE;
+    END;
+    Data.Assign( PI^.Data );
+    RETURN TRUE;  
+  END CIntegerStringMap.Get;
+
+  PUBLIC PROCEDURE CIntegerStringMap.ElementAt( Index : CARDINAL; OUT Key : INTEGER; OUT Data : IString ) : BOOLEAN;
+  VAR
+    PI : TPIntegerStringItem;
+  BEGIN
+    PI := TPIntegerStringItem( SUPER[ Index ] );
+    IF PI = NIL THEN
+      RETURN FALSE;
+    ELSE
+      Key := PI^.Key;
+      Data.Assign( PI^.Data );
+    END;
+    RETURN TRUE;
+  END CIntegerStringMap.ElementAt;
+
+END CIntegerStringMap;
+
+//===========================================================================
+
+TYPE
   TPCardinalItem = POINTER TO CCardinalItem;
 
 CLASS CCardinalItem( avltree.CAVLTreeElem );
@@ -739,38 +894,38 @@ CLASS IMPLEMENTATION CStringMap;
     END;
   END CStringMap;
 
-  PUBLIC PROCEDURE CStringMap.Add( CONST Key : CString; Data : PTR );
+  PUBLIC PROCEDURE CStringMap.Add( CONST Key : IString; Data : PTR );
   VAR
     PI : TPStringItem;
   BEGIN
     NEW( PI );
-    PI^.Key := Key;
+    PI^.Key.Assign( Key );
     PI^.Data := Data;
     Insert( PI );
   END CStringMap.Add;
   
-  PUBLIC PROCEDURE CStringMap.Remove( CONST Key : CString );
+  PUBLIC PROCEDURE CStringMap.Remove( CONST Key : IString );
   VAR
     I : CStringItem;
   BEGIN
-    I.Key := Key;
+    I.Key.Assign( Key );
     Delete( ADR( I ));
   END CStringMap.Remove;
 
-  PUBLIC PROCEDURE CStringMap.Contains( CONST Key : CString ) : BOOLEAN;
+  PUBLIC PROCEDURE CStringMap.Contains( CONST Key : IString ) : BOOLEAN;
   VAR
     I : CStringItem;
   BEGIN
-    I.Key := Key;
+    I.Key.Assign( Key );
     RETURN SUPER.Contains( ADR( I ));
   END CStringMap.Contains;
 
-  PUBLIC PROCEDURE CStringMap.Get( CONST Key : CString; OUT Data : PTR ) : BOOLEAN; // similar as []
+  PUBLIC PROCEDURE CStringMap.Get( CONST Key : IString; OUT Data : PTR ) : BOOLEAN; // similar as []
   VAR
     I : CStringItem;
     PI : TPStringItem;
   BEGIN
-    I.Key := Key;
+    I.Key.Assign( Key );
     IF NOT Search( ADR( I ), OUT PI ) THEN
       RETURN FALSE;
     END;
@@ -778,7 +933,7 @@ CLASS IMPLEMENTATION CStringMap;
     RETURN TRUE;  
   END CStringMap.Get;
 
-  PUBLIC PROCEDURE CStringMap.ElementAt( Index : CARDINAL; OUT Key : CString; OUT Data : PTR ) : BOOLEAN;
+  PUBLIC PROCEDURE CStringMap.ElementAt( Index : CARDINAL; OUT Key : IString; OUT Data : PTR ) : BOOLEAN;
   VAR
     PI : TPStringItem;
   BEGIN
@@ -939,46 +1094,46 @@ CLASS IMPLEMENTATION CStringStringMap;
     END;
   END CStringStringMap;
 
-  PUBLIC PROCEDURE CStringStringMap.Add( CONST Key : CString; CONST Data : CString );
+  PUBLIC PROCEDURE CStringStringMap.Add( CONST Key : IString; CONST Data : IString );
   VAR
     PI : TPStringStringItem;
   BEGIN
     NEW( PI );
-    PI^.Key := Key;
-    PI^.Data := Data;
+    PI^.Key.Assign( Key );
+    PI^.Data.Assign( Data );
     Insert( PI );
   END CStringStringMap.Add;
   
-  PUBLIC PROCEDURE CStringStringMap.Remove( CONST Key : CString );
+  PUBLIC PROCEDURE CStringStringMap.Remove( CONST Key : IString );
   VAR
     I : CStringStringItem;
   BEGIN
-    I.Key := Key;
+    I.Key.Assign( Key );
     Delete( ADR( I ));
   END CStringStringMap.Remove;
 
-  PUBLIC PROCEDURE CStringStringMap.Contains( CONST Key : CString ) : BOOLEAN;
+  PUBLIC PROCEDURE CStringStringMap.Contains( CONST Key : IString ) : BOOLEAN;
   VAR
     I : CStringStringItem;
   BEGIN
-    I.Key := Key;
+    I.Key.Assign( Key );
     RETURN SUPER.Contains( ADR( I ));
   END CStringStringMap.Contains;
 
-  PUBLIC PROCEDURE CStringStringMap.Get( CONST Key : CString; OUT Data : CString ) : BOOLEAN; // similar as []
+  PUBLIC PROCEDURE CStringStringMap.Get( CONST Key : IString; OUT Data : IString ) : BOOLEAN; // similar as []
   VAR
     I : CStringStringItem;
     PI : TPStringStringItem;
   BEGIN
-    I.Key := Key;
+    I.Key.Assign( Key );
     IF NOT Search( ADR( I ), OUT PI ) THEN
       RETURN FALSE;
     END;
-    Data := PI^.Data;
+    Data.Assign( PI^.Data );
     RETURN TRUE;  
   END CStringStringMap.Get;
 
-  PUBLIC PROCEDURE CStringStringMap.ElementAt( Index : CARDINAL; OUT Key : CString; OUT Data : CString ) : BOOLEAN;
+  PUBLIC PROCEDURE CStringStringMap.ElementAt( Index : CARDINAL; OUT Key : IString; OUT Data : IString ) : BOOLEAN;
   VAR
     PI : TPStringStringItem;
   BEGIN
@@ -986,19 +1141,19 @@ CLASS IMPLEMENTATION CStringStringMap;
     IF PI = NIL THEN
       RETURN FALSE;
     ELSE
-      Key := PI^.Key;
-      Data := PI^.Data;
+      Key.Assign( PI^.Key );
+      Data.Assign( PI^.Data );
     END;
     RETURN TRUE;
   END CStringStringMap.ElementAt;
 
-  PUBLIC PROCEDURE AddOA( CONST Key : ARRAY OF WCHAR; Data : CString );
+  PUBLIC PROCEDURE AddOA( CONST Key : ARRAY OF WCHAR; CONST Data : IString );
   VAR
     PI : TPStringStringItem;
   BEGIN
     NEW( PI );
     PI^.Key.FromOA( Key );
-    PI^.Data := Data;
+    PI^.Data.Assign( Data );
     Insert( PI );
   END CStringStringMap.AddOA;
   
@@ -1018,7 +1173,7 @@ CLASS IMPLEMENTATION CStringStringMap;
     RETURN SUPER.Contains( ADR( I ));
   END CStringStringMap.ContainsOA;
 
-  PUBLIC PROCEDURE GetOA( CONST Key : ARRAY OF WCHAR; OUT Data : CString ) : BOOLEAN; // similar as []
+  PUBLIC PROCEDURE GetOA( CONST Key : ARRAY OF WCHAR; OUT Data : IString ) : BOOLEAN; // similar as []
   VAR
     I : CStringStringItem;
     PI : TPStringStringItem;
@@ -1027,11 +1182,11 @@ CLASS IMPLEMENTATION CStringStringMap;
     IF NOT Search( ADR( I ), OUT PI ) THEN
       RETURN FALSE;
     END;
-    Data := PI^.Data;
+    Data.Assign( PI^.Data );
     RETURN TRUE;  
   END CStringStringMap.GetOA;
 
-  PUBLIC PROCEDURE CStringStringMap.ElementAtOA( Index : CARDINAL; OUT Key : ARRAY OF WCHAR; OUT Data : CString ) : BOOLEAN;
+  PUBLIC PROCEDURE CStringStringMap.ElementAtOA( Index : CARDINAL; OUT Key : ARRAY OF WCHAR; OUT Data : IString ) : BOOLEAN;
   VAR
     PI : TPStringStringItem;
   BEGIN
@@ -1040,7 +1195,7 @@ CLASS IMPLEMENTATION CStringStringMap;
       RETURN FALSE;
     ELSE
       PI^.Key.ToOA( OUT Key );
-      Data := PI^.Data;
+      Data.Assign( PI^.Data );
     END;
     RETURN TRUE;
   END CStringStringMap.ElementAtOA;
