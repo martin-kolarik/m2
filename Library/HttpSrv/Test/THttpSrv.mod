@@ -39,7 +39,7 @@ END CServerThread;
 
 CLASS CProcessor IMPLEMENTS httpsrv.IHttpProcessor;
    PUBLIC VIRTUAL PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT WantsSession : BOOLEAN ) : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE ProcessRequest( CONST Connection : HttpConnection.TPHttpSrvConnection; CONST Session : httpsrv.TPSession );
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : httpsrv.TPSession );
 END CProcessor;
 
 (*---------------------------------------------------------------------------*)
@@ -66,7 +66,10 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"Run HTTP server" );
       
       T.Run( FALSE );
-      T.WaitStop( Sync.FOREVER );
+      Sync.Sleep( 10000 );
+      httpsrv.srv()^.Stop();
+      T.Stop( TRUE );
+      httpsrv.Cleanup();
 
       IF Failure1 OR Failure2 THEN
          Host^.StopPhaseWithResult( test.trFailure );
@@ -124,16 +127,21 @@ CLASS IMPLEMENTATION CProcessor;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE ProcessRequest( CONST Connection : HttpConnection.TPHttpSrvConnection; CONST Session : httpsrv.TPSession );
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : httpsrv.TPSession );
    CONST
-      cs = C"Hello, world!";
+      s = C"Hello, world!";
    VAR
       l : CARDINAL;
-      s : PBYTE;
    BEGIN
-      ALLOCATE( s, 150 );
-      Move( ADR( cs ), s, SIZE( cs ));
-      Connection^.Stream^.WriteOA( OA( 11, s ), OUT l, Sync.FORSAFETY );
+      Connection^.Chunked := TRUE;
+
+      Connection^.Stream^.WriteOA( OA( 11, ADR( s )), OUT l, Sync.FORSAFETY );
+      Connection^.Stream^.WriteOA( OA( 11, ADR( s )), OUT l, Sync.FORSAFETY );
+      Connection^.Stream^.WriteOA( OA( 11, ADR( s )), OUT l, Sync.FORSAFETY );
+      Connection^.Stream^.WriteOA( OA( 11, ADR( s )), OUT l, Sync.FORSAFETY );
+      Connection^.Stream^.WriteOA( OA( 11, ADR( s )), OUT l, Sync.FORSAFETY );
+      Connection^.Stream^.WriteOA( OA( 11, ADR( s )), OUT l, Sync.FORSAFETY );
+
    END ProcessRequest;
 
 (*---------------------------------------------------------------------------*)

@@ -10,6 +10,13 @@ IMPORT
 (*================================================================================*)
 
 TYPE
+   THttpVersion = (
+      httpver09,
+      httpver10,
+      httpver11
+   );
+
+TYPE
    THttpResponse = (
       httpres_200 = 200,
       httpres_204 = 204,
@@ -119,12 +126,15 @@ INTERFACE IHttpHeaders;
    PROCEDURE GetOA( Header : TKnownHeader; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
    PROCEDURE Add( Header : TKnownHeader; CONST Value : StringsO.IString );
    PROCEDURE AddOA( Header : TKnownHeader; CONST Value : ARRAY OF WCHAR );
+   PROCEDURE Remove( Header : TKnownHeader );
    
    PROCEDURE Enumerate( Known, Uknown : BOOLEAN; REF ES : PTR; OUT Name, Value : StringsO.IString ) : BOOLEAN;
 
    PROCEDURE ContainsUnknown( CONST Name : ARRAY OF WCHAR ) : BOOLEAN;
    PROCEDURE GetUnknown( CONST Name : ARRAY OF WCHAR; OUT Value : StringsO.IString ) : BOOLEAN;
    PROCEDURE AddUnknown( CONST Name : ARRAY OF WCHAR; CONST Value : StringsO.IString );
+   PROCEDURE AddUnknownOA( CONST Name : ARRAY OF WCHAR; CONST Value : ARRAY OF WCHAR );
+   PROCEDURE RemoveUnknown( CONST Name : ARRAY OF WCHAR );
 END IHttpHeaders;
 
 (*================================================================================*)

@@ -16,6 +16,10 @@ INTERFACE IHttpSrvConnection( connection.IServerConnection );
    READONLY PROPERTY
       RequestHeaders : HttpCommon.TPHttpHeaders;
       ResponseHeaders : HttpCommon.TPHttpHeaders;
+   PROPERTY
+      StatusCode : HttpCommon.THttpResponse;
+      Chunked : BOOLEAN; // set if you want to chunk
+      ResponseLength : CARD64; // set if you know it and you do not want to chunk
 
 END IHttpSrvConnection;
 

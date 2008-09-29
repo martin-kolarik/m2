@@ -10,6 +10,7 @@ IMPORT
    httpapi,
    HttpCommon,
    inetaddr,
+   LanguagesO,
    SrvCommon,
    Storage,
    StorageO,
@@ -20,10 +21,365 @@ IMPORT
    windows,
    winerror;
 
-
 //================================================================================
 
 CLASS CHttpApiHeaders( SrvCommon.CHeaders );
+   PRIVATE VAR
+      HeaderBuffer : StorageO.CMemoryBuffer; // buffer to construct headers in httpapi format
+
+   LOCAL PROCEDURE FromRequest( Request : httpapi.PHTTP_REQUEST );
+   LOCAL PROCEDURE ToResponse( REF Response : httpapi.HTTP_RESPONSE );
+
+   PRIVATE PROCEDURE FromSysApi( sysapiHeader : httpapi.HTTP_HEADER_ID; OUT header : HttpCommon.TKnownHeader ) : BOOLEAN;
+   PRIVATE PROCEDURE ToSysApi( header : HttpCommon.TKnownHeader; OUT sysapiHeader : httpapi.HTTP_HEADER_ID ) : BOOLEAN;
+END CHttpApiHeaders;
+
+//--------------------------------------------------------------------------------
+
+CLASS IMPLEMENTATION CHttpApiHeaders;
+
+//--------------------------------------------------------------------------------
+
+   LOCAL PROCEDURE FromRequest( Request : httpapi.PHTTP_REQUEST );
+   VAR
+      header : httpapi.PHTTP_UNKNOWN_HEADER;
+      Header : HttpCommon.TKnownHeader;
+      i : CARDINAL;
+      n : StringsO.CString;
+      s : StringsO.CString;
+   BEGIN
+      RequestFlag := TRUE;
+
+      // adopt known headers
+      FOR i := 0 TO CARDINAL( httpapi.HttpHeaderRequestMaximum )-1 DO
+         IF Request^.Headers.KnownHeaders[i].RawValueLength = 0 THEN
+            CONTINUE;
+         END;
+         s.FromOAA( 0, OA( CARDINAL( Request^.Headers.KnownHeaders[i].RawValueLength )-1, Request^.Headers.KnownHeaders[i].pRawValue ));
+
+         IF FromSysApi( httpapi.HTTP_HEADER_ID( i ), OUT Header ) THEN
+            KnownCache.Add( CARDINAL( Header ), s );
+         END;
+      END; // FOR
+
+
+      // adopt unknown headers
+      header := Request^.Headers.pUnknownHeaders;
+      FOR i := 0 TO INTEGER( Request^.Headers.UnknownHeaderCount )-1 DO
+         n.FromOAA( 0, OA( CARDINAL( header^.NameLength )-1, header^.pName ));
+         n.Lowerize();
+         s.FromOAA( 0, OA( CARDINAL( header^.RawValueLength )-1, header^.pRawValue ));
+
+         UnknownCache.Add( n, s );
+
+         INC( header, SIZE( httpapi.HTTP_UNKNOWN_HEADER ));
+      END; // FOR
+   END FromRequest;
+   
+//--------------------------------------------------------------------------------
+
+   LOCAL PROCEDURE ToResponse( REF Response : httpapi.HTTP_RESPONSE );
+   VAR
+      a : ADDRESS;
+      i : INTEGER;
+      id : httpapi.HTTP_HEADER_ID;
+      l : CARDINAL;
+      s : StringsO.TPString;
+   BEGIN
+      HeaderBuffer.Clear();
+      
+      FOR i := 0 TO INTEGER( httpapi.HttpHeaderResponseMaximum )-1 DO
+         Response.Headers.KnownHeaders[i].RawValueLength := 0;
+         Response.Headers.KnownHeaders[i].pRawValue := NIL;
+      END;
+      
+      KnownCache.Reset();
+      WHILE KnownCache.MoveNext() DO
+         s := KnownCache.CurrentData;
+         l := HeaderBuffer.Length;
+         LanguagesO.ToMB( s^, 0, TRUE, REF HeaderBuffer );
+         HeaderBuffer.AppendByte( 0 );
+
+         ToSysApi( HttpCommon.TKnownHeader( KnownCache.Current ), OUT id );
+         Response.Headers.KnownHeaders[CARDINAL( id )].RawValueLength := CARD16( HeaderBuffer.Length - l - 1 ); // trailing byte
+      END; // WHILE
+      
+      a := HeaderBuffer.Data;
+      FOR i := 0 TO INTEGER( httpapi.HttpHeaderResponseMaximum )-1 DO
+         l := CARDINAL( Response.Headers.KnownHeaders[i].RawValueLength );
+         IF l > 0 THEN
+            Response.Headers.KnownHeaders[i].pRawValue := a;
+            INC( a, l + 1 ); // trailing byte
+         END;
+      END;
+
+      Response.Headers.UnknownHeaderCount := 0;
+      Response.Headers.pUnknownHeaders := NIL;
+
+      Response.Headers.TrailerCount := 0;
+      Response.Headers.pTrailers := NIL;
+   END ToResponse;
+
+//--------------------------------------------------------------------------------
+
+   PRIVATE PROCEDURE FromSysApi( sysapiHeader : httpapi.HTTP_HEADER_ID; OUT header : HttpCommon.TKnownHeader ) : BOOLEAN;
+   VAR
+      found : BOOLEAN := TRUE;
+   BEGIN
+      CASE sysapiHeader OF
+      | httpapi.HttpHeaderCacheControl :
+         header := HttpCommon.CacheControl;
+      | httpapi.HttpHeaderConnection :
+         header := HttpCommon.Connection;
+      | httpapi.HttpHeaderDate :
+         header := HttpCommon.Date;
+      | httpapi.HttpHeaderKeepAlive :
+         header := HttpCommon.KeepAlive;
+      | httpapi.HttpHeaderPragma :
+         header := HttpCommon.Pragma;
+      | httpapi.HttpHeaderTrailer :
+         header := HttpCommon.Trailer;
+      | httpapi.HttpHeaderTransferEncoding :
+         header := HttpCommon.TransferEncoding;
+      | httpapi.HttpHeaderUpgrade :
+         header := HttpCommon.Upgrade;
+      | httpapi.HttpHeaderVia :
+         header := HttpCommon.Via;
+      | httpapi.HttpHeaderWarning :
+         header := HttpCommon.Warning;
+
+      | httpapi.HttpHeaderAllow :
+         header := HttpCommon.Allow;
+      | httpapi.HttpHeaderContentLength :
+         header := HttpCommon.ContentLength;
+      | httpapi.HttpHeaderContentType :
+         header := HttpCommon.ContentType;
+      | httpapi.HttpHeaderContentEncoding :
+         header := HttpCommon.ContentEncoding;
+      | httpapi.HttpHeaderContentLanguage :
+         header := HttpCommon.ContentLanguage;
+      | httpapi.HttpHeaderContentLocation :
+         header := HttpCommon.ContentLocation;
+      | httpapi.HttpHeaderContentMd5 :
+         header := HttpCommon.ContentMd5;
+      | httpapi.HttpHeaderContentRange :
+         header := HttpCommon.ContentRange;
+      | httpapi.HttpHeaderExpires :
+         header := HttpCommon.Expires;
+      | httpapi.HttpHeaderLastModified :
+         header := HttpCommon.LastModified;
+      ELSE
+         found := FALSE;
+      END;
+      IF found THEN
+         RETURN TRUE;
+      END;
+      
+      IF RequestFlag THEN
+         CASE sysapiHeader OF
+         // Request Headers
+         | httpapi.HttpHeaderAccept :
+            header := HttpCommon.Accept;
+         | httpapi.HttpHeaderAcceptCharset :
+            header := HttpCommon.AcceptCharset;
+         | httpapi.HttpHeaderAcceptEncoding :
+            header := HttpCommon.AcceptEncoding;
+         | httpapi.HttpHeaderAcceptLanguage :
+            header := HttpCommon.AcceptLanguage;
+         | httpapi.HttpHeaderAuthorization :
+            header := HttpCommon.Authorization;
+         | httpapi.HttpHeaderCookie :
+            header := HttpCommon.Cookie;
+         | httpapi.HttpHeaderExpect :
+            header := HttpCommon.Expect;
+         | httpapi.HttpHeaderFrom :
+            header := HttpCommon.From;
+         | httpapi.HttpHeaderHost :
+            header := HttpCommon.Host;
+         | httpapi.HttpHeaderIfMatch :
+            header := HttpCommon.IfMatch;
+
+         | httpapi.HttpHeaderIfModifiedSince :
+            header := HttpCommon.IfModifiedSince;
+         | httpapi.HttpHeaderIfNoneMatch :
+            header := HttpCommon.IfNoneMatch;
+         | httpapi.HttpHeaderIfRange :
+            header := HttpCommon.IfRange;
+         | httpapi.HttpHeaderIfUnmodifiedSince :
+            header := HttpCommon.IfUnmodifiedSince;
+         | httpapi.HttpHeaderMaxForwards :
+            header := HttpCommon.MaxForwards;
+         | httpapi.HttpHeaderProxyAuthorization :
+            header := HttpCommon.ProxyAuthorization;
+         | httpapi.HttpHeaderReferer :
+            header := HttpCommon.Referer;
+         | httpapi.HttpHeaderRange :
+            header := HttpCommon.Range;
+         | httpapi.HttpHeaderTe :
+            header := HttpCommon.Te;
+         | httpapi.HttpHeaderTranslate :
+            header := HttpCommon.Translate;
+
+         | httpapi.HttpHeaderUserAgent :
+            header := HttpCommon.UserAgent;
+         ELSE
+            RETURN FALSE;
+         END;
+
+      ELSE
+         CASE sysapiHeader OF
+         // Response Headers
+         | httpapi.HttpHeaderAcceptRanges :
+            header := HttpCommon.AcceptRanges;
+         | httpapi.HttpHeaderAge :
+            header := HttpCommon.Age;
+         | httpapi.HttpHeaderEtag :
+            header := HttpCommon.Etag;
+         | httpapi.HttpHeaderLocation :
+            header := HttpCommon.Location;
+         | httpapi.HttpHeaderProxyAuthenticate :
+            header := HttpCommon.ProxyAuthenticate;
+         | httpapi.HttpHeaderRetryAfter :
+            header := HttpCommon.RetryAfter;
+         | httpapi.HttpHeaderServer :
+            header := HttpCommon.Server;
+         | httpapi.HttpHeaderSetCookie :
+            header := HttpCommon.SetCookie;
+         | httpapi.HttpHeaderVary :
+            header := HttpCommon.Vary;
+         | httpapi.HttpHeaderWwwAuthenticate :
+            header := HttpCommon.WwwAuthenticate;
+         ELSE
+            RETURN FALSE;
+         END;
+      
+      END;
+      RETURN TRUE;
+   END FromSysApi;
+
+//--------------------------------------------------------------------------------
+
+   PRIVATE PROCEDURE ToSysApi( header : HttpCommon.TKnownHeader; OUT sysapiHeader : httpapi.HTTP_HEADER_ID ) : BOOLEAN;
+   BEGIN
+      CASE header OF
+      | HttpCommon.CacheControl :
+         sysapiHeader := httpapi.HttpHeaderCacheControl;
+      | HttpCommon.Connection :
+         sysapiHeader := httpapi.HttpHeaderConnection;
+      | HttpCommon.Date :
+         sysapiHeader := httpapi.HttpHeaderDate;
+      | HttpCommon.KeepAlive :
+         sysapiHeader := httpapi.HttpHeaderKeepAlive;
+      | HttpCommon.Pragma :
+         sysapiHeader := httpapi.HttpHeaderPragma;
+      | HttpCommon.Trailer :
+         sysapiHeader := httpapi.HttpHeaderTrailer;
+      | HttpCommon.TransferEncoding :
+         sysapiHeader := httpapi.HttpHeaderTransferEncoding;
+      | HttpCommon.Upgrade :
+         sysapiHeader := httpapi.HttpHeaderUpgrade;
+      | HttpCommon.Via :
+         sysapiHeader := httpapi.HttpHeaderVia;
+      | HttpCommon.Warning :
+         sysapiHeader := httpapi.HttpHeaderWarning;
+
+      | HttpCommon.Allow :
+         sysapiHeader := httpapi.HttpHeaderAllow;
+      | HttpCommon.ContentLength :
+         sysapiHeader := httpapi.HttpHeaderContentLength;
+      | HttpCommon.ContentType :
+         sysapiHeader := httpapi.HttpHeaderContentType;
+      | HttpCommon.ContentEncoding :
+         sysapiHeader := httpapi.HttpHeaderContentEncoding;
+      | HttpCommon.ContentLanguage :
+         sysapiHeader := httpapi.HttpHeaderContentLanguage;
+      | HttpCommon.ContentLocation :
+         sysapiHeader := httpapi.HttpHeaderContentLocation;
+      | HttpCommon.ContentMd5 :
+         sysapiHeader := httpapi.HttpHeaderContentMd5;
+      | HttpCommon.ContentRange :
+         sysapiHeader := httpapi.HttpHeaderContentRange;
+      | HttpCommon.Expires :
+         sysapiHeader := httpapi.HttpHeaderExpires;
+      | HttpCommon.LastModified :
+         sysapiHeader := httpapi.HttpHeaderLastModified;
+      
+      // Request Headers
+      | HttpCommon.Accept :
+         sysapiHeader := httpapi.HttpHeaderAccept;
+      | HttpCommon.AcceptCharset :
+         sysapiHeader := httpapi.HttpHeaderAcceptCharset;
+      | HttpCommon.AcceptEncoding :
+         sysapiHeader := httpapi.HttpHeaderAcceptEncoding;
+      | HttpCommon.AcceptLanguage :
+         sysapiHeader := httpapi.HttpHeaderAcceptLanguage;
+      | HttpCommon.Authorization :
+         sysapiHeader := httpapi.HttpHeaderAuthorization;
+      | HttpCommon.Cookie :
+         sysapiHeader := httpapi.HttpHeaderCookie;
+      | HttpCommon.Expect :
+         sysapiHeader := httpapi.HttpHeaderExpect;
+      | HttpCommon.From :
+         sysapiHeader := httpapi.HttpHeaderFrom;
+      | HttpCommon.Host :
+         sysapiHeader := httpapi.HttpHeaderHost;
+      | HttpCommon.IfMatch :
+         sysapiHeader := httpapi.HttpHeaderIfMatch;
+
+      | HttpCommon.IfModifiedSince :
+         sysapiHeader := httpapi.HttpHeaderIfModifiedSince;
+      | HttpCommon.IfNoneMatch :
+         sysapiHeader := httpapi.HttpHeaderIfNoneMatch;
+      | HttpCommon.IfRange :
+         sysapiHeader := httpapi.HttpHeaderIfRange;
+      | HttpCommon.IfUnmodifiedSince :
+         sysapiHeader := httpapi.HttpHeaderIfUnmodifiedSince;
+      | HttpCommon.MaxForwards :
+         sysapiHeader := httpapi.HttpHeaderMaxForwards;
+      | HttpCommon.ProxyAuthorization :
+         sysapiHeader := httpapi.HttpHeaderProxyAuthorization;
+      | HttpCommon.Referer :
+         sysapiHeader := httpapi.HttpHeaderReferer;
+      | HttpCommon.Range :
+         sysapiHeader := httpapi.HttpHeaderRange;
+      | HttpCommon.Te :
+         sysapiHeader := httpapi.HttpHeaderTe;
+      | HttpCommon.Translate :
+         sysapiHeader := httpapi.HttpHeaderTranslate;
+
+      | HttpCommon.UserAgent :
+         sysapiHeader := httpapi.HttpHeaderUserAgent;
+
+      // Response Headers
+      | HttpCommon.AcceptRanges :
+         sysapiHeader := httpapi.HttpHeaderAcceptRanges;
+      | HttpCommon.Age :
+         sysapiHeader := httpapi.HttpHeaderAge;
+      | HttpCommon.Etag :
+         sysapiHeader := httpapi.HttpHeaderEtag;
+      | HttpCommon.Location :
+         sysapiHeader := httpapi.HttpHeaderLocation;
+      | HttpCommon.ProxyAuthenticate :
+         sysapiHeader := httpapi.HttpHeaderProxyAuthenticate;
+      | HttpCommon.RetryAfter :
+         sysapiHeader := httpapi.HttpHeaderRetryAfter;
+      | HttpCommon.Server :
+         sysapiHeader := httpapi.HttpHeaderServer;
+      | HttpCommon.SetCookie :
+         sysapiHeader := httpapi.HttpHeaderSetCookie;
+      | HttpCommon.Vary :
+         sysapiHeader := httpapi.HttpHeaderVary;
+      | HttpCommon.WwwAuthenticate :
+         sysapiHeader := httpapi.HttpHeaderWwwAuthenticate;
+      
+      ELSE
+         RETURN FALSE;
+      END;
+      RETURN TRUE;
+   END ToSysApi;
+
+//--------------------------------------------------------------------------------
+
 END CHttpApiHeaders;
 
 //================================================================================
@@ -35,6 +391,7 @@ CLASS CHttpApiStream( SrvCommon.ASrvStream );
 
    // ASrvStream
    PUBLIC VIRTUAL READONLY PROPERTY
+      RequestVersion : HttpCommon.THttpVersion;
       RequestVerb : HttpCommon.TVerb;
       RequestURI : StringsO.CString;
       RequestHeaders : HttpCommon.TPHttpHeaders;
@@ -70,6 +427,19 @@ END CHttpApiStream;
 (*================================================================================*)
 
 CLASS IMPLEMENTATION CHttpApiStream;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY RequestVersion GET : HttpCommon.THttpVersion;
+   BEGIN
+      IF Request^.Version.MajorVersion = 0 THEN
+         RETURN HttpCommon.httpver09;
+      ELSIF Request^.Version.MinorVersion = 0 THEN
+         RETURN HttpCommon.httpver10;
+      ELSE
+         RETURN HttpCommon.httpver11;
+      END;
+   END RequestVersion;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -232,7 +602,7 @@ CLASS IMPLEMENTATION CHttpApiStream;
 
    INTERNAL VIRTUAL PROCEDURE ReceiveHeaders() : Sync.TAsyncResult;
    BEGIN
-      _RequestHeaders.FromRequest( Request.Data ); // copy httpapi data to headers
+      _RequestHeaders.FromRequest( Request ); // copy httpapi data to headers
       RETURN Sync.arCompleted;
    END ReceiveHeaders;
 
@@ -241,7 +611,7 @@ CLASS IMPLEMENTATION CHttpApiStream;
    INTERNAL VIRTUAL PROCEDURE ReceiveData( OUT Data : StorageO.AMemoryBuffer ) : Sync.TAsyncResult;
    VAR
       error : CARDINAL;
-      L : CARDINAL;
+      L : CARDINAL := 0;
    BEGIN
       Data.Clear();
       error := httpapi.HttpReceiveRequestEntityBody( _HttpQueue, Request^.RequestId, 0, Data.Data, Data.Size, ADR( L ), NIL );
@@ -275,7 +645,7 @@ CLASS IMPLEMENTATION CHttpApiStream;
 
       _ResponseHeaders.ToResponse( REF _Response );
 
-      error := httpapi.HttpSendHttpResponse( _HttpQueue, Request^.RequestId, 0, ADR( _Response ), NIL, ADR( L ), NIL, 0, NIL, NIL );
+      error := httpapi.HttpSendHttpResponse( _HttpQueue, Request^.RequestId, httpapi.HTTP_SEND_RESPONSE_FLAG_MORE_DATA, ADR( _Response ), NIL, ADR( L ), NIL, 0, NIL, NIL );
       IF error = winerror.ERROR_SUCCESS THEN
          RETURN Sync.arCompleted;
       ELSE
@@ -287,8 +657,8 @@ CLASS IMPLEMENTATION CHttpApiStream;
 
    INTERNAL VIRTUAL PROCEDURE SendData( CONST Data : StorageO.AMemoryBuffer ) : Sync.TAsyncResult;
    VAR
-      error : CARDINAL;
       Chunk : httpapi.HTTP_DATA_CHUNK;
+      error : CARDINAL;
       L : CARDINAL;
    BEGIN
       Chunk.DataChunkType := httpapi.HttpDataChunkFromMemory;
@@ -467,8 +837,11 @@ CLASS IMPLEMENTATION CHttpApiSrv;
 //--------------------------------------------------------------------------------
 
    INTERNAL VIRTUAL PROCEDURE GetNewStream() : SrvCommon.TPSrvStream;
+   VAR
+      stream : TPHttpApiStream;
    BEGIN
-      RETURN NEW( CHttpApiStream );
+      NEW( stream );
+      RETURN stream;
    END GetNewStream;
 
 //--------------------------------------------------------------------------------
@@ -538,9 +911,7 @@ CLASS IMPLEMENTATION CHttpApiSrv;
       
       httpapi.HttpTerminate( httpapi.HTTP_INITIALIZE_SERVER, NIL );
       
-      IF _HRequestSignal <> NIL THEN
-         Sync.DeleteSignal( REF _HRequestSignal );
-      END;
+      Sync.DeleteSignal( REF _HRequestSignal );
    END CHttpApiSrv;
 
 //--------------------------------------------------------------------------------

@@ -47,7 +47,7 @@ TYPE
 
 INTERFACE IHttpProcessor;
    PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT WantsSession : BOOLEAN ) : BOOLEAN;
-   PROCEDURE ProcessRequest( CONST Connection : HttpConnection.TPHttpSrvConnection; CONST Session : TPSession );
+   PROCEDURE ProcessRequest( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : TPSession );
 END IHttpProcessor;
 
 (*--------------------------------------------------------------------------------*)

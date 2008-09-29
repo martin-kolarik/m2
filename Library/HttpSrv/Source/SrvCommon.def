@@ -25,18 +25,21 @@ ABSTRACT CLASS CHeaders IMPLEMENTS HttpCommon.IHttpHeaders;
    PUBLIC VIRTUAL PROCEDURE GetOA( Header : HttpCommon.TKnownHeader; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE Add( Header : HttpCommon.TKnownHeader; CONST Value : StringsO.IString );
    PUBLIC VIRTUAL PROCEDURE AddOA( Header : HttpCommon.TKnownHeader; CONST Value : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE Remove( Header : HttpCommon.TKnownHeader );
    
    PUBLIC VIRTUAL PROCEDURE Enumerate( Known, Uknown : BOOLEAN; REF ES : PTR; OUT Name, Value : StringsO.IString ) : BOOLEAN;
 
    PUBLIC VIRTUAL PROCEDURE ContainsUnknown( CONST Name : ARRAY OF WCHAR ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE GetUnknown( CONST Name : ARRAY OF WCHAR; OUT Value : StringsO.IString ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE AddUnknown( CONST Name : ARRAY OF WCHAR; CONST Value : StringsO.IString );
+   PUBLIC VIRTUAL PROCEDURE AddUnknownOA( CONST Name : ARRAY OF WCHAR; CONST Value : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE RemoveUnknown( CONST Name : ARRAY OF WCHAR );
 
    // SELF
    INTERNAL VAR
       RequestFlag : BOOLEAN := FALSE; // by default headers are output
-      KnownCache : maps.CCardinalMap; // cache for known headers
-      UnknownCache : maps.CStringMap; // cache for unknown headers
+      KnownCache : maps.CIntegerStringMap; // cache for known headers
+      UnknownCache : maps.CStringStringMap; // cache for unknown headers
       
    PUBLIC PROCEDURE Dispose();
 END CHeaders;
@@ -67,6 +70,7 @@ ABSTRACT CLASS ASrvStream( IOO.AStream ); // synchronous implementation only
 
    // SELF
    PUBLIC ABSTRACT READONLY PROPERTY
+      RequestVersion : HttpCommon.THttpVersion;
       RequestVerb : HttpCommon.TVerb;
       RequestURI : StringsO.CString;
       RequestHeaders : HttpCommon.TPHttpHeaders;
@@ -82,6 +86,10 @@ ABSTRACT CLASS ASrvStream( IOO.AStream ); // synchronous implementation only
    INTERNAL ABSTRACT PROCEDURE SendHeaders() : Sync.TAsyncResult; // prepare output data if needed, first of all response routines, all headers and status code is already prepared hered
    INTERNAL ABSTRACT PROCEDURE SendData( CONST Data : StorageO.AMemoryBuffer ) : Sync.TAsyncResult; // after SendHeaders
    INTERNAL ABSTRACT PROCEDURE EndResponse() : Sync.TAsyncResult; // finishes response
+   
+   PUBLIC PROPERTY
+      Chunked : BOOLEAN;
+      ResponseLength : CARD64;
 
    LOCAL PROCEDURE StartHandleRequest() : Sync.TAsyncResult;
    
@@ -90,9 +98,10 @@ ABSTRACT CLASS ASrvStream( IOO.AStream ); // synchronous implementation only
       _ReadOut : BOOLEAN;
       _HeaderSent : BOOLEAN;
       _DataSent : BOOLEAN;
+      _ChunkBuffer : ARRAY [0..63] OF CHAR;
 
    // helpers
-   PRIVATE PROCEDURE AddDefaultHeaders();
+   PRIVATE PROCEDURE NormalizeHeaders();
    PUBLIC PROCEDURE StartResponse() : Sync.TAsyncResult; // PUBLIC for DEBUG
 END ASrvStream;
 

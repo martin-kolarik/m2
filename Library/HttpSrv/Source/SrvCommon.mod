@@ -38,10 +38,10 @@ CLASS IMPLEMENTATION CHeaders;
 
    PUBLIC VIRTUAL PROCEDURE Get( Header : HttpCommon.TKnownHeader; OUT Value : StringsO.IString ) : BOOLEAN;
    VAR
-      s : StringsO.TPString;
+      s : StringsO.CString;
    BEGIN
-      IF KnownCache.Get( CARDINAL( Header ), OUT s ) THEN
-         Value.Assign( s^ );
+      IF KnownCache.Get( INTEGER( Header ), OUT s ) THEN
+         Value.Assign( s );
          RETURN TRUE;
       ELSE
          RETURN FALSE;
@@ -65,18 +65,12 @@ CLASS IMPLEMENTATION CHeaders;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Add( Header : HttpCommon.TKnownHeader; CONST Value : StringsO.IString );
-   VAR
-      s : StringsO.TPString;
    BEGIN
       IF RequestFlag THEN
          RETURN;
-      ELSIF KnownCache.Get( CARDINAL( Header ), OUT s ) THEN
-         s^ := Value;
-      ELSE
-         s := NEW( StringsO.CString );
-         s^.Assign( Value );
-         KnownCache.Add( CARDINAL( Header ), s );
       END;
+      KnownCache.Remove( INTEGER( Header ));
+      KnownCache.Add( INTEGER( Header ), Value );
    END Add;
    
 (*--------------------------------------------------------------------------------*)
@@ -88,6 +82,16 @@ CLASS IMPLEMENTATION CHeaders;
       s.FromOA( Value );
       Add( Header, s );
    END AddOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Remove( Header : HttpCommon.TKnownHeader );
+   BEGIN
+      IF RequestFlag THEN
+         RETURN;
+      END;
+      KnownCache.Remove( INTEGER( Header ));
+   END Remove;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -111,12 +115,12 @@ CLASS IMPLEMENTATION CHeaders;
    PUBLIC VIRTUAL PROCEDURE GetUnknown( CONST Name : ARRAY OF WCHAR; OUT Value : StringsO.IString ) : BOOLEAN;
    VAR
       n : StringsO.CString;
-      s : StringsO.TPString;
+      s : StringsO.CString;
    BEGIN
       n.FromOA( Name );
       n.Lowerize();
       IF UnknownCache.Get( n, OUT s ) THEN
-         Value.Assign( s^ );
+         Value.Assign( s );
          RETURN TRUE;
       ELSE
          RETURN FALSE;
@@ -128,7 +132,31 @@ CLASS IMPLEMENTATION CHeaders;
    PUBLIC VIRTUAL PROCEDURE AddUnknown( CONST Name : ARRAY OF WCHAR; CONST Value : StringsO.IString );
    VAR
       n : StringsO.CString;
-      s : StringsO.TPString;
+   BEGIN
+      IF RequestFlag THEN
+         RETURN;
+      END;
+      n.FromOA( Name );
+      n.Lowerize();
+      UnknownCache.Remove( n );
+      UnknownCache.Add( n, Value );
+   END AddUnknown;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE AddUnknownOA( CONST Name : ARRAY OF WCHAR; CONST Value : ARRAY OF WCHAR );
+   VAR
+      s : StringsO.CString;
+   BEGIN
+      s.FromOA( Value );
+      AddUnknown( Name, s );
+   END AddUnknownOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE RemoveUnknown( CONST Name : ARRAY OF WCHAR );
+   VAR
+      n : StringsO.CString;
    BEGIN
       IF RequestFlag THEN
          RETURN;
@@ -136,14 +164,8 @@ CLASS IMPLEMENTATION CHeaders;
 
       n.FromOA( Name );
       n.Lowerize();
-      IF UnknownCache.Get( n, OUT s ) THEN
-         s^.Assign( Value );
-      ELSE
-         s := NEW( StringsO.CString );
-         s^.Assign( Value );
-         UnknownCache.Add( n, s );
-      END;
-   END AddUnknown;
+      UnknownCache.Remove( n );
+   END RemoveUnknown;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -308,10 +330,20 @@ CLASS IMPLEMENTATION ASrvStream;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC FINAL PROCEDURE Close( Persist : BOOLEAN ); // persist takes no sense
+   CONST
+      lastChunk = C"0" + 13C + 10C + 13C + 10C;
+   VAR
+      buffer : StorageO.CMemoryBuffer;
    BEGIN
       StartResponse();
       IF NOT _DataSent THEN
          _DataSent := TRUE;
+
+         IF Chunked THEN // send last chunk
+            buffer.FromOA( OA( SIZE( lastChunk )-2, ADR( lastChunk )), FALSE );
+            SendData( buffer );
+         END;
+
          EndResponse();
       END;
    END Close;
@@ -319,8 +351,13 @@ CLASS IMPLEMENTATION ASrvStream;
 (*--------------------------------------------------------------------------------*)
 
    INTERNAL FINAL PROCEDURE Start( Direction : IOO.TDirection; OperationTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   CONST
+      chunkEnd = 13C + 10C;
    VAR
       buffer : StorageO.CMemoryBuffer;
+      chBuffer : StorageO.CMemoryBuffer;
+      chLen : CARDINAL;
+      chunked : BOOLEAN;
       Data : ADDRESS;
       L : CARDINAL;
       Result : Sync.TAsyncResult;
@@ -332,6 +369,11 @@ CLASS IMPLEMENTATION ASrvStream;
          Result := Sync.arCannotStart;
 
       ELSE
+         IF Direction = IOO.dirWrite THEN
+            StartResponse();
+            chunked := Chunked;
+         END;
+
          WHILE DevicePrepareData( Direction, OUT Data, OUT L ) DO
             IF L = 0 THEN
                CONTINUE;
@@ -347,16 +389,38 @@ CLASS IMPLEMENTATION ASrvStream;
                END;
 
             ELSE // write
-               StartResponse();
+
+               // send chunk start
+               IF chunked THEN
+                  Strings.FromCARD64A( CARD64( L ), 16, OUT _ChunkBuffer );
+                  chLen := LENGTH( _ChunkBuffer );
+                  chBuffer.FromOA( OA( chLen+1, ADR( _ChunkBuffer )), FALSE ); // chLen+1 automatically sets length to data + CR + LF
+                  chBuffer[chLen] := 13; // add CR
+                  chBuffer[chLen+1] := 10; // add LF
+                  Result := SendData( chBuffer );
+                  IF Result <> Sync.arCompleted THEN
+                     _DataSent := TRUE;
+                  END;
+               END;
+               // send data               
                buffer.FromOA( OA( L-1, Data ), FALSE );
                Result := SendData( buffer );
                IF Result <> Sync.arCompleted THEN
+                  L := 0;
                   _DataSent := TRUE;
+               END;
+               // send chunk stop
+               IF chunked THEN
+                  buffer.FromOA( OA( SIZE( chunkEnd )-2, ADR( chunkEnd )), FALSE );
+                  Result := SendData( buffer );
+                  IF Result <> Sync.arCompleted THEN
+                     _DataSent := TRUE;
+                  END;
                END;
 
             END; // IF direction
 
-            DeviceCompleteData( Direction, buffer.Length );
+            DeviceCompleteData( Direction, L );
             IF Result <> Sync.arCompleted THEN
                EXIT;
             END;
@@ -389,16 +453,60 @@ CLASS IMPLEMENTATION ASrvStream;
    
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE AddDefaultHeaders();
+   PUBLIC PROPERTY Chunked GET : BOOLEAN;
+   BEGIN
+      RETURN ResponseHeaders^.Contains( HttpCommon.TransferEncoding ); // now it is only chunked
+   END Chunked;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Chunked SET( Value : BOOLEAN );
+   BEGIN
+      IF Value THEN
+         ResponseHeaders^.AddOA( HttpCommon.TransferEncoding, L"chunked" );
+      ELSE
+         ResponseHeaders^.Remove( HttpCommon.TransferEncoding );
+      END;
+   END Chunked;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY ResponseLength GET : CARD64;
+   VAR
+      l : CARD64;
+      s : ARRAY [0..31] OF WCHAR;
+   BEGIN
+      IF NOT ResponseHeaders^.GetOA( HttpCommon.ContentLength, OUT s ) THEN
+         RETURN -1;
+      ELSIF NOT Strings.ToCARD64W( s, 10, OUT l ) THEN
+         RETURN 0;
+      ELSE
+         RETURN l;
+      END;
+   END ResponseLength;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY ResponseLength SET( Value : CARD64 );
+   VAR
+      s : ARRAY [0..31] OF WCHAR;
+   BEGIN
+      Strings.FromCARD64W( Value, 10, OUT s );
+      ResponseHeaders^.AddOA( HttpCommon.ContentLength, s );
+   END ResponseLength;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE NormalizeHeaders();
    VAR
       // dt : Time.TDateTime;
    BEGIN
       // Date
       // Time.GetCurrentUTCDateTime( dt );
-      // _ResponseHeaders.Add( HttpCommon.Date, httptools.FormatDate( dt )); // driver by http.sys
+      // _ResponseHeaders.Add( HttpCommon.Date, httptools.FormatDate( dt )); // driven by http.sys
       
       // Server
-      ResponseHeaders^.AddOA( HttpCommon.Server, L"SmartControl/1.0" );
+      ResponseHeaders^.AddOA( HttpCommon.Server, L"SCWS/1.0 on" );
       
       // Caching
       IF NOT ResponseHeaders^.Contains( HttpCommon.CacheControl ) THEN
@@ -411,9 +519,14 @@ CLASS IMPLEMENTATION ASrvStream;
          ResponseHeaders^.Add( HttpCommon.ContentType, httptools.FormatContentOA( httptools.contentTextPlain, L"utf-8" ));
       END;
       
-      (*?*)
-      // ResponseHeaders^AddOA( HttpCommon.ContentLength, L"10" );
-   END AddDefaultHeaders;
+      // Message length
+      IF RequestVersion <> HttpCommon.httpver11 THEN
+         ResponseHeaders^.Remove( HttpCommon.TransferEncoding );
+      END;
+      IF Chunked THEN
+         ResponseHeaders^.Remove( HttpCommon.ContentLength );
+      END;
+   END NormalizeHeaders;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -425,7 +538,7 @@ CLASS IMPLEMENTATION ASrvStream;
       _HeaderSent := TRUE;
       
       Flush();
-      AddDefaultHeaders();
+      NormalizeHeaders();
       
       RETURN SendHeaders();
    END StartResponse;
@@ -436,6 +549,7 @@ BEGIN
    _ReadOut := FALSE;
    _HeaderSent := FALSE;
    _DataSent := FALSE;
+   _ChunkBuffer[0] := 0C;
 END ASrvStream;
 
 (*================================================================================*)
@@ -452,10 +566,11 @@ CLASS CHttpConnection IMPLEMENTS HttpConnection.IHttpSrvConnection;
    PUBLIC VIRTUAL READONLY PROPERTY
       RequestHeaders : HttpCommon.TPHttpHeaders;
       ResponseHeaders : HttpCommon.TPHttpHeaders;
-      
-   // SELF
+
    PUBLIC VIRTUAL PROPERTY
       StatusCode : HttpCommon.THttpResponse;
+      Chunked : BOOLEAN;
+      ResponseLength : CARD64;
    
    PRIVATE VAR
       _Stream : TPSrvStream;
@@ -516,6 +631,34 @@ CLASS IMPLEMENTATION CHttpConnection;
    BEGIN
       _Stream^.StatusCode := Value;
    END StatusCode;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Chunked GET : BOOLEAN;
+   BEGIN
+      RETURN _Stream^.Chunked;
+   END Chunked;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Chunked SET( Value : BOOLEAN );
+   BEGIN
+      _Stream^.Chunked := Value;
+   END Chunked;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY ResponseLength GET : CARD64;
+   BEGIN
+      RETURN _Stream^.ResponseLength;
+   END ResponseLength;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY ResponseLength SET( Value : CARD64 );
+   BEGIN
+      _Stream^.ResponseLength := Value; 
+   END ResponseLength;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -838,7 +981,7 @@ CLASS IMPLEMENTATION ASrvCommon;
       Session : TPSrvSession;
       Timeout : CARDINAL := Time.UptimeMS() + netsocket.FORSAFETY;
       uri : StringsO.CString;
-      Verb : HttpCommon.TVerb := HttpCommon.verbUnknown;
+      Verb : HttpCommon.TVerb;
       WantsSession : BOOLEAN := FALSE;
       Worker : POINTER TO HttpWorker;
    BEGIN
@@ -848,6 +991,7 @@ CLASS IMPLEMENTATION ASrvCommon;
       END;
 
       Result :=  _PreparedStream^.StartHandleRequest();
+      Verb := _PreparedStream^.RequestVerb;
       IF Result = Sync.arAborted THEN
          _PreparedStream^.StatusCode := HttpCommon.httpres_503; // internal server error
    
@@ -868,7 +1012,7 @@ CLASS IMPLEMENTATION ASrvCommon;
          IF foundProcessor = NIL THEN
             _PreparedStream^.StatusCode := HttpCommon.httpres_404; // resource not found
          END;
-      END; // IF Verb
+      END; // IF
 
       IF WantsSession THEN
          Session := GetSessionForPreparedStream();
@@ -877,9 +1021,6 @@ CLASS IMPLEMENTATION ASrvCommon;
       END;
       NEW( Worker );
       Worker^.Init( foundProcessor, _PreparedStream, Session );
-
-_PreparedStream^.StartResponse();      
-
       LOOP
          IF _Pool.RunWorker( ADR( SELF ), 0, FALSE, Worker, FALSE, OUT ph ) THEN
             EXIT;
@@ -991,8 +1132,8 @@ _PreparedStream^.StartResponse();
 
    FINALLY ASrvCommon();
    BEGIN
-      Dispose();
       _Pool.FinishAndWait();
+      Dispose();
    END ASrvCommon;
 
 //--------------------------------------------------------------------------------
