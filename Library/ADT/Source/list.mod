@@ -231,14 +231,20 @@ CLASS IMPLEMENTATION CList;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE AppendList( REF List : CList );
-  BEGIN
-    IF List.PFirst <> NIL THEN
-      Append( List.PFirst );
-      INC( Count, List.Count - 1 );
-      List.Clear();
-    END;
-  END AppendList;
+   PUBLIC PROCEDURE AppendList( REF List : CList );
+   BEGIN
+      IF List.PFirst <> NIL THEN
+         IF PFirst = NIL THEN
+            PFirst := List.PFirst;
+         ELSE
+            PLast^.PNext := List.PFirst;
+            List.PFirst^.PPrev := PLast;
+         END;
+         PLast := List.PLast;
+         INC( Count, List.Count );
+         List.Clear();
+      END;
+   END AppendList;
 
 (*---------------------------------------------------------------------------*)
 
