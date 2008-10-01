@@ -483,7 +483,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
    PUBLIC VIRTUAL PROPERTY IOCapabilities GET : io.TCapabilities;
    BEGIN
-      RETURN io.TCapabilities{};
+      RETURN io.TCapabilities{io.capAdvise};
    END IOCapabilities;
 
 //--------------------------------------------------------------------------------

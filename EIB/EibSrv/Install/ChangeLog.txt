@@ -1,3 +1,7 @@
+Version 1.0.1802 beta 1.10.2008
+- BUG: Eib User layer did not report self advise capabilities to XMLSocket adviser
+       correctly. This could cause ASSERT after service run.
+
 Version 1.0.1770 beta 6.9.2008
 - BUG: CheckCfg.exe did not display error messages
 - CHG: XMLSocket <item> tag renamed to <notify> without changing the meaning
