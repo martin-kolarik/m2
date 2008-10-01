@@ -828,6 +828,7 @@ CLASS IMPLEMENTATION CHttpApiSrv;
       IF NOT _Running THEN
          RETURN;
       END;
+      _Running := FALSE;
       
       IF _HPoolHandle <> NIL THEN
          threadpool.pool()^.Abort( REF _HPoolHandle );
@@ -902,8 +903,8 @@ CLASS IMPLEMENTATION CHttpApiSrv;
 
    FINALLY CHttpApiSrv();
    BEGIN
-      Dispose();
-      
+      Stop();
+   
       IF _HttpQueue <> NIL THEN
          windows.CloseHandle( _HttpQueue );
          _HttpQueue := NIL;
@@ -938,7 +939,6 @@ END srv;
 PROCEDURE Cleanup();
 BEGIN
    IF HttpServer <> NIL THEN
-      HttpServer^.Dispose();
       HttpServer^.Release();
       HttpServer := NIL;
    END;

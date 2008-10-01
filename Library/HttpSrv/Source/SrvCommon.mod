@@ -951,8 +951,11 @@ CLASS IMPLEMENTATION ASrvCommon;
 
    PUBLIC PROCEDURE Dispose();
    BEGIN
-      Stop();
+      _Pool.FinishAndWait();
       _Processors.Dispose();
+      IF _PreparedStream <> NIL THEN
+         DISPOSE( _PreparedStream );
+      END;
    END Dispose;
 
 //--------------------------------------------------------------------------------
@@ -1132,7 +1135,6 @@ CLASS IMPLEMENTATION ASrvCommon;
 
    FINALLY ASrvCommon();
    BEGIN
-      _Pool.FinishAndWait();
       Dispose();
    END ASrvCommon;
 

@@ -31,16 +31,19 @@ END CTest;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CServerThread( msgqueuethread.MessageQueueThread );
-   INTERNAL VIRTUAL PROCEDURE OnStart();
-END CServerThread;
-
-(*---------------------------------------------------------------------------*)
-
 CLASS CProcessor IMPLEMENTS httpsrv.IHttpProcessor;
    PUBLIC VIRTUAL PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT WantsSession : BOOLEAN ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE ProcessRequest( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : httpsrv.TPSession );
 END CProcessor;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CServerThread( msgqueuethread.MessageQueueThread );
+   PRIVATE VAR
+      Processor : CProcessor;   
+   INTERNAL VIRTUAL PROCEDURE OnStart();
+   INTERNAL VIRTUAL PROCEDURE OnExit();
+END CServerThread;
 
 (*---------------------------------------------------------------------------*)
 
@@ -66,8 +69,7 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"Run HTTP server" );
       
       T.Run( FALSE );
-      Sync.Sleep( 10000 );
-      httpsrv.srv()^.Stop();
+      Sync.Sleep( 1000000 );
       T.Stop( TRUE );
       httpsrv.Cleanup();
 
@@ -106,8 +108,16 @@ CLASS IMPLEMENTATION CServerThread;
       root.FromOA( '/oa' );
       httpsrv.srv()^.RootPath := root;
       httpsrv.srv()^.Start();
-      httpsrv.srv()^.RegisterProcessor( NEW( CProcessor ));
+      httpsrv.srv()^.RegisterProcessor( ADR( Processor ));
    END OnStart;
+
+(*---------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE OnExit();
+   BEGIN
+      httpsrv.srv()^.ForgetProcessor( ADR( Processor ));
+      httpsrv.srv()^.Stop();
+   END OnExit;
 
 (*---------------------------------------------------------------------------*)
 
