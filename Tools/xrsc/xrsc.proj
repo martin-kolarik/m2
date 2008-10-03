@@ -20,7 +20,7 @@
         <Components Include="api\clib">
             <CLib>Dynamic</CLib>
         </Components>
-        <Components Include="modula2\modula2;api\win32;modula2\m2rtl;library\resources"/>
+        <Components Include="Modula2\modula2;API\win32;Modula2\m2rtl;Library\Resources"/>
         <Program Include="xrsc"/>
         <!-- Messages Include="Texts;Pokus"/ -->
     </ItemGroup>

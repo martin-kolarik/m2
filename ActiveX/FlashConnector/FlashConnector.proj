@@ -18,8 +18,8 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <Components Include="modula2\modula2;api\clib;API\win32"/>
-        <Components Include="component\sccore;library\CWdriver"/>
+        <Components Include="Modula2\modula2;API\clib;API\win32"/>
+        <Components Include="Component\sccore;Library\CWDriver"/>
         <Modules Include="flashconnector"/>
         <Messages Include="Texts"/>
     </ItemGroup>

@@ -15,8 +15,8 @@
 
     <!-- 3 COMPOMENT DEFINITION -->
     <ItemGroup>
-        <Components Include="modula2\modula2;api\clib;API\win32"/>
-        <Components Include="component\sccore;Library\DeviceIO;library\ActiveX"/>
+        <Components Include="Modula2\modula2;API\CLib;API\win32"/>
+        <Components Include="Component\sccore;Library\DeviceIO;Library\ActiveX"/>
         <Modules Include="drv_def;drv_wrapper_;drv_wrapper;drv_ax_;drv_ax;diface;diface_device"/>
     </ItemGroup>
 

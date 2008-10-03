@@ -19,8 +19,8 @@
     <ItemGroup>
         <BuildVersionSource Include="$(RootPath)\Library;$(RootPath)\Modula2"/>
 
-        <Components Include="modula2\m2rtl;modula2\m2ortl;library\ADT;library\COM;library\Resources;library\Registry;library\Text"/>
-        <Components Include="library\ciphering;library\threading;library\Network;library\Service;library\ClassLoader;component\scinit"/>
+        <Components Include="Modula2\m2rtl;Modula2\m2ortl;Library\ADT;Library\COM;Library\Resources;Library\Registry;Library\Text"/>
+        <Components Include="Library\Ciphering;Library\Threading;Library\Network;Library\Service;Library\ClassLoader;Component\scinit"/>
     </ItemGroup>
 
     <!-- 4 LAST INCLUDE COMPILATION CODE ITSELF -->

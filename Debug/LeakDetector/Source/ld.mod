@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE ld;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
   avltree,
   log,
@@ -400,7 +403,7 @@ CLASS IMPLEMENTATION CLeakDetector;
         Strings.AppendW( REF S, L']' );
         INC( i );
       END; // WHILE
-      Strings.FromCARD32W( CARDINAL( AL^.Block ), 16, OUT N );
+      Strings.FromCARD64W( CARD64( AL^.Block ), 16, OUT N );
       Log.LogSSSS( log.dlcWarning, L"", L"Leak of size ", S, " at ", N );
       
       b := Allocations.NextOf( AL, OUT AL );
@@ -424,7 +427,7 @@ BEGIN
   LHeap := windows.HeapCreate( 0, 0, 0 );
   Lock.Init( Sync.ltSpin, L"", FALSE );
   Log.SetLogName( "LD" );
-  Log.Mode := log.dmKernel;
+  Log.Method := log.dmKernel;
   Log.Level := log.dlcWarning;
 END CLeakDetector;
 

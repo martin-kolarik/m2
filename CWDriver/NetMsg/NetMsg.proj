@@ -30,8 +30,8 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-			<Components Include="modula2\modula2;api\clib;API\win32"/>
-			<Components Include="component\SCCore;library\CWdriver"/>
+			<Components Include="Modula2\modula2;API\CLib;API\win32"/>
+			<Components Include="Component\sccore;Library\CWdriver"/>
 			<Program Include="netmsg"/>
 			<Messages Include="Texts"/>
 		</ItemGroup>

@@ -18,11 +18,11 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <Components Include="modula2\modula2"/>
-        <Components Include="api\clib">
+        <Components Include="Modula2\modula2"/>
+        <Components Include="API\clib">
             <Parameters>Dynamic</Parameters>
         </Components>
-        <Components Include="API\win32;modula2\m2rtl;modula2\m2ortl;library\ADT;library\DeviceIO;library\serial;library\com"/>
+        <Components Include="API\win32;Modula2\m2rtl;Modula2\m2ortl;Library\ADT;Library\DeviceIO;:ibrary\Serial;Library\com"/>
 				<Definitions Include="TypeLib"/>
 				<!-- Modules Include="StiebelHP;StiebelHPsAx"/ -->
         <Program Include="CmdLine"/>

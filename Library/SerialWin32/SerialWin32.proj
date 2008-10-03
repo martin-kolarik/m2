@@ -21,10 +21,10 @@
 
     <!-- 3 COMPOMENT DEFINITION -->
     <ItemGroup>
-        <Components Include="modula2\modula2;api\clib;API\win32">
+        <Components Include="Modula2\modula2;API\CLib;API\win32">
             <!-- Parameters>Static</Parameters --><!-- optional, here it has high priority than CLib -->
         </Components>
-        <Components Include="component\sccore;library\SerialLink"/>
+        <Components Include="Component\sccore;Library\SerialLink"/>
         <Modules Include="btools;comm_;comm"/>
     </ItemGroup>
 

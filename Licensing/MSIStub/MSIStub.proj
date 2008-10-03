@@ -19,8 +19,8 @@
 
     <!-- 3 -->
     <ItemGroup>
-        <Components Include="modula2\modula2;api\Win32;api\Msi"/>
-        <Components Include="component\sccore;licensing\core"/>
+        <Components Include="Modula2\modula2;API\win32;API\MSI"/>
+        <Components Include="Component\sccore;Licensing\Core"/>
         <Program Include="MSIStub"/>
     </ItemGroup>
 

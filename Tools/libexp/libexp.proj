@@ -19,7 +19,7 @@
 
     <!-- 3 PRODUCT DEFINITION -->
     <ItemGroup>
-        <Components Include="api\clib;modula2\modula2;api\win32;modula2\m2rtl;modula2\m2ortl;library\Text"/>
+        <Components Include="API\CLib;Modula2\modula2;API\win32;Modula2\m2rtl;Modula2\m2ortl;Library\Text"/>
         <Program Include="libexp"/>
     </ItemGroup>
 

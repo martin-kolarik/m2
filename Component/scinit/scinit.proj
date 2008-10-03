@@ -15,8 +15,8 @@
 
     <!-- 3 COMPOMENT DEFINITION -->
     <ItemGroup>
-        <Components Include="modula2\modula2;api\clib;API\win32"/>
-        <Components Include="library\threading;library\network"/>
+        <Components Include="Modula2\modula2;API\CLib;API\win32"/>
+        <Components Include="Library\Threading;Library\Network"/>
         <Modules Include="scinit"/>
     </ItemGroup>
 
