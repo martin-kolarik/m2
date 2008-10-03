@@ -1,24 +1,27 @@
-MODULE StiebelHP;
+MODULE CmdLine;
 
 // setpoint process.value control.value
 
 FROM Storage IMPORT
-	ALLOCATE;
+	ALLOCATE, DEALLOCATE;
 	
 IMPORT
 	FIO,
 	IOO,
+	Log,
 	StorageO,
 	StringsO,
 	Sync,
+	threadinit,
 	windows;
 
 IMPORT
 	nsitem,
-	sdev,
-	sdio,
-	sdns,
-	sdvalue,
+	device,
+	io,
+	iobject,
+	ns,
+	iovalue,
 	serial;
 	
 (*===========================================================================*)
@@ -108,10 +111,11 @@ END CNSI;
 
 (*===========================================================================*)
 
-CLASS CNS( nsitem.ANS );
-	INTERNAL VIRTUAL PROCEDURE CreateRoot() : sdns.TPSDNSItem;
+CLASS CNS( nsitem.Ans );
+	INTERNAL VIRTUAL PROCEDURE CreateRoot() : ns.TPnsItem;
 	INTERNAL VIRTUAL PROCEDURE CreateStructure();
-	PUBLIC VIRTUAL PROCEDURE CreateNewItem( CONST Name : ARRAY OF WCHAR; Type : sdvalue.TSDType; Data : PTR ) : sdns.TPSDNSItem;
+   PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : ns.THash; OUT Name : StringsO.IString ) : BOOLEAN;
+	PUBLIC VIRTUAL PROCEDURE CreateNewItem( CONST Name : ARRAY OF WCHAR; NameType : ns.TNameType; ValueType : iovalue.TValueType; Data : PTR ) : ns.TPnsItem;
 END CNS;
 
 TYPE
@@ -121,27 +125,36 @@ CLASS CSerial( serial.CSerialHandler );
 	LOCAL VAR
 		PIO : TPIO;
 
-	INTERNAL VIRTUAL PROCEDURE DataComplete( CONST Data : StorageO.CMemoryBuffer; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyCheckSum : BOOLEAN ) : BOOLEAN;
-	INTERNAL VIRTUAL PROCEDURE TestChkSum( CONST Data : StorageO.CMemoryBuffer ) : BOOLEAN;
-	INTERNAL VIRTUAL PROCEDURE OnRx( Result : Sync.TAsyncResult; CONST Data : StorageO.CMemoryBuffer );
+	INTERNAL VIRTUAL PROCEDURE DataComplete( CONST Data : StorageO.AMemoryBuffer; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyCheckSum : BOOLEAN ) : BOOLEAN;
+	INTERNAL VIRTUAL PROCEDURE TestChkSum( CONST Data : StorageO.AMemoryBuffer ) : BOOLEAN;
+	INTERNAL VIRTUAL PROCEDURE OnRx( Result : Sync.TAsyncResult; CONST Data : StorageO.AMemoryBuffer );
 
-	INTERNAL VIRTUAL PROCEDURE AddChkSum( REF Data : StorageO.CMemoryBuffer );
+	INTERNAL VIRTUAL PROCEDURE AddChkSum( REF Data : StorageO.AMemoryBuffer );
 	INTERNAL VIRTUAL PROCEDURE OnTx( Result : Sync.TAsyncResult );
 END CSerial;
 
-CLASS CIO( sdio.ASDItemizedIO );
+CLASS CIO( io.AItemizedIO );
 	LOCAL VAR
 		Serial : CSerial;
 	PRIVATE VAR
 		_AbortFlag : BOOLEAN;
 		_Pending : IOO.TDirection;
 		_Item : TPNSI;
-		_Callback : sdio.TPSDCallback;
+		_Callback : io.TPDataInfo;
 
-	PUBLIC VIRTUAL READONLY PROPERTY
-		Pending : BOOLEAN;
+   PUBLIC VIRTUAL READONLY PROPERTY
+      IOCapabilities : io.TCapabilities;
+      Pending : BOOLEAN;
+      Running : BOOLEAN;
+   PUBLIC VIRTUAL PROPERTY
+      Advise : io.TAdvise;
+      AdviseListener : io.TPIAdviseInfo; // for Advise <> advNone
 
-	PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : sdns.THash; REF Value : sdvalue.ASDValue; Delegate : sdio.TPSDCallback ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Run() : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Stop();
+   PUBLIC VIRTUAL PROCEDURE AbortAll();
+
+	PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Delegate : io.TPDataInfo ) : Sync.TAsyncResult;
 	PUBLIC VIRTUAL PROCEDURE Abort();
 
 	LOCAL PROCEDURE OnRx( Result : Sync.TAsyncResult; PPacket : TPPacket );
@@ -150,9 +163,9 @@ END CIO;
 
 CLASS IMPLEMENTATION CNS;
 
-	INTERNAL VIRTUAL PROCEDURE CreateRoot() : sdns.TPSDNSItem;
+	INTERNAL VIRTUAL PROCEDURE CreateRoot() : ns.TPnsItem;
 	BEGIN
-		RETURN CreateNewItem( L"StiebelHP", sdvalue.sdtName, 0 );
+		RETURN CreateNewItem( L"StiebelHP", ns.ntName, iovalue.vtUnknown, 0 );
 	END CreateRoot;
 
 	INTERNAL VIRTUAL PROCEDURE CreateStructure();
@@ -160,33 +173,38 @@ CLASS IMPLEMENTATION CNS;
 	  D : nsitem.TPnsItem;
 	  I : TPNSI;
 	BEGIN
-		Root^.AddChild( CreateNewItem( L"Control", sdvalue.sdtName, 0 ));
+		Root^.AddChild( CreateNewItem( L"Control", ns.ntName, iovalue.vtUnknown, 0 ));
 
-		D := nsitem.TPnsItem( CreateNewItem( L"Data", sdvalue.sdtName, 0 ));
+		D := nsitem.TPnsItem( CreateNewItem( L"Data", ns.ntName, iovalue.vtUnknown, 0 ));
 		Root^.AddChild( D );
 
-		I := TPNSI( CreateNewItem( L"OperatingMode",     sdvalue.sdtInteger, 030112H )); D^.AddChild( I ); I^.Multiplier := 1;
-		I := TPNSI( CreateNewItem( L"EquithermicCurve",  sdvalue.sdtFloat,   03010EH )); D^.AddChild( I ); I^.Multiplier := 100;
-		// I := TPNSI( CreateNewItem( L"T setpoint",        sdvalue.sdtFloat,   030008H )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"OperatingMode",     ns.ntValue, iovalue.vtInteger, 030112H )); D^.AddChild( I ); I^.Multiplier := 1;
+		I := TPNSI( CreateNewItem( L"EquithermicCurve",  ns.ntValue, iovalue.vtFloat,   03010EH )); D^.AddChild( I ); I^.Multiplier := 100;
+		// I := TPNSI( CreateNewItem( L"T setpoint",        iovalue.vtFloat,   030008H )); D^.AddChild( I );
 
-		I := TPNSI( CreateNewItem( L"Inner T",           sdvalue.sdtFloat,   060011H )); D^.AddChild( I );
-		I := TPNSI( CreateNewItem( L"Inner T setpoint",  sdvalue.sdtFloat,   060005H )); D^.AddChild( I );
-		I := TPNSI( CreateNewItem( L"Outer T",           sdvalue.sdtFloat,   03000CH )); D^.AddChild( I );
-		I := TPNSI( CreateNewItem( L"Return T",          sdvalue.sdtFloat,   030016H )); D^.AddChild( I );
-		I := TPNSI( CreateNewItem( L"Return T setpoint", sdvalue.sdtFloat,   060004H )); D^.AddChild( I );
-		I := TPNSI( CreateNewItem( L"Output T",          sdvalue.sdtFloat,   0301D6H )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Inner T",           ns.ntValue, iovalue.vtFloat,   060011H )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Inner T setpoint",  ns.ntValue, iovalue.vtFloat,   060005H )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Outer T",           ns.ntValue, iovalue.vtFloat,   03000CH )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Return T",          ns.ntValue, iovalue.vtFloat,   030016H )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Return T setpoint", ns.ntValue, iovalue.vtFloat,   060004H )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Output T",          ns.ntValue, iovalue.vtFloat,   0301D6H )); D^.AddChild( I );
 
-		I := TPNSI( CreateNewItem( L"Water T",           sdvalue.sdtFloat,   03000EH )); D^.AddChild( I );
-		I := TPNSI( CreateNewItem( L"Water T setpoint",  sdvalue.sdtFloat,   030003H )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Water T",           ns.ntValue, iovalue.vtFloat,   03000EH )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Water T setpoint",  ns.ntValue, iovalue.vtFloat,   030003H )); D^.AddChild( I );
 	END CreateStructure;
 
-	PUBLIC VIRTUAL PROCEDURE CreateNewItem( CONST Name : ARRAY OF WCHAR; Type : sdvalue.TSDType; Data : PTR ) : sdns.TPSDNSItem;
+	PUBLIC VIRTUAL PROCEDURE CreateNewItem( CONST Name : ARRAY OF WCHAR; NameType : ns.TNameType; ValueType : iovalue.TValueType; Data : PTR ) : ns.TPnsItem;
 	VAR
 		R : nsitem.TPnsItem;
 	BEGIN
-		NEW( TPNSI( R ))^.Init( Name, ConstNames, Type, Data );
+		NEW( TPNSI( R ))^.Init( Name, ConstNames, NameType, ValueType, Data );
 		RETURN R;
 	END CreateNewItem;
+
+   PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : ns.THash; OUT Name : StringsO.IString ) : BOOLEAN;
+   BEGIN
+      RETURN FALSE;
+   END HashToName;
 
 BEGIN
 	Initialize();
@@ -194,7 +212,7 @@ END CNS;
 
 CLASS IMPLEMENTATION CSerial;
 
-	INTERNAL VIRTUAL PROCEDURE DataComplete( CONST Data : StorageO.CMemoryBuffer; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyCheckSum : BOOLEAN ) : BOOLEAN;
+	INTERNAL VIRTUAL PROCEDURE DataComplete( CONST Data : StorageO.AMemoryBuffer; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyCheckSum : BOOLEAN ) : BOOLEAN;
 	BEGIN
 		IF Data.Length < SIZE( TPacket ) THEN
 			RETURN FALSE;
@@ -205,7 +223,7 @@ CLASS IMPLEMENTATION CSerial;
 		RETURN TRUE;
 	END DataComplete;
 
-	INTERNAL VIRTUAL PROCEDURE TestChkSum( CONST Data : StorageO.CMemoryBuffer ) : BOOLEAN;
+	INTERNAL VIRTUAL PROCEDURE TestChkSum( CONST Data : StorageO.AMemoryBuffer ) : BOOLEAN;
 	VAR
 		CRC : CARD16 := 0;
 		i : CARDINAL;
@@ -217,7 +235,7 @@ CLASS IMPLEMENTATION CSerial;
 		RETURN TPBE( Data.Data@[l] )^.LE = CRC;
 	END TestChkSum;
 
-	INTERNAL VIRTUAL PROCEDURE OnRx( Result : Sync.TAsyncResult; CONST Data : StorageO.CMemoryBuffer );
+	INTERNAL VIRTUAL PROCEDURE OnRx( Result : Sync.TAsyncResult; CONST Data : StorageO.AMemoryBuffer );
 	BEGIN
 		IF Result <> Sync.arCompleted THEN
 			PIO^.OnRx( Result, NIL );
@@ -228,7 +246,7 @@ CLASS IMPLEMENTATION CSerial;
 		END;
 	END OnRx;
 
-	INTERNAL VIRTUAL PROCEDURE AddChkSum( REF Data : StorageO.CMemoryBuffer );
+	INTERNAL VIRTUAL PROCEDURE AddChkSum( REF Data : StorageO.AMemoryBuffer );
 	VAR
 		CRC : CARD16 := 0;
 		i : CARDINAL;
@@ -253,12 +271,53 @@ END CSerial;
 
 CLASS IMPLEMENTATION CIO;
 
-	PUBLIC PROPERTY Pending GET : BOOLEAN;
+   PUBLIC VIRTUAL PROPERTY IOCapabilities GET : io.TCapabilities;
+   BEGIN
+      RETURN io.TCapabilities{};
+   END IOCapabilities;
+   
+   PUBLIC VIRTUAL PROPERTY Running GET : BOOLEAN;
+   BEGIN
+      RETURN TRUE;
+   END Running;
+
+	PUBLIC VIRTUAL PROPERTY Pending GET : BOOLEAN;
 	BEGIN
 		RETURN _Pending <> IOO.dirUnknown;
 	END Pending;
 
-	PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : sdns.THash; REF Value : sdvalue.ASDValue; Callback : sdio.TPSDCallback ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROPERTY Advise GET : io.TAdvise;
+   BEGIN
+      RETURN io.advNone;
+   END Advise;
+
+   PUBLIC VIRTUAL PROPERTY Advise SET( Value : io.TAdvise );
+   BEGIN
+   END Advise;
+
+   PUBLIC VIRTUAL PROPERTY AdviseListener GET : io.TPIAdviseInfo;
+   BEGIN
+      RETURN NIL;
+   END AdviseListener;
+
+   PUBLIC VIRTUAL PROPERTY AdviseListener SET( Value : io.TPIAdviseInfo );
+   BEGIN
+   END AdviseListener;
+
+   PUBLIC VIRTUAL PROCEDURE Run() : Sync.TAsyncResult;
+   BEGIN
+      RETURN Sync.arCompleted;
+   END Run;
+
+   PUBLIC VIRTUAL PROCEDURE Stop();
+   BEGIN
+   END Stop;
+
+   PUBLIC VIRTUAL PROCEDURE AbortAll();
+   BEGIN
+   END AbortAll;
+
+	PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
 	VAR
 		Packet : TPacket;
 	BEGIN
@@ -305,8 +364,9 @@ CLASS IMPLEMENTATION CIO;
 
 	LOCAL PROCEDURE OnRx( Result : Sync.TAsyncResult; PPacket : TPPacket );
 	VAR
-		V : sdvalue.CSDFloat;
+		V : iovalue.Value;
 	BEGIN
+	   V.Type := iovalue.vtFloat;
 		IF _AbortFlag THEN
 			_AbortFlag := FALSE;
 			_Pending := IOO.dirUnknown;
@@ -318,13 +378,13 @@ CLASS IMPLEMENTATION CIO;
 		END;
 		IF Result = Sync.arCompleted THEN
 			IF _Item^.Multiplier = 1 THEN
-				V.Value := LONGREAL( PPacket^.bValue );
+				V.Float := LONGREAL( PPacket^.bValue );
 			ELSE
-				V.Value := LONGREAL( PPacket^.wValue.LE ) / LONGREAL( _Item^.Multiplier );
+				V.Float := LONGREAL( PPacket^.wValue.LE ) / LONGREAL( _Item^.Multiplier );
 			END;
-			_Callback^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( 0, ADR( V )));
+			_Callback^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ), OA( 0, ADR( V )));
 		ELSE
-			_Callback^.OnError( IOO.dirRead, ADR( SELF ), OA( 0, PCARDINAL( 0 )), OA( 0, ADR( _Item )));
+			_Callback^.OnError( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ));
 		END;
 	END OnRx;
 
@@ -339,9 +399,9 @@ CLASS IMPLEMENTATION CIO;
 		END;
 		_Pending := IOO.dirUnknown;
 		IF Result = Sync.arCompleted THEN
-			_Callback^.OnIO( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( 0, sdvalue.TPSDValue( NIL )));
+			_Callback^.OnIO( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ), OA( 0, iovalue.TPValue( NIL )));
 		ELSE
-			_Callback^.OnError( IOO.dirWrite, ADR( SELF ), OA( 0, PCARDINAL( 0 )), OA( 0, ADR( _Item )));
+			_Callback^.OnError( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ));
 		END;
 	END OnTxCON;
 
@@ -353,63 +413,111 @@ BEGIN
 	_Item := NIL;
 END CIO;
 
-CLASS CCallback( sdio.CSDCallback );
-	PRIVATE VAR
-		HConsole : FIO.File;
-  PUBLIC VIRTUAL PROCEDURE OnError( Direction : IOO.TDirection; Source : sdio.TPSDIO; Error : ARRAY OF CARDINAL; Item : ARRAY OF sdns.THash );
-  PUBLIC VIRTUAL PROCEDURE OnIO( Direction : IOO.TDirection; Source : sdio.TPSDIO; Result : ARRAY OF Sync.TAsyncResult; Item : ARRAY OF sdns.THash; CONST Value : ARRAY OF sdvalue.ASDValue );
+CLASS CCallback( io.CDataInfo );
 END CCallback;
 
-CLASS CStiebelHPDevice( sdev.ISDevice );
+CLASS CStiebelHPDevice IMPLEMENTS device.IDevice, io.IDataInfo;
 	PRIVATE VAR
+		HConsole : FIO.File;
 		_NS : CNS;
 		_IO : CIO;
-	PUBLIC VIRTUAL PROCEDURE NS() : sdns.TPSDNS;
-	PUBLIC VIRTUAL PROCEDURE IO() : sdio.TPSDIO;
+	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
+	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
 
 	PUBLIC PROCEDURE Init( File : ARRAY OF WCHAR );
+	
+	PUBLIC VIRTUAL READONLY PROPERTY
+      Type : iobject.TObjectType;
+   PUBLIC VIRTUAL PROPERTY
+      Library : iobject.TPLibrary;
+   PUBLIC VIRTUAL PROCEDURE OnDispose(); // meant not as Command, but as Callback, usually, destroying of object is done with ReleaseObject of some loader.
+
+   PUBLIC VIRTUAL READONLY PROPERTY
+      DeviceCapabilities : device.TCapabilities;
+
+	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST log : Log.TPLogger ) : Sync.TAsyncResult;
+	PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper;
+
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   PUBLIC VIRTUAL PROCEDURE OnError( Direction : IOO.TDirection; Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE OnIO( Direction : IOO.TDirection; Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DSE : ARRAY OF CARDINAL; CONST Value : ARRAY OF iovalue.Value );
+
 END CStiebelHPDevice;
 
 CLASS IMPLEMENTATION CStiebelHPDevice;
 
-	PUBLIC VIRTUAL PROCEDURE NS() : sdns.TPSDNS;
+	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
 	BEGIN
 		RETURN ADR( _NS );
 	END NS;
 	
-	PUBLIC VIRTUAL PROCEDURE IO() : sdio.TPSDIO;
+	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
 	BEGIN
 		RETURN ADR( _IO );
 	END IO;
 
 	PUBLIC PROCEDURE Init( File : ARRAY OF WCHAR );
 	VAR
-		es : ARRAY [0..3] OF WCHAR;
+		L : Log.CLogger;
 	BEGIN
-		_IO.Serial.Init( L"SS", L"COM2", L"SerialWin32.DLL", File, OUT es );
+		_IO.Serial.Init( L"SS", L"COM1", L"SerialWin32.DLL", File, ADR( L ));
 		_IO.Serial.Run();
 	END Init;
 
-END CStiebelHPDevice;
+	PUBLIC VIRTUAL PROPERTY Type GET : iobject.TObjectType;
+	BEGIN
+	   RETURN iobject.otEphemeral;
+	END Type;
 
-CLASS IMPLEMENTATION CCallback;
+   PUBLIC VIRTUAL PROPERTY Library GET : iobject.TPLibrary;
+   BEGIN
+      RETURN NIL;
+   END Library;
 
-  PUBLIC VIRTUAL PROCEDURE OnError( Direction : IOO.TDirection; Source : sdio.TPSDIO; Error : ARRAY OF CARDINAL; Item : ARRAY OF sdns.THash );
+   PUBLIC VIRTUAL PROPERTY Library SET( Value : iobject.TPLibrary );
+   BEGIN
+   END Library;
+
+   PUBLIC VIRTUAL PROCEDURE OnDispose(); // meant not as Command, but as Callback, usually, destroying of object is done with ReleaseObject of some loader.
+   BEGIN
+   END OnDispose;
+
+   PUBLIC VIRTUAL PROPERTY DeviceCapabilities GET : device.TCapabilities;
+   BEGIN
+      RETURN device.TCapabilities{};
+   END DeviceCapabilities;
+
+	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST log : Log.TPLogger ) : Sync.TAsyncResult;
+	BEGIN
+	   RETURN Sync.arCannotStart;
+	END Configure;
+	
+	PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper;
+	BEGIN
+	   RETURN NIL;
+	END Mapper;
+
+  PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+  BEGIN
+  END OnAdvise;
+
+  PUBLIC VIRTUAL PROCEDURE OnError( Direction : IOO.TDirection; Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL );
   BEGIN
   END OnError;
 
-  PUBLIC VIRTUAL PROCEDURE OnIO( Direction : IOO.TDirection; Source : sdio.TPSDIO; Result : ARRAY OF Sync.TAsyncResult; Item : ARRAY OF sdns.THash; CONST Value : ARRAY OF sdvalue.ASDValue );
+  PUBLIC VIRTUAL PROCEDURE OnIO( Direction : IOO.TDirection; Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DSE : ARRAY OF CARDINAL; CONST Value : ARRAY OF iovalue.Value );
   VAR
+      l : CARDINAL;
 		s : StringsO.CString;
 		sa : ARRAY [0..63] OF CHAR;
   BEGIN
-		TPNSI( Item[0] )^.Name^.ToOAA( OUT sa );
+		TPNSI( Item[0] )^.Name^.ToOAA( 0, OUT sa, OUT l );
 		FIO.WrStrA( HConsole, sa ); FIO.WrStrA( HConsole, C": " );
 
 		IF Direction = IOO.dirRead THEN
 			// m2cpp error Value[0].ToString( OUT s );
-			sdvalue.TPSDValue( ADR( Value[0] ))^.ToString( OUT s );
-			s.ToOAA( OUT sa );
+			iovalue.TPValue( ADR( Value[0] ))^.ToString( OUT s, FALSE );
+			s.ToOAA( 0, OUT sa, OUT l );
 			FIO.WrStrA( HConsole, sa ); FIO.WrLnA( HConsole );
 		ELSE
 			FIO.WrStrA( HConsole, C"OK" ); FIO.WrLnA( HConsole );
@@ -418,19 +526,15 @@ CLASS IMPLEMENTATION CCallback;
 
 BEGIN
 	HConsole := windows.GetStdHandle( windows.STD_OUTPUT_HANDLE );
+END CStiebelHPDevice;
+
+CLASS IMPLEMENTATION CCallback;
+BEGIN
 END CCallback;
 
 VAR
 	StiebelHPDevice : CStiebelHPDevice;
 	CB : CCallback;
-
-#save, call( convention => cdecl ), option( dll_export => on )
-PROCEDURE	GetSDevice( OUT Device : ADDRESS ) : BOOLEAN;
-#restore
-BEGIN
-	Device := ADR( StiebelHPDevice );
-	RETURN TRUE;
-END GetSDevice;
 
 PROCEDURE Wait( i : CARDINAL );
 VAR
@@ -450,21 +554,27 @@ BEGIN
 	END; // LOOP
 END Wait;
 
-#save, call( convention => cdecl, entry_point => on )
+#save, call( convention => cdecl )
 PROCEDURE wmain();
 #restore
 VAR
-	h : sdns.THash;
+	h : ns.THash;
 	r : Sync.TAsyncResult;
-	V : sdvalue.CSDFloat;
+	S : StringsO.CString;
+	V : iovalue.Value;
 	b : BOOLEAN;
 BEGIN
-	StiebelHPDevice.Init( L"D:\Work\SmartControl\Code\ActiveX\StiebelHP\~Debug\com.par" );
+   threadinit.Startup();
+   CB.Sink := ADR( StiebelHPDevice );
+   V.Type := iovalue.vtFloat;
+
+	StiebelHPDevice.Init( L"D:\Work\SmartControl\Code\ActiveX\StiebelHP\~Debug\comst.par" );
 	Wait( 65 );
 	
 	LOOP
 
-	b := StiebelHPDevice.NS()^.Map( L"StiebelHP.Data.Inner T", OUT h );
+   S.FromOA( L"StiebelHP.Data.Inner T" );
+	b := StiebelHPDevice.NS()^.NameToHash( S, OUT h );
 	LOOP
 		r := StiebelHPDevice.IO()^.IOh( IOO.dirRead, h, REF V, ADR( CB ));
 		IF r <> Sync.arPending THEN
@@ -473,7 +583,8 @@ BEGIN
 		Wait( 2 );
 	END;
 
-	b := StiebelHPDevice.NS()^.Map( L"StiebelHP.Data.Inner T setpoint", OUT h );
+   S.FromOA( L"StiebelHP.Data.Inner T setpoint" );
+	b := StiebelHPDevice.NS()^.NameToHash( S, OUT h );
 	LOOP
 		r := StiebelHPDevice.IO()^.IOh( IOO.dirRead, h, REF V, ADR( CB ));
 		IF r <> Sync.arPending THEN
@@ -482,7 +593,8 @@ BEGIN
 		Wait( 2 );
 	END;
 
-	b := StiebelHPDevice.NS()^.Map( L"StiebelHP.Data.Outer T", OUT h );
+   S.FromOA( L"StiebelHP.Data.Outer T" );
+	b := StiebelHPDevice.NS()^.NameToHash( S, OUT h );
 	LOOP
 		r := StiebelHPDevice.IO()^.IOh( IOO.dirRead, h, REF V, ADR( CB ));
 		IF r <> Sync.arPending THEN
@@ -491,7 +603,8 @@ BEGIN
 		Wait( 2 );
 	END;
 
-	b := StiebelHPDevice.NS()^.Map( L"StiebelHP.Data.Return T", OUT h );
+   S.FromOA( L"StiebelHP.Data.Outer T" );
+	b := StiebelHPDevice.NS()^.NameToHash( S, OUT h );
 	LOOP
 		r := StiebelHPDevice.IO()^.IOh( IOO.dirRead, h, REF V, ADR( CB ));
 		IF r <> Sync.arPending THEN
@@ -500,7 +613,8 @@ BEGIN
 		Wait( 2 );
 	END;
 
-	b := StiebelHPDevice.NS()^.Map( L"StiebelHP.Data.Return T setpoint", OUT h );
+   S.FromOA( L"StiebelHP.Data.Return T setpoint" );
+	b := StiebelHPDevice.NS()^.NameToHash( S, OUT h );
 	LOOP
 		r := StiebelHPDevice.IO()^.IOh( IOO.dirRead, h, REF V, ADR( CB ));
 		IF r <> Sync.arPending THEN
@@ -509,7 +623,8 @@ BEGIN
 		Wait( 2 );
 	END;
 
-	b := StiebelHPDevice.NS()^.Map( L"StiebelHP.Data.Water T", OUT h );
+   S.FromOA( L"StiebelHP.Data.Water T" );
+	b := StiebelHPDevice.NS()^.NameToHash( S, OUT h );
 	LOOP
 		r := StiebelHPDevice.IO()^.IOh( IOO.dirRead, h, REF V, ADR( CB ));
 		IF r <> Sync.arPending THEN
@@ -518,7 +633,8 @@ BEGIN
 		Wait( 2 );
 	END;
 
-	b := StiebelHPDevice.NS()^.Map( L"StiebelHP.Data.Water T setpoint", OUT h );
+   S.FromOA( L"StiebelHP.Data.Water T setpoint" );
+	b := StiebelHPDevice.NS()^.NameToHash( S, OUT h );
 	LOOP
 		r := StiebelHPDevice.IO()^.IOh( IOO.dirRead, h, REF V, ADR( CB ));
 		IF r <> Sync.arPending THEN
@@ -527,7 +643,8 @@ BEGIN
 		Wait( 2 );
 	END;
 
-	b := StiebelHPDevice.NS()^.Map( L"StiebelHP.Data.Output T", OUT h );
+   S.FromOA( L"StiebelHP.Data.Output T" );
+	b := StiebelHPDevice.NS()^.NameToHash( S, OUT h );
 	LOOP
 		r := StiebelHPDevice.IO()^.IOh( IOO.dirRead, h, REF V, ADR( CB ));
 		IF r <> Sync.arPending THEN
@@ -538,7 +655,28 @@ BEGIN
 
 (*
 	V.Value := 20.0;
-	b := StiebelHPDevice.NS()^.Map( L"StiebelHP.Data.T setpoint", OUT h );
+	b := StiebelHPDevice.NS()^.NameToHash( L"StiebelHP.Data.T setpoint", OUT h );
+	LOOP
+		r := StiebelHPDevice.IO()^.IOh( IOO.dirWrite, h, REF V, ADR( CB ));
+		IF r <> Sync.arPending THEN
+			EXIT;
+		END;
+		Wait( 2 );
+	END;
+
+	V.Value := 2.0;
+	b := StiebelHPDevice.NS()^.NameToHash( L"StiebelHP.Data.OperatingMode", OUT h );
+	LOOP
+		r := StiebelHPDevice.IO()^.IOh( IOO.dirWrite, h, REF V, ADR( CB ));
+		IF r <> Sync.arPending THEN
+			EXIT;
+		END;
+		Wait( 2 );
+	END;
+
+   S.FromOA( L"StiebelHP.Data.EquithermicCurve" );
+	V.Value := 0.77;
+	b := StiebelHPDevice.NS()^.NameToHash( S, OUT h );
 	LOOP
 		r := StiebelHPDevice.IO()^.IOh( IOO.dirWrite, h, REF V, ADR( CB ));
 		IF r <> Sync.arPending THEN
@@ -548,27 +686,8 @@ BEGIN
 	END;
 *)	
 
-	V.Value := 2.0;
-	b := StiebelHPDevice.NS()^.Map( L"StiebelHP.Data.OperatingMode", OUT h );
-	LOOP
-		r := StiebelHPDevice.IO()^.IOh( IOO.dirWrite, h, REF V, ADR( CB ));
-		IF r <> Sync.arPending THEN
-			EXIT;
-		END;
-		Wait( 2 );
-	END;
-
-	V.Value := 0.77;
-	b := StiebelHPDevice.NS()^.Map( L"StiebelHP.Data.EquithermicCurve", OUT h );
-	LOOP
-		r := StiebelHPDevice.IO()^.IOh( IOO.dirWrite, h, REF V, ADR( CB ));
-		IF r <> Sync.arPending THEN
-			EXIT;
-		END;
-		Wait( 2 );
-	END;
-	
-	b := StiebelHPDevice.NS()^.Map( L"StiebelHP.Data.T setpoint", OUT h );
+   S.FromOA( L"StiebelHP.Data.T setpoint" );
+	b := StiebelHPDevice.NS()^.NameToHash( S, OUT h );
 	LOOP
 		r := StiebelHPDevice.IO()^.IOh( IOO.dirRead, h, REF V, ADR( CB ));
 		IF r <> Sync.arPending THEN
@@ -577,7 +696,8 @@ BEGIN
 		Wait( 2 );
 	END;
 
-	b := StiebelHPDevice.NS()^.Map( L"StiebelHP.Data.OperatingMode", OUT h );
+   S.FromOA( L"StiebelHP.Data.OperatingMode" );
+	b := StiebelHPDevice.NS()^.NameToHash( S, OUT h );
 	LOOP
 		r := StiebelHPDevice.IO()^.IOh( IOO.dirRead, h, REF V, ADR( CB ));
 		IF r <> Sync.arPending THEN
@@ -586,7 +706,8 @@ BEGIN
 		Wait( 2 );
 	END;
 	
-	b := StiebelHPDevice.NS()^.Map( L"StiebelHP.Data.EquithermicCurve", OUT h );
+	S.FromOA( L"StiebelHP.Data.EquithermicCurve" );
+	b := StiebelHPDevice.NS()^.NameToHash( S, OUT h );
 	LOOP
 		r := StiebelHPDevice.IO()^.IOh( IOO.dirRead, h, REF V, ADR( CB ));
 		IF r <> Sync.arPending THEN
@@ -601,4 +722,4 @@ BEGIN
 	Wait( 0 );
 END wmain;
 
-END StiebelHP.
+END CmdLine.

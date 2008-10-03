@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "StiebelHP", "StiebelHP.vcproj", "{751BF3D3-E63A-4A57-A44F-906E518816B8}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDIO", "..\..\Library\SDIO\SDIO.vcproj", "{A60809F1-641F-4ED7-9128-C41E7A6A9580}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Serial", "..\..\Library\Serial\Serial.vcproj", "{3FB750EA-B77D-4F8E-8AD8-F9273B4A329D}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SerialLink", "..\..\Library\SerialLink\SerialLink.vcproj", "{B24F6840-35CF-4FF8-A26F-B158D4BE4167}"
@@ -12,6 +10,10 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SerialWin32", "..\..\Library\SerialWin32\SerialWin32.vcproj", "{937117D7-3971-4BBA-BC08-98E888F2D810}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "COM", "..\..\Library\COM\COM.vcproj", "{4AA17290-B6DF-460D-B801-F406EC9FD40D}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DeviceIO", "..\..\Library\DeviceIO\DeviceIO.vcproj", "{A60809F1-641F-4ED7-9128-C41E7A6A9580}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "m2rtl", "..\..\Modula2\m2rtl\m2rtl.vcproj", "{8995D229-D00F-4F29-B235-14249D391D21}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,10 +25,6 @@ Global
 		{751BF3D3-E63A-4A57-A44F-906E518816B8}.Debug|Win32.Build.0 = Debug|Win32
 		{751BF3D3-E63A-4A57-A44F-906E518816B8}.Release|Win32.ActiveCfg = Release|Win32
 		{751BF3D3-E63A-4A57-A44F-906E518816B8}.Release|Win32.Build.0 = Release|Win32
-		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Debug|Win32.ActiveCfg = Debug|Win32
-		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Debug|Win32.Build.0 = Debug|Win32
-		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Release|Win32.ActiveCfg = Release|Win32
-		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Release|Win32.Build.0 = Release|Win32
 		{3FB750EA-B77D-4F8E-8AD8-F9273B4A329D}.Debug|Win32.ActiveCfg = Debug|Win32
 		{3FB750EA-B77D-4F8E-8AD8-F9273B4A329D}.Debug|Win32.Build.0 = Debug|Win32
 		{3FB750EA-B77D-4F8E-8AD8-F9273B4A329D}.Release|Win32.ActiveCfg = Release|Win32
@@ -43,6 +41,14 @@ Global
 		{4AA17290-B6DF-460D-B801-F406EC9FD40D}.Debug|Win32.Build.0 = Debug|Win32
 		{4AA17290-B6DF-460D-B801-F406EC9FD40D}.Release|Win32.ActiveCfg = Release|Win32
 		{4AA17290-B6DF-460D-B801-F406EC9FD40D}.Release|Win32.Build.0 = Release|Win32
+		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Debug|Win32.ActiveCfg = Debug|Win32
+		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Debug|Win32.Build.0 = Debug|Win32
+		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Release|Win32.ActiveCfg = Release|Win32
+		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Release|Win32.Build.0 = Release|Win32
+		{8995D229-D00F-4F29-B235-14249D391D21}.Debug|Win32.ActiveCfg = Debug|Win32
+		{8995D229-D00F-4F29-B235-14249D391D21}.Debug|Win32.Build.0 = Debug|Win32
+		{8995D229-D00F-4F29-B235-14249D391D21}.Release|Win32.ActiveCfg = Release|Win32
+		{8995D229-D00F-4F29-B235-14249D391D21}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

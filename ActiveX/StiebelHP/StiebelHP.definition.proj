@@ -7,12 +7,12 @@
         <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName>
         <LanguageStyle>UNICODE</LanguageStyle>
         <Language Condition="$(Language)==''">Czech</Language>
-        <CLib>Static</CLib>
+        <CLib>Dynamic</CLib>
         <LeakChecking>off</LeakChecking>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(MSBuildProjectName)=='StiebelHP'">
-        <Result>Dynamic</Result>
+        <Result>Program</Result>
     </PropertyGroup>
 
     <PropertyGroup>

@@ -10,17 +10,8 @@ IMPORT
 	IOO,
 	StorageO,
 	StringsO,
-	Sync,
-	windows;
+	Sync;
 
-IMPORT
-	nsitem,
-	sdev,
-	sdio,
-	sdns,
-	sdvalue,
-	serial;
-	
 (*===========================================================================*)
 
 TYPE
@@ -252,7 +243,7 @@ CLASS IMPLEMENTATION CIO;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : sdns.THash; REF Value : sdvalue.ASDValue; Callback : sdio.TPSDCallback ) : Sync.TAsyncResult;
+	PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : sdio.TPSDCallback ) : Sync.TAsyncResult;
 	VAR
 		Packet : TPacket;
 	BEGIN

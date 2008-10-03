@@ -20,12 +20,12 @@
     <ItemGroup>
         <Components Include="modula2\modula2"/>
         <Components Include="api\clib">
-            <Parameters>Static</Parameters>
+            <Parameters>Dynamic</Parameters>
         </Components>
-        <Components Include="API\win32;modula2\m2rtl;modula2\m2ortl;library\ADT;library\SDIO;library\serial;library\com"/>
+        <Components Include="API\win32;modula2\m2rtl;modula2\m2ortl;library\ADT;library\DeviceIO;library\serial;library\com"/>
 				<Definitions Include="TypeLib"/>
-				<Modules Include="StiebelHP;StiebelHPsAx"/>
-				<!-- Program Include="CmdLine"/ -->
+				<!-- Modules Include="StiebelHP;StiebelHPsAx"/ -->
+        <Program Include="CmdLine"/>
         <!-- Messages Include="Texts"/ -->
     </ItemGroup>
 
