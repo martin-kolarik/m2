@@ -1,13 +1,11 @@
 DEFINITION MODULE objidl;
 
-(*# name(   prefix          => c ) *)
+(*# name( decoration => c ) *)
 
-(*# module( header          => off ) *)
-
-(*# call(   o_a_size        => off,
-            c_arrays        => on,
-            result_optional => on,
-            prefix          => stdcall ) *)
+(*# call( o_a_size => off,
+          c_arrays => on,
+          result_optional => on,
+          convention => stdcall ) *)
 
 IMPORT 
   windows,

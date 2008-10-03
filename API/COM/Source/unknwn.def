@@ -15,7 +15,8 @@ FROM guiddef IMPORT
   IID;
 
 IMPORT
-  windows;
+  windows,
+  wtypes;
 
 TYPE
   TPIUnknown = POINTER TO IUnknown;
