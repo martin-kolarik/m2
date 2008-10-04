@@ -203,7 +203,7 @@ ABSTRACT CLASS AStream;
 
   // client  
   PUBLIC PROCEDURE Read( Reader : TPDataProxy; TimeoutMS : CARDINAL; WaitForResult : BOOLEAN ) : Sync.TAsyncResult;
-  PUBLIC PROCEDURE ReadOA( OUT Data : ARRAY OF BYTE; OUT Filled : CARDINAL; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+  PUBLIC PROCEDURE ReadOA( REF Data : ARRAY OF BYTE; OUT Filled : CARDINAL; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
   PUBLIC PROCEDURE ReadBuffer( MaximalReadLength : CARDINAL; REF Data : StorageO.AMemoryBuffer; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
   PUBLIC PROCEDURE AbortReading();
   // client  

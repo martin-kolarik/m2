@@ -471,7 +471,7 @@ BEGIN
          // write data into program input
          fs.FromHandle( hWriteInto, FALSE, IOO.accWrite );
          LOOP
-            CASE InStream^.ReadOA( OUT Buffer, OUT Filled, Sync.FOREVER ) OF
+            CASE InStream^.ReadOA( REF Buffer, OUT Filled, Sync.FOREVER ) OF
             | Sync.arNoData :
                EXIT;
             | Sync.arCompleted : // OK

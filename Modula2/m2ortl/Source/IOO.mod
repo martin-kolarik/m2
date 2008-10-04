@@ -411,7 +411,7 @@ CLASS IMPLEMENTATION AStream;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ReadOA( OUT Data : ARRAY OF BYTE; OUT Filled : CARDINAL; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE ReadOA( REF Data : ARRAY OF BYTE; OUT Filled : CARDINAL; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    VAR
       Chunk : CMemoryProxy; // by default persistent
       R : Sync.TAsyncResult;
@@ -435,7 +435,7 @@ CLASS IMPLEMENTATION AStream;
    BEGIN
       Data.Size := l + MaximalReadLength; // reserve space
       a := Data.Data@[l];
-      R := ReadOA( OUT OA( MaximalReadLength-1, a ), OUT l, TimeoutMS );
+      R := ReadOA( REF OA( MaximalReadLength-1, a ), OUT l, TimeoutMS );
       INC( Data.Length, l );
       RETURN R;
    END ReadBuffer;
