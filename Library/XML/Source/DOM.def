@@ -2,6 +2,9 @@ DEFINITION MODULE DOM;
 
 (*===========================================================================*)
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
 	StringsO,
 	xmlDOM;

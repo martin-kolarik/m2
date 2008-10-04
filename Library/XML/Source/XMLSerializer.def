@@ -2,6 +2,9 @@ DEFINITION MODULE XMLSerializer;
 
 (*===========================================================================*)
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
 	StringsO,
 	DOM,

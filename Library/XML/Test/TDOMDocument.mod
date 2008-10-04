@@ -4,9 +4,7 @@ MODULE TDOMDocument;
 		com,
 		DOM;
 
-	#save, call( entry_point => on )
-	PROCEDURE wmain() : INTEGER;
-	#restore
+	PROCEDURE wmain00() : INTEGER;
 	VAR
 		D : DOM.TPXMLDocument;
 		N : DOM.TPXMLElement;
@@ -22,6 +20,6 @@ MODULE TDOMDocument;
 		// DISPOSE( D );
 		com.COMDone();
 		RETURN 0;
-	END wmain;
+	END wmain00;
 
 END TDOMDocument.

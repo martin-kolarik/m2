@@ -2,6 +2,9 @@ DEFINITION MODULE XMLWriter;
 
 (*===========================================================================*)
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
 	IOO,
 	Languages,

@@ -2,16 +2,18 @@ MODULE TXMLWriter;
 
 	IMPORT
 		FIOO,
+		IOO,
 		XMLWriter;
 
-	#save, call( entry_point => on )
-	PROCEDURE wmain() : INTEGER;
-	#restore
+	PROCEDURE wmain01() : INTEGER;
 	VAR
 		S : FIOO.CFileStream;
 		X : XMLWriter.CXMLWriter;
 	BEGIN
-		S.FromPath( L"D:\buff\Test.xml", FIOO.imCreate );
+	   TRY
+		   S.FromPath( L"D:\buff\Test.xml", FIOO.imCreate );
+		CATCH e : IOO.CIOException DO
+		END;
 		X.Stream := ADR( S );
 		
 		X.WriteElementStartOA( L"shell" );
@@ -26,9 +28,9 @@ MODULE TXMLWriter;
 			X.WriteElementStringOA( "p", 'and some more "animals"...' );
 		X.WriteElementEnd();
 
-		X.Close();
+		X.Close( FALSE );
 
 		RETURN 0;
-	END wmain;
+	END wmain01;
 
 END TXMLWriter.
