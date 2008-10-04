@@ -47,7 +47,11 @@ CLASS CIUnknown IMPLEMENTS unknwn.IUnknown;
   PUBLIC PROCEDURE Init( IID : guiddef.IID; PAggregate : TPIUnknown );
 
   // IUnknown
-  PUBLIC VIRTUAL PROCEDURE QueryInterface( CONST riid : guiddef.IID; ppvObject : PADDRESS ) : wtypes.HRESULT;
+  PUBLIC VIRTUAL PROCEDURE QueryInterface( CONST riid : guiddef.IID; ppvObject : PADDRESS ) : wtypes.HRESULT; // !!!! WARNING:
+  // QueryInterface default riid = IID works only for direct ancestors of CIUnknown (like CIDispatch below),
+  // but NOT FOR aggregated interfaces (CLASS CClass IMPLEMENTS IComIFace). In the case of the CClass IComIFace
+  // must be returned in CClass.QueryInterface
+  
   PUBLIC VIRTUAL PROCEDURE AddRef() : windows.ULONG;
   PUBLIC VIRTUAL PROCEDURE Release() : windows.ULONG;
   

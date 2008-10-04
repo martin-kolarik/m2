@@ -67,7 +67,8 @@ typedef unsigned int           BITSET;
 
 typedef float                  REAL;
 typedef double                 LONGREAL;
-typedef void *                 ADDRESS;
+// typedef void *                 ADDRESS;
+#define ADDRESS                void*
 
 # ifdef _WIN64
 typedef unsigned __int64       PTR;
