@@ -1,0 +1,165 @@
+DEFINITION MODULE XMLReader;
+
+(*===========================================================================*)
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   IOO,
+   StringsO;
+   
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TNodeType = (
+      xntUnknown,
+
+      xntXMLDeclaration,
+      xntDocumentType,
+      xntCDATA,
+      xntProcessingInstruction,
+      xntText,
+      xntComment,
+
+      xntElementBegin,
+      xntElementEnd,
+      xntAttribute,
+
+      xntWhitespace
+   );
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TXMLError = (
+      xmle_S_OK,
+      xmle_S_FALSE,
+      xmle_UNSPECIFIED,
+   
+      xmle_MX_E_INPUTEND, // unexpected end of input
+      xmle_MX_E_ENCODING, // unrecognized encoding
+      xmle_MX_E_ENCODINGSWITCH, // unable to switch the encoding
+      xmle_MX_E_ENCODINGSIGNATURE, // unrecognized input signature
+       
+      xmle_WC_E_WHITESPACE, // whitespace expected
+      xmle_WC_E_SEMICOLON, // semicolon expected
+      xmle_WC_E_GREATERTHAN, // '>' expected
+      xmle_WC_E_QUOTE, // quote expected
+      xmle_WC_E_EQUAL, // equal expected
+      xmle_WC_E_LESSTHAN, // well-formedness constraint: no '<' in attribute value
+      xmle_WC_E_HEXDIGIT, // hexadecimal digit expected
+      xmle_WC_E_DIGIT, // decimal digit expected
+      xmle_WC_E_LEFTBRACKET, // '[' expected
+      xmle_WC_E_LEFTPAREN, // '(' expected
+      xmle_WC_E_XMLCHARACTER, // illegal xml character
+      xmle_WC_E_NAMECHARACTER, // illegal name character
+      xmle_WC_E_SYNTAX, // incorrect document syntax
+      xmle_WC_E_CDSECT, // incorrect CDATA section syntax
+      xmle_WC_E_COMMENT, // incorrect comment syntax
+      xmle_WC_E_CONDSECT, // incorrect conditional section syntax
+      xmle_WC_E_DECLATTLIST, // incorrect ATTLIST declaration syntax
+      xmle_WC_E_DECLDOCTYPE, // incorrect DOCTYPE declaration syntax
+      xmle_WC_E_DECLELEMENT, // incorrect ELEMENT declaration syntax
+      xmle_WC_E_DECLENTITY, // incorrect ENTITY declaration syntax
+      xmle_WC_E_DECLNOTATION, // incorrect NOTATION declaration syntax
+      xmle_WC_E_NDATA, // NDATA expected
+      xmle_WC_E_PUBLIC, // PUBLIC expected
+      xmle_WC_E_SYSTEM, // SYSTEM expected
+      xmle_WC_E_NAME, // name expected
+      xmle_WC_E_ROOTELEMENT, // one root element
+      xmle_WC_E_ELEMENTMATCH, // well-formedness constraint: element type match
+      xmle_WC_E_UNIQUEATTRIBUTE, // well-formedness constraint: unique attribute spec
+      xmle_WC_E_TEXTXMLDECL, // text/xmldecl not at the beginning of input
+      xmle_WC_E_LEADINGXML, // leading "xml"
+      xmle_WC_E_TEXTDECL, // incorrect text declaration syntax
+      xmle_WC_E_XMLDECL, // incorrect xml declaration syntax
+      xmle_WC_E_ENCNAME, // incorrect encoding name syntax
+      xmle_WC_E_PUBLICID, // incorrect public identifier syntax
+      xmle_WC_E_PESINTERNALSUBSET, // well-formedness constraint: pes in internal subset
+      xmle_WC_E_PESBETWEENDECLS, // well-formedness constraint: pes between declarations
+      xmle_WC_E_NORECURSION, // well-formedness constraint: no recursion
+      xmle_WC_E_ENTITYCONTENT, // entity content not well formed
+      xmle_WC_E_UNDECLAREDENTITY, // well-formedness constraint: undeclared entity 
+      xmle_WC_E_PARSEDENTITY, // well-formedness constraint: parsed entity
+      xmle_WC_E_NOEXTERNALENTITYREF, // well-formedness constraint: no external entity references
+      xmle_WC_E_PI, // incorrect processing instruction syntax
+      xmle_WC_E_SYSTEMID, // incorrect system identifier syntax
+      xmle_WC_E_QUESTIONMARK, // '?' expected
+      xmle_WC_E_CDSECTEND, // no ']]>' in element content
+      xmle_WC_E_MOREDATA, // not all chunks of value have been read
+      xmle_WC_E_DTDPROHIBITED, // DTD was found but is prohibited
+      xmle_WC_E_INVALIDXMLSPACE, // xml:space attribute with invalid value
+       
+      xmle_NC_E_QNAMECHARACTER, // illegal qualified name character
+      xmle_NC_E_QNAMECOLON, // multiple colons in qualified name
+      xmle_NC_E_NAMECOLON, // colon in name
+      xmle_NC_E_DECLAREDPREFIX, // declared prefix
+      xmle_NC_E_UNDECLAREDPREFIX, // undeclared prefix
+      xmle_NC_E_EMPTYURI, // non default namespace with empty uri
+      xmle_NC_E_XMLPREFIXRESERVED, // "xml" prefix is reserved and must have the http://www.w3.org/XML/1998/namespace URI
+      xmle_NC_E_XMLNSPREFIXRESERVED, // "xmlns" prefix is reserved for use by XML
+      xmle_NC_E_XMLURIRESERVED, // xml namespace URI (http://www.w3.org/XML/1998/namespace) must be assigned only to prefix "xml"
+      xmle_NC_E_XMLNSURIRESERVED, // xmlns namespace URI (http://www.w3.org/2000/xmlns/) is reserved and must not be used
+       
+      xmle_SC_E_MAXELEMENTDEPTH, // element depth exceeds limit in XmlReaderProperty_MaxElementDepth
+      xmle_SC_E_MAXENTITYEXPANSION, // entity expansion exceeds limit in XmlReaderProperty_MaxEntityExpansion
+       
+      xmle_WR_E_NONWHITESPACE, // writer: specified string is not whitespace
+      xmle_WR_E_NSPREFIXDECLARED, // writer: namespace prefix is already declared with a different namespace
+      xmle_WR_E_NSPREFIXWITHEMPTYNSURI, // writer: It is not allowed to declare a namespace prefix with empty URI (for example xmlns:p=””).
+      xmle_WR_E_DUPLICATEATTRIBUTE, // writer: duplicate attribute
+      xmle_WR_E_XMLNSPREFIXDECLARATION, // writer: can not redefine the xmlns prefix
+      xmle_WR_E_XMLPREFIXDECLARATION, // writer: xml prefix must have the http://www.w3.org/XML/1998/namespace URI
+      xmle_WR_E_XMLURIDECLARATION, // writer: xml namespace URI (http://www.w3.org/XML/1998/namespace) must be assigned only to prefix "xml"
+      xmle_WR_E_XMLNSURIDECLARATION, // writer: xmlns namespace URI (http://www.w3.org/2000/xmlns/) is reserved and must not be used
+      xmle_WR_E_NAMESPACEUNDECLARED, // writer: namespace is not declared
+      xmle_WR_E_INVALIDXMLSPACE, // writer: invalid value of xml:space attribute (allowed values are "default" and "preserve")
+      xmle_WR_E_INVALIDACTION, // writer: performing the requested action would result in invalid XML document
+      xmle_WR_E_INVALIDSURROGATEPAIR, // writer: input contains invalid or incomplete surrogate pair
+       
+      xmle_XML_E_INVALID_DECIMAL, // character in character entity is not a decimal digit as was expected.
+      xmle_XML_E_INVALID_HEXIDECIMAL, // character in character entity is not a hexadecimal digit as was expected.
+      xmle_XML_E_INVALID_UNICODE // character entity has invalid Unicode value.
+   );
+
+(*---------------------------------------------------------------------------*)
+
+PROCEDURE GetErrorText( xmle : TXMLError; OUT Error : StringsO.CString );
+
+(*===========================================================================*)
+
+CLASS CXMLReader;
+
+   PRIVATE VAR
+      _Stream : IOO.TPStream;
+      _IMalloc : ADDRESS;
+      _IStream : ADDRESS;
+      _IReader : ADDRESS;
+
+   PUBLIC PROPERTY
+      Stream : IOO.TPStream;
+   PUBLIC READONLY PROPERTY
+      EOF : BOOLEAN;
+      CurrentType : TNodeType;
+      CurrentEmpty : BOOLEAN;
+      CurrentName : StringsO.CString;	
+      CurrentQualifiedName : StringsO.CString;	
+      CurrentValue : StringsO.CString;
+      
+   PUBLIC PROCEDURE Reset(); // rewinds to start, not required when starting
+   PUBLIC PROCEDURE MoveNext() : TXMLError;   
+   PUBLIC PROCEDURE MoveToElement() : TXMLError;
+
+   PUBLIC PROCEDURE MoveToFirstAttribute() : TXMLError;
+   PUBLIC PROCEDURE MoveToNextAttribute() : TXMLError;
+   PUBLIC PROCEDURE MoveToAttributeByName( CONST Name : StringsO.IString ) : TXMLError;
+   PUBLIC PROCEDURE MoveToAttributeByNameOA( CONST Name : ARRAY OF WCHAR ) : TXMLError;
+   
+   PRIVATE PROCEDURE Error2Error( Error : CARDINAL ) : TXMLError;
+
+END CXMLReader;
+
+(*===========================================================================*)
+
+END XMLReader.

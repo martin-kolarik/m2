@@ -8,9 +8,8 @@
 
     <!-- 2 -->
     <ItemGroup>
-        <Definitions Condition="$(M2Compiler)=='Old'" Include="xmlDOM;xmlSAX;xmlSOM"/>
         <Components Include="API\COM"/>
-        <Interface Include="msxml2"/>
+        <Interface Include="msxml2;$(ComponentPath)\Library\xmllite"/>
     </ItemGroup>
 
     <!-- 3 -->

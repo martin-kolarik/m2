@@ -1,6 +1,5 @@
 DEFINITION MODULE xmlLITE HEADER xmllite;
-
-(*# call( convention => stdcall ) *)
+#save, name( decoration => c ), call( convention => stdcall )
 
 FROM guiddef IMPORT
    IID;
@@ -207,29 +206,34 @@ TYPE
       _XmlWriterProperty_Last              = XmlWriterProperty_OmitXmlDeclaration
    );
 
+TYPE
+   TPIXmlReader = POINTER TO IXmlReader;
+
+VAR
+   IID_IXmlReader : guiddef.IID;
 
 COM INTERFACE IXmlReader( unknwn.IUnknown );
-   COM PROCEDURE SetInput( pInput : TPIUnknown );
+   PROCEDURE SetInput( pInput : TPIUnknown ) : HRESULT;
 
    COM PROCEDURE GetProperty( nProperty : UINT ) : LONG_PTR;
    COM PROCEDURE SetProperty( nProperty : UINT; pValue : LONG_PTR );
 
-   COM PROCEDURE Read() : XmlNodeType;
-   COM PROCEDURE GetNodeType() : XmlNodeType;
+   PROCEDURE Read( OUT NodeType : XmlNodeType ) : HRESULT;
+   PROCEDURE GetNodeType( OUT NodeType : XmlNodeType ) : HRESULT;
 
-   COM PROCEDURE MoveToFirstAttribute();
-   COM PROCEDURE MoveToNextAttribute();
-   COM PROCEDURE MoveToAttributeByName( pwszLocalName : PCWSTR; pwszNamespaceUri : PCWSTR );
-   COM PROCEDURE MoveToElement();
+   PROCEDURE MoveToFirstAttribute() : HRESULT;
+   PROCEDURE MoveToNextAttribute() : HRESULT;
+   PROCEDURE MoveToAttributeByName( pwszLocalName : PCWSTR; pwszNamespaceUri : PCWSTR ) : HRESULT;
+   PROCEDURE MoveToElement() : HRESULT;
 
-   COM PROCEDURE GetBaseUri( OUT pwszBaseUri : PCWSTR; OUT cwchBaseUri : UINT );
-   COM PROCEDURE GetQualifiedName( OUT pwszQualifiedName : PCWSTR; OUT cwchQualifiedName : UINT );
-   COM PROCEDURE GetNamespaceUri( OUT pwszNamespaceUri : PCWSTR; OUT cwchNamespaceUri : UINT );
-   COM PROCEDURE GetLocalName( OUT pwszLocalName : PCWSTR; OUT cwchLocalName : UINT );
-   COM PROCEDURE GetPrefix( OUT pwszPrefix : PCWSTR; OUT cwchPrefix : UINT );
+   PROCEDURE GetBaseUri( OUT pwszBaseUri : PCWSTR; OUT cwchBaseUri : UINT ) : HRESULT;
+   PROCEDURE GetQualifiedName( OUT pwszQualifiedName : PCWSTR; OUT cwchQualifiedName : UINT ) : HRESULT;
+   PROCEDURE GetNamespaceUri( OUT pwszNamespaceUri : PCWSTR; OUT cwchNamespaceUri : UINT ) : HRESULT;
+   PROCEDURE GetLocalName( OUT pwszLocalName : PCWSTR; OUT cwchLocalName : UINT ) : HRESULT;
+   PROCEDURE GetPrefix( OUT pwszPrefix : PCWSTR; OUT cwchPrefix : UINT ) : HRESULT;
         
-   COM PROCEDURE GetValue( OUT pwszValue : PCWSTR; OUT cwchValue : UINT );
-   COM PROCEDURE ReadValueChunk( CONST pwchBuffer : PWSTR; cwchChunkSize : UINT; OUT cwchRead : UINT );
+   PROCEDURE GetValue( OUT pwszValue : PCWSTR; OUT cwchValue : UINT ) : HRESULT;
+   PROCEDURE ReadValueChunk( CONST pwchBuffer : PWSTR; cwchChunkSize : UINT; OUT cwchRead : UINT ) : HRESULT;
         
    PROCEDURE IsDefault() : BOOL;
    PROCEDURE IsEmptyElement() : BOOL;

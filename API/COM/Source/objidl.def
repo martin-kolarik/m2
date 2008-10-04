@@ -99,10 +99,10 @@ INTERFACE IMalloc( unknwn.IUnknown );
     (* [in] *) pv : windows.PVOID;
     (* [in] *) cb : windows.ULONG ): windows.PVOID;
 
-  VIRTUAL PROCEDURE  Free( 
+  VIRTUAL PROCEDURE Free( 
     (* [in] *) pv : windows.PVOID );
 
-  VIRTUAL PROCEDURE EGetSize( 
+  VIRTUAL PROCEDURE GetSize( 
     (* [in] *) pv : windows.PVOID ): windows.ULONG;
 
   VIRTUAL PROCEDURE DidAlloc( 
@@ -585,12 +585,12 @@ TYPE
 INTERFACE ISequentialStream( unknwn.IUnknown );
 
 (* [local] *) VIRTUAL PROCEDURE Read( 
-  (* [length_is][size_is][out] *) pv : windows.PVOID;
+  (* [length_is][size_is][out] *) pv : ADDRESS;
   (* [in] *) cb : windows.ULONG;
   (* [out] *) pcbRead : windows.PULONG ): HRESULT;
 
 (* [local] *) VIRTUAL PROCEDURE  Write( 
-  (* [size_is][in] *)pv : windows.PVOID;
+  (* [size_is][in] *) CONST pv : ADDRESS;
   (* [in] *) cb : windows.ULONG;
   (* [out] *) pcbWritten : windows.PULONG ): HRESULT;
 
