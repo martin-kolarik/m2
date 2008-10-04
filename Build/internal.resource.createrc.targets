@@ -24,7 +24,7 @@
     VALUE &quot;ProductVersion&quot;, &quot;$(ProductVersionMajor).$(ProductVersionMinor).#(ProductVersionBuild).$(ProductVersionRevision)\0&quot;
 
     VALUE &quot;FileDescription&quot;, &quot;$(FileDescription)\0&quot;
-    VALUE &quot;FileVersion&quot;, &quot;$(FileVersionMajor).$(FileVersionMinor).#(FileVersionBuild).$(FileVersionRevision)\0&quot;
+    VALUE &quot;FileVersion&quot;, &quot;$(FileVersionMajor).$(FileVersionMinor).#(FileVersionBuild).$(FileVersionRevision) (#(FileRevisionId))\0&quot;
     VALUE &quot;InternalName&quot;, &quot;$(InternalName)\0&quot;
     VALUE &quot;OriginalFilename&quot;, &quot;$(OriginalFilename)\0&quot;
     VALUE &quot;LanguageStyle&quot;, &quot;$(LanguageStyle)\0&quot;
@@ -89,7 +89,10 @@ LANGUAGE $(LangName), $(SubLangName)
         <CreateProperty Condition="$(ProductVersionBuild)==''" Value="$(FileVersionBuild)">
             <Output TaskParameter="Value" PropertyName="ProductVersionBuild"></Output>
         </CreateProperty>
-        <Patch Value="$(RCFileContents)" Keys="ProductVersionBuild;FileVersionBuild" Patches="$(ProductVersionBuild);$(FileVersionBuild)"><!-- patch property -->
+        <CreateProperty Value="@(FileRevisionIds)">
+            <Output TaskParameter="Value" PropertyName="FileRevisionId"/>
+        </CreateProperty>
+        <Patch Value="$(RCFileContents)" Keys="ProductVersionBuild;FileVersionBuild;FileRevisionId" Patches="$(ProductVersionBuild);$(FileVersionBuild);$(FileRevisionId)"><!-- patch property -->
             <Output TaskParameter="Value" PropertyName="RCFileContents"/>
         </Patch>
         <!-- create rc file itself -->

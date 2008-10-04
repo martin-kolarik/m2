@@ -154,7 +154,7 @@ namespace Tasks
             {
                 String^ num = buffer->Substring( 0, colon );
                 _numRevision = _numRevision.Parse( num );
-                String^ _idRevision = buffer->Substring( colon+1 );
+                _idRevision = buffer->Substring( colon+1 );
             }
             else
             {

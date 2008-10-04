@@ -184,9 +184,9 @@
     <Target Name="ProductBuildNumberGet" Condition="$(ComponentType)=='Product'">
         <HgVersion Condition="%(Identity)!=''" LocalPath="@(BuildVersionSource)">
             <Output TaskParameter="Revision" ItemName="ProductVersionBuilds"/>
-            <Output TaskParameter="RevisionId" PropetyName="RevisionId"/>
+            <Output TaskParameter="RevisionId" ItemName="RevisionIds"/>
         </HgVersion>
-        <Error Condition="$(RevisionId)=='&lt;unversioned&gt;'" Text="@(BuildVersionSource) is not versioned, unable to get product revision (check case of referenced project names)." />
+        <Error Condition="@(RevisionIds)=='&lt;unversioned&gt;'" Text="@(BuildVersionSource) is not versioned, unable to get product revision (check case of referenced project names)." />
         <MinMax Input="@(ProductVersionBuilds)">
             <Output TaskParameter="Maximum" PropertyName="ProductVersionBuild"/>
         </MinMax>
@@ -465,9 +465,9 @@
     <Target Name="CheckRevision">
         <HgVersion Condition="%(Identity)!=''" LocalPath="@(BuildVersionSource)">
             <Output TaskParameter="Revision" ItemName="FileVersionBuilds"/>
-            <Output TaskParameter="RevisionId" PropertyName="RevisionId"/>
+            <Output TaskParameter="RevisionId" ItemName="FileRevisionIds"/>
         </HgVersion>
-        <Error Condition="$(RevisionId)=='&lt;unversioned&gt;'" Text="@(BuildVersionSource) is not versioned, unable to get file revision (check case of referenced project names)." />
+        <Error Condition="@(FileRevisionIds)=='&lt;unversioned&gt;'" Text="@(BuildVersionSource) is not versioned, unable to get file revision (check case of referenced project names)." />
         <MinMax Input="@(FileVersionBuilds)">
             <Output TaskParameter="Maximum" PropertyName="FileVersionBuild"/>
         </MinMax>
