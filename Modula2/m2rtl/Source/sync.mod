@@ -41,8 +41,8 @@ END ResultToName;
 CONST
    SPIN_UNLOCKED = ADDRESS( 1 );
    SPIN_LOCKED = ADDRESS( 0 );
-   SPIN_SET = SPIN_LOCKED; // respect logic to allow SET/RESET work with SpinLockAcquire procedure
-   SPIN_NOTSET = SPIN_UNLOCKED;
+   SPIN_SET = SPIN_UNLOCKED; // respect logic to allow SET/RESET work with SpinLockAcquire procedure
+   SPIN_NOTSET = SPIN_LOCKED;
 
 VAR
    NumOfProcessors : CARDINAL := 1;
@@ -103,14 +103,14 @@ CLASS IMPLEMENTATION LOCK;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROPERTY WaitHandle GET : WAITABLE;
+  PUBLIC PROPERTY RawHandle GET : WAITABLE;
   BEGIN
     IF Type = ltMutex THEN
       RETURN Data;
     ELSE
       RETURN NIL;
     END;
-  END WaitHandle;
+  END RawHandle;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -473,7 +473,119 @@ FINALLY
    Dispose();
 END LOCK;
 
+(*================================================================================*)
+
+CLASS IMPLEMENTATION RWLOCK;
+
 (*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Init( Type : TLockType; CONST Name : ARRAY OF WCHAR );
+   BEGIN
+      Lock.Init( Type, Name, FALSE );
+      WriteSignal.Init( stSpinAutoreset, L"", FALSE );
+      ReadSignal.Init( stSpin, L"", FALSE );
+   END Init;
+   
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE LockWrite( Timeout : CARDINAL );
+   BEGIN
+      Lock.Lock();
+      LOOP;
+         IF Owners = 0 THEN // Good case, there is no contention, we are basically done 
+            Owners := -1; // Indicate we have a writer
+            EXIT;
+         END;
+         IF WaitOnSignal( REF WriteSignal, REF WriteWaiters, Timeout ) = Sync.arTimeout THEN
+            ASSERT( FALSE );
+         END;
+      END; // LOOP
+      Lock.Unlock();
+   END LockWrite;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE UnlockWrite();
+   BEGIN
+      Lock.Lock();
+      ASSERT( Owners = -1 ); // We must have signalized writer presence.
+      Owners := 0;
+      // stay inside lock
+      UnlockAndWakeUpAppropriateWaiters();
+   END UnlockWrite;
+   
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE LockRead( Timeout : CARDINAL );
+   BEGIN
+      Lock.Lock();
+      LOOP
+         IF ( Owners >= 0 ) AND ( WriteWaiters = 0 ) THEN // We can enter a read lock if there are only read-locks have been given out and a writer is not trying to get in.  
+            INC( Owners );
+            EXIT;
+         END;
+         IF WaitOnSignal( REF ReadSignal, REF ReadWaiters, Timeout ) = Sync.arTimeout THEN
+            ASSERT( FALSE );
+         END;
+      END; // LOOP
+      Lock.Unlock();
+   END LockRead;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE UnlockRead();
+   BEGIN
+      Lock.Lock();
+      ASSERT( Owners > 0 );
+      DEC( Owners );
+      // stay inside lock
+      UnlockAndWakeUpAppropriateWaiters();
+   END UnlockRead;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE WaitOnSignal( REF Signal : SIGNAL; REF Waiters : CARDINAL; Timeout : CARDINAL ) : TAsyncResult;
+   VAR
+      Result : TAsyncResult;
+   BEGIN
+      // we must be inside lock
+      INC( Waiters );
+      Lock.Unlock();
+      
+      Result := Signal.Wait( Timeout );
+      
+      Lock.Lock();
+      DEC( Waiters );
+      IF Result <> Sync.arCompleted THEN // unlock, caller will/must abort operation
+         Lock.Unlock();
+      END;
+      RETURN Result;
+   END WaitOnSignal;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE UnlockAndWakeUpAppropriateWaiters();
+   BEGIN
+      IF ( Owners = 0 ) AND ( WriteWaiters > 0 ) THEN
+         Lock.Unlock(); // Unlock before signaling to improve efficiency (wakee will need the lock)
+         WriteSignal.Signal(); // Release one writer, as WriteSignal is autoreset
+      ELSIF ( Owners >= 0 ) AND ( ReadWaiters > 0 ) THEN
+         Lock.Unlock(); // Exit before signaling to improve efficiency (wakee will need the lock)
+         ReadSignal.Signal(); // Release all readers, as ReadSignal is set/reset
+      ELSE // do not signal anything
+         Lock.Unlock();
+      END;
+   END UnlockAndWakeUpAppropriateWaiters;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+   WriteWaiters := 0;
+   ReadWaiters := 0;
+   Owners := 0;
+END RWLOCK;
+
+(*================================================================================*)
 
 PROCEDURE ICmpExchg( REF Destination : INT32; Exchange : INT32; Comperand : INT32 ) : INT32;
 BEGIN
@@ -630,8 +742,8 @@ CLASS IMPLEMENTATION SIGNAL;
 
    PUBLIC PROPERTY State GET : BOOLEAN;
    BEGIN
-      IF Type = stSpin THEN
-         RETURN IGetPtr( REF Data ) = ADDRESS( 1 );
+      IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
+         RETURN IGetPtr( REF Data ) = SPIN_SET;
       ELSE
          RETURN RawState( Data );
       END;
@@ -641,7 +753,7 @@ CLASS IMPLEMENTATION SIGNAL;
 
    PUBLIC PROPERTY State SET( Value : BOOLEAN );
    BEGIN
-      IF Type = stSpin THEN
+      IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
          IF Value THEN
             IExchgPtr( REF Data, SPIN_SET );
          ELSE
@@ -658,29 +770,29 @@ CLASS IMPLEMENTATION SIGNAL;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROPERTY WaitHandle GET : WAITABLE;
-  BEGIN
-    IF Type = stSpin THEN
-      RETURN NIL;
-    ELSE
-      RETURN Data;
-    END;
-  END WaitHandle;
+   PUBLIC PROPERTY RawHandle GET : WAITABLE;
+   BEGIN
+      IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
+         RETURN NIL;
+      ELSE
+         RETURN Data;
+      END;
+   END RawHandle;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( Type : TStateType; CONST Name : ARRAY OF WCHAR; InitiallySignaled : BOOLEAN );
+   PUBLIC PROCEDURE Init( Type : TSignalType; CONST Name : ARRAY OF WCHAR; InitiallySignaled : BOOLEAN );
    BEGIN
      Dispose();
      SELF.Type := Type;
-     IF Type = stSpin THEN
+     IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
        Lock.Init( ltSpin, L"", FALSE );
      ELSE
        Lock.Init( ltCS, L"", FALSE );
      END;
-     IF Type = stSetReset THEN
+     IF Type = stEvent THEN
        Data := RawCreateSignal( InitiallySignaled, Name );
-     ELSIF Type = stAutoReset THEN
+     ELSIF Type = stEventAutoreset THEN
        Data := RawCreateAutoresetSignal( InitiallySignaled, Name );
      END;
    END Init;
@@ -705,7 +817,7 @@ CLASS IMPLEMENTATION SIGNAL;
    VAR
       b : BOOLEAN;
    BEGIN
-      IF Type = stSpin THEN
+      IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
          RETURN IExchgPtr( REF Data, SPIN_SET ) = SPIN_NOTSET;
       ELSE
          Lock.Lock();
@@ -720,7 +832,7 @@ CLASS IMPLEMENTATION SIGNAL;
 
    PUBLIC PROCEDURE SignalAndReset();
    BEGIN
-      IF Type = stSpin THEN
+      IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
          Lock.Lock();
          IExchgPtr( REF Data, SPIN_SET );
          IExchgPtr( REF Data, SPIN_NOTSET );
@@ -738,7 +850,7 @@ CLASS IMPLEMENTATION SIGNAL;
    VAR
       b : BOOLEAN;
    BEGIN
-      IF Type = stSpin THEN
+      IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
          RETURN IExchgPtr( REF Data, SPIN_NOTSET ) = SPIN_SET;
       ELSE
          Lock.Lock();
@@ -758,21 +870,31 @@ CLASS IMPLEMENTATION SIGNAL;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Wait( Timeout : CARDINAL ) : TAsyncResult;
-  BEGIN
-    IF Type = stSpin THEN
-      RETURN SpinLockAcquire( REF Data, Spin, Timeout );
-    ELSE
-      RETURN RawWait( Data, Timeout );
-    END;
-  END Wait;
+   PUBLIC PROCEDURE Wait( Timeout : CARDINAL ) : TAsyncResult;
+   VAR
+      Result : TAsyncResult;
+   BEGIN
+      IF Type = stSpin THEN
+         RETURN SpinLockAcquire( REF Data, Spin, Timeout );
+      ELSIF Type = stSpinAutoreset THEN
+         Lock.Lock();
+         Result := SpinLockAcquire( REF Data, Spin, Timeout );
+         IF Result = arCompleted THEN
+            SpinLockLeave( REF Data );
+         END;
+         Lock.Unlock();
+         RETURN Result;
+      ELSE
+         RETURN RawWait( Data, Timeout );
+      END;
+   END Wait;
 
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE Dispose();
    BEGIN
       Signal();
-      IF Type = stSpin THEN
+      IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
          // do nothing
       ELSIF Data = 0 THEN
          // already clear

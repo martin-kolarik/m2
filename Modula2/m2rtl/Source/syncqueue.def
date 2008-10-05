@@ -19,6 +19,7 @@ CLASS RingBuffer( Sync.OneToOneQueue ); // SIGNALLING and FLUSHING, if needed, s
   PUBLIC VAR
      Consume     : Sync.RAWSIGNAL := NIL;
      Produce     : Sync.RAWSIGNAL := NIL;
+     FlushSleep  : CARDINAL := 5; // should not be changed if you really dont know what you do!!, mainly for unit tests purposes
 
   // asynchronous GET API
   PUBLIC PROCEDURE StartReading( WantsRead : CARDINAL; OUT BufferToReadFrom : ADDRESS; OUT AllowedToRead : CARDINAL ) : BOOLEAN;
@@ -70,14 +71,15 @@ CLASS CDatagramQueue( Sync.NToOneQueue );
   // flow (using Produce signal without defining Consume signal (delayed flush is automatic)) even if the problem
   // is symmetric and control by Consume or Consume/Produce will work (less efficiently) too
   INTERNAL VAR
-     Data      : ADDRESS;
-     ItemISize : CARDINAL; // internal length, including length friend
+     Data       : ADDRESS;
+     ItemISize  : CARDINAL; // internal length, including length friend
   PUBLIC VIRTUAL PROPERTY
-     Size      : CARDINAL;
-     ItemSize  : CARDINAL;
+     Size       : CARDINAL;
+     ItemSize   : CARDINAL;
   PUBLIC VAR
-     Consume   : Sync.RAWSIGNAL := NIL;
-     Produce   : Sync.RAWSIGNAL := NIL;
+     Consume    : Sync.RAWSIGNAL := NIL;
+     Produce    : Sync.RAWSIGNAL := NIL;
+     FlushSleep : CARDINAL := 5; // should not be changed if you really dont know what you do!!, mainly for unit tests purposes
 
   // consumer
   PUBLIC PROCEDURE Init( QueueSize, MessageSize : CARDINAL );

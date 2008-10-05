@@ -647,9 +647,9 @@ CLASS IMPLEMENTATION CDispatcher;
             Log( dldTrace, Peer, "Accept.Net.InProcessPeer" );
 
             Connection^.Peer := Peer;
-            Connection^.PeerSignal.Init( Sync.stAutoReset, L"", TRUE );
+            Connection^.PeerSignal.Init( Sync.stEventAutoreset, L"", TRUE );
             Peer^.Peer := Connection;
-            Peer^.PeerSignal.Init( Sync.stAutoReset, L"", TRUE );
+            Peer^.PeerSignal.Init( Sync.stEventAutoreset, L"", TRUE );
          END;
          
        ELSE

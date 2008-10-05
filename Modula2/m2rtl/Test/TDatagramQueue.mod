@@ -118,6 +118,7 @@ CLASS IMPLEMENTATION CTest;
       
       DQ.Size := RingSize;
       DQ.ItemSize := SIZE( CARD32 );
+      DQ.FlushSleep := 0;
       DQ.Clear();
       
       ThreadIndex := 0;

@@ -99,6 +99,7 @@ CLASS IMPLEMENTATION CTest;
       PE := Sync.RawCreateSignal( TRUE, L"" );
    
       Exit := 0; // reset
+      Ring.FlushSleep := 0;
       Ring.Size := RingSize;
       Ring.Clear();
       

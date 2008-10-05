@@ -7,7 +7,6 @@ IMPORT
   PROCEDURE wmain03() : INTEGER;
   #restore
   VAR
-		i : CARDINAL;
     r : LONGREAL;
     b : BOOLEAN;
   BEGIN

@@ -88,6 +88,7 @@ CLASS IMPLEMENTATION CTest;
    BEGIN
       Exit := 0; // reset
       IQ.Size := RingSize;
+      IQ.FlushSleep := 0;
       IQ.Clear();
       
       Strings.FromCARD32W( RingSize, 10, OUT Phase );

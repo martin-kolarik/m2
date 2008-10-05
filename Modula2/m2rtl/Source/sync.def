@@ -62,16 +62,16 @@ PROCEDURE SpinLockLeave( REF Data : PTR );
 
 // locking
 TYPE
-   TLockType = ( ltILock, ltSpin, ltCS, ltMutex ); // interlocked, nonreentrant, reentrant, interprocess
+   TLockType = ( ltILock, ltSpin, ltCS, ltMutex ); // interlocked (effectively for Get/Incl only), nonreentrant (default), reentrant, interprocess
    PLOCK = POINTER TO LOCK;
 
 CLASS LOCK;
-   INTERNAL VAR
+   PRIVATE VAR
       Type : TLockType := ltSpin;
       Spin : CARDINAL;
       Data : PTR; // initially unlocked
    PUBLIC READONLY PROPERTY
-      WaitHandle : WAITABLE;
+      RawHandle : WAITABLE;
 
    PUBLIC PROCEDURE Init( Type : TLockType; CONST Name : ARRAY OF WCHAR; InitiallyLocked : BOOLEAN );
    PUBLIC PROCEDURE Lock();
@@ -99,7 +99,9 @@ CLASS LOCK;
    PRIVATE PROCEDURE Dispose();
 END LOCK;
 
+(*================================================================================*)
 // raw signalling, mainly for handles coming from OS
+
 #save, option( leak_info => on )
 PROCEDURE RawCreateSignal( InitiallySignaled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : RAWSIGNAL;
 PROCEDURE RawCreateAutoresetSignal( InitiallySignaled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : RAWSIGNAL;
@@ -125,23 +127,25 @@ PROCEDURE IInc( REF Addend : INT32 ): INT32;
 PROCEDURE IGet( REF Value : INT32 ) : INT32;
 PROCEDURE IGetPtr( REF Value : ADDRESS ) : ADDRESS;
 
+(*--------------------------------------------------------------------------------*)
 // atomic signalling
+
 TYPE
-   TStateType = ( stSpin, stSetReset, stAutoReset, stForeign );
+   TSignalType = ( stSpin, stSpinAutoreset, stEvent, stEventAutoreset, stForeign ); // Autoreset types resets signal after successful wait
    PSIGNAL = POINTER TO SIGNAL;
 
 CLASS SIGNAL;
-   INTERNAL VAR
-      Type : TStateType := stSpin;
+   PRIVATE VAR
+      Type : TSignalType := stSpin;
       Spin : CARDINAL;
       Data : PTR; // initially reset
       Lock : LOCK;
    PUBLIC PROPERTY
       State : BOOLEAN;
    PUBLIC READONLY PROPERTY
-      WaitHandle : WAITABLE;
+      RawHandle : WAITABLE;
 
-   PUBLIC PROCEDURE Init( Type : TStateType; CONST Name : ARRAY OF WCHAR; InitiallySignaled : BOOLEAN );
+   PUBLIC PROCEDURE Init( Type : TSignalType; CONST Name : ARRAY OF WCHAR; InitiallySignaled : BOOLEAN );
    PUBLIC PROCEDURE InitForeign( EventHandle : WAITABLE; InitiallySignalled : BOOLEAN ); // EventHandle will not be closed
 
    PUBLIC PROCEDURE Signal() : BOOLEAN; // returns if state was SWITCHED
@@ -154,6 +158,32 @@ CLASS SIGNAL;
 END SIGNAL;
 
 (*================================================================================*)
+// continuation of locking
+// only ltILock has no effect
+
+CLASS RWLOCK; // single writer, multiple readers, fast; inspired from: http://blogs.msdn.com/vancem/attachment/563180.ashx
+   PRIVATE VAR
+      Lock : LOCK;
+      Owners : INTEGER;
+      WriteSignal : SIGNAL;
+      WriteWaiters : CARDINAL;
+      ReadSignal : SIGNAL;
+      ReadWaiters : CARDINAL;
+
+   PUBLIC PROCEDURE Init( Type : TLockType; CONST Name : ARRAY OF WCHAR );
+   
+   PUBLIC PROCEDURE LockWrite( Timeout : CARDINAL );
+   PUBLIC PROCEDURE UnlockWrite();
+   
+   PUBLIC PROCEDURE LockRead( Timeout : CARDINAL );
+   PUBLIC PROCEDURE UnlockRead();
+   
+   PRIVATE PROCEDURE WaitOnSignal( REF Signal : SIGNAL; REF Waiters : CARDINAL; Timeout : CARDINAL ) : TAsyncResult;
+   PRIVATE PROCEDURE UnlockAndWakeUpAppropriateWaiters();
+END RWLOCK;
+
+(*================================================================================*)
+// queuing
 
 TYPE
   TpcqSignal = (
@@ -162,8 +192,8 @@ TYPE
   );
 
 (*--------------------------------------------------------------------------------*)
-
 // OneToOneQueue: single producer, single consumer, variable length blocks
+
 TYPE
   TPOneToOneQueue = POINTER TO OneToOneQueue;
 
@@ -198,13 +228,13 @@ CLASS OneToOneQueue;
 END OneToOneQueue;
 
 (*--------------------------------------------------------------------------------*)
-
 // WriteBuffer: multiple producers, multiple clients GetItem, indexes turn around Size --
 // a modification of Reader/Writer lock which erases old items on write and does not consume anything on read
+
 TYPE
    TPWriteBuffer = POINTER TO WriteBuffer;
    
-CLASS WriteBuffer;
+CLASS WriteBuffer; // in-process only
   INTERNAL READONLY VAR
     _Head : CARDINAL;
     _Tail : CARDINAL;
@@ -222,7 +252,7 @@ CLASS WriteBuffer;
   PUBLIC PROCEDURE Clear();
 
   // writers
-  PUBLIC PROCEDURE StartProducing( Overwrite : BOOLEAN; OUT ProduceTo : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE StartProducing( Overwrite : BOOLEAN; OUT ProduceTo : CARDINAL ) : BOOLEAN; // Overwrite in case of fill buffer rewrites first item, NOT Overwrite in that case returns FALSE
   PUBLIC PROCEDURE CommitProducing();
 
   // readers
@@ -234,8 +264,8 @@ CLASS WriteBuffer;
 END WriteBuffer;
 
 (*--------------------------------------------------------------------------------*)
-
 // NToOneQueue: multiple producers, single consumer, single length (1) blocks
+
 TYPE
   TPNToOneQueue = POINTER TO NToOneQueue;
 

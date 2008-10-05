@@ -254,7 +254,7 @@ CLASS IMPLEMENTATION RingBuffer;
          Start := time.UptimeMS();
          IF Produce = NIL THEN
             LOOP
-               Sync.Sleep( 5 );
+               Sync.Sleep( FlushSleep );
                IF Empty THEN
                   Result := Sync.arCompleted; EXIT;
                ELSIF time.UptimeMS() - Start > Timeout THEN
@@ -277,7 +277,7 @@ CLASS IMPLEMENTATION RingBuffer;
          IF Consume = NIL THEN
             Start := time.UptimeMS();
             LOOP
-               Sync.Sleep( 5 );
+               Sync.Sleep( FlushSleep );
                IF NOT Empty THEN
                   Result := Sync.arCompleted; EXIT;
                ELSIF time.UptimeMS() - Start > Timeout THEN
@@ -813,7 +813,7 @@ CLASS IMPLEMENTATION CDatagramQueue;
          Start := time.UptimeMS();
          IF Produce = NIL THEN
             LOOP
-               Sync.Sleep( 5 );
+               Sync.Sleep( FlushSleep );
                IF Empty THEN
                   Result := Sync.arCompleted; EXIT;
                ELSIF time.UptimeMS() - Start > Timeout THEN
@@ -836,7 +836,7 @@ CLASS IMPLEMENTATION CDatagramQueue;
          IF Consume = NIL THEN
             Start := time.UptimeMS();
             LOOP
-               Sync.Sleep( 5 );
+               Sync.Sleep( FlushSleep );
                IF NOT Empty THEN
                   Result := Sync.arCompleted; EXIT;
                ELSIF time.UptimeMS() - Start > Timeout THEN

@@ -49,7 +49,7 @@ CLASS IMPLEMENTATION ThreadProcedureCall;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
-   _Sync.Init( Sync.stSetReset, L"", FALSE );
+   _Sync.Init( Sync.stEvent, L"", FALSE );
 FINALLY
    IF _Parameters <> NIL THEN  
       DISPOSE( _Parameters );

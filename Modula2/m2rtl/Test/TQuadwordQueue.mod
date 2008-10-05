@@ -93,6 +93,7 @@ CLASS IMPLEMENTATION CTest;
    
       Exit := 0; // reset
       QQ.Size := RingSize;
+      QQ.FlushSleep := 0;
       QQ.Clear();
       
       Strings.FromCARD32W( RingSize, 10, OUT Phase );
