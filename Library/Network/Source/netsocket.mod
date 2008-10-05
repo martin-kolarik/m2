@@ -148,20 +148,20 @@ CLASS IMPLEMENTATION SSocket;
 
   PUBLIC PROPERTY Waitable GET : BOOLEAN;
   BEGIN
-    RETURN _HSignal = NIL;
+    RETURN _HSignal.RawHandle = NIL;
   END Waitable;
 
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC PROPERTY Waitable SET( Value : BOOLEAN );
   BEGIN
-    IF Value = ( _HSignal <> NIL ) THEN
+    IF Value = Waitable THEN
       RETURN;
     END;
     IF Value THEN
-      _HSignal := Sync.RawCreateSignal( FALSE, L'' );
+      _HSignal.Init( Sync.stEvent, L'', FALSE );
     ELSE
-      Sync.RawDeleteSignal( REF _HSignal );
+      _HSignal.Dispose();
     END;
   END Waitable;
 
@@ -384,7 +384,7 @@ CLASS IMPLEMENTATION SSocket;
   VAR
     LResult : Sync.TAsyncResult;
   BEGIN
-    LResult := Sync.RawWait( _HSignal, TimeoutMS );
+    LResult := _HSignal.Wait( TimeoutMS );
     IF Result = Sync.arUnknown THEN
       RETURN LResult;
     ELSIF LResult = Sync.arCompleted THEN
@@ -412,7 +412,7 @@ CLASS IMPLEMENTATION SSocket;
       END;
     END;
     IF Error = 0 THEN
-      Sync.RawReset( _HSignal );
+      _HSignal.Reset();
       _Lock.Incl( REF _Pending, poListen );
       RETURN Sync.arCompleted;
     END;
@@ -571,7 +571,7 @@ CLASS IMPLEMENTATION SSocket;
          RETURN;
       END;
     
-      Sync.RawSignalAndReset( _HSignal );
+      _HSignal.SignalAndReset();
       IF _Notifier <> NIL THEN
          IF _Type = stDatagram THEN
             _Notifier^.OnDataArrived( ErrorCode, ADR( SELF ));
@@ -586,11 +586,11 @@ CLASS IMPLEMENTATION SSocket;
   INTERNAL PROCEDURE Select( Events : BITSET ) : CARDINAL;
   BEGIN
     IF Events = {} THEN
-      RETURN winsock.WSAEventSelect( Socket, _FDSignal, CARDINAL( Events ));
+      RETURN winsock.WSAEventSelect( Socket, _FDSignal.RawHandle, CARDINAL( Events ));
     ELSIF _FDHandle = 0 THEN
-      netpool.pool()^.WaitHandle( ADR( SELF ), 0, Sync.FOREVER, FALSE, FALSE, _FDSignal, OUT _FDHandle );
+      netpool.pool()^.WaitHandle( ADR( SELF ), 0, Sync.FOREVER, FALSE, FALSE, _FDSignal.RawHandle, OUT _FDHandle );
     END;
-    RETURN winsock.WSAEventSelect( Socket, _FDSignal, CARDINAL( Events ));
+    RETURN winsock.WSAEventSelect( Socket, _FDSignal.RawHandle, CARDINAL( Events ));
   END Select;
 
 (*--------------------------------------------------------------------------------*)
@@ -648,10 +648,9 @@ BEGIN
   _Notifier := NIL;
   _Pending := TPendingOperation{};
   _FDHandle := 0;
-  _FDSignal := Sync.RawCreateAutoresetSignal( FALSE, L"" );
+  _FDSignal.Init( Sync.stEventAutoreset, L"", FALSE );
   _FDSwitch.Init( 32, SIZE( TSwitchMessage ));
-  _FDSwitch.Consume := _FDSignal;
-  _HSignal := NIL;
+  _FDSwitch.Consume := _FDSignal.RawHandle;
   Result := Sync.arUnknown;
   Socket := winsock.INVALID_SOCKET;
 FINALLY
@@ -660,8 +659,8 @@ FINALLY
     _Notifier^.Release();
     _Notifier := NIL;
   END;
-  Sync.RawDeleteSignal( REF _FDSignal );
-  Sync.RawDeleteSignal( REF _HSignal );
+  _FDSignal.Dispose();
+  _HSignal.Dispose();
   _FDSwitch.Consume := NIL;
 END SSocket;
 
@@ -846,7 +845,7 @@ CLASS IMPLEMENTATION DSocket;
          END;
       END;
       SELF.Result := Sync.arUnknown;
-      Sync.RawReset( _HSignal );
+      _HSignal.Reset();
 
       NumericAddress := Addr.SetAddressOA( Server, 0 );
       IF NumericAddress THEN // we know where to connect immediatelly
@@ -894,7 +893,7 @@ CLASS IMPLEMENTATION DSocket;
       END;
     END;
     SELF.Result := Sync.arUnknown;
-    Sync.RawReset( _HSignal );
+    _HSignal.Reset();
 
     // set new connection parameters
     _Lock.Incl( REF _Pending, poConnectResolved ); // fulfill Connect prerequisity
@@ -1041,7 +1040,7 @@ CLASS IMPLEMENTATION DSocket;
       StartTimeout( poDisconnect, TimeoutMS );
       IF NOT _Lock.In( REF _Pending, poConnect ) THEN
         SELF.Result := Sync.arUnknown;
-        Sync.RawReset( _HSignal );
+        _HSignal.Reset();
       END;
       SwitchContext( FD_INIT, poDisconnect, 0 );
       RETURN Sync.arPending;
@@ -1054,7 +1053,7 @@ CLASS IMPLEMENTATION DSocket;
     StopTimeout( poDisconnect );
     IF poConnect NOT IN TPendingOperation( _Lock.Excl( REF _Pending, poDisconnect )) THEN
       SELF.Result := Sync.arAborted;
-      Sync.RawSignal( _HSignal );
+      _HSignal.Signal();
     END;
     IF _Notifier <> NIL THEN
       _Notifier^.OnDisconnect( Result, ADR( SELF ), TRUE );
@@ -1336,7 +1335,7 @@ CLASS IMPLEMENTATION DSocket;
     MSG : TSwitchMessage;
   BEGIN
     IF _FDHandle = 0 THEN
-      netpool.pool()^.WaitHandle( ADR( SELF ), 0, Sync.FOREVER, FALSE, FALSE, _FDSignal, OUT _FDHandle );
+      netpool.pool()^.WaitHandle( ADR( SELF ), 0, Sync.FOREVER, FALSE, FALSE, _FDSignal.RawHandle, OUT _FDHandle );
     END;
     
     MSG.Context := FromContext;
@@ -1424,7 +1423,7 @@ CLASS IMPLEMENTATION DSocket;
       Result := Sync.arAborted;
       Close( TRUE );
     END;
-    Sync.RawSignal( _HSignal );
+    _HSignal.Signal();
     IF _Notifier <> NIL THEN
       _Notifier^.OnConnect( Error, ADR( SELF ), TRUE );
       IF Error <> 0 THEN
@@ -1470,7 +1469,7 @@ CLASS IMPLEMENTATION DSocket;
       ELSE
         Result := Sync.arAborted;
       END;
-      Sync.RawSignal( _HSignal );
+      _HSignal.Signal();
     END;
     IF _Notifier <> NIL THEN
       _Notifier^.OnDisconnect( Error, ADR( SELF ), Local );

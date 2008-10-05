@@ -96,7 +96,7 @@ CLASS LOCK;
    PUBLIC PROCEDURE NotInSet( REF Operand : LONGWORD; TestSet : BITSET32 ) : BOOLEAN;
    PUBLIC PROCEDURE AndCmp( REF Operand : LONGWORD; AndSet, CmpSet : BITSET32 ) : BOOLEAN;
   
-   PRIVATE PROCEDURE Dispose();
+   PUBLIC PROCEDURE Dispose(); // not required, implicit
 END LOCK;
 
 (*================================================================================*)
@@ -154,7 +154,7 @@ CLASS SIGNAL;
    PUBLIC PROCEDURE Test() : BOOLEAN;
    PUBLIC PROCEDURE Wait( Timeout : CARDINAL ) : TAsyncResult;
 
-   PRIVATE PROCEDURE Dispose();
+   PUBLIC PROCEDURE Dispose(); // not required, implicit
 END SIGNAL;
 
 (*================================================================================*)

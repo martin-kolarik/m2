@@ -29,7 +29,7 @@ CLASS IMPLEMENTATION Win32MessageQueueThread;
    BEGIN
       OnStart();
       LOOP
-         Status := windows.MsgWaitForMultipleObjectsEx( waitHandles, ADR( _HExit ), windows.INFINITE, windows.QS_ALLINPUT, windows.MWMO_INPUTAVAILABLE OR windows.MWMO_ALERTABLE );
+         Status := windows.MsgWaitForMultipleObjectsEx( waitHandles, _HExit.RawHandle, windows.INFINITE, windows.QS_ALLINPUT, windows.MWMO_INPUTAVAILABLE OR windows.MWMO_ALERTABLE );
          CASE Status OF
          //-----
          | CARDINAL( windows.WAIT_FAILED ), windows.WAIT_ABANDONED : // some handle failed, this MUST not occur

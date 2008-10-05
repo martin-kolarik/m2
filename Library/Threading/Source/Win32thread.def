@@ -16,7 +16,7 @@ CLASS Win32Thread IMPLEMENTS OSALthread.IThread;
     _RunLock : CARDINAL;
     _Thread : CARDINAL;
     _HThread : Sync.WAITABLE;
-    _HExit : sync.RAWSIGNAL;
+    _HExit : Sync.SIGNAL;
     _WMsg : TRISTATE;
     _Runnable : OSALthread.TPRunnable;
   PUBLIC VIRTUAL READONLY PROPERTY

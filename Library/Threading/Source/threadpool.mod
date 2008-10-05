@@ -398,7 +398,7 @@ CLASS IMPLEMENTATION CPoolThread;
    BEGIN
       OnStart();
    
-      WaitArray.Add( _HExit );
+      WaitArray.Add( _HExit.RawHandle );
       WaitArray.Add( Queue.Consume );
       
       LOOP

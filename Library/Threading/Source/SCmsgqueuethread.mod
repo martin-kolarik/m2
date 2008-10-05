@@ -30,7 +30,7 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
       Status : CARDINAL;
       WaitHandles : ARRAY [0..1] OF Sync.WAITABLE;
    BEGIN
-      WaitHandles[0] := _HExit;
+      WaitHandles[0] := _HExit.RawHandle;
       WaitHandles[1] := Queue.Consume;
    
       OnStart();

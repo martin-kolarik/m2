@@ -74,7 +74,7 @@ END ADataInfo;
 ABSTRACT CLASS ADataProxy( ADataInfo ); // !! for all proxies put inside stack caller must assure (e.g. with waiting till _RefCount decreases to 1) that stack variable will not disapear before all delegate users finish their work with delegate
   INTERNAL VAR
     _Status : TDataProxyStatus;
-    _Signal : Sync.RAWSIGNAL;
+    _Signal : Sync.SIGNAL;
     _Lock   : Sync.LOCK;
   PUBLIC VAR
     Persistent : BOOLEAN := TRUE; // FALSE = object is after completion self-Released

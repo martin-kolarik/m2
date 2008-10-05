@@ -448,7 +448,7 @@ CLASS IMPLEMENTATION LOCK;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE Dispose();
+   PUBLIC PROCEDURE Dispose();
    BEGIN
       Unlock();
       IF Type = ltSpin THEN
@@ -891,7 +891,7 @@ CLASS IMPLEMENTATION SIGNAL;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE Dispose();
+   PUBLIC PROCEDURE Dispose();
    BEGIN
       Signal();
       IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN

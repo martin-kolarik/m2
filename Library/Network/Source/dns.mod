@@ -325,7 +325,7 @@ CLASS CLocalDNSNotifier( ADNSNotifier );
     Name : PWCHAR := NIL;
     NameHigh : CARDINAL := 0;
     Result : Sync.TAsyncResult := Sync.arCompleted;
-    Signal : Sync.RAWSIGNAL;
+    Signal : Sync.SIGNAL;
   LOCAL VIRTUAL PROCEDURE OnAddressFound( RequestId : PTR; Result : CARDINAL; CONST Address : ARRAY OF inetaddr.INETADDR );
   LOCAL VIRTUAL PROCEDURE OnNameFound( RequestId : PTR; Result : CARDINAL; CONST Name : StringsO.CString );
 END CLocalDNSNotifier;  
@@ -347,7 +347,7 @@ CLASS IMPLEMENTATION CLocalDNSNotifier;
       ELSE
          SELF.Result := Sync.arAborted;
       END;
-      Sync.RawSignal( Signal );
+      Signal.Signal();
    END OnAddressFound;
 
 (*---------------------------------------------------------------------------*)
@@ -359,15 +359,13 @@ CLASS IMPLEMENTATION CLocalDNSNotifier;
       ELSE
          SELF.Result := Sync.arAborted;
        END;
-      Sync.RawSignal( Signal );
+      Signal.Signal();
    END OnNameFound;
 
 (*---------------------------------------------------------------------------*)
 
 BEGIN
-   Signal := Sync.RawCreateSignal( FALSE, L"" );
-FINALLY
-	Sync.RawDeleteSignal( REF Signal );
+   Signal.Init( Sync.stEvent, L"", FALSE );
 END CLocalDNSNotifier;  
 
 (*===========================================================================*)
@@ -382,7 +380,7 @@ BEGIN
   IF NOT NameToAddress( ADR( LDNSN ), 0, Name, DefaultPort, OUT H ) THEN
     RETURN FALSE;
   END;
-  IF Sync.RawWait( LDNSN.Signal, Sync.FORSAFETY ) = Sync.arTimeout THEN
+  IF LDNSN.Signal.Wait( Sync.FORSAFETY ) = Sync.arTimeout THEN
     ASSERT( FALSE );
     RETURN FALSE; 
   ELSE
@@ -402,7 +400,7 @@ BEGIN
   IF NOT AddressToName( ADR( LDNSN ), 0, Address, IncludePort, OUT H ) THEN
     RETURN FALSE;
   END;
-  IF Sync.RawWait( LDNSN.Signal, Sync.FORSAFETY ) = Sync.arTimeout THEN
+  IF LDNSN.Signal.Wait( Sync.FORSAFETY ) = Sync.arTimeout THEN
     ASSERT( FALSE );
     RETURN FALSE; 
   ELSE

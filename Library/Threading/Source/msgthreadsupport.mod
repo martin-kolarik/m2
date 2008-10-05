@@ -14,15 +14,6 @@ CONST
    OP_START_TIMER = 3;
    OP_STOP_TIMER = 4;
 
-TYPE
-   TTimerParameter = RECORD
-      Timer : PTR;
-      PeriodMS : CARDINAL;
-      Repeat : BOOLEAN;
-      Signal : Sync.RAWSIGNAL;
-   END; // RECORD
-   TPTimerParameter = POINTER TO TTimerParameter;
-
 (*===========================================================================*)
 
 CLASS IMPLEMENTATION CSupport;

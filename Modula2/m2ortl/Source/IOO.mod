@@ -75,20 +75,20 @@ CLASS IMPLEMENTATION ADataProxy;
 
   PUBLIC PROPERTY Waitable GET : BOOLEAN;
   BEGIN
-    RETURN _Signal = NIL;
+    RETURN _Signal.RawHandle = NIL;
   END Waitable;
 
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC PROPERTY Waitable SET( Value : BOOLEAN );
   BEGIN
-    IF Value = ( _Signal <> NIL ) THEN
+    IF Value = Waitable THEN
       RETURN;
     END;
     IF Value THEN
-      _Signal := Sync.RawCreateAutoresetSignal( FALSE, L'' );
+      _Signal.Init( Sync.stEventAutoreset, L"", FALSE );
     ELSE
-      Sync.RawDeleteSignal( REF _Signal );
+      _Signal.Dispose();
     END;
   END Waitable;
 
@@ -124,7 +124,7 @@ CLASS IMPLEMENTATION ADataProxy;
   VAR
     LResult : Sync.TAsyncResult;
   BEGIN
-    LResult := Sync.RawWait( _Signal, TimeoutMS );
+    LResult := _Signal.Wait( TimeoutMS );
     IF LResult = Sync.arCompleted THEN
       RETURN Sync.TAsyncResult( _Lock.Get( REF Result ));
     ELSE
@@ -149,14 +149,14 @@ CLASS IMPLEMENTATION ADataProxy;
 
   PUBLIC PROCEDURE Signal();
   BEGIN
-    Sync.RawSignal( _Signal );
+    _Signal.Signal();
   END Signal;
 
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC PROCEDURE Reset();
   BEGIN
-    Sync.RawReset( _Signal );
+    _Signal.Reset();
   END Reset;
 
 (*--------------------------------------------------------------------------------*)
@@ -179,11 +179,10 @@ CLASS IMPLEMENTATION ADataProxy;
 
 BEGIN
   _Status := TDataProxyStatus{};
-  _Signal := NIL;
   _Lock.Init( Sync.ltSpin, L"", FALSE );
   Result := Sync.arCannotStart;
 FINALLY
-  Sync.RawDeleteSignal( REF _Signal );
+  _Signal.Dispose();
 END ADataProxy;
 
 (*================================================================================*)
@@ -334,7 +333,7 @@ CLASS IMPLEMENTATION CRingBufferProxy;
     | dirWrite :
       RingBuffer^.CommitReading( Completed );
     END; // CASE
-    Sync.RawSignal( _Signal );
+    _Signal.Signal();
   END CompleteData;
 
 (*--------------------------------------------------------------------------------*)

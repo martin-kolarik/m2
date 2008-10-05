@@ -15,6 +15,9 @@ IMPORT
    sync,
    test,
    testimpl,
+   threadpool,
+   SCmsgqueuethread,
+   Win32msgqueuethread,
    windows;
   
 (*===========================================================================*)
@@ -152,6 +155,9 @@ CLASS IMPLEMENTATION CTest;
       Reader.Test := ADR( SELF );
       Writer.Test := ADR( SELF );
 
+      Win32msgqueuethread.Startup();
+      SCmsgqueuethread.Startup();
+      threadpool.Startup();
       netinit.Startup();
 
       // global init      
@@ -332,6 +338,10 @@ CLASS IMPLEMENTATION CTest;
       //=====
 
       netinit.Cleanup();
+      threadpool.Cleanup();
+      SCmsgqueuethread.Cleanup();
+      Win32msgqueuethread.Cleanup();
+
       IF Failure THEN
          RETURN test.trFailure;
       ELSE

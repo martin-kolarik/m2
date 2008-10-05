@@ -15,6 +15,9 @@ IMPORT
    sync,
    test,
    testimpl,
+   threadpool,
+   SCmsgqueuethread,
+   Win32msgqueuethread,
    winsock;
   
 (*===========================================================================*)
@@ -119,6 +122,10 @@ CLASS IMPLEMENTATION CTest;
    BEGIN
       SELF.Host := Host;
       Notifier.Test := ADR( SELF );
+
+      Win32msgqueuethread.Startup();
+      SCmsgqueuethread.Startup();
+      threadpool.Startup();
       netinit.Startup();
 
       Host^.StartPhase( L"First 16 addresses of AVONET" );
@@ -187,6 +194,10 @@ CLASS IMPLEMENTATION CTest;
       END;
 
       netinit.Cleanup();
+      threadpool.Cleanup();
+      SCmsgqueuethread.Cleanup();
+      Win32msgqueuethread.Cleanup();
+
       IF Failure1 OR Failure2 THEN
          RETURN test.trFailure;
       ELSE

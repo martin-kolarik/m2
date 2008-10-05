@@ -63,7 +63,7 @@ CLASS IMPLEMENTATION Win32Thread;
     IF _HThread = NIL THEN
       RETURN;
     END;
-    sync.RawSignal( _HExit );
+    _HExit.Signal();
     IF Wait THEN
       Result := sync.RawWait( _HThread, 10 * sync.FORSAFETY );
       ASSERT( Result <> Sync.arTimeout );
@@ -114,14 +114,13 @@ CLASS IMPLEMENTATION Win32Thread;
    VIRTUAL FINALLY Win32Thread();
    BEGIN
       Stop( FALSE );
-      Sync.RawDeleteSignal( REF _HExit );
    END Win32Thread;
 
 BEGIN
    _RunLock := 0;
    _Thread := 0;
    _HThread := NIL;
-   _HExit := Sync.RawCreateSignal( FALSE, L"" );
+   _HExit.Init( Sync.stEvent, L"", FALSE );
    _WMsg := 0;
    _Runnable := NIL;
 END Win32Thread;
