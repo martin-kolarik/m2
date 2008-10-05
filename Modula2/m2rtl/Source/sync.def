@@ -10,7 +10,7 @@ FROM Storage IMPORT
 // generic types
 TYPE
    WAITABLE = ADDRESS;
-   SIGNAL = WAITABLE;
+   RAWSIGNAL = WAITABLE; // temporary, will be killed in next wave
   
 TYPE
    // main success: arCompleted
@@ -54,17 +54,22 @@ CONST
 
 PROCEDURE Sleep( Time : CARDINAL );
 
+// use these preferably to have identical system-wide behavior
+PROCEDURE SpinLockAcquire( REF Data : PTR; SpinCount : CARDINAL; Timeout : CARDINAL ) : TAsyncResult;
+PROCEDURE SpinLockLeave( REF Data : PTR );
+
 (*================================================================================*)
 
 // locking
 TYPE
    TLockType = ( ltILock, ltSpin, ltCS, ltMutex ); // interlocked, nonreentrant, reentrant, interprocess
+   PLOCK = POINTER TO LOCK;
 
 CLASS LOCK;
    INTERNAL VAR
       Type : TLockType := ltSpin;
       Spin : CARDINAL;
-      Data : PTR := 0; // initially unlocked
+      Data : PTR; // initially unlocked
    PUBLIC READONLY PROPERTY
       WaitHandle : WAITABLE;
 
@@ -94,21 +99,22 @@ CLASS LOCK;
    PRIVATE PROCEDURE Dispose();
 END LOCK;
 
-// signalling
+// raw signalling, mainly for handles coming from OS
 #save, option( leak_info => on )
-PROCEDURE CreateSignal( InitiallySignaled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : SIGNAL;
-PROCEDURE CreateAutoresetSignal( InitiallySignaled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : SIGNAL;
-PROCEDURE DeleteSignal( REF S : SIGNAL );
+PROCEDURE RawCreateSignal( InitiallySignaled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : RAWSIGNAL;
+PROCEDURE RawCreateAutoresetSignal( InitiallySignaled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : RAWSIGNAL;
+PROCEDURE RawDeleteSignal( REF S : RAWSIGNAL );
 #restore
-PROCEDURE Signal( S : SIGNAL );
-PROCEDURE SignalAndReset( S : SIGNAL );
-PROCEDURE Reset( S : SIGNAL );
+PROCEDURE RawSignal( S : RAWSIGNAL );
+PROCEDURE RawSignalAndReset( S : RAWSIGNAL );
+PROCEDURE RawReset( S : RAWSIGNAL );
 
 // waiting
-PROCEDURE Wait( W : WAITABLE; Timeout : CARDINAL ) : TAsyncResult;
-PROCEDURE State( W : WAITABLE ) : BOOLEAN; // TRUE = Signalled, FALSE = Nonsignalled
+PROCEDURE RawWait( W : WAITABLE; Timeout : CARDINAL ) : TAsyncResult;
+PROCEDURE RawState( W : WAITABLE ) : BOOLEAN; // TRUE = Signalled, FALSE = Nonsignalled
 
 // primitive atomic operations
+// for synchronization issues preferably use SpinLock* procedures above to leave system-wide compatible behavior
 PROCEDURE ICmpExchg( REF Destination : INT32; Exchange : INT32; Comperand : INT32 ) : INT32;
 PROCEDURE ICmpExchgPtr( REF Destination : ADDRESS; Exchange : ADDRESS; Comperand : ADDRESS ) : ADDRESS;
 PROCEDURE IDec( REF Addend : INT32 ) : INT32;
@@ -121,13 +127,14 @@ PROCEDURE IGetPtr( REF Value : ADDRESS ) : ADDRESS;
 
 // atomic signalling
 TYPE
-   TStateType = ( stSpin, stSetReset, stAutoReset );
+   TStateType = ( stSpin, stSetReset, stAutoReset, stForeign );
+   PSIGNAL = POINTER TO SIGNAL;
 
-CLASS STATE;
+CLASS SIGNAL;
    INTERNAL VAR
       Type : TStateType := stSpin;
       Spin : CARDINAL;
-      Data : PTR := 0; // initially reset
+      Data : PTR; // initially reset
       Lock : LOCK;
    PUBLIC PROPERTY
       State : BOOLEAN;
@@ -135,15 +142,16 @@ CLASS STATE;
       WaitHandle : WAITABLE;
 
    PUBLIC PROCEDURE Init( Type : TStateType; CONST Name : ARRAY OF WCHAR; InitiallySignaled : BOOLEAN );
+   PUBLIC PROCEDURE InitForeign( EventHandle : WAITABLE; InitiallySignalled : BOOLEAN ); // EventHandle will not be closed
 
-   PUBLIC PROCEDURE _Signal() : BOOLEAN; // returns if state was SWITCHED
-   PUBLIC PROCEDURE _SignalAndReset();
-   PUBLIC PROCEDURE _Reset() : BOOLEAN; // returns if state was SWITCHED
+   PUBLIC PROCEDURE Signal() : BOOLEAN; // returns if state was SWITCHED
+   PUBLIC PROCEDURE SignalAndReset();
+   PUBLIC PROCEDURE Reset() : BOOLEAN; // returns if state was SWITCHED
    PUBLIC PROCEDURE Test() : BOOLEAN;
-   PUBLIC PROCEDURE _Wait( Timeout : CARDINAL ) : TAsyncResult;
+   PUBLIC PROCEDURE Wait( Timeout : CARDINAL ) : TAsyncResult;
 
    PRIVATE PROCEDURE Dispose();
-END STATE;
+END SIGNAL;
 
 (*================================================================================*)
 

@@ -159,9 +159,9 @@ CLASS IMPLEMENTATION SSocket;
       RETURN;
     END;
     IF Value THEN
-      _HSignal := Sync.CreateSignal( FALSE, L'' );
+      _HSignal := Sync.RawCreateSignal( FALSE, L'' );
     ELSE
-      Sync.DeleteSignal( REF _HSignal );
+      Sync.RawDeleteSignal( REF _HSignal );
     END;
   END Waitable;
 
@@ -384,7 +384,7 @@ CLASS IMPLEMENTATION SSocket;
   VAR
     LResult : Sync.TAsyncResult;
   BEGIN
-    LResult := Sync.Wait( _HSignal, TimeoutMS );
+    LResult := Sync.RawWait( _HSignal, TimeoutMS );
     IF Result = Sync.arUnknown THEN
       RETURN LResult;
     ELSIF LResult = Sync.arCompleted THEN
@@ -412,7 +412,7 @@ CLASS IMPLEMENTATION SSocket;
       END;
     END;
     IF Error = 0 THEN
-      Sync.Reset( _HSignal );
+      Sync.RawReset( _HSignal );
       _Lock.Incl( REF _Pending, poListen );
       RETURN Sync.arCompleted;
     END;
@@ -571,7 +571,7 @@ CLASS IMPLEMENTATION SSocket;
          RETURN;
       END;
     
-      Sync.SignalAndReset( _HSignal );
+      Sync.RawSignalAndReset( _HSignal );
       IF _Notifier <> NIL THEN
          IF _Type = stDatagram THEN
             _Notifier^.OnDataArrived( ErrorCode, ADR( SELF ));
@@ -648,7 +648,7 @@ BEGIN
   _Notifier := NIL;
   _Pending := TPendingOperation{};
   _FDHandle := 0;
-  _FDSignal := Sync.CreateAutoresetSignal( FALSE, L"" );
+  _FDSignal := Sync.RawCreateAutoresetSignal( FALSE, L"" );
   _FDSwitch.Init( 32, SIZE( TSwitchMessage ));
   _FDSwitch.Consume := _FDSignal;
   _HSignal := NIL;
@@ -660,8 +660,8 @@ FINALLY
     _Notifier^.Release();
     _Notifier := NIL;
   END;
-  Sync.DeleteSignal( REF _FDSignal );
-  Sync.DeleteSignal( REF _HSignal );
+  Sync.RawDeleteSignal( REF _FDSignal );
+  Sync.RawDeleteSignal( REF _HSignal );
   _FDSwitch.Consume := NIL;
 END SSocket;
 
@@ -846,7 +846,7 @@ CLASS IMPLEMENTATION DSocket;
          END;
       END;
       SELF.Result := Sync.arUnknown;
-      Sync.Reset( _HSignal );
+      Sync.RawReset( _HSignal );
 
       NumericAddress := Addr.SetAddressOA( Server, 0 );
       IF NumericAddress THEN // we know where to connect immediatelly
@@ -894,7 +894,7 @@ CLASS IMPLEMENTATION DSocket;
       END;
     END;
     SELF.Result := Sync.arUnknown;
-    Sync.Reset( _HSignal );
+    Sync.RawReset( _HSignal );
 
     // set new connection parameters
     _Lock.Incl( REF _Pending, poConnectResolved ); // fulfill Connect prerequisity
@@ -1041,7 +1041,7 @@ CLASS IMPLEMENTATION DSocket;
       StartTimeout( poDisconnect, TimeoutMS );
       IF NOT _Lock.In( REF _Pending, poConnect ) THEN
         SELF.Result := Sync.arUnknown;
-        Sync.Reset( _HSignal );
+        Sync.RawReset( _HSignal );
       END;
       SwitchContext( FD_INIT, poDisconnect, 0 );
       RETURN Sync.arPending;
@@ -1054,7 +1054,7 @@ CLASS IMPLEMENTATION DSocket;
     StopTimeout( poDisconnect );
     IF poConnect NOT IN TPendingOperation( _Lock.Excl( REF _Pending, poDisconnect )) THEN
       SELF.Result := Sync.arAborted;
-      Sync.Signal( _HSignal );
+      Sync.RawSignal( _HSignal );
     END;
     IF _Notifier <> NIL THEN
       _Notifier^.OnDisconnect( Result, ADR( SELF ), TRUE );
@@ -1424,7 +1424,7 @@ CLASS IMPLEMENTATION DSocket;
       Result := Sync.arAborted;
       Close( TRUE );
     END;
-    Sync.Signal( _HSignal );
+    Sync.RawSignal( _HSignal );
     IF _Notifier <> NIL THEN
       _Notifier^.OnConnect( Error, ADR( SELF ), TRUE );
       IF Error <> 0 THEN
@@ -1470,7 +1470,7 @@ CLASS IMPLEMENTATION DSocket;
       ELSE
         Result := Sync.arAborted;
       END;
-      Sync.Signal( _HSignal );
+      Sync.RawSignal( _HSignal );
     END;
     IF _Notifier <> NIL THEN
       _Notifier^.OnDisconnect( Error, ADR( SELF ), Local );

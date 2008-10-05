@@ -86,10 +86,10 @@ CLASS SSocket( threadpool.APoolDelegate );
     _Pending     : TPendingOperation;
     _Lock        : Sync.LOCK; // locks _Pending (poListen, poConnection, poConnect, poDisconnect, poResolve*), others are informative, but for regularity they are locked too
     _FDHandle    : threadpool.TPoolHandle;
-    _FDSignal    : Sync.SIGNAL;
+    _FDSignal    : Sync.RAWSIGNAL;
     _FDSwitch    : SyncQueue.CDatagramQueue;
     _Notifier    : TPSocketNotifier;
-    _HSignal     : Sync.SIGNAL;
+    _HSignal     : Sync.RAWSIGNAL;
     _Backlog     : CARDINAL;
     _V6Mode      : TV6Mode := v6mPreferV6;
     Socket       : LONGWORD;

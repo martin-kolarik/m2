@@ -86,9 +86,9 @@ CLASS IMPLEMENTATION ADataProxy;
       RETURN;
     END;
     IF Value THEN
-      _Signal := Sync.CreateAutoresetSignal( FALSE, L'' );
+      _Signal := Sync.RawCreateAutoresetSignal( FALSE, L'' );
     ELSE
-      Sync.DeleteSignal( REF _Signal );
+      Sync.RawDeleteSignal( REF _Signal );
     END;
   END Waitable;
 
@@ -124,7 +124,7 @@ CLASS IMPLEMENTATION ADataProxy;
   VAR
     LResult : Sync.TAsyncResult;
   BEGIN
-    LResult := Sync.Wait( _Signal, TimeoutMS );
+    LResult := Sync.RawWait( _Signal, TimeoutMS );
     IF LResult = Sync.arCompleted THEN
       RETURN Sync.TAsyncResult( _Lock.Get( REF Result ));
     ELSE
@@ -149,14 +149,14 @@ CLASS IMPLEMENTATION ADataProxy;
 
   PUBLIC PROCEDURE Signal();
   BEGIN
-    Sync.Signal( _Signal );
+    Sync.RawSignal( _Signal );
   END Signal;
 
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC PROCEDURE Reset();
   BEGIN
-    Sync.Reset( _Signal );
+    Sync.RawReset( _Signal );
   END Reset;
 
 (*--------------------------------------------------------------------------------*)
@@ -183,7 +183,7 @@ BEGIN
   _Lock.Init( Sync.ltSpin, L"", FALSE );
   Result := Sync.arCannotStart;
 FINALLY
-  Sync.DeleteSignal( REF _Signal );
+  Sync.RawDeleteSignal( REF _Signal );
 END ADataProxy;
 
 (*================================================================================*)
@@ -334,7 +334,7 @@ CLASS IMPLEMENTATION CRingBufferProxy;
     | dirWrite :
       RingBuffer^.CommitReading( Completed );
     END; // CASE
-    Sync.Signal( _Signal );
+    Sync.RawSignal( _Signal );
   END CompleteData;
 
 (*--------------------------------------------------------------------------------*)

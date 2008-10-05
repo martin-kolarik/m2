@@ -32,7 +32,7 @@ CLASS IMPLEMENTATION ThreadProcedureCall;
    PUBLIC PROCEDURE WaitCompletion( WaitForResult : BOOLEAN; WaitTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    BEGIN
       IF WaitForResult THEN
-         RETURN _Sync._Wait( WaitTimeoutMS );
+         RETURN _Sync.Wait( WaitTimeoutMS );
       ELSE
          RETURN Sync.arPending;
       END;
@@ -43,7 +43,7 @@ CLASS IMPLEMENTATION ThreadProcedureCall;
    PUBLIC PROCEDURE Do();
    BEGIN
       _ReturnValue := _Target^.Invoke( _Operation, OA( _High, _Parameters ));
-      _Sync._Signal();
+      _Sync.Signal();
    END Do;
 
 (*---------------------------------------------------------------------------*)

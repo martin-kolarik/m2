@@ -235,7 +235,7 @@ CLASS CConnection( netsocket.DSocket );
   LOCAL VAR
     Clients : lists.CPtrList;
     Peer : TPConnection; // if connection is self to self in single process, Peer points to second endpoint
-    PeerSignal : Sync.STATE;
+    PeerSignal : Sync.SIGNAL;
   PRIVATE VAR
     NStream : netstream.CNetworkStream;
     Stream : IOO.CBufferedStream;
@@ -989,9 +989,9 @@ CLASS IMPLEMENTATION CDispatcher;
     IF Connection^.Peer <> NIL THEN // connection is self to self in single process, signal to unlock client
        Peer := Connection^.Peer;
        Connection^.Peer := NIL; // deny next waiting
-       Connection^.PeerSignal._Signal();
+       Connection^.PeerSignal.Signal();
        Peer^.Peer := NIL; // deny next waiting
-       Peer^.PeerSignal._Signal();
+       Peer^.PeerSignal.Signal();
     END;
 
     Message.Command := cmNetworkDisconnect;
@@ -1031,7 +1031,7 @@ CLASS IMPLEMENTATION CDispatcher;
             IRead^.ReadOut( l ); // read out and signal next reading
 
             IF Connection^.Peer <> NIL THEN // connection is self to self in single process, signal that peer can continue with send
-               Connection^.Peer^.PeerSignal._Signal();
+               Connection^.Peer^.PeerSignal.Signal();
             END;
          
          ELSE // if data cannot be queued, leave loop, and store connection in Defered, which will be restarted after Queue flush
@@ -1155,7 +1155,7 @@ CLASS IMPLEMENTATION CDispatcher;
       // handle special cases
       IF Connection <> NIL THEN
          IF TPConnection( Connection )^.Peer <> NIL THEN // connection is self to self in single process, wait until data flows through socket to other side
-            Result := TPConnection( Connection )^.PeerSignal._Wait( netsocket.FORSAFETY );
+            Result := TPConnection( Connection )^.PeerSignal.Wait( netsocket.FORSAFETY );
             ASSERT( Result <> Sync.arTimeout );
          END;
 

@@ -82,14 +82,14 @@ CLASS IMPLEMENTATION CTest;
 
    INTERNAL PROCEDURE Round( RingSize : CARDINAL ) : BOOLEAN;
    VAR
-      CE : Sync.SIGNAL;
+      CE : Sync.RAWSIGNAL;
       CT : windows.HANDLE := NIL;
-      PE : Sync.SIGNAL;
+      PE : Sync.RAWSIGNAL;
       PT : windows.HANDLE := NIL;
       Phase : ARRAY [0..31] OF WCHAR;
    BEGIN
-      CE := Sync.CreateSignal( FALSE, L"" );
-      PE := Sync.CreateSignal( TRUE, L"" );
+      CE := Sync.RawCreateSignal( FALSE, L"" );
+      PE := Sync.RawCreateSignal( TRUE, L"" );
    
       Exit := 0; // reset
       QQ.Size := RingSize;
@@ -101,12 +101,12 @@ CLASS IMPLEMENTATION CTest;
 
       PT := windows.CreateThread( NIL, 0, ProducerThread, ADR( SELF ), 0, NIL );
       CT := windows.CreateThread( NIL, 0, ConsumerThread, ADR( SELF ), 0, NIL );
-      Sync.Wait( PT, Sync.FOREVER );
-      Sync.Wait( CT, Sync.FOREVER );
+      Sync.RawWait( PT, Sync.FOREVER );
+      Sync.RawWait( CT, Sync.FOREVER );
       windows.CloseHandle( PT );
-      Sync.DeleteSignal( REF PE );
+      Sync.RawDeleteSignal( REF PE );
       windows.CloseHandle( CT );
-      Sync.DeleteSignal( REF CE );
+      Sync.RawDeleteSignal( REF CE );
       
       Host^.StopPhase();
       RETURN Exit = 0;

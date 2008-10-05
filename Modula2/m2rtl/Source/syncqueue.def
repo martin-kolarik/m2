@@ -17,8 +17,8 @@ CLASS RingBuffer( Sync.OneToOneQueue ); // SIGNALLING and FLUSHING, if needed, s
   PUBLIC VIRTUAL PROPERTY
      Size        : CARDINAL;
   PUBLIC VAR
-     Consume     : Sync.SIGNAL := NIL;
-     Produce     : Sync.SIGNAL := NIL;
+     Consume     : Sync.RAWSIGNAL := NIL;
+     Produce     : Sync.RAWSIGNAL := NIL;
 
   // asynchronous GET API
   PUBLIC PROCEDURE StartReading( WantsRead : CARDINAL; OUT BufferToReadFrom : ADDRESS; OUT AllowedToRead : CARDINAL ) : BOOLEAN;
@@ -76,8 +76,8 @@ CLASS CDatagramQueue( Sync.NToOneQueue );
      Size      : CARDINAL;
      ItemSize  : CARDINAL;
   PUBLIC VAR
-     Consume   : Sync.SIGNAL := NIL;
-     Produce   : Sync.SIGNAL := NIL;
+     Consume   : Sync.RAWSIGNAL := NIL;
+     Produce   : Sync.RAWSIGNAL := NIL;
 
   // consumer
   PUBLIC PROCEDURE Init( QueueSize, MessageSize : CARDINAL );

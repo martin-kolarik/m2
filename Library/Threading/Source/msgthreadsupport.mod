@@ -19,7 +19,7 @@ TYPE
       Timer : PTR;
       PeriodMS : CARDINAL;
       Repeat : BOOLEAN;
-      Signal : Sync.SIGNAL;
+      Signal : Sync.RAWSIGNAL;
    END; // RECORD
    TPTimerParameter = POINTER TO TTimerParameter;
 

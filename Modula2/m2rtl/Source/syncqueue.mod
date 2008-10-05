@@ -229,8 +229,8 @@ CLASS IMPLEMENTATION RingBuffer;
    INTERNAL VIRTUAL PROCEDURE Signal( What : Sync.TpcqSignal ); // when produced, next producing SHOULD NOT be signalled (until signalling consumed)
    BEGIN
       CASE What OF
-      | Sync.pcqProduced, Sync.pcqProducedFlush : Sync.Signal( Consume );
-      | Sync.pcqConsumed, Sync.pcqConsumedFlush : Sync.Signal( Produce );
+      | Sync.pcqProduced, Sync.pcqProducedFlush : Sync.RawSignal( Consume );
+      | Sync.pcqConsumed, Sync.pcqConsumedFlush : Sync.RawSignal( Produce );
       END; // CASE
    END Signal;
 
@@ -262,7 +262,7 @@ CLASS IMPLEMENTATION RingBuffer;
                END;
             END; // LOOP
          ELSE
-            Result := Sync.Wait( Produce, Timeout );
+            Result := Sync.RawWait( Produce, Timeout );
          END;
          SpentTime := time.UptimeMS() - Start;
       | Sync.pcqConsumed :   
@@ -285,7 +285,7 @@ CLASS IMPLEMENTATION RingBuffer;
                END;
             END; // LOOP
          ELSE
-            Result := Sync.Wait( Consume, Timeout );
+            Result := Sync.RawWait( Consume, Timeout );
          END;
          SpentTime := time.UptimeMS() - Start;
       END;
@@ -454,11 +454,11 @@ CLASS IMPLEMENTATION IntegerQueue;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   Consume := Sync.CreateSignal( FALSE, L"" );
-   Produce := Sync.CreateSignal( TRUE, L"" );
+   Consume := Sync.RawCreateSignal( FALSE, L"" );
+   Produce := Sync.RawCreateSignal( TRUE, L"" );
 FINALLY
-   Sync.DeleteSignal( REF Consume );
-   Sync.DeleteSignal( REF Produce );
+   Sync.RawDeleteSignal( REF Consume );
+   Sync.RawDeleteSignal( REF Produce );
 END IntegerQueue;
 
 (*================================================================================*)
@@ -612,11 +612,11 @@ CLASS IMPLEMENTATION QuadwordQueue;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   Consume := Sync.CreateSignal( FALSE, L"" );
-   Produce := Sync.CreateSignal( TRUE, L"" );
+   Consume := Sync.RawCreateSignal( FALSE, L"" );
+   Produce := Sync.RawCreateSignal( TRUE, L"" );
 FINALLY
-   Sync.DeleteSignal( REF Consume );
-   Sync.DeleteSignal( REF Produce );
+   Sync.RawDeleteSignal( REF Consume );
+   Sync.RawDeleteSignal( REF Produce );
 END QuadwordQueue;
 
 (*================================================================================*)
@@ -788,8 +788,8 @@ CLASS IMPLEMENTATION CDatagramQueue;
    INTERNAL VIRTUAL PROCEDURE Signal( What : Sync.TpcqSignal ); // when produced, next producing SHOULD NOT be signalled (until signalling consumed)
    BEGIN
       CASE What OF
-      | Sync.pcqProduced, Sync.pcqProducedFlush : Sync.Signal( Consume );
-      | Sync.pcqConsumed, Sync.pcqConsumedFlush : Sync.Signal( Produce );
+      | Sync.pcqProduced, Sync.pcqProducedFlush : Sync.RawSignal( Consume );
+      | Sync.pcqConsumed, Sync.pcqConsumedFlush : Sync.RawSignal( Produce );
       END; // CASE
    END Signal;
 
@@ -821,7 +821,7 @@ CLASS IMPLEMENTATION CDatagramQueue;
                END;
             END; // LOOP
          ELSE
-            Result := Sync.Wait( Produce, Timeout );
+            Result := Sync.RawWait( Produce, Timeout );
          END;
          SpentTime := time.UptimeMS() - Start;
       | Sync.pcqConsumed :   
@@ -844,7 +844,7 @@ CLASS IMPLEMENTATION CDatagramQueue;
                END;
             END; // LOOP
          ELSE
-            Result := Sync.Wait( Consume, Timeout );
+            Result := Sync.RawWait( Consume, Timeout );
          END;
          SpentTime := time.UptimeMS() - Start;
       END;

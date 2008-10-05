@@ -228,11 +228,11 @@ BEGIN
    Support^.Init( ADR( SELF ));
 
    Queue.Init( 2048, SIZE( msghandler.Message ));
-   Queue.Consume := Sync.CreateAutoresetSignal( FALSE, L"" );
-   Queue.Produce := Sync.CreateSignal( TRUE, L"" );
+   Queue.Consume := Sync.RawCreateAutoresetSignal( FALSE, L"" );
+   Queue.Produce := Sync.RawCreateSignal( TRUE, L"" );
 FINALLY
-   Sync.DeleteSignal( REF Queue.Consume );
-   Sync.DeleteSignal( REF Queue.Produce );
+   Sync.RawDeleteSignal( REF Queue.Consume );
+   Sync.RawDeleteSignal( REF Queue.Produce );
 
    Support^.Dispose();
    DISPOSE( Support );

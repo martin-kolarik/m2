@@ -96,8 +96,8 @@ CLASS IMPLEMENTATION CTest;
 
       PT := windows.CreateThread( NIL, 0, ProducerThread, ADR( SELF ), 0, NIL );
       CT := windows.CreateThread( NIL, 0, ConsumerThread, ADR( SELF ), 0, NIL );
-      Sync.Wait( PT, Sync.FOREVER );
-      Sync.Wait( CT, Sync.FOREVER );
+      Sync.RawWait( PT, Sync.FOREVER );
+      Sync.RawWait( CT, Sync.FOREVER );
       windows.CloseHandle( PT );
       windows.CloseHandle( CT );
       
