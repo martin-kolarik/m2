@@ -1030,7 +1030,7 @@ CLASS IMPLEMENTATION DSocket;
     ELSIF Socket = winsock.INVALID_SOCKET THEN
       RETURN Sync.arCannotStart;
     ELSIF _Lock.In( REF _Pending, poFinalReadoutPossible ) THEN // Socket has been left unclosed after previous FD_CLOSE
-      Close( NOT Abortive );
+      Close( TRUE );
       RETURN Sync.arCannotStart;
 
     ELSE
