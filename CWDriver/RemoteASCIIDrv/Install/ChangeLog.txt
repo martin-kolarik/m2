@@ -1,3 +1,9 @@
+Version DEBUG 1.1.583 6.10.2008
+- BUG: DriverQueryProc GetCharSeq did not fill output parameter (string) if data
+       were read behind queue end. Output parameter in this case contained previous
+       value (previously read string, this is behaviour of CW5/CW6).
+- CHG: Versions are counted not by SVN but by HG.
+
 Version DEBUG 1.1.1792 28.9.2008
 - BUG: # characters were not escaped when data from ASCDRV
        compatible DriverQueryProc procedures have been returned. This

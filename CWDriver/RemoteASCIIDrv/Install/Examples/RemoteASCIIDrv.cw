@@ -192,7 +192,7 @@ instrument
           s := '';
           for i := 0 to c-1 do
             core.DriverQueryProc( 'nm', 'GetCharSeq', &t );
-            core.DriverQueryProc( 'nm', 'GetLastError', &error );
+            core.DriverQueryProc( 'nm', 'GetResult', &error );
             if error <> 0 then
               core.DebugOutput( 'GetCharSeq error: ', error );
             end;

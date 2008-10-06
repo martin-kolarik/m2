@@ -789,12 +789,12 @@ CLASS IMPLEMENTATION CDriver;
          b := RIndex < RBuffer.Length;
          IF b THEN
             s.Size := 1;
+            s.Length := 1;
             s[0] := WCHAR( RBuffer[RIndex] );
          END;
          RBufferLock.Unlock();
 
          IF b THEN
-            s.Length := 1;
             EncodeASCIIString( REF s );
             OutValue.String := s;
             INC( RIndex );
