@@ -111,8 +111,23 @@ END CWTypeToIOType;
 (*================================================================================*)
 
 PROCEDURE AssignDrvValueStringMW( VAR DrvValue : TValue; DrvValueUFlag, TrimFlag : BOOLEAN; l : CARDINAL; s : PWCHAR ): BOOLEAN;
+VAR
+   I32 : INT32;
 BEGIN
-   IF DrvValue.Type = vtPString256 THEN
+   IF DrvValue.Type = vtBoolean THEN
+      IF l = 0 THEN
+         DrvValue.ValBoolean := FALSE;
+      ELSIF ( s^ = L"1" ) OR ( s^ = L"t" ) OR ( s^ = L"T" ) THEN
+         DrvValue.ValBoolean := TRUE;
+      ELSIF ( s^ = L"0" ) OR ( s^ = L"f" ) OR ( s^ = L"F" ) THEN
+         DrvValue.ValBoolean := FALSE;
+      ELSIF EQUALS( OA( l-1, s ), kwTRUE ) OR EQUALS( OA( l-1, s ), L"TRUE" ) THEN
+         DrvValue.ValBoolean := TRUE;
+      ELSE
+         DrvValue.ValBoolean := FALSE;
+      END;
+
+   ELSIF DrvValue.Type = vtPString256 THEN
       IF l = 0 THEN
          IF DrvValue.ValPString256A <> NIL THEN
             IF DrvValueUFlag THEN
@@ -132,9 +147,8 @@ BEGIN
          END;
       END;
       RETURN TRUE;
-   ELSIF DrvValue.Type <> vtDriverString THEN
-      RETURN TRUE;
-   ELSE
+
+   ELSIF DrvValue.Type = vtDriverString THEN
       IF l = 0 THEN
          DrvValue.ValDriverStringCharLength := 0;
       ELSIF ( l > DrvValue.ValDriverStringCharLength ) AND NOT TrimFlag THEN
@@ -148,7 +162,31 @@ BEGIN
          DrvValue.ValDriverStringCharLength := l;
          Strings.ToA( OA( l-1, s ), 0, OUT OA( l, PCHAR( DrvValue.ValDriverStringAddress )));
       END;
-   END;
+
+   ELSIF DrvValue.Type = vtLongReal THEN
+      IF l = 0 THEN
+         DrvValue.ValLongReal := 0.0;
+      ELSIF NOT Strings.ToLONGREALW( OA( l-1, s ), OUT DrvValue.ValLongReal ) THEN
+         DrvValue.ValLongReal := 0.0;
+      END;
+      
+   ELSIF l = 0 THEN
+      DrvValue.ValLongCard := 0;
+
+   ELSE
+      IF NOT Strings.ToCARD32W( OA( l-1, s ), 10, OUT I32 ) THEN
+         I32 := 0;
+      END;
+      CASE DrvValue.Type OF
+      | vtShortCard : DrvValue.ValShortCard := CARD8( I32 );
+      | vtCardinal :  DrvValue.ValCardinal  := CARD16( I32 );
+      | vtLongCard :  DrvValue.ValLongCard  := CARD32( I32 );
+      | vtShortInt :  DrvValue.ValShortInt  := INT8( I32 );
+      | vtInteger :   DrvValue.ValInteger   := INT16( I32 );
+      | vtLongInt :   DrvValue.ValLongInt   := INT32( I32 );
+      END; // CASE
+
+   END; // IF
    RETURN TRUE;
 END AssignDrvValueStringMW;
 
@@ -560,6 +598,9 @@ BEGIN
 
    | iovalue.vtDate :
       AssignValueLongReal( CWValue, CWValueUFlag, TRUE, time.ToSJD( IOValue.Date ));
+
+   ELSE
+      RETURN AssignDrvValueStringW( REF CWValue, CWValueUFlag, TrimFlag, L"" );
 
    END; // CASE
    RETURN TRUE;
