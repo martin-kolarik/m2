@@ -93,7 +93,7 @@ instrument
     var
       s : string;
     begin
-      core.DriverQueryProc( 'nm', 'client connect www.zas.cz:80', &s );
+      core.DriverQueryProc( 'nm', 'client connect 10.0.0.52:9038', &s );
       core.DebugOutput( 'connect: ', s );
     end_procedure;
     

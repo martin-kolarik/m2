@@ -34,13 +34,34 @@ TYPE
 (*---------------------------------------------------------------------------*)
 
 TYPE
+   #save, option( pack => 1 )
+   TStorage  = RECORD
+                  CASE : TValueType OF
+                  | vtUnknown  :
+                  | vtVoid     : QW       : QUADWORD;
+                  | vtObject   : Object   : ADDRESS;
+                  | vtBoolean  : Boolean  : BOOLEAN;
+                  | vtTristate : Tristate : TRISTATE;
+                  | vtInteger  : Integer  : INT32;
+                  | vtLong     : Long     : INT64;
+                  | vtFloat    : Float    : LONGREAL;
+                  | vtString   : String   : POINTER TO StringsO.CString;
+                  | vtDate     : Date     : time.TJD;
+                  END;
+               END; // RECORD
+   TPStorage = POINTER TO TStorage;
+   #restore
+   
+(*---------------------------------------------------------------------------*)
+
+TYPE
    TPValue = POINTER TO Value;
 
 CLASS Value;
    INTERNAL VAR
       _Flags : TFlags;
       _Type : TValueType;
-      _Storage : QUADWORD;
+      _Storage : TStorage;
 
    PUBLIC PROPERTY
       Type : TValueType;
