@@ -1,3 +1,9 @@
+Version 1.0.584 beta 6.10.2008
+- BUG: Dali created out of OnStartup procedure never run and did not
+       communicate.
+- BUG: Creation of Dali with already existing name caused application crash.
+- CHG: Versioning changed from SVN to HG.
+
 Version 1.0.1782 beta 21.9.2008
 - INF: The majority of changes was done to adhere (non-standard) behavior of
        Helvar buttons.
@@ -11,6 +17,7 @@ Version 1.0.1782 beta 21.9.2008
 - NEW: Driver is able to connect more devices -- endpoints are created using
        "create" command a removed by "delete" command.
 - NEW: Asynchronous events from DALI are now passed to driver exception.
+- NEW: Addressing now works for all linies.
 - CHG: All addresses are extended by device name, e.g. "Device.2.all" for all
        devices in line 2. 
 - CHG: Check of programmed addresses changed from DALI Check Address command to

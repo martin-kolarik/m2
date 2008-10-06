@@ -41,13 +41,14 @@ end_data;
 instrument
 
   panel Addressing;
+    timer = infinite;
     owner = background;
     position = 95, 60, 845, 565;
     window = normal;
     win_title = 'Adresace DALI';
     win_disable = zoom;
 
-    procedure OnStartup();
+    procedure OnActivate();
     var
        error : string;
     begin
@@ -5381,9 +5382,7 @@ instrument
           if Event = '' then
              exit;
           end;
-          (*
           core.DebugOutput( 'Event: ', Event );
-          *)
 
           i = pos( Event, ' ' );
           s = slice( Event, 0, i );
@@ -5398,7 +5397,7 @@ instrument
              i = pos( s, '.' );
              linie = slice( s, 0, i-1 );
 
-             if linie:value_real = ActiveLinie then
+             (*if linie:value_real = ActiveLinie then*)
                s = delete( s, 0, i+1 );
 
                on := pos( Event, 'on ' ) <> -1;
@@ -5406,7 +5405,7 @@ instrument
                error := ( pos( Event, 'error' ) <> -1 ) or ( pos( Event, 'timeout' ) <> -1 );
 
                SetLabel( s, on, failure, error );
-             end;
+             (*end;*)
 
           end;
        end;

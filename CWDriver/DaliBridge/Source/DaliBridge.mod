@@ -1843,6 +1843,7 @@ CLASS IMPLEMENTATION CDali;
    BEGIN
       IF Dali.ContainsOA( Name ) THEN
          Error.FromOA( OAsz( R()^[ Texts._DaliAlreadyExists ] ));
+         RETURN FALSE;
       END;
       
       IF ( Port[0] = 0W ) OR NOT Strings.ToCARD32W( Port, 10, OUT listenPort ) THEN
@@ -1903,6 +1904,11 @@ CLASS IMPLEMENTATION CDali;
    VAR
       DaliDevice : POINTER TO CDaliDevice;
    BEGIN
+      IF Running THEN
+         RETURN Sync.arAlreadyPending;
+      END;
+      Running := TRUE;
+   
       Dali.Reset();
       WHILE Dali.MoveNext() DO
          DaliDevice := Dali.CurrentData;
@@ -1917,6 +1923,11 @@ CLASS IMPLEMENTATION CDali;
    VAR
       DaliDevice : POINTER TO CDaliDevice;
    BEGIN
+      IF NOT Running THEN
+         RETURN;
+      END;
+      Running := FALSE;
+
       Dali.Reset();
       WHILE Dali.MoveNext() DO
          DaliDevice := Dali.CurrentData;
