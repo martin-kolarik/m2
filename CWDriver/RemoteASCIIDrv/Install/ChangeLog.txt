@@ -1,3 +1,8 @@
+Version DEBUG 1.1.586 7.10.2008
+- BUG: Characters above 127 were converted from UNICODE to ANSI (for CW), so
+       bytes received were damaged. Confusion is caused by logical switch from
+       bytes (serial channel) to characters (CW, necessary). 
+
 Version DEBUG 1.1.583 6.10.2008
 - BUG: DriverQueryProc GetCharSeq did not fill output parameter (string) if data
        were read behind queue end. Output parameter in this case contained previous
