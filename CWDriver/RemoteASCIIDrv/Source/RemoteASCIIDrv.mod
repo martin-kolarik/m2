@@ -705,7 +705,7 @@ CLASS IMPLEMENTATION CDriver;
       encoded.Size := String.Length + 16;
       ei := 0;
       FOR i := 0 TO String.Length-1 DO
-         IF ( String[i] >= L" " ) AND ( String[i] <> L"#" ) THEN
+         IF ( String[i] >= L" " ) AND ( String[i] <> L"#" ) AND ( String[i] <= 127W ) THEN
             encoded[ei] := String[i];
             INC( ei );
          ELSE
