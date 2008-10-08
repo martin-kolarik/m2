@@ -66,10 +66,6 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\Source\connection.mod"
-				>
-			</File>
-			<File
 				RelativePath=".\Source\dns.mod"
 				>
 			</File>
@@ -103,6 +99,10 @@
 			</File>
 			<File
 				RelativePath=".\Source\rawconnection.mod"
+				>
+			</File>
+			<File
+				RelativePath=".\Test\TRawConnection.mod"
 				>
 			</File>
 		</Filter>

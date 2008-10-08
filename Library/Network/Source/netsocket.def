@@ -187,7 +187,7 @@ CLASS DSocket( SSocket );
   PRIVATE PROCEDURE OnFlow( Operation : TPendingOperationItem );
   PRIVATE PROCEDURE CompleteFlow( Operation : TPendingOperationItem; Device : BOOLEAN; Result : Sync.TAsyncResult; NResult : CARDINAL );
   PRIVATE PROCEDURE StartKeepAlive() : CARDINAL;
-  PRIVATE PROCEDURE Dispose() : CARDINAL;
+  PRIVATE PROCEDURE Shutdown() : CARDINAL;
   PRIVATE PROCEDURE StartTimeout( Operation : TPendingOperationItem; Timeout : CARDINAL );
   PRIVATE PROCEDURE StopTimeout( Operation : TPendingOperationItem );
 END DSocket;

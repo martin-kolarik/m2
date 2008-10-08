@@ -356,27 +356,36 @@ CLASS IMPLEMENTATION SSocket;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Close( Persist : BOOLEAN );
-  BEGIN
-    IF Socket <> winsock.INVALID_SOCKET THEN
-      IF _Type = stDatagram THEN
-        MulticastLeave();
-        _Lock.Excl( REF _Pending, poConnection );
-      ELSE
-        _Lock.Excl( REF _Pending, poFinalReadoutPossible );
+   PUBLIC PROCEDURE Close( Persist : BOOLEAN );
+   BEGIN
+      IF Socket <> winsock.INVALID_SOCKET THEN
+         IF _Type = stDatagram THEN
+            MulticastLeave();
+            _Lock.Excl( REF _Pending, poConnection );
+         ELSE
+            _Lock.Excl( REF _Pending, poFinalReadoutPossible );
+         END;
+         Select( {} );
+         winsock.closesocket( Socket );
+         Socket := winsock.INVALID_SOCKET;
+
+         IF _Notifier <> NIL THEN
+            IF _Type = stDatagram THEN
+               _Notifier^.OnDataArrived( winsock.WSAECONNABORTED, ADR( SELF ));
+            ELSE
+               _Notifier^.OnListen( winsock.WSAECONNABORTED, ADR( SELF ));
+            END;
+         END;
       END;
-      Select( {} );
-      winsock.closesocket( Socket );
-      Socket := winsock.INVALID_SOCKET;
-    END;
-    IF Persist THEN
-      RETURN;
-    END;
-    _Lock.InclExcl( REF _Pending, BITSET32{}, BITSET32( NOT CARDINAL( TPendingOperation{poResolveName} )));
-    IF _FDHandle <> NIL THEN
-      netpool.pool()^.Abort( REF _FDHandle );
-    END;
-  END Close;
+      IF Persist THEN
+         RETURN;
+      END;
+
+      _Lock.InclExcl( REF _Pending, BITSET32{}, BITSET32( NOT CARDINAL( TPendingOperation{poResolveName} )));
+      IF _FDHandle <> NIL THEN
+         netpool.pool()^.Abort( REF _FDHandle );
+      END;
+   END Close;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -526,39 +535,27 @@ CLASS IMPLEMENTATION SSocket;
       NetworkEvents : winsock.WSANETWORKEVENTS;
       wsaResult : INTEGER;
    BEGIN
-      CASE Result OF
-      //-----
-      | Sync.arCompleted :
-         // network
-         IF Socket <> winsock.INVALID_SOCKET THEN
-            wsaResult := winsock.WSAEnumNetworkEvents( Socket, NIL, ADR( NetworkEvents ));
-            IF ( wsaResult = 0 ) AND ( NetworkEvents.lNetworkEvents <> 0 ) THEN
-               IF winsock.FD_ACCEPT_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
-                  OnFD( winsock.FD_ACCEPT, poListen, NetworkEvents.iErrorCode[ winsock.FD_ACCEPT_BIT ] );
-               END;
-               IF winsock.FD_READ_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
-                  OnFD( winsock.FD_READ, poReceive, NetworkEvents.iErrorCode[ winsock.FD_READ_BIT ] );
-               END;
+      IF Result <> Sync.arCompleted THEN
+         RETURN; // ignore
+      END;
+      
+      // network
+      IF Socket <> winsock.INVALID_SOCKET THEN
+         wsaResult := winsock.WSAEnumNetworkEvents( Socket, NIL, ADR( NetworkEvents ));
+         IF ( wsaResult = 0 ) AND ( NetworkEvents.lNetworkEvents <> 0 ) THEN
+            IF winsock.FD_ACCEPT_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
+               OnFD( winsock.FD_ACCEPT, poListen, NetworkEvents.iErrorCode[ winsock.FD_ACCEPT_BIT ] );
+            END;
+            IF winsock.FD_READ_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
+               OnFD( winsock.FD_READ, poReceive, NetworkEvents.iErrorCode[ winsock.FD_READ_BIT ] );
             END;
          END;
-         
-         // me         
-         WHILE _FDSwitch.DequeueOA( OUT MSG, FALSE, 0 ) = Sync.arCompleted DO
-            OnFD( MSG.Context, MSG.Operation, MSG.ErrorCode );
-         END; // WHILE
-
-      //-----
-      | Sync.arAborted :
-         IF _Notifier <> NIL THEN
-            IF _Type = stDatagram THEN
-               _Notifier^.OnDataArrived( winsock.WSAECONNABORTED, ADR( SELF ));
-            ELSE
-               _Notifier^.OnListen( winsock.WSAECONNABORTED, ADR( SELF ));
-            END;
-         END;
-         _FDHandle := NIL;
-
-      END; // CASE
+      END;
+      
+      // me         
+      WHILE _FDSwitch.DequeueOA( OUT MSG, FALSE, 0 ) = Sync.arCompleted DO
+         OnFD( MSG.Context, MSG.Operation, MSG.ErrorCode );
+      END; // WHILE
    END OnHandle;
   
 (*--------------------------------------------------------------------------------*)
@@ -955,7 +952,7 @@ CLASS IMPLEMENTATION DSocket;
   Failed:
     Result := winsock.WSAGetLastError();
     _Lock.Excl( REF _Pending, poConnection );
-    Close( TRUE );
+    Close( FALSE );
 
     IF _Notifier <> NIL THEN
       _Notifier^.OnAccept( Result, ADR( SELF ));
@@ -1004,7 +1001,7 @@ CLASS IMPLEMENTATION DSocket;
   Failed:
     Result := winsock.WSAGetLastError();
     _Lock.Excl( REF _Pending, poConnection );
-    Close( TRUE );
+    Close( FALSE );
 
     IF _Notifier <> NIL THEN
       _Notifier^.OnAccept( Result, ADR( SELF ));
@@ -1021,15 +1018,17 @@ CLASS IMPLEMENTATION DSocket;
     Result : CARDINAL;
   BEGIN
     IF _Type = stDatagram THEN
-      Close( TRUE );
+      Close( FALSE );
       RETURN Sync.arCompleted;
 
-    ELSIF NOT Abortive AND _Lock.In( REF _Pending, poDisconnect ) THEN
-      RETURN Sync.arAlreadyPending;
     ELSIF Socket = winsock.INVALID_SOCKET THEN
       RETURN Sync.arCannotStart;
+    ELSIF Abortive THEN
+      // ignore next checks and do Abort
+    ELSIF _Lock.In( REF _Pending, poDisconnect ) THEN
+      RETURN Sync.arAlreadyPending;
     ELSIF _Lock.In( REF _Pending, poFinalReadoutPossible ) THEN // Socket has been left unclosed after previous FD_CLOSE
-      Close( NOT Abortive );
+      Close( FALSE );
       RETURN Sync.arCannotStart;
 
     ELSE
@@ -1047,7 +1046,7 @@ CLASS IMPLEMENTATION DSocket;
     END;
 
     _Lock.Excl( REF _Pending, poConnection );
-    Close( TRUE );
+    Close( FALSE );
     Result := winsock.WSAECONNABORTED;
 
     StopTimeout( poDisconnect );
@@ -1139,51 +1138,37 @@ CLASS IMPLEMENTATION DSocket;
       NetworkEvents : winsock.WSANETWORKEVENTS;
       wsaResult : INTEGER;
    BEGIN
-      CASE Result OF
-      //-----
-      | Sync.arCompleted :
-         // network
-         IF Socket <> winsock.INVALID_SOCKET THEN
-            wsaResult := winsock.WSAEnumNetworkEvents( Socket, NIL, ADR( NetworkEvents ));
-            IF ( wsaResult = 0 ) AND ( NetworkEvents.lNetworkEvents <> 0 ) THEN
-               IF winsock.FD_ACCEPT_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
-                  SUPER.OnFD( winsock.FD_ACCEPT, poListen, NetworkEvents.iErrorCode[ winsock.FD_ACCEPT_BIT ] );
-               END;
-               IF winsock.FD_CONNECT_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
-                  OnFD( winsock.FD_CONNECT, poConnect, NetworkEvents.iErrorCode[ winsock.FD_CONNECT_BIT ] );
-               END;
-               IF winsock.FD_WRITE_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
-                  OnFD( winsock.FD_WRITE, poSend, NetworkEvents.iErrorCode[ winsock.FD_WRITE_BIT ] );
-               END;
-               IF winsock.FD_READ_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
-                  OnFD( winsock.FD_READ, poReceive, NetworkEvents.iErrorCode[ winsock.FD_READ_BIT ] );
-               END;
-               IF winsock.FD_CLOSE_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
-                  OnFD( winsock.FD_READ, poReceive, NetworkEvents.iErrorCode[ winsock.FD_CLOSE_BIT ] ); // FD_READ is not posted for FD_CLOSE notification, so to be sure that final reading is allowed and notified
-                  OnFD( winsock.FD_CLOSE, poDisconnect, NetworkEvents.iErrorCode[ winsock.FD_CLOSE_BIT ] );
-               END;
+      IF Result <> Sync.arCompleted THEN
+         RETURN;
+      END;
+
+      // network
+      IF Socket <> winsock.INVALID_SOCKET THEN
+         wsaResult := winsock.WSAEnumNetworkEvents( Socket, NIL, ADR( NetworkEvents ));
+         IF ( wsaResult = 0 ) AND ( NetworkEvents.lNetworkEvents <> 0 ) THEN
+            IF winsock.FD_ACCEPT_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
+               SUPER.OnFD( winsock.FD_ACCEPT, poListen, NetworkEvents.iErrorCode[ winsock.FD_ACCEPT_BIT ] );
+            END;
+            IF winsock.FD_CONNECT_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
+               OnFD( winsock.FD_CONNECT, poConnect, NetworkEvents.iErrorCode[ winsock.FD_CONNECT_BIT ] );
+            END;
+            IF winsock.FD_WRITE_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
+               OnFD( winsock.FD_WRITE, poSend, NetworkEvents.iErrorCode[ winsock.FD_WRITE_BIT ] );
+            END;
+            IF winsock.FD_READ_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
+               OnFD( winsock.FD_READ, poReceive, NetworkEvents.iErrorCode[ winsock.FD_READ_BIT ] );
+            END;
+            IF winsock.FD_CLOSE_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
+               OnFD( winsock.FD_READ, poReceive, NetworkEvents.iErrorCode[ winsock.FD_CLOSE_BIT ] ); // FD_READ is not posted for FD_CLOSE notification, so to be sure that final reading is allowed and notified
+               OnFD( winsock.FD_CLOSE, poDisconnect, NetworkEvents.iErrorCode[ winsock.FD_CLOSE_BIT ] );
             END;
          END;
+      END;
 
-         // me         
-         WHILE _FDSwitch.DequeueOA( OUT MSG, FALSE, 0 ) = Sync.arCompleted DO
-            OnFD( MSG.Context, MSG.Operation, MSG.ErrorCode );
-         END; // WHILE
-
-      //-----
-      | Sync.arAborted :
-         LPending := TPendingOperation( _Lock.Get( REF _Pending ));
-         IF poListen IN LPending THEN
-            SUPER.OnHandle( Result, PoolHandle, UserId );
-         ELSIF poConnect IN LPending THEN
-            OnConnect( FD_ABORT, winsock.WSAECONNABORTED );
-         ELSE
-            OnDisconnect( FD_ABORT, winsock.WSAECONNABORTED, TRUE );
-         END;
-         _FDHandle := 0;
-
-      //-----
-      END; // CASE
+      // me         
+      WHILE _FDSwitch.DequeueOA( OUT MSG, FALSE, 0 ) = Sync.arCompleted DO
+         OnFD( MSG.Context, MSG.Operation, MSG.ErrorCode );
+      END; // WHILE
    END OnHandle;
 
 (*--------------------------------------------------------------------------------*)
@@ -1200,7 +1185,7 @@ CLASS IMPLEMENTATION DSocket;
          | poConnect :
             StartConnect();
          | poDisconnect :
-            ErrorCode := Dispose();
+            ErrorCode := Shutdown();
             IF ErrorCode <> 0 THEN
                OnDisconnect( FD_INIT, ErrorCode, TRUE );
             END;
@@ -1233,7 +1218,7 @@ CLASS IMPLEMENTATION DSocket;
       | winsock.FD_CLOSE : // everything should be read out
          InDisconnect := _Lock.In( REF _Pending, poDisconnect );
          IF NOT InDisconnect AND ( ErrorCode = 0 ) THEN // remote side graceful close, send rest of my data and notify I am ended
-            Dispose();
+            Shutdown();
          END;
          OnDisconnect( winsock.FD_CLOSE, ErrorCode, InDisconnect );
 
@@ -1458,11 +1443,11 @@ CLASS IMPLEMENTATION DSocket;
     ELSE
       StopTimeout( poDisconnect );
     END;
-    IF poConnect IN LPending THEN
+    IF poConnect IN LPending THEN // if we are connecting persist
       Close( TRUE );
     ELSE
       IF poFinalReadoutPossible NOT IN LPending THEN // otherwise here Close is not called for remote close to preserve socket for final reading out of data. Socket is closed sometime later.
-         Close( TRUE );
+         Close( FALSE );
       END;
       IF Error = 0 THEN
         Result := Sync.arCompleted;
@@ -1671,7 +1656,7 @@ CLASS IMPLEMENTATION DSocket;
 
 (*--------------------------------------------------------------------------------*)
 
-  PRIVATE PROCEDURE Dispose() : CARDINAL;
+  PRIVATE PROCEDURE Shutdown() : CARDINAL;
   VAR
     Result : CARDINAL;
   BEGIN
@@ -1681,7 +1666,7 @@ CLASS IMPLEMENTATION DSocket;
       Result := winsock.WSAGetLastError();
     END;
     RETURN Result;
-  END Dispose;
+  END Shutdown;
 
 (*--------------------------------------------------------------------------------*)
 

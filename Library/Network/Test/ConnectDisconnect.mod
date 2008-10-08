@@ -102,7 +102,8 @@ CLASS IMPLEMENTATION CClientListener;
   LOCAL VIRTUAL PROCEDURE OnDisconnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); 
   BEGIN
     IF Socket <> Test^.ClientSocket THEN
-      Socket^.Release();
+      Socket^.Disconnect( FALSE, netsocket.FORSAFETY );
+      Socket^.Release(); // release server socket
     END;
   END OnDisconnect;
 
@@ -170,6 +171,7 @@ CLASS IMPLEMENTATION CTest;
 
       Host^.StopPhaseWithResult( test.trSuccess );
 
+      ClientSocket^.Disconnect( TRUE, netsocket.FORSAFETY );
       ClientSocket^.Release();
 
       netinit.Cleanup();
