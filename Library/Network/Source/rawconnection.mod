@@ -12,7 +12,7 @@ TYPE
 CLASS CConnectionNotifier( netsocket.ASocketNotifier ) IMPLEMENTS threadcall.IThreadProcedureCallTarget;
    LOCAL VAR
       Connection : TPTCPConnection := NIL;
-      CallbackMode : IOO.TCallbackMode := IOO.cbmDefault;
+      CallbackMode : IOO.TCallbackMode := IOO.cbmPooled; // not default
       Notifier : netsocket.TPSocketNotifier := NIL;
 
    PUBLIC VIRTUAL PROCEDURE OnError( Direction : IOO.TDirection; Error : CARDINAL; Source : ADDRESS; SourceSpecificCode : LONGWORD );
@@ -322,7 +322,7 @@ CLASS IMPLEMENTATION TCPConnection;
 
    PUBLIC VIRTUAL PROCEDURE Open( Host : ARRAY OF WCHAR; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    BEGIN
-      Close();
+      // Close();
       
       _Socket^.Waitable := WaitForResult;
       _Socket^.Connect( Host, TimeoutMS );

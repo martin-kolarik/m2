@@ -849,14 +849,20 @@ CLASS IMPLEMENTATION DSocket;
          _Lock.Incl( REF _Pending, poConnectResolved ); // fulfill Connect prerequisity
          Remote := Addr;
 
-         IF Disconnect( FALSE, TimeoutMS ) <> Sync.arPending THEN
+         CASE Disconnect( FALSE, TimeoutMS ) OF
+         | Sync.arPending, Sync.arAlreadyPending :
+            // ok, wait, not to connect
+         ELSE
             // ok, disconnect is immediate, we were not connect
             _Lock.Incl( REF _Pending, poConnectDisconnected ); // fulfill Connect prerequisity
             SwitchContext( FD_INIT, poConnect, 0 ); // ok, everything fulfilled
          END;
       
       ELSE // address is not numeric, it must be queried in DNS
-         IF Disconnect( FALSE, TimeoutMS ) <> Sync.arPending THEN
+         CASE Disconnect( FALSE, TimeoutMS ) OF
+         | Sync.arPending, Sync.arAlreadyPending :
+            // ok, wait, not to connect
+         ELSE
             // ok, disconnect is immediate, we were not connect, probably, continue immedtiately
             _Lock.Incl( REF _Pending, poConnectDisconnected ); // fulfill Connect prerequisity
          END;
@@ -896,11 +902,14 @@ CLASS IMPLEMENTATION DSocket;
     _Lock.Incl( REF _Pending, poConnectResolved ); // fulfill Connect prerequisity
     Remote := Server;
 
-    // kill current connection after setting the address, Disconnect must not finish before assigning the address
-    IF Disconnect( FALSE, TimeoutMS ) <> Sync.arPending THEN
-       _Lock.Incl( REF _Pending, poConnectDisconnected ); // fulfill Connect prerequisity
-       SwitchContext( FD_INIT, poConnect, 0 );
-    END;
+      // kill current connection after setting the address, Disconnect must not finish before assigning the address
+      CASE Disconnect( FALSE, TimeoutMS ) OF
+      | Sync.arPending, Sync.arAlreadyPending :
+         // ok, wait, not to connect
+      ELSE
+         _Lock.Incl( REF _Pending, poConnectDisconnected ); // fulfill Connect prerequisity
+         SwitchContext( FD_INIT, poConnect, 0 );
+      END;
 
     RETURN Sync.arPending;
   END ConnectAddress;
