@@ -69,6 +69,8 @@ CLASS CUDPCommunicator( netsrv.AListener ) IMPLEMENTS threadpool.ITimeoutSink;
       LastSend : CARDINAL;
       WaitReset : BOOLEAN;
       WaitResponse : BOOLEAN;
+      FrameLinkErrors : CARDINAL;
+      FrameLinkErrorLimit : CARDINAL := 10;
    LOCAL VAR
       EventSink : TPICommunicatorSink;
       InterPacketDelay : CARDINAL;
@@ -121,9 +123,6 @@ CLASS IMPLEMENTATION CUDPCommunicator;
       IA.Port := ListenPort;
       Result := netsrv.StartListen( netsocket.stDatagram, IA, NIL, ADR( SELF ), 0, ADR( Socket ));
       IF Result = 0 THEN
-      
-         SendDaliData( l1, OA( -1, NIL ), TRUE, FALSE, FALSE ); // reset
-      
          RETURN Sync.arCompleted;
       ELSE
          Logger^.LogSE( Log.dldError, logNetPrefix, L"Unable StartListen: ", Result );
@@ -208,6 +207,7 @@ CLASS IMPLEMENTATION CUDPCommunicator;
    LOCAL VIRTUAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket );
    VAR
       dali : TDaliPacket;
+      expectedReset : BOOLEAN := FALSE;
       gdeResponse : TGDEResponse;
       i, l : CARDINAL;
       leaveTimeout, eventFlag : BOOLEAN := FALSE;
@@ -232,7 +232,7 @@ CLASS IMPLEMENTATION CUDPCommunicator;
          IF Buffer.Empty THEN
             EXIT;
          END;
-         gdeResponse := TGDEResponse( Buffer[0] AND 03FH );
+         gdeResponse := TGDEResponse( Buffer[0] AND 01FH );
          IF Buffer.Length < gderl[ gdeResponse ] THEN // not all data for command were received, wait for more
             EXIT;
          ELSE
@@ -245,7 +245,6 @@ CLASS IMPLEMENTATION CUDPCommunicator;
             Logger^.LogS( dldDebug, logNetPrefix, L"res: Reset OK" );
          | gderStatus : // OK, status
             Logger^.LogS( dldTrace, logNetPrefix, L"res: Reset/Status response" );
-            WaitReset := FALSE;
          | gderRead : // OK, response to 8
             Logger^.LogSB( dldDebug, logNetPrefix, L"res: Expected device response received: ", Buffer.Data, l );
             processResult := Sync.arCompleted;
@@ -277,12 +276,24 @@ CLASS IMPLEMENTATION CUDPCommunicator;
             Logger^.LogSB( dldMessage, logNetPrefix, L"res: Strange device response: ", Buffer.Data, l );
             processResult := Sync.arAlreadyPending; // repeat command
          END;
-         
+
          CASE gdeResponse OF
-         | gderReset : // event, e.g. switch on of device, leave pending send timeout
+         | gderReset, gderStatus : // event, e.g. switch on of device, leave pending send timeout
             leaveTimeout := NOT WaitReset;
-         | gderStatus, gderEvent : // these are events too, they must not stop existing pending send timeout
-            leaveTimeout := TRUE;   
+            expectedReset := WaitReset;
+            WaitReset := FALSE;
+         | gderEvent : // these are events too, they must not stop existing pending send timeout
+            leaveTimeout := TRUE;
+         END;
+         
+         IF gdeResponse = gderFrameError THEN // kill if errors are repetitive
+            INC( FrameLinkErrors );
+            IF FrameLinkErrors >= FrameLinkErrorLimit THEN
+               FrameLinkErrors := 0;
+               processResult := Sync.arPartCompleted; // report unability to get value
+            END;
+         ELSE
+            FrameLinkErrors := 0;
          END;
 
          IF ( Timeout <> NIL ) AND NOT leaveTimeout THEN
@@ -309,7 +320,7 @@ CLASS IMPLEMENTATION CUDPCommunicator;
             EventSink^.OnDaliData( processResult, eventFlag, OA( l-1, ADR( dali )));
 
          ELSIF ( gdeResponse = gderReset ) OR ( gdeResponse = gderStatus ) THEN
-            EventSink^.OnDaliSendable();
+            EventSink^.OnDaliSendable( expectedReset );
          END;
 
          Buffer.RemoveStart( gderl[ gdeResponse ] );
@@ -340,7 +351,7 @@ CLASS IMPLEMENTATION CUDPCommunicator;
             IF UserId = timerTimeout THEN
                EventSink^.OnDaliTimeout();
             ELSE
-               EventSink^.OnDaliSendable();
+               EventSink^.OnDaliSendable( FALSE );
             END;
          END;
       END;
@@ -359,6 +370,7 @@ BEGIN
    LastSend := 0;
    WaitReset := FALSE;
    WaitResponse := FALSE;
+   FrameLinkErrors := 0;
 
    EventSink := NIL;
    InterPacketDelay := 0;
@@ -1097,6 +1109,9 @@ CLASS IMPLEMENTATION CDaliDevice;
 (*-------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Run() : Sync.TAsyncResult;
+   VAR
+      da : DaliAddress;
+      Result : Sync.TAsyncResult;
    BEGIN
       IF Running THEN
          RETURN Sync.arAlreadyPending;
@@ -1107,7 +1122,14 @@ CLASS IMPLEMENTATION CDaliDevice;
          threadpool.pool()^.WaitTimeout( PollSink, 0, PollPeriod, FALSE, TRUE, OUT PollTimer );
       END;
 
-      RETURN Communicator^.Run();
+      Result := Communicator^.Run();
+      IF Result = Sync.arCompleted THEN
+         Command( l4, da, cmdInterfaceReset, 0, 0 ); // reset
+         Command( l3, da, cmdInterfaceReset, 0, 0 ); // reset
+         Command( l2, da, cmdInterfaceReset, 0, 0 ); // reset
+         Command( l1, da, cmdInterfaceReset, 0, 0 ); // reset, reset first linie (with ETH interface) as last
+      END;
+      RETURN Result;
    END Run;
 
 (*-------------------------------------------------------------------------------*)
@@ -1259,9 +1281,15 @@ CLASS IMPLEMENTATION CDaliDevice;
 (*-------------------------------------------------------------------------------*)
 
    // ICommunicationSink -- in thread
-   LOCAL VIRTUAL PROCEDURE OnDaliSendable();
+   LOCAL VIRTUAL PROCEDURE OnDaliSendable( AfterReset : BOOLEAN );
+   VAR
+      Request : TPDaliRequest;
    BEGIN
       Logger.LogS( dldDebug, logDevPrefix, L"CTR: Communicate after DELAY/RESET" );
+      IF AfterReset THEN // dequeue reset request
+         Queue.Dequeue( OUT Request );
+         DISPOSE( Request );
+      END;
       Communicate();
    END OnDaliSendable;
 
@@ -1440,6 +1468,7 @@ CLASS IMPLEMENTATION CDaliDevice;
       DaliData : ARRAY [0..1] OF BYTE;
       Result : Sync.TAsyncResult;
       Request : TPDaliRequest;
+      Reset : BOOLEAN;
    BEGIN
       IF NOT Queue.Peek( OUT Request ) THEN
          RETURN Sync.arCompleted;
@@ -1450,7 +1479,15 @@ CLASS IMPLEMENTATION CDaliDevice;
       END;
       
       // prepare Dali packet
-      IF Request^.Command IN specialCommands THEN
+      Reset := FALSE;
+      IF Request^.Command = cmdInterfaceReset THEN
+         DaliData[0] := 0;
+         DaliData[1] := 0;
+         Reset := TRUE;
+
+         LogRequest( dldDebug, L"SND: ", Request, Sync.arCompleted, FALSE, FALSE, FALSE );
+
+      ELSIF Request^.Command IN specialCommands THEN
          DaliData[0] := BYTE( Request^.Command );
          DaliData[1] := Request^.Data;
 
@@ -1469,7 +1506,7 @@ CLASS IMPLEMENTATION CDaliDevice;
          LogRequest( dldDebug, L"SND: ", Request, Sync.arCompleted, TRUE, FALSE, FALSE );
       END;
       
-      Result := Communicator^.SendDaliData( Request^.Linie, DaliData, FALSE, Request^.Command IN respondedCommands, Request^.Command IN repeatedCommands );
+      Result := Communicator^.SendDaliData( Request^.Linie, DaliData, Reset, NOT Reset AND ( Request^.Command IN respondedCommands ), NOT Reset AND ( Request^.Command IN repeatedCommands ));
       IF Result = Sync.arAlreadyPending THEN // data were not sent, communicator is busy
          Request^.Pending := FALSE; // prepare next send after a tick
          RETURN Sync.arPending;
@@ -1840,6 +1877,8 @@ CLASS IMPLEMENTATION CDali;
       Addr : ARRAY [0..0] OF inetaddr.INETADDR;
       DaliDevice : POINTER TO CDaliDevice;
       listenPort : CARDINAL;
+      Result : Sync.TAsyncResult;
+      result : ARRAY [0..15] OF WCHAR;
    BEGIN
       IF Dali.ContainsOA( Name ) THEN
          Error.FromOA( OAsz( R()^[ Texts._DaliAlreadyExists ] ));
@@ -1868,10 +1907,22 @@ CLASS IMPLEMENTATION CDali;
       DaliDevice^.EventSink := ADR( SELF );
       Dali.AddOA( Name, DaliDevice );
       
-      IF Running THEN
-         DaliDevice^.Run();
+      IF NOT Running THEN
+         RETURN TRUE;
       END;
-      RETURN TRUE;
+      
+      Result := DaliDevice^.Run();
+      CASE Result OF
+      | Sync.arAlreadyPending, Sync.arCompleted :
+         RETURN TRUE;
+      ELSE
+         Error.FromOA( OAsz( R()^[ Texts._UnableToRunDevice ] ));
+         IF Sync.ResultToName( Result, OUT result ) THEN
+            Error.AppendOA( L", status: " );
+            Error.AppendOA( result );
+         END;
+         RETURN FALSE;
+      END;
    END CreateDali;
 
 (*-------------------------------------------------------------------------------*)

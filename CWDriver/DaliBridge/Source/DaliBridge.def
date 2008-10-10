@@ -23,7 +23,7 @@ TYPE
    TPICommunicatorSink = POINTER TO ICommunicatorSink;
 
 LOCAL INTERFACE ICommunicatorSink; // in-thread
-   LOCAL PROCEDURE OnDaliSendable();
+   LOCAL PROCEDURE OnDaliSendable( AfterReset : BOOLEAN );
    LOCAL PROCEDURE OnDaliTimeout();
    LOCAL PROCEDURE OnDaliData( Result : Sync.TAsyncResult; EventFlag : BOOLEAN; Data : ARRAY OF BYTE );
 END ICommunicatorSink;
@@ -40,8 +40,9 @@ TYPE
    );
    
    TDaliCommand = (
-      cmdDirect = 1024, // private
-      cmdEvent = 1025, // event
+      cmdInterfaceReset = 1024,
+      cmdDirect = 1025, // private
+      cmdEvent = 1026, // event
 
       cmdOff = 0,
       cmdDimUp, cmdDimDown, cmdStepUp, cmdStepDown,
@@ -263,7 +264,7 @@ CLASS CDaliDevice( msghandler.MessageHandler ) IMPLEMENTS threadpool.ITimeoutSin
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
    
    // ICommunicationSink -- in thread
-   LOCAL VIRTUAL PROCEDURE OnDaliSendable();
+   LOCAL VIRTUAL PROCEDURE OnDaliSendable( AfterReset : BOOLEAN );
    LOCAL VIRTUAL PROCEDURE OnDaliTimeout();
    LOCAL VIRTUAL PROCEDURE OnDaliData( Result : Sync.TAsyncResult; EventFlag : BOOLEAN; Data : ARRAY OF BYTE );
 

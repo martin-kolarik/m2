@@ -32,7 +32,7 @@ CONST
 //================================================================================
 
 TYPE
-   TExceptionItemType = ( eitEvent, eitRead, eitWrite, eitPollStatus, eitParam, eitReset, eitProgram, eitAddressFound );
+   TExceptionItemType = ( eitEvent, eitRead, eitWrite, eitPollStatus, eitParam, eitReset, eitProgram, eitAddressFound, eitResetInterface );
    TPExceptionItem = POINTER TO ExceptionItem;
 
 CLASS ExceptionItem;
@@ -576,6 +576,8 @@ CLASS IMPLEMENTATION CDriver;
                   Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"program" );
                | eitAddressFound :
                   Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"address found" );
+               | eitResetInterface :
+                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"reset interface" );
                END; // CASE ExceptionType
 
                CASE ExceptionType OF
@@ -677,6 +679,15 @@ CLASS IMPLEMENTATION CDriver;
                   CS.AppendOA( S1 ); CS.AppendOA( L"." ); CS.AppendOA( S2 ); CS.AppendOA( L" " );
                   Strings.FromCARD32W( ExceptionItem^.LongAddress, 10, OUT S1 );
                   CS.AppendOA( S1 );
+
+               | eitResetInterface :
+                  CS.FromOA( "reset interface " );
+                  CS.AppendOA( S1 ); CS.AppendOA( L" " );
+                  IF ExceptionItem^.Result = Sync.arTimeout THEN
+                     CS.AppendOA( L"timeout" );
+                  ELSE
+                     CS.AppendOA( L"error" );
+                  END;
 
                END; // CASE
 
@@ -976,6 +987,15 @@ CLASS IMPLEMENTATION CDriver;
          Dali.LoadLongAddresses( daliDevice, Linie, AddressArray );
          CS.Clear(); // return value
 
+      ELSIF EQUALS( S1, L'reset_interface' )  THEN
+         IF NOT SplitAddress( FALSE, FALSE, FALSE, TRUE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
+            GOTO Error;
+         END;
+
+         IF NOT Send( eitResetInterface, daliDevice, Linie, address, DaliBridge.cmdInterfaceReset, 0H ) THEN
+            GOTO Error;
+         END;
+
       ELSE
          CS.FromOA( L'error: unknown driver procedure' );
       END;
@@ -1033,7 +1053,7 @@ CLASS IMPLEMENTATION CDriver;
          IF Result = Sync.arCompleted THEN // successfull set/program is not reported
             RETURN;
          END;
-      | eitPollStatus :
+      | eitPollStatus, eitResetInterface :
          // pass everything, filtering is done in caller
       END; // CASE
       

@@ -25,11 +25,12 @@ end_data;
 instrument
 
   switch switch_1;
+    timer = infinite;
     owner = background;
     position = 225, 290, 145, 110;
     window = normal;
     
-    procedure OnStartup();
+    procedure OnActivate();
     var
        error : string;
     begin

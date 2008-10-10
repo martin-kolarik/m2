@@ -1,3 +1,13 @@
+Version 1.0.589 beta 10.10.2008
+- BUG: Response addresses were badly decoded, it caused that data from
+       second and fourth linies were unrecognized.
+- BUG: Only first linie was reset during driver start.
+- CHG: In case of frame link error occurrence driver repeated communication
+       indefnitely. Now it drops current packet after 10 succesive frame
+       link errors.
+- NEW: New command "reset_interface <linie>" was addedd to allow programmatic
+       reset of interface.
+
 Version 1.0.584 beta 6.10.2008
 - BUG: Dali created out of OnStartup procedure never run and did not
        communicate.
