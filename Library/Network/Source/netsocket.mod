@@ -51,7 +51,6 @@ CONST
    FD_DNS     = MAX( CARD16 );
    FD_INIT    = MAX( CARD16 ) - 1;
    FD_TIMEOUT = MAX( CARD16 ) - 2;
-   FD_ABORT   = MAX( CARD16 ) - 3;
 
 (*================================================================================*)
 
@@ -744,7 +743,7 @@ CLASS IMPLEMENTATION DSocket;
     END;
     Result := StartKeepAlive();
     IF Result <> 0 THEN
-      Disconnect( FALSE, FORSAFETY );
+      DoDisconnect( TRUE, FALSE, FORSAFETY );
     END;
   END KeepAliveTime;
 
@@ -827,10 +826,14 @@ CLASS IMPLEMENTATION DSocket;
    PUBLIC PROCEDURE Connect( CONST Server : ARRAY OF WCHAR; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    VAR
       Addr : inetaddr.INETADDR;
+      LPending : TPendingOperation;
       NumericAddress : BOOLEAN;
    BEGIN
-      IF poConnect IN TPendingOperation( _Lock.InclExcl( REF _Pending, BITSET32( TPendingOperation{poConnect} ), BITSET32( posConnectPrerequisities ))) THEN
+      LPending := TPendingOperation( _Lock.InclExcl( REF _Pending, BITSET32( TPendingOperation{poConnect} ), BITSET32( posConnectPrerequisities )));
+      IF poConnect IN LPending THEN
          RETURN Sync.arAlreadyPending;
+      ELSIF poDisconnect IN LPending THEN // pending disconnect is in unknown phase, cannot start connect
+         RETURN Sync.arCannotStart;
       END;
 
       IF _Type = stStream THEN
@@ -849,7 +852,7 @@ CLASS IMPLEMENTATION DSocket;
          _Lock.Incl( REF _Pending, poConnectResolved ); // fulfill Connect prerequisity
          Remote := Addr;
 
-         CASE Disconnect( FALSE, TimeoutMS ) OF
+         CASE DoDisconnect( FALSE, TRUE, TimeoutMS ) OF
          | Sync.arPending, Sync.arAlreadyPending :
             // ok, wait, not to connect
          ELSE
@@ -859,7 +862,7 @@ CLASS IMPLEMENTATION DSocket;
          END;
       
       ELSE // address is not numeric, it must be queried in DNS
-         CASE Disconnect( FALSE, TimeoutMS ) OF
+         CASE DoDisconnect( FALSE, TRUE, TimeoutMS ) OF
          | Sync.arPending, Sync.arAlreadyPending :
             // ok, wait, not to connect
          ELSE
@@ -882,10 +885,15 @@ CLASS IMPLEMENTATION DSocket;
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC PROCEDURE ConnectAddress( CONST Server : inetaddr.INETADDR; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+  VAR
+    LPending : TPendingOperation;
   BEGIN
-    IF poConnect IN TPendingOperation( _Lock.InclExcl( REF _Pending, BITSET32( TPendingOperation{poConnect} ), BITSET32( posConnectPrerequisities ))) THEN
-      RETURN Sync.arAlreadyPending;
-    END;
+      LPending := TPendingOperation( _Lock.InclExcl( REF _Pending, BITSET32( TPendingOperation{poConnect} ), BITSET32( posConnectPrerequisities )));
+      IF poConnect IN LPending THEN
+         RETURN Sync.arAlreadyPending;
+      ELSIF poDisconnect IN LPending THEN // pending disconnect is in unknown phase, cannot start connect
+         RETURN Sync.arCannotStart;
+      END;
 
     IF _Type = stStream THEN
       IF TimeoutMS < Sync.FOREVER THEN
@@ -903,7 +911,7 @@ CLASS IMPLEMENTATION DSocket;
     Remote := Server;
 
       // kill current connection after setting the address, Disconnect must not finish before assigning the address
-      CASE Disconnect( FALSE, TimeoutMS ) OF
+      CASE DoDisconnect( FALSE, TRUE, TimeoutMS ) OF
       | Sync.arPending, Sync.arAlreadyPending :
          // ok, wait, not to connect
       ELSE
@@ -926,7 +934,7 @@ CLASS IMPLEMENTATION DSocket;
     IF _Type = stDatagram THEN
       RETURN Sync.arCannotStart;
     END;
-    Disconnect( TRUE, FORSAFETY );
+    DoDisconnect( TRUE, FALSE, FORSAFETY );
 
     L := SIZE( Remote ); 
     Socket := winsock.accept( ServerSocket^.Socket, winsock.Psockaddr( Remote.Data ), ADR( L ));
@@ -982,14 +990,14 @@ CLASS IMPLEMENTATION DSocket;
     IF _Type = stDatagram THEN
       RETURN Sync.arCannotStart;
     END;
-    Disconnect( TRUE, FORSAFETY );
+    DoDisconnect( TRUE, FALSE, FORSAFETY );
 
     Local := SourceSocket^.Local;
     Remote := SourceSocket^.Remote;
     Socket := SourceSocket^.Socket;
 
     SourceSocket^.Socket := winsock.INVALID_SOCKET;
-    SourceSocket^.Disconnect( TRUE, FORSAFETY );
+    SourceSocket^.DoDisconnect( TRUE, FALSE, FORSAFETY );
 
     _Lock.Incl( REF _Pending, poConnection );
     Result := StartKeepAlive();
@@ -1022,54 +1030,10 @@ CLASS IMPLEMENTATION DSocket;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE Disconnect( Abortive : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
-  VAR
-    Result : CARDINAL;
-  BEGIN
-    IF _Type = stDatagram THEN
-      Close( FALSE );
-      RETURN Sync.arCompleted;
-
-    ELSIF Socket = winsock.INVALID_SOCKET THEN
-      RETURN Sync.arCannotStart;
-    ELSIF Abortive THEN
-      // ignore next checks and do Abort
-    ELSIF _Lock.In( REF _Pending, poDisconnect ) THEN
-      RETURN Sync.arAlreadyPending;
-    ELSIF _Lock.In( REF _Pending, poFinalReadoutPossible ) THEN // Socket has been left unclosed after previous FD_CLOSE
-      Close( FALSE );
-      RETURN Sync.arCannotStart;
-
-    ELSE
-      _Lock.Incl( REF _Pending, poDisconnect );
-    END;
-
-    IF NOT Abortive THEN
-      StartTimeout( poDisconnect, TimeoutMS );
-      IF NOT _Lock.In( REF _Pending, poConnect ) THEN
-        SELF.Result := Sync.arUnknown;
-        _HSignal.Reset();
-      END;
-      SwitchContext( FD_INIT, poDisconnect, 0 );
-      RETURN Sync.arPending;
-    END;
-
-    _Lock.Excl( REF _Pending, poConnection );
-    Close( FALSE );
-    Result := winsock.WSAECONNABORTED;
-
-    StopTimeout( poDisconnect );
-    IF poConnect NOT IN TPendingOperation( _Lock.Excl( REF _Pending, poDisconnect )) THEN
-      SELF.Result := Sync.arAborted;
-      _HSignal.Signal();
-    END;
-    IF _Notifier <> NIL THEN
-      _Notifier^.OnDisconnect( Result, ADR( SELF ), TRUE );
-      _Notifier^.OnError( IOO.dirUnknown, Result, ADR( SELF ), opDisconnect );
-    END;
-
-    RETURN Sync.arCompleted;
-  END Disconnect;
+   PUBLIC PROCEDURE Disconnect( Abortive : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   BEGIN
+      RETURN DoDisconnect( Abortive, FALSE, TimeoutMS );
+   END Disconnect;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1142,7 +1106,6 @@ CLASS IMPLEMENTATION DSocket;
 
    LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    VAR
-      LPending : TPendingOperation;
       MSG : TSwitchMessage;
       NetworkEvents : winsock.WSANETWORKEVENTS;
       wsaResult : INTEGER;
@@ -1428,11 +1391,65 @@ CLASS IMPLEMENTATION DSocket;
 
 (*--------------------------------------------------------------------------------*)
 
+   PRIVATE PROCEDURE DoDisconnect( Abortive, Nested : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   VAR
+      Result : CARDINAL;
+   BEGIN
+      IF _Type = stDatagram THEN
+         Close( FALSE );
+         RETURN Sync.arCompleted;
+
+      ELSIF Socket = winsock.INVALID_SOCKET THEN
+         RETURN Sync.arCannotStart;
+      ELSIF Abortive THEN
+         // ignore next checks and do Abort
+      ELSIF _Lock.In( REF _Pending, poDisconnect ) THEN
+         RETURN Sync.arAlreadyPending;
+      ELSIF _Lock.In( REF _Pending, poFinalReadoutPossible ) THEN // disconnected Socket has been left unclosed after previous FD_CLOSE to allow reading out of last peer data
+         Close( FALSE );
+         RETURN Sync.arCannotStart;
+
+      ELSIF NOT Nested AND _Lock.In( REF _Pending, poConnect ) THEN // external (client) Disconnect called after/during Connect, so client expects socket to be disconnected. Thus,
+                                                                    // althought connect is pending, disconnect must be performed and connect must be cancelled.
+         _Lock.Excl( REF _Pending, poConnect );
+         Abortive := TRUE;
+
+      ELSE // graceful, not abortive disconnect
+         _Lock.Incl( REF _Pending, poDisconnect );
+         StartTimeout( poDisconnect, TimeoutMS );
+         IF NOT _Lock.In( REF _Pending, poConnect ) THEN
+            SELF.Result := Sync.arUnknown;
+            _HSignal.Reset();
+         END;
+         SwitchContext( FD_INIT, poDisconnect, 0 );
+         RETURN Sync.arPending;
+      END;
+
+      // abortive disconnect
+      _Lock.Excl( REF _Pending, poConnection );
+      Close( FALSE );
+      Result := winsock.WSAECONNABORTED;
+
+      StopTimeout( poDisconnect );
+      IF poConnect NOT IN TPendingOperation( _Lock.Excl( REF _Pending, poDisconnect )) THEN
+         SELF.Result := Sync.arAborted;
+         _HSignal.Signal();
+      END;
+      IF _Notifier <> NIL THEN
+         _Notifier^.OnDisconnect( Result, ADR( SELF ), TRUE );
+         _Notifier^.OnError( IOO.dirUnknown, Result, ADR( SELF ), opDisconnect );
+      END;
+
+      RETURN Sync.arCompleted;
+   END DoDisconnect;
+
+(*--------------------------------------------------------------------------------*)
+
   PRIVATE PROCEDURE OnDisconnect( Context : CARDINAL; Error : CARDINAL; Local : BOOLEAN );
   VAR
     LPending : TPendingOperation;
   BEGIN
-    IF _Lock.NotInSet( REF _Pending, BITSET32( TPendingOperation{poConnection, poConnect, poDisconnect} )) THEN // not connecting nor connected
+    IF Closed THEN // not connecting nor connected
       RETURN;
     END;
     LPending := TPendingOperation( _Lock.InclExcl( REF _Pending, BITSET32( TPendingOperation{poConnectDisconnected} ), BITSET32( TPendingOperation{poConnection, poDisconnect} )));
@@ -1472,7 +1489,7 @@ CLASS IMPLEMENTATION DSocket;
       END;
     END;
 
-    IF ( Context <> FD_ABORT ) AND ( posConnectPrerequisities * LPending = posConnectPrerequisities ) THEN // disconnect caused inside connect, connect is not waiting for DNS
+    IF posConnectPrerequisities * LPending = posConnectPrerequisities THEN // disconnect caused inside connect, connect is not waiting for DNS
       StartConnect();
     END;
   END OnDisconnect;

@@ -321,14 +321,16 @@ CLASS IMPLEMENTATION TCPConnection;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Open( Host : ARRAY OF WCHAR; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   VAR
+      Result : Sync.TAsyncResult;
    BEGIN
-      // Close();
+      Close();
       
       _Socket^.Waitable := WaitForResult;
-      _Socket^.Connect( Host, TimeoutMS );
+      Result := _Socket^.Connect( Host, TimeoutMS );
       
       IF NOT WaitForResult THEN
-         RETURN Sync.arPending;
+         RETURN Result;
       ELSIF TimeoutMS < Sync.FOREVER - 100 THEN
          RETURN _Socket^.WaitCompletion( TimeoutMS + 100 );
       ELSE
@@ -340,6 +342,7 @@ CLASS IMPLEMENTATION TCPConnection;
 
    PUBLIC VIRTUAL PROCEDURE Close();
    BEGIN
+      _Socket^.Disconnect( TRUE, netsocket.FORSAFETY );
       _BStream.Close( TRUE );
    END Close;
 
@@ -352,17 +355,22 @@ BEGIN
    NEW( _Socket );
    _Socket^.Notifier := _Notifier;
 
+   _NStream.FromSocket( _Socket, FALSE, IOO.accReadWrite );
+
    _BStream.Stream := ADR( _NStream );
    _BStream.Notifier := _Notifier;
 
-   _NStream.FromSocket( _Socket, TRUE, IOO.accReadWrite );
-
 FINALLY
-   _Socket^.Notifier := NIL;
-   // socket is close from _NStream, as it is owned by it
-   
    _BStream.Close( FALSE );
    _BStream.Stream := NIL;
+   // _NStream is closed inside _BStream
+   
+   IF _Socket <> NIL THEN
+      _Socket^.Notifier := NIL;
+      _Socket^.Disconnect( TRUE, netsocket.FORSAFETY );
+      _Socket^.Release();
+      _Socket := NIL;
+   END;
    
    _Notifier^.Release();
    _Notifier := NIL;
