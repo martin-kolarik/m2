@@ -9,11 +9,13 @@ IMPORT
    log,
    netinit,
    netsrv,
+   SCmsgqueuethread,
    Strings,
    StringsO,
    sync,
    test,
-   testimpl;
+   testimpl,
+   threadpool;
   
 (*===========================================================================*)
 
@@ -51,6 +53,9 @@ CLASS IMPLEMENTATION CTest;
       String : ARRAY [0..63] OF WCHAR;
    BEGIN
       SELF.Host := Host;
+
+      SCmsgqueuethread.Startup();
+      threadpool.Startup();
       netinit.Startup();
 
       Host^.StartPhase( L"Enumeration of interface addresses -- V4" );
@@ -102,6 +107,9 @@ CLASS IMPLEMENTATION CTest;
       Host^.StopPhaseWithResult( test.trSuccess );
 
       netinit.Cleanup();
+      threadpool.Cleanup();
+      SCmsgqueuethread.Cleanup();
+
       RETURN test.trSuccess;
    END Run;
    

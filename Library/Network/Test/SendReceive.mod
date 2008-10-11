@@ -17,7 +17,6 @@ IMPORT
    testimpl,
    threadpool,
    SCmsgqueuethread,
-   Win32msgqueuethread,
    windows;
   
 (*===========================================================================*)
@@ -155,7 +154,6 @@ CLASS IMPLEMENTATION CTest;
       Reader.Test := ADR( SELF );
       Writer.Test := ADR( SELF );
 
-      Win32msgqueuethread.Startup();
       SCmsgqueuethread.Startup();
       threadpool.Startup();
       netinit.Startup();
@@ -323,7 +321,7 @@ CLASS IMPLEMENTATION CTest;
       // flush receiving
       WaitForMessages( 50 );
       ServerSocket.AbortReceive();
-      ClientSocket.Disconnect( FALSE, windows.INFINITE );
+      ClientSocket.Disconnect( TRUE, windows.INFINITE );
       // flush disconnect
       WaitForMessages( 250 );
       
@@ -336,11 +334,14 @@ CLASS IMPLEMENTATION CTest;
       END;
 
       //=====
+   
+      ServerSocket.Disconnect( TRUE, netsocket.FORSAFETY );
+
+      //=====
 
       netinit.Cleanup();
       threadpool.Cleanup();
       SCmsgqueuethread.Cleanup();
-      Win32msgqueuethread.Cleanup();
 
       IF Failure THEN
          RETURN test.trFailure;

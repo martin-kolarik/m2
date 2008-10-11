@@ -15,7 +15,6 @@ IMPORT
    testimpl,
    threadpool,
    SCmsgqueuethread,
-   Win32msgqueuethread,
    windows;
   
 (*===========================================================================*)
@@ -39,7 +38,6 @@ CLASS IMPLEMENTATION CTest;
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    BEGIN
       IF ADR( TestStartup ) = ADR( SELF ) THEN
-         Win32msgqueuethread.Startup();
          SCmsgqueuethread.Startup();
          threadpool.Startup();
          netinit.Startup();
@@ -47,7 +45,6 @@ CLASS IMPLEMENTATION CTest;
          netinit.Cleanup();
          threadpool.Cleanup();
          SCmsgqueuethread.Cleanup();
-         Win32msgqueuethread.Cleanup();
       END;
       RETURN test.trSuccess;
    END Run;

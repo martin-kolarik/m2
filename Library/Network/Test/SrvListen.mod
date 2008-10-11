@@ -16,7 +16,6 @@ IMPORT
    testimpl,
    threadpool,
    SCmsgqueuethread,
-   Win32msgqueuethread,
    windows;
   
 (*===========================================================================*)
@@ -79,7 +78,6 @@ CLASS IMPLEMENTATION CTest;
       SELF.Host := Host;
       Listener.Test := ADR( SELF );
 
-      Win32msgqueuethread.Startup();
       SCmsgqueuethread.Startup();
       threadpool.Startup();
       netinit.Startup();
@@ -153,7 +151,6 @@ CLASS IMPLEMENTATION CTest;
       netinit.Cleanup();
       threadpool.Cleanup();
       SCmsgqueuethread.Cleanup();
-      Win32msgqueuethread.Cleanup();
 
       IF Failure THEN
          RETURN test.trFailure;
