@@ -269,6 +269,11 @@ BEGIN
 
          ESt := 0;
          WHILE Tests^.EnumerateTests( REF ESt, OUT Name, OUT Test ) DO
+            IF Test = NIL THEN
+               Host.Log^.LogSS( log.dlcSysError, L"", L"Error getting test: ", Name );
+               CONTINUE;
+            END;
+         
             IF NOT Filters.Empty THEN
                Found := FALSE;
                Filters.Reset();
