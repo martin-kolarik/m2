@@ -137,8 +137,8 @@ CLASS DSocket( SSocket );
   INTERNAL VAR
     // Remote     : inetaddr.INETADDR; // moved to SSocket due to multicast issues
     RemoteName    : StringsO.CString;
-    ResolveAddr   : Sync.WAITABLE;
-    Timeout       : ARRAY [poConnect..poSend] OF Sync.WAITABLE;
+    ResolveAddr   : threadpool.TPoolHandle;
+    Timeout       : ARRAY [poConnect..poSend] OF threadpool.TPoolHandle;
     KeepAlive     : CARDINAL;
     Reader        : IOO.TPDataProxy;
     RPending      : IOO.TPDataProxy;

@@ -10,7 +10,6 @@ FROM Storage IMPORT
 // generic types
 TYPE
    WAITABLE = ADDRESS;
-   RAWSIGNAL = WAITABLE; // temporary, will be killed in next wave
   
 TYPE
    // main success: arCompleted
@@ -102,14 +101,9 @@ END LOCK;
 (*================================================================================*)
 // raw signalling, mainly for handles coming from OS
 
-#save, option( leak_info => on )
-PROCEDURE RawCreateSignal( InitiallySignaled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : RAWSIGNAL;
-PROCEDURE RawCreateAutoresetSignal( InitiallySignaled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : RAWSIGNAL;
-PROCEDURE RawDeleteSignal( REF S : RAWSIGNAL );
-#restore
-PROCEDURE RawSignal( S : RAWSIGNAL );
-PROCEDURE RawSignalAndReset( S : RAWSIGNAL );
-PROCEDURE RawReset( S : RAWSIGNAL );
+PROCEDURE RawSignal( S : WAITABLE );
+PROCEDURE RawSignalAndReset( S : WAITABLE );
+PROCEDURE RawReset( S : WAITABLE );
 
 // waiting
 PROCEDURE RawWait( W : WAITABLE; Timeout : CARDINAL ) : TAsyncResult;
@@ -156,6 +150,19 @@ CLASS SIGNAL;
 
    PUBLIC PROCEDURE Dispose(); // not required, implicit
 END SIGNAL;
+
+// "static" methods
+CONST
+   stSET = TRISTATE( 1 );
+   stNOTSET = TRISTATE( 0 );
+   stINVALID = TRISTATE( -1 );
+
+PROCEDURE CreateSignal( Type : TSignalType; CONST Name : ARRAY OF WCHAR; InitialState : BOOLEAN ) : PSIGNAL;
+PROCEDURE DeleteSignal( REF Signal : PSIGNAL );
+PROCEDURE SafeSignal( Signal : PSIGNAL ) : TRISTATE;
+PROCEDURE SafeReset( Signal : PSIGNAL ) : TRISTATE;
+PROCEDURE SafeWait( Signal : PSIGNAL; Timeout : CARDINAL ) : TAsyncResult;
+PROCEDURE SafeState( Signal : PSIGNAL ) : TRISTATE;
 
 (*================================================================================*)
 // continuation of locking

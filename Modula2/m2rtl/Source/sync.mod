@@ -651,9 +651,11 @@ END IGetPtr;
 (*================================================================================*)
 // signalling
 
-PROCEDURE RawCreateSignal( InitiallySignalled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : RAWSIGNAL;
+#save, option( leak_info => on )
+PROCEDURE RawCreateSignal( InitiallySignalled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : WAITABLE;
+#restore
 VAR
-   Signal : RAWSIGNAL;
+   Signal : WAITABLE;
 BEGIN
   IF Name[0] = 0W THEN
     Signal := windows.CreateEventW( NIL, windows.True, windows.BOOL( InitiallySignalled ), NIL );
@@ -664,9 +666,11 @@ BEGIN
   RETURN Signal;
 END RawCreateSignal;
 
-PROCEDURE RawCreateAutoresetSignal( InitiallySignalled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : RAWSIGNAL;
+#save, option( leak_info => on )
+PROCEDURE RawCreateAutoresetSignal( InitiallySignalled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : WAITABLE;
+#restore
 VAR
-   Signal : RAWSIGNAL;
+   Signal : WAITABLE;
 BEGIN
   IF Name[0] = 0W THEN
     Signal := windows.CreateEventW( NIL, windows.False, windows.BOOL( InitiallySignalled ), NIL );
@@ -677,7 +681,9 @@ BEGIN
   RETURN Signal;
 END RawCreateAutoresetSignal;
 
-PROCEDURE RawDeleteSignal( REF S : RAWSIGNAL );
+#save, option( leak_info => on )
+PROCEDURE RawDeleteSignal( REF S : WAITABLE );
+#restore
 BEGIN
   IF S <> NIL THEN
     LeakDEALLOCATE( S );
@@ -686,7 +692,7 @@ BEGIN
   END;
 END RawDeleteSignal;
 
-PROCEDURE RawSignal( S : RAWSIGNAL );
+PROCEDURE RawSignal( S : WAITABLE );
 BEGIN
   IF S = NIL THEN
     RETURN;
@@ -694,7 +700,7 @@ BEGIN
   windows.SetEvent( S );
 END RawSignal;
 
-PROCEDURE RawSignalAndReset( S : RAWSIGNAL );
+PROCEDURE RawSignalAndReset( S : WAITABLE );
 BEGIN
   IF S = NIL THEN
     RETURN;
@@ -702,7 +708,7 @@ BEGIN
   windows.PulseEvent( S );
 END RawSignalAndReset;
 
-PROCEDURE RawReset( S : RAWSIGNAL );
+PROCEDURE RawReset( S : WAITABLE );
 BEGIN
   IF S = NIL THEN
     RETURN;
@@ -913,6 +919,77 @@ BEGIN
 FINALLY
    Dispose();
 END SIGNAL;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE CreateSignal( Type : TSignalType; CONST Name : ARRAY OF WCHAR; InitialState : BOOLEAN ) : PSIGNAL;
+VAR
+   signal : PSIGNAL;
+BEGIN
+   NEW( signal );
+   signal^.Init( Type, Name, InitialState );
+   RETURN signal;
+END CreateSignal;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE DeleteSignal( REF Signal : PSIGNAL );
+BEGIN
+   IF Signal <> NIL THEN
+      Signal^.Dispose();
+      DISPOSE( Signal );
+   END;
+END DeleteSignal;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE SafeSignal( Signal : PSIGNAL ) : TRISTATE;
+BEGIN
+   IF Signal = NIL THEN
+      RETURN stINVALID;
+   ELSIF Signal^.Signal() THEN
+      RETURN stSET;
+   ELSE
+      RETURN stNOTSET;
+   END;
+END SafeSignal;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE SafeReset( Signal : PSIGNAL ) : TRISTATE;
+BEGIN
+   IF Signal = NIL THEN
+      RETURN stINVALID;
+   ELSIF Signal^.Reset() THEN
+      RETURN stSET;
+   ELSE
+      RETURN stNOTSET;
+   END;
+END SafeReset;   
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE SafeWait( Signal : PSIGNAL; Timeout : CARDINAL ) : TAsyncResult;
+BEGIN
+   IF Signal = NIL THEN
+      RETURN arCannotStart;
+   ELSE
+      RETURN Signal^.Wait( Timeout );
+   END;
+END SafeWait;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE SafeState( Signal : PSIGNAL ) : TRISTATE;
+BEGIN
+   IF Signal = NIL THEN
+      RETURN stINVALID;
+   ELSIF Signal^.State THEN
+      RETURN stSET;
+   ELSE
+      RETURN stNOTSET;
+   END;
+END SafeState;
 
 (*================================================================================*)
 

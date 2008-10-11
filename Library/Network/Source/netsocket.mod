@@ -646,7 +646,7 @@ BEGIN
   _FDHandle := 0;
   _FDSignal.Init( Sync.stEventAutoreset, L"", FALSE );
   _FDSwitch.Init( 32, SIZE( TSwitchMessage ));
-  _FDSwitch.Consume := _FDSignal.RawHandle;
+  _FDSwitch.Consume := ADR( _FDSignal );
   Result := Sync.arUnknown;
   Socket := winsock.INVALID_SOCKET;
 FINALLY

@@ -16,6 +16,9 @@ IMPORT
 #save, option( dll_export => on )
 
 CLASS SCMessageQueueThread( Win32thread.Win32Thread ) IMPLEMENTS threadcall.IThreadProcedureCallHandler, OSALmsg.IMessageQueueThread;
+   PRIVATE VAR
+      Consume : Sync.SIGNAL;
+      Produce : Sync.SIGNAL;
    INTERNAL VAR
       Support : msgthreadsupport.TPSupport;
       Queue : msgqueue.CMessageQueue;

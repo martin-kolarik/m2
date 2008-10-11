@@ -147,9 +147,9 @@ CLASS IMPLEMENTATION CTest;
       MQ.Clear();
       MQ.Size := QueueSize;
       MQ.ItemSize := SIZE( INT32 );
-      MQ.Produce := Sync.RawCreateSignal( TRUE, L"" );
+      MQ.Produce := Sync.CreateSignal( Sync.stEvent, L"", TRUE );
       IF ConsumeByEvent THEN
-         MQ.Consume := Sync.RawCreateSignal( FALSE, L"" );
+         MQ.Consume := Sync.CreateSignal( Sync.stEvent, L"", FALSE );
          MQ.Consumer := NIL;
       ELSE
          MQ.Consume := NIL;

@@ -89,14 +89,14 @@ CLASS IMPLEMENTATION CTest;
 
    INTERNAL PROCEDURE Round( Mode : TMode; RingSize : CARDINAL ) : BOOLEAN;
    VAR
-      CE : Sync.RAWSIGNAL;
+      CE : Sync.SIGNAL;
       CT : windows.HANDLE := NIL;
-      PE : Sync.RAWSIGNAL;
+      PE : Sync.SIGNAL;
       PT : windows.HANDLE := NIL;
       Phase : ARRAY [0..31] OF WCHAR;
    BEGIN
-      CE := Sync.RawCreateSignal( FALSE, L"" );
-      PE := Sync.RawCreateSignal( TRUE, L"" );
+      CE.Init( Sync.stEvent, L"", FALSE );
+      PE.Init( Sync.stEvent, L"", TRUE );
    
       Exit := 0; // reset
       Ring.FlushSleep := 0;
@@ -112,15 +112,15 @@ CLASS IMPLEMENTATION CTest;
          Strings.PrependW( REF Phase, L"0/0" );
       | PN :
          Ring.Consume := NIL;
-         Ring.Produce := PE;
+         Ring.Produce := ADR( PE );
          Strings.PrependW( REF Phase, L"P/0" );
       | NC :
-         Ring.Consume := CE;
+         Ring.Consume := ADR( CE );
          Ring.Produce := NIL;
          Strings.PrependW( REF Phase, L"0/C" );
       | PC :
-         Ring.Consume := CE;
-         Ring.Produce := PE;
+         Ring.Consume := ADR( CE );
+         Ring.Produce := ADR( PE );
          Strings.PrependW( REF Phase, L"P/C" );
       END; // CASE
       Host^.StartPhase( Phase );
@@ -130,9 +130,9 @@ CLASS IMPLEMENTATION CTest;
       Sync.RawWait( PT, Sync.FOREVER );
       Sync.RawWait( CT, Sync.FOREVER );
       windows.CloseHandle( PT );
-      Sync.RawDeleteSignal( REF PE );
+      PE.Dispose();
       windows.CloseHandle( CT );
-      Sync.RawDeleteSignal( REF CE );
+      CE.Dispose();
       
       Host^.StopPhase();
       RETURN Exit = 0;

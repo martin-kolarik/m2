@@ -53,8 +53,8 @@ CLASS CPtrQueue;
       Full : BOOLEAN;
       Size : CARDINAL;
    PUBLIC VAR
-      Consume : Sync.RAWSIGNAL := NIL;
-      Produce : Sync.RAWSIGNAL := NIL;
+      Consume : Sync.PSIGNAL := NIL;
+      Produce : Sync.PSIGNAL := NIL;
    PUBLIC VAR
       Consumer : msghandler.TPMessageTarget;
    PUBLIC PROPERTY
