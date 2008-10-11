@@ -74,6 +74,7 @@ CLASS LOCK;
 
    PUBLIC PROCEDURE Init( Type : TLockType; CONST Name : ARRAY OF WCHAR; InitiallyLocked : BOOLEAN );
    PUBLIC PROCEDURE Lock();
+   PUBLIC PROCEDURE LockTimeout( Timeout : CARDINAL ) : TAsyncResult; // not applicable for CS if Timeout > 0
    PUBLIC PROCEDURE Unlock();
 
    // primitive operations done in LOCKed context  
@@ -177,12 +178,12 @@ CLASS RWLOCK; // single writer, multiple readers, fast; inspired from: http://bl
       ReadSignal : SIGNAL;
       ReadWaiters : CARDINAL;
 
-   PUBLIC PROCEDURE Init( Type : TLockType; CONST Name : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE Init( Type : TLockType; CONST Name : ARRAY OF WCHAR ); // if lock time is expected to be short, use ltSpin, otherwise consider using of ltCS/ltMutex (they are the same for RWLock)
    
-   PUBLIC PROCEDURE LockWrite( Timeout : CARDINAL );
+   PUBLIC PROCEDURE LockWrite( Timeout : CARDINAL ) : TAsyncResult;
    PUBLIC PROCEDURE UnlockWrite();
    
-   PUBLIC PROCEDURE LockRead( Timeout : CARDINAL );
+   PUBLIC PROCEDURE LockRead( Timeout : CARDINAL ) : TAsyncResult;
    PUBLIC PROCEDURE UnlockRead();
    
    PRIVATE PROCEDURE WaitOnSignal( REF Signal : SIGNAL; REF Waiters : CARDINAL; Timeout : CARDINAL ) : TAsyncResult;

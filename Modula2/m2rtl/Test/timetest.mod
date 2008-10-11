@@ -206,5 +206,5 @@ END NJD;
    END wmain04;
 
 BEGIN
-   testimpl.tests()^.AddTest( L"IntJD", NIL );
+   // testimpl.tests()^.AddTest( L"IntJD", NIL );
 END timetest.
