@@ -140,7 +140,6 @@ END F;
       R = 123456.7788997788;
       L = 1000000;
    VAR
-      b : BOOLEAN;
       i : CARDINAL;
       s : LONGREAL;
       S : ARRAY [0..255] OF WCHAR;

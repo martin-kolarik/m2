@@ -200,14 +200,14 @@ CLASS IMPLEMENTATION CAdviser;
 
    PUBLIC PROCEDURE Start();
    BEGIN
-      _Advising._Signal();
+      _Advising.Signal();
    END Start;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Stop();
    BEGIN
-      _Advising._Reset();
+      _Advising.Reset();
    END Stop;
 
 (*---------------------------------------------------------------------------*)

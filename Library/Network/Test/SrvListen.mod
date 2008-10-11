@@ -15,6 +15,7 @@ IMPORT
    test,
    testimpl,
    threadpool,
+   SCmsgqueuethread,
    windows;
   
 (*===========================================================================*)
@@ -77,8 +78,9 @@ CLASS IMPLEMENTATION CTest;
       SELF.Host := Host;
       Listener.Test := ADR( SELF );
 
-      netinit.Startup();
+      SCmsgqueuethread.Startup();
       threadpool.Startup();
+      netinit.Startup();
 
       Host^.StartPhase( L"Listen and stop listen -- pooled notification" );
       // init
@@ -148,6 +150,7 @@ CLASS IMPLEMENTATION CTest;
 
       netinit.Cleanup();
       threadpool.Cleanup();
+      SCmsgqueuethread.Cleanup();
 
       IF Failure THEN
          RETURN test.trFailure;

@@ -398,7 +398,7 @@ CLASS IMPLEMENTATION CPoolThread;
    BEGIN
       OnStart();
    
-      WaitArray.Add( _HExit );
+      WaitArray.Add( _HExit.RawHandle );
       WaitArray.Add( Queue.Consume );
       
       LOOP
@@ -569,7 +569,7 @@ CLASS IMPLEMENTATION CPoolThread;
     Queue.Size := 128;
     Pool := NIL;
     ReqQueue.Init( 128, SIZE( TMessage ));
-    ReqQueue.Produce := Sync.CreateSignal( FALSE, L"" );
+    ReqQueue.Produce := Sync.RawCreateSignal( FALSE, L"" );
     ReqQueue.Consumer := ADR( SELF );
     WaitArray.Strategy := array.astrgListInArray;
     TasksCount := 0;
@@ -586,7 +586,7 @@ CLASS IMPLEMENTATION CPoolThread;
     Key : PTR;
     Task : TPTask;
   BEGIN
-    Sync.DeleteSignal( REF ReqQueue.Produce );
+    Sync.RawDeleteSignal( REF ReqQueue.Produce );
     Handles.Reset();
     WHILE Handles.MoveNext() DO
       lists.TPPtrList( Handles.CurrentData )^.Reset();

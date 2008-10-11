@@ -147,9 +147,9 @@ CLASS IMPLEMENTATION CTest;
       MQ.Clear();
       MQ.Size := QueueSize;
       MQ.ItemSize := SIZE( INT32 );
-      MQ.Produce := Sync.CreateSignal( TRUE, L"" );
+      MQ.Produce := Sync.RawCreateSignal( TRUE, L"" );
       IF ConsumeByEvent THEN
-         MQ.Consume := Sync.CreateSignal( FALSE, L"" );
+         MQ.Consume := Sync.RawCreateSignal( FALSE, L"" );
          MQ.Consumer := NIL;
       ELSE
          MQ.Consume := NIL;
@@ -186,7 +186,7 @@ CLASS IMPLEMENTATION CTest;
       END;
       // wait for all producers      
       FOR i := 0 TO ThreadCount-1 DO
-         IF Sync.Wait( Threads[i], Sync.FORSAFETY ) = Sync.arTimeout THEN
+         IF Sync.RawWait( Threads[i], Sync.FORSAFETY ) = Sync.arTimeout THEN
             // show error
          END;
          windows.CloseHandle( Threads[i] );
@@ -200,7 +200,7 @@ CLASS IMPLEMENTATION CTest;
       ELSE
          // stop consumer thread
          Exit := 1;
-         IF Sync.Wait( CT, Sync.FORSAFETY ) = Sync.arTimeout THEN
+         IF Sync.RawWait( CT, Sync.FORSAFETY ) = Sync.arTimeout THEN
             // show error
          END;
          windows.CloseHandle( CT );

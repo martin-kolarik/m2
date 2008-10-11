@@ -10,7 +10,7 @@ FROM Storage IMPORT
 // generic types
 TYPE
    WAITABLE = ADDRESS;
-   SIGNAL = WAITABLE;
+   RAWSIGNAL = WAITABLE; // temporary, will be killed in next wave
   
 TYPE
    // main success: arCompleted
@@ -54,19 +54,24 @@ CONST
 
 PROCEDURE Sleep( Time : CARDINAL );
 
+// use these preferably to have identical system-wide behavior
+PROCEDURE SpinLockAcquire( REF Data : PTR; SpinCount : CARDINAL; Timeout : CARDINAL ) : TAsyncResult;
+PROCEDURE SpinLockLeave( REF Data : PTR );
+
 (*================================================================================*)
 
 // locking
 TYPE
-   TLockType = ( ltILock, ltSpin, ltCS, ltMutex ); // interlocked, nonreentrant, reentrant, interprocess
+   TLockType = ( ltILock, ltSpin, ltCS, ltMutex ); // interlocked (effectively for Get/Incl only), nonreentrant (default), reentrant, interprocess
+   PLOCK = POINTER TO LOCK;
 
 CLASS LOCK;
-   INTERNAL VAR
+   PRIVATE VAR
       Type : TLockType := ltSpin;
       Spin : CARDINAL;
-      Data : PTR := 0; // initially unlocked
+      Data : PTR; // initially unlocked
    PUBLIC READONLY PROPERTY
-      WaitHandle : WAITABLE;
+      RawHandle : WAITABLE;
 
    PUBLIC PROCEDURE Init( Type : TLockType; CONST Name : ARRAY OF WCHAR; InitiallyLocked : BOOLEAN );
    PUBLIC PROCEDURE Lock();
@@ -91,24 +96,27 @@ CLASS LOCK;
    PUBLIC PROCEDURE NotInSet( REF Operand : LONGWORD; TestSet : BITSET32 ) : BOOLEAN;
    PUBLIC PROCEDURE AndCmp( REF Operand : LONGWORD; AndSet, CmpSet : BITSET32 ) : BOOLEAN;
   
-   PRIVATE PROCEDURE Dispose();
+   PUBLIC PROCEDURE Dispose(); // not required, implicit
 END LOCK;
 
-// signalling
+(*================================================================================*)
+// raw signalling, mainly for handles coming from OS
+
 #save, option( leak_info => on )
-PROCEDURE CreateSignal( InitiallySignaled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : SIGNAL;
-PROCEDURE CreateAutoresetSignal( InitiallySignaled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : SIGNAL;
-PROCEDURE DeleteSignal( REF S : SIGNAL );
+PROCEDURE RawCreateSignal( InitiallySignaled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : RAWSIGNAL;
+PROCEDURE RawCreateAutoresetSignal( InitiallySignaled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : RAWSIGNAL;
+PROCEDURE RawDeleteSignal( REF S : RAWSIGNAL );
 #restore
-PROCEDURE Signal( S : SIGNAL );
-PROCEDURE SignalAndReset( S : SIGNAL );
-PROCEDURE Reset( S : SIGNAL );
+PROCEDURE RawSignal( S : RAWSIGNAL );
+PROCEDURE RawSignalAndReset( S : RAWSIGNAL );
+PROCEDURE RawReset( S : RAWSIGNAL );
 
 // waiting
-PROCEDURE Wait( W : WAITABLE; Timeout : CARDINAL ) : TAsyncResult;
-PROCEDURE State( W : WAITABLE ) : BOOLEAN; // TRUE = Signalled, FALSE = Nonsignalled
+PROCEDURE RawWait( W : WAITABLE; Timeout : CARDINAL ) : TAsyncResult;
+PROCEDURE RawState( W : WAITABLE ) : BOOLEAN; // TRUE = Signalled, FALSE = Nonsignalled
 
 // primitive atomic operations
+// for synchronization issues preferably use SpinLock* procedures above to leave system-wide compatible behavior
 PROCEDURE ICmpExchg( REF Destination : INT32; Exchange : INT32; Comperand : INT32 ) : INT32;
 PROCEDURE ICmpExchgPtr( REF Destination : ADDRESS; Exchange : ADDRESS; Comperand : ADDRESS ) : ADDRESS;
 PROCEDURE IDec( REF Addend : INT32 ) : INT32;
@@ -119,33 +127,63 @@ PROCEDURE IInc( REF Addend : INT32 ): INT32;
 PROCEDURE IGet( REF Value : INT32 ) : INT32;
 PROCEDURE IGetPtr( REF Value : ADDRESS ) : ADDRESS;
 
+(*--------------------------------------------------------------------------------*)
 // atomic signalling
-TYPE
-   TStateType = ( stSpin, stSetReset, stAutoReset );
 
-CLASS STATE;
-   INTERNAL VAR
-      Type : TStateType := stSpin;
+TYPE
+   TSignalType = ( stSpin, stSpinAutoreset, stEvent, stEventAutoreset, stForeign ); // Autoreset types resets signal after successful wait
+   PSIGNAL = POINTER TO SIGNAL;
+
+CLASS SIGNAL;
+   PRIVATE VAR
+      Type : TSignalType := stSpin;
       Spin : CARDINAL;
-      Data : PTR := 0; // initially reset
+      Data : PTR; // initially reset
       Lock : LOCK;
    PUBLIC PROPERTY
       State : BOOLEAN;
    PUBLIC READONLY PROPERTY
-      WaitHandle : WAITABLE;
+      RawHandle : WAITABLE;
 
-   PUBLIC PROCEDURE Init( Type : TStateType; CONST Name : ARRAY OF WCHAR; InitiallySignaled : BOOLEAN );
+   PUBLIC PROCEDURE Init( Type : TSignalType; CONST Name : ARRAY OF WCHAR; InitiallySignaled : BOOLEAN );
+   PUBLIC PROCEDURE InitForeign( EventHandle : WAITABLE; InitiallySignalled : BOOLEAN ); // EventHandle will not be closed
 
-   PUBLIC PROCEDURE _Signal() : BOOLEAN; // returns if state was SWITCHED
-   PUBLIC PROCEDURE _SignalAndReset();
-   PUBLIC PROCEDURE _Reset() : BOOLEAN; // returns if state was SWITCHED
+   PUBLIC PROCEDURE Signal() : BOOLEAN; // returns if state was SWITCHED
+   PUBLIC PROCEDURE SignalAndReset();
+   PUBLIC PROCEDURE Reset() : BOOLEAN; // returns if state was SWITCHED
    PUBLIC PROCEDURE Test() : BOOLEAN;
-   PUBLIC PROCEDURE _Wait( Timeout : CARDINAL ) : TAsyncResult;
+   PUBLIC PROCEDURE Wait( Timeout : CARDINAL ) : TAsyncResult;
 
-   PRIVATE PROCEDURE Dispose();
-END STATE;
+   PUBLIC PROCEDURE Dispose(); // not required, implicit
+END SIGNAL;
 
 (*================================================================================*)
+// continuation of locking
+// only ltILock has no effect
+
+CLASS RWLOCK; // single writer, multiple readers, fast; inspired from: http://blogs.msdn.com/vancem/attachment/563180.ashx
+   PRIVATE VAR
+      Lock : LOCK;
+      Owners : INTEGER;
+      WriteSignal : SIGNAL;
+      WriteWaiters : CARDINAL;
+      ReadSignal : SIGNAL;
+      ReadWaiters : CARDINAL;
+
+   PUBLIC PROCEDURE Init( Type : TLockType; CONST Name : ARRAY OF WCHAR );
+   
+   PUBLIC PROCEDURE LockWrite( Timeout : CARDINAL );
+   PUBLIC PROCEDURE UnlockWrite();
+   
+   PUBLIC PROCEDURE LockRead( Timeout : CARDINAL );
+   PUBLIC PROCEDURE UnlockRead();
+   
+   PRIVATE PROCEDURE WaitOnSignal( REF Signal : SIGNAL; REF Waiters : CARDINAL; Timeout : CARDINAL ) : TAsyncResult;
+   PRIVATE PROCEDURE UnlockAndWakeUpAppropriateWaiters();
+END RWLOCK;
+
+(*================================================================================*)
+// queuing
 
 TYPE
   TpcqSignal = (
@@ -154,8 +192,8 @@ TYPE
   );
 
 (*--------------------------------------------------------------------------------*)
-
 // OneToOneQueue: single producer, single consumer, variable length blocks
+
 TYPE
   TPOneToOneQueue = POINTER TO OneToOneQueue;
 
@@ -190,13 +228,13 @@ CLASS OneToOneQueue;
 END OneToOneQueue;
 
 (*--------------------------------------------------------------------------------*)
-
 // WriteBuffer: multiple producers, multiple clients GetItem, indexes turn around Size --
 // a modification of Reader/Writer lock which erases old items on write and does not consume anything on read
+
 TYPE
    TPWriteBuffer = POINTER TO WriteBuffer;
    
-CLASS WriteBuffer;
+CLASS WriteBuffer; // in-process only
   INTERNAL READONLY VAR
     _Head : CARDINAL;
     _Tail : CARDINAL;
@@ -214,7 +252,7 @@ CLASS WriteBuffer;
   PUBLIC PROCEDURE Clear();
 
   // writers
-  PUBLIC PROCEDURE StartProducing( Overwrite : BOOLEAN; OUT ProduceTo : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE StartProducing( Overwrite : BOOLEAN; OUT ProduceTo : CARDINAL ) : BOOLEAN; // Overwrite in case of fill buffer rewrites first item, NOT Overwrite in that case returns FALSE
   PUBLIC PROCEDURE CommitProducing();
 
   // readers
@@ -226,8 +264,8 @@ CLASS WriteBuffer;
 END WriteBuffer;
 
 (*--------------------------------------------------------------------------------*)
-
 // NToOneQueue: multiple producers, single consumer, single length (1) blocks
+
 TYPE
   TPNToOneQueue = POINTER TO NToOneQueue;
 

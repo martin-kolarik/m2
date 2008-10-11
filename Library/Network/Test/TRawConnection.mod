@@ -1,4 +1,4 @@
-MODULE ConnectDisconnect;
+MODULE TRawConnection;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -10,6 +10,7 @@ IMPORT
    netpool,
    netsocket,
    netsrv,
+   rawconnection,
    sync,
    test,
    testimpl,
@@ -46,7 +47,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       Host : test.TPHost := NIL;
       ServerListener : CServerListener;
       ClientListener : CClientListener;
-      ClientSocket : netsocket.TPDSocket;
+      ClientConnection : rawconnection.TPTCPConnection := NIL;
       ClientCount : CARDINAL := 0;
       ServerCount : CARDINAL := 0;
 
@@ -86,10 +87,10 @@ CLASS IMPLEMENTATION CClientListener;
 
   LOCAL VIRTUAL PROCEDURE OnConnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); 
   BEGIN
-    IF Socket = Test^.ClientSocket THEN
+    IF Socket = NIL THEN
       sync.IInc( REF Test^.ClientCount );
-      IF Result <> 0 THEN // in case of error do dummy increment of unconnected server
-         sync.IInc( REF Test^.ServerCount );
+      IF Result <> 0 THEN
+        sync.IInc( REF Test^.ServerCount );
       END;
     ELSE
       sync.IInc( REF Test^.ServerCount );
@@ -100,8 +101,11 @@ CLASS IMPLEMENTATION CClientListener;
 
   LOCAL VIRTUAL PROCEDURE OnDisconnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); 
   BEGIN
-    IF Socket <> Test^.ClientSocket THEN
+    IF Socket = NIL THEN
+      // client is not released
+    ELSE
       Socket^.Disconnect( FALSE, netsocket.FORSAFETY );
+      sync.Sleep( 0 );
       Socket^.Release(); // release server socket
     END;
   END OnDisconnect;
@@ -138,39 +142,41 @@ CLASS IMPLEMENTATION CTest;
       netinit.Startup();
 
       // global init      
-      NEW( ClientSocket );
-      ClientSocket^.Notifier := ADR( ClientListener );
+      NEW( ClientConnection );
+      ClientConnection^.Notifier := ADR( ClientListener );
 
       ai.Port := 4444;
       netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( ServerListener ), 0, NIL );
       ai.V6 := TRUE;
       netsrv.StartListen( netsocket.stStream, ai, NIL, ADR( ServerListener ), 0, NIL );
 
-      Host^.StartPhase( L"Connect/Disconnect on the same socket" );
+      Host^.StartPhase( L"Connect/Disconnect on the same connection" );
 
       // start
       ClientCount := 0;
       ServerCount := 0;
       lastCount := 0;
-      ClientSocket^.Connect( L'iris:4444', windows.INFINITE );
-      // ClientSocket^.Connect( L'localhost:4444', windows.INFINITE );
+      ClientConnection^.Open( L'iris:4444', FALSE, sync.FORSAFETY );
       // wait
       LOOP
-         IF lastCount >= 10000 THEN
+         IF lastCount >= 1000 THEN
             EXIT;
          END;
-         WaitForMessages( 2 );
+         WaitForMessages( 10 );
          IF ( lastCount < sync.IGet( REF ClientCount )) AND ( lastCount < sync.IGet( REF ServerCount )) THEN // reconnect
             lastCount := sync.IGet( REF ClientCount );
-            ClientSocket^.Connect( L'iris:4444', windows.INFINITE );
-            // ClientSocket^.Connect( L'localhost:4444', windows.INFINITE );
+            IF ClientConnection^.Open( L'iris:4444', FALSE, sync.FORSAFETY ) = sync.arCannotStart THEN
+               // this is returned if connection cannot start connecting due to pending disconnect
+               Host^.Log^.LogS( log.dlcError, L"", L"Unexpected connection Open result" );   
+               DEC( lastCount ); // force repeat Open
+            END;
          END;
       END; // WHILE
 
       Host^.StopPhaseWithResult( test.trSuccess );
 
-      ClientSocket^.Disconnect( TRUE, netsocket.FORSAFETY );
-      ClientSocket^.Release();
+      ClientConnection^.Close();
+      DISPOSE( ClientConnection );
 
       netinit.Cleanup();
       threadpool.Cleanup();
@@ -218,9 +224,9 @@ CLASS IMPLEMENTATION CTest;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
-   testimpl.tests()^.AddTest( L"Network::ConnectDisconnect", ADR( Test ));
+   testimpl.tests()^.AddTest( L"Network::TCPConnection", ADR( Test ));
 END CTest;
 
 (*===========================================================================*)
 
-END ConnectDisconnect.
+END TRawConnection.

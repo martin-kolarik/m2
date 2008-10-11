@@ -63,9 +63,9 @@ CLASS IMPLEMENTATION Win32Thread;
     IF _HThread = NIL THEN
       RETURN;
     END;
-    sync.Signal( _HExit );
+    _HExit.Signal();
     IF Wait THEN
-      Result := sync.Wait( _HThread, 10 * sync.FORSAFETY );
+      Result := sync.RawWait( _HThread, 10 * sync.FORSAFETY );
       ASSERT( Result <> Sync.arTimeout );
     END;
     IF _HThread <> NIL THEN
@@ -80,7 +80,7 @@ CLASS IMPLEMENTATION Win32Thread;
   
    PUBLIC FINAL PROCEDURE WaitStop( Timeout : CARDINAL ) : sync.TAsyncResult;
    BEGIN
-      RETURN sync.Wait( _HThread, Timeout );
+      RETURN sync.RawWait( _HThread, Timeout );
    END WaitStop;
 
    PUBLIC FINAL PROCEDURE RunWithRunnable( Runnable : OSALthread.TPRunnable );
@@ -114,14 +114,13 @@ CLASS IMPLEMENTATION Win32Thread;
    VIRTUAL FINALLY Win32Thread();
    BEGIN
       Stop( FALSE );
-      Sync.DeleteSignal( REF _HExit );
    END Win32Thread;
 
 BEGIN
    _RunLock := 0;
    _Thread := 0;
    _HThread := NIL;
-   _HExit := Sync.CreateSignal( FALSE, L"" );
+   _HExit.Init( Sync.stEvent, L"", FALSE );
    _WMsg := 0;
    _Runnable := NIL;
 END Win32Thread;

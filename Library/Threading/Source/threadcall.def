@@ -32,7 +32,7 @@ CLASS ThreadProcedureCall( Delegate.ADelegate );
       _Operation : CARDINAL;
       _Parameters : POINTER TO PTR := NIL;
       _ReturnValue : PTR := 0;
-      _Sync : Sync.STATE;
+      _Sync : Sync.SIGNAL;
    
    // caller thread
    PUBLIC READONLY PROPERTY

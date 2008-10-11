@@ -106,6 +106,7 @@ CLASS IMPLEMENTATION CTest;
    BEGIN
       threadinit.Startup();
       NEW( Pool );
+      Pool^.WorkerLoad := 32;
    
       SELF.Host := Host;
       Delegate.Test := ADR( SELF );

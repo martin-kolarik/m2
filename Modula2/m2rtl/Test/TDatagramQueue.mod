@@ -101,23 +101,24 @@ CLASS IMPLEMENTATION CTest;
 
    INTERNAL PROCEDURE Round( Mode : TMode; ThreadCount : CARDINAL; RingSize : CARDINAL ) : BOOLEAN;
    VAR
-      CE : Sync.SIGNAL;
+      CE : Sync.RAWSIGNAL;
       CT : windows.HANDLE := NIL;
       i : CARDINAL;
-      PE : Sync.SIGNAL;
+      PE : Sync.RAWSIGNAL;
       PT : windows.HANDLE := NIL;
       Phase : ARRAY [0..47] OF WCHAR;
       s : ARRAY [0..31] OF WCHAR;
       Success : BOOLEAN;
    BEGIN
-      CE := Sync.CreateSignal( FALSE, L"" );
-      PE := Sync.CreateSignal( TRUE, L"" );
+      CE := Sync.RawCreateSignal( FALSE, L"" );
+      PE := Sync.RawCreateSignal( TRUE, L"" );
    
       Exit := 0; // reset
       SELF.ThreadCount := ThreadCount;
       
       DQ.Size := RingSize;
       DQ.ItemSize := SIZE( CARD32 );
+      DQ.FlushSleep := 0;
       DQ.Clear();
       
       ThreadIndex := 0;
@@ -157,17 +158,17 @@ CLASS IMPLEMENTATION CTest;
       CT := windows.CreateThread( NIL, 0, ConsumerThread, ADR( SELF ), 0, NIL );
       // wait for all producers      
       FOR i := 0 TO ThreadCount-1 DO
-         Sync.Wait( Threads[i], Sync.FOREVER );
+         Sync.RawWait( Threads[i], Sync.FOREVER );
          windows.CloseHandle( Threads[i] );
       END;
       Success := Exit = 0;
       // stop consumer thread
       Exit := 1;
-      Sync.Wait( CT, Sync.FOREVER );
+      Sync.RawWait( CT, Sync.FOREVER );
       windows.CloseHandle( CT );
 
-      Sync.DeleteSignal( REF PE );
-      Sync.DeleteSignal( REF CE );
+      Sync.RawDeleteSignal( REF PE );
+      Sync.RawDeleteSignal( REF CE );
       
       Host^.StopPhase();
       RETURN Success;

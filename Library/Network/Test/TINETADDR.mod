@@ -11,7 +11,9 @@ IMPORT
    StringsO,
    sync,
    test,
-   testimpl;
+   testimpl,
+   threadpool,
+   SCmsgqueuethread;
   
 (*===========================================================================*)
 
@@ -46,6 +48,9 @@ CLASS IMPLEMENTATION CTest;
       String : ARRAY [0..511] OF WCHAR;
    BEGIN
       SELF.Host := Host;
+
+      SCmsgqueuethread.Startup();
+      threadpool.Startup();
       netinit.Startup();
 
       Host^.StartPhase( L"Special addresses V4" );
@@ -132,6 +137,9 @@ CLASS IMPLEMENTATION CTest;
       END;
 
       netinit.Cleanup();
+      threadpool.Cleanup();
+      SCmsgqueuethread.Cleanup();
+
       IF Failure1 OR Failure2 THEN
          RETURN test.trFailure;
       ELSE

@@ -347,7 +347,7 @@ CLASS IMPLEMENTATION CLocalDNSNotifier;
       ELSE
          SELF.Result := Sync.arAborted;
       END;
-      Sync.Signal( Signal );
+      Signal.Signal();
    END OnAddressFound;
 
 (*---------------------------------------------------------------------------*)
@@ -359,15 +359,13 @@ CLASS IMPLEMENTATION CLocalDNSNotifier;
       ELSE
          SELF.Result := Sync.arAborted;
        END;
-      Sync.Signal( Signal );
+      Signal.Signal();
    END OnNameFound;
 
 (*---------------------------------------------------------------------------*)
 
 BEGIN
-   Signal := Sync.CreateSignal( FALSE, L"" );
-FINALLY
-	Sync.DeleteSignal( REF Signal );
+   Signal.Init( Sync.stEvent, L"", FALSE );
 END CLocalDNSNotifier;  
 
 (*===========================================================================*)
@@ -382,7 +380,7 @@ BEGIN
   IF NOT NameToAddress( ADR( LDNSN ), 0, Name, DefaultPort, OUT H ) THEN
     RETURN FALSE;
   END;
-  IF Sync.Wait( LDNSN.Signal, Sync.FORSAFETY ) = Sync.arTimeout THEN
+  IF LDNSN.Signal.Wait( Sync.FORSAFETY ) = Sync.arTimeout THEN
     ASSERT( FALSE );
     RETURN FALSE; 
   ELSE
@@ -402,7 +400,7 @@ BEGIN
   IF NOT AddressToName( ADR( LDNSN ), 0, Address, IncludePort, OUT H ) THEN
     RETURN FALSE;
   END;
-  IF Sync.Wait( LDNSN.Signal, Sync.FORSAFETY ) = Sync.arTimeout THEN
+  IF LDNSN.Signal.Wait( Sync.FORSAFETY ) = Sync.arTimeout THEN
     ASSERT( FALSE );
     RETURN FALSE; 
   ELSE

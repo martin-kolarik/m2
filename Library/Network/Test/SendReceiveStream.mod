@@ -16,6 +16,8 @@ IMPORT
    sync,
    test,
    testimpl,
+   threadpool,
+   SCmsgqueuethread,
    windows;
   
 (*===========================================================================*)
@@ -157,6 +159,8 @@ CLASS IMPLEMENTATION CTest;
       Reader.Test := ADR( SELF );
       Writer.Test := ADR( SELF );
 
+      SCmsgqueuethread.Startup();
+      threadpool.Startup();
       netinit.Startup();
 
       // global init      
@@ -325,7 +329,14 @@ CLASS IMPLEMENTATION CTest;
 
       //=====
 
+      ServerSocket.Disconnect( TRUE, netsocket.FORSAFETY );
+      
+      //=====
+
       netinit.Cleanup();
+      threadpool.Cleanup();
+      SCmsgqueuethread.Cleanup();
+
       IF Failure THEN
          RETURN test.trFailure;
       ELSE

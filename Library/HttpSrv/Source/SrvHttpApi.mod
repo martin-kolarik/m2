@@ -815,7 +815,7 @@ CLASS IMPLEMENTATION CHttpApiSrv;
          RETURN Sync.arCannotStart;
       END;
       // force switching to another thread (simulate request arriving), waiting will be starte from the another thread
-      Sync.Signal( _HRequestSignal );
+      Sync.RawSignal( _HRequestSignal );
       
       _Running := TRUE;
       RETURN Sync.arCompleted;
@@ -883,7 +883,7 @@ CLASS IMPLEMENTATION CHttpApiSrv;
       Error : CARDINAL;
       httpAPIVersion : httpapi.HTTPAPI_VERSION := httpapi.HTTPAPI_VERSION_1;
    BEGIN
-      _HRequestSignal := Sync.CreateAutoresetSignal( FALSE, L"" );
+      _HRequestSignal := Sync.RawCreateAutoresetSignal( FALSE, L"" );
       ASSERT( _HRequestSignal <> NIL );
 
       Error := httpapi.HttpInitialize( httpAPIVersion, httpapi.HTTP_INITIALIZE_SERVER, NIL );
@@ -912,7 +912,7 @@ CLASS IMPLEMENTATION CHttpApiSrv;
       
       httpapi.HttpTerminate( httpapi.HTTP_INITIALIZE_SERVER, NIL );
       
-      Sync.DeleteSignal( REF _HRequestSignal );
+      Sync.RawDeleteSignal( REF _HRequestSignal );
    END CHttpApiSrv;
 
 //--------------------------------------------------------------------------------

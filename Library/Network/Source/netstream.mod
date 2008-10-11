@@ -118,7 +118,7 @@ CLASS IMPLEMENTATION CNetworkStream;
     AbortWriting();
     IF Socket <> NIL THEN
       IF OwnHandle THEN
-        Socket^.Disconnect( NOT Socket^.Connected, netsocket.FORSAFETY );
+        Socket^.Disconnect( TRUE, netsocket.FORSAFETY ); // Close is Close, if I want to read (after peer close), I can, I cannot call Close. So Disconnect can be Abortive.
       END;
       IF NOT Persist THEN
         Socket^.Release();

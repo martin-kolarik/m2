@@ -1537,7 +1537,7 @@ CLASS IMPLEMENTATION CHttpSrv;
          RETURN Sync.arCannotStart;
       END;
       // force switching to another thread (simulate request arriving), waiting will be starte from the another thread
-      Sync.Signal( _HRequestSignal );
+      Sync.RawSignal( _HRequestSignal );
       
       _Running := TRUE;
       RETURN Sync.arCompleted;
@@ -1761,7 +1761,7 @@ Stream^.SendHeaders();
       _Pool.MinThreads := 2;
       _Pool.MaxThreads := 32;
 
-      _HRequestSignal := Sync.CreateAutoresetSignal( FALSE, L"" );
+      _HRequestSignal := Sync.RawCreateAutoresetSignal( FALSE, L"" );
       ASSERT( _HRequestSignal <> NIL );
 
       Error := httpapi.HttpInitialize( httpAPIVersion, httpapi.HTTP_INITIALIZE_SERVER, NIL );
@@ -1795,7 +1795,7 @@ Stream^.SendHeaders();
       httpapi.HttpTerminate( httpapi.HTTP_INITIALIZE_SERVER, NIL );
       
       IF _HRequestSignal <> NIL THEN
-         Sync.DeleteSignal( REF _HRequestSignal );
+         Sync.RawDeleteSignal( REF _HRequestSignal );
       END;
    END CHttpSrv;
 

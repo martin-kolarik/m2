@@ -34,7 +34,7 @@ CLASS CNetworkStream( IOO.AStream );
 
   PUBLIC FINAL PROCEDURE Seek( Origin : IOO.TSeekOrigin; Position : INT64 ); 
   PUBLIC FINAL PROCEDURE Flush();
-  PUBLIC FINAL PROCEDURE Close( Persist : BOOLEAN );
+  PUBLIC FINAL PROCEDURE Close( Persist : BOOLEAN ); // if stream owns socket, it disconnects socket abortively
   
   INTERNAL FINAL PROCEDURE Start( Direction : IOO.TDirection; OperationTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
   INTERNAL FINAL PROCEDURE Abort( Direction : IOO.TDirection );
