@@ -28,8 +28,8 @@
         <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\EIB\eibnetstack;$(RootPath)\EIB\srvcore;$(RootPath)\CWDriver\EibNet"/>
 
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
-        <Components Include="component\sccore"/>
-        <Components Include="EIB\srvcore;library\CWdriver"/>
+        <Components Include="Component\sccore"/>
+        <Components Include="EIB\srvcore;Library\CWDriver"/>
         <Messages Include="Texts"/>
         <Program Include="driver"/>
     </ItemGroup>

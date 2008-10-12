@@ -640,6 +640,7 @@ CLASS IMPLEMENTATION CEIBServer;
       knACKTimeout           = L'ACK_timeout';
       knBUSYDelay            = L'BUSY_delay';
       knACKMethod            = L'ACK_method';
+      knRetryCount           = L'retry_count';
       knIgnoreRepeated       = L'ignore_repeated';
       knSendDelay            = L'send_delay';
       knWriteDelay           = L'write_delay';
@@ -1257,6 +1258,12 @@ CLASS IMPLEMENTATION CEIBServer;
                GOTO Fail;
             END;
          END;
+         IF TS.GetKeyStr( knRetryCount, OUT ErrorLine, OUT so ) THEN
+            IF NOT EIB^.SetParameter( L"link.retryCount", OA( so.Length-1, so.rawData ), OUT ErrorMessageOA ) THEN
+               CreateParameterError( Texts._BadRetryCount, ErrorMessageOA, REF ErrorMessage );
+               GOTO Fail;
+            END;
+         END;
          IF TS.GetKeyInt( knBUSYDelay, OUT ErrorLine, OUT c ) THEN
             BUSYDelay := c;
          END;
@@ -1761,40 +1768,24 @@ CLASS IMPLEMENTATION CEIBServer;
    VAR
       EValue : eib_def.CValue;
       io : iovalue.Value;
-      prItem : PromiscuousData;
-      Result : Sync.TAsyncResult := Sync.arCompleted;
+      asyncResult : Sync.TAsyncResult := Sync.arCompleted;
    BEGIN
       IF eib_user.osReading IN CurrentState THEN // value is NOT OOB
          RETURN;
       ELSIF PObject^.RSStatus = eib_status.essOK THEN
          INCL( PObject^.Flags, eib_def.aofEIBValue );
       END;
+      IF Result.Counted OR Result.Expired THEN
+         RETURN;
+      END;
       
       IF eib_def.aofPromiscuous IN PObject^.GetFlags() THEN // promiscuous mode queueing
 
-         IF EventSink <> NIL THEN
-            QueueLock.Lock();
-            IF prData.Count >= InputQueueLength THEN
-               QueueLock.Unlock();
-               EventSink^.OnInputQueueOverflow( FALSE, TRUE );
-               RETURN;
-            END;
-         END;
-         
-         prItem.Address := PObject^.PromiscuousAddress;
-         PObject^.GetValue( OUT prItem.Value, TRUE, FALSE );
-         
-         IF EventSink <> NIL THEN
-            prData.EnqueueOA( prItem, 0 );
-            INCL( RStatus, rsPromiscuousInQueue );
-            QueueLock.Unlock();
+         EnqueuePromiscuous( eib_status.essOK, PObject );
 
-            EventSink^.OnInputQueueAdd( FALSE, TRUE );
-         END;
-         
          IF _AdviseListener <> NIL THEN
             EIBValue2IOValue( EValue, OUT io );
-            _AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( PObject )), OA( 0, ADR( io )) );
+            _AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( asyncResult )), OA( 0, ADR( PObject )), OA( 0, ADR( io )) );
          END;
 
       ELSE // oobData promiscuous mode queueing
@@ -1819,7 +1810,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
          IF _AdviseListener <> NIL THEN
             EIBValue2IOValue( EValue, OUT io );
-            _AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( PObject )), OA( 0, ADR( io )) );
+            _AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( asyncResult )), OA( 0, ADR( PObject )), OA( 0, ADR( io )) );
          END;
 
       END;
@@ -1832,14 +1823,51 @@ CLASS IMPLEMENTATION CEIBServer;
       IF PObject^.WSStatus = eib_status.essOK THEN
          INCL( PObject^.Flags, eib_def.aofEIBValue );
       END;
-      IF ( eib_user.osWriting IN CurrentState ) AND ( EventSink <> NIL ) THEN
-         EventSink^.OnWritten( PObject );
+      IF EventSink <> NIL THEN
+         IF eib_user.osWriting IN CurrentState THEN
+            EventSink^.OnWritten( PObject );
+         END;
+         
+         // in case of promiscuous mode report error
+         IF ( PObject^.WSStatus <> eib_status.essOK ) AND ( eib_def.aofPromiscuous IN PObject^.GetFlags()) THEN
+            EnqueuePromiscuous( PObject^.WSStatus, PObject );
+         END;
       END;
+
       IF eib_def.aofAdvise IN PObject^.GetFlags() THEN
          ValueUpdated( PObject, CurrentState );
       END;
    END ValueWritten;
 
+//--------------------------------------------------------------------------------
+
+   PRIVATE PROCEDURE EnqueuePromiscuous( Status : eib_status.TEIBStackStatus; PObject : TPObject );
+   VAR
+      EValue : eib_def.CValue;
+      prItem : PromiscuousData;
+   BEGIN
+      IF EventSink = NIL THEN
+         RETURN;
+      END;
+
+      QueueLock.Lock();
+      IF prData.Count >= InputQueueLength THEN
+         QueueLock.Unlock();
+         EventSink^.OnInputQueueOverflow( FALSE, TRUE );
+         RETURN;
+      END;
+      
+      prItem.Status := Status;
+      prItem.Address := PObject^.PromiscuousAddress;
+      PObject^.GetValue( OUT prItem.Value, TRUE, FALSE );
+      
+      prData.EnqueueOA( prItem, 0 );
+      INCL( RStatus, rsPromiscuousInQueue );
+      QueueLock.Unlock();
+
+      EventSink^.OnInputQueueAdd( FALSE, TRUE );
+   END EnqueuePromiscuous;
+         
 //--------------------------------------------------------------------------------
 
    PROCEDURE InitToDefault();
@@ -2211,6 +2239,7 @@ BEGIN
    InitReadItems := 0;
    oobData.ItemType := lists.blitSlot32;
    prData.ItemType := lists.blitSlot64;
+   ASSERT( SIZE( PromiscuousData ) < 64 );
 FINALLY
    Dispose();
 END CEIBServer;

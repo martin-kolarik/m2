@@ -19,7 +19,7 @@
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
         <Components Include="Component\sccore"/>
         <!-- Components Include="Modula2\m2rtl;Modula2\m2ortl;Library\ADT;Library\Resources;Library\Text;Library\Threading;Library\Service"/ -->
-        <Components Include="eib\eibstack"/>
+        <Components Include="EIB\eibstack"/>
         <Modules Include="core;eibnet;browser;eibnetstack"/>
     </ItemGroup>
 

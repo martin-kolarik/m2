@@ -799,17 +799,25 @@ CLASS IMPLEMENTATION CEIBDriver;
             END;
             QueueLock.Unlock();
 
-            promiscuousData.Address.GetGroupAddress3( TRUE, s );
-            CS.FromOA( s ); CS.AppendOA( L' ' );
-            eib_def.TypeToString( promiscuousData.Value.GetType(), s );
-            CS.AppendOA( s ); CS.AppendOA( L' ' );
+            IF promiscuousData.Status = eib_status.essOK THEN
+               promiscuousData.Address.GetGroupAddress3( TRUE, s );
+               CS.FromOA( s ); CS.AppendOA( L' ' );
+               eib_def.TypeToString( promiscuousData.Value.GetType(), s );
+               CS.AppendOA( s ); CS.AppendOA( L' ' );
 
-            IF promiscuousData.Value.GetType() = eib_def.eitDate THEN
-               IO.Type := iovalue.vtFloat;
+               IF promiscuousData.Value.GetType() = eib_def.eitDate THEN
+                  IO.Type := iovalue.vtFloat;
+               END;
+               EIBValue2IOValue( promiscuousData.Value, OUT IO );
+               CS.Append( IO.String );
+            ELSE
+               CS.FromOA( L"error " );
+               promiscuousData.Address.GetGroupAddress3( TRUE, s );
+               CS.AppendOA( s ); CS.AppendOA( L' ' );
+               eib_def.TypeToString( promiscuousData.Value.GetType(), s );
+               CS.AppendOA( s );
             END;
-            EIBValue2IOValue( promiscuousData.Value, OUT IO );
-            CS.Append( IO.String );
-
+            
          ELSE
            CS.FromOA( L'error: "event" procedure, unknown command' );
            GOTO Error;

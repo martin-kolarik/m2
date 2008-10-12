@@ -68,6 +68,7 @@ TYPE
    TPPromiscuousData = POINTER TO PromiscuousData;
 
 CLASS PromiscuousData;
+   Status  : eib_status.TEIBStackStatus;
    Address : eib_def.CAddress;
    Value   : eib_def.CValue;
 END PromiscuousData;
@@ -233,6 +234,7 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    LOCAL PROCEDURE ValueRead( PObject : TPObject; CurrentState : eib_user.TObjectState; CurrentInitReadState : eib_user.TInitReadState ); // dtto
    LOCAL PROCEDURE ValueUpdated( PObject : TPObject; CurrentState : eib_user.TObjectState ); // dtto
    LOCAL PROCEDURE ValueWritten( PObject : TPObject; CurrentState : eib_user.TObjectState ); // dtto
+   PRIVATE PROCEDURE EnqueuePromiscuous( Status : eib_status.TEIBStackStatus; PObject : TPObject );
 
    // helpers
    PROCEDURE DoInitRead( RepeatFlag : BOOLEAN );

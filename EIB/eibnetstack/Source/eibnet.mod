@@ -777,7 +777,7 @@ CLASS IMPLEMENTATION CConnection;
          // IOState := ioReady; -- not to set here, CConnection is ready after T_CON, L_ACK is matter of EIB and stack itself (and ACKTimeout is set there, of course)
          // ioReady is set in OnTunnelingACK.
          IF Error THEN
-            On_L_CON( eib_status.essTransceiverFault );
+            On_L_CON( eib_status.essConError );
          ELSE
             On_L_CON( eib_status.essOK );
          END;

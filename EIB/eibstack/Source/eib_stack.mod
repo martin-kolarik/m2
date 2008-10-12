@@ -2826,6 +2826,7 @@ CLASS IMPLEMENTATION CEIBStack;
     kvKnown = L'known';
     kvAll   = L'all';
   VAR
+    c : CARDINAL;
     t : TRISTATE;
   BEGIN
     IF EQUALS( L"link.ackMethod", Parameter ) THEN
@@ -2841,19 +2842,28 @@ CLASS IMPLEMENTATION CEIBStack;
       END;
 
     ELSIF EQUALS( L"link.outputQueueLength", Parameter ) THEN
-      IF NOT Strings.ToCARD32W( Value, 0, OUT TPEIBStackLinkLayer( Layers[ eltLink ] )^.L_Parameters.OutputQueueLength ) THEN
+      IF NOT Strings.ToCARD32W( Value, 10, OUT TPEIBStackLinkLayer( Layers[ eltLink ] )^.L_Parameters.OutputQueueLength ) THEN
          ErrorText := L"Expected number";
          RETURN FALSE;
       END;
 
+    ELSIF EQUALS( L"link.retryCount", Parameter ) THEN
+      IF NOT Strings.ToCARD32W( Value, 10, OUT c ) THEN
+         ErrorText := L"Expected number";
+         RETURN FALSE;
+      END;
+      c := MIN2( 10, c );
+      TPEIBStackLinkLayer( Layers[ eltLink ] )^.L_Parameters.BUSY_Retry := c;
+      TPEIBStackLinkLayer( Layers[ eltLink ] )^.L_Parameters.NAK_Retry := c;
+
     ELSIF EQUALS( L"application.pendingQueueLength.read", Parameter ) THEN
-      IF NOT Strings.ToCARD32W( Value, 0, OUT TPEIBStackApplicationLayer( Layers[ eltApplication ] )^.A_Parameters.PendingCount[ pendingGroupRead ] ) THEN
+      IF NOT Strings.ToCARD32W( Value, 10, OUT TPEIBStackApplicationLayer( Layers[ eltApplication ] )^.A_Parameters.PendingCount[ pendingGroupRead ] ) THEN
          ErrorText := L"Expected number";
          RETURN FALSE;
       END;
 
     ELSIF EQUALS( L"application.pendingQueueLength.write", Parameter ) THEN
-      IF NOT Strings.ToCARD32W( Value, 0, OUT TPEIBStackApplicationLayer( Layers[ eltApplication ] )^.A_Parameters.PendingCount[ pendingGroupWrite ] ) THEN
+      IF NOT Strings.ToCARD32W( Value, 10, OUT TPEIBStackApplicationLayer( Layers[ eltApplication ] )^.A_Parameters.PendingCount[ pendingGroupWrite ] ) THEN
          ErrorText := L"Expected number";
          RETURN FALSE;
       END;
