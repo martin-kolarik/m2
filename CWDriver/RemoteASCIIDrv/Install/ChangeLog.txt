@@ -1,4 +1,4 @@
-Version DEBUG 1.1.600 12.10.2008
+Version DEBUG 1.1.602 12.10.2008
 - BUG: DriverQueryProc SetRxIndex a SetTxIndex ignored input parameter
        and always set indexes to 0.
 - CHG: DriverQueryProc PutCharSeq and GetCharSeq now check if parameter

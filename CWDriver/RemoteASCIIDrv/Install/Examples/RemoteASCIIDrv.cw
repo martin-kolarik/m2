@@ -202,7 +202,13 @@ instrument
               core.DriverQueryProc( 'nm', 'GetCharSeq', &t );
             else
               core.DriverQueryProc( 'nm', 'GetCharSeq', &ch );
-              t = char( ch );
+              if ch = 10 then
+                t = '#0A';
+              elsif ch = 13 then
+                t = '#0D';
+              else
+                t = char( ch );
+              end;
             end;
             core.DriverQueryProc( 'nm', 'GetResult', &error );
             if error <> 0 then
