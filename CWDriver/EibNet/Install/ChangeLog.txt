@@ -1,3 +1,11 @@
+Version 1.0.605 beta
+- CHG: Versioning changed from SVN to HG
+- BUG: OutputQueueLength parameter was unable to read, it always repored error.
+- NEW: [interface] section can contain "retry_count" parameter to override EIB/KNX
+       standard value (3) for repeating send after busy and NAK link layer responses.
+       Zero value means no retrying (only single send will be done).
+- NEW: Driver in promiscuous mode reports send failures to application (using event queue).
+
 Version 1.0.1717 beta
 - BUG: initially read channels were not always notified to CW if during the initial reading
        the channel was requested by normal CW measuring cycle.
