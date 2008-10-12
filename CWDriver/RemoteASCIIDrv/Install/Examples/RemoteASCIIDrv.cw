@@ -42,9 +42,15 @@ instrument
       *)
 
       core.DriverQueryProc( 'nm', 'ClearTxQueue', 0 );
+      core.DriverQueryProc( 'nm', 'SetTxIndex', 10 );
       core.DriverQueryProc( 'nm', 'SetTxIndex', 0 );
+      core.DriverQueryProc( 'nm', 'SetRxIndex', 10 );
+      core.DriverQueryProc( 'nm', 'SetRxIndex', 0 );
 
+      core.DriverQueryProc( 'nm', 'PutCharSeq', 71 );
+      (*
       core.DriverQueryProc( 'nm', 'PutCharSeq', 'G' );
+      *)
       core.DriverQueryProc( 'nm', 'PutCharSeq', 'E' );
       core.DriverQueryProc( 'nm', 'PutCharSeq', 'T' );
       core.DriverQueryProc( 'nm', 'PutCharSeq', ' ' );
@@ -160,6 +166,7 @@ instrument
       delimiter = ' ';
     var
       c : cardinal;
+      ch : cardinal;
       error : cardinal;
       i : cardinal;
       s : string;
@@ -191,7 +198,12 @@ instrument
         if c > 0 then
           s := '';
           for i := 0 to c-1 do
-            core.DriverQueryProc( 'nm', 'GetCharSeq', &t );
+            if i % 2 = 1 then
+              core.DriverQueryProc( 'nm', 'GetCharSeq', &t );
+            else
+              core.DriverQueryProc( 'nm', 'GetCharSeq', &ch );
+              t = char( ch );
+            end;
             core.DriverQueryProc( 'nm', 'GetResult', &error );
             if error <> 0 then
               core.DebugOutput( 'GetCharSeq error: ', error );

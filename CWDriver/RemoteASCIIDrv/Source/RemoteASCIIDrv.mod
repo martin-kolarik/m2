@@ -795,8 +795,12 @@ CLASS IMPLEMENTATION CDriver;
          RBufferLock.Unlock();
 
          IF b THEN
-            EncodeASCIIString( REF s );
-            OutValue.String := s;
+            IF InValue2.Type = iovalue.vtString THEN // OutValue is paired with InValue2, so output should be string
+               EncodeASCIIString( REF s );
+               OutValue.String := s;
+            ELSE // OutValue is not string, assume it is number and assign ORD of found character
+               OutValue.Integer := ORD( s[0] );
+            END;
             INC( RIndex );
 
             LastError := erOK;
@@ -810,7 +814,7 @@ CLASS IMPLEMENTATION CDriver;
          END;
 
       ELSIF Command.EqualsOA( L"SetRxIndex" ) THEN
-         RIndex := 0;
+         RIndex := InValue2.Integer;
          LastError := erOK;
       
       ELSIF Command.EqualsOA( L"GetTxCount" ) THEN
@@ -823,31 +827,41 @@ CLASS IMPLEMENTATION CDriver;
          LastError := erOK;
       
       ELSIF Command.EqualsOA( L"PutCharSeq" ) THEN
-         s := InValue2.String;
-         IF NOT DecodeASCIIString( REF s ) THEN
-            // NEW( Event ); // error
-            // Event^.Event := evTxError;
-            // Event^.ASCIIError := erBadHexString;
-            // AddEvent( Event );
-
-            LastError := erBadHexString;
-         ELSIF WIndex < WBuffer.Size THEN
-            WBuffer.Length := MAX2( WBuffer.Length, WIndex+1 );
-            WBuffer[WIndex] := BYTE( s[0] );
-            INC( WIndex );
-
-            LastError := erOK;
-         ELSE
+         IF WIndex >= WBuffer.Size THEN
             // NEW( Event ); // error
             // Event^.Event := evTxError;
             // Event^.ASCIIError := erTxBufferFull;
             // AddEvent( Event );
 
             LastError := erTxBufferFull;
+
+         ELSIF InValue2.Type = iovalue.vtString THEN
+            s := InValue2.String;
+            IF DecodeASCIIString( REF s ) THEN
+               LastError := erOK;
+            ELSE
+               // NEW( Event ); // error
+               // Event^.Event := evTxError;
+               // Event^.ASCIIError := erBadHexString;
+               // AddEvent( Event );
+
+               LastError := erBadHexString;
+            END;
+
+         ELSE // assume InValue2 is number = ordinal number of character
+            s.FromOA( WCHAR( InValue2.Integer ));
+
+            LastError := erOK;
+         END;
+             
+         IF LastError = erOK THEN
+            WBuffer.Length := MAX2( WBuffer.Length, WIndex+1 );
+            WBuffer[WIndex] := BYTE( s[0] );
+            INC( WIndex );
          END;
 
       ELSIF Command.EqualsOA( L"SetTxIndex" ) THEN
-         WIndex := 0;
+         WIndex := InValue2.Integer;
          LastError := erOK;
       
       ELSIF Command.EqualsOA( L"SendAsync" ) THEN
