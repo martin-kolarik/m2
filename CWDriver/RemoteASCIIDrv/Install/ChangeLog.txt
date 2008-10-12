@@ -1,3 +1,10 @@
+Version DEBUG 1.1.600 12.10.2008
+- BUG: DriverQueryProc SetRxIndex a SetTxIndex ignored input parameter
+       and always set indexes to 0.
+- CHG: DriverQueryProc PutCharSeq and GetCharSeq now check if parameter
+       has numeric type and, in this case, they put or get character ord
+       instead of character itself (or encode string).
+
 Version DEBUG 1.1.586 7.10.2008
 - BUG: Characters above 127 were converted from UNICODE to ANSI (for CW), so
        bytes received were damaged. Confusion is caused by logical switch from
