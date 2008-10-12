@@ -342,7 +342,9 @@ CLASS IMPLEMENTATION TCPConnection;
 
    PUBLIC VIRTUAL PROCEDURE Close();
    BEGIN
-      _Socket^.Disconnect( TRUE, netsocket.FORSAFETY );
+      IF _Socket^.Connected THEN
+         _Socket^.Disconnect( TRUE, netsocket.FORSAFETY );
+      END;
       _BStream.Close( TRUE );
    END Close;
 

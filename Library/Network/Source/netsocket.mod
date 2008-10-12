@@ -1393,8 +1393,10 @@ CLASS IMPLEMENTATION DSocket;
 
    PRIVATE PROCEDURE DoDisconnect( Abortive, Nested : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    VAR
+      LPending : TPendingOperation;
       Result : CARDINAL;
    BEGIN
+      LPending := TPendingOperation( _Lock.Get( REF _Pending ));
       IF _Type = stDatagram THEN
          Close( FALSE );
          RETURN Sync.arCompleted;
@@ -1403,21 +1405,21 @@ CLASS IMPLEMENTATION DSocket;
          RETURN Sync.arCannotStart;
       ELSIF Abortive THEN
          // ignore next checks and do Abort
-      ELSIF _Lock.In( REF _Pending, poDisconnect ) THEN
+      ELSIF poDisconnect IN LPending THEN
          RETURN Sync.arAlreadyPending;
-      ELSIF _Lock.In( REF _Pending, poFinalReadoutPossible ) THEN // disconnected Socket has been left unclosed after previous FD_CLOSE to allow reading out of last peer data
-         Close( FALSE );
+      ELSIF poFinalReadoutPossible IN LPending THEN // disconnected Socket has been left unclosed after previous FD_CLOSE to allow reading out of last peer data
+         Close( poConnect IN LPending );
          RETURN Sync.arCannotStart;
 
-      ELSIF NOT Nested AND _Lock.In( REF _Pending, poConnect ) THEN // external (client) Disconnect called after/during Connect, so client expects socket to be disconnected. Thus,
-                                                                    // althought connect is pending, disconnect must be performed and connect must be cancelled.
+      ELSIF NOT Nested AND ( poConnect IN LPending ) THEN // external (client) Disconnect called after/during Connect, so client expects socket to be disconnected. Thus,
+                                                          // althought connect is pending, disconnect must be performed and connect must be cancelled.
          _Lock.Excl( REF _Pending, poConnect );
          Abortive := TRUE;
 
       ELSE // graceful, not abortive disconnect
          _Lock.Incl( REF _Pending, poDisconnect );
          StartTimeout( poDisconnect, TimeoutMS );
-         IF NOT _Lock.In( REF _Pending, poConnect ) THEN
+         IF poConnect NOT IN LPending THEN
             SELF.Result := Sync.arUnknown;
             _HSignal.Reset();
          END;
