@@ -56,7 +56,7 @@ END Sleep;
 
 (*--------------------------------------------------------------------------------*)
 
-PROCEDURE SpinLockAcquire( REF Data : PTR; SpinCount : CARDINAL; Timeout : CARDINAL ) : TAsyncResult;
+PROCEDURE SpinLockAcquireOrRead( ReadOnly : BOOLEAN; REF Data : PTR; SpinCount : CARDINAL; Timeout : CARDINAL ) : TAsyncResult;
 VAR
    StartTime : CARDINAL;
 BEGIN
@@ -68,7 +68,17 @@ BEGIN
       StartTime := Time.UptimeMS();
    END;
 
-   WHILE IExchgPtr( REF Data, SPIN_LOCKED ) = SPIN_LOCKED DO
+   LOOP
+      IF ReadOnly THEN
+         IF IGetPtr( REF Data ) = SPIN_UNLOCKED THEN
+            EXIT;
+         END;
+      ELSE // NOT ReadOnly, atomicaly acquire
+         IF IExchgPtr( REF Data, SPIN_LOCKED ) = SPIN_UNLOCKED THEN
+            EXIT;
+         END;
+      END;
+
       IF NumOfProcessors = 1 THEN
          windows.Sleep( 0 );
       ELSIF SpinCount > 0 THEN
@@ -76,6 +86,7 @@ BEGIN
       ELSE
          windows.Sleep( 0 );
       END;
+
       IF ( SpinCount > 0 ) OR ( Timeout = FOREVER ) THEN
          CONTINUE;
       ELSIF Timeout = 0 THEN // only tick or spincount wait allowed
@@ -85,9 +96,16 @@ BEGIN
       ELSE
          CONTINUE;
       END;
-   END; // WHILE
+   END; // LOOP
    
    RETURN arCompleted;
+END SpinLockAcquireOrRead;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE SpinLockAcquire( REF Data : PTR; SpinCount : CARDINAL; Timeout : CARDINAL ) : TAsyncResult;
+BEGIN
+   RETURN SpinLockAcquireOrRead( FALSE, REF Data, SpinCount, Timeout );
 END SpinLockAcquire;
 
 (*--------------------------------------------------------------------------------*)
@@ -127,6 +145,8 @@ CLASS IMPLEMENTATION LOCK;
       ELSE
         Data := windows.CreateMutexW( NIL, windows.BOOL( InitiallyLocked ), ADR( Name ));
       END;
+    ELSE
+      Data := SPIN_UNLOCKED;
     END;
     IF InitiallyLocked THEN
       Lock();
@@ -136,17 +156,52 @@ CLASS IMPLEMENTATION LOCK;
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC PROCEDURE Lock();
-  VAR
-    LSpin : CARDINAL := Spin;
   BEGIN
     IF Type = ltSpin THEN
-      SpinLockAcquire( REF Data, Spin, FOREVER );
+      SpinLockAcquireOrRead( FALSE, REF Data, Spin, FOREVER );
     ELSIF Type = ltCS THEN
       windows.EnterCriticalSection( windows.PCRITICAL_SECTION( Data ));
     ELSIF Type = ltMutex THEN
       windows.WaitForSingleObject( Data, windows.INFINITE );
     END;
   END Lock;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE LockTimeout( Timeout : CARDINAL ) : TAsyncResult;
+   BEGIN
+      IF Type = ltSpin THEN
+         RETURN SpinLockAcquireOrRead( FALSE, REF Data, Spin, Timeout );
+
+      ELSIF Type = ltCS THEN
+         IF Timeout = 0 THEN
+            IF windows.TryEnterCriticalSection( windows.PCRITICAL_SECTION( Data )) = windows.True THEN
+               RETURN arCompleted;
+            ELSE
+               RETURN arTimeout;
+            END;
+         ELSIF Timeout = FOREVER THEN
+            windows.EnterCriticalSection( windows.PCRITICAL_SECTION( Data ));
+            RETURN arCompleted;
+         ELSE
+            ASSERT( FALSE );
+            RETURN arCannotStart;
+         END;
+
+      ELSIF Type = ltMutex THEN
+         CASE CARDINAL( windows.WaitForSingleObject( Data, Timeout )) OF
+         | windows.WAIT_OBJECT_0 :
+            RETURN arCompleted;
+         | windows.WAIT_TIMEOUT : 
+            RETURN arTimeout;
+         ELSE
+            RETURN arAborted;
+         END;
+         
+      ELSE
+         RETURN arCannotStart;
+      END;
+   END LockTimeout;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -481,26 +536,34 @@ CLASS IMPLEMENTATION RWLOCK;
 
    PUBLIC PROCEDURE Init( Type : TLockType; CONST Name : ARRAY OF WCHAR );
    BEGIN
-      Lock.Init( Type, Name, FALSE );
-      WriteSignal.Init( stSpinAutoreset, L"", FALSE );
-      ReadSignal.Init( stSpin, L"", FALSE );
+      ASSERT( Type <> ltILock );
+      Lock.Init( ltSpin, Name, FALSE );
+      IF Type = ltSpin THEN
+         WriteSignal.Init( stSpinAutoreset, L"", FALSE );
+         ReadSignal.Init( stSpin, L"", FALSE );
+      ELSE
+         WriteSignal.Init( stEventAutoreset, L"", FALSE );
+         ReadSignal.Init( stEvent, L"", FALSE );
+      END;
    END Init;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE LockWrite( Timeout : CARDINAL );
+   PUBLIC PROCEDURE LockWrite( Timeout : CARDINAL ) : TAsyncResult;
    BEGIN
       Lock.Lock();
-      LOOP;
+      LOOP
          IF Owners = 0 THEN // Good case, there is no contention, we are basically done 
             Owners := -1; // Indicate we have a writer
-            EXIT;
-         END;
-         IF WaitOnSignal( REF WriteSignal, REF WriteWaiters, Timeout ) = Sync.arTimeout THEN
-            ASSERT( FALSE );
+            Lock.Unlock();
+            RETURN arCompleted;
+
+         ELSIF WaitOnSignal( REF WriteSignal, REF WriteWaiters, Timeout ) = Sync.arTimeout THEN
+            Lock.Unlock();
+            RETURN arTimeout;
+
          END;
       END; // LOOP
-      Lock.Unlock();
    END LockWrite;
 
 (*--------------------------------------------------------------------------------*)
@@ -516,19 +579,21 @@ CLASS IMPLEMENTATION RWLOCK;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE LockRead( Timeout : CARDINAL );
+   PUBLIC PROCEDURE LockRead( Timeout : CARDINAL ) : TAsyncResult;
    BEGIN
       Lock.Lock();
       LOOP
          IF ( Owners >= 0 ) AND ( WriteWaiters = 0 ) THEN // We can enter a read lock if there are only read-locks have been given out and a writer is not trying to get in.  
             INC( Owners );
-            EXIT;
-         END;
-         IF WaitOnSignal( REF ReadSignal, REF ReadWaiters, Timeout ) = Sync.arTimeout THEN
-            ASSERT( FALSE );
+            Lock.Unlock();
+            RETURN arCompleted;
+
+         ELSIF WaitOnSignal( REF ReadSignal, REF ReadWaiters, Timeout ) = Sync.arTimeout THEN
+            Lock.Unlock();
+            RETURN arTimeout;
+
          END;
       END; // LOOP
-      Lock.Unlock();
    END LockRead;
 
 (*--------------------------------------------------------------------------------*)
@@ -548,8 +613,9 @@ CLASS IMPLEMENTATION RWLOCK;
    VAR
       Result : TAsyncResult;
    BEGIN
-      // we must be inside lock
+      // we must be inside lock here
       INC( Waiters );
+      Signal.Reset();
       Lock.Unlock();
       
       Result := Signal.Wait( Timeout );
@@ -651,9 +717,11 @@ END IGetPtr;
 (*================================================================================*)
 // signalling
 
-PROCEDURE RawCreateSignal( InitiallySignalled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : RAWSIGNAL;
+#save, option( leak_info => on )
+PROCEDURE RawCreateSignal( InitiallySignalled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : WAITABLE;
+#restore
 VAR
-   Signal : RAWSIGNAL;
+   Signal : WAITABLE;
 BEGIN
   IF Name[0] = 0W THEN
     Signal := windows.CreateEventW( NIL, windows.True, windows.BOOL( InitiallySignalled ), NIL );
@@ -664,9 +732,11 @@ BEGIN
   RETURN Signal;
 END RawCreateSignal;
 
-PROCEDURE RawCreateAutoresetSignal( InitiallySignalled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : RAWSIGNAL;
+#save, option( leak_info => on )
+PROCEDURE RawCreateAutoresetSignal( InitiallySignalled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : WAITABLE;
+#restore
 VAR
-   Signal : RAWSIGNAL;
+   Signal : WAITABLE;
 BEGIN
   IF Name[0] = 0W THEN
     Signal := windows.CreateEventW( NIL, windows.False, windows.BOOL( InitiallySignalled ), NIL );
@@ -677,7 +747,9 @@ BEGIN
   RETURN Signal;
 END RawCreateAutoresetSignal;
 
-PROCEDURE RawDeleteSignal( REF S : RAWSIGNAL );
+#save, option( leak_info => on )
+PROCEDURE RawDeleteSignal( REF S : WAITABLE );
+#restore
 BEGIN
   IF S <> NIL THEN
     LeakDEALLOCATE( S );
@@ -686,7 +758,7 @@ BEGIN
   END;
 END RawDeleteSignal;
 
-PROCEDURE RawSignal( S : RAWSIGNAL );
+PROCEDURE RawSignal( S : WAITABLE );
 BEGIN
   IF S = NIL THEN
     RETURN;
@@ -694,7 +766,7 @@ BEGIN
   windows.SetEvent( S );
 END RawSignal;
 
-PROCEDURE RawSignalAndReset( S : RAWSIGNAL );
+PROCEDURE RawSignalAndReset( S : WAITABLE );
 BEGIN
   IF S = NIL THEN
     RETURN;
@@ -702,7 +774,7 @@ BEGIN
   windows.PulseEvent( S );
 END RawSignalAndReset;
 
-PROCEDURE RawReset( S : RAWSIGNAL );
+PROCEDURE RawReset( S : WAITABLE );
 BEGIN
   IF S = NIL THEN
     RETURN;
@@ -785,11 +857,7 @@ CLASS IMPLEMENTATION SIGNAL;
    BEGIN
      Dispose();
      SELF.Type := Type;
-     IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
-       Lock.Init( ltSpin, L"", FALSE );
-     ELSE
-       Lock.Init( ltCS, L"", FALSE );
-     END;
+     Lock.Init( ltSpin, L"", FALSE );
      IF Type = stEvent THEN
        Data := RawCreateSignal( InitiallySignaled, Name );
      ELSIF Type = stEventAutoreset THEN
@@ -833,10 +901,9 @@ CLASS IMPLEMENTATION SIGNAL;
    PUBLIC PROCEDURE SignalAndReset();
    BEGIN
       IF ( Type = stSpin ) OR ( Type = stSpinAutoreset ) THEN
-         Lock.Lock();
          IExchgPtr( REF Data, SPIN_SET );
+         Sleep( 0 );
          IExchgPtr( REF Data, SPIN_NOTSET );
-         Lock.Unlock();
       ELSE
          // Lock.Lock(); -- for atomic os SignalAndReset there is no need to lock
          RawSignalAndReset( Data );
@@ -875,15 +942,9 @@ CLASS IMPLEMENTATION SIGNAL;
       Result : TAsyncResult;
    BEGIN
       IF Type = stSpin THEN
-         RETURN SpinLockAcquire( REF Data, Spin, Timeout );
+         RETURN SpinLockAcquireOrRead( TRUE, REF Data, Spin, Timeout );
       ELSIF Type = stSpinAutoreset THEN
-         Lock.Lock();
-         Result := SpinLockAcquire( REF Data, Spin, Timeout );
-         IF Result = arCompleted THEN
-            SpinLockLeave( REF Data );
-         END;
-         Lock.Unlock();
-         RETURN Result;
+         RETURN SpinLockAcquireOrRead( FALSE, REF Data, Spin, Timeout );
       ELSE
          RETURN RawWait( Data, Timeout );
       END;
@@ -908,11 +969,82 @@ CLASS IMPLEMENTATION SIGNAL;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   Data := SPIN_NOTSET;
    Spin := 256;
+   Data := SPIN_NOTSET;
 FINALLY
    Dispose();
 END SIGNAL;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE CreateSignal( Type : TSignalType; CONST Name : ARRAY OF WCHAR; InitialState : BOOLEAN ) : PSIGNAL;
+VAR
+   signal : PSIGNAL;
+BEGIN
+   NEW( signal );
+   signal^.Init( Type, Name, InitialState );
+   RETURN signal;
+END CreateSignal;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE DeleteSignal( REF Signal : PSIGNAL );
+BEGIN
+   IF Signal <> NIL THEN
+      Signal^.Dispose();
+      DISPOSE( Signal );
+   END;
+END DeleteSignal;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE SafeSignal( Signal : PSIGNAL ) : TRISTATE;
+BEGIN
+   IF Signal = NIL THEN
+      RETURN stINVALID;
+   ELSIF Signal^.Signal() THEN
+      RETURN stSET;
+   ELSE
+      RETURN stNOTSET;
+   END;
+END SafeSignal;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE SafeReset( Signal : PSIGNAL ) : TRISTATE;
+BEGIN
+   IF Signal = NIL THEN
+      RETURN stINVALID;
+   ELSIF Signal^.Reset() THEN
+      RETURN stSET;
+   ELSE
+      RETURN stNOTSET;
+   END;
+END SafeReset;   
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE SafeWait( Signal : PSIGNAL; Timeout : CARDINAL ) : TAsyncResult;
+BEGIN
+   IF Signal = NIL THEN
+      RETURN arCannotStart;
+   ELSE
+      RETURN Signal^.Wait( Timeout );
+   END;
+END SafeWait;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE SafeState( Signal : PSIGNAL ) : TRISTATE;
+BEGIN
+   IF Signal = NIL THEN
+      RETURN stINVALID;
+   ELSIF Signal^.State THEN
+      RETURN stSET;
+   ELSE
+      RETURN stNOTSET;
+   END;
+END SafeState;
 
 (*================================================================================*)
 

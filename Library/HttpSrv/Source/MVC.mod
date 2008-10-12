@@ -1326,8 +1326,8 @@ CLASS CHttpSrv( threadpool.APoolDelegate ) IMPLEMENTS IHttpServer;
 
       _HttpQueue : Sync.WAITABLE := NIL;
       _HttpOverlapped : windows.OVERLAPPED;
-      _HRequestSignal : Sync.WAITABLE := NIL;
-      _HPoolHandle : Sync.WAITABLE := NIL;
+      _HRequestSignal : Sync.SIGNAL;
+      _HPoolHandle : threadpool.TPoolHandle := NIL;
       
       _PreparedStream : TPHttpApiStream;
    
@@ -1537,7 +1537,7 @@ CLASS IMPLEMENTATION CHttpSrv;
          RETURN Sync.arCannotStart;
       END;
       // force switching to another thread (simulate request arriving), waiting will be starte from the another thread
-      Sync.RawSignal( _HRequestSignal );
+      _HRequestSignal.Signal();
       
       _Running := TRUE;
       RETURN Sync.arCompleted;

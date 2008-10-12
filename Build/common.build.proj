@@ -151,8 +151,8 @@
         <TestDEFFiles Condition="@(TestDEFFiles)!='' Or @(TestMODFiles)!=''" Include="$(TestFactoryDEF)"/>
         <TestMODFiles Condition="@(TestDEFFiles)!='' Or @(TestMODFiles)!=''" Include="$(TestFactoryMOD)"/>
 
-        <TestCPPFiles Include="@(TestMODFiles -> '$(IntermediateDir)\%(Filename).cpp')"/>
-        <TestOBJFiles Include="@(TestMODFiles -> '$(IntermediateDir)\%(Filename).obj')"/>
+        <TestCPPFiles Include="@(TestMODFiles -> '$(IntermediateDir)\%(Filename).cpp');m2init.cpp"/>
+        <TestOBJFiles Include="@(TestMODFiles -> '$(IntermediateDir)\%(Filename).obj');m2init.obj"/>
     </ItemGroup>
 
     <!-- inner, invisible targets -->
@@ -451,7 +451,7 @@
     </Target>
 
     <Target Name="TestObjects" Condition="@(TestDEFFiles)!='' or @(TestMODFiles)!=''"
-            DependsOnTargets="TestCPPs"
+            DependsOnTargets="Modula2InitCPP;TestCPPs"
             Inputs="@(TestCPPFiles)" Outputs="@(TestCPPFiles -> '$(IntermediateDir)\%(Filename).obj')">
         <Exec WorkingDirectory="$(IntermediateDir)"
               Command="$(CL) $(CLDEF) @(TestCPPFiles ->'%(FileName)%(Extension)', ' ')"/>

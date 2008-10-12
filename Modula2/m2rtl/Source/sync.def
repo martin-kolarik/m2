@@ -10,7 +10,6 @@ FROM Storage IMPORT
 // generic types
 TYPE
    WAITABLE = ADDRESS;
-   RAWSIGNAL = WAITABLE; // temporary, will be killed in next wave
   
 TYPE
    // main success: arCompleted
@@ -75,6 +74,7 @@ CLASS LOCK;
 
    PUBLIC PROCEDURE Init( Type : TLockType; CONST Name : ARRAY OF WCHAR; InitiallyLocked : BOOLEAN );
    PUBLIC PROCEDURE Lock();
+   PUBLIC PROCEDURE LockTimeout( Timeout : CARDINAL ) : TAsyncResult; // not applicable for CS if Timeout > 0
    PUBLIC PROCEDURE Unlock();
 
    // primitive operations done in LOCKed context  
@@ -102,14 +102,9 @@ END LOCK;
 (*================================================================================*)
 // raw signalling, mainly for handles coming from OS
 
-#save, option( leak_info => on )
-PROCEDURE RawCreateSignal( InitiallySignaled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : RAWSIGNAL;
-PROCEDURE RawCreateAutoresetSignal( InitiallySignaled : BOOLEAN; CONST Name : ARRAY OF WCHAR ) : RAWSIGNAL;
-PROCEDURE RawDeleteSignal( REF S : RAWSIGNAL );
-#restore
-PROCEDURE RawSignal( S : RAWSIGNAL );
-PROCEDURE RawSignalAndReset( S : RAWSIGNAL );
-PROCEDURE RawReset( S : RAWSIGNAL );
+PROCEDURE RawSignal( S : WAITABLE );
+PROCEDURE RawSignalAndReset( S : WAITABLE );
+PROCEDURE RawReset( S : WAITABLE );
 
 // waiting
 PROCEDURE RawWait( W : WAITABLE; Timeout : CARDINAL ) : TAsyncResult;
@@ -157,6 +152,19 @@ CLASS SIGNAL;
    PUBLIC PROCEDURE Dispose(); // not required, implicit
 END SIGNAL;
 
+// "static" methods
+CONST
+   stSET = TRISTATE( 1 );
+   stNOTSET = TRISTATE( 0 );
+   stINVALID = TRISTATE( -1 );
+
+PROCEDURE CreateSignal( Type : TSignalType; CONST Name : ARRAY OF WCHAR; InitialState : BOOLEAN ) : PSIGNAL;
+PROCEDURE DeleteSignal( REF Signal : PSIGNAL );
+PROCEDURE SafeSignal( Signal : PSIGNAL ) : TRISTATE;
+PROCEDURE SafeReset( Signal : PSIGNAL ) : TRISTATE;
+PROCEDURE SafeWait( Signal : PSIGNAL; Timeout : CARDINAL ) : TAsyncResult;
+PROCEDURE SafeState( Signal : PSIGNAL ) : TRISTATE;
+
 (*================================================================================*)
 // continuation of locking
 // only ltILock has no effect
@@ -170,12 +178,12 @@ CLASS RWLOCK; // single writer, multiple readers, fast; inspired from: http://bl
       ReadSignal : SIGNAL;
       ReadWaiters : CARDINAL;
 
-   PUBLIC PROCEDURE Init( Type : TLockType; CONST Name : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE Init( Type : TLockType; CONST Name : ARRAY OF WCHAR ); // if lock time is expected to be short, use ltSpin, otherwise consider using of ltCS/ltMutex (they are the same for RWLock)
    
-   PUBLIC PROCEDURE LockWrite( Timeout : CARDINAL );
+   PUBLIC PROCEDURE LockWrite( Timeout : CARDINAL ) : TAsyncResult;
    PUBLIC PROCEDURE UnlockWrite();
    
-   PUBLIC PROCEDURE LockRead( Timeout : CARDINAL );
+   PUBLIC PROCEDURE LockRead( Timeout : CARDINAL ) : TAsyncResult;
    PUBLIC PROCEDURE UnlockRead();
    
    PRIVATE PROCEDURE WaitOnSignal( REF Signal : SIGNAL; REF Waiters : CARDINAL; Timeout : CARDINAL ) : TAsyncResult;

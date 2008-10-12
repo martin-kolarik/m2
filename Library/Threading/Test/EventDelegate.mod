@@ -41,7 +41,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       Pool : threadpool.TPThreadPool;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
-   PRIVATE PROCEDURE Round( CompletionInOwningThread : BOOLEAN; CONST EA : ARRAY OF windows.HANDLE; REF PH : ARRAY OF sync.WAITABLE ) : BOOLEAN;
+   PRIVATE PROCEDURE Round( CompletionInOwningThread : BOOLEAN; CONST EA : ARRAY OF windows.HANDLE; REF PH : ARRAY OF threadpool.TPoolHandle ) : BOOLEAN;
    PRIVATE PROCEDURE WaitForMessages( count : CARDINAL );
 END CTest;
 
@@ -117,7 +117,7 @@ CLASS IMPLEMENTATION CTest;
    
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE Round( CompletionInOwningThread : BOOLEAN; CONST EA : ARRAY OF windows.HANDLE; REF PH : ARRAY OF sync.WAITABLE ) : BOOLEAN;
+   PRIVATE PROCEDURE Round( CompletionInOwningThread : BOOLEAN; CONST EA : ARRAY OF windows.HANDLE; REF PH : ARRAY OF threadpool.TPoolHandle ) : BOOLEAN;
    VAR
       Failure : BOOLEAN := FALSE;
       i, j : CARDINAL;

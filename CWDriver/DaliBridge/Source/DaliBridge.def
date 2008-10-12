@@ -228,7 +228,7 @@ CLASS CDaliDevice( msghandler.MessageHandler ) IMPLEMENTS threadpool.ITimeoutSin
       PendingArray : ARRAY TDaliLinie OF ARRAY [0..63] OF BOOLEAN; // accessed only from Dali thread
       PollSink : threadpool.TPSinkDelegate;
       PollPeriod : CARDINAL;
-      PollTimer : Sync.WAITABLE;
+      PollTimer : threadpool.TPoolHandle;
       PollActive : CARDINAL;
       _PollClientId : PTR;
 

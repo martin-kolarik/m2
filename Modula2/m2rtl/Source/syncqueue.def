@@ -17,8 +17,8 @@ CLASS RingBuffer( Sync.OneToOneQueue ); // SIGNALLING and FLUSHING, if needed, s
   PUBLIC VIRTUAL PROPERTY
      Size        : CARDINAL;
   PUBLIC VAR
-     Consume     : Sync.RAWSIGNAL := NIL;
-     Produce     : Sync.RAWSIGNAL := NIL;
+     Consume     : Sync.PSIGNAL := NIL;
+     Produce     : Sync.PSIGNAL := NIL;
      FlushSleep  : CARDINAL := 5; // should not be changed if you really dont know what you do!!, mainly for unit tests purposes
 
   // asynchronous GET API
@@ -77,8 +77,8 @@ CLASS CDatagramQueue( Sync.NToOneQueue );
      Size       : CARDINAL;
      ItemSize   : CARDINAL;
   PUBLIC VAR
-     Consume    : Sync.RAWSIGNAL := NIL;
-     Produce    : Sync.RAWSIGNAL := NIL;
+     Consume    : Sync.PSIGNAL := NIL;
+     Produce    : Sync.PSIGNAL := NIL;
      FlushSleep : CARDINAL := 5; // should not be changed if you really dont know what you do!!, mainly for unit tests purposes
 
   // consumer

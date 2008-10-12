@@ -31,7 +31,7 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
       WaitHandles : ARRAY [0..1] OF Sync.WAITABLE;
    BEGIN
       WaitHandles[0] := _HExit.RawHandle;
-      WaitHandles[1] := Queue.Consume;
+      WaitHandles[1] := Queue.Consume^.RawHandle;
    
       OnStart();
       LOOP
@@ -226,13 +226,13 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
 BEGIN
    NEW( Support );
    Support^.Init( ADR( SELF ));
-
+   
    Queue.Init( 2048, SIZE( msghandler.Message ));
-   Queue.Consume := Sync.RawCreateAutoresetSignal( FALSE, L"" );
-   Queue.Produce := Sync.RawCreateSignal( TRUE, L"" );
+   Queue.Consume := Sync.CreateSignal( Sync.stEventAutoreset, L"", FALSE );
+   Queue.Produce := Sync.CreateSignal( Sync.stEvent, L"", TRUE );
 FINALLY
-   Sync.RawDeleteSignal( REF Queue.Consume );
-   Sync.RawDeleteSignal( REF Queue.Produce );
+   Sync.DeleteSignal( REF Queue.Consume );
+   Sync.DeleteSignal( REF Queue.Produce );
 
    Support^.Dispose();
    DISPOSE( Support );

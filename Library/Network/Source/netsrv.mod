@@ -335,7 +335,7 @@ END CSocketNotifier;
 //--------------------------------------------------------------------------------
 
 CLASS CIPServer( msghandler.MessageHandler );
-  _FDHandle : Sync.WAITABLE;
+  _FDHandle : threadpool.TPoolHandle;
   _FDMessager : msghandler.TPMessageHandler;
   _FDMessage : msghandler.Message;
   _Delegate : threadpool.CMessageHandlerDelegate;

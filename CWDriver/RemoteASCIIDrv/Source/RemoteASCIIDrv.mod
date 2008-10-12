@@ -130,7 +130,6 @@ CLASS CDriver IMPLEMENTS diface.ICWDriver;
    Notifier      : CNotifier;
    Connection    : rawconnection.TCPConnection;
    Events        : msgqueue.CPtrQueue;
-   EventsSignal  : Sync.RAWSIGNAL;
    LastError     : TASCIIError;
    Delimiter     : WCHAR;
 
@@ -906,7 +905,7 @@ CLASS IMPLEMENTATION CDriver;
    PRIVATE PROCEDURE AddEvent( Event : POINTER TO TEventData );
    BEGIN
       Events.Enqueue( Event );
-      IF Sync.RawState( EventsSignal ) THEN
+      IF Events.Produce^.State THEN
          Logger.LogSC( dldDebug, logPrefix, L"Event.Queued, fire dcfException ", CARDINAL( Event^.Event ));
          CallbackProc( CallbackId, drv_def.dcfException, NIL );
       ELSE
@@ -1012,8 +1011,7 @@ BEGIN
 
    Notifier.Driver := ADR( SELF );
 
-   EventsSignal := Sync.RawCreateAutoresetSignal( TRUE, L"" );
-   Events.Produce := EventsSignal;
+   Events.Produce := Sync.CreateSignal( Sync.stEventAutoreset, L"", TRUE );
    LastError := erOK;
 
    Delimiter := L" ";
@@ -1022,7 +1020,7 @@ BEGIN
    RBuffer.Size := 16384;
    RIndex := 0;
 FINALLY
-   Sync.RawDeleteSignal( REF EventsSignal );   
+   Sync.DeleteSignal( REF Events.Produce );
 END CDriver;
 
 (*================================================================================*)

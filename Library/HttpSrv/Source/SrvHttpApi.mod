@@ -722,8 +722,8 @@ CLASS CHttpApiSrv( SrvCommon.ASrvCommon );
       _Running : BOOLEAN := FALSE;
       _HttpQueue : Sync.WAITABLE := NIL;
       _HttpOverlapped : windows.OVERLAPPED;
-      _HRequestSignal : Sync.WAITABLE := NIL;
-      _HPoolHandle : Sync.WAITABLE := NIL;
+      _HRequestSignal : Sync.SIGNAL;
+      _HPoolHandle : threadpool.TPoolHandle;
    
    PRIVATE PROCEDURE StartWaitingRequest() : Sync.TAsyncResult;
    
@@ -815,7 +815,7 @@ CLASS IMPLEMENTATION CHttpApiSrv;
          RETURN Sync.arCannotStart;
       END;
       // force switching to another thread (simulate request arriving), waiting will be starte from the another thread
-      Sync.RawSignal( _HRequestSignal );
+      _HRequestSignal.Signal();
       
       _Running := TRUE;
       RETURN Sync.arCompleted;

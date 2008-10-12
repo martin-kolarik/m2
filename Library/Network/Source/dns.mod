@@ -264,7 +264,7 @@ END KillAllPending;
 
 (*===========================================================================*)
 
-PROCEDURE NameToAddress( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Name : ARRAY OF WCHAR; DefaultPort : CARDINAL; OUT Handle : PTR ) : BOOLEAN;
+PROCEDURE NameToAddress( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Name : ARRAY OF WCHAR; DefaultPort : CARDINAL; OUT Handle : threadpool.TPoolHandle ) : BOOLEAN;
 VAR
    Address : inetaddr.INETADDR;
    Request : TPNameToAddressRequest;
@@ -295,7 +295,7 @@ END NameToAddress;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE AddressToName( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Address : inetaddr.INETADDR; IncludePort : BOOLEAN; OUT Handle : PTR ) : BOOLEAN;
+PROCEDURE AddressToName( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Address : inetaddr.INETADDR; IncludePort : BOOLEAN; OUT Handle : threadpool.TPoolHandle ) : BOOLEAN;
 VAR
    Request : TPAddressToNameRequest;
 BEGIN

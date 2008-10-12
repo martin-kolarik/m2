@@ -29,8 +29,8 @@ PROCEDURE KillAllPending( PNotifier : TPDNSNotifier );
 
 //--------------------------------------------------------------------------------
 // asynchronous API, synchronous variant can wait to Handle
-PROCEDURE NameToAddress( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Name : ARRAY OF WCHAR; DefaultPort : CARDINAL; OUT Handle : PTR ) : BOOLEAN;
-PROCEDURE AddressToName( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Address : inetaddr.INETADDR; IncludePort : BOOLEAN; OUT Handle : PTR ) : BOOLEAN;
+PROCEDURE NameToAddress( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Name : ARRAY OF WCHAR; DefaultPort : CARDINAL; OUT Handle : threadpool.TPoolHandle ) : BOOLEAN;
+PROCEDURE AddressToName( PNotifier : TPDNSNotifier; RequestId : PTR; CONST Address : inetaddr.INETADDR; IncludePort : BOOLEAN; OUT Handle : threadpool.TPoolHandle ) : BOOLEAN;
 
 // synchronous API
 PROCEDURE NameToAddressWait( CONST Name : ARRAY OF WCHAR; DefaultPort : CARDINAL; TimeoutMS : CARDINAL; OUT Address : ARRAY OF inetaddr.INETADDR ) : BOOLEAN;

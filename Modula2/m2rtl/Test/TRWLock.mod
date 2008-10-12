@@ -23,11 +23,13 @@ CLASS CTest IMPLEMENTS test.ITest;
       RWLock : Sync.RWLOCK;
       Shared : ARRAY [0..15] OF CARDINAL;
       
-      ReaderCount : CARDINAL;
+      ReaderCount : CARDINAL := 0;
+      ReaderIndex : CARDINAL := 0;
       Threads : ARRAY [0..255] OF Sync.WAITABLE;
+      Counts : ARRAY [0..255] OF CARDINAL;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
-   INTERNAL PROCEDURE Round( WriterCount, ReaderCount : CARDINAL ) : BOOLEAN;
+   INTERNAL PROCEDURE Round( Spinned : BOOLEAN; WriterCount, ReaderCount : CARDINAL ) : BOOLEAN;
    
    LOCAL PROCEDURE Write();
    LOCAL PROCEDURE Read();
@@ -76,8 +78,13 @@ CLASS IMPLEMENTATION CTest;
       SELF.Host := Host;
    
       FOR Thread := 0 TO HIGH( writerThreads ) DO
-         Failure := NOT Round( 1, writerThreads[Thread] ) OR Failure;
-         Failure := NOT Round( 2, writerThreads[Thread] ) OR Failure;
+         Failure := NOT Round( FALSE, 1, writerThreads[Thread] ) OR Failure;
+         Failure := NOT Round( FALSE, 2, writerThreads[Thread] ) OR Failure;
+      END;
+
+      FOR Thread := 0 TO HIGH( writerThreads ) DO
+         Failure := NOT Round( TRUE, 1, writerThreads[Thread] ) OR Failure;
+         Failure := NOT Round( TRUE, 2, writerThreads[Thread] ) OR Failure;
       END;
 
       IF Failure THEN
@@ -89,18 +96,26 @@ CLASS IMPLEMENTATION CTest;
    
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL PROCEDURE Round( WriterCount, ReaderCount : CARDINAL ) : BOOLEAN;
+   INTERNAL PROCEDURE Round( Spinned : BOOLEAN; WriterCount, ReaderCount : CARDINAL ) : BOOLEAN;
    VAR
       i : CARDINAL;
       Phase : ARRAY [0..47] OF WCHAR;
       s : ARRAY [0..31] OF WCHAR;
       Success : BOOLEAN;
+      Total : CARD64;
       WT1, WT2 : windows.HANDLE;
    BEGIN
       Exit := 0; // reset
       SELF.ReaderCount := ReaderCount;
       
-      Phase := L"Readers: ";
+      IF Spinned THEN
+         Phase := L"[Fast/Spinned] Readers: ";
+         RWLock.Init( Sync.ltSpin, L"" );
+      ELSE
+         Phase := L"[Blocking] Readers: ";
+         RWLock.Init( Sync.ltCS, L"" );
+      END;
+      
       Strings.FromCARD32W( ReaderCount, 10, OUT s );
       Strings.AppendW( REF Phase, s );
       Strings.AppendW( REF Phase, L", writers: " );
@@ -108,6 +123,7 @@ CLASS IMPLEMENTATION CTest;
       Strings.AppendW( REF Phase, s );
       Host^.StartPhase( Phase );
 
+      ReaderIndex := 0;
       FOR i := 0 TO ReaderCount-1 DO
          Threads[i] := windows.CreateThread( NIL, 0, ReaderThread, ADR( SELF ), 0, NIL );
       END;
@@ -126,11 +142,14 @@ CLASS IMPLEMENTATION CTest;
       Exit := 1;
 
       // wait for all readers
+      Total := 0;
       FOR i := 0 TO ReaderCount-1 DO
          Sync.RawWait( Threads[i], Sync.FOREVER );
          windows.CloseHandle( Threads[i] );
+         INC( Total, CARD64( Counts[i] ));
       END;
-      Success := Exit = 0;
+      Host^.Log^.LogSC( log.dlcError, L"", L"  readers in avg got: ", CARD32( Total DIV CARD64( ReaderCount )) );
+      Success := TRUE;
 
       Host^.StopPhase();
       RETURN Success;
@@ -173,20 +192,23 @@ CLASS IMPLEMENTATION CTest;
    LOCAL PROCEDURE Read();
    VAR
       i, value : CARDINAL;
+      ti : CARDINAL := Sync.IExchgAdd( REF ReaderIndex, 1 );
    BEGIN
       LOOP
-         RWLock.LockRead( Sync.FOREVER );
+         IF RWLock.LockRead( 2000 ) = Sync.arCompleted THEN
+            INC( Counts[ti] );
 
-         value := Shared[0];
-         FOR i := 1 TO HIGH( Shared ) DO
-            INC( value );
-            IF value <> Shared[i] THEN // error
-               Host^.Log^.LogSC( log.dlcError, L"", L"Expected value: ", value );
-               Host^.Log^.LogSC( log.dlcError, L"", L"   found value: ", Shared[i] );
+            value := Shared[0];
+            FOR i := 1 TO HIGH( Shared ) DO
+               INC( value );
+               IF value <> Shared[i] THEN // error
+                  Host^.Log^.LogSC( log.dlcError, L"", L"Expected value: ", value );
+                  Host^.Log^.LogSC( log.dlcError, L"", L"   found value: ", Shared[i] );
+               END;
             END;
-         END;
          
-         RWLock.UnlockRead();
+            RWLock.UnlockRead();
+         END;
 
          IF Exit = 1 THEN
             EXIT;

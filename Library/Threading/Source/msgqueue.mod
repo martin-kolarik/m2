@@ -196,8 +196,8 @@ CLASS IMPLEMENTATION CPtrQueue;
       Delivery : msghandler.TDelivery;
    BEGIN
       CASE What OF
-      | Sync.pcqProduced, Sync.pcqProducedFlush : Sync.RawSignal( Consume );
-      | Sync.pcqConsumed, Sync.pcqConsumedFlush : Sync.RawSignal( Produce );
+      | Sync.pcqProduced, Sync.pcqProducedFlush : Sync.SafeSignal( Consume );
+      | Sync.pcqConsumed, Sync.pcqConsumedFlush : Sync.SafeSignal( Produce );
       END; // CASE
 
       CASE What OF

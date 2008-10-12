@@ -101,17 +101,17 @@ CLASS IMPLEMENTATION CTest;
 
    INTERNAL PROCEDURE Round( Mode : TMode; ThreadCount : CARDINAL; RingSize : CARDINAL ) : BOOLEAN;
    VAR
-      CE : Sync.RAWSIGNAL;
+      CE : Sync.SIGNAL;
       CT : windows.HANDLE := NIL;
       i : CARDINAL;
-      PE : Sync.RAWSIGNAL;
+      PE : Sync.SIGNAL;
       PT : windows.HANDLE := NIL;
       Phase : ARRAY [0..47] OF WCHAR;
       s : ARRAY [0..31] OF WCHAR;
       Success : BOOLEAN;
    BEGIN
-      CE := Sync.RawCreateSignal( FALSE, L"" );
-      PE := Sync.RawCreateSignal( TRUE, L"" );
+      CE.Init( Sync.stEvent, L"", FALSE );
+      PE.Init( Sync.stEvent, L"", TRUE );
    
       Exit := 0; // reset
       SELF.ThreadCount := ThreadCount;
@@ -133,15 +133,15 @@ CLASS IMPLEMENTATION CTest;
          Phase := L"0/0";
       | PN :
          DQ.Consume := NIL;
-         DQ.Produce := PE;
+         DQ.Produce := ADR( PE );
          Phase := L"P/0";
       | NC :
-         DQ.Consume := CE;
+         DQ.Consume := ADR( CE );
          DQ.Produce := NIL;
          Phase := L"0/C";
       | PC :
-         DQ.Consume := CE;
-         DQ.Produce := PE;
+         DQ.Consume := ADR( CE );
+         DQ.Produce := ADR( PE );
          Phase := L"P/C";
       END; // CASE
       Strings.AppendW( REF Phase, L", threads: " );
@@ -167,8 +167,8 @@ CLASS IMPLEMENTATION CTest;
       Sync.RawWait( CT, Sync.FOREVER );
       windows.CloseHandle( CT );
 
-      Sync.RawDeleteSignal( REF PE );
-      Sync.RawDeleteSignal( REF CE );
+      PE.Dispose();
+      CE.Dispose();
       
       Host^.StopPhase();
       RETURN Success;
