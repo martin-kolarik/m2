@@ -22,7 +22,18 @@ IMPORT
 (*===========================================================================*)
 
 VAR
-   R : Resources.CResources;
+   PR : POINTER TO Resources.CResources := NIL;
+
+(*---------------------------------------------------------------------------*)
+  
+PROCEDURE R() : POINTER TO Resources.CResources;
+BEGIN
+   IF PR = NIL THEN
+      NEW( PR );
+      PR^.LoadRES2( EMIT( %dll ), L"Service.Texts" );
+   END;
+   RETURN PR;
+END R;
 
 (*===========================================================================*)
 
@@ -45,7 +56,7 @@ CLASS IMPLEMENTATION AService;
       IF winsvc.SetServiceStatus( StatusHandle, ADR( ServiceStatus )) = windows.True THEN
          RETURN TRUE;
       ELSE
-         LogEvent( windows.GetLastError(), OAsz( R[Texts._SetServiceStatusFailed] ));
+         LogEvent( windows.GetLastError(), OAsz( R()^[Texts._SetServiceStatusFailed] ));
          RETURN FALSE;
       END;
    END SetServiceState;
@@ -165,14 +176,14 @@ BEGIN
 
       _Service^.StatusHandle := winsvc.RegisterServiceCtrlHandlerExW( argv^[0], winsvc.LPHANDLER_FUNCTION_EX( ControlHandlerEx ), _Service );
       IF _Service^.StatusHandle = winsvc.SERVICE_STATUS_HANDLE( NIL ) THEN
-         _Service^.LogEvent( windows.GetLastError(), OAsz( R[Texts._RegisterServiceCtrlHandlerFailed] ));
+         _Service^.LogEvent( windows.GetLastError(), OAsz( R()^[Texts._RegisterServiceCtrlHandlerFailed] ));
          RETURN;
       ELSIF NOT _Service^.SetServiceState( ssStartPending, 0 ) THEN
          RETURN;
       END;
 
       _Service^.OnStart();
-      _Service^.LogEvent( winerror.ERROR_SUCCESS, OAsz( R[Texts._ServiceIsStartedSuccessfully] ));
+      _Service^.LogEvent( winerror.ERROR_SUCCESS, OAsz( R()^[Texts._ServiceIsStartedSuccessfully] ));
 
    // ELSE leave not starting and timeout to OS
    END;
@@ -225,6 +236,4 @@ END Run;
 
 (*================================================================================*)
 
-BEGIN
-   R.LoadRES2( EMIT( %dll ), L"Service.Texts" );
 END Service.

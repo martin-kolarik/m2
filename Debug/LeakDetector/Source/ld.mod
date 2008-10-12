@@ -229,7 +229,12 @@ CLASS IMPLEMENTATION CLeakDetector;
     IF NOT Running THEN
       RETURN;
     END;
+
     Track := windows.TlsGetValue( tlsTrack );
+    IF Track = NIL THEN
+      RETURN;
+    END;
+
     IF Enter THEN
       IF Track^.Index < tracks-1 THEN
         INC( Track^.Index );
@@ -257,8 +262,11 @@ CLASS IMPLEMENTATION CLeakDetector;
     IF NOT Running THEN
       RETURN;
     END;
+
     Track := windows.TlsGetValue( tlsTrack );
-    IF Track^.Index = -1 THEN
+    IF Track = NIL THEN
+      RETURN;
+    ELSIF Track^.Index = -1 THEN
       Log.LogS( log.dlcInfo, L"", L"Allocation without mark" );
       RETURN;
     END;
@@ -293,8 +301,11 @@ CLASS IMPLEMENTATION CLeakDetector;
     IF NOT Running THEN
       RETURN;
     END;
+
     Track := windows.TlsGetValue( tlsTrack );
-    IF Track^.Index = -1 THEN
+    IF Track = NIL THEN
+      RETURN;
+    ELSIF Track^.Index = -1 THEN
       Log.LogS( log.dlcInfo, L"", L"Deallocation without mark" );
       RETURN;
     END;
@@ -325,8 +336,11 @@ CLASS IMPLEMENTATION CLeakDetector;
     IF NOT Running THEN
       RETURN;
     END;
+
     Track := windows.TlsGetValue( tlsTrack );
-    IF Track^.Index = -1 THEN
+    IF Track = NIL THEN
+      RETURN;
+    ELSIF Track^.Index = -1 THEN
       Log.LogS( log.dlcInfo, L"", L"Reallocation without mark" );
       RETURN;
     END;
