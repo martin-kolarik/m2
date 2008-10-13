@@ -1,4 +1,4 @@
-DEFINITION MODULE HttpSrv;
+DEFINITION MODULE MVC;
 
 //================================================================================
 
@@ -8,7 +8,7 @@ FROM Storage IMPORT
 IMPORT
    IOO,
    HttpCommon,
-   HttpConnection,
+   HttpSrv,
    maps,
    StringsO,
    Sync;
@@ -16,59 +16,25 @@ IMPORT
 //================================================================================
 
 TYPE
-   TPHttpProcessor = POINTER TO IHttpProcessor;
    TPHttpRequest = POINTER TO IHttpRequest;
-   TPSession = POINTER TO ISession;
-   TPContainer = POINTER TO CContainer; // model container
-   TPController = POINTER TO IController;
-   TPHttpServer = POINTER TO IHttpServer;
    TPView = POINTER TO IView;
+   TPController = POINTER TO IController;
    
-//--------------------------------------------------------------------------------
-
-INTERFACE IHttpProcessor;
-   PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT WantsSession : BOOLEAN ) : BOOLEAN;
-   PROCEDURE ProcessRequest( CONST Connection : HttpConnection.TPHttpSrvConnection; CONST Session : TPSession );
-END IHttpProcessor;
-
 //--------------------------------------------------------------------------------
 
 INTERFACE IHttpRequest;
    READONLY PROPERTY
-      Headers : HttpCommon.TPHttpHeaders;
-      Container : TPContainer; // there is model named "" and model named "session"
-      Session : TPSession;
+      RequestHeaders : HttpCommon.TPHttpHeaders;
+      ResponseHeaders : HttpCommon.TPHttpHeaders;
+      Container : HttpSrv.TPContainer; // there is model named "" and model named "session"
+      Session : HttpSrv.TPSession;
 END IHttpRequest;
 
 //--------------------------------------------------------------------------------
 
-INTERFACE ISession;
-   READONLY PROPERTY
-      Data : maps.TPStringMap; // the same as Container["session"]
-      SID : StringsO.CString;
-   PROCEDURE Invalidate();
-END ISession;
-
-//================================================================================
-
-CLASS CContainer;
-   PRIVATE VAR
-      Models : maps.CStringMap;
-
-   PUBLIC PROCEDURE Clear();
-
-   PUBLIC PROCEDURE AddModel( CONST Name : ARRAY OF WCHAR; REF Model : maps.CStringStringMap );
-   PUBLIC PROCEDURE RemoveModel( CONST Name : ARRAY OF WCHAR );
-
-   PUBLIC PROCEDURE GetModelOA( CONST Name : ARRAY OF WCHAR; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
-   PUBLIC PROCEDURE GetModel( CONST Name : StringsO.CString; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
-END CContainer;
-   
-//--------------------------------------------------------------------------------
-
 INTERFACE IView;
    PROPERTY
-      Container : TPContainer;
+      Container : HttpSrv.TPContainer;
    PROCEDURE Format() : BOOLEAN;
 END IView;
 
@@ -79,37 +45,13 @@ INTERFACE IController;
    PROCEDURE ProcessRequest( CONST Request : TPHttpRequest; CONST Container : TPContainer; OUT View : TPView ) : BOOLEAN;
 END IController;
 
-//--------------------------------------------------------------------------------
-
-TYPE
-   TMode = (
-      mdHttp,
-      mdHttps,
-      mdBoth
-   );
-
-INTERFACE IHttpServer;
-   READONLY PROPERTY
-      Running : BOOLEAN;
-   PROPERTY
-      Mode : TMode; // default is smHttp
-      Port : CARDINAL; // default is 8080
-      SslPort : CARDINAL; // default is 8443
-      RootPath : StringsO.CString;
-
-   PROCEDURE Start() : Sync.TAsyncResult;
-   PROCEDURE Stop();
-   
-   PROCEDURE RegisterProcessor( Processor : TPHttpProcessor );
-   PROCEDURE ForgetProcessor( Processor : TPHttpProcessor );
-END IHttpServer;
-
 //================================================================================
 
-PROCEDURE srv() : TPHttpServer;
+PROCEDURE mvc( CONST Context : ARRAY OF WCHAR ) : TPController; // it is usual to have Context = Application, so typically server will call mvc only single times.
+                                                                // More calls to get the same context returns the same pointer.
 PROCEDURE Cleanup();
 
-//--------------------------------------------------------------------------------
+//================================================================================
 
 PROCEDURE fileView( CONST Path : ARRAY OF WCHAR ) : TPView;
 PROCEDURE redirectView( CONST URL : ARRAY OF WCHAR ) : TPView;
@@ -120,4 +62,4 @@ PROCEDURE modelViewContainerStream( CONST viewName : ARRAY OF WCHAR; viewSource 
 
 //================================================================================
 
-END HttpSrv.
+END MVC.
