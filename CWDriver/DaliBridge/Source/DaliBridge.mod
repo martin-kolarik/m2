@@ -51,7 +51,8 @@ TYPE
    
 CONST
    gderl = TGDEResponseLength(
-      3, 3, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 3
+      3, 3, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3
+      // execept last 4 ones all ones are for safety: unrecognized byte will be dropped and next one will be feeded
    );
 
 CLASS CUDPCommunicator( netsrv.AListener ) IMPLEMENTS threadpool.ITimeoutSink;
@@ -286,12 +287,15 @@ CLASS IMPLEMENTATION CUDPCommunicator;
             leaveTimeout := TRUE;
          END;
          
-         IF gdeResponse = gderFrameError THEN // kill if errors are repetitive
+         CASE gdeResponse OF
+         | gderFrameError : // kill if errors are repetitive
             INC( FrameLinkErrors );
             IF FrameLinkErrors >= FrameLinkErrorLimit THEN
                FrameLinkErrors := 0;
-               processResult := Sync.arPartCompleted; // report unability to get value
+               processResult := Sync.arAborted; // report unability to get value
             END;
+         | gderACK, gderNAK :
+            // no frame link count reset, the commands are responses out of DALI itself
          ELSE
             FrameLinkErrors := 0;
          END;
@@ -1141,6 +1145,7 @@ CLASS IMPLEMENTATION CDaliDevice;
       END;
       Running := FALSE;
       
+      Queue.Clear();
       Communicator^.Stop();
 
       IF PollTimer <> NIL THEN
@@ -1415,7 +1420,7 @@ CLASS IMPLEMENTATION CDaliDevice;
       address : DaliBridge.DaliAddress;
       linie : TDaliLinie;
    BEGIN
-      IF ProgrammingInProgress THEN
+      IF ProgrammingInProgress OR ( Result <> Sync.arCompleted ) THEN
          RETURN;
       END;
          

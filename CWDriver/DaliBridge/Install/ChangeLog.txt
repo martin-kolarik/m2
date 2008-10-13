@@ -1,9 +1,17 @@
+Version 1.0.607 beta 13.10.2008
+- BUG: Unexpected interface response caused infinite receive loop without reporting
+       content of bad packet.
+- BUG: Limitation to 10 successive frame link errors was weak, counting was
+       reset after any meaningful interface response, including ACK.
+- BUG: Polling probes could be sent after driver/device stop. This could cause
+       application crash.        
+
 Version 1.0.589 beta 10.10.2008
 - BUG: Response addresses were badly decoded, it caused that data from
        second and fourth linies were unrecognized.
 - BUG: Only first linie was reset during driver start.
 - CHG: In case of frame link error occurrence driver repeated communication
-       indefnitely. Now it drops current packet after 10 succesive frame
+       indefnitely. Now it drops current packet after 10 successive frame
        link errors.
 - NEW: New command "reset_interface <linie>" was addedd to allow programmatic
        reset of interface.
