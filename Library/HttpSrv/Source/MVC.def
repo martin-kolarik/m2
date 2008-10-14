@@ -2,16 +2,12 @@ DEFINITION MODULE MVC;
 
 //================================================================================
 
-FROM Storage IMPORT
-   ALLOCATE, DEALLOCATE;
-
 IMPORT
    IOO,
    HttpCommon,
    HttpSrv,
    maps,
-   StringsO,
-   Sync;
+   StringsO;
 
 //================================================================================
 
@@ -19,6 +15,7 @@ TYPE
    TPHttpRequest = POINTER TO IHttpRequest;
    TPView = POINTER TO IView;
    TPController = POINTER TO IController;
+   TPMVC = POINTER TO IMVC;
    
 //--------------------------------------------------------------------------------
 
@@ -41,14 +38,21 @@ END IView;
 //--------------------------------------------------------------------------------
 
 INTERFACE IController;
-   PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR ) : BOOLEAN;
    PROCEDURE ProcessRequest( CONST Request : TPHttpRequest; CONST Container : TPContainer; OUT View : TPView ) : BOOLEAN;
 END IController;
 
+//--------------------------------------------------------------------------------
+
+INTERFACE IMVC;
+   PROCEDURE RegisterController( Controller : TPController; ForVerb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR ); // controller can be registered more times for different Verb and URI
+   PROCEDURE ForgetController( Controller : TPController; OfVerb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR );
+   PROCEDURE ForgetControllerCompletely( Controller : TPController );
+END IMVC;
+
 //================================================================================
 
-PROCEDURE mvc( CONST Context : ARRAY OF WCHAR ) : TPController; // it is usual to have Context = Application, so typically server will call mvc only single times.
-                                                                // More calls to get the same context returns the same pointer.
+PROCEDURE mvc( CONST Context : ARRAY OF WCHAR ) : TPMVC; // it is usual to have Context = Application, so typically server will call mvc only single times.
+                                                         // More calls to get the same context returns the same pointer.
 PROCEDURE Cleanup();
 
 //================================================================================

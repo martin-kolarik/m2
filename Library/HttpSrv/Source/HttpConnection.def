@@ -4,7 +4,8 @@ DEFINITION MODULE HttpConnection;
 
 IMPORT
    connection,
-   HttpCommon;
+   HttpCommon,
+   StringsO;
    
 (*================================================================================*)
 
@@ -15,6 +16,8 @@ INTERFACE IHttpSrvConnection( connection.IServerConnection );
 
    READONLY PROPERTY
       RequestHeaders : HttpCommon.TPHttpHeaders;
+      RequestVerb : HttpCommon.TVerb;
+      RequestURI : StringsO.CString;
       ResponseHeaders : HttpCommon.TPHttpHeaders;
    PROPERTY
       StatusCode : HttpCommon.THttpResponse;
