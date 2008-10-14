@@ -2,6 +2,7 @@
 status_channel = 1
 output_queue_count_channel = 10
 output_queue_length = 1024
+send_delay = 2000
 
 [debug]
 debug_mode = kernel

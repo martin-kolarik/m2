@@ -1062,6 +1062,20 @@ CLASS IMPLEMENTATION CDaliDevice;
 
 (*-------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY SendDelay SET( Value : CARDINAL );
+   BEGIN
+      Communicator^.InterPacketDelay := MIN2( 2000, Value );
+   END SendDelay;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY SendDelay GET : CARDINAL;
+   BEGIN
+      RETURN Communicator^.InterPacketDelay;
+   END SendDelay;
+
+(*-------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY OutputQueueLength SET( Value : CARDINAL );
    BEGIN
       QueueLength := MAX2( 2, Value );
@@ -1877,7 +1891,7 @@ CLASS IMPLEMENTATION CDali;
 
 (*-------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CreateDali( CONST SourceLogger : log.CLogger; CONST Name, Server, Port : ARRAY OF WCHAR; PollClientId : PTR; OutputQueueLength : CARDINAL; OUT Error : StringsO.CString ) : BOOLEAN;
+   PUBLIC PROCEDURE CreateDali( CONST SourceLogger : log.CLogger; CONST Name, Server, Port : ARRAY OF WCHAR; PollClientId : PTR; OutputQueueLength, SendDelay : CARDINAL; OUT Error : StringsO.CString ) : BOOLEAN;
    VAR
       Addr : ARRAY [0..0] OF inetaddr.INETADDR;
       DaliDevice : POINTER TO CDaliDevice;
@@ -1909,6 +1923,7 @@ CLASS IMPLEMENTATION CDali;
       DaliDevice^.SetConfiguration( SourceLogger, Name, listenPort, Addr[0] );
       DaliDevice^.PollClientId := PollClientId;
       DaliDevice^.OutputQueueLength := OutputQueueLength;
+      DaliDevice^.SendDelay := SendDelay;
       DaliDevice^.EventSink := ADR( SELF );
       Dali.AddOA( Name, DaliDevice );
       

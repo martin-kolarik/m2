@@ -240,6 +240,7 @@ CLASS CDaliDevice( msghandler.MessageHandler ) IMPLEMENTS threadpool.ITimeoutSin
       OutputQueueCount : CARDINAL;
    PUBLIC PROPERTY
       OutputQueueLength : CARDINAL;
+      SendDelay : CARDINAL;
       PollClientId : PTR;
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
@@ -296,7 +297,7 @@ CLASS CDali IMPLEMENTS IDaliEventSink;
    LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; CONST Dali : StringsO.CString; Linie : TDaliLinie; CONST daliAddress : DaliAddress; Command : TDaliCommand; Data : CARD8; ClientId : PTR );
    
    // SELF
-   PUBLIC PROCEDURE CreateDali( CONST SourceLogger : log.CLogger; CONST Name, Server, Port : ARRAY OF WCHAR; PollClientId : PTR; OutputQueueLength : CARDINAL; OUT Error : StringsO.CString ) : BOOLEAN;
+   PUBLIC PROCEDURE CreateDali( CONST SourceLogger : log.CLogger; CONST Name, Server, Port : ARRAY OF WCHAR; PollClientId : PTR; OutputQueueLength, SendDelay : CARDINAL; OUT Error : StringsO.CString ) : BOOLEAN;
    PUBLIC PROCEDURE GetDali( CONST Name : ARRAY OF WCHAR; OUT Dali : PTR ) : BOOLEAN;
    PUBLIC PROCEDURE RemoveDali( CONST Name : ARRAY OF WCHAR ) : BOOLEAN;
    

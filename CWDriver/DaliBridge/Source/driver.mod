@@ -73,6 +73,7 @@ CLASS IMPLEMENTATION CDriver;
          knStatusChannel = L'status_channel';
          knOutputQueueCountChannel = L'output_queue_count_channel';
          knOutputQueueLength = L'output_queue_length';
+         knSendDelay = L'send_delay';
    VAR
       c, line : CARDINAL;
       fs : FIOO.CFileStream;
@@ -117,6 +118,9 @@ CLASS IMPLEMENTATION CDriver;
          END;
          IF TS.GetKeyInt( knOutputQueueLength, OUT line, OUT c ) THEN
             OutputQueueLength := c;
+         END;
+         IF TS.GetKeyInt( knOutputQueueLength, OUT line, OUT c ) THEN
+            SendDelay := c;
          END;
       END; // IF snDevice
       
@@ -714,7 +718,7 @@ CLASS IMPLEMENTATION CDriver;
             GOTO Error;
          END;
          
-         IF NOT Dali.CreateDali( Logger, S2, S4, S3, PTR( eitPollStatus ), OutputQueueLength, OUT CS ) THEN
+         IF NOT Dali.CreateDali( Logger, S2, S4, S3, PTR( eitPollStatus ), OutputQueueLength, SendDelay, OUT CS ) THEN
             GOTO Error;
          END;
          CS.Clear(); // return value
@@ -1099,6 +1103,7 @@ BEGIN
    StatusChannel := MAX( CARDINAL );
    OutputQueueCountChannel := MAX( CARDINAL );
    OutputQueueLength := MAX( CARDINAL );
+   SendDelay := 0;
 
    cllvData := ADR( cllv.data );
    cllvLength := cllv.length;
