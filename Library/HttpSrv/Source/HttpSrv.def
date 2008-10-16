@@ -23,9 +23,14 @@ TYPE
 
 INTERFACE ISession;
    READONLY PROPERTY
-      Data : maps.TPStringMap; // the same as Container["session"]
       SID : StringsO.CString;
+
    PROCEDURE Invalidate();
+   
+   PROCEDURE Add( CONST Key : ARRAY OF WCHAR; Data : PTR );
+   PROCEDURE Remove( CONST Key : ARRAY OF WCHAR );
+   PROCEDURE Contains( CONST Key : ARRAY OF WCHAR ) : BOOLEAN;
+   PROCEDURE Get( CONST Key : ARRAY OF WCHAR; OUT Data : PTR ) : BOOLEAN;
 END ISession;
 
 (*--------------------------------------------------------------------------------*)
@@ -48,6 +53,7 @@ TYPE
 INTERFACE IHttpProcessor;
    PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT WantsSession : BOOLEAN ) : BOOLEAN;
    PROCEDURE ProcessRequest( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : TPSession );
+   PROCEDURE SessionExpired( CONST Session : TPSession );
 END IHttpProcessor;
 
 (*--------------------------------------------------------------------------------*)

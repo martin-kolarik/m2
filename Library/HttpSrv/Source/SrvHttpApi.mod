@@ -811,7 +811,7 @@ CLASS IMPLEMENTATION CHttpApiSrv;
          END;
       END;
       
-      IF NOT threadpool.pool()^.WaitHandle( ADR( SELF ), 0, Sync.FOREVER, FALSE, FALSE, _HRequestSignal, OUT _HPoolHandle ) THEN
+      IF NOT threadpool.pool()^.WaitHandle( ADR( SELF ), 0, Sync.FOREVER, FALSE, FALSE, _HRequestSignal.RawHandle, OUT _HPoolHandle ) THEN
          RETURN Sync.arCannotStart;
       END;
       // force switching to another thread (simulate request arriving), waiting will be starte from the another thread
@@ -854,7 +854,7 @@ CLASS IMPLEMENTATION CHttpApiSrv;
    BEGIN
       ASSERT( _HttpQueue <> NIL );
       Storage.Zero( ADR( _HttpOverlapped ), SIZE( _HttpOverlapped ));
-      _HttpOverlapped.hEvent := _HRequestSignal;
+      _HttpOverlapped.hEvent := _HRequestSignal.RawHandle;
 
       LOOP
          PrepareStream();
@@ -883,8 +883,8 @@ CLASS IMPLEMENTATION CHttpApiSrv;
       Error : CARDINAL;
       httpAPIVersion : httpapi.HTTPAPI_VERSION := httpapi.HTTPAPI_VERSION_1;
    BEGIN
-      _HRequestSignal := Sync.RawCreateAutoresetSignal( FALSE, L"" );
-      ASSERT( _HRequestSignal <> NIL );
+      _HPoolHandle := NIL;
+      _HRequestSignal.Init( Sync.stEventAutoreset, L"", FALSE );
 
       Error := httpapi.HttpInitialize( httpAPIVersion, httpapi.HTTP_INITIALIZE_SERVER, NIL );
       IF Error <> 0 THEN
@@ -912,7 +912,7 @@ CLASS IMPLEMENTATION CHttpApiSrv;
       
       httpapi.HttpTerminate( httpapi.HTTP_INITIALIZE_SERVER, NIL );
       
-      Sync.RawDeleteSignal( REF _HRequestSignal );
+      _HRequestSignal.Dispose();
    END CHttpApiSrv;
 
 //--------------------------------------------------------------------------------

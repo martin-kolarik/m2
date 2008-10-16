@@ -1,20 +1,111 @@
-IMPLEMENTATION MODULE HttpSrv;
+IMPLEMENTATION MODULE MVC;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   HttpConnection,
    Log,
+   netsocket,
    Storage,
-   Sync;
+   StorageO,
+   Strings,
+   Sync,
+   syncmaps;
 
-//================================================================================
+(*================================================================================*)
+
+CONST
+   SESSION_MVC = L"#mvc";
+
+(*================================================================================*)
+
+CLASS CContainer IMPLEMENTS HttpSrv.IContainer;
+   PRIVATE VAR
+      Models : maps.CStringMap;
+   PUBLIC VIRTUAL PROCEDURE Clear();
+   PUBLIC VIRTUAL PROCEDURE AddModel( CONST Name : ARRAY OF WCHAR; REF Model : maps.CStringStringMap );
+   PUBLIC VIRTUAL PROCEDURE RemoveModel( CONST Name : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE GetModelOA( CONST Name : ARRAY OF WCHAR; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetModel( CONST Name : StringsO.CString; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
+END CContainer;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CContainer;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Clear();
+   BEGIN
+      Models.Dispose();
+   END Clear;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE AddModel( CONST Name : ARRAY OF WCHAR; REF Model : maps.CStringStringMap );
+   BEGIN
+      IF Models.ContainsOA( Name ) THEN
+         RETURN;
+      END;
+      Models.AddOA( Name, ADR( Model ));
+   END AddModel;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE RemoveModel( CONST Name : ARRAY OF WCHAR );
+   BEGIN
+      Models.RemoveOA( Name );
+   END RemoveModel;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE GetModelOA( CONST Name : ARRAY OF WCHAR; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
+   BEGIN
+      RETURN Models.GetOA( Name, OUT PModel );
+   END GetModelOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE GetModel( CONST Name : StringsO.CString; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
+   BEGIN
+      RETURN Models.Get( Name, OUT PModel );
+   END GetModel;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN FINALLY
+   Clear();
+END CContainer;
+
+(*================================================================================*)
+
+CLASS CHttpRequest IMPLEMENTS IHttpRequest;
+
+   // IHttpRequest
+   PUBLIC VIRTUAL READONLY PROPERTY
+      RequestHeaders : HttpCommon.TPHttpHeaders;
+      ResponseHeaders : HttpCommon.TPHttpHeaders;
+      Container : HttpSrv.TPContainer; // there is model named "" and model named "session"
+      Session : HttpSrv.TPSession;
+      
+   // SELF
+   PRIVATE VAR
+      _Connection : HttpConnection.TPHttpSrvConnection;
+      _Session : HttpSrv.TPSession;
+
+   LOCAL PROCEDURE Init( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession );
+
+END CHttpRequest;
+
+(*================================================================================*)
 
 CLASS CMVC IMPLEMENTS HttpSrv.IHttpProcessor, IMVC;
 
    // IHttpProcessor
-   PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT WantsSession : BOOLEAN ) : BOOLEAN;
-   PROCEDURE ProcessRequest( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : TPSession );
+   PUBLIC VIRTUAL PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT WantsSession : BOOLEAN ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession );
+   PUBLIC VIRTUAL PROCEDURE SessionExpired( CONST Session : HttpSrv.TPSession );
 
    // IMVC
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -33,18 +124,17 @@ CLASS CMVC IMPLEMENTS HttpSrv.IHttpProcessor, IMVC;
    PRIVATE VAR
       _Running : BOOLEAN := FALSE;
       _Context : StringsO.CString;
-      _Controllers : maps.CStringMap;
-      _CLock : Sync.RWLOCK;
+      _Controllers : syncmaps.CStringSyncMap;
 
    PUBLIC PROCEDURE Dispose();
 
-   PRIVATE PROCEDURE LookupController( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR ) : BOOLEAN;
+   PRIVATE PROCEDURE LookupController( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT Controller : TPController ) : BOOLEAN;
    
    INITIALLY CMVC();
    FINALLY CMVC();
 END CMVC;
 
-//================================================================================
+(*================================================================================*)
 
 CLASS IMPLEMENTATION CMVC;
 
@@ -64,26 +154,50 @@ CLASS IMPLEMENTATION CMVC;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : TPSession );
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession );
    VAR
-      Controller : TPController;
+      buffer : StorageO.CMemoryBuffer;
+      controller : TPController;
+      containerMap : syncmaps.TPPtrSyncMap;
+      container : POINTER TO CContainer;
+      l : CARDINAL;
+      request : CHttpRequest;
+      s : StringsO.CString;
+      view : TPView;
    BEGIN
-      IF NOT LookupController( Connection^.RequestVerb, Connection^.RequestURI, OUT Controller ) THEN
-         Connection^.Status := HttpCommon.httpres_404;
+      s := Connection^.RequestURI;
+      IF NOT LookupController( Connection^.RequestVerb, OA( s.Length-1, s.rawData ), OUT controller ) THEN
+         Connection^.StatusCode := HttpCommon.httpres_404;
          RETURN;
       END;
       
+      IF NOT Session^.Get( SESSION_MVC, OUT containerMap ) THEN
+         NEW( containerMap );
+         Session^.Add( SESSION_MVC, containerMap );
+      END;
+      IF NOT containerMap^.Get( controller, OUT container ) THEN
+         NEW( container );
+         containerMap^.Add( controller, container );
+      END;
       
+      request.Init( Connection, Session );
+      buffer.Size := 16384; // initial size
+      
+      IF NOT controller^.ProcessRequest( ADR( request ), container, OUT view ) THEN
+         Connection^.StatusCode := HttpCommon.httpres_500;
+      ELSIF NOT view^.Format( container, REF buffer ) THEN
+         Connection^.StatusCode := HttpCommon.httpres_500;
+      ELSE
+         Connection^.Stream^.WriteBuffer( buffer, OUT l, netsocket.FORSAFETY );
+         // LOG errors
+      END;
    END ProcessRequest;
 
 //--------------------------------------------------------------------------------
 
    PUBLIC PROCEDURE Dispose();
    BEGIN
-      _CLock.LockWrite();
       _Controllers.Dispose();
-      _CLock.UnlockWrite();
-      _CLock.Dispose();
    END Dispose;
 
 //--------------------------------------------------------------------------------
@@ -99,32 +213,17 @@ CLASS IMPLEMENTATION CMVC;
          s.FromOA( L"p" );
       END;
       s.AppendOA( URL );
-
-      _CLock.LockRead();
-      b := _Controllers.Get( s, OUT Controller );
-      _Clock.UnlockRead();
-
-      RETURN b;
+      RETURN _Controllers.Get( s, OUT Controller );
    END LookupController;
    
 //--------------------------------------------------------------------------------
 
-   INITIALLY CMVC();
-   BEGIN
-   END CMVC;
-
-//--------------------------------------------------------------------------------
-
-   FINALLY CMVC();
-   BEGIN
-      Dispose();
-   END CMVC;
-
-//--------------------------------------------------------------------------------
-
+BEGIN
+FINALLY
+   Dispose();
 END CMVC;
 
-//================================================================================
+(*================================================================================*)
 
 CLASS CMVCHolder;
    PRIVATE VAR
@@ -168,6 +267,8 @@ CLASS IMPLEMENTATION CMVCHolder;
 //--------------------------------------------------------------------------------
 
    PUBLIC PROCEDURE Dispose();
+   VAR
+      mvc : POINTER TO CMVC;
    BEGIN
       _MVC.Reset();
       WHILE _MVC.MoveNext() DO
@@ -178,7 +279,7 @@ CLASS IMPLEMENTATION CMVCHolder;
       END; // WHILE
 
       _MVC.Dispose();
-   END Dispose();
+   END Dispose;
 
 //--------------------------------------------------------------------------------
 
@@ -187,7 +288,7 @@ FINALLY
    Dispose();
 END CMVCHolder;
 
-//================================================================================
+(*================================================================================*)
 
 VAR
    MVCHolder : POINTER TO CMVCHolder := NIL;
@@ -212,7 +313,7 @@ BEGIN
    END;
 END Cleanup;
 
-//================================================================================
+(*================================================================================*)
 
 PROCEDURE fileView( CONST Path : ARRAY OF WCHAR ) : TPView;
 BEGIN
@@ -254,6 +355,6 @@ BEGIN
    RETURN NIL;
 END modelViewContainerStream;
 
-//================================================================================
+(*================================================================================*)
 
-END HttpSrv.
+END MVC.

@@ -23,22 +23,20 @@ INTERFACE IHttpRequest;
    READONLY PROPERTY
       RequestHeaders : HttpCommon.TPHttpHeaders;
       ResponseHeaders : HttpCommon.TPHttpHeaders;
-      Container : HttpSrv.TPContainer; // there is model named "" and model named "session"
+      Container : HttpSrv.TPContainer; // there is model named ""
       Session : HttpSrv.TPSession;
 END IHttpRequest;
 
 //--------------------------------------------------------------------------------
 
 INTERFACE IView;
-   PROPERTY
-      Container : HttpSrv.TPContainer;
-   PROCEDURE Format() : BOOLEAN;
+   PROCEDURE Format( Container : HttpSrv.TPContainer; REF Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
 END IView;
 
 //--------------------------------------------------------------------------------
 
 INTERFACE IController;
-   PROCEDURE ProcessRequest( CONST Request : TPHttpRequest; CONST Container : TPContainer; OUT View : TPView ) : BOOLEAN;
+   PROCEDURE ProcessRequest( CONST Request : TPHttpRequest; CONST Container : HttpSrv.TPContainer; OUT View : TPView ) : BOOLEAN; // returning false means 500 response
 END IController;
 
 //--------------------------------------------------------------------------------
