@@ -12,34 +12,47 @@ IMPORT
 //================================================================================
 
 TYPE
+   TPContainer = POINTER TO IContainer;
    TPHttpRequest = POINTER TO IHttpRequest;
    TPView = POINTER TO IView;
    TPController = POINTER TO IController;
    TPMVC = POINTER TO IMVC;
    
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
+
+INTERFACE IContainer;
+   PUBLIC PROCEDURE Clear();
+
+   PUBLIC PROCEDURE AddModel( CONST Name : ARRAY OF WCHAR; REF Model : maps.CStringStringMap );
+   PUBLIC PROCEDURE RemoveModel( CONST Name : ARRAY OF WCHAR );
+
+   PUBLIC PROCEDURE GetModelOA( CONST Name : ARRAY OF WCHAR; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
+   PUBLIC PROCEDURE GetModel( CONST Name : StringsO.CString; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
+END IContainer;
+   
+(*--------------------------------------------------------------------------------*)
 
 INTERFACE IHttpRequest;
    READONLY PROPERTY
       RequestHeaders : HttpCommon.TPHttpHeaders;
       ResponseHeaders : HttpCommon.TPHttpHeaders;
-      Container : HttpSrv.TPContainer; // there is model named ""
+      ModelContainer : TPContainer;
       Session : HttpSrv.TPSession;
 END IHttpRequest;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 INTERFACE IView;
-   PROCEDURE Format( Container : HttpSrv.TPContainer; REF Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   PROCEDURE Format( Container : TPContainer; REF Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
 END IView;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 INTERFACE IController;
-   PROCEDURE ProcessRequest( CONST Request : TPHttpRequest; CONST Container : HttpSrv.TPContainer; OUT View : TPView ) : BOOLEAN; // returning false means 500 response
+   PROCEDURE ProcessRequest( CONST Request : TPHttpRequest; OUT View : TPView ) : BOOLEAN; // returning false means 500 response
 END IController;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 INTERFACE IMVC;
    PROCEDURE RegisterController( Controller : TPController; ForVerb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR ); // controller can be registered more times for different Verb and URI

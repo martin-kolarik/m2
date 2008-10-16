@@ -17,7 +17,6 @@ IMPORT
 
 TYPE
    TPSession = POINTER TO ISession;
-   TPContainer = POINTER TO IContainer; // model container
    
 (*--------------------------------------------------------------------------------*)
 
@@ -34,18 +33,6 @@ INTERFACE ISession;
 END ISession;
 
 (*--------------------------------------------------------------------------------*)
-
-INTERFACE IContainer;
-   PUBLIC PROCEDURE Clear();
-
-   PUBLIC PROCEDURE AddModel( CONST Name : ARRAY OF WCHAR; REF Model : maps.CStringStringMap );
-   PUBLIC PROCEDURE RemoveModel( CONST Name : ARRAY OF WCHAR );
-
-   PUBLIC PROCEDURE GetModelOA( CONST Name : ARRAY OF WCHAR; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
-   PUBLIC PROCEDURE GetModel( CONST Name : StringsO.CString; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
-END IContainer;
-   
-(*================================================================================*)
 
 TYPE
    TPHttpProcessor = POINTER TO IHttpProcessor;

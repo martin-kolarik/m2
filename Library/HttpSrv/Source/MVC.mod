@@ -5,6 +5,7 @@ FROM Storage IMPORT
 
 IMPORT
    HttpConnection,
+   lists,
    Log,
    netsocket,
    Storage,
@@ -20,7 +21,7 @@ CONST
 
 (*================================================================================*)
 
-CLASS CContainer IMPLEMENTS HttpSrv.IContainer;
+CLASS CContainer IMPLEMENTS IContainer;
    PRIVATE VAR
       Models : maps.CStringMap;
    PUBLIC VIRTUAL PROCEDURE Clear();
@@ -86,16 +87,66 @@ CLASS CHttpRequest IMPLEMENTS IHttpRequest;
    PUBLIC VIRTUAL READONLY PROPERTY
       RequestHeaders : HttpCommon.TPHttpHeaders;
       ResponseHeaders : HttpCommon.TPHttpHeaders;
-      Container : HttpSrv.TPContainer; // there is model named "" and model named "session"
+      ModelContainer : TPContainer; // there is model named "" and model named "session"
       Session : HttpSrv.TPSession;
       
    // SELF
    PRIVATE VAR
       _Connection : HttpConnection.TPHttpSrvConnection;
       _Session : HttpSrv.TPSession;
+      _Container : TPContainer;
 
-   LOCAL PROCEDURE Init( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession );
+   LOCAL PROCEDURE Init( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPContainer );
 
+END CHttpRequest;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CHttpRequest;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY RequestHeaders GET : HttpCommon.TPHttpHeaders;
+   BEGIN
+      RETURN _Connection^.RequestHeaders;
+   END RequestHeaders;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY ResponseHeaders GET : HttpCommon.TPHttpHeaders;
+   BEGIN
+      RETURN _Connection^.ResponseHeaders;
+   END ResponseHeaders;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY ModelContainer GET : TPContainer;
+   BEGIN
+      RETURN _Container;
+   END ModelContainer;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Session GET : HttpSrv.TPSession;
+   BEGIN
+      RETURN _Session;
+   END Session;
+      
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE Init( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPContainer );
+   BEGIN
+      _Connection := Connection;
+      _Session := Session;
+      _Container := Container;
+   END Init;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+   _Connection := NIL;
+   _Session := NIL;
+   _Container := NIL;
 END CHttpRequest;
 
 (*================================================================================*)
@@ -108,12 +159,6 @@ CLASS CMVC IMPLEMENTS HttpSrv.IHttpProcessor, IMVC;
    PUBLIC VIRTUAL PROCEDURE SessionExpired( CONST Session : HttpSrv.TPSession );
 
    // IMVC
-   PUBLIC VIRTUAL READONLY PROPERTY
-      Running : BOOLEAN;
-
-   PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
-   PUBLIC VIRTUAL PROCEDURE Stop();
-   
    PUBLIC VIRTUAL PROCEDURE RegisterController( Controller : TPController; ForVerb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR ); // controller can be registered more times for different Verb and URI
    PUBLIC VIRTUAL PROCEDURE ForgetController( Controller : TPController; OfVerb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR );
    PUBLIC VIRTUAL PROCEDURE ForgetControllerCompletely( Controller : TPController );
@@ -180,10 +225,10 @@ CLASS IMPLEMENTATION CMVC;
          containerMap^.Add( controller, container );
       END;
       
-      request.Init( Connection, Session );
+      request.Init( Connection, Session, container );
       buffer.Size := 16384; // initial size
       
-      IF NOT controller^.ProcessRequest( ADR( request ), container, OUT view ) THEN
+      IF NOT controller^.ProcessRequest( ADR( request ), OUT view ) THEN
          Connection^.StatusCode := HttpCommon.httpres_500;
       ELSIF NOT view^.Format( container, REF buffer ) THEN
          Connection^.StatusCode := HttpCommon.httpres_500;
@@ -195,6 +240,88 @@ CLASS IMPLEMENTATION CMVC;
 
 //--------------------------------------------------------------------------------
 
+   PUBLIC VIRTUAL PROCEDURE SessionExpired( CONST Session : HttpSrv.TPSession );
+   VAR
+      containerMap : syncmaps.TPPtrSyncMap;
+      container : POINTER TO CContainer;
+   BEGIN
+      IF NOT Session^.Get( SESSION_MVC, OUT containerMap ) THEN
+         RETURN;
+      END;
+      
+      containerMap^.Reset();
+      WHILE containerMap^.MoveNext() DO
+         container := containerMap^.CurrentData;
+         IF container <> NIL THEN
+            DISPOSE( container );
+         END;
+      END; // WHILE
+
+      DISPOSE( containerMap );
+   END SessionExpired;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE RegisterController( controller : TPController; ForVerb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR ); // controller can be registered more times for different Verb and URI
+   VAR
+      s : StringsO.CString;
+   BEGIN
+      IF ForVerb = HttpCommon.verbGET THEN
+         s.FromOA( L"g" );
+      ELSE
+         s.FromOA( L"p" );
+      END;
+      s.AppendOA( URL );
+      IF _Controllers.Get( s, OUT controller ) THEN
+         ASSERT( FALSE );
+         _Controllers.Remove( s );
+      END;
+      _Controllers.Add( s, controller );
+   END RegisterController;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE ForgetController( Controller : TPController; OfVerb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR );
+   VAR
+      s : StringsO.CString;
+   BEGIN
+      IF OfVerb = HttpCommon.verbGET THEN
+         s.FromOA( L"g" );
+      ELSE
+         s.FromOA( L"p" );
+      END;
+      s.AppendOA( URL );
+      _Controllers.Remove( s );
+   END ForgetController;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE ForgetControllerCompletely( controller : TPController );
+   VAR
+      list : lists.CPtrList;
+   BEGIN
+      _Controllers.Reset();
+      WHILE _Controllers.MoveNext() DO
+         IF _Controllers.CurrentData = PTR( controller ) THEN
+            list.Add( _Controllers.Current, 0 );
+         END;
+      END; // WHILE
+      list.Reset();
+      WHILE list.MoveNext() DO
+         _Controllers.Remove( StringsO.TPString( list.Current )^ );
+      END; // WHILE
+   END ForgetControllerCompletely;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE Init( CONST Context : StringsO.CString );
+   BEGIN
+      _Context := Context;
+      // TODO
+   END Init;
+
+//--------------------------------------------------------------------------------
+
    PUBLIC PROCEDURE Dispose();
    BEGIN
       _Controllers.Dispose();
@@ -202,7 +329,7 @@ CLASS IMPLEMENTATION CMVC;
 
 //--------------------------------------------------------------------------------
 
-   PRIVATE PROCEDURE LookupController( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT Controller : TPController ) : BOOLEAN;
+   PRIVATE PROCEDURE LookupController( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT controller : TPController ) : BOOLEAN;
    VAR
       b : BOOLEAN;
       s : StringsO.CString;
@@ -213,7 +340,7 @@ CLASS IMPLEMENTATION CMVC;
          s.FromOA( L"p" );
       END;
       s.AppendOA( URL );
-      RETURN _Controllers.Get( s, OUT Controller );
+      RETURN _Controllers.Get( s, OUT controller );
    END LookupController;
    
 //--------------------------------------------------------------------------------
