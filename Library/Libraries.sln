@@ -127,6 +127,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Threading", "Threading\Thre
 		Release.AspNetCompiler.Debug = "False"
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LMS2xx", "..\CWDriver\LMS2xx\LMS2xx.vcproj", "{D4875649-1979-4B12-ADE6-3AA4D33624B1}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(TextTemplating) = postSolution
 		TextTemplating = 1
@@ -350,6 +356,16 @@ Global
 		{97C30A53-92E2-4179-B0A0-A740E2FDD762}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{97C30A53-92E2-4179-B0A0-A740E2FDD762}.Release|Win32.ActiveCfg = Release|Win32
 		{97C30A53-92E2-4179-B0A0-A740E2FDD762}.Release|Win32.Build.0 = Release|Win32
+		{D4875649-1979-4B12-ADE6-3AA4D33624B1}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{D4875649-1979-4B12-ADE6-3AA4D33624B1}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{D4875649-1979-4B12-ADE6-3AA4D33624B1}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{D4875649-1979-4B12-ADE6-3AA4D33624B1}.Debug|Win32.ActiveCfg = Debug|Win32
+		{D4875649-1979-4B12-ADE6-3AA4D33624B1}.Debug|Win32.Build.0 = Debug|Win32
+		{D4875649-1979-4B12-ADE6-3AA4D33624B1}.Release|Any CPU.ActiveCfg = Release|Win32
+		{D4875649-1979-4B12-ADE6-3AA4D33624B1}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{D4875649-1979-4B12-ADE6-3AA4D33624B1}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{D4875649-1979-4B12-ADE6-3AA4D33624B1}.Release|Win32.ActiveCfg = Release|Win32
+		{D4875649-1979-4B12-ADE6-3AA4D33624B1}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

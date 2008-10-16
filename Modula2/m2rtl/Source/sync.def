@@ -169,6 +169,9 @@ PROCEDURE SafeState( Signal : PSIGNAL ) : TRISTATE;
 // continuation of locking
 // only ltILock has no effect
 
+TYPE
+   PRWLOCK = POINTER TO RWLOCK;
+
 CLASS RWLOCK; // single writer, multiple readers, fast; inspired from: http://blogs.msdn.com/vancem/attachment/563180.ashx
    PRIVATE VAR
       Lock : LOCK;

@@ -1,0 +1,67 @@
+DEFINITION MODULE syncmaps;
+
+FROM Storage IMPORT
+   ALLOCATE;
+
+IMPORT
+   maps,
+   Sync;
+   
+FROM StringsO IMPORT
+   IString;
+
+#save, option( dll_export => on )
+
+(*================================================================================*)
+
+TYPE
+  TPPtrSyncMap = POINTER TO CPtrSyncMap;
+
+CLASS CPtrSyncMap( maps.CPtrMap ); // for enumerating (GetFirst/Last/Next/Prev or Reset/MoveNext) it must be locked explicitely
+   PRIVATE VAR
+      LOCK : Sync.RWLOCK;
+      
+   PUBLIC READONLY PROPERTY
+      Lock : Sync.PRWLOCK;
+
+   PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
+
+   PUBLIC PROCEDURE Add( Key : PTR; Data : PTR );
+   PUBLIC PROCEDURE Remove( Key : PTR );
+   PUBLIC PROCEDURE Contains( Key : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE Get( Key : PTR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
+END CPtrSyncMap;
+
+(*================================================================================*)
+
+TYPE
+  TPStringSyncMap = POINTER TO CStringSyncMap;
+
+CLASS CStringSyncMap( maps.CStringMap ); // for enumerating (GetFirst/Last/Next/Prev or Reset/MoveNext) it must be locked explicitely
+   PRIVATE VAR
+      LOCK : Sync.RWLOCK;
+      
+   PUBLIC READONLY PROPERTY
+      Lock : Sync.PRWLOCK;
+
+   PUBLIC READONLY INDEX( Index : CARDINAL ) : PTR;
+
+   PUBLIC PROCEDURE Add( CONST Key : IString; Data : PTR );
+   PUBLIC PROCEDURE Remove( CONST Key : IString );
+   PUBLIC PROCEDURE Contains( CONST Key : IString ) : BOOLEAN;
+   PUBLIC PROCEDURE Get( CONST Key : IString; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE ElementAt( Index : CARDINAL; OUT Key : IString; OUT Data : PTR ) : BOOLEAN; // similar as []
+
+   PUBLIC PROCEDURE AddOA( CONST Key : ARRAY OF WCHAR; Data : PTR );
+   PUBLIC PROCEDURE RemoveOA( CONST Key : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE ContainsOA( CONST Key : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC PROCEDURE GetOA( CONST Key : ARRAY OF WCHAR; OUT Data : PTR ) : BOOLEAN;
+   PUBLIC PROCEDURE ElementAtOA( Index : CARDINAL; OUT Key : ARRAY OF WCHAR; OUT Data : PTR ) : BOOLEAN; // similar as []
+END CStringSyncMap;
+
+(*================================================================================*)
+
+#restore
+
+END syncmaps.
