@@ -70,9 +70,10 @@ ABSTRACT CLASS ASrvStream( IOO.AStream ); // synchronous implementation only
 
    // SELF
    PUBLIC ABSTRACT READONLY PROPERTY
+      AbsoluteURI : StringsO.CString; // absolute URI, ignores hiding all hidden prefixes
       RequestVersion : HttpCommon.THttpVersion;
       RequestVerb : HttpCommon.TVerb;
-      RequestURI : StringsO.CString;
+      RequestURI : StringsO.CString; // relative URI, the URI corresponding to stream
       RequestHeaders : HttpCommon.TPHttpHeaders;
       ResponseHeaders : HttpCommon.TPHttpHeaders;
       LocalAddress : inetaddr.INETADDR;

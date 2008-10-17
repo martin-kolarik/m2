@@ -20,11 +20,14 @@ TYPE
    
 (*--------------------------------------------------------------------------------*)
 
-INTERFACE IContainer;
+CONST
+   DEFAULT_MODEL = L"";
+
+INTERFACE IContainer; // MVC always creates default model named DEFAULT_MODEL
    PUBLIC PROCEDURE Clear();
 
-   PUBLIC PROCEDURE AddModel( CONST Name : ARRAY OF WCHAR; REF Model : maps.CStringStringMap );
-   PUBLIC PROCEDURE RemoveModel( CONST Name : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE AddModelOA( CONST Name : ARRAY OF WCHAR; REF Model : maps.CStringStringMap );
+   PUBLIC PROCEDURE RemoveModelOA( CONST Name : ARRAY OF WCHAR );
 
    PUBLIC PROCEDURE GetModelOA( CONST Name : ARRAY OF WCHAR; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
    PUBLIC PROCEDURE GetModel( CONST Name : StringsO.CString; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
@@ -43,7 +46,7 @@ END IHttpRequest;
 (*--------------------------------------------------------------------------------*)
 
 INTERFACE IView;
-   PROCEDURE Format( Container : TPContainer; REF Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   PROCEDURE Format( CONST Request : TPHttpRequest; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
 END IView;
 
 (*--------------------------------------------------------------------------------*)
@@ -70,6 +73,7 @@ PROCEDURE Cleanup();
 
 PROCEDURE fileView( CONST Path : ARRAY OF WCHAR ) : TPView;
 PROCEDURE redirectView( CONST URL : ARRAY OF WCHAR ) : TPView;
+PROCEDURE rawHTMLView( CONST HTML : ARRAY OF WCHAR ) : TPView;
 PROCEDURE modelView( CONST viewName : ARRAY OF WCHAR; REF model : maps.CStringStringMap ) : TPView;
 PROCEDURE modelViewStream( CONST viewName : ARRAY OF WCHAR; viewSource : IOO.TPStream; REF model : maps.CStringStringMap ) : TPView;
 PROCEDURE modelViewContainer( CONST viewName : ARRAY OF WCHAR; REF model : ARRAY OF maps.CStringStringMap ) : TPView;

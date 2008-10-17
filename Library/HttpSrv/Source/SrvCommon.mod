@@ -446,6 +446,11 @@ CLASS IMPLEMENTATION ASrvStream;
       // Time.GetCurrentUTCDateTime( dt );
       // _ResponseHeaders.Add( HttpCommon.Date, httptools.FormatDate( dt )); // driven by http.sys
       
+      // cleanup if error
+      IF StatusCode > HttpCommon.httpres_400 THEN
+         ResponseHeaders^.Remove( HttpCommon.SetCookie );
+      END;
+      
       // Server
       ResponseHeaders^.AddOA( HttpCommon.Server, L"SCWS/1.0 on" );
       
@@ -505,6 +510,7 @@ CLASS CHttpConnection IMPLEMENTS HttpConnection.IHttpSrvConnection;
 
    // IHttpSrvConnection
    PUBLIC VIRTUAL READONLY PROPERTY
+      AbsoluteURI : StringsO.CString; // absolute URI, can contain "undistinguishable" prefixes
       RequestHeaders : HttpCommon.TPHttpHeaders;
       RequestVerb : HttpCommon.TVerb;
       RequestURI : StringsO.CString;
@@ -546,6 +552,13 @@ CLASS IMPLEMENTATION CHttpConnection;
    BEGIN
       RETURN _Stream;
    END Stream;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY AbsoluteURI GET : StringsO.CString;
+   BEGIN
+      RETURN _Stream^.AbsoluteURI;
+   END AbsoluteURI;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1167,8 +1180,6 @@ CLASS IMPLEMENTATION ASrvCommon;
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE GetSessionForPreparedStream( _holder : ADDRESS ) : TPSrvSession;
-   CONST
-      SESSION_VALIDITY = 30*60*1000; // milliseconds, 30 minutes
    VAR
       c : CARDINAL;
       cookie : StringsO.CString;
@@ -1185,7 +1196,7 @@ CLASS IMPLEMENTATION ASrvCommon;
       shorttime : CARDINAL;
       time : Time.TTime64;
    BEGIN
-      IF _PreparedStream <> NIL THEN
+      IF _PreparedStream = NIL THEN
          ASSERT( FALSE );
          RETURN NIL;
       END;

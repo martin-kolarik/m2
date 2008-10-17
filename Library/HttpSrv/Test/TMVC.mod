@@ -1,14 +1,15 @@
-MODULE THttpSrv;
+MODULE TMVC;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE, Move;
 
 IMPORT
    HttpCommon,
-   HttpConnection,
    httpsrv,
    log,
+   maps,
    msgqueuethread,
+   MVC,
    scinit,
    StringsO,
    Sync,
@@ -31,17 +32,16 @@ END CTest;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CProcessor IMPLEMENTS httpsrv.IHttpProcessor;
-   PUBLIC VIRTUAL PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT WantsSession : BOOLEAN ) : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : httpsrv.TPSession );
-   PUBLIC VIRTUAL PROCEDURE SessionExpired( CONST Session : httpsrv.TPSession );
-END CProcessor;
+CLASS CController IMPLEMENTS MVC.IController;
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( CONST Request : MVC.TPHttpRequest; OUT View : MVC.TPView ) : BOOLEAN;
+END CController;
 
 (*---------------------------------------------------------------------------*)
 
 CLASS CServerThread( msgqueuethread.MessageQueueThread );
    PRIVATE VAR
-      Processor : CProcessor;   
+      mvc : MVC.TPMVC := NIL;
+      Controller : CController;
    INTERNAL VIRTUAL PROCEDURE OnStart();
    INTERNAL VIRTUAL PROCEDURE OnExit();
 END CServerThread;
@@ -93,7 +93,7 @@ CLASS IMPLEMENTATION CTest;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
-   testimpl.tests()^.AddTest( L"HttpSrv", ADR( Test ));
+   testimpl.tests()^.AddTest( L"MVC", ADR( Test ));
 END CTest;
 
 (*===========================================================================*)
@@ -109,62 +109,52 @@ CLASS IMPLEMENTATION CServerThread;
       root.FromOA( '/test' );
       httpsrv.srv()^.RootPath := root;
       httpsrv.srv()^.Start();
-      httpsrv.srv()^.RegisterProcessor( ADR( Processor ));
+
+      mvc := MVC.mvc( L"/context" );
+      mvc^.RegisterController( ADR( Controller ), HttpCommon.verbGET, L"page.do" );
    END OnStart;
 
 (*---------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE OnExit();
    BEGIN
-      httpsrv.srv()^.ForgetProcessor( ADR( Processor ));
+      mvc^.ForgetController( ADR( Controller ), HttpCommon.verbGET, L"page.do" );
+      MVC.Cleanup();
+
       httpsrv.srv()^.Stop();
    END OnExit;
 
 (*---------------------------------------------------------------------------*)
 
+BEGIN
 END CServerThread;
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION CProcessor;
+CLASS IMPLEMENTATION CController;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT WantsSession : BOOLEAN ) : BOOLEAN;
-   BEGIN
-      WantsSession := TRUE;
-      RETURN TRUE;
-   END AppliesFor;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : httpsrv.TPSession );
-   CONST
-      s = C"Hello, world!";
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( CONST Request : MVC.TPHttpRequest; OUT View : MVC.TPView ) : BOOLEAN;
    VAR
-      l : CARDINAL;
+      Model : maps.TPStringStringMap;
+      s : StringsO.CString;
    BEGIN
-      Connection^.Chunked := TRUE;
-
-      Connection^.Stream^.WriteOA( OA( 11, ADR( s )), OUT l, Sync.FORSAFETY );
-      Connection^.Stream^.WriteOA( OA( 11, ADR( s )), OUT l, Sync.FORSAFETY );
-      Connection^.Stream^.WriteOA( OA( 11, ADR( s )), OUT l, Sync.FORSAFETY );
-      Connection^.Stream^.WriteOA( OA( 11, ADR( s )), OUT l, Sync.FORSAFETY );
-      Connection^.Stream^.WriteOA( OA( 11, ADR( s )), OUT l, Sync.FORSAFETY );
-      Connection^.Stream^.WriteOA( OA( 11, ADR( s )), OUT l, Sync.FORSAFETY );
-
+      IF Request^.ModelContainer^.GetModelOA( MVC.DEFAULT_MODEL, OUT Model ) THEN
+         IF Model^.GetOA( L"ahoj", OUT s ) THEN
+            // report
+         END;
+         s.FromOA( L"martine" );
+         Model^.AddOA( L"ahoj", s );
+      END;
+      View := MVC.rawHTMLView( L"<html><head><title>KUKU»</title></head><body><h1>éluùouËk˝ k˘Ú ˙pÏl Ô·belskÈ Ûdy.</h1></body></html>" );
+      RETURN TRUE;
    END ProcessRequest;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE SessionExpired( CONST Session : httpsrv.TPSession );
-   BEGIN
-   END SessionExpired;
-
-(*---------------------------------------------------------------------------*)
-
-END CProcessor;
+END CController;
 
 (*===========================================================================*)
 
-END THttpSrv.
+END TMVC.

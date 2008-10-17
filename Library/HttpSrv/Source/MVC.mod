@@ -5,6 +5,9 @@ FROM Storage IMPORT
 
 IMPORT
    HttpConnection,
+   HttpTools,
+   Languages,
+   LanguagesO,
    lists,
    Log,
    netsocket,
@@ -25,8 +28,8 @@ CLASS CContainer IMPLEMENTS IContainer;
    PRIVATE VAR
       Models : maps.CStringMap;
    PUBLIC VIRTUAL PROCEDURE Clear();
-   PUBLIC VIRTUAL PROCEDURE AddModel( CONST Name : ARRAY OF WCHAR; REF Model : maps.CStringStringMap );
-   PUBLIC VIRTUAL PROCEDURE RemoveModel( CONST Name : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE AddModelOA( CONST Name : ARRAY OF WCHAR; REF Model : maps.CStringStringMap );
+   PUBLIC VIRTUAL PROCEDURE RemoveModelOA( CONST Name : ARRAY OF WCHAR );
    PUBLIC VIRTUAL PROCEDURE GetModelOA( CONST Name : ARRAY OF WCHAR; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE GetModel( CONST Name : StringsO.CString; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
 END CContainer;
@@ -44,20 +47,20 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE AddModel( CONST Name : ARRAY OF WCHAR; REF Model : maps.CStringStringMap );
+   PUBLIC VIRTUAL PROCEDURE AddModelOA( CONST Name : ARRAY OF WCHAR; REF Model : maps.CStringStringMap );
    BEGIN
       IF Models.ContainsOA( Name ) THEN
          RETURN;
       END;
       Models.AddOA( Name, ADR( Model ));
-   END AddModel;
+   END AddModelOA;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE RemoveModel( CONST Name : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE RemoveModelOA( CONST Name : ARRAY OF WCHAR );
    BEGIN
       Models.RemoveOA( Name );
-   END RemoveModel;
+   END RemoveModelOA;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -205,12 +208,15 @@ CLASS IMPLEMENTATION CMVC;
       controller : TPController;
       containerMap : syncmaps.TPPtrSyncMap;
       container : POINTER TO CContainer;
+      defaultMap : maps.TPStringStringMap;
       l : CARDINAL;
       request : CHttpRequest;
       s : StringsO.CString;
       view : TPView;
    BEGIN
       s := Connection^.RequestURI;
+      s.Remove( 0, _Context.Length ); // remove context leading
+
       IF NOT LookupController( Connection^.RequestVerb, OA( s.Length-1, s.rawData ), OUT controller ) THEN
          Connection^.StatusCode := HttpCommon.httpres_404;
          RETURN;
@@ -223,14 +229,21 @@ CLASS IMPLEMENTATION CMVC;
       IF NOT containerMap^.Get( controller, OUT container ) THEN
          NEW( container );
          containerMap^.Add( controller, container );
+         NEW( defaultMap );
+         container^.AddModelOA( DEFAULT_MODEL, REF defaultMap^ );
       END;
       
       request.Init( Connection, Session, container );
       buffer.Size := 16384; // initial size
+      view := NIL;
       
       IF NOT controller^.ProcessRequest( ADR( request ), OUT view ) THEN
          Connection^.StatusCode := HttpCommon.httpres_500;
-      ELSIF NOT view^.Format( container, REF buffer ) THEN
+      ELSIF view = NIL THEN
+         // LOG error
+         ASSERT( FALSE );
+         Connection^.StatusCode := HttpCommon.httpres_500;
+      ELSIF NOT view^.Format( ADR( request ), OUT buffer ) THEN
          Connection^.StatusCode := HttpCommon.httpres_500;
       ELSE
          Connection^.Stream^.WriteBuffer( buffer, OUT l, netsocket.FORSAFETY );
@@ -244,6 +257,7 @@ CLASS IMPLEMENTATION CMVC;
    VAR
       containerMap : syncmaps.TPPtrSyncMap;
       container : POINTER TO CContainer;
+      defaultMap : maps.TPStringStringMap;
    BEGIN
       IF NOT Session^.Get( SESSION_MVC, OUT containerMap ) THEN
          RETURN;
@@ -253,6 +267,9 @@ CLASS IMPLEMENTATION CMVC;
       WHILE containerMap^.MoveNext() DO
          container := containerMap^.CurrentData;
          IF container <> NIL THEN
+            IF container^.GetModelOA( DEFAULT_MODEL, OUT defaultMap ) THEN // kill default map
+               DISPOSE( defaultMap );
+            END;
             DISPOSE( container );
          END;
       END; // WHILE
@@ -369,19 +386,28 @@ CLASS IMPLEMENTATION CMVCHolder;
 
    PUBLIC PROCEDURE GetMVC( CONST context : ARRAY OF WCHAR ) : TPMVC;
    VAR
+      h : INTEGER;
       mvc : POINTER TO CMVC;
       s : StringsO.CString;
    BEGIN
-      IF context[0] = L"/" THEN
-         s.FromOA( context );
-      ELSE
-         s.FromOA( L"/" );
-         s.AppendOA( context );
+      IF context[0] = 0W THEN
+         ASSERT( FALSE );
+         RETURN NIL;
       END;
+      
+      // remove leading and add trailing slashes
+      s.FromOA( context );
+      IF context[0] = L"/" THEN
+         s.Remove( 0, 1 );
+      END;
+      h := s.Length-1;
+      IF s[h] <> L"/" THEN
+         s.AppendOA( L"/" );
+      END;
+
       IF _MVC.Get( s, OUT mvc ) THEN
          RETURN mvc;
       END;
-
       NEW( mvc );
       mvc^.Init( s );
       _MVC.Add( s, mvc );
@@ -442,6 +468,43 @@ END Cleanup;
 
 (*================================================================================*)
 
+CLASS CRawHTMLView IMPLEMENTS IView;
+   // IView
+   PUBLIC VIRTUAL PROCEDURE Format( CONST Request : TPHttpRequest; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+
+   // SELF
+   PUBLIC PROCEDURE Init( CONST HTML : ARRAY OF WCHAR );   
+   
+   PRIVATE VAR
+      HTML : StringsO.CString;
+END CRawHTMLView;
+
+//--------------------------------------------------------------------------------
+
+CLASS IMPLEMENTATION CRawHTMLView;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE Format( CONST Request : TPHttpRequest; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   BEGIN
+      Request^.ResponseHeaders^.Add( HttpCommon.ContentType, HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"utf-8" ));
+      LanguagesO.ToMB( HTML, Languages.cp_UTF8, FALSE, REF Output );
+      RETURN TRUE;
+   END Format;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE Init( CONST HTML : ARRAY OF WCHAR );   
+   BEGIN
+      SELF.HTML.FromOA( HTML );
+   END Init;
+   
+//--------------------------------------------------------------------------------
+
+END CRawHTMLView;
+
+(*================================================================================*)
+
 PROCEDURE fileView( CONST Path : ARRAY OF WCHAR ) : TPView;
 BEGIN
    RETURN NIL;
@@ -453,6 +516,17 @@ PROCEDURE redirectView( CONST URL : ARRAY OF WCHAR ) : TPView;
 BEGIN
    RETURN NIL;
 END redirectView;
+
+//--------------------------------------------------------------------------------
+
+PROCEDURE rawHTMLView( CONST HTML : ARRAY OF WCHAR ) : TPView;
+VAR
+   view : POINTER TO CRawHTMLView;
+BEGIN
+   NEW( view );
+   view^.Init( HTML );
+   RETURN view;
+END rawHTMLView;
 
 //--------------------------------------------------------------------------------
 

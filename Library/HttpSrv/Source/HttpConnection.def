@@ -15,10 +15,13 @@ TYPE
 INTERFACE IHttpSrvConnection( connection.IServerConnection );
 
    READONLY PROPERTY
+      AbsoluteURI : StringsO.CString; // absolute URI, can contain "undistinguishable" prefixes
+
       RequestHeaders : HttpCommon.TPHttpHeaders;
       RequestVerb : HttpCommon.TVerb;
-      RequestURI : StringsO.CString;
+      RequestURI : StringsO.CString; // relative to server's root, if any
       ResponseHeaders : HttpCommon.TPHttpHeaders;
+
    PROPERTY
       StatusCode : HttpCommon.THttpResponse;
       Chunked : BOOLEAN; // set if you want to chunk

@@ -21,7 +21,12 @@ IMPORT
    windows,
    winerror;
 
-//================================================================================
+(*================================================================================*)
+
+TYPE
+   TPHttpApiSrv = POINTER TO CHttpApiSrv;
+
+(*--------------------------------------------------------------------------------*)
 
 CLASS CHttpApiHeaders( SrvCommon.CHeaders );
    PRIVATE VAR
@@ -34,7 +39,37 @@ CLASS CHttpApiHeaders( SrvCommon.CHeaders );
    PRIVATE PROCEDURE ToSysApi( header : HttpCommon.TKnownHeader; OUT sysapiHeader : httpapi.HTTP_HEADER_ID ) : BOOLEAN;
 END CHttpApiHeaders;
 
-//--------------------------------------------------------------------------------
+(*================================================================================*)
+
+CLASS CHttpApiSrv( SrvCommon.ASrvCommon );
+
+   // APoolDelegate
+   LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
+
+   // IHttpSrv
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Running : BOOLEAN;
+
+   PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Stop();
+   
+   // SELF
+   INTERNAL VIRTUAL PROCEDURE GetNewStream() : SrvCommon.TPSrvStream;
+
+   PRIVATE VAR
+      _Running : BOOLEAN := FALSE;
+      _HttpQueue : Sync.WAITABLE := NIL;
+      _HttpOverlapped : windows.OVERLAPPED;
+      _HRequestSignal : Sync.SIGNAL;
+      _HPoolHandle : threadpool.TPoolHandle;
+   
+   PRIVATE PROCEDURE StartWaitingRequest() : Sync.TAsyncResult;
+   
+   INITIALLY CHttpApiSrv();
+   FINALLY CHttpApiSrv();
+END CHttpApiSrv;
+
+(*================================================================================*)
 
 CLASS IMPLEMENTATION CHttpApiHeaders;
 
@@ -393,6 +428,7 @@ CLASS CHttpApiStream( SrvCommon.ASrvStream );
    PUBLIC VIRTUAL READONLY PROPERTY
       RequestVersion : HttpCommon.THttpVersion;
       RequestVerb : HttpCommon.TVerb;
+      AbsoluteURI : StringsO.CString;
       RequestURI : StringsO.CString;
       RequestHeaders : HttpCommon.TPHttpHeaders;
       ResponseHeaders : HttpCommon.TPHttpHeaders;
@@ -409,14 +445,15 @@ CLASS CHttpApiStream( SrvCommon.ASrvStream );
    INTERNAL VIRTUAL PROCEDURE EndResponse() : Sync.TAsyncResult;
    
    // SELF
-   LOCAL WRITEONLY PROPERTY
-      HttpQueue : Sync.WAITABLE;
+   LOCAL PROCEDURE Init( HttpQueue : Sync.WAITABLE; CONST RootPath : StringsO.IString );
+
    LOCAL READONLY PROPERTY
       Request : httpapi.PHTTP_REQUEST;
       RequestSpace : CARDINAL;
    
    PRIVATE VAR
       _HttpQueue : Sync.WAITABLE;
+      _RootPath : StringsO.CString;
       _Request : StorageO.CMemoryBuffer;
       _Response : httpapi.HTTP_RESPONSE;
       _RequestHeaders : CHttpApiHeaders;
@@ -459,11 +496,22 @@ CLASS IMPLEMENTATION CHttpApiStream;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY RequestURI GET : StringsO.CString;
+   PUBLIC VIRTUAL PROPERTY AbsoluteURI GET : StringsO.CString;
    VAR
       s : StringsO.CString;
    BEGIN
       s.FromOA( OA( CARDINAL( Request^.CookedUrl.AbsPathLength >> 1 )-1, Request^.CookedUrl.pAbsPath ));
+      RETURN s;
+   END AbsoluteURI;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY RequestURI GET : StringsO.CString;
+   VAR
+      s : StringsO.CString;
+   BEGIN
+      s := AbsoluteURI;
+      s.Remove( 0, _RootPath.Length );
       RETURN s;
    END RequestURI;
 
@@ -510,11 +558,12 @@ CLASS IMPLEMENTATION CHttpApiStream;
 
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL PROPERTY HttpQueue SET( Value : Sync.WAITABLE );
+   LOCAL PROCEDURE Init( HttpQueue : Sync.WAITABLE; CONST RootPath : StringsO.IString );
    BEGIN
-      _HttpQueue := Value;
-   END HttpQueue;
-   
+      _HttpQueue := HttpQueue;
+      _RootPath.Assign( RootPath );
+   END Init;
+
 (*--------------------------------------------------------------------------------*)
 
    LOCAL PROPERTY Request GET : httpapi.PHTTP_REQUEST;
@@ -701,36 +750,6 @@ BEGIN
    StatusCode := HttpCommon.httpres_200; // at least StatusCode must be filled, it is used in outer property StatusCode
 END CHttpApiStream;
 
-(*================================================================================*)
-
-CLASS CHttpApiSrv( SrvCommon.ASrvCommon );
-
-   // APoolDelegate
-   LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
-
-   // IHttpSrv
-   PUBLIC VIRTUAL READONLY PROPERTY
-      Running : BOOLEAN;
-
-   PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
-   PUBLIC VIRTUAL PROCEDURE Stop();
-   
-   // SELF
-   INTERNAL VIRTUAL PROCEDURE GetNewStream() : SrvCommon.TPSrvStream;
-
-   PRIVATE VAR
-      _Running : BOOLEAN := FALSE;
-      _HttpQueue : Sync.WAITABLE := NIL;
-      _HttpOverlapped : windows.OVERLAPPED;
-      _HRequestSignal : Sync.SIGNAL;
-      _HPoolHandle : threadpool.TPoolHandle;
-   
-   PRIVATE PROCEDURE StartWaitingRequest() : Sync.TAsyncResult;
-   
-   INITIALLY CHttpApiSrv();
-   FINALLY CHttpApiSrv();
-END CHttpApiSrv;
-
 //================================================================================
 
 CLASS IMPLEMENTATION CHttpApiSrv;
@@ -859,7 +878,7 @@ CLASS IMPLEMENTATION CHttpApiSrv;
       LOOP
          PrepareStream();
          Stream := TPHttpApiStream( PreparedStream );
-         Stream^.HttpQueue := _HttpQueue;
+         Stream^.Init( _HttpQueue, RootPath );
             
          Error := httpapi.HttpReceiveHttpRequest( _HttpQueue, httpapi.HTTP_NULL_ID, 0, Stream^.Request, Stream^.RequestSpace, NIL, ADR( _HttpOverlapped ));
 
@@ -922,7 +941,7 @@ END CHttpApiSrv;
 //================================================================================
 
 VAR
-   HttpServer : POINTER TO CHttpApiSrv := NIL;
+   HttpServer : TPHttpApiSrv := NIL;
 
 //--------------------------------------------------------------------------------
 
