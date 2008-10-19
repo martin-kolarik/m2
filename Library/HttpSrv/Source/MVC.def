@@ -3,6 +3,7 @@ DEFINITION MODULE MVC;
 //================================================================================
 
 IMPORT
+   FSO,
    IOO,
    HttpCommon,
    HttpSrv,
@@ -20,23 +21,27 @@ TYPE
    
 (*--------------------------------------------------------------------------------*)
 
-CONST
-   DEFAULT_MODEL = L"";
+INTERFACE IContainer;
+   PROCEDURE Dispose(); // data, not self
+   PROCEDURE RemoveOA( CONST Name : ARRAY OF WCHAR ); // removes all types
 
-INTERFACE IContainer; // MVC always creates default model named DEFAULT_MODEL
-   PUBLIC PROCEDURE Clear();
+   PROCEDURE AddBooleanOA( CONST Name : ARRAY OF WCHAR; Model : BOOLEAN );
+   PROCEDURE AddStringOA( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString );
+   PROCEDURE AddListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringStringList ); // creates list in model, client uses it to fill data
+   PROCEDURE AddMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ); // creates map in model, client uses it to fill data
 
-   PUBLIC PROCEDURE AddModelOA( CONST Name : ARRAY OF WCHAR; REF Model : maps.CStringStringMap );
-   PUBLIC PROCEDURE RemoveModelOA( CONST Name : ARRAY OF WCHAR );
-
-   PUBLIC PROCEDURE GetModelOA( CONST Name : ARRAY OF WCHAR; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
-   PUBLIC PROCEDURE GetModel( CONST Name : StringsO.CString; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
+   PROCEDURE GetBooleanOA( CONST Name : ARRAY OF WCHAR; OUT Model : BOOLEAN ) : BOOLEAN;
+   PROCEDURE GetStringOA( CONST Name : ARRAY OF WCHAR; OUT Model : StringsO.IString ) : BOOLEAN;
+   PROCEDURE GetListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringStringList ) : BOOLEAN;
+   PROCEDURE GetMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ) : BOOLEAN;
 END IContainer;
    
 (*--------------------------------------------------------------------------------*)
 
 INTERFACE IHttpRequest;
    READONLY PROPERTY
+      AbsoluteURI : StringsO.CString;
+      ControllerURI : StringsO.CString;
       RequestHeaders : HttpCommon.TPHttpHeaders;
       ResponseHeaders : HttpCommon.TPHttpHeaders;
       ModelContainer : TPContainer;
@@ -58,8 +63,8 @@ END IController;
 (*--------------------------------------------------------------------------------*)
 
 INTERFACE IMVC;
-   PROCEDURE RegisterController( Controller : TPController; ForVerb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR ); // controller can be registered more times for different Verb and URI
-   PROCEDURE ForgetController( Controller : TPController; OfVerb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR );
+   PROCEDURE RegisterController( Controller : TPController; ForVerb : HttpCommon.TVerb; CONST ControllerURI : ARRAY OF WCHAR ); // controller can be registered more times for different Verb and URI
+   PROCEDURE ForgetController( Controller : TPController; OfVerb : HttpCommon.TVerb; CONST ControllerURI : ARRAY OF WCHAR );
    PROCEDURE ForgetControllerCompletely( Controller : TPController );
 END IMVC;
 
@@ -71,13 +76,9 @@ PROCEDURE Cleanup();
 
 //================================================================================
 
-PROCEDURE fileView( CONST Path : ARRAY OF WCHAR ) : TPView;
 PROCEDURE redirectView( CONST URL : ARRAY OF WCHAR ) : TPView;
 PROCEDURE rawHTMLView( CONST HTML : ARRAY OF WCHAR ) : TPView;
-PROCEDURE modelView( CONST viewName : ARRAY OF WCHAR; REF model : maps.CStringStringMap ) : TPView;
-PROCEDURE modelViewStream( CONST viewName : ARRAY OF WCHAR; viewSource : IOO.TPStream; REF model : maps.CStringStringMap ) : TPView;
-PROCEDURE modelViewContainer( CONST viewName : ARRAY OF WCHAR; REF model : ARRAY OF maps.CStringStringMap ) : TPView;
-PROCEDURE modelViewContainerStream( CONST viewName : ARRAY OF WCHAR; viewSource : IOO.TPStream; REF model : ARRAY OF maps.CStringStringMap ) : TPView;
+PROCEDURE pageTemplateView( CONST resolver : FSO.TPFilePathResolver; CONST viewName : ARRAY OF WCHAR ) : TPView;
 
 //================================================================================
 

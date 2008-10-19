@@ -1,0 +1,58 @@
+DEFINITION MODULE View;
+
+(*================================================================================*)
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   FSO,
+   MVC,
+   StorageO,
+   StringsO,
+   xmlreader,
+   xmlwriter;
+
+(*================================================================================*)
+
+TYPE
+   TPRawHTMLView = POINTER TO CRawHTMLView;
+
+CLASS CRawHTMLView IMPLEMENTS MVC.IView;
+   // IView
+   PUBLIC VIRTUAL PROCEDURE Format( CONST Request : MVC.TPHttpRequest; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+
+   // SELF
+   PUBLIC PROCEDURE Init( CONST HTML : ARRAY OF WCHAR );   
+   
+   PRIVATE VAR
+      HTML : StringsO.CString;
+END CRawHTMLView;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPPageTemplateView = POINTER TO CPageTemplateView;
+
+CLASS CPageTemplateView IMPLEMENTS MVC.IView;
+   // IView
+   PUBLIC VIRTUAL PROCEDURE Format( CONST Request : MVC.TPHttpRequest; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+
+   // SELF
+   PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; CONST ViewName : ARRAY OF WCHAR );
+   
+   PRIVATE VAR
+      Reader : xmlreader.CXMLReader;
+      Writer : xmlwriter.CXMLWriter;
+      Resolver : FSO.TPFilePathResolver;
+      ViewName : StringsO.CString;
+      
+   PRIVATE PROCEDURE Parse( CONST Request : MVC.TPHttpRequest ) : BOOLEAN;
+   PRIVATE PROCEDURE ParseText( CONST Request : MVC.TPHttpRequest; CONST Text : StringsO.IString; OUT Parsed : StringsO.IString );
+   PRIVATE PROCEDURE GetModelValue( CONST Request : MVC.TPHttpRequest; CONST model : StringsO.CString; OUT value : StringsO.IString ) : BOOLEAN;
+   PRIVATE PROCEDURE EvaluateBoolean( CONST Request : MVC.TPHttpRequest; CONST Value : StringsO.IString ) : BOOLEAN;
+END CPageTemplateView;
+
+(*================================================================================*)
+
+END View.

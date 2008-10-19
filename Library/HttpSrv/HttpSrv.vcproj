@@ -85,6 +85,10 @@
 				RelativePath=".\Source\SrvHttpApi.mod"
 				>
 			</File>
+			<File
+				RelativePath=".\Source\View.mod"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -117,6 +121,10 @@
 			</File>
 			<File
 				RelativePath=".\Source\SrvHttpApi.def"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\View.def"
 				>
 			</File>
 		</Filter>

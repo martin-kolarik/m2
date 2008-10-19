@@ -6,6 +6,7 @@ FROM Storage IMPORT
 IMPORT
    HttpCommon,
    httpsrv,
+   lists,
    log,
    maps,
    msgqueuethread,
@@ -111,6 +112,7 @@ CLASS IMPLEMENTATION CServerThread;
       httpsrv.srv()^.Start();
 
       mvc := MVC.mvc( L"/context" );
+      mvc^.RegisterController( ADR( Controller ), HttpCommon.verbGET, L"raw.do" );
       mvc^.RegisterController( ADR( Controller ), HttpCommon.verbGET, L"page.do" );
    END OnStart;
 
@@ -118,6 +120,7 @@ CLASS IMPLEMENTATION CServerThread;
 
    INTERNAL VIRTUAL PROCEDURE OnExit();
    BEGIN
+      mvc^.ForgetController( ADR( Controller ), HttpCommon.verbGET, L"raw.do" );
       mvc^.ForgetController( ADR( Controller ), HttpCommon.verbGET, L"page.do" );
       MVC.Cleanup();
 
@@ -137,17 +140,34 @@ CLASS IMPLEMENTATION CController;
 
    PUBLIC VIRTUAL PROCEDURE ProcessRequest( CONST Request : MVC.TPHttpRequest; OUT View : MVC.TPView ) : BOOLEAN;
    VAR
-      Model : maps.TPStringStringMap;
+      l : lists.TPStringStringList;
+      m : maps.TPStringStringMap;
       s : StringsO.CString;
    BEGIN
-      IF Request^.ModelContainer^.GetModelOA( MVC.DEFAULT_MODEL, OUT Model ) THEN
-         IF Model^.GetOA( L"ahoj", OUT s ) THEN
-            // report
-         END;
-         s.FromOA( L"martine" );
-         Model^.AddOA( L"ahoj", s );
+      IF Request^.ControllerURI.EqualsOA( L"raw.do" ) THEN
+         View := MVC.rawHTMLView( L"<html><head><title>KUKU»</title></head><body><h1>éluùouËk˝ k˘Ú ˙pÏl Ô·belskÈ Ûdy.</h1></body></html>" );
+
+      ELSIF Request^.ControllerURI.EqualsOA( L"page.do" ) THEN
+         Request^.ModelContainer^.AddBooleanOA( L"testbool", TRUE );
+
+         s.FromOA( L"xxx" ); Request^.ModelContainer^.AddStringOA( L"teststring", s );
+
+         Request^.ModelContainer^.AddListOA( L"testlist", OUT l );
+         l^.AddOA( L"list item 1", 0 );
+         l^.AddOA( L"list item 2", 0 );
+         l^.AddOA( L"list item 3", 0 );
+         l^.AddOA( L"list item 4", 0 );
+         l^.AddOA( L"list item 5", 0 );
+
+         Request^.ModelContainer^.AddMapOA( L"testmap", OUT m );
+         s.FromOA( L"MAPA" ); m^.AddOA( L"key", s );
+         s.FromOA( L"MAPB" ); m^.AddOA( L"lock", s );
+         s.FromOA( L"MAPC" ); m^.AddOA( L"flock", s );
+         s.FromOA( L"MAPD" ); m^.AddOA( L"block", s );
+         s.FromOA( L"MAPE" ); m^.AddOA( L"mlock", s );
+
+         View := MVC.pageTemplateView( NIL, L"d:\work\smartcontrol\code\library\httpsrv\~Debug\page.pt" );
       END;
-      View := MVC.rawHTMLView( L"<html><head><title>KUKU»</title></head><body><h1>éluùouËk˝ k˘Ú ˙pÏl Ô·belskÈ Ûdy.</h1></body></html>" );
       RETURN TRUE;
    END ProcessRequest;
 

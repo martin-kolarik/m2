@@ -15,7 +15,8 @@ IMPORT
    StorageO,
    Strings,
    Sync,
-   syncmaps;
+   syncmaps,
+   View;
 
 (*================================================================================*)
 
@@ -27,11 +28,19 @@ CONST
 CLASS CContainer IMPLEMENTS IContainer;
    PRIVATE VAR
       Models : maps.CStringMap;
-   PUBLIC VIRTUAL PROCEDURE Clear();
-   PUBLIC VIRTUAL PROCEDURE AddModelOA( CONST Name : ARRAY OF WCHAR; REF Model : maps.CStringStringMap );
-   PUBLIC VIRTUAL PROCEDURE RemoveModelOA( CONST Name : ARRAY OF WCHAR );
-   PUBLIC VIRTUAL PROCEDURE GetModelOA( CONST Name : ARRAY OF WCHAR; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
-   PUBLIC VIRTUAL PROCEDURE GetModel( CONST Name : StringsO.CString; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
+
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE RemoveOA( CONST Name : ARRAY OF WCHAR ); // removes all types
+
+   PUBLIC VIRTUAL PROCEDURE AddBooleanOA( CONST Name : ARRAY OF WCHAR; Model : BOOLEAN );
+   PUBLIC VIRTUAL PROCEDURE AddStringOA( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString ); // creates string in model
+   PUBLIC VIRTUAL PROCEDURE AddListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringList ); // creates list in model
+   PUBLIC VIRTUAL PROCEDURE AddMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ); // creates map in model
+
+   PUBLIC VIRTUAL PROCEDURE GetBooleanOA( CONST Name : ARRAY OF WCHAR; OUT Model : BOOLEAN ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetStringOA( CONST Name : ARRAY OF WCHAR; OUT Model : StringsO.IString ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ) : BOOLEAN;
 END CContainer;
 
 (*--------------------------------------------------------------------------------*)
@@ -40,46 +49,196 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Clear();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+   TYPE
+      TPCString = POINTER TO StringsO.CString;
+   VAR
+      l : lists.TPStringList;
+      m : maps.TPStringStringMap;
+      s : TPCString;
    BEGIN
+      Models.Reset();
+      WHILE Models.MoveNext() DO
+         CASE Models.Current^[0] OF
+         | L"b" :
+            // do nothing
+         | L"s" :
+            s := TPCString( Models.CurrentData );
+            DISPOSE( s );
+         | L"l" :
+            l := lists.TPStringList( Models.CurrentData );
+            DISPOSE( l );
+         | L"m" :
+            m := maps.TPStringStringMap( Models.CurrentData );
+            DISPOSE( m );
+         ELSE
+            ASSERT( FALSE );
+         END; // CASE
+      END; // WHILE
       Models.Dispose();
-   END Clear;
+   END Dispose;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE AddModelOA( CONST Name : ARRAY OF WCHAR; REF Model : maps.CStringStringMap );
+   PUBLIC VIRTUAL PROCEDURE RemoveOA( CONST Name : ARRAY OF WCHAR );
+   VAR
+      l : lists.TPStringList;
+      m : maps.TPStringStringMap;
+      name : StringsO.CString;
+      s : POINTER TO StringsO.CString;
    BEGIN
-      IF Models.ContainsOA( Name ) THEN
-         RETURN;
+      name.FromOA( L" ." );
+      name.AppendOA( Name ); 
+
+      name[0] := L"b";
+      Models.Remove( name );
+
+      name[0] := L"s";
+      IF Models.Get( name, OUT s ) THEN
+         DISPOSE( s );
       END;
-      Models.AddOA( Name, ADR( Model ));
-   END AddModelOA;
+
+      name[0] := L"l";
+      IF Models.Get( name, OUT l ) THEN
+         DISPOSE( l );
+      END;
+
+      name[0] := L"m";
+      IF Models.Get( name, OUT m ) THEN
+         DISPOSE( m );
+      END;
+   END RemoveOA;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE RemoveModelOA( CONST Name : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE AddBooleanOA( CONST Name : ARRAY OF WCHAR; Model : BOOLEAN );
+   VAR
+      name : StringsO.CString;
    BEGIN
-      Models.RemoveOA( Name );
-   END RemoveModelOA;
+      name.FromOA( L"b." );
+      name.AppendOA( Name );
+      IF Models.Contains( name ) THEN
+         Models.Remove( name );
+      END;
+      Models.Add( name, PTR( Model ));
+   END AddBooleanOA;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetModelOA( CONST Name : ARRAY OF WCHAR; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE AddStringOA( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString ); // creates string in model
+   VAR
+      model : POINTER TO StringsO.CString;
+      name : StringsO.CString;
    BEGIN
-      RETURN Models.GetOA( Name, OUT PModel );
-   END GetModelOA;
+      name.FromOA( L"s." );
+      name.AppendOA( Name );
+      IF NOT Models.Get( name, OUT model ) THEN
+         NEW( model );
+         Models.Add( name, model );
+      END;
+      model^.Assign( Model );
+   END AddStringOA;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetModel( CONST Name : StringsO.CString; OUT PModel : maps.TPStringStringMap ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE AddListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringList ); // creates list in model
+   VAR
+      name : StringsO.CString;
    BEGIN
-      RETURN Models.Get( Name, OUT PModel );
-   END GetModel;
+      name.FromOA( L"l." );
+      name.AppendOA( Name );
+      IF Models.Get( name, OUT Model ) THEN
+         Model^.Dispose();
+      ELSE
+         NEW( Model );
+         Models.Add( name, Model );
+      END;
+   END AddListOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE AddMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ); // creates map in model
+   VAR
+      name : StringsO.CString;
+   BEGIN
+      name.FromOA( L"m." );
+      name.AppendOA( Name );
+      IF Models.Get( name, OUT Model ) THEN
+         Model^.Dispose();
+      ELSE
+         NEW( Model );
+         Models.Add( name, Model );
+      END;
+   END AddMapOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE GetBooleanOA( CONST Name : ARRAY OF WCHAR; OUT Model : BOOLEAN ) : BOOLEAN;
+   VAR
+      model : PTR;
+      name : StringsO.CString;
+   BEGIN
+      name.FromOA( L"b." );
+      name.AppendOA( Name );
+      IF NOT Models.Get( name, OUT model ) THEN
+         RETURN FALSE;
+      END;
+      Model := BOOLEAN( LOPTRLONGWORD( model ));
+      RETURN TRUE;
+   END GetBooleanOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE GetStringOA( CONST Name : ARRAY OF WCHAR; OUT Model : StringsO.IString ) : BOOLEAN;
+   VAR
+      model : StringsO.TPString;
+      name : StringsO.CString;
+   BEGIN
+      name.FromOA( L"s." );
+      name.AppendOA( Name );
+      IF NOT Models.Get( name, OUT model ) THEN
+         RETURN FALSE;
+      END;
+      Model.Assign( model^ );
+      RETURN TRUE;
+   END GetStringOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE GetListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringList ) : BOOLEAN;
+   VAR
+      model : lists.TPStringList;
+      name : StringsO.CString;
+   BEGIN
+      name.FromOA( L"l." );
+      name.AppendOA( Name );
+      IF NOT Models.Get( name, OUT model ) THEN
+         RETURN FALSE;
+      END;
+      Model := model;
+      RETURN TRUE;
+   END GetListOA;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE GetMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ) : BOOLEAN;
+   VAR
+      model : maps.TPStringStringMap;
+      name : StringsO.CString;
+   BEGIN
+      name.FromOA( L"m." );
+      name.AppendOA( Name );
+      IF NOT Models.Get( name, OUT model ) THEN
+         RETURN FALSE;
+      END;
+      Model := model;
+      RETURN TRUE;
+   END GetMapOA;
 
 (*--------------------------------------------------------------------------------*)
 
 BEGIN FINALLY
-   Clear();
+   Dispose();
 END CContainer;
 
 (*================================================================================*)
@@ -88,6 +247,8 @@ CLASS CHttpRequest IMPLEMENTS IHttpRequest;
 
    // IHttpRequest
    PUBLIC VIRTUAL READONLY PROPERTY
+      AbsoluteURI : StringsO.CString;
+      ControllerURI : StringsO.CString;
       RequestHeaders : HttpCommon.TPHttpHeaders;
       ResponseHeaders : HttpCommon.TPHttpHeaders;
       ModelContainer : TPContainer; // there is model named "" and model named "session"
@@ -97,15 +258,30 @@ CLASS CHttpRequest IMPLEMENTS IHttpRequest;
    PRIVATE VAR
       _Connection : HttpConnection.TPHttpSrvConnection;
       _Session : HttpSrv.TPSession;
+      _ControllerURI : StringsO.CString;
       _Container : TPContainer;
 
-   LOCAL PROCEDURE Init( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPContainer );
+   LOCAL PROCEDURE Init( CONST RequestURI : StringsO.CString; Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPContainer );
 
 END CHttpRequest;
 
 (*--------------------------------------------------------------------------------*)
 
 CLASS IMPLEMENTATION CHttpRequest;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY AbsoluteURI GET : StringsO.CString;
+   BEGIN
+      RETURN _Connection^.AbsoluteURI;
+   END AbsoluteURI;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY ControllerURI GET : StringsO.CString;
+   BEGIN
+      RETURN _ControllerURI;
+   END ControllerURI;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -137,8 +313,9 @@ CLASS IMPLEMENTATION CHttpRequest;
       
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE Init( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPContainer );
+   LOCAL PROCEDURE Init( CONST ControllerURI : StringsO.CString; Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPContainer );
    BEGIN
+      _ControllerURI := ControllerURI;
       _Connection := Connection;
       _Session := Session;
       _Container := Container;
@@ -208,7 +385,6 @@ CLASS IMPLEMENTATION CMVC;
       controller : TPController;
       containerMap : syncmaps.TPPtrSyncMap;
       container : POINTER TO CContainer;
-      defaultMap : maps.TPStringStringMap;
       l : CARDINAL;
       request : CHttpRequest;
       s : StringsO.CString;
@@ -229,11 +405,9 @@ CLASS IMPLEMENTATION CMVC;
       IF NOT containerMap^.Get( controller, OUT container ) THEN
          NEW( container );
          containerMap^.Add( controller, container );
-         NEW( defaultMap );
-         container^.AddModelOA( DEFAULT_MODEL, REF defaultMap^ );
       END;
       
-      request.Init( Connection, Session, container );
+      request.Init( s, Connection, Session, container );
       buffer.Size := 16384; // initial size
       view := NIL;
       
@@ -257,7 +431,6 @@ CLASS IMPLEMENTATION CMVC;
    VAR
       containerMap : syncmaps.TPPtrSyncMap;
       container : POINTER TO CContainer;
-      defaultMap : maps.TPStringStringMap;
    BEGIN
       IF NOT Session^.Get( SESSION_MVC, OUT containerMap ) THEN
          RETURN;
@@ -266,12 +439,7 @@ CLASS IMPLEMENTATION CMVC;
       containerMap^.Reset();
       WHILE containerMap^.MoveNext() DO
          container := containerMap^.CurrentData;
-         IF container <> NIL THEN
-            IF container^.GetModelOA( DEFAULT_MODEL, OUT defaultMap ) THEN // kill default map
-               DISPOSE( defaultMap );
-            END;
-            DISPOSE( container );
-         END;
+         DISPOSE( container );
       END; // WHILE
 
       DISPOSE( containerMap );
@@ -468,43 +636,6 @@ END Cleanup;
 
 (*================================================================================*)
 
-CLASS CRawHTMLView IMPLEMENTS IView;
-   // IView
-   PUBLIC VIRTUAL PROCEDURE Format( CONST Request : TPHttpRequest; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
-
-   // SELF
-   PUBLIC PROCEDURE Init( CONST HTML : ARRAY OF WCHAR );   
-   
-   PRIVATE VAR
-      HTML : StringsO.CString;
-END CRawHTMLView;
-
-//--------------------------------------------------------------------------------
-
-CLASS IMPLEMENTATION CRawHTMLView;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC VIRTUAL PROCEDURE Format( CONST Request : TPHttpRequest; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
-   BEGIN
-      Request^.ResponseHeaders^.Add( HttpCommon.ContentType, HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"utf-8" ));
-      LanguagesO.ToMB( HTML, Languages.cp_UTF8, FALSE, REF Output );
-      RETURN TRUE;
-   END Format;
-
-//--------------------------------------------------------------------------------
-
-   PUBLIC PROCEDURE Init( CONST HTML : ARRAY OF WCHAR );   
-   BEGIN
-      SELF.HTML.FromOA( HTML );
-   END Init;
-   
-//--------------------------------------------------------------------------------
-
-END CRawHTMLView;
-
-(*================================================================================*)
-
 PROCEDURE fileView( CONST Path : ARRAY OF WCHAR ) : TPView;
 BEGIN
    RETURN NIL;
@@ -521,7 +652,7 @@ END redirectView;
 
 PROCEDURE rawHTMLView( CONST HTML : ARRAY OF WCHAR ) : TPView;
 VAR
-   view : POINTER TO CRawHTMLView;
+   view : View.TPRawHTMLView;
 BEGIN
    NEW( view );
    view^.Init( HTML );
@@ -530,31 +661,14 @@ END rawHTMLView;
 
 //--------------------------------------------------------------------------------
 
-PROCEDURE modelView( CONST viewName : ARRAY OF WCHAR; REF model : maps.CStringStringMap ) : TPView;
+PROCEDURE pageTemplateView( CONST resolver : FSO.TPFilePathResolver; CONST viewName : ARRAY OF WCHAR ) : TPView;
+VAR
+   view : View.TPPageTemplateView;
 BEGIN
-   RETURN NIL;
-END modelView;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE modelViewStream( CONST viewName : ARRAY OF WCHAR; viewSource : IOO.TPStream; REF model : maps.CStringStringMap ) : TPView;
-BEGIN
-   RETURN NIL;
-END modelViewStream;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE modelViewContainer( CONST viewName : ARRAY OF WCHAR; REF model : ARRAY OF maps.CStringStringMap ) : TPView;
-BEGIN
-   RETURN NIL;
-END modelViewContainer;
-
-//--------------------------------------------------------------------------------
-
-PROCEDURE modelViewContainerStream( CONST viewName : ARRAY OF WCHAR; viewSource : IOO.TPStream; REF model : ARRAY OF maps.CStringStringMap ) : TPView;
-BEGIN
-   RETURN NIL;
-END modelViewContainerStream;
+   NEW( view );
+   view^.Init( resolver, viewName );
+   RETURN view;
+END pageTemplateView;
 
 (*================================================================================*)
 
