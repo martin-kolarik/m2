@@ -23,6 +23,9 @@ TYPE
 
 (*---------------------------------------------------------------------------*)
 
+TYPE
+   TPXMLWriter = POINTER TO CXMLWriter;
+
 CLASS CXMLWriter;
 	PRIVATE VAR
 		_Stream : IOO.TPStream;

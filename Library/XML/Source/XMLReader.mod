@@ -367,6 +367,17 @@ CLASS IMPLEMENTATION CXMLReader;
 	   
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY CurrentDepth GET : CARDINAL;
+   BEGIN
+      IF ( _IReader = NIL ) OR ( xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True ) THEN
+         RETURN 0;
+      ELSE
+         RETURN xmlLITE.TPIXmlReader( _IReader )^.GetDepth();
+      END;
+   END CurrentDepth;
+
+(*---------------------------------------------------------------------------*)
+
 	PUBLIC PROCEDURE Reset();
 	VAR
 	   malloc : TPMalloc;

@@ -129,6 +129,9 @@ PROCEDURE GetErrorText( xmle : TXMLError; OUT Error : StringsO.CString );
 
 (*===========================================================================*)
 
+TYPE
+   TPXMLReader = POINTER TO CXMLReader;
+
 CLASS CXMLReader;
 
    PRIVATE VAR
@@ -146,6 +149,7 @@ CLASS CXMLReader;
       CurrentName : StringsO.CString;	
       CurrentQualifiedName : StringsO.CString;	
       CurrentValue : StringsO.CString;
+      CurrentDepth : CARDINAL;
       
    PUBLIC PROCEDURE Reset(); // rewinds to start, not required when starting
    PUBLIC PROCEDURE MoveNext() : TXMLError;   
