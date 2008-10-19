@@ -79,11 +79,20 @@ PROCEDURE CreateDirectoryOA( CONST Directory : ARRAY OF WCHAR ) : BOOLEAN;
 
 (*================================================================================*)
 
-PROCEDURE GetEnvVariable( CONST Variable : ARRAY OF WCHAR; OUT Data : StringsO.CString ) : BOOLEAN;
+PROCEDURE GetEnvVariable( CONST Variable : ARRAY OF WCHAR; OUT Data : StringsO.IString ) : BOOLEAN;
 
 (*================================================================================*)
 
 PROCEDURE RunProgramInPipe( CONST Path, Parameters : ARRAY OF WCHAR; CONST InStream : IOO.TPStream; OUT OutStream : IOO.TPStream ) THROWS IOO.CIOException;
+
+(*================================================================================*)
+
+TYPE
+   TPFilePathResolver = POINTER TO IFilePathResolver;
+
+INTERFACE IFilePathResolver;
+   PROCEDURE Resolve( CONST Fragment : ARRAY OF WCHAR; OUT Resolved : StringsO.IString ) : BOOLEAN;
+END IFilePathResolver;
 
 (*================================================================================*)
 

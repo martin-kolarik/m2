@@ -5,6 +5,8 @@ DEFINITION MODULE Storage;
 //================================================================================
 // Memory allocation/deallocation module
 
+PROCEDURE PageSize() : CARDINAL;
+
 #save, option( leak_info => on )
 PROCEDURE M2ALLOCATE( VAR a : ADDRESS; size : CARDINAL );
 PROCEDURE M2DEALLOCATE( VAR a : ADDRESS );

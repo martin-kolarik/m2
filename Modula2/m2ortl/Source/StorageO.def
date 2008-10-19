@@ -11,6 +11,9 @@ IMPORT
 //================================================================================
 // Memory buffers
 
+TYPE
+	TPMemoryBuffer = POINTER TO AMemoryBuffer;
+
 ABSTRACT CLASS AMemoryBuffer;
 	PUBLIC ABSTRACT PROPERTY
 		Length : CARDINAL;
@@ -60,7 +63,7 @@ END AMemoryBuffer;
 //--------------------------------------------------------------------------------
 
 TYPE
-	TPMemoryBuffer = POINTER TO CMemoryBuffer;
+	TPCMemoryBuffer = POINTER TO CMemoryBuffer;
 
 CLASS CMemoryBuffer( AMemoryBuffer );
 	INTERNAL VAR

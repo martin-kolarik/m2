@@ -144,6 +144,52 @@ END CStringList;
 //---------------------------------------------------------------------------
 
 TYPE
+  TPStringStringList = POINTER TO CStringList;
+
+CLASS CStringStringList( list.CListWState );
+  PUBLIC READONLY PROPERTY
+    Current : POINTER TO IString;
+  PUBLIC PROPERTY
+    CurrentData : POINTER TO IString;
+  PUBLIC READONLY
+    INDEX( Index : INTEGER ) : POINTER TO IString; // SLOW, O(n)!!
+
+  // map interface
+  PUBLIC PROCEDURE Add( CONST Value : IString; CONST Data : IString );
+  PUBLIC PROCEDURE Contains( CONST Value : IString ): BOOLEAN;
+  PUBLIC PROCEDURE Get( CONST Value : IString; OUT Data : IString ): BOOLEAN;
+  PUBLIC PROCEDURE Remove( CONST Value : IString ); // removes all occurences
+
+  PUBLIC PROCEDURE AddOA( CONST Value : ARRAY OF WCHAR; CONST Data : IString );
+  PUBLIC PROCEDURE ContainsOA( CONST Value : ARRAY OF WCHAR ): BOOLEAN;
+  PUBLIC PROCEDURE GetOA( CONST Value : ARRAY OF WCHAR; OUT Data : IString ): BOOLEAN;
+  PUBLIC PROCEDURE RemoveOA( CONST Value : ARRAY OF WCHAR ); // removes all occurences
+
+  // list interface
+  PUBLIC PROCEDURE InsertFirst( CONST Value : IString; CONST Data : IString );
+  PUBLIC PROCEDURE InsertBefore( CONST Before, Value, Data : IString );
+  PUBLIC PROCEDURE Append( CONST Value : IString; CONST Data : IString );
+
+  PUBLIC PROCEDURE GetFirst( OUT Value : IString; OUT Data : IString ) : BOOLEAN;
+  PUBLIC PROCEDURE GetLast( OUT Value : IString; OUT Data : IString ) : BOOLEAN;
+
+  PUBLIC PROCEDURE PrevOf( CONST Value : IString; OUT Previous : IString; OUT Data : IString ) : BOOLEAN; // SLOW
+  PUBLIC PROCEDURE NextOf( CONST Value : IString; OUT Next : IString; OUT Data : IString ) : BOOLEAN; // SLOW
+  PUBLIC PROCEDURE IndexOf( CONST Value : IString ) : INTEGER; // SLOW
+  
+  PRIVATE PROCEDURE Lookup( CONST Value : IString; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
+
+  // queue interface
+  PUBLIC PROCEDURE Enqueue( CONST Value : IString; CONST Data : IString );
+  PUBLIC PROCEDURE EnqueueOA( CONST Value : ARRAY OF WCHAR; CONST Data : IString );
+
+  PUBLIC PROCEDURE Dequeue( OUT Value : IString; OUT Data : IString ) : BOOLEAN; 
+  PUBLIC PROCEDURE DequeueOA( OUT Value : ARRAY OF WCHAR; OUT Data : IString ) : BOOLEAN; 
+END CStringStringList;
+
+//---------------------------------------------------------------------------
+
+TYPE
    TBufferListItemType = (
       blitDynamic,
       blitSlot32,

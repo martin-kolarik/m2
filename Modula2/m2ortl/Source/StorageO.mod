@@ -8,6 +8,11 @@ IMPORT
 	windows;
 	
 //================================================================================
+
+VAR
+   GPageSize : CARDINAL := 0;	
+	
+//================================================================================
 // Memory buffers
 
 CLASS IMPLEMENTATION AMemoryBuffer;
@@ -651,17 +656,6 @@ END CMemorySlot256;
 
 //================================================================================
 
-CLASS CMemoryInfo;
-	LOCAL READONLY VAR
-		PageSize : CARDINAL;
-	INITIALLY CMemoryInfo;
-END CMemoryInfo;
-
-VAR
-	MemoryInfo : CMemoryInfo;
-
-//================================================================================
-
 CLASS IMPLEMENTATION CAllocatorException;
 
 	PUBLIC PROCEDURE Init( NestedException : POINTER TO Exceptions.Exception; CONST Originator, Text : ARRAY OF WCHAR; Kind : TAllocatorException ) : CAllocatorException;
@@ -729,7 +723,7 @@ CLASS IMPLEMENTATION CAAllocator;
 		TRY
 
 			IF _Backlog < V THEN
-				CommitPages( ( V - _Backlog  + MemoryInfo.PageSize - 1 ) DIV MemoryInfo.PageSize );
+				CommitPages( ( V - _Backlog  + GPageSize - 1 ) DIV GPageSize );
 			END;
 			_Backlog := V;
 		
@@ -752,7 +746,7 @@ CLASS IMPLEMENTATION CAAllocator;
 	VAR
 		c, i : CARDINAL;
 	BEGIN
-		IF ( _PageCount + Count ) * MemoryInfo.PageSize > _Limit THEN
+		IF ( _PageCount + Count ) * GPageSize > _Limit THEN
 			THROW AllocatorException( NIL, EMITW( %lprocedure ), L"", aexLimitExceeded );
 		END;
 
@@ -778,9 +772,9 @@ CLASS IMPLEMENTATION CAAllocator;
 				c := _FirstEmptyPage;
 				_FirstEmptyPage := _Pages^[_FirstEmptyPage].Data;
 
-				ALLOCATE( _Pages^[c].Page, MemoryInfo.PageSize );
+				ALLOCATE( _Pages^[c].Page, GPageSize );
 				IF _Debug THEN
-					Storage.Fill( _Pages^[c].Page, MemoryInfo.PageSize, 0CDH );
+					Storage.Fill( _Pages^[c].Page, GPageSize, 0CDH );
 				END;
 				_Pages^[c].Data := 0;
 				PageCommitted( c );
@@ -798,7 +792,7 @@ CLASS IMPLEMENTATION CAAllocator;
 			RETURN;
 		ELSIF _Pages^[Index].Page = NIL THEN // already released
 			RETURN;
-		ELSIF Occupied + Empty - MemoryInfo.PageSize < _Backlog THEN
+		ELSIF Occupied + Empty - GPageSize < _Backlog THEN
 			RETURN;
 		END;
 
@@ -834,7 +828,7 @@ CLASS IMPLEMENTATION CAAllocator;
 			RETURN FALSE;
 		END;
 		FOR i := 0 TO _PageCount-1 DO
-			IF ( PTR( a ) >= PTR( _Pages^[i].Page )) AND ( PTR( a ) <= PTR( _Pages^[i].Page ) + MemoryInfo.PageSize - 1 ) THEN
+			IF ( PTR( a ) >= PTR( _Pages^[i].Page )) AND ( PTR( a ) <= PTR( _Pages^[i].Page ) + GPageSize - 1 ) THEN
 				Index := i;
 				RETURN TRUE;
 			END;
@@ -862,7 +856,7 @@ CLASS IMPLEMENTATION CSlotAllocator; // allocates slots of equal size
 
 	PUBLIC PROCEDURE CSlotAllocator.Init( SlotSize, Backlog : CARDINAL );
 	BEGIN
-		IF SlotSize > MemoryInfo.PageSize DIV 2 THEN
+		IF SlotSize > GPageSize DIV 2 THEN
 			THROW AllocatorException( NIL, EMITW( %lprocedure ), L"", aexUnitTooBig );
 		END;
 		_SlotSize := SlotSize;
@@ -896,7 +890,7 @@ CLASS IMPLEMENTATION CSlotAllocator; // allocates slots of equal size
 			THROW e;
 		END;
 
-		g := MemoryInfo.PageSize DIV _SlotSize;
+		g := GPageSize DIV _SlotSize;
 		WITH _Pages^[ _FirstEmptySlot DIV g ] DO
 			a := INC( Page, ( _FirstEmptySlot MOD g ) * _SlotSize );
 			INC( Data );
@@ -916,7 +910,7 @@ CLASS IMPLEMENTATION CSlotAllocator; // allocates slots of equal size
 			THROW AllocatorException( NIL, EMITW( %lprocedure ), L"", aexUnknownAddress );
 		END;
 
-		Slot := ( MemoryInfo.PageSize DIV _SlotSize ) * PageIndex;
+		Slot := ( GPageSize DIV _SlotSize ) * PageIndex;
 		WITH _Pages^[PageIndex] DO
 			a := DEC( a, PTR( Page ));
 			IF PTR( a ) MOD _SlotSize <> 0 THEN
@@ -947,7 +941,7 @@ CLASS IMPLEMENTATION CSlotAllocator; // allocates slots of equal size
 	VAR
 		i, g : CARDINAL;
 	BEGIN
-		g := MemoryInfo.PageSize DIV _SlotSize;
+		g := GPageSize DIV _SlotSize;
 		IF Index + 1 > _KnownPages THEN
 			_KnownPages := Index + 1;
 			REALLOCATE( _EmptySlots, _KnownPages * g * SIZE( CARDINAL ));
@@ -964,7 +958,7 @@ CLASS IMPLEMENTATION CSlotAllocator; // allocates slots of equal size
 		firstinpage : CARDINAL;
 		g, max : CARDINAL;
 	BEGIN
-		g := MemoryInfo.PageSize DIV _SlotSize;
+		g := GPageSize DIV _SlotSize;
 		max := g;
 		firstinpage := Index * g;
 		previous := -1;
@@ -988,7 +982,7 @@ CLASS IMPLEMENTATION CSlotAllocator; // allocates slots of equal size
 		END; // WHILE
 		IF Index + 1 = _KnownPages THEN
 			_KnownPages := Index;
-			REALLOCATE( _EmptySlots, _KnownPages * ( MemoryInfo.PageSize DIV _SlotSize ) * SIZE( CARDINAL ));
+			REALLOCATE( _EmptySlots, _KnownPages * ( GPageSize DIV _SlotSize ) * SIZE( CARDINAL ));
 		END;
 	END CSlotAllocator.PageReleased;
 
@@ -1002,19 +996,6 @@ END CSlotAllocator;
 
 //================================================================================
 
-CLASS IMPLEMENTATION CMemoryInfo;
-
-	INITIALLY CMemoryInfo;
-	VAR
-		si : windows.SYSTEM_INFO;
-	BEGIN
-		Storage.Fill( ADR( si ), SIZE( si ), 0 );
-		windows.GetSystemInfo( ADR( si ));
-		PageSize := si.dwPageSize;
-	END CMemoryInfo;
-	
-END CMemoryInfo;
-
-//================================================================================
-
+BEGIN
+   GPageSize := Storage.PageSize();
 END StorageO.

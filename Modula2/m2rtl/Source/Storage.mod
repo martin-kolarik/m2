@@ -3,28 +3,42 @@ IMPLEMENTATION MODULE Storage;
 //================================================================================
 
 IMPORT
-  windows;
+   windows;
   
 #if DEBUG #then
-  IMPORT
-    // crtdbg,
-    malloc;
+   IMPORT
+      // crtdbg,
+      malloc;
 #else
-  VAR
-    GHeap : windows.HANDLE;
+   VAR
+      GHeap : windows.HANDLE;
 #endif
+
+VAR
+   GPageSize : CARDINAL := 0;
 
 //--------------------------------------------------------------------------------
 
 INITIALLY __I();
+VAR
+	si : windows.SYSTEM_INFO;
 BEGIN
-  #if DEBUG #then
-    // crtdbg._CrtSetDbgFlag( crtdbg._CRTDBG_CHECK_ALWAYS_DF OR crtdbg._CRTDBG_ALLOC_MEM_DF );
-  #else
-    GHeap := windows.GetProcessHeap();
-  #endif  
+   #if DEBUG #then
+      // crtdbg._CrtSetDbgFlag( crtdbg._CRTDBG_CHECK_ALWAYS_DF OR crtdbg._CRTDBG_ALLOC_MEM_DF );
+   #else
+      GHeap := windows.GetProcessHeap();
+   #endif  
+	Fill( ADR( si ), SIZE( si ), 0 );
+	windows.GetSystemInfo( ADR( si ));
+	GPageSize := si.dwPageSize;
 END __I;
 
+PROCEDURE PageSize() : CARDINAL;
+BEGIN
+   __I();
+   RETURN GPageSize;
+END PageSize;
+	
 //================================================================================
 
 PROCEDURE M2ALLOCATE( VAR a : ADDRESS; size : CARDINAL );

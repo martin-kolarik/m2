@@ -340,7 +340,7 @@ CLASS CDatagramReader( ADataInfo ) IMPLEMENTS IBufferedReader;
    PRIVATE VAR
       _Stream : TPBufferedStream;
       _Notifier : TPDataInfo;
-      _Buffer : StorageO.TPMemoryBuffer := NIL;
+      _Buffer : StorageO.TPCMemoryBuffer := NIL;
       _BufferDataLength : CARDINAL := 0;
       _BufferLock : POINTER TO Sync.LOCK := NIL;
    PUBLIC PROPERTY
@@ -388,7 +388,29 @@ CLASS CMemoryStream( AStream );
   
   INTERNAL VIRTUAL PROCEDURE Start( Direction : TDirection; OperationTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
   INTERNAL VIRTUAL PROCEDURE Abort( Direction : TDirection );
+  
+  INTERNAL VIRTUAL PROCEDURE ExtendMemory( NewLength : PTR ) : BOOLEAN;
 END CMemoryStream;
+
+(*================================================================================*)
+
+TYPE
+  TPMemoryBufferStream = POINTER TO CMemoryBufferStream;
+
+CLASS CMemoryBufferStream( CMemoryStream );
+
+  // AStream
+  PUBLIC VIRTUAL PROCEDURE DeviceFinish( Direction : TDirection; Result : Sync.TAsyncResult );
+  // CMemoryStream
+  INTERNAL VIRTUAL PROCEDURE ExtendMemory( NewLength : PTR ) : BOOLEAN;
+  
+  // SELF
+  INTERNAL VAR
+    _Buffer : StorageO.TPMemoryBuffer;
+    
+  PUBLIC PROCEDURE Init( REF Buffer : StorageO.AMemoryBuffer; Access : TAccess );
+
+END CMemoryBufferStream;
 
 (*================================================================================*)
 

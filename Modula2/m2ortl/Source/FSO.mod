@@ -322,7 +322,7 @@ END CreateDirectoryOA;
 
 (*================================================================================*)
 
-PROCEDURE GetEnvVariable( CONST Variable : ARRAY OF WCHAR; OUT Data : StringsO.CString ) : BOOLEAN;
+PROCEDURE GetEnvVariable( CONST Variable : ARRAY OF WCHAR; OUT Data : StringsO.IString ) : BOOLEAN;
 VAR
    chars : CARDINAL;
 BEGIN
