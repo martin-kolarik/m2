@@ -1459,13 +1459,31 @@ CLASS IMPLEMENTATION CMemoryStream;
   VAR
     a : ADDRESS;
     l : CARDINAL := 0;
+    space : PTR;
   BEGIN
-    IF _Offset = _Length THEN
-      DeviceFinish( Direction, Sync.arNoData );
-      RETURN Sync.arNoData;
+    IF Direction = dirRead THEN
+      IF _Offset = _Length THEN
+        DeviceFinish( Direction, Sync.arNoData );
+        RETURN Sync.arNoData;
+      END;
+    ELSIF _Offset < _Length THEN
+       // fall down
+    ELSIF ExtendMemory( 1024 ) THEN
+       // fall down
+    ELSE
+       DeviceFinish( Direction, Sync.arCannotStart );
+       RETURN Sync.arCannotStart;
     END;
+
     WHILE DevicePrepareData( Direction, OUT a, OUT l ) DO
-      l := MIN2( l, CARDINAL( LOPTRLONGWORD( _Length-_Offset )));
+      space := _Length-_Offset;
+      IF PTR( l ) < space THEN
+         // OK, there is space
+      ELSIF ( Direction = dirWrite ) AND ExtendMemory( _Length - space + PTR( l )) THEN
+         // OK, memory enhanced
+      ELSE
+         l := CARDINAL( LOPTRLONGWORD( space )); // limit memory
+      END;
       IF l > 0 THEN
         IF Direction = dirRead THEN
           Storage.Move( _Data@[_Offset], a, l );
@@ -1479,6 +1497,7 @@ CLASS IMPLEMENTATION CMemoryStream;
         EXIT;
       END;
     END;
+
     DeviceFinish( Direction, Sync.arCompleted );
     RETURN Sync.arCompleted;
   END Start;
@@ -1488,12 +1507,68 @@ CLASS IMPLEMENTATION CMemoryStream;
     DeviceFinish( Direction, Sync.arAborted );
   END Abort;
 
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE ExtendMemory( NewLength : PTR ) : BOOLEAN;
+   BEGIN
+      RETURN FALSE; 
+   END ExtendMemory;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
   _Access := accUnknown;
   _Data := NIL;
   _Length := 0;
   _Offset := 0;
 END CMemoryStream;
+
+(*================================================================================*)
+
+CLASS IMPLEMENTATION CMemoryBufferStream;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE DeviceFinish( Direction : TDirection; Result : Sync.TAsyncResult );
+   BEGIN
+      IF Direction = dirWrite THEN
+         _Buffer^.Length := CARDINAL( LOPTRLONGWORD( _Offset ));
+      END;
+      SUPER.DeviceFinish( Direction, Result );
+   END DeviceFinish;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE ExtendMemory( NewLength : PTR ) : BOOLEAN;
+   VAR
+      pg : PTR := PTR( Storage.PageSize());
+   BEGIN
+      IF NewLength < _Buffer^.Size THEN
+         RETURN TRUE;
+      END;
+      _Buffer^.Size := CARDINAL(( NewLength DIV pg + 1 ) * pg );
+      _Data := _Buffer^.Data;
+      _Length := _Buffer^.Size;
+      RETURN TRUE;
+   END ExtendMemory;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Init( REF Buffer : StorageO.AMemoryBuffer; Access : TAccess );
+   BEGIN
+      _Buffer := ADR( Buffer );
+      IF Access = accWrite THEN
+         SUPER.Init( Buffer.Data, Buffer.Size, Access );
+      ELSE
+         SUPER.Init( Buffer.Data, Buffer.Length, Access );
+      END;
+   END Init;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+   _Buffer := NIL;
+END CMemoryBufferStream;
 
 (*================================================================================*)
 
