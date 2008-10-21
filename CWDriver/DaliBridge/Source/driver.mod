@@ -10,10 +10,12 @@ FROM log IMPORT
 
 IMPORT
    cllv,
+   cphcommon,
    FIO,
    FIOO,
    INIFile,
    IOO,
+   lists,
    Log,
    netpool,
    Resources,
@@ -119,7 +121,7 @@ CLASS IMPLEMENTATION CDriver;
          IF TS.GetKeyInt( knOutputQueueLength, OUT line, OUT c ) THEN
             OutputQueueLength := c;
          END;
-         IF TS.GetKeyInt( knOutputQueueLength, OUT line, OUT c ) THEN
+         IF TS.GetKeyInt( knSendDelay, OUT line, OUT c ) THEN
             SendDelay := c;
          END;
       END; // IF snDevice
@@ -352,20 +354,27 @@ CLASS IMPLEMENTATION CDriver;
    VAR
       address : DaliBridge.DaliAddress;
       AddressArray : DaliBridge.TAddresses;
+      arResult : Sync.TAsyncResult;
       c : CARDINAL;
+      ch : WCHAR;
       command : DaliBridge.TDaliCommand;
-      CS : StringsO.CString;
+      CS, cs : StringsO.CString;
       data : PTR;
       daliDevice : PTR;
       dimFlag : BOOLEAN;
       ExceptionItem : TPExceptionItem;
       ExceptionType : TExceptionItemType;
+      filedata : ARRAY [0..63] OF BYTE;
+      FileToSend : lists.TPBufferList := NIL;
+      fs : FIOO.CFileStream;
       haveEvent : BOOLEAN;
+      haveSend : BOOLEAN;
       i, j, index : CARDINAL;
       Level : CARDINAL;
       Linie : DaliBridge.TDaliLinie;
       N : ARRAY [0..15] OF WCHAR;
       S1, S2, S3, S4 : ARRAY [0..63] OF WCHAR;
+      tr : TextReader.CTextReader;
       
       //-----
       
@@ -999,12 +1008,80 @@ CLASS IMPLEMENTATION CDriver;
          IF NOT Send( eitResetInterface, daliDevice, Linie, address, DaliBridge.cmdInterfaceReset, 0H ) THEN
             GOTO Error;
          END;
+         
+      ELSIF EQUALS( S1, L'program_file' ) THEN
+         IF NOT SplitAddress( FALSE, FALSE, FALSE, TRUE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
+            GOTO Error;
+         END;
+         
+         TRY
+            fs.FromPath( S3, FIOO.imOpenRead );
+         CATCH e : IOO.CIOException DO
+            CS.FromOA( L'error: unable to load file' );
+            GOTO Error;
+         END; // CATCH
+         tr.Stream := ADR( fs );
+         
+         NEW( FileToSend );
+         FileToSend^.ItemType := lists.blitSlot64;
+         
+         arResult := tr.ReadLine( OUT cs, Sync.FORSAFETY, TRUE );
+         haveSend := FALSE;
+         filedata[0] := 0;
+         WHILE arResult IN Sync.arsStarts DO
+            ch := cs[0];
+            cs.Remove( 0, 1 );
+            cs.ReplaceOA( L" ", L"" );
+
+            IF ch = L"S" THEN
+               IF haveSend THEN
+                  FileToSend^.AddOA( filedata, 0 );
+               END;
+               haveSend := TRUE;
+               IF NOT cphcommon.FromHex( OA( cs.Length-1, cs.rawData ), OUT OA( 30, ADR( filedata[1] )), OUT i ) THEN
+                  CS.FromOA( L'error: bad hex string: ' );
+                  CS.AppendOA( ch );
+                  CS.Append( cs );
+                  GOTO Error;
+               END;
+               filedata[0] := BYTE( i );
+               filedata[32] := 0;
+
+            ELSIF ch = L"R" THEN
+               IF NOT haveSend THEN
+                  CS.FromOA( L'error: receive expectation without send' );
+                  GOTO Error;
+               END;
+               IF NOT cphcommon.FromHex( OA( cs.Length-1, cs.rawData ), OUT OA( 30, ADR( filedata[33] )), OUT i ) THEN
+                  CS.FromOA( L'error: bad hex string: ' );
+                  CS.AppendOA( ch );
+                  CS.Append( cs );
+                  GOTO Error;
+               END;
+               filedata[32] := BYTE( i );
+            END;
+
+            arResult := tr.ReadLine( OUT cs, Sync.FORSAFETY, TRUE );
+         END; // WHILE
+         IF haveSend THEN
+            FileToSend^.AddOA( filedata, 0 );
+         END;
+         
+         IF Dali.SendFile( daliDevice, Linie, FileToSend ) THEN
+            CS.Clear(); // return value
+            GOTO Success; // leave FileToSend allocated
+         ELSE
+            CS.FromOA( L'error: file cannot be sent (maybe some file is already being sent or something is programmed?)' );
+            GOTO Error;
+         END;
 
       ELSE
          CS.FromOA( L'error: unknown driver procedure' );
       END;
 
    Error:
+      DISPOSE( FileToSend );
+
       Result.Inc();
       OutValue.String := CS;
       RETURN;

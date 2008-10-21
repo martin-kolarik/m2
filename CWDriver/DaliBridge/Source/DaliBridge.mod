@@ -84,7 +84,7 @@ CLASS CUDPCommunicator( netsrv.AListener ) IMPLEMENTS threadpool.ITimeoutSink;
    PUBLIC PROCEDURE Run() : Sync.TAsyncResult;
    PUBLIC PROCEDURE Stop();
 
-   PUBLIC PROCEDURE SendDaliData( Linie : TDaliLinie; Data : ARRAY OF BYTE; Reset, ExpectResponse, Repeat : BOOLEAN ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE SendDaliData( Linie : TDaliLinie; Data : ARRAY OF BYTE; Reset, ExpectResponse, Repeat, Long : BOOLEAN ) : Sync.TAsyncResult;
 
    // AListener
    LOCAL VIRTUAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket ); // stDatagram
@@ -143,7 +143,7 @@ CLASS IMPLEMENTATION CUDPCommunicator;
 
 (*-------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE SendDaliData( Linie : TDaliLinie; Data : ARRAY OF BYTE; Reset, ExpectResponse, Repeat : BOOLEAN ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE SendDaliData( Linie : TDaliLinie; Data : ARRAY OF BYTE; Reset, ExpectResponse, Repeat, Long : BOOLEAN ) : Sync.TAsyncResult;
    VAR
       i : INTEGER;
       delay : INTEGER;
@@ -1022,6 +1022,7 @@ CLASS DaliRequest;
       Address : DaliAddress;
       Command : TDaliCommand;
       Data : CARD8;
+      LongData : ADDRESS;
 END DaliRequest;
 
 (*-------------------------------------------------------------------------------*)
@@ -1033,6 +1034,7 @@ BEGIN
    ClientId := 0;
    Command := cmdOff;
    Data := 0;
+   LongData := NIL;
 END DaliRequest;
 
 (*===============================================================================*)
@@ -1099,6 +1101,7 @@ CLASS IMPLEMENTATION CDaliDevice;
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
    VAR
+      linie : TDaliLinie;
       Request : TPDaliRequest;
    BEGIN
       IF PollTimer <> NIL THEN
@@ -1107,6 +1110,9 @@ CLASS IMPLEMENTATION CDaliDevice;
       WHILE Queue.Dequeue( OUT Request ) DO
          DISPOSE( Request );
       END; // WHILE
+      FOR linie := l1 TO l4 DO
+         DISPOSE( FileToSend[linie] );
+      END; // FOR
    END Dispose;
 
 (*-------------------------------------------------------------------------------*)
@@ -1175,7 +1181,7 @@ CLASS IMPLEMENTATION CDaliDevice;
          Logger.LogSC( dldMessage, logDevPrefix, L"Unable to send command in programming mode: ", CARDINAL( _Command ));
          RETURN Sync.arCannotStart;
       ELSE
-         RETURN FeedCommand( Linie, TPDaliAddress( ADR( daliAddress )), _Command, Data, ClientId );
+         RETURN FeedCommand( Linie, TPDaliAddress( ADR( daliAddress )), _Command, Data, NIL, ClientId );
       END;
    END Command;
    
@@ -1283,6 +1289,51 @@ CLASS IMPLEMENTATION CDaliDevice;
 
 (*-------------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE SendFile( Linie : TDaliLinie; _FileToSend : lists.TPBufferList ) : BOOLEAN; // CDaliDevice must deallocate FileToSend by itself
+   VAR
+      Request : TPDaliRequest;
+   BEGIN
+      IF Programming[Linie] OR ( _FileToSend = NIL ) THEN
+         RETURN FALSE;
+      END;
+      Programming[Linie] := TRUE;
+      FileToSendFailure[Linie] := FALSE;
+
+      // clear output queue
+      WHILE Queue.Dequeue( OUT Request ) DO
+         DISPOSE( Request );
+      END; // WHILE
+
+      // set file data   
+      DISPOSE( FileToSend[Linie] );
+      FileToSend[Linie] := _FileToSend;
+      FileToSend[Linie]^.Reset();
+      
+      SendFileItem( Linie );
+      RETURN TRUE;
+   END SendFile;
+   
+(*-------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE SendFileItem( Linie : TDaliLinie );
+   BEGIN
+      IF NOT FileToSend[Linie]^.MoveNext() THEN
+         Programming[Linie] := FALSE;
+         DISPOSE( FileToSend[Linie] );
+         IF EventSink <> NIL THEN
+            IF FileToSendFailure[Linie] THEN
+               EventSink^.OnProgrammingStopped( Sync.arAborted, Name, Linie );
+            ELSE
+               EventSink^.OnProgrammingStopped( Sync.arCompleted, Name, Linie );
+            END;
+         END;
+         RETURN;
+      END;
+      FeedCommand( Linie, NIL, cmdFileItem, 0, FileToSend[Linie]^.Current^.Data, 0 );
+   END SendFileItem;
+
+(*-------------------------------------------------------------------------------*)
+
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
    BEGIN
       CASE Message.Message OF
@@ -1329,6 +1380,8 @@ CLASS IMPLEMENTATION CDaliDevice;
       address : CARDINAL;
       CurrentNext : TCommand;
       da : DaliAddress;
+      fileItem : PBYTE;
+      i : CARDINAL;
       linie : TDaliLinie;
       Response : CARD8 := 0;
       Request : TPDaliRequest;
@@ -1349,7 +1402,20 @@ CLASS IMPLEMENTATION CDaliDevice;
                END;
             END;            
 
-            IF Programming[Request^.Linie] THEN
+            IF FileToSend[Request^.Linie] <> NIL THEN // we are sending file
+               FileToSendFailure[Request^.Linie] := FileToSendFailure[Request^.Linie] OR ( Result <> Sync.arCompleted );
+               fileItem := FileToSend[Request^.Linie]^.Current^.Data;
+               IF ( fileItem <> NIL ) AND ( ADR( Data ) <> NIL ) THEN
+                  FOR i := 0 TO CARDINAL( fileItem@[32]^ )-1 DO
+                     IF Data[i] <> fileItem@[33+i]^ THEN
+                        FileToSendFailure[Request^.Linie] := TRUE;
+                        EXIT;
+                     END;
+                  END;
+               END;
+               SendFileItem( Request^.Linie );
+            
+            ELSIF Programming[Request^.Linie] THEN
                LogRequest( dldDebug, L"FIN: ", Request, Result, FALSE, TRUE, FALSE );
 
                IF Result NOT IN Sync.arsCompletions THEN // arTimeout, etc.
@@ -1460,7 +1526,7 @@ CLASS IMPLEMENTATION CDaliDevice;
 
 (*-------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE FeedCommand( Linie : TDaliLinie; daliAddress : TPDaliAddress; _Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
+   PRIVATE PROCEDURE FeedCommand( Linie : TDaliLinie; daliAddress : TPDaliAddress; _Command : TDaliCommand; Data : CARD8; LongData : ADDRESS; CONST ClientId : PTR ) : Sync.TAsyncResult;
    VAR
       Request : TPDaliRequest;
    BEGIN
@@ -1472,6 +1538,7 @@ CLASS IMPLEMENTATION CDaliDevice;
       END;
       Request^.Command := _Command;
       Request^.Data := Data;
+      Request^.LongData := LongData;
 
       LogRequest( dldDebug, L"REQ: ", Request, Sync.arCompleted, daliAddress <> NIL, FALSE, TRUE );
 
@@ -1485,6 +1552,7 @@ CLASS IMPLEMENTATION CDaliDevice;
    PRIVATE PROCEDURE Communicate() : Sync.TAsyncResult;
    VAR
       DaliData : ARRAY [0..1] OF BYTE;
+      Long : BOOLEAN := FALSE;
       Result : Sync.TAsyncResult;
       Request : TPDaliRequest;
       Reset : BOOLEAN;
@@ -1504,28 +1572,35 @@ CLASS IMPLEMENTATION CDaliDevice;
          DaliData[1] := 0;
          Reset := TRUE;
 
-         LogRequest( dldDebug, L"SND: ", Request, Sync.arCompleted, FALSE, FALSE, FALSE );
+         LogRequest( dldDebug, L"SNDr: ", Request, Sync.arCompleted, FALSE, FALSE, FALSE );
+
+      ELSIF Request^.Command = cmdFileItem THEN
+         Long := PBYTE( Request^.LongData )^ = 2;
+         DaliData[0] := PBYTE( Request^.LongData )@[1]^;
+         DaliData[1] := PBYTE( Request^.LongData )@[2]^;
+
+         LogRequest( dldDebug, L"SNDf: ", Request, Sync.arCompleted, FALSE, FALSE, FALSE );
 
       ELSIF Request^.Command IN specialCommands THEN
          DaliData[0] := BYTE( Request^.Command );
          DaliData[1] := Request^.Data;
 
-         LogRequest( dldDebug, L"SND: ", Request, Sync.arCompleted, FALSE, FALSE, TRUE );
+         LogRequest( dldDebug, L"SNDs: ", Request, Sync.arCompleted, FALSE, FALSE, TRUE );
 
       ELSIF Request^.Command = cmdDirect THEN
          DaliData[0] := Request^.Address.TransportAddress AND NOT 01H;
          DaliData[1] := MIN2( 0FEH, Request^.Data );
 
-         LogRequest( dldDebug, L"SND: ", Request, Sync.arCompleted, TRUE, FALSE, TRUE );
+         LogRequest( dldDebug, L"SNDd: ", Request, Sync.arCompleted, TRUE, FALSE, TRUE );
 
       ELSE
          DaliData[0] := Request^.Address.TransportAddress OR 01H;
          DaliData[1] := BYTE( Request^.Command );
 
-         LogRequest( dldDebug, L"SND: ", Request, Sync.arCompleted, TRUE, FALSE, FALSE );
+         LogRequest( dldDebug, L"SNDn: ", Request, Sync.arCompleted, TRUE, FALSE, FALSE );
       END;
       
-      Result := Communicator^.SendDaliData( Request^.Linie, DaliData, Reset, NOT Reset AND ( Request^.Command IN respondedCommands ), NOT Reset AND ( Request^.Command IN repeatedCommands ));
+      Result := Communicator^.SendDaliData( Request^.Linie, DaliData, Reset, NOT Reset AND ( Request^.Command IN respondedCommands ), NOT Reset AND ( Request^.Command IN repeatedCommands ), Long );
       IF Result = Sync.arAlreadyPending THEN // data were not sent, communicator is busy
          Request^.Pending := FALSE; // prepare next send after a tick
          RETURN Sync.arPending;
@@ -1546,49 +1621,49 @@ CLASS IMPLEMENTATION CDaliDevice;
       LOOP
          CASE Programmer[Linie].WhatNext() OF
          | dapInitFull :
-            FeedCommand( Linie, NIL, cmdTerminate, 0, DUMMY_RESPONSE );
+            FeedCommand( Linie, NIL, cmdTerminate, 0, NIL, DUMMY_RESPONSE );
 
             DA.Type := DaliBridge.adrAll;
-            FeedCommand( Linie, ADR( DA ), cmdMin, 0, DUMMY_RESPONSE );
-            FeedCommand( Linie, NIL, cmdLoadDTR, 0FFH, DUMMY_RESPONSE );
-            FeedCommand( Linie, ADR( DA ), cmdDTRToAddress, 0FFH, DUMMY_RESPONSE );
+            FeedCommand( Linie, ADR( DA ), cmdMin, 0, NIL, DUMMY_RESPONSE );
+            FeedCommand( Linie, NIL, cmdLoadDTR, 0FFH, NIL, DUMMY_RESPONSE );
+            FeedCommand( Linie, ADR( DA ), cmdDTRToAddress, 0FFH, NIL, DUMMY_RESPONSE );
 
-            FeedCommand( Linie, NIL, cmdInitialize, 0FFH, EXPECTED_RESPONSE );
+            FeedCommand( Linie, NIL, cmdInitialize, 0FFH, NIL, EXPECTED_RESPONSE );
             EXIT;
 
          | dapInitSpecific :
-            FeedCommand( Linie, NIL, cmdTerminate, 0, DUMMY_RESPONSE );
+            FeedCommand( Linie, NIL, cmdTerminate, 0, NIL, DUMMY_RESPONSE );
 
-            FeedCommand( Linie, ADR( Programmer[Linie].SpecificAddress ), cmdMin, 0, DUMMY_RESPONSE );
+            FeedCommand( Linie, ADR( Programmer[Linie].SpecificAddress ), cmdMin, 0, NIL, DUMMY_RESPONSE );
 
-            FeedCommand( Linie, NIL, cmdInitialize, Programmer[Linie].SpecificAddress.TransportAddress, EXPECTED_RESPONSE );
+            FeedCommand( Linie, NIL, cmdInitialize, Programmer[Linie].SpecificAddress.TransportAddress, NIL, EXPECTED_RESPONSE );
             EXIT;
 
          | dapInitScanning :
-            FeedCommand( Linie, NIL, cmdTerminate, 0, EXPECTED_RESPONSE );
+            FeedCommand( Linie, NIL, cmdTerminate, 0, NIL, EXPECTED_RESPONSE );
             EXIT;
 
          | dapInitScanning2 :
-            FeedCommand( Linie, NIL, cmdTerminate, 0, EXPECTED_RESPONSE );
-            FeedCommand( Linie, NIL, cmdInitialize, 0, EXPECTED_RESPONSE );
+            FeedCommand( Linie, NIL, cmdTerminate, 0, NIL, EXPECTED_RESPONSE );
+            FeedCommand( Linie, NIL, cmdInitialize, 0, NIL, EXPECTED_RESPONSE );
             EXIT;
 
          | dapInitReaddressing :
-            FeedCommand( Linie, NIL, cmdTerminate, 0, DUMMY_RESPONSE );
+            FeedCommand( Linie, NIL, cmdTerminate, 0, NIL, DUMMY_RESPONSE );
 
             DA.Type := DaliBridge.adrAll;
-            FeedCommand( Linie, ADR( DA ), cmdMin, 0, DUMMY_RESPONSE );
+            FeedCommand( Linie, ADR( DA ), cmdMin, 0, NIL, DUMMY_RESPONSE );
             
             // variant to erase existing addresses
-            // FeedCommand( Linie, NIL, cmdLoadDTR, 0FFH, DUMMY_RESPONSE );
-            // FeedCommand( Linie, ADR( DA ), cmdDTRToAddress, 0FFH, DUMMY_RESPONSE );
-            // FeedCommand( Linie, NIL, cmdInitialize, 0FFH, EXPECTED_RESPONSE );
+            // FeedCommand( Linie, NIL, cmdLoadDTR, 0FFH, NIL, DUMMY_RESPONSE );
+            // FeedCommand( Linie, ADR( DA ), cmdDTRToAddress, 0FFH, NIL, DUMMY_RESPONSE );
+            // FeedCommand( Linie, NIL, cmdInitialize, 0FFH, NIL, EXPECTED_RESPONSE );
 
-            FeedCommand( Linie, NIL, cmdInitialize, 0, EXPECTED_RESPONSE );
+            FeedCommand( Linie, NIL, cmdInitialize, 0, NIL, EXPECTED_RESPONSE );
             EXIT;
 
          | dapRandomize :
-            FeedCommand( Linie, NIL, cmdRandomize, 0, EXPECTED_RESPONSE );
+            FeedCommand( Linie, NIL, cmdRandomize, 0, NIL, EXPECTED_RESPONSE );
             EXIT;
 
          | dapStartSeek :
@@ -1600,15 +1675,15 @@ CLASS IMPLEMENTATION CDaliDevice;
             CASE Seeker[Linie].GetAddressToCheck( OUT Address ) OF
             | getTRUE :
                IF Address.H8 <> LastProgrammedAddress[Linie].H8 THEN
-                  FeedCommand( Linie, NIL, cmdStoreH, Address.H8, DUMMY_RESPONSE );
+                  FeedCommand( Linie, NIL, cmdStoreH, Address.H8, NIL, DUMMY_RESPONSE );
                END;
                IF Address.M8 <> LastProgrammedAddress[Linie].M8 THEN
-                  FeedCommand( Linie, NIL, cmdStoreM, Address.M8, DUMMY_RESPONSE );
+                  FeedCommand( Linie, NIL, cmdStoreM, Address.M8, NIL, DUMMY_RESPONSE );
                END;
                IF Address.L8 <> LastProgrammedAddress[Linie].L8 THEN
-                  FeedCommand( Linie, NIL, cmdStoreL, Address.L8, DUMMY_RESPONSE );
+                  FeedCommand( Linie, NIL, cmdStoreL, Address.L8, NIL, DUMMY_RESPONSE );
                END;
-               FeedCommand( Linie, NIL, cmdCompare, 0, EXPECTED_RESPONSE );
+               FeedCommand( Linie, NIL, cmdCompare, 0, NIL, EXPECTED_RESPONSE );
 
                LastProgrammedAddress[Linie] := Address;
                EXIT;
@@ -1622,33 +1697,33 @@ CLASS IMPLEMENTATION CDaliDevice;
             
          | dapSelectOne :
             Address := Programmer[Linie].CurrentLongAddress;
-            FeedCommand( Linie, NIL, cmdStoreH, Address.H8, DUMMY_RESPONSE );
-            FeedCommand( Linie, NIL, cmdStoreM, Address.M8, DUMMY_RESPONSE );
-            FeedCommand( Linie, NIL, cmdStoreL, Address.L8, EXPECTED_RESPONSE );
+            FeedCommand( Linie, NIL, cmdStoreH, Address.H8, NIL, DUMMY_RESPONSE );
+            FeedCommand( Linie, NIL, cmdStoreM, Address.M8, NIL, DUMMY_RESPONSE );
+            FeedCommand( Linie, NIL, cmdStoreL, Address.L8, NIL, EXPECTED_RESPONSE );
             EXIT;
 
          | dapScanOneH :
             Logger.LogSC( dldTrace, logProgramPrefix, L"Scan address: ", Programmer[Linie].CurrentShortAddress );
             DA.Type := DaliBridge.adrSingle;
             DA.Address := Programmer[Linie].CurrentShortAddress;
-            FeedCommand( Linie, ADR( DA ), cmdReadLongH, 0, EXPECTED_RESPONSE );
+            FeedCommand( Linie, ADR( DA ), cmdReadLongH, 0, NIL, EXPECTED_RESPONSE );
             EXIT;
 
          | dapScanOneM :
             DA.Type := DaliBridge.adrSingle;
             DA.Address := Programmer[Linie].CurrentShortAddress;
-            FeedCommand( Linie, ADR( DA ), cmdReadLongM, 0, EXPECTED_RESPONSE );
+            FeedCommand( Linie, ADR( DA ), cmdReadLongM, 0, NIL, EXPECTED_RESPONSE );
             EXIT;
 
          | dapScanOneL :
             DA.Type := DaliBridge.adrSingle;
             DA.Address := Programmer[Linie].CurrentShortAddress;
-            FeedCommand( Linie, ADR( DA ), cmdReadLongL, 0, EXPECTED_RESPONSE );
+            FeedCommand( Linie, ADR( DA ), cmdReadLongL, 0, NIL, EXPECTED_RESPONSE );
             EXIT;
          
          | dapScan2GetShort :
             Logger.LogSC( dldTrace, logProgramPrefix, L"Read address: ", Programmer[Linie].CurrentLongAddress.C24 );
-            FeedCommand( Linie, NIL, cmdGetAddress, 0, EXPECTED_RESPONSE );
+            FeedCommand( Linie, NIL, cmdGetAddress, 0, NIL, EXPECTED_RESPONSE );
             
          | dapScannedOne,
            dapScanned2One :
@@ -1668,7 +1743,7 @@ CLASS IMPLEMENTATION CDaliDevice;
             Logger.LogSC( dldTrace, logProgramPrefix, L"Programm address: ", Programmer[Linie].CurrentShortAddress );
             DA.Type := DaliBridge.adrSingle;
             DA.Address := Programmer[Linie].CurrentShortAddress;
-            FeedCommand( Linie, NIL, cmdSetAddress, DA.TransportAddress OR 01H, EXPECTED_RESPONSE );
+            FeedCommand( Linie, NIL, cmdSetAddress, DA.TransportAddress OR 01H, NIL, EXPECTED_RESPONSE );
             EXIT;
 
          | dapCheckOne :
@@ -1679,7 +1754,7 @@ CLASS IMPLEMENTATION CDaliDevice;
             // DA.Address := Programmer.CurrentShortAddress;
             // FeedCommand( ProgrammedLinie, NIL, cmdCheckAddress, DA.TransportAddress OR 01H, EXPECTED_RESPONSE );
 
-            FeedCommand( Linie, NIL, cmdGetAddress, 0, EXPECTED_RESPONSE );
+            FeedCommand( Linie, NIL, cmdGetAddress, 0, NIL, EXPECTED_RESPONSE );
 
             EXIT;
 
@@ -1687,16 +1762,16 @@ CLASS IMPLEMENTATION CDaliDevice;
             Logger.LogSC( dldTrace, logProgramPrefix, L"Address checked: ", Programmer[Linie].CurrentShortAddress );
             DA.Type := DaliBridge.adrSingle;
             DA.Address := Programmer[Linie].CurrentShortAddress;
-            FeedCommand( Linie, ADR( DA ), cmdMax, 0, EXPECTED_RESPONSE );
+            FeedCommand( Linie, ADR( DA ), cmdMax, 0, NIL, EXPECTED_RESPONSE );
             EventSink^.OnDeviceFound( Name, Linie, DA, Programmer[Linie].CurrentLongAddress.C24 );
             EXIT;
 
          | dapDisableOne :
-            FeedCommand( Linie, NIL, cmdWithdraw, 0, EXPECTED_RESPONSE );
+            FeedCommand( Linie, NIL, cmdWithdraw, 0, NIL, EXPECTED_RESPONSE );
             EXIT;
 
          | dapFinish :
-            FeedCommand( Linie, NIL, cmdTerminate, 0, EXPECTED_RESPONSE );
+            FeedCommand( Linie, NIL, cmdTerminate, 0, NIL, EXPECTED_RESPONSE );
             EXIT;
 
          | dapEnd :
@@ -1805,10 +1880,13 @@ BEGIN
    Fill( ADR( Polled ), SIZE( Polled ), 0 );
    Fill( ADR( StatusArray ), SIZE( StatusArray ), 0FFH );
    Fill( ADR( PendingArray ), SIZE( PendingArray ), 0 );
+   Fill( ADR( FileToSend ), SIZE( FileToSend ), 0 );
+   Fill( ADR( FileToSendFailure ), SIZE( FileToSendFailure ), 0 );
    PollTimer := NIL;
    PollPeriod := Sync.FOREVER;
    PollActive := 0;
    _PollClientId := 0;
+   
    NEW( PollSink );
    PollSink^.TimeoutSink := ADR( SELF );
 
@@ -2077,6 +2155,15 @@ CLASS IMPLEMENTATION CDali;
    BEGIN
       DaliDevice^.LoadLongAddresses( Linie, LongAddresses );
    END LoadLongAddresses;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SendFile( Dali : PTR; Linie : TDaliLinie; FileToSend : lists.TPBufferList ) : BOOLEAN; // CDaliDevice must deallocate FileToSend by itself
+   VAR
+      DaliDevice : POINTER TO CDaliDevice := Dali;
+   BEGIN
+      RETURN DaliDevice^.SendFile( Linie, FileToSend );
+   END SendFile;
 
 (*-------------------------------------------------------------------------------*)
 

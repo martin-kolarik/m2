@@ -1,3 +1,9 @@
+Version 1.0.622 beta 21.10.2008
+- BUG: "send_delay" parameter value was obtained from "output_queue_length" key.
+- NEW: Driver now accepts command "program_file <Device>.<Linie> <FilePath>",
+       when sequence of sent and expected data is read from the file and sent
+       to DALI. After exhausting file lines event "program" is fired.
+
 Version 1.0.611 beta 14.10.2008
 - NEW: PAR file now can contain [device] "send_delay" parameter, which sets delay
        between packets sent to interface. Default value is 0 (ms), maximal effective

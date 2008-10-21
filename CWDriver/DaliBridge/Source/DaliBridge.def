@@ -43,6 +43,7 @@ TYPE
       cmdInterfaceReset = 1024,
       cmdDirect = 1025, // private
       cmdEvent = 1026, // event
+      cmdFileItem = 1027,
 
       cmdOff = 0,
       cmdDimUp, cmdDimDown, cmdStepUp, cmdStepDown,
@@ -222,6 +223,8 @@ CLASS CDaliDevice( msghandler.MessageHandler ) IMPLEMENTS threadpool.ITimeoutSin
       Programmer : ARRAY TDaliLinie OF CDaliAddressProgrammer;
       LastProgrammedAddress : ARRAY TDaliLinie OF TProgramAddress;
       Programming : ARRAY TDaliLinie OF BOOLEAN;
+      FileToSend : ARRAY TDaliLinie OF lists.TPBufferList;
+      FileToSendFailure : ARRAY TDaliLinie OF BOOLEAN;
    PRIVATE VAR
       Polled : ARRAY TDaliLinie OF BOOLEAN;
       StatusArray : ARRAY TDaliLinie OF ARRAY [0..63] OF CARD8; // accessed only from Dali thread
@@ -261,6 +264,9 @@ CLASS CDaliDevice( msghandler.MessageHandler ) IMPLEMENTS threadpool.ITimeoutSin
    PUBLIC PROCEDURE GetLongAddresses( Linie : TDaliLinie; OUT LongAddresses : TAddresses ) : BOOLEAN;
    PUBLIC PROCEDURE LoadLongAddresses( Linie : TDaliLinie; CONST LongAddresses : TAddresses );
    
+   PUBLIC PROCEDURE SendFile( Linie : TDaliLinie; FileToSend : lists.TPBufferList ) : BOOLEAN; // CDaliDevice must deallocate FileToSend by itself
+   PRIVATE PROCEDURE SendFileItem( Linie : TDaliLinie );
+   
    // MessageHandler -- in thread
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
    
@@ -273,7 +279,7 @@ CLASS CDaliDevice( msghandler.MessageHandler ) IMPLEMENTS threadpool.ITimeoutSin
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
 
    // SELF
-   PRIVATE PROCEDURE FeedCommand( Linie : TDaliLinie; daliAddress : TPDaliAddress; Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
+   PRIVATE PROCEDURE FeedCommand( Linie : TDaliLinie; daliAddress : TPDaliAddress; Command : TDaliCommand; Data : CARD8; LongData : ADDRESS; CONST ClientId : PTR ) : Sync.TAsyncResult;
    PRIVATE PROCEDURE Communicate() : Sync.TAsyncResult;
    PRIVATE PROCEDURE ProgrammingStep( Linie : TDaliLinie );
    PRIVATE PROCEDURE LogRequest( Level : log.TDebugLevel; LeadingText : ARRAY OF WCHAR; Request : ADDRESS; Result : Sync.TAsyncResult; PrintAddress, PrintResult, PrintData : BOOLEAN );
@@ -314,6 +320,8 @@ CLASS CDali IMPLEMENTS IDaliEventSink;
    PUBLIC PROCEDURE GetOutputQueueCount( Dali : PTR ) : CARDINAL;
    PUBLIC PROCEDURE GetLongAddresses( Dali : PTR; Linie : TDaliLinie; OUT LongAddresses : TAddresses ) : BOOLEAN;
    PUBLIC PROCEDURE LoadLongAddresses( Dali : PTR; Linie : TDaliLinie; CONST LongAddresses : TAddresses );
+   
+   PUBLIC PROCEDURE SendFile( Dali : PTR; Linie : TDaliLinie; FileToSend : lists.TPBufferList ) : BOOLEAN; // CDaliDevice must deallocate FileToSend by itself
    
    PUBLIC PROCEDURE Dispose();
 END CDali;
