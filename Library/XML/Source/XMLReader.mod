@@ -333,6 +333,40 @@ CLASS IMPLEMENTATION CXMLReader;
 
 (*---------------------------------------------------------------------------*)
 
+	PUBLIC PROPERTY CurrentNamespace GET : StringsO.CString;	
+	VAR
+	   l : windows.UINT;
+	   pch : windows.PCWSTR;
+	   s : StringsO.CString;
+   BEGIN
+      IF ( _IReader = NIL ) OR ( xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True ) THEN
+         RETURN s;
+      END;
+      IF xmlLITE.TPIXmlReader( _IReader )^.GetNamespaceUri( OUT pch, OUT l ) = winerror.S_OK THEN
+         s.FromOA( OA( l-1, pch ));
+      END;
+      RETURN s;
+   END CurrentNamespace;
+
+(*---------------------------------------------------------------------------*)
+
+	PUBLIC PROPERTY CurrentPrefix GET : StringsO.CString;	
+	VAR
+	   l : windows.UINT;
+	   pch : windows.PCWSTR;
+	   s : StringsO.CString;
+   BEGIN
+      IF ( _IReader = NIL ) OR ( xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True ) THEN
+         RETURN s;
+      END;
+      IF xmlLITE.TPIXmlReader( _IReader )^.GetPrefix( OUT pch, OUT l ) = winerror.S_OK THEN
+         s.FromOA( OA( l-1, pch ));
+      END;
+      RETURN s;
+   END CurrentPrefix;
+
+(*---------------------------------------------------------------------------*)
+
 	PUBLIC PROPERTY CurrentQualifiedName GET : StringsO.CString;	
 	VAR
 	   l : CARDINAL;

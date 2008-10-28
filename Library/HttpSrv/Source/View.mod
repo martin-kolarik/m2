@@ -9,6 +9,7 @@ IMPORT
    LanguagesO,
    lists,
    maps,
+   NodeList,
    Strings;
 
 (*================================================================================*)
@@ -37,12 +38,39 @@ END CRawHTMLView;
 
 (*================================================================================*)
 
+CONST
+   PT_XMLNS = L"xmlns";
+   PT_NAMESPACE = L"http://www.smartcontrol.cz/2008/XML/Web/PageTemplate";
+   PT_ROOTNAME = L"pagetemplate";
+      PT_CONDITION = L"condition";
+   PT_CHOOSE = L"choose";
+      PT_WHEN = L"when";
+      PT_OTHERWISE = L"otherwise";
+   PT_FOR = L"for";
+      PT_FROM = L"from";
+      PT_TO = L"to";
+      PT_BY = L"by";
+      PT_INDEX = L"index";
+   PT_FOREACH = L"foreach";
+   PT_FORM = L"form";
+      PT_FORM_INPUT = L"input";
+      PT_FORM_CHECKBOX = L"checkbox";
+      PT_FORM_RADIOBUTTON = L"radiobutton";
+      PT_FORM_PASSWORD = L"password";
+      PT_FORM_SELECT = L"select";
+      PT_FORM_OPTIONS = L"options";
+      PT_FORM_OPTION = L"option";
+      PT_FORM_TEXTAREA = L"textarea";
+      PT_FORM_HIDDEN = L"hidden";
+      PT_FORM_ERRORS = L"errors";
+
 CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Format( CONST Request : MVC.TPHttpRequest; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
    VAR
+      b : BOOLEAN;
       fs : FIOO.CFileStream;
       mbs : IOO.CMemoryBufferStream;
       viewPath : StringsO.CString;
@@ -64,13 +92,15 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
       mbs.Init( REF Output, IOO.accWrite );
       Writer.Stream := ADR( mbs );
-
-      IF NOT Parse( Request ) THEN
+      b := ParseRoot( Request );
+      Writer.Close( FALSE ); 
+      
+      IF b THEN
+         Request^.ResponseHeaders^.Add( HttpCommon.ContentType, HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"utf-8" ));
+         RETURN TRUE;
+      ELSE
          RETURN FALSE;
       END;
-      
-      Request^.ResponseHeaders^.Add( HttpCommon.ContentType, HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"utf-8" ));
-      RETURN TRUE;
    END Format;
 
 (*--------------------------------------------------------------------------------*)
@@ -83,131 +113,340 @@ CLASS IMPLEMENTATION CPageTemplateView;
    
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE Parse( CONST Request : MVC.TPHttpRequest ) : BOOLEAN;
-   LABEL
-      Next;
-   CONST
-      PT_CONDITION = L"ptcond";
-      PT_TYPE = L"pttype";
+   PRIVATE PROCEDURE ParseRoot( CONST Request : MVC.TPHttpRequest ) : BOOLEAN;
    VAR
-      attributes : lists.CStringStringList;
-      depth : INTEGER := 0;
-      ename : StringsO.CString;
-      name : StringsO.CString;
-      nodeType : xmlreader.TNodeType;
-      omitstart : INTEGER := -1;
-      onstart : BOOLEAN := TRUE; // whitespaces before the first element are ignored
-      ps1, ps2 : StringsO.TPString;
-      value : StringsO.CString;
       xmle : xmlreader.TXMLError;
    BEGIN
       xmle := Reader.MoveNext();
       WHILE xmle = xmlreader.xmle_S_OK DO
-         ASSERT( depth >= 0 );
          
-         nodeType := Reader.CurrentType;
-         IF nodeType = xmlreader.xntElementBegin THEN
-            INC( depth );
-         ELSIF nodeType = xmlreader.xntElementEnd THEN
-            IF depth > omitstart THEN
-               DEC( depth );
-            ELSIF depth = omitstart THEN
-               DEC( depth );
-               omitstart := -1;
-               GOTO Next;
-            ELSE
-               DEC( depth );
-            END;
-         END;
-         IF omitstart > -1 THEN
-            GOTO Next;
-         END;
-      
          CASE Reader.CurrentType OF
-         |  xmlreader.xntUnknown,
-            xmlreader.xntDocumentType,
-            xmlreader.xntCDATA,
-            xmlreader.xntProcessingInstruction,
-            xmlreader.xntComment :
-            GOTO Next;
-
-         | xmlreader.xntXMLDeclaration :
-            GOTO Next; // omit, Writer writes declaration itself
-
          | xmlreader.xntText :
-            ParseText( Request, Reader.CurrentValue, OUT value );
-            Writer.WriteString( value );
+            ASSERT( FALSE ); // should not occur here
 
          | xmlreader.xntElementBegin :
-            onstart := FALSE; // allow writing whitespaces
-
-         | xmlreader.xntElementEnd :
-            Writer.WriteElementEnd();
+            IF NOT Reader.CurrentName.EqualsIgnoreCaseOA( PT_ROOTNAME ) THEN
+               RETURN FALSE;
+            ELSIF Reader.MoveToFirstAttribute() <> xmlreader.xmle_S_OK THEN
+               RETURN FALSE; // at least single attribute with xmlns:... must be present
+            END;
+            
+            Prefix.Clear();
+            REPEAT
+               IF Reader.CurrentType <> xmlreader.xntAttribute THEN
+                  ASSERT( FALSE ); // should not occur here
+                  CONTINUE;
+               ELSIF Reader.CurrentPrefix.EqualsIgnoreCaseOA( PT_XMLNS ) AND Reader.CurrentValue.EqualsIgnoreCaseOA( PT_NAMESPACE ) THEN
+                  Prefix := Reader.CurrentName;
+               END;
+            UNTIL Reader.MoveToNextAttribute() <> xmlreader.xmle_S_OK;
+            
+            IF Prefix.Empty THEN
+               RETURN FALSE;
+            END;
+            PrefixCondition := Prefix;
+            PrefixCondition.AppendOA( L":" );
+            PrefixCondition.AppendOA( PT_CONDITION );
+            
+            RETURN Parse( Request, TRUE );
 
          | xmlreader.xntAttribute :
             ASSERT( FALSE ); // should not occur here
-
-         | xmlreader.xntWhitespace :
-            GOTO Next; // omit, Writer handles EOLs by itself
-            (*
-            IF onstart THEN
-               GOTO Next;
-            END;
-            Writer.WriteString( Reader.CurrentValue );
-            *)
          END; // CASE
 
-         IF Reader.CurrentType = xmlreader.xntElementBegin THEN // evaluate element begin
-            ename := Reader.CurrentName;
-            
-            IF Reader.MoveToFirstAttribute() = xmlreader.xmle_S_OK THEN
-               attributes.Dispose();
-               REPEAT
-                  IF Reader.CurrentType <> xmlreader.xntAttribute THEN
-                     ASSERT( FALSE ); // should not occur here
-                     CONTINUE;
-                  END;
-                  
-                  name := Reader.CurrentName;
-                  IF name.EqualsOA( PT_CONDITION ) THEN
-                     IF NOT EvaluateBoolean( Request, Reader.CurrentValue ) THEN
-                        omitstart := depth;
-                        attributes.Dispose();
-                        GOTO Next;
-                     END;
-                     
-                  ELSIF name.EqualsOA( PT_TYPE ) THEN
-                     (*?*)
-
-                  ELSE
-                     attributes.Add( name, Reader.CurrentValue );
-                  END;
-
-               UNTIL Reader.MoveToNextAttribute() <> xmlreader.xmle_S_OK;
-
-               Writer.WriteElementStartOA( OA( ename.Length-1, ename.rawData ));
-
-               attributes.Reset();
-               WHILE attributes.MoveNext() DO
-                  ps1 := attributes.Current;
-                  ParseText( Request, attributes.CurrentData^, OUT value );
-                  Writer.WriteAttributeStringOA( OA( ps1^.Length-1, ps1^.rawData ), OA( value.Length-1, value.rawData ));
-               END; // WHILE
-               
-            ELSE // no attributes
-               Writer.WriteElementStartOA( OA( ename.Length-1, ename.rawData ));
-            END;
-            
-         END; // IF xntElementBegin
-
-      Next:      
          xmle := Reader.MoveNext()   
       END; // WHILE
-     
-      Writer.Close( FALSE ); 
+      RETURN TRUE;
+   END ParseRoot;
 
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE Parse( CONST Request : MVC.TPHttpRequest; Emit : BOOLEAN ) : BOOLEAN;
+   LABEL
+      Next;
+   VAR
+      attributes : lists.CStringStringList;
+      depth : INTEGER := 0;
+      empty : StringsO.CString;
+      nodeName : StringsO.CString;
+      nodePrefix : StringsO.CString;
+      nodeType : xmlreader.TNodeType;
+      nodeValue : StringsO.CString;
+      isEmpty : BOOLEAN;
+      pname : StringsO.TPString;
+      ptFlag : BOOLEAN;
+      value : StringsO.CString;
+   BEGIN
+      INC( depth ); // we entered element
+
+      WHILE MoveNext( OUT nodeType, OUT nodePrefix, OUT nodeName, OUT isEmpty, OUT nodeValue, OUT attributes ) DO
+        
+         IF nodeType = xmlreader.xntElementBegin THEN
+            INC( depth );
+         ELSIF nodeType = xmlreader.xntElementEnd THEN
+            IF depth = 1 THEN
+               RETURN TRUE;
+            END;
+            DEC( depth );
+         END;
+         IF NOT Emit THEN
+            GOTO Next;
+         END;
+
+         CASE nodeType OF
+         | xmlreader.xntText :
+            ParseText( Request, nodeValue, OUT value );
+            Writer.WriteString( value );
+
+         | xmlreader.xntElementBegin :
+            ptFlag := nodePrefix.EqualsIgnoreCase( Prefix );
+         
+            // look for condition
+            attributes.Reset();
+            WHILE attributes.MoveNext() DO
+               pname := attributes.Current;
+               IF ptFlag AND pname^.EqualsIgnoreCaseOA( PT_CONDITION ) OR pname^.EqualsIgnoreCase( PrefixCondition ) THEN
+                  IF NOT EvaluateBoolean( Request, attributes.CurrentData^ ) THEN
+                     IF Parse( Request, FALSE ) THEN
+                        GOTO Next;
+                     ELSE
+                        RETURN FALSE;
+                     END;
+                  END;
+               END;
+            END; // WHILE
+            
+            IF ptFlag THEN // Page Template element
+               IF nodeName.EqualsIgnoreCaseOA( PT_CHOOSE ) THEN
+                  IF NOT ParseChoose( Request ) THEN
+                     RETURN FALSE;
+                  END;
+               ELSIF nodeName.EqualsIgnoreCaseOA( PT_FOR ) THEN
+                  ParseFor( Request, attributes );
+               ELSIF nodeName.EqualsIgnoreCaseOA( PT_FOREACH ) THEN
+                  // ParseForeach( Request, attributes );
+               ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM ) THEN
+                  // ParseForm( Request, attributes );
+               ELSE
+                  RETURN FALSE; // unknown element
+               END;
+
+            ELSE // another element
+               Writer.WriteElementStartOA( OA( nodeName.Length-1, nodeName.rawData ));
+
+               // write attributes
+               attributes.Reset();
+               WHILE attributes.MoveNext() DO
+                  pname := attributes.Current;
+                  IF ptFlag AND pname^.EqualsIgnoreCaseOA( PT_CONDITION ) OR pname^.EqualsIgnoreCase( PrefixCondition ) THEN
+                     CONTINUE; // ignore pt:condition
+                  END;
+                  ParseText( Request, attributes.CurrentData^, OUT value );
+                  Writer.WriteAttributeStringOA( OA( pname^.Length-1, pname^.rawData ), OA( value.Length-1, value.rawData ));
+               END; // WHILE
+
+               IF isEmpty THEN
+                  Writer.WriteElementEnd();
+               ELSE
+                  Writer.WriteString( empty ); // terminate attributes forcibly
+               END;
+            END;
+
+         | xmlreader.xntElementEnd :
+            Writer.WriteElementEnd(); // writer does it itself
+         END; // CASE
+
+      Next:
+      END; // WHILE
+      
       RETURN TRUE;
    END Parse;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ParseChoose( CONST Request : MVC.TPHttpRequest ) : BOOLEAN;
+   VAR
+      attributes : lists.CStringStringList;
+      done : BOOLEAN := FALSE;
+      emit : TRISTATE;
+      haveOtherwise : BOOLEAN := FALSE;
+      isEmpty : BOOLEAN;
+      nodeName : StringsO.CString;
+      nodePrefix : StringsO.CString;
+      nodeType : xmlreader.TNodeType;
+      nodeValue : StringsO.CString;
+      pname : StringsO.TPString;
+   BEGIN
+      WHILE MoveNext( OUT nodeType, OUT nodePrefix, OUT nodeName, OUT isEmpty, OUT nodeValue, OUT attributes ) DO
+
+         IF nodeType = xmlreader.xntElementBegin THEN
+            // ok, follow to processing
+         ELSIF nodeType = xmlreader.xntElementEnd THEN // other ends are consumed inside
+            RETURN TRUE;
+         ELSE
+            RETURN FALSE; // nothing other we do not expect
+         END;
+         
+         IF nodeType = xmlreader.xntElementBegin THEN
+            IF NOT nodePrefix.EqualsIgnoreCase( Prefix ) THEN
+               RETURN FALSE;
+
+            ELSIF nodeName.EqualsIgnoreCaseOA( PT_WHEN ) THEN
+
+               IF done THEN
+                  emit := 0;
+               ELSE // look for condition
+                  emit := -1;
+                  attributes.Reset();
+                  WHILE attributes.MoveNext() DO
+                     pname := attributes.Current;
+                     IF pname^.EqualsIgnoreCaseOA( PT_CONDITION ) OR pname^.EqualsIgnoreCase( PrefixCondition ) THEN
+                        IF EvaluateBoolean( Request, attributes.CurrentData^ ) THEN
+                           emit := 1;
+                        ELSE
+                           emit := 0;
+                        END;
+                     END;
+                  END; // WHILE
+                  IF emit = -1 THEN
+                     RETURN FALSE; // condition is required
+                  ELSIF emit = 1 THEN
+                     done := TRUE;
+                  END;
+               END;
+               
+               IF NOT Parse( Request, emit = 1 ) THEN
+                  RETURN FALSE;
+               END;
+            
+            ELSIF nodeName.EqualsIgnoreCaseOA( PT_OTHERWISE ) THEN
+               IF haveOtherwise THEN
+                  RETURN FALSE;
+               END;
+               haveOtherwise := TRUE;
+
+               IF NOT Parse( Request, NOT done ) THEN
+                  RETURN FALSE;
+               END;
+
+            ELSE
+               RETURN FALSE; // nothing except when or otherwise is bad
+            END;
+         END;
+         
+      END; // WHILE
+      RETURN FALSE;
+   END ParseChoose;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ParseFor( CONST Request : MVC.TPHttpRequest; CONST attributes : lists.CStringStringList ) : BOOLEAN;
+   VAR
+      attribute : StringsO.CString;
+      by : INTEGER := 1;
+      depth : INTEGER := 1; // we are in for
+      from : INTEGER;
+      haveBy : BOOLEAN := FALSE;
+      haveFrom : BOOLEAN := FALSE;
+      haveTo : BOOLEAN := FALSE;
+      i : INTEGER;
+      index : StringsO.CString;
+      isEmpty : BOOLEAN;
+      lattributes : lists.CStringStringList;
+      nl : NodeList.CNodeList;
+      nodeName : StringsO.CString;
+      nodePrefix : StringsO.CString;
+      nodeType : xmlreader.TNodeType;
+      nodeValue : StringsO.CString;
+      pname : StringsO.TPString;
+      prefix : StringsO.CString;
+      to : INTEGER;
+      value : StringsO.CString;
+   BEGIN
+      prefix := Prefix;
+      prefix.AppendOA( L":" );
+
+      // first analyze attributes
+      attributes.Reset();
+      WHILE attributes.MoveNext() DO
+         pname := StringsO.TPString( attributes.Current );
+
+         attribute := prefix; attribute.AppendOA( PT_FROM );
+         IF pname^.EqualsIgnoreCaseOA( PT_FROM ) OR pname^.EqualsIgnoreCase( attribute ) THEN
+            ParseText( Request, attributes.CurrentData^, OUT value );
+            TRY
+               from := value.ToCARD32( 10 );
+               haveFrom := TRUE;
+            CATCH e : StringsO.CStringException DO
+               RETURN FALSE;
+            END;
+            CONTINUE;
+         END;
+         
+         attribute := prefix; attribute.AppendOA( PT_TO );
+         IF pname^.EqualsIgnoreCaseOA( PT_TO ) OR pname^.EqualsIgnoreCase( attribute ) THEN
+            ParseText( Request, attributes.CurrentData^, OUT value );
+            TRY
+               to := value.ToCARD32( 10 );
+               haveTo := TRUE;
+            CATCH e : StringsO.CStringException DO
+               RETURN FALSE;
+            END;
+            CONTINUE;
+         END;
+
+         attribute := prefix; attribute.AppendOA( PT_BY );
+         IF pname^.EqualsIgnoreCaseOA( PT_BY ) OR pname^.EqualsIgnoreCase( attribute ) THEN
+            ParseText( Request, attributes.CurrentData^, OUT value );
+            TRY
+               by := value.ToCARD32( 10 );
+               haveBy := TRUE;
+            CATCH e : StringsO.CStringException DO
+               RETURN FALSE;
+            END;
+            CONTINUE;
+         END;
+
+         attribute := prefix; attribute.AppendOA( PT_INDEX );
+         IF pname^.EqualsIgnoreCaseOA( PT_INDEX ) OR pname^.EqualsIgnoreCase( attribute ) THEN
+            ParseText( Request, attributes.CurrentData^, OUT index );
+         END;
+
+      END; // WHILE      
+      
+      IF NOT haveFrom THEN
+         RETURN FALSE;
+      ELSIF NOT haveTo THEN
+         RETURN FALSE;
+      END;
+      
+      // second buffer "for" content
+      WHILE MoveNext( OUT nodeType, OUT nodePrefix, OUT nodeName, OUT isEmpty, OUT nodeValue, OUT lattributes ) DO
+         nl.Add( nodeType, nodePrefix, nodeName, isEmpty, nodeValue, REF lattributes );
+         IF nodeType = xmlreader.xntElementBegin THEN
+            INC( depth );
+         ELSIF nodeType = xmlreader.xntElementEnd THEN // other ends are consumed inside Parse
+            IF depth = 1 THEN
+               EXIT;
+            END;
+            DEC( depth );
+         END;
+      END; // WHILE
+      
+      // third switch sources and do "for"
+      Sources.Push( ADR( nl ));
+      FOR i := from TO to DO
+         IF NOT index.Empty THEN
+            value.FromCARD32( i, 10 );
+            SetModelValue( Request, index, value );
+         END;
+         nl.Reset(); // prepare parsing
+         Parse( Request, TRUE );
+      END;
+      Sources.Pop();
+      
+      RETURN TRUE;
+   END ParseFor;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -245,7 +484,76 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
+   PRIVATE PROCEDURE MoveNext( OUT nodeType : xmlreader.TNodeType; OUT nodePrefix : StringsO.IString; OUT nodeName : StringsO.IString; OUT empty : BOOLEAN; OUT nodeValue : StringsO.IString; OUT attributes : lists.CStringStringList ) : BOOLEAN;
+   VAR
+      nl : NodeList.TPNodeList;
+      nli : NodeList.TPNodeItem;
+      xmle : xmlreader.TXMLError;
+   BEGIN
+      IF Sources.Empty THEN
+         LOOP
+            xmle := Reader.MoveNext();
+            IF xmle <> xmlreader.xmle_S_OK THEN
+               RETURN FALSE;
+            END;
+
+            nodeType := Reader.CurrentType;
+            CASE nodeType OF
+            | xmlreader.xntText :
+               nodeValue.Assign( Reader.CurrentValue );
+               RETURN TRUE;
+
+            | xmlreader.xntElementBegin :
+               nodePrefix.Assign( Reader.CurrentPrefix );
+               nodeName.Assign( Reader.CurrentName );
+               empty := Reader.CurrentEmpty;
+
+               // get attributes
+               attributes.Dispose();
+               IF Reader.MoveToFirstAttribute() = xmlreader.xmle_S_OK THEN
+                  REPEAT
+                     IF Reader.CurrentType <> xmlreader.xntAttribute THEN
+                        ASSERT( FALSE ); // should not occur here
+                        CONTINUE;
+                     END;
+                     attributes.Add( Reader.CurrentQualifiedName, Reader.CurrentValue );
+                  UNTIL Reader.MoveToNextAttribute() <> xmlreader.xmle_S_OK;
+               END;
+               RETURN TRUE;
+
+            | xmlreader.xntElementEnd :
+               nodePrefix.Assign( Reader.CurrentPrefix );
+               nodeName.Assign( Reader.CurrentName );
+               RETURN TRUE;
+
+            END; // CASE
+         END; // LOOP
+
+      ELSE
+         nl := NodeList.TPNodeList( Sources.Peek());
+         IF NOT nl^.MoveNext() THEN
+            ASSERT( FALSE );
+            RETURN FALSE; // should not occur
+         END;
+         
+         nli := nl^.Current;
+         nodeType := nli^.Type;
+         nodePrefix.Assign( nli^.Prefix^ );
+         nodeName.Assign( nli^.Name^ );
+         empty := nli^.Empty;
+         nodeValue.Assign( nli^.Value^ );
+         attributes.Dispose();
+         
+         RETURN TRUE;
+
+      END;
+   END MoveNext;
+
+(*--------------------------------------------------------------------------------*)
+
    PRIVATE PROCEDURE GetModelValue( CONST Request : MVC.TPHttpRequest; CONST model : StringsO.CString; OUT value : StringsO.IString ) : BOOLEAN;
+   LABEL
+      Error;
    VAR
       boolean : BOOLEAN;
       i, index, j : INTEGER;
@@ -256,42 +564,45 @@ CLASS IMPLEMENTATION CPageTemplateView;
    BEGIN
       i := model.IndexOfOA( L".", 0 );
       IF i > 0 THEN // ok, find in map
-         IF Request^.ModelContainer^.GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
-            model.Substring( i+1, -1, OUT sindex1 );            
-            ParseText( Request, sindex1, OUT sindex2 );
-            IF map^.GetOA( OA( sindex2.Length-1, sindex2.rawData ), OUT value ) THEN
-               RETURN TRUE;
-            END;
+         IF NOT Request^.ModelContainer^.GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
+            GOTO Error;
          END;
+         model.Substring( i+1, -1, OUT sindex1 );            
+         ParseText( Request, sindex1, OUT sindex2 );
+         IF NOT map^.GetOA( OA( sindex2.Length-1, sindex2.rawData ), OUT value ) THEN
+            GOTO Error;
+         END;
+         RETURN TRUE;
       END;
 
       i := model.IndexOfOA( L"[", 0 );
       IF i > 0 THEN // ok, find in map or list
          index := -1;
          j := model.IndexOfOA( L"]", i+1 );
-         IF j > -1 THEN
-            model.Substring( i+1, j-i-1, OUT sindex1 );
-            ParseText( Request, sindex1, OUT sindex2 );
-            sindex2.Trim();
-            IF NOT Strings.ToINT32W( OA( sindex2.Length-1, sindex2.rawData ), 10, OUT index ) THEN
-               index := -1;
-            END;
+         IF j = -1 THEN
+            GOTO Error;
          END;
-         IF index > -1 THEN
-            IF Request^.ModelContainer^.GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
-               ps := map^[index];
-               IF ps <> NIL THEN
-                  value.Assign( ps^ );
-                  RETURN TRUE;
-               END;
+         model.Substring( i+1, j-i-1, OUT sindex1 );
+         ParseText( Request, sindex1, OUT sindex2 );
+         sindex2.Trim();
+         IF NOT Strings.ToINT32W( OA( sindex2.Length-1, sindex2.rawData ), 10, OUT index ) THEN
+            GOTO Error;
+         ELSIF Request^.ModelContainer^.GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
+            ps := map^[index];
+            IF ps = NIL THEN
+               GOTO Error;
             END;
-            IF Request^.ModelContainer^.GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
-               ps := list^[index];
-               IF ps <> NIL THEN
-                  value.Assign( ps^ );
-                  RETURN TRUE;
-               END;
+            value.Assign( ps^ );
+            RETURN TRUE;
+         ELSIF Request^.ModelContainer^.GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
+            ps := list^[index];
+            IF ps = NIL THEN
+               GOTO Error;
             END;
+            value.Assign( ps^ );
+            RETURN TRUE;
+         ELSE
+            GOTO Error;
          END;
       END;
       
@@ -311,11 +622,79 @@ CLASS IMPLEMENTATION CPageTemplateView;
       END;
 
       // emit error      
+   Error:
       value.FromOA( L'##unknown model: ' );
       value.Append( model );
       value.AppendOA( L"" );
       RETURN FALSE;
    END GetModelValue;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE SetModelValue( CONST Request : MVC.TPHttpRequest; CONST model : StringsO.CString; CONST value : StringsO.IString ) : BOOLEAN;
+   LABEL
+      Error;
+   VAR
+      boolean : BOOLEAN;
+      i, index, j : INTEGER;
+      list : lists.TPStringStringList;
+      map : maps.TPStringStringMap;
+      ps : StringsO.TPString;
+      sindex1, sindex2 : StringsO.CString;
+   BEGIN
+      i := model.IndexOfOA( L".", 0 );
+      IF i > 0 THEN // ok, find in map
+         IF NOT Request^.ModelContainer^.GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
+            GOTO Error;
+         END;
+         model.Substring( i+1, -1, OUT sindex1 );            
+         ParseText( Request, sindex1, OUT sindex2 );
+         map^.RemoveOA( OA( sindex2.Length-1, sindex2.rawData ));
+         map^.AddOA( OA( sindex2.Length-1, sindex2.rawData ), value );
+         RETURN TRUE;
+      END;
+
+      i := model.IndexOfOA( L"[", 0 );
+      IF i > 0 THEN // ok, find in map or list
+         index := -1;
+         j := model.IndexOfOA( L"]", i+1 );
+         IF j = -1 THEN
+            GOTO Error;
+         END;
+         model.Substring( i+1, j-i-1, OUT sindex1 );
+         ParseText( Request, sindex1, OUT sindex2 );
+         sindex2.Trim();
+         IF NOT Strings.ToINT32W( OA( sindex2.Length-1, sindex2.rawData ), 10, OUT index ) THEN
+            GOTO Error;
+         ELSIF Request^.ModelContainer^.GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
+            ps := map^[index];
+            IF ps = NIL THEN
+               GOTO Error;
+            END;
+            ps^.Assign( value );
+            RETURN TRUE;
+         ELSIF Request^.ModelContainer^.GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
+            ps := list^[index];
+            IF ps = NIL THEN
+               GOTO Error;
+            END;
+            ps^.Assign( value );
+            RETURN TRUE;
+         END;
+      END;
+      
+      // string
+      Request^.ModelContainer^.AddStringOA( OA( model.Length-1, model.rawData ), value );
+
+      RETURN TRUE;
+
+      // emit error      
+   Error:
+      value.FromOA( L'##unknown model: ' );
+      value.Append( model );
+      value.AppendOA( L"" );
+      RETURN FALSE;
+   END SetModelValue;
 
 (*--------------------------------------------------------------------------------*)
 

@@ -153,11 +153,11 @@ CLASS IMPLEMENTATION CController;
          s.FromOA( L"xxx" ); Request^.ModelContainer^.AddStringOA( L"teststring", s );
 
          Request^.ModelContainer^.AddListOA( L"testlist", OUT l );
-         l^.AddOA( L"list item 1", 0 );
-         l^.AddOA( L"list item 2", 0 );
-         l^.AddOA( L"list item 3", 0 );
-         l^.AddOA( L"list item 4", 0 );
-         l^.AddOA( L"list item 5", 0 );
+         l^.AddOA( L"list item 1", s );
+         l^.AddOA( L"list item 2", s );
+         l^.AddOA( L"list item 3", s );
+         l^.AddOA( L"list item 4", s );
+         l^.AddOA( L"list item 5", s );
 
          Request^.ModelContainer^.AddMapOA( L"testmap", OUT m );
          s.FromOA( L"MAPA" ); m^.AddOA( L"key", s );

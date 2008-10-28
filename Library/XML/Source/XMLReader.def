@@ -146,8 +146,12 @@ CLASS CXMLReader;
       EOF : BOOLEAN;
       CurrentType : TNodeType;
       CurrentEmpty : BOOLEAN;
+
       CurrentName : StringsO.CString;	
+      CurrentNamespace : StringsO.CString;	
+      CurrentPrefix : StringsO.CString;	
       CurrentQualifiedName : StringsO.CString;	
+
       CurrentValue : StringsO.CString;
       CurrentDepth : CARDINAL;
       

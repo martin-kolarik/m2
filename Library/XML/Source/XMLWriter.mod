@@ -131,6 +131,8 @@ CLASS IMPLEMENTATION CXMLWriter;
 	BEGIN
 		IF xwsStarted NOT IN _State THEN
 			RETURN;
+		ELSIF xwsInAttributes NOT IN _State THEN
+		   // fall down, already in text
 		ELSIF xwsInAttribute NOT IN _State THEN
 			EXCL( _State, xwsInAttributes );
 			WriteOAA( C'>' ); // close leading of current element, continue in the line
@@ -145,6 +147,8 @@ CLASS IMPLEMENTATION CXMLWriter;
 	BEGIN
 		IF xwsStarted NOT IN _State THEN
 			RETURN;
+		ELSIF xwsInAttributes NOT IN _State THEN
+		   // fall down, already in text
 		ELSIF xwsInAttribute NOT IN _State THEN
 			EXCL( _State, xwsInAttributes );
 			WriteOAA( C'>' ); // close leading of current element, continue in the line
