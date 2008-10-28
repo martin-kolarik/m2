@@ -144,7 +144,7 @@ END CStringList;
 //---------------------------------------------------------------------------
 
 TYPE
-  TPStringStringList = POINTER TO CStringList;
+  TPStringStringList = POINTER TO CStringStringList;
 
 CLASS CStringStringList( list.CListWState );
   PUBLIC READONLY PROPERTY
