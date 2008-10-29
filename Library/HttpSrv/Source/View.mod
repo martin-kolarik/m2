@@ -51,14 +51,17 @@ CONST
       PT_TO = L"to";
       PT_BY = L"by";
       PT_INDEX = L"index";
+      PT_ODD = L"odd";
    PT_FOREACH = L"foreach";
+      PT_SOURCE = L"source";
+      PT_ITEM = L"item";
    PT_FORM = L"form";
+      PT_MODEL = L"model";
       PT_FORM_INPUT = L"input";
       PT_FORM_CHECKBOX = L"checkbox";
       PT_FORM_RADIOBUTTON = L"radiobutton";
       PT_FORM_PASSWORD = L"password";
       PT_FORM_SELECT = L"select";
-      PT_FORM_OPTIONS = L"options";
       PT_FORM_OPTION = L"option";
       PT_FORM_TEXTAREA = L"textarea";
       PT_FORM_HIDDEN = L"hidden";
@@ -154,7 +157,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
             ASSERT( FALSE ); // should not occur here
          END; // CASE
 
-         xmle := Reader.MoveNext()   
+         xmle := Reader.MoveNext();
       END; // WHILE
       RETURN TRUE;
    END ParseRoot;
@@ -179,7 +182,15 @@ CLASS IMPLEMENTATION CPageTemplateView;
    BEGIN
       INC( depth ); // we entered element
 
-      WHILE MoveNext( OUT nodeType, OUT nodePrefix, OUT nodeName, OUT isEmpty, OUT nodeValue, OUT attributes ) DO
+      LOOP
+         CASE MoveNext( OUT nodeType, OUT nodePrefix, OUT nodeName, OUT isEmpty, OUT nodeValue, OUT attributes ) OF
+         | xmlreader.xmle_S_OK :
+            // continue
+         | xmlreader.xmle_S_FALSE :
+            RETURN TRUE;
+         ELSE
+            RETURN FALSE;
+         END;
         
          IF nodeType = xmlreader.xntElementBegin THEN
             INC( depth );
@@ -224,9 +235,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
                ELSIF nodeName.EqualsIgnoreCaseOA( PT_FOR ) THEN
                   ParseFor( Request, attributes );
                ELSIF nodeName.EqualsIgnoreCaseOA( PT_FOREACH ) THEN
-                  // ParseForeach( Request, attributes );
+                  ParseForeach( Request, attributes );
                ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM ) THEN
-                  // ParseForm( Request, attributes );
+                  ParseForm( Request, attributes );
                ELSE
                   RETURN FALSE; // unknown element
                END;
@@ -258,8 +269,6 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
       Next:
       END; // WHILE
-      
-      RETURN TRUE;
    END Parse;
 
 (*--------------------------------------------------------------------------------*)
@@ -277,7 +286,15 @@ CLASS IMPLEMENTATION CPageTemplateView;
       nodeValue : StringsO.CString;
       pname : StringsO.TPString;
    BEGIN
-      WHILE MoveNext( OUT nodeType, OUT nodePrefix, OUT nodeName, OUT isEmpty, OUT nodeValue, OUT attributes ) DO
+      LOOP
+         CASE MoveNext( OUT nodeType, OUT nodePrefix, OUT nodeName, OUT isEmpty, OUT nodeValue, OUT attributes ) OF
+         | xmlreader.xmle_S_OK :
+            // continue
+         | xmlreader.xmle_S_FALSE :
+            RETURN TRUE;
+         ELSE
+            RETURN FALSE;
+         END;
 
          IF nodeType = xmlreader.xntElementBegin THEN
             // ok, follow to processing
@@ -335,7 +352,6 @@ CLASS IMPLEMENTATION CPageTemplateView;
          END;
          
       END; // WHILE
-      RETURN FALSE;
    END ParseChoose;
 
 (*--------------------------------------------------------------------------------*)
@@ -349,8 +365,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
       haveBy : BOOLEAN := FALSE;
       haveFrom : BOOLEAN := FALSE;
       haveTo : BOOLEAN := FALSE;
-      i : INTEGER;
+      i, iodd : INTEGER;
       index : StringsO.CString;
+      inverted : BOOLEAN;
       isEmpty : BOOLEAN;
       lattributes : lists.CStringStringList;
       nl : NodeList.CNodeList;
@@ -358,6 +375,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       nodePrefix : StringsO.CString;
       nodeType : xmlreader.TNodeType;
       nodeValue : StringsO.CString;
+      odd : StringsO.CString;
       pname : StringsO.TPString;
       prefix : StringsO.CString;
       to : INTEGER;
@@ -410,6 +428,13 @@ CLASS IMPLEMENTATION CPageTemplateView;
          attribute := prefix; attribute.AppendOA( PT_INDEX );
          IF pname^.EqualsIgnoreCaseOA( PT_INDEX ) OR pname^.EqualsIgnoreCase( attribute ) THEN
             ParseText( Request, attributes.CurrentData^, OUT index );
+            CONTINUE;
+         END;
+
+         attribute := prefix; attribute.AppendOA( PT_ODD );
+         IF pname^.EqualsIgnoreCaseOA( PT_ODD ) OR pname^.EqualsIgnoreCase( attribute ) THEN
+            ParseText( Request, attributes.CurrentData^, OUT odd );
+            CONTINUE;
          END;
 
       END; // WHILE      
@@ -418,10 +443,17 @@ CLASS IMPLEMENTATION CPageTemplateView;
          RETURN FALSE;
       ELSIF NOT haveTo THEN
          RETURN FALSE;
+      ELSIF ( to < from ) AND ( by >= 0 ) THEN
+         RETURN FALSE;
+      ELSIF ( to > from ) AND ( by <= 0 ) THEN
+         RETURN FALSE;
       END;
       
       // second buffer "for" content
-      WHILE MoveNext( OUT nodeType, OUT nodePrefix, OUT nodeName, OUT isEmpty, OUT nodeValue, OUT lattributes ) DO
+      LOOP
+         IF MoveNext( OUT nodeType, OUT nodePrefix, OUT nodeName, OUT isEmpty, OUT nodeValue, OUT lattributes ) <> xmlreader.xmle_S_OK THEN
+            RETURN FALSE;
+         END;
          nl.Add( nodeType, nodePrefix, nodeName, isEmpty, nodeValue, REF lattributes );
          IF nodeType = xmlreader.xntElementBegin THEN
             INC( depth );
@@ -435,18 +467,242 @@ CLASS IMPLEMENTATION CPageTemplateView;
       
       // third switch sources and do "for"
       Sources.Push( ADR( nl ));
-      FOR i := from TO to DO
+      inverted := from > to;
+      i := from;
+      iodd := 1;
+      WHILE inverted AND ( i >= to ) OR NOT inverted AND ( i <= to ) DO
+         IF NOT odd.Empty THEN
+            SetModelBoolean( Request, odd, iodd AND 1 = 1 );
+         END;
          IF NOT index.Empty THEN
             value.FromCARD32( i, 10 );
             SetModelValue( Request, index, value );
          END;
          nl.Reset(); // prepare parsing
          Parse( Request, TRUE );
-      END;
+         INC( i, by );
+         INC( iodd );
+      END; // WHILE
       Sources.Pop();
       
       RETURN TRUE;
    END ParseFor;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ParseForeach( CONST Request : MVC.TPHttpRequest; CONST attributes : lists.CStringStringList ) : BOOLEAN;
+   VAR
+      attribute : StringsO.CString;
+      depth : INTEGER := 1; // we are in foreach
+      haveSource : BOOLEAN := FALSE;
+      haveList : BOOLEAN := FALSE;
+      i : INTEGER;
+      index : StringsO.CString;
+      item : StringsO.CString;
+      isEmpty : BOOLEAN;
+      lattributes : lists.CStringStringList;
+      list : lists.TPStringStringList;
+      map : maps.TPStringStringMap;
+      nl : NodeList.CNodeList;
+      nodeName : StringsO.CString;
+      nodePrefix : StringsO.CString;
+      nodeType : xmlreader.TNodeType;
+      nodeValue : StringsO.CString;
+      odd : StringsO.CString;
+      pname : StringsO.TPString;
+      prefix : StringsO.CString;
+      source : StringsO.CString;
+      value : StringsO.CString;
+   BEGIN
+      prefix := Prefix;
+      prefix.AppendOA( L":" );
+
+      // first analyze attributes
+      attributes.Reset();
+      WHILE attributes.MoveNext() DO
+         pname := StringsO.TPString( attributes.Current );
+
+         attribute := prefix; attribute.AppendOA( PT_SOURCE );
+         IF pname^.EqualsIgnoreCaseOA( PT_SOURCE ) OR pname^.EqualsIgnoreCase( attribute ) THEN
+            ParseText( Request, attributes.CurrentData^, OUT source );
+            CONTINUE;
+         END;
+         
+         attribute := prefix; attribute.AppendOA( PT_INDEX );
+         IF pname^.EqualsIgnoreCaseOA( PT_INDEX ) OR pname^.EqualsIgnoreCase( attribute ) THEN
+            ParseText( Request, attributes.CurrentData^, OUT index );
+            CONTINUE;
+         END;
+
+         attribute := prefix; attribute.AppendOA( PT_ITEM );
+         IF pname^.EqualsIgnoreCaseOA( PT_ITEM ) OR pname^.EqualsIgnoreCase( attribute ) THEN
+            ParseText( Request, attributes.CurrentData^, OUT item );
+            CONTINUE;
+         END;
+
+         attribute := prefix; attribute.AppendOA( PT_ODD );
+         IF pname^.EqualsIgnoreCaseOA( PT_ODD ) OR pname^.EqualsIgnoreCase( attribute ) THEN
+            ParseText( Request, attributes.CurrentData^, OUT odd );
+            CONTINUE;
+         END;
+      END; // WHILE
+      
+      // get list or map
+      IF source.Empty THEN
+         RETURN FALSE;
+      ELSIF Request^.ModelContainer^.GetListOA( OA( source.Length-1, source.rawData ), OUT list ) THEN
+         haveList := TRUE;
+      ELSIF Request^.ModelContainer^.GetMapOA( OA( source.Length-1, source.rawData ), OUT map ) THEN
+         haveList := FALSE;
+      ELSE
+         RETURN FALSE;
+      END;
+
+      // second buffer "for" content
+      LOOP
+         IF MoveNext( OUT nodeType, OUT nodePrefix, OUT nodeName, OUT isEmpty, OUT nodeValue, OUT lattributes ) <> xmlreader.xmle_S_OK THEN
+            RETURN FALSE;
+         END;
+         nl.Add( nodeType, nodePrefix, nodeName, isEmpty, nodeValue, REF lattributes );
+         IF nodeType = xmlreader.xntElementBegin THEN
+            INC( depth );
+         ELSIF nodeType = xmlreader.xntElementEnd THEN // other ends are consumed inside Parse
+            IF depth = 1 THEN
+               EXIT;
+            END;
+            DEC( depth );
+         END;
+      END; // WHILE
+      
+      // third switch sources and do "for"
+      Sources.Push( ADR( nl ));
+      i := 1;
+      IF haveList THEN
+         list^.Reset();
+         WHILE list^.MoveNext() DO
+            IF NOT item.Empty THEN
+               SetModelValue( Request, item, list^.Current^ );
+            END;
+            IF NOT odd.Empty THEN
+               SetModelBoolean( Request, odd, i AND 1 = 1 );
+            END;
+            IF NOT index.Empty THEN
+               value.FromCARD32( i, 10 );
+               SetModelValue( Request, index, value );
+               INC( i );
+            END;
+            nl.Reset(); // prepare parsing
+            Parse( Request, TRUE );
+         END; // WHILE
+      ELSE
+         map^.Reset();
+         WHILE map^.MoveNext() DO
+            IF NOT item.Empty THEN
+               SetModelValue( Request, item, map^.Current^ );
+            END;
+            IF NOT odd.Empty THEN
+               SetModelBoolean( Request, odd, i AND 1 = 1 );
+            END;
+            IF NOT index.Empty THEN
+               value.FromCARD32( i, 10 );
+               SetModelValue( Request, index, value );
+               INC( i );
+            END;
+            nl.Reset(); // prepare parsing
+            Parse( Request, TRUE );
+         END; // WHILE
+      END;
+      Sources.Pop();
+      
+      RETURN TRUE;
+   END ParseForeach;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ParseForm( CONST Request : MVC.TPHttpRequest; CONST attributes : lists.CStringStringList ) : BOOLEAN;
+   VAR
+      attribute : StringsO.CString;
+      formModel : StringsO.CString;
+      lattributes : lists.CStringStringList;
+      isEmpty : BOOLEAN;
+      model : StringsO.CString;
+      nodeName : StringsO.CString;
+      nodePrefix : StringsO.CString;
+      nodeType : xmlreader.TNodeType;
+      nodeValue : StringsO.CString;
+      pname : StringsO.TPString;
+   BEGIN
+      attribute := Prefix; attribute.AppendOA( PT_MODEL );
+
+      attributes.Reset();
+      WHILE attributes.MoveNext() DO
+         pname := StringsO.TPString( attributes.Current );
+         IF pname^.EqualsIgnoreCaseOA( PT_MODEL ) OR pname^.EqualsIgnoreCase( attribute ) THEN
+            ParseText( Request, attributes.CurrentData^, OUT formModel );
+         END;
+      END; // WHILE
+      IF formModel.Empty THEN
+         RETURN FALSE;
+      END;
+
+      LOOP
+         CASE MoveNext( OUT nodeType, OUT nodePrefix, OUT nodeName, OUT isEmpty, OUT nodeValue, OUT lattributes ) OF
+         | xmlreader.xmle_S_OK :
+            // continue
+         | xmlreader.xmle_S_FALSE :
+            RETURN TRUE;
+         ELSE
+            RETURN FALSE;
+         END;
+
+         IF nodeType = xmlreader.xntElementBegin THEN
+            // ok, follow to processing
+         ELSIF nodeType = xmlreader.xntElementEnd THEN // other ends are consumed inside
+            RETURN TRUE;
+         ELSE
+            RETURN FALSE; // nothing other we do not expect
+         END;
+         
+         IF nodeType = xmlreader.xntElementBegin THEN
+            IF NOT nodePrefix.EqualsIgnoreCase( Prefix ) THEN
+               RETURN FALSE;
+            ELSE
+               attributes.Reset();
+               WHILE attributes.MoveNext() DO
+                  pname := StringsO.TPString( attributes.Current );
+                  IF pname^.EqualsIgnoreCaseOA( PT_MODEL ) OR pname^.EqualsIgnoreCase( attribute ) THEN
+                     ParseText( Request, attributes.CurrentData^, OUT model );
+                  END;
+               END; // WHILE
+               IF model.Empty THEN
+                  RETURN FALSE;
+               END;
+            END;
+
+            IF nodeName.EqualsIgnoreCaseOA( PT_FORM_INPUT ) THEN
+            
+            ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_CHECKBOX ) THEN
+
+            ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_RADIOBUTTON ) THEN
+
+            ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_PASSWORD ) THEN
+
+            ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_SELECT ) THEN
+               // ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_OPTION ) THEN
+
+            ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_TEXTAREA ) THEN
+
+            ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_HIDDEN ) THEN
+
+            ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_ERRORS ) THEN
+
+            ELSIF NOT Parse( Request, TRUE ) THEN // form can contain arbitrary elements
+               RETURN FALSE;
+            END;
+         END;
+         
+      END; // WHILE
+   END ParseForm;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -484,7 +740,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE MoveNext( OUT nodeType : xmlreader.TNodeType; OUT nodePrefix : StringsO.IString; OUT nodeName : StringsO.IString; OUT empty : BOOLEAN; OUT nodeValue : StringsO.IString; OUT attributes : lists.CStringStringList ) : BOOLEAN;
+   PRIVATE PROCEDURE MoveNext( OUT nodeType : xmlreader.TNodeType; OUT nodePrefix : StringsO.IString; OUT nodeName : StringsO.IString; OUT empty : BOOLEAN; OUT nodeValue : StringsO.IString; OUT attributes : lists.CStringStringList ) : xmlreader.TXMLError;
    VAR
       nl : NodeList.TPNodeList;
       nli : NodeList.TPNodeItem;
@@ -494,14 +750,14 @@ CLASS IMPLEMENTATION CPageTemplateView;
          LOOP
             xmle := Reader.MoveNext();
             IF xmle <> xmlreader.xmle_S_OK THEN
-               RETURN FALSE;
+               RETURN xmle;
             END;
 
             nodeType := Reader.CurrentType;
             CASE nodeType OF
             | xmlreader.xntText :
                nodeValue.Assign( Reader.CurrentValue );
-               RETURN TRUE;
+               RETURN xmlreader.xmle_S_OK;
 
             | xmlreader.xntElementBegin :
                nodePrefix.Assign( Reader.CurrentPrefix );
@@ -519,12 +775,12 @@ CLASS IMPLEMENTATION CPageTemplateView;
                      attributes.Add( Reader.CurrentQualifiedName, Reader.CurrentValue );
                   UNTIL Reader.MoveToNextAttribute() <> xmlreader.xmle_S_OK;
                END;
-               RETURN TRUE;
+               RETURN xmlreader.xmle_S_OK;
 
             | xmlreader.xntElementEnd :
                nodePrefix.Assign( Reader.CurrentPrefix );
                nodeName.Assign( Reader.CurrentName );
-               RETURN TRUE;
+               RETURN xmlreader.xmle_S_OK;
 
             END; // CASE
          END; // LOOP
@@ -533,7 +789,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          nl := NodeList.TPNodeList( Sources.Peek());
          IF NOT nl^.MoveNext() THEN
             ASSERT( FALSE );
-            RETURN FALSE; // should not occur
+            RETURN xmlreader.xmle_S_FALSE; // should not occur
          END;
          
          nli := nl^.Current;
@@ -544,8 +800,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          nodeValue.Assign( nli^.Value^ );
          attributes.Dispose();
          
-         RETURN TRUE;
-
+         RETURN xmlreader.xmle_S_OK;
       END;
    END MoveNext;
 
@@ -695,6 +950,13 @@ CLASS IMPLEMENTATION CPageTemplateView;
       value.AppendOA( L"" );
       RETURN FALSE;
    END SetModelValue;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE SetModelBoolean( CONST Request : MVC.TPHttpRequest; CONST model : StringsO.CString; value : BOOLEAN );
+   BEGIN
+      Request^.ModelContainer^.AddBooleanOA( OA( model.Length-1, model.rawData ), value );
+   END SetModelBoolean;
 
 (*--------------------------------------------------------------------------------*)
 
