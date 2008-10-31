@@ -60,6 +60,7 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
    PRIVATE PROCEDURE ParseForm( CONST Request : MVC.TPHttpRequest; CONST attributes : lists.CStringStringList ) : BOOLEAN;
    PRIVATE PROCEDURE ParseText( CONST Request : MVC.TPHttpRequest; CONST Text : StringsO.IString; OUT Parsed : StringsO.IString );
    PRIVATE PROCEDURE MoveNext( OUT nodeType : xmlreader.TNodeType; OUT nodePrefix : StringsO.IString; OUT nodeName : StringsO.IString; OUT isEmpty : BOOLEAN; OUT nodeValue : StringsO.IString; OUT attributes : lists.CStringStringList ) : xmlreader.TXMLError;
+   PRIVATE PROCEDURE CopyAttributes( CONST Request : MVC.TPHttpRequest; ptFlag : BOOLEAN; CONST attributes : lists.CStringStringList; CONST ignoreOA : ARRAY OF WCHAR );
 
    PRIVATE PROCEDURE GetModelValue( CONST Request : MVC.TPHttpRequest; CONST model : StringsO.CString; OUT value : StringsO.IString ) : BOOLEAN;
    PRIVATE PROCEDURE SetModelValue( CONST Request : MVC.TPHttpRequest; CONST model : StringsO.CString; CONST value : StringsO.IString ) : BOOLEAN;

@@ -57,6 +57,7 @@ CONST
       PT_ITEM = L"item";
    PT_FORM = L"form";
       PT_MODEL = L"model";
+      PT_TEXT = L"text";
       PT_FORM_INPUT = L"input";
       PT_FORM_CHECKBOX = L"checkbox";
       PT_FORM_RADIOBUTTON = L"radiobutton";
@@ -244,23 +245,13 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
             ELSE // another element
                Writer.WriteElementStartOA( OA( nodeName.Length-1, nodeName.rawData ));
-
-               // write attributes
-               attributes.Reset();
-               WHILE attributes.MoveNext() DO
-                  pname := attributes.Current;
-                  IF ptFlag AND pname^.EqualsIgnoreCaseOA( PT_CONDITION ) OR pname^.EqualsIgnoreCase( PrefixCondition ) THEN
-                     CONTINUE; // ignore pt:condition
-                  END;
-                  ParseText( Request, attributes.CurrentData^, OUT value );
-                  Writer.WriteAttributeStringOA( OA( pname^.Length-1, pname^.rawData ), OA( value.Length-1, value.rawData ));
-               END; // WHILE
-
+               CopyAttributes( Request, ptFlag, attributes, PT_CONDITION );
                IF isEmpty THEN
                   Writer.WriteElementEnd();
                ELSE
                   Writer.WriteString( empty ); // terminate attributes forcibly
                END;
+
             END;
 
          | xmlreader.xntElementEnd :
@@ -623,6 +614,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
    VAR
       attribute : StringsO.CString;
       formModel : StringsO.CString;
+      fullModel : StringsO.CString;
       lattributes : lists.CStringStringList;
       isEmpty : BOOLEAN;
       model : StringsO.CString;
@@ -631,8 +623,13 @@ CLASS IMPLEMENTATION CPageTemplateView;
       nodeType : xmlreader.TNodeType;
       nodeValue : StringsO.CString;
       pname : StringsO.TPString;
+      ptype : POINTER TO CONST WCHAR;
+      simpleInput : BOOLEAN;
+      value : StringsO.CString;
    BEGIN
-      attribute := Prefix; attribute.AppendOA( PT_MODEL );
+      attribute := Prefix;
+      attribute.AppendOA( L":" );
+      attribute.AppendOA( PT_MODEL );
 
       attributes.Reset();
       WHILE attributes.MoveNext() DO
@@ -645,12 +642,15 @@ CLASS IMPLEMENTATION CPageTemplateView;
          RETURN FALSE;
       END;
 
+      Writer.WriteElementStartOA( L"form" );
+      CopyAttributes( Request, TRUE, attributes, PT_MODEL );
+
       LOOP
          CASE MoveNext( OUT nodeType, OUT nodePrefix, OUT nodeName, OUT isEmpty, OUT nodeValue, OUT lattributes ) OF
          | xmlreader.xmle_S_OK :
             // continue
          | xmlreader.xmle_S_FALSE :
-            RETURN TRUE;
+            EXIT;
          ELSE
             RETURN FALSE;
          END;
@@ -658,50 +658,75 @@ CLASS IMPLEMENTATION CPageTemplateView;
          IF nodeType = xmlreader.xntElementBegin THEN
             // ok, follow to processing
          ELSIF nodeType = xmlreader.xntElementEnd THEN // other ends are consumed inside
-            RETURN TRUE;
+            EXIT;
          ELSE
             RETURN FALSE; // nothing other we do not expect
          END;
          
          IF nodeType = xmlreader.xntElementBegin THEN
-            IF NOT nodePrefix.EqualsIgnoreCase( Prefix ) THEN
-               RETURN FALSE;
-            ELSE
-               attributes.Reset();
-               WHILE attributes.MoveNext() DO
-                  pname := StringsO.TPString( attributes.Current );
+            IF nodePrefix.EqualsIgnoreCase( Prefix ) THEN
+               lattributes.Reset();
+               WHILE lattributes.MoveNext() DO
+                  pname := StringsO.TPString( lattributes.Current );
                   IF pname^.EqualsIgnoreCaseOA( PT_MODEL ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-                     ParseText( Request, attributes.CurrentData^, OUT model );
+                     ParseText( Request, lattributes.CurrentData^, OUT model );
                   END;
                END; // WHILE
                IF model.Empty THEN
                   RETURN FALSE;
                END;
+               fullModel := formModel;
+               fullModel.AppendOA( L"." );
+               fullModel.Append( model );
+
+            ELSIF Parse( Request, TRUE ) THEN // form can contain arbitrary elements
+               CONTINUE;
+            ELSE
+               RETURN FALSE;
             END;
 
+            simpleInput := TRUE;
             IF nodeName.EqualsIgnoreCaseOA( PT_FORM_INPUT ) THEN
+               ptype := ADR( PT_TEXT );
+            ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_PASSWORD ) THEN
+               ptype := ADR( PT_FORM_PASSWORD );
+            ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_TEXTAREA ) THEN
+               ptype := ADR( PT_FORM_TEXTAREA );
+            ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_HIDDEN ) THEN
+               ptype := ADR( PT_FORM_HIDDEN );
+            ELSE
+               simpleInput := FALSE;
+            END;
+            IF simpleInput THEN
+               Writer.WriteElementStartOA( L"input" );
+
+               Writer.WriteAttributeStringOA( L"type", OAsz( ptype ));
+               Writer.WriteAttributeStringOA( L"name", OA( model.Length-1, model.rawData ));
+               IF GetModelValue( Request, fullModel, OUT value ) THEN
+                  Writer.WriteAttributeStringOA( L"value", OA( value.Length-1, value.rawData ));
+               END;
+
+               CopyAttributes( Request, TRUE, lattributes, PT_MODEL );
+               Writer.WriteElementEnd();
             
             ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_CHECKBOX ) THEN
 
             ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_RADIOBUTTON ) THEN
 
-            ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_PASSWORD ) THEN
-
             ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_SELECT ) THEN
                // ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_OPTION ) THEN
 
-            ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_TEXTAREA ) THEN
-
-            ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_HIDDEN ) THEN
-
             ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_ERRORS ) THEN
 
-            ELSIF NOT Parse( Request, TRUE ) THEN // form can contain arbitrary elements
+            ELSE // nothing else is not expected here
                RETURN FALSE;
             END;
          END;
          
       END; // WHILE
+
+      Writer.WriteElementEnd(); // close form tag
+      RETURN TRUE;
    END ParseForm;
 
 (*--------------------------------------------------------------------------------*)
@@ -803,6 +828,29 @@ CLASS IMPLEMENTATION CPageTemplateView;
          RETURN xmlreader.xmle_S_OK;
       END;
    END MoveNext;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE CopyAttributes( CONST Request : MVC.TPHttpRequest; ptFlag : BOOLEAN; CONST attributes : lists.CStringStringList; CONST ignoreOA : ARRAY OF WCHAR );
+   VAR
+      ignore : StringsO.CString;
+      pname : StringsO.TPString;
+      value : StringsO.CString;
+   BEGIN
+      ignore := Prefix;
+      ignore.AppendOA( L":" );
+      ignore.AppendOA( ignoreOA );
+
+      attributes.Reset();
+      WHILE attributes.MoveNext() DO
+         pname := StringsO.TPString( attributes.Current );
+         IF ptFlag AND pname^.EqualsIgnoreCaseOA( ignoreOA ) OR pname^.EqualsIgnoreCase( ignore ) THEN
+            CONTINUE; // ignore pt:ignore
+         END;
+         ParseText( Request, attributes.CurrentData^, OUT value );
+         Writer.WriteAttributeStringOA( OA( pname^.Length-1, pname^.rawData ), OA( value.Length-1, value.rawData ));
+      END; // WHILE
+   END CopyAttributes;
 
 (*--------------------------------------------------------------------------------*)
 
