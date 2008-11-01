@@ -120,3 +120,21 @@ inline void OBJECT::operator delete(void* ptr) throw()
 # endif // # ifdef __Storage_MN
 
 // --------------------
+// MODULA-2 ASSERTIONS
+
+# ifndef _M2INTRINSIC_Assert_
+# define _M2INTRINSIC_Assert_
+
+#include "m2assert.h"
+
+#define _WIDEN(x) L##x
+#define WIDEN(x) _WIDEN(x)
+#define _LITERATE(x) L#x
+#define LITERATE(x) _LITERATE(x)
+
+# define ASSERT_(e)  M2AssertW( e, WIDEN(__FILE__), LITERATE(__LINE__)) // from m2assert, function is controller by m2cpp emit, not by cl.exe flags
+# define ASSERTL_(e) M2AssertLogW( e, WIDEN(__FILE__), LITERATE(__LINE__)) // from m2assert, function is controller by m2cpp emit, not by cl.exe flags
+
+# endif // # ifndef _M2INTRINSIC_Assert_
+
+// --------------------

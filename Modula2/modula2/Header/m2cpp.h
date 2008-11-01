@@ -4,7 +4,6 @@
 # ifndef _M2CPP_H_
 # define _M2CPP_H_
 
-#include "crtdbg.h" // for assert
 #include "m2init.h" // for module initialization
 
 // common directives
@@ -96,7 +95,6 @@ typedef CARD64                 LONGSET;
 
 // MODULA-2 embedded procedures, it can be replaced with procedures and implemenentation (cpp) code
 # define ABS_(n)               ((n)>0 ? (n) : -(n))
-# define ASSERT_(e)            _ASSERT(e)
 # define ODD_(n)               (((n)& 1) == 1)
 # define EVEN_(n)              (((n)& 1) == 0)
 # define MIN2_(a,b)            ((a)<(b) ? (a) : (b))
