@@ -152,7 +152,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
             PrefixCondition.AppendOA( L":" );
             PrefixCondition.AppendOA( PT_CONDITION );
             
-            RETURN Parse( Request, TRUE );
+            IF NOT Reader.CurrentEmpty THEN
+               RETURN Parse( Request, TRUE );
+            END;
 
          | xmlreader.xntAttribute :
             ASSERT( FALSE ); // should not occur here
@@ -219,7 +221,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
                pname := attributes.Current;
                IF ptFlag AND pname^.EqualsIgnoreCaseOA( PT_CONDITION ) OR pname^.EqualsIgnoreCase( PrefixCondition ) THEN
                   IF NOT EvaluateBoolean( Request, attributes.CurrentData^ ) THEN
-                     IF Parse( Request, FALSE ) THEN
+                     IF isEmpty OR Parse( Request, FALSE ) THEN
                         GOTO Next;
                      ELSE
                         RETURN FALSE;
@@ -228,7 +230,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
                END;
             END; // WHILE
             
-            IF ptFlag THEN // Page Template element
+            IF NOT isEmpty AND ptFlag THEN // Page Template element
                IF nodeName.EqualsIgnoreCaseOA( PT_CHOOSE ) THEN
                   IF NOT ParseChoose( Request ) THEN
                      RETURN FALSE;
@@ -323,7 +325,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
                   END;
                END;
                
-               IF NOT Parse( Request, emit = 1 ) THEN
+               IF isEmpty OR Parse( Request, emit = 1 ) THEN
+                  // continue
+               ELSE
                   RETURN FALSE;
                END;
             
@@ -333,7 +337,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
                END;
                haveOtherwise := TRUE;
 
-               IF NOT Parse( Request, NOT done ) THEN
+               IF isEmpty OR Parse( Request, NOT done ) THEN
+                  // continue
+               ELSE
                   RETURN FALSE;
                END;
 
@@ -613,6 +619,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
    PRIVATE PROCEDURE ParseForm( CONST Request : MVC.TPHttpRequest; CONST attributes : lists.CStringStringList ) : BOOLEAN;
    VAR
       attribute : StringsO.CString;
+      empty : StringsO.CString;
       formModel : StringsO.CString;
       fullModel : StringsO.CString;
       lattributes : lists.CStringStringList;
@@ -679,10 +686,23 @@ CLASS IMPLEMENTATION CPageTemplateView;
                fullModel.AppendOA( L"." );
                fullModel.Append( model );
 
-            ELSIF Parse( Request, TRUE ) THEN // form can contain arbitrary elements
+            ELSE // form can contain arbitrary elements, emit them
+               Writer.WriteElementStartOA( OA( nodeName.Length-1, nodeName.rawData ));
+               CopyAttributes( Request, FALSE, lattributes, PT_CONDITION );
+               IF isEmpty THEN
+                  Writer.WriteElementEnd();
+               ELSE
+                  Writer.WriteString( empty ); // terminate attributes forcibly
+               END;
+               IF isEmpty THEN
+                  // continue
+               ELSIF Parse( Request, TRUE ) THEN
+                  Writer.WriteElementEnd();
+               ELSE
+                  RETURN FALSE;
+               END;
                CONTINUE;
-            ELSE
-               RETURN FALSE;
+
             END;
 
             simpleInput := TRUE;
