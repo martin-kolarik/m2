@@ -32,7 +32,7 @@
                             </File>
                             <File DiskId="1" Id="EibSrv.pdf" Name="EibSrv.pdf" Source="..\Doc\EibSrv.pdf">
                             </File>
-                            <ServiceInstall Id="SVC" Name="$(var.ProductId)" Type="ownProcess" Start="auto" ErrorControl="normal" DisplayName="$(var.ProductDisplayName)" Description="$(var.ProductDescription)">
+                            <ServiceInstall Id="SVC" Name="$(var.ProductId)" Type="ownProcess" Interactive="yes" Start="auto" ErrorControl="normal" DisplayName="$(var.ProductDisplayName)" Description="$(var.ProductDescription)">
                                 <ServiceDependency Id="Tcpip" />
                             </ServiceInstall>
                             <ServiceControl Id="SVCControl" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />

@@ -68,14 +68,14 @@ BEGIN
                 windows.PWSTR( ADR( ServiceName )),
                 windows.PWSTR( ADR( ServiceDisplayName )),
                 winsvc.SERVICE_ALL_ACCESS,
-                windows.SERVICE_WIN32_OWN_PROCESS, // OR windows.SERVICE_INTERACTIVE_PROCESS,
+                windows.SERVICE_WIN32_OWN_PROCESS OR windows.SERVICE_INTERACTIVE_PROCESS,
                 windows.SERVICE_AUTO_START, // windows.SERVICE_DEMAND_START,
                 windows.SERVICE_ERROR_NORMAL,
                 windows.PWSTR( ADR( ServiceEXEPath )),
                 NIL,
                 NIL,
                 windows.PWSTR( ADR( DependsOn )),
-                NIL, // windows.PCWSTR( ADR( NETWORK_SERVICE )), // TODO ???
+                NIL,
                 NIL
               );
   IF HService = NIL THEN
