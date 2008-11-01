@@ -125,7 +125,7 @@
         <RESFile Condition="$(Result)!='Static' And (@(ExportToInterface)!='' Or @(Objects)!='')"
                  Include="$(IntermediateDir)\$(MSBuildProjectName).res" />
 
-        <SelfInterface Condition="@(ExportToInterface)!='' Or @(MODFiles)!=''" Include="$(InterfaceNamePath)"/><!-- using MODFiles instead of Objects denies exporting of LIB if only m2init.obj is created. -->
+        <SelfInterface Condition="$(Result)!='Program' And (@(ExportToInterface)!='' Or @(MODFiles)!='')" Include="$(InterfaceNamePath)"/><!-- using MODFiles instead of Objects denies exporting of LIB if only m2init.obj is created. -->
         <!-- SelfInterface/Interface: Interface could be extended by project to export some interfaces, e.g. Ws32, msxml, etc. -->
         <Interface Include="@(SelfInterface)"/>
 
