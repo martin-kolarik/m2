@@ -53,10 +53,13 @@ CLASS IMPLEMENTATION CClient;
    BEGIN
       FOR count := 0 TO COUNT-1 DO
          IF Connection.Open( "10.0.1.129:6007", TRUE, netsocket.FORSAFETY ) = sync.arCompleted THEN
-            Connection.Stream^.WriteOA( L"set 3/3/3 true" + 13W + 10W, OUT l, netsocket.FORSAFETY );
+            Connection.Stream^.WriteOA( C"set 3/3/3 true" + 13C + 10C, OUT l, netsocket.FORSAFETY );
+            IF count MOD 2 = 1 THEN
+              sync.Sleep( 10 );
+            END;
             Connection.Close();
          END;
-         sync.Sleep( 150 + ( count MOD 4 ) * 50 );
+         sync.Sleep( 100 + ( count MOD 4 ) * 30 );
       END; // FOR
       RETURN 0;
    END OnRun;

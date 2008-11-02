@@ -280,7 +280,7 @@ CLASS CBufferedStream( AStream ) IMPLEMENTS IBufferedReader;
     _WPending  : TPDataProxy;
     _WBuffer   : SyncQueue.RingBuffer;
     _WProxy    : CStreamProxy;
-    _Notifier  : TPDataInfo;
+    _Notifier  : TPDataInfo; // accessing _Notifier (assigning Notifier = NIL) could lead to bug the same as in DSocket -- be warn if you reset Notifier inside On* methods (or in propagated calls)
   PUBLIC FINAL READONLY PROPERTY
     CanRead    : BOOLEAN;
     CanWrite   : BOOLEAN;
@@ -339,7 +339,7 @@ TYPE
 CLASS CDatagramReader( ADataInfo ) IMPLEMENTS IBufferedReader;
    PRIVATE VAR
       _Stream : TPBufferedStream;
-      _Notifier : TPDataInfo;
+      _Notifier : TPDataInfo; // accessing _Notifier (assigning Notifier = NIL) could lead to bug the same as in DSocket -- be warn if you reset Notifier inside On* methods (or in propagated calls)
       _Buffer : StorageO.TPCMemoryBuffer := NIL;
       _BufferDataLength : CARDINAL := 0;
       _BufferLock : POINTER TO Sync.LOCK := NIL;

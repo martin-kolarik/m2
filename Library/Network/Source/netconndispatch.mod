@@ -3,6 +3,9 @@ IMPLEMENTATION MODULE netconndispatch; // network connections dispatcher
 IMPORT
    winsock;
 
+FROM Debug IMPORT
+   Assertion;
+
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
   
@@ -236,6 +239,7 @@ CLASS CConnection( netsocket.DSocket );
     Clients : lists.CPtrList;
     Peer : TPConnection; // if connection is self to self in single process, Peer points to second endpoint
     PeerSignal : Sync.SIGNAL;
+    DoStartReadingOnConnect : Sync.SIGNAL; // signalled if StartReading should be called
   PRIVATE VAR
     NStream : netstream.CNetworkStream;
     Stream : IOO.CBufferedStream;
@@ -276,6 +280,7 @@ CLASS CSocketNotifier( netsocket.ASocketNotifier );
    LOCAL VAR
       PDispatcher : TPDispatcher;
    // IDataInfo
+   PUBLIC VIRTUAL PROCEDURE OnFlowPossible( Direction : IOO.TDirection; Source : ADDRESS );
    PUBLIC VIRTUAL PROCEDURE OnReadable( Length : CARDINAL; Source : ADDRESS );
    // ASocketNotifier
    LOCAL VIRTUAL PROCEDURE OnConnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); 
@@ -448,6 +453,7 @@ CLASS IMPLEMENTATION CConnection;
 
 BEGIN
    Peer := NIL;
+   DoStartReadingOnConnect.Signal();;
    NStream.FromSocket( ADR( SELF ), TRUE, IOO.accReadWrite );
    Stream.Stream := ADR( NStream );
    PDatagrammer := NIL;
@@ -493,6 +499,15 @@ END CListener;
 //================================================================================
 
 CLASS IMPLEMENTATION CSocketNotifier;
+
+//--------------------------------------------------------------------------------
+  
+   PUBLIC VIRTUAL PROCEDURE OnFlowPossible( Direction : IOO.TDirection; Source : ADDRESS );
+   BEGIN
+      IF Direction = IOO.dirRead THEN
+         PDispatcher^.OnNetworkReceivePossible( netsocket.TPDSocket( Source ));
+      END;
+   END OnFlowPossible;
 
 //--------------------------------------------------------------------------------
   
@@ -671,9 +686,6 @@ CLASS IMPLEMENTATION CDispatcher;
 
        Connection^.OnConnect( Message^.NCLocal, Message^.NCError );
        OnConnect( Connection, Message^.NCLocal, Message^.NCError );
-       IF Connection^.Connected THEN
-         Connection^.StartReading();
-       END;
 
      //-----
      | cmNetworkDisconnect :
@@ -681,7 +693,7 @@ CLASS IMPLEMENTATION CDispatcher;
 
        IF Connections.Contains( Connection^.RemoteAddress ) THEN
          Log( dldTrace, Connection, L"Disconnect.Net" );
-
+         
          Connection^.OnDisconnect( Message^.NCLocal, Message^.NCError ); // dispatch event to the clients
          OnDisconnect( Connection, Message^.NCLocal, Message^.NCError );
          IF Connection^.Empty THEN
@@ -801,6 +813,7 @@ CLASS IMPLEMENTATION CDispatcher;
        END;
        WHILE b DO
          IF NOT Connection^.Connected THEN
+           Connection^.DoStartReadingOnConnect.Signal();
            NResult := Connection^.ConnectAddress( Connection^.RemoteAddress, netsocket.FORSAFETY );
            IF NResult NOT IN Sync.arsStarts THEN
              Message^.CPClient^.OnConnect( Connection, TRUE, winsock.WSAECONNREFUSED );
@@ -1004,6 +1017,18 @@ CLASS IMPLEMENTATION CDispatcher;
 
 //--------------------------------------------------------------------------------
   
+   LOCAL PROCEDURE OnNetworkReceivePossible( CONST Socket : netsocket.TPDSocket );
+   VAR
+      Connection : TPConnection := TPConnection( Socket );
+   BEGIN
+      IF Connection^.DoStartReadingOnConnect.State AND Connection^.Connected THEN
+         Connection^.DoStartReadingOnConnect.Reset();
+         Connection^.StartReading();
+      END;
+   END OnNetworkReceivePossible;
+
+//--------------------------------------------------------------------------------
+  
    LOCAL PROCEDURE OnNetworkReceive( CONST Socket : netsocket.TPDSocket; Length : CARDINAL );
    VAR
       a : ADDRESS;
@@ -1025,7 +1050,7 @@ CLASS IMPLEMENTATION CDispatcher;
          ALLOCATE( Message.NRData, l );
          Storage.Move( a, Message.NRData, l );
 
-      // queue request
+         // queue request
          Result := MQueue.EnqueueOA( Message, FALSE, 0 ); // to not to block receiving thread to long
          IF Result = Sync.arCompleted THEN
             IRead^.ReadOut( l ); // read out and signal next reading

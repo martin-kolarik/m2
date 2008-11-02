@@ -81,6 +81,8 @@ CONST
   posConnectPrerequisities = TPendingOperation{poConnect, poConnectResolved, poConnectDisconnected};
   
 CLASS SSocket( threadpool.APoolDelegate );
+  PRIVATE VAR
+    _Notifier    : TPSocketNotifier;
   INTERNAL VAR
     _Type        : TSocketType;
     _Pending     : TPendingOperation;
@@ -88,7 +90,6 @@ CLASS SSocket( threadpool.APoolDelegate );
     _FDHandle    : threadpool.TPoolHandle;
     _FDSignal    : Sync.SIGNAL;
     _FDSwitch    : SyncQueue.CDatagramQueue;
-    _Notifier    : TPSocketNotifier;
     _HSignal     : Sync.SIGNAL;
     _Backlog     : CARDINAL;
     _V6Mode      : TV6Mode := v6mPreferV6;
@@ -129,6 +130,7 @@ CLASS SSocket( threadpool.APoolDelegate );
   INTERNAL PROCEDURE Select( Events : BITSET ) : CARDINAL;
   INTERNAL PROCEDURE MulticastJoin() : CARDINAL;
   INTERNAL PROCEDURE MulticastLeave() : CARDINAL;
+  INTERNAL PROCEDURE GetSafeNotifier() : TPSocketNotifier; // AddRef on _Notifier is called
 END SSocket;
 
 (*================================================================================*)

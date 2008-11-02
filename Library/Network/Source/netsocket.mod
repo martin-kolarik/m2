@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE netsocket;
 
+FROM Debug IMPORT
+   Assertion;
+
 IMPORT
    winsock;
 
@@ -94,6 +97,7 @@ CLASS IMPLEMENTATION SSocket;
   PUBLIC PROPERTY Type SET( Value : TSocketType );
   VAR
     Error : CARDINAL;
+    LNotifier : TPSocketNotifier;
     Result : Sync.TAsyncResult;
   BEGIN
     IF Value = _Type THEN
@@ -107,9 +111,14 @@ CLASS IMPLEMENTATION SSocket;
     IF _Lock.In( REF _Pending, poListen ) AND ( Result = Sync.arCompleted ) THEN
       Result := Listen( OUT Error );
     END;
-    IF ( Result NOT IN Sync.arsStarts ) AND ( _Notifier <> NIL ) THEN
-      _Notifier^.OnListen( Error, ADR( SELF ));
-      _Notifier^.OnError( IOO.dirUnknown, Error, ADR( SELF ), opListen );
+
+    LNotifier := GetSafeNotifier();
+    IF LNotifier <> NIL THEN
+      IF Result NOT IN Sync.arsStarts THEN
+        LNotifier^.OnError( IOO.dirUnknown, Error, ADR( SELF ), opListen );
+        LNotifier^.OnListen( Error, ADR( SELF ));
+      END;
+      LNotifier^.Release();
     END;
   END Type;
   
@@ -125,6 +134,7 @@ CLASS IMPLEMENTATION SSocket;
   PUBLIC PROPERTY Backlog SET( Value : CARDINAL );
   VAR
     Error : CARDINAL;
+    LNotifier : TPSocketNotifier;
     Result : Sync.TAsyncResult;
   BEGIN
     IF Value = _Backlog THEN
@@ -137,9 +147,14 @@ CLASS IMPLEMENTATION SSocket;
       RETURN;
     END;
     Result := Listen( OUT Error );
-    IF ( Result NOT IN Sync.arsStarts ) AND ( _Notifier <> NIL ) THEN
-      _Notifier^.OnListen( Error, ADR( SELF ));
-      _Notifier^.OnError( IOO.dirUnknown, Error, ADR( SELF ), opListen );
+
+    LNotifier := GetSafeNotifier();    
+    IF LNotifier <> NIL THEN
+      IF Result NOT IN Sync.arsStarts THEN
+        LNotifier^.OnError( IOO.dirUnknown, Error, ADR( SELF ), opListen );
+        LNotifier^.OnListen( Error, ADR( SELF ));
+      END;
+      LNotifier^.Release();
     END;
   END Backlog;
   
@@ -196,6 +211,8 @@ CLASS IMPLEMENTATION SSocket;
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC PROPERTY Notifier SET( Value : TPSocketNotifier );
+  VAR
+    LNotifier : TPSocketNotifier;
   BEGIN
     IF _Notifier = Value THEN
       RETURN;
@@ -203,10 +220,16 @@ CLASS IMPLEMENTATION SSocket;
     IF Value <> NIL THEN
       Value^.AddRef();
     END;
-    IF _Notifier <> NIL THEN
-      _Notifier^.Release();
-    END;
+
+    // 1. switch safely, 2. use local variable to avoid recursion
+    LNotifier := _Notifier;
+    _Lock.Lock();
     _Notifier := Value;
+    _Lock.Unlock();
+
+    IF LNotifier <> NIL THEN
+      LNotifier^.Release();
+    END;
   END Notifier;
 
 (*--------------------------------------------------------------------------------*)
@@ -247,6 +270,7 @@ CLASS IMPLEMENTATION SSocket;
   PUBLIC PROPERTY LocalAddress SET( CONST Value : inetaddr.INETADDR );
   VAR
     Error : CARDINAL;
+    LNotifier : TPSocketNotifier;
     Result : Sync.TAsyncResult;
   BEGIN
     IF Local = Value THEN
@@ -260,9 +284,14 @@ CLASS IMPLEMENTATION SSocket;
     IF _Lock.In( REF _Pending, poListen ) AND ( Result IN Sync.arsStarts ) THEN
       Result := Listen( OUT Error );
     END;
-    IF ( Result NOT IN Sync.arsStarts ) AND ( _Notifier <> NIL ) THEN
-      _Notifier^.OnListen( Error, ADR( SELF ));
-      _Notifier^.OnError( IOO.dirUnknown, Error, ADR( SELF ), opListen );
+    
+    LNotifier := GetSafeNotifier();
+    IF LNotifier <> NIL THEN
+      IF Result NOT IN Sync.arsStarts THEN
+        LNotifier^.OnError( IOO.dirUnknown, Error, ADR( SELF ), opListen );
+        LNotifier^.OnListen( Error, ADR( SELF ));
+      END;
+      LNotifier^.Release();
     END;
   END LocalAddress;
   
@@ -356,6 +385,8 @@ CLASS IMPLEMENTATION SSocket;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Close( Persist : BOOLEAN );
+   VAR
+      LNotifier : TPSocketNotifier;
    BEGIN
       IF Socket <> winsock.INVALID_SOCKET THEN
          IF _Type = stDatagram THEN
@@ -368,12 +399,14 @@ CLASS IMPLEMENTATION SSocket;
          winsock.closesocket( Socket );
          Socket := winsock.INVALID_SOCKET;
 
-         IF _Notifier <> NIL THEN
+         LNotifier := GetSafeNotifier();
+         IF LNotifier <> NIL THEN
             IF _Type = stDatagram THEN
-               _Notifier^.OnDataArrived( winsock.WSAECONNABORTED, ADR( SELF ));
+               LNotifier^.OnDataArrived( winsock.WSAECONNABORTED, ADR( SELF ));
             ELSE
-               _Notifier^.OnListen( winsock.WSAECONNABORTED, ADR( SELF ));
+               LNotifier^.OnListen( winsock.WSAECONNABORTED, ADR( SELF ));
             END;
+            LNotifier^.Release();
          END;
       END;
       IF Persist THEN
@@ -560,6 +593,8 @@ CLASS IMPLEMENTATION SSocket;
 (*--------------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE OnFD( Context : CARDINAL; Operation : TPendingOperationItem; ErrorCode : CARDINAL );
+   VAR
+      LNotifier : TPSocketNotifier;
    BEGIN
       IF ( _Type = stDatagram ) AND ( Context <> winsock.FD_READ ) THEN
          RETURN;
@@ -568,12 +603,15 @@ CLASS IMPLEMENTATION SSocket;
       END;
     
       _HSignal.SignalAndReset();
-      IF _Notifier <> NIL THEN
+
+      LNotifier := GetSafeNotifier();
+      IF LNotifier <> NIL THEN
          IF _Type = stDatagram THEN
-            _Notifier^.OnDataArrived( ErrorCode, ADR( SELF ));
+            LNotifier^.OnDataArrived( ErrorCode, ADR( SELF ));
          ELSE
-            _Notifier^.OnListen( ErrorCode, ADR( SELF ));
+            LNotifier^.OnListen( ErrorCode, ADR( SELF ));
          END;
+         LNotifier^.Release();
       END;
    END OnFD;
 
@@ -635,6 +673,21 @@ CLASS IMPLEMENTATION SSocket;
       RETURN winsock.setsockopt( Socket, winsock.IPPROTO_IP, WS2TcpIp.IP_DROP_MEMBERSHIP, windows.PSTR( ADR( MReq )), SIZE( MReq ));
     END;
   END MulticastLeave;
+
+(*--------------------------------------------------------------------------------*)
+
+  INTERNAL PROCEDURE GetSafeNotifier() : TPSocketNotifier;
+  VAR
+    LNotifier : TPSocketNotifier := NIL;
+  BEGIN
+    _Lock.Lock();
+    IF _Notifier <> NIL THEN
+      LNotifier := _Notifier;
+      LNotifier^.AddRef();
+    END;
+    _Lock.Unlock();
+    RETURN LNotifier;
+  END GetSafeNotifier;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -702,6 +755,7 @@ CLASS IMPLEMENTATION DSocket;
   PUBLIC PROPERTY RemoteAddress SET( CONST Value : inetaddr.INETADDR );
   VAR
     Error : CARDINAL;
+    LNotifier : TPSocketNotifier;
     Result : Sync.TAsyncResult;
   BEGIN
     IF Remote = Value THEN
@@ -712,10 +766,15 @@ CLASS IMPLEMENTATION DSocket;
       RETURN;
     END;
     Result := ConnectAddress( Remote, FORSAFETY );
-    IF ( Result NOT IN Sync.arsStarts ) AND ( _Notifier <> NIL ) THEN
-      Error := winsock.WSAGetLastError();
-      _Notifier^.OnConnect( Error, ADR( SELF ), TRUE );
-      _Notifier^.OnError( IOO.dirUnknown, Error, ADR( SELF ), opConnect );
+
+    LNotifier := GetSafeNotifier();
+    IF LNotifier <> NIL THEN
+      IF Result NOT IN Sync.arsStarts THEN
+        Error := winsock.WSAGetLastError();
+        LNotifier^.OnError( IOO.dirUnknown, Error, ADR( SELF ), opConnect );
+        LNotifier^.OnConnect( Error, ADR( SELF ), TRUE );
+      END;
+      LNotifier^.Release();
     END;
   END RemoteAddress;
   
@@ -929,6 +988,7 @@ CLASS IMPLEMENTATION DSocket;
     Failed;
   VAR
     L : CARDINAL;
+    LNotifier : TPSocketNotifier;
     Result : CARDINAL;
   BEGIN
     IF _Type = stDatagram THEN
@@ -956,9 +1016,11 @@ CLASS IMPLEMENTATION DSocket;
        GOTO Failed;
     END;
 
-    IF _Notifier <> NIL THEN
-      _Notifier^.OnAccept( 0, ADR( SELF ));
-      _Notifier^.OnConnect( 0, ADR( SELF ), FALSE );
+    LNotifier := GetSafeNotifier();
+    IF LNotifier <> NIL THEN
+      LNotifier^.OnAccept( 0, ADR( SELF ));
+      LNotifier^.OnConnect( 0, ADR( SELF ), FALSE );
+      LNotifier^.Release();
     END;
 
     Result := Select( {winsock.FD_READ_BIT, winsock.FD_WRITE_BIT, winsock.FD_CLOSE_BIT} ); // ...finish the trick started above
@@ -971,9 +1033,11 @@ CLASS IMPLEMENTATION DSocket;
     _Lock.Excl( REF _Pending, poConnection );
     Close( FALSE );
 
-    IF _Notifier <> NIL THEN
-      _Notifier^.OnAccept( Result, ADR( SELF ));
-      _Notifier^.OnError( IOO.dirUnknown, Result, ADR( SELF ), opAccept );
+    LNotifier := GetSafeNotifier();
+    IF LNotifier <> NIL THEN
+      LNotifier^.OnError( IOO.dirUnknown, Result, ADR( SELF ), opAccept );
+      LNotifier^.OnAccept( Result, ADR( SELF ));
+      LNotifier^.Release();
     END;
     Error := Result;
     RETURN Sync.arAborted;
@@ -985,6 +1049,7 @@ CLASS IMPLEMENTATION DSocket;
   LABEL
     Failed;
   VAR
+    LNotifier : TPSocketNotifier;
     Result : CARDINAL;
   BEGIN
     IF _Type = stDatagram THEN
@@ -1008,9 +1073,11 @@ CLASS IMPLEMENTATION DSocket;
       GOTO Failed;
     END;
 
-    IF _Notifier <> NIL THEN
-      _Notifier^.OnAccept( 0, ADR( SELF ));
-      _Notifier^.OnConnect( 0, ADR( SELF ), FALSE );
+    LNotifier := GetSafeNotifier();
+    IF LNotifier <> NIL THEN
+      LNotifier^.OnAccept( 0, ADR( SELF ));
+      LNotifier^.OnConnect( 0, ADR( SELF ), FALSE );
+      LNotifier^.Release();
     END;
     Error := 0;
     RETURN Sync.arCompleted;
@@ -1020,9 +1087,11 @@ CLASS IMPLEMENTATION DSocket;
     _Lock.Excl( REF _Pending, poConnection );
     Close( FALSE );
 
-    IF _Notifier <> NIL THEN
-      _Notifier^.OnAccept( Result, ADR( SELF ));
-      _Notifier^.OnError( IOO.dirUnknown, Result, ADR( SELF ), opAccept );
+    LNotifier := GetSafeNotifier();
+    IF LNotifier <> NIL THEN
+      LNotifier^.OnError( IOO.dirUnknown, Result, ADR( SELF ), opAccept );
+      LNotifier^.OnAccept( Result, ADR( SELF ));
+      LNotifier^.Release();
     END;
     Error := Result;
     RETURN Sync.arAborted;
@@ -1106,41 +1175,81 @@ CLASS IMPLEMENTATION DSocket;
 
    LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    VAR
+      b : BOOLEAN;
       MSG : TSwitchMessage;
       NetworkEvents : winsock.WSANETWORKEVENTS;
+      ProcessNetwork : BOOLEAN := FALSE;
       wsaResult : INTEGER;
    BEGIN
       IF Result <> Sync.arCompleted THEN
          RETURN;
       END;
 
-      // network
+      // check network
       IF Socket <> winsock.INVALID_SOCKET THEN
          wsaResult := winsock.WSAEnumNetworkEvents( Socket, NIL, ADR( NetworkEvents ));
          IF ( wsaResult = 0 ) AND ( NetworkEvents.lNetworkEvents <> 0 ) THEN
-            IF winsock.FD_ACCEPT_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
-               SUPER.OnFD( winsock.FD_ACCEPT, poListen, NetworkEvents.iErrorCode[ winsock.FD_ACCEPT_BIT ] );
-            END;
-            IF winsock.FD_CONNECT_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
-               OnFD( winsock.FD_CONNECT, poConnect, NetworkEvents.iErrorCode[ winsock.FD_CONNECT_BIT ] );
-            END;
-            IF winsock.FD_WRITE_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
-               OnFD( winsock.FD_WRITE, poSend, NetworkEvents.iErrorCode[ winsock.FD_WRITE_BIT ] );
-            END;
-            IF winsock.FD_READ_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
-               OnFD( winsock.FD_READ, poReceive, NetworkEvents.iErrorCode[ winsock.FD_READ_BIT ] );
-            END;
-            IF winsock.FD_CLOSE_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
-               OnFD( winsock.FD_READ, poReceive, NetworkEvents.iErrorCode[ winsock.FD_CLOSE_BIT ] ); // FD_READ is not posted for FD_CLOSE notification, so to be sure that final reading is allowed and notified
-               OnFD( winsock.FD_CLOSE, poDisconnect, NetworkEvents.iErrorCode[ winsock.FD_CLOSE_BIT ] );
-            END;
+            ProcessNetwork := TRUE;
          END;
       END;
 
-      // me         
+      // flush client requests
       WHILE _FDSwitch.DequeueOA( OUT MSG, FALSE, 0 ) = Sync.arCompleted DO
          OnFD( MSG.Context, MSG.Operation, MSG.ErrorCode );
       END; // WHILE
+      
+      // Now, next processing should be causal (no disconnect before connect, etc.). It covers
+      // client's action made in OnFD too (if client reacts synchronously to FD_READ, the reaction should be
+      // processed before following FD_CLOSE. So network actions are interleaved with processing client's queue.
+      IF ProcessNetwork THEN
+
+         // connect block
+         b := FALSE;
+         IF winsock.FD_ACCEPT_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
+            b := TRUE;
+            SUPER.OnFD( winsock.FD_ACCEPT, poListen, NetworkEvents.iErrorCode[ winsock.FD_ACCEPT_BIT ] );
+         END;
+         IF winsock.FD_CONNECT_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
+            b := TRUE;
+            OnFD( winsock.FD_CONNECT, poConnect, NetworkEvents.iErrorCode[ winsock.FD_CONNECT_BIT ] );
+         END;
+         IF b THEN
+            WHILE _FDSwitch.DequeueOA( OUT MSG, FALSE, 0 ) = Sync.arCompleted DO
+               OnFD( MSG.Context, MSG.Operation, MSG.ErrorCode );
+            END; // WHILE
+         END;
+
+         // write block
+         IF winsock.FD_WRITE_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
+            OnFD( winsock.FD_WRITE, poSend, NetworkEvents.iErrorCode[ winsock.FD_WRITE_BIT ] );
+            WHILE _FDSwitch.DequeueOA( OUT MSG, FALSE, 0 ) = Sync.arCompleted DO
+               OnFD( MSG.Context, MSG.Operation, MSG.ErrorCode );
+            END; // WHILE
+         END;
+
+         // read block
+         IF winsock.FD_READ_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
+            OnFD( winsock.FD_READ, poReceive, NetworkEvents.iErrorCode[ winsock.FD_READ_BIT ] );
+            WHILE _FDSwitch.DequeueOA( OUT MSG, FALSE, 0 ) = Sync.arCompleted DO
+               OnFD( MSG.Context, MSG.Operation, MSG.ErrorCode );
+            END; // WHILE
+         END;
+
+         // close block
+         IF winsock.FD_CLOSE_BIT IN BITSET( NetworkEvents.lNetworkEvents ) THEN
+            IF NetworkEvents.iErrorCode[ winsock.FD_CLOSE_BIT ] = 0 THEN // report FD_READ only if close is graceful
+               OnFD( winsock.FD_READ, poReceive, NetworkEvents.iErrorCode[ winsock.FD_CLOSE_BIT ] ); // FD_READ is not posted for FD_CLOSE notification, so to be sure that final reading is allowed and notified
+               WHILE _FDSwitch.DequeueOA( OUT MSG, FALSE, 0 ) = Sync.arCompleted DO
+                  OnFD( MSG.Context, MSG.Operation, MSG.ErrorCode );
+               END; // WHILE
+            END;
+            OnFD( winsock.FD_CLOSE, poDisconnect, NetworkEvents.iErrorCode[ winsock.FD_CLOSE_BIT ] );
+            WHILE _FDSwitch.DequeueOA( OUT MSG, FALSE, 0 ) = Sync.arCompleted DO
+               OnFD( MSG.Context, MSG.Operation, MSG.ErrorCode );
+            END; // WHILE
+         END;
+
+      END; // IF ProcessNetwork
    END OnHandle;
 
 (*--------------------------------------------------------------------------------*)
@@ -1354,6 +1463,7 @@ CLASS IMPLEMENTATION DSocket;
   PRIVATE PROCEDURE OnConnect( Context : CARDINAL; Error : CARDINAL );
   VAR
     L : CARDINAL;
+    LNotifier : TPSocketNotifier;
     LPending : TPendingOperation;
   BEGIN
     IF NOT _Lock.In( REF _Pending, poConnect ) THEN
@@ -1380,12 +1490,15 @@ CLASS IMPLEMENTATION DSocket;
       Result := Sync.arAborted;
       Close( TRUE );
     END;
+
     _HSignal.Signal();
-    IF _Notifier <> NIL THEN
-      _Notifier^.OnConnect( Error, ADR( SELF ), TRUE );
+    LNotifier := GetSafeNotifier();
+    IF LNotifier <> NIL THEN
       IF Error <> 0 THEN
-        _Notifier^.OnError( IOO.dirUnknown, Error, ADR( SELF ), opConnect );
+        LNotifier^.OnError( IOO.dirUnknown, Error, ADR( SELF ), opConnect );
       END;
+      LNotifier^.OnConnect( Error, ADR( SELF ), TRUE );
+      LNotifier^.Release();
     END;
   END OnConnect;
 
@@ -1393,6 +1506,7 @@ CLASS IMPLEMENTATION DSocket;
 
    PRIVATE PROCEDURE DoDisconnect( Abortive, Nested : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    VAR
+      LNotifier : TPSocketNotifier;
       LPending : TPendingOperation;
       Result : CARDINAL;
    BEGIN
@@ -1437,9 +1551,11 @@ CLASS IMPLEMENTATION DSocket;
          SELF.Result := Sync.arAborted;
          _HSignal.Signal();
       END;
-      IF _Notifier <> NIL THEN
-         _Notifier^.OnDisconnect( Result, ADR( SELF ), TRUE );
-         _Notifier^.OnError( IOO.dirUnknown, Result, ADR( SELF ), opDisconnect );
+      LNotifier := GetSafeNotifier();
+      IF LNotifier <> NIL THEN
+         LNotifier^.OnError( IOO.dirUnknown, Result, ADR( SELF ), opDisconnect );
+         LNotifier^.OnDisconnect( Result, ADR( SELF ), TRUE );
+         LNotifier^.Release();
       END;
 
       RETURN Sync.arCompleted;
@@ -1449,6 +1565,7 @@ CLASS IMPLEMENTATION DSocket;
 
   PRIVATE PROCEDURE OnDisconnect( Context : CARDINAL; Error : CARDINAL; Local : BOOLEAN );
   VAR
+    LNotifier : TPSocketNotifier;
     LPending : TPendingOperation;
   BEGIN
     IF Closed THEN // not connecting nor connected
@@ -1484,11 +1601,13 @@ CLASS IMPLEMENTATION DSocket;
       END;
       _HSignal.Signal();
     END;
-    IF _Notifier <> NIL THEN
-      _Notifier^.OnDisconnect( Error, ADR( SELF ), Local );
+    LNotifier := GetSafeNotifier();
+    IF LNotifier <> NIL THEN
       IF Error <> 0 THEN
-        _Notifier^.OnError( IOO.dirUnknown, Error, ADR( SELF ), opDisconnect );
+        LNotifier^.OnError( IOO.dirUnknown, Error, ADR( SELF ), opDisconnect );
       END;
+      LNotifier^.OnDisconnect( Error, ADR( SELF ), Local );
+      LNotifier^.Release();
     END;
 
     IF posConnectPrerequisities * LPending = posConnectPrerequisities THEN // disconnect caused inside connect, connect is not waiting for DNS
@@ -1546,6 +1665,7 @@ CLASS IMPLEMENTATION DSocket;
     fa : inetaddr.INETADDR;
     l : CARDINAL;
     la : CARDINAL := SIZE( fa );
+    LNotifier : TPSocketNotifier;
     Result : CARDINAL := 0;
   BEGIN
     IF Operation = poReceive THEN
@@ -1608,12 +1728,14 @@ CLASS IMPLEMENTATION DSocket;
       Buffer^.CompleteData( l );
 
       // ...next notify
-      IF _Notifier <> NIL THEN
+      LNotifier := GetSafeNotifier();
+      IF LNotifier <> NIL THEN
         IF Operation = poReceive THEN
-          _Notifier^.OnReadable( l, ADR( SELF ));
+          LNotifier^.OnReadable( l, ADR( SELF ));
         ELSE
-          _Notifier^.OnWritten( l, ADR( SELF ));
+          LNotifier^.OnWritten( l, ADR( SELF ));
         END;
+        LNotifier^.Release();
       END;
 
     END; // LOOP
@@ -1626,6 +1748,7 @@ CLASS IMPLEMENTATION DSocket;
   PRIVATE PROCEDURE CompleteFlow( Operation : TPendingOperationItem; Device : BOOLEAN; Result : Sync.TAsyncResult; NResult : CARDINAL );
   VAR
     Buffer : IOO.TPDataProxy;
+    LNotifier : TPSocketNotifier;
     SocketOperation : TOperation;
   BEGIN
     StopTimeout( Operation );
@@ -1647,21 +1770,27 @@ CLASS IMPLEMENTATION DSocket;
       Buffer^.DeviceFinish( Result );
       Buffer^.Release();
     END;
-    IF _Notifier <> NIL THEN
+    LNotifier := GetSafeNotifier();
+    IF LNotifier <> NIL THEN
       IF ( Buffer <> NIL ) AND ( Result NOT IN Sync.arsCompletions ) AND ( NResult <> 0 ) THEN
         IF Operation = poReceive THEN
-          _Notifier^.OnError( IOO.dirRead, NResult, ADR( SELF ), SocketOperation );
+          LNotifier^.OnError( IOO.dirRead, NResult, ADR( SELF ), SocketOperation );
         ELSE
-          _Notifier^.OnError( IOO.dirWrite, NResult, ADR( SELF ), SocketOperation );
+          LNotifier^.OnError( IOO.dirWrite, NResult, ADR( SELF ), SocketOperation );
         END;
       END;
       IF Result IN Sync.arsCompletions THEN
         IF Operation = poReceive THEN
-          _Notifier^.OnFlowPossible( IOO.dirRead, ADR( SELF ));
+          IF Readable THEN
+            LNotifier^.OnFlowPossible( IOO.dirRead, ADR( SELF ));
+          END;
         ELSE
-          _Notifier^.OnFlowPossible( IOO.dirWrite, ADR( SELF ));
+          IF Connected THEN
+            LNotifier^.OnFlowPossible( IOO.dirWrite, ADR( SELF ));
+          END;
         END;
       END;
+      LNotifier^.Release();
     END;
   END CompleteFlow;
 

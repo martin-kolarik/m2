@@ -88,6 +88,7 @@ CLASS CDispatcher( msghandler.MessageHandler );
   // events of stream -- INTERNAL
   LOCAL PROCEDURE OnNetworkConnect( ErrorCode : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN );
   LOCAL PROCEDURE OnNetworkDisconnect( ErrorCode : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN );
+  LOCAL PROCEDURE OnNetworkReceivePossible( CONST Socket : netsocket.TPDSocket );
   LOCAL PROCEDURE OnNetworkReceive( CONST Socket : netsocket.TPDSocket; Readable : CARDINAL );
 
   // local events -- PUBLIC

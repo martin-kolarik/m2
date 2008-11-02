@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE IOO;
 
+FROM Debug IMPORT
+   Assertion;
+
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE, REALLOCATE, Move;
   
@@ -911,18 +914,20 @@ CLASS IMPLEMENTATION CBufferedStream;
 (*--------------------------------------------------------------------------------*)
 
   PUBLIC VIRTUAL PROCEDURE DeviceCompleteData( Direction : TDirection; Completed : CARDINAL );
+  VAR
+    LNotifier : TPDataInfo := _Notifier;
   BEGIN
     CASE Direction OF
     | dirRead :
       _RBuffer.CommitWriting( Completed );
-      IF _Notifier <> NIL THEN
-        _Notifier^.OnReadable( _RBuffer.Count, ADR( SELF ));
+      IF LNotifier <> NIL THEN
+        LNotifier^.OnReadable( _RBuffer.Count, ADR( SELF ));
       END;
       OperateClient( dirRead, TRUE );
     | dirWrite :
       _WBuffer.CommitReading( Completed );
-      IF _Notifier <> NIL THEN
-        _Notifier^.OnWritten( Completed, ADR( SELF ));
+      IF LNotifier <> NIL THEN
+        LNotifier^.OnWritten( Completed, ADR( SELF ));
       END;
       OperateClient( dirWrite, TRUE );
     END; // CASE
@@ -950,6 +955,7 @@ CLASS IMPLEMENTATION CBufferedStream;
    VAR
       CA, SA : ADDRESS;
       CL, SL : CARDINAL;
+      LNotifier : TPDataInfo;
       Proxy : TPDataProxy;
    BEGIN
       IF Direction = dirRead THEN
@@ -986,8 +992,9 @@ CLASS IMPLEMENTATION CBufferedStream;
                _RLock.Unlock();      
 
                SUPER.DeviceFinish( dirRead, Sync.arCompleted );
-               IF ( _Notifier <> NIL ) AND NOT _RBuffer.Empty THEN
-                  _Notifier^.OnFlowPossible( dirRead, ADR( SELF ));
+               LNotifier := _Notifier;
+               IF ( LNotifier <> NIL ) AND NOT _RBuffer.Empty THEN
+                  LNotifier^.OnFlowPossible( dirRead, ADR( SELF ));
                END;
 
                // already unlocked
@@ -1032,8 +1039,9 @@ CLASS IMPLEMENTATION CBufferedStream;
                _WLock.Unlock();      
       
                SUPER.DeviceFinish( dirWrite, Sync.arCompleted );
-               IF _Notifier <> NIL THEN
-                  _Notifier^.OnFlowPossible( dirWrite, ADR( SELF ));
+               LNotifier := _Notifier;
+               IF LNotifier <> NIL THEN
+                  LNotifier^.OnFlowPossible( dirWrite, ADR( SELF ));
                END;
 
                // already unlocked
@@ -1269,8 +1277,9 @@ CLASS IMPLEMENTATION CDatagramReader;
   VAR
     A : ADDRESS;
     L1, L2 : CARDINAL;
+    LNotifier : TPDataInfo := _Notifier;
   BEGIN
-    IF ( _Notifier = NIL ) OR ( _Stream = NIL ) THEN
+    IF ( LNotifier = NIL ) OR ( _Stream = NIL ) THEN
       RETURN;
     ELSIF NOT _Stream^.Peek( OUT A, OUT L1 ) THEN
       RETURN;
@@ -1278,7 +1287,7 @@ CLASS IMPLEMENTATION CDatagramReader;
     ELSIF ( _Buffer <> NIL ) AND ( _BufferLock^.Get( REF _BufferDataLength ) > 0 ) THEN
   ReadToBuffer:
       IF FeedDataToBuffer( L1, A ) THEN
-        _Notifier^.OnReadable( _BufferDataLength, ADR( SELF ));
+        LNotifier^.OnReadable( _BufferDataLength, ADR( SELF ));
       END; 
       RETURN;
 
@@ -1297,7 +1306,7 @@ CLASS IMPLEMENTATION CDatagramReader;
       ASSERT( L2 <= _Stream^.BufferSize );
       RETURN;
     END;
-    _Notifier^.OnReadable( L2, ADR( SELF ));
+    LNotifier^.OnReadable( L2, ADR( SELF ));
   END OnReadable;
 
 (*--------------------------------------------------------------------------------*)
