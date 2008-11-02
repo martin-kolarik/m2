@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE Strings;
 
+FROM Debug IMPORT
+   Assertion;
+
 FROM Strings IMPORT
 	CapitalizeW;
 

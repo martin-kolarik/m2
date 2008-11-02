@@ -1,0 +1,17 @@
+DEFINITION MODULE Debug;
+// Modula2 Debug module -- ASSERT etc.
+
+#save, option( dll_export => on )
+
+//--------------------------------------------------------------------------------
+
+PROCEDURE Assertion( Expression : BOOLEAN; CONST Module : ARRAY OF WCHAR; ModuleLine, CPPLine : CARDINAL ) : BOOLEAN; // returns if debug break is required
+
+PROCEDURE LogAssertionA( CONST Text, Module : ARRAY OF CHAR; ModuleLine : CARDINAL );
+PROCEDURE LogAssertionW( CONST Text, Module : ARRAY OF WCHAR; ModuleLine : CARDINAL );
+
+//--------------------------------------------------------------------------------
+
+#restore
+
+END Debug.

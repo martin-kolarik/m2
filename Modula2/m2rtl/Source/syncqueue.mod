@@ -2,6 +2,9 @@ IMPLEMENTATION MODULE SyncQueue;
 
 (*================================================================================*)
 
+FROM Debug IMPORT
+   Assertion;
+
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE, REALLOCATE, Move, Zero;
    

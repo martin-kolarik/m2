@@ -2,6 +2,9 @@ IMPLEMENTATION MODULE log;
 
 //=========================================================
 
+FROM Debug IMPORT
+   Assertion;
+
 FROM Storage IMPORT
    REALLOCATE;
 

@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE Sync;
 
+FROM Debug IMPORT
+   Assertion;
+
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE, Zero;
   
@@ -938,8 +941,6 @@ CLASS IMPLEMENTATION SIGNAL;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Wait( Timeout : CARDINAL ) : TAsyncResult;
-   VAR
-      Result : TAsyncResult;
    BEGIN
       IF Type = stSpin THEN
          RETURN SpinLockAcquireOrRead( TRUE, REF Data, Spin, Timeout );

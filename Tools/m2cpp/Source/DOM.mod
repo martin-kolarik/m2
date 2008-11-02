@@ -1,6 +1,9 @@
 IMPLEMENTATION MODULE DOM;
 (*# call( o_a_copy => off ) *)
 
+FROM Debug IMPORT
+   Assertion;
+
 FROM Storage IMPORT
   ALLOCATE, REALLOCATE, DEALLOCATE;
 
@@ -5140,6 +5143,12 @@ CLASS IMPLEMENTATION CModule;
         OD^.MEnv.MIID[miidLowA] := C^.IsLinkOf;
       ELSIF Symbol^.N.EqualsOA( L"LowerizeW" ) THEN
         OD^.MEnv.MIID[miidLowW] := C^.IsLinkOf;
+      ELSIF Symbol^.N.EqualsOA( L"Assertion" ) THEN
+        OD^.MEnv.MIID[miidAssertion] := C^.IsLinkOf;
+      ELSIF Symbol^.N.EqualsOA( L"LogAssertionA" ) THEN
+        OD^.MEnv.MIID[miidLogAssertionA] := C^.IsLinkOf;
+      ELSIF Symbol^.N.EqualsOA( L"LogAssertionW" ) THEN
+        OD^.MEnv.MIID[miidLogAssertionW] := C^.IsLinkOf;
       END;
 
     ELSIF ReportErrors THEN
@@ -8981,9 +8990,48 @@ CLASS IMPLEMENTATION CDesignator;
         IF eoAssertAllowed IN Options THEN
           G^.OutS( L'ASSERT_( ' );
             r.U1^.Generate( G, Cn );
+            G^.OutS( L', ' );
+            G^.OutN( CARDINAL( LOPTRLONGWORD( r.D1 )));
           G^.OutSPRP();
         ELSE
           RETURN gumEmpty;
+        END;
+
+      | epASSERTLOG :
+        b := ( r.U2 <> NIL ) AND Types.TBString^.Compatible( cmOperation, TPExpression( r.U2 )^.T );
+        IF b THEN
+          Project.Current()^.OD^.MEnv.MIID[miidLogAssertionW]^.Generate( G, gcsName );
+        ELSE
+          Project.Current()^.OD^.MEnv.MIID[miidLogAssertionA]^.Generate( G, gcsName );
+        END;
+        G^.OutS( L'( ' );
+          IF b THEN
+             IF r.U2 = NIL THEN
+               G^.OutS( L'C"", -1, C"' );
+             ELSE
+               r.U2^.Generate( G, Cn + TGenerateControl{gcCharLiteralAsStringForOA} );
+               G^.OutS( L', -1, C"' );
+             END;
+             G^.OutANSIEscapeCS( Project.Current()^.OD^.Name, FALSE );
+          ELSE
+             IF r.U2 = NIL THEN
+               G^.OutS( L'L"", -1, L"' );
+             ELSE
+               r.U2^.Generate( G, Cn + TGenerateControl{gcCharLiteralAsStringForOA} );
+               G^.OutS( L', -1, L"' );
+             END;
+             G^.OutCS( Project.Current()^.OD^.Name );
+          END;
+          G^.OutS( L'", ' );
+          G^.OutN( CARDINAL( LOPTRLONGWORD( r.D1 )));
+        G^.OutSPRP();
+
+        IF eoAssertAllowed IN Options THEN
+          G^.OutS( L'; ASSERT_( ' );
+            r.U1^.Generate( G, Cn );
+            G^.OutS( L', ' );
+            G^.OutN( CARDINAL( LOPTRLONGWORD( r.D1 )));
+          G^.OutSPRP();
         END;
 
       | epCAP :

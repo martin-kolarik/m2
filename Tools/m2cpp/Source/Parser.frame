@@ -3,6 +3,9 @@ IMPLEMENTATION MODULE Parser;
 -->namespace
 (*# call( o_a_copy => off ) *)
 
+FROM Debug IMPORT
+   Assertion;
+
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
 

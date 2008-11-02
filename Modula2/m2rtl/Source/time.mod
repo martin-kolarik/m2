@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE Time;
 
+FROM Debug IMPORT
+   Assertion;
+
 IMPORT
   windows,
   winnls;

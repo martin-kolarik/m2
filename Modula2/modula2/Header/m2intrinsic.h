@@ -122,19 +122,49 @@ inline void OBJECT::operator delete(void* ptr) throw()
 // --------------------
 // MODULA-2 ASSERTIONS
 
+# ifdef __Debug_MN
+
 # ifndef _M2INTRINSIC_Assert_
 # define _M2INTRINSIC_Assert_
 
-#include "m2assert.h"
+# ifndef _USER_DEBUG_DEFINED_
+
+# ifndef __Debug_MI
+# define __Debug_MI_UNDEF
+# define __Debug_MI
+# endif
+
+namespace Debug {
+  __Debug_MI BOOLEAN Assertion( BOOLEAN Expression, CARDINAL Module_HIGH, const WCHAR* Module, CARDINAL ModuleLine, CARDINAL CPPLine ) throw();
+  __Debug_MI void LogAssertionA( CARDINAL Text_HIGH, const CHAR* Text, CARDINAL Module_HIGH, const CHAR* Module, CARDINAL ModuleLine ) throw();
+  __Debug_MI void LogAssertionW( CARDINAL Text_HIGH, const WCHAR* Text, CARDINAL Module_HIGH, const WCHAR* Module, CARDINAL ModuleLine ) throw();
+}
+# define __Assertion Debug::Assertion
+# define __LogAssertionA Debug::LogAssertionA
+# define __LogAssertionW Debug::LogAssertionW
+
+# ifdef __Debug_MI_UNDEF
+# undef __Debug_MI
+# endif
+
+# endif // _USER_DEBUG_DEFINED_
 
 #define _WIDEN(x) L##x
 #define WIDEN(x) _WIDEN(x)
 #define _LITERATE(x) L#x
 #define LITERATE(x) _LITERATE(x)
 
-# define ASSERT_(e)  M2AssertW( e, WIDEN(__FILE__), LITERATE(__LINE__)) // from m2assert, function is controller by m2cpp emit, not by cl.exe flags
-# define ASSERTL_(e) M2AssertLogW( e, WIDEN(__FILE__), LITERATE(__LINE__)) // from m2assert, function is controller by m2cpp emit, not by cl.exe flags
+#define PROTOTYPE_IMPORT_C extern "C" __declspec(dllimport)
+PROTOTYPE_IMPORT_C void __stdcall DebugBreak();
+
+# define ASSERT_(e, m2line) {\
+    if( __Assertion( e, -1, WIDEN(__FILE__), m2line, __LINE__ )) {\
+        DebugBreak();\
+    }\
+}
 
 # endif // # ifndef _M2INTRINSIC_Assert_
+
+# endif // # ifdef __Debug_MN
 
 // --------------------

@@ -1028,7 +1028,10 @@ TYPE
     miidCapA,
     miidCapW,
     miidLowA,
-    miidLowW
+    miidLowW,
+    miidAssertion,
+    miidLogAssertionA,
+    miidLogAssertionW
   );
 
 CLASS CModuleEnvironment;
@@ -1363,7 +1366,7 @@ TYPE
   TEmbeddedProcedure = (
     epABS,
     epADR, epADROfSuperClass,
-    epASSERT,
+    epASSERT, epASSERTLOG,
     epASSIGN, epASSIGNsz,
     epCAP, epCAPFunc,
     epCHR,

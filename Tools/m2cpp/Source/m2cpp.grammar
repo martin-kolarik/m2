@@ -4780,6 +4780,7 @@ ntEmbeddedProcedure<VAR D : DOM.TPDesignator>
   =                                                        (. D^.T := Types.TUnknown;
                                                               D^.r.DK := DOM.dkEmbeddedProcedure; .)
   ( ntEmbeddedASSERT<D>
+  | ntEmbeddedASSERTLOG<D>
   | ntEmbeddedASSIGN<D>
   | ntEmbeddedCAPLOWProc<D>
   | ntEmbeddedDECINCProc<D>
@@ -4796,11 +4797,40 @@ ntEmbeddedProcedure<VAR D : DOM.TPDesignator>
 .
 
 ntEmbeddedASSERT<VAR D : DOM.TPDesignator>                 (. E : DOM.TPExpression; .)
-  = "ASSERT"                                               (. D^.r.EP := DOM.epASSERT; .)
+  = "ASSERT"                                               (. D^.r.EP := DOM.epASSERT;
+                                                              IF c^.OD^.MEnv.MIID[DOM.miidAssertion] = NIL THEN
+                                                                SemErr( err._MissingAssertion );
+                                                              END; .)
     lpar
       ntExpression<E>                                      (. D^.r.U1 := E;
+                                                              D^.r.D1 := t.Line;
                                                               c^.ExpectType( Types.TBOOLEAN, E^.T, -1 ); .)
     rpar
+.
+
+ntEmbeddedASSERTLOG<VAR D : DOM.TPDesignator>              (. E : DOM.TPExpression; .)
+  = "ASSERTLOG"                                            (. D^.r.EP := DOM.epASSERTLOG;
+                                                              IF c^.OD^.MEnv.MIID[DOM.miidAssertion] = NIL THEN
+                                                                SemErr( err._MissingAssertion );
+                                                              END; .)
+    lpar
+      ntExpression<E>                                      (. D^.r.U1 := E;
+                                                              D^.r.U2 := NIL;
+                                                              D^.r.D1 := t.Line;
+                                                              c^.ExpectType( Types.TBOOLEAN, E^.T, -1 ); .)
+      [
+        comma ntExpression<E>                              (. D^.r.U2 := E;
+                                                              c^.ExpectType( Types.TString, E^.T, -1 ); .)
+      ]
+    rpar                                                   (. IF ( D^.r.U2 <> NIL ) AND Types.TBCHAR^.Compatible( DOM.cmOperation, DOM.TPExpression( D^.r.U2 )^.T ) THEN
+                                                                IF c^.OD^.MEnv.MIID[DOM.miidLogAssertionA] = NIL THEN
+                                                                  SemErr( err._MissingLogAssertionA );
+                                                                END;
+                                                              ELSE
+                                                                IF c^.OD^.MEnv.MIID[DOM.miidLogAssertionW] = NIL THEN
+                                                                  SemErr( err._MissingLogAssertionW );
+                                                                END;
+                                                              END; .)
 .
 
 ntEmbeddedASSIGN<VAR D : DOM.TPDesignator>                 (. E : DOM.TPExpression;
