@@ -25,10 +25,10 @@ PROTOTYPE_IMPORT_C WCHAR*        __stdcall lstrcatW( WCHAR* lpString1, const WCH
 #define PROTOTYPE_IDRETRY  4
 #define PROTOTYPE_IDIGNORE 5
 
-inline void M2AssertW( BOOLEAN expression, const WCHAR* file, const WCHAR* line )
+inline bool M2AssertW( BOOLEAN expression, const WCHAR* file, const WCHAR* line ) // returns if break
 {
     if( expression ) {
-        return;
+        return false;
     }
 
     WCHAR szExeName[260] = L"\0";
@@ -54,16 +54,11 @@ inline void M2AssertW( BOOLEAN expression, const WCHAR* file, const WCHAR* line 
     if( result == PROTOTYPE_IDABORT ) { // kill process
         TerminateProcess( GetCurrentProcess(), 3 ); // standard exit code for SIGABRT
     } else if( result == PROTOTYPE_IDRETRY ) { // allow to debug process
-        DebugBreak();
-    } else if( result == PROTOTYPE_IDIGNORE ) { // continue code
-
+        return true;
+    } else if( result == PROTOTYPE_IDIGNORE ) {
+        // continue
     }
-}
-
-inline void M2AssertLogW( bool expression, const WCHAR* file, const WCHAR* line )
-{
-    M2AssertW( expression, file, line );
-    // TODO, use Log module
+    return false;
 }
 
 # endif // ifndef _M2ASSERT_H_
