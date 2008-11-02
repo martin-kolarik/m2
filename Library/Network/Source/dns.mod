@@ -5,6 +5,9 @@ IMPLEMENTATION MODULE dns;
 IMPORT
    winsock;
 
+FROM Debug IMPORT
+   Assertion;
+
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
   

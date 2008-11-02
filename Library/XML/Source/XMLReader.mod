@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE XMLReader;
 
+FROM Debug IMPORT
+   Assertion;
+
 FROM Storage IMPORT
    REALLOCATE;
 

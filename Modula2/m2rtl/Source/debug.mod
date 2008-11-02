@@ -20,7 +20,7 @@ BEGIN
       RETURN FALSE;
    END;
 
-   IF windows.GetModuleFileNameW( NIL, ADR( exeName ), HIGH( exeName ) + 1 ) <> 0 THEN
+   IF windows.GetModuleFileNameW( NIL, ADR( exeName ), HIGH( exeName ) + 1 ) = 0 THEN
       exeName := L"<unknown program>";   
    END;
    text := L"Debug assertion failed!" + CRLF + CRLF + L"Program: ";

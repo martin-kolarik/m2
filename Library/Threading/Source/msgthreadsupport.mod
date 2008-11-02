@@ -2,6 +2,9 @@ IMPLEMENTATION MODULE msgthreadsupport;
 
 (*===========================================================================*)
 
+FROM Debug IMPORT
+   Assertion;
+
 IMPORT
    msghandler,
    time;

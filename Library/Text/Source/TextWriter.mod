@@ -2,6 +2,9 @@ IMPLEMENTATION MODULE TextWriter;
 
 (*===========================================================================*)
 
+FROM Debug IMPORT
+   Assertion;
+
 IMPORT
    FIOO,
    languages,

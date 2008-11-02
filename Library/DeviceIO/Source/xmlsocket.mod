@@ -2,6 +2,9 @@ IMPLEMENTATION MODULE xmlsocket;
 
 (*================================================================================*)
 
+FROM Debug IMPORT
+   Assertion;
+
 IMPORT
    io,
    IOO,

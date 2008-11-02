@@ -2,6 +2,9 @@ IMPLEMENTATION MODULE Service;
 
 (*================================================================================*)
 
+FROM Debug IMPORT
+   Assertion;
+
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 

@@ -35,6 +35,9 @@ IMPLEMENTATION MODULE eib_stack;
 */*)
 (*================================================================================*)
 
+FROM Debug IMPORT
+   Assertion;
+
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
 

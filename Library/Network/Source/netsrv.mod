@@ -2,6 +2,9 @@ IMPLEMENTATION MODULE netsrv;
 
 //================================================================================
 
+FROM Debug IMPORT
+   Assertion;
+
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
 

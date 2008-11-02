@@ -1,5 +1,8 @@
 MODULE TDatagramQueue;
 
+FROM Debug IMPORT
+   Assertion;
+
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 

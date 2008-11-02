@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE digest;
 
+FROM Debug IMPORT
+   Assertion;
+
 IMPORT
 	cphcommon,
 	Md5,

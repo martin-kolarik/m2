@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE Engine;
 
+FROM Debug IMPORT
+   Assertion;
+
 FROM Storage IMPORT
    DEALLOCATE;
 

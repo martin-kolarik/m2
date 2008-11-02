@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE loader;
 
+FROM Debug IMPORT
+   Assertion;
+
 FROM Strings IMPORT
    LowerizeW;
 

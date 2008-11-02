@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE netpool;
 
+FROM Debug IMPORT
+   Assertion;
+
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 

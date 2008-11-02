@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE eibnet;
 
+FROM Debug IMPORT
+   Assertion;
+
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
    

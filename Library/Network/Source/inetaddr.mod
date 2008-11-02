@@ -3,6 +3,9 @@ IMPLEMENTATION MODULE inetaddr;
 IMPORT
    winsock;
 
+FROM Debug IMPORT
+   Assertion;
+
 FROM Storage IMPORT
    Move;
 

@@ -158,7 +158,7 @@ namespace Debug {
 PROTOTYPE_IMPORT_C void __stdcall DebugBreak();
 
 # define ASSERT_(e, m2line) {\
-    if( __Assertion( e, -1, WIDEN(__FILE__), m2line, __LINE__ )) {\
+    if( __Assertion( e, OA_MAX, WIDEN(__FILE__), m2line, __LINE__ )) {\
         DebugBreak();\
     }\
 }

@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE DaliBridge;
 
+FROM Debug IMPORT
+   Assertion;
+
 FROM log IMPORT
    dldError, dldMessage, dldTrace, dldDebug;
   

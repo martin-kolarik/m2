@@ -2,6 +2,9 @@ IMPLEMENTATION MODULE SCmsgqueuethread;
 
 (*---------------------------------------------------------------------------*)
   
+FROM Debug IMPORT
+   Assertion;
+
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
   

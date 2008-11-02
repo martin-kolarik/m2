@@ -2,6 +2,9 @@ IMPLEMENTATION MODULE drv_def;
 
 (*================================================================================*)
 
+FROM Debug IMPORT
+   Assertion;
+
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
 

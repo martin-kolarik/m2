@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE TextReader;
 
+FROM Debug IMPORT
+   Assertion;
+
 IMPORT
    FIOO,
    Languages,

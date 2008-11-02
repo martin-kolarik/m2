@@ -8,6 +8,9 @@ IMPLEMENTATION MODULE eib_def;
 */*)
 (*===========================================================================*)
 
+FROM Debug IMPORT
+   Assertion;
+
 IMPORT
   Storage,
   Strings;

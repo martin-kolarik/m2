@@ -71,6 +71,9 @@ IMPLEMENTATION MODULE srvcore;
 */*)
 //================================================================================
 
+FROM Debug IMPORT
+   Assertion;
+
 IMPORT
    FIO,
    FIOO,

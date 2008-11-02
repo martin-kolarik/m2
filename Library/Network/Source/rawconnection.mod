@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE rawconnection;
 
+FROM Debug IMPORT
+   Assertion;
+
 IMPORT
    msgqueuethread,
    threadcall;

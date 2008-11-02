@@ -2,6 +2,9 @@ IMPLEMENTATION MODULE Win32msgqueuethread;
 
 (*---------------------------------------------------------------------------*)
   
+FROM Debug IMPORT
+   Assertion;
+
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
   

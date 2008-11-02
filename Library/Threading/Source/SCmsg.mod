@@ -2,6 +2,9 @@ IMPLEMENTATION MODULE SCmsg;
 
 (*================================================================================*)
 
+FROM Debug IMPORT
+   Assertion;
+
 IMPORT
    msghandler,
    msgqueuethread,
