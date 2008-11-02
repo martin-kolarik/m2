@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE SrvCommon;
 
+FROM Debug IMPORT
+   Assertion;
+
 FROM Log IMPORT
    logger, dlcError, dlcWarning, dlcInfo;
    

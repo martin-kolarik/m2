@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE SrvHttpApi;
 
+FROM Debug IMPORT
+   Assertion;
+
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 

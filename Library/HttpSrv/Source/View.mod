@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE View;
 
+FROM Debug IMPORT
+   Assertion;
+
 IMPORT
    FIOO,
    HttpCommon,
