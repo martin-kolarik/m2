@@ -174,7 +174,7 @@ PROCEDURE ServiceMain( argc : INTEGER; argv : TPParamStringArrayW );
 VAR
    _Service : TPService;
 BEGIN
-   IF argc > 0 THEN
+   IF argc = 0 THEN
       ASSERT( FALSE );
       RETURN;
 

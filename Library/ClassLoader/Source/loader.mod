@@ -77,7 +77,7 @@ CLASS IMPLEMENTATION CLibrary;
 
    LOCAL PROCEDURE ReleaseObject( Object : iobject.TPObject );
    BEGIN
-      IF ( LibraryHandle = NIL ) OR ( INTEGER( RefCount ) <= 0 )) THEN
+      IF ( LibraryHandle = NIL ) OR ( INTEGER( RefCount ) <= 0 ) THEN
          ASSERT( FALSE );
          RETURN;
       END;   

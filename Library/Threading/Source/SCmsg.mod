@@ -273,6 +273,7 @@ CLASS IMPLEMENTATION SCMessageHandler;
    BEGIN
       IF joinedTo = NIL THEN
          ASSERT( FALSE );
+         RETURN FALSE;
       ELSE
          RETURN TPSCMessageQueueThread( joinedTo )^.TimerRunning( SELF, Timer );
       END;
