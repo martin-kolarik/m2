@@ -641,6 +641,7 @@ CLASS IMPLEMENTATION SSocket;
 
     IF MulticastGroup.V6 THEN
       ASSERT( FALSE ); // TODO
+      RETURN winsock.WSAEINVAL;
     ELSE
       MReq.imr_multiaddr := IN_ADDR4( MulticastGroup )^;
       MReq.imr_interface.s_addr := winsock.INADDR_ANY;

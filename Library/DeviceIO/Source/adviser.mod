@@ -104,12 +104,12 @@ CLASS IMPLEMENTATION CAdviser;
       _Device := Value;
       
       IF _Device <> NIL THEN
-         IF io.capAdvise NOT IN _Device^.IO()^.IOCapabilities THEN
-            // not implemented, the adviser class should not do it
+         IF io.capAdvise IN _Device^.IO()^.IOCapabilities THEN
+            _Device^.IO()^.Advise := io.advWithData;
+            _Device^.IO()^.AdviseListener := ADR( SELF );
+         ELSE // not implemented, the adviser class should not do it
             ASSERT( FALSE );
          END;
-         _Device^.IO()^.Advise := io.advWithData;
-         _Device^.IO()^.AdviseListener := ADR( SELF );
       END;
    END Device;
       

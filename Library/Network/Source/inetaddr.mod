@@ -252,7 +252,10 @@ CLASS IMPLEMENTATION INETADDR;
       IF result <> 0 THEN
          RETURN FALSE;
       ELSIF ( ai <> NIL ) AND ( ai^.ai_addr <> NIL ) THEN
-         ASSERT( ai^.ai_addrlen <= SIZE( storage ));
+         IF ai^.ai_addrlen > SIZE( storage ) THEN
+            ASSERT( FALSE );
+            RETURN FALSE;
+         END;
          Move( ai^.ai_addr, ADR( storage ), ai^.ai_addrlen );
          IF serviceA[0] = 0C THEN
             Port := DefaultPort;
@@ -550,8 +553,12 @@ CLASS IMPLEMENTATION CINETADDRMap;
 
    PUBLIC READONLY PROPERTY CINETADDRMap.Current GET : TPINETADDR;
    BEGIN
-      ASSERT( _Current <> -1 );
-      RETURN ADR( TPINETADDRItem( _Current )^.Key );
+      IF _Current = -1 THEN
+         ASSERT( FALSE );
+         RETURN NIL;
+      ELSE
+         RETURN ADR( TPINETADDRItem( _Current )^.Key );
+      END;
    END CINETADDRMap.Current;
 
 (*--------------------------------------------------------------------------------*)

@@ -401,8 +401,10 @@ CLASS IMPLEMENTATION CL_Request_Queue;
   BEGIN
     IF ( PCurrent = NIL ) AND NOT GetPacketToSend( Packet, Pending ) THEN
       RETURN FALSE;
+    ELSIF PCurrent = NIL THEN // PCurrent could not be set after GetPacketToSend
+      ASSERT( FALSE );
+      RETURN FALSE;
     ELSE
-      ASSERT( PCurrent <> NIL );
       PListener := TPL_Request( PCurrent )^.PListener;
       Packet := TPL_Request( PCurrent )^.Packet;
       Pending := TPL_Request( PCurrent )^.Pending;

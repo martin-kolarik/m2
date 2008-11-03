@@ -394,8 +394,8 @@ CLASS IMPLEMENTATION Win32MessageHandler;
     IF HWND = NIL THEN
       RETURN;
     END;
-
     ASSERT( SelfContext );
+
     IF Timers.Contains( Timer ) THEN
       windows.KillTimer( HWND, Timer );
       Timers.Remove( Timer );

@@ -236,9 +236,11 @@ CLASS IMPLEMENTATION SCMessageHandler;
             RETURN OnMessage( MSG, OUT Result^ );
          END;
          
-      ELSE // deffer message
-         ASSERT( joinedTo <> NIL );
+      ELSIF joinedTo <> NIL THEN // deffer message
          joinedTo^.Message( MSG, OSALmsg.delAsynchronous, Result );
+
+      ELSE
+         ASSERT( FALSE );
       END;
 
       IF Result <> NIL THEN
@@ -258,24 +260,33 @@ CLASS IMPLEMENTATION SCMessageHandler;
 
    PUBLIC VIRTUAL PROCEDURE StartTimer( Timer : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
    BEGIN
-      ASSERT( joinedTo <> NIL );
-      TPSCMessageQueueThread( joinedTo )^.StartTimer( SELF, Timer, PeriodMS, Repeat );
+      IF joinedTo = NIL THEN
+         ASSERT( FALSE );
+      ELSE
+         TPSCMessageQueueThread( joinedTo )^.StartTimer( SELF, Timer, PeriodMS, Repeat );
+      END;
    END StartTimer;
   
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE TimerRunning( Timer : PTR ) : BOOLEAN;
    BEGIN
-      ASSERT( joinedTo <> NIL );
-      RETURN TPSCMessageQueueThread( joinedTo )^.TimerRunning( SELF, Timer );
+      IF joinedTo = NIL THEN
+         ASSERT( FALSE );
+      ELSE
+         RETURN TPSCMessageQueueThread( joinedTo )^.TimerRunning( SELF, Timer );
+      END;
    END TimerRunning;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE StopTimer( Timer : PTR );
    BEGIN
-      ASSERT( joinedTo <> NIL );
-      TPSCMessageQueueThread( joinedTo )^.StopTimer( SELF, Timer );
+      IF joinedTo = NIL THEN
+         ASSERT( FALSE );
+      ELSE
+         TPSCMessageQueueThread( joinedTo )^.StopTimer( SELF, Timer );
+      END;
    END StopTimer;
   
 (*--------------------------------------------------------------------------------*)

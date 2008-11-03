@@ -644,8 +644,9 @@ CLASS IMPLEMENTATION CHttpApiStream;
          _Response.ReasonLength := SIZE( RESPONSE_501 )-1;
       ELSE
          ASSERT( FALSE );
-         _Response.pReason := NIL;
-         _Response.ReasonLength := 0;
+         Value := HttpCommon.httpres_500;
+         _Response.pReason := ADR( RESPONSE_500 );
+         _Response.ReasonLength := SIZE( RESPONSE_500 )-1;
       END;
       _Response.StatusCode := CARD16( Value );
    END StatusCode;

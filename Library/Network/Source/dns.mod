@@ -102,6 +102,7 @@ CLASS IMPLEMENTATION CDispatcher;
             netResult := winsock.WSATRY_AGAIN;
          ELSE
             ASSERT( FALSE );
+            netResult := winerror.ERROR_OPERATION_ABORTED;
          END; // CASE
 
          IF Request^ IS CNameToAddressRequest THEN

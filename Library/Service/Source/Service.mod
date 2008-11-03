@@ -174,8 +174,11 @@ PROCEDURE ServiceMain( argc : INTEGER; argv : TPParamStringArrayW );
 VAR
    _Service : TPService;
 BEGIN
-   ASSERT( argc > 0 );
-   IF Services.GetOA( OAsz( argv^[0] ), OUT _Service ) THEN // not known service
+   IF argc > 0 THEN
+      ASSERT( FALSE );
+      RETURN;
+
+   ELSIF Services.GetOA( OAsz( argv^[0] ), OUT _Service ) THEN // not known service
 
       _Service^.StatusHandle := winsvc.RegisterServiceCtrlHandlerExW( argv^[0], winsvc.LPHANDLER_FUNCTION_EX( ControlHandlerEx ), _Service );
       IF _Service^.StatusHandle = winsvc.SERVICE_STATUS_HANDLE( NIL ) THEN

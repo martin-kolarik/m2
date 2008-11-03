@@ -1257,7 +1257,10 @@ CLASS IMPLEMENTATION CDatagramReader;
       RETURN;
     ELSIF _Buffer <> NIL THEN
       _BufferLock^.Lock();
-      ASSERT( Length <= _BufferDataLength );
+      IF Length > _BufferDataLength THEN
+         ASSERT( FALSE );
+         Length := _BufferDataLength;
+      END;
       _Buffer^.RemoveStart( Length );
       _BufferDataLength := _Buffer^.Length;
       IF ( _BufferDataLength = 0 ) AND ( _Buffer^.Size > 1024*1024 ) THEN
@@ -1346,7 +1349,10 @@ CLASS IMPLEMENTATION CDatagramReader;
   PRIVATE PROCEDURE LoadLengthForBuffer( L2 : CARDINAL );
   BEGIN
     _BufferLock^.Lock();
-    ASSERT( _Buffer^.Length = 0 );
+    IF _Buffer^.Length <> 0 THEN
+      ASSERT( FALSE );
+      _Buffer^.Length := 0
+    END;
     IF _Buffer^.Size < L2 THEN
       _Buffer^.Size := L2;
     END;

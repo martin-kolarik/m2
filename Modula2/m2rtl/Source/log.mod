@@ -96,8 +96,9 @@ CLASS IMPLEMENTATION CBuffer;
    VAR
       ProduceTo : CARDINAL;
    BEGIN
-      ASSERT( _Data <> NIL );
-      IF _W.StartProducing( Overwrite, OUT ProduceTo ) THEN
+      IF _Data = NIL THEN
+         ASSERT( FALSE );
+      ELSIF _W.StartProducing( Overwrite, OUT ProduceTo ) THEN
          _Data^[ ProduceTo ] := S;
          _W.CommitProducing();
       END;

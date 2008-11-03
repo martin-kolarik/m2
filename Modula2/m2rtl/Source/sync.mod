@@ -1066,7 +1066,10 @@ BEGIN
    WHILE Size > power[i] DO
       INC( i );
    END;
-   ASSERT( i < 32 );
+   IF i >= 32 THEN
+      ASSERT( FALSE );
+      i := 31;
+   END;
    RETURN power[i];
 END ToPowerOf2;
 
@@ -1189,7 +1192,10 @@ CLASS IMPLEMENTATION OneToOneQueue;
     // order is significant, first LTail
     LTail := IExchgAdd( REF _Tail, 0 );
     LCount := LTail - _Head;
-    ASSERT( Consumed <= LCount );
+    IF Consumed > LCount THEN
+       ASSERT( FALSE );
+       Consumed := LCount;
+    END;
     IExchgAdd( REF _Head, Consumed );
     
     IF Consumed = LCount THEN // if queue becomes being empty, signalize
@@ -1438,7 +1444,10 @@ CLASS IMPLEMENTATION NToOneQueue;
    VAR
       LHead : CARDINAL;
    BEGIN
-      ASSERT( Produced < _Size );   
+      IF Produced >= _Size THEN
+         ASSERT( FALSE );
+         RETURN;
+      END;
       Validate( Produced );
 
       LHead := IExchgAdd( REF _Head, 0 );

@@ -67,7 +67,7 @@ CLASS IMPLEMENTATION CMessageQueue;
       IF NOT Consumer^.Message( Msg^, Delivery, NIL ) THEN
          ASSERT( FALSE );
       END;
-  END Signal;
+   END Signal;
 
 (*--------------------------------------------------------------------------------*)
 

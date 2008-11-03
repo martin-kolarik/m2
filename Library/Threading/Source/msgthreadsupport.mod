@@ -95,9 +95,11 @@ CLASS IMPLEMENTATION CSupport;
       Result : Sync.TAsyncResult;
       ReturnValue : PTR;
    BEGIN
-      ASSERT( OfThread <> NIL );
+      IF OfThread = NIL THEN
+         ReturnValue := 0;
+         ASSERT( FALSE );
 
-      IF OfThread^.SelfContext THEN
+      ELSIF OfThread^.SelfContext THEN
          ReturnValue := Target^.Invoke( Operation, Parameters );
 
       ELSE

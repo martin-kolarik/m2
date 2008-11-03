@@ -246,7 +246,10 @@ BEGIN
    jdx := jdl DIV scale;
    fd := CARDINAL( jdl - scale * jdx );
    z := INTEGER( jdx );
-   ASSERT( z < MAX( INTEGER ) DIV 100 ); 
+   IF z >= MAX( INTEGER ) DIV 100 THEN
+      ASSERT( FALSE );
+      z := MAX( INTEGER ) DIV 100 - 1;
+   END;
 
    IF z < 2299161 THEN
       a := z;
