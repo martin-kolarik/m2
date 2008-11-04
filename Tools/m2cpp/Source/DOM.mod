@@ -9000,25 +9000,27 @@ CLASS IMPLEMENTATION CDesignator;
       | epASSERTLOG :
         b := ( r.U2 <> NIL ) AND Types.TBString^.Compatible( cmOperation, TPExpression( r.U2 )^.T );
         IF b THEN
-          Project.Current()^.OD^.MEnv.MIID[miidLogAssertionW]^.Generate( G, gcsName );
-        ELSE
           Project.Current()^.OD^.MEnv.MIID[miidLogAssertionA]^.Generate( G, gcsName );
+        ELSE
+          Project.Current()^.OD^.MEnv.MIID[miidLogAssertionW]^.Generate( G, gcsName );
         END;
         G^.OutS( L'( ' );
           IF b THEN
              IF r.U2 = NIL THEN
-               G^.OutS( L'C"", -1, C"' );
+               G^.OutS( L'0, C"", OA_MAX, C"' );
              ELSE
+               TPExpression( r.U2 )^.AnalyzeAndGenerateOAHigh( G, Types.TBCONSTOAString );
                r.U2^.Generate( G, Cn + TGenerateControl{gcCharLiteralAsStringForOA} );
-               G^.OutS( L', -1, C"' );
+               G^.OutS( L', OA_MAX, C"' );
              END;
              G^.OutANSIEscapeCS( Project.Current()^.OD^.Name, FALSE );
           ELSE
              IF r.U2 = NIL THEN
-               G^.OutS( L'L"", -1, L"' );
+               G^.OutS( L'0, L"", OA_MAX, L"' );
              ELSE
+               TPExpression( r.U2 )^.AnalyzeAndGenerateOAHigh( G, Types.TWCONSTOAString );
                r.U2^.Generate( G, Cn + TGenerateControl{gcCharLiteralAsStringForOA} );
-               G^.OutS( L', -1, L"' );
+               G^.OutS( L', OA_MAX, L"' );
              END;
              G^.OutCS( Project.Current()^.OD^.Name );
           END;
