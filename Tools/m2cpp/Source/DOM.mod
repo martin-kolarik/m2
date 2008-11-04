@@ -8998,38 +8998,44 @@ CLASS IMPLEMENTATION CDesignator;
         END;
 
       | epASSERTLOG :
-        b := ( r.U2 <> NIL ) AND Types.TBString^.Compatible( cmOperation, TPExpression( r.U2 )^.T );
-        IF b THEN
-          Project.Current()^.OD^.MEnv.MIID[miidLogAssertionA]^.Generate( G, gcsName );
-        ELSE
-          Project.Current()^.OD^.MEnv.MIID[miidLogAssertionW]^.Generate( G, gcsName );
-        END;
-        G^.OutS( L'( ' );
-          IF b THEN
-             IF r.U2 = NIL THEN
-               G^.OutS( L'0, C"", OA_MAX, C"' );
+        G^.OutS( L'if( !(' ); r.U1^.Generate( G, Cn ); G^.OutS( L')) {' ); G^.EOL();
+        G^.Enter();
+        G^.Indent();
+           b := ( r.U2 <> NIL ) AND Types.TBString^.Compatible( cmOperation, TPExpression( r.U2 )^.T );
+           IF b THEN
+             Project.Current()^.OD^.MEnv.MIID[miidLogAssertionA]^.Generate( G, gcsName );
+           ELSE
+             Project.Current()^.OD^.MEnv.MIID[miidLogAssertionW]^.Generate( G, gcsName );
+           END;
+           G^.OutS( L'( ' );
+             IF b THEN
+                IF r.U2 = NIL THEN
+                  G^.OutS( L'0, C"", OA_MAX, C"' );
+                ELSE
+                  TPExpression( r.U2 )^.AnalyzeAndGenerateOAHigh( G, Types.TBCONSTOAString );
+                  r.U2^.Generate( G, Cn + TGenerateControl{gcCharLiteralAsStringForOA} );
+                  G^.OutS( L', OA_MAX, C"' );
+                END;
+                G^.OutANSIEscapeCS( Project.Current()^.OD^.Name, FALSE );
              ELSE
-               TPExpression( r.U2 )^.AnalyzeAndGenerateOAHigh( G, Types.TBCONSTOAString );
-               r.U2^.Generate( G, Cn + TGenerateControl{gcCharLiteralAsStringForOA} );
-               G^.OutS( L', OA_MAX, C"' );
+                IF r.U2 = NIL THEN
+                  G^.OutS( L'0, L"", OA_MAX, L"' );
+                ELSE
+                  TPExpression( r.U2 )^.AnalyzeAndGenerateOAHigh( G, Types.TWCONSTOAString );
+                  r.U2^.Generate( G, Cn + TGenerateControl{gcCharLiteralAsStringForOA} );
+                  G^.OutS( L', OA_MAX, L"' );
+                END;
+                G^.OutCS( Project.Current()^.OD^.Name );
              END;
-             G^.OutANSIEscapeCS( Project.Current()^.OD^.Name, FALSE );
-          ELSE
-             IF r.U2 = NIL THEN
-               G^.OutS( L'0, L"", OA_MAX, L"' );
-             ELSE
-               TPExpression( r.U2 )^.AnalyzeAndGenerateOAHigh( G, Types.TWCONSTOAString );
-               r.U2^.Generate( G, Cn + TGenerateControl{gcCharLiteralAsStringForOA} );
-               G^.OutS( L', OA_MAX, L"' );
-             END;
-             G^.OutCS( Project.Current()^.OD^.Name );
-          END;
-          G^.OutS( L'", ' );
-          G^.OutN( CARDINAL( LOPTRLONGWORD( r.D1 )));
-        G^.OutSPRP();
+             G^.OutS( L'", ' );
+             G^.OutN( CARDINAL( LOPTRLONGWORD( r.D1 )));
+           G^.OutS( L' );' ); G^.EOL();
+        G^.Leave();
+        G^.LineS( L'} // if assertion ' );
 
+        G^.Indent();
         IF eoAssertAllowed IN Options THEN
-          G^.OutS( L'; ASSERT_( ' );
+          G^.OutS( L'ASSERT_( ' );
             r.U1^.Generate( G, Cn );
             G^.OutS( L', ' );
             G^.OutN( CARDINAL( LOPTRLONGWORD( r.D1 )));
