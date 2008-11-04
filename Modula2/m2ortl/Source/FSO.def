@@ -74,11 +74,6 @@ PROCEDURE GetDirectories( Path, Pattern : ARRAY OF WCHAR; SearchOption : TSearch
 
 (*================================================================================*)
 
-PROCEDURE CreateDirectory( CONST Directory : StringsO.CString ) : BOOLEAN;
-PROCEDURE CreateDirectoryOA( CONST Directory : ARRAY OF WCHAR ) : BOOLEAN;
-
-(*================================================================================*)
-
 PROCEDURE GetEnvVariable( CONST Variable : ARRAY OF WCHAR; OUT Data : StringsO.IString ) : BOOLEAN;
 
 (*================================================================================*)

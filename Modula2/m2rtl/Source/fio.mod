@@ -38,6 +38,75 @@ BEGIN
   END;
 END IsDriveW;
 
+(*================================================================================*)
+
+PROCEDURE CreateDirectoryW( CONST Directory : ARRAY OF WCHAR ) : BOOLEAN;
+VAR
+   i : INTEGER;
+   idx : INTEGER := -1;
+   idxs : ARRAY [0..FIO.MaxPath DIV 2] OF CARDINAL;
+   work : ARRAY [0..FIO.MaxPath] OF WCHAR;
+BEGIN
+   IF LENGTH( Directory ) = 0 THEN
+      RETURN FALSE;
+   END;
+   ASSIGN( work, Directory );
+   idxs[0] := 0;
+   
+   // backward run
+   i := LENGTH( Directory ) - 1;
+   LOOP
+      IF ExistsDirectoryW( work ) THEN
+         IF idx < 0 THEN
+            RETURN TRUE;
+         ELSE
+            work[idxs[idx]] := '\';
+            DEC( idx );
+         END;
+         EXIT;
+      END;
+      WHILE ( i >= 0 ) AND ( work[i] <> '\' ) DO
+         DEC( i );
+      END;
+      IF i = -1 THEN
+         EXIT;
+      END;
+      INC( idx );
+      idxs[idx] := i;
+      work[i] := 0W;
+   END; // LOOP
+   
+   // forward run
+   LOOP
+      IF windows.CreateDirectoryW( ADR( work ), NIL ) = windows.False THEN
+         RETURN FALSE;
+      END;
+      IF idx < 0 THEN
+         EXIT;
+      END;
+      work[idxs[idx]] := '\';
+      DEC( idx );
+   END; // WHILE
+   
+   RETURN TRUE;
+END CreateDirectoryW;
+
+PROCEDURE ExistsDirectoryW( CONST Name: ARRAY OF WCHAR ): BOOLEAN;
+VAR
+  attr : CARDINAL;
+  ln : PathStrW;
+BEGIN
+  ln := Name;
+  attr := windows.GetFileAttributesW( ADR( ln ));
+  IF attr = MAX( CARDINAL ) THEN
+    RETURN FALSE;
+  ELSE
+    RETURN windows.FILE_ATTRIBUTE_DIRECTORY AND attr <> 0;
+  END;
+END ExistsDirectoryW;
+
+(*================================================================================*)
+
 PROCEDURE FullPathToVolumeAndPathW( CONST FullPath : ARRAY OF WCHAR; OUT Volume, Path : ARRAY OF WCHAR );
 VAR
   i : CARDINAL;
@@ -295,20 +364,6 @@ BEGIN
     RETURN windows.FILE_ATTRIBUTE_DIRECTORY AND attr = 0;
   END;
 END ExistsW;
-
-PROCEDURE ExistsDirW( CONST Name: ARRAY OF WCHAR ): BOOLEAN;
-VAR
-  attr : CARDINAL;
-  ln : PathStrW;
-BEGIN
-  ln := Name;
-  attr := windows.GetFileAttributesW( ADR( ln ));
-  IF attr = MAX( CARDINAL ) THEN
-    RETURN FALSE;
-  ELSE
-    RETURN windows.FILE_ATTRIBUTE_DIRECTORY AND attr <> 0;
-  END;
-END ExistsDirW;
 
 PROCEDURE DeleteW( CONST Name: ARRAY OF WCHAR );
 VAR

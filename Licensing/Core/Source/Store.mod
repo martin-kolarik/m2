@@ -222,7 +222,7 @@ CLASS IMPLEMENTATION CFileStorage;
       ELSE
          FIO.MakePathW( rootOA, cfFolder, OUT folderOA );
       END;
-      FSO.CreateDirectoryOA( folderOA );
+      FIO.CreateDirectoryW( folderOA );
 
       // prepare write structures
       count := ItemsToStore.Count;

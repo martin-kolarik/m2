@@ -262,66 +262,6 @@ END GetDirectories;
 
 (*================================================================================*)
 
-PROCEDURE CreateDirectory( CONST Directory : StringsO.CString ) : BOOLEAN;
-BEGIN
-   RETURN CreateDirectoryOA( OA( Directory.Length - 1, Directory.rawData ));
-END CreateDirectory;
-
-(*--------------------------------------------------------------------------------*)
-
-PROCEDURE CreateDirectoryOA( CONST Directory : ARRAY OF WCHAR ) : BOOLEAN;
-VAR
-   i : INTEGER;
-   idx : INTEGER := -1;
-   idxs : ARRAY [0..FIO.MaxPath DIV 2] OF CARDINAL;
-   work : ARRAY [0..FIO.MaxPath] OF WCHAR;
-BEGIN
-   IF LENGTH( Directory ) = 0 THEN
-      RETURN FALSE;
-   END;
-   ASSIGN( work, Directory );
-   idxs[0] := 0;
-   
-   // backward run
-   i := LENGTH( Directory ) - 1;
-   LOOP
-      IF FIO.ExistsDirW( work ) THEN
-         IF idx < 0 THEN
-            RETURN TRUE;
-         ELSE
-            work[idxs[idx]] := '\';
-            DEC( idx );
-         END;
-         EXIT;
-      END;
-      WHILE ( i >= 0 ) AND ( work[i] <> '\' ) DO
-         DEC( i );
-      END;
-      IF i = -1 THEN
-         EXIT;
-      END;
-      INC( idx );
-      idxs[idx] := i;
-      work[i] := 0W;
-   END; // LOOP
-   
-   // forward run
-   LOOP
-      IF windows.CreateDirectoryW( ADR( work ), NIL ) = windows.False THEN
-         RETURN FALSE;
-      END;
-      IF idx < 0 THEN
-         EXIT;
-      END;
-      work[idxs[idx]] := '\';
-      DEC( idx );
-   END; // WHILE
-   
-   RETURN TRUE;
-END CreateDirectoryOA;
-
-(*================================================================================*)
-
 PROCEDURE GetEnvVariable( CONST Variable : ARRAY OF WCHAR; OUT Data : StringsO.IString ) : BOOLEAN;
 VAR
    chars : CARDINAL;
