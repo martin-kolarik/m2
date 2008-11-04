@@ -1,0 +1,106 @@
+DEFINITION MODULE shlobjlite HEADER shlobj;
+
+(*# name( decoration => c ) *)
+(*# module( header => off ) *)
+(*# call( convention => stdcall ) *)
+
+FROM windows IMPORT
+   HWND, LONG, DWORD, LPARAM, PSTR, PCSTR, PWSTR, PCWSTR;
+
+//-------------------------------------------------------------------------
+//
+// SHGetSpecialFolderLocation
+//
+//  Caller should use SHGetMalloc to obtain an allocator that can free the pidl
+//
+//
+//-------------------------------------------------------------------------
+//
+// registry entries for special paths are kept in :
+
+//#define REGSTR_PATH_SPECIAL_FOLDERS    REGSTR_PATH_EXPLORER TEXT("\\Shell Folders")
+
+CONST
+  CSIDL_DESKTOP                   = 00000H;        // <desktop>
+  CSIDL_INTERNET                  = 00001H;        // Internet Explorer (icon on desktop)
+  CSIDL_PROGRAMS                  = 00002H;        // Start Menu\Programs
+  CSIDL_CONTROLS                  = 00003H;        // My Computer\Control Panel
+  CSIDL_PRINTERS                  = 00004H;        // My Computer\Printers
+  CSIDL_PERSONAL                  = 00005H;        // My Documents
+  CSIDL_FAVORITES                 = 00006H;        // <user name>\Favorites
+  CSIDL_STARTUP                   = 00007H;        // Start Menu\Programs\Startup
+  CSIDL_RECENT                    = 00008H;        // <user name>\Recent
+  CSIDL_SENDTO                    = 00009H;        // <user name>\SendTo
+  CSIDL_BITBUCKET                 = 0000AH;        // <desktop>\Recycle Bin
+  CSIDL_STARTMENU                 = 0000BH;        // <user name>\Start Menu
+  CSIDL_DESKTOPDIRECTORY          = 00010H;        // <user name>\Desktop
+  CSIDL_DRIVES                    = 00011H;        // My Computer
+  CSIDL_NETWORK                   = 00012H;        // Network Neighborhood
+  CSIDL_NETHOOD                   = 00013H;        // <user name>\nethood
+  CSIDL_FONTS                     = 00014H;        // windows\fonts
+  CSIDL_TEMPLATES                 = 00015H;
+  CSIDL_COMMON_STARTMENU          = 00016H;        // All Users\Start Menu
+  CSIDL_COMMON_PROGRAMS           = 00017H;        // All Users\Programs
+  CSIDL_COMMON_STARTUP            = 00018H;        // All Users\Startup
+  CSIDL_COMMON_DESKTOPDIRECTORY   = 00019H;        // All Users\Desktop
+  CSIDL_APPDATA                   = 0001AH;        // <user name>\Application Data
+  CSIDL_PRINTHOOD                 = 0001BH;        // <user name>\PrintHood
+  CSIDL_LOCAL_APPDATA             = 0001CH;        // <user name>\Local Settings\Applicaiton Data (non roaming)
+  CSIDL_ALTSTARTUP                = 0001DH;        // non localized startup
+  CSIDL_COMMON_ALTSTARTUP         = 0001EH;        // non localized common startup
+  CSIDL_COMMON_FAVORITES          = 0001FH;
+  CSIDL_INTERNET_CACHE            = 00020H;
+  CSIDL_COOKIES                   = 00021H;
+  CSIDL_HISTORY                   = 00022H;
+  CSIDL_COMMON_APPDATA            = 00023H;        // All Users\Application Data
+  CSIDL_WINDOWS                   = 00024H;        // GetWindowsDirectory()
+  CSIDL_SYSTEM                    = 00025H;        // GetSystemDirectory()
+  CSIDL_PROGRAM_FILES             = 00026H;        // C:\Program Files
+  CSIDL_MYPICTURES                = 00027H;        // C:\Program Files\My Pictures
+  CSIDL_PROFILE                   = 00028H;        // USERPROFILE
+  CSIDL_SYSTEMX86                 = 00029H;        // x86 system directory on RISC
+  CSIDL_PROGRAM_FILESX86          = 0002AH;        // x86 C:\Program Files on RISC
+  CSIDL_PROGRAM_FILES_COMMON      = 0002BH;        // C:\Program Files\Common
+  CSIDL_PROGRAM_FILES_COMMONX86   = 0002CH;        // x86 Program Files\Common on RISC
+  CSIDL_COMMON_TEMPLATES          = 0002DH;        // All Users\Templates
+  CSIDL_COMMON_DOCUMENTS          = 0002EH;        // All Users\Documents
+  CSIDL_COMMON_ADMINTOOLS         = 0002FH;        // All Users\Start Menu\Programs\Administrative Tools
+  CSIDL_ADMINTOOLS                = 00030H;        // <user name>\Start Menu\Programs\Administrative Tools
+  CSIDL_CONNECTIONS               = 00031H;        // Network and Dial-up Connections
+
+  CSIDL_FLAG_CREATE               = 08000H;        // combine with CSIDL_ value to force folder creation in SHGetFolderPath()
+  CSIDL_FLAG_DONT_VERIFY          = 04000H;        // combine with CSIDL_ value to return an unverified folder path
+  CSIDL_FLAG_MASK                 = 0FF00H;        // mask for all possible flag values
+
+
+PROCEDURE SHGetSpecialFolderPathA( hwnd : HWND; pszPath : PSTR; csidl : INTEGER; fCreate : windows.BOOL ) : windows.BOOL;
+PROCEDURE SHGetSpecialFolderPathW( hwnd : HWND; pszPath : PWSTR; csidl : INTEGER; fCreate : windows.BOOL ) : windows.BOOL;
+
+CONST
+(*%T UNICODE *)
+  SHGetSpecialFolderPath  ::= SHGetSpecialFolderPathW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  SHGetSpecialFolderPath  ::= SHGetSpecialFolderPathA;
+(*%E UNICODE *)
+
+TYPE
+  SHGFP_TYPE = (
+    SHGFP_TYPE_CURRENT  = 0,   // current value for user, verify it exists
+    SHGFP_TYPE_DEFAULT  = 1    // default value, may not exist
+  );
+
+PROCEDURE SHGetFolderPathA( hwnd : HWND; csidl : INTEGER; hToken : windows.HANDLE; dwFlags : DWORD; pszPath : PSTR ) : LONG;
+PROCEDURE SHGetFolderPathW( hwnd : HWND; csidl : INTEGER; hToken : windows.HANDLE; dwFlags : DWORD; pszPath : PWSTR ) : LONG;
+
+CONST
+(*%T UNICODE *)
+  SHGetFolderPath  ::= SHGetFolderPathW;
+(*%E UNICODE *)
+(*%F UNICODE *)
+  SHGetFolderPath  ::= SHGetFolderPathA;
+(*%E UNICODE *)
+
+//-------------------------------------------------------------------------
+
+END shlobjlite.

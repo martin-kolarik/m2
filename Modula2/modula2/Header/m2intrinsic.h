@@ -135,13 +135,13 @@ inline void OBJECT::operator delete(void* ptr) throw()
 # endif
 
 namespace Debug {
-  __Debug_MI BOOLEAN Assertion( BOOLEAN Expression, CARDINAL Module_HIGH, const WCHAR* Module, CARDINAL ModuleLine, CARDINAL CPPLine ) throw();
-  __Debug_MI void LogAssertionA( CARDINAL Text_HIGH, const CHAR* Text, CARDINAL Module_HIGH, const CHAR* Module, CARDINAL ModuleLine ) throw();
-  __Debug_MI void LogAssertionW( CARDINAL Text_HIGH, const WCHAR* Text, CARDINAL Module_HIGH, const WCHAR* Module, CARDINAL ModuleLine ) throw();
+  __Debug_MI BOOLEAN Assert( BOOLEAN Expression, CARDINAL Module_HIGH, const WCHAR* Module, CARDINAL ModuleLine, CARDINAL CPPLine ) throw();
+  __Debug_MI void LogAssertA( CARDINAL Text_HIGH, const CHAR* Text, CARDINAL Module_HIGH, const CHAR* Module, CARDINAL ModuleLine ) throw();
+  __Debug_MI void LogAssertW( CARDINAL Text_HIGH, const WCHAR* Text, CARDINAL Module_HIGH, const WCHAR* Module, CARDINAL ModuleLine ) throw();
 }
-# define __Assertion Debug::Assertion
-# define __LogAssertionA Debug::LogAssertionA
-# define __LogAssertionW Debug::LogAssertionW
+# define __Assertion Debug::Assert
+# define __LogAssertionA Debug::LogAssertA
+# define __LogAssertionW Debug::LogAssertW
 
 # ifdef __Debug_MI_UNDEF
 # undef __Debug_MI

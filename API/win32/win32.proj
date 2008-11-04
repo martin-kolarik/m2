@@ -16,7 +16,7 @@
 
     <!-- 4 -->
     <ItemGroup>
-        <Interface Include="kernel32;user32"/>
+        <Interface Include="kernel32;user32;shell32"/>
     </ItemGroup>
 
 </Project>

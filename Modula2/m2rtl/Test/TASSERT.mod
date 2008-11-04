@@ -1,7 +1,7 @@
 MODULE TASSERT;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -37,6 +37,8 @@ CLASS IMPLEMENTATION CTest;
       Host^.StartPhase( L"Do ASSERT" );
 
       ASSERT( FALSE );
+      ASSERTLOG( FALSE );
+      ASSERTLOG( FALSE, L"Je to blbe" );
    
       Host^.StopPhase();
 

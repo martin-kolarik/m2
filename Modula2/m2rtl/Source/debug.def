@@ -5,10 +5,17 @@ DEFINITION MODULE Debug;
 
 //--------------------------------------------------------------------------------
 
-PROCEDURE Assertion( Expression : BOOLEAN; CONST Module : ARRAY OF WCHAR; ModuleLine, CPPLine : CARDINAL ) : BOOLEAN; // returns if debug break is required
+PROCEDURE Assert( Expression : BOOLEAN; CONST Module : ARRAY OF WCHAR; ModuleLine, CPPLine : CARDINAL ) : BOOLEAN; // returns if debug break is required
 
-PROCEDURE LogAssertionA( CONST Text, Module : ARRAY OF CHAR; ModuleLine : CARDINAL );
-PROCEDURE LogAssertionW( CONST Text, Module : ARRAY OF WCHAR; ModuleLine : CARDINAL );
+PROCEDURE LogAssertA( CONST Text, Module : ARRAY OF CHAR; ModuleLine : CARDINAL );
+PROCEDURE LogAssertW( CONST Text, Module : ARRAY OF WCHAR; ModuleLine : CARDINAL );
+
+//--------------------------------------------------------------------------------
+
+CONST
+   Assertion ::= Assert;
+   LogAssertionA ::= LogAssertA;
+   LogAssertionW ::= LogAssertW;
 
 //--------------------------------------------------------------------------------
 

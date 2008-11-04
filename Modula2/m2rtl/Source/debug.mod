@@ -1,13 +1,21 @@
 IMPLEMENTATION MODULE Debug;
 
+FROM Debug IMPORT
+   Assertion;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
-  Log,
-  Strings,
-  windows;
+   FIO,
+   Log,
+   shlobjlite,
+   Strings,
+   windows;
 
 //--------------------------------------------------------------------------------
 
-PROCEDURE Assertion( Expression : BOOLEAN; CONST Module : ARRAY OF WCHAR; ModuleLine, CPPLine : CARDINAL ) : BOOLEAN; // returns if debug break is required
+PROCEDURE Assert( Expression : BOOLEAN; CONST Module : ARRAY OF WCHAR; ModuleLine, CPPLine : CARDINAL ) : BOOLEAN; // returns if debug break is required
 CONST
    CRLF = 13W + 10W;
 VAR
@@ -39,20 +47,106 @@ BEGIN
       RETURN TRUE;
    END;
    RETURN FALSE;
-END Assertion;
+END Assert;
 
 //--------------------------------------------------------------------------------
 
-PROCEDURE LogAssertionA( CONST Text, Module : ARRAY OF CHAR; ModuleLine : CARDINAL );
+CONST
+   REGISTRY_LIBRARY = L"Assertions";
+   ASSERTIONS_FILE = L"Assertions.log";
+
+VAR
+   AssertionLog : Log.TPLogger := NIL;
+
+//--------------------------------------------------------------------------------
+
+PROCEDURE CreateLogger() : Log.TPLogger;
+VAR
+   file : FIO.PathStrW;
+   folder : FIO.PathStrW;
+   path : FIO.PathStrW;
+   success : BOOLEAN := FALSE;
 BEGIN
-END LogAssertionA;
+   NEW( AssertionLog );
+   AssertionLog^.Method := Log.dmNone;
+   
+   // read data from registry
+   IF AssertionLog^.SetUpByRegistry( REGISTRY_LIBRARY ) THEN
+      IF AssertionLog^.Method = Log.dmFile THEN
+         success := TRUE;
+      END;
+   ELSE
+      AssertionLog^.Method := Log.dmFile;
+      AssertionLog^.Level := Log.dlcSysError;
+      AssertionLog^.Levels := FALSE;
+      AssertionLog^.SetLogName( ProductId );
+   END;
+
+   // try common application data path
+   IF NOT success AND ( shlobjlite.SHGetFolderPath( NIL, shlobjlite.CSIDL_COMMON_APPDATA, NIL, shlobjlite.SHGFP_TYPE_CURRENT, ADR( folder )) = 0 ) THEN
+      FIO.MakePathW( folder, Manufacturer, OUT path );
+      IF FIO.CreateDirectoryW( path ) THEN
+         FIO.MakePathW( path, ASSERTIONS_FILE, OUT file );
+         AssertionLog^.SetLogFile( file );
+         success := TRUE;
+      END;
+   END;
+   
+   // try user application data path
+   IF NOT success AND ( shlobjlite.SHGetFolderPath( NIL, shlobjlite.CSIDL_APPDATA, NIL, shlobjlite.SHGFP_TYPE_CURRENT, ADR( folder )) = 0 ) THEN
+      FIO.MakePathW( folder, Manufacturer, OUT path );
+      IF FIO.CreateDirectoryW( path ) THEN
+         FIO.MakePathW( path, ASSERTIONS_FILE, OUT file );
+         AssertionLog^.SetLogFile( file );
+         success := TRUE;
+      END;
+   END;
+
+   ASSERT( success );
+
+   RETURN AssertionLog;
+END CreateLogger;
 
 //--------------------------------------------------------------------------------
 
-PROCEDURE LogAssertionW( CONST Text, Module : ARRAY OF WCHAR; ModuleLine : CARDINAL );
+PROCEDURE getLogger() : Log.TPLogger;
 BEGIN
-END LogAssertionW;
+   IF AssertionLog = NIL THEN
+      AssertionLog := CreateLogger();
+   END;
+   RETURN AssertionLog;
+END getLogger;
 
 //--------------------------------------------------------------------------------
 
+PROCEDURE LogAssertA( CONST Text, Module : ARRAY OF CHAR; ModuleLine : CARDINAL );
+VAR
+   ModuleW : ARRAY [0..63] OF WCHAR;
+   TextW : ARRAY [0..255] OF WCHAR;
+BEGIN
+   Strings.ToW( Text, 0, OUT TextW );
+   Strings.ToW( Module, 0, OUT ModuleW );
+   LogAssertionW( TextW, ModuleW, ModuleLine );
+END LogAssertA;
+
+//--------------------------------------------------------------------------------
+
+PROCEDURE LogAssertW( CONST Text, Module : ARRAY OF WCHAR; ModuleLine : CARDINAL );
+VAR
+   Line : ARRAY [0..15] OF WCHAR;
+BEGIN
+   Strings.FromCARD32W( ModuleLine, 10, OUT Line );
+   IF Text[0] = 0W THEN
+      getLogger()^.LogS( Log.dlcSysError, Module, Line );
+   ELSE
+      getLogger()^.LogSSS( Log.dlcSysError, Module, Text, L" ", Line );
+   END;
+END LogAssertW;
+
+//--------------------------------------------------------------------------------
+
+BEGIN FINALLY
+   IF AssertionLog <> NIL THEN
+      DISPOSE( AssertionLog );
+   END;
 END Debug.

@@ -1,20 +1,20 @@
 MODULE TCreateDir;
 
 IMPORT
-	FSO;
+	FIO;
 
 	#save, call( convention => cdecl )
 	PROCEDURE wmain03() : INTEGER;
 	#restore
 	BEGIN
-	   FSO.CreateDirectoryOA( L"a" );
-	   FSO.CreateDirectoryOA( L"a\b\c\d" );
-	   FSO.CreateDirectoryOA( L"a\b" );
+	   FIO.CreateDirectoryW( L"a" );
+	   FIO.CreateDirectoryW( L"a\b\c\d" );
+	   FIO.CreateDirectoryW( L"a\b" );
 
-	   FSO.CreateDirectoryOA( L"d:\buff\a\" );
-	   FSO.CreateDirectoryOA( L"d:\buff\a" );
-	   FSO.CreateDirectoryOA( L"d:\buff\b" );
-	   FSO.CreateDirectoryOA( L"d:\buff\a\b\c" );
+	   FIO.CreateDirectoryW( L"d:\buff\a\" );
+	   FIO.CreateDirectoryW( L"d:\buff\a" );
+	   FIO.CreateDirectoryW( L"d:\buff\b" );
+	   FIO.CreateDirectoryW( L"d:\buff\a\b\c" );
 
 		RETURN 0;
 	END wmain03;
