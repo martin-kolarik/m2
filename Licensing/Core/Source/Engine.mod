@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE Engine;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM Storage IMPORT
    DEALLOCATE;
@@ -100,7 +100,7 @@ BEGIN
       ELSIF iitem^ IS Items.CActivation THEN
          activations.Add( iitem );
       ELSE
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
       END;
    END; // FOR
 

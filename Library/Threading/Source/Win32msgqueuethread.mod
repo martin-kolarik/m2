@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE Win32msgqueuethread;
 (*---------------------------------------------------------------------------*)
   
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -37,7 +37,7 @@ CLASS IMPLEMENTATION Win32MessageQueueThread;
          //-----
          | CARDINAL( windows.WAIT_FAILED ), windows.WAIT_ABANDONED : // some handle failed, this MUST not occur
             Status := windows.GetLastError();
-            ASSERT( FALSE );
+            ASSERTLOG( FALSE );
             EXIT;
 
          //-----
@@ -121,7 +121,7 @@ CLASS IMPLEMENTATION Win32MessageQueueThread;
          END;
          IF NOT Support^.HandleSupportMessage( Msg ) THEN
             IF Msg.Message = windows.WM_TIMER THEN
-               ASSERT( FALSE ); // not implemented yet
+               ASSERTLOG( FALSE ); // not implemented yet
             ELSE
                RETURN OnMessage( Msg, OUT Result^ );
             END;
@@ -136,21 +136,21 @@ CLASS IMPLEMENTATION Win32MessageQueueThread;
   
    PUBLIC VIRTUAL PROCEDURE StartTimer( CONST Target : msghandler.IMessageTarget; TimerId : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
    BEGIN
-      ASSERT( FALSE ); // not implemented yet
+      ASSERTLOG( FALSE ); // not implemented yet
    END StartTimer;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE StopTimer( CONST Target : msghandler.IMessageTarget; TimerId : PTR );
    BEGIN
-      ASSERT( FALSE ); // not implemented yet
+      ASSERTLOG( FALSE ); // not implemented yet
    END StopTimer;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE TimerRunning( CONST Target : msghandler.IMessageTarget; TimerId : PTR ) : BOOLEAN;
    BEGIN
-      ASSERT( FALSE ); // not implemented yet
+      ASSERTLOG( FALSE ); // not implemented yet
       RETURN FALSE;
    END TimerRunning;
 
@@ -215,7 +215,7 @@ VAR
 
 PROCEDURE Win32GlobalMessageQueueThread() : POINTER TO Win32MessageQueueThread;
 BEGIN
-   ASSERT( GMQT <> NIL );
+   ASSERTLOG( GMQT <> NIL );
    RETURN GMQT;
 END Win32GlobalMessageQueueThread;
 

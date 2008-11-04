@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE netpool;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -16,7 +16,7 @@ VAR
 PROCEDURE pool() : threadpool.TPThreadPool;
 BEGIN
   IF NetPool = NIL THEN
-    ASSERT( FALSE ); // netinit.Startup was not called
+    ASSERTLOG( FALSE ); // netinit.Startup was not called
     Startup();
   END;
   RETURN NetPool;

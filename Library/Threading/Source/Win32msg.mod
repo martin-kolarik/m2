@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE Win32msg;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM Storage IMPORT
   ALLOCATE;
@@ -27,7 +27,7 @@ VAR
 
 CLASS IMPLEMENTATION CChecker;
 BEGIN FINALLY
-  ASSERT( Handlers.Empty );
+  ASSERTLOG( Handlers.Empty );
 END CChecker;
 #endif
 

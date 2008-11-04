@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE netsrv;
 //================================================================================
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
@@ -376,7 +376,7 @@ CLASS IMPLEMENTATION CSocketNotifier;
       Message.Socket := Socket;
       Message.Result := Result;
       LResult := Server^.MQueue.EnqueueOA( Message, TRUE, Sync.FORSAFETY );
-      ASSERT( LResult <> Sync.arTimeout );
+      ASSERTLOG( LResult <> Sync.arTimeout );
     END;
   END OnListen;
 
@@ -390,7 +390,7 @@ CLASS IMPLEMENTATION CSocketNotifier;
       Message.Socket := Socket;
       Message.Result := Result;
       LResult := Server^.MQueue.EnqueueOA( Message, TRUE, Sync.FORSAFETY );
-      ASSERT( LResult <> Sync.arTimeout );
+      ASSERTLOG( LResult <> Sync.arTimeout );
     END;
   END OnDataArrived;
 
@@ -548,7 +548,7 @@ CLASS IMPLEMENTATION CIPServer;
       Message.CloseTime := AutomaticCloseTimeMS;
       Result := MQueue.EnqueueOA( Message, TRUE, Sync.FORSAFETY );
       IF Result NOT IN Sync.arsStarts THEN
-         ASSERT( Result <> Sync.arTimeout );
+         ASSERTLOG( Result <> Sync.arTimeout );
          Socket^.Release();
          RETURN -1;
       END;
@@ -575,7 +575,7 @@ CLASS IMPLEMENTATION CIPServer;
     Message.Server := LocalAddress;
     Message.Type := Type;
     Result := MQueue.EnqueueOA( Message, TRUE, Sync.FORSAFETY );
-    ASSERT( Result <> Sync.arTimeout );
+    ASSERTLOG( Result <> Sync.arTimeout );
   END StopListenServer;
   
 //--------------------------------------------------------------------------------
@@ -588,7 +588,7 @@ CLASS IMPLEMENTATION CIPServer;
     Message.Command := cmForgetSocket;
     Message.Socket := Socket;
     Result := MQueue.EnqueueOA( Message, TRUE, Sync.FORSAFETY );
-    ASSERT( Result <> Sync.arTimeout );
+    ASSERTLOG( Result <> Sync.arTimeout );
   END StopListenSocket;
 
 //--------------------------------------------------------------------------------

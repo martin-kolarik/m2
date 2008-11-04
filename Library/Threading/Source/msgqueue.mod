@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE msgqueue;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE, REALLOCATE;
@@ -65,7 +65,7 @@ CLASS IMPLEMENTATION CMessageQueue;
       END; // CASE
 
       IF NOT Consumer^.Message( Msg^, Delivery, NIL ) THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
       END;
    END Signal;
 
@@ -227,7 +227,7 @@ CLASS IMPLEMENTATION CPtrQueue;
       END; // CASE
 
       IF NOT Consumer^.Message( Msg^, Delivery, NIL ) THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
       END;
    END Signal;
 

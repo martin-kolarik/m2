@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE TextWriter;
 (*===========================================================================*)
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 IMPORT
    FIOO,
@@ -93,7 +93,7 @@ CLASS IMPLEMENTATION CTextWriter;
 				   _Stream^.WriteOA( OA( p-1, ADR( Buffer )), OUT l, Sync.FOREVER );
 			   END;
 			   IF c = 0 THEN // error
-			      ASSERT( FALSE );
+			      ASSERTLOG( FALSE );
 			      EXIT;
 			   END;
 			   INC( s, c << 1 );

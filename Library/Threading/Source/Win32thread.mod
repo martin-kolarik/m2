@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE Win32thread;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 IMPORT
   windows,
@@ -69,7 +69,7 @@ CLASS IMPLEMENTATION Win32Thread;
     _HExit.Signal();
     IF Wait THEN
       Result := sync.RawWait( _HThread, 10 * sync.FORSAFETY );
-      ASSERT( Result <> Sync.arTimeout );
+      ASSERTLOG( Result <> Sync.arTimeout );
     END;
     IF _HThread <> NIL THEN
       windows.CloseHandle( _HThread );
@@ -89,7 +89,7 @@ CLASS IMPLEMENTATION Win32Thread;
    PUBLIC FINAL PROCEDURE RunWithRunnable( Runnable : OSALthread.TPRunnable );
    BEGIN
       IF _Runnable <> NIL THEN // already exists
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN;
       END;
       _Runnable := Runnable;

@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE SyncQueue;
 (*================================================================================*)
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE, REALLOCATE, Move, Zero;
@@ -343,7 +343,7 @@ CLASS IMPLEMENTATION IntegerQueue;
 
       // first part
       IF NOT StartWriting( len, OUT dst, OUT allowed ) THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN Sync.arAborted;
       END;
       commit := allowed;
@@ -361,7 +361,7 @@ CLASS IMPLEMENTATION IntegerQueue;
 
       // second part
       IF NOT StartWriting( len, OUT dst, OUT allowed ) THEN // should never occur
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN Sync.arAborted;
       END;
       commit := allowed;
@@ -376,7 +376,7 @@ CLASS IMPLEMENTATION IntegerQueue;
       IF len = 0 THEN
          RETURN Sync.arCompleted;
       ELSE
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN Sync.arAborted;
       END;
    END Enqueue;
@@ -416,7 +416,7 @@ CLASS IMPLEMENTATION IntegerQueue;
 
       // first part
       IF NOT StartReading( len, OUT src, OUT allowed ) THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN Sync.arAborted;
       END;
       commit := allowed;
@@ -434,7 +434,7 @@ CLASS IMPLEMENTATION IntegerQueue;
 
       // second part
       IF NOT StartReading( len, OUT src, OUT allowed ) THEN // should never occur
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN Sync.arAborted;
       END;
       commit := allowed;
@@ -449,7 +449,7 @@ CLASS IMPLEMENTATION IntegerQueue;
       IF len = 0 THEN
          RETURN Sync.arCompleted;
       ELSE
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN Sync.arAborted;
       END;
    END Dequeue;
@@ -501,7 +501,7 @@ CLASS IMPLEMENTATION QuadwordQueue;
 
       // first part
       IF NOT StartWriting( len, OUT dst, OUT allowed ) THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN Sync.arAborted;
       END;
       commit := allowed;
@@ -519,7 +519,7 @@ CLASS IMPLEMENTATION QuadwordQueue;
 
       // second part
       IF NOT StartWriting( len, OUT dst, OUT allowed ) THEN // should never occur
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN Sync.arAborted;
       END;
       commit := allowed;
@@ -534,7 +534,7 @@ CLASS IMPLEMENTATION QuadwordQueue;
       IF len = 0 THEN
          RETURN Sync.arCompleted;
       ELSE
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN Sync.arAborted;
       END;
    END Enqueue;
@@ -574,7 +574,7 @@ CLASS IMPLEMENTATION QuadwordQueue;
 
       // first part
       IF NOT StartReading( len, OUT src, OUT allowed ) THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN Sync.arAborted;
       END;
       commit := allowed;
@@ -592,7 +592,7 @@ CLASS IMPLEMENTATION QuadwordQueue;
 
       // second part
       IF NOT StartReading( len, OUT src, OUT allowed ) THEN // should never occur
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN Sync.arAborted;
       END;
       commit := allowed;
@@ -607,7 +607,7 @@ CLASS IMPLEMENTATION QuadwordQueue;
       IF len = 0 THEN
          RETURN Sync.arCompleted;
       ELSE
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN Sync.arAborted;
       END;
    END Dequeue;

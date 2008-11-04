@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE Sync;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE, Zero;
@@ -187,7 +187,7 @@ CLASS IMPLEMENTATION LOCK;
             windows.EnterCriticalSection( windows.PCRITICAL_SECTION( Data ));
             RETURN arCompleted;
          ELSE
-            ASSERT( FALSE );
+            ASSERTLOG( FALSE );
             RETURN arCannotStart;
          END;
 
@@ -389,7 +389,7 @@ CLASS IMPLEMENTATION LOCK;
       L : BITSET32;
    BEGIN
       IF Type = ltILock THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN {};
       ELSE
          Lock();
@@ -407,7 +407,7 @@ CLASS IMPLEMENTATION LOCK;
       L : BITSET32;
    BEGIN
       IF Type = ltILock THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN {};
       ELSE
          Lock();
@@ -425,7 +425,7 @@ CLASS IMPLEMENTATION LOCK;
       L : BITSET32;
    BEGIN
       IF Type = ltILock THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN {};
       ELSE
          Lock();
@@ -443,7 +443,7 @@ CLASS IMPLEMENTATION LOCK;
       L : BOOLEAN;
    BEGIN
       IF Type = ltILock THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN FALSE;
       ELSE
          Lock();
@@ -460,7 +460,7 @@ CLASS IMPLEMENTATION LOCK;
       L : BOOLEAN;
    BEGIN
       IF Type = ltILock THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN FALSE;
       ELSE
          Lock();
@@ -477,7 +477,7 @@ CLASS IMPLEMENTATION LOCK;
       L : BOOLEAN;
    BEGIN
       IF Type = ltILock THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN FALSE;
       ELSE
          Lock();
@@ -494,7 +494,7 @@ CLASS IMPLEMENTATION LOCK;
       L : BOOLEAN;
    BEGIN
       IF Type = ltILock THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN FALSE;
       ELSE
          Lock();
@@ -574,7 +574,7 @@ CLASS IMPLEMENTATION RWLOCK;
    PUBLIC PROCEDURE UnlockWrite();
    BEGIN
       Lock.Lock();
-      ASSERT( Owners = -1 ); // We must have signalized writer presence.
+      ASSERTLOG( Owners = -1 ); // We must have signalized writer presence.
       Owners := 0;
       // stay inside lock
       UnlockAndWakeUpAppropriateWaiters();
@@ -604,7 +604,7 @@ CLASS IMPLEMENTATION RWLOCK;
    PUBLIC PROCEDURE UnlockRead();
    BEGIN
       Lock.Lock();
-      ASSERT( Owners > 0 );
+      ASSERTLOG( Owners > 0 );
       DEC( Owners );
       // stay inside lock
       UnlockAndWakeUpAppropriateWaiters();
@@ -1067,7 +1067,7 @@ BEGIN
       INC( i );
    END;
    IF i >= 32 THEN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       i := 31;
    END;
    RETURN power[i];
@@ -1155,7 +1155,7 @@ CLASS IMPLEMENTATION OneToOneQueue;
     // Space = H + S - T;
     LHead := IExchgAdd( REF _Head, 0 );
     LSpace := LHead + _Size - _Tail;
-    ASSERT( Produced <= LSpace );
+    ASSERTLOG( Produced <= LSpace );
     IExchgAdd( REF _Tail, Produced );
 
     IF LSpace = _Size THEN // if queue becomes being occupied, signalize
@@ -1193,7 +1193,7 @@ CLASS IMPLEMENTATION OneToOneQueue;
     LTail := IExchgAdd( REF _Tail, 0 );
     LCount := LTail - _Head;
     IF Consumed > LCount THEN
-       ASSERT( FALSE );
+       ASSERTLOG( FALSE );
        Consumed := LCount;
     END;
     IExchgAdd( REF _Head, Consumed );
@@ -1445,7 +1445,7 @@ CLASS IMPLEMENTATION NToOneQueue;
       LHead : CARDINAL;
    BEGIN
       IF Produced >= _Size THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN;
       END;
       Validate( Produced );

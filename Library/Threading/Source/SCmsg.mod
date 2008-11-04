@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE SCmsg;
 (*================================================================================*)
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 IMPORT
    msghandler,
@@ -26,7 +26,7 @@ VAR
 
 CLASS IMPLEMENTATION CChecker;
 BEGIN FINALLY
-  ASSERT( Handlers.Empty );
+  ASSERTLOG( Handlers.Empty );
 END CChecker;
 #endif
 
@@ -272,7 +272,7 @@ CLASS IMPLEMENTATION SCMessageHandler;
    PUBLIC VIRTUAL PROCEDURE TimerRunning( Timer : PTR ) : BOOLEAN;
    BEGIN
       IF joinedTo = NIL THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN FALSE;
       ELSE
          RETURN TPSCMessageQueueThread( joinedTo )^.TimerRunning( SELF, Timer );
@@ -284,7 +284,7 @@ CLASS IMPLEMENTATION SCMessageHandler;
    PUBLIC VIRTUAL PROCEDURE StopTimer( Timer : PTR );
    BEGIN
       IF joinedTo = NIL THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
       ELSE
          TPSCMessageQueueThread( joinedTo )^.StopTimer( SELF, Timer );
       END;

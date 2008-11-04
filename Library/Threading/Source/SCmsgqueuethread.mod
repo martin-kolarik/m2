@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE SCmsgqueuethread;
 (*---------------------------------------------------------------------------*)
   
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -45,7 +45,7 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
          //-----
          | CARDINAL( windows.WAIT_FAILED ), windows.WAIT_ABANDONED : // some handle failed, this MUST not occur
             Status := windows.GetLastError();
-            ASSERT( FALSE );
+            ASSERTLOG( FALSE );
             OnExit();
             RETURN -1;
 
@@ -148,7 +148,7 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
             message[i] := Msg[i];
          END; // FOR
          AResult := Queue.EnqueueOA( message, TRUE, Sync.FORSAFETY );
-         ASSERT( AResult <> Sync.arTimeout );
+         ASSERTLOG( AResult <> Sync.arTimeout );
       END;
       RETURN TRUE;
    END Message;
@@ -248,7 +248,7 @@ VAR
 
 PROCEDURE SCGlobalMessageQueueThread() : POINTER TO SCMessageQueueThread;
 BEGIN
-   ASSERT( GMQT <> NIL );
+   ASSERTLOG( GMQT <> NIL );
    RETURN GMQT;
 END SCGlobalMessageQueueThread;
 

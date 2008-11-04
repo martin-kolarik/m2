@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE rawconnection;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 IMPORT
    msgqueuethread,
@@ -80,7 +80,7 @@ CLASS IMPLEMENTATION CConnectionNotifier;
          P.Error := Error;
          P.SourceSpecificCode := SourceSpecificCode;
          IF msgqueuethread.global()^.ThreadCall( ADR( SELF ), opOnError, OA( 0, ADR( p )), NIL, TRUE, Sync.FORSAFETY ) = Sync.arTimeout THEN
-            ASSERT( FALSE );
+            ASSERTLOG( FALSE );
          END;
 
       END;
@@ -102,7 +102,7 @@ CLASS IMPLEMENTATION CConnectionNotifier;
 
       ELSE
          IF msgqueuethread.global()^.ThreadCall( ADR( SELF ), opOnFlowPossible, OA( 0, ADR( p )), NIL, TRUE, Sync.FORSAFETY ) = Sync.arTimeout THEN
-            ASSERT( FALSE );
+            ASSERTLOG( FALSE );
          END;
 
       END;
@@ -124,7 +124,7 @@ CLASS IMPLEMENTATION CConnectionNotifier;
 
       ELSE
          IF msgqueuethread.global()^.ThreadCall( ADR( SELF ), opOnReadable, OA( 0, ADR( p )), NIL, TRUE, Sync.FORSAFETY ) = Sync.arTimeout THEN
-            ASSERT( FALSE );
+            ASSERTLOG( FALSE );
          END;
 
       END;
@@ -146,7 +146,7 @@ CLASS IMPLEMENTATION CConnectionNotifier;
 
       ELSE
          IF msgqueuethread.global()^.ThreadCall( ADR( SELF ), opOnWritten, OA( 0, ADR( p )), NIL, TRUE, Sync.FORSAFETY ) = Sync.arTimeout THEN
-            ASSERT( FALSE );
+            ASSERTLOG( FALSE );
          END;
 
       END;
@@ -184,7 +184,7 @@ CLASS IMPLEMENTATION CConnectionNotifier;
 
       ELSE
          IF msgqueuethread.global()^.ThreadCall( ADR( SELF ), opOnConnect, OA( 0, ADR( p )), NIL, TRUE, Sync.FORSAFETY ) = Sync.arTimeout THEN
-            ASSERT( FALSE );
+            ASSERTLOG( FALSE );
          END;
 
       END;
@@ -207,7 +207,7 @@ CLASS IMPLEMENTATION CConnectionNotifier;
          P.Result := Result;
          P.Local := Local;
          IF msgqueuethread.global()^.ThreadCall( ADR( SELF ), opOnDisconnect, OA( 0, ADR( p )), NIL, TRUE, Sync.FORSAFETY ) = Sync.arTimeout THEN
-            ASSERT( FALSE );
+            ASSERTLOG( FALSE );
          END;
 
       END;

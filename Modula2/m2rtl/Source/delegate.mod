@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE Delegate;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
@@ -62,7 +62,7 @@ CLASS IMPLEMENTATION ADelegate;
     LReferences : CARDINAL;
   BEGIN
     IF _References = 0 THEN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       RETURN 0;
     END;
     LReferences := Sync.IDec( REF _References );

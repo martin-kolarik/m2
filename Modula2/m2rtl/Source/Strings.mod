@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE Strings;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM Strings IMPORT
 	CapitalizeW;
@@ -626,7 +626,7 @@ BEGIN
 	IF ( HIGH( String ) = 0 ) OR ( String[1] = 0W) THEN
 		RETURN LastIndexOfCharW( Source, String[0], IndexFromRight );
 	ELSE
-	   ASSERT( FALSE );
+	   ASSERTLOG( FALSE );
 		RETURN -1;
 	END;
 END LastIndexOfW;
@@ -860,7 +860,7 @@ BEGIN
 			CodePage := winnls.CP_ACP;
 		END;
 		l := winnls.WideCharToMultiByte( CodePage, 0, ADR( Source ), l, ADR( Destination ), HIGH( Destination ) + 1, NIL, NIL );
-		ASSERT( l > 0 );
+		ASSERTLOG( l > 0 );
 		IF l = 0 THEN
 		   RETURN FALSE;
 		END;
@@ -891,7 +891,7 @@ BEGIN
 		ELSE
 			l := winnls.MultiByteToWideChar( CodePage, winnls.MB_PRECOMPOSED, ADR( Source ), l, ADR( Destination ), HIGH( Destination ) + 1 );
 		END;
-		ASSERT( l > 0 );
+		ASSERTLOG( l > 0 );
 		IF l = 0 THEN
 		   RETURN FALSE;
 		END;

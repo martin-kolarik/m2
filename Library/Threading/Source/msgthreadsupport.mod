@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE msgthreadsupport;
 (*===========================================================================*)
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 IMPORT
    msghandler,
@@ -32,7 +32,7 @@ CLASS IMPLEMENTATION CSupport;
 
    PUBLIC PROCEDURE Dispose();
    BEGIN
-      ASSERT( Joined.Empty );
+      ASSERTLOG( Joined.Empty );
       Joined.Dispose();
       OfThread := NIL;
    END Dispose;
@@ -44,7 +44,7 @@ CLASS IMPLEMENTATION CSupport;
       Result : Sync.TAsyncResult;
    BEGIN
       Result := ThreadCall( ADR( SELF ), OP_JOIN, OA( 0, ADR( Handler )), NIL, TRUE, Sync.FORSAFETY );
-      ASSERT( Result <> Sync.arTimeout );
+      ASSERTLOG( Result <> Sync.arTimeout );
    END Join;
 
 (*---------------------------------------------------------------------------*)
@@ -54,7 +54,7 @@ CLASS IMPLEMENTATION CSupport;
       Result : Sync.TAsyncResult;
    BEGIN
       Result := ThreadCall( ADR( SELF ), OP_LEAVE, OA( 0, ADR( Handler )), NIL, TRUE, Sync.FORSAFETY );
-      ASSERT( Result <> Sync.arTimeout );
+      ASSERTLOG( Result <> Sync.arTimeout );
    END Leave;
    
 (*---------------------------------------------------------------------------*)
@@ -69,7 +69,7 @@ CLASS IMPLEMENTATION CSupport;
       Parameters[2] := PeriodMS;
       Parameters[3] := PTR( Repeat );
       Result := ThreadCall( ADR( SELF ), OP_START_TIMER, Parameters, NIL, TRUE, Sync.FORSAFETY );
-      ASSERT( Result <> Sync.arTimeout );
+      ASSERTLOG( Result <> Sync.arTimeout );
    END StartTimer;
 
 (*---------------------------------------------------------------------------*)
@@ -82,7 +82,7 @@ CLASS IMPLEMENTATION CSupport;
       Parameters[0] := Target;
       Parameters[1] := TimerId;
       Result := ThreadCall( ADR( SELF ), OP_STOP_TIMER, Parameters, NIL, TRUE, Sync.FORSAFETY );
-      ASSERT( Result <> Sync.arTimeout );
+      ASSERTLOG( Result <> Sync.arTimeout );
    END StopTimer;
 
 (*---------------------------------------------------------------------------*)
@@ -97,7 +97,7 @@ CLASS IMPLEMENTATION CSupport;
    BEGIN
       IF OfThread = NIL THEN
          ReturnValue := 0;
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
 
       ELSIF OfThread^.SelfContext THEN
          ReturnValue := Target^.Invoke( Operation, Parameters );
@@ -119,7 +119,7 @@ CLASS IMPLEMENTATION CSupport;
          END;
          
          ReturnValue := Call^.ReturnValue;
-         ASSERT( Call^.References > 0 );
+         ASSERTLOG( Call^.References > 0 );
          Call^.Release();
       END;
 
@@ -221,7 +221,7 @@ CLASS IMPLEMENTATION CSupport;
 
    PRIVATE PROCEDURE DoJoin( Handler : OSALmsg.TPMessageHandler );
    BEGIN
-      ASSERT( NOT IsJoined( Handler ));
+      ASSERTLOG( NOT IsJoined( Handler ));
 
       JoinedLock.Lock();
       Joined.Add( Handler, 0 );
@@ -234,7 +234,7 @@ CLASS IMPLEMENTATION CSupport;
 
    PRIVATE PROCEDURE DoLeave( Handler : OSALmsg.TPMessageHandler );
    BEGIN
-      ASSERT( IsJoined( Handler ));
+      ASSERTLOG( IsJoined( Handler ));
 
       JoinedLock.Lock();
       Joined.Remove( Handler );

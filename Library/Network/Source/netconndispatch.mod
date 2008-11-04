@@ -4,7 +4,7 @@ IMPORT
    winsock;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
@@ -717,7 +717,7 @@ CLASS IMPLEMENTATION CDispatcher;
        logger()^.LogSC( dldDebug, logPrefix, L"Receive bytes ", Message^.NRLength );
        Log( dldDebug, Connection, L"  from known connection " );
 
-       ASSERT( Connections.Contains( Connection^.RemoteAddress )); // there only an error could cause that connection is not known
+       ASSERTLOG( Connections.Contains( Connection^.RemoteAddress )); // there only an error could cause that connection is not known
 
        OnReceive( Connection, Message^.NRData, Message^.NRLength );
        Connection^.OnReceive( Message^.NRData, Message^.NRLength );
@@ -767,7 +767,7 @@ CLASS IMPLEMENTATION CDispatcher;
          IF Connection^.RemoveClient( Message^.CPClient ) THEN // OnDisconnect/OnLeave called inside
            OnClientLeave( Connection, Message^.CPClient );
          ELSE
-           ASSERT( NOT Known );
+           ASSERTLOG( NOT Known );
          END;
          IF Connection^.Empty THEN
            IF Connection^.Connected THEN
@@ -887,14 +887,14 @@ CLASS IMPLEMENTATION CDispatcher;
             | ctStream :
                MDatagram.Init( Message^.SData, Message^.SLen, FALSE );
                NResult := Connection^.IWrite^.Write( ADR( MDatagram ), netsocket.FORSAFETY, TRUE );
-               ASSERT( NResult <> Sync.arTimeout );
+               ASSERTLOG( NResult <> Sync.arTimeout );
                WHILE MDatagram.References > 1 DO // see note in IOO.CDataProxy
                   Sync.Sleep( 0 );
                END; // WHILE
             | ctDatagram :
                WDatagram.Init( Message^.SData, Message^.SLen, FALSE );
                NResult := Connection^.IWrite^.Write( ADR( WDatagram ), netsocket.FORSAFETY, TRUE );
-               ASSERT( NResult <> Sync.arTimeout );
+               ASSERTLOG( NResult <> Sync.arTimeout );
                WHILE WDatagram.References > 1 DO // see note in IOO.CDataProxy
                   Sync.Sleep( 0 );
                END; // WHILE
@@ -972,7 +972,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.Command := cmNetworkAccept;
     Message.NServerSocket := ServerSocket;
     Result := MQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
-    ASSERT( Result <> Sync.arTimeout );
+    ASSERTLOG( Result <> Sync.arTimeout );
   END OnListen;
 
 //--------------------------------------------------------------------------------
@@ -987,7 +987,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.NCError := Error;
     Message.NCLocal := Local;
     Result := MQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
-    ASSERT( Result <> Sync.arTimeout );
+    ASSERTLOG( Result <> Sync.arTimeout );
   END OnNetworkConnect;
 
 //--------------------------------------------------------------------------------
@@ -1012,7 +1012,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.NCError := Error;
     Message.NCLocal := Local;
     Result := MQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
-    ASSERT( Result <> Sync.arTimeout );
+    ASSERTLOG( Result <> Sync.arTimeout );
   END OnNetworkDisconnect;
 
 //--------------------------------------------------------------------------------
@@ -1118,10 +1118,10 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.JPClient^.AddRef(); // temporary
     Message.JRemoteAddress := RemoteAddress;
     Result := MQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
-    ASSERT( Result <> Sync.arTimeout );
+    ASSERTLOG( Result <> Sync.arTimeout );
     // make Join synchronous (to allow clients synchronously store their records)
     Result := MQueue.PushToConsumer( TRUE, netsocket.FORSAFETY );
-    ASSERT( Result <> Sync.arTimeout );
+    ASSERTLOG( Result <> Sync.arTimeout );
   END Join;
 
 //--------------------------------------------------------------------------------
@@ -1136,10 +1136,10 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.CPClient^.AddRef(); // temporary
     Message.CPConnection := Connection;
     Result := MQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
-    ASSERT( Result <> Sync.arTimeout );
+    ASSERTLOG( Result <> Sync.arTimeout );
     // make Leave synchronous (to allow clients synchronously remove their records)
     Result := MQueue.PushToConsumer( TRUE, netsocket.FORSAFETY );
-    ASSERT( Result <> Sync.arTimeout );
+    ASSERTLOG( Result <> Sync.arTimeout );
   END Leave;
 
 //--------------------------------------------------------------------------------
@@ -1153,7 +1153,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.CPClient := PClient;
     Message.CPConnection := Connection;
     Result := MQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
-    ASSERT( Result <> Sync.arTimeout );
+    ASSERTLOG( Result <> Sync.arTimeout );
   END Connect;
 
 //--------------------------------------------------------------------------------
@@ -1167,7 +1167,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.CPClient := PClient;
     Message.CPConnection := Connection;
     Result := MQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
-    ASSERT( Result <> Sync.arTimeout );
+    ASSERTLOG( Result <> Sync.arTimeout );
   END Disconnect;
 
 //--------------------------------------------------------------------------------
@@ -1181,7 +1181,7 @@ CLASS IMPLEMENTATION CDispatcher;
       IF Connection <> NIL THEN
          IF TPConnection( Connection )^.Peer <> NIL THEN // connection is self to self in single process, wait until data flows through socket to other side
             Result := TPConnection( Connection )^.PeerSignal.Wait( netsocket.FORSAFETY );
-            ASSERT( Result <> Sync.arTimeout );
+            ASSERTLOG( Result <> Sync.arTimeout );
          END;
 
          IF PClient = NIL THEN // Promiscuous handler, client is not joined, this procedure should be called from self thread context.
@@ -1200,7 +1200,7 @@ CLASS IMPLEMENTATION CDispatcher;
       Storage.Move( PData, Message.SData, DataLen );
 
       Result := SQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
-      ASSERT( Result <> Sync.arTimeout );
+      ASSERTLOG( Result <> Sync.arTimeout );
    END Send;
 
 //--------------------------------------------------------------------------------

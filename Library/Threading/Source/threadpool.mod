@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE threadpool;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
@@ -306,7 +306,7 @@ CLASS IMPLEMENTATION CPoolThread;
                END;
             //---
             | topRemoveDelegate : // NOT IMPLEMENTED YET
-               ASSERT( FALSE );
+               ASSERTLOG( FALSE );
             //---
             ELSE
                ASSERT( FALSE );
@@ -414,7 +414,7 @@ CLASS IMPLEMENTATION CPoolThread;
          //-----
          | CARDINAL( windows.WAIT_FAILED ) : // something failed
             Status := windows.GetLastError();
-            ASSERT( FALSE );
+            ASSERTLOG( FALSE );
             EXIT;
          
          //-----
@@ -497,7 +497,7 @@ CLASS IMPLEMENTATION CPoolThread;
     | tskWorker :
       Workers.Add( Task^.Data, Task );
     ELSE
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
     END; // CASE
   END AddTask;
 
@@ -529,7 +529,7 @@ CLASS IMPLEMENTATION CPoolThread;
       Sync.IDec( REF WorkersCount );
       TPPoolWorker( Task^.Data )^.Release();
     ELSE
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
     END; // CASE
     Completed( Result, Task, NIL, TRUE, TRUE, OUT disposable );
   END RemoveTask;
@@ -725,7 +725,7 @@ CLASS IMPLEMENTATION CThreadPool;
     PoolHandle := MSG.Task^.Handle;
 
     Result := PoolThread^.ReqQueue.EnqueueOA( MSG, TRUE, Sync.FORSAFETY );
-    ASSERT( Result <> Sync.arTimeout );
+    ASSERTLOG( Result <> Sync.arTimeout );
     RETURN Result = Sync.arCompleted;
   END WaitTimeout;
 
@@ -772,7 +772,7 @@ CLASS IMPLEMENTATION CThreadPool;
     Target := PoolThread;
 
     Result := PoolThread^.ReqQueue.EnqueueOA( MSG, TRUE, Sync.FORSAFETY );
-    ASSERT( Result <> Sync.arTimeout );
+    ASSERTLOG( Result <> Sync.arTimeout );
     RETURN Result = Sync.arCompleted;
   END WaitMessage;
 
@@ -814,7 +814,7 @@ CLASS IMPLEMENTATION CThreadPool;
     PoolHandle := MSG.Task^.Handle;
 
     Result := PoolThread^.ReqQueue.EnqueueOA( MSG, TRUE, Sync.FORSAFETY );
-    ASSERT( Result <> Sync.arTimeout );
+    ASSERTLOG( Result <> Sync.arTimeout );
     RETURN Result = Sync.arCompleted;
   END WaitHandle;
 
@@ -853,7 +853,7 @@ CLASS IMPLEMENTATION CThreadPool;
     PoolHandle := MSG.Task^.Handle;
 
     Result := PoolThread^.ReqQueue.EnqueueOA( MSG, TRUE, Sync.FORSAFETY );
-    ASSERT( Result <> Sync.arTimeout );
+    ASSERTLOG( Result <> Sync.arTimeout );
     RETURN Result = Sync.arCompleted;
   END RunWorker;
 
@@ -873,7 +873,7 @@ CLASS IMPLEMENTATION CThreadPool;
     Threads.Reset();
     WHILE Threads.MoveNext() DO // deliver the message to pool threads
       Result := TPPoolThread( Threads.Current )^.ReqQueue.EnqueueOA( MSG, TRUE, Sync.FORSAFETY );
-      ASSERT( Result <> Sync.arTimeout );
+      ASSERTLOG( Result <> Sync.arTimeout );
     END; // WHILE
     _Lock.Unlock();
   END Abort;
@@ -893,7 +893,7 @@ CLASS IMPLEMENTATION CThreadPool;
     Threads.Reset();
     WHILE Threads.MoveNext() DO // deliver the message to pool threads
       Result := TPPoolThread( Threads.Current )^.ReqQueue.EnqueueOA( MSG, TRUE, Sync.FORSAFETY );
-      ASSERT( Result <> Sync.arTimeout );
+      ASSERTLOG( Result <> Sync.arTimeout );
     END; // WHILE
     _Lock.Unlock();
   END AbortAll;
@@ -907,7 +907,7 @@ CLASS IMPLEMENTATION CThreadPool;
   BEGIN
     LMSG.Operation := topOnThreadEmpty;
     Result := MQueue.EnqueueOA( LMSG, TRUE, Sync.FORSAFETY ); 
-    ASSERT( Result <> Sync.arTimeout );
+    ASSERTLOG( Result <> Sync.arTimeout );
   END OnThreadEmpty;
 
 //--------------------------------------------------------------------------------
@@ -927,7 +927,7 @@ CLASS IMPLEMENTATION CThreadPool;
       LMSG.Task := Task;
       LMSG.MSG := MSG;
       LResult := MQueue.EnqueueOA( LMSG, TRUE, Sync.FORSAFETY ); 
-      ASSERT( LResult <> Sync.arTimeout );
+      ASSERTLOG( LResult <> Sync.arTimeout );
       RETURN FALSE;
     ELSE
       CASE Task^.Task OF
@@ -1050,7 +1050,7 @@ END Cleanup;
 
 PROCEDURE pool() : TPThreadPool;
 BEGIN
-   ASSERT( Pool <> NIL );
+   ASSERTLOG( Pool <> NIL );
    RETURN Pool;
 END pool;
 
@@ -1059,5 +1059,5 @@ END pool;
 BEGIN
    Pool := NIL;
 FINALLY
-   ASSERT( Pool = NIL );
+   ASSERTLOG( Pool = NIL );
 END threadpool.

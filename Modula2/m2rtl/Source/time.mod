@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE Time;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 IMPORT
   windows,
@@ -247,7 +247,7 @@ BEGIN
    fd := CARDINAL( jdl - scale * jdx );
    z := INTEGER( jdx );
    IF z >= MAX( INTEGER ) DIV 100 THEN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       z := MAX( INTEGER ) DIV 100 - 1;
    END;
 

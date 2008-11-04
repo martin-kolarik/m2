@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE xmlsocket;
 (*================================================================================*)
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 IMPORT
    io,
@@ -180,7 +180,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       Connection^.RemoteAddress.GetAddressOA( TRUE, OUT sd );
       Logger^.LogSS( log.dldDebug, L"xmls", "CONNECT: ", sd );
 
-      ASSERT( NOT _Clients.Contains( Connection ));
+      ASSERTLOG( NOT _Clients.Contains( Connection ));
       
       NEW( Client );
       Client^.Server := ADR( SELF );

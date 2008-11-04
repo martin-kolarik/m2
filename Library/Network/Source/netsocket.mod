@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE netsocket;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 IMPORT
    winsock;
@@ -640,7 +640,7 @@ CLASS IMPLEMENTATION SSocket;
     END;
 
     IF MulticastGroup.V6 THEN
-      ASSERT( FALSE ); // TODO
+      ASSERTLOG( FALSE ); // TODO
       RETURN winsock.WSAEINVAL;
     ELSE
       MReq.imr_multiaddr := IN_ADDR4( MulticastGroup )^;
@@ -666,7 +666,7 @@ CLASS IMPLEMENTATION SSocket;
     END;
   
     IF MulticastGroup.V6 THEN
-      ASSERT( FALSE ); // TODO
+      ASSERTLOG( FALSE ); // TODO
       RETURN 0;
     ELSE
       MReq.imr_multiaddr := IN_ADDR4( MulticastGroup )^;
@@ -1025,7 +1025,7 @@ CLASS IMPLEMENTATION DSocket;
     END;
 
     Result := Select( {winsock.FD_READ_BIT, winsock.FD_WRITE_BIT, winsock.FD_CLOSE_BIT} ); // ...finish the trick started above
-    ASSERT( Result = 0 );
+    ASSERTLOG( Result = 0 );
     Error := 0;
     RETURN Sync.arCompleted;
 
@@ -1410,7 +1410,7 @@ CLASS IMPLEMENTATION DSocket;
     MSG.ErrorCode := Result;
     
     AResult := _FDSwitch.EnqueueOA( MSG, TRUE, FORSAFETY );
-    ASSERT( AResult <> Sync.arTimeout );
+    ASSERTLOG( AResult <> Sync.arTimeout );
   END SwitchContext;
 
 (*--------------------------------------------------------------------------------*)
@@ -1421,7 +1421,7 @@ CLASS IMPLEMENTATION DSocket;
       Result : Sync.TAsyncResult;
       wb : windows.BOOL := windows.True;
    BEGIN
-      ASSERT( _Pending * posConnectPrerequisities = posConnectPrerequisities );
+      ASSERTLOG( _Pending * posConnectPrerequisities = posConnectPrerequisities );
       Result := Open( OUT Error );
     
       IF Result NOT IN Sync.arsStarts THEN

@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE TextReader;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 IMPORT
    FIOO,

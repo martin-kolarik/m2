@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE IOO;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE, REALLOCATE, Move;
@@ -284,7 +284,7 @@ CLASS IMPLEMENTATION CDatagramProxy;
   PUBLIC VIRTUAL PROCEDURE CompleteData( Completed : CARDINAL );
   BEGIN
     IF _Ptr < SIZE( CARDINAL ) THEN
-      ASSERT( _Ptr + Completed <= SIZE( CARDINAL ));
+      ASSERTLOG( _Ptr + Completed <= SIZE( CARDINAL ));
       _Ptr := MIN2( SIZE( CARDINAL ), _Ptr + Completed );
     ELSE
       _Ptr := MIN2( _Length + SIZE( CARDINAL ), _Ptr + Completed );
@@ -1025,7 +1025,7 @@ CLASS IMPLEMENTATION CBufferedStream;
             Proxy := _WPending;
          ELSE
             Proxy := Sync.IGetPtr( REF Writer );
-            ASSERT(( Proxy <> NIL ) AND ( _WPending = NIL ));
+            ASSERTLOG(( Proxy <> NIL ) AND ( _WPending = NIL ));
          END;
          IF Proxy = NIL THEN
             _WLock.Unlock();
@@ -1083,7 +1083,7 @@ CLASS IMPLEMENTATION CBufferedStream;
             // wait for commit
 
          ELSIF NOT _WBuffer.Empty THEN
-            ASSERT( WMode <> bmBypass );
+            ASSERTLOG( WMode <> bmBypass );
             IF WMode = bmChunked THEN
                IF _WBuffer.Count >= WChunk THEN
                   _Stream^.IO( dirWrite, ADR( _WProxy ), Sync.FOREVER, FALSE );
@@ -1240,7 +1240,7 @@ CLASS IMPLEMENTATION CDatagramReader;
       GOTO ReadToBuffer;
 
     ELSIF L1 < L2 THEN
-      ASSERT( L2 <= _Stream^.BufferSize );
+      ASSERTLOG( L2 <= _Stream^.BufferSize );
       RETURN FALSE;
     ELSE
       Data := INC( A, SIZE( CARDINAL ));
@@ -1258,7 +1258,7 @@ CLASS IMPLEMENTATION CDatagramReader;
     ELSIF _Buffer <> NIL THEN
       _BufferLock^.Lock();
       IF Length > _BufferDataLength THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          Length := _BufferDataLength;
       END;
       _Buffer^.RemoveStart( Length );
@@ -1306,7 +1306,7 @@ CLASS IMPLEMENTATION CDatagramReader;
       GOTO ReadToBuffer;
 
     ELSIF L1 < L2 THEN
-      ASSERT( L2 <= _Stream^.BufferSize );
+      ASSERTLOG( L2 <= _Stream^.BufferSize );
       RETURN;
     END;
     LNotifier^.OnReadable( L2, ADR( SELF ));
@@ -1350,7 +1350,7 @@ CLASS IMPLEMENTATION CDatagramReader;
   BEGIN
     _BufferLock^.Lock();
     IF _Buffer^.Length <> 0 THEN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       _Buffer^.Length := 0
     END;
     IF _Buffer^.Size < L2 THEN

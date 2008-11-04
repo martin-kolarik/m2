@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE lec;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;

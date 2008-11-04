@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE XMLReader;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM Storage IMPORT
    REALLOCATE;
@@ -240,7 +240,7 @@ END CStream;
 
 PROCEDURE GetErrorText( xmle : TXMLError; OUT Error : StringsO.CString );
 BEGIN
-   ASSERT( FALSE ); // not implemented yet
+   ASSERTLOG( FALSE ); // not implemented yet
 END GetErrorText;
 
 (*===========================================================================*)

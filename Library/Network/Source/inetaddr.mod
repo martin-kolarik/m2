@@ -4,7 +4,7 @@ IMPORT
    winsock;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM Storage IMPORT
    Move;
@@ -214,7 +214,7 @@ CLASS IMPLEMENTATION INETADDR;
       );
       IF result <> 0 THEN
          Address := L"";
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
       ELSE
          Strings.ToW( buffer, 0, OUT Address );
          IF v6 THEN
@@ -253,7 +253,7 @@ CLASS IMPLEMENTATION INETADDR;
          RETURN FALSE;
       ELSIF ( ai <> NIL ) AND ( ai^.ai_addr <> NIL ) THEN
          IF ai^.ai_addrlen > SIZE( storage ) THEN
-            ASSERT( FALSE );
+            ASSERTLOG( FALSE );
             RETURN FALSE;
          END;
          Move( ai^.ai_addr, ADR( storage ), ai^.ai_addrlen );
@@ -293,7 +293,7 @@ CLASS IMPLEMENTATION INETADDR;
       | saLocalLinkRandom :
          SetAddressOA( L"127.0.0.1", 0 );
       | saPrivateRandom :
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
       END; // CASE      
    END SetV4;
 
@@ -554,7 +554,7 @@ CLASS IMPLEMENTATION CINETADDRMap;
    PUBLIC READONLY PROPERTY CINETADDRMap.Current GET : TPINETADDR;
    BEGIN
       IF _Current = -1 THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN NIL;
       ELSE
          RETURN ADR( TPINETADDRItem( _Current )^.Key );
@@ -566,7 +566,7 @@ CLASS IMPLEMENTATION CINETADDRMap;
    PUBLIC READONLY PROPERTY CINETADDRMap.CurrentData GET : PTR;
    BEGIN
       IF _Current = -1 THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN NIL;
       ELSE
          RETURN TPINETADDRItem( _Current )^.Data;
@@ -578,7 +578,7 @@ CLASS IMPLEMENTATION CINETADDRMap;
    PUBLIC PROPERTY CINETADDRMap.CurrentData SET( Data : PTR );
    BEGIN
       IF _Current = -1 THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          RETURN;
       ELSE
          TPINETADDRItem( _Current )^.Data := Data;

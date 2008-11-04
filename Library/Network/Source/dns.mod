@@ -6,7 +6,7 @@ IMPORT
    winsock;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -101,7 +101,7 @@ CLASS IMPLEMENTATION CDispatcher;
          | Sync.arTimeout :
             netResult := winsock.WSATRY_AGAIN;
          ELSE
-            ASSERT( FALSE );
+            ASSERTLOG( FALSE );
             netResult := winerror.ERROR_OPERATION_ABORTED;
          END; // CASE
 
@@ -385,7 +385,7 @@ BEGIN
     RETURN FALSE;
   END;
   IF LDNSN.Signal.Wait( Sync.FORSAFETY ) = Sync.arTimeout THEN
-    ASSERT( FALSE );
+    ASSERTLOG( FALSE );
     RETURN FALSE; 
   ELSE
     RETURN LDNSN.Result = Sync.arCompleted;
@@ -405,7 +405,7 @@ BEGIN
     RETURN FALSE;
   END;
   IF LDNSN.Signal.Wait( Sync.FORSAFETY ) = Sync.arTimeout THEN
-    ASSERT( FALSE );
+    ASSERTLOG( FALSE );
     RETURN FALSE; 
   ELSE
     RETURN LDNSN.Result = Sync.arCompleted;
