@@ -1,3 +1,13 @@
+Version 1.0.646/R beta 5.11.2008
+- CHG: Versioning switched from SVN to HG
+- BUG: Closed client connection notified server with two notifications. There was
+       race condition between these notifications, the second one could access NIL
+       pointer.
+- BUG: Client which connects/sends/disconnects fast could cause assertion in server.
+       Server started reading asynchronously, which could be done after disconnecting,
+       out of order. Now data are received in order. The bug could also lead to
+       ignoring requests from such fast clients.
+
 Version 1.0.1802 beta 1.10.2008
 - BUG: Eib User layer did not report self advise capabilities to XMLSocket adviser
        correctly. This could cause ASSERT after service run.
