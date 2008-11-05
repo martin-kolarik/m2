@@ -797,7 +797,7 @@ CLASS IMPLEMENTATION CLogger;
          END;
 
          DataSize := SIZE( Data );
-         IF ( winreg.RegQueryValueExW( hkey, keyTarget, NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
+         IF ( winreg.RegQueryValueExW( hkey, keyTimeStamps, NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
             LOW( OAsz( PWCHAR( PData )));
             IF EQUALS( OAsz( PWCHAR( PData )), valTrue ) THEN
                RStatus := RStatus + TRStatus{rsTimeStamps};

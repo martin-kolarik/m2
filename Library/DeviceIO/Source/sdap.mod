@@ -319,9 +319,13 @@ CLASS IMPLEMENTATION CSDAPServer;
 
                Result := Device^.IO()^.IOh( IOO.dirWrite, Hash, REF IOValue, NIL );
                IF Result = Sync.arCompleted THEN
+                  // TODO -- distinguish by some another logger or flag
                   ACK( PConnection, sdap200 );
+                  Logger^.LogSSSS( log.dldMessage, L"sdap", "SET OK ", OA( p[1].Length-1, p[1].rawData ), L" ", OA( p[2].Length-1, p[2].rawData ));
                ELSE
+                  // TODO -- distinguish by some another logger or flag
                   ACK( PConnection, sdap501 );
+                  Logger^.LogSSSS( log.dldMessage, L"sdap", "SET FAILED ", OA( p[1].Length-1, p[1].rawData ), L" ", OA( p[2].Length-1, p[2].rawData ));
                END;
        
             ELSE

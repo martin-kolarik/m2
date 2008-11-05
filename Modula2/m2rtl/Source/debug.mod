@@ -102,8 +102,6 @@ BEGIN
       END;
    END;
 
-   ASSERT( success );
-
    RETURN AssertionLog;
 END CreateLogger;
 
@@ -135,7 +133,6 @@ PROCEDURE LogAssertW( CONST Text, Module : ARRAY OF WCHAR; ModuleLine : CARDINAL
 VAR
    Line : ARRAY [0..15] OF WCHAR;
 BEGIN
-   RETURN;
    Strings.FromCARD32W( ModuleLine, 10, OUT Line );
    IF Text[0] = 0W THEN
       getLogger()^.LogS( Log.dlcSysError, Module, Line );
