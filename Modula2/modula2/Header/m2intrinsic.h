@@ -135,7 +135,7 @@ inline void OBJECT::operator delete(void* ptr) throw()
 # endif
 
 namespace Debug {
-  __Debug_MI BOOLEAN Assert( BOOLEAN Expression, CARDINAL Module_HIGH, const WCHAR* Module, CARDINAL ModuleLine, CARDINAL CPPLine ) throw();
+  __Debug_MI BOOLEAN Assert( CARDINAL Module_HIGH, const WCHAR* Module, CARDINAL ModuleLine, CARDINAL CPPLine ) throw();
   __Debug_MI void LogAssertA( CARDINAL Text_HIGH, const CHAR* Text, CARDINAL Module_HIGH, const CHAR* Module, CARDINAL ModuleLine ) throw();
   __Debug_MI void LogAssertW( CARDINAL Text_HIGH, const WCHAR* Text, CARDINAL Module_HIGH, const WCHAR* Module, CARDINAL ModuleLine ) throw();
 }
@@ -158,8 +158,10 @@ namespace Debug {
 PROTOTYPE_IMPORT_C void __stdcall DebugBreak();
 
 # define ASSERT_(e, m2line) {\
-    if( __Assertion( e, OA_MAX, WIDEN(__FILE__), m2line, __LINE__ )) {\
-        DebugBreak();\
+    if( !(e) ) {\
+        if( __Assertion( OA_MAX, WIDEN(__FILE__), m2line, __LINE__ )) {\
+            DebugBreak();\
+        }\
     }\
 }
 

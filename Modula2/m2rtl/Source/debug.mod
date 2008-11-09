@@ -15,7 +15,7 @@ IMPORT
 
 //--------------------------------------------------------------------------------
 
-PROCEDURE Assert( Expression : BOOLEAN; CONST Module : ARRAY OF WCHAR; ModuleLine, CPPLine : CARDINAL ) : BOOLEAN; // returns if debug break is required
+PROCEDURE Assert( CONST Module : ARRAY OF WCHAR; ModuleLine, CPPLine : CARDINAL ) : BOOLEAN; // returns if debug break is required
 CONST
    CRLF = 13W + 10W;
 VAR
@@ -24,10 +24,6 @@ VAR
    result : CARDINAL;
    text : ARRAY [0..1023] OF WCHAR;
 BEGIN
-   IF Expression THEN
-      RETURN FALSE;
-   END;
-
    IF windows.GetModuleFileNameW( NIL, ADR( exeName ), HIGH( exeName ) + 1 ) = 0 THEN
       exeName := L"<unknown program>";   
    END;

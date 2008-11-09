@@ -8998,7 +8998,7 @@ CLASS IMPLEMENTATION CDesignator;
         END;
 
       | epASSERTLOG :
-        G^.OutS( L'if( !(' ); r.U1^.Generate( G, Cn ); G^.OutS( L')) {' ); G^.EOL();
+        G^.OutS( L'if( !(' ); r.U1^.Generate( G, Cn ); G^.OutS( L')) { // assertion if' ); G^.EOL();
         G^.Enter();
         G^.Indent();
            b := ( r.U2 <> NIL ) AND Types.TBString^.Compatible( cmOperation, TPExpression( r.U2 )^.T );
@@ -9029,18 +9029,17 @@ CLASS IMPLEMENTATION CDesignator;
              END;
              G^.OutS( L'", ' );
              G^.OutN( CARDINAL( LOPTRLONGWORD( r.D1 )));
-           G^.OutS( L' );' ); G^.EOL();
+           G^.OutS( L' );' );
+           IF eoAssertAllowed IN Options THEN
+             G^.OutS( L' ASSERT_( false, ' );
+               G^.OutN( CARDINAL( LOPTRLONGWORD( r.D1 )));
+             G^.OutS( L' ); // stop always, do not evaluate cond twice' );
+           END;
+           G^.EOL();
         G^.Leave();
-        G^.LineS( L'} // if assertion ' );
-
         G^.Indent();
-        IF eoAssertAllowed IN Options THEN
-          G^.OutS( L'ASSERT_( ' );
-            r.U1^.Generate( G, Cn );
-            G^.OutS( L', ' );
-            G^.OutN( CARDINAL( LOPTRLONGWORD( r.D1 )));
-          G^.OutSPRP();
-        END;
+           G^.OutS( L'}' );
+        // the semicolon is added automatically
 
       | epCAP :
         IF Types.TBString^.Compatible( cmOperation, TPExpression( r.U1 )^.T ) THEN
