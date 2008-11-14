@@ -826,19 +826,113 @@ CLASS IMPLEMENTATION CDriver;
          IF NOT ProgramItem( daliDevice, Linie, DaliBridge.cmdDTRToPowerOn, FALSE, REF S3 ) THEN
             GOTO Error;
          END;
-         IF NOT ProgramItem( daliDevice, Linie, DaliBridge.cmdDTRToFail, FALSE, REF S3 ) THEN
+         IF NOT ProgramItem( daliDevice, Linie, DaliBridge.cmdDTRToFail, FALSE, REF S4 ) THEN
             GOTO Error;
          END;
-         IF NOT ProgramItem( daliDevice, Linie, DaliBridge.cmdDTRToMin, FALSE, REF S3 ) THEN
+         // dangerous, i must be not changed from las ItemSOA
+         i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S4 ); Strings.TrimW( REF S4 );
+         IF NOT ProgramItem( daliDevice, Linie, DaliBridge.cmdDTRToMin, FALSE, REF S4 ) THEN
             GOTO Error;
          END;
-         IF NOT ProgramItem( daliDevice, Linie, DaliBridge.cmdDTRToMax, FALSE, REF S3 ) THEN
+         i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S4 ); Strings.TrimW( REF S4 );
+         IF NOT ProgramItem( daliDevice, Linie, DaliBridge.cmdDTRToMax, FALSE, REF S4 ) THEN
             GOTO Error;
          END;
-         IF NOT ProgramItem( daliDevice, Linie, DaliBridge.cmdDTRToFadeRate, TRUE, REF S3 ) THEN
+         i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S4 ); Strings.TrimW( REF S4 );
+         IF NOT ProgramItem( daliDevice, Linie, DaliBridge.cmdDTRToFadeRate, TRUE, REF S4 ) THEN
             GOTO Error;
          END;
-         IF NOT ProgramItem( daliDevice, Linie, DaliBridge.cmdDTRToFadeTime, TRUE, REF S3 ) THEN
+         i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S4 ); Strings.TrimW( REF S4 );
+         IF NOT ProgramItem( daliDevice, Linie, DaliBridge.cmdDTRToFadeTime, TRUE, REF S4 ) THEN
+            GOTO Error;
+         END;
+         CS.Clear(); // return value
+         
+      ELSIF EQUALS( S1, L'group_add' ) THEN
+         IF NOT SplitAddress( FALSE, FALSE, FALSE, FALSE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
+            GOTO Error;
+         END;
+
+         IF NOT Strings.ToCARD32W( S3, 10, OUT c ) OR ( c > 15 ) THEN
+            CS.FromOA( L'error: bad group address: ' );
+            CS.AppendOA( S3 );
+            GOTO Error;
+         END;
+
+         IF NOT Send( eitParam, daliDevice, Linie, address, DaliBridge.TDaliCommand( DaliBridge.cmdGroupAdd1 + c ), 0 ) THEN
+            GOTO Error;
+         END;
+         CS.Clear(); // return value
+
+      ELSIF EQUALS( S1, L'group_remove' ) THEN
+         IF NOT SplitAddress( FALSE, FALSE, FALSE, FALSE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
+            GOTO Error;
+         END;
+
+         IF NOT Strings.ToCARD32W( S3, 10, OUT c ) OR ( c > 15 ) THEN
+            CS.FromOA( L'error: bad group address: ' );
+            CS.AppendOA( S3 );
+            GOTO Error;
+         END;
+
+         IF NOT Send( eitParam, daliDevice, Linie, address, DaliBridge.TDaliCommand( DaliBridge.cmdGroupRemove1 + c ), 0 ) THEN
+            GOTO Error;
+         END;
+         CS.Clear(); // return value
+
+      ELSIF EQUALS( S1, L'scene' ) THEN
+         IF NOT SplitAddress( FALSE, FALSE, FALSE, FALSE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
+            GOTO Error;
+         END;
+
+         IF NOT Strings.ToCARD32W( S3, 10, OUT c ) OR ( c > 15 ) THEN
+            CS.FromOA( L'error: bad scene number: ' );
+            CS.AppendOA( S3 );
+            GOTO Error;
+         END;
+
+         IF NOT Send( eitParam, daliDevice, Linie, address, DaliBridge.TDaliCommand( DaliBridge.cmdScene1 + c ), 0 ) THEN
+            GOTO Error;
+         END;
+         CS.Clear(); // return value
+
+      ELSIF EQUALS( S1, L'scene_add' ) THEN
+         IF NOT SplitAddress( FALSE, FALSE, FALSE, FALSE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
+            GOTO Error;
+         END;
+
+         IF NOT Strings.ToCARD32W( S3, 10, OUT c ) OR ( c > 15 ) THEN
+            CS.FromOA( L'error: bad scene number: ' );
+            CS.AppendOA( S3 );
+            GOTO Error;
+         ELSIF ( S4[0] = 0W ) OR NOT Strings.ToCARD32W( S4, 10, OUT Level ) OR ( c > 255 ) THEN
+            CS.FromOA( L'error: bad light level: ' );
+            CS.AppendOA( S4 );
+            GOTO Error;
+         ELSIF Level > 254 THEN
+            Level := 254;
+         END;
+
+         IF NOT Send( eitParam, daliDevice, Linie, address, DaliBridge.cmdLoadDTR, Level ) THEN
+            GOTO Error;
+         END;
+         IF NOT Send( eitParam, daliDevice, Linie, address, DaliBridge.TDaliCommand( DaliBridge.cmdSceneFromDTR1 + c ), 0 ) THEN
+            GOTO Error;
+         END;
+         CS.Clear(); // return value
+
+      ELSIF EQUALS( S1, L'scene_remove' ) THEN
+         IF NOT SplitAddress( FALSE, FALSE, FALSE, FALSE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
+            GOTO Error;
+         END;
+
+         IF NOT Strings.ToCARD32W( S3, 10, OUT c ) OR ( c > 15 ) THEN
+            CS.FromOA( L'error: bad scene number: ' );
+            CS.AppendOA( S3 );
+            GOTO Error;
+         END;
+
+         IF NOT Send( eitParam, daliDevice, Linie, address, DaliBridge.TDaliCommand( DaliBridge.cmdSceneRemove1 + c ), 0 ) THEN
             GOTO Error;
          END;
          CS.Clear(); // return value

@@ -1,3 +1,10 @@
+Version 1.0.648/R beta 14.11.2008
+- BUG: "param" command did not use all parameters, it set the first found
+        value to all parameters
+- NEW: Commands "group_add <adr> <grp>", "group_remove <adr> <grp>",
+       "scene_add <adr> <scene> <level>", "scene_remove <adr> <scene>",
+       "scene <adr> <scene>" added.
+
 Version 1.0.622 beta 21.10.2008
 - BUG: "send_delay" parameter value was obtained from "output_queue_length" key.
 - NEW: Driver now accepts command "program_file <Device>.<Linie> <FilePath>",
