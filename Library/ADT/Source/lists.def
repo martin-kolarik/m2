@@ -33,6 +33,7 @@ CLASS CIntegerList( list.CListWState );
   #save, option( leak_info => on )
   PUBLIC PROCEDURE Remove( Value : INTEGER ); // removes all occurences
   #restore
+  PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN; // similar as []
 
   // list interface
   PUBLIC PROCEDURE InsertFirst( Value : INTEGER; Data : PTR );
@@ -75,6 +76,7 @@ CLASS CPtrList( list.CListWState );
   #save, option( leak_info => on )
   PUBLIC PROCEDURE Remove( Value : PTR ); // removes all occurences
   #restore
+  PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
 
   // list interface
   PUBLIC PROCEDURE InsertFirst( Value : PTR; Data : PTR );
@@ -113,6 +115,7 @@ CLASS CStringList( list.CListWState );
   PUBLIC PROCEDURE Contains( CONST Value : IString ): BOOLEAN;
   PUBLIC PROCEDURE Get( CONST Value : IString; OUT Data : PTR ): BOOLEAN;
   PUBLIC PROCEDURE Remove( CONST Value : IString ); // removes all occurences
+  PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : IString; OUT Data : PTR ) : BOOLEAN; // similar as []
 
   PUBLIC PROCEDURE AddOA( CONST Value : ARRAY OF WCHAR; Data : PTR );
   PUBLIC PROCEDURE ContainsOA( CONST Value : ARRAY OF WCHAR ): BOOLEAN;
@@ -159,6 +162,7 @@ CLASS CStringStringList( list.CListWState );
   PUBLIC PROCEDURE Contains( CONST Value : IString ): BOOLEAN;
   PUBLIC PROCEDURE Get( CONST Value : IString; OUT Data : IString ): BOOLEAN;
   PUBLIC PROCEDURE Remove( CONST Value : IString ); // removes all occurences
+  PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : IString; OUT Data : IString ) : BOOLEAN; // similar as []
 
   PUBLIC PROCEDURE AddOA( CONST Value : ARRAY OF WCHAR; CONST Data : IString );
   PUBLIC PROCEDURE ContainsOA( CONST Value : ARRAY OF WCHAR ): BOOLEAN;
@@ -215,6 +219,7 @@ CLASS CBufferList( list.CListWState );
   PUBLIC PROCEDURE Contains( CONST Value : AMemoryBuffer ): BOOLEAN;
   PUBLIC PROCEDURE Get( CONST Value : AMemoryBuffer; OUT Data : PTR ): BOOLEAN;
   PUBLIC PROCEDURE Remove( CONST Value : AMemoryBuffer ); // removes all occurences
+  PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : AMemoryBuffer; OUT Data : PTR ) : BOOLEAN; // similar as []
 
   PUBLIC PROCEDURE AddOA( CONST Value : ARRAY OF BYTE; Data : PTR );
   PUBLIC PROCEDURE ContainsOA( CONST Value : ARRAY OF BYTE ): BOOLEAN;
