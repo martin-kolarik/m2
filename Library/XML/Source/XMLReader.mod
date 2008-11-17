@@ -319,6 +319,13 @@ CLASS IMPLEMENTATION CXMLReader;
 
 (*---------------------------------------------------------------------------*)
 
+	PUBLIC PROPERTY CurrentLine GET : CARDINAL;
+	BEGIN
+      RETURN xmlLITE.TPIXmlReader( _IReader )^.GetLineNumber();
+	END CurrentLine;
+
+(*---------------------------------------------------------------------------*)
+
 	PUBLIC PROPERTY CurrentName GET : StringsO.CString;	
 	VAR
 	   l : windows.UINT;

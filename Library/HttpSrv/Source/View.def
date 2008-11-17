@@ -33,6 +33,21 @@ END CRawHTMLView;
 (*--------------------------------------------------------------------------------*)
 
 TYPE
+   TElementStartAction = (
+      esaError,
+      esaProcessedInDeep,
+      esaProcessedHeader,
+      esaUnprocessedPT
+   );
+   
+   TWhere = (
+      whInForm,
+      whInInput,
+      whInSelect,
+      whInOption      
+   );
+
+TYPE
    TPPageTemplateView = POINTER TO CPageTemplateView;
 
 CLASS CPageTemplateView IMPLEMENTS MVC.IView;
@@ -43,6 +58,7 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
    PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; CONST ViewName : ARRAY OF WCHAR );
    
    PRIVATE VAR
+      Request : MVC.TPHttpRequest;
       Reader : xmlreader.CXMLReader;
       Writer : xmlwriter.CXMLWriter;
       Resolver : FSO.TPFilePathResolver;
@@ -51,21 +67,36 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
       Prefix : StringsO.CString;
       PrefixCondition : StringsO.CString;
       Sources : stacks.CPtrStack;
+      Where : SET OF TWhere;
+      FormModel : StringsO.CString;
       
-   PRIVATE PROCEDURE ParseRoot( CONST Request : MVC.TPHttpRequest ) : BOOLEAN;
-   PRIVATE PROCEDURE Parse( CONST Request : MVC.TPHttpRequest; Emit : BOOLEAN ) : BOOLEAN;
+      ErrorElement : StringsO.CString;
+      ErrorModel : StringsO.CString;
+      ErrorText : StringsO.CString;
+      
+   PRIVATE PROCEDURE ParseRoot() : BOOLEAN;
+   PRIVATE PROCEDURE Parse( emit, limitToPTOnly : BOOLEAN ) : BOOLEAN;
+   PRIVATE PROCEDURE HandleElementStart( isEmpty, ptFlag, limitToPTOnly : BOOLEAN; CONST nodeName : StringsO.CString; CONST attributes : lists.CStringStringList ) : TElementStartAction;
+   PRIVATE PROCEDURE ParseElement( CONST attributes : lists.CStringStringList; isEmpty, limitToPTOnly : BOOLEAN; CONST ignoreOA1, ignoreOA2 : ARRAY OF WCHAR ) : BOOLEAN;
    PRIVATE PROCEDURE ParseChoose( CONST Request : MVC.TPHttpRequest ) : BOOLEAN;
-   PRIVATE PROCEDURE ParseFor( CONST Request : MVC.TPHttpRequest; CONST attributes : lists.CStringStringList ) : BOOLEAN;
-   PRIVATE PROCEDURE ParseForeach( CONST Request : MVC.TPHttpRequest; CONST attributes : lists.CStringStringList ) : BOOLEAN;
-   PRIVATE PROCEDURE ParseForm( CONST Request : MVC.TPHttpRequest; CONST attributes : lists.CStringStringList ) : BOOLEAN;
-   PRIVATE PROCEDURE ParseText( CONST Request : MVC.TPHttpRequest; CONST Text : StringsO.IString; OUT Parsed : StringsO.IString );
+   PRIVATE PROCEDURE ParseFor( CONST attributes : lists.CStringStringList ) : BOOLEAN;
+   PRIVATE PROCEDURE ParseForeach( CONST attributes : lists.CStringStringList ) : BOOLEAN;
+   PRIVATE PROCEDURE ParseForm( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
+   PRIVATE PROCEDURE ParseFormInput( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList; ptype : POINTER TO CONST WCHAR ) : BOOLEAN;
+   PRIVATE PROCEDURE ParseFormSelect( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
+   PRIVATE PROCEDURE ParseFormOption( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
+   PRIVATE PROCEDURE ParseText( CONST Text : StringsO.IString; OUT Parsed : StringsO.IString );
+   PRIVATE PROCEDURE GetFormModel( CONST attributes : lists.CStringStringList; OUT formModel : StringsO.IString ) : BOOLEAN;
    PRIVATE PROCEDURE MoveNext( OUT nodeType : xmlreader.TNodeType; OUT nodePrefix : StringsO.IString; OUT nodeName : StringsO.IString; OUT isEmpty : BOOLEAN; OUT nodeValue : StringsO.IString; OUT attributes : lists.CStringStringList ) : xmlreader.TXMLError;
-   PRIVATE PROCEDURE CopyAttributes( CONST Request : MVC.TPHttpRequest; ptFlag : BOOLEAN; CONST attributes : lists.CStringStringList; CONST ignoreOA : ARRAY OF WCHAR );
+   PRIVATE PROCEDURE CopyAttributes( ptFlag : BOOLEAN; CONST attributes : lists.CStringStringList; CONST ignoreOA1, ignoreOA2 : ARRAY OF WCHAR );
 
-   PRIVATE PROCEDURE GetModelValue( CONST Request : MVC.TPHttpRequest; CONST model : StringsO.CString; OUT value : StringsO.IString ) : BOOLEAN;
-   PRIVATE PROCEDURE SetModelValue( CONST Request : MVC.TPHttpRequest; CONST model : StringsO.CString; CONST value : StringsO.IString ) : BOOLEAN;
-   PRIVATE PROCEDURE SetModelBoolean( CONST Request : MVC.TPHttpRequest; CONST model : StringsO.CString; value : BOOLEAN );
-   PRIVATE PROCEDURE EvaluateBoolean( CONST Request : MVC.TPHttpRequest; CONST Value : StringsO.IString ) : BOOLEAN;
+   PRIVATE PROCEDURE GetModelValue( CONST model : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN;
+   PRIVATE PROCEDURE SetModelValue( CONST model : StringsO.IString; CONST value : StringsO.IString ) : BOOLEAN;
+   PRIVATE PROCEDURE SetModelBoolean( CONST model : StringsO.IString; value : BOOLEAN );
+   PRIVATE PROCEDURE EvaluateBoolean( CONST Value : StringsO.IString ) : BOOLEAN;
+   
+   PRIVATE PROCEDURE SetError( CONST Element : StringsO.IString; Model : StringsO.TPString; CONST Text : ARRAY OF WCHAR );
+   PRIVATE PROCEDURE FormatError();
 END CPageTemplateView;
 
 (*================================================================================*)
