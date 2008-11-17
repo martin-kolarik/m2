@@ -1,4 +1,11 @@
 Version DEBUG 1.1.xxxx
+- BUG: Closed client connection notified server with two notifications. There was
+       race condition between these notifications, the second one could access NIL
+       pointer.
+- BUG: Client which connects/sends/disconnects fast could cause assertion in server.
+       Server started reading asynchronously, which could be done after disconnecting,
+       out of order. Now data are received in order. The bug could also lead to
+       ignoring requests from such fast clients.
 - BUG: If connection was dropped just during accept processing driver could
        stop in ASSERT due to unexpected state.
 

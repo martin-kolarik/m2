@@ -131,6 +131,21 @@ CLASS IMPLEMENTATION CIntegerList;
 
 //---------------------------------------------------------------------------
 
+  PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN; // similar as []
+  VAR
+    PE : TPIntegerItem;
+  BEGIN
+    PE := TPIntegerItem( SUPER[Index] );
+    IF PE = NIL THEN
+      RETURN FALSE;
+    END;
+    Value := TPIntegerItem( PE )^.Value;
+    Data := TPIntegerItem( PE )^.Data;
+    RETURN TRUE;
+  END ElementAt;
+
+//---------------------------------------------------------------------------
+
   PUBLIC PROCEDURE CIntegerList.InsertFirst( Value : INTEGER; Data : PTR );
   VAR
     PE : TPIntegerItem;
@@ -402,6 +417,21 @@ CLASS IMPLEMENTATION CPtrList;
 
 //---------------------------------------------------------------------------
 
+  PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
+  VAR
+    PE : TPPtrItem;
+  BEGIN
+    PE := TPPtrItem( SUPER[Index] );
+    IF PE = NIL THEN
+      RETURN FALSE;
+    END;
+    Value := TPPtrItem( PE )^.Value;
+    Data := TPPtrItem( PE )^.Data;
+    RETURN TRUE;
+  END ElementAt;
+
+//---------------------------------------------------------------------------
+
   PUBLIC PROCEDURE CPtrList.InsertFirst( Value : PTR; Data : PTR );
   VAR
     PE : TPPtrItem;
@@ -669,6 +699,21 @@ CLASS IMPLEMENTATION CStringList;
       PE := PN;
     END; // WHILE
   END CStringList.Remove;
+
+//---------------------------------------------------------------------------
+
+  PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : IString; OUT Data : PTR ) : BOOLEAN; // similar as []
+  VAR
+    PE : TPStringItem;
+  BEGIN
+    PE := TPStringItem( SUPER[Index] );
+    IF PE = NIL THEN
+      RETURN FALSE;
+    END;
+    Value.Assign( TPStringItem( PE )^.Value );
+    Data := TPStringItem( PE )^.Data;
+    RETURN TRUE;
+  END ElementAt;
 
 //---------------------------------------------------------------------------
 
@@ -1022,6 +1067,21 @@ CLASS IMPLEMENTATION CStringStringList;
       PE := PN;
     END; // WHILE
   END CStringStringList.Remove;
+
+//---------------------------------------------------------------------------
+
+  PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : IString; OUT Data : IString ) : BOOLEAN; // similar as []
+  VAR
+    PE : TPStringStringItem;
+  BEGIN
+    PE := TPStringStringItem( SUPER[Index] );
+    IF PE = NIL THEN
+      RETURN FALSE;
+    END;
+    Value.Assign( TPStringStringItem( PE )^.Value );
+    Data.Assign( TPStringStringItem( PE )^.Data );
+    RETURN TRUE;
+  END ElementAt;
 
 //---------------------------------------------------------------------------
 
@@ -1456,6 +1516,21 @@ CLASS IMPLEMENTATION CBufferList;
       PE := PN;
     END; // WHILE
   END CBufferList.Remove;
+
+//---------------------------------------------------------------------------
+
+  PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : AMemoryBuffer; OUT Data : PTR ) : BOOLEAN; // similar as []
+  VAR
+    PE : TPBufferItem;
+  BEGIN
+    PE := TPBufferItem( SUPER[Index] );
+    IF PE = NIL THEN
+      RETURN FALSE;
+    END;
+    Value.Assign( TPBufferItem( PE )^.Value^ );
+    Data := TPBufferItem( PE )^.Data;
+    RETURN TRUE;
+  END ElementAt;
 
 //---------------------------------------------------------------------------
 
