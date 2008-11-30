@@ -5,8 +5,9 @@ FROM Storage IMPORT
 
 IMPORT
    httptools,
+   Languages,
    log,
-   maps,
+   lists,
    scinit,
    StringsO,
    Sync,
@@ -50,10 +51,10 @@ CLASS IMPLEMENTATION CTest;
 
       (*==========*)
       
-      Failure := PlainPass( FALSE );
-      Failure := PlainPass( TRUE ) OR Failure;
-      Failure := EncPass( FALSE );
-      Failure := EncPass( TRUE ) OR Failure;
+      Failure := NOT PlainPass( FALSE );
+      Failure := NOT PlainPass( TRUE ) OR Failure;
+      Failure := NOT EncPass( FALSE );
+      Failure := NOT EncPass( TRUE ) OR Failure;
 
       (*==========*)
 
@@ -69,17 +70,17 @@ CLASS IMPLEMENTATION CTest;
 
    PRIVATE PROCEDURE PlainPass( FormFlag : BOOLEAN ) : BOOLEAN;
    VAR
-      Decoded : maps.CStringStringMap;
+      Decoded : lists.CStringStringList;
       Failure1, Failure2 : BOOLEAN;
    BEGIN
       IF FormFlag THEN
-         Host^.StartPhase( L"FRMenc, query: ?na+me1=val+ue1&na+me2=val+ue2&na+me3=val+ue3" );
+         Host^.StartPhase( L"FRMenc, query: na+me1=val+ue1&na+me2=val+ue2&na+me3=val+ue3" );
       ELSE
-         Host^.StartPhase( L"URLenc, query: ?na+me1=val+ue1&na+me2=val+ue2&na+me3=val+ue3" );
+         Host^.StartPhase( L"URLenc, query: na+me1=val+ue1&na+me2=val+ue2&na+me3=val+ue3" );
       END;
       
       Decoded.Dispose();
-      httptools.DecodeQueryURL( FormFlag, 1, L"?na+me1=val+ue1&na+me2=val+ue2&na+me3=val+ue3", OUT Decoded );
+      httptools.DecodeURLEncoding( FormFlag, C"na+me1=val+ue1&na+me2=val+ue2&na+me3=val+ue3", OUT Decoded );
       Decoded.Reset();
       IF Decoded.MoveNext() THEN
          IF FormFlag THEN
@@ -124,13 +125,13 @@ CLASS IMPLEMENTATION CTest;
       (*==========*)
 
       IF FormFlag THEN
-         Host^.StartPhase( L"FRMenc, query: ?na+me1=val+ue1&na+me2=val+ue2&na+me3=" );
+         Host^.StartPhase( L"FRMenc, query: na+me1=val+ue1&na+me2=val+ue2&na+me3=" );
       ELSE
-         Host^.StartPhase( L"URLenc, query: ?na+me1=val+ue1&na+me2=val+ue2&na+me3=" );
+         Host^.StartPhase( L"URLenc, query: na+me1=val+ue1&na+me2=val+ue2&na+me3=" );
       END;
       
       Decoded.Dispose();
-      httptools.DecodeQueryURL( FormFlag, 1, L"?na+me1=val+ue1&na+me2=val+ue2&na+me3=", OUT Decoded );
+      httptools.DecodeURLEncoding( FormFlag, C"na+me1=val+ue1&na+me2=val+ue2&na+me3=", OUT Decoded );
       Decoded.Reset();
       IF Decoded.MoveNext() THEN
          IF FormFlag THEN
@@ -175,13 +176,13 @@ CLASS IMPLEMENTATION CTest;
       (*==========*)
 
       IF FormFlag THEN
-         Host^.StartPhase( L"FRMenc, query: ?na+me1=val+ue1&na+me2=&na+me3=val+ue3" );
+         Host^.StartPhase( L"FRMenc, query: na+me1=val+ue1&na+me2=&na+me3=val+ue3" );
       ELSE
-         Host^.StartPhase( L"URLenc, query: ?na+me1=val+ue1&na+me2=&na+me3=val+ue3" );
+         Host^.StartPhase( L"URLenc, query: na+me1=val+ue1&na+me2=&na+me3=val+ue3" );
       END;
       
       Decoded.Dispose();
-      httptools.DecodeQueryURL( FormFlag, 1, L"?na+me1=val+ue1&na+me2=&na+me3=val+ue3", OUT Decoded );
+      httptools.DecodeURLEncoding( FormFlag, C"na+me1=val+ue1&na+me2=&na+me3=val+ue3", OUT Decoded );
       Decoded.Reset();
       IF Decoded.MoveNext() THEN
          IF FormFlag THEN
@@ -226,13 +227,13 @@ CLASS IMPLEMENTATION CTest;
       (*==========*)
 
       IF FormFlag THEN
-         Host^.StartPhase( L"FRMenc, query: ?na+me1=val+ue1&na+me2=val+ue2&na+me3" );
+         Host^.StartPhase( L"FRMenc, query: na+me1=val+ue1&na+me2=val+ue2&na+me3" );
       ELSE
-         Host^.StartPhase( L"URLenc, query: ?na+me1=val+ue1&na+me2=val+ue2&na+me3" );
+         Host^.StartPhase( L"URLenc, query: na+me1=val+ue1&na+me2=val+ue2&na+me3" );
       END;
       
       Decoded.Dispose();
-      httptools.DecodeQueryURL( FormFlag, 1, L"?na+me1=val+ue1&na+me2=val+ue2&na+me3", OUT Decoded );
+      httptools.DecodeURLEncoding( FormFlag, C"na+me1=val+ue1&na+me2=val+ue2&na+me3", OUT Decoded );
       Decoded.Reset();
       IF Decoded.MoveNext() THEN
          IF FormFlag THEN
@@ -277,13 +278,13 @@ CLASS IMPLEMENTATION CTest;
       (*==========*)
 
       IF FormFlag THEN
-         Host^.StartPhase( L"FRMenc, query: ?na+me1=val+ue1&na+me2&na+me3=val+ue3" );
+         Host^.StartPhase( L"FRMenc, query: na+me1=val+ue1&na+me2&na+me3=val+ue3" );
       ELSE
-         Host^.StartPhase( L"URLenc, query: ?na+me1=val+ue1&na+me2&na+me3=val+ue3" );
+         Host^.StartPhase( L"URLenc, query: na+me1=val+ue1&na+me2&na+me3=val+ue3" );
       END;
       
       Decoded.Dispose();
-      httptools.DecodeQueryURL( FormFlag, 1, L"?na+me1=val+ue1&na+me2&na+me3=val+ue3", OUT Decoded );
+      httptools.DecodeURLEncoding( FormFlag, C"na+me1=val+ue1&na+me2&na+me3=val+ue3", OUT Decoded );
       Decoded.Reset();
       IF Decoded.MoveNext() THEN
          IF FormFlag THEN
@@ -333,17 +334,17 @@ CLASS IMPLEMENTATION CTest;
 
    PRIVATE PROCEDURE EncPass( FormFlag : BOOLEAN ) : BOOLEAN;
    VAR
-      Decoded : maps.CStringStringMap;
+      Decoded : lists.CStringStringList;
       Failure1, Failure2 : BOOLEAN;
    BEGIN
       IF FormFlag THEN
-         Host^.StartPhase( L"FRMenc, query: ?na+me1=va%20l+ue1&na+me2=va%FDl+ue2&na+me3=val+ue3" );
+         Host^.StartPhase( L"FRMenc, query: na+me1=va%20l+ue1&na+me2=va%FDl+ue2&na+me3=val+ue3" );
       ELSE
-         Host^.StartPhase( L"URLenc, query: ?na+me1=va%20l+ue1&na+me2=va%FDl+ue2&na+me3=val+ue3" );
+         Host^.StartPhase( L"URLenc, query: na+me1=va%20l+ue1&na+me2=va%FDl+ue2&na+me3=val+ue3" );
       END;
       
       Decoded.Dispose();
-      httptools.DecodeQueryURL( FormFlag, 1, L"?na+me1=va%20l+ue1&na+me2=va%FDl+ue2&na+me3=val+ue3", OUT Decoded );
+      httptools.DecodeURLEncoding( FormFlag, C"na+me1=va%20l+ue1&na+me2=va%FDl+ue2&na+me3=val+ue3", OUT Decoded );
       Decoded.Reset();
       IF Decoded.MoveNext() THEN
          IF FormFlag THEN
@@ -388,13 +389,64 @@ CLASS IMPLEMENTATION CTest;
       (*==========*)
 
       IF FormFlag THEN
-         Host^.StartPhase( L"FRMenc, query: ?na+me1=va%20l+ue1&na+me2=va%FDl+ue2&na+me3=val+ue%3" );
+         Host^.StartPhase( L"FRMenc, query: na+me1=va%20l+ue1&na+&amp;me2=va%FDl+ue2&na+me&#38;3=val+ue3" );
       ELSE
-         Host^.StartPhase( L"URLenc, query: ?na+me1=va%20l+ue1&na+me2=va%FDl+ue2&na+me3=val+ue%3" );
+         Host^.StartPhase( L"URLenc, query: na+me1=va%20l+ue1&na+&amp;me2=va%FDl+ue2&na+me&#38;3=val+ue3" );
       END;
       
       Decoded.Dispose();
-      httptools.DecodeQueryURL( FormFlag, 1, L"?na+me1=va%20l+ue1&na+me2=va%FDl+ue2&na+me3=val+ue%3", OUT Decoded );
+      httptools.DecodeURLEncoding( FormFlag, C"na+me1=va%20l+ue1&na+&amp;me2=va%FDl+ue2&na+me&#38;3=val+ue3", OUT Decoded );
+      Decoded.Reset();
+      IF Decoded.MoveNext() THEN
+         IF FormFlag THEN
+            Failure1 := NOT Decoded.Current^.EqualsOA( L"na me1" );
+            Failure2 := NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"va l ue1" );
+         ELSE
+            Failure1 := NOT Decoded.Current^.EqualsOA( L"na+me1" );
+            Failure2 := NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"va l+ue1" );
+         END;
+      ELSE
+         Failure1 := TRUE;
+      END;
+      IF Decoded.MoveNext() THEN
+         IF FormFlag THEN
+            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na &me2" );
+            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"vaýl ue2" );
+         ELSE
+            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na+&me2" );
+            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"vaýl+ue2" );
+         END;
+      ELSE
+         Failure1 := TRUE;
+      END;
+      IF Decoded.MoveNext() THEN
+         IF FormFlag THEN
+            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na me&3" );
+            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val ue3" );
+         ELSE
+            Failure1 := Failure1 OR NOT Decoded.Current^.EqualsOA( L"na+me&3" );
+            Failure2 := Failure2 OR NOT StringsO.TPString( Decoded.CurrentData )^.EqualsOA( L"val+ue3" );
+         END;
+      ELSE
+         Failure1 := TRUE;
+      END;
+
+      IF Failure1 OR Failure2 THEN
+         Host^.StopPhaseWithResult( test.trFailure );
+      ELSE
+         Host^.StopPhaseWithResult( test.trSuccess );
+      END;
+      
+      (*==========*)
+
+      IF FormFlag THEN
+         Host^.StartPhase( L"FRMenc, query: na+me1=va%20l+ue1&na+me2=va%FDl+ue2&na+me3=val+ue%3" );
+      ELSE
+         Host^.StartPhase( L"URLenc, query: na+me1=va%20l+ue1&na+me2=va%FDl+ue2&na+me3=val+ue%3" );
+      END;
+      
+      Decoded.Dispose();
+      httptools.DecodeURLEncoding( FormFlag, C"na+me1=va%20l+ue1&na+me2=va%FDl+ue2&na+me3=val+ue%3", OUT Decoded );
       Decoded.Reset();
       IF Decoded.MoveNext() THEN
          IF FormFlag THEN
@@ -443,7 +495,7 @@ CLASS IMPLEMENTATION CTest;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
-   testimpl.tests()^.AddTest( L"DecodeQueryURL", ADR( Test ));
+   testimpl.tests()^.AddTest( L"DecodeURLEncoding", ADR( Test ));
 END CTest;
 
 (*===========================================================================*)

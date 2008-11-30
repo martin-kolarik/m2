@@ -2,7 +2,7 @@ IMPLEMENTATION MODULE cphcommon;
 
 (*================================================================================*)
 
-PROCEDURE FromHexByte( CONST String : ARRAY OF WCHAR; OUT Bin : BYTE  ) : BOOLEAN; // expects event number of characters in String
+PROCEDURE FromHexByteW( CONST String : ARRAY OF WCHAR; OUT Bin : BYTE  ) : BOOLEAN; // expects event number of characters in String
 VAR
    ch : WCHAR;
 	lo, hi : CARD8;
@@ -28,7 +28,37 @@ BEGIN
 	END; // CASE
 	Bin := hi << 4 OR lo;
 	RETURN TRUE;
-END FromHexByte;
+END FromHexByteW;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE FromHexByteA( CONST String : ARRAY OF CHAR; OUT Bin : BYTE  ) : BOOLEAN; // expects event number of characters in String
+VAR
+   ch : CHAR;
+	lo, hi : CARD8;
+BEGIN
+   IF HIGH( String ) < 1 THEN
+      RETURN FALSE;
+   END;
+   ch := String[0];
+	CASE ch OF
+	| C'0'..C'9' : hi := CARD8( ch ) - CARD8( C'0' );
+	| C'a'..C'f' : hi := CARD8( ch ) - CARD8( C'a' ) + 10;
+	| C'A'..C'F' : hi := CARD8( ch ) - CARD8( C'A' ) + 10;
+	ELSE
+	   RETURN FALSE;
+	END; // CASE
+   ch := String[1];
+	CASE ch OF
+	| C'0'..C'9' : lo := CARD8( ch ) - CARD8( C'0' );
+	| C'a'..C'f' : lo := CARD8( ch ) - CARD8( C'a' ) + 10;
+	| C'A'..C'F' : lo := CARD8( ch ) - CARD8( C'A' ) + 10;
+	ELSE
+	   RETURN FALSE;
+	END; // CASE
+	Bin := hi << 4 OR lo;
+	RETURN TRUE;
+END FromHexByteA;
 
 (*--------------------------------------------------------------------------------*)
 
