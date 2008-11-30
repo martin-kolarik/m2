@@ -69,6 +69,7 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
       Sources : stacks.CPtrStack;
       Where : SET OF TWhere;
       FormModel : StringsO.CString;
+      CurrentViewNameIndex : CARDINAL;
       
       ErrorElement : StringsO.CString;
       ErrorModel : StringsO.CString;
@@ -89,9 +90,8 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
    PRIVATE PROCEDURE GetFormModel( CONST attributes : lists.CStringStringList; OUT formModel : StringsO.IString ) : BOOLEAN;
    PRIVATE PROCEDURE MoveNext( OUT nodeType : xmlreader.TNodeType; OUT nodePrefix : StringsO.IString; OUT nodeName : StringsO.IString; OUT isEmpty : BOOLEAN; OUT nodeValue : StringsO.IString; OUT attributes : lists.CStringStringList ) : xmlreader.TXMLError;
    PRIVATE PROCEDURE CopyAttributes( ptFlag : BOOLEAN; CONST attributes : lists.CStringStringList; CONST ignoreOA1, ignoreOA2 : ARRAY OF WCHAR );
+   PRIVATE PROCEDURE WriteFormNameAttribute( CONST model : StringsO.IString );
 
-   PRIVATE PROCEDURE GetModelValue( CONST model : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN;
-   PRIVATE PROCEDURE SetModelValue( CONST model : StringsO.IString; CONST value : StringsO.IString ) : BOOLEAN;
    PRIVATE PROCEDURE SetModelBoolean( CONST model : StringsO.IString; value : BOOLEAN );
    PRIVATE PROCEDURE EvaluateBoolean( CONST Value : StringsO.IString ) : BOOLEAN;
    

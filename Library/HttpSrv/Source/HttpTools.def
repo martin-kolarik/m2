@@ -2,7 +2,7 @@ DEFINITION MODULE HttpTools;
 
 IMPORT
    HttpCommon,
-   maps,
+   lists,
    StringsO,
    time;
 
@@ -29,7 +29,7 @@ PROCEDURE FormatContentOA( Content : TContent; CONST RFC1766Code : ARRAY OF WCHA
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE DecodeQueryURL( XFormFlag : BOOLEAN; FirstCharsSkipCount : INTEGER; CONST Encoded : ARRAY OF WCHAR; OUT Decoded : maps.CStringStringMap ); // Key of list (String) contains NAME, Data of list (PTR) contains allocated VALUE -- client must dispose them
+PROCEDURE DecodeURLEncoding( XFormFlag : BOOLEAN; CONST Encoded : ARRAY OF BYTE; OUT Decoded : lists.CStringStringList );
 
 (*===========================================================================*)
 

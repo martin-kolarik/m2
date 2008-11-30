@@ -114,6 +114,7 @@ CLASS IMPLEMENTATION CServerThread;
       mvc := MVC.mvc( L"/context" );
       mvc^.RegisterController( ADR( Controller ), HttpCommon.verbGET, L"raw.do" );
       mvc^.RegisterController( ADR( Controller ), HttpCommon.verbGET, L"page.do" );
+      mvc^.RegisterController( ADR( Controller ), HttpCommon.verbPOST, L"page.do" );
    END OnStart;
 
 (*---------------------------------------------------------------------------*)
@@ -122,6 +123,7 @@ CLASS IMPLEMENTATION CServerThread;
    BEGIN
       mvc^.ForgetController( ADR( Controller ), HttpCommon.verbGET, L"raw.do" );
       mvc^.ForgetController( ADR( Controller ), HttpCommon.verbGET, L"page.do" );
+      mvc^.ForgetController( ADR( Controller ), HttpCommon.verbPOST, L"page.do" );
       MVC.Cleanup();
 
       httpsrv.srv()^.Stop();

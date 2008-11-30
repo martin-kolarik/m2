@@ -104,6 +104,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
       Request^.ResponseHeaders^.Add( HttpCommon.ContentType, HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"utf-8" ));
 
+      CurrentViewNameIndex := 1;
       mbs.Init( REF Output, IOO.accWrite );
       Writer.Stream := ADR( mbs );
       IF NOT ParseRoot() THEN
@@ -607,7 +608,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          END;
          IF NOT index.Empty THEN
             value.FromCARD32( i, 10 );
-            SetModelValue( index, value );
+            Request^.ModelContainer^.SetModelValue( index, value );
          END;
          nl.Reset(); // prepare parsing
          Parse( TRUE, FALSE );
@@ -718,14 +719,14 @@ CLASS IMPLEMENTATION CPageTemplateView;
          list^.Reset();
          WHILE list^.MoveNext() DO
             IF NOT item.Empty THEN
-               SetModelValue( item, list^.Current^ );
+               Request^.ModelContainer^.SetModelValue( item, list^.Current^ );
             END;
             IF NOT odd.Empty THEN
                SetModelBoolean( odd, i AND 1 = 1 );
             END;
             IF NOT index.Empty THEN
                value.FromCARD32( i, 10 );
-               SetModelValue( index, value );
+               Request^.ModelContainer^.SetModelValue( index, value );
                INC( i );
             END;
             nl.Reset(); // prepare parsing
@@ -735,14 +736,14 @@ CLASS IMPLEMENTATION CPageTemplateView;
          map^.Reset();
          WHILE map^.MoveNext() DO
             IF NOT item.Empty THEN
-               SetModelValue( item, map^.Current^ );
+               Request^.ModelContainer^.SetModelValue( item, map^.Current^ );
             END;
             IF NOT odd.Empty THEN
                SetModelBoolean( odd, i AND 1 = 1 );
             END;
             IF NOT index.Empty THEN
                value.FromCARD32( i, 10 );
-               SetModelValue( index, value );
+               Request^.ModelContainer^.SetModelValue( index, value );
                INC( i );
             END;
             nl.Reset(); // prepare parsing
@@ -758,15 +759,18 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
    PRIVATE PROCEDURE ParseForm( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
    VAR
-      value : StringsO.CString;
+      s : StringsO.CString;
    BEGIN
       IF NOT GetFormModel( attributes, OUT FormModel ) THEN
-         value.FromOA( L"pt:form" );
-         SetError( value, NIL, L'Required "model" attribute is missing.' );
+         s.FromOA( L"pt:form" );
+         SetError( s, NIL, L'Required "model" attribute is missing.' );
          RETURN FALSE;
       END;
 
       Writer.WriteElementStartOA( L"form" );
+
+      s := Request^.ControllerURI;
+      Writer.WriteAttributeStringOA( L"action", OA( s.Length-1, s.rawData ));
 
       RETURN ParseElement( attributes, isEmpty, FALSE, PT_MODEL, L"" );
    END ParseForm;
@@ -791,10 +795,10 @@ CLASS IMPLEMENTATION CPageTemplateView;
       Writer.WriteElementStartOA( L"input" );
 
       Writer.WriteAttributeStringOA( L"type", OAsz( ptype ));
-      Writer.WriteAttributeStringOA( L"name", OA( model.Length-1, model.rawData ));
-      IF GetModelValue( fullModel, OUT value ) THEN // model = form.item
+      WriteFormNameAttribute( model );
+      IF Request^.ModelContainer^.GetModelValue( fullModel, OUT value ) THEN // model = form.item
          Writer.WriteAttributeStringOA( L"value", OA( value.Length-1, value.rawData ));
-      ELSIF GetModelValue( model, OUT value ) THEN // model = item
+      ELSIF Request^.ModelContainer^.GetModelValue( model, OUT value ) THEN // model = item
          Writer.WriteAttributeStringOA( L"value", OA( value.Length-1, value.rawData ));
       END;
 
@@ -815,7 +819,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       END;
 
       Writer.WriteElementStartOA( L"select" );
-      Writer.WriteAttributeStringOA( L"name", OA( model.Length-1, model.rawData ));
+      WriteFormNameAttribute( model );
 
       RETURN ParseElement( attributes, isEmpty, TRUE, PT_MODEL, L"" );
    END ParseFormSelect;
@@ -859,9 +863,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
       Writer.WriteElementStartOA( L"option" );
 
-      IF GetModelValue( fullModel, OUT value ) THEN // model = form.item
+      IF Request^.ModelContainer^.GetModelValue( fullModel, OUT value ) THEN // model = form.item
          Writer.WriteAttributeStringOA( L"value", OA( value.Length-1, value.rawData ));
-      ELSIF GetModelValue( model, OUT value ) THEN // model = item
+      ELSIF Request^.ModelContainer^.GetModelValue( model, OUT value ) THEN // model = item
          Writer.WriteAttributeStringOA( L"value", OA( value.Length-1, value.rawData ));
       END;
       IF NOT selectedModel.Empty AND ( EvaluateBoolean( selectedModel ) OR EvaluateBoolean( fullSelectedModel )) THEN
@@ -874,35 +878,8 @@ CLASS IMPLEMENTATION CPageTemplateView;
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE ParseText( CONST Text : StringsO.IString; OUT Parsed : StringsO.IString );
-   VAR
-      i, mi, j : INTEGER;
-      model : StringsO.CString;
-      value : StringsO.CString;
    BEGIN
-      Parsed.Assign( Text );
-      i := -1;
-      LOOP
-         // get ${
-         i := Parsed.IndexOfOA( L"${", i+1 );
-         IF i = -1 THEN
-            EXIT;
-         ELSIF ( i > 0 ) AND ( Parsed[i-1] = L"\" ) THEN // not pattern
-            CONTINUE;
-         END;
-
-         // get }
-         mi := i + 2;
-         j := Parsed.IndexOfOA( L"}", mi );
-         IF j = mi+1 THEN
-            CONTINUE;
-         END;
-
-         // resolve and replace model
-         Parsed.Substring( mi, j-mi, OUT model );
-         GetModelValue( model, OUT value );
-         Parsed.Remove( i, j-i+1 );
-         Parsed.Insert( i, value );
-      END; // LOOP
+      Request^.ModelContainer^.Format( FALSE, Text, OUT Parsed );
    END ParseText;
 
 (*--------------------------------------------------------------------------------*)
@@ -1016,7 +993,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          IF ptFlag AND pname^.EqualsIgnoreCaseOA( ignoreOA1 ) OR pname^.EqualsIgnoreCase( ignore1 ) THEN
             CONTINUE; // ignore pt:ignore
          ELSIF ignoreOA2[0] = 0W THEN
-            CONTINUE; // no ignore 2
+            // fall down
          ELSIF ptFlag AND pname^.EqualsIgnoreCaseOA( ignoreOA2 ) OR pname^.EqualsIgnoreCase( ignore2 ) THEN
             CONTINUE; // ignore pt:ignore
          END;
@@ -1027,182 +1004,17 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE GetModelValue( CONST model : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN;
-   LABEL
-      Error;
+   PRIVATE PROCEDURE WriteFormNameAttribute( CONST model : StringsO.IString );
    VAR
-      boolean : BOOLEAN;
-      i, index, j : INTEGER;
-      keyIndex, valueIndex : BOOLEAN;
-      list : lists.TPStringStringList;
-      map : maps.TPStringStringMap;
-      ps : StringsO.TPString;
-      sindex1, sindex2 : StringsO.CString;
+      viewName : StringsO.CString;
    BEGIN
-      i := model.IndexOfOA( L".", 0 );
-      IF i > 0 THEN // ok, find in map or list by key
-         IF NOT Request^.ModelContainer^.GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
-            map := NIL;
-         ELSIF NOT Request^.ModelContainer^.GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
-            list := NIL;
-         END;
-         IF ( map = NIL ) AND ( list = NIL ) THEN
-            GOTO Error;
-         END;
-         model.Substring( i+1, -1, OUT sindex1 );            
-         ParseText( sindex1, OUT sindex2 );
-         IF ( map <> NIL ) AND NOT map^.GetOA( OA( sindex2.Length-1, sindex2.rawData ), OUT value ) THEN
-            GOTO Error;
-         ELSIF ( list <> NIL ) AND NOT list^.GetOA( OA( sindex2.Length-1, sindex2.rawData ), OUT value ) THEN
-            GOTO Error;
-         END;
-         RETURN TRUE;
-      END;
+      viewName.FromCARD32( CurrentViewNameIndex, 10 );
+      viewName.PrependOA( L"fx" );
+      INC( CurrentViewNameIndex );
 
-      valueIndex := FALSE;
-      keyIndex := FALSE;
-      i := model.IndexOfOA( L"[", 0 );
-      IF i > 0 THEN // ok, find in map or list
-         index := -1;
-         j := model.IndexOfOA( L"]", i+1 );
-         IF j = -1 THEN
-            GOTO Error;
-         END;
-         valueIndex := TRUE;
-      END;
-      IF NOT valueIndex THEN
-         i := model.IndexOfOA( L"{", 0 );
-         IF i > 0 THEN // ok, find in map or list
-            index := -1;
-            j := model.IndexOfOA( L"}", i+1 );
-            IF j = -1 THEN
-               GOTO Error;
-            END;
-            keyIndex := TRUE;
-         END;
-      END;
-      IF valueIndex OR keyIndex THEN
-         model.Substring( i+1, j-i-1, OUT sindex1 );
-         ParseText( sindex1, OUT sindex2 );
-         sindex2.Trim();
-         IF NOT Strings.ToINT32W( OA( sindex2.Length-1, sindex2.rawData ), 10, OUT index ) THEN
-            GOTO Error;
-         ELSIF Request^.ModelContainer^.GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
-            IF valueIndex THEN
-               ps := map^[index];
-               IF ps = NIL THEN
-                  GOTO Error;
-               END;
-               value.Assign( ps^ );
-            ELSIF NOT map^.ElementAt( index, OUT sindex1, OUT value ) THEN
-               GOTO Error;
-            END;
-            RETURN TRUE;
-         ELSIF Request^.ModelContainer^.GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
-            IF keyIndex THEN
-               ps := list^[index];
-               IF ps = NIL THEN
-                  GOTO Error;
-               END;
-               value.Assign( ps^ );
-            ELSIF NOT list^.ElementAt( index, OUT value, OUT sindex1 ) THEN
-               GOTO Error;
-            END;
-            RETURN TRUE;
-         ELSE
-            GOTO Error;
-         END;
-      END;
-      
-      // test string
-      IF Request^.ModelContainer^.GetStringOA( OA( model.Length-1, model.rawData ), OUT value ) THEN
-         RETURN TRUE;
-      END;
-      
-      // test boolean
-      IF Request^.ModelContainer^.GetBooleanOA( OA( model.Length-1, model.rawData ), OUT boolean ) THEN
-         IF boolean THEN
-            value.FromOA( L"true" );
-         ELSE
-            value.FromOA( L"false" );
-         END;
-         RETURN TRUE;
-      END;
-
-      // emit error      
-   Error:
-      value.FromOA( L'##unknown model: ' );
-      value.Append( model );
-      value.AppendOA( L"" );
-      RETURN FALSE;
-   END GetModelValue;
-
-(*--------------------------------------------------------------------------------*)
-
-   PRIVATE PROCEDURE SetModelValue( CONST model : StringsO.IString; CONST value : StringsO.IString ) : BOOLEAN;
-   LABEL
-      Error;
-   VAR
-      boolean : BOOLEAN;
-      i, index, j : INTEGER;
-      list : lists.TPStringStringList;
-      map : maps.TPStringStringMap;
-      ps : StringsO.TPString;
-      sindex1, sindex2 : StringsO.CString;
-   BEGIN
-      i := model.IndexOfOA( L".", 0 );
-      IF i > 0 THEN // ok, find in map
-         IF NOT Request^.ModelContainer^.GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
-            GOTO Error;
-         END;
-         model.Substring( i+1, -1, OUT sindex1 );            
-         ParseText( sindex1, OUT sindex2 );
-         map^.RemoveOA( OA( sindex2.Length-1, sindex2.rawData ));
-         map^.AddOA( OA( sindex2.Length-1, sindex2.rawData ), value );
-         RETURN TRUE;
-      END;
-
-      i := model.IndexOfOA( L"[", 0 );
-      IF i > 0 THEN // ok, find in map or list
-         index := -1;
-         j := model.IndexOfOA( L"]", i+1 );
-         IF j = -1 THEN
-            GOTO Error;
-         END;
-         model.Substring( i+1, j-i-1, OUT sindex1 );
-         ParseText( sindex1, OUT sindex2 );
-         sindex2.Trim();
-         IF NOT Strings.ToINT32W( OA( sindex2.Length-1, sindex2.rawData ), 10, OUT index ) THEN
-            GOTO Error;
-         ELSIF Request^.ModelContainer^.GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
-            ps := map^[index];
-            IF ps = NIL THEN
-               GOTO Error;
-            END;
-            ps^.Assign( value );
-            RETURN TRUE;
-         ELSIF Request^.ModelContainer^.GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
-            ps := list^[index];
-            IF ps = NIL THEN
-               GOTO Error;
-            END;
-            ps^.Assign( value );
-            RETURN TRUE;
-         END;
-      END;
-      
-      // string
-      Request^.ModelContainer^.AddStringOA( OA( model.Length-1, model.rawData ), value );
-
-      RETURN TRUE;
-
-      // emit error      
-   Error:
-      value.FromOA( L'##unknown model: ' );
-      value.Append( model );
-      value.AppendOA( L"" );
-      RETURN FALSE;
-   END SetModelValue;
+      Request^.ModelContainer^.SetModelViewMapping( model, viewName );
+      Writer.WriteAttributeStringOA( L"name", OA( viewName.Length-1, viewName.rawData ));
+   END WriteFormNameAttribute;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1219,7 +1031,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
    BEGIN
       IF Value.EqualsOA( L"true" ) OR Value.EqualsOA( L"1" ) THEN
          RETURN TRUE;
-      ELSIF NOT GetModelValue( Value, OUT modelValue ) THEN
+      ELSIF NOT Request^.ModelContainer^.GetModelValue( Value, OUT modelValue ) THEN
          RETURN FALSE;
       ELSIF modelValue.EqualsOA( L"true" ) OR modelValue.EqualsOA( L"1" ) THEN
          RETURN TRUE;
@@ -1273,6 +1085,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 BEGIN
    Request := NIL;
    Resolver := NIL;
+   CurrentViewNameIndex := 1;
    Where := TWhere{};
 END CPageTemplateView;
 

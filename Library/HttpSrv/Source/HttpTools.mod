@@ -85,72 +85,92 @@ END FormatContentOA;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE DecodeQueryURL( XFormFlag : BOOLEAN; FirstCharsSkipCount : INTEGER; CONST Encoded : ARRAY OF WCHAR; OUT Decoded : maps.CStringStringMap );
+PROCEDURE DecodeURLEncoding( XFormFlag : BOOLEAN; CONST Encoded : ARRAY OF BYTE; OUT Decoded : lists.CStringStringList );
 VAR
+   bl : lists.CBufferList;
    byte : BYTE;
-   ch : WCHAR;
+   encoded : StorageO.CMemoryBuffer;
+   escprevi : INTEGER;
+   ch : CHAR;
    i : INTEGER;
-   l : INTEGER := LENGTH( Encoded );
-   mb : StorageO.CMemoryBuffer;
+   l : INTEGER;
+   mb : StorageO.TPMemoryBuffer;
+   pb : PBYTE;
    previ : INTEGER;
    s : StringsO.CString;
    sd : StringsO.CString;
    sl : lists.CStringList;
 BEGIN
+   encoded.FromOA( Encoded, FALSE );
+   pb := encoded.Data;
+
    // at first, split to strings
-   previ := FirstCharsSkipCount;
+   previ := 0;
+   escprevi := 0;
    LOOP
-      i := Strings.IndexOfCharW( Encoded, L"&", previ );
+      i := encoded.IndexOfByte( C"&", escprevi );
       IF i = -1 THEN
          l := HIGH( Encoded )-previ+1;
-         sl.AddOA( OA( l-1, ADR( Encoded[previ] )), PTR( l ));
+         bl.AddOA( OA( l-1, pb@[previ] ), PTR( l ));
          EXIT;
-      ELSE
-         l := i-previ;
-         sl.AddOA( OA( l-1, ADR( Encoded[previ] )), PTR( l ));
       END;
+      IF ( i+4 > HIGH( Encoded )) OR ( Encoded[i+4] <> C";" ) THEN
+         // no & escape, fall down
+      ELSIF ( Encoded[i+1] = C"#" ) AND ( Encoded[i+2] = C"3" ) AND ( Encoded[i+3] = C"8" ) OR
+            ( Encoded[i+1] = C"a" ) AND ( Encoded[i+2] = C"m" ) AND ( Encoded[i+3] = C"p" ) THEN // & escape found, skip here
+         escprevi := escprevi + 1; // move lookup index forward
+         CONTINUE;
+      // ELSE // no & escape, fall down
+      END;
+      l := i-previ;
+      bl.AddOA( OA( l-1, pb@[previ] ), PTR( l ));
       previ := i+1;
+      escprevi := previ;
    END; // LOOP
 
    // find equals and revert + to spaces if XFormFlag
-   sl.Reset();
-   WHILE sl.MoveNext() DO
-      i := 0;
-      l := sl.Current^.Length;
-      mb.Size := l;
-      mb.Length := l;
+   bl.Reset();
+   WHILE bl.MoveNext() DO
+      mb := bl.Current;
 
+      i := 0;
+      l := mb^.Length;
       WHILE i < l DO
-         ch := sl.Current^[i];
-         IF ch = L"%" THEN // decode three %XX characters
+         ch := mb^[i];
+         IF ch = C"%" THEN // decode three %XX characters
             IF i+2 >= l THEN
                EXIT; // errorneous input
             END;
-            cphcommon.FromHexByte( OA( 1, sl.Current^.rawData@[(i+1)<<1] ), OUT byte );
-            mb[i] := byte;
-
-            sl.Current^.Remove( i+1, 2 );
+            cphcommon.FromHexByteA( OA( 1, PCHAR( mb^.Data@[i+1] )), OUT byte );
+            mb^[i] := byte;
+            mb^.Remove( i+1, 2 );
             DEC( l, 2 );
 
-         ELSIF ch = L"=" THEN // remember split position (length)
-            sl.CurrentData := PTR( i );
-            mb[i] := BYTE( C"=" );
+         ELSIF ch = C"=" THEN // remember split position (length)
+            bl.CurrentData := PTR( i );
+            mb^[i] := C"=";
+            
+         ELSIF ch = C"&" THEN // here it can only be an & escape
+            mb^[i] := C"&";
+            mb^.Remove( i+1, 4 );
+            DEC( l, 4 );
 
-         ELSIF XFormFlag AND ( ch = L"+" ) THEN // replace + with spaces
-            mb[i] := BYTE( C" " );
+         ELSIF XFormFlag AND ( ch = C"+" ) THEN // replace + with spaces
+            mb^[i] := C" ";
 
          ELSE
-            mb[i] := BYTE( ch );
+            mb^[i] := ch;
          END;
          
          INC( i );
       END;
       
-      IF Languages.IsUTF8( OA( i-1, mb.Data )) THEN
-         sl.Current^.FromOAA( Languages.cp_UTF8, OA( i-1, PCHAR( mb.Data )));
+      IF Languages.IsUTF8( OA( i-1, mb^.Data )) THEN
+         s.FromOAA( Languages.cp_UTF8, OA( i-1, PCHAR( mb^.Data )));
       ELSE
-         sl.Current^.FromOAA( 0, OA( i-1, PCHAR( mb.Data )));
+         s.FromOAA( 0, OA( i-1, PCHAR( mb^.Data )));
       END;
+      sl.Add( s, bl.CurrentData );
    END; // WHILE
    
    // split
@@ -164,13 +184,16 @@ BEGIN
       l := sl.Current^.Length;
       IF i+1 <= l THEN
          sd.FromOA( OA( l-i-2, sl.Current^.rawData@[(i+1)<<1] ));
+      ELSE
+         sd.Clear();
       END;
       
       Decoded.Add( s, sd );
    END; // WHILE
    
+   bl.Dispose();
    sl.Dispose();
-END DecodeQueryURL;
+END DecodeURLEncoding;
 
 (*===========================================================================*)
 
