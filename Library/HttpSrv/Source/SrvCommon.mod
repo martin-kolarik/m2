@@ -267,7 +267,7 @@ CLASS IMPLEMENTATION ASrvStream;
       IF NOT _ReadOut THEN
          _ReadOut := TRUE;
          Data.FromOA( OA( SIZE( Buffer )-1, ADR( Buffer )), FALSE );
-         WHILE ReceiveData( OUT Data ) = Sync.arCompleted DO END;
+         WHILE ReceiveData( REF Data ) = Sync.arCompleted DO END;
       END;
    END Flush;
 
@@ -303,6 +303,7 @@ CLASS IMPLEMENTATION ASrvStream;
       chLen : CARDINAL;
       chunked : BOOLEAN;
       Data : ADDRESS;
+      HaveSome : BOOLEAN := FALSE;
       L : CARDINAL;
       Result : Sync.TAsyncResult;
    BEGIN
@@ -323,13 +324,14 @@ CLASS IMPLEMENTATION ASrvStream;
                CONTINUE;
             END;
             IF Direction = IOO.dirRead THEN
-               Result := ReceiveData( OUT buffer );
-               CASE Result OF
-               | Sync.arCompleted :
-               | Sync.arNoData :
-                  _ReadOut := TRUE;
+               buffer.FromOA( OA( L-1, Data ), FALSE );
+               Result := ReceiveData( REF buffer );
+               IF Result = Sync.arCompleted THEN
+                  HaveSome := TRUE;
+                  L := buffer.Length;
                ELSE
                   _ReadOut := TRUE;
+                  L := 0;
                END;
 
             ELSE // write
@@ -365,16 +367,21 @@ CLASS IMPLEMENTATION ASrvStream;
             END; // IF direction
 
             DeviceCompleteData( Direction, L );
+
             IF Result <> Sync.arCompleted THEN
+               IF HaveSome AND ( Result = Sync.arNoData ) THEN
+                  Result := Sync.arCompleted;
+               END;
                EXIT;
             END;
+
          END; // WHILE
       END; // IF Direction
       
       CASE Result OF
-      |  Sync.arPending,
-         Sync.arAlreadyPending,
-         Sync.arCannotStart :
+      | Sync.arPending,
+        Sync.arAlreadyPending,
+        Sync.arCannotStart :
       ELSE
          DeviceFinish( Direction, Result );
       END;

@@ -83,7 +83,7 @@ ABSTRACT CLASS ASrvStream( IOO.AStream ); // synchronous implementation only
       
    // all methods can return arCompleted, arNoData, arAbort, arTimeout
    INTERNAL ABSTRACT PROCEDURE ReceiveHeaders() : Sync.TAsyncResult;
-   INTERNAL ABSTRACT PROCEDURE ReceiveData( OUT Data : StorageO.AMemoryBuffer ) : Sync.TAsyncResult; // all headers read out
+   INTERNAL ABSTRACT PROCEDURE ReceiveData( REF Data : StorageO.AMemoryBuffer ) : Sync.TAsyncResult; // all headers read out, Data is emptied and filled up to Data.Size
    INTERNAL ABSTRACT PROCEDURE SendHeaders() : Sync.TAsyncResult; // prepare output data if needed, first of all response routines, all headers and status code is already prepared hered
    INTERNAL ABSTRACT PROCEDURE SendData( CONST Data : StorageO.AMemoryBuffer ) : Sync.TAsyncResult; // after SendHeaders
    INTERNAL ABSTRACT PROCEDURE EndResponse() : Sync.TAsyncResult; // finishes response

@@ -442,7 +442,7 @@ CLASS CHttpApiStream( SrvCommon.ASrvStream );
    
    // all methods can return arCompleted, arNoData, arAbort, arTimeout
    INTERNAL VIRTUAL PROCEDURE ReceiveHeaders() : Sync.TAsyncResult;
-   INTERNAL VIRTUAL PROCEDURE ReceiveData( OUT Data : StorageO.AMemoryBuffer ) : Sync.TAsyncResult;
+   INTERNAL VIRTUAL PROCEDURE ReceiveData( REF Data : StorageO.AMemoryBuffer ) : Sync.TAsyncResult;
    INTERNAL VIRTUAL PROCEDURE SendHeaders() : Sync.TAsyncResult;
    INTERNAL VIRTUAL PROCEDURE SendData( CONST Data : StorageO.AMemoryBuffer ) : Sync.TAsyncResult;
    INTERNAL VIRTUAL PROCEDURE EndResponse() : Sync.TAsyncResult;
@@ -661,12 +661,12 @@ CLASS IMPLEMENTATION CHttpApiStream;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE ReceiveData( OUT Data : StorageO.AMemoryBuffer ) : Sync.TAsyncResult;
+   INTERNAL VIRTUAL PROCEDURE ReceiveData( REF Data : StorageO.AMemoryBuffer ) : Sync.TAsyncResult;
    VAR
       error : CARDINAL;
       L : CARDINAL := 0;
    BEGIN
-      Data.Clear();
+      Data.Length := 0;
       error := httpapi.HttpReceiveRequestEntityBody( _HttpQueue, Request^.RequestId, 0, Data.Data, Data.Size, ADR( L ), NIL );
       IF L < Data.Size THEN
          IF ( error <> winerror.ERROR_SUCCESS ) AND ( error <> winerror.ERROR_HANDLE_EOF ) THEN
@@ -674,9 +674,11 @@ CLASS IMPLEMENTATION CHttpApiStream;
          ELSIF L = 0 THEN
             RETURN Sync.arNoData;
          ELSE
+            Data.Length := L;
             RETURN Sync.arCompleted;
          END;
       ELSIF ( error = winerror.ERROR_SUCCESS ) OR ( error = winerror.ERROR_MORE_DATA ) THEN
+         Data.Length := L;
          RETURN Sync.arCompleted;
       ELSE
          RETURN Sync.arAborted;

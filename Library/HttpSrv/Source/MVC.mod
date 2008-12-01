@@ -893,7 +893,9 @@ CLASS IMPLEMENTATION CMVC;
          IF byteBuffer.Size > 2*1024*1024 THEN
             EXIT;
          END;
-         INC( byteBuffer.Size, 16384 );
+         IF byteBuffer.Length MOD 16384 = 0 THEN // filled up
+            INC( byteBuffer.Size, 16384 );
+         END;
       END; // WHILE
 
       HttpTools.DecodeURLEncoding( FALSE, OA( byteBuffer.Length-1, byteBuffer.Data ), OUT list );
