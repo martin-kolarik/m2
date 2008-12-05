@@ -795,10 +795,11 @@ CLASS IMPLEMENTATION CPageTemplateView;
       Writer.WriteElementStartOA( L"input" );
 
       Writer.WriteAttributeStringOA( L"type", OAsz( ptype ));
-      WriteFormNameAttribute( model );
       IF Request^.ModelContainer^.GetModelValue( fullModel, OUT value ) THEN // model = form.item
+         WriteFormNameAttribute( fullModel );
          Writer.WriteAttributeStringOA( L"value", OA( value.Length-1, value.rawData ));
       ELSIF Request^.ModelContainer^.GetModelValue( model, OUT value ) THEN // model = item
+         WriteFormNameAttribute( model );
          Writer.WriteAttributeStringOA( L"value", OA( value.Length-1, value.rawData ));
       END;
 
