@@ -1,0 +1,63 @@
+﻿body
+{
+  background-color: #434242;
+  margin: 0px;
+  overflow: hidden;
+}
+
+*
+{
+  font-family: Calibri, Verdana, Arial;
+}
+
+div.shell
+{
+  height: 799px;
+  background-image: url(BackgroundStrip.png);
+  background-position: center;
+  background-repeat: repeat-x;
+  text-align: center;
+}
+
+div.shell-topstrip
+{
+  height: 100px;
+  margin: 0px;
+}
+
+div.canvas
+{
+  background-image: url(Canvas.png);
+  margin: 0 auto;
+  width: 899px;
+  text-align: left;
+}
+
+div.top
+{
+  height: 40px;
+}
+
+div.bottom
+{
+  height: 43px;
+}
+
+div.content
+{
+  height: 520px;
+}
+
+ul#menu
+{
+  height: 435px;
+  margin: 0px;
+  padding: 110px 10px 0px 45px;
+  float: left;
+}
+
+ul#menu li
+{
+  display: block;
+  border-right: solid 1 #424242;
+}
