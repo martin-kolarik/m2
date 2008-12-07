@@ -1,13 +1,24 @@
 ﻿body
 {
   background-color: #434242;
-  margin: 0px;
   overflow: hidden;
 }
 
 *
 {
+  margin: 0px;
   font-family: Calibri, Verdana, Arial;
+  font-size: 12pt;
+  color: White;
+}
+
+.spare
+{
+  width: 10px;
+}
+.red
+{
+  color: Red;
 }
 
 div.shell
@@ -22,42 +33,66 @@ div.shell
 div.shell-topstrip
 {
   height: 100px;
-  margin: 0px;
 }
 
 div.canvas
 {
   background-image: url(Canvas.png);
-  margin: 0 auto;
   width: 899px;
+  height: 603px;
+  margin: 0 auto;
   text-align: left;
 }
 
 div.top
 {
-  height: 40px;
+  height: 130px;
+}
+
+div.middle
+{
+  height: 360px;
+  _height: 380px;
+  padding: 10px;
 }
 
 div.bottom
 {
-  height: 43px;
+  height: 20px;
+  width: 785px;
+  _width: 805px;
+  margin: 0px 0px 40px 45px;
+  padding: 10px;
+  background-image: url(Transparent.png);
+}
+
+div#menu
+{
+  float: left;
+  width: 100px;
+  _width: 120px;
+  margin: 0px 0px 0px 35px;
+  padding: 10px 5px 10px 10px;
+  _padding-top: 5px;
+  background-image: url(Transparent.png);
+}
+
+div#menu p
+{
+  width: 100px;
 }
 
 div.content
 {
-  height: 520px;
+  width: 665px;
+  _width: 675px;
+  margin: 0px 0px 0px 160px;
+  padding: 5px 5px 10px 10px;
+  background-image: url(Transparent.png);
 }
 
-ul#menu
+div.content h1, div.content h2, div.content h3, div.content div,
+div.content p, div.content ul, div.content form, div.content table
 {
-  height: 435px;
-  margin: 0px;
-  padding: 110px 10px 0px 45px;
-  float: left;
-}
-
-ul#menu li
-{
-  display: block;
-  border-right: solid 1 #424242;
+  margin-top: 5px;
 }
