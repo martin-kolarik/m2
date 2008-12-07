@@ -430,7 +430,7 @@
             Inputs="@(TestDEFFiles);@(TestMODFiles)"
             Outputs="@(TestDEFFiles -> '$(HeaderDir)\%(Filename).h');@(TestMODFiles -> '$(IntermediateDir)\%(Filename).cpp')">
         <Exec WorkingDirectory="$(TestDir)"
-              Command="$(M2) -LD $(M2DEF) -I..\$(SourceDir) -O&quot;..\$(IntermediateDir)&quot; @(TestDEFFiles -> '%(FileName).def', ' ') @(TestMODFiles -> '%(FileName).mod', ' ')"/>
+              Command="$(M2) $(M2DEF) -LD -I..\$(SourceDir) -O&quot;..\$(IntermediateDir)&quot; @(TestDEFFiles -> '%(FileName).def', ' ') @(TestMODFiles -> '%(FileName).mod', ' ')"/>
     </Target>
 
     <Target Name="Modula2InitCPP" Condition="$(Modula2InitCode)!=''"

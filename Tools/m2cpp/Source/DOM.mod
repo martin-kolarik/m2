@@ -6772,21 +6772,24 @@ CLASS IMPLEMENTATION CModule;
       b := Warnings.NextOf( PWLE, OUT PWLE );
     END; // WHILE
 
-    G^.LineS( L'#include "m2cpp.h"' );
-    IF eoLeakChecking IN Options THEN
-      G^.LineS( L'#include "m2leak.h"' );
-    END;
-    IF eoIS IN Options THEN
-	    G^.LineS( L'#include "typeinfo.h"' );
-    END;
-
-    IF UnitKind = ukImplementation THEN
-      IF ( eoPublishExports IN CurE^.Options ) AND Project.GetComponentName( LN, TRUE, FALSE ) THEN
-        G^.Indent(); G^.OutS( L"#define __" ); G^.OutS( LN ); G^.EOL();
-      END;
-      G^.Indent(); G^.OutS( L'#include "' ); G^.OutCS( Name ); G^.OutS( L'.h"' ); G^.EOL();
-    ELSE
+    IF UnitKind <> ukImplementation THEN
+      G^.LineS( L'#include "m2cpp.h"' );
       G^.Indent(); G^.OutS( L"#define __" ); G^.OutCS( Name ); G^.OutS( L"_MN" ); G^.EOL();
+    END;
+    IF UnitKind <> ukDefinition THEN
+       IF eoLeakChecking IN Options THEN
+         G^.LineS( L'#include "m2leak.h"' );
+       END;
+       IF eoIS IN Options THEN
+	       G^.LineS( L'#include "typeinfo.h"' );
+       END;
+
+       IF ( eoPublishExports IN CurE^.Options ) AND Project.GetComponentName( LN, TRUE, FALSE ) THEN
+          G^.Indent(); G^.OutS( L"#define __" ); G^.OutS( LN ); G^.EOL();
+       END;
+       IF UnitKind = ukImplementation THEN
+          G^.Indent(); G^.OutS( L'#include "' ); G^.OutCS( Name ); G^.OutS( L'.h"' ); G^.EOL();
+       END;
     END;
 
     GenerateWithImported( G, UnitKind );
