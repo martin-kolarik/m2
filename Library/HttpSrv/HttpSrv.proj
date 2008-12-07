@@ -15,9 +15,9 @@
     <!-- 3 -->
     <ItemGroup>
         <Components Include="Modula2\modula2;API\CLib;API\win32;API\httpapi"/>
-        <Components Include="Component\sccore;Library\XML"/>
+        <Components Include="Component\sccore"/>
         <Definitions Include="httpcommon;httpconnection"/>
-        <Modules Include="httptools;srvcommon;srvhttpapi;httpsrv;mvc;nodelist;view"/>
+        <Modules Include="httptools;srvcommon;srvhttpapi;httpsrv"/>
     </ItemGroup>
 
     <!-- 4 -->

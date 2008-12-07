@@ -12,6 +12,8 @@ IMPORT
 
 //================================================================================
 
+#save, option( dll_export => on )
+
 TYPE
    TPContainer = POINTER TO IContainer;
    TPHttpRequest = POINTER TO IHttpRequest;
@@ -90,6 +92,8 @@ PROCEDURE Cleanup();
 PROCEDURE redirectView( CONST URL : ARRAY OF WCHAR ) : TPView;
 PROCEDURE rawHTMLView( CONST HTML : ARRAY OF WCHAR ) : TPView;
 PROCEDURE pageTemplateView( CONST resolver : FSO.TPFilePathResolver; CONST viewName : ARRAY OF WCHAR ) : TPView;
+
+#restore
 
 //================================================================================
 

@@ -11,6 +11,8 @@ IMPORT
    
 (*---------------------------------------------------------------------------*)
 
+# save, option( dll_export => on ) *)
+
 TYPE
    TNodeType = (
       xntUnknown,
@@ -168,6 +170,8 @@ CLASS CXMLReader;
    PRIVATE PROCEDURE Error2Error( Error : CARDINAL ) : TXMLError;
 
 END CXMLReader;
+
+# restore
 
 (*===========================================================================*)
 

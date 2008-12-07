@@ -13,6 +13,8 @@ IMPORT
 	
 (*---------------------------------------------------------------------------*)
 
+# save, option( dll_export => on ) *)
+
 TYPE
 	TXMLWriterStateItem = (
 		xwsStarted,
@@ -56,6 +58,8 @@ CLASS CXMLWriter;
 	PRIVATE PROCEDURE WriteIndent();
 	PRIVATE INLINE PROCEDURE WriteEOL();
 END CXMLWriter;
+
+# restore
 
 (*===========================================================================*)
 

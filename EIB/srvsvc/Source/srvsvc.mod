@@ -28,6 +28,10 @@ IMPORT
    threadcall,
    xmlsocket;
    
+IMPORT
+   httpsrv,
+   MVC;   
+   
 (*================================================================================*)
 
 CONST
@@ -195,6 +199,10 @@ CLASS IMPLEMENTATION CEibSvc;
       XMLS^.ListenAddress := IA;
       XMLS^.Init( TRUE );
       XMLS^.Start();
+      
+      (*?*)
+      httpsrv.srv()^.Start();
+      MVC.mvc( L"/context" );
 
       SetServiceState( Service.ssRunning, 0 );
    END _OnStart;

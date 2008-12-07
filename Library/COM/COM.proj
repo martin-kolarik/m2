@@ -15,8 +15,8 @@
 
     <!-- 3 COMPOMENT DEFINITION -->
     <ItemGroup>
-        <Components Include="Modula2\modula2;API\CLib;API\win32"/>
-        <Components Include="API\COM;API\XML;Modula2\m2rtl;Library\ADT"/><!-- API/XML is for test -->
+        <Components Include="Modula2\modula2;API\CLib;API\win32;API\COM;API\xml"/><!-- API/XML is for test -->
+        <Components Include="Modula2\m2rtl;Library\ADT"/>
         <Modules Include="com"/>
     </ItemGroup>
 

@@ -10,6 +10,8 @@ IMPORT
 	DOM,
 	XMLWriter;
 	
+# save, option( dll_export => on ) *)
+
 (*---------------------------------------------------------------------------*)
 
 TYPE
@@ -40,6 +42,8 @@ END AClassFactory;
 PROCEDURE DeserializeNodeList( NodeList : DOM.TPXMLNodeList; CONST Factory : AClassFactory; OUT Objects : ARRAY OF TPXMLSerializable; OUT Filled : CARDINAL );
 PROCEDURE DeserializeElement( Node : DOM.TPXMLElement; CONST Factory : AClassFactory; OUT Object : TPXMLSerializable ) : BOOLEAN;
 PROCEDURE Serialize( CONST Writer : XMLWriter.CXMLWriter; CONST Objects : ARRAY OF TPXMLSerializable );
+
+# restore
 
 (*===========================================================================*)
 

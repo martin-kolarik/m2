@@ -29,7 +29,7 @@
         <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\EIB\EibSrv"/>
 
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
-        <Components Include="Component\sccore;Library\DeviceIO;EIB\srvcore"/>
+        <Components Include="Component\sccore;Component\scmvc;Library\DeviceIO;EIB\srvcore"/>
         <Program Include="srvsvc"/>
     </ItemGroup>
 

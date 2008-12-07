@@ -4,11 +4,12 @@ IMPORT
   FIO,
   FIOO,
   IOO,
+  Languages,
   Sync,
   StringsO,
-  TextWriter,
-  windows,
-  winnls;
+  test,
+  testimpl,
+  TextWriter;
 
 PROCEDURE Test();
 VAR
@@ -57,7 +58,7 @@ BEGIN
 
   F.Close( FALSE );
 
-  W.Encoding := winnls.CP_UTF16;
+  W.Encoding := Languages.cp_UTF16;
 
    TRY
       F.FromPath( L'Test\TxtWriterUTF16.txt', FIOO.imCreate );
