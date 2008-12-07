@@ -1,0 +1,48 @@
+DEFINITION MODULE NodeList;
+
+IMPORT
+   list,
+   lists,
+   StringsO,
+   xmlreader;
+  
+//---------------------------------------------------------------------------
+
+TYPE
+   TPNodeItem = POINTER TO CNodeItem;
+
+CLASS CNodeItem( list.CListElem );
+   LOCAL VAR
+      _Type : xmlreader.TNodeType;
+      _Prefix : StringsO.CString;
+      _Name : StringsO.CString;
+      _Empty : BOOLEAN;
+      _Value : StringsO.CString;
+      _Attributes : lists.CStringStringList;
+   PUBLIC READONLY PROPERTY
+      Type : xmlreader.TNodeType;
+      Prefix : StringsO.TPString;
+      Name : StringsO.TPString;
+      Empty : BOOLEAN;
+      Value : StringsO.TPString;
+      Attributes : lists.TPStringStringList;
+END CNodeItem;
+
+//---------------------------------------------------------------------------
+
+TYPE
+   TPNodeList = POINTER TO CNodeList;
+
+CLASS CNodeList( list.CListWState );
+
+   PUBLIC READONLY PROPERTY
+      Current : TPNodeItem;
+
+   // map interface
+   PUBLIC PROCEDURE Add( Type : xmlreader.TNodeType; CONST Prefix, Name : StringsO.IString; Empty : BOOLEAN; CONST Value : StringsO.IString; REF Attributes : lists.CStringStringList ); // Attributes are cleared when added
+
+END CNodeList;
+
+//---------------------------------------------------------------------------
+
+END NodeList.

@@ -1,0 +1,96 @@
+DEFINITION MODULE MVC;
+
+//================================================================================
+
+IMPORT
+   FSO,
+   IOO,
+   HttpCommon,
+   HttpSrv,
+   maps,
+   StringsO;
+
+//================================================================================
+
+TYPE
+   TPContainer = POINTER TO IContainer;
+   TPHttpRequest = POINTER TO IHttpRequest;
+   TPView = POINTER TO IView;
+   TPController = POINTER TO IController;
+   TPMVC = POINTER TO IMVC;
+   
+(*--------------------------------------------------------------------------------*)
+
+INTERFACE IContainer;
+   // control
+   PROCEDURE Dispose(); // data, not self
+   PROCEDURE RemoveOA( CONST Name : ARRAY OF WCHAR ); // removes all types
+
+   // controller side
+   PROCEDURE AddBooleanOA( CONST Name : ARRAY OF WCHAR; Model : BOOLEAN );
+   PROCEDURE AddStringOA( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString );
+   PROCEDURE AddListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringStringList ); // creates list in model, client uses it to fill data
+   PROCEDURE AddMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ); // creates map in model, client uses it to fill data
+
+   PROCEDURE GetBooleanOA( CONST Name : ARRAY OF WCHAR; OUT Model : BOOLEAN ) : BOOLEAN;
+   PROCEDURE GetStringOA( CONST Name : ARRAY OF WCHAR; OUT Model : StringsO.IString ) : BOOLEAN;
+   PROCEDURE GetListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringStringList ) : BOOLEAN;
+   PROCEDURE GetMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ) : BOOLEAN;
+   
+   // view side
+   PROCEDURE SetModelValue( CONST Model, Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PROCEDURE GetModelValue( CONST Model : StringsO.IString; OUT Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PROCEDURE Format( FailOnError : BOOLEAN; CONST Source : StringsO.IString; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
+   
+   PROCEDURE ResetModelViewMapping(); // clears all mode-view bindings
+   PROCEDURE SetModelViewMapping( CONST FullModel, ViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
+   PROCEDURE GetModelViewMapping( CONST ViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
+END IContainer;
+   
+(*--------------------------------------------------------------------------------*)
+
+INTERFACE IHttpRequest;
+   READONLY PROPERTY
+      AbsoluteURI : StringsO.CString;
+      ControllerURI : StringsO.CString;
+      RequestHeaders : HttpCommon.TPHttpHeaders;
+      ResponseHeaders : HttpCommon.TPHttpHeaders;
+      ModelContainer : TPContainer;
+      Session : HttpSrv.TPSession;
+END IHttpRequest;
+
+(*--------------------------------------------------------------------------------*)
+
+INTERFACE IView;
+   PROCEDURE Format( CONST Request : TPHttpRequest; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+END IView;
+
+(*--------------------------------------------------------------------------------*)
+
+INTERFACE IController;
+   PROCEDURE ProcessRequest( CONST Request : TPHttpRequest; OUT View : TPView ) : BOOLEAN; // returning false means 500 response
+END IController;
+
+(*--------------------------------------------------------------------------------*)
+
+INTERFACE IMVC;
+   PROCEDURE RegisterController( Controller : TPController; ForVerb : HttpCommon.TVerb; CONST ControllerURI : ARRAY OF WCHAR ); // controller can be registered more times for different Verb and URI
+   PROCEDURE ForgetController( Controller : TPController; OfVerb : HttpCommon.TVerb; CONST ControllerURI : ARRAY OF WCHAR );
+   PROCEDURE ForgetControllerCompletely( Controller : TPController );
+END IMVC;
+
+//================================================================================
+
+PROCEDURE mvc( CONST Context : ARRAY OF WCHAR ) : TPMVC; // it is usual to have Context = Application, so typically server will call mvc only single times.
+                                                         // More calls to get the same context returns the same pointer.
+PROCEDURE Cleanup();
+
+//================================================================================
+
+PROCEDURE redirectView( CONST URL : ARRAY OF WCHAR ) : TPView;
+PROCEDURE rawHTMLView( CONST HTML : ARRAY OF WCHAR ) : TPView;
+PROCEDURE pageTemplateView( CONST resolver : FSO.TPFilePathResolver; CONST viewName : ARRAY OF WCHAR ) : TPView;
+
+//================================================================================
+
+END MVC.
