@@ -11,6 +11,7 @@ FROM Storage IMPORT
 IMPORT
    adviser,
    cllv,
+   EibSrvWeb,
    FIO,
    FIOO,
    inetaddr,
@@ -60,6 +61,7 @@ CLASS CEibSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarg
       Adviser : adviser.TPAdvisedDevice := NIL;
       SDAP : sdap.TPSDAPServer := NIL;
       XMLS : xmlsocket.TPXMLSocketServer := NIL;
+      Web : EibSrvWeb.CEibSrvWeb;
 
    // service, OS thread
    LOCAL VIRTUAL PROCEDURE OnStart();
@@ -199,10 +201,9 @@ CLASS IMPLEMENTATION CEibSvc;
       XMLS^.ListenAddress := IA;
       XMLS^.Init( TRUE );
       XMLS^.Start();
-      
-      (*?*)
-      httpsrv.srv()^.Start();
-      MVC.mvc( L"/context" );
+
+      Web.Init( 6005, L"/SmartServer", EIB );
+      Web.Run();
 
       SetServiceState( Service.ssRunning, 0 );
    END _OnStart;
@@ -237,6 +238,8 @@ CLASS IMPLEMENTATION CEibSvc;
 
    PRIVATE PROCEDURE _OnStop();
    BEGIN
+      Web.Stop();
+   
       IF XMLS <> NIL THEN
          XMLS^.Stop();
          DISPOSE( XMLS );

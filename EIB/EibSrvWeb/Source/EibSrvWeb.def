@@ -1,0 +1,57 @@
+DEFINITION MODULE EibSrvWeb;
+
+(*================================================================================*)
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+   
+IMPORT
+   mvc,
+   srvcore,
+   StringsO,
+   time;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink;
+
+   // IEIBServerSink
+   PUBLIC VIRTUAL PROCEDURE OnConnect();
+   PUBLIC VIRTUAL PROCEDURE OnDisconnect();
+   PUBLIC VIRTUAL PROCEDURE OnInitReadCompleted();
+   PUBLIC VIRTUAL PROCEDURE OnRead( PObject : srvcore.TPObject );
+   PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : srvcore.TPObject );
+   PUBLIC VIRTUAL PROCEDURE OnInputQueueAdd( OOBQueue, PromiscuousQueue : BOOLEAN );
+   PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
+
+   // SELF
+   PRIVATE VAR
+      _Context : StringsO.CString;
+      _EIB : srvcore.TPEIBServer;
+      _MVC : mvc.TPMVC;
+      _Port : CARDINAL;
+      _Running : BOOLEAN;
+      
+      _StartedTime : time.TJD;
+      _Connected : BOOLEAN;
+      _ConnectedTime : time.TJDC;
+      _DisconnectedTime : time.TJD;
+      _WrittenByHour : ARRAY [0..23] OF CARDINAL;
+      _GotByHour : ARRAY [0..23] OF CARDINAL;
+
+   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; EIB : srvcore.TPEIBServer );
+   
+   PUBLIC READONLY PROPERTY
+      Running : BOOLEAN;
+   PUBLIC PROCEDURE Run();
+   PUBLIC PROCEDURE Stop();
+   
+   // PRIVATE
+   PRIVATE PROCEDURE AddControllers();
+   PRIVATE PROCEDURE RemoveControllers();
+
+END CEibSrvWeb;
+
+(*================================================================================*)
+
+END EibSrvWeb.
