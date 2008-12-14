@@ -13,6 +13,9 @@ IMPORT
 
 (*--------------------------------------------------------------------------------*)
 
+TYPE
+   TPEibSrvWeb = POINTER TO CEibSrvWeb;
+
 CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink;
 
    // IEIBServerSink
@@ -31,6 +34,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink;
       _MVC : mvc.TPMVC;
       _Port : CARDINAL;
       _Running : BOOLEAN;
+      _Controller : mvc.TPController;
       
       _StartedTime : time.TJD;
       _Connected : BOOLEAN;

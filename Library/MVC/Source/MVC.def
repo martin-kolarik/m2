@@ -53,6 +53,7 @@ END IContainer;
 
 INTERFACE IHttpRequest;
    READONLY PROPERTY
+      RequestVerb : HttpCommon.TVerb;
       AbsoluteURI : StringsO.CString;
       ControllerURI : StringsO.CString;
       RequestHeaders : HttpCommon.TPHttpHeaders;

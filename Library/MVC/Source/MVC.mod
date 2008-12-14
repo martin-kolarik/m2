@@ -553,6 +553,7 @@ CLASS CHttpRequest IMPLEMENTS IHttpRequest;
 
    // IHttpRequest
    PUBLIC VIRTUAL READONLY PROPERTY
+      RequestVerb : HttpCommon.TVerb;
       AbsoluteURI : StringsO.CString;
       ControllerURI : StringsO.CString;
       RequestHeaders : HttpCommon.TPHttpHeaders;
@@ -574,6 +575,13 @@ END CHttpRequest;
 (*--------------------------------------------------------------------------------*)
 
 CLASS IMPLEMENTATION CHttpRequest;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY RequestVerb GET : HttpCommon.TVerb;
+   BEGIN
+      RETURN _Connection^.RequestVerb;
+   END RequestVerb;
 
 (*--------------------------------------------------------------------------------*)
 

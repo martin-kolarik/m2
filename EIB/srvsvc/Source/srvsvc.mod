@@ -33,6 +33,10 @@ IMPORT
    httpsrv,
    MVC;   
    
+(*?*)
+IMPORT
+   windows;
+   
 (*================================================================================*)
 
 CONST
@@ -145,7 +149,7 @@ CLASS IMPLEMENTATION CEibSvc;
       line : CARDINAL;
       Path : ARRAY [0..255] OF WCHAR;
       RS : Registry.CRegistry;
-      s1, s2 : StringsO.CString;
+      s1, s2 : StringsO.CString; 
    BEGIN
       Strings.ConcatW( OUT Path, L"SOFTWARE\", Manufacturer ); Strings.AppendW( REF Path, L"\" ); Strings.AppendW( REF Path, ProductId );
       IF RS.OpenRead( L"", Registry.LOCAL_MACHINE, Path ) THEN
@@ -283,6 +287,8 @@ PROCEDURE wmain( argc : CARDINAL; argp, envp : ADDRESS ) : CARDINAL;
 VAR
    PService : Service.TPService := ADR( EibSvc );
 BEGIN
+   ASSERT( FALSE );
+
    Service.Run( OA( 0, ADR( PService )), FALSE, 0 );
    RETURN 0;
 END wmain;

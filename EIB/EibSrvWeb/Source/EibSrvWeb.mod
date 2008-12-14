@@ -7,6 +7,7 @@ FROM Debug IMPORT
 
 IMPORT
    Controller,
+   HttpCommon,
    httpsrv,
    MVC;
 
@@ -133,14 +134,26 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
    PRIVATE PROCEDURE AddControllers();
    BEGIN
-      // TODO
+      IF _Controller = NIL THEN
+         NEW( Controller.TPController( _Controller ));
+         Controller.TPController( _Controller )^.BindToEibSrv( ADR( SELF ));
+      END;
+
+      _MVC^.RegisterController( _Controller, HttpCommon.verbGET, L"" ); // index
+
+      _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.LOGIN_PAGE );
+      _MVC^.RegisterController( _Controller, HttpCommon.verbPOST, Controller.LOGIN_PAGE );
+
+      _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.STATUS_PAGE );
+
+      _MVC^.RegisterController( _Controller, HttpCommon.verbPOST, Controller.CONTROL_PAGE ); // control page, redirected to status
    END AddControllers;
 
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE RemoveControllers();
    BEGIN
-      // TODO
+      _MVC^.ForgetControllerCompletely( _Controller );
    END RemoveControllers;
 
 (*--------------------------------------------------------------------------------*)
@@ -150,6 +163,7 @@ BEGIN
    _MVC := NIL;
    _Port := 8080;
    _Running := FALSE;
+   _Controller := NIL;
    _StartedTime := 0;
    _Connected := FALSE;
    _ConnectedTime := 0;

@@ -1,3 +1,48 @@
 DEFINITION MODULE Controller;
 
+(*================================================================================*)
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   EibSrvWeb,
+   mvc,
+   StringsO;
+
+(*================================================================================*)
+
+CONST
+   LOGIN_PAGE = L"login";
+   STATUS_PAGE = L"status";
+   CONTROL_PAGE = L"control";
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPController = POINTER TO CController;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CController IMPLEMENTS mvc.IController;
+
+   // IController
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN; // returning false means 500 response
+
+   // SELF
+   PUBLIC PROCEDURE BindToEibSrv( web : EibSrvWeb.TPEibSrvWeb );
+
+   // private and helpers   
+   PRIVATE VAR
+      _Web : EibSrvWeb.TPEibSrvWeb;
+
+   PRIVATE PROCEDURE ProcessLogin( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessStatus( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessControl( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ValidateUser( CONST UserName, Password : StringsO.CString ) : BOOLEAN;
+
+END CController;
+
+(*================================================================================*)
+
 END Controller.
