@@ -1389,7 +1389,21 @@ CLASS IMPLEMENTATION CDaliDevice;
       Response : CARD8 := 0;
       Request : TPDaliRequest;
    BEGIN
-      IF Queue.Peek( OUT Request ) THEN
+      IF EventFlag THEN
+         IF Result = Sync.arCompleted THEN // only successes should be reported
+            CASE Data[0] >> 5 OF
+            | 0 : linie := l1;
+            | 1 : linie := l2;
+            | 2 : linie := l3;
+            | 3 : linie := l4;
+            ELSE
+               linie := l1;
+            END; // CASE
+            da.TransportAddress := Data[1];
+            EventSink^.OnCompletion( Result, Name, linie, da, cmdEvent, Data[2], 0 );
+         END;
+      
+      ELSIF Queue.Peek( OUT Request ) THEN
          IF Result = Sync.arAlreadyPending THEN
             Request^.Pending := FALSE; // allow new send
          ELSE
@@ -1475,25 +1489,11 @@ CLASS IMPLEMENTATION CDaliDevice;
 
          END;
          
-      ELSIF EventFlag THEN
-         IF Result = Sync.arCompleted THEN // only successes should be reported
-            CASE Data[0] >> 5 OF
-            | 0 : linie := l1;
-            | 1 : linie := l2;
-            | 2 : linie := l3;
-            | 3 : linie := l4;
-            ELSE
-               linie := l1;
-            END; // CASE
-            da.TransportAddress := Data[1];
-            EventSink^.OnCompletion( Result, Name, linie, da, cmdEvent, Data[2], 0 );
-         END;
+         Communicate();
       
       ELSE
          Logger.LogS( dldMessage, logDevPrefix, L"CTR: Data received when nothing is expected" );
       END; // IF something in the Queue
-         
-      Communicate();
    END OnDaliData;
 
 (*-------------------------------------------------------------------------------*)

@@ -881,7 +881,7 @@ CLASS IMPLEMENTATION CDriver;
          CS.Clear(); // return value
 
       ELSIF EQUALS( S1, L'scene' ) THEN
-         IF NOT SplitAddress( FALSE, FALSE, FALSE, FALSE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
+         IF NOT SplitAddress( FALSE, TRUE, TRUE, FALSE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
             GOTO Error;
          END;
 

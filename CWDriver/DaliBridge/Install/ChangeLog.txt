@@ -1,3 +1,9 @@
+Version 1.0.668/R beta 18.12.2008
+- BUG: events received from DALI caused sending of next packet event if
+       the previous packet was still unacked. That premature send caused
+       with high probablity frame collision on DALI.
+- CHG: Group and all addresses allowed for "scene" command.
+
 Version 1.0.648/R beta 14.11.2008
 - BUG: "param" command did not use all parameters, it set the first found
         value to all parameters
