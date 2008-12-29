@@ -19,7 +19,7 @@
         <Definitions Include="connection"/>
         <Modules Include="netinit;netpool;inetaddr;dns;netsocket;netstream;netsrv;rawconnection;netconndispatch"/>
         <Libraries Include="Ws2_32;IPHlpApi"/>
-        <Interface Include="Ws2_32;IPHlpApi"/>
+        <InterfaceWithDelayLoad Include="Ws2_32;IPHlpApi"/>
     </ItemGroup>
 
     <!-- 4 -->

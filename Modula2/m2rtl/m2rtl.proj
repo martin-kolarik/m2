@@ -18,7 +18,7 @@
         <Modules Include="Exceptions;Storage;lrconv;Strings;FIO;time;timeWin32;Languages;Sync;SyncQueue;Delegate;Log;IObject;Debug"/>
         <!-- Messages Include="XX1;XX2"/ -->
         <Libraries Include="advapi32"/>
-        <Interface Include="advapi32"/>
+        <InterfaceWithDelayLoad Include="advapi32"/>
     </ItemGroup>
 
     <!-- 4 -->

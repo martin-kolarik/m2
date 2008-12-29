@@ -292,6 +292,12 @@
                     AdditionalMetadata="Type=Library">
             <Output TaskParameter="Include" ItemName="Grabbed"/>
         </CreateItem>
+        <!-- interface can be delayed in load -->
+        <CreateItem Condition="$(Result)!='Program'"
+                    Include="@(InterfaceWithDelayLoad -> '%(Identity).lib /delayload:%(FileName).dll')"
+                    AdditionalMetadata="Type=Library">
+            <Output TaskParameter="Include" ItemName="Grabbed"/>
+        </CreateItem>
 
         <!-- components which are not built must offer their runtimes -->
         <CreateItem Condition="$(Level)!='0' And $(PropagateBuild)=='off'"

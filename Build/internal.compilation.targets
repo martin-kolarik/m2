@@ -36,8 +36,8 @@
         <CLCTRL>/Zp8 /J /Gy /GR /Gr /GF /GS- /Oi /Zi /DNO_STRICT /DWIN32 /DWINVER=0x0501 /D_WIN32_WINNT=0x0501</CLCTRL>
         <CLCTRL Condition="$(CPPExceptions)=='on'">$(CLCTRL) /EHsc</CLCTRL>
         <!-- CLCTRL Condition="$(CLib)!='Static' And $(DynamicCLibInstallMethod)=='Private'">$(CLCTRL) /D_USE_RTM_VERSION</CLCTRL -->
-        <LINKCTRL Condition="$(CLib)=='Static'">/OPT:REF /OPT:NOWIN98 /MANIFEST:NO</LINKCTRL>
-        <LINKCTRL Condition="$(CLib)!='Static'">/OPT:REF /OPT:NOWIN98 /MANIFEST</LINKCTRL>
+        <LINKCTRL Condition="$(CLib)=='Static'">/OPT:REF /OPT:NOWIN98 /MANIFEST:NO delayimp.lib</LINKCTRL>
+        <LINKCTRL Condition="$(CLib)!='Static'">/OPT:REF /OPT:NOWIN98 /MANIFEST delayimp.lib</LINKCTRL>
         <MT Condition="$(Result)=='Program'">$(MT);#1</MT>
         <MT Condition="$(Result)=='Dynamic'">$(MT);#2</MT>
     </PropertyGroup>

@@ -9,7 +9,8 @@
     <!-- 2 -->
     <ItemGroup>
         <Components Include="API\COM"/>
-        <Interface Include="msxml2;$(ComponentPath)\Library\xmllite"/>
+        <Interface Include="msxml2"/>
+        <InterfaceWithDelayLoad Include="$(ComponentPath)\Library\xmllite"/>
     </ItemGroup>
 
     <!-- 3 -->

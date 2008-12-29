@@ -9,7 +9,7 @@
     <!-- 2 -->
     <ItemGroup>
         <Components Include="API\win32;API\COM"/>
-        <Interface Include="httpapi"/>
+        <InterfaceWithDelayLoad Include="httpapi"/>
     </ItemGroup>
 
     <!-- 3 -->

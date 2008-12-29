@@ -16,7 +16,7 @@
 
     <!-- 4 -->
     <ItemGroup>
-        <Interface Include="oleaut32;ole32;uuid"/>
+        <InterfaceWithDelayLoad Include="oleaut32;ole32;uuid"/>
     </ItemGroup>
 
 </Project>

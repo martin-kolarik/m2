@@ -17,7 +17,7 @@
 
     <!-- 4 -->
     <ItemGroup>
-        <Interface Include="htmlhelp"/>
+        <InterfaceWithDelayLoad Include="htmlhelp"/>
     </ItemGroup>
 
 </Project>
