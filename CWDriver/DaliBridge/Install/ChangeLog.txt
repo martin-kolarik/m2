@@ -1,3 +1,10 @@
+Version 1.0.671/R beta 29.12.2008
+- BUG: if event and ACK/NAK were both received in single UDP piece no next data
+        were sent to DALI. EventFlag variable was not reset, so receiving code
+        reacted to an event instead of accepting ACK and continuing with send.
+- CHG: DLLs are loaded delayed, xmllite.dll missing on target system is not problem
+       now. 
+
 Version 1.0.668/R beta 18.12.2008
 - BUG: events received from DALI caused sending of next packet event if
        the previous packet was still unacked. That premature send caused

@@ -214,7 +214,7 @@ CLASS IMPLEMENTATION CUDPCommunicator;
       expectedReset : BOOLEAN := FALSE;
       gdeResponse : TGDEResponse;
       i, l : CARDINAL;
-      leaveTimeout, eventFlag : BOOLEAN := FALSE;
+      leaveTimeout, eventFlag : BOOLEAN;
       packet : ARRAY [0..15] OF BYTE;
       processResult : Sync.TAsyncResult := Sync.arNoData;
    BEGIN
@@ -244,6 +244,8 @@ CLASS IMPLEMENTATION CUDPCommunicator;
          END;
          
          leaveTimeout := FALSE;
+         eventFlag := FALSE;
+
          CASE gdeResponse OF
          | gderReset : // OK, switch on
             Logger^.LogS( dldDebug, logNetPrefix, L"res: Reset OK" );
