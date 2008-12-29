@@ -424,6 +424,7 @@ CLASS IMPLEMENTATION CXMLReader;
 
 	PUBLIC PROCEDURE Reset();
 	VAR
+	   loadSuccess : BOOLEAN;
 	   malloc : TPMalloc;
 	   stream : TPStream;
 	BEGIN
@@ -445,9 +446,14 @@ CLASS IMPLEMENTATION CXMLReader;
 	      xmlLITE.TPIXmlReader( _IReader )^.Release();
 	      _IReader := NIL;
 	   END;
-	   IF xmlLITE.CreateXmlReader( xmlLITE.IID_IXmlReader, OUT _IReader, TPMalloc( _IMalloc )) = winerror.S_OK THEN
-	      xmlLITE.TPIXmlReader( _IReader )^.SetInput( ADR( stream^.CIUnknown ));
-	   ELSE
+
+	   TRY // xmllite is delayed load
+	      IF xmlLITE.CreateXmlReader( xmlLITE.IID_IXmlReader, OUT _IReader, TPMalloc( _IMalloc )) = winerror.S_OK THEN
+	         xmlLITE.TPIXmlReader( _IReader )^.SetInput( ADR( stream^.CIUnknown ));
+	      ELSE
+	         _IReader := NIL;
+	      END;
+	   EXCEPT TRISTATE( 1 ) DO
 	      _IReader := NIL;
 	   END;
 	END Reset;
