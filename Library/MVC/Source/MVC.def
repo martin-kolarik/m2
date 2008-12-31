@@ -7,6 +7,7 @@ IMPORT
    IOO,
    HttpCommon,
    HttpSrv,
+   Languages,
    maps,
    StringsO;
 
@@ -15,12 +16,20 @@ IMPORT
 #save, option( dll_export => on )
 
 TYPE
+   TPMessageSource = POINTER TO IMessageSource;
    TPContainer = POINTER TO IContainer;
    TPHttpRequest = POINTER TO IHttpRequest;
    TPView = POINTER TO IView;
    TPController = POINTER TO IController;
    TPMVC = POINTER TO IMVC;
    
+(*--------------------------------------------------------------------------------*)
+
+INTERFACE IMessageSource;
+   PROCEDURE GetMessage( language : Languages.TLanguage; CONST Key : StringsO.IString; OUT Message : StringsO.IString ) : BOOLEAN;
+   PROCEDURE GetMessageOA( language : Languages.TLanguage; CONST Key : ARRAY OF WCHAR; OUT Message : StringsO.IString ) : BOOLEAN;
+END IMessageSource;
+
 (*--------------------------------------------------------------------------------*)
 
 INTERFACE IContainer;
@@ -42,7 +51,7 @@ INTERFACE IContainer;
    // view side
    PROCEDURE SetModelValue( CONST Model, Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    PROCEDURE GetModelValue( CONST Model : StringsO.IString; OUT Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
-   PROCEDURE Format( FailOnError : BOOLEAN; CONST Source : StringsO.IString; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
+   PROCEDURE Format( FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data, including message texts. MessageSource can be NIL.
    
    PROCEDURE ResetModelViewMapping(); // clears all mode-view bindings
    PROCEDURE SetModelViewMapping( CONST FullModel, ViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
@@ -54,24 +63,39 @@ END IContainer;
 INTERFACE IHttpRequest;
    READONLY PROPERTY
       RequestVerb : HttpCommon.TVerb;
+      FullURI : StringsO.CString;
       AbsoluteURI : StringsO.CString;
       ControllerURI : StringsO.CString;
       RequestHeaders : HttpCommon.TPHttpHeaders;
-      ResponseHeaders : HttpCommon.TPHttpHeaders;
+      Language : Languages.TLanguage;
+
+      MessageSource : TPMessageSource; // messages are loaded single time for MVC's context, can be NIL
       ModelContainer : TPContainer;
       Session : HttpSrv.TPSession;
 END IHttpRequest;
 
 (*--------------------------------------------------------------------------------*)
 
+TYPE
+   TViewOutputType = (
+      votBuffer,
+      votInputStream,
+      votOutputStream
+   );
+
 INTERFACE IView;
-   PROCEDURE Format( CONST Request : TPHttpRequest; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   READONLY PROPERTY
+      OutputType : TViewOutputType;
+   PROCEDURE FormatToBuffer( CONST Request : TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   PROCEDURE FormatToInputStream( CONST Request : TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PROCEDURE FormatToOutputStream( CONST Request : TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PROCEDURE Dispose();
 END IView;
 
 (*--------------------------------------------------------------------------------*)
 
 INTERFACE IController;
-   PROCEDURE ProcessRequest( CONST Request : TPHttpRequest; OUT View : TPView ) : BOOLEAN; // returning false means 500 response
+   PROCEDURE ProcessRequest( Fallback : BOOLEAN; CONST Request : TPHttpRequest; OUT View : TPView ) : BOOLEAN; // returning false means 500 response
 END IController;
 
 (*--------------------------------------------------------------------------------*)
@@ -80,6 +104,9 @@ INTERFACE IMVC;
    PROCEDURE RegisterController( Controller : TPController; ForVerb : HttpCommon.TVerb; CONST ControllerURI : ARRAY OF WCHAR ); // controller can be registered more times for different Verb and URI
    PROCEDURE ForgetController( Controller : TPController; OfVerb : HttpCommon.TVerb; CONST ControllerURI : ARRAY OF WCHAR );
    PROCEDURE ForgetControllerCompletely( Controller : TPController );
+
+   PROCEDURE RegisterFallbackController( Controller : TPController ); // for GET only, for all URIs, intended mainlt for static sources like files etc.
+   PROCEDURE ForgetFallbackController();
 END IMVC;
 
 //================================================================================
@@ -90,7 +117,9 @@ PROCEDURE Cleanup();
 
 //================================================================================
 
-PROCEDURE redirectView( CONST URL : ARRAY OF WCHAR ) : TPView;
+PROCEDURE fileView( CONST resolver : FSO.TPFilePathResolver; CONST PathRelativeToContext : ARRAY OF WCHAR ) : TPView;
+PROCEDURE absoluteRedirectView( CONST FullURI : ARRAY OF WCHAR ) : TPView;
+PROCEDURE redirectView( CONST ContextRelativeURI : ARRAY OF WCHAR ) : TPView;
 PROCEDURE rawHTMLView( CONST HTML : ARRAY OF WCHAR ) : TPView;
 PROCEDURE pageTemplateView( CONST resolver : FSO.TPFilePathResolver; CONST viewName : ARRAY OF WCHAR ) : TPView;
 

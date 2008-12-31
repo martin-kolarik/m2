@@ -9,11 +9,11 @@ FROM Storage IMPORT
 IMPORT
    HttpConnection,
    HttpTools,
-   Languages,
    LanguagesO,
    lists,
    Log,
    netsocket,
+   Resources,
    Storage,
    StorageO,
    Strings,
@@ -48,7 +48,7 @@ CLASS CContainer IMPLEMENTS IContainer;
 
    PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Model, Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Model : StringsO.IString; OUT Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
-   PUBLIC VIRTUAL PROCEDURE Format( FailOnError : BOOLEAN; CONST Source : StringsO.IString; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
+   PUBLIC VIRTUAL PROCEDURE Format( FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
 
    PUBLIC VIRTUAL PROCEDURE ResetModelViewMapping(); // clears all mode-view bindings
    PUBLIC VIRTUAL PROCEDURE SetModelViewMapping( CONST FullModel, ViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
@@ -259,23 +259,23 @@ CLASS IMPLEMENTATION CContainer;
       i, index, j : INTEGER;
       lvalue : StringsO.CString;
       keyIndex, valueIndex : BOOLEAN;
-      list : lists.TPStringStringList;
-      map : maps.TPStringStringMap;
+      list : lists.TPStringStringList := NIL;
+      map : maps.TPStringStringMap := NIL;
       ps : StringsO.TPString;
       sindex1, sindex2 : StringsO.CString;
    BEGIN
       i := model.IndexOfOA( L".", 0 );
       IF i > 0 THEN // ok, find in map or list by key
-         IF NOT GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
-            map := NIL;
-         ELSIF NOT GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
-            list := NIL;
+         IF GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
+            // fall down
+         ELSIF GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
+            // fall down
          END;
          IF ( map = NIL ) AND ( list = NIL ) THEN
             GOTO Error;
          END;
          model.Substring( i+1, -1, OUT sindex1 );            
-         Format( FALSE, sindex1, OUT sindex2 );
+         Format( FALSE, sindex1, NIL, 0, OUT sindex2 );
          IF map <> NIL THEN
             map^.Remove( sindex2 );
             map^.Add( sindex2, value );
@@ -310,7 +310,7 @@ CLASS IMPLEMENTATION CContainer;
       END;
       IF valueIndex OR keyIndex THEN
          model.Substring( i+1, j-i-1, OUT sindex1 );
-         Format( FALSE, sindex1, OUT sindex2 );
+         Format( FALSE, sindex1, NIL, 0, OUT sindex2 );
          sindex2.Trim();
          IF NOT Strings.ToINT32W( OA( sindex2.Length-1, sindex2.rawData ), 10, OUT index ) THEN
             GOTO Error;
@@ -368,23 +368,23 @@ CLASS IMPLEMENTATION CContainer;
       boolean : BOOLEAN;
       i, index, j : INTEGER;
       keyIndex, valueIndex : BOOLEAN;
-      list : lists.TPStringStringList;
-      map : maps.TPStringStringMap;
+      list : lists.TPStringStringList := NIL;
+      map : maps.TPStringStringMap := NIL;
       ps : StringsO.TPString;
       sindex1, sindex2 : StringsO.CString;
    BEGIN
       i := model.IndexOfOA( L".", 0 );
       IF i > 0 THEN // ok, find in map or list by key
-         IF NOT GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
-            map := NIL;
-         ELSIF NOT GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
-            list := NIL;
+         IF GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
+            // fall down
+         ELSIF GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
+            // fall down
          END;
          IF ( map = NIL ) AND ( list = NIL ) THEN
             GOTO Error;
          END;
          model.Substring( i+1, -1, OUT sindex1 );            
-         Format( FALSE, sindex1, OUT sindex2 );
+         Format( FALSE, sindex1, NIL, 0, OUT sindex2 );
          IF ( map <> NIL ) AND NOT map^.Get( sindex2, OUT value ) THEN
             GOTO Error;
          ELSIF ( list <> NIL ) AND NOT list^.Get( sindex2, OUT value ) THEN
@@ -417,7 +417,7 @@ CLASS IMPLEMENTATION CContainer;
       END;
       IF valueIndex OR keyIndex THEN
          model.Substring( i+1, j-i-1, OUT sindex1 );
-         Format( FALSE, sindex1, OUT sindex2 );
+         Format( FALSE, sindex1, NIL, 0, OUT sindex2 );
          sindex2.Trim();
          IF NOT Strings.ToINT32W( OA( sindex2.Length-1, sindex2.rawData ), 10, OUT index ) THEN
             GOTO Error;
@@ -467,13 +467,12 @@ CLASS IMPLEMENTATION CContainer;
    Error:
       value.FromOA( L'##unknown model: ' );
       value.Append( model );
-      value.AppendOA( L"" );
       RETURN FALSE;
    END GetModelValue;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Format( FailOnError : BOOLEAN; CONST Source : StringsO.IString; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
+   PUBLIC VIRTUAL PROCEDURE Format( FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
    VAR
       i, mi, j : INTEGER;
       model : StringsO.CString;
@@ -499,8 +498,16 @@ CLASS IMPLEMENTATION CContainer;
 
          // resolve and replace model
          Formatted.Substring( mi, j-mi, OUT model );
-         IF NOT GetModelValue( model, OUT value ) AND FailOnError THEN
-            RETURN FALSE;
+         IF ( MessageSource <> NIL ) AND model.StartsWithOA( L"msg." ) THEN
+            model.Remove( 0, 4 ); // delete "msg."
+            IF NOT MessageSource^.GetMessage( language, model, OUT value ) THEN
+               value.FromOA( L'##unknown message: ' ); value.Append( model );
+               RETURN FALSE;
+            END;
+         ELSE
+            IF NOT GetModelValue( model, OUT value ) AND FailOnError THEN
+               RETURN FALSE;
+            END;
          END;
          Formatted.Remove( i, j-i+1 );
          Formatted.Insert( i, value );
@@ -554,11 +561,14 @@ CLASS CHttpRequest IMPLEMENTS IHttpRequest;
    // IHttpRequest
    PUBLIC VIRTUAL READONLY PROPERTY
       RequestVerb : HttpCommon.TVerb;
+      FullURI : StringsO.CString;
       AbsoluteURI : StringsO.CString;
       ControllerURI : StringsO.CString;
       RequestHeaders : HttpCommon.TPHttpHeaders;
       ResponseHeaders : HttpCommon.TPHttpHeaders;
-      ModelContainer : TPContainer; // there is model named "" and model named "session"
+      Language : Languages.TLanguage;
+      MessageSource : TPMessageSource;
+      ModelContainer : TPContainer;
       Session : HttpSrv.TPSession;
       
    // SELF
@@ -567,8 +577,10 @@ CLASS CHttpRequest IMPLEMENTS IHttpRequest;
       _Session : HttpSrv.TPSession;
       _ControllerURI : StringsO.CString;
       _Container : TPContainer;
+      _Language : CARDINAL; // cache
+      _MessageSource : TPMessageSource;
 
-   LOCAL PROCEDURE Init( CONST RequestURI : StringsO.CString; Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPContainer );
+   LOCAL PROCEDURE Init( CONST RequestURI : StringsO.CString; Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPContainer; CONST MessageSource : TPMessageSource );
 
 END CHttpRequest;
 
@@ -582,6 +594,13 @@ CLASS IMPLEMENTATION CHttpRequest;
    BEGIN
       RETURN _Connection^.RequestVerb;
    END RequestVerb;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY FullURI GET : StringsO.CString;
+   BEGIN
+      RETURN _Connection^.FullURI;
+   END FullURI;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -613,6 +632,29 @@ CLASS IMPLEMENTATION CHttpRequest;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROPERTY Language GET : Languages.TLanguage;
+   VAR
+      acceptLanguage : StringsO.CString;
+   BEGIN
+      IF _Language <> -1 THEN
+         // fall down
+      ELSIF NOT RequestHeaders^.Get( HttpCommon.AcceptLanguage, OUT acceptLanguage ) THEN
+         _Language := 0;
+      ELSIF NOT HttpTools.DecodeLanguage( acceptLanguage, OUT _Language ) THEN
+         _Language := 0;
+      END;
+      RETURN _Language;
+   END Language;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY MessageSource GET : TPMessageSource;
+   BEGIN
+      RETURN _MessageSource;
+   END MessageSource;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROPERTY ModelContainer GET : TPContainer;
    BEGIN
       RETURN _Container;
@@ -627,12 +669,13 @@ CLASS IMPLEMENTATION CHttpRequest;
       
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE Init( CONST ControllerURI : StringsO.CString; Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPContainer );
+   LOCAL PROCEDURE Init( CONST ControllerURI : StringsO.CString; Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPContainer; CONST MessageSource : TPMessageSource );
    BEGIN
       _ControllerURI := ControllerURI;
       _Connection := Connection;
       _Session := Session;
       _Container := Container;
+      _MessageSource := MessageSource;
    END Init;
 
 (*--------------------------------------------------------------------------------*)
@@ -641,21 +684,30 @@ BEGIN
    _Connection := NIL;
    _Session := NIL;
    _Container := NIL;
+   _MessageSource := NIL;
+   _Language := -1;
 END CHttpRequest;
 
 (*================================================================================*)
 
-CLASS CMVC IMPLEMENTS HttpSrv.IHttpProcessor, IMVC;
+CLASS CMVC IMPLEMENTS HttpSrv.IHttpProcessor, IMessageSource, IMVC;
 
    // IHttpProcessor
    PUBLIC VIRTUAL PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT WantsSession : BOOLEAN ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE ProcessRequest( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession );
    PUBLIC VIRTUAL PROCEDURE SessionExpired( CONST Session : HttpSrv.TPSession );
+   
+   // IMessageSource
+   PUBLIC VIRTUAL PROCEDURE GetMessage( language : Languages.TLanguage; CONST Key : StringsO.IString; OUT Message : StringsO.IString ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetMessageOA( language : Languages.TLanguage; CONST Key : ARRAY OF WCHAR; OUT Message : StringsO.IString ) : BOOLEAN;
 
    // IMVC
    PUBLIC VIRTUAL PROCEDURE RegisterController( Controller : TPController; ForVerb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR ); // controller can be registered more times for different Verb and URI
    PUBLIC VIRTUAL PROCEDURE ForgetController( Controller : TPController; OfVerb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR );
    PUBLIC VIRTUAL PROCEDURE ForgetControllerCompletely( Controller : TPController );
+
+   PUBLIC VIRTUAL PROCEDURE RegisterFallbackController( Controller : TPController ); // for GET only, for all URIs, intended mainlt for static sources like files etc.
+   PUBLIC VIRTUAL PROCEDURE ForgetFallbackController();
 
    // SELF
    PUBLIC PROCEDURE Init( CONST Context : StringsO.CString );
@@ -664,6 +716,9 @@ CLASS CMVC IMPLEMENTS HttpSrv.IHttpProcessor, IMVC;
       _Running : BOOLEAN := FALSE;
       _Context : StringsO.CString;
       _Controllers : syncmaps.CStringSyncMap;
+      _FallbackController : TPController;
+      _Messages : Resources.TPPlainResources;
+      _MessagesLock : Sync.LOCK;
 
    PUBLIC PROCEDURE Dispose();
 
@@ -682,10 +737,20 @@ CLASS IMPLEMENTATION CMVC;
 //--------------------------------------------------------------------------------
 
    PUBLIC VIRTUAL PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT WantsSession : BOOLEAN ) : BOOLEAN;
+   VAR
+      l : CARDINAL;
    BEGIN
       IF ( Verb <> HttpCommon.verbGET ) AND ( Verb <> HttpCommon.verbPOST ) THEN
          RETURN FALSE;
-      ELSIF Strings.StartsWithW( URL, OA( _Context.Length-1, _Context.rawData )) THEN
+      END;
+      
+      l := _Context.Length;
+      IF Strings.StartsWithW( URL, OA( l-1, _Context.rawData )) THEN // URL = .../Context/...
+         WantsSession := TRUE;
+         RETURN TRUE;
+      ELSIF l < 2 THEN
+         RETURN FALSE;
+      ELSIF Strings.EndsWithW( URL, OA( l-2, _Context.rawData )) THEN // URL = .../Context
          WantsSession := TRUE;
          RETURN TRUE;
       ELSE
@@ -702,18 +767,26 @@ CLASS IMPLEMENTATION CMVC;
       controller : TPController;
       containerMap : syncmaps.TPPtrSyncMap;
       container : POINTER TO CContainer;
+      fallbackFlag : BOOLEAN := FALSE;
+      InputStream : IOO.TPStream;
       l : CARDINAL;
       mappedName : StringsO.CString;
       request : CHttpRequest;
       s : StringsO.CString;
+      StatusCode : HttpCommon.THttpResponse;
       view : TPView;
    BEGIN
       s := Connection^.RequestURI;
       s.Remove( 0, _Context.Length ); // remove context leading
 
-      IF NOT LookupController( Connection^.RequestVerb, OA( s.Length-1, s.rawData ), OUT controller ) THEN
+      IF LookupController( Connection^.RequestVerb, OA( s.Length-1, s.rawData ), OUT controller ) THEN
+         // fall down
+      ELSIF ( _FallbackController = NIL ) OR ( Connection^.RequestVerb = HttpCommon.verbPOST ) THEN // fallback works for POST only
          Connection^.StatusCode := HttpCommon.httpres_404;
          RETURN;
+      ELSE
+         fallbackFlag := TRUE;
+         controller := _FallbackController;
       END;
       
       IF NOT Session^.Get( SESSION_MVC, OUT containerMap ) THEN
@@ -747,24 +820,57 @@ CLASS IMPLEMENTATION CMVC;
       connectionData.Dispose();
       
       // prepare controller data
-      request.Init( s, Connection, Session, container );
+      request.Init( s, Connection, Session, container, ADR( SELF ));
       buffer.Size := 16384; // initial size
       view := NIL;
       
-      IF NOT controller^.ProcessRequest( ADR( request ), OUT view ) THEN
+      IF NOT controller^.ProcessRequest( fallbackFlag, ADR( request ), OUT view ) THEN
          Connection^.StatusCode := HttpCommon.httpres_500;
       ELSIF view = NIL THEN
          Connection^.StatusCode := HttpCommon.httpres_500;
          // LOG error
          ASSERT( FALSE );
       ELSE
-         container^.ResetModelViewMapping();
-         IF view^.Format( ADR( request ), OUT buffer ) THEN
-            Connection^.Stream^.WriteBuffer( buffer, OUT l, netsocket.FORSAFETY );
-            // LOG errors
+         StatusCode := HttpCommon.httpres_200;
+         
+         CASE view^.OutputType OF
+         //-----
+         | votBuffer :
+            IF NOT view^.FormatToBuffer( ADR( request ), REF StatusCode, Connection^.ResponseHeaders, OUT buffer ) THEN
+               Connection^.StatusCode := HttpCommon.httpres_500;
+            ELSIF buffer.Empty THEN
+               Connection^.StatusCode := StatusCode;
+            ELSE
+               Connection^.StatusCode := StatusCode;
+               Connection^.Stream^.WriteBuffer( buffer, OUT l, netsocket.FORSAFETY );
+               // LOG errors
+            END;
+         //-----
+         | votInputStream :
+            ASSERT( FALSE ); // NOT IMPLEMENTED YET
+            IF NOT view^.FormatToInputStream( ADR( request ), REF StatusCode, Connection^.ResponseHeaders, OUT InputStream ) OR ( InputStream = NIL ) THEN
+               InputStream := NIL;
+               Connection^.StatusCode := HttpCommon.httpres_500;
+            ELSIF InputStream^.AtEnd THEN
+               Connection^.StatusCode := StatusCode;
+            ELSE
+               // TODO copy streams
+            END;
+            IF InputStream <> NIL THEN
+               InputStream^.Close( FALSE );
+               DISPOSE( InputStream );
+            END;
+         //-----
+         | votOutputStream :
+            IF NOT view^.FormatToOutputStream( ADR( request ), REF StatusCode, Connection^.ResponseHeaders, Connection^.Stream ) THEN
+               Connection^.StatusCode := HttpCommon.httpres_500;
+               // LOG errors
+            END;
          ELSE
-            Connection^.StatusCode := HttpCommon.httpres_500;
-         END;
+            ASSERT( FALSE );
+         END;         
+
+         view^.Dispose();
       END;
    END ProcessRequest;
 
@@ -787,6 +893,49 @@ CLASS IMPLEMENTATION CMVC;
 
       DISPOSE( containerMap );
    END SessionExpired;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE GetMessage( language : Languages.TLanguage; CONST Key : StringsO.IString; OUT Message : StringsO.IString ) : BOOLEAN;
+   VAR
+      b : BOOLEAN := FALSE;
+      e : ARRAY [0..3] OF WCHAR;
+      length : CARDINAL;
+      text : PWCHAR;
+   BEGIN
+      _MessagesLock.Lock();
+      IF _Messages = NIL THEN
+         NEW( _Messages );
+         // TODO
+         b := _Messages^.LoadXML( L"D:\Work\SmartControl\Code\EIB\EibSrv\Install\Web\SmartServer.xrs.xml", OUT e );
+         IF b THEN
+            _Messages^.FallbackLang := _Messages^.Lang;
+         END;
+      ELSE
+         b := TRUE;
+      END;
+      IF b THEN
+         b := _Messages^.GetTextByKeyL( language, Key, OUT text, OUT length );
+      END;
+      IF b THEN
+         Message.FromOA( OA( length-1, text ));
+      ELSE
+         Message.Assign( Key );
+      END;
+      _MessagesLock.Unlock();
+
+      RETURN b;
+   END GetMessage;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE GetMessageOA( language : Languages.TLanguage; CONST Key : ARRAY OF WCHAR; OUT Message : StringsO.IString ) : BOOLEAN;
+   VAR
+      s : StringsO.CString;
+   BEGIN
+      s.FromOA( Key );
+      RETURN GetMessage( language, s, OUT Message );
+   END GetMessageOA;
 
 //--------------------------------------------------------------------------------
 
@@ -842,6 +991,20 @@ CLASS IMPLEMENTATION CMVC;
 
 //--------------------------------------------------------------------------------
 
+   PUBLIC VIRTUAL PROCEDURE RegisterFallbackController( Controller : TPController );
+   BEGIN
+      _FallbackController := Controller;
+   END RegisterFallbackController;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE ForgetFallbackController();
+   BEGIN
+      _FallbackController := NIL;
+   END ForgetFallbackController;
+
+//--------------------------------------------------------------------------------
+
    PUBLIC PROCEDURE Init( CONST Context : StringsO.CString );
    BEGIN
       _Context := Context;
@@ -853,6 +1016,9 @@ CLASS IMPLEMENTATION CMVC;
    PUBLIC PROCEDURE Dispose();
    BEGIN
       _Controllers.Dispose();
+      IF _Messages <> NIL THEN
+         DISPOSE( _Messages );
+      END;
    END Dispose;
 
 //--------------------------------------------------------------------------------
@@ -912,6 +1078,8 @@ CLASS IMPLEMENTATION CMVC;
 //--------------------------------------------------------------------------------
 
 BEGIN
+   _FallbackController := NIL;
+   _Messages := NIL;
 FINALLY
    Dispose();
 END CMVC;
@@ -1017,16 +1185,35 @@ END Cleanup;
 
 (*================================================================================*)
 
-PROCEDURE fileView( CONST Path : ARRAY OF WCHAR ) : TPView;
+PROCEDURE fileView( CONST resolver : FSO.TPFilePathResolver; CONST PathRelativeToContext : ARRAY OF WCHAR ) : TPView;
+VAR
+   view : View.TPFileView;
 BEGIN
-   RETURN NIL;
+   NEW( view );
+   view^.Init( resolver, PathRelativeToContext );
+   RETURN view;
 END fileView;
 
 //--------------------------------------------------------------------------------
 
-PROCEDURE redirectView( CONST URL : ARRAY OF WCHAR ) : TPView;
+PROCEDURE absoluteRedirectView( CONST FullURI : ARRAY OF WCHAR ) : TPView;
+VAR
+   view : View.TPRedirectView;
 BEGIN
-   RETURN NIL;
+   NEW( view );
+   view^.Init( TRUE, FullURI );
+   RETURN view;
+END absoluteRedirectView;
+
+//--------------------------------------------------------------------------------
+
+PROCEDURE redirectView( CONST ControllerName : ARRAY OF WCHAR ) : TPView;
+VAR
+   view : View.TPRedirectView;
+BEGIN
+   NEW( view );
+   view^.Init( FALSE, ControllerName );
+   RETURN view;
 END redirectView;
 
 //--------------------------------------------------------------------------------

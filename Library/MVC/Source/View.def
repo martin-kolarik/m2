@@ -7,6 +7,7 @@ FROM Storage IMPORT
 
 IMPORT
    FSO,
+   IOO,
    lists,
    MVC,
    StorageO,
@@ -17,11 +18,60 @@ IMPORT
 (*================================================================================*)
 
 TYPE
+   TPFileView = POINTER TO CFileView;
+
+CLASS CFileView IMPLEMENTS MVC.IView;
+   // IView
+   PUBLIC VIRTUAL READONLY PROPERTY
+      OutputType : MVC.TViewOutputType;
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+
+   // SELF
+   PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; CONST PathRelativeToContext : ARRAY OF WCHAR );   
+   
+   PRIVATE VAR
+      Resolver : FSO.TPFilePathResolver;
+      PathRelativeToContext : StringsO.CString;
+END CFileView;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPRedirectView = POINTER TO CRedirectView;
+
+CLASS CRedirectView IMPLEMENTS MVC.IView;
+   // IView
+   PUBLIC VIRTUAL READONLY PROPERTY
+      OutputType : MVC.TViewOutputType;
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+
+   // SELF
+   PUBLIC PROCEDURE Init( CONST URIIsAbsolute : BOOLEAN; URIOrControllerName : ARRAY OF WCHAR );   
+   
+   PRIVATE VAR
+      AbsoluteFlag : BOOLEAN;
+      URIOrControllerName : StringsO.CString;
+END CRedirectView;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
    TPRawHTMLView = POINTER TO CRawHTMLView;
 
 CLASS CRawHTMLView IMPLEMENTS MVC.IView;
    // IView
-   PUBLIC VIRTUAL PROCEDURE Format( CONST Request : MVC.TPHttpRequest; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL READONLY PROPERTY
+      OutputType : MVC.TViewOutputType;
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE Dispose();
 
    // SELF
    PUBLIC PROCEDURE Init( CONST HTML : ARRAY OF WCHAR );   
@@ -52,7 +102,12 @@ TYPE
 
 CLASS CPageTemplateView IMPLEMENTS MVC.IView;
    // IView
-   PUBLIC VIRTUAL PROCEDURE Format( CONST Request : MVC.TPHttpRequest; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL READONLY PROPERTY
+      OutputType : MVC.TViewOutputType;
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE Dispose();
 
    // SELF
    PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; CONST ViewName : ARRAY OF WCHAR );

@@ -34,7 +34,7 @@ END CTest;
 (*---------------------------------------------------------------------------*)
 
 CLASS CController IMPLEMENTS MVC.IController;
-   PUBLIC VIRTUAL PROCEDURE ProcessRequest( CONST Request : MVC.TPHttpRequest; OUT View : MVC.TPView ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; CONST Request : MVC.TPHttpRequest; OUT View : MVC.TPView ) : BOOLEAN;
 END CController;
 
 (*---------------------------------------------------------------------------*)
@@ -140,7 +140,7 @@ CLASS IMPLEMENTATION CController;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE ProcessRequest( CONST Request : MVC.TPHttpRequest; OUT View : MVC.TPView ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; CONST Request : MVC.TPHttpRequest; OUT View : MVC.TPView ) : BOOLEAN;
    VAR
       b : BOOLEAN;
       l : lists.TPStringStringList;
