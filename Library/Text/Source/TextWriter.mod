@@ -59,54 +59,6 @@ CLASS IMPLEMENTATION CTextWriter;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC PROCEDURE Write( CONST String : StringsO.IString; LineEnd : BOOLEAN );
-	BEGIN
-      WriteM( String.rawData, String.Length, LineEnd );
-	END Write;
-	
-(*---------------------------------------------------------------------------*)
-
-	PUBLIC PROCEDURE WriteOA( CONST String : ARRAY OF WCHAR; LineEnd : BOOLEAN );
-	BEGIN
-      WriteM( ADR( String ), LENGTH( String ), LineEnd );
-	END WriteOA;
-
-(*---------------------------------------------------------------------------*)
-
-	PUBLIC PROCEDURE WriteM( CONST String : PWCHAR; Length : CARDINAL; _LineEnd : BOOLEAN );
-	VAR
-	   Buffer : ARRAY [0..1023] OF BYTE;
-		c, i, l, p, sl : CARDINAL;
-		s : PWCHAR;
-	BEGIN
-		IF _Stream = NIL THEN
-			RETURN;
-		END;
-		sl := Length;
-		IF sl > 0 THEN
-		   i := 0;
-		   s := String;
-		   WHILE i < sl DO
-			   l := MIN2( 2*HIGH( Buffer ) DIV 3 + 1, sl-i );
-			   Strings.ToAStream( OA( l-1, s ), _Encoding, OUT Buffer, OUT c, OUT p );
-			   IF p > 0 THEN
-				   _Stream^.WriteOA( OA( p-1, ADR( Buffer )), OUT l, Sync.FOREVER );
-			   END;
-			   IF c = 0 THEN // error
-			      ASSERTLOG( FALSE );
-			      EXIT;
-			   END;
-			   INC( s, c << 1 );
-			   INC( i, c );
-		   END; // WHILE
-		END; // IF
-		IF _LineEnd THEN
-		   LineEnd();
-		END;
-   END WriteM;
-
-(*---------------------------------------------------------------------------*)
-
 	PUBLIC PROCEDURE WriteINT32( I : INT32; Base : CARDINAL; LineEnd : BOOLEAN );
 	VAR
 		S : StringsO.CString;
@@ -129,28 +81,111 @@ CLASS IMPLEMENTATION CTextWriter;
 
 (*---------------------------------------------------------------------------*)
 
+	PUBLIC PROCEDURE Write( CONST String : StringsO.IString; LineEnd : BOOLEAN );
+	BEGIN
+      WriteTimeoutM( String.rawData, String.Length, LineEnd, Sync.FOREVER );
+	END Write;
+	
+(*---------------------------------------------------------------------------*)
+
+	PUBLIC PROCEDURE WriteOA( CONST String : ARRAY OF WCHAR; LineEnd : BOOLEAN );
+	BEGIN
+      WriteTimeoutM( ADR( String ), LENGTH( String ), LineEnd, Sync.FOREVER );
+	END WriteOA;
+
+(*---------------------------------------------------------------------------*)
+
+	PUBLIC PROCEDURE WriteM( CONST String : PWCHAR; Length : CARDINAL; LineEnd : BOOLEAN );
+	BEGIN
+	   WriteTimeoutM( String, Length, LineEnd, Sync.FOREVER );
+	END WriteM;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE LineEnd();
+   BEGIN
+      LineEndTimeout( Sync.FOREVER );
+   END LineEnd;
+
+(*---------------------------------------------------------------------------*)
+
+	PUBLIC PROCEDURE WriteTimeout( CONST String : StringsO.IString; LineEnd : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+	BEGIN
+      RETURN WriteTimeoutM( String.rawData, String.Length, LineEnd, TimeoutMS );
+   END WriteTimeout;
+
+(*---------------------------------------------------------------------------*)
+
+	PUBLIC PROCEDURE WriteTimeoutOA( CONST String : ARRAY OF WCHAR; LineEnd : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+	BEGIN
+      RETURN WriteTimeoutM( ADR( String ), LENGTH( String ), LineEnd, TimeoutMS );
+	END WriteTimeoutOA;
+
+(*---------------------------------------------------------------------------*)
+
+	PUBLIC PROCEDURE WriteTimeoutM( CONST String : PWCHAR; Length : CARDINAL; _LineEnd : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+	VAR
+	   Buffer : ARRAY [0..1023] OF BYTE;
+		c, i, l, p, sl : CARDINAL;
+		Result : Sync.TAsyncResult;
+		s : PWCHAR;
+	BEGIN
+		IF _Stream = NIL THEN
+			RETURN Sync.arCannotStart;
+		END;
+		sl := Length;
+		IF sl > 0 THEN
+		   i := 0;
+		   s := String;
+		   WHILE i < sl DO
+			   l := MIN2( 2*HIGH( Buffer ) DIV 3 + 1, sl-i );
+			   Strings.ToAStream( OA( l-1, s ), _Encoding, OUT Buffer, OUT c, OUT p );
+			   IF p = 0 THEN
+			      Result := Sync.arCompleted;
+			   ELSE
+				   Result := _Stream^.WriteOA( OA( p-1, ADR( Buffer )), OUT l, TimeoutMS );
+			   END;
+			   IF Result NOT IN Sync.arsCompletions THEN
+			      RETURN Result;
+			   ELSIF c = 0 THEN // error
+			      ASSERTLOG( FALSE );
+			      EXIT;
+			   END;
+			   INC( s, c << 1 );
+			   INC( i, c );
+		   END; // WHILE
+		END; // IF
+		IF _LineEnd THEN
+		   RETURN LineEndTimeout( TimeoutMS );
+		ELSE
+   		RETURN Sync.arCompleted;
+		END;
+   END WriteTimeoutM;
+	
+(*---------------------------------------------------------------------------*)
+
+	PUBLIC PROCEDURE LineEndTimeout( TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    VAR
       l : CARDINAL;
    BEGIN
 		IF _Stream = NIL THEN
-			RETURN;
+			RETURN Sync.arCannotStart;
 		END;
       IF ( _Encoding = Languages.cp_UTF16 ) OR ( _Encoding = Languages.cp_UTF16_BIG_ENDIAN ) THEN
          CASE _LineEndStyle OF
-         | lesWindows : _Stream^.WriteOA( WCHAR( 13 ) + WCHAR( 10 ), OUT l, Sync.FOREVER );
-         | lesUNIX : _Stream^.WriteOA( WCHAR( 10 ), OUT l, Sync.FOREVER );
-         | lesMAC : _Stream^.WriteOA( WCHAR( 13 ), OUT l, Sync.FOREVER );
+         | lesWindows : RETURN _Stream^.WriteOA( WCHAR( 13 ) + WCHAR( 10 ), OUT l, TimeoutMS );
+         | lesUNIX : RETURN _Stream^.WriteOA( WCHAR( 10 ), OUT l, TimeoutMS );
+         | lesMAC : RETURN _Stream^.WriteOA( WCHAR( 13 ), OUT l, TimeoutMS );
          END;
       ELSE
          CASE _LineEndStyle OF
-         | lesWindows : _Stream^.WriteOA( CHAR( 13 ) + CHAR( 10 ), OUT l, Sync.FOREVER );
-         | lesUNIX : _Stream^.WriteOA( CHAR( 10 ), OUT l, Sync.FOREVER );
-         | lesMAC : _Stream^.WriteOA( CHAR( 13 ), OUT l, 
-         Sync.FOREVER );
+         | lesWindows : RETURN _Stream^.WriteOA( CHAR( 13 ) + CHAR( 10 ), OUT l, TimeoutMS );
+         | lesUNIX : RETURN _Stream^.WriteOA( CHAR( 10 ), OUT l, TimeoutMS );
+         | lesMAC : RETURN _Stream^.WriteOA( CHAR( 13 ), OUT l, TimeoutMS );
          END;
       END;
-   END LineEnd;
+      RETURN Sync.arCannotStart;
+   END LineEndTimeout;
 
 (*---------------------------------------------------------------------------*)
 

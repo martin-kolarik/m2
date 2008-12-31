@@ -9,7 +9,8 @@ IMPORT
    Exceptions,
 	IOO,
 	Languages,
-	StringsO;
+	StringsO,
+	Sync;
 
 (*---------------------------------------------------------------------------*)
 
@@ -35,6 +36,7 @@ CLASS CTextWriter;
 		Stream : IOO.TPStream;
 		LineEndStyle : TLineEndStyle;
 
+   // synchronous interface
 	PUBLIC PROCEDURE Write( CONST String : StringsO.IString; LineEnd : BOOLEAN );
 	PUBLIC PROCEDURE WriteOA( CONST String : ARRAY OF WCHAR; LineEnd : BOOLEAN );
 	PUBLIC PROCEDURE WriteM( CONST String : PWCHAR; Length : CARDINAL; LineEnd : BOOLEAN ); // Length is WCHAR count
@@ -44,8 +46,13 @@ CLASS CTextWriter;
 
 	PUBLIC PROCEDURE LineEnd();
 	
-	// PUBLIC PROCEDURE WriteINT64( I : INT64; LineEnd : BOOLEAN );
-	// PUBLIC PROCEDURE WriteLONGREAL( I : LONGREAL; LineEnd : BOOLEAN );
+	// timeouted interface
+	PUBLIC PROCEDURE WriteTimeout( CONST String : StringsO.IString; LineEnd : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+	PUBLIC PROCEDURE WriteTimeoutOA( CONST String : ARRAY OF WCHAR; LineEnd : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+	PUBLIC PROCEDURE WriteTimeoutM( CONST String : PWCHAR; Length : CARDINAL; LineEnd : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult; // Length is WCHAR count
+	
+	PUBLIC PROCEDURE LineEndTimeout( TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+
 END CTextWriter;
 
 (*===========================================================================*)
