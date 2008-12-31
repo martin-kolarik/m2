@@ -7,6 +7,7 @@ FROM Storage IMPORT
 
 IMPORT
    EibSrvWeb,
+   FSO,
    mvc,
    StringsO;
 
@@ -24,10 +25,12 @@ TYPE
 
 (*--------------------------------------------------------------------------------*)
 
-CLASS CController IMPLEMENTS mvc.IController;
+CLASS CController IMPLEMENTS FSO.IFilePathResolver, mvc.IController;
+   // IFilePathResolver
+   PUBLIC VIRTUAL PROCEDURE Resolve( CONST Fragment : ARRAY OF WCHAR; OUT Resolved : StringsO.IString ) : BOOLEAN;
 
    // IController
-   PUBLIC VIRTUAL PROCEDURE ProcessRequest( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN; // returning false means 500 response
 
    // SELF
    PUBLIC PROCEDURE BindToEibSrv( web : EibSrvWeb.TPEibSrvWeb );

@@ -67,6 +67,41 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Connected GET : BOOLEAN;
+   BEGIN
+      RETURN _Connected;
+   END Connected;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY StartedTime GET : time.TJD;
+   BEGIN
+      RETURN _StartedTime;
+   END StartedTime;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY ConnectedTime  GET : time.TJD;
+   BEGIN
+      RETURN _ConnectedTime;
+   END ConnectedTime;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY DisconnectedTime  GET : time.TJD;
+   BEGIN
+      RETURN _DisconnectedTime;
+   END DisconnectedTime;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY LicenceExpires GET : time.TDateTime;
+   BEGIN
+      RETURN _EIB^.PResult^.Expires;
+   END LicenceExpires;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; EIB : srvcore.TPEIBServer );
    BEGIN
       Stop();
@@ -147,6 +182,8 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.STATUS_PAGE );
 
       _MVC^.RegisterController( _Controller, HttpCommon.verbPOST, Controller.CONTROL_PAGE ); // control page, redirected to status
+      
+      _MVC^.RegisterFallbackController( _Controller );
    END AddControllers;
 
 (*--------------------------------------------------------------------------------*)
@@ -154,6 +191,8 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    PRIVATE PROCEDURE RemoveControllers();
    BEGIN
       _MVC^.ForgetControllerCompletely( _Controller );
+
+      _MVC^.ForgetFallbackController();
    END RemoveControllers;
 
 (*--------------------------------------------------------------------------------*)
