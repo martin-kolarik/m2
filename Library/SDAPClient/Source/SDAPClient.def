@@ -39,4 +39,4 @@ PROCEDURE newSDAPClient( OUT client : TPISDAPClient ) : CARDINAL;
 
 (*================================================================================*)
 
-END SDAPClient;
+END SDAPClient.

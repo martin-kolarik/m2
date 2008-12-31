@@ -1,8 +1,18 @@
 IMPLEMENTATION MODULE SDAPClient;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
+   netsocket,
    rawconnection,
-   winerror;
+   scinit,
+   Strings,
+   Sync,
+   TextReader,
+   TextWriter,
+   winerror,
+   winsock;
 
 (*================================================================================*)
 
@@ -11,12 +21,12 @@ TYPE
 
 (*================================================================================*)
 
-CLASS CNotifier( netsocket.CSocketNotifier );
+CLASS CNotifier( netsocket.ASocketNotifier );
    LOCAL VAR
       Client : TPSDAPClient;
    PUBLIC VIRTUAL PROCEDURE OnReadable( Length : CARDINAL; Source : ADDRESS );
-   LOCAL VIRTUAL PROCEDURE OnConnect( Result : CARDINAL; CONST Socket : TPDSocket; Local : BOOLEAN ); 
-   LOCAL VIRTUAL PROCEDURE OnDisconnect( Result : CARDINAL; CONST Socket : TPDSocket; Local : BOOLEAN ); // calling Socket^.Release is safe if OnDisconnect is called from OnHandle. Otherwise (when OnDisconnect is called synchronously from Disconnect) it can be dangerous.
+   LOCAL VIRTUAL PROCEDURE OnConnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); 
+   LOCAL VIRTUAL PROCEDURE OnDisconnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); // calling Socket^.Release is safe if OnDisconnect is called from OnHandle. Otherwise (when OnDisconnect is called synchronously from Disconnect) it can be dangerous.
 END CNotifier;
 
 (*--------------------------------------------------------------------------------*)
@@ -28,6 +38,7 @@ CLASS CSDAPClient IMPLEMENTS ISDAPClient;
    PUBLIC VIRTUAL PROCEDURE Connect( Host : ARRAY OF WCHAR ) : CARDINAL;
    PUBLIC VIRTUAL PROCEDURE Close();
    PUBLIC VIRTUAL PROCEDURE SetAdvise( AdviseEnabled : BOOLEAN ) : CARDINAL;
+   PUBLIC VIRTUAL PROCEDURE IsConnected() : BOOLEAN;
 
    PUBLIC VIRTUAL PROCEDURE Write( CONST Data : ARRAY OF WCHAR; CONST Value : ARRAY OF WCHAR ) : CARDINAL;
    PUBLIC VIRTUAL PROCEDURE Ask( CONST Data : ARRAY OF WCHAR ) : CARDINAL;
@@ -44,6 +55,10 @@ CLASS CSDAPClient IMPLEMENTS ISDAPClient;
       _Connection : rawconnection.TCPConnection;
       _NetworkNotifier : CNotifier;
       _ClientNotifier : TPISDAPClientEvents;
+      _Reader : TextReader.CTextReader;
+      _Writer : TextWriter.CTextWriter;
+      
+   PRIVATE PROCEDURE DoWrite( CONST s1, s2, s3 : ARRAY OF WCHAR ) : CARDINAL;
 END CSDAPClient;
 
 (*================================================================================*)
@@ -59,20 +74,22 @@ CLASS IMPLEMENTATION CNotifier;
 
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL VIRTUAL PROCEDURE OnConnect( Result : CARDINAL; CONST Socket : TPDSocket; Local : BOOLEAN ); 
+   LOCAL VIRTUAL PROCEDURE OnConnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); 
    BEGIN
       Client^.OnConnect( Result );
    END OnConnect;
 
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL VIRTUAL PROCEDURE OnDisconnect( Result : CARDINAL; CONST Socket : TPDSocket; Local : BOOLEAN ); // calling Socket^.Release is safe if OnDisconnect is called from OnHandle. Otherwise (when OnDisconnect is called synchronously from Disconnect) it can be dangerous.
+   LOCAL VIRTUAL PROCEDURE OnDisconnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); // calling Socket^.Release is safe if OnDisconnect is called from OnHandle. Otherwise (when OnDisconnect is called synchronously from Disconnect) it can be dangerous.
    BEGIN
       Client^.OnDisconnect( Result, Local );
    END OnDisconnect;
 
 (*--------------------------------------------------------------------------------*)
 
+BEGIN
+   Client := NIL;
 END CNotifier;
 
 (*================================================================================*)
@@ -92,21 +109,19 @@ CLASS IMPLEMENTATION CSDAPClient;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Connect( Host : ARRAY OF WCHAR ) : CARDINAL;
-   VAR
-      Result : Sync.TAsyncResult;
    BEGIN
       IF _Connection.Connected THEN
-         RETURN winerror.WSAEALREADY;
+         RETURN winsock.WSAEALREADY;
       END;
-      CASE _Connection.Open( Host, Sync.FORSAFETY, FALSE ) OF
+      CASE _Connection.Open( Host, FALSE, Sync.FORSAFETY ) OF
       | Sync.arCompleted :
-         RETURN winerror.S_OK;
+         RETURN 0;
       | Sync.arTimeout :
-         RETURN winerror.WSAETIMEDOUT;
+         RETURN winsock.WSAETIMEDOUT;
       | Sync.arPending :
-         RETURN winerror.WSAEWOULDBLOCK;
+         RETURN winsock.WSAEWOULDBLOCK;
       ELSE
-         RETURN winerror.WSAEABORTED;
+         RETURN winsock.WSAEFAULT;
       END;   
    END Connect;
 
@@ -121,23 +136,28 @@ CLASS IMPLEMENTATION CSDAPClient;
 
    PUBLIC VIRTUAL PROCEDURE SetAdvise( AdviseEnabled : BOOLEAN ) : CARDINAL;
    BEGIN
-      IF NOT _Connection.Connected THEN
-         RETURN winerror.WSAENOTCONN;
-      END;
-      _Connection.Stream^.WriteOA( L"advise all", Sync.FORSAFETY, FALSE );
-      RETURN winerror.S_OK;
+      RETURN DoWrite( L"advise", L"all", L"" );
    END SetAdvise;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE IsConnected() : BOOLEAN;
+   BEGIN
+      RETURN _Connection.Connected;
+   END IsConnected;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Write( CONST Data : ARRAY OF WCHAR; CONST Value : ARRAY OF WCHAR ) : CARDINAL;
    BEGIN
+      RETURN DoWrite( L"set", Data, Value );
    END Write;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Ask( CONST Data : ARRAY OF WCHAR ) : CARDINAL;
    BEGIN
+      RETURN DoWrite( L"ask", Data, L"" );
    END Ask;
    
 (*--------------------------------------------------------------------------------*)
@@ -174,8 +194,34 @@ CLASS IMPLEMENTATION CSDAPClient;
 
 (*--------------------------------------------------------------------------------*)
 
+   PRIVATE PROCEDURE DoWrite( CONST s1, s2, s3 : ARRAY OF WCHAR ) : CARDINAL;
+   VAR
+      s : ARRAY [0..127] OF WCHAR;
+   BEGIN
+      IF NOT _Connection.Connected THEN
+         RETURN winsock.WSAENOTCONN;
+      END;
+      Strings.ConcatW( OUT s, s1, L" " );
+      Strings.AppendW( REF s, s2 );
+      Strings.AppendW( REF s, L" " );
+      Strings.AppendW( REF s, s3 );
+      CASE _Writer.WriteTimeoutOA( s, TRUE, Sync.FORSAFETY ) OF
+      | Sync.arCompleted :
+         RETURN 0;
+      | Sync.arTimeout :
+         RETURN winsock.WSAETIMEDOUT;
+      ELSE
+         RETURN winsock.WSAEFAULT;
+      END;   
+   END DoWrite;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
+   _NetworkNotifier.Client := ADR( SELF );
    _ClientNotifier := NIL;
+   _Reader.Stream := _Connection.Stream;
+   _Writer.Stream := _Connection.Stream;
 END CSDAPClient;
 
 (*================================================================================*)
@@ -193,6 +239,7 @@ BEGIN
    IF count = 1 THEN
       scinit.Startup();
    END;
+   RETURN 0;
 END Startup;
 
 (*--------------------------------------------------------------------------------*)
@@ -211,14 +258,14 @@ END Cleanup;
 
 PROCEDURE newSDAPClient( OUT client : TPISDAPClient ) : CARDINAL;
 BEGIN
-   IF Sync.IExcghAdd( REF StartCount, 0 ) > 0 THEN
+   IF Sync.IExchgAdd( REF StartCount, 0 ) > 0 THEN
       NEW( TPSDAPClient( client ));
-      RETURN winerror.S_OK;
+      RETURN 0;
    ELSE
-      RETURN winerror.not initialized
+      RETURN winsock.WSAENETDOWN;
    END;
 END newSDAPClient;
 
 (*================================================================================*)
 
-END SDAPClient;
+END SDAPClient.
