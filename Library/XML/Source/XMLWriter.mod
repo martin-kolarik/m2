@@ -143,6 +143,24 @@ CLASS IMPLEMENTATION CXMLWriter;
 
 (*---------------------------------------------------------------------------*)
 
+	PUBLIC PROCEDURE WriteUnescapedString( CONST String : StringsO.CString );
+	VAR
+		S : StringsO.CString := String;
+	BEGIN
+		IF xwsStarted NOT IN _State THEN
+			RETURN;
+		ELSIF xwsInAttributes NOT IN _State THEN
+		   // fall down, already in text
+		ELSIF xwsInAttribute NOT IN _State THEN
+			EXCL( _State, xwsInAttributes );
+			WriteOAA( C'>' ); // close leading of current element, continue in the line
+			_Stack.StoreData( 1 ); // signalize we are in text
+		END;
+		Write( REF S, FALSE );
+	END WriteUnescapedString;
+
+(*---------------------------------------------------------------------------*)
+
 	PUBLIC PROCEDURE WriteStringOA( CONST String : ARRAY OF WCHAR );
 	BEGIN
 		IF xwsStarted NOT IN _State THEN

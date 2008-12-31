@@ -48,6 +48,7 @@ CLASS CXMLWriter;
 	PUBLIC PROCEDURE WriteAttributeEnd();
 
 	PUBLIC PROCEDURE WriteString( CONST String : StringsO.CString );
+	PUBLIC PROCEDURE WriteUnescapedString( CONST String : StringsO.CString );
 	PUBLIC PROCEDURE WriteStringOA( CONST String : ARRAY OF WCHAR );
 	
 	PUBLIC PROCEDURE Close( Persist : BOOLEAN );

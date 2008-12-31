@@ -321,7 +321,11 @@ CLASS IMPLEMENTATION CXMLReader;
 
 	PUBLIC PROPERTY CurrentLine GET : CARDINAL;
 	BEGIN
-      RETURN xmlLITE.TPIXmlReader( _IReader )^.GetLineNumber();
+	   IF _IReader = NIL THEN
+	      RETURN 0;
+	   ELSE
+         RETURN xmlLITE.TPIXmlReader( _IReader )^.GetLineNumber();
+      END;
 	END CurrentLine;
 
 (*---------------------------------------------------------------------------*)
@@ -450,6 +454,7 @@ CLASS IMPLEMENTATION CXMLReader;
 	   TRY // xmllite is delayed load
 	      IF xmlLITE.CreateXmlReader( xmlLITE.IID_IXmlReader, OUT _IReader, TPMalloc( _IMalloc )) = winerror.S_OK THEN
 	         xmlLITE.TPIXmlReader( _IReader )^.SetInput( ADR( stream^.CIUnknown ));
+	         xmlLITE.TPIXmlReader( _IReader )^.SetProperty( CARDINAL( xmlLITE.XmlReaderProperty_DtdProcessing ), PTR( xmlLITE.DtdProcessing_Parse ));
 	      ELSE
 	         _IReader := NIL;
 	      END;
