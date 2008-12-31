@@ -33,10 +33,6 @@ IMPORT
    httpsrv,
    MVC;   
    
-(*?*)
-IMPORT
-   windows;
-   
 (*================================================================================*)
 
 CONST
@@ -205,7 +201,7 @@ CLASS IMPLEMENTATION CEibSvc;
       XMLS^.ListenAddress := IA;
       XMLS^.Init( TRUE );
       XMLS^.Start();
-
+      
       Web.Init( 6005, L"/SmartServer", EIB );
       Web.Run();
 
@@ -287,8 +283,6 @@ PROCEDURE wmain( argc : CARDINAL; argp, envp : ADDRESS ) : CARDINAL;
 VAR
    PService : Service.TPService := ADR( EibSvc );
 BEGIN
-   ASSERT( FALSE );
-
    Service.Run( OA( 0, ADR( PService )), FALSE, 0 );
    RETURN 0;
 END wmain;
