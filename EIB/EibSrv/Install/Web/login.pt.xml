@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE pageTemplate [
+    <!ENTITY nbsp "&amp;nbsp;">
+    <!ENTITY copy "&amp;copy;">
+]>
+<pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate">
+    <html>
+        <head>
+            <title>NeNo KNX/EIBSrv</title>
+            <link rel="StyleSheet" type="text/css" href="NeNo.css" />
+        </head>
+        <body>
+            <div class="shell">
+                <div class="shell-topstrip"></div>
+                <div class="canvas">
+
+                    <div class="top">
+                    </div>
+
+                    <div class="middle">
+                        <div id="menu">
+                        </div>
+
+                        <div class="content">
+
+                            <h1>Přihlášení</h1>
+                            <pt:form method="post" action="login">
+
+                                <table cellpadding="0px" cellspacing="0px">
+                                    <tr>
+                                        <td>Jméno</td>
+                                        <td class="spare">&nbsp;</td>
+                                        <td>
+                                            <pt:input model="username"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Heslo</td>
+                                        <td class="spare">&nbsp;</td>
+                                        <td>
+                                            <pt:password model="password"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="3">
+                                            <input type="submit" value="Přihlásit"/>
+                                        </td>
+                                    </tr>
+                                    <tr condition="${message}">
+                                        <td colspan="3"><p>${message}</p></td>
+                                    </tr>
+                                </table>
+
+                            </pt:form>
+
+                        </div>
+                    </div>
+
+                    <div class="bottom">
+                        <p>EIB/KNX SmartServer &copy; NeNo</p>
+                    </div>
+
+                </div>
+            </div>
+        </body>
+    </html>
+</pageTemplate>

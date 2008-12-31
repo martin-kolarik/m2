@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <strings version="1.0">
+
+        <string name="login.username">
+            <item lang="en-US">Name:</item>
+            <item lang="cs-CZ">Jméno:</item>
+        </string>
+        <string name="login.password">
+            <item lang="en-US">Password:</item>
+            <item lang="cs-CZ">Heslo:</item>
+        </string>
+        <string name="login.badCredentials">
+            <item lang="en-US">Invalid login, the username and/or password is incorrect.</item>
+            <item lang="cs-CZ">Neplatné přihlášení, jméno a/nebo heslo není správné.</item>
+        </string>
+
+        <string name="status.licencePermanent">
+            <item lang="en-US">Unrestricted, permanent</item>
+            <item lang="cs-CZ">Neomezená, trvalá</item>
+        </string>
+        <string name="status.licenceValidUntil">
+            <item xml:space="preserve" lang="en-US">Valid until </item>
+            <item xml:space="preserve" lang="cs-CZ">Platná do </item>
+        </string>
+
+    </strings>
+</resources>    
+
