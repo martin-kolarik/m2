@@ -1,0 +1,26 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 -->
+    <PropertyGroup>
+        <FileDescription>SDAP Client external library</FileDescription>
+        <FileVersionMajor>1</FileVersionMajor>
+        <FileVersionMinor>0</FileVersionMinor>
+    </PropertyGroup>
+
+    <!-- 2 INCLUDE DEFINITION -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 COMPOMENT DEFINITION -->
+    <ItemGroup>
+        <Components Include="Modula2\modula2;API\CLib;API\win32"/>
+        <Components Include="Component\sccore;Library\DeviceIO"/>
+        <Modules Include="SDAPClient"/>
+    </ItemGroup>
+
+    <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>
