@@ -85,6 +85,23 @@ END FormatContentOA;
 
 (*---------------------------------------------------------------------------*)
 
+PROCEDURE DecodeLanguage( CONST AcceptLanguageHeader : StringsO.IString; OUT language : Languages.TLanguage ) : BOOLEAN;
+VAR
+   firstItem : StringsO.CString;
+BEGIN
+   IF AcceptLanguageHeader.Empty THEN
+      RETURN FALSE;
+   END;
+   AcceptLanguageHeader.ItemS( StringsO.WCHARS{ L"," }, 0, 0, FALSE, OUT firstItem );
+   IF firstItem.Empty THEN
+      RETURN FALSE;
+   END;
+   firstItem.Trim();
+   RETURN Languages.RFC1766ToLanguage( OA( firstItem.Length-1, firstItem.szData ), OUT language );
+END DecodeLanguage;
+
+(*---------------------------------------------------------------------------*)
+
 PROCEDURE DecodeURLEncoding( XFormFlag : BOOLEAN; CONST Encoded : ARRAY OF BYTE; OUT Decoded : lists.CStringStringList );
 VAR
    bl : lists.CBufferList;
@@ -201,15 +218,15 @@ PROCEDURE GetRedirectCode( Redirect : TRedirect; HTTP10Flag : BOOLEAN ) : HttpCo
 BEGIN
    IF Redirect = redirectPermanently THEN
       IF HTTP10Flag THEN
-         RETURN HttpCommon.httpres_302;
+         RETURN HttpCommon.httpres_301;
       ELSE
-         RETURN HttpCommon.httpres_302;
+         RETURN HttpCommon.httpres_301;
       END;
    ELSE
       IF HTTP10Flag THEN
          RETURN HttpCommon.httpres_302;
       ELSE
-         RETURN HttpCommon.httpres_302;
+         RETURN HttpCommon.httpres_303;
       END;
    END;
 END GetRedirectCode;

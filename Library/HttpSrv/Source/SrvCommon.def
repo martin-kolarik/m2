@@ -70,6 +70,7 @@ ABSTRACT CLASS ASrvStream( IOO.AStream ); // synchronous implementation only
 
    // SELF
    PUBLIC ABSTRACT READONLY PROPERTY
+      FullURI : StringsO.CString; // absolute URI together with protocol, host and path, WITHOUT data part
       AbsoluteURI : StringsO.CString; // absolute URI, ignores hiding all hidden prefixes
       RequestVersion : HttpCommon.THttpVersion;
       RequestVerb : HttpCommon.TVerb;

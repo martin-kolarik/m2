@@ -15,6 +15,7 @@ TYPE
 INTERFACE IHttpSrvConnection( connection.IServerConnection );
 
    READONLY PROPERTY
+      FullURI : StringsO.CString; // absolute URI with protocol and host
       AbsoluteURI : StringsO.CString; // absolute URI, can contain "undistinguishable" prefixes
 
       RequestHeaders : HttpCommon.TPHttpHeaders;

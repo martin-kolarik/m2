@@ -431,6 +431,7 @@ CLASS CHttpApiStream( SrvCommon.ASrvStream );
    PUBLIC VIRTUAL READONLY PROPERTY
       RequestVersion : HttpCommon.THttpVersion;
       RequestVerb : HttpCommon.TVerb;
+      FullURI : StringsO.CString;
       AbsoluteURI : StringsO.CString;
       RequestURI : StringsO.CString;
       RequestHeaders : HttpCommon.TPHttpHeaders;
@@ -496,6 +497,16 @@ CLASS IMPLEMENTATION CHttpApiStream;
          RETURN HttpCommon.verbUnknown;
       END;
    END RequestVerb;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY FullURI GET : StringsO.CString;
+   VAR
+      s : StringsO.CString;
+   BEGIN
+      s.FromOA( OA( CARDINAL(( Request^.CookedUrl.FullUrlLength-Request^.CookedUrl.QueryStringLength ) >> 1 )-1, Request^.CookedUrl.pFullUrl ));
+      RETURN s;
+   END FullURI;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -597,9 +608,6 @@ CLASS IMPLEMENTATION CHttpApiStream;
       RESPONSE_206 = C"Partial Content";
       // redirection
       RESPONSE_300 = C"Multiple Choices";
-      RESPONSE_301 = C"Moved Permanently";
-      RESPONSE_302 = C"Moved Temporarily";
-      RESPONSE_303 = C"See Other";
       RESPONSE_304 = C"Not Modified";
       RESPONSE_305 = C"Use Proxy";
       // client error
@@ -625,6 +633,9 @@ CLASS IMPLEMENTATION CHttpApiStream;
       RESPONSE_505 = C"HTTP Version Not Supported";
    *)
       RESPONSE_200 = C"OK";
+      RESPONSE_301 = C"Moved Permanently";
+      RESPONSE_302 = C"Moved Temporarily";
+      RESPONSE_303 = C"See Other";
       RESPONSE_404 = C"Not Found";
       RESPONSE_500 = C"Internal Server Error";
       RESPONSE_501 = C"Not Implemented";
@@ -633,6 +644,15 @@ CLASS IMPLEMENTATION CHttpApiStream;
       | HttpCommon.httpres_200 :
          _Response.pReason := ADR( RESPONSE_200 );
          _Response.ReasonLength := SIZE( RESPONSE_200 )-1;
+      | HttpCommon.httpres_301 :
+         _Response.pReason := ADR( RESPONSE_301 );
+         _Response.ReasonLength := SIZE( RESPONSE_301 )-1;
+      | HttpCommon.httpres_302 :
+         _Response.pReason := ADR( RESPONSE_302 );
+         _Response.ReasonLength := SIZE( RESPONSE_302 )-1;
+      | HttpCommon.httpres_303 :
+         _Response.pReason := ADR( RESPONSE_303 );
+         _Response.ReasonLength := SIZE( RESPONSE_303 )-1;
       | HttpCommon.httpres_404 :
          _Response.pReason := ADR( RESPONSE_404 );
          _Response.ReasonLength := SIZE( RESPONSE_404 )-1;

@@ -2,6 +2,7 @@ DEFINITION MODULE HttpTools;
 
 IMPORT
    HttpCommon,
+   Languages,
    lists,
    StringsO,
    time;
@@ -26,6 +27,10 @@ TYPE
 
 PROCEDURE FormatContent( Content : TContent; CONST RFC1766Code : StringsO.IString ) : StringsO.CString;
 PROCEDURE FormatContentOA( Content : TContent; CONST RFC1766Code : ARRAY OF WCHAR ) : StringsO.CString;
+
+(*---------------------------------------------------------------------------*)
+
+PROCEDURE DecodeLanguage( CONST AcceptLanguageHeader : StringsO.IString; OUT language : Languages.TLanguage ) : BOOLEAN;
 
 (*---------------------------------------------------------------------------*)
 
