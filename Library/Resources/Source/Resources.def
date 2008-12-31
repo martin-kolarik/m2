@@ -9,7 +9,7 @@ IMPORT
   Languages,
   lists,
   maps,
-  windows;
+  StringsO;
 
 //===========================================================================
 
@@ -17,6 +17,7 @@ IMPORT
 
 TYPE
   TPResources = POINTER TO CResources;
+  TPPlainResources = POINTER TO CPlainResources;
   TPResourcesNotifier = POINTER TO IResourcesNotifier;
   TResource;
   
@@ -28,7 +29,7 @@ CLASS CResources;
     _Resource      : TResource;
     _Stub          : TResource;
     _Mode          : TResourceMode;
-    _HResource     : windows.HGLOBAL;
+    _HResource     : ADDRESS;
     _Strings       : maps.CStringMap;
   PRIVATE VAR
     _Lang          : Languages.TLanguage;
@@ -48,7 +49,7 @@ CLASS CResources;
   PUBLIC READONLY
     INDEX( Id : CARDINAL ) : PWCHAR; // zero-terminated
     
-  PUBLIC PROCEDURE LoadRES1( HModule : windows.HANDLE; CONST ResourceName : ARRAY OF WCHAR ) : BOOLEAN;
+  PUBLIC PROCEDURE LoadRES1( HModule : ADDRESS; CONST ResourceName : ARRAY OF WCHAR ) : BOOLEAN;
   PUBLIC PROCEDURE LoadRES2( CONST ModuleName, ResourceName : ARRAY OF WCHAR ) : BOOLEAN;
   PUBLIC PROCEDURE LoadBIN( Path : ARRAY OF WCHAR ) : BOOLEAN;
   
@@ -80,13 +81,23 @@ END IResourcesNotifier;
 
 //===========================================================================
 
-CLASS CResourcesCreator( CResources );
+CLASS CPlainResources( CResources );
   PUBLIC PROCEDURE LoadXML( CONST Path : ARRAY OF WCHAR; OUT ErrorText : ARRAY OF WCHAR ) : BOOLEAN;
 
-  PUBLIC PROCEDURE GetXML( OUT XML : ARRAY OF WCHAR );
-  PUBLIC PROCEDURE GetBIN( OUT BIN : ARRAY OF BYTE );
+  PUBLIC PROCEDURE GetTextByKey( CONST Key : StringsO.IString; OUT Text : PWCHAR; OUT Length : CARDINAL ) : BOOLEAN;
+  PUBLIC PROCEDURE GetTextByKeyL( Language : Languages.TLanguage; CONST Key : StringsO.IString; OUT Text : PWCHAR; OUT Length : CARDINAL ) : BOOLEAN;
+
+  PUBLIC PROCEDURE TextByKey( CONST Key : StringsO.IString; Fallback : ARRAY OF WCHAR ) : PWCHAR; // same as []
+  PUBLIC PROCEDURE LengthByKey( CONST Key : StringsO.IString; Fallback : ARRAY OF WCHAR ) : CARDINAL;
+  PUBLIC PROCEDURE TextByKeyL( Language : Languages.TLanguage; CONST Key : StringsO.IString; Fallback : ARRAY OF WCHAR ) : PWCHAR; // same as []
+  PUBLIC PROCEDURE LengthByKeyL( Language : Languages.TLanguage; CONST Key : StringsO.IString; Fallback : ARRAY OF WCHAR ) : CARDINAL;
   
-  PUBLIC PROCEDURE SaveXML( CONST Path : ARRAY OF WCHAR );
+  PUBLIC PROCEDURE GetIdByKey( CONST Key : StringsO.IString; OUT Id : CARDINAL ) : BOOLEAN;
+END CPlainResources;
+
+//===========================================================================
+
+CLASS CResourcesCreator( CPlainResources );
   PUBLIC PROCEDURE SaveBIN( CONST Path : ARRAY OF WCHAR );
   PUBLIC PROCEDURE SaveDEF( CONST ModuleName, Path, NamePrefix : ARRAY OF WCHAR ) : BOOLEAN;
 END CResourcesCreator;

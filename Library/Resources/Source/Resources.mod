@@ -7,7 +7,8 @@ IMPORT
   FIO,
   maps,
   Strings,
-  Storage;
+  Storage,
+  windows;
   
 IMPORT
   com,
@@ -162,7 +163,7 @@ CLASS IMPLEMENTATION CResources;
     
 //---------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE LoadRES1( HModule : windows.HANDLE; CONST ResourceName : ARRAY OF WCHAR ) : BOOLEAN;
+  PUBLIC PROCEDURE LoadRES1( HModule : ADDRESS; CONST ResourceName : ARRAY OF WCHAR ) : BOOLEAN;
   VAR
     ResInfo : windows.HRSRC;
   BEGIN
@@ -538,7 +539,7 @@ END CResources;
 
 //===========================================================================
 
-CLASS IMPLEMENTATION CResourcesCreator;
+CLASS IMPLEMENTATION CPlainResources;
 
 //---------------------------------------------------------------------------
 
@@ -701,6 +702,8 @@ CLASS IMPLEMENTATION CResourcesCreator;
     VB : com.VARIANT_BOOL;
     b : BOOLEAN;
   BEGIN
+    com.COMInit();
+
     IF NOT FIO.ExistsW( Path ) THEN
       ASSIGN( ErrorText, L'File not found' );
       GOTO StringError;
@@ -789,27 +792,110 @@ CLASS IMPLEMENTATION CResourcesCreator;
     com.DisposeBS( REF BS );
     com.DisposeBS( REF Name );
     com.DisposeBS( REF _Version );
+
+    com.COMDone();
     RETURN b;  
   END LoadXML;
 
 //---------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE GetXML( OUT XML : ARRAY OF WCHAR );
-  BEGIN
-  END GetXML;
+   PUBLIC PROCEDURE GetTextByKey( CONST Key : StringsO.IString; OUT Text : PWCHAR; OUT Length : CARDINAL ) : BOOLEAN;
+   VAR
+      Id : CARDINAL;
+   BEGIN
+      IF GetIdByKey( Key, OUT Id ) THEN
+         RETURN GetText( Id, OUT Text, OUT Length );
+      ELSE
+         RETURN FALSE;
+      END;
+   END GetTextByKey;
 
 //---------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE GetBIN( OUT BIN : ARRAY OF BYTE );
-  BEGIN
-    Storage.Move( _Resource, ADR( BIN ), MIN2( _Resource^.BinLength, HIGH( BIN ) + 1 ));
-  END GetBIN;
+   PUBLIC PROCEDURE GetTextByKeyL( Language : Languages.TLanguage; CONST Key : StringsO.IString; OUT Text : PWCHAR; OUT Length : CARDINAL ) : BOOLEAN;
+   VAR
+      Id : CARDINAL;
+   BEGIN
+      IF GetIdByKey( Key, OUT Id ) THEN
+         RETURN GetTextL( Language, Id, OUT Text, OUT Length );
+      ELSE
+         RETURN FALSE;
+      END;
+   END GetTextByKeyL;
+
+//---------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE TextByKey( CONST Key : StringsO.IString; Fallback : ARRAY OF WCHAR ) : PWCHAR; // same as []
+   VAR
+      Id : CARDINAL;
+   BEGIN
+      IF GetIdByKey( Key, OUT Id ) THEN
+         RETURN Text( Id, Fallback );
+      ELSE
+         RETURN NIL;
+      END;
+   END TextByKey;
+
+//---------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE LengthByKey( CONST Key : StringsO.IString; Fallback : ARRAY OF WCHAR ) : CARDINAL;
+   VAR
+      Id : CARDINAL;
+   BEGIN
+      IF GetIdByKey( Key, OUT Id ) THEN
+         RETURN Length( Id, Fallback );
+      ELSE
+         RETURN 0;
+      END;
+   END LengthByKey;
+
+//---------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE TextByKeyL( Language : Languages.TLanguage; CONST Key : StringsO.IString; Fallback : ARRAY OF WCHAR ) : PWCHAR; // same as []
+   VAR
+      Id : CARDINAL;
+   BEGIN
+      IF GetIdByKey( Key, OUT Id ) THEN
+         RETURN TextL( Language, Id, Fallback );
+      ELSE
+         RETURN NIL;
+      END;
+   END TextByKeyL;
+
+//---------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE LengthByKeyL( Language : Languages.TLanguage; CONST Key : StringsO.IString; Fallback : ARRAY OF WCHAR ) : CARDINAL;
+   VAR
+      Id : CARDINAL;
+   BEGIN
+      IF GetIdByKey( Key, OUT Id ) THEN
+         RETURN LengthL( Language, Id, Fallback );
+      ELSE
+         RETURN 0;
+      END;
+   END LengthByKeyL;
   
 //---------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE SaveXML( CONST Path : ARRAY OF WCHAR );
-  BEGIN
-  END SaveXML;
+   PUBLIC PROCEDURE GetIdByKey( CONST Key : StringsO.IString; OUT Id : CARDINAL ) : BOOLEAN;
+   VAR
+      ptr : PTR;
+   BEGIN
+      IF _Strings.Get( Key, OUT ptr ) THEN
+         Id := LOPTRLONGWORD( ptr );
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END GetIdByKey;
+
+//---------------------------------------------------------------------------
+
+END CPlainResources;
+
+//===========================================================================
+
+CLASS IMPLEMENTATION CResourcesCreator;
 
 //---------------------------------------------------------------------------
 
