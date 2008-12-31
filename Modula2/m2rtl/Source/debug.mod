@@ -36,7 +36,7 @@ BEGIN
    Strings.FromCARD32W( CPPLine, 10, OUT n ); Strings.AppendW( REF text, n );
    Strings.AppendW( REF text, CRLF + CRLF + '(Press "Retry" to debug the application.)' );
 
-   result := windows.MessageBoxW( NIL, ADR( text ), L"Unexpected state of program execution", windows.MB_TASKMODAL OR windows.MB_ICONHAND OR windows.MB_ABORTRETRYIGNORE OR windows.MB_SETFOREGROUND OR windows.MB_SERVICE_NOTIFICATION );
+   result := windows.MessageBoxW( NIL, ADR( text ), L"Unexpected state of program execution", windows.MB_TASKMODAL OR windows.MB_ICONHAND OR windows.MB_ABORTRETRYIGNORE OR windows.MB_SETFOREGROUND ); // MB_SERVICE_NOTIFICATION cannot be used as Vista does not open anything in the case. For XP if service is interactive, it opens dialog correctly.
    IF result = windows.IDABORT THEN // kill process
       windows.TerminateProcess( windows.GetCurrentProcess(), 3 ); // standard exit code for SIGABRT
    ELSIF result = windows.IDRETRY THEN // allow to debug process
