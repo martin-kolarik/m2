@@ -284,9 +284,10 @@ CLASS IMPLEMENTATION CAdviser;
          END; // WHILE
 
       ELSE
-         IF ( Name = NIL ) AND _Advised.Get( Hash, OUT Clients ) THEN // wants to unadvise all, remove client
+         IF _Advised.Get( Hash, OUT Clients ) THEN
             Clients^.Remove( ClientData );
          END;
+
       END;
 
       RETURN TRUE;
