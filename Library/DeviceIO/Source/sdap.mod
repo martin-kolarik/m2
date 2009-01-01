@@ -2,13 +2,35 @@ IMPLEMENTATION MODULE sdap;
 
 (*================================================================================*)
 
+FROM Debug IMPORT
+   Assertion, LogAssertionW;
+
 IMPORT   
    device,
+   io,
    IOO,
    netsocket,
    netsrv,
    ns,
    Sync;
+
+CONST
+   MSG_ADVISE_SEND = msghandler.MSG_BASE;
+
+(*================================================================================*)
+
+TYPE
+   TPClient = POINTER TO CClient;
+
+CLASS CClient IMPLEMENTS io.IAdviseInfo;
+   // SELF
+   LOCAL VAR
+      Server : TPSDAPServer;
+      Connection : netconndispatch.TConnectionHandle;
+
+   // IAdviseInfo
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+END CClient;
 
 (*================================================================================*)
 
@@ -35,6 +57,43 @@ TYPE
 (*================================================================================*)
 
 CLASS IMPLEMENTATION CSDAPServer;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
+   VAR
+      b : BOOLEAN;
+      client : TPClient;
+      count : CARDINAL;
+      s : StringsO.CString;
+   BEGIN
+      IF SUPER.OnMessage( Message, OUT Result ) THEN
+         RETURN TRUE;
+
+      ELSIF Message.Message = MSG_ADVISE_SEND THEN
+         count := 16;
+         LOOP
+            _SendLock.Lock();
+            b := _SendQueue.Dequeue( OUT s, OUT client );
+            _SendLock.Unlock();
+            IF NOT b THEN
+               EXIT;
+            END;
+            
+            Send( NIL, TPClient( client )^.Connection, 0, s.rawData, s.Length<<1 );
+
+            DEC( count );
+            IF count = 0 THEN
+               SUPER.Message( Message, msghandler.delDefault, NIL );
+               EXIT;
+            END;
+         END; // LOOP
+
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END OnMessage;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -121,20 +180,45 @@ CLASS IMPLEMENTATION CSDAPServer;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnConnect( PConnection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
+   INTERNAL VIRTUAL PROCEDURE OnConnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
+   VAR
+      Client : TPClient;
    BEGIN
+      ASSERTLOG( NOT _Clients.Contains( Connection ));
+      
+      NEW( Client );
+      Client^.Server := ADR( SELF );
+      Client^.Connection := Connection;
+
+      _Device^.JoinClient( Client, io.advWithData );
+      // done on request only
+      // _Device^.AdviseAll( Client );
+
+      _Clients.Add( Connection, Client );
    END OnConnect;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnDisconnect( PConnection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
+   INTERNAL VIRTUAL PROCEDURE OnDisconnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
+   VAR
+      Client : TPClient;
    BEGIN
+      IF _Clients.Get( Connection, OUT Client ) THEN
+         _Clients.Remove( Connection );
+
+         _Device^.UnadviseAll( Client );
+         _Device^.LeaveClient( Client );
+
+         DISPOSE( Client );
+      END;
    END OnDisconnect;
 
 (*--------------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE OnReceive( PConnection : netconndispatch.TConnectionHandle; PData : ADDRESS; DataLen : CARDINAL );
    VAR
+      allFlag : BOOLEAN;
+      Client : TPClient;
       Command : TsdapCommand;
       configuration : ARRAY [0..0] OF device.TConfigureItem;
       count : INTEGER;
@@ -192,6 +276,10 @@ CLASS IMPLEMENTATION CSDAPServer;
          Command := sdapLOCK;
       ELSIF s[0].EqualsOA( L"unlock" ) THEN
          Command := sdapUNLOCK;
+      ELSIF s[0].EqualsOA( L"advise" ) THEN
+         Command := sdapADVISE;
+      ELSIF s[0].EqualsOA( L"unadvise" ) THEN
+         Command := sdapUNADVISE;
       ELSE
          ACK( PConnection, sdap401 );
          RETURN;
@@ -228,6 +316,7 @@ CLASS IMPLEMENTATION CSDAPServer;
        //-----
       | sdapSTOP :
        //-----
+      | sdapADVISE, sdapUNADVISE :
       ELSE
          ACK( PConnection, sdap502 ); // not supported
          RETURN;
@@ -281,7 +370,7 @@ CLASS IMPLEMENTATION CSDAPServer;
 
                Logger^.LogSS( log.dldDebug, L"sdap", "  406: ", error );
 
-               Send( NIL, PConnection, 0, ADR( error ), LENGTH( error ) << 1 );
+               SUPER.Send( NIL, PConnection, 0, ADR( error ), LENGTH( error ) << 1 );
             END; // FOR
          END; // CASE
 
@@ -298,7 +387,7 @@ CLASS IMPLEMENTATION CSDAPServer;
          Device^.IO()^.Stop();
          ACK( PConnection, sdap200 );
 
-       //-----
+      //-----
       | sdapSET, sdapGET :
          IF Command = sdapSET THEN
             Logger^.LogSSSS( log.dldTrace, L"sdap", "SET ", OA( p[1].Length-1, p[1].rawData ), L" ", OA( p[2].Length-1, p[2].rawData ));
@@ -343,6 +432,44 @@ CLASS IMPLEMENTATION CSDAPServer;
             END; // IF SET or GET
 
          END;
+         
+      //-----
+      | sdapADVISE, sdapUNADVISE :
+         IF Command = sdapADVISE THEN
+            Logger^.LogSS( log.dldTrace, L"sdap", "ADVISE ", OA( p[1].Length-1, p[1].rawData ));
+         ELSE
+            Logger^.LogSS( log.dldTrace, L"sdap", "UNADVISE ", OA( p[1].Length-1, p[1].rawData ));
+         END;
+         
+         allFlag := p[1].EqualsOA( L"all" );
+         IF NOT _Clients.Get( PConnection, OUT Client ) THEN
+            ACK( PConnection, sdap404 );
+
+         ELSIF Command = sdapADVISE THEN         
+            IF allFlag THEN
+               _Device^.AdviseAll( Client );
+               ACK( PConnection, sdap200 );
+            ELSIF NOT Device^.Mapper()^.NameToHash( p[1], OUT Hash ) THEN
+               ACKs( PConnection, sdap405, 1 );
+            ELSE
+               _Device^.Advise( Client, p[1] );
+               ACK( PConnection, sdap200 );
+            END;
+
+         ELSE // sdapUNADVISE
+            IF allFlag THEN
+               _Device^.UnadviseAll( Client );
+               ACK( PConnection, sdap200 );
+            ELSIF NOT Device^.Mapper()^.NameToHash( p[1], OUT Hash ) THEN
+               ACKs( PConnection, sdap405, 1 );
+            ELSE
+               _Device^.Unadvise( Client, p[1] );
+               ACK( PConnection, sdap200 );
+            END;
+
+         END;
+         
+      //-----
       END; // CASE
   END OnReceive;
 
@@ -373,7 +500,7 @@ CLASS IMPLEMENTATION CSDAPServer;
 
       Logger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
 
-      Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
+      SUPER.Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
    END ACK;
 
 (*--------------------------------------------------------------------------------*)
@@ -386,7 +513,7 @@ CLASS IMPLEMENTATION CSDAPServer;
 
       Logger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
       
-      Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
+      SUPER.Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
    END ACKs;
 
 (*--------------------------------------------------------------------------------*)
@@ -401,7 +528,7 @@ CLASS IMPLEMENTATION CSDAPServer;
 
       Logger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
       
-      Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
+      SUPER.Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
    END ACKS;
 
 (*--------------------------------------------------------------------------------*)
@@ -415,29 +542,100 @@ CLASS IMPLEMENTATION CSDAPServer;
 
       Logger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
       
-      Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
+      SUPER.Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
 
       s := address; s.AppendOA( L" " ); s.Append( value.String );
 
       Logger^.LogSS( log.dldDebug, L"sdap", "DATA: ", OA( s.Length-1, s.rawData ));
       
-      Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
+      SUPER.Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
    END ACKd;
 
 (*--------------------------------------------------------------------------------*)
 
-BEGIN
-   Connection := netconndispatch.ctLine;
-   PieceSize := -1;
-   Logger := log.logger();
+   LOCAL PROCEDURE SendAdvise( Client : ADDRESS; CONST string : StringsO.IString );
+   VAR
+      b : BOOLEAN;
+      Msg : msghandler.Message;
+   BEGIN         
+      _SendLock.Lock();
+      b := _SendQueue.Empty;
+      _SendQueue.Enqueue( string, Client );
+      _SendLock.Unlock();
 
-   _ConfigLogger.TimeStamps := FALSE;
-   _ConfigLogger.Levels := FALSE;
-   _ConfigLogger.Names := FALSE;
-   _ConfigLogger.Method := log.dmNone;
-   _ConfigLogger.BufferSize := 16;
-   _ConfigLogger.BufferMode := log.bmStoreFirst;
+      IF b THEN
+         Msg.Message := MSG_ADVISE_SEND;
+         b := Message( Msg, msghandler.delDefault, NIL );
+         ASSERT( b );
+      END;
+   END SendAdvise;
+
+(*--------------------------------------------------------------------------------*)
+
+   INITIALLY CSDAPServer();
+   BEGIN
+      Connection := netconndispatch.ctLine;
+      PieceSize := -1;
+      Logger := log.logger();
+
+      _ConfigLogger.TimeStamps := FALSE;
+      _ConfigLogger.Levels := FALSE;
+      _ConfigLogger.Names := FALSE;
+      _ConfigLogger.Method := log.dmNone;
+      _ConfigLogger.BufferSize := 16;
+      _ConfigLogger.BufferMode := log.bmStoreFirst;
+   END CSDAPServer;
+
+(*--------------------------------------------------------------------------------*)
+
+   FINALLY CSDAPServer();
+   BEGIN
+      _Clients.Dispose();
+      _SendQueue.Dispose();
+   END CSDAPServer;
+
+(*--------------------------------------------------------------------------------*)
+
 END CSDAPServer;
+
+(*================================================================================*)
+
+CLASS IMPLEMENTATION CClient;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE OnAdvise( Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
+   VAR
+      count, i : INTEGER;
+      n : StringsO.CString;
+      s : StringsO.CString;
+   BEGIN
+      count := HIGH( Item ) + 1;
+      s.FromCARD32( count, 10 );
+      s.PrependOA( '202 ' ); // sdap_202
+      Server^.SendAdvise( ADR( SELF ), s );
+   
+      FOR i := 0 TO HIGH( Item ) DO
+         IF Result[i] IN Sync.arsCompletions THEN
+            Server^.Device^.Mapper()^.HashToName( Item[i], OUT n );
+            s := n;
+            s.AppendOA( L" " ); s.Append( Value[i].String );
+
+            IF NOT Server^.Logger^.Filtered( log.dldTrace ) THEN
+               Server^.Logger^.LogSS( log.dldTrace, L"sdap", "ADV: ", OA( s.Length-1, s.rawData ));
+            END;
+
+            Server^.SendAdvise( ADR( SELF ), s );
+         END;
+      END; // FOR
+   END OnAdvise;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+   Connection := NIL;
+   Server := NIL;
+END CClient;
 
 (*================================================================================*)
 

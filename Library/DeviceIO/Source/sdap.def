@@ -10,8 +10,11 @@ IMPORT
    inetaddr,
    iovalue,
    log,
+   maps,
+   msghandler,
    netconndispatch,
-   StringsO;
+   StringsO,
+   Sync;
 
 (*================================================================================*)
 
@@ -53,7 +56,14 @@ CLASS CSDAPServer( netconndispatch.CDispatcher );
       _ListenAddress : inetaddr.INETADDR;
       _Running : BOOLEAN := FALSE;
       _ConfigLogger : log.CLogger;
+      _Clients : maps.CPtrMap;
+      _SendLock : Sync.LOCK;
+      _SendQueue : lists.CStringList;
 
+   // inherited
+   INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
+
+   // SELF
    PUBLIC PROPERTY
       Device : adviser.TPAdvisedDevice;
       Logger : log.TPLogger;
@@ -73,6 +83,11 @@ CLASS CSDAPServer( netconndispatch.CDispatcher );
    PRIVATE PROCEDURE ACKS( Connection : netconndispatch.TConnectionHandle; ack : TsdapACK; CONST S : StringsO.CString );
    PRIVATE PROCEDURE ACKs( Connection : netconndispatch.TConnectionHandle; ack : TsdapACK; subCode : CARDINAL );
    PRIVATE PROCEDURE ACKd( Connection : netconndispatch.TConnectionHandle; ack : TsdapACK; CONST address : StringsO.CString; CONST value : iovalue.Value );
+
+   LOCAL PROCEDURE SendAdvise( Client : ADDRESS; CONST string : StringsO.IString );
+   
+   INITIALLY CSDAPServer();
+   FINALLY CSDAPServer();
 END CSDAPServer;
 
 (*================================================================================*)
