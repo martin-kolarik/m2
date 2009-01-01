@@ -62,7 +62,7 @@ CLASS CTextReader IMPLEMENTS IOO.IBufferedReader;
    PUBLIC VIRTUAL PROCEDURE Peek( OUT Data : ADDRESS; OUT byteLength : CARDINAL ) : BOOLEAN; // peeks data from read buffer, !!!!! IBufferReader is BYTE oriented, Length is BYTE count not WCHAR count.
    PUBLIC VIRTUAL PROCEDURE ReadOut( byteLength : CARDINAL ); // consumes data from read buffer, !!!!! IBufferReader Length is BYTE, not WCHAR count.
    
-   PRIVATE PROCEDURE ReadFromStream( TimeoutMS : CARDINAL; WaitForResult : BOOLEAN; AllowPredictioning : BOOLEAN ) : Sync.TAsyncResult;
+   PRIVATE PROCEDURE ReadFromStream( TimeoutMS : CARDINAL; WaitForResult : BOOLEAN ) : Sync.TAsyncResult;
    PRIVATE PROCEDURE Feed();
    PRIVATE PROCEDURE ScanLine( DetectBOM : BOOLEAN; OUT Start : PWCHAR; OUT DataLength, CommitLength : CARDINAL ) : TScanResult;
 END CTextReader;

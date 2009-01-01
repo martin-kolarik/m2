@@ -2,15 +2,21 @@ IMPLEMENTATION MODULE SDAPClient;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
+   
+FROM Debug IMPORT
+   Assertion;
 
 IMPORT
+   IOO,
+   netinit,
    netsocket,
    rawconnection,
-   scinit,
    Strings,
+   StringsO,
    Sync,
    TextReader,
    TextWriter,
+   threadinit,
    winerror,
    winsock;
 
@@ -24,12 +30,19 @@ TYPE
 CLASS CNotifier( netsocket.ASocketNotifier );
    LOCAL VAR
       Client : TPSDAPClient;
+   PUBLIC VIRTUAL PROCEDURE OnFlowPossible( Direction : IOO.TDirection; Source : ADDRESS );
    PUBLIC VIRTUAL PROCEDURE OnReadable( Length : CARDINAL; Source : ADDRESS );
    LOCAL VIRTUAL PROCEDURE OnConnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); 
    LOCAL VIRTUAL PROCEDURE OnDisconnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); // calling Socket^.Release is safe if OnDisconnect is called from OnHandle. Otherwise (when OnDisconnect is called synchronously from Disconnect) it can be dangerous.
 END CNotifier;
 
 (*--------------------------------------------------------------------------------*)
+
+TYPE
+   TReadState = (
+      rdsWaitStatus,
+      rdsWaitData
+   );
 
 CLASS CSDAPClient IMPLEMENTS ISDAPClient;
    // ISDAPClient
@@ -43,12 +56,13 @@ CLASS CSDAPClient IMPLEMENTS ISDAPClient;
    PUBLIC VIRTUAL PROCEDURE Write( CONST Data : ARRAY OF WCHAR; CONST Value : ARRAY OF WCHAR ) : CARDINAL;
    PUBLIC VIRTUAL PROCEDURE Ask( CONST Data : ARRAY OF WCHAR ) : CARDINAL;
    
-   PUBLIC VIRTUAL PROCEDURE SetNotifier( Notifier : TPISDAPClientEvents );
+   PUBLIC VIRTUAL PROCEDURE SetEventListener( Listener : TPISDAPClientEvents );
    
    // callbacks
    LOCAL PROCEDURE OnConnect( Error : CARDINAL );
    LOCAL PROCEDURE OnDisconnect( Error : CARDINAL; Local : BOOLEAN );
-   LOCAL PROCEDURE OnReadable( Length : CARDINAL );
+   LOCAL PROCEDURE OnReadingPossible();
+   LOCAL PROCEDURE OnDataReceived();
    
    // self
    PRIVATE VAR
@@ -57,6 +71,8 @@ CLASS CSDAPClient IMPLEMENTS ISDAPClient;
       _ClientNotifier : TPISDAPClientEvents;
       _Reader : TextReader.CTextReader;
       _Writer : TextWriter.CTextWriter;
+      _ReadState : TReadState := rdsWaitStatus;
+      _DataCount : CARDINAL := 0;
       
    PRIVATE PROCEDURE DoWrite( CONST s1, s2, s3 : ARRAY OF WCHAR ) : CARDINAL;
 END CSDAPClient;
@@ -67,9 +83,18 @@ CLASS IMPLEMENTATION CNotifier;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE OnFlowPossible( Direction : IOO.TDirection; Source : ADDRESS );
+   BEGIN
+      IF Direction = IOO.dirRead THEN
+         Client^.OnReadingPossible();
+      END;
+   END OnFlowPossible;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE OnReadable( Length : CARDINAL; Source : ADDRESS );
    BEGIN
-      Client^.OnReadable( Length );
+      Client^.OnDataReceived();
    END OnReadable;
 
 (*--------------------------------------------------------------------------------*)
@@ -102,6 +127,9 @@ CLASS IMPLEMENTATION CSDAPClient;
    VAR
       a : ADDRESS;
    BEGIN
+      _Connection.Notifier := NIL;
+      Close();
+
       a := ADR( SELF );
       DISPOSE( a );
    END Dispose;
@@ -157,15 +185,15 @@ CLASS IMPLEMENTATION CSDAPClient;
 
    PUBLIC VIRTUAL PROCEDURE Ask( CONST Data : ARRAY OF WCHAR ) : CARDINAL;
    BEGIN
-      RETURN DoWrite( L"ask", Data, L"" );
+      RETURN DoWrite( L"get", Data, L"" );
    END Ask;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE SetNotifier( Notifier : TPISDAPClientEvents );
+   PUBLIC VIRTUAL PROCEDURE SetEventListener( Listener : TPISDAPClientEvents );
    BEGIN
-      _ClientNotifier := Notifier;
-   END SetNotifier;
+      _ClientNotifier := Listener;
+   END SetEventListener;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -187,10 +215,61 @@ CLASS IMPLEMENTATION CSDAPClient;
 
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE OnReadable( Length : CARDINAL );
+   LOCAL PROCEDURE OnReadingPossible();
    BEGIN
-      
-   END OnReadable;
+      _Reader.StartReading();
+   END OnReadingPossible;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE OnDataReceived();
+   VAR
+      a : ADDRESS;
+      i, l : CARDINAL;
+      Line : StringsO.CString;
+      s, t : StringsO.CString;
+   BEGIN
+      LOOP
+         IF NOT _Reader.Peek( OUT a, OUT l ) THEN
+            EXIT;
+         ELSIF _Reader.ReadLine( OUT Line, Sync.FORSAFETY, TRUE ) <> Sync.arCompleted THEN
+            ASSERT( FALSE );
+         END;
+         
+         CASE _ReadState OF
+         //-----
+         | rdsWaitStatus :
+            IF Line.Length <= 3 THEN // only a status code without data, not interesting
+               CONTINUE;
+            END;
+            Line.Substring( 4, -1, OUT s );
+            IF NOT s.Empty THEN
+               TRY
+                  _DataCount := s.ToCARD32( 10 );
+               CATCH e : StringsO.CStringException DO
+                  _DataCount := 0;
+               END;
+               IF _DataCount > 0 THEN
+                  _ReadState := rdsWaitData;
+               END;
+            END;
+
+         //-----
+         | rdsWaitData : // now line contains data
+            i := Line.ItemS( StringsO.WCHARS{L" "}, 0, 0, FALSE, OUT s );
+            Line.ItemS( StringsO.WCHARS{L" "}, i, 0, FALSE, OUT t );
+            IF NOT s.Empty AND NOT t.Empty AND ( _ClientNotifier <> NIL ) THEN
+               _ClientNotifier^.OnReceive( OA( s.Length-1, s.szData ), OA( t.Length-1, t.szData ));
+            END;
+
+            DEC( _DataCount );
+            IF _DataCount = 0 THEN
+               _ReadState := rdsWaitStatus;
+            END;
+         
+         END; // CASE
+      END; // LOOP
+   END OnDataReceived;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -218,6 +297,7 @@ CLASS IMPLEMENTATION CSDAPClient;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
+   _Connection.Notifier := ADR( _NetworkNotifier );
    _NetworkNotifier.Client := ADR( SELF );
    _ClientNotifier := NIL;
    _Reader.Stream := _Connection.Stream;
@@ -237,7 +317,8 @@ VAR
 BEGIN
    count := Sync.IInc( REF StartCount );
    IF count = 1 THEN
-      scinit.Startup();
+      threadinit.Startup();
+      netinit.Startup();
    END;
    RETURN 0;
 END Startup;
@@ -250,7 +331,8 @@ VAR
 BEGIN
    count := Sync.IDec( REF StartCount );
    IF count = 0 THEN
-      scinit.Cleanup();
+      netinit.Cleanup();
+      threadinit.Cleanup();
    END;
 END Cleanup;
 

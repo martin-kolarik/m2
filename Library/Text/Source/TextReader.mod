@@ -105,13 +105,12 @@ CLASS IMPLEMENTATION CTextReader;
       LOOP
          Feed();
          IF _WBuffer.Empty THEN
-            Result := ReadFromStream( TimeoutMS, WaitForResult, FALSE );
+            Result := ReadFromStream( TimeoutMS, WaitForResult );
             IF Result NOT IN Sync.arsCompletions THEN
                RETURN Result;
             END;
          ELSE
             _WBuffer.ReadOA( OUT Ch );
-            ReadFromStream( Sync.FOREVER, FALSE, TRUE );
             RETURN Sync.arCompleted;
          END;
       END; // LOOP
@@ -135,7 +134,7 @@ CLASS IMPLEMENTATION CTextReader;
          CASE ScanLine( MaskBOM, OUT a, OUT dl, OUT cl ) OF
          //-----
          | srNothing :
-            Result := ReadFromStream( TimeoutMS, WaitForResult, FALSE );
+            Result := ReadFromStream( TimeoutMS, WaitForResult );
             IF Result IN Sync.arsCompletions THEN // fall down and continue
                cl := 0;
             ELSIF ( Result = Sync.arNoData ) AND NOT Line.Empty THEN // last line not ended with CR must be returned as valid, NoData must come hereafter
@@ -152,19 +151,17 @@ CLASS IMPLEMENTATION CTextReader;
          | srCommentaryLine :
             // full line is ommited, continue
          //-----
-         | srIncompleteLine :
+         | srIncompleteLine, srIncompleteLineBufferFull :
             IF dl > 0 THEN
                Line.AppendOA( OA( dl-1, a ));
             END;
             // continue, try to feed again
          //-----
-         | srCompleteLine, srIncompleteLineBufferFull : 
+         | srCompleteLine : 
             INC( SELF.Line );
             IF dl > 0 THEN
                Line.AppendOA( OA( dl-1, a ));
             END;
-
-            ReadFromStream( Sync.FOREVER, FALSE, TRUE ); // start new reading
             _WBuffer.CommitReading( cl<<1 );
 
             RETURN Sync.arCompleted;
@@ -201,7 +198,7 @@ CLASS IMPLEMENTATION CTextReader;
       LOOP
          Feed();
          IF _WBuffer.Empty THEN
-            Result := ReadFromStream( TimeoutMS, WaitForResult, FALSE );
+            Result := ReadFromStream( TimeoutMS, WaitForResult );
             IF Result NOT IN Sync.arsCompletions THEN
                RETURN Result;
             END;
@@ -212,7 +209,6 @@ CLASS IMPLEMENTATION CTextReader;
             _WBuffer.CommitReading( l );
             DEC( Length, l );
             IF Length = 0 THEN
-               ReadFromStream( Sync.FOREVER, FALSE, TRUE );
                RETURN Sync.arCompleted;
             END;
          END;
@@ -266,7 +262,7 @@ CLASS IMPLEMENTATION CTextReader;
    BEGIN
       _SBuffer.Clear();
       _WBuffer.Clear();
-      ReadFromStream( Sync.FOREVER, FALSE, FALSE );
+      ReadFromStream( Sync.FOREVER, FALSE );
    END StartReading;
 
 (*--------------------------------------------------------------------------------*)
@@ -291,26 +287,14 @@ CLASS IMPLEMENTATION CTextReader;
    BEGIN
       _WBuffer.CommitReading( Length );
       // continue with reading
-      ReadFromStream( Sync.FOREVER, FALSE, TRUE );
+      ReadFromStream( Sync.FOREVER, FALSE );
    END ReadOut;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ReadFromStream( TimeoutMS : CARDINAL; WaitForResult : BOOLEAN; AllowPredictioning : BOOLEAN ) : Sync.TAsyncResult;
-   VAR
-      Result : Sync.TAsyncResult;
+   PRIVATE PROCEDURE ReadFromStream( TimeoutMS : CARDINAL; WaitForResult : BOOLEAN ) : Sync.TAsyncResult;
    BEGIN
-      IF AllowPredictioning AND ( _WBuffer.Count > _WBuffer.Size DIV 2 ) THEN
-         RETURN Sync.arCompleted;
-      END;
-      Result := _Stream^.Read( ADR( _SProxy ), Sync.FOREVER, FALSE );
-      IF Result <> Sync.arPending THEN
-         RETURN Result;
-      ELSIF WaitForResult THEN
-         RETURN _SProxy.WaitCompletion( TimeoutMS );
-      ELSE
-         RETURN Sync.arPending;
-      END;
+      RETURN _Stream^.Read( ADR( _SProxy ), TimeoutMS, WaitForResult );
    END ReadFromStream;
 
 (*--------------------------------------------------------------------------------*)

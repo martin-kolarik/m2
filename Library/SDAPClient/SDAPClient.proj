@@ -4,6 +4,9 @@
 
     <!-- 1 -->
     <PropertyGroup>
+        <ComponentType>Library</ComponentType>
+        <Result>Dynamic</Result>
+
         <FileDescription>SDAP Client external library</FileDescription>
         <FileVersionMajor>1</FileVersionMajor>
         <FileVersionMinor>0</FileVersionMinor>
@@ -16,7 +19,7 @@
     <!-- 3 COMPOMENT DEFINITION -->
     <ItemGroup>
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
-        <Components Include="Component\sccore;Library\DeviceIO"/>
+        <Components Include="Modula2\m2rtl;Modula2\m2ortl;Library\ADT;Library\Threading;Library\Network"/>
         <Modules Include="SDAPClient"/>
     </ItemGroup>
 

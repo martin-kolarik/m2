@@ -599,8 +599,12 @@ CLASS IMPLEMENTATION CEIBServer;
          // for notification using EventSink, if it exists
          ValueUpdated( PObject, PObject^.CommunicationState );
       END;
-      
-      RETURN Sync.arCompleted;
+
+      IF EIB^.DeviceConnected() THEN
+         RETURN Sync.arCompleted;
+      ELSE
+         RETURN Sync.arCompletedFromCache;
+      END;
    END IOh;
 
 //--------------------------------------------------------------------------------

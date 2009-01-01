@@ -21,6 +21,7 @@ TYPE
       // successes
       sdap200 = 200, // OK
       sdap201 = 201, // OK, but cached without connection
+      sdap202 = 202, // OK, advise
       
       // temporary states
       sdap300 = 300, // operation is pending
