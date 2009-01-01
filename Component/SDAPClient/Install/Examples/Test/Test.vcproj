@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="D:\Work\SmartControl\Code\Library\SDAPClient\Header"
+				AdditionalIncludeDirectories="D:\Work\SmartControl\Code\Component\SDAPClient\Install\Header"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -63,7 +63,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="SDAPClient.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="D:\Work\SmartControl\Code\Library\SDAPClient\~Debug"
+				AdditionalLibraryDirectories="D:\Work\SmartControl\Code\Component\SDAPClient\Install\Library.Debug"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				TargetMachine="1"

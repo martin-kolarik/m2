@@ -76,7 +76,9 @@ int _tmain(int argc, _TCHAR* argv[])
         pClient->Ask( HIGH(DATA), (WCHAR*)DATA );
     }
 
-    Sleep( 10000 );
+    pClient->SetAdvise( true );
+
+    Sleep( 1000000 );
 
     pClient->Close();
     pClient->Dispose();
