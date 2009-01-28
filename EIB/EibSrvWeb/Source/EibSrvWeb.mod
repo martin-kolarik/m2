@@ -9,7 +9,8 @@ IMPORT
    Controller,
    HttpCommon,
    httpsrv,
-   MVC;
+   MVC,
+   Sync;
 
 (*================================================================================*)
 
@@ -46,16 +47,26 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : srvcore.TPObject );
+   VAR
+      dt : time.TDateTime;
    BEGIN
-      // TODO
+      time.GetCurrentUTCDateTime( dt );
+      Sync.IInc( REF _WrittenByHour[dt.Hour MOD 24] );
    END OnWritten;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE OnInputQueueAdd( OOBQueue, PromiscuousQueue : BOOLEAN );
+   VAR
+      dt : time.TDateTime;
    BEGIN
+      time.GetCurrentUTCDateTime( dt );
+
       _EIB^.QueueLock.Lock();
-      // TODO
+
+      INC( _GotByHour[dt.Hour MOD 24], _EIB^.oobData.Count );
+      _EIB^.oobData.Clear();
+
       _EIB^.QueueLock.Unlock();
    END OnInputQueueAdd;
 
@@ -99,6 +110,52 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    BEGIN
       RETURN _EIB^.PResult^.Expires;
    END LicenceExpires;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY WrittenByHour GET : CARDINAL;
+   VAR
+      dt : time.TDateTime;
+   BEGIN
+      time.GetCurrentUTCDateTime( dt );
+      RETURN Sync.IGet( REF _WrittenByHour[dt.Hour MOD 24] );
+   END WrittenByHour;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY WrittenByDay GET : CARDINAL;
+   VAR
+      byDay : CARDINAL := 0;
+      i : CARDINAL;
+   BEGIN
+      FOR i := 0 TO 23 DO
+         INC( byDay, Sync.IGet( REF _WrittenByHour[i] ));
+      END;
+      RETURN byDay;
+   END WrittenByDay;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY ReadByHour GET : CARDINAL;
+   VAR
+      dt : time.TDateTime;
+   BEGIN
+      time.GetCurrentUTCDateTime( dt );
+      RETURN Sync.IGet( REF _GotByHour[dt.Hour MOD 24] );
+   END ReadByHour;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY ReadByDay GET : CARDINAL;
+   VAR
+      byDay : CARDINAL := 0;
+      i : CARDINAL;
+   BEGIN
+      FOR i := 0 TO 23 DO
+         INC( byDay, Sync.IGet( REF _ReadByHour[i] ));
+      END;
+      RETURN byDay;
+   END ReadByDay;
 
 (*--------------------------------------------------------------------------------*)
 

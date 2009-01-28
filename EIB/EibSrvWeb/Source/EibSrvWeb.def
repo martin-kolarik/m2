@@ -34,6 +34,10 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink;
       ConnectedTime : time.TJDC;
       DisconnectedTime : time.TJD;
       LicenceExpires : time.TDateTime;
+      WrittenByHour : CARDINAL;
+      WrittenByDay : CARDINAL;
+      ReadByHour : CARDINAL;
+      ReadByDay : CARDINAL;
    
    PRIVATE VAR
       _Context : StringsO.CString;

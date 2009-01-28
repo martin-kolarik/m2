@@ -27,34 +27,34 @@
 
                       <div class="content">
 
-                        <h1>Server</h1>
+                        <h1>${msg.status.server}</h1>
                         <table cellpadding="0px" cellspacing="0px">
                           <tr>
-                            <td>Spojení s EIB</td><td class="spare">&nbsp;</td><td>
+                            <td>${msg.status.EIBconnection}</td><td class="spare">&nbsp;</td><td>
                               <pt:choose>
-                                <pt:when condition="${connected}">Připojeno od ${connectionTime}</pt:when>
-                                <pt:otherwise><span class="red">Nepřipojeno od ${connectionTime}</span></pt:otherwise>
+                                <pt:when condition="${connected}">${msg.status.connectedFrom}${connectionTime}</pt:when>
+                                <pt:otherwise><span class="red">${msg.status.notConnectedFrom}${connectionTime}</span></pt:otherwise>
                               </pt:choose>
                             </td>
                           </tr>
                           <tr>
-                            <td>Doba běhu serveru</td><td class="spare">&nbsp;</td><td>${uptime}</td>
+                            <td>${msg.status.uptime}</td><td class="spare">&nbsp;</td><td>${uptime}</td>
                           <tr>
                           </tr>
-                            <td>Konfigurace</td><td class="spare">&nbsp;</td><td>---</td>
+                            <td>${msg.status.configuration}</td><td class="spare">&nbsp;</td><td>---</td>
                           <tr>
                           </tr>
-                            <td>Licence</td><td class="spare">&nbsp;</td><td>${licence}</td>
+                            <td>${msg.status.licence}</td><td class="spare">&nbsp;</td><td>${licence}</td>
                           </tr>
                         </table>
 
-                        <h1>Komunikace</h1>
+                        <h1>${msg.status.communication}</h1>
                         <table cellpadding="0px" cellspacing="0px">
                           <tr>
-                            <td>Za poslední hodinu</td><td class="spare">&nbsp;</td><td>15</td>
+                            <td>${msg.status.lasthour}</td><td class="spare">&nbsp;</td><td>${ioLastHour}</td>
                           </tr>
                           <tr>
-                            <td>Za poslední den</td><td class="spare">&nbsp;</td><td>365</td>
+                            <td>${msg.status.lastday}</td><td class="spare">&nbsp;</td><td>${ioLastDay}</td>
                           </tr>
                         </table>
 

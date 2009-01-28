@@ -1159,6 +1159,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
    PRIVATE PROCEDURE ParseText( CONST Text : StringsO.IString; OUT Parsed : StringsO.IString );
    BEGIN
+      // TODO: react to error
       Request^.ModelContainer^.Format( FALSE, Text, Request^.MessageSource, Request^.Language, OUT Parsed );
    END ParseText;
 

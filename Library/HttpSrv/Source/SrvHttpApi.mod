@@ -637,6 +637,7 @@ CLASS IMPLEMENTATION CHttpApiStream;
       RESPONSE_302 = C"Moved Temporarily";
       RESPONSE_303 = C"See Other";
       RESPONSE_404 = C"Not Found";
+      RESPONSE_409 = C"Conflict";
       RESPONSE_500 = C"Internal Server Error";
       RESPONSE_501 = C"Not Implemented";
    BEGIN
@@ -656,6 +657,9 @@ CLASS IMPLEMENTATION CHttpApiStream;
       | HttpCommon.httpres_404 :
          _Response.pReason := ADR( RESPONSE_404 );
          _Response.ReasonLength := SIZE( RESPONSE_404 )-1;
+      | HttpCommon.httpres_409 :
+         _Response.pReason := ADR( RESPONSE_409 );
+         _Response.ReasonLength := SIZE( RESPONSE_409 )-1;
       | HttpCommon.httpres_500 :
          _Response.pReason := ADR( RESPONSE_500 );
          _Response.ReasonLength := SIZE( RESPONSE_500 )-1;

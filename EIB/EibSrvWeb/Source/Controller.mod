@@ -27,6 +27,8 @@ CONST
    STATUS_CONNECTIONTIME = L"connectionTime";
    STATUS_UPTIME = L"uptime";
    STATUS_LICENCE = L"licence";
+   STATUS_LAST_HOUR = L"ioLastHour";
+   STATUS_LAST_DAY = L"ioLastDay";
 
 (*================================================================================*)
 
@@ -116,6 +118,7 @@ CLASS IMPLEMENTATION CController;
    PRIVATE PROCEDURE ProcessStatus( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       b : BOOLEAN;
+      c : CARDINAL;
       cs : StringsO.CString;
       dt : time.TDateTime;
       s : ARRAY [0..63] OF WCHAR;
@@ -169,6 +172,14 @@ CLASS IMPLEMENTATION CController;
          cs.AppendOA( s );
       END;
       Request^.ModelContainer^.AddStringOA( STATUS_LICENCE, cs );
+      
+      c := _Web^.WrittenByHour + _Web^.ReadByHour;
+      cs.FromCARD32( c, 10 );
+      Request^.ModelContainer^.AddStringOA( STATUS_LAST_HOUR, cs );
+
+      c := _Web^.WrittenByDay + _Web^.ReadByDay;
+      cs.FromCARD32( c, 10 );
+      Request^.ModelContainer^.AddStringOA( STATUS_LAST_DAY, cs );
  
       View := mvc.pageTemplateView( ADR( SELF ), STATUS_VIEW );
       RETURN TRUE;

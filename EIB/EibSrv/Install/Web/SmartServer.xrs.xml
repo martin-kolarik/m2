@@ -2,19 +2,55 @@
 <resources>
     <strings version="1.0">
 
+        <string name="login.text">
+            <item lang="en-US">Login</item>
+            <item lang="cs-CZ">Přihlášení</item>
+        </string>
         <string name="login.username">
-            <item lang="en-US">Name:</item>
-            <item lang="cs-CZ">Jméno:</item>
+            <item lang="en-US">Name</item>
+            <item lang="cs-CZ">Jméno</item>
         </string>
         <string name="login.password">
-            <item lang="en-US">Password:</item>
-            <item lang="cs-CZ">Heslo:</item>
+            <item lang="en-US">Password</item>
+            <item lang="cs-CZ">Heslo</item>
+        </string>
+        <string name="login.submit">
+            <item lang="en-US">Login</item>
+            <item lang="cs-CZ">Přihlásit</item>
         </string>
         <string name="login.badCredentials">
             <item lang="en-US">Invalid login, the username and/or password is incorrect.</item>
             <item lang="cs-CZ">Neplatné přihlášení, jméno a/nebo heslo není správné.</item>
         </string>
 
+        <string name="status.server">
+            <item lang="en-US">Server</item>
+            <item lang="cs-CZ">Server</item>
+        </string>
+        <string name="status.EIBconnection">
+            <item lang="en-US">EIB connection</item>
+            <item lang="cs-CZ">Spojení s EIB</item>
+        </string>
+        <string name="status.connectedFrom">
+            <item xml:space="preserve" lang="en-US">Connected from </item>
+            <item xml:space="preserve" lang="cs-CZ">Připojeno od </item>
+        </string>
+        <string name="status.notConnectedFrom">
+            <item xml:space="preserve" lang="en-US">Disconnected from </item>
+            <item xml:space="preserve" lang="cs-CZ">Nepřipojeno od </item>
+        </string>
+        <string name="status.uptime">
+            <item lang="en-US">Server uptime</item>
+            <item lang="cs-CZ">Doba běhu serveru</item>
+        </string>
+        <string name="status.configuration">
+            <item lang="en-US">Configuration</item>
+            <item lang="cs-CZ">Konfigurace</item>
+        </string>
+        <string name="status.licence">
+            <item lang="en-US">Licence</item>
+            <item lang="cs-CZ">Licence</item>
+        </string>
         <string name="status.licencePermanent">
             <item lang="en-US">Unrestricted, permanent</item>
             <item lang="cs-CZ">Neomezená, trvalá</item>
@@ -22,6 +58,18 @@
         <string name="status.licenceValidUntil">
             <item xml:space="preserve" lang="en-US">Valid until </item>
             <item xml:space="preserve" lang="cs-CZ">Platná do </item>
+        </string>
+        <string name="status.communication">
+            <item lang="en-US">Communication</item>
+            <item lang="cs-CZ">Komunikace</item>
+        </string>
+        <string name="status.lasthour">
+            <item lang="en-US">During last hour</item>
+            <item lang="cs-CZ">Za poslední hodinu</item>
+        </string>
+        <string name="status.lastday">
+            <item lang="en-US">During last day</item>
+            <item lang="cs-CZ">Za poslední den</item>
         </string>
 
     </strings>

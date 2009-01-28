@@ -23,19 +23,19 @@
 
                         <div class="content">
 
-                            <h1>Přihlášení</h1>
+                            <h1>${msg.login.text}</h1>
                             <pt:form method="post" action="login">
 
                                 <table cellpadding="0px" cellspacing="0px">
                                     <tr>
-                                        <td>Jméno</td>
+                                        <td>${msg.login.username}</td>
                                         <td class="spare">&nbsp;</td>
                                         <td>
                                             <pt:input model="username"/>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td>Heslo</td>
+                                        <td>${msg.login.password}</td>
                                         <td class="spare">&nbsp;</td>
                                         <td>
                                             <pt:password model="password"/>
@@ -43,7 +43,7 @@
                                     </tr>
                                     <tr>
                                         <td colspan="3">
-                                            <input type="submit" value="Přihlásit"/>
+                                            <input type="submit" value="${msg.login.submit}"/>
                                         </td>
                                     </tr>
                                     <tr condition="${message}">

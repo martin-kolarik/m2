@@ -500,10 +500,10 @@ CLASS IMPLEMENTATION CContainer;
          Formatted.Substring( mi, j-mi, OUT model );
          IF ( MessageSource <> NIL ) AND model.StartsWithOA( L"msg." ) THEN
             model.Remove( 0, 4 ); // delete "msg."
-            IF NOT MessageSource^.GetMessage( language, model, OUT value ) THEN
-               value.FromOA( L'##unknown message: ' ); value.Append( model );
+            IF NOT MessageSource^.GetMessage( language, model, OUT value ) AND FailOnError THEN
                RETURN FALSE;
             END;
+            value.FromOA( L'##unknown message: ' ); value.Append( model );
          ELSE
             IF NOT GetModelValue( model, OUT value ) AND FailOnError THEN
                RETURN FALSE;
@@ -811,10 +811,6 @@ CLASS IMPLEMENTATION CMVC;
       WHILE connectionData.MoveNext() DO
          IF container^.GetModelViewMapping( connectionData.Current^, OUT mappedName ) THEN
             container^.SetModelValue( mappedName, connectionData.CurrentData^ );
-         ELSE
-            Connection^.StatusCode := HttpCommon.httpres_500;
-            // LOG errors
-            ASSERT( FALSE );
          END;
       END; // WHILE
       connectionData.Dispose();
