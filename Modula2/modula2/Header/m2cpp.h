@@ -31,18 +31,18 @@ typedef long                   HRESULT; // for COM PROCEDURE...
 typedef unsigned char          CARD8;
 typedef unsigned short         CARD16;
 typedef unsigned int           CARD32;
-typedef unsigned __int64       CARD64;
-typedef unsigned short         SHORTCARD; // link to CARD16
-typedef unsigned int           CARDINAL;
-typedef unsigned long          LONGCARD; // link to CARD32
+typedef unsigned long long     CARD64;
+typedef CARD16                 SHORTCARD; // link to CARD16
+typedef CARD32                 CARDINAL;
+typedef CARD32                 LONGCARD; // link to CARD32
 
 typedef signed char            INT8;
 typedef signed short           INT16;
 typedef signed int             INT32; // defined in basetsd.h as int
-typedef __int64                INT64;
-typedef short                  SHORTINT; // link to INT16
-typedef int                    INTEGER;
-typedef long                   LONGINT; // link to INT32
+typedef signed long long       INT64;
+typedef INT16                  SHORTINT; // link to INT16
+typedef INT32                  INTEGER;
+typedef INT32                  LONGINT; // link to INT32
 
 typedef unsigned char          BOOLEAN;
 typedef signed char            TRISTATE;
@@ -56,13 +56,13 @@ typedef char                   CHAR;
 typedef unsigned char          BYTE;
 typedef unsigned short         WORD;
 typedef unsigned long          LONGWORD;
-typedef unsigned __int64       QUADWORD;
+typedef unsigned long long     QUADWORD;
 
 typedef unsigned char          BITSET8;
 typedef unsigned short         BITSET16;
-typedef unsigned int           BITSET32;
-typedef unsigned __int64       BITSET64;
-typedef unsigned int           BITSET;
+typedef unsigned long          BITSET32;
+typedef unsigned long long     BITSET64;
+typedef unsigned long          BITSET;
 
 typedef float                  REAL;
 typedef double                 LONGREAL;
@@ -70,21 +70,21 @@ typedef double                 LONGREAL;
 #define ADDRESS                void*
 
 # ifdef _WIN64
-typedef unsigned __int64       PTR;
-typedef unsigned __int64       CARDPTR;
-typedef __int64                INTPTR;
-typedef unsigned __int64       STORPTR;
+typedef CARD64                 PTR;
+typedef CARD64                 CARDPTR;
+typedef INT64                  INTPTR;
+typedef CARD64                 STORPTR;
 # else
-typedef unsigned int           PTR;
-typedef unsigned int           CARDPTR;
-typedef int                    INTPTR;
-typedef unsigned int           STORPTR;
+typedef CARD32                 PTR;
+typedef CARD32                 CARDPTR;
+typedef INT32                  INTPTR;
+typedef CARD32                 STORPTR;
 # endif
 
 typedef char                   ORD8;
 typedef short                  ORD16;
-typedef int                    ORD32;
-typedef int                    ORDINAL;
+typedef long                   ORD32;
+typedef ORD32                  ORDINAL;
 
 typedef CARD32                 SET;
 typedef CARD64                 LONGSET;
@@ -199,7 +199,7 @@ inline QUADWORD REVERSEQWB_( QUADWORD w ) throw() {
 # define INCLL_(s,l,b) { \
   unsigned int __e = (b); \
   if (__e <= (l)) { \
-    (s) |= 1UI64 << __e; \
+    (s) |= 1ull << __e; \
   } \
 }
 # define INCLA_(s,l,b) { \
@@ -219,7 +219,7 @@ inline QUADWORD REVERSEQWB_( QUADWORD w ) throw() {
 # define EXCLL_(s,l,b) { \
   unsigned int __e = (b); \
   if (__e <= (l)) { \
-    (s) &= ~(1UI64 << __e); \
+    (s) &= ~(1ull << __e); \
   } \
 }
 # define EXCLA_(s,l,b) { \
@@ -242,7 +242,7 @@ inline bool INS_( SET s, SET l, SET b ) throw()
 inline bool INL_( LONGSET s, SET l, SET b ) throw()
 {
   if (b<=l) {
-    return (s & (1UI64<<b)) != 0;
+    return (s & (1ull<<b)) != 0;
   } else {
     return false;
   }
