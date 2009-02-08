@@ -140,26 +140,27 @@ CLASS IMPLEMENTATION CXMLSocketServer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Running GET : BOOLEAN;
+   PUBLIC VIRTUAL PROPERTY Running GET : BOOLEAN;
    BEGIN
       RETURN _Running;
    END Running;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Start();
+   PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    BEGIN
       IF _Running THEN
-         RETURN;
+         RETURN Sync.arCompleted;
       ELSE
          _Running := TRUE;
       END;
       netsrv.StartListen( netsocket.stStream, _ListenAddress, NIL, Listener, 0, NIL );
+      RETURN Sync.arCompleted;
    END Start;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Stop();
+   PUBLIC VIRTUAL PROCEDURE Stop();
    BEGIN
       IF _Running THEN
          _Running := FALSE;

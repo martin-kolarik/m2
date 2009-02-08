@@ -14,6 +14,7 @@ IMPORT
 (*---------------------------------------------------------------------------*)
 
 TYPE
+  TPIStartStopControl = POINTER TO IStartStopControl;
   TPIO = POINTER TO IIO;
   TPIAdviseInfo = POINTER TO IAdviseInfo;
   TPIDataInfo = POINTER TO IDataInfo;
@@ -68,20 +69,31 @@ TYPE
 
 (*---------------------------------------------------------------------------*)
 
-INTERFACE IIO; // single device, purpose is to have minimalistic interface, which can be implemented in the device without big effort.
-               // So IIO can be very simple, it can do no caching, it can accept only single communication, or so. Everything more
-               // complicated should be left to layers with higer abstraction like ICachedIO.
-               // It is expected IOha will behave as a single operation -- items will not be callbacked by single.
+INTERFACE IStartStopControl;
+   
+   READONLY PROPERTY
+      Running : BOOLEAN;
+   PROCEDURE Start() : Sync.TAsyncResult;
+   PROCEDURE Stop();
+
+END IStartStopControl;
+
+(*---------------------------------------------------------------------------*)
+
+INTERFACE IIO( IStartStopControl ); // single device, purpose is to have minimalistic interface, which can be implemented in the device without big effort.
+                                    // So IIO can be very simple, it can do no caching, it can accept only single communication, or so. Everything more
+                                    // complicated should be left to layers with higer abstraction like ICachedIO.
+                                    // It is expected IOha will behave as a single operation -- items will not be callbacked by single.
    READONLY PROPERTY
       IOCapabilities : TCapabilities;
       Pending : BOOLEAN;
-      Running : BOOLEAN;
+      // IRunStopControl.Running : BOOLEAN;
    PROPERTY
       Advise : TAdvise;
       AdviseListener : TPIAdviseInfo; // for Advise <> advNone
 
-   PROCEDURE Run() : Sync.TAsyncResult;
-   PROCEDURE Stop();
+   // PROCEDURE IRunStopControl.Start() : Sync.TAsyncResult;
+   // PROCEDURE IRunStopControl.Stop();
 
    PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
    PROCEDURE IOha( Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;

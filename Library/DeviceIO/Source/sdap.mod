@@ -155,19 +155,21 @@ CLASS IMPLEMENTATION CSDAPServer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Start();
+   PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    BEGIN
       IF _Running THEN
-         RETURN;
+         RETURN Sync.arCompleted;
       ELSE
          _Running := TRUE;
       END;
       netsrv.StartListen( netsocket.stStream, _ListenAddress, NIL, Listener, 0, NIL );
+
+      RETURN Sync.arCompleted;
    END Start;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Stop();
+   PUBLIC VIRTUAL PROCEDURE Stop();
    BEGIN
       IF _Running THEN
          _Running := FALSE;
@@ -355,7 +357,7 @@ CLASS IMPLEMENTATION CSDAPServer;
          CASE Result OF
          | Sync.arCompleted :
             IF b THEN
-               Run( PConnection );
+               DoRun( PConnection );
             ELSE
                ACK( PConnection, sdap200 );
             END;
@@ -378,7 +380,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       | sdapRUN :
          Logger^.LogS( log.dldTrace, L"sdap", "RUN" );
 
-         Run( PConnection );
+         DoRun( PConnection );
 
       //-----
       | sdapSTOP :
@@ -475,11 +477,11 @@ CLASS IMPLEMENTATION CSDAPServer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE Run( Connection : netconndispatch.TConnectionHandle );
+   PRIVATE PROCEDURE DoRun( Connection : netconndispatch.TConnectionHandle );
    VAR
       Result : Sync.TAsyncResult;
    BEGIN
-      Result := Device^.IO()^.Run();
+      Result := Device^.IO()^.Start();
       CASE Result OF
       | Sync.arPending :
          ACK( Connection, sdap300 );
@@ -488,7 +490,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       ELSE
          ACK( Connection, sdap501 );
       END;
-   END Run;
+   END DoRun;
 
 (*--------------------------------------------------------------------------------*)
 

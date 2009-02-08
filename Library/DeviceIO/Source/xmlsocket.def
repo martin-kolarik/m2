@@ -17,7 +17,15 @@ IMPORT
 TYPE
    TPXMLSocketServer = POINTER TO CXMLSocketServer;
 
-CLASS CXMLSocketServer( netconndispatch.CDispatcher );
+CLASS CXMLSocketServer( netconndispatch.CDispatcher ) IMPLEMENTS io.IStartStopControl;
+   
+   // IRunStopControl
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Running : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Stop();
+
+   // SELF
    PRIVATE VAR
       _Device : adviser.TPAdvisedDevice := NIL;
       _Logger : log.TPLogger := NIL;
@@ -29,16 +37,10 @@ CLASS CXMLSocketServer( netconndispatch.CDispatcher );
    // inherited
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Message : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN;
       
-   // SELF
    PUBLIC PROPERTY
       Device : adviser.TPAdvisedDevice;
       Logger : log.TPLogger;
       ListenAddress : inetaddr.INETADDR;
-   PUBLIC READONLY PROPERTY
-      Running : BOOLEAN;
-
-   PUBLIC PROCEDURE Start();
-   PUBLIC PROCEDURE Stop();
 
    INTERNAL VIRTUAL PROCEDURE OnConnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
    INTERNAL VIRTUAL PROCEDURE OnDisconnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );

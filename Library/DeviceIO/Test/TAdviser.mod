@@ -58,7 +58,7 @@ CLASS CSimulator IMPLEMENTS io.IIO, ns.IMapper, device.IDevice;
       Advise : io.TAdvise;
       AdviseListener : io.TPIAdviseInfo; // for Advise <> advNone
 
-   PUBLIC VIRTUAL PROCEDURE Run() : sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Start() : sync.TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE Stop();
 
    PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
@@ -210,10 +210,10 @@ CLASS IMPLEMENTATION CSimulator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Run() : sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Start() : sync.TAsyncResult;
    BEGIN
       RETURN sync.arCompleted;
-   END Run;
+   END Start;
 
 (*---------------------------------------------------------------------------*)
 
