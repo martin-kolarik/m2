@@ -433,6 +433,7 @@ CLASS CHttpApiStream( SrvCommon.ASrvStream );
       RequestVerb : HttpCommon.TVerb;
       FullURI : StringsO.CString;
       AbsoluteURI : StringsO.CString;
+      URIData : StringsO.CString; // query string, part after ? in URI
       RequestURI : StringsO.CString;
       RequestHeaders : HttpCommon.TPHttpHeaders;
       ResponseHeaders : HttpCommon.TPHttpHeaders;
@@ -517,6 +518,20 @@ CLASS IMPLEMENTATION CHttpApiStream;
       s.FromOA( OA( CARDINAL( Request^.CookedUrl.AbsPathLength >> 1 )-1, Request^.CookedUrl.pAbsPath ));
       RETURN s;
    END AbsoluteURI;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY URIData GET : StringsO.CString; // query string, part after ? in URI
+   VAR
+      l : CARDINAL;
+      s : StringsO.CString;
+   BEGIN
+      l := CARDINAL( Request^.CookedUrl.QueryStringLength );
+      IF l > 1 THEN
+         s.FromOA( OA( CARDINAL( Request^.CookedUrl.QueryStringLength >> 1 )-2, INC( Request^.CookedUrl.pQueryString, SIZE( WCHAR ))));
+      END;
+      RETURN s;
+   END URIData;
 
 (*--------------------------------------------------------------------------------*)
 

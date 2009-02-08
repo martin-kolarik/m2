@@ -522,6 +522,7 @@ CLASS CHttpConnection IMPLEMENTS HttpConnection.IHttpSrvConnection;
    PUBLIC VIRTUAL READONLY PROPERTY
       FullURI : StringsO.CString; // absolute URI, with protocol and host part
       AbsoluteURI : StringsO.CString; // absolute URI, can contain "undistinguishable" prefixes
+      URIData : StringsO.CString; // query data
       RequestHeaders : HttpCommon.TPHttpHeaders;
       RequestVerb : HttpCommon.TVerb;
       RequestURI : StringsO.CString;
@@ -577,6 +578,13 @@ CLASS IMPLEMENTATION CHttpConnection;
    BEGIN
       RETURN _Stream^.AbsoluteURI;
    END AbsoluteURI;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY URIData GET : StringsO.CString;
+   BEGIN
+      RETURN _Stream^.URIData;
+   END URIData;
 
 (*--------------------------------------------------------------------------------*)
 

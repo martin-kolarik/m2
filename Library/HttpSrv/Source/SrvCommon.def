@@ -70,11 +70,12 @@ ABSTRACT CLASS ASrvStream( IOO.AStream ); // synchronous implementation only
 
    // SELF
    PUBLIC ABSTRACT READONLY PROPERTY
-      FullURI : StringsO.CString; // absolute URI together with protocol, host and path, WITHOUT data part
-      AbsoluteURI : StringsO.CString; // absolute URI, ignores hiding all hidden prefixes
       RequestVersion : HttpCommon.THttpVersion;
       RequestVerb : HttpCommon.TVerb;
-      RequestURI : StringsO.CString; // relative URI, the URI corresponding to stream
+      FullURI : StringsO.CString; // absolute URI together with protocol, host and path, WITHOUT data part
+      AbsoluteURI : StringsO.CString; // absolute URI, ignores all hidden prefixes, WITHOUT data part
+      URIData : StringsO.CString; // query string, part after ? in URI
+      RequestURI : StringsO.CString; // relative URI, the URI corresponding to stream, WITHOUT data part
       RequestHeaders : HttpCommon.TPHttpHeaders;
       ResponseHeaders : HttpCommon.TPHttpHeaders;
       LocalAddress : inetaddr.INETADDR;
