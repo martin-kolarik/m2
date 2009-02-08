@@ -2,6 +2,23 @@
 <resources>
     <strings version="1.0">
 
+        <string name="menu.status">
+            <item lang="en-US">Overview</item>
+            <item lang="cs-CZ">Přehled</item>
+        </string>
+        <string name="menu.control">
+            <item lang="en-US">Settings</item>
+            <item lang="cs-CZ">Nastavení</item>
+        </string>
+        <string name="menu.log">
+            <item lang="en-US">Logs</item>
+            <item lang="cs-CZ">Záznamy</item>
+        </string>
+        <string name="menu.io">
+            <item lang="en-US">Direct IO</item>
+            <item lang="cs-CZ">Přímý přístup</item>
+        </string>
+
         <string name="login.text">
             <item lang="en-US">Login</item>
             <item lang="cs-CZ">Přihlášení</item>
@@ -39,6 +56,14 @@
             <item xml:space="preserve" lang="en-US">Disconnected from </item>
             <item xml:space="preserve" lang="cs-CZ">Nepřipojeno od </item>
         </string>
+        <string name="status.connect">
+            <item lang="en-US">Connect</item>
+            <item lang="cs-CZ">Připojit</item>
+        </string>
+        <string name="status.disconnect">
+            <item lang="en-US">Disconnect</item>
+            <item lang="cs-CZ">Odpojit</item>
+        </string>
         <string name="status.uptime">
             <item lang="en-US">Server uptime</item>
             <item lang="cs-CZ">Doba běhu serveru</item>
@@ -70,6 +95,39 @@
         <string name="status.lastday">
             <item lang="en-US">During last day</item>
             <item lang="cs-CZ">Za poslední den</item>
+        </string>
+
+        <string name="control.configuration">
+            <item lang="en-US">Configuration</item>
+            <item lang="cs-CZ">Konfigurace</item>
+        </string>
+        <string name="control.interfaces">
+            <item lang="en-US">Client communication interfaces</item>
+            <item lang="cs-CZ">Klientská komunikační rozhraní</item>
+        </string>
+        <string name="name.SDAP">
+            <item lang="en-US">SDAP client (Pronto)</item>
+            <item lang="cs-CZ">SDAP klient (Pronto)</item>
+        </string>
+        <string name="name.XMLSocket">
+            <item lang="en-US">XMLSocket client (Adobe Flash)</item>
+            <item lang="cs-CZ">XMLSocket klient (Adobe Flash)</item>
+        </string>
+        <string name="control.running">
+            <item lang="en-US">Running</item>
+            <item lang="cs-CZ">Běží</item>
+        </string>
+        <string name="control.stop">
+            <item lang="en-US">Stop</item>
+            <item lang="cs-CZ">Zastavit</item>
+        </string>
+        <string name="control.stopped">
+            <item lang="en-US">Stopped</item>
+            <item lang="cs-CZ">Zastaveno</item>
+        </string>
+        <string name="control.start">
+            <item lang="en-US">Start</item>
+            <item lang="cs-CZ">Spustit</item>
         </string>
 
     </strings>

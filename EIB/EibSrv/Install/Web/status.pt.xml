@@ -19,10 +19,10 @@
 
                   <div class="middle">
                       <div id="menu">
-                          <p>Přehled</p>
-                          <p>Řízení</p>
-                          <p>Stav</p>
-                          <p>Přímý přístup</p>
+                          <p>${msg.menu.status}</p>
+                          <p><a href="control">${msg.menu.control}</a></p>
+                          <p><a href="log">${msg.menu.log}</a></p>
+                          <p><a href="io">${msg.menu.io}</a></p>
                       </div>
 
                       <div class="content">
@@ -30,21 +30,32 @@
                         <h1>${msg.status.server}</h1>
                         <table cellpadding="0px" cellspacing="0px">
                           <tr>
-                            <td>${msg.status.EIBconnection}</td><td class="spare">&nbsp;</td><td>
-                              <pt:choose>
-                                <pt:when condition="${connected}">${msg.status.connectedFrom}${connectionTime}</pt:when>
-                                <pt:otherwise><span class="red">${msg.status.notConnectedFrom}${connectionTime}</span></pt:otherwise>
-                              </pt:choose>
-                            </td>
+                            <td>${msg.status.EIBconnection}</td><td class="spare">&nbsp;</td>
+                            <pt:choose>
+                              <pt:when condition="${connected}">
+                                <td><span class="green">${msg.status.connectedFrom}${connectionTime}</span></td>
+                                <td class="spare">&nbsp;</td>
+                                <td><a href="?disconnect=true"><span class="red">[${msg.status.disconnect}]</span></a></td>
+                              </pt:when>
+                              <pt:otherwise>
+                                <td><span class="red">${msg.status.notConnectedFrom}${connectionTime}</span></td>
+                                <td class="spare">&nbsp;</td>
+                                <td><a href="?connect=true"><span class="green">[${msg.status.connect}]</span></a></td>
+                              </pt:otherwise>
+                            </pt:choose>
                           </tr>
                           <tr>
                             <td>${msg.status.uptime}</td><td class="spare">&nbsp;</td><td>${uptime}</td>
                           <tr>
                           </tr>
-                            <td>${msg.status.configuration}</td><td class="spare">&nbsp;</td><td>---</td>
+                            <td>${msg.status.configuration}</td><td class="spare">&nbsp;</td><td>${configurationPath}</td>
                           <tr>
                           </tr>
-                            <td>${msg.status.licence}</td><td class="spare">&nbsp;</td><td>${licence}</td>
+                            <td>${msg.status.licence}</td><td class="spare">&nbsp;</td>
+                            <td><pt:choose>
+                              <pt:when condition="${licenceValid}"><span class="green">${licence}</span></pt:when>
+                              <pt:otherwise><span class="red">${licence}</span></pt:otherwise>
+                            </pt:choose></td>
                           </tr>
                         </table>
 

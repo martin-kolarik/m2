@@ -7,6 +7,7 @@ FROM Debug IMPORT
    
 IMPORT
    HttpCommon,
+   lists,
    Strings,
    time;
 
@@ -17,6 +18,9 @@ CONST
 
    LOGIN_VIEW = L"login.pt.xml";
    STATUS_VIEW = L"status.pt.xml";
+   CONTROL_VIEW = L"control.pt.xml";
+   LOG_VIEW = L"log.pt.xml";
+   IO_VIEW = L"io.pt.xml";
    
    LOGIN_MESSAGE = L"message";
    LOGIN_USERNAME = L"username";
@@ -26,9 +30,17 @@ CONST
    STATUS_CONNECTED = L"connected";
    STATUS_CONNECTIONTIME = L"connectionTime";
    STATUS_UPTIME = L"uptime";
+   STATUS_LICENCE_VALID = L"licenceValid";
    STATUS_LICENCE = L"licence";
    STATUS_LAST_HOUR = L"ioLastHour";
    STATUS_LAST_DAY = L"ioLastDay";
+   STATUS_CONFIGURATION = L"configurationPath";
+   STATUS_CONNECT = L"connect";
+   STATUS_DISCONNECT = L"disconnect";
+   
+   CONTROL_DEVICES_NAME = L"names";
+   CONTROL_DEVICES_RUN = L"runStatus";
+   CONTROL_DEVICES_IDX = L"indexes";
 
 (*================================================================================*)
 
@@ -69,6 +81,12 @@ CLASS IMPLEMENTATION CController;
 
       ELSIF Request^.ControllerURI.EqualsOA( CONTROL_PAGE ) THEN
          RETURN ProcessControl( Request, OUT View );
+
+      ELSIF Request^.ControllerURI.EqualsOA( LOG_PAGE ) THEN
+         RETURN ProcessLog( Request, OUT View );
+
+      ELSIF Request^.ControllerURI.EqualsOA( IO_PAGE ) THEN
+         RETURN ProcessIO( Request, OUT View );
 
       END;
 
@@ -120,12 +138,27 @@ CLASS IMPLEMENTATION CController;
       b : BOOLEAN;
       c : CARDINAL;
       cs : StringsO.CString;
+      currentDT : time.TDateTime;
+      currentTime : time.TJD;
       dt : time.TDateTime;
       s : ARRAY [0..63] OF WCHAR;
       starttime : time.TJD;
       uptime : time.TJDC;
       t : time.TJD;
    BEGIN
+      // check actions to do
+      IF Request^.ModelContainer^.GetBooleanOA( STATUS_CONNECT, OUT b ) AND b THEN
+         _Web^.ConnectEIB();
+         Request^.ModelContainer^.AddBooleanOA( STATUS_CONNECT, FALSE );
+         View := mvc.redirectView( STATUS_PAGE );
+         RETURN TRUE;
+      ELSIF Request^.ModelContainer^.GetBooleanOA( STATUS_DISCONNECT, OUT b ) AND b THEN
+         _Web^.DisconnectEIB();
+         Request^.ModelContainer^.AddBooleanOA( STATUS_DISCONNECT, FALSE );
+         View := mvc.redirectView( STATUS_PAGE );
+         RETURN TRUE;
+      END;
+   
       b := _Web^.Connected;
       Request^.ModelContainer^.AddBooleanOA( STATUS_CONNECTED, b );
 
@@ -145,8 +178,12 @@ CLASS IMPLEMENTATION CController;
          cs.FromOA( L"N/A" );
       END;
       Request^.ModelContainer^.AddStringOA( STATUS_CONNECTIONTIME, cs );
+      Request^.ModelContainer^.AddBooleanOA( STATUS_CONNECT, FALSE );
+      Request^.ModelContainer^.AddBooleanOA( STATUS_DISCONNECT, FALSE );
       
-      uptime := time.GetCurrentJD() - starttime;
+      time.GetCurrentUTCDateTime( currentDT );
+      currentTime := time.DateTimeToJD( currentDT );
+      uptime := currentTime - starttime;
       dt.Day := time.JDCToDays( uptime );
       time.fd2HMS( time.fd( uptime ), OUT dt.Hour, OUT dt.Minute, OUT dt.Second, OUT dt.Millisecond );
       IF dt.Second > 0 THEN
@@ -171,6 +208,7 @@ CLASS IMPLEMENTATION CController;
          Request^.MessageSource^.GetMessageOA( Request^.Language, L"status.licenceValidUntil", OUT cs );
          cs.AppendOA( s );
       END;
+      Request^.ModelContainer^.AddBooleanOA( STATUS_LICENCE_VALID, ( dt.Day = 0 ) OR time.Greater( currentDT, dt ));
       Request^.ModelContainer^.AddStringOA( STATUS_LICENCE, cs );
       
       c := _Web^.WrittenByHour + _Web^.ReadByHour;
@@ -181,6 +219,8 @@ CLASS IMPLEMENTATION CController;
       cs.FromCARD32( c, 10 );
       Request^.ModelContainer^.AddStringOA( STATUS_LAST_DAY, cs );
  
+      Request^.ModelContainer^.AddStringOA( STATUS_CONFIGURATION, _Web^.Configuration^ );
+ 
       View := mvc.pageTemplateView( ADR( SELF ), STATUS_VIEW );
       RETURN TRUE;
    END ProcessStatus;
@@ -188,11 +228,56 @@ CLASS IMPLEMENTATION CController;
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE ProcessControl( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   VAR
+      count : CARDINAL;
+      cs : StringsO.CString;
+      i : CARDINAL;
+      listDevices : lists.TPStringStringList;
+      listRunning : lists.TPStringStringList;
+      listIndexes : lists.TPStringStringList;
+   BEGIN
+      Request^.ModelContainer^.AddListOA( CONTROL_DEVICES_NAME, OUT listDevices ); listDevices^.Clear();
+      Request^.ModelContainer^.AddListOA( CONTROL_DEVICES_RUN, OUT listRunning ); listRunning^.Clear();
+      Request^.ModelContainer^.AddListOA( CONTROL_DEVICES_IDX, OUT listIndexes ); listIndexes^.Clear();
+
+      count := _Web^.OperatedDeviceCount;
+      IF count > 0 THEN
+         FOR i := 0 TO count-1 DO
+            Request^.MessageSource^.GetMessageOA( Request^.Language, OAsz( _Web^.OperatedDeviceName( i )), OUT cs );
+            listDevices^.Add( cs, cs );
+
+            IF _Web^.OperatedDevice( i )^.Running THEN
+               cs.FromOA( L"true" );
+            ELSE
+               cs.FromOA( L"false" );
+            END;
+            listRunning^.Add( cs, cs );
+
+            cs.FromCARD32( i, 10 );
+            listIndexes^.Add( cs, cs );
+         END;
+      END;
+            
+      View := mvc.pageTemplateView( ADR( SELF ), CONTROL_VIEW );
+      RETURN TRUE;
+   END ProcessControl;
+   
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ProcessLog( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
    BEGIN
       // TODO
       RETURN FALSE;
-   END ProcessControl;
-   
+   END ProcessLog;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ProcessIO( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   BEGIN
+      // TODO
+      RETURN FALSE;
+   END ProcessIO;
+
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE ValidateUser( CONST UserName, Password : StringsO.CString ) : BOOLEAN;

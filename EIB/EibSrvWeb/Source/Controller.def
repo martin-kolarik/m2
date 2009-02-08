@@ -17,6 +17,8 @@ CONST
    LOGIN_PAGE = L"login";
    STATUS_PAGE = L"status";
    CONTROL_PAGE = L"control";
+   LOG_PAGE = L"log";
+   IO_PAGE = L"io";
 
 (*--------------------------------------------------------------------------------*)
 
@@ -42,6 +44,9 @@ CLASS CController IMPLEMENTS FSO.IFilePathResolver, mvc.IController;
    PRIVATE PROCEDURE ProcessLogin( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
    PRIVATE PROCEDURE ProcessStatus( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
    PRIVATE PROCEDURE ProcessControl( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessLog( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessIO( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+
    PRIVATE PROCEDURE ValidateUser( CONST UserName, Password : StringsO.CString ) : BOOLEAN;
 
 END CController;
