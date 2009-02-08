@@ -34,7 +34,7 @@ typedef unsigned int           CARD32;
 typedef unsigned long long     CARD64;
 typedef CARD16                 SHORTCARD; // link to CARD16
 typedef CARD32                 CARDINAL;
-typedef CARD32                 LONGCARD; // link to CARD32
+typedef unsigned long          LONGCARD; // explicitely long
 
 typedef signed char            INT8;
 typedef signed short           INT16;
@@ -42,7 +42,7 @@ typedef signed int             INT32; // defined in basetsd.h as int
 typedef signed long long       INT64;
 typedef INT16                  SHORTINT; // link to INT16
 typedef INT32                  INTEGER;
-typedef INT32                  LONGINT; // link to INT32
+typedef signed long            LONGINT; // explicitely long
 
 typedef unsigned char          BOOLEAN;
 typedef signed char            TRISTATE;
