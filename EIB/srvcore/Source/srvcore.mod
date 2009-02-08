@@ -295,6 +295,8 @@ END CObject;
 //================================================================================
 
 CLASS IMPLEMENTATION PromiscuousData;
+BEGIN
+   Status := eib_status.essOK;
 END PromiscuousData;
 
 //================================================================================
@@ -533,7 +535,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROCEDURE Run() : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    VAR
       s : FIO.PathStrW := L"";
    BEGIN
@@ -563,7 +565,7 @@ CLASS IMPLEMENTATION CEIBServer;
       ELSE
          RETURN Sync.arPending;
       END;
-   END Run;
+   END Start;
 
 //--------------------------------------------------------------------------------
 
@@ -620,6 +622,13 @@ CLASS IMPLEMENTATION CEIBServer;
    BEGIN
    END AbortAll;
 
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROPERTY Configuration GET : StringsO.TPString;
+   BEGIN
+      RETURN ADR( ConfigurationPath );
+   END Configuration;
+   
 //--------------------------------------------------------------------------------
 
    PUBLIC PROCEDURE LoadConfiguration( CONST ConfigurationFile : StringsO.IString; OUT ErrorMessage : StringsO.CString; OUT ErrorLine : CARDINAL ) : BOOLEAN;
@@ -1541,6 +1550,8 @@ CLASS IMPLEMENTATION CEIBServer;
       IF NOT PromiscuousMode THEN
          eib_stack.TPEIBStackApplicationLayer( EIB^.Layers[ eib_stack.eltApplication ] )^.Update_L_Layer();
       END;
+      
+      ConfigurationPath.Assign( ConfigurationFile ); // store sucessfully read configuration
       RETURN TRUE;
 
    Fail:
@@ -1879,6 +1890,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
    PROCEDURE InitToDefault();
    BEGIN
+      ConfigurationPath.Clear();
       DeviceId := MAX( CARDINAL );
       PromiscuousMode := FALSE;
       InputQueueLength := 256;

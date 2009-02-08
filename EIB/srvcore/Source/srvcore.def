@@ -117,6 +117,7 @@ END IEIBServerSink;
 
 CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMapper, io.IIO;
    RStatus                  : TRStatus;
+   ConfigurationPath        : StringsO.CString;
 
    Stack                    : TStack;
    EIB                      : eib_stack.TPEIBStack;
@@ -208,7 +209,7 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
       Advise : io.TAdvise;
       AdviseListener : io.TPIAdviseInfo;
 
-   PUBLIC VIRTUAL PROCEDURE Run() : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE Stop();
 
    PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
@@ -216,6 +217,8 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    PUBLIC VIRTUAL PROCEDURE AbortAll();
 
    // self
+   PUBLIC READONLY PROPERTY
+      Configuration : StringsO.TPString;
    PUBLIC PROCEDURE LoadConfiguration( CONST ConfigurationFile : StringsO.IString; OUT ErrorMessage : StringsO.CString; OUT ErrorLine : CARDINAL ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE Dispose();
 

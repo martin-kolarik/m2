@@ -6,6 +6,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
    
 IMPORT
+   io,
    mvc,
    srvcore,
    StringsO,
@@ -27,8 +28,9 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink;
    PUBLIC VIRTUAL PROCEDURE OnInputQueueAdd( OOBQueue, PromiscuousQueue : BOOLEAN );
    PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
 
-   // SELF
+   // Client interface
    PUBLIC READONLY PROPERTY
+      Configuration : StringsO.TPString;
       Connected : BOOLEAN;
       StartedTime : time.TJD;
       ConnectedTime : time.TJDC;
@@ -38,7 +40,15 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink;
       WrittenByDay : CARDINAL;
       ReadByHour : CARDINAL;
       ReadByDay : CARDINAL;
+      OperatedDeviceCount : CARDINAL;
+      
+   PUBLIC PROCEDURE ConnectEIB();
+   PUBLIC PROCEDURE DisconnectEIB();
    
+   PUBLIC PROCEDURE OperatedDeviceName( index : CARDINAL ) : PWCHAR;
+   PUBLIC PROCEDURE OperatedDevice( index : CARDINAL ) : io.TPIStartStopControl;
+   
+   // SELF
    PRIVATE VAR
       _Context : StringsO.CString;
       _EIB : srvcore.TPEIBServer;
@@ -46,6 +56,9 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink;
       _Port : CARDINAL;
       _Running : BOOLEAN;
       _Controller : mvc.TPController;
+      _DeviceCount : CARDINAL;
+      _DeviceNames : POINTER TO ARRAY [0..0] OF PWCHAR;
+      _Devices : POINTER TO ARRAY [0..0] OF io.TPIStartStopControl;
       
       _StartedTime : time.TJD;
       _Connected : BOOLEAN;
@@ -54,7 +67,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink;
       _WrittenByHour : ARRAY [0..23] OF CARDINAL;
       _GotByHour : ARRAY [0..23] OF CARDINAL;
 
-   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; EIB : srvcore.TPEIBServer );
+   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl );
    
    PUBLIC READONLY PROPERTY
       Running : BOOLEAN;

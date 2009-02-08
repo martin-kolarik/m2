@@ -78,6 +78,13 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Configuration GET : StringsO.TPString;
+   BEGIN
+      RETURN _EIB^.Configuration;
+   END Configuration;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY Connected GET : BOOLEAN;
    BEGIN
       RETURN _Connected;
@@ -152,19 +159,65 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       i : CARDINAL;
    BEGIN
       FOR i := 0 TO 23 DO
-         INC( byDay, Sync.IGet( REF _ReadByHour[i] ));
+         INC( byDay, Sync.IGet( REF _GotByHour[i] ));
       END;
       RETURN byDay;
    END ReadByDay;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; EIB : srvcore.TPEIBServer );
+   PUBLIC PROPERTY OperatedDeviceCount GET : CARDINAL;
+   BEGIN
+      RETURN _DeviceCount;
+   END OperatedDeviceCount;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ConnectEIB();
+   BEGIN
+      _EIB^.Start();
+   END ConnectEIB;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE DisconnectEIB();
+   BEGIN
+      _EIB^.Stop();
+   END DisconnectEIB;
+   
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE OperatedDeviceName( index : CARDINAL ) : PWCHAR;
+   BEGIN
+      IF index < _DeviceCount THEN
+         RETURN _DeviceNames^[index];
+      ELSE
+         RETURN NIL;
+      END;
+   END OperatedDeviceName;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE OperatedDevice( index : CARDINAL ) : io.TPIStartStopControl;
+   BEGIN
+      IF index < _DeviceCount THEN
+         RETURN _Devices^[index];
+      ELSE
+         RETURN NIL;
+      END;
+   END OperatedDevice;
+   
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl );
    BEGIN
       Stop();
       _Port := Port;
       _Context.FromOA( ContextName );
       _EIB := EIB;
+      _DeviceCount := MIN2( HIGH( DeviceNames ), HIGH( Devices )) + 1;
+      _DeviceNames := ADR( DeviceNames );
+      _Devices := ADR( Devices );
    END Init;
    
 (*--------------------------------------------------------------------------------*)
@@ -238,7 +291,13 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
       _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.STATUS_PAGE );
 
-      _MVC^.RegisterController( _Controller, HttpCommon.verbPOST, Controller.CONTROL_PAGE ); // control page, redirected to status
+      _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.CONTROL_PAGE );
+      _MVC^.RegisterController( _Controller, HttpCommon.verbPOST, Controller.CONTROL_PAGE );
+
+      _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.LOG_PAGE );
+
+      _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.IO_PAGE );
+      _MVC^.RegisterController( _Controller, HttpCommon.verbPOST, Controller.IO_PAGE );
       
       _MVC^.RegisterFallbackController( _Controller );
    END AddControllers;
@@ -257,6 +316,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 BEGIN
    _EIB := NIL;
    _MVC := NIL;
+   _DeviceCount := 0;
+   _DeviceNames := NIL;
+   _Devices := NIL;
    _Port := 8080;
    _Running := FALSE;
    _Controller := NIL;

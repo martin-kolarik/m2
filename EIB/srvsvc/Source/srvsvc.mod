@@ -14,6 +14,7 @@ IMPORT
    EibSrvWeb,
    FIO,
    FIOO,
+   io,
    inetaddr,
    Log,
    msgqueuethread,
@@ -39,6 +40,15 @@ CONST
    keyStorage = L"Storage";
    keyDefaultConfiguration = L"Default configuration";
    defaultConfiguration = L"default.cfg";
+   
+   nameSDAP = L'name.SDAP';
+   nameXMLSocket = L'name.XMLSocket';
+   
+TYPE
+   TControlledDeviceInfo = RECORD
+                              Names : ARRAY [0..1] OF PWCHAR;
+                              Devices : ARRAY [0..1] OF io.TPIStartStopControl;
+                           END; // RECORD
 
 (*================================================================================*)
 
@@ -55,6 +65,7 @@ TYPE
 CLASS CEibSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarget;
    LOCAL VIRTUAL READONLY PROPERTY
       Name : PWCHAR;
+      Configuration : StringsO.TPString;
       
    PRIVATE VAR
       EIB : srvcore.TPEIBServer := NIL;
@@ -62,6 +73,7 @@ CLASS CEibSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarg
       SDAP : sdap.TPSDAPServer := NIL;
       XMLS : xmlsocket.TPXMLSocketServer := NIL;
       Web : EibSrvWeb.CEibSrvWeb;
+      CDI : TControlledDeviceInfo;
 
    // service, OS thread
    LOCAL VIRTUAL PROCEDURE OnStart();
@@ -92,6 +104,17 @@ CLASS IMPLEMENTATION CEibSvc;
    BEGIN
       RETURN PWCHAR( ADR( ServiceName ));
    END Name;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROPERTY Configuration GET : StringsO.TPString;
+   BEGIN
+      IF EIB = NIL THEN
+         RETURN NIL;
+      ELSE
+         RETURN EIB^.Configuration;
+      END;
+   END Configuration;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -145,7 +168,7 @@ CLASS IMPLEMENTATION CEibSvc;
       line : CARDINAL;
       Path : ARRAY [0..255] OF WCHAR;
       RS : Registry.CRegistry;
-      s1, s2 : StringsO.CString; 
+      s1, s2 : StringsO.CString;
    BEGIN
       Strings.ConcatW( OUT Path, L"SOFTWARE\", Manufacturer ); Strings.AppendW( REF Path, L"\" ); Strings.AppendW( REF Path, ProductId );
       IF RS.OpenRead( L"", Registry.LOCAL_MACHINE, Path ) THEN
@@ -175,7 +198,7 @@ CLASS IMPLEMENTATION CEibSvc;
 
       FIOO.PathAdd( REF s1, s2 );
       IF EIB^.LoadConfiguration( s1, OUT s2, OUT line ) THEN
-         EIB^.Run();
+         EIB^.Start();
       ELSE
          s2.AppendOA( L", line: " ); s1.FromCARD32( line, 10 ); s2.Append( s1 );
          LogEvent( -1, OA( s2.Length-1, s2.rawData ));
@@ -202,7 +225,12 @@ CLASS IMPLEMENTATION CEibSvc;
       XMLS^.Init( TRUE );
       XMLS^.Start();
       
-      Web.Init( 6005, L"/SmartServer", EIB );
+      CDI.Names[0] := PWCHAR( ADR( nameSDAP ));
+      CDI.Names[1] := PWCHAR( ADR( nameXMLSocket ));
+      CDI.Devices[0] := SDAP;
+      CDI.Devices[1] := XMLS;
+      
+      Web.Init( 6005, L"/SmartServer", EIB, CDI.Names, CDI.Devices );
       Web.Run();
 
       SetServiceState( Service.ssRunning, 0 );
@@ -228,7 +256,7 @@ CLASS IMPLEMENTATION CEibSvc;
       IF EIB = NIL THEN
          LogEvent( -1, L"Svc.OnContinue called for EIB = NIL" );
       ELSE
-         EIB^.Run();
+         EIB^.Start();
       END;
 
       SetServiceState( Service.ssRunning, 0 );
@@ -270,6 +298,7 @@ CLASS IMPLEMENTATION CEibSvc;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
+   CDI.Names[0] := NIL;
 END CEibSvc;
 
 (*================================================================================*)
