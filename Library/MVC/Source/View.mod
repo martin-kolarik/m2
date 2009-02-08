@@ -281,6 +281,7 @@ CONST
       PT_TO = L"to";
       PT_BY = L"by";
       PT_INDEX = L"index";
+      PT_ORDER = L"order";
       PT_ODD = L"odd";
    PT_FOREACH = L"foreach";
       PT_SOURCE = L"source";
@@ -439,7 +440,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
             PrefixCondition.AppendOA( PT_CONDITION );
             
             IF NOT Reader.CurrentEmpty THEN
-               RETURN Parse( TRUE, FALSE );
+               RETURN Parse( TRUE, FALSE, FALSE );
             END;
 
          | xmlreader.xntAttribute :
@@ -452,7 +453,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE Parse( emit, limitToPTOnly : BOOLEAN ) : BOOLEAN;
+   PRIVATE PROCEDURE Parse( emit, limitToPTOnly, balanced : BOOLEAN ) : BOOLEAN;
    VAR
       attributes : lists.CStringStringList;
       depth : INTEGER := 0;
@@ -463,8 +464,6 @@ CLASS IMPLEMENTATION CPageTemplateView;
       isEmpty : BOOLEAN;
       value : StringsO.CString;
    BEGIN
-      INC( depth ); // we entered element
-
       LOOP
          CASE MoveNext( OUT nodeType, OUT nodePrefix, OUT nodeName, OUT isEmpty, OUT nodeValue, OUT attributes ) OF
          | xmlreader.xmle_S_OK :
@@ -480,7 +479,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          IF nodeType = xmlreader.xntElementBegin THEN
             INC( depth );
          ELSIF nodeType = xmlreader.xntElementEnd THEN
-            IF depth = 1 THEN
+            IF depth = 0 THEN
                RETURN TRUE;
             END;
             DEC( depth );
@@ -505,11 +504,19 @@ CLASS IMPLEMENTATION CPageTemplateView;
             | esaUnprocessedPT :
                SetError( nodeName, NIL, L"Unknown of forbidden page template element." );
                RETURN FALSE;
+            | esaProcessedInDeep :
+               // OK, but element has consumed self end, so I must not expect it, decrement depth
+               DEC( depth );
             // ELSE continue
             END;
 
          | xmlreader.xntElementEnd :
             Writer.WriteElementEnd(); // writer does it itself
+            
+            IF balanced AND ( depth = 0 ) THEN
+               RETURN TRUE;
+            END;
+
          END; // CASE
 
       END; // WHILE
@@ -533,7 +540,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          IF ptFlag AND pname^.EqualsIgnoreCaseOA( PT_CONDITION ) OR pname^.EqualsIgnoreCase( PrefixCondition ) THEN
             ParseText( attributes.CurrentData^, OUT condition );
             IF NOT EvaluateBoolean( condition ) THEN
-               IF isEmpty OR Parse( FALSE, limitToPTOnly ) THEN
+               IF isEmpty OR Parse( FALSE, limitToPTOnly, FALSE ) THEN
                   RETURN esaProcessedInDeep;
                ELSE
                   RETURN esaError;
@@ -608,7 +615,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
          ELSE
             RETURN esaUnprocessedPT;
          END;
-         IF NOT b THEN
+         IF b THEN
+            RETURN esaProcessedInDeep;
+         ELSE
             RETURN esaError;
          END;
 
@@ -621,12 +630,13 @@ CLASS IMPLEMENTATION CPageTemplateView;
          CopyAttributes( ptFlag, attributes, PT_CONDITION, L"" );
          IF isEmpty THEN
             Writer.WriteElementEnd();
+            RETURN esaProcessedInDeep;
          ELSE
             Writer.WriteString( empty ); // terminate attributes forcibly
+            RETURN esaProcessedHeader;
          END;
+
       END;
-      
-      RETURN esaProcessedHeader;
    END HandleElementStart;
 
 (*--------------------------------------------------------------------------------*)
@@ -636,7 +646,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       CopyAttributes( TRUE, attributes, PT_MODEL, L"" );
       IF isEmpty THEN
          Writer.WriteElementEnd();
-      ELSIF Parse( TRUE, limitToPTOnly ) THEN // input can contain text
+      ELSIF Parse( TRUE, limitToPTOnly, FALSE ) THEN // input can contain text
          Writer.WriteElementEnd();
       ELSE
          RETURN FALSE;
@@ -712,7 +722,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
                   END;
                END;
                
-               IF isEmpty OR Parse( emit = 1, FALSE ) THEN
+               IF isEmpty OR Parse( emit = 1, FALSE, FALSE ) THEN
                   // continue
                ELSE
                   RETURN FALSE;
@@ -725,7 +735,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
                END;
                haveOtherwise := TRUE;
 
-               IF isEmpty OR Parse( NOT done, FALSE ) THEN
+               IF isEmpty OR Parse( NOT done, FALSE, FALSE ) THEN
                   // continue
                ELSE
                   RETURN FALSE;
@@ -746,7 +756,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
    VAR
       attribute : StringsO.CString;
       by : INTEGER := 1;
-      depth : INTEGER := 1; // we are in for
+      depth : INTEGER := 0;
       from : INTEGER;
       haveBy : BOOLEAN := FALSE;
       haveFrom : BOOLEAN := FALSE;
@@ -856,15 +866,15 @@ CLASS IMPLEMENTATION CPageTemplateView;
             SetError( nodeName, NIL, L'Unexpected end of buffered source.' );
             RETURN FALSE;
          END;
-         nl.Add( nodeType, nodePrefix, nodeName, isEmpty, nodeValue, REF lattributes );
          IF nodeType = xmlreader.xntElementBegin THEN
             INC( depth );
          ELSIF nodeType = xmlreader.xntElementEnd THEN // other ends are consumed inside Parse
-            IF depth = 1 THEN
+            IF depth = 0 THEN
                EXIT;
             END;
             DEC( depth );
          END;
+         nl.Add( nodeType, nodePrefix, nodeName, isEmpty, nodeValue, REF lattributes );
       END; // WHILE
       
       // third switch sources and do "for"
@@ -881,7 +891,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
             Request^.ModelContainer^.SetModelValue( index, value );
          END;
          nl.Reset(); // prepare parsing
-         Parse( TRUE, FALSE );
+         IF NOT Parse( TRUE, FALSE, TRUE ) THEN
+            RETURN FALSE;
+         END;
          INC( i, by );
          INC( iodd );
       END; // WHILE
@@ -895,7 +907,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
    PRIVATE PROCEDURE ParseForeach( CONST attributes : lists.CStringStringList ) : BOOLEAN;
    VAR
       attribute : StringsO.CString;
-      depth : INTEGER := 1; // we are in foreach
+      depth : INTEGER := 0;
       haveSource : BOOLEAN := FALSE;
       haveList : BOOLEAN := FALSE;
       i : INTEGER;
@@ -911,6 +923,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       nodeType : xmlreader.TNodeType;
       nodeValue : StringsO.CString;
       odd : StringsO.CString;
+      order : StringsO.CString;
       pname : StringsO.TPString;
       prefix : StringsO.CString;
       source : StringsO.CString;
@@ -933,6 +946,12 @@ CLASS IMPLEMENTATION CPageTemplateView;
          attribute := prefix; attribute.AppendOA( PT_INDEX );
          IF pname^.EqualsIgnoreCaseOA( PT_INDEX ) OR pname^.EqualsIgnoreCase( attribute ) THEN
             ParseText( attributes.CurrentData^, OUT index );
+            CONTINUE;
+         END;
+
+         attribute := prefix; attribute.AppendOA( PT_ORDER );
+         IF pname^.EqualsIgnoreCaseOA( PT_ORDER ) OR pname^.EqualsIgnoreCase( attribute ) THEN
+            ParseText( attributes.CurrentData^, OUT order );
             CONTINUE;
          END;
 
@@ -971,15 +990,15 @@ CLASS IMPLEMENTATION CPageTemplateView;
             SetError( value, NIL, L'Unexpected end of buffered source.' );
             RETURN FALSE;
          END;
-         nl.Add( nodeType, nodePrefix, nodeName, isEmpty, nodeValue, REF lattributes );
          IF nodeType = xmlreader.xntElementBegin THEN
             INC( depth );
          ELSIF nodeType = xmlreader.xntElementEnd THEN // other ends are consumed inside Parse
-            IF depth = 1 THEN
+            IF depth = 0 THEN
                EXIT;
             END;
             DEC( depth );
          END;
+         nl.Add( nodeType, nodePrefix, nodeName, isEmpty, nodeValue, REF lattributes );
       END; // WHILE
       
       // third switch sources and do "for"
@@ -995,12 +1014,19 @@ CLASS IMPLEMENTATION CPageTemplateView;
                SetModelBoolean( odd, i AND 1 = 1 );
             END;
             IF NOT index.Empty THEN
-               value.FromCARD32( i, 10 );
+               value.FromCARD32( i-1, 10 );
                Request^.ModelContainer^.SetModelValue( index, value );
                INC( i );
             END;
+            IF NOT order.Empty THEN
+               value.FromCARD32( i, 10 );
+               Request^.ModelContainer^.SetModelValue( order, value );
+               INC( i );
+            END;
             nl.Reset(); // prepare parsing
-            Parse( TRUE, FALSE );
+            IF NOT Parse( TRUE, FALSE, TRUE ) THEN
+               RETURN FALSE;
+            END;
          END; // WHILE
       ELSE
          map^.Reset();
@@ -1017,7 +1043,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
                INC( i );
             END;
             nl.Reset(); // prepare parsing
-            Parse( TRUE, FALSE );
+            IF NOT Parse( TRUE, FALSE, TRUE ) THEN
+               RETURN FALSE;
+            END;
          END; // WHILE
       END;
       Sources.Pop();
@@ -1189,6 +1217,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
    PRIVATE PROCEDURE MoveNext( OUT nodeType : xmlreader.TNodeType; OUT nodePrefix : StringsO.IString; OUT nodeName : StringsO.IString; OUT empty : BOOLEAN; OUT nodeValue : StringsO.IString; OUT attributes : lists.CStringStringList ) : xmlreader.TXMLError;
    VAR
+      al : lists.TPStringStringList;
       nl : NodeList.TPNodeList;
       nli : NodeList.TPNodeItem;
       xmle : xmlreader.TXMLError;
@@ -1245,7 +1274,15 @@ CLASS IMPLEMENTATION CPageTemplateView;
          nodeName.Assign( nli^.Name^ );
          empty := nli^.Empty;
          nodeValue.Assign( nli^.Value^ );
+
          attributes.Dispose();
+         al := nli^.Attributes;
+         IF al <> NIL THEN
+            al^.Reset();
+            WHILE al^.MoveNext() DO
+               attributes.Add( al^.Current^, al^.CurrentData^ );
+            END; // WHILE
+         END; // IF al <> NIL
          
          RETURN xmlreader.xmle_S_OK;
       END;

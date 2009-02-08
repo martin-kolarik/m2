@@ -256,6 +256,7 @@ CLASS IMPLEMENTATION CContainer;
    LABEL
       Error;
    VAR
+      boolean : BOOLEAN;
       i, index, j : INTEGER;
       lvalue : StringsO.CString;
       keyIndex, valueIndex : BOOLEAN;
@@ -275,7 +276,10 @@ CLASS IMPLEMENTATION CContainer;
             GOTO Error;
          END;
          model.Substring( i+1, -1, OUT sindex1 );            
-         Format( FALSE, sindex1, NIL, 0, OUT sindex2 );
+         IF NOT GetModelValue( sindex1, OUT sindex2 ) THEN
+            sindex2 := sindex1;
+         END;
+         sindex2.Trim();
          IF map <> NIL THEN
             map^.Remove( sindex2 );
             map^.Add( sindex2, value );
@@ -310,7 +314,9 @@ CLASS IMPLEMENTATION CContainer;
       END;
       IF valueIndex OR keyIndex THEN
          model.Substring( i+1, j-i-1, OUT sindex1 );
-         Format( FALSE, sindex1, NIL, 0, OUT sindex2 );
+         IF NOT GetModelValue( sindex1, OUT sindex2 ) THEN
+            sindex2 := sindex1;
+         END;
          sindex2.Trim();
          IF NOT Strings.ToINT32W( OA( sindex2.Length-1, sindex2.rawData ), 10, OUT index ) THEN
             GOTO Error;
@@ -346,7 +352,15 @@ CLASS IMPLEMENTATION CContainer;
             GOTO Error;
          END;
       END;
-      
+
+      // try boolean      
+      IF GetBooleanOA( OA( model.Length-1, model.rawData ), OUT boolean ) THEN
+         lvalue.Assign( value );
+         lvalue.Lowerize();
+         AddBooleanOA( OA( model.Length-1, model.rawData ), value.EqualsOA( L"true" ) OR value.EqualsOA( L"1" ) OR value.EqualsOA( L"y" ) OR value.EqualsOA( L"yes" ));
+         RETURN TRUE;
+      END;
+
       // fall to string
       AddStringOA( OA( model.Length-1, model.rawData ), value );
       RETURN TRUE;
@@ -384,7 +398,10 @@ CLASS IMPLEMENTATION CContainer;
             GOTO Error;
          END;
          model.Substring( i+1, -1, OUT sindex1 );            
-         Format( FALSE, sindex1, NIL, 0, OUT sindex2 );
+         IF NOT GetModelValue( sindex1, OUT sindex2 ) THEN
+            sindex2 := sindex1;
+         END;
+         sindex2.Trim();
          IF ( map <> NIL ) AND NOT map^.Get( sindex2, OUT value ) THEN
             GOTO Error;
          ELSIF ( list <> NIL ) AND NOT list^.Get( sindex2, OUT value ) THEN
@@ -417,7 +434,9 @@ CLASS IMPLEMENTATION CContainer;
       END;
       IF valueIndex OR keyIndex THEN
          model.Substring( i+1, j-i-1, OUT sindex1 );
-         Format( FALSE, sindex1, NIL, 0, OUT sindex2 );
+         IF NOT GetModelValue( sindex1, OUT sindex2 ) THEN
+            sindex2 := sindex1;
+         END;
          sindex2.Trim();
          IF NOT Strings.ToINT32W( OA( sindex2.Length-1, sindex2.rawData ), 10, OUT index ) THEN
             GOTO Error;
@@ -500,10 +519,13 @@ CLASS IMPLEMENTATION CContainer;
          Formatted.Substring( mi, j-mi, OUT model );
          IF ( MessageSource <> NIL ) AND model.StartsWithOA( L"msg." ) THEN
             model.Remove( 0, 4 ); // delete "msg."
-            IF NOT MessageSource^.GetMessage( language, model, OUT value ) AND FailOnError THEN
-               RETURN FALSE;
+            IF NOT MessageSource^.GetMessage( language, model, OUT value ) THEN
+               IF FailOnError THEN
+                  RETURN FALSE;
+               ELSE
+                  value.FromOA( L'##unknown message: ' ); value.Append( model );
+               END;
             END;
-            value.FromOA( L'##unknown message: ' ); value.Append( model );
          ELSE
             IF NOT GetModelValue( model, OUT value ) AND FailOnError THEN
                RETURN FALSE;
@@ -765,21 +787,22 @@ CLASS IMPLEMENTATION CMVC;
       buffer : StorageO.CMemoryBuffer;
       connectionData : lists.CStringStringList;
       controller : TPController;
+      controllerURI : StringsO.CString;
       containerMap : syncmaps.TPPtrSyncMap;
       container : POINTER TO CContainer;
       fallbackFlag : BOOLEAN := FALSE;
       InputStream : IOO.TPStream;
       l : CARDINAL;
       mappedName : StringsO.CString;
+      modelValue : StringsO.CString;
       request : CHttpRequest;
-      s : StringsO.CString;
       StatusCode : HttpCommon.THttpResponse;
       view : TPView;
    BEGIN
-      s := Connection^.RequestURI;
-      s.Remove( 0, _Context.Length ); // remove context leading
+      controllerURI := Connection^.RequestURI;
+      controllerURI.Remove( 0, _Context.Length ); // remove context leading
 
-      IF LookupController( Connection^.RequestVerb, OA( s.Length-1, s.rawData ), OUT controller ) THEN
+      IF LookupController( Connection^.RequestVerb, OA( controllerURI.Length-1, controllerURI.rawData ), OUT controller ) THEN
          // fall down
       ELSIF ( _FallbackController = NIL ) OR ( Connection^.RequestVerb = HttpCommon.verbPOST ) THEN // fallback works for POST only
          Connection^.StatusCode := HttpCommon.httpres_404;
@@ -811,12 +834,15 @@ CLASS IMPLEMENTATION CMVC;
       WHILE connectionData.MoveNext() DO
          IF container^.GetModelViewMapping( connectionData.Current^, OUT mappedName ) THEN
             container^.SetModelValue( mappedName, connectionData.CurrentData^ );
+         ELSIF ( Connection^.RequestVerb <> HttpCommon.verbPOST ) AND // for GET driving by URI parameter is allowed...
+               container^.GetModelValue( connectionData.Current^, OUT modelValue ) THEN // ...only if the parameter is known
+            container^.SetModelValue( connectionData.Current^, connectionData.CurrentData^ );
          END;
       END; // WHILE
       connectionData.Dispose();
       
       // prepare controller data
-      request.Init( s, Connection, Session, container, ADR( SELF ));
+      request.Init( controllerURI, Connection, Session, container, ADR( SELF ));
       buffer.Size := 16384; // initial size
       view := NIL;
       
@@ -861,6 +887,8 @@ CLASS IMPLEMENTATION CMVC;
             IF NOT view^.FormatToOutputStream( ADR( request ), REF StatusCode, Connection^.ResponseHeaders, Connection^.Stream ) THEN
                Connection^.StatusCode := HttpCommon.httpres_500;
                // LOG errors
+            ELSE
+               Connection^.StatusCode := StatusCode;
             END;
          ELSE
             ASSERT( FALSE );
@@ -1038,16 +1066,15 @@ CLASS IMPLEMENTATION CMVC;
    PRIVATE PROCEDURE DecodeDataFromURI( Connection : HttpConnection.TPHttpSrvConnection; OUT list : lists.CStringStringList );
    VAR
       byteBuffer : StorageO.CMemoryBuffer;
+      Data : StringsO.CString;
       i : CARDINAL;
-      URI : StringsO.CString;
    BEGIN
-      URI := Connection^.RequestURI;
-      i := URI.IndexOfOA( L"?", 0 );
-      IF i = -1 THEN
-         RETURN; // no data
+      list.Clear();
+      Data := Connection^.URIData;
+      IF Data.Empty THEN
+         RETURN;
       END;
-      URI.Remove( 0, i );
-      LanguagesO.ToMB( URI, 0, FALSE, REF byteBuffer );
+      LanguagesO.ToMB( Data, 0, FALSE, REF byteBuffer );
       HttpTools.DecodeURLEncoding( FALSE, OA( byteBuffer.Length-1, byteBuffer.Data ), OUT list );
    END DecodeDataFromURI;
 

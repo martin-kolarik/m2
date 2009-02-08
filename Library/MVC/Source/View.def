@@ -131,7 +131,7 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
       ErrorText : StringsO.CString;
       
    PRIVATE PROCEDURE ParseRoot() : BOOLEAN;
-   PRIVATE PROCEDURE Parse( emit, limitToPTOnly : BOOLEAN ) : BOOLEAN;
+   PRIVATE PROCEDURE Parse( emit, limitToPTOnly, balanced : BOOLEAN ) : BOOLEAN; // normally, Parse is entered after detecting element start. Element end must be detected inside. But, if reading from node buffer, one could want read pair-by-pair buffer content only. This requires balanced = TRUE to not to read out end of element.
    PRIVATE PROCEDURE HandleElementStart( isEmpty, ptFlag, limitToPTOnly : BOOLEAN; CONST nodeName : StringsO.CString; CONST attributes : lists.CStringStringList ) : TElementStartAction;
    PRIVATE PROCEDURE ParseElement( CONST attributes : lists.CStringStringList; isEmpty, limitToPTOnly : BOOLEAN; CONST ignoreOA1, ignoreOA2 : ARRAY OF WCHAR ) : BOOLEAN;
    PRIVATE PROCEDURE ParseChoose( CONST Request : MVC.TPHttpRequest ) : BOOLEAN;
