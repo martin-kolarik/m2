@@ -41,6 +41,8 @@ CONST
    CONTROL_DEVICES_NAME = L"names";
    CONTROL_DEVICES_RUN = L"runStatus";
    CONTROL_DEVICES_IDX = L"indexes";
+   CONTROL_START = L"start";
+   CONTROL_STOP = L"stop";
 
 (*================================================================================*)
 
@@ -236,6 +238,29 @@ CLASS IMPLEMENTATION CController;
       listRunning : lists.TPStringStringList;
       listIndexes : lists.TPStringStringList;
    BEGIN
+      // check actions to do
+      IF Request^.ModelContainer^.GetStringOA( CONTROL_START, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
+         cs.FromOA( L"-1" );
+         Request^.ModelContainer^.AddStringOA( CONTROL_START, cs );
+         IF i > MAX( INTEGER ) THEN
+            // do nothing
+         ELSIF i < _Web^.OperatedDeviceCount THEN
+            _Web^.OperatedDevice( i )^.Start();
+         END;
+         View := mvc.redirectView( CONTROL_PAGE );
+         RETURN TRUE;
+      ELSIF Request^.ModelContainer^.GetStringOA( CONTROL_STOP, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
+         cs.FromOA( L"-1" );
+         Request^.ModelContainer^.AddStringOA( CONTROL_STOP, cs );
+         IF i > MAX( INTEGER ) THEN
+            // do nothing
+         ELSIF i < _Web^.OperatedDeviceCount THEN
+            _Web^.OperatedDevice( i )^.Stop();
+         END;
+         View := mvc.redirectView( CONTROL_PAGE );
+         RETURN TRUE;
+      END;
+
       Request^.ModelContainer^.AddListOA( CONTROL_DEVICES_NAME, OUT listDevices ); listDevices^.Clear();
       Request^.ModelContainer^.AddListOA( CONTROL_DEVICES_RUN, OUT listRunning ); listRunning^.Clear();
       Request^.ModelContainer^.AddListOA( CONTROL_DEVICES_IDX, OUT listIndexes ); listIndexes^.Clear();
@@ -257,6 +282,10 @@ CLASS IMPLEMENTATION CController;
             listIndexes^.Add( cs, cs );
          END;
       END;
+
+      cs.FromOA( L"-1" );
+      Request^.ModelContainer^.AddStringOA( CONTROL_START, cs );
+      Request^.ModelContainer^.AddStringOA( CONTROL_STOP, cs );
             
       View := mvc.pageTemplateView( ADR( SELF ), CONTROL_VIEW );
       RETURN TRUE;
