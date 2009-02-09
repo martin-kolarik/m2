@@ -668,11 +668,8 @@ BEGIN
          RETURN 201;
       END;
       ps := args.Current;
-      TRY
-         i := ps^.ToCARD32( 10 );
-      CATCH se : StringsO.CStringException DO
+      IF NOT ps^.ToCARD32( 10, OUT i ) THEN
          err^.WriteOA( L'  bad gord: ', FALSE ); err^.Write( ps^, TRUE );
-         err^.WriteOA( L'  ', FALSE ); err^.WriteExc( se, TRUE );
          RETURN 202;
       END;
       IF i >= 1<<24 THEN
@@ -948,11 +945,8 @@ BEGIN
       IF NOT expEnd.Empty THEN
          IF expEnd[0] = L'+' THEN
             expEnd.Remove( 0, 1 );
-            TRY
-               i := expEnd.ToCARD32( 10 );
-            CATCH e : StringsO.CStringException DO
+            IF NOT expEnd.ToCARD32( 10, OUT i ) THEN
                err^.WriteOA( L'  the month count is not valid', TRUE );
-               err^.WriteOA( L'  ', FALSE ); err^.WriteExc( e, TRUE );
                RETURN 210;
             END;
             jd := time.GetCurrentJD() + time.DaysToJDC( i * 31 );

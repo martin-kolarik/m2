@@ -868,89 +868,59 @@ CLASS IMPLEMENTATION CString;
 	   ToOAA( winnls.CP_UTF8, OUT S, OUT Filled );
 	END CString.ToUTF8;
 
-	PUBLIC VIRTUAL PROCEDURE CString.ToINT32( Base : CARDINAL ) : INT32;
+	PUBLIC VIRTUAL PROCEDURE CString.ToINT32( Base : CARDINAL; OUT I : INT32 ) : BOOLEAN;
 	VAR
-		C : INT64;
+		LC : INT64;
 	BEGIN
-		CASE Strings.ToCARD64MW( _Len, _Data, Base, OUT C ) OF
-		| Strings.tcrSuccess :
-			IF C > MAX( CARD32 ) THEN
-				THROW StringException( NIL, EMITW( %lprocedure ), L"", sexcNumberTooBig );
-			ELSE
-				RETURN INT32( C );
-			END;
-		| Strings.tcrCipherOutOfBase :
-			THROW StringException( NIL, EMITW( %lprocedure ), L"", sexcCipherOutOfBase );
-		| Strings.tcrNumberTooLong :
-			THROW StringException( NIL, EMITW( %lprocedure ), L"", sexcNumberTooLong );
-		END;
-		RETURN 0;
+		IF Strings.ToCARD64MW( _Len, _Data, Base, OUT LC ) <> Strings.tcrSuccess THEN
+		   RETURN FALSE;
+		ELSIF LC > MAX( CARD32 ) THEN
+			RETURN FALSE;
+      END;
+   	I := INT32( LC );
+		RETURN TRUE;
 	END CString.ToINT32;
 
-	PUBLIC VIRTUAL PROCEDURE CString.ToCARD32( Base : CARDINAL ) : CARD32;
+	PUBLIC VIRTUAL PROCEDURE CString.ToCARD32( Base : CARDINAL; OUT C : CARD32 ) : BOOLEAN;
 	VAR
-		C : CARD64;
+		LC : CARD64;
 	BEGIN
-		CASE Strings.ToCARD64MW( _Len, _Data, Base, OUT C ) OF
-		| Strings.tcrSuccess :
-			IF C > MAX( CARD32 ) THEN
-				THROW StringException( NIL, EMITW( %lprocedure ), L"", sexcNumberTooBig );
-			ELSE
-				RETURN CARD32( C );
-			END;
-		| Strings.tcrCipherOutOfBase :
-			THROW StringException( NIL, EMITW( %lprocedure ), L"", sexcCipherOutOfBase );
-		| Strings.tcrNumberTooLong :
-			THROW StringException( NIL, EMITW( %lprocedure ), L"", sexcNumberTooLong );
-		END;
-		RETURN 0;
+		IF Strings.ToCARD64MW( _Len, _Data, Base, OUT LC ) <> Strings.tcrSuccess THEN
+		   RETURN FALSE;
+		ELSIF LC > MAX( CARD32 ) THEN
+			RETURN FALSE;
+      END;
+   	C := CARD32( LC );
+		RETURN TRUE;
 	END CString.ToCARD32;
 
-	PUBLIC VIRTUAL PROCEDURE CString.ToINT64( Base : CARDINAL ) : INT64;
+	PUBLIC VIRTUAL PROCEDURE CString.ToINT64( Base : CARDINAL; OUT I : INT64 ) : BOOLEAN;
 	VAR
-		C : INT64;
+		LC : INT64;
 	BEGIN
-		CASE Strings.ToCARD64MW( _Len, _Data, Base, OUT C ) OF
-		| Strings.tcrSuccess :
-			IF C > MAX( INT64 ) THEN
-				THROW StringException( NIL, EMITW( %lprocedure ), L"", sexcNumberTooBig );
-			ELSE
-				RETURN INT64( C );
-			END;
-		| Strings.tcrCipherOutOfBase :
-			THROW StringException( NIL, EMITW( %lprocedure ), L"", sexcCipherOutOfBase );
-		| Strings.tcrNumberTooLong :
-			THROW StringException( NIL, EMITW( %lprocedure ), L"", sexcNumberTooLong );
+		IF Strings.ToCARD64MW( _Len, _Data, Base, OUT LC ) <> Strings.tcrSuccess THEN
+		   RETURN FALSE;
+		ELSIF LC > MAX( INT64 ) THEN
+		   RETURN FALSE;
 		END;
-		RETURN 0;
+		I := INT64( LC );
+		RETURN TRUE;
 	END CString.ToINT64;
 
-	PUBLIC VIRTUAL PROCEDURE CString.ToCARD64( Base : CARDINAL ) : CARD64;
+	PUBLIC VIRTUAL PROCEDURE CString.ToCARD64( Base : CARDINAL; OUT C : CARD64 ) : BOOLEAN;
 	VAR
-		C : CARD64;
+		LC : CARD64;
 	BEGIN
-		CASE Strings.ToCARD64MW( _Len, _Data, Base, OUT C ) OF
-		| Strings.tcrSuccess :
-			RETURN C;
-		| Strings.tcrCipherOutOfBase :
-			THROW StringException( NIL, EMITW( %lprocedure ), L"", sexcCipherOutOfBase );
-		| Strings.tcrNumberTooLong :
-			THROW StringException( NIL, EMITW( %lprocedure ), L"", sexcNumberTooLong );
-		END;
-		RETURN 0;
+		IF Strings.ToCARD64MW( _Len, _Data, Base, OUT LC ) <> Strings.tcrSuccess THEN
+			RETURN FALSE;
+	   END;
+	   C := LC;
+		RETURN TRUE;
 	END CString.ToCARD64;
 
-	PUBLIC VIRTUAL PROCEDURE CString.ToLONGREAL() : LONGREAL;
-	VAR
-		R : LONGREAL;
+	PUBLIC VIRTUAL PROCEDURE CString.ToLONGREAL( OUT R : LONGREAL ) : BOOLEAN;
 	BEGIN
-		IF _Len = 0 THEN
-			THROW StringException( NIL, EMITW( %lprocedure ), L"", sexcNotNumber );
-		ELSIF Strings.ToLONGREALW( OA( _Len-1, _Data ), OUT R ) THEN
-			RETURN R;
-		ELSE
-			THROW StringException( NIL, EMITW( %lprocedure ), L"", sexcNotNumber );
-		END;
+	   RETURN Strings.ToLONGREALW( OA( _Len-1, _Data ), OUT R );
 	END CString.ToLONGREAL;
 
 	PUBLIC VIRTUAL PROCEDURE CString.FromOA( CONST S : ARRAY OF WCHAR );

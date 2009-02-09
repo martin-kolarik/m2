@@ -226,6 +226,8 @@ CLASS IMPLEMENTATION Value;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Integer GET : INT32;
+   VAR
+      i : INT32;
    BEGIN
       IF vfUndefined IN _Flags THEN
          RETURN 0;
@@ -272,9 +274,9 @@ CLASS IMPLEMENTATION Value;
          END;
 
       | vtString :
-         TRY
-            RETURN _Storage.String^.ToINT32( 10 );
-         CATCH e : StringsO.CStringException DO
+         IF _Storage.String^.ToINT32( 10, OUT i ) THEN
+            RETURN i;
+         ELSE   
             RETURN 0;
          END;
 
@@ -290,6 +292,8 @@ CLASS IMPLEMENTATION Value;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Long GET : INT64;
+   VAR
+      l : INT64;
    BEGIN
       IF vfUndefined IN _Flags THEN
          RETURN 0;
@@ -320,9 +324,9 @@ CLASS IMPLEMENTATION Value;
          RETURN INT64( _Storage.Float );
 
       | vtString :
-         TRY
-            RETURN _Storage.String^.ToINT64( 10 );
-         CATCH e : StringsO.CStringException DO
+         IF _Storage.String^.ToINT64( 10, OUT l ) THEN
+            RETURN l;
+         ELSE
             RETURN 0;
          END;
 
@@ -338,6 +342,8 @@ CLASS IMPLEMENTATION Value;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Float GET : LONGREAL;
+   VAR
+      r : LONGREAL;
    BEGIN
       IF vfUndefined IN _Flags THEN
          RETURN 0.0;
@@ -368,9 +374,9 @@ CLASS IMPLEMENTATION Value;
          RETURN _Storage.Float;
 
       | vtString :
-         TRY
-            RETURN _Storage.String^.ToLONGREAL();
-         CATCH e : StringsO.CStringException DO
+         IF _Storage.String^.ToLONGREAL( OUT r ) THEN
+            RETURN r;
+         ELSE
             RETURN 0.0;
          END;
 
@@ -780,23 +786,17 @@ CLASS IMPLEMENTATION Value;
          END;
 
       | vtInteger :
-         TRY
-            _Storage.Integer := value.ToINT32( 10 );
-         CATCH e : StringsO.CStringException DO
+         IF NOT value.ToINT32( 10, OUT _Storage.Integer ) THEN
             Undefined := TRUE;
          END;
             
       | vtLong :
-         TRY
-            _Storage.Long := value.ToINT64( 10 );
-         CATCH e : StringsO.CStringException DO
+         IF NOT value.ToINT64( 10, OUT _Storage.Long ) THEN
             Undefined := TRUE;
          END;
 
       | vtFloat :
-         TRY
-            _Storage.Float := value.ToLONGREAL();
-         CATCH e : StringsO.CStringException DO
+         IF NOT value.ToLONGREAL( OUT _Storage.Float ) THEN
             Undefined := TRUE;
          END;
 

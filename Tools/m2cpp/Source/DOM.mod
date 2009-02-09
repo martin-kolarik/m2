@@ -7793,6 +7793,8 @@ END CExpression;
 CLASS IMPLEMENTATION CEValue;
 
   PROCEDURE ToInteger() : INT64;
+  VAR
+    l : INT64;
   BEGIN
     IF Types.TBOOLEAN^.Compatible( cmOperation, T ) THEN
       RETURN INT64( B );
@@ -7803,9 +7805,9 @@ CLASS IMPLEMENTATION CEValue;
     ELSIF Types.TTCHAR^.Compatible( cmOperation, T ) THEN
       RETURN INT64( S[0] );
     ELSIF Types.TString^.Compatible( cmOperation, T ) THEN
-      TRY
-         RETURN S.ToINT64( 10 );
-      CATCH : StringsO.CStringException DO
+      IF S.ToINT64( 10, OUT l ) THEN
+         RETURN l;
+      ELSE
          RETURN 0;
       END;
     ELSIF T^.Unwrap()^.TypeKind = tkEnumeration THEN
@@ -7865,17 +7867,13 @@ CLASS IMPLEMENTATION CENode;
           Strings.ToINT64W( Literal, 2, OUT EV.I );
         END;
       ELSIF Types.TFloat^.Compatible( cmOperation, T ) THEN
-        TRY
-          EV.R := r.S.ToLONGREAL();
-        CATCH e : StringsO.CStringException DO
+        IF NOT r.S.ToLONGREAL( OUT EV.R ) THEN
           EV.R := 0.0;
         END;
       ELSIF Types.TString^.Compatible( cmOperation, T ) THEN
         EV.S.Assign( r.S );
       ELSIF T^.Unwrap()^.TypeKind = tkEnumeration THEN
-         TRY
-            EV.I := r.S.ToINT64( 10 );
-         CATCH : StringsO.CStringException DO
+         IF NOT r.S.ToINT64( 10, EV.I ) THEN
             EV.I := 0;
          END;
       END;
@@ -9827,9 +9825,7 @@ CLASS IMPLEMENTATION CTypedContainer;
           V.I := INT64( LV.R );
         ELSIF Types.TString^.Compatible( cmOperation, LV.T ) THEN
           IF LV.T^.TypeKind = tkArray THEN
-            TRY
-               V.I := LV.S.ToINT64( 10 );
-            CATCH : StringsO.CStringException DO
+            IF NOT LV.S.ToINT64( 10, OUT V.I ) THEN
                V.I := 0;
             END;
           ELSE
@@ -9849,9 +9845,7 @@ CLASS IMPLEMENTATION CTypedContainer;
           V.R := LV.R;
         ELSIF Types.TString^.Compatible( cmOperation, LV.T ) THEN
           IF LV.T^.TypeKind = tkArray THEN
-            TRY
-              V.R := LV.S.ToLONGREAL();
-            CATCH e : StringsO.CStringException DO
+            IF NOT LV.S.ToLONGREAL( OUT V.R ) THEN
               V.R := 0.0;
             END;
           ELSE

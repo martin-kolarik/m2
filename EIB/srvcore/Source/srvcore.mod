@@ -1019,14 +1019,11 @@ CLASS IMPLEMENTATION CEIBServer;
 
             ELSIF io.EqualsOA( kvEIS ) THEN
                c := item.ItemS( StringsO.WCHARS{ L' ' }, c, 0, FALSE, OUT io );
-               TRY
-                  c := io.ToCARD32( 10 );
-               CATCH e : StringsO.CStringException DO
+               IF NOT io.ToCARD32( 10, OUT c ) THEN
                   ErrorMessage.FromOA( OAsz( R[ Texts._BadTypeInfo ] ));
                   AppendErrorLine( REF ErrorMessage, tr.Line );
                   RETURN FALSE;
-               END;
-               IF NOT eib_def.NumberToType( c, EIT ) THEN
+               ELSIF NOT eib_def.NumberToType( c, EIT ) THEN
                   ErrorMessage.FromOA( OAsz( R[ Texts._BadTypeInfo ] ));
                   AppendErrorLine( REF ErrorMessage, tr.Line );
                   RETURN FALSE;

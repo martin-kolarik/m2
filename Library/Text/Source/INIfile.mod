@@ -300,10 +300,7 @@ CLASS IMPLEMENTATION CINIFile;
    BEGIN
       IF NOT GetKeyStr( Key, OUT Line, OUT s ) THEN
          RETURN FALSE;
-      END;
-      TRY
-         V := s.ToINT32( 10 );
-      CATCH : StringsO.CStringException DO
+      ELSIF NOT s.ToINT32( 10, OUT V ) THEN
          RETURN FALSE;
       END;
       RETURN TRUE;
@@ -317,10 +314,7 @@ CLASS IMPLEMENTATION CINIFile;
    BEGIN
       IF NOT GetKeyStr( Key, OUT Line, OUT s ) THEN
          RETURN FALSE;
-      END;
-      TRY
-         V := s.ToLONGREAL(); 
-      CATCH : StringsO.CStringException DO
+      ELSIF NOT s.ToLONGREAL( OUT V ) THEN
          RETURN FALSE;
       END;
       RETURN TRUE;

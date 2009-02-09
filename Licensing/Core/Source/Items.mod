@@ -328,15 +328,14 @@ CLASS IMPLEMENTATION CProduct;
    BEGIN
       State := TItemState{isDirty};
       Value.SplitS( sepVer, 0, FALSE, OUT l, OUT LS );
-      TRY
-         FOR vi := viMajor TO viPatch DO
-            _Version[vi] := LS[vi].ToCARD32( 10 );
+      FOR vi := viMajor TO viPatch DO
+         IF NOT LS[vi].ToCARD32( 10, OUT _Version[vi] ) THEN
+            _Version[viMajor] := 0;
+            _Version[viMinor] := 0;
+            _Version[viBuild] := 0;
+            _Version[viPatch] := 0;
+            RETURN;
          END;
-      CATCH : StringsO.CStringException DO
-         _Version[viMajor] := 0;
-         _Version[viMinor] := 0;
-         _Version[viBuild] := 0;
-         _Version[viPatch] := 0;
       END;
    END VersionString;
 

@@ -243,15 +243,11 @@ CLASS IMPLEMENTATION CSDAPClient;
                CONTINUE;
             END;
             Line.Substring( 4, -1, OUT s );
-            IF NOT s.Empty THEN
-               TRY
-                  _DataCount := s.ToCARD32( 10 );
-               CATCH e : StringsO.CStringException DO
-                  _DataCount := 0;
-               END;
-               IF _DataCount > 0 THEN
-                  _ReadState := rdsWaitData;
-               END;
+            IF NOT s.ToCARD32( 10, OUT _DataCount ) THEN
+               _DataCount := 0;
+            END;
+            IF _DataCount > 0 THEN
+               _ReadState := rdsWaitData;
             END;
 
          //-----

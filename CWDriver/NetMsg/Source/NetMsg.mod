@@ -513,13 +513,10 @@ CLASS IMPLEMENTATION CDriver;
                   END;
                   cs.Remove( number, -1 );
                   cs.Trim();
-                  TRY
-                     number := cs.ToINT32( 10 );
-                  CATCH e : StringsO.CStringException DO
+                  IF NOT cs.ToINT32( 10, OUT number ) THEN
                      Error( Texts._MalformedArrayRange, ErrorLine );
                      GOTO Fail;
-                  END;
-                  IF number < 1 THEN
+                  ELSIF number < 1 THEN
                      Error( Texts._BadArrayRange, ErrorLine );
                      GOTO Fail;
                   END;

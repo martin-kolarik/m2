@@ -788,10 +788,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
          attribute := prefix; attribute.AppendOA( PT_FROM );
          IF pname^.EqualsIgnoreCaseOA( PT_FROM ) OR pname^.EqualsIgnoreCase( attribute ) THEN
             ParseText( attributes.CurrentData^, OUT value );
-            TRY
-               from := value.ToCARD32( 10 );
+            IF value.ToCARD32( 10, OUT from ) THEN
                haveFrom := TRUE;
-            CATCH e : StringsO.CStringException DO
+            ELSE
                value.FromOA( L"pt:for" );
                SetError( value, NIL, L'Bad value of "from" attribute.' );
                RETURN FALSE;
@@ -802,10 +801,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
          attribute := prefix; attribute.AppendOA( PT_TO );
          IF pname^.EqualsIgnoreCaseOA( PT_TO ) OR pname^.EqualsIgnoreCase( attribute ) THEN
             ParseText( attributes.CurrentData^, OUT value );
-            TRY
-               to := value.ToCARD32( 10 );
+            IF value.ToCARD32( 10, OUT to ) THEN
                haveTo := TRUE;
-            CATCH e : StringsO.CStringException DO
+            ELSE
                value.FromOA( L"pt:for" );
                SetError( value, NIL, L'Bad value of "to" attribute.' );
                RETURN FALSE;
@@ -816,10 +814,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
          attribute := prefix; attribute.AppendOA( PT_BY );
          IF pname^.EqualsIgnoreCaseOA( PT_BY ) OR pname^.EqualsIgnoreCase( attribute ) THEN
             ParseText( attributes.CurrentData^, OUT value );
-            TRY
-               by := value.ToCARD32( 10 );
+            IF value.ToCARD32( 10, OUT by ) THEN
                haveBy := TRUE;
-            CATCH e : StringsO.CStringException DO
+            ELSE
                value.FromOA( L"pt:for" );
                SetError( nodeName, NIL, L'Bad value of "by" attribute.' );
                RETURN FALSE;
