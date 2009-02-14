@@ -249,7 +249,7 @@ CLASS WriteBuffer; // in-process only
   INTERNAL READONLY VAR
     _Head : CARDINAL;
     _Tail : CARDINAL;
-    _Lock : LOCK;
+    _Lock : RWLOCK;
   INTERNAL VAR
     _Size : CARDINAL := 256;
   PUBLIC READONLY PROPERTY

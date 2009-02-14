@@ -1232,10 +1232,12 @@ CLASS IMPLEMENTATION WriteBuffer;
    PUBLIC PROPERTY WriteBuffer.Count GET : CARDINAL;
    VAR
       count : CARDINAL; 
+      result : TAsyncResult;
    BEGIN
-      _Lock.Lock();
+      result := _Lock.LockRead( FORSAFETY );
+      ASSERTLOG( result <> arTimeout );
       count := _Tail - _Head;
-      _Lock.Unlock();
+      _Lock.UnlockRead();
       RETURN count;
    END WriteBuffer.Count;
 
@@ -1272,29 +1274,35 @@ CLASS IMPLEMENTATION WriteBuffer;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Clear();
+   VAR
+      result : TAsyncResult;
    BEGIN
-      _Lock.Lock(); // can be called every time from any client
+      result := _Lock.LockWrite( FORSAFETY ); // can be called every time from any client
+      ASSERTLOG( result <> arTimeout );
       _Head := 0;
       _Tail := 0;
-      _Lock.Unlock();
+      _Lock.UnlockWrite();
    END Clear;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE StartProducing( Overwrite : BOOLEAN; OUT ProduceTo : CARDINAL ) : BOOLEAN;
+   VAR
+      result : TAsyncResult;
    BEGIN
-      _Lock.Lock();
+      result := _Lock.LockWrite( FORSAFETY );
+      ASSERTLOG( result <> arTimeout );
       IF _Head + _Size = _Tail THEN
          IF Overwrite THEN
             INC( _Head );
          ELSE
             // leave lock
-            _Lock.Unlock();
+            _Lock.UnlockWrite();
             RETURN FALSE;
          END;
       END;
-      INC( _Tail );
       ProduceTo := ToOutIndex( _Tail );
+
       // stay in lock
       RETURN TRUE;
    END StartProducing;
@@ -1303,8 +1311,10 @@ CLASS IMPLEMENTATION WriteBuffer;
 
    PUBLIC PROCEDURE CommitProducing();
    BEGIN
+      INC( _Tail );
+
       // release lock
-      _Lock.Unlock();   
+      _Lock.UnlockWrite();   
    END CommitProducing;
 
 (*--------------------------------------------------------------------------------*)
@@ -1312,11 +1322,13 @@ CLASS IMPLEMENTATION WriteBuffer;
    PUBLIC PROCEDURE StartReading( Index : CARDINAL; OUT ReadFrom : CARDINAL ) : BOOLEAN;
    VAR
       readFrom : CARDINAL;
+      result : TAsyncResult;
    BEGIN
-      _Lock.Lock();
+      result := _Lock.LockRead( FORSAFETY );
+      ASSERTLOG( result <> arTimeout );
       readFrom := _Head + Index;
       IF INTEGER( readFrom - _Tail ) > 0 THEN
-         _Lock.Unlock();
+         _Lock.UnlockRead();
          RETURN FALSE;
       END;
       ReadFrom := ToOutIndex( readFrom );
@@ -1329,7 +1341,7 @@ CLASS IMPLEMENTATION WriteBuffer;
    PUBLIC PROCEDURE CommitReading();
    BEGIN
       // release lock
-      _Lock.Unlock();
+      _Lock.UnlockRead();
    END CommitReading;
 
 (*--------------------------------------------------------------------------------*)
