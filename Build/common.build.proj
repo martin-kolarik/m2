@@ -391,10 +391,13 @@
         </CreateItem>
 
         <!-- SPLIT COMPONENTS (6) TO Messages (BinaryReSources)... -->
-        <CreateItem Condition="%(Type)=='Messages' And $(PropagateComponents)!='on'"
+        <CreateItem Condition="%(Type)=='Messages'"
                     Include="@(PrivateGrabbed)">
-            <Output TaskParameter="Include" ItemName="GrabbedMessages"/>
+            <Output TaskParameter="Include" ItemName="LocalGrabbedMessages"/>
         </CreateItem>
+        <RemoveDuplicates Inputs="@(LocalGrabbedMessages)">
+            <Output TaskParameter="Filtered" ItemName="GrabbedMessages"/>
+        </RemoveDuplicates>
 
         <!-- SPLIT COMPONENTS (7) TO Runtime Modules (DLL,EXE)... -->
         <CreateItem Condition="%(Type)=='Runtime'"
