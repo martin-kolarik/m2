@@ -7,6 +7,7 @@ FROM Storage IMPORT
    
 IMPORT
    io,
+   Log,
    mvc,
    srvcore,
    StringsO,
@@ -41,6 +42,8 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink;
       ReadByHour : CARDINAL;
       ReadByDay : CARDINAL;
       OperatedDeviceCount : CARDINAL;
+      ConfigLogger : Log.TPLogger;
+      DataLogger : Log.TPLogger;
       
    PUBLIC PROCEDURE ConnectEIB();
    PUBLIC PROCEDURE DisconnectEIB();
@@ -59,6 +62,8 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink;
       _DeviceCount : CARDINAL;
       _DeviceNames : POINTER TO ARRAY [0..0] OF PWCHAR;
       _Devices : POINTER TO ARRAY [0..0] OF io.TPIStartStopControl;
+      _ConfigLogger : Log.TPLogger;
+      _DataLogger : Log.TPLogger;
       
       _StartedTime : time.TJD;
       _Connected : BOOLEAN;
@@ -67,7 +72,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink;
       _WrittenByHour : ARRAY [0..23] OF CARDINAL;
       _GotByHour : ARRAY [0..23] OF CARDINAL;
 
-   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl );
+   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPLogger );
    
    PUBLIC READONLY PROPERTY
       Running : BOOLEAN;

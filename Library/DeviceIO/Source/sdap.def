@@ -60,10 +60,10 @@ CLASS CSDAPServer( netconndispatch.CDispatcher ) IMPLEMENTS io.IStartStopControl
    // SELF
    PRIVATE VAR
       _Device : adviser.TPAdvisedDevice := NIL;
-      _Logger : log.TPLogger := NIL;
+      _ConfigurationLogger : log.TPLogger := NIL;
+      _DataLogger : log.TPLogger := NIL;
       _ListenAddress : inetaddr.INETADDR;
       _Running : BOOLEAN := FALSE;
-      _ConfigLogger : log.CLogger;
       _Clients : maps.CPtrMap;
       _SendLock : Sync.LOCK;
       _SendQueue : lists.CStringList;
@@ -73,7 +73,8 @@ CLASS CSDAPServer( netconndispatch.CDispatcher ) IMPLEMENTS io.IStartStopControl
 
    PUBLIC PROPERTY
       Device : adviser.TPAdvisedDevice;
-      Logger : log.TPLogger;
+      ConfigurationLogger : log.TPLogger;
+      DataLogger : log.TPLogger;
       ListenAddress : inetaddr.INETADDR;
 
    INTERNAL VIRTUAL PROCEDURE OnConnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );

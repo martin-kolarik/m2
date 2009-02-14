@@ -100,3 +100,20 @@ div.content p, div.content ul, div.content form, div.content table
 {
   margin-top: 5px;
 }
+
+div.log
+{
+  width: 658px;
+  height: 239px;
+  overflow: scroll;
+  border-top: solid 1px Gray;
+  border-left: solid 1px Gray;
+  padding-left: 2px;
+  padding-top: 1px;
+}
+
+pre.log
+{
+  font-family: Consolas, Lucida Console, Courier New;
+  font-size: 70%;
+}

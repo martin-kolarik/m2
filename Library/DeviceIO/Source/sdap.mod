@@ -111,17 +111,31 @@ CLASS IMPLEMENTATION CSDAPServer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Logger GET : log.TPLogger;
+   PUBLIC PROPERTY ConfigurationLogger GET : log.TPLogger;
    BEGIN
-      RETURN _Logger;
-   END Logger;
+      RETURN _ConfigurationLogger;
+   END ConfigurationLogger;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Logger SET( Value : log.TPLogger );
+   PUBLIC PROPERTY ConfigurationLogger SET( Value : log.TPLogger );
    BEGIN
-      _Logger := Value;
-   END Logger;
+      _ConfigurationLogger := Value;
+   END ConfigurationLogger;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY DataLogger GET : log.TPLogger;
+   BEGIN
+      RETURN _DataLogger;
+   END DataLogger;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY DataLogger SET( Value : log.TPLogger );
+   BEGIN
+      _DataLogger := Value;
+   END DataLogger;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -223,7 +237,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       Client : TPClient;
       Command : TsdapCommand;
       configuration : ARRAY [0..0] OF device.TConfigureItem;
-      count : INTEGER;
+      count, prevcount : CARDINAL;
       d : StringsO.CString; // data
       error : ARRAY [0..511] OF WCHAR;
       Hash : ns.THash;
@@ -243,9 +257,9 @@ CLASS IMPLEMENTATION CSDAPServer;
       IF d.EndsWithOA( 13W + 10W ) THEN
          d.Length := d.Length - 2;
       END;
-      Logger^.LogSS( log.dldDebug, L"sdap", "RCV: ", OA( d.Length-1, d.rawData ));
+      _DataLogger^.LogSS( log.dldDebug, L"sdap", "RCV: ", OA( d.Length-1, d.rawData ));
       PConnection^.RemoteAddress.GetAddressOA( TRUE, OUT sd );
-      Logger^.LogSS( log.dldDebug, L"sdap", "from: ", sd );
+      _DataLogger^.LogSS( log.dldDebug, L"sdap", "from: ", sd );
 
       d.SplitS( StringsO.WCHARS{L' '}, 0, TRUE, OUT parametersFound, OUT p );
       p[0].Lowerize();
@@ -335,7 +349,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       //-----
       | sdapEXIT :
          PConnection^.RemoteAddress.GetAddressOA( TRUE, OUT sd );
-         Logger^.LogSS( log.dldTrace, L"sdap", "EXIT from: ", sd );
+         _DataLogger^.LogSS( log.dldTrace, L"sdap", "EXIT from: ", sd );
 
          ACK( PConnection, sdap200 );
          Disconnect( NIL, PConnection );
@@ -345,15 +359,16 @@ CLASS IMPLEMENTATION CSDAPServer;
          // recode parameters
          d.Substring( p[0].Length + 1, -1, OUT p[1] );
 
-         Logger^.LogSS( log.dldTrace, L"sdap", "LOAD: ", OA( p[1].Length-1, p[1].rawData ));
+         _DataLogger^.LogSS( log.dldTrace, L"sdap", "LOAD: ", OA( p[1].Length-1, p[1].rawData ));
 
          // stop, load
          b := Device^.IO()^.Running;
          Device^.IO()^.Stop();
          
+         prevcount := _ConfigurationLogger^.BufferCount;
          configuration[0].Type := device.citIString;
          configuration[0].iString := ADR( p[1] );
-         Result := Device^.Configure( configuration, ADR( _ConfigLogger ));
+         Result := Device^.Configure( configuration, _ConfigurationLogger );
          CASE Result OF
          | Sync.arCompleted :
             IF b THEN
@@ -363,14 +378,14 @@ CLASS IMPLEMENTATION CSDAPServer;
             END;
          ELSE
             // count of errors
-            count := _ConfigLogger.BufferCount;
+            count := _ConfigurationLogger^.BufferCount - prevcount;
             p[0].FromINT32( count, 10 );
             ACKS( PConnection, sdap406, p[0] );
             // errors
             FOR i := 0 TO count-1 DO
-               _ConfigLogger.BufferGetItem( i, OUT error );
+               _ConfigurationLogger^.BufferGetItem( i, OUT error );
 
-               Logger^.LogSS( log.dldDebug, L"sdap", "  406: ", error );
+               _DataLogger^.LogSS( log.dldDebug, L"sdap", "  406: ", error );
 
                SUPER.Send( NIL, PConnection, 0, ADR( error ), LENGTH( error ) << 1 );
             END; // FOR
@@ -378,13 +393,13 @@ CLASS IMPLEMENTATION CSDAPServer;
 
       //-----
       | sdapRUN :
-         Logger^.LogS( log.dldTrace, L"sdap", "RUN" );
+         _DataLogger^.LogS( log.dldTrace, L"sdap", "RUN" );
 
          DoRun( PConnection );
 
       //-----
       | sdapSTOP :
-         Logger^.LogS( log.dldTrace, L"sdap", "STOP" );
+         _DataLogger^.LogS( log.dldTrace, L"sdap", "STOP" );
 
          Device^.IO()^.Stop();
          ACK( PConnection, sdap200 );
@@ -392,9 +407,9 @@ CLASS IMPLEMENTATION CSDAPServer;
       //-----
       | sdapSET, sdapGET :
          IF Command = sdapSET THEN
-            Logger^.LogSSSS( log.dldTrace, L"sdap", "SET ", OA( p[1].Length-1, p[1].rawData ), L" ", OA( p[2].Length-1, p[2].rawData ));
+            _DataLogger^.LogSSSS( log.dldTrace, L"sdap", "SET ", OA( p[1].Length-1, p[1].rawData ), L" ", OA( p[2].Length-1, p[2].rawData ));
          ELSE
-            Logger^.LogSS( log.dldTrace, L"sdap", "GET ", OA( p[1].Length-1, p[1].rawData ));
+            _DataLogger^.LogSS( log.dldTrace, L"sdap", "GET ", OA( p[1].Length-1, p[1].rawData ));
          END;
 
          IF ( Command = sdapSET ) AND NOT Device^.IO()^.Running THEN
@@ -412,11 +427,11 @@ CLASS IMPLEMENTATION CSDAPServer;
                IF Result = Sync.arCompleted THEN
                   // TODO -- distinguish by some another logger or flag
                   ACK( PConnection, sdap200 );
-                  Logger^.LogSSSS( log.dldMessage, L"sdap", "SET OK ", OA( p[1].Length-1, p[1].rawData ), L" ", OA( p[2].Length-1, p[2].rawData ));
+                  _DataLogger^.LogSSSS( log.dldMessage, L"sdap", "SET OK ", OA( p[1].Length-1, p[1].rawData ), L" ", OA( p[2].Length-1, p[2].rawData ));
                ELSE
                   // TODO -- distinguish by some another logger or flag
                   ACK( PConnection, sdap501 );
-                  Logger^.LogSSSS( log.dldMessage, L"sdap", "SET FAILED ", OA( p[1].Length-1, p[1].rawData ), L" ", OA( p[2].Length-1, p[2].rawData ));
+                  _DataLogger^.LogSSSS( log.dldMessage, L"sdap", "SET FAILED ", OA( p[1].Length-1, p[1].rawData ), L" ", OA( p[2].Length-1, p[2].rawData ));
                END;
        
             ELSE
@@ -438,9 +453,9 @@ CLASS IMPLEMENTATION CSDAPServer;
       //-----
       | sdapADVISE, sdapUNADVISE :
          IF Command = sdapADVISE THEN
-            Logger^.LogSS( log.dldTrace, L"sdap", "ADVISE ", OA( p[1].Length-1, p[1].rawData ));
+            _DataLogger^.LogSS( log.dldTrace, L"sdap", "ADVISE ", OA( p[1].Length-1, p[1].rawData ));
          ELSE
-            Logger^.LogSS( log.dldTrace, L"sdap", "UNADVISE ", OA( p[1].Length-1, p[1].rawData ));
+            _DataLogger^.LogSS( log.dldTrace, L"sdap", "UNADVISE ", OA( p[1].Length-1, p[1].rawData ));
          END;
          
          allFlag := p[1].EqualsOA( L"all" );
@@ -500,7 +515,7 @@ CLASS IMPLEMENTATION CSDAPServer;
    BEGIN
       s.FromCARD32( CARDINAL( ack ), 10 );
 
-      Logger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
+      _DataLogger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
 
       SUPER.Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
    END ACK;
@@ -513,7 +528,7 @@ CLASS IMPLEMENTATION CSDAPServer;
    BEGIN
       s.FromCARD32( CARDINAL( ack ), 10 );
 
-      Logger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
+      _DataLogger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
       
       SUPER.Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
    END ACKs;
@@ -528,7 +543,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       s.AppendOA( L" " );
       s.Append( S );
 
-      Logger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
+      _DataLogger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
       
       SUPER.Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
    END ACKS;
@@ -542,13 +557,13 @@ CLASS IMPLEMENTATION CSDAPServer;
       s.FromCARD32( CARDINAL( ack ), 10 );
       s.AppendOA( ' 1' );
 
-      Logger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
+      _DataLogger^.LogSS( log.dldTrace, L"sdap", "ACK: ", OA( s.Length-1, s.rawData ));
       
       SUPER.Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
 
       s := address; s.AppendOA( L" " ); s.Append( value.String );
 
-      Logger^.LogSS( log.dldDebug, L"sdap", "DATA: ", OA( s.Length-1, s.rawData ));
+      _DataLogger^.LogSS( log.dldDebug, L"sdap", "DATA: ", OA( s.Length-1, s.rawData ));
       
       SUPER.Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
    END ACKd;
@@ -578,14 +593,8 @@ CLASS IMPLEMENTATION CSDAPServer;
    BEGIN
       Connection := netconndispatch.ctLine;
       PieceSize := -1;
-      Logger := log.logger();
-
-      _ConfigLogger.TimeStamps := FALSE;
-      _ConfigLogger.Levels := FALSE;
-      _ConfigLogger.Names := FALSE;
-      _ConfigLogger.Method := log.dmNone;
-      _ConfigLogger.BufferSize := 16;
-      _ConfigLogger.BufferMode := log.bmStoreFirst;
+      ConfigurationLogger := log.logger();
+      DataLogger := log.logger();
    END CSDAPServer;
 
 (*--------------------------------------------------------------------------------*)
@@ -623,8 +632,8 @@ CLASS IMPLEMENTATION CClient;
             s := n;
             s.AppendOA( L" " ); s.Append( Value[i].String );
 
-            IF NOT Server^.Logger^.Filtered( log.dldTrace ) THEN
-               Server^.Logger^.LogSS( log.dldTrace, L"sdap", "ADV: ", OA( s.Length-1, s.rawData ));
+            IF NOT Server^.DataLogger^.Filtered( log.dldTrace ) THEN
+               Server^.DataLogger^.LogSS( log.dldTrace, L"sdap", "ADV: ", OA( s.Length-1, s.rawData ));
             END;
 
             Server^.SendAdvise( ADR( SELF ), s );

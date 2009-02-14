@@ -49,7 +49,7 @@
                         <h1>${msg.control.configuration}</h1>
                         <table cellpadding="0px" cellspacing="0px">
                           <tr>
-                            <td>${msg.status.lasthour}</td><td class="spare">&nbsp;</td><td>${ioLastHour}</td>
+                            <td><div class="log"><pre class="log">${configLog}</pre></div></td>
                           </tr>
                         </table>
 

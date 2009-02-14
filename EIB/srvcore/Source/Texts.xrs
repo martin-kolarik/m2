@@ -7,6 +7,14 @@
             <item lang="en-US">Error during opening configuration file</item>
             <item lang="cs-CZ">Chyba při otevření konfiguračního souboru</item>
         </string>
+        <string name="_ConfigurationLoadSuccessfully">
+            <item xml:space="preserve" lang="en-US">Configuration loaded successfully, file: </item>
+            <item xml:space="preserve" lang="cs-CZ">Konfigurace byla načtena úspěšně, soubor: </item>
+        </string>
+        <string name="_ConfigurationLoadUnsuccessfully">
+            <item xml:space="preserve" lang="en-US">Configuration was not loaded, file: </item>
+            <item xml:space="preserve" lang="cs-CZ">Konfigurace nebyla načtena, soubor: </item>
+        </string>
 
         <string name="_BadConnection">
             <item lang="en-US">Bad connection definition</item>

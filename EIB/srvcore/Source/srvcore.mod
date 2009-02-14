@@ -420,9 +420,11 @@ CLASS IMPLEMENTATION CEIBServer;
 	      RETURN Sync.arCannotStart;
 	   END;
 	   IF LoadConfiguration( Source[0].iString^, OUT message, OUT line ) THEN
+	      Log^.LogSS( log.dlcInfo, L"", OAsz( R[ Texts._ConfigurationLoadSuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.rawData ));
 	      RETURN Sync.arCompleted;
 	   ELSE
          Log^.LogFilePos( log.dlcError, L"", L"", OA( message.Length-1, message.rawData ), line, 0 );
+	      Log^.LogSS( log.dlcInfo, L"", OAsz( R[ Texts._ConfigurationLoadUnsuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.rawData ));
 	      RETURN Sync.arCannotStart;
 	   END;
 	END Configure;

@@ -11,6 +11,7 @@ FROM Storage IMPORT
 IMPORT
    adviser,
    cllv,
+   device,
    EibSrvWeb,
    FIO,
    FIOO,
@@ -68,6 +69,8 @@ CLASS CEibSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarg
       Configuration : StringsO.TPString;
       
    PRIVATE VAR
+      ConfigLogger : Log.CLogger;
+      DataLogger : Log.CLogger; 
       EIB : srvcore.TPEIBServer := NIL;
       Adviser : adviser.TPAdvisedDevice := NIL;
       SDAP : sdap.TPSDAPServer := NIL;
@@ -163,6 +166,7 @@ CLASS IMPLEMENTATION CEibSvc;
 
    PRIVATE PROCEDURE _OnStart();
    VAR
+      configuration : ARRAY [0..0] OF device.TConfigureItem;
       Data : ARRAY [0..511] OF WCHAR;
       IA : inetaddr.INETADDR;
       line : CARDINAL;
@@ -197,11 +201,10 @@ CLASS IMPLEMENTATION CEibSvc;
       EIB^.cllvLength := cllv.length;
 
       FIOO.PathAdd( REF s1, s2 );
-      IF EIB^.LoadConfiguration( s1, OUT s2, OUT line ) THEN
+      configuration[0].Type := device.citIString;
+      configuration[0].iString := ADR( s1 );
+      IF EIB^.Configure( configuration, ADR( ConfigLogger )) = Sync.arCompleted THEN
          EIB^.Start();
-      ELSE
-         s2.AppendOA( L", line: " ); s1.FromCARD32( line, 10 ); s2.Append( s1 );
-         LogEvent( -1, OA( s2.Length-1, s2.rawData ));
       END;
       
       ASSERT( Adviser = NIL );
@@ -215,6 +218,8 @@ CLASS IMPLEMENTATION CEibSvc;
       IA.Port := 6007;
       SDAP^.ListenAddress := IA;
       SDAP^.Init( TRUE );
+      SDAP^.ConfigurationLogger := ADR( ConfigLogger );
+      SDAP^.DataLogger := ADR( DataLogger );
       SDAP^.Start();
       
       ASSERT( XMLS = NIL );
@@ -230,7 +235,7 @@ CLASS IMPLEMENTATION CEibSvc;
       CDI.Devices[0] := SDAP;
       CDI.Devices[1] := XMLS;
       
-      Web.Init( 6005, L"/SmartServer", EIB, CDI.Names, CDI.Devices );
+      Web.Init( 6005, L"/SmartServer", EIB, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ));
       Web.Run();
 
       SetServiceState( Service.ssRunning, 0 );
@@ -289,6 +294,9 @@ CLASS IMPLEMENTATION CEibSvc;
          DISPOSE( EIB );
       END;
 
+      ConfigLogger.BufferClear();      
+      DataLogger.BufferClear();
+
       // do this sooner than scinit.Cleanup, because scinit.Cleanup is called from different thread
       netinit.Cleanup();
 
@@ -299,6 +307,20 @@ CLASS IMPLEMENTATION CEibSvc;
 
 BEGIN
    CDI.Names[0] := NIL;
+
+   DataLogger.TimeStamps := TRUE;
+   DataLogger.Levels := TRUE;
+   DataLogger.Names := TRUE;
+   DataLogger.Method := Log.dmNone;
+   DataLogger.BufferSize := 1000;
+   DataLogger.BufferMode := Log.bmStoreFirst;
+
+   ConfigLogger.TimeStamps := TRUE;
+   ConfigLogger.Levels := FALSE;
+   ConfigLogger.Names := FALSE;
+   ConfigLogger.Method := Log.dmNone;
+   ConfigLogger.BufferSize := 16;
+   ConfigLogger.BufferMode := Log.bmStoreFirst;
 END CEibSvc;
 
 (*================================================================================*)

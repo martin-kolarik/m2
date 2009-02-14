@@ -14,6 +14,7 @@ IMPORT
 (*--------------------------------------------------------------------------------*)
 
 CONST
+   CRLF = 13W + 10W;
    SESSION_LOGGED = L"logged";
 
    LOGIN_VIEW = L"login.pt.xml";
@@ -43,6 +44,7 @@ CONST
    CONTROL_DEVICES_IDX = L"indexes";
    CONTROL_START = L"start";
    CONTROL_STOP = L"stop";
+   CONTROL_CONFIG_LOG = L"configLog";
 
 (*================================================================================*)
 
@@ -234,6 +236,7 @@ CLASS IMPLEMENTATION CController;
       count : CARDINAL;
       cs : StringsO.CString;
       i : CARDINAL;
+      log : ARRAY [0..511] OF WCHAR;
       listDevices : lists.TPStringStringList;
       listRunning : lists.TPStringStringList;
       listIndexes : lists.TPStringStringList;
@@ -286,6 +289,19 @@ CLASS IMPLEMENTATION CController;
       cs.FromOA( L"-1" );
       Request^.ModelContainer^.AddStringOA( CONTROL_START, cs );
       Request^.ModelContainer^.AddStringOA( CONTROL_STOP, cs );
+      
+      count := _Web^.ConfigLogger^.BufferCount;
+      cs.Clear();
+      IF count > 0 THEN
+         FOR i := 0 TO count-1 DO
+            IF i > 0 THEN
+               cs.AppendOA( CRLF );
+            END;
+            _Web^.ConfigLogger^.BufferGetItem( i, OUT log );
+            cs.AppendOA( log );
+         END;
+      END;
+      Request^.ModelContainer^.AddStringOA( CONTROL_CONFIG_LOG, cs );
             
       View := mvc.pageTemplateView( ADR( SELF ), CONTROL_VIEW );
       RETURN TRUE;

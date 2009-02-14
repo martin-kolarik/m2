@@ -173,6 +173,20 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY ConfigLogger GET : Log.TPLogger;
+   BEGIN
+      RETURN _ConfigLogger;
+   END ConfigLogger;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY DataLogger GET : Log.TPLogger;
+   BEGIN
+      RETURN _DataLogger;
+   END DataLogger;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE ConnectEIB();
    BEGIN
       _EIB^.Start();
@@ -209,7 +223,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl );
+   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPLogger );
    BEGIN
       Stop();
       _Port := Port;
@@ -218,6 +232,8 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       _DeviceCount := MIN2( HIGH( DeviceNames ), HIGH( Devices )) + 1;
       _DeviceNames := ADR( DeviceNames );
       _Devices := ADR( Devices );
+      _ConfigLogger := ConfigLogger;
+      _DataLogger := DataLogger;
    END Init;
    
 (*--------------------------------------------------------------------------------*)
