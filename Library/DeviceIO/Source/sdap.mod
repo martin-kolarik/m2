@@ -12,6 +12,7 @@ IMPORT
    netsocket,
    netsrv,
    ns,
+   Strings,
    Sync;
 
 CONST
@@ -384,6 +385,7 @@ CLASS IMPLEMENTATION CSDAPServer;
             // errors
             FOR i := 0 TO count-1 DO
                _ConfigurationLogger^.BufferGetItem( i, OUT error );
+               Strings.TrimAccentsW( REF error );
 
                _DataLogger^.LogSS( log.dldDebug, L"sdap", "  406: ", error );
 
