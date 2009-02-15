@@ -78,6 +78,7 @@ IMPORT
    FIO,
    FIOO,
    IOO,
+   Log,
    Storage,
    Strings,
    StringsO,
@@ -420,10 +421,10 @@ CLASS IMPLEMENTATION CEIBServer;
 	      RETURN Sync.arCannotStart;
 	   END;
 	   IF LoadConfiguration( Source[0].iString^, OUT message, OUT line ) THEN
-	      Log^.LogSS( log.dlcInfo, L"", OAsz( R[ Texts._ConfigurationLoadSuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.rawData ));
+	      Log^.LogSS( log.dldMessage, L"", OAsz( R[ Texts._ConfigurationLoadSuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.rawData ));
 	      RETURN Sync.arCompleted;
 	   ELSE
-         Log^.LogFilePos( log.dlcError, L"", L"", OA( message.Length-1, message.rawData ), line, 0 );
+         Log^.LogFilePos( log.dlcError, L"", OA( Source[0].iString^.Length-1, Source[0].iString^.rawData ), OA( message.Length-1, message.rawData ), line, 0 );
 	      Log^.LogSS( log.dlcInfo, L"", OAsz( R[ Texts._ConfigurationLoadUnsuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.rawData ));
 	      RETURN Sync.arCannotStart;
 	   END;
@@ -543,6 +544,8 @@ CLASS IMPLEMENTATION CEIBServer;
    BEGIN
       IF rsRunning IN RStatus THEN
          RETURN Sync.arCompleted;
+      ELSIF EIB = NIL THEN
+         RETURN Sync.arCannotStart;
       ELSE
          INCL( RStatus, rsRunning );
       END;
@@ -1164,12 +1167,12 @@ CLASS IMPLEMENTATION CEIBServer;
          R.LoadRES2( EMITW( %dll ), L"srvcore.Texts" );
       END;
       ErrorLine := 0;
+      InitToDefault();
    
       TRY
          fs.FromPath( OA( ConfigurationFile.Length-1, ConfigurationFile.rawData ), FIOO.imOpenRead );
       CATCH e : IOO.CIOException DO
          ErrorMessage.FromOA( OAsz( R[ Texts._CannotOpenPar ] ));
-         AppendErrorId( REF ErrorMessage, OA( ConfigurationFile.Length-1, ConfigurationFile.rawData ));
          GOTO Fail;
       END; // try
       tr.Stream := ADR( fs );
@@ -1180,10 +1183,6 @@ CLASS IMPLEMENTATION CEIBServer;
          AppendErrorId( REF ErrorMessage, OA( ConfigurationFile.Length-1, ConfigurationFile.rawData ));
          GOTO Fail;
       END;
-      InitToDefault();
-
-      // setup logger
-      // Logger.SetUpByRegistry( LIBRARY ); -- done from init code
 
       // read device id
       DeviceId := -1;
@@ -2243,9 +2242,12 @@ BEGIN
    EIB := NIL;
    Sink.Server := ADR( SELF );
    EventSink := NIL;
-   Logger.SetUpByRegistry( LIBRARY );
    _Advise := io.advWithData;
    _AdviseListener := NIL;
+
+   Logger.SetUpByRegistry( LIBRARY );
+   Logger.SetLogName( L"KNX" );
+   Logger.RedirectTo := Log.logger();
    
    ObjectLock.Init( Sync.ltCS, L"", FALSE );
    QueueLock.Init( Sync.ltSpin, L"", FALSE );

@@ -199,7 +199,7 @@ CLASS IMPLEMENTATION CEibSvc;
       EIB^.EXEFlag := TRUE;
       EIB^.cllvData := ADR( cllv.data );
       EIB^.cllvLength := cllv.length;
-
+      
       FIOO.PathAdd( REF s1, s2 );
       configuration[0].Type := device.citIString;
       configuration[0].iString := ADR( s1 );
@@ -307,13 +307,14 @@ CLASS IMPLEMENTATION CEibSvc;
 
 BEGIN
    CDI.Names[0] := NIL;
+   
+   Log.logger()^.BufferSize := 1000;
 
    DataLogger.TimeStamps := TRUE;
    DataLogger.Levels := TRUE;
    DataLogger.Names := TRUE;
    DataLogger.Method := Log.dmNone;
    DataLogger.BufferSize := 1000;
-   DataLogger.BufferMode := Log.bmStoreFirst;
 
    ConfigLogger.TimeStamps := TRUE;
    ConfigLogger.Levels := FALSE;

@@ -805,12 +805,22 @@ CLASS IMPLEMENTATION CHttpApiSrv;
    VAR
       EOF : BOOLEAN := FALSE;
       received : CARDINAL;
+      s1 : ARRAY [0..255] OF WCHAR;
+      s2 : ARRAY [0..255] OF WCHAR;
    BEGIN
       IF Result <> Sync.arCompleted THEN
          RETURN;
 
       ELSIF PreparedStream <> NIL THEN // we are waiting now
-         logger()^.LogS( dlcInfo, L"HTTP", L"HTTP request received" );
+         IF NOT logger()^.Filtered( dlcInfo ) THEN
+            PreparedStream^.AbsoluteURI.ToOA( OUT s1 );
+            PreparedStream^.URIData.ToOA( OUT s2 );
+            IF s2[0] = 0W THEN
+               logger()^.LogSS( dlcInfo, L"HTTP", L"Request: ", s1 );
+            ELSE
+               logger()^.LogSSSS( dlcInfo, L"HTTP", L"Request: ", s1, L"?", s2 );
+            END;
+         END;
 
          IF windows.GetOverlappedResult( _HttpQueue, ADR( _HttpOverlapped ), ADR( received ), windows.False ) = windows.False THEN
             CASE CARDINAL( windows.GetLastError()) OF
