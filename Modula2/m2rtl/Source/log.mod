@@ -268,6 +268,20 @@ CLASS IMPLEMENTATION CLogger;
 
 //---------------------------------------------------------
 
+   PUBLIC PROPERTY RedirectTo GET : TPLogger;
+   BEGIN
+      RETURN _RedirectTo;
+   END RedirectTo;
+
+//---------------------------------------------------------
+
+   PUBLIC PROPERTY RedirectTo SET( Value : TPLogger );
+   BEGIN
+      _RedirectTo := Value;
+   END RedirectTo;
+
+//---------------------------------------------------------
+
    PUBLIC PROCEDURE SetLogName( CONST Name : ARRAY OF WCHAR );
    BEGIN
       ASSIGN( SELF.Name, Name );
@@ -333,7 +347,7 @@ CLASS IMPLEMENTATION CLogger;
     IF Filtered( Level ) THEN
       RETURN;
     END;
-    Log( Level, Prefix, S );
+    Log( Level, Name, Prefix, S );
   END LogS;
 
 //---------------------------------------------------------
@@ -346,7 +360,7 @@ CLASS IMPLEMENTATION CLogger;
       RETURN;
     END;
     Strings.ConcatW( OUT S, S1, S2 );
-    Log( Level, Prefix, S );
+    Log( Level, Name, Prefix, S );
   END LogSS;
 
 //---------------------------------------------------------
@@ -361,7 +375,7 @@ CLASS IMPLEMENTATION CLogger;
     END;
     Strings.FromErrorW( ErrorCode, OUT E );
     Strings.ConcatW( OUT S, S1, E );
-    Log( Level, Prefix, S );
+    Log( Level, Name, Prefix, S );
   END LogSE;
 
 //---------------------------------------------------------
@@ -376,7 +390,7 @@ CLASS IMPLEMENTATION CLogger;
       ASSERT( FALSE );
       RETURN;
     END;
-    Log( Level, Prefix, S );
+    Log( Level, Name, Prefix, S );
   END LogSR;
 
 //---------------------------------------------------------
@@ -391,7 +405,7 @@ CLASS IMPLEMENTATION CLogger;
     END;
     Strings.FromCARD32W( C, 10, OUT N );
     Strings.ConcatW( OUT S, S1, N );
-    Log( Level, Prefix, S );
+    Log( Level, Name, Prefix, S );
   END LogSC;
 
 //---------------------------------------------------------
@@ -406,7 +420,7 @@ CLASS IMPLEMENTATION CLogger;
     END;
     Strings.FromCARD32W( C, 16, OUT N );
     Strings.ConcatW( OUT S, S1, N );
-    Log( Level, Prefix, S );
+    Log( Level, Name, Prefix, S );
   END LogSH;
 
 //---------------------------------------------------------
@@ -421,7 +435,7 @@ CLASS IMPLEMENTATION CLogger;
     END;
     Strings.FromCARD64W( CARD64( P ), 16, OUT N );
     Strings.ConcatW( OUT S, S1, N );
-    Log( Level, Prefix, S );
+    Log( Level, Name, Prefix, S );
   END LogSP;
 
 //---------------------------------------------------------
@@ -439,7 +453,7 @@ CLASS IMPLEMENTATION CLogger;
     Strings.AppendW( REF S, L" " );
     Strings.FromCARD64W( CARD64( P ), 16, OUT N );
     Strings.AppendW( REF S, N );
-    Log( Level, Prefix, S );
+    Log( Level, Name, Prefix, S );
   END LogSCP;
 
 //---------------------------------------------------------
@@ -457,7 +471,7 @@ CLASS IMPLEMENTATION CLogger;
     Strings.AppendW( REF S, L" " );
     Strings.FromCARD64W( CARD64( P ), 16, OUT N );
     Strings.AppendW( REF S, N );
-    Log( Level, Prefix, S );
+    Log( Level, Name, Prefix, S );
   END LogSHP;
 
 //---------------------------------------------------------
@@ -498,7 +512,7 @@ CLASS IMPLEMENTATION CLogger;
     END;
     S[c] := WCHAR( 0 );
     Strings.AppendW( REF S, L']' );
-    Log( Level, Prefix, S );
+    Log( Level, Name, Prefix, S );
   END LogSB;
 
 //---------------------------------------------------------
@@ -541,7 +555,7 @@ CLASS IMPLEMENTATION CLogger;
     END;
     S[c] := WCHAR( 0 );
     Strings.AppendW( REF S, L']' );
-    Log( Level, Prefix, S );
+    Log( Level, Name, Prefix, S );
   END LogSCB;
 
 //---------------------------------------------------------
@@ -555,7 +569,7 @@ CLASS IMPLEMENTATION CLogger;
     END;
     Strings.ConcatW( OUT S, S1, S2 );
     Strings.AppendW( REF S, S3 );
-    Log( Level, Prefix, S );
+    Log( Level, Name, Prefix, S );
   END LogSSS;
 
 //---------------------------------------------------------
@@ -570,7 +584,7 @@ CLASS IMPLEMENTATION CLogger;
     Strings.ConcatW( OUT S, S1, S2 );
     Strings.AppendW( REF S, S3 );
     Strings.AppendW( REF S, S4 );
-    Log( Level, Prefix, S );
+    Log( Level, Name, Prefix, S );
   END LogSSSS;
 
 //---------------------------------------------------------
@@ -583,7 +597,7 @@ CLASS IMPLEMENTATION CLogger;
          RETURN;
       END;
 	   e.ToString( OUT S );
-	   Log( Level, Prefix, S );
+	   Log( Level, Name, Prefix, S );
 	END LogExc;
 
 //---------------------------------------------------------
@@ -620,7 +634,7 @@ CLASS IMPLEMENTATION CLogger;
       END;
       Strings.AppendW( REF S, S1 );
       
-      Log( Level, Prefix, S );
+      Log( Level, Name, Prefix, S );
    END LogFilePos;
 
 //---------------------------------------------------------
@@ -656,7 +670,7 @@ CLASS IMPLEMENTATION CLogger;
 
 //---------------------------------------------------------
 
-  INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : TDebugLevel; CONST Prefix, S : ARRAY OF WCHAR );
+  INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : TDebugLevel; CONST _Name, Prefix, S : ARRAY OF WCHAR );
   VAR
     dt : time.TDateTime;
     f : FIO.File;
@@ -664,6 +678,11 @@ CLASS IMPLEMENTATION CLogger;
     SW : TString;
     SA : ARRAY [0..strlen-1] OF CHAR;
   BEGIN
+    IF _RedirectTo <> NIL THEN
+      _RedirectTo^.Log( LoggedLevel, _Name, Prefix, S );
+      RETURN;
+    END;
+
     SW := L"";
     IF rsTimeStamps IN RStatus THEN
       leading := TRUE;
@@ -685,8 +704,8 @@ CLASS IMPLEMENTATION CLogger;
     END;
     IF rsNameInfo IN RStatus THEN
       leading := TRUE;
-      IF Name[0] <> 0W THEN
-        Strings.AppendW( REF SW, Name );
+      IF _Name[0] <> 0W THEN
+        Strings.AppendW( REF SW, _Name );
       END;
       IF Prefix[0] <> 0W THEN
         Strings.AppendW( REF SW, L"/" ); Strings.AppendW( REF SW, Prefix );
@@ -864,7 +883,7 @@ BEGIN
    #else
       DebugLevel := dldError;
    #endif
-   Name[0] := 0W;
+   Name := L"sys";
    DebugFile := 0W;
    Buffer := NIL;
 

@@ -55,6 +55,7 @@ CLASS CLogger;
       DebugLock   : Sync.LOCK;
       Buffer      : TPBuffer;
       _BufferMode : TBufferMode := bmStoreLast;
+      _RedirectTo : TPLogger := NIL;
   
    PUBLIC PROPERTY
       Method : TDebugMethod;
@@ -65,6 +66,7 @@ CLASS CLogger;
       Buffered : BOOLEAN;
       BufferSize : CARDINAL; // default 256
       BufferMode : TBufferMode;
+      RedirectTo : TPLogger; // all output will be passed to another log
 
    PUBLIC PROCEDURE SetLogName( CONST Name : ARRAY OF WCHAR );
    PUBLIC PROCEDURE GetLogName( OUT Name : ARRAY OF WCHAR ) : BOOLEAN;
@@ -100,7 +102,7 @@ CLASS CLogger;
    PUBLIC PROCEDURE BufferClear();
 
    // for internal rewrite
-   INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : TDebugLevel; CONST Prefix, S : ARRAY OF WCHAR );
+   INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : TDebugLevel; CONST Name, Prefix, S : ARRAY OF WCHAR );
    // for user rewrite
    INTERNAL VIRTUAL PROCEDURE OnLogOutputString( CONST OutputString : ARRAY OF WCHAR );
 
