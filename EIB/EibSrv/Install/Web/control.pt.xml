@@ -47,11 +47,7 @@
                         </table>
 
                         <h1>${msg.control.configuration}</h1>
-                        <table cellpadding="0px" cellspacing="0px">
-                          <tr>
-                            <td><div class="log"><pre class="log">${configLog}</pre></div></td>
-                          </tr>
-                        </table>
+                        <div class="log"><pre class="log">${configLog}</pre></div>
 
                       </div>
                   </div>

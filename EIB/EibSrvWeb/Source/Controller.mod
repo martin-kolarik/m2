@@ -8,6 +8,7 @@ FROM Debug IMPORT
 IMPORT
    HttpCommon,
    lists,
+   Log,
    Strings,
    time;
 
@@ -45,6 +46,9 @@ CONST
    CONTROL_START = L"start";
    CONTROL_STOP = L"stop";
    CONTROL_CONFIG_LOG = L"configLog";
+   
+   LOG_DATA_LOG = L"dataLog";
+   LOG_SYSTEM_LOG = L"systemLog";
 
 (*================================================================================*)
 
@@ -310,9 +314,40 @@ CLASS IMPLEMENTATION CController;
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE ProcessLog( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   VAR
+      count : CARDINAL;
+      cs : StringsO.CString;
+      i : CARDINAL;
+      log : ARRAY [0..511] OF WCHAR;
    BEGIN
-      // TODO
-      RETURN FALSE;
+      count := _Web^.DataLogger^.BufferCount;
+      cs.Clear();
+      IF count > 0 THEN
+         FOR i := 0 TO count-1 DO
+            IF i > 0 THEN
+               cs.AppendOA( CRLF );
+            END;
+            _Web^.DataLogger^.BufferGetItem( i, OUT log );
+            cs.AppendOA( log );
+         END;
+      END;
+      Request^.ModelContainer^.AddStringOA( LOG_DATA_LOG, cs );
+            
+      count := Log.logger()^.BufferCount;
+      cs.Clear();
+      IF count > 0 THEN
+         FOR i := 0 TO count-1 DO
+            IF i > 0 THEN
+               cs.AppendOA( CRLF );
+            END;
+            Log.logger()^.BufferGetItem( i, OUT log );
+            cs.AppendOA( log );
+         END;
+      END;
+      Request^.ModelContainer^.AddStringOA( LOG_SYSTEM_LOG, cs );
+
+      View := mvc.pageTemplateView( ADR( SELF ), LOG_VIEW );
+      RETURN TRUE;
    END ProcessLog;
 
 (*--------------------------------------------------------------------------------*)
