@@ -223,6 +223,26 @@ BEGIN
 	END; // LOOP
 END ReplaceW;
 
+PROCEDURE ReplaceCharactersW( REF String : ARRAY OF WCHAR; CONST Old, New : ARRAY OF WCHAR );
+VAR
+	i, n : CARDINAL;
+BEGIN
+	IF HIGH( Old ) <> HIGH( New ) THEN
+		RETURN;
+	END;
+	FOR n := 0 TO HIGH( Old ) DO
+	   i := 0;
+	   LOOP
+		   i := IndexOfCharW( String, Old[n], i );
+		   IF i = -1 THEN
+			   EXIT;
+		   END;
+		   String[i] := New[n];
+		   INC( i );
+	   END; // LOOP
+	END; // FOR
+END ReplaceCharactersW;
+
 PROCEDURE PadLeftW( REF String : ARRAY OF WCHAR; Length : CARDINAL; CONST Padding : ARRAY OF WCHAR );
 VAR
 	l1, l2, p : CARDINAL;
@@ -428,6 +448,11 @@ BEGIN
 		RemoveW( REF String, 0, i );
 	END;
 END TrimDelimitersSW;
+
+PROCEDURE TrimAccentsW( REF String : ARRAY OF WCHAR );
+BEGIN
+   ReplaceCharactersW( REF String, L"·ËÔÈÏÌÚÛ¯öù˙˘˝û¡»œ…ÃÕ“”ÿäç⁄Ÿ›é", L"acdeeinorstuuyzACDEEINORSTUUYZ" );
+END TrimAccentsW;
 
 PROCEDURE IndexOfCharA( CONST Source : ARRAY OF CHAR; Char : CHAR; FromIndex : CARDINAL ) : CARDINAL;
 VAR
