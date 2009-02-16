@@ -40,6 +40,10 @@ CLASS CObject( eib_user.CUserObject );
    WSStatus           : eib_status.TEIBStackStatus;
    ReadRepeatCount    : CARDINAL;
    RecoveryExpiration : CARDINAL;
+   _Logged            : BOOLEAN;
+   
+   PUBLIC PROPERTY
+      Logged : BOOLEAN;
 
    PUBLIC PROCEDURE LogNumber() : CARDINAL;
 
@@ -128,6 +132,7 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    R                        : Resources.CResources;
    _Advise                  : io.TAdvise;
    _AdviseListener          : io.TPIAdviseInfo;
+   _DataLogger              : log.TPLogger;
 
    Result                   : lec.CResult;
    cllvdata                 : ADDRESS;
@@ -177,6 +182,7 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
      cllvLength             : CARDINAL;
    PUBLIC PROPERTY
      EXEFlag                : BOOLEAN;
+     DataLogger             : log.TPLogger;
 
    // inherited
    INTERNAL VIRTUAL PROCEDURE OnTimer( TimerId : PTR );
@@ -229,13 +235,13 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    
    // internal
    PROCEDURE FindBehaviour( BehaviourName : ARRAY OF WCHAR; VAR Priority : eib_def.TPriority; VAR Flags : eib_def.TA_ObjectFlags ) : BOOLEAN;
-   PROCEDURE AddObject( Class : eib_def.TPriority; Flags : eib_def.TA_ObjectFlags; Type : eib_def.TEIBType ) : TPObject;
+   PROCEDURE AddObject( Class : eib_def.TPriority; Flags : eib_def.TA_ObjectFlags; Type : eib_def.TEIBType; Logged : BOOLEAN ) : TPObject;
    PROCEDURE DoneObjects( NILExecutive : BOOLEAN );
 
    // object callbacks
    LOCAL PROCEDURE ValueReadRequestSent( PObject : TPObject; CurrentState : eib_user.TObjectState ); // ObjectState is a synchronous copy
    LOCAL PROCEDURE ValueRead( PObject : TPObject; CurrentState : eib_user.TObjectState; CurrentInitReadState : eib_user.TInitReadState ); // dtto
-   LOCAL PROCEDURE ValueUpdated( PObject : TPObject; CurrentState : eib_user.TObjectState ); // dtto
+   LOCAL PROCEDURE ValueUpdated( Direction : IOO.TDirection; PObject : TPObject; CurrentState : eib_user.TObjectState ); // dtto
    LOCAL PROCEDURE ValueWritten( PObject : TPObject; CurrentState : eib_user.TObjectState ); // dtto
    PRIVATE PROCEDURE EnqueuePromiscuous( Status : eib_status.TEIBStackStatus; PObject : TPObject );
 

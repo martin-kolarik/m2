@@ -199,6 +199,7 @@ CLASS IMPLEMENTATION CEibSvc;
       EIB^.EXEFlag := TRUE;
       EIB^.cllvData := ADR( cllv.data );
       EIB^.cllvLength := cllv.length;
+      EIB^.DataLogger := ADR( DataLogger );
       
       FIOO.PathAdd( REF s1, s2 );
       configuration[0].Type := device.citIString;
@@ -218,8 +219,8 @@ CLASS IMPLEMENTATION CEibSvc;
       IA.Port := 6007;
       SDAP^.ListenAddress := IA;
       SDAP^.Init( TRUE );
+      SDAP^.CommonLogger := Log.logger();
       SDAP^.ConfigurationLogger := ADR( ConfigLogger );
-      SDAP^.DataLogger := ADR( DataLogger );
       SDAP^.Start();
       
       ASSERT( XMLS = NIL );
@@ -228,6 +229,7 @@ CLASS IMPLEMENTATION CEibSvc;
       IA.Port := 6006;
       XMLS^.ListenAddress := IA;
       XMLS^.Init( TRUE );
+      SDAP^.CommonLogger := Log.logger();
       XMLS^.Start();
       
       CDI.Names[0] := PWCHAR( ADR( nameSDAP ));
@@ -311,8 +313,8 @@ BEGIN
    Log.logger()^.BufferSize := 1000;
 
    DataLogger.TimeStamps := TRUE;
-   DataLogger.Levels := TRUE;
-   DataLogger.Names := TRUE;
+   DataLogger.Levels := FALSE;
+   DataLogger.Names := FALSE;
    DataLogger.Method := Log.dmNone;
    DataLogger.BufferSize := 1000;
 

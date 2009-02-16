@@ -103,17 +103,17 @@ CLASS IMPLEMENTATION CXMLSocketServer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Logger GET : log.TPLogger;
+   PUBLIC PROPERTY CommonLogger GET : log.TPLogger;
    BEGIN
-      RETURN _Logger;
-   END Logger;
+      RETURN _CommonLogger;
+   END CommonLogger;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Logger SET( Value : log.TPLogger );
+   PUBLIC PROPERTY CommonLogger SET( Value : log.TPLogger );
    BEGIN
-      _Logger := Value;
-   END Logger;
+      _CommonLogger := Value;
+   END CommonLogger;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -179,7 +179,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       sd : ARRAY [0..63] OF WCHAR;
    BEGIN
       Connection^.RemoteAddress.GetAddressOA( TRUE, OUT sd );
-      Logger^.LogSS( log.dldDebug, L"xmls", "CONNECT: ", sd );
+      _CommonLogger^.LogSS( log.dldDebug, L"xmls", "CONNECT: ", sd );
 
       ASSERTLOG( NOT _Clients.Contains( Connection ));
       
@@ -201,7 +201,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       sd : ARRAY [0..63] OF WCHAR;
    BEGIN
       Connection^.RemoteAddress.GetAddressOA( TRUE, OUT sd );
-      Logger^.LogSS( log.dldDebug, L"xmls", "DISCONNECT: ", sd );
+      _CommonLogger^.LogSS( log.dldDebug, L"xmls", "DISCONNECT: ", sd );
 
       IF _Clients.Get( Connection, OUT Client ) THEN
          _Clients.Remove( Connection );
@@ -222,11 +222,11 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       sd : ARRAY [0..63] OF WCHAR;
    BEGIN
       Connection^.RemoteAddress.GetAddressOA( TRUE, OUT sd );
-      Logger^.LogSS( log.dldDebug, L"xmls", "RCV: ", sd );
-      Logger^.LogSC( log.dldDebug, L"xmls", "  length: ", DataLen );
+      _CommonLogger^.LogSS( log.dldDebug, L"xmls", "RCV: ", sd );
+      _CommonLogger^.LogSC( log.dldDebug, L"xmls", "  length: ", DataLen );
 
       IF NOT _Clients.Get( Connection, OUT Client ) THEN
-         Logger^.LogS( log.dldDebug, L"xmls", "  to: unknown connection" );
+         _CommonLogger^.LogS( log.dldDebug, L"xmls", "  to: unknown connection" );
          RETURN;
       END;
    
@@ -424,14 +424,14 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       Name : StringsO.CString;
    BEGIN
       Name.FromOA( NameOA );
-      Logger^.LogSS( log.dldTrace, L"xmls", "GET ", NameOA );
+      _CommonLogger^.LogSS( log.dldTrace, L"xmls", "GET ", NameOA );
 
       IF NOT Device^.IO()^.Running THEN
-         Logger^.LogS( log.dldDebug, L"xmls", "  device is not running, nothing GET" );
+         _CommonLogger^.LogS( log.dldDebug, L"xmls", "  device is not running, nothing GET" );
          RETURN;
 
       ELSIF NOT Device^.Mapper()^.NameToHash( Name, OUT Hash ) THEN
-         Logger^.LogSS( log.dldTrace, L"xmls", "  unknown name, nothing GET: ", NameOA );
+         _CommonLogger^.LogSS( log.dldTrace, L"xmls", "  unknown name, nothing GET: ", NameOA );
          RETURN;
 
       ELSE
@@ -449,14 +449,14 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       Name : StringsO.CString;
    BEGIN
       Name.FromOA( NameOA );
-      Logger^.LogSSSS( log.dldTrace, L"xmls", "SET ", NameOA, L" ", Value );
+      _CommonLogger^.LogSSSS( log.dldTrace, L"xmls", "SET ", NameOA, L" ", Value );
 
       IF NOT Device^.IO()^.Running THEN
-         Logger^.LogS( log.dldDebug, L"xmls", "  device is not running, nothing SET" );
+         _CommonLogger^.LogS( log.dldDebug, L"xmls", "  device is not running, nothing SET" );
          RETURN;
 
       ELSIF NOT Device^.Mapper()^.NameToHash( Name, OUT Hash ) THEN
-         Logger^.LogSS( log.dldTrace, L"xmls", "  unknown name, nothing SET: ", NameOA );
+         _CommonLogger^.LogSS( log.dldTrace, L"xmls", "  unknown name, nothing SET: ", NameOA );
          RETURN;
 
       ELSE
@@ -478,7 +478,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
    VAR
       msg : msghandler.Message;
    BEGIN
-      Logger := log.logger();
+      _CommonLogger := log.logger();
 
       msg.Message := MSG_SCHEDULED_SEND;
       _SendQueue.ConsumerMsg := ADR( msg );
@@ -513,10 +513,10 @@ CLASS IMPLEMENTATION CClient;
    
       FOR i := 0 TO HIGH( Item ) DO
 
-         IF NOT Server^.Logger^.Filtered( log.dldTrace ) THEN
+         IF NOT Server^.CommonLogger^.Filtered( log.dldTrace ) THEN
             Server^.Device^.Mapper()^.HashToName( Item[i], OUT n );
             s := Value[i].String;
-            Server^.Logger^.LogSSSS( log.dldTrace, L"xmls", "ADV ", OA( n.Length-1, n.rawData ), L" ", OA( s.Length-1, s.rawData ));
+            Server^.CommonLogger^.LogSSSS( log.dldTrace, L"xmls", "ADV ", OA( n.Length-1, n.rawData ), L" ", OA( s.Length-1, s.rawData ));
          END;
 
          IF Result[i] IN Sync.arsCompletions THEN

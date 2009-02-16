@@ -215,6 +215,20 @@ CLASS IMPLEMENTATION CObject;
 
 //--------------------------------------------------------------------------------
 
+   PUBLIC PROPERTY Logged GET : BOOLEAN;
+   BEGIN
+      RETURN _Logged;
+   END Logged;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROPERTY Logged SET( Value : BOOLEAN );
+   BEGIN
+      _Logged := Value;
+   END Logged;
+
+//--------------------------------------------------------------------------------
+
    INTERNAL VIRTUAL PROCEDURE ValueReadRequestSent( Status : eib_status.TEIBStackStatus; CurrentState : eib_user.TObjectState );
    BEGIN
       RSStatus := Status;
@@ -234,7 +248,7 @@ CLASS IMPLEMENTATION CObject;
    INTERNAL VIRTUAL PROCEDURE ValueUpdated( Status : eib_status.TEIBStackStatus; CurrentState : eib_user.TObjectState );
    BEGIN
       RSStatus := Status;
-      Server^.ValueUpdated( ADR( SELF ), CurrentState );
+      Server^.ValueUpdated( IOO.dirRead, ADR( SELF ), CurrentState );
    END ValueUpdated;
 
 //--------------------------------------------------------------------------------
@@ -287,6 +301,7 @@ CLASS IMPLEMENTATION CObject;
 
 BEGIN
    Server := NIL;
+   _Logged := FALSE;
    RSStatus := eib_status.essOK;
    WSStatus := eib_status.essOK;
    ReadRepeatCount := 1;
@@ -366,6 +381,20 @@ CLASS IMPLEMENTATION CEIBServer;
          EXCL( RStatus, rsEXEFlag );
       END;
    END EXEFlag;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROPERTY DataLogger GET : log.TPLogger;
+   BEGIN
+      RETURN _DataLogger;
+   END DataLogger;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROPERTY DataLogger SET( Value : log.TPLogger );
+   BEGIN
+      _DataLogger := Value;
+   END DataLogger;
 
 //--------------------------------------------------------------------------------
 
@@ -604,7 +633,7 @@ CLASS IMPLEMENTATION CEIBServer;
          IOValue2EIBValue( Value, PObject^.Type, OUT EV );
          PObject^.SetValue( EV );
          // for notification using EventSink, if it exists
-         ValueUpdated( PObject, PObject^.CommunicationState );
+         ValueUpdated( IOO.dirWrite, PObject, PObject^.CommunicationState );
       END;
 
       IF EIB^.DeviceConnected() THEN
@@ -683,10 +712,15 @@ CLASS IMPLEMENTATION CEIBServer;
          kvPHigh             = L'high';
          kvPAlarm            = L'alarm';
       knObject               = L'object';
+      knLoggedObject         = L'logged_object';
       knObjects              ::= snObjects;
+      knLoggedObjects        = L'logged_objects';
       knESFStrict            = L'esf_strict';
+      knLoggedESFStrict      = L'logged_esf_strict';
       knESFIgnore            = L'esf_ignore';
+      knLoggedESFIgnore      = L'logged_esf_ignore';
       knESFAdapt             = L'esf_adapt';
+      knLoggedESFAdapt       = L'logged_esf_adapt';
       knBlock                = L'block';
       knType                 = L'type';
       snFormats              = L'formats';
@@ -756,7 +790,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
    //----------
 
-      PROCEDURE StringToSingleObject( REF ErrorMessage : StringsO.CString; String : ARRAY OF WCHAR; StartFromItem : CARDINAL; Priority : eib_def.TPriority; BFlags : eib_def.TA_ObjectFlags; EIT : eib_def.TEIBType ) : BOOLEAN;
+      PROCEDURE StringToSingleObject( REF ErrorMessage : StringsO.CString; String : ARRAY OF WCHAR; StartFromItem : CARDINAL; Priority : eib_def.TPriority; BFlags : eib_def.TA_ObjectFlags; EIT : eib_def.TEIBType; Logged : BOOLEAN ) : BOOLEAN;
       LABEL
          NextItem;
       VAR
@@ -779,7 +813,7 @@ CLASS IMPLEMENTATION CEIBServer;
                   ErrorMessage.FromOA( OAsz( R[ Texts._MissingAddress ] ));
                   RETURN FALSE;
                ELSE // OK, add object
-                  PObject := AddObject( Priority, BFlags, EIT );
+                  PObject := AddObject( Priority, BFlags, EIT, Logged );
                END;
             ELSIF p[0] = 0W THEN
                EXIT;
@@ -838,7 +872,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
    //----------
 
-      PROCEDURE StringToMultipleObjects( REF ErrorMessage : StringsO.CString; String : ARRAY OF WCHAR; StartFromItem : CARDINAL; Priority : eib_def.TPriority; BFlags : eib_def.TA_ObjectFlags; EIT : eib_def.TEIBType ) : BOOLEAN;
+      PROCEDURE StringToMultipleObjects( REF ErrorMessage : StringsO.CString; String : ARRAY OF WCHAR; StartFromItem : CARDINAL; Priority : eib_def.TPriority; BFlags : eib_def.TA_ObjectFlags; EIT : eib_def.TEIBType; Logged : BOOLEAN ) : BOOLEAN;
       LABEL
          NextItem;
       VAR
@@ -923,7 +957,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
             j := 1;
             FOR c := f TO l DO
-               PObject := AddObject( Priority, BFlags, EIT );
+               PObject := AddObject( Priority, BFlags, EIT, Logged );
                LAddress.SetGroupAddress1( c );
                IF Name[0] <> 0W THEN
                   Strings.FromCARD32W( j, 10, OUT Number );
@@ -961,7 +995,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
    //----------
 
-      PROCEDURE ReadESF( REF ErrorMessage : StringsO.CString; CONST Mode : ARRAY OF WCHAR; CONST ESFPath : StringsO.CString ) : BOOLEAN;
+      PROCEDURE ReadESF( REF ErrorMessage : StringsO.CString; CONST Mode : ARRAY OF WCHAR; CONST ESFPath : StringsO.CString; Logged : BOOLEAN ) : BOOLEAN;
       CONST
          kvEIS = L"EIS";
          kvESFLow = L"Low";
@@ -1035,9 +1069,9 @@ CLASS IMPLEMENTATION CEIBServer;
                END;
 
             ELSIF io.EqualsOA( kvUncertain ) THEN
-               IF EQUALS( Mode, knESFIgnore ) THEN
+               IF EQUALS( Mode, knESFIgnore ) OR EQUALS( Mode, knLoggedESFIgnore ) THEN
                   CONTINUE;
-               ELSIF EQUALS( Mode, knESFStrict ) THEN
+               ELSIF EQUALS( Mode, knESFStrict ) OR EQUALS( Mode, knLoggedESFStrict ) THEN
                   ErrorMessage.FromOA( OAsz( R[ Texts._BadTypeInfoUnableToDetectUncertainType ] ));
                   AppendErrorLine( REF ErrorMessage, tr.Line );
                   RETURN FALSE;
@@ -1110,7 +1144,7 @@ CLASS IMPLEMENTATION CEIBServer;
                RETURN FALSE;
             END;
             
-            PObject := AddObject( Priority, fullIOFlags, EIT );
+            PObject := AddObject( Priority, fullIOFlags, EIT, Logged );
             IF AddGroup( GroupAddress ) THEN
                PObject^.AddAddress( FALSE, FALSE, GroupAddress );
             ELSE
@@ -1160,6 +1194,7 @@ CLASS IMPLEMENTATION CEIBServer;
       so : StringsO.CString;
       TS : INIFile.CINIFile;
       b : BOOLEAN;
+      logged : BOOLEAN;
    BEGIN
 	   IF EXEFlag THEN
          R.LoadRES2( L"", L"srvcore.Texts" );
@@ -1401,8 +1436,9 @@ CLASS IMPLEMENTATION CEIBServer;
          ES := 0;
          WHILE TS.EnumerateKeys( REF ES, OUT ErrorLine, OUT p, OUT so ) DO
             //-----
-            IF EQUALS( p, knObject ) OR EQUALS( p, knObjects ) THEN
-               b := EQUALS( p, knObject );
+            IF EQUALS( p, knObject ) OR EQUALS( p, knObjects ) OR EQUALS( p, knLoggedObject ) OR EQUALS( p, knLoggedObjects ) THEN
+               b := EQUALS( p, knObject ) OR EQUALS( p, knLoggedObject );
+               logged := EQUALS( p, knLoggedObject ) OR EQUALS( p, knLoggedObjects );
 
                so.ItemSOA( StringsO.WCHARS{L' ', L','}, 0, 0, TRUE, OUT p );
                IF p[0] = 0W THEN
@@ -1422,19 +1458,22 @@ CLASS IMPLEMENTATION CEIBServer;
 
                so.ToOA( OUT s );
                IF b THEN
-                  IF NOT StringToSingleObject( REF ErrorMessage, s, 2, Priority, BFlags, EIT ) THEN
+                  IF NOT StringToSingleObject( REF ErrorMessage, s, 2, Priority, BFlags, EIT, logged ) THEN
                      GOTO Fail;
                   END;
                ELSE
-                  IF NOT StringToMultipleObjects( REF ErrorMessage, s, 2, Priority, BFlags, EIT ) THEN
+                  IF NOT StringToMultipleObjects( REF ErrorMessage, s, 2, Priority, BFlags, EIT, logged ) THEN
                      GOTO Fail;
                   END;
                END;
 
             //-----
-            ELSIF EQUALS( p, knESFStrict ) OR EQUALS( p, knESFIgnore ) OR EQUALS( p, knESFAdapt ) THEN
-               IF NOT ReadESF( REF ErrorMessage, p, so ) THEN
-                  GOTO Fail;
+            ELSE
+               logged := EQUALS( p, knLoggedESFStrict ) OR EQUALS( p, knLoggedESFIgnore ) OR EQUALS( p, knLoggedESFAdapt );
+               IF EQUALS( p, knESFStrict ) OR EQUALS( p, knESFIgnore ) OR EQUALS( p, knESFAdapt ) OR logged THEN
+                  IF NOT ReadESF( REF ErrorMessage, p, so, logged ) THEN
+                     GOTO Fail;
+                  END;
                END;
 
             END;
@@ -1488,7 +1527,8 @@ CLASS IMPLEMENTATION CEIBServer;
          ES := 0;
          WHILE TS.EnumerateKeys( REF ES, OUT ErrorLine, OUT p, OUT so ) DO
             so.ToOA( OUT s );
-            IF EQUALS( p, knObject ) AND NOT StringToSingleObject( REF ErrorMessage, s, 0, Priority, BFlags, EIT ) THEN
+            logged := EQUALS( p, knLoggedObject );
+            IF ( EQUALS( p, knObject ) OR logged ) AND NOT StringToSingleObject( REF ErrorMessage, s, 0, Priority, BFlags, EIT, logged ) THEN
                GOTO Fail;
             END;
          END; // WHILE knObject        
@@ -1497,7 +1537,8 @@ CLASS IMPLEMENTATION CEIBServer;
          ES := 0;
          WHILE TS.EnumerateKeys( REF ES, OUT ErrorLine, OUT p, OUT so ) DO
             so.ToOA( OUT s );
-            IF EQUALS( p, knObjects ) AND NOT StringToMultipleObjects( REF ErrorMessage, s, 0, Priority, BFlags, EIT ) THEN
+            logged := EQUALS( p, knLoggedObjects );
+            IF ( EQUALS( p, knObjects ) OR logged ) AND NOT StringToMultipleObjects( REF ErrorMessage, s, 0, Priority, BFlags, EIT, logged ) THEN
                GOTO Fail;
             END;
          END; // WHILE knObject        
@@ -1660,7 +1701,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   PROCEDURE AddObject( Priority : eib_def.TPriority; Flags : eib_def.TA_ObjectFlags; Type : eib_def.TEIBType ) : TPObject;
+   PROCEDURE AddObject( Priority : eib_def.TPriority; Flags : eib_def.TA_ObjectFlags; Type : eib_def.TEIBType; Logged : BOOLEAN ) : TPObject;
    VAR
       PObject : TPObject;
    BEGIN
@@ -1669,6 +1710,7 @@ CLASS IMPLEMENTATION CEIBServer;
       PObject^.Init( EIB, Type, eib_user.obNone );
       PObject^.SetClass( Priority );
       PObject^.SetFlags( Flags );
+      PObject^.Logged := Logged;
       
       Objects.Add( PObject );
 
@@ -1780,11 +1822,14 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   LOCAL PROCEDURE ValueUpdated( PObject : TPObject; CurrentState : eib_user.TObjectState );
+   LOCAL PROCEDURE ValueUpdated( Direction : IOO.TDirection; PObject : TPObject; CurrentState : eib_user.TObjectState );
    VAR
+      address : ARRAY [0..31] OF WCHAR;
+      asyncResult : Sync.TAsyncResult := Sync.arCompleted;
       EValue : eib_def.CValue;
       io : iovalue.Value;
-      asyncResult : Sync.TAsyncResult := Sync.arCompleted;
+      value : StringsO.CString;
+      valuesConverted : BOOLEAN := FALSE;
    BEGIN
       IF eib_user.osReading IN CurrentState THEN // value is NOT OOB
          RETURN;
@@ -1794,13 +1839,32 @@ CLASS IMPLEMENTATION CEIBServer;
       IF Result.Counted OR Result.Expired THEN
          RETURN;
       END;
+
+      IF PObject^.Logged THEN
+
+         valuesConverted := TRUE;
+         PObject^.GetValue( OUT EValue, TRUE, FALSE );
+         EIBValue2IOValue( EValue, OUT io );
+         value := io.String;
+         PObject^.SendAddress.GetGroupAddress3( TRUE, OUT address );
+
+         IF Direction = IOO.dirRead THEN
+            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "UPDATE ", address, L" ", OA( value.Length-1, value.rawData ));
+         ELSIF NOT EIB^.DeviceConnected() THEN
+            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET FAILED ", address, L" ", OA( value.Length-1, value.rawData ));
+         END;
+                  
+      END;
       
       IF eib_def.aofPromiscuous IN PObject^.GetFlags() THEN // promiscuous mode queueing
 
          EnqueuePromiscuous( eib_status.essOK, PObject );
 
          IF _AdviseListener <> NIL THEN
-            EIBValue2IOValue( EValue, OUT io );
+            IF NOT valuesConverted THEN
+               PObject^.GetValue( OUT EValue, TRUE, FALSE );
+               EIBValue2IOValue( EValue, OUT io );
+            END;
             _AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( asyncResult )), OA( 0, ADR( PObject )), OA( 0, ADR( io )) );
          END;
 
@@ -1815,7 +1879,10 @@ CLASS IMPLEMENTATION CEIBServer;
             END;
          END;
 
-         PObject^.GetValue( OUT EValue, TRUE, FALSE );
+         IF NOT valuesConverted THEN
+            PObject^.GetValue( OUT EValue, TRUE, FALSE );
+            EIBValue2IOValue( EValue, OUT io );
+         END;
 
          IF EventSink <> NIL THEN
             oobData.EnqueueOA( EValue.Data, PObject );
@@ -1825,7 +1892,6 @@ CLASS IMPLEMENTATION CEIBServer;
          END;
 
          IF _AdviseListener <> NIL THEN
-            EIBValue2IOValue( EValue, OUT io );
             _AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( asyncResult )), OA( 0, ADR( PObject )), OA( 0, ADR( io )) );
          END;
 
@@ -1835,6 +1901,11 @@ CLASS IMPLEMENTATION CEIBServer;
 //--------------------------------------------------------------------------------
 
    LOCAL PROCEDURE ValueWritten( PObject : TPObject; CurrentState : eib_user.TObjectState );
+   VAR
+      address : ARRAY [0..31] OF WCHAR;
+      EValue : eib_def.CValue;
+      io : iovalue.Value;
+      value : StringsO.CString;
    BEGIN
       IF PObject^.WSStatus = eib_status.essOK THEN
          INCL( PObject^.Flags, eib_def.aofEIBValue );
@@ -1849,9 +1920,24 @@ CLASS IMPLEMENTATION CEIBServer;
             EnqueuePromiscuous( PObject^.WSStatus, PObject );
          END;
       END;
+      
+      IF PObject^.Logged THEN
+
+         PObject^.GetValue( OUT EValue, TRUE, FALSE );
+         EIBValue2IOValue( EValue, OUT io );
+         value := io.String;
+         PObject^.SendAddress.GetGroupAddress3( TRUE, OUT address );
+
+         IF PObject^.WSStatus = eib_status.essOK THEN
+            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET OK ", address, L" ", OA( value.Length-1, value.rawData ));
+         ELSE
+            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET ERROR ", address, L" ", OA( value.Length-1, value.rawData ));
+         END;
+                  
+      END;
 
       IF eib_def.aofAdvise IN PObject^.GetFlags() THEN
-         ValueUpdated( PObject, CurrentState );
+         ValueUpdated( IOO.dirRead, PObject, CurrentState );
       END;
    END ValueWritten;
 
@@ -2244,6 +2330,7 @@ BEGIN
    EventSink := NIL;
    _Advise := io.advWithData;
    _AdviseListener := NIL;
+   _DataLogger := NIL;
 
    Logger.SetUpByRegistry( LIBRARY );
    Logger.SetLogName( L"KNX" );
