@@ -33,7 +33,7 @@ CLASS CTestLogger( log.CLogger );
       stdout : TextWriter.TPTextWriter := TextWriter.stdout();
    LOCAL VAR
       Inside : TInside := insideSuite;
-   INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : log.TDebugLevel; CONST Prefix, S : ARRAY OF WCHAR );
+   INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : log.TDebugLevel; CONST Name, Prefix, S : ARRAY OF WCHAR );
    INTERNAL VIRTUAL PROCEDURE OnLogOutputString( CONST OutputString : ARRAY OF WCHAR );
 END CTestLogger;
 
@@ -43,19 +43,19 @@ CLASS IMPLEMENTATION CTestLogger;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : log.TDebugLevel; CONST Prefix, S : ARRAY OF WCHAR );
+   INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : log.TDebugLevel; CONST Name, Prefix, S : ARRAY OF WCHAR );
    VAR
       Buffer : ARRAY [0..4095] OF WCHAR;
    BEGIN
       CASE Inside OF
       | insideSuite :
-         SUPER.Log( LoggedLevel, Prefix, S );
+         SUPER.Log( LoggedLevel, Name, Prefix, S );
       | insideTest :
          Strings.ConcatW( OUT Buffer, L"  ", S );
-         SUPER.Log( LoggedLevel, Prefix, Buffer );
+         SUPER.Log( LoggedLevel, Name, Prefix, Buffer );
       | insidePhase :
          Strings.ConcatW( OUT Buffer, L"        ", S );
-         SUPER.Log( LoggedLevel, Prefix, Buffer );
+         SUPER.Log( LoggedLevel, Name, Prefix, Buffer );
       END;
    END Log;
 
