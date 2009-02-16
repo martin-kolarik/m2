@@ -21,7 +21,8 @@
                       <div id="menu">
                           <p>${msg.menu.status}</p>
                           <p><a href="control">${msg.menu.control}</a></p>
-                          <p><a href="log">${msg.menu.log}</a></p>
+                          <p><a href="datalog">${msg.menu.datalog}</a></p>
+                          <p><a href="syslog">${msg.menu.syslog}</a></p>
                           <p><a href="io">${msg.menu.io}</a></p>
                       </div>
 

@@ -21,7 +21,8 @@ CONST
    LOGIN_VIEW = L"login.pt.xml";
    STATUS_VIEW = L"status.pt.xml";
    CONTROL_VIEW = L"control.pt.xml";
-   LOG_VIEW = L"log.pt.xml";
+   DATA_LOG_VIEW = L"datalog.pt.xml";
+   SYSTEM_LOG_VIEW = L"syslog.pt.xml";
    IO_VIEW = L"io.pt.xml";
    
    LOGIN_MESSAGE = L"message";
@@ -47,8 +48,7 @@ CONST
    CONTROL_STOP = L"stop";
    CONTROL_CONFIG_LOG = L"configLog";
    
-   LOG_DATA_LOG = L"dataLog";
-   LOG_SYSTEM_LOG = L"systemLog";
+   LOG_LOG = L"logRecords";
 
 (*================================================================================*)
 
@@ -90,8 +90,11 @@ CLASS IMPLEMENTATION CController;
       ELSIF Request^.ControllerURI.EqualsOA( CONTROL_PAGE ) THEN
          RETURN ProcessControl( Request, OUT View );
 
-      ELSIF Request^.ControllerURI.EqualsOA( LOG_PAGE ) THEN
-         RETURN ProcessLog( Request, OUT View );
+      ELSIF Request^.ControllerURI.EqualsOA( DATA_LOG_PAGE ) THEN
+         RETURN ProcessDataLog( Request, OUT View );
+
+      ELSIF Request^.ControllerURI.EqualsOA( SYSTEM_LOG_PAGE ) THEN
+         RETURN ProcessSystemLog( Request, OUT View );
 
       ELSIF Request^.ControllerURI.EqualsOA( IO_PAGE ) THEN
          RETURN ProcessIO( Request, OUT View );
@@ -313,7 +316,7 @@ CLASS IMPLEMENTATION CController;
    
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessLog( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessDataLog( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       count : CARDINAL;
       cs : StringsO.CString;
@@ -331,8 +334,21 @@ CLASS IMPLEMENTATION CController;
             cs.AppendOA( log );
          END;
       END;
-      Request^.ModelContainer^.AddStringOA( LOG_DATA_LOG, cs );
-            
+      Request^.ModelContainer^.AddStringOA( LOG_LOG, cs );
+
+      View := mvc.pageTemplateView( ADR( SELF ), DATA_LOG_VIEW );
+      RETURN TRUE;
+   END ProcessDataLog;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ProcessSystemLog( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   VAR
+      count : CARDINAL;
+      cs : StringsO.CString;
+      i : CARDINAL;
+      log : ARRAY [0..511] OF WCHAR;
+   BEGIN
       count := Log.logger()^.BufferCount;
       cs.Clear();
       IF count > 0 THEN
@@ -344,11 +360,11 @@ CLASS IMPLEMENTATION CController;
             cs.AppendOA( log );
          END;
       END;
-      Request^.ModelContainer^.AddStringOA( LOG_SYSTEM_LOG, cs );
+      Request^.ModelContainer^.AddStringOA( LOG_LOG, cs );
 
-      View := mvc.pageTemplateView( ADR( SELF ), LOG_VIEW );
+      View := mvc.pageTemplateView( ADR( SELF ), SYSTEM_LOG_VIEW );
       RETURN TRUE;
-   END ProcessLog;
+   END ProcessSystemLog;
 
 (*--------------------------------------------------------------------------------*)
 

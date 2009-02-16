@@ -10,7 +10,11 @@
             <item lang="en-US">Settings</item>
             <item lang="cs-CZ">Nastavení</item>
         </string>
-        <string name="menu.log">
+        <string name="menu.datalog">
+            <item lang="en-US">Data flow</item>
+            <item lang="cs-CZ">Přenos dat</item>
+        </string>
+        <string name="menu.syslog">
             <item lang="en-US">Logs</item>
             <item lang="cs-CZ">Záznamy</item>
         </string>
@@ -130,11 +134,12 @@
             <item lang="cs-CZ">Spustit</item>
         </string>
 
-        <string name="log.dataLog">
+        <string name="datalog.title">
             <item lang="en-US">Data exchange history</item>
             <item lang="cs-CZ">Historie přenosu dat</item>
         </string>
-        <string name="log.systemLog">
+
+        <string name="syslog.title">
             <item lang="en-US">System log</item>
             <item lang="cs-CZ">Systémové záznamy</item>
         </string>

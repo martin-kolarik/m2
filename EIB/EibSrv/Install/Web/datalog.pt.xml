@@ -21,17 +21,15 @@
                       <div id="menu">
                           <p><a href="status">${msg.menu.status}</a></p>
                           <p><a href="control">${msg.menu.control}</a></p>
-                          <p>${msg.menu.log}</p>
+                          <p>${msg.menu.datalog}</p>
+                          <p><a href="syslog">${msg.menu.syslog}</a></p>
                           <p><a href="io">${msg.menu.io}</a></p>
                       </div>
 
                       <div class="content">
 
-                        <h1>${msg.log.dataLog}</h1>
-                        <div class="log"><pre class="log">${dataLog}</pre></div>
-
-                        <h1>${msg.log.systemLog}</h1>
-                        <div class="log"><pre class="log">${systemLog}</pre></div>
+                        <h1>${msg.datalog.title}</h1>
+                        <div class="longlog"><pre class="longlog">${logRecords}</pre></div>
 
                       </div>
                   </div>
