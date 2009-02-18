@@ -47,6 +47,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink;
       
    PUBLIC PROCEDURE ConnectEIB();
    PUBLIC PROCEDURE DisconnectEIB();
+   PUBLIC PROCEDURE ConfigureEIB( CONST ConfigFilePath : StringsO.CString );
    
    PUBLIC PROCEDURE OperatedDeviceName( index : CARDINAL ) : PWCHAR;
    PUBLIC PROCEDURE OperatedDevice( index : CARDINAL ) : io.TPIStartStopControl;

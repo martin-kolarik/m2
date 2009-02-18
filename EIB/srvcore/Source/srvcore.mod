@@ -611,7 +611,9 @@ CLASS IMPLEMENTATION CEIBServer;
          RETURN;
       END;
       StopTimer( tiInitReadDelay );
-      EIB^.Disconnect();
+      IF EIB <> NIL THEN
+         EIB^.Disconnect();
+      END;
    END Stop;
 
 //--------------------------------------------------------------------------------

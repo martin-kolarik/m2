@@ -7,6 +7,7 @@ FROM Debug IMPORT
 
 IMPORT
    Controller,
+   device,
    HttpCommon,
    httpsrv,
    MVC,
@@ -201,6 +202,25 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE ConfigureEIB( CONST configFilePath : StringsO.CString );
+   VAR
+      configuration : ARRAY [0..0] OF device.TConfigureItem;
+      wasRunning : BOOLEAN;
+   BEGIN
+      wasRunning := _EIB^.Running;
+      _EIB^.Stop();
+
+      configuration[0].Type := device.citIString;
+      configuration[0].iString := StringsO.TPString( ADR( configFilePath ));
+      IF _EIB^.Configure( configuration, _ConfigLogger ) = Sync.arCompleted THEN
+         IF wasRunning THEN
+            _EIB^.Start();
+         END;
+      END;
+   END ConfigureEIB;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE OperatedDeviceName( index : CARDINAL ) : PWCHAR;
    BEGIN
       IF index < _DeviceCount THEN
@@ -346,6 +366,8 @@ BEGIN
    _DisconnectedTime := 0;
    _WrittenByHour[0] := 0;
    _GotByHour[0] := 0;
+   _ConfigLogger := NIL;
+   _DataLogger := NIL;
 FINALLY
    Stop();   
 END CEibSrvWeb;
