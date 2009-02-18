@@ -8,15 +8,15 @@
         </string>
         <string name="menu.control">
             <item lang="en-US">Settings</item>
-            <item lang="cs-CZ">Nastavení</item>
+            <item lang="cs-CZ">Konfigurace</item>
         </string>
         <string name="menu.datalog">
-            <item lang="en-US">Data flow</item>
-            <item lang="cs-CZ">Přenos dat</item>
+            <item lang="en-US">Data history</item>
+            <item lang="cs-CZ">Historie dat</item>
         </string>
         <string name="menu.syslog">
             <item lang="en-US">Logs</item>
-            <item lang="cs-CZ">Záznamy</item>
+            <item lang="cs-CZ">Protokol</item>
         </string>
         <string name="menu.io">
             <item lang="en-US">Direct IO</item>
@@ -132,6 +132,14 @@
         <string name="control.start">
             <item lang="en-US">Start</item>
             <item lang="cs-CZ">Spustit</item>
+        </string>
+        <string name="control.loadConfigFile">
+            <item lang="en-US">Apply</item>
+            <item lang="cs-CZ">Použít</item>
+        </string>
+        <string name="control.downloadConfig">
+            <item lang="en-US">Save...</item>
+            <item lang="cs-CZ">Uložit...</item>
         </string>
 
         <string name="datalog.title">

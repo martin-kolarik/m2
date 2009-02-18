@@ -48,6 +48,9 @@
                         </table>
 
                         <h1>${msg.control.configuration}</h1>
+                        <pt:form  method="post" action="control">
+                          <pt:input model="configFile"/> <input type="submit" value="${msg.control.loadConfigFile}"/> <a href="?download=1">[${msg.control.downloadConfig}]</a>
+                        </pt:form>
                         <div class="log"><pre class="log">${configLog}</pre></div>
 
                       </div>

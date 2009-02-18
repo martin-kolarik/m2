@@ -6,7 +6,9 @@ FROM Debug IMPORT
    Assertion;
    
 IMPORT
+   FIO,
    HttpCommon,
+   HttpTools,
    lists,
    Log,
    Strings,
@@ -17,6 +19,9 @@ IMPORT
 CONST
    CRLF = 13W + 10W;
    SESSION_LOGGED = L"logged";
+   
+   RESOLVER_CONTEXT_WEB = 0;
+   RESOLVER_CONTEXT_DISK = 1;
 
    LOGIN_VIEW = L"login.pt.xml";
    STATUS_VIEW = L"status.pt.xml";
@@ -46,7 +51,9 @@ CONST
    CONTROL_DEVICES_IDX = L"indexes";
    CONTROL_START = L"start";
    CONTROL_STOP = L"stop";
+   CONTROL_DOWNLOAD = L"download";
    CONTROL_CONFIG_LOG = L"configLog";
+   CONTROL_CONFIG_FILE = L"configFile";
    
    LOG_LOG = L"logRecords";
 
@@ -56,13 +63,39 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Resolve( CONST Fragment : ARRAY OF WCHAR; OUT Resolved : StringsO.IString ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE ResolvePath( Context : PTR; CONST Fragment : ARRAY OF WCHAR; OUT Resolved : StringsO.IString ) : BOOLEAN;
    BEGIN
-      // TODO
-      Resolved.FromOA( L"D:\Work\SmartControl\Code\EIB\EibSrv\Install\Web\" );
-      Resolved.AppendOA( Fragment );
+      IF Context = RESOLVER_CONTEXT_DISK THEN
+         IF FIO.IsUNCW( Fragment ) OR FIO.IsDriveW( Fragment ) THEN
+            Resolved.FromOA( Fragment );
+         ELSE
+            RETURN FALSE;
+         END;
+      ELSIF Context = RESOLVER_CONTEXT_WEB THEN
+         // TODO
+         Resolved.FromOA( L"D:\Work\SmartControl\Code\EIB\EibSrv\Install\Web\" );
+         Resolved.AppendOA( Fragment );
+      ELSE
+         RETURN FALSE;
+      END;
       RETURN TRUE;
-   END Resolve;
+   END ResolvePath;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE ResolveMIME( ResolveContext : PTR; CONST Source : StringsO.IString; OUT ContentHeader : StringsO.IString ) : BOOLEAN;
+   VAR
+      s : StringsO.CString;
+   BEGIN
+      s.Assign( Source );
+      s.Lowerize();
+      IF Source.EndsWithOA( L"cfg" ) THEN
+         HttpTools.FormatContentOA( HttpTools.contentTextPlain, L"", L"utf-8", FALSE, OUT ContentHeader );
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END ResolveMIME;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -73,7 +106,7 @@ CLASS IMPLEMENTATION CController;
    BEGIN
       IF Fallback THEN
          uri := Request^.ControllerURI;
-         View := mvc.fileView( ADR( SELF ), OA( uri.Length-1, uri.rawData ));
+         View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_WEB, OA( uri.Length-1, uri.rawData ), FALSE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
          RETURN TRUE;
    
       ELSIF Request^.ControllerURI.EqualsOA( LOGIN_PAGE ) THEN
@@ -249,7 +282,13 @@ CLASS IMPLEMENTATION CController;
       listIndexes : lists.TPStringStringList;
    BEGIN
       // check actions to do
-      IF Request^.ModelContainer^.GetStringOA( CONTROL_START, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
+      IF Request^.RequestVerb = HttpCommon.verbPOST THEN // OK, process form output
+         IF Request^.ModelContainer^.GetStringOA( CONTROL_CONFIG_FILE, OUT cs ) THEN
+            _Web^.ConfigureEIB( cs );
+         END;
+         View := mvc.redirectView( CONTROL_PAGE );
+         RETURN TRUE;
+      ELSIF Request^.ModelContainer^.GetStringOA( CONTROL_START, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
          cs.FromOA( L"-1" );
          Request^.ModelContainer^.AddStringOA( CONTROL_START, cs );
          IF i > MAX( INTEGER ) THEN
@@ -268,6 +307,11 @@ CLASS IMPLEMENTATION CController;
             _Web^.OperatedDevice( i )^.Stop();
          END;
          View := mvc.redirectView( CONTROL_PAGE );
+         RETURN TRUE;
+      ELSIF Request^.ModelContainer^.GetStringOA( CONTROL_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
+         cs.FromOA( L"-1" );
+         Request^.ModelContainer^.AddStringOA( CONTROL_DOWNLOAD, cs );
+         View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_DISK, OA( _Web^.Configuration^.Length-1, _Web^.Configuration^.rawData ), TRUE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
          RETURN TRUE;
       END;
 
@@ -296,6 +340,9 @@ CLASS IMPLEMENTATION CController;
       cs.FromOA( L"-1" );
       Request^.ModelContainer^.AddStringOA( CONTROL_START, cs );
       Request^.ModelContainer^.AddStringOA( CONTROL_STOP, cs );
+      Request^.ModelContainer^.AddStringOA( CONTROL_DOWNLOAD, cs );
+
+      Request^.ModelContainer^.AddStringOA( CONTROL_CONFIG_FILE, _Web^.Configuration^ );
       
       count := _Web^.ConfigLogger^.BufferCount;
       cs.Clear();

@@ -28,9 +28,12 @@ TYPE
 
 (*--------------------------------------------------------------------------------*)
 
-CLASS CController IMPLEMENTS FSO.IFilePathResolver, mvc.IController;
+CLASS CController IMPLEMENTS FSO.IFilePathResolver, mvc.IMIMEResolver, mvc.IController;
    // IFilePathResolver
-   PUBLIC VIRTUAL PROCEDURE Resolve( CONST Fragment : ARRAY OF WCHAR; OUT Resolved : StringsO.IString ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE ResolvePath( Context : PTR; CONST Fragment : ARRAY OF WCHAR; OUT Resolved : StringsO.IString ) : BOOLEAN;
+
+   // IMIMEResolver
+   PUBLIC VIRTUAL PROCEDURE ResolveMIME( ResolveContext : PTR; CONST Source : StringsO.IString; OUT ContentHeader : StringsO.IString ) : BOOLEAN;
 
    // IController
    PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN; // returning false means 500 response
