@@ -50,6 +50,9 @@ CLASS IMPLEMENTATION CFileView;
    PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    VAR
       buffer : StorageO.CMemoryBuffer;
+      Content : StringsO.CString;
+      empty : StringsO.CString;
+      fileName : ARRAY [0..299] OF WCHAR;
       filePath : StringsO.CString;
       fs : FIOO.CFileStream;
       l : CARDINAL;
@@ -58,9 +61,19 @@ CLASS IMPLEMENTATION CFileView;
       IF Resolver = NIL THEN
          ResponseStatus := HttpCommon.httpres_404;
          RETURN TRUE;
-      ELSIF NOT Resolver^.Resolve( OA( PathRelativeToContext.Length-1, PathRelativeToContext.rawData ), OUT filePath ) THEN
+      ELSIF NOT Resolver^.ResolvePath( ResolverContext, OA( PathRelativeToContext.Length-1, PathRelativeToContext.rawData ), OUT filePath ) THEN
          ResponseStatus := HttpCommon.httpres_404;
          RETURN TRUE;
+      END;
+
+      IF ( MIMEResolver = NIL ) OR NOT MIMEResolver^.ResolveMIME( MIMEResolverContext, filePath, OUT Content ) THEN
+         HttpTools.FormatContent( HttpTools.contentUnknown, filePath, empty, TRUE, OUT Content );
+      END;
+      ResponseHeaders^.Add( HttpCommon.ContentType, Content );
+      IF DispositionFlag THEN
+         FIO.PathTailW( OA( filePath.Length-1, filePath.rawData ), OUT fileName );
+         Strings.PrependW( REF fileName, L"attachment; filename=" );
+         ResponseHeaders^.AddUnknownOA( L"Content-Disposition", fileName );
       END;
       
       TRY
@@ -108,16 +121,24 @@ CLASS IMPLEMENTATION CFileView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; CONST PathRelativeToContext : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; ResolverContext : PTR; CONST PathRelativeToContext : ARRAY OF WCHAR; DispositionFlag : BOOLEAN; CONST MIMEResolver : MVC.TPMIMEResolver; MIMEResolverContext : PTR );
    BEGIN
       SELF.Resolver := Resolver;
+      SELF.ResolverContext := ResolverContext;
       SELF.PathRelativeToContext.FromOA( PathRelativeToContext );
+      SELF.DispositionFlag := DispositionFlag;
+      SELF.MIMEResolver := MIMEResolver;
+      SELF.MIMEResolverContext := MIMEResolverContext;
    END Init;
    
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
    Resolver := NIL;
+   ResolverContext := 0;
+   DispositionFlag := FALSE;
+   MIMEResolver := NIL;
+   MIMEResolverContext := 0;
 END CFileView;
 
 (*================================================================================*)
@@ -140,6 +161,7 @@ CLASS IMPLEMENTATION CRedirectView;
 
    PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
    VAR
+      Content : StringsO.CString;
       i : CARDINAL;
       Location : StringsO.CString;
    BEGIN
@@ -166,7 +188,8 @@ CLASS IMPLEMENTATION CRedirectView;
       Output.AppendOA( REDIRECT_MIDDLE );
       LanguagesO.ToMB( Location, Languages.cp_UTF8, TRUE, REF Output );
       Output.AppendOA( REDIRECT_STOP );
-      ResponseHeaders^.Add( HttpCommon.ContentType, HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"utf-8" ));
+      HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"", L"utf-8", FALSE, OUT Content );
+      ResponseHeaders^.Add( HttpCommon.ContentType, Content );
 
       RETURN TRUE;
    END FormatToBuffer;
@@ -224,8 +247,11 @@ CLASS IMPLEMENTATION CRawHTMLView;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   VAR
+      Content : StringsO.CString;
    BEGIN
-      ResponseHeaders^.Add( HttpCommon.ContentType, HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"utf-8" ));
+      HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"", L"utf-8", FALSE, OUT Content );
+      ResponseHeaders^.Add( HttpCommon.ContentType, Content );
       LanguagesO.ToMB( HTML, Languages.cp_UTF8, FALSE, REF Output );
       RETURN TRUE;
    END FormatToBuffer;
@@ -289,7 +315,9 @@ CONST
    PT_FORM = L"form";
       PT_MODEL = L"model";
       PT_TEXT = L"text";
+      PT_NAME = L"name";
       PT_FORM_INPUT = L"input";
+      PT_FORM_FILE = L"file";
       PT_FORM_CHECKBOX = L"checkbox";
       PT_FORM_RADIOBUTTON = L"radiobutton"; // pt:
       PT_FORM_RADIO = L"radio"; // html:
@@ -316,17 +344,19 @@ CLASS IMPLEMENTATION CPageTemplateView;
    LABEL
       Failure;
    VAR
+      Content : StringsO.CString;
       empty : StringsO.CString;
       fs : FIOO.CFileStream;
       mbs : IOO.CMemoryBufferStream;
       viewPath : StringsO.CString;
    BEGIN
       Request^.ModelContainer^.ResetModelViewMapping();
-      ResponseHeaders^.Add( HttpCommon.ContentType, HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"utf-8" ));
+      HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"", L"utf-8", FALSE, OUT Content );
+      ResponseHeaders^.Add( HttpCommon.ContentType, Content );
 
       IF Resolver = NIL THEN
          viewPath := ViewName;
-      ELSIF NOT Resolver^.Resolve( OA( ViewName.Length-1, ViewName.rawData ), OUT viewPath ) THEN
+      ELSIF NOT Resolver^.ResolvePath( 0, OA( ViewName.Length-1, ViewName.rawData ), OUT viewPath ) THEN
          SetError( empty, ADR( ViewName ), L"Unable to resolve view name." );
          GOTO Failure;
       END;
@@ -579,6 +609,8 @@ CLASS IMPLEMENTATION CPageTemplateView;
             simpleInput := TRUE;
             IF nodeName.EqualsIgnoreCaseOA( PT_FORM_INPUT ) THEN
                ptype := ADR( PT_TEXT );
+            ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_FILE ) THEN
+               ptype := ADR( PT_FORM_FILE );
             ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_CHECKBOX ) THEN
                ptype := ADR( PT_FORM_CHECKBOX );
             ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_RADIOBUTTON ) THEN

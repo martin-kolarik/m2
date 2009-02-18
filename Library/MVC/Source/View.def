@@ -30,11 +30,15 @@ CLASS CFileView IMPLEMENTS MVC.IView;
    PUBLIC VIRTUAL PROCEDURE Dispose();
 
    // SELF
-   PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; CONST PathRelativeToContext : ARRAY OF WCHAR );   
+   PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; ResolverContext : PTR; CONST PathRelativeToContext : ARRAY OF WCHAR; DispositionFlag : BOOLEAN; CONST MIMEResolver : MVC.TPMIMEResolver; MIMEResolverContext : PTR );
    
    PRIVATE VAR
       Resolver : FSO.TPFilePathResolver;
+      ResolverContext : PTR;
       PathRelativeToContext : StringsO.CString;
+      DispositionFlag : BOOLEAN;
+      MIMEResolver : MVC.TPMIMEResolver;
+      MIMEResolverContext : PTR;
 END CFileView;
 
 (*--------------------------------------------------------------------------------*)

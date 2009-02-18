@@ -86,7 +86,7 @@ TYPE
    TPFilePathResolver = POINTER TO IFilePathResolver;
 
 INTERFACE IFilePathResolver;
-   PROCEDURE Resolve( CONST Fragment : ARRAY OF WCHAR; OUT Resolved : StringsO.IString ) : BOOLEAN;
+   PROCEDURE ResolvePath( Context : PTR; CONST Fragment : ARRAY OF WCHAR; OUT Resolved : StringsO.IString ) : BOOLEAN;
 END IFilePathResolver;
 
 (*================================================================================*)

@@ -59,28 +59,95 @@ END FormatSIDCookie;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE FormatContent( Content : TContent; CONST RFC1766Code : StringsO.IString ) : StringsO.CString;
+PROCEDURE FormatContent( Content : TContent; CONST FileName, RFC1766Code : StringsO.IString; Fallback : BOOLEAN; OUT ContentHeader : StringsO.IString ) : BOOLEAN;
 VAR
-   s : StringsO.CString;
+   appendCharset : BOOLEAN := TRUE;
+   highF : INTEGER;
+   f, s : StringsO.CString;
 BEGIN
    CASE Content OF
+   | contentDefault :
+      appendCharset := FALSE;
+      s.FromOA( L"application/octet-stream" );
    | contentTextPlain :
-      s.FromOA( L"text/plain; charset=" );
+      s.FromOA( L"text/plain" );
    | contentTextHTML :
-      s.FromOA( L"text/html; charset=" );
+      s.FromOA( L"text/html" );
+   | contentTextXML :
+      s.FromOA( L"text/xml" );
+   | contentTextCSS :
+      s.FromOA( L"text/css" );
+   ELSE
+      appendCharset := FALSE;
+      highF := FileName.Length-1;
+      IF highF < 0 THEN
+         IF Fallback THEN
+            ContentHeader.FromOA( L"application/octet-stream" );
+            RETURN TRUE;
+         ELSE
+            RETURN FALSE;
+         END;
+      END;
+         
+      FileName.Substring( highF-15, 16, OUT f ); // get last 16 characters
+      f.Lowerize();
+      
+      IF f.EndsWithOA( L"txt" ) THEN
+         appendCharset := TRUE;
+         s.FromOA( L"text/plain" );
+      ELSIF f.EndsWithOA( L"htm" ) OR f.EndsWithOA( L"html" ) THEN
+         appendCharset := TRUE;
+         s.FromOA( L"text/html" );
+      ELSIF f.EndsWithOA( L"xml" ) THEN
+         appendCharset := TRUE;
+         s.FromOA( L"text/xml" );
+      ELSIF f.EndsWithOA( L"css" ) THEN
+         appendCharset := TRUE;
+         s.FromOA( L"text/css" );
+
+      ELSIF f.EndsWithOA( L"png" ) THEN
+         s.FromOA( L"image/png" );
+      ELSIF f.EndsWithOA( L"gif" ) THEN
+         s.FromOA( L"image/gif" );
+      ELSIF f.EndsWithOA( L"jpg" ) OR f.EndsWithOA( L"jpeg" ) THEN
+         s.FromOA( L"image/jpeg" );
+
+      ELSIF f.EndsWithOA( L"exe" ) OR f.EndsWithOA( L"dll" ) OR f.EndsWithOA( L"obj" ) OR f.EndsWithOA( L"lib" ) THEN
+         s.FromOA( L"application/octet-stream" );
+      ELSIF f.EndsWithOA( L"zip" ) THEN
+         s.FromOA( L"application/zip" );
+      ELSIF f.EndsWithOA( L"cab" ) THEN
+         s.FromOA( L"application/vnd.ms-cab-compressed" );
+      ELSIF f.EndsWithOA( L"msi" ) THEN
+         s.FromOA( L"application/octet-stream" );
+      ELSIF f.EndsWithOA( L"pdf" ) THEN
+         s.FromOA( L"application/pdf" );
+
+      ELSIF Fallback THEN
+         s.FromOA( L"application/octet-stream" );
+      ELSE
+         RETURN FALSE;
+      END;
+      
    END;
-   s.Append( RFC1766Code );
-   RETURN s;
+   IF appendCharset AND NOT RFC1766Code.Empty THEN
+      s.AppendOA( L"; charset=" );
+      s.Append( RFC1766Code );
+   END;
+
+   ContentHeader.Assign( s );
+   RETURN TRUE;
 END FormatContent;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE FormatContentOA( Content : TContent; CONST RFC1766Code : ARRAY OF WCHAR ) : StringsO.CString;
+PROCEDURE FormatContentOA( Content : TContent; CONST FileName, RFC1766Code : ARRAY OF WCHAR; Fallback : BOOLEAN; OUT ContentHeader : StringsO.IString ) : BOOLEAN;
 VAR
-   s : StringsO.CString;
+   s1, s2 : StringsO.CString;
 BEGIN
-   s.FromOA( RFC1766Code );
-   RETURN FormatContent( Content, s );
+   s1.FromOA( FileName );
+   s2.FromOA( RFC1766Code );
+   RETURN FormatContent( Content, s1, s2, Fallback, OUT ContentHeader );
 END FormatContentOA;
 
 (*---------------------------------------------------------------------------*)

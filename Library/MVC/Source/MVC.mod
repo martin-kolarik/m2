@@ -1208,12 +1208,12 @@ END Cleanup;
 
 (*================================================================================*)
 
-PROCEDURE fileView( CONST resolver : FSO.TPFilePathResolver; CONST PathRelativeToContext : ARRAY OF WCHAR ) : TPView;
+PROCEDURE fileView( CONST resolver : FSO.TPFilePathResolver; resolverContext : PTR; CONST PathRelativeToContext : ARRAY OF WCHAR; dispositionFlag : BOOLEAN; CONST mimeResolver : TPMIMEResolver; mimeResolverContext : PTR ) : TPView;
 VAR
    view : View.TPFileView;
 BEGIN
    NEW( view );
-   view^.Init( resolver, PathRelativeToContext );
+   view^.Init( resolver, resolverContext, PathRelativeToContext, dispositionFlag, mimeResolver, mimeResolverContext );
    RETURN view;
 END fileView;
 

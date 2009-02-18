@@ -17,6 +17,7 @@ IMPORT
 
 TYPE
    TPMessageSource = POINTER TO IMessageSource;
+   TPMIMEResolver = POINTER TO IMIMEResolver;
    TPContainer = POINTER TO IContainer;
    TPHttpRequest = POINTER TO IHttpRequest;
    TPView = POINTER TO IView;
@@ -29,6 +30,12 @@ INTERFACE IMessageSource;
    PROCEDURE GetMessage( language : Languages.TLanguage; CONST Key : StringsO.IString; OUT Message : StringsO.IString ) : BOOLEAN;
    PROCEDURE GetMessageOA( language : Languages.TLanguage; CONST Key : ARRAY OF WCHAR; OUT Message : StringsO.IString ) : BOOLEAN;
 END IMessageSource;
+
+(*--------------------------------------------------------------------------------*)
+
+INTERFACE IMIMEResolver;
+   PROCEDURE ResolveMIME( ResolveContext : PTR; CONST Source : StringsO.IString; OUT ContentHeader : StringsO.IString ) : BOOLEAN;
+END IMIMEResolver;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -117,7 +124,7 @@ PROCEDURE Cleanup();
 
 //================================================================================
 
-PROCEDURE fileView( CONST resolver : FSO.TPFilePathResolver; CONST PathRelativeToContext : ARRAY OF WCHAR ) : TPView;
+PROCEDURE fileView( CONST resolver : FSO.TPFilePathResolver; resolverContext : PTR; CONST PathRelativeToContext : ARRAY OF WCHAR; dispositionFlag : BOOLEAN; CONST mimeResolver : TPMIMEResolver; mimeResolverContext : PTR ) : TPView;
 PROCEDURE absoluteRedirectView( CONST FullURI : ARRAY OF WCHAR ) : TPView;
 PROCEDURE redirectView( CONST ContextRelativeURI : ARRAY OF WCHAR ) : TPView;
 PROCEDURE rawHTMLView( CONST HTML : ARRAY OF WCHAR ) : TPView;
