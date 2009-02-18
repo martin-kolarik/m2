@@ -41,7 +41,7 @@ ABSTRACT CLASS CHeaders IMPLEMENTS HttpCommon.IHttpHeaders;
       KnownCache : maps.CIntegerStringMap; // cache for known headers
       UnknownCache : maps.CStringStringMap; // cache for unknown headers
       
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
 END CHeaders;
 
 (*================================================================================*)

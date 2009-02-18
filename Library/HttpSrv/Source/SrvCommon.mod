@@ -173,10 +173,10 @@ CLASS IMPLEMENTATION CHeaders;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
    BEGIN
-      KnownCache.Dispose(); // TODO loop over inner strings
-      UnknownCache.Dispose(); // TODO loop over inner strings
+      KnownCache.Dispose();
+      UnknownCache.Dispose();
    END Dispose;
 
 (*--------------------------------------------------------------------------------*)
@@ -451,6 +451,7 @@ CLASS IMPLEMENTATION ASrvStream;
    PRIVATE PROCEDURE NormalizeHeaders();
    VAR
       // dt : Time.TDateTime;
+      Content : StringsO.CString;
    BEGIN
       // Date
       // Time.GetCurrentUTCDateTime( dt );
@@ -472,7 +473,8 @@ CLASS IMPLEMENTATION ASrvStream;
 
       // Content
       IF NOT ResponseHeaders^.Contains( HttpCommon.ContentType ) THEN
-         ResponseHeaders^.Add( HttpCommon.ContentType, httptools.FormatContentOA( httptools.contentTextPlain, L"utf-8" ));
+         httptools.FormatContentOA( httptools.contentDefault, L"", L"", TRUE, OUT Content );
+         ResponseHeaders^.Add( HttpCommon.ContentType, Content );
       END;
       
       // Message length

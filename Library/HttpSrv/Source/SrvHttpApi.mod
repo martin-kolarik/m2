@@ -4,7 +4,7 @@ FROM Debug IMPORT
    Assertion;
 
 FROM Storage IMPORT
-   ALLOCATE, DEALLOCATE;
+   ALLOCATE, DEALLOCATE, REALLOCATE;
 
 FROM Log IMPORT
    logger, dlcError, dlcWarning, dlcInfo;
@@ -28,12 +28,17 @@ IMPORT
 
 TYPE
    TPHttpApiSrv = POINTER TO CHttpApiSrv;
+   TPUnknownHeaderBuffer = POINTER TO ARRAY [0..0] OF httpapi.HTTP_UNKNOWN_HEADER;
 
 (*--------------------------------------------------------------------------------*)
 
 CLASS CHttpApiHeaders( SrvCommon.CHeaders );
+
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+
    PRIVATE VAR
       HeaderBuffer : StorageO.CMemoryBuffer; // buffer to construct headers in httpapi format
+      UnknownHeaderBuffer : TPUnknownHeaderBuffer;
 
    LOCAL PROCEDURE FromRequest( Request : httpapi.PHTTP_REQUEST );
    LOCAL PROCEDURE ToResponse( REF Response : httpapi.HTTP_RESPONSE );
@@ -75,6 +80,15 @@ END CHttpApiSrv;
 (*================================================================================*)
 
 CLASS IMPLEMENTATION CHttpApiHeaders;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE Dispose();
+   BEGIN
+      IF UnknownHeaderBuffer <> NIL THEN
+         DISPOSE( UnknownHeaderBuffer );
+      END;
+   END Dispose;
 
 //--------------------------------------------------------------------------------
 
@@ -140,7 +154,32 @@ CLASS IMPLEMENTATION CHttpApiHeaders;
 
          ToSysApi( HttpCommon.TKnownHeader( KnownCache.Current ), OUT id );
          Response.Headers.KnownHeaders[CARDINAL( id )].RawValueLength := CARD16( HeaderBuffer.Length - l - 1 ); // trailing byte
-      END; // WHILE
+      END; // WHILE KnownCache
+      
+      Response.Headers.UnknownHeaderCount := CARD16( UnknownCache.Count );
+      IF Response.Headers.UnknownHeaderCount > 0 THEN
+         REALLOCATE( UnknownHeaderBuffer, UnknownCache.Count * SIZE( httpapi.HTTP_UNKNOWN_HEADER ));
+
+         i := 0;
+         UnknownCache.Reset();
+         WHILE UnknownCache.MoveNext() DO
+            s := UnknownCache.Current;
+            l := HeaderBuffer.Length;
+            LanguagesO.ToMB( s^, 0, TRUE, REF HeaderBuffer );
+            HeaderBuffer.AppendByte( 0 );
+            
+            UnknownHeaderBuffer^[i].NameLength := CARD16( HeaderBuffer.Length - l - 1 ); // trailing byte
+
+            s := UnknownCache.CurrentData;
+            l := HeaderBuffer.Length;
+            LanguagesO.ToMB( s^, 0, TRUE, REF HeaderBuffer );
+            HeaderBuffer.AppendByte( 0 );
+            
+            UnknownHeaderBuffer^[i].RawValueLength := CARD16( HeaderBuffer.Length - l - 1 ); // trailing byte
+            
+            INC( i );
+         END; // WHILE UnknownCache
+      END;
       
       a := HeaderBuffer.Data;
       FOR i := 0 TO INTEGER( httpapi.HttpHeaderResponseMaximum )-1 DO
@@ -151,8 +190,25 @@ CLASS IMPLEMENTATION CHttpApiHeaders;
          END;
       END;
 
-      Response.Headers.UnknownHeaderCount := 0;
-      Response.Headers.pUnknownHeaders := NIL;
+      IF Response.Headers.UnknownHeaderCount = 0 THEN
+         Response.Headers.pUnknownHeaders := NIL;
+      ELSE
+         Response.Headers.pUnknownHeaders := UnknownHeaderBuffer;
+
+         i := 0;
+         UnknownCache.Reset();
+         WHILE UnknownCache.MoveNext() DO
+            l := CARDINAL( UnknownHeaderBuffer^[i].NameLength );
+            UnknownHeaderBuffer^[i].pName := a;
+            INC( a, l + 1 ); // trailing byte
+
+            l := CARDINAL( UnknownHeaderBuffer^[i].RawValueLength );
+            UnknownHeaderBuffer^[i].pRawValue := a;
+            INC( a, l + 1 ); // trailing byte
+
+            INC( i );
+         END; // WHILE UnknownCache
+      END;
 
       Response.Headers.TrailerCount := 0;
       Response.Headers.pTrailers := NIL;
@@ -418,6 +474,10 @@ CLASS IMPLEMENTATION CHttpApiHeaders;
 
 //--------------------------------------------------------------------------------
 
+BEGIN
+   UnknownHeaderBuffer := NIL;
+FINALLY
+   Dispose();
 END CHttpApiHeaders;
 
 //================================================================================
