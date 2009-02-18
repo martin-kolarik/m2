@@ -52,15 +52,24 @@ CLASS IMPLEMENTATION CClient;
       l : INTEGER;
    BEGIN
       FOR count := 0 TO COUNT-1 DO
-         IF Connection.Open( "192.168.1.10:6007", TRUE, netsocket.FORSAFETY ) = sync.arCompleted THEN
-         // IF Connection.Open( "192.168.8.106:6007", TRUE, netsocket.FORSAFETY ) = sync.arCompleted THEN
+         // IF Connection.Open( "192.168.1.10:6007", TRUE, netsocket.FORSAFETY ) = sync.arCompleted THEN
+         IF Connection.Open( "192.168.8.113:6007", TRUE, netsocket.FORSAFETY ) = sync.arCompleted THEN
+            Connection.Stream^.WriteOA( C"set 3/3/1 true" + 13C + 10C, OUT l, netsocket.FORSAFETY );
+            Connection.Stream^.WriteOA( C"set 3/3/2 true" + 13C + 10C, OUT l, netsocket.FORSAFETY );
             Connection.Stream^.WriteOA( C"set 3/3/3 true" + 13C + 10C, OUT l, netsocket.FORSAFETY );
+            Connection.Stream^.WriteOA( C"set 3/3/4 true" + 13C + 10C, OUT l, netsocket.FORSAFETY );
+            Connection.Stream^.WriteOA( C"set 3/3/5 true" + 13C + 10C, OUT l, netsocket.FORSAFETY );
+            Connection.Stream^.WriteOA( C"set 3/3/6 true" + 13C + 10C, OUT l, netsocket.FORSAFETY );
+            Connection.Stream^.WriteOA( C"set 3/3/7 true" + 13C + 10C, OUT l, netsocket.FORSAFETY );
+            Connection.Stream^.WriteOA( C"set 3/3/8 true" + 13C + 10C, OUT l, netsocket.FORSAFETY );
+            Connection.Stream^.WriteOA( C"set 3/3/9 true" + 13C + 10C, OUT l, netsocket.FORSAFETY );
+            Connection.Stream^.WriteOA( C"set 3/3/0 true" + 13C + 10C, OUT l, netsocket.FORSAFETY );
             IF count MOD 2 = 1 THEN
               sync.Sleep( 10 );
             END;
             Connection.Close();
          END;
-         sync.Sleep( 100 + ( count MOD 4 ) * 30 );
+         sync.Sleep( 25 + ( count MOD 4 ) * 30 );
       END; // FOR
       RETURN 0;
    END OnRun;
