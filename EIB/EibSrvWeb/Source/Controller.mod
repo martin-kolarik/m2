@@ -152,8 +152,8 @@ CLASS IMPLEMENTATION CController;
       su, sp : StringsO.CString;
    BEGIN
       IF Request^.RequestVerb = HttpCommon.verbGET THEN // OK, only render a login page
-         Request^.ModelContainer^.AddStringOA( LOGIN_MESSAGE, su ); // empty
-         Request^.ModelContainer^.AddStringOA( LOGIN_USERNAME, su ); // empty
+         Request^.ModelContainer^.AddStringOA( LOGIN_MESSAGE, sp ); // empty
+         Request^.ModelContainer^.AddStringOA( LOGIN_USERNAME, sp ); // empty
          Request^.ModelContainer^.AddStringOA( LOGIN_PASSWORD, sp ); // empty
          View := mvc.pageTemplateView( ADR( SELF ), LOGIN_VIEW );
 
@@ -163,6 +163,11 @@ CLASS IMPLEMENTATION CController;
             NOT ValidateUser( su, sp ) THEN // bad credentials
          Request^.MessageSource^.GetMessageOA( Request^.Language, L"login.badCredentials", OUT su );
          Request^.ModelContainer^.AddStringOA( LOGIN_MESSAGE, su );
+
+         sp.Clear();
+         Request^.ModelContainer^.AddStringOA( LOGIN_MESSAGE, sp ); // empty
+         Request^.ModelContainer^.AddStringOA( LOGIN_USERNAME, sp ); // empty
+         Request^.ModelContainer^.AddStringOA( LOGIN_PASSWORD, sp ); // empty
          View := mvc.pageTemplateView( ADR( SELF ), LOGIN_VIEW );
          
       ELSE // OK, set up session, redirect to status page
