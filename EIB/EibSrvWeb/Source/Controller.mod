@@ -7,6 +7,7 @@ FROM Debug IMPORT
    
 IMPORT
    FIO,
+   FIOO,
    HttpCommon,
    HttpTools,
    lists,
@@ -64,6 +65,8 @@ CLASS IMPLEMENTATION CController;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE ResolvePath( Context : PTR; CONST Fragment : ARRAY OF WCHAR; OUT Resolved : StringsO.IString ) : BOOLEAN;
+   VAR
+      f : StringsO.CString;
    BEGIN
       IF Context = RESOLVER_CONTEXT_DISK THEN
          IF FIO.IsUNCW( Fragment ) OR FIO.IsDriveW( Fragment ) THEN
@@ -72,9 +75,13 @@ CLASS IMPLEMENTATION CController;
             RETURN FALSE;
          END;
       ELSIF Context = RESOLVER_CONTEXT_WEB THEN
-         // TODO
-         Resolved.FromOA( L"D:\Work\SmartControl\Code\EIB\EibSrv\Install\Web\" );
-         Resolved.AppendOA( Fragment );
+         Resolved.Assign( _Web^.RootDir^ );
+         IF Resolved.Empty THEN
+            RETURN FALSE;
+         ELSE
+            f.FromOA( Fragment );
+            FIOO.PathAdd( REF Resolved, f );
+         END;
       ELSE
          RETURN FALSE;
       END;

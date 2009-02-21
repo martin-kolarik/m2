@@ -16,6 +16,7 @@ IMPORT
    FIO,
    FIOO,
    io,
+   INIfile,
    inetaddr,
    Log,
    msgqueuethread,
@@ -165,14 +166,19 @@ CLASS IMPLEMENTATION CEibSvc;
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE _OnStart();
+   CONST
+      snServer = L"server";
+      knWebRoot = L"web_root";
    VAR
+      cfg : INIfile.CINIFile;
       configuration : ARRAY [0..0] OF device.TConfigureItem;
       Data : ARRAY [0..511] OF WCHAR;
       IA : inetaddr.INETADDR;
       line : CARDINAL;
-      Path : ARRAY [0..255] OF WCHAR;
+      Path : ARRAY [0..260] OF WCHAR;
       RS : Registry.CRegistry;
       s1, s2 : StringsO.CString;
+      webRoot : StringsO.CString;
    BEGIN
       Strings.ConcatW( OUT Path, L"SOFTWARE\", Manufacturer ); Strings.AppendW( REF Path, L"\" ); Strings.AppendW( REF Path, ProductId );
       IF RS.OpenRead( L"", Registry.LOCAL_MACHINE, Path ) THEN
@@ -192,6 +198,20 @@ CLASS IMPLEMENTATION CEibSvc;
       IF s2.Empty THEN
          s2.FromOA( defaultConfiguration );
       END;
+      FIOO.PathAdd( REF s1, s2 );
+      
+      IF cfg.LoadPath( OA( s1.Length-1, s1.rawData )) AND cfg.SetSection( snServer ) THEN
+         IF NOT FIO.GetModuleDirW( EMITW( %exe ), OUT Path ) THEN // EXE dir
+            // fall down
+         ELSIF cfg.GetKeyStr( knWebRoot, OUT line, OUT webRoot ) THEN
+            webRoot.ReplaceOA( L"%exedir%", Path );
+         ELSE
+            webRoot.FromOA( Path );
+         END;
+      END;
+      IF webRoot.Empty THEN
+         Log.logger()^.LogS( Log.dlcError, L"KnxSrv", L"Web root is not defined, web interface will not be accessible." );
+      END;
       
       ASSERT( EIB = NIL );
       NEW( EIB );
@@ -201,7 +221,6 @@ CLASS IMPLEMENTATION CEibSvc;
       EIB^.cllvLength := cllv.length;
       EIB^.DataLogger := ADR( DataLogger );
       
-      FIOO.PathAdd( REF s1, s2 );
       configuration[0].Type := device.citIString;
       configuration[0].iString := ADR( s1 );
       IF EIB^.Configure( configuration, ADR( ConfigLogger )) = Sync.arCompleted THEN
@@ -237,8 +256,10 @@ CLASS IMPLEMENTATION CEibSvc;
       CDI.Devices[0] := SDAP;
       CDI.Devices[1] := XMLS;
       
-      Web.Init( 6005, L"/SmartServer", EIB, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ));
-      Web.Run();
+      IF NOT webRoot.Empty THEN
+         Web.Init( 6005, L"/SmartServer", webRoot, EIB, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ));
+         Web.Run();
+      END;
 
       SetServiceState( Service.ssRunning, 0 );
    END _OnStart;
