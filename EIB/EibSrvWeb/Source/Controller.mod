@@ -57,6 +57,19 @@ CONST
    CONTROL_CONFIG_FILE = L"configFile";
    
    LOG_LOG = L"logRecords";
+   
+   IO_FORM_ID = L"formId";
+   IO_READ_NAME = L"readName";
+   IO_READ_VALUE = L"readValue";
+   IO_DO_READ  = L"read";
+   IO_WRITE_NAME = L"writeName";
+   IO_WRITE_VALUE = L"writeValue";
+   IO_DO_WRITE = L"write";
+   IO_WRITE_FAILED = L"writeFailed";
+
+   DYNAMIC_SUFFIX = L".pt.xml";
+   FN_SET = L"set";
+   FN_GET = L"get";
 
 (*================================================================================*)
 
@@ -90,6 +103,35 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE Call( CONST FunctionName : StringsO.IString; REF Parameters : lists.CStringStringList; RetVal : StringsO.TPString ) : BOOLEAN;
+   VAR
+      name, s, value : StringsO.CString;
+   BEGIN
+      IF FunctionName.EqualsOA( FN_SET ) THEN
+         IF Parameters.Count < 2 THEN
+            RETURN FALSE;
+         END;
+         Parameters.ElementAt( 0, OUT s, OUT name );
+         Parameters.ElementAt( 1, OUT s, OUT value );
+         RETURN _Web^.SetValue( name, value );
+      ELSIF FunctionName.EqualsOA( FN_GET ) THEN
+         IF Parameters.Count < 2 THEN
+            RETURN FALSE;
+         END;
+         Parameters.ElementAt( 0, OUT s, OUT name );
+         IF NOT _Web^.GetValue( name, OUT value ) THEN
+            RETURN FALSE;
+         ELSIF RetVal <> NIL THEN
+            RetVal^.Assign( value );
+         END;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END Call;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE ResolveMIME( ResolveContext : PTR; CONST Source : StringsO.IString; OUT ContentHeader : StringsO.IString ) : BOOLEAN;
    VAR
       s : StringsO.CString;
@@ -111,9 +153,16 @@ CLASS IMPLEMENTATION CController;
       data : PTR;
       uri : StringsO.CString;
    BEGIN
+
       IF Fallback THEN
          uri := Request^.ControllerURI;
-         View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_WEB, OA( uri.Length-1, uri.rawData ), FALSE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
+         IF uri.EndsWithOA( DYNAMIC_SUFFIX ) THEN
+            Request^.ModelContainer^.AddFunctionHandlerOA( FN_SET, ADR( SELF ));
+            Request^.ModelContainer^.AddFunctionHandlerOA( FN_GET, ADR( SELF ));
+            View := mvc.pageTemplateView( ADR( SELF ), OA( uri.Length-1, uri.rawData ));
+         ELSE   
+            View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_WEB, OA( uri.Length-1, uri.rawData ), FALSE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
+         END;
          RETURN TRUE;
    
       ELSIF Request^.ControllerURI.EqualsOA( LOGIN_PAGE ) THEN
@@ -428,9 +477,57 @@ CLASS IMPLEMENTATION CController;
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE ProcessIO( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   VAR
+      b : BOOLEAN;
+      empty, fid : StringsO.CString;
+      rname, rvalue : StringsO.CString;
+      wname, wvalue : StringsO.CString;
    BEGIN
-      // TODO
-      RETURN FALSE;
+      IF Request^.RequestVerb <> HttpCommon.verbPOST THEN
+         // OK, only display
+         Request^.ModelContainer^.GetStringOA( IO_WRITE_NAME, OUT wname );
+         Request^.ModelContainer^.GetStringOA( IO_WRITE_VALUE, OUT wvalue );
+         Request^.ModelContainer^.GetStringOA( IO_READ_NAME, OUT rname );
+         Request^.ModelContainer^.GetStringOA( IO_READ_VALUE, OUT rvalue );
+
+      ELSIF Request^.ModelContainer^.GetStringOA( IO_FORM_ID, OUT fid ) AND fid.EqualsOA( IO_DO_READ ) THEN
+         IF Request^.ModelContainer^.GetStringOA( IO_READ_NAME, OUT rname ) THEN
+            IF _Web^.GetValue( rname, OUT rvalue ) THEN
+               Request^.ModelContainer^.AddStringOA( IO_READ_VALUE, rvalue );
+            ELSE
+               Request^.ModelContainer^.AddStringOA( IO_READ_VALUE, empty );
+            END;
+         END;
+         
+         View := mvc.redirectView( IO_PAGE );
+         RETURN TRUE;
+
+      ELSIF Request^.ModelContainer^.GetStringOA( IO_FORM_ID, OUT fid ) AND fid.EqualsOA( IO_DO_WRITE ) THEN
+         IF Request^.ModelContainer^.GetStringOA( IO_WRITE_NAME, OUT wname ) AND
+            Request^.ModelContainer^.GetStringOA( IO_WRITE_VALUE, OUT wvalue ) THEN
+            Request^.ModelContainer^.AddBooleanOA( IO_WRITE_FAILED, NOT _Web^.SetValue( wname, wvalue ));
+         END;
+
+         View := mvc.redirectView( IO_PAGE );
+         RETURN TRUE;
+         
+      ELSE // error
+         View := mvc.redirectView( IO_PAGE );
+         RETURN TRUE;
+      END;
+
+      Request^.ModelContainer^.AddFunctionHandlerOA( FN_SET, ADR( SELF ));
+      Request^.ModelContainer^.AddFunctionHandlerOA( FN_GET, ADR( SELF ));
+
+      Request^.ModelContainer^.AddStringOA( IO_FORM_ID, empty );
+      Request^.ModelContainer^.AddStringOA( IO_READ_NAME, rname );
+      Request^.ModelContainer^.AddStringOA( IO_READ_VALUE, rvalue );
+      Request^.ModelContainer^.AddStringOA( IO_WRITE_NAME, wname );
+      Request^.ModelContainer^.AddStringOA( IO_WRITE_VALUE, wvalue );
+      Request^.ModelContainer^.AddBooleanOA( IO_WRITE_FAILED, FALSE );
+
+      View := mvc.pageTemplateView( ADR( SELF ), IO_VIEW );
+      RETURN TRUE;
    END ProcessIO;
 
 (*--------------------------------------------------------------------------------*)

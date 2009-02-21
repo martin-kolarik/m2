@@ -316,6 +316,7 @@ CONST
       PT_MODEL = L"model";
       PT_TEXT = L"text";
       PT_NAME = L"name";
+      PT_FORMID = L"formid";
       PT_FORM_INPUT = L"input";
       PT_FORM_FILE = L"file";
       PT_FORM_CHECKBOX = L"checkbox";
@@ -628,6 +629,10 @@ CLASS IMPLEMENTATION CPageTemplateView;
                INCL( Where, whInInput );
                b := ParseFormInput( isEmpty, attributes, ptype );
                EXCL( Where, whInInput );
+            ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORMID ) THEN
+               INCL( Where, whInInput );
+               b := ParseFormId( isEmpty, attributes );
+               EXCL( Where, whInInput );
             ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_SELECT ) THEN
                IF whInSelect IN Where THEN
                   SetError( nodeName, NIL, L'Element is not allowed inside "pt:select" context.' );
@@ -675,7 +680,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
    PRIVATE PROCEDURE ParseElement( CONST attributes : lists.CStringStringList; isEmpty, limitToPTOnly : BOOLEAN; CONST ignoreOA1, ignoreOA2 : ARRAY OF WCHAR ) : BOOLEAN;
    BEGIN
-      CopyAttributes( TRUE, attributes, PT_MODEL, L"" );
+      CopyAttributes( TRUE, attributes, ignoreOA1, ignoreOA2 );
       IF isEmpty THEN
          Writer.WriteElementEnd();
       ELSIF Parse( TRUE, limitToPTOnly, FALSE ) THEN // input can contain text
@@ -1102,6 +1107,46 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
+   PRIVATE PROCEDURE ParseFormId( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
+   VAR
+      fullModel : StringsO.CString;
+      id : StringsO.CString;
+      model : StringsO.CString;
+      value : StringsO.CString;
+   BEGIN
+      IF NOT GetFormModel( attributes, OUT model ) THEN
+         value.FromOA( L"pt:formid" );
+         SetError( value, NIL, L'Required "model" attribute is missing.' );
+         RETURN FALSE;
+      END;
+      fullModel := FormModel;
+      IF NOT fullModel.Empty THEN
+         fullModel.AppendOA( L"." );
+         fullModel.Append( model );
+      END;
+
+      IF NOT GetFormId( attributes, OUT id ) THEN
+         value.FromOA( L"pt:formid" );
+         SetError( value, NIL, L'Required "formid" attribute is missing.' );
+         RETURN FALSE;
+      END;
+
+      Writer.WriteElementStartOA( L"input" );
+
+      Writer.WriteAttributeStringOA( L"type", PT_FORM_HIDDEN );
+      IF NOT fullModel.Empty THEN // model = form.item
+         WriteFormNameAttribute( fullModel );
+         Writer.WriteAttributeStringOA( L"value", OA( id.Length-1, id.rawData ));
+      ELSE
+         WriteFormNameAttribute( model );
+         Writer.WriteAttributeStringOA( L"value", OA( id.Length-1, id.rawData ));
+      END;
+
+      RETURN ParseElement( attributes, isEmpty, FALSE, PT_MODEL, PT_FORMID );
+   END ParseFormId;
+
+(*--------------------------------------------------------------------------------*)
+
    PRIVATE PROCEDURE ParseFormInput( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList; ptype : POINTER TO CONST WCHAR ) : BOOLEAN;
    VAR
       fullModel : StringsO.CString;
@@ -1241,6 +1286,28 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
       RETURN NOT formModel.Empty;
    END GetFormModel;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE GetFormId( CONST attributes : lists.CStringStringList; OUT formId : StringsO.IString ) : BOOLEAN;
+   VAR
+      attribute : StringsO.CString;
+      pname : StringsO.TPString;
+   BEGIN
+      attribute := Prefix;
+      attribute.AppendOA( L":" );
+      attribute.AppendOA( PT_FORMID );
+
+      attributes.Reset();
+      WHILE attributes.MoveNext() DO
+         pname := StringsO.TPString( attributes.Current );
+         IF pname^.EqualsIgnoreCaseOA( PT_FORMID ) OR pname^.EqualsIgnoreCase( attribute ) THEN
+            ParseText( attributes.CurrentData^, OUT formId );
+         END;
+      END; // WHILE
+
+      RETURN NOT formId.Empty;
+   END GetFormId;
 
 (*--------------------------------------------------------------------------------*)
 

@@ -10,7 +10,10 @@ IMPORT
    device,
    HttpCommon,
    httpsrv,
+   IOO,
+   iovalue,
    MVC,
+   ns,
    Sync;
 
 (*================================================================================*)
@@ -248,6 +251,41 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       END;
    END OperatedDevice;
    
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SetValue( CONST name, value : StringsO.IString ) : BOOLEAN;
+   VAR
+      hash : ns.THash;
+      io : iovalue.Value;
+      s : StringsO.CString;
+   BEGIN
+      IF NOT _EIB^.NameToHash( name, OUT hash ) THEN
+         RETURN FALSE;
+      END;
+      s.Assign( value );
+      io.String := s;
+      RETURN _EIB^.IOh( IOO.dirWrite, hash, REF io, NIL ) IN Sync.arsCompletions;
+   END SetValue;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE GetValue( CONST name : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN;
+   VAR
+      hash : ns.THash;
+      io : iovalue.Value;
+      s : StringsO.CString;
+   BEGIN
+      IF NOT _EIB^.NameToHash( name, OUT hash ) THEN
+         RETURN FALSE;
+      END;
+      IF _EIB^.IOh( IOO.dirRead, hash, REF io, NIL ) NOT IN Sync.arsCompletions THEN
+         RETURN FALSE;
+      END;
+      s := io.String;
+      value.Assign( s );
+      RETURN TRUE;
+   END GetValue;
+
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST rootDir : StringsO.IString; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPLogger );

@@ -40,11 +40,13 @@ CLASS CContainer IMPLEMENTS IContainer;
    PUBLIC VIRTUAL PROCEDURE AddStringOA( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString ); // creates string in model
    PUBLIC VIRTUAL PROCEDURE AddListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringStringList ); // creates list in model
    PUBLIC VIRTUAL PROCEDURE AddMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ); // creates map in model
+   PUBLIC VIRTUAL PROCEDURE AddFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; Handler : TPFunctionHandler );
 
    PUBLIC VIRTUAL PROCEDURE GetBooleanOA( CONST Name : ARRAY OF WCHAR; OUT Model : BOOLEAN ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE GetStringOA( CONST Name : ARRAY OF WCHAR; OUT Model : StringsO.IString ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE GetListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringStringList ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE GetMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; OUT Handler : TPFunctionHandler ) : BOOLEAN;
 
    PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Model, Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Model : StringsO.IString; OUT Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
@@ -83,6 +85,8 @@ CLASS IMPLEMENTATION CContainer;
          | L"m" :
             m := maps.TPStringStringMap( Models.CurrentData );
             DISPOSE( m );
+         | L"f" :
+            // do nothing
          ELSE
             ASSERT( FALSE );
          END; // CASE
@@ -188,6 +192,20 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE AddFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; Handler : TPFunctionHandler );
+   VAR
+      name : StringsO.CString;
+   BEGIN
+      name.FromOA( L"f." );
+      name.AppendOA( Name );
+      IF Models.Contains( name ) THEN
+         Models.Remove( name );
+      END;
+      Models.Add( name, PTR( Handler ));
+   END AddFunctionHandlerOA;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE GetBooleanOA( CONST Name : ARRAY OF WCHAR; OUT Model : BOOLEAN ) : BOOLEAN;
    VAR
       model : PTR;
@@ -252,16 +270,36 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE GetFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; OUT Handler : TPFunctionHandler ) : BOOLEAN;
+   VAR
+      model : TPFunctionHandler;
+      name : StringsO.CString;
+   BEGIN
+      name.FromOA( L"f." );
+      name.AppendOA( Name );
+      IF NOT Models.Get( name, OUT model ) THEN
+         RETURN FALSE;
+      END;
+      Handler := model;
+      RETURN TRUE;
+   END GetFunctionHandlerOA;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST model, value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    LABEL
       Error;
    VAR
       boolean : BOOLEAN;
-      i, index, j : INTEGER;
+      empty : StringsO.CString;
+      functionHandler : TPFunctionHandler;
+      i, ii, index, j : INTEGER;
       lvalue : StringsO.CString;
       keyIndex, valueIndex : BOOLEAN;
       list : lists.TPStringStringList := NIL;
       map : maps.TPStringStringMap := NIL;
+      parameter : StringsO.CString;
+      parameters : lists.CStringStringList;
       ps : StringsO.TPString;
       sindex1, sindex2 : StringsO.CString;
    BEGIN
@@ -302,10 +340,10 @@ CLASS IMPLEMENTATION CContainer;
          valueIndex := TRUE;
       END;
       IF NOT valueIndex THEN
-         i := model.IndexOfOA( L"{", 0 );
+         i := model.IndexOfOA( L"<", 0 );
          IF i > 0 THEN // ok, find in map or list
             index := -1;
-            j := model.IndexOfOA( L"}", i+1 );
+            j := model.IndexOfOA( L">", i+1 );
             IF j = -1 THEN
                GOTO Error;
             END;
@@ -353,6 +391,32 @@ CLASS IMPLEMENTATION CContainer;
          END;
       END;
 
+      // try function
+      i := model.IndexOfOA( L"(", 0 );
+      IF i > 0 THEN
+         j := model.IndexOfOA( L")", i+1 );
+         IF j = -1 THEN
+            GOTO Error;
+         END;
+         model.Substring( 0, i, OUT sindex1 );
+         sindex1.Trim();
+         IF GetFunctionHandlerOA( OA( sindex1.Length-1, sindex1.rawData ), OUT functionHandler ) THEN
+            ii := i+1;
+            LOOP
+               ii := model.ItemS( StringsO.WCHARS{L' ', L','}, ii, 0, TRUE, OUT sindex2 );
+               IF NOT GetModelValue( sindex2, OUT parameter ) THEN
+                  parameter := sindex2;
+               END;
+               parameter.Trim();
+               parameters.Add( empty, parameter );
+               IF ii = -1 THEN
+                  EXIT;
+               END;
+            END; // LOOP
+            RETURN functionHandler^.Call( sindex1, REF parameters, NIL );
+         END; // IF function found
+      END;
+      
       // try boolean      
       IF GetBooleanOA( OA( model.Length-1, model.rawData ), OUT boolean ) THEN
          lvalue.Assign( value );
@@ -380,10 +444,14 @@ CLASS IMPLEMENTATION CContainer;
       Error;
    VAR
       boolean : BOOLEAN;
-      i, index, j : INTEGER;
+      empty : StringsO.CString;
+      functionHandler : TPFunctionHandler;
+      i, ii, index, j : INTEGER;
       keyIndex, valueIndex : BOOLEAN;
       list : lists.TPStringStringList := NIL;
       map : maps.TPStringStringMap := NIL;
+      parameter : StringsO.CString;
+      parameters : lists.CStringStringList;
       ps : StringsO.TPString;
       sindex1, sindex2 : StringsO.CString;
    BEGIN
@@ -422,10 +490,10 @@ CLASS IMPLEMENTATION CContainer;
          valueIndex := TRUE;
       END;
       IF NOT valueIndex THEN
-         i := model.IndexOfOA( L"{", 0 );
+         i := model.IndexOfOA( L"<", 0 );
          IF i > 0 THEN // ok, find in map or list
             index := -1;
-            j := model.IndexOfOA( L"}", i+1 );
+            j := model.IndexOfOA( L">", i+1 );
             IF j = -1 THEN
                GOTO Error;
             END;
@@ -465,6 +533,33 @@ CLASS IMPLEMENTATION CContainer;
          ELSE
             GOTO Error;
          END;
+      END;
+      
+      // test function
+      i := model.IndexOfOA( L"(", 0 );
+      IF i > 0 THEN
+         j := model.IndexOfOA( L")", i+1 );
+         IF j = -1 THEN
+            GOTO Error;
+         END;
+         model.Remove( j, -1 );
+         model.Substring( 0, i, OUT sindex1 );
+         sindex1.Trim();
+         IF GetFunctionHandlerOA( OA( sindex1.Length-1, sindex1.rawData ), OUT functionHandler ) THEN
+            ii := i+1;
+            LOOP
+               ii := model.ItemS( StringsO.WCHARS{L' ', L','}, ii, 0, TRUE, OUT sindex2 );
+               IF NOT GetModelValue( sindex2, OUT parameter ) THEN
+                  parameter := sindex2;
+               END;
+               parameter.Trim();
+               parameters.Add( empty, parameter );
+               IF ii = -1 THEN
+                  EXIT;
+               END;
+            END; // LOOP
+            RETURN functionHandler^.Call( sindex1, REF parameters, ADR( value ));
+         END; // IF function found
       END;
       
       // test string
@@ -517,6 +612,8 @@ CLASS IMPLEMENTATION CContainer;
 
          // resolve and replace model
          Formatted.Substring( mi, j-mi, OUT model );
+
+         // message model
          IF ( MessageSource <> NIL ) AND model.StartsWithOA( L"msg." ) THEN
             model.Remove( 0, 4 ); // delete "msg."
             IF NOT MessageSource^.GetMessage( language, model, OUT value ) THEN
@@ -526,6 +623,7 @@ CLASS IMPLEMENTATION CContainer;
                   value.FromOA( L'##unknown message: ' ); value.Append( model );
                END;
             END;
+         // generic model
          ELSE
             IF NOT GetModelValue( model, OUT value ) AND FailOnError THEN
                RETURN FALSE;
@@ -1069,12 +1167,12 @@ CLASS IMPLEMENTATION CMVC;
       Data : StringsO.CString;
       i : CARDINAL;
    BEGIN
-      list.Clear();
       Data := Connection^.URIData;
       IF Data.Empty THEN
          RETURN;
       END;
       LanguagesO.ToMB( Data, 0, FALSE, REF byteBuffer );
+
       HttpTools.DecodeURLEncoding( FALSE, OA( byteBuffer.Length-1, byteBuffer.Data ), OUT list );
    END DecodeDataFromURI;
 

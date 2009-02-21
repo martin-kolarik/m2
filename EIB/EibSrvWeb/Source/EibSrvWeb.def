@@ -53,6 +53,9 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink;
    PUBLIC PROCEDURE OperatedDeviceName( index : CARDINAL ) : PWCHAR;
    PUBLIC PROCEDURE OperatedDevice( index : CARDINAL ) : io.TPIStartStopControl;
    
+   PUBLIC PROCEDURE SetValue( CONST name, value : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE GetValue( CONST name : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN;
+   
    // SELF
    PRIVATE VAR
       _Context : StringsO.CString;
