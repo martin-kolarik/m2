@@ -123,6 +123,9 @@ INTERFACE IMVC;
 
    PROCEDURE RegisterFallbackController( Controller : TPController ); // for GET only, for all URIs, intended mainlt for static sources like files etc.
    PROCEDURE ForgetFallbackController();
+   
+   PROPERTY
+      MessageSourcePath : StringsO.CString;
 END IMVC;
 
 //================================================================================

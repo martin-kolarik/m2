@@ -169,12 +169,14 @@ CLASS IMPLEMENTATION CEibSvc;
    CONST
       snServer = L"server";
       knWebRoot = L"web_root";
+      knMessageFile = L"message_file";
    VAR
       cfg : INIfile.CINIFile;
       configuration : ARRAY [0..0] OF device.TConfigureItem;
       Data : ARRAY [0..511] OF WCHAR;
       IA : inetaddr.INETADDR;
       line : CARDINAL;
+      messageFile : StringsO.CString;
       Path : ARRAY [0..260] OF WCHAR;
       RS : Registry.CRegistry;
       s1, s2 : StringsO.CString;
@@ -200,17 +202,21 @@ CLASS IMPLEMENTATION CEibSvc;
       END;
       FIOO.PathAdd( REF s1, s2 );
       
-      IF cfg.LoadPath( OA( s1.Length-1, s1.rawData )) AND cfg.SetSection( snServer ) THEN
-         IF NOT FIO.GetModuleDirW( EMITW( %exe ), OUT Path ) THEN // EXE dir
-            // fall down
-         ELSIF cfg.GetKeyStr( knWebRoot, OUT line, OUT webRoot ) THEN
+      IF cfg.LoadPath( OA( s1.Length-1, s1.rawData )) AND cfg.SetSection( snServer ) AND FIO.GetModuleDirW( EMITW( %exe ), OUT Path ) THEN // EXE dir
+         IF cfg.GetKeyStr( knWebRoot, OUT line, OUT webRoot ) THEN
             webRoot.ReplaceOA( L"%exedir%", Path );
          ELSE
             webRoot.FromOA( Path );
          END;
+         IF cfg.GetKeyStr( knMessageFile, OUT line, OUT messageFile ) THEN
+            messageFile.ReplaceOA( L"%exedir%", Path );
+         END;
       END;
       IF webRoot.Empty THEN
          Log.logger()^.LogS( Log.dlcError, L"KnxSrv", L"Web root is not defined, web interface will not be accessible." );
+      END;
+      IF messageFile.Empty THEN
+         Log.logger()^.LogS( Log.dlcError, L"KnxSrv", L"Message source for web is not defined, web interface will not be accessible." );
       END;
       
       ASSERT( EIB = NIL );
@@ -256,8 +262,8 @@ CLASS IMPLEMENTATION CEibSvc;
       CDI.Devices[0] := SDAP;
       CDI.Devices[1] := XMLS;
       
-      IF NOT webRoot.Empty THEN
-         Web.Init( 6005, L"/SmartServer", webRoot, EIB, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ));
+      IF NOT webRoot.Empty AND NOT messageFile.Empty THEN
+         Web.Init( 6005, L"/SmartServer", webRoot, messageFile, EIB, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ));
          Web.Run();
       END;
 

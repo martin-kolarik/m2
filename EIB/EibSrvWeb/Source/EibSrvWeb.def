@@ -60,6 +60,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink;
    PRIVATE VAR
       _Context : StringsO.CString;
       _RootDir : StringsO.CString;
+      _MessageFile : StringsO.CString;
       _EIB : srvcore.TPEIBServer;
       _MVC : mvc.TPMVC;
       _Port : CARDINAL;
@@ -78,7 +79,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink;
       _WrittenByHour : ARRAY [0..23] OF CARDINAL;
       _GotByHour : ARRAY [0..23] OF CARDINAL;
 
-   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST rootDir : StringsO.IString; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPLogger );
+   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST rootDir, messageFile : StringsO.IString; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPLogger );
    
    PUBLIC READONLY PROPERTY
       Running : BOOLEAN;

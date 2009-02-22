@@ -288,12 +288,13 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST rootDir : StringsO.IString; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPLogger );
+   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST rootDir, messageFile : StringsO.IString; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPLogger );
    BEGIN
       Stop();
       _Port := Port;
       _Context.FromOA( ContextName );
       _RootDir.Assign( rootDir );
+      _MessageFile.Assign( messageFile );
       _EIB := EIB;
       _DeviceCount := MIN2( HIGH( DeviceNames ), HIGH( Devices )) + 1;
       _DeviceNames := ADR( DeviceNames );
@@ -325,6 +326,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
       ASSERT( _MVC = NIL );
       _MVC := mvc.mvc( OA( _Context.Length-1, _Context.rawData ));
+      _MVC^.MessageSourcePath := _MessageFile;
       AddControllers();
 
       FOR i := 0 TO HIGH( _WrittenByHour ) DO

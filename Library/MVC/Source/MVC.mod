@@ -829,6 +829,9 @@ CLASS CMVC IMPLEMENTS HttpSrv.IHttpProcessor, IMessageSource, IMVC;
    PUBLIC VIRTUAL PROCEDURE RegisterFallbackController( Controller : TPController ); // for GET only, for all URIs, intended mainlt for static sources like files etc.
    PUBLIC VIRTUAL PROCEDURE ForgetFallbackController();
 
+   PUBLIC VIRTUAL PROPERTY
+      MessageSourcePath : StringsO.CString;
+
    // SELF
    PUBLIC PROCEDURE Init( CONST Context : StringsO.CString );
    
@@ -837,6 +840,7 @@ CLASS CMVC IMPLEMENTS HttpSrv.IHttpProcessor, IMessageSource, IMVC;
       _Context : StringsO.CString;
       _Controllers : syncmaps.CStringSyncMap;
       _FallbackController : TPController;
+      _MessageSourcePath : StringsO.CString;
       _Messages : Resources.TPPlainResources;
       _MessagesLock : Sync.LOCK;
 
@@ -1028,8 +1032,7 @@ CLASS IMPLEMENTATION CMVC;
       _MessagesLock.Lock();
       IF _Messages = NIL THEN
          NEW( _Messages );
-         // TODO
-         b := _Messages^.LoadXML( L"D:\Work\SmartControl\Code\EIB\EibSrv\Install\Web\SmartServer.xrs.xml", OUT e );
+         b := _Messages^.LoadXML( OA( _MessageSourcePath.Length-1, _MessageSourcePath.szData ), OUT e ); // TODO bug LoadXML -- it requires sz terminated string
          IF b THEN
             _Messages^.FallbackLang := _Messages^.Lang;
          END;
@@ -1124,6 +1127,26 @@ CLASS IMPLEMENTATION CMVC;
    BEGIN
       _FallbackController := NIL;
    END ForgetFallbackController;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROPERTY MessageSourcePath GET : StringsO.CString;
+   BEGIN
+      RETURN _MessageSourcePath;
+   END MessageSourcePath;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROPERTY MessageSourcePath SET( CONST Value : StringsO.CString );
+   BEGIN
+      IF _MessageSourcePath = Value THEN
+         RETURN;
+      END;
+      IF _Messages <> NIL THEN // messages will load on demand later
+         DISPOSE( _Messages );
+      END;
+      _MessageSourcePath := Value;
+   END MessageSourcePath;
 
 //--------------------------------------------------------------------------------
 
