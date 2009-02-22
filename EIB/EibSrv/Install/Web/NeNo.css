@@ -131,3 +131,7 @@ input
   height: 25px;
   margin-bottom: 2px;
 }
+input.ioValue, input.ioName
+{
+  width: 100px;
+}

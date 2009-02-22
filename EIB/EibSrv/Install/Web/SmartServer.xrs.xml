@@ -160,6 +160,14 @@
             <item lang="en-US">Read</item>
             <item lang="cs-CZ">Přečíst</item>
         </string>
+        <string name="io.readSuccessValue">
+            <item lang="en-US">Read successfully, value:</item>
+            <item lang="cs-CZ">Přečteno v pořádku, hodnota:</item>
+        </string>
+        <string name="io.readFailure">
+            <item lang="en-US">Read failed.</item>
+            <item lang="cs-CZ">Čtení se nezdařilo.</item>
+        </string>
         <string name="io.write">
             <item lang="en-US">Write value to EIB</item>
             <item lang="cs-CZ">Zápis hodnoty do EIB</item>
@@ -167,6 +175,14 @@
         <string name="io.doWrite">
             <item lang="en-US">Write</item>
             <item lang="cs-CZ">Zapsat</item>
+        </string>
+        <string name="io.writeSuccess">
+            <item lang="en-US">Written successfully.</item>
+            <item lang="cs-CZ">Zapsáno v pořádku.</item>
+        </string>
+        <string name="io.writeFailure">
+            <item lang="en-US">Write failed.</item>
+            <item lang="cs-CZ">Zápis se nezdařil.</item>
         </string>
         
     </strings>

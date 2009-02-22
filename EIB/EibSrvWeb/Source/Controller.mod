@@ -62,6 +62,7 @@ CONST
    IO_READ_NAME = L"readName";
    IO_READ_VALUE = L"readValue";
    IO_DO_READ  = L"read";
+   IO_READ_FAILED = L"readFailed";
    IO_WRITE_NAME = L"writeName";
    IO_WRITE_VALUE = L"writeValue";
    IO_DO_WRITE = L"write";
@@ -480,22 +481,28 @@ CLASS IMPLEMENTATION CController;
    VAR
       b : BOOLEAN;
       empty, fid : StringsO.CString;
+      rfailed : BOOLEAN := FALSE;
       rname, rvalue : StringsO.CString;
+      wfailed : BOOLEAN := FALSE;
       wname, wvalue : StringsO.CString;
    BEGIN
       IF Request^.RequestVerb <> HttpCommon.verbPOST THEN
          // OK, only display
          Request^.ModelContainer^.GetStringOA( IO_WRITE_NAME, OUT wname );
          Request^.ModelContainer^.GetStringOA( IO_WRITE_VALUE, OUT wvalue );
+         Request^.ModelContainer^.GetBooleanOA( IO_WRITE_FAILED, OUT wfailed );
          Request^.ModelContainer^.GetStringOA( IO_READ_NAME, OUT rname );
          Request^.ModelContainer^.GetStringOA( IO_READ_VALUE, OUT rvalue );
+         Request^.ModelContainer^.GetBooleanOA( IO_READ_FAILED, OUT rfailed );
 
       ELSIF Request^.ModelContainer^.GetStringOA( IO_FORM_ID, OUT fid ) AND fid.EqualsOA( IO_DO_READ ) THEN
          IF Request^.ModelContainer^.GetStringOA( IO_READ_NAME, OUT rname ) THEN
             IF _Web^.GetValue( rname, OUT rvalue ) THEN
                Request^.ModelContainer^.AddStringOA( IO_READ_VALUE, rvalue );
+               Request^.ModelContainer^.AddBooleanOA( IO_READ_FAILED, FALSE );
             ELSE
                Request^.ModelContainer^.AddStringOA( IO_READ_VALUE, empty );
+               Request^.ModelContainer^.AddBooleanOA( IO_READ_FAILED, TRUE );
             END;
          END;
          
@@ -522,9 +529,10 @@ CLASS IMPLEMENTATION CController;
       Request^.ModelContainer^.AddStringOA( IO_FORM_ID, empty );
       Request^.ModelContainer^.AddStringOA( IO_READ_NAME, rname );
       Request^.ModelContainer^.AddStringOA( IO_READ_VALUE, rvalue );
+      Request^.ModelContainer^.AddBooleanOA( IO_READ_FAILED, rfailed );
       Request^.ModelContainer^.AddStringOA( IO_WRITE_NAME, wname );
       Request^.ModelContainer^.AddStringOA( IO_WRITE_VALUE, wvalue );
-      Request^.ModelContainer^.AddBooleanOA( IO_WRITE_FAILED, FALSE );
+      Request^.ModelContainer^.AddBooleanOA( IO_WRITE_FAILED, wfailed );
 
       View := mvc.pageTemplateView( ADR( SELF ), IO_VIEW );
       RETURN TRUE;

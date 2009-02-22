@@ -31,15 +31,21 @@
                         <h1>${msg.io.read}</h1>
                         <pt:form  method="post" action="io">
                           <pt:formid model="formId" formid="read"/>
-                          <pt:input model="readName"/> <input type="submit" value="${msg.io.doRead}"/>
-                          ${readValue}
+                          <pt:input model="readName" class="ioName"/> <input type="submit" value="${msg.io.doRead}"/>
+                          <pt:choose condition="${readName}">
+                            <pt:when condition="${readFailed}"><span class="red">${msg.io.readFailure}</span></pt:when>
+                            <pt:otherwise><span class="green">${msg.io.readSuccessValue} ${readValue}</span></pt:otherwise>
+                          </pt:choose>
                         </pt:form>
 
                         <h1>${msg.io.write}</h1>
                         <pt:form  method="post" action="io">
                           <pt:formid model="formId" formid="write"/>
-                          <pt:input model="writeName"/> <pt:input model="writeValue"/> <input type="submit" value="${msg.io.doWrite}"/>
-                          ${writeStatus}
+                          <pt:input model="writeName" class="ioName"/> <pt:input model="writeValue" class="ioValue"/> <input type="submit" value="${msg.io.doWrite}"/>
+                          <pt:choose condition="${writeName}">
+                            <pt:when condition="${writeFailed}"><span class="red">${msg.io.writeFailure}</span></pt:when>
+                            <pt:otherwise><span class="green">${msg.io.writeSuccess}</span></pt:otherwise>
+                          </pt:choose>
                         </pt:form>
 
                       </div>
