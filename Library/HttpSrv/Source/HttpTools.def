@@ -40,6 +40,7 @@ PROCEDURE FormatDateJD( Date : time.TJD ) : StringsO.CString;
 (*---------------------------------------------------------------------------*)
 
 PROCEDURE FormatSIDCookie( CONST SID : StringsO.IString; Expires : time.TJD; CONST Path, Domain : StringsO.IString ) : StringsO.CString;
+PROCEDURE DecodeSIDCookie( CONST Cookies : StringsO.IString; OUT SID : StringsO.IString ) : BOOLEAN;
 
 (*---------------------------------------------------------------------------*)
 

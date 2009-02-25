@@ -59,6 +59,38 @@ END FormatSIDCookie;
 
 (*---------------------------------------------------------------------------*)
 
+PROCEDURE DecodeSIDCookie( CONST Cookies : StringsO.IString; OUT SID : StringsO.IString ) : BOOLEAN;
+VAR
+   cookie : StringsO.CString;
+   i, j : INTEGER;
+BEGIN
+   i := 0;
+   LOOP
+      i := Cookies.ItemS( StringsO.WCHARS{L";"}, i, 0, TRUE, OUT cookie );
+      IF cookie.Empty THEN
+         RETURN FALSE;
+      END;
+      cookie.Trim(); 
+      cookie.Lowerize();
+      IF NOT cookie.StartsWithOA( L"sid" ) THEN
+         CONTINUE;
+      END;
+      j := cookie.IndexOfOA( L"=", 3 ); // 3 is length of "sid"
+      IF j = -1 THEN
+         CONTINUE;
+      END;
+      cookie.Remove( 0, j );
+      cookie.Trim();
+      IF cookie.Empty THEN
+         RETURN FALSE;
+      END;
+      SID.Assign( cookie );
+      RETURN TRUE;
+   END; // LOOP
+END DecodeSIDCookie;
+
+(*---------------------------------------------------------------------------*)
+
 PROCEDURE FormatContent( Content : TContent; CONST FileName, RFC1766Code : StringsO.IString; Fallback : BOOLEAN; OUT ContentHeader : StringsO.IString ) : BOOLEAN;
 VAR
    appendCharset : BOOLEAN := TRUE;

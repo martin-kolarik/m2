@@ -1209,37 +1209,19 @@ CLASS IMPLEMENTATION ASrvCommon;
 
    PRIVATE PROCEDURE GetSessionForPreparedStream( _holder : ADDRESS ) : TPSrvSession;
    VAR
-      c : CARDINAL;
-      cookie : StringsO.CString;
-      data : sha256.TDigest;
-      i : INTEGER;
-      iv : sha256.TDigest;
-      l : CARDINAL;
+      cookies : StringsO.CString;
       holder : TPSessionHolder := _holder;
       pcookie : StringsO.TPString;
-      ptr : PTR;
-      s : StringsO.CString;
-      session : TPSrvSession;
-      sessionid : sha256.TDigest;
-      shorttime : CARDINAL;
-      time : Time.TTime64;
+      sid : StringsO.CString;
    BEGIN
       IF _PreparedStream = NIL THEN
          ASSERT( FALSE );
          RETURN NIL;
+      ELSIF _PreparedStream^.RequestHeaders^.Get( HttpCommon.Cookie, OUT cookies ) AND httptools.DecodeSIDCookie( cookies, OUT sid ) THEN
+         pcookie := ADR( sid );
+      ELSE
+         pcookie := NIL;
       END;
-   
-      pcookie := NIL;
-      IF _PreparedStream^.RequestHeaders^.Get( HttpCommon.Cookie, OUT cookie ) THEN
-         i := cookie.IndexOfOA( L"=", 0 );
-         IF i <> -1 THEN
-            cookie.Substring( i+1, -1, OUT s );
-            IF NOT s.Empty THEN
-               pcookie := ADR( s );
-            END;
-         END;
-      END; // IF
-
       RETURN holder^.GetSession( pcookie,  _PreparedStream^.RemoteAddress, _RootPath );
    END GetSessionForPreparedStream;
 
