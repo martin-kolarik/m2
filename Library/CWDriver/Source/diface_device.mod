@@ -83,7 +83,7 @@ ABSTRACT CLASS IMPLEMENTATION ADeviceAsCWDriver;
 
    PUBLIC FINAL PROCEDURE DriverRun();
    BEGIN
-      IO()^.Run();
+      IO()^.Start();
    END DriverRun;
 
 (*--------------------------------------------------------------------------------*)
