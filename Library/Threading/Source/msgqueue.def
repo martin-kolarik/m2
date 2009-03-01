@@ -116,6 +116,7 @@ CLASS CBufferQueue;
    PUBLIC PROCEDURE Enqueue( Buffer : ADDRESS; BufferSize : CARDINAL; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult; // Wait/Timeout unused yet
    PUBLIC PROCEDURE EnqueueOA( CONST Buffer : ARRAY OF BYTE; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult; // Wait/Timeout unused yet
      // returns if added, for ANY thread
+   PUBLIC PROCEDURE PushToConsumer( Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult; // not implemented yet
 
    // both side, usualy implemented using ONE signal/message
    INTERNAL VIRTUAL PROCEDURE Signal( What : Sync.TpcqSignal ); // when produced, next producing SHOULD NOT be done (until signalling consumed)

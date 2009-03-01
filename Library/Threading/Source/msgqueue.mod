@@ -408,6 +408,14 @@ CLASS IMPLEMENTATION CBufferQueue;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE PushToConsumer( Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult; // not implemented yet
+   BEGIN
+      ASSERT( FALSE );
+      RETURN Sync.arCannotStart;
+   END PushToConsumer;
+
+(*--------------------------------------------------------------------------------*)
+
    INTERNAL VIRTUAL PROCEDURE Signal( What : Sync.TpcqSignal ); // when produced, next producing SHOULD NOT be signalled (until signalling consumed)
    // keep in sync with CMessageQueue.Signal
    VAR
