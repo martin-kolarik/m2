@@ -1,3 +1,12 @@
+Version 1.0.732/R beta 1.3.2009
+- BUG: A big number of responses to client in single chunk (> approx. 250) together
+       with client connection requests caused long delays in processing of requests.
+       Result appeared like server hung up, it was not possible to stop service
+       in given timeout, data did not flow, etc.
+- CHG: Majority of imported OS libraries is now loaded as delayed.
+- CHG: SDAP client was extended with ADVISE, preparation for SDAPClient.
+- NEW: Alpha version of web interface added, functions are still incomplete.
+
 Version 1.0.646/R beta 5.11.2008
 - CHG: Versioning switched from SVN to HG
 - BUG: Closed client connection notified server with two notifications. There was
