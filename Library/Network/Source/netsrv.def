@@ -82,7 +82,7 @@ END AListener;
 
 (*================================================================================*)
 
-PROCEDURE SetCallbackMode(
+PROCEDURE SetCallbackMode( // TODO: change as in #42
             Mode : ioo.TCallbackMode
           );
 
