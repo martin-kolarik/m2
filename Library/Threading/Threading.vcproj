@@ -66,10 +66,6 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\Source\msghandler.mod"
-				>
-			</File>
-			<File
 				RelativePath=".\Source\msghandlersink.mod"
 				>
 			</File>
@@ -209,6 +205,10 @@
 		<Filter
 			Name="Test"
 			>
+			<File
+				RelativePath=".\Test\BufferQueue.mod"
+				>
+			</File>
 			<File
 				RelativePath=".\Test\EventDelegate.mod"
 				>

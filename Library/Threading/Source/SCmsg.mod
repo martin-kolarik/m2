@@ -35,9 +35,9 @@ TYPE
 
 (*================================================================================*)
 
-PROCEDURE HandleToTarget( CONST Handle : PTR; OUT Target : msghandler.TPMessageTarget ) : BOOLEAN;
+PROCEDURE HandleToTarget( CONST Handle : PTR; OUT Target : msghandler.TPIMessageTarget ) : BOOLEAN;
 BEGIN
-   Target := msghandler.TPMessageTarget( Handle );
+   Target := msghandler.TPIMessageTarget( Handle );
    RETURN TRUE;
 END HandleToTarget;
 
@@ -61,14 +61,14 @@ CLASS IMPLEMENTATION SCMessage;
   
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY SCMessage.Target GET : msghandler.TPMessageTarget;
+   PUBLIC VIRTUAL PROPERTY SCMessage.Target GET : msghandler.TPIMessageTarget;
    BEGIN
       RETURN target;
    END SCMessage.Target;
   
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY SCMessage.Target SET( Value : msghandler.TPMessageTarget );
+   PUBLIC VIRTUAL PROPERTY SCMessage.Target SET( Value : msghandler.TPIMessageTarget );
    BEGIN
       target := Value;
    END SCMessage.Target;
@@ -151,6 +151,15 @@ CLASS IMPLEMENTATION SCMessage;
       Message^ := SELF;
       RETURN Message;
    END Clone;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Release();
+   VAR
+      Message : POINTER TO SCMessage := ADR( SELF );
+   BEGIN
+      DISPOSE( Message );
+   END Release;
 
 (*--------------------------------------------------------------------------------*)
 

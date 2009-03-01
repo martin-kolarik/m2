@@ -731,7 +731,7 @@ CLASS IMPLEMENTATION CThreadPool;
 
 //--------------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE WaitMessage( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; OUT Target : msghandler.TPMessageTarget; OUT Message : msghandler.IMessage; OUT PoolHandle : TPoolHandle ) : BOOLEAN;
+  PUBLIC PROCEDURE WaitMessage( CONST Delegate : TPPoolDelegate; UserId : PTR; TimeoutMS : CARDINAL; WaitOnce, CompleteInOwningThread : BOOLEAN; OUT Target : msghandler.TPIMessageTarget; OUT Message : msghandler.IMessage; OUT PoolHandle : TPoolHandle ) : BOOLEAN;
   VAR
     message : CARDINAL;
     MSG : TMessage;

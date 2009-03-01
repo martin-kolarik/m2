@@ -258,6 +258,15 @@ CLASS IMPLEMENTATION Win32Message;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE Release();
+   VAR
+      Message : POINTER TO Win32Message := ADR( SELF );
+   BEGIN
+      DISPOSE( Message );
+   END Release;
+
+(*--------------------------------------------------------------------------------*)
+
   PUBLIC OPERATOR :=( CONST MSG : Win32Message );
   BEGIN
     source := MSG.source;

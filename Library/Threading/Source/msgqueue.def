@@ -25,11 +25,11 @@ TYPE
 
 CLASS CMessageQueue( SyncQueue.CDatagramQueue );
    PRIVATE VAR
-      Msg : POINTER TO msghandler.Message;
+      Msg : msghandler.TPIMessage;
    PUBLIC VAR
-      Consumer : msghandler.TPMessageTarget;
+      Consumer : msghandler.TPIMessageTarget;
    PUBLIC PROPERTY
-      ConsumerMsg : POINTER TO msghandler.Message; // if NIL then default MSG_PROCESS_QUEUE is used
+      ConsumerMsg : msghandler.TPIMessage; // if NIL then default MSG_PROCESS_QUEUE is used
 
   INTERNAL VIRTUAL PROCEDURE Signal( What : Sync.TpcqSignal ); // when produced, next producing SHOULD NOT be done (until signalling consumed)
 END CMessageQueue;
@@ -37,6 +37,7 @@ END CMessageQueue;
 (*===============================================================================*)
 // normal queue with LOCK synchronization, unlimited size, PTR item length => items must be allocated, deallocated
 // roughly the same interface as the queue above
+// TODO -- waiting/syncing as in CDatagramQueue interface
 
 TYPE
    TPPtrQueue = POINTER TO CPtrQueue;
@@ -45,7 +46,7 @@ CLASS CPtrQueue;
    PRIVATE VAR
       Lock : Sync.LOCK;
       _Queue : lists.CPtrList;
-      Msg : POINTER TO msghandler.Message;
+      Msg : msghandler.TPIMessage;
 
    PUBLIC READONLY PROPERTY
       Count : CARDINAL;
@@ -56,9 +57,9 @@ CLASS CPtrQueue;
       Consume : Sync.PSIGNAL := NIL;
       Produce : Sync.PSIGNAL := NIL;
    PUBLIC VAR
-      Consumer : msghandler.TPMessageTarget;
+      Consumer : msghandler.TPIMessageTarget;
    PUBLIC PROPERTY
-      ConsumerMsg : POINTER TO msghandler.Message; // if NIL then default MSG_PROCESS_QUEUE is used
+      ConsumerMsg : msghandler.TPIMessage; // if NIL then default MSG_PROCESS_QUEUE is used
 
    // common
    PUBLIC PROCEDURE Clear();
@@ -73,6 +74,52 @@ CLASS CPtrQueue;
    // both side, usualy implemented using ONE signal/message
    INTERNAL VIRTUAL PROCEDURE Signal( What : Sync.TpcqSignal ); // when produced, next producing SHOULD NOT be done (until signalling consumed)
 END CPtrQueue;
+
+(*===============================================================================*)
+// CPtrQueue wrapped to CMessageQueue semantics, interface is closer to CDatagramQueue
+// TODO -- waiting/syncing as in CDatagramQueue interface
+
+TYPE
+   TPBufferQueue = POINTER TO CBufferQueue;
+   
+CLASS CBufferQueue;
+   PRIVATE VAR
+      Lock : Sync.LOCK;
+      _Queue : lists.CBufferList;
+      Msg : msghandler.TPIMessage;
+
+   PUBLIC READONLY PROPERTY
+      Count : CARDINAL;
+      Empty : BOOLEAN;
+      Full : BOOLEAN;
+      Size : CARDINAL;
+   PUBLIC PROPERTY
+      ItemSize : CARDINAL; // if -1 or 0 size will be dynamic
+   PUBLIC VAR
+      Consume : Sync.PSIGNAL := NIL;
+      Produce : Sync.PSIGNAL := NIL;
+   PUBLIC VAR
+      Consumer : msghandler.TPIMessageTarget;
+   PUBLIC PROPERTY
+      ConsumerMsg : msghandler.TPIMessage; // if NIL then default MSG_PROCESS_QUEUE is used
+
+   // common
+   PUBLIC PROCEDURE Init( SingleBufferSize : CARDINAL ); // if -1 or 0 size will be dynamic = ItemSize
+   PUBLIC PROCEDURE Clear();
+
+   // consumer
+   PUBLIC PROCEDURE Dequeue( Buffer : ADDRESS; BufferSize : CARDINAL; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult; // Wait/Timeout unused yet
+   PUBLIC PROCEDURE DequeueOA( OUT Buffer : ARRAY OF BYTE; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult; // if HIGH is less than MessageLen the message is trimmed, Wait/Timeout unused yet
+     // returns if data get
+
+   // producers
+   PUBLIC PROCEDURE Enqueue( Buffer : ADDRESS; BufferSize : CARDINAL; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult; // Wait/Timeout unused yet
+   PUBLIC PROCEDURE EnqueueOA( CONST Buffer : ARRAY OF BYTE; Wait : BOOLEAN; Timeout : CARDINAL ) : Sync.TAsyncResult; // Wait/Timeout unused yet
+     // returns if added, for ANY thread
+
+   // both side, usualy implemented using ONE signal/message
+   INTERNAL VIRTUAL PROCEDURE Signal( What : Sync.TpcqSignal ); // when produced, next producing SHOULD NOT be done (until signalling consumed)
+END CBufferQueue;
 
 (*===============================================================================*)
 

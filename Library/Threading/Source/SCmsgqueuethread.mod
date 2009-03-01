@@ -27,7 +27,7 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
    VAR
       CurrentTime : CARDINAL;
       Msg : SCmsg.SCMessage;
-      Target : msghandler.TPMessageTarget;
+      Target : msghandler.TPIMessageTarget;
       Timeout : CARDINAL;
       Timer : PTR;
       Status : CARDINAL;
@@ -157,21 +157,21 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
   
    PUBLIC VIRTUAL PROCEDURE StartTimer( CONST Target : msghandler.IMessageTarget; TimerId : PTR; PeriodMS : CARDINAL; Repeat : BOOLEAN );
    BEGIN
-      Support^.StartTimer( msghandler.TPMessageTarget( ADR( Target )), TimerId, PeriodMS, Repeat );
+      Support^.StartTimer( msghandler.TPIMessageTarget( ADR( Target )), TimerId, PeriodMS, Repeat );
    END StartTimer;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE StopTimer( CONST Target : msghandler.IMessageTarget; TimerId : PTR );
    BEGIN
-      Support^.StopTimer( msghandler.TPMessageTarget( ADR( Target )), TimerId );
+      Support^.StopTimer( msghandler.TPIMessageTarget( ADR( Target )), TimerId );
    END StopTimer;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE TimerRunning( CONST Target : msghandler.IMessageTarget; TimerId : PTR ) : BOOLEAN;
    BEGIN
-      RETURN Support^.TimerRunning( msghandler.TPMessageTarget( ADR( Target )), TimerId );
+      RETURN Support^.TimerRunning( msghandler.TPIMessageTarget( ADR( Target )), TimerId );
    END TimerRunning;
 
 (*---------------------------------------------------------------------------*)
@@ -188,9 +188,9 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
 
 (*---------------------------------------------------------------------------*)
   
-   INTERNAL VIRTUAL PROCEDURE MessageToTarget( CONST Msg : PTR; OUT Target : msghandler.TPMessageTarget ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE MessageToTarget( CONST Msg : PTR; OUT Target : msghandler.TPIMessageTarget ) : BOOLEAN;
    VAR
-      target : msghandler.TPMessageTarget := SCmsg.TPMessage( Msg )^.Target;
+      target : msghandler.TPIMessageTarget := SCmsg.TPMessage( Msg )^.Target;
    BEGIN
       IF target = NIL THEN // message for me, realize about delivery
          IF Root <> NIL THEN
