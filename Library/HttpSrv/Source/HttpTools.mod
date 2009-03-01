@@ -63,23 +63,25 @@ PROCEDURE DecodeSIDCookie( CONST Cookies : StringsO.IString; OUT SID : StringsO.
 VAR
    cookie : StringsO.CString;
    i, j : INTEGER;
+   leading : StringsO.CString;
 BEGIN
    i := 0;
    LOOP
       i := Cookies.ItemS( StringsO.WCHARS{L";"}, i, 0, TRUE, OUT cookie );
-      IF cookie.Empty THEN
+      IF cookie.Length < 4 THEN // less than "sid="
          RETURN FALSE;
       END;
-      cookie.Trim(); 
-      cookie.Lowerize();
-      IF NOT cookie.StartsWithOA( L"sid" ) THEN
+      cookie.Trim();
+      cookie.Substring( 0, 3, OUT leading );
+      leading.Lowerize();
+      IF NOT leading.StartsWithOA( L"sid" ) THEN
          CONTINUE;
       END;
       j := cookie.IndexOfOA( L"=", 3 ); // 3 is length of "sid"
       IF j = -1 THEN
          CONTINUE;
       END;
-      cookie.Remove( 0, j );
+      cookie.Remove( 0, j+1 );
       cookie.Trim();
       IF cookie.Empty THEN
          RETURN FALSE;
