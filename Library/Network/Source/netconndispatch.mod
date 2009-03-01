@@ -973,6 +973,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.NServerSocket := ServerSocket;
     Result := MQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
     ASSERTLOG( Result <> Sync.arTimeout );
+    ASSERTLOG( MQueue.Count < 10000 );
   END OnListen;
 
 //--------------------------------------------------------------------------------
@@ -988,6 +989,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.NCLocal := Local;
     Result := MQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
     ASSERTLOG( Result <> Sync.arTimeout );
+    ASSERTLOG( MQueue.Count < 10000 );
   END OnNetworkConnect;
 
 //--------------------------------------------------------------------------------
@@ -1013,6 +1015,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.NCLocal := Local;
     Result := MQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
     ASSERTLOG( Result <> Sync.arTimeout );
+    ASSERTLOG( MQueue.Count < 10000 );
   END OnNetworkDisconnect;
 
 //--------------------------------------------------------------------------------
@@ -1052,6 +1055,8 @@ CLASS IMPLEMENTATION CDispatcher;
 
          // queue request
          Result := MQueue.EnqueueOA( Message, FALSE, 0 ); // to not to block receiving thread to long
+         ASSERTLOG( MQueue.Count < 10000 );
+
          IF Result = Sync.arCompleted THEN
             IRead^.ReadOut( l ); // read out and signal next reading
 
@@ -1119,6 +1124,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.JRemoteAddress := RemoteAddress;
     Result := MQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
     ASSERTLOG( Result <> Sync.arTimeout );
+    ASSERTLOG( MQueue.Count < 10000 );
     // make Join synchronous (to allow clients synchronously store their records)
     Result := MQueue.PushToConsumer( TRUE, netsocket.FORSAFETY );
     ASSERTLOG( Result <> Sync.arTimeout );
@@ -1137,6 +1143,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.CPConnection := Connection;
     Result := MQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
     ASSERTLOG( Result <> Sync.arTimeout );
+    ASSERTLOG( MQueue.Count < 10000 );
     // make Leave synchronous (to allow clients synchronously remove their records)
     Result := MQueue.PushToConsumer( TRUE, netsocket.FORSAFETY );
     ASSERTLOG( Result <> Sync.arTimeout );
@@ -1154,6 +1161,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.CPConnection := Connection;
     Result := MQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
     ASSERTLOG( Result <> Sync.arTimeout );
+    ASSERTLOG( MQueue.Count < 10000 );
   END Connect;
 
 //--------------------------------------------------------------------------------
@@ -1168,6 +1176,7 @@ CLASS IMPLEMENTATION CDispatcher;
     Message.CPConnection := Connection;
     Result := MQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
     ASSERTLOG( Result <> Sync.arTimeout );
+    ASSERTLOG( MQueue.Count < 10000 );
   END Disconnect;
 
 //--------------------------------------------------------------------------------
@@ -1201,6 +1210,7 @@ CLASS IMPLEMENTATION CDispatcher;
 
       Result := SQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
       ASSERTLOG( Result <> Sync.arTimeout );
+      ASSERTLOG( SQueue.Count < 10000 );
    END Send;
 
 //--------------------------------------------------------------------------------
@@ -1212,12 +1222,14 @@ CLASS IMPLEMENTATION CDispatcher;
       Defered.Strategy := array.astrgListInArray;
 
       Msg.Message := MQUEUE_MSG;
-      MQueue.Init( 256, SIZE( TMessage ));
+      // MQueue.Init( 256, SIZE( TMessage ));
+      MQueue.Init( SIZE( TMessage )); // for BufferQueue there is no queue size
       MQueue.Consumer := ADR( SELF );
       MQueue.ConsumerMsg := ADR( Msg );
 
       Msg.Message := SQUEUE_MSG;
-      SQueue.Init( 256, SIZE( TMessage ));
+      // SQueue.Init( 256, SIZE( TMessage ));
+      SQueue.Init( SIZE( TMessage )); // for BufferQueue there is no queue size
       SQueue.Consumer := ADR( SELF );
       SQueue.ConsumerMsg := ADR( Msg );
 
