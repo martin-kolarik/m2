@@ -168,7 +168,7 @@ CLASS IMPLEMENTATION Win32MessageQueueThread;
 
 (*---------------------------------------------------------------------------*)
   
-   INTERNAL VIRTUAL PROCEDURE MessageToTarget( CONST Msg : PTR; OUT Target : msghandler.TPMessageTarget ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE MessageToTarget( CONST Msg : PTR; OUT Target : msghandler.TPIMessageTarget ) : BOOLEAN;
    BEGIN
       IF windows.PMSG( Msg )^.hwnd = NIL THEN // mine thread message
          Target := ADR( SELF );

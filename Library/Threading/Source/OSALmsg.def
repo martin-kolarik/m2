@@ -53,8 +53,8 @@ INTERFACE IMessage;
     ParameterCount : CARDINAL; // including MSG and optional Target and Source, message must have AT LEAST 1 parameter
   PUBLIC 
     INDEX( ParameterIndex : CARDINAL ) : PTR;
-  PUBLIC PROCEDURE
-    Clone() : POINTER TO IMessage;
+  PUBLIC PROCEDURE Clone() : POINTER TO IMessage;
+  PUBLIC PROCEDURE Release(); // clone must go with pair to Clone
 END IMessage;
 
 (*===========================================================================*)

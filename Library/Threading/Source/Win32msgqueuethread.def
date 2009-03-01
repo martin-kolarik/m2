@@ -41,7 +41,7 @@ CLASS Win32MessageQueueThread( Win32thread.Win32Thread ) IMPLEMENTS threadcall.I
 
    INTERNAL VIRTUAL PROCEDURE OnStart();
    INTERNAL VIRTUAL PROCEDURE OnExit();
-   INTERNAL VIRTUAL PROCEDURE MessageToTarget( CONST Msg : PTR; OUT Handler : msghandler.TPMessageTarget ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE MessageToTarget( CONST Msg : PTR; OUT Handler : msghandler.TPIMessageTarget ) : BOOLEAN;
 
    // service of IMessageTarget
    PUBLIC VIRTUAL PROCEDURE Join( Handler : msghandler.TPIMessageHandler; CallOnJoinInThread : BOOLEAN );

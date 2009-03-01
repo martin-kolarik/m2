@@ -50,8 +50,8 @@ CLASS SCMessage IMPLEMENTS OSALmsg.IMessage;
     ParameterCount : CARDINAL; // including handler and Message
   PUBLIC VIRTUAL
     INDEX( ParameterIndex : CARDINAL ) : PTR;
-  PUBLIC VIRTUAL PROCEDURE
-    Clone() : POINTER TO OSALmsg.IMessage;
+  PUBLIC VIRTUAL PROCEDURE Clone() : POINTER TO OSALmsg.IMessage;
+  PUBLIC VIRTUAL PROCEDURE Release();
   PUBLIC OPERATOR
     :=( CONST MSG : SCMessage );
 END SCMessage;

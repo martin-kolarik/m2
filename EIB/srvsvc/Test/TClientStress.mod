@@ -53,7 +53,8 @@ CLASS IMPLEMENTATION CClient;
    BEGIN
       FOR count := 0 TO COUNT-1 DO
          // IF Connection.Open( "192.168.1.10:6007", TRUE, netsocket.FORSAFETY ) = sync.arCompleted THEN
-         IF Connection.Open( "192.168.8.113:6007", TRUE, netsocket.FORSAFETY ) = sync.arCompleted THEN
+         IF Connection.Open( "127.0.0.1:6007", TRUE, netsocket.FORSAFETY ) = sync.arCompleted THEN
+            Connection.Stream^.WriteOA( C"advise all" + 13C + 10C, OUT l, netsocket.FORSAFETY );
             Connection.Stream^.WriteOA( C"set 3/3/1 true" + 13C + 10C, OUT l, netsocket.FORSAFETY );
             Connection.Stream^.WriteOA( C"set 3/3/2 true" + 13C + 10C, OUT l, netsocket.FORSAFETY );
             Connection.Stream^.WriteOA( C"set 3/3/3 true" + 13C + 10C, OUT l, netsocket.FORSAFETY );

@@ -21,7 +21,7 @@ CONST
   IMessageTarget ::= OSALmsg.IMessageTarget;
   IMessageHandler ::= OSALmsg.IMessageHandler;
   TPIMessage ::= OSALmsg.TPMessage;
-  TPMessageTarget ::= OSALmsg.TPMessageTarget;
+  TPIMessageTarget ::= OSALmsg.TPMessageTarget;
   TPIMessageHandler ::= OSALmsg.TPMessageHandler;
 CONST
   RAW_MSG_BASE ::= SCmsg.SC_RAW_MSG_BASE; // for usage only inside this library
