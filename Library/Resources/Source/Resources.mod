@@ -33,7 +33,8 @@ TYPE
                   END;
   TPTexts       = POINTER TO ARRAY [0..0] OF TText;
   TLanguageSlot = RECORD
-                    Lang : Languages.TLanguage;
+                    LangBySource : Languages.TLanguage;
+                    LangWithoutSublang : Languages.TLanguage;
                     CASE : CARDINAL OF
                     | 0 : Texts  : TPTexts;
                     | 1 : Offset : CARDINAL;
@@ -420,12 +421,21 @@ CLASS IMPLEMENTATION CResources;
   VAR
     i : INTEGER;
   BEGIN
+    // first try exact matches as ordered by source file
     FOR i := 0 TO INTEGER( _Resource^.SlotCount - 1 ) DO
-      IF _Stub^.Slots^[i].Lang = Language THEN
+      IF _Stub^.Slots^[i].LangBySource = Language THEN
         Index := i;
         RETURN TRUE;
       END;
     END; // FOR
+    // at second matches comparing languages without sublang
+    FOR i := 0 TO INTEGER( _Resource^.SlotCount - 1 ) DO
+      IF _Stub^.Slots^[i].LangWithoutSublang = Language THEN
+        Index := i;
+        RETURN TRUE;
+      END;
+    END; // FOR
+    // for third really nothing was found
     RETURN FALSE;
   END SearchLanguage;
 
@@ -506,7 +516,7 @@ CLASS IMPLEMENTATION CResources;
       _CurrentLang := _Lang;
     END;
     IF NOT SearchLanguage( _CurrentLang, OUT i ) THEN
-      _CurrentLang := _Stub^.Slots^[0].Lang;
+      _CurrentLang := _Stub^.Slots^[0].LangBySource;
     END;
 
     _Lang := 0; // force to change language data
@@ -615,6 +625,8 @@ CLASS IMPLEMENTATION CPlainResources;
       al, c, cl, l : CARDINAL;
       diff : PTR;
       i, j : INTEGER;
+      lang : Languages.TLanguage;
+      RFC1766 : ARRAY [0..31] OF WCHAR;
     BEGIN
       CASE _Mode OF
       | rmSelfMemory :
@@ -652,7 +664,16 @@ CLASS IMPLEMENTATION CPlainResources;
       WHILE _Langs.MoveNext() DO WITH _Resource^ DO
         // slot
         Slots^[i].Texts := at;
-        Slots^[i].Lang := _Langs.Current;
+        Slots^[i].LangBySource := _Langs.Current;
+        Slots^[i].LangWithoutSublang := _Langs.Current;
+
+         // try to get language without sublang
+         IF Languages.LanguageToRFC1766( _Langs.Current, OUT RFC1766 ) THEN
+            RFC1766[2] := 0W; // trim RFC1766 to two-character code
+            IF Languages.RFC1766ToLanguage( RFC1766, OUT lang ) THEN
+               Slots^[i].LangWithoutSublang := lang;
+            END;
+         END;
       
         // text indexes
         Storage.Move( _Langs.CurrentData, at, l );
