@@ -17,7 +17,7 @@ TYPE
   TParamStringArray  = ARRAY [0..0] OF TPParamString;
   TPParamStringArray = POINTER TO TParamStringArray;
 
-  # save, call( convention => cdecl, entry_point => on )
+  # save, call( convention => cdecl )
   PROCEDURE wmain( argc : INTEGER; argp : TPParamStringArray; enpv : TPParamStringArray ) : INTEGER;
   VAR
     DefIdPrefix : ARRAY [0..63] OF WCHAR := L'';
@@ -61,7 +61,7 @@ TYPE
           ASSIGNsz( OutputPrefix, ADR( argp^[i]^[2] ));
         END;
       ELSE
-        Inputs.AddSZ( argp^[i], 0 );
+        Inputs.AddOA( OAsz( argp^[i] ), 0 );
       END;
     END; // FOR
     
