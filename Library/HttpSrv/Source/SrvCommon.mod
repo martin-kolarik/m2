@@ -689,14 +689,16 @@ CLASS CSession IMPLEMENTS HttpSrv.ISession;
    // SELF
    PRIVATE VAR
       _Valid : BOOLEAN := TRUE;
+      _RootPath : StringsO.CString;
       _Created : Time.TJD;
+      _New : BOOLEAN := TRUE;
       _SID : StringsO.CString;
       _Data : syncmaps.CStringSyncMap;
-   LOCAL VAR // TODO property
-      New : BOOLEAN := TRUE;
-      RootPath : StringsO.CString;
+   PUBLIC PROPERTY
+      New : BOOLEAN;
    PUBLIC READONLY PROPERTY
       Valid : BOOLEAN;   
+      RootPath : StringsO.CString;
       
    PUBLIC PROCEDURE Init( CONST sid : StringsO.IString; CONST rootPath : StringsO.IString );
 
@@ -752,6 +754,20 @@ CLASS IMPLEMENTATION CSession;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY New GET : BOOLEAN;
+   BEGIN
+      RETURN _New;
+   END New;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY New SET( Value : BOOLEAN );
+   BEGIN
+      _New := Value;
+   END New;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY Valid GET : BOOLEAN;
    BEGIN
       RETURN _Valid;
@@ -759,10 +775,17 @@ CLASS IMPLEMENTATION CSession;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY RootPath GET : StringsO.CString;
+   BEGIN
+      RETURN _RootPath;
+   END RootPath;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE Init( CONST sid : StringsO.IString; CONST rootPath : StringsO.IString );
    BEGIN
       _SID.Assign( sid );
-      RootPath.Assign( rootPath );
+      _RootPath.Assign( rootPath );
    END Init;
 
 (*--------------------------------------------------------------------------------*)

@@ -229,7 +229,7 @@ END Cast;
 
 PROCEDURE ToBS( CONST String : ARRAY OF WCHAR ) : BSTR;
 BEGIN
-  RETURN oleauto.SysAllocString( wtypes.POLECHAR( ADR( String )));
+  RETURN oleauto.SysAllocStringLen( wtypes.POLECHAR( ADR( String )), LENGTH( String ));
 END ToBS;
 
 (*---------------------------------------------------------------------------*)
@@ -237,9 +237,9 @@ END ToBS;
 PROCEDURE ToBSRef( CONST String : ARRAY OF WCHAR; REF BS : BSTR ) : BSTR;
 BEGIN
   IF BS = NIL THEN
-    BS := oleauto.SysAllocString( wtypes.POLECHAR( ADR( String )));
+    BS := oleauto.SysAllocStringLen( wtypes.POLECHAR( ADR( String )), LENGTH( String ));
   ELSE
-    oleauto.SysReAllocString( ADR( BS ), wtypes.POLECHAR( ADR( String )));
+    oleauto.SysReAllocStringLen( ADR( BS ), wtypes.POLECHAR( ADR( String )), LENGTH( String ));
   END;
   RETURN BS;
 END ToBSRef;

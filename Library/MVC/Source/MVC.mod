@@ -971,7 +971,11 @@ CLASS IMPLEMENTATION CMVC;
             END;
          //-----
          | votInputStream :
-            ASSERT( FALSE ); // NOT IMPLEMENTED YET
+
+            ASSERTLOG( FALSE ); // NOT IMPLEMENTED YET
+            Connection^.StatusCode := HttpCommon.httpres_500;
+            RETURN;
+
             IF NOT view^.FormatToInputStream( ADR( request ), REF StatusCode, Connection^.ResponseHeaders, OUT InputStream ) OR ( InputStream = NIL ) THEN
                InputStream := NIL;
                Connection^.StatusCode := HttpCommon.httpres_500;
@@ -1032,7 +1036,7 @@ CLASS IMPLEMENTATION CMVC;
       _MessagesLock.Lock();
       IF _Messages = NIL THEN
          NEW( _Messages );
-         b := _Messages^.LoadXML( OA( _MessageSourcePath.Length-1, _MessageSourcePath.szData ), OUT e ); // TODO bug LoadXML -- it requires sz terminated string
+         b := _Messages^.LoadXML( OA( _MessageSourcePath.Length-1, _MessageSourcePath.rawData ), OUT e );
          IF b THEN
             _Messages^.FallbackLang := _Messages^.Lang;
          END;
@@ -1153,7 +1157,6 @@ CLASS IMPLEMENTATION CMVC;
    PUBLIC PROCEDURE Init( CONST Context : StringsO.CString );
    BEGIN
       _Context := Context;
-      // TODO
    END Init;
 
 //--------------------------------------------------------------------------------

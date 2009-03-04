@@ -1129,6 +1129,7 @@ CLASS IMPLEMENTATION Value;
       i1, i2 : INT32;
       l1, l2 : INT64;
       LValue : Value;
+      sgn1, sgn2, sgnr : BOOLEAN;
       t1, t2 : TRISTATE;
    BEGIN
       LValue._Flags := _Flags;
@@ -1153,14 +1154,32 @@ CLASS IMPLEMENTATION Value;
             END;
          | vtInteger :
             i1 := Integer;
-            i2 := i1 * Source.Integer;
-            // TODO saturation
-            LValue.Integer := i2;
+            i2 := Source.Integer;
+            sgn1 := i1 < 0;
+            sgn2 := i2 < 0;
+            i2 := i1 * i2;
+            sgnr := i2 < 0;
+            IF ( sgn1 = sgn2 ) <> sgnr THEN // no overflow
+               LValue.Integer := i2;
+            ELSIF sgn1 = sgn2 THEN
+               LValue.Integer := MAX( INT32 );
+            ELSE
+               LValue.Integer := MIN( INT32 );
+            END;
          | vtLong :
             l1 := Long;
-            l2 := l1 * Source.Long;
-            // TODO saturation
-            LValue.Long := l2;
+            l2 := Source.Long;
+            sgn1 := l1 < 0;
+            sgn2 := l2 < 0;
+            l2 := l1 * l2;
+            sgnr := l2 < 0;
+            IF ( sgn1 = sgn2 ) <> sgnr THEN // no overflow
+               LValue.Long := l2;
+            ELSIF sgn1 = sgn2 THEN
+               LValue.Long := MAX( INT64 );
+            ELSE
+               LValue.Long := MIN( INT64 );
+            END;
          | vtFloat :
             LValue.Float := Float * Source.Float;
          END;
