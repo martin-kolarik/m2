@@ -685,7 +685,7 @@ VAR
 	i : INTEGER := 0;
 BEGIN
 	LOOP
-		IF ( i > HIGH( Start )) OR ( Start[i] = 0W) THEN
+		IF ( i > HIGH( Start )) OR ( Start[i] = 0W ) THEN
 			RETURN TRUE;
 		ELSIF i > HIGH( String ) THEN
 			RETURN FALSE;

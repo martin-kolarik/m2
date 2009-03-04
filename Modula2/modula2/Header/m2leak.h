@@ -12,7 +12,7 @@ extern "C" __DLL_IMPORT void __cdecl SwitchOn();
 extern "C" __DLL_IMPORT void __cdecl SwitchOff();
 extern "C" __DLL_IMPORT void __cdecl Reset();
 
-extern "C" __DLL_IMPORT void __cdecl Mark( BOOLEAN Enter, CARDINAL Source_HIGH, const WCHAR* Source, CARDINAL Line );
+extern "C" __DLL_IMPORT void __cdecl Mark( BOOLEAN Enter, INTEGER Source_HIGH, const WCHAR* Source, CARDINAL Line );
 
 extern "C" __DLL_IMPORT void __cdecl AllocateHook( const ADDRESS A, const CARDINAL S );
 extern "C" __DLL_IMPORT void __cdecl DeallocateHook( const ADDRESS A );

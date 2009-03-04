@@ -3620,7 +3620,8 @@ ntBitwiseTerm<VR : TValueReq; VAR N : DOM.TPENode; VAR VI : DOM.TValueInfo>
 .
 
 ntFactor<VR : TValueReq; VAR N : DOM.TPENode; VAR VI : DOM.TValueInfo>
-                                                           (. E : DOM.TPExpression; .)
+                                                           (. E : DOM.TPExpression;
+                                                              i : INTEGER; .)
   =
   (
     lpar ntCommonExpression<VR, E, VI> rpar                (. NEW( N );
@@ -3644,14 +3645,12 @@ ntFactor<VR : TValueReq; VAR N : DOM.TPENode; VAR VI : DOM.TValueInfo>
                                                               N^.r.N := DOM.enLiteral; .)
     ntConstantLiteral<TRUE, N^.r.OK, N^.T>                 (. IF N^.r.OK = DOM.okCharacter THEN // numerical character representation
                                                                 t.Val.Substring( 0, t.Val.Length - 1, OUT N^.r.S );
-                                                                  TRY
-                                                                     IF Types.TBCHAR^.Compatible( DOM.cmOperation, N^.T ) THEN
-                                                                        N^.r.S.FromOAA( 0, CHAR( N^.r.S.ToINT32( 10 )) );
-                                                                     ELSE
-                                                                        N^.r.S.FromOA( WCHAR( N^.r.S.ToINT32( 10 )) );
-                                                                     END;
-                                                                  CATCH : StringsO.CStringException DO
+                                                                  IF NOT N^.r.S.ToINT32( 10, OUT i ) THEN
                                                                      N^.r.S.FromOA( L"<bad character>" );
+                                                                  ELSIF Types.TBCHAR^.Compatible( DOM.cmOperation, N^.T ) THEN
+                                                                     N^.r.S.FromOAA( 0, CHAR( i ) );
+                                                                  ELSE
+                                                                     N^.r.S.FromOA( WCHAR( i ) );
                                                                   END;
                                                               ELSIF ( N^.T = Types.TTCHARW ) OR ( N^.T = Types.TTStringW ) OR ( N^.T = Types.TTCHARB ) OR ( N^.T = Types.TTStringB ) THEN
                                                                 t.Val.Substring( 1, t.Val.Length - 2, OUT N^.r.S );

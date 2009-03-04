@@ -2575,7 +2575,7 @@ CLASS IMPLEMENTATION CVariable;
         GUM := T^.Generate( G, gcsExplicit + C * TGenerateControl{gcForceFormalFrameAddOn} ); // gcForceFormalFrameAddOn for frames variables
     ELSIF T^.Unwrap()^.TypeKind = tkOpenArray THEN
         IF coOASize IN Options THEN
-          Types.TCARDINAL^.Generate( G, gcsExplicit );
+          Types.TINTEGER^.Generate( G, gcsExplicit );
           IF N.Empty THEN
             G^.OutS( L', ' );
           ELSE
@@ -2803,7 +2803,7 @@ CLASS IMPLEMENTATION CNestedParameters;
       // if item is open array HIGH must be added too
       IF Symbol^.T^.IsOpenArray() AND ( coOASize IN Symbol^.Options ) THEN
         NEW( NV );
-        NV^.T := Types.TCARDINAL;
+        NV^.T := Types.TINTEGER;
         NV^.N := Symbol^.N;
         NV^.N.AppendOA( L"_HIGH" );
         NV^.OfSymbol := TPProcedure( FoundIn );
@@ -7479,7 +7479,7 @@ CLASS IMPLEMENTATION CIndexerDef;
           END;
           G^.OutS( L'ix_get( ' );
           IF IndexType^.IsOpenArray() AND ( coOASize IN Options ) THEN
-            Types.TCARDINAL^.Generate( G, gcsExplicit );
+            Types.TINTEGER^.Generate( G, gcsExplicit );
             G^.OutS( L' Index_HIGH, ' );
           END;
           IndexType^.Generate( G, gcsExplicitParameter );
@@ -7495,7 +7495,7 @@ CLASS IMPLEMENTATION CIndexerDef;
           END;
           G^.OutS( L'ix_set( ' );
           IF IndexType^.IsOpenArray() AND ( coOASize IN Options ) THEN
-            Types.TCARDINAL^.Generate( G, gcsExplicit );
+            Types.TINTEGER^.Generate( G, gcsExplicit );
             G^.OutS( L' Index_HIGH, ' );
           END;
           IndexType^.Generate( G, gcsExplicitParameter );
@@ -7873,7 +7873,7 @@ CLASS IMPLEMENTATION CENode;
       ELSIF Types.TString^.Compatible( cmOperation, T ) THEN
         EV.S.Assign( r.S );
       ELSIF T^.Unwrap()^.TypeKind = tkEnumeration THEN
-         IF NOT r.S.ToINT64( 10, EV.I ) THEN
+         IF NOT r.S.ToINT64( 10, OUT EV.I ) THEN
             EV.I := 0;
          END;
       END;
