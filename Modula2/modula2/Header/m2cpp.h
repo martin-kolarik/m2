@@ -311,23 +311,23 @@ inline BOOLEAN EQUALSM_(const BYTE* S1, const BYTE* S2, CARDINAL L) throw()
 }
 
 // strings -- INSIDE ANSI
-inline BOOLEAN INSIDEB_(CARDINAL HIGH_, const CHAR* S, ORDINAL I) throw()
+inline BOOLEAN INSIDEB_(INTEGER HIGH_, const CHAR* S, ORDINAL I) throw()
 {
-  return I <= (int)HIGH_ && S[I] != 0;
+  return I <= HIGH_ && S[I] != 0;
 }
 // strings -- INSIDE UNICODE
-inline BOOLEAN INSIDEW_(CARDINAL HIGH_, const WCHAR* S, ORDINAL I) throw()
+inline BOOLEAN INSIDEW_(INTEGER HIGH_, const WCHAR* S, ORDINAL I) throw()
 {
-  return I <= (int)HIGH_ && S[I] != 0;
+  return I <= HIGH_ && S[I] != 0;
 }
 
 // strings -- LENGTH ANSI
-inline CARDINAL LENGTHB_(CARDINAL HIGH_, const CHAR* S) throw()
+inline CARDINAL LENGTHB_(INTEGER HIGH_, const CHAR* S) throw()
 {
   CHAR* a;
   ADDRESS t;
 
-  if (S == 0 || HIGH_ == -1) {
+  if (S == 0 || HIGH_ < 0) {
      return 0;
   }
   t = (ADDRESS)((PTR)S + HIGH_ + 1);
@@ -343,12 +343,12 @@ inline CARDINAL LENGTHB_(CARDINAL HIGH_, const CHAR* S) throw()
   }
 }
 // strings -- LENGTH UNICODE
-inline CARDINAL LENGTHW_(CARDINAL HIGH_, const WCHAR* S) throw()
+inline CARDINAL LENGTHW_(INTEGER HIGH_, const WCHAR* S) throw()
 {
   WCHAR* a;
   ADDRESS t;
 
-  if (S == 0 || HIGH_ == -1) {
+  if (S == 0 || HIGH_ < 0) {
      return 0;
   }
   t = (ADDRESS)((PTR)S + (HIGH_ << 1) + 2);
@@ -396,11 +396,11 @@ inline CARDINAL LENGTHszW_(const WCHAR* S) throw()
   }
 }
 // strings -- EQUALS ANSI
-inline BOOLEAN EQUALSB_(CARDINAL HIGH_1, const CHAR* S1, CARDINAL HIGH_2, const CHAR* S2) throw()
+inline BOOLEAN EQUALSB_(INTEGER HIGH_1, const CHAR* S1, INTEGER HIGH_2, const CHAR* S2) throw()
 {
   ADDRESS t1;
 
-  if (S1 == 0 || HIGH_1 == -1 || S2 == 0 || HIGH_2 == -1) {
+  if (S1 == 0 || HIGH_1 < 0 || S2 == 0 || HIGH_2 < 0) {
      return FALSE;
   }
   if (HIGH_1 < HIGH_2) {
@@ -428,11 +428,11 @@ inline BOOLEAN EQUALSB_(CARDINAL HIGH_1, const CHAR* S1, CARDINAL HIGH_2, const 
   }
 }
 // strings -- EQUALS UNICODE
-inline BOOLEAN EQUALSW_(CARDINAL HIGH_1, const WCHAR* S1, CARDINAL HIGH_2, const WCHAR* S2) throw()
+inline BOOLEAN EQUALSW_(INTEGER HIGH_1, const WCHAR* S1, INTEGER HIGH_2, const WCHAR* S2) throw()
 {
   ADDRESS t1;
 
-  if (S1 == 0 || HIGH_1 == -1 || S2 == 0 || HIGH_2 == -1) {
+  if (S1 == 0 || HIGH_1 < 0 || S2 == 0 || HIGH_2 < 0) {
      return FALSE;
   }
   if (HIGH_1 < HIGH_2) {
@@ -460,13 +460,13 @@ inline BOOLEAN EQUALSW_(CARDINAL HIGH_1, const WCHAR* S1, CARDINAL HIGH_2, const
   }
 }
 // strings -- ASSIGN ANSI
-inline void ASSIGNB_(CARDINAL HIGH_D, CHAR* D, CARDINAL HIGH_S, const CHAR* S) throw()
+inline void ASSIGNB_(INTEGER HIGH_D, CHAR* D, INTEGER HIGH_S, const CHAR* S) throw()
 {
   ADDRESS ts;
 
-  if (D == 0 || HIGH_D == -1) {
+  if (D == 0 || HIGH_D < 0) {
      return;
-  } else if (S == 0 || HIGH_S == -1) {
+  } else if (S == 0 || HIGH_S < 0) {
      (*D) = '\x0';
      return;
   } else if (HIGH_D < HIGH_S) {
@@ -492,13 +492,13 @@ inline void ASSIGNB_(CARDINAL HIGH_D, CHAR* D, CARDINAL HIGH_S, const CHAR* S) t
   }
 }
 // strings -- ASSIGN UNICODE
-inline void ASSIGNW_(CARDINAL HIGH_D, WCHAR* D, CARDINAL HIGH_S, const WCHAR* S) throw()
+inline void ASSIGNW_(INTEGER HIGH_D, WCHAR* D, INTEGER HIGH_S, const WCHAR* S) throw()
 {
   ADDRESS ts;
 
-  if (D == 0 || HIGH_D == -1) {
+  if (D == 0 || HIGH_D < 0 ) {
      return;
-  } else if (S == 0 || HIGH_S == -1) {
+  } else if (S == 0 || HIGH_S < 0) {
     (*D) = L'\x0';
      return;
   } else if (HIGH_D < HIGH_S) {
@@ -524,11 +524,11 @@ inline void ASSIGNW_(CARDINAL HIGH_D, WCHAR* D, CARDINAL HIGH_S, const WCHAR* S)
   }
 }
 // strings -- ASSIGN zero terminated ANSI
-inline void ASSIGNszB_(CARDINAL HIGH_D, CHAR* D, const CHAR* S) throw()
+inline void ASSIGNszB_(INTEGER HIGH_D, CHAR* D, const CHAR* S) throw()
 {
   ADDRESS ts;
 
-  if (D == 0 || HIGH_D == -1) {
+  if (D == 0 || HIGH_D < 0) {
      return;
   } else if (S == 0) {
       (*D) = '\x0';;
@@ -550,11 +550,11 @@ inline void ASSIGNszB_(CARDINAL HIGH_D, CHAR* D, const CHAR* S) throw()
   }
 }
 // strings -- ASSIGN UNICODE
-inline void ASSIGNszW_(CARDINAL HIGH_D, WCHAR* D, const WCHAR* S) throw()
+inline void ASSIGNszW_(INTEGER HIGH_D, WCHAR* D, const WCHAR* S) throw()
 {
   ADDRESS ts;
 
-  if (D == 0 || HIGH_D == -1) {
+  if (D == 0 || HIGH_D < 0) {
      return;
   } else if (S == 0) {
      (*D) = L'\x0';;

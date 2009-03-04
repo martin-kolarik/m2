@@ -16,10 +16,10 @@
 # endif
 
 namespace Strings {
-  __Strings_MI void (CapsA)( CARDINAL HIGH_, CHAR* s ) throw();
-  __Strings_MI void (CapsW)( CARDINAL HIGH_, WCHAR* s ) throw();
-  __Strings_MI void (LowsA)( CARDINAL HIGH_, CHAR* s ) throw();
-  __Strings_MI void (LowsW)( CARDINAL HIGH_, WCHAR* s ) throw();
+  __Strings_MI void (CapsA)( INTEGER HIGH_, CHAR* s ) throw();
+  __Strings_MI void (CapsW)( INTEGER HIGH_, WCHAR* s ) throw();
+  __Strings_MI void (LowsA)( INTEGER HIGH_, CHAR* s ) throw();
+  __Strings_MI void (LowsW)( INTEGER HIGH_, WCHAR* s ) throw();
 }
 # define __M2CAPA Strings::CapsA
 # define __M2CAPW Strings::CapsW
@@ -33,19 +33,19 @@ namespace Strings {
 # endif // _USER_STRINGS_DEFINED_
 
 // procedures
-inline void CAPB_( CARDINAL HIGH_, CHAR* ch ) throw()
+inline void CAPB_( INTEGER HIGH_, CHAR* ch ) throw()
 {
   __M2CAPA( HIGH_, ch );
 }
-inline void CAPW_( CARDINAL HIGH_, WCHAR* ch ) throw()
+inline void CAPW_( INTEGER HIGH_, WCHAR* ch ) throw()
 {
   __M2CAPW( HIGH_, ch );
 }
-inline void LOWB_( CARDINAL HIGH_, CHAR* ch ) throw()
+inline void LOWB_( INTEGER HIGH_, CHAR* ch ) throw()
 {
   __M2LOWA( HIGH_, ch );
 }
-inline void LOWW_( CARDINAL HIGH_, WCHAR* ch ) throw()
+inline void LOWW_( INTEGER HIGH_, WCHAR* ch ) throw()
 {
   __M2LOWW( HIGH_, ch );
 }
@@ -135,9 +135,9 @@ inline void OBJECT::operator delete(void* ptr) throw()
 # endif
 
 namespace Debug {
-  __Debug_MI BOOLEAN Assert( CARDINAL Module_HIGH, const WCHAR* Module, CARDINAL ModuleLine, CARDINAL CPPLine ) throw();
-  __Debug_MI void LogAssertA( CARDINAL Text_HIGH, const CHAR* Text, CARDINAL Module_HIGH, const CHAR* Module, CARDINAL ModuleLine ) throw();
-  __Debug_MI void LogAssertW( CARDINAL Text_HIGH, const WCHAR* Text, CARDINAL Module_HIGH, const WCHAR* Module, CARDINAL ModuleLine ) throw();
+  __Debug_MI BOOLEAN Assert( INTEGER Module_HIGH, const WCHAR* Module, CARDINAL ModuleLine, CARDINAL CPPLine ) throw();
+  __Debug_MI void LogAssertA( INTEGER Text_HIGH, const CHAR* Text, INTEGER Module_HIGH, const CHAR* Module, CARDINAL ModuleLine ) throw();
+  __Debug_MI void LogAssertW( INTEGER Text_HIGH, const WCHAR* Text, INTEGER Module_HIGH, const WCHAR* Module, CARDINAL ModuleLine ) throw();
 }
 # define __Assertion Debug::Assert
 # define __LogAssertionA Debug::LogAssertA
