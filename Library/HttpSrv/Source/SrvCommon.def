@@ -82,6 +82,7 @@ ABSTRACT CLASS ASrvStream( IOO.AStream ); // synchronous implementation only
       RemoteAddress : inetaddr.INETADDR;
    PUBLIC ABSTRACT PROPERTY
       StatusCode : HttpCommon.THttpResponse;
+      // see OverrideStatusResponse too
       
    // all methods can return arCompleted, arNoData, arAbort, arTimeout
    INTERNAL ABSTRACT PROCEDURE ReceiveHeaders() : Sync.TAsyncResult;
@@ -93,6 +94,7 @@ ABSTRACT CLASS ASrvStream( IOO.AStream ); // synchronous implementation only
    PUBLIC PROPERTY
       Chunked : BOOLEAN;
       ResponseLength : CARD64;
+      OverrideStatusResponse : BOOLEAN; // Default = FALSE means server generates self error pages
 
    LOCAL PROCEDURE StartHandleRequest() : Sync.TAsyncResult;
    
@@ -101,6 +103,7 @@ ABSTRACT CLASS ASrvStream( IOO.AStream ); // synchronous implementation only
       _ReadOut : BOOLEAN;
       _HeaderSent : BOOLEAN;
       _DataSent : BOOLEAN;
+      _OverrideStatusResponse : BOOLEAN := FALSE;
       _ChunkBuffer : ARRAY [0..63] OF CHAR;
 
    // helpers
