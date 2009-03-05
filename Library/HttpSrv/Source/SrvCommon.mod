@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE SrvCommon;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM Log IMPORT
    logger, dlcError, dlcWarning, dlcInfo;
@@ -315,7 +315,11 @@ CLASS IMPLEMENTATION ASrvStream;
 
       ELSE
          IF Direction = IOO.dirWrite THEN
-            StartResponse();
+            Result := StartResponse();
+            IF Result <> Sync.arCompleted THEN
+               _DataSent := TRUE;
+               RETURN Result;
+            END;
             chunked := Chunked;
          END;
 
@@ -448,6 +452,20 @@ CLASS IMPLEMENTATION ASrvStream;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY OverrideStatusResponse GET : BOOLEAN;
+   BEGIN
+      RETURN _OverrideStatusResponse;
+   END OverrideStatusResponse;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY OverrideStatusResponse SET( Value : BOOLEAN );
+   BEGIN
+      _OverrideStatusResponse := Value;
+   END OverrideStatusResponse;
+
+(*--------------------------------------------------------------------------------*)
+
    PRIVATE PROCEDURE NormalizeHeaders();
    VAR
       // dt : Time.TDateTime;
@@ -489,6 +507,8 @@ CLASS IMPLEMENTATION ASrvStream;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE StartResponse() : Sync.TAsyncResult;
+   VAR
+      Result : Sync.TAsyncResult;
    BEGIN
       IF _HeaderSent THEN
          RETURN Sync.arCompleted;
@@ -498,7 +518,19 @@ CLASS IMPLEMENTATION ASrvStream;
       Flush();
       NormalizeHeaders();
       
-      RETURN SendHeaders();
+      Result := SendHeaders();
+      IF Result <> Sync.arCompleted THEN
+         RETURN Result;
+      ELSIF CARDINAL( StatusCode ) < 300 THEN // only 1xx and 2xx responses, which are successes
+         RETURN Sync.arCompleted;
+      ELSIF _OverrideStatusResponse THEN // leave client to create self error page
+         RETURN Sync.arCompleted;
+      END;
+      
+      // ... send formatted status error page
+      RETURN Sync.arCompleted; // TODO
+      
+      // RETURN Sync.arCannotStart; // any next write is impossible
    END StartResponse;
 
 (*--------------------------------------------------------------------------------*)
@@ -532,6 +564,7 @@ CLASS CHttpConnection IMPLEMENTS HttpConnection.IHttpSrvConnection;
 
    PUBLIC VIRTUAL PROPERTY
       StatusCode : HttpCommon.THttpResponse;
+      OverrideStatusResponse : BOOLEAN;
       Chunked : BOOLEAN;
       ResponseLength : CARD64;
    
@@ -629,6 +662,20 @@ CLASS IMPLEMENTATION CHttpConnection;
    BEGIN
       _Stream^.StatusCode := Value;
    END StatusCode;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY OverrideStatusResponse GET : BOOLEAN;
+   BEGIN
+      RETURN _Stream^.OverrideStatusResponse;
+   END OverrideStatusResponse;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY OverrideStatusResponse SET( Value : BOOLEAN );
+   BEGIN
+      _Stream^.OverrideStatusResponse := Value;
+   END OverrideStatusResponse;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -820,7 +867,6 @@ CLASS IMPLEMENTATION HttpWorker;
    LOCAL VIRTUAL PROCEDURE Run();
    VAR
       Connection : CHttpConnection;
-      l : CARDINAL;
       s : StringsO.CString;
    BEGIN
       IF ( _Session <> NIL ) AND _Session^.New THEN
@@ -828,8 +874,7 @@ CLASS IMPLEMENTATION HttpWorker;
       END;
 
       IF _Processor = NIL THEN
-         _Stream^.StatusCode := HttpCommon.httpres_500;
-         _Stream^.WriteOA( C"Internal server error, unable to process request", OUT l, Sync.FORSAFETY );
+         ASSERTLOG( _Stream^.StatusCode <> HttpCommon.httpres_200 );
       ELSE
          Connection.FromStream( _Stream );
          _Processor^.ProcessRequest( ADR( Connection ), _Session );
