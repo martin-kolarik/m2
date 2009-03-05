@@ -23,7 +23,8 @@ IMPORT
    Time,
    threadpool,
    windows,
-   winerror;
+   winerror,
+   XMLWriter;
 
 (*================================================================================*)
 
@@ -508,6 +509,7 @@ CLASS IMPLEMENTATION ASrvStream;
 
    PUBLIC PROCEDURE StartResponse() : Sync.TAsyncResult;
    VAR
+      Content : StringsO.CString;
       Result : Sync.TAsyncResult;
    BEGIN
       IF _HeaderSent THEN
@@ -518,20 +520,66 @@ CLASS IMPLEMENTATION ASrvStream;
       Flush();
       NormalizeHeaders();
       
-      Result := SendHeaders();
-      IF Result <> Sync.arCompleted THEN
-         RETURN Result;
-      ELSIF CARDINAL( StatusCode ) < 300 THEN // only 1xx and 2xx responses, which are successes
-         RETURN Sync.arCompleted;
-      ELSIF _OverrideStatusResponse THEN // leave client to create self error page
-         RETURN Sync.arCompleted;
+      IF CARDINAL( StatusCode ) < 300 THEN // only 1xx and 2xx responses, which are successes, NORMAL StartResponse
+         RETURN SendHeaders();
+
+      ELSIF _OverrideStatusResponse THEN // leave client to create self error page, CLIENT error processing
+         RETURN SendHeaders();
+      
+      ELSE // send default error page
+         httptools.FormatContentOA( httptools.contentTextHTML, L"", L"utf-8", FALSE, OUT Content );
+         ResponseHeaders^.Add( HttpCommon.ContentType, Content );
+   
+         Result := SendHeaders();
+         IF Result <> Sync.arCompleted THEN
+            RETURN Result;
+         END;
+
+         SendFormattedErrorPage(); // send formatted status error page
+         RETURN Sync.arCannotStart; // any next write is impossible
       END;
-      
-      // ... send formatted status error page
-      RETURN Sync.arCompleted; // TODO
-      
-      // RETURN Sync.arCannotStart; // any next write is impossible
    END StartResponse;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE SendFormattedErrorPage();
+   VAR
+      Location : StringsO.CString;
+      n : ARRAY [0..63] OF WCHAR;
+      Writer : XMLWriter.CXMLWriter;
+   BEGIN
+      Writer.Stream := ADR( SELF );
+      Writer.WriteElementStartOA( L"html" );
+         Writer.WriteElementStartOA( L"body" );
+         
+            CASE StatusCode OF
+            | HttpCommon.httpres_301, HttpCommon.httpres_302, HttpCommon.httpres_303, HttpCommon.httpres_304, HttpCommon.httpres_307 : // workaround m2cpp bug
+               ResponseHeaders^.Get( HttpCommon.Location, OUT Location );
+
+               Writer.WriteElementStringOA( L"h1", L"Server notification" );
+               Writer.WriteElementStartOA( L"p" );
+                  Writer.WriteStringOA( L"The page should be redirected by client to " );
+                  Writer.WriteElementStartOA( L"a" );
+                     Writer.WriteAttributeStringOA( L"href", OA( Location.Length-1, Location.rawData ));
+                     Writer.WriteString( Location );
+                  Writer.WriteElementEnd();
+                  Writer.WriteStringOA( L". Please, click the link to move to correct page." );
+               Writer.WriteElementEnd();
+
+            ELSE // not redirect
+               Writer.WriteElementStringOA( L"h1", L"Server HTTP error" );
+               Writer.WriteElementStartOA( L"p" );
+                  Writer.WriteStringOA( L"The server responded with HTTP status code " );
+                  Strings.FromCARD32W( CARDINAL( StatusCode ), 10, OUT n );
+                  Writer.WriteStringOA( n );
+                  Writer.WriteStringOA( L". Please, correct the request URL or repeat the request later." );
+               Writer.WriteElementEnd();
+                  
+            END; // CASE
+
+         Writer.WriteElementEnd();
+      Writer.WriteElementEnd();
+   END SendFormattedErrorPage;
 
 (*--------------------------------------------------------------------------------*)
 
