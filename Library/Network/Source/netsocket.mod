@@ -1007,12 +1007,6 @@ CLASS IMPLEMENTATION DSocket;
 
     _Lock.Incl( REF _Pending, poConnection );
     Result := StartKeepAlive();
-    IF Result = 0 THEN
-       Result := Select( {winsock.FD_READ_BIT, winsock.FD_WRITE_BIT} ); // allow read, write, not close -- close will be registered ASAP after notification. This
-                                                                        // prevents FD_CLOSE processing which could from socket thread disrupt Accept processing:
-                                                                        // it could close socket prematurely or preempt OnDisconnect call before OnAccept/OnConnect calls.
-                                                                        // This dirty trick (calliong Select twice) solves it.
-    END;
     IF Result <> 0 THEN
        GOTO Failed;
     END;
@@ -1024,8 +1018,11 @@ CLASS IMPLEMENTATION DSocket;
       LNotifier^.Release();
     END;
 
-    Result := Select( {winsock.FD_READ_BIT, winsock.FD_WRITE_BIT, winsock.FD_CLOSE_BIT} ); // ...finish the trick started above
-    ASSERTLOG( Result = 0 );
+    Result := Select( {winsock.FD_READ_BIT, winsock.FD_WRITE_BIT, winsock.FD_CLOSE_BIT} );
+    IF Result <> 0 THEN
+       GOTO Failed;
+    END;
+
     Error := 0;
     RETURN Sync.arCompleted;
 
@@ -1067,9 +1064,6 @@ CLASS IMPLEMENTATION DSocket;
 
     _Lock.Incl( REF _Pending, poConnection );
     Result := StartKeepAlive();
-    IF Result = 0 THEN
-      Result := Select( {winsock.FD_READ_BIT, winsock.FD_WRITE_BIT, winsock.FD_CLOSE_BIT} );
-    END;
     IF Result <> 0 THEN
       GOTO Failed;
     END;
@@ -1080,6 +1074,12 @@ CLASS IMPLEMENTATION DSocket;
       LNotifier^.OnConnect( 0, ADR( SELF ), FALSE );
       LNotifier^.Release();
     END;
+
+    Result := Select( {winsock.FD_READ_BIT, winsock.FD_WRITE_BIT, winsock.FD_CLOSE_BIT} );
+    IF Result <> 0 THEN
+       GOTO Failed;
+    END;
+
     Error := 0;
     RETURN Sync.arCompleted;
 
