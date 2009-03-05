@@ -827,6 +827,7 @@ CLASS IMPLEMENTATION CDriver;
         RETURN;
       
       ELSIF EQUALS( si, L'get' ) THEN
+      (*
         IF Result.Counted OR Result.Expired THEN
           Logger.LogS( dldDebug, logPrefix, L"Event.Get clear buffer" );
           Logger.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
@@ -838,6 +839,7 @@ CLASS IMPLEMENTATION CDriver;
 
           GOTO Success;
         END;
+        *)
 
         EventsLock.Lock();
         b := Events.GetFirst( OUT PELE );
@@ -1115,7 +1117,7 @@ CLASS IMPLEMENTATION CDriver;
         END;
         ClientsLock.Unlock();
 
-        IF Result.Counted OR Result.Expired THEN
+        IF FALSE AND ( Result.Counted OR Result.Expired ) THEN
           GOTO Success;
         ELSIF NOT PreparePayload( OUT Payload ) THEN
           GOTO Error;
@@ -1216,7 +1218,7 @@ CLASS IMPLEMENTATION CDriver;
 
         ClientsLock.Unlock();
 
-        IF Result.Counted OR Result.Expired THEN
+        IF FALSE AND ( Result.Counted OR Result.Expired ) THEN
           GOTO Success;
         ELSIF NOT PreparePayload( OUT Payload ) THEN
           GOTO Error;
@@ -1437,7 +1439,7 @@ CLASS IMPLEMENTATION CDriver;
 
         ClientsLock.Unlock();
 
-        IF Result.Counted OR Result.Expired THEN
+        IF FALSE AND ( Result.Counted OR Result.Expired ) THEN
           GOTO Success;
         ELSIF NOT PreparePayload( OUT Payload ) THEN
           GOTO Error;
@@ -1529,7 +1531,7 @@ CLASS IMPLEMENTATION CDriver;
          // return always OK
       ELSIF TRStatus{rsRunning} * RStatus = TRStatus{} THEN
          ErrorCode := ecDeviceStopped;
-      ELSIF Result.Expired OR Result.Counted THEN // locked by self
+      ELSIF FALSE AND ( Result.Expired OR Result.Counted ) THEN // locked by self
          RETURN FALSE;
       ELSE
          ////
@@ -1554,7 +1556,7 @@ CLASS IMPLEMENTATION CDriver;
       QoS := drv_def.qosGood;
 
       IF DriverIndex = chStatus THEN
-         IF Result.Counted OR Result.Expired THEN // locked by self
+         IF FALSE AND ( Result.Counted OR Result.Expired ) THEN // locked by self
             EXCL( RStatus, rsValid );
          ELSE
             INCL( RStatus, rsValid );
@@ -1598,7 +1600,7 @@ CLASS IMPLEMENTATION CDriver;
   PUBLIC VIRTUAL PROCEDURE OutputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
   BEGIN
     ErrorCode := 0;
-    RETURN NOT Result.Expired AND NOT Result.Counted; // locked by self
+    RETURN TRUE OR NOT Result.Expired AND NOT Result.Counted; // locked by self
   END OutputFinalized;
 
 (*--------------------------------------------------------------------------------*)
@@ -1838,6 +1840,7 @@ CLASS IMPLEMENTATION CDriver;
 
   LOCAL PROCEDURE OnReceive( PConnection : netconndispatch.TConnectionHandle; PData : ADDRESS; DataLen : CARDINAL );
   VAR
+    b : BOOLEAN;
     c : CARDINAL;
     CRC : CARDINAL;
     CRCValid : BOOLEAN;
@@ -1859,11 +1862,15 @@ CLASS IMPLEMENTATION CDriver;
     | trGroup :
       ClientsLock.Lock();
 
-      SearchNet( REF Clients, PConnection^.RemoteAddress, PClientLE );
-      IF NOT CRCValid THEN
+      IF NOT SearchNet( REF Clients, PConnection^.RemoteAddress, PClientLE ) THEN
+        Logger.LogS( dldError, logPrefix, L"Connection for group data not found, leaving receiving" );
+        ClientsLock.Unlock();
+        RETURN;
+      
+      ELSIF NOT CRCValid THEN
         PClientLE^.PClient^.Disconnect( PConnection );
 
-        Logger.LogS( dldDebug, logPrefix, L"Disconnect, bad CRC" );
+        Logger.LogS( dldTrace, logPrefix, L"Disconnect, bad CRC" );
         ClientsLock.Unlock();
         RETURN;
 
@@ -1871,10 +1878,6 @@ CLASS IMPLEMENTATION CDriver;
         c := 0;
       ELSE
         c := ( TPPacket( PData )^.Length - hdr ) >> 1;
-
-        (*?*)
-        Logger.LogSCB( dldDebug, logPrefix, L"Packet received: ", c, PData, hdr );
-
         Strings.MoveW( ADR( TPPacket( PData )^.Group ), ADR( Name ), c );
       END;
       Name[c] := WCHAR( 0 );
@@ -1924,8 +1927,12 @@ CLASS IMPLEMENTATION CDriver;
       END;
       
       ClientsLock.Lock();
-      SearchNet( REF Clients, PConnection^.RemoteAddress, PELE^.Event.PReceiveClient );
+      b := SearchNet( REF Clients, PConnection^.RemoteAddress, PELE^.Event.PReceiveClient );
       ClientsLock.Unlock();
+      IF NOT b THEN
+        Logger.LogS( dldError, logPrefix, L"Connection for string/struct data not found, leaving receiving" );
+        RETURN;
+      END;
 
       EventsLock.Lock();
       Events.Append( PELE );
