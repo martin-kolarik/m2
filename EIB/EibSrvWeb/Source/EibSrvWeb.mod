@@ -264,7 +264,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       END;
       s.Assign( value );
       io.String := s;
-      RETURN _EIB^.IOh( IOO.dirWrite, hash, REF io, NIL ) IN Sync.arsCompletions;
+      RETURN _EIB^.IOh( IOO.dirWrite, hash, REF io, NIL ) = Sync.arsCompleted; // partial = cache write is not evaluated as true
    END SetValue;
 
 (*--------------------------------------------------------------------------------*)

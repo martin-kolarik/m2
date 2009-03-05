@@ -782,7 +782,7 @@ CLASS IMPLEMENTATION CLogger;
       #if DEBUG #then
          DebugLevel := dldTrace;
       #else
-         DebugLevel := dldError;
+         DebugLevel := dldMessage;
       #endif
 
       LOOP
