@@ -881,7 +881,7 @@ BEGIN
    #if DEBUG #then
       DebugLevel := dldTrace;
    #else
-      DebugLevel := dldError;
+      DebugLevel := dldMessage;
    #endif
    Name := L"sys";
    DebugFile := 0W;
