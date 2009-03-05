@@ -1,4 +1,6 @@
-Version 1.0.741/R beta 5.3.2009
+Version 1.0.743/R beta 5.3.2009
+- BUG: #52, direct set value using web was reported as success even if server was
+       not connected to KNX in the time.
 - BUG: #48, data and config logger configurations logged only critical error and
        debug error messages.
 - BUG: #46, server crashed if web was accessed without "SmartServer" in URL.
