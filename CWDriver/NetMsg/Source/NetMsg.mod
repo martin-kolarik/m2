@@ -8,7 +8,7 @@ FROM Storage IMPORT
   REALLOCATE, ALLOCATE, DEALLOCATE;
   
 FROM log IMPORT
-  dldTrace, dldDebug;
+  dldError, dldTrace, dldDebug;
 
 IMPORT
   cllv,
