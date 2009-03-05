@@ -1749,6 +1749,8 @@ CLASS IMPLEMENTATION CDriver;
       END;
 
     ELSE // remote connect
+      Logger.LogSC( dldDebug, logPrefix, L"Remote connection detected: ", CARDINAL( RStatus ));
+
       ClientsLock.Lock();
 
       IF SearchNet( REF Clients, PConnection^.RemoteAddress, PClientLE ) THEN
@@ -1869,6 +1871,10 @@ CLASS IMPLEMENTATION CDriver;
         c := 0;
       ELSE
         c := ( TPPacket( PData )^.Length - hdr ) >> 1;
+
+        (*?*)
+        Logger.LogSCB( dldDebug, logPrefix, L"Packet received: ", c, PData, hdr );
+
         Strings.MoveW( ADR( TPPacket( PData )^.Group ), ADR( Name ), c );
       END;
       Name[c] := WCHAR( 0 );
