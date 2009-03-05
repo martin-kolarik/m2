@@ -1,3 +1,12 @@
+Version 1.0.741/R beta 5.3.2009
+- BUG: #48, data and config logger configurations logged only critical error and
+       debug error messages.
+- BUG: #46, server crashed if web was accessed without "SmartServer" in URL.
+- BUG: #28, message file for web was not loaded in some cases.
+- BUG: Page.pt.html file would not be installed.
+- BUG: #19, server did not offer English/Czech language if a client requested
+       "cs" or "en" language (not "cs-CZ" or "en-US").
+
 Version 1.0.733/R beta 3.3.2009
 - BUG: Installer did not install SCMsg.dll.
 - NEW: Installer extended with Web files and default.cfg.
