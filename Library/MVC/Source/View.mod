@@ -143,11 +143,6 @@ END CFileView;
 
 (*================================================================================*)
 
-CONST
-   REDIRECT_START = C'<html><head><title>Moved</title></head><body><h1>Moved</h1><p>This page has been moved to <a href="';
-   REDIRECT_MIDDLE = C'">';
-   REDIRECT_STOP = C'</a>.</p></body></html>';
-
 CLASS IMPLEMENTATION CRedirectView;
 
 (*--------------------------------------------------------------------------------*)
@@ -165,8 +160,10 @@ CLASS IMPLEMENTATION CRedirectView;
       i : CARDINAL;
       Location : StringsO.CString;
    BEGIN
+      // set status
       ResponseStatus := HttpTools.GetRedirectCode( HttpTools.redirectTemporarily, FALSE );
       
+      // set location
       IF AbsoluteFlag THEN
          Location := URIOrControllerName;
       ELSE
@@ -182,15 +179,8 @@ CLASS IMPLEMENTATION CRedirectView;
          END;
       END;
       ResponseHeaders^.Add( HttpCommon.Location, Location );
-
-      Output.AppendOA( REDIRECT_START );
-      LanguagesO.ToMB( Location, Languages.cp_UTF8, TRUE, REF Output );
-      Output.AppendOA( REDIRECT_MIDDLE );
-      LanguagesO.ToMB( Location, Languages.cp_UTF8, TRUE, REF Output );
-      Output.AppendOA( REDIRECT_STOP );
-      HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"", L"utf-8", FALSE, OUT Content );
-      ResponseHeaders^.Add( HttpCommon.ContentType, Content );
-
+      
+      // generating textual page with help text about page moving is left to common server routines
       RETURN TRUE;
    END FormatToBuffer;
 
