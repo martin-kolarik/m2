@@ -439,8 +439,8 @@ CLASS IMPLEMENTATION CController;
       count := _Web^.DataLogger^.BufferCount;
       cs.Clear();
       IF count > 0 THEN
-         FOR i := 0 TO count-1 DO
-            IF i > 0 THEN
+         FOR i := count-1 TO 0 BY -1 DO
+            IF i < count-1 THEN
                cs.AppendOA( CRLF );
             END;
             _Web^.DataLogger^.BufferGetItem( i, OUT log );

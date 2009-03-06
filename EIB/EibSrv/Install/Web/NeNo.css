@@ -112,7 +112,7 @@ div.log, div.longlog
 }
 div.log
 {
-  height: 209px;
+  height: 207px;
 }
 div.longlog
 {
@@ -129,9 +129,13 @@ input
 {
   color: Black;
   height: 25px;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 input.ioValue, input.ioName
 {
   width: 100px;
+}
+input.configFile
+{
+  width: 525px;
 }
