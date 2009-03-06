@@ -1006,6 +1006,9 @@ CLASS IMPLEMENTATION CConnection;
 
    FINALLY CConnection;
    BEGIN
+      StopTimer( PTR( tiConnect )); // tiAutoReconnect timer can alive -- it is started in Connect. But, device is not connected and outer (EibStack's) call to Disconnect is skipped as Disconnect is not needed. tiConnect is not stopped for that case. It must be done here.
+      StopTimer( PTR( tiAutoReconnect )); // tiAutoReconnect timer can alive -- after Connect, when time elapses, tiAutoConnect is started. But device is not connected and outer (EibStack's) call to Disconnect is skipped as Disconnect is not needed. tiAutoConnect is not stopped for that case. It must be done here.
+
       Disconnect( TRUE );
 
       IF Listener <> NIL THEN // this occurs in case of multiple FINALLY calls
