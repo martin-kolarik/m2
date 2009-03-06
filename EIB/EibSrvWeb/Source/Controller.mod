@@ -174,6 +174,10 @@ CLASS IMPLEMENTATION CController;
          View := mvc.redirectView( LOGIN_PAGE );
          RETURN TRUE;
       
+      ELSIF Request^.ControllerURI.Empty THEN // context directly accessed
+         View := mvc.redirectView( STATUS_PAGE );
+         RETURN TRUE;
+
       ELSIF Request^.ControllerURI.EqualsOA( STATUS_PAGE ) THEN
          RETURN ProcessStatus( Request, OUT View );
 
