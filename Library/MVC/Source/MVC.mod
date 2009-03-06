@@ -1219,7 +1219,7 @@ CLASS IMPLEMENTATION CMVC;
          END;
       END; // WHILE
 
-      HttpTools.DecodeURLEncoding( FALSE, OA( byteBuffer.Length-1, byteBuffer.Data ), OUT list );
+      HttpTools.DecodeURLEncoding( TRUE, OA( byteBuffer.Length-1, byteBuffer.Data ), OUT list );
    END DecodeDataFromContent;
 
 //--------------------------------------------------------------------------------
