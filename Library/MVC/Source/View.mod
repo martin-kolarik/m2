@@ -172,6 +172,8 @@ CLASS IMPLEMENTATION CRedirectView;
             i := Location.IndexOf( Request^.ControllerURI, 0 );
             ASSERT( i <> -1 );
             Location.Remove( i-1, -1 ); // remove trailing slash too
+         ELSIF Location.EndsWithOA( L"/" ) THEN
+            Location.Remove( Location.Length-1, -1 );            
          END;
          IF NOT URIOrControllerName.Empty THEN
             Location.AppendOA( L"/" );
