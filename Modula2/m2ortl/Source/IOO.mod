@@ -544,45 +544,57 @@ CLASS IMPLEMENTATION AStream;
 
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL PROCEDURE IO( Direction : TDirection; _Proxy : TPDataProxy; TimeoutMS : CARDINAL; WaitForResult : BOOLEAN ) : Sync.TAsyncResult;
-  VAR
-    Proxy : TPDataProxy;
-    Result : Sync.TAsyncResult;
-  BEGIN
-    CASE Direction OF
-    | dirRead :
-      IF NOT CanRead THEN
-        RETURN Sync.arCannotStart;
+   INTERNAL PROCEDURE IO( Direction : TDirection; _Proxy : TPDataProxy; TimeoutMS : CARDINAL; WaitForResult : BOOLEAN ) : Sync.TAsyncResult;
+   VAR
+      Proxy : TPDataProxy;
+      Result : Sync.TAsyncResult;
+   BEGIN
+      CASE Direction OF
+      | dirRead :
+         IF NOT CanRead THEN
+            RETURN Sync.arCannotStart;
+         END;
+         Proxy := Sync.ICmpExchgPtr( REF Reader, _Proxy, NIL );
+      | dirWrite :
+         IF NOT CanWrite THEN
+            RETURN Sync.arCannotStart;
+         END;
+         Proxy := Sync.ICmpExchgPtr( REF Writer, _Proxy, NIL );
+      ELSE
+         RETURN Sync.arCannotStart;
       END;
-      Proxy := Sync.ICmpExchgPtr( REF Reader, _Proxy, NIL );
-    | dirWrite :
-      IF NOT CanWrite THEN
-        RETURN Sync.arCannotStart;
+      IF Proxy <> NIL THEN
+         RETURN Sync.arAlreadyPending;
       END;
-      Proxy := Sync.ICmpExchgPtr( REF Writer, _Proxy, NIL );
-    ELSE
-      RETURN Sync.arCannotStart;
-    END;
-    IF Proxy <> NIL THEN
-      RETURN Sync.arAlreadyPending;
-    END;
-    _Proxy^.AddRef();
-    IF WaitForResult THEN
-      _Proxy^.Waitable := TRUE;
-      _Proxy^.Start();
-      Result := Start( Direction, Sync.FOREVER );
-      IF Result = Sync.arPending THEN
-        Result := _Proxy^.WaitCompletion( TimeoutMS );
-        IF Result = Sync.arTimeout THEN
-          DeviceFinish( Direction, Sync.arTimeout );
-        END;
+
+      _Proxy^.AddRef();
+
+      IF WaitForResult THEN
+         _Proxy^.Waitable := TRUE;
+         _Proxy^.Start();
+         Result := Start( Direction, Sync.FOREVER );
+         IF Result = Sync.arPending THEN
+            Result := _Proxy^.WaitCompletion( TimeoutMS ); // after WaitCompletion DeviceFinish is surely called EXCEPT arTimeout result
+            IF Result = Sync.arTimeout THEN
+               DeviceFinish( Direction, Sync.arTimeout );
+            END;
+            RETURN Result; // do not evaluate result of Start to call Release, it is called in DeviceFinish either here or during WaitCompletion
+         END;
+      ELSE
+         _Proxy^.Start();
+         Result := Start( Direction, TimeoutMS );
       END;
-    ELSE
-      _Proxy^.Start();
-      Result := Start( Direction, TimeoutMS );
-    END;
-    RETURN Result;
-  END IO;
+
+      // fullfil interface's Start order -- if Start returns arCannotStart, arPending, arAlreadyPending is DID NOT CALL DeviceFinish and I must ReleaseProxy
+      CASE Result OF
+      | Sync.arPending,
+        Sync.arAlreadyPending,
+        Sync.arCannotStart :
+         _Proxy^.Release();
+      END;
+
+      RETURN Result;
+   END IO;
 
 (*--------------------------------------------------------------------------------*)
 
