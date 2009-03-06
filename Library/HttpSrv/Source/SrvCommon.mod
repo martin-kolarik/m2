@@ -295,6 +295,8 @@ CLASS IMPLEMENTATION ASrvStream;
 (*--------------------------------------------------------------------------------*)
 
    INTERNAL FINAL PROCEDURE Start( Direction : IOO.TDirection; OperationTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   LABEL
+      Finish;
    CONST
       chunkEnd = 13C + 10C;
    VAR
@@ -309,18 +311,22 @@ CLASS IMPLEMENTATION ASrvStream;
    BEGIN
       IF ( Direction = IOO.dirRead ) AND _ReadOut THEN
          Result := Sync.arNoData;
+         // fall down to Finish
          
       ELSIF ( Direction = IOO.dirWrite ) AND _DataSent THEN
          Result := Sync.arCannotStart;
+         // fall down to Finish
 
       ELSE
          IF Direction = IOO.dirWrite THEN
             Result := StartResponse();
-            IF Result <> Sync.arCompleted THEN
+            IF Result = Sync.arCompleted THEN
+               chunked := Chunked;
+            ELSE
                _DataSent := TRUE;
-               RETURN Result;
+               // fall down to solve result
+               GOTO Finish;
             END;
-            chunked := Chunked;
          END;
 
          WHILE DevicePrepareData( Direction, OUT Data, OUT L ) DO
@@ -376,12 +382,13 @@ CLASS IMPLEMENTATION ASrvStream;
                IF HaveSome AND ( Result = Sync.arNoData ) THEN
                   Result := Sync.arCompleted;
                END;
-               EXIT;
+               EXIT; // fall down to Finish
             END;
 
          END; // WHILE
       END; // IF Direction
       
+   Finish:
       CASE Result OF
       | Sync.arPending,
         Sync.arAlreadyPending,
