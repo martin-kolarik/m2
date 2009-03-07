@@ -24,10 +24,10 @@ CLASS CFileView IMPLEMENTS MVC.IView;
    // IView
    PUBLIC VIRTUAL READONLY PROPERTY
       OutputType : MVC.TViewOutputType;
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
-   PUBLIC VIRTUAL PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE Release();
 
    // SELF
    PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; ResolverContext : PTR; CONST PathRelativeToContext : ARRAY OF WCHAR; DispositionFlag : BOOLEAN; CONST MIMEResolver : MVC.TPMIMEResolver; MIMEResolverContext : PTR );
@@ -50,10 +50,10 @@ CLASS CRedirectView IMPLEMENTS MVC.IView;
    // IView
    PUBLIC VIRTUAL READONLY PROPERTY
       OutputType : MVC.TViewOutputType;
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
-   PUBLIC VIRTUAL PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE Release();
 
    // SELF
    PUBLIC PROCEDURE Init( CONST URIIsAbsolute : BOOLEAN; URIOrControllerName : ARRAY OF WCHAR );   
@@ -72,10 +72,10 @@ CLASS CRawHTMLView IMPLEMENTS MVC.IView;
    // IView
    PUBLIC VIRTUAL READONLY PROPERTY
       OutputType : MVC.TViewOutputType;
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
-   PUBLIC VIRTUAL PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE Release();
 
    // SELF
    PUBLIC PROCEDURE Init( CONST HTML : ARRAY OF WCHAR );   
@@ -108,10 +108,10 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
    // IView
    PUBLIC VIRTUAL READONLY PROPERTY
       OutputType : MVC.TViewOutputType;
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
-   PUBLIC VIRTUAL PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE Release();
 
    // SELF
    PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; CONST ViewName : ARRAY OF WCHAR );
@@ -138,7 +138,7 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
    PRIVATE PROCEDURE Parse( emit, limitToPTOnly, balanced : BOOLEAN ) : BOOLEAN; // normally, Parse is entered after detecting element start. Element end must be detected inside. But, if reading from node buffer, one could want read pair-by-pair buffer content only. This requires balanced = TRUE to not to read out end of element.
    PRIVATE PROCEDURE HandleElementStart( isEmpty, ptFlag, limitToPTOnly : BOOLEAN; CONST nodeName : StringsO.CString; CONST attributes : lists.CStringStringList ) : TElementStartAction;
    PRIVATE PROCEDURE ParseElement( CONST attributes : lists.CStringStringList; isEmpty, limitToPTOnly : BOOLEAN; CONST ignoreOA1, ignoreOA2 : ARRAY OF WCHAR ) : BOOLEAN;
-   PRIVATE PROCEDURE ParseChoose( CONST Request : MVC.TPHttpRequest ) : BOOLEAN;
+   PRIVATE PROCEDURE ParseChoose() : BOOLEAN;
    PRIVATE PROCEDURE ParseFor( CONST attributes : lists.CStringStringList ) : BOOLEAN;
    PRIVATE PROCEDURE ParseForeach( CONST attributes : lists.CStringStringList ) : BOOLEAN;
    PRIVATE PROCEDURE ParseForm( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;

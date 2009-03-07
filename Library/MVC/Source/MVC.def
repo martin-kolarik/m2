@@ -21,6 +21,7 @@ TYPE
    TPMIMEResolver = POINTER TO IMIMEResolver;
    TPContainer = POINTER TO IContainer;
    TPHttpRequest = POINTER TO IHttpRequest;
+   TPHttpResponse = POINTER TO IHttpResponse;
    TPView = POINTER TO IView;
    TPController = POINTER TO IController;
    TPMVC = POINTER TO IMVC;
@@ -85,10 +86,25 @@ INTERFACE IHttpRequest;
       RequestHeaders : HttpCommon.TPHttpHeaders;
       Language : Languages.TLanguage;
 
-      MessageSource : TPMessageSource; // messages are loaded single time for MVC's context, can be NIL
       ModelContainer : TPContainer;
       Session : HttpSrv.TPSession;
+      MessageSource : TPMessageSource; // messages are loaded single time for MVC's context, can be NIL
 END IHttpRequest;
+
+(*--------------------------------------------------------------------------------*)
+
+INTERFACE IHttpResponse;
+   PROPERTY
+      StatusCode : HttpCommon.THttpResponse;
+      ContentType : StringsO.CString; // default none
+      Length : CARD64; // default none
+      Chunked : BOOLEAN; // default FALSE
+      OverrideStatusResponse : BOOLEAN; // default FALSE
+   READONLY PROPERTY
+      ModelContainer : TPContainer;
+      Session : HttpSrv.TPSession;
+      ResponseHeaders : HttpCommon.TPHttpHeaders;
+END IHttpResponse;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -99,13 +115,15 @@ TYPE
       votOutputStream
    );
 
+// IView.Format*Stream implementor SHALL set ContentType and ContentLength/Chunked for its content. Higer level has not sufficient information to do it.
+// IView.Format*Buffer implementor SHALL set ContentType for its content. Higer level has not sufficient information to do it. ContentLength/Chunk is set by MVC.
 INTERFACE IView;
    READONLY PROPERTY
       OutputType : TViewOutputType;
-   PROCEDURE FormatToBuffer( CONST Request : TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
-   PROCEDURE FormatToInputStream( CONST Request : TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
-   PROCEDURE FormatToOutputStream( CONST Request : TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
-   PROCEDURE Dispose();
+   PROCEDURE FormatToBuffer( CONST Request : IHttpRequest; REF Response : IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   PROCEDURE FormatToInputStream( CONST Request : IHttpRequest; REF Response : IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PROCEDURE FormatToOutputStream( CONST Request : IHttpRequest; REF Response : IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PROCEDURE Release();
 END IView;
 
 (*--------------------------------------------------------------------------------*)
