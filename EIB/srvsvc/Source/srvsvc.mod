@@ -349,6 +349,7 @@ BEGIN
    ConfigLogger.Levels := FALSE;
    ConfigLogger.Names := FALSE;
    ConfigLogger.Method := Log.dmNone;
+   ConfigLogger.Level := Log.dldTrace;
    ConfigLogger.BufferSize := 16;
    ConfigLogger.BufferMode := Log.bmStoreFirst;
 END CEibSvc;

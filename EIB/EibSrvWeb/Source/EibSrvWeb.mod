@@ -264,7 +264,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       END;
       s.Assign( value );
       io.String := s;
-      RETURN _EIB^.IOh( IOO.dirWrite, hash, REF io, NIL ) IN Sync.arsCompletions;
+      RETURN _EIB^.IOh( IOO.dirWrite, hash, REF io, NIL ) = Sync.arCompleted; // partial = cache write is not evaluated as true
    END SetValue;
 
 (*--------------------------------------------------------------------------------*)
@@ -372,6 +372,8 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
       _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.LOGIN_PAGE );
       _MVC^.RegisterController( _Controller, HttpCommon.verbPOST, Controller.LOGIN_PAGE );
+
+      _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.LOGOUT_PAGE );
 
       _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.STATUS_PAGE );
 

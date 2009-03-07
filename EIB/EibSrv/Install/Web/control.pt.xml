@@ -24,6 +24,8 @@
                           <p><a href="datalog">${msg.menu.datalog}</a></p>
                           <p><a href="syslog">${msg.menu.syslog}</a></p>
                           <p><a href="io">${msg.menu.io}</a></p>
+                          <p>&nbsp;</p>
+                          <p class="logout"><a href="logout">${msg.menu.logout}</a></p>
                       </div>
 
                       <div class="content">
@@ -49,7 +51,7 @@
 
                         <h1>${msg.control.configuration}</h1>
                         <pt:form  method="post" action="control">
-                          <pt:input model="configFile"/> <input type="submit" value="${msg.control.loadConfigFile}"/> <a href="?download=1">[${msg.control.downloadConfig}]</a>
+                          <pt:input model="configFile" class="configFile"/> <input type="submit" value="${msg.control.loadConfigFile}"/> <a href="?download=1">[${msg.control.downloadConfig}]</a>
                         </pt:form>
                         <div class="log"><pre class="log">${configLog}</pre></div>
 

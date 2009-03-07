@@ -169,11 +169,20 @@ CLASS IMPLEMENTATION CController;
       ELSIF Request^.ControllerURI.EqualsOA( LOGIN_PAGE ) THEN
          RETURN ProcessLogin( Request, OUT View );
       
+      ELSIF Request^.ControllerURI.EqualsOA( LOGOUT_PAGE ) THEN
+         Request^.Session^.Remove( SESSION_LOGGED );
+         View := mvc.redirectView( LOGIN_PAGE );
+         RETURN TRUE;
+      
       ELSIF NOT Request^.Session^.Get( SESSION_LOGGED, OUT data ) OR ( data <> PTR( ADR( SELF ))) THEN
          Request^.Session^.Remove( SESSION_LOGGED );
          View := mvc.redirectView( LOGIN_PAGE );
          RETURN TRUE;
       
+      ELSIF Request^.ControllerURI.Empty THEN // context directly accessed
+         View := mvc.redirectView( STATUS_PAGE );
+         RETURN TRUE;
+
       ELSIF Request^.ControllerURI.EqualsOA( STATUS_PAGE ) THEN
          RETURN ProcessStatus( Request, OUT View );
 
@@ -435,8 +444,8 @@ CLASS IMPLEMENTATION CController;
       count := _Web^.DataLogger^.BufferCount;
       cs.Clear();
       IF count > 0 THEN
-         FOR i := 0 TO count-1 DO
-            IF i > 0 THEN
+         FOR i := count-1 TO 0 BY -1 DO
+            IF i < count-1 THEN
                cs.AppendOA( CRLF );
             END;
             _Web^.DataLogger^.BufferGetItem( i, OUT log );

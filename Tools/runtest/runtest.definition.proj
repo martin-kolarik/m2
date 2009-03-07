@@ -12,6 +12,10 @@
     </PropertyGroup>
 
     <PropertyGroup>
+        <ComponentType Condition="$(MSBuildProjectName)=='SCCore'">Generic</ComponentType>
+    </PropertyGroup>
+    
+    <PropertyGroup>
         <ProductM2Control></ProductM2Control>
         <ProductCLControl></ProductCLControl>
         <ProductRCControl></ProductRCControl>

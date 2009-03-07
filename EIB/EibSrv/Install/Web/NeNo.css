@@ -1,4 +1,4 @@
-﻿body
+body
 {
   background-color: #434242;
   overflow: hidden;
@@ -28,7 +28,7 @@
 div.shell
 {
   height: 799px;
-  background-image: url(BackgroundStrip.png);
+  background-image: url(BackgroundStripThick.png);
   background-position: center;
   background-repeat: repeat-x;
   text-align: center;
@@ -41,7 +41,7 @@ div.shell-topstrip
 
 div.canvas
 {
-  background-image: url(Canvas.png);
+  background-image: url(Canvas.jpg);
   width: 899px;
   height: 603px;
   margin: 0 auto;
@@ -92,7 +92,7 @@ div.content
   _width: 675px;
   margin: 0px 0px 0px 160px;
   padding: 5px 5px 10px 10px;
-  background-image: url(Transparent.png);
+  background-image: url(TransparentBig.png);
 }
 
 div.content h1, div.content h2, div.content h3, div.content div,
@@ -112,7 +112,7 @@ div.log, div.longlog
 }
 div.log
 {
-  height: 239px;
+  height: 207px;
 }
 div.longlog
 {
@@ -129,9 +129,13 @@ input
 {
   color: Black;
   height: 25px;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 input.ioValue, input.ioName
 {
   width: 100px;
+}
+input.configFile
+{
+  width: 525px;
 }
