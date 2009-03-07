@@ -24,9 +24,9 @@ CLASS IMPLEMENTATION CXMLWriter;
 
 	PUBLIC PROPERTY Stream SET( Value : IOO.TPStream );
 	BEGIN
-		IF _Stream <> NIL THEN
-			_Stream^.Close( FALSE );
-		END;
+		// IF _Stream <> NIL THEN
+		//    there are no pending actions like write which should be aborted 
+		// END;
 		_Stream := Value;
 	END Stream;
 

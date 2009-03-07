@@ -585,12 +585,12 @@ CLASS IMPLEMENTATION AStream;
          Result := Start( Direction, TimeoutMS );
       END;
 
-      // fullfil interface's Start order -- if Start returns arCannotStart, arPending, arAlreadyPending is DID NOT CALL DeviceFinish and I must ReleaseProxy
+      // fullfil interface's Start order -- if Start returns arCannotStart, arPending, arAlreadyPending is DID NOT CALL DeviceFinish and I must Release proxy
       CASE Result OF
-      | Sync.arPending,
-        Sync.arAlreadyPending,
-        Sync.arCannotStart :
+      | Sync.arPending, Sync.arAlreadyPending :
          _Proxy^.Release();
+      | Sync.arCannotStart :
+         DeviceFinish( Direction, Sync.arCannotStart );
       END;
 
       RETURN Result;
@@ -763,8 +763,10 @@ CLASS IMPLEMENTATION CBufferedStream;
     IF Value = _Stream THEN
       RETURN;
     END;
-    AbortReading();
-    AbortWriting();
+    IF _Stream <> NIL THEN // not to abort self, I can have data in buffers which could be valid. If client wants clear me it should call Abort for me.
+      _Stream^.AbortReading();
+      _Stream^.AbortWriting();
+    END;
     _Stream := Value;
   END Stream;
 
@@ -871,28 +873,33 @@ CLASS IMPLEMENTATION CBufferedStream;
   
 (*--------------------------------------------------------------------------------*)
 
-  INTERNAL FINAL PROCEDURE Start( Direction : TDirection; OperationTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
-  VAR
-    Result : Sync.TAsyncResult;
-  BEGIN
-    IF _Stream = NIL THEN
-      RETURN Sync.arCannotStart;
-    ELSIF Direction = dirRead THEN
-      IF RMode = bmBypass THEN
-        RETURN _Stream^.IO( dirRead, Reader, OperationTimeoutMS, FALSE ); 
+   INTERNAL FINAL PROCEDURE Start( Direction : TDirection; OperationTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   VAR
+      haveStream : BOOLEAN := _Stream <> NIL;
+      Result : Sync.TAsyncResult;
+   BEGIN
+      IF Direction = dirRead THEN
+         IF RMode <> bmBypass THEN
+            Result := OperateClient( Direction, FALSE ); 
+         ELSIF haveStream THEN
+            RETURN _Stream^.IO( dirRead, Reader, OperationTimeoutMS, FALSE ); 
+         ELSE
+            RETURN Sync.arCannotStart;
+         END;
       ELSE
-        Result := OperateClient( Direction, FALSE ); 
+         IF WMode <> bmBypass THEN
+            Result := OperateClient( Direction, FALSE ); 
+         ELSIF haveStream THEN
+            RETURN _Stream^.IO( dirWrite, Writer, OperationTimeoutMS, FALSE ); 
+         ELSE
+            RETURN Sync.arCannotStart;
+         END;
       END;
-    ELSE
-      IF WMode = bmBypass THEN
-        RETURN _Stream^.IO( dirWrite, Writer, OperationTimeoutMS, FALSE ); 
-      ELSE
-        Result := OperateClient( Direction, FALSE ); 
+      IF haveStream THEN
+         OperateDevice( Direction );
       END;
-    END;
-    OperateDevice( Direction );
-    RETURN Result;
-  END Start;
+      RETURN Result;
+   END Start;
 
 (*--------------------------------------------------------------------------------*)
 
