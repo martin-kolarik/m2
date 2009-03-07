@@ -37,6 +37,7 @@ TYPE
    TXMLError = (
       xmle_S_OK,
       xmle_S_FALSE,
+      xmle_PARSER_NOT_CREATED,
       xmle_UNSPECIFIED,
    
       xmle_MX_E_INPUTEND, // unexpected end of input
