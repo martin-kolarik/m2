@@ -469,7 +469,9 @@ CLASS IMPLEMENTATION CXMLReader;
    VAR
       nt : xmlLITE.XmlNodeType;
    BEGIN
-      IF ( _IReader = NIL ) OR ( xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True ) THEN
+      IF _IReader = NIL THEN
+         RETURN xmle_PARSER_NOT_CREATED;
+      ELSIF xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True THEN
          RETURN xmle_S_FALSE;
       END;
       RETURN Error2Error( xmlLITE.TPIXmlReader( _IReader )^.Read( OUT nt ));
@@ -479,7 +481,9 @@ CLASS IMPLEMENTATION CXMLReader;
 
    PUBLIC PROCEDURE MoveToElement() : TXMLError;
    BEGIN
-      IF ( _IReader = NIL ) OR ( xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True ) THEN
+      IF _IReader = NIL THEN
+         RETURN xmle_PARSER_NOT_CREATED;
+      ELSIF xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True THEN
          RETURN xmle_S_FALSE;
       END;
       RETURN Error2Error( xmlLITE.TPIXmlReader( _IReader )^.MoveToElement());
@@ -489,7 +493,9 @@ CLASS IMPLEMENTATION CXMLReader;
 
    PUBLIC PROCEDURE MoveToFirstAttribute() : TXMLError;
    BEGIN
-      IF ( _IReader = NIL ) OR ( xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True ) THEN
+      IF _IReader = NIL THEN
+         RETURN xmle_PARSER_NOT_CREATED;
+      ELSIF xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True THEN
          RETURN xmle_S_FALSE;
       END;
       RETURN Error2Error( xmlLITE.TPIXmlReader( _IReader )^.MoveToFirstAttribute());
@@ -499,7 +505,9 @@ CLASS IMPLEMENTATION CXMLReader;
 
    PUBLIC PROCEDURE MoveToNextAttribute() : TXMLError;
    BEGIN
-      IF ( _IReader = NIL ) OR ( xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True ) THEN
+      IF _IReader = NIL THEN
+         RETURN xmle_PARSER_NOT_CREATED;
+      ELSIF xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True THEN
          RETURN xmle_S_FALSE;
       END;
       RETURN Error2Error( xmlLITE.TPIXmlReader( _IReader )^.MoveToNextAttribute());
@@ -509,7 +517,9 @@ CLASS IMPLEMENTATION CXMLReader;
 
    PUBLIC PROCEDURE MoveToAttributeByName( CONST Name : StringsO.IString ) : TXMLError;
    BEGIN
-      IF ( _IReader = NIL ) OR ( xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True ) THEN
+      IF _IReader = NIL THEN
+         RETURN xmle_PARSER_NOT_CREATED;
+      ELSIF xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True THEN
          RETURN xmle_S_FALSE;
       END;
       RETURN Error2Error( xmlLITE.TPIXmlReader( _IReader )^.MoveToAttributeByName( Name.szData, NIL ));
@@ -521,7 +531,9 @@ CLASS IMPLEMENTATION CXMLReader;
    VAR
       s : StringsO.CString;
    BEGIN
-      IF ( _IReader = NIL ) OR ( xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True ) THEN
+      IF _IReader = NIL THEN
+         RETURN xmle_PARSER_NOT_CREATED;
+      ELSIF xmlLITE.TPIXmlReader( _IReader )^.IsEOF() = windows.True THEN
          RETURN xmle_S_FALSE;
       END;
       s.FromOA( Name );
