@@ -169,6 +169,11 @@ CLASS IMPLEMENTATION CController;
       ELSIF Request^.ControllerURI.EqualsOA( LOGIN_PAGE ) THEN
          RETURN ProcessLogin( Request, OUT View );
       
+      ELSIF Request^.ControllerURI.EqualsOA( LOGOUT_PAGE ) THEN
+         Request^.Session^.Remove( SESSION_LOGGED );
+         View := mvc.redirectView( LOGIN_PAGE );
+         RETURN TRUE;
+      
       ELSIF NOT Request^.Session^.Get( SESSION_LOGGED, OUT data ) OR ( data <> PTR( ADR( SELF ))) THEN
          Request^.Session^.Remove( SESSION_LOGGED );
          View := mvc.redirectView( LOGIN_PAGE );

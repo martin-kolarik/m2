@@ -373,6 +373,8 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.LOGIN_PAGE );
       _MVC^.RegisterController( _Controller, HttpCommon.verbPOST, Controller.LOGIN_PAGE );
 
+      _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.LOGOUT_PAGE );
+
       _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.STATUS_PAGE );
 
       _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.CONTROL_PAGE );

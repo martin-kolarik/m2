@@ -427,7 +427,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       LOOP
          IF xmle = xmlreader.xmle_S_FALSE THEN
             RETURN TRUE;
-         ELSIF xmle <> xmlreader.xmle_PARSER_NOT_CREATED THEN
+         ELSIF xmle = xmlreader.xmle_PARSER_NOT_CREATED THEN
             SetError( rootName, NIL, L"Parser not created, maybe xmllite.dll is missing." );
             RETURN FALSE;
          ELSIF xmle <> xmlreader.xmle_S_OK THEN
