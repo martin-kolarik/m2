@@ -516,6 +516,7 @@ CLASS IMPLEMENTATION ASrvStream;
 
    PUBLIC PROCEDURE StartResponse() : Sync.TAsyncResult;
    VAR
+      BStream : IOO.CBufferedStream;
       Content : StringsO.CString;
       Result : Sync.TAsyncResult;
    BEGIN
@@ -534,28 +535,39 @@ CLASS IMPLEMENTATION ASrvStream;
          RETURN SendHeaders();
       
       ELSE // send default error page
+         BStream.WMode := IOO.bmCommited;
+         FormatErrorPage( ADR( BStream ));
+         
          httptools.FormatContentOA( httptools.contentTextHTML, L"", L"utf-8", FALSE, OUT Content );
          ResponseHeaders^.Add( HttpCommon.ContentType, Content );
-   
+         ResponseLength := CARD64( BStream.BufferSize - BStream.WriteSpace );
+
          Result := SendHeaders();
          IF Result <> Sync.arCompleted THEN
             RETURN Result;
          END;
 
-         SendFormattedErrorPage(); // send formatted status error page
+         // do send formatted status error page
+         BStream.Stream := ADR( SELF );
+         BStream.CommitWrite();
+
          RETURN Sync.arCannotStart; // any next write is impossible
       END;
    END StartResponse;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE SendFormattedErrorPage();
+   PRIVATE PROCEDURE FormatErrorPage( StreamToSend : IOO.TPStream );
    VAR
       Location : StringsO.CString;
       n : ARRAY [0..63] OF WCHAR;
       Writer : XMLWriter.CXMLWriter;
    BEGIN
-      Writer.Stream := ADR( SELF );
+      IF StatusCode = HttpCommon.httpres_304 THEN // RFC forbids content for 304
+         RETURN;
+      END;
+   
+      Writer.Stream := StreamToSend;
       Writer.WriteElementStartOA( L"html" );
          Writer.WriteElementStartOA( L"body" );
          
@@ -586,7 +598,9 @@ CLASS IMPLEMENTATION ASrvStream;
 
          Writer.WriteElementEnd();
       Writer.WriteElementEnd();
-   END SendFormattedErrorPage;
+      
+      Writer.Close( TRUE ); // leave stream persist
+   END FormatErrorPage;
 
 (*--------------------------------------------------------------------------------*)
 
