@@ -91,7 +91,7 @@ ABSTRACT CLASS ASrvStream( IOO.AStream ); // synchronous implementation only
    INTERNAL ABSTRACT PROCEDURE SendData( CONST Data : StorageO.AMemoryBuffer ) : Sync.TAsyncResult; // after SendHeaders
    INTERNAL ABSTRACT PROCEDURE EndResponse() : Sync.TAsyncResult; // finishes response
    
-   PUBLIC PROPERTY
+   PUBLIC PROPERTY // these properties can be set to ResponseHeaders too, but they are frequently used and it takes sense to wrap them to properties
       Chunked : BOOLEAN;
       ResponseLength : CARD64;
       OverrideStatusResponse : BOOLEAN; // Default = FALSE means server generates self error pages
