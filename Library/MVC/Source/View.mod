@@ -31,7 +31,7 @@ CLASS IMPLEMENTATION CFileView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
    BEGIN
       ASSERT( FALSE );
       RETURN FALSE;
@@ -39,7 +39,7 @@ CLASS IMPLEMENTATION CFileView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
       ASSERT( FALSE );
       RETURN FALSE;
@@ -47,7 +47,7 @@ CLASS IMPLEMENTATION CFileView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    VAR
       buffer : StorageO.CMemoryBuffer;
       Content : StringsO.CString;
@@ -59,29 +59,30 @@ CLASS IMPLEMENTATION CFileView;
       Result : Sync.TAsyncResult;
    BEGIN
       IF Resolver = NIL THEN
-         ResponseStatus := HttpCommon.httpres_404;
+         Response.StatusCode := HttpCommon.httpres_404;
          RETURN TRUE;
       ELSIF NOT Resolver^.ResolvePath( ResolverContext, OA( PathRelativeToContext.Length-1, PathRelativeToContext.rawData ), OUT filePath ) THEN
-         ResponseStatus := HttpCommon.httpres_404;
+         Response.StatusCode := HttpCommon.httpres_404;
          RETURN TRUE;
       END;
 
       IF ( MIMEResolver = NIL ) OR NOT MIMEResolver^.ResolveMIME( MIMEResolverContext, filePath, OUT Content ) THEN
          HttpTools.FormatContent( HttpTools.contentUnknown, filePath, empty, TRUE, OUT Content );
       END;
-      ResponseHeaders^.Add( HttpCommon.ContentType, Content );
+      Response.ContentType := Content;
       IF DispositionFlag THEN
          FIO.PathTailW( OA( filePath.Length-1, filePath.rawData ), OUT fileName );
          Strings.PrependW( REF fileName, L"attachment; filename=" );
-         ResponseHeaders^.AddUnknownOA( L"Content-Disposition", fileName );
+         Response.ResponseHeaders^.AddUnknownOA( L"Content-Disposition", fileName );
       END;
       
       TRY
          fs.FromPath( OA( filePath.Length-1, filePath.rawData ), FIOO.imOpenRead );
       CATCH e : IOO.CIOException DO
-         ResponseStatus := HttpCommon.httpres_404;
+         Response.StatusCode := HttpCommon.httpres_404;
          RETURN TRUE;
       END;
+      Response.Length := fs.Length;
 
       buffer.Size := MIN2( 2*65536, fs.Length32 );
       LOOP
@@ -91,7 +92,7 @@ CLASS IMPLEMENTATION CFileView;
          IF Result = Sync.arNoData THEN
             // fall down
          ELSIF Result NOT IN Sync.arsCompletions THEN
-            ResponseStatus := HttpCommon.httpres_500;
+            Response.StatusCode := HttpCommon.httpres_500;
             EXIT;
          END;
 
@@ -112,12 +113,12 @@ CLASS IMPLEMENTATION CFileView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Release();
    VAR
       a : TPFileView := ADR( SELF );
    BEGIN
       DISPOSE( a );
-   END Dispose;
+   END Release;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -154,22 +155,21 @@ CLASS IMPLEMENTATION CRedirectView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
    VAR
-      Content : StringsO.CString;
       i : CARDINAL;
       Location : StringsO.CString;
    BEGIN
-      // set status
-      ResponseStatus := HttpTools.GetRedirectCode( HttpTools.redirectTemporarily, FALSE );
+      // set status and length
+      Response.StatusCode := HttpTools.GetRedirectCode( HttpTools.redirectTemporarily, FALSE );
       
       // set location
       IF AbsoluteFlag THEN
          Location := URIOrControllerName;
       ELSE
-         Location := Request^.FullURI;
-         IF NOT Request^.ControllerURI.Empty THEN
-            i := Location.IndexOf( Request^.ControllerURI, 0 );
+         Location := Request.FullURI;
+         IF NOT Request.ControllerURI.Empty THEN
+            i := Location.IndexOf( Request.ControllerURI, 0 );
             ASSERT( i <> -1 );
             Location.Remove( i-1, -1 ); // remove trailing slash too
          ELSIF Location.EndsWithOA( L"/" ) THEN
@@ -180,15 +180,17 @@ CLASS IMPLEMENTATION CRedirectView;
             Location.Append( URIOrControllerName );
          END;
       END;
-      ResponseHeaders^.Add( HttpCommon.Location, Location );
+      Response.ResponseHeaders^.Add( HttpCommon.Location, Location );
       
       // generating textual page with help text about page moving is left to common server routines
+      // Response.Length := 0;
+
       RETURN TRUE;
    END FormatToBuffer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
       ASSERT( FALSE );
       RETURN FALSE;
@@ -196,7 +198,7 @@ CLASS IMPLEMENTATION CRedirectView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    BEGIN
       ASSERT( FALSE );
       RETURN FALSE;
@@ -204,12 +206,12 @@ CLASS IMPLEMENTATION CRedirectView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Release();
    VAR
       a : TPRedirectView := ADR( SELF );
    BEGIN
       DISPOSE( a );
-   END Dispose;
+   END Release;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -238,19 +240,19 @@ CLASS IMPLEMENTATION CRawHTMLView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
    VAR
       Content : StringsO.CString;
    BEGIN
       HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"", L"utf-8", FALSE, OUT Content );
-      ResponseHeaders^.Add( HttpCommon.ContentType, Content );
+      Response.ContentType := Content;
       LanguagesO.ToMB( HTML, Languages.cp_UTF8, FALSE, REF Output );
       RETURN TRUE;
    END FormatToBuffer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
       ASSERT( FALSE );
       RETURN FALSE;
@@ -258,7 +260,7 @@ CLASS IMPLEMENTATION CRawHTMLView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    BEGIN
       ASSERT( FALSE );
       RETURN FALSE;
@@ -266,12 +268,12 @@ CLASS IMPLEMENTATION CRawHTMLView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Release();
    VAR
       a : TPRawHTMLView := ADR( SELF );
    BEGIN
       DISPOSE( a );
-   END Dispose;
+   END Release;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -333,7 +335,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
    LABEL
       Failure;
    VAR
@@ -343,9 +345,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
       mbs : IOO.CMemoryBufferStream;
       viewPath : StringsO.CString;
    BEGIN
-      Request^.ModelContainer^.ResetModelViewMapping();
+      Response.ModelContainer^.ResetModelViewMapping();
       HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"", L"utf-8", FALSE, OUT Content );
-      ResponseHeaders^.Add( HttpCommon.ContentType, Content );
+      Response.ContentType := Content;
 
       IF Resolver = NIL THEN
          viewPath := ViewName;
@@ -353,7 +355,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          SetError( empty, ADR( ViewName ), L"Unable to resolve view name." );
          GOTO Failure;
       END;
-      SELF.Request := Request;
+      SELF.Request := MVC.TPHttpRequest( ADR( Request ));
 
       TRY
          fs.FromPath( OA( viewPath.Length-1, viewPath.rawData ), FIOO.imOpenRead );
@@ -383,7 +385,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
       ASSERT( FALSE );
       RETURN FALSE;
@@ -391,7 +393,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.TPHttpRequest; REF ResponseStatus : HttpCommon.THttpResponse; ResponseHeaders : HttpCommon.TPHttpHeaders; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    BEGIN
       ASSERT( FALSE );
       RETURN FALSE;
@@ -399,12 +401,12 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Release();
    VAR
       a : TPPageTemplateView := ADR( SELF );
    BEGIN
       DISPOSE( a );
-   END Dispose;
+   END Release;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -575,7 +577,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       IF ptFlag THEN // Page Template element
          b := FALSE;
          IF nodeName.EqualsIgnoreCaseOA( PT_CHOOSE ) THEN
-            b := ParseChoose( Request );
+            b := ParseChoose();
          ELSIF nodeName.EqualsIgnoreCaseOA( PT_FOR ) THEN
             b := ParseFor( attributes );
          ELSIF nodeName.EqualsIgnoreCaseOA( PT_FOREACH ) THEN
@@ -685,7 +687,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ParseChoose( CONST Request : MVC.TPHttpRequest ) : BOOLEAN;
+   PRIVATE PROCEDURE ParseChoose() : BOOLEAN;
    VAR
       attributes : lists.CStringStringList;
       condition : StringsO.CString;

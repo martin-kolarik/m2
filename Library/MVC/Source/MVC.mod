@@ -687,9 +687,9 @@ CLASS CHttpRequest IMPLEMENTS IHttpRequest;
       RequestHeaders : HttpCommon.TPHttpHeaders;
       ResponseHeaders : HttpCommon.TPHttpHeaders;
       Language : Languages.TLanguage;
-      MessageSource : TPMessageSource;
       ModelContainer : TPContainer;
       Session : HttpSrv.TPSession;
+      MessageSource : TPMessageSource; // messages are loaded single time for MVC's context, can be NIL
       
    // SELF
    PRIVATE VAR
@@ -697,10 +697,10 @@ CLASS CHttpRequest IMPLEMENTS IHttpRequest;
       _Session : HttpSrv.TPSession;
       _ControllerURI : StringsO.CString;
       _Container : TPContainer;
-      _Language : CARDINAL; // cache
       _MessageSource : TPMessageSource;
+      _Language : Languages.TLanguage;
 
-   LOCAL PROCEDURE Init( CONST RequestURI : StringsO.CString; Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPContainer; CONST MessageSource : TPMessageSource );
+   LOCAL PROCEDURE Init( CONST RequestURI : StringsO.CString; Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPContainer;  CONST MessageSource : TPMessageSource );
 
 END CHttpRequest;
 
@@ -768,13 +768,6 @@ CLASS IMPLEMENTATION CHttpRequest;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY MessageSource GET : TPMessageSource;
-   BEGIN
-      RETURN _MessageSource;
-   END MessageSource;
-
-(*--------------------------------------------------------------------------------*)
-
    PUBLIC VIRTUAL PROPERTY ModelContainer GET : TPContainer;
    BEGIN
       RETURN _Container;
@@ -787,6 +780,13 @@ CLASS IMPLEMENTATION CHttpRequest;
       RETURN _Session;
    END Session;
       
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY MessageSource GET : TPMessageSource;
+   BEGIN
+      RETURN _MessageSource;
+   END MessageSource;
+
 (*--------------------------------------------------------------------------------*)
 
    LOCAL PROCEDURE Init( CONST ControllerURI : StringsO.CString; Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPContainer; CONST MessageSource : TPMessageSource );
@@ -807,6 +807,148 @@ BEGIN
    _MessageSource := NIL;
    _Language := -1;
 END CHttpRequest;
+
+(*================================================================================*)
+
+CLASS CHttpResponse IMPLEMENTS IHttpResponse;
+
+   // IHttpRequest
+   PUBLIC VIRTUAL PROPERTY
+      StatusCode : HttpCommon.THttpResponse;
+      Length : CARD64; // default none
+      ContentType : StringsO.CString; // default none
+      Chunked : BOOLEAN; // default FALSE
+      OverrideStatusResponse : BOOLEAN; // default FALSE
+
+   PUBLIC VIRTUAL READONLY PROPERTY
+      ResponseHeaders : HttpCommon.TPHttpHeaders;
+      ModelContainer : TPContainer;
+      Session : HttpSrv.TPSession;
+      
+   // SELF
+   PRIVATE VAR
+      _Connection : HttpConnection.TPHttpSrvConnection;
+      _Session : HttpSrv.TPSession;
+      _Container : TPContainer;
+
+   LOCAL PROCEDURE Init( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPContainer );
+
+END CHttpResponse;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CHttpResponse;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY StatusCode GET : HttpCommon.THttpResponse;
+   BEGIN
+      RETURN _Connection^.StatusCode;
+   END StatusCode;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY StatusCode SET( Value : HttpCommon.THttpResponse );
+   BEGIN
+      _Connection^.StatusCode := Value;
+   END StatusCode;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Length GET : CARD64;
+   BEGIN
+      RETURN _Connection^.ResponseLength;
+   END Length;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Length SET( Value : CARD64 );
+   BEGIN
+      _Connection^.ResponseLength := Value;
+   END Length;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY ContentType GET : StringsO.CString;
+   VAR
+      Value : StringsO.CString;
+   BEGIN
+      _Connection^.ResponseHeaders^.Get( HttpCommon.ContentType, OUT Value );
+      RETURN Value;
+   END ContentType;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY ContentType SET( CONST Value : StringsO.CString );
+   BEGIN
+      _Connection^.ResponseHeaders^.Add( HttpCommon.ContentType, Value );
+   END ContentType;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Chunked GET : BOOLEAN;
+   BEGIN
+      RETURN _Connection^.Chunked;
+   END Chunked;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY OverrideStatusResponse SET( Value : BOOLEAN );
+   BEGIN
+      _Connection^.OverrideStatusResponse := Value;
+   END OverrideStatusResponse;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY OverrideStatusResponse GET : BOOLEAN;
+   BEGIN
+      RETURN _Connection^.OverrideStatusResponse;
+   END OverrideStatusResponse;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Chunked SET( Value : BOOLEAN );
+   BEGIN
+      _Connection^.Chunked := Value;
+   END Chunked;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY ResponseHeaders GET : HttpCommon.TPHttpHeaders;
+   BEGIN
+      RETURN _Connection^.ResponseHeaders;
+   END ResponseHeaders;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY ModelContainer GET : TPContainer;
+   BEGIN
+      RETURN _Container;
+   END ModelContainer;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Session GET : HttpSrv.TPSession;
+   BEGIN
+      RETURN _Session;
+   END Session;
+      
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE Init( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPContainer );
+   BEGIN
+      _Connection := Connection;
+      _Session := Session;
+      _Container := Container;
+   END Init;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+   _Connection := NIL;
+   _Session := NIL;
+   _Container := NIL;   
+END CHttpResponse;
 
 (*================================================================================*)
 
@@ -898,7 +1040,7 @@ CLASS IMPLEMENTATION CMVC;
       mappedName : StringsO.CString;
       modelValue : StringsO.CString;
       request : CHttpRequest;
-      StatusCode : HttpCommon.THttpResponse;
+      response : CHttpResponse;
       view : TPView;
    BEGIN
       controllerURI := Connection^.RequestURI;
@@ -945,6 +1087,7 @@ CLASS IMPLEMENTATION CMVC;
       
       // prepare controller data
       request.Init( controllerURI, Connection, Session, container, ADR( SELF ));
+      response.Init( Connection, Session, container );
       buffer.Size := 16384; // initial size
       view := NIL;
       
@@ -955,17 +1098,17 @@ CLASS IMPLEMENTATION CMVC;
          // LOG error
          ASSERT( FALSE );
       ELSE
-         StatusCode := HttpCommon.httpres_200;
+         Connection^.StatusCode := HttpCommon.httpres_200;
          
          CASE view^.OutputType OF
          //-----
          | votBuffer :
-            IF NOT view^.FormatToBuffer( ADR( request ), REF StatusCode, Connection^.ResponseHeaders, OUT buffer ) THEN
+            IF NOT view^.FormatToBuffer( request, REF response, OUT buffer ) THEN
                Connection^.StatusCode := HttpCommon.httpres_500;
             ELSIF buffer.Empty THEN
-               Connection^.StatusCode := StatusCode;
+               Connection^.ResponseLength := 0;
             ELSE
-               Connection^.StatusCode := StatusCode;
+               Connection^.ResponseLength := CARD64( buffer.Length );
                Connection^.Stream^.WriteBuffer( buffer, OUT l, netsocket.FORSAFETY );
                // LOG errors
             END;
@@ -976,11 +1119,9 @@ CLASS IMPLEMENTATION CMVC;
             Connection^.StatusCode := HttpCommon.httpres_500;
             RETURN;
 
-            IF NOT view^.FormatToInputStream( ADR( request ), REF StatusCode, Connection^.ResponseHeaders, OUT InputStream ) OR ( InputStream = NIL ) THEN
+            IF NOT view^.FormatToInputStream( request, REF response, OUT InputStream ) OR ( InputStream = NIL ) THEN
                InputStream := NIL;
                Connection^.StatusCode := HttpCommon.httpres_500;
-            ELSIF InputStream^.AtEnd THEN
-               Connection^.StatusCode := StatusCode;
             ELSE
                // TODO copy streams
             END;
@@ -990,17 +1131,15 @@ CLASS IMPLEMENTATION CMVC;
             END;
          //-----
          | votOutputStream :
-            IF NOT view^.FormatToOutputStream( ADR( request ), REF StatusCode, Connection^.ResponseHeaders, Connection^.Stream ) THEN
+            IF NOT view^.FormatToOutputStream( request, REF response, Connection^.Stream ) THEN
                Connection^.StatusCode := HttpCommon.httpres_500;
                // LOG errors
-            ELSE
-               Connection^.StatusCode := StatusCode;
             END;
          ELSE
             ASSERT( FALSE );
          END;         
 
-         view^.Dispose();
+         view^.Release();
       END;
    END ProcessRequest;
 
