@@ -34,7 +34,7 @@ END CTest;
 (*---------------------------------------------------------------------------*)
 
 CLASS CController IMPLEMENTS MVC.IController;
-   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; CONST Request : MVC.TPHttpRequest; OUT View : MVC.TPView ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; CONST Request : MVC.IHttpRequest; OUT View : MVC.TPView ) : BOOLEAN;
 END CController;
 
 (*---------------------------------------------------------------------------*)
@@ -140,7 +140,7 @@ CLASS IMPLEMENTATION CController;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; CONST Request : MVC.TPHttpRequest; OUT View : MVC.TPView ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; CONST Request : MVC.IHttpRequest; OUT View : MVC.TPView ) : BOOLEAN;
    VAR
       b : BOOLEAN;
       l : lists.TPStringStringList;
@@ -148,7 +148,7 @@ CLASS IMPLEMENTATION CController;
       s : StringsO.CString;
       v : StringsO.CString;
    BEGIN
-      IF Request^.ControllerURI.EqualsOA( L"raw.do" ) THEN
+      IF Request.ControllerURI.EqualsOA( L"raw.do" ) THEN
          View := MVC.rawHTMLView( L"<html><head><title>KUKU»</title></head><body><h1>éluùouËk˝ k˘Ú ˙pÏl Ô·belskÈ Ûdy.</h1></body></html>" );
 
 (*
@@ -158,40 +158,40 @@ CLASS IMPLEMENTATION CController;
    PROCEDURE GetMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ) : BOOLEAN;
 *)
 
-      ELSIF Request^.ControllerURI.EqualsOA( L"page.do" ) THEN
+      ELSIF Request.ControllerURI.EqualsOA( L"page.do" ) THEN
 
-         IF Request^.ModelContainer^.GetBooleanOA( L"testbool", OUT b ) THEN
+         IF Request.ModelContainer^.GetBooleanOA( L"testbool", OUT b ) THEN
             b := b;
          END;
-         Request^.ModelContainer^.AddBooleanOA( L"testbool", TRUE );
+         Request.ModelContainer^.AddBooleanOA( L"testbool", TRUE );
          
-         IF Request^.ModelContainer^.GetStringOA( L"teststring", OUT s ) THEN
+         IF Request.ModelContainer^.GetStringOA( L"teststring", OUT s ) THEN
             s := s;
          END;
-         s.FromOA( L"xxx" ); Request^.ModelContainer^.AddStringOA( L"teststring", s );
+         s.FromOA( L"xxx" ); Request.ModelContainer^.AddStringOA( L"teststring", s );
 
-         IF Request^.ModelContainer^.GetListOA( L"testlist", OUT l ) THEN
+         IF Request.ModelContainer^.GetListOA( L"testlist", OUT l ) THEN
             l^.Reset();
             WHILE l^.MoveNext() DO
                s.Assign( l^.Current^ );
                v.Assign( l^.CurrentData^ );
             END;
          END;
-         Request^.ModelContainer^.AddListOA( L"testlist", OUT l );
+         Request.ModelContainer^.AddListOA( L"testlist", OUT l );
          l^.AddOA( L"list item 1", s );
          l^.AddOA( L"list item 2", s );
          l^.AddOA( L"list item 3", s );
          l^.AddOA( L"list item 4", s );
          l^.AddOA( L"list item 5", s );
 
-         IF Request^.ModelContainer^.GetMapOA( L"testmap", OUT m ) THEN
+         IF Request.ModelContainer^.GetMapOA( L"testmap", OUT m ) THEN
             b := m^.GetOA( L"key", OUT v );
             b := m^.GetOA( L"lock", OUT v );
             b := m^.GetOA( L"flock", OUT v );
             b := m^.GetOA( L"block", OUT v );
             b := m^.GetOA( L"mlock", OUT v );
          END;
-         Request^.ModelContainer^.AddMapOA( L"testmap", OUT m );
+         Request.ModelContainer^.AddMapOA( L"testmap", OUT m );
          s.FromOA( L"MAPA" ); m^.AddOA( L"key", s );
          s.FromOA( L"MAPB" ); m^.AddOA( L"lock", s );
          s.FromOA( L"MAPC" ); m^.AddOA( L"flock", s );
