@@ -6,6 +6,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
    
 IMPORT
+   INIfile,
    io,
    Log,
    mvc,
@@ -14,6 +15,13 @@ IMPORT
    time;
 
 (*--------------------------------------------------------------------------------*)
+
+TYPE
+   TRole = (
+      roleAdministrator,
+      roleUser,
+      roleGuest
+   );
 
 TYPE
    TPEibSrvWeb = POINTER TO CEibSrvWeb;
@@ -56,6 +64,8 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink;
    PUBLIC PROCEDURE SetValue( CONST name, value : StringsO.IString ) : BOOLEAN;
    PUBLIC PROCEDURE GetValue( CONST name : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN;
    
+   PUBLIC PROCEDURE Authenticate( CONST Name, Password : StringsO.IString ) : TRole;
+   
    // SELF
    PRIVATE VAR
       _Context : StringsO.CString;
@@ -71,6 +81,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink;
       _Devices : POINTER TO ARRAY [0..0] OF io.TPIStartStopControl;
       _ConfigLogger : Log.TPLogger;
       _DataLogger : Log.TPLogger;
+      _Users : lists.CStringStringList;
       
       _StartedTime : time.TJD;
       _Connected : BOOLEAN;
@@ -79,7 +90,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink;
       _WrittenByHour : ARRAY [0..23] OF CARDINAL;
       _GotByHour : ARRAY [0..23] OF CARDINAL;
 
-   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST rootDir, messageFile : StringsO.IString; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPLogger );
+   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPLogger ) : BOOLEAN;
    
    PUBLIC READONLY PROPERTY
       Running : BOOLEAN;

@@ -7,13 +7,17 @@ FROM Debug IMPORT
 
 IMPORT
    Controller,
+   cphcommon,
    device,
+   digest,
+   FIO,
    HttpCommon,
    httpsrv,
    IOO,
    iovalue,
    MVC,
    ns,
+   sha256,
    Sync;
 
 (*================================================================================*)
@@ -288,19 +292,123 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST rootDir, messageFile : StringsO.IString; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPLogger );
+   PUBLIC PROCEDURE Authenticate( CONST Name, Password : StringsO.IString ) : TRole;
+   CONST
+      ROLE_ADMIN = L"admin";
+      ROLE_USER = L"user";
+   VAR
+      base64OA : ARRAY [0..63] OF WCHAR;
+      i : CARDINAL;
+      hash, password : sha256.CDigest;
+      hashOA : sha256.TDigest;
+      itemRole, role : TRole := roleGuest;
+      s : StringsO.CString;
+   BEGIN
+      IF Name.Empty OR Password.Empty THEN
+         RETURN role;
+      END;
+
+      _Users.Reset();
+      WHILE _Users.MoveNext() DO
+         IF _Users.Current^.Equals( Name ) THEN
+
+            // split data to role and hash
+            i := _Users.CurrentData^.IndexOfOA( L",", 0 );
+            IF i = -1 THEN
+               CONTINUE;
+            END;
+            _Users.CurrentData^.Substring( i+1, -1, OUT s );
+            s.Trim();
+            s.ToOA( OUT base64OA );
+            _Users.CurrentData^.Substring( 0, i, OUT s );
+            s.Trim();
+            IF s.EqualsOA( ROLE_ADMIN ) THEN
+               itemRole := roleAdministrator;
+            ELSIF s.EqualsOA( ROLE_USER ) THEN
+               itemRole := roleUser;
+            ELSE
+               CONTINUE;
+            END;
+
+            // try expand and compare hash
+            IF cphcommon.FromBASE64( base64OA, OUT hashOA, OUT i ) AND ( i = SIZE( hashOA )) THEN
+               hash.FromOA( hashOA );
+               IF itemRole = roleAdministrator THEN
+                  digest.DigestSalt( digest.sha256, OA( 2*Password.Length-1, PBYTE( Password.rawData )), C"web_root", OUT password );
+               ELSE
+                  digest.DigestSalt( digest.sha256, OA( 2*Password.Length-1, PBYTE( Password.rawData )), C"message_file", OUT password );
+               END;
+               IF hash = password THEN
+                  role := itemRole;
+               END;
+               EXIT;
+            END;
+
+         END;
+      END; // WHILE
+ 
+      RETURN role;
+   END Authenticate;
+   
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPLogger ) : BOOLEAN;
+   CONST
+      snServer = L"server";
+      snUsers = L"users";
+      knWebRoot = L"web_root";
+      knMessageFile = L"message_file";
+   VAR
+      es : PTR;
+      hash : StringsO.CString;
+      line : CARDINAL;
+      ok : BOOLEAN := TRUE;
+      Path : ARRAY [0..260] OF WCHAR;
+      userOA : ARRAY [0..63] OF WCHAR;
+      user : StringsO.CString;
    BEGIN
       Stop();
+
       _Port := Port;
       _Context.FromOA( ContextName );
-      _RootDir.Assign( rootDir );
-      _MessageFile.Assign( messageFile );
       _EIB := EIB;
       _DeviceCount := MIN2( HIGH( DeviceNames ), HIGH( Devices )) + 1;
       _DeviceNames := ADR( DeviceNames );
       _Devices := ADR( Devices );
       _ConfigLogger := ConfigLogger;
       _DataLogger := DataLogger;
+
+      IF cfg.SetSection( snServer ) AND FIO.GetModuleDirW( L"", OUT Path ) THEN // EXE dir
+         IF cfg.GetKeyStr( knWebRoot, OUT line, OUT _RootDir ) THEN
+            _RootDir.ReplaceOA( L"%exedir%", Path );
+         ELSE
+            _RootDir.FromOA( Path );
+         END;
+         IF cfg.GetKeyStr( knMessageFile, OUT line, OUT _MessageFile ) THEN
+            _MessageFile.ReplaceOA( L"%exedir%", Path );
+         END;
+      END;
+      IF _RootDir.Empty THEN
+         ok := FALSE;
+         Log.logger()^.LogS( Log.dlcError, L"KnxSrv", L"Web root is not defined, web interface will not start." );
+      END;
+      IF _MessageFile.Empty THEN
+         ok := FALSE;
+         Log.logger()^.LogS( Log.dlcError, L"KnxSrv", L"Message source for web is not defined, web interface will not start." );
+      END;
+      
+      IF NOT cfg.SetSection( snUsers ) THEN
+         ok := FALSE;
+         Log.logger()^.LogS( Log.dlcError, L"KnxSrv", L"No users defined, web interface will not start." );
+      ELSE
+         es := 0;
+         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT userOA, OUT hash ) DO
+            user.FromOA( userOA );
+            _Users.Add( user, hash );
+         END; // WHILE
+      END;
+      
+      RETURN ok;
    END Init;
    
 (*--------------------------------------------------------------------------------*)
@@ -369,6 +477,8 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       END;
 
       _MVC^.RegisterController( _Controller, HttpCommon.verbGET, L"" ); // index
+
+      _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.INDEX_PAGE );
 
       _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.LOGIN_PAGE );
       _MVC^.RegisterController( _Controller, HttpCommon.verbPOST, Controller.LOGIN_PAGE );

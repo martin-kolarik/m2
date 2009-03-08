@@ -20,9 +20,9 @@
                   <div class="middle">
                       <div id="menu">
                           <p><a href="status">${msg.menu.status}</a></p>
-                          <p><a href="control">${msg.menu.control}</a></p>
+                          <p pt:condition="${isAdmin}"><a href="control">${msg.menu.control}</a></p>
                           <p>${msg.menu.datalog}</p>
-                          <p><a href="syslog">${msg.menu.syslog}</a></p>
+                          <p pt:condition="${isAdmin}"><a href="syslog">${msg.menu.syslog}</a></p>
                           <p><a href="io">${msg.menu.io}</a></p>
                           <p>&nbsp;</p>
                           <p class="logout"><a href="logout">${msg.menu.logout}</a></p>

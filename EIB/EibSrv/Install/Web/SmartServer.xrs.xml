@@ -2,6 +2,23 @@
 <resources>
     <strings version="1.0">
 
+        <string name="index.text">
+            <item lang="en-US">NeNo EIB/KNX SmartServer Web Access, welcome!</item>
+            <item lang="cs-CZ">NeNo EIB/KNX SmartServer Web server, vítejte!</item>
+        </string>
+        <string name="index.private">
+            <item lang="en-US">Private pages</item>
+            <item lang="cs-CZ">Soukromé stránky</item>
+        </string>
+        <string name="index.user">
+            <item lang="en-US">Public pages</item>
+            <item lang="cs-CZ">Veřejné stránky</item>
+        </string>
+
+        <string name="menu.index">
+            <item lang="en-US">Index</item>
+            <item lang="cs-CZ">Rozcestník</item>
+        </string>
         <string name="menu.status">
             <item lang="en-US">Overview</item>
             <item lang="cs-CZ">Přehled</item>

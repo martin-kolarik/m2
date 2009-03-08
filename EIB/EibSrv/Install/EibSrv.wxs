@@ -60,7 +60,13 @@
                                 <File Id="status.pt.xml" LongName="status.pt.xml" Name="STATUS..XML" Source="Web\status.pt.xml" DiskId="1" />
                                 <File Id="syslog.pt.xml" LongName="syslog.pt.xml" Name="SYSLOG..XML" Source="Web\syslog.pt.xml" DiskId="1" />
                                 <File Id="Transparent.png" LongName="Transparent.png" Name="TRANSPA.PNG" Source="Web\Transparent.png" DiskId="1" />
+                                <File Id="index.pt.xml" LongName="index.pt.xml" Name="INDEX.P.XML" Source="Web\index.pt.xml" DiskId="1" />
                             </Component>
+                            <Directory Id="UserWeb" Name="Web">
+                                <Component Id="UserWeb" Guid="FDF719DB-B1DA-4401-BE5F-1FA854E7DB2D">
+                                    <File Id="index.html" LongName="index.html" Name="INDEX.HTM" Source="Web\User\index.html" DiskId="1" />
+                                </Component>
+                            </Directory>
                         </Directory>
                         <Directory Id="EXAMPLES" Name="Examples">
                             <Component Id="Examples" Guid="504E174F-A539-4C95-B1BA-51674C84ECD4">
@@ -142,6 +148,7 @@
             <ComponentRef Id="ExamplesPronto" />
             <?if $(var.LeakChecking)=on ?>
             <ComponentRef Id="LeakDetector" />
+            <ComponentRef Id="UserWeb" />
             <?endif ?>
         </Feature>
         <UIRef Id="WixUI_Licence" />
