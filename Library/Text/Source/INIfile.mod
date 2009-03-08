@@ -93,6 +93,7 @@ CLASS IMPLEMENTATION CINIFile;
 
    PUBLIC PROCEDURE LoadPath( CONST FilePath : ARRAY OF WCHAR ) : BOOLEAN; // handy shortcut
    VAR
+      comment : StringsO.CString;
       fs : FIOO.CFileStream;
       tr : TextReader.CTextReader;
    BEGIN
@@ -101,10 +102,15 @@ CLASS IMPLEMENTATION CINIFile;
       CATCH : IOO.CIOException DO
          RETURN FALSE;
       END;
+
+      comment.FromOA( L";" );
       tr.Stream := ADR( fs );
+      tr.OmitCommentaries := TRUE;
+      tr.CommentaryStart := comment;
       IF Load( tr ) THEN
          fs.Close( FALSE );
          RETURN TRUE;
+
       ELSE
          fs.Close( FALSE );
          RETURN FALSE;
