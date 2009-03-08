@@ -687,7 +687,6 @@ CLASS IMPLEMENTATION CHttpApiStream;
       RESPONSE_305 = C"Use Proxy";
       // client error
       RESPONSE_400 = C"Bad Request";
-      RESPONSE_401 = C"Unauthorized";
       RESPONSE_402 = C"Payment Required";
       RESPONSE_403 = C"Forbidden";
       RESPONSE_405 = C"Method Not Allowed";
@@ -711,6 +710,7 @@ CLASS IMPLEMENTATION CHttpApiStream;
       RESPONSE_301 = C"Moved Permanently";
       RESPONSE_302 = C"Moved Temporarily";
       RESPONSE_303 = C"See Other";
+      RESPONSE_401 = C"Unauthorized";
       RESPONSE_404 = C"Not Found";
       RESPONSE_409 = C"Conflict";
       RESPONSE_500 = C"Internal Server Error";
@@ -729,6 +729,9 @@ CLASS IMPLEMENTATION CHttpApiStream;
       | HttpCommon.httpres_303 :
          _Response.pReason := ADR( RESPONSE_303 );
          _Response.ReasonLength := SIZE( RESPONSE_303 )-1;
+      | HttpCommon.httpres_401 :
+         _Response.pReason := ADR( RESPONSE_401 );
+         _Response.ReasonLength := SIZE( RESPONSE_401 )-1;
       | HttpCommon.httpres_404 :
          _Response.pReason := ADR( RESPONSE_404 );
          _Response.ReasonLength := SIZE( RESPONSE_404 )-1;
