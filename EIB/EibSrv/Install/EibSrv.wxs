@@ -143,12 +143,12 @@
             <ComponentRef Id="Documentation" />
             <ComponentRef Id="DefaultConfiguration" />
             <ComponentRef Id="Web" />
+            <ComponentRef Id="UserWeb" />
             <ComponentRef Id="Examples" />
             <ComponentRef Id="ExamplesFlash" />
             <ComponentRef Id="ExamplesPronto" />
             <?if $(var.LeakChecking)=on ?>
             <ComponentRef Id="LeakDetector" />
-            <ComponentRef Id="UserWeb" />
             <?endif ?>
         </Feature>
         <UIRef Id="WixUI_Licence" />
