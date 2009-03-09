@@ -3,7 +3,7 @@ IMPLEMENTATION MODULE EibSrvWeb;
 (*================================================================================*)
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 IMPORT
    Controller,
@@ -15,10 +15,23 @@ IMPORT
    httpsrv,
    IOO,
    iovalue,
+   lists,
+   msgqueuethread,
    MVC,
    ns,
    sha256,
    Sync;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TCommand = (
+      cmdLoadConfiguration,
+      cmdStart,
+      cmdStop,
+      cmdDeviceStart,
+      cmdDeviceStop
+   );
 
 (*================================================================================*)
 
@@ -28,16 +41,30 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
    PUBLIC VIRTUAL PROCEDURE OnConnect();
    BEGIN
+      IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
+         ASSERTLOG( FALSE );
+         RETURN;
+      END;
+
       _Connected := TRUE;
       _ConnectedTime := time.GetCurrentJD();
+      
+      _Lock.UnlockWrite();
    END OnConnect;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE OnDisconnect();
    BEGIN
+      IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
+         ASSERTLOG( FALSE );
+         RETURN;
+      END;
+
       _Connected := FALSE;
       _DisconnectedTime := time.GetCurrentJD();
+      
+      _Lock.UnlockWrite();
    END OnDisconnect;
 
 (*--------------------------------------------------------------------------------*)
@@ -72,7 +99,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
       _EIB^.QueueLock.Lock();
 
-      INC( _GotByHour[dt.Hour MOD 24], _EIB^.oobData.Count );
+      Sync.IExchgAdd( REF _GotByHour[dt.Hour MOD 24], _EIB^.oobData.Count );
       _EIB^.oobData.Clear();
 
       _EIB^.QueueLock.Unlock();
@@ -83,6 +110,56 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
    BEGIN
    END OnInputQueueOverflow;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Invoke( Operation : CARDINAL; CONST Parameters : ARRAY OF PTR ) : PTR;
+   VAR
+      configFilePath : StringsO.TPString;
+      configuration : ARRAY [0..0] OF device.TConfigureItem;
+      index : CARDINAL;
+      wasRunning : BOOLEAN;
+   BEGIN
+      CASE TCommand( Operation ) OF
+      | cmdLoadConfiguration :
+         configFilePath := StringsO.TPString( Parameters[0] );
+      
+         wasRunning := _EIB^.Running;
+         _EIB^.Stop();
+
+         configuration[0].Type := device.citIString;
+         configuration[0].iString := configFilePath;
+         IF _EIB^.Configure( configuration, _ConfigLogger ) = Sync.arCompleted THEN
+            IF wasRunning THEN
+               _EIB^.Start();
+            END;
+         END;
+
+      | cmdStart :
+         _EIB^.Start();
+
+      | cmdStop :
+         _EIB^.Stop();
+         
+      | cmdDeviceStart :
+         index := PCARDINAL( Parameters[0] )^;
+         IF index < _DeviceCount THEN
+            _Devices^[index]^.Start();
+         ELSE
+            ASSERTLOG( FALSE );
+         END;
+
+      | cmdDeviceStop :
+         index := PCARDINAL( Parameters[0] )^;
+         IF index < _DeviceCount THEN
+            _Devices^[index]^.Stop();
+         ELSE
+            ASSERTLOG( FALSE );
+         END;
+      
+      END; // CASE
+      RETURN 0;
+   END Invoke;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -101,35 +178,64 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Connected GET : BOOLEAN;
+   VAR
+      connected : BOOLEAN;
    BEGIN
-      RETURN _Connected;
+      IF _Lock.LockRead( Sync.FORSAFETY ) = Sync.arTimeout THEN
+         ASSERTLOG( FALSE );
+         RETURN FALSE;
+      END;
+      connected := _Connected;
+      _Lock.UnlockRead();
+      
+      RETURN connected;
    END Connected;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY StartedTime GET : time.TJD;
    BEGIN
+      // no need to lock, value written once
       RETURN _StartedTime;
    END StartedTime;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY ConnectedTime  GET : time.TJD;
+   VAR
+      connectedTime : time.TJD;
    BEGIN
-      RETURN _ConnectedTime;
+      IF _Lock.LockRead( Sync.FORSAFETY ) = Sync.arTimeout THEN
+         ASSERTLOG( FALSE );
+         RETURN _StartedTime;
+      END;
+      connectedTime := _ConnectedTime;
+      _Lock.UnlockRead();
+      
+      RETURN connectedTime;
    END ConnectedTime;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY DisconnectedTime  GET : time.TJD;
+   VAR
+      connectedTime : time.TJD;
    BEGIN
-      RETURN _DisconnectedTime;
+      IF _Lock.LockRead( Sync.FORSAFETY ) = Sync.arTimeout THEN
+         ASSERTLOG( FALSE );
+         RETURN _StartedTime;
+      END;
+      connectedTime := _DisconnectedTime;
+      _Lock.UnlockRead();
+      
+      RETURN connectedTime;
    END DisconnectedTime;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY LicenceExpires GET : time.TDateTime;
    BEGIN
+      // no need to sync
       RETURN _EIB^.PResult^.Expires;
    END LicenceExpires;
 
@@ -203,34 +309,32 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE ConnectEIB();
+   VAR
+      Result : Sync.TAsyncResult;
    BEGIN
-      _EIB^.Start();
+      Result := msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdStart ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
+      ASSERTLOG( Result <> Sync.arTimeout );
    END ConnectEIB;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE DisconnectEIB();
+   VAR
+      Result : Sync.TAsyncResult;
    BEGIN
-      _EIB^.Stop();
+      Result := msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdStop ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
+      ASSERTLOG( Result <> Sync.arTimeout );
    END DisconnectEIB;
    
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE ConfigureEIB( CONST configFilePath : StringsO.CString );
    VAR
-      configuration : ARRAY [0..0] OF device.TConfigureItem;
-      wasRunning : BOOLEAN;
+      pConfigFilePath : StringsO.TPString := ADR( configFilePath );
+      Result : Sync.TAsyncResult;
    BEGIN
-      wasRunning := _EIB^.Running;
-      _EIB^.Stop();
-
-      configuration[0].Type := device.citIString;
-      configuration[0].iString := StringsO.TPString( ADR( configFilePath ));
-      IF _EIB^.Configure( configuration, _ConfigLogger ) = Sync.arCompleted THEN
-         IF wasRunning THEN
-            _EIB^.Start();
-         END;
-      END;
+      Result := msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdLoadConfiguration ), OA( 0, ADR( pConfigFilePath )), NIL, TRUE, Sync.FORSAFETY );
+      ASSERTLOG( Result <> Sync.arTimeout );
    END ConfigureEIB;
 
 (*--------------------------------------------------------------------------------*)
@@ -246,15 +350,34 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE OperatedDevice( index : CARDINAL ) : io.TPIStartStopControl;
+   PUBLIC PROCEDURE OperateDevice( index : CARDINAL; StartNotStop : BOOLEAN );
+   VAR
+      pindex : PCARDINAL := ADR( index );
+      Result : Sync.TAsyncResult;
    BEGIN
-      IF index < _DeviceCount THEN
-         RETURN _Devices^[index];
+      IF index >= _DeviceCount THEN
+         Log.logger()^.LogS( Log.dlcWarning, L"KnxSrv", L"OperateDevice index out of range." );
+      ELSIF StartNotStop THEN
+         Result := msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdDeviceStart ), OA( 0, ADR( pindex )), NIL, TRUE, Sync.FORSAFETY );
+         ASSERTLOG( Result <> Sync.arTimeout );
       ELSE
-         RETURN NIL;
+         Result := msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdDeviceStop ), OA( 0, ADR( pindex )), NIL, TRUE, Sync.FORSAFETY );
+         ASSERTLOG( Result <> Sync.arTimeout );
       END;
-   END OperatedDevice;
+   END OperateDevice;
    
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE DeviceRunning( index : CARDINAL ) : BOOLEAN;
+   BEGIN
+      IF index >= _DeviceCount THEN
+         Log.logger()^.LogS( Log.dlcWarning, L"KnxSrv", L"DeviceRunning index out of range." );
+         RETURN FALSE;
+      ELSE
+         RETURN _Devices^[index]^.Running;
+      END;
+   END DeviceRunning;
+
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE SetValue( CONST name, value : StringsO.IString ) : BOOLEAN;
@@ -263,11 +386,13 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       io : iovalue.Value;
       s : StringsO.CString;
    BEGIN
+      // no need to sync, NameToHash is be thread safe
       IF NOT _EIB^.NameToHash( name, OUT hash ) THEN
          RETURN FALSE;
       END;
       s.Assign( value );
       io.String := s;
+      // no need to sync, IOh is be thread safe
       RETURN _EIB^.IOh( IOO.dirWrite, hash, REF io, NIL ) = Sync.arCompleted; // partial = cache write is not evaluated as true
    END SetValue;
 
@@ -279,9 +404,11 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       io : iovalue.Value;
       s : StringsO.CString;
    BEGIN
+      // no need to sync, NameToHash is be thread safe
       IF NOT _EIB^.NameToHash( name, OUT hash ) THEN
          RETURN FALSE;
       END;
+      // no need to sync, IOh is be thread safe
       IF _EIB^.IOh( IOO.dirRead, hash, REF io, NIL ) NOT IN Sync.arsCompletions THEN
          RETURN FALSE;
       END;
@@ -302,25 +429,29 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       hash, password : sha256.CDigest;
       hashOA : sha256.TDigest;
       itemRole, role : TRole := roleGuest;
+      localUsers : lists.CStringStringList;
       s : StringsO.CString;
    BEGIN
       IF Name.Empty OR Password.Empty THEN
          RETURN role;
       END;
+      
+      // avoid synchronizing by local copy
+      localUsers := _Users;
 
-      _Users.Reset();
-      WHILE _Users.MoveNext() DO
-         IF _Users.Current^.Equals( Name ) THEN
+      localUsers.Reset();
+      WHILE localUsers.MoveNext() DO
+         IF localUsers.Current^.Equals( Name ) THEN
 
             // split data to role and hash
-            i := _Users.CurrentData^.IndexOfOA( L",", 0 );
+            i := localUsers.CurrentData^.IndexOfOA( L",", 0 );
             IF i = -1 THEN
                CONTINUE;
             END;
-            _Users.CurrentData^.Substring( i+1, -1, OUT s );
+            localUsers.CurrentData^.Substring( i+1, -1, OUT s );
             s.Trim();
             s.ToOA( OUT base64OA );
-            _Users.CurrentData^.Substring( 0, i, OUT s );
+            localUsers.CurrentData^.Substring( 0, i, OUT s );
             s.Trim();
             IF s.EqualsOA( ROLE_ADMIN ) THEN
                itemRole := roleAdministrator;
@@ -346,6 +477,8 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
          END;
       END; // WHILE
+      
+      localUsers.Clear(); // deny disposing
  
       RETURN role;
    END Authenticate;

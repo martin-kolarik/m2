@@ -12,6 +12,7 @@ IMPORT
    mvc,
    srvcore,
    StringsO,
+   threadcall,
    time;
 
 (*--------------------------------------------------------------------------------*)
@@ -26,7 +27,7 @@ TYPE
 TYPE
    TPEibSrvWeb = POINTER TO CEibSrvWeb;
 
-CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink;
+CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureCallTarget;
 
    // IEIBServerSink
    PUBLIC VIRTUAL PROCEDURE OnConnect();
@@ -36,6 +37,9 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink;
    PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : srvcore.TPObject );
    PUBLIC VIRTUAL PROCEDURE OnInputQueueAdd( OOBQueue, PromiscuousQueue : BOOLEAN );
    PUBLIC VIRTUAL PROCEDURE OnInputQueueOverflow( OOBQueue, PromiscuousQueue : BOOLEAN );
+   
+   // IThreadProcedureCallTarget
+   PUBLIC VIRTUAL PROCEDURE Invoke( Operation : CARDINAL; CONST Parameters : ARRAY OF PTR ) : PTR;
 
    // Client interface
    PUBLIC READONLY PROPERTY
@@ -59,7 +63,8 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink;
    PUBLIC PROCEDURE ConfigureEIB( CONST ConfigFilePath : StringsO.CString );
    
    PUBLIC PROCEDURE OperatedDeviceName( index : CARDINAL ) : PWCHAR;
-   PUBLIC PROCEDURE OperatedDevice( index : CARDINAL ) : io.TPIStartStopControl;
+   PUBLIC PROCEDURE OperateDevice( index : CARDINAL; StartNotStop : BOOLEAN );
+   PUBLIC PROCEDURE DeviceRunning( index : CARDINAL ) : BOOLEAN;
    
    PUBLIC PROCEDURE SetValue( CONST name, value : StringsO.IString ) : BOOLEAN;
    PUBLIC PROCEDURE GetValue( CONST name : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN;
@@ -82,6 +87,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink;
       _ConfigLogger : Log.TPLogger;
       _DataLogger : Log.TPLogger;
       _Users : lists.CStringStringList;
+      _Lock : Sync.RWLOCK;
       
       _StartedTime : time.TJD;
       _Connected : BOOLEAN;

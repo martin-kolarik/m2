@@ -397,7 +397,7 @@ CLASS IMPLEMENTATION CController;
          IF i > MAX( INTEGER ) THEN
             // do nothing
          ELSIF i < _Web^.OperatedDeviceCount THEN
-            _Web^.OperatedDevice( i )^.Start();
+            _Web^.OperateDevice( i, TRUE );
          END;
          View := mvc.redirectView( CONTROL_PAGE );
          RETURN TRUE;
@@ -407,7 +407,7 @@ CLASS IMPLEMENTATION CController;
          IF i > MAX( INTEGER ) THEN
             // do nothing
          ELSIF i < _Web^.OperatedDeviceCount THEN
-            _Web^.OperatedDevice( i )^.Stop();
+            _Web^.OperateDevice( i, FALSE );
          END;
          View := mvc.redirectView( CONTROL_PAGE );
          RETURN TRUE;
@@ -428,7 +428,7 @@ CLASS IMPLEMENTATION CController;
             Request.MessageSource^.GetMessageOA( Request.Language, OAsz( _Web^.OperatedDeviceName( i )), OUT cs );
             listDevices^.Add( cs, cs );
 
-            IF _Web^.OperatedDevice( i )^.Running THEN
+            IF _Web^.DeviceRunning( i ) THEN
                cs.FromOA( L"true" );
             ELSE
                cs.FromOA( L"false" );
