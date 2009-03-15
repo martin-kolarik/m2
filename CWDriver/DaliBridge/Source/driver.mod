@@ -98,14 +98,14 @@ CLASS IMPLEMENTATION CDriver;
       END;
 
       Logger.SetUpByRegistry( LIBRARY );
-      CASE drv_def.ConfigureLog( TS, REF Logger, OUT line ) OF
-      | drv_def.clrUnknownDebugMode :
+      CASE INIFile.ConfigureLog( TS, L"", REF Logger, OUT line ) OF
+      | INIFile.clrUnknownTarget :
          Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._UnknownDebugMode ] ), line, 0 );
          RETURN FALSE;
-      | drv_def.clrUnknownDebugLevel :
+      | INIFile.clrUnknownLevel :
          Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._UnknownDebugLevel ] ), line, 0 );
          RETURN FALSE;
-      | drv_def.clrFileDebugMissingFile :
+      | INIFile.clrTargetFileMissingFile :
          Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._FileDebugMissingFile ] ), line, 0 );
          RETURN FALSE;
       END;

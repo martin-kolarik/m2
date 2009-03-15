@@ -468,12 +468,12 @@ CLASS IMPLEMENTATION CDriver;
          END;
       END;
 
-      CASE drv_def.ConfigureLog( TS, REF SELF.Logger, OUT ErrorLine ) OF
-      | drv_def.clrUnknownDebugMode :
+      CASE INIFile.ConfigureLog( TS, L"", REF SELF.Logger, OUT ErrorLine ) OF
+      | INIFile.clrUnknownTarget :
          Error( Texts._UnknownDebugMode, ErrorLine );
-      | drv_def.clrUnknownDebugLevel :
+      | INIFile.clrUnknownLevel :
          Error( Texts._UnknownDebugLevel, ErrorLine );
-      | drv_def.clrFileDebugMissingFile :
+      | INIFile.clrTargetFileMissingFile :
          Error( Texts._FileDebugMissingFile, ErrorLine );
       END; // CASE
     

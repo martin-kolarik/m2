@@ -245,18 +245,5 @@ CONST
   ecDriverSecondRequestForAllocation = ecFirst + 14;
 
 (*================================================================================*)
-// helpers
-
-TYPE
-   TConfigureLogResult = (
-      clrSuccess,
-      clrUnknownDebugMode,
-      clrUnknownDebugLevel,
-      clrFileDebugMissingFile
-   );
-
-PROCEDURE ConfigureLog( CONST ini : INIFile.CINIFile; REF logger : Log.CLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
-
-(*================================================================================*)
 
 END drv_def.

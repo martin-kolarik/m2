@@ -492,4 +492,71 @@ END CINIFile;
 
 (*================================================================================*)
 
+PROCEDURE ConfigureLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : Log.CLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
+CONST
+   snLog                  = L'log';
+   knTarget               = L'target';
+      kvTargetNone        = L'none';
+      kvTargetFile        = L'file';
+      kvTargetKernel      = L'kernel';
+   knFile                 = L'file';
+   knLevel                = L'level';
+      kvFatal             = L'fatal'; 
+      kvError             = L'error'; 
+      kvWarning           = L'warning'; 
+      kvInfo              = L'info'; 
+      kvDebugFailure      = L'failure';
+      kvDebugMessage      = L'message';
+      kvDebugTrace        = L'trace';
+      kvDebugAll          = L'all';
+VAR
+   cs : StringsO.CString;
+   File : StringsO.CString;
+   Level : Log.TDebugLevel := logger.Level;
+   Method : Log.TDebugMethod := logger.Method;
+BEGIN
+   IF ( SectionName[0] <> 0W ) AND ini.SetSection( SectionName ) OR ini.SetSection( snLog ) THEN
+
+      IF ini.GetKeyStr( knTarget, OUT errorLine, OUT cs ) THEN
+         IF cs.EqualsOA( kvTargetNone ) THEN
+            Method := Log.dmNone;
+         ELSIF cs.EqualsOA( kvTargetFile ) THEN
+            Method := Log.dmFile;
+            IF NOT ini.GetKeyStr( knFile, OUT errorLine, OUT File ) THEN
+               RETURN clrTargetFileMissingFile;
+            END;
+         ELSIF cs.EqualsOA( kvTargetKernel ) THEN
+            Method := Log.dmKernel;
+         ELSE
+            RETURN clrUnknownTarget;
+         END;
+      END;
+
+      IF Method <> Log.dmNone THEN
+         IF ini.GetKeyStr( knLevel, OUT errorLine, OUT cs ) THEN
+            IF cs.EqualsOA( kvDebugFailure ) OR cs.EqualsOA( kvFatal ) THEN
+               Level := Log.dldError;
+            ELSIF cs.EqualsOA( kvDebugMessage ) OR cs.EqualsOA( kvError ) THEN
+               Level := Log.dldMessage;
+            ELSIF cs.EqualsOA( kvDebugTrace ) OR cs.EqualsOA( kvWarning ) THEN
+               Level := Log.dldTrace;
+            ELSIF cs.EqualsOA( kvDebugAll ) OR cs.EqualsOA( kvInfo ) THEN
+               Level := Log.dldDebug;
+            ELSE
+               RETURN clrUnknownLevel;
+            END;
+         END;
+      END;
+
+   END;
+   
+   logger.SetLogFile( OA( File.Length-1, File.rawData ));
+   logger.Method := Method;
+   logger.Level := Level;
+   
+   RETURN clrSuccess;
+END ConfigureLog;
+
+(*================================================================================*)
+
 END INIFile.
