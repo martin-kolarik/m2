@@ -198,7 +198,6 @@ CLASS IMPLEMENTATION CEibSvc;
       FIOO.PathAdd( REF s1, s2 );
       cfg.LoadPath( OA( s1.Length-1, s1.rawData ));
       
-      ASSERT( FALSE );
       INIfile.ConfigureLog( cfg, L"", REF Log.logger()^, OUT line );
       INIfile.ConfigureLog( cfg, L"datalog", REF DataLogger, OUT line );
       
