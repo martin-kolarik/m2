@@ -1,4 +1,4 @@
-Version 1.0.789/R beta 13.3.2009
+Version 1.0.799/R beta 15.3.2009
 - BUG: #51, space in form item was badly parsed in server, e.g. configuration was
        unable to load if path contained spaces ("C:\Program Files...").
 - BUG: #54, possible bad view file (pt.xml) could cause infinite loop during
@@ -15,7 +15,9 @@ Version 1.0.789/R beta 13.3.2009
 - BUG: #18, Login form button was aligned with editboxes.
 - BUG: #23, Design of configuration form changed, edibox is long, button is on left.
 - BUG: #47, Server returned bad HTTP status code (500) if page was not found (404).
+- BUG: #49, System log is unable to configure from configuration file.
 - CHG: #58, Data log displays events from now to history.
+- CHG: #68, Product icon changed.
 - NEW: #34, "Logout" button was added.
 - NEW: #35, User roles "admin" and "user" has been added, now with default passwords
        "admin" and "user".
