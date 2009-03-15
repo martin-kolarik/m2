@@ -17,27 +17,27 @@
             <Directory Id="ProgramFilesFolder">
                 <Directory Id="NeNo" Name="NeNo">
                     <Directory Id="INSTALLDIR" Name="EibSrv">
-                        <ComponentGroup Id="Binaries">
-                            <Component Guid="7661D6C7-3F2E-4990-815B-36609A99DE62" Id="Program">
-                                <File DiskId="1" Id="EibSrv.EXE" Name="EibSrv.exe" Source="EibSrv.exe" Vital="yes" KeyPath="yes" />
-                                <ServiceInstall Id="SVC" Name="$(var.ProductId)" Type="ownProcess" Interactive="yes" Start="auto" ErrorControl="normal" DisplayName="$(var.ProductDisplayName)" Description="$(var.ProductDescription)">
-                                    <ServiceDependency Id="Tcpip" />
-                                </ServiceInstall>
-                                <ServiceControl Id="SVCControl" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
-                            </Component>
-                            <Component Guid="1FAB7C94-0544-4b30-80D9-2C824C43E4AD" Id="RuntimeLib">
-                                <File Id="SCCore.DLL" Name="SCCore.dll" Source="SCCore.dll" DiskId="1" Vital="yes" KeyPath="yes" />
-                            </Component>
-                            <Component Guid="4FAC646A-EC30-4304-859A-14AB268C4B70" Id="MVCLib">
-                                <File Id="SCMVC.DLL" Name="SCMVC.dll" Source="SCMVC.dll" DiskId="1" Vital="yes" KeyPath="yes" />
-                            </Component>
-                            <Component Guid="5D1E3BC9-F830-4214-8133-EA8711519553" Id="ToolCheckCfg">
-                                <File Id="CheckCfg.EXE" Name="CheckCfg.exe" Source="CheckCfg.exe" DiskId="1" Vital="yes" KeyPath="yes" />
-                            </Component>
-                            <Component Guid="EA0A744A-C7A9-4a5b-B3E3-5556DF659BB3" Id="ToolDiscover">
-                                <File Id="Discover.EXE" Name="Discover.exe" Source="Discover.exe" DiskId="1" Vital="yes" KeyPath="yes" />
-                            </Component>
-                        </ComponentGroup>
+                        <Component Guid="7661D6C7-3F2E-4990-815B-36609A99DE62" Id="Program">
+                            <File DiskId="1" Id="EibSrv.EXE" Name="EibSrv.exe" Source="EibSrv.exe" Vital="yes" KeyPath="yes" />
+                            <ServiceInstall Id="SVC" Name="$(var.ProductId)" Type="ownProcess" Interactive="yes" Start="auto" ErrorControl="normal" DisplayName="$(var.ProductDisplayName)" Description="$(var.ProductDescription)">
+                                <ServiceDependency Id="Tcpip" />
+                            </ServiceInstall>
+                            <ServiceControl Id="SVCControlProgram" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
+                        </Component>
+                        <Component Guid="1FAB7C94-0544-4b30-80D9-2C824C43E4AD" Id="RuntimeLib">
+                            <File Id="SCCore.DLL" Name="SCCore.dll" Source="SCCore.dll" DiskId="1" Vital="yes" KeyPath="yes" />
+                            <ServiceControl Id="SVCControlRuntimeLib" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
+                        </Component>
+                        <Component Guid="4FAC646A-EC30-4304-859A-14AB268C4B70" Id="MVCLib">
+                            <File Id="SCMVC.DLL" Name="SCMVC.dll" Source="SCMVC.dll" DiskId="1" Vital="yes" KeyPath="yes" />
+                            <ServiceControl Id="SVCControlMVCLib" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
+                        </Component>
+                        <Component Guid="5D1E3BC9-F830-4214-8133-EA8711519553" Id="ToolCheckCfg">
+                            <File Id="CheckCfg.EXE" Name="CheckCfg.exe" Source="CheckCfg.exe" DiskId="1" Vital="yes" KeyPath="yes" />
+                        </Component>
+                        <Component Guid="EA0A744A-C7A9-4a5b-B3E3-5556DF659BB3" Id="ToolDiscover">
+                            <File Id="Discover.EXE" Name="Discover.exe" Source="Discover.exe" DiskId="1" Vital="yes" KeyPath="yes" />
+                        </Component>
                         <Component Id="Licence" Guid="BC838025-578C-46E8-A079-40E8B2134B03">
                             <File Id="Licence" Name="Licence.lic" DiskId="1" LongName="$(var.ProductId).tlic" Source="$(var.ProductId).tlic" Vital="yes" KeyPath="yes" />
                             <File Id="License.rtf" Name="License.rtf" Source="License.rtf" DiskId="1" />
@@ -138,8 +138,12 @@
         </Feature>
         <?endif ?>
         <Feature ConfigurableDirectory="INSTALLDIR" Id="Complete" Level="1">
-            <ComponentGroupRef Id="Binaries" />
+            <ComponentRef Id="Program" />
+            <ComponentRef Id="RuntimeLib" />
+            <ComponentRef Id="MVCLib" />
             <ComponentRef Id="Licence" />
+            <ComponentRef Id="ToolCheckCfg" />
+            <ComponentRef Id="ToolDiscover" />
             <ComponentRef Id="Documentation" />
             <ComponentRef Id="DefaultConfiguration" />
             <ComponentRef Id="Web" />
