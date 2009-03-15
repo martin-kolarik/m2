@@ -270,15 +270,43 @@ CLASS IMPLEMENTATION CLogger;
 
    PUBLIC PROPERTY RedirectTo GET : TPLogger;
    BEGIN
-      RETURN _RedirectTo;
+      IF rsInject IN RStatus THEN
+         RETURN NIL;
+      ELSE
+         RETURN _PassTo;
+      END;
    END RedirectTo;
 
 //---------------------------------------------------------
 
    PUBLIC PROPERTY RedirectTo SET( Value : TPLogger );
    BEGIN
-      _RedirectTo := Value;
+      _PassTo := Value;
+      EXCL( RStatus, rsInject );
    END RedirectTo;
+
+//---------------------------------------------------------
+
+   PUBLIC PROPERTY InjectTo GET : TPLogger;
+   BEGIN
+      IF rsInject IN RStatus THEN
+         RETURN _PassTo;
+      ELSE
+         RETURN NIL;
+      END;
+   END InjectTo;
+
+//---------------------------------------------------------
+
+   PUBLIC PROPERTY InjectTo SET( Value : TPLogger );
+   BEGIN
+      _PassTo := Value;
+      IF _PassTo = NIL THEN
+         EXCL( RStatus, rsInject );
+      ELSE
+         INCL( RStatus, rsInject );
+      END;
+   END InjectTo;
 
 //---------------------------------------------------------
 
@@ -678,10 +706,14 @@ CLASS IMPLEMENTATION CLogger;
     SW : TString;
     SA : ARRAY [0..strlen-1] OF CHAR;
   BEGIN
-    IF _RedirectTo <> NIL THEN
-      _RedirectTo^.Log( LoggedLevel, _Name, Prefix, S );
-      RETURN;
-    END;
+      IF _PassTo <> NIL THEN
+         IF rsInject IN RStatus THEN
+            _PassTo^.Log( LoggedLevel, _Name, Prefix, S );
+         ELSIF NOT _PassTo^.Filtered( LoggedLevel ) THEN
+            _PassTo^.Log( LoggedLevel, _Name, Prefix, S );
+         END;
+         RETURN; // bypass self
+      END;
 
     SW := L"";
     IF rsTimeStamps IN RStatus THEN
@@ -775,15 +807,7 @@ CLASS IMPLEMENTATION CLogger;
       res : CARDINAL;
    BEGIN
       LLibraryName := LibraryName;
-
-      // defaults
-      RStatus := TRStatus{rsDebugKernel, rsTimeStamps, rsNameInfo, rsLevelInfo};
-      Strings.ConcatW( OUT DebugFile, LibraryName, L".log" );
-      #if DEBUG #then
-         DebugLevel := dldTrace;
-      #else
-         DebugLevel := dldMessage;
-      #endif
+      // defaults are not set here, they come from constructor or from previous CLog property settings
 
       LOOP
          Strings.ConcatW( OUT Key, L"SOFTWARE\" + Manufacturer + "\Log\", LLibraryName );
@@ -828,11 +852,12 @@ CLASS IMPLEMENTATION CLogger;
          DataSize := SIZE( Data );
          IF ( winreg.RegQueryValueExW( hkey, keyFile, NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
             ASSIGNsz( DebugFile, PWCHAR( PData ));
-         ELSE
+         ELSIF DebugFile[0] = 0W THEN
             FIO.GetModuleDirW( EMITW( %dll ), OUT Dir );
             IF Dir[0] = 0W THEN
                FIO.GetModuleDirW( L"", OUT Dir );
             END;
+            Strings.ConcatW( OUT DebugFile, LibraryName, L".log" ); // use client's name, not processing LLibrary
             FIO.MakePathW( Dir, DebugFile, OUT DebugFile );
          END;
 

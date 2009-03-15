@@ -67,7 +67,7 @@ div.bottom
   _width: 805px;
   margin: 0px 0px 40px 45px;
   padding: 10px;
-  background-image: url(Transparent.png);
+  background-image: url(TransparentBig.png);
 }
 
 div#menu
@@ -78,7 +78,7 @@ div#menu
   margin: 0px 0px 0px 35px;
   padding: 10px 5px 10px 10px;
   _padding-top: 5px;
-  background-image: url(Transparent.png);
+  background-image: url(TransparentBig.png);
 }
 
 div#menu p
@@ -138,4 +138,10 @@ input.ioValue, input.ioName
 input.configFile
 {
   width: 525px;
+}
+
+h1.mainTitle
+{
+  font-size: 125%;
+  color: Green;
 }

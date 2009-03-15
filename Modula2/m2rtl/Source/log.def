@@ -17,7 +17,8 @@ TYPE
       rsDebugKernel,
       rsTimeStamps,
       rsLevelInfo,
-      rsNameInfo
+      rsNameInfo,
+      rsInject
    );
    TRStatus = SET OF TRStatusItem;
 
@@ -55,7 +56,7 @@ CLASS CLogger;
       DebugLock   : Sync.LOCK;
       Buffer      : TPBuffer;
       _BufferMode : TBufferMode := bmStoreLast;
-      _RedirectTo : TPLogger := NIL;
+      _PassTo     : TPLogger := NIL;
   
    PUBLIC PROPERTY
       Method : TDebugMethod;
@@ -66,7 +67,8 @@ CLASS CLogger;
       Buffered : BOOLEAN;
       BufferSize : CARDINAL; // default 256
       BufferMode : TBufferMode;
-      RedirectTo : TPLogger; // all output will be passed to another log
+      RedirectTo : TPLogger; // all output will be passed to another log respecting its level settins -- level is driven by destination logger, mutually exclusive with InjectTo
+      InjectTo : TPLogger;  // all output will be passed to another log NOT respecting its level settings -- level is driven by source logger, mutually exclusive with RedirectTo
 
    PUBLIC PROCEDURE SetLogName( CONST Name : ARRAY OF WCHAR );
    PUBLIC PROCEDURE GetLogName( OUT Name : ARRAY OF WCHAR ) : BOOLEAN;

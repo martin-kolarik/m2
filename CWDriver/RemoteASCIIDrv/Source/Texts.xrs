@@ -13,16 +13,16 @@
             <item lang="cs-CZ">ASCII Ovladač se vzdáleným přístupem</item>
         </string>
         <string name="_UnknownDebugMode">
-            <item lang="en-US">Bad or unknown "debug_mode"</item>
-            <item lang="cs-CZ">Chybný nebo neznámý způsob logování ("debug_mode")</item>
+            <item lang="en-US">Bad or unknown "target"</item>
+            <item lang="cs-CZ">Chybný nebo neznámý cíl logování ("target")</item>
         </string>
         <string name="_UnknownDebugLevel">
-            <item lang="en-US">Bad or unknown "debug_level"</item>
-            <item lang="cs-CZ">Chybná nebo neznámá úroveň logování ("debug_level")</item>
+            <item lang="en-US">Bad or unknown "level"</item>
+            <item lang="cs-CZ">Chybná nebo neznámá úroveň logování ("level")</item>
         </string>
         <string name="_FileDebugMissingFile">
-            <item lang="en-US">Missing "debug_file" key for "debug_mode = file"</item>
-            <item lang="cs-CZ">Chybí klíč "debug_file" pro "debug_mode = file"</item>
+            <item lang="en-US">Missing "file" key for "target = file"</item>
+            <item lang="cs-CZ">Chybí klíč "file" pro "target = file"</item>
         </string>
 
         <string name="_E_DeviceStopped">

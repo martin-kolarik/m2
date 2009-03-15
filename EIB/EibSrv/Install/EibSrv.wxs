@@ -22,13 +22,15 @@
                             <ServiceInstall Id="SVC" Name="$(var.ProductId)" Type="ownProcess" Interactive="yes" Start="auto" ErrorControl="normal" DisplayName="$(var.ProductDisplayName)" Description="$(var.ProductDescription)">
                                 <ServiceDependency Id="Tcpip" />
                             </ServiceInstall>
-                            <ServiceControl Id="SVCControl" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
+                            <ServiceControl Id="SVCControlProgram" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
                         </Component>
                         <Component Guid="1FAB7C94-0544-4b30-80D9-2C824C43E4AD" Id="RuntimeLib">
                             <File Id="SCCore.DLL" Name="SCCore.dll" Source="SCCore.dll" DiskId="1" Vital="yes" KeyPath="yes" />
+                            <ServiceControl Id="SVCControlRuntimeLib" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
                         </Component>
                         <Component Guid="4FAC646A-EC30-4304-859A-14AB268C4B70" Id="MVCLib">
                             <File Id="SCMVC.DLL" Name="SCMVC.dll" Source="SCMVC.dll" DiskId="1" Vital="yes" KeyPath="yes" />
+                            <ServiceControl Id="SVCControlMVCLib" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
                         </Component>
                         <Component Guid="5D1E3BC9-F830-4214-8133-EA8711519553" Id="ToolCheckCfg">
                             <File Id="CheckCfg.EXE" Name="CheckCfg.exe" Source="CheckCfg.exe" DiskId="1" Vital="yes" KeyPath="yes" />
@@ -52,6 +54,7 @@
                                 <File Id="NeNo.css" LongName="NeNo.css" Name="NENO.CSS" Source="Web\NeNo.css" DiskId="1" />
                                 <File Id="Canvas.jpg" LongName="Canvas.jpg" Name="CANVAS.JPG" Source="Web\Canvas.jpg" DiskId="1" />
                                 <File Id="BackgroundStrip.png" LongName="BackgroundStrip.png" Name="BACKGRO.PNG" Source="Web\BackgroundStrip.png" DiskId="1" />
+                                <File Id="BackgroundStripThick.png" LongName="BackgroundStripThick.png" Name="BACKGROT.PNG" Source="Web\BackgroundStripThick.png" DiskId="1" />
                                 <File Id="control.pt.xml" LongName="control.pt.xml" Name="CONTROL.XML" Source="Web\control.pt.xml" DiskId="1" />
                                 <File Id="datalog.pt.xml" LongName="datalog.pt.xml" Name="DATALOG.XML" Source="Web\datalog.pt.xml" DiskId="1" />
                                 <File Id="io.pt.xml" LongName="io.pt.xml" Name="IO.PT.XML" Source="Web\io.pt.xml" DiskId="1" />
@@ -60,7 +63,14 @@
                                 <File Id="status.pt.xml" LongName="status.pt.xml" Name="STATUS..XML" Source="Web\status.pt.xml" DiskId="1" />
                                 <File Id="syslog.pt.xml" LongName="syslog.pt.xml" Name="SYSLOG..XML" Source="Web\syslog.pt.xml" DiskId="1" />
                                 <File Id="Transparent.png" LongName="Transparent.png" Name="TRANSPA.PNG" Source="Web\Transparent.png" DiskId="1" />
+                                <File Id="TransparentBig.png" LongName="TransparentBig.png" Name="TRANSPB.PNG" Source="Web\TransparentBig.png" DiskId="1" />
+                                <File Id="index.pt.xml" LongName="index.pt.xml" Name="INDEX.P.XML" Source="Web\index.pt.xml" DiskId="1" />
                             </Component>
+                            <Directory Id="UserWeb" Name="User">
+                                <Component Id="UserWeb" Guid="FDF719DB-B1DA-4401-BE5F-1FA854E7DB2D">
+                                    <File Id="index.html" LongName="index.html" Name="INDEX.HTM" Source="Web\User\index.html" DiskId="1" />
+                                </Component>
+                            </Directory>
                         </Directory>
                         <Directory Id="EXAMPLES" Name="Examples">
                             <Component Id="Examples" Guid="504E174F-A539-4C95-B1BA-51674C84ECD4">
@@ -137,6 +147,7 @@
             <ComponentRef Id="Documentation" />
             <ComponentRef Id="DefaultConfiguration" />
             <ComponentRef Id="Web" />
+            <ComponentRef Id="UserWeb" />
             <ComponentRef Id="Examples" />
             <ComponentRef Id="ExamplesFlash" />
             <ComponentRef Id="ExamplesPronto" />

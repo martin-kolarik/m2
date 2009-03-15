@@ -1,3 +1,28 @@
+Version 1.0.799/R beta 15.3.2009
+- BUG: #51, space in form item was badly parsed in server, e.g. configuration was
+       unable to load if path contained spaces ("C:\Program Files...").
+- BUG: #54, possible bad view file (pt.xml) could cause infinite loop during
+       sending error response to client.
+- BUG: #56, if root of web (SmartServer) was accessed directly, without "/login" or so,
+       server crashed.
+- BUG: #24, list with configuration errors overlapped lower bar.
+- BUG: #37, default.cfg was not installed.
+- BUG: #55, a message with redirect ("Page was moved") was displayed and the client did
+       not redirected self to new page. Bad content-length header was generated.
+- BUG: #60, Google Chrome requires login twice.
+- BUG: #63, IE displayed graphics on pages slowly, partially solved making transparent
+       images bigger.
+- BUG: #18, Login form button was aligned with editboxes.
+- BUG: #23, Design of configuration form changed, edibox is long, button is on left.
+- BUG: #49, System log is unable to configure from configuration file.
+- BUG: #47, Server returned bad HTTP status code (500) if page was not found (404).
+- CHG: #58, Data log displays events from now to history.
+- CHG: #68, Product icon changed.
+- NEW: #34, "Logout" button was added.
+- NEW: #35, User roles "admin" and "user" has been added, now with default passwords
+       "admin" and "user".
+- NEW: #36, Access to server from HTTP clients is thread safe now.
+
 Version 1.0.743/R beta 5.3.2009
 - BUG: #52, direct set value using web was reported as success even if server was
        not connected to KNX in the time.

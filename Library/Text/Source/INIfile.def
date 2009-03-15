@@ -6,11 +6,14 @@ FROM Storage IMPORT
 IMPORT
    IOO,
    list,
+   Log,
+   StringsO,
    TextReader,
-   TextWriter,
-   StringsO;
+   TextWriter;
 
 #save, option( dll_export => on )
+
+(*================================================================================*)
 
 TYPE
    TPDataListElem = POINTER TO CDataListElem;
@@ -50,6 +53,22 @@ CLASS CINIFile;
    PUBLIC PROCEDURE SetKeyReal( CONST Key : ARRAY OF WCHAR; lr : LONGREAL; Multiple : BOOLEAN ): BOOLEAN;
    // PROCEDURE SetKeyBin ( 
 END CINIFile;
+
+(*================================================================================*)
+// helpers
+
+TYPE
+   TConfigureLogResult = (
+      clrSuccess,
+      clrUnknownTarget,
+      clrUnknownLevel,
+      clrTargetFileMissingFile
+   );
+
+PROCEDURE ConfigureLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : Log.CLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
+  // if SectionName is empty, default "log" section name is used
+
+(*================================================================================*)
 
 #restore
 

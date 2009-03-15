@@ -14,6 +14,7 @@ IMPORT
 (*================================================================================*)
 
 CONST
+   INDEX_PAGE = L"index";
    LOGIN_PAGE = L"login";
    LOGOUT_PAGE = L"logout";
    STATUS_PAGE = L"status";
@@ -40,7 +41,7 @@ CLASS CController IMPLEMENTS FSO.IFilePathResolver, mvc.IFunctionHandler, mvc.IM
    PUBLIC VIRTUAL PROCEDURE ResolveMIME( ResolveContext : PTR; CONST Source : StringsO.IString; OUT ContentHeader : StringsO.IString ) : BOOLEAN;
 
    // IController
-   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN; // returning false means 500 response
 
    // SELF
    PUBLIC PROCEDURE BindToEibSrv( web : EibSrvWeb.TPEibSrvWeb );
@@ -49,14 +50,14 @@ CLASS CController IMPLEMENTS FSO.IFilePathResolver, mvc.IFunctionHandler, mvc.IM
    PRIVATE VAR
       _Web : EibSrvWeb.TPEibSrvWeb;
 
-   PRIVATE PROCEDURE ProcessLogin( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
-   PRIVATE PROCEDURE ProcessStatus( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
-   PRIVATE PROCEDURE ProcessControl( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
-   PRIVATE PROCEDURE ProcessDataLog( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
-   PRIVATE PROCEDURE ProcessSystemLog( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
-   PRIVATE PROCEDURE ProcessIO( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessLogin( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessStatus( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessControl( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessDataLog( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessSystemLog( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessIO( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
 
-   PRIVATE PROCEDURE ValidateUser( CONST UserName, Password : StringsO.CString ) : BOOLEAN;
+   PRIVATE PROCEDURE ValidateUser( CONST Request : mvc.IHttpRequest; CONST UserName, Password : StringsO.CString ) : BOOLEAN;
 
 END CController;
 

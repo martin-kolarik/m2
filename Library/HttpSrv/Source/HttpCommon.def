@@ -20,6 +20,7 @@ TYPE
    THttpResponse = (
       httpres_200 = 200,
       httpres_204 = 204,
+         httpres_NoChange = httpres_204,
 
       httpres_301 = 301,
       httpres_302 = 302,
@@ -29,13 +30,16 @@ TYPE
 
       httpres_400 = 400,
       httpres_401 = 401,
+         httpres_Unauthorized = httpres_401,
       httpres_403 = 403,
       httpres_404 = 404,
+         httpres_NotFound = httpres_404,
       httpres_405 = 405,
       httpres_409 = 409,
       httpres_412 = 412,
 
       httpres_500 = 500,
+         httpres_InternalServerError = httpres_500,
       httpres_501 = 501,
       httpres_503 = 503
    );

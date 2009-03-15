@@ -574,7 +574,7 @@ CLASS IMPLEMENTATION ASrvStream;
                Writer.WriteElementEnd();
 
             ELSE // not redirect
-               Writer.WriteElementStringOA( L"h1", L"Server HTTP error" );
+               Writer.WriteElementStringOA( L"h1", L"Unable to handle HTTP request." );
                Writer.WriteElementStartOA( L"p" );
                   Writer.WriteStringOA( L"The server responded with HTTP status code " );
                   Strings.FromCARD32W( CARDINAL( StatusCode ), 10, OUT n );

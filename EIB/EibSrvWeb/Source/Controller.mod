@@ -6,6 +6,7 @@ FROM Debug IMPORT
    Assertion;
    
 IMPORT
+   EibSrvWeb,
    FIO,
    FIOO,
    HttpCommon,
@@ -20,6 +21,9 @@ IMPORT
 CONST
    CRLF = 13W + 10W;
    SESSION_LOGGED = L"logged";
+   SESSION_ROLE = L"role";
+   ROLE_ADMIN = L"isAdmin";
+   USER_LOGGED = L"isLogged";
    
    RESOLVER_CONTEXT_WEB = 0;
    RESOLVER_CONTEXT_DISK = 1;
@@ -30,6 +34,7 @@ CONST
    DATA_LOG_VIEW = L"datalog.pt.xml";
    SYSTEM_LOG_VIEW = L"syslog.pt.xml";
    IO_VIEW = L"io.pt.xml";
+   INDEX_VIEW = L"index.pt.xml";
    
    LOGIN_MESSAGE = L"message";
    LOGIN_USERNAME = L"username";
@@ -149,53 +154,80 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN; // returning false means 500 response
    VAR
       data : PTR;
+      role : EibSrvWeb.TRole;
       uri : StringsO.CString;
    BEGIN
+      IF Request.Session^.Get( SESSION_ROLE, OUT data ) THEN
+         role := EibSrvWeb.TRole( LOPTRLONGWORD( data ));
+      ELSE
+         role := EibSrvWeb.roleGuest;
+         Request.Session^.Add( SESSION_ROLE, PTR( role ));
+      END;
 
       IF Fallback THEN
-         uri := Request^.ControllerURI;
+         uri := Request.ControllerURI;
          IF uri.EndsWithOA( DYNAMIC_SUFFIX ) THEN
-            Request^.ModelContainer^.AddFunctionHandlerOA( FN_SET, ADR( SELF ));
-            Request^.ModelContainer^.AddFunctionHandlerOA( FN_GET, ADR( SELF ));
+            Request.ModelContainer^.AddFunctionHandlerOA( FN_SET, ADR( SELF ));
+            Request.ModelContainer^.AddFunctionHandlerOA( FN_GET, ADR( SELF ));
             View := mvc.pageTemplateView( ADR( SELF ), OA( uri.Length-1, uri.rawData ));
          ELSE   
             View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_WEB, OA( uri.Length-1, uri.rawData ), FALSE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
          END;
          RETURN TRUE;
    
-      ELSIF Request^.ControllerURI.EqualsOA( LOGIN_PAGE ) THEN
+      ELSIF Request.ControllerURI.EqualsOA( INDEX_PAGE ) THEN
+         Request.ModelContainer^.AddBooleanOA( USER_LOGGED, Request.Session^.Get( SESSION_LOGGED, OUT data ) AND ( data = PTR( ADR( SELF ))) );
+         View := mvc.pageTemplateView( ADR( SELF ), INDEX_VIEW );
+         RETURN TRUE;
+      
+      ELSIF Request.ControllerURI.EqualsOA( LOGIN_PAGE ) THEN
          RETURN ProcessLogin( Request, OUT View );
       
-      ELSIF Request^.ControllerURI.EqualsOA( LOGOUT_PAGE ) THEN
-         Request^.Session^.Remove( SESSION_LOGGED );
+      ELSIF Request.ControllerURI.EqualsOA( LOGOUT_PAGE ) THEN
+         Request.Session^.Remove( SESSION_LOGGED );
          View := mvc.redirectView( LOGIN_PAGE );
          RETURN TRUE;
       
-      ELSIF NOT Request^.Session^.Get( SESSION_LOGGED, OUT data ) OR ( data <> PTR( ADR( SELF ))) THEN
-         Request^.Session^.Remove( SESSION_LOGGED );
-         View := mvc.redirectView( LOGIN_PAGE );
-         RETURN TRUE;
-      
-      ELSIF Request^.ControllerURI.Empty THEN // context directly accessed
-         View := mvc.redirectView( STATUS_PAGE );
+      ELSIF Request.ControllerURI.Empty THEN // context directly accessed
+         View := mvc.redirectView( INDEX_PAGE );
          RETURN TRUE;
 
-      ELSIF Request^.ControllerURI.EqualsOA( STATUS_PAGE ) THEN
+      ELSIF NOT Request.Session^.Get( SESSION_LOGGED, OUT data ) OR ( data <> PTR( ADR( SELF ))) THEN
+         Request.Session^.Remove( SESSION_LOGGED );
+         View := mvc.redirectView( LOGIN_PAGE );
+         RETURN TRUE;
+      
+      ELSIF Request.ControllerURI.EqualsOA( STATUS_PAGE ) THEN
+         Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, role = EibSrvWeb.roleAdministrator );
          RETURN ProcessStatus( Request, OUT View );
 
-      ELSIF Request^.ControllerURI.EqualsOA( CONTROL_PAGE ) THEN
-         RETURN ProcessControl( Request, OUT View );
+      ELSIF Request.ControllerURI.EqualsOA( CONTROL_PAGE ) THEN
+         IF role = EibSrvWeb.roleAdministrator THEN
+            Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, TRUE );
+            RETURN ProcessControl( Request, OUT View );
+         ELSE
+            View := mvc.httpStatusCodeView( HttpCommon.httpres_Unauthorized );
+            RETURN TRUE;
+         END;
 
-      ELSIF Request^.ControllerURI.EqualsOA( DATA_LOG_PAGE ) THEN
+      ELSIF Request.ControllerURI.EqualsOA( SYSTEM_LOG_PAGE ) THEN
+         IF role = EibSrvWeb.roleAdministrator THEN
+            Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, TRUE );
+            RETURN ProcessSystemLog( Request, OUT View );
+         ELSE
+            View := mvc.httpStatusCodeView( HttpCommon.httpres_Unauthorized );
+            RETURN TRUE;
+         END;
+
+      ELSIF Request.ControllerURI.EqualsOA( DATA_LOG_PAGE ) THEN
+         Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, role = EibSrvWeb.roleAdministrator );
          RETURN ProcessDataLog( Request, OUT View );
 
-      ELSIF Request^.ControllerURI.EqualsOA( SYSTEM_LOG_PAGE ) THEN
-         RETURN ProcessSystemLog( Request, OUT View );
-
-      ELSIF Request^.ControllerURI.EqualsOA( IO_PAGE ) THEN
+      ELSIF Request.ControllerURI.EqualsOA( IO_PAGE ) THEN
+         Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, role = EibSrvWeb.roleAdministrator );
          RETURN ProcessIO( Request, OUT View );
 
       END;
@@ -213,32 +245,32 @@ CLASS IMPLEMENTATION CController;
    
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessLogin( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessLogin( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       su, sp : StringsO.CString;
    BEGIN
-      IF Request^.RequestVerb = HttpCommon.verbGET THEN // OK, only render a login page
-         Request^.ModelContainer^.AddStringOA( LOGIN_MESSAGE, sp ); // empty
-         Request^.ModelContainer^.AddStringOA( LOGIN_USERNAME, sp ); // empty
-         Request^.ModelContainer^.AddStringOA( LOGIN_PASSWORD, sp ); // empty
+      IF Request.RequestVerb = HttpCommon.verbGET THEN // OK, only render a login page
+         Request.ModelContainer^.AddStringOA( LOGIN_MESSAGE, sp ); // empty
+         Request.ModelContainer^.AddStringOA( LOGIN_USERNAME, sp ); // empty
+         Request.ModelContainer^.AddStringOA( LOGIN_PASSWORD, sp ); // empty
          View := mvc.pageTemplateView( ADR( SELF ), LOGIN_VIEW );
 
       // post, try to login
-      ELSIF NOT Request^.ModelContainer^.GetStringOA( LOGIN_USERNAME, OUT su ) OR // bad input
-            NOT Request^.ModelContainer^.GetStringOA( LOGIN_PASSWORD, OUT sp ) OR // bad input
-            NOT ValidateUser( su, sp ) THEN // bad credentials
-         Request^.MessageSource^.GetMessageOA( Request^.Language, L"login.badCredentials", OUT su );
-         Request^.ModelContainer^.AddStringOA( LOGIN_MESSAGE, su );
+      ELSIF NOT Request.ModelContainer^.GetStringOA( LOGIN_USERNAME, OUT su ) OR // bad input
+            NOT Request.ModelContainer^.GetStringOA( LOGIN_PASSWORD, OUT sp ) OR // bad input
+            NOT ValidateUser( Request, su, sp ) THEN // bad credentials
+         Request.MessageSource^.GetMessageOA( Request.Language, L"login.badCredentials", OUT su );
+         Request.ModelContainer^.AddStringOA( LOGIN_MESSAGE, su );
 
          sp.Clear();
-         Request^.ModelContainer^.AddStringOA( LOGIN_MESSAGE, sp ); // empty
-         Request^.ModelContainer^.AddStringOA( LOGIN_USERNAME, sp ); // empty
-         Request^.ModelContainer^.AddStringOA( LOGIN_PASSWORD, sp ); // empty
+         Request.ModelContainer^.AddStringOA( LOGIN_MESSAGE, sp ); // empty
+         Request.ModelContainer^.AddStringOA( LOGIN_USERNAME, sp ); // empty
+         Request.ModelContainer^.AddStringOA( LOGIN_PASSWORD, sp ); // empty
          View := mvc.pageTemplateView( ADR( SELF ), LOGIN_VIEW );
          
       ELSE // OK, set up session, redirect to status page
-         Request^.Session^.Remove( SESSION_LOGGED );
-         Request^.Session^.Add( SESSION_LOGGED, ADR( SELF ));
+         Request.Session^.Remove( SESSION_LOGGED );
+         Request.Session^.Add( SESSION_LOGGED, ADR( SELF ));
          View := mvc.redirectView( STATUS_PAGE );
 
       END;
@@ -248,7 +280,7 @@ CLASS IMPLEMENTATION CController;
    
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessStatus( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessStatus( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       b : BOOLEAN;
       c : CARDINAL;
@@ -262,20 +294,20 @@ CLASS IMPLEMENTATION CController;
       t : time.TJD;
    BEGIN
       // check actions to do
-      IF Request^.ModelContainer^.GetBooleanOA( STATUS_CONNECT, OUT b ) AND b THEN
+      IF Request.ModelContainer^.GetBooleanOA( STATUS_CONNECT, OUT b ) AND b THEN
          _Web^.ConnectEIB();
-         Request^.ModelContainer^.AddBooleanOA( STATUS_CONNECT, FALSE );
+         Request.ModelContainer^.AddBooleanOA( STATUS_CONNECT, FALSE );
          View := mvc.redirectView( STATUS_PAGE );
          RETURN TRUE;
-      ELSIF Request^.ModelContainer^.GetBooleanOA( STATUS_DISCONNECT, OUT b ) AND b THEN
+      ELSIF Request.ModelContainer^.GetBooleanOA( STATUS_DISCONNECT, OUT b ) AND b THEN
          _Web^.DisconnectEIB();
-         Request^.ModelContainer^.AddBooleanOA( STATUS_DISCONNECT, FALSE );
+         Request.ModelContainer^.AddBooleanOA( STATUS_DISCONNECT, FALSE );
          View := mvc.redirectView( STATUS_PAGE );
          RETURN TRUE;
       END;
    
       b := _Web^.Connected;
-      Request^.ModelContainer^.AddBooleanOA( STATUS_CONNECTED, b );
+      Request.ModelContainer^.AddBooleanOA( STATUS_CONNECTED, b );
 
       starttime := _Web^.StartedTime;
       IF b THEN
@@ -287,14 +319,14 @@ CLASS IMPLEMENTATION CController;
          t := starttime;
       END;
       time.JDToZonalDateTime( t, dt, 0, 0 );
-      IF time.DateTimeToStringLang( Request^.Language, dt, DATETIME_FORMAT, TRUE, TRUE, s ) THEN
+      IF time.DateTimeToStringLang( Request.Language, dt, DATETIME_FORMAT, TRUE, TRUE, s ) THEN
          cs.FromOA( s );
       ELSE
          cs.FromOA( L"N/A" );
       END;
-      Request^.ModelContainer^.AddStringOA( STATUS_CONNECTIONTIME, cs );
-      Request^.ModelContainer^.AddBooleanOA( STATUS_CONNECT, FALSE );
-      Request^.ModelContainer^.AddBooleanOA( STATUS_DISCONNECT, FALSE );
+      Request.ModelContainer^.AddStringOA( STATUS_CONNECTIONTIME, cs );
+      Request.ModelContainer^.AddBooleanOA( STATUS_CONNECT, FALSE );
+      Request.ModelContainer^.AddBooleanOA( STATUS_DISCONNECT, FALSE );
       
       time.GetCurrentUTCDateTime( currentDT );
       currentTime := time.DateTimeToJD( currentDT );
@@ -313,28 +345,28 @@ CLASS IMPLEMENTATION CController;
       Strings.FromCARD32W( dt.Minute, 10, OUT s );
       cs.AppendOA( s );
       cs.AppendOA( L"m " );
-      Request^.ModelContainer^.AddStringOA( STATUS_UPTIME, cs );
+      Request.ModelContainer^.AddStringOA( STATUS_UPTIME, cs );
 
       dt := _Web^.LicenceExpires;
       IF dt.Day = 0 THEN
-         Request^.MessageSource^.GetMessageOA( Request^.Language, L"status.licencePermanent", OUT cs );
+         Request.MessageSource^.GetMessageOA( Request.Language, L"status.licencePermanent", OUT cs );
       ELSE
-         time.DateTimeToStringLang( Request^.Language, dt, DATETIME_FORMAT, TRUE, TRUE, s );
-         Request^.MessageSource^.GetMessageOA( Request^.Language, L"status.licenceValidUntil", OUT cs );
+         time.DateTimeToStringLang( Request.Language, dt, DATETIME_FORMAT, TRUE, TRUE, s );
+         Request.MessageSource^.GetMessageOA( Request.Language, L"status.licenceValidUntil", OUT cs );
          cs.AppendOA( s );
       END;
-      Request^.ModelContainer^.AddBooleanOA( STATUS_LICENCE_VALID, ( dt.Day = 0 ) OR time.Greater( currentDT, dt ));
-      Request^.ModelContainer^.AddStringOA( STATUS_LICENCE, cs );
+      Request.ModelContainer^.AddBooleanOA( STATUS_LICENCE_VALID, ( dt.Day = 0 ) OR time.Greater( currentDT, dt ));
+      Request.ModelContainer^.AddStringOA( STATUS_LICENCE, cs );
       
       c := _Web^.WrittenByHour + _Web^.ReadByHour;
       cs.FromCARD32( c, 10 );
-      Request^.ModelContainer^.AddStringOA( STATUS_LAST_HOUR, cs );
+      Request.ModelContainer^.AddStringOA( STATUS_LAST_HOUR, cs );
 
       c := _Web^.WrittenByDay + _Web^.ReadByDay;
       cs.FromCARD32( c, 10 );
-      Request^.ModelContainer^.AddStringOA( STATUS_LAST_DAY, cs );
+      Request.ModelContainer^.AddStringOA( STATUS_LAST_DAY, cs );
  
-      Request^.ModelContainer^.AddStringOA( STATUS_CONFIGURATION, _Web^.Configuration^ );
+      Request.ModelContainer^.AddStringOA( STATUS_CONFIGURATION, _Web^.Configuration^ );
  
       View := mvc.pageTemplateView( ADR( SELF ), STATUS_VIEW );
       RETURN TRUE;
@@ -342,7 +374,7 @@ CLASS IMPLEMENTATION CController;
    
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessControl( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessControl( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       count : CARDINAL;
       cs : StringsO.CString;
@@ -353,50 +385,50 @@ CLASS IMPLEMENTATION CController;
       listIndexes : lists.TPStringStringList;
    BEGIN
       // check actions to do
-      IF Request^.RequestVerb = HttpCommon.verbPOST THEN // OK, process form output
-         IF Request^.ModelContainer^.GetStringOA( CONTROL_CONFIG_FILE, OUT cs ) THEN
+      IF Request.RequestVerb = HttpCommon.verbPOST THEN // OK, process form output
+         IF Request.ModelContainer^.GetStringOA( CONTROL_CONFIG_FILE, OUT cs ) THEN
             _Web^.ConfigureEIB( cs );
          END;
          View := mvc.redirectView( CONTROL_PAGE );
          RETURN TRUE;
-      ELSIF Request^.ModelContainer^.GetStringOA( CONTROL_START, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
+      ELSIF Request.ModelContainer^.GetStringOA( CONTROL_START, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
          cs.FromOA( L"-1" );
-         Request^.ModelContainer^.AddStringOA( CONTROL_START, cs );
+         Request.ModelContainer^.AddStringOA( CONTROL_START, cs );
          IF i > MAX( INTEGER ) THEN
             // do nothing
          ELSIF i < _Web^.OperatedDeviceCount THEN
-            _Web^.OperatedDevice( i )^.Start();
+            _Web^.OperateDevice( i, TRUE );
          END;
          View := mvc.redirectView( CONTROL_PAGE );
          RETURN TRUE;
-      ELSIF Request^.ModelContainer^.GetStringOA( CONTROL_STOP, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
+      ELSIF Request.ModelContainer^.GetStringOA( CONTROL_STOP, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
          cs.FromOA( L"-1" );
-         Request^.ModelContainer^.AddStringOA( CONTROL_STOP, cs );
+         Request.ModelContainer^.AddStringOA( CONTROL_STOP, cs );
          IF i > MAX( INTEGER ) THEN
             // do nothing
          ELSIF i < _Web^.OperatedDeviceCount THEN
-            _Web^.OperatedDevice( i )^.Stop();
+            _Web^.OperateDevice( i, FALSE );
          END;
          View := mvc.redirectView( CONTROL_PAGE );
          RETURN TRUE;
-      ELSIF Request^.ModelContainer^.GetStringOA( CONTROL_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
+      ELSIF Request.ModelContainer^.GetStringOA( CONTROL_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
          cs.FromOA( L"-1" );
-         Request^.ModelContainer^.AddStringOA( CONTROL_DOWNLOAD, cs );
+         Request.ModelContainer^.AddStringOA( CONTROL_DOWNLOAD, cs );
          View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_DISK, OA( _Web^.Configuration^.Length-1, _Web^.Configuration^.rawData ), TRUE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
          RETURN TRUE;
       END;
 
-      Request^.ModelContainer^.AddListOA( CONTROL_DEVICES_NAME, OUT listDevices ); listDevices^.Clear();
-      Request^.ModelContainer^.AddListOA( CONTROL_DEVICES_RUN, OUT listRunning ); listRunning^.Clear();
-      Request^.ModelContainer^.AddListOA( CONTROL_DEVICES_IDX, OUT listIndexes ); listIndexes^.Clear();
+      Request.ModelContainer^.AddListOA( CONTROL_DEVICES_NAME, OUT listDevices ); listDevices^.Clear();
+      Request.ModelContainer^.AddListOA( CONTROL_DEVICES_RUN, OUT listRunning ); listRunning^.Clear();
+      Request.ModelContainer^.AddListOA( CONTROL_DEVICES_IDX, OUT listIndexes ); listIndexes^.Clear();
 
       count := _Web^.OperatedDeviceCount;
       IF count > 0 THEN
          FOR i := 0 TO count-1 DO
-            Request^.MessageSource^.GetMessageOA( Request^.Language, OAsz( _Web^.OperatedDeviceName( i )), OUT cs );
+            Request.MessageSource^.GetMessageOA( Request.Language, OAsz( _Web^.OperatedDeviceName( i )), OUT cs );
             listDevices^.Add( cs, cs );
 
-            IF _Web^.OperatedDevice( i )^.Running THEN
+            IF _Web^.DeviceRunning( i ) THEN
                cs.FromOA( L"true" );
             ELSE
                cs.FromOA( L"false" );
@@ -409,11 +441,11 @@ CLASS IMPLEMENTATION CController;
       END;
 
       cs.FromOA( L"-1" );
-      Request^.ModelContainer^.AddStringOA( CONTROL_START, cs );
-      Request^.ModelContainer^.AddStringOA( CONTROL_STOP, cs );
-      Request^.ModelContainer^.AddStringOA( CONTROL_DOWNLOAD, cs );
+      Request.ModelContainer^.AddStringOA( CONTROL_START, cs );
+      Request.ModelContainer^.AddStringOA( CONTROL_STOP, cs );
+      Request.ModelContainer^.AddStringOA( CONTROL_DOWNLOAD, cs );
 
-      Request^.ModelContainer^.AddStringOA( CONTROL_CONFIG_FILE, _Web^.Configuration^ );
+      Request.ModelContainer^.AddStringOA( CONTROL_CONFIG_FILE, _Web^.Configuration^ );
       
       count := _Web^.ConfigLogger^.BufferCount;
       cs.Clear();
@@ -426,7 +458,7 @@ CLASS IMPLEMENTATION CController;
             cs.AppendOA( log );
          END;
       END;
-      Request^.ModelContainer^.AddStringOA( CONTROL_CONFIG_LOG, cs );
+      Request.ModelContainer^.AddStringOA( CONTROL_CONFIG_LOG, cs );
             
       View := mvc.pageTemplateView( ADR( SELF ), CONTROL_VIEW );
       RETURN TRUE;
@@ -434,7 +466,7 @@ CLASS IMPLEMENTATION CController;
    
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessDataLog( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessDataLog( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       count : CARDINAL;
       cs : StringsO.CString;
@@ -452,7 +484,7 @@ CLASS IMPLEMENTATION CController;
             cs.AppendOA( log );
          END;
       END;
-      Request^.ModelContainer^.AddStringOA( LOG_LOG, cs );
+      Request.ModelContainer^.AddStringOA( LOG_LOG, cs );
 
       View := mvc.pageTemplateView( ADR( SELF ), DATA_LOG_VIEW );
       RETURN TRUE;
@@ -460,7 +492,7 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessSystemLog( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessSystemLog( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       count : CARDINAL;
       cs : StringsO.CString;
@@ -478,7 +510,7 @@ CLASS IMPLEMENTATION CController;
             cs.AppendOA( log );
          END;
       END;
-      Request^.ModelContainer^.AddStringOA( LOG_LOG, cs );
+      Request.ModelContainer^.AddStringOA( LOG_LOG, cs );
 
       View := mvc.pageTemplateView( ADR( SELF ), SYSTEM_LOG_VIEW );
       RETURN TRUE;
@@ -486,7 +518,7 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ProcessIO( CONST Request : mvc.TPHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessIO( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
       b : BOOLEAN;
       empty, fid : StringsO.CString;
@@ -495,33 +527,33 @@ CLASS IMPLEMENTATION CController;
       wfailed : BOOLEAN := FALSE;
       wname, wvalue : StringsO.CString;
    BEGIN
-      IF Request^.RequestVerb <> HttpCommon.verbPOST THEN
+      IF Request.RequestVerb <> HttpCommon.verbPOST THEN
          // OK, only display
-         Request^.ModelContainer^.GetStringOA( IO_WRITE_NAME, OUT wname );
-         Request^.ModelContainer^.GetStringOA( IO_WRITE_VALUE, OUT wvalue );
-         Request^.ModelContainer^.GetBooleanOA( IO_WRITE_FAILED, OUT wfailed );
-         Request^.ModelContainer^.GetStringOA( IO_READ_NAME, OUT rname );
-         Request^.ModelContainer^.GetStringOA( IO_READ_VALUE, OUT rvalue );
-         Request^.ModelContainer^.GetBooleanOA( IO_READ_FAILED, OUT rfailed );
+         Request.ModelContainer^.GetStringOA( IO_WRITE_NAME, OUT wname );
+         Request.ModelContainer^.GetStringOA( IO_WRITE_VALUE, OUT wvalue );
+         Request.ModelContainer^.GetBooleanOA( IO_WRITE_FAILED, OUT wfailed );
+         Request.ModelContainer^.GetStringOA( IO_READ_NAME, OUT rname );
+         Request.ModelContainer^.GetStringOA( IO_READ_VALUE, OUT rvalue );
+         Request.ModelContainer^.GetBooleanOA( IO_READ_FAILED, OUT rfailed );
 
-      ELSIF Request^.ModelContainer^.GetStringOA( IO_FORM_ID, OUT fid ) AND fid.EqualsOA( IO_DO_READ ) THEN
-         IF Request^.ModelContainer^.GetStringOA( IO_READ_NAME, OUT rname ) THEN
+      ELSIF Request.ModelContainer^.GetStringOA( IO_FORM_ID, OUT fid ) AND fid.EqualsOA( IO_DO_READ ) THEN
+         IF Request.ModelContainer^.GetStringOA( IO_READ_NAME, OUT rname ) THEN
             IF _Web^.GetValue( rname, OUT rvalue ) THEN
-               Request^.ModelContainer^.AddStringOA( IO_READ_VALUE, rvalue );
-               Request^.ModelContainer^.AddBooleanOA( IO_READ_FAILED, FALSE );
+               Request.ModelContainer^.AddStringOA( IO_READ_VALUE, rvalue );
+               Request.ModelContainer^.AddBooleanOA( IO_READ_FAILED, FALSE );
             ELSE
-               Request^.ModelContainer^.AddStringOA( IO_READ_VALUE, empty );
-               Request^.ModelContainer^.AddBooleanOA( IO_READ_FAILED, TRUE );
+               Request.ModelContainer^.AddStringOA( IO_READ_VALUE, empty );
+               Request.ModelContainer^.AddBooleanOA( IO_READ_FAILED, TRUE );
             END;
          END;
          
          View := mvc.redirectView( IO_PAGE );
          RETURN TRUE;
 
-      ELSIF Request^.ModelContainer^.GetStringOA( IO_FORM_ID, OUT fid ) AND fid.EqualsOA( IO_DO_WRITE ) THEN
-         IF Request^.ModelContainer^.GetStringOA( IO_WRITE_NAME, OUT wname ) AND
-            Request^.ModelContainer^.GetStringOA( IO_WRITE_VALUE, OUT wvalue ) THEN
-            Request^.ModelContainer^.AddBooleanOA( IO_WRITE_FAILED, NOT _Web^.SetValue( wname, wvalue ));
+      ELSIF Request.ModelContainer^.GetStringOA( IO_FORM_ID, OUT fid ) AND fid.EqualsOA( IO_DO_WRITE ) THEN
+         IF Request.ModelContainer^.GetStringOA( IO_WRITE_NAME, OUT wname ) AND
+            Request.ModelContainer^.GetStringOA( IO_WRITE_VALUE, OUT wvalue ) THEN
+            Request.ModelContainer^.AddBooleanOA( IO_WRITE_FAILED, NOT _Web^.SetValue( wname, wvalue ));
          END;
 
          View := mvc.redirectView( IO_PAGE );
@@ -532,16 +564,16 @@ CLASS IMPLEMENTATION CController;
          RETURN TRUE;
       END;
 
-      Request^.ModelContainer^.AddFunctionHandlerOA( FN_SET, ADR( SELF ));
-      Request^.ModelContainer^.AddFunctionHandlerOA( FN_GET, ADR( SELF ));
+      Request.ModelContainer^.AddFunctionHandlerOA( FN_SET, ADR( SELF ));
+      Request.ModelContainer^.AddFunctionHandlerOA( FN_GET, ADR( SELF ));
 
-      Request^.ModelContainer^.AddStringOA( IO_FORM_ID, empty );
-      Request^.ModelContainer^.AddStringOA( IO_READ_NAME, rname );
-      Request^.ModelContainer^.AddStringOA( IO_READ_VALUE, rvalue );
-      Request^.ModelContainer^.AddBooleanOA( IO_READ_FAILED, rfailed );
-      Request^.ModelContainer^.AddStringOA( IO_WRITE_NAME, wname );
-      Request^.ModelContainer^.AddStringOA( IO_WRITE_VALUE, wvalue );
-      Request^.ModelContainer^.AddBooleanOA( IO_WRITE_FAILED, wfailed );
+      Request.ModelContainer^.AddStringOA( IO_FORM_ID, empty );
+      Request.ModelContainer^.AddStringOA( IO_READ_NAME, rname );
+      Request.ModelContainer^.AddStringOA( IO_READ_VALUE, rvalue );
+      Request.ModelContainer^.AddBooleanOA( IO_READ_FAILED, rfailed );
+      Request.ModelContainer^.AddStringOA( IO_WRITE_NAME, wname );
+      Request.ModelContainer^.AddStringOA( IO_WRITE_VALUE, wvalue );
+      Request.ModelContainer^.AddBooleanOA( IO_WRITE_FAILED, wfailed );
 
       View := mvc.pageTemplateView( ADR( SELF ), IO_VIEW );
       RETURN TRUE;
@@ -549,10 +581,14 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ValidateUser( CONST UserName, Password : StringsO.CString ) : BOOLEAN;
+   PRIVATE PROCEDURE ValidateUser( CONST Request : mvc.IHttpRequest; CONST UserName, Password : StringsO.CString ) : BOOLEAN;
+   VAR
+      role : EibSrvWeb.TRole;
    BEGIN
-      // TODO
-      RETURN UserName.EqualsOA( L"admin" ) AND Password.EqualsOA( L"admin" );
+      role := _Web^.Authenticate( UserName, Password );
+      Request.Session^.Remove( SESSION_ROLE );
+      Request.Session^.Add( SESSION_ROLE, PTR( role ));
+      RETURN role <> EibSrvWeb.roleGuest;
    END ValidateUser;
    
 (*--------------------------------------------------------------------------------*)

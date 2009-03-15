@@ -1091,7 +1091,7 @@ CLASS IMPLEMENTATION CMVC;
       buffer.Size := 16384; // initial size
       view := NIL;
       
-      IF NOT controller^.ProcessRequest( fallbackFlag, ADR( request ), OUT view ) THEN
+      IF NOT controller^.ProcessRequest( fallbackFlag, request, OUT view ) THEN
          Connection^.StatusCode := HttpCommon.httpres_500;
       ELSIF view = NIL THEN
          Connection^.StatusCode := HttpCommon.httpres_500;
@@ -1470,6 +1470,17 @@ BEGIN
 END Cleanup;
 
 (*================================================================================*)
+
+PROCEDURE httpStatusCodeView( StatusCode : HttpCommon.THttpResponse ) : TPView;
+VAR
+   view : View.TPStatusCodeView;
+BEGIN
+   NEW( view );
+   view^.Init( StatusCode );
+   RETURN view;
+END httpStatusCodeView;
+
+//--------------------------------------------------------------------------------
 
 PROCEDURE fileView( CONST resolver : FSO.TPFilePathResolver; resolverContext : PTR; CONST PathRelativeToContext : ARRAY OF WCHAR; dispositionFlag : BOOLEAN; CONST mimeResolver : TPMIMEResolver; mimeResolverContext : PTR ) : TPView;
 VAR

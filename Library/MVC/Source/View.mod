@@ -20,6 +20,63 @@ IMPORT
 
 (*================================================================================*)
 
+CLASS IMPLEMENTATION CStatusCodeView;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY OutputType GET : MVC.TViewOutputType;
+   BEGIN
+      RETURN MVC.votBuffer;
+   END OutputType;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   BEGIN
+      Response.StatusCode := StatusCode;
+      RETURN TRUE;
+   END FormatToBuffer;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   BEGIN
+      ASSERT( FALSE );
+      RETURN FALSE;
+   END FormatToInputStream;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   BEGIN
+      ASSERT( FALSE );
+      RETURN FALSE;
+   END FormatToOutputStream;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Release();
+   VAR
+      a : TPStatusCodeView := ADR( SELF );
+   BEGIN
+      DISPOSE( a );
+   END Release;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Init( StatusCode : HttpCommon.THttpResponse );   
+   BEGIN
+      SELF.StatusCode := StatusCode;
+   END Init;
+   
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+   StatusCode := HttpCommon.httpres_InternalServerError;
+END CStatusCodeView;
+
+(*================================================================================*)
+
 CLASS IMPLEMENTATION CFileView;
 
 (*--------------------------------------------------------------------------------*)

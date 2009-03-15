@@ -20,9 +20,9 @@
                   <div class="middle">
                       <div id="menu">
                           <p>${msg.menu.status}</p>
-                          <p><a href="control">${msg.menu.control}</a></p>
+                          <p pt:condition="${isAdmin}"><a href="control">${msg.menu.control}</a></p>
                           <p><a href="datalog">${msg.menu.datalog}</a></p>
-                          <p><a href="syslog">${msg.menu.syslog}</a></p>
+                          <p pt:condition="${isAdmin}"><a href="syslog">${msg.menu.syslog}</a></p>
                           <p><a href="io">${msg.menu.io}</a></p>
                           <p>&nbsp;</p>
                           <p class="logout"><a href="logout">${msg.menu.logout}</a></p>
@@ -38,12 +38,12 @@
                               <pt:when condition="${connected}">
                                 <td><span class="green">${msg.status.connectedFrom}${connectionTime}</span></td>
                                 <td class="spare">&nbsp;</td>
-                                <td><a href="?disconnect=true"><span class="red">[${msg.status.disconnect}]</span></a></td>
+                                <td pt:condition="${isAdmin}"><a href="?disconnect=true"><span class="red">[${msg.status.disconnect}]</span></a></td>
                               </pt:when>
                               <pt:otherwise>
                                 <td><span class="red">${msg.status.notConnectedFrom}${connectionTime}</span></td>
                                 <td class="spare">&nbsp;</td>
-                                <td><a href="?connect=true"><span class="green">[${msg.status.connect}]</span></a></td>
+                                <td pt:condition="${isAdmin}"><a href="?connect=true"><span class="green">[${msg.status.connect}]</span></a></td>
                               </pt:otherwise>
                             </pt:choose>
                           </tr>

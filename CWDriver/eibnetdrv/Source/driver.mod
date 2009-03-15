@@ -282,14 +282,14 @@ CLASS IMPLEMENTATION CEIBDriver;
          RETURN FALSE;
       END;
 
-      CASE drv_def.ConfigureLog( TS, REF SELF.Logger, OUT ErrorLine ) OF
-      | drv_def.clrUnknownDebugMode :
+      CASE INIFile.ConfigureLog( TS, L"", REF SELF.Logger, OUT ErrorLine ) OF
+      | INIFile.clrUnknownTarget :
          Logger.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( DR()^[ Texts._UnknownDebugMode ] ), ErrorLine, 0 );
          RETURN FALSE;
-      | drv_def.clrUnknownDebugLevel :
+      | INIFile.clrUnknownLevel :
          Logger.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( DR()^[ Texts._UnknownDebugLevel ] ), ErrorLine, 0 );
          RETURN FALSE;
-      | drv_def.clrFileDebugMissingFile :
+      | INIFile.clrTargetFileMissingFile :
          Logger.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( DR()^[ Texts._FileDebugMissingFile ] ), ErrorLine, 0 );
          RETURN FALSE;
       END;

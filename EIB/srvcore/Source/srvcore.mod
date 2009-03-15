@@ -2334,6 +2334,7 @@ BEGIN
    _AdviseListener := NIL;
    _DataLogger := NIL;
 
+   Logger.Level := Log.dldDebug;
    Logger.SetUpByRegistry( LIBRARY );
    Logger.SetLogName( L"KNX" );
    Logger.RedirectTo := Log.logger();

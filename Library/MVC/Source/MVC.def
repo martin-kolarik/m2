@@ -129,7 +129,7 @@ END IView;
 (*--------------------------------------------------------------------------------*)
 
 INTERFACE IController;
-   PROCEDURE ProcessRequest( Fallback : BOOLEAN; CONST Request : TPHttpRequest; OUT View : TPView ) : BOOLEAN; // returning false means 500 response
+   PROCEDURE ProcessRequest( Fallback : BOOLEAN; CONST Request : IHttpRequest; OUT View : TPView ) : BOOLEAN; // returning false means 500 response
 END IController;
 
 (*--------------------------------------------------------------------------------*)
@@ -154,6 +154,7 @@ PROCEDURE Cleanup();
 
 //================================================================================
 
+PROCEDURE httpStatusCodeView( StatusCode : HttpCommon.THttpResponse ) : TPView;
 PROCEDURE fileView( CONST resolver : FSO.TPFilePathResolver; resolverContext : PTR; CONST PathRelativeToContext : ARRAY OF WCHAR; dispositionFlag : BOOLEAN; CONST mimeResolver : TPMIMEResolver; mimeResolverContext : PTR ) : TPView;
 PROCEDURE absoluteRedirectView( CONST FullURI : ARRAY OF WCHAR ) : TPView;
 PROCEDURE redirectView( CONST ContextRelativeURI : ARRAY OF WCHAR ) : TPView;

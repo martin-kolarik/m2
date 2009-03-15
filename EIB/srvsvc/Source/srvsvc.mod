@@ -166,22 +166,17 @@ CLASS IMPLEMENTATION CEibSvc;
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE _OnStart();
-   CONST
-      snServer = L"server";
-      knWebRoot = L"web_root";
-      knMessageFile = L"message_file";
    VAR
       cfg : INIfile.CINIFile;
       configuration : ARRAY [0..0] OF device.TConfigureItem;
       Data : ARRAY [0..511] OF WCHAR;
       IA : inetaddr.INETADDR;
       line : CARDINAL;
-      messageFile : StringsO.CString;
       Path : ARRAY [0..260] OF WCHAR;
       RS : Registry.CRegistry;
       s1, s2 : StringsO.CString;
-      webRoot : StringsO.CString;
    BEGIN
+      // get confiuration file path
       Strings.ConcatW( OUT Path, L"SOFTWARE\", Manufacturer ); Strings.AppendW( REF Path, L"\" ); Strings.AppendW( REF Path, ProductId );
       IF RS.OpenRead( L"", Registry.LOCAL_MACHINE, Path ) THEN
          IF RS.GetKeyStr( keyStorage, OUT Data ) THEN
@@ -201,23 +196,10 @@ CLASS IMPLEMENTATION CEibSvc;
          s2.FromOA( defaultConfiguration );
       END;
       FIOO.PathAdd( REF s1, s2 );
+      cfg.LoadPath( OA( s1.Length-1, s1.rawData ));
       
-      IF cfg.LoadPath( OA( s1.Length-1, s1.rawData )) AND cfg.SetSection( snServer ) AND FIO.GetModuleDirW( EMITW( %exe ), OUT Path ) THEN // EXE dir
-         IF cfg.GetKeyStr( knWebRoot, OUT line, OUT webRoot ) THEN
-            webRoot.ReplaceOA( L"%exedir%", Path );
-         ELSE
-            webRoot.FromOA( Path );
-         END;
-         IF cfg.GetKeyStr( knMessageFile, OUT line, OUT messageFile ) THEN
-            messageFile.ReplaceOA( L"%exedir%", Path );
-         END;
-      END;
-      IF webRoot.Empty THEN
-         Log.logger()^.LogS( Log.dlcError, L"KnxSrv", L"Web root is not defined, web interface will not be accessible." );
-      END;
-      IF messageFile.Empty THEN
-         Log.logger()^.LogS( Log.dlcError, L"KnxSrv", L"Message source for web is not defined, web interface will not be accessible." );
-      END;
+      INIfile.ConfigureLog( cfg, L"", REF Log.logger()^, OUT line );
+      INIfile.ConfigureLog( cfg, L"datalog", REF DataLogger, OUT line );
       
       ASSERT( EIB = NIL );
       NEW( EIB );
@@ -262,8 +244,7 @@ CLASS IMPLEMENTATION CEibSvc;
       CDI.Devices[0] := SDAP;
       CDI.Devices[1] := XMLS;
       
-      IF NOT webRoot.Empty AND NOT messageFile.Empty THEN
-         Web.Init( 6005, L"/SmartServer", webRoot, messageFile, EIB, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ));
+      IF Web.Init( 6005, L"/SmartServer", cfg, EIB, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger )) THEN
          Web.Run();
       END;
 

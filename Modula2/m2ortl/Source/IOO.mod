@@ -585,11 +585,13 @@ CLASS IMPLEMENTATION AStream;
          Result := Start( Direction, TimeoutMS );
       END;
 
-      // fullfil interface's Start order -- if Start returns arCannotStart, arPending, arAlreadyPending is DID NOT CALL DeviceFinish and I must Release proxy
+      // fullfil interface's Start order -- if Start returns arCannotStart, arPending, arAlreadyPending it DID NOT CALL DeviceFinish and I must Release proxy accordingly
       CASE Result OF
-      | Sync.arPending, Sync.arAlreadyPending :
+      | Sync.arPending : // OK, reference is mine, do nothing
+         // fall down
+      | Sync.arAlreadyPending : // OK, reference is abundant
          _Proxy^.Release();
-      | Sync.arCannotStart :
+      | Sync.arCannotStart : // OK, reference is abundant and client must be notified that device finished its work
          DeviceFinish( Direction, Sync.arCannotStart );
       END;
 
