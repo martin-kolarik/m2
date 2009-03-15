@@ -754,7 +754,7 @@ CLASS IMPLEMENTATION CEIBDriver;
 
       //=====
       IF EQUALS( N, L'run' ) THEN
-         Run();
+         Start();
          
       //=====
       ELSIF EQUALS( N, L'stop' ) THEN
@@ -969,7 +969,7 @@ CLASS IMPLEMENTATION CEIBDriver;
       CASE Operation OF
       //-----
       | OP_RUN :
-         SUPER.Run();
+         SUPER.Start();
 
          IF WatchDogChannel <> MAX( CARDINAL ) THEN
             WatchDogLock.Lock();
