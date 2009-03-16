@@ -402,7 +402,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       mbs : IOO.CMemoryBufferStream;
       viewPath : StringsO.CString;
    BEGIN
-      Response.ModelContainer^.ResetModelViewMapping();
+      Response.ModelContainer^.ResetModelInViewNames( Request.ControllerURI );
       HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"", L"utf-8", FALSE, OUT Content );
       Response.ContentType := Content;
 
@@ -1480,7 +1480,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       viewName.PrependOA( L"fx" );
       INC( CurrentViewNameIndex );
 
-      Request^.ModelContainer^.SetModelViewMapping( model, viewName );
+      Request^.ModelContainer^.SetModelInViewName( Request^.ControllerURI, model, viewName );
       Writer.WriteAttributeStringOA( L"name", OA( viewName.Length-1, viewName.rawData ));
    END WriteFormNameAttribute;
 

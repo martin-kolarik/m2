@@ -25,7 +25,7 @@ IMPORT
 
 CONST
    SESSION_MVC = L"#mvc";
-   VIEW_MAPPER = L"#viewmapper";
+   VIEW_MAPPER = L"#viewmapper.";
 
 (*================================================================================*)
 
@@ -52,9 +52,10 @@ CLASS CContainer IMPLEMENTS IContainer;
    PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Model : StringsO.IString; OUT Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    PUBLIC VIRTUAL PROCEDURE Format( FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
 
-   PUBLIC VIRTUAL PROCEDURE ResetModelViewMapping(); // clears all mode-view bindings
-   PUBLIC VIRTUAL PROCEDURE SetModelViewMapping( CONST FullModel, ViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
-   PUBLIC VIRTUAL PROCEDURE GetModelViewMapping( CONST ViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
+   // There can be more active mappings, each identified by ControllerURI.
+   PUBLIC VIRTUAL PROCEDURE ResetModelInViewNames( CONST ControllerURI : StringsO.IString ); // clears all mode-view bindings corresponding to SetId
+   PUBLIC VIRTUAL PROCEDURE SetModelInViewName( CONST ControllerURI, FullModel, InViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
+   PUBLIC VIRTUAL PROCEDURE GetModelByInViewName( CONST ControllerURI, InViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
 END CContainer;
 
 (*--------------------------------------------------------------------------------*)
@@ -636,37 +637,48 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE ResetModelViewMapping(); // clears all mode-view bindings
+   // There can be more active mappings, each identified by SetId. It e.g. can be controller name, or so, always that way, to one would be easily able to identify to which controller/view the set and its data belongs.
+   PUBLIC VIRTUAL PROCEDURE ResetModelInViewNames( CONST ControllerURI : StringsO.IString ); // clears all mode-view bindings corresponding to SetId
+   VAR
+      LSetId : StringsO.CString;
    BEGIN
-      RemoveOA( VIEW_MAPPER );
-   END ResetModelViewMapping;
+      LSetId.FromOA( VIEW_MAPPER );
+      LSetId.Append( ControllerURI );
+      RemoveOA( OA( LSetId.Length-1, LSetId.rawData ));
+   END ResetModelInViewNames;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE SetModelViewMapping( CONST FullModel, ViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
+   PUBLIC VIRTUAL PROCEDURE SetModelInViewName( CONST ControllerURI, FullModel, InViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
    VAR
+      LSetId : StringsO.CString;
       mapper : maps.TPStringStringMap;
    BEGIN
-      IF NOT GetMapOA( VIEW_MAPPER, OUT mapper ) THEN
-         AddMapOA( VIEW_MAPPER, OUT mapper );
+      LSetId.FromOA( VIEW_MAPPER );
+      LSetId.Append( ControllerURI );
+      IF NOT GetMapOA( OA( LSetId.Length-1, LSetId.rawData ), OUT mapper ) THEN
+         AddMapOA( OA( LSetId.Length-1, LSetId.rawData ), OUT mapper );
       END;
-      mapper^.Add( ViewName, FullModel );
-   END SetModelViewMapping;
+      mapper^.Add( InViewName, FullModel );
+   END SetModelInViewName;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetModelViewMapping( CONST ViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
+   PUBLIC VIRTUAL PROCEDURE GetModelByInViewName( CONST ControllerURI, InViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
    VAR
+      LSetId : StringsO.CString;
       mapper : maps.TPStringStringMap;
    BEGIN
-      IF NOT GetMapOA( VIEW_MAPPER, OUT mapper ) THEN
+      LSetId.FromOA( VIEW_MAPPER );
+      LSetId.Append( ControllerURI );
+      IF NOT GetMapOA( OA( LSetId.Length-1, LSetId.rawData ), OUT mapper ) THEN
          RETURN FALSE;
-      ELSIF NOT mapper^.Get( ViewName, OUT FullModel ) THEN
+      ELSIF NOT mapper^.Get( InViewName, OUT FullModel ) THEN
          RETURN FALSE;
       ELSE
          RETURN TRUE;
       END;
-   END GetModelViewMapping;
+   END GetModelByInViewName;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1076,7 +1088,7 @@ CLASS IMPLEMENTATION CMVC;
       END;
       connectionData.Reset();
       WHILE connectionData.MoveNext() DO
-         IF container^.GetModelViewMapping( connectionData.Current^, OUT mappedName ) THEN
+         IF container^.GetModelByInViewName( controllerURI, connectionData.Current^, OUT mappedName ) THEN
             container^.SetModelValue( mappedName, connectionData.CurrentData^ );
          ELSIF ( Connection^.RequestVerb <> HttpCommon.verbPOST ) AND // for GET driving by URI parameter is allowed...
                container^.GetModelValue( connectionData.Current^, OUT modelValue ) THEN // ...only if the parameter is known
