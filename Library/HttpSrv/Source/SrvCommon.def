@@ -11,6 +11,7 @@ IMPORT
    sha256,
    StringsO,
    Sync,
+   time,
    TimeoutableTwoPtrMap,
    threadpool;
 
@@ -83,7 +84,7 @@ ABSTRACT CLASS ASrvStream( IOO.AStream ); // synchronous implementation only
    PUBLIC ABSTRACT PROPERTY
       StatusCode : HttpCommon.THttpResponse;
       // see OverrideStatusResponse too
-      
+
    // all methods can return arCompleted, arNoData, arAbort, arTimeout
    INTERNAL ABSTRACT PROCEDURE ReceiveHeaders() : Sync.TAsyncResult;
    INTERNAL ABSTRACT PROCEDURE ReceiveData( REF Data : StorageO.AMemoryBuffer ) : Sync.TAsyncResult; // all headers read out, Data is emptied and filled up to Data.Size
@@ -95,10 +96,14 @@ ABSTRACT CLASS ASrvStream( IOO.AStream ); // synchronous implementation only
       Chunked : BOOLEAN;
       ResponseLength : CARD64;
       OverrideStatusResponse : BOOLEAN; // Default = FALSE means server generates self error pages
+      AllowCaching : BOOLEAN;
+      LastModified : time.TJD;
 
+   PUBLIC PROCEDURE TestConditions( CONST ResourceLastModified : time.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
+
+   // private, not for clients
    LOCAL PROCEDURE StartHandleRequest() : Sync.TAsyncResult;
    
-   // private   
    PRIVATE VAR
       _ReadOut : BOOLEAN;
       _HeaderSent : BOOLEAN;

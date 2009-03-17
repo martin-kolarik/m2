@@ -683,7 +683,6 @@ CLASS IMPLEMENTATION CHttpApiStream;
       RESPONSE_206 = C"Partial Content";
       // redirection
       RESPONSE_300 = C"Multiple Choices";
-      RESPONSE_304 = C"Not Modified";
       RESPONSE_305 = C"Use Proxy";
       // client error
       RESPONSE_400 = C"Bad Request";
@@ -696,7 +695,6 @@ CLASS IMPLEMENTATION CHttpApiStream;
       RESPONSE_409 = C"Conflict";
       RESPONSE_410 = C"Gone";
       RESPONSE_411 = C"Length Required";
-      RESPONSE_412 = C"Precondition Failed";
       RESPONSE_413 = C"Request Entity Too Large";
       RESPONSE_414 = C"Request-URI Too Large";
       RESPONSE_415 = C"Unsupported Media Type";
@@ -710,9 +708,11 @@ CLASS IMPLEMENTATION CHttpApiStream;
       RESPONSE_301 = C"Moved Permanently";
       RESPONSE_302 = C"Moved Temporarily";
       RESPONSE_303 = C"See Other";
+      RESPONSE_304 = C"Not Modified";
       RESPONSE_401 = C"Unauthorized";
       RESPONSE_404 = C"Not Found";
       RESPONSE_409 = C"Conflict";
+      RESPONSE_412 = C"Precondition Failed";
       RESPONSE_500 = C"Internal Server Error";
       RESPONSE_501 = C"Not Implemented";
    BEGIN
@@ -729,6 +729,9 @@ CLASS IMPLEMENTATION CHttpApiStream;
       | HttpCommon.httpres_303 :
          _Response.pReason := ADR( RESPONSE_303 );
          _Response.ReasonLength := SIZE( RESPONSE_303 )-1;
+      | HttpCommon.httpres_304 :
+         _Response.pReason := ADR( RESPONSE_304 );
+         _Response.ReasonLength := SIZE( RESPONSE_304 )-1;
       | HttpCommon.httpres_401 :
          _Response.pReason := ADR( RESPONSE_401 );
          _Response.ReasonLength := SIZE( RESPONSE_401 )-1;
@@ -738,6 +741,9 @@ CLASS IMPLEMENTATION CHttpApiStream;
       | HttpCommon.httpres_409 :
          _Response.pReason := ADR( RESPONSE_409 );
          _Response.ReasonLength := SIZE( RESPONSE_409 )-1;
+      | HttpCommon.httpres_412 :
+         _Response.pReason := ADR( RESPONSE_412 );
+         _Response.ReasonLength := SIZE( RESPONSE_412 )-1;
       | HttpCommon.httpres_500 :
          _Response.pReason := ADR( RESPONSE_500 );
          _Response.ReasonLength := SIZE( RESPONSE_500 )-1;

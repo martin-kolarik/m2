@@ -474,14 +474,67 @@ CLASS IMPLEMENTATION ASrvStream;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY AllowCaching GET : BOOLEAN;
+   BEGIN
+      RETURN NOT ResponseHeaders^.Contains( HttpCommon.CacheControl );
+   END AllowCaching;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY AllowCaching SET( Value : BOOLEAN );
+   BEGIN
+      IF Value THEN
+         ResponseHeaders^.Remove( HttpCommon.Pragma );
+         ResponseHeaders^.Remove( HttpCommon.CacheControl );
+      ELSE
+         ResponseHeaders^.AddOA( HttpCommon.Pragma, L"no-cache" );
+         ResponseHeaders^.AddOA( HttpCommon.CacheControl, L"no-cache" );
+      END;
+   END AllowCaching;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY LastModified GET : time.TJD;
+   VAR
+      dt : time.TJD;
+      s : StringsO.CString;
+   BEGIN
+      IF NOT ResponseHeaders^.Get( HttpCommon.LastModified, OUT s ) THEN
+         RETURN 0;
+      ELSIF NOT httptools.DecodeDateJD( s, OUT dt ) THEN
+         RETURN 0;
+      ELSE
+         RETURN dt;
+      END;
+   END LastModified;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY LastModified SET( Value : time.TJD );
+   BEGIN
+      ResponseHeaders^.Add( HttpCommon.LastModified, httptools.FormatDateJD( Value ));
+   END LastModified;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE TestConditions( CONST ResourceLastModified : time.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
+   BEGIN
+      RETURN HttpCommon.httpres_500;
+   END TestConditions;
+
+(*--------------------------------------------------------------------------------*)
+
    PRIVATE PROCEDURE NormalizeHeaders();
    VAR
-      // dt : Time.TDateTime;
+      dt : Time.TJD;
       Content : StringsO.CString;
    BEGIN
       // Date
-      // Time.GetCurrentUTCDateTime( dt );
-      // _ResponseHeaders.Add( HttpCommon.Date, httptools.FormatDate( dt )); // driven by http.sys
+      dt := Time.GetCurrentJD();
+      // _ResponseHeaders.Add( HttpCommon.Date, httptools.FormatDateJD( dt )); // driven by http.sys
+      IF dt < LastModified THEN // RFC: LastModified MUST NOT be greater than Date
+         LastModified := dt;
+      END;
       
       // cleanup if error
       IF StatusCode > HttpCommon.httpres_400 THEN
@@ -491,11 +544,11 @@ CLASS IMPLEMENTATION ASrvStream;
       // Server
       ResponseHeaders^.AddOA( HttpCommon.Server, L"SCWS/1.0 on" );
       
-      // Caching
-      IF NOT ResponseHeaders^.Contains( HttpCommon.CacheControl ) THEN
-         ResponseHeaders^.AddOA( HttpCommon.Pragma, L"no-cache" );
-         ResponseHeaders^.AddOA( HttpCommon.CacheControl, L"no-cache" );
-      END;
+      // Caching, not controlled
+      // IF NOT ResponseHeaders^.Contains( HttpCommon.CacheControl ) THEN
+      //    ResponseHeaders^.AddOA( HttpCommon.Pragma, L"no-cache" );
+      //    ResponseHeaders^.AddOA( HttpCommon.CacheControl, L"no-cache" );
+      // END;
 
       // Content
       IF NOT ResponseHeaders^.Contains( HttpCommon.ContentType ) THEN
