@@ -139,8 +139,8 @@ VAR
    
    #if Licensor #or Client #then
       an : Number.CActivation;
-      dtb : time.TDateTime;
-      dte : time.TDateTime;
+      dtb : time.DateTime;
+      dte : time.DateTime;
       jd : time.TJD;
       out : TextWriter.TPTextWriter := TextWriter.stdout();
       owner : StringsO.CString;
@@ -936,7 +936,6 @@ BEGIN
       END;
 
       // common expiration settings
-      time.InitDateTime( OUT dtb );
       IF NOT expBegin.Empty AND NOT time.StringToDateTime( OA( expBegin.Length-1, expBegin.rawData ), dateFormat, dtb ) THEN
          err^.WriteOA( L'  the begin date is not valid', TRUE );
          RETURN 209;

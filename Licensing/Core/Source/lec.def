@@ -39,7 +39,7 @@ CLASS CResult( Delegate.ADelegate );
       Behaviour : TBehaviour := bhBestCase;
    PUBLIC READONLY PROPERTY
       Info : TInfo;
-      Expires : time.TDateTime;
+      Expires : time.DateTime;
       Expired : BOOLEAN;
       NextCheck : CARDINAL;
       Counted : BOOLEAN;

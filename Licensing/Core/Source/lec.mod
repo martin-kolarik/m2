@@ -25,10 +25,10 @@ VAR
 
 PROCEDURE JDCToDate( date : time.TJDC; OUT dateString : ARRAY OF WCHAR );
 VAR
-   dt : time.TDateTime;
+   dt : time.DateTime;
 BEGIN
-   time.JDToZonalDateTime( date, dt, 0, 0 );
-   time.DateTimeToString( dt, L"yy-MM-dd HH:mm", TRUE, TRUE, dateString );
+   dt.JulianDate := date;
+   dt.ToStringOA( L"yy-MM-dd HH:mm", TRUE, TRUE, OUT dateString );
 END JDCToDate;
 
 #endif   
@@ -100,7 +100,7 @@ CLASS IMPLEMENTATION CResult;
    LABEL
       Done;
    VAR
-      dt, now : time.TDateTime;
+      dt, now : time.DateTime;
       expires : time.TJD;
       item : Items.TPItem := data;
       items, jitems : lists.TPPtrList;
@@ -126,7 +126,7 @@ CLASS IMPLEMENTATION CResult;
             Log.LogSS( dldDebug, L"LEC", L"Product with licences: ", logs );
          #endif
 
-         time.GetCurrentUTCDateTime( now );
+         now.SetNowUTC();
          expires := expNotSet;
       ELSE
 
@@ -170,7 +170,7 @@ CLASS IMPLEMENTATION CResult;
                   info := ComputeInfo( bhBestCase, info, riActivated );
                   dt := Items.TPActivation( item )^.Expires;
                   IF dt.Year > 0 THEN
-                     expires := ComputeExpiration( bhBestCase, expires, time.DateTimeToJD( dt ));
+                     expires := ComputeExpiration( bhBestCase, expires, dt.JulianDate );
 
                      #if DEBUG #then      
                         Log.LogS( dldDebug, L"LEC", L"    valid limitedly" );
@@ -193,7 +193,7 @@ CLASS IMPLEMENTATION CResult;
                   #endif
                ELSE
                   info := ComputeInfo( bhBestCase, info, riNotActivated );
-                  expires := ComputeExpiration( bhBestCase, expires, time.DateTimeToJD( Items.TPLicence( item )^.Created ) + unactExp );
+                  expires := ComputeExpiration( bhBestCase, expires, Items.TPLicence( item )^.Created.JulianDate + unactExp );
 
                   #if DEBUG #then      
                      JDCToDate( expires, OUT logs );
@@ -227,7 +227,7 @@ CLASS IMPLEMENTATION CResult;
 
          ELSE
             info := ComputeInfo( bhBestCase, info, riNotActivated );
-            expires := ComputeExpiration( bhBestCase, expires, time.DateTimeToJD( Items.TPLicence( item )^.Created ) + unactExp );
+            expires := ComputeExpiration( bhBestCase, expires, Items.TPLicence( item )^.Created.JulianDate + unactExp );
 
             #if DEBUG #then      
                JDCToDate( expires, OUT logs );
@@ -307,21 +307,20 @@ CLASS IMPLEMENTATION CResult;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Expires GET : time.TDateTime;
+   PUBLIC PROPERTY Expires GET : time.DateTime;
    VAR
       LExpires : time.TJD;
-      TExpires : time.TDateTime;
+      TExpires : time.DateTime;
    BEGIN
       _Lock.Lock();
       LExpires := _Expires;
       _Lock.Unlock();
       IF ( LExpires = expNotSet ) OR ( LExpires = expNever ) THEN
-         time.InitDateTime( OUT TExpires );
          IF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( TExpires )) >> 3 ) MOD 117 ) THEN
             TExpires.Year := 117;
          END;
       ELSE
-         time.JDToZonalDateTime( LExpires, TExpires, 0, 0 );
+         TExpires.JulianDate := LExpires;
          // time.TrimTime( REF TExpires ); -- better is to not trim it, it allows use Expires as whole information
          IF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( TExpires )) >> 3 ) MOD 117 ) THEN
             TExpires.Month := TExpires.Year;
@@ -343,7 +342,7 @@ CLASS IMPLEMENTATION CResult;
    PUBLIC PROPERTY NextCheck GET : CARDINAL;
    VAR
       expires : time.TJD;
-      LExpires : time.TDateTime;
+      LExpires : time.DateTime;
    BEGIN
       _Lock.Lock();
       expires := _Expires;

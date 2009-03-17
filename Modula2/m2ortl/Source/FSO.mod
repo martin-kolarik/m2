@@ -174,32 +174,24 @@ CLASS IMPLEMENTATION CDirectoryInfo; // 0W or '*' are equivalent in SearchPatter
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY CreationTime GET : time.TDateTime;
+   PUBLIC PROPERTY CreationTime GET : time.DateTime;
    VAR
-      t : time.TDateTime;
-      st : windows.SYSTEMTIME;
+      t : time.DateTime;
    BEGIN
-      IF _handle = windows.INVALID_HANDLE_VALUE THEN
-         time.InitDateTime( OUT t );
-      ELSE
-         windows.FileTimeToSystemTime( ADR( _current.ftCreationTime ), ADR( st ));
-         timeWin32.SystemTimeToDateTime( st, OUT t );
+      IF _handle <> windows.INVALID_HANDLE_VALUE THEN
+         t := FIO.FileTimeToDateTime( CARD64( _current.ftCreationTime ));
       END;
       RETURN t;
    END CreationTime;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY LastAccessTime GET : time.TDateTime;
+   PUBLIC PROPERTY LastAccessTime GET : time.DateTime;
    VAR
-      t : time.TDateTime;
-      st : windows.SYSTEMTIME;
+      t : time.DateTime;
    BEGIN
-      IF _handle = windows.INVALID_HANDLE_VALUE THEN
-         time.InitDateTime( OUT t );
-      ELSE
-         windows.FileTimeToSystemTime( ADR( _current.ftLastAccessTime ), ADR( st ));
-         timeWin32.SystemTimeToDateTime( st, OUT t );
+      IF _handle <> windows.INVALID_HANDLE_VALUE THEN
+         t := FIO.FileTimeToDateTime( CARD64( _current.ftLastAccessTime ));
       END;
       RETURN t;
    END LastAccessTime;

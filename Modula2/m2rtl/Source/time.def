@@ -1,7 +1,12 @@
 DEFINITION MODULE Time;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
    Languages;
+
+(*================================================================================================*)
 
 #save, option( dll_export => on )
 
@@ -13,7 +18,6 @@ PROCEDURE UptimeMS(): CARDINAL; // returns time from system startup in ms
 PROCEDURE UptimeMS64(): TTime64; // returns time from system startup in ms
 
 // high resolution timer
-PROCEDURE HiResTimerExists() : BOOLEAN;
 PROCEDURE GetHiResHz() : TTime64;
 PROCEDURE GetHiResTicks() : TTime64;
 PROCEDURE GetHiResDifference( REF fromTick : TTime64 ) : TTime64; // returns amount of ticks and sets fromTime to the current ticks
@@ -26,7 +30,7 @@ CONST
   time ::= GetHiResTicks;
 PROCEDURE difftime( CONST StopTime, StartTime : TTime64 ) : LONGREAL; // seconds
 
-//===========================================================================
+(*================================================================================================*)
 // JulianDate routines
 
 TYPE
@@ -59,36 +63,7 @@ PROCEDURE DaysLRToJDC( days : LONGREAL ) : TJDC;
 PROCEDURE ToSJD( CONST jd : TJD ) : LONGREAL; // correct scientific Julian date
 PROCEDURE FromSJD( sjd : LONGREAL ) : TJD; // correct scientific Julian date
 
-//=============================================================================
-// date and time support
-
-TYPE
-  TDateTime   = RECORD
-                  Millisecond : CARDINAL;
-                  Second      : CARDINAL;
-                  Minute      : CARDINAL;
-                  Hour        : CARDINAL;
-                  Day         : CARDINAL;
-                  Month       : CARDINAL;
-                  Year        : INTEGER;
-                  DayOfWeek   : CARDINAL; // 0 is Sunday
-                  // UTC = LocalTime + UTCBias + DSTBias
-                  UTCBias     : INTEGER;  // if TDateTime contains system (UTC) time, the UTCBias is 0
-                    // MINUTES!!
-                  DSTBias     : INTEGER;  // if TDateTime contains system (UTC) time, the DSTBias is 0
-                    // MINUTES!!
-                END;
-  TPDateTime  = POINTER TO TDateTime;
-
-//-----------------------------------------------------------------------------
-
-PROCEDURE InitDateTime( OUT DateTime : TDateTime );
-PROCEDURE TrimDate( REF DateTime : TDateTime );
-PROCEDURE TrimTime( REF DateTime : TDateTime );
-
-PROCEDURE Less( CONST Origin, Comperand : TDateTime ) : BOOLEAN;
-PROCEDURE Greater( CONST Origin, Comperand : TDateTime ) : BOOLEAN;
-
+(*================================================================================================*)
 // UTCBias always represents zone time only, thus,
 // real bias of UTC is to be counted as addition of both UTCBias and DSTBias
 
@@ -103,60 +78,86 @@ PROCEDURE GetCurrentDSTBias() : INTEGER; // MINUTES;
 
 // procedures return current local/system datetime in requested format
 PROCEDURE GetCurrentJD() : TJD; // JD is by definition UTC
-PROCEDURE GetCurrentUTCDateTime( VAR DateTime : TDateTime );
-PROCEDURE GetCurrentZonalDateTime( VAR DateTime : TDateTime; UTCBias, DSTBias : INTEGER );
-PROCEDURE GetCurrentLocalDateTime( VAR DateTime : TDateTime );
 
-// conversions JD <--> DateTime
-PROCEDURE JDToZonalDateTime( JD : TJD; VAR DateTime : TDateTime; UTCBias, DSTBias : INTEGER );
-PROCEDURE JDToLocalDateTime( JD : TJD; VAR DateTime : TDateTime );
-  // applies DST bias according to DST state of date determined by JD
-PROCEDURE ZonalDateTimeToJD( CONST DateTime : TDateTime; UTCBias, DSTBias : INTEGER ) : TJD;
-PROCEDURE LocalDateTimeToJD( CONST DateTime : TDateTime ) : TJD;
-  // applies DST bias according to DST state of date determined by DateTime
-PROCEDURE DateTimeToJD     ( CONST DateTime : TDateTime ) : TJD;
-  // uses biases set in DateTime
+(*================================================================================================*)
+// date and time support
 
-// conversions DateTime <--> DateTime
-PROCEDURE LocalDateTimeToZonalDateTime( CONST DateTime1 : TDateTime; VAR DateTime2 : TDateTime; UTCBias, DSTBias : INTEGER );
-PROCEDURE ZonalDateTimeToLocalDateTime( CONST DateTime1 : TDateTime; UTCBias, DSTBias : INTEGER; VAR DateTime2 : TDateTime );
-PROCEDURE ZonalDateTimeToZonalDateTime( CONST DateTime1 : TDateTime; UTCBias1, DSTBias1 : INTEGER; VAR DateTime2 : TDateTime; UTCBias2, DSTBias2 : INTEGER );
-PROCEDURE DateTimeToLocalDateTime     ( CONST DateTime1 : TDateTime; VAR DateTime2 : TDateTime );
-  // uses biases set in DateTime1
-PROCEDURE DateTimeToZonalDateTime     ( CONST DateTime1 : TDateTime; VAR DateTime2 : TDateTime; UTCBias2, DSTBias2 : INTEGER );
-  // uses biases set in DateTime1
+TYPE
+   TPDateTime  = POINTER TO DateTime;
 
-// internal
-PROCEDURE dstActive( CONST DateTime : TDateTime ) : BOOLEAN;
+CLASS DateTime;
 
-//=============================================================================
-// extended formatting helper
+   PUBLIC PROPERTY
+      Millisecond : CARDINAL;
+      Second      : CARDINAL;
+      Minute      : CARDINAL;
+      Hour        : CARDINAL;
+      Day         : CARDINAL;
+      Month       : CARDINAL;
+      Year        : INTEGER;
+      UTCBias     : INTEGER;
+      DSTBias     : INTEGER;
+   PUBLIC READONLY PROPERTY
+      Empty : BOOLEAN;
+      DstActive : BOOLEAN;
+      DayOfWeek : CARDINAL; // 0 is Sunday
+   PUBLIC PROPERTY
+      JulianDate : TJD; // set sets biases to UTC, for another biases use FromJD
+      
+   PUBLIC OPERATOR =( CONST Comperand : DateTime ) : BOOLEAN;
+   PUBLIC OPERATOR <>( CONST Comperand : DateTime ) : BOOLEAN;
+   PUBLIC OPERATOR <( CONST Comperand : DateTime ) : BOOLEAN;
+   PUBLIC OPERATOR <=( CONST Comperand : DateTime ) : BOOLEAN;
+   PUBLIC OPERATOR >( CONST Comperand : DateTime ) : BOOLEAN;
+   PUBLIC OPERATOR >=( CONST Comperand : DateTime ) : BOOLEAN;
+   PUBLIC OPERATOR +( Addend : TJDC ) : DateTime;
+   PUBLIC OPERATOR -( Addend : TJDC ) : DateTime;
+        
+   PUBLIC PROCEDURE Clear();
+   PUBLIC PROCEDURE TrimDate();
+   PUBLIC PROCEDURE TrimTime();
+   PUBLIC PROCEDURE SetNowLocal();
+   PUBLIC PROCEDURE SetNowUTC();
+   PUBLIC PROCEDURE SetZoneToLocal();
+   PUBLIC PROCEDURE SetZoneToUTC();
+   PUBLIC PROCEDURE SetZone( UTCBias, DSTBias : INTEGER ); // sets both biases in single call
+   PUBLIC PROCEDURE FromJDToLocal( JD : TJD ); // JD is missing time zone information, local one will be set
+   PUBLIC PROCEDURE FromJD( JD : TJD; UTCBias, DSTBias : INTEGER ); // JD is missing time zone information
+   
+   PUBLIC PROCEDURE Less( CONST Comperand : DateTime ) : BOOLEAN;
+   PUBLIC PROCEDURE Greater( CONST Comperand : DateTime ) : BOOLEAN;
+   PUBLIC PROCEDURE Equals( CONST Comperand : DateTime ) : BOOLEAN;
+   PUBLIC PROCEDURE Add( Addend : TJDC );
+   PUBLIC PROCEDURE Subtract( Addend : TJDC );
+   PUBLIC PROCEDURE Difference( CONST Operand : DateTime ) : TJDC;
+   
+   PUBLIC PROCEDURE FromStringOA( CONST String, Format : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC PROCEDURE FromLanguageStringOA( Language : Languages.TLanguage; CONST String, Format : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC PROCEDURE ToStringOA( Format : ARRAY OF WCHAR; FormatDate : BOOLEAN; FormatTime : BOOLEAN; OUT String : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC PROCEDURE ToLanguageStringOA( Language : Languages.TLanguage; Format : ARRAY OF WCHAR; FormatDate : BOOLEAN; FormatTime : BOOLEAN; OUT String : ARRAY OF WCHAR ) : BOOLEAN;
 
-PROCEDURE StringToDateTime( String : ARRAY OF WCHAR;
-                            Format : ARRAY OF WCHAR;
-                      VAR DateTime : TDateTime ) : BOOLEAN;
-PROCEDURE StringToDateTimeLang( Language : Languages.TLanguage;
-                                  String : ARRAY OF WCHAR;
-                                  Format : ARRAY OF WCHAR;
-                            VAR DateTime : TDateTime ) : BOOLEAN;
+   PRIVATE VAR
+      _Empty       : BOOLEAN;
+      _Millisecond : CARDINAL;
+      _Second      : CARDINAL;
+      _Minute      : CARDINAL;
+      _Hour        : CARDINAL;
+      _Day         : CARDINAL;
+      _Month       : CARDINAL;
+      _Year        : INTEGER;
+      _DayOfWeek   : CARDINAL;
+      _DayOfWeekDirty : BOOLEAN;
+      // UTC = LocalTime + UTCBias + DSTBias
+      // biases are in minutes
+      _UTCBias     : INTEGER;  // if DateTime contains system (UTC) time, the UTCBias is 0
+      _DSTBias     : INTEGER;  // if DateTime contains system (UTC) time, the DSTBias is 0
+END DateTime;
 
-PROCEDURE DateTimeToString( CONST DateTime : TDateTime;
-                                    Format : ARRAY OF WCHAR;
-                                FormatDate : BOOLEAN;
-                                FormatTime : BOOLEAN;
-                                VAR String : ARRAY OF WCHAR ) : BOOLEAN;
-PROCEDURE DateTimeToStringLang( Language : Languages.TLanguage;
-                          CONST DateTime : TDateTime;
-                                  Format : ARRAY OF WCHAR;
-                              FormatDate : BOOLEAN;
-                              FormatTime : BOOLEAN;
-                              VAR String : ARRAY OF WCHAR ) : BOOLEAN;
-
-//=============================================================================
+(*================================================================================================*)
 
 INITIALLY __I();
 
-//=============================================================================
+(*================================================================================================*)
 
 #restore
 

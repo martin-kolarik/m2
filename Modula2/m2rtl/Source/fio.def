@@ -1,6 +1,9 @@
 DEFINITION MODULE FIO;
 // File Input/Output module
 
+IMPORT
+   time;
+
 (*============================================================*)
 
 TYPE
@@ -22,12 +25,6 @@ TYPE
       fsDelete
    );
    TFileShare = SET OF TFileShareItem;
-
-TYPE
-  FileTime   = RECORD
-    dwLowDateTime  : LONGWORD;
-    dwHighDateTime : LONGWORD;
-  END;
 
 #save, option( dll_export => on )
 
@@ -64,8 +61,11 @@ PROCEDURE Seek( F: File; Pos: CARDINAL );
 PROCEDURE Truncate( F: File );
 PROCEDURE Flush( F: File );
 PROCEDURE EndOfFile( F: File ): BOOLEAN;
-PROCEDURE GetFileTime( F: File ): FileTime;
-PROCEDURE SetFileTime( F: File; Time: FileTime );
+
+PROCEDURE GetFileTime( F: File ): time.DateTime;
+PROCEDURE SetFileTime( F: File; Time : time.DateTime );
+PROCEDURE FileTimeToDateTime( FileTime : CARD64 ) : time.DateTime;
+PROCEDURE DateTimeToFileTime( DateTime : time.DateTime ) : CARD64;
 
 PROCEDURE WrBin( F: File; Buf : ARRAY OF BYTE; Count: CARDINAL ) : CARDINAL;
 PROCEDURE WrStrW( F: File; Buf : ARRAY OF WCHAR );

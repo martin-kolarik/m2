@@ -285,13 +285,12 @@ CLASS IMPLEMENTATION CController;
       b : BOOLEAN;
       c : CARDINAL;
       cs : StringsO.CString;
-      currentDT : time.TDateTime;
+      currentDT : time.DateTime;
       currentTime : time.TJD;
-      dt : time.TDateTime;
+      dt : time.DateTime;
       s : ARRAY [0..63] OF WCHAR;
       starttime : time.TJD;
       uptime : time.TJDC;
-      t : time.TJD;
    BEGIN
       // check actions to do
       IF Request.ModelContainer^.GetBooleanOA( STATUS_CONNECT, OUT b ) AND b THEN
@@ -311,15 +310,14 @@ CLASS IMPLEMENTATION CController;
 
       starttime := _Web^.StartedTime;
       IF b THEN
-         t := _Web^.ConnectedTime;
+         dt.JulianDate := _Web^.ConnectedTime;
       ELSE
-         t := _Web^.DisconnectedTime;
+         dt.JulianDate := _Web^.DisconnectedTime;
       END;
-      IF t = 0 THEN
-         t := starttime;
+      IF dt.Empty THEN
+         dt.JulianDate := starttime;
       END;
-      time.JDToZonalDateTime( t, dt, 0, 0 );
-      IF time.DateTimeToStringLang( Request.Language, dt, DATETIME_FORMAT, TRUE, TRUE, s ) THEN
+      IF dt.ToLanguageStringOA( Request.Language, DATETIME_FORMAT, TRUE, TRUE, OUT s ) THEN
          cs.FromOA( s );
       ELSE
          cs.FromOA( L"N/A" );
@@ -328,8 +326,8 @@ CLASS IMPLEMENTATION CController;
       Request.ModelContainer^.AddBooleanOA( STATUS_CONNECT, FALSE );
       Request.ModelContainer^.AddBooleanOA( STATUS_DISCONNECT, FALSE );
       
-      time.GetCurrentUTCDateTime( currentDT );
-      currentTime := time.DateTimeToJD( currentDT );
+      currentDT.SetNowUTC();
+      currentTime := currentDT.JulianDate;
       uptime := currentTime - starttime;
       dt.Day := time.JDCToDays( uptime );
       time.fd2HMS( time.fd( uptime ), OUT dt.Hour, OUT dt.Minute, OUT dt.Second, OUT dt.Millisecond );
@@ -351,11 +349,11 @@ CLASS IMPLEMENTATION CController;
       IF dt.Day = 0 THEN
          Request.MessageSource^.GetMessageOA( Request.Language, L"status.licencePermanent", OUT cs );
       ELSE
-         time.DateTimeToStringLang( Request.Language, dt, DATETIME_FORMAT, TRUE, TRUE, s );
+         dt.ToLanguageStringOA( Request.Language, DATETIME_FORMAT, TRUE, TRUE, OUT s );
          Request.MessageSource^.GetMessageOA( Request.Language, L"status.licenceValidUntil", OUT cs );
          cs.AppendOA( s );
       END;
-      Request.ModelContainer^.AddBooleanOA( STATUS_LICENCE_VALID, ( dt.Day = 0 ) OR time.Greater( currentDT, dt ));
+      Request.ModelContainer^.AddBooleanOA( STATUS_LICENCE_VALID, ( dt.Day = 0 ) OR ( currentDT < dt ));
       Request.ModelContainer^.AddStringOA( STATUS_LICENCE, cs );
       
       c := _Web^.WrittenByHour + _Web^.ReadByHour;

@@ -35,7 +35,7 @@ END JDToSystemTime;
 
 (*===========================================================================*)
 
-PROCEDURE DateTimeToSystemTime( CONST DateTime : time.TDateTime; OUT SystemTime : windows.SYSTEMTIME );
+PROCEDURE DateTimeToSystemTime( CONST DateTime : time.DateTime; OUT SystemTime : windows.SYSTEMTIME );
 BEGIN
   SystemTime.wYear := WORD( MAX2( 1601, DateTime.Year ));
   SystemTime.wMonth := WORD( DateTime.Month );
@@ -49,9 +49,8 @@ END DateTimeToSystemTime;
 
 (*--------------------------------------------------------------------------*)
 
-PROCEDURE SystemTimeToDateTime( CONST SystemTime : windows.SYSTEMTIME; OUT DateTime : time.TDateTime );
+PROCEDURE SystemTimeToDateTime( CONST SystemTime : windows.SYSTEMTIME; OUT DateTime : time.DateTime );
 BEGIN
-	time.InitDateTime( OUT DateTime );
 	DateTime.Year := INTEGER( SystemTime.wYear );
 	DateTime.Month := CARDINAL( SystemTime.wMonth );
 	DateTime.Day := CARDINAL( SystemTime.wDay );

@@ -2088,7 +2088,7 @@ CLASS IMPLEMENTATION CEIBServer;
    VAR
       c : CARDINAL;
       Day : eib_def.TDay;
-      DT : Time.TDateTime;
+      DT : Time.DateTime;
       fd : CARDINAL;
       H, M, S, WD : CARDINAL;
       i : INTEGER;
@@ -2117,14 +2117,13 @@ CLASS IMPLEMENTATION CEIBServer;
 
       | eib_def.eitTime :
          IF TimeAsString THEN
-            Time.InitDateTime( OUT DT );
             so := Value.String;
             IF TimeFormat.Empty THEN
-               IF NOT Time.StringToDateTime( OA( so.Length-1, so.rawData ), L"HH:mm:ss", OUT DT ) THEN
+               IF NOT DT.FromStringOA( OA( so.Length-1, so.rawData ), L"HH:mm:ss" ) THEN
                   Logger.LogSSSS( log.dldError, L"srv", L"string to time conversion failure: ", OA( so.Length-1, so.rawData ), L", format: HH:mm:ss", L"" );
                END;
             ELSE
-               IF NOT Time.StringToDateTime( OA( so.Length-1, so.rawData ), OA( TimeFormat.Length-1, TimeFormat.rawData ), OUT DT ) THEN
+               IF NOT DT.FromStringOA( OA( so.Length-1, so.rawData ), OA( TimeFormat.Length-1, TimeFormat.rawData )) THEN
                   Logger.LogSSSS( log.dldError, L"srv", L"string to time conversion failure: ", OA( so.Length-1, so.rawData ), L", format: ", OA( TimeFormat.Length-1, TimeFormat.rawData ));
                END;
             END;
@@ -2143,7 +2142,7 @@ CLASS IMPLEMENTATION CEIBServer;
          END;
          CASE WD OF
          | 0 :
-            Time.GetCurrentLocalDateTime( DT );
+            DT.SetNowLocal();
             Day := eib_def.TDay( 1 + ( CARDINAL( DT.DayOfWeek ) + 6 ) MOD 7 );
          | 1..7 :
             Day := eib_def.TDay( WD );
@@ -2154,14 +2153,13 @@ CLASS IMPLEMENTATION CEIBServer;
 
       | eib_def.eitDate :
          IF DateAsString THEN
-            Time.InitDateTime( OUT DT );
             so := Value.String;
             IF DateFormat.Empty THEN
-               IF NOT Time.StringToDateTime( OA( so.Length-1, so.rawData ), L"yyyy-MM-dd", OUT DT ) THEN
+               IF NOT DT.FromStringOA( OA( so.Length-1, so.rawData ), L"yyyy-MM-dd" ) THEN
                   Logger.LogSSSS( log.dldError, L"srv", L"string to date conversion failure: ", OA( so.Length-1, so.rawData ), L", format: yyyy-MM-dd", L"" );
                END;
             ELSE
-               IF NOT Time.StringToDateTime( OA( so.Length-1, so.rawData ), OA( DateFormat.Length-1, DateFormat.rawData ), OUT DT ) THEN
+               IF NOT DT.FromStringOA( OA( so.Length-1, so.rawData ), OA( DateFormat.Length-1, DateFormat.rawData )) THEN
                   Logger.LogSSSS( log.dldError, L"srv", L"string to date conversion failure: ", OA( so.Length-1, so.rawData ), L", format: ", OA( DateFormat.Length-1, DateFormat.rawData ));
                END;
             END;
@@ -2216,7 +2214,7 @@ CLASS IMPLEMENTATION CEIBServer;
    VAR
       c : CARDINAL;
       Day : eib_def.TDay;
-      dt : Time.TDateTime;
+      dt : Time.DateTime;
       s : ARRAY [0..255] OF WCHAR;
       Y, M, D, H, S : CARDINAL;
       b1 : BOOLEAN;
@@ -2244,14 +2242,13 @@ CLASS IMPLEMENTATION CEIBServer;
       | eib_def.eitTime :
          EV.GetTime( Day, H, M, S );
          IF TimeAsString THEN
-            Time.InitDateTime( OUT dt );
             dt.Hour := H;
             dt.Minute := M;
             dt.Second := S;
             IF TimeFormat.Empty THEN // use default format
-               b1 := Time.DateTimeToString( dt, L"HH:mm:ss", FALSE, TRUE, s );
+               b1 := dt.ToStringOA( L"HH:mm:ss", FALSE, TRUE, OUT s );
             ELSE
-               b1 := Time.DateTimeToString( dt, OA( TimeFormat.Length-1, TimeFormat.rawData ), FALSE, TRUE, s );
+               b1 := dt.ToStringOA( OA( TimeFormat.Length-1, TimeFormat.rawData ), FALSE, TRUE, OUT s );
             END;
             IF b1 THEN
                Value.FromStringOA( s, FALSE );
@@ -2265,14 +2262,13 @@ CLASS IMPLEMENTATION CEIBServer;
       | eib_def.eitDate :
          EV.GetDate( Y, M, D );
          IF DateAsString THEN
-            Time.InitDateTime( OUT dt );
             dt.Year := Y;
             dt.Month := M;
             dt.Day := D;
             IF DateFormat.Empty THEN
-               b1 := Time.DateTimeToString( dt, L"yyyy-MM-dd", TRUE, FALSE, s );
+               b1 := dt.ToStringOA( L"yyyy-MM-dd", TRUE, FALSE, OUT s );
             ELSE
-               b1 := Time.DateTimeToString( dt, OA( DateFormat.Length-1, DateFormat.rawData ), TRUE, FALSE, s );
+               b1 := dt.ToStringOA( OA( DateFormat.Length-1, DateFormat.rawData ), TRUE, FALSE, OUT s );
             END;
             IF b1 THEN
                Value.FromStringOA( s, FALSE );

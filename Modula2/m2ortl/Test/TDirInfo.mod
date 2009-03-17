@@ -11,7 +11,7 @@ IMPORT
 	VAR
 		D : FSO.CDirectoryInfo;
 		S : StringsO.CString;
-		t : time.TDateTime;
+		t : time.DateTime;
 		b : BOOLEAN;
 	BEGIN
 		b := D.StartOA( L"D:\x", L"", FSO.soTopDirectoryOnly, TRUE, FALSE );

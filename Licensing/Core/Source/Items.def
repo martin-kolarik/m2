@@ -27,7 +27,7 @@ ABSTRACT CLASS CItem;
       Childs         : lists.CPtrList;
       State          : TItemState := TItemState{};
       _ProductId     : StringsO.CString;
-      _Created       : time.TDateTime;
+      _Created       : time.DateTime;
       _TransportData : StringsO.CString;
    PUBLIC READONLY PROPERTY
       Valid          : BOOLEAN;
@@ -36,7 +36,7 @@ ABSTRACT CLASS CItem;
    PUBLIC PROPERTY
       Dirty          : BOOLEAN;
       ProductId      : StringsO.CString;
-      Created        : time.TDateTime;
+      Created        : time.DateTime;
       TransportData  : StringsO.CString;
       CreatedString  : StringsO.CString;
       
@@ -146,17 +146,17 @@ END CLicence;
 CLASS CActivation( CLockedItem );
    INTERNAL VAR
       _OfSerial : StringsO.CString;
-      _Starts   : time.TDateTime;
-      _Expires  : time.TDateTime;
+      _Starts   : time.DateTime;
+      _Expires  : time.DateTime;
    PUBLIC PROPERTY
       OfSerial      : StringsO.CString;
-      Starts        : time.TDateTime;
+      Starts        : time.DateTime;
       StartsString  : StringsO.CString;
-      Expires       : time.TDateTime;
+      Expires       : time.DateTime;
       ExpiresString : StringsO.CString;
 
    PUBLIC VIRTUAL PROCEDURE Equals( CONST To : CItem ) : BOOLEAN;
-   PUBLIC PROCEDURE ValidFor( CONST datetime : time.TDateTime ) : BOOLEAN;
+   PUBLIC PROCEDURE ValidFor( CONST datetime : time.DateTime ) : BOOLEAN;
 
    PUBLIC VIRTUAL PROCEDURE CreateTransportData(); // prepares Data
    PUBLIC VIRTUAL PROCEDURE ValidateByTransportData();

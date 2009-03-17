@@ -27,7 +27,7 @@ BEGIN
       windows.OutputDebugStringW( "forever" + 13W+10W );
    ELSE
       windows.OutputDebugStringW( "expires: " + 13W+10W );
-      time.DateTimeToString( res.Expires, "yyyy-MM-dd HH.mm.ss,fff", TRUE, TRUE, s );
+      // time.DateTimeToString( res.Expires, "yyyy-MM-dd HH.mm.ss,fff", TRUE, TRUE, s );
       windows.OutputDebugStringW( ADR( s ));
       windows.OutputDebugStringW( 13W+10W );
    END;

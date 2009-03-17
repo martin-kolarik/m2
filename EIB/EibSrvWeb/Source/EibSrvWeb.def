@@ -49,7 +49,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       StartedTime : time.TJD;
       ConnectedTime : time.TJDC;
       DisconnectedTime : time.TJD;
-      LicenceExpires : time.TDateTime;
+      LicenceExpires : time.DateTime;
       WrittenByHour : CARDINAL;
       WrittenByDay : CARDINAL;
       ReadByHour : CARDINAL;

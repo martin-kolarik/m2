@@ -83,9 +83,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
    PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : srvcore.TPObject );
    VAR
-      dt : time.TDateTime;
+      dt : time.DateTime;
    BEGIN
-      time.GetCurrentUTCDateTime( dt );
+      dt.SetNowUTC();
       Sync.IInc( REF _WrittenByHour[dt.Hour MOD 24] );
    END OnWritten;
 
@@ -93,9 +93,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
    PUBLIC VIRTUAL PROCEDURE OnInputQueueAdd( OOBQueue, PromiscuousQueue : BOOLEAN );
    VAR
-      dt : time.TDateTime;
+      dt : time.DateTime;
    BEGIN
-      time.GetCurrentUTCDateTime( dt );
+      dt.SetNowUTC();
 
       _EIB^.QueueLock.Lock();
 
@@ -233,7 +233,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY LicenceExpires GET : time.TDateTime;
+   PUBLIC PROPERTY LicenceExpires GET : time.DateTime;
    BEGIN
       // no need to sync
       RETURN _EIB^.PResult^.Expires;
@@ -243,9 +243,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
    PUBLIC PROPERTY WrittenByHour GET : CARDINAL;
    VAR
-      dt : time.TDateTime;
+      dt : time.DateTime;
    BEGIN
-      time.GetCurrentUTCDateTime( dt );
+      dt.SetNowUTC();
       RETURN Sync.IGet( REF _WrittenByHour[dt.Hour MOD 24] );
    END WrittenByHour;
 
@@ -266,9 +266,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
    PUBLIC PROPERTY ReadByHour GET : CARDINAL;
    VAR
-      dt : time.TDateTime;
+      dt : time.DateTime;
    BEGIN
-      time.GetCurrentUTCDateTime( dt );
+      dt.SetNowUTC();
       RETURN Sync.IGet( REF _GotByHour[dt.Hour MOD 24] );
    END ReadByHour;
 

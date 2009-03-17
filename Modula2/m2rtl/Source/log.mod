@@ -700,7 +700,7 @@ CLASS IMPLEMENTATION CLogger;
 
   INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : TDebugLevel; CONST _Name, Prefix, S : ARRAY OF WCHAR );
   VAR
-    dt : time.TDateTime;
+    dt : time.DateTime;
     f : FIO.File;
     leading : BOOLEAN := FALSE;
     SW : TString;
@@ -718,8 +718,8 @@ CLASS IMPLEMENTATION CLogger;
     SW := L"";
     IF rsTimeStamps IN RStatus THEN
       leading := TRUE;
-      time.GetCurrentUTCDateTime( dt );
-      time.DateTimeToString( dt, L"[yyyy-MM-dd HH:mm:ss.fff] ", TRUE, TRUE, OUT SW );
+      dt.SetNowUTC();
+      dt.ToStringOA( L"[yyyy-MM-dd HH:mm:ss.fff] ", TRUE, TRUE, OUT SW );
     END;
     IF rsLevelInfo IN RStatus THEN
       leading := TRUE;
