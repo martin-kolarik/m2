@@ -1828,9 +1828,10 @@ CLASS IMPLEMENTATION DateTime;
          INC( LocalDateTime._Year, 2000 );
       END;
      
+      SELF := LocalDateTime;
       _Empty := FALSE;
       _DayOfWeekDirty := TRUE;
-      SELF := LocalDateTime;
+
       RETURN TRUE;
    END FromLanguageStringOA;
 

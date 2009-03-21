@@ -34,10 +34,10 @@ PROCEDURE difftime( CONST StopTime, StartTime : TTime64 ) : LONGREAL; // seconds
 // JulianDate routines
 
 TYPE
-   TJD  = INT64; // unit is 100 ns
+   TJD  = INT64; // unit is 100 us
    TPJD = POINTER TO INT64;
 
-   TJDC = TJD; // type interpreted as count of 100 ns unit, not as whole JD
+   TJDC = TJD; // type interpreted as count of 100 us unit, not as whole JD
 
 CONST
    unitsInMillisecond = TJD( 10 );

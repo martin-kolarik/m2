@@ -464,13 +464,13 @@ PROCEDURE FileTimeToDateTime( FileTime : CARD64 ) : time.DateTime;
 VAR
    dt : time.DateTime;
 BEGIN
-   dt.JulianDate := time.TJD( FileTime ) + time.JD( 1601, 1, 1, 0 );
+   dt.JulianDate := time.TJD( FileTime DIV 1000 ) + time.JD( 1601, 1, 1, 0 );  // 1000 converts 100 ns to 100 us
    RETURN dt;
 END FileTimeToDateTime;
 
 PROCEDURE DateTimeToFileTime( DateTime : time.DateTime ) : CARD64;
 BEGIN
-   RETURN CARD64( DateTime.JulianDate - time.JD( 1601, 1, 1, 0 ));
+   RETURN 1000 * CARD64( DateTime.JulianDate - time.JD( 1601, 1, 1, 0 )); // 1000 converts 100 us to 100 ns
 END DateTimeToFileTime;
 
 PROCEDURE WrBin( F : File; Buf : ARRAY OF BYTE; Count : CARDINAL ) : CARDINAL;
