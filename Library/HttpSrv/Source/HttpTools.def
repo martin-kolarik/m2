@@ -41,7 +41,7 @@ PROCEDURE DecodeDateJD( CONST Encoded : StringsO.IString; OUT Date : time.TJD ) 
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE FormatSIDCookie( CONST SID : StringsO.IString; Expires : time.TJD; CONST Path, Domain : StringsO.IString ) : StringsO.CString;
+PROCEDURE FormatSIDCookie( CONST SID : StringsO.IString; CONST Expires : time.DateTime; CONST Path, Domain : StringsO.IString ) : StringsO.CString;
 PROCEDURE DecodeSIDCookie( CONST Cookies : StringsO.IString; OUT SID : StringsO.IString ) : BOOLEAN;
 
 (*---------------------------------------------------------------------------*)

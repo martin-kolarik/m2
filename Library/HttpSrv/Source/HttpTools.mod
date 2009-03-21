@@ -58,14 +58,14 @@ END DecodeDateJD;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE FormatSIDCookie( CONST SID : StringsO.IString; Expires : time.TJD; CONST Path, Domain : StringsO.IString ) : StringsO.CString;
+PROCEDURE FormatSIDCookie( CONST SID : StringsO.IString; CONST Expires : time.DateTime; CONST Path, Domain : StringsO.IString ) : StringsO.CString;
 VAR
    s : StringsO.CString;
 BEGIN
    s.FromOA( L"sid=" ); s.Append( SID );
-   IF Expires > 0 THEN
+   IF NOT Expires.Empty THEN
       s.AppendOA( L"; expires=" );
-      s.Append( FormatDateJD( Expires ));
+      s.Append( FormatDate( Expires ));
    END;
    IF NOT Path.Empty THEN
       s.AppendOA( L"; path=" );

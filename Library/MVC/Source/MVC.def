@@ -9,7 +9,8 @@ IMPORT
    HttpSrv,
    Languages,
    maps,
-   StringsO;
+   StringsO,
+   time;
 
 //================================================================================
 
@@ -90,6 +91,8 @@ INTERFACE IHttpRequest;
       ModelContainer : TPContainer;
       Session : HttpSrv.TPSession;
       MessageSource : TPMessageSource; // messages are loaded single time for MVC's context, can be NIL
+      
+   PROCEDURE TestConditions( CONST ResourceLastModified : time.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
 END IHttpRequest;
 
 (*--------------------------------------------------------------------------------*)
@@ -101,6 +104,8 @@ INTERFACE IHttpResponse;
       Length : CARD64; // default none
       Chunked : BOOLEAN; // default FALSE
       OverrideStatusResponse : BOOLEAN; // default FALSE
+      AllowCaching : BOOLEAN; // default TRUE
+      LastModified : time.DateTime; // default none
    READONLY PROPERTY
       ModelContainer : TPContainer;
       Session : HttpSrv.TPSession;

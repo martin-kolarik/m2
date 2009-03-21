@@ -16,7 +16,8 @@ IMPORT
    netsocket,
    NodeList,
    Strings,
-   Sync;
+   Sync,
+   time;
 
 (*================================================================================*)
 
@@ -113,6 +114,7 @@ CLASS IMPLEMENTATION CFileView;
       filePath : StringsO.CString;
       fs : FIOO.CFileStream;
       l : CARDINAL;
+      lastModified : time.DateTime;
       Result : Sync.TAsyncResult;
    BEGIN
       IF Resolver = NIL THEN
@@ -123,21 +125,30 @@ CLASS IMPLEMENTATION CFileView;
          RETURN TRUE;
       END;
 
-      IF ( MIMEResolver = NIL ) OR NOT MIMEResolver^.ResolveMIME( MIMEResolverContext, filePath, OUT Content ) THEN
-         HttpTools.FormatContent( HttpTools.contentUnknown, filePath, empty, TRUE, OUT Content );
-      END;
-      Response.ContentType := Content;
-      IF DispositionFlag THEN
-         FIO.PathTailW( OA( filePath.Length-1, filePath.rawData ), OUT fileName );
-         Strings.PrependW( REF fileName, L"attachment; filename=" );
-         Response.ResponseHeaders^.AddUnknownOA( L"Content-Disposition", fileName );
-      END;
-      
       TRY
          fs.FromPath( OA( filePath.Length-1, filePath.rawData ), FIOO.imOpenRead );
       CATCH e : IOO.CIOException DO
          Response.StatusCode := HttpCommon.httpres_404;
          RETURN TRUE;
+      END;
+
+      IF ( MIMEResolver = NIL ) OR NOT MIMEResolver^.ResolveMIME( MIMEResolverContext, filePath, OUT Content ) THEN
+         HttpTools.FormatContent( HttpTools.contentUnknown, filePath, empty, TRUE, OUT Content );
+      END;
+      Response.ContentType := Content;
+      Response.AllowCaching := TRUE;
+      lastModified := FIO.GetFileTime( fs.Handle );
+      Response.LastModified := lastModified;
+      Response.StatusCode := Request.TestConditions( lastModified, empty );
+      IF Response.StatusCode <> HttpCommon.httpres_200 THEN
+         fs.Close( FALSE );
+         RETURN TRUE;
+      END;
+
+      IF DispositionFlag THEN
+         FIO.PathTailW( OA( filePath.Length-1, filePath.rawData ), OUT fileName );
+         Strings.PrependW( REF fileName, L"attachment; filename=" );
+         Response.ResponseHeaders^.AddUnknownOA( L"Content-Disposition", fileName );
       END;
       Response.Length := fs.Length;
 
@@ -219,6 +230,7 @@ CLASS IMPLEMENTATION CRedirectView;
    BEGIN
       // set status and length
       Response.StatusCode := HttpTools.GetRedirectCode( HttpTools.redirectTemporarily, FALSE );
+      Response.AllowCaching := FALSE;
       
       // set location
       IF AbsoluteFlag THEN
@@ -300,9 +312,15 @@ CLASS IMPLEMENTATION CRawHTMLView;
    PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
    VAR
       Content : StringsO.CString;
+      now : time.DateTime;
    BEGIN
+      now.SetNowUTC();
+   
       HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"", L"utf-8", FALSE, OUT Content );
       Response.ContentType := Content;
+      Response.AllowCaching := FALSE;
+      Response.LastModified := now;
+
       LanguagesO.ToMB( HTML, Languages.cp_UTF8, FALSE, REF Output );
       RETURN TRUE;
    END FormatToBuffer;
@@ -400,10 +418,15 @@ CLASS IMPLEMENTATION CPageTemplateView;
       empty : StringsO.CString;
       fs : FIOO.CFileStream;
       mbs : IOO.CMemoryBufferStream;
+      now : time.DateTime;
       viewPath : StringsO.CString;
    BEGIN
+      now.SetNowUTC();
+
       Response.ModelContainer^.ResetModelInViewNames( Request.ControllerURI );
       HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"", L"utf-8", FALSE, OUT Content );
+      Response.AllowCaching := FALSE;
+      Response.LastModified := now;
       Response.ContentType := Content;
 
       IF Resolver = NIL THEN

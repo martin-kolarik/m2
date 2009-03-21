@@ -14,6 +14,7 @@ IMPORT
    Log,
    netsocket,
    Resources,
+   SrvCommon,
    Storage,
    StorageO,
    Strings,
@@ -703,6 +704,8 @@ CLASS CHttpRequest IMPLEMENTS IHttpRequest;
       Session : HttpSrv.TPSession;
       MessageSource : TPMessageSource; // messages are loaded single time for MVC's context, can be NIL
       
+   PUBLIC VIRTUAL PROCEDURE TestConditions( CONST ResourceLastModified : time.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
+
    // SELF
    PRIVATE VAR
       _Connection : HttpConnection.TPHttpSrvConnection;
@@ -801,6 +804,14 @@ CLASS IMPLEMENTATION CHttpRequest;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE TestConditions( CONST ResourceLastModified : time.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
+   BEGIN
+      ASSERT( _Connection^.Stream^ INHERITS SrvCommon.ASrvStream );
+      RETURN SrvCommon.TPSrvStream( _Connection^.Stream )^.TestConditions( ResourceLastModified, ResourceName );
+   END TestConditions;
+
+(*--------------------------------------------------------------------------------*)
+
    LOCAL PROCEDURE Init( CONST ControllerURI : StringsO.CString; Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPContainer; CONST MessageSource : TPMessageSource );
    BEGIN
       _ControllerURI := ControllerURI;
@@ -831,6 +842,8 @@ CLASS CHttpResponse IMPLEMENTS IHttpResponse;
       ContentType : StringsO.CString; // default none
       Chunked : BOOLEAN; // default FALSE
       OverrideStatusResponse : BOOLEAN; // default FALSE
+      AllowCaching : BOOLEAN;
+      LastModified : time.DateTime;
 
    PUBLIC VIRTUAL READONLY PROPERTY
       ResponseHeaders : HttpCommon.TPHttpHeaders;
@@ -916,6 +929,34 @@ CLASS IMPLEMENTATION CHttpResponse;
    BEGIN
       RETURN _Connection^.OverrideStatusResponse;
    END OverrideStatusResponse;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY AllowCaching GET : BOOLEAN;
+   BEGIN
+      RETURN _Connection^.AllowCaching;
+   END AllowCaching;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY AllowCaching SET( Value : BOOLEAN );
+   BEGIN
+      _Connection^.AllowCaching := Value;
+   END AllowCaching;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY LastModified GET : time.DateTime;
+   BEGIN
+      RETURN _Connection^.LastModified;
+   END LastModified;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY LastModified SET( CONST Value : time.DateTime );
+   BEGIN
+      _Connection^.LastModified := Value;
+   END LastModified;
 
 (*--------------------------------------------------------------------------------*)
 
