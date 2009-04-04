@@ -19,17 +19,65 @@
           <li><p>síové pøipojení (Ethernet, WiFi<c.special what="commadots" />) pro spojení s klienty a KNX/EIB,</p></li>
           <li><p>na stranì KNX/EIB zaøízení s protokolem EIBNet/IP (souèást standardu KNX).</p></li>
         </il>
+        <content>
+          <caption>Obsah</caption>
+        </content>
         <section level="2">
           <title>Instalace a licence</title>
           <text>
-            <p>Instalaèní balíèek SmartServer (v podobì MSI souboru, MSI = Microsoft Installer) se nainstaluje po spuštìní automaticky do sloky <file>Program Files\NeNo\EibSrv</file>. Bìhem instalace je tøeba vloit správné licenèní údaje (z licenèního certifikátu), nebo je moné SmartServer nainstalovat jako demoverzi.</p>
+            <p>Instalaèní balíèek SmartServer (v podobì MSI souboru, MSI = Microsoft Installer) nainstaluje po spuštìní program automaticky do sloky <file>Program Files\NeNo\EibSrv</file>. Bìhem instalace je tøeba vloit správné licenèní údaje (z licenèního certifikátu), nebo je moné SmartServer nainstalovat jako demoverzi. Pokud je licence vystavena na jméno, musí bıt pøi instalaci toto jméno zadáno pøesnì podle licence (vèetnì mezer, velkıch a malıch písmen èi diakritiky).</p>
             <il>
               <caption>Demoverze je vùèi plné verzi omezená následovnì:</caption>
-              <li><p>dovoluje klientùm souhrnnì provést pouze cca <number>10000</number> klientskıch operací,</p></li>
+              <li><p>dovoluje klientùm souhrnnì provést pouze cca <number>100000</number> klientskıch operací,</p></li>
               <li><p>poskytuje klientùm data pouze cca 30 minut od spuštìní,</p></li>
               <li><p>omezení nezastavuje slubu a neuzavírá spojení s klienty, klienti zùstanou pøipojení, server jim pouze neposkytne ádná data.</p></li>
             </il>
-            <p>Nainstalovanı SmartServer je nutné do 35 dnù od instalace aktivovat. Aktivaci lze provést dálkovì (s pøipojením k internetu) nebo z pøíkazové øádky; vdy pomocí nástroje, kterı se nainstaluje spolu se SmartServerem. Pokud se bìhem 35 dnù od instalace SmartServer neaktivuje, pobìí dále jako demoverze.</p>
+            <p>Nainstalovanı SmartServer je nutné do 35 dnù od instalace aktivovat. Aktivaci lze provést z pøíkazové øádky pomocí nástroje (<type>liccli</type>), kterı se nainstaluje spolu se SmartServerem. Pokud se bìhem 35 dnù od instalace SmartServer neaktivuje, pobìí dále jako demoverze.</p>
+            <section level="3">
+              <title>Aktivace licence</title>
+              <text>
+                <p>Aktivace probíhá dvoukrokovì. V prvním kroku se získá registraèní èíslo, které se odešle na adresu technické podpory (prodejce). Technická podpora èíslo zaeviduje a na jeho základì vytvoøí aktivaèní èíslo, které odešle zpìt. V druhém kroku aktivace se aktivaèní èíslo aplikuje.</p>
+                <p>Registraèní èíslo se pomocí nástroje <type>liccli</type> získá následovnì (záznam operací v pøíkazové øádce):</p>
+                <p.type>C:\&gt;cd "Program Files\Neno\EibSrv
+C:\Program Files\NeNo\EibSrv&gt;liccli -Q *
+Licence support tool
+(c) NeNo 2009
+
+  found 2 records
+  found 2 unique records
+  found 2 valid records
+
+  processing licence "SN-xxxxx-xxxxx-xxxxx-xxxxx-xxxx"
+    for product "NeNo.EibSrv"
+    registration number "REG-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"</p.type>
+                <p>Uvedené registraèní èíslo se nevypíše, pokud je SmartServer nainstalovanı bez licence (tj. jako demoverze), nebo pokud ji je SmartServer aktivován.</p>
+                <p>Po odeslání celého registraèního èísla (<type>REG-xxxxx-...-xxxxx</type>) a jeho zpracování vznikne aktivaèní èíslo ve tvaru <type>VAN-xxxxx-...-xxxxx</type>. Toto aktivaèní èíslo se opìt pomocí nástroje <type>liccli</type> aplikuje:</p>
+                <p.type>C:\&gt;cd "Program Files\Neno\EibSrv
+C:\Program Files\NeNo\EibSrv&gt;liccli -A VAN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx
+Licence support tool
+(c) NeNo 2009
+
+  found 2 records
+  found 2 unique records
+  found 2 valid records
+
+  processing activation "VAN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"
+  processing product "NeNo.EibSrv"</p.type>
+                <p>Úspìšnost aktivace lze ovìøit opìt pomocí <type>liccli</type>:</p>
+                <p.type>C:\Program Files\NeNo\EibSrv&gt;liccli -I
+Licence support tool
+(c) NeNo 2009
+
+  found 3 records
+  found 3 unique records
+
+  product "NeNo.EibSrv"
+    licence "SN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"
+    type "----"
+      activated permanently</p.type>
+                <p>Upozornìní: po aktivaci je tøeba restartovat slubu SmartServeru (EIB/KNX Server). V poèítaèích se zabudovanım operaèním systémem (Windows<c.special what="thinspace" />XP Embedded) je tøeba navíc zapsat zmìny nastavení poèítaèe na disk a poèítaè restartovat.</p>
+              </text>
+            </section>
           </text>
         </section>
         <section level="2">
@@ -48,32 +96,33 @@
                   <dt><type>id</type></dt>
                   <dd><p>pro definici IP adresy a portu EIBNet/IP zaøízení; podle zpùsobu komunikace IP adresa musí bıt buï vícesmìrová (multicast, pro <type>mode = routing</type>), nebo jednosmìrová (unicast, pro <type>mode = tunneling</type> nebo mode = <type>tunneling-ACK</type>). Zápis parametru je sloen ze tøí èástí, parametr lze nalézt ve všech ukázkách:</p><p.type>id = eibnet:192.168.0.100:3671</p.type><p>pøièem poslední èást (<number>3671</number>, èíslo portu) je nepovinná. Pokud není port zapsán, pouije se vıchozí port podle standardu KNX (tj. právì <number>3671</number>).</p><p>V reimu routing je nutné pouít vícesmìrovou adresu. Aby server s EIBNet/IP routery správnì komunikoval, musí bıt stejná vícesmìrová adresa zapsána jak v parametru <type>id</type>, tak i v konfiguracích jednotlivıch routerù. Jako dobrá volba se nabízí vıchozí adresa podle standardu KNX: 224.0.23.12. Konfigurace pak vypadá napøíklad:</p><p.type>id = eibnet:224.0.23.12</p.type></dd>
                   <dt><type>mode</type></dt>
-                  <dd><p>pro definici zpùsobu spojení s EIBNet/IP zaøízením. Moné hodnoty parametru jsou uvedeny v tabulce <in label="tblMode"></in>.</p><p.table label="tblMode">
-                      <caption>Hodnoty parametru <type>mode</type></caption>
-                      <table class="tblCommon">
-                        <tr>
-                          <td>hodnota</td>
-                          <td>vıznam</td>
-                          <td>ukázka</td>
-                        </tr>
-                        <tr>
-                          <td><type>tunneling</type></td>
-                          <td>komunikace bod-bod, komunikace se zaøízením je vıhradní (KNX Std. 3.8.4)</td>
-                          <td><file>01 test-direct.cfg</file></td>
-                        </tr>
-                        <tr>
-                          <td><type>routing</type></td>
-                          <td>vícesmìrová komunikace (multicasting), nekomunikuje se s konkrétním zaøízením, není vıhradní (KNX Std. 3.8.5)</td>
-                          <td><file>03 test-routing.cfg</file></td>
-                        </tr>
-                        <tr>
-                          <td><type>tunneling-NAT</type></td>
-                          <td>stejné jako tunneling, avšak dokáe procházet pøes IP routery s funkcí NAT (pøeklad adres); rozšíøení Siemens, není ovìøena funkce mimo zaøízení Siemens</td>
-                          <td><file>02 test-nat.cfg</file></td>
-                        </tr>
-                      </table>
-                    </p.table></dd>
+                  <dd><p>pro definici zpùsobu spojení s EIBNet/IP zaøízením. Moné hodnoty parametru jsou uvedeny v tabulce <in label="tblMode"></in>.</p></dd>
                 </dl>
+                <f.table>
+                  <caption>Hodnoty parametru <type>mode</type></caption>
+                  <table class="tblCommon">
+                    <tr>
+                      <td>hodnota</td>
+                      <td>vıznam</td>
+                      <td>ukázka</td>
+                    </tr>
+                    <tr>
+                      <td><type>tunneling</type></td>
+                      <td>komunikace bod-bod, komunikace se zaøízením je vıhradní (KNX Std. 3.8.4)</td>
+                      <td><file>01 test-direct.cfg</file></td>
+                    </tr>
+                    <tr>
+                      <td><type>routing</type></td>
+                      <td>vícesmìrová komunikace (multicasting), nekomunikuje se s konkrétním zaøízením, není vıhradní (KNX Std. 3.8.5)</td>
+                      <td><file>03 test-routing.cfg</file></td>
+                    </tr>
+                    <tr>
+                      <td><type>tunneling-NAT</type></td>
+                      <td>stejné jako tunneling, avšak dokáe procházet pøes IP routery s funkcí NAT (pøeklad adres); rozšíøení Siemens, není ovìøena funkce mimo zaøízení Siemens</td>
+                      <td><file>02 test-nat.cfg</file></td>
+                    </tr>
+                  </table>
+                </f.table>
               </text>
             </section>
             <section level="3">
@@ -83,16 +132,14 @@
                   <caption>Sekce <type>[interface]</type> definuje následující parametry:</caption>
                   <dt><type>address</type></dt>
                   <dd><p>pro definici fyzické KNX adresy, kterou server pouije pøi odesílání dat do KNX/EIB sbìrnice. Parametr je pøítomen ve všech ukázkách. Pøíklad:</p><p.type>address = 1.2.1</p.type></dd>
+                  <dt><type>read_on_start_repeat_count</type></dt>
+                  <dd><p>Celkovı poèet poèáteèních ètení, které server vyuije pro získání startovacích hodnot datovıch objektù. Vıchozí hodnota parametru je 3, více viz kapitolu <in label="secReadStart"></in>. Pøíklad:</p><p.type>read_on_start_repeat_count = 5</p.type></dd>
+                  <dt><type>read_on_start_delay</type></dt>
+                  <dd><p>Délka èekání, které server pouije pøi opakování poèáteèního ètení. Server ètení opakuje, pokud se mu nepodaøí všechny poadované objekty vyèíst. Vıchozí hodnota parametru je <number>5000</number> (milisekund), více viz kapitolu <in label="secReadStart"></in>. Pøíklad:</p><p.type>read_on_start_delay = 8000</p.type></dd>
                 </dl>
               </text>
             </section>
-            <section level="3">
-              <title><type>[read_start]</type></title>
-              <text>
-                <p></p>
-              </text>
-            </section>
-            <section level="3">
+            <section label="secObjects" level="3">
               <title><type>[objects]</type> a <type>[blocks]</type></title>
               <text>
                 <p>Sekce <type>[objects]</type> a <type>[blocks]</type> shrnují všechny definice datovıch bodù KNX, které má server znát a se kterımi má komunikovat. Pro kadı datovı bod je v konfiguraci tøeba znát jeho adresu(y), datovı typ a zpùsob jeho komunikace. Sekce <type>[objects]</type> a <type>[blocks]</type> se od sebe navzájem liší zpùsobem zápisu tìchto údajù.</p>
@@ -100,7 +147,7 @@
                 <p>V obou sekcích lze datové objekty definovat pomocí parametrù <type>objects</type>, <type>object</type>, <type>logged_objects</type> a <type>logged_object</type>. Jejich odlišení je jednoduché: <type>objects</type> a <type>logged_objects</type> dovolují najednou definovat více datovıch objektù (kadı s jednou skupinovou adresou); <type>object</type> a <type>logged_object</type> definuje jedinı datovı objekt spojenı pøípadnì s více skupinovımi adresami (model je stejnı jako pøi spojování komunikaèních objektù se skupinovımi adresami pøi bìném programování EIB v ETS).</p>
                 <p>Dvojice parametrù <type>logged_objects</type> a <type>logged_object</type> slouí k definici datovıch objektù, jejich zmìny v èase budou zaznamenány v administraèní èásti webového rozhraní (v èásti <gui>Historie dat</gui>). Ukázku pouití sledovanıch datovıch objektù obsahuje napø. ukázkovı konfiguraèní soubor <file>0xx test-logged.cfg</file>.</p>
                 <p>V definicích datovıch bodù se pouívají pro popis podporovanıch datovıch typù klíèová slova podle tabulky <in label="tblDataTypes"></in>.</p>
-                <p.table label="tblDataTypes">
+                <f.table>
                   <caption>Datové typy</caption>
                   <table class="tblCommon">
                     <tr>
@@ -194,10 +241,10 @@
                       <td></td>
                     </tr>
                   </table>
-                </p.table>
+                </f.table>
                 <p>Poznámka: rozšiøující typ scaling255 mìní standardní vıznam typu EIS<c.special what="thinspace" />6. Zatímco datovı bod typu <type>scaling</type> nabízí klientùm standardní rozsah 0<c.special what="interval" />100 (%), datovı bod <type>scaling255</type> s klienty komunikuje nepøevedenou hodnotu v rozsahu 0<c.special what="interval" />255.</p>
                 <p>Pro urèení zpùsobu komunikace pouívá server v konfiguraci klíèová slova dle tabulky <in label="tblBehavior"></in>.</p>
-                <p.table label="tblBehavior">
+                <f.table>
                   <caption>Zpùsoby komunikace datovıch objektù</caption>
                   <table class="tblCommon">
                     <tr>
@@ -221,7 +268,7 @@
                       <td>Jako <type>transmitter_with_status</type>, avšak pøi rozbìhu èi obnovení spojení nucenì vyèítá hodnotu z EIB stejnì jako <type>tracker_init</type>.</td>
                     </tr>
                   </table>
-                </p.table>
+                </f.table>
                 <p>Poslední èást definice datovıch bodù, tj. skupinové adresy, lze v konfiguraci zapisovat dvojím zpùsobem: buï jako samostatné skupinové adresy, nebo jako interval skupinovıch adres.</p>
                 <p>Pøíklad zápisù datovıch bodù pomocí sekce <type>[objects]</type>:</p>
                 <p.type>[objects]
@@ -249,6 +296,23 @@ objects = 5/3/100..5/3/119</p.type>
                 <p>Další ukázky zápisu datovıch bodù lze najít v souborech: <file>04 init-read.cfg</file> (datové body s vynucenım poèáteèním ètením), <file>06 complex-object.cfg</file> (datové body spojené s více skupinovımi adresami), <file>08 blocks.cfg</file> (definice datovıch bodù pomocí sekce <type>[blocks]</type>).</p>
               </text>
             </section>
+            <section label="secReadStart" level="3">
+              <title><type>[read_start]</type></title>
+              <text>
+                <p>Sekce <type>[read_start]</type> obsahuje parametry pro øízení poèáteèního ètení, tj. prvního ètení objektù <type>tracker_init</type> a <type>transmitter_with_status_init</type> (viz kapitolu <in label="secObject"></in>) po startu serveru. Server naèítá takto vybrané datové objekty v bloku postupnì a snaí se je všechny vyèíst. Aby pøi startu nedošlo k zahlcení sbìrnice (napøíklad, aby bylo moné ji od startu do KNX zapisovat), prokládá server ètení jednotlivıch datovıch objektù prodlevou (<type>delay</type>). Pokud se nepodaøí nìkteré z datovıch objektù pøeèíst, pokusí se je server po uplynutí zotavovací prodlevy (<type>[interface]</type> <type>read_on_start_delay</type>, kapitola <in label="secInterface"></in>) opakovanì získat novım ètením. Takto server postupuje, dokud nevyèerpá povolenı poèet poèáteèních ètení (parametr <type>[interface]</type> <type>read_on_start_repeat_count</type>, viz kapitolu <in label="secInterface"></in>).</p>
+                <p>Nejsou-li s komunikací pøi rozbìhu problémy, doporuèuje se ponechat vıchozí hodnoty parametrù (napøíklad sekci <type>read_start</type> do konfiguraèního souboru neuvést).</p>
+                <dl class="dlParameter">
+                  <caption>Sekce <type>read_start</type> obsahuje parametry:</caption>
+                  <dt><type>repeat_count</type></dt>
+                  <dd><p>Nejvyšší poèet ètení, které server pro získání konkrétního datového objektu vykoná. Server ètení datového objektu ukonèí, pokud zaøízení v KNX odpoví.</p><p.type>repeat_count = 3</p.type><p>Vıchozí hodnota parametru je 1.</p></dd>
+                  <dt><type>delay</type></dt>
+                  <dd><p>Prodleva mezi èteními jednotlivıch datovıch objektù. Daøí-li se data vyèítat bez problémù, budou jednotlivé poadavky na ètení do KNX sbìrnice odesílány právì jen s touto prodlevou. Pøíklad:</p><p.type>delay = 200</p.type><p>Poèáteèní hodnota parametru je 150 (milisekund).</p></dd>
+                  <dt><type>timeout</type></dt>
+                  <dd><p>Èas, po kterı server èeká na odpovìï. Pokud do této doby nikdo v KNX síti neodpoví, opakuje server poadavek podle nastavení parametrù <type>repeat_count</type>.</p><p.type>timeout = 2000</p.type><p>Poèáteèní hodnota parametru je <number>1500</number> (milisekund).</p></dd>
+                </dl>
+                <p>Poèáteèní ètení mùe (zejména pøi velkém poètu inicalizovanıch datovıch objektù) trvat pomìrnì dlouhou dobu. Napøíklad, pøi ètení 100 datovıch objektù trvá jen samotné získání hodnoty (bez opakování a zotavení) celkem 15 sekund (150 ms<c.special what="binarytimes" />100). Po tuto dobu je samozøejmì moné do sbìrnice libovolnì zapisovat, data pro klienty však nemusejí bıt ještì platná (server v takovém pøípadì klientùm vrátí nulu, <type>false</type> nebo prázdnı text).</p>
+              </text>
+            </section>
             <section level="3">
               <title><type>[formats]</type></title>
               <text>
@@ -259,101 +323,107 @@ objects = 5/3/100..5/3/119</p.type>
 date_as_string = true</p.type></dd>
                   <dt><type>time_format</type> a <type>date_format</type></dt>
                   <dd><p>maska pro pøevod èasovıch a datumovıch údajù do textového formátu a naopak. Maska se uplatní pouze pokud je parametr <type>time_as_string</type> nebo <type>date_as_string</type> nastaven na hodnotu <type>true</type>. Pøíklad:</p><p.type>time_format = HH:mm
-date_format = dd. MMMM yyyy</p.type><p>Ve obou formátech lze vyuít formátovací znaky v kombinacích podle tabulky <in label="tblDateTimelFormat"></in>.</p><p.table label="tblDateTimelFormat">
-                      <caption>Formátovací znaky parametrù <type>time_format</type> a <type>date_format</type>.</caption>
-                      <table class="tblCommon">
-                        <tr>
-                          <td>kombinace</td>
-                          <td>vıznam</td>
-                        </tr>
-                        <tr>
-                          <td><type>h</type>, <type>hh</type>, <type>H</type>, <type>HH</type></td>
-                          <td>12hodinovı èas bez a s vedoucí nulou, 24hodinovı èas bez a s vedoucí nulou</td>
-                        </tr>
-                        <tr>
-                          <td><type>m</type>, <type>mm</type>, <type>s</type>, <type>ss</type></td>
-                          <td>minuty bez a s vedoucí nulou, sekundy bez a s vedoucí nulou</td>
-                        </tr>
-                        <tr>
-                          <td><type>d</type>, <type>dd</type></td>
-                          <td>èíslo dne bez a s vedoucí nulou</td>
-                        </tr>
-                        <tr>
-                          <td><type>M</type>, <type>MM</type>, <type>MMM</type>, <type>MMMM</type></td>
-                          <td>èíslo mìsíce bez a s vedoucí nulou, zkratka názvu mìsíce, název mìsíce</td>
-                        </tr>
-                        <tr>
-                          <td><type>yy</type>, <type>yyyy</type></td>
-                          <td>dvouciferné a plné èíslo roku</td>
-                        </tr>
-                      </table>
-                    </p.table></dd>
+date_format = dd. MMMM yyyy</p.type><p>Ve obou formátech lze vyuít formátovací znaky v kombinacích podle tabulky <in label="tblDateTimelFormat"></in>.</p></dd>
                 </dl>
+                <f.table>
+                  <caption>Formátovací znaky parametrù <type>time_format</type> a <type>date_format</type>.</caption>
+                  <table class="tblCommon">
+                    <tr>
+                      <td>kombinace</td>
+                      <td>vıznam</td>
+                    </tr>
+                    <tr>
+                      <td><type>h</type>, <type>hh</type>, <type>H</type>, <type>HH</type></td>
+                      <td>12hodinovı èas bez a s vedoucí nulou, 24hodinovı èas bez a s vedoucí nulou</td>
+                    </tr>
+                    <tr>
+                      <td><type>m</type>, <type>mm</type>, <type>s</type>, <type>ss</type></td>
+                      <td>minuty bez a s vedoucí nulou, sekundy bez a s vedoucí nulou</td>
+                    </tr>
+                    <tr>
+                      <td><type>d</type>, <type>dd</type></td>
+                      <td>èíslo dne bez a s vedoucí nulou</td>
+                    </tr>
+                    <tr>
+                      <td><type>M</type>, <type>MM</type>, <type>MMM</type>, <type>MMMM</type></td>
+                      <td>èíslo mìsíce bez a s vedoucí nulou, zkratka názvu mìsíce, název mìsíce</td>
+                    </tr>
+                    <tr>
+                      <td><type>yy</type>, <type>yyyy</type></td>
+                      <td>dvouciferné a plné èíslo roku</td>
+                    </tr>
+                  </table>
+                </f.table>
               </text>
             </section>
             <section level="3">
-              <title><type>[debug]</type></title>
+              <title><type>[log]</type> a <type>[datalog]</type></title>
               <text>
+                <p>Sekce <type>[log]</type> urèuje zpùsob vıpisu ladicích a informaèních zpráv serveru. Detailních zpráv mùe bıt velké mnoství, a je proto doporuèeno vypisovat bìhem bìného provozu jen chybové stavy.</p>
+                <p>Sekce <type>[datalog]</type> je doplòková a urèuje, kam bude server zapisovat kopie zpráv <gui>Historie dat</gui> webového rozhraní. Pøesmìrování kopií vıpisù lze pouít pro uchování delší historie dat, nebo data ve webovém rozhraní jsou poètem omezena. V poèáteèním nastavení není ukládání historie dat mimo webové rozhraní zapnuto.</p>
                 <dl class="dlParameter">
-                  <caption>Sekce <type>[debug]</type> urèuje zpùsob vıpisu ladicích a informaèních zpráv serveru. Detailních zpráv mùe bıt velké mnoství, a je proto doporuèeno vypisovat bìhem bìného provozu jen chybové stavy. Sekce definuje následující parametry:</caption>
+                  <caption>Sekce definují následující parametry:</caption>
                   <dt><type>target</type></dt>
-                  <dd><p>pro definici vıstupu ladicích vıpisù. Moné hodnoty parametru jsou zapsány v tabulce <in label="tblTarget"></in>.</p><p.table label="tblTarget">
-                      <caption>Hodnoty parametru <type>target</type></caption>
-                      <table class="tblCommon">
-                        <tr>
-                          <td>hodnota</td>
-                          <td>vıznam</td>
-                        </tr>
-                        <tr>
-                          <td><type>none</type></td>
-                          <td>nebudou se vypisovat ádné ladicí vıpisy</td>
-                        </tr>
-                        <tr>
-                          <td><type>kernel</type></td>
-                          <td>vıpisy budou nasmìrovány do operaèního systému. Tyto vıpisy lze èíst pomocí diagnostickıch nástrojù, jako je napøíklad aplikace DbgView (<uri>http://technet.microsoft.com/en-us/sysinternals/bb896647.aspx</uri>).</td>
-                        </tr>
-                        <tr>
-                          <td><type>file</type></td>
-                          <td>vıpisy se zapíší do souboru urèeného parametrem <type>file</type>.</td>
-                        </tr>
-                      </table>
-                    </p.table><p>Vıchozí hodnota parametru je <type>kernel</type>. Pøíklad:</p><p.type>target = file</p.type></dd>
+                  <dd><p>pro definici vıstupu ladicích vıpisù. Moné hodnoty parametru jsou zapsány v tabulce <in label="tblTarget"></in>.</p><p>Vıchozí hodnota parametru je <type>kernel</type> pro sekci <type>[debug]</type> a <type>none</type> pro sekci <type>[data_log]</type>. Pøíklad:</p><p.type>target = file</p.type></dd>
                   <dt><type>level</type></dt>
-                  <dd><p>obsanost ladicích vıpisù, urèuje se ve ètyøech stupních podle tabulky <in label="tblLevel"></in>.</p><p.table label="tblLevel">
-                      <caption>Hodnoty parametru <type>level</type></caption>
-                      <table class="tblCommon">
-                        <tr>
-                          <td>hodnota</td>
-                          <td>vıznam</td>
-                        </tr>
-                        <tr>
-                          <td><type>info</type></td>
-                          <td>nejvíce informací, vypisovat se bude všechno. Slouí pøedevším k pøesné diagnostice komunikace na úrovni pøenášenıch paketù.</td>
-                        </tr>
-                        <tr>
-                          <td><type>warning</type></td>
-                          <td>støednì detailní informace, vypisovat se budou všechny zprávy vyjma úrovnì <type>info</type>. Slouí k základnímu ladìní a diagnostice.</td>
-                        </tr>
-                        <tr>
-                          <td><type>error</type></td>
-                          <td>základní informace, doporuèeno pro trvalı bìh. Vypisují se jen zprávy oznaèené jako <type>error</type> nebo <type>fatal</type>, èili zprávy, kterımi server informuje o chybì dat, komunikace nebo protokolu.</td>
-                        </tr>
-                        <tr>
-                          <td><type>fatal</type></td>
-                          <td>minimální informace, vypisovat se budou pouze informace o vnitøních chybovıch stavech serveru.</td>
-                        </tr>
-                      </table>
-                    </p.table><p>Vıchozí hodnota parametru je <type>error</type>. Pøíklad:</p><p.type>level = warning</p.type></dd>
+                  <dd><p>obsanost ladicích vıpisù, urèuje se ve ètyøech stupních podle tabulky <in label="tblLevel"></in>.</p><p>Vıchozí hodnota parametru je <type>error</type>. Pøíklad:</p><p.type>level = warning</p.type></dd>
                   <dt><type>file</type></dt>
                   <dd><p>Cesta k souboru s vıpisy. Soubor stále roste, pøi trvalıch a detailních vıpisech je proto tøeba dbát na dostatek místa na disku. Pøi pouití serveru v zabudovanıch systémech (Windowx XP Embedded) není pouití souboru (pøi nastavení <type>target = file</type>) doporuèeno, pokud je disk se souborem Flash (Compact Flash<c.special what="commadots" />).</p><p>Pøíklad zápisu parametru:</p><p.type>file = z:\smartserver.log</p.type></dd>
                 </dl>
+                <f.table>
+                  <caption>Hodnoty parametru <type>target</type></caption>
+                  <table class="tblCommon">
+                    <tr>
+                      <td>hodnota</td>
+                      <td>vıznam</td>
+                    </tr>
+                    <tr>
+                      <td><type>none</type></td>
+                      <td>nebudou se vypisovat ádné ladicí vıpisy</td>
+                    </tr>
+                    <tr>
+                      <td><type>kernel</type></td>
+                      <td>vıpisy budou nasmìrovány do operaèního systému. Tyto vıpisy lze èíst pomocí diagnostickıch nástrojù, jako je napøíklad aplikace DbgView (<uri>http://technet.microsoft.com/en-us/sysinternals/bb896647.aspx</uri>).</td>
+                    </tr>
+                    <tr>
+                      <td><type>file</type></td>
+                      <td>vıpisy se zapíší do souboru urèeného parametrem <type>file</type>.</td>
+                    </tr>
+                  </table>
+                </f.table>
+                <f.table>
+                  <caption>Hodnoty parametru <type>level</type></caption>
+                  <table class="tblCommon">
+                    <tr>
+                      <td>hodnota</td>
+                      <td>vıznam</td>
+                    </tr>
+                    <tr>
+                      <td><type>info</type></td>
+                      <td>nejvíce informací, vypisovat se bude všechno. Slouí pøedevším k pøesné diagnostice komunikace na úrovni pøenášenıch paketù.</td>
+                    </tr>
+                    <tr>
+                      <td><type>warning</type></td>
+                      <td>støednì detailní informace, vypisovat se budou všechny zprávy vyjma úrovnì <type>info</type>. Slouí k základnímu ladìní a diagnostice.</td>
+                    </tr>
+                    <tr>
+                      <td><type>error</type></td>
+                      <td>základní informace, doporuèeno pro trvalı bìh. Vypisují se jen zprávy oznaèené jako <type>error</type> nebo <type>fatal</type>, èili zprávy, kterımi server informuje o chybì dat, komunikace nebo protokolu.</td>
+                    </tr>
+                    <tr>
+                      <td><type>fatal</type></td>
+                      <td>minimální informace, vypisovat se budou pouze informace o vnitøních chybovıch stavech serveru.</td>
+                    </tr>
+                  </table>
+                </f.table>
                 <p>Popis formátu ladicích a diagnostickıch zpráv je uveden v kapitole <about label="chapterDebug"></about>.</p>
               </text>
             </section>
             <section level="3">
               <title><type>[web]</type></title>
               <text>
-                <p>Sekce <type>[web]</type> definuje parametry nutné pro správnı bìh webového rozhraní serveru. Instalace SmartServeru umístí data webového rozhraní do správného místa, obsah konfiguraèní sekce <type>[web]</type> tomuto místu odpovídá. Doporuèuje se nastavení této sekce ponechat bez úprav.</p>
+                <p>Sekce <type>[web]</type> definuje parametry nutné pro správnı bìh webového rozhraní serveru. Instalace SmartServeru umístí data webového rozhraní do správného místa, obsah konfiguraèní sekce <type>[web]</type> tomuto místu odpovídá.</p>
+                <p>Doporuèuje se nastavení této sekce ponechat bez úprav.</p>
                 <dl class="dlParameter">
                   <caption>Sekce definuje následující parametry:</caption>
                   <dt><type>web_root</type></dt>
@@ -378,7 +448,11 @@ date_format = dd. MMMM yyyy</p.type><p>Ve obou formátech lze vyuít formátovací 
             <section level="3">
               <title><type>[users]</type></title>
               <text>
-                <p></p>
+                <p>Sekce [web] definuje poèáteèní dvojici uivatelù, která se mùe k serveru pøipojit. Další uivatele a jejich hesla je moné nastavovat pomocí webového rozhraní. Zmìna údajù v této sekci mùe znamenat nedostupnost webového rozhraní, doporuèuje se tuto sekci neupravovat.</p>
+                <p>Poèáteèní nastavení:</p>
+                <p.type>[users]
+admin = admin, hb3fA4WsM68ZmQpM9O5L6GgmAU8Y5NNvrrKCXsx4Zrc=
+user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
               </text>
             </section>
             <section level="3">
@@ -386,7 +460,7 @@ date_format = dd. MMMM yyyy</p.type><p>Ve obou formátech lze vyuít formátovací 
               <text>
                 <p>Definice datovıch bodù serveru mùe bıt vıznamnì urychlena ve spolupráci s programem ETS. ETS umí (podle své konfigurace) exportovat skupinové adresy projektu do textového souboru urèeného pro OPC Server (produkt KNX Association, stejnì jako ETS). Tento soubor (s pøíponou ESF) umí konfigurace serveru pøijmout a všechny datové body z nìj pouít. ESF soubor nemusí obsahovat vdy všechny potøebné informace, avšak server se umí s chybìjícími údaji vypoøádat (podle nastavení, viz níe).</p>
                 <p>Datové objekty z ESF souboru server pøijme uvnitø sekce <type>[objects]</type> pomocí parametrù <type>esf_adapt</type>, <type>esf_strict</type> a <type>esf_ignore</type> s vıznamem dle tabulky <in label="tblESFConvert"></in>.</p>
-                <p.table label="tblESFConvert">
+                <f.table>
                   <caption>Druhy pøevodu ESF souboru</caption>
                   <table class="tblCommon">
                     <tr>
@@ -402,10 +476,10 @@ date_format = dd. MMMM yyyy</p.type><p>Ve obou formátech lze vyuít formátovací 
                       <td>datové body bez pøesného typu budou ignorovány a konfigurace bude naètena (datové bez typu body server nebude znát)</td>
                     </tr>
                   </table>
-                </p.table>
+                </f.table>
                 <p>Za pøesné datové typy se povaují všechny typy zapsané jako <type>EIS<c.special what="thinspace" />1</type><c.special what="interval" /><type>EIS<c.special what="thinspace" />15</type>. Nepøesné datové typy jsou v ESF souboru uvedené v podobì napø. <type>Uncertain (3 Byte)</type>, co dovoluje (jak ji bylo psáno) pøi pouití parametru <type>esf_adapt</type> zvolit vhodnı typ automaticky. Pokud se to nepodaøí, naèítání konfigurace skonèí hlášením chyby.</p>
                 <p>Server pøi naèítání konfigurace <type>esf_adapt</type> pøevede nepøesné typy na pøesné podle tabulky <in label="tblESFTypeApproximation"></in>.</p>
-                <p.table label="tblESFTypeApproximation">
+                <f.table>
                   <caption>Nahrazení nepøesnì urèenıch typù v ESF souboru</caption>
                   <table class="tblCommon" width="1.8cm">
                     <tr>
@@ -427,15 +501,128 @@ date_format = dd. MMMM yyyy</p.type><p>Ve obou formátech lze vyuít formátovací 
                       <td>string</td>
                     </tr>
                   </table>
-                </p.table>
-                <p>Ukázka konfigurace serveru pomocí ESF je zapsána v souborech <type>09 ETS-Opc.cfg</type> a <type>09 test.esf</type>.</p>
+                </f.table>
+                <p>Ukázka konfigurace serveru pomocí ESF je zapsána v souborech <file>09 ETS-Opc.cfg</file> a <file>09 test.esf</file>.</p>
               </text>
             </section>
-            <section label="chapterDebug" level="3">
+            <section label="secDebug" level="3">
               <title>Ladicí vıpisy a informace</title>
               <text>
-                <p>Server dokáe pøi bìhu zapisovat informace o aktuálním stavu a probíhajících operacích. To mùe bıt uiteèné napø. pøi øešení problémù s komunikacemi.</p>
-                <p>Vıpisy nejsou ve vıchozím stavu zapnuty, pro jejich zapnutí a konfiguraci slouí záznamy v registru operaèního systému. V pøípadì potøeby kontaktujte technickou podporu.</p>
+                <p>Server dokáe pøi bìhu zapisovat informace o aktuálním stavu a probíhajících operacích. To mùe bıt uiteèné napø. pøi øešení problémù s komunikacemi. Vıpisy nejsou ve vıchozím stavu zapnuty, pro jejich zapnutí a nastavení slouí sekce <type>[debug]</type> a <type>[data_log]</type> konfiguraèního souboru. Vıpisy a ladicí informace nejsou k normálnímu provozu potøebné.</p>
+                <p>Vıstup ladicích informací je textovı, øádkovı a tak snadno èitelnı. Vıchozí nastavení serveru dovoluje vıpisy sledovat pomocí webového rozhraní, po úpravì konfigurace lze veškerá data zapisovat do souboru. Ladicí zprávy mají jednotnı formát, napøíklad:</p>
+                <p.type>[2009-04-01 18:06:03.828] d sys/Net.Dispatcher:   address 192.168.1.102:4270
+[2009-04-01 18:06:03.828] t sys/sdap: GET 6/0/6
+[2009-04-01 18:06:25.609] I sys/HTTP: Request: /favicon.ico</p.type>
+                <p>V prvé èásti mezi hranatımi závorkami je datum a èas vıpisu. Všechny ladicí vıpisy jsou ve svìtovém èase, tj. v zimì je vùèi èeskému obèanskému èasu menší o hodinu, bìhem platnosti letního èasu o dvì hodiny. Pøíklad: vıpis s èasem <type>18:06:03.828</type> byl poøízen 1. dubna, take jeho odpovídající obèanskı èas poøízení byl 20:06:03,828.</p>
+                <dl class="dlHanging">
+                  <caption>Druhá èást, samostatné písmeno, kóduje druh zprávy. Monosti jsou (øazeny od nejvíce podrobnıch k nejvíce dùleitım):</caption>
+                  <dt>d</dt>
+                  <dd><p>ladicí zpráva, druhá úroveò detailù</p></dd>
+                  <dt>I</dt>
+                  <dd><p>bìná zpráva, doplòkové informace</p></dd>
+                  <dt>t</dt>
+                  <dd><p>ladicí zpráva, první úroveò detailù</p></dd>
+                  <dt>W</dt>
+                  <dd><p>bená zpráva, varování o monıch potíích za urèité situace</p></dd>
+                  <dt>m</dt>
+                  <dd><p>ladicí zpráva, dùleitá informace</p></dd>
+                  <dt>E</dt>
+                  <dd><p>bìná zpráva, chyba protokolu, stavu nebo programu, server je schopen pracovat dále</p></dd>
+                  <dt>e</dt>
+                  <dd><p>ladicí zpráva, informace o chybìV </p></dd>
+                  <dt>F</dt>
+                  <dd><p>bìná zpráva, fatální chyba programu, server není schopen pracovat dále</p></dd>
+                </dl>
+                <dl class="dlHanging">
+                  <caption>Tøetí èást zprávy rozlišuje pùvodce zprávy, v serveru se objevují zprávy z tìchto zdrojù:</caption>
+                  <dt>KNX/EibNet.Connection</dt>
+                  <dd><p>Spojení s KNX rozhraním, informace o EibNet/IP protokolu</p></dd>
+                  <dt>sys/HTTP</dt>
+                  <dd><p>Webovı server, informace o pøenosech stránek klientùm</p></dd>
+                  <dt>sys/Net.Dispatcher</dt>
+                  <dd><p>Síovı server pro klientská spojení, informace o navazování a ukonèování spojení a o pøesenıch blocích</p></dd>
+                  <dt>sys/sdap</dt>
+                  <dd><p>SDAP server, informace o pøíkazech a odpovìdích pøijatıch pomocí SDAP</p></dd>
+                  <dt>sys/xmls</dt>
+                  <dd><p>XMLSocket server, informace o pøíkazech a odpovìdích pøijatıch pomocí SDAP</p></dd>
+                </dl>
+                <p>Za tøetí èástí následuje v ladicí zprávì text, kterı ji není formalizován a kterı obsahuje libovolná data (taková která pùvodce chtìl vypsat).</p>
+                <p>Nejèastìjší dùvod pro pouití ladicích zpráv je komunikace pomocí EibNet/IP protokolu, tj. komunikace s KNX rozhraním. Rozhraní je samostatnı prvek mimo kontrolu serveru, kterı mùe bıt nezávisle zapnut èi vypnut, pøípadnì jej mùe pro spojení s KNX vyuít nìkdo jinı. V kadém takovém pøípadì server nemá spojení s KNX a pro diagnostiku potíí je tøeba ladicí vıpisy zapnout.</p>
+                <p>O diagnostice a ladicích vıpisech pojednává také kapitola <about label="secCommunicationProblems"></about>.</p>
+              </text>
+            </section>
+          </text>
+        </section>
+        <section level="2">
+          <title>Pøipojení ke KNX</title>
+          <text>
+            <section level="3">
+              <title>Volba zpùsobu komunikace</title>
+              <text>
+                <p>SmartServer podporuje oba zpùsoby komunikace s KNX, které jsou vyuitelné pro pøenos dat. Jiné zpùsoby, které slouí ke konfiguraci a programování KNX, SmartServer nepodporuje. SmartServer není nástroj pro programování prvkù v KNX sbìrnici.</p>
+                <dl>
+                  <caption>Zpùsob komunikace se øídí parametrem <type>mode</type> sekce <type>[device]</type> konfiguraèního souboru (viz kapitolu <in label="secDevice"></in>). Pro volbu zpùsobu komunikace lze vyuít následující rozcestník:</caption>
+                  <dt>Podporuje rozhraní jen tunelování?</dt>
+                  <dd><p>Toto platí prakticky pro všechna na trhu dostupná rohraní. Musí se pouít <type>tunneling</type> nebo <type>tunneling-NAT</type>.</p></dd>
+                  <dt>Podporuje rozhraní routování (v názvu bude mít nejspíš router, nebo se bude jednat o nìjaké PLC)?</dt>
+                  <dd><p>Lze pouít jakıkoli zpùsob komunikace, <type>tunneling</type>, <type>tunneling-NAT</type> i <type>routing</type>.</p><p>Protoe je však router urèen právì k pøenosu datové komunikace z KNX do IP sítì a zpìt, je doporuèeno zvolit zpùsob <type>routing</type>.</p></dd>
+                  <dt>Nachází se server, nebo rozhraní za routerem (a u s NAT nebo bez NAT)?</dt>
+                  <dd><p>Pravdìpodobnì jediná varianta bude <type>tunneling-NAT</type>.</p></dd>
+                  <dt>Vyrábí rozhraní jinı vırobce ne Siemens?</dt>
+                  <dd><p>Mùou bıt problémy se spojením <type>tunneling-NAT</type>. Prùchod pøes NAT je specialitou Siemens, kterı svım øešením obchází KNX standard. Na druhou stranu, komunikace s rozhraním se pak chová tak, jak je v IP sítích zvykem. V souèasnosti podporuje prùchod pøes NAT také ETS, dá se proto oèekávat, e i jiní vırobci ne Siemens budou tento zpùsob komunikace podporovat.</p><p>Dokud však nebude <type>tunneling-NAT</type> prohlášen za standardní, je nutné pøed jeho pouitím provìøit (vèetnì zapojení za NAT), zdali s ním nemá vybrané KNX rozhraní potíe.</p></dd>
+                </dl>
+              </text>
+            </section>
+            <section level="3">
+              <title>Switche, Routery a NAT</title>
+              <text>
+                <p>Routery v IP komunikacích stojí vdy mezi sítìmi a logicky je spojují. Správnì nastavenı router posílá veškerı KNX provoz mezi sítìmi bezproblémovì, povaha EIBNet/IP však mùe v konkrétních pøípadech pùsobit potíe.</p>
+                <dl>
+                  <caption>Problematické pro EIBNet/IP mùe bıt:</caption>
+                  <dt>IP multicasting</dt>
+                  <dd><p>Komunikace zpùsobem <type>routing</type> probíhá pomocí IP multicasting, kdy jeden odeslanı paket dokáe pøijmout více IP pøíjemcù. Pouitı IP multicasting se snadno pozná podle IP adresy<c.special what="dash" />multicast adresy zaèínají èíslem 224 a vìtšími (napø. 225.100.1.5). Switche a routery musejí umìt IP multicasting rozpoznat a správnì rozeslat, co není vdy pravidlem. Pøi vıbìru switche a routeru pro zpùsob komunikace <type>routing</type> je vdy tøeba pøesvìdèit se, zdali prvek IP multicasting zná.</p></dd>
+                  <dt>Pøechod pøes NAT</dt>
+                  <dd><p>NAT je techologie, která dovoluje v komunikaci vymìòovat adresy a porty odesílatelù i pøíjemcù. Nejbìnìjší pouití NAT dnes je vysoce jednoúèelové<c.special what="dash" />v domácích a kanceláøskıch routerech<c.special what="dash" />pro pøipojení menší sítì k internetu. Aby pøes takovı router komunikace EIBNet/IP mezi SmartServerem a rozhraním procházela, je vdy nutné nastavení routeru pøizpùsobit (router to samozøejmì musí umìt).</p><p>EIBNet/IP komunikace je UDP, mezi prvky nedochází k uzavøení stáleho spojení, router proto musí vìdìt, která data má smìrovat a kam. Pro úspìšnı pøechod pøes NAT router musí bıt zajištìno, e vnìjší paket (z internetu, z WAN rozhraní routeru) router nasmìruje dovnitø ke konkrétnímu zaøízení (poèítaèi se SmartServerem nebo KNX rozhraní). Routery obyèejnì rozhodují o smìrování podle typu protokolu (UDP) a èísla portu (není-li port zmìnìn, platí pro EIBNet/IP èíslo <number>3671</number>). V jejich konfiguraci tak bude existovat pravidlo (port forwarding, port triggering, server inside<c.special what="commadots" />), které postoupí UDP komunikaci na zvoleném portu zaøízení s vnitøní IP adresou. Pøesná konfigurace se liší router od routeru, konfiguraci routeru nicménì zvládne kadı síovı specialista.</p><p>Pøechod datovıch paketù pomocí NAT zevnitø sítì ven (do internetu) není zpravidla tøeba nijak konfigurovat.</p><p>Aby EIBNet/IP komunikace mezi SmartServerem a KNX rozhraním pracovala, musí bıt správnì nastaveny všechny NAT routery po cestì. Typické je napøíklad propojení dvou malıch sítí pøes internet, kdy obì sítì mají na svém rozhraní NAT router. Oba tyto routery musejí mít pøechod vnìjších EIBNet/IP paketù do vnitøní sítì nakonfigurován.</p></dd>
+                  <dt>Poèítaè s více síovımi kartami, routery</dt>
+                  <dd><p>Tunelová komunikace v EIBNet/IP vyaduje, aby klient (SmartServer) uvnitø datového paketu oznamoval serveru (KNX rozhraní) svou IP adresu. Server následnì odešle odpovìï na tuto IP adresu. Pokud má poèítaè více síovıch karet (dvì Ethernet rozhraní, Ethernet+WiFi<c.special what="commadots" />), nebo pokud data procházejí pøes router do jinıch sítí, nemusí se komunikace zpùsobem <type>tunneling</type> daøit.</p><p>V prvém pøípadì (více sítovıch karet) mùe rozhraní dostat v datovém paketu adresu nesprávného rozhraní, take jeho odpovìï mùe odejít nesprávnım smìrem a ke klientovi (SmartServer) se nedostane.</p><p>V druhém pøípadì (pøechod pøes router) mùe bıt místní adresa uloená do datového paketu v cílové sítí (kde je KNX rozhraní) nesmyslná, pøípadnì duplicitní. Rozhraní v takovém pøípadì buï nedokáe odpovìï odeslat vùbec, anebo ji odešle jinému zaøízení.</p><p>Vyskytnou-li uvedené potíe, je doporuèeno vyuít zpùsob komunikace <type>tunneling-NAT</type> nebo <type>routing</type>.</p></dd>
+                </dl>
+              </text>
+            </section>
+            <section label="secCommunicationProblems" level="3">
+              <title>Odstraòování potíí</title>
+              <text>
+                <p>Pokud je spojení nakonfigurováno a serveru se pøesto nedaøí pøipojit, je nejjednodušší vyuít diagnostickıch vıpisù (viz kapitolu <in label="secDebug"></in>). Ladicí vıpisy poskytnou informace, na základì kterı je moné lépe urèit pøíèinu potíí.</p>
+                <p>Vıpisy spojení s KNX rozhraním pocházejí ze zdroje KNX/EibNet.Connection a pokrıvají navazování a rušení spojení, pøenos dat (ve všech reimech) a øídicí informace. Navazování spojení se tıkají vıpisy se slovem <type>CONNECT</type> a <type>LISTENING</type>, rušení spojení vıpisy se slovem <type>DISCONNECT</type>. Data, která jsou pøenášena tunelovım spojením obsahují slova <type>SEND</type> nebo <type>RECEIVE</type>, data pøenášená pomocí routování slova <type>ROUTED IN</type> nebo <type>ROUTED OUT</type>.</p>
+                <p>Kadé spojení s KNX rozhraním je po dobu trvání oznaèeno èíslem. Èíslo spojení pøidìluje rozhraní, obyèejnì kadé nové spojení dostane èíslo o jednièku vìtší. Èíslo je pro diagnostiku komunikaci s KNX dùleité, protoe musí bìhem jednoho spojení zùstat nezmìnìno. Pokud se v ladicích vıpisech èíslo spojení mìní, pravdìpodobnì není v komunikaci vše v poøádku. Následující pøíklad ukazuje vıpisy spojení (ze záznamu jsou vybrány jen nìkteré øádky) s èíslem <type>99</type>:</p>
+                <p.type>[2009-02-02 20:41:33.450] t KNX/EibNet.Connection: CONNECTed in TUNNELING mode: 99 10.0.0.6:3671
+[2009-02-02 20:41:33.700] t KNX/EibNet.Connection: RECEIVE 99 group: 2/1/30
+[2009-02-02 20:41:33.970] t KNX/EibNet.Connection: SEND 99 group: 2/1/30 true
+[2009-02-02 20:41:34.241] t KNX/EibNet.Connection: DISCONNECT request: 99 10.0.0.6:3671
+[2009-02-02 20:41:34.251] t KNX/EibNet.Connection: DISCONNECTed: 99 10.0.0.6:3671</p.type>
+                <p>Uvedenı pøíklad obsahuje úspìšnì uzavøené spojení. Spojení, které se nedaøí navázat, vypadá v záznamu následovnì (uvedeny jsou dva pøípady):</p>
+                <p.type>[2009-02-02 20:59:50.644] t KNX/EibNet.Connection: CONNECT request: 10.0.0.16:3671
+[2009-02-02 21:00:00.661] t KNX/EibNet.Connection: CONNECT timeout
+...
+[2009-02-02 20:57:19.130] t KNX/EibNet.Connection: CONNECT request: 10.0.0.6:3671
+[2009-02-02 20:57:19.140] t KNX/EibNet.Connection: CONNECT failure: 36 10.0.0.6:3671
+[2009-02-02 20:57:19.140] t KNX/EibNet.Connection: DISCONNECTed: 0 10.0.0.6:3671</p.type>
+                <p>V prvním pøípadì se server s KNX rozhraním nespojil, protoe do stanoveného èasu nepøišla ádná odpovìï (<type>timeout</type>). Nejèastìjší pøíèiny tohoto chování jsou: chybnì uvedená IP adresa nebo port adresy rozhraní, rozhraní odpojené od sítì a síová nedostupnost rozhraní (napøíklad pokud je rozhraní za NAT rozhraním a podobnì).</p>
+                <dl class="dlHanging">
+                  <caption>V druhı neúspìšném pøípadì spojení server rozhraní našel, avšak rozhraní spojení odmítlo s chybou <type>36</type>. Kódy chyb jsou souèástí KNX standardu (KNX Std 3.8.1), kterı v souèasnosti definuje tyto chyby:</caption>
+                  <dt>34</dt>
+                  <dd><p>Rozhraní nepodporuje poadovanı zpùsob spojení. Napøíklad, server poaduje tunelové spojení, avšak rozhraní jej neumí.</p></dd>
+                  <dt>35</dt>
+                  <dd><p>Rozhraní nepodporuje poadované nastavení spojení. V souèasnosti nevyuíváno.</p></dd>
+                  <dt>36</dt>
+                  <dd><p>Rozhraní nedovoluje spojení, protoe jeho maximální poèet spojení ji je vyèerpán.</p><p>Tato chyba je nejèastìjší, protoe bìná KNX rozhraní dovolují pouze jedno tunelové spojení. Pokud se k rozhraní pøipojí nìkdo jinı (jinı server, ETS), nepodaøí se serveru pøipojit. Chyba mùe bıt také zpùsobena vıpadky napájení nebo sítì: pokud server neukonèí spojení (napøíklad pøi násilném vypnutí poèítaèe), èeká rozhraní dvì minuty, ne dovolí uzavøít nové spojení.</p></dd>
+                </dl>
+                <dl>
+                  <caption>Jednoduchı postup pro odhalení problémù se spojením mùe bıt napøíklad tento:</caption>
+                  <dt>Pokus o spojení konèí chybou <type>timeout</type></dt>
+                  <dd><p>Provìøte síovı kabel (<type>ping</type> na adresu rozhraní musí bıt úspìšnı), provìøte, zdali rozhraní bìí (zdali je napájeno apod.).</p><p>Pøesvìdète se, e pouíváte správnou adresu a port rozhraní. Je-li rozhraní v místní síti, zjistìte pomocí nástroje <file>discover</file> (souèást instalace serveru) adresy a porty dostupnıch rozhraní.</p><p>Je-li rozhraní v cizí síti (spojujete-li se pøes internet), provìøte, zdali na routerech mezi serverem a rozhraním je povolen prùchod UDP zvoleného portu obìma smìry (ven i dovnitø). Provìøte, jestli v takovém pøípadì pouíváte zpùsob spojení <type>tunneling-ACK</type>.</p><p>Pouíváte-li zpùsob spojení routing provìøte, e routery a switche mezi serverem a rozhraním podporují a správnì pracují s IP multicast zprávami.</p></dd>
+                  <dt>Pokus o spojení konèí chybou <type>failure: XX</type></dt>
+                  <dd><p>Pouíváte-li zpùsob spojení <type>tunneling</type> nebo <type>tunneling-ACK</type> provìøte, e k rozhraní není pøipojen jinı server, ETS, nebo nìjakı zcela jinı program. Je-li tomu tak, odpojte jej.</p><p>Ujistìte se, e bìhem uplynulıch dvou minut nedošlo k vıpadku serveru (násilné vypnutí poèítaèe, násilné zastavení procesu serveru). Pokud ano, poèkejte dvì minuty nebo odpojte a pøipojte napajení rozhraní.</p></dd>
+                </dl>
               </text>
             </section>
           </text>
@@ -443,7 +630,184 @@ date_format = dd. MMMM yyyy</p.type><p>Ve obou formátech lze vyuít formátovací 
         <section level="2">
           <title>Webové rozhraní</title>
           <text>
-            <p></p>
+            <section level="3">
+              <title>Umístìní zdrojovıch dat a pøístup</title>
+              <text>
+                <p>SmartServer poskytuje pro administraci i pro uivatelské webové stránky spojené s daty z KNX zabudovanı webovı server. Administraèní èást je chránìná jménem a heslem, uivatelské webové stránky jsou volnì dostupné. Server bìí na IP portu <number>6005</number>.</p>
+                <p>Administraèní èást serveru je dostupná na adrese <uri>http://[server]:6005/SmartServer</uri>, uivatelská èást serveru je dostupná na adrese <uri>http://[server]:6005/SmartServer/User</uri> (<uri>[server]</uri> je tøeba nahradit jménem nebo adresou poèítaèe, pro místní poèítaè bude platit napøíklad <uri>http://127.0.0.1:6005/SmartServer</uri>). Všechny soubory, které mají bıt pomocí serveru dostupné, musejí bıt uloeny ve sloce <file>User</file> (a podslokách, více viz <about label="secWeb"></about>).</p>
+              </text>
+            </section>
+            <section level="3">
+              <title>Administraèní rozhraní</title>
+              <text>
+                <p>Administraèní rozhraní je rozdìleno do nìkolika jménem a heslem chránìnıch stránek. SmartServer vstoupí do administraèního rozhraní po vloení URL <uri>http://[server]:6005/SmartServer</uri> do adresového øádku internetového prohlíeèe a kliknutí na odkaz <gui>Soukromé stránky</gui>. Následující stránka <gui>Pøihlášení</gui> a poaduje vloení pøihlašovacích údajù. Po instalaci SmartServeru je platná dvojice jméno <gui>admin</gui> a heslo <gui>admin</gui>.</p>
+                <p>Pøihlášení k administraènímu rozhraní je èasovì omezené a vyprší po 30 minutách neèinnosti.</p>
+                <dl>
+                  <caption>Administraèní rozhraní je sloeno ze stránek:</caption>
+                  <dt><gui>Pøehled</gui></dt>
+                  <dd><p>Úvodní stránka s rychlım pøehledem o stavu serveru a jeho licenci.</p><p>Dùleitá je monost pøipojit a opojit SmartServer od KNX rozhraní. Napøíklad, pokud je KNX rozhraní sdíleno a pouívá se souèasnì i pro konfiguraci a programování zaøízení v KNX, musí bıt pøed pøipojením ETS SmartServer odpojen, a po dokonèení programování zase pøipojen (jinak SmartServer nebude klientùm poskytovat platná data).</p></dd>
+                  <dt><gui>Konfigurace</gui></dt>
+                  <dd><p>Stránka pro nastavení konfigurace serveru. Moné je zapnout a vypnout obì klientská rozhraní (SDAP klient, XMLSocket klient), mono je zmìnit konfiguraci serveru.</p><p>Rozhraní neumoòuje nahrát konfiguraci pomocí prohlíeèe, souboru s konfigurací se musí do poèítaèe se SmartServerem dostat jinım zpùsobem (pomocí RDP apod.). Konfigurace se zmìní po zadání cesty ke konfiguraènímu souboru (pøedvyplnìn je aktuální konfiguraèní soubor) a stisknutí tlaèítka <gui>Pouít</gui>. Napøíklad, pøi úpravì nastavení spojení nebo pøi doplnìní datovıch objektù se nejprve konfiguraèní soubor upraví (pøipravı novı) a následnì se a stiskem tlaèítka <gui>Pouít</gui> aplikuje ani by bylo tøeba restartovat slubu SmartServeru.</p><p>Pomocí odkazu <gui>Uloit</gui> lze aktuální konfiguraèní soubor stáhnout a uloit v místním poèítaèi.</p><p>Pod øádkem s konfigurací a tlaèítky je plocha s vıpisem chyb nalezenıch pøi ètení konfigurace. Pokud je konfigurace v poøádku (napø. pokud byla pøedem zkontrolovaná pomocí instalovaného nástroje <file>checkcfg</file>), bude vdy pøidán jen jeden øádek o úspìšném zavedení konfigurace.</p><p>Naèítání konfigurace pomocí tlaèítka <gui>Pouít</gui> nahrazuje pouze konfiguraci související s datovımi objekty serveru a s komunikací s KNX. Systémovou konfiguraci, tj. sekce konfiguraèního souboru <about label="secLog"></about> (<in label="secLog"></in>), <about label="secWeb"></about> (<in label="secWeb"></in>) a <about label="secUsers"></about> (<in label="secUsers"></in>), server pøijme pouze pøi svém startu.</p></dd>
+                  <dt><gui>Historie dat</gui></dt>
+                  <dd><p>Stránka zobrazuje historii datového provozu serveru. V seznamu øazeném od nejnovìjších událostí po nejstarší se objevují události <gui>UPDATE</gui> (pøíjem dat ze sbìrnice), <gui>SET OK</gui> (úspìšnı zápis), <gui>SET FAILED</gui> (zápis se nepodaøilo zahájit, napøíklad pokud SmartServer není právì pøipojen ke sbìrnici) a <gui>SET ERROR</gui> (zápis byl zahájen, ale skonèil chybou).</p><p>V historii se objevují pouze datové objekty, které byly v konfiguraci vytvoøeny pomocí parametrù <type>logged_objects</type> a <type>logged_object</type> (viz kapitolu <in label="secObjects"></in>).</p></dd>
+                  <dt><gui>Protokol</gui></dt>
+                  <dd><p>Stránka se systémovımi záznamy bude vìtšinou prázdná. Mezi záznamy se poèítají pøedevším ladicí a diagnostické vıpisy, které se nevypisují, pokud nejsou zapnuty. Pokud se v sekci <type>[log]</type> (viz <in label="secLog"></in>) vıpisy zapnout, objeví se právì zde.</p></dd>
+                  <dt><gui>Pøímı pøístup</gui></dt>
+                  <dd><p>Jednoduchá stránka dovolující pøímo zapsat a èíst datové objekty serveru.</p><p><gui>Ètení hodnoty z EIB</gui> vyaduje vloení skupinové adresy (napøíklad <gui>3/2/3</gui>) do pole vlevo od tlaèítka <gui>Pøeèíst</gui> a jeho stisk. SmartServer vypíše hodnotu nebo informaci o chybì ètení.</p><p>Zápis hodnoty do EIB pracuje podobnì, navíc však v druhém poli vyaduje vloení zapisované hodnoty. Napøíklad, pokud má bıt na bitovou adresu 3/1/1 zapsána logická jednièka, uvede se do pole s hodnotou <gui>true</gui>. SmartServer po stisku tlaèítka <gui>Zapsat</gui> oznámí vısledek zápisu (a ihned je moné se ve stránce <gui>Historie dat</gui> pøesvìdèit, jak zápis dopadl).</p></dd>
+                </dl>
+              </text>
+            </section>
+            <section level="3">
+              <title>Uivatelské stránky</title>
+              <text>
+                <p>Všechny soubory ve sloce <file>Web/User</file> instalaèní sloky mohou bıt zobrazeny bez pøihlášení. Napøíklad, ukázkovı soubor (souèást instalace serveru) <gui>index.html</gui>, pøítomnı v této sloce, bude na místním poèítaèi dostupnı jako <uri>http://127.0.0.1:6005/SmartServer/User/index.html</uri>.</p>
+                <p>Mezi soubory (bìné statické HTML, obrázky, styly) mohou bıt umístìny soubory s pøíponou <file>pt.xml</file> (napøíklad <file>example.pt.xml</file>, kterı je souèástí instalace), které SmartServer zpracovává dynamicky a umoòuje tak dovnitø jejich obsahu vkládat ivá data datovıch objektù z EIB. Soubory <file>pt.xml</file> jsou XML, musejí proto bıt správnì formátovány (well formed) a pro pouití ve SmartServeru musejí mít definovanı XML namespace <type>http://www.smartcontrol.cz/2008/XML/Web/PageTemplate</type>. Pokud bude mít správnou pøíponu a chybnı namespace, nezpracuje ho SmartServer jako dynamickı a ívá data do nìj nevloí.</p>
+                <p>Doporuèuje se pro vytváøení vlastních uivatelskıch stránek s ivımi daty vdy vytvoøit kopii ukázkového souboru a tu upravovat.</p>
+                <p>ivá data se do stránky dostávají pomocí funkce <type>get</type> uzavøené do znaèek <type>${</type> a <type>}</type>. SmartServer znaèky vyhledává a nahrazuje je aktuální hodnotou. Podobnì je moné zapsat do EIB hodnotu pomocí funkce <type>set</type>. Zápis hodnoty vyaduje aktivitu uivatele (stisk tlaèítka, odkazu), SmartServer proto v uivatelskıch dynamickıch (<file>pt.xml</file>) stránkách pøijímá funkci <type>set</type> jako parametr odkazu na stránku (na jinou nebo na sebe samu). Uvnitø dynamickıch stránek je také moné pouít vybírací pøíkaz (<type>pt:choose</type>), co dovoluje vytváøet obsah stránky rùznı podle rùznıch hodnot logickıch datovıch objektù.</p>
+                <dl class="dlCaption">
+                  <caption>Vše ukazuje následující sada pøíkladù. Pøíklady (<file>pt.xml</file>) vdy následují ukázky HTML, které SmartServer z pøedloh vyrobí a které odesílá klientovi:</caption>
+                  <dt>Zobrazení hodnoty datového objektu (<file>01 get.pt.xml</file>)</dt>
+                  <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;01 get.pt.xml&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Get value example&lt;/h1&gt;
+    &lt;p&gt;Current value: ${get(3/1/21)}.&lt;/p&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+&lt;/pageTemplate&gt;</p.type><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;01 get.pt.xml&lt;/title&gt;&lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Get value example&lt;/h1&gt;
+    &lt;p&gt;Current value: false.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</p.type></dd>
+                  <dt>Zápis hodnoty (<file>02 set.pt.xml</file>)</dt>
+                  <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;02 set.pt.xml&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Set value example&lt;/h1&gt;
+    &lt;p&gt;Switch &lt;a href="?set(3/1/21,true)"&gt;on&lt;/a&gt; or &lt;a href="?set(3/1/21,false)"&gt;off&lt;/a&gt;&lt;/p&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+&lt;/pageTemplate&gt;</p.type><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;02 set.pt.xml&lt;/title&gt;&lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Set value example&lt;/h1&gt;
+    &lt;p&gt;Switch 
+      &lt;a href="?set(3/1/21,true)"&gt;on&lt;/a&gt; or 
+      &lt;a href="?set(3/1/21,false)"&gt;off&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</p.type></dd>
+                  <dt>Zmìna stylu podle hodnoty objektu (<file>03 style.pt.xml</file>)</dt>
+                  <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;03 style.pt.xml&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Change style by get example&lt;/h1&gt;
+    &lt;pt:choose&gt;
+      &lt;pt:when condition="get(3/1/21)"&gt;
+        &lt;p style="color: green;"&gt;Green text.&lt;/p&gt;
+      &lt;/pt:when&gt;
+      &lt;pt:otherwise&gt;
+        &lt;p style="color: red;"&gt;Red text.&lt;/p&gt;
+      &lt;/pt:otherwise&gt;
+    &lt;/pt:choose&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+&lt;/pageTemplate&gt;</p.type><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;03 style.pt.xml&lt;/title&gt;&lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Change style by get example&lt;/h1&gt;
+    &lt;p style="color: red;"&gt;Red text.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</p.type></dd>
+                  <dt>Kombinace zápisu s podmínkou (<file>04 set.pt.xml</file>)</dt>
+                  <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;04 set.pt.xml&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Set according to current state&lt;/h1&gt;
+    &lt;pt:choose&gt;
+      &lt;pt:when condition="get(3/1/21)"&gt;
+        &lt;p style="color: green;"&gt;OK, &lt;a href="?set(3/1/21,false)"&gt;switch off&lt;/a&gt;.&lt;/p&gt;
+      &lt;/pt:when&gt;
+      &lt;pt:otherwise&gt;
+        &lt;p style="color: red;"&gt;Failure, &lt;a href="?set(3/1/21,true)"&gt;switch on&lt;/a&gt;.&lt;/p&gt;
+      &lt;/pt:otherwise&gt;
+    &lt;/pt:choose&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+&lt;/pageTemplate&gt;</p.type><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;04 set.pt.xml&lt;/title&gt;&lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Set according to current state&lt;/h1&gt;
+    &lt;p style="color: green;"&gt;OK, 
+      &lt;a href="?set(3/1/21,false)"&gt;switch off&lt;/a&gt;.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</p.type></dd>
+                </dl>
+                <p>Z ukázek je zøejmé, e znaèky specifické pro SmartServer jsou jasnì oddìleny (<type>pt:...</type>) a e zbytek textu je obyèejné, nièím neomezené HTML. To je také dùvod, proè je v <file>pt.xml</file> souborech pouívat všechny HTML konstrukce vèetnì stylù, skriptù apod.</p>
+              </text>
+            </section>
+            <section level="3">
+              <title>Opakované naèítání stránek</title>
+              <text>
+                <p>Prohlíení webovıch stránek je orientováno na uivatele. Uivatel si vybere adresu, odkaz, na kterı chce pøejít, prohlíeè poádá server o data a server je prohlíeèi vrátí. Mezi poadavky prohlíeè a webovı server neudrují ádné spojení a nevìdí o sobì.</p>
+                <p>Pro zobrazování dat ze SmartServeru mùe bıt uiteèné, aby prohlíeè èas od èasu sám o nová data webbovı server poádal. Technologie HTTP/HTML nemá pro tento pøípad ádnı standard, nicménì vìtšina prohlíeèù v dnešní dobì pro tento úèel respektuje znaèka meta refresh (bez ohledu na skuteènost, e meta refresh je konsorciem W3C nedoporuèenı).</p>
+                <p>Pouití znaèky meta refresh je nejlépe vidìt na pøíkladu (za sebou je øazeny zdrojovı soubor, <file>05 get refresh.pt.xml</file>, a vısledek odeslanı do prohlíeèe):</p>
+                <p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta http-equiv="refresh" content="5"/&gt;
+    &lt;title&gt;05 get refresh.pt.xml&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Get value example&lt;/h1&gt;
+    &lt;p&gt;Current value: ${get(3/1/21)}.&lt;/p&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+&lt;/pageTemplate&gt;</p.type>
+                <p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta http-equiv="refresh" content="5"/&gt;
+    &lt;title&gt;05 get refresh.pt.xml&lt;/title&gt;&lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Get value example&lt;/h1&gt;
+    &lt;p&gt;Current value: false.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</p.type>
+                <p>Pøidání znaèky &lt;meta refresh.../&gt; zpùsobí, e prohlíeè poádá webovı server o nová data kadıch pìt sekund.</p>
+              </text>
+            </section>
           </text>
         </section>
         <section level="2">
@@ -462,9 +826,11 @@ date_format = dd. MMMM yyyy</p.type><p>Ve obou formátech lze vyuít formátovací 
                 <dl class="dlHanging">
                   <caption>Vıznam jednotlivıch stavovıch kódù je (2XX jsou kladné odpovìdi, 3XX jsou doèasné stavy, 4XX jsou chyby na stranì klienta a 5XX jsou chyby na stranì serveru):</caption>
                   <dt>200</dt>
-                  <dd><p>Poadavek byl kompletnì vyøízen.</p></dd>
+                  <dd><p>Poadavek byl kompletnì vyøízen. </p></dd>
                   <dt>201</dt>
                   <dd><p>Poadavek byl vyøízen, avšak server nemá spojení s EIB a data byla pouze uloena v cache serveru.</p></dd>
+                  <dt>202</dt>
+                  <dd><p>Data doruèená serverem (advise).</p></dd>
                   <dt>300</dt>
                   <dd><p>Operace probíhá.</p></dd>
                   <dt>400</dt>
@@ -494,13 +860,20 @@ date_format = dd. MMMM yyyy</p.type><p>Ve obou formátech lze vyuít formátovací 
                   <dd><p>Zapíše data do serveru. Formát pøíkazu je <type>set group value</type>, kde <type>group</type> je datovı bod serveru (nìjaká skupinová adresa) a <type>value</type> je hodnota odpovídající datovému typu bodu. Pøíklad: <type>set 3/1/0 true</type>.</p><p>Moné návratové kódy jsou: 200, 201, 405 a 5XX.</p><p>Pøíklad komunikace se serverem:</p><p.type>set 3/1/0 false
 201</p.type></dd>
                   <dt><type>get</type></dt>
-                  <dd><p>Pøeète data ze serveru. Formát pøíkazu je <type>get group</type>, kde <type>group</type> je datovı bod serveru (nìjaká skupinová adresa). Pøíklad: <type>get 3/1/1</type>.</p><p>Server odpovídá návratovım kódem 200 N, 201 N, 405 a 5XX, pøièem N oznaèuje poèet následujících øádkù s hodnotami datovıch bodù ve tvaru <type>group value</type>. <type>Value</type> je hodnota pøeètená z datového bodu serveru.</p><p>Pøíklad komunikace se serverem:</p><p.type>get 3/1/1
+                  <dd><p>Pøeète data ze serveru. Formát pøíkazu je <type>get group</type>, kde <type>group</type> je datovı bod serveru (nìjaká skupinová adresa). Pøíklad: <type>get 3/1/1</type>.</p><p>Server odpovídá návratovım kódem 200 N, 201 N, 405 a 5XX, pøièem N oznaèuje poèet následujících øádkù s hodnotami datovıch bodù ve tvaru <type>group value</type>. <type>value</type> je hodnota pøeètená z datového bodu serveru.</p><p>Pøíklad komunikace se serverem:</p><p.type>get 3/1/1
 200 1
 3/1/1 30.5</p.type></dd>
                   <dt><type>run</type></dt>
                   <dd><p>Server se rozbìhne, moné návratové kódy jsou 200, 300 a 5XX.</p></dd>
                   <dt><type>stop</type></dt>
                   <dd><p>Server se zastaví (odpojí se od EIB), moné návratové kódy jsou 200 a 5XX.</p></dd>
+                  <dt><type>advise</type></dt>
+                  <dd><p>Pøedepíše datovı objekt k odbìru, server klientovi zmìny v datech objektu sám oznamuje. Formát pøíkazu je <type>advise group</type>, kde <type>group</type> je datovı objekt serveru (nìjaká skupinová adresa), nebo <type>advise all</type>. <type>advise all</type> pøedepíše k odbìru všechny datové objekty serveru. Pøíklad: <type>advise 3/1/1</type> nebo <type>advise all</type>.</p><p>Server odpovídá návratovım kódem 200, 405 a 5XX.</p><p>Pøíklad komunikace se serverem:</p><p.type>advise 3/1/1
+200</p.type><p>Server po pøedepsání odbìru hodnot sleduje zmìny v odebíranıch datovıch objektech a v pøípadì zmìny posílá klientovi zprávu s návratovım kódem 202 N, kde N oznaèuje poèet následujících øádkù s hodnotami datovıch objektù ve tvaru <type>group value</type>. <type>value</type> je nová hodnota datového objektu serveru.</p><p>Pøíklad doruèení odebíranıch dat:</p><p.type>202 1
+3/1/1 30.5</p.type></dd>
+                  <dt><type>unadvise</type></dt>
+                  <dd><p>Zruší odebírání datového objektu. Formát pøíkazu je unadvise group, kde group je datovı objekt serveru (skupinová adresa), nebo unadvise all (dojde ke zrušení odebírání všech datovıch bodù.</p><p>Server odpovídá návratovım kódem 200, 405 a 5XX.</p><p>Pøíklad komunikace se serverem:</p><p.type>unadvise all
+200</p.type></dd>
                 </dl>
               </text>
             </section>
@@ -567,6 +940,29 @@ date_format = dd. MMMM yyyy</p.type><p>Ve obou formátech lze vyuít formátovací 
                 <p>Ukázkové skripty je moné do aplikace pro Adobe Flash vloit napøíklad pomocí schránky.</p>
               </text>
             </section>
+          </text>
+        </section>
+        <section level="2">
+          <title>Doplòkové nástroje</title>
+          <text>
+            <dl class="dlCaption">
+              <caption>Mimo ukázky, hlavní program a soubory webového rozhraní SmartServer obsahuje nìkolik nástrojù, které mohou pøi nasazování a diagnostice pomoci. Všechny se instalují jako souèást SmartServeru a nacházejí se v jeho instalaèním adresáøi. Jsou to:</caption>
+              <dt><file>lictool.exe</file></dt>
+              <dd><p>Program pro aktivaci licencí, jeho volby i pouití jsou popsány v kapitole <in.about label="secInstallation"></in.about>.</p></dd>
+              <dt><file>discover.exe</file></dt>
+              <dd><p>Nástroj pro prohledání místní sítì, vısledkem práce je seznam nalezenıch EibNet/IP zaøízení. Program nalezne rozhraní i routery. Pøíklad vıstupu programu:</p><p.type>C:\Program Files\NeNo\EibSrv&gt;discover
+  Vyhledává se...........................................
+  Bylo nalezeno 2 EIBNet/IP zaøízení
+     1. IP Interface N148
+        MAC: 00-0E-8C-00-13-E8, IP: 10.0.0.6:3671
+     2. Internal Interface
+        MAC: 00-0E-8C-00-15-07, IP: 10.0.0.7:3671</p.type><p>Byla nalezena dvì zaøízení, vypsané informace o sobì poskytují zaøízení sama.</p></dd>
+              <dt><file>checkcfg.exe</file></dt>
+              <dd><p>Program pro test správnosti konfiguraèního souboru. Program naèítá konfiguraci stejnì jako server a nalezené chyby vypisuje do pøíkazové øádky. Program mùe mít na svém vstupu více souborù (a mùe je tak ovìøit najednou). Pøíklad se správnou konfigurací:</p><p.type>C:\Program Files\NeNo\EibSrv&gt;checkcfg default.cfg
+  default.cfg   OK      240 objekty/ù</p.type><p>Pøíklad s chybnou konfigurací:</p><p.type>C:\Program files\NeNo\EibSrv&gt;checkcfg default.cfg
+  default.cfg   CHYBA
+    øádek 43: Neznámé jméno chování (trac)</p.type></dd>
+            </dl>
           </text>
         </section>
       </text>
