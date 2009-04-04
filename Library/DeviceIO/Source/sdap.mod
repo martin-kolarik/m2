@@ -458,7 +458,7 @@ CLASS IMPLEMENTATION CSDAPServer;
          
          allFlag := p[1].EqualsOA( L"all" );
          IF NOT _Clients.Get( PConnection, OUT Client ) THEN
-            ACK( PConnection, sdap404 );
+            ACK( PConnection, sdap500 );
 
          ELSIF Command = sdapADVISE THEN         
             IF allFlag THEN
