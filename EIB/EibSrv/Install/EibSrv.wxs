@@ -35,6 +35,9 @@
                         <Component Id="XMLLite.DLL" Guid="55B6DF2F-AD20-441f-9C80-562C89EE7A75">
                             <File Id="xmllite.dll" Name="xmllite.dll" Source="$(var.BuildRoot)\xmllite.dll" DiskId="1" Vital="yes" KeyPath="yes" />
                         </Component>
+                        <Component Guid="AB50D148-9AB4-41d9-8F32-CBA5721DA4FD" Id="ToolLicCli">
+                            <File Id="LicCli.EXE" Name="LicCli.exe" Source="LicCli.exe" DiskId="1" Vital="yes" KeyPath="yes" />
+                        </Component>
                         <Component Guid="5D1E3BC9-F830-4214-8133-EA8711519553" Id="ToolCheckCfg">
                             <File Id="CheckCfg.EXE" Name="CheckCfg.exe" Source="CheckCfg.exe" DiskId="1" Vital="yes" KeyPath="yes" />
                         </Component>
@@ -145,6 +148,7 @@
             <ComponentRef Id="RuntimeLib" />
             <ComponentRef Id="MVCLib" />
             <ComponentRef Id="Licence" />
+            <ComponentRef Id="ToolLicCli" />
             <ComponentRef Id="ToolCheckCfg" />
             <ComponentRef Id="ToolDiscover" />
             <ComponentRef Id="Documentation" />
