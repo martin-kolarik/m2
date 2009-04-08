@@ -33,6 +33,7 @@ CONST
 CLASS CContainer IMPLEMENTS IContainer;
    PRIVATE VAR
       Models : maps.CStringMap;
+      CallMemo : BOOLEAN := FALSE;
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
    PUBLIC VIRTUAL PROCEDURE RemoveOA( CONST Name : ARRAY OF WCHAR ); // removes all types
@@ -49,6 +50,9 @@ CLASS CContainer IMPLEMENTS IContainer;
    PUBLIC VIRTUAL PROCEDURE GetMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE GetFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; OUT Handler : TPFunctionHandler ) : BOOLEAN;
 
+   PUBLIC VIRTUAL PROCEDURE ResetFunctionCallsMemo();
+   PUBLIC VIRTUAL PROCEDURE GetFunctionCallsMemo() : BOOLEAN; // returns if some function was called after last ResetFunctionCallsMemo
+   
    PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Model, Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Model : StringsO.IString; OUT Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    PUBLIC VIRTUAL PROCEDURE Format( FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
@@ -272,6 +276,20 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE ResetFunctionCallsMemo();
+   BEGIN
+      CallMemo := FALSE;
+   END ResetFunctionCallsMemo;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE GetFunctionCallsMemo() : BOOLEAN; // returns if some function was called after last ResetFunctionCallsMemo
+   BEGIN
+      RETURN CallMemo;
+   END GetFunctionCallsMemo;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE GetFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; OUT Handler : TPFunctionHandler ) : BOOLEAN;
    VAR
       model : TPFunctionHandler;
@@ -415,7 +433,9 @@ CLASS IMPLEMENTATION CContainer;
                   EXIT;
                END;
             END; // LOOP
-            RETURN functionHandler^.Call( sindex1, REF parameters, NIL );
+            boolean := functionHandler^.Call( sindex1, REF parameters, NIL );
+            CallMemo := CallMemo OR boolean;
+            RETURN boolean;
          END; // IF function found
       END;
       
@@ -560,7 +580,9 @@ CLASS IMPLEMENTATION CContainer;
                   EXIT;
                END;
             END; // LOOP
-            RETURN functionHandler^.Call( sindex1, REF parameters, ADR( value ));
+            boolean := functionHandler^.Call( sindex1, REF parameters, ADR( value ));
+            CallMemo := CallMemo OR boolean;
+            RETURN boolean;
          END; // IF function found
       END;
       
@@ -1127,6 +1149,7 @@ CLASS IMPLEMENTATION CMVC;
       ELSE
          ASSERTLOG( FALSE, L"Unknown HTTP verb when processing MVC request" );
       END;
+      container^.ResetFunctionCallsMemo();
       connectionData.Reset();
       WHILE connectionData.MoveNext() DO
          IF container^.GetModelByInViewName( controllerURI, connectionData.Current^, OUT mappedName ) THEN

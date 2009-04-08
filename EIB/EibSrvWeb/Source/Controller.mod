@@ -169,12 +169,14 @@ CLASS IMPLEMENTATION CController;
 
       IF Fallback THEN
          uri := Request.ControllerURI;
-         IF uri.EndsWithOA( DYNAMIC_SUFFIX ) THEN
+         IF NOT uri.EndsWithOA( DYNAMIC_SUFFIX ) THEN
+            View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_WEB, OA( uri.Length-1, uri.rawData ), FALSE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
+         ELSIF NOT Request.ModelContainer^.GetFunctionCallsMemo() THEN // no call during the request
             Request.ModelContainer^.AddFunctionHandlerOA( FN_SET, ADR( SELF ));
             Request.ModelContainer^.AddFunctionHandlerOA( FN_GET, ADR( SELF ));
             View := mvc.pageTemplateView( ADR( SELF ), OA( uri.Length-1, uri.rawData ));
-         ELSE   
-            View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_WEB, OA( uri.Length-1, uri.rawData ), FALSE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
+         ELSE // some call was performed, redirect to self
+            View := mvc.redirectView( OA( uri.Length-1, uri.rawData ));
          END;
          RETURN TRUE;
    
