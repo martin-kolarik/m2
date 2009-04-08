@@ -153,6 +153,9 @@ CLASS DateTime;
       _DSTBias     : INTEGER;  // if DateTime contains system (UTC) time, the DSTBias is 0
 END DateTime;
 
+PROCEDURE NowLocal() : DateTime;
+PROCEDURE NowUTC() : DateTime;
+
 (*================================================================================================*)
 
 INITIALLY __I();

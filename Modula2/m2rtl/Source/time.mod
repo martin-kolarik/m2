@@ -1991,6 +1991,26 @@ END DateTime;
 
 (*================================================================================================*)
 
+PROCEDURE NowLocal() : DateTime;
+VAR
+   dt : DateTime;
+BEGIN
+   dt.SetNowLocal();
+   RETURN dt;
+END NowLocal;
+
+(*------------------------------------------------------------------------------------------------*)
+
+PROCEDURE NowUTC() : DateTime;
+VAR
+   dt : DateTime;
+BEGIN
+   dt.SetNowUTC();
+   RETURN dt;
+END NowUTC;
+
+(*================================================================================================*)
+
 INITIALLY __I();
 BEGIN
    LastTicks := 0;

@@ -13,12 +13,12 @@
         <LeakChecking>off</LeakChecking>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='svcsrv' Or $(MSBuildProjectName)=='checkcfg' Or $(MSBuildProjectName)=='discover'">
+    <PropertyGroup Condition="$(MSBuildProjectName)=='svcsrv' Or $(MSBuildProjectName)=='checkcfg' Or $(MSBuildProjectName)=='discover' Or $(MSBuildProjectName)=='LicTool'">
         <Result>Program</Result>
     </PropertyGroup>
 
     <PropertyGroup>
-        <ProductM2Control></ProductM2Control>
+        <ProductM2Control Condition="$(MSBuildProjectName)=='LicTool'">-DTarget:Client</ProductM2Control>
         <ProductCLControl></ProductCLControl>
         <ProductRCControl></ProductRCControl>
         <ProductLNControl></ProductLNControl>
