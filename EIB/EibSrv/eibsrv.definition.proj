@@ -17,8 +17,12 @@
         <Result>Program</Result>
     </PropertyGroup>
 
+    <PropertyGroup Condition="$(MSBuildProjectName)=='LicTool'">
+        <ProductVariant>Client</ProductVariant>
+    </PropertyGroup>
+
     <PropertyGroup>
-        <ProductM2Control Condition="$(MSBuildProjectName)=='LicTool'">-DTarget:Client</ProductM2Control>
+        <!-- ProductM2Control Condition="$(MSBuildProjectName)=='LicTool'">-DTarget:"Client"</ProductM2Control -->
         <ProductCLControl></ProductCLControl>
         <ProductRCControl></ProductRCControl>
         <ProductLNControl></ProductLNControl>

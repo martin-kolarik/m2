@@ -19,6 +19,13 @@
     <Import Project="..\..\Build\common.rootdir.proj"/>
     <Import Project="$(RootBuildDir)\common.definition.proj"/>
 
+    <PropertyGroup>
+        <ResultName Condition="$(ProductVariant)=='Supervisor'">lictool</ResultName>
+        <ResultName Condition="$(ProductVariant)=='Builder'">licbuild</ResultName>
+        <ResultName Condition="$(ProductVariant)=='Licensor'">licgen</ResultName>
+        <ResultName Condition="$(ProductVariant)=='Client'">liccli</ResultName>
+    </PropertyGroup>
+
     <!-- 3 -->
     <ItemGroup>
         <Components Include="Modula2\modula2;API\CLib"/>
@@ -29,20 +36,4 @@
     <!-- 4 -->
     <Import Project="$(RootBuildDir)\common.build.proj"/>
     
-    <!-- 5 specials -->
-    <PropertyGroup>
-        <UserPostBuild>RenameTarget</UserPostBuild>
-        <TargetName Condition="$(ProductVariant)=='Supervisor'">lictool.exe</TargetName>
-        <TargetName Condition="$(ProductVariant)=='Builder'">licbuild.exe</TargetName>
-        <TargetName Condition="$(ProductVariant)=='Licensor'">licgen.exe</TargetName>
-        <TargetName Condition="$(ProductVariant)=='Client'">liccli.exe</TargetName>
-    </PropertyGroup>
-
-    <Target Name="RenameTarget"
-            Inputs="$(OutputFile)"
-            Outputs="$(OutputDir)\$(TargetName)">
-        <Delete Files="$(OutputDir)\$(TargetName)" ContinueOnError="true"/>
-        <Copy SourceFiles="$(OutputFile)" DestinationFiles="$(OutputDir)\$(TargetName)"/>
-    </Target>
-
 </Project>
