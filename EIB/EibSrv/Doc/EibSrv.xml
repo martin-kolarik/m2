@@ -369,6 +369,8 @@ date_format = dd. MMMM yyyy</p.type><p>Ve obou formátech lze vyuít formátovací 
                   <dd><p>obsanost ladicích vıpisù, urèuje se ve ètyøech stupních podle tabulky <in label="tblLevel"></in>.</p><p>Vıchozí hodnota parametru je <type>error</type>. Pøíklad:</p><p.type>level = warning</p.type></dd>
                   <dt><type>file</type></dt>
                   <dd><p>Cesta k souboru s vıpisy. Soubor stále roste, pøi trvalıch a detailních vıpisech je proto tøeba dbát na dostatek místa na disku. Pøi pouití serveru v zabudovanıch systémech (Windows XP Embedded) není pouití souboru (pøi nastavení <type>target = file</type>) doporuèeno, pokud je disk se souborem Flash (Compact Flash<c.special what="commadots" />).</p><p>Pøíklad zápisu parametru:</p><p.type>file = z:\smartserver.log</p.type></dd>
+                  <dt><type>cached</type></dt>
+                  <dd><p>Délka historie (poèet záznamù), kterou server uchová pro úèel zobrazení ve webovém rozhraní. Poèet záznamù by nemìl bıt pøíliš velkı, nebo záznamy jsou uchovány v pamìti poèítaèe, která je omezená. Lze poèítat, e kadı záznam spotøebuje pøiblinì prùmìrnì 100 bajtù.</p><p>Vıchozí hodnota je <number>1000</number>.</p></dd>
                 </dl>
                 <f.table label="tblTarget">
                   <caption>Hodnoty parametru <type>target</type></caption>
@@ -666,7 +668,7 @@ user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
                 <p>Doporuèuje se pro vytváøení vlastních uivatelskıch stránek s ivımi daty vdy vytvoøit kopii ukázkového souboru a tu upravovat.</p>
                 <p>ivá data se do stránky dostávají pomocí funkce <type>get</type> uzavøené do znaèek <type>${</type> a <type>}</type>. SmartServer znaèky vyhledává a nahrazuje je aktuální hodnotou. Podobnì je moné zapsat do EIB hodnotu pomocí funkce <type>set</type>. Zápis hodnoty vyaduje aktivitu uivatele (stisk tlaèítka, odkazu), SmartServer proto v uivatelskıch dynamickıch (<file>pt.xml</file>) stránkách pøijímá funkci <type>set</type> jako parametr odkazu na stránku (na jinou nebo na sebe samu). Uvnitø dynamickıch stránek je také moné pouít vybírací pøíkaz (<type>pt:choose</type>), co dovoluje vytváøet obsah stránky rùznı podle rùznıch hodnot logickıch datovıch objektù.</p>
                 <dl class="dlCaption">
-                  <caption>Vše ukazuje následující sada pøíkladù. Pøíklady (<file>*.pt.xml</file> soubory) vdy následují ukázky HTML, které SmartServer z pøedloh vyrobí a které odesílá klientovi:</caption>
+                  <caption>Vše ukazuje následující sada pøíkladù. Pøíklady (<file>*.pt.xml</file> soubory, po instalaci dostupné z veøejnıch stránek serveru) vdy následují ukázky HTML, které SmartServer z pøedloh vyrobí a které odesílá klientovi:</caption>
                   <dt>Zobrazení hodnoty datového objektu (<file>01 get.pt.xml</file>)</dt>
                   <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
 &lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"&gt;

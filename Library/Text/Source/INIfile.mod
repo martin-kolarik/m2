@@ -509,9 +509,12 @@ CONST
       kvDebugMessage      = L'message';
       kvDebugTrace        = L'trace';
       kvDebugAll          = L'all';
+   knCached               = L'cached';
 VAR
+   Cached : CARDINAL;
    cs : StringsO.CString;
    File : StringsO.CString;
+   haveCached : BOOLEAN := FALSE;
    Level : Log.TDebugLevel := logger.Level;
    Method : Log.TDebugMethod := logger.Method;
 BEGIN
@@ -533,6 +536,7 @@ BEGIN
       END;
 
       IF Method <> Log.dmNone THEN
+
          IF ini.GetKeyStr( knLevel, OUT errorLine, OUT cs ) THEN
             IF cs.EqualsOA( kvDebugFailure ) OR cs.EqualsOA( kvFatal ) THEN
                Level := Log.dldError;
@@ -546,13 +550,19 @@ BEGIN
                RETURN clrUnknownLevel;
             END;
          END;
-      END;
+         
+         haveCached := ini.GetKeyInt( knCached, OUT errorLine, OUT Cached );
 
+      END;
+      
    END;
    
    logger.SetLogFile( OA( File.Length-1, File.rawData ));
    logger.Method := Method;
    logger.Level := Level;
+   IF haveCached THEN
+      logger.BufferSize := Cached;
+   END;
    
    RETURN clrSuccess;
 END ConfigureLog;
