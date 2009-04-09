@@ -93,7 +93,9 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       _Connected : BOOLEAN;
       _ConnectedTime : time.TJD;
       _DisconnectedTime : time.TJD;
+      _WrittenByHourModified : ARRAY [0..23] OF time.TJD;
       _WrittenByHour : ARRAY [0..23] OF CARDINAL;
+      _GotByHourModified : ARRAY [0..23] OF time.TJD;
       _GotByHour : ARRAY [0..23] OF CARDINAL;
 
    PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPLogger ) : BOOLEAN;
@@ -106,6 +108,8 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
    // PRIVATE
    PRIVATE PROCEDURE AddControllers();
    PRIVATE PROCEDURE RemoveControllers();
+
+   PRIVATE PROCEDURE AdjustHours( CONST dt : time.DateTime; REF hours : ARRAY OF CARDINAL; REF modified : ARRAY OF time.TJD );
 
 END CEibSrvWeb;
 

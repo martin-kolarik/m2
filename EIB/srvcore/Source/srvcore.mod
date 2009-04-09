@@ -1860,7 +1860,9 @@ CLASS IMPLEMENTATION CEIBServer;
       
       IF eib_def.aofPromiscuous IN PObject^.GetFlags() THEN // promiscuous mode queueing
 
-         EnqueuePromiscuous( eib_status.essOK, PObject );
+         IF Direction = IOO.dirRead THEN
+            EnqueuePromiscuous( eib_status.essOK, PObject );
+         END;
 
          IF _AdviseListener <> NIL THEN
             IF NOT valuesConverted THEN
@@ -1872,7 +1874,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
       ELSE // oobData promiscuous mode queueing
 
-         IF EventSink <> NIL THEN
+         IF ( Direction = IOO.dirRead ) AND ( EventSink <> NIL ) THEN
             QueueLock.Lock();
             IF oobData.Count >= InputQueueLength THEN
                QueueLock.Unlock();
@@ -1886,7 +1888,7 @@ CLASS IMPLEMENTATION CEIBServer;
             EIBValue2IOValue( EValue, OUT io );
          END;
 
-         IF EventSink <> NIL THEN
+         IF ( Direction = IOO.dirRead ) AND ( EventSink <> NIL ) THEN
             oobData.EnqueueOA( EValue.Data, PObject );
             QueueLock.Unlock();
 

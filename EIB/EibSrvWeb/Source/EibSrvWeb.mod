@@ -86,6 +86,8 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       dt : time.DateTime;
    BEGIN
       dt.SetNowUTC();
+      AdjustHours( dt, REF _WrittenByHour, REF _WrittenByHourModified );
+
       Sync.IInc( REF _WrittenByHour[dt.Hour MOD 24] );
    END OnWritten;
 
@@ -96,6 +98,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       dt : time.DateTime;
    BEGIN
       dt.SetNowUTC();
+      AdjustHours( dt, REF _GotByHour, REF _GotByHourModified );
 
       _EIB^.QueueLock.Lock();
 
@@ -246,6 +249,8 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       dt : time.DateTime;
    BEGIN
       dt.SetNowUTC();
+      AdjustHours( dt, REF _WrittenByHour, REF _WrittenByHourModified );
+
       RETURN Sync.IGet( REF _WrittenByHour[dt.Hour MOD 24] );
    END WrittenByHour;
 
@@ -254,8 +259,12 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    PUBLIC PROPERTY WrittenByDay GET : CARDINAL;
    VAR
       byDay : CARDINAL := 0;
+      dt : time.DateTime;
       i : CARDINAL;
    BEGIN
+      dt.SetNowUTC();
+      AdjustHours( dt, REF _WrittenByHour, REF _WrittenByHourModified );
+
       FOR i := 0 TO 23 DO
          INC( byDay, Sync.IGet( REF _WrittenByHour[i] ));
       END;
@@ -269,6 +278,8 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       dt : time.DateTime;
    BEGIN
       dt.SetNowUTC();
+      AdjustHours( dt, REF _GotByHour, REF _GotByHourModified );
+
       RETURN Sync.IGet( REF _GotByHour[dt.Hour MOD 24] );
    END ReadByHour;
 
@@ -277,8 +288,12 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    PUBLIC PROPERTY ReadByDay GET : CARDINAL;
    VAR
       byDay : CARDINAL := 0;
+      dt : time.DateTime;
       i : CARDINAL;
    BEGIN
+      dt.SetNowUTC();
+      AdjustHours( dt, REF _GotByHour, REF _GotByHourModified );
+
       FOR i := 0 TO 23 DO
          INC( byDay, Sync.IGet( REF _GotByHour[i] ));
       END;
@@ -571,7 +586,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       AddControllers();
 
       FOR i := 0 TO HIGH( _WrittenByHour ) DO
+         _WrittenByHourModified[i] := 0;
          _WrittenByHour[i] := 0;
+         _GotByHourModified[i] := 0;
          _GotByHour[i] := 0;
       END; // FOR
       _StartedTime := time.GetCurrentJD();      
@@ -644,6 +661,29 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
+   PRIVATE PROCEDURE AdjustHours( CONST dt : time.DateTime; REF hours : ARRAY OF CARDINAL; REF modified : ARRAY OF time.TJD );
+   VAR
+      i : CARDINAL;
+      jd : time.TJD := dt.JulianDate;
+      locked : BOOLEAN := FALSE;
+   BEGIN
+      IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
+         ASSERTLOG( FALSE );
+         RETURN;
+      END;
+
+      FOR i := 0 TO HIGH( hours ) DO
+         IF modified[i] + time.unitsInDay < jd THEN
+            hours[i] := 0;
+         END;
+      END;
+      modified[dt.Hour MOD 24] := jd;
+
+      _Lock.UnlockWrite();
+   END AdjustHours;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
    _EIB := NIL;
    _MVC := NIL;
@@ -658,7 +698,9 @@ BEGIN
    _ConnectedTime := 0;
    _DisconnectedTime := 0;
    _WrittenByHour[0] := 0;
+   _WrittenByHourModified[0] := 0;
    _GotByHour[0] := 0;
+   _GotByHourModified[0] := 0;
    _ConfigLogger := NIL;
    _DataLogger := NIL;
 FINALLY
