@@ -145,7 +145,7 @@ Licence support tool
                 <p>Sekce <type>[objects]</type> a <type>[blocks]</type> shrnují všechny definice datových bodù KNX, které má server znát a se kterými má komunikovat. Pro každý datový bod je v konfiguraci tøeba znát jeho adresu(y), datový typ a zpùsob jeho komunikace. Sekce <type>[objects]</type> a <type>[blocks]</type> se od sebe navzájem liší zpùsobem zápisu tìchto údajù.</p>
                 <p>Obì sekce zapisují definice objektù do øádkù, <type>[objects]</type> vyžaduje na každém øádku o datových bodech kompletní informaci, <type>[blocks]</type> naopak pro celou skupinu datových bodù definuje jeden datový typ a jeden zpùsob komunikace. <type>[objects]</type> se tak dobøe hodí pro rychlou definici nìkolika datových bodù, zatímco <type>[blocks]</type> dovoluje vìtší strukturovanost konfigurace.</p>
                 <p>V obou sekcích lze datové objekty definovat pomocí parametrù <type>objects</type>, <type>object</type>, <type>logged_objects</type> a <type>logged_object</type>. Jejich odlišení je jednoduché: <type>objects</type> a <type>logged_objects</type> dovolují najednou definovat více datových objektù (každý s jednou skupinovou adresou); <type>object</type> a <type>logged_object</type> definuje jediný datový objekt spojený pøípadnì s více skupinovými adresami (model je stejný jako pøi spojování komunikaèních objektù se skupinovými adresami pøi bìžném programování KNX v ETS).</p>
-                <p>Dvojice parametrù <type>logged_objects</type> a <type>logged_object</type> slouží k definici datových objektù, jejichž zmìny v èase budou zaznamenány v administraèní èásti webového rozhraní (v èásti <gui>Historie dat</gui>). Ukázku použití sledovaných datových objektù obsahuje<mark mark="to-do"> napø. ukázkový </mark>konfiguraèní soubor <file>0xx test-logged.cfg</file>.</p>
+                <p>Dvojice parametrù <type>logged_objects</type> a <type>logged_object</type> slouží k definici datových objektù, jejichž zmìny v èase budou zaznamenány v administraèní èásti webového rozhraní (v èásti <gui>Historie dat</gui>). Ukázku použití sledovaných datových objektù obsahuje napø. ukázkový konfiguraèní soubor <file>12 test-logged.cfg</file>.</p>
                 <p>V definicích datových bodù se používají pro popis podporovaných datových typù klíèová slova podle tabulky <in label="tblDataTypes"></in>.</p>
                 <f.table label="tblDataTypes">
                   <caption>Datové typy</caption>
@@ -416,6 +416,7 @@ date_format = dd. MMMM yyyy</p.type><p>Ve obou formátech lze využít formátovací 
                     </tr>
                   </table>
                 </f.table>
+                <p>Jako ukázky mohou sloužit konfiguraèní soubory <file>10 debug-trace.cfg</file> a <file>11 debug-all.cfg</file>.</p>
                 <p>Popis formátu ladicích a diagnostických zpráv je uveden v kapitole <in.about label="secDebug"></in.about>.</p>
               </text>
             </section>
