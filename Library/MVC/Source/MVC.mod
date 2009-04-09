@@ -94,7 +94,7 @@ CLASS IMPLEMENTATION CContainer;
          | L"f" :
             // do nothing
          ELSE
-            ASSERT( FALSE );
+            ASSERTLOG( FALSE );
          END; // CASE
       END; // WHILE
       Models.Dispose();
@@ -828,8 +828,11 @@ CLASS IMPLEMENTATION CHttpRequest;
 
    PUBLIC VIRTUAL PROCEDURE TestConditions( CONST ResourceLastModified : time.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
    BEGIN
-      ASSERT( _Connection^.Stream^ INHERITS SrvCommon.ASrvStream );
-      RETURN SrvCommon.TPSrvStream( _Connection^.Stream )^.TestConditions( ResourceLastModified, ResourceName );
+      IF _Connection^.Stream^ INHERITS SrvCommon.ASrvStream THEN
+         RETURN SrvCommon.TPSrvStream( _Connection^.Stream )^.TestConditions( ResourceLastModified, ResourceName );
+      END;
+      ASSERTLOG( FALSE, L"Unable to test HTTP condition." );
+      RETURN HttpCommon.httpres_500;
    END TestConditions;
 
 (*--------------------------------------------------------------------------------*)
@@ -1116,6 +1119,7 @@ CLASS IMPLEMENTATION CMVC;
       modelValue : StringsO.CString;
       request : CHttpRequest;
       response : CHttpResponse;
+      Result : Sync.TAsyncResult;
       view : TPView;
    BEGIN
       controllerURI := Connection^.RequestURI;
@@ -1171,8 +1175,8 @@ CLASS IMPLEMENTATION CMVC;
          Connection^.StatusCode := HttpCommon.httpres_500;
       ELSIF view = NIL THEN
          Connection^.StatusCode := HttpCommon.httpres_500;
-         // LOG error
-         ASSERT( FALSE );
+         Log.logger()^.LogS( Log.dlcError, L"MVC", L"Controller returned TRUE but it did not prepare View." );
+         ASSERTLOG( FALSE, L"Controller returned TRUE but it did not prepare View." );
       ELSE
          Connection^.StatusCode := HttpCommon.httpres_200;
          
@@ -1185,8 +1189,10 @@ CLASS IMPLEMENTATION CMVC;
                Connection^.ResponseLength := 0;
             ELSE
                Connection^.ResponseLength := CARD64( buffer.Length );
-               Connection^.Stream^.WriteBuffer( buffer, OUT l, netsocket.FORSAFETY );
-               // LOG errors
+               Result := Connection^.Stream^.WriteBuffer( buffer, OUT l, netsocket.FORSAFETY );
+               IF Result NOT IN Sync.arsCompletions THEN
+                  Log.logger()^.LogS( Log.dlcError, L"MVC", L"Failure when writing output buffer to stream." );
+               END;
             END;
          //-----
          | votInputStream :
@@ -1209,10 +1215,10 @@ CLASS IMPLEMENTATION CMVC;
          | votOutputStream :
             IF NOT view^.FormatToOutputStream( request, REF response, Connection^.Stream ) THEN
                Connection^.StatusCode := HttpCommon.httpres_500;
-               // LOG errors
+               Log.logger()^.LogS( Log.dlcError, L"MVC", L"Failure when formatting View to output stream." );
             END;
          ELSE
-            ASSERT( FALSE );
+            ASSERTLOG( FALSE );
          END;         
 
          view^.Release();
@@ -1294,7 +1300,7 @@ CLASS IMPLEMENTATION CMVC;
       END;
       s.AppendOA( URL );
       IF _Controllers.Get( s, OUT controller ) THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          _Controllers.Remove( s );
       END;
       _Controllers.Add( s, controller );
@@ -1470,12 +1476,14 @@ CLASS IMPLEMENTATION CMVCHolder;
       s : StringsO.CString;
    BEGIN
       IF context[0] = 0W THEN
-         ASSERT( FALSE );
-         RETURN NIL;
+         Log.logger()^.LogS( Log.dlcError, L"MVC", L"Client requests unnamed context." );
+         ASSERTLOG( FALSE );
+         s.FromOA( L" bad context" );
+      ELSE
+         s.FromOA( context );
       END;
       
       // remove leading and add trailing slashes
-      s.FromOA( context );
       IF context[0] = L"/" THEN
          s.Remove( 0, 1 );
       END;

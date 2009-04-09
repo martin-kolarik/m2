@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE SrvHttpApi;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE, REALLOCATE;
@@ -751,7 +751,7 @@ CLASS IMPLEMENTATION CHttpApiStream;
          _Response.pReason := ADR( RESPONSE_501 );
          _Response.ReasonLength := SIZE( RESPONSE_501 )-1;
       ELSE
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          Value := HttpCommon.httpres_500;
          _Response.pReason := ADR( RESPONSE_500 );
          _Response.ReasonLength := SIZE( RESPONSE_500 )-1;
@@ -983,7 +983,12 @@ CLASS IMPLEMENTATION CHttpApiSrv;
       Error : CARDINAL;
       Stream : TPHttpApiStream;
    BEGIN
-      ASSERT( _HttpQueue <> NIL );
+      IF _HttpQueue = NIL THEN
+         logger()^.LogS( dlcError, L"HTTP", L"Unable to receive HTTP request" );
+         ASSERTLOG( FALSE );
+         RETURN Sync.arCannotStart;
+      END;
+
       Storage.Zero( ADR( _HttpOverlapped ), SIZE( _HttpOverlapped ));
       _HttpOverlapped.hEvent := _HRequestSignal.RawHandle;
 

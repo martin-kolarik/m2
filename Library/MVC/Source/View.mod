@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE View;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 IMPORT
    FIO,
@@ -42,7 +42,7 @@ CLASS IMPLEMENTATION CStatusCodeView;
 
    PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       RETURN FALSE;
    END FormatToInputStream;
 
@@ -50,7 +50,7 @@ CLASS IMPLEMENTATION CStatusCodeView;
 
    PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    BEGIN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       RETURN FALSE;
    END FormatToOutputStream;
 
@@ -91,7 +91,7 @@ CLASS IMPLEMENTATION CFileView;
 
    PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
    BEGIN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       RETURN FALSE;
    END FormatToBuffer;
 
@@ -99,7 +99,7 @@ CLASS IMPLEMENTATION CFileView;
 
    PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       RETURN FALSE;
    END FormatToInputStream;
 
@@ -156,7 +156,7 @@ CLASS IMPLEMENTATION CFileView;
       LOOP
          buffer.Clear();
          Result := fs.ReadBuffer( buffer.Size, REF buffer, Sync.FORSAFETY );
-         ASSERT( Result <> Sync.arTimeout );
+         ASSERTLOG( Result <> Sync.arTimeout );
          IF Result = Sync.arNoData THEN
             // fall down
          ELSIF Result NOT IN Sync.arsCompletions THEN
@@ -166,8 +166,8 @@ CLASS IMPLEMENTATION CFileView;
 
          IF NOT buffer.Empty THEN
             Result := OutputStream^.WriteBuffer( buffer, OUT l, netsocket.FORSAFETY );
-            ASSERT( Result <> Sync.arTimeout );
-            ASSERT( l = buffer.Length );
+            ASSERTLOG( Result <> Sync.arTimeout );
+            ASSERTLOG( l = buffer.Length );
          END;
          
          IF Result = Sync.arNoData THEN
@@ -239,7 +239,7 @@ CLASS IMPLEMENTATION CRedirectView;
          Location := Request.FullURI;
          IF NOT Request.ControllerURI.Empty THEN
             i := Location.IndexOf( Request.ControllerURI, 0 );
-            ASSERT( i <> -1 );
+            ASSERTLOG( i <> -1 );
             Location.Remove( i-1, -1 ); // remove trailing slash too
          ELSIF Location.EndsWithOA( L"/" ) THEN
             Location.Remove( Location.Length-1, -1 );            
@@ -261,7 +261,7 @@ CLASS IMPLEMENTATION CRedirectView;
 
    PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       RETURN FALSE;
    END FormatToInputStream;
 
@@ -269,7 +269,7 @@ CLASS IMPLEMENTATION CRedirectView;
 
    PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    BEGIN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       RETURN FALSE;
    END FormatToOutputStream;
 
@@ -329,7 +329,7 @@ CLASS IMPLEMENTATION CRawHTMLView;
 
    PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       RETURN FALSE;
    END FormatToInputStream;
 
@@ -337,7 +337,7 @@ CLASS IMPLEMENTATION CRawHTMLView;
 
    PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    BEGIN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       RETURN FALSE;
    END FormatToOutputStream;
 
@@ -467,7 +467,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
    PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       RETURN FALSE;
    END FormatToInputStream;
 
@@ -475,7 +475,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
    PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    BEGIN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       RETURN FALSE;
    END FormatToOutputStream;
 
@@ -517,7 +517,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          
          CASE Reader.CurrentType OF
          | xmlreader.xntText :
-            ASSERT( FALSE ); // should not occur here
+            ASSERTLOG( FALSE ); // should not occur here
 
          | xmlreader.xntElementBegin :
             rootName := Reader.CurrentName;
@@ -532,7 +532,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
             Prefix.Clear();
             REPEAT
                IF Reader.CurrentType <> xmlreader.xntAttribute THEN
-                  ASSERT( FALSE ); // should not occur here
+                  ASSERTLOG( FALSE ); // should not occur here
                   CONTINUE;
                ELSIF Reader.CurrentPrefix.EqualsIgnoreCaseOA( PT_XMLNS ) AND Reader.CurrentValue.EqualsIgnoreCaseOA( PT_NAMESPACE ) THEN
                   Prefix := Reader.CurrentName;
@@ -552,7 +552,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
             END;
 
          | xmlreader.xntAttribute :
-            ASSERT( FALSE ); // should not occur here
+            ASSERTLOG( FALSE ); // should not occur here
          END; // CASE
 
          xmle := Reader.MoveNext();
@@ -1418,7 +1418,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
                IF Reader.MoveToFirstAttribute() = xmlreader.xmle_S_OK THEN
                   REPEAT
                      IF Reader.CurrentType <> xmlreader.xntAttribute THEN
-                        ASSERT( FALSE ); // should not occur here
+                        ASSERTLOG( FALSE ); // should not occur here
                         CONTINUE;
                      END;
                      attributes.Add( Reader.CurrentQualifiedName, Reader.CurrentValue );
@@ -1437,7 +1437,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       ELSE
          nl := NodeList.TPNodeList( Sources.Peek());
          IF NOT nl^.MoveNext() THEN
-            ASSERT( FALSE );
+            ASSERTLOG( FALSE );
             RETURN xmlreader.xmle_S_FALSE; // should not occur
          END;
          

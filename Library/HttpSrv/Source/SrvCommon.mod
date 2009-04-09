@@ -102,7 +102,7 @@ CLASS IMPLEMENTATION CHeaders;
 
    PUBLIC VIRTUAL PROCEDURE Enumerate( Known, Uknown : BOOLEAN; REF ES : PTR; OUT Name, Value : StringsO.IString ) : BOOLEAN;
    BEGIN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       RETURN FALSE;
    END Enumerate;
 
@@ -254,7 +254,7 @@ CLASS IMPLEMENTATION ASrvStream;
 
    PUBLIC FINAL PROCEDURE Seek( Origin : IOO.TSeekOrigin; Position : INT64 ); 
    BEGIN
-      ASSERT( FALSE ); // not seekable      
+      ASSERTLOG( FALSE ); // not seekable      
    END Seek;
    
 (*--------------------------------------------------------------------------------*)
@@ -1416,7 +1416,7 @@ CLASS IMPLEMENTATION ASrvCommon;
       Worker : POINTER TO HttpWorker;
    BEGIN
       IF _PreparedStream = NIL THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE, L"Request to process not prepared stream." );
          RETURN;
       END;
 
@@ -1481,14 +1481,14 @@ CLASS IMPLEMENTATION ASrvCommon;
       sid : StringsO.CString;
    BEGIN
       IF _PreparedStream = NIL THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE, L"Request to get cookie for unknown stream" );
          RETURN NIL;
       ELSIF _PreparedStream^.RequestHeaders^.Get( HttpCommon.Cookie, OUT cookies ) AND httptools.DecodeSIDCookie( cookies, OUT sid ) THEN
          pcookie := ADR( sid );
       ELSE
          pcookie := NIL;
       END;
-      RETURN holder^.GetSession( pcookie,  _PreparedStream^.RemoteAddress, _RootPath );
+      RETURN holder^.GetSession( pcookie, _PreparedStream^.RemoteAddress, _RootPath );
    END GetSessionForPreparedStream;
 
 (*--------------------------------------------------------------------------------*)
