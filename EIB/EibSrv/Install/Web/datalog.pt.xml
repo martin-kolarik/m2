@@ -30,7 +30,7 @@
 
                       <div class="content">
 
-                        <h1>${msg.datalog.title}</h1>
+                        <h1>${msg.datalog.title} <a class="leftspare" href="?download=1">[${msg.datalog.download}]</a></h1>
                         <div class="longlog"><pre class="longlog">${logRecords}</pre></div>
 
                       </div>

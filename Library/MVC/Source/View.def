@@ -108,6 +108,30 @@ END CRawHTMLView;
 (*--------------------------------------------------------------------------------*)
 
 TYPE
+   TPRawTextView = POINTER TO CRawTextView;
+
+CLASS CRawTextView IMPLEMENTS MVC.IView;
+   // IView
+   PUBLIC VIRTUAL READONLY PROPERTY
+      OutputType : MVC.TViewOutputType;
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE Release();
+
+   // SELF
+   PUBLIC PROCEDURE Init( CONST text, downloadName : ARRAY OF WCHAR; CONST content : StringsO.IString; dispositionFlag : BOOLEAN );
+   
+   PRIVATE VAR
+      Text : StringsO.CString;
+      Name : StringsO.CString;
+      ContentType : StringsO.CString;
+      DispositionFlag : BOOLEAN;
+END CRawTextView;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
    TElementStartAction = (
       esaError,
       esaProcessedInDeep,

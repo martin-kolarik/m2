@@ -1060,6 +1060,7 @@ CLASS IMPLEMENTATION HttpWorker;
          s.Append( _Stream^.AbsoluteURI );
          _Stream^.URIData.ToOA( OUT sOA );
          IF sOA[0] <> 0W THEN
+            s.AppendOA( L"?" );
             s.AppendOA( sOA );
          END;
          Strings.FromCARD32W( CARDINAL( _Stream^.StatusCode ), 10, OUT sOA );

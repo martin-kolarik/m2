@@ -363,6 +363,84 @@ END CRawHTMLView;
 
 (*================================================================================*)
 
+CLASS IMPLEMENTATION CRawTextView;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY OutputType GET : MVC.TViewOutputType;
+   BEGIN
+      RETURN MVC.votBuffer;
+   END OutputType;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   VAR
+      now : time.DateTime;
+      s : StringsO.CString;
+   BEGIN
+      now.SetNowUTC();
+   
+      IF ContentType.Empty THEN
+         HttpTools.FormatContentOA( HttpTools.contentTextPlain, L"", L"utf-8", FALSE, OUT ContentType );
+      END;
+      Response.ContentType := ContentType;
+      Response.AllowCaching := FALSE;
+      Response.LastModified := now;
+
+      IF DispositionFlag THEN
+         s.FromOA( L"attachment; filename=" );
+         s.Append( Name );
+         Response.ResponseHeaders^.AddUnknownOA( L"Content-Disposition", OA( s.Length-1, s.rawData ));
+      END;
+
+      LanguagesO.ToMB( Text, Languages.cp_UTF8, FALSE, REF Output );
+      RETURN TRUE;
+   END FormatToBuffer;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   BEGIN
+      ASSERTLOG( FALSE );
+      RETURN FALSE;
+   END FormatToInputStream;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   BEGIN
+      ASSERTLOG( FALSE );
+      RETURN FALSE;
+   END FormatToOutputStream;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Release();
+   VAR
+      a : TPRawTextView := ADR( SELF );
+   BEGIN
+      DISPOSE( a );
+   END Release;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Init( CONST text, name : ARRAY OF WCHAR; CONST content : StringsO.IString; dispositionFlag : BOOLEAN );
+   BEGIN
+      Text.FromOA( text );
+      Name.FromOA( name );
+      ContentType.Assign( content );
+      DispositionFlag := dispositionFlag;
+   END Init;
+   
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+   DispositionFlag := FALSE;
+END CRawTextView;
+
+(*================================================================================*)
+
 CONST
    PT_XMLNS = L"xmlns";
    PT_NAMESPACE = L"http://www.smartcontrol.cz/2008/XML/Web/PageTemplate";

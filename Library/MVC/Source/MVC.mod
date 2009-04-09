@@ -1610,6 +1610,17 @@ END rawHTMLView;
 
 //--------------------------------------------------------------------------------
 
+PROCEDURE rawTextView( CONST text, downloadName : ARRAY OF WCHAR; CONST content : StringsO.IString; dispositionFlag : BOOLEAN ) : TPView; // if content is empty, default one is used
+VAR
+   view : View.TPRawTextView;
+BEGIN
+   NEW( view );
+   view^.Init( text, downloadName, content, dispositionFlag );
+   RETURN view;
+END rawTextView;
+
+//--------------------------------------------------------------------------------
+
 PROCEDURE pageTemplateView( CONST resolver : FSO.TPFilePathResolver; CONST viewName : ARRAY OF WCHAR ) : TPView;
 VAR
    view : View.TPPageTemplateView;

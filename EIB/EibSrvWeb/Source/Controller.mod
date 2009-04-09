@@ -62,6 +62,7 @@ CONST
    CONTROL_CONFIG_FILE = L"configFile";
    
    LOG_LOG = L"logRecords";
+   LOG_DOWNLOAD = L"download";
    
    IO_FORM_ID = L"formId";
    IO_READ_NAME = L"readName";
@@ -470,23 +471,47 @@ CLASS IMPLEMENTATION CController;
    VAR
       count : CARDINAL;
       cs : StringsO.CString;
+      downloadFlag : BOOLEAN;
+      empty : StringsO.CString;
       i : CARDINAL;
       log : ARRAY [0..511] OF WCHAR;
+      logS : StringsO.CString;
    BEGIN
+      downloadFlag := Request.ModelContainer^.GetStringOA( LOG_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 );
       count := _Web^.DataLogger^.BufferCount;
-      cs.Clear();
-      IF count > 0 THEN
-         FOR i := count-1 TO 0 BY -1 DO
-            IF i < count-1 THEN
-               cs.AppendOA( CRLF );
-            END;
-            _Web^.DataLogger^.BufferGetItem( i, OUT log );
-            cs.AppendOA( log );
-         END;
-      END;
-      Request.ModelContainer^.AddStringOA( LOG_LOG, cs );
 
-      View := mvc.pageTemplateView( ADR( SELF ), DATA_LOG_VIEW );
+      IF downloadFlag THEN
+         // direct order
+         IF count > 0 THEN
+            FOR i := 0 TO count-1 DO
+               IF i > 0 THEN
+                  logS.AppendOA( CRLF );
+               END;
+               _Web^.DataLogger^.BufferGetItem( i, OUT log );
+               logS.AppendOA( log );
+            END;
+         END;
+
+         View := mvc.rawTextView( OA( logS.Length-1, logS.rawData ), L"datalog", empty, TRUE );
+      ELSE
+         // backward order
+         IF count > 0 THEN
+            FOR i := count-1 TO 0 BY -1 DO
+               IF i < count-1 THEN
+                  logS.AppendOA( CRLF );
+               END;
+               _Web^.DataLogger^.BufferGetItem( i, OUT log );
+               logS.AppendOA( log );
+            END;
+         END;
+
+         Request.ModelContainer^.AddStringOA( LOG_LOG, logS );
+         View := mvc.pageTemplateView( ADR( SELF ), DATA_LOG_VIEW );
+      END;
+
+      cs.FromOA( L"-1" );
+      Request.ModelContainer^.AddStringOA( LOG_DOWNLOAD, cs );
+
       RETURN TRUE;
    END ProcessDataLog;
 
@@ -496,23 +521,32 @@ CLASS IMPLEMENTATION CController;
    VAR
       count : CARDINAL;
       cs : StringsO.CString;
+      empty : StringsO.CString;
       i : CARDINAL;
       log : ARRAY [0..511] OF WCHAR;
+      logS : StringsO.CString;
    BEGIN
       count := Log.logger()^.BufferCount;
-      cs.Clear();
       IF count > 0 THEN
          FOR i := 0 TO count-1 DO
             IF i > 0 THEN
-               cs.AppendOA( CRLF );
+               logS.AppendOA( CRLF );
             END;
             Log.logger()^.BufferGetItem( i, OUT log );
-            cs.AppendOA( log );
+            logS.AppendOA( log );
          END;
       END;
-      Request.ModelContainer^.AddStringOA( LOG_LOG, cs );
 
-      View := mvc.pageTemplateView( ADR( SELF ), SYSTEM_LOG_VIEW );
+      IF Request.ModelContainer^.GetStringOA( LOG_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
+         View := mvc.rawTextView( OA( logS.Length-1, logS.rawData ), L"systemlog", empty, TRUE );
+      ELSE
+         Request.ModelContainer^.AddStringOA( LOG_LOG, logS );
+         View := mvc.pageTemplateView( ADR( SELF ), SYSTEM_LOG_VIEW );
+      END;
+
+      cs.FromOA( L"-1" );
+      Request.ModelContainer^.AddStringOA( LOG_DOWNLOAD, cs );
+
       RETURN TRUE;
    END ProcessSystemLog;
 
