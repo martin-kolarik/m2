@@ -11,6 +11,7 @@ IMPORT
    FIOO,
    HttpCommon,
    HttpTools,
+   lec,
    lists,
    Log,
    Strings,
@@ -24,6 +25,7 @@ CONST
    SESSION_ROLE = L"role";
    ROLE_ADMIN = L"isAdmin";
    USER_LOGGED = L"isLogged";
+   VERSION = L"version";
    
    RESOLVER_CONTEXT_WEB = 0;
    RESOLVER_CONTEXT_DISK = 1;
@@ -46,6 +48,8 @@ CONST
    STATUS_UPTIME = L"uptime";
    STATUS_LICENCE_VALID = L"licenceValid";
    STATUS_LICENCE = L"licence";
+   STATUS_LICENCE_NUMBER = L"licenceNumber";
+   STATUS_LICENCE_TYPE = "licenceType";
    STATUS_LAST_HOUR = L"ioLastHour";
    STATUS_LAST_DAY = L"ioLastDay";
    STATUS_CONFIGURATION = L"configurationPath";
@@ -160,6 +164,7 @@ CLASS IMPLEMENTATION CController;
       data : PTR;
       role : EibSrvWeb.TRole;
       uri : StringsO.CString;
+      version : StringsO.CString;
    BEGIN
       IF Request.Session^.Get( SESSION_ROLE, OUT data ) THEN
          role := EibSrvWeb.TRole( LOPTRLONGWORD( data ));
@@ -167,6 +172,9 @@ CLASS IMPLEMENTATION CController;
          role := EibSrvWeb.roleGuest;
          Request.Session^.Add( SESSION_ROLE, PTR( role ));
       END;
+      
+      version.FromOA( ProductVersion );
+      Request.ModelContainer^.AddStringOA( VERSION, version );
 
       IF Fallback THEN
          uri := Request.ControllerURI;
@@ -291,6 +299,7 @@ CLASS IMPLEMENTATION CController;
       currentDT : time.DateTime;
       currentTime : time.TJD;
       dt : time.DateTime;
+      lt : lec.TLicenceType;
       s : ARRAY [0..63] OF WCHAR;
       starttime : time.TJD;
       uptime : time.TJDC;
@@ -358,6 +367,17 @@ CLASS IMPLEMENTATION CController;
       END;
       Request.ModelContainer^.AddBooleanOA( STATUS_LICENCE_VALID, ( dt.Day = 0 ) OR ( currentDT < dt ));
       Request.ModelContainer^.AddStringOA( STATUS_LICENCE, cs );
+
+      Request.ModelContainer^.AddStringOA( STATUS_LICENCE_NUMBER, _Web^.Licence );
+      cs.Clear();
+      lt := _Web^.LicenceType;
+      IF lec.ltEducational IN lt THEN
+         cs.FromOA( L"EDU " );
+      END;
+      IF lec.ltTrial IN lt THEN
+         cs.FromOA( L"TRIAL " );
+      END;
+      Request.ModelContainer^.AddStringOA( STATUS_LICENCE_TYPE, cs );
       
       c := _Web^.WrittenByHour + _Web^.ReadByHour;
       cs.FromCARD32( c, 10 );

@@ -101,13 +101,16 @@ CLASS IMPLEMENTATION CResult;
       Done;
    VAR
       dt, now : time.DateTime;
-      expires : time.TJD;
+      expires, nowJulianDate : time.TJD;
       item : Items.TPItem := data;
       items, jitems : lists.TPPtrList;
       info : TInfo := riUnknown;
+      localActivated : BOOLEAN;
+      localExpired : BOOLEAN;
       #if DEBUG #then
          logs : ARRAY[0..255] OF WCHAR;
       #endif
+      s : StringsO.CString;
       trialFlag : BOOLEAN;
    BEGIN
       IF item = NIL THEN
@@ -127,7 +130,9 @@ CLASS IMPLEMENTATION CResult;
          #endif
 
          now.SetNowUTC();
+         nowJulianDate := now.JulianDate;
          expires := expNotSet;
+
       ELSE
 
          #if DEBUG #then      
@@ -151,6 +156,9 @@ CLASS IMPLEMENTATION CResult;
             Items.TPLicence( item )^.Serial.ToOA( OUT logs );
             Log.LogSS( dldDebug, L"LEC", L"  Licence, computing best hit: ", logs );
          #endif
+
+         localActivated := FALSE;
+         localExpired := FALSE;
 
          IF item^.HasChilds THEN
 
@@ -183,9 +191,12 @@ CLASS IMPLEMENTATION CResult;
                      #endif
                   END;
                   
+                  localActivated := TRUE; // according to bhBestCase approach
+                  
                ELSIF trialFlag THEN
                   info := ComputeInfo( bhBestCase, info, riDemo );
                   expires := ComputeExpiration( bhBestCase, expires, _Start + demoExp );
+                  localExpired := localExpired OR ( expires < nowJulianDate );
 
                   #if DEBUG #then      
                      JDCToDate( expires, OUT logs );
@@ -194,6 +205,7 @@ CLASS IMPLEMENTATION CResult;
                ELSE
                   info := ComputeInfo( bhBestCase, info, riNotActivated );
                   expires := ComputeExpiration( bhBestCase, expires, Items.TPLicence( item )^.Created.JulianDate + unactExp );
+                  localExpired := localExpired OR ( expires < nowJulianDate );
 
                   #if DEBUG #then      
                      JDCToDate( expires, OUT logs );
@@ -219,6 +231,7 @@ CLASS IMPLEMENTATION CResult;
          ELSIF trialFlag THEN
             info := ComputeInfo( bhBestCase, info, riDemo );
             expires := ComputeExpiration( bhBestCase, expires, _Start + demoExp );
+            localExpired := localExpired OR ( expires < nowJulianDate );
 
             #if DEBUG #then      
                JDCToDate( expires, OUT logs );
@@ -228,12 +241,27 @@ CLASS IMPLEMENTATION CResult;
          ELSE
             info := ComputeInfo( bhBestCase, info, riNotActivated );
             expires := ComputeExpiration( bhBestCase, expires, Items.TPLicence( item )^.Created.JulianDate + unactExp );
+            localExpired := localExpired OR ( expires < nowJulianDate );
 
             #if DEBUG #then      
                JDCToDate( expires, OUT logs );
                Log.LogSS( dldDebug, L"LEC", L"    not activated, expires: ", logs );
             #endif
 
+         END;
+         
+         s := Items.TPLicence( item )^.Serial;
+         IF Items.ltUnnamed NOT IN Items.TPLicence( item )^.Type THEN
+            s.AppendOA( L" (" );
+            s := Items.TPLicence( item )^.Owner;
+            s.AppendOA( L")" );
+         END;
+         IF localExpired THEN
+            _Licences.Add( s, PTR( Items.TPLicence( item )^.Type + Items.TLicenceType( TLicenceType{ltExpired} )));
+         ELSIF localActivated THEN
+            _Licences.Add( s, PTR( Items.TPLicence( item )^.Type + Items.TLicenceType( TLicenceType{ltActivated} )));
+         ELSE
+            _Licences.Add( s, PTR( Items.TPLicence( item )^.Type ));
          END;
 
          #if DEBUG #then      
@@ -379,12 +407,20 @@ CLASS IMPLEMENTATION CResult;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Licences GET : lists.TPStringList;
+   BEGIN
+      RETURN ADR( _Licences );
+   END Licences;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE Reset( _Behaviour : TBehaviour );
    BEGIN
       _Lock.Lock();
       Behaviour := _Behaviour;
       _Info := riUnknown;
       _Expires := expNotSet;
+      _Licences.Dispose();
       _Lock.Unlock();
    END Reset;
 

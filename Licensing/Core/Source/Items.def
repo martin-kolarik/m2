@@ -110,6 +110,7 @@ END CLockedItem;
 (*--------------------------------------------------------------------------------*)
 
 TYPE
+   // a copy of exists in lec.def, keep this synchronized
 	TLicenceTypeItem = (
 		ltUnnamed,
 		ltUpgrade,

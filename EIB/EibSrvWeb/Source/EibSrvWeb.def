@@ -8,6 +8,7 @@ FROM Storage IMPORT
 IMPORT
    INIfile,
    io,
+   lec,
    Log,
    mvc,
    srvcore,
@@ -50,6 +51,8 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       ConnectedTime : time.TJDC;
       DisconnectedTime : time.TJD;
       LicenceExpires : time.DateTime;
+      LicenceType : lec.TLicenceType;
+      Licence : StringsO.CString;
       WrittenByHour : CARDINAL;
       WrittenByDay : CARDINAL;
       ReadByHour : CARDINAL;

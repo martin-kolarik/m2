@@ -244,6 +244,35 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY LicenceType GET : lec.TLicenceType;
+   VAR
+      ptrType : PTR;
+      s : StringsO.CString;
+   BEGIN
+      // no need to sync
+      IF _EIB^.PResult^.Licences^.GetFirst( OUT s, OUT ptrType ) THEN
+         RETURN lec.TLicenceType( LOPTRLONGWORD( ptrType ));
+      ELSE
+         RETURN lec.TLicenceType{};
+      END;
+   END LicenceType;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Licence GET : StringsO.CString;
+   VAR
+      ptrType : PTR;
+      s : StringsO.CString;
+   BEGIN
+      // no need to sync
+      IF NOT _EIB^.PResult^.Licences^.GetFirst( OUT s, OUT ptrType ) THEN
+         s.Clear();
+      END;
+      RETURN s;
+   END Licence;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY WrittenByHour GET : CARDINAL;
    VAR
       dt : time.DateTime;

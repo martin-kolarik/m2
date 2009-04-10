@@ -47,16 +47,19 @@
                           </tr>
                           <tr>
                             <td>${msg.status.uptime}</td><td class="spare">&nbsp;</td><td>${uptime}</td>
-                          <tr>
                           </tr>
+                          <tr>
                             <td>${msg.status.configuration}</td><td class="spare">&nbsp;</td><td>${configurationPath}</td>
-                          <tr>
                           </tr>
+                          <tr>
                             <td>${msg.status.licence}</td><td class="spare">&nbsp;</td>
                             <td><pt:choose>
                               <pt:when condition="${licenceValid}"><span class="green">${licence}</span></pt:when>
                               <pt:otherwise><span class="red">${licence}</span></pt:otherwise>
                             </pt:choose></td>
+                          </tr>
+                          <tr>
+                            <td>&nbsp;</td><td class="spare">&nbsp;</td><td>${licenceType} ${licenceNumber}</td>
                           </tr>
                         </table>
 
@@ -74,7 +77,7 @@
                   </div>
 
                   <div class="bottom">
-                    <p>EIB/KNX SmartServer &copy; NeNo</p>
+                    <p>EIB/KNX SmartServer &copy; NeNo ver. ${version}</p>
                   </div>
 
               </div>
