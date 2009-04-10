@@ -21,7 +21,7 @@ if( System.initialized == undefined ) {
 }
 
 function InitSystem() {
-  System.DEBUG = true;
+  System.DEBUG = DEBUG;
   System.IPAddress = IP_ADDRESS;
 
   System.CO = CO;
@@ -58,7 +58,6 @@ function Core() {
   CheckConnection();
   
   if( System.ConnectionCheck != null ) {
-    // System.ConnectionCheck( "" + System.connectionState + System.corePeriodCount + 1*(System.connection!=null) + System.waitConnectCount + System.waitConnectRecoverCount );
     System.ConnectionCheck( System.connectionState != DISCONNECTED && System.connectionState != WAIT_CONNECT );
   }
 }
@@ -85,6 +84,8 @@ function CO( address, type, widget, imageName ) {
   this.Write = Write;
   this.Set = Set;
   this.Reset = Reset;
+  this.SetSynchronous = SetSynchronous;
+  this.ResetSynchronous = ResetSynchronous;
 }
 
 function Read() {
@@ -107,6 +108,18 @@ function Reset() {
   if( this.type = "switch" ) {
     this.Write( false );
   }
+}
+
+function SetSynchronous() {
+  ConnectSynchronous();
+  this.Set();
+  Disconnect();
+}
+
+function ResetSynchronous() {
+  ConnectSynchronous();
+  this.Reset();
+  Disconnect();
 }
 
 // ===== GLOBAL HELPERS
@@ -157,6 +170,24 @@ function Connect() {
       LogE( "C", error );
       socket.close();
       System.connectionState = DISCONNECTED;
+
+    }
+  }
+}
+
+function ConnectSynchronous() {
+  if( System.connection == null) {
+    var socket = new TCPSocket( true );
+
+    try {
+      socket.connect( System.IPAddress, IP_PORT, 2 * CORE_PERIOD );
+      if( socket.connected ) {
+        System.connection = socket;
+      }
+
+    } catch( error ) {
+      LogE( "Cs", error );
+      socket.close();
 
     }
   }

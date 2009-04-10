@@ -930,6 +930,8 @@ user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
                   <dd><p>JavaScript z tlaèítka pro zapínání a vypínání svìtla.V <file>Template.xcf</file> je skript zapsán ve vìtvi <gui>Templates/Lights</gui> v tlaèítku <gui>Light</gui> v záložce <gui>Actions</gui>.</p><p>Skript pro zmìnu stavu datového objektu serveru, skript se odkazuje na promìnné definované ve skriptu <file>Page.js</file>.</p></dd>
                   <dt><file>ButtonDim.js</file></dt>
                   <dd><p>JavaScript z tlaèítka pro stmívání (snižování jasu). V <file>Template.xcf</file> je skript zapsán ve vìtvi <gui>Templates/Lights</gui> v tlaèítku <gui>Dimming</gui> v záložce <gui>Actions</gui>.</p><p>Skript pro snižování jasu (pøi držení tlaèítka se jas prùbìžnì snižuje), skript se odkazuje na promìnné definované ve skriptu <file>Page.js</file>.</p></dd>
+                  <dt><file>BlindsDown.js</file></dt>
+                  <dd><p>JavaScript z tlaèítka pro zatažení rolet. V <file>Template.xcf</file> je skript zapsán ve vìtvi <gui>Templates/Blinds</gui> v tlaèítku <gui>BlindsDown</gui> v záložce <gui>Actions</gui>.</p><p>Skript zahájí dlouhý pohyb (<type>CentralLong</type>) a poèítá délku stisku tlaèítka. Pokud je tlaèítko uvolnìno døíve jak za dvì sekundy, ukonèí skript pohyb zápisem do <type>CentralStep</type>.</p></dd>
                 </dl>
               </text>
             </section>

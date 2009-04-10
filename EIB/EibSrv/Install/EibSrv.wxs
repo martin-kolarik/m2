@@ -108,6 +108,7 @@
                             </Directory>
                             <Directory Id="Philips_Pronto" LongName="Philips Pronto" Name="Pronto">
                                 <Component Id="ExamplesPronto" Guid="CA0905D8-C0F5-4cf5-81EE-8427C8D63071">
+                                    <File Id="BlindsDown.js" LongName="BlindsDown.js" Name="BLINDS.JS" Source="Examples\Philips Pronto\BlindsDown.js" DiskId="1" />
                                     <File Id="ButtonDim.js" LongName="ButtonDim.js" Name="BUTTOND.JS" Source="Examples\Philips Pronto\ButtonDim.js" DiskId="1" />
                                     <File Id="ButtonSwitch.js" LongName="ButtonSwitch.js" Name="BUTTONS.JS" Source="Examples\Philips Pronto\ButtonSwitch.js" DiskId="1" />
                                     <File Id="Main.js" LongName="Main.js" Name="MAIN.JS" Source="Examples\Philips Pronto\Main.js" DiskId="1" />
