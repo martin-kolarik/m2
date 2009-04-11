@@ -4,6 +4,8 @@
 # ifndef _M2LEAK_H_
 # define _M2LEAK_H_
 
+#include "m2cpp.h"
+
 // # pragma comment(lib, "leakdetector.lib")
 // # pragma comment(linker, "/include:_Mark")
 

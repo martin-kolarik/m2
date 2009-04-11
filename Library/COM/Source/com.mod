@@ -1,12 +1,6 @@
 IMPLEMENTATION MODULE com;
 (*# option( pack => 8 ) *)
 
-////////////////////////////////////////////////////////////////
-// Control Web Driver ActiveX Control                         //
-//                                               the COM code //
-//                              (C) 2004 Moravian Instruments //
-////////////////////////////////////////////////////////////////
-
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
 
