@@ -14,7 +14,11 @@ IMPORT
   winerror;
 
 IMPORT
-  Strings;
+   Log,
+   Strings;
+  
+CONST
+   ADDREF_RELEASE_DEBUG = FALSE;
 
 (*===========================================================================*)
 
@@ -49,7 +53,7 @@ CLASS IMPLEMENTATION CIUnknown;
 
   PUBLIC VIRTUAL PROCEDURE AddRef() : windows.ULONG;
   BEGIN
-    #if DEBUG #then
+    #if ADDREF_RELEASE_DEBUG #then
       DbgOutADD( ADR( SELF ));
     #endif
     INC( ReferenceCount );
@@ -62,7 +66,7 @@ CLASS IMPLEMENTATION CIUnknown;
   VAR
     a : ADDRESS;
   BEGIN
-    #if DEBUG #then
+    #if ADDREF_RELEASE_DEBUG #then
       DbgOutREL( ADR( SELF ));
       IF ReferenceCount = 0 THEN
         ADDRESS( 0 )^ := 0;
@@ -449,62 +453,61 @@ END New2;
 
 PROCEDURE DbgOutIID( String : ARRAY OF WCHAR; POwner : ADDRESS; riid : guiddef.IID );
 VAR
-  PBSTR : wtypes.BSTR;
-  s : ARRAY [0..127] OF WCHAR;
+   PBSTR : wtypes.BSTR;
+   s : ARRAY [0..127] OF WCHAR;
 BEGIN
-  Strings.FromCARD32W( CARDINAL( POwner ), 16, OUT s );
-  Strings.PrependW( REF s, L'ref: ' );
-  Strings.PrependW( REF s, String );
-  Strings.AppendW( REF s, L' req: ' );
+   Strings.FromCARD32W( CARDINAL( POwner ), 16, OUT s );
+   Strings.PrependW( REF s, L'ref: ' );
+   Strings.PrependW( REF s, String );
+   Strings.AppendW( REF s, L' req: ' );
 
-     IF riid = guiddef.IID_NULL THEN
-    Strings.AppendW( REF s, L'{INull}' );
-  ELSIF riid = unknwn.IID_IUnknown THEN
-    Strings.AppendW( REF s, L'{IUnknown}' );
-  ELSIF riid = unknwn.IID_IClassFactory THEN
-    Strings.AppendW( REF s, L'{IClassFactory}' );
-  ELSIF riid = ocidl.IID_IClassFactory2 THEN
-    Strings.AppendW( REF s, L'{IClassFactory2}' );
-  ELSIF riid = oaidl.IID_IDispatch THEN
-    Strings.AppendW( REF s, L'{IDispatch}' );
-  ELSIF riid = ocidl.IID_IProvideClassInfo THEN
-    Strings.AppendW( REF s, L'{IProvideClassInfo}' );
-  ELSIF riid = ocidl.IID_IConnectionPointContainer THEN
-    Strings.AppendW( REF s, L'{IConnectionPointContainer}' );
-  ELSIF riid = ocidl.IID_IEnumConnectionPoints THEN
-    Strings.AppendW( REF s, L'{IEnumConnectionPoints}' );
-  ELSIF riid = ocidl.IID_IConnectionPoint THEN
-    Strings.AppendW( REF s, L'{IConnectionPoint}' );
-  ELSIF riid = ocidl.IID_IEnumConnections THEN
-    Strings.AppendW( REF s, L'{IEnumConnections}' );
+      IF riid = guiddef.IID_NULL THEN
+      Strings.AppendW( REF s, L'{INull}' );
+   ELSIF riid = unknwn.IID_IUnknown THEN
+      Strings.AppendW( REF s, L'{IUnknown}' );
+   ELSIF riid = unknwn.IID_IClassFactory THEN
+      Strings.AppendW( REF s, L'{IClassFactory}' );
+   ELSIF riid = ocidl.IID_IClassFactory2 THEN
+      Strings.AppendW( REF s, L'{IClassFactory2}' );
+   ELSIF riid = oaidl.IID_IDispatch THEN
+      Strings.AppendW( REF s, L'{IDispatch}' );
+   ELSIF riid = ocidl.IID_IProvideClassInfo THEN
+      Strings.AppendW( REF s, L'{IProvideClassInfo}' );
+   ELSIF riid = ocidl.IID_IConnectionPointContainer THEN
+      Strings.AppendW( REF s, L'{IConnectionPointContainer}' );
+   ELSIF riid = ocidl.IID_IEnumConnectionPoints THEN
+      Strings.AppendW( REF s, L'{IEnumConnectionPoints}' );
+   ELSIF riid = ocidl.IID_IConnectionPoint THEN
+      Strings.AppendW( REF s, L'{IConnectionPoint}' );
+   ELSIF riid = ocidl.IID_IEnumConnections THEN
+      Strings.AppendW( REF s, L'{IEnumConnections}' );
 
-  ELSE
-    objbase.StringFromIID( riid, PBSTR );
-    Strings.AppendW( REF s, OA( 64, PBSTR ));
-    objbase.CoTaskMemFree( PBSTR );
-  END;
+   ELSE
+      objbase.StringFromIID( riid, PBSTR );
+      Strings.AppendW( REF s, OA( 64, PBSTR ));
+      objbase.CoTaskMemFree( PBSTR );
+   END;
 
-  Strings.AppendW( REF s, WCHAR( 13 ) + WCHAR( 10 ));
-  windows.OutputDebugStringW( ADR( s ));
+   Log.logger()^.LogS( Log.dldDebug, L"COM", s );
 END DbgOutIID;
 
 (*---------------------------------------------------------------------------*)
 
 PROCEDURE DbgOutRefCount( Text : ARRAY OF WCHAR; PInterface : TPInterface; From : CARDINAL; Amount : INTEGER );
 VAR
-  n : ARRAY [0..31] OF WCHAR;
-  s : ARRAY [0..127] OF WCHAR;
+   n : ARRAY [0..31] OF WCHAR;
+   s : ARRAY [0..127] OF WCHAR;
 BEGIN
-  Strings.FromCARD32W( CARDINAL( PInterface ), 16, OUT s );
-  Strings.PrependW( REF s, Text );
-  Strings.FromCARD32W( From, 10, OUT n );
-  Strings.AppendW( REF s, L', ' );
-  Strings.AppendW( REF s, n );
-  Strings.AppendW( REF s, L' -> ' );
-  Strings.FromCARD32W( CARDINAL( INTEGER( From ) + Amount ), 10, OUT n );
-  Strings.AppendW( REF s, n );
-  Strings.AppendW( REF s, WCHAR( 13 ) + WCHAR( 10 ));
-  windows.OutputDebugStringW( ADR( s ));
+   Strings.FromCARD32W( CARDINAL( PInterface ), 16, OUT s );
+   Strings.PrependW( REF s, Text );
+   Strings.FromCARD32W( From, 10, OUT n );
+   Strings.AppendW( REF s, L', ' );
+   Strings.AppendW( REF s, n );
+   Strings.AppendW( REF s, L' -> ' );
+   Strings.FromCARD32W( CARDINAL( INTEGER( From ) + Amount ), 10, OUT n );
+   Strings.AppendW( REF s, n );
+
+   Log.logger()^.LogS( Log.dldDebug, L"COM", s );
 END DbgOutRefCount;
 
 (*---------------------------------------------------------------------------*)
