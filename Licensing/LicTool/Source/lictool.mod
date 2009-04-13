@@ -133,15 +133,15 @@ VAR
       expBegin : StringsO.CString;
       expEnd : StringsO.CString;
       flags : ARRAY [0..7] OF WCHAR := L"";
+      jd : time.TJD;
       ps : StringsO.TPString;
       s : ARRAY [0..63] OF WCHAR;
    #endif
    
    #if Licensor #or Client #then
       an : Number.CActivation;
-      dtb : time.TDateTime;
-      dte : time.TDateTime;
-      jd : time.TJD;
+      dtb : time.DateTime;
+      dte : time.DateTime;
       out : TextWriter.TPTextWriter := TextWriter.stdout();
       owner : StringsO.CString;
       pathOrFilter : StringsO.CString;
@@ -383,12 +383,12 @@ VAR
    #endif
      
 BEGIN
-   err^.WriteOA( L'Licence engine support tool', TRUE );
-   err^.WriteOA( L'(c) SmartControl 2007', TRUE );
+   err^.WriteOA( L"Licence support tool", TRUE );
+   err^.WriteOA( L"(c) ", FALSE ); err^.WriteOA( Manufacturer, FALSE ); err^.WriteOA( L" 2009", TRUE );
    err^.LineEnd();
 
    IF argc < 2 THEN
-      err^.WriteOA( L'  missing parameters', TRUE );
+      err^.WriteOA( L"  missing parameters", TRUE );
       RETURN 100;
    END;
 
@@ -768,7 +768,7 @@ BEGIN
                   NEW( licenceItem );
                   licenceItem^.ProductId := item^.ProductId;
                   licenceItem^.Type := sn.Type;
-                  time.GetCurrentUTCDateTime( licenceItem^.Created );
+                  licenceItem^.Created := time.NowUTC();
                   so.Assign( sns.Current^ );
                   licenceItem^.Serial := so;
                   licenceItem^.Owner := owner;
@@ -936,12 +936,10 @@ BEGIN
       END;
 
       // common expiration settings
-      time.InitDateTime( OUT dtb );
-      IF NOT expBegin.Empty AND NOT time.StringToDateTime( OA( expBegin.Length-1, expBegin.rawData ), dateFormat, dtb ) THEN
+      IF NOT expBegin.Empty AND NOT dtb.FromStringOA( OA( expBegin.Length-1, expBegin.rawData ), dateFormat ) THEN
          err^.WriteOA( L'  the begin date is not valid', TRUE );
          RETURN 209;
       END;
-      time.InitDateTime( OUT dte );
       IF NOT expEnd.Empty THEN
          IF expEnd[0] = L'+' THEN
             expEnd.Remove( 0, 1 );
@@ -950,8 +948,8 @@ BEGIN
                RETURN 210;
             END;
             jd := time.GetCurrentJD() + time.DaysToJDC( i * 31 );
-            time.JDToZonalDateTime( jd, dte, 0, 0 );
-         ELSIF NOT time.StringToDateTime( OA( expEnd.Length-1, expEnd.rawData ), dateFormat, dte ) THEN
+            dte.FromJD( jd, 0, 0 );
+         ELSIF NOT dte.FromStringOA( OA( expEnd.Length-1, expEnd.rawData ), dateFormat ) THEN
             err^.WriteOA( L'  the end date is not valid', TRUE );
             RETURN 211;
          END;
@@ -963,10 +961,10 @@ BEGIN
          an.Origin := dtb;
          an.Months := -1;
       ELSE
-         jd := MAX2( time.TJD( 2120500080000000 ), time.DateTimeToJD( dtb )); // 2120500080000000 is minimal origin (see Number.mod)
-         i := time.JDCToDays( time.DateTimeToJD( dte ) - jd ) DIV 31 + 1;
-         time.JDToZonalDateTime( jd + time.DaysToJDC( i * 31 ), dte, 0, 0 );
-         time.DateTimeToString( dte, dateFormat, TRUE, FALSE, s );
+         jd := MAX2( time.TJD( 2120500080000000 ), dtb.JulianDate ); // 2120500080000000 is minimal origin (see Number.mod)
+         i := time.JDCToDays( dte.JulianDate - jd ) DIV 31 + 1;
+         dte.FromJD( jd + time.DaysToJDC( i * 31 ), 0, 0 );
+         dte.ToStringOA( dateFormat, TRUE, FALSE, OUT s );
          err^.WriteOA( L'  expiration counted to ', FALSE ); err^.WriteOA( s, TRUE );
          an.Origin := dtb; // dtbs sooner than 2120500080000000 are trimmed inside an.Origin.set
          an.Months := i;
@@ -1053,7 +1051,7 @@ BEGIN
                   // check if activation does not exists
                   NEW( activationItem );
                   activationItem^.ProductId := item^.ProductId;
-                  time.GetCurrentUTCDateTime( activationItem^.Created );
+                  activationItem^.Created := time.NowUTC();
                   activationItem^.OfSerial := Items.TPLicence( item )^.Serial;
                   activationItem^.UId := uid;
                   dte := an.Origin;
@@ -1063,8 +1061,7 @@ BEGIN
                      activationItem^.Starts := dte;
                   ELSE
                      activationItem^.Starts := dte;
-                     jd := time.DateTimeToJD( dte ) + time.DaysToJDC( an.Months * 31 );
-                     time.JDToZonalDateTime( jd, dte, 0, 0 );
+                     dte.FromJD( dte.JulianDate + time.DaysToJDC( an.Months * 31 ), 0, 0 );
                      activationItem^.Expires := dte;
                   END;
 

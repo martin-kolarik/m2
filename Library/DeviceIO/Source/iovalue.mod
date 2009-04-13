@@ -393,7 +393,7 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY String GET : StringsO.CString;
    VAR
-      dt : time.TDateTime;
+      dt : time.DateTime;
       s : ARRAY [0..63] OF WCHAR;
       S : StringsO.CString;
    BEGIN
@@ -429,8 +429,8 @@ CLASS IMPLEMENTATION Value;
          RETURN _Storage.String^;
 
       | vtDate :
-         time.JDToZonalDateTime( _Storage.Date, OUT dt, 0, 0 );
-         IF time.DateTimeToString( dt, defaultDateTimeFormat, TRUE, TRUE, s ) THEN
+         dt.JulianDate := _Storage.Date;
+         IF dt.ToStringOA( defaultDateTimeFormat, TRUE, TRUE, OUT s ) THEN
             S.FromOA( s );
          END;
 
@@ -445,7 +445,7 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY Date GET : time.TJD;
    VAR
-      dt : time.TDateTime;
+      dt : time.DateTime;
       t : time.TJD := time.GetCurrentJD();
    BEGIN
       IF vfUndefined IN _Flags THEN
@@ -485,9 +485,8 @@ CLASS IMPLEMENTATION Value;
          RETURN time.FromSJD( _Storage.Float );
 
       | vtString :
-         IF time.StringToDateTime( OA( _Storage.String^.Length-1, _Storage.String^.rawData ), defaultDateTimeFormat, dt ) THEN
-            time.InitDateTime( OUT dt );
-            RETURN time.ZonalDateTimeToJD( dt, 0, 0 );
+         IF dt.FromStringOA( OA( _Storage.String^.Length-1, _Storage.String^.rawData ), defaultDateTimeFormat ) THEN
+            RETURN dt.JulianDate;
          ELSE
             RETURN defaultDate;
          END;
@@ -762,7 +761,7 @@ CLASS IMPLEMENTATION Value;
 
    PUBLIC PROPERTY String SET( CONST value : StringsO.CString );
    VAR
-      dt : time.TDateTime;
+      dt : time.DateTime;
    BEGIN
       IF _Type = vtUnknown THEN
          Type := vtString; // using property allocates string
@@ -804,9 +803,8 @@ CLASS IMPLEMENTATION Value;
          _Storage.String^ := value;
 
       | vtDate :
-         IF time.StringToDateTime( OA( value.Length-1, value.rawData ), defaultDateTimeFormat, dt ) THEN
-            time.InitDateTime( OUT dt );
-            _Storage.Date := time.ZonalDateTimeToJD( dt, 0, 0 );
+         IF dt.FromStringOA( OA( value.Length-1, value.rawData ), defaultDateTimeFormat ) THEN
+            _Storage.Date := dt.JulianDate;
          ELSE
             Undefined := TRUE;
          END;
@@ -821,7 +819,7 @@ CLASS IMPLEMENTATION Value;
    PUBLIC PROPERTY Date SET( value : time.TJD );
    VAR
       today, tomorrow : time.TJD;
-      dt : time.TDateTime;
+      dt : time.DateTime;
       s : ARRAY [0..63] OF WCHAR;
    BEGIN
       IF _Type = vtUnknown THEN
@@ -853,8 +851,8 @@ CLASS IMPLEMENTATION Value;
          _Storage.Float := time.ToSJD( value );
 
       | vtString :
-         time.JDToZonalDateTime( value, OUT dt, 0, 0 );
-         IF time.DateTimeToString( dt, defaultDateTimeFormat, TRUE, TRUE, s ) THEN
+         dt.SetNowUTC();
+         IF dt.ToStringOA( defaultDateTimeFormat, TRUE, TRUE, OUT s ) THEN
             _Storage.String^.FromOA( s );
          ELSE
             _Storage.String^.Clear();

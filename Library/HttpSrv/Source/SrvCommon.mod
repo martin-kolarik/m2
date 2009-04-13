@@ -102,7 +102,7 @@ CLASS IMPLEMENTATION CHeaders;
 
    PUBLIC VIRTUAL PROCEDURE Enumerate( Known, Uknown : BOOLEAN; REF ES : PTR; OUT Name, Value : StringsO.IString ) : BOOLEAN;
    BEGIN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       RETURN FALSE;
    END Enumerate;
 
@@ -254,7 +254,7 @@ CLASS IMPLEMENTATION ASrvStream;
 
    PUBLIC FINAL PROCEDURE Seek( Origin : IOO.TSeekOrigin; Position : INT64 ); 
    BEGIN
-      ASSERT( FALSE ); // not seekable      
+      ASSERTLOG( FALSE ); // not seekable      
    END Seek;
    
 (*--------------------------------------------------------------------------------*)
@@ -474,14 +474,81 @@ CLASS IMPLEMENTATION ASrvStream;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY AllowCaching GET : BOOLEAN;
+   BEGIN
+      RETURN NOT ResponseHeaders^.Contains( HttpCommon.CacheControl );
+   END AllowCaching;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY AllowCaching SET( Value : BOOLEAN );
+   BEGIN
+      IF Value THEN
+         ResponseHeaders^.Remove( HttpCommon.Pragma );
+         ResponseHeaders^.Remove( HttpCommon.CacheControl );
+      ELSE
+         ResponseHeaders^.AddOA( HttpCommon.Pragma, L"no-cache" );
+         ResponseHeaders^.AddOA( HttpCommon.CacheControl, L"no-cache" );
+      END;
+   END AllowCaching;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY LastModified GET : time.DateTime;
+   VAR
+      dt : time.DateTime;
+      s : StringsO.CString;
+   BEGIN
+      IF NOT ResponseHeaders^.Get( HttpCommon.LastModified, OUT s ) THEN
+         dt.Clear();
+      ELSIF NOT httptools.DecodeDate( s, OUT dt ) THEN
+         dt.Clear();
+      END;
+      RETURN dt;
+   END LastModified;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY LastModified SET( CONST Value : time.DateTime );
+   BEGIN
+      ResponseHeaders^.Add( HttpCommon.LastModified, httptools.FormatDate( Value ));
+   END LastModified;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE TestConditions( CONST ResourceLastModified : time.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
+   VAR
+      dt : time.DateTime;
+      IfModifiedSince : StringsO.CString;
+      ldt : time.DateTime;
+   BEGIN
+      IF RequestHeaders^.Get( HttpCommon.IfModifiedSince, OUT IfModifiedSince ) AND httptools.DecodeDate( IfModifiedSince, OUT dt ) THEN
+         ldt := ResourceLastModified;
+         ldt.Millisecond := 0; // HTTP date has resolution of seconds
+         IF dt < ldt THEN
+            RETURN HttpCommon.httpres_200;
+         ELSE
+            RETURN HttpCommon.httpres_304;
+         END;
+
+      ELSE
+         RETURN HttpCommon.httpres_200;
+      END;
+   END TestConditions;
+
+(*--------------------------------------------------------------------------------*)
+
    PRIVATE PROCEDURE NormalizeHeaders();
    VAR
-      // dt : Time.TDateTime;
+      dt : Time.DateTime;
       Content : StringsO.CString;
    BEGIN
       // Date
-      // Time.GetCurrentUTCDateTime( dt );
-      // _ResponseHeaders.Add( HttpCommon.Date, httptools.FormatDate( dt )); // driven by http.sys
+      dt.SetNowUTC();
+      // _ResponseHeaders.Add( HttpCommon.Date, httptools.FormatDateJD( dt )); // driven by http.sys
+      IF dt < LastModified THEN // RFC: LastModified MUST NOT be greater than Date
+         LastModified := dt;
+      END;
       
       // cleanup if error
       IF StatusCode > HttpCommon.httpres_400 THEN
@@ -491,11 +558,11 @@ CLASS IMPLEMENTATION ASrvStream;
       // Server
       ResponseHeaders^.AddOA( HttpCommon.Server, L"SCWS/1.0 on" );
       
-      // Caching
-      IF NOT ResponseHeaders^.Contains( HttpCommon.CacheControl ) THEN
-         ResponseHeaders^.AddOA( HttpCommon.Pragma, L"no-cache" );
-         ResponseHeaders^.AddOA( HttpCommon.CacheControl, L"no-cache" );
-      END;
+      // Caching, not controlled
+      // IF NOT ResponseHeaders^.Contains( HttpCommon.CacheControl ) THEN
+      //    ResponseHeaders^.AddOA( HttpCommon.Pragma, L"no-cache" );
+      //    ResponseHeaders^.AddOA( HttpCommon.CacheControl, L"no-cache" );
+      // END;
 
       // Content
       IF NOT ResponseHeaders^.Contains( HttpCommon.ContentType ) THEN
@@ -622,7 +689,9 @@ CLASS CHttpConnection IMPLEMENTS HttpConnection.IHttpSrvConnection;
       OverrideStatusResponse : BOOLEAN;
       Chunked : BOOLEAN;
       ResponseLength : CARD64;
-   
+      AllowCaching : BOOLEAN;
+      LastModified : time.DateTime;
+
    PRIVATE VAR
       _Stream : TPSrvStream;
    
@@ -759,6 +828,34 @@ CLASS IMPLEMENTATION CHttpConnection;
    BEGIN
       _Stream^.ResponseLength := Value; 
    END ResponseLength;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY AllowCaching GET : BOOLEAN;
+   BEGIN
+      RETURN _Stream^.AllowCaching;
+   END AllowCaching;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY AllowCaching SET( Value : BOOLEAN );
+   BEGIN
+      _Stream^.AllowCaching := Value;
+   END AllowCaching;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY LastModified GET : time.DateTime;
+   BEGIN
+      RETURN _Stream^.LastModified;
+   END LastModified;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY LastModified SET( CONST Value : time.DateTime );
+   BEGIN
+      _Stream^.LastModified := Value;
+   END LastModified;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -922,10 +1019,12 @@ CLASS IMPLEMENTATION HttpWorker;
    LOCAL VIRTUAL PROCEDURE Run();
    VAR
       Connection : CHttpConnection;
+      dt : time.DateTime;
       s : StringsO.CString;
+      sOA : ARRAY [0..255] OF WCHAR;
    BEGIN
       IF ( _Session <> NIL ) AND _Session^.New THEN
-         _Stream^.ResponseHeaders^.Add( HttpCommon.SetCookie, httptools.FormatSIDCookie( _Session^.SID, 0, _Session^.RootPath, s ));
+         _Stream^.ResponseHeaders^.Add( HttpCommon.SetCookie, httptools.FormatSIDCookie( _Session^.SID, dt, _Session^.RootPath, s ));
       END;
 
       IF _Processor = NIL THEN
@@ -933,6 +1032,37 @@ CLASS IMPLEMENTATION HttpWorker;
       ELSE
          Connection.FromStream( _Stream );
          _Processor^.ProcessRequest( ADR( Connection ), _Session );
+      END;
+      
+      IF NOT logger()^.Filtered( dlcInfo ) THEN
+         CASE _Stream^.RequestVerb OF
+         | HttpCommon.verbPOST :
+            s.FromOA( L"POST " );
+         | HttpCommon.verbHEAD :
+            s.FromOA( L"GET " );
+         ELSE
+            s.FromOA( L"GET " );
+         END;
+         s.Append( _Stream^.AbsoluteURI );
+         _Stream^.URIData.ToOA( OUT sOA );
+         IF sOA[0] <> 0W THEN
+            s.AppendOA( L"?" );
+            s.AppendOA( sOA );
+         END;
+         Strings.FromCARD32W( CARDINAL( _Stream^.StatusCode ), 10, OUT sOA );
+         s.AppendOA( L" " );
+         s.AppendOA( sOA );
+         IF _Stream^.Chunked THEN
+            s.AppendOA( L" chunked" );
+         ELSIF _Stream^.Length = -1 THEN
+            s.AppendOA( L" 0" );
+         ELSE
+            Strings.FromCARD32W( CARDINAL( _Stream^.Length ), 10, OUT sOA );
+            s.AppendOA( L" " );
+            s.AppendOA( sOA );
+         END; // IF chunked
+
+         logger()^.LogS( dlcInfo, L"HTTP", OA( s.Length-1, s.rawData ));
       END;
       
       _Stream^.Close( FALSE );
@@ -1273,7 +1403,7 @@ CLASS IMPLEMENTATION ASrvCommon;
       Worker : POINTER TO HttpWorker;
    BEGIN
       IF _PreparedStream = NIL THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE, L"Request to process not prepared stream." );
          RETURN;
       END;
 
@@ -1338,14 +1468,14 @@ CLASS IMPLEMENTATION ASrvCommon;
       sid : StringsO.CString;
    BEGIN
       IF _PreparedStream = NIL THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE, L"Request to get cookie for unknown stream" );
          RETURN NIL;
       ELSIF _PreparedStream^.RequestHeaders^.Get( HttpCommon.Cookie, OUT cookies ) AND httptools.DecodeSIDCookie( cookies, OUT sid ) THEN
          pcookie := ADR( sid );
       ELSE
          pcookie := NIL;
       END;
-      RETURN holder^.GetSession( pcookie,  _PreparedStream^.RemoteAddress, _RootPath );
+      RETURN holder^.GetSession( pcookie, _PreparedStream^.RemoteAddress, _RootPath );
    END GetSessionForPreparedStream;
 
 (*--------------------------------------------------------------------------------*)

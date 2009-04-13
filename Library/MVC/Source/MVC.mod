@@ -14,6 +14,7 @@ IMPORT
    Log,
    netsocket,
    Resources,
+   SrvCommon,
    Storage,
    StorageO,
    Strings,
@@ -25,13 +26,14 @@ IMPORT
 
 CONST
    SESSION_MVC = L"#mvc";
-   VIEW_MAPPER = L"#viewmapper";
+   VIEW_MAPPER = L"#viewmapper.";
 
 (*================================================================================*)
 
 CLASS CContainer IMPLEMENTS IContainer;
    PRIVATE VAR
       Models : maps.CStringMap;
+      CallMemo : BOOLEAN := FALSE;
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
    PUBLIC VIRTUAL PROCEDURE RemoveOA( CONST Name : ARRAY OF WCHAR ); // removes all types
@@ -48,13 +50,17 @@ CLASS CContainer IMPLEMENTS IContainer;
    PUBLIC VIRTUAL PROCEDURE GetMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE GetFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; OUT Handler : TPFunctionHandler ) : BOOLEAN;
 
+   PUBLIC VIRTUAL PROCEDURE ResetFunctionCallsMemo();
+   PUBLIC VIRTUAL PROCEDURE GetFunctionCallsMemo() : BOOLEAN; // returns if some function was called after last ResetFunctionCallsMemo
+   
    PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Model, Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Model : StringsO.IString; OUT Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    PUBLIC VIRTUAL PROCEDURE Format( FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
 
-   PUBLIC VIRTUAL PROCEDURE ResetModelViewMapping(); // clears all mode-view bindings
-   PUBLIC VIRTUAL PROCEDURE SetModelViewMapping( CONST FullModel, ViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
-   PUBLIC VIRTUAL PROCEDURE GetModelViewMapping( CONST ViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
+   // There can be more active mappings, each identified by ControllerURI.
+   PUBLIC VIRTUAL PROCEDURE ResetModelInViewNames( CONST ControllerURI : StringsO.IString ); // clears all mode-view bindings corresponding to SetId
+   PUBLIC VIRTUAL PROCEDURE SetModelInViewName( CONST ControllerURI, FullModel, InViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
+   PUBLIC VIRTUAL PROCEDURE GetModelByInViewName( CONST ControllerURI, InViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
 END CContainer;
 
 (*--------------------------------------------------------------------------------*)
@@ -88,7 +94,7 @@ CLASS IMPLEMENTATION CContainer;
          | L"f" :
             // do nothing
          ELSE
-            ASSERT( FALSE );
+            ASSERTLOG( FALSE );
          END; // CASE
       END; // WHILE
       Models.Dispose();
@@ -270,6 +276,20 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE ResetFunctionCallsMemo();
+   BEGIN
+      CallMemo := FALSE;
+   END ResetFunctionCallsMemo;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE GetFunctionCallsMemo() : BOOLEAN; // returns if some function was called after last ResetFunctionCallsMemo
+   BEGIN
+      RETURN CallMemo;
+   END GetFunctionCallsMemo;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE GetFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; OUT Handler : TPFunctionHandler ) : BOOLEAN;
    VAR
       model : TPFunctionHandler;
@@ -413,7 +433,9 @@ CLASS IMPLEMENTATION CContainer;
                   EXIT;
                END;
             END; // LOOP
-            RETURN functionHandler^.Call( sindex1, REF parameters, NIL );
+            boolean := functionHandler^.Call( sindex1, REF parameters, NIL );
+            CallMemo := CallMemo OR boolean;
+            RETURN boolean;
          END; // IF function found
       END;
       
@@ -558,7 +580,9 @@ CLASS IMPLEMENTATION CContainer;
                   EXIT;
                END;
             END; // LOOP
-            RETURN functionHandler^.Call( sindex1, REF parameters, ADR( value ));
+            boolean := functionHandler^.Call( sindex1, REF parameters, ADR( value ));
+            CallMemo := CallMemo OR boolean;
+            RETURN boolean;
          END; // IF function found
       END;
       
@@ -636,37 +660,48 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE ResetModelViewMapping(); // clears all mode-view bindings
+   // There can be more active mappings, each identified by SetId. It e.g. can be controller name, or so, always that way, to one would be easily able to identify to which controller/view the set and its data belongs.
+   PUBLIC VIRTUAL PROCEDURE ResetModelInViewNames( CONST ControllerURI : StringsO.IString ); // clears all mode-view bindings corresponding to SetId
+   VAR
+      LSetId : StringsO.CString;
    BEGIN
-      RemoveOA( VIEW_MAPPER );
-   END ResetModelViewMapping;
+      LSetId.FromOA( VIEW_MAPPER );
+      LSetId.Append( ControllerURI );
+      RemoveOA( OA( LSetId.Length-1, LSetId.rawData ));
+   END ResetModelInViewNames;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE SetModelViewMapping( CONST FullModel, ViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
+   PUBLIC VIRTUAL PROCEDURE SetModelInViewName( CONST ControllerURI, FullModel, InViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
    VAR
+      LSetId : StringsO.CString;
       mapper : maps.TPStringStringMap;
    BEGIN
-      IF NOT GetMapOA( VIEW_MAPPER, OUT mapper ) THEN
-         AddMapOA( VIEW_MAPPER, OUT mapper );
+      LSetId.FromOA( VIEW_MAPPER );
+      LSetId.Append( ControllerURI );
+      IF NOT GetMapOA( OA( LSetId.Length-1, LSetId.rawData ), OUT mapper ) THEN
+         AddMapOA( OA( LSetId.Length-1, LSetId.rawData ), OUT mapper );
       END;
-      mapper^.Add( ViewName, FullModel );
-   END SetModelViewMapping;
+      mapper^.Add( InViewName, FullModel );
+   END SetModelInViewName;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetModelViewMapping( CONST ViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
+   PUBLIC VIRTUAL PROCEDURE GetModelByInViewName( CONST ControllerURI, InViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
    VAR
+      LSetId : StringsO.CString;
       mapper : maps.TPStringStringMap;
    BEGIN
-      IF NOT GetMapOA( VIEW_MAPPER, OUT mapper ) THEN
+      LSetId.FromOA( VIEW_MAPPER );
+      LSetId.Append( ControllerURI );
+      IF NOT GetMapOA( OA( LSetId.Length-1, LSetId.rawData ), OUT mapper ) THEN
          RETURN FALSE;
-      ELSIF NOT mapper^.Get( ViewName, OUT FullModel ) THEN
+      ELSIF NOT mapper^.Get( InViewName, OUT FullModel ) THEN
          RETURN FALSE;
       ELSE
          RETURN TRUE;
       END;
-   END GetModelViewMapping;
+   END GetModelByInViewName;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -691,6 +726,8 @@ CLASS CHttpRequest IMPLEMENTS IHttpRequest;
       Session : HttpSrv.TPSession;
       MessageSource : TPMessageSource; // messages are loaded single time for MVC's context, can be NIL
       
+   PUBLIC VIRTUAL PROCEDURE TestConditions( CONST ResourceLastModified : time.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
+
    // SELF
    PRIVATE VAR
       _Connection : HttpConnection.TPHttpSrvConnection;
@@ -789,6 +826,17 @@ CLASS IMPLEMENTATION CHttpRequest;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE TestConditions( CONST ResourceLastModified : time.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
+   BEGIN
+      IF _Connection^.Stream^ INHERITS SrvCommon.ASrvStream THEN
+         RETURN SrvCommon.TPSrvStream( _Connection^.Stream )^.TestConditions( ResourceLastModified, ResourceName );
+      END;
+      ASSERTLOG( FALSE, L"Unable to test HTTP condition." );
+      RETURN HttpCommon.httpres_500;
+   END TestConditions;
+
+(*--------------------------------------------------------------------------------*)
+
    LOCAL PROCEDURE Init( CONST ControllerURI : StringsO.CString; Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPContainer; CONST MessageSource : TPMessageSource );
    BEGIN
       _ControllerURI := ControllerURI;
@@ -819,6 +867,8 @@ CLASS CHttpResponse IMPLEMENTS IHttpResponse;
       ContentType : StringsO.CString; // default none
       Chunked : BOOLEAN; // default FALSE
       OverrideStatusResponse : BOOLEAN; // default FALSE
+      AllowCaching : BOOLEAN;
+      LastModified : time.DateTime;
 
    PUBLIC VIRTUAL READONLY PROPERTY
       ResponseHeaders : HttpCommon.TPHttpHeaders;
@@ -904,6 +954,34 @@ CLASS IMPLEMENTATION CHttpResponse;
    BEGIN
       RETURN _Connection^.OverrideStatusResponse;
    END OverrideStatusResponse;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY AllowCaching GET : BOOLEAN;
+   BEGIN
+      RETURN _Connection^.AllowCaching;
+   END AllowCaching;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY AllowCaching SET( Value : BOOLEAN );
+   BEGIN
+      _Connection^.AllowCaching := Value;
+   END AllowCaching;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY LastModified GET : time.DateTime;
+   BEGIN
+      RETURN _Connection^.LastModified;
+   END LastModified;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY LastModified SET( CONST Value : time.DateTime );
+   BEGIN
+      _Connection^.LastModified := Value;
+   END LastModified;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1041,6 +1119,7 @@ CLASS IMPLEMENTATION CMVC;
       modelValue : StringsO.CString;
       request : CHttpRequest;
       response : CHttpResponse;
+      Result : Sync.TAsyncResult;
       view : TPView;
    BEGIN
       controllerURI := Connection^.RequestURI;
@@ -1074,9 +1153,10 @@ CLASS IMPLEMENTATION CMVC;
       ELSE
          ASSERTLOG( FALSE, L"Unknown HTTP verb when processing MVC request" );
       END;
+      container^.ResetFunctionCallsMemo();
       connectionData.Reset();
       WHILE connectionData.MoveNext() DO
-         IF container^.GetModelViewMapping( connectionData.Current^, OUT mappedName ) THEN
+         IF container^.GetModelByInViewName( controllerURI, connectionData.Current^, OUT mappedName ) THEN
             container^.SetModelValue( mappedName, connectionData.CurrentData^ );
          ELSIF ( Connection^.RequestVerb <> HttpCommon.verbPOST ) AND // for GET driving by URI parameter is allowed...
                container^.GetModelValue( connectionData.Current^, OUT modelValue ) THEN // ...only if the parameter is known
@@ -1095,8 +1175,8 @@ CLASS IMPLEMENTATION CMVC;
          Connection^.StatusCode := HttpCommon.httpres_500;
       ELSIF view = NIL THEN
          Connection^.StatusCode := HttpCommon.httpres_500;
-         // LOG error
-         ASSERT( FALSE );
+         Log.logger()^.LogS( Log.dlcError, L"MVC", L"Controller returned TRUE but it did not prepare View." );
+         ASSERTLOG( FALSE, L"Controller returned TRUE but it did not prepare View." );
       ELSE
          Connection^.StatusCode := HttpCommon.httpres_200;
          
@@ -1109,8 +1189,10 @@ CLASS IMPLEMENTATION CMVC;
                Connection^.ResponseLength := 0;
             ELSE
                Connection^.ResponseLength := CARD64( buffer.Length );
-               Connection^.Stream^.WriteBuffer( buffer, OUT l, netsocket.FORSAFETY );
-               // LOG errors
+               Result := Connection^.Stream^.WriteBuffer( buffer, OUT l, netsocket.FORSAFETY );
+               IF Result NOT IN Sync.arsCompletions THEN
+                  Log.logger()^.LogS( Log.dlcError, L"MVC", L"Failure when writing output buffer to stream." );
+               END;
             END;
          //-----
          | votInputStream :
@@ -1133,10 +1215,10 @@ CLASS IMPLEMENTATION CMVC;
          | votOutputStream :
             IF NOT view^.FormatToOutputStream( request, REF response, Connection^.Stream ) THEN
                Connection^.StatusCode := HttpCommon.httpres_500;
-               // LOG errors
+               Log.logger()^.LogS( Log.dlcError, L"MVC", L"Failure when formatting View to output stream." );
             END;
          ELSE
-            ASSERT( FALSE );
+            ASSERTLOG( FALSE );
          END;         
 
          view^.Release();
@@ -1218,7 +1300,7 @@ CLASS IMPLEMENTATION CMVC;
       END;
       s.AppendOA( URL );
       IF _Controllers.Get( s, OUT controller ) THEN
-         ASSERT( FALSE );
+         ASSERTLOG( FALSE );
          _Controllers.Remove( s );
       END;
       _Controllers.Add( s, controller );
@@ -1394,12 +1476,14 @@ CLASS IMPLEMENTATION CMVCHolder;
       s : StringsO.CString;
    BEGIN
       IF context[0] = 0W THEN
-         ASSERT( FALSE );
-         RETURN NIL;
+         Log.logger()^.LogS( Log.dlcError, L"MVC", L"Client requests unnamed context." );
+         ASSERTLOG( FALSE );
+         s.FromOA( L" bad context" );
+      ELSE
+         s.FromOA( context );
       END;
       
       // remove leading and add trailing slashes
-      s.FromOA( context );
       IF context[0] = L"/" THEN
          s.Remove( 0, 1 );
       END;
@@ -1523,6 +1607,17 @@ BEGIN
    view^.Init( HTML );
    RETURN view;
 END rawHTMLView;
+
+//--------------------------------------------------------------------------------
+
+PROCEDURE rawTextView( CONST text, downloadName : ARRAY OF WCHAR; CONST content : StringsO.IString; dispositionFlag : BOOLEAN ) : TPView; // if content is empty, default one is used
+VAR
+   view : View.TPRawTextView;
+BEGIN
+   NEW( view );
+   view^.Init( text, downloadName, content, dispositionFlag );
+   RETURN view;
+END rawTextView;
 
 //--------------------------------------------------------------------------------
 

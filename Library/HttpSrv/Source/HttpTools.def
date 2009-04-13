@@ -34,12 +34,14 @@ PROCEDURE DecodeLanguage( CONST AcceptLanguageHeader : StringsO.IString; OUT lan
 
 (*===========================================================================*)
 
-PROCEDURE FormatDate( CONST Date : time.TDateTime ) : StringsO.CString;
+PROCEDURE FormatDate( CONST Date : time.DateTime ) : StringsO.CString;
 PROCEDURE FormatDateJD( Date : time.TJD ) : StringsO.CString;
+PROCEDURE DecodeDate( CONST Encoded : StringsO.IString; OUT Date : time.DateTime ) : BOOLEAN;
+PROCEDURE DecodeDateJD( CONST Encoded : StringsO.IString; OUT Date : time.TJD ) : BOOLEAN;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE FormatSIDCookie( CONST SID : StringsO.IString; Expires : time.TJD; CONST Path, Domain : StringsO.IString ) : StringsO.CString;
+PROCEDURE FormatSIDCookie( CONST SID : StringsO.IString; CONST Expires : time.DateTime; CONST Path, Domain : StringsO.IString ) : StringsO.CString;
 PROCEDURE DecodeSIDCookie( CONST Cookies : StringsO.IString; OUT SID : StringsO.IString ) : BOOLEAN;
 
 (*---------------------------------------------------------------------------*)

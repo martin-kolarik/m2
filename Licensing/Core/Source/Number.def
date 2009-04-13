@@ -108,9 +108,9 @@ CLASS CActivation( CNumber );
 	PUBLIC WRITEONLY PROPERTY
 	   PId : Defs.TPID;
    PUBLIC PROPERTY
-		Origin : time.TDateTime; // 0        SET  SET   SET
-		Months : CARDINAL;       // 0        0    -1    ?
-		// result:               // Forever  To   From  From-To 
+		Origin : time.DateTime; // 0        SET  SET   SET
+		Months : CARDINAL;      // 0        0    -1    ?
+		// result:              // Forever  To   From  From-To 
 		MId : Defs.TMID;
 
 	PUBLIC VIRTUAL PROCEDURE ToOA( OUT Out : ARRAY OF BYTE; OUT Filled : CARDINAL ) : BOOLEAN;

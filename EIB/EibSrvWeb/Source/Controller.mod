@@ -11,6 +11,7 @@ IMPORT
    FIOO,
    HttpCommon,
    HttpTools,
+   lec,
    lists,
    Log,
    Strings,
@@ -24,6 +25,7 @@ CONST
    SESSION_ROLE = L"role";
    ROLE_ADMIN = L"isAdmin";
    USER_LOGGED = L"isLogged";
+   VERSION = L"version";
    
    RESOLVER_CONTEXT_WEB = 0;
    RESOLVER_CONTEXT_DISK = 1;
@@ -46,6 +48,8 @@ CONST
    STATUS_UPTIME = L"uptime";
    STATUS_LICENCE_VALID = L"licenceValid";
    STATUS_LICENCE = L"licence";
+   STATUS_LICENCE_NUMBER = L"licenceNumber";
+   STATUS_LICENCE_TYPE = "licenceType";
    STATUS_LAST_HOUR = L"ioLastHour";
    STATUS_LAST_DAY = L"ioLastDay";
    STATUS_CONFIGURATION = L"configurationPath";
@@ -62,6 +66,7 @@ CONST
    CONTROL_CONFIG_FILE = L"configFile";
    
    LOG_LOG = L"logRecords";
+   LOG_DOWNLOAD = L"download";
    
    IO_FORM_ID = L"formId";
    IO_READ_NAME = L"readName";
@@ -159,6 +164,7 @@ CLASS IMPLEMENTATION CController;
       data : PTR;
       role : EibSrvWeb.TRole;
       uri : StringsO.CString;
+      version : StringsO.CString;
    BEGIN
       IF Request.Session^.Get( SESSION_ROLE, OUT data ) THEN
          role := EibSrvWeb.TRole( LOPTRLONGWORD( data ));
@@ -166,15 +172,20 @@ CLASS IMPLEMENTATION CController;
          role := EibSrvWeb.roleGuest;
          Request.Session^.Add( SESSION_ROLE, PTR( role ));
       END;
+      
+      version.FromOA( ProductVersion );
+      Request.ModelContainer^.AddStringOA( VERSION, version );
 
       IF Fallback THEN
          uri := Request.ControllerURI;
-         IF uri.EndsWithOA( DYNAMIC_SUFFIX ) THEN
+         IF NOT uri.EndsWithOA( DYNAMIC_SUFFIX ) THEN
+            View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_WEB, OA( uri.Length-1, uri.rawData ), FALSE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
+         ELSIF NOT Request.ModelContainer^.GetFunctionCallsMemo() THEN // no call during the request
             Request.ModelContainer^.AddFunctionHandlerOA( FN_SET, ADR( SELF ));
             Request.ModelContainer^.AddFunctionHandlerOA( FN_GET, ADR( SELF ));
             View := mvc.pageTemplateView( ADR( SELF ), OA( uri.Length-1, uri.rawData ));
-         ELSE   
-            View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_WEB, OA( uri.Length-1, uri.rawData ), FALSE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
+         ELSE // some call was performed, redirect to self
+            View := mvc.redirectView( OA( uri.Length-1, uri.rawData ));
          END;
          RETURN TRUE;
    
@@ -285,13 +296,13 @@ CLASS IMPLEMENTATION CController;
       b : BOOLEAN;
       c : CARDINAL;
       cs : StringsO.CString;
-      currentDT : time.TDateTime;
+      currentDT : time.DateTime;
       currentTime : time.TJD;
-      dt : time.TDateTime;
+      dt : time.DateTime;
+      lt : lec.TLicenceType;
       s : ARRAY [0..63] OF WCHAR;
       starttime : time.TJD;
       uptime : time.TJDC;
-      t : time.TJD;
    BEGIN
       // check actions to do
       IF Request.ModelContainer^.GetBooleanOA( STATUS_CONNECT, OUT b ) AND b THEN
@@ -311,15 +322,14 @@ CLASS IMPLEMENTATION CController;
 
       starttime := _Web^.StartedTime;
       IF b THEN
-         t := _Web^.ConnectedTime;
+         dt.JulianDate := _Web^.ConnectedTime;
       ELSE
-         t := _Web^.DisconnectedTime;
+         dt.JulianDate := _Web^.DisconnectedTime;
       END;
-      IF t = 0 THEN
-         t := starttime;
+      IF dt.Empty THEN
+         dt.JulianDate := starttime;
       END;
-      time.JDToZonalDateTime( t, dt, 0, 0 );
-      IF time.DateTimeToStringLang( Request.Language, dt, DATETIME_FORMAT, TRUE, TRUE, s ) THEN
+      IF dt.ToLanguageStringOA( Request.Language, DATETIME_FORMAT, TRUE, TRUE, OUT s ) THEN
          cs.FromOA( s );
       ELSE
          cs.FromOA( L"N/A" );
@@ -328,8 +338,8 @@ CLASS IMPLEMENTATION CController;
       Request.ModelContainer^.AddBooleanOA( STATUS_CONNECT, FALSE );
       Request.ModelContainer^.AddBooleanOA( STATUS_DISCONNECT, FALSE );
       
-      time.GetCurrentUTCDateTime( currentDT );
-      currentTime := time.DateTimeToJD( currentDT );
+      currentDT.SetNowUTC();
+      currentTime := currentDT.JulianDate;
       uptime := currentTime - starttime;
       dt.Day := time.JDCToDays( uptime );
       time.fd2HMS( time.fd( uptime ), OUT dt.Hour, OUT dt.Minute, OUT dt.Second, OUT dt.Millisecond );
@@ -351,12 +361,23 @@ CLASS IMPLEMENTATION CController;
       IF dt.Day = 0 THEN
          Request.MessageSource^.GetMessageOA( Request.Language, L"status.licencePermanent", OUT cs );
       ELSE
-         time.DateTimeToStringLang( Request.Language, dt, DATETIME_FORMAT, TRUE, TRUE, s );
+         dt.ToLanguageStringOA( Request.Language, DATETIME_FORMAT, TRUE, TRUE, OUT s );
          Request.MessageSource^.GetMessageOA( Request.Language, L"status.licenceValidUntil", OUT cs );
          cs.AppendOA( s );
       END;
-      Request.ModelContainer^.AddBooleanOA( STATUS_LICENCE_VALID, ( dt.Day = 0 ) OR time.Greater( currentDT, dt ));
+      Request.ModelContainer^.AddBooleanOA( STATUS_LICENCE_VALID, ( dt.Day = 0 ) OR ( currentDT < dt ));
       Request.ModelContainer^.AddStringOA( STATUS_LICENCE, cs );
+
+      Request.ModelContainer^.AddStringOA( STATUS_LICENCE_NUMBER, _Web^.Licence );
+      cs.Clear();
+      lt := _Web^.LicenceType;
+      IF lec.ltEducational IN lt THEN
+         cs.FromOA( L"EDU " );
+      END;
+      IF lec.ltTrial IN lt THEN
+         cs.FromOA( L"TRIAL " );
+      END;
+      Request.ModelContainer^.AddStringOA( STATUS_LICENCE_TYPE, cs );
       
       c := _Web^.WrittenByHour + _Web^.ReadByHour;
       cs.FromCARD32( c, 10 );
@@ -470,23 +491,47 @@ CLASS IMPLEMENTATION CController;
    VAR
       count : CARDINAL;
       cs : StringsO.CString;
+      downloadFlag : BOOLEAN;
+      empty : StringsO.CString;
       i : CARDINAL;
       log : ARRAY [0..511] OF WCHAR;
+      logS : StringsO.CString;
    BEGIN
+      downloadFlag := Request.ModelContainer^.GetStringOA( LOG_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 );
       count := _Web^.DataLogger^.BufferCount;
-      cs.Clear();
-      IF count > 0 THEN
-         FOR i := count-1 TO 0 BY -1 DO
-            IF i < count-1 THEN
-               cs.AppendOA( CRLF );
-            END;
-            _Web^.DataLogger^.BufferGetItem( i, OUT log );
-            cs.AppendOA( log );
-         END;
-      END;
-      Request.ModelContainer^.AddStringOA( LOG_LOG, cs );
 
-      View := mvc.pageTemplateView( ADR( SELF ), DATA_LOG_VIEW );
+      IF downloadFlag THEN
+         // direct order
+         IF count > 0 THEN
+            FOR i := 0 TO count-1 DO
+               IF i > 0 THEN
+                  logS.AppendOA( CRLF );
+               END;
+               _Web^.DataLogger^.BufferGetItem( i, OUT log );
+               logS.AppendOA( log );
+            END;
+         END;
+
+         View := mvc.rawTextView( OA( logS.Length-1, logS.rawData ), L"datalog", empty, TRUE );
+      ELSE
+         // backward order
+         IF count > 0 THEN
+            FOR i := count-1 TO 0 BY -1 DO
+               IF i < count-1 THEN
+                  logS.AppendOA( CRLF );
+               END;
+               _Web^.DataLogger^.BufferGetItem( i, OUT log );
+               logS.AppendOA( log );
+            END;
+         END;
+
+         Request.ModelContainer^.AddStringOA( LOG_LOG, logS );
+         View := mvc.pageTemplateView( ADR( SELF ), DATA_LOG_VIEW );
+      END;
+
+      cs.FromOA( L"-1" );
+      Request.ModelContainer^.AddStringOA( LOG_DOWNLOAD, cs );
+
       RETURN TRUE;
    END ProcessDataLog;
 
@@ -496,23 +541,32 @@ CLASS IMPLEMENTATION CController;
    VAR
       count : CARDINAL;
       cs : StringsO.CString;
+      empty : StringsO.CString;
       i : CARDINAL;
       log : ARRAY [0..511] OF WCHAR;
+      logS : StringsO.CString;
    BEGIN
       count := Log.logger()^.BufferCount;
-      cs.Clear();
       IF count > 0 THEN
          FOR i := 0 TO count-1 DO
             IF i > 0 THEN
-               cs.AppendOA( CRLF );
+               logS.AppendOA( CRLF );
             END;
             Log.logger()^.BufferGetItem( i, OUT log );
-            cs.AppendOA( log );
+            logS.AppendOA( log );
          END;
       END;
-      Request.ModelContainer^.AddStringOA( LOG_LOG, cs );
 
-      View := mvc.pageTemplateView( ADR( SELF ), SYSTEM_LOG_VIEW );
+      IF Request.ModelContainer^.GetStringOA( LOG_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
+         View := mvc.rawTextView( OA( logS.Length-1, logS.rawData ), L"systemlog", empty, TRUE );
+      ELSE
+         Request.ModelContainer^.AddStringOA( LOG_LOG, logS );
+         View := mvc.pageTemplateView( ADR( SELF ), SYSTEM_LOG_VIEW );
+      END;
+
+      cs.FromOA( L"-1" );
+      Request.ModelContainer^.AddStringOA( LOG_DOWNLOAD, cs );
+
       RETURN TRUE;
    END ProcessSystemLog;
 

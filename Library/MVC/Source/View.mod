@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE View;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 IMPORT
    FIO,
@@ -16,7 +16,8 @@ IMPORT
    netsocket,
    NodeList,
    Strings,
-   Sync;
+   Sync,
+   time;
 
 (*================================================================================*)
 
@@ -41,7 +42,7 @@ CLASS IMPLEMENTATION CStatusCodeView;
 
    PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       RETURN FALSE;
    END FormatToInputStream;
 
@@ -49,7 +50,7 @@ CLASS IMPLEMENTATION CStatusCodeView;
 
    PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    BEGIN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       RETURN FALSE;
    END FormatToOutputStream;
 
@@ -90,7 +91,7 @@ CLASS IMPLEMENTATION CFileView;
 
    PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
    BEGIN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       RETURN FALSE;
    END FormatToBuffer;
 
@@ -98,7 +99,7 @@ CLASS IMPLEMENTATION CFileView;
 
    PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       RETURN FALSE;
    END FormatToInputStream;
 
@@ -113,6 +114,7 @@ CLASS IMPLEMENTATION CFileView;
       filePath : StringsO.CString;
       fs : FIOO.CFileStream;
       l : CARDINAL;
+      lastModified : time.DateTime;
       Result : Sync.TAsyncResult;
    BEGIN
       IF Resolver = NIL THEN
@@ -123,21 +125,30 @@ CLASS IMPLEMENTATION CFileView;
          RETURN TRUE;
       END;
 
-      IF ( MIMEResolver = NIL ) OR NOT MIMEResolver^.ResolveMIME( MIMEResolverContext, filePath, OUT Content ) THEN
-         HttpTools.FormatContent( HttpTools.contentUnknown, filePath, empty, TRUE, OUT Content );
-      END;
-      Response.ContentType := Content;
-      IF DispositionFlag THEN
-         FIO.PathTailW( OA( filePath.Length-1, filePath.rawData ), OUT fileName );
-         Strings.PrependW( REF fileName, L"attachment; filename=" );
-         Response.ResponseHeaders^.AddUnknownOA( L"Content-Disposition", fileName );
-      END;
-      
       TRY
          fs.FromPath( OA( filePath.Length-1, filePath.rawData ), FIOO.imOpenRead );
       CATCH e : IOO.CIOException DO
          Response.StatusCode := HttpCommon.httpres_404;
          RETURN TRUE;
+      END;
+
+      IF ( MIMEResolver = NIL ) OR NOT MIMEResolver^.ResolveMIME( MIMEResolverContext, filePath, OUT Content ) THEN
+         HttpTools.FormatContent( HttpTools.contentUnknown, filePath, empty, TRUE, OUT Content );
+      END;
+      Response.ContentType := Content;
+      Response.AllowCaching := TRUE;
+      lastModified := FIO.GetFileTime( fs.Handle );
+      Response.LastModified := lastModified;
+      Response.StatusCode := Request.TestConditions( lastModified, empty );
+      IF Response.StatusCode <> HttpCommon.httpres_200 THEN
+         fs.Close( FALSE );
+         RETURN TRUE;
+      END;
+
+      IF DispositionFlag THEN
+         FIO.PathTailW( OA( filePath.Length-1, filePath.rawData ), OUT fileName );
+         Strings.PrependW( REF fileName, L"attachment; filename=" );
+         Response.ResponseHeaders^.AddUnknownOA( L"Content-Disposition", fileName );
       END;
       Response.Length := fs.Length;
 
@@ -145,7 +156,7 @@ CLASS IMPLEMENTATION CFileView;
       LOOP
          buffer.Clear();
          Result := fs.ReadBuffer( buffer.Size, REF buffer, Sync.FORSAFETY );
-         ASSERT( Result <> Sync.arTimeout );
+         ASSERTLOG( Result <> Sync.arTimeout );
          IF Result = Sync.arNoData THEN
             // fall down
          ELSIF Result NOT IN Sync.arsCompletions THEN
@@ -155,8 +166,8 @@ CLASS IMPLEMENTATION CFileView;
 
          IF NOT buffer.Empty THEN
             Result := OutputStream^.WriteBuffer( buffer, OUT l, netsocket.FORSAFETY );
-            ASSERT( Result <> Sync.arTimeout );
-            ASSERT( l = buffer.Length );
+            ASSERTLOG( Result <> Sync.arTimeout );
+            ASSERTLOG( l = buffer.Length );
          END;
          
          IF Result = Sync.arNoData THEN
@@ -219,6 +230,7 @@ CLASS IMPLEMENTATION CRedirectView;
    BEGIN
       // set status and length
       Response.StatusCode := HttpTools.GetRedirectCode( HttpTools.redirectTemporarily, FALSE );
+      Response.AllowCaching := FALSE;
       
       // set location
       IF AbsoluteFlag THEN
@@ -227,7 +239,7 @@ CLASS IMPLEMENTATION CRedirectView;
          Location := Request.FullURI;
          IF NOT Request.ControllerURI.Empty THEN
             i := Location.IndexOf( Request.ControllerURI, 0 );
-            ASSERT( i <> -1 );
+            ASSERTLOG( i <> -1 );
             Location.Remove( i-1, -1 ); // remove trailing slash too
          ELSIF Location.EndsWithOA( L"/" ) THEN
             Location.Remove( Location.Length-1, -1 );            
@@ -249,7 +261,7 @@ CLASS IMPLEMENTATION CRedirectView;
 
    PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       RETURN FALSE;
    END FormatToInputStream;
 
@@ -257,7 +269,7 @@ CLASS IMPLEMENTATION CRedirectView;
 
    PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    BEGIN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       RETURN FALSE;
    END FormatToOutputStream;
 
@@ -300,9 +312,15 @@ CLASS IMPLEMENTATION CRawHTMLView;
    PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
    VAR
       Content : StringsO.CString;
+      now : time.DateTime;
    BEGIN
+      now.SetNowUTC();
+   
       HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"", L"utf-8", FALSE, OUT Content );
       Response.ContentType := Content;
+      Response.AllowCaching := FALSE;
+      Response.LastModified := now;
+
       LanguagesO.ToMB( HTML, Languages.cp_UTF8, FALSE, REF Output );
       RETURN TRUE;
    END FormatToBuffer;
@@ -311,7 +329,7 @@ CLASS IMPLEMENTATION CRawHTMLView;
 
    PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       RETURN FALSE;
    END FormatToInputStream;
 
@@ -319,7 +337,7 @@ CLASS IMPLEMENTATION CRawHTMLView;
 
    PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    BEGIN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       RETURN FALSE;
    END FormatToOutputStream;
 
@@ -342,6 +360,84 @@ CLASS IMPLEMENTATION CRawHTMLView;
 (*--------------------------------------------------------------------------------*)
 
 END CRawHTMLView;
+
+(*================================================================================*)
+
+CLASS IMPLEMENTATION CRawTextView;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY OutputType GET : MVC.TViewOutputType;
+   BEGIN
+      RETURN MVC.votBuffer;
+   END OutputType;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   VAR
+      now : time.DateTime;
+      s : StringsO.CString;
+   BEGIN
+      now.SetNowUTC();
+   
+      IF ContentType.Empty THEN
+         HttpTools.FormatContentOA( HttpTools.contentTextPlain, L"", L"utf-8", FALSE, OUT ContentType );
+      END;
+      Response.ContentType := ContentType;
+      Response.AllowCaching := FALSE;
+      Response.LastModified := now;
+
+      IF DispositionFlag THEN
+         s.FromOA( L"attachment; filename=" );
+         s.Append( Name );
+         Response.ResponseHeaders^.AddUnknownOA( L"Content-Disposition", OA( s.Length-1, s.rawData ));
+      END;
+
+      LanguagesO.ToMB( Text, Languages.cp_UTF8, FALSE, REF Output );
+      RETURN TRUE;
+   END FormatToBuffer;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   BEGIN
+      ASSERTLOG( FALSE );
+      RETURN FALSE;
+   END FormatToInputStream;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   BEGIN
+      ASSERTLOG( FALSE );
+      RETURN FALSE;
+   END FormatToOutputStream;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Release();
+   VAR
+      a : TPRawTextView := ADR( SELF );
+   BEGIN
+      DISPOSE( a );
+   END Release;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Init( CONST text, name : ARRAY OF WCHAR; CONST content : StringsO.IString; dispositionFlag : BOOLEAN );
+   BEGIN
+      Text.FromOA( text );
+      Name.FromOA( name );
+      ContentType.Assign( content );
+      DispositionFlag := dispositionFlag;
+   END Init;
+   
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+   DispositionFlag := FALSE;
+END CRawTextView;
 
 (*================================================================================*)
 
@@ -400,10 +496,15 @@ CLASS IMPLEMENTATION CPageTemplateView;
       empty : StringsO.CString;
       fs : FIOO.CFileStream;
       mbs : IOO.CMemoryBufferStream;
+      now : time.DateTime;
       viewPath : StringsO.CString;
    BEGIN
-      Response.ModelContainer^.ResetModelViewMapping();
+      now.SetNowUTC();
+
+      Response.ModelContainer^.ResetModelInViewNames( Request.ControllerURI );
       HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"", L"utf-8", FALSE, OUT Content );
+      Response.AllowCaching := FALSE;
+      Response.LastModified := now;
       Response.ContentType := Content;
 
       IF Resolver = NIL THEN
@@ -444,7 +545,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
    PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    BEGIN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       RETURN FALSE;
    END FormatToInputStream;
 
@@ -452,7 +553,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
    PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
    BEGIN
-      ASSERT( FALSE );
+      ASSERTLOG( FALSE );
       RETURN FALSE;
    END FormatToOutputStream;
 
@@ -494,7 +595,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          
          CASE Reader.CurrentType OF
          | xmlreader.xntText :
-            ASSERT( FALSE ); // should not occur here
+            ASSERTLOG( FALSE ); // should not occur here
 
          | xmlreader.xntElementBegin :
             rootName := Reader.CurrentName;
@@ -509,7 +610,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
             Prefix.Clear();
             REPEAT
                IF Reader.CurrentType <> xmlreader.xntAttribute THEN
-                  ASSERT( FALSE ); // should not occur here
+                  ASSERTLOG( FALSE ); // should not occur here
                   CONTINUE;
                ELSIF Reader.CurrentPrefix.EqualsIgnoreCaseOA( PT_XMLNS ) AND Reader.CurrentValue.EqualsIgnoreCaseOA( PT_NAMESPACE ) THEN
                   Prefix := Reader.CurrentName;
@@ -529,7 +630,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
             END;
 
          | xmlreader.xntAttribute :
-            ASSERT( FALSE ); // should not occur here
+            ASSERTLOG( FALSE ); // should not occur here
          END; // CASE
 
          xmle := Reader.MoveNext();
@@ -1395,7 +1496,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
                IF Reader.MoveToFirstAttribute() = xmlreader.xmle_S_OK THEN
                   REPEAT
                      IF Reader.CurrentType <> xmlreader.xntAttribute THEN
-                        ASSERT( FALSE ); // should not occur here
+                        ASSERTLOG( FALSE ); // should not occur here
                         CONTINUE;
                      END;
                      attributes.Add( Reader.CurrentQualifiedName, Reader.CurrentValue );
@@ -1414,7 +1515,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       ELSE
          nl := NodeList.TPNodeList( Sources.Peek());
          IF NOT nl^.MoveNext() THEN
-            ASSERT( FALSE );
+            ASSERTLOG( FALSE );
             RETURN xmlreader.xmle_S_FALSE; // should not occur
          END;
          
@@ -1480,7 +1581,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       viewName.PrependOA( L"fx" );
       INC( CurrentViewNameIndex );
 
-      Request^.ModelContainer^.SetModelViewMapping( model, viewName );
+      Request^.ModelContainer^.SetModelInViewName( Request^.ControllerURI, model, viewName );
       Writer.WriteAttributeStringOA( L"name", OA( viewName.Length-1, viewName.rawData ));
    END WriteFormNameAttribute;
 

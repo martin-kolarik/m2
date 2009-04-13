@@ -442,21 +442,36 @@ BEGIN
   RETURN windows.SetFilePointer( F, 0, NIL, windows.FILE_CURRENT ) = windows.GetFileSize( F, NIL );
 END EndOfFile;
 
-PROCEDURE GetFileTime( F : File ): FileTime;
+PROCEDURE GetFileTime( F : File ): time.DateTime;
 VAR
-  ct, at, wt : windows.FILETIME;
+   ct, at, wt : windows.FILETIME;
 BEGIN
-  windows.GetFileTime( F, ADR( ct ), ADR( at ), ADR( wt ));
-  RETURN FileTime(wt);
+   windows.GetFileTime( F, ADR( ct ), ADR( at ), ADR( wt ));
+   RETURN FileTimeToDateTime( CARD64( wt ));
 END GetFileTime;
 
-PROCEDURE SetFileTime( F : File; Time : FileTime );
+PROCEDURE SetFileTime( F : File; Time : time.DateTime );
 VAR
-  ct : windows.FILETIME;
+   ct : windows.FILETIME;
+   ft : CARD64;
 BEGIN
-  ct := windows.FILETIME( Time );
-  windows.SetFileTime( F, ADR( ct ), ADR( ct ), ADR( ct ));
+   ft := DateTimeToFileTime( Time );
+   ct := windows.FILETIME( ft );
+   windows.SetFileTime( F, ADR( ct ), ADR( ct ), ADR( ct ));
 END SetFileTime;
+
+PROCEDURE FileTimeToDateTime( FileTime : CARD64 ) : time.DateTime;
+VAR
+   dt : time.DateTime;
+BEGIN
+   dt.JulianDate := time.TJD( FileTime DIV 1000 ) + time.JD( 1601, 1, 1, 0 );  // 1000 converts 100 ns to 100 us
+   RETURN dt;
+END FileTimeToDateTime;
+
+PROCEDURE DateTimeToFileTime( DateTime : time.DateTime ) : CARD64;
+BEGIN
+   RETURN 1000 * CARD64( DateTime.JulianDate - time.JD( 1601, 1, 1, 0 )); // 1000 converts 100 us to 100 ns
+END DateTimeToFileTime;
 
 PROCEDURE WrBin( F : File; Buf : ARRAY OF BYTE; Count : CARDINAL ) : CARDINAL;
 VAR

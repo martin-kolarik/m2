@@ -10,16 +10,17 @@ IMPORT
    StorageO,
    Strings;
 
-(*===========================================================================*)
-
-PROCEDURE FormatDate( CONST Date : time.TDateTime ) : StringsO.CString;
 CONST
    HTTP_TIME_FORMAT = L"ddd, dd MMM yyyy HH:mm:ss 'GMT'";
+
+(*===========================================================================*)
+
+PROCEDURE FormatDate( CONST Date : time.DateTime ) : StringsO.CString;
 VAR
    formatted : ARRAY [0..255] OF WCHAR;
    s : StringsO.CString;
 BEGIN
-   IF time.DateTimeToStringLang( Languages.GetDefaultLanguage( Languages.dlNeutral ), Date, HTTP_TIME_FORMAT, TRUE, TRUE, formatted ) THEN
+   IF Date.ToLanguageStringOA( Languages.GetDefaultLanguage( Languages.dlNeutral ), HTTP_TIME_FORMAT, TRUE, TRUE, OUT formatted ) THEN
       s.FromOA( formatted );
    END;
    RETURN s;
@@ -29,22 +30,42 @@ END FormatDate;
 
 PROCEDURE FormatDateJD( Date : time.TJD ) : StringsO.CString;
 VAR
-   dt : time.TDateTime;
+   dt : time.DateTime;
 BEGIN
-   time.JDToZonalDateTime( Date, dt, 0, 0 );
+   dt.JulianDate := Date;
    RETURN FormatDate( dt );
 END FormatDateJD;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE FormatSIDCookie( CONST SID : StringsO.IString; Expires : time.TJD; CONST Path, Domain : StringsO.IString ) : StringsO.CString;
+PROCEDURE DecodeDate( CONST Encoded : StringsO.IString; OUT Decoded : time.DateTime ) : BOOLEAN;
+BEGIN
+   RETURN Decoded.FromLanguageStringOA( Languages.GetDefaultLanguage( Languages.dlNeutral ), OA( Encoded.Length-1, Encoded.rawData ), HTTP_TIME_FORMAT );
+END DecodeDate;
+
+(*---------------------------------------------------------------------------*)
+
+PROCEDURE DecodeDateJD( CONST Encoded : StringsO.IString; OUT Decoded : time.TJD ) : BOOLEAN;
+VAR
+   dt : time.DateTime;
+BEGIN
+   IF NOT DecodeDate( Encoded, OUT dt ) THEN
+      RETURN FALSE;
+   END;
+   Decoded := dt.JulianDate;
+   RETURN TRUE;
+END DecodeDateJD;
+
+(*---------------------------------------------------------------------------*)
+
+PROCEDURE FormatSIDCookie( CONST SID : StringsO.IString; CONST Expires : time.DateTime; CONST Path, Domain : StringsO.IString ) : StringsO.CString;
 VAR
    s : StringsO.CString;
 BEGIN
    s.FromOA( L"sid=" ); s.Append( SID );
-   IF Expires > 0 THEN
+   IF NOT Expires.Empty THEN
       s.AppendOA( L"; expires=" );
-      s.Append( FormatDateJD( Expires ));
+      s.Append( FormatDate( Expires ));
    END;
    IF NOT Path.Empty THEN
       s.AppendOA( L"; path=" );

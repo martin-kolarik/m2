@@ -490,29 +490,29 @@ CLASS IMPLEMENTATION CActivation;
 
 (*--------------------------------------------------------------------------------*)
 
-	PUBLIC PROPERTY Origin GET : time.TDateTime;
+	PUBLIC PROPERTY Origin GET : time.DateTime;
 	CONST
 	   sjd = time.TJD( 2120500080000000 );
 	VAR
-	   dt : time.TDateTime;
+	   dt : time.DateTime;
 	BEGIN
 	   IF ( _Origin = -1 ) OR ( _Origin = 0 ) AND ( _Months = 0 ) THEN // months = 0 solves boundary case, when From is set exactly to SJD
-	      time.InitDateTime( OUT dt );
+	      // fall down
 	   ELSE
-	      time.JDToZonalDateTime( sjd + time.DaysToJDC( _Origin ), dt, 0, 0 );
+	      dt.JulianDate := sjd + time.DaysToJDC( _Origin );
 	   END;
 	   RETURN dt;
 	END Origin;
 
 (*--------------------------------------------------------------------------------*)
 
-	PUBLIC PROPERTY Origin SET( CONST Value : time.TDateTime );
+	PUBLIC PROPERTY Origin SET( CONST Value : time.DateTime );
 	CONST
 	   sjd = time.TJD( 2120500080000000 );
 	VAR
 	   d : INTEGER;
 	BEGIN
-	   d := time.JDCToDays( time.DateTimeToJD( Value ) - sjd );
+	   d := time.JDCToDays( Value.JulianDate - sjd );
 	   IF d <= 0 THEN
 	      _Origin := 0;
 	   ELSIF d > MAX( CARD16 ) THEN

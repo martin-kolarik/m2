@@ -32,6 +32,12 @@
                             <File Id="SCMVC.DLL" Name="SCMVC.dll" Source="SCMVC.dll" DiskId="1" Vital="yes" KeyPath="yes" />
                             <ServiceControl Id="SVCControlMVCLib" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
                         </Component>
+                        <Component Id="XMLLite.DLL" Guid="55B6DF2F-AD20-441f-9C80-562C89EE7A75">
+                            <File Id="xmllite.dll" Name="xmllite.dll" Source="$(var.BuildRoot)\xmllite.dll" DiskId="1" Vital="yes" KeyPath="yes" />
+                        </Component>
+                        <Component Guid="AB50D148-9AB4-41d9-8F32-CBA5721DA4FD" Id="ToolLicCli">
+                            <File Id="LicCli.EXE" Name="LicCli.exe" Source="LicCli.exe" DiskId="1" Vital="yes" KeyPath="yes" />
+                        </Component>
                         <Component Guid="5D1E3BC9-F830-4214-8133-EA8711519553" Id="ToolCheckCfg">
                             <File Id="CheckCfg.EXE" Name="CheckCfg.exe" Source="CheckCfg.exe" DiskId="1" Vital="yes" KeyPath="yes" />
                         </Component>
@@ -43,7 +49,9 @@
                             <File Id="License.rtf" Name="License.rtf" Source="License.rtf" DiskId="1" />
                         </Component>
                         <Component Id="Documentation" Guid="D75EA66F-CD00-4b0b-85A2-2764FB229D47">
-                            <File Id="EibSrv.pdf" Name="EibSrv.pdf" Source="..\Doc\EibSrv.pdf" DiskId="1" Vital="yes" KeyPath="yes" />
+                            <File Id="EibSrv.pdf" Name="EibSrv.pdf" Source="..\Doc\EibSrv.pdf" DiskId="1" Vital="yes" KeyPath="yes">
+                                <Shortcut Id="StartMenuDocumentation" Directory="ProgramMenuDir" Name="Manual" LongName="SmartServer documentation" />
+                            </File>
                             <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" />
                         </Component>
                         <Component Id="DefaultConfiguration" Guid="E3110039-B225-43ed-B91F-1C45A68D8B52">
@@ -70,6 +78,13 @@
                                 <Component Id="UserWeb" Guid="FDF719DB-B1DA-4401-BE5F-1FA854E7DB2D">
                                     <File Id="index.html" LongName="index.html" Name="INDEX.HTM" Source="Web\User\index.html" DiskId="1" />
                                 </Component>
+                                <Component Id="UserWebExamples" Guid="38BA6B3C-694C-4AB4-A37C-337CF20F58AD">
+                                    <File Id="_01_get.pt.xml" LongName="01 get.pt.xml" Name="01GET.P.XML" Source="Web\User\01 get.pt.xml" DiskId="1" />
+                                    <File Id="_02_set.pt.xml" LongName="02 set.pt.xml" Name="02SET.P.XML" Source="Web\User\02 set.pt.xml" DiskId="1" />
+                                    <File Id="_03_style.pt.xml" LongName="03 style.pt.xml" Name="03STYLE.XML" Source="Web\User\03 style.pt.xml" DiskId="1" />
+                                    <File Id="_04_set.pt.xml" LongName="04 set.pt.xml" Name="04SET.P.XML" Source="Web\User\04 set.pt.xml" DiskId="1" />
+                                    <File Id="_05_get_refresh.pt.xml" LongName="05 get refresh.pt.xml" Name="05GETRE.XML" Source="Web\User\05 get refresh.pt.xml" DiskId="1" />
+                                </Component>
                             </Directory>
                         </Directory>
                         <Directory Id="EXAMPLES" Name="Examples">
@@ -82,6 +97,9 @@
                                 <File Id="_08_blocks.cfg" LongName="08 blocks.cfg" Name="08BLOCK.CFG" Source="Examples\08 blocks.cfg" DiskId="1" />
                                 <File Id="_09_ETS_Opc.cfg" LongName="09 ETS-Opc.cfg" Name="09ETS.CFG" Source="Examples\09 ETS-Opc.cfg" DiskId="1" />
                                 <File Id="_09_test.esf" LongName="09 test.esf" Name="09TEST.ESF" Source="Examples\09 test.esf" DiskId="1" />
+                                <File Id="_10_debug_trace.cfg" LongName="10 debug-trace.cfg" Name="10DEBUG.CFG" Source="Examples\10 debug-trace.cfg" DiskId="1" />
+                                <File Id="_11_debug_all.cfg" LongName="11 debug-all.cfg" Name="11DEBUG.CFG" Source="Examples\11 debug-all.cfg" DiskId="1" />
+                                <File Id="_12_test_logged.cfg" LongName="12 test-logged.cfg" Name="12TEST.CFG" Source="Examples\12 test-logged.cfg" DiskId="1" />
                             </Component>
                             <Directory Id="Adobe_Flash" LongName="Adobe Flash" Name="Flash">
                                 <Component Id="ExamplesFlash" Guid="61E9CC52-47B5-48f3-8EC6-99D1894F9C20">
@@ -92,6 +110,7 @@
                             </Directory>
                             <Directory Id="Philips_Pronto" LongName="Philips Pronto" Name="Pronto">
                                 <Component Id="ExamplesPronto" Guid="CA0905D8-C0F5-4cf5-81EE-8427C8D63071">
+                                    <File Id="BlindsDown.js" LongName="BlindsDown.js" Name="BLINDS.JS" Source="Examples\Philips Pronto\BlindsDown.js" DiskId="1" />
                                     <File Id="ButtonDim.js" LongName="ButtonDim.js" Name="BUTTOND.JS" Source="Examples\Philips Pronto\ButtonDim.js" DiskId="1" />
                                     <File Id="ButtonSwitch.js" LongName="ButtonSwitch.js" Name="BUTTONS.JS" Source="Examples\Philips Pronto\ButtonSwitch.js" DiskId="1" />
                                     <File Id="Main.js" LongName="Main.js" Name="MAIN.JS" Source="Examples\Philips Pronto\Main.js" DiskId="1" />
@@ -127,6 +146,9 @@
                 </Directory>
             </Directory>
         </Directory>
+        <Directory Id="ProgramMenuFolder" Name="PMenu" LongName="Programs">
+            <Directory Id="ProgramMenuDir" Name='SmartSrv' LongName="NeNo KNX SmartServer" />
+        </Directory>
         <?if $(var.CLib)=Private ?>
         <Feature Id="VC8RuntimeFeature" Level="1" AllowAdvertise="no" Display="hidden">
             <ComponentRef Id="VC8Runtime" />
@@ -142,18 +164,29 @@
             <ComponentRef Id="RuntimeLib" />
             <ComponentRef Id="MVCLib" />
             <ComponentRef Id="Licence" />
+            <ComponentRef Id="ToolLicCli" />
             <ComponentRef Id="ToolCheckCfg" />
             <ComponentRef Id="ToolDiscover" />
             <ComponentRef Id="Documentation" />
             <ComponentRef Id="DefaultConfiguration" />
             <ComponentRef Id="Web" />
             <ComponentRef Id="UserWeb" />
+            <ComponentRef Id="UserWebExamples" />
             <ComponentRef Id="Examples" />
             <ComponentRef Id="ExamplesFlash" />
             <ComponentRef Id="ExamplesPronto" />
             <?if $(var.LeakChecking)=on ?>
             <ComponentRef Id="LeakDetector" />
             <?endif ?>
+        </Feature>
+        <Property Id="XMLLITEEXISTS">
+            <DirectorySearch Id="CheckXmlLiteDir" Path="[SystemFolder]" Depth="0">
+                <FileSearch Id="CheckXmlLiteFile" Name="xmllite.dll" />
+            </DirectorySearch>
+        </Property>
+        <Feature Id="XMLLiteFeature" Level="1">
+            <ComponentRef Id="XMLLite.DLL" />
+            <Condition Level="0">XMLLITEEXISTS</Condition>
         </Feature>
         <UIRef Id="WixUI_Licence" />
         <UI />

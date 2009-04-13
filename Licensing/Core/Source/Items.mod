@@ -93,18 +93,17 @@ CLASS IMPLEMENTATION CItem;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Created GET : time.TDateTime;
+   PUBLIC PROPERTY Created GET : time.DateTime;
    BEGIN
       RETURN _Created;
    END Created;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Created SET( CONST Value : time.TDateTime );
+   PUBLIC PROPERTY Created SET( CONST Value : time.DateTime );
    BEGIN
       State := TItemState{isDirty};
       _Created := Value;
-      _Created.DayOfWeek := 0;
    END Created;
 
 (*--------------------------------------------------------------------------------*)
@@ -129,7 +128,7 @@ CLASS IMPLEMENTATION CItem;
       s : ARRAY [0..23] OF WCHAR;
       S : StringsO.CString;
    BEGIN
-      IF time.DateTimeToString( _Created, dateFormat, TRUE, TRUE, s ) THEN
+      IF _Created.ToStringOA( dateFormat, TRUE, TRUE, OUT s ) THEN
          S.FromOA( s );
       END;
       RETURN S;
@@ -140,8 +139,8 @@ CLASS IMPLEMENTATION CItem;
    PUBLIC PROPERTY CreatedString SET( CONST Value : StringsO.CString );
    BEGIN
       State := TItemState{isDirty};
-      IF Value.Empty OR NOT time.StringToDateTime( OA( Value.Length-1, Value.rawData ), dateFormat, _Created ) THEN
-         time.InitDateTime( OUT _Created );
+      IF Value.Empty OR NOT _Created.FromStringOA( OA( Value.Length-1, Value.rawData ), dateFormat ) THEN
+         _Created.Clear();
       END;
    END CreatedString;
 
@@ -258,7 +257,6 @@ CLASS IMPLEMENTATION CItem;
 
 BEGIN
    Parent := NIL;
-   time.InitDateTime( OUT _Created );
 END CItem;
 
 (*================================================================================*)
@@ -808,19 +806,18 @@ CLASS IMPLEMENTATION CActivation;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Starts GET : time.TDateTime;
+   PUBLIC PROPERTY Starts GET : time.DateTime;
    BEGIN
       RETURN _Starts;
    END Starts;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Starts SET( CONST Value : time.TDateTime );
+   PUBLIC PROPERTY Starts SET( CONST Value : time.DateTime );
    BEGIN
       State := TItemState{isDirty};
       _Starts := Value;
-      time.TrimTime( REF _Starts );
-      _Starts.DayOfWeek := 0;
+      _Starts.TrimTime();
    END Starts;
 
 (*--------------------------------------------------------------------------------*)
@@ -830,7 +827,7 @@ CLASS IMPLEMENTATION CActivation;
       s : ARRAY [0..23] OF WCHAR;
       S : StringsO.CString;
    BEGIN
-      IF ( _Starts.Year > 0 ) AND time.DateTimeToString( _Starts, dateFormat, TRUE, TRUE, s ) THEN
+      IF ( _Starts.Year > 0 ) AND _Starts.ToStringOA( dateFormat, TRUE, TRUE, OUT s ) THEN
          S.FromOA( s );
       END;
       RETURN S;
@@ -841,8 +838,8 @@ CLASS IMPLEMENTATION CActivation;
    PUBLIC PROPERTY StartsString SET( CONST Value : StringsO.CString );
    BEGIN
       State := TItemState{isDirty};
-      IF Value.Empty OR NOT time.StringToDateTime( OA( Value.Length-1, Value.rawData ), dateFormat, _Starts ) THEN
-         time.InitDateTime( OUT _Starts );
+      IF Value.Empty OR NOT _Starts.FromStringOA( OA( Value.Length-1, Value.rawData ), dateFormat ) THEN
+         _Starts.Clear();
       ELSE
          Starts := _Starts;
       END;
@@ -850,19 +847,18 @@ CLASS IMPLEMENTATION CActivation;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Expires GET : time.TDateTime;
+   PUBLIC PROPERTY Expires GET : time.DateTime;
    BEGIN
       RETURN _Expires;
    END Expires;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Expires SET( CONST Value : time.TDateTime );
+   PUBLIC PROPERTY Expires SET( CONST Value : time.DateTime );
    BEGIN
       State := TItemState{isDirty};
       _Expires := Value;
-      time.TrimTime( REF _Expires );
-      _Expires.DayOfWeek := 0;
+      _Expires.TrimTime();
    END Expires;
 
 (*--------------------------------------------------------------------------------*)
@@ -872,7 +868,7 @@ CLASS IMPLEMENTATION CActivation;
       s : ARRAY [0..23] OF WCHAR;
       S : StringsO.CString;
    BEGIN
-      IF ( _Expires.Year > 0 ) AND time.DateTimeToString( _Expires, dateFormat, TRUE, TRUE, s ) THEN
+      IF ( _Expires.Year > 0 ) AND _Expires.ToStringOA( dateFormat, TRUE, TRUE, OUT s ) THEN
          S.FromOA( s );
       END;
       RETURN S;
@@ -883,8 +879,8 @@ CLASS IMPLEMENTATION CActivation;
    PUBLIC PROPERTY ExpiresString SET( CONST Value : StringsO.CString );
    BEGIN
       State := TItemState{isDirty};
-      IF Value.Empty OR NOT time.StringToDateTime( OA( Value.Length-1, Value.rawData ), dateFormat, _Expires ) THEN
-         time.InitDateTime( OUT _Expires );
+      IF Value.Empty OR NOT _Expires.FromStringOA( OA( Value.Length-1, Value.rawData ), dateFormat ) THEN
+         _Expires.Clear();
       ELSE
          Expires := _Expires;
       END;
@@ -904,20 +900,20 @@ CLASS IMPLEMENTATION CActivation;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ValidFor( CONST datetime : time.TDateTime ) : BOOLEAN;
+   PUBLIC PROCEDURE ValidFor( CONST datetime : time.DateTime ) : BOOLEAN;
    BEGIN
       IF _Starts.Year = 0 THEN
          IF _Expires.Year = 0 THEN
             RETURN TRUE;
          END;
          // only expires
-         RETURN NOT time.Greater( _Expires, datetime );
+         RETURN _Expires >= datetime;
       ELSIF _Expires.Year = 0 THEN
          // only starts
-         RETURN NOT time.Less( _Starts, datetime );
+         RETURN _Starts <= datetime;
       ELSE
          // starts and expires
-         RETURN NOT time.Greater( _Expires, datetime ) AND NOT time.Less( _Starts, datetime );
+         RETURN ( _Starts <= datetime ) AND ( _Expires >= datetime );
       END;
    END ValidFor;
 
@@ -1012,9 +1008,6 @@ CLASS IMPLEMENTATION CActivation;
 
 (*--------------------------------------------------------------------------------*)
 
-BEGIN
-   time.InitDateTime( OUT _Starts );
-   time.InitDateTime( OUT _Expires );
 END CActivation;
 
 (*================================================================================*)

@@ -1,3 +1,28 @@
+Version 1.0.833/R rc1  13.4.2009
+- BUG: #72, some Windows XP Embedded systems are missing xmllite.dll. Now the file
+       is installed in the case.
+- BUG: #73, history of values communicated in last day/hour was not cleared for
+       passed hours. 
+- BUG: #74, a tool for licence activation was not installed.
+- BUG: #71, direct write from web interface did not work if another client session
+       was directed to server from the same browser.
+- CHG: #30, complete description of web interface was added to documentation.
+- CHG: #78, web page after "?set" function usage is redirected to self to not
+       to leave "?set" being a part of browser's URL. 
+- CHG: #38, CFG examples was supplied with new parameters and sections ([web], [users]).
+- CHG: #62, EIBNet/IP connection status codes were added to documentation.
+- CHG: #76, default.cfg installed now contains all possibilities shortly described
+       (and commented). 
+- NEW: #83, examples of user web pages added.
+- NEW: #15, system and data logs are now downloadable using link on the page.
+- NEW: #61, new [log] and [datalog] sections parameter named "cached" configures
+       count of historical records which server remembers.
+- NEW: #57, copyright line of web interface now contains version number. Also,
+       licence number and owner is displayed. 
+- NEW: #59, new object type of [objects] and [block] sections added,
+       "logged_on_change_objects" and "logged_on_change_object" limit datalog entries
+       to object's value change only.
+
 Version 1.0.799/R beta 15.3.2009
 - BUG: #51, space in form item was badly parsed in server, e.g. configuration was
        unable to load if path contained spaces ("C:\Program Files...").

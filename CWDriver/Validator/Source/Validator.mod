@@ -267,7 +267,7 @@ CLASS IMPLEMENTATION CDriver;
     Return;
   VAR
     c : CARDINAL;
-    dt : time.TDateTime;
+    dt : time.DateTime;
     s : ARRAY [0..63] OF WCHAR;
     so : StringsO.CString;
     SW : ARRAY [0..1] OF StringsO.CString;
@@ -300,7 +300,7 @@ CLASS IMPLEMENTATION CDriver;
          ELSE
             SW[1].FromCARD32(( Result.NextCheck + 999 ) DIV 1000, 10 );
             so.Append( SW[1] );
-            time.DateTimeToString( dt, L":yyyy.MM.dd", TRUE, FALSE, s );
+            dt.ToStringOA, L":yyyy.MM.dd", TRUE, FALSE, s );
             so.AppendOA( s );
          END;
       END;
