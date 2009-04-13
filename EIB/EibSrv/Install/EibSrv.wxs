@@ -49,7 +49,9 @@
                             <File Id="License.rtf" Name="License.rtf" Source="License.rtf" DiskId="1" />
                         </Component>
                         <Component Id="Documentation" Guid="D75EA66F-CD00-4b0b-85A2-2764FB229D47">
-                            <File Id="EibSrv.pdf" Name="EibSrv.pdf" Source="..\Doc\EibSrv.pdf" DiskId="1" Vital="yes" KeyPath="yes" />
+                            <File Id="EibSrv.pdf" Name="EibSrv.pdf" Source="..\Doc\EibSrv.pdf" DiskId="1" Vital="yes" KeyPath="yes">
+                                <Shortcut Id="StartMenuDocumentation" Directory="ProgramMenuDir" Name="Manual" LongName="SmartServer documentation" />
+                            </File>
                             <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" />
                         </Component>
                         <Component Id="DefaultConfiguration" Guid="E3110039-B225-43ed-B91F-1C45A68D8B52">
@@ -143,6 +145,9 @@
                     </Directory>
                 </Directory>
             </Directory>
+        </Directory>
+        <Directory Id="ProgramMenuFolder" Name="PMenu" LongName="Programs">
+            <Directory Id="ProgramMenuDir" Name='SmartSrv' LongName="NeNo KNX SmartServer" />
         </Directory>
         <?if $(var.CLib)=Private ?>
         <Feature Id="VC8RuntimeFeature" Level="1" AllowAdvertise="no" Display="hidden">
