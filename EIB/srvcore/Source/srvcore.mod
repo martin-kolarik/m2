@@ -118,6 +118,20 @@ CONST // behaviour names
    bnServer                         = L'server';
    bnConcentrator                   = L'concentrator';
    bnSource                         = L'source';
+   
+CONST // object type names
+   otnObject                = L"object";
+   otnObjects               = L"objects";
+   otnLoggedObject          = L"logged_object";
+   otnLoggedObjects         = L"logged_objects";
+   otnLoggedOnChangeObject  = L"logged_on_change_object";
+   otnLoggedOnChangeObjects = L"logged_on_change_objects";
+   otnESFStrict             = L"esf_strict";
+   otnESFAdapt              = L"esf_adapt";
+   otnESFIgnore             = L"esf_ignore";
+   otnLoggedESFStrict       = L"logged_esf_strict";
+   otnLoggedESFAdapt        = L"logged_esf_adapt";
+   otnLoggedESFIgnore       = L"logged_esf_ignore";
 
 //================================================================================
 
@@ -215,17 +229,31 @@ CLASS IMPLEMENTATION CObject;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROPERTY Logged GET : BOOLEAN;
+   PUBLIC PROPERTY ObjectType GET : TObjectType;
    BEGIN
-      RETURN _Logged;
-   END Logged;
+      RETURN _ObjectType;
+   END ObjectType;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROPERTY Logged SET( Value : BOOLEAN );
+   PUBLIC PROPERTY ObjectType SET( Value : TObjectType );
    BEGIN
-      _Logged := Value;
-   END Logged;
+      _ObjectType := Value;
+   END ObjectType;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROPERTY ChangedOnWrite GET : TRISTATE;
+   BEGIN
+      RETURN _ChangedOnWrite;
+   END ChangedOnWrite;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROPERTY ChangedOnWrite SET( Value : TRISTATE );
+   BEGIN
+      _ChangedOnWrite := Value;
+   END ChangedOnWrite;
 
 //--------------------------------------------------------------------------------
 
@@ -301,7 +329,8 @@ CLASS IMPLEMENTATION CObject;
 
 BEGIN
    Server := NIL;
-   _Logged := FALSE;
+   _ObjectType := TObjectType{};
+   _ChangedOnWrite := -1;
    RSStatus := eib_status.essOK;
    WSStatus := eib_status.essOK;
    ReadRepeatCount := 1;
@@ -621,6 +650,7 @@ CLASS IMPLEMENTATION CEIBServer;
    PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
    VAR
       EV : eib_def.CValue;
+      changed : BOOLEAN;
       PObject : TPObject;
    BEGIN
       IF Result.Counted OR Result.Expired THEN
@@ -633,9 +663,16 @@ CLASS IMPLEMENTATION CEIBServer;
          EIBValue2IOValue( EV, OUT Value );
       ELSE // dirWrite
          IOValue2EIBValue( Value, PObject^.Type, OUT EV );
-         PObject^.SetValue( EV );
-         // for notification using EventSink, if it exists
-         ValueUpdated( IOO.dirWrite, PObject, PObject^.CommunicationState );
+         PObject^.SetValue( EV, OUT changed );
+         IF changed THEN
+            PObject^.ChangedOnWrite := 1;
+            // for notification using EventSink, if it exists
+            ValueUpdated( IOO.dirWrite, PObject, PObject^.CommunicationState + eib_user.TObjectState{eib_user.osChanged} );
+         ELSE
+            PObject^.ChangedOnWrite := 0;
+            // for notification using EventSink, if it exists
+            ValueUpdated( IOO.dirWrite, PObject, PObject^.CommunicationState );
+         END;
       END;
 
       IF EIB^.DeviceConnected() THEN
@@ -677,6 +714,7 @@ CLASS IMPLEMENTATION CEIBServer;
       snReadStart            = L'read_on_start';
       snReadRun              = L'read_during_run';
       snBehaviours           = L'behaviours';
+      snObjectTypes          = L'object_types';
       snObjects              = L'objects';
       snBlocks               = L'blocks';
       // .PAR key names
@@ -713,16 +751,13 @@ CLASS IMPLEMENTATION CEIBServer;
          kvInitRead          = L'read_on_start';
          kvPHigh             = L'high';
          kvPAlarm            = L'alarm';
-      knObject               = L'object';
-      knLoggedObject         = L'logged_object';
-      knObjects              ::= snObjects;
-      knLoggedObjects        = L'logged_objects';
-      knESFStrict            = L'esf_strict';
-      knLoggedESFStrict      = L'logged_esf_strict';
-      knESFIgnore            = L'esf_ignore';
-      knLoggedESFIgnore      = L'logged_esf_ignore';
-      knESFAdapt             = L'esf_adapt';
-      knLoggedESFAdapt       = L'logged_esf_adapt';
+      // knObjectType
+        kvLogNoChange        = L"log_always";
+        kvLogOnChange        = L"log_on_change";
+        kvMultipleAddresses  = L"multiple_addresses";
+        kvESFStrict          = L'esf_strict';
+        kvESFIgnore          = L'esf_ignore';
+        kvESFAdapt           = L'esf_adapt';
       knBlock                = L'block';
       knType                 = L'type';
       snFormats              = L'formats';
@@ -792,7 +827,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
    //----------
 
-      PROCEDURE StringToSingleObject( REF ErrorMessage : StringsO.CString; String : ARRAY OF WCHAR; StartFromItem : CARDINAL; Priority : eib_def.TPriority; BFlags : eib_def.TA_ObjectFlags; EIT : eib_def.TEIBType; Logged : BOOLEAN ) : BOOLEAN;
+      PROCEDURE StringToSingleObject( REF ErrorMessage : StringsO.CString; String : ARRAY OF WCHAR; StartFromItem : CARDINAL; Priority : eib_def.TPriority; BFlags : eib_def.TA_ObjectFlags; EIT : eib_def.TEIBType; ObjectType : TObjectType ) : BOOLEAN;
       LABEL
          NextItem;
       VAR
@@ -815,7 +850,7 @@ CLASS IMPLEMENTATION CEIBServer;
                   ErrorMessage.FromOA( OAsz( R[ Texts._MissingAddress ] ));
                   RETURN FALSE;
                ELSE // OK, add object
-                  PObject := AddObject( Priority, BFlags, EIT, Logged );
+                  PObject := AddObject( Priority, BFlags, EIT, ObjectType );
                END;
             ELSIF p[0] = 0W THEN
                EXIT;
@@ -874,7 +909,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
    //----------
 
-      PROCEDURE StringToMultipleObjects( REF ErrorMessage : StringsO.CString; String : ARRAY OF WCHAR; StartFromItem : CARDINAL; Priority : eib_def.TPriority; BFlags : eib_def.TA_ObjectFlags; EIT : eib_def.TEIBType; Logged : BOOLEAN ) : BOOLEAN;
+      PROCEDURE StringToMultipleObjects( REF ErrorMessage : StringsO.CString; String : ARRAY OF WCHAR; StartFromItem : CARDINAL; Priority : eib_def.TPriority; BFlags : eib_def.TA_ObjectFlags; EIT : eib_def.TEIBType; ObjectType : TObjectType ) : BOOLEAN;
       LABEL
          NextItem;
       VAR
@@ -959,7 +994,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
             j := 1;
             FOR c := f TO l DO
-               PObject := AddObject( Priority, BFlags, EIT, Logged );
+               PObject := AddObject( Priority, BFlags, EIT, ObjectType );
                LAddress.SetGroupAddress1( c );
                IF Name[0] <> 0W THEN
                   Strings.FromCARD32W( j, 10, OUT Number );
@@ -991,13 +1026,14 @@ CLASS IMPLEMENTATION CEIBServer;
 
    CONST
       fullIOFlags = eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofTransmit, eib_def.aofUpdate, eib_def.aofWritable};
-   VAR   
+
+   VAR
       fs : FIOO.CFileStream;
       tr : TextReader.CTextReader;
 
    //----------
 
-      PROCEDURE ReadESF( REF ErrorMessage : StringsO.CString; CONST Mode : ARRAY OF WCHAR; CONST ESFPath : StringsO.CString; Logged : BOOLEAN ) : BOOLEAN;
+      PROCEDURE ReadESF( REF ErrorMessage : StringsO.CString; CONST Mode : ARRAY OF WCHAR; CONST ESFPath : StringsO.CString; ObjectType : TObjectType ) : BOOLEAN;
       CONST
          kvEIS = L"EIS";
          kvESFLow = L"Low";
@@ -1071,9 +1107,9 @@ CLASS IMPLEMENTATION CEIBServer;
                END;
 
             ELSIF io.EqualsOA( kvUncertain ) THEN
-               IF EQUALS( Mode, knESFIgnore ) OR EQUALS( Mode, knLoggedESFIgnore ) THEN
+               IF objtESFIgnore IN ObjectType THEN
                   CONTINUE;
-               ELSIF EQUALS( Mode, knESFStrict ) OR EQUALS( Mode, knLoggedESFStrict ) THEN
+               ELSIF objtESFStrict IN ObjectType THEN
                   ErrorMessage.FromOA( OAsz( R[ Texts._BadTypeInfoUnableToDetectUncertainType ] ));
                   AppendErrorLine( REF ErrorMessage, tr.Line );
                   RETURN FALSE;
@@ -1146,7 +1182,7 @@ CLASS IMPLEMENTATION CEIBServer;
                RETURN FALSE;
             END;
             
-            PObject := AddObject( Priority, fullIOFlags, EIT, Logged );
+            PObject := AddObject( Priority, fullIOFlags, EIT, ObjectType );
             IF AddGroup( GroupAddress ) THEN
                PObject^.AddAddress( FALSE, FALSE, GroupAddress );
             ELSE
@@ -1182,13 +1218,14 @@ CLASS IMPLEMENTATION CEIBServer;
    VAR
       BFlags : eib_def.TA_ObjectFlags;
       Blocks : lists.CStringList;
-      BName : ARRAY [0..63] OF WCHAR;
       c : CARDINAL;
       Connection, Key : ARRAY [0..255] OF WCHAR;
       EIT : eib_def.TEIBType;
       ErrorMessageOA : ARRAY [0..255] OF WCHAR;
       ES : PTR;
       i : CARDINAL;
+      Name : ARRAY [0..63] OF WCHAR;
+      objectType : TObjectType;
       p : ARRAY [0..255] OF WCHAR;
       PBehaviour : TPBehaviour;
       Priority : eib_def.TPriority;
@@ -1212,7 +1249,11 @@ CLASS IMPLEMENTATION CEIBServer;
          ErrorMessage.FromOA( OAsz( R[ Texts._CannotOpenPar ] ));
          GOTO Fail;
       END; // try
+
+      so.FromOA( L";" );
       tr.Stream := ADR( fs );
+      tr.CommentaryStart := so;
+      tr.OmitCommentaries := TRUE;
       b := TS.Load( tr );
       fs.Close( FALSE );
       IF NOT b THEN
@@ -1388,7 +1429,7 @@ CLASS IMPLEMENTATION CEIBServer;
                GOTO Fail;
             ELSE
                BFlags := eib_def.TA_ObjectFlags{eib_def.aofCommunicated};
-               ASSIGN( BName, p );
+               ASSIGN( Name, p );
             END;
 
             i := 1;
@@ -1424,12 +1465,49 @@ CLASS IMPLEMENTATION CEIBServer;
             END; // LOOP
 
             NEW( PBehaviour );
-            ASSIGN( PBehaviour^.Name, BName );
+            ASSIGN( PBehaviour^.Name, Name );
             PBehaviour^.Class := Priority;
             PBehaviour^.Flags := BFlags;
             Behaviours.Append( PBehaviour );
          END; // WHILE
       END; // IF snBehaviours
+      
+      // read object types
+      ObjectTypes.Dispose();
+      IF TS.SetSection( snObjectTypes ) THEN
+         ES := 0;
+         WHILE TS.EnumerateKeys( REF ES, OUT ErrorLine, OUT p, OUT so ) DO
+            objectType := TObjectType{};
+
+            i := 0;
+            LOOP
+               so.ItemSOA( StringsO.WCHARS{L' ', L','}, 0, i, TRUE, OUT p );
+               IF p[0] = 0W THEN
+                  EXIT;
+               END;
+               IF EQUALS( p, kvLogNoChange ) THEN
+                  INCL( objectType, objtLogNoChange );
+               ELSIF EQUALS( p, kvLogOnChange ) THEN
+                  INCL( objectType, objtLogOnChange );
+               ELSIF EQUALS( p, kvMultipleAddresses ) THEN
+                  INCL( objectType, objtMultipleAddresses );
+               ELSIF EQUALS( p, kvESFStrict ) THEN
+                  INCL( objectType, objtESFStrict );
+               ELSIF EQUALS( p, kvESFIgnore ) THEN
+                  INCL( objectType, objtESFIgnore );
+               ELSIF EQUALS( p, kvESFAdapt ) THEN
+                  INCL( objectType, objtESFAdapt );
+               ELSE
+                  ErrorMessage.AppendOA( OAsz( R[ Texts._BadObjectTypeItemName ] ));
+                  AppendErrorId( REF ErrorMessage, p );
+                  GOTO Fail;
+               END;
+               INC( i );
+            END; // LOOP
+
+            ObjectTypes.AddOA( p, PTR( objectType ));
+         END; // WHILE
+      END; // IF snObjectTypes
 
       // read objects
       INCL( RStatus, rsInitReadFinished );
@@ -1437,11 +1515,18 @@ CLASS IMPLEMENTATION CEIBServer;
       IF TS.SetSection( snObjects ) THEN
          ES := 0;
          WHILE TS.EnumerateKeys( REF ES, OUT ErrorLine, OUT p, OUT so ) DO
-            //-----
-            IF EQUALS( p, knObject ) OR EQUALS( p, knObjects ) OR EQUALS( p, knLoggedObject ) OR EQUALS( p, knLoggedObjects ) THEN
-               b := EQUALS( p, knObject ) OR EQUALS( p, knLoggedObject );
-               logged := EQUALS( p, knLoggedObject ) OR EQUALS( p, knLoggedObjects );
-
+            IF NOT FindObjectType( p, OUT objectType ) THEN
+               ErrorMessage.AppendOA( OAsz( R[ Texts._UnknownObjectType ] ));
+               AppendErrorId( REF ErrorMessage, p );
+               GOTO Fail;
+            END;
+            
+            IF TObjectType{objtESFStrict, objtESFAdapt, objtESFIgnore} * objectType <> TObjectType{} THEN // esf file
+               IF NOT ReadESF( REF ErrorMessage, p, so, objectType ) THEN
+                  GOTO Fail;
+               END;
+            
+            ELSE // other object types
                so.ItemSOA( StringsO.WCHARS{L' ', L','}, 0, 0, TRUE, OUT p );
                IF p[0] = 0W THEN
                   ErrorMessage.AppendOA( OAsz( R[ Texts._MissingBehaviourName ] ));
@@ -1459,26 +1544,17 @@ CLASS IMPLEMENTATION CEIBServer;
                END;
 
                so.ToOA( OUT s );
-               IF b THEN
-                  IF NOT StringToSingleObject( REF ErrorMessage, s, 2, Priority, BFlags, EIT, logged ) THEN
+               IF objtMultipleAddresses IN objectType  THEN
+                  IF NOT StringToSingleObject( REF ErrorMessage, s, 2, Priority, BFlags, EIT, objectType ) THEN
                      GOTO Fail;
                   END;
                ELSE
-                  IF NOT StringToMultipleObjects( REF ErrorMessage, s, 2, Priority, BFlags, EIT, logged ) THEN
+                  IF NOT StringToMultipleObjects( REF ErrorMessage, s, 2, Priority, BFlags, EIT, objectType ) THEN
                      GOTO Fail;
                   END;
                END;
 
-            //-----
-            ELSE
-               logged := EQUALS( p, knLoggedESFStrict ) OR EQUALS( p, knLoggedESFIgnore ) OR EQUALS( p, knLoggedESFAdapt );
-               IF EQUALS( p, knESFStrict ) OR EQUALS( p, knESFIgnore ) OR EQUALS( p, knESFAdapt ) OR logged THEN
-                  IF NOT ReadESF( REF ErrorMessage, p, so, logged ) THEN
-                     GOTO Fail;
-                  END;
-               END;
-
-            END;
+            END; // if ESF or normal object
          END; // WHILE
       END; // IF snObjects
 
@@ -1525,25 +1601,30 @@ CLASS IMPLEMENTATION CEIBServer;
             EXCL( RStatus, rsInitReadFinished );
          END;
 
-         // OBJECT =
+         // objects
          ES := 0;
          WHILE TS.EnumerateKeys( REF ES, OUT ErrorLine, OUT p, OUT so ) DO
-            so.ToOA( OUT s );
-            logged := EQUALS( p, knLoggedObject );
-            IF ( EQUALS( p, knObject ) OR logged ) AND NOT StringToSingleObject( REF ErrorMessage, s, 0, Priority, BFlags, EIT, logged ) THEN
+            IF EQUALS( knType, p ) THEN
+               CONTINUE;
+            ELSIF EQUALS( knBehaviour, p ) THEN
+               CONTINUE;
+            ELSIF NOT FindObjectType( p, OUT objectType ) THEN
+               ErrorMessage.AppendOA( OAsz( R[ Texts._UnknownObjectType ] ));
+               AppendErrorId( REF ErrorMessage, p );
                GOTO Fail;
             END;
-         END; // WHILE knObject        
-
-         // OBJECTS =
-         ES := 0;
-         WHILE TS.EnumerateKeys( REF ES, OUT ErrorLine, OUT p, OUT so ) DO
+            
             so.ToOA( OUT s );
-            logged := EQUALS( p, knLoggedObjects );
-            IF ( EQUALS( p, knObjects ) OR logged ) AND NOT StringToMultipleObjects( REF ErrorMessage, s, 0, Priority, BFlags, EIT, logged ) THEN
-               GOTO Fail;
+            IF objtMultipleAddresses IN objectType  THEN
+               IF NOT StringToSingleObject( REF ErrorMessage, s, 0, Priority, BFlags, EIT, objectType ) THEN
+                  GOTO Fail;
+               END;
+            ELSE
+               IF NOT StringToMultipleObjects( REF ErrorMessage, s, 0, Priority, BFlags, EIT, objectType ) THEN
+                  GOTO Fail;
+               END;
             END;
-         END; // WHILE knObject        
+         END; // WHILE objects
 
       END; // WHILE Blocks
       
@@ -1658,6 +1739,45 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
+   PROCEDURE FindObjectType( ObjectTypeName : ARRAY OF WCHAR; OUT ObjectType : TObjectType ) : BOOLEAN;
+   VAR
+      ptr : PTR;
+   BEGIN
+      IF ObjectTypes.GetOA( ObjectTypeName, OUT ptr ) THEN
+         ObjectType := TObjectType( LOPTRLONGWORD( ptr ));
+      ELSIF EQUALS( ObjectTypeName, otnObject ) THEN
+         ObjectType := TObjectType{ objtMultipleAddresses};
+      ELSIF EQUALS( ObjectTypeName, otnObjects ) THEN
+         ObjectType := TObjectType{};
+      ELSIF EQUALS( ObjectTypeName, otnLoggedObject ) THEN
+         ObjectType := TObjectType{ objtMultipleAddresses, objtLogNoChange};
+      ELSIF EQUALS( ObjectTypeName, otnLoggedObjects ) THEN
+         ObjectType := TObjectType{ objtLogNoChange};
+      ELSIF EQUALS( ObjectTypeName, otnLoggedOnChangeObject ) THEN
+         ObjectType := TObjectType{ objtMultipleAddresses, objtLogOnChange};
+      ELSIF EQUALS( ObjectTypeName, otnLoggedOnChangeObjects ) THEN
+         ObjectType := TObjectType{ objtLogOnChange};
+      ELSIF EQUALS( ObjectTypeName, otnESFStrict ) THEN
+         ObjectType := TObjectType{ objtESFStrict};
+      ELSIF EQUALS( ObjectTypeName, otnLoggedESFStrict ) THEN
+         ObjectType := TObjectType{ objtESFStrict, objtLogNoChange};
+      ELSIF EQUALS( ObjectTypeName, otnESFAdapt ) THEN
+         ObjectType := TObjectType{ objtESFAdapt};
+      ELSIF EQUALS( ObjectTypeName, otnLoggedESFAdapt ) THEN
+         ObjectType := TObjectType{ objtESFAdapt, objtLogNoChange};
+      ELSIF EQUALS( ObjectTypeName, otnESFIgnore ) THEN
+         ObjectType := TObjectType{ objtESFIgnore};
+      ELSIF EQUALS( ObjectTypeName, otnLoggedESFIgnore ) THEN
+         ObjectType := TObjectType{ objtESFIgnore, objtLogNoChange};
+      ELSE
+         RETURN FALSE;
+      END;
+      
+      RETURN TRUE;
+   END FindObjectType;
+
+//--------------------------------------------------------------------------------
+
    PROCEDURE FindBehaviour( BehaviourName : ARRAY OF WCHAR; VAR Priority : eib_def.TPriority; VAR Flags : eib_def.TA_ObjectFlags ) : BOOLEAN;
    VAR
       PBehaviour : TPBehaviour;
@@ -1703,7 +1823,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   PROCEDURE AddObject( Priority : eib_def.TPriority; Flags : eib_def.TA_ObjectFlags; Type : eib_def.TEIBType; Logged : BOOLEAN ) : TPObject;
+   PROCEDURE AddObject( Priority : eib_def.TPriority; Flags : eib_def.TA_ObjectFlags; Type : eib_def.TEIBType; ObjectType : TObjectType ) : TPObject;
    VAR
       PObject : TPObject;
    BEGIN
@@ -1712,7 +1832,7 @@ CLASS IMPLEMENTATION CEIBServer;
       PObject^.Init( EIB, Type, eib_user.obNone );
       PObject^.SetClass( Priority );
       PObject^.SetFlags( Flags );
-      PObject^.Logged := Logged;
+      PObject^.ObjectType := ObjectType;
       
       Objects.Add( PObject );
 
@@ -1830,6 +1950,7 @@ CLASS IMPLEMENTATION CEIBServer;
       asyncResult : Sync.TAsyncResult := Sync.arCompleted;
       EValue : eib_def.CValue;
       io : iovalue.Value;
+      logged : BOOLEAN;
       value : StringsO.CString;
       valuesConverted : BOOLEAN := FALSE;
    BEGIN
@@ -1842,7 +1963,11 @@ CLASS IMPLEMENTATION CEIBServer;
          RETURN;
       END;
 
-      IF PObject^.Logged THEN
+      IF TObjectType{objtLogNoChange, objtLogOnChange} * PObject^.ObjectType = TObjectType{} THEN
+         // pass down
+      ELSIF ( objtLogNoChange IN PObject^.ObjectType ) OR // log always
+            ( objtLogOnChange IN PObject^.ObjectType ) AND ( eib_user.osChanged IN CurrentState ) OR // log changes
+            ( Direction = IOO.dirWrite ) AND NOT EIB^.DeviceConnected() THEN // always allow log failures
 
          valuesConverted := TRUE;
          PObject^.GetValue( OUT EValue, TRUE, FALSE );
@@ -1925,7 +2050,11 @@ CLASS IMPLEMENTATION CEIBServer;
          END;
       END;
       
-      IF PObject^.Logged THEN
+      IF TObjectType{objtLogNoChange, objtLogOnChange} * PObject^.ObjectType = TObjectType{} THEN
+         // pass down
+      ELSIF ( objtLogNoChange IN PObject^.ObjectType ) OR // log always
+            ( objtLogOnChange IN PObject^.ObjectType ) AND ( PObject^.ChangedOnWrite <> 0 ) OR // log changes
+            ( PObject^.WSStatus <> eib_status.essOK ) THEN // always allow log errors
 
          PObject^.GetValue( OUT EValue, TRUE, FALSE );
          EIBValue2IOValue( EValue, OUT io );

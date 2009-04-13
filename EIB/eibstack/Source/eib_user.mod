@@ -523,11 +523,12 @@ CLASS IMPLEMENTATION CUserObject;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE SetValue( CONST _Value : eib_def.TValue ) : eib_status.TEIBStackStatus;
+  PUBLIC PROCEDURE SetValue( CONST _Value : eib_def.TValue; OUT Changed : BOOLEAN ) : eib_status.TEIBStackStatus;
   VAR
     Result : eib_status.TEIBStackStatus;
   BEGIN
     Lock();
+    Changed := NOT Value.Equals( _Value );
     Value.CopyFrom( _Value );
     Result := Transmit();
     Unlock();

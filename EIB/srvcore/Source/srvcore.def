@@ -27,6 +27,17 @@ IMPORT
 TYPE
    TPEIBServer = POINTER TO CEIBServer;
    TPObject = POINTER TO CObject;
+   
+TYPE
+   TObjectTypeItem = (
+      objtLogNoChange, // behavior
+      objtLogOnChange, // behavior
+      objtMultipleAddresses, // read helper
+      objtESFStrict, // read helper
+      objtESFAdapt, // read helper
+      objtESFIgnore // read helper
+   );
+   TObjectType = SET OF TObjectTypeItem;
 
 //--------------------------------------------------------------------------------
 
@@ -40,10 +51,12 @@ CLASS CObject( eib_user.CUserObject );
    WSStatus           : eib_status.TEIBStackStatus;
    ReadRepeatCount    : CARDINAL;
    RecoveryExpiration : CARDINAL;
-   _Logged            : BOOLEAN;
+   _ObjectType        : TObjectType;
+   _ChangedOnWrite    : TRISTATE;
    
    PUBLIC PROPERTY
-      Logged : BOOLEAN;
+      ObjectType : TObjectType;
+      ChangedOnWrite : TRISTATE;
 
    PUBLIC PROCEDURE LogNumber() : CARDINAL;
 
@@ -160,6 +173,7 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    InitReadRepeatCount      : CARDINAL;
 
    Behaviours               : list.CList;
+   ObjectTypes              : lists.CStringList;
 
    ObjectLock               : Sync.LOCK;
    Groups                   : ARRAY CARD16 OF CARD16; // maps group addresses to object indexes
@@ -235,7 +249,8 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    
    // internal
    PROCEDURE FindBehaviour( BehaviourName : ARRAY OF WCHAR; VAR Priority : eib_def.TPriority; VAR Flags : eib_def.TA_ObjectFlags ) : BOOLEAN;
-   PROCEDURE AddObject( Class : eib_def.TPriority; Flags : eib_def.TA_ObjectFlags; Type : eib_def.TEIBType; Logged : BOOLEAN ) : TPObject;
+   PROCEDURE FindObjectType( ObjectTypeName : ARRAY OF WCHAR; OUT ObjectType : TObjectType ) : BOOLEAN;
+   PROCEDURE AddObject( Class : eib_def.TPriority; Flags : eib_def.TA_ObjectFlags; Type : eib_def.TEIBType; ObjectType : TObjectType ) : TPObject;
    PROCEDURE DoneObjects( NILExecutive : BOOLEAN );
 
    // object callbacks

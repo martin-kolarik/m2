@@ -144,8 +144,8 @@ Licence support tool
               <text>
                 <p>Sekce <type>[objects]</type> a <type>[blocks]</type> shrnují všechny definice datových bodù KNX, které má server znát a se kterými má komunikovat. Pro každý datový bod je v konfiguraci tøeba znát jeho adresu(y), datový typ a zpùsob jeho komunikace. Sekce <type>[objects]</type> a <type>[blocks]</type> se od sebe navzájem liší zpùsobem zápisu tìchto údajù.</p>
                 <p>Obì sekce zapisují definice objektù do øádkù, <type>[objects]</type> vyžaduje na každém øádku o datových bodech kompletní informaci, <type>[blocks]</type> naopak pro celou skupinu datových bodù definuje jeden datový typ a jeden zpùsob komunikace. <type>[objects]</type> se tak dobøe hodí pro rychlou definici nìkolika datových bodù, zatímco <type>[blocks]</type> dovoluje vìtší strukturovanost konfigurace.</p>
-                <p>V obou sekcích lze datové objekty definovat pomocí parametrù <type>objects</type>, <type>object</type>, <type>logged_objects</type> a <type>logged_object</type>. Jejich odlišení je jednoduché: <type>objects</type> a <type>logged_objects</type> dovolují najednou definovat více datových objektù (každý s jednou skupinovou adresou); <type>object</type> a <type>logged_object</type> definuje jediný datový objekt spojený pøípadnì s více skupinovými adresami (model je stejný jako pøi spojování komunikaèních objektù se skupinovými adresami pøi bìžném programování KNX v ETS).</p>
-                <p>Dvojice parametrù <type>logged_objects</type> a <type>logged_object</type> slouží k definici datových objektù, jejichž zmìny v èase budou zaznamenány v administraèní èásti webového rozhraní (v èásti <gui>Historie dat</gui>). Ukázku použití sledovaných datových objektù obsahuje napø. ukázkový konfiguraèní soubor <file>12 test-logged.cfg</file>.</p>
+                <p>V obou sekcích lze datové objekty definovat pomocí parametrù <type>objects</type>, <type>object</type>, <type>logged_objects</type>, <type>logged_object</type>, <type>logged_on_change_objects</type> a <type>logged_on_change_object</type>. Jejich odlišení je jednoduché: <type>objects</type>, <type>logged_objects</type> a <type>logged_on_change_objects</type> dovolují najednou definovat více datových objektù (každý s jednou skupinovou adresou); <type>object</type>, <type>logged_object</type> a <type>logged_on_change_object</type> definuje jediný datový objekt spojený pøípadnì s více skupinovými adresami (model je stejný jako pøi spojování komunikaèních objektù se skupinovými adresami pøi bìžném programování KNX v ETS).</p>
+                <p>Trojice parametrù <type>logged_on_change_objects</type>, <type>logged_objects</type> a <type>logged_object</type> slouží k definici datových objektù, jejichž zmìny v èase budou zaznamenány v administraèní èásti webového rozhraní (v èásti <gui>Historie dat</gui>). Ukázku použití sledovaných datových objektù obsahuje napø. ukázkový konfiguraèní soubor <file>12 test-logged.cfg</file>.</p>
                 <p>V definicích datových bodù se používají pro popis podporovaných datových typù klíèová slova podle tabulky <in label="tblDataTypes"></in>.</p>
                 <f.table label="tblDataTypes">
                   <caption>Datové typy</caption>
@@ -276,7 +276,8 @@ objects = tracker, switch, 3/0/0..3/0/19
 objects = transmitter, switch, 5/3/100..5/3/119
 object = tracker_init, value, 2/0/0
 object = transmitter_with_status_init, switch, 3/3/10, 3/5/10
-logged_objects = tracker, switch, 1/1/0..1/1/29</p.type>
+logged_objects = tracker, switch, 1/1/0..1/1/29
+logged_on_change_objects = tracker, switch, 7/1/0..7/1/9</p.type>
                 <p>Pøíklad zápisu datových bodù pomocí sekce <type>[blocks]</type>:</p>
                 <p.type>[blocks]
 block = statuses
@@ -291,7 +292,8 @@ logged_objects = 1/2/0..1/2/29
 [controls]
 type = switch
 behaviour = transmitter
-objects = 5/3/100..5/3/119</p.type>
+objects = 5/3/100..5/3/119
+logged_on_change_objects = 1/7/0..1/7/9</p.type>
                 <p>Je zøejmé, že v definicích pomocí <type>[blocks]</type> je nejprve uveden výèet blokù (sekcí), které jsou následnì zapsány. Aby se v definicích objektù nemusely typ a zpùsob komunikace opisovat, jsou vytknuty do parametru <type>type</type> a <type>behaviour</type>. Druhá ukázka pøitom definuje stejné objekty, jako první dva øádky v ukázce použití <type>[objects]</type>.</p>
                 <p>Další ukázky zápisu datových bodù lze najít v souborech: <file>04 init-read.cfg</file> (datové body s vynuceným poèáteèním ètením), <file>06 complex-object.cfg</file> (datové body spojené s více skupinovými adresami), <file>08 blocks.cfg</file> (definice datových bodù pomocí sekce <type>[blocks]</type>).</p>
               </text>
