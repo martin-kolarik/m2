@@ -45,7 +45,7 @@ CLASS IMPLEMENTATION CBrowser;
       res := Connect( Timeout );
       IF res IN Sync.arsStarts THEN // send query
          sr.HPAI := HPAISelf;
-         Socket^.SendOA( OA( sr.Length-1, ADR( sr )));
+         _Socket^.SendOA( OA( sr.Length-1, ADR( sr )));
          RETURN Sync.arPending;
       END;
 

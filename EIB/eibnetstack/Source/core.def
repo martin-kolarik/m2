@@ -286,6 +286,8 @@ CLASS ConnectRequest( HPAIPacket );
    INTERNAL VAR
       _DataHPAI : HostProtocolAddressInformation;
       _CRI      : CRI;
+   PUBLIC PROPERTY
+      KNXLayer : TKNXLayer;
    PUBLIC WRITEONLY PROPERTY
       ControlHPAI : HostProtocolAddressInformation;
       DataHPAI    : HostProtocolAddressInformation;
