@@ -24,6 +24,7 @@ CLASS CBusmonConnection( eibnet.CConnection );
    // CConnection
    INTERNAL VIRTUAL PROCEDURE OnConnect();
    INTERNAL VIRTUAL PROCEDURE OnDisconnect();
+   INTERNAL VIRTUAL PROCEDURE On_L_IND_cEMI( CONST packet : eib_def.cEMIPacket );
    INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : eib_def.TPacket );
 
    // SELF
@@ -51,11 +52,21 @@ CLASS IMPLEMENTATION CBusmonConnection;
 
 (*--------------------------------------------------------------------------------*)
 
+   INTERNAL VIRTUAL PROCEDURE On_L_IND_cEMI( CONST packet : eib_def.cEMIPacket );
+   VAR
+      s : StringsO.CString;
+   BEGIN
+      BytesToString( OA( packet.Length-1, ADR( packet )), OUT s );
+      TextWriter.errout()^.Write( s, TRUE );
+   END On_L_IND_cEMI;
+
+(*--------------------------------------------------------------------------------*)
+
    INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : eib_def.TPacket );
    VAR
       s : StringsO.CString;
    BEGIN
-      BytesToString( packet, OUT s );
+      BytesToString( OA( packet.Length-1, ADR( packet )), OUT s );
       TextWriter.errout()^.Write( s, TRUE );
    END On_L_IND;
 
@@ -73,8 +84,9 @@ CLASS IMPLEMENTATION CBusmonConnection;
          RETURN;
       END;
 
-      s.Size := 3 * l; // space + two characters per byte
-      s.Length := s.Size;
+      l := 3 * l; // space + two characters per byte
+      s.Size := l;
+      s.Length := l;
 
       WHILE i < l DO
          c8 := a^ >> 4;
@@ -142,10 +154,10 @@ BEGIN
       INC( i );
    END; // WHILE
 
-   ia.SetAddressOA( L"10.0.0.6:3671", 0 );
+   ia.SetAddressOA( L"10.0.0.7:3671", 0 );
 
-   Busmon.Mode := eibnet.cmTunnelingBlind;
-   Busmon.TunnelingMode := eibnet.tmRaw;
+   Busmon.Mode := eibnet.cmTunnelingHPAI;
+   Busmon.TunnelingMode := eibnet.tmEMI;
    Busmon.RemoteAddress := ia;
    
    Busmon.Connect( 0 );

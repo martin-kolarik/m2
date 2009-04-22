@@ -372,7 +372,7 @@ TYPE
    );
 
 TYPE
-  TData = ARRAY [0..13] OF BYTE;
+  TData = ARRAY [0..14] OF BYTE; // including ChkSum
 
 CLASS EMIPacket;
   PUBLIC VAR
@@ -386,14 +386,15 @@ CLASS EMIPacket;
     TransportControl : TTransportControl; // transport layer
   LOCAL VAR
     Data             : TData;
-    CheckSum         : BYTE;
+  
+   PUBLIC READONLY PROPERTY
+      Length : CARDINAL;  
 
   PUBLIC PROCEDURE Clear();
   PUBLIC PROCEDURE CopyFrom( CONST Packet : EMIPacket );
 
   // physical layer
   PUBLIC PROCEDURE ValidCheckSum() : BOOLEAN;
-  PUBLIC PROCEDURE CountCheckSum();
   
   // link layer
   PUBLIC PROCEDURE SetError( State : BOOLEAN );
@@ -444,6 +445,15 @@ CONST
 
 (*--------------------------------------------------------------------------------*)
 
+TYPE
+   TFrameType = (
+      ftStandard,
+      ftLTE,
+      ftUser
+   );
+   
+   TcEMIData = ARRAY [0..255] OF BYTE;
+
 CLASS cEMIPacket;
    PUBLIC VAR
      Code             : TEMICode;
@@ -454,11 +464,14 @@ CLASS cEMIPacket;
      Source           : TPacketAddress;
      Destination      : TPacketAddress;
      ACPILength       : CARD8;
-     TransportControl : TTransportControl;
-     Data             : TData;
+     Data             : TcEMIData;
    
    PUBLIC READONLY PROPERTY
       Length : CARDINAL;
+   PUBLIC PROPERTY
+      DataLength : CARDINAL;
+      Long : BOOLEAN;
+      FrameType : TFrameType;
    
    PUBLIC PROCEDURE FromEMI( CONST EMI : EMIPacket );
    PUBLIC PROCEDURE ToEMI( OUT EMI : EMIPacket );

@@ -1,15 +1,9 @@
 IMPLEMENTATION MODULE eib_def;
 
-(*================================================================================*)
-(*/* changes:
-
-03.05.2006 -- corrected eitDate -- values for eitDate were get from minutes (!) and moreover, years were badly interpretted (1900/2000)
-
-*/*)
 (*===========================================================================*)
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 IMPORT
   Storage,
@@ -815,6 +809,13 @@ CLASS IMPLEMENTATION EMIPacket;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Length GET : CARDINAL;
+   BEGIN
+      RETURN 7 + CARDINAL( NetworkControl * ncmDataLength );
+   END Length;
+
+(*---------------------------------------------------------------------------*)
+
   PUBLIC PROCEDURE Clear();
   BEGIN
     TransportControl := TransportControl - acmEISData;
@@ -839,12 +840,6 @@ CLASS IMPLEMENTATION EMIPacket;
   BEGIN
     RETURN FALSE;
   END ValidCheckSum;
-
-(*---------------------------------------------------------------------------*)
-
-  PUBLIC PROCEDURE CountCheckSum();
-  BEGIN
-  END CountCheckSum;
 
 (*---------------------------------------------------------------------------*)
 
@@ -1467,8 +1462,7 @@ BEGIN
   Destination.dw := 0;
   NetworkControl := ncsDefault;
   TransportControl := BITSET16{};
-  Storage.Fill( ADR( Data ), SIZE( Data ), 0 );
-  CheckSum := 0;
+  Data[0] := 0;
 END EMIPacket;
 
 (*===========================================================================*)
@@ -1484,7 +1478,73 @@ CLASS IMPLEMENTATION cEMIPacket;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY DataLength GET : CARDINAL;
+   BEGIN
+      RETURN CARDINAL( ACPILength );
+   END DataLength;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY DataLength SET( Value : CARDINAL );
+   BEGIN
+      ACPILength := CARD8( MIN2( 255, Value ));
+   END DataLength;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Long GET : BOOLEAN;
+   BEGIN
+      RETURN lcStandardFrame NOT IN LinkControl;
+   END Long;
+   
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Long SET( Value : BOOLEAN );
+   BEGIN
+      IF Value THEN
+         EXCL( LinkControl, lcStandardFrame );
+      ELSE
+         INCL( LinkControl, lcStandardFrame );
+      END;
+   END Long;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY FrameType GET : TFrameType;
+   VAR
+      EFF : CARD8 := DAFAndRouting AND 0FH;
+   BEGIN
+      IF EFF = 0 THEN
+         RETURN ftStandard;
+      ELSIF EFF AND 0CH = 4 THEN
+         RETURN ftLTE;
+      ELSE
+         RETURN ftUser;
+      END;
+   END FrameType;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY FrameType SET( Value : TFrameType );
+   BEGIN
+      CASE Value OF
+      | ftStandard :
+         DAFAndRouting := DAFAndRouting AND 0F0H;
+      | ftLTE :
+         DAFAndRouting := DAFAndRouting AND 0F3H OR 04H;
+      | ftUser :
+         DAFAndRouting := DAFAndRouting OR 0FH;
+      ELSE
+         ASSERTLOG( FALSE );
+      END;
+   END FrameType;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE FromEMI( CONST EMI : EMIPacket );
+   VAR
+      data : TData;
+      i : INTEGER;
    BEGIN
       CASE EMI.Code OF
       | L_Data_REQ :
@@ -1502,21 +1562,37 @@ CLASS IMPLEMENTATION cEMIPacket;
       Source := EMI.Source;
       Destination := EMI.Destination;
       ACPILength := CARD8( EMI.NetworkControl ) AND 00FH;
-      TransportControl := EMI.TransportControl;
-      Data := EMI.Data;
+      Data[0] := CARD8( CARD16( EMI.TransportControl ) >> 8 );
+      Data[1] := CARD8( EMI.TransportControl );
+
+      data := EMI.Data;
+      FOR i := 2 TO INTEGER( ACPILength )-3 DO
+         Data[i] := data[i-2];
+      END;
    END FromEMI;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE ToEMI( OUT EMI : EMIPacket );
+   VAR
+      data : TData;
+      i : INTEGER;
    BEGIN
       EMI.Code := Code;
       EMI.LinkControl := LinkControl;
       EMI.Source := Source;
       EMI.Destination := Destination;
-      EMI.NetworkControl := BITSET8( DAFAndRouting OR ACPILength );
-      EMI.TransportControl := TransportControl;
-      EMI.Data := Data;
+      EMI.TransportControl := TTransportControl( Data[0] << 8 OR Data[1] );
+
+      IF Long OR ( FrameType <> ftStandard ) THEN
+         EMI.NetworkControl := BITSET8( DAFAndRouting );
+      ELSE
+         EMI.NetworkControl := BITSET8( DAFAndRouting OR ACPILength );
+         FOR i := 2 TO INTEGER( ACPILength )-3 DO
+            data[i-2] := Data[i];
+         END;
+         EMI.Data := data;
+      END;
    END ToEMI;
 
 (*---------------------------------------------------------------------------*)
@@ -1527,8 +1603,7 @@ BEGIN
    LinkControl := lcsDefault;
    DAFAndRouting := 0;
    ACPILength := 0;
-   TransportControl := BITSET16{};
-   Storage.Fill( ADR( Data ), SIZE( Data ), 0 );
+   Data[0] := 0;
 END cEMIPacket;
 
 (*===========================================================================*)

@@ -664,6 +664,12 @@ CLASS IMPLEMENTATION CConnection;
 
 (*--------------------------------------------------------------------------------*)
 
+   INTERNAL VIRTUAL PROCEDURE On_L_IND_cEMI( CONST packet : eib_def.cEMIPacket ); // allows access to cEMI without converting to On_L_IND, IND_cEMI is called before IND
+   BEGIN
+   END On_L_IND_cEMI;
+
+(*--------------------------------------------------------------------------------*)
+
    INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : eib_def.TPacket );
    BEGIN
    END On_L_IND;
@@ -686,6 +692,7 @@ CLASS IMPLEMENTATION CConnection;
          LogPacket( FALSE, L"ROUTED in", EMI, ADR( packet ), packet.Length, TRUE );
       ELSE
          LogPacket( FALSE, L"ROUTED in", EMI, ADR( packet ), packet.Length, FALSE );
+         On_L_IND_cEMI( packet.cEMI );
          On_L_IND( EMI );
       END;
    END OnRoutingIndication;
@@ -828,6 +835,7 @@ CLASS IMPLEMENTATION CConnection;
 
       | eib_def.L_Data_IND, eib_def.L_Data_IND_EMI2 : // L_IND
          LogPacket( FALSE, L"RECEIVE", EMI, ADR( packet ), packet.Length, FALSE );
+         On_L_IND_cEMI( packet.cEMI );
          On_L_IND( EMI );
 
       ELSE // L_REQ???

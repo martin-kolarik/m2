@@ -120,6 +120,7 @@ CLASS CConnection( msghandler.MessageHandler );
    INTERNAL VIRTUAL PROCEDURE OnDisconnect();
    INTERNAL VIRTUAL PROCEDURE On_P_Sent();
    INTERNAL VIRTUAL PROCEDURE On_L_CON( Status : eib_status.TEIBStackStatus );
+   INTERNAL VIRTUAL PROCEDURE On_L_IND_cEMI( CONST packet : eib_def.cEMIPacket ); // allows access to cEMI without converting to On_L_IND, IND_cEMI is called before IND
    INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : eib_def.TPacket );
    INTERNAL VIRTUAL PROCEDURE TestSelfPacket( CONST packet : eib_def.TPacket ) : BOOLEAN;
 
