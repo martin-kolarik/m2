@@ -1,4 +1,7 @@
-Version 1.0.833/R rc1  13.4.2009
+Version 1.0.835/R rc1 13.4.2009
+- BUG: #88, named licence was badly displayed in Web interface
+
+Version 1.0.833/R rc1 13.4.2009
 - BUG: #72, some Windows XP Embedded systems are missing xmllite.dll. Now the file
        is installed in the case.
 - BUG: #73, history of values communicated in last day/hour was not cleared for

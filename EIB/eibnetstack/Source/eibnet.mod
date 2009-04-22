@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE eibnet;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -127,6 +127,35 @@ CLASS IMPLEMENTATION CConnection;
          Connect( 0 );
       END;
    END Mode;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY TunnelingMode GET : TTunnelingMode;
+   BEGIN
+      RETURN _TunnelingMode;
+   END TunnelingMode;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY TunnelingMode SET( Value : TTunnelingMode );
+   VAR
+      wasConnected : BOOLEAN := NOT Disconnected;
+   BEGIN
+      IF _TunnelingMode = Value THEN
+         RETURN;
+      ELSIF ( _Mode <> cmTunnelingHPAI ) AND ( _Mode <> cmTunnelingBlind ) THEN
+         _TunnelingMode := Value;
+         RETURN;
+      ELSIF wasConnected THEN
+         Disconnect( TRUE );
+      END;
+      
+      _TunnelingMode := Value;
+      
+      IF wasConnected THEN
+         Connect( 0 );
+      END;
+   END TunnelingMode;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -289,43 +318,44 @@ CLASS IMPLEMENTATION CConnection;
          ELSE
             timeout := Timeout;
          END;
-         b := netsrv.StartListen( netsocket.stDatagram, ai, NIL, Listener, timeout, ADR( Socket )) = 0;
+         b := netsrv.StartListen( netsocket.stDatagram, ai, NIL, _Listener, timeout, ADR( _Socket )) = 0;
       | cmRouting :
          ai.Port := core.EIBNET_IPPORT;
-         b := netsrv.StartListen( netsocket.stDatagram, ai, NIL, Listener, 0, ADR( Socket )) = 0;
+         b := netsrv.StartListen( netsocket.stDatagram, ai, NIL, _Listener, 0, ADR( _Socket )) = 0;
       ELSE
-         b := netsrv.StartListen( netsocket.stDatagram, ai, NIL, Listener, timeout, ADR( Socket )) = 0;
+         b := netsrv.StartListen( netsocket.stDatagram, ai, NIL, _Listener, timeout, ADR( _Socket )) = 0;
       END;
       IF b THEN
-         _Logger^.LogSC( dldTrace, DEBUG_PREFIX, L"LISTENing on port: ", Socket^.LocalAddress.Port );
+         _Logger^.LogSC( dldTrace, DEBUG_PREFIX, L"LISTENing on port: ", _Socket^.LocalAddress.Port );
          LogSHPAI( _Logger, dldTrace, DEBUG_PREFIX, L"CONNECT request: ", HPAIData );
       ELSE
          _Logger^.LogS( dldTrace, DEBUG_PREFIX, L"CONNECT (listen) cannot start" );
-         Socket := NIL;
+         _Socket := NIL;
          RETURN Sync.arCannotStart;
       END;
       IF _Mode = cmTunnelingBlind THEN
         HPAISelf.Port := 0;
       ELSE
-        HPAISelf.Port := Socket^.LocalAddress.Port;
+        HPAISelf.Port := _Socket^.LocalAddress.Port;
       END;
 
       CASE _Mode OF
       //-----
       | cmScanning :
          dns.GetLocalIPs( TRUE, FALSE, FALSE, OUT OA( 0, ADR( ai )), OUT l );
-         ai.Port := Socket^.LocalAddress.Port;
+         ai.Port := _Socket^.LocalAddress.Port;
          HPAISelf.Address := ai;
 
          ai.SetAddressOA( core.EIBNET_DISCOVERY_ADDRESS, core.EIBNET_IPPORT );
-         Socket^.MulticastGroup := ai;
+         _Socket^.MulticastGroup := ai;
          IOState := ioReady;
 
          LogSHPAI( _Logger, dldTrace, DEBUG_PREFIX, L"CONNECTed in SCANNING mode: ", HPAIData );
          RETURN Sync.arCompleted;
+
       //-----
       | cmRouting :
-         Socket^.MulticastGroup := HPAIData.Address;
+         _Socket^.MulticastGroup := HPAIData.Address;
          IOState := ioReady;
          OnConnect();
 
@@ -335,7 +365,7 @@ CLASS IMPLEMENTATION CConnection;
       //-----
       | cmTunnelingHPAI :
          dns.GetLocalIPs( TRUE, FALSE, FALSE, OUT OA( 0, ADR( ai )), OUT l );
-         ai.Port := Socket^.LocalAddress.Port;
+         ai.Port := _Socket^.LocalAddress.Port;
          HPAISelf.Address := ai;
 
          IOState := ioConnecting;
@@ -349,9 +379,20 @@ CLASS IMPLEMENTATION CConnection;
          StartTimer( PTR( tiConnect ), CONNECT_TIMEOUT, FALSE );
       END;
 
+      // here we are always in tunneling mode
+      CASE _TunnelingMode OF
+      | tmEMI :
+         cr.KNXLayer := core.TUNNEL_LINKLAYER;
+      | tmRaw :
+         cr.KNXLayer := core.TUNNEL_RAW;
+      | tmBusmonitor :
+         cr.KNXLayer := core.TUNNEL_BUSMONITOR;
+      ELSE
+         ASSERTLOG( FALSE );
+      END;
       cr.ControlHPAI := HPAISelf;
       cr.DataHPAI := HPAISelf;
-      RETURN Socket^.SendToOA( OA( cr.Length-1, ADR( cr )), HPAICtrl.Address );
+      RETURN _Socket^.SendToOA( OA( cr.Length-1, ADR( cr )), HPAICtrl.Address );
    END Connect;
 
 (*--------------------------------------------------------------------------------*)
@@ -378,7 +419,7 @@ CLASS IMPLEMENTATION CConnection;
          StartTimer( PTR( tiDisconnect ), DISCONNECT_TIMEOUT, FALSE );
          dr.ControlHPAI := HPAISelf;
          dr.ChannelId := ChannelId;
-         RETURN Socket^.SendToOA( OA( dr.Length-1, ADR( dr )), HPAICtrl.Address );
+         RETURN _Socket^.SendToOA( OA( dr.Length-1, ADR( dr )), HPAICtrl.Address );
       ELSE
          DeviceDisconnect();
       END;
@@ -567,8 +608,8 @@ CLASS IMPLEMENTATION CConnection;
    BEGIN
       _Logger^.LogSC( dldTrace, DEBUG_PREFIX, L"Stop LISTENing on port: ", ServerSocket^.LocalAddress.Port );
       
-      IF Socket = ServerSocket THEN
-         Socket := NIL;
+      IF _Socket = ServerSocket THEN
+         _Socket := NIL;
       END;
 
       DataDisconnect();
@@ -724,7 +765,7 @@ CLASS IMPLEMENTATION CConnection;
          DataDisconnect();
 
          dr.ChannelId := ChannelId;
-         Socket^.SendToOA( OA( dr.Length-1, ADR( dr )), HPAICtrl.Address );
+         _Socket^.SendToOA( OA( dr.Length-1, ADR( dr )), HPAICtrl.Address );
       END;
 
       DeviceDisconnect();
@@ -759,7 +800,7 @@ CLASS IMPLEMENTATION CConnection;
       tack.ChannelId := ChannelId;
       tack.Sequence := pSeq;
       tack.Success := TRUE;
-      Socket^.SendToOA( OA( tack.Length-1, ADR( tack )), HPAIData.Address );
+      _Socket^.SendToOA( OA( tack.Length-1, ADR( tack )), HPAIData.Address );
 
       IF pSeq < CARD8( AltInSeq ) THEN
          _Logger^.LogSCP( dldTrace, DEBUG_PREFIX, L"RECEIVE previous: ", CARDINAL( ChannelId ), PTR( pSeq ));
@@ -860,7 +901,7 @@ CLASS IMPLEMENTATION CConnection;
          LogPacket( TRUE, L"ROUTED out", EMI, ADR( rr ), rr.Length, FALSE );
 
          StartTimer( PTR( tiACK ), core.ROUTING_L_CON_TIME_OUT, FALSE );
-         res := Socket^.SendOA( OA( rr.Length-1, ADR( rr ))); // send to internal multicast group
+         res := _Socket^.SendOA( OA( rr.Length-1, ADR( rr ))); // send to internal multicast group
 
       ELSIF _Mode = cmScanning THEN
          RETURN Sync.arCannotStart;
@@ -873,7 +914,7 @@ CLASS IMPLEMENTATION CConnection;
          LogPacket( TRUE, L"SEND", EMI, ADR( tr ), tr.Length, FALSE );
 
          StartTimer( PTR( tiACK ), core.TUNNELING_REQUEST_TIME_OUT, FALSE );
-         res := Socket^.SendToOA( OA( tr.Length-1, ADR( tr )), HPAIData.Address ); // send to specified address
+         res := _Socket^.SendToOA( OA( tr.Length-1, ADR( tr )), HPAIData.Address ); // send to specified address
       END;
 
       RETURN res;
@@ -912,8 +953,8 @@ CLASS IMPLEMENTATION CConnection;
       LogSCHPAI( _Logger, dldTrace, DEBUG_PREFIX, L"DISCONNECTed: ", CARDINAL( ChannelId ), HPAIData );
 
       StopTimer( PTR( tiDisconnect ));
-      IF Socket <> NIL THEN
-         netsrv.StopListenSocket( REF Socket );
+      IF _Socket <> NIL THEN
+         netsrv.StopListenSocket( REF _Socket );
       END;
       IOState := ioDisconnected;
 
@@ -943,7 +984,7 @@ CLASS IMPLEMENTATION CConnection;
       hb.ControlHPAI := HPAISelf;
       hb.ChannelId := ChannelId;
       StartTimer( PTR( tiHeartbeatRepeat ), core.HEART_BEAT_TIMEOUT, FALSE );
-      Socket^.SendToOA( OA( hb.Length-1, ADR( hb )), HPAICtrl.Address );
+      _Socket^.SendToOA( OA( hb.Length-1, ADR( hb )), HPAICtrl.Address );
    END ProcessHbFailure;
 
 (*--------------------------------------------------------------------------------*)
@@ -997,9 +1038,9 @@ CLASS IMPLEMENTATION CConnection;
 
       Init( TRUE );
    
-      Socket := NIL;
-      NEW( Listener );
-      Listener^.Connection := ADR( SELF );
+      _Socket := NIL;
+      NEW( _Listener );
+      _Listener^.Connection := ADR( SELF );
    END CConnection;
 
 (*--------------------------------------------------------------------------------*)
@@ -1011,11 +1052,11 @@ CLASS IMPLEMENTATION CConnection;
 
       Disconnect( TRUE );
 
-      IF Listener <> NIL THEN // this occurs in case of multiple FINALLY calls
-         Listener^.Connection := NIL;
-         Listener^.Release();
+      IF _Listener <> NIL THEN // this occurs in case of multiple FINALLY calls
+         _Listener^.Connection := NIL;
+         _Listener^.Release();
       END;
-      Listener := NIL;
+      _Listener := NIL;
    END CConnection;
 
 (*--------------------------------------------------------------------------------*)

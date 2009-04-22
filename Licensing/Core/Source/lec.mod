@@ -253,7 +253,7 @@ CLASS IMPLEMENTATION CResult;
          s := Items.TPLicence( item )^.Serial;
          IF Items.ltUnnamed NOT IN Items.TPLicence( item )^.Type THEN
             s.AppendOA( L" (" );
-            s := Items.TPLicence( item )^.Owner;
+            s.Append( Items.TPLicence( item )^.Owner );
             s.AppendOA( L")" );
          END;
          IF localExpired THEN

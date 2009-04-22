@@ -44,6 +44,12 @@ TYPE
       cmRouting
    );
    
+   TTunnelingMode = (
+      tmEMI,
+      tmRaw,
+      tmBusmonitor
+   );
+   
    TIOState = (
       ioDisconnected,
       ioConnecting,
@@ -64,35 +70,35 @@ CONST
 CLASS CConnection( msghandler.MessageHandler );
    INTERNAL VAR
       // management
-      _Logger   : log.TPLogger := NIL;
-      _Mode     : TConnectionMode := cmTunnelingHPAI;
-      Socket    : netsocket.TPSSocket := NIL;
-      Listener  : POINTER TO EIBNetListener := NIL; // it should not be static to allow Listener exist independently on CConnection
-      _AutoReconnectDelay
-                : CARDINAL := 0;
+      _Logger : log.TPLogger := NIL;
+      _Mode : TConnectionMode := cmTunnelingHPAI;
+      _Socket : netsocket.TPSSocket := NIL;
+      _Listener : POINTER TO EIBNetListener := NIL; // it should not be static to allow Listener exist independently on CConnection
+      _AutoReconnectDelay : CARDINAL := 0;
+      _TunnelingMode : TTunnelingMode := tmEMI;
       // data control
-      IOState   : TIOState := ioDisconnected;
-      HPAISelf  : core.HostProtocolAddressInformation;
-      HPAICtrl  : core.HostProtocolAddressInformation;
-      HPAIData  : core.HostProtocolAddressInformation;
+      IOState : TIOState := ioDisconnected;
+      HPAISelf : core.HostProtocolAddressInformation;
+      HPAICtrl : core.HostProtocolAddressInformation;
+      HPAIData : core.HostProtocolAddressInformation;
       ChannelId : CARD8 := 0;
       // data flow
-      EMI       : eib_def.TPacket;
-      OutSeq    : CARDINAL := 0;
-      InSeq     : CARDINAL := 0;
-      AltInSeq  : CARDINAL := 0; // AltInSeq contains InSeq one step backward, this works around curious bug, when there is in single RECEIVE packet unexpectedly high SeqNo. This work around allows returning back to SeqNo before.
-      HbRepeat  : CARDINAL := maximalHbRepeat; // heartbeat, if it falls to zero, connection is killed
-      SendErr   : CARDINAL := 0; // correction of bad server behaviour: if server does not ACK correct send (heartbeats work correctly), the connection must be reconnected. The server does not ACK packet with low numbers, it could be caused with previous lost ACK packet.
+      EMI : eib_def.TPacket;
+      OutSeq : CARDINAL := 0;
+      InSeq : CARDINAL := 0;
+      AltInSeq : CARDINAL := 0; // AltInSeq contains InSeq one step backward, this works around curious bug, when there is in single RECEIVE packet unexpectedly high SeqNo. This work around allows returning back to SeqNo before.
+      HbRepeat : CARDINAL := maximalHbRepeat; // heartbeat, if it falls to zero, connection is killed
+      SendErr : CARDINAL := 0; // correction of bad server behaviour: if server does not ACK correct send (heartbeats work correctly), the connection must be reconnected. The server does not ACK packet with low numbers, it could be caused with previous lost ACK packet.
    PUBLIC PROPERTY
-      Logger        : log.TPLogger;
-      Mode          : TConnectionMode;
+      Logger : log.TPLogger;
+      Mode : TConnectionMode;
       RemoteAddress : inetaddr.INETADDR; // routing or remote address
-      AutoReconnectDelay
-                    : CARDINAL; // if zero no reconnecting is done, reconnect is done after calling OnDisconnect when this time elapses
+      AutoReconnectDelay : CARDINAL; // if zero no reconnecting is done, reconnect is done after calling OnDisconnect when this time elapses
+      TunnelingMode : TTunnelingMode;
    PUBLIC READONLY PROPERTY
-      Connected     : BOOLEAN;
-      Disconnected  : BOOLEAN;
-      Pending       : BOOLEAN;
+      Connected : BOOLEAN;
+      Disconnected : BOOLEAN;
+      Pending : BOOLEAN;
       
    INITIALLY CConnection;
    FINALLY CConnection;
