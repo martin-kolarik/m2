@@ -100,32 +100,34 @@ CLASS IMPLEMENTATION CResult;
    LABEL
       Done;
    VAR
+      aitem : Items.TPActivation;
       dt, now : time.DateTime;
       expires, nowJulianDate : time.TJD;
-      item : Items.TPItem := data;
-      items, jitems : lists.TPPtrList;
+      litems, aitems : lists.TPPtrList;
       info : TInfo := riUnknown;
+      litem : Items.TPLicence;
       localActivated : BOOLEAN;
       localExpired : BOOLEAN;
       #if DEBUG #then
          logs : ARRAY[0..255] OF WCHAR;
       #endif
+      pitem : Items.TPItem := data;
       s : StringsO.CString;
       trialFlag : BOOLEAN;
    BEGIN
-      IF item = NIL THEN
+      IF pitem = NIL THEN
          RETURN;
       END;
-      ASSERT( item^ IS Items.CProduct );
+      ASSERT( pitem^ IS Items.CProduct );
 
       #if DEBUG #then
          Log.Level := dldDebug;
       #endif
 
-      IF item^.HasChilds THEN
+      IF pitem^.HasChilds THEN
 
          #if DEBUG #then      
-            item^.ProductId.ToOA( OUT logs );
+            pitem^.ProductId.ToOA( OUT logs );
             Log.LogSS( dldDebug, L"LEC", L"Product with licences: ", logs );
          #endif
 
@@ -136,7 +138,7 @@ CLASS IMPLEMENTATION CResult;
       ELSE
 
          #if DEBUG #then      
-            item^.ProductId.ToOA( OUT logs );
+            pitem^.ProductId.ToOA( OUT logs );
             Log.LogSS( dldDebug, L"LEC", L"Product W/O licence: ", logs );
          #endif
 
@@ -146,37 +148,37 @@ CLASS IMPLEMENTATION CResult;
       END;
 
       // parse licences
-      items := Items.TPProduct( item )^.Licences;
-      items^.Reset();
-      WHILE items^.MoveNext() DO
-         item := items^.Current;
-         trialFlag := Items.ltTrial IN Items.TPLicence( item )^.Type;
+      litems := Items.TPProduct( pitem )^.Licences;
+      litems^.Reset();
+      WHILE litems^.MoveNext() DO
+         litem := litems^.Current;
+         trialFlag := Items.ltTrial IN litem^.Type;
          
          #if DEBUG #then      
-            Items.TPLicence( item )^.Serial.ToOA( OUT logs );
+            litem^.Serial.ToOA( OUT logs );
             Log.LogSS( dldDebug, L"LEC", L"  Licence, computing best hit: ", logs );
          #endif
 
          localActivated := FALSE;
          localExpired := FALSE;
 
-         IF item^.HasChilds THEN
+         IF litem^.HasChilds THEN
 
             // parse activations
-            jitems := Items.TPLicence( item )^.Activations;
-            jitems^.Reset();
-            WHILE jitems^.MoveNext() DO
-               item := jitems^.Current;
+            aitems := litem^.Activations;
+            aitems^.Reset();
+            WHILE aitems^.MoveNext() DO
+               aitem := aitems^.Current;
 
                #if DEBUG #then      
-                  Items.TPActivation( item )^.ExpiresString.ToOA( OUT logs );
+                  aitem^.ExpiresString.ToOA( OUT logs );
                   Log.LogSS( dldDebug, L"LEC", L"  Activation, computing best hit, expires: ", logs );
                #endif
 
-               IF Items.TPActivation( item )^.ValidFor( now ) THEN
+               IF aitem^.ValidFor( now ) THEN
                
                   info := ComputeInfo( bhBestCase, info, riActivated );
-                  dt := Items.TPActivation( item )^.Expires;
+                  dt := aitem^.Expires;
                   IF dt.Year > 0 THEN
                      expires := ComputeExpiration( bhBestCase, expires, dt.JulianDate );
 
@@ -204,7 +206,7 @@ CLASS IMPLEMENTATION CResult;
                   #endif
                ELSE
                   info := ComputeInfo( bhBestCase, info, riNotActivated );
-                  expires := ComputeExpiration( bhBestCase, expires, Items.TPLicence( item )^.Created.JulianDate + unactExp );
+                  expires := ComputeExpiration( bhBestCase, expires, litem^.Created.JulianDate + unactExp );
                   localExpired := localExpired OR ( expires < nowJulianDate );
 
                   #if DEBUG #then      
@@ -240,7 +242,7 @@ CLASS IMPLEMENTATION CResult;
 
          ELSE
             info := ComputeInfo( bhBestCase, info, riNotActivated );
-            expires := ComputeExpiration( bhBestCase, expires, Items.TPLicence( item )^.Created.JulianDate + unactExp );
+            expires := ComputeExpiration( bhBestCase, expires, litem^.Created.JulianDate + unactExp );
             localExpired := localExpired OR ( expires < nowJulianDate );
 
             #if DEBUG #then      
@@ -250,18 +252,18 @@ CLASS IMPLEMENTATION CResult;
 
          END;
          
-         s := Items.TPLicence( item )^.Serial;
-         IF Items.ltUnnamed NOT IN Items.TPLicence( item )^.Type THEN
+         s := litem^.Serial;
+         IF Items.ltUnnamed NOT IN litem^.Type THEN
             s.AppendOA( L" (" );
-            s.Append( Items.TPLicence( item )^.Owner );
+            s.Append( litem^.Owner );
             s.AppendOA( L")" );
          END;
          IF localExpired THEN
-            _Licences.Add( s, PTR( Items.TPLicence( item )^.Type + Items.TLicenceType( TLicenceType{ltExpired} )));
+            _Licences.Add( s, PTR( litem^.Type + Items.TLicenceType( TLicenceType{ltExpired} )));
          ELSIF localActivated THEN
-            _Licences.Add( s, PTR( Items.TPLicence( item )^.Type + Items.TLicenceType( TLicenceType{ltActivated} )));
+            _Licences.Add( s, PTR( litem^.Type + Items.TLicenceType( TLicenceType{ltActivated} )));
          ELSE
-            _Licences.Add( s, PTR( Items.TPLicence( item )^.Type ));
+            _Licences.Add( s, PTR( litem^.Type ));
          END;
 
          #if DEBUG #then      
