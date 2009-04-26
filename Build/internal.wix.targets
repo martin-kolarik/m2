@@ -1,6 +1,18 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
+    <PropertyGroup Condition ="$(Language)=='Czech'">
+        <RFC1766Short>cs</RFC1766Short>
+        <RFC1766Long>cs-cz</RFC1766Long>
+    </PropertyGroup>
+    <PropertyGroup Condition ="$(Language)=='English'">
+        <RFC1766Short>en</RFC1766Short>
+        <RFC1766Long>en-us</RFC1766Long>
+    </PropertyGroup>
+
     <PropertyGroup>
+        <RFC1766Short Condition="$(RFC1766Short)==''">en</RFC1766Short>
+        <RFC1766Long Condition="$(RFC1766Long)==''">en-us</RFC1766Long>
+
         <WixBin>c:\program files\wix</WixBin>
         <Candle>$(WixBin)\candle</Candle>
         <Light>$(WixBin)\light</Light>
@@ -8,14 +20,14 @@
 
         <SetupFile>..\$(SetupDir)\$(MSBuildProjectName).wxs</SetupFile>
         <SetupObj>$(IntermediateDir)\$(MSBuildProjectName).wixobj</SetupObj>
-        <SetupResult>$(MSBuildProjectName).msi</SetupResult>
-        <SetupResultDir>$(OutputDir)\$(MSBuildProjectName).msi</SetupResultDir>
+        <SetupResult>$(MSBuildProjectName)_$(RFC1766Short).msi</SetupResult>
+        <SetupResultDir>$(OutputDir)\$(SetupResult)</SetupResultDir>
 
         <CandleDefs>-dBuildRoot=&quot;$(WiXSrc)&quot; -dProductRoot=&quot;$(ComponentPath)\Install&quot; -dProductId=&quot;$(ProductId)&quot;</CandleDefs>
         <CandleDefs>$(CandleDefs) -dContact=&quot;$(Contact)&quot; -dSupport=&quot;$(Support)&quot; -dPhone=&quot;$(Phone)&quot; -dURL=&quot;$(URL)&quot; -dUpdateURL=&quot;$(UpdateURL)&quot;</CandleDefs>
         <CandleDefs>$(CandleDefs) -dManufacturer=&quot;$(Manufacturer)&quot; -dProductDisplayName=&quot;$(ProductDisplayName)&quot; -dProductDescription=&quot;$(ProductDescription)&quot;</CandleDefs>
         <CandleDefs>$(CandleDefs) -dUpgradeGUID=$(ProductUpgradeGUID) -dLicenceMId=$(LicenceMachineId)</CandleDefs>
-        <CandleDefs>$(CandleDefs) -dLanguage=$(LangIdDec) -dCodePage=$(OriginalCodePageDec) -dConfigurationName=$(ConfigurationName) -dLeakChecking=$(LeakChecking)</CandleDefs>
+        <CandleDefs>$(CandleDefs) -dLanguageName=$(RFC1766Short) -dLanguage=$(LangIdDec) -dCodePage=$(OriginalCodePageDec) -dConfigurationName=$(ConfigurationName) -dLeakChecking=$(LeakChecking)</CandleDefs>
         <CandleDefs Condition="$(CLib)=='static'">$(CandleDefs) -dCLib=$(CLib)</CandleDefs>
         <CandleDefs Condition="$(CLib)!='static'">$(CandleDefs) -dCLib=$(DynamicCLibInstallMethod)</CandleDefs>
     </PropertyGroup>
@@ -43,21 +55,21 @@
     <Target Name="MSI"
             Inputs="$(Compiled);@(SetupSource)"
             Outputs="$(SetupResultDir)">
-        <Copy SourceFiles="$(SetupDir)\License.$(Manufacturer).rtf"
+        <Copy SourceFiles="$(SetupDir)\License.$(Manufacturer).$(RFC1766Long).rtf"
               DestinationFiles="$(SetupDir)\License.rtf" />
         <Exec WorkingDirectory="$(IntermediateDir)"
               Command="&quot;$(Candle)&quot; $(SetupFile) -dProductVersion=$(ProductVersion) -dProductGUID=$(ProductGUID) $(CandleDefs)"/>
         <Exec WorkingDirectory="$(OutputDir)"
-              Command="&quot;$(Light)&quot; -b &quot;..\$(SetupDir)&quot; &quot;..\$(SetupObj)&quot; &quot;$(WiXSrc)\WixUI_Licence.wixlib&quot; -loc &quot;$(WiXSrc)\WixUI_cs-CZ.wxl&quot; -loc &quot;$(WixSrc)\WixUI_Licence_cs-CZ.wxl&quot; -out $(SetupResult)"/>
+              Command="&quot;$(Light)&quot; -b &quot;..\$(SetupDir)&quot; &quot;..\$(SetupObj)&quot; &quot;$(WiXSrc)\WixUI_Licence.wixlib&quot; -loc &quot;$(WiXSrc)\WixUI_$(RFC1766Long).wxl&quot; -loc &quot;$(WixSrc)\WixUI_Licence_$(RFC1766Long).wxl&quot; -out $(SetupResult)"/>
     </Target>
 
     <Target Name="Digests"
             Inputs="$(SetupResultDir)"
-            Outputs="$(OutputDir)\$(MSBuildProjectName).sha1;$(OutputDir)\$(MSBuildProjectName).md5">
+            Outputs="$(OutputDir)\$(SetupResult).sha1;$(OutputDir)\$(SetupResult).md5">
         <Exec WorkingDirectory="$(OutputDir)"
-              Command="$(SUM) -b -1 $(SetupResult) &gt; $(MSBuildProjectName).sha1"/>
+              Command="$(SUM) -b -1 $(SetupResult) &gt; $(SetupResult).sha1"/>
         <Exec WorkingDirectory="$(OutputDir)"
-              Command="$(SUM) -b -5 $(SetupResult) &gt; $(MSBuildProjectName).md5"/>
+              Command="$(SUM) -b -5 $(SetupResult) &gt; $(SetupResult).md5"/>
     </Target>
 
 </Project>

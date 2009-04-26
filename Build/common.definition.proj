@@ -89,7 +89,7 @@
         <PlatformName Condition="$(PlatformName)==''">Win32</PlatformName>
         <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName><!-- Release Debug -->
         <LanguageStyle Condition="$(LanguageStyle)==''">UNICODE</LanguageStyle><!-- ANSI UNICODE -->
-        <Language Condition="$(Language)==''">Czech</Language><!-- English Czech German Japanese -->
+        <Language Condition="$(Language)==''">English</Language><!-- English Czech German Japanese -->
         <CLib Condition="$(CLib)==''">Dynamic</CLib><!-- Static Dynamic --><!-- Static = LIBC, Dynamic = MSVCRT -->
         <Result Condition="$(Result)==''">Static</Result><!-- Static (LIB) Dynamic (DLL) Program (EXE) -->
         <LeakChecking Condition="$(LeakChecking)==''">off</LeakChecking>
