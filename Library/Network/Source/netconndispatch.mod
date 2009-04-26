@@ -1210,7 +1210,7 @@ CLASS IMPLEMENTATION CDispatcher;
 
       Result := SQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );
       ASSERTLOG( Result <> Sync.arTimeout );
-      ASSERTLOG( SQueue.Count < 10000 );
+      ASSERTLOG( SQueue.Count < 1000000 );
    END Send;
 
 //--------------------------------------------------------------------------------

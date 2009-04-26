@@ -32,7 +32,7 @@ VAR
    Result : CARDINAL := 0;
 BEGIN
    eo^.WriteOA( L'Service instal and control tool', TRUE );
-   eo^.WriteOA( L'(c) SmartControl 2007', TRUE );
+   eo^.WriteOA( L"(c) ", FALSE ); eo^.WriteOA( Manufacturer, FALSE ); eo^.WriteOA( L" 2009", TRUE );
    eo^.LineEnd();
 
    IF argc < 3 THEN

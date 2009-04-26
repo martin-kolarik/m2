@@ -38,6 +38,9 @@
                         <Component Guid="AB50D148-9AB4-41d9-8F32-CBA5721DA4FD" Id="ToolLicCli">
                             <File Id="LicCli.EXE" Name="LicCli.exe" Source="LicCli.exe" DiskId="1" Vital="yes" KeyPath="yes" />
                         </Component>
+                        <Component Guid="10E54A9E-6B54-4575-8462-3BA83C7242F1" Id="ToolSvcInst">
+                            <File Id="SvcInst.EXE" Name="SvcInst.exe" Source="SvcInst.exe" DiskId="1" Vital="yes" KeyPath="yes" />
+                        </Component>
                         <Component Guid="5D1E3BC9-F830-4214-8133-EA8711519553" Id="ToolCheckCfg">
                             <File Id="CheckCfg.EXE" Name="CheckCfg.exe" Source="CheckCfg.exe" DiskId="1" Vital="yes" KeyPath="yes" />
                         </Component>
@@ -115,6 +118,7 @@
                                     <File Id="ButtonSwitch.js" LongName="ButtonSwitch.js" Name="BUTTONS.JS" Source="Examples\Philips Pronto\ButtonSwitch.js" DiskId="1" />
                                     <File Id="Main.js" LongName="Main.js" Name="MAIN.JS" Source="Examples\Philips Pronto\Main.js" DiskId="1" />
                                     <File Id="Page.js" LongName="Page.js" Name="PAGE.JS" Source="Examples\Philips Pronto\Page.js" DiskId="1" />
+                                    <File Id="TemperaturesPage.js" LongName="TemperaturesPage.js" Name="TEMPPAGE.JS" Source="Examples\Philips Pronto\TemperaturesPage.js" DiskId="1" />
                                     <File Id="Template.xcf" LongName="Template.xcf" Name="TEMPLAT.XCF" Source="Examples\Philips Pronto\Template.xcf" DiskId="1" />
                                 </Component>
                             </Directory>
@@ -165,6 +169,7 @@
             <ComponentRef Id="MVCLib" />
             <ComponentRef Id="Licence" />
             <ComponentRef Id="ToolLicCli" />
+            <ComponentRef Id="ToolSvcInst" />
             <ComponentRef Id="ToolCheckCfg" />
             <ComponentRef Id="ToolDiscover" />
             <ComponentRef Id="Documentation" />

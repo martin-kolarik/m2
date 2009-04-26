@@ -1,3 +1,16 @@
+Version 1.0.850/R rc1 26.4.2009
+- BUG: #94, server crashed unexpectedly, connecting and disconnecting
+       XMLSocket client should speed up the crash. Server sent data to XMLSocket
+       client after its disconnecting, it used deallocated memory for it.
+- BUG: #93, when stopping service, the crash could occur in some cases. Connection
+       to KNX was deallocated before last KNX frame was processed.
+- NEW: #91, there is english installer now, installers differ in name (*_en.msi, ...)
+- NEW: #92, a tool for starting and stopping services, "svcinst", was added to
+       installation. Separate example for thermostate page was added too.
+
+Version 1.0.841/R rc1 23.4.2009
+- BUG: #89, server crashed after activation and restart
+
 Version 1.0.835/R rc1 13.4.2009
 - BUG: #88, named licence was badly displayed in Web interface
 

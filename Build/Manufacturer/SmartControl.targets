@@ -1,9 +1,9 @@
-﻿<?xml version ="1.0" encoding ="utf-8"?>
+<?xml version ="1.0" encoding ="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
     <!-- main resource properties -->
     <PropertyGroup>
-        <CopyrightYears Condition="$(CopyrightYears)==''">2005-2008</CopyrightYears>
+        <CopyrightYears Condition="$(CopyrightYears)==''">2005-2009</CopyrightYears>
         <CompanyName Condition="$(CompanyName)==''">SmartControl®</CompanyName>
         <LegalCopyright Condition="$(LegalCopyright)==''">Copyright © SmartControl® $(CopyrightYears)</LegalCopyright>
         <LegalTrademarks Condition="$(LegalTrademarks)==''">SmartControl</LegalTrademarks>

@@ -264,7 +264,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
 
    PRIVATE PROCEDURE ScheduleSend( Client : ADDRESS; Items : arrays.TPPtrArray );
    BEGIN
-      Items^.Insert( 0, Client );      
+      Items^.Insert( 0, TPClient( Client )^.Connection );      
       _SendQueue.Enqueue( Items );
    END ScheduleSend;
 
@@ -273,6 +273,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
    PRIVATE PROCEDURE RealizeSend( Items : arrays.TPPtrArray );
    VAR
       Client : TPClient;
+      Connection : netconndispatch.TConnectionHandle;
       i, l : CARDINAL;
       IO : io.TPIO;
       name : StringsO.CString;
@@ -284,7 +285,13 @@ CLASS IMPLEMENTATION CXMLSocketServer;
          RETURN;
       END; // IF
 
-      Client := Items^[0];
+      // client's presence must be recheck, because scheduled send can arrive after client disconnect
+      Connection := Items^[0];
+      IF NOT _Clients.Get( Connection, OUT Client ) THEN
+         _CommonLogger^.LogS( log.dldDebug, L"xmls", "SND: after disconnect" );
+         RETURN;
+      END;
+
       Client^.StartBatch();
 
       i := 1;

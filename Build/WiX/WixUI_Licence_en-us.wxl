@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<WixLocalization>
+
+    <String Id="UserRegistrationDlg_Title">[ProductName] Setup</String>
+    <String Id="UserRegistrationDlgInstall">&amp;Install</String>
+    <String Id="UserRegistrationDlgBannerBitmap">WixUI_Bmp_Banner</String>
+    <String Id="UserRegistrationDlgTitle">{\WixUI_Font_Title}[ProductName] license</String>
+    <String Id="UserRegistrationDlgText">Please, enter valid license number and owner of license for [ProductName].</String>
+    <String Id="UserRegistrationDlgLicenceOwner">&amp;License owner:</String>
+    <String Id="UserRegistrationDlgLicenceNumber">&amp;License number:</String>
+    <String Id="UserRegistrationDlgDemo">Install as trial version</String>
+
+    <String Id="UserRegistrationBadLicenceDlgTitle">Bad license</String>
+    <String Id="UserRegistrationBadLicenceDlgText">License data you entered and not valid for [ProductName]. Please, enter correct license number and owner.</String>
+    <String Id="UserRegistrationBadLicenceDlgToolTip">Warning</String>
+    <String Id="UserRegistrationBadLicenceDlgIcon">WixUI_Ico_Exclam</String>
+
+</WixLocalization>
