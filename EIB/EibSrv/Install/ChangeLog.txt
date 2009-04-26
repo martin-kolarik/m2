@@ -1,4 +1,4 @@
-Version 1.0.848/R rc1 26.4.2009
+Version 1.0.850/R rc1 26.4.2009
 - BUG: #94, server crashed unexpectedly, connecting and disconnecting
        XMLSocket client should speed up the crash. Server sent data to XMLSocket
        client after its disconnecting, it used deallocated memory for it.
