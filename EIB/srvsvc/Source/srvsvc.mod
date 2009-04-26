@@ -147,6 +147,9 @@ CLASS IMPLEMENTATION CEibSvc;
    LOCAL VIRTUAL PROCEDURE OnStop();
    BEGIN
       msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdStop ), OA( -1, NIL ), NIL, TRUE, Sync.FORSAFETY );
+
+      Sync.Sleep( 1000 ); // give some time to message thread to stop self -- it should be solve by some polling (e.g. netinit.CleanedUp), but this is sufficient now
+
       scinit.Cleanup();
    END OnStop;
 
