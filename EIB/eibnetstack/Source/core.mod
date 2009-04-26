@@ -391,6 +391,20 @@ CLASS IMPLEMENTATION ConnectRequest;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY KNXLayer GET : TKNXLayer;
+   BEGIN
+      RETURN _CRI._Layer;
+   END KNXLayer;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY KNXLayer SET( Value : TKNXLayer );
+   BEGIN
+      _CRI._Layer := Value;
+   END KNXLayer;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY ControlHPAI SET( CONST Value : HostProtocolAddressInformation );
    BEGIN
       _HPAI := Value;
