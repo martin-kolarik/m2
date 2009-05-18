@@ -129,8 +129,8 @@ CLASS IMPLEMENTATION CAddress;
     n : ARRAY [0..3] OF WCHAR;
   BEGIN
     GetPhysicalAddress2( A, L, D );
-    Strings.FromCARD32W( A, 10, OUT s ); Strings.AppendW( REF s, L'/' );
-    Strings.FromCARD32W( L, 10, OUT n ); Strings.AppendW( REF s, n ); Strings.AppendW( REF s, L'/' );
+    Strings.FromCARD32W( A, 10, OUT s ); Strings.AppendW( REF s, L'.' );
+    Strings.FromCARD32W( L, 10, OUT n ); Strings.AppendW( REF s, n ); Strings.AppendW( REF s, L'.' );
     Strings.FromCARD32W( D, 10, OUT n ); Strings.AppendW( REF s, n );
   END GetPhysicalAddress3;
 
@@ -1594,6 +1594,144 @@ CLASS IMPLEMENTATION cEMIPacket;
          EMI.Data := data;
       END;
    END ToEMI;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ToDataArray( VAR LData : ARRAY OF BYTE; VAR Len : CARDINAL );
+   VAR
+      TransportControl : TTransportControl;
+   BEGIN
+      Len := CARDINAL( ACPILength );
+      IF ACPILength = 1 THEN
+         TransportControl := TTransportControl( Data[0] << 8 OR Data[1] );
+         LData[0] := CARD8( CARD16( TransportControl * acmEISData ) >> 8 );
+      ELSE
+         DEC( Len );
+         Storage.Move( ADR( Data[2] ), ADR( LData ), Len );
+      END;
+   END ToDataArray;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE GetDestinationAddress( OUT s : ARRAY OF WCHAR );
+   VAR
+      address : CAddress;
+      i : CARDINAL;
+      naddress : CARDINAL;
+      n : ARRAY [0..15] OF WCHAR;
+   BEGIN
+      address.Address.APIHi := Destination.EIBHi;
+      address.Address.APILo := Destination.EIBLo;
+
+      CASE FrameType OF
+      //-----
+      | eib_def.ftStandard :
+         IF ncLogicalAddress IN BITSET8( DAFAndRouting ) THEN
+            address.Type := addressGroup;
+            address.GetGroupAddress3( TRUE, s );
+         ELSE
+            address.Type := addressPhysical;
+            address.GetPhysicalAddress3( s );
+         END;
+      
+      //-----
+      | eib_def.ftLTE :
+         address.Type := addressPhysical;
+         naddress := CARDINAL( address.GetPhysicalAddress1());
+
+         IF 1 IN BITSET8( DAFAndRouting ) THEN // application or peripheral tags
+            IF 0 IN BITSET8( DAFAndRouting ) THEN // peripheral tags
+               ASSIGN( s, L"P/" );
+               // group
+               i := naddress >> 12;
+               Strings.FromCARD32W( i, 10, OUT n );
+               Strings.AppendW( REF s, n ); Strings.AppendW( REF s, L"/" );
+               // subgroup
+               i := naddress AND 0FFFH;
+               Strings.FromCARD32W( i, 10, OUT n );
+               Strings.AppendW( REF s, n );
+
+            ELSE // application tags
+               // domain
+               i := naddress >> 12;
+               IF i = 0 THEN
+                  ASSIGN( s, L"A/HVAC/" );
+               ELSE
+                  ASSIGN( s, L"A/????/" );
+               END;
+               // segments
+               i := ( naddress AND 0FFFH ) >> 9;
+               IF i = 0 THEN // distribution segment
+                  i := ( naddress AND 01FFH ) >> 5;
+                  CASE i OF
+                  | 1 :
+                     Strings.AppendW( REF s, L"dH/" );
+                  | 2 :
+                     Strings.AppendW( REF s, L"dC/" );
+                  | 3 :
+                     Strings.AppendW( REF s, L"dV/" );
+                  | 4 :
+                     Strings.AppendW( REF s, L"dW/" );
+                  | 5 :
+                     Strings.AppendW( REF s, L"dO/" );
+                  | 6 :
+                     Strings.AppendW( REF s, L"dD/" );
+                  END; // CASE
+                  // distributor number
+                  i := naddress AND 01FH;
+                  Strings.FromCARD32W( i, 10, OUT n );
+                  Strings.AppendW( REF s, n );
+
+               ELSE // producer segment
+                  IF i > 2 THEN
+                     Strings.AppendW( REF s, L"p?/" );
+                  ELSIF i = 2 THEN
+                     Strings.AppendW( REF s, L"pC/" );
+                  ELSIF i = 1 THEN
+                     Strings.AppendW( REF s, L"pH/" );
+                  END;
+                  // segment number
+                  i := ( naddress AND 01FFH ) >> 5;
+                  Strings.FromCARD32W( i, 10, OUT n );
+                  Strings.AppendW( REF s, n ); Strings.AppendW( REF s, L"/" );
+                  // producer number
+                  i := naddress AND 01FH;
+                  Strings.FromCARD32W( i, 10, OUT n );
+                  Strings.AppendW( REF s, n );
+               
+               END;
+            END;
+
+         ELSE // geographical addresses
+            IF naddress = 0 THEN
+               ASSIGN( s, L"G/*" );
+
+            ELSE
+               ASSIGN( s, L"G/" );
+               // apartement/floor
+               IF 0 IN BITSET8( DAFAndRouting ) THEN
+                  i := naddress >> 10 + 64;
+               ELSE
+                  i := naddress >> 10;
+               END;
+               Strings.FromCARD32W( i, 10, OUT n );
+               Strings.AppendW( REF s, n ); Strings.AppendW( REF s, L"/" );
+               // room
+               i := ( naddress AND 03FFH ) >> 4;
+               Strings.FromCARD32W( i, 10, OUT n );
+               Strings.AppendW( REF s, n ); Strings.AppendW( REF s, L"/" );
+               // subzone
+               i := naddress AND 0FH;
+               Strings.FromCARD32W( i, 10, OUT n );
+               Strings.AppendW( REF s, n );
+
+            END;
+         END;
+
+      ELSE
+         ASSIGN( s, L"<user>" );
+      END;
+   END GetDestinationAddress;
 
 (*---------------------------------------------------------------------------*)
 

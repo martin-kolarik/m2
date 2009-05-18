@@ -8,6 +8,7 @@ FROM Storage IMPORT
 IMPORT
    eib_def,
    eibnet,
+   FIOO,
    inetaddr,
    lists,
    Resources,
@@ -25,7 +26,6 @@ CLASS CBusmonConnection( eibnet.CConnection );
    INTERNAL VIRTUAL PROCEDURE OnConnect();
    INTERNAL VIRTUAL PROCEDURE OnDisconnect();
    INTERNAL VIRTUAL PROCEDURE On_L_IND_cEMI( CONST packet : eib_def.cEMIPacket );
-   INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : eib_def.TPacket );
 
    // SELF
    PRIVATE PROCEDURE BytesToString( data : ARRAY OF BYTE; OUT s : StringsO.CString );
@@ -54,21 +54,123 @@ CLASS IMPLEMENTATION CBusmonConnection;
 
    INTERNAL VIRTUAL PROCEDURE On_L_IND_cEMI( CONST packet : eib_def.cEMIPacket );
    VAR
-      s : StringsO.CString;
+      data : ARRAY [0..255] OF BYTE;
+      emi : eib_def.EMIPacket;
+      frameType : eib_def.TFrameType;
+      i, len : CARDINAL;
+      real : REAL;
+      s : ARRAY [0..127] OF WCHAR;
+      so : StringsO.CString;
    BEGIN
-      BytesToString( OA( packet.Length-1, ADR( packet )), OUT s );
-      TextWriter.errout()^.Write( s, TRUE );
+      BytesToString( OA( packet.Length-1, ADR( packet )), OUT so );
+      TextWriter.stdout()^.Write( so, TRUE );
+      
+      packet.ToEMI( OUT emi );
+
+      frameType := packet.FrameType;
+      CASE frameType OF
+      | eib_def.ftStandard :
+         TextWriter.stdout()^.WriteOA( L"STD ", FALSE );
+      | eib_def.ftLTE :
+         TextWriter.stdout()^.WriteOA( L"LTE ", FALSE );
+      | eib_def.ftUser :
+         TextWriter.stdout()^.WriteOA( L"USR ", FALSE );
+      ELSE
+         TextWriter.stdout()^.WriteOA( L"??? ", FALSE );
+      END;
+      
+      CASE emi.GetPriority() OF
+      | eib_def.priorityNormal :
+         TextWriter.stdout()^.WriteOA( L"L ", FALSE );
+      | eib_def.priorityHigh :
+         TextWriter.stdout()^.WriteOA( L"N ", FALSE );
+      | eib_def.priorityAlarm :
+         TextWriter.stdout()^.WriteOA( L"U ", FALSE );
+      | eib_def.prioritySystem :
+         TextWriter.stdout()^.WriteOA( L"S ", FALSE );
+      ELSE
+         TextWriter.stdout()^.WriteOA( L"? ", FALSE );
+      END;      
+      
+      IF packet.Long THEN
+         TextWriter.stdout()^.WriteOA( L"L[", FALSE );
+      ELSE
+         TextWriter.stdout()^.WriteOA( L"S[", FALSE );
+      END;
+      TextWriter.stdout()^.WriteINT32( packet.Length, 10, FALSE );
+      TextWriter.stdout()^.WriteOA( L",", FALSE );
+      TextWriter.stdout()^.WriteINT32( packet.DataLength, 10, FALSE );
+      TextWriter.stdout()^.WriteOA( L"] ", FALSE );
+      
+      emi.GetSourceAddress().GetPhysicalAddress3( s );
+      TextWriter.stdout()^.WriteOA( s, FALSE );
+      TextWriter.stdout()^.WriteOA( L" ", FALSE );
+      
+      packet.GetDestinationAddress( OUT s );
+      TextWriter.stdout()^.WriteOA( s, FALSE );
+      TextWriter.stdout()^.WriteOA( L" ", FALSE );
+      
+      CASE emi.GetValueDirection() OF // for LTE this is different
+      | eib_def.directionRead :
+         TextWriter.stdout()^.WriteOA( L"rd ", FALSE );
+      | eib_def.directionResponse :
+         TextWriter.stdout()^.WriteOA( L"rs ", FALSE );
+      | eib_def.directionWrite :
+         TextWriter.stdout()^.WriteOA( L"wr ", FALSE );
+      END;
+
+      packet.ToDataArray( data, len );
+      CASE frameType OF
+      //-----
+      | eib_def.ftStandard :
+         // dump data
+         IF len > 0 THEN
+            BytesToString( OA( len-1, ADR( data )), OUT so );
+            TextWriter.stdout()^.Write( so, TRUE );
+         END;
+
+      //-----
+      | eib_def.ftLTE :
+         // interpret LTE addressing data
+         IF len >= 4 THEN
+            TextWriter.stdout()^.WriteOA( L"P[", FALSE );
+            // object id
+            i := CARDINAL( data[0] << 8 ) OR CARDINAL( data[1] );
+            TextWriter.stdout()^.WriteINT32( i, 10, FALSE );
+            TextWriter.stdout()^.WriteOA( L"/", FALSE );
+            // interface id
+            TextWriter.stdout()^.WriteINT32( CARDINAL( data[2] ), 10, FALSE );
+            TextWriter.stdout()^.WriteOA( L"/", FALSE );
+            // property id
+            IF data[3] < 255 THEN // standard property
+               TextWriter.stdout()^.WriteINT32( CARDINAL( data[3] ), 10, FALSE );
+               TextWriter.stdout()^.WriteOA( L"] ", FALSE );
+               
+               i := 4; // prepare data index;
+            ELSIF len >= 7 THEN // private property
+               // company id
+               TextWriter.stdout()^.WriteOA( L"C[", FALSE );
+               i := CARDINAL( data[4] << 8 ) OR CARDINAL( data[5] );
+               TextWriter.stdout()^.WriteINT32( i, 10, FALSE );
+               TextWriter.stdout()^.WriteOA( L"]/", FALSE );
+               // property id
+               TextWriter.stdout()^.WriteINT32( CARDINAL( data[6] ), 10, FALSE );
+               TextWriter.stdout()^.WriteOA( L"] ", FALSE );
+
+               i := 7; // prepare data index;
+            END;
+
+            // dump data
+            IF len > i THEN
+               BytesToString( OA( len-i-1, ADR( data[i] )), OUT so );
+               TextWriter.stdout()^.Write( so, TRUE );
+            END;
+         END;
+
+      END; // CASE
+      
+      TextWriter.stdout()^.LineEnd();
    END On_L_IND_cEMI;
-
-(*--------------------------------------------------------------------------------*)
-
-   INTERNAL VIRTUAL PROCEDURE On_L_IND( CONST packet : eib_def.TPacket );
-   VAR
-      s : StringsO.CString;
-   BEGIN
-      BytesToString( OA( packet.Length-1, ADR( packet )), OUT s );
-      TextWriter.errout()^.Write( s, TRUE );
-   END On_L_IND;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -134,6 +236,7 @@ LABEL
    Error, Stop;
 VAR
    Busmon : CBusmonConnection;  
+   ch : CHAR;
    errout : TextWriter.TPTextWriter := TextWriter.errout();
    i : INTEGER;
    ia : inetaddr.INETADDR;
@@ -163,11 +266,12 @@ BEGIN
    Busmon.Connect( 0 );
 
    errout^.WriteOA( OAsz( R[Texts._Searching] ), FALSE );
-   WHILE TRUE DO
-      Sync.Sleep( 250 );
-   END; // WHILE
    
-   Busmon.Disconnect( TRUE );
+   FIOO.stdin()^.ReadOA( REF ch, OUT i, Sync.FOREVER );
+   
+   Busmon.Disconnect( FALSE );
+
+   FIOO.stdin()^.ReadOA( REF ch, OUT i, Sync.FOREVER );
    
    RETURN 0;
 

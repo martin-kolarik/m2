@@ -451,7 +451,7 @@ CLASS IMPLEMENTATION CConnection;
 
    LOCAL PROCEDURE OnDatagramReceived( CONST ServerSocket : netsocket.TPSSocket );
    VAR
-      buffer : ARRAY [0..255] OF BYTE;
+      buffer : ARRAY [0..383] OF BYTE; // this is for safety, data from network are readed here, into the buffer, so all usagee access only valid memory locations. Maximal size of KNX packet is 254+10
       ia : inetaddr.INETADDR;
       l : CARDINAL := 0;
       packet : core.TPPacket := core.TPPacket( ADR( buffer ));

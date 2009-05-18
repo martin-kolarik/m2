@@ -475,6 +475,11 @@ CLASS cEMIPacket;
    
    PUBLIC PROCEDURE FromEMI( CONST EMI : EMIPacket );
    PUBLIC PROCEDURE ToEMI( OUT EMI : EMIPacket );
+
+   PUBLIC PROCEDURE ToDataArray( VAR Data : ARRAY OF BYTE; VAR Len : CARDINAL );
+
+   // special for S/LTE mode
+   PUBLIC PROCEDURE GetDestinationAddress( OUT s : ARRAY OF WCHAR );
 END cEMIPacket;
 
 (*================================================================================*)
