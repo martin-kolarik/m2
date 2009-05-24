@@ -146,8 +146,13 @@ CLASS IMPLEMENTATION CBusmonConnection;
       | eib_def.ftStandard :
          // dump data
          IF len > 0 THEN
-            BytesToString( OA( len-1, ADR( data )), OUT so );
-            TextWriter.stdout()^.Write( so, FALSE );
+            IF len = 1 THEN
+               BytesToString( OA( 0, ADR( data )), OUT so );
+               TextWriter.stdout()^.Write( so, FALSE );
+            ELSE
+               BytesToString( OA( len-2, ADR( data )), OUT so );
+               TextWriter.stdout()^.Write( so, FALSE );
+            END;
 
             DumpValue( OA( len-1, ADR( data )));
          END;
@@ -185,8 +190,13 @@ CLASS IMPLEMENTATION CBusmonConnection;
 
             // dump data
             IF len > i THEN
-               BytesToString( OA( len-i-1, ADR( data[i] )), OUT so );
-               TextWriter.stdout()^.Write( so, FALSE );
+               IF len-i-1 = 1 THEN
+                  BytesToString( OA( 0, ADR( data[i] )), OUT so );
+                  TextWriter.stdout()^.Write( so, FALSE );
+               ELSE
+                  BytesToString( OA( len-i-2, ADR( data[i] )), OUT so );
+                  TextWriter.stdout()^.Write( so, FALSE );
+               END;
                
                DumpValue( OA( len-i-1, ADR( data[i] )));
             END;
@@ -275,28 +285,34 @@ CLASS IMPLEMENTATION CBusmonConnection;
          IF up THEN
             TextWriter.stdout()^.WriteOA( L"+", FALSE );
             TextWriter.stdout()^.Write( so, FALSE );
-            TextWriter.stdout()^.WriteOA( L"|", FALSE ); 
+            TextWriter.stdout()^.WriteOA( L" %", FALSE ); 
          ELSIF down THEN
             TextWriter.stdout()^.WriteOA( L"-", FALSE );
             TextWriter.stdout()^.Write( so, FALSE );
-            TextWriter.stdout()^.WriteOA( L"|", FALSE );
+            TextWriter.stdout()^.WriteOA( L" %", FALSE );
          ELSE
-            TextWriter.stdout()^.WriteOA( L"dim stop|", FALSE );
+            TextWriter.stdout()^.WriteOA( L"dim stop", FALSE );
          END;
          
+      | 2 :
          value.SetType( eib_def.eitScaling );
          packet.ToValue( OUT value );
          so.FromCARD32( value.GetScaling(), 10 );
          TextWriter.stdout()^.Write( so, FALSE );
-         TextWriter.stdout()^.WriteOA( L" %", FALSE ); 
+         TextWriter.stdout()^.WriteOA( L" %|0x", FALSE ); 
+
+         value.SetType( eib_def.eitScaling255 );
+         packet.ToValue( OUT value );
+         so.FromCARD32( value.GetScaling255(), 16 );
+         TextWriter.stdout()^.Write( so, FALSE );
          
-      | 2 :
+      | 3 :
          value.SetType( eib_def.eitValue );
          packet.ToValue( OUT value );
          so.FromLONGREALExt( LONGREAL( value.GetValue()), 5, -1, FALSE, L"." );
          TextWriter.stdout()^.Write( so, FALSE );
          
-      | 4 :
+      | 5 :
          PCARD32( ADR( real ))^ := REVERSE( PCARD32( ADR( data ))^ );
          so.FromLONGREALExt( LONGREAL( real ), 5, -1, FALSE, L"." );
          TextWriter.stdout()^.Write( so, FALSE ); TextWriter.stdout()^.WriteOA( L"|", FALSE );

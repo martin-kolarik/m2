@@ -1427,29 +1427,32 @@ CLASS IMPLEMENTATION EMIPacket;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE FromDataArray( LData : ARRAY OF BYTE; Len : CARDINAL );
+  PUBLIC PROCEDURE FromDataArray( LData : ARRAY OF BYTE; Len : CARDINAL ); // rough, handling of length is not intuitive
   BEGIN
+    IF Len = 0 THEN
+      RETURN;
+    END;
     NetworkControl := NetworkControl - ncmDataLength + BITSET8( Len ) * ncmDataLength;
     IF Len = 1 THEN
       TransportControl := TransportControl + BITSET16( LData[0] << 8 ) * acmEISData; // for ACPI encoded values
-      Data[0] := LData[0]; // for 1st byte out of ACPI
-      RETURN;
     ELSE
       TransportControl := TransportControl - acmEISData;
+      DEC( Len );
       Storage.Move( ADR( LData ), ADR( Data ), Len );
     END;
   END FromDataArray;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE ToDataArray( VAR LData : ARRAY OF BYTE; VAR Len : CARDINAL );
+  PUBLIC PROCEDURE ToDataArray( VAR LData : ARRAY OF BYTE; VAR Len : CARDINAL ); // rough, handling of length is not intuitive
   BEGIN
     Len := CARDINAL( NetworkControl * ncmDataLength );
-    IF Len = 1 THEN
-      LData[0] := CARD8( CARD16( TransportControl * acmEISData ) >> 8 );
+    IF Len = 0 THEN
       RETURN;
+    ELSIF Len = 1 THEN
+      LData[0] := CARD8( CARD16( TransportControl * acmEISData ) >> 8 );
     ELSE
-      Storage.Move( ADR( Data ), ADR( LData ), Len );
+      Storage.Move( ADR( Data ), ADR( LData ), Len-1 );
     END;
   END ToDataArray;
 
@@ -1562,8 +1565,8 @@ CLASS IMPLEMENTATION cEMIPacket;
       Source := EMI.Source;
       Destination := EMI.Destination;
       ACPILength := CARD8( EMI.NetworkControl ) AND 00FH;
-      Data[0] := CARD8( CARD16( EMI.TransportControl ) >> 8 );
-      Data[1] := CARD8( EMI.TransportControl );
+      Data[0] := CARD8( EMI.TransportControl );
+      Data[1] := CARD8( CARD16( EMI.TransportControl ) >> 8 );
 
       data := EMI.Data;
       FOR i := 2 TO INTEGER( ACPILength )-3 DO
@@ -1582,7 +1585,7 @@ CLASS IMPLEMENTATION cEMIPacket;
       EMI.LinkControl := LinkControl;
       EMI.Source := Source;
       EMI.Destination := Destination;
-      EMI.TransportControl := TTransportControl( Data[0] << 8 OR Data[1] );
+      EMI.TransportControl := TTransportControl( Data[0] OR ( Data[1] << 8 ));
 
       IF Long OR ( FrameType <> ftStandard ) THEN
          EMI.NetworkControl := BITSET8( DAFAndRouting );
@@ -1597,17 +1600,18 @@ CLASS IMPLEMENTATION cEMIPacket;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ToDataArray( VAR LData : ARRAY OF BYTE; VAR Len : CARDINAL );
+   PUBLIC PROCEDURE ToDataArray( VAR LData : ARRAY OF BYTE; VAR Len : CARDINAL ); // rough, handling of length is not intuitive
    VAR
       TransportControl : TTransportControl;
    BEGIN
       Len := CARDINAL( ACPILength );
-      IF ACPILength = 1 THEN
-         TransportControl := TTransportControl( Data[0] << 8 OR Data[1] );
+      IF Len = 0 THEN
+         RETURN;
+      ELSIF Len = 1 THEN
+         TransportControl := TTransportControl( Data[0] OR ( Data[1] << 8 ));
          LData[0] := CARD8( CARD16( TransportControl * acmEISData ) >> 8 );
       ELSE
-         DEC( Len );
-         Storage.Move( ADR( Data[2] ), ADR( LData ), Len );
+         Storage.Move( ADR( Data[2] ), ADR( LData ), Len-1 );
       END;
    END ToDataArray;
 
