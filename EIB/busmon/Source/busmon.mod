@@ -20,15 +20,22 @@ IMPORT
    
 (*================================================================================*)
 
+VAR
+   Verbose : BOOLEAN := FALSE;
+
+(*================================================================================*)
+
 CLASS CBusmonConnection( eibnet.CConnection );
 
    // CConnection
    INTERNAL VIRTUAL PROCEDURE OnConnect();
+   INTERNAL VIRTUAL PROCEDURE OnConnectError( Result : Sync.TAsyncResult; Code : CARDINAL );
    INTERNAL VIRTUAL PROCEDURE OnDisconnect();
    INTERNAL VIRTUAL PROCEDURE On_L_IND_cEMI( CONST packet : eib_def.cEMIPacket );
 
    // SELF
    PRIVATE PROCEDURE BytesToString( data : ARRAY OF BYTE; OUT s : StringsO.CString );
+   PRIVATE PROCEDURE DumpValue( data : ARRAY OF BYTE );
 
 END CBusmonConnection;
 
@@ -45,6 +52,19 @@ CLASS IMPLEMENTATION CBusmonConnection;
 
 (*--------------------------------------------------------------------------------*)
 
+   INTERNAL VIRTUAL PROCEDURE OnConnectError( Result : Sync.TAsyncResult; Code : CARDINAL );
+   BEGIN
+      IF Result = Sync.arTimeout THEN
+         TextWriter.errout()^.WriteOA( L"Connect timeout, will try again after 10 seconds.", TRUE );
+      ELSE
+         TextWriter.errout()^.WriteOA( L"Connect error ", FALSE );
+         TextWriter.errout()^.WriteINT32( Code, 10, FALSE );
+         TextWriter.errout()^.WriteOA( L", will try again 10 seconds.", TRUE );
+      END;
+   END OnConnectError;
+
+(*--------------------------------------------------------------------------------*)
+
    INTERNAL VIRTUAL PROCEDURE OnDisconnect();
    BEGIN
       TextWriter.errout()^.WriteOA( L"Disconnected", TRUE );
@@ -58,12 +78,13 @@ CLASS IMPLEMENTATION CBusmonConnection;
       emi : eib_def.EMIPacket;
       frameType : eib_def.TFrameType;
       i, len : CARDINAL;
-      real : REAL;
       s : ARRAY [0..127] OF WCHAR;
       so : StringsO.CString;
    BEGIN
-      BytesToString( OA( packet.Length-1, ADR( packet )), OUT so );
-      TextWriter.stdout()^.Write( so, TRUE );
+      IF Verbose THEN
+         BytesToString( OA( packet.Length-1, ADR( packet )), OUT so );
+         TextWriter.stdout()^.Write( so, TRUE );
+      END;
       
       packet.ToEMI( OUT emi );
 
@@ -126,7 +147,9 @@ CLASS IMPLEMENTATION CBusmonConnection;
          // dump data
          IF len > 0 THEN
             BytesToString( OA( len-1, ADR( data )), OUT so );
-            TextWriter.stdout()^.Write( so, TRUE );
+            TextWriter.stdout()^.Write( so, FALSE );
+
+            DumpValue( OA( len-1, ADR( data )));
          END;
 
       //-----
@@ -163,7 +186,9 @@ CLASS IMPLEMENTATION CBusmonConnection;
             // dump data
             IF len > i THEN
                BytesToString( OA( len-i-1, ADR( data[i] )), OUT so );
-               TextWriter.stdout()^.Write( so, TRUE );
+               TextWriter.stdout()^.Write( so, FALSE );
+               
+               DumpValue( OA( len-i-1, ADR( data[i] )));
             END;
          END;
 
@@ -216,6 +241,76 @@ CLASS IMPLEMENTATION CBusmonConnection;
 
 (*--------------------------------------------------------------------------------*)
 
+   PRIVATE PROCEDURE DumpValue( data : ARRAY OF BYTE );
+   VAR
+      i : CARDINAL;
+      len : INTEGER;
+      packet : eib_def.TPacket;
+      real : REAL := 0.0;
+      up, down : BOOLEAN;
+      value : eib_def.TValue;
+      so : StringsO.CString;
+   BEGIN
+      len := HIGH( data ) + 1;
+      IF len <= 0 THEN
+         RETURN;
+      END;
+      packet.FromDataArray( data, len );
+
+      TextWriter.stdout()^.WriteOA( L"(", FALSE );
+
+      CASE len OF
+      | 1 :
+         value.SetType( eib_def.eitSwitch );
+         packet.ToValue( OUT value );
+         IF value.GetSwitch() THEN
+            TextWriter.stdout()^.WriteOA( L"on|open|", FALSE );
+         ELSE
+            TextWriter.stdout()^.WriteOA( L"off|close|", FALSE );
+         END;
+
+         value.SetType( eib_def.eitIncrease );
+         packet.ToValue( OUT value );
+         so.FromCARD32( value.GetIncrease( up, down ), 10 );
+         IF up THEN
+            TextWriter.stdout()^.WriteOA( L"+", FALSE );
+            TextWriter.stdout()^.Write( so, FALSE );
+            TextWriter.stdout()^.WriteOA( L"|", FALSE ); 
+         ELSIF down THEN
+            TextWriter.stdout()^.WriteOA( L"-", FALSE );
+            TextWriter.stdout()^.Write( so, FALSE );
+            TextWriter.stdout()^.WriteOA( L"|", FALSE );
+         ELSE
+            TextWriter.stdout()^.WriteOA( L"dim stop|", FALSE );
+         END;
+         
+         value.SetType( eib_def.eitScaling );
+         packet.ToValue( OUT value );
+         so.FromCARD32( value.GetScaling(), 10 );
+         TextWriter.stdout()^.Write( so, FALSE );
+         TextWriter.stdout()^.WriteOA( L" %", FALSE ); 
+         
+      | 2 :
+         value.SetType( eib_def.eitValue );
+         packet.ToValue( OUT value );
+         so.FromLONGREALExt( LONGREAL( value.GetValue()), 5, -1, FALSE, L"." );
+         TextWriter.stdout()^.Write( so, FALSE );
+         
+      | 4 :
+         PCARD32( ADR( real ))^ := REVERSE( PCARD32( ADR( data ))^ );
+         so.FromLONGREALExt( LONGREAL( real ), 5, -1, FALSE, L"." );
+         TextWriter.stdout()^.Write( so, FALSE ); TextWriter.stdout()^.WriteOA( L"|", FALSE );
+
+         so.FromCARD32( REVERSE( PCARD32( ADR( data ))^ ), 10 );
+         TextWriter.stdout()^.Write( so, FALSE );
+      END; // CASE
+      
+      TextWriter.stdout()^.WriteOA( L") ", FALSE );
+
+   END DumpValue;
+
+(*--------------------------------------------------------------------------------*)
+
 END CBusmonConnection;
 
 (*================================================================================*)
@@ -235,6 +330,7 @@ PROCEDURE wmain( argc : INTEGER; argp : TPParamStringArray; enpv : TPParamString
 LABEL
    Error, Stop;
 VAR
+   address : ARRAY[0..255] OF WCHAR;
    Busmon : CBusmonConnection;  
    ch : CHAR;
    errout : TextWriter.TPTextWriter := TextWriter.errout();
@@ -242,13 +338,23 @@ VAR
    ia : inetaddr.INETADDR;
 BEGIN
    R.LoadRES2( EMIT( %exe ), L"busmon.Texts" );
+   
+   IF argc < 2 THEN
+      errout^.WriteOA( OAsz( R[Texts._MissingAddress] ), TRUE );
+      errout^.LineEnd();
+      GOTO Error;
+   ELSE
+      ASSIGN( address, argp^[1]^ );
+   END;
 
-   i := 1;
+   i := 2;
    WHILE i < argc DO
       IF ( argp^[i]^[0] = L'/' ) OR ( argp^[i]^[0] = L'-' ) THEN // option
          CASE argp^[i]^[1] OF
          | 'h' :
             GOTO Error;
+         | 'v' :
+            Verbose := TRUE;
          ELSE
             errout^.WriteOA( OAsz( R[Texts._InvalidOption] ), FALSE ); errout^.WriteOA( argp^[i]^, TRUE );
             GOTO Error;
@@ -257,11 +363,12 @@ BEGIN
       INC( i );
    END; // WHILE
 
-   ia.SetAddressOA( L"10.0.0.7:3671", 0 );
+   ia.SetAddressOA( address, 3671 );
 
    Busmon.Mode := eibnet.cmTunnelingHPAI;
    Busmon.TunnelingMode := eibnet.tmEMI;
    Busmon.RemoteAddress := ia;
+   Busmon.AutoReconnectDelay := 10000;
    
    Busmon.Connect( 0 );
 

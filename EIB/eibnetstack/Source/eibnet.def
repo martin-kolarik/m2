@@ -117,6 +117,7 @@ CLASS CConnection( msghandler.MessageHandler );
    INTERNAL VIRTUAL PROCEDURE OnDescriptionResponse( CONST packet : core.DescriptionResponse );
 
    INTERNAL VIRTUAL PROCEDURE OnConnect();
+   INTERNAL VIRTUAL PROCEDURE OnConnectError( Result : Sync.TAsyncResult; Code : CARDINAL );
    INTERNAL VIRTUAL PROCEDURE OnDisconnect();
    INTERNAL VIRTUAL PROCEDURE On_P_Sent();
    INTERNAL VIRTUAL PROCEDURE On_L_CON( Status : eib_status.TEIBStackStatus );

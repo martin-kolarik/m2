@@ -242,6 +242,7 @@ CLASS IMPLEMENTATION CConnection;
       | tiConnect :
          _Logger^.LogS( dldTrace, DEBUG_PREFIX, L"CONNECT timeout" );
 
+         OnConnectError( Sync.arTimeout, 0 );
          DeviceDisconnect();
 
       //----
@@ -646,6 +647,12 @@ CLASS IMPLEMENTATION CConnection;
 
 (*--------------------------------------------------------------------------------*)
 
+   INTERNAL VIRTUAL PROCEDURE OnConnectError( Result : Sync.TAsyncResult; Code : CARDINAL );
+   BEGIN
+   END OnConnectError;
+
+(*--------------------------------------------------------------------------------*)
+
    INTERNAL VIRTUAL PROCEDURE OnDisconnect();
    BEGIN
    END OnDisconnect;
@@ -735,6 +742,8 @@ CLASS IMPLEMENTATION CConnection;
          OnConnect();
       ELSE
          LogSCHPAI( _Logger, dldTrace, DEBUG_PREFIX, L"CONNECT failure: ", CARDINAL( packet.Status ), HPAIData );
+
+         OnConnectError( Sync.arAborted, CARDINAL( packet.Status ));
 
          DeviceDisconnect();
       END;
