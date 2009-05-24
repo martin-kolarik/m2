@@ -11,6 +11,10 @@
         <LeakChecking>off</LeakChecking>
     </PropertyGroup>
 
+    <PropertyGroup Condition="$(MSBuildProjectName)=='sccore'">
+        <ComponentType>Generic</ComponentType>
+    </PropertyGroup>
+
     <PropertyGroup>
         <ProductM2Control></ProductM2Control>
         <ProductCLControl></ProductCLControl>

@@ -15,9 +15,30 @@
             <item xml:space="preserve" lang="en-US">  error: missing address of KonnexNet interface</item>
             <item xml:space="preserve" lang="cs-CZ">  chyba: chybí adresa KonnexNet rozhraní</item>
         </string>
-        <string name="_Searching">
+
+        <string name="_Connecting">
             <item xml:space="preserve" lang="en-US">  Connecting...</item>
             <item xml:space="preserve" lang="cs-CZ">  Připojuji se...</item>
+        </string>
+        <string name="_Connected">
+            <item xml:space="preserve" lang="en-US">  ...connected</item>
+            <item xml:space="preserve" lang="cs-CZ">  ...připojeno</item>
+        </string>
+        <string name="_Disconnected">
+            <item xml:space="preserve" lang="en-US">  ...disconnected</item>
+            <item xml:space="preserve" lang="cs-CZ">  ...odpojeno</item>
+        </string>
+        <string name="_ConnectTimeout">
+            <item xml:space="preserve" lang="en-US">  ...connect timeout, will try again in 10 seconds</item>
+            <item xml:space="preserve" lang="cs-CZ">  ...čas pro připojení vypršel, další pokus za 10 sekund</item>
+        </string>
+        <string name="_ConnectError">
+            <item xml:space="preserve" lang="en-US">  ...connect error </item>
+            <item xml:space="preserve" lang="cs-CZ">  ...chyba připojení </item>
+        </string>
+        <string name="_ConnectNextTrie">
+            <item xml:space="preserve" lang="en-US">, will try again in 10 seconds</item>
+            <item xml:space="preserve" lang="cs-CZ">, další pokus za 10 sekund</item>
         </string>
 
     </strings>

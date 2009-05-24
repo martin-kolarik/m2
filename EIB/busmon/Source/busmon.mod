@@ -21,6 +21,7 @@ IMPORT
 (*================================================================================*)
 
 VAR
+   R : Resources.CResources;
    Verbose : BOOLEAN := FALSE;
 
 (*================================================================================*)
@@ -47,19 +48,21 @@ CLASS IMPLEMENTATION CBusmonConnection;
 
    INTERNAL VIRTUAL PROCEDURE OnConnect();
    BEGIN
-      TextWriter.errout()^.WriteOA( L"Connected", TRUE );
+      Sync.Sleep( 500 );
+      TextWriter.errout()^.WriteOA( OAsz( R[Texts._Connected] ), TRUE );
    END OnConnect;
 
 (*--------------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE OnConnectError( Result : Sync.TAsyncResult; Code : CARDINAL );
    BEGIN
+      Sync.Sleep( 500 );
       IF Result = Sync.arTimeout THEN
-         TextWriter.errout()^.WriteOA( L"Connect timeout, will try again after 10 seconds.", TRUE );
+         TextWriter.errout()^.WriteOA( OAsz( R[Texts._ConnectTimeout] ), TRUE );
       ELSE
-         TextWriter.errout()^.WriteOA( L"Connect error ", FALSE );
+         TextWriter.errout()^.WriteOA( OAsz( R[Texts._ConnectError] ), FALSE );
          TextWriter.errout()^.WriteINT32( Code, 10, FALSE );
-         TextWriter.errout()^.WriteOA( L", will try again 10 seconds.", TRUE );
+         TextWriter.errout()^.WriteOA( OAsz( R[Texts._ConnectNextTrie] ), TRUE );
       END;
    END OnConnectError;
 
@@ -67,7 +70,7 @@ CLASS IMPLEMENTATION CBusmonConnection;
 
    INTERNAL VIRTUAL PROCEDURE OnDisconnect();
    BEGIN
-      TextWriter.errout()^.WriteOA( L"Disconnected", TRUE );
+      TextWriter.errout()^.WriteOA( OAsz( R[Texts._Disconnected] ), TRUE );
    END OnDisconnect;
 
 (*--------------------------------------------------------------------------------*)
@@ -331,11 +334,6 @@ END CBusmonConnection;
 
 (*================================================================================*)
 
-VAR
-   R : Resources.CResources;
-
-(*================================================================================*)
-
 TYPE
    TParamStringArray  = ARRAY [0..0] OF POINTER TO ARRAY [0..511] OF WCHAR;
    TPParamStringArray = POINTER TO TParamStringArray;
@@ -355,7 +353,7 @@ VAR
 BEGIN
    R.LoadRES2( EMIT( %exe ), L"busmon.Texts" );
    
-   IF argc < 2 THEN
+   IF ( argc < 2 ) OR ( argp^[1]^[0] = L"-" ) THEN
       errout^.WriteOA( OAsz( R[Texts._MissingAddress] ), TRUE );
       errout^.LineEnd();
       GOTO Error;
@@ -388,14 +386,14 @@ BEGIN
    
    Busmon.Connect( 0 );
 
-   errout^.WriteOA( OAsz( R[Texts._Searching] ), FALSE );
+   errout^.WriteOA( OAsz( R[Texts._Connecting] ), TRUE );
    
    FIOO.stdin()^.ReadOA( REF ch, OUT i, Sync.FOREVER );
    
    Busmon.Disconnect( FALSE );
+   Sync.Sleep( 100 );
+   Busmon.Dispose();
 
-   FIOO.stdin()^.ReadOA( REF ch, OUT i, Sync.FOREVER );
-   
    RETURN 0;
 
 Error:
