@@ -52,8 +52,11 @@
                             <File Id="License.rtf" Name="License.rtf" Source="License.rtf" DiskId="1" />
                         </Component>
                         <Component Id="Documentation" Guid="D75EA66F-CD00-4b0b-85A2-2764FB229D47">
-                            <File Id="EibSrv.pdf" Name="EibSrv.pdf" Source="..\Doc\EibSrv.pdf" DiskId="1" Vital="yes" KeyPath="yes">
+                            <File Id="EibSrv_en.pdf" Name="EibSrv_en.pdf" Source="..\Doc\EibSrv_en.pdf" DiskId="1" Vital="yes" KeyPath="yes">
                                 <Shortcut Id="StartMenuDocumentation" Directory="ProgramMenuDir" Name="Manual" LongName="SmartServer documentation" />
+                            </File>
+                            <File Id="EibSrv_cs.pdf" Name="EibSrv_cs.pdf" Source="..\Doc\EibSrv_cs.pdf" DiskId="1" Vital="yes">
+                                <Shortcut Id="StartMenuDocumentation" Directory="ProgramMenuDir" Name="Manuál" LongName="Dokumentace SmartServer" />
                             </File>
                             <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" />
                         </Component>
