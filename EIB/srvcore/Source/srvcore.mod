@@ -1697,9 +1697,6 @@ CLASS IMPLEMENTATION CEIBServer;
          EventSink^.OnConnect();
       END;
 
-      IF TRStatus{rsInitReadPending, rsInitReadFinished} * RStatus <> TRStatus{} THEN
-         RETURN;
-      END;
       RStatus := RStatus - TRStatus{rsInitReadRepeat, rsInitReadFinished} + TRStatus{rsInitReadPending};
       InitReadItems := 0;
       IF Objects.Count = 0 THEN
