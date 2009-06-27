@@ -51,15 +51,22 @@
                             <File Id="Licence" Name="Licence.lic" DiskId="1" LongName="$(var.ProductId).tlic" Source="$(var.ProductId).tlic" Vital="yes" KeyPath="yes" />
                             <File Id="License.rtf" Name="License.rtf" Source="License.rtf" DiskId="1" />
                         </Component>
-                        <Component Id="Documentation" Guid="D75EA66F-CD00-4b0b-85A2-2764FB229D47">
-                            <File Id="EibSrv_en.pdf" Name="EibSrv_en.pdf" Source="..\Doc\EibSrv_en.pdf" DiskId="1" Vital="yes" KeyPath="yes">
+                        <?if $(var.LanguageName)=en ?>
+                        <Component Id="Documentation" Guid="89A02EDA-2261-4c9b-8087-06AA1B5FC0A7">
+                            <File Id="EibSrv.pdf" Name="EibSrv.pdf" Source="..\Doc\EibSrv_en.pdf" DiskId="1" Vital="yes" KeyPath="yes">
                                 <Shortcut Id="StartMenuDocumentation" Directory="ProgramMenuDir" Name="Manual" LongName="SmartServer documentation" />
                             </File>
-                            <File Id="EibSrv_cs.pdf" Name="EibSrv_cs.pdf" Source="..\Doc\EibSrv_cs.pdf" DiskId="1" Vital="yes">
+                            <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" />
+                        </Component>
+                        <?endif ?>
+                        <?if $(var.LanguageName)=cs ?>
+                        <Component Id="Documentation" Guid="D75EA66F-CD00-4b0b-85A2-2764FB229D47">
+                            <File Id="EibSrv.pdf" Name="EibSrv.pdf" Source="..\Doc\EibSrv_cs.pdf" DiskId="1" Vital="yes">
                                 <Shortcut Id="StartMenuDocumentation" Directory="ProgramMenuDir" Name="Manuál" LongName="Dokumentace SmartServer" />
                             </File>
                             <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" />
                         </Component>
+                        <?endif ?>
                         <Component Id="DefaultConfiguration" Guid="E3110039-B225-43ed-B91F-1C45A68D8B52">
                             <File Id="default.cfg" Name="default.cfg" Source="default.cfg" DiskId="1" Vital="yes" KeyPath="yes" />
                         </Component>
@@ -71,24 +78,24 @@
                                 <File Id="BackgroundStripThick.png" LongName="BackgroundStripThick.png" Name="BACKGROT.PNG" Source="Web\BackgroundStripThick.png" DiskId="1" />
                                 <File Id="control.pt.xml" LongName="control.pt.xml" Name="CONTROL.XML" Source="Web\control.pt.xml" DiskId="1" />
                                 <File Id="datalog.pt.xml" LongName="datalog.pt.xml" Name="DATALOG.XML" Source="Web\datalog.pt.xml" DiskId="1" />
-                                <File Id="io.pt.xml" LongName="io.pt.xml" Name="IO.PT.XML" Source="Web\io.pt.xml" DiskId="1" />
-                                <File Id="login.pt.xml" LongName="login.pt.xml" Name="LOGIN.P.XML" Source="Web\login.pt.xml" DiskId="1" />
+                                <File Id="io.pt.xml" LongName="io.pt.xml" Name="IO.XML" Source="Web\io.pt.xml" DiskId="1" />
+                                <File Id="login.pt.xml" LongName="login.pt.xml" Name="LOGIN.XML" Source="Web\login.pt.xml" DiskId="1" />
                                 <File Id="SmartServer.xrs.xml" LongName="SmartServer.xrs.xml" Name="SMARTSE.XML" Source="Web\SmartServer.xrs.xml" DiskId="1" />
-                                <File Id="status.pt.xml" LongName="status.pt.xml" Name="STATUS..XML" Source="Web\status.pt.xml" DiskId="1" />
-                                <File Id="syslog.pt.xml" LongName="syslog.pt.xml" Name="SYSLOG..XML" Source="Web\syslog.pt.xml" DiskId="1" />
+                                <File Id="status.pt.xml" LongName="status.pt.xml" Name="STATUS.XML" Source="Web\status.pt.xml" DiskId="1" />
+                                <File Id="syslog.pt.xml" LongName="syslog.pt.xml" Name="SYSLOG.XML" Source="Web\syslog.pt.xml" DiskId="1" />
                                 <File Id="Transparent.png" LongName="Transparent.png" Name="TRANSPA.PNG" Source="Web\Transparent.png" DiskId="1" />
                                 <File Id="TransparentBig.png" LongName="TransparentBig.png" Name="TRANSPB.PNG" Source="Web\TransparentBig.png" DiskId="1" />
-                                <File Id="index.pt.xml" LongName="index.pt.xml" Name="INDEX.P.XML" Source="Web\index.pt.xml" DiskId="1" />
+                                <File Id="index.pt.xml" LongName="index.pt.xml" Name="INDEX.XML" Source="Web\index.pt.xml" DiskId="1" />
                             </Component>
                             <Directory Id="UserWeb" Name="User">
                                 <Component Id="UserWeb" Guid="FDF719DB-B1DA-4401-BE5F-1FA854E7DB2D">
                                     <File Id="index.html" LongName="index.html" Name="INDEX.HTM" Source="Web\User\index.html" DiskId="1" />
                                 </Component>
                                 <Component Id="UserWebExamples" Guid="38BA6B3C-694C-4AB4-A37C-337CF20F58AD">
-                                    <File Id="_01_get.pt.xml" LongName="01 get.pt.xml" Name="01GET.P.XML" Source="Web\User\01 get.pt.xml" DiskId="1" />
-                                    <File Id="_02_set.pt.xml" LongName="02 set.pt.xml" Name="02SET.P.XML" Source="Web\User\02 set.pt.xml" DiskId="1" />
+                                    <File Id="_01_get.pt.xml" LongName="01 get.pt.xml" Name="01GET.XML" Source="Web\User\01 get.pt.xml" DiskId="1" />
+                                    <File Id="_02_set.pt.xml" LongName="02 set.pt.xml" Name="02SET.XML" Source="Web\User\02 set.pt.xml" DiskId="1" />
                                     <File Id="_03_style.pt.xml" LongName="03 style.pt.xml" Name="03STYLE.XML" Source="Web\User\03 style.pt.xml" DiskId="1" />
-                                    <File Id="_04_set.pt.xml" LongName="04 set.pt.xml" Name="04SET.P.XML" Source="Web\User\04 set.pt.xml" DiskId="1" />
+                                    <File Id="_04_set.pt.xml" LongName="04 set.pt.xml" Name="04SET.XML" Source="Web\User\04 set.pt.xml" DiskId="1" />
                                     <File Id="_05_get_refresh.pt.xml" LongName="05 get refresh.pt.xml" Name="05GETRE.XML" Source="Web\User\05 get refresh.pt.xml" DiskId="1" />
                                 </Component>
                             </Directory>
