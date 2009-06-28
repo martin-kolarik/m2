@@ -195,8 +195,14 @@
         </CreateProperty>
     </Target>
 
+    <Target Name="DoDummyProductBuildNumberGet" Condition="$(ComponentType)!='Product'">
+        <CreateProperty Value="0.0.0">
+            <Output TaskParameter="Value" PropertyName="ProductVersion"></Output>
+        </CreateProperty>
+    </Target>
+
     <Target Name="ProductBuildNumberGet"
-            DependsOnTargets="DoProductBuildNumberGet">
+            DependsOnTargets="DoDummyProductBuildNumberGet;DoProductBuildNumberGet">
         <CreateProperty Value="-DProductId:$(CompileProductId) -DProductVersion:$(ProductVersion)">
             <Output TaskParameter="Value" PropertyName="M2PROD"></Output>
         </CreateProperty>

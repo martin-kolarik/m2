@@ -325,6 +325,10 @@ CLASS CBufferedStream( AStream ) IMPLEMENTS IBufferedReader;
 
    PRIVATE PROCEDURE OperateClient( Direction : TDirection; FromDevice : BOOLEAN ) : Sync.TAsyncResult;
    PRIVATE PROCEDURE OperateDevice( Direction : TDirection );
+
+   // interface for filter extension
+   INTERNAL VIRTUAL PROCEDURE Filter( Direction : TDirection; CONST Source : ARRAY OF BYTE; OUT Consumed : CARDINAL; REF Destination : ARRAY OF BYTE; OUT Filled : CARDINAL ) : Sync.TAsyncResult;
+   INTERNAL VIRTUAL PROCEDURE CloseFilter( Direction : TDirection; REF Destination : ARRAY OF BYTE; OUT Filled : CARDINAL ) : Sync.TAsyncResult;
 END CBufferedStream;
 
 (*--------------------------------------------------------------------------------*)
@@ -365,6 +369,7 @@ END CDatagramReader;
 TYPE
   TPMemoryStream = POINTER TO CMemoryStream;
 
+// operates assigned memory only, cannot grow
 CLASS CMemoryStream( AStream );
   INTERNAL VAR
     _Access : TAccess;
@@ -389,7 +394,7 @@ CLASS CMemoryStream( AStream );
   INTERNAL VIRTUAL PROCEDURE Start( Direction : TDirection; OperationTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
   INTERNAL VIRTUAL PROCEDURE Abort( Direction : TDirection );
   
-  INTERNAL VIRTUAL PROCEDURE ExtendMemory( NewLength : PTR ) : BOOLEAN;
+  INTERNAL VIRTUAL PROCEDURE ExtendMemory( NewSize : PTR ) : BOOLEAN;
 END CMemoryStream;
 
 (*================================================================================*)
@@ -397,12 +402,13 @@ END CMemoryStream;
 TYPE
   TPMemoryBufferStream = POINTER TO CMemoryBufferStream;
 
-CLASS CMemoryBufferStream( CMemoryStream );
+// operates memory in buffer only, can grow
+FINAL CLASS CMemoryBufferStream( CMemoryStream );
 
   // AStream
   PUBLIC VIRTUAL PROCEDURE DeviceFinish( Direction : TDirection; Result : Sync.TAsyncResult );
   // CMemoryStream
-  INTERNAL VIRTUAL PROCEDURE ExtendMemory( NewLength : PTR ) : BOOLEAN;
+  INTERNAL VIRTUAL PROCEDURE ExtendMemory( NewSize : PTR ) : BOOLEAN;
   
   // SELF
   INTERNAL VAR
@@ -411,6 +417,36 @@ CLASS CMemoryBufferStream( CMemoryStream );
   PUBLIC PROCEDURE Init( REF Buffer : StorageO.AMemoryBuffer; Access : TAccess );
 
 END CMemoryBufferStream;
+
+(*================================================================================*)
+
+TYPE
+   TPFilter = POINTER TO IFilter;
+   TPFilterStream = POINTER TO CFilterStream;
+   
+(*--------------------------------------------------------------------------------*)
+
+INTERFACE IFilter;
+   PROCEDURE Filter( CONST Source : ARRAY OF BYTE; OUT Consumed : CARDINAL; REF Destination : ARRAY OF BYTE; OUT Filled : CARDINAL ) : Sync.TAsyncResult;
+      // returning arNoData for Filter() means that Filter is unable to do its job, this is usually due to low memory space in Destination
+   PROCEDURE CloseFilter( REF Destination : ARRAY OF BYTE; OUT Filled : CARDINAL ) : Sync.TAsyncResult;
+END IFilter;
+
+(*--------------------------------------------------------------------------------*)
+
+// class with interface simplified to filtering
+// filtering requires buffers to be such big to be able to get whole maximal filtered chunk
+FINAL CLASS CFilterStream( CBufferedStream );
+   PRIVATE VAR
+      _RFilter : TPFilter;
+      _WFilter : TPFilter;
+    
+   PUBLIC PROCEDURE Init( ReadFilter, WriteFilter : TPFilter );
+
+   // inherited 
+   INTERNAL VIRTUAL PROCEDURE Filter( Direction : TDirection; CONST Source : ARRAY OF BYTE; OUT Consumed : CARDINAL; REF Destination : ARRAY OF BYTE; OUT Filled : CARDINAL ) : Sync.TAsyncResult;
+   INTERNAL VIRTUAL PROCEDURE CloseFilter( Direction : TDirection; REF Destination : ARRAY OF BYTE; OUT Filled : CARDINAL ) : Sync.TAsyncResult;
+END CFilterStream;
 
 (*================================================================================*)
 
