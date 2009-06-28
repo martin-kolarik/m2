@@ -56,6 +56,10 @@ CONST
   TRAIL_NAME = C'</name';
   LEAD_VALUE = C'<value';
   TRAIL_VALUE = C'</value';
+  LEAD_CONNECT = C'<connect';
+  TRAIL_CONNECT = C'/>';
+  LEAD_DISCONNECT = C'<disconnect';
+  TRAIL_DISCONNECT = C'/>';
   TRAIL = C'>';
   
 CONST
@@ -254,7 +258,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
             RETURN;
          END;
          
-         Parse( Client, OA( i - SIZE( LEAD_XMLSOCKET )-1, PCHAR( Client^.RBuffer.Data@[SIZE( LEAD_XMLSOCKET )-1] ) )); // slice data inside LEADING and TRAILING
+         Parse( Client, OA( i - SIZE( LEAD_XMLSOCKET ), PCHAR( Client^.RBuffer.Data@[SIZE( LEAD_XMLSOCKET )-1] ) )); // slice data inside LEADING and TRAILING
          
          Client^.RBuffer.RemoveStart( i + SIZE( TRAIL_XMLSOCKET )-1 );
       END; // LOOP
@@ -308,11 +312,13 @@ CLASS IMPLEMENTATION CXMLSocketServer;
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE Parse( Client : ADDRESS; Data : ARRAY OF CHAR );
+   TYPE
+      TOperation = ( opAsk, opConnect, opDisconnect, opNotify );
    VAR
-      ask : BOOLEAN;
       high : INTEGER;
-      ia, in, i, j, current : INTEGER;
+      ia, ic, id, in, i, j, current : INTEGER;
       Name, Value : ARRAY [0..511] OF WCHAR;
+      operation : TOperation;
       pos, nextpos : INTEGER := 0;
       readRequests : arrays.TPPtrArray := NIL;
    BEGIN
@@ -325,38 +331,73 @@ CLASS IMPLEMENTATION CXMLSocketServer;
          END;
 
          ia := Strings.IndexOfA( OA( high, ADR( Data[pos] )), LEAD_ASK, pos );
+         ic := Strings.IndexOfA( OA( high, ADR( Data[pos] )), LEAD_CONNECT, pos );
+         id := Strings.IndexOfA( OA( high, ADR( Data[pos] )), LEAD_DISCONNECT, pos );
          in := Strings.IndexOfA( OA( high, ADR( Data[pos] )), LEAD_NOTIFY, pos );
-         IF ( ia = -1 ) AND ( in = -1 ) THEN
+         IF ( ia = -1 ) AND ( ic = -1 ) AND ( id = -1 ) AND ( in = -1 ) THEN
             EXIT; // done
          END;
-         IF ia = -1 THEN // NOTIFY found
-            ask := FALSE;
+         IF ic <> -1 THEN
+            operation := opConnect;
+            i := ic;
+         ELSIF id <> -1 THEN
+            operation := opDisconnect;
+            i := id;
+         ELSIF in <> -1 THEN
+            operation := opNotify;
             i := in;
-         ELSIF in = -1 THEN // ASK found
-            ask := TRUE;
+         ELSIF ia <> -1 THEN
+            operation := opAsk;
             i := ia;
-         ELSIF ia < in THEN // both found, ASK fisrt
-            ask := TRUE;
-            i := ia;
-         ELSE
-            ask := FALSE;            
-            i := in;
          END;
-         IF ask THEN
+         
+         CASE operation OF
+         //-----
+         | opAsk :
             j := Strings.IndexOfA( OA( high, ADR( Data[pos] )), TRAIL_ASK, ia );
             IF j = -1 THEN
                EXIT; // done
             END;
             current := i + SIZE( LEAD_ASK )-1;
             nextpos := j + SIZE( TRAIL_ASK )-1;
-         ELSE
+
+         //-----
+         | opConnect :
+            j := Strings.IndexOfA( OA( high, ADR( Data[pos] )), TRAIL_CONNECT, ic );
+            IF j = -1 THEN
+               EXIT; // done
+            END;
+            nextpos := j + SIZE( TRAIL_CONNECT )-1;
+
+            // handle connect in a short way
+            HandleConnect();
+            CONTINUE;
+
+         //-----
+         | opDisconnect :
+            j := Strings.IndexOfA( OA( high, ADR( Data[pos] )), TRAIL_DISCONNECT, id );
+            IF j = -1 THEN
+               EXIT; // done
+            END;
+            nextpos := j + SIZE( TRAIL_DISCONNECT )-1;
+
+            // handle disconnect in a short way
+            HandleDisconnect();
+            CONTINUE;
+
+         //-----
+         | opNotify :
             j := Strings.IndexOfA( OA( high, ADR( Data[pos] )), TRAIL_NOTIFY, in );
             IF j = -1 THEN
                EXIT; // done
             END;
             current := i + SIZE( LEAD_NOTIFY )-1;
             nextpos := j + SIZE( TRAIL_NOTIFY )-1;
-         END;
+
+         //-----
+         ELSE
+            ASSERTLOG( FALSE );
+         END; // CASE
 
          // parse NAME
          i := Strings.IndexOfA( OA( high, ADR( Data[pos] )), LEAD_NAME, current );
@@ -370,7 +411,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
          INC( i, SIZE( LEAD_NAME )-1 );
          Strings.ToW( OA( j-i, ADR( Data[i] )), Languages.cp_UTF8, OUT Name );
          
-         IF NOT ask THEN
+         IF operation = opNotify THEN
             // parse VALUE
             i := Strings.IndexOfA( OA( high, ADR( Data[pos] )), LEAD_VALUE, current );
             IF ( i = -1 ) OR ( i >= nextpos ) THEN
@@ -394,7 +435,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
          Strings.RemoveW( REF Name, 0, i+1 );
          Strings.TrimW( REF Name );
          
-         IF NOT ask THEN
+         IF operation = opNotify THEN
             i := Strings.IndexOfCharW( Value, L">", 0 );
             j := Strings.IndexOfCharW( Value, L"<", i );
             IF ( i = -1 ) OR ( j = -1 ) THEN // bad XML
@@ -406,7 +447,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
          END;
          
          // call back on name and value
-         IF ask THEN
+         IF operation = opAsk THEN
             IF readRequests = NIL THEN
                NEW( readRequests );
             END;
@@ -415,13 +456,27 @@ CLASS IMPLEMENTATION CXMLSocketServer;
             HandleWrite( Name, Value );
          END;
          
-      END;
+      END; // LOOP
       
       IF readRequests <> NIL THEN
          ScheduleSend( Client, readRequests );
       END;
    END Parse;
   
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE HandleConnect();
+   BEGIN
+      Device^.IO()^.Start();
+   END HandleConnect;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE HandleDisconnect();
+   BEGIN
+      Device^.IO()^.Stop();
+   END HandleDisconnect;
+
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE HandleRead( CONST NameOA : ARRAY OF WCHAR; REF readRequests : arrays.TPPtrArray );

@@ -907,6 +907,13 @@ user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
   &lt;/ask&gt;
 &lt;/xmlsocket&gt;</p.type>
                 <p>There may be also more <type>ask</type> tags inside the <type>xmlsocket</type> one, so the client may ask for more data together by one communication.</p>
+                <p>The last option of XMLSocket interface is driving of EIB/KNX connection. There are tags <type>&lt;connect/&gt;</type> and <type>&lt;disconnect/&gt;</type> which connect or disconnect the server and the EIB/KNX interface. Examples of connect and disconnect request are:</p>
+                <p.type>&lt;xmlsocket&gt;
+  &lt;connect/&gt;
+&lt;/xmlsocket&gt;</p.type>
+                <p.type>&lt;xmlsocket&gt;
+  &lt;disconnect/&gt;
+&lt;/xmlsocket&gt;</p.type>
               </text>
             </section>
           </text>
