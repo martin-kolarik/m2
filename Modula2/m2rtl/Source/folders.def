@@ -1,0 +1,28 @@
+DEFINITION MODULE Folders;
+// special folders
+
+(*============================================================*)
+
+TYPE
+   TSpecialFolder = (
+      sfEXEDir,
+      sfAppDataCommon,
+      sfAppDataUser,
+      sfDocumentsCommon,
+      sfDocumentsUser,
+      sfProgramsCommon,
+      sfPrograms
+   );
+
+#save, option( dll_export => on )
+
+PROCEDURE GetSpecialFolderW( specialFolder : TSpecialFolder; OUT folderPath : ARRAY OF WCHAR ) : BOOLEAN; // returns FALSE if folder is unknown
+
+// appends ManufacturerName to special folder location
+PROCEDURE GetManufacturerSpecialFolderW( specialFolder : TSpecialFolder; createIfItDoesNotExist : BOOLEAN; OUT folderPath : ARRAY OF WCHAR ) : BOOLEAN; // returns FALSE if folder is unknown
+
+#restore
+
+(*============================================================*)
+
+END Folders.
