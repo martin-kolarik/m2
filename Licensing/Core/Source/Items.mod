@@ -384,10 +384,10 @@ CLASS IMPLEMENTATION CProduct;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Licences GET : lists.TPPtrList;
+   PUBLIC PROPERTY LicencesAndInfos GET : lists.TPPtrList;
    BEGIN
       RETURN ADR( Childs );
-   END Licences;
+   END LicencesAndInfos;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1009,6 +1009,132 @@ CLASS IMPLEMENTATION CActivation;
 (*--------------------------------------------------------------------------------*)
 
 END CActivation;
+
+(*================================================================================*)
+
+CLASS IMPLEMENTATION CInfo;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY List GET : lists.TPStringStringList;
+   BEGIN
+      RETURN ADR( _List );
+   END List;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Equals( CONST To : CItem ) : BOOLEAN;
+   VAR
+      _toList : lists.TPStringStringList;
+   BEGIN
+      IF NOT( To IS CInfo ) OR ( _ProductId <> To.ProductId ) THEN
+         RETURN FALSE;
+      END;
+
+      _toList := TPInfo( ADR( To ))^.List;
+      _List.Reset();
+      _toList^.Reset();
+      WHILE _List.MoveNext() AND _toList^.MoveNext() DO
+         IF NOT _List.Current^.Equals( _toList^.Current^ ) OR NOT _List.CurrentData^.Equals( _toList^.CurrentData^ ) THEN
+            RETURN FALSE;
+         END;
+      END; // WHILE
+      IF _List.MoveNext() OR _toList^.MoveNext() THEN
+         RETURN FALSE;
+      ELSE
+         RETURN TRUE;
+      END;
+   END Equals;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE CreateTransportData(); // prepares Data, sets Valid
+   BEGIN
+      IF isDirty NOT IN State THEN
+         RETURN;
+      END;
+
+      _TransportData.AppendOA( sepItemCh + L"uid" + sepKeyCh );
+      _TransportData.Append( UIdString );
+
+      _TransportData.AppendOA( sepItemCh + L"pid" + sepKeyCh );
+      _TransportData.Append( _ProductId );
+      
+      _List.Reset();
+      WHILE _List.MoveNext() DO
+         _TransportData.AppendOA( sepItemCh );
+         _TransportData.Append( _List.Current^ );
+         _TransportData.AppendOA( sepKeyCh );
+         _TransportData.Append( _List.CurrentData^ );
+      END; // WHILE
+
+      EncodeTransportData();
+      State := TItemState{isValid};
+   END CreateTransportData;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE ValidateByTransportData(); // gets transport data, sets Valid
+   VAR
+      nextIndex : CARDINAL := 0;
+      pieces : CARDINAL;
+      s : StringsO.CString;
+      sa : ARRAY [0..1] OF StringsO.CString;
+      td : StringsO.CString;
+   BEGIN
+      EXCL( State, isValid );
+      IF NOT DecodeTransportData( OUT td ) THEN
+         RETURN;
+      END;
+
+      nextIndex := td.ItemS( sepItem, nextIndex, 0, FALSE, OUT s );
+      IF s.Empty THEN // uid not found
+         RETURN; 
+      ELSE
+         s.ItemS( sepKey, 0, 1, FALSE, OUT s );
+         UIdString := s;
+      END;
+
+      nextIndex := td.ItemS( sepItem, nextIndex, 0, FALSE, OUT s );
+      IF s.Empty THEN // pid not found
+         RETURN; 
+      ELSE
+         s.ItemS( sepKey, 0, 1, FALSE, OUT s );
+         _ProductId := s;
+      END;
+
+      _List.Reset();
+      WHILE _List.MoveNext() AND ( nextIndex <> -1 ) DO
+         nextIndex := td.ItemS( sepItem, nextIndex, 0, FALSE, OUT s );
+         s.SplitS( sepKey, 0, FALSE, OUT pieces, OUT sa );
+         IF NOT _List.Current^.Equals( sa[0] ) OR ( pieces > 1 ) AND  NOT _List.CurrentData^.Equals( sa[1] ) THEN
+            RETURN;
+         END;
+      END; // WHILE
+      
+      IF _List.MoveNext() OR ( nextIndex <> -1 ) THEN // different lists length
+         RETURN;
+      END;
+
+      INCL( State, isValid );
+   END ValidateByTransportData;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE CreateHash( OUT Hash : StringsO.CString );
+   BEGIN
+      Hash.Clear();
+      _List.Reset();
+      WHILE _List.MoveNext() DO
+         Hash.Append( _List.Current^ );
+         Hash.Append( _List.CurrentData^ );
+         Hash.AppendOA( sepItemCh );
+      END; // WHILE      
+   END CreateHash;
+   
+(*--------------------------------------------------------------------------------*)
+
+END CInfo;
 
 (*================================================================================*)
 

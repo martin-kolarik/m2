@@ -132,6 +132,10 @@ CONST // object type names
    otnLoggedESFStrict       = L"logged_esf_strict";
    otnLoggedESFAdapt        = L"logged_esf_adapt";
    otnLoggedESFIgnore       = L"logged_esf_ignore";
+   
+CONST
+   itemSystemLock = 1;
+   nameSystemLock = L".System.Licensing.Lock";
 
 //================================================================================
 
@@ -516,6 +520,10 @@ CLASS IMPLEMENTATION CEIBServer;
       address : eib_def.TAddress;
       PObject : TPObject;
    BEGIN
+      IF Name.EqualsOA( nameSystemLock ) THEN
+         Hash := itemSystemLock;
+         RETURN TRUE;
+      END;
       address.SetGroupAddress3( OA( Name.Length-1, Name.rawData ));
       IF NOT GetObject( address, OUT PObject ) THEN
          RETURN FALSE;
@@ -533,6 +541,8 @@ CLASS IMPLEMENTATION CEIBServer;
       s : ARRAY [0..31] OF WCHAR;
    BEGIN
       IF Hash = NIL THEN
+         RETURN FALSE;
+      ELSIF Hash = itemSystemLock THEN
          RETURN FALSE;
       END;
       address := TPObject( Hash )^.SendAddress;
@@ -655,6 +665,11 @@ CLASS IMPLEMENTATION CEIBServer;
    BEGIN
       IF Result.Counted OR Result.Expired THEN
          RETURN Sync.arCannotStart;
+      END;
+      
+      IF Item = itemSystemLock THEN
+         lec.LockSystem( Value.Boolean );
+         RETURN Sync.arCompleted;
       END;
       
       PObject := TPObject( Item );

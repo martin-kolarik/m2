@@ -69,8 +69,10 @@ BEGIN
    FIO.MakePathW( folder, Manufacturer, OUT folderPath );
    IF createIfItDoesNotExist AND NOT FIO.CreateDirectoryW( folderPath ) THEN
       RETURN FALSE;
-   ELSE
+   ELSIF FIO.ExistsDirectoryW( folderPath ) THEN
       RETURN TRUE;
+   ELSE
+      RETURN FALSE;
    END;
 END GetManufacturerSpecialFolderW;
 

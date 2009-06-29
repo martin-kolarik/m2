@@ -59,6 +59,7 @@ TYPE
    TPLockedItem = POINTER TO CLockedItem;
    TPLicence = POINTER TO CLicence;
    TPActivation = POINTER TO CActivation;
+   TPInfo = POINTER TO CInfo;
 
 (*================================================================================*)
 
@@ -72,7 +73,7 @@ TYPE
    TVersion = ARRAY TVersionItem OF CARDINAL;
 
 CLASS CProduct( CItem );
-   INTERNAL VAR
+   PRIVATE VAR
       _Name      : StringsO.CString;
       _Version   : TVersion;
       _Copyright : StringsO.CString;
@@ -86,7 +87,7 @@ CLASS CProduct( CItem );
       Legal         : StringsO.CString;
       Note          : StringsO.CString;
     PUBLIC READONLY PROPERTY
-      Licences      : lists.TPPtrList;
+      LicencesAndInfos : lists.TPPtrList;
 
    PUBLIC VIRTUAL PROCEDURE Equals( CONST To : CItem ) : BOOLEAN;
 
@@ -120,7 +121,7 @@ TYPE
 	TLicenceType = SET OF TLicenceTypeItem;
 
 CLASS CLicence( CLockedItem );
-   INTERNAL VAR
+   PRIVATE VAR
       _Serial : StringsO.CString;
       _Owner : StringsO.CString;
       _Type : TLicenceType := TLicenceType{};
@@ -145,7 +146,7 @@ END CLicence;
 (*--------------------------------------------------------------------------------*)
 
 CLASS CActivation( CLockedItem );
-   INTERNAL VAR
+   PRIVATE VAR
       _OfSerial : StringsO.CString;
       _Starts   : time.DateTime;
       _Expires  : time.DateTime;
@@ -163,6 +164,21 @@ CLASS CActivation( CLockedItem );
    PUBLIC VIRTUAL PROCEDURE ValidateByTransportData();
    INTERNAL VIRTUAL PROCEDURE CreateHash( OUT Hash : StringsO.CString );
 END CActivation;
+
+(*--------------------------------------------------------------------------------*)
+
+CLASS CInfo( CLockedItem );
+   PRIVATE VAR
+      _List : lists.CStringStringList;
+   PUBLIC READONLY PROPERTY
+      List : lists.TPStringStringList; // when accessing list, dirty must be set manually
+
+   PUBLIC VIRTUAL PROCEDURE Equals( CONST To : CItem ) : BOOLEAN;
+
+   PUBLIC VIRTUAL PROCEDURE CreateTransportData(); // prepares Data, sets Valid
+   PUBLIC VIRTUAL PROCEDURE ValidateByTransportData(); // gets transport data, sets Valid
+   INTERNAL VIRTUAL PROCEDURE CreateHash( OUT Hash : StringsO.CString );
+END CInfo;
 
 (*================================================================================*)
 

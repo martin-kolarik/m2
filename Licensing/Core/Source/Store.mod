@@ -10,6 +10,7 @@ IMPORT
    bitarray,
    FIO,
    FIOO,
+   Folders,
    FSO,
    INIfile,
    IOO,
@@ -26,7 +27,6 @@ END CStorage;
 
 CONST
    cfCommonProgramFiles = L"CommonProgramFiles";
-   cfDefaultRoot = L"SmartControl";
    cfFolder = L"Licence";
 
 (*--------------------------------------------------------------------------------*)
@@ -46,20 +46,6 @@ CLASS IMPLEMENTATION CFileStorage;
    BEGIN
       _OperationMode := Value;
    END OperationMode;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Root GET : StringsO.CString;
-   BEGIN
-      RETURN _Root;
-   END Root;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Root SET( CONST Value : StringsO.CString );
-   BEGIN
-      _Root := Value;
-   END Root;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -104,13 +90,6 @@ CLASS IMPLEMENTATION CFileStorage;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE SetRootOA( Root : ARRAY OF WCHAR );
-   BEGIN
-      _Root.FromOA( Root );
-   END SetRootOA;
-
-(*--------------------------------------------------------------------------------*)
-
    PUBLIC PROCEDURE SetPathOA( Path : ARRAY OF WCHAR );
    BEGIN
       _Path.FromOA( Path );
@@ -120,12 +99,7 @@ CLASS IMPLEMENTATION CFileStorage;
 
    PUBLIC FINAL PROCEDURE Load( ProductIdFilter : ARRAY OF WCHAR; REF ItemsToLoad : arrays.CPtrArray; ClearArray, RespectValidation : BOOLEAN );
    VAR
-      DI : FSO.CDirectoryInfo;
-      filter : ARRAY [0..255] OF WCHAR;
-      LocalItems : arrays.CPtrArray;
-      path : StringsO.CString;
-      pathOA : FIO.PathStrW;
-      rootOA : FIO.PathStrW;
+      path : FIO.PathStrW;
    BEGIN
       IF ClearArray THEN
          ItemsToLoad.Dispose();
@@ -133,52 +107,23 @@ CLASS IMPLEMENTATION CFileStorage;
       IF _Filters.Empty THEN
          RETURN;
       END;
-      IF _Root.Empty THEN
-         rootOA := cfDefaultRoot;
-      ELSE
-         _Root.ToOA( OUT rootOA );
-      END;
 
       IF NOT _Path.Empty THEN
-         _Path.ToOA( OUT pathOA );
-      // else use default storage
-      ELSIF FSO.GetEnvVariable( cfCommonProgramFiles, OUT path ) THEN
-         path.ToOA( OUT pathOA );
-         FIO.PathAddW( REF pathOA, rootOA );
-         FIO.PathAddW( REF pathOA, cfFolder );
-      ELSE
-         FIO.MakePathW( rootOA, cfFolder, OUT pathOA );
-      END;
+         _Path.ToOA( OUT path );
+         LoadSingleFolder( ProductIdFilter, REF ItemsToLoad, RespectValidation, path );
 
-      IF ProductIdFilter[0] = 0W THEN
-         filter[0] := 0W;
-      ELSE
-         Strings.ConcatW( OUT filter, ProductIdFilter, L".*" );
-      END;
-      IF NOT DI.StartOA( pathOA, filter, FSO.soTopDirectoryOnly, FALSE, TRUE ) THEN
-         RETURN;
-      END;
+      ELSE // else use default storages
+         IF Folders.GetManufacturerSpecialFolderW( Folders.sfProgramsCommon, FALSE, OUT path ) THEN
+            LoadSingleFolder( ProductIdFilter, REF ItemsToLoad, RespectValidation, path );
+         END;
+         IF Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataCommon, FALSE, OUT path ) THEN
+            LoadSingleFolder( ProductIdFilter, REF ItemsToLoad, RespectValidation, path );
+         END;
+         IF Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataUser, FALSE, OUT path ) THEN
+            LoadSingleFolder( ProductIdFilter, REF ItemsToLoad, RespectValidation, path );
+         END;
 
-      _Filters.Reset();
-      WHILE _Filters.MoveNext() DO
-         TPFileFilter( _Filters.Current )^.InitLoad();
       END;
-      REPEAT
-         DI.Path.ToOA( OUT pathOA );
-         _Filters.Reset();
-         WHILE _Filters.MoveNext() DO
-            IF TPFileFilter( _Filters.Current )^.IsFor( pathOA ) THEN
-               TPFileFilter( _Filters.Current )^.LoadFile( pathOA, REF LocalItems );
-               EXIT;
-            END;
-         END; // WHILE
-      UNTIL NOT DI.MoveNext();
-      _Filters.Reset();
-      WHILE _Filters.MoveNext() DO
-         TPFileFilter( _Filters.Current )^.FinishLoad();
-      END;
-
-      ValidateItems( RespectValidation, LocalItems, OUT ItemsToLoad );
    END Load;
 
 (*--------------------------------------------------------------------------------*)
@@ -191,10 +136,8 @@ CLASS IMPLEMENTATION CFileStorage;
       i : CARDINAL;
       item, pivot : Items.TPItem;
       LocalItems : arrays.CPtrArray;
-      path : StringsO.CString;
       pathOA : FIO.PathStrW;
       processed : bitarray.CBitArray;
-      rootOA : FIO.PathStrW;
       s : ARRAY [0..255] OF WCHAR;
       someDirty : BOOLEAN := FALSE;
    BEGIN
@@ -205,24 +148,21 @@ CLASS IMPLEMENTATION CFileStorage;
       IF filter = NIL THEN
          RETURN;
       END;
-      IF _Root.Empty THEN
-         rootOA := cfDefaultRoot;
-      ELSE
-         _Root.ToOA( OUT rootOA );
-      END;
 
       // create folder
       IF NOT _Path.Empty THEN
          _Path.ToOA( OUT folderOA );
       // else use default storage
-      ELSIF FSO.GetEnvVariable( cfCommonProgramFiles, OUT path ) THEN
-         path.ToOA( OUT folderOA );
-         FIO.PathAddW( REF folderOA, rootOA );
+      ELSIF Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataCommon, TRUE, OUT pathOA ) THEN
+         FIO.PathAddW( REF folderOA, cfFolder );
+      ELSIF Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataUser, TRUE, OUT pathOA ) THEN
          FIO.PathAddW( REF folderOA, cfFolder );
       ELSE
-         FIO.MakePathW( rootOA, cfFolder, OUT folderOA );
+         RETURN; // store nothing
       END;
-      FIO.CreateDirectoryW( folderOA );
+      IF NOT FIO.CreateDirectoryW( folderOA ) THEN
+         RETURN; // store nothing
+      END;
 
       // prepare write structures
       count := ItemsToStore.Count;
@@ -291,17 +231,20 @@ CLASS IMPLEMENTATION CFileStorage;
          END; // LOOP over products
       //-----
       | fomSingleFile :
-         FOR i := 0 TO count-1 DO
-            someDirty := someDirty OR NOT RespectDirty OR Items.TPItem( ItemsToStore[i] )^.Dirty;
-            Items.TPItem( ItemsToStore[i] )^.CreateTransportData();
-         END; // FOR
-         IF someDirty THEN
-            FIO.MakePathW( folderOA, OA( _Root.Length-1, _Root.rawData ), OUT pathOA );
-            Strings.AppendW( REF pathOA, L"." );
-            filter^.Extension( OUT s );
-            Strings.AppendW( REF pathOA, s );
+         IF NOT _Path.Empty THEN
+            FOR i := 0 TO count-1 DO
+               someDirty := someDirty OR NOT RespectDirty OR Items.TPItem( ItemsToStore[i] )^.Dirty;
+               Items.TPItem( ItemsToStore[i] )^.CreateTransportData();
+            END; // FOR
+            IF someDirty THEN
+               // TODO: does this work?
+               _Path.ToOA( OUT pathOA );
+               Strings.AppendW( REF pathOA, L"." );
+               filter^.Extension( OUT s );
+               Strings.AppendW( REF pathOA, s );
 
-            filter^.StoreFile( pathOA, ItemsToStore );
+               filter^.StoreFile( pathOA, ItemsToStore );
+            END;
          END;
       END;
       filter^.FinishStore();
@@ -411,6 +354,46 @@ CLASS IMPLEMENTATION CFileStorage;
          END;
       END; // WHILE
 	END ValidateItems;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE LoadSingleFolder( ProductIdFilter : ARRAY OF WCHAR; REF ItemsToLoad : arrays.CPtrArray; RespectValidation : BOOLEAN; path : ARRAY OF WCHAR );
+   VAR
+      DI : FSO.CDirectoryInfo;
+      filter : ARRAY [0..255] OF WCHAR;
+      LocalItems : arrays.CPtrArray;
+      localPath : FIO.PathStrW;
+   BEGIN
+      IF ProductIdFilter[0] = 0W THEN
+         filter[0] := 0W;
+      ELSE
+         Strings.ConcatW( OUT filter, ProductIdFilter, L".*" );
+      END;
+      IF NOT DI.StartOA( path, filter, FSO.soTopDirectoryOnly, FALSE, TRUE ) THEN
+         RETURN;
+      END;
+
+      _Filters.Reset();
+      WHILE _Filters.MoveNext() DO
+         TPFileFilter( _Filters.Current )^.InitLoad();
+      END;
+      REPEAT
+         DI.Path.ToOA( OUT localPath );
+         _Filters.Reset();
+         WHILE _Filters.MoveNext() DO
+            IF TPFileFilter( _Filters.Current )^.IsFor( localPath ) THEN
+               TPFileFilter( _Filters.Current )^.LoadFile( localPath, REF LocalItems );
+               EXIT;
+            END;
+         END; // WHILE
+      UNTIL NOT DI.MoveNext();
+      _Filters.Reset();
+      WHILE _Filters.MoveNext() DO
+         TPFileFilter( _Filters.Current )^.FinishLoad();
+      END;
+
+      ValidateItems( RespectValidation, LocalItems, OUT ItemsToLoad );
+   END LoadSingleFolder;
 
 (*--------------------------------------------------------------------------------*)
 

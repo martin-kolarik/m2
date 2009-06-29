@@ -250,19 +250,21 @@ VAR
    items, jitems : lists.TPPtrList;
 BEGIN
    FOR i := 0 TO data.Count-1 DO
-      items := Items.TPProduct( data[i] )^.Licences;
+      items := Items.TPProduct( data[i] )^.LicencesAndInfos;
       IF items <> NIL THEN
          items^.Reset();
          WHILE items^.MoveNext() DO
             item := Items.TPItem( items^.Current );
-            jitems := Items.TPLicence( item )^.Activations;
-            IF jitems <> NIL THEN
-               jitems^.Reset();
-               WHILE jitems^.MoveNext() DO
-                  jitem := Items.TPItem( jitems^.Current );
-                  DISPOSE( jitem );
-               END; // WHILE jitems
-            END;
+            IF item^ IS Items.CLicence THEN
+               jitems := Items.TPLicence( item )^.Activations;
+               IF jitems <> NIL THEN
+                  jitems^.Reset();
+                  WHILE jitems^.MoveNext() DO
+                     jitem := Items.TPItem( jitems^.Current );
+                     DISPOSE( jitem );
+                  END; // WHILE jitems
+               END;
+            END; // item is CLicence
             DISPOSE( item );
          END; // WHILE
       END;

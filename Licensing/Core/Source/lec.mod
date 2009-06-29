@@ -148,10 +148,13 @@ CLASS IMPLEMENTATION CResult;
       END;
 
       // parse licences
-      litems := Items.TPProduct( pitem )^.Licences;
+      litems := Items.TPProduct( pitem )^.LicencesAndInfos;
       litems^.Reset();
       WHILE litems^.MoveNext() DO
          litem := litems^.Current;
+         IF NOT( litem^ IS Items.CLicence ) THEN // TODO: handle infos
+            CONTINUE;
+         END; 
          trialFlag := Items.ltTrial IN litem^.Type;
          
          #if DEBUG #then      
@@ -494,6 +497,12 @@ PROCEDURE UnregisterValidator( Data : ADDRESS );
 BEGIN
    Validator.Unregister( Data );
 END UnregisterValidator;
+
+(*================================================================================*)
+
+PROCEDURE StoreData( Value : BOOLEAN );
+BEGIN
+END StoreData;
 
 (*================================================================================*)
 
