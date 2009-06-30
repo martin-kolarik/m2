@@ -14,6 +14,7 @@ IMPORT
    FSO,
    INIfile,
    IOO,
+   lists,
    Strings,
    TextReader,
    TextWriter;
@@ -153,9 +154,9 @@ CLASS IMPLEMENTATION CFileStorage;
       IF NOT _Path.Empty THEN
          _Path.ToOA( OUT folderOA );
       // else use default storage
-      ELSIF Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataCommon, TRUE, OUT pathOA ) THEN
+      ELSIF Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataCommon, TRUE, OUT folderOA ) THEN
          FIO.PathAddW( REF folderOA, cfFolder );
-      ELSIF Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataUser, TRUE, OUT pathOA ) THEN
+      ELSIF Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataUser, TRUE, OUT folderOA ) THEN
          FIO.PathAddW( REF folderOA, cfFolder );
       ELSE
          RETURN; // store nothing
@@ -525,6 +526,7 @@ CLASS IMPLEMENTATION CINIFilter;
 	   i : CARDINAL;
 	   INI : INIfile.CINIFile;
 	   item : Items.TPItem;
+	   list : lists.TPStringStringList;
 	BEGIN
 	   IF ItemsToStore.Count = 0 THEN
 	      RETURN;
@@ -553,6 +555,14 @@ CLASS IMPLEMENTATION CINIFilter;
             INI.SetKeyStr( L"ofserial", Items.TPActivation( item )^.OfSerial, FALSE );
             INI.SetKeyStr( L"starts", Items.TPActivation( item )^.StartsString, FALSE );
             INI.SetKeyStr( L"expires", Items.TPActivation( item )^.ExpiresString, FALSE );
+            INI.SetKeyStr( L"data", item^.TransportData, FALSE );
+         ELSIF item^ IS Items.CInfo THEN
+            INI.CreateSection( L"info", TRUE );
+            list := Items.TPInfo( item )^.List;
+            list^.Reset();
+            WHILE list^.MoveNext() DO
+               INI.SetKeyStr( OA( list^.Current^.Length-1, list^.Current^.rawData ), list^.CurrentData^, FALSE );
+            END; // WHILE
             INI.SetKeyStr( L"data", item^.TransportData, FALSE );
          END;
 	   END; // FOR

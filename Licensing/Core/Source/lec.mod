@@ -11,7 +11,10 @@ IMPORT
    Engine,
    Items,
    lists,
+   Store,
+   Strings,
    StringsO,
+   Uniquer,
    Validator;
    
 (*================================================================================*)
@@ -34,6 +37,13 @@ END JDCToDate;
 #endif   
 
 (*================================================================================*)
+
+CONST
+   lockedKey = L"lock";
+   lockedValue = L"true";
+   unlockedValue = L"false";
+
+(*--------------------------------------------------------------------------------*)
 
 VAR
    debugged : PBOOLEAN := NIL;
@@ -500,8 +510,65 @@ END UnregisterValidator;
 
 (*================================================================================*)
 
-PROCEDURE StoreData( Value : BOOLEAN );
+PROCEDURE StoreData( CONST Path : ARRAY OF WCHAR; Data : ADDRESS; Length : CARDINAL; Value : BOOLEAN );
+VAR
+   data : arrays.CPtrArray;
+   info : Items.TPInfo := NIL;
+   i : CARDINAL;
+   ls : Store.CFileStorage;
+   lsINI : Store.CINIFilter;
+   pid : StringsO.CString;
+   product : Items.TPProduct;
+   uq : Uniquer.CUniquer;
+   uqDisc : Uniquer.DiscSource;
+   uqMAC : Uniquer.MACSource;
+   s : StringsO.CString;
 BEGIN
+   Validator.UnwrapData( Data, Length, OUT pid );
+   Engine.LoadProducts( Path, L"", OA( pid.Length-1, pid.rawData ), OUT data );
+   IF data.Empty THEN
+      RETURN;
+   END;
+
+   FOR i := 0 TO data.Count-1 DO
+      IF Items.TPItem( data[i] )^ IS Items.CInfo THEN
+         info := data[i];
+         EXIT;
+      END;
+   END; // FOR
+   IF info = NIL THEN
+      NEW( info );
+      data.Add( info );
+         
+      product := Items.TPProduct( data[0] );
+      product^.LicencesAndInfos^.Add( info, 0 );
+      info^.ProductId := product^.ProductId;
+      info^.Created := time.NowUTC();
+      info^.Dirty := TRUE;
+
+      // keep the code same as in engine.mod
+      IF Strings.IndexOfCharW( LicenceMachineId, L"M", 0 ) <> -1 THEN
+         uq.Sources^.Add( ADR( uqMAC ), 0 );
+      END;
+      IF Strings.IndexOfCharW( LicenceMachineId, L"D", 0 ) <> -1 THEN
+         uq.Sources^.Add( ADR( uqDisc ), 0 );
+      END;
+      IF uq.Sources^.Empty THEN
+         uq.Sources^.Add( ADR( uqDisc ), 0 );
+      END;
+      info^.UId := uq.UId( info^.ProductId );
+   END; // IF create new info
+   
+   // create key
+   IF Value THEN
+      s.FromOA( lockedValue );
+   ELSE
+      s.FromOA( unlockedValue );
+   END;
+   info^.List^.AddOA( lockedKey, s );
+
+   ls.Filters^.Add( ADR( lsINI ), 0 );
+   ls.Store( data, TRUE );
 END StoreData;
 
 (*================================================================================*)

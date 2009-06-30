@@ -662,13 +662,22 @@ CLASS IMPLEMENTATION CEIBServer;
       EV : eib_def.CValue;
       changed : BOOLEAN;
       PObject : TPObject;
+      s : FIO.PathStrW;
    BEGIN
       IF Result.Counted OR Result.Expired THEN
          RETURN Sync.arCannotStart;
       END;
       
       IF Item = itemSystemLock THEN
-         lec.LockSystem( Value.Boolean );
+         IF rsEXEFlag IN RStatus THEN
+            FIO.GetModuleDirW( L"", OUT s );
+         ELSE
+            FIO.GetModuleDirW( EMITW( %dll ), OUT s );
+         END;
+         ASSERT( cllvdata <> NIL );
+         IF cllvdata <> NIL THEN
+            lec.LockSystem( s, cllvdata, cllvlength, Value.Boolean );
+         END;
          RETURN Sync.arCompleted;
       END;
       

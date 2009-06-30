@@ -214,6 +214,7 @@ BEGIN
    data.Strategy := array.astrgListInArray;
    ls.Filters^.Add( ADR( lsINI ), 0 );
 
+   // keep the code same as in lec.mod
    IF Strings.IndexOfCharW( LicenceMachineId, L"M", 0 ) <> -1 THEN
       uq.Sources^.Add( ADR( uqMAC ), 0 );
    END;

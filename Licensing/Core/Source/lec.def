@@ -71,7 +71,7 @@ PROCEDURE QueryData( CONST Path1, Path2 : ARRAY OF WCHAR; Data : ADDRESS; Length
 PROCEDURE RegisterValidator( Data : ADDRESS; Length : CARDINAL; Validator : ADDRESS );
 PROCEDURE UnregisterValidator( Data : ADDRESS );
 
-PROCEDURE StoreData( Value : BOOLEAN );
+PROCEDURE StoreData( CONST Path : ARRAY OF WCHAR; Data : ADDRESS; Length : CARDINAL; Value : BOOLEAN );
 CONST
    LockSystem ::= StoreData;
 
