@@ -134,8 +134,10 @@ CONST // object type names
    otnLoggedESFIgnore       = L"logged_esf_ignore";
    
 CONST
-   itemSystemLock = 1;
-   nameSystemLock = L".System.Licensing.Lock";
+   itemSystemSuspend = 1;
+   nameSystemSuspend = L".System.Licensing.Suspend";
+   suspendKey = L"suspend";
+   suspendValue = L"true";
 
 //================================================================================
 
@@ -374,11 +376,55 @@ END CStackSink;
 
 //================================================================================
 
+CLASS IMPLEMENTATION CSuspendableResult;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROPERTY Expired GET : BOOLEAN;
+   BEGIN
+      IF _Suspended THEN
+         RETURN TRUE;
+      ELSE
+         RETURN SUPER.Expired;
+      END;
+   END Expired;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROPERTY Suspended GET : BOOLEAN;
+   BEGIN
+      RETURN _Suspended;
+   END Suspended;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE QuerySuspension();
+   VAR
+      value : StringsO.CString;
+   BEGIN
+      ProductsLock();
+      ProductsReset();
+      WHILE ProductsMoveNext() DO
+         IF CurrentProduct^.Info^.GetOA( suspendKey, OUT value ) THEN
+            _Suspended := value.EqualsOA( suspendValue );
+         END;
+      END;
+      ProductsUnlock();
+   END QuerySuspension;
+
+//--------------------------------------------------------------------------------
+
+BEGIN
+   _Suspended := TRUE;
+END CSuspendableResult;
+
+//================================================================================
+
 CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROPERTY PResult GET : POINTER TO lec.CResult;
+   PUBLIC PROPERTY PResult GET : POINTER TO CSuspendableResult;
    BEGIN
       RETURN ADR( Result );
    END PResult;
@@ -520,8 +566,8 @@ CLASS IMPLEMENTATION CEIBServer;
       address : eib_def.TAddress;
       PObject : TPObject;
    BEGIN
-      IF Name.EqualsOA( nameSystemLock ) THEN
-         Hash := itemSystemLock;
+      IF Name.EqualsOA( nameSystemSuspend ) THEN
+         Hash := itemSystemSuspend;
          RETURN TRUE;
       END;
       address.SetGroupAddress3( OA( Name.Length-1, Name.rawData ));
@@ -542,7 +588,7 @@ CLASS IMPLEMENTATION CEIBServer;
    BEGIN
       IF Hash = NIL THEN
          RETURN FALSE;
-      ELSIF Hash = itemSystemLock THEN
+      ELSIF Hash = itemSystemSuspend THEN
          RETURN FALSE;
       END;
       address := TPObject( Hash )^.SendAddress;
@@ -627,6 +673,7 @@ CLASS IMPLEMENTATION CEIBServer;
       ASSERT( cllvdata <> NIL );
       IF cllvdata <> NIL THEN
          lec.QueryData( s, L"", cllvdata, cllvlength, REF Result );
+         Result.QuerySuspension();
       END;
 
       StopTimer( tiInitReadDelay );
@@ -661,14 +708,12 @@ CLASS IMPLEMENTATION CEIBServer;
    VAR
       EV : eib_def.CValue;
       changed : BOOLEAN;
+      key, value : StringsO.CString;
       PObject : TPObject;
       s : FIO.PathStrW;
    BEGIN
-      IF Result.Counted OR Result.Expired THEN
-         RETURN Sync.arCannotStart;
-      END;
-      
-      IF Item = itemSystemLock THEN
+      // system suspend must be processed before expiration check
+      IF Item = itemSystemSuspend THEN
          IF rsEXEFlag IN RStatus THEN
             FIO.GetModuleDirW( L"", OUT s );
          ELSE
@@ -676,9 +721,20 @@ CLASS IMPLEMENTATION CEIBServer;
          END;
          ASSERT( cllvdata <> NIL );
          IF cllvdata <> NIL THEN
-            lec.LockSystem( s, cllvdata, cllvlength, Value.Boolean );
+            key.FromOA( suspendKey );
+            value := Value.String;
+            lec.StoreInfo( s, cllvdata, cllvlength, key, value );
+            ASSERT( cllvdata <> NIL );
+            IF cllvdata <> NIL THEN
+               lec.QueryData( s, L"", cllvdata, cllvlength, REF Result );
+               Result.QuerySuspension();
+            END;
          END;
          RETURN Sync.arCompleted;
+      END;
+      
+      IF Result.Counted OR Result.Expired THEN
+         RETURN Sync.arCannotStart;
       END;
       
       PObject := TPObject( Item );

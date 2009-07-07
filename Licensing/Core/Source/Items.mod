@@ -401,19 +401,19 @@ CLASS IMPLEMENTATION CProduct;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE AddLicence( Licence : TPLicence );
+   PUBLIC PROCEDURE AddLicenceOrInfo( Item : TPItem );
    BEGIN
-      Childs.Add( Licence, 0 );
-      Licence^.Parent := ADR( SELF );
-   END AddLicence;
+      Childs.Add( Item, 0 );
+      Item^.Parent := ADR( SELF );
+   END AddLicenceOrInfo;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE RemoveLicence( Licence : TPLicence );
+   PUBLIC PROCEDURE RemoveLicenceOrInfo( Item : TPItem );
    BEGIN
-      Childs.Remove( Licence );
-      Licence^.Parent := NIL;
-   END RemoveLicence;
+      Childs.Remove( Item );
+      Item^.Parent := NIL;
+   END RemoveLicenceOrInfo;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1054,7 +1054,8 @@ CLASS IMPLEMENTATION CInfo;
          RETURN;
       END;
 
-      _TransportData.AppendOA( sepItemCh + L"uid" + sepKeyCh );
+      _TransportData.FromOA( start +
+                               sepItemCh + L"uid" + sepKeyCh );
       _TransportData.Append( UIdString );
 
       _TransportData.AppendOA( sepItemCh + L"pid" + sepKeyCh );
@@ -1067,6 +1068,8 @@ CLASS IMPLEMENTATION CInfo;
          _TransportData.AppendOA( sepKeyCh );
          _TransportData.Append( _List.CurrentData^ );
       END; // WHILE
+
+      _TransportData.AppendOA( sepItemCh + end );
 
       EncodeTransportData();
       State := TItemState{isValid};
@@ -1087,6 +1090,9 @@ CLASS IMPLEMENTATION CInfo;
          RETURN;
       END;
 
+      // move over SOT
+      nextIndex := td.ItemS( sepItem, nextIndex, 0, FALSE, OUT s );
+      // data
       nextIndex := td.ItemS( sepItem, nextIndex, 0, FALSE, OUT s );
       IF s.Empty THEN // uid not found
          RETURN; 
@@ -1096,11 +1102,9 @@ CLASS IMPLEMENTATION CInfo;
       END;
 
       nextIndex := td.ItemS( sepItem, nextIndex, 0, FALSE, OUT s );
-      IF s.Empty THEN // pid not found
-         RETURN; 
-      ELSE
-         s.ItemS( sepKey, 0, 1, FALSE, OUT s );
-         _ProductId := s;
+      s.ItemS( sepKey, 0, 1, FALSE, OUT s );
+      IF s <> ProductId THEN
+         RETURN;
       END;
 
       _List.Reset();
@@ -1112,6 +1116,9 @@ CLASS IMPLEMENTATION CInfo;
          END;
       END; // WHILE
       
+      // get after EOT (at first read EOT, then move next, which sets nextIndex to -1)
+      nextIndex := td.ItemS( sepItem, nextIndex, 1, FALSE, OUT s );
+      // check if both lists have the same length
       IF _List.MoveNext() OR ( nextIndex <> -1 ) THEN // different lists length
          RETURN;
       END;

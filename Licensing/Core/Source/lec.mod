@@ -3,9 +3,11 @@ IMPLEMENTATION MODULE lec;
 FROM Debug IMPORT
    Assertion, LogAssertionW;
 
-FROM Storage IMPORT
-   ALLOCATE, DEALLOCATE;
-
+#if DEBUG #then
+FROM log IMPORT
+   CLogger, dldDebug;
+#endif
+   
 IMPORT
    arrays,
    Engine,
@@ -18,32 +20,6 @@ IMPORT
    Validator;
    
 (*================================================================================*)
-
-#if DEBUG #then
-FROM log IMPORT
-   CLogger, dldDebug;
-   
-VAR
-   Log : CLogger;
-
-PROCEDURE JDCToDate( date : time.TJDC; OUT dateString : ARRAY OF WCHAR );
-VAR
-   dt : time.DateTime;
-BEGIN
-   dt.JulianDate := date;
-   dt.ToStringOA( L"yy-MM-dd HH:mm", TRUE, TRUE, OUT dateString );
-END JDCToDate;
-
-#endif   
-
-(*================================================================================*)
-
-CONST
-   lockedKey = L"lock";
-   lockedValue = L"true";
-   unlockedValue = L"false";
-
-(*--------------------------------------------------------------------------------*)
 
 VAR
    debugged : PBOOLEAN := NIL;
@@ -63,6 +39,121 @@ CONST
 
 (*================================================================================*)
 
+CLASS IMPLEMENTATION CProduct;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Id GET : StringsO.CString;
+   BEGIN
+      RETURN _Id;
+   END Id;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Name GET : StringsO.CString;
+   BEGIN
+      RETURN _Name;
+   END Name;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY StateInfo GET : TStateInfo;
+   BEGIN
+      IF _StateInfo = siUnknown THEN
+         RETURN siDemo;
+      ELSIF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( _StateInfo )) >> 3 ) MOD 317 ) THEN
+         RETURN TStateInfo( CARDINAL( LOPTRLONGWORD( PTR( ADR( _StateInfo )) >> 3 )) MOD 2 + 1 );
+      ELSE
+         RETURN _StateInfo;
+      END;
+   END StateInfo;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Expires GET : time.DateTime;
+   VAR
+      TExpires : time.DateTime;
+   BEGIN
+      IF ( _Expires = expNotSet ) OR ( _Expires = expNever ) THEN
+         IF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( TExpires )) >> 3 ) MOD 297 ) THEN
+            TExpires.Year := 297;
+         END;
+      ELSE
+         TExpires.JulianDate := _Expires;
+         // time.TrimTime( REF TExpires ); -- better is to not trim it, it allows use Expires as whole information
+         IF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( TExpires )) >> 3 ) MOD 297 ) THEN
+            TExpires.Month := TExpires.Year;
+            TExpires.Year := TExpires.Day;
+         END;
+      END;
+      RETURN TExpires;
+   END Expires;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Expired GET : BOOLEAN;
+   BEGIN
+      RETURN time.NowUTC().Greater( Expires );
+   END Expired;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Info GET : lists.TPStringStringList;
+   BEGIN
+      RETURN ADR( _Info );
+   END Info;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Licences GET : lists.TPStringList;
+   BEGIN
+      RETURN ADR( _Licences );
+   END Licences;
+
+(*--------------------------------------------------------------------------------*)
+
+   VIRTUAL PROCEDURE Dispose();
+   BEGIN
+      _Licences.Dispose();
+      _Info.Dispose();
+   END Dispose;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE Construct( CONST Name, Id : StringsO.IString; stateInfo : TStateInfo; expires : time.TJD );
+   BEGIN
+      _Name.Assign( Name );
+      _Id.Assign( Id );
+      _StateInfo := stateInfo;
+      _Expires := expires;
+   END Construct;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+   _StateInfo := siUnknown;
+   _Expires := expNotSet;
+END CProduct;
+
+(*================================================================================*)
+
+#if DEBUG #then
+
+VAR
+   Log : CLogger;
+
+PROCEDURE JDCToDate( date : time.TJDC; OUT dateString : ARRAY OF WCHAR );
+VAR
+   dt : time.DateTime;
+BEGIN
+   dt.JulianDate := date;
+   dt.ToStringOA( L"yy-MM-dd HH:mm", TRUE, TRUE, OUT dateString );
+END JDCToDate;
+
+#endif   
+
+(*================================================================================*)
+
 CLASS IMPLEMENTATION CResult;
 
 (*--------------------------------------------------------------------------------*)
@@ -77,9 +168,9 @@ CLASS IMPLEMENTATION CResult;
 
    (*----------*)
    
-      PROCEDURE ComputeInfo( behaviour : TBehaviour; current : TInfo; _new : TInfo ) : TInfo;
+      PROCEDURE ComputeInfo( behaviour : TBehaviour; current : TStateInfo; _new : TStateInfo ) : TStateInfo;
       BEGIN
-         IF current = riUnknown THEN
+         IF current = siUnknown THEN
             RETURN _new;
          ELSIF behaviour = bhWorstCase THEN
             RETURN MIN2( current, _new );
@@ -114,7 +205,8 @@ CLASS IMPLEMENTATION CResult;
       dt, now : time.DateTime;
       expires, nowJulianDate : time.TJD;
       litems, aitems : lists.TPPtrList;
-      info : TInfo := riUnknown;
+      linfo : Items.TPInfo;
+      info : TStateInfo := siUnknown;
       litem : Items.TPLicence;
       localActivated : BOOLEAN;
       localExpired : BOOLEAN;
@@ -122,6 +214,7 @@ CLASS IMPLEMENTATION CResult;
          logs : ARRAY[0..255] OF WCHAR;
       #endif
       pitem : Items.TPItem := data;
+      product : TPProduct;
       s : StringsO.CString;
       trialFlag : BOOLEAN;
    BEGIN
@@ -129,6 +222,7 @@ CLASS IMPLEMENTATION CResult;
          RETURN;
       END;
       ASSERT( pitem^ IS Items.CProduct );
+      NEW( product );
 
       #if DEBUG #then
          Log.Level := dldDebug;
@@ -152,7 +246,7 @@ CLASS IMPLEMENTATION CResult;
             Log.LogSS( dldDebug, L"LEC", L"Product W/O licence: ", logs );
          #endif
 
-         info := riDemo;
+         info := siDemo;
          expires := _Start + demoExp;
          GOTO Done;
       END;
@@ -162,9 +256,19 @@ CLASS IMPLEMENTATION CResult;
       litems^.Reset();
       WHILE litems^.MoveNext() DO
          litem := litems^.Current;
-         IF NOT( litem^ IS Items.CLicence ) THEN // TODO: handle infos
+
+         IF litem^ IS Items.CInfo THEN // handle info
+            linfo := Items.TPInfo( litem );
+            IF linfo^.List <> NIL THEN
+               linfo^.List^.Reset();
+               WHILE linfo^.List^.MoveNext() DO
+                  product^.Info^.Add( linfo^.List^.Current^, linfo^.List^.CurrentData^ );
+               END;
+            END;
             CONTINUE;
          END; 
+         
+         //  ELSE here we work with licence
          trialFlag := Items.ltTrial IN litem^.Type;
          
          #if DEBUG #then      
@@ -190,7 +294,7 @@ CLASS IMPLEMENTATION CResult;
 
                IF aitem^.ValidFor( now ) THEN
                
-                  info := ComputeInfo( bhBestCase, info, riActivated );
+                  info := ComputeInfo( bhBestCase, info, siActivated );
                   dt := aitem^.Expires;
                   IF dt.Year > 0 THEN
                      expires := ComputeExpiration( bhBestCase, expires, dt.JulianDate );
@@ -209,7 +313,7 @@ CLASS IMPLEMENTATION CResult;
                   localActivated := TRUE; // according to bhBestCase approach
                   
                ELSIF trialFlag THEN
-                  info := ComputeInfo( bhBestCase, info, riDemo );
+                  info := ComputeInfo( bhBestCase, info, siDemo );
                   expires := ComputeExpiration( bhBestCase, expires, _Start + demoExp );
                   localExpired := localExpired OR ( expires < nowJulianDate );
 
@@ -218,7 +322,7 @@ CLASS IMPLEMENTATION CResult;
                      Log.LogSS( dldDebug, L"LEC", L"    not valid, trial, expires: ", logs );
                   #endif
                ELSE
-                  info := ComputeInfo( bhBestCase, info, riNotActivated );
+                  info := ComputeInfo( bhBestCase, info, siNotActivated );
                   expires := ComputeExpiration( bhBestCase, expires, litem^.Created.JulianDate + unactExp );
                   localExpired := localExpired OR ( expires < nowJulianDate );
 
@@ -230,13 +334,13 @@ CLASS IMPLEMENTATION CResult;
 
                #if DEBUG #then      
                   CASE info OF
-                  | riUnknown :
+                  | siUnknown :
                      Log.LogS( dldDebug, L"LEC", L"  Partial activation result: unknown" );
-                  | riDemo :
+                  | siDemo :
                      Log.LogS( dldDebug, L"LEC", L"  Partial activation result: demo" );
-                  | riNotActivated :
+                  | siNotActivated :
                      Log.LogS( dldDebug, L"LEC", L"  Partial activation result: not activated" );
-                  | riActivated :
+                  | siActivated :
                      Log.LogS( dldDebug, L"LEC", L"  Partial activation result: activated" );
                   END; // CASE
                #endif
@@ -244,7 +348,7 @@ CLASS IMPLEMENTATION CResult;
             END; // WHILE activations
             
          ELSIF trialFlag THEN
-            info := ComputeInfo( bhBestCase, info, riDemo );
+            info := ComputeInfo( bhBestCase, info, siDemo );
             expires := ComputeExpiration( bhBestCase, expires, _Start + demoExp );
             localExpired := localExpired OR ( expires < nowJulianDate );
 
@@ -254,7 +358,7 @@ CLASS IMPLEMENTATION CResult;
             #endif
 
          ELSE
-            info := ComputeInfo( bhBestCase, info, riNotActivated );
+            info := ComputeInfo( bhBestCase, info, siNotActivated );
             expires := ComputeExpiration( bhBestCase, expires, litem^.Created.JulianDate + unactExp );
             localExpired := localExpired OR ( expires < nowJulianDate );
 
@@ -272,22 +376,22 @@ CLASS IMPLEMENTATION CResult;
             s.AppendOA( L")" );
          END;
          IF localExpired THEN
-            _Licences.Add( s, PTR( litem^.Type + Items.TLicenceType( TLicenceType{ltExpired} )));
+            product^.Licences^.Add( s, PTR( litem^.Type + Items.TLicenceType( TLicenceType{ltExpired} )));
          ELSIF localActivated THEN
-            _Licences.Add( s, PTR( litem^.Type + Items.TLicenceType( TLicenceType{ltActivated} )));
+            product^.Licences^.Add( s, PTR( litem^.Type + Items.TLicenceType( TLicenceType{ltActivated} )));
          ELSE
-            _Licences.Add( s, PTR( litem^.Type ));
+            product^.Licences^.Add( s, PTR( litem^.Type ));
          END;
 
          #if DEBUG #then      
             CASE info OF
-            | riUnknown :
+            | siUnknown :
                Log.LogS( dldDebug, L"LEC", L"  Partial licence result: unknown" );
-            | riDemo :
+            | siDemo :
                Log.LogS( dldDebug, L"LEC", L"  Partial licence result: demo" );
-            | riNotActivated :
+            | siNotActivated :
                Log.LogS( dldDebug, L"LEC", L"  Partial licence result: not activated" );
-            | riActivated :
+            | siActivated :
                Log.LogS( dldDebug, L"LEC", L"  Partial licence result: activated" );
             END; // CASE
          #endif
@@ -295,7 +399,10 @@ CLASS IMPLEMENTATION CResult;
       END; // WHILE licences
 
    Done:
+      product^.Construct( pitem^.ProductId, Items.TPProduct( pitem )^.Name, info, expires );
+   
       _Lock.Lock();
+      _Products.Add( product, 0 );
       _Info := ComputeInfo( Behaviour, _Info, info );
       _Expires := ComputeExpiration( Behaviour, _Expires, expires );
       _Lock.Unlock();
@@ -308,13 +415,13 @@ CLASS IMPLEMENTATION CResult;
          END;
          JDCToDate( _Expires, OUT logs );
          CASE info OF
-         | riUnknown :
+         | siUnknown :
             Log.LogSS( dldDebug, L"LEC", L"Result: unknown, expires: ", logs );
-         | riDemo :
+         | siDemo :
             Log.LogSS( dldDebug, L"LEC", L"Result: demo, expires: ", logs );
-         | riNotActivated :
+         | siNotActivated :
             Log.LogSS( dldDebug, L"LEC", L"Result: not activated, expires: ", logs );
-         | riActivated :
+         | siActivated :
             Log.LogS( dldDebug, L"LEC", L"Result: activated" );
          END; // CASE
       #endif
@@ -334,19 +441,19 @@ CLASS IMPLEMENTATION CResult;
    
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL PROPERTY Info GET : TInfo;
+   LOCAL PROPERTY StateInfo GET : TStateInfo;
    VAR
-      LInfo : TInfo;
+      LInfo : TStateInfo;
    BEGIN
-      LInfo := TInfo( _Lock.Get( REF _Info ));
-      IF LInfo = riUnknown THEN
-         RETURN riDemo;
+      LInfo := TStateInfo( _Lock.Get( REF _Info ));
+      IF LInfo = siUnknown THEN
+         RETURN siDemo;
       ELSIF ( debugged^ OR DEBUGGED()) AND ODD(( PTR( ADR( LInfo )) >> 3 ) MOD 117 ) THEN
-         RETURN TInfo( CARDINAL( LOPTRLONGWORD( PTR( ADR( LInfo )) >> 3 )) MOD 2 + 1 );
+         RETURN TStateInfo( CARDINAL( LOPTRLONGWORD( PTR( ADR( LInfo )) >> 3 )) MOD 2 + 1 );
       ELSE
          RETURN LInfo;
       END;
-   END Info;
+   END StateInfo;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -422,20 +529,13 @@ CLASS IMPLEMENTATION CResult;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Licences GET : lists.TPStringList;
-   BEGIN
-      RETURN ADR( _Licences );
-   END Licences;
-
-(*--------------------------------------------------------------------------------*)
-
    PUBLIC PROCEDURE Reset( _Behaviour : TBehaviour );
    BEGIN
       _Lock.Lock();
       Behaviour := _Behaviour;
-      _Info := riUnknown;
+      _Info := siUnknown;
       _Expires := expNotSet;
-      _Licences.Dispose();
+      _Products.Dispose();
       _Lock.Unlock();
    END Reset;
 
@@ -443,7 +543,7 @@ CLASS IMPLEMENTATION CResult;
 
    PUBLIC PROCEDURE Inc();
    BEGIN
-      IF _Info <= riDemo THEN
+      IF _Info <= siDemo THEN
          _Lock.Lock();
          _Counter := MIN2( _Counter + 1, countLimit );
          _Lock.Unlock();
@@ -452,9 +552,62 @@ CLASS IMPLEMENTATION CResult;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE GetLicences( OUT list : lists.CStringList ); // fills licences of the first product
+   VAR
+      product : TPProduct;
+      data : PTR;
+   BEGIN
+      list.Dispose();
+      _Lock.Lock();
+      IF _Products.GetFirst( OUT product, OUT data ) THEN
+         product^.Licences^.Reset();
+         WHILE product^.Licences^.MoveNext() DO
+            list.Add( product^.Licences^.Current^, product^.Licences^.CurrentData );
+         END;
+      END;
+      _Lock.Unlock();
+   END GetLicences;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ProductsLock();
+   BEGIN
+      _Lock.Lock();
+   END ProductsLock;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ProductsUnlock();
+   BEGIN
+      _Lock.Unlock();
+   END ProductsUnlock;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ProductsReset();
+   BEGIN
+      _Products.Reset();
+   END ProductsReset;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ProductsMoveNext() : BOOLEAN;
+   BEGIN
+      RETURN _Products.MoveNext();
+   END ProductsMoveNext;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY CurrentProduct GET : TPProduct;
+   BEGIN
+      RETURN TPProduct( _Products.Current );
+   END CurrentProduct;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
    _Lock.Init( sync.ltSpin, L"", FALSE );
-   _Info := riUnknown;
+   _Info := siUnknown;
    _Expires := expNotSet;
    _Start := time.GetCurrentJD();
    _Counter := 0;
@@ -510,66 +663,13 @@ END UnregisterValidator;
 
 (*================================================================================*)
 
-PROCEDURE StoreData( CONST Path : ARRAY OF WCHAR; Data : ADDRESS; Length : CARDINAL; Value : BOOLEAN );
+PROCEDURE StoreInfo( CONST Path : ARRAY OF WCHAR; Data : ADDRESS; Length : CARDINAL; CONST InfoKey, InfoValue : StringsO.IString );
 VAR
-   data : arrays.CPtrArray;
-   info : Items.TPInfo := NIL;
-   i : CARDINAL;
-   ls : Store.CFileStorage;
-   lsINI : Store.CINIFilter;
    pid : StringsO.CString;
-   product : Items.TPProduct;
-   uq : Uniquer.CUniquer;
-   uqDisc : Uniquer.DiscSource;
-   uqMAC : Uniquer.MACSource;
-   s : StringsO.CString;
 BEGIN
    Validator.UnwrapData( Data, Length, OUT pid );
-   Engine.LoadProducts( Path, L"", OA( pid.Length-1, pid.rawData ), OUT data );
-   IF data.Empty THEN
-      RETURN;
-   END;
-
-   FOR i := 0 TO data.Count-1 DO
-      IF Items.TPItem( data[i] )^ IS Items.CInfo THEN
-         info := data[i];
-         EXIT;
-      END;
-   END; // FOR
-   IF info = NIL THEN
-      NEW( info );
-      data.Add( info );
-         
-      product := Items.TPProduct( data[0] );
-      product^.LicencesAndInfos^.Add( info, 0 );
-      info^.ProductId := product^.ProductId;
-      info^.Created := time.NowUTC();
-      info^.Dirty := TRUE;
-
-      // keep the code same as in engine.mod
-      IF Strings.IndexOfCharW( LicenceMachineId, L"M", 0 ) <> -1 THEN
-         uq.Sources^.Add( ADR( uqMAC ), 0 );
-      END;
-      IF Strings.IndexOfCharW( LicenceMachineId, L"D", 0 ) <> -1 THEN
-         uq.Sources^.Add( ADR( uqDisc ), 0 );
-      END;
-      IF uq.Sources^.Empty THEN
-         uq.Sources^.Add( ADR( uqDisc ), 0 );
-      END;
-      info^.UId := uq.UId( info^.ProductId );
-   END; // IF create new info
-   
-   // create key
-   IF Value THEN
-      s.FromOA( lockedValue );
-   ELSE
-      s.FromOA( unlockedValue );
-   END;
-   info^.List^.AddOA( lockedKey, s );
-
-   ls.Filters^.Add( ADR( lsINI ), 0 );
-   ls.Store( data, TRUE );
-END StoreData;
+   Engine.StoreInfo( Path, OA( pid.Length-1, pid.rawData ), InfoKey, InfoValue );
+END StoreInfo;
 
 (*================================================================================*)
 

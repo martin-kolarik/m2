@@ -15,11 +15,11 @@ BEGIN
    res.Reset( lec.bhBestCase );
    lec.Query( L"..\lictool\~debug", L"", L"Inris.Tvrz*", REF res );
    
-   IF res.Info = lec.riDemo THEN
+   IF res.StateInfo = lec.siDemo THEN
       windows.OutputDebugStringW( "demo" + 13W+10W );
-   ELSIF res.Info = lec.riNotActivated THEN
+   ELSIF res.StateInfo = lec.siNotActivated THEN
       windows.OutputDebugStringW( "inactive" + 13W+10W );
-   ELSIF res.Info = lec.riActivated THEN
+   ELSIF res.StateInfo = lec.siActivated THEN
       windows.OutputDebugStringW( "active" + 13W+10W );
    END;
    

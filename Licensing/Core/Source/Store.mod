@@ -6,6 +6,9 @@ FROM Storage IMPORT
 FROM Log IMPORT
    logger, dldTrace;
 
+FROM Debug IMPORT
+   Assertion, LogAssertionW;
+
 IMPORT
    bitarray,
    FIO,
@@ -27,7 +30,6 @@ END CStorage;
 (*================================================================================*)
 
 CONST
-   cfCommonProgramFiles = L"CommonProgramFiles";
    cfFolder = L"Licence";
 
 (*--------------------------------------------------------------------------------*)
@@ -115,12 +117,11 @@ CLASS IMPLEMENTATION CFileStorage;
 
       ELSE // else use default storages
          IF Folders.GetManufacturerSpecialFolderW( Folders.sfProgramsCommon, FALSE, OUT path ) THEN
+            FIO.PathAddW( REF path, cfFolder );
             LoadSingleFolder( ProductIdFilter, REF ItemsToLoad, RespectValidation, path );
          END;
          IF Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataCommon, FALSE, OUT path ) THEN
-            LoadSingleFolder( ProductIdFilter, REF ItemsToLoad, RespectValidation, path );
-         END;
-         IF Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataUser, FALSE, OUT path ) THEN
+            FIO.PathAddW( REF path, cfFolder );
             LoadSingleFolder( ProductIdFilter, REF ItemsToLoad, RespectValidation, path );
          END;
 
@@ -156,12 +157,12 @@ CLASS IMPLEMENTATION CFileStorage;
       // else use default storage
       ELSIF Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataCommon, TRUE, OUT folderOA ) THEN
          FIO.PathAddW( REF folderOA, cfFolder );
-      ELSIF Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataUser, TRUE, OUT folderOA ) THEN
-         FIO.PathAddW( REF folderOA, cfFolder );
       ELSE
+         ASSERTLOG( FALSE, L"Unable to get CSIDL_COMMON_APPDATA" );
          RETURN; // store nothing
       END;
       IF NOT FIO.CreateDirectoryW( folderOA ) THEN
+         ASSERTLOG( FALSE, L"Unable to store to CSIDL_COMMON_APPDATA" );
          RETURN; // store nothing
       END;
 
@@ -460,13 +461,15 @@ CLASS IMPLEMENTATION CINIFilter;
 
 	LOCAL VIRTUAL PROCEDURE LoadFile( CONST File : ARRAY OF WCHAR; REF ItemsToLoad : arrays.CPtrArray );
 	VAR
-	   es : PTR;
+	   es, ies : PTR;
 	   fs : FIOO.CFileStream;
 	   l : CARDINAL;
 	   tr : TextReader.CTextReader;
+	   key : ARRAY [0..63] OF WCHAR;
 	   INI : INIfile.CINIFile;
 	   item : Items.TPItem;
 	   section : ARRAY [0..63] OF WCHAR;
+	   value : StringsO.CString;
 	BEGIN
 	   TRY
          fs.FromPath( File, FIOO.imOpenRead );
@@ -507,6 +510,20 @@ CLASS IMPLEMENTATION CINIFilter;
             INI.GetKeyStr( L"starts", OUT l, OUT Items.TPActivation( item )^.StartsString );
             INI.GetKeyStr( L"expires", OUT l, OUT Items.TPActivation( item )^.ExpiresString );
             INI.GetKeyStr( L"data", OUT l, OUT item^.TransportData );
+
+         ELSIF EQUALS( section, L"info" ) THEN
+            item := NEW( Items.CInfo );
+
+            ies := 0;
+            WHILE INI.EnumerateKeys( REF ies, OUT l, OUT key, OUT value ) DO
+               IF EQUALS( key, L"id" ) THEN
+                  item^.ProductId := value;
+               ELSIF EQUALS( key, L"data" ) THEN
+                  item^.TransportData := value;
+               ELSE
+                  Items.TPInfo( item )^.List^.AddOA( key, value );
+               END;
+            END; // WHILE
 
          ELSE
             CONTINUE;
@@ -558,6 +575,7 @@ CLASS IMPLEMENTATION CINIFilter;
             INI.SetKeyStr( L"data", item^.TransportData, FALSE );
          ELSIF item^ IS Items.CInfo THEN
             INI.CreateSection( L"info", TRUE );
+            INI.SetKeyStr( L"id", item^.ProductId, FALSE );
             list := Items.TPInfo( item )^.List;
             list^.Reset();
             WHILE list^.MoveNext() DO

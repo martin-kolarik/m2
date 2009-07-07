@@ -237,20 +237,29 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY LicenceExpires GET : time.DateTime;
+   VAR
+      startTime : time.DateTime;
    BEGIN
       // no need to sync
-      RETURN _EIB^.PResult^.Expires;
+      IF _EIB^.PResult^.Suspended THEN
+         startTime.FromJD( _StartedTime, 0, 0 );
+         RETURN startTime;
+      ELSE
+         RETURN _EIB^.PResult^.Expires;
+      END;
    END LicenceExpires;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY LicenceType GET : lec.TLicenceType;
    VAR
+      licences : lists.CStringList;
       ptrType : PTR;
       s : StringsO.CString;
    BEGIN
       // no need to sync
-      IF _EIB^.PResult^.Licences^.GetFirst( OUT s, OUT ptrType ) THEN
+      _EIB^.PResult^.GetLicences( OUT licences );
+      IF licences.GetFirst( OUT s, OUT ptrType ) THEN
          RETURN lec.TLicenceType( LOPTRLONGWORD( ptrType ));
       ELSE
          RETURN lec.TLicenceType{};
@@ -261,11 +270,13 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
    PUBLIC PROPERTY Licence GET : StringsO.CString;
    VAR
+      licences : lists.CStringList;
       ptrType : PTR;
       s : StringsO.CString;
    BEGIN
       // no need to sync
-      IF NOT _EIB^.PResult^.Licences^.GetFirst( OUT s, OUT ptrType ) THEN
+      _EIB^.PResult^.GetLicences( OUT licences );
+      IF NOT licences.GetFirst( OUT s, OUT ptrType ) THEN
          s.Clear();
       END;
       RETURN s;

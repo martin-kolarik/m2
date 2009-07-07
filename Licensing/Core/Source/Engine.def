@@ -2,6 +2,7 @@ DEFINITION MODULE Engine;
 
 IMPORT
    arrays,
+   StringsO,
    Uniquer;
 
 (*================================================================================*)
@@ -15,6 +16,8 @@ PROCEDURE Canonize( REF data : arrays.CPtrArray; CONST ProductIdFilter : ARRAY O
 PROCEDURE LoadProducts( CONST Path1, Path2, ProductIdFilter : ARRAY OF WCHAR; OUT data : arrays.CPtrArray );
 
 PROCEDURE DisposeProducts( REF data : arrays.CPtrArray );
+
+PROCEDURE StoreInfo( CONST Path, ProductIdFilter : ARRAY OF WCHAR; CONST InfoKey, InfoValue : StringsO.IString );
 
 (*================================================================================*)
 

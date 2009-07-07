@@ -91,8 +91,8 @@ CLASS CProduct( CItem );
 
    PUBLIC VIRTUAL PROCEDURE Equals( CONST To : CItem ) : BOOLEAN;
 
-   PUBLIC PROCEDURE AddLicence( Licence : TPLicence );
-   PUBLIC PROCEDURE RemoveLicence( Licence : TPLicence );
+   PUBLIC PROCEDURE AddLicenceOrInfo( Item : TPItem );
+   PUBLIC PROCEDURE RemoveLicenceOrInfo( Item : TPItem );
 
    PUBLIC VIRTUAL PROCEDURE CreateTransportData(); // prepares Data
    PUBLIC VIRTUAL PROCEDURE ValidateByTransportData(); // returns is failure occurrs

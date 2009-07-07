@@ -92,6 +92,17 @@ END PromiscuousData;
 
 //--------------------------------------------------------------------------------
 
+CLASS CSuspendableResult( lec.CResult );
+   PRIVATE VAR
+      _Suspended : BOOLEAN;
+   PUBLIC READONLY PROPERTY
+      Expired : BOOLEAN;
+      Suspended : BOOLEAN;
+   PUBLIC PROCEDURE QuerySuspension();
+END CSuspendableResult;
+
+//--------------------------------------------------------------------------------
+
 TYPE
    TStack = (
       stackUnknown,
@@ -147,7 +158,7 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    _AdviseListener          : io.TPIAdviseInfo;
    _DataLogger              : log.TPLogger;
 
-   Result                   : lec.CResult;
+   Result                   : CSuspendableResult;
    cllvdata                 : ADDRESS;
    cllvlength               : CARDINAL;
 
@@ -190,7 +201,7 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    prData                   : lists.CBufferList;
 
    PUBLIC READONLY PROPERTY
-     PResult                : POINTER TO lec.CResult;
+     PResult                : POINTER TO CSuspendableResult;
    PUBLIC WRITEONLY PROPERTY
      cllvData               : ADDRESS;
      cllvLength             : CARDINAL;
