@@ -77,7 +77,7 @@ BEGIN
       AssertionLog^.SetLogName( ProductId );
    END;
 
-   // try common application data path
+   // try common application data path, should always succeed
    IF NOT success AND Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataCommon, TRUE, OUT path ) THEN
       FIO.MakePathW( path, ASSERTIONS_FILE, OUT file );
       AssertionLog^.SetLogFile( file );

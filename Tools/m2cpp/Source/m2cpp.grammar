@@ -1187,7 +1187,7 @@ ntPropertyDeclaration<AM : DOM.TAccessModifier; IM : DOM.TInheritanceModifier; C
                                                                 c^.SemErrCS( err._MemberIsNotProperty, DfP^.N );
                                                               END; .)
     (
-      "GET"                                                (. ImS := DOM.isImplementedR;
+      WEAK "GET"                                           (. ImS := DOM.isImplementedR;
                                                               IF DOM.cmWO IN DfP^.CM THEN
                                                                 SemErr( err._GETForWriteonlyProperty );
                                                               END;
@@ -1201,7 +1201,7 @@ ntPropertyDeclaration<AM : DOM.TAccessModifier; IM : DOM.TInheritanceModifier; C
         ntFunctionTrailing<TRUE, ImP^.T>
         WEAK semicolon                                     (. c^.EnterProcedureImplementation( DfP ); .)
         ntFunctionMemberBlock<DfP>
-    | "SET"                                                (. ImS := DOM.isImplementedW;
+    | WEAK "SET"                                           (. ImS := DOM.isImplementedW;
                                                               IF DOM.cmRO IN DfP^.CM THEN
                                                                 SemErr( err._SETForReadonlyProperty );
                                                               END;
@@ -1242,7 +1242,7 @@ ntIndexerDeclaration<AM : DOM.TAccessModifier; IM : DOM.TInheritanceModifier; CM
                                                                 ImI := ADR( LImI );
                                                               END; .)
     (
-      "GET"                                                (. ImS := DOM.isImplementedR;
+      WEAK "GET"                                           (. ImS := DOM.isImplementedR;
                                                               IF DOM.cmWO IN DfI^.CM THEN
                                                                 SemErr( err._GETForWriteonlyIndex );
                                                               END;
@@ -1259,7 +1259,7 @@ ntIndexerDeclaration<AM : DOM.TAccessModifier; IM : DOM.TInheritanceModifier; CM
         ntFunctionTrailing<TRUE, ImI^.T>
         WEAK semicolon                                     (. c^.EnterProcedureImplementation( DfI ); .)
         ntFunctionClassBlock<DfI>
-    | "SET"                                                (. ImS := DOM.isImplementedW;
+    | WEAK "SET"                                           (. ImS := DOM.isImplementedW;
                                                               IF DOM.cmRO IN DfI^.CM THEN
                                                                 SemErr( err._SETForReadonlyIndex );
                                                               END;
