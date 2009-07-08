@@ -17,7 +17,7 @@ ABSTRACT CLASS AObject IMPLEMENTS iobject.IObject;
       _Library : iobject.TPLibrary;
    PUBLIC VIRTUAL PROPERTY
       Library : iobject.TPLibrary;
-   PUBLIC VIRTUAL PROCEDURE Dispose(); // aka destructor
+   PUBLIC VIRTUAL PROCEDURE OnDispose(); // aka destructor
 END AObject;
 
 (*---------------------------------------------------------------------------*)
@@ -29,7 +29,7 @@ ABSTRACT CLASS ACreator( AObject ) IMPLEMENTS iobject.ILibrary;
       Type : iobject.TObjectType;
    PUBLIC VIRTUAL PROPERTY
       Library : iobject.TPLibrary;
-   PUBLIC VIRTUAL PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE OnDispose();
 
    LOCAL VAR
       _Loader : ADDRESS;

@@ -20,9 +20,9 @@ CLASS IMPLEMENTATION AObject;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE OnDispose();
    BEGIN
-   END Dispose;
+   END OnDispose;
 
 (*---------------------------------------------------------------------------*)
 
@@ -57,10 +57,10 @@ CLASS IMPLEMENTATION ACreator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE OnDispose();
    BEGIN
-      SUPER.Dispose();
-   END Dispose;
+      SUPER.OnDispose();
+   END OnDispose;
 
 (*---------------------------------------------------------------------------*)
 

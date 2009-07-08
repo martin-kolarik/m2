@@ -21,10 +21,7 @@ TYPE
 
 (*================================================================================*)
 
-TYPE
-   TPTCPConnection = POINTER TO TCPConnection;
-
-CLASS TCPConnection IMPLEMENTS connection.IBufferedClientConnection;
+ABSTRACT CLASS IPConnection IMPLEMENTS connection.IBufferedClientConnection;
    LOCAL VAR
       _BStream : IOO.CBufferedStream;
       _NStream : netstream.CNetworkStream;
@@ -46,7 +43,23 @@ CLASS TCPConnection IMPLEMENTS connection.IBufferedClientConnection;
    PUBLIC PROCEDURE OpenS( Host : StringsO.CString; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE Close();
 
+END IPConnection;
+
+(*================================================================================*)
+
+TYPE
+   TPTCPConnection = POINTER TO TCPConnection;
+
+CLASS TCPConnection( IPConnection );
 END TCPConnection;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPUDPConnection = POINTER TO UDPConnection;
+
+CLASS UDPConnection( IPConnection );
+END UDPConnection;
 
 (*================================================================================*)
 

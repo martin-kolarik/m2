@@ -13,6 +13,7 @@ FROM Strings IMPORT
 
 IMPORT
    FIO,
+   folders,
    Strings,
    time,
    windows,
@@ -906,9 +907,9 @@ CLASS IMPLEMENTATION CLogger;
 
    PRIVATE PROCEDURE TrySetFileToDefault();
    VAR
-      path : FIO.PathStrW = L"";
+      path : FIO.PathStrW := L"";
    BEGIN
-      IF folders.GetManufacturerSpecialFolderW( folder.sfAppDataCommon, TRUE, OUT path ) THEN
+      IF folders.GetManufacturerSpecialFolderW( folders.sfAppDataCommon, TRUE, OUT path ) THEN
          FIO.PathAddW( REF path, DEFAULT_FILE );
       ELSE
          DebugFile := DEFAULT_FILE;

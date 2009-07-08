@@ -114,6 +114,13 @@ CLASS IMPLEMENTATION CNS;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : ns.THash; OUT Name : StringsO.IString ) : BOOLEAN;
+   BEGIN
+      RETURN FALSE;
+   END HashToName;
+
+(*---------------------------------------------------------------------------*)
+
    INTERNAL VIRTUAL PROCEDURE CreateRoot() : ns.TPnsItem;
    BEGIN
       RETURN NewItem( L"MideaAC", ns.ntName, iovalue.vtString, 0 );
@@ -289,6 +296,35 @@ CLASS IMPLEMENTATION CIO;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE Dispose();
+   BEGIN
+      Serial.Dispose();
+   END Dispose;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
+   BEGIN
+      Serial.Run();
+      RETURN Sync.arCompleted;
+   END Start;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Stop();
+   BEGIN
+      Serial.Stop();
+   END Stop;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY IOCapabilities GET : io.TCapabilities;
+   BEGIN
+      RETURN io.TCapabilities{};
+   END IOCapabilities;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY Pending GET : BOOLEAN;
    BEGIN
       RETURN _Pending <> IOO.dirUnknown;
@@ -310,25 +346,17 @@ CLASS IMPLEMENTATION CIO;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROPERTY AdviseListener GET : io.TPIAdviseInfo;
    BEGIN
-      Serial.Dispose();
-   END Dispose;
+      RETURN NIL;
+   END AdviseListener;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Run() : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROPERTY AdviseListener SET( Value : io.TPIAdviseInfo );
    BEGIN
-      Serial.Run();
-      RETURN Sync.arCompleted;
-   END Run;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE Stop();
-   BEGIN
-      Serial.Stop();
-   END Stop;
+      ASSERT( FALSE );
+   END AdviseListener;
 
 (*---------------------------------------------------------------------------*)
 
@@ -428,6 +456,13 @@ CLASS IMPLEMENTATION CIO;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE AbortAll();
+   BEGIN
+      _AbortFlag := TRUE;
+   END AbortAll;
+
+(*---------------------------------------------------------------------------*)
+
    LOCAL PROCEDURE OnRx( Result : Sync.TAsyncResult; PPacket : TPPacket );
    VAR
       V : iovalue.Value;
@@ -449,16 +484,16 @@ CLASS IMPLEMENTATION CIO;
 		log.logger()^.LogSCB( Log.dldTrace, L'', L'rx ', SIZE( PPacket^ ), PPacket, SIZE( PPacket^ ));
       
       IF Result = Sync.arCompleted THEN
-         _DataInfo^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( 0, ADR( V )));
+         _DataInfo^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ), OA( 0, ADR( V )));
       ELSIF _Pending = IOO.dirWrite THEN
          // TODO
          _Pending := IOO.dirUnknown;
          // TODO
-         _DataInfo^.OnIO( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( 0, iovalue.TPValue( NIL )));
-         _DataInfo^.OnError( IOO.dirWrite, ADR( SELF ), OA( 0, PCARDINAL( ADR( Result ))), OA( 0, ADR( _Item )));
+         _DataInfo^.OnIO( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ), OA( 0, iovalue.TPValue( NIL )));
+         _DataInfo^.OnError( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ));
       ELSE
-         _DataInfo^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( 0, iovalue.TPValue( NIL )));
-         _DataInfo^.OnError( IOO.dirRead, ADR( SELF ), OA( 0, PCARDINAL( ADR( Result ))), OA( 0, ADR( _Item )));
+         _DataInfo^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ), OA( 0, iovalue.TPValue( NIL )));
+         _DataInfo^.OnError( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ));
       END;
    END OnRx;
 
@@ -475,10 +510,10 @@ CLASS IMPLEMENTATION CIO;
       END;
       _Pending := IOO.dirUnknown;
       IF Result = Sync.arCompleted THEN
-         _DataInfo^.OnIO( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( 0, iovalue.TPValue( NIL )));
+         _DataInfo^.OnIO( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ), OA( 0, iovalue.TPValue( NIL )));
       ELSE
-         _DataInfo^.OnIO( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( 0, iovalue.TPValue( NIL )));
-         _DataInfo^.OnError( IOO.dirWrite, ADR( SELF ), OA( 0, PCARDINAL( ADR( Result ))), OA( 0, ADR( _Item )));
+         _DataInfo^.OnIO( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ), OA( 0, iovalue.TPValue( NIL )));
+         _DataInfo^.OnError( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ));
       END;
    END OnTxCON;
 
@@ -501,31 +536,56 @@ CLASS IMPLEMENTATION CMideaDevice;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Type GET : objlib.TObjectType;
+   PUBLIC FINAL PROPERTY Type GET : iobject.TObjectType;
    BEGIN
-      RETURN objlib.otEphemeral;
+      RETURN iobject.otEphemeral;
    END Type;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Library GET : objlib.TPLibrary;
+   PUBLIC FINAL PROPERTY Library GET : iobject.TPLibrary;
    BEGIN
       RETURN SUPER.Library;
    END Library;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROPERTY Library SET( Value : objlib.TPLibrary );
+   PUBLIC FINAL PROPERTY Library SET( Value : iobject.TPLibrary );
    BEGIN
       SUPER.Library := Value;
    END Library;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROCEDURE Dispose();
+   PUBLIC FINAL PROCEDURE OnDispose();
    BEGIN
       _IO.Dispose();
-   END Dispose;
+   END OnDispose;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY DeviceCapabilities GET : device.TCapabilities;
+   BEGIN
+      RETURN device.TCapabilities{device.capNamespace};
+   END DeviceCapabilities;
+
+(*---------------------------------------------------------------------------*)
+
+	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST log : Log.TPLogger ) : Sync.TAsyncResult;
+   BEGIN
+      IF _IO.Serial.Init( "COM", OAsz( PWCHAR( Source[0] )), L"SerialWin32.DLL", OAsz( PWCHAR( Source[1] )), log ) THEN
+         RETURN Sync.arCompleted;
+      ELSE
+         RETURN Sync.arCannotStart;
+      END;
+   END Configure;
+   
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper;
+   BEGIN
+      RETURN ADR( _NS );
+   END Mapper;
 
 (*---------------------------------------------------------------------------*)
 
@@ -541,17 +601,6 @@ CLASS IMPLEMENTATION CMideaDevice;
       RETURN ADR( _IO );
    END IO;
 
-(*---------------------------------------------------------------------------*)
-
-	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF PTR; CONST log : Log.TPLogger ) : Sync.TAsyncResult;
-   BEGIN
-      IF _IO.Serial.Init( "COM", OAsz( PWCHAR( Source[0] )), L"SerialWin32.DLL", OAsz( PWCHAR( Source[1] )), log ) THEN
-         RETURN Sync.arCompleted;
-      ELSE
-         RETURN Sync.arCannotStart;
-      END;
-   END Configure;
-   
 (*---------------------------------------------------------------------------*)
 
 	LOCAL PROCEDURE TargetToData( Target : CARD16 ) : TPData;
@@ -594,7 +643,7 @@ CLASS IMPLEMENTATION CMideaDevice;
    FINALLY CMideaDevice();
    BEGIN
       _IO.Stop();
-      Dispose();
+      OnDispose();
    END CMideaDevice;
 
 (*---------------------------------------------------------------------------*)

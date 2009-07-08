@@ -1,12 +1,12 @@
 DEFINITION MODULE iface;
 
 IMPORT
-   objlib;
+   iobject;
 
 (*===========================================================================*)
 
 #save, call( convention => cdecl ), option( dll_export => on )
-PROCEDURE Factory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : objlib.TPObject ) : objlib.TResult;
+PROCEDURE Factory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
 #restore
 
 (*===========================================================================*)

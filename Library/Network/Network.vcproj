@@ -101,10 +101,6 @@
 				RelativePath=".\Source\rawconnection.mod"
 				>
 			</File>
-			<File
-				RelativePath=".\Test\TRawConnection.mod"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -189,6 +185,10 @@
 			</File>
 			<File
 				RelativePath=".\Test\TINETADDR.mod"
+				>
+			</File>
+			<File
+				RelativePath=".\Test\TRawConnection.mod"
 				>
 			</File>
 		</Filter>
