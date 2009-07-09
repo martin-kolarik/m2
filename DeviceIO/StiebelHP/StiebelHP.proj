@@ -1,0 +1,40 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 -->
+    <PropertyGroup>
+        <ComponentType>Product</ComponentType>
+
+        <ProductId>SmartControl.StiebelHP.ActiveX</ProductId>
+        <ProductVersionMajor>1</ProductVersionMajor>
+        <ProductVersionMinor>0</ProductVersionMinor>
+        <FileDescription>Stiebel Heat Pump Data ActiveX Control</FileDescription>
+    </PropertyGroup>
+
+    <!-- 2 INCLUDE DEFINITION -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 COMPONENT DEFINITION -->
+    <ItemGroup>
+        <Components Include="Modula2\modula2"/>
+        <Components Include="API\clib">
+            <Parameters>Dynamic</Parameters>
+        </Components>
+        <Components Include="API\win32;Modula2\m2rtl;Modula2\m2ortl;Library\ADT;Library\DeviceIO;:ibrary\Serial;Library\com"/>
+				<Definitions Include="TypeLib"/>
+				<!-- Modules Include="StiebelHP;StiebelHPsAx"/ -->
+        <Program Include="CmdLine"/>
+        <!-- Messages Include="Texts"/ -->
+    </ItemGroup>
+
+    <PropertyGroup>
+        <Export>export</Export>
+        <TypeLibrary>TypeLibSimple</TypeLibrary>
+    </PropertyGroup>
+
+    <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>
