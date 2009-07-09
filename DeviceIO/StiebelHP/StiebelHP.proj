@@ -6,10 +6,10 @@
     <PropertyGroup>
         <ComponentType>Product</ComponentType>
 
-        <ProductId>SmartControl.StiebelHP.ActiveX</ProductId>
+        <ProductId>SmartControl.DeviceIO.StiebelHP</ProductId>
         <ProductVersionMajor>1</ProductVersionMajor>
         <ProductVersionMinor>0</ProductVersionMinor>
-        <FileDescription>Stiebel Heat Pump Data ActiveX Control</FileDescription>
+        <FileDescription>Stiebel Heat Pump Data Device IO</FileDescription>
     </PropertyGroup>
 
     <!-- 2 INCLUDE DEFINITION -->
@@ -18,21 +18,11 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <Components Include="Modula2\modula2"/>
-        <Components Include="API\clib">
-            <Parameters>Dynamic</Parameters>
-        </Components>
-        <Components Include="API\win32;Modula2\m2rtl;Modula2\m2ortl;Library\ADT;Library\DeviceIO;:ibrary\Serial;Library\com"/>
-				<Definitions Include="TypeLib"/>
-				<!-- Modules Include="StiebelHP;StiebelHPsAx"/ -->
-        <Program Include="CmdLine"/>
+        <Components Include="Modula2\modula2;API\CLib;API\win32" />
+        <Components Include="Component\sccore;Library\DeviceIO"/>
+        <Modules Include="StiebelHP;iface"/>
         <!-- Messages Include="Texts"/ -->
     </ItemGroup>
-
-    <PropertyGroup>
-        <Export>export</Export>
-        <TypeLibrary>TypeLibSimple</TypeLibrary>
-    </PropertyGroup>
 
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
     <Import Project="$(RootBuildDir)\common.build.proj"/>

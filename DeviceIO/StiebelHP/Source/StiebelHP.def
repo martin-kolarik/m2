@@ -1,19 +1,24 @@
 DEFINITION MODULE StiebelHP;
 // setpoint process.value control.value
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
+	device,
+	helper,
+	INIFile,
+	io,
 	IOO,
+	iovalue,
+	log,
+	netsocket,
+	ns,
+	nsitem,
+	rawconnection,
 	StorageO,
 	StringsO,
 	Sync;
-
-IMPORT
-	nsitem,
-	device,
-	io,
-	ns,
-	iovalue,
-	serial;
 	
 (*===========================================================================*)
 
@@ -24,24 +29,56 @@ TYPE
 (*---------------------------------------------------------------------------*)
 
 CLASS CNS( nsitem.Ans );
+   // IMapper
+   PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : ns.THash; OUT Name : StringsO.IString ) : BOOLEAN;
+
+   // Ans
 	INTERNAL VIRTUAL PROCEDURE CreateRoot() : ns.TPnsItem;
 	INTERNAL VIRTUAL PROCEDURE CreateStructure();
-	PUBLIC VIRTUAL PROCEDURE CreateNewItem( CONST Name : ARRAY OF WCHAR; Type : iovalue.TValueType; Data : PTR ) : ns.TPnsItem;
+
+   // SELF
+	PUBLIC VIRTUAL PROCEDURE CreateNewItem( CONST Name : ARRAY OF WCHAR; NType : ns.TNameType; VType : iovalue.TValueType; Data : PTR ) : ns.TPnsItem;
 END CNS;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CSerial( serial.CSerialHandler );
+CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopControl;
 	LOCAL VAR
 		PIO : TPIO;
+		Connection : rawconnection.TCPConnection;
+		RxBuffer : StorageO.CMemoryBuffer;
+		Logger : log.CLogger;
 
+   PRIVATE VAR
+		_DeviceAddress : StringsO.CString;
+		_SDAPAddress : StringsO.CString;
+		_TimerTick : CARDINAL; // milliseconds
+		_Data : lists.CStringList; // String = SDAP address, Data = ns.THash
+
+   // ASocketNotifier
+   PUBLIC VIRTUAL PROCEDURE OnReadable( Length : CARDINAL; Source : ADDRESS );
+
+   // IStartStopControl
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Running : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Stop();
+
+   // from CSerial
 	INTERNAL VIRTUAL PROCEDURE DataComplete( CONST Data : StorageO.AMemoryBuffer; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyCheckSum : BOOLEAN ) : BOOLEAN;
 	INTERNAL VIRTUAL PROCEDURE TestChkSum( CONST Data : StorageO.AMemoryBuffer ) : BOOLEAN;
 	INTERNAL VIRTUAL PROCEDURE OnRx( Result : Sync.TAsyncResult; CONST Data : StorageO.AMemoryBuffer );
 
 	INTERNAL VIRTUAL PROCEDURE AddChkSum( REF Data : StorageO.AMemoryBuffer );
 	INTERNAL VIRTUAL PROCEDURE OnTx( Result : Sync.TAsyncResult );
-END CSerial;
+	
+	// SELF
+	PUBLIC PROCEDURE Configure( CONST iniFile : INIFile.CINIFile; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE Tx( CONST Data : ARRAY OF BYTE; SendAsIs : BOOLEAN; RepeatCount : CARDINAL; TxTimeout, RxTimeout : CARDINAL );
+   
+   // private
+	PRIVATE PROCEDURE HandleRx( Result : Sync.TAsyncResult; REF Data : StorageO.AMemoryBuffer ) : BOOLEAN;
+END CDeviceCommunicator;
 
 (*---------------------------------------------------------------------------*)
 
@@ -51,40 +88,60 @@ TYPE
 
 CLASS CIO( io.AItemizedIO );
 	LOCAL VAR
-		Serial : CSerial;
+		DeviceCommunicator : CDeviceCommunicator;
 	PRIVATE VAR
 		_AbortFlag : BOOLEAN;
 		_Pending : IOO.TDirection;
 		_Item : TPNSI;
-		_Callback : io.TPSDCallback;
+		_Callback : io.TPDataInfo;
 
-	PUBLIC VIRTUAL READONLY PROPERTY
-		Pending : BOOLEAN;
-		
 	PUBLIC PROCEDURE Dispose();
 
-	PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Delegate : io.TPSDCallback ) : Sync.TAsyncResult;
-	PUBLIC VIRTUAL PROCEDURE Abort();
+   // IStartStopControl
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Running : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Stop();
 
+   // IIO
+   PUBLIC VIRTUAL READONLY PROPERTY
+      IOCapabilities : io.TCapabilities;
+      Pending : BOOLEAN;
+   PUBLIC VIRTUAL PROPERTY
+      Advise : io.TAdvise;
+      AdviseListener : io.TPIAdviseInfo;
+   PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Delegate : io.TPDataInfo ) : Sync.TAsyncResult;
+	PUBLIC VIRTUAL PROCEDURE Abort();
+	PUBLIC VIRTUAL PROCEDURE AbortAll();
+
+   // SELF
 	LOCAL PROCEDURE OnRx( Result : Sync.TAsyncResult; PPacket : TPPacket );
 	LOCAL PROCEDURE OnTxCON( Result : Sync.TAsyncResult );
 END CIO;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CStiebelHPDevice IMPLEMENTS device.IDevice;
+CLASS CStiebelHPDevice( helper.AObject ) IMPLEMENTS device.IDevice;
 	PRIVATE VAR
 		_NS : CNS;
 		_IO : CIO;
 
-	PUBLIC PROCEDURE Dispose();
+   // IObject
+   PUBLIC FINAL READONLY PROPERTY
+      Type : iobject.TObjectType;
+   PUBLIC FINAL PROPERTY
+      Library : iobject.TPLibrary;
+   PUBLIC FINAL PROCEDURE OnDispose();
 
+   // IDevice
+   PUBLIC VIRTUAL READONLY PROPERTY
+      DeviceCapabilities : device.TCapabilities;
+	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+
+   PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper;
 	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
-	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
 
-	PUBLIC PROCEDURE Init( COMDevice, File : ARRAY OF WCHAR; OUT ErrorString : ARRAY OF WCHAR ) : BOOLEAN;
-	PUBLIC PROCEDURE Run();
-	PUBLIC PROCEDURE Stop();
+	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
 END CStiebelHPDevice;
 
 (*---------------------------------------------------------------------------*)

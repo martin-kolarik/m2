@@ -76,12 +76,11 @@ CLASS CIO( io.AItemizedIO );
       _Item : TPNSI;
       _DataInfo : io.TPDataInfo;
 
-   PUBLIC VIRTUAL READONLY PROPERTY
-      Running : BOOLEAN;
-
    PUBLIC PROCEDURE Dispose();
 
    // IStartStopControl
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Running : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE Stop();
 

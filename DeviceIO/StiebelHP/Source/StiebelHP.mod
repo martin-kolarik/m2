@@ -2,11 +2,12 @@ IMPLEMENTATION MODULE StiebelHP;
 
 (*===========================================================================*)
 
-FROM Storage IMPORT
-	ALLOCATE;
-	
+FROM Debug IMPORT
+   Assertion, LogAssertionW;
+
 IMPORT
 	FIO,
+	iobject,
 	IOO,
 	StorageO,
 	StringsO,
@@ -101,9 +102,16 @@ CLASS IMPLEMENTATION CNS;
 
 (*---------------------------------------------------------------------------*)
 
-	INTERNAL VIRTUAL PROCEDURE CreateRoot() : sdns.TPSDNSItem;
+   PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : ns.THash; OUT Name : StringsO.IString ) : BOOLEAN;
+   BEGIN
+      RETURN FALSE;
+   END HashToName;
+
+(*---------------------------------------------------------------------------*)
+
+	INTERNAL VIRTUAL PROCEDURE CreateRoot() : ns.TPnsItem;
 	BEGIN
-		RETURN CreateNewItem( L"StiebelHP", sdvalue.sdtName, 0 );
+		RETURN CreateNewItem( L"StiebelHP", ns.ntName, iovalue.vtString, 0 );
 	END CreateRoot;
 
 (*---------------------------------------------------------------------------*)
@@ -113,34 +121,34 @@ CLASS IMPLEMENTATION CNS;
 	  D : nsitem.TPnsItem;
 	  I : TPNSI;
 	BEGIN
-		Root^.AddChild( CreateNewItem( L"Control", sdvalue.sdtName, 0 ));
+		Root^.AddChild( CreateNewItem( L"Control", ns.ntName, iovalue.vtString, 0 ));
 
-		D := nsitem.TPnsItem( CreateNewItem( L"Data", sdvalue.sdtName, 0 ));
+		D := nsitem.TPnsItem( CreateNewItem( L"Data", ns.ntName, iovalue.vtString, 0 ));
 		Root^.AddChild( D );
 
-		I := TPNSI( CreateNewItem( L"Reset",             sdvalue.sdtInteger, 098000H )); D^.AddChild( I ); I^.Multiplier := 1000;
-		I := TPNSI( CreateNewItem( L"OperatingMode",     sdvalue.sdtInteger, 030112H )); D^.AddChild( I ); I^.Multiplier := 1;
-		I := TPNSI( CreateNewItem( L"EquithermicCurve",  sdvalue.sdtFloat,   03010EH )); D^.AddChild( I ); I^.Multiplier := 100;
-		// I := TPNSI( CreateNewItem( L"T setpoint",        sdvalue.sdtFloat,   030008H )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Reset",             ns.ntValue, iovalue.vtInteger, 098000H )); D^.AddChild( I ); I^.Multiplier := 1000;
+		I := TPNSI( CreateNewItem( L"OperatingMode",     ns.ntValue, iovalue.vtInteger, 030112H )); D^.AddChild( I ); I^.Multiplier := 1;
+		I := TPNSI( CreateNewItem( L"EquithermicCurve",  ns.ntValue, iovalue.vtFloat,   03010EH )); D^.AddChild( I ); I^.Multiplier := 100;
+		// I := TPNSI( CreateNewItem( L"T setpoint",        iovalue.vtFloat,   030008H )); D^.AddChild( I );
 
-		I := TPNSI( CreateNewItem( L"Inner T",           sdvalue.sdtFloat,   060011H )); D^.AddChild( I );
-		I := TPNSI( CreateNewItem( L"Inner T setpoint",  sdvalue.sdtFloat,   060005H )); D^.AddChild( I );
-		I := TPNSI( CreateNewItem( L"Outer T",           sdvalue.sdtFloat,   03000CH )); D^.AddChild( I );
-		I := TPNSI( CreateNewItem( L"Return T",          sdvalue.sdtFloat,   030016H )); D^.AddChild( I );
-		I := TPNSI( CreateNewItem( L"Return T setpoint", sdvalue.sdtFloat,   060004H )); D^.AddChild( I );
-		I := TPNSI( CreateNewItem( L"Output T",          sdvalue.sdtFloat,   0301D6H )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Inner T",           ns.ntValue, iovalue.vtFloat,   060011H )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Inner T setpoint",  ns.ntValue, iovalue.vtFloat,   060005H )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Outer T",           ns.ntValue, iovalue.vtFloat,   03000CH )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Return T",          ns.ntValue, iovalue.vtFloat,   030016H )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Return T setpoint", ns.ntValue, iovalue.vtFloat,   060004H )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Output T",          ns.ntValue, iovalue.vtFloat,   0301D6H )); D^.AddChild( I );
 
-		I := TPNSI( CreateNewItem( L"Water T",           sdvalue.sdtFloat,   03000EH )); D^.AddChild( I );
-		I := TPNSI( CreateNewItem( L"Water T setpoint",  sdvalue.sdtFloat,   030003H )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Water T",           ns.ntValue, iovalue.vtFloat,   03000EH )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Water T setpoint",  ns.ntValue, iovalue.vtFloat,   030003H )); D^.AddChild( I );
 	END CreateStructure;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE CreateNewItem( CONST Name : ARRAY OF WCHAR; Type : sdvalue.TSDType; Data : PTR ) : sdns.TPSDNSItem;
+	PUBLIC VIRTUAL PROCEDURE CreateNewItem( CONST Name : ARRAY OF WCHAR; NType : ns.TNameType; VType : iovalue.TValueType; Data : PTR ) : ns.TPnsItem;
 	VAR
 		R : nsitem.TPnsItem;
 	BEGIN
-		NEW( TPNSI( R ))^.Init( Name, ConstNames, Type, Data );
+		NEW( TPNSI( R ))^.Init( Name, ConstNames, NType, VType, Data );
 		RETURN R;
 	END CreateNewItem;
 
@@ -152,11 +160,42 @@ END CNS;
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION CSerial;
+CLASS IMPLEMENTATION CDeviceCommunicator;
 
 (*---------------------------------------------------------------------------*)
 
-	INTERNAL VIRTUAL PROCEDURE DataComplete( CONST Data : StorageO.CMemoryBuffer; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyCheckSum : BOOLEAN ) : BOOLEAN;
+   PUBLIC VIRTUAL PROPERTY Running GET : BOOLEAN;
+   BEGIN
+      RETURN Connection.Connected;
+   END Running;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
+   BEGIN
+      RETURN Connection.OpenS( _DeviceAddress, TRUE, netsocket.FORSAFETY );
+   END Start;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Stop();
+   BEGIN
+      Connection.Close();
+   END Stop;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE OnReadable( Length : CARDINAL; Source : ADDRESS );
+   VAR
+      Data : StorageO.CMemoryBuffer;
+   BEGIN
+      Connection.Stream^.ReadBuffer( 2048, REF Data, 0 );
+      HandleRx( Sync.arCompleted, REF Data );
+   END OnReadable;
+
+(*---------------------------------------------------------------------------*)
+
+	INTERNAL VIRTUAL PROCEDURE DataComplete( CONST Data : StorageO.AMemoryBuffer; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyCheckSum : BOOLEAN ) : BOOLEAN;
 	BEGIN
 		IF Data.Length < SIZE( TPacket ) THEN
 			RETURN FALSE;
@@ -169,7 +208,7 @@ CLASS IMPLEMENTATION CSerial;
 
 (*---------------------------------------------------------------------------*)
 
-	INTERNAL VIRTUAL PROCEDURE TestChkSum( CONST Data : StorageO.CMemoryBuffer ) : BOOLEAN;
+	INTERNAL VIRTUAL PROCEDURE TestChkSum( CONST Data : StorageO.AMemoryBuffer ) : BOOLEAN;
 	VAR
 		CRC : CARD16 := 0;
 		i : CARDINAL;
@@ -183,7 +222,7 @@ CLASS IMPLEMENTATION CSerial;
 
 (*---------------------------------------------------------------------------*)
 
-	INTERNAL VIRTUAL PROCEDURE OnRx( Result : Sync.TAsyncResult; CONST Data : StorageO.CMemoryBuffer );
+	INTERNAL VIRTUAL PROCEDURE OnRx( Result : Sync.TAsyncResult; CONST Data : StorageO.AMemoryBuffer );
 	BEGIN
 		IF Result <> Sync.arCompleted THEN
 			PIO^.OnRx( Result, NIL );
@@ -196,7 +235,7 @@ CLASS IMPLEMENTATION CSerial;
 
 (*---------------------------------------------------------------------------*)
 
-	INTERNAL VIRTUAL PROCEDURE AddChkSum( REF Data : StorageO.CMemoryBuffer );
+	INTERNAL VIRTUAL PROCEDURE AddChkSum( REF Data : StorageO.AMemoryBuffer );
 	VAR
 		CRC : CARD16 := 0;
 		i : CARDINAL;
@@ -219,13 +258,129 @@ CLASS IMPLEMENTATION CSerial;
 
 (*---------------------------------------------------------------------------*)
 
+	PUBLIC PROCEDURE Configure( CONST iniFile : INIFile.CINIFile; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+	BEGIN
+	   
+	END Configure;
+
+(*---------------------------------------------------------------------------*)
+
+	PUBLIC PROCEDURE Tx( CONST Data : ARRAY OF BYTE; _SendAsIs : BOOLEAN; _RepeatCount : CARDINAL; _TxTimeout, _RxTimeout : CARDINAL );
+	VAR
+	   c : CARDINAL;
+	   Result : Sync.TAsyncResult;
+	   TxBuffer : StorageO.CMemoryBuffer;
+	BEGIN
+		IF INTEGER( HIGH( Data )) >= 0 THEN // HACK
+   	   TxBuffer.Size := 1024;
+			TxBuffer.AppendOA( Data );
+			IF NOT _SendAsIs THEN
+				AddChkSum( REF TxBuffer );
+			END;
+		END;
+
+		Logger.LogSCB( log.dldDebug, L'', L'tx start of ', TxBuffer.Length, TxBuffer.Data, TxBuffer.Length );
+		Result := Connection.Stream^.WriteBuffer( TxBuffer, OUT c, netsocket.FORSAFETY );
+		IF Result = Sync.arTimeout THEN
+		   ASSERTLOG( FALSE );
+		END;
+	END Tx;
+
+//---------------------------------------------------------
+
+	PRIVATE PROCEDURE HandleRx( Result : Sync.TAsyncResult; REF Data : StorageO.AMemoryBuffer ) : BOOLEAN;
+	VAR
+		LDI, LI : CARDINAL := 0; // TODO
+		LRxBuffer : StorageO.CMemoryBuffer;
+		TDI, TI : CARDINAL;
+		AC : BOOLEAN; // apply checksum
+		ChkSumOK : BOOLEAN := TRUE;
+	BEGIN
+		IF Result <> Sync.arCompleted THEN
+			Logger.LogSC( log.dldError, L'', L'rx error: ', CARDINAL( Result ));
+			OnRx( Result, LRxBuffer );
+			RxBuffer.Clear();
+			RETURN FALSE;
+		ELSIF NOT Data.Empty THEN
+			RxBuffer.Append( Data );
+			Logger.LogSCB( log.dldDebug, L'', L'rx success, len: ', Data.Length, Data.Data, Data.Length );
+		END;
+
+      (* // TODO
+		IF NOT DetectDataStart( RxBuffer, OUT LI, OUT LDI ) THEN
+			RETURN FALSE;
+		ELSIF LI > 0 THEN
+			RxBuffer.RemoveStart( LI );
+			DEC( LDI, LI );
+			LI := 0;
+		END;
+		*)
+		IF NOT DataComplete( RxBuffer, OUT TDI, OUT TI, OUT AC ) THEN
+			RETURN FALSE;
+		END;
+
+		IF AC THEN
+			RxBuffer.Subbuffer( LI, TI - LI, OUT LRxBuffer );
+			ChkSumOK := TestChkSum( LRxBuffer );
+		END;
+		IF ChkSumOK THEN
+			RxBuffer.Subbuffer( LDI, TDI - LDI, OUT LRxBuffer );
+		   OnRx( Result, LRxBuffer );
+		END;
+
+		IF RxBuffer.Length = TI THEN
+			RxBuffer.Clear();
+		ELSE
+			RxBuffer.RemoveStart( TI );
+		END;
+		RETURN NOT RxBuffer.Empty;
+	END HandleRx;
+
+//---------------------------------------------------------
+
 BEGIN
 	PIO := NIL;
-END CSerial;
+	_TimerTick := 1000; // a second
+END CDeviceCommunicator;
 
 (*===========================================================================*)
 
 CLASS IMPLEMENTATION CIO;
+
+(*---------------------------------------------------------------------------*)
+
+	PUBLIC PROCEDURE Dispose();
+	BEGIN
+		// TODO Serial.Dispose();
+	END Dispose;
+
+(*---------------------------------------------------------------------------*)
+
+	PUBLIC PROPERTY Running GET : BOOLEAN;
+	BEGIN
+	   // TODO
+		RETURN FALSE;
+	END Running;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
+   BEGIN
+      RETURN Sync.arCompleted;
+   END Start;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Stop();
+   BEGIN
+   END Stop;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY IOCapabilities GET : io.TCapabilities;
+   BEGIN
+      RETURN io.TCapabilities{};
+   END IOCapabilities;
 
 (*---------------------------------------------------------------------------*)
 
@@ -236,14 +391,35 @@ CLASS IMPLEMENTATION CIO;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC PROCEDURE Dispose();
-	BEGIN
-		Serial.Dispose();
-	END Dispose;
+   PUBLIC VIRTUAL PROPERTY Advise GET : io.TAdvise;
+   BEGIN
+      RETURN io.advNone;
+   END Advise;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : sdio.TPSDCallback ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROPERTY Advise SET( Value : io.TAdvise );
+   BEGIN
+      ASSERT( FALSE );
+   END Advise;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY AdviseListener GET : io.TPIAdviseInfo;
+   BEGIN
+      RETURN NIL;
+   END AdviseListener;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY AdviseListener SET( Value : io.TPIAdviseInfo );
+   BEGIN
+      ASSERT( FALSE );
+   END AdviseListener;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Delegate : io.TPDataInfo ) : Sync.TAsyncResult;
 	VAR
 		Packet : TPacket;
 	BEGIN
@@ -253,13 +429,13 @@ CLASS IMPLEMENTATION CIO;
 
 		_Pending := Direction;
 		_Item := Item;
-		_Callback := Callback;
+		_Callback := Delegate;
 
 		Packet.Address := 0; // m2cpp error
 		WITH Packet DO
 			SenderType := dtController;
 			Address := 0;
-			ReceiverType := TDeviceType( nsitem.TPnsItem( Item )^.Data >> 16 );
+			ReceiverType := TDeviceType( LOPTRLONGWORD( nsitem.TPnsItem( Item )^.Data ) >> 16 );
 			IF Direction = IOO.dirWrite THEN
 				Telegram := ttSet;
 			ELSE
@@ -267,7 +443,7 @@ CLASS IMPLEMENTATION CIO;
 			END;
 			D1 := 0; // ??
 			D2 := 0FAH; // ??
-			PointNumber.LE := WORD( nsitem.TPnsItem( Item )^.Data );
+			PointNumber.LE := LOWORD( LOPTRLONGWORD( nsitem.TPnsItem( Item )^.Data ));
 			IF Direction = IOO.dirWrite THEN
 				IF TPNSI( Item )^.Multiplier = 1000 THEN
 					D2 := 0FBH; // ??
@@ -280,7 +456,7 @@ CLASS IMPLEMENTATION CIO;
 			END;
 		END;
 		
-		Serial.Tx( Packet, FALSE, 1, 150, 500 );
+		DeviceCommunicator.Tx( Packet, FALSE, 1, 150, 500 );
 		// Serial.Tx( Packet, FALSE, 1, 0, 0 );
 
 		RETURN Sync.arPending;
@@ -295,9 +471,16 @@ CLASS IMPLEMENTATION CIO;
 
 (*---------------------------------------------------------------------------*)
 
+	PUBLIC VIRTUAL PROCEDURE AbortAll();
+	BEGIN
+		_AbortFlag := TRUE;
+	END AbortAll;
+
+(*---------------------------------------------------------------------------*)
+
 	LOCAL PROCEDURE OnRx( Result : Sync.TAsyncResult; PPacket : TPPacket );
 	VAR
-		V : sdvalue.CSDFloat;
+		V : iovalue.Value;
 	BEGIN
 		IF _AbortFlag THEN
 			_AbortFlag := FALSE;
@@ -313,20 +496,20 @@ CLASS IMPLEMENTATION CIO;
 		END;
 		IF Result = Sync.arCompleted THEN
 			IF _Item^.Multiplier = 1 THEN
-				V.Value := LONGREAL( PPacket^.bValue );
+				V.Float := LONGREAL( PPacket^.bValue );
 			ELSE
-				V.Value := LONGREAL( PPacket^.wValue.LE ) / LONGREAL( _Item^.Multiplier );
+				V.Float := LONGREAL( PPacket^.wValue.LE ) / LONGREAL( _Item^.Multiplier );
 			END;
-			_Callback^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( 0, ADR( V )));
+			_Callback^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ), OA( 0, ADR( V )));
 		ELSIF _Pending = IOO.dirWrite THEN
 			// TODO
 			_Pending := IOO.dirUnknown;
 			// TODO
-			_Callback^.OnIO( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( 0, sdvalue.TPSDValue( NIL )));
-			_Callback^.OnError( IOO.dirWrite, ADR( SELF ), OA( 0, PCARDINAL( ADR( Result ))), OA( 0, ADR( _Item )));
+			_Callback^.OnIO( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ), OA( 0, iovalue.TPValue( NIL )));
+			_Callback^.OnError( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ));
 		ELSE
-			_Callback^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( 0, sdvalue.TPSDValue( NIL )));
-			_Callback^.OnError( IOO.dirRead, ADR( SELF ), OA( 0, PCARDINAL( ADR( Result ))), OA( 0, ADR( _Item )));
+			_Callback^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ), OA( 0, iovalue.TPValue( NIL )));
+			_Callback^.OnError( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ));
 		END;
 	END OnRx;
 
@@ -343,17 +526,17 @@ CLASS IMPLEMENTATION CIO;
 		END;
 		_Pending := IOO.dirUnknown;
 		IF Result = Sync.arCompleted THEN
-			_Callback^.OnIO( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( 0, sdvalue.TPSDValue( NIL )));
+			_Callback^.OnIO( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ), OA( 0, iovalue.TPValue( NIL )));
 		ELSE
-			_Callback^.OnIO( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( 0, sdvalue.TPSDValue( NIL )));
-			_Callback^.OnError( IOO.dirWrite, ADR( SELF ), OA( 0, PCARDINAL( ADR( Result ))), OA( 0, ADR( _Item )));
+			_Callback^.OnIO( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ), OA( 0, iovalue.TPValue( NIL )));
+			_Callback^.OnError( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ));
 		END;
 	END OnTxCON;
 
 (*---------------------------------------------------------------------------*)
 
 BEGIN
-	Serial.PIO := ADR( SELF );
+	DeviceCommunicator.PIO := ADR( SELF );
 	_AbortFlag := FALSE;
 	_Pending := IOO.dirUnknown;
 	_Callback := NIL;
@@ -368,51 +551,77 @@ CLASS IMPLEMENTATION CStiebelHPDevice;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC PROCEDURE Dispose();
-	BEGIN
-		_IO.Dispose();
-	END Dispose;
+   PUBLIC FINAL PROPERTY Type GET : iobject.TObjectType;
+   BEGIN
+      RETURN iobject.otEphemeral;
+   END Type;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE NS() : sdns.TPSDNS;
+   PUBLIC FINAL PROPERTY Library GET : iobject.TPLibrary;
+   BEGIN
+      RETURN SUPER.Library;
+   END Library;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC FINAL PROPERTY Library SET( Value : iobject.TPLibrary );
+   BEGIN
+      SUPER.Library := Value;
+   END Library;
+
+(*---------------------------------------------------------------------------*)
+
+	PUBLIC FINAL PROCEDURE OnDispose();
+	BEGIN
+		_IO.Dispose();
+	END OnDispose;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY DeviceCapabilities GET : device.TCapabilities;
+   BEGIN
+      RETURN device.TCapabilities{device.capNamespace};
+   END DeviceCapabilities;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper;
+   BEGIN
+      RETURN ADR( _NS );
+   END Mapper;
+
+(*---------------------------------------------------------------------------*)
+
+	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
 	BEGIN
 		RETURN ADR( _NS );
 	END NS;
 	
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE IO() : sdio.TPSDIO;
+	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
 	BEGIN
 		RETURN ADR( _IO );
 	END IO;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC PROCEDURE Init( COMDevice, File : ARRAY OF WCHAR; OUT ErrorString : ARRAY OF WCHAR ) : BOOLEAN;
-	BEGIN
-		RETURN _IO.Serial.Init( L"SS", COMDevice, L"SerialWin32.DLL", File, OUT ErrorString );
-	END Init;
-	
-(*---------------------------------------------------------------------------*)
-
-	PUBLIC PROCEDURE Run();
-	BEGIN
-		_IO.Serial.Run();
-	END Run;
-
-(*---------------------------------------------------------------------------*)
-
-	PUBLIC PROCEDURE Stop();
-	BEGIN
-		_IO.Serial.Stop();
-	END Stop;
-
+	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+   BEGIN
+      IF HIGH( Source ) < 0 THEN
+         RETURN Sync.arCannotStart;
+      ELSIF Source[0].Type <> device.citINIFile THEN
+         RETURN Sync.arCannotStart;
+      END;
+      RETURN _IO.DeviceCommunicator.Configure( Source[0].iniFile^, Log );
+   END Configure;
+   
 (*---------------------------------------------------------------------------*)
 
 BEGIN FINALLY
-	Stop();
-	Dispose();
+   _IO.Stop();
+	OnDispose();
 END CStiebelHPDevice;
 
 (*===========================================================================*)

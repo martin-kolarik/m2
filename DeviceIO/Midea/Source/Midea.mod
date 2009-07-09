@@ -5,9 +5,6 @@ IMPLEMENTATION MODULE Midea;
 FROM Debug IMPORT
    Assertion;
 
-FROM Storage IMPORT
-   ALLOCATE;
-   
 IMPORT
    FIO,
    IOO,
