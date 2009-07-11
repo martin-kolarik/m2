@@ -1,0 +1,46 @@
+DEFINITION MODULE SDAPClient;
+
+#save, option( dll_export => on )
+
+(*================================================================================*)
+
+TYPE
+   TPISDAPClientEvents = POINTER TO ISDAPClientEvents;
+
+INTERFACE ISDAPClientEvents;
+   PROCEDURE OnConnect( Error : CARDINAL );
+   PROCEDURE OnClose( Error : CARDINAL );
+   PROCEDURE OnReceive( CONST Data : ARRAY OF WCHAR; CONST Value : ARRAY OF WCHAR );
+END ISDAPClientEvents;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPISDAPClient = POINTER TO ISDAPClient;
+
+INTERFACE ISDAPClient;
+   PROCEDURE Dispose();
+
+   PROCEDURE Connect( Host : ARRAY OF WCHAR ) : CARDINAL;
+   PROCEDURE Close();
+   PROCEDURE SetAdvise( AdviseEnabled : BOOLEAN ) : CARDINAL;
+   PROCEDURE IsConnected() : BOOLEAN;
+
+   PROCEDURE Write( CONST Data : ARRAY OF WCHAR; CONST Value : ARRAY OF WCHAR ) : CARDINAL;
+   PROCEDURE Ask( CONST Data : ARRAY OF WCHAR ) : CARDINAL;
+   
+   PROCEDURE SetEventListener( Listener : TPISDAPClientEvents );
+END ISDAPClient;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE Startup() : CARDINAL;
+PROCEDURE Cleanup();
+
+PROCEDURE newSDAPClient( OUT client : TPISDAPClient ) : CARDINAL;
+
+(*================================================================================*)
+
+#restore
+
+END SDAPClient.
