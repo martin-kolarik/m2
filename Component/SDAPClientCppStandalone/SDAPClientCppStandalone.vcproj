@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8,00"
-	Name="SDAPClient"
+	Name="SDAPClientCppStandalone"
 	ProjectGUID="{3FB750EA-B77D-4F8E-8AD8-F9273B4A329D}"
 	Keyword="MakeFileProj"
 	>
@@ -65,7 +65,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\Source\SDAPClient.mod"
+				RelativePath=".\Source\SDAPClientCppStandalone.mod"
 				>
 			</File>
 		</Filter>
@@ -75,7 +75,7 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\Source\SDAPClient.def"
+				RelativePath=".\Source\SDAPClientCppStandalone.def"
 				>
 			</File>
 		</Filter>
