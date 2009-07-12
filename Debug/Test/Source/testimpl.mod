@@ -38,9 +38,6 @@ CLASS CTests( helper.ACreator ) IMPLEMENTS test.ITests;
    PUBLIC VIRTUAL PROCEDURE EnumerateTests( REF ES : PTR; OUT Name : ARRAY OF WCHAR; OUT Test : test.TPTest ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE AddTest( CONST Name : ARRAY OF WCHAR; Test : test.TPTest );
 
-   // CTests
-   PUBLIC VIRTUAL PROCEDURE Dispose();
-
    // ACreator
    PUBLIC VIRTUAL PROCEDURE LibraryInfo( OUT Library, LibraryVersionString : ARRAY OF WCHAR );
    VIRTUAL PROCEDURE OnFactory( CONST QName : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
@@ -70,12 +67,6 @@ CLASS IMPLEMENTATION CTests;
    BEGIN
       SUPER.Library := Value;
    END Library;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC FINAL PROCEDURE OnDispose(); // meant not as Command, but as Callback, usually, destroying of object is done with ReleaseObject of some loader.
-   BEGIN
-   END OnDispose;
 
 (*---------------------------------------------------------------------------*)
 
@@ -143,7 +134,7 @@ CLASS IMPLEMENTATION CTests;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Dispose();
+   PUBLIC FINAL PROCEDURE OnDispose();
    VAR
       _S : POINTER TO StringsO.CString;
    BEGIN
@@ -153,8 +144,8 @@ CLASS IMPLEMENTATION CTests;
          DISPOSE( _S );
       END; // WHILE
       Tests.Dispose();
-      SUPER.Dispose();
-   END Dispose;
+      SUPER.OnDispose();
+   END OnDispose;
 
 (*--------------------------------------------------------------------------------*)
 
