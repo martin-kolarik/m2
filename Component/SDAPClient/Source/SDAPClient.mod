@@ -4,7 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
    
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 IMPORT
    IOO,
@@ -46,17 +46,19 @@ TYPE
 
 CLASS CSDAPClient IMPLEMENTS ISDAPClient;
    // ISDAPClient
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Connected : BOOLEAN;
+   PUBLIC VIRTUAL PROPERTY
+      EventListener : TPISDAPClientEvents;
+   
    PUBLIC VIRTUAL PROCEDURE Dispose();
 
-   PUBLIC VIRTUAL PROCEDURE Connect( Host : ARRAY OF WCHAR ) : CARDINAL;
+   PUBLIC VIRTUAL PROCEDURE Connect( CONST Host : StringsO.IString ) : Sync.TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE Close();
-   PUBLIC VIRTUAL PROCEDURE SetAdvise( AdviseEnabled : BOOLEAN ) : CARDINAL;
-   PUBLIC VIRTUAL PROCEDURE IsConnected() : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE SetAdvise( AdviseEnabled : BOOLEAN ) : Sync.TAsyncResult;
 
-   PUBLIC VIRTUAL PROCEDURE Write( CONST Data : ARRAY OF WCHAR; CONST Value : ARRAY OF WCHAR ) : CARDINAL;
-   PUBLIC VIRTUAL PROCEDURE Ask( CONST Data : ARRAY OF WCHAR ) : CARDINAL;
-   
-   PUBLIC VIRTUAL PROCEDURE SetEventListener( Listener : TPISDAPClientEvents );
+   PUBLIC VIRTUAL PROCEDURE Write( CONST Data, Value : StringsO.IString ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Ask( CONST Data : StringsO.IString ) : Sync.TAsyncResult;
    
    // callbacks
    LOCAL PROCEDURE OnConnect( Error : CARDINAL );
@@ -74,7 +76,7 @@ CLASS CSDAPClient IMPLEMENTS ISDAPClient;
       _ReadState : TReadState := rdsWaitStatus;
       _DataCount : CARDINAL := 0;
       
-   PRIVATE PROCEDURE DoWrite( CONST s1, s2, s3 : ARRAY OF WCHAR ) : CARDINAL;
+   PRIVATE PROCEDURE DoWriteOA( CONST cmd, s1, s2 : ARRAY OF WCHAR ) : Sync.TAsyncResult;
 END CSDAPClient;
 
 (*================================================================================*)
@@ -123,6 +125,27 @@ CLASS IMPLEMENTATION CSDAPClient;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROPERTY Connected GET : BOOLEAN;
+   BEGIN
+      RETURN _Connection.Connected;
+   END Connected;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY EventListener GET : TPISDAPClientEvents;
+   BEGIN
+      RETURN _ClientNotifier;
+   END EventListener;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY EventListener SET( Value : TPISDAPClientEvents );
+   BEGIN
+      _ClientNotifier := Value;
+   END EventListener;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE Dispose();
    VAR
       a : ADDRESS;
@@ -136,21 +159,13 @@ CLASS IMPLEMENTATION CSDAPClient;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Connect( Host : ARRAY OF WCHAR ) : CARDINAL;
+   PUBLIC VIRTUAL PROCEDURE Connect( CONST Host : StringsO.IString ) : Sync.TAsyncResult;
    BEGIN
       IF _Connection.Connected THEN
-         RETURN winsock.WSAEALREADY;
-      END;
-      CASE _Connection.Open( Host, FALSE, Sync.FORSAFETY ) OF
-      | Sync.arCompleted :
-         RETURN 0;
-      | Sync.arTimeout :
-         RETURN winsock.WSAETIMEDOUT;
-      | Sync.arPending :
-         RETURN winsock.WSAEWOULDBLOCK;
+         RETURN Sync.arAlreadyPending;
       ELSE
-         RETURN winsock.WSAEFAULT;
-      END;   
+         RETURN _Connection.OpenS( Host, FALSE, Sync.FORSAFETY );
+      END;
    END Connect;
 
 (*--------------------------------------------------------------------------------*)
@@ -162,45 +177,35 @@ CLASS IMPLEMENTATION CSDAPClient;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE SetAdvise( AdviseEnabled : BOOLEAN ) : CARDINAL;
+   PUBLIC VIRTUAL PROCEDURE SetAdvise( AdviseEnabled : BOOLEAN ) : Sync.TAsyncResult;
    BEGIN
-      RETURN DoWrite( L"advise", L"all", L"" );
+      RETURN DoWriteOA( L"advise", L"all", L"" );
    END SetAdvise;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE IsConnected() : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Write( CONST Data, Value : StringsO.IString ) : Sync.TAsyncResult;
    BEGIN
-      RETURN _Connection.Connected;
-   END IsConnected;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE Write( CONST Data : ARRAY OF WCHAR; CONST Value : ARRAY OF WCHAR ) : CARDINAL;
-   BEGIN
-      RETURN DoWrite( L"set", Data, Value );
+      RETURN DoWriteOA( L"set", OA( Data.Length-1, Data.rawData ), OA( Value.Length-1, Value.rawData ));
    END Write;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Ask( CONST Data : ARRAY OF WCHAR ) : CARDINAL;
+   PUBLIC VIRTUAL PROCEDURE Ask( CONST Data : StringsO.IString ) : Sync.TAsyncResult;
    BEGIN
-      RETURN DoWrite( L"get", Data, L"" );
+      RETURN DoWriteOA( L"get", OA( Data.Length-1, Data.rawData ), L"" );
    END Ask;
    
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE SetEventListener( Listener : TPISDAPClientEvents );
-   BEGIN
-      _ClientNotifier := Listener;
-   END SetEventListener;
-
 (*--------------------------------------------------------------------------------*)
 
    LOCAL PROCEDURE OnConnect( Error : CARDINAL );
    BEGIN
       IF _ClientNotifier <> NIL THEN
-         _ClientNotifier^.OnConnect( Error );
+         IF Error = 0 THEN
+            _ClientNotifier^.OnConnect( Sync.arCompleted, Error );
+         ELSE
+            _ClientNotifier^.OnConnect( Sync.arAborted, Error );
+         END;
       END;
    END OnConnect;
 
@@ -209,7 +214,11 @@ CLASS IMPLEMENTATION CSDAPClient;
    LOCAL PROCEDURE OnDisconnect( Error : CARDINAL; Local : BOOLEAN );
    BEGIN
       IF _ClientNotifier <> NIL THEN
-         _ClientNotifier^.OnClose( Error );
+         IF Error = 0 THEN
+            _ClientNotifier^.OnClose( Sync.arCompleted, Error );
+         ELSE
+            _ClientNotifier^.OnClose( Sync.arAborted, Error );
+         END;
       END;
    END OnDisconnect;
 
@@ -233,7 +242,7 @@ CLASS IMPLEMENTATION CSDAPClient;
          IF NOT _Reader.Peek( OUT a, OUT l ) THEN
             EXIT;
          ELSIF _Reader.ReadLine( OUT Line, Sync.FORSAFETY, TRUE ) <> Sync.arCompleted THEN
-            ASSERT( FALSE );
+            ASSERTLOG( FALSE );
          END;
          
          CASE _ReadState OF
@@ -255,7 +264,7 @@ CLASS IMPLEMENTATION CSDAPClient;
             i := Line.ItemS( StringsO.WCHARS{L" "}, 0, 0, FALSE, OUT s );
             Line.ItemS( StringsO.WCHARS{L" "}, i, 0, FALSE, OUT t );
             IF NOT s.Empty AND NOT t.Empty AND ( _ClientNotifier <> NIL ) THEN
-               _ClientNotifier^.OnReceive( OA( s.Length-1, s.szData ), OA( t.Length-1, t.szData ));
+               _ClientNotifier^.OnReceive( s, t );
             END;
 
             DEC( _DataCount );
@@ -269,26 +278,21 @@ CLASS IMPLEMENTATION CSDAPClient;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE DoWrite( CONST s1, s2, s3 : ARRAY OF WCHAR ) : CARDINAL;
+   PRIVATE PROCEDURE DoWriteOA( CONST cmd, s1, s2 : ARRAY OF WCHAR ) : Sync.TAsyncResult;
    VAR
       s : ARRAY [0..127] OF WCHAR;
    BEGIN
       IF NOT _Connection.Connected THEN
-         RETURN winsock.WSAENOTCONN;
+         RETURN Sync.arCannotStart;
       END;
-      Strings.ConcatW( OUT s, s1, L" " );
-      Strings.AppendW( REF s, s2 );
+
+      Strings.ConcatW( OUT s, cmd, L" " );
+      Strings.AppendW( REF s, s1 );
       Strings.AppendW( REF s, L" " );
-      Strings.AppendW( REF s, s3 );
-      CASE _Writer.WriteTimeoutOA( s, TRUE, Sync.FORSAFETY ) OF
-      | Sync.arCompleted :
-         RETURN 0;
-      | Sync.arTimeout :
-         RETURN winsock.WSAETIMEDOUT;
-      ELSE
-         RETURN winsock.WSAEFAULT;
-      END;   
-   END DoWrite;
+      Strings.AppendW( REF s, s2 );
+
+      RETURN _Writer.WriteTimeoutOA( s, TRUE, Sync.FORSAFETY );
+   END DoWriteOA;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -302,46 +306,10 @@ END CSDAPClient;
 
 (*================================================================================*)
 
-VAR
-   StartCount : INTEGER := 0;
-
-(*--------------------------------------------------------------------------------*)
-
-PROCEDURE Startup() : CARDINAL;
-VAR
-   count : INTEGER;
+PROCEDURE newSDAPClient( OUT client : TPISDAPClient ) : Sync.TAsyncResult;
 BEGIN
-   count := Sync.IInc( REF StartCount );
-   IF count = 1 THEN
-      threadinit.Startup();
-      netinit.Startup();
-   END;
-   RETURN 0;
-END Startup;
-
-(*--------------------------------------------------------------------------------*)
-
-PROCEDURE Cleanup();
-VAR
-   count : INTEGER;
-BEGIN
-   count := Sync.IDec( REF StartCount );
-   IF count = 0 THEN
-      netinit.Cleanup();
-      threadinit.Cleanup();
-   END;
-END Cleanup;
-
-(*--------------------------------------------------------------------------------*)
-
-PROCEDURE newSDAPClient( OUT client : TPISDAPClient ) : CARDINAL;
-BEGIN
-   IF Sync.IExchgAdd( REF StartCount, 0 ) > 0 THEN
-      NEW( TPSDAPClient( client ));
-      RETURN 0;
-   ELSE
-      RETURN winsock.WSAENETDOWN;
-   END;
+   NEW( TPSDAPClient( client ));
+   RETURN Sync.arCompleted;
 END newSDAPClient;
 
 (*================================================================================*)

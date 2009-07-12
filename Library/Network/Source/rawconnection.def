@@ -40,7 +40,7 @@ ABSTRACT CLASS IPConnection IMPLEMENTS connection.IBufferedClientConnection;
       BufferedStream : IOO.TPBufferedStream;
    
    PUBLIC VIRTUAL PROCEDURE Open( Host : ARRAY OF WCHAR; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
-   PUBLIC PROCEDURE OpenS( Host : StringsO.CString; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE OpenS( CONST Host : StringsO.IString; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE Close();
 
 END IPConnection;

@@ -316,7 +316,7 @@ CLASS IMPLEMENTATION IPConnection;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE OpenS( Host : StringsO.CString; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE OpenS( Host : StringsO.IString; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    BEGIN
       RETURN Open( OA( Host.Length-1, Host.rawData ), WaitForResult, TimeoutMS );
    END OpenS;
