@@ -73,7 +73,7 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
 	INTERNAL VIRTUAL PROCEDURE OnTx( Result : Sync.TAsyncResult );
 	
 	// SELF
-	PUBLIC PROCEDURE Configure( CONST iniFile : INIFile.CINIFile; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+	PUBLIC PROCEDURE Configure( CONST iniFile : INIFile.CINIFile; CONST iniFileSection : StringsO.CString; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
    PUBLIC PROCEDURE Tx( CONST Data : ARRAY OF BYTE; SendAsIs : BOOLEAN; RepeatCount : CARDINAL; TxTimeout, RxTimeout : CARDINAL );
    
    // private

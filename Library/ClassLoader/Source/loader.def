@@ -35,7 +35,7 @@ CLASS CLoader;
       
    PUBLIC PROCEDURE SetHostInfo( CONST Host, HostVersionString : ARRAY OF WCHAR );
 
-   PUBLIC PROCEDURE AddLibrary( CONST LibraryPath : ARRAY OF WCHAR ) : iobject.TResult;
+   PUBLIC PROCEDURE AddLibrary( CONST LibraryPath : ARRAY OF WCHAR; LibraryName : StringsO.TPString ) : iobject.TResult; // LibraryName is optional and will be filled with computed library identifier (usable in CreateObject)
    PUBLIC PROCEDURE RemoveLibrary( CONST LibraryPath : ARRAY OF WCHAR );
    PUBLIC PROCEDURE ScanPath( CONST Path, LibraryNamePattern : ARRAY OF WCHAR; OUT Found : CARDINAL ) : iobject.TResult;
 

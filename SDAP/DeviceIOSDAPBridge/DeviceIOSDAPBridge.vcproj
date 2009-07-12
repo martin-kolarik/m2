@@ -2,8 +2,8 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8,00"
-	Name="StiebelHP"
-	ProjectGUID="{110D6346-F1BD-4EC9-A0CF-E86C8B14EB1B}"
+	Name="DeviceIOSDAPBridge"
+	ProjectGUID="{E057E01E-5040-4335-82BD-6CD36A174008}"
 	Keyword="MakeFileProj"
 	>
 	<Platforms>
@@ -26,7 +26,7 @@
 				BuildCommandLine="msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /p:ConfigurationName=$(ConfigurationName)"
 				ReBuildCommandLine="msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:ConfigurationName=$(ConfigurationName)"
 				CleanCommandLine="msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:ConfigurationName=$(ConfigurationName)"
-				Output="StiebelHP.exe"
+				Output="DeviceIOSDAPBridge.exe"
 				PreprocessorDefinitions="WIN32;_DEBUG"
 				IncludeSearchPath=""
 				ForcedIncludes=""
@@ -47,7 +47,7 @@
 				BuildCommandLine="msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /p:ConfigurationName=$(ConfigurationName)"
 				ReBuildCommandLine="msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:ConfigurationName=$(ConfigurationName)"
 				CleanCommandLine="msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:ConfigurationName=$(ConfigurationName)"
-				Output="StiebelHP.exe"
+				Output="DeviceIOSDAPBridge.exe"
 				PreprocessorDefinitions="WIN32;NDEBUG"
 				IncludeSearchPath=""
 				ForcedIncludes=""
@@ -66,11 +66,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\Source\iface.mod"
-				>
-			</File>
-			<File
-				RelativePath=".\Source\StiebelHP.mod"
+				RelativePath=".\Source\DeviceIOSDAPBridge.mod"
 				>
 			</File>
 		</Filter>
@@ -80,26 +76,12 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\Source\iface.def"
-				>
-			</File>
-			<File
-				RelativePath=".\Source\StiebelHP.def"
+				RelativePath=".\Source\DeviceIOSDAPBridge.def"
 				>
 			</File>
 		</Filter>
-		<Filter
-			Name="Resource Files"
-			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
-			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
-			>
-		</Filter>
 		<File
-			RelativePath=".\StiebelHP.definition.proj"
-			>
-		</File>
-		<File
-			RelativePath=".\StiebelHP.proj"
+			RelativePath=".\DeviceIOSDAPBridge.proj"
 			>
 		</File>
 	</Files>

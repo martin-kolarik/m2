@@ -1,0 +1,53 @@
+DEFINITION MODULE DeviceIOSDAPBridge;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   device,
+   io,
+   lists,
+   loader,
+   log,
+   maps,
+   sdapClient,
+   StringsO;
+
+(*================================================================================*)
+
+TYPE
+   TPBridge = POINTER TO ABridge;
+
+ABSTRACT CLASS ABridge IMPLEMENTS device.IConfigurable, io.IStartStopControl;
+
+   // IConfigurable
+	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+
+   // IStartStopControl
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Running : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Stop();
+
+   // SELF
+   PRIVATE VAR
+      _SDAPHost : StringsO.CString;
+      _SDAPClient : sdapClient.TPISDAPClient;
+      _Loader : loader.CLoader;
+      _Devices : lists.CStringList;
+      _TimerId : PTR;
+      _Data : lists.CPtrList;
+      _Lookup : maps.CStringMap;
+   
+   PUBLIC PROCEDURE EnumerateDeviceState( REF ES : PTR; OUT device : StringsO.IString; OUT Running : BOOLEAN ) : BOOLEAN;
+
+   VIRTUAL PROCEDURE Dispose();
+END ABridge;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE newDeviceIOSDAPBridge( OUT bridge : TPBridge ) : Sync.TAsyncResult;
+
+(*================================================================================*)
+
+END DeviceIOSDAPBridge;
