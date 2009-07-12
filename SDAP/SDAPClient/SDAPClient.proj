@@ -18,7 +18,7 @@
     <!-- 3 COMPOMENT DEFINITION -->
     <ItemGroup>
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
-        <Components Include="Modula2\m2rtl;Modula2\m2ortl;Library\ADT;Library\Threading;Library\Network"/>
+        <Components Include="Component\sccore"/>
         <Modules Include="SDAPClient"/>
     </ItemGroup>
 

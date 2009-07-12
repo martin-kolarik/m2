@@ -50,4 +50,4 @@ PROCEDURE newDeviceIOSDAPBridge( OUT bridge : TPBridge ) : Sync.TAsyncResult;
 
 (*================================================================================*)
 
-END DeviceIOSDAPBridge;
+END DeviceIOSDAPBridge.

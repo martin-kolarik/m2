@@ -258,9 +258,9 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC PROCEDURE Configure( CONST iniFile : INIFile.CINIFile; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+	PUBLIC PROCEDURE Configure( CONST iniFile : INIFile.CINIFile; CONST iniFileSection : StringsO.IString; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
 	BEGIN
-	   
+	   RETURN Sync.arCompleted;
 	END Configure;
 
 (*---------------------------------------------------------------------------*)
@@ -611,10 +611,10 @@ CLASS IMPLEMENTATION CStiebelHPDevice;
    BEGIN
       IF HIGH( Source ) < 0 THEN
          RETURN Sync.arCannotStart;
-      ELSIF Source[0].Type <> device.citINIFile THEN
+      ELSIF Source[0].Type <> device.citINIFileSection THEN
          RETURN Sync.arCannotStart;
       END;
-      RETURN _IO.DeviceCommunicator.Configure( Source[0].iniFile^, Log );
+      RETURN _IO.DeviceCommunicator.Configure( Source[0]._iniFile^, Source[0].section^, Log );
    END Configure;
    
 (*---------------------------------------------------------------------------*)

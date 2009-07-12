@@ -3,9 +3,45 @@
     <strings version="1.0">
 
         <comment>CFG errors</comment>
-        <string name="_CannotOpenPar">
-            <item lang="en-US">Error during opening configuration file</item>
-            <item lang="cs-CZ">Chyba při otevření konfiguračního souboru</item>
+        <string name="_HostKeyOfSDAPSectionMissing">
+            <item lang="en-US">&quot;host&quot; key of &quot;SDAP&quot; section is missing</item>
+            <item lang="cs-CZ">Klíč &quot;host&quot; sekce &quot;SDAP&quot; chybí</item>
+        </string>
+        <string name="_SDAPSectionMissing">
+            <item lang="en-US">&quot;SDAP&quot; section is missing</item>
+            <item lang="cs-CZ">Chybí sekce &quot;SDAP&quot;</item>
+        </string>
+        <string name="_DeviceAlreadyExists">
+            <item lang="en-US">Device with the name already exists: </item>
+            <item lang="cs-CZ">Zařízení s uvedeným jménem již existuje:</item>
+        </string>
+        <string name="_DeviceSectionMissing">
+            <item lang="en-US">Section with device configuration is missing: </item>
+            <item lang="cs-CZ">Sekce s konfigurací zařízení chybí: </item>
+        </string>
+        <string name="_LibraryKeyOfDeviceSectionMissing">
+            <item lang="en-US">&quot;library&quot; key of the device section is missing: </item>
+            <item lang="cs-CZ">Klíč &quot;library&quot; uvedené sekce zařízení chybí: </item>
+        </string>
+        <string name="_LibraryNotFound">
+            <item lang="en-US">Library not found: </item>
+            <item lang="cs-CZ">Knihovna nebyla nalezena: </item>
+        </string>
+        <string name="_LibraryUnloadable">
+            <item lang="en-US">Library is not loadable: </item>
+            <item lang="cs-CZ">Knihovnu nelze načíst: </item>
+        </string>
+        <string name="_LibraryDisable">
+            <item lang="en-US">Library is disabled: </item>
+            <item lang="cs-CZ">Knihovna je zakázaná: </item>
+        </string>
+        <string name="_LibraryClassNotFound">
+            <item lang="en-US">There was found requested class in the library: </item>
+            <item lang="cs-CZ">Požadovaná třída nebyla v knihovně nalezena: </item>
+        </string>
+        <string name="_DataItemNotFound">
+            <item lang="en-US">Data point is unknown for the device: </item>
+            <item lang="cs-CZ">Zařízení uvedený datový bod nezná: </item>
         </string>
 
     </strings>

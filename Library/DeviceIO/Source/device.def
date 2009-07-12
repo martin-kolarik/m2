@@ -18,7 +18,8 @@ TYPE
       citIString,
       citStream,
       citTextReader,
-      citINIFile
+      citINIFile,
+      citINIFileSection
    );
    
    TConfigureItem =  RECORD

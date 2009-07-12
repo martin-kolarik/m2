@@ -2,7 +2,19 @@ IMPLEMENTATION MODULE DeviceIOSDAPBridge;
 
 IMPORT
    FIO,
-   INIFile;
+   INIFile,
+   iobject,
+   IOO,
+   log,
+   ns,
+   resources,
+   Sync,
+   Texts;
+
+(*================================================================================*)
+
+VAR
+   R : resources.CResources;
 
 (*================================================================================*)
 
@@ -13,8 +25,8 @@ CLASS CItem;
    PUBLIC VAR
       Direction : IOO.TDirection; // read means read "from device"
       Device : device.TPDevice;
-      SDAPName : Strings.CString;
-      Hash : ns.TPHash;
+      SDAPName : StringsO.CString;
+      Hash : ns.THash;
 END CItem;
 
 (*--------------------------------------------------------------------------------*)
@@ -22,7 +34,7 @@ END CItem;
 CLASS IMPLEMENTATION CItem;
 BEGIN
    Direction := IOO.dirRead;
-   Device := 0;
+   Device := NIL;
    Hash := 0;
 END CItem;
 
@@ -39,39 +51,44 @@ CLASS IMPLEMENTATION ABridge;
 	   secDevices      = L"devices";
 	   secDevicePrefix = L"device_";
 	      keyLibrary   = L"library";
-	   secDeviceToSDAP = L"device_to_DSAP";
+	   secDeviceToSDAP = L"device_to_sdap";
 	      keyPeriod    = L"period";
-	   secSDAP         = L"SDAP";
+	   secSDAP         = L"sdap";
 	      keyHost      = L"host";
-	   secSDAPToDevice = L"SDAP_to_device";
+	   secSDAPToDevice = L"sdap_to_device";
 	VAR
 	   dev : device.TPDevice;
-	   devices : maps.CStringStringList;
+	   deviceId : StringsO.CString;
+	   devices : maps.CStringStringMap;
 	   devPath, exePath : FIO.PathStrW;
+	   ES : PTR;
+	   hash : ns.THash;
 	   iniFile : INIFile.TPINIFile;
+	   item : POINTER TO CItem;
 	   nameDevMap : maps.CStringMap;
 	   key : ARRAY [0..127] OF WCHAR;
 	   l : CARDINAL;
-	   Result : Sync.TAsyncResult;
+	   Result : Sync.TAsyncResult := Sync.arCompleted;
 	   s : StringsO.CString;
+	   src : device.TConfigureItem;
 	   value : StringsO.CString;
 	   
 	   (*----------*)
 	   
 	   PROCEDURE GetHash( CONST input : ARRAY OF WCHAR; OUT dev : device.TPDevice; OUT hash : ns.THash ) : BOOLEAN;
 	   CONST
-	      charSplit = Strings.WCHARS{ L"." };
+	      charSplit = StringsO.WCHARS{ L"/" };
 	   VAR
-	      dataName : StringsO.CString;
+	      deviceName : StringsO.CString;
 	      i : CARDINAL;
 	      inputS : StringsO.CString;
 	   BEGIN
-	      inputs.FromOA( input );
-	      i := inputS.ItemS( charSplit, 0, 0, OUT deviceName );
+	      inputS.FromOA( input );
+	      i := inputS.ItemS( charSplit, 0, 0, FALSE, OUT deviceName );
 	      IF i = -1 THEN
 	         RETURN FALSE;
 	      END;
-	      inputS.Delete( i+1, -1 );
+	      inputS.Remove( 0, i );
 	      IF inputS.Empty THEN
 	         RETURN FALSE;
 	      ELSIF NOT nameDevMap.Get( deviceName, OUT dev ) THEN
@@ -89,6 +106,8 @@ CLASS IMPLEMENTATION ABridge;
 	   VAR
 	      msg : StringsO.CString;
 	   BEGIN
+	      Result := Sync.arAborted;
+
 	      msg.FromOA( OAsz( R[errorText] ));
 	      IF addonText <> NIL THEN
 	         msg.Append( addonText^ );
@@ -105,10 +124,10 @@ CLASS IMPLEMENTATION ABridge;
 	      RETURN Sync.arCannotStart;
 	   ELSIF HIGH( Source ) < 0 THEN
 	      RETURN Sync.arCannotStart;
-	   ELSIF Source[0].Type <> citINIFile THEN
+	   ELSIF Source[0].Type <> device.citINIFile THEN
 	      RETURN Sync.arCannotStart;
 	   ELSE
-	      iniFile := Source^.iniFile;
+	      iniFile := Source[0].iniFile;
 	   END;
 
       // SDAP
@@ -135,14 +154,14 @@ CLASS IMPLEMENTATION ABridge;
       devices.Reset();
       WHILE devices.MoveNext() DO
 
-         IF nameDevMap.Contains( devices^.Current^ ) THEN
-            LogError( 0, Texts._DeviceAlreadyExists, devices^.Current );
+         IF nameDevMap.Contains( devices.Current^ ) THEN
+            LogError( 0, Texts._DeviceAlreadyExists, devices.Current );
             CONTINUE;
          END;
 
          deviceId.FromOA( secDevicePrefix );
-         deviceId.Append( devices.Current )^ );
-         IF NOT iniFile^.SetSection( OA( deviceId^.Length-1, deviceId^.rawData )) THEN
+         deviceId.Append( devices.Current^ );
+         IF NOT iniFile^.SetSection( OA( deviceId.Length-1, deviceId.rawData )) THEN
             LogError( 0, Texts._DeviceSectionMissing, ADR( deviceId ));
             CONTINUE;
          ELSIF NOT iniFile^.GetKeyStr( keyLibrary, OUT l, OUT value ) THEN
@@ -151,35 +170,35 @@ CLASS IMPLEMENTATION ABridge;
          END;   
          
          FIO.MakePathW( exePath, OA( value.Length-1, value.rawData ), OUT devPath );
-         Loader.AddLibrary( devPath, value ); // value contains LibraryName
+         _Loader.AddLibrary( devPath, ADR( value )); // value contains LibraryName
          value.AppendOA( DEVICE_CLASS_NAME_SUFFIX );
-         CASE Loader.CreateObject( OA( value.Length-1, value.rawData ), OUT dev ) OF
+         CASE _Loader.CreateObject( OA( value.Length-1, value.rawData ), OUT dev ) OF
          //----
          | iobject.lrSuccess :
-            src.Type := device.citInitFileSection;
+            src.Type := device.citINIFileSection;
             src._iniFile := iniFile;
             src.section := ADR( deviceId );
             IF dev^.Configure( OA( 0, ADR( src )), Log ) = Sync.arCompleted THEN
                _Devices.Add( devices.CurrentData^, dev );
-               nameDevMap.Add( deviceId, dev );
+               nameDevMap.Add( devices.Current^, dev );
             ELSE
-               Loader.ReleaseObject( dev );
-               Result := Sync.arAbort;
+               _Loader.ReleaseObject( REF dev );
+               Result := Sync.arAborted;
             END;
          //----
-         | lrLibraryNotFound :
+         | iobject.lrLibraryNotFound :
             s.FromOA( devPath );
             LogError( l, Texts._LibraryNotFound, ADR( s ));
          //----
-         | lrLibraryFoundButIsUnloadable :
+         | iobject.lrLibraryFoundButIsUnloadable :
             s.FromOA( devPath );
             LogError( l, Texts._LibraryUnloadable, ADR( s ));
          //----
-         | lrLibraryDisabled :
+         | iobject.lrLibraryDisabled :
             s.FromOA( devPath );
             LogError( l, Texts._LibraryDisable, ADR( s ));
          //----
-         | lrClassNotFound :
+         | iobject.lrClassNotFound :
             s.FromOA( devPath );
             LogError( l, Texts._LibraryClassNotFound, ADR( s ));
          END; // CASE
@@ -187,7 +206,7 @@ CLASS IMPLEMENTATION ABridge;
       END; // WHILE
       
       // data
-      IF INIFile.SetSection( secSDAPToDevice ) THEN // deviceId = sdapId
+      IF iniFile^.SetSection( secSDAPToDevice ) THEN // deviceId = sdapId
          ES := 0;
          WHILE iniFile^.EnumerateKeys( REF ES, OUT l, OUT key, OUT value ) DO
             IF NOT GetHash( key, OUT dev, OUT hash ) THEN
@@ -206,7 +225,7 @@ CLASS IMPLEMENTATION ABridge;
          END; // WHILE
       END;
 
-      IF INIFile.SetSection( secDeviceToSDAP ) THEN // sdapId = deviceId
+      IF iniFile^.SetSection( secDeviceToSDAP ) THEN // sdapId = deviceId
          ES := 0;
          WHILE iniFile^.EnumerateKeys( REF ES, OUT l, OUT key, OUT value ) DO
             IF NOT GetHash( OA( value.Length-1, value.rawData ), OUT dev, OUT hash ) THEN
@@ -215,7 +234,7 @@ CLASS IMPLEMENTATION ABridge;
             END;
             
             NEW( item );
-            item^.Direction := IOO.dirWrite;
+            item^.Direction := IOO.dirRead;
             item^.Device := dev;
             item^.Hash := hash;
             item^.SDAPName.FromOA( key );
@@ -245,20 +264,20 @@ CLASS IMPLEMENTATION ABridge;
       Result : Sync.TAsyncResult := Sync.arCannotStart;
    BEGIN
       IF _SDAPClient <> NIL THEN
-         Result := _SDAPClient^.Start();
+         Result := _SDAPClient^.Connect( _SDAPHost );
       END;
 
       _Devices.Reset();
-      WHILE _Devices.MoveToNext() DO
+      WHILE _Devices.MoveNext() DO
          dev := _Devices.CurrentData;
-         CASE dev^.Start() OF
+         CASE dev^.IO()^.Start() OF
          | Sync.arCompleted :
             // OK
          | Sync.arPending :
             Result := Sync.arPending;
          ELSE
             IF Result = Sync.arCompleted THEN
-               Result := Sync.arCompletedPartially;
+               Result := Sync.arPartCompleted;
             END;
          END;
       END; // WHILE
@@ -273,13 +292,13 @@ CLASS IMPLEMENTATION ABridge;
       dev : device.TPDevice;
    BEGIN
       _Devices.Reset();
-      WHILE _Devices.MoveToNext() DO
+      WHILE _Devices.MoveNext() DO
          dev := _Devices.CurrentData;
-         dev^.Stop();
+         dev^.IO()^.Stop();
       END; // WHILE
       
       IF _SDAPClient <> NIL THEN
-         _SDAPClient^.Stop();
+         _SDAPClient^.Close();
       END;
    END Stop;
 
@@ -287,13 +306,14 @@ CLASS IMPLEMENTATION ABridge;
 
    PUBLIC PROCEDURE EnumerateDeviceState( REF ES : PTR; OUT deviceName : StringsO.IString; OUT Running : BOOLEAN ) : BOOLEAN;
    VAR
+      b : BOOLEAN;
       dev : device.TPDevice;
    BEGIN
       IF ES = -1 THEN
          RETURN FALSE;
       ELSIF ES = 0 THEN
          _Devices.Reset();
-         b := _Devices.MoveToNext();
+         b := _Devices.MoveNext();
       ELSE
          b := _Devices.SetNextOf( ES );
       END;
@@ -301,8 +321,8 @@ CLASS IMPLEMENTATION ABridge;
          ES := _Devices.CListWState.Current;
          
          dev := _Devices.CurrentData;
-         deviceName.Assign( dev^.Current^ );
-         Running := dev^.Running;         
+         deviceName.Assign( _Devices.Current^ );
+         Running := dev^.IO()^.Running;         
          
       ELSE
          ES := -1;
@@ -330,7 +350,7 @@ CLASS IMPLEMENTATION ABridge;
       _Devices.Reset();
       WHILE _Devices.MoveNext() DO
          dev := _Devices.CurrentData;
-         _Loader.ReleaseObject( dev );
+         _Loader.ReleaseObject( REF dev );
       END; // WHILE
       _Devices.Dispose();
       
@@ -356,6 +376,11 @@ END CBridge;
 
 (*--------------------------------------------------------------------------------*)
 
+CLASS IMPLEMENTATION CBridge;
+END CBridge;
+
+(*--------------------------------------------------------------------------------*)
+
 PROCEDURE newDeviceIOSDAPBridge( OUT bridge : TPBridge ) : Sync.TAsyncResult;
 VAR
    lBridge : POINTER TO CBridge;
@@ -367,4 +392,6 @@ END newDeviceIOSDAPBridge;
 
 (*================================================================================*)
 
-END DeviceIOSDAPBridge;
+BEGIN
+   R.LoadRES2( EMIT( %exe ), L"DeviceIOSDAPBridge.Texts" );
+END DeviceIOSDAPBridge.

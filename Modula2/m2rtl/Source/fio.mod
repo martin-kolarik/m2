@@ -162,7 +162,9 @@ PROCEDURE MakePathW( CONST Head, Tail : ARRAY OF WCHAR; OUT Path : ARRAY OF WCHA
 VAR
    LPath : PathStrW;
 BEGIN
-   IF HIGH( Head ) = -1 THEN
+   IF IsUNCW( Tail ) OR IsDriveW( Tail ) THEN
+      ASSIGN( LPath, Tail );
+   ELSIF HIGH( Head ) = -1 THEN
       ASSIGN( LPath, Tail );
    ELSIF Head[ LENGTH( Head ) - 1 ] = '\' THEN
       Strings.ConcatW( OUT LPath, Head, Tail );
