@@ -316,7 +316,7 @@ CLASS IMPLEMENTATION IPConnection;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE OpenS( Host : StringsO.IString; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE OpenS( CONST Host : StringsO.IString; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    BEGIN
       RETURN Open( OA( Host.Length-1, Host.rawData ), WaitForResult, TimeoutMS );
    END OpenS;
@@ -357,10 +357,6 @@ BEGIN
    NEW( _Notifier );
    _Notifier^.Connection := ADR( SELF );
    
-   _Socket^.Notifier := _Notifier;
-
-   _NStream.FromSocket( _Socket, FALSE, IOO.accReadWrite );
-
    _BStream.Stream := ADR( _NStream );
    _BStream.Notifier := _Notifier;
 
@@ -368,13 +364,6 @@ FINALLY
    _BStream.Close( FALSE );
    _BStream.Stream := NIL;
    // _NStream is closed inside _BStream
-   
-   IF _Socket <> NIL THEN
-      _Socket^.Notifier := NIL;
-      _Socket^.Disconnect( TRUE, netsocket.FORSAFETY );
-      _Socket^.Release();
-      _Socket := NIL;
-   END;
    
    _Notifier^.Release();
    _Notifier := NIL;
@@ -386,6 +375,16 @@ CLASS IMPLEMENTATION TCPConnection;
 BEGIN
    NEW( _Socket );
    _Socket^.Type := netsocket.stStream;
+
+   _Socket^.Notifier := _Notifier;
+   _NStream.FromSocket( _Socket, FALSE, IOO.accReadWrite );
+FINALLY
+   IF _Socket <> NIL THEN
+      _Socket^.Notifier := NIL;
+      _Socket^.Disconnect( TRUE, netsocket.FORSAFETY );
+      _Socket^.Release();
+      _Socket := NIL;
+   END;
 END TCPConnection;
 
 (*================================================================================*)
@@ -394,6 +393,16 @@ CLASS IMPLEMENTATION UDPConnection;
 BEGIN
    NEW( _Socket );
    _Socket^.Type := netsocket.stDatagram;
+
+   _Socket^.Notifier := _Notifier;
+   _NStream.FromSocket( _Socket, FALSE, IOO.accReadWrite );
+FINALLY
+   IF _Socket <> NIL THEN
+      _Socket^.Notifier := NIL;
+      _Socket^.Disconnect( TRUE, netsocket.FORSAFETY );
+      _Socket^.Release();
+      _Socket := NIL;
+   END;
 END UDPConnection;
 
 (*================================================================================*)
