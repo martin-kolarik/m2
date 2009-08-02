@@ -89,6 +89,7 @@ CLASS IMPLEMENTATION CCompletionDataInfoSink;
       IF ( _Result = Sync.arCompleted ) AND ( Direction = IOO.dirRead ) THEN
          _Value := Value[0];
       END;
+      _Signal.Signal();
    END OnIO;
 
 (*---------------------------------------------------------------------------*)
@@ -107,7 +108,9 @@ CLASS IMPLEMENTATION CCompletionDataInfoSink;
       Result : Sync.TAsyncResult;
    BEGIN
       Result := _Signal.Wait( TimeoutMS );
-      IF ( Result = Sync.arCompleted ) AND NOT Value.Undefined THEN
+      IF Result = Sync.arTimeout THEN
+         _Result := Sync.arTimeout;
+      ELSIF ( Result = Sync.arCompleted ) AND NOT Value.Undefined THEN
          Value := _Value;
       END;
       RETURN _Result;
