@@ -173,7 +173,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    BEGIN
-      RETURN Connection.OpenS( _DeviceAddress, TRUE, netsocket.FORSAFETY );
+      RETURN Connection.OpenS( _DeviceAddress, TRUE, 500 );
    END Start;
 
 (*---------------------------------------------------------------------------*)
@@ -182,6 +182,19 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    BEGIN
       Connection.Close();
    END Stop;
+
+(*---------------------------------------------------------------------------*)
+
+   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
+   VAR
+      EmptyData : StorageO.CMemoryBuffer;
+   BEGIN
+      IF PoolHandle = _TxTimeoutHandle THEN
+         OnTx( Sync.arTimeout );
+      ELSIF PoolHandle = _RxTimeoutHandle THEN
+         OnRx( Sync.arTimeout, EmptyData );
+      END;
+   END OnTimeout;
 
 (*---------------------------------------------------------------------------*)
 
@@ -224,11 +237,14 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
 	INTERNAL VIRTUAL PROCEDURE OnRx( Result : Sync.TAsyncResult; CONST Data : StorageO.AMemoryBuffer );
 	BEGIN
+      StopTimeout( REF _TxTimeoutHandle );
 		IF Result <> Sync.arCompleted THEN
+		   StopTimeout( REF _RxTimeoutHandle );
 			PIO^.OnRx( Result, NIL );
 		ELSIF PLONGWORD( Data.Data )^ = 055555555H THEN
 			PIO^.OnTxCON( Sync.arCompleted );
 		ELSE
+		   StopTimeout( REF _RxTimeoutHandle );
 			PIO^.OnRx( Sync.arCompleted, TPPacket( Data.Data ));
 		END;
 	END OnRx;
@@ -259,8 +275,37 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 (*---------------------------------------------------------------------------*)
 
 	PUBLIC PROCEDURE Configure( CONST iniFile : INIFile.CINIFile; CONST iniFileSection : StringsO.IString; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+   CONST
+      keyHost = L"host";
+   VAR
+      Result : Sync.TAsyncResult := Sync.arCompleted;
+
+	   (*----------*)
+
+	   PROCEDURE LogError( line : CARDINAL; errorText : CARDINAL; addonText : StringsO.TPString );
+	   VAR
+	      msg : StringsO.CString;
+	   BEGIN
+	      Result := Sync.arAborted;
+
+	      // msg.FromOA( OAsz( R[errorText] ));
+	      IF addonText <> NIL THEN
+	         msg.Append( addonText^ );
+	      END;
+	      Log^.LogFilePos( log.dlcError, L"StiebelHP", L"", OA( msg.Length-1, msg.rawData ), line, 0 );
+	   END LogError;
+
+	   (*----------*)
+
+   VAR
+      l : CARDINAL;
 	BEGIN
-	   RETURN Sync.arCompleted;
+	   IF NOT iniFile.SetSection( OA( iniFileSection.Length-1, iniFileSection.rawData )) THEN
+         LogError( 0, 0, NIL ); // Texts._ConfigurationSectionMissing, ADR( iniFileSection ));
+      ELSIF NOT iniFile.GetKeyStr( keyHost, OUT l, OUT _DeviceAddress ) THEN
+         LogError( l, 0, NIL ); // Texts._HostKeyMissing, NIL );
+      END;
+      RETURN Result;
 	END Configure;
 
 (*---------------------------------------------------------------------------*)
@@ -271,12 +316,23 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 	   Result : Sync.TAsyncResult;
 	   TxBuffer : StorageO.CMemoryBuffer;
 	BEGIN
+	   IF NOT Connection.Connected THEN
+         Connection.OpenS( _DeviceAddress, TRUE, 500 );
+	   END;
+	
 		IF INTEGER( HIGH( Data )) >= 0 THEN // HACK
    	   TxBuffer.Size := 1024;
 			TxBuffer.AppendOA( Data );
 			IF NOT _SendAsIs THEN
 				AddChkSum( REF TxBuffer );
 			END;
+		END;
+		
+		IF _TxTimeout > 0 THEN
+		   StartTimeout( _TxTimeout, REF _TxTimeoutHandle );
+		END;
+		IF _RxTimeout > 0 THEN
+		   StartTimeout( _RxTimeout, REF _RxTimeoutHandle );
 		END;
 
 		Logger.LogSCB( log.dldDebug, L'', L'tx start of ', TxBuffer.Length, TxBuffer.Data, TxBuffer.Length );
@@ -285,6 +341,15 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 		   ASSERTLOG( FALSE );
 		END;
 	END Tx;
+
+//---------------------------------------------------------
+
+   PUBLIC PROCEDURE Abort();
+   BEGIN
+      StopTimeout( REF _TxTimeoutHandle );
+      StopTimeout( REF _RxTimeoutHandle );
+		Connection.Stream^.AbortWriting();
+   END Abort;
 
 //---------------------------------------------------------
 
@@ -338,9 +403,29 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
 //---------------------------------------------------------
 
+   PRIVATE PROCEDURE StartTimeout( TimeoutMS : CARDINAL; REF Handle : threadpool.TPoolHandle );
+   BEGIN
+      ASSERTLOG( Handle = NIL );
+      threadpool.pool()^.WaitTimeout( ADR( _PoolDelegate ), 0, TimeoutMS, TRUE, FALSE, OUT Handle );
+   END StartTimeout;
+
+//---------------------------------------------------------
+
+   PRIVATE PROCEDURE StopTimeout( REF Handle : threadpool.TPoolHandle );
+   BEGIN
+      IF Handle = NIL THEN
+         RETURN;
+      END;
+      threadpool.pool()^.Abort( REF Handle );
+   END StopTimeout;
+
+//---------------------------------------------------------
+
 BEGIN
 	PIO := NIL;
-	_TimerTick := 1000; // a second
+	_RxTimeoutHandle := 0;
+	_TxTimeoutHandle := 0;
+	_PoolDelegate.TimeoutSink := ADR( SELF );
 END CDeviceCommunicator;
 
 (*===========================================================================*)
@@ -351,28 +436,27 @@ CLASS IMPLEMENTATION CIO;
 
 	PUBLIC PROCEDURE Dispose();
 	BEGIN
-		// TODO Serial.Dispose();
 	END Dispose;
 
 (*---------------------------------------------------------------------------*)
 
 	PUBLIC PROPERTY Running GET : BOOLEAN;
 	BEGIN
-	   // TODO
-		RETURN FALSE;
+	   RETURN DeviceCommunicator.Running;
 	END Running;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    BEGIN
-      RETURN Sync.arCompleted;
+      RETURN DeviceCommunicator.Start();
    END Start;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Stop();
    BEGIN
+      DeviceCommunicator.Stop();
    END Stop;
 
 (*---------------------------------------------------------------------------*)
@@ -464,16 +548,9 @@ CLASS IMPLEMENTATION CIO;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE Abort();
-	BEGIN
-		_AbortFlag := TRUE;
-	END Abort;
-
-(*---------------------------------------------------------------------------*)
-
 	PUBLIC VIRTUAL PROCEDURE AbortAll();
 	BEGIN
-		_AbortFlag := TRUE;
+		DeviceCommunicator.Abort();
 	END AbortAll;
 
 (*---------------------------------------------------------------------------*)
@@ -488,7 +565,7 @@ CLASS IMPLEMENTATION CIO;
 			RETURN;
 		ELSIF ( _Pending = IOO.dirWrite ) AND ( Result = Sync.arTimeout ) THEN
 			// TODO
-		  // tiemouted write
+		   // tiemouted write
 		ELSIF ( _Pending <> IOO.dirRead ) OR ( _Callback = NIL ) THEN
 			RETURN;
 		ELSE

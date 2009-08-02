@@ -1,10 +1,14 @@
 IMPLEMENTATION MODULE DeviceIOSDAPBridge;
 
+FROM Debug IMPORT
+   Assertion, LogAssertionW;
+
 IMPORT
    FIO,
    INIFile,
    iobject,
    IOO,
+   iovalue,
    log,
    ns,
    resources,
@@ -41,6 +45,114 @@ END CItem;
 (*================================================================================*)
 
 CLASS IMPLEMENTATION ABridge;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+   VAR
+      cb : io.CCompletionDataInfo;
+      item : TPItem;
+      Result : Sync.TAsyncResult;
+      sdapName : StringsO.CString;
+      value : iovalue.Value;
+      valueString : StringsO.CString;
+   BEGIN
+      IF _SDAPClient = NIL THEN
+         RETURN -1;
+      END;
+      _Connecting := TRUE;
+      _TickCounter := 1;
+      _SDAPClient^.Connect( _SDAPHost );
+
+      LOOP
+         Result := Helper.WaitForStopRequestAndSignal( ADR( _WriteSignal ), 1000 );
+         CASE Result OF
+         | Sync.arCompleted :
+            EXIT;
+         | Sync.arTimeout, // read timer
+           Sync.arPartCompleted : // write queue
+            // fall down
+         ELSE
+            ASSERTLOG( FALSE );
+            CONTINUE;
+         END; // CASE
+
+         // check and renew the connection
+         IF NOT _Connecting AND NOT _SDAPClient^.Connected THEN
+            _Connecting := TRUE;
+            _SDAPClient^.Connect( _SDAPHost );
+            CONTINUE;
+         END;
+
+         IF Result = Sync.arTimeout THEN // read data from device and send it to SDAP
+            // skip unused ticks
+            DEC( _TickCounter );
+            IF _TickCounter > 0 THEN
+               CONTINUE;
+            END;
+            _TickCounter := _PeriodCounter;
+
+            // get values from device and send them to SDAP
+            _Data.Reset();
+            WHILE _Data.MoveNext() DO
+               item := _Data.Current;
+               IF item^.Direction <> IOO.dirRead THEN
+                  CONTINUE;
+               END;
+
+               cb.Reset();
+               Result := item^.Device^.IO()^.IOh( IOO.dirRead, item^.Hash, REF value, ADR( cb ));
+               IF Result <> Sync.arPending THEN
+                  // LOG // TODO
+                  CONTINUE;
+               END;
+               Result := cb.WaitCompletion( Sync.FORSAFETY, OUT value );
+               IF Result <> Sync.arCompleted THEN
+                  item^.Device^.IO()^.AbortAll();
+                  // LOG // TODO
+                  CONTINUE;
+               END;
+
+               // send value using SDAPClient
+               Result := _SDAPClient^.Write( item^.SDAPName, value.String );
+               IF Result <> Sync.arCompleted THEN
+                  // LOG // TODO
+               END;
+            END; // WHILE
+            
+         ELSE // write data to device
+            LOOP
+               _WriteLock.Lock();
+               IF _WriteQueue.Dequeue( OUT sdapName, OUT valueString ) THEN
+                  _WriteLock.Unlock();
+               ELSE
+                  _WriteLock.Unlock();
+                  EXIT;
+               END;
+
+               cb.Reset();
+               value.String := valueString;
+               Result := item^.Device^.IO()^.IOh( IOO.dirWrite, item^.Hash, REF value, ADR( cb ));
+               IF Result <> Sync.arPending THEN
+                  // LOG // TODO
+                  CONTINUE;
+               END;
+               Result := cb.WaitCompletion( Sync.FORSAFETY, OUT value );
+               IF Result <> Sync.arCompleted THEN
+                  item^.Device^.IO()^.AbortAll();
+                  // LOG // TODO
+                  CONTINUE;
+               END;
+
+            END; // LOOP
+
+         END;
+
+      END; // LOOP
+
+      _SDAPClient^.Close();
+      RETURN 0;
+   END OnRun;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -243,9 +355,13 @@ CLASS IMPLEMENTATION ABridge;
          END; // WHILE
       END;
       
-      IF Result <> Sync.arCompleted THEN
+      IF Result = Sync.arCompleted THEN
+         Result := sdapClient.newSDAPClient( OUT _SDAPClient );
+         _SDAPClient^.EventListener := ADR( SELF );
+      ELSE
          Dispose();
       END;
+
       RETURN Result;
 	END Configure;
 
@@ -263,10 +379,6 @@ CLASS IMPLEMENTATION ABridge;
       dev : device.TPDevice;
       Result : Sync.TAsyncResult := Sync.arCannotStart;
    BEGIN
-      IF _SDAPClient <> NIL THEN
-         Result := _SDAPClient^.Connect( _SDAPHost );
-      END;
-
       _Devices.Reset();
       WHILE _Devices.MoveNext() DO
          dev := _Devices.CurrentData;
@@ -282,6 +394,7 @@ CLASS IMPLEMENTATION ABridge;
          END;
       END; // WHILE
       
+      _Thread.RunWithRunnable( ADR( SELF ));
       RETURN Result;
    END Start;
 
@@ -291,16 +404,38 @@ CLASS IMPLEMENTATION ABridge;
    VAR
       dev : device.TPDevice;
    BEGIN
+      _Thread.Stop( TRUE );
+   
       _Devices.Reset();
       WHILE _Devices.MoveNext() DO
          dev := _Devices.CurrentData;
          dev^.IO()^.Stop();
       END; // WHILE
-      
-      IF _SDAPClient <> NIL THEN
-         _SDAPClient^.Close();
-      END;
    END Stop;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE OnConnect( Result : Sync.TAsyncResult; Error : CARDINAL );
+   BEGIN
+      _Connecting := FALSE;
+   END OnConnect;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE OnClose( Result : Sync.TAsyncResult; Error : CARDINAL );
+   BEGIN
+      // intentionaly empty
+   END OnClose;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE OnReceive( CONST Data, Value : StringsO.IString );
+   BEGIN
+      _WriteLock.Lock();
+      _WriteQueue.Enqueue( Data, Value );
+      _WriteLock.Unlock();
+      _WriteSignal.Signal();
+   END OnReceive;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -366,7 +501,10 @@ CLASS IMPLEMENTATION ABridge;
 
 BEGIN
    _SDAPClient := NIL;
-   _TimerId := 0;
+   _Connecting := FALSE;
+   _PeriodCounter := 5; // TODO
+   _TickCounter := 0;
+   _WriteSignal.Init( Sync.stEventAutoreset, L"", FALSE );
 END ABridge;
 
 (*================================================================================*)

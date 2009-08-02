@@ -18,7 +18,8 @@ IMPORT
 	rawconnection,
 	StorageO,
 	StringsO,
-	Sync;
+	Sync,
+	threadpool;
 	
 (*===========================================================================*)
 
@@ -42,7 +43,7 @@ END CNS;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopControl;
+CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopControl, threadpool.ITimeoutSink;
 	LOCAL VAR
 		PIO : TPIO;
 		Connection : rawconnection.TCPConnection;
@@ -52,8 +53,10 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
    PRIVATE VAR
 		_DeviceAddress : StringsO.CString;
 		_SDAPAddress : StringsO.CString;
-		_TimerTick : CARDINAL; // milliseconds
 		_Data : lists.CStringList; // String = SDAP address, Data = ns.THash
+		_RxTimeoutHandle : threadpool.TPoolHandle;
+		_TxTimeoutHandle : threadpool.TPoolHandle;
+		_PoolDelegate : threadpool.CSinkDelegate;
 
    // ASocketNotifier
    PUBLIC VIRTUAL PROCEDURE OnReadable( Length : CARDINAL; Source : ADDRESS );
@@ -63,6 +66,9 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
       Running : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE Stop();
+   
+   // ITimeoutSink
+   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
 
    // from CSerial
 	INTERNAL VIRTUAL PROCEDURE DataComplete( CONST Data : StorageO.AMemoryBuffer; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyCheckSum : BOOLEAN ) : BOOLEAN;
@@ -75,9 +81,12 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
 	// SELF
 	PUBLIC PROCEDURE Configure( CONST iniFile : INIFile.CINIFile; CONST iniFileSection : StringsO.IString; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
    PUBLIC PROCEDURE Tx( CONST Data : ARRAY OF BYTE; SendAsIs : BOOLEAN; RepeatCount : CARDINAL; TxTimeout, RxTimeout : CARDINAL );
+   PUBLIC PROCEDURE Abort();
    
    // private
 	PRIVATE PROCEDURE HandleRx( Result : Sync.TAsyncResult; REF Data : StorageO.AMemoryBuffer ) : BOOLEAN;
+   PRIVATE PROCEDURE StartTimeout( TimeoutMS : CARDINAL; REF Handle : threadpool.TPoolHandle );
+   PRIVATE PROCEDURE StopTimeout( REF Handle : threadpool.TPoolHandle );
 END CDeviceCommunicator;
 
 (*---------------------------------------------------------------------------*)
@@ -111,7 +120,6 @@ CLASS CIO( io.AItemizedIO );
       Advise : io.TAdvise;
       AdviseListener : io.TPIAdviseInfo;
    PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Delegate : io.TPDataInfo ) : Sync.TAsyncResult;
-	PUBLIC VIRTUAL PROCEDURE Abort();
 	PUBLIC VIRTUAL PROCEDURE AbortAll();
 
    // SELF

@@ -67,6 +67,18 @@ CLASS IMPLEMENTATION CTest;
          Host^.StopPhaseWithResult( test.trSuccess );
       END;
 
+      Host^.StartPhase( L"Start" );
+      
+      Bridge^.Start();
+      
+      Sync.Sleep( 100000000 );
+      
+      IF Failure1 THEN
+         Host^.StopPhaseWithResult( test.trFailure );
+      ELSE
+         Host^.StopPhaseWithResult( test.trSuccess );
+      END;
+
       scinit.Cleanup();
 
       IF Failure1 OR Failure2 THEN
