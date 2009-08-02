@@ -82,6 +82,7 @@ CLASS IMPLEMENTATION Win32Thread;
     END;
     _Thread := 0;
     _HThread := NIL;
+    _Runnable := NIL;
     IF _WMsg = 1 THEN
       _WMsg := -1;
     END;
@@ -100,7 +101,6 @@ CLASS IMPLEMENTATION Win32Thread;
       END;
       _Runnable := Runnable;
       Run( FALSE );
-      _Runnable := NIL;
    END RunWithRunnable;
 
    INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : OSALthread.IRunnableHelper ) : CARDINAL;

@@ -162,7 +162,7 @@ CLASS IMPLEMENTATION SSocket;
 
   PUBLIC PROPERTY Waitable GET : BOOLEAN;
   BEGIN
-    RETURN _HSignal.RawHandle = NIL;
+    RETURN _HSignal.RawHandle <> NIL;
   END Waitable;
 
 (*--------------------------------------------------------------------------------*)
