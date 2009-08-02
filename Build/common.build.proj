@@ -31,6 +31,7 @@
         <HeaderDir>$(HeaderDirName)</HeaderDir>
 
         <!-- recursive child parameters -->
+        <Grabbing>off</Grabbing>
         <GrabProcessFileName>GrabbedComponents.tmp</GrabProcessFileName>
         <GrabProcessFile>$(ComponentPath)\$(IntermediateDirName)\$(GrabProcessFileName)</GrabProcessFile>
         <GrabProcessFile Condition="$(ComponentType)=='Generic' And $(InheritedGrabProcessFile)!=''">$(InheritedGrabProcessFile)</GrabProcessFile>
@@ -119,7 +120,7 @@
 
         <Objects Include="@(MODFiles -> '$(IntermediateDir)\%(Filename).obj')" />
         <Objects Condition="$(TypeLibOBJ) !=''" Include="$(TypeLibOBJ)" />
-        <Objects Condition="$(Result)!='Static' And (@(ExportToInterface)!='' Or @(Objects)!='') And $(Modula2InitCode)!=''"
+        <Objects Condition="$(Grabbing)!='on' And $(Result)!='Static' And (@(ExportToInterface)!='' Or @(Objects)!='') And $(Modula2InitCode)!=''"
                  Include="$(IntermediateDir)\m2init.obj"/>
 
         <RESFile Condition="$(Result)!='Static' And (@(ExportToInterface)!='' Or @(Objects)!='')"
@@ -270,7 +271,7 @@
              and later by joining the output with Grabbed (see ** below) -->
         <MSBuild Condition="@(ComponentsToParse)!=''"
                  Projects="@(ComponentsToParse -> '$(RootDir)\%(Identity)\%(Filename).proj')"
-                 Properties="InheritedGrabProcessFile=$(GrabProcessFile);GetLibrariesToFilter=$(GetLibrariesToFilter);$(ChildParameters)"
+                 Properties="Grabbing=on;InheritedGrabProcessFile=$(GrabProcessFile);GetLibrariesToFilter=$(GetLibrariesToFilter);$(ChildParameters)"
                  Targets="GrabComponent">
             <Output TaskParameter="TargetOutputs" ItemName="PrivateGrabbed"/>
         </MSBuild>
@@ -557,7 +558,7 @@
     <Target Name="ComponentInterface"
             Condition="@(ExportToInterface)!=''">
         <MSBuild Projects="@(ExportToInterface -> '$(RootDir)\%(Identity)\%(Filename).proj')"
-                 Properties="$(ChildParameters)"
+                 Properties="Grabbing=on;$(ChildParameters)"
                  Targets="GrabComponentInterface">
             <Output TaskParameter="TargetOutputs" ItemName="ExportToInterfaceObjects"/>
         </MSBuild>

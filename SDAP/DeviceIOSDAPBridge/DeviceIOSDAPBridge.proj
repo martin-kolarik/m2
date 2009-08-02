@@ -4,11 +4,13 @@
 
     <!-- 1 -->
     <PropertyGroup>
-        <ComponentType>Library</ComponentType>
+        <ComponentType Condition="$(ComponentType)==''">Library</ComponentType>
 
         <FileDescription>SDAP Client external library</FileDescription>
         <FileVersionMajor>1</FileVersionMajor>
         <FileVersionMinor>0</FileVersionMinor>
+
+        <Result>Dynamic</Result>
     </PropertyGroup>
 
     <!-- 2 INCLUDE DEFINITION -->
