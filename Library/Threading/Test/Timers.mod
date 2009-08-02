@@ -28,7 +28,7 @@ TYPE
 CLASS CWorker IMPLEMENTS thread.IRunnable;
    PUBLIC VAR
       Test : TPTest;
-   INTERNAL VIRTUAL PROCEDURE OnRun() : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
 END CWorker;
 
 (*---------------------------------------------------------------------------*)
@@ -65,7 +65,7 @@ CLASS IMPLEMENTATION CWorker;
 
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnRun() : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    VAR
       i : CARDINAL;
       LIndex : CARDINAL := sync.IInc( REF Index );

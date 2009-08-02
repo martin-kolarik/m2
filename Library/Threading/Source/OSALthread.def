@@ -14,22 +14,32 @@ TYPE
 
 (*---------------------------------------------------------------------------*)
 
+INTERFACE IRunnableHelper;
+   PROCEDURE WaitForStopRequest( Timeout : CARDINAL ) : Sync.TAsyncResult; // arCompleted for Stop request, arNoData for duty loop, arPending for message (if thread supports them)
+   PROCEDURE WaitForStopRequestAndSignal( CONST Signal : Sync.PSIGNAL; Timeout : CARDINAL ) : Sync.TAsyncResult; // arCompleted for Stop request, arPartCompleted for SIGNAL, arNoData for duty loop, arPending for message (if thread supports them)
+   PROCEDURE WaitForStopRequestAndSignals( CONST Signal : ARRAY OF Sync.PSIGNAL; Timeout : CARDINAL; OUT IndexOfSignal : CARDINAL ) : Sync.TAsyncResult; // arCompleted for Stop request, arPartCompleted for SIGNAL, arNoData for duty loop, arPending for message (if thread supports them)
+END IRunnableHelper;
+
+(*---------------------------------------------------------------------------*)
+
 INTERFACE IRunnable;
-   INTERNAL PROCEDURE OnRun() : CARDINAL;
+   // main run routine
+   INTERNAL PROCEDURE OnRun( CONST Helper : IRunnableHelper ) : CARDINAL;
 END IRunnable;
 
 (*---------------------------------------------------------------------------*)
 
 INTERFACE IThread( IRunnable );
    PUBLIC READONLY PROPERTY
+      Id : PTR;
       SelfContext : BOOLEAN;
 
-   // controlled thread
+   // fully controlled thread approach
    PUBLIC PROCEDURE Run( Wait : BOOLEAN ); // command
    PUBLIC PROCEDURE Stop( Wait : BOOLEAN ); // command
    PUBLIC PROCEDURE WaitStop( Timeout : CARDINAL ) : Sync.TAsyncResult; // wait to exit
    
-   // worker thread
+   // worker thread approach
    PUBLIC PROCEDURE RunWithRunnable( Runnable : TPRunnable );
    
    // inherited INTERNAL PROCEDURE OnRun() : CARDINAL; // executive code

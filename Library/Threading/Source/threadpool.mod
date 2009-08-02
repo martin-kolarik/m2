@@ -13,6 +13,7 @@ IMPORT
   maps,
   msghandler,
   SCmsgqueuethread,
+  thread,
   time,
   TimeoutableTwoPtrMap,
   windows;
@@ -170,7 +171,7 @@ CLASS CPoolThread( SCmsgqueuethread.SCMessageQueueThread );
   FINALLY CPoolThread();
   
   LOCAL PROCEDURE Init( Pool : TPThreadPool );
-  INTERNAL VIRTUAL PROCEDURE OnRun() : CARDINAL;
+  INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
 
   PRIVATE PROCEDURE AddTask( CurrentTime : CARDINAL; Task : TPTask );
   PRIVATE PROCEDURE RemoveTask( Result : Sync.TAsyncResult; Task : TPTask );
@@ -253,7 +254,7 @@ CLASS IMPLEMENTATION CPoolThread;
 
 //--------------------------------------------------------------------------------
 
-   INTERNAL VIRTUAL PROCEDURE OnRun() : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
 
       //-----
       

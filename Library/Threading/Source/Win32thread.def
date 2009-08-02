@@ -11,15 +11,20 @@ IMPORT
   
 #save, option( dll_export => on )
 
-CLASS Win32Thread IMPLEMENTS OSALthread.IThread;
-  INTERNAL READONLY VAR
+CLASS Win32Thread IMPLEMENTS OSALthread.IThread, OSALthread.IRunnableHelper;
+  PRIVATE VAR
     _RunLock : CARDINAL;
     _Thread : CARDINAL;
     _HThread : Sync.WAITABLE;
-    _HExit : Sync.SIGNAL;
     _WMsg : TRISTATE;
     _Runnable : OSALthread.TPRunnable;
+
+  INTERNAL READONLY VAR // TODO -- hack, until threadpool will be switched to Sync.SIGNAL from Sync.WAITABLE
+    _HExit : Sync.SIGNAL;
+    
+  // IThread    
   PUBLIC VIRTUAL READONLY PROPERTY
+    Id : PTR;
     SelfContext : BOOLEAN;
   PUBLIC PROPERTY
     WithMessages : BOOLEAN;
@@ -28,10 +33,16 @@ CLASS Win32Thread IMPLEMENTS OSALthread.IThread;
   PUBLIC FINAL PROCEDURE Stop( Wait : BOOLEAN );
   PUBLIC FINAL PROCEDURE WaitStop( Timeout : CARDINAL ) : sync.TAsyncResult;
   
+  INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : OSALthread.IRunnableHelper ) : CARDINAL;
+
   PUBLIC FINAL PROCEDURE RunWithRunnable( Runnable : OSALthread.TPRunnable );
 
-  INTERNAL VIRTUAL PROCEDURE OnRun() : CARDINAL;
+  // IRunnableHelper
+  PUBLIC VIRTUAL PROCEDURE WaitForStopRequest( Timeout : CARDINAL ) : sync.TAsyncResult; // arCompleted for Stop request
+  PUBLIC VIRTUAL PROCEDURE WaitForStopRequestAndSignal( CONST Signal : sync.PSIGNAL; Timeout : CARDINAL ) : sync.TAsyncResult; // arCompleted for Stop request, arPartCompleted for SIGNAL
+  PUBLIC VIRTUAL PROCEDURE WaitForStopRequestAndSignals( CONST Signal : ARRAY OF sync.PSIGNAL; Timeout : CARDINAL; OUT IndexOfSignal : CARDINAL ) : Sync.TAsyncResult; // arCompleted for Stop request, arPartCompleted for SIGNAL
 
+  // SELF
   LOCAL PROCEDURE Exec() : CARDINAL;
   VIRTUAL FINALLY Win32Thread();
 END Win32Thread;
