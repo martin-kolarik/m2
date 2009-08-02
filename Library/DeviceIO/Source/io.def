@@ -13,6 +13,8 @@ IMPORT
 
 (*---------------------------------------------------------------------------*)
 
+#save, option( dll_export => on )
+
 TYPE
   TPIStartStopControl = POINTER TO IStartStopControl;
   TPIO = POINTER TO IIO;
@@ -120,5 +122,7 @@ ABSTRACT CLASS AItemizedIO IMPLEMENTS IIO; // used for devices with single item 
 END AItemizedIO;
 
 (*---------------------------------------------------------------------------*)
+
+#restore
 
 END io.
