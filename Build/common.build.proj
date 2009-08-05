@@ -690,7 +690,7 @@
     <Target Name="CheckSetup">
         <Error Condition="$(ComponentType)!='Product'" Text="Unable to create setup for not product project" />
         <Error Condition="$(ProductGUID)==''" Text="ProductGUID not defined" />
-        <Error Condition="$(ProductUpgradeGUI)==''" Text="ProductUpgradeGUID not defined" />
+        <Error Condition="$(ProductUpgradeGUID)==''" Text="ProductUpgradeGUID not defined" />
     </Target>
     
     <Target Name="SetupBuild" DependsOnTargets="Directories;CheckSetup;ProductBuildNumberGet;CreateSetup" />

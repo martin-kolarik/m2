@@ -114,7 +114,7 @@ CLASS IMPLEMENTATION CConnectionNotifier;
    VAR
       p : PTR := ADR( Length );
    BEGIN
-      IF Source = ADR( Connection^._Socket ) THEN
+      IF Source = Connection^._Socket THEN
          // accept only notifications from stream
       ELSIF Notifier = NIL THEN
          // do nothing
@@ -136,7 +136,7 @@ CLASS IMPLEMENTATION CConnectionNotifier;
    VAR
       p : PTR := ADR( Length );
    BEGIN
-      IF Source = ADR( Connection^._Socket ) THEN
+      IF Source = Connection^._Socket THEN
          // accept only errors from stream
       ELSIF Notifier = NIL THEN
          // do nothing
