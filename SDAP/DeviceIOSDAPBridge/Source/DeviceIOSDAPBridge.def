@@ -16,6 +16,8 @@ IMPORT
 
 (*================================================================================*)
 
+#save, option( dll_export => on )
+
 TYPE
    TPBridge = POINTER TO ABridge;
 
@@ -44,6 +46,7 @@ ABSTRACT CLASS ABridge IMPLEMENTS
 
    // SELF
    PRIVATE VAR
+      _Logger : log.CLogger;
       _SDAPHost : StringsO.CString;
       _SDAPClient : sdapClient.TPISDAPClient;
       _Loader : loader.CLoader;
@@ -60,7 +63,7 @@ ABSTRACT CLASS ABridge IMPLEMENTS
    
    PUBLIC PROCEDURE EnumerateDeviceState( REF ES : PTR; OUT device : StringsO.IString; OUT Running : BOOLEAN ) : BOOLEAN;
 
-   VIRTUAL PROCEDURE Dispose();
+   PUBLIC VIRTUAL PROCEDURE Dispose();
 END ABridge;
 
 (*--------------------------------------------------------------------------------*)
@@ -68,5 +71,7 @@ END ABridge;
 PROCEDURE newDeviceIOSDAPBridge( OUT bridge : TPBridge ) : Sync.TAsyncResult;
 
 (*================================================================================*)
+
+#restore
 
 END DeviceIOSDAPBridge.

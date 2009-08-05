@@ -1,6 +1,6 @@
 IMPLEMENTATION MODULE StiebelHP;
 
-(*===========================================================================*)
+(*================================================================================*)
 
 FROM Debug IMPORT
    Assertion, LogAssertionW;
@@ -9,11 +9,18 @@ IMPORT
 	FIO,
 	iobject,
 	IOO,
+	resources,
 	StorageO,
 	StringsO,
-	Sync;
+	Sync,
+	Texts;
 
-(*===========================================================================*)
+(*================================================================================*)
+
+VAR
+   R : resources.CResources;
+
+(*================================================================================*)
 
 TYPE
 	TDeviceType = INT8(
@@ -173,6 +180,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    BEGIN
+      Logger.LogS( log.dldMessage, L"StiebelHP", L"Started" );
       RETURN Connection.OpenS( _DeviceAddress, TRUE, 500 );
    END Start;
 
@@ -181,6 +189,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    PUBLIC VIRTUAL PROCEDURE Stop();
    BEGIN
       Connection.Close();
+      Logger.LogS( log.dldMessage, L"StiebelHP", L"Stopped" );
    END Stop;
 
 (*---------------------------------------------------------------------------*)
@@ -190,8 +199,10 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       EmptyData : StorageO.CMemoryBuffer;
    BEGIN
       IF PoolHandle = _TxTimeoutHandle THEN
+	      Logger.LogS( log.dldTrace, L"", L"Tx timeout" );
          OnTx( Sync.arTimeout );
       ELSIF PoolHandle = _RxTimeoutHandle THEN
+	      Logger.LogS( log.dldTrace, L"", L"Rx timeout" );
          OnRx( Sync.arTimeout, EmptyData );
       END;
    END OnTimeout;
@@ -282,13 +293,13 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
 	   (*----------*)
 
-	   PROCEDURE LogError( line : CARDINAL; errorText : CARDINAL; addonText : StringsO.TPString );
+	   PROCEDURE LogError( line : CARDINAL; errorText : CARDINAL; CONST addonText : StringsO.TPString );
 	   VAR
 	      msg : StringsO.CString;
 	   BEGIN
 	      Result := Sync.arAborted;
 
-	      // msg.FromOA( OAsz( R[errorText] ));
+	      msg.FromOA( OAsz( R[errorText] ));
 	      IF addonText <> NIL THEN
 	         msg.Append( addonText^ );
 	      END;
@@ -300,10 +311,13 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    VAR
       l : CARDINAL;
 	BEGIN
-	   IF NOT iniFile.SetSection( OA( iniFileSection.Length-1, iniFileSection.rawData )) THEN
-         LogError( 0, 0, NIL ); // Texts._ConfigurationSectionMissing, ADR( iniFileSection ));
-      ELSIF NOT iniFile.GetKeyStr( keyHost, OUT l, OUT _DeviceAddress ) THEN
-         LogError( l, 0, NIL ); // Texts._HostKeyMissing, NIL );
+	   IF iniFile.SetSection( OA( iniFileSection.Length-1, iniFileSection.rawData )) THEN
+         INIFile.ConfigureLog( iniFile, OA( iniFileSection.Length-1, iniFileSection.rawData ), REF Logger, OUT l );
+         IF NOT iniFile.GetKeyStr( keyHost, OUT l, OUT _DeviceAddress ) THEN
+            LogError( l, Texts._HostKeyMissing, NIL );
+         END;
+	   ELSE
+         LogError( 0, Texts._ConfigurationSectionMissing, ADR( iniFileSection ));
       END;
       RETURN Result;
 	END Configure;
@@ -317,6 +331,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 	   TxBuffer : StorageO.CMemoryBuffer;
 	BEGIN
 	   IF NOT Connection.Connected THEN
+	      Logger.LogS( log.dldTrace, L"", L"Disconnected, trying to reconnect" );
          Connection.OpenS( _DeviceAddress, TRUE, 500 );
 	   END;
 	
@@ -703,4 +718,6 @@ END CStiebelHPDevice;
 
 (*===========================================================================*)
 
+BEGIN
+   R.LoadRES2( EMIT( %dll ), L"StiebelHP.Texts" );
 END StiebelHP.
