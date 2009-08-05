@@ -203,6 +203,7 @@ CLASS IMPLEMENTATION CSDAPClient;
       IF _ClientNotifier <> NIL THEN
          IF Error = 0 THEN
             _ClientNotifier^.OnConnect( Sync.arCompleted, Error );
+            _Reader.StartReading();
          ELSE
             _ClientNotifier^.OnConnect( Sync.arAborted, Error );
          END;
@@ -240,6 +241,7 @@ CLASS IMPLEMENTATION CSDAPClient;
    BEGIN
       LOOP
          IF NOT _Reader.Peek( OUT a, OUT l ) THEN
+            _Reader.StartReading();
             EXIT;
          ELSIF _Reader.ReadLine( OUT Line, Sync.FORSAFETY, TRUE ) <> Sync.arCompleted THEN
             ASSERTLOG( FALSE );
