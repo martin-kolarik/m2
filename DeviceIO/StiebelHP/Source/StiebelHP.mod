@@ -209,12 +209,22 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
 (*---------------------------------------------------------------------------*)
 
+   LOCAL VIRTUAL PROCEDURE OnConnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); 
+   BEGIN
+      IF Result = 0 THEN
+         Connection.BufferedStream^.StartReading();
+      END;
+   END OnConnect;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE OnReadable( Length : CARDINAL; Source : ADDRESS );
    VAR
       Data : StorageO.CMemoryBuffer;
    BEGIN
       Connection.Stream^.ReadBuffer( 2048, REF Data, 0 );
       HandleRx( Sync.arCompleted, REF Data );
+      Connection.BufferedStream^.StartReading();
    END OnReadable;
 
 (*---------------------------------------------------------------------------*)
@@ -437,6 +447,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 //---------------------------------------------------------
 
 BEGIN
+   Connection.Notifier := ADR( SELF );
 	PIO := NIL;
 	_RxTimeoutHandle := 0;
 	_TxTimeoutHandle := 0;
