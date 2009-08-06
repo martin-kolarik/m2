@@ -28,6 +28,10 @@
                             <File Id="SCCore.DLL" Name="SCCore.dll" Source="SCCore.dll" DiskId="1" Vital="yes" KeyPath="yes" />
                             <ServiceControl Id="SVCControlRuntimeLib" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
                         </Component>
+                        <Component Guid="ADE2002D-1D39-4fae-A047-913F74EC8FED" Id="BridgeLib">
+                            <File Id="DeviceIOSDAPBridge.DLL" Name="SDAPBrdg.dll" LongName="DeviceIOSDAPBridge.dll" Source="DeviceIOSDAPBridge.dll" DiskId="1" Vital="yes" KeyPath="yes" />
+                            <ServiceControl Id="SVCControlBridgeLib" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
+                        </Component>
                         <!-- Component Guid="E221959E-E8C4-412d-95A4-018C096D2A2F" Id="ToolSvcInst">
                             <File Id="SvcInst.EXE" Name="SvcInst.exe" Source="SvcInst.exe" DiskId="1" Vital="yes" KeyPath="yes" />
                         </Component -->
@@ -80,6 +84,7 @@
         <Feature ConfigurableDirectory="INSTALLDIR" Id="Complete" Level="1">
             <ComponentRef Id="Program" />
             <ComponentRef Id="RuntimeLib" />
+            <ComponentRef Id="BridgeLib" />
             <ComponentRef Id="Licence" />
             <!-- ComponentRef Id="ToolSvcInst" / -->
             <ComponentRef Id="DefaultConfiguration" />
