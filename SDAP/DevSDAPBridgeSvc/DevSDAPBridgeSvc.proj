@@ -1,0 +1,42 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 -->
+    <PropertyGroup>
+        <ComponentType>Product</ComponentType>
+
+        <ProductGUID>349D2270-D87A-49ee-B1AE-31FD87530801</ProductGUID>
+        <ProductUpgradeGUID>BFF3F426-6050-4614-A886-DC7B3F78406F</ProductUpgradeGUID>
+
+        <ProductId>NeNo.DevSDAPBridge</ProductId>
+        <ProductVersionMajor>1</ProductVersionMajor>
+        <ProductVersionMinor>0</ProductVersionMinor>
+        <ProductNote></ProductNote>
+        <!-- DynamicCLibInstallMethod>Shared</DynamicCLibInstallMethod -->
+
+        <FileDisplayName>Device to SDAP bridge</FileDisplayName>
+        <FileDescription>Bridge allowing bidirectional transfer data between devices and SDAP</FileDescription>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <ResultName>BridgeSvc</ResultName>
+    </PropertyGroup>
+
+    <!-- 2 INCLUDE DEFINITION -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 COMPONENT DEFINITION -->
+    <ItemGroup>
+        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\SDAP\DeviceIOSDAPBridge"/>
+
+        <Components Include="Modula2\modula2;API\CLib;API\win32"/>
+        <Components Include="Component\sccore;SDAP\DeviceIOSDAPBridge"/>
+        <Program Include="BridgeSvc"/>
+    </ItemGroup>
+
+    <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>

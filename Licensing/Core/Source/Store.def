@@ -38,18 +38,15 @@ TYPE
 CLASS CFileStorage( CStorage );
 	PRIVATE VAR
 		_OperationMode : TFileOperationMode := fomFileByProduct;
-		_Path : StringsO.CString; // default is empty, what means system common files storage
-		_Root : StringsO.CString; // must not be empty, it means company and forms root of commonprograms hierarchy
+		_Path : StringsO.CString; // default is empty, what means system common files storages
 		_Filters : lists.CPtrList;
 	PUBLIC PROPERTY
 		OperationMode : TFileOperationMode;
-		Root : StringsO.CString; // used if path is empty
-		Path : StringsO.CString; // overwrites root
+		Path : StringsO.CString;
 		FilterToStore : TPFileFilter;
 	PUBLIC READONLY PROPERTY
 		Filters : lists.TPPtrList;
 
-   PUBLIC PROCEDURE SetRootOA( Root : ARRAY OF WCHAR );
    PUBLIC PROCEDURE SetPathOA( Path : ARRAY OF WCHAR );
 
 	PUBLIC FINAL PROCEDURE Load( ProductIdFilter : ARRAY OF WCHAR; REF Items : arrays.CPtrArray; ClearArray, RespectValidation : BOOLEAN );
@@ -64,6 +61,7 @@ CLASS CFileStorage( CStorage );
 	
 	// own
 	PRIVATE PROCEDURE ValidateItems( IgnoreValidity : BOOLEAN; CONST SourceItems : arrays.CPtrArray; OUT ValidItems : arrays.CPtrArray );
+   PRIVATE PROCEDURE LoadSingleFolder( ProductIdFilter : ARRAY OF WCHAR; REF ItemsToLoad : arrays.CPtrArray; RespectValidation : BOOLEAN; path : ARRAY OF WCHAR );
 END CFileStorage;
 
 (*--------------------------------------------------------------------------------*)

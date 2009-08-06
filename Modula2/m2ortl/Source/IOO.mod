@@ -806,15 +806,27 @@ CLASS IMPLEMENTATION CBufferedStream;
 
 (*--------------------------------------------------------------------------------*)
 
-  PUBLIC FINAL PROCEDURE Close( Persist : BOOLEAN );
-  BEGIN
-    IF _Stream <> NIL THEN
-      Flush();
-      _Stream^.Close( Persist );
-    END;
-    _RBuffer.Clear();
-    _WBuffer.Clear();
-  END Close;
+   PUBLIC FINAL PROCEDURE Close( Persist : BOOLEAN );
+   VAR
+      SA : ADDRESS;
+      SL : CARDINAL;
+   BEGIN
+      IF _Stream <> NIL THEN
+         Flush(); // data
+
+         IF _WBuffer.StartWriting( MAX( CARDINAL ), OUT SA, OUT SL ) THEN
+            CloseFilter( dirWrite, REF OA( SL-1, SA ), OUT SL );
+            _WBuffer.CommitWriting( SL );
+            IF SL > 0 THEN
+               Flush(); // filter
+            END;
+         END;
+
+         _Stream^.Close( Persist );
+      END;
+      _RBuffer.Clear();
+      _WBuffer.Clear();
+   END Close;
   
 (*--------------------------------------------------------------------------------*)
 
@@ -978,6 +990,7 @@ CLASS IMPLEMENTATION CBufferedStream;
       CL, SL : CARDINAL;
       LNotifier : TPDataInfo;
       Proxy : TPDataProxy;
+      Result : Sync.TAsyncResult;
    BEGIN
       IF Direction = dirRead THEN
 
@@ -1022,9 +1035,17 @@ CLASS IMPLEMENTATION CBufferedStream;
                RETURN Sync.arCompleted;
 
             ELSIF _RBuffer.StartReading( CL, OUT SA, OUT SL ) THEN
-               Storage.Move( SA, CA, SL );
-               _RBuffer.CommitReading( SL );
-               Proxy^.CompleteData( SL );
+               Result := Filter( dirRead, OA( SL-1, SA ), OUT SL, REF OA( SL-1, CA ), OUT CL );
+               IF Result = Sync.arNoData THEN // Filter has low space
+                  _RBuffer.CommitReading( 0 );
+                  GOTO RPending;
+               ELSIF Result <> Sync.arCompleted THEN
+                  _RLock.Unlock();
+                  RETURN Result;
+               ELSE
+                  _RBuffer.CommitReading( SL );
+                  Proxy^.CompleteData( CL );
+               END;
 
             END; // ELSIF StartReading
 
@@ -1069,9 +1090,17 @@ CLASS IMPLEMENTATION CBufferedStream;
                RETURN Sync.arCompleted;
 
             ELSIF _WBuffer.StartWriting( CL, OUT SA, OUT SL ) THEN
-               Storage.Move( CA, SA, SL );
-               _WBuffer.CommitWriting( SL );
-               Proxy^.CompleteData( SL );
+               Result := Filter( dirWrite, OA( SL-1, CA ), OUT CL, REF OA( SL-1, SA ), OUT SL );
+               IF Result = Sync.arNoData THEN // Filter has low space
+                  _WBuffer.CommitWriting( 0 );
+                  GOTO WPending;
+               ELSIF Result <> Sync.arCompleted THEN
+                  _WLock.Unlock();
+                  RETURN Result;
+               ELSE
+                  _WBuffer.CommitWriting( SL );
+                  Proxy^.CompleteData( CL );
+               END;
                
             END; // ELSIF StartReading
 
@@ -1118,6 +1147,24 @@ CLASS IMPLEMENTATION CBufferedStream;
          END;
       END;
    END OperateDevice;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE Filter( Direction : TDirection; CONST Source : ARRAY OF BYTE; OUT Consumed : CARDINAL; REF Destination : ARRAY OF BYTE; OUT Filled : CARDINAL ) : Sync.TAsyncResult;
+   BEGIN
+      Consumed := MIN2( HIGH( Source ), HIGH( Destination )) + 1;
+      Filled := Consumed;
+      Storage.Move( ADR( Source ), ADR( Destination ), Consumed );
+      RETURN Sync.arCompleted;
+   END Filter;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE CloseFilter( Direction : TDirection; REF Destination : ARRAY OF BYTE; OUT Filled : CARDINAL ) : Sync.TAsyncResult;
+   BEGIN
+      Filled := 0;
+      RETURN Sync.arCompleted;
+   END CloseFilter;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1545,7 +1592,7 @@ CLASS IMPLEMENTATION CMemoryStream;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE ExtendMemory( NewLength : PTR ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE ExtendMemory( NewSize : PTR ) : BOOLEAN;
    BEGIN
       RETURN FALSE; 
    END ExtendMemory;
@@ -1568,23 +1615,23 @@ CLASS IMPLEMENTATION CMemoryBufferStream;
    PUBLIC VIRTUAL PROCEDURE DeviceFinish( Direction : TDirection; Result : Sync.TAsyncResult );
    BEGIN
       IF Direction = dirWrite THEN
-         _Buffer^.Length := CARDINAL( LOPTRLONGWORD( _Offset ));
+         _Length := _Offset;
+         _Buffer^.Length := CARDINAL( LOPTRLONGWORD( _Length ));
       END;
       SUPER.DeviceFinish( Direction, Result );
    END DeviceFinish;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE ExtendMemory( NewLength : PTR ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE ExtendMemory( NewSize : PTR ) : BOOLEAN;
    VAR
       pg : PTR := PTR( Storage.PageSize());
    BEGIN
-      IF NewLength < _Buffer^.Size THEN
+      IF NewSize < _Buffer^.Size THEN
          RETURN TRUE;
       END;
-      _Buffer^.Size := CARDINAL(( NewLength DIV pg + 1 ) * pg );
+      _Buffer^.Size := LOPTRLONGWORD(( NewSize DIV pg + 1 ) * pg );
       _Data := _Buffer^.Data;
-      _Length := _Buffer^.Size;
       RETURN TRUE;
    END ExtendMemory;
 
@@ -1605,6 +1652,83 @@ CLASS IMPLEMENTATION CMemoryBufferStream;
 BEGIN
    _Buffer := NIL;
 END CMemoryBufferStream;
+
+(*================================================================================*)
+
+CLASS IMPLEMENTATION CFilterStream;
+
+(*--------------------------------------------------------------------------------*)
+   
+   PUBLIC PROCEDURE Init( ReadFilter, WriteFilter : TPFilter );
+   BEGIN
+      _RFilter := ReadFilter;
+      _WFilter := WriteFilter;
+   END Init;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE Filter( Direction : TDirection; CONST Source : ARRAY OF BYTE; OUT Consumed : CARDINAL; REF Destination : ARRAY OF BYTE; OUT Filled : CARDINAL ) : Sync.TAsyncResult;
+   BEGIN
+      IF ( HIGH( Source ) < 0 ) OR ( HIGH( Destination ) = 0 ) THEN
+         RETURN Sync.arCompleted;
+      END;
+
+      CASE Direction OF
+      | dirRead :
+         IF _RFilter = NIL THEN
+            RETURN Sync.arCannotStart;
+         ELSE
+            RETURN _RFilter^.Filter( Source, OUT Consumed, REF Destination, OUT Filled );
+         END;
+
+      | dirWrite :
+         IF _WFilter = NIL THEN
+            RETURN Sync.arCannotStart;
+         ELSE
+            RETURN _WFilter^.Filter( Source, OUT Consumed, REF Destination, OUT Filled );
+         END;
+
+      ELSE
+         ASSERTLOG( FALSE );
+         RETURN Sync.arCannotStart;
+      END; // CASE
+   END Filter;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE CloseFilter( Direction : TDirection; REF Destination : ARRAY OF BYTE; OUT Filled : CARDINAL ) : Sync.TAsyncResult;
+   BEGIN
+      IF HIGH( Destination ) = 0 THEN
+         RETURN Sync.arCompleted;
+      END;
+
+      CASE Direction OF
+      | dirRead :
+         IF _RFilter = NIL THEN
+            RETURN Sync.arCannotStart;
+         ELSE
+            RETURN _RFilter^.CloseFilter( REF Destination, OUT Filled );
+         END;
+
+      | dirWrite :
+         IF _WFilter = NIL THEN
+            RETURN Sync.arCannotStart;
+         ELSE
+            RETURN _WFilter^.CloseFilter( REF Destination, OUT Filled );
+         END;
+
+      ELSE
+         ASSERTLOG( FALSE );
+         RETURN Sync.arCannotStart;
+      END; // CASE
+   END CloseFilter;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+   _RFilter := NIL;
+   _WFilter := NIL;
+END CFilterStream;
 
 (*================================================================================*)
 

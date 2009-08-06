@@ -13,12 +13,15 @@ IMPORT
 
 (*---------------------------------------------------------------------------*)
 
+#save, option( dll_export => on )
+
 TYPE
   TPIStartStopControl = POINTER TO IStartStopControl;
   TPIO = POINTER TO IIO;
   TPIAdviseInfo = POINTER TO IAdviseInfo;
   TPIDataInfo = POINTER TO IDataInfo;
   TPDataInfo = POINTER TO CDataInfo;
+  TPCompletionDataInfo = POINTER TO CCompletionDataInfo;
 
 (*---------------------------------------------------------------------------*)
 
@@ -43,11 +46,18 @@ END IDataInfo;
 CLASS CDataInfo( Delegate.ADelegate );
    PUBLIC VAR
       AdviseSink : TPIAdviseInfo;
-      Sink : TPIDataInfo;
+      DataInfoSink : TPIDataInfo;
    PUBLIC PROCEDURE OnError( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL );
    PUBLIC PROCEDURE OnIO( Direction : IOO.TDirection; Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL; CONST Value : ARRAY OF iovalue.Value );
    PUBLIC PROCEDURE OnAdvise( Source : TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST Value : ARRAY OF iovalue.Value );
 END CDataInfo;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CCompletionDataInfo( CDataInfo ); // for single IO operation
+   PUBLIC PROCEDURE Reset();
+   PUBLIC PROCEDURE WaitCompletion( TimeoutMS : CARDINAL; OUT Value : iovalue.Value ) : Sync.TAsyncResult;
+END CCompletionDataInfo;
 
 (*---------------------------------------------------------------------------*)
 
@@ -92,8 +102,8 @@ INTERFACE IIO( IStartStopControl ); // single device, purpose is to have minimal
       Advise : TAdvise;
       AdviseListener : TPIAdviseInfo; // for Advise <> advNone
 
-   // PROCEDURE IRunStopControl.Start() : Sync.TAsyncResult;
-   // PROCEDURE IRunStopControl.Stop();
+   // PROCEDURE IStartStopControl.Start() : Sync.TAsyncResult;
+   // PROCEDURE IStartStopControl.Stop();
 
    PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
    PROCEDURE IOha( Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
@@ -112,5 +122,7 @@ ABSTRACT CLASS AItemizedIO IMPLEMENTS IIO; // used for devices with single item 
 END AItemizedIO;
 
 (*---------------------------------------------------------------------------*)
+
+#restore
 
 END io.

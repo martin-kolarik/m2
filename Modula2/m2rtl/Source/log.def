@@ -110,6 +110,7 @@ CLASS CLogger;
 
    PRIVATE PROCEDURE LoadByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN;
    PRIVATE PROCEDURE LoadByLogger( CONST Logger : CLogger ) : BOOLEAN;
+   PRIVATE PROCEDURE TrySetFileToDefault();
 END CLogger;
 
 // global system LOG

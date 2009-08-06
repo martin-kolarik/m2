@@ -18,18 +18,34 @@ TYPE
       citIString,
       citStream,
       citTextReader,
-      citINIFile
+      citINIFile,
+      citINIFileSection
    );
    
    TConfigureItem =  RECORD
                         CASE Type : TConfigureItemType OF
-                        | citZeroTerminatedString : zString : PWCHAR;
-                        | citIString : iString : StringsO.TPString;
-                        | citStream : stream : IOO.TPStream;
-                        | citTextReader : textReader : TextReader.TPTextReader;
-                        | citINIFile : iniFile : INIFile.TPINIFile;
+                        | citZeroTerminatedString :
+                           zString : PWCHAR;
+                        | citIString :
+                           iString : StringsO.TPString;
+                        | citStream :
+                           stream : IOO.TPStream;
+                        | citTextReader :
+                           textReader : TextReader.TPTextReader;
+                        | citINIFile :
+                           iniFile : INIFile.TPINIFile;
+                        | citINIFileSection :
+                           _iniFile : INIFile.TPINIFile;
+                           section : StringsO.TPString;
                         END; // CASE
                      END; // RECORD
+                     
+TYPE
+   TPIConfigurable = POINTER TO IConfigurable;                     
+                     
+INTERFACE IConfigurable;
+	PROCEDURE Configure( CONST Source : ARRAY OF TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult; // Log is mandatory
+END IConfigurable;
 
 (*---------------------------------------------------------------------------*)
 

@@ -907,6 +907,13 @@ user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
   &lt;/ask&gt;
 &lt;/xmlsocket&gt;</p.type>
                 <p>Znaèek <type>ask</type> uvnitø <type>xmlsocket</type> mùže být rovnìž více, takže klient mùže jedinou komunikací požádat o více dat najednou.</p>
+                <p>Poslední možnost, kterou rozhraní XMLSocket nabízí, je øízení spojení s EIB/KNX. Dvì znaèky, <type>&lt;connect/&gt;</type> a <type>&lt;disconnect/&gt;</type>, pøipojí nebo odpojí SmartServer and EIB/KNX rozhraní. Pøíklady požadavkù k pøipojení a odpojení:</p>
+                <p.type>&lt;xmlsocket&gt;
+  &lt;connect/&gt;
+&lt;/xmlsocket&gt;</p.type>
+                <p.type>&lt;xmlsocket&gt;
+  &lt;disconnect/&gt;
+&lt;/xmlsocket&gt;</p.type>
               </text>
             </section>
           </text>

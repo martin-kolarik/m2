@@ -4,7 +4,7 @@ FROM Debug IMPORT
    Assertion, LogAssertionW;
 
 FROM Storage IMPORT
-   DEALLOCATE;
+   ALLOCATE, DEALLOCATE;
 
 IMPORT
    array,
@@ -12,6 +12,7 @@ IMPORT
    lists,
    Store,
    Strings,
+   time,
    Validator;
 
 (*================================================================================*)
@@ -76,7 +77,7 @@ VAR
    count : INTEGER;
    i, j : INTEGER;
    iitem, jitem : Items.TPItem;
-   licences : arrays.CPtrArray;
+   licencesAndInfos : arrays.CPtrArray;
    products : arrays.CPtrArray;
 BEGIN
    count := items.Count;
@@ -96,9 +97,11 @@ BEGIN
       ELSIF iitem^ IS Items.CProduct THEN
          products.Add( iitem );
       ELSIF iitem^ IS Items.CLicence THEN
-         licences.Add( iitem );
+         licencesAndInfos.Add( iitem );
       ELSIF iitem^ IS Items.CActivation THEN
          activations.Add( iitem );
+      ELSIF iitem^ IS Items.CInfo THEN
+         licencesAndInfos.Add( iitem );
       ELSE
          ASSERTLOG( FALSE );
       END;
@@ -106,14 +109,14 @@ BEGIN
 
    // eliminate duplicates
    EliminateDuplicates( REF products );
-   EliminateDuplicates( REF licences );
+   EliminateDuplicates( REF licencesAndInfos );
    EliminateDuplicates( REF activations );
    
    // bind
    IF CreateBindings THEN
       // bind licences to products
-	   FOR i := 0 TO licences.Count-1 DO
-		   iitem := Items.TPItem( licences[i] );
+	   FOR i := 0 TO licencesAndInfos.Count-1 DO
+		   iitem := Items.TPItem( licencesAndInfos[i] );
    	   IF iitem = NIL THEN
 	         CONTINUE;
 	      END;
@@ -122,12 +125,12 @@ BEGIN
 			   IF jitem = NIL THEN
 			      CONTINUE;
 			   ELSIF iitem^.ProductId = jitem^.ProductId THEN
-				   Items.TPProduct( jitem )^.AddLicence( Items.TPLicence( iitem ));
+				   Items.TPProduct( jitem )^.AddLicenceOrInfo( iitem );
 				   EXIT;
 			   END;
 		   END;
 		   IF OmitUnbound AND iitem^.IsStub THEN // no product was found
-		      licences.RemoveIndex( i );
+		      licencesAndInfos.RemoveIndex( i );
 		      DISPOSE( iitem );
 		   END;
 	   END; // FOR
@@ -137,9 +140,11 @@ BEGIN
    	   IF iitem = NIL THEN
 	         CONTINUE;
 	      END;
-		   FOR j := 0 TO licences.Count-1 DO
-			   jitem := Items.TPItem( licences[j] );
+		   FOR j := 0 TO licencesAndInfos.Count-1 DO
+			   jitem := Items.TPItem( licencesAndInfos[j] );
 			   IF jitem = NIL THEN
+			      CONTINUE;
+			   ELSIF jitem^ IS Items.CInfo THEN
 			      CONTINUE;
 			   ELSIF Items.TPActivation( iitem )^.OfSerial = Items.TPLicence( jitem )^.Serial THEN
 				   Items.TPLicence( jitem )^.AddActivation( Items.TPActivation( iitem ));
@@ -160,11 +165,11 @@ BEGIN
       END;
    END;
    // add licences
-   FOR i := 0 TO licences.Count-1 DO
-      IF licences[i] = NIL THEN
+   FOR i := 0 TO licencesAndInfos.Count-1 DO
+      IF licencesAndInfos[i] = NIL THEN
          CONTINUE;
       ELSIF NOT FilterNotProducts THEN
-         items.Add( licences[i] );
+         items.Add( licencesAndInfos[i] );
       END;
    END;
    // add activations
@@ -214,6 +219,7 @@ BEGIN
    data.Strategy := array.astrgListInArray;
    ls.Filters^.Add( ADR( lsINI ), 0 );
 
+   // keep the code same as in lec.mod
    IF Strings.IndexOfCharW( LicenceMachineId, L"M", 0 ) <> -1 THEN
       uq.Sources^.Add( ADR( uqMAC ), 0 );
    END;
@@ -250,19 +256,21 @@ VAR
    items, jitems : lists.TPPtrList;
 BEGIN
    FOR i := 0 TO data.Count-1 DO
-      items := Items.TPProduct( data[i] )^.Licences;
+      items := Items.TPProduct( data[i] )^.LicencesAndInfos;
       IF items <> NIL THEN
          items^.Reset();
          WHILE items^.MoveNext() DO
             item := Items.TPItem( items^.Current );
-            jitems := Items.TPLicence( item )^.Activations;
-            IF jitems <> NIL THEN
-               jitems^.Reset();
-               WHILE jitems^.MoveNext() DO
-                  jitem := Items.TPItem( jitems^.Current );
-                  DISPOSE( jitem );
-               END; // WHILE jitems
-            END;
+            IF item^ IS Items.CLicence THEN
+               jitems := Items.TPLicence( item )^.Activations;
+               IF jitems <> NIL THEN
+                  jitems^.Reset();
+                  WHILE jitems^.MoveNext() DO
+                     jitem := Items.TPItem( jitems^.Current );
+                     DISPOSE( jitem );
+                  END; // WHILE jitems
+               END;
+            END; // item is CLicence
             DISPOSE( item );
          END; // WHILE
       END;
@@ -270,6 +278,79 @@ BEGIN
    END;
    data.Clear();
 END DisposeProducts;
+
+(*================================================================================*)
+
+PROCEDURE StoreInfo( CONST Path, ProductIdFilter : ARRAY OF WCHAR; CONST InfoKey, InfoValue : StringsO.IString );
+VAR
+   data : arrays.CPtrArray;
+   info : Items.TPInfo := NIL;
+   item : Items.TPItem;
+   i : CARDINAL;
+   ls : Store.CFileStorage;
+   lsINI : Store.CINIFilter;
+   product : Items.TPProduct;
+   uq : Uniquer.CUniquer;
+   uqDisc : Uniquer.DiscSource;
+   uqMAC : Uniquer.MACSource;
+BEGIN
+   Engine.LoadProducts( Path, L"", ProductIdFilter, OUT data ); // data contains products (a top level items)
+   IF data.Empty THEN
+      RETURN;
+   END;
+
+   FOR i := 0 TO data.Count-1 DO // find first info of first product
+      item := Items.TPItem( data[i] );
+      IF item^ IS Items.CProduct THEN
+         product := Items.TPProduct( item );
+      ELSE
+         CONTINUE;
+      END;
+      product^.LicencesAndInfos^.Reset();
+      WHILE product^.LicencesAndInfos^.MoveNext() DO
+         IF Items.TPItem( product^.LicencesAndInfos^.Current )^ IS Items.CInfo THEN
+            info := product^.LicencesAndInfos^.Current;
+         END;
+         EXIT;
+      END;
+      IF info <> NIL THEN
+         EXIT;
+      END;
+   END; // FOR
+   IF product = NIL THEN
+      product := Items.TPProduct( data[0] );
+   END;
+   
+   IF ( product <> NIL ) AND ( info = NIL ) THEN
+      NEW( info );
+         
+      info^.ProductId := product^.ProductId;
+      info^.Created := time.NowUTC();
+
+      // keep the code same as in engine.mod
+      IF Strings.IndexOfCharW( LicenceMachineId, L"M", 0 ) <> -1 THEN
+         uq.Sources^.Add( ADR( uqMAC ), 0 );
+      END;
+      IF Strings.IndexOfCharW( LicenceMachineId, L"D", 0 ) <> -1 THEN
+         uq.Sources^.Add( ADR( uqDisc ), 0 );
+      END;
+      IF uq.Sources^.Empty THEN
+         uq.Sources^.Add( ADR( uqDisc ), 0 );
+      END;
+      info^.UId := uq.UId( info^.ProductId );
+   END; // IF create new info
+   
+   // create key
+   info^.List^.Remove( InfoKey );
+   info^.List^.Add( InfoKey, InfoValue );
+   info^.Dirty := TRUE;
+
+   data.Clear();
+   data.Add( info );
+
+   ls.Filters^.Add( ADR( lsINI ), 0 );
+   ls.Store( data, TRUE );
+END StoreInfo;
 
 (*================================================================================*)
 

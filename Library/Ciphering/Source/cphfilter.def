@@ -1,0 +1,38 @@
+DEFINITION MODULE cphfilter;
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+   
+IMPORT
+   IOO,
+   rijndael,
+   sha256,
+   Sync;
+
+(*================================================================================*)
+
+# save, option( dll_export => on ) *)
+
+CLASS CRijndaelFilter IMPLEMENTS IOO.IFilter;
+   PRIVATE VAR
+      _Cipher : rijndael.CRijndael;
+      _MAC : sha256.CSHA256;
+      _Digest : sha256.CDigest;
+      _Encrypt : BOOLEAN;
+      _OnInit : BOOLEAN;
+      _InitOffset : CARDINAL;
+      
+   // IFilter
+   PUBLIC VIRTUAL PROCEDURE Filter( CONST Source : ARRAY OF BYTE; OUT Consumed : CARDINAL; REF Destination : ARRAY OF BYTE; OUT Filled : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE CloseFilter( REF Destination : ARRAY OF BYTE; OUT Filled : CARDINAL ) : Sync.TAsyncResult;
+
+   // CRijndaelFilter
+   PUBLIC PROCEDURE Init( Encrypt : BOOLEAN; CONST Key, IV : ARRAY OF BYTE ); // can be called repeatedly
+
+END CRijndaelFilter;
+
+# restore
+
+(*================================================================================*)
+
+END cphfilter.

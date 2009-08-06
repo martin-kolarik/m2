@@ -12,8 +12,7 @@ IMPORT
    msghandler,
    SCmsg,
    Sync,
-   time,
-   windows;
+   time;
 
 (*===========================================================================*)
 
@@ -21,41 +20,30 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
 
 (*---------------------------------------------------------------------------*)
   
-   INTERNAL VIRTUAL PROCEDURE OnRun() : CARDINAL;
-   CONST
-      waitHandles = 2;
+   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    VAR
       CurrentTime : CARDINAL;
       Msg : SCmsg.SCMessage;
+      Return : CARDINAL := -1;
       Target : msghandler.TPIMessageTarget;
       Timeout : CARDINAL;
       Timer : PTR;
-      Status : CARDINAL;
-      WaitHandles : ARRAY [0..1] OF Sync.WAITABLE;
    BEGIN
-      WaitHandles[0] := _HExit.RawHandle;
-      WaitHandles[1] := Queue.Consume^.RawHandle;
-   
       OnStart();
+
       LOOP
          Timeout := Support^.GetTimeoutToFirstElapsed( time.UptimeMS());
-         Status := windows.WaitForMultipleObjectsEx( waitHandles, ADR( WaitHandles ), windows.False, Timeout, windows.True );
-
-         CASE Status OF
+         CASE Helper.WaitForStopRequestAndSignal( Queue.Consume, Timeout ) OF
          //-----
-         | CARDINAL( windows.WAIT_FAILED ), windows.WAIT_ABANDONED : // some handle failed, this MUST not occur
-            Status := windows.GetLastError();
-            ASSERTLOG( FALSE );
-            OnExit();
-            RETURN -1;
-
+         | Sync.arCompleted : // graceful EXIT
+            Return := 0;
+            EXIT;
+            
          //-----
-         | windows.WAIT_OBJECT_0 : // graceful EXIT
-            OnExit();
-            RETURN 0;
-
+         | Sync.arNoData : // duty loop
+            
          //-----
-         | windows.WAIT_OBJECT_0 + 1 : // queue
+         | Sync.arPartCompleted : // queue
             WHILE Queue.DequeueOA( OUT Msg, FALSE, 0 ) = Sync.arCompleted DO
 
                IF MessageToTarget( ADR( Msg ), OUT Target ) THEN
@@ -63,12 +51,9 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
                END;
 
             END; // WHILE
-
+         
          //-----
-         | windows.WAIT_IO_COMPLETION :
-
-         //-----
-         | windows.WAIT_TIMEOUT :
+         | Sync.arTimeout :
             CurrentTime := time.UptimeMS();
             WHILE Support^.GetFirstElapsed( CurrentTime, OUT Target, OUT Timer ) DO
                
@@ -79,10 +64,16 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
                Target^.Message( Msg, msghandler.delSynchronous, NIL );
 
             END; // WHILE
-
+            
+         //-----
+         ELSE // aborted, cannot start or so
+            EXIT;
          //-----         
          END; // CASE
       END; // LOOP
+      
+      OnExit();
+      RETURN Return;
    END OnRun;
    
 (*---------------------------------------------------------------------------*)
@@ -117,7 +108,7 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
 
    PUBLIC VIRTUAL PROPERTY SelfContext GET : BOOLEAN;
    BEGIN
-      RETURN _Thread = windows.GetCurrentThreadId();
+      RETURN SUPER.SelfContext;
    END SelfContext;
   
 (*---------------------------------------------------------------------------*)

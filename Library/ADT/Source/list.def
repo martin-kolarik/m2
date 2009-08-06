@@ -71,6 +71,9 @@ CLASS CListWState( CList );
 
   PUBLIC PROCEDURE Reset();
   PUBLIC PROCEDURE MoveNext() : BOOLEAN;
+  
+   // helper for enumerators
+   PUBLIC PROCEDURE SetNextOf( CONST Element : TPListElem ) : BOOLEAN;
 END CListWState;
 
 (*===========================================================================*)

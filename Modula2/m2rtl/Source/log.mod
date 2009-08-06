@@ -13,12 +13,16 @@ FROM Strings IMPORT
 
 IMPORT
    FIO,
+   folders,
    Strings,
    time,
    windows,
    winreg;
 
 //=========================================================
+
+CONST
+   DEFAULT_FILE = L"system.log";
 
 CONST
    strlen = 512;
@@ -136,7 +140,6 @@ CLASS IMPLEMENTATION CLogger;
       IF Value = dmNone THEN
          // do nothing
       ELSIF Value = dmFile THEN
-         ASSERT( DebugFile[0] <> 0W );
          INCL( RStatus, rsDebugFile );
       ELSE
          INCL( RStatus, rsDebugKernel );
@@ -754,6 +757,9 @@ CLASS IMPLEMENTATION CLogger;
     OnLogOutputString( SW );
     IF rsDebugFile IN RStatus THEN
       DebugLock.Lock();
+      IF DebugFile[0] = 0W THEN
+         TrySetFileToDefault();
+      END;
       f := FIO.AppendW( DebugFile, FIO.TFileShare{FIO.fsRead} );
       IF f = NIL THEN
         f := FIO.CreateW( DebugFile, FIO.TFileShare{FIO.fsRead} );
@@ -896,6 +902,19 @@ CLASS IMPLEMENTATION CLogger;
       END;
       RETURN TRUE;
    END LoadByLogger;
+
+//---------------------------------------------------------
+
+   PRIVATE PROCEDURE TrySetFileToDefault();
+   VAR
+      path : FIO.PathStrW := L"";
+   BEGIN
+      IF folders.GetManufacturerSpecialFolderW( folders.sfAppDataCommon, TRUE, OUT path ) THEN
+         FIO.PathAddW( REF path, DEFAULT_FILE );
+      ELSE
+         DebugFile := DEFAULT_FILE;
+      END;
+   END TrySetFileToDefault;
 
 //---------------------------------------------------------
 

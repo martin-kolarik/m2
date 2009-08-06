@@ -1,5 +1,8 @@
 DEFINITION MODULE lec;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
    Delegate,
    lists,
@@ -9,11 +12,11 @@ IMPORT
 (*================================================================================*)
 
 TYPE
-   TInfo = (
-      riUnknown,
-      riDemo,
-      riNotActivated,
-      riActivated
+   TStateInfo = (
+      siUnknown,
+      siDemo,
+      siNotActivated,
+      siActivated
    );
    
    TBehaviour =
@@ -36,31 +39,70 @@ TYPE
 
 (*--------------------------------------------------------------------------------*)
 
+TYPE
+   TPProduct = POINTER TO CProduct;
+
+CLASS CProduct;
+   PRIVATE VAR
+      _Id : StringsO.CString;
+      _Name : StringsO.CString;
+      _Licences : lists.CStringList; // Data contains TLicenceType
+      _StateInfo : TStateInfo;
+      _Expires : time.TJD;
+      _Info : lists.CStringStringList;
+
+   PUBLIC READONLY PROPERTY
+      Name : StringsO.CString;
+      Id : StringsO.CString;
+      StateInfo : TStateInfo;
+      Expires : time.DateTime;
+      Expired : BOOLEAN;
+      Info : lists.TPStringStringList;
+      Licences : lists.TPStringList;
+
+   VIRTUAL PROCEDURE Dispose();
+   
+   // private
+   LOCAL PROCEDURE Construct( CONST Id, Name : StringsO.IString; stateInfo : TStateInfo; expires : time.TJD );
+END CProduct;
+
+(*--------------------------------------------------------------------------------*)
+
 CLASS CResult( Delegate.ADelegate );
    PRIVATE VAR
       _Lock : sync.LOCK;
-      _Info : TInfo;
+      _Info : TStateInfo;
       _Expires : time.TJD;
       _Start : time.TJD;
       _Counter : CARDINAL := 0;
-      _Licences : lists.CStringList; // Data contains TLicenceType
+      _Products : lists.CPtrList;
 
    LOCAL PROCEDURE QueryStarted();
    LOCAL PROCEDURE QueryData( data : PTR );
    LOCAL PROCEDURE QueryFinished();
-   
+
+   // result summarization method   
    PUBLIC VAR
       Behaviour : TBehaviour := bhBestCase;
+   // summarized data
    PUBLIC READONLY PROPERTY
-      Info : TInfo;
+      StateInfo : TStateInfo;
       Expires : time.DateTime;
       Expired : BOOLEAN;
       NextCheck : CARDINAL;
       Counted : BOOLEAN;
-      Licences : lists.TPStringList;
 
    PUBLIC PROCEDURE Reset( Behaviour : TBehaviour );
    PUBLIC PROCEDURE Inc();
+   PUBLIC PROCEDURE GetLicences( OUT list : lists.CStringList ); // fills licences of the first product
+   
+   // enumerating products
+   PUBLIC PROCEDURE ProductsLock();
+   PUBLIC PROCEDURE ProductsUnlock();
+   PUBLIC PROCEDURE ProductsReset();
+   PUBLIC PROCEDURE ProductsMoveNext() : BOOLEAN;
+   PUBLIC READONLY PROPERTY
+      CurrentProduct : TPProduct;
 END CResult;
 
 (*================================================================================*)
@@ -70,6 +112,8 @@ PROCEDURE QueryData( CONST Path1, Path2 : ARRAY OF WCHAR; Data : ADDRESS; Length
 
 PROCEDURE RegisterValidator( Data : ADDRESS; Length : CARDINAL; Validator : ADDRESS );
 PROCEDURE UnregisterValidator( Data : ADDRESS );
+
+PROCEDURE StoreInfo( CONST Path : ARRAY OF WCHAR; Data : ADDRESS; Length : CARDINAL; CONST InfoKey, InfoValue : StringsO.IString );
 
 (*================================================================================*)
 

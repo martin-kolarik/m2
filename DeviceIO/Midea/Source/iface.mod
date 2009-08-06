@@ -7,6 +7,7 @@ FROM Storage IMPORT
 
 IMPORT
    device,
+   helper,
    Midea;
 
 (*===========================================================================*)
@@ -16,18 +17,28 @@ CONST
 
 (*===========================================================================*)
 
-CLASS CCreator( objlib.ACreator );
+CLASS CCreator( helper.ACreator );
+   // IObject
+   PUBLIC VIRTUAL PROCEDURE OnDispose();
+   
+   // ILibrary
    PUBLIC VIRTUAL PROCEDURE LibraryInfo( OUT Library, LibraryVersionString : ARRAY OF WCHAR );
    PUBLIC VIRTUAL PROCEDURE EnumerateClasses( REF EnumerateState : PTR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetLECData( OUT cllvData : iobject.TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
 
-   PUBLIC VIRTUAL PROCEDURE GetLECData( OUT cllvData : objlib.TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
-
-   INTERNAL VIRTUAL PROCEDURE OnFactory( CONST QName : ARRAY OF WCHAR; OUT Object : objlib.TPObject ) : objlib.TResult;
+   // ACreator
+   INTERNAL VIRTUAL PROCEDURE OnFactory( CONST QName : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
 END CCreator;
 
 (*---------------------------------------------------------------------------*)
 
 CLASS IMPLEMENTATION CCreator;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE OnDispose();
+   BEGIN
+   END OnDispose;
 
 (*---------------------------------------------------------------------------*)
 
@@ -50,20 +61,20 @@ CLASS IMPLEMENTATION CCreator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetLECData( OUT cllvData : objlib.TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetLECData( OUT cllvData : iobject.TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END GetLECData;
 
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnFactory( CONST QName : ARRAY OF WCHAR; OUT Object : objlib.TPObject ) : objlib.TResult;
+   INTERNAL VIRTUAL PROCEDURE OnFactory( CONST QName : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
    BEGIN
       IF NOT EQUALS( QName, nDeviceIO ) THEN
-         RETURN objlib.lrClassNotFound;
+         RETURN iobject.lrClassNotFound;
       END;
       Object := ADR( NEW( Midea.CMideaDevice )^.IDevice );
-      RETURN objlib.lrSuccess;
+      RETURN iobject.lrSuccess;
    END OnFactory;
 
 (*---------------------------------------------------------------------------*)
@@ -75,7 +86,7 @@ END CCreator;
 VAR
    Creator : CCreator;
 
-PROCEDURE Factory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : objlib.TPObject ) : objlib.TResult;
+PROCEDURE Factory( CONST ClassPath : ARRAY OF WCHAR; OUT Object : iobject.TPObject ) : iobject.TResult;
 BEGIN
    RETURN Creator.Factory( ClassPath, OUT Object );
 END Factory;

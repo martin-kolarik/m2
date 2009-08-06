@@ -1,0 +1,49 @@
+DEFINITION MODULE SDAPClient;
+
+IMPORT
+   StringsO,
+   Sync;
+
+#save, option( dll_export => on )
+
+(*================================================================================*)
+
+TYPE
+   TPISDAPClientEvents = POINTER TO ISDAPClientEvents;
+
+INTERFACE ISDAPClientEvents;
+   PROCEDURE OnConnect( Result : Sync.TAsyncResult; Error : CARDINAL );
+   PROCEDURE OnClose( Result : Sync.TAsyncResult; Error : CARDINAL );
+   PROCEDURE OnReceive( CONST Data, Value : StringsO.IString );
+END ISDAPClientEvents;
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TPISDAPClient = POINTER TO ISDAPClient;
+
+INTERFACE ISDAPClient;
+   READONLY PROPERTY
+      Connected : BOOLEAN;
+   PROPERTY
+      EventListener : TPISDAPClientEvents;
+
+   PROCEDURE Dispose();
+
+   PROCEDURE Connect( CONST Host : StringsO.IString ) : Sync.TAsyncResult;
+   PROCEDURE Close();
+   PROCEDURE SetAdvise( AdviseEnabled : BOOLEAN ) : Sync.TAsyncResult;
+
+   PROCEDURE Write( CONST Data, Value : StringsO.IString ) : Sync.TAsyncResult;
+   PROCEDURE Ask( CONST Data : StringsO.IString ) : Sync.TAsyncResult;
+END ISDAPClient;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE newSDAPClient( OUT client : TPISDAPClient ) : Sync.TAsyncResult;
+
+(*================================================================================*)
+
+#restore
+
+END SDAPClient.

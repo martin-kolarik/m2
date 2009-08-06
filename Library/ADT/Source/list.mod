@@ -339,6 +339,18 @@ CLASS IMPLEMENTATION CListWState;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE SetNextOf( CONST Element : TPListElem ) : BOOLEAN;
+   BEGIN
+      IF NextOf( Element, OUT _Current ) THEN
+         RETURN TRUE;
+      ELSE
+         _Current := -1;
+         RETURN FALSE;
+      END;
+   END SetNextOf;
+
+(*---------------------------------------------------------------------------*)
+
 BEGIN
   _Current := NIL;
 END CListWState;

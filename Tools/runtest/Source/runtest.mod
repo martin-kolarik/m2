@@ -245,7 +245,7 @@ BEGIN
          END;
 
       ELSE // file
-         loader.ldr()^.AddLibrary( OAsz( argp^[i] ));
+         loader.ldr()^.AddLibrary( OAsz( argp^[i] ), NIL );
       END;
       
       INC( i );

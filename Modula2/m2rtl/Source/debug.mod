@@ -8,8 +8,8 @@ FROM Storage IMPORT
 
 IMPORT
    FIO,
+   Folders,
    Log,
-   shlobjlite,
    Strings,
    windows;
 
@@ -59,7 +59,6 @@ VAR
 PROCEDURE CreateLogger() : Log.TPLogger;
 VAR
    file : FIO.PathStrW;
-   folder : FIO.PathStrW;
    path : FIO.PathStrW;
    success : BOOLEAN := FALSE;
 BEGIN
@@ -78,24 +77,18 @@ BEGIN
       AssertionLog^.SetLogName( ProductId );
    END;
 
-   // try common application data path
-   IF NOT success AND ( shlobjlite.SHGetFolderPath( NIL, shlobjlite.CSIDL_COMMON_APPDATA, NIL, shlobjlite.SHGFP_TYPE_CURRENT, ADR( folder )) = 0 ) THEN
-      FIO.MakePathW( folder, Manufacturer, OUT path );
-      IF FIO.CreateDirectoryW( path ) THEN
-         FIO.MakePathW( path, ASSERTIONS_FILE, OUT file );
-         AssertionLog^.SetLogFile( file );
-         success := TRUE;
-      END;
+   // try common application data path, should always succeed
+   IF NOT success AND Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataCommon, TRUE, OUT path ) THEN
+      FIO.MakePathW( path, ASSERTIONS_FILE, OUT file );
+      AssertionLog^.SetLogFile( file );
+      success := TRUE;
    END;
    
    // try user application data path
-   IF NOT success AND ( shlobjlite.SHGetFolderPath( NIL, shlobjlite.CSIDL_APPDATA, NIL, shlobjlite.SHGFP_TYPE_CURRENT, ADR( folder )) = 0 ) THEN
-      FIO.MakePathW( folder, Manufacturer, OUT path );
-      IF FIO.CreateDirectoryW( path ) THEN
-         FIO.MakePathW( path, ASSERTIONS_FILE, OUT file );
-         AssertionLog^.SetLogFile( file );
-         success := TRUE;
-      END;
+   IF NOT success AND Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataUser, TRUE, OUT path ) THEN
+      FIO.MakePathW( path, ASSERTIONS_FILE, OUT file );
+      AssertionLog^.SetLogFile( file );
+      success := TRUE;
    END;
 
    RETURN AssertionLog;

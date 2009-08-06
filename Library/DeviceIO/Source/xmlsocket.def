@@ -47,6 +47,8 @@ CLASS CXMLSocketServer( netconndispatch.CDispatcher ) IMPLEMENTS io.IStartStopCo
    INTERNAL VIRTUAL PROCEDURE OnReceive( Connection : netconndispatch.TConnectionHandle; PData : ADDRESS; DataLen : CARDINAL );
 
    PRIVATE PROCEDURE Parse( Client : ADDRESS; Data : ARRAY OF CHAR );
+   PRIVATE PROCEDURE HandleConnect();
+   PRIVATE PROCEDURE HandleDisconnect();
    PRIVATE PROCEDURE HandleRead( CONST Name : ARRAY OF WCHAR; REF readRequests : arrays.TPPtrArray );
    PRIVATE PROCEDURE HandleWrite( CONST Name, Value : ARRAY OF WCHAR );
    PRIVATE PROCEDURE ScheduleSend( Client : ADDRESS; Items : arrays.TPPtrArray );

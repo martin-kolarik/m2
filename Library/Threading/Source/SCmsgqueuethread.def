@@ -24,7 +24,7 @@ CLASS SCMessageQueueThread( Win32thread.Win32Thread ) IMPLEMENTS threadcall.IThr
       Queue : msgqueue.CMessageQueue;
 
    // IThread/IRunnable
-   INTERNAL VIRTUAL PROCEDURE OnRun() : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    
    // IThreadProcedureCallHandler
    PUBLIC FINAL PROCEDURE ThreadCall( Target : threadcall.TPIThreadProcedureCallTarget; Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;

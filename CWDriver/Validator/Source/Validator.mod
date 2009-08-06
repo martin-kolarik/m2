@@ -285,15 +285,15 @@ CLASS IMPLEMENTATION CDriver;
       lec.Query( StoragePath, OA( SW[1].Length-1, SW[1].rawData ), REF Result );
       
       CASE Result.Info OF
-      | lec.riDemo :
+      | lec.siDemo :
          so.FromOA( L"demo:1800" );
-      | lec.riNotActivated :
+      | lec.siNotActivated :
          so.FromOA( L"not activated:" );
-      | lec.riActivated :
+      | lec.siActivated :
          so.FromOA( L"activated:" );
       END;
       
-      IF Result.Info <> lec.riDemo THEN
+      IF Result.Info <> lec.siDemo THEN
          dt := Result.Expires;
          IF dt.Year = 0 THEN
             so.AppendOA( L"infinite:infinite" );

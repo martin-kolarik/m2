@@ -132,6 +132,12 @@ CONST // object type names
    otnLoggedESFStrict       = L"logged_esf_strict";
    otnLoggedESFAdapt        = L"logged_esf_adapt";
    otnLoggedESFIgnore       = L"logged_esf_ignore";
+   
+CONST
+   itemSystemSuspend = 1;
+   nameSystemSuspend = L".System.Licensing.Suspend";
+   suspendKey = L"suspend";
+   suspendValue = L"true";
 
 //================================================================================
 
@@ -370,11 +376,55 @@ END CStackSink;
 
 //================================================================================
 
+CLASS IMPLEMENTATION CSuspendableResult;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROPERTY Expired GET : BOOLEAN;
+   BEGIN
+      IF _Suspended THEN
+         RETURN TRUE;
+      ELSE
+         RETURN SUPER.Expired;
+      END;
+   END Expired;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROPERTY Suspended GET : BOOLEAN;
+   BEGIN
+      RETURN _Suspended;
+   END Suspended;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROCEDURE QuerySuspension();
+   VAR
+      value : StringsO.CString;
+   BEGIN
+      ProductsLock();
+      ProductsReset();
+      WHILE ProductsMoveNext() DO
+         IF CurrentProduct^.Info^.GetOA( suspendKey, OUT value ) THEN
+            _Suspended := value.EqualsOA( suspendValue );
+         END;
+      END;
+      ProductsUnlock();
+   END QuerySuspension;
+
+//--------------------------------------------------------------------------------
+
+BEGIN
+   _Suspended := TRUE;
+END CSuspendableResult;
+
+//================================================================================
+
 CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC PROPERTY PResult GET : POINTER TO lec.CResult;
+   PUBLIC PROPERTY PResult GET : POINTER TO CSuspendableResult;
    BEGIN
       RETURN ADR( Result );
    END PResult;
@@ -516,6 +566,10 @@ CLASS IMPLEMENTATION CEIBServer;
       address : eib_def.TAddress;
       PObject : TPObject;
    BEGIN
+      IF Name.EqualsOA( nameSystemSuspend ) THEN
+         Hash := itemSystemSuspend;
+         RETURN TRUE;
+      END;
       address.SetGroupAddress3( OA( Name.Length-1, Name.rawData ));
       IF NOT GetObject( address, OUT PObject ) THEN
          RETURN FALSE;
@@ -533,6 +587,8 @@ CLASS IMPLEMENTATION CEIBServer;
       s : ARRAY [0..31] OF WCHAR;
    BEGIN
       IF Hash = NIL THEN
+         RETURN FALSE;
+      ELSIF Hash = itemSystemSuspend THEN
          RETURN FALSE;
       END;
       address := TPObject( Hash )^.SendAddress;
@@ -617,6 +673,7 @@ CLASS IMPLEMENTATION CEIBServer;
       ASSERT( cllvdata <> NIL );
       IF cllvdata <> NIL THEN
          lec.QueryData( s, L"", cllvdata, cllvlength, REF Result );
+         Result.QuerySuspension();
       END;
 
       StopTimer( tiInitReadDelay );
@@ -651,8 +708,31 @@ CLASS IMPLEMENTATION CEIBServer;
    VAR
       EV : eib_def.CValue;
       changed : BOOLEAN;
+      key, value : StringsO.CString;
       PObject : TPObject;
+      s : FIO.PathStrW;
    BEGIN
+      // system suspend must be processed before expiration check
+      IF Item = itemSystemSuspend THEN
+         IF rsEXEFlag IN RStatus THEN
+            FIO.GetModuleDirW( L"", OUT s );
+         ELSE
+            FIO.GetModuleDirW( EMITW( %dll ), OUT s );
+         END;
+         ASSERT( cllvdata <> NIL );
+         IF cllvdata <> NIL THEN
+            key.FromOA( suspendKey );
+            value := Value.String;
+            lec.StoreInfo( s, cllvdata, cllvlength, key, value );
+            ASSERT( cllvdata <> NIL );
+            IF cllvdata <> NIL THEN
+               lec.QueryData( s, L"", cllvdata, cllvlength, REF Result );
+               Result.QuerySuspension();
+            END;
+         END;
+         RETURN Sync.arCompleted;
+      END;
+      
       IF Result.Counted OR Result.Expired THEN
          RETURN Sync.arCannotStart;
       END;
@@ -1697,9 +1777,6 @@ CLASS IMPLEMENTATION CEIBServer;
          EventSink^.OnConnect();
       END;
 
-      IF TRStatus{rsInitReadPending, rsInitReadFinished} * RStatus <> TRStatus{} THEN
-         RETURN;
-      END;
       RStatus := RStatus - TRStatus{rsInitReadRepeat, rsInitReadFinished} + TRStatus{rsInitReadPending};
       InitReadItems := 0;
       IF Objects.Count = 0 THEN

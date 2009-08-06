@@ -14,7 +14,7 @@
         <PublishExports>off</PublishExports>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='SDAPClient'">
+    <PropertyGroup Condition="$(MSBuildProjectName)=='SDAPClientCPPStandalone'">
         <PublishExports>on</PublishExports>
     </PropertyGroup>
     

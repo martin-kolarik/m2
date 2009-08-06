@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xsi:schemaLocation="http://schemas.microsoft.com/wix/2003/01/wi wix.xsd" xmlns="http://schemas.microsoft.com/wix/2003/01/wi" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xse="http://schemas.microsoft.com/wix/2005/XmlSchemaExtension" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ns="http://schemas.microsoft.com/wix/2003/01/wi" xmlns:html="http://www.w3.org/1999/xhtml" xmlns:hfp="http://www.w3.org/2001/XMLSchema-hasFacetAndProperty">
+    <Product Codepage="$(var.CodePage)" Language="$(var.Language)" Manufacturer="$(var.Manufacturer)" Name="$(var.ProductDescription)" Version="$(var.ProductVersion)" Id="$(var.ProductGUID)" UpgradeCode="$(var.UpgradeGUID)">
+        <Package Compressed="yes" Id="????????-????-????-????-????????????" Languages="$(var.Language)" SummaryCodepage="$(var.CodePage)" />
+        <Media Cabinet="Product.Cab" EmbedCab="yes" Id="1">
+        </Media>
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <?if $(var.CLib)=Shared ?>
+            <?if $(var.ConfigurationName)=Debug ?>
+            <Merge Id="VC8Runtime" SourceFile="C:\Program Files\Common Files\Merge Modules\Microsoft_VC80_DebugCRT_x86.msm" Language="1033" DiskId="1" />
+            <Merge Id="VC8Policy" SourceFile="C:\Program Files\Common Files\Merge Modules\policy_8_0_Microsoft_VC80_DebugCRT_x86.msm" Language="1033" DiskId="1" />
+            <?else ?>
+            <Merge Id="VC8Runtime" SourceFile="C:\Program Files\Common Files\Merge Modules\Microsoft_VC80_CRT_x86.msm" Language="1033" DiskId="1" />
+            <Merge Id="VC8Policy" SourceFile="C:\Program Files\Common Files\Merge Modules\policy_8_0_Microsoft_VC80_CRT_x86.msm" Language="1033" DiskId="1" />
+            <?endif ?>
+            <?endif ?>
+            <Directory Id="ProgramFilesFolder">
+                <Directory Id="NeNo" Name="NeNo">
+                    <Directory Id="INSTALLDIR" Name="SDAPBrdg" LongName="DeviceSDAPBridge">
+                        <Component Guid="DA87666A-1BBC-4d8a-BFBC-A65648C4CF8F" Id="Program">
+                            <File DiskId="1" Id="BridgeSvc.EXE" Name="SDAPBrdg.exe" LongName="BridgeSvc.exe" Source="BridgeSvc.exe" Vital="yes" KeyPath="yes" />
+                            <ServiceInstall Id="SVC" Name="$(var.ProductId)" Type="ownProcess" Interactive="yes" Start="auto" ErrorControl="normal" DisplayName="$(var.ProductDisplayName)" Description="$(var.ProductDescription)">
+                                <ServiceDependency Id="Tcpip" />
+                            </ServiceInstall>
+                            <ServiceControl Id="SVCControlProgram" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
+                        </Component>
+                        <Component Guid="3A0016D2-BB9D-4269-9E14-398C6893B9BA" Id="RuntimeLib">
+                            <File Id="SCCore.DLL" Name="SCCore.dll" Source="SCCore.dll" DiskId="1" Vital="yes" KeyPath="yes" />
+                            <ServiceControl Id="SVCControlRuntimeLib" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
+                        </Component>
+                        <Component Guid="ADE2002D-1D39-4fae-A047-913F74EC8FED" Id="BridgeLib">
+                            <File Id="DeviceIOSDAPBridge.DLL" Name="SDAPBrdg.dll" LongName="DeviceIOSDAPBridge.dll" Source="DeviceIOSDAPBridge.dll" DiskId="1" Vital="yes" KeyPath="yes" />
+                            <ServiceControl Id="SVCControlBridgeLib" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
+                        </Component>
+                        <!-- Component Guid="E221959E-E8C4-412d-95A4-018C096D2A2F" Id="ToolSvcInst">
+                            <File Id="SvcInst.EXE" Name="SvcInst.exe" Source="SvcInst.exe" DiskId="1" Vital="yes" KeyPath="yes" />
+                        </Component -->
+                        <Component Id="Licence" Guid="23DDE166-5696-4e0a-93F0-027EFACF7910">
+                            <File Id="License.rtf" Name="License.rtf" Source="License.rtf" DiskId="1" />
+                        </Component>
+                        <Component Id="DefaultConfiguration" Guid="801CD0FE-6B06-4067-A2CC-F7BB6C56C7BB">
+                            <File Id="default.cfg" Name="default.cfg" Source="default.cfg" DiskId="1" Vital="yes" KeyPath="yes" />
+                        </Component>
+                        <?if $(var.LeakChecking)=on ?>
+                        <Component Guid="801CD0FE-6B06-4067-A2CC-F7BB6C56C7BB" Id="LeakDetector">
+                            <File DiskId="1" Id="LeakDetector.DLL" LongName="LeakDetector.dll" Name="LeakDet.dll" Source="LeakDetector.dll" Vital="yes">
+                            </File>
+                        </Component>
+                        <?endif ?>
+                        <?if $(var.CLib)=Private ?>
+                        <?if $(var.ConfigurationName)=Debug ?>
+                        <Directory Id="Microsoft.VC80.DebugCRT" LongName="Microsoft.VC80.DebugCRT" Name="vc80">
+                            <Component Id="VC8Runtime" DiskId="1" Guid="4D592F97-0853-495f-949D-1440AA779327">
+                                <File Id="Microsoft.VC80.DebugCRT.manifest" LongName="Microsoft.VC80.DebugCRT.manifest" Name="vc80.MAN" Source="$(env.VCINSTALLDIR)\redist\Debug_NonRedist\x86\Microsoft.VC80.DebugCRT\Microsoft.VC80.DebugCRT.manifest" />
+                                <File Id="msvcr80d.dll" LongName="msvcr80d.dll" Name="MSVCR80.DLL" Source="$(env.VCINSTALLDIR)\redist\Debug_NonRedist\x86\Microsoft.VC80.DebugCRT\msvcr80d.dll" Vital="yes" />
+                            </Component>
+                        </Directory>
+                        <?else ?>
+                        <Directory Id="Microsoft.VC80.CRT" LongName="Microsoft.VC80.CRT" Name="vc80">
+                            <Component Id="VC8Runtime" DiskId="1" Guid="8C4C5026-F3F8-49e3-B90F-096620D8DE08">
+                                <File Id="Microsoft.VC80.CRT.manifest" LongName="Microsoft.VC80.CRT.manifest" Name="vc80.MAN" Source="$(env.VCINSTALLDIR)\redist\x86\Microsoft.VC80.CRT\Microsoft.VC80.CRT.manifest" />
+                                <File Id="msvcr80.dll" LongName="msvcr80.dll" Name="MSVCR80.DLL" Source="$(env.VCINSTALLDIR)\redist\x86\Microsoft.VC80.CRT\msvcr80.dll" Vital="yes" />
+                            </Component>
+                        </Directory>
+                        <?endif ?>
+                        <?endif ?>
+                    </Directory>
+                </Directory>
+            </Directory>
+        </Directory>
+        <Directory Id="ProgramMenuFolder" Name="PMenu" LongName="Programs">
+            <Directory Id="ProgramMenuDir" Name='SDAPBrdg' LongName="Device to SDAP Bridge" />
+        </Directory>
+        <?if $(var.CLib)=Private ?>
+        <Feature Id="VC8RuntimeFeature" Level="1" AllowAdvertise="no" Display="hidden">
+            <ComponentRef Id="VC8Runtime" />
+        </Feature>
+        <?elseif $(var.CLib)=Shared ?>
+        <Feature Id="VC8RuntimeFeature" Level="1" AllowAdvertise="no" Display="hidden">
+            <MergeRef Id="VC8Runtime" />
+            <MergeRef Id="VC8Policy" />
+        </Feature>
+        <?endif ?>
+        <Feature ConfigurableDirectory="INSTALLDIR" Id="Complete" Level="1">
+            <ComponentRef Id="Program" />
+            <ComponentRef Id="RuntimeLib" />
+            <ComponentRef Id="BridgeLib" />
+            <ComponentRef Id="Licence" />
+            <!-- ComponentRef Id="ToolSvcInst" / -->
+            <ComponentRef Id="DefaultConfiguration" />
+            <?if $(var.LeakChecking)=on ?>
+            <ComponentRef Id="LeakDetector" />
+            <?endif ?>
+        </Feature>
+        <UIRef Id="WixUI_Licence" />
+        <UI />
+        <Icon Id="AddRemoveIcon" SourceFile="DevSDAPBridgeSVC.ico" />
+        <?include $(var.BuildRoot)\Manufacturer.wxs ?>
+    </Product>
+</Wix>

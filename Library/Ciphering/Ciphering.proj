@@ -14,8 +14,8 @@
 
     <!-- 3 -->
     <ItemGroup>
-        <Components Include="Modula2\modula2;API\CLib;API\win32;Modula2\m2rtl"/>
-        <Modules Include="cphcommon;crc;digest;sha1;sha256;md5;hash;Rijndael"/>
+        <Components Include="Modula2\modula2;API\CLib;API\win32;Modula2\m2rtl;Modula2\m2ortl"/>
+        <Modules Include="cphcommon;crc;digest;sha1;sha256;md5;hash;Rijndael;cphfilter"/>
     </ItemGroup>
 
     <!-- 4 -->

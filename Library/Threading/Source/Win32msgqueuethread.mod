@@ -20,36 +20,26 @@ CLASS IMPLEMENTATION Win32MessageQueueThread;
 
 (*---------------------------------------------------------------------------*)
   
-   INTERNAL VIRTUAL PROCEDURE OnRun() : CARDINAL;
-   CONST
-      waitHandles = 1;
+   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    VAR
       msg : windows.MSG;
       Msg : Win32msg.Win32Message;
       Return : CARDINAL := -1;
-      Status : CARDINAL;
       Target : OSALmsg.TPMessageTarget;
    BEGIN
       OnStart();
       LOOP
-         Status := windows.MsgWaitForMultipleObjectsEx( waitHandles, _HExit.RawHandle, windows.INFINITE, windows.QS_ALLINPUT, windows.MWMO_INPUTAVAILABLE OR windows.MWMO_ALERTABLE );
-         CASE Status OF
+         CASE WaitForStopRequest( Sync.FOREVER ) OF
          //-----
-         | CARDINAL( windows.WAIT_FAILED ), windows.WAIT_ABANDONED : // some handle failed, this MUST not occur
-            Status := windows.GetLastError();
-            ASSERTLOG( FALSE );
-            EXIT;
-
-         //-----
-         | windows.WAIT_OBJECT_0 : // graceful EXIT
+         | Sync.arCompleted : // graceful EXIT
             Return := 0;
             EXIT;
 
          //-----
-         | windows.WAIT_IO_COMPLETION :
+         | Sync.arNoData : // duty loop
 
          //-----
-         | windows.WAIT_OBJECT_0 + waitHandles : // a message received
+         | Sync.arPending : // a message received
             WHILE windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_REMOVE ) <> 0 DO
                windows.TranslateMessage( ADR( msg ));
 
@@ -67,6 +57,11 @@ CLASS IMPLEMENTATION Win32MessageQueueThread;
                END;
             END; // MessageLoop
 
+         //-----
+         ELSE
+            EXIT;
+
+         //-----
          END; // CASE
       END; // LOOP
 
@@ -106,7 +101,7 @@ CLASS IMPLEMENTATION Win32MessageQueueThread;
 
    PUBLIC VIRTUAL PROPERTY SelfContext GET : BOOLEAN;
    BEGIN
-      RETURN _Thread = windows.GetCurrentThreadId();
+      RETURN SUPER.SelfContext;
    END SelfContext;
   
 (*---------------------------------------------------------------------------*)
@@ -127,7 +122,7 @@ CLASS IMPLEMENTATION Win32MessageQueueThread;
             END;
          END;
       ELSE
-         windows.PostThreadMessage( _Thread, Msg.Message, windows.WPARAM( Msg[ Win32msg.MI_WPARAM ] ), windows.LPARAM( Msg[ Win32msg.MI_LPARAM ] ));
+         windows.PostThreadMessage( LOPTRLONGWORD( Id ), Msg.Message, windows.WPARAM( Msg[ Win32msg.MI_WPARAM ] ), windows.LPARAM( Msg[ Win32msg.MI_LPARAM ] ));
       END;
       RETURN TRUE;
    END Message;

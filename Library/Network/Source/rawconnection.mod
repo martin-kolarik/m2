@@ -14,7 +14,7 @@ TYPE
 
 CLASS CConnectionNotifier( netsocket.ASocketNotifier ) IMPLEMENTS threadcall.IThreadProcedureCallTarget;
    LOCAL VAR
-      Connection : TPTCPConnection := NIL;
+      Connection : POINTER TO IPConnection := NIL;
       CallbackMode : IOO.TCallbackMode := IOO.cbmPooled; // not default
       Notifier : netsocket.TPSocketNotifier := NIL;
 
@@ -67,7 +67,7 @@ CLASS IMPLEMENTATION CConnectionNotifier;
       P : TOnErrorParameters;
       p : PTR := ADR( P );
    BEGIN
-      IF Source <> ADR( Connection^._Socket ) THEN
+      IF Source <> Connection^._Socket THEN
          // accept only errors from socket
       ELSIF Notifier = NIL THEN
          // do nothing
@@ -92,7 +92,7 @@ CLASS IMPLEMENTATION CConnectionNotifier;
    VAR
       p : PTR := ADR( Direction );
    BEGIN
-      IF Source = ADR( Connection^._Socket ) THEN
+      IF Source = Connection^._Socket THEN
          // accept only notifications from stream
       ELSIF Notifier = NIL THEN
          // do nothing
@@ -114,7 +114,7 @@ CLASS IMPLEMENTATION CConnectionNotifier;
    VAR
       p : PTR := ADR( Length );
    BEGIN
-      IF Source = ADR( Connection^._Socket ) THEN
+      IF Source = Connection^._Socket THEN
          // accept only notifications from stream
       ELSIF Notifier = NIL THEN
          // do nothing
@@ -136,7 +136,7 @@ CLASS IMPLEMENTATION CConnectionNotifier;
    VAR
       p : PTR := ADR( Length );
    BEGIN
-      IF Source = ADR( Connection^._Socket ) THEN
+      IF Source = Connection^._Socket THEN
          // accept only errors from stream
       ELSIF Notifier = NIL THEN
          // do nothing
@@ -249,7 +249,7 @@ END CConnectionNotifier;
 
 (*================================================================================*)
 
-CLASS IMPLEMENTATION TCPConnection;
+CLASS IMPLEMENTATION IPConnection;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -316,7 +316,7 @@ CLASS IMPLEMENTATION TCPConnection;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE OpenS( Host : StringsO.CString; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE OpenS( CONST Host : StringsO.IString; WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    BEGIN
       RETURN Open( OA( Host.Length-1, Host.rawData ), WaitForResult, TimeoutMS );
    END OpenS;
@@ -357,11 +357,6 @@ BEGIN
    NEW( _Notifier );
    _Notifier^.Connection := ADR( SELF );
    
-   NEW( _Socket );
-   _Socket^.Notifier := _Notifier;
-
-   _NStream.FromSocket( _Socket, FALSE, IOO.accReadWrite );
-
    _BStream.Stream := ADR( _NStream );
    _BStream.Notifier := _Notifier;
 
@@ -370,16 +365,45 @@ FINALLY
    _BStream.Stream := NIL;
    // _NStream is closed inside _BStream
    
+   _Notifier^.Release();
+   _Notifier := NIL;
+END IPConnection;
+
+(*================================================================================*)
+
+CLASS IMPLEMENTATION TCPConnection;
+BEGIN
+   NEW( _Socket );
+   _Socket^.Type := netsocket.stStream;
+
+   _Socket^.Notifier := _Notifier;
+   _NStream.FromSocket( _Socket, FALSE, IOO.accReadWrite );
+FINALLY
    IF _Socket <> NIL THEN
       _Socket^.Notifier := NIL;
       _Socket^.Disconnect( TRUE, netsocket.FORSAFETY );
       _Socket^.Release();
       _Socket := NIL;
    END;
-   
-   _Notifier^.Release();
-   _Notifier := NIL;
 END TCPConnection;
+
+(*================================================================================*)
+
+CLASS IMPLEMENTATION UDPConnection;
+BEGIN
+   NEW( _Socket );
+   _Socket^.Type := netsocket.stDatagram;
+
+   _Socket^.Notifier := _Notifier;
+   _NStream.FromSocket( _Socket, FALSE, IOO.accReadWrite );
+FINALLY
+   IF _Socket <> NIL THEN
+      _Socket^.Notifier := NIL;
+      _Socket^.Disconnect( TRUE, netsocket.FORSAFETY );
+      _Socket^.Release();
+      _Socket := NIL;
+   END;
+END UDPConnection;
 
 (*================================================================================*)
 

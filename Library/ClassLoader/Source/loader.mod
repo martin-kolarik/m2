@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE loader;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM Strings IMPORT
    LowerizeW;
@@ -178,7 +178,7 @@ CLASS IMPLEMENTATION CLoader;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE AddLibrary( CONST LibraryPath : ARRAY OF WCHAR ) : iobject.TResult;
+   PUBLIC PROCEDURE AddLibrary( CONST LibraryPath : ARRAY OF WCHAR; LibraryName : StringsO.TPString ) : iobject.TResult;
    VAR
       Library : TPLibrary;
       LPath : FIO.PathStrW;
@@ -191,6 +191,9 @@ CLASS IMPLEMENTATION CLoader;
          Libraries.Add( Library, 0 );
       END;
       BuildNames();
+      IF LibraryName <> NIL THEN
+         LibraryName^.Assign( Library^.Name );
+      END;
       RETURN iobject.lrSuccess;
    END AddLibrary;
 
@@ -357,8 +360,12 @@ CLASS IMPLEMENTATION CLoader;
          Library := TPLibrary( Libraries.Current );
          Name := Library^.Name;
          Name.Lowerize();
-         IF ( lsEnabled IN Library^.State ) AND NOT Names.Contains( Name ) THEN
-            Names.Add( Name, Library );
+         IF lsEnabled IN Library^.State THEN
+            IF Names.Contains( Name ) THEN
+               ASSERTLOG( FALSE );
+            ELSE
+               Names.Add( Name, Library );
+            END;
          END;
       END; // WHILE
    END BuildNames;
