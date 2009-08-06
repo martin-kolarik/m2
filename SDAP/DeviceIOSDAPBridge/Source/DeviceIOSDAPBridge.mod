@@ -103,6 +103,10 @@ CLASS IMPLEMENTATION ABridge;
                   CONTINUE;
                END;
 
+               IF NOT _Logger.Filtered( log.dldDebug ) THEN
+                  _Logger.LogSS( log.dldDebug, L"IO", L"Querying: ", OA( item^.SDAPName.Length-1, item^.SDAPName.rawData ));
+               END;
+
                cb.Reset();
                Result := item^.Device^.IO()^.IOh( IOO.dirRead, item^.Hash, REF value, ADR( cb ));
                IF Result <> Sync.arPending THEN
@@ -112,7 +116,9 @@ CLASS IMPLEMENTATION ABridge;
                   CONTINUE;
                END;
                Result := cb.WaitCompletion( Sync.FORSAFETY, OUT value );
-               IF Result <> Sync.arCompleted THEN
+               IF Result = Sync.arCompleted THEN
+                  valueString := value.String;
+               ELSE
                   item^.Device^.IO()^.AbortAll();
 
                   s.FromOA( L"Error waiting read completion: " );
@@ -121,8 +127,12 @@ CLASS IMPLEMENTATION ABridge;
                   CONTINUE;
                END;
 
+               IF NOT _Logger.Filtered( log.dldDebug ) THEN
+                  _Logger.LogSS( log.dldDebug, L"IO", L"Got value: ", OA( valueString.Length-1,  valueString.rawData ));
+               END;
+
                // send value using SDAPClient
-               Result := _SDAPClient^.Write( item^.SDAPName, value.String );
+               Result := _SDAPClient^.Write( item^.SDAPName, valueString );
                IF Result <> Sync.arCompleted THEN
                   s.FromOA( L"Error sending by SDAP: " );
                   s.Append( item^.SDAPName );
@@ -147,6 +157,10 @@ CLASS IMPLEMENTATION ABridge;
                      CONTINUE;
                   ELSIF NOT item^.SDAPName.Equals( sdapName ) THEN
                      CONTINUE;
+                  END;
+
+                  IF NOT _Logger.Filtered( log.dldDebug ) THEN
+                     _Logger.LogSSSS( log.dldDebug, L"IO", L"Writing: ", OA( item^.SDAPName.Length-1, item^.SDAPName.rawData ), L"", OA( valueString.Length-1, valueString.rawData ));
                   END;
 
                   cb.Reset();
@@ -573,5 +587,5 @@ END newDeviceIOSDAPBridge;
 (*================================================================================*)
 
 BEGIN
-   R.LoadRES2( EMIT( %exe ), L"DeviceIOSDAPBridge.Texts" );
+   R.LoadRES2( EMIT( %dll ), L"DeviceIOSDAPBridge.Texts" );
 END DeviceIOSDAPBridge.
