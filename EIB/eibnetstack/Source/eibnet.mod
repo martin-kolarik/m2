@@ -331,6 +331,14 @@ CLASS IMPLEMENTATION CConnection;
       ELSE
          _Logger^.LogS( dldTrace, DEBUG_PREFIX, L"CONNECT (listen) cannot start" );
          _Socket := NIL;
+
+         // #100, tiAutoReconnect starts in OnDisconnect. But OnDisconnect is not called if Connect is not called (as here when returning).
+         // The conditions described caused that automatic reconnection was not functional, because it stops with first returning
+         // by this RETURN (below).
+         IF _AutoReconnectDelay <> 0 THEN
+            StartTimer( PTR( tiAutoReconnect ), _AutoReconnectDelay, FALSE );
+         END;
+
          RETURN Sync.arCannotStart;
       END;
       IF _Mode = cmTunnelingBlind THEN
