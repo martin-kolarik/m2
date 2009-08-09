@@ -1,0 +1,50 @@
+DEFINITION MODULE ilog;
+
+IMPORT
+   Sync;
+
+(*===========================================================================*)
+
+TYPE
+   TDebugLevel = (
+      dlcSysError, dldError, // critical severity OR brief         // Fatal,   debug Xtra problem
+      dlcError,    dldMessage,                                     // Error,   debug Message
+      dlcWarning,  dldTrace,                                       // Warning, debug Trace
+      dlcInfo,     dldDebug // very low severity OR exhaustive     // Info,    debug Debug
+   );
+
+TYPE
+   TPLogger = POINTER TO ILogger;
+
+#save, option( dll_export => on )
+
+INTERFACE ILogger;
+   
+   PROCEDURE Filtered( Level : TDebugLevel ) : BOOLEAN;
+
+   PROCEDURE LogS( Level : TDebugLevel; Prefix, S : ARRAY OF WCHAR );
+   PROCEDURE LogSS( Level : TDebugLevel; Prefix, S1, S2 : ARRAY OF WCHAR );
+   PROCEDURE LogSSC( Level : TDebugLevel; Prefix, S1, S2 : ARRAY OF WCHAR; C : CARDINAL );
+   PROCEDURE LogSC( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL );
+   PROCEDURE LogSCC( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C1, C2 : CARDINAL );
+   PROCEDURE LogSH( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL );
+   PROCEDURE LogSP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; P : PTR );
+   PROCEDURE LogSCP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; P : PTR );
+   PROCEDURE LogSHP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL; P : PTR );
+   PROCEDURE LogSB( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; A : ADDRESS; Bytes : CARDINAL );
+   PROCEDURE LogSCB( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; A : ADDRESS; Bytes : CARDINAL );
+   PROCEDURE LogSSS( Level : TDebugLevel; Prefix, S1, S2, S3 : ARRAY OF WCHAR );
+   PROCEDURE LogSSSS( Level : TDebugLevel; Prefix, S1, S2, S3, S4 : ARRAY OF WCHAR );
+  
+   PROCEDURE LogSE( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; ErrorCode : CARDINAL );
+   PROCEDURE LogSR( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; Result : Sync.TAsyncResult );
+   PROCEDURE LogExc( Level : TDebugLevel; Prefix : ARRAY OF WCHAR; CONST e : Exceptions.CException );
+   PROCEDURE LogFilePos( Level : TDebugLevel; Prefix : ARRAY OF WCHAR; Path, S1 : ARRAY OF WCHAR; Line, Col : CARDINAL ); // Line, Col = 0/-1 means unused, unknown
+   
+END ILogger;
+
+#restore
+
+(*===========================================================================*)
+
+END ilog.

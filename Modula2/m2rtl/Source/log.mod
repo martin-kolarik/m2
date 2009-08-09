@@ -1,6 +1,6 @@
 IMPLEMENTATION MODULE log;
 
-//=========================================================
+(*===========================================================================*)
 
 FROM Debug IMPORT
    Assertion;
@@ -19,7 +19,7 @@ IMPORT
    windows,
    winreg;
 
-//=========================================================
+(*===========================================================================*)
 
 CONST
    DEFAULT_FILE = L"system.log";
@@ -30,96 +30,11 @@ TYPE
    TString = ARRAY [0..strlen-1] OF WCHAR;
    TNum = ARRAY [0..31] OF WCHAR;
 
-//=========================================================
+(*===========================================================================*)
 
-CLASS CBuffer;
-   PRIVATE VAR
-      _W : Sync.WriteBuffer;
-      _Data : POINTER TO ARRAY [0..0] OF TString := NIL;
+CLASS IMPLEMENTATION ALogger;
 
-   LOCAL PROPERTY
-      Size : CARDINAL;
-   LOCAL READONLY PROPERTY
-      Count : CARDINAL;
-   LOCAL PROCEDURE GetItem( Index : CARDINAL; OUT S : ARRAY OF WCHAR ) : BOOLEAN; // Index = 0 means first
-   LOCAL PROCEDURE Clear();
-   
-   LOCAL PROCEDURE Store( OverWrite : BOOLEAN; CONST S : ARRAY OF WCHAR );
-END CBuffer;
-
-//=========================================================
-
-CLASS IMPLEMENTATION CBuffer;
-
-//---------------------------------------------------------
-
-   LOCAL PROPERTY Size GET : CARDINAL;
-   BEGIN
-      RETURN _W.Size;
-   END Size;
-
-//---------------------------------------------------------
-
-   LOCAL PROPERTY Size SET( Value : CARDINAL );
-   BEGIN
-      _W.Size := Value;
-      REALLOCATE( _Data, _W.Size * SIZE( TString )); 
-   END Size;
-
-//---------------------------------------------------------
-
-   LOCAL PROPERTY Count GET : CARDINAL;
-   BEGIN
-      RETURN _W.Count;
-   END Count;
-
-//---------------------------------------------------------
-
-   LOCAL PROCEDURE GetItem( Index : CARDINAL; OUT S : ARRAY OF WCHAR ) : BOOLEAN; // Index = 0 means first
-   VAR
-      ReadFrom : CARDINAL;
-   BEGIN
-      IF NOT _W.StartReading( Index, OUT ReadFrom ) THEN
-         RETURN FALSE;
-      END;
-      S := _Data^[ ReadFrom ];
-      _W.CommitReading();
-      RETURN TRUE;
-   END GetItem;
-
-//---------------------------------------------------------
-
-   LOCAL PROCEDURE Clear();
-   BEGIN
-      _W.Clear();
-   END Clear;
-
-//---------------------------------------------------------
-
-   LOCAL PROCEDURE Store( Overwrite : BOOLEAN; CONST S : ARRAY OF WCHAR );
-   VAR
-      ProduceTo : CARDINAL;
-   BEGIN
-      IF _Data = NIL THEN
-         ASSERT( FALSE );
-      ELSIF _W.StartProducing( Overwrite, OUT ProduceTo ) THEN
-         _Data^[ ProduceTo ] := S;
-         _W.CommitProducing();
-      END;
-   END Store;
-
-//---------------------------------------------------------
-
-BEGIN
-FINALLY
-   DISPOSE( _Data );
-END CBuffer;
-
-//=========================================================
-
-CLASS IMPLEMENTATION CLogger;
-
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Method GET : TDebugMethod;
    BEGIN
@@ -132,7 +47,7 @@ CLASS IMPLEMENTATION CLogger;
       END;
    END Method;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Method SET( Value : TDebugMethod );
    BEGIN
@@ -146,28 +61,28 @@ CLASS IMPLEMENTATION CLogger;
       END;
    END Method;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Level GET : TDebugLevel;
    BEGIN
       RETURN DebugLevel;
    END Level;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Level SET( Value : TDebugLevel );
    BEGIN
       DebugLevel := Value;
    END Level;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY TimeStamps GET : BOOLEAN;
    BEGIN
       RETURN rsTimeStamps IN RStatus;
    END TimeStamps;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY TimeStamps SET( Value : BOOLEAN );
    BEGIN
@@ -178,14 +93,14 @@ CLASS IMPLEMENTATION CLogger;
       END;
    END TimeStamps;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Levels GET : BOOLEAN;
    BEGIN
       RETURN rsLevelInfo IN RStatus;
    END Levels;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Levels SET( Value : BOOLEAN );
    BEGIN
@@ -196,14 +111,14 @@ CLASS IMPLEMENTATION CLogger;
       END;
    END Levels;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Names GET : BOOLEAN;
    BEGIN
       RETURN rsNameInfo IN RStatus;
    END Names;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY Names SET( Value : BOOLEAN );
    BEGIN
@@ -214,111 +129,14 @@ CLASS IMPLEMENTATION CLogger;
       END;
    END Names;
 
-//---------------------------------------------------------
-
-   PUBLIC PROPERTY Buffered GET : BOOLEAN;
-   BEGIN
-      RETURN Buffer = NIL;
-   END Buffered;
-
-//---------------------------------------------------------
-
-   PUBLIC PROPERTY Buffered SET( Value : BOOLEAN );
-   BEGIN
-      IF Value = ( Buffer = NIL ) THEN
-         IF Value THEN
-            BufferSize := 100;
-         ELSE
-            DISPOSE( Buffer );
-         END;
-      END;
-   END Buffered;
-
-//---------------------------------------------------------
-
-   PUBLIC PROPERTY BufferSize GET : CARDINAL;
-   BEGIN
-      IF Buffer = NIL THEN
-         RETURN 0;
-      ELSE
-         RETURN Buffer^.Size;
-      END;
-   END BufferSize;
-
-//---------------------------------------------------------
-
-   PUBLIC PROPERTY BufferSize SET( Value : CARDINAL );
-   BEGIN
-      IF Buffer = NIL THEN
-         NEW( Buffer );
-      END;
-      Buffer^.Size := Value;
-   END BufferSize;
-
-//---------------------------------------------------------
-
-   PUBLIC PROPERTY BufferMode GET : TBufferMode;
-   BEGIN
-      RETURN _BufferMode;
-   END BufferMode;
-
-//---------------------------------------------------------
-
-   PUBLIC PROPERTY BufferMode SET( Value : TBufferMode );
-   BEGIN
-      _BufferMode := Value;
-   END BufferMode;
-
-//---------------------------------------------------------
-
-   PUBLIC PROPERTY RedirectTo GET : TPLogger;
-   BEGIN
-      IF rsInject IN RStatus THEN
-         RETURN NIL;
-      ELSE
-         RETURN _PassTo;
-      END;
-   END RedirectTo;
-
-//---------------------------------------------------------
-
-   PUBLIC PROPERTY RedirectTo SET( Value : TPLogger );
-   BEGIN
-      _PassTo := Value;
-      EXCL( RStatus, rsInject );
-   END RedirectTo;
-
-//---------------------------------------------------------
-
-   PUBLIC PROPERTY InjectTo GET : TPLogger;
-   BEGIN
-      IF rsInject IN RStatus THEN
-         RETURN _PassTo;
-      ELSE
-         RETURN NIL;
-      END;
-   END InjectTo;
-
-//---------------------------------------------------------
-
-   PUBLIC PROPERTY InjectTo SET( Value : TPLogger );
-   BEGIN
-      _PassTo := Value;
-      IF _PassTo = NIL THEN
-         EXCL( RStatus, rsInject );
-      ELSE
-         INCL( RStatus, rsInject );
-      END;
-   END InjectTo;
-
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE SetLogName( CONST Name : ARRAY OF WCHAR );
    BEGIN
       ASSIGN( SELF.Name, Name );
    END SetLogName;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE GetLogName( OUT Name : ARRAY OF WCHAR ) : BOOLEAN;
    BEGIN
@@ -329,7 +147,7 @@ CLASS IMPLEMENTATION CLogger;
       RETURN TRUE;
    END GetLogName;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE SetLogFile( CONST LogFile : ARRAY OF WCHAR );
    BEGIN
@@ -339,7 +157,7 @@ CLASS IMPLEMENTATION CLogger;
       END;
    END SetLogFile;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE GetLogFile( OUT LogFile : ARRAY OF WCHAR ) : BOOLEAN;
    BEGIN
@@ -350,30 +168,34 @@ CLASS IMPLEMENTATION CLogger;
       RETURN TRUE;
    END GetLogFile;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE SetUpByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN;
    BEGIN
       RETURN LoadByRegistry( LibraryName );
    END SetUpByRegistry;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE SetUpByLogger( CONST Logger : CLogger ) : BOOLEAN; // gets config from another existing logger
+   PUBLIC PROCEDURE SetUpByLogger( CONST Logger : ALogger ) : BOOLEAN; // gets config from another existing logger
    BEGIN
-      RETURN LoadByLogger( Logger );
+      SELF.RStatus := Logger.RStatus;
+      SELF.Name := Logger.Name;
+      SELF.DebugLevel := Logger.DebugLevel;
+      SELF.DebugFile := Logger.DebugFile;
+      RETURN TRUE;
    END SetUpByLogger;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Filtered( Level : TDebugLevel ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Filtered( Level : TDebugLevel ) : BOOLEAN;
    BEGIN
       RETURN Level > DebugLevel;
    END Filtered;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE LogS( Level : TDebugLevel; Prefix, S : ARRAY OF WCHAR );
+  PUBLIC VIRTUAL PROCEDURE LogS( Level : TDebugLevel; Prefix, S : ARRAY OF WCHAR );
   BEGIN
     IF Filtered( Level ) THEN
       RETURN;
@@ -381,52 +203,23 @@ CLASS IMPLEMENTATION CLogger;
     Log( Level, Name, Prefix, S );
   END LogS;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE LogSS( Level : TDebugLevel; Prefix, S1, S2 : ARRAY OF WCHAR );
+  PUBLIC VIRTUAL PROCEDURE LogSS( Level : TDebugLevel; Prefix, S1, S2 : ARRAY OF WCHAR );
   VAR
     S : TString;
   BEGIN
     IF Filtered( Level ) THEN
       RETURN;
     END;
-    Strings.ConcatW( OUT S, S1, S2 );
+    Strings.ConcatW( OUT S, S1, L" " );
+    Strings.AppendW( REF S, S2 );
     Log( Level, Name, Prefix, S );
   END LogSS;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE LogSE( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; ErrorCode : CARDINAL );
-  VAR
-    E : TString;
-    S : TString;
-  BEGIN
-    IF Filtered( Level ) THEN
-      RETURN;
-    END;
-    Strings.FromErrorW( ErrorCode, OUT E );
-    Strings.ConcatW( OUT S, S1, E );
-    Log( Level, Name, Prefix, S );
-  END LogSE;
-
-//---------------------------------------------------------
-
-  PUBLIC PROCEDURE LogSR( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; Result : Sync.TAsyncResult );
-  VAR
-    S : TString;
-  BEGIN
-    IF Filtered( Level ) THEN
-      RETURN;
-    ELSIF NOT Sync.ResultToName( Result, OUT S ) THEN
-      ASSERT( FALSE );
-      RETURN;
-    END;
-    Log( Level, Name, Prefix, S );
-  END LogSR;
-
-//---------------------------------------------------------
-
-  PUBLIC PROCEDURE LogSC( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL );
+  PUBLIC VIRTUAL PROCEDURE LogSSC( Level : TDebugLevel; Prefix, S1, S2 : ARRAY OF WCHAR; C : CARDINAL );
   VAR
     N : TNum;
     S : TString;
@@ -434,14 +227,33 @@ CLASS IMPLEMENTATION CLogger;
     IF Filtered( Level ) THEN
       RETURN;
     END;
+    Strings.ConcatW( OUT S, S1, L" " );
+    Strings.AppendW( REF S, S2 );
+    Strings.AppendW( REF S, L" " );
     Strings.FromCARD32W( C, 10, OUT N );
-    Strings.ConcatW( OUT S, S1, N );
+    Strings.AppendW( REF S, N );
+    Log( Level, Name, Prefix, S );
+  END LogSSC;
+
+(*---------------------------------------------------------------------------*)
+
+  PUBLIC VIRTUAL PROCEDURE LogSC( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL );
+  VAR
+    N : TNum;
+    S : TString;
+  BEGIN
+    IF Filtered( Level ) THEN
+      RETURN;
+    END;
+    Strings.ConcatW( OUT S, S1, L" " );
+    Strings.FromCARD32W( C, 10, OUT N );
+    Strings.AppendW( REF S, N );
     Log( Level, Name, Prefix, S );
   END LogSC;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE LogSH( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL );
+  PUBLIC VIRTUAL PROCEDURE LogSCC( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C1, C2 : CARDINAL );
   VAR
     N : TNum;
     S : TString;
@@ -449,14 +261,34 @@ CLASS IMPLEMENTATION CLogger;
     IF Filtered( Level ) THEN
       RETURN;
     END;
+    Strings.ConcatW( OUT S, S1, L" " );
+    Strings.FromCARD32W( C1, 10, OUT N );
+    Strings.AppendW( REF S, N );
+    Strings.AppendW( REF S, L" " );
+    Strings.FromCARD32W( C2, 10, OUT N );
+    Strings.AppendW( REF S, N );
+    Log( Level, Name, Prefix, S );
+  END LogSCC;
+
+(*---------------------------------------------------------------------------*)
+
+  PUBLIC VIRTUAL PROCEDURE LogSH( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL );
+  VAR
+    N : TNum;
+    S : TString;
+  BEGIN
+    IF Filtered( Level ) THEN
+      RETURN;
+    END;
+    Strings.ConcatW( OUT S, S1, L" " );
     Strings.FromCARD32W( C, 16, OUT N );
-    Strings.ConcatW( OUT S, S1, N );
+    Strings.AppendW( REF S, N );
     Log( Level, Name, Prefix, S );
   END LogSH;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE LogSP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; P : PTR );
+  PUBLIC VIRTUAL PROCEDURE LogSP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; P : PTR );
   VAR
     N : TNum;
     S : TString;
@@ -464,14 +296,15 @@ CLASS IMPLEMENTATION CLogger;
     IF Filtered( Level ) THEN
       RETURN;
     END;
+    Strings.ConcatW( OUT S, S1, L" " );
     Strings.FromCARD64W( CARD64( P ), 16, OUT N );
-    Strings.ConcatW( OUT S, S1, N );
+    Strings.AppendW( REF S, N );
     Log( Level, Name, Prefix, S );
   END LogSP;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE LogSCP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; P : PTR );
+  PUBLIC VIRTUAL PROCEDURE LogSCP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; P : PTR );
   VAR
     N : TNum;
     S : TString;
@@ -479,17 +312,18 @@ CLASS IMPLEMENTATION CLogger;
     IF Filtered( Level ) THEN
       RETURN;
     END;
+    Strings.ConcatW( OUT S, S1, L" " );
     Strings.FromCARD32W( C, 10, OUT N );
-    Strings.ConcatW( OUT S, S1, N );
+    Strings.AppendW( REF S, N );
     Strings.AppendW( REF S, L" " );
     Strings.FromCARD64W( CARD64( P ), 16, OUT N );
     Strings.AppendW( REF S, N );
     Log( Level, Name, Prefix, S );
   END LogSCP;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE LogSHP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; P : PTR );
+  PUBLIC VIRTUAL PROCEDURE LogSHP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; P : PTR );
   VAR
     N : TNum;
     S : TString;
@@ -497,17 +331,18 @@ CLASS IMPLEMENTATION CLogger;
     IF Filtered( Level ) THEN
       RETURN;
     END;
+    Strings.ConcatW( OUT S, S1, L" " );
     Strings.FromCARD32W( C, 16, OUT N );
-    Strings.ConcatW( OUT S, S1, N );
+    Strings.AppendW( REF S, N );
     Strings.AppendW( REF S, L" " );
     Strings.FromCARD64W( CARD64( P ), 16, OUT N );
     Strings.AppendW( REF S, N );
     Log( Level, Name, Prefix, S );
   END LogSHP;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE LogSB( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; A : ADDRESS; Bytes : CARDINAL );
+  PUBLIC VIRTUAL PROCEDURE LogSB( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; A : ADDRESS; Bytes : CARDINAL );
   TYPE
     TPC8 = POINTER TO CARD8;
   VAR
@@ -546,9 +381,9 @@ CLASS IMPLEMENTATION CLogger;
     Log( Level, Name, Prefix, S );
   END LogSB;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE LogSCB( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; A : ADDRESS; Bytes : CARDINAL );
+  PUBLIC VIRTUAL PROCEDURE LogSCB( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; A : ADDRESS; Bytes : CARDINAL );
   TYPE
     TPC8 = POINTER TO CARD8;
   VAR
@@ -560,8 +395,9 @@ CLASS IMPLEMENTATION CLogger;
     IF Filtered( Level ) THEN
       RETURN;
     END;
+    Strings.ConcatW( OUT S, S1, L" " );
     Strings.FromCARD32W( C, 10, OUT N );
-    Strings.ConcatW( OUT S, S1, N );
+    Strings.AppendW( REF S, N );
     Strings.AppendW( REF S, L' [' );
     c := LENGTH( S );
     WHILE ( Bytes > 0 ) AND ( c < SIZE( S ) DIV SIZE( WCHAR ) - 4 ) DO // 3 characters + trailing zero
@@ -589,38 +425,74 @@ CLASS IMPLEMENTATION CLogger;
     Log( Level, Name, Prefix, S );
   END LogSCB;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE LogSSS( Level : TDebugLevel; Prefix, S1, S2, S3 : ARRAY OF WCHAR );
+  PUBLIC VIRTUAL PROCEDURE LogSSS( Level : TDebugLevel; Prefix, S1, S2, S3 : ARRAY OF WCHAR );
   VAR
     S : TString;
   BEGIN
     IF Filtered( Level ) THEN
       RETURN;
     END;
-    Strings.ConcatW( OUT S, S1, S2 );
+    Strings.ConcatW( OUT S, S1, L" " );
+    Strings.AppendW( REF S, S2 );
+    Strings.AppendW( REF S, L" " );
     Strings.AppendW( REF S, S3 );
     Log( Level, Name, Prefix, S );
   END LogSSS;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE LogSSSS( Level : TDebugLevel; Prefix, S1, S2, S3, S4 : ARRAY OF WCHAR );
+  PUBLIC VIRTUAL PROCEDURE LogSSSS( Level : TDebugLevel; Prefix, S1, S2, S3, S4 : ARRAY OF WCHAR );
   VAR
     S : TString;
   BEGIN
     IF Filtered( Level ) THEN
       RETURN;
     END;
-    Strings.ConcatW( OUT S, S1, S2 );
+    Strings.ConcatW( OUT S, S1, L" " );
+    Strings.AppendW( REF S, S2 );
+    Strings.AppendW( REF S, L" " );
     Strings.AppendW( REF S, S3 );
+    Strings.AppendW( REF S, L" " );
     Strings.AppendW( REF S, S4 );
     Log( Level, Name, Prefix, S );
   END LogSSSS;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE LogExc( Level : TDebugLevel; Prefix : ARRAY OF WCHAR; CONST e : Exceptions.CException );
+  PUBLIC VIRTUAL PROCEDURE LogSE( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; ErrorCode : CARDINAL );
+  VAR
+    E : TString;
+    S : TString;
+  BEGIN
+    IF Filtered( Level ) THEN
+      RETURN;
+    END;
+    Strings.ConcatW( OUT S, S1, L" " );
+    Strings.FromErrorW( ErrorCode, OUT E );
+    Strings.AppendW( REF S, E );
+    Log( Level, Name, Prefix, S );
+  END LogSE;
+
+(*---------------------------------------------------------------------------*)
+
+  PUBLIC VIRTUAL PROCEDURE LogSR( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; Result : Sync.TAsyncResult );
+  VAR
+    S : TString;
+  BEGIN
+    IF Filtered( Level ) THEN
+      RETURN;
+    ELSIF NOT Sync.ResultToName( Result, OUT S ) THEN
+      ASSERT( FALSE );
+      RETURN;
+    END;
+    Log( Level, Name, Prefix, S );
+  END LogSR;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE LogExc( Level : TDebugLevel; Prefix : ARRAY OF WCHAR; CONST e : Exceptions.CException );
 	VAR
 		S : TString;
 	BEGIN
@@ -631,9 +503,9 @@ CLASS IMPLEMENTATION CLogger;
 	   Log( Level, Name, Prefix, S );
 	END LogExc;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE LogFilePos( Level : TDebugLevel; Prefix : ARRAY OF WCHAR; Path, S1 : ARRAY OF WCHAR; Line, Col : CARDINAL ); // Line, Col = 0/-1 means unused, unknown
+   PUBLIC VIRTUAL PROCEDURE LogFilePos( Level : TDebugLevel; Prefix : ARRAY OF WCHAR; Path, S1 : ARRAY OF WCHAR; Line, Col : CARDINAL ); // Line, Col = 0/-1 means unused, unknown
 	VAR
 	   colFlag, lineFlag : BOOLEAN;
 		S : TString;
@@ -668,56 +540,14 @@ CLASS IMPLEMENTATION CLogger;
       Log( Level, Name, Prefix, S );
    END LogFilePos;
 
-//---------------------------------------------------------
-
-   PUBLIC PROPERTY BufferCount GET : CARDINAL;
-   BEGIN
-      IF Buffer = NIL THEN
-         RETURN 0;
-      ELSE
-         RETURN Buffer^.Count;
-      END;
-   END BufferCount;
-
-//---------------------------------------------------------
-
-   PUBLIC PROCEDURE BufferGetItem( Index : CARDINAL; OUT S : ARRAY OF WCHAR ) : BOOLEAN; // Index = 0 means first
-   BEGIN
-      IF Buffer = NIL THEN
-         RETURN FALSE;
-      ELSE
-         RETURN Buffer^.GetItem( Index, OUT S );
-      END;
-   END BufferGetItem;
-
-//---------------------------------------------------------
-
-   PUBLIC PROCEDURE BufferClear();
-   BEGIN
-      IF Buffer <> NIL THEN
-         Buffer^.Clear();
-      END;
-   END BufferClear;
-
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
   INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : TDebugLevel; CONST _Name, Prefix, S : ARRAY OF WCHAR );
   VAR
     dt : time.DateTime;
-    f : FIO.File;
     leading : BOOLEAN := FALSE;
     SW : TString;
-    SA : ARRAY [0..strlen-1] OF CHAR;
   BEGIN
-      IF _PassTo <> NIL THEN
-         IF rsInject IN RStatus THEN
-            _PassTo^.Log( LoggedLevel, _Name, Prefix, S );
-         ELSIF NOT _PassTo^.Filtered( LoggedLevel ) THEN
-            _PassTo^.Log( LoggedLevel, _Name, Prefix, S );
-         END;
-         RETURN; // bypass self
-      END;
-
     SW := L"";
     IF rsTimeStamps IN RStatus THEN
       leading := TRUE;
@@ -751,41 +581,48 @@ CLASS IMPLEMENTATION CLogger;
     END;
     Strings.AppendW( REF SW, S ); 
 
-    IF Buffer <> NIL THEN
-      Buffer^.Store( _BufferMode = bmStoreLast, SW );
-    END;
     OnLogOutputString( SW );
-    IF rsDebugFile IN RStatus THEN
-      DebugLock.Lock();
-      IF DebugFile[0] = 0W THEN
-         TrySetFileToDefault();
-      END;
-      f := FIO.AppendW( DebugFile, FIO.TFileShare{FIO.fsRead} );
-      IF f = NIL THEN
-        f := FIO.CreateW( DebugFile, FIO.TFileShare{FIO.fsRead} );
-      END; // IF
-      IF f <> NIL THEN
-        Strings.ToA( SW, 0, OUT SA );
-        FIO.WrStrA( f, SA ); 
-        FIO.WrLnA( f );
-        FIO.Flush( f );
-        FIO.Close( f );
-      END; // IF 
-      DebugLock.Unlock();
-    END;
-    IF rsDebugKernel IN RStatus THEN
-      Strings.AppendW( REF SW, WCHAR( 13 ) + WCHAR( 10 ));
-      windows.OutputDebugStringW( ADR( SW ));
-    END;
+    EmitLog( REF SW );
   END Log;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE EmitLog( REF OutputString : ARRAY OF WCHAR );
+   VAR
+      f : FIO.File;
+      SA : ARRAY [0..strlen-1] OF CHAR;
+   BEGIN
+      IF rsDebugFile IN RStatus THEN
+         DebugLock.Lock();
+         IF DebugFile[0] = 0W THEN
+            TrySetFileToDefault();
+         END;
+         f := FIO.AppendW( DebugFile, FIO.TFileShare{FIO.fsRead} );
+         IF f = NIL THEN
+            f := FIO.CreateW( DebugFile, FIO.TFileShare{FIO.fsRead} );
+         END; // IF
+         IF f <> NIL THEN
+            Strings.ToA( OutputString, 0, OUT SA );
+            FIO.WrStrA( f, SA ); 
+            FIO.WrLnA( f );
+            FIO.Flush( f );
+            FIO.Close( f );
+         END; // IF 
+         DebugLock.Unlock();
+      END;
+      IF rsDebugKernel IN RStatus THEN
+         Strings.AppendW( REF OutputString, WCHAR( 13 ) + WCHAR( 10 ));
+         windows.OutputDebugStringW( ADR( OutputString ));
+      END;
+   END EmitLog;
+
+(*---------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE OnLogOutputString( CONST OutputString : ARRAY OF WCHAR );
    BEGIN
    END OnLogOutputString;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE LoadByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN;
    CONST
@@ -886,24 +723,7 @@ CLASS IMPLEMENTATION CLogger;
       END; // LOOP
    END LoadByRegistry;
 
-//---------------------------------------------------------
-
-   PRIVATE PROCEDURE LoadByLogger( CONST Logger : CLogger ) : BOOLEAN;
-   VAR
-      bufferSize : CARDINAL;
-   BEGIN
-      SELF.RStatus := Logger.RStatus;
-      SELF.Name := Logger.Name;
-      SELF.DebugLevel := Logger.DebugLevel;
-      SELF.DebugFile := Logger.DebugFile;
-      bufferSize := Logger.BufferSize;
-      IF bufferSize > 0 THEN
-         SELF.BufferSize := bufferSize;
-      END;
-      RETURN TRUE;
-   END LoadByLogger;
-
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE TrySetFileToDefault();
    VAR
@@ -916,7 +736,7 @@ CLASS IMPLEMENTATION CLogger;
       END;
    END TrySetFileToDefault;
 
-//---------------------------------------------------------
+(*---------------------------------------------------------------------------*)
 
 BEGIN
    DebugLock.Init( Sync.ltSpin, L"", FALSE );
@@ -929,26 +749,297 @@ BEGIN
    #endif
    Name := L"sys";
    DebugFile := 0W;
-   Buffer := NIL;
 
    #if #defined LIBRARY #then
       LoadByRegistry( LIBRARY );
    #endif
-FINALLY
-   DISPOSE( Buffer );
-END CLogger;
+END ALogger;
 
-//=========================================================
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CRedirectableLogger;
+
+(*---------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : TDebugLevel; CONST _Name, Prefix, S : ARRAY OF WCHAR );
+   BEGIN
+      IF _PassTo = NIL THEN
+         SUPER.Log( LoggedLevel, _Name, Prefix, S );
+      ELSE
+         IF _Injecting THEN
+            _PassTo^.Log( LoggedLevel, _Name, Prefix, S );
+         ELSIF NOT _PassTo^.Filtered( LoggedLevel ) THEN
+            _PassTo^.Log( LoggedLevel, _Name, Prefix, S );
+         END;
+      END;
+   END Log;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY RedirectTo GET : TPALogger;
+   BEGIN
+      IF _Injecting THEN
+         RETURN NIL;
+      ELSE
+         RETURN _PassTo;
+      END;
+   END RedirectTo;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY RedirectTo SET( Value : TPALogger );
+   BEGIN
+      _PassTo := Value;
+      _Injecting := FALSE;
+   END RedirectTo;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY InjectTo GET : TPALogger;
+   BEGIN
+      IF _Injecting THEN
+         RETURN _PassTo;
+      ELSE
+         RETURN NIL;
+      END;
+   END InjectTo;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY InjectTo SET( Value : TPALogger );
+   BEGIN
+      _PassTo := Value;
+      IF _PassTo = NIL THEN
+         _Injecting := FALSE;
+      ELSE
+         _Injecting := TRUE;
+      END;
+   END InjectTo;
+
+(*---------------------------------------------------------------------------*)
+
+BEGIN
+END CRedirectableLogger;
+
+(*===========================================================================*)
+
+CLASS CBuffer;
+   PRIVATE VAR
+      _W : Sync.WriteBuffer;
+      _Data : POINTER TO ARRAY [0..0] OF TString := NIL;
+
+   LOCAL PROPERTY
+      Size : CARDINAL;
+   LOCAL READONLY PROPERTY
+      Count : CARDINAL;
+   LOCAL PROCEDURE GetItem( Index : CARDINAL; OUT S : ARRAY OF WCHAR ) : BOOLEAN; // Index = 0 means first
+   LOCAL PROCEDURE Clear();
+   
+   LOCAL PROCEDURE Store( OverWrite : BOOLEAN; CONST S : ARRAY OF WCHAR );
+END CBuffer;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CBuffer;
+
+(*---------------------------------------------------------------------------*)
+
+   LOCAL PROPERTY Size GET : CARDINAL;
+   BEGIN
+      RETURN _W.Size;
+   END Size;
+
+(*---------------------------------------------------------------------------*)
+
+   LOCAL PROPERTY Size SET( Value : CARDINAL );
+   BEGIN
+      _W.Size := Value;
+      REALLOCATE( _Data, _W.Size * SIZE( TString )); 
+   END Size;
+
+(*---------------------------------------------------------------------------*)
+
+   LOCAL PROPERTY Count GET : CARDINAL;
+   BEGIN
+      RETURN _W.Count;
+   END Count;
+
+(*---------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE GetItem( Index : CARDINAL; OUT S : ARRAY OF WCHAR ) : BOOLEAN; // Index = 0 means first
+   VAR
+      ReadFrom : CARDINAL;
+   BEGIN
+      IF NOT _W.StartReading( Index, OUT ReadFrom ) THEN
+         RETURN FALSE;
+      END;
+      S := _Data^[ ReadFrom ];
+      _W.CommitReading();
+      RETURN TRUE;
+   END GetItem;
+
+(*---------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE Clear();
+   BEGIN
+      _W.Clear();
+   END Clear;
+
+(*---------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE Store( Overwrite : BOOLEAN; CONST S : ARRAY OF WCHAR );
+   VAR
+      ProduceTo : CARDINAL;
+   BEGIN
+      IF _Data = NIL THEN
+         ASSERT( FALSE );
+      ELSIF _W.StartProducing( Overwrite, OUT ProduceTo ) THEN
+         _Data^[ ProduceTo ] := S;
+         _W.CommitProducing();
+      END;
+   END Store;
+
+(*---------------------------------------------------------------------------*)
+
+BEGIN
+FINALLY
+   DISPOSE( _Data );
+END CBuffer;
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CBufferedLogger;
+
+(*---------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE EmitLog( REF OutputString : ARRAY OF WCHAR );
+   BEGIN
+      IF _Buffer <> NIL THEN
+         _Buffer^.Store( _BufferMode = bmStoreLast, OutputString );
+      END;
+      SUPER.EmitLog( REF OutputString );
+   END EmitLog;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Buffered GET : BOOLEAN;
+   BEGIN
+      RETURN _Buffer = NIL;
+   END Buffered;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Buffered SET( Value : BOOLEAN );
+   BEGIN
+      IF Value = ( _Buffer = NIL ) THEN
+         IF Value THEN
+            BufferSize := 100;
+         ELSE
+            DISPOSE( _Buffer );
+         END;
+      END;
+   END Buffered;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY BufferSize GET : CARDINAL;
+   BEGIN
+      IF _Buffer = NIL THEN
+         RETURN 0;
+      ELSE
+         RETURN _Buffer^.Size;
+      END;
+   END BufferSize;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY BufferSize SET( Value : CARDINAL );
+   BEGIN
+      IF _Buffer = NIL THEN
+         NEW( _Buffer );
+      END;
+      _Buffer^.Size := Value;
+   END BufferSize;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY BufferMode GET : TBufferMode;
+   BEGIN
+      RETURN _BufferMode;
+   END BufferMode;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY BufferMode SET( Value : TBufferMode );
+   BEGIN
+      _BufferMode := Value;
+   END BufferMode;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY BufferCount GET : CARDINAL;
+   BEGIN
+      IF _Buffer = NIL THEN
+         RETURN 0;
+      ELSE
+         RETURN _Buffer^.Count;
+      END;
+   END BufferCount;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE BufferGetItem( Index : CARDINAL; OUT S : ARRAY OF WCHAR ) : BOOLEAN; // Index = 0 means first
+   BEGIN
+      IF _Buffer = NIL THEN
+         RETURN FALSE;
+      ELSE
+         RETURN _Buffer^.GetItem( Index, OUT S );
+      END;
+   END BufferGetItem;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE BufferClear();
+   BEGIN
+      IF _Buffer <> NIL THEN
+         _Buffer^.Clear();
+      END;
+   END BufferClear;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SetUpByLogger( CONST Logger : CBufferedLogger ) : BOOLEAN; // gets config from another existing logger
+   VAR
+      bufferSize : CARDINAL;
+   BEGIN
+      IF NOT SUPER.SetUpByLogger( Logger ) THEN
+         RETURN FALSE;
+      END;
+      bufferSize := Logger.BufferSize;
+      IF bufferSize > 0 THEN
+         SELF.BufferSize := bufferSize;
+      END;
+      RETURN TRUE;
+   END SetUpByLogger;
+
+(*---------------------------------------------------------------------------*)
+
+BEGIN
+   _Buffer := NIL;
+FINALLY
+   DISPOSE( _Buffer );
+END CBufferedLogger;
+
+(*===========================================================================*)
 
 VAR
-   Logger : CLogger; // default logger
+   Logger : CBufferedLogger; // default logger
 
-PROCEDURE logger() : TPLogger;
+PROCEDURE logger() : TPBufferedLogger;
 BEGIN
    RETURN ADR( Logger );
 END logger;
 
-
-//=========================================================
+(*===========================================================================*)
 
 END log.

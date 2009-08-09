@@ -1,0 +1,65 @@
+DEFINITION MODULE LoggerFilter;
+
+(*===========================================================================*)
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   Exceptions,
+   iLog,
+   lists,
+   log,
+   StringsO,
+   Sync;
+
+(*===========================================================================*)
+
+#save, option( dll_export => on )
+
+CLASS CLoggerFilter IMPLEMENTS iLog.ILogger;
+
+   // ILogger
+   PUBLIC VIRTUAL PROCEDURE Filtered( Level : iLog.TDebugLevel ) : BOOLEAN;
+
+   PUBLIC VIRTUAL PROCEDURE LogS( Level : iLog.TDebugLevel; Prefix, S : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE LogSS( Level : iLog.TDebugLevel; Prefix, S1, S2 : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE LogSSC( Level : iLog.TDebugLevel; Prefix, S1, S2 : ARRAY OF WCHAR; C : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE LogSC( Level : iLog.TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE LogSCC( Level : iLog.TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C1, C2 : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE LogSH( Level : iLog.TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE LogSP( Level : iLog.TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; P : PTR );
+   PUBLIC VIRTUAL PROCEDURE LogSCP( Level : iLog.TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; P : PTR );
+   PUBLIC VIRTUAL PROCEDURE LogSHP( Level : iLog.TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL; P : PTR );
+   PUBLIC VIRTUAL PROCEDURE LogSB( Level : iLog.TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; A : ADDRESS; Bytes : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE LogSCB( Level : iLog.TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; A : ADDRESS; Bytes : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE LogSSS( Level : iLog.TDebugLevel; Prefix, S1, S2, S3 : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE LogSSSS( Level : iLog.TDebugLevel; Prefix, S1, S2, S3, S4 : ARRAY OF WCHAR );
+  
+   PUBLIC VIRTUAL PROCEDURE LogSE( Level : iLog.TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; ErrorCode : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE LogSR( Level : iLog.TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; Result : Sync.TAsyncResult );
+   PUBLIC VIRTUAL PROCEDURE LogExc( Level : iLog.TDebugLevel; Prefix : ARRAY OF WCHAR; CONST e : Exceptions.CException );
+   PUBLIC VIRTUAL PROCEDURE LogFilePos( Level : iLog.TDebugLevel; Prefix : ARRAY OF WCHAR; Path, S1 : ARRAY OF WCHAR; Line, Col : CARDINAL ); // Line, Col = 0/-1 means unused, unknown
+
+   // SELF   
+   PUBLIC PROCEDURE SetUpByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN; // gets config from registry
+   PUBLIC PROCEDURE Reset();
+   PUBLIC PROCEDURE AddRule( Allow, Deny : BOOLEAN; CONST Pattern : StringsO.IString ); // if allow/deny conflicts, deny wins
+   
+   PUBLIC PROPERTY
+      Output : log.TPALogger;
+   
+   // privates
+   PRIVATE VAR
+      _Logger : log.TPALogger;
+      _Filter : lists.CStringList;
+      
+   PRIVATE PROCEDURE FilteredByRule( CONST Prefix : ARRAY OF WCHAR ) : BOOLEAN;
+
+END CLoggerFilter;
+
+#restore
+
+(*===========================================================================*)
+
+END LoggerFilter;
