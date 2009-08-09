@@ -42,7 +42,6 @@ CLASS CLoggerFilter IMPLEMENTS iLog.ILogger;
    PUBLIC VIRTUAL PROCEDURE LogFilePos( Level : iLog.TDebugLevel; Prefix : ARRAY OF WCHAR; Path, S1 : ARRAY OF WCHAR; Line, Col : CARDINAL ); // Line, Col = 0/-1 means unused, unknown
 
    // SELF   
-   PUBLIC PROCEDURE SetUpByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN; // gets config from registry
    PUBLIC PROCEDURE Reset();
    PUBLIC PROCEDURE AddRule( Allow, Deny : BOOLEAN; CONST Pattern : StringsO.IString ); // if allow/deny conflicts, deny wins
    
@@ -62,4 +61,4 @@ END CLoggerFilter;
 
 (*===========================================================================*)
 
-END LoggerFilter;
+END LoggerFilter.

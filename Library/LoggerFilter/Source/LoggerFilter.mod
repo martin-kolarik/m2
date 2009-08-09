@@ -1,4 +1,7 @@
-DEFINITION MODULE LoggerFilter;
+IMPLEMENTATION MODULE LoggerFilter;
+
+IMPORT
+   Strings;
 
 (*===========================================================================*)
 
@@ -39,7 +42,7 @@ CLASS IMPLEMENTATION CLoggerFilter;
       IF Filtered( Level ) OR FilteredByRule( Prefix ) THEN
          RETURN;
       ELSE
-         _Logger^.LogS( Level, Prefix, S1, S2 );
+         _Logger^.LogSS( Level, Prefix, S1, S2 );
       END;
    END LogSS;
 
@@ -210,10 +213,6 @@ CLASS IMPLEMENTATION CLoggerFilter;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE SetUpByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN; // gets config from registry
-
-(*---------------------------------------------------------------------------*)
-
    PUBLIC PROCEDURE Reset();
    BEGIN
       _Filter.Dispose();
@@ -258,11 +257,11 @@ CLASS IMPLEMENTATION CLoggerFilter;
       _List := _Filter;
       _List.Reset();
       WHILE _List.MoveNext() DO
-         IF Strings.MatchW( Prefix, OA( _List.Current^.Length-1, _List.Current^.rawData ), TRUE ) : THEN
+         IF Strings.MatchW( Prefix, OA( _List.Current^.Length-1, _List.Current^.rawData ), TRUE ) THEN
             allow := _List.CurrentData = ALLOW;
          END;
       END; // WHILE
-      _List.ClearList();
+      _List.Clear();
       
       RETURN allow;
    END FilteredByRule;

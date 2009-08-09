@@ -7,6 +7,7 @@ IMPORT
    IOO,
    list,
    Log,
+   LoggerFilter,
    StringsO,
    TextReader,
    TextWriter;
@@ -66,6 +67,18 @@ TYPE
    );
 
 PROCEDURE ConfigureLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : Log.CLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
+  // if SectionName is empty, default "log" section name is used
+
+(*--------------------------------------------------------------------------------*)
+
+TYPE
+   TConfigureLoggerFilterResult = (
+      clfrSuccess,
+      clfrUnknownPolicy,
+      clrMissingPattern
+   );
+
+PROCEDURE ConfigureLoggerFilter( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : LoggerFilter.CLoggerFilter; OUT errorLine : CARDINAL ) : TConfigureLoggerFilterResult;
   // if SectionName is empty, default "log" section name is used
 
 (*================================================================================*)
