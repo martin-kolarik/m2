@@ -14,8 +14,18 @@
             <Merge Id="VC8Policy" SourceFile="C:\Program Files\Common Files\Merge Modules\policy_8_0_Microsoft_VC80_CRT_x86.msm" Language="1033" DiskId="1" />
             <?endif ?>
             <?endif ?>
+            <Directory Id="CommonAppDataFolder">
+                <Directory Id="NeNoData" Name="$(var.Manufacturer)">
+                    <Component Id="CommonAppFolderPermissions" Guid="04862C22-D968-4b8c-9B78-7BCD4190B11C">
+                        <CreateFolder>
+                            <Permission GenericRead="yes" GenericWrite="yes" GenericExecute="yes" User="Users"/>
+                        </CreateFolder>
+                        <RemoveFolder Id="CommonAppFolderPermissionsRemove" On="uninstall"/>
+                    </Component>
+                </Directory>
+            </Directory>
             <Directory Id="ProgramFilesFolder">
-                <Directory Id="NeNo" Name="NeNo">
+                <Directory Id="NeNoProgram" Name="$(var.Manufacturer)">
                     <Directory Id="INSTALLDIR" Name="EibSrv">
                         <Component Guid="7661D6C7-3F2E-4990-815B-36609A99DE62" Id="Program">
                             <File DiskId="1" Id="EibSrv.EXE" Name="EibSrv.exe" Source="EibSrv.exe" Vital="yes" KeyPath="yes" />
@@ -173,6 +183,9 @@
             <MergeRef Id="VC8Policy" />
         </Feature>
         <?endif ?>
+        <Feature Id="Permissions" Level="1" AllowAdvertise="no" Display="hidden">
+            <ComponentRef Id="CommonAppFolderPermissions" />
+        </Feature>
         <Feature ConfigurableDirectory="INSTALLDIR" Id="Complete" Level="1">
             <ComponentRef Id="Program" />
             <ComponentRef Id="RuntimeLib" />
