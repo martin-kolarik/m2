@@ -67,6 +67,7 @@ TYPE
    );
 
 PROCEDURE ConfigureLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : Log.CLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
+PROCEDURE ConfigureBufferedLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : Log.CBufferedLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
   // if SectionName is empty, default "log" section name is used
 
 (*--------------------------------------------------------------------------------*)
@@ -75,7 +76,7 @@ TYPE
    TConfigureLoggerFilterResult = (
       clfrSuccess,
       clfrUnknownPolicy,
-      clrMissingPattern
+      clfrMissingPattern
    );
 
 PROCEDURE ConfigureLoggerFilter( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : LoggerFilter.CLoggerFilter; OUT errorLine : CARDINAL ) : TConfigureLoggerFilterResult;

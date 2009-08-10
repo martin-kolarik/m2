@@ -107,14 +107,14 @@ CLASS IMPLEMENTATION CXMLSocketServer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY CommonLogger GET : log.TPLogger;
+   PUBLIC PROPERTY CommonLogger GET : log.TPILogger;
    BEGIN
       RETURN _CommonLogger;
    END CommonLogger;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY CommonLogger SET( Value : log.TPLogger );
+   PUBLIC PROPERTY CommonLogger SET( Value : log.TPILogger );
    BEGIN
       _CommonLogger := Value;
    END CommonLogger;

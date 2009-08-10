@@ -112,28 +112,28 @@ CLASS IMPLEMENTATION CSDAPServer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY CommonLogger GET : log.TPLogger;
+   PUBLIC PROPERTY CommonLogger GET : log.TPILogger;
    BEGIN
       RETURN _CommonLogger;
    END CommonLogger;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY CommonLogger SET( Value : log.TPLogger );
+   PUBLIC PROPERTY CommonLogger SET( Value : log.TPILogger );
    BEGIN
       _CommonLogger := Value;
    END CommonLogger;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY ConfigurationLogger GET : log.TPLogger;
+   PUBLIC PROPERTY ConfigurationLogger GET : log.TPILogger;
    BEGIN
       RETURN _ConfigurationLogger;
    END ConfigurationLogger;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY ConfigurationLogger SET( Value : log.TPLogger );
+   PUBLIC PROPERTY ConfigurationLogger SET( Value : log.TPILogger );
    BEGIN
       _ConfigurationLogger := Value;
    END ConfigurationLogger;

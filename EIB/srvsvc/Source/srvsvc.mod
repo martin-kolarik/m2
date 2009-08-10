@@ -19,6 +19,7 @@ IMPORT
    INIfile,
    inetaddr,
    Log,
+   LoggerFilter,
    msgqueuethread,
    netinit,
    Registry,
@@ -70,8 +71,9 @@ CLASS CEibSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarg
       Configuration : StringsO.TPString;
       
    PRIVATE VAR
-      ConfigLogger : Log.CLogger;
-      DataLogger : Log.CLogger; 
+      ConfigLogger : Log.CBufferedLogger;
+      DataLogger : Log.CBufferedLogger; 
+      Filter : LoggerFilter.CLoggerFilter;
       EIB : srvcore.TPEIBServer := NIL;
       Adviser : adviser.TPAdvisedDevice := NIL;
       SDAP : sdap.TPSDAPServer := NIL;
@@ -201,8 +203,11 @@ CLASS IMPLEMENTATION CEibSvc;
       FIOO.PathAdd( REF s1, s2 );
       cfg.LoadPath( OA( s1.Length-1, s1.rawData ));
       
-      INIfile.ConfigureLog( cfg, L"", REF Log.logger()^, OUT line );
-      INIfile.ConfigureLog( cfg, L"datalog", REF DataLogger, OUT line );
+      INIfile.ConfigureBufferedLog( cfg, L"", REF Log.logger()^, OUT line );
+      INIfile.ConfigureBufferedLog( cfg, L"datalog", REF DataLogger, OUT line );
+      
+      INIfile.ConfigureLoggerFilter( cfg, L"", Filter, OUT line );
+      Filter.Output := Log.logger();
       
       ASSERT( EIB = NIL );
       NEW( EIB );
@@ -229,7 +234,7 @@ CLASS IMPLEMENTATION CEibSvc;
       IA.Port := 6007;
       SDAP^.ListenAddress := IA;
       SDAP^.Init( TRUE );
-      SDAP^.CommonLogger := Log.logger();
+      SDAP^.CommonLogger := ADR( Filter );
       SDAP^.ConfigurationLogger := ADR( ConfigLogger );
       SDAP^.Start();
       
@@ -239,7 +244,7 @@ CLASS IMPLEMENTATION CEibSvc;
       IA.Port := 6006;
       XMLS^.ListenAddress := IA;
       XMLS^.Init( TRUE );
-      SDAP^.CommonLogger := Log.logger();
+      XMLS^.CommonLogger := ADR( Filter );
       XMLS^.Start();
       
       CDI.Names[0] := PWCHAR( ADR( nameSDAP ));

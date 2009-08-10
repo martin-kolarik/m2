@@ -40,7 +40,10 @@ INTERFACE ILogger;
    PROCEDURE LogSR( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; Result : Sync.TAsyncResult );
    PROCEDURE LogExc( Level : TDebugLevel; Prefix : ARRAY OF WCHAR; CONST e : Exceptions.CException );
    PROCEDURE LogFilePos( Level : TDebugLevel; Prefix : ARRAY OF WCHAR; Path, S1 : ARRAY OF WCHAR; Line, Col : CARDINAL ); // Line, Col = 0/-1 means unused, unknown
-   
+
+   // generic, raw method   
+   PROCEDURE Log( Level : TDebugLevel; CONST Name, Prefix, S : ARRAY OF WCHAR );
+
 END ILogger;
 
 #restore

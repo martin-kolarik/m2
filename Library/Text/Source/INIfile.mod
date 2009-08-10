@@ -492,7 +492,25 @@ END CINIFile;
 
 (*================================================================================*)
 
+PROCEDURE ConfigureLogInternal( buffered : BOOLEAN; CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; logger : Log.TPALogger; OUT errorLine : CARDINAL ) : TConfigureLogResult; FORWARD;
+
+(*--------------------------------------------------------------------------------*)
+
 PROCEDURE ConfigureLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : Log.CLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
+BEGIN
+   RETURN ConfigureLogInternal( FALSE, ini, SectionName, ADR( logger ), OUT errorLine );
+END ConfigureLog;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE ConfigureBufferedLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : Log.CBufferedLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
+BEGIN
+   RETURN ConfigureLogInternal( TRUE, ini, SectionName, ADR( logger ), OUT errorLine );
+END ConfigureBufferedLog;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE ConfigureLogInternal( buffered : BOOLEAN; CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; logger : Log.TPALogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
 CONST
    snLog                  = L'log';
    knTarget               = L'target';
@@ -515,8 +533,8 @@ VAR
    cs : StringsO.CString;
    File : StringsO.CString;
    haveCached : BOOLEAN := FALSE;
-   Level : Log.TDebugLevel := logger.Level;
-   Method : Log.TDebugMethod := logger.Method;
+   Level : Log.TDebugLevel := logger^.Level;
+   Method : Log.TDebugMethod := logger^.Method;
 BEGIN
    IF ( SectionName[0] <> 0W ) AND ini.SetSection( SectionName ) OR ini.SetSection( snLog ) THEN
 
@@ -557,15 +575,63 @@ BEGIN
       
    END;
    
-   logger.SetLogFile( OA( File.Length-1, File.rawData ));
-   logger.Method := Method;
-   logger.Level := Level;
-   IF haveCached THEN
-      logger.BufferSize := Cached;
+   logger^.SetLogFile( OA( File.Length-1, File.rawData ));
+   logger^.Method := Method;
+   logger^.Level := Level;
+   IF buffered AND haveCached THEN
+      Log.TPBufferedLogger( logger )^.BufferSize := Cached;
    END;
    
    RETURN clrSuccess;
-END ConfigureLog;
+END ConfigureLogInternal;
+
+(*================================================================================*)
+
+PROCEDURE ConfigureLoggerFilter( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : LoggerFilter.CLoggerFilter; OUT errorLine : CARDINAL ) : TConfigureLoggerFilterResult;
+CONST
+   snLog      = L'log';
+   knFilter   = L'filter';
+      kvDeny  = L'deny';
+      kvAllow = L'allow';
+VAR
+   cs : StringsO.CString;
+   data : ARRAY [0..1] OF StringsO.CString;
+   deny : BOOLEAN;
+   es : PTR;
+   key : ARRAY [0..31] OF WCHAR;
+   line : CARDINAL;
+   pieces : CARDINAL;
+   value : StringsO.CString;
+BEGIN
+   logger.Reset();
+
+   IF ( SectionName[0] <> 0W ) AND ini.SetSection( SectionName ) OR ini.SetSection( snLog ) THEN
+
+      es := 0;
+      WHILE ini.EnumerateKeys( REF es, OUT line, OUT key, OUT value ) DO
+         IF NOT EQUALS( key, knFilter ) THEN
+            CONTINUE;
+         END;
+         value.SplitS( StringsO.WCHARS{L","}, 0, TRUE, OUT pieces, OUT data );
+         IF pieces < 1 THEN
+            RETURN clfrUnknownPolicy;
+         ELSIF pieces < 2 THEN
+            RETURN clfrMissingPattern;
+         END;
+         IF data[0].EqualsOA( kvDeny ) THEN
+            deny := TRUE;
+         ELSIF data[0].EqualsOA( kvAllow ) THEN
+            deny := FALSE;
+         ELSE
+            RETURN clfrUnknownPolicy;
+         END;
+         logger.AddRule( NOT deny, deny, data[1] );
+      END; // WHILE
+
+   END;
+   
+   RETURN clfrSuccess;
+END ConfigureLoggerFilter;
 
 (*================================================================================*)
 
