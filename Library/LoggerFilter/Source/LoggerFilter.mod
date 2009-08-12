@@ -17,7 +17,7 @@ CLASS IMPLEMENTATION CLoggerFilter;
 
    PUBLIC VIRTUAL PROCEDURE Filtered( Level : iLog.TDebugLevel; CONST Prefix : ARRAY OF WCHAR ) : BOOLEAN;
    VAR
-      filter : BOOLEAN := TRUE;
+      filter : BOOLEAN := FALSE;
       _List : lists.CStringList;
    BEGIN
       IF Level > _Level THEN

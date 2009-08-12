@@ -73,7 +73,7 @@ CLASS IMPLEMENTATION AService;
 
 (*---------------------------------------------------------------------------*)
 
-  LOCAL PROCEDURE LogEvent( ErrorCode : CARDINAL; CONST ErrorText : ARRAY OF WCHAR );
+  LOCAL PROCEDURE LogEvent( ErrorCode : CARDINAL; CONST ErrorText : ARRAY OF WCHAR ); // ErrorCode -1 means SUCCESS but with dlcError verbosity
   VAR
     DebugLevel : Log.TDebugLevel;
     LocalErrorText : ARRAY [0..255] OF WCHAR;
@@ -139,6 +139,7 @@ BEGIN
          GOTO Fail;
       END;
       _Service^.OnContinue();
+      _Service^.LogEvent( -1, OAsz( R()^[Texts._ServiceContinued] ));
 
    // | winsvc.SERVICE_CONTROL_INTERROGATE : -- solved in ELSE of CASE
    //  SetServiceState( ServiceStatus.dwCurrentState, 0 );
@@ -148,10 +149,12 @@ BEGIN
          GOTO Fail;
       END;
       _Service^.OnPause();
+      _Service^.LogEvent( -1, OAsz( R()^[Texts._ServicePaused] ));
 
    | winsvc.SERVICE_CONTROL_SHUTDOWN, winsvc.SERVICE_CONTROL_STOP :
       _Service^.SetServiceState( ssStopPending, 0 );
       _Service^.OnStop();
+      _Service^.LogEvent( -1, OAsz( R()^[Texts._ServiceStopped] ));
     
    ELSE
       _Service^.SetServiceState( TServiceState( _Service^.ServiceStatus.dwCurrentState ), 0 );
@@ -189,7 +192,7 @@ BEGIN
       END;
 
       _Service^.OnStart();
-      _Service^.LogEvent( winerror.ERROR_SUCCESS, OAsz( R()^[Texts._ServiceIsStartedSuccessfully] ));
+      _Service^.LogEvent( -1, OAsz( R()^[Texts._ServiceIsStartedSuccessfully] ));
 
    // ELSE leave not starting and timeout to OS
    END;
