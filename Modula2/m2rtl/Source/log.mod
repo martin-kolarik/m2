@@ -36,6 +36,20 @@ CLASS IMPLEMENTATION ALogger;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROPERTY Level GET : TDebugLevel;
+   BEGIN
+      RETURN DebugLevel;
+   END Level;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Level SET( Value : TDebugLevel );
+   BEGIN
+      DebugLevel := Value;
+   END Level;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY Method GET : TDebugMethod;
    BEGIN
       IF rsDebugKernel IN RStatus THEN
@@ -63,17 +77,17 @@ CLASS IMPLEMENTATION ALogger;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Level GET : TDebugLevel;
+   PUBLIC PROPERTY Filter GET : TPIFilter;
    BEGIN
-      RETURN DebugLevel;
-   END Level;
+      RETURN LogFilter;
+   END Filter;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Level SET( Value : TDebugLevel );
+   PUBLIC PROPERTY Filter SET( Value : TPIFilter );
    BEGIN
-      DebugLevel := Value;
-   END Level;
+      LogFilter := Value;
+   END Filter;
 
 (*---------------------------------------------------------------------------*)
 
@@ -188,16 +202,20 @@ CLASS IMPLEMENTATION ALogger;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Filtered( Level : TDebugLevel ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Filtered( Level : TDebugLevel; CONST Prefix : ARRAY OF WCHAR ) : BOOLEAN;
    BEGIN
-      RETURN Level > DebugLevel;
+      IF LogFilter = NIL THEN
+         RETURN Level > DebugLevel;
+      ELSE
+         RETURN LogFilter^.Filtered( Level, Prefix );
+      END;
    END Filtered;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE LogS( Level : TDebugLevel; Prefix, S : ARRAY OF WCHAR );
+  PUBLIC VIRTUAL PROCEDURE LogS( Level : TDebugLevel; CONST Prefix, S : ARRAY OF WCHAR );
   BEGIN
-    IF Filtered( Level ) THEN
+    IF Filtered( Level, Prefix ) THEN
       RETURN;
     END;
     Log( Level, Name, Prefix, S );
@@ -205,11 +223,11 @@ CLASS IMPLEMENTATION ALogger;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE LogSS( Level : TDebugLevel; Prefix, S1, S2 : ARRAY OF WCHAR );
+  PUBLIC VIRTUAL PROCEDURE LogSS( Level : TDebugLevel; CONST Prefix, S1, S2 : ARRAY OF WCHAR );
   VAR
     S : TString;
   BEGIN
-    IF Filtered( Level ) THEN
+    IF Filtered( Level, Prefix ) THEN
       RETURN;
     END;
     Strings.ConcatW( OUT S, S1, L" " );
@@ -219,12 +237,12 @@ CLASS IMPLEMENTATION ALogger;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE LogSSC( Level : TDebugLevel; Prefix, S1, S2 : ARRAY OF WCHAR; C : CARDINAL );
+  PUBLIC VIRTUAL PROCEDURE LogSSC( Level : TDebugLevel; CONST Prefix, S1, S2 : ARRAY OF WCHAR; C : CARDINAL );
   VAR
     N : TNum;
     S : TString;
   BEGIN
-    IF Filtered( Level ) THEN
+    IF Filtered( Level, Prefix ) THEN
       RETURN;
     END;
     Strings.ConcatW( OUT S, S1, L" " );
@@ -237,12 +255,12 @@ CLASS IMPLEMENTATION ALogger;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE LogSC( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL );
+  PUBLIC VIRTUAL PROCEDURE LogSC( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL );
   VAR
     N : TNum;
     S : TString;
   BEGIN
-    IF Filtered( Level ) THEN
+    IF Filtered( Level, Prefix ) THEN
       RETURN;
     END;
     Strings.ConcatW( OUT S, S1, L" " );
@@ -253,12 +271,12 @@ CLASS IMPLEMENTATION ALogger;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE LogSCC( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C1, C2 : CARDINAL );
+  PUBLIC VIRTUAL PROCEDURE LogSCC( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; C1, C2 : CARDINAL );
   VAR
     N : TNum;
     S : TString;
   BEGIN
-    IF Filtered( Level ) THEN
+    IF Filtered( Level, Prefix ) THEN
       RETURN;
     END;
     Strings.ConcatW( OUT S, S1, L" " );
@@ -272,12 +290,12 @@ CLASS IMPLEMENTATION ALogger;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE LogSH( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL );
+  PUBLIC VIRTUAL PROCEDURE LogSH( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL );
   VAR
     N : TNum;
     S : TString;
   BEGIN
-    IF Filtered( Level ) THEN
+    IF Filtered( Level, Prefix ) THEN
       RETURN;
     END;
     Strings.ConcatW( OUT S, S1, L" " );
@@ -288,12 +306,12 @@ CLASS IMPLEMENTATION ALogger;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE LogSP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; P : PTR );
+  PUBLIC VIRTUAL PROCEDURE LogSP( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; P : PTR );
   VAR
     N : TNum;
     S : TString;
   BEGIN
-    IF Filtered( Level ) THEN
+    IF Filtered( Level, Prefix ) THEN
       RETURN;
     END;
     Strings.ConcatW( OUT S, S1, L" " );
@@ -304,12 +322,12 @@ CLASS IMPLEMENTATION ALogger;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE LogSCP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; P : PTR );
+  PUBLIC VIRTUAL PROCEDURE LogSCP( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; P : PTR );
   VAR
     N : TNum;
     S : TString;
   BEGIN
-    IF Filtered( Level ) THEN
+    IF Filtered( Level, Prefix ) THEN
       RETURN;
     END;
     Strings.ConcatW( OUT S, S1, L" " );
@@ -323,12 +341,12 @@ CLASS IMPLEMENTATION ALogger;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE LogSHP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; P : PTR );
+  PUBLIC VIRTUAL PROCEDURE LogSHP( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; P : PTR );
   VAR
     N : TNum;
     S : TString;
   BEGIN
-    IF Filtered( Level ) THEN
+    IF Filtered( Level, Prefix ) THEN
       RETURN;
     END;
     Strings.ConcatW( OUT S, S1, L" " );
@@ -342,7 +360,7 @@ CLASS IMPLEMENTATION ALogger;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE LogSB( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; A : ADDRESS; Bytes : CARDINAL );
+  PUBLIC VIRTUAL PROCEDURE LogSB( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; A : ADDRESS; Bytes : CARDINAL );
   TYPE
     TPC8 = POINTER TO CARD8;
   VAR
@@ -350,7 +368,7 @@ CLASS IMPLEMENTATION ALogger;
     c8 : CARD8;
     S : TString;
   BEGIN
-    IF Filtered( Level ) THEN
+    IF Filtered( Level, Prefix ) THEN
       RETURN;
     END;
     ASSIGN( S, S1 );
@@ -383,7 +401,7 @@ CLASS IMPLEMENTATION ALogger;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE LogSCB( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; A : ADDRESS; Bytes : CARDINAL );
+  PUBLIC VIRTUAL PROCEDURE LogSCB( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; A : ADDRESS; Bytes : CARDINAL );
   TYPE
     TPC8 = POINTER TO CARD8;
   VAR
@@ -392,7 +410,7 @@ CLASS IMPLEMENTATION ALogger;
     N : TNum;
     S : TString;
   BEGIN
-    IF Filtered( Level ) THEN
+    IF Filtered( Level, Prefix ) THEN
       RETURN;
     END;
     Strings.ConcatW( OUT S, S1, L" " );
@@ -427,11 +445,11 @@ CLASS IMPLEMENTATION ALogger;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE LogSSS( Level : TDebugLevel; Prefix, S1, S2, S3 : ARRAY OF WCHAR );
+  PUBLIC VIRTUAL PROCEDURE LogSSS( Level : TDebugLevel; CONST Prefix, S1, S2, S3 : ARRAY OF WCHAR );
   VAR
     S : TString;
   BEGIN
-    IF Filtered( Level ) THEN
+    IF Filtered( Level, Prefix ) THEN
       RETURN;
     END;
     Strings.ConcatW( OUT S, S1, L" " );
@@ -443,11 +461,11 @@ CLASS IMPLEMENTATION ALogger;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE LogSSSS( Level : TDebugLevel; Prefix, S1, S2, S3, S4 : ARRAY OF WCHAR );
+  PUBLIC VIRTUAL PROCEDURE LogSSSS( Level : TDebugLevel; CONST Prefix, S1, S2, S3, S4 : ARRAY OF WCHAR );
   VAR
     S : TString;
   BEGIN
-    IF Filtered( Level ) THEN
+    IF Filtered( Level, Prefix ) THEN
       RETURN;
     END;
     Strings.ConcatW( OUT S, S1, L" " );
@@ -461,12 +479,12 @@ CLASS IMPLEMENTATION ALogger;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE LogSE( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; ErrorCode : CARDINAL );
+  PUBLIC VIRTUAL PROCEDURE LogSE( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; ErrorCode : CARDINAL );
   VAR
     E : TString;
     S : TString;
   BEGIN
-    IF Filtered( Level ) THEN
+    IF Filtered( Level, Prefix ) THEN
       RETURN;
     END;
     Strings.ConcatW( OUT S, S1, L" " );
@@ -477,11 +495,11 @@ CLASS IMPLEMENTATION ALogger;
 
 (*---------------------------------------------------------------------------*)
 
-  PUBLIC VIRTUAL PROCEDURE LogSR( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; Result : Sync.TAsyncResult );
+  PUBLIC VIRTUAL PROCEDURE LogSR( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; Result : Sync.TAsyncResult );
   VAR
     S : TString;
   BEGIN
-    IF Filtered( Level ) THEN
+    IF Filtered( Level, Prefix ) THEN
       RETURN;
     ELSIF NOT Sync.ResultToName( Result, OUT S ) THEN
       ASSERT( FALSE );
@@ -492,11 +510,11 @@ CLASS IMPLEMENTATION ALogger;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE LogExc( Level : TDebugLevel; Prefix : ARRAY OF WCHAR; CONST e : Exceptions.CException );
+   PUBLIC VIRTUAL PROCEDURE LogExc( Level : TDebugLevel; CONST Prefix : ARRAY OF WCHAR; CONST e : Exceptions.CException );
 	VAR
 		S : TString;
 	BEGIN
-      IF Filtered( Level ) THEN
+      IF Filtered( Level, Prefix ) THEN
          RETURN;
       END;
 	   e.ToString( OUT S );
@@ -505,13 +523,13 @@ CLASS IMPLEMENTATION ALogger;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE LogFilePos( Level : TDebugLevel; Prefix : ARRAY OF WCHAR; Path, S1 : ARRAY OF WCHAR; Line, Col : CARDINAL ); // Line, Col = 0/-1 means unused, unknown
+   PUBLIC VIRTUAL PROCEDURE LogFilePos( Level : TDebugLevel; CONST Prefix : ARRAY OF WCHAR; CONST Path, S1 : ARRAY OF WCHAR; Line, Col : CARDINAL ); // Line, Col = 0/-1 means unused, unknown
 	VAR
 	   colFlag, lineFlag : BOOLEAN;
 		S : TString;
       N : TNum;
    BEGIN
-      IF Filtered( Level ) THEN
+      IF Filtered( Level, Prefix ) THEN
          RETURN;
       END;
 
@@ -740,6 +758,7 @@ CLASS IMPLEMENTATION ALogger;
 
 BEGIN
    DebugLock.Init( Sync.ltSpin, L"", FALSE );
+   LogFilter := NIL;
 
    RStatus := TRStatus{rsDebugKernel, rsTimeStamps, rsLevelInfo, rsNameInfo};
    #if DEBUG #then
@@ -768,7 +787,7 @@ CLASS IMPLEMENTATION CRedirectableLogger;
       ELSE
          IF _Injecting THEN
             _PassTo^.Log( LoggedLevel, _Name, Prefix, S );
-         ELSIF NOT _PassTo^.Filtered( LoggedLevel ) THEN
+         ELSIF NOT _PassTo^.Filtered( LoggedLevel, Prefix ) THEN
             _PassTo^.Log( LoggedLevel, _Name, Prefix, S );
          END;
       END;

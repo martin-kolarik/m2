@@ -1141,9 +1141,13 @@ BEGIN
                err^.WriteOA( L'  phash "', FALSE ); err^.WriteOA( s, FALSE ); err^.WriteOA( L'"', TRUE );
             #endif
 
-            jlist := Items.TPProduct( item )^.Licences;
+            jlist := Items.TPProduct( item )^.LicencesAndInfos;
             jlist^.Reset();
             WHILE jlist^.MoveNext() DO
+               IF NOT( Items.TPItem( jlist^.Current )^ IS Items.CLicence ) THEN
+                  CONTINUE;
+               END;
+            
                item := Items.TPItem( jlist^.Current );
                err^.WriteOA( L'    licence "', FALSE ); err^.Write( Items.TPLicence( item )^.Serial, FALSE ); err^.WriteOA( L'"', TRUE );
                err^.WriteOA( L'    type "', FALSE ); err^.Write( Items.TPLicence( item )^.TypeString, FALSE ); err^.WriteOA( L'"', TRUE );

@@ -349,14 +349,14 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY ConfigLogger GET : Log.TPLogger;
+   PUBLIC PROPERTY ConfigLogger GET : Log.TPBufferedLogger;
    BEGIN
       RETURN _ConfigLogger;
    END ConfigLogger;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY DataLogger GET : Log.TPLogger;
+   PUBLIC PROPERTY DataLogger GET : Log.TPBufferedLogger;
    BEGIN
       RETURN _DataLogger;
    END DataLogger;
@@ -540,7 +540,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPLogger ) : BOOLEAN;
+   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPBufferedLogger ) : BOOLEAN;
    CONST
       snServer = L"server";
       snUsers = L"users";

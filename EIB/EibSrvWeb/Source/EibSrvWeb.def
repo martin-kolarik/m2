@@ -58,8 +58,8 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       ReadByHour : CARDINAL;
       ReadByDay : CARDINAL;
       OperatedDeviceCount : CARDINAL;
-      ConfigLogger : Log.TPLogger;
-      DataLogger : Log.TPLogger;
+      ConfigLogger : Log.TPBufferedLogger;
+      DataLogger : Log.TPBufferedLogger;
       
    PUBLIC PROCEDURE ConnectEIB();
    PUBLIC PROCEDURE DisconnectEIB();
@@ -87,8 +87,8 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       _DeviceCount : CARDINAL;
       _DeviceNames : POINTER TO ARRAY [0..0] OF PWCHAR;
       _Devices : POINTER TO ARRAY [0..0] OF io.TPIStartStopControl;
-      _ConfigLogger : Log.TPLogger;
-      _DataLogger : Log.TPLogger;
+      _ConfigLogger : Log.TPBufferedLogger;
+      _DataLogger : Log.TPBufferedLogger;
       _Users : lists.CStringStringList;
       _Lock : Sync.RWLOCK;
       
@@ -101,7 +101,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       _GotByHourModified : ARRAY [0..23] OF time.TJD;
       _GotByHour : ARRAY [0..23] OF CARDINAL;
 
-   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPLogger ) : BOOLEAN;
+   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPBufferedLogger ) : BOOLEAN;
    
    PUBLIC READONLY PROPERTY
       Running : BOOLEAN;

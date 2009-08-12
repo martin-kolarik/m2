@@ -2238,7 +2238,7 @@ CLASS IMPLEMENTATION CEIBServer;
          IF NOT RepeatFlag AND ( eib_def.aofInitRead IN PObject^.GetFlags()) OR
                 RepeatFlag AND ( PObject^.InitReadState = eib_user.irsWillRepeat ) THEN
 
-            IF NOT Logger.Filtered( log.dldDebug ) THEN
+            IF NOT Logger.Filtered( log.dldDebug, L"srv" ) THEN
                PObject^.ReadAddress.GetGroupAddress3( TRUE, saddr );
                Logger.LogSS( log.dldDebug, L"srv", "INIT: ", saddr );
             END;

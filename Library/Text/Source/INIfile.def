@@ -75,11 +75,12 @@ PROCEDURE ConfigureBufferedLog( CONST ini : CINIFile; CONST SectionName : ARRAY 
 TYPE
    TConfigureLoggerFilterResult = (
       clfrSuccess,
+      clfrUnknownLevel,
       clfrUnknownPolicy,
       clfrMissingPattern
    );
 
-PROCEDURE ConfigureLoggerFilter( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : LoggerFilter.CLoggerFilter; OUT errorLine : CARDINAL ) : TConfigureLoggerFilterResult;
+PROCEDURE ConfigureLoggerFilter( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF filter : LoggerFilter.CLoggerFilter; OUT errorLine : CARDINAL ) : TConfigureLoggerFilterResult;
   // if SectionName is empty, default "log" section name is used
 
 (*================================================================================*)

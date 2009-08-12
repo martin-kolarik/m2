@@ -860,7 +860,7 @@ CLASS IMPLEMENTATION CConnection;
       END;
          
       Status := packet.Status;
-      IF NOT _Logger^.Filtered( dldDebug ) THEN
+      IF NOT _Logger^.Filtered( dldDebug, DEBUG_PREFIX ) THEN
          _Logger^.LogSCP( dldDebug, DEBUG_PREFIX, L"SEND T_CON status: ", CARDINAL( ChannelId ), PTR( Status ));
          _Logger^.LogSH( dldDebug, DEBUG_PREFIX, L"SEND T_CON seq: ", CARDINAL( packet.Sequence ));
       END;
@@ -1004,7 +1004,7 @@ CLASS IMPLEMENTATION CConnection;
       seq : CARDINAL;
       out : ARRAY [0..63] OF WCHAR;
    BEGIN
-      IF NOT _Logger^.Filtered( dldTrace ) THEN
+      IF NOT _Logger^.Filtered( dldTrace, DEBUG_PREFIX ) THEN
          out := text;
          IF selfPacket THEN
             Strings.AppendW( REF out, L" [S]" ); 
@@ -1026,7 +1026,7 @@ CLASS IMPLEMENTATION CConnection;
             Strings.ConcatW( OUT out, text, L" altseq: " ); _Logger^.LogSH( dldTrace, DEBUG_PREFIX, out, AltInSeq );
          END;
 
-         IF NOT _Logger^.Filtered( dldDebug ) THEN
+         IF NOT _Logger^.Filtered( dldDebug, DEBUG_PREFIX ) THEN
             IF outputFlag THEN
                seq := CARDINAL( CARD8( OutSeq ));
             ELSE

@@ -36,6 +36,7 @@ TYPE
    TPBufferedLogger = POINTER TO CBufferedLogger;
    
 CONST
+   TPIFilter   ::= iLog.TPFilter;
    TPILogger   ::= iLog.TPLogger;
 
    TDebugLevel ::= iLog.TDebugLevel;   
@@ -59,34 +60,38 @@ PROCEDURE logger() : TPBufferedLogger;
 
 ABSTRACT CLASS ALogger IMPLEMENTS iLog.ILogger;
 
-   // ILogger
-   PUBLIC VIRTUAL PROCEDURE Filtered( Level : TDebugLevel ) : BOOLEAN;
+   // IFilter
+   PUBLIC VIRTUAL PROPERTY
+      Level : TDebugLevel; // what (and less) will be present in log
 
-   PUBLIC VIRTUAL PROCEDURE LogS( Level : TDebugLevel; Prefix, S : ARRAY OF WCHAR );
-   PUBLIC VIRTUAL PROCEDURE LogSS( Level : TDebugLevel; Prefix, S1, S2 : ARRAY OF WCHAR );
-   PUBLIC VIRTUAL PROCEDURE LogSSC( Level : TDebugLevel; Prefix, S1, S2 : ARRAY OF WCHAR; C : CARDINAL );
-   PUBLIC VIRTUAL PROCEDURE LogSC( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL );
-   PUBLIC VIRTUAL PROCEDURE LogSCC( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C1, C2 : CARDINAL );
-   PUBLIC VIRTUAL PROCEDURE LogSH( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL );
-   PUBLIC VIRTUAL PROCEDURE LogSP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; P : PTR );
-   PUBLIC VIRTUAL PROCEDURE LogSCP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; P : PTR );
-   PUBLIC VIRTUAL PROCEDURE LogSHP( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL; P : PTR );
-   PUBLIC VIRTUAL PROCEDURE LogSB( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; A : ADDRESS; Bytes : CARDINAL );
-   PUBLIC VIRTUAL PROCEDURE LogSCB( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; A : ADDRESS; Bytes : CARDINAL );
-   PUBLIC VIRTUAL PROCEDURE LogSSS( Level : TDebugLevel; Prefix, S1, S2, S3 : ARRAY OF WCHAR );
-   PUBLIC VIRTUAL PROCEDURE LogSSSS( Level : TDebugLevel; Prefix, S1, S2, S3, S4 : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE Filtered( Level : TDebugLevel; CONST Prefix : ARRAY OF WCHAR ) : BOOLEAN;
+
+   // ILogger
+   PUBLIC VIRTUAL PROCEDURE LogS( Level : TDebugLevel; CONST Prefix, S : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE LogSS( Level : TDebugLevel; CONST Prefix, S1, S2 : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE LogSSC( Level : TDebugLevel; CONST Prefix, S1, S2 : ARRAY OF WCHAR; C : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE LogSC( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE LogSCC( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; C1, C2 : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE LogSH( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE LogSP( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; P : PTR );
+   PUBLIC VIRTUAL PROCEDURE LogSCP( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; P : PTR );
+   PUBLIC VIRTUAL PROCEDURE LogSHP( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL; P : PTR );
+   PUBLIC VIRTUAL PROCEDURE LogSB( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; A : ADDRESS; Bytes : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE LogSCB( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; A : ADDRESS; Bytes : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE LogSSS( Level : TDebugLevel; CONST Prefix, S1, S2, S3 : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE LogSSSS( Level : TDebugLevel; CONST Prefix, S1, S2, S3, S4 : ARRAY OF WCHAR );
   
-   PUBLIC VIRTUAL PROCEDURE LogSE( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; ErrorCode : CARDINAL );
-   PUBLIC VIRTUAL PROCEDURE LogSR( Level : TDebugLevel; Prefix, S1 : ARRAY OF WCHAR; Result : Sync.TAsyncResult );
-   PUBLIC VIRTUAL PROCEDURE LogExc( Level : TDebugLevel; Prefix : ARRAY OF WCHAR; CONST e : Exceptions.CException );
-   PUBLIC VIRTUAL PROCEDURE LogFilePos( Level : TDebugLevel; Prefix : ARRAY OF WCHAR; Path, S1 : ARRAY OF WCHAR; Line, Col : CARDINAL ); // Line, Col = 0/-1 means unused, unknown
+   PUBLIC VIRTUAL PROCEDURE LogSE( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; ErrorCode : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE LogSR( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; Result : Sync.TAsyncResult );
+   PUBLIC VIRTUAL PROCEDURE LogExc( Level : TDebugLevel; CONST Prefix : ARRAY OF WCHAR; CONST e : Exceptions.CException );
+   PUBLIC VIRTUAL PROCEDURE LogFilePos( Level : TDebugLevel; CONST Prefix : ARRAY OF WCHAR; CONST Path, S1 : ARRAY OF WCHAR; Line, Col : CARDINAL ); // Line, Col = 0/-1 means unused, unknown
    
-   PUBLIC VIRTUAL PROCEDURE Log( Level : TDebugLevel; CONST Name, Prefix, S : ARRAY OF WCHAR ); // Log does not filter!
+   INTERNAL VIRTUAL PROCEDURE Log( Level : TDebugLevel; CONST Name, Prefix, S : ARRAY OF WCHAR ); // Log does not filter!
 
    // SELF
    PUBLIC PROPERTY
       Method : TDebugMethod;
-      Level : TDebugLevel; // what (and less) will be present in log
+      Filter : TPIFilter;
       TimeStamps : BOOLEAN; // prints timestamps, default TRUE
       Levels : BOOLEAN; // prints debug level of message, default TRUE
       Names : BOOLEAN; // prints names/prefixes of message, default TRUE
@@ -108,6 +113,7 @@ ABSTRACT CLASS ALogger IMPLEMENTS iLog.ILogger;
    PRIVATE VAR
       RStatus    : TRStatus;
       Name       : ARRAY [0..63] OF WCHAR;
+      LogFilter  : TPIFilter;
       DebugLevel : TDebugLevel;
       DebugFile  : ARRAY [0..260] OF WCHAR;
       DebugLock  : Sync.LOCK;
@@ -125,13 +131,13 @@ CLASS CRedirectableLogger( ALogger );
 
    // SELF
    PUBLIC PROPERTY
-      RedirectTo : TPILogger; // all output will be passed to another log respecting its level settins -- level is driven by destination logger, mutually exclusive with InjectTo
-      InjectTo : TPILogger;  // all output will be passed to another log NOT respecting its level settings -- level is driven by source logger, mutually exclusive with RedirectTo
+      RedirectTo : TPALogger; // all output will be passed to another log respecting its level settins -- level is driven by destination logger, mutually exclusive with InjectTo
+      InjectTo : TPALogger;  // all output will be passed to another log NOT respecting its level settings -- level is driven by source logger, mutually exclusive with RedirectTo
 
    // privates
    PRIVATE VAR
       _Injecting : BOOLEAN := FALSE;
-      _PassTo : TPILogger := NIL;
+      _PassTo : TPALogger := NIL;
 END CRedirectableLogger;
 
 CONST

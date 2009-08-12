@@ -492,6 +492,29 @@ END CINIFile;
 
 (*================================================================================*)
 
+CONST
+   snLog             = L'log';
+   knTarget          = L'target';
+      kvTargetNone   = L'none';
+      kvTargetFile   = L'file';
+      kvTargetKernel = L'kernel';
+   knFile            = L'file';
+   knFilter          = L'filter';
+      kvDeny         = L'deny';
+      kvAllow        = L'allow';
+   knLevel           = L'level';
+      kvFatal        = L'fatal'; 
+      kvError        = L'error'; 
+      kvWarning      = L'warning'; 
+      kvInfo         = L'info'; 
+      kvDebugFailure = L'failure';
+      kvDebugMessage = L'message';
+      kvDebugTrace   = L'trace';
+      kvDebugAll     = L'all';
+   knCached          = L'cached';
+
+(*--------------------------------------------------------------------------------*)
+
 PROCEDURE ConfigureLogInternal( buffered : BOOLEAN; CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; logger : Log.TPALogger; OUT errorLine : CARDINAL ) : TConfigureLogResult; FORWARD;
 
 (*--------------------------------------------------------------------------------*)
@@ -511,23 +534,6 @@ END ConfigureBufferedLog;
 (*--------------------------------------------------------------------------------*)
 
 PROCEDURE ConfigureLogInternal( buffered : BOOLEAN; CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; logger : Log.TPALogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
-CONST
-   snLog                  = L'log';
-   knTarget               = L'target';
-      kvTargetNone        = L'none';
-      kvTargetFile        = L'file';
-      kvTargetKernel      = L'kernel';
-   knFile                 = L'file';
-   knLevel                = L'level';
-      kvFatal             = L'fatal'; 
-      kvError             = L'error'; 
-      kvWarning           = L'warning'; 
-      kvInfo              = L'info'; 
-      kvDebugFailure      = L'failure';
-      kvDebugMessage      = L'message';
-      kvDebugTrace        = L'trace';
-      kvDebugAll          = L'all';
-   knCached               = L'cached';
 VAR
    Cached : CARDINAL;
    cs : StringsO.CString;
@@ -587,12 +593,7 @@ END ConfigureLogInternal;
 
 (*================================================================================*)
 
-PROCEDURE ConfigureLoggerFilter( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : LoggerFilter.CLoggerFilter; OUT errorLine : CARDINAL ) : TConfigureLoggerFilterResult;
-CONST
-   snLog      = L'log';
-   knFilter   = L'filter';
-      kvDeny  = L'deny';
-      kvAllow = L'allow';
+PROCEDURE ConfigureLoggerFilter( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF filter : LoggerFilter.CLoggerFilter; OUT errorLine : CARDINAL ) : TConfigureLoggerFilterResult;
 VAR
    cs : StringsO.CString;
    data : ARRAY [0..1] OF StringsO.CString;
@@ -603,15 +604,30 @@ VAR
    pieces : CARDINAL;
    value : StringsO.CString;
 BEGIN
-   logger.Reset();
+   filter.Reset();
 
    IF ( SectionName[0] <> 0W ) AND ini.SetSection( SectionName ) OR ini.SetSection( snLog ) THEN
 
+      IF ini.GetKeyStr( knLevel, OUT errorLine, OUT cs ) THEN
+         IF cs.EqualsOA( kvDebugFailure ) OR cs.EqualsOA( kvFatal ) THEN
+            filter.Level := Log.dldError;
+         ELSIF cs.EqualsOA( kvDebugMessage ) OR cs.EqualsOA( kvError ) THEN
+            filter.Level := Log.dldMessage;
+         ELSIF cs.EqualsOA( kvDebugTrace ) OR cs.EqualsOA( kvWarning ) THEN
+            filter.Level := Log.dldTrace;
+         ELSIF cs.EqualsOA( kvDebugAll ) OR cs.EqualsOA( kvInfo ) THEN
+            filter.Level := Log.dldDebug;
+         ELSE
+            RETURN clfrUnknownLevel;
+         END;
+      END;
+      
       es := 0;
       WHILE ini.EnumerateKeys( REF es, OUT line, OUT key, OUT value ) DO
          IF NOT EQUALS( key, knFilter ) THEN
             CONTINUE;
          END;
+
          value.SplitS( StringsO.WCHARS{L","}, 0, TRUE, OUT pieces, OUT data );
          IF pieces < 1 THEN
             RETURN clfrUnknownPolicy;
@@ -625,7 +641,9 @@ BEGIN
          ELSE
             RETURN clfrUnknownPolicy;
          END;
-         logger.AddRule( NOT deny, deny, data[1] );
+
+         data[1].Trim();
+         filter.AddRule( NOT deny, deny, data[1] );
       END; // WHILE
 
    END;

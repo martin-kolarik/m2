@@ -25,6 +25,9 @@ IMPORT
    windows,
    winerror,
    XMLWriter;
+   
+CONST
+   LOG_HTTP = L"HTTP";
 
 (*================================================================================*)
 
@@ -1048,7 +1051,7 @@ CLASS IMPLEMENTATION HttpWorker;
          _Processor^.ProcessRequest( ADR( Connection ), _Session );
       END;
       
-      IF NOT logger()^.Filtered( dlcInfo ) THEN
+      IF NOT logger()^.Filtered( dlcInfo, LOG_HTTP ) THEN
          CASE _Stream^.RequestVerb OF
          | HttpCommon.verbPOST :
             s.FromOA( L"POST " );
@@ -1076,7 +1079,7 @@ CLASS IMPLEMENTATION HttpWorker;
             s.AppendOA( sOA );
          END; // IF chunked
 
-         logger()^.LogS( dlcInfo, L"HTTP", OA( s.Length-1, s.rawData ));
+         logger()^.LogS( dlcInfo, LOG_HTTP, OA( s.Length-1, s.rawData ));
       END;
       
       _Stream^.Close( FALSE );
@@ -1459,12 +1462,12 @@ CLASS IMPLEMENTATION ASrvCommon;
          END;
          IF NOT Reported THEN
             Reported := TRUE;
-            logger()^.LogS( dlcInfo, L"HTTP", L"Pool has no space, wait for a while" );
+            logger()^.LogS( dlcInfo, LOG_HTTP, L"Pool has no space, wait for a while" );
          END;
 
          Sync.Sleep( 250 );
          IF Time.UptimeMS() - Timeout > 0 THEN // time elapsed
-            logger()^.LogS( dlcWarning, L"HTTP", L"Unable to process HTTP request, pool exhausted" );
+            logger()^.LogS( dlcWarning, LOG_HTTP, L"Unable to process HTTP request, pool exhausted" );
             EXIT;
          END;
       END;

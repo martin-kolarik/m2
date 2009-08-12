@@ -22,7 +22,7 @@ TYPE
 
 CLASS CClient IMPLEMENTS thread.IRunnable;
    // IRunnable
-   INTERNAL VIRTUAL PROCEDURE OnRun() : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    // SELF
    PRIVATE VAR
       Connection : rawconnection.TCPConnection;
@@ -44,7 +44,7 @@ CLASS IMPLEMENTATION CClient;
 
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnRun() : CARDINAL;
+   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    CONST
       COUNT = 10000000;
    VAR

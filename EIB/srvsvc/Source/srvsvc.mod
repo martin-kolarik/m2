@@ -206,9 +206,9 @@ CLASS IMPLEMENTATION CEibSvc;
       INIfile.ConfigureBufferedLog( cfg, L"", REF Log.logger()^, OUT line );
       INIfile.ConfigureBufferedLog( cfg, L"datalog", REF DataLogger, OUT line );
       
-      INIfile.ConfigureLoggerFilter( cfg, L"", Filter, OUT line );
-      Filter.Output := Log.logger();
-      
+      INIfile.ConfigureLoggerFilter( cfg, L"", REF Filter, OUT line );
+      Log.logger()^.Filter := ADR( Filter );
+
       ASSERT( EIB = NIL );
       NEW( EIB );
       EIB^.Init( TRUE );
@@ -234,7 +234,7 @@ CLASS IMPLEMENTATION CEibSvc;
       IA.Port := 6007;
       SDAP^.ListenAddress := IA;
       SDAP^.Init( TRUE );
-      SDAP^.CommonLogger := ADR( Filter );
+      SDAP^.CommonLogger := Log.logger();
       SDAP^.ConfigurationLogger := ADR( ConfigLogger );
       SDAP^.Start();
       
@@ -244,7 +244,7 @@ CLASS IMPLEMENTATION CEibSvc;
       IA.Port := 6006;
       XMLS^.ListenAddress := IA;
       XMLS^.Init( TRUE );
-      XMLS^.CommonLogger := ADR( Filter );
+      XMLS^.CommonLogger := Log.logger();
       XMLS^.Start();
       
       CDI.Names[0] := PWCHAR( ADR( nameSDAP ));
