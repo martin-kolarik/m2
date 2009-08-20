@@ -9,6 +9,7 @@ IMPORT
    IOO,
    HttpCommon,
    HttpConnection,
+   Log,
    maps,
    StringsO,
    Sync;
@@ -62,6 +63,7 @@ TYPE
 INTERFACE IHttpServer;
    READONLY PROPERTY
       Running : BOOLEAN;
+      Logger : Log.TPBufferedLogger;
    PROPERTY
       Mode : TMode; // default is smHttp
       Port : CARDINAL; // default is 8080

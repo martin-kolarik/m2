@@ -4,7 +4,7 @@ FROM Debug IMPORT
    Assertion, LogAssertionW;
 
 FROM Log IMPORT
-   logger, dlcError, dlcWarning, dlcInfo;
+   dlcError, dlcWarning, dlcInfo;
    
 IMPORT
    cphcommon,
@@ -13,6 +13,7 @@ IMPORT
    HttpConnection,
    httptools,
    IOO,
+   Languages,
    maps,
    netsocket,
    rijndael,
@@ -1022,8 +1023,9 @@ CLASS HttpWorker( threadpool.APoolWorker );
       _Processor : HttpSrv.TPHttpProcessor := NIL;
       _Stream : TPSrvStream := NIL;
       _Session : TPSrvSession := NIL;
+      _Logger : Log.TPLogger := NIL;
 
-   LOCAL PROCEDURE Init( processor : HttpSrv.TPHttpProcessor; stream : TPSrvStream; session : TPSrvSession );
+   LOCAL PROCEDURE Init( processor : HttpSrv.TPHttpProcessor; stream : TPSrvStream; session : TPSrvSession; logger : Log.TPLogger );
 
 END HttpWorker;
 
@@ -1034,9 +1036,11 @@ CLASS IMPLEMENTATION HttpWorker;
 (*--------------------------------------------------------------------------------*)
 
    LOCAL VIRTUAL PROCEDURE Run();
+   CONST
+     HTTP_COMMON_LOG_TIME_FORMAT = L"dd/MMM/yyyy:HH:mm:ss +0000";
    VAR
       Connection : CHttpConnection;
-      dt : time.DateTime;
+      dt : Time.DateTime;
       s : StringsO.CString;
       sOA : ARRAY [0..255] OF WCHAR;
    BEGIN
@@ -1051,14 +1055,23 @@ CLASS IMPLEMENTATION HttpWorker;
          _Processor^.ProcessRequest( ADR( Connection ), _Session );
       END;
       
-      IF NOT logger()^.Filtered( dlcInfo, LOG_HTTP ) THEN
+      IF NOT _Logger^.Filtered( dlcInfo, LOG_HTTP ) THEN
+         _Stream^.RemoteAddress.GetAddressOA( FALSE, OUT sOA );
+         s.FromOA( sOA );
+         s.AppendOA( L" - - [" );
+
+         dt.SetNowUTC();
+         IF dt.ToLanguageStringOA( Languages.GetDefaultLanguage( Languages.dlNeutral ), HTTP_COMMON_LOG_TIME_FORMAT, TRUE, TRUE, OUT sOA ) THEN
+            s.AppendOA( sOA );
+         END;
+
          CASE _Stream^.RequestVerb OF
          | HttpCommon.verbPOST :
-            s.FromOA( L"POST " );
+            s.AppendOA( L'] "POST ' );
          | HttpCommon.verbHEAD :
-            s.FromOA( L"GET " );
+            s.AppendOA( L'] "HEAD ' );
          ELSE
-            s.FromOA( L"GET " );
+            s.AppendOA( L'] "GET ' );
          END;
          s.Append( _Stream^.AbsoluteURI );
          _Stream^.URIData.ToOA( OUT sOA );
@@ -1066,9 +1079,12 @@ CLASS IMPLEMENTATION HttpWorker;
             s.AppendOA( L"?" );
             s.AppendOA( sOA );
          END;
+         s.AppendOA( L'"' );
+
          Strings.FromCARD32W( CARDINAL( _Stream^.StatusCode ), 10, OUT sOA );
          s.AppendOA( L" " );
          s.AppendOA( sOA );
+
          IF _Stream^.Chunked THEN
             s.AppendOA( L" chunked" );
          ELSIF _Stream^.Length = -1 THEN
@@ -1079,7 +1095,7 @@ CLASS IMPLEMENTATION HttpWorker;
             s.AppendOA( sOA );
          END; // IF chunked
 
-         logger()^.LogS( dlcInfo, LOG_HTTP, OA( s.Length-1, s.rawData ));
+         _Logger^.LogS( dlcInfo, LOG_HTTP, OA( s.Length-1, s.rawData ));
       END;
       
       _Stream^.Close( FALSE );
@@ -1088,11 +1104,12 @@ CLASS IMPLEMENTATION HttpWorker;
 
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE Init( processor : HttpSrv.TPHttpProcessor; stream : TPSrvStream; session : TPSrvSession );
+   LOCAL PROCEDURE Init( processor : HttpSrv.TPHttpProcessor; stream : TPSrvStream; session : TPSrvSession; logger : Log.TPLogger );
    BEGIN
       SELF._Processor := processor;
       SELF._Stream := stream;
       SELF._Session := session;
+      SELF._Logger := logger;
    END Init;
 
 (*--------------------------------------------------------------------------------*)
@@ -1347,6 +1364,13 @@ CLASS IMPLEMENTATION ASrvCommon;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC FINAL PROPERTY Logger GET : Log.TPBufferedLogger;
+   BEGIN
+      RETURN ADR( _Logger );
+   END Logger;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC FINAL PROCEDURE RegisterProcessor( Processor : HttpSrv.TPHttpProcessor );
    VAR
       holder : TPSessionHolder;
@@ -1455,19 +1479,19 @@ CLASS IMPLEMENTATION ASrvCommon;
          Session := NIL;
       END;
       NEW( Worker );
-      Worker^.Init( foundProcessor, _PreparedStream, Session );
+      Worker^.Init( foundProcessor, _PreparedStream, Session, ADR( _Logger ));
       LOOP
          IF _Pool.RunWorker( ADR( SELF ), 0, FALSE, Worker, FALSE, OUT ph ) THEN
             EXIT;
          END;
          IF NOT Reported THEN
             Reported := TRUE;
-            logger()^.LogS( dlcInfo, LOG_HTTP, L"Pool has no space, wait for a while" );
+            Log.logger()^.LogS( dlcInfo, LOG_HTTP, L"Pool has no space, wait for a while" );
          END;
 
-         Sync.Sleep( 250 );
+         Sync.Sleep( 100 );
          IF Time.UptimeMS() - Timeout > 0 THEN // time elapsed
-            logger()^.LogS( dlcWarning, LOG_HTTP, L"Unable to process HTTP request, pool exhausted" );
+            Log.logger()^.LogS( dlcWarning, LOG_HTTP, L"Unable to process HTTP request, pool exhausted" );
             EXIT;
          END;
       END;
@@ -1509,6 +1533,11 @@ CLASS IMPLEMENTATION ASrvCommon;
       _Pool.MaxThreads := 32;
 
       _PreparedStream := NIL;
+
+      _Logger.SetUpByLogger( Log.logger()^ );
+      _Logger.TimeStamps := FALSE;
+      _Logger.Levels := FALSE;
+      _Logger.Names := FALSE;
    END ASrvCommon;
 
 (*--------------------------------------------------------------------------------*)
