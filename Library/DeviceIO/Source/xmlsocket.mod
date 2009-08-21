@@ -119,8 +119,34 @@ CLASS IMPLEMENTATION CXMLSocketServer;
 
    PUBLIC PROPERTY CommonLogger SET( Value : log.TPILogger );
    BEGIN
-      _CommonLogger := Value;
+      IF _CommonLogger = Value THEN
+         RETURN;
+      ELSIF Value = NIL THEN
+         _CommonLogger := log.logger();
+      ELSE
+         _CommonLogger := Value;
+      END;
    END CommonLogger;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY NetworkLogger GET : log.TPILogger;
+   BEGIN
+      RETURN _NetworkLogger;
+   END NetworkLogger;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY NetworkLogger SET( Value : log.TPILogger );
+   BEGIN
+      IF _NetworkLogger = Value THEN
+         RETURN;
+      ELSIF Value = NIL THEN
+         _NetworkLogger := log.logger();
+      ELSE
+         _NetworkLogger := Value;
+      END;
+   END NetworkLogger;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -182,14 +208,16 @@ CLASS IMPLEMENTATION CXMLSocketServer;
 
    INTERNAL VIRTUAL PROCEDURE OnConnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
    VAR
+      address : ARRAY [0..63] OF WCHAR;
       Client : TPClient;
-      sd : ARRAY [0..63] OF WCHAR;
    BEGIN
-      Connection^.RemoteAddress.GetAddressOA( TRUE, OUT sd );
-      _CommonLogger^.LogSS( log.dldDebug, LOG_XMLS, "CONNECT: ", sd );
-
       ASSERTLOG( NOT _Clients.Contains( Connection ));
       
+      IF NOT _NetworkLogger^.Filtered( log.dlcError, LOG_XMLS ) THEN
+         Connection^.RemoteAddress.GetAddressOA( TRUE, OUT address );
+         _NetworkLogger^.LogSS( log.dlcError, LOG_XMLS, "CONNECT:", address );
+      END;
+
       NEW( Client );
       Client^.Server := ADR( SELF );
       Client^.Connection := Connection;
@@ -204,11 +232,13 @@ CLASS IMPLEMENTATION CXMLSocketServer;
 
    INTERNAL VIRTUAL PROCEDURE OnDisconnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
    VAR
+      address : ARRAY [0..63] OF WCHAR;
       Client : TPClient;
-      sd : ARRAY [0..63] OF WCHAR;
    BEGIN
-      Connection^.RemoteAddress.GetAddressOA( TRUE, OUT sd );
-      _CommonLogger^.LogSS( log.dldDebug, LOG_XMLS, "DISCONNECT: ", sd );
+      IF NOT _NetworkLogger^.Filtered( log.dlcError, LOG_XMLS ) THEN
+         Connection^.RemoteAddress.GetAddressOA( TRUE, OUT address );
+         _NetworkLogger^.LogSS( log.dlcError, LOG_XMLS, "DISCONNECT:", address );
+      END;
 
       IF _Clients.Get( Connection, OUT Client ) THEN
          _Clients.Remove( Connection );
@@ -544,6 +574,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       msg : msghandler.Message;
    BEGIN
       _CommonLogger := log.logger();
+      _NetworkLogger := log.logger();
 
       msg.Message := MSG_SCHEDULED_SEND;
       _SendQueue.ConsumerMsg := ADR( msg );

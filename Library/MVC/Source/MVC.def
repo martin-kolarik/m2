@@ -8,6 +8,7 @@ IMPORT
    HttpCommon,
    HttpSrv,
    Languages,
+   Log,
    maps,
    StringsO,
    time;
@@ -153,6 +154,7 @@ INTERFACE IMVC;
    
    PROPERTY
       MessageSourcePath : StringsO.CString;
+      Logger : Log.TPILogger;
 END IMVC;
 
 //================================================================================

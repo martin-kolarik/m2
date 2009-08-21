@@ -29,6 +29,7 @@ CLASS CXMLSocketServer( netconndispatch.CDispatcher ) IMPLEMENTS io.IStartStopCo
    PRIVATE VAR
       _Device : adviser.TPAdvisedDevice := NIL;
       _CommonLogger : log.TPILogger := NIL;
+      _NetworkLogger : log.TPILogger := NIL;
       _ListenAddress : inetaddr.INETADDR;
       _Running : BOOLEAN := FALSE;
       _Clients : maps.CPtrMap;
@@ -40,6 +41,7 @@ CLASS CXMLSocketServer( netconndispatch.CDispatcher ) IMPLEMENTS io.IStartStopCo
    PUBLIC PROPERTY
       Device : adviser.TPAdvisedDevice;
       CommonLogger : log.TPILogger;
+      NetworkLogger : log.TPILogger;
       ListenAddress : inetaddr.INETADDR;
 
    INTERNAL VIRTUAL PROCEDURE OnConnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );

@@ -71,9 +71,12 @@ CLASS CEibSvc( Service.AService ) IMPLEMENTS threadcall.IThreadProcedureCallTarg
       Configuration : StringsO.TPString;
       
    PRIVATE VAR
+      CommonFilter : LoggerFilter.CLoggerFilter;
       ConfigLogger : Log.CBufferedLogger;
       DataLogger : Log.CBufferedLogger; 
-      Filter : LoggerFilter.CLoggerFilter;
+      HttpLogger : Log.CLogger; 
+      NetworkLogger : Log.CLogger; 
+      NetworkFilter : LoggerFilter.CLoggerFilter;
       EIB : srvcore.TPEIBServer := NIL;
       Adviser : adviser.TPAdvisedDevice := NIL;
       SDAP : sdap.TPSDAPServer := NIL;
@@ -181,6 +184,8 @@ CLASS IMPLEMENTATION CEibSvc;
       RS : Registry.CRegistry;
       s1, s2 : StringsO.CString;
    BEGIN
+      // ASSERT( FALSE );
+   
       // get confiuration file path
       Strings.ConcatW( OUT Path, L"SOFTWARE\", Manufacturer ); Strings.AppendW( REF Path, L"\" ); Strings.AppendW( REF Path, ProductId );
       IF RS.OpenRead( L"", Registry.LOCAL_MACHINE, Path ) THEN
@@ -204,11 +209,20 @@ CLASS IMPLEMENTATION CEibSvc;
       cfg.LoadPath( OA( s1.Length-1, s1.rawData ));
       
       INIfile.ConfigureBufferedLog( cfg, L"", REF Log.logger()^, OUT line );
+      INIfile.ConfigureLoggerFilter( cfg, L"", REF CommonFilter, OUT line );
+      Log.logger()^.Filter := ADR( CommonFilter );
+
       INIfile.ConfigureBufferedLog( cfg, L"datalog", REF DataLogger, OUT line );
       
-      INIfile.ConfigureLoggerFilter( cfg, L"", REF Filter, OUT line );
-      Log.logger()^.Filter := ADR( Filter );
+      INIfile.ConfigureLog( cfg, L"httplog", REF HttpLogger, OUT line );
+      HttpLogger.TimeStamps := FALSE;
+      HttpLogger.Levels := FALSE;
+      HttpLogger.Names := FALSE;
 
+      INIfile.ConfigureLog( cfg, L"networklog", REF NetworkLogger, OUT line );
+      INIfile.ConfigureLoggerFilter( cfg, L"", REF NetworkFilter, OUT line );
+      NetworkLogger.Filter := ADR( NetworkFilter );
+      
       ASSERT( EIB = NIL );
       NEW( EIB );
       EIB^.Init( TRUE );
@@ -236,6 +250,7 @@ CLASS IMPLEMENTATION CEibSvc;
       SDAP^.Init( TRUE );
       SDAP^.CommonLogger := Log.logger();
       SDAP^.ConfigurationLogger := ADR( ConfigLogger );
+      SDAP^.NetworkLogger := ADR( NetworkLogger );
       SDAP^.Start();
       
       ASSERT( XMLS = NIL );
@@ -245,6 +260,7 @@ CLASS IMPLEMENTATION CEibSvc;
       XMLS^.ListenAddress := IA;
       XMLS^.Init( TRUE );
       XMLS^.CommonLogger := Log.logger();
+      XMLS^.NetworkLogger := ADR( NetworkLogger );
       XMLS^.Start();
       
       CDI.Names[0] := PWCHAR( ADR( nameSDAP ));
@@ -252,7 +268,7 @@ CLASS IMPLEMENTATION CEibSvc;
       CDI.Devices[0] := SDAP;
       CDI.Devices[1] := XMLS;
       
-      IF Web.Init( 6005, L"/SmartServer", cfg, EIB, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger )) THEN
+      IF Web.Init( 6005, L"/SmartServer", cfg, EIB, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ), ADR( HttpLogger )) THEN
          Web.Run();
       END;
 

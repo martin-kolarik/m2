@@ -61,6 +61,7 @@ CLASS CSDAPServer( netconndispatch.CDispatcher ) IMPLEMENTS io.IStartStopControl
    PRIVATE VAR
       _Device : adviser.TPAdvisedDevice := NIL;
       _CommonLogger : log.TPILogger := NIL;
+      _NetworkLogger : log.TPILogger := NIL;
       _ConfigurationLogger : log.TPBufferedLogger := NIL;
       _ListenAddress : inetaddr.INETADDR;
       _Running : BOOLEAN := FALSE;
@@ -74,6 +75,7 @@ CLASS CSDAPServer( netconndispatch.CDispatcher ) IMPLEMENTS io.IStartStopControl
    PUBLIC PROPERTY
       Device : adviser.TPAdvisedDevice;
       CommonLogger : log.TPILogger;
+      NetworkLogger : log.TPILogger;
       ConfigurationLogger : log.TPBufferedLogger;
       ListenAddress : inetaddr.INETADDR;
 

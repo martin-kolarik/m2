@@ -540,7 +540,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPBufferedLogger ) : BOOLEAN;
+   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPBufferedLogger; HttpLogger : Log.TPILogger ) : BOOLEAN;
    CONST
       snServer = L"server";
       snUsers = L"users";
@@ -565,6 +565,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       _Devices := ADR( Devices );
       _ConfigLogger := ConfigLogger;
       _DataLogger := DataLogger;
+      _HttpLogger := HttpLogger;
 
       IF cfg.SetSection( snServer ) AND FIO.GetModuleDirW( L"", OUT Path ) THEN // EXE dir
          IF cfg.GetKeyStr( knWebRoot, OUT line, OUT _RootDir ) THEN
@@ -623,6 +624,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       ASSERT( _MVC = NIL );
       _MVC := mvc.mvc( OA( _Context.Length-1, _Context.rawData ));
       _MVC^.MessageSourcePath := _MessageFile;
+      _MVC^.Logger := _HttpLogger;
       AddControllers();
 
       FOR i := 0 TO HIGH( _WrittenByHour ) DO
@@ -743,6 +745,7 @@ BEGIN
    _GotByHourModified[0] := 0;
    _ConfigLogger := NIL;
    _DataLogger := NIL;
+   _HttpLogger := NIL;
 FINALLY
    Stop();   
 END CEibSrvWeb;

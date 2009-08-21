@@ -122,7 +122,13 @@ CLASS IMPLEMENTATION CSDAPServer;
 
    PUBLIC PROPERTY CommonLogger SET( Value : log.TPILogger );
    BEGIN
-      _CommonLogger := Value;
+      IF _CommonLogger = Value THEN
+         RETURN;
+      ELSIF Value = NIL THEN
+         _CommonLogger := log.logger();
+      ELSE
+         _CommonLogger := Value;
+      END;
    END CommonLogger;
 
 (*--------------------------------------------------------------------------------*)
@@ -136,8 +142,34 @@ CLASS IMPLEMENTATION CSDAPServer;
 
    PUBLIC PROPERTY ConfigurationLogger SET( Value : log.TPBufferedLogger );
    BEGIN
-      _ConfigurationLogger := Value;
+      IF _ConfigurationLogger = Value THEN
+         RETURN;
+      ELSIF Value = NIL THEN
+         _ConfigurationLogger := log.logger();
+      ELSE
+         _ConfigurationLogger := Value;
+      END;
    END ConfigurationLogger;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY NetworkLogger GET : log.TPILogger;
+   BEGIN
+      RETURN _NetworkLogger;
+   END NetworkLogger;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY NetworkLogger SET( Value : log.TPILogger );
+   BEGIN
+      IF _NetworkLogger = Value THEN
+         RETURN;
+      ELSIF Value = NIL THEN
+         _NetworkLogger := log.logger();
+      ELSE
+         _NetworkLogger := Value;
+      END;
+   END NetworkLogger;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -200,10 +232,16 @@ CLASS IMPLEMENTATION CSDAPServer;
 
    INTERNAL VIRTUAL PROCEDURE OnConnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
    VAR
+      address : ARRAY [0..63] OF WCHAR;
       Client : TPClient;
    BEGIN
       ASSERTLOG( NOT _Clients.Contains( Connection ));
       
+      IF NOT _NetworkLogger^.Filtered( log.dlcError, LOG_SDAP ) THEN
+         Connection^.RemoteAddress.GetAddressOA( TRUE, OUT address );
+         _NetworkLogger^.LogSS( log.dlcError, LOG_SDAP, "CONNECT:", address );
+      END;
+
       NEW( Client );
       Client^.Server := ADR( SELF );
       Client^.Connection := Connection;
@@ -219,8 +257,14 @@ CLASS IMPLEMENTATION CSDAPServer;
 
    INTERNAL VIRTUAL PROCEDURE OnDisconnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );
    VAR
+      address : ARRAY [0..63] OF WCHAR;
       Client : TPClient;
    BEGIN
+      IF NOT _NetworkLogger^.Filtered( log.dlcError, LOG_SDAP ) THEN
+         Connection^.RemoteAddress.GetAddressOA( TRUE, OUT address );
+         _NetworkLogger^.LogSS( log.dlcError, LOG_SDAP, "DISCONNECT:", address );
+      END;
+
       IF _Clients.Get( Connection, OUT Client ) THEN
          _Clients.Remove( Connection );
 
@@ -594,6 +638,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       PieceSize := -1;
       _ConfigurationLogger := log.logger();
       _CommonLogger := log.logger();
+      _NetworkLogger := log.logger();
    END CSDAPServer;
 
 (*--------------------------------------------------------------------------------*)
