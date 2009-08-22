@@ -397,6 +397,22 @@ CLASS IMPLEMENTATION INETADDR;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE ToAddressOA( OUT IPAddr : ARRAY OF BYTE; OUT filled : CARDINAL ) : BOOLEAN; // returns only address bytes, ignoring V4, V6 differences
+   BEGIN
+      IF V6 AND ToV6( OUT IPAddr ) THEN
+         filled := SIZE( WS2TcpIp.in_addr6 );
+         RETURN TRUE;
+      ELSIF NOT V6 AND ToV4( OUT IPAddr ) THEN
+         filled := SIZE( winsock.in_addr );
+         RETURN TRUE;
+      ELSE
+         filled := 0;
+         RETURN FALSE;
+      END;
+   END ToAddressOA;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE ToOA( OUT storage : ARRAY OF BYTE; OUT Length : CARDINAL ) : BOOLEAN;
    VAR
       i : CARDINAL;

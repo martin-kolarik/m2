@@ -459,11 +459,23 @@ filter = allow, EibNet.Connection</p.type></dd>
             <section label="secUsers" level="3">
               <title><type>[users]</type></title>
               <text>
-                <p><type>[web]</type> defines the starting couple of users, which can be connected to the server. Next users and their passwords can be set with help of web interface. A modification of data in this section may represent no availability of web interface, it is recommended not to modify this section.</p>
+                <p><type>[users]</type> defines the starting couple of users, which can be connected to the server. Next users and their passwords can be set with help of web interface. A modification of data in this section may represent no availability of web interface, it is recommended not to modify this section.</p>
                 <p>Initial settings:</p>
                 <p.type>[users]
 admin = admin, hb3fA4WsM68ZmQpM9O5L6GgmAU8Y5NNvrrKCXsx4Zrc=
 user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
+              </text>
+            </section>
+            <section label="secUsers" level="3">
+              <title><type>[http_access_list]</type></title>
+              <text>
+                <p><type>[http_access_list]</type> section defines a list of rules, which denies or allows access to server's web interface. Each rule (allowing or denying) is one IP address including network prefix length. During each client access, the server comes through all rules which correspond to client IP address and evaluates access permission found. The client is allowed to access if resulting permission is allow. Default permission is allow.</p>
+                <p>Rule format is:</p>
+                <p.type>allow | deny = &lt;ipaddress&gt;[/&lt;prefix length&gt;]</p.type>
+                <p>Example of access allowed from localhost only (the computer with server installed):</p>
+                <p.type>[http_access_list]
+deny = 0.0.0.0/0
+allow = 127.0.0.1</p.type>
               </text>
             </section>
             <section level="3">

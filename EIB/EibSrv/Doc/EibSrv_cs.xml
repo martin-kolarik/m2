@@ -459,11 +459,23 @@ filter = allow, EibNet.Connection</p.type></dd>
             <section label="secUsers" level="3">
               <title><type>[users]</type></title>
               <text>
-                <p>Sekce [web] definuje poèáteèní dvojici uivatelù, která se mùe k serveru pøipojit. Další uivatele a jejich hesla je moné nastavovat pomocí webového rozhraní. Zmìna údajù v této sekci mùe znamenat nedostupnost webového rozhraní, doporuèuje se tuto sekci neupravovat.</p>
+                <p>Sekce <type>[users]</type> definuje poèáteèní dvojici uivatelù, která se mùe k serveru pøipojit. Další uivatele a jejich hesla je moné nastavovat pomocí webového rozhraní. Zmìna údajù v této sekci mùe znamenat nedostupnost webového rozhraní, doporuèuje se tuto sekci neupravovat.</p>
                 <p>Poèáteèní nastavení:</p>
                 <p.type>[users]
 admin = admin, hb3fA4WsM68ZmQpM9O5L6GgmAU8Y5NNvrrKCXsx4Zrc=
 user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
+              </text>
+            </section>
+            <section label="secUsers" level="3">
+              <title><type>[http_access_list]</type></title>
+              <text>
+                <p>Sekce <type>[http_access_list]</type> definuje seznam pravidel, které omezují pøístup k webovému rozhraní serveru. Kadé pravidlo (povolující nebo omezující) pøedstavuje jednu IP adresu vèetnì délky síového prefixu. Server pøi kadém pøístupu prochází postupnì všemi pravidly a uplatní to pravidla, která IP adresou a maskou odpovídají klientovi. Server spojení dovolí jen pokud je na konci vyhodnocení vısledek pravidel povoleno. Vıchozí stav vyhodnocení je povoleno.</p>
+                <p>Formát pravidel je:</p>
+                <p.type>allow | deny = &lt;ipaddress&gt;[/&lt;prefix length&gt;]</p.type>
+                <p>Ukázka povolení pøístupu pouze z poèítaèe, kde je server nainstalován:</p>
+                <p.type>[http_access_list]
+deny = 0.0.0.0/0
+allow = 127.0.0.1</p.type>
               </text>
             </section>
             <section level="3">

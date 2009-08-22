@@ -35,6 +35,7 @@ CLASS CProcessor IMPLEMENTS httpsrv.IHttpProcessor;
    PUBLIC VIRTUAL READONLY PROPERTY
       RequestLogger : log.TPILogger;
    PUBLIC VIRTUAL PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT WantsSession : BOOLEAN ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE AllowedFor( Connection : HttpConnection.TPHttpSrvConnection ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE ProcessRequest( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : httpsrv.TPSession );
    PUBLIC VIRTUAL PROCEDURE SessionExpired( CONST Session : httpsrv.TPSession );
 END CProcessor;
@@ -136,6 +137,13 @@ CLASS IMPLEMENTATION CProcessor;
    BEGIN
       RETURN log.logger();
    END RequestLogger;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE AllowedFor( Connection : HttpConnection.TPHttpSrvConnection ) : BOOLEAN;
+   BEGIN
+      RETURN TRUE;
+   END AllowedFor;
 
 (*---------------------------------------------------------------------------*)
 

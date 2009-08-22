@@ -710,6 +710,7 @@ CLASS IMPLEMENTATION CHttpApiStream;
       RESPONSE_303 = C"See Other";
       RESPONSE_304 = C"Not Modified";
       RESPONSE_401 = C"Unauthorized";
+      RESPONSE_403 = C"Forbidden";
       RESPONSE_404 = C"Not Found";
       RESPONSE_409 = C"Conflict";
       RESPONSE_412 = C"Precondition Failed";
@@ -735,6 +736,9 @@ CLASS IMPLEMENTATION CHttpApiStream;
       | HttpCommon.httpres_401 :
          _Response.pReason := ADR( RESPONSE_401 );
          _Response.ReasonLength := SIZE( RESPONSE_401 )-1;
+      | HttpCommon.httpres_403 :
+         _Response.pReason := ADR( RESPONSE_403 );
+         _Response.ReasonLength := SIZE( RESPONSE_403 )-1;
       | HttpCommon.httpres_404 :
          _Response.pReason := ADR( RESPONSE_404 );
          _Response.ReasonLength := SIZE( RESPONSE_404 )-1;

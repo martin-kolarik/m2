@@ -3,6 +3,7 @@ DEFINITION MODULE MVC;
 //================================================================================
 
 IMPORT
+   accesslist,
    FSO,
    IOO,
    HttpCommon,
@@ -155,6 +156,7 @@ INTERFACE IMVC;
    PROPERTY
       MessageSourcePath : StringsO.CString;
       Logger : Log.TPILogger;
+      AccessList : accesslist.TPAccessList;
 END IMVC;
 
 //================================================================================

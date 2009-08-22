@@ -17,7 +17,7 @@
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
         <Components Include="Modula2\m2rtl;Library\ADT;Library\Threading;Library\Text"/>
         <Definitions Include="connection"/>
-        <Modules Include="netinit;netpool;inetaddr;dns;netsocket;netstream;netsrv;rawconnection;netconndispatch"/>
+        <Modules Include="netinit;netpool;inetaddr;dns;netsocket;netstream;netsrv;rawconnection;netconndispatch;accesslist"/>
         <Libraries Include="Ws2_32;IPHlpApi"/>
         <InterfaceWithDelayLoad Include="Ws2_32;IPHlpApi"/>
     </ItemGroup>

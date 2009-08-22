@@ -357,6 +357,8 @@ BEGIN
    NEW( _Notifier );
    _Notifier^.Connection := ADR( SELF );
    
+   _Socket := NIL;
+   
    _BStream.Stream := ADR( _NStream );
    _BStream.Notifier := _Notifier;
 

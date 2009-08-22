@@ -66,7 +66,8 @@ CLASS INETADDR;
 
    PUBLIC PROCEDURE ToV4( OUT IPAddr : ARRAY OF BYTE ) : BOOLEAN; // IN_ADDR, 4 bytes
    PUBLIC PROCEDURE ToV6( OUT IPAddr : ARRAY OF BYTE ) : BOOLEAN; // IN_ADDR6, 16 bytes
-   PUBLIC PROCEDURE ToOA( OUT storage : ARRAY OF BYTE; OUT filled : CARDINAL ) : BOOLEAN; // filled is set by real length of address
+   PUBLIC PROCEDURE ToAddressOA( OUT IPAddr : ARRAY OF BYTE; OUT filled : CARDINAL ) : BOOLEAN; // returns only address bytes, ignoring V4, V6 differences
+   PUBLIC PROCEDURE ToOA( OUT storage : ARRAY OF BYTE; OUT filled : CARDINAL ) : BOOLEAN; // returns whole storage structure, filled is set by real length of address
 
    INITIALLY INETADDR();
 END INETADDR;

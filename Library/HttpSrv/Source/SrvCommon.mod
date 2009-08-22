@@ -1052,7 +1052,11 @@ CLASS IMPLEMENTATION HttpWorker;
          ASSERTLOG( _Stream^.StatusCode <> HttpCommon.httpres_200 );
       ELSE
          Connection.FromStream( _Stream );
-         _Processor^.ProcessRequest( ADR( Connection ), _Session );
+         IF _Processor^.AllowedFor( ADR( Connection )) THEN
+            _Processor^.ProcessRequest( ADR( Connection ), _Session );
+         ELSE
+            _Stream^.StatusCode := HttpCommon.httpres_403;
+         END;
          logger := _Processor^.RequestLogger;
       END;
       IF logger = NIL THEN

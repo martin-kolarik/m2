@@ -7,6 +7,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   accesslist,
    HttpConnection,
    HttpTools,
    LanguagesO,
@@ -1036,6 +1037,7 @@ CLASS CMVC IMPLEMENTS HttpSrv.IHttpProcessor, IMessageSource, IMVC;
    PUBLIC VIRTUAL READONLY PROPERTY
       RequestLogger : Log.TPILogger;
    PUBLIC VIRTUAL PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT WantsSession : BOOLEAN ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE AllowedFor( Connection : HttpConnection.TPHttpSrvConnection ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE ProcessRequest( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession );
    PUBLIC VIRTUAL PROCEDURE SessionExpired( CONST Session : HttpSrv.TPSession );
    
@@ -1054,6 +1056,7 @@ CLASS CMVC IMPLEMENTS HttpSrv.IHttpProcessor, IMessageSource, IMVC;
    PUBLIC VIRTUAL PROPERTY
       MessageSourcePath : StringsO.CString;
       Logger : Log.TPILogger;
+      AccessList : accesslist.TPAccessList;
 
    // SELF
    PUBLIC PROCEDURE Init( CONST Context : StringsO.CString );
@@ -1067,6 +1070,7 @@ CLASS CMVC IMPLEMENTS HttpSrv.IHttpProcessor, IMessageSource, IMVC;
       _Messages : Resources.TPPlainResources;
       _MessagesLock : Sync.LOCK;
       _Logger : Log.TPILogger := NIL;
+      _AccessList : accesslist.TPAccessList := NIL;
 
    PUBLIC PROCEDURE Dispose();
 
@@ -1112,6 +1116,17 @@ CLASS IMPLEMENTATION CMVC;
          RETURN FALSE;
       END;
    END AppliesFor;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE AllowedFor( Connection : HttpConnection.TPHttpSrvConnection ) : BOOLEAN;
+   BEGIN
+      IF _AccessList = NIL THEN
+         RETURN TRUE;
+      ELSE
+         RETURN _AccessList^.AllowedForConnection( Connection );
+      END;
+   END AllowedFor;
 
 //--------------------------------------------------------------------------------
 
@@ -1403,6 +1418,20 @@ CLASS IMPLEMENTATION CMVC;
          _Logger := Value;
       END;
    END Logger;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROPERTY AccessList GET : accesslist.TPAccessList;
+   BEGIN
+      RETURN _AccessList;
+   END AccessList;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROPERTY AccessList SET( Value : accesslist.TPAccessList );
+   BEGIN
+      _AccessList := Value;
+   END AccessList;
 
 //--------------------------------------------------------------------------------
 

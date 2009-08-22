@@ -6,6 +6,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
    
 IMPORT
+   accesslist,
    INIfile,
    io,
    lec,
@@ -92,6 +93,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       _HttpLogger : Log.TPILogger;
       _Users : lists.CStringStringList;
       _Lock : Sync.RWLOCK;
+      _AccessList : accesslist.CAccessList;
       
       _StartedTime : time.TJD;
       _Connected : BOOLEAN;

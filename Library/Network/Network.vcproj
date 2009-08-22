@@ -66,6 +66,10 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\Source\accesslist.mod"
+				>
+			</File>
+			<File
 				RelativePath=".\Source\dns.mod"
 				>
 			</File>
@@ -107,6 +111,10 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath=".\Source\accesslist.def"
+				>
+			</File>
 			<File
 				RelativePath=".\Source\connection.def"
 				>
@@ -181,6 +189,10 @@
 			</File>
 			<File
 				RelativePath=".\Test\StartupCleanup.mod"
+				>
+			</File>
+			<File
+				RelativePath=".\Test\TAccessList.mod"
 				>
 			</File>
 			<File

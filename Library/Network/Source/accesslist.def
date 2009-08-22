@@ -1,0 +1,51 @@
+DEFINITION MODULE AccessList;
+
+(*================================================================================*)
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   connection,
+   inetaddr,
+   lists,
+   StringsO,
+   sync;
+   
+#save, option( dll_export => on )
+
+(*================================================================================*)
+
+TYPE
+   TAccessType = (
+      actAllow,
+      actDeny
+   );
+   
+TYPE
+   TPAccessList = POINTER TO CAccessList;
+
+CLASS CAccessList;
+   PRIVATE VAR
+      _Policy : TAccessType;
+      _Rules : lists.CBufferList;
+      
+   PUBLIC PROPERTY
+      Policy : TAccessType; // policy with AllowedFor starts
+
+   PUBLIC PROCEDURE Reset();
+   PUBLIC PROCEDURE AddRule( Type : TAccessType; CONST IPAddress : inetaddr.INETADDR; MaskLen : CARDINAL );
+   PUBLIC PROCEDURE AddRuleOA( Type : TAccessType; CONST AddressPortPrefixLen : ARRAY OF WCHAR );
+   PUBLIC PROCEDURE AddRuleS( Type : TAccessType; CONST AddressPortPrefixLen : StringsO.IString );
+
+   PUBLIC PROCEDURE AllowedForConnection( Connection : connection.TPIConnection ) : BOOLEAN;
+   PUBLIC PROCEDURE AllowedForAddress( CONST IPAddress : inetaddr.INETADDR ) : BOOLEAN;
+   
+   PRIVATE PROCEDURE Mask( REF Data : inetaddr.TRFC2553; PrefixLen : CARDINAL ) : BOOLEAN;
+END CAccessList;
+
+(*================================================================================*)
+
+#restore
+
+END AccessList.

@@ -43,9 +43,10 @@ TYPE
 INTERFACE IHttpProcessor;
    READONLY PROPERTY
       RequestLogger : Log.TPILogger;
-   PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT WantsSession : BOOLEAN ) : BOOLEAN;
+   PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT WantsSession : BOOLEAN ) : BOOLEAN; // called to select processor
+   PROCEDURE AllowedFor( Connection : HttpConnection.TPHttpSrvConnection ) : BOOLEAN; // called before ProcessRequest to allow filtering (access list, ...)
    PROCEDURE ProcessRequest( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : TPSession );
-   PROCEDURE SessionExpired( CONST Session : TPSession );
+   PROCEDURE SessionExpired( CONST Session : TPSession ); // informs processor about expiration
 END IHttpProcessor;
 
 (*--------------------------------------------------------------------------------*)
