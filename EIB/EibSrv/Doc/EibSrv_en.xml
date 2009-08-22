@@ -359,10 +359,12 @@ date_format = dd. MMMM yyyy</p.type><p>Valid combinations of format signs displa
               </text>
             </section>
             <section label="secLog" level="3">
-              <title><type>[log]</type> and <type>[datalog]</type></title>
+              <title><type>[log]</type>, <type>[datalog]</type>, <type>[httplog]</type> and <type>[networklog]</type></title>
               <text>
                 <p><type>[log]</type> section determines the kind of listing of debugging and informative reports of the server. There may be many detail reports, therefore it is recommended to list only the error statuses during current operation.</p>
                 <p><type>[datalog]</type> section is an additive one and determines the place, where the server will record the copies of reports of <gui>Data history</gui> of web interface. The rerouting of copies of listings can be used for storage of longer data history, because data in web interface are limited by number. In initial setting, the storage of data history, except of web interface, is not switched-on.</p>
+                <p><type>[httplog]</type> section determines the place, where the server will record web access messages. Default settings of the <type>[httplog]</type> section is to use settings of <type>[log]</type> section. Recorded messages are in <diff>Common Log Format</diff>, which is the format broadly shared by all web servers. <type>[httplog]</type> log will contain access messages only, error messages (processing errors, etc.) are recorded according to <type>[log]</type> section settings.</p>
+                <p>The last <type>[networklog]</type> section offers separated logging of SDAP and XMLSocket client connecting and disconnecting. Default settings of the <type>[networklog]</type> section is to use settings of <type>[log]</type> section.</p>
                 <dl class="dlParameter">
                   <caption>Following parameters are defined by sections:</caption>
                   <dt><type>target</type></dt>
@@ -371,8 +373,12 @@ date_format = dd. MMMM yyyy</p.type><p>Valid combinations of format signs displa
                   <dd><p>The rate of content of debugging listings is determined in four levels according to the table <in label="tblLevel"></in>.</p><p>The starting value of this parameter is <type>error</type>. Example:</p><p.type>level = warning</p.type></dd>
                   <dt><type>file</type></dt>
                   <dd><p>Path to the file with listings. The file grows continuously, therefore at permanent and detail listings it is necessary to take care about sufficient place on the disc. At use of the server in embedded systems (Windows XP Embedded), the use of file (at setting <type>target= file</type>) is not recommended, if the disc is Flash file (Compact Flash, etc.).</p><p>Example of record of the parameter:</p><p.type>file = z:\smartserver.log</p.type></dd>
-                  <dt><type>cached</type></dt>
+                  <dt><type>cached</type> (only for <type>[log]</type> and <type>[datalog]</type> sections)</dt>
                   <dd><p>Length of history (number of records), which server stores for web interfaces purposes. The number should not be too big, as the records are stored in computer memory, which is limited. Memory consumption can be estimated as record number<c.special what="binarytimes" />100 bytes (in average, approximately).</p><p>The default value of the parameter is <number>1000</number>.</p></dd>
+                  <dt><type>fiter</type> (only for <type>[log]</type> and <type>[networklog]</type> sections)</dt>
+                  <dd><p>List of rules restricting log records. Each of <type>filter</type> line defines single rule, allowing or denying. The server comes through all rules, when recording, and the message is recorded only if all rules together allows it. On the start of applying rules the server assumes recording is allowed.</p><p>Rules have the format:</p><p.type>filter = allow | deny, &lt;mask&gt;</p.type><p>where <type>allow</type> or <type>deny</type> specifies allowing or denying rule and <type>&lt;mask&gt;</type> defines text mask, which the server matches the second part of message source against (see the chapter <in.about label="secDebug"></in.about>). For example, following rules allow recording of KNX connection messages only:</p><p.type>...
+filter = deny, *
+filter = allow, EibNet.Connection</p.type></dd>
                 </dl>
                 <f.table label="tblTarget">
                   <caption>Values of <type>target</type> parameter.</caption>
@@ -513,8 +519,9 @@ user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
             <section label="secDebug" level="3">
               <title>Debugging listings and information</title>
               <text>
-                <p>At its run, the server can record information about current status and running operations. It can be useful, e.g., at solution of problems with communications. In the starting status, the listings are not switched-on, <type>[debug]</type> section and <type>[data_log]</type> configuration file serves for their switching-on and setting. Listings and debugging information are not necessary for current operation.</p>
-                <p>The output of debugging information is the text and the line one, and this it is easily legible. The input setting of the server allows to monitor the listings with help of web interface, after modification of the configuration<c.special what="dash" />all data can be stored to the file. Debugging reports have a unique format, e.g.:</p>
+                <p>At its run, the server can record information about current status and running operations. It can be useful, e.g., at solution of problems with communications. On the start, the listings are not switched-on, <type>[log]</type>, <type>[datalog]</type>, <type>[httplog]</type> and <type>[networklog]</type> configuration file sections serves for their switching-on and setting. Debugging information are not necessary for current operation.</p>
+                <p>The output of debugging information is the text and the line one, and this it is easily legible. The input setting of the server allows to monitor the listings with help of web interface, after modification of the configuration<c.special what="dash" />all data can be stored to the file. Messages of <type>[log]</type> and <type>[networklog]</type> sections have common formát (see below), <type>[httplog]</type> section uses <diff>Common Log Format</diff>, <type>[datalog]</type> section has special format.</p>
+                <p>The example of <type>[log]</type> section records:</p>
                 <p.type>[2009-04-01 18:06:03.828] d sys/Net.Dispatcher:   address 192.168.1.102:4270
 [2009-04-01 18:06:03.828] t sys/sdap: GET 6/0/6
 [2009-04-01 18:06:25.609] I sys/HTTP: Request: /favicon.ico</p.type>

@@ -214,11 +214,13 @@ CLASS IMPLEMENTATION CEibSvc;
 
       INIfile.ConfigureBufferedLog( cfg, L"datalog", REF DataLogger, OUT line );
       
+      HttpLogger.SetUpByLogger( Log.logger()^ );
       INIfile.ConfigureLog( cfg, L"httplog", REF HttpLogger, OUT line );
       HttpLogger.TimeStamps := FALSE;
       HttpLogger.Levels := FALSE;
       HttpLogger.Names := FALSE;
 
+      NetworkLogger.SetUpByLogger( Log.logger()^ );
       INIfile.ConfigureLog( cfg, L"networklog", REF NetworkLogger, OUT line );
       INIfile.ConfigureLoggerFilter( cfg, L"", REF NetworkFilter, OUT line );
       NetworkLogger.Filter := ADR( NetworkFilter );
