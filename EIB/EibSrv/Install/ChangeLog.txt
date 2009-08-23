@@ -1,3 +1,35 @@
+Version 1.0.915/R V1 23.8.2009
+- BUG: #100, reconnection to KNX could stop if there was some timeouts during
+       starting and stopping listening. The cause of timeouts is not clear yet,
+       but reconnection does not stop either in that case. 
+- BUG: #97, thermostate buttons of ProtoEdit templates referenced not existing
+       communication object. 
+- BUG: #115, line numbers reported during configuration reading were bad -- lines
+       with commentaries were not counted.
+- CHG: #107, documentation extended with log messages examples of some common
+       communication events.
+- CHG: #109, documentation of ProntoScript extended. 
+- TST: #106, initial reading revised, there was suspicion that initial reading blocks
+       other operations. The suspicion was cleared.
+- NEW: #108, English documentation was added to English installation.
+- NEW: #105, XMLSocket interface is now able connect and disconnect KNX interface
+       using <connect/> and <disconnect/> commands.
+- NEW: #102, [log] and [networklog] sections was supplied with filtering
+       (filter parameter of log configuration sections), which allows removing
+       messages by their sources. 
+- NEW: #101, added logging of server's service start and stop.
+- NEW: #99, added TSU9600 template for ProntoEdit Professional 2.
+- NEW: #103, new logs [httplog] and [networklog] added; first one logs http
+       accesses in common log format, second one logs connectioning of SDAP and
+       XMLSocket clients.
+- NEW: #104, access to web interface can be restricted by rules written in
+       [http_access_log] configuration section.
+- NEw: #113, when connected to KNX, status web page shows IP address of KNX interface.
+- NEW: #114, data objects defined in configuration can be supplied with commentary,
+       which is then displayed in data log. 
+- NEW: #120, SDAP and XMLSocket clients are now able to read/let advise "Control.Connected"
+       data object, which reports state of KNX connection.
+
 Version 1.0.850/R rc1 26.4.2009
 - BUG: #94, server crashed unexpectedly, connecting and disconnecting
        XMLSocket client should speed up the crash. Server sent data to XMLSocket
