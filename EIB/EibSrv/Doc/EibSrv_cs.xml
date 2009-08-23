@@ -1040,6 +1040,88 @@ Control.Connected true</p.type>
                   <dt><file>BlindsDown.js</file></dt>
                   <dd><p>JavaScript z tlaèítka pro zataení rolet. V <file>Template.xcf</file> je skript zapsán ve vìtvi <gui>Templates/Blinds</gui> v tlaèítku <gui>BlindsDown</gui> v záloce <gui>Actions</gui>.</p><p>Skript zahájí dlouhı pohyb (<type>CentralLong</type>) a poèítá délku stisku tlaèítka. Pokud je tlaèítko uvolnìno døíve jak za dvì sekundy, ukonèí skript pohyb zápisem do <type>CentralStep</type>.</p></dd>
                 </dl>
+                <p>Následující ukázka zobrazuje stránkovı skript (podobnı <file>Page.js</file>) s vysvìtlením jednotlivıch èástí. Pro pochopení ukázky je dobré znát popis ProntoScriptu a jazyk JavaScript obecnì:</p>
+                <p.type>// 1.
+deviceState = new CO( "3/0/12", "switch", widget( "DeviceDisplay" ));
+// 2.
+deviceControl = new CO( "3/1/12", "switch" );
+
+// 3.
+System.ConnectionCheck = function( Connected ) {
+  status = widget( "CommunicationStatus" );
+  if( Connected ) {
+    status.setImage( System.Image( "ConnectionStateOK" ));
+  } else {
+    status.setImage( System.Image( "ConnectionStateError" ));
+  }
+}
+
+// 4.
+System.SetReadObjects( new Array(
+  deviceState
+));
+
+// 5.
+System.PageUpdate = function( CO ) {
+  if( CO.widget == null ) {
+    // do nothing
+  } else if( CO.value == "true" ) {
+    CO.widget.setImage( CF.widget( "SmallIOn1", "PResources", "System" ).getImage(), 0 );
+    CO.widget.setImage( CF.widget( "SmallIOn2", "PResources", "System" ).getImage(), 1 );
+  } else {
+    CO.widget.setImage( CF.widget( "SmallIOff1", "PResources", "System" ).getImage(), 0 );
+    CO.widget.setImage( CF.widget( "SmallIOff2", "PResources", "System" ).getImage(), 1 );
+  }
+}</p.type>
+                <il numbered="yes">
+                  <caption>Vıznam èástí:</caption>
+                  <li><p>Zde se konstruuje datovı objekt (= komunikaèní objekt = communication object = CO) s vyuitím konstruktoru <type>CO</type> se tøemi parametry pro uchování prvku uivatelského rozhraní (funkce <type>widget</type> ProntoScriptu, její popis viz dokumentaci ProntoScriptu). Vytvoøí se objekt typu <type>switch</type> s adresou <type>3/0/12</type>, pøièem objekt si v sobì pamatuje odkaz na prvek uivatelského rozhraní <gui>DeviceDisplay</gui>. Pozdìji (ve funkci <type>PageUpdate</type>) bude tento odkaz vyuit.</p></li>
+                  <li><p>Konstruktor <type>CO</type> se dvìma parametry neuchová odkaz na ádnı zobrazující prvek, vytvoøí se tak objekt bez vazby na uivatelské rozhraní. To je typické pro datové objekty vyuité (nìkde na stránce) pro odesílání dat do serveru. Dále ve skriptu se ji objekt nepouívá, co rovnì ukazuje na pozdìjší vyuití nìkde jinde. Objekt je po spuštìní stránkového skriptu jen pøipraven.</p></li>
+                  <li><p>Pouití funkce skriptu <file>Main.js</file> <type>ConnectionCheck</type>. <file>Main.js</file> volá <type>ConnectionCheck</type> (pokud není <type>null</type>) periodicky, take skript ve stránce mùe zobrazovat stav spojení se serverem. Pouitı skript vyhledá zobrazovací prvek se jménem <gui>ConnectionStatus</gui> a podle stavu spojení v nìm nastaví odpovídající obrázek.</p></li>
+                  <li><p>Další funkce skriptu <file>Main.js</file>. Voláním <type>SetReadObjects</type> dojde k zapamatování pole datovıch objektù, které bude <file>Main.js</file> automaticky periodicky èíst. Stránkovı skript ji proto obnovování hodnot nemusí zajišovat. V pøípadì pøeètení hodnoty nìkterého z datovıch objektù <file>Main.js</file> následnì zavolá funkci <type>PageUpdate</type> (pokud není <type>null</type>).</p><p>Pokud dojde k pøepnutí stránek, mìl by bıt <type>SetReadObjects</type> zavolán s novımi datovımi objekty, pøípadnì s parametrem <type>null</type>, kterı zajistí vypnutí opakovaného ètení datovıch objektù.</p></li>
+                  <li><p>Nastavení funkce do <type>System.PageUpdate</type>, <file>Main.js</file> funkci zavolá pro kadı datovı objekt, jeho novou hodnotu pøeèetl. V uvedeném skriptu se vyuívá skuteènosti, e ètené objekty si pamatují svùj zobrazující prvek (<type>CO.widget</type>), take se na lze pøímo odkázat a vymìnit v nich obrázky.</p></li>
+                </il>
+                <p>Skripty v Prontu dovolují libovolné programování, všechny ukázky proto mohou bıt doplnìny èi pozmìnìny dle potøeb konkrétní aplikace. Další ukázka obsahuje stránkovı skript stránky, která nezobrazuje ádné zmìny hodnot (napøíklad obsahuje jen samá ovládací tlaèítka):</p>
+                <p.type>// 2.
+deviceControl = new CO( "3/1/12", "switch" );
+
+// 3.
+System.ConnectionCheck = function( Connected ) {
+  status = widget( "CommunicationStatus" );
+  if( Connected ) {
+    status.setImage( System.Image( "ConnectionStateOK" ));
+  } else {
+    status.setImage( System.Image( "ConnectionStateError" ));
+  }
+}
+
+// 4.
+System.SetReadObjects( null );
+
+// 5.
+System.PageUpdate = null;</p.type>
+                <p>Ve stránce s obìma uvedenımi skripty mùe bıt tlaèítko napøíklad se skriptem:</p>
+                <p.type>deviceControl.Write( "true" );</p.type>
+                <p>V poslední ukázce je zobrazen zaèátek skriptu <file>Main.js</file> s definicí hlavních konstant, které øídí chování celého spojení s KNX. Tyto konstanty lze nastavovat podle potøeby:</p>
+                <p.type>var DEBUG = true;
+var CORE_PERIOD = 200;
+var COMMUNICATE_EACH = 4; // count of periods
+
+var IP_ADDRESS = "10.0.1.133";
+var IP_PORT = "6007";</p.type>
+                <dl>
+                  <caption>kde jednotlivé konstanty znamenají:</caption>
+                  <dt><type>DEBUG</type></dt>
+                  <dd><p>Nastavení ladicích informací, ukázkové skripty konstantu pouívají vıjimeènì.</p></dd>
+                  <dt><type>CORE_PERIOD</type></dt>
+                  <dd><p>Perioda v milisekundách, vnitøní takt skriptu <file>Main.js</file>. V tomto taktu se napøíklad testuje ivost spojení. Kratší èasy mohou s ohledem na vıkon Pronta a zpùsob komunikace (WiFi) pùsobit obtíe.</p></dd>
+                  <dt><type>COMMUNICATE_EACH</type></dt>
+                  <dd><p>Poèet <type>CORE_PERIOD</type>, po kterıch <file>Main.js</file> ète datové objekty urèené voláním funkce <type>SetReadObjects</type>.</p></dd>
+                  <dt><type>IP_ADDRESS</type></dt>
+                  <dd><p>IP adresa poèítaèe se SmartServerem.</p></dd>
+                  <dt><type>IP_PORT</type></dt>
+                  <dd><p>Port, na kterém SmartServer pøijímá spojení.</p></dd>
+                </dl>
               </text>
             </section>
             <section level="3">

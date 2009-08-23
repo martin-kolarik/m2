@@ -21,8 +21,6 @@ System.SetReadObjects( new Array(
   kitchenState
 ));
 
-var defaultImage = CF.widget( "SmallIOff1", "PResources", "System" ).getImage();
-
 System.PageUpdate = function( CO ) {
   if( CO.widget == null ) {
     // do nothing
@@ -36,7 +34,7 @@ System.PageUpdate = function( CO ) {
 }
 
 if( System.DEBUG ) {
-  System.print( "Loghts.Enter" );
+  System.print( "Lights.Enter" );
 } else {
   CF.widget( "_PS_DEBUG_", "Main" ).visible = false;
 }

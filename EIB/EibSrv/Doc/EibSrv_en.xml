@@ -1040,6 +1040,88 @@ Control.Connected true</p.type>
                   <dt><file>BlindsDown.js</file></dt>
                   <dd><p>JavaScript from the push-button for blind close. In <file>Template.xcf</file>, the script is recorded in <gui>Templates/Blinds</gui> branch, in <gui>BlindsDown</gui> push-button, in <gui>Actions</gui> tab.</p><p>The script starts long movement (<type>CentralLong</type>) and counts time of button pressing. If the button is released in two seconds, the script stops the movement by writing a value to <type>CentralStep</type> object.</p></dd>
                 </dl>
+                <p>The following example shows page script (similar to <file>Page.js</file>) with explanation of its parts. For better understanding it is good to know ProntoScript and JavaScript language in common:</p>
+                <p.type>// 1.
+deviceState = new CO( "3/0/12", "switch", widget( "DeviceDisplay" ));
+// 2.
+deviceControl = new CO( "3/1/12", "switch" );
+
+// 3.
+System.ConnectionCheck = function( Connected ) {
+  status = widget( "CommunicationStatus" );
+  if( Connected ) {
+    status.setImage( System.Image( "ConnectionStateOK" ));
+  } else {
+    status.setImage( System.Image( "ConnectionStateError" ));
+  }
+}
+
+// 4.
+System.SetReadObjects( new Array(
+  deviceState
+));
+
+// 5.
+System.PageUpdate = function( CO ) {
+  if( CO.widget == null ) {
+    // do nothing
+  } else if( CO.value == "true" ) {
+    CO.widget.setImage( CF.widget( "SmallIOn1", "PResources", "System" ).getImage(), 0 );
+    CO.widget.setImage( CF.widget( "SmallIOn2", "PResources", "System" ).getImage(), 1 );
+  } else {
+    CO.widget.setImage( CF.widget( "SmallIOff1", "PResources", "System" ).getImage(), 0 );
+    CO.widget.setImage( CF.widget( "SmallIOff2", "PResources", "System" ).getImage(), 1 );
+  }
+}</p.type>
+                <il numbered="yes">
+                  <caption>Meaning of the parts:</caption>
+                  <li><p>Here data object (= communication object = CO) with help of three-parameter constructor (<type>CO</type>) allowing store of user interface widget (function <type>widget</type> of ProntoScript, see ProntoScript documentation) is created. The object with group address <type>3/0/12</type> and of type <type>switch</type> is created, moreover, the object remembers reference to user interface widget named <gui>DeviceDisplay</gui>. The reference will be used later (in the <type>PageUpdate</type> function).</p></li>
+                  <li><p>Two-parameter constructor <type>CO</type> does not store any user interface reference. This is typical for data objects used only for sending values to SmartServer. Next in the script the object is not used, it also shows that objects is used later elsewhere. The data objects is only prepared by the page script.</p></li>
+                  <li><p>Usage <file>Main.js</file> script function <type>ConnectionCheck</type>. <file>Main.js</file> calls <type>ConnectionCheck</type> (if it is not <type>null</type>) periodicaly, so the page script can display connection status. The used script searches for display widget named <gui>ConnectionStatus</gui> and sets its displayed image.</p></li>
+                  <li><p>Another <file>Main.js</file> function. Calling of <type>SetReadObjects</type> forces <file>Main.js</file> to periodicaly read values of all objects passed into the function. Page script does need bother with it anymore. If some value is read, <file>Main.js</file> calls <type>PageUpdate</type> function (if it is not <type>null</type>).</p><p>If pages are switched in Pronto application, <type>SetReadObjects</type> should be called with new data objects or with <type>null</type>, if no data should be read for the page.</p></li>
+                  <li><p><type>System.PageUpdate</type> function assignment, <file>Main.js</file> calls the function after each value receiving. In used script, there is reference to widget stored in data objects used for fast access to the widget<c.special what="dash" />for widget's image switching.</p></li>
+                </il>
+                <p>Scripts for Pronto allows arbitrary programming, so all shown examples can be modified or extended according to particular application needs. Next example shows page script, which does not display any changed values (it, e.g., contains only control buttons):</p>
+                <p.type>// 2.
+deviceControl = new CO( "3/1/12", "switch" );
+
+// 3.
+System.ConnectionCheck = function( Connected ) {
+  status = widget( "CommunicationStatus" );
+  if( Connected ) {
+    status.setImage( System.Image( "ConnectionStateOK" ));
+  } else {
+    status.setImage( System.Image( "ConnectionStateError" ));
+  }
+}
+
+// 4.
+System.SetReadObjects( null );
+
+// 5.
+System.PageUpdate = null;</p.type>
+                <p>In the page with both shown scripts there can be for example the button containing the following script:</p>
+                <p.type>deviceControl.Write( "true" );</p.type>
+                <p>The last example shows start of <file>Main.js</file>, where principal constants are defined. These constants are freely modifiable:</p>
+                <p.type>var DEBUG = true;
+var CORE_PERIOD = 200;
+var COMMUNICATE_EACH = 4; // count of periods
+
+var IP_ADDRESS = "10.0.1.133";
+var IP_PORT = "6007";</p.type>
+                <dl>
+                  <caption>Meanings of constats are:</caption>
+                  <dt><type>DEBUG</type></dt>
+                  <dd><p>Settings of debugging information flag, example scripts use the flag rarely.</p></dd>
+                  <dt><type>CORE_PERIOD</type></dt>
+                  <dd><p>Period in milliseconds, internal tick of <file>Main.js</file> script. In the ticks, e.g., the liveness of connection is checked. Shorter times could bring some problems due to performance of Pronto and due to communication medium used (WiFi).</p></dd>
+                  <dt><type>COMMUNICATE_EACH</type></dt>
+                  <dd><p>Number of <type>CORE_PERIOD</type> periods, after which <file>Main.js</file> reads data objects stated by <type>SetReadObjects</type> function call.</p></dd>
+                  <dt><type>IP_ADDRESS</type></dt>
+                  <dd><p>IP address of computer running SmartServer.</p></dd>
+                  <dt><type>IP_PORT</type></dt>
+                  <dd><p>IP port on which SmartServer listens for incoming connections.</p></dd>
+                </dl>
               </text>
             </section>
             <section level="3">
