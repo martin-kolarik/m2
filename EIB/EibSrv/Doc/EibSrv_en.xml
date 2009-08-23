@@ -269,7 +269,7 @@ Licence support tool
                     </tr>
                   </table>
                 </f.table>
-                <p>The last part of the definition of data objects, i.e. group addresses, can be recorded in configuration by two ways: either as independent group addresses, or as an interval of group addresses.</p>
+                <p>The last part of the definition of data objects, i.e. group addresses, can be recorded in configuration by two ways: either as independent group addresses, or as an interval of group addresses (interval is denoted with two periods<c.special what="dash" /><type>..</type>).</p>
                 <p>Example of records of data items with help of <type>[objects]</type> section:</p>
                 <p.type>[objects]
 objects = tracker, switch, 3/0/0..3/0/19
@@ -295,6 +295,8 @@ behaviour = transmitter
 objects = 5/3/100..5/3/119
 logged_on_change_objects = 1/7/0..1/7/9</p.type>
                 <p>It is obvious that in definitions with help of <type>[blocks]</type><c.special what="dash" />the list of blocks (sections) is shown first and the blocks are consequently recorded. To avoid repeated entering of the type and kind of communication in definitions of objects, they are included to type and behaviour parameters. The second example defines the same objects, as the first two lines in example of use <type>[objects]</type>.</p>
+                <p>There can be written a short description enclosed in quotes before each data object (group address). The description will appear in data log (in <gui>Data history</gui> web interface page). Example of description written to data object:</p>
+                <p.type>object = "Bedroom light", 5/2/0</p.type>
                 <p>Next examples of record of data items can be found in files: <file>04 init-read.cfg</file> (data items with forced initial loading), <file>06 complex-object.cfg</file> (data items connected with more group addresses), <file>08 blocks.cfg</file> (definition of data items with help of <type>[blocks]</type> section).</p>
               </text>
             </section>

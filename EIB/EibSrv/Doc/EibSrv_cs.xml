@@ -269,7 +269,7 @@ Licence support tool
                     </tr>
                   </table>
                 </f.table>
-                <p>Poslední èást definice datových bodù, tj. skupinové adresy, lze v konfiguraci zapisovat dvojím zpùsobem: buï jako samostatné skupinové adresy, nebo jako interval skupinových adres.</p>
+                <p>Poslední èást definice datových bodù, tj. skupinové adresy, lze v konfiguraci zapisovat dvojím zpùsobem: buï jako samostatné skupinové adresy, nebo jako interval skupinových adres (pomocí dvou teèek<c.special what="dash" /><type>..</type>).</p>
                 <p>Pøíklad zápisù datových bodù pomocí sekce <type>[objects]</type>:</p>
                 <p.type>[objects]
 objects = tracker, switch, 3/0/0..3/0/19
