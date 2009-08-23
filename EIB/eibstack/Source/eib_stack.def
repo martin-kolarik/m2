@@ -1040,6 +1040,7 @@ CLASS CEIBStack;
   PUBLIC PROCEDURE SetStackAddress( CONST Address : eib_def.TAddress ) : eib_status.TEIBStackStatus;
   PUBLIC VIRTUAL PROCEDURE SetTimeout( TimeoutId : TTimeoutId; Timeout : CARDINAL; AuxiliarySpecification : LONGWORD );
   PUBLIC PROCEDURE SetParameter( CONST Parameter, Value : ARRAY OF WCHAR; OUT ErrorText : ARRAY OF WCHAR ) : BOOLEAN;
+  PUBLIC PROCEDURE GetParameter( CONST Parameter : ARRAY OF WCHAR; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
 
   PUBLIC PROCEDURE IsSelfPacket( PPacket : eib_def.TPPacket ) : BOOLEAN;
   PUBLIC PROCEDURE OutputQueueLength() : CARDINAL;
@@ -1053,6 +1054,8 @@ CLASS CEIBStack;
 
   INTERNAL VIRTUAL PROCEDURE ParseParameter( CONST Parameter, Value : ARRAY OF WCHAR; OUT ErrorText : ARRAY OF WCHAR ) : TRISTATE; // -1 means unknown/unprocessed
     // called inside SetParameter
+  INTERNAL VIRTUAL PROCEDURE ConstructParameter( CONST Parameter : ARRAY OF WCHAR; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
+    // called inside GetParameter
   INTERNAL VIRTUAL PROCEDURE Initialize() : eib_status.TEIBStackStatus;
     // called from Init, user init actions
   INTERNAL VIRTUAL PROCEDURE ConnectBUS() : eib_status.TEIBStackStatus;

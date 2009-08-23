@@ -784,6 +784,21 @@ CLASS IMPLEMENTATION CEIBServer;
    
 //--------------------------------------------------------------------------------
 
+   PUBLIC PROPERTY Connection GET : StringsO.CString;
+   VAR
+      connection : ARRAY [0..255] OF WCHAR;
+      s : StringsO.CString;
+   BEGIN
+      IF EIB = NIL THEN
+         // fall down
+      ELSIF EIB^.GetParameter( L"link.connection", OUT connection ) THEN
+         s.FromOA( connection );
+      END;
+      RETURN s;
+   END Connection;
+
+//--------------------------------------------------------------------------------
+
    PUBLIC PROCEDURE LoadConfiguration( CONST ConfigurationFile : StringsO.IString; OUT ErrorMessage : StringsO.CString; OUT ErrorLine : CARDINAL ) : BOOLEAN;
    LABEL
       Fail;

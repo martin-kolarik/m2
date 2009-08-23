@@ -297,15 +297,19 @@ CLASS IMPLEMENTATION CEIBNetStack;
 (*--------------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE ParseParameter( CONST Parameter, Value : ARRAY OF WCHAR; OUT ErrorText : ARRAY OF WCHAR ) : TRISTATE; // -1 means unknown/unprocessed
+   CONST
+      kvRouting = L"routing";
+      kvTunneling = L"tunneling";
+      kvTunnelingNAT = L"tunneling-NAT";
    VAR
       Addr : inetaddr.INETADDR;
    BEGIN
       IF EQUALS( Parameter, L"link.mode" ) THEN
-         IF EQUALS( Value, L"routing" ) THEN
+         IF EQUALS( Value, kvRouting ) THEN
             TPEIBNetPhysicalLayer( Layers[ eib_stack.eltPhysical ] )^.Mode := eibnet.cmRouting;
-         ELSIF EQUALS( Value, L"tunneling" ) THEN
+         ELSIF EQUALS( Value, kvTunneling ) THEN
             TPEIBNetPhysicalLayer( Layers[ eib_stack.eltPhysical ] )^.Mode := eibnet.cmTunnelingHPAI;
-         ELSIF EQUALS( Value, L"tunneling-NAT" ) THEN
+         ELSIF EQUALS( Value, kvTunnelingNAT ) THEN
             TPEIBNetPhysicalLayer( Layers[ eib_stack.eltPhysical ] )^.Mode := eibnet.cmTunnelingBlind;
          ELSE
             ErrorText := L"Expected routing | tunneling | tunneling-NAT ";
@@ -324,6 +328,33 @@ CLASS IMPLEMENTATION CEIBNetStack;
       END;
       RETURN 1;
    END ParseParameter;
+
+(*--------------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE ConstructParameter( CONST Parameter : ARRAY OF WCHAR; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
+   CONST
+      kvRouting = L"routing";
+      kvTunneling = L"tunneling";
+      kvTunnelingNAT = L"tunneling-NAT";
+   BEGIN
+      IF EQUALS( Parameter, L"link.mode" ) THEN
+         CASE TPEIBNetPhysicalLayer( Layers[ eib_stack.eltPhysical ] )^.Mode OF
+         | eibnet.cmRouting :
+            Value := kvRouting;
+         | eibnet.cmTunnelingHPAI :
+            Value := kvTunneling;
+         | eibnet.cmTunnelingBlind :
+            Value := kvTunnelingNAT;
+         END;
+
+      ELSIF EQUALS( Parameter, L"link.connection" ) THEN
+         TPEIBNetPhysicalLayer( Layers[ eib_stack.eltPhysical ] )^.RemoteAddress.GetAddressOA( TRUE, OUT Value );
+         
+      ELSE
+         RETURN FALSE;
+      END;
+      RETURN TRUE;
+   END ConstructParameter;
 
 (*--------------------------------------------------------------------------------*)
 

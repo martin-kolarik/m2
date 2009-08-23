@@ -54,6 +54,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       LicenceExpires : time.DateTime;
       LicenceType : lec.TLicenceType;
       Licence : StringsO.CString;
+      Connection : StringsO.CString;
       WrittenByHour : CARDINAL;
       WrittenByDay : CARDINAL;
       ReadByHour : CARDINAL;

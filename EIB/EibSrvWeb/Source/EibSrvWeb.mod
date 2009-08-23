@@ -287,6 +287,13 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Connection GET : StringsO.CString;
+   BEGIN
+      RETURN _EIB^.Connection;
+   END Connection;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY WrittenByHour GET : CARDINAL;
    VAR
       dt : time.DateTime;

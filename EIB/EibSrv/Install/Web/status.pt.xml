@@ -36,7 +36,7 @@
                             <td>${msg.status.EIBconnection}</td><td class="spare">&nbsp;</td>
                             <pt:choose>
                               <pt:when condition="${connected}">
-                                <td><span class="green">${msg.status.connectedFrom}${connectionTime}</span>
+                                <td><span class="green">${connection}, ${msg.status.connectedFrom}${connectionTime}</span>
                                     <span pt:condition="${isAdmin}"><a href="?disconnect=true"><span class="red">[${msg.status.disconnect}]</span></a></span></td>
                               </pt:when>
                               <pt:otherwise>
