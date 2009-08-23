@@ -295,6 +295,8 @@ behaviour = transmitter
 objects = 5/3/100..5/3/119
 logged_on_change_objects = 1/7/0..1/7/9</p.type>
                 <p>Je zøejmé, že v definicích pomocí <type>[blocks]</type> je nejprve uveden výèet blokù (sekcí), které jsou následnì zapsány. Aby se v definicích objektù nemusely typ a zpùsob komunikace opisovat, jsou vytknuty do parametru <type>type</type> a <type>behaviour</type>. Druhá ukázka pøitom definuje stejné objekty, jako první dva øádky v ukázce použití <type>[objects]</type>.</p>
+                <p>Pøed každou definicí datového bodu (skupinové adresy) je možné zapsat do uvozovek popis datového bodu. Tento popis se následnì ukazuje v záznamu datové komunikace (v èásti <gui>Historie dat</gui> webového rozhraní). Pøíklad popisu u datových bodù:</p>
+                <p.type>object = "Bedroom light", 5/2/0</p.type>
                 <p>Další ukázky zápisu datových bodù lze najít v souborech: <file>04 init-read.cfg</file> (datové body s vynuceným poèáteèním ètením), <file>06 complex-object.cfg</file> (datové body spojené s více skupinovými adresami), <file>08 blocks.cfg</file> (definice datových bodù pomocí sekce <type>[blocks]</type>).</p>
               </text>
             </section>
@@ -647,6 +649,72 @@ allow = 127.0.0.1</p.type>
                   <dt>Pokus o spojení konèí chybou <type>failure: XX</type></dt>
                   <dd><p>Používáte-li zpùsob spojení <type>tunneling</type> nebo <type>tunneling-ACK</type> provìøte, že k rozhraní není pøipojen jiný server, ETS, nebo nìjaký zcela jiný program. Je-li tomu tak, odpojte jej.</p><p>Ujistìte se, že bìhem uplynulých dvou minut nedošlo k výpadku serveru (násilné vypnutí poèítaèe, násilné zastavení procesu serveru). Pokud ano, poèkejte dvì minuty nebo odpojte a pøipojte napájení rozhraní.</p></dd>
                 </dl>
+              </text>
+            </section>
+            <section level="3">
+              <title>Pøíklady ladicích výpisù</title>
+              <text>
+                <p>Všechny ukázky obsahují skuteèné výpisy, vèetnì èasových znaèek<c.special what="dash" />z nich je zøejmá délka jednotlivých operací nebo èekání.</p>
+                <p>T_CON = potvrzení z KNX rozhraní, R_CON = potvrzení z cílového KNX zaøízení, seq = poøadové èíslo pøijímaných a odeslaných paketù.</p>
+                <p>Periodický test spojení è.<c.special what="thinspace" />90, na který KNX rozhraní odpovìdìlo:</p>
+                <p.type>[2009-08-23 12:03:27.789] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[2009-08-23 12:03:27.794] t KNX/EibNet.Connection: HEARTBEAT response:  90 10.0.0.6:3671</p.type>
+                <p>Periodický test spojení è.<c.special what="thinspace" />90, na který KNX rozhraní neodpovìdìlo, po trojím opakování server spojení ukonèil:</p>
+                <p.type>[2009-08-23 12:04:27.787] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[2009-08-23 12:04:37.795] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[2009-08-23 12:04:47.796] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[2009-08-23 12:04:57.811] t KNX/EibNet.Connection: DISCONNECT request:  90 10.0.0.6:3671 
+[2009-08-23 12:05:07.825] t KNX/EibNet.Connection: DISCONNECT timeout:  90 
+[2009-08-23 12:05:07.825] t KNX/EibNet.Connection: DISCONNECTed:  90 10.0.0.6:3671 
+[2009-08-23 12:05:07.825] t KNX/EibNet.Connection: Stop LISTENing on port:  60561</p.type>
+                <p>Úspìšné navázání spojení è.<c.special what="thinspace" />91 následované poèáteèním ètením:</p>
+                <p.type>[2009-08-23 12:05:37.841] t KNX/EibNet.Connection: LISTENing on port:  61829 
+[2009-08-23 12:05:37.841] t KNX/EibNet.Connection: CONNECT request:  10.0.0.6:3671 
+[2009-08-23 12:05:37.921] t KNX/EibNet.Connection: CONNECTed in TUNNELING mode:  91 10.0.0.6:3671 
+[2009-08-23 12:05:37.921] d KNX/srv: INIT:  2/0/0 
+[2009-08-23 12:05:37.921] d KNX/srv: INIT:  2/0/1 
+[2009-08-23 12:05:37.921] d KNX/srv: INIT:  2/0/21
+...</p.type>
+                <p>Neúspìšné navázání spojení, KNX rozhraní neodpovìdìlo:</p>
+                <p.type>[2009-08-23 12:05:17.826] t KNX/EibNet.Connection: LISTENing on port:  58083 
+[2009-08-23 12:05:17.826] t KNX/EibNet.Connection: CONNECT request:  10.0.0.6:3671 
+[2009-08-23 12:05:27.841] t KNX/EibNet.Connection: CONNECT timeout 
+[2009-08-23 12:05:27.841] t KNX/EibNet.Connection: DISCONNECTed:  0 10.0.0.6:3671 
+[2009-08-23 12:05:27.841] t KNX/EibNet.Connection: Stop LISTENing on port:  58083</p.type>
+                <p>Neúspìšné navázání spojení; chyba è. 36 znamená, že KNX rozhraní je spojeno s jiným klientem:</p>
+                <p.type>[2009-08-23 13:12:29.708] t KNX/EibNet.Connection: CONNECT timeout 
+[2009-08-23 13:12:29.723] t KNX/EibNet.Connection: LISTENing on port:  55123 
+[2009-08-23 13:12:29.723] t KNX/EibNet.Connection: CONNECT request:  10.0.0.6:3671 
+[2009-08-23 13:12:29.740] t KNX/EibNet.Connection: CONNECT failure:  36 10.0.0.6:3671 
+[2009-08-23 13:12:29.740] t KNX/EibNet.Connection: DISCONNECTed:  0 10.0.0.6:3671 
+[2009-08-23 13:12:29.740] t KNX/EibNet.Connection: Stop LISTENing on port:  55123</p.type>
+                <p>Úspìšný zápis do KNX (T_CON status = 0, R_CON status = 0)</p>
+                <p.type>[2009-08-23 13:00:46.566] d KNX/EibNet.Connection: SEND seq:  8 
+[2009-08-23 13:00:46.566] d KNX/EibNet.Connection: SEND data: [06 ...] 
+[2009-08-23 13:00:46.570] d KNX/EibNet.Connection: SEND T_CON status:  92 0 
+[2009-08-23 13:00:46.570] d KNX/EibNet.Connection: SEND T_CON seq:  8 
+[2009-08-23 13:00:46.587] t KNX/EibNet.Connection: SEND R_CON ok 92 group:  3/1/21 
+[2009-08-23 13:00:46.588] d KNX/EibNet.Connection: SEND R_CON ok seq:  9E 
+[2009-08-23 13:00:46.588] d KNX/EibNet.Connection: SEND R_CON ok data: [06 ...] 
+[2009-08-23 13:00:46.588] d KNX/EibNet.Connection: SEND R_CON status:  92 0</p.type>
+                <p>Neúspìšný zápis do KNX, KNX rozhraní nepotvrdilo data (T_CON timeout), odesílání se opakuje:</p>
+                <p.type>[2009-08-23 13:07:02.741] t KNX/EibNet.Connection: SEND 94 group:  3/0/128 
+[2009-08-23 13:07:02.742] d KNX/EibNet.Connection: SEND seq:  2 
+[2009-08-23 13:07:02.742] d KNX/EibNet.Connection: SEND data: [06 ...] 
+[2009-08-23 13:07:03.746] t KNX/EibNet.Connection: T_CON timeout, repeat SEND:  94 
+[2009-08-23 13:07:03.746] t KNX/EibNet.Connection: SEND 94 group:  3/0/128 
+[2009-08-23 13:07:03.746] d KNX/EibNet.Connection: SEND seq:  2 
+[2009-08-23 13:07:03.746] d KNX/EibNet.Connection: SEND data: [06 ...] 
+[2009-08-23 13:07:04.760] t KNX/EibNet.Connection: T_CON timeout, kill SEND:  94</p.type>
+                <p>Pøíchozí data z KNX, spojení è.<c.special what="thinspace" />92:</p>
+                <p.type>[2009-08-23 12:59:28.089] t KNX/EibNet.Connection: RECEIVE 92 group:  2/0/30 
+[2009-08-23 12:59:28.089] d KNX/EibNet.Connection: RECEIVE seq:  67 
+[2009-08-23 12:59:28.089] d KNX/EibNet.Connection: RECEIVE data: [06 ...]</p.type>
+                <p>Ukonèení spojení è.<c.special what="thinspace" />91 (napø. pøi zastavení serveru):</p>
+                <p.type>[2009-08-23 12:54:46.964] t KNX/EibNet.Connection: DISCONNECT request:  91 10.0.0.6:3671 
+[2009-08-23 12:54:46.965] t KNX/EibNet.Connection: DISCONNECT forced as abortive 
+[2009-08-23 12:54:46.965] t KNX/EibNet.Connection: DISCONNECT request:  91 10.0.0.6:3671 
+[2009-08-23 12:54:46.965] t KNX/EibNet.Connection: DISCONNECTed:  91 10.0.0.6:3671</p.type>
               </text>
             </section>
           </text>

@@ -651,6 +651,72 @@ allow = 127.0.0.1</p.type>
                 </dl>
               </text>
             </section>
+            <section level="3">
+              <title>Examples of diagnostic messages</title>
+              <text>
+                <p>All examples contain real data, including time stamps. The length of operations or waiting is thus easily readable.</p>
+                <p>T_CON = KNX interface acknowledge, R_CON = target KNX device acknowledge, seq = sequence number of sent or received packets.</p>
+                <p>Periodic test of connection No.<c.special what="thinspace" />90, KNX interface responded to it:</p>
+                <p.type>[2009-08-23 12:03:27.789] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[2009-08-23 12:03:27.794] t KNX/EibNet.Connection: HEARTBEAT response:  90 10.0.0.6:3671</p.type>
+                <p>Periodic test of connection No.<c.special what="thinspace" />90, KNX interface did not respond to it, after three tries server disconnected the connection.</p>
+                <p.type>[2009-08-23 12:04:27.787] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[2009-08-23 12:04:37.795] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[2009-08-23 12:04:47.796] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[2009-08-23 12:04:57.811] t KNX/EibNet.Connection: DISCONNECT request:  90 10.0.0.6:3671 
+[2009-08-23 12:05:07.825] t KNX/EibNet.Connection: DISCONNECT timeout:  90 
+[2009-08-23 12:05:07.825] t KNX/EibNet.Connection: DISCONNECTed:  90 10.0.0.6:3671 
+[2009-08-23 12:05:07.825] t KNX/EibNet.Connection: Stop LISTENing on port:  60561</p.type>
+                <p>Successfull establishing of connection No.<c.special what="thinspace" />91 followed by initial reading:</p>
+                <p.type>[2009-08-23 12:05:37.841] t KNX/EibNet.Connection: LISTENing on port:  61829 
+[2009-08-23 12:05:37.841] t KNX/EibNet.Connection: CONNECT request:  10.0.0.6:3671 
+[2009-08-23 12:05:37.921] t KNX/EibNet.Connection: CONNECTed in TUNNELING mode:  91 10.0.0.6:3671 
+[2009-08-23 12:05:37.921] d KNX/srv: INIT:  2/0/0 
+[2009-08-23 12:05:37.921] d KNX/srv: INIT:  2/0/1 
+[2009-08-23 12:05:37.921] d KNX/srv: INIT:  2/0/21
+...</p.type>
+                <p>Unsuccessfull establishing of connection, KNX interface did not respond.</p>
+                <p.type>[2009-08-23 12:05:17.826] t KNX/EibNet.Connection: LISTENing on port:  58083 
+[2009-08-23 12:05:17.826] t KNX/EibNet.Connection: CONNECT request:  10.0.0.6:3671 
+[2009-08-23 12:05:27.841] t KNX/EibNet.Connection: CONNECT timeout 
+[2009-08-23 12:05:27.841] t KNX/EibNet.Connection: DISCONNECTed:  0 10.0.0.6:3671 
+[2009-08-23 12:05:27.841] t KNX/EibNet.Connection: Stop LISTENing on port:  58083</p.type>
+                <p>Unsuccessfull establishing of connection, error number 36 means that KNX interface is connected to another client:</p>
+                <p.type>[2009-08-23 13:12:29.708] t KNX/EibNet.Connection: CONNECT timeout 
+[2009-08-23 13:12:29.723] t KNX/EibNet.Connection: LISTENing on port:  55123 
+[2009-08-23 13:12:29.723] t KNX/EibNet.Connection: CONNECT request:  10.0.0.6:3671 
+[2009-08-23 13:12:29.740] t KNX/EibNet.Connection: CONNECT failure:  36 10.0.0.6:3671 
+[2009-08-23 13:12:29.740] t KNX/EibNet.Connection: DISCONNECTed:  0 10.0.0.6:3671 
+[2009-08-23 13:12:29.740] t KNX/EibNet.Connection: Stop LISTENing on port:  55123</p.type>
+                <p>Successfull writing to KNX (T_CON status = 0, R_CON status = 0)</p>
+                <p.type>[2009-08-23 13:00:46.566] d KNX/EibNet.Connection: SEND seq:  8 
+[2009-08-23 13:00:46.566] d KNX/EibNet.Connection: SEND data: [06 ...] 
+[2009-08-23 13:00:46.570] d KNX/EibNet.Connection: SEND T_CON status:  92 0 
+[2009-08-23 13:00:46.570] d KNX/EibNet.Connection: SEND T_CON seq:  8 
+[2009-08-23 13:00:46.587] t KNX/EibNet.Connection: SEND R_CON ok 92 group:  3/1/21 
+[2009-08-23 13:00:46.588] d KNX/EibNet.Connection: SEND R_CON ok seq:  9E 
+[2009-08-23 13:00:46.588] d KNX/EibNet.Connection: SEND R_CON ok data: [06 ...] 
+[2009-08-23 13:00:46.588] d KNX/EibNet.Connection: SEND R_CON status:  92 0</p.type>
+                <p>Unsuccessfull writing to KNX, KNX interface did not acknowledge the data (T_CON timeout), writing repeats:</p>
+                <p.type>[2009-08-23 13:07:02.741] t KNX/EibNet.Connection: SEND 94 group:  3/0/128 
+[2009-08-23 13:07:02.742] d KNX/EibNet.Connection: SEND seq:  2 
+[2009-08-23 13:07:02.742] d KNX/EibNet.Connection: SEND data: [06 ...] 
+[2009-08-23 13:07:03.746] t KNX/EibNet.Connection: T_CON timeout, repeat SEND:  94 
+[2009-08-23 13:07:03.746] t KNX/EibNet.Connection: SEND 94 group:  3/0/128 
+[2009-08-23 13:07:03.746] d KNX/EibNet.Connection: SEND seq:  2 
+[2009-08-23 13:07:03.746] d KNX/EibNet.Connection: SEND data: [06 ...] 
+[2009-08-23 13:07:04.760] t KNX/EibNet.Connection: T_CON timeout, kill SEND:  94</p.type>
+                <p>Incoming KNX data, connection No.<c.special what="thinspace" />92:</p>
+                <p.type>[2009-08-23 12:59:28.089] t KNX/EibNet.Connection: RECEIVE 92 group:  2/0/30 
+[2009-08-23 12:59:28.089] d KNX/EibNet.Connection: RECEIVE seq:  67 
+[2009-08-23 12:59:28.089] d KNX/EibNet.Connection: RECEIVE data: [06 ...]</p.type>
+                <p>End of connection No.<c.special what="thinspace" />91 (e.g. when server is stopped):</p>
+                <p.type>[2009-08-23 12:54:46.964] t KNX/EibNet.Connection: DISCONNECT request:  91 10.0.0.6:3671 
+[2009-08-23 12:54:46.965] t KNX/EibNet.Connection: DISCONNECT forced as abortive 
+[2009-08-23 12:54:46.965] t KNX/EibNet.Connection: DISCONNECT request:  91 10.0.0.6:3671 
+[2009-08-23 12:54:46.965] t KNX/EibNet.Connection: DISCONNECTed:  91 10.0.0.6:3671</p.type>
+              </text>
+            </section>
           </text>
         </section>
         <section level="2">
