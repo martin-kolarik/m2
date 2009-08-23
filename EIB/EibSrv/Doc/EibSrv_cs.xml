@@ -973,6 +973,10 @@ allow = 127.0.0.1</p.type>
                   <dd><p>Zruší odebírání datového objektu. Formát pøíkazu je <type>unadvise group</type>, kde <type>group</type> je datovı objekt serveru (skupinová adresa), nebo <type>unadvise all</type> (dojde ke zrušení odebírání všech datovıch bodù.</p><p>Server odpovídá návratovım kódem 200, 405 a 5XX.</p><p>Pøíklad komunikace se serverem:</p><p.type>unadvise all
 200</p.type></dd>
                 </dl>
+                <p>Kromì komunikace dat (hodnot datovıch objektù) lze pomocí SDAP zjišovat stav spojení rozhraní s KNX. Server pro tento úèel definuje logickı (switch) datovı objekt <type>Control.Connected</type>. Objekt se pouívá stejnì jako skupinové adresy, lze jej rovnì pøedepsat k odbìru:</p>
+                <p.type>get Control.Connected
+200 1
+Control.Connected true</p.type>
               </text>
             </section>
             <section level="3">
@@ -1000,6 +1004,13 @@ allow = 127.0.0.1</p.type>
 &lt;/xmlsocket&gt;</p.type>
                 <p.type>&lt;xmlsocket&gt;
   &lt;disconnect/&gt;
+&lt;/xmlsocket&gt;</p.type>
+                <p>Kromì komunikace dat (hodnot datovıch objektù) lze pomocí XMLSocket stejnì jako pomocí SDAP zjišovat stav spojení rozhraní s KNX, pokud se místo skupinové adresy pouije jméno logického datového objektu <type>Control.Connected</type>. Pøíklad zprávy ze serveru:</p>
+                <p.type>&lt;xmlsocket&gt;
+  &lt;notify&gt;
+    &lt;name&gt;Control.Connected&lt;/name&gt;
+    &lt;value&gt;false&lt;/value&gt;
+   &lt;/notify&gt;
 &lt;/xmlsocket&gt;</p.type>
               </text>
             </section>

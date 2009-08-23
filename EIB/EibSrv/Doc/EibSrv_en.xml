@@ -973,6 +973,10 @@ allow = 127.0.0.1</p.type>
                   <dd><p>Cancels advising of the data object. The command format is <type>unadvise group</type>, where <type>group</type> is the server data object (group address), or <type>unadvise all</type> (if advising of all data items is cancelled).</p><p>The server responds with return code 200, 405 and 5XX.</p><p>Example of communication with the server:</p><p.type>unadvise all
 200</p.type></dd>
                 </dl>
+                <p>SDAP also allows detection of KNX connection status using special logical (switch) data object named <type>Control.Connected</type>. Object is used in the same way as normal group addresses, it can be subscribed for advising too:</p>
+                <p.type>get Control.Connected
+200 1
+Control.Connected true</p.type>
               </text>
             </section>
             <section level="3">
@@ -1000,6 +1004,13 @@ allow = 127.0.0.1</p.type>
 &lt;/xmlsocket&gt;</p.type>
                 <p.type>&lt;xmlsocket&gt;
   &lt;disconnect/&gt;
+&lt;/xmlsocket&gt;</p.type>
+                <p>XMLSocket is able to detect KNX connection status similarly as SDAP, if name of special logical data object <type>Control.Connected</type> is used. Example of advise message from server:</p>
+                <p.type>&lt;xmlsocket&gt;
+  &lt;notify&gt;
+    &lt;name&gt;Control.Connected&lt;/name&gt;
+    &lt;value&gt;false&lt;/value&gt;
+   &lt;/notify&gt;
 &lt;/xmlsocket&gt;</p.type>
               </text>
             </section>

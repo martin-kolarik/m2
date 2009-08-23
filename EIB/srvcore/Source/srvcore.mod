@@ -135,7 +135,9 @@ CONST // object type names
    
 CONST
    itemSystemSuspend = 1;
+   itemConnected = 2;
    nameSystemSuspend = L".System.Licensing.Suspend";
+   nameConnected = L"Control.Connected";
    suspendKey = L"suspend";
    suspendValue = L"true";
 
@@ -569,6 +571,9 @@ CLASS IMPLEMENTATION CEIBServer;
       IF Name.EqualsOA( nameSystemSuspend ) THEN
          Hash := itemSystemSuspend;
          RETURN TRUE;
+      ELSIF Name.EqualsOA( nameConnected ) THEN
+         Hash := itemConnected;
+         RETURN TRUE;
       END;
       address.SetGroupAddress3( OA( Name.Length-1, Name.rawData ));
       IF NOT GetObject( address, OUT PObject ) THEN
@@ -590,6 +595,9 @@ CLASS IMPLEMENTATION CEIBServer;
          RETURN FALSE;
       ELSIF Hash = itemSystemSuspend THEN
          RETURN FALSE;
+      ELSIF Hash = itemConnected THEN
+         Name.FromOA( nameConnected );
+         RETURN TRUE;
       END;
       address := TPObject( Hash )^.SendAddress;
       IF GetObject( address, OUT PObject ) THEN
@@ -735,6 +743,15 @@ CLASS IMPLEMENTATION CEIBServer;
       
       IF Result.Counted OR Result.Expired THEN
          RETURN Sync.arCannotStart;
+      END;
+      
+      IF Item = itemConnected THEN
+         IF Direction = IOO.dirRead THEN
+            Value.Boolean := ( EIB <> NIL ) AND EIB^.EIBConnected();
+            RETURN Sync.arCompleted;
+         ELSE
+            RETURN Sync.arCannotStart;
+         END;
       END;
       
       PObject := TPObject( Item );
@@ -1792,6 +1809,10 @@ CLASS IMPLEMENTATION CEIBServer;
 //--------------------------------------------------------------------------------
 
    PUBLIC PROCEDURE OnDeviceConnect();
+   VAR
+      hash : ns.THash;
+      result : Sync.TAsyncResult;
+      value : iovalue.Value;
    BEGIN
       IF EventSink <> NIL THEN
          EventSink^.OnConnect();
@@ -1804,14 +1825,32 @@ CLASS IMPLEMENTATION CEIBServer;
       ELSE
          DoInitRead( FALSE );
       END;
+      
+      IF _AdviseListener <> NIL THEN
+         hash := itemConnected;
+         result := Sync.arCompleted;
+         value.Boolean := TRUE;
+         _AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( result )), OA( 0, ADR( hash )), OA( 0, ADR( value )) );
+      END;
    END OnDeviceConnect;
 
 //--------------------------------------------------------------------------------
 
    PUBLIC PROCEDURE OnDeviceDisconnect();
+   VAR
+      hash : ns.THash;
+      result : Sync.TAsyncResult;
+      value : iovalue.Value;
    BEGIN
       IF EventSink <> NIL THEN
          EventSink^.OnDisconnect();
+      END;
+
+      IF _AdviseListener <> NIL THEN
+         hash := itemConnected;
+         result := Sync.arCompleted;
+         value.Boolean := FALSE;
+         _AdviseListener^.OnAdvise( ADR( SELF ), OA( 0, ADR( result )), OA( 0, ADR( hash )), OA( 0, ADR( value )) );
       END;
    END OnDeviceDisconnect;
 
