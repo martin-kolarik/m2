@@ -415,7 +415,7 @@ CLASS IMPLEMENTATION CSuspendableResult;
 //--------------------------------------------------------------------------------
 
 BEGIN
-   _Suspended := TRUE;
+   _Suspended := FALSE;
 END CSuspendableResult;
 
 //================================================================================
@@ -924,12 +924,12 @@ CLASS IMPLEMENTATION CEIBServer;
 
       PROCEDURE StringToSingleObject( REF ErrorMessage : StringsO.CString; String : ARRAY OF WCHAR; StartFromItem : CARDINAL; Priority : eib_def.TPriority; BFlags : eib_def.TA_ObjectFlags; EIT : eib_def.TEIBType; ObjectType : TObjectType ) : BOOLEAN;
       LABEL
-         NextItem;
+         NextItem, NextItemAfterComment;
       VAR
          i : CARDINAL;
          l : CARDINAL;
          LAddress : eib_def.TAddress;
-         p : ARRAY [0..31] OF WCHAR;
+         p : ARRAY [0..255] OF WCHAR;
          PObject : TPObject;
          ReadAddressFound : BOOLEAN;
          FirstAddress : BOOLEAN;
@@ -939,7 +939,7 @@ CLASS IMPLEMENTATION CEIBServer;
          FirstAddress := TRUE;
          i := StartFromItem;
          LOOP
-            Strings.ItemSW( String, Strings.WCHARS{L' ', L','}, 0, i, TRUE, OUT p );
+            Strings.ItemSW( String, Strings.WCHARS{L','}, 0, i, TRUE, OUT p );
             IF i = StartFromItem THEN
                IF p[0] = 0W THEN
                   ErrorMessage.FromOA( OAsz( R[ Texts._MissingAddress ] ));
@@ -950,6 +950,7 @@ CLASS IMPLEMENTATION CEIBServer;
             ELSIF p[0] = 0W THEN
                EXIT;
             END;
+            Strings.TrimW( REF p );
 
             IF ( p[0] = L"'" ) OR ( p[0] = L'"' ) THEN // comment
                Strings.RemoveW( REF p, 0, 1 );
@@ -960,7 +961,7 @@ CLASS IMPLEMENTATION CEIBServer;
                   END;
                   PObject^.Comment.FromOA( p );
                END;
-               GOTO NextItem;
+               GOTO NextItemAfterComment;
             ELSIF p[0] = L'[' THEN // name
                Strings.RemoveW( REF p, 0, 1 );
                l := LENGTH( p );
@@ -970,7 +971,7 @@ CLASS IMPLEMENTATION CEIBServer;
                   END;
                   PObject^.Name.FromOA( p );
                END;
-               GOTO NextItem;
+               GOTO NextItemAfterComment;
             END;
 
             IF NOT ReadAddressFound AND (( p[0] = L'r' ) OR ( p[0] = L'R' )) THEN
@@ -996,8 +997,9 @@ CLASS IMPLEMENTATION CEIBServer;
             END;
 
          NextItem:
-            INC( i );
             FirstAddress := FALSE;
+         NextItemAfterComment:
+            INC( i );
          END; // LOOP
          RETURN TRUE;
       END StringToSingleObject;
@@ -1016,7 +1018,8 @@ CLASS IMPLEMENTATION CEIBServer;
          Name : ARRAY [0..63] OF WCHAR;
          NameNumber : ARRAY [0..63] OF WCHAR;
          Number : ARRAY [0..31] OF WCHAR;
-         p0, p1, p2 : ARRAY [0..31] OF WCHAR;
+         p0 : ARRAY [0..255] OF WCHAR; 
+         p1, p2 : ARRAY [0..31] OF WCHAR;
          PObject : TPObject;
       BEGIN
          Comment[0] := 0W;
@@ -1024,7 +1027,7 @@ CLASS IMPLEMENTATION CEIBServer;
          
          i := StartFromItem;
          LOOP
-            Strings.ItemSW( String, Strings.WCHARS{L' ', L','}, 0, i, TRUE, OUT p0 );
+            Strings.ItemSW( String, Strings.WCHARS{L','}, 0, i, TRUE, OUT p0 );
             IF p0[0] = 0W THEN
                IF i = StartFromItem THEN
                   ErrorMessage.FromOA( OAsz( R[ Texts._MissingAddress ] ));
@@ -1033,6 +1036,7 @@ CLASS IMPLEMENTATION CEIBServer;
                   EXIT;
                END;
             END;
+            Strings.TrimW( REF p0 );
             
             IF ( p0[0] = L"'" ) OR ( p0[0] = L'"' ) THEN // comment
                Strings.RemoveW( REF p0, 0, 1 );
@@ -1053,6 +1057,7 @@ CLASS IMPLEMENTATION CEIBServer;
                   END;
                   ASSIGN( Name, p0 );
                END;
+               GOTO NextItem;
             END;
 
             c := Strings.IndexOfW( p0, L'..', 0 );
@@ -1337,7 +1342,7 @@ CLASS IMPLEMENTATION CEIBServer;
       END;
       ErrorLine := 0;
       InitToDefault();
-   
+      
       TRY
          fs.FromPath( OA( ConfigurationFile.Length-1, ConfigurationFile.rawData ), FIOO.imOpenRead );
       CATCH e : IOO.CIOException DO
@@ -2040,6 +2045,7 @@ CLASS IMPLEMENTATION CEIBServer;
    VAR
       address : ARRAY [0..31] OF WCHAR;
       asyncResult : Sync.TAsyncResult := Sync.arCompleted;
+      comment : StringsO.CString;
       EValue : eib_def.CValue;
       io : iovalue.Value;
       logged : BOOLEAN;
@@ -2067,10 +2073,16 @@ CLASS IMPLEMENTATION CEIBServer;
          value := io.String;
          PObject^.SendAddress.GetGroupAddress3( TRUE, OUT address );
 
+         comment := PObject^.Comment;
+         IF NOT comment.Empty THEN
+            comment.PrependOA( L"(" );
+            comment.AppendOA( L")" );
+         END;
+
          IF Direction = IOO.dirRead THEN
-            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "UPDATE ", address, L" ", OA( value.Length-1, value.rawData ));
+            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "UPDATE", address, OA( value.Length-1, value.rawData ), OA( comment.Length-1, comment.rawData ));
          ELSIF NOT EIB^.DeviceConnected() THEN
-            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET FAILED ", address, L" ", OA( value.Length-1, value.rawData ));
+            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET FAILED", address, OA( value.Length-1, value.rawData ), OA( comment.Length-1, comment.rawData ));
          END;
                   
       END;
@@ -2124,6 +2136,7 @@ CLASS IMPLEMENTATION CEIBServer;
    LOCAL PROCEDURE ValueWritten( PObject : TPObject; CurrentState : eib_user.TObjectState );
    VAR
       address : ARRAY [0..31] OF WCHAR;
+      comment : StringsO.CString;
       EValue : eib_def.CValue;
       io : iovalue.Value;
       value : StringsO.CString;
@@ -2153,10 +2166,16 @@ CLASS IMPLEMENTATION CEIBServer;
          value := io.String;
          PObject^.SendAddress.GetGroupAddress3( TRUE, OUT address );
 
+         comment := PObject^.Comment;
+         IF NOT comment.Empty THEN
+            comment.PrependOA( L"(" );
+            comment.AppendOA( L")" );
+         END;
+
          IF PObject^.WSStatus = eib_status.essOK THEN
-            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET OK ", address, L" ", OA( value.Length-1, value.rawData ));
+            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET OK", address, OA( value.Length-1, value.rawData ), OA( comment.Length-1, comment.rawData ));
          ELSE
-            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET ERROR ", address, L" ", OA( value.Length-1, value.rawData ));
+            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET ERROR", address, OA( value.Length-1, value.rawData ), OA( comment.Length-1, comment.rawData ));
          END;
                   
       END;
