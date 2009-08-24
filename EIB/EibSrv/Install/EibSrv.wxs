@@ -17,7 +17,10 @@
                 <Directory Id="NeNoData" Name="$(var.Manufacturer)">
                     <Component Id="CommonAppFolderPermissions" Guid="04862C22-D968-4b8c-9B78-7BCD4190B11C">
                         <CreateFolder>
-                            <Permission GenericRead="yes" GenericWrite="yes" GenericExecute="yes" User="Users"/>
+                            <Permission GenericAll="yes" User="SYSTEM" />
+                            <Permission GenericAll="yes" User="Administrators" />
+                            <Permission GenericRead="yes" GenericWrite="yes" GenericExecute="yes" Delete="yes" DeleteChild="yes" WriteAttributes="yes" WriteExtendedAttributes="yes" User="Users" />
+                            <Permission GenericRead="yes" GenericExecute="yes" User="Everyone" />
                         </CreateFolder>
                         <RemoveFolder Id="CommonAppFolderPermissionsRemove" On="uninstall"/>
                     </Component>
