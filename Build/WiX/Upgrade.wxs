@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Include>
+
+    <Upgrade Id="$(var.UpgradeGUID)">
+        <UpgradeVersion OnlyDetect="yes" Property="SELFFOUND" Minimum="$(var.ProductVersion)" IncludeMinimum="yes" Maximum="$(var.ProductVersion)" IncludeMaximum="yes" />
+        <UpgradeVersion OnlyDetect="yes" Property="NEWERFOUND" Minimum="$(var.ProductVersion)" IncludeMinimum="no" />
+        <UpgradeVersion OnlyDetect="yes" Property="OLDERFOUND" Maximum="$(var.ProductVersion)" IncludeMaximum="no" />
+    </Upgrade>
+
+    <CustomAction Id="AlreadyUpdated" Error="UpgradeErrorSelfInstalled" />
+    <CustomAction Id="NoDowngrade" Error="UpgradeErrorNewerFound" />
+
+    <InstallExecuteSequence>
+        <Custom Action="AlreadyUpdated" After="FindRelatedProducts">SELFFOUND</Custom>
+        <Custom Action="NoDowngrade" After="FindRelatedProducts">NEWERFOUND</Custom>
+        <RemoveExistingProducts After="FindRelatedProducts">OLDERFOUND</RemoveExistingProducts>
+    </InstallExecuteSequence>
+    
+</Include>

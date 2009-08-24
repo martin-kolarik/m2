@@ -15,4 +15,7 @@
     <String Id="UserRegistrationBadLicenceDlgToolTip">Warning</String>
     <String Id="UserRegistrationBadLicenceDlgIcon">WixUI_Ico_Exclam</String>
 
+    <String Id="UpgradeErrorSelfInstalled">[ProductName] has already been updated to $(var.ProductVersion) version.</String>
+    <String Id="UpgradeErrorNewerFound">A newer version of [ProductName] is already installed.</String>
+
 </WixLocalization>
