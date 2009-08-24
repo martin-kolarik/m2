@@ -20,8 +20,6 @@
 
         <SetupFile>..\$(SetupDir)\$(MSBuildProjectName).wxs</SetupFile>
         <SetupObj>$(IntermediateDir)\$(MSBuildProjectName).wixobj</SetupObj>
-        <SetupResult>$(MSBuildProjectName)_$(RFC1766Short).msi</SetupResult>
-        <SetupResultDir>$(OutputDir)\$(SetupResult)</SetupResultDir>
 
         <CandleDefs>-dBuildRoot=&quot;$(WiXSrc)&quot; -dProductRoot=&quot;$(ComponentPath)\Install&quot; -dProductId=&quot;$(ProductId)&quot;</CandleDefs>
         <CandleDefs>$(CandleDefs) -dContact=&quot;$(Contact)&quot; -dSupport=&quot;$(Support)&quot; -dPhone=&quot;$(Phone)&quot; -dURL=&quot;$(URL)&quot; -dUpdateURL=&quot;$(UpdateURL)&quot;</CandleDefs>
@@ -34,7 +32,7 @@
 
     <ItemGroup>
         <SetupSource Include="$(SetupDir)\*;$(SetupDir)\**\*.bmp;$(SetupDir)\**\*.ico" />
-        <IntermediateSetupFiles Include="$(SetupDir)\License.rtf;$(IntermediateDir)\*.wixobj;$(OutputDir)\$(SetupResult)"/>
+        <IntermediateSetupFiles Include="$(SetupDir)\License.rtf;$(IntermediateDir)\*.wixobj"/>
     </ItemGroup>
 
     <UsingTask TaskName="GenerateGUID" AssemblyFile="BuildTasks.dll"/>
@@ -44,8 +42,17 @@
     </Target>
 
     <Target Name="CreateSetup"
-            DependsOnTargets="GUID;MSI;Digests"/>
+            DependsOnTargets="OutputProperties;GUID;MSI;Digests"/>
 
+    <Target Name="OutputProperties">
+        <CreateProperty Value="$(MSBuildProjectName)-$(ProductVersion)_$(RFC1766Short).msi">
+            <Output TaskParameter="Value" PropertyName="SetupResult" />
+        </CreateProperty>
+        <CreateProperty Value="$(OutputDir)\$(SetupResult)">
+            <Output TaskParameter="Value" PropertyName="SetupResultDir" />
+        </CreateProperty>
+    </Target>
+    
     <Target Name="GUID" Condition="$(ProductGUID)==''">
         <GenerateGUID>
             <Output TaskParameter="GUID" PropertyName="ProductGUID"/>

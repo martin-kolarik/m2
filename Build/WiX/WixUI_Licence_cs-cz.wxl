@@ -15,7 +15,7 @@
     <String Id="UserRegistrationBadLicenceDlgToolTip">Upozornění</String>
     <String Id="UserRegistrationBadLicenceDlgIcon">WixUI_Ico_Exclam</String>
     
-    <String Id="UpgradeErrorSelfInstalled">Verze $(var.ProductVersion) [ProductName] je již nainstalována, instalace nebude pokračovat.</String>
+    <String Id="UpgradeErrorSelfInstalled">Verze [ProductVersion] [ProductName] je již nainstalována, instalace nebude pokračovat.</String>
     <String Id="UpgradeErrorNewerFound">Již je nainstalována novější verze [ProductName], instalace nebude pokračovat.</String>
 
 </WixLocalization>

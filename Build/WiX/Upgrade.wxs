@@ -6,7 +6,7 @@
         <UpgradeVersion OnlyDetect="yes" Property="NEWERFOUND" Minimum="$(var.ProductVersion)" IncludeMinimum="no" />
         <UpgradeVersion OnlyDetect="yes" Property="OLDERFOUND" Maximum="$(var.ProductVersion)" IncludeMaximum="no" />
     </Upgrade>
-
+    
     <CustomAction Id="AlreadyUpdated" Error="$(loc.UpgradeErrorSelfInstalled)" />
     <CustomAction Id="NoDowngrade" Error="$(loc.UpgradeErrorNewerFound)" />
 
@@ -15,5 +15,10 @@
         <Custom Action="NoDowngrade" Before="InstallInitialize">NEWERFOUND</Custom>
         <RemoveExistingProducts After="InstallFinalize">OLDERFOUND</RemoveExistingProducts>
     </InstallExecuteSequence>
+    
+    <InstallUISequence>
+        <Custom Action="AlreadyUpdated" Before="FindRelatedProducts">SELFFOUND</Custom>
+        <Custom Action="NoDowngrade" Before="FindRelatedProducts">NEWERFOUND</Custom>
+    </InstallUISequence>
     
 </Include>
