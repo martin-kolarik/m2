@@ -44,6 +44,14 @@
                             <File Id="SCMVC.DLL" Name="SCMVC.dll" Source="SCMVC.dll" DiskId="1" Vital="yes" KeyPath="yes" />
                             <ServiceControl Id="SVCControlMVCLib" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
                         </Component>
+                        <Component Guid="14B49790-AE67-4a20-9852-C1935C7763D3" Id="DebugInfo">
+                            <File Id="EibSrv.PDB" Name="eibsrv.pdb" Source="eibsrv.pdb" DiskId="1" KeyPath="yes"/>
+                            <File Id="ScMvc.PDB" Name="scmvc.pdb" Source="scmvc.pdb" DiskId="1" />
+                            <File Id="ScCore.PDB" Name="sccore.pdb" Source="sccore.pdb" DiskId="1" />
+                            <File Id="EibSrv.MAP" Name="eibsrv.map" Source="eibsrv.map" DiskId="1" />
+                            <File Id="ScMvc.MAP" Name="scmvc.map" Source="scmvc.map" DiskId="1" />
+                            <File Id="ScCore.MAP" Name="sccore.map" Source="sccore.map" DiskId="1" />
+                        </Component>
                         <Component Id="XMLLite.DLL" Guid="55B6DF2F-AD20-441f-9C80-562C89EE7A75">
                             <File Id="xmllite.dll" Name="xmllite.dll" Source="$(var.BuildRoot)\xmllite.dll" DiskId="1" Vital="yes" KeyPath="yes" />
                         </Component>
@@ -209,6 +217,10 @@
             <?if $(var.LeakChecking)=on ?>
             <ComponentRef Id="LeakDetector" />
             <?endif ?>
+        </Feature>
+        <Feature ConfigurableDirectory="INSTALLDIR" Id="DebugInfo" Level="0">
+            <Condition Level="1">DEBUG_INFO</Condition>
+            <ComponentRef Id="DebugInfo" />
         </Feature>
         <Property Id="XMLLITEEXISTS">
             <DirectorySearch Id="CheckXmlLiteDir" Path="[SystemFolder]" Depth="0">
