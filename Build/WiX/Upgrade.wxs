@@ -17,8 +17,8 @@
     </InstallExecuteSequence>
     
     <InstallUISequence>
-        <Custom Action="AlreadyUpdated" Before="FindRelatedProducts">SELFFOUND</Custom>
-        <Custom Action="NoDowngrade" Before="FindRelatedProducts">NEWERFOUND</Custom>
+        <Custom Action="AlreadyUpdated" After="FindRelatedProducts">SELFFOUND</Custom>
+        <Custom Action="NoDowngrade" After="FindRelatedProducts">NEWERFOUND</Custom>
     </InstallUISequence>
     
 </Include>
