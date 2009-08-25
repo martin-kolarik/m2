@@ -199,7 +199,7 @@
     </Target>
 
     <Target Name="DoDummyProductBuildNumberGet" Condition="$(ComponentType)!='Product'">
-        <CreateProperty Value="0.0.0">
+        <CreateProperty Condition="$(InheritedProductVersion)!=''" Value="$(InheritedProductVersion)">
             <Output TaskParameter="Value" PropertyName="ProductVersion"></Output>
         </CreateProperty>
     </Target>
@@ -662,7 +662,7 @@
             DependsOnTargets="ProductBuildNumberGet">
         <MSBuild Projects="@(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"
                  Targets="BuildAll"
-                 Properties="DeepFlag=off;Parameters=%(Components.Parameters);$(ChildParameters);ProductVersion=$(ProductVersion)"
+                 Properties="DeepFlag=off;Parameters=%(Components.Parameters);$(ChildParameters);InheritedProductVersion=$(ProductVersion)"
                  StopOnFirstFailure="true">
             <Output TaskParameter="TargetOutputs" ItemName="Compiled"/>
         </MSBuild>
@@ -673,7 +673,7 @@
         <!-- Exec Command="msbuild -clp:nosummary -v:m -t:RebuildAll -p:DeepFlag=on;Parameters=%(Components.Parameters);$(ChildParameters);%(Components.Filename)Batch=on @(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"/ -->
         <MSBuild Projects="@(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"
                  Targets="RebuildAll"
-                 Properties="DeepFlag=on;Parameters=%(Components.Parameters);$(ChildParameters);ProductVersion=$(ProductVersion);%(Components.Filename)Batch=on"
+                 Properties="DeepFlag=on;Parameters=%(Components.Parameters);$(ChildParameters);InheritedProductVersion=$(ProductVersion);%(Components.Filename)Batch=on"
                  StopOnFirstFailure="true">
             <Output TaskParameter="TargetOutputs" ItemName="Compiled"/>
         </MSBuild>

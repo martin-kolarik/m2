@@ -25,6 +25,7 @@
         <CompileProductVersion Condition="$(ProductVersion)==''">0.0.0</CompileProductVersion>
         <CompileProductVersion Condition="$(ProductVersion)!=''">$(ProductVersion)</CompileProductVersion>
 
+        <!-- M2PROD takes here self initial value -->
         <M2PROD>-DProductId:$(CompileProductId) -DProductVersion:$(CompileProductVersion)</M2PROD>
     </PropertyGroup>
 
