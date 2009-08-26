@@ -699,4 +699,19 @@
     <Target Name="SetupClean" DependsOnTargets="CleanSetup" />
     <Target Name="SetupRebuild" DependsOnTargets="CleanSetup;Directories;ProductBuildNumberGet;CreateSetup" />
 
+    <!-- deploy tasks -->
+    <Target Name="DeployDebug">
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RebuildAllComponents" Properties="ConfigurationName=Debug" StopOnFirstFailure="true" />
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="ConfigurationName=Debug;Language=Czech" StopOnFirstFailure="true" />
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="ConfigurationName=Debug;Language=English" StopOnFirstFailure="true" />
+    </Target>
+
+    <Target Name="DeployRelease">
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RebuildAllComponents" Properties="ConfigurationName=Release" StopOnFirstFailure="true" />
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="ConfigurationName=Release;Language=Czech" StopOnFirstFailure="true" />
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="ConfigurationName=Release;Language=English" StopOnFirstFailure="true" />
+    </Target>
+
+    <Target Name="Deploy" DependsOnTargets="DeployRelease;DeployDebug" />
+
 </Project>
