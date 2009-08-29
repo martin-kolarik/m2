@@ -19,7 +19,7 @@
     <ItemGroup>
         <BuildVersionSource Include="$(RootPath)\Library;$(RootPath)\Modula2"/>
 
-        <Components Include="Modula2\m2rtl;Modula2\m2ortl;Library\ADT;Library\COM;Library\Resources;Library\Registry;Library\Text"/>
+        <Components Include="Modula2\m2rtl;Modula2\m2ortl;Library\ADT;Library\LoggerFilter;Library\COM;Library\Resources;Library\Registry;Library\Text"/>
         <Components Include="Library\Ciphering;Library\Threading;Library\Network;Library\XML;Library\Service;Library\ClassLoader"/>
         <Components Include="Component\scinit"/>
     </ItemGroup>

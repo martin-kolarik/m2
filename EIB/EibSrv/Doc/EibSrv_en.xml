@@ -269,7 +269,7 @@ Licence support tool
                     </tr>
                   </table>
                 </f.table>
-                <p>The last part of the definition of data objects, i.e. group addresses, can be recorded in configuration by two ways: either as independent group addresses, or as an interval of group addresses.</p>
+                <p>The last part of the definition of data objects, i.e. group addresses, can be recorded in configuration by two ways: either as independent group addresses, or as an interval of group addresses (interval is denoted with two periods<c.special what="dash" /><type>..</type>).</p>
                 <p>Example of records of data items with help of <type>[objects]</type> section:</p>
                 <p.type>[objects]
 objects = tracker, switch, 3/0/0..3/0/19
@@ -295,6 +295,8 @@ behaviour = transmitter
 objects = 5/3/100..5/3/119
 logged_on_change_objects = 1/7/0..1/7/9</p.type>
                 <p>It is obvious that in definitions with help of <type>[blocks]</type><c.special what="dash" />the list of blocks (sections) is shown first and the blocks are consequently recorded. To avoid repeated entering of the type and kind of communication in definitions of objects, they are included to type and behaviour parameters. The second example defines the same objects, as the first two lines in example of use <type>[objects]</type>.</p>
+                <p>There can be written a short description enclosed in quotes before each data object (group address). The description will appear in data log (in <gui>Data history</gui> web interface page). Example of description written to data object:</p>
+                <p.type>object = "Bedroom light", 5/2/0</p.type>
                 <p>Next examples of record of data items can be found in files: <file>04 init-read.cfg</file> (data items with forced initial loading), <file>06 complex-object.cfg</file> (data items connected with more group addresses), <file>08 blocks.cfg</file> (definition of data items with help of <type>[blocks]</type> section).</p>
               </text>
             </section>
@@ -359,10 +361,12 @@ date_format = dd. MMMM yyyy</p.type><p>Valid combinations of format signs displa
               </text>
             </section>
             <section label="secLog" level="3">
-              <title><type>[log]</type> and <type>[datalog]</type></title>
+              <title><type>[log]</type>, <type>[datalog]</type>, <type>[httplog]</type> and <type>[networklog]</type></title>
               <text>
                 <p><type>[log]</type> section determines the kind of listing of debugging and informative reports of the server. There may be many detail reports, therefore it is recommended to list only the error statuses during current operation.</p>
                 <p><type>[datalog]</type> section is an additive one and determines the place, where the server will record the copies of reports of <gui>Data history</gui> of web interface. The rerouting of copies of listings can be used for storage of longer data history, because data in web interface are limited by number. In initial setting, the storage of data history, except of web interface, is not switched-on.</p>
+                <p><type>[httplog]</type> section determines the place, where the server will record web access messages. Default settings of the <type>[httplog]</type> section is to use settings of <type>[log]</type> section. Recorded messages are in <diff>Common Log Format</diff>, which is the format broadly shared by all web servers. <type>[httplog]</type> log will contain access messages only, error messages (processing errors, etc.) are recorded according to <type>[log]</type> section settings.</p>
+                <p>The last <type>[networklog]</type> section offers separated logging of SDAP and XMLSocket client connecting and disconnecting. Default settings of the <type>[networklog]</type> section is to use settings of <type>[log]</type> section.</p>
                 <dl class="dlParameter">
                   <caption>Following parameters are defined by sections:</caption>
                   <dt><type>target</type></dt>
@@ -371,8 +375,12 @@ date_format = dd. MMMM yyyy</p.type><p>Valid combinations of format signs displa
                   <dd><p>The rate of content of debugging listings is determined in four levels according to the table <in label="tblLevel"></in>.</p><p>The starting value of this parameter is <type>error</type>. Example:</p><p.type>level = warning</p.type></dd>
                   <dt><type>file</type></dt>
                   <dd><p>Path to the file with listings. The file grows continuously, therefore at permanent and detail listings it is necessary to take care about sufficient place on the disc. At use of the server in embedded systems (Windows XP Embedded), the use of file (at setting <type>target= file</type>) is not recommended, if the disc is Flash file (Compact Flash, etc.).</p><p>Example of record of the parameter:</p><p.type>file = z:\smartserver.log</p.type></dd>
-                  <dt><type>cached</type></dt>
+                  <dt><type>cached</type> (only for <type>[log]</type> and <type>[datalog]</type> sections)</dt>
                   <dd><p>Length of history (number of records), which server stores for web interfaces purposes. The number should not be too big, as the records are stored in computer memory, which is limited. Memory consumption can be estimated as record number<c.special what="binarytimes" />100 bytes (in average, approximately).</p><p>The default value of the parameter is <number>1000</number>.</p></dd>
+                  <dt><type>fiter</type> (only for <type>[log]</type> and <type>[networklog]</type> sections)</dt>
+                  <dd><p>List of rules restricting log records. Each of <type>filter</type> line defines single rule, allowing or denying. The server comes through all rules, when recording, and the message is recorded only if all rules together allows it. On the start of applying rules the server assumes recording is allowed.</p><p>Rules have the format:</p><p.type>filter = allow | deny, &lt;mask&gt;</p.type><p>where <type>allow</type> or <type>deny</type> specifies allowing or denying rule and <type>&lt;mask&gt;</type> defines text mask, which the server matches the second part of message source against (see the chapter <in.about label="secDebug"></in.about>). For example, following rules allow recording of KNX connection messages only:</p><p.type>...
+filter = deny, *
+filter = allow, EibNet.Connection</p.type></dd>
                 </dl>
                 <f.table label="tblTarget">
                   <caption>Values of <type>target</type> parameter.</caption>
@@ -453,11 +461,23 @@ date_format = dd. MMMM yyyy</p.type><p>Valid combinations of format signs displa
             <section label="secUsers" level="3">
               <title><type>[users]</type></title>
               <text>
-                <p><type>[web]</type> defines the starting couple of users, which can be connected to the server. Next users and their passwords can be set with help of web interface. A modification of data in this section may represent no availability of web interface, it is recommended not to modify this section.</p>
+                <p><type>[users]</type> defines the starting couple of users, which can be connected to the server. Next users and their passwords can be set with help of web interface. A modification of data in this section may represent no availability of web interface, it is recommended not to modify this section.</p>
                 <p>Initial settings:</p>
                 <p.type>[users]
 admin = admin, hb3fA4WsM68ZmQpM9O5L6GgmAU8Y5NNvrrKCXsx4Zrc=
 user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
+              </text>
+            </section>
+            <section label="secACL" level="3">
+              <title><type>[http_access_list]</type></title>
+              <text>
+                <p><type>[http_access_list]</type> section defines a list of rules, which denies or allows access to server's web interface. Each rule (allowing or denying) is one IP address including network prefix length. During each client access, the server comes through all rules which correspond to client IP address and evaluates access permission found. The client is allowed to access if resulting permission is allow. Default permission is allow.</p>
+                <p>Rule format is:</p>
+                <p.type>allow | deny = &lt;ipaddress&gt;[/&lt;prefix length&gt;]</p.type>
+                <p>Example of access allowed from localhost only (the computer with server installed):</p>
+                <p.type>[http_access_list]
+deny = 0.0.0.0/0
+allow = 127.0.0.1</p.type>
               </text>
             </section>
             <section level="3">
@@ -513,8 +533,9 @@ user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
             <section label="secDebug" level="3">
               <title>Debugging listings and information</title>
               <text>
-                <p>At its run, the server can record information about current status and running operations. It can be useful, e.g., at solution of problems with communications. In the starting status, the listings are not switched-on, <type>[debug]</type> section and <type>[data_log]</type> configuration file serves for their switching-on and setting. Listings and debugging information are not necessary for current operation.</p>
-                <p>The output of debugging information is the text and the line one, and this it is easily legible. The input setting of the server allows to monitor the listings with help of web interface, after modification of the configuration<c.special what="dash" />all data can be stored to the file. Debugging reports have a unique format, e.g.:</p>
+                <p>At its run, the server can record information about current status and running operations. It can be useful, e.g., at solution of problems with communications. On the start, the listings are not switched-on, <type>[log]</type>, <type>[datalog]</type>, <type>[httplog]</type> and <type>[networklog]</type> configuration file sections serves for their switching-on and setting. Debugging information are not necessary for current operation.</p>
+                <p>The output of debugging information is the text and the line one, and this it is easily legible. The input setting of the server allows to monitor the listings with help of web interface, after modification of the configuration<c.special what="dash" />all data can be stored to the file. Messages of <type>[log]</type> and <type>[networklog]</type> sections have common formát (see below), <type>[httplog]</type> section uses <diff>Common Log Format</diff>, <type>[datalog]</type> section has special format.</p>
+                <p>The example of <type>[log]</type> section records:</p>
                 <p.type>[2009-04-01 18:06:03.828] d sys/Net.Dispatcher:   address 192.168.1.102:4270
 [2009-04-01 18:06:03.828] t sys/sdap: GET 6/0/6
 [2009-04-01 18:06:25.609] I sys/HTTP: Request: /favicon.ico</p.type>
@@ -628,6 +649,72 @@ user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
                   <dt>Attempt for connection finishes with error <type>failure: XX</type></dt>
                   <dd><p>If you are using the <type>tunnelling</type> or <type>tunnelling-ACK</type> kinds of connection, then verify, if another server, ETS, or some other program is not connected to the interface. In an affirmative case, disconnect it. </p><p>Make sure that during last two minutes an outage of server did not occur (forced switching-off of the computer, forced stopping of the server process). In affirmative case, wait two minutes or switch off and switch on the interface power supply.</p></dd>
                 </dl>
+              </text>
+            </section>
+            <section level="3">
+              <title>Examples of diagnostic messages</title>
+              <text>
+                <p>All examples contain real data, including time stamps. The length of operations or waiting is thus easily readable.</p>
+                <p>T_CON = KNX interface acknowledge, R_CON = target KNX device acknowledge, seq = sequence number of sent or received packets.</p>
+                <p>Periodic test of connection No.<c.special what="thinspace" />90, KNX interface responded to it:</p>
+                <p.type>[12:03:27.789] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[12:03:27.794] t KNX/EibNet.Connection: HEARTBEAT response:  90 10.0.0.6:3671</p.type>
+                <p>Periodic test of connection No.<c.special what="thinspace" />90, KNX interface did not respond to it, after three tries server disconnected the connection.</p>
+                <p.type>[12:04:27.787] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[12:04:37.795] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[12:04:47.796] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[12:04:57.811] t KNX/EibNet.Connection: DISCONNECT request:  90 10.0.0.6:3671 
+[12:05:07.825] t KNX/EibNet.Connection: DISCONNECT timeout:  90 
+[12:05:07.825] t KNX/EibNet.Connection: DISCONNECTed:  90 10.0.0.6:3671 
+[12:05:07.825] t KNX/EibNet.Connection: Stop LISTENing on port:  60561</p.type>
+                <p>Successfull establishing of connection No.<c.special what="thinspace" />91 followed by initial reading:</p>
+                <p.type>[12:05:37.841] t KNX/EibNet.Connection: LISTENing on port:  61829 
+[12:05:37.841] t KNX/EibNet.Connection: CONNECT request:  10.0.0.6:3671 
+[12:05:37.921] t KNX/...: CONNECTed in TUNNELING mode:  91 10.0.0.6:3671 
+[12:05:37.921] d KNX/srv: INIT:  2/0/0 
+[12:05:37.921] d KNX/srv: INIT:  2/0/1 
+[12:05:37.921] d KNX/srv: INIT:  2/0/21
+...</p.type>
+                <p>Unsuccessfull establishing of connection, KNX interface did not respond.</p>
+                <p.type>[12:05:17.826] t KNX/EibNet.Connection: LISTENing on port:  58083 
+[12:05:17.826] t KNX/EibNet.Connection: CONNECT request:  10.0.0.6:3671 
+[12:05:27.841] t KNX/EibNet.Connection: CONNECT timeout 
+[12:05:27.841] t KNX/EibNet.Connection: DISCONNECTed:  0 10.0.0.6:3671 
+[12:05:27.841] t KNX/EibNet.Connection: Stop LISTENing on port:  58083</p.type>
+                <p>Unsuccessfull establishing of connection, error number 36 means that KNX interface is connected to another client:</p>
+                <p.type>[13:12:29.708] t KNX/EibNet.Connection: CONNECT timeout 
+[13:12:29.723] t KNX/EibNet.Connection: LISTENing on port:  55123 
+[13:12:29.723] t KNX/EibNet.Connection: CONNECT request:  10.0.0.6:3671 
+[13:12:29.740] t KNX/EibNet.Connection: CONNECT failure:  36 10.0.0.6:3671 
+[13:12:29.740] t KNX/EibNet.Connection: DISCONNECTed:  0 10.0.0.6:3671 
+[13:12:29.740] t KNX/EibNet.Connection: Stop LISTENing on port:  55123</p.type>
+                <p>Successfull writing to KNX (T_CON status = 0, R_CON status = 0)</p>
+                <p.type>[13:00:46.566] d KNX/EibNet.Connection: SEND seq:  8 
+[13:00:46.566] d KNX/EibNet.Connection: SEND data: [06 ...] 
+[13:00:46.570] d KNX/EibNet.Connection: SEND T_CON status:  92 0 
+[13:00:46.570] d KNX/EibNet.Connection: SEND T_CON seq:  8 
+[13:00:46.587] t KNX/EibNet.Connection: SEND R_CON ok 92 group:  3/1/21 
+[13:00:46.588] d KNX/EibNet.Connection: SEND R_CON ok seq:  9E 
+[13:00:46.588] d KNX/EibNet.Connection: SEND R_CON ok data: [06 ...] 
+[13:00:46.588] d KNX/EibNet.Connection: SEND R_CON status:  92 0</p.type>
+                <p>Unsuccessfull writing to KNX, KNX interface did not acknowledge the data (T_CON timeout), writing repeats:</p>
+                <p.type>[13:07:02.741] t KNX/EibNet.Connection: SEND 94 group:  3/0/128 
+[13:07:02.742] d KNX/EibNet.Connection: SEND seq:  2 
+[13:07:02.742] d KNX/EibNet.Connection: SEND data: [06 ...] 
+[13:07:03.746] t KNX/EibNet.Connection: T_CON timeout, repeat SEND:  94 
+[13:07:03.746] t KNX/EibNet.Connection: SEND 94 group:  3/0/128 
+[13:07:03.746] d KNX/EibNet.Connection: SEND seq:  2 
+[13:07:03.746] d KNX/EibNet.Connection: SEND data: [06 ...] 
+[13:07:04.760] t KNX/EibNet.Connection: T_CON timeout, kill SEND:  94</p.type>
+                <p>Incoming KNX data, connection No.<c.special what="thinspace" />92:</p>
+                <p.type>[12:59:28.089] t KNX/EibNet.Connection: RECEIVE 92 group:  2/0/30 
+[12:59:28.089] d KNX/EibNet.Connection: RECEIVE seq:  67 
+[12:59:28.089] d KNX/EibNet.Connection: RECEIVE data: [06 ...]</p.type>
+                <p>End of connection No.<c.special what="thinspace" />91 (e.g. when server is stopped):</p>
+                <p.type>[12:54:46.964] t KNX/EibNet.Connection: DISCONNECT request:  91 10.0.0.6:3671 
+[12:54:46.965] t KNX/EibNet.Connection: DISCONNECT forced as abortive 
+[12:54:46.965] t KNX/EibNet.Connection: DISCONNECT request:  91 10.0.0.6:3671 
+[12:54:46.965] t KNX/EibNet.Connection: DISCONNECTed:  91 10.0.0.6:3671</p.type>
               </text>
             </section>
           </text>
@@ -856,6 +943,10 @@ user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
                   <dd><p>Wrong value of the parameter.</p></dd>
                   <dt>405</dt>
                   <dd><p>Unknown, non-existing source (e.g. non-existing data item).</p></dd>
+                  <dt>406</dt>
+                  <dd><p>Error during loading parameters (configuration).</p></dd>
+                  <dt>407</dt>
+                  <dd><p>Data item is read only.</p></dd>
                   <dt>500</dt>
                   <dd><p>Internal non-distinguished server error.</p></dd>
                   <dt>501</dt>
@@ -886,6 +977,10 @@ user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
                   <dd><p>Cancels advising of the data object. The command format is <type>unadvise group</type>, where <type>group</type> is the server data object (group address), or <type>unadvise all</type> (if advising of all data items is cancelled).</p><p>The server responds with return code 200, 405 and 5XX.</p><p>Example of communication with the server:</p><p.type>unadvise all
 200</p.type></dd>
                 </dl>
+                <p>SDAP also allows detection of KNX connection status using special logical (switch) data object named <type>Control.Connected</type>. Object is used in the same way as normal group addresses, it can be subscribed for advising too:</p>
+                <p.type>get Control.Connected
+200 1
+Control.Connected true</p.type>
               </text>
             </section>
             <section level="3">
@@ -914,6 +1009,13 @@ user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
                 <p.type>&lt;xmlsocket&gt;
   &lt;disconnect/&gt;
 &lt;/xmlsocket&gt;</p.type>
+                <p>XMLSocket is able to detect KNX connection status similarly as SDAP, if name of special logical data object <type>Control.Connected</type> is used. Example of advise message from server:</p>
+                <p.type>&lt;xmlsocket&gt;
+  &lt;notify&gt;
+    &lt;name&gt;Control.Connected&lt;/name&gt;
+    &lt;value&gt;false&lt;/value&gt;
+   &lt;/notify&gt;
+&lt;/xmlsocket&gt;</p.type>
               </text>
             </section>
           </text>
@@ -932,7 +1034,7 @@ user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
                   <dt><file>Template.xcf</file></dt>
                   <dd><p>A file with frame of application for Pronto. The application can be directly loaded to ProntoEdit and further modified. The application contains several displays for the A/V control and two displays (inside EIB equipment), which allow to control lights and blinds.</p><p>In the example, there is immediately obvious the kind of communication with EIB: The main JavaScript connected with the EIB equipment assures the communication with help of SDAP; what and how should be communicated<c.special what="dash" />this complies each of both immersed screens at its display to the main JavaScript and it itself then reach on incoming values. </p><p>The main communication script is stored in <gui>EIB/EIB Properties</gui> branch in <gui>Advanced</gui> tab.</p></dd>
                   <dt><file>Main.js</file></dt>
-                  <dd><p>The main JavaScript are independently separated from previous file for simpler view. <type>IP_ADDRESS</type> variable is defined in introduction of the script; at the use it must be set to proper address of the SmartServer.</p><p><type>System.SetReadObjects</type>, <type>System.PageUpdate</type> and <type>System.ConnectionCheck</type> are the part of script of this method. These methods use scripts of pages for setting of communication of requested data items, reaction to their value and the new value and reaction to actual status of the communication. </p><p>Connection with the server is repeatedly established and terminated, because Pronto Script at transfer to StandBy mode incorrectly closes the TCP connection.</p></dd>
+                  <dd><p>The main JavaScript are independently separated from previous file for simpler view. <type>IP_ADDRESS</type> variable is defined in introduction of the script; at the use it must be set to proper address of the SmartServer.</p><p>Functions <type>System.SetReadObjects</type>, <type>System.PageUpdate</type> and <type>System.ConnectionCheck</type> are the part of this script. These methods use scripts of pages for setting of communication of requested data items, reaction to their value and the new value and reaction to actual status of the communication. </p><p>Connection with the server is repeatedly established and terminated, because Pronto Script at transfer to StandBy mode incorrectly closes the TCP connection.</p></dd>
                   <dt><file>Page.js</file></dt>
                   <dd><p>JavaScript from the page for control of lights. In <file>Template.xcf</file>, the script is recorded in <gui>EIB/Lights</gui> branch in <gui>Advanced</gui> tab. </p><p>The above-mentioned methods from <file>Main.js</file> script are clearly used in the script.</p></dd>
                   <dt><file>ButtonSwitch.js</file></dt>
@@ -941,6 +1043,88 @@ user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
                   <dd><p>JavaScript from the push-button for dimming (reduction of brightness). In <file>Template.xcf</file>, the script is recorded in <gui>Templates/Lights</gui> branch, in <gui>Dimming</gui> push-button, in <gui>Actions</gui> tab.</p><p>The script for dimming (at holding of the push-button the brightness is continuously reduced), the script refers to variables defined in <file>Page.js</file> script.</p></dd>
                   <dt><file>BlindsDown.js</file></dt>
                   <dd><p>JavaScript from the push-button for blind close. In <file>Template.xcf</file>, the script is recorded in <gui>Templates/Blinds</gui> branch, in <gui>BlindsDown</gui> push-button, in <gui>Actions</gui> tab.</p><p>The script starts long movement (<type>CentralLong</type>) and counts time of button pressing. If the button is released in two seconds, the script stops the movement by writing a value to <type>CentralStep</type> object.</p></dd>
+                </dl>
+                <p>The following example shows page script (similar to <file>Page.js</file>) with explanation of its parts. For better understanding it is good to know ProntoScript and JavaScript language in common:</p>
+                <p.type>// 1.
+deviceState = new CO( "3/0/12", "switch", widget( "DeviceDisplay" ));
+// 2.
+deviceControl = new CO( "3/1/12", "switch" );
+
+// 3.
+System.ConnectionCheck = function( Connected ) {
+  status = widget( "CommunicationStatus" );
+  if( Connected ) {
+    status.setImage( System.Image( "ConnectionStateOK" ));
+  } else {
+    status.setImage( System.Image( "ConnectionStateError" ));
+  }
+}
+
+// 4.
+System.SetReadObjects( new Array(
+  deviceState
+));
+
+// 5.
+System.PageUpdate = function( CO ) {
+  if( CO.widget == null ) {
+    // do nothing
+  } else if( CO.value == "true" ) {
+    CO.widget.setImage( CF.widget( "On1", "Res", "Sys" ).getImage(), 0 );
+    CO.widget.setImage( CF.widget( "On2", "Res", "Sys" ).getImage(), 1 );
+  } else {
+    CO.widget.setImage( CF.widget( "Off1", "Res", "Sys" ).getImage(), 0 );
+    CO.widget.setImage( CF.widget( "Off2", "Res", "Sys" ).getImage(), 1 );
+  }
+}</p.type>
+                <il numbered="yes">
+                  <caption>Meaning of the parts:</caption>
+                  <li><p>Here data object (= communication object = CO) with help of three-parameter constructor (<type>CO</type>) allowing store of user interface widget (function <type>widget</type> of ProntoScript, see ProntoScript documentation) is created. The object with group address <type>3/0/12</type> and of type <type>switch</type> is created, moreover, the object remembers reference to user interface widget named <gui>DeviceDisplay</gui>. The reference will be used later (in the <type>PageUpdate</type> function).</p></li>
+                  <li><p>Two-parameter constructor <type>CO</type> does not store any user interface reference. This is typical for data objects used only for sending values to SmartServer. Next in the script the object is not used, it also shows that objects is used later elsewhere. The data objects is only prepared by the page script.</p></li>
+                  <li><p>Usage of <file>Main.js</file> script function <type>ConnectionCheck</type>. <file>Main.js</file> calls <type>ConnectionCheck</type> (if it is not <type>null</type>) periodicaly, so the page script can display connection status. The used script searches for display widget named <gui>ConnectionStatus</gui> and sets its displayed image.</p></li>
+                  <li><p>Another <file>Main.js</file> function. Calling of <type>SetReadObjects</type> forces <file>Main.js</file> to periodicaly read values of all objects passed into the function. Page script does need bother with it anymore. If some value is read, <file>Main.js</file> calls <type>PageUpdate</type> function (if it is not <type>null</type>).</p><p>If pages are switched in Pronto application, <type>SetReadObjects</type> should be called with new data objects or with <type>null</type>, if no data should be read for the page.</p></li>
+                  <li><p><type>System.PageUpdate</type> function assignment, <file>Main.js</file> calls the function after each value receiving. In used script, there is reference to widget stored in data objects used for fast access to the widget<c.special what="dash" />for widget's image switching.</p></li>
+                </il>
+                <p>Scripts for Pronto allows arbitrary programming, so all shown examples can be modified or extended according to particular application needs. Next example shows page script, which does not display any changed values (it, e.g., contains only control buttons):</p>
+                <p.type>// 2.
+deviceControl = new CO( "3/1/12", "switch" );
+
+// 3.
+System.ConnectionCheck = function( Connected ) {
+  status = widget( "CommunicationStatus" );
+  if( Connected ) {
+    status.setImage( System.Image( "ConnectionStateOK" ));
+  } else {
+    status.setImage( System.Image( "ConnectionStateError" ));
+  }
+}
+
+// 4.
+System.SetReadObjects( null );
+
+// 5.
+System.PageUpdate = null;</p.type>
+                <p>In the page with both shown scripts there can be for example the button containing the following script:</p>
+                <p.type>deviceControl.Write( "true" );</p.type>
+                <p>The last example shows start of <file>Main.js</file>, where principal constants are defined. These constants are freely modifiable:</p>
+                <p.type>var DEBUG = true;
+var CORE_PERIOD = 200;
+var COMMUNICATE_EACH = 4; // count of periods
+
+var IP_ADDRESS = "10.0.1.133";
+var IP_PORT = "6007";</p.type>
+                <dl>
+                  <caption>Meanings of constats are:</caption>
+                  <dt><type>DEBUG</type></dt>
+                  <dd><p>Settings of debugging information flag, example scripts use the flag rarely.</p></dd>
+                  <dt><type>CORE_PERIOD</type></dt>
+                  <dd><p>Period in milliseconds, internal tick of <file>Main.js</file> script. In the ticks, e.g., the liveness of connection is checked. Shorter times could bring some problems due to performance of Pronto and due to communication medium used (WiFi).</p></dd>
+                  <dt><type>COMMUNICATE_EACH</type></dt>
+                  <dd><p>Number of <type>CORE_PERIOD</type> periods, after which <file>Main.js</file> reads data objects stated by <type>SetReadObjects</type> function call.</p></dd>
+                  <dt><type>IP_ADDRESS</type></dt>
+                  <dd><p>IP address of computer running SmartServer.</p></dd>
+                  <dt><type>IP_PORT</type></dt>
+                  <dd><p>IP port on which SmartServer listens for incoming connections.</p></dd>
                 </dl>
               </text>
             </section>

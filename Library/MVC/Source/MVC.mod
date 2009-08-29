@@ -7,6 +7,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   accesslist,
    HttpConnection,
    HttpTools,
    LanguagesO,
@@ -1033,7 +1034,10 @@ END CHttpResponse;
 CLASS CMVC IMPLEMENTS HttpSrv.IHttpProcessor, IMessageSource, IMVC;
 
    // IHttpProcessor
+   PUBLIC VIRTUAL READONLY PROPERTY
+      RequestLogger : Log.TPILogger;
    PUBLIC VIRTUAL PROCEDURE AppliesFor( Verb : HttpCommon.TVerb; CONST URL : ARRAY OF WCHAR; OUT WantsSession : BOOLEAN ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE AllowedFor( Connection : HttpConnection.TPHttpSrvConnection ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE ProcessRequest( Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession );
    PUBLIC VIRTUAL PROCEDURE SessionExpired( CONST Session : HttpSrv.TPSession );
    
@@ -1051,6 +1055,8 @@ CLASS CMVC IMPLEMENTS HttpSrv.IHttpProcessor, IMessageSource, IMVC;
 
    PUBLIC VIRTUAL PROPERTY
       MessageSourcePath : StringsO.CString;
+      Logger : Log.TPILogger;
+      AccessList : accesslist.TPAccessList;
 
    // SELF
    PUBLIC PROCEDURE Init( CONST Context : StringsO.CString );
@@ -1063,6 +1069,8 @@ CLASS CMVC IMPLEMENTS HttpSrv.IHttpProcessor, IMessageSource, IMVC;
       _MessageSourcePath : StringsO.CString;
       _Messages : Resources.TPPlainResources;
       _MessagesLock : Sync.LOCK;
+      _Logger : Log.TPILogger := NIL;
+      _AccessList : accesslist.TPAccessList := NIL;
 
    PUBLIC PROCEDURE Dispose();
 
@@ -1077,6 +1085,13 @@ END CMVC;
 (*================================================================================*)
 
 CLASS IMPLEMENTATION CMVC;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROPERTY RequestLogger GET : Log.TPILogger;
+   BEGIN
+      RETURN _Logger;
+   END RequestLogger;
 
 //--------------------------------------------------------------------------------
 
@@ -1101,6 +1116,17 @@ CLASS IMPLEMENTATION CMVC;
          RETURN FALSE;
       END;
    END AppliesFor;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROCEDURE AllowedFor( Connection : HttpConnection.TPHttpSrvConnection ) : BOOLEAN;
+   BEGIN
+      IF _AccessList = NIL THEN
+         RETURN TRUE;
+      ELSE
+         RETURN _AccessList^.AllowedForConnection( Connection );
+      END;
+   END AllowedFor;
 
 //--------------------------------------------------------------------------------
 
@@ -1175,7 +1201,7 @@ CLASS IMPLEMENTATION CMVC;
          Connection^.StatusCode := HttpCommon.httpres_500;
       ELSIF view = NIL THEN
          Connection^.StatusCode := HttpCommon.httpres_500;
-         Log.logger()^.LogS( Log.dlcError, L"MVC", L"Controller returned TRUE but it did not prepare View." );
+         _Logger^.LogS( Log.dlcError, L"MVC", L"Controller returned TRUE but it did not prepare View." );
          ASSERTLOG( FALSE, L"Controller returned TRUE but it did not prepare View." );
       ELSE
          Connection^.StatusCode := HttpCommon.httpres_200;
@@ -1191,7 +1217,7 @@ CLASS IMPLEMENTATION CMVC;
                Connection^.ResponseLength := CARD64( buffer.Length );
                Result := Connection^.Stream^.WriteBuffer( buffer, OUT l, netsocket.FORSAFETY );
                IF Result NOT IN Sync.arsCompletions THEN
-                  Log.logger()^.LogS( Log.dlcError, L"MVC", L"Failure when writing output buffer to stream." );
+                  _Logger^.LogS( Log.dlcError, L"MVC", L"Failure when writing output buffer to stream." );
                END;
             END;
          //-----
@@ -1215,7 +1241,7 @@ CLASS IMPLEMENTATION CMVC;
          | votOutputStream :
             IF NOT view^.FormatToOutputStream( request, REF response, Connection^.Stream ) THEN
                Connection^.StatusCode := HttpCommon.httpres_500;
-               Log.logger()^.LogS( Log.dlcError, L"MVC", L"Failure when formatting View to output stream." );
+               _Logger^.LogS( Log.dlcError, L"MVC", L"Failure when formatting View to output stream." );
             END;
          ELSE
             ASSERTLOG( FALSE );
@@ -1375,6 +1401,40 @@ CLASS IMPLEMENTATION CMVC;
 
 //--------------------------------------------------------------------------------
 
+   PUBLIC VIRTUAL PROPERTY Logger GET : Log.TPILogger;
+   BEGIN
+      RETURN _Logger;
+   END Logger;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC VIRTUAL PROPERTY Logger SET( Value : Log.TPILogger );
+   BEGIN
+      IF _Logger = Value THEN
+         RETURN;
+      ELSIF Value = NIL THEN
+         _Logger := Log.logger();
+      ELSE
+         _Logger := Value;
+      END;
+   END Logger;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROPERTY AccessList GET : accesslist.TPAccessList;
+   BEGIN
+      RETURN _AccessList;
+   END AccessList;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROPERTY AccessList SET( Value : accesslist.TPAccessList );
+   BEGIN
+      _AccessList := Value;
+   END AccessList;
+
+//--------------------------------------------------------------------------------
+
    PUBLIC PROCEDURE Init( CONST Context : StringsO.CString );
    BEGIN
       _Context := Context;
@@ -1448,6 +1508,7 @@ CLASS IMPLEMENTATION CMVC;
 BEGIN
    _FallbackController := NIL;
    _Messages := NIL;
+   _Logger := Log.logger();
 FINALLY
    Dispose();
 END CMVC;

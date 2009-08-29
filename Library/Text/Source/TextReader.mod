@@ -150,6 +150,7 @@ CLASS IMPLEMENTATION CTextReader;
          //-----
          | srCommentaryLine :
             // full line is ommited, continue
+            INC( SELF.Line );
          //-----
          | srIncompleteLine, srIncompleteLineBufferFull :
             IF dl > 0 THEN

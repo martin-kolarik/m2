@@ -61,9 +61,11 @@
         <OutputName Condition="$(OutputName)=='' And $(Result)=='Dynamic'">$(ResultName).dll</OutputName>
         <OutputName Condition="$(OutputName)=='' And $(Result)=='Program'">$(ResultName).exe</OutputName>
         <OutputPDBName Condition="$(OutputPDBName)=='' And $(Result)!='Static'">$(ResultName).pdb</OutputPDBName>
+        <OutputMAPName Condition="$(OutputMAPName)=='' And $(Result)!='Static'">$(ResultName).map</OutputMAPName>
         <OutputFile>$(OutputDir)\$(OutputName)</OutputFile>
         <OutputFilePath>$(OutputPath)\$(OutputName)</OutputFilePath>
         <OutputPDBFilePath Condition="$(OutputPDBName)!=''">$(OutputPath)\$(OutputPDBName)</OutputPDBFilePath>
+        <OutputMAPFilePath Condition="$(OutputMAPName)!=''">$(OutputPath)\$(OutputMAPName)</OutputMAPFilePath>
         <InterfaceNamePath>$(OutputPath)\$(MSBuildProjectName)</InterfaceNamePath>
         <!-- !! without .lib -->
         <InterfacePath>$(OutputPath)\$(OutputName)</InterfacePath>
@@ -197,7 +199,7 @@
     </Target>
 
     <Target Name="DoDummyProductBuildNumberGet" Condition="$(ComponentType)!='Product'">
-        <CreateProperty Value="0.0.0">
+        <CreateProperty Condition="$(InheritedProductVersion)!=''" Value="$(InheritedProductVersion)">
             <Output TaskParameter="Value" PropertyName="ProductVersion"></Output>
         </CreateProperty>
     </Target>
@@ -312,7 +314,7 @@
 
         <!-- components which are not built must offer their runtimes -->
         <CreateItem Condition="$(Level)!='0' And $(PropagateBuild)=='off'"
-                    Include="$(OutputFilePath);$(OutputPDBFilePath)"
+                    Include="$(OutputFilePath);$(OutputPDBFilePath);$(OutputMAPFilePath)"
                     AdditionalMetadata="Type=Runtime">
             <Output TaskParameter="Include" ItemName="Grabbed"/>
         </CreateItem>
@@ -660,7 +662,7 @@
             DependsOnTargets="ProductBuildNumberGet">
         <MSBuild Projects="@(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"
                  Targets="BuildAll"
-                 Properties="DeepFlag=off;Parameters=%(Components.Parameters);$(ChildParameters);ProductVersion=$(ProductVersion)"
+                 Properties="DeepFlag=off;Parameters=%(Components.Parameters);$(ChildParameters);InheritedProductVersion=$(ProductVersion)"
                  StopOnFirstFailure="true">
             <Output TaskParameter="TargetOutputs" ItemName="Compiled"/>
         </MSBuild>
@@ -671,7 +673,7 @@
         <!-- Exec Command="msbuild -clp:nosummary -v:m -t:RebuildAll -p:DeepFlag=on;Parameters=%(Components.Parameters);$(ChildParameters);%(Components.Filename)Batch=on @(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"/ -->
         <MSBuild Projects="@(Components -> '$(RootDir)\%(Identity)\%(Filename).proj')"
                  Targets="RebuildAll"
-                 Properties="DeepFlag=on;Parameters=%(Components.Parameters);$(ChildParameters);ProductVersion=$(ProductVersion);%(Components.Filename)Batch=on"
+                 Properties="DeepFlag=on;Parameters=%(Components.Parameters);$(ChildParameters);InheritedProductVersion=$(ProductVersion);%(Components.Filename)Batch=on"
                  StopOnFirstFailure="true">
             <Output TaskParameter="TargetOutputs" ItemName="Compiled"/>
         </MSBuild>
@@ -696,5 +698,20 @@
     <Target Name="SetupBuild" DependsOnTargets="Directories;CheckSetup;ProductBuildNumberGet;CreateSetup" />
     <Target Name="SetupClean" DependsOnTargets="CleanSetup" />
     <Target Name="SetupRebuild" DependsOnTargets="CleanSetup;Directories;ProductBuildNumberGet;CreateSetup" />
+
+    <!-- deploy tasks -->
+    <Target Name="DeployDebug">
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RebuildAllComponents" Properties="ConfigurationName=Debug" StopOnFirstFailure="true" />
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="ConfigurationName=Debug;Language=Czech" StopOnFirstFailure="true" />
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="ConfigurationName=Debug;Language=English" StopOnFirstFailure="true" />
+    </Target>
+
+    <Target Name="DeployRelease">
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RebuildAllComponents" Properties="ConfigurationName=Release" StopOnFirstFailure="true" />
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="ConfigurationName=Release;Language=Czech" StopOnFirstFailure="true" />
+        <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="SetupRebuild" Properties="ConfigurationName=Release;Language=English" StopOnFirstFailure="true" />
+    </Target>
+
+    <Target Name="Deploy" DependsOnTargets="DeployRelease;DeployDebug" />
 
 </Project>

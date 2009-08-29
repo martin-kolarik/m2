@@ -37,6 +37,7 @@ TYPE
       sdap404 = 404, // bad parameter value
       sdap405 = 405, // resource not found
       sdap406 = 406, // resource error
+      sdap407 = 407, // resource readonly
 
       // server problems
       sdap500 = 500, // internal server error
@@ -60,8 +61,9 @@ CLASS CSDAPServer( netconndispatch.CDispatcher ) IMPLEMENTS io.IStartStopControl
    // SELF
    PRIVATE VAR
       _Device : adviser.TPAdvisedDevice := NIL;
-      _CommonLogger : log.TPLogger := NIL;
-      _ConfigurationLogger : log.TPLogger := NIL;
+      _CommonLogger : log.TPILogger := NIL;
+      _NetworkLogger : log.TPILogger := NIL;
+      _ConfigurationLogger : log.TPBufferedLogger := NIL;
       _ListenAddress : inetaddr.INETADDR;
       _Running : BOOLEAN := FALSE;
       _Clients : maps.CPtrMap;
@@ -73,8 +75,9 @@ CLASS CSDAPServer( netconndispatch.CDispatcher ) IMPLEMENTS io.IStartStopControl
 
    PUBLIC PROPERTY
       Device : adviser.TPAdvisedDevice;
-      CommonLogger : log.TPLogger;
-      ConfigurationLogger : log.TPLogger;
+      CommonLogger : log.TPILogger;
+      NetworkLogger : log.TPILogger;
+      ConfigurationLogger : log.TPBufferedLogger;
       ListenAddress : inetaddr.INETADDR;
 
    INTERNAL VIRTUAL PROCEDURE OnConnect( Connection : netconndispatch.TConnectionHandle; Local : BOOLEAN; Error : CARDINAL );

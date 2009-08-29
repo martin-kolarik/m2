@@ -8,6 +8,7 @@ IMPORT
    HttpSrv,
    inetaddr,
    lists,
+   Log,
    sha256,
    StringsO,
    Sync,
@@ -156,6 +157,7 @@ ABSTRACT CLASS ASrvCommon( threadpool.APoolDelegate ) IMPLEMENTS HttpSrv.IHttpSe
       _Processors : lists.CPtrList;
       _Pool : threadpool.CThreadPool;
       _PreparedStream : TPSrvStream;
+      _Logger : Log.CBufferedLogger;
       _Seed : INT64;
 
    PRIVATE PROCEDURE GetSessionForPreparedStream( processor : ADDRESS ) : TPSrvSession;

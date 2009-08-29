@@ -250,6 +250,7 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    // self
    PUBLIC READONLY PROPERTY
       Configuration : StringsO.TPString;
+      Connection : StringsO.CString; // information about device connection, read from configuration
    PUBLIC PROCEDURE LoadConfiguration( CONST ConfigurationFile : StringsO.IString; OUT ErrorMessage : StringsO.CString; OUT ErrorLine : CARDINAL ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE Dispose();
 

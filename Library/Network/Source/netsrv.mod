@@ -20,6 +20,7 @@ IMPORT
   msgqueue,
   netpool,
   Storage,
+  Strings,
   Sync,
   threadpool,
   winerror,
@@ -516,6 +517,7 @@ CLASS IMPLEMENTATION CIPServer;
 
    LOCAL PROCEDURE StartListen( Type : netsocket.TSocketType; CONST LocalAddress : inetaddr.INETADDR; PMulticastGroup : inetaddr.TPINETADDR; PStreamCreator : TPListener; AutomaticCloseTimeMS : CARDINAL; PCreatedSocket : POINTER TO netsocket.TPSSocket ) : CARDINAL;
    VAR
+      countString : ARRAY [0..31] OF WCHAR;
       Error : CARDINAL;
       Message : TMessage;
       Result : Sync.TAsyncResult;
@@ -548,7 +550,8 @@ CLASS IMPLEMENTATION CIPServer;
       Message.CloseTime := AutomaticCloseTimeMS;
       Result := MQueue.EnqueueOA( Message, TRUE, Sync.FORSAFETY );
       IF Result NOT IN Sync.arsStarts THEN
-         ASSERTLOG( Result <> Sync.arTimeout );
+         Strings.FromCARD32W( 10, MQueue.Count, OUT countString );
+         ASSERTLOG( Result <> Sync.arTimeout, countString );
          Socket^.Release();
          RETURN -1;
       END;
@@ -568,6 +571,7 @@ CLASS IMPLEMENTATION CIPServer;
 
   LOCAL PROCEDURE StopListenServer( CONST LocalAddress : inetaddr.INETADDR; Type : netsocket.TSocketType );
   VAR
+    countString : ARRAY [0..31] OF WCHAR;
     Message : TMessage;
     Result : Sync.TAsyncResult;
   BEGIN
@@ -575,20 +579,27 @@ CLASS IMPLEMENTATION CIPServer;
     Message.Server := LocalAddress;
     Message.Type := Type;
     Result := MQueue.EnqueueOA( Message, TRUE, Sync.FORSAFETY );
-    ASSERTLOG( Result <> Sync.arTimeout );
+    IF Result NOT IN Sync.arsStarts THEN
+      Strings.FromCARD32W( 10, MQueue.Count, OUT countString );
+      ASSERTLOG( Result <> Sync.arTimeout );
+    END;
   END StopListenServer;
   
 //--------------------------------------------------------------------------------
 
   LOCAL PROCEDURE StopListenSocket( Socket : netsocket.TPSSocket );
   VAR
+    countString : ARRAY [0..31] OF WCHAR;
     Message : TMessage;
     Result : Sync.TAsyncResult;
   BEGIN
     Message.Command := cmForgetSocket;
     Message.Socket := Socket;
     Result := MQueue.EnqueueOA( Message, TRUE, Sync.FORSAFETY );
-    ASSERTLOG( Result <> Sync.arTimeout );
+    IF Result NOT IN Sync.arsStarts THEN
+      Strings.FromCARD32W( 10, MQueue.Count, OUT countString );
+      ASSERTLOG( Result <> Sync.arTimeout );
+    END;
   END StopListenSocket;
 
 //--------------------------------------------------------------------------------

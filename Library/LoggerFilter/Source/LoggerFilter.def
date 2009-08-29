@@ -1,0 +1,41 @@
+DEFINITION MODULE LoggerFilter;
+
+(*===========================================================================*)
+
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
+IMPORT
+   iLog,
+   lists,
+   log,
+   StringsO;
+
+(*===========================================================================*)
+
+#save, option( dll_export => on )
+
+CLASS CLoggerFilter IMPLEMENTS iLog.IFilter;
+
+   // IFilter
+   PUBLIC VIRTUAL PROPERTY
+      Level : log.TDebugLevel; // what (and less) will be present in log
+   
+   PUBLIC VIRTUAL PROCEDURE Filtered( Level : iLog.TDebugLevel; CONST Prefix : ARRAY OF WCHAR ) : BOOLEAN;
+
+   // SELF   
+   PUBLIC PROCEDURE Reset();
+   PUBLIC PROCEDURE AddRule( Allow, Deny : BOOLEAN; CONST Pattern : StringsO.IString ); // if allow/deny conflicts, deny wins
+   
+   // privates
+   PRIVATE VAR
+      _Filter : lists.CStringList;
+      _Level : log.TDebugLevel;
+
+END CLoggerFilter;
+
+#restore
+
+(*===========================================================================*)
+
+END LoggerFilter.

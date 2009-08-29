@@ -2,8 +2,7 @@
 <Wix xsi:schemaLocation="http://schemas.microsoft.com/wix/2003/01/wi wix.xsd" xmlns="http://schemas.microsoft.com/wix/2003/01/wi" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xse="http://schemas.microsoft.com/wix/2005/XmlSchemaExtension" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ns="http://schemas.microsoft.com/wix/2003/01/wi" xmlns:html="http://www.w3.org/1999/xhtml" xmlns:hfp="http://www.w3.org/2001/XMLSchema-hasFacetAndProperty">
     <Product Codepage="$(var.CodePage)" Language="$(var.Language)" Manufacturer="$(var.Manufacturer)" Name="$(var.ProductDescription)" Version="$(var.ProductVersion)" Id="$(var.ProductGUID)" UpgradeCode="$(var.UpgradeGUID)">
         <Package Compressed="yes" Id="????????-????-????-????-????????????" Languages="$(var.Language)" SummaryCodepage="$(var.CodePage)" />
-        <Media Cabinet="Product.Cab" EmbedCab="yes" Id="1">
-        </Media>
+        <Media Cabinet="Product.Cab" EmbedCab="yes" Id="1" />
         <Directory Id="TARGETDIR" Name="SourceDir">
             <?if $(var.CLib)=Shared ?>
             <?if $(var.ConfigurationName)=Debug ?>
@@ -14,8 +13,21 @@
             <Merge Id="VC8Policy" SourceFile="C:\Program Files\Common Files\Merge Modules\policy_8_0_Microsoft_VC80_CRT_x86.msm" Language="1033" DiskId="1" />
             <?endif ?>
             <?endif ?>
+            <Directory Id="CommonAppDataFolder">
+                <Directory Id="NeNoData" Name="$(var.Manufacturer)">
+                    <Component Id="CommonAppFolderPermissions" Guid="04862C22-D968-4b8c-9B78-7BCD4190B11C">
+                        <CreateFolder>
+                            <Permission GenericAll="yes" User="SYSTEM" />
+                            <Permission GenericAll="yes" User="Administrators" />
+                            <Permission GenericRead="yes" GenericWrite="yes" GenericExecute="yes" Delete="yes" DeleteChild="yes" WriteAttributes="yes" WriteExtendedAttributes="yes" User="Users" />
+                            <Permission GenericRead="yes" GenericExecute="yes" User="Everyone" />
+                        </CreateFolder>
+                        <RemoveFolder Id="CommonAppFolderPermissionsRemove" On="uninstall"/>
+                    </Component>
+                </Directory>
+            </Directory>
             <Directory Id="ProgramFilesFolder">
-                <Directory Id="NeNo" Name="NeNo">
+                <Directory Id="NeNoProgram" Name="$(var.Manufacturer)">
                     <Directory Id="INSTALLDIR" Name="EibSrv">
                         <Component Guid="7661D6C7-3F2E-4990-815B-36609A99DE62" Id="Program">
                             <File DiskId="1" Id="EibSrv.EXE" Name="EibSrv.exe" Source="EibSrv.exe" Vital="yes" KeyPath="yes" />
@@ -31,6 +43,14 @@
                         <Component Guid="4FAC646A-EC30-4304-859A-14AB268C4B70" Id="MVCLib">
                             <File Id="SCMVC.DLL" Name="SCMVC.dll" Source="SCMVC.dll" DiskId="1" Vital="yes" KeyPath="yes" />
                             <ServiceControl Id="SVCControlMVCLib" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
+                        </Component>
+                        <Component Guid="14B49790-AE67-4a20-9852-C1935C7763D3" Id="DebugInfo">
+                            <File Id="EibSrv.PDB" Name="eibsrv.pdb" Source="eibsrv.pdb" DiskId="1" KeyPath="yes"/>
+                            <File Id="ScMvc.PDB" Name="scmvc.pdb" Source="scmvc.pdb" DiskId="1" />
+                            <File Id="ScCore.PDB" Name="sccore.pdb" Source="sccore.pdb" DiskId="1" />
+                            <File Id="EibSrv.MAP" Name="eibsrv.map" Source="eibsrv.map" DiskId="1" />
+                            <File Id="ScMvc.MAP" Name="scmvc.map" Source="scmvc.map" DiskId="1" />
+                            <File Id="ScCore.MAP" Name="sccore.map" Source="sccore.map" DiskId="1" />
                         </Component>
                         <Component Id="XMLLite.DLL" Guid="55B6DF2F-AD20-441f-9C80-562C89EE7A75">
                             <File Id="xmllite.dll" Name="xmllite.dll" Source="$(var.BuildRoot)\xmllite.dll" DiskId="1" Vital="yes" KeyPath="yes" />
@@ -129,7 +149,8 @@
                                     <File Id="Main.js" LongName="Main.js" Name="MAIN.JS" Source="Examples\Philips Pronto\Main.js" DiskId="1" />
                                     <File Id="Page.js" LongName="Page.js" Name="PAGE.JS" Source="Examples\Philips Pronto\Page.js" DiskId="1" />
                                     <File Id="TemperaturesPage.js" LongName="TemperaturesPage.js" Name="TEMPPAGE.JS" Source="Examples\Philips Pronto\TemperaturesPage.js" DiskId="1" />
-                                    <File Id="Template.xcf" LongName="Template.xcf" Name="TEMPLAT.XCF" Source="Examples\Philips Pronto\Template.xcf" DiskId="1" />
+                                    <File Id="Template_TSU9600_v1.xcf" LongName="Template_TSU9600_v1.xcf" Name="TEMP6V1.XCF" Source="Examples\Philips Pronto\Template_TSU9600_v1.xcf" DiskId="1" />
+                                    <File Id="Template_TSU9600_v2.xcf" LongName="Template_TSU9600_v2.xcf" Name="TEMP6V2.XCF" Source="Examples\Philips Pronto\Template_TSU9600_v2.xcf" DiskId="1" />
                                 </Component>
                             </Directory>
                         </Directory>
@@ -173,6 +194,9 @@
             <MergeRef Id="VC8Policy" />
         </Feature>
         <?endif ?>
+        <Feature Id="Permissions" Level="1" AllowAdvertise="no" Display="hidden">
+            <ComponentRef Id="CommonAppFolderPermissions" />
+        </Feature>
         <Feature ConfigurableDirectory="INSTALLDIR" Id="Complete" Level="1">
             <ComponentRef Id="Program" />
             <ComponentRef Id="RuntimeLib" />
@@ -194,6 +218,10 @@
             <ComponentRef Id="LeakDetector" />
             <?endif ?>
         </Feature>
+        <Feature ConfigurableDirectory="INSTALLDIR" Id="DebugInfo" Level="0">
+            <Condition Level="1">DEBUG_INFO</Condition>
+            <ComponentRef Id="DebugInfo" />
+        </Feature>
         <Property Id="XMLLITEEXISTS">
             <DirectorySearch Id="CheckXmlLiteDir" Path="[SystemFolder]" Depth="0">
                 <FileSearch Id="CheckXmlLiteFile" Name="xmllite.dll" />
@@ -207,5 +235,6 @@
         <UI />
         <Icon Id="AddRemoveIcon" SourceFile="EibSrv.ico" />
         <?include $(var.BuildRoot)\Manufacturer.wxs ?>
+        <?include $(var.BuildRoot)\Upgrade.wxs ?>
     </Product>
 </Wix>

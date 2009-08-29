@@ -4,7 +4,7 @@ FROM Debug IMPORT
    Assertion, LogAssertionW;
 
 FROM Log IMPORT
-   logger, dlcError, dlcWarning, dlcInfo;
+   dlcError, dlcWarning, dlcInfo;
    
 IMPORT
    cphcommon,
@@ -13,6 +13,7 @@ IMPORT
    HttpConnection,
    httptools,
    IOO,
+   Languages,
    maps,
    netsocket,
    rijndael,
@@ -25,6 +26,9 @@ IMPORT
    windows,
    winerror,
    XMLWriter;
+   
+CONST
+   LOG_HTTP = L"HTTP";
 
 (*================================================================================*)
 
@@ -1017,9 +1021,12 @@ CLASS IMPLEMENTATION HttpWorker;
 (*--------------------------------------------------------------------------------*)
 
    LOCAL VIRTUAL PROCEDURE Run();
+   CONST
+      HTTP_COMMON_LOG_TIME_FORMAT = L"dd/MMM/yyyy:HH:mm:ss +0000";
    VAR
       Connection : CHttpConnection;
-      dt : time.DateTime;
+      dt : Time.DateTime;
+      logger : Log.TPILogger := NIL;
       s : StringsO.CString;
       sOA : ARRAY [0..255] OF WCHAR;
    BEGIN
@@ -1031,17 +1038,34 @@ CLASS IMPLEMENTATION HttpWorker;
          ASSERTLOG( _Stream^.StatusCode <> HttpCommon.httpres_200 );
       ELSE
          Connection.FromStream( _Stream );
-         _Processor^.ProcessRequest( ADR( Connection ), _Session );
+         IF _Processor^.AllowedFor( ADR( Connection )) THEN
+            _Processor^.ProcessRequest( ADR( Connection ), _Session );
+         ELSE
+            _Stream^.StatusCode := HttpCommon.httpres_403;
+         END;
+         logger := _Processor^.RequestLogger;
+      END;
+      IF logger = NIL THEN
+         logger := Log.logger();
       END;
       
-      IF NOT logger()^.Filtered( dlcInfo ) THEN
+      IF NOT logger^.Filtered( dlcError, LOG_HTTP ) THEN
+         _Stream^.RemoteAddress.GetAddressOA( FALSE, OUT sOA );
+         s.FromOA( sOA );
+         s.AppendOA( L" - - [" );
+
+         dt.SetNowUTC();
+         IF dt.ToLanguageStringOA( Languages.GetDefaultLanguage( Languages.dlNeutral ), HTTP_COMMON_LOG_TIME_FORMAT, TRUE, TRUE, OUT sOA ) THEN
+            s.AppendOA( sOA );
+         END;
+
          CASE _Stream^.RequestVerb OF
          | HttpCommon.verbPOST :
-            s.FromOA( L"POST " );
+            s.AppendOA( L'] "POST ' );
          | HttpCommon.verbHEAD :
-            s.FromOA( L"GET " );
+            s.AppendOA( L'] "HEAD ' );
          ELSE
-            s.FromOA( L"GET " );
+            s.AppendOA( L'] "GET ' );
          END;
          s.Append( _Stream^.AbsoluteURI );
          _Stream^.URIData.ToOA( OUT sOA );
@@ -1049,9 +1073,12 @@ CLASS IMPLEMENTATION HttpWorker;
             s.AppendOA( L"?" );
             s.AppendOA( sOA );
          END;
+         s.AppendOA( L'"' );
+
          Strings.FromCARD32W( CARDINAL( _Stream^.StatusCode ), 10, OUT sOA );
          s.AppendOA( L" " );
          s.AppendOA( sOA );
+
          IF _Stream^.Chunked THEN
             s.AppendOA( L" chunked" );
          ELSIF _Stream^.Length = -1 THEN
@@ -1062,7 +1089,7 @@ CLASS IMPLEMENTATION HttpWorker;
             s.AppendOA( sOA );
          END; // IF chunked
 
-         logger()^.LogS( dlcInfo, L"HTTP", OA( s.Length-1, s.rawData ));
+         logger^.LogS( dlcError, LOG_HTTP, OA( s.Length-1, s.rawData ));
       END;
       
       _Stream^.Close( FALSE );
@@ -1445,12 +1472,12 @@ CLASS IMPLEMENTATION ASrvCommon;
          END;
          IF NOT Reported THEN
             Reported := TRUE;
-            logger()^.LogS( dlcInfo, L"HTTP", L"Pool has no space, wait for a while" );
+            Log.logger()^.LogS( dlcInfo, LOG_HTTP, L"Pool has no space, wait for a while" );
          END;
 
-         Sync.Sleep( 250 );
+         Sync.Sleep( 100 );
          IF Time.UptimeMS() - Timeout > 0 THEN // time elapsed
-            logger()^.LogS( dlcWarning, L"HTTP", L"Unable to process HTTP request, pool exhausted" );
+            Log.logger()^.LogS( dlcWarning, LOG_HTTP, L"Unable to process HTTP request, pool exhausted" );
             EXIT;
          END;
       END;

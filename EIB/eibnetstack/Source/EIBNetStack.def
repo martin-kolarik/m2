@@ -26,6 +26,7 @@ CLASS CEIBNetStack( eib_stack.CEIBStack );
 
    // known: link.mode = routing|tunneling, link.address = ipaddress|multicastgroup, link.port = ipport
    INTERNAL VIRTUAL PROCEDURE ParseParameter( CONST Parameter, Value : ARRAY OF WCHAR; OUT ErrorText : ARRAY OF WCHAR ) : TRISTATE; // -1 means unknown/unprocessed
+   INTERNAL VIRTUAL PROCEDURE ConstructParameter( CONST Parameter : ARRAY OF WCHAR; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
 
    PUBLIC VIRTUAL PROCEDURE DeviceConnected() : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE EIBConnected() : BOOLEAN;

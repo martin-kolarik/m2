@@ -33,6 +33,9 @@ TYPE
       cmdDeviceStop
    );
 
+CONST
+    LOG_PREFIX = L"KnxSrv";
+
 (*================================================================================*)
 
 CLASS IMPLEMENTATION CEibSrvWeb;
@@ -284,6 +287,13 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Connection GET : StringsO.CString;
+   BEGIN
+      RETURN _EIB^.Connection;
+   END Connection;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY WrittenByHour GET : CARDINAL;
    VAR
       dt : time.DateTime;
@@ -349,14 +359,14 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY ConfigLogger GET : Log.TPLogger;
+   PUBLIC PROPERTY ConfigLogger GET : Log.TPBufferedLogger;
    BEGIN
       RETURN _ConfigLogger;
    END ConfigLogger;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY DataLogger GET : Log.TPLogger;
+   PUBLIC PROPERTY DataLogger GET : Log.TPBufferedLogger;
    BEGIN
       RETURN _DataLogger;
    END DataLogger;
@@ -411,7 +421,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       Result : Sync.TAsyncResult;
    BEGIN
       IF index >= _DeviceCount THEN
-         Log.logger()^.LogS( Log.dlcWarning, L"KnxSrv", L"OperateDevice index out of range." );
+         Log.logger()^.LogS( Log.dlcWarning, LOG_PREFIX, L"OperateDevice index out of range." );
       ELSIF StartNotStop THEN
          Result := msgqueuethread.global()^.ThreadCall( ADR( SELF ), CARDINAL( cmdDeviceStart ), OA( 0, ADR( pindex )), NIL, TRUE, Sync.FORSAFETY );
          ASSERTLOG( Result <> Sync.arTimeout );
@@ -426,7 +436,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    PUBLIC PROCEDURE DeviceRunning( index : CARDINAL ) : BOOLEAN;
    BEGIN
       IF index >= _DeviceCount THEN
-         Log.logger()^.LogS( Log.dlcWarning, L"KnxSrv", L"DeviceRunning index out of range." );
+         Log.logger()^.LogS( Log.dlcWarning, LOG_PREFIX, L"DeviceRunning index out of range." );
          RETURN FALSE;
       ELSE
          RETURN _Devices^[index]^.Running;
@@ -540,10 +550,13 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPLogger ) : BOOLEAN;
+   PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPBufferedLogger; HttpLogger : Log.TPILogger ) : BOOLEAN;
    CONST
       snServer = L"server";
       snUsers = L"users";
+      snAccessList = L"http_access_list";
+         knAllow = L"allow";
+         knDeny = L"deny";
       knWebRoot = L"web_root";
       knMessageFile = L"message_file";
    VAR
@@ -552,8 +565,8 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       line : CARDINAL;
       ok : BOOLEAN := TRUE;
       Path : ARRAY [0..260] OF WCHAR;
-      userOA : ARRAY [0..63] OF WCHAR;
-      user : StringsO.CString;
+      sOA : ARRAY [0..63] OF WCHAR;
+      s : StringsO.CString;
    BEGIN
       Stop();
 
@@ -565,6 +578,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       _Devices := ADR( Devices );
       _ConfigLogger := ConfigLogger;
       _DataLogger := DataLogger;
+      _HttpLogger := HttpLogger;
 
       IF cfg.SetSection( snServer ) AND FIO.GetModuleDirW( L"", OUT Path ) THEN // EXE dir
          IF cfg.GetKeyStr( knWebRoot, OUT line, OUT _RootDir ) THEN
@@ -578,21 +592,35 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       END;
       IF _RootDir.Empty THEN
          ok := FALSE;
-         Log.logger()^.LogS( Log.dlcError, L"KnxSrv", L"Web root is not defined, web interface will not start." );
+         Log.logger()^.LogS( Log.dlcError, LOG_PREFIX, L"Web root is not defined, web interface will not start." );
       END;
       IF _MessageFile.Empty THEN
          ok := FALSE;
-         Log.logger()^.LogS( Log.dlcError, L"KnxSrv", L"Message source for web is not defined, web interface will not start." );
+         Log.logger()^.LogS( Log.dlcError, LOG_PREFIX, L"Message source for web is not defined, web interface will not start." );
       END;
       
       IF NOT cfg.SetSection( snUsers ) THEN
          ok := FALSE;
-         Log.logger()^.LogS( Log.dlcError, L"KnxSrv", L"No users defined, web interface will not start." );
+         Log.logger()^.LogS( Log.dlcError, LOG_PREFIX, L"No users defined, web interface will not start." );
       ELSE
          es := 0;
-         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT userOA, OUT hash ) DO
-            user.FromOA( userOA );
-            _Users.Add( user, hash );
+         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT sOA, OUT hash ) DO
+            s.FromOA( sOA );
+            _Users.Add( s, hash );
+         END; // WHILE
+      END;
+      
+      IF cfg.SetSection( snAccessList ) THEN
+         es := 0;
+         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT sOA, OUT s ) DO
+            s.Trim();
+            IF EQUALS( sOA, knAllow ) THEN
+               _AccessList.AddRuleS( accesslist.actAllow, s );
+            ELSIF EQUALS( sOA, knDeny ) THEN
+               _AccessList.AddRuleS( accesslist.actDeny, s );
+            ELSE
+               ConfigLogger^.LogFilePos( Log.dlcError, LOG_PREFIX, L"Only 'allow' and 'deny' rules are allowed, the rule will be ignored.", L"(web config file)", line, 0 );
+            END; 
          END; // WHILE
       END;
       
@@ -623,6 +651,8 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       ASSERT( _MVC = NIL );
       _MVC := mvc.mvc( OA( _Context.Length-1, _Context.rawData ));
       _MVC^.MessageSourcePath := _MessageFile;
+      _MVC^.Logger := _HttpLogger;
+      _MVC^.AccessList := ADR( _AccessList );
       AddControllers();
 
       FOR i := 0 TO HIGH( _WrittenByHour ) DO
@@ -743,6 +773,8 @@ BEGIN
    _GotByHourModified[0] := 0;
    _ConfigLogger := NIL;
    _DataLogger := NIL;
+   _HttpLogger := NIL;
+   _AccessList.Policy := accesslist.actAllow;
 FINALLY
    Stop();   
 END CEibSrvWeb;

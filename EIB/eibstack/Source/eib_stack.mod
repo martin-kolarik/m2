@@ -2900,6 +2900,36 @@ CLASS IMPLEMENTATION CEIBStack;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE GetParameter( CONST Parameter : ARRAY OF WCHAR; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
+   CONST
+      kvFalse = L'false';
+      kvKnown = L'known';
+      kvTrue = L'true';
+   BEGIN
+      IF EQUALS( L"link.ackMethod", Parameter ) THEN
+         Value := kvKnown;
+      ELSIF EQUALS( L"link.outputQueueLength", Parameter ) THEN
+         Strings.FromCARD32W( TPEIBStackLinkLayer( Layers[ eltLink ] )^.L_Parameters.OutputQueueLength, 10, OUT Value );
+      ELSIF EQUALS( L"link.retryCount", Parameter ) THEN
+         Strings.FromCARD32W( TPEIBStackLinkLayer( Layers[ eltLink ] )^.L_Parameters.BUSY_Retry, 10, OUT Value );
+      ELSIF EQUALS( L"application.pendingQueueLength.read", Parameter ) THEN
+         Strings.FromCARD32W( TPEIBStackApplicationLayer( Layers[ eltApplication ] )^.A_Parameters.PendingCount[ pendingGroupRead ], 10, OUT Value );
+      ELSIF EQUALS( L"application.pendingQueueLength.write", Parameter ) THEN
+         Strings.FromCARD32W( TPEIBStackApplicationLayer( Layers[ eltApplication ] )^.A_Parameters.PendingCount[ pendingGroupWrite ], 10, OUT Value );
+      ELSIF EQUALS( L"application.promiscuousMode", Parameter ) THEN
+         IF TPEIBStackApplicationLayer( Layers[ eltApplication ] )^.A_Parameters.PromiscuousMode THEN
+            Value := kvTrue;
+         ELSE
+            Value := kvFalse;
+         END;
+      ELSE
+         RETURN ConstructParameter( Parameter, OUT Value );
+      END;
+      RETURN TRUE;
+   END GetParameter;
+
+(*--------------------------------------------------------------------------------*)
+
   PUBLIC PROCEDURE IsSelfPacket( PPacket : eib_def.TPPacket ) : BOOLEAN;
   BEGIN
     RETURN TPEIBStackLinkLayer( Layers[ eltLink ] )^.IsSelfPacket( PPacket );
@@ -2939,6 +2969,13 @@ CLASS IMPLEMENTATION CEIBStack;
   BEGIN
     RETURN -1;
   END ParseParameter;
+
+(*--------------------------------------------------------------------------------*)
+
+  INTERNAL VIRTUAL PROCEDURE ConstructParameter( CONST Parameter : ARRAY OF WCHAR; OUT Value : ARRAY OF WCHAR ) : BOOLEAN;
+  BEGIN
+    RETURN FALSE;
+  END ConstructParameter;
 
 (*--------------------------------------------------------------------------------*)
 

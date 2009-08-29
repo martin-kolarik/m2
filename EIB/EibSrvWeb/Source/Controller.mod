@@ -45,6 +45,7 @@ CONST
    DATETIME_FORMAT = L"d. MMMM H.mm:ss 'GMT'";
    STATUS_CONNECTED = L"connected";
    STATUS_CONNECTIONTIME = L"connectionTime";
+   STATUS_CONNECTION = L"connection";
    STATUS_UPTIME = L"uptime";
    STATUS_LICENCE_VALID = L"licenceValid";
    STATUS_LICENCE = L"licence";
@@ -335,6 +336,7 @@ CLASS IMPLEMENTATION CController;
          cs.FromOA( L"N/A" );
       END;
       Request.ModelContainer^.AddStringOA( STATUS_CONNECTIONTIME, cs );
+      Request.ModelContainer^.AddStringOA( STATUS_CONNECTION, _Web^.Connection );
       Request.ModelContainer^.AddBooleanOA( STATUS_CONNECT, FALSE );
       Request.ModelContainer^.AddBooleanOA( STATUS_DISCONNECT, FALSE );
       

@@ -145,7 +145,7 @@ Licence support tool
                 <p>Sekce <type>[objects]</type> a <type>[blocks]</type> shrnují všechny definice datovıch bodù KNX, které má server znát a se kterımi má komunikovat. Pro kadı datovı bod je v konfiguraci tøeba znát jeho adresu(y), datovı typ a zpùsob jeho komunikace. Sekce <type>[objects]</type> a <type>[blocks]</type> se od sebe navzájem liší zpùsobem zápisu tìchto údajù.</p>
                 <p>Obì sekce zapisují definice objektù do øádkù, <type>[objects]</type> vyaduje na kadém øádku o datovıch bodech kompletní informaci, <type>[blocks]</type> naopak pro celou skupinu datovıch bodù definuje jeden datovı typ a jeden zpùsob komunikace. <type>[objects]</type> se tak dobøe hodí pro rychlou definici nìkolika datovıch bodù, zatímco <type>[blocks]</type> dovoluje vìtší strukturovanost konfigurace.</p>
                 <p>V obou sekcích lze datové objekty definovat pomocí parametrù <type>objects</type>, <type>object</type>, <type>logged_objects</type>, <type>logged_object</type>, <type>logged_on_change_objects</type> a <type>logged_on_change_object</type>. Jejich odlišení je jednoduché: <type>objects</type>, <type>logged_objects</type> a <type>logged_on_change_objects</type> dovolují najednou definovat více datovıch objektù (kadı s jednou skupinovou adresou); <type>object</type>, <type>logged_object</type> a <type>logged_on_change_object</type> definuje jedinı datovı objekt spojenı pøípadnì s více skupinovımi adresami (model je stejnı jako pøi spojování komunikaèních objektù se skupinovımi adresami pøi bìném programování KNX v ETS).</p>
-                <p>Trojice parametrù <type>logged_on_change_objects</type>, <type>logged_objects</type> a <type>logged_object</type> slouí k definici datovıch objektù, jejich zmìny v èase budou zaznamenány v administraèní èásti webového rozhraní (v èásti <gui>Historie dat</gui>). Ukázku pouití sledovanıch datovıch objektù obsahuje napø. ukázkovı konfiguraèní soubor <file>12 test-logged.cfg</file>.</p>
+                <p>Parametry <type>logged_on_change_objects</type>, <type>logged_objects</type> a <type>logged_object</type> slouí k definici datovıch objektù, jejich zmìny v èase budou zaznamenány v administraèní èásti webového rozhraní (v èásti <gui>Historie dat</gui>). Ukázku pouití sledovanıch datovıch objektù obsahuje napø. ukázkovı konfiguraèní soubor <file>12 test-logged.cfg</file>.</p>
                 <p>V definicích datovıch bodù se pouívají pro popis podporovanıch datovıch typù klíèová slova podle tabulky <in label="tblDataTypes"></in>.</p>
                 <f.table label="tblDataTypes">
                   <caption>Datové typy</caption>
@@ -269,7 +269,7 @@ Licence support tool
                     </tr>
                   </table>
                 </f.table>
-                <p>Poslední èást definice datovıch bodù, tj. skupinové adresy, lze v konfiguraci zapisovat dvojím zpùsobem: buï jako samostatné skupinové adresy, nebo jako interval skupinovıch adres.</p>
+                <p>Poslední èást definice datovıch bodù, tj. skupinové adresy, lze v konfiguraci zapisovat dvojím zpùsobem: buï jako samostatné skupinové adresy, nebo jako interval skupinovıch adres (pomocí dvou teèek<c.special what="dash" /><type>..</type>).</p>
                 <p>Pøíklad zápisù datovıch bodù pomocí sekce <type>[objects]</type>:</p>
                 <p.type>[objects]
 objects = tracker, switch, 3/0/0..3/0/19
@@ -295,6 +295,8 @@ behaviour = transmitter
 objects = 5/3/100..5/3/119
 logged_on_change_objects = 1/7/0..1/7/9</p.type>
                 <p>Je zøejmé, e v definicích pomocí <type>[blocks]</type> je nejprve uveden vıèet blokù (sekcí), které jsou následnì zapsány. Aby se v definicích objektù nemusely typ a zpùsob komunikace opisovat, jsou vytknuty do parametru <type>type</type> a <type>behaviour</type>. Druhá ukázka pøitom definuje stejné objekty, jako první dva øádky v ukázce pouití <type>[objects]</type>.</p>
+                <p>Pøed kadou definicí datového bodu (skupinové adresy) je moné zapsat do uvozovek popis datového bodu. Tento popis se následnì ukazuje v záznamu datové komunikace (v èásti <gui>Historie dat</gui> webového rozhraní). Pøíklad popisu u datovıch bodù:</p>
+                <p.type>object = "Bedroom light", 5/2/0</p.type>
                 <p>Další ukázky zápisu datovıch bodù lze najít v souborech: <file>04 init-read.cfg</file> (datové body s vynucenım poèáteèním ètením), <file>06 complex-object.cfg</file> (datové body spojené s více skupinovımi adresami), <file>08 blocks.cfg</file> (definice datovıch bodù pomocí sekce <type>[blocks]</type>).</p>
               </text>
             </section>
@@ -359,10 +361,12 @@ date_format = dd. MMMM yyyy</p.type><p>Ve obou formátech lze vyuít formátovací 
               </text>
             </section>
             <section label="secLog" level="3">
-              <title><type>[log]</type> a <type>[datalog]</type></title>
+              <title><type>[log]</type>, <type>[datalog]</type>, <type>[httplog]</type> a <type>[networklog]</type></title>
               <text>
                 <p>Sekce <type>[log]</type> urèuje zpùsob vıpisu ladicích a informaèních zpráv serveru. Detailních zpráv mùe bıt velké mnoství, a je proto doporuèeno vypisovat bìhem bìného provozu jen chybové stavy.</p>
-                <p>Sekce <type>[datalog]</type> je doplòková a urèuje, kam bude server zapisovat kopie zpráv <gui>Historie dat</gui> webového rozhraní. Pøesmìrování kopií vıpisù lze pouít pro uchování delší historie dat, nebo data ve webovém rozhraní jsou poètem omezena. V poèáteèním nastavení není ukládání historie dat mimo webové rozhraní zapnuto.</p>
+                <p>Sekce <type>[datalog]</type> je doplòková a urèuje, jak a kam bude server zapisovat kopie zpráv <gui>Historie dat</gui> webového rozhraní. Pøesmìrování kopií vıpisù lze pouít pro uchování delší historie dat, nebo data ve webovém rozhraní jsou poètem omezena. V poèáteèním nastavení není ukládání historie dat mimo webové rozhraní zapnuto.</p>
+                <p>Sekce <type>[httplog]</type> slouí k nastavení zapisování zpráv o pøístupu k webovému rozhraní serveru. V poèáteèním nastavení jsou zprávy zapisovány podle nastavení sekce <type>[log]</type>. Zprávy dodrují <diff>Common Log Format</diff>, co je forma zápisu obecnì sdílená všemi webovımi servery. Do <type>[httplog]</type> se zapisují jen zprávy o pøístupech, chybové zprávy (chyby zpracování apod.) server zapisuje podle nastavení <type>[log]</type>.</p>
+                <p>Poslední sekce <type>[networklog]</type> slouí k oddìlenému sledování pøipojení a odpojení SDAP a XMLSocket klientù. V poèáteèním nastavení jsou zprávy zapisovány podle nastavení sekce <type>[log]</type>.</p>
                 <dl class="dlParameter">
                   <caption>Sekce definují následující parametry:</caption>
                   <dt><type>target</type></dt>
@@ -371,8 +375,12 @@ date_format = dd. MMMM yyyy</p.type><p>Ve obou formátech lze vyuít formátovací 
                   <dd><p>obsanost ladicích vıpisù, urèuje se ve ètyøech stupních podle tabulky <in label="tblLevel"></in>.</p><p>Vıchozí hodnota parametru je <type>error</type>. Pøíklad:</p><p.type>level = warning</p.type></dd>
                   <dt><type>file</type></dt>
                   <dd><p>Cesta k souboru s vıpisy. Soubor stále roste, pøi trvalıch a detailních vıpisech je proto tøeba dbát na dostatek místa na disku. Pøi pouití serveru v zabudovanıch systémech (Windows XP Embedded) není pouití souboru (pøi nastavení <type>target = file</type>) doporuèeno, pokud je disk se souborem Flash (Compact Flash<c.special what="commadots" />).</p><p>Pøíklad zápisu parametru:</p><p.type>file = z:\smartserver.log</p.type></dd>
-                  <dt><type>cached</type></dt>
+                  <dt><type>cached</type> (jen pro sekce <type>[log]</type> a <type>[datalog]</type>)</dt>
                   <dd><p>Délka historie (poèet záznamù), kterou server uchová pro úèel zobrazení ve webovém rozhraní. Poèet záznamù by nemìl bıt pøíliš velkı, nebo záznamy jsou uchovány v pamìti poèítaèe, která je omezená. Lze poèítat, e kadı záznam spotøebuje pøiblinì prùmìrnì 100 bajtù.</p><p>Vıchozí hodnota je <number>1000</number>.</p></dd>
+                  <dt><type>fiter</type> (jen pro sekce <type>[log]</type> a <type>[networklog]</type>)</dt>
+                  <dd><p>Seznam pravidel pro omezení vıpisù. Kadı øádek s parametrem <type>filter</type> urèuje jedno pravidlo, zakazující nebo povolující. Server pøi vıpisu zprávy prochází všechna pravidla a teprve podle vısledku pouití všech pravidel zprávu vypíše nebo ne. Na poèátku aplikace pravidel server pøedpokládá, e vıpis je dovolenı.</p><p>Pravidla mají formát:</p><p.type>filter = allow | deny, &lt;mask&gt;</p.type><p>kde <type>allow</type> nebo <type>deny</type> urèuje povolující nebo zakazující pravidlo a <type>&lt;mask&gt;</type> definuje textovou masku, kterou server porovnává s druhou èástí zdroje vıpisu (viz kapitolu <in.about label="secDebug"></in.about>). Napøíklad, následující pravidla zamezí vıpisu všech zpráv kromì zpráv o KNX pøipojení:</p><p.type>...
+filter = deny, *
+filter = allow, EibNet.Connection</p.type></dd>
                 </dl>
                 <f.table label="tblTarget">
                   <caption>Hodnoty parametru <type>target</type></caption>
@@ -453,11 +461,23 @@ date_format = dd. MMMM yyyy</p.type><p>Ve obou formátech lze vyuít formátovací 
             <section label="secUsers" level="3">
               <title><type>[users]</type></title>
               <text>
-                <p>Sekce [web] definuje poèáteèní dvojici uivatelù, která se mùe k serveru pøipojit. Další uivatele a jejich hesla je moné nastavovat pomocí webového rozhraní. Zmìna údajù v této sekci mùe znamenat nedostupnost webového rozhraní, doporuèuje se tuto sekci neupravovat.</p>
+                <p>Sekce <type>[users]</type> definuje poèáteèní dvojici uivatelù, která se mùe k serveru pøipojit. Další uivatele a jejich hesla je moné nastavovat pomocí webového rozhraní. Zmìna údajù v této sekci mùe znamenat nedostupnost webového rozhraní, doporuèuje se tuto sekci neupravovat.</p>
                 <p>Poèáteèní nastavení:</p>
                 <p.type>[users]
 admin = admin, hb3fA4WsM68ZmQpM9O5L6GgmAU8Y5NNvrrKCXsx4Zrc=
 user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
+              </text>
+            </section>
+            <section label="secACL" level="3">
+              <title><type>[http_access_list]</type></title>
+              <text>
+                <p>Sekce <type>[http_access_list]</type> definuje seznam pravidel, které omezují pøístup k webovému rozhraní serveru. Kadé pravidlo (povolující nebo omezující) pøedstavuje jednu IP adresu vèetnì délky síového prefixu. Server pøi kadém pøístupu prochází postupnì všemi pravidly a uplatní to pravidla, která IP adresou a maskou odpovídají klientovi. Server spojení dovolí jen pokud je na konci vyhodnocení vısledek pravidel povoleno. Vıchozí stav vyhodnocení je povoleno.</p>
+                <p>Formát pravidel je:</p>
+                <p.type>allow | deny = &lt;ipaddress&gt;[/&lt;prefix length&gt;]</p.type>
+                <p>Ukázka povolení pøístupu pouze z poèítaèe, kde je server nainstalován:</p>
+                <p.type>[http_access_list]
+deny = 0.0.0.0/0
+allow = 127.0.0.1</p.type>
               </text>
             </section>
             <section level="3">
@@ -513,8 +533,9 @@ user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
             <section label="secDebug" level="3">
               <title>Ladicí vıpisy a informace</title>
               <text>
-                <p>Server dokáe pøi bìhu zapisovat informace o aktuálním stavu a probíhajících operacích. To mùe bıt uiteèné napø. pøi øešení problémù s komunikacemi. Vıpisy nejsou ve vıchozím stavu zapnuty, pro jejich zapnutí a nastavení slouí sekce <type>[debug]</type> a <type>[data_log]</type> konfiguraèního souboru. Vıpisy a ladicí informace nejsou k normálnímu provozu potøebné.</p>
-                <p>Vıstup ladicích informací je textovı, øádkovı a tak snadno èitelnı. Vıchozí nastavení serveru dovoluje vıpisy sledovat pomocí webového rozhraní, po úpravì konfigurace lze veškerá data zapisovat do souboru. Ladicí zprávy mají jednotnı formát, napøíklad:</p>
+                <p>Server dokáe pøi bìhu zapisovat informace o aktuálním stavu a probíhajících operacích. To mùe bıt uiteèné napø. pøi øešení problémù s komunikacemi. Vıpisy nejsou ve vıchozím stavu zapnuty, pro jejich zapnutí a nastavení slouí sekce <type>[log]</type>, <type>[datalog]</type>, <type>[httplog]</type> a <type>[networklog]</type> konfiguraèního souboru. Ladicí informace nejsou k normálnímu provozu potøebné.</p>
+                <p>Vıstup ladicích informací je textovı, øádkovı a tak snadno èitelnı. Vıchozí nastavení serveru dovoluje vıpisy sledovat pomocí webového rozhraní, po úpravì konfigurace lze veškerá data zapisovat do souboru. Ladicí zprávy sekcí <type>[log]</type> a <type>[networklog]</type> mají jednotnı formát (viz níe), sekce <type>[httplog]</type> vyuívá <diff>Common Log Format</diff>, sekce <type>[datalog]</type> má formát speciální.</p>
+                <p>Pøíklad vıpisu sekce <type>[log]</type>:</p>
                 <p.type>[2009-04-01 18:06:03.828] d sys/Net.Dispatcher:   address 192.168.1.102:4270
 [2009-04-01 18:06:03.828] t sys/sdap: GET 6/0/6
 [2009-04-01 18:06:25.609] I sys/HTTP: Request: /favicon.ico</p.type>
@@ -628,6 +649,72 @@ user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
                   <dt>Pokus o spojení konèí chybou <type>failure: XX</type></dt>
                   <dd><p>Pouíváte-li zpùsob spojení <type>tunneling</type> nebo <type>tunneling-ACK</type> provìøte, e k rozhraní není pøipojen jinı server, ETS, nebo nìjakı zcela jinı program. Je-li tomu tak, odpojte jej.</p><p>Ujistìte se, e bìhem uplynulıch dvou minut nedošlo k vıpadku serveru (násilné vypnutí poèítaèe, násilné zastavení procesu serveru). Pokud ano, poèkejte dvì minuty nebo odpojte a pøipojte napájení rozhraní.</p></dd>
                 </dl>
+              </text>
+            </section>
+            <section level="3">
+              <title>Pøíklady ladicích vıpisù</title>
+              <text>
+                <p>Všechny ukázky obsahují skuteèné vıpisy, vèetnì èasovıch znaèek<c.special what="dash" />z nich je zøejmá délka jednotlivıch operací nebo èekání.</p>
+                <p>T_CON = potvrzení z KNX rozhraní, R_CON = potvrzení z cílového KNX zaøízení, seq = poøadové èíslo pøijímanıch a odeslanıch paketù.</p>
+                <p>Periodickı test spojení è.<c.special what="thinspace" />90, na kterı KNX rozhraní odpovìdìlo:</p>
+                <p.type>[12:03:27.789] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[12:03:27.794] t KNX/EibNet.Connection: HEARTBEAT response:  90 10.0.0.6:3671</p.type>
+                <p>Periodickı test spojení è.<c.special what="thinspace" />90, na kterı KNX rozhraní neodpovìdìlo, po trojím opakování server spojení ukonèil:</p>
+                <p.type>[12:04:27.787] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[12:04:37.795] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[12:04:47.796] t KNX/EibNet.Connection: HEARTBEAT probe:  90 10.0.0.6:3671 
+[12:04:57.811] t KNX/EibNet.Connection: DISCONNECT request:  90 10.0.0.6:3671 
+[12:05:07.825] t KNX/EibNet.Connection: DISCONNECT timeout:  90 
+[12:05:07.825] t KNX/EibNet.Connection: DISCONNECTed:  90 10.0.0.6:3671 
+[12:05:07.825] t KNX/EibNet.Connection: Stop LISTENing on port:  60561</p.type>
+                <p>Úspìšné navázání spojení è.<c.special what="thinspace" />91 následované poèáteèním ètením:</p>
+                <p.type>[12:05:37.841] t KNX/EibNet.Connection: LISTENing on port:  61829 
+[12:05:37.841] t KNX/EibNet.Connection: CONNECT request:  10.0.0.6:3671 
+[12:05:37.921] t KNX/...: CONNECTed in TUNNELING mode:  91 10.0.0.6:3671 
+[12:05:37.921] d KNX/srv: INIT:  2/0/0 
+[12:05:37.921] d KNX/srv: INIT:  2/0/1 
+[12:05:37.921] d KNX/srv: INIT:  2/0/21
+...</p.type>
+                <p>Neúspìšné navázání spojení, KNX rozhraní neodpovìdìlo:</p>
+                <p.type>[12:05:17.826] t KNX/EibNet.Connection: LISTENing on port:  58083 
+[12:05:17.826] t KNX/EibNet.Connection: CONNECT request:  10.0.0.6:3671 
+[12:05:27.841] t KNX/EibNet.Connection: CONNECT timeout 
+[12:05:27.841] t KNX/EibNet.Connection: DISCONNECTed:  0 10.0.0.6:3671 
+[12:05:27.841] t KNX/EibNet.Connection: Stop LISTENing on port:  58083</p.type>
+                <p>Neúspìšné navázání spojení; chyba è. 36 znamená, e KNX rozhraní je spojeno s jinım klientem:</p>
+                <p.type>[13:12:29.708] t KNX/EibNet.Connection: CONNECT timeout 
+[13:12:29.723] t KNX/EibNet.Connection: LISTENing on port:  55123 
+[13:12:29.723] t KNX/EibNet.Connection: CONNECT request:  10.0.0.6:3671 
+[13:12:29.740] t KNX/EibNet.Connection: CONNECT failure:  36 10.0.0.6:3671 
+[13:12:29.740] t KNX/EibNet.Connection: DISCONNECTed:  0 10.0.0.6:3671 
+[13:12:29.740] t KNX/EibNet.Connection: Stop LISTENing on port:  55123</p.type>
+                <p>Úspìšnı zápis do KNX (T_CON status = 0, R_CON status = 0)</p>
+                <p.type>[13:00:46.566] d KNX/EibNet.Connection: SEND seq:  8 
+[13:00:46.566] d KNX/EibNet.Connection: SEND data: [06 ...] 
+[13:00:46.570] d KNX/EibNet.Connection: SEND T_CON status:  92 0 
+[13:00:46.570] d KNX/EibNet.Connection: SEND T_CON seq:  8 
+[13:00:46.587] t KNX/EibNet.Connection: SEND R_CON ok 92 group:  3/1/21 
+[13:00:46.588] d KNX/EibNet.Connection: SEND R_CON ok seq:  9E 
+[13:00:46.588] d KNX/EibNet.Connection: SEND R_CON ok data: [06 ...] 
+[13:00:46.588] d KNX/EibNet.Connection: SEND R_CON status:  92 0</p.type>
+                <p>Neúspìšnı zápis do KNX, KNX rozhraní nepotvrdilo data (T_CON timeout), odesílání se opakuje:</p>
+                <p.type>[13:07:02.741] t KNX/EibNet.Connection: SEND 94 group:  3/0/128 
+[13:07:02.742] d KNX/EibNet.Connection: SEND seq:  2 
+[13:07:02.742] d KNX/EibNet.Connection: SEND data: [06 ...] 
+[13:07:03.746] t KNX/EibNet.Connection: T_CON timeout, repeat SEND:  94 
+[13:07:03.746] t KNX/EibNet.Connection: SEND 94 group:  3/0/128 
+[13:07:03.746] d KNX/EibNet.Connection: SEND seq:  2 
+[13:07:03.746] d KNX/EibNet.Connection: SEND data: [06 ...] 
+[13:07:04.760] t KNX/EibNet.Connection: T_CON timeout, kill SEND:  94</p.type>
+                <p>Pøíchozí data z KNX, spojení è.<c.special what="thinspace" />92:</p>
+                <p.type>[12:59:28.089] t KNX/EibNet.Connection: RECEIVE 92 group:  2/0/30 
+[12:59:28.089] d KNX/EibNet.Connection: RECEIVE seq:  67 
+[12:59:28.089] d KNX/EibNet.Connection: RECEIVE data: [06 ...]</p.type>
+                <p>Ukonèení spojení è.<c.special what="thinspace" />91 (napø. pøi zastavení serveru):</p>
+                <p.type>[12:54:46.964] t KNX/EibNet.Connection: DISCONNECT request:  91 10.0.0.6:3671 
+[12:54:46.965] t KNX/EibNet.Connection: DISCONNECT forced as abortive 
+[12:54:46.965] t KNX/EibNet.Connection: DISCONNECT request:  91 10.0.0.6:3671 
+[12:54:46.965] t KNX/EibNet.Connection: DISCONNECTed:  91 10.0.0.6:3671</p.type>
               </text>
             </section>
           </text>
@@ -856,6 +943,10 @@ user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
                   <dd><p>Chybná hodnota parametru.</p></dd>
                   <dt>405</dt>
                   <dd><p>Neznámı, neexistující zdroj (napøíklad neexistující datovı bod).</p></dd>
+                  <dt>406</dt>
+                  <dd><p>Chyba v konfiguraci (pøi naèítání konfigurace).</p></dd>
+                  <dt>407</dt>
+                  <dd><p>Zdroj (datovı bod) je urèen jen pro ètení.</p></dd>
                   <dt>500</dt>
                   <dd><p>Vnitøní nerozlišená chyba serveru.</p></dd>
                   <dt>501</dt>
@@ -886,6 +977,10 @@ user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
                   <dd><p>Zruší odebírání datového objektu. Formát pøíkazu je <type>unadvise group</type>, kde <type>group</type> je datovı objekt serveru (skupinová adresa), nebo <type>unadvise all</type> (dojde ke zrušení odebírání všech datovıch bodù.</p><p>Server odpovídá návratovım kódem 200, 405 a 5XX.</p><p>Pøíklad komunikace se serverem:</p><p.type>unadvise all
 200</p.type></dd>
                 </dl>
+                <p>Kromì komunikace dat (hodnot datovıch objektù) lze pomocí SDAP zjišovat stav spojení rozhraní s KNX. Server pro tento úèel definuje logickı (switch) datovı objekt <type>Control.Connected</type>. Objekt se pouívá stejnì jako skupinové adresy, lze jej rovnì pøedepsat k odbìru:</p>
+                <p.type>get Control.Connected
+200 1
+Control.Connected true</p.type>
               </text>
             </section>
             <section level="3">
@@ -914,6 +1009,13 @@ user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
                 <p.type>&lt;xmlsocket&gt;
   &lt;disconnect/&gt;
 &lt;/xmlsocket&gt;</p.type>
+                <p>Kromì komunikace dat (hodnot datovıch objektù) lze pomocí XMLSocket stejnì jako pomocí SDAP zjišovat stav spojení rozhraní s KNX, pokud se místo skupinové adresy pouije jméno logického datového objektu <type>Control.Connected</type>. Pøíklad zprávy ze serveru:</p>
+                <p.type>&lt;xmlsocket&gt;
+  &lt;notify&gt;
+    &lt;name&gt;Control.Connected&lt;/name&gt;
+    &lt;value&gt;false&lt;/value&gt;
+   &lt;/notify&gt;
+&lt;/xmlsocket&gt;</p.type>
               </text>
             </section>
           </text>
@@ -941,6 +1043,88 @@ user = user, OAecdJWrvWHtDayYWAQQ07puh6CQS9lCN1VrDUM2MJo=</p.type>
                   <dd><p>JavaScript z tlaèítka pro stmívání (sniování jasu). V <file>Template.xcf</file> je skript zapsán ve vìtvi <gui>Templates/Lights</gui> v tlaèítku <gui>Dimming</gui> v záloce <gui>Actions</gui>.</p><p>Skript pro sniování jasu (pøi drení tlaèítka se jas prùbìnì sniuje), skript se odkazuje na promìnné definované ve skriptu <file>Page.js</file>.</p></dd>
                   <dt><file>BlindsDown.js</file></dt>
                   <dd><p>JavaScript z tlaèítka pro zataení rolet. V <file>Template.xcf</file> je skript zapsán ve vìtvi <gui>Templates/Blinds</gui> v tlaèítku <gui>BlindsDown</gui> v záloce <gui>Actions</gui>.</p><p>Skript zahájí dlouhı pohyb (<type>CentralLong</type>) a poèítá délku stisku tlaèítka. Pokud je tlaèítko uvolnìno døíve jak za dvì sekundy, ukonèí skript pohyb zápisem do <type>CentralStep</type>.</p></dd>
+                </dl>
+                <p>Následující ukázka zobrazuje stránkovı skript (podobnı <file>Page.js</file>) s vysvìtlením jednotlivıch èástí. Pro pochopení ukázky je dobré znát popis ProntoScriptu a jazyk JavaScript obecnì:</p>
+                <p.type>// 1.
+deviceState = new CO( "3/0/12", "switch", widget( "DeviceDisplay" ));
+// 2.
+deviceControl = new CO( "3/1/12", "switch" );
+
+// 3.
+System.ConnectionCheck = function( Connected ) {
+  status = widget( "CommunicationStatus" );
+  if( Connected ) {
+    status.setImage( System.Image( "ConnectionStateOK" ));
+  } else {
+    status.setImage( System.Image( "ConnectionStateError" ));
+  }
+}
+
+// 4.
+System.SetReadObjects( new Array(
+  deviceState
+));
+
+// 5.
+System.PageUpdate = function( CO ) {
+  if( CO.widget == null ) {
+    // do nothing
+  } else if( CO.value == "true" ) {
+    CO.widget.setImage( CF.widget( "On1", "Res", "Sys" ).getImage(), 0 );
+    CO.widget.setImage( CF.widget( "On2", "Res", "Sys" ).getImage(), 1 );
+  } else {
+    CO.widget.setImage( CF.widget( "IOff1", "Res", "Sys" ).getImage(), 0 );
+    CO.widget.setImage( CF.widget( "IOff2", "Res", "Sys" ).getImage(), 1 );
+  }
+}</p.type>
+                <il numbered="yes">
+                  <caption>Vıznam èástí:</caption>
+                  <li><p>Zde se konstruuje datovı objekt (= komunikaèní objekt = communication object = CO) s vyuitím konstruktoru <type>CO</type> se tøemi parametry pro uchování prvku uivatelského rozhraní (funkce <type>widget</type> ProntoScriptu, její popis viz dokumentaci ProntoScriptu). Vytvoøí se objekt typu <type>switch</type> s adresou <type>3/0/12</type>, pøièem objekt si v sobì pamatuje odkaz na prvek uivatelského rozhraní <gui>DeviceDisplay</gui>. Pozdìji (ve funkci <type>PageUpdate</type>) bude tento odkaz vyuit.</p></li>
+                  <li><p>Konstruktor <type>CO</type> se dvìma parametry neuchová odkaz na ádnı zobrazující prvek, vytvoøí se tak objekt bez vazby na uivatelské rozhraní. To je typické pro datové objekty vyuité (nìkde na stránce) pro odesílání dat do serveru. Dále ve skriptu se ji objekt nepouívá, co rovnì ukazuje na pozdìjší vyuití nìkde jinde. Objekt je po spuštìní stránkového skriptu jen pøipraven.</p></li>
+                  <li><p>Pouití funkce skriptu <file>Main.js</file> <type>ConnectionCheck</type>. <file>Main.js</file> volá <type>ConnectionCheck</type> (pokud není <type>null</type>) periodicky, take skript ve stránce mùe zobrazovat stav spojení se serverem. Pouitı skript vyhledá zobrazovací prvek se jménem <gui>ConnectionStatus</gui> a podle stavu spojení v nìm nastaví odpovídající obrázek.</p></li>
+                  <li><p>Další funkce skriptu <file>Main.js</file>. Voláním <type>SetReadObjects</type> dojde k zapamatování pole datovıch objektù, které bude <file>Main.js</file> automaticky periodicky èíst. Stránkovı skript ji proto obnovování hodnot nemusí zajišovat. V pøípadì pøeètení hodnoty nìkterého z datovıch objektù <file>Main.js</file> následnì zavolá funkci <type>PageUpdate</type> (pokud není <type>null</type>).</p><p>Pokud dojde k pøepnutí stránek, mìl by bıt <type>SetReadObjects</type> zavolán s novımi datovımi objekty, pøípadnì s parametrem <type>null</type>, kterı zajistí vypnutí opakovaného ètení datovıch objektù.</p></li>
+                  <li><p>Nastavení funkce do <type>System.PageUpdate</type>, <file>Main.js</file> funkci zavolá pro kadı datovı objekt, jeho novou hodnotu pøeèetl. V uvedeném skriptu se vyuívá skuteènosti, e ètené objekty si pamatují svùj zobrazující prvek (<type>CO.widget</type>), take se na lze pøímo odkázat a vymìnit v nich obrázky.</p></li>
+                </il>
+                <p>Skripty v Prontu dovolují libovolné programování, všechny ukázky proto mohou bıt doplnìny èi pozmìnìny dle potøeb konkrétní aplikace. Další ukázka obsahuje stránkovı skript stránky, která nezobrazuje ádné zmìny hodnot (napøíklad obsahuje jen samá ovládací tlaèítka):</p>
+                <p.type>// 2.
+deviceControl = new CO( "3/1/12", "switch" );
+
+// 3.
+System.ConnectionCheck = function( Connected ) {
+  status = widget( "CommunicationStatus" );
+  if( Connected ) {
+    status.setImage( System.Image( "ConnectionStateOK" ));
+  } else {
+    status.setImage( System.Image( "ConnectionStateError" ));
+  }
+}
+
+// 4.
+System.SetReadObjects( null );
+
+// 5.
+System.PageUpdate = null;</p.type>
+                <p>Ve stránce s obìma uvedenımi skripty mùe bıt tlaèítko napøíklad se skriptem:</p>
+                <p.type>deviceControl.Write( "true" );</p.type>
+                <p>V poslední ukázce je zobrazen zaèátek skriptu <file>Main.js</file> s definicí hlavních konstant, které øídí chování celého spojení s KNX. Tyto konstanty lze nastavovat podle potøeby:</p>
+                <p.type>var DEBUG = true;
+var CORE_PERIOD = 200;
+var COMMUNICATE_EACH = 4; // count of periods
+
+var IP_ADDRESS = "10.0.1.133";
+var IP_PORT = "6007";</p.type>
+                <dl>
+                  <caption>kde jednotlivé konstanty znamenají:</caption>
+                  <dt><type>DEBUG</type></dt>
+                  <dd><p>Nastavení ladicích informací, ukázkové skripty konstantu pouívají vıjimeènì.</p></dd>
+                  <dt><type>CORE_PERIOD</type></dt>
+                  <dd><p>Perioda v milisekundách, vnitøní takt skriptu <file>Main.js</file>. V tomto taktu se napøíklad testuje ivost spojení. Kratší èasy mohou s ohledem na vıkon Pronta a zpùsob komunikace (WiFi) pùsobit obtíe.</p></dd>
+                  <dt><type>COMMUNICATE_EACH</type></dt>
+                  <dd><p>Poèet <type>CORE_PERIOD</type>, po kterıch <file>Main.js</file> ète datové objekty urèené voláním funkce <type>SetReadObjects</type>.</p></dd>
+                  <dt><type>IP_ADDRESS</type></dt>
+                  <dd><p>IP adresa poèítaèe se SmartServerem.</p></dd>
+                  <dt><type>IP_PORT</type></dt>
+                  <dd><p>Port, na kterém SmartServer pøijímá spojení.</p></dd>
                 </dl>
               </text>
             </section>

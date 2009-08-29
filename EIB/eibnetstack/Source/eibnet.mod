@@ -331,6 +331,14 @@ CLASS IMPLEMENTATION CConnection;
       ELSE
          _Logger^.LogS( dldTrace, DEBUG_PREFIX, L"CONNECT (listen) cannot start" );
          _Socket := NIL;
+
+         // #100, tiAutoReconnect starts in OnDisconnect. But OnDisconnect is not called if Connect is not called (as here when returning).
+         // The conditions described caused that automatic reconnection was not functional, because it stops with first returning
+         // by this RETURN (below).
+         IF _AutoReconnectDelay <> 0 THEN
+            StartTimer( PTR( tiAutoReconnect ), _AutoReconnectDelay, FALSE );
+         END;
+
          RETURN Sync.arCannotStart;
       END;
       IF _Mode = cmTunnelingBlind THEN
@@ -852,7 +860,7 @@ CLASS IMPLEMENTATION CConnection;
       END;
          
       Status := packet.Status;
-      IF NOT _Logger^.Filtered( dldDebug ) THEN
+      IF NOT _Logger^.Filtered( dldDebug, DEBUG_PREFIX ) THEN
          _Logger^.LogSCP( dldDebug, DEBUG_PREFIX, L"SEND T_CON status: ", CARDINAL( ChannelId ), PTR( Status ));
          _Logger^.LogSH( dldDebug, DEBUG_PREFIX, L"SEND T_CON seq: ", CARDINAL( packet.Sequence ));
       END;
@@ -996,7 +1004,7 @@ CLASS IMPLEMENTATION CConnection;
       seq : CARDINAL;
       out : ARRAY [0..63] OF WCHAR;
    BEGIN
-      IF NOT _Logger^.Filtered( dldTrace ) THEN
+      IF NOT _Logger^.Filtered( dldTrace, DEBUG_PREFIX ) THEN
          out := text;
          IF selfPacket THEN
             Strings.AppendW( REF out, L" [S]" ); 
@@ -1018,7 +1026,7 @@ CLASS IMPLEMENTATION CConnection;
             Strings.ConcatW( OUT out, text, L" altseq: " ); _Logger^.LogSH( dldTrace, DEBUG_PREFIX, out, AltInSeq );
          END;
 
-         IF NOT _Logger^.Filtered( dldDebug ) THEN
+         IF NOT _Logger^.Filtered( dldDebug, DEBUG_PREFIX ) THEN
             IF outputFlag THEN
                seq := CARDINAL( CARD8( OutSeq ));
             ELSE
