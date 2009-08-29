@@ -714,4 +714,6 @@
 
     <Target Name="Deploy" DependsOnTargets="DeployRelease;DeployDebug" />
 
+    <!-- automated tests task -->
+
 </Project>
