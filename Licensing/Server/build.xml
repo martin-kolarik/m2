@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="Licensing" default="build" basedir=".">
+    
+    <property name="licensing.dir" value="."/>
+    <property name="mss.dir" value="../MSS"/>
+
+    <property file="build-user.properties"/>
+    <import file="build-init.xml"/>
+    <import file="build-sql.xml"/>
+    <import file="build-test.xml" /> 
+    
+    <target name="local-init">
+        <property name="licensing.hibernate.properties.file" value="${licensing.dir}/hibernate.properties"/>
+        <property name="licensing.log4j.properties.file" value="${licensing.conf.dir}/log4j.local.properties"/>
+        
+        <property name="tomcat.home" value="${local.tomcat.home}"/>
+        <property name="tomcat.url" value="${local.tomcat.url}"/>
+        <property name="tomcat.password" value="${local.tomcat.password}"/>
+        <property name="tomcat.username" value="${local.tomcat.username}"/>
+    
+    </target>
+    
+    <target name="prototype-init">
+        <property name="licensing.hibernate.properties.file" value="${prototype.licensing.hibernate.properties.file}"/>
+        <property name="licensing.log4j.properties.file" value="${licensing.conf.dir}/log4j.prototype.properties"/>
+        
+        <property name="tomcat.home" value="${prototype.tomcat.home}"/>
+        <property name="tomcat.url" value="${prototype.tomcat.url}"/>
+        <property name="tomcat.password" value="${prototype.tomcat.password}"/>
+        <property name="tomcat.username" value="${prototype.tomcat.username}"/>
+
+    </target>
+    
+    <target name="release-init">
+        <property name="licensing.hibernate.properties.file" value="${release.licensing.hibernate.properties.file}"/>
+        <property name="licensing.log4j.properties.file" value="${licensing.conf.dir}/log4j.release.properties"/>
+        
+        <property name="tomcat.home" value="${release.tomcat.home}"/>
+        <property name="tomcat.url" value="${release.tomcat.url}"/>
+        <property name="tomcat.password" value="${release.tomcat.password}"/>
+        <property name="tomcat.username" value="${release.tomcat.username}"/>
+
+    </target>
+
+    <target name="build" depends="local-init">
+        <antcall target="licensing-build"/>
+    </target>
+
+    <target name="prototype-build" depends="prototype-init">
+        <antcall target="licensing-build"/>
+    </target>
+    
+    <target name="release-build" depends="release-init">
+        <antcall target="licensing-build"/>
+    </target>
+
+    <target name="clean">
+        <antcall target="licensing-clean"/>
+    </target>
+    
+    <target name="javadoc">
+    </target>
+    
+    <target name="run">
+    </target>
+    
+    <target name="test">
+        <antcall target="licensing-junit-test"/>
+    </target>
+    
+    <target name="deploy" depends="local-init">
+        <antcall target="licensing-deploy-ant"/>
+    </target>
+
+    <target name="prototype-deploy" depends="prototype-init">
+        <antcall target="licensing-deploy-ant"/>
+    </target>
+    
+    <target name="release-deploy" depends="release-init">
+        <antcall target="licensing-deploy-ant"/>
+    </target>
+
+    <target name="undeploy" depends="local-init">
+        <antcall target="licensing-undeploy-ant"/>
+    </target>
+
+    <target name="prototype-undeploy" depends="prototype-init">
+        <antcall target="licensing-undeploy-ant"/>
+    </target>
+    
+    <target name="release-undeploy" depends="release-init">
+        <antcall target="licensing-undeploy-ant"/>
+    </target>
+    
+    <target name="redeploy" depends="local-init">
+        <antcall target="undeploy"/>
+        <antcall target="deploy"/>
+    </target>
+    
+    <target name="prototype-redeploy">
+        <antcall target="prototype-undeploy"/>
+        <antcall target="prototype-deploy"/>
+    </target>
+    
+    <target name="release-redeploy">
+        <antcall target="release-undeploy"/>
+        <antcall target="release-deploy"/>
+    </target>
+    
+    <target name="drop-create-schema" depends="local-init">
+        <antcall target="licensing-drop-create-schema"/>
+    </target>
+    
+    <target name="prototype-drop-create-schema" depends="prototype-init">
+        <antcall target="licensing-drop-create-schema"/>
+    </target>
+    
+    <target name="release-drop-create-schema" depends="release-init">
+        <antcall target="licensing-drop-create-schema"/>
+    </target>
+    
+    <target name="update-schema" depends="local-init">
+        <antcall target="licensing-update-schema"/>
+    </target>
+    
+    <target name="prototype-update-schema" depends="prototype-init">
+        <antcall target="licensing-update-schema"/>
+    </target>
+    
+    <target name="release-update-schema" depends="release-init">
+        <antcall target="licensing-update-schema"/>
+    </target>
+    
+    <target name="insert-data" depends="local-init">
+        <antcall target="licensing-insert-data"/>
+    </target>
+    
+    <target name="prototype-insert-data" depends="prototype-init">
+        <antcall target="licensing-insert-data"/>
+    </target>
+    
+    <target name="release-insert-data" depends="release-init">
+        <antcall target="licensing-insert-data"/>
+    </target>
+    
+    <target name="reinit-data" depends="local-init">
+        <antcall target="licensing-reinit-data"/>
+    </target>
+    
+    <target name="prototype-reinit-data" depends="prototype-init">
+        <antcall target="licensing-reinit-data"/>
+    </target>
+    
+    <target name="release-reinit-data" depends="release-init">
+        <antcall target="licensing-reinit-data"/>
+    </target>
+    
+</project>

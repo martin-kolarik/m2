@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project basedir=".." name="Licensing-IDE">
+    <!-- TODO: edit the following target according to your needs -->
+    <!-- (more info: http://www.netbeans.org/kb/55/freeform-config.html#compilesingle) -->
+    <target name="compile-selected-files-in-src">
+        <fail unless="files">Must set property 'files'</fail>
+        <property name="build.classes.dir"  value="build/web/WEB-INF/classes"/>
+        <mkdir dir="${build.classes.dir}"/>
+        <javac destdir="${build.classes.dir}" includes="${files}" source="1.5" srcdir="src" encoding="utf-8">
+            <classpath path="../../../Java_libraries/spring/spring-2.5.1.jar;../../../Java_libraries/spring/spring-webmvc-2.5.1.jar;../../../Java_libraries/apache/axis/axis-1.3.jar;../../../Java_libraries/sun/jax-rpc/jaxrpc-1.1.jar;../../../Java_libraries/hibernate/persistence/ejb3-persistence.jar;../../../Java_libraries/apache/commons/commons-logging-1.1.jar;../../../Java_libraries/apache/servlet-api/servlet-api.jar;build/web/WEB-INF/classes;../../../Java_libraries/hibernate/annotations/hibernate-annotations-3.3.0.jar;../../../Java_libraries/hibernate/hibernate3/hibernate-3.2.2.jar;../../../Java_libraries/apache/commons/commons-codec-1.3.jar"/>
+        </javac>
+    </target>
+</project>

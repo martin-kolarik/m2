@@ -1,0 +1,12 @@
+<%@ page pageEncoding="windows-1250" %>
+
+<div id="menu">
+    <a href="<c:url value="/management/timeload.do"/>"><spring:message code="management.management.timeload"/></a>
+    <a href="<c:url value="/management/ticketreport.do"/>"><spring:message code="management.management.ticketreport"/></a>
+    <a href="<c:url value="/management/controllers.do"/>"><spring:message code="management.management.controllers"/></a>
+    <a href="<c:url value="/management/devices.do"/>"><spring:message code="management.management.devices"/></a>
+</div>    
+
+<div id="logout">
+    <a class="logout" href="<c:url value="/management/logout.do"/>"><spring:message code="management.management.logout"/></a>
+</div>

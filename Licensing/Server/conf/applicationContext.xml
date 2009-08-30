@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-2.0.xsd
+       http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-2.0.xsd">
+    
+    <!-- General Configuration -->
+    <bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
+        <property name="basename" value="cz.smartcontrol.licensing.web.messages"/>
+    </bean>
+        
+    <!-- Application Context -->
+    <tx:annotation-driven transaction-manager="transactionManager" />
+    <bean id="numberLogic" class="cz.smartcontrol.licensing.business.implementation.NumberLogic">
+    </bean>
+    
+    <tx:annotation-driven transaction-manager="transactionManager" />
+    <bean id="licenceLogic" class="cz.smartcontrol.licensing.business.implementation.LicenceLogic">
+        <property name="numberLogic" ref="numberLogic"/>
+    </bean>
+    
+    <bean id="csvProvider" class="cz.smartcontrol.licensing.web.tools.CsvProviderLogic"/>
+    
+    <!--  Data source --> 
+    <bean id="dataSource" class="org.springframework.jndi.JndiObjectFactoryBean">
+        <property name="jndiName">
+            <value>java:comp/env/jdbc/Licensing</value> 
+        </property>
+    </bean>
+    
+    <!-- Data Access Configuration -->
+    <bean id="sessionFactory" class="org.springframework.orm.hibernate3.annotation.AnnotationSessionFactoryBean">
+        <property name="dataSource">
+            <ref bean="dataSource"/>
+        </property> 
+        
+        <property name="configLocation">
+            <value>/WEB-INF/hibernate.cfg.xml</value>
+        </property>
+        <property name="hibernateProperties">
+            <props/>
+        </property>
+    </bean>
+    
+    <bean id="transactionManager" class="org.springframework.orm.hibernate3.HibernateTransactionManager">
+        <property name="sessionFactory" ref="sessionFactory"/>
+    </bean>
+    
+    <!-- DAO definitions -->
+    <!-- 
+    <bean id="ticketDao" class="cz.edhouse.matickets.dao.hibernate.HibernateTicketDao">
+        <property name="sessionFactory" ref="sessionFactory" />
+    </bean>
+    
+    <bean id="ticketTypeDao" class="cz.edhouse.matickets.dao.hibernate.HibernateTicketTypeDao">
+        <property name="sessionFactory" ref="sessionFactory" />
+    </bean>
+    
+    <bean id="incomingSmsDao" class="cz.edhouse.matickets.dao.hibernate.HibernateIncomingSmsDao">
+        <property name="sessionFactory" ref="sessionFactory" />
+    </bean>
+    
+    <bean id="outgoingSmsDao" class="cz.edhouse.matickets.dao.hibernate.HibernateOutgoingSmsDao">
+        <property name="sessionFactory" ref="sessionFactory" />
+    </bean>
+    
+    <bean id="duplicateDao" class="cz.edhouse.matickets.dao.hibernate.HibernateDuplicateDao">
+        <property name="sessionFactory" ref="sessionFactory" />
+    </bean>
+    
+    <bean id="lastIncomingSmsCodeDao" class="cz.edhouse.matickets.dao.hibernate.HibernateLastIncomingSmsCodeDao">
+        <property name="sessionFactory" ref="sessionFactory" />
+    </bean>
+    
+    <bean id="controllerDao" class="cz.edhouse.matickets.dao.hibernate.HibernateControllerDao">
+        <property name="sessionFactory" ref="sessionFactory" />
+    </bean>
+    
+    <bean id="customerDao" class="cz.edhouse.matickets.dao.hibernate.HibernateCustomerDao">
+        <property name="sessionFactory" ref="sessionFactory" />
+    </bean>
+    
+    <bean id="checkDao" class="cz.edhouse.matickets.dao.hibernate.HibernateCheckDao">
+        <property name="sessionFactory" ref="sessionFactory" />
+    </bean>
+    
+    <bean id="deviceDao" class="cz.edhouse.matickets.dao.hibernate.HibernateDeviceDao">
+        <property name="sessionFactory" ref="sessionFactory" />
+    </bean>
+    
+    <bean id="billDao" class="cz.edhouse.matickets.dao.hibernate.HibernateBillDao">
+        <property name="sessionFactory" ref="sessionFactory" />
+    </bean>
+    
+    <bean id="vatRateDao" class="cz.edhouse.matickets.dao.hibernate.HibernateVatRateDao">
+        <property name="sessionFactory" ref="sessionFactory" />
+    </bean>
+    
+    <bean id="lastBillNumberIndexDao" class="cz.edhouse.matickets.dao.hibernate.HibernateLastBillNumberIndexDao">
+        <property name="sessionFactory" ref="sessionFactory" />
+    </bean>
+    
+    <bean id="operatorDao" class="cz.edhouse.matickets.dao.hibernate.HibernateOperatorDao">
+        <property name="sessionFactory" ref="sessionFactory" />
+    </bean>
+    
+    <bean id="companyDao" class="cz.edhouse.matickets.dao.hibernate.HibernateCompanyDao">
+        <property name="sessionFactory" ref="sessionFactory" />
+    </bean>
+    
+    <bean id="controllerGroupDao" class="cz.edhouse.matickets.dao.hibernate.HibernateControllerGroupDao">
+        <property name="sessionFactory" ref="sessionFactory" />
+    </bean>
+    -->
+    
+    <!-- Services -->
+    
+    <!-- RMI exporters -->
+
+    <!-- RMI clients -->
+
+    <!-- Scheduled Jobs -->
+
+</beans>
