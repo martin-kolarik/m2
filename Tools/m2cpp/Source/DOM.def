@@ -10,7 +10,8 @@ IMPORT
   list,
   lists,
   avltree,
-  stacks;
+  stacks,
+  time;
   
 IMPORT
   Strings,
@@ -557,6 +558,7 @@ CLASS CSymbol( CUnit );
   PROCEDURE GetN( C : TGenerateControl; AppendFlag : BOOLEAN; REF CS : StringsO.CString );
   PROCEDURE GetQN( C : TGenerateControl; REF CS : StringsO.CString );
   PROCEDURE GetSourceQN( OUT CS : StringsO.CString );
+  PROCEDURE GetFullSourceQN( OUT CS : StringsO.CString );
   PROCEDURE OutN( G : Generator.TPGenerator; C : TGenerateControl );
   PROCEDURE OutQN( G : Generator.TPGenerator; C : TGenerateControl );
 
@@ -1035,7 +1037,7 @@ TYPE
   );
 
 CLASS CModuleEnvironment;
-   Timestamp    : FIO.FileTime;
+   Timestamp    : time.DateTime;
    Library      : StringsO.CString;
    Prefix       : TModuleNamePrefix;
    ClassAM      : TAccessModifier;
@@ -1078,6 +1080,7 @@ CLASS CModule( CSymbol );
 
   CTDStack : stacks.CPtrStack; // control declarations -- frames, withs
   CurCTDU  : TPUnit; // control declarations
+  InterfaceRTTI : CUnit;
 
   LStack   : stacks.CPtrStack; // LOOP stack
   TStack   : stacks.CPtrStack; // TRY stack

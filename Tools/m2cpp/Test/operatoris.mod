@@ -2,15 +2,36 @@ MODULE operatoris;
 
 CLASS A;
    VIRTUAL PROCEDURE P();
+   PUBLIC OPERATOR NEW( size : CARDINAL ) : ADDRESS;
+   PUBLIC OPERATOR DISPOSE( a : ADDRESS );
 END A;
+
 CLASS IMPLEMENTATION A;
    VIRTUAL PROCEDURE P();
    BEGIN
    END P;
+   PUBLIC OPERATOR NEW( size : CARDINAL ) : ADDRESS;
+   BEGIN
+      RETURN NIL;
+   END NEW;
+   PUBLIC OPERATOR DISPOSE( a : ADDRESS );
+   BEGIN
+   END DISPOSE;
 END A;
 
-CLASS B; END B;
-CLASS IMPLEMENTATION B; END B;
+CLASS B;
+   PUBLIC OPERATOR NEW( size : CARDINAL ) : ADDRESS;
+   PUBLIC OPERATOR DISPOSE( a : ADDRESS );
+END B;
+CLASS IMPLEMENTATION B;
+   PUBLIC OPERATOR NEW( size : CARDINAL ) : ADDRESS;
+   BEGIN
+      RETURN NIL;
+   END NEW;
+   PUBLIC OPERATOR DISPOSE( a : ADDRESS );
+   BEGIN
+   END DISPOSE;
+END B;
 
 CLASS C( A ); END C;
 CLASS IMPLEMENTATION C; END C;
@@ -26,9 +47,7 @@ BEGIN
    b := V^ IS D;
 END X;
 
-#save, call( entry_point => on )
 PROCEDURE wmain() : INTEGER;
-#restore
 VAR
    VA : A;
    VB : B;
@@ -57,6 +76,28 @@ BEGIN
    b := VD IS B; // false
    b := VD IS C; // false
    b := VD IS D; // true
+   
+   b := VA INHERITS C'A';
+
+   b := VA INHERITS A;
+   b := VA INHERITS B;
+   b := VA INHERITS C;
+   b := VA INHERITS D;
+
+   b := VB INHERITS A;
+   b := VB INHERITS B;
+   b := VB INHERITS C;
+   b := VB INHERITS D;
+
+   b := VC INHERITS A;
+   b := VC INHERITS B;
+   b := VC INHERITS C;
+   b := VC INHERITS D;
+
+   b := VD INHERITS A;
+   b := VD INHERITS B;
+   b := VD INHERITS C;
+   b := VD INHERITS D;
    
    X( ADR( VD ));
 

@@ -349,7 +349,8 @@ ntOpaqueTypeDefinition // !C.2.3
 
 ntClassDefinition<DLLInterface, ClassInterface : BOOLEAN; AM : DOM.TAccessModifier; IM : DOM.TInheritanceModifier>
                                                            (. Class : DOM.TPClass;
-                                                              QClass : DOM.TPClass; .)
+                                                              QClass : DOM.TPClass;
+                                                              ClassDecl : DOM.TPClassDecl := NEW( DOM.CClassDecl ); .)
   =                                                        (. IF ClassInterface THEN
                                                                 INCL( IM, DOM.imInterface );
                                                               END;
@@ -373,6 +374,8 @@ ntClassDefinition<DLLInterface, ClassInterface : BOOLEAN; AM : DOM.TAccessModifi
                                                               END;
                                                               IF ClassInterface THEN
                                                                 INCL( Class^.Options, DOM.eoVMT );
+                                                                ClassDecl^.OfClass := Class;
+                                                                c^.InterfaceRTTI.Add( ClassDecl );
                                                               END;
                                                               Class^.Packing := c^.CurE^.Packing;
                                                               Class^.AM := AM;
@@ -3389,9 +3392,9 @@ ntCommonExpression<VR : TValueReq; VAR E : DOM.TPExpression; VAR VI : DOM.TValue
                                                                 ELSIF ( E^.N^.r.O = DOM.opISExact ) OR ( E^.N^.r.O = DOM.opISInherits ) THEN
                                                                     T := E^.N^.r.L^.T^.Unwrap();
                                                                     RType := E^.N^.r.R^.T^.Unwrap();
-                                                                    IF ( T^.SymbolKind <> DOM.skClass ) OR NOT( DOM.eoVMT IN T^.Options ) THEN
+                                                                    IF T^.SymbolKind <> DOM.skClass THEN
                                                                         SemErr( err._ISExpectsClassOnLeft );
-                                                                    ELSIF ( RType^.SymbolKind = DOM.skClass ) OR (( E^.N^.r.O = DOM.opISExact ) AND Types.TBString^.Compatible( DOM.cmOperation, RType )) THEN
+                                                                    ELSIF ( RType^.SymbolKind = DOM.skClass ) OR Types.TBString^.Compatible( DOM.cmOperation, RType ) THEN
                                                                         // OK
                                                                     ELSE
                                                                         SemErr( err._ISExpectsClassOrBStringOnRight );
@@ -5529,11 +5532,14 @@ ntQualifiedId<IdAction : TIdAction; VAR Id : DOM.TPSymbol; AllowClassWOMember, S
                                                               IF Id <> NIL THEN
                                                                 CASE Id^.SymbolKind OF
                                                                 | DOM.skModule :
-                                                                  IF ( Id <> c^.OD ) AND ( Id^.OfSymbol <> c^.OD ) AND ( Id^.OfSymbol <> c^.OI ) THEN
-                                                                    SemErr( err._ModuleNotImported );
-                                                                  END;
-                                                                  InSymbols := TRUE;
-                                                                  c^.EnterSymbols( DOM.TPModule( Id )^.SC()^, FALSE, FALSE, NIL );
+                                                                   IF Id = c^.OD THEN
+                                                                      // fall down
+                                                                   ELSIF ( c^.UnitKind = DOM.ukDefinition ) AND ( Id^.OfSymbol <> c^.OD ) OR
+                                                                         ( c^.UnitKind <> DOM.ukDefinition ) AND ( Id^.OfSymbol <> c^.OI ) THEN
+                                                                      SemErr( err._ModuleNotImported );
+                                                                   END;
+                                                                   InSymbols := TRUE;
+                                                                   c^.EnterSymbols( DOM.TPModule( Id )^.SC()^, FALSE, FALSE, NIL );
                                                                 | DOM.skClass :
                                                                   InSymbols := TRUE;
                                                                   c^.EnterSymbols( DOM.TPClass( Id )^.S, FALSE, FALSE, NIL );

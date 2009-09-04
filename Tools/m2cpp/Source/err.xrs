@@ -29,7 +29,7 @@
         <string name="_CircularImport">
             <item>Circular import, module &quot;{0}&quot;</item>
         </string>
-        <string name="_CircularImportIsCompiled">
+        <string xml:space="preserve" name="_CircularImportIsCompiled">
             <item> requests &quot;{0}&quot;, which is already being compiled</item>
         </string>
         <string name="_ExpectedConstOrModuleId">
@@ -114,22 +114,22 @@
         <string name="_IdentifierOfUnexpectedKind">
             <item>Identifier of unexpected kind: &quot;{0}&quot;</item>
         </string>
-            <string name="_ExpectedModule">
+            <string xml:space="preserve" name="_ExpectedModule">
                 <item> (expected module)</item>
             </string>
-            <string name="_ExpectedClass">
+            <string xml:space="preserve" name="_ExpectedClass">
                 <item> (expected class)</item>
             </string>
-            <string name="_ExpectedType">
+            <string xml:space="preserve" name="_ExpectedType">
                 <item> (expected type)</item>
             </string>
-            <string name="_ExpectedVariable">
+            <string xml:space="preserve" name="_ExpectedVariable">
                 <item> (expected variable)</item>
             </string>
         <string name="_IdentifierRedefined">
             <item>Identifier redefined: &quot;{0}&quot;</item>
         </string>
-        <string name="_IdentifierRedefinedIsMemberOf">
+        <string xml:space="preserve" name="_IdentifierRedefinedIsMemberOf">
             <item> is already member of &quot;{0}&quot;</item>
         </string>
         <string name="_ExpectedTypeName">
@@ -156,7 +156,7 @@
         <string name="_TypeMismatchRight">
             <item>Type mismatch, right &quot;{0}&quot;</item>
         </string>
-        <string name="_TypeMismatchIncompatible">
+        <string xml:space="preserve" name="_TypeMismatchIncompatible">
             <item> is incompatible to left &quot;{0}&quot;</item>
         </string>
         <string name="_RecordDoesNotContainRequiredVariant">
@@ -171,7 +171,7 @@
         <string name="_HdrMismatch">
             <item>Header does not match previous definition ({0})</item>
         </string>
-        <string name="_HdrSee">
+        <string xml:space="preserve" name="_HdrSee">
             <item> -- see &quot;{0}&quot;</item>
         </string>
         <string name="_HdrMismatchCallConv">

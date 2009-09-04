@@ -708,9 +708,7 @@ CLASS IMPLEMENTATION CSymbol;
   BEGIN
     CS.Clear();
     LOfSymbol := OfSymbol;
-    IF ( eoDLLInterface IN Options ) AND
-       ( LOfSymbol <> Project.Current()^.OD ) AND
-       ( LOfSymbol <> Project.Current()^.OI ) THEN
+    IF ( eoDLLInterface IN Options ) AND ( LOfSymbol <> Project.Current()^.OD ) AND ( LOfSymbol <> Project.Current()^.OI ) THEN
       WHILE LOfSymbol <> NIL DO
         CASE LOfSymbol^.UnitKind OF
         | ukDefinition :
@@ -725,6 +723,26 @@ CLASS IMPLEMENTATION CSymbol;
     END;
     CS.Append( N );
   END GetSourceQN;
+  
+   PROCEDURE GetFullSourceQN( OUT CS : StringsO.CString );
+   VAR
+      LOfSymbol : TPSymbol;
+   BEGIN
+      CS.Clear();
+      LOfSymbol := OfSymbol;
+      WHILE LOfSymbol <> NIL DO
+         CASE LOfSymbol^.UnitKind OF
+         | ukDefinition, ukImplementation, ukProgram :
+            CS.PrependOA( L"." );
+            CS.Prepend( TPModule( LOfSymbol )^.OH );
+         | ukClassClassDef :
+            CS.PrependOA( L"." );
+            CS.Prepend( LOfSymbol^.N );
+         END;
+         LOfSymbol := LOfSymbol^.OfSymbol;
+      END; // WHILE
+      CS.Append( N );
+   END GetFullSourceQN;
   
   PROCEDURE OutN( G : Generator.TPGenerator; C : TGenerateControl );
   VAR
@@ -3521,10 +3539,10 @@ CLASS IMPLEMENTATION CClass;
   END Compatible;
 
   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
-  VAR
-    LN : ARRAY [0..255] OF WCHAR;
-    first : BOOLEAN := TRUE;
-    noclass : BOOLEAN := TRUE;
+   VAR
+      LN : ARRAY [0..255] OF WCHAR;
+      first : BOOLEAN := TRUE;
+      noclass : BOOLEAN := TRUE;
   BEGIN
     IF TGenerateControl{gcName, gcExplicitLeading} * C <> TGenerateControl{} THEN
       OutN( G, C );
@@ -3597,17 +3615,22 @@ CLASS IMPLEMENTATION CClass;
          END; // WHILE
 
       END;
+
+      G^.OutS( L' { public:' ); G^.EOL();
+      // output of RTTI information
+      G^.Enter();
+         G^.LineS( L'static const RTTI rtti;' );
+      G^.Leave();
+
     #if CPP_ACCESS_MODIFIERS #then
       IF UnitKind = ukNestedForwardedFrame THEN
-         G^.OutS( L' { public:' );
+         G^.LineS( L'public:' );
       ELSE
-         G^.OutS( L' {' );
+         G^.LineS( L'protected:' );
       END;
     #else
-      G^.OutS( L' { public:' );
+      G^.LineS( L'public:' );
     #endif
-
-    G^.EOL();
 
     RETURN gumIndent;
   END GenHead;
@@ -4061,12 +4084,58 @@ END COperatorDecl;
 CLASS IMPLEMENTATION CClassDecl;
   
   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
-  VAR
-    InitWithAssign : BOOLEAN := FALSE;
+   VAR
+      first : BOOLEAN;
+      InitWithAssign : BOOLEAN := FALSE;
+      isInterface : BOOLEAN := imInterface IN OfClass^.IM;
+      QName : StringsO.CString;
   BEGIN
     G^.EOL();
-    G^.LineSCS( L'// CLASS IMPLEMENTATION ', OfClass^.N );
 
+      IF isInterface THEN
+         G^.LineSCS( L'// rtti of INTERFACE ', OfClass^.N );
+      ELSE
+         G^.Indent(); G^.OutS( L"#pragma region class_" ); OfClass^.OutN( G, C ); G^.EOL();
+         G^.LineSCS( L'// CLASS IMPLEMENTATION ', OfClass^.N );
+      END;
+
+      // ancestors
+      IF NOT OfClass^.Implements.Empty THEN
+         G^.Indent(); G^.OutS( L'const RTTI* ' ); OfClass^.Generate( G, gcsName ); G^.OutS( L"_ancestors[] = {" ); 
+            first := TRUE;
+            OfClass^.Implements.Reset();
+            WHILE OfClass^.Implements.MoveNext() DO
+               IF first THEN
+                  first := FALSE;
+                  G^.OutS( L"&" );
+               ELSE
+                  G^.OutS( L", &" );
+               END;
+               TPClass( OfClass^.Implements.Current )^.OutQN( G, C ); G^.OutS( L"::rtti" );
+            END; // WHILE
+            G^.OutS( L'};' );
+         G^.EOL();
+      END;
+
+      // rtti
+      G^.Indent(); G^.OutS( L'const RTTI ' ); OfClass^.Generate( G, gcsName ); G^.OutS( L"::rtti = {" ); 
+         // rtti_self
+         G^.OutS( L'"' ); OfClass^.GetFullSourceQN( OUT QName ); G^.OutCS( QName ); G^.OutS( L'", ' );
+         IF OfClass^.Implements.Empty THEN
+            G^.OutS( L"0, 0};" );
+         ELSE
+            // ancestors count
+            G^.OutN( OfClass^.Implements.Count ); G^.OutCmSP();
+            // ancestors
+            OfClass^.Generate( G, gcsName ); G^.OutS( L"_ancestors };" );
+         END;
+      G^.EOL();
+      
+      IF isInterface THEN // go away
+         RETURN gumEmpty;
+      END;
+
+    G^.EOL();
     IF InitCode = NIL THEN
       G^.Indent();
         OfClass^.Generate( G, gcsName ); G^.OutS( L"::" ); OfClass^.Generate( G, gcsName ); G^.OutS( L'() throw() ' );
@@ -4128,26 +4197,27 @@ CLASS IMPLEMENTATION CClassDecl;
     RETURN gumNoIndent;
   END GenHead;
 
-  VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
-  BEGIN
-    IF FinalCode = NIL THEN
-      G^.EOL();
-      G^.Indent(); OfClass^.Generate( G, gcsName ); G^.OutS( L"::~" ); OfClass^.Generate( G, gcsName ); G^.OutS( L'() throw() ' );
-      G^.OutS( L'{} // implicit empty destructor' ); G^.EOL();
-    ELSIF FinalCode^.UnitKind  = ukClassFinalCode THEN
-      G^.EOL();
-      G^.Indent(); OfClass^.Generate( G, gcsName ); G^.OutS( L"::~" ); OfClass^.Generate( G, gcsName ); G^.OutS( L'() throw() ' );
-      G^.OutS( L' // implicit destructor' ); G^.EOL();
-      G^.LineLB();
-      FinalCode^.Generate( G, C );
-      G^.LineRB();
-      G^.EOL();
-    // ELSE
-      // G^.LineS( L'// explicit destructor' );
-      // FinalCode^.Generate( G, C );
-    END;
-    G^.LineSCS( L'// END CLASS IMPLEMENTATION ', OfClass^.N );
-  END GenTail;
+   VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
+   BEGIN
+      IF FinalCode = NIL THEN
+         G^.EOL();
+         G^.Indent(); OfClass^.Generate( G, gcsName ); G^.OutS( L"::~" ); OfClass^.Generate( G, gcsName ); G^.OutS( L'() throw() ' );
+         G^.OutS( L'{} // implicit empty destructor' ); G^.EOL();
+      ELSIF FinalCode^.UnitKind  = ukClassFinalCode THEN
+         G^.EOL();
+         G^.Indent(); OfClass^.Generate( G, gcsName ); G^.OutS( L"::~" ); OfClass^.Generate( G, gcsName ); G^.OutS( L'() throw() ' );
+         G^.OutS( L' // implicit destructor' ); G^.EOL();
+         G^.LineLB();
+         FinalCode^.Generate( G, C );
+         G^.LineRB();
+         G^.EOL();
+      // ELSE
+         // G^.LineS( L'// explicit destructor' );
+         // FinalCode^.Generate( G, C );
+      END;
+      G^.LineSCS( L'// END CLASS IMPLEMENTATION ', OfClass^.N );
+      G^.Indent(); G^.OutS( L"#pragma endregion class_" ); OfClass^.OutN( G, C ); G^.EOL();
+   END GenTail;
 
 BEGIN
   UnitKind := ukClassDecl;
@@ -4235,7 +4305,6 @@ TYPE
 
 CLASS IMPLEMENTATION CModuleEnvironment;
 BEGIN
-  Timestamp := FIO.FileTime( 0, 0 ); 
   Prefix := mprfModula;
   ClassAM := amInternal;
   Storage.Fill( ADR( MIID ), SIZE( MIID ), 0 );
@@ -6898,8 +6967,15 @@ CLASS IMPLEMENTATION CModule;
 
 //------------------------------------------------------------
 
-  VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
-  BEGIN
+   VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
+   BEGIN
+      G^.Enter();
+         // this generates content of interface rttis
+         IF NOT InterfaceRTTI.Empty THEN
+            InterfaceRTTI.Generate( G, C + TGenerateControl{gcNameNested} );
+         END;
+      G^.Leave();
+
     G^.Enter();
     IF UnitKind <> ukDefinition THEN
       IF ( InitCode <> NIL ) AND ( InitCode^.UnitKind <> ukProcedureDecl ) THEN
@@ -8285,24 +8361,36 @@ CLASS IMPLEMENTATION CENode;
       
 		ELSIF ( r.O = opISExact ) OR ( r.O = opISInherits ) THEN
 			UT := r.R^.T^.Unwrap();
-			IF UT^.SymbolKind <> skClass THEN // check with class name
-				G^.OutS( L'EQUALSB_( OA_MAX, typeid( ' );
-					r.L^.Generate( G, C );
-				G^.OutS( L' ).name(), OA_MAX, "class "' );
-					r.R^.Generate( G, C + TGenerateControl{gcCharLiteralAsStringForOA} );
-				G^.OutS( L' )' );
-			ELSIF r.O = opISExact THEN // check with class type
-				G^.OutS( L'typeid( ' );
-					r.L^.Generate( G, C );
-				G^.OutS( L' ) == typeid( ' );
-					r.R^.Generate( G, C );
-				G^.OutS( L' )' );
+			IF r.O = opISExact THEN // check with class type
+   			IF UT^.SymbolKind = skClass THEN
+				   G^.OutS( L'RTTI_IS_RTTI( &' );
+					   r.L^.T^.Generate( G, gcsName );
+				   G^.OutS( L'::rtti, &' );
+					   r.R^.Generate( G, C );
+				   G^.OutS( L'::rtti )' );
+   			ELSE // check with class name
+				   G^.OutS( L'RTTI_IS_NAME( &' );
+					   r.L^.T^.Generate( G, gcsName );
+				   G^.OutS( L'::rtti, ' );
+                  TPExpression( r.R )^.AnalyzeAndGenerateOAHigh( G, Types.TBOAString ); 
+					   r.R^.Generate( G, C );
+				   G^.OutS( L' )' );
+   			END;
 			ELSE // opISInherits
-				G^.OutS( L'dynamic_cast<' );
-					r.R^.Generate( G, C );
-				G^.OutS( L'*>(&' );
-					r.L^.Generate( G, C );
-				G^.OutS( L') != NULL' );
+   			IF UT^.SymbolKind = skClass THEN
+				   G^.OutS( L'RTTI_INHERITS_RTTI( &' );
+					   r.L^.T^.Generate( G, gcsName );
+				   G^.OutS( L'::rtti, &' );
+					   r.R^.Generate( G, C );
+				   G^.OutS( L'::rtti )' );
+   			ELSE // check with class name
+				   G^.OutS( L'RTTI_INHERITS_NAME( &' );
+					   r.L^.T^.Generate( G, gcsName );
+				   G^.OutS( L'::rtti, ' );
+                  TPExpression( r.R )^.AnalyzeAndGenerateOAHigh( G, Types.TBOAString );
+					   r.R^.Generate( G, C );
+				   G^.OutS( L' )' );
+   			END;
 			END;
 			RETURN;
 
