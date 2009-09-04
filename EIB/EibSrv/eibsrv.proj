@@ -12,7 +12,7 @@
         <ProductId>NeNo.EibSrv</ProductId>
         <ProductVersionMajor>1</ProductVersionMajor>
         <ProductVersionMinor>0</ProductVersionMinor>
-        <ProductNote>Development branch</ProductNote>
+        <ProductNote>Stable</ProductNote>
         <!-- DynamicCLibInstallMethod>Shared</DynamicCLibInstallMethod -->
 
         <FileDisplayName>EIB/KNX Server</FileDisplayName>
@@ -25,7 +25,7 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\EIB\eibnetstack;$(RootPath)\EIB\srvsvc"/>
+        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\EIB\eibnetstack;$(RootPath)\EIB\srvsvc;$(RootPath)\EIB\EibSrvWeb;$(RootPath)\EIB\EibSrv"/>
 
         <Components Include="Component\sccore;Component\scmvc;EIB\srvsvc;EIB\checkcfg;EIB\discover;Licensing\LicTool;Tools\svcinst"/>
     </ItemGroup>

@@ -45,7 +45,10 @@
             DependsOnTargets="OutputProperties;GUID;MSI;Digests"/>
 
     <Target Name="OutputProperties">
-        <CreateProperty Value="$(MSBuildProjectName)-$(ProductVersion)_$(RFC1766Short).msi">
+        <CreateProperty Condition="$(ConfigurationName)=='Release'" Value="$(MSBuildProjectName)-$(ProductVersion)_$(RFC1766Short).msi">
+            <Output TaskParameter="Value" PropertyName="SetupResult" />
+        </CreateProperty>
+        <CreateProperty Condition="$(ConfigurationName)!='Release'" Value="$(MSBuildProjectName)-$(ProductVersion)_$(RFC1766Short)-$(ConfigurationName).msi">
             <Output TaskParameter="Value" PropertyName="SetupResult" />
         </CreateProperty>
         <CreateProperty Value="$(OutputDir)\$(SetupResult)">
