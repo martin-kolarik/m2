@@ -115,7 +115,7 @@ ABSTRACT CLASS ASrvStream( IOO.AStream ); // synchronous implementation only
    // helpers
    PRIVATE PROCEDURE NormalizeHeaders();
    PUBLIC PROCEDURE StartResponse() : Sync.TAsyncResult; // PUBLIC for DEBUG
-   PRIVATE PROCEDURE SendFormattedErrorPage();
+   PRIVATE PROCEDURE FormatErrorPage( StreamToSend : IOO.TPStream );
 END ASrvStream;
 
 (*================================================================================*)

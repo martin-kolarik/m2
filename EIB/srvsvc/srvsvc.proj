@@ -26,7 +26,7 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\EIB\EibSrv;$(RootPath)\EIB\EibSrvWeb"/>
+        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\EIB\eibnetstack;$(RootPath)\EIB\srvsvc;$(RootPath)\EIB\EibSrvWeb;$(RootPath)\EIB\EibSrv"/>
 
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
         <Components Include="Component\sccore;Component\scmvc;Library\DeviceIO;EIB\srvcore;EIB\EibSrvWeb"/>
