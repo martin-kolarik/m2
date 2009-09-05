@@ -613,6 +613,9 @@ ntProcedureDefinitionStub<IM : DOM.TInheritanceModifier; CM : DOM.TCodeModifier;
   = ntProcedureId<iaCreate, P>                             (. c^.MarkForwardTypeDeclPlace();
                                                               c^.AddUnit( P );
                                                               P^.IM := IM;
+                                                              IF DOM.imCOM IN IM THEN
+                                                                  P^.Options := P^.Options + DOM.TEnvironmentOptions{DOM.eoReturnInRetval, DOM.eoCOM};
+                                                              END;
                                                               P^.CM := CM;
                                                               P^.Options := P^.Options + c^.eosIF;
                                                               P^.ImplementationState := DOM.isDefined;
@@ -636,7 +639,10 @@ ntFunctionTrailing<CheckInterface : BOOLEAN; VAR RequestedReturnType : DOM.TPTyp
 
 ntFunctionThrowInfo<P : DOM.TPProcedureType>                 (. T : DOM.TPType;
                                                                 N : BOOLEAN; .)
-  = "THROWS"
+  =                                                          (. IF DOM.imCOM IN P^.IM THEN
+                                                                   SemErr( err._COMMemberCannotThrows );
+                                                                END; .)
+    "THROWS"
     ntTypeDenoter<T, FALSE, FALSE, N>                        (. c^.CheckTypeIsException( T );
                                                                 c^.AddThrownType( P, T ); .)
     { comma ntTypeDenoter<T, FALSE, FALSE, N>                (. c^.CheckTypeIsException( T );
@@ -720,6 +726,9 @@ ntIndexerDefinition<AM : DOM.TAccessModifier; IM : DOM.TInheritanceModifier; CM 
                                                               TM : DOM.TTypeModifier := DOM.tmUnknown; .)
   =                                                        (. Indexer^.AM := AM;
                                                               Indexer^.IM := IM;
+                                                              IF DOM.imCOM IN IM THEN
+                                                                  Indexer^.Options := Indexer^.Options + DOM.TEnvironmentOptions{DOM.eoReturnInRetval, DOM.eoCOM};
+                                                              END;
                                                               Indexer^.CM := CM; .)
     SYNC "INDEX"
     lpar
@@ -747,7 +756,10 @@ ntOperatorDefinition<AM : DOM.TAccessModifier; IM : DOM.TInheritanceModifier>
                                                               P : DOM.TPSymbol;
                                                               ReturnFlag : BOOLEAN := FALSE; .)
   =                                                        (. Operator^.AM := AM;
-                                                              Operator^.IM := IM; .)
+                                                              Operator^.IM := IM;
+                                                              IF DOM.imCOM IN IM THEN
+                                                                  Operator^.Options := Operator^.Options + DOM.TEnvironmentOptions{DOM.eoReturnInRetval, DOM.eoCOM};
+                                                              END; .)
     SYNC "OPERATOR"
     ntRewritableOperator<Operator^.O>                      (. Operator^.N.FromOA( DOM.opString[Operator^.O] );
                                                               Operator^.N.PrependOA( L'operator ' ); .)
@@ -778,7 +790,10 @@ ntOperatorDefinition<AM : DOM.TAccessModifier; IM : DOM.TInheritanceModifier>
                                                               END; .)
     [                                                      (. ReturnFlag := TRUE; .)
       ntFunctionTrailing<FALSE, Operator^.T> ]
-    [ ntFunctionThrowInfo<Operator> ]
+    [                                                      (. IF DOM.eoCPPExceptions NOT IN c^.Options THEN
+                                                                 SemErr( err._ThrowDoesNotSupportedForOperatorsForNativeExceptions );
+                                                              END; .)
+      ntFunctionThrowInfo<Operator> ]
                                                               (. CASE Operator^.O OF
                                                               | DOM.opAssign, DOM.opDISPOSE :
                                                                 IF ReturnFlag THEN
@@ -994,6 +1009,7 @@ ntVariableDeclaration<DLLInterface : BOOLEAN; UK : DOM.TUnitKind; SK : DOM.TSymb
                                                                ELSE
                                                                   c^.HandleNestedSymbol( DataType, DataType^.OfSymbol, IdA );
                                                                END;
+                                                               ThrowP.T := DataType;
                                                                ClassFlag := DataType^.Unwrap()^.TypeKind = DOM.tkClass; .)
     [ // ntClassConstructorParameters<DOM.TPClass( DataType^.Unwrap())>
       // |
@@ -1045,6 +1061,9 @@ ntVariableDeclaration<DLLInterface : BOOLEAN; UK : DOM.TUnitKind; SK : DOM.TSymb
                                                                   END;
                                                                   IF SK = DOM.skProperty THEN
                                                                      DOM.TPPropertyDef( Variable )^.IM := IM;
+                                                                     IF DOM.imCOM IN IM THEN
+                                                                        Variable^.Options := Variable^.Options + DOM.TEnvironmentOptions{DOM.eoReturnInRetval, DOM.eoCOM};
+                                                                     END;
                                                                      DOM.TPPropertyDef( Variable )^.CopyThrows( ADR( ThrowP ));
                                                                   END;
                                                                   IF CheckClass THEN
@@ -2001,6 +2020,7 @@ ntBlockBody<RequestedReturnType : DOM.TPType; ClassInitCode : BOOLEAN> // !C.4.4
     ntStatements<RequestedReturnType, R>                   (. U := c^.LeaveUnit();
                                                               IF ( Df <> NIL ) AND ( DOM.eoHaveReturnInCPPTry IN c^.CurrentP()^.Options ) THEN
                                                                 INCL( U^.Options, DOM.eoHaveReturnInCPPTry );
+                                                                U^.Options := U^.Options + c^.CurrentP()^.Options * DOM.TEnvironmentOptions{DOM.eoThrowing, DOM.eoReturnInRetval};
                                                                 IF RequestedReturnType = Types.TUnknown THEN
                                                                   U^.UnitKind := DOM.ukBlockBodyOfReturnInTryProc;
                                                                 ELSE
@@ -2129,6 +2149,9 @@ ntAssignmentOrCallStatement                                (. A : DOM.TPSAssignm
                                                                 A^.UnitKind := DOM.ukSAssignmentStringByEmbeddedCall;
                                                               ELSIF A^.D^.T^.Unwrap()^.TypeKind = DOM.tkClass THEN
                                                                 C := DOM.TPClass( A^.D^.T^.Unwrap());
+                                                              END;
+                                                              IF DOM.eoCPPExceptions NOT IN c^.Options THEN
+                                                                 A^.STry := c^.TStack.Peek();
                                                               END; .) 
     ntExpression<A^.E>
                                                            (. c^.ExpectType( A^.D^.T, A^.E^.T, -1 );
@@ -2159,7 +2182,7 @@ ntAssignmentOrCallStatement                                (. A : DOM.TPSAssignm
                                                                  ( A^.UnitKind = DOM.ukSAssignment ) THEN // normal assign, L-Value is variable, not property or index
                                                                 Reduce := 0;
                                                                 WITH A^.E^.N^.r.V^.r DO
-                                                                  IF ( DK = DOM.dkId ) AND ( CD <> NIL ) THEN
+                                                                  IF ( DK = DOM.dkId ) AND ( RVD <> NIL ) THEN
                                                                     // designator is immediatelly COM, it has ComDesignator
                                                                     LD := A^.E^.N^.r.V;
                                                                     Reduce := 1;
@@ -2169,23 +2192,23 @@ ntAssignmentOrCallStatement                                (. A : DOM.TPSAssignm
                                                                   // ELSE // designator cannot be reduced it is not COM
                                                                   END;
                                                                 END; // WITH
-                                                                IF ( Reduce <> 0 ) AND ( LD^.r.CD = NIL ) THEN
+                                                                IF ( Reduce <> 0 ) AND ( LD^.r.RVD = NIL ) THEN
                                                                   Reduce := 0;
                                                                 END;
                                                                 IF ( Reduce <> 0 ) THEN WITH LD^.r DO
-                                                                  // expr ends with COM memeber, the member has CD, preceding statement and following statement stored in CD
+                                                                  // expr ends with COM memeber, the member has RVD, preceding statement and following statement stored in RVD
                                                                   IF Reduce > 0 THEN
                                                                     // (1) change preceding statement to use A^.D
-                                                                    PA^.D^.r.CD := A^.D;
+                                                                    PA^.D^.r.RVD := A^.D;
                                                                     // (2) change self to preceding (kill self, leave only the preceding statement)
                                                                     A^.UnitKind := PA^.UnitKind;
                                                                     A^.D := PA^.D;
                                                                     // (3) kill aux variable, preceding and following statement (lower)
-                                                                    CD^.r.Id^.GenTo[Generator.genCPP] := FALSE;
-                                                                    CD^.r.PA^.GenTo[Generator.genCPP] := FALSE;
+                                                                    RVD^.r.Id^.GenTo[Generator.genCPP] := FALSE;
+                                                                    RVD^.r.PA^.GenTo[Generator.genCPP] := FALSE;
                                                                   END;
-                                                                  IF CD^.r.FA <> NIL THEN
-                                                                    CD^.r.FA^.GenTo[Generator.genCPP] := FALSE;
+                                                                  IF RVD^.r.FA <> NIL THEN
+                                                                    RVD^.r.FA^.GenTo[Generator.genCPP] := FALSE;
                                                                   END;
                                                                 END; END; // WITH, IF
                                                               END; .)
@@ -2194,9 +2217,14 @@ ntAssignmentOrCallStatement                                (. A : DOM.TPSAssignm
                                                                 A^.UnitKind := DOM.ukSCall;
                                                                 CASE A^.D^.r.DK OF
                                                                 | DOM.dkId :
-                                                                  IF ( A^.D^.r.Id = NIL ) OR NOT A^.D^.r.Id^.IsProcedure( TRUE ) THEN
+                                                                  IF A^.D^.r.Id = NIL THEN
                                                                     SemErr( err._CallNotProcedure );
-                                                                  ELSIF ( A^.D^.r.Id^.OfSymbol^.SymbolKind = DOM.skClass ) AND
+                                                                  ELSIF A^.D^.r.RVD = A^.D THEN // OK, it is procedure with return value extracted to RVD
+                                                                     // A^.STry := c^.TStack.Peek();
+                                                                  ELSIF NOT A^.D^.r.Id^.IsProcedure( TRUE ) THEN // is not procedure neither procedure with RVD
+                                                                    SemErr( err._CallNotProcedure );
+                                                                  ELSIF ( A^.D^.r.Id^.OfSymbol <> NIL ) AND
+                                                                        ( A^.D^.r.Id^.OfSymbol^.SymbolKind = DOM.skClass ) AND
                                                                         ( A^.D^.r.Id^.Options * DOM.TEnvironmentOptions{DOM.eoInitially} <> DOM.TEnvironmentOptions{} ) THEN
                                                                     SemErr( err._ConstructorCannotBeCalled );
                                                                   ELSIF DOM.TPProcedureType( A^.D^.r.Id )^.GetFirstFormalType( REF S, OUT FT ) THEN
@@ -2208,7 +2236,9 @@ ntAssignmentOrCallStatement                                (. A : DOM.TPSAssignm
                                                                   SemErr( err._CallProcedureType );
                                                                 | DOM.dkOperator :
                                                                   IF A^.D^.r.O <> DOM.doCall THEN
-                                                                    SemErr( err._ParameterListMissing );
+                                                                     SemErr( err._ParameterListMissing );
+                                                                  ELSIF DOM.eoCPPExceptions NOT IN c^.Options THEN
+                                                                     A^.STry := c^.TStack.Peek();
                                                                   END;
                                                                 END; // CASE
                                                               END;
@@ -2238,11 +2268,13 @@ ntReturnStatement<RequestedReturnType : DOM.TPType>        (. E : DOM.TPExpressi
   =                                                        (. P := c^.CurrentP();
                                                               IF P = NIL THEN
                                                                 R^.UnitKind := DOM.ukReturn;
-                                                              ELSIF DOM.imCOM IN P^.IM THEN
+                                                              ELSIF DOM.eoCOM IN P^.Options THEN
                                                                 R^.UnitKind := DOM.ukReturnInCOM;
                                                               ELSIF DOM.eoInsideCPPTry IN P^.Options THEN
                                                                 R^.UnitKind := DOM.ukReturnInCPPTry;
                                                                 R^.L := DOM.TPLabel( c^.TStack.PeekData());
+                                                              ELSIF DOM.eoThrowing IN P^.Options THEN
+                                                                R^.UnitKind := DOM.ukReturnInThrowing;
                                                               ELSE
                                                                 R^.UnitKind := DOM.ukReturn;
                                                               END;
@@ -2656,22 +2688,32 @@ ntGotoStatement                                            (. EX : DOM.TPSGoto :
 
 ntStructuralExceptionHandlingStatement<RequestedReturnType : DOM.TPType; VAR R : TReturn>
                                                            (. E : DOM.TPExpression;
-                                                              L : DOM.TPLabel;
-                                                                LR : TReturn;
-                                                              P : DOM.TPProcedureType;
-                                                              U : DOM.TPUnit;
+                                                              CatchL, L : DOM.TPLabel;
+                                                              Goto : DOM.TPSGoto;
+                                                              LR : TReturn;
+                                                              P : DOM.TPProcedureType := c^.CurrentP();
+                                                              U, UL : DOM.TPUnit;
+                                                              Try : DOM.TPSTRY := NEW( DOM.CSTRY );
                                                               HaveUnhandled : BOOLEAN := FALSE; .)
-  =                                                        (.  U := NEW( DOM.CSTRY );
-                                                                c^.AddUnit( U );
-                                                                c^.EnterUnit( U );
+  =                                                        (.   Try := NEW( DOM.CSTRY );
+                                                                IF P <> NIL THEN
+                                                                   Try^.Options := Try^.Options + P^.Options * DOM.TEnvironmentOptions{DOM.eoThrowing, DOM.eoReturnInRetval};
+                                                                END;
+                                                                c^.AddUnit( Try );
+                                                                c^.EnterUnit( Try );
                                                                 NEW( L ); c^.SetNumId( L, FALSE, L"_FinallyExit_" );
-                                                                c^.TStack.PushEx( U, L ); .)
+                                                                c^.TStack.PushEx( Try, L );
+                                                                NEW( CatchL ); Try^.CatchLabel := CatchL; c^.SetNumId( CatchL, FALSE, L"_CatchStart_" ); .)
     SYNC "TRY"                                             (. U := c^.EnterNewUnit( DOM.ukTrySEHBlock );
-                                                              P := c^.CurrentP();
                                                               IF P <> NIL THEN
                                                                 INCL( P^.Options, DOM.eoInsideCPPTry );
                                                               END; .)
-      ntStatements<RequestedReturnType, R>                 (. IF P <> NIL THEN
+      ntStatements<RequestedReturnType, R>                 (. Try^.LocalThrowEnabled := FALSE;
+                                                              IF DOM.eoCPPExceptions NOT IN c^.Options THEN
+                                                                 NEW( Goto ); Goto^.L := L; c^.AddUnit( Goto );
+                                                                 UL := NEW( DOM.CSLabel ); DOM.TPSLabel( UL )^.L := CatchL; c^.AddUnit( UL );
+                                                              END;
+                                                              IF P <> NIL THEN
                                                                 EXCL( P^.Options, DOM.eoInsideCPPTry );
                                                               END; .)
   (                                                        (. c^.LeaveUnit(); .)
@@ -2691,7 +2733,10 @@ ntStructuralExceptionHandlingStatement<RequestedReturnType : DOM.TPType; VAR R :
     SYNC "FINALLY"                                         (. c^.EnterNewUnit( DOM.ukFinallySEHBlock ); .)
       ntStatements<RequestedReturnType, R>                 (. c^.LeaveUnit(); .)
   | // CPP part
-                                                           (. U^.UnitKind := DOM.ukTryCPPBlock;
+                                                           (. U^.UnitKind := DOM.ukTryBlock;
+                                                              IF DOM.eoCPPExceptions NOT IN c^.Options THEN
+                                                                 c^.HandleAuxVariableRequest( Types.TpException, Try^.ExceptionVariable );
+                                                              END;
                                                               c^.LeaveUnit();
                                                               IF ( P <> NIL ) AND ( R > retUnknown ) AND ( R < retGOTO ) THEN
                                                                 INCL( P^.Options, DOM.eoHaveReturnInCPPTry );
@@ -2700,12 +2745,19 @@ ntStructuralExceptionHandlingStatement<RequestedReturnType : DOM.TPType; VAR R :
       { ntCatchClause<RequestedReturnType, REF HaveUnhandled, P, OUT LR> }
                                                               // code for FINALLY must be generated always
                                                             (.  U := c^.EnterNewUnit( DOM.ukFinallyCPPBlock );
+                                                                U^.Options := U^.Options + P^.Options * DOM.TEnvironmentOptions{DOM.eoThrowing, DOM.eoReturnInRetval};
                                                                 IF ( P <> NIL ) AND ( DOM.eoHaveReturnInCPPTry IN P^.Options ) THEN
                                                                     INCL( U^.Options, DOM.eoHaveReturnInCPPTry );
                                                                     IF RequestedReturnType <> Types.TUnknown THEN
                                                                         INCL( U^.Options, DOM.eoTryReturnsValue );
                                                                     END;
                                                                     U := NEW( DOM.CSLabel ); DOM.TPSLabel( U )^.L := L; c^.AddUnit( U );
+                                                                END;
+                                                                IF DOM.eoCPPExceptions NOT IN c^.Options THEN
+                                                                   NEW( U );
+                                                                   U^.UnitKind := DOM.ukFinallyDelete;
+                                                                   U^.Add( c^.TStack.Peek());
+                                                                   c^.AddUnit( U );
                                                                 END; .)
     [ "FINALLY" ntStatements<RequestedReturnType, R> ]      (.  c^.LeaveUnit();
                                                                 c^.TryCheckParity(); .)
@@ -2740,6 +2792,7 @@ ntCatchClause<RequestedReturnType : DOM.TPType; REF HaveUnhandled : BOOLEAN; P :
                                                                END;
                                                                V^.UnitKind := DOM.ukCatchVarDecl;
                                                                V^.T := T;
+                                                               V^.STry := c^.TStack.Peek();
                                                                c^.AddUnit( V ); .)
     )                                                       (. c^.EnterNewUnit( DOM.ukCatchDoBlock );
                                                                IF P <> NIL THEN
@@ -2758,12 +2811,23 @@ ntCatchClause<RequestedReturnType : DOM.TPType; REF HaveUnhandled : BOOLEAN; P :
   
 /* ---------- */
 
-ntThrowStatement                                             (. E : DOM.TPExpression; .)
-  = "THROW"                                                  (. c^.EnterNewUnit( DOM.ukSThrow ); .)
-    [ ntExpression<E>                                        (. c^.AddUnit( E );
+ntThrowStatement                                             (. E : DOM.TPExpression;
+                                                                P : DOM.TPProcedureType := c^.CurrentP();
+                                                                R : DOM.TPSReturn;
+                                                                U : DOM.TPUnit; .)
+  = "THROW"                                                  (. IF DOM.eoInsideCPPTry IN P^.Options THEN
+                                                                   NEW( R );
+                                                                   R^.UnitKind := DOM.ukThrowingInCPPTry;
+                                                                   R^.L := DOM.TPLabel( c^.TStack.PeekData());
+                                                                   c^.AddUnit( R );
+                                                                   c^.EnterUnit( R );
+                                                                ELSE
+                                                                   U := c^.EnterNewUnit( DOM.ukSThrow );
+                                                                END; .)
+     ntExpression<E>                                         (. c^.AddUnit( E );
                                                                 c^.CheckTypeIsException( E^.T );
-                                                                c^.CheckIfThrowIsPossible( E^.T ); .)
-    ]                                                        (. c^.LeaveUnit(); .)
+                                                                c^.CheckIfThrowIsPossible( E^.T );
+                                                                c^.LeaveUnit(); .)
 .
 
 /* ---------- */
@@ -3007,7 +3071,7 @@ ntNonLRecursiveDesignator<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM
                                                               IT, RT : DOM.TPType := Types.TUnknown;
                                                               M : DOM.TPSymbol;
                                                               T : DOM.TPType;
-                                                              HandleCOM : BOOLEAN := FALSE; // HandleCOM for creating aux variable -- aux variable is needed if the property/indexer is inside of designator chain
+                                                              HandleReturnInRetval : BOOLEAN := FALSE; // HandleReturnInRetval for creating aux variable -- aux variable is needed if the property/indexer is inside of designator chain
                                                               LABEL FSharedWithId; .)
   =                                                        (. T := D^.T^.Unwrap();
                                                               CASE D^.r.DK OF
@@ -3028,8 +3092,8 @@ ntNonLRecursiveDesignator<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM
                                                                     VI := VI - DOM.visLValue + DOM.TValueInfo{DOM.viLValue, DOM.viPropertyAssign};
                                                                   END;
                                                                     c^.CheckIfThrowingProcedureIsPossible( D^.r.Id );
-                                                                  HandleCOM := ( DOM.imCOM IN DOM.TPProcedureType( D^.r.Id )^.IM ) OR
-                                                                               ( vrsLValue * VR <> TValueReq{} ) AND ( DOM.viLValue IN VI );
+                                                                    HandleReturnInRetval := ( DOM.eoReturnInRetval IN DOM.TPProcedureType( D^.r.Id )^.Options ) OR
+                                                                                            ( vrsLValue * VR <> TValueReq{} ) AND ( DOM.viLValue IN VI );
                                                                 | DOM.skProcedure :
                                                                   IF DOM.imCOM IN DOM.TPProcedure( D^.r.Id )^.IM THEN
                                                                     VI := VI - DOM.visLValue + DOM.TValueInfo{DOM.viCOMProcedure};
@@ -3073,16 +3137,16 @@ ntNonLRecursiveDesignator<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM
                                                                   IF DOM.imCOM IN D^.r.DfI^.IM THEN
                                                                     INCL( VI, DOM.viCOMProcedure );
                                                                   END;
-                                                                  HandleCOM := ( DOM.imCOM IN D^.r.DfI^.IM ) OR
-                                                                               ( vrsLValue * VR <> TValueReq{} ) AND ( DOM.viLValue IN VI );
+                                                                  HandleReturnInRetval := ( DOM.eoReturnInRetval IN D^.r.DfI^.Options ) OR
+                                                                                          ( vrsLValue * VR <> TValueReq{} ) AND ( DOM.viLValue IN VI );
                                                                 //-----
                                                                 | DOM.doCall :
                                                                   VI := VI - DOM.visLValue;
                                                                   // IF DOM.imAbstract IN DOM.TPProcedure( D^.L^.T )^.IM THEN
                                                                   //   SemErr( L'ABSTRACT method cannot be called.' );
                                                                   // END;
-                                                                  IF ( T <> Types.TUnknown ) AND ( DOM.imCOM IN DOM.TPProcedure( D^.L^.T )^.IM ) THEN
-                                                                    HandleCOM := TRUE;
+                                                                  IF ( T <> Types.TUnknown ) AND ( DOM.eoReturnInRetval IN DOM.TPProcedure( D^.L^.T )^.Options ) THEN
+                                                                    HandleReturnInRetval := TRUE;
                                                                   END;
                                                                   IF DOM.TEnvironmentOptions{DOM.eoLeakChecking, DOM.eoLeakInfo} * DOM.TPProcedure( D^.L^.T )^.Options = DOM.TEnvironmentOptions{DOM.eoLeakChecking, DOM.eoLeakInfo} THEN
                                                                     IF c^.CurST = NIL THEN
@@ -3117,11 +3181,11 @@ ntNonLRecursiveDesignator<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM
                                                               IF D^.T^.IsFormal() AND ( DOM.TPFormalType( D^.T )^.TypeModifier = DOM.tmCONST ) THEN
                                                                 VI := VI + DOM.TValueInfo{DOM.viCONST, DOM.viConst};
                                                               END;
-                                                              IF HandleCOM THEN
+                                                              IF HandleReturnInRetval THEN
                                                                 IF c^.CurST = NIL THEN
                                                                   SemErr( err._BadMemberPlacement );
                                                                 END;
-                                                                c^.HandleCOMPropertyOrFunction( vrAssignment IN VR, REF D );
+                                                                c^.HandleReturnInRetvalPropertyOrFunction( vrAssignment IN VR, REF D );
                                                               END; .)
   (                                                        (. CASE T^.TypeKind OF
                                                               | DOM.tkArray, DOM.tkStringArray, DOM.tkOpenArray :
@@ -3373,8 +3437,7 @@ ntCommonExpression<VR : TValueReq; VAR E : DOM.TPExpression; VAR VI : DOM.TValue
                                                                 SemErr( err._BadRelationalOperand );
                                                               END; END;
                                                                 IF ( E^.N^.r.O = DOM.opISExact ) OR ( E^.N^.r.O = DOM.opISInherits ) THEN
-                                                                    INCL( c^.Options, DOM.eoIS );
-                                                                    INCL( VR, vrAllowSingleType );
+                                                                   INCL( VR, vrAllowSingleType );
                                                                 END; .)
       ntSimpleExpression<VR, E^.N^.r.R, LVI>               (. IF E^.N^.r.R <> NIL THEN
                                                                 IF E^.N^.r.N = DOM.enClassOperator THEN
@@ -3392,7 +3455,7 @@ ntCommonExpression<VR : TValueReq; VAR E : DOM.TPExpression; VAR VI : DOM.TValue
                                                                 ELSIF ( E^.N^.r.O = DOM.opISExact ) OR ( E^.N^.r.O = DOM.opISInherits ) THEN
                                                                     T := E^.N^.r.L^.T^.Unwrap();
                                                                     RType := E^.N^.r.R^.T^.Unwrap();
-                                                                    IF T^.SymbolKind <> DOM.skClass THEN
+                                                                    IF ( T^.SymbolKind <> DOM.skClass ) OR NOT( DOM.eoVMT IN T^.Options ) THEN
                                                                         SemErr( err._ISExpectsClassOnLeft );
                                                                     ELSIF ( RType^.SymbolKind = DOM.skClass ) OR Types.TBString^.Compatible( DOM.cmOperation, RType ) THEN
                                                                         // OK
@@ -4644,7 +4707,9 @@ ntEmbeddedNEWFunc<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM.TValueI
                                                               NEW( D^.T );
                                                               D^.T^.TypeKind := DOM.tkReference;
                                                               D^.T^.T := T;
-                                                              c^.HandleAuxVariableRequest( D^.T, DOM.TPTPVariable( ADR( D^.r.U1 ))^ ); .)
+                                                              IF DOM.eoLeakChecking IN c^.Options THEN
+                                                                c^.HandleAuxVariableRequest( D^.T, DOM.TPTPVariable( ADR( D^.r.U1 ))^ );
+                                                              END; .)
   rpar
 .
 

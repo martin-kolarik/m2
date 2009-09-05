@@ -221,9 +221,15 @@ CLASS IMPLEMENTATION CUnit;
       IF ( UnitKind = ukBlockBodyOfReturnInTryFunc ) AND ( eoHaveReturnInCPPTry IN Options )THEN
         Childs.GetFirst( OUT U );
         G^.Indent(); TPSymbol( U )^.T^.Generate( G, gcsName ); G^.OutS( L' _ReturnResult; // deferred return result' ); G^.EOL();
+        IF eoThrowing IN Options THEN
+           G^.Indent(); G^.OutS( L'Exceptions::Exception* _ReturnException; // deferred exception result' ); G^.EOL();
+        END;
       END;
       IF eoHaveReturnInCPPTry IN Options THEN
-        G^.LineS( L'BOOLEAN _FinallyReturns = false; // TRY/FINALLY exit control' );
+         G^.LineS( L'BOOLEAN _FinallyReturns = false; // TRY/FINALLY exit control' );
+         IF eoThrowing IN Options THEN
+            G^.LineS( L'BOOLEAN _FinallyThrows = false; // TRY/FINALLY exit control' );
+         END;
       END;
       IF NOT Childs.Empty THEN
         G^.EOL();
@@ -313,8 +319,12 @@ CLASS IMPLEMENTATION CUnit;
 
     | ukSTry :
       RETURN gumNoIndent;
-    | ukTryCPPBlock :
-      G^.LineS( L"try {" );
+    | ukTryBlock :
+      IF eoCPPExceptions IN Options THEN
+         G^.LineS( L"try {" );
+      ELSE
+         G^.LineS( L"{ // native TRY" );
+      END;
     | ukTrySEHBlock :
       G^.LineS( L"__try {" );
     | ukExceptBlock :
@@ -328,34 +338,54 @@ CLASS IMPLEMENTATION CUnit;
       RETURN gumIndent;
     | ukFinallySEHBlock :
       G^.OutS( L" __finally {" ); G^.EOL();
+    | ukFinallyDelete :
+      IF GetFirst( OUT U ) THEN
+         G^.Indent();
+            IF eoThrowing IN U^.Options THEN
+               G^.OutS( L"if( !_FinallyThrows || _ReturnException != " );
+               TPSTRY( U )^.ExceptionVariable^.Generate( G, gcsName ); 
+               G^.OutS( L" ) " );
+            END;
+            G^.OutS( L"delete " ); TPSTRY( U )^.ExceptionVariable^.Generate( G, gcsName ); G^.OutSC();
+         G^.EOL();
+      END;
+      RETURN gumSimple;
     | ukCatchBlock :
-      G^.Indent(); G^.OutS( L"catch (" );
+      IF eoCPPExceptions IN Options THEN
+         G^.Indent(); G^.OutS( L"catch (" );
+      ELSE
+         G^.Indent(); G^.OutS( L"else if (" );
+      END;
       RETURN gumNoIndent;
     | ukCatchAnyBlock :
-      G^.Indent(); G^.OutS( L"catch (..." );
+      IF eoCPPExceptions IN Options THEN
+         G^.Indent(); G^.OutS( L"catch (..." );
+      ELSE
+         G^.Indent(); G^.OutS( L"else if (true" );
+      END;
       RETURN gumNoIndent;
 
     | ukSThrow :
-      IF Childs.Empty THEN
-        G^.LineS( L'throw' );
-        RETURN gumSimple;
+      G^.Indent();
+      IF eoCPPExceptions IN Options THEN
+         G^.OutS( L'throw ' );
       ELSE
-        G^.Indent(); G^.OutS( L'throw ' );
-        RETURN gumNoIndent;
+         G^.OutS( L'return &' );
       END;
+      RETURN gumNoIndent;
 
     ELSE
 
-    G^.Indent();
+       G^.Indent();
 
-    // CASE Generator.TPGenerator( Generator )^.Mode() OF
-    IF Childs.Empty THEN
-      G^.OutN( CARDINAL( UnitKind ));
-    ELSE
-      G^.OutS( L"ENTER " );
-      G^.OutN( CARDINAL( UnitKind ));
-      G^.EOL();
-    END;
+       // CASE Generator.TPGenerator( Generator )^.Mode() OF
+       IF Childs.Empty THEN
+         G^.OutN( CARDINAL( UnitKind ));
+       ELSE
+         G^.OutS( L"ENTER " );
+         G^.OutN( CARDINAL( UnitKind ));
+         G^.EOL();
+       END;
 
     END;
     RETURN gumIndent;
@@ -447,7 +477,6 @@ CLASS IMPLEMENTATION CUnit;
     | ukParamDefContainer :
 
     | ukParameterList :
-      G^.OutSP();
     | ukParameterContainer :
     | ukNestedParameters,
       ukNestedFrames :
@@ -549,17 +578,32 @@ CLASS IMPLEMENTATION CUnit;
       IF eoHaveReturnInCPPTry IN Options THEN
         G^.Enter();
         IF eoTryReturnsValue IN Options THEN
-          G^.LineS( L'if (_FinallyReturns) return _ReturnResult; // RETURN from TRY' );
+          IF eoThrowing IN Options THEN
+            G^.LineS( L'if (_FinallyThrows) { return _ReturnException; } // RETURN from TRY/THROW' );
+            G^.LineS( L'if (_FinallyReturns) { *RetVal = _ReturnResult; return NIL; } // RETURN from TRY' );
+          ELSE
+            G^.LineS( L'if (_FinallyReturns) return _ReturnResult; // RETURN from TRY' );
+          END;
         ELSE
-          G^.LineS( L'if (_FinallyReturns) return; // RETURN from TRY' );
+          IF eoThrowing IN Options THEN
+            G^.LineS( L'if (_FinallyThrows) { return _ReturnException; } // RETURN from TRY/THROW' );
+            G^.LineS( L'if (_FinallyReturns) return NIL; // RETURN from TRY' );
+          ELSE
+            G^.LineS( L'if (_FinallyReturns) return; // RETURN from TRY' );
+          END;
         END;
         G^.Leave();
       END;
       G^.LineRB();
     | ukTrySEHBlock :
       G^.Indent(); G^.OutRB();
-    | ukTryCPPBlock,
-      ukExceptDoBlock,
+    | ukTryBlock :
+      G^.LineRB();
+      IF eoCPPExceptions NOT IN Options THEN
+         G^.LineS( L'if (false) { // first if of CATCHes' );
+         G^.LineS( L'}' );
+      END;
+    | ukExceptDoBlock,
       ukFinallySEHBlock,
       ukCatchDoBlock :
       G^.LineRB();
@@ -2560,7 +2604,11 @@ CLASS IMPLEMENTATION CVariable;
     IF ( gcDefault IN C ) AND ( UnitKind = ukVariantSelector ) THEN
       RETURN gumSimple;
     ELSIF gcName IN C THEN
-      OutN( G, C );
+      IF ( UnitKind <> ukCatchVarDecl ) OR ( eoCPPExceptions IN Options ) THEN
+         OutN( G, C );
+      ELSE
+         G^.OutS( L"(*" ); STry^.ExceptionVariable^.OutN( G, C ); G^.OutRP();
+      END;
       RETURN gumSimple;
     ELSIF ( UnitKind = ukSimpleVarDecl ) AND ( eoMovedToFrame IN Options ) THEN // disables generating of symbols moved into frame
       RETURN gumEmpty;
@@ -2585,6 +2633,9 @@ CLASS IMPLEMENTATION CVariable;
     | ukClassVarDecl, ukVariantSelector :
       G^.Indent();
     | ukCatchVarDecl :
+      IF eoCPPExceptions NOT IN Options THEN
+         RETURN GenHeadOfNativeCatch( G, C, Context );
+      END;
     ELSE
       i := FALSE;
     END;
@@ -2623,8 +2674,8 @@ CLASS IMPLEMENTATION CVariable;
           GenerateInitExpression( G, C, Context );
       END;
       IF UnitKind <> ukCatchVarDecl THEN
-          G^.OutSC();
-        G^.EOL();
+         G^.OutSC();
+         G^.EOL();
       END;  
     END;
 
@@ -2665,10 +2716,17 @@ CLASS IMPLEMENTATION CVariable;
     END;
   END GenerateInitExpression;
 
+   PROCEDURE GenHeadOfNativeCatch( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+   BEGIN
+      G^.OutS( L"RTTI_INHERITS_RTTI( " ); STry^.ExceptionVariable^.OutN( G, C ); G^.OutS( L"->rtti_get(), &" ); T^.OutN( G, C ); G^.OutS( L"::rtti, TRUE )" );
+      RETURN gumSimple;
+   END GenHeadOfNativeCatch;
+
 BEGIN
   UnitKind := ukSimpleVarDecl;
   SymbolKind := skVariable;
   InitE := NIL;
+  STry := NIL;
 END CVariable;
 
 //============================================================
@@ -3000,6 +3058,7 @@ CLASS IMPLEMENTATION CProcedureType;
 
 	PROCEDURE CopyThrows( From : TPProcedureType );
 	BEGIN
+	   Options := Options + From^.Options * TEnvironmentOptions{eoReturnInRetval, eoThrowing};
 		Throws.Dispose();
 		From^.Throws.Reset();
 		WHILE From^.Throws.MoveNext() DO
@@ -3036,11 +3095,13 @@ CLASS IMPLEMENTATION CProcedureType;
       // IF cpCDecl IN Options THEN
       //   G^.OutS( L'extern "C" ' );
       // END;
-      IF ( T = NIL ) OR ( T = Types.TUnknown ) THEN
-        G^.OutS( L'void ' );
+      IF eoThrowing IN Options THEN
+         G^.OutS( L'Exceptions::Exception* ' );
+      ELSIF ( T = NIL ) OR ( T = Types.TUnknown ) THEN
+         G^.OutS( L'void ' );
       ELSE
-        T^.Generate( G, gcsExplicit );
-        G^.OutSP();
+         T^.Generate( G, gcsExplicit );
+         G^.OutSP();
       END;
 
       G^.OutLP(); 
@@ -3072,7 +3133,7 @@ CLASS IMPLEMENTATION CProcedureType;
   VAR
     First : BOOLEAN := TRUE;
   BEGIN
-    IF Throws.Empty THEN
+    IF ( eoCPPExceptions NOT IN Options ) OR Throws.Empty THEN
       G^.OutS( L' throw()' );
     ELSE
       G^.OutS( L' throw( ' );
@@ -3174,8 +3235,10 @@ CLASS IMPLEMENTATION CProcedure;
          ( TEnvironmentOptions{eoInitially, eoFinally} * Options <> TEnvironmentOptions{} ) AND
          ( TEnvironmentOptions{eoAssignSelf} * Options = TEnvironmentOptions{} ) THEN
         // constructor and destructor do not have return type...
-      ELSIF imCOM IN IM THEN
-        G^.OutS( L'HRESULT ' );
+      ELSIF eoThrowing IN Options THEN
+         G^.OutS( L'Exceptions::Exception* ' );
+      ELSIF eoCOM IN Options THEN
+         G^.OutS( L'HRESULT ' );
       ELSIF ( T = NIL ) OR ( T = Types.TUnknown ) THEN
         G^.OutS( L'void ' );
       ELSE
@@ -3237,15 +3300,15 @@ CLASS IMPLEMENTATION CProcedure;
   BEGIN
       G^.OutLP();
         GUM := Parameters^.Generate( G, gcsExplicit );
-        IF ( imCOM IN IM ) AND ( T <> Types.TUnknown ) THEN
+        IF ( eoReturnInRetval IN Options ) AND ( T <> Types.TUnknown ) THEN
           IF GUM = gumNoIndent THEN
             G^.OutS( L", OUT " );
           ELSE
             G^.OutS( L" OUT " );
           END;
-          T^.Generate( G, gcsExplicit ); G^.OutS( L"* RetVal " );
+          T^.Generate( G, gcsExplicit ); G^.OutS( L"* RetVal" );
         END;
-      G^.OutRP();
+      G^.OutSPRP();
       IF OD = NIL THEN
         GenerateThrow( G, C );
       ELSE
@@ -3283,7 +3346,7 @@ CLASS IMPLEMENTATION CProcedure;
 BEGIN
   UnitKind := ukProcedureDef;
   SymbolKind := skProcedure;
-  OD := NIL;
+  OD := ADR( SELF );
   CTDU := NIL;
   NFT := NIL;
   NSP.UnitKind := ukNestedForwardedProcedures;
@@ -3617,19 +3680,24 @@ CLASS IMPLEMENTATION CClass;
       END;
 
       G^.OutS( L' { public:' ); G^.EOL();
-      // output of RTTI information
-      G^.Enter();
-         G^.LineS( L'static const RTTI rtti;' );
-      G^.Leave();
+      
+      IF eoVMT IN Options THEN
+         // output of RTTI information
+         G^.Enter();
+            G^.LineS( L'static const RTTI rtti;' );
+            G^.LineS( L'virtual const RTTI* rtti_get() const;' );
+         G^.Leave();
+         G^.EOL();
+      END;
 
     #if CPP_ACCESS_MODIFIERS #then
       IF UnitKind = ukNestedForwardedFrame THEN
-         G^.LineS( L'public:' );
+         // G^.LineS( L'public:' );
       ELSE
          G^.LineS( L'protected:' );
       END;
     #else
-      G^.LineS( L'public:' );
+      // G^.LineS( L'public:' );
     #endif
 
     RETURN gumIndent;
@@ -4099,37 +4167,41 @@ CLASS IMPLEMENTATION CClassDecl;
          G^.LineSCS( L'// CLASS IMPLEMENTATION ', OfClass^.N );
       END;
 
-      // ancestors
-      IF NOT OfClass^.Implements.Empty THEN
-         G^.Indent(); G^.OutS( L'const RTTI* ' ); OfClass^.Generate( G, gcsName ); G^.OutS( L"_ancestors[] = {" ); 
-            first := TRUE;
-            OfClass^.Implements.Reset();
-            WHILE OfClass^.Implements.MoveNext() DO
-               IF first THEN
-                  first := FALSE;
-                  G^.OutS( L"&" );
-               ELSE
-                  G^.OutS( L", &" );
-               END;
-               TPClass( OfClass^.Implements.Current )^.OutQN( G, C ); G^.OutS( L"::rtti" );
-            END; // WHILE
-            G^.OutS( L'};' );
-         G^.EOL();
-      END;
-
-      // rtti
-      G^.Indent(); G^.OutS( L'const RTTI ' ); OfClass^.Generate( G, gcsName ); G^.OutS( L"::rtti = {" ); 
-         // rtti_self
-         G^.OutS( L'"' ); OfClass^.GetFullSourceQN( OUT QName ); G^.OutCS( QName ); G^.OutS( L'", ' );
-         IF OfClass^.Implements.Empty THEN
-            G^.OutS( L"0, 0};" );
-         ELSE
-            // ancestors count
-            G^.OutN( OfClass^.Implements.Count ); G^.OutCmSP();
-            // ancestors
-            OfClass^.Generate( G, gcsName ); G^.OutS( L"_ancestors };" );
+      IF eoVMT IN OfClass^.Options THEN
+         // ancestors
+         IF NOT OfClass^.Implements.Empty THEN
+            G^.Indent(); G^.OutS( L'const RTTI* ' ); OfClass^.Generate( G, gcsName ); G^.OutS( L"_ancestors[] = {" ); 
+               first := TRUE;
+               OfClass^.Implements.Reset();
+               WHILE OfClass^.Implements.MoveNext() DO
+                  IF first THEN
+                     first := FALSE;
+                     G^.OutS( L"&" );
+                  ELSE
+                     G^.OutS( L", &" );
+                  END;
+                  TPClass( OfClass^.Implements.Current )^.OutQN( G, C ); G^.OutS( L"::rtti" );
+               END; // WHILE
+               G^.OutS( L'};' );
+            G^.EOL();
          END;
-      G^.EOL();
+
+         // rtti
+         G^.Indent(); G^.OutS( L'const RTTI ' ); OfClass^.Generate( G, gcsName ); G^.OutS( L"::rtti = {" ); 
+            // rtti_self
+            G^.OutS( L'"' ); OfClass^.GetFullSourceQN( OUT QName ); G^.OutCS( QName ); G^.OutS( L'", ' );
+            IF OfClass^.Implements.Empty THEN
+               G^.OutS( L"0, 0};" );
+            ELSE
+               // ancestors count
+               G^.OutN( OfClass^.Implements.Count ); G^.OutCmSP();
+               // ancestors
+               OfClass^.Generate( G, gcsName ); G^.OutS( L"_ancestors };" );
+            END;
+         G^.EOL();
+
+         G^.Indent(); G^.OutS( L'const RTTI* ' ); OfClass^.Generate( G, gcsName ); G^.OutS( L"::rtti_get() const { return &rtti; };" ); G^.EOL();
+      END;
       
       IF isInterface THEN // go away
          RETURN gumEmpty;
@@ -4850,8 +4922,10 @@ CLASS IMPLEMENTATION CModule;
       LeaveUnit();
     END;
     LS := SStack.Pop();
-    LS^.StopLine := Lexer.Line;
-    LS^.StopColumn := Lexer.Pos;
+    IF LS <> NIL THEN
+      LS^.StopLine := Lexer.Line;
+      LS^.StopColumn := Lexer.Pos;
+    END;
     IF SStack.Count = 0 THEN
       CurS := NIL;
     ELSE
@@ -5608,15 +5682,11 @@ CLASS IMPLEMENTATION CModule;
     END;
   END HandleNestedSymbol;
 
-  PROCEDURE HandleCOMPropertyOrFunction( AssignmentFlag : BOOLEAN; REF D : TPDesignator );
+  PROCEDURE HandleReturnInRetvalPropertyOrFunction( AssignmentFlag : BOOLEAN; REF D : TPDesignator );
   VAR
     LD : TPDesignator;
     Member : TPProcedureType;
   BEGIN
-    IF AssignmentFlag THEN
-      RETURN;
-    END;
-
     IF D^.r.DK <> dkType THEN
       LD := D;
     ELSIF D^.r.TC^.GetDesignator( OUT LD ) THEN // if D is dkType, then the designator
@@ -5641,22 +5711,25 @@ CLASS IMPLEMENTATION CModule;
       RETURN; // ?? strange, nothing to do
     END;
 
-    NEW( LD^.r.CD );
-    WITH LD^.r.CD^ DO
+    NEW( LD^.r.RVD );
+    WITH LD^.r.RVD^ DO
       r.DK := dkId; // opreated as being dkCOMAuxId
       r.OD := LD;
-      r.CD := LD^.r.CD; // strange cross reference, but it is used in ntAssignment later
+      r.RVD := LD^.r.RVD; // strange cross reference, but it is used in ntAssignment later
       T := D^.T;
       HandleAuxVariableRequest( Member^.T, TPVariable( r.Id ));
       IF NOT D^.T^.IsFormal() OR ( DOM.TPFormalType( D^.T )^.TypeModifier <> DOM.tmOUT ) THEN
          // preceding property-get call
          NEW( r.PA );
-         IF imCOM IN Member^.IM THEN
-           r.PA^.UnitKind := ukSAssignmentByCOMCall;
+         IF eoReturnInRetval IN Member^.Options THEN
+           r.PA^.UnitKind := ukSAssignmentByRetvalCall;
+           r.PA^.STry := TStack.Peek();
            r.PA^.D := LD;
+           // hide the original member after replacement, everything is solved with RetvalCall
+           LD^.r.RVD^.GenTo[Generator.genCPP] := FALSE;
          ELSE
            r.PA^.UnitKind := ukSAssignment;
-           r.PA^.D := LD^.r.CD;
+           r.PA^.D := LD^.r.RVD;
            CreateExpressionWithDesignator( LD, FALSE, OUT r.PA^.E );
          END;
          AddPrecedingStatement( r.PA );
@@ -5668,18 +5741,18 @@ CLASS IMPLEMENTATION CModule;
         NEW( r.FA^.D );
         r.FA^.D^.r.DK := dkOperator;
         r.FA^.D^.r.O := doCallRelease;
-        r.FA^.D^.L := LD^.r.CD;
+        r.FA^.D^.L := LD^.r.RVD;
         AddFollowingStatement( r.FA );
       END;
     END; // WITH
 
     // replace current designator with modified
-    IF D^.r.DK <> dkType THEN
-      D := LD^.r.CD;
+    IF D^.r.DK = dkType THEN
+      D^.r.TC^.SetDesignator( LD^.r.RVD );
     ELSE
-      D^.r.TC^.SetDesignator( LD^.r.CD );
+      D := LD^.r.RVD;
     END;
-  END HandleCOMPropertyOrFunction;
+  END HandleReturnInRetvalPropertyOrFunction;
 
   PROCEDURE IdToType( Id : TPSymbol ) : TPType;
   VAR
@@ -6597,6 +6670,16 @@ CLASS IMPLEMENTATION CModule;
 
 	PROCEDURE AddThrownType( P : TPProcedureType; T : TPType );
 	BEGIN
+	   IF eoCPPExceptions NOT IN Options THEN
+	      IF P^.T = Types.TUnknown THEN
+	         P^.Options := P^.Options + TEnvironmentOptions{eoThrowing};
+	      ELSE
+	         P^.Options := P^.Options + TEnvironmentOptions{eoReturnInRetval, eoThrowing};
+	      END;
+	      IF P^.OI <> NIL THEN
+	         P^.OI^.Options := P^.OI^.Options + P^.Options * TEnvironmentOptions{eoReturnInRetval, eoThrowing};
+	      END;
+	   END;
 		P^.Throws.Add( T^.Unwrap(), 0 );
 	END AddThrownType;
 
@@ -6629,7 +6712,7 @@ CLASS IMPLEMENTATION CModule;
 				RETURN;
 			END;
 		END; // WHILE
-		IF TStack.Empty THEN // we are not inside TRY
+		IF TStack.Empty OR NOT TPSTRY( TStack.Peek())^.LocalThrowEnabled THEN // we are not inside TRY
    		SemErr( err._ThrowIsNotPossible );
 		ELSE // we are inside TRY, catched type can be local
 			AddTryThrow( T );
@@ -6681,7 +6764,9 @@ CLASS IMPLEMENTATION CModule;
 
 				PT^.Handles.Reset();
 				WHILE PT^.Handles.MoveNext() DO
-					IF TPClass( PP^.Throws.Current )^.IsDescendantOf( TPClass( PT^.Handles.Current ), TRUE, FALSE, OUT b ) THEN // OK
+				   IF TPSymbol( PP^.Throws.Current )^.SymbolKind <> skClass THEN
+				      CONTINUE;
+					ELSIF TPClass( PP^.Throws.Current )^.IsDescendantOf( TPClass( PT^.Handles.Current ), TRUE, FALSE, OUT b ) THEN // OK
 						GOTO NextProcedureThrow;
 					END;
 				END; // catches while
@@ -6849,8 +6934,8 @@ CLASS IMPLEMENTATION CModule;
        IF eoLeakChecking IN Options THEN
          G^.LineS( L'#include "m2leak.h"' );
        END;
-       IF eoIS IN Options THEN
-	       G^.LineS( L'#include "typeinfo.h"' );
+       IF eoCPPExceptions IN Options THEN
+	     G^.LineS( L'#include "typeinfo.h"' );
        END;
 
        IF ( eoPublishExports IN CurE^.Options ) AND Project.GetComponentName( LN, TRUE, FALSE ) THEN
@@ -7340,19 +7425,7 @@ CLASS IMPLEMENTATION CPropertyDef;
         IF cmINLINE IN CM THEN
           G^.OutS( L'inline ' );
         END;
-        IF TInheritanceModifier{imCOM} * IM = TInheritanceModifier{} THEN
-          T^.Generate( G, gcsExplicit );
-          G^.OutSP();
-          IF cpCDecl IN Options THEN
-            G^.OutS( L'__cdecl ' );
-          ELSIF cpStdCall IN Options THEN
-            G^.OutS( L'__stdcall ' );
-          ELSIF cpFastCall IN Options THEN
-            G^.OutS( L'__fastcall ' );
-          END;
-          G^.OutCS( N );
-          G^.OutS( L'_get()' );
-        ELSE
+        IF eoCOM IN Options THEN
           G^.OutS( L'HRESULT ' );
           IF cpCDecl IN Options THEN
             G^.OutS( L'__cdecl ' );
@@ -7366,6 +7439,31 @@ CLASS IMPLEMENTATION CPropertyDef;
           G^.OutS( L'( OUT ' );
           T^.Generate( G, gcsExplicit );
           G^.OutS( L'* RetVal )' );
+        ELSIF eoThrowing IN Options THEN
+          G^.OutS( L'Exceptions::Exception* ' );
+          IF cpCDecl IN Options THEN
+            G^.OutS( L'__cdecl ' );
+          ELSIF cpStdCall IN Options THEN
+            G^.OutS( L'__stdcall ' );
+          ELSIF cpFastCall IN Options THEN
+            G^.OutS( L'__fastcall ' );
+          END;
+          G^.OutCS( N );
+          G^.OutS( L'_get( OUT ' );
+          T^.Generate( G, gcsExplicit );
+          G^.OutS( L'* RetVal )' );
+        ELSE
+          T^.Generate( G, gcsExplicit );
+          G^.OutSP();
+          IF cpCDecl IN Options THEN
+            G^.OutS( L'__cdecl ' );
+          ELSIF cpStdCall IN Options THEN
+            G^.OutS( L'__stdcall ' );
+          ELSIF cpFastCall IN Options THEN
+            G^.OutS( L'__fastcall ' );
+          END;
+          G^.OutCS( N );
+          G^.OutS( L'_get()' );
         END;
         GenerateThrow( G, C );
       IF imAbstract IN IM THEN
@@ -7391,7 +7489,11 @@ CLASS IMPLEMENTATION CPropertyDef;
           G^.OutS( L'inline ' );
         END;
         IF TInheritanceModifier{imCOM} * IM = TInheritanceModifier{} THEN
-          G^.OutS( L'void ' );
+          IF eoThrowing IN Options THEN
+             G^.OutS( L'Exceptions::Exception* ' );
+          ELSE
+             G^.OutS( L'void ' );
+          END;
           IF cpCDecl IN Options THEN
             G^.OutS( L'__cdecl ' );
           ELSIF cpStdCall IN Options THEN
@@ -7545,7 +7647,11 @@ CLASS IMPLEMENTATION CIndexerDef;
         END;
       ELSE
         IF _CM = cmRO THEN
-          T^.Generate( G, gcsExplicit ); G^.OutSP();
+          IF eoThrowing IN Options THEN
+            G^.OutS( L"Exceptions::Exception* " );
+          ELSE
+            T^.Generate( G, gcsExplicit ); G^.OutSP();
+          END;
           IF cpCDecl IN Options THEN
             G^.OutS( L'__cdecl ' );
           ELSIF cpStdCall IN Options THEN
@@ -7559,9 +7665,19 @@ CLASS IMPLEMENTATION CIndexerDef;
             G^.OutS( L' Index_HIGH, ' );
           END;
           IndexType^.Generate( G, gcsExplicitParameter );
-          G^.OutS( L' Index )' );
+          IF eoReturnInRetval IN Options THEN
+            G^.OutS( L' Index, OUT ' );
+            T^.Generate( G, gcsExplicit );
+            G^.OutS( L'* RetVal )' );
+          ELSE
+            G^.OutS( L' Index )' );
+          END;
         ELSIF _CM = cmWO THEN
-          G^.OutS( L'void ' );
+          IF eoThrowing IN Options THEN
+            G^.OutS( L"Exceptions::Exception* " );
+          ELSE
+            G^.OutS( L'void ' );
+          END;
           IF cpCDecl IN Options THEN
             G^.OutS( L'__cdecl ' );
           ELSIF cpStdCall IN Options THEN
@@ -7618,10 +7734,12 @@ CLASS IMPLEMENTATION COperatorDef;
           G^.OutS( L'virtual ' );
         END;
       END;
-      IF T = Types.TUnknown THEN
-        G^.OutS( L'void ' );
+      IF eoThrowing IN Options THEN
+         G^.OutS( L'Exceptions::Exception* ' );
+      ELSIF T = Types.TUnknown THEN
+         G^.OutS( L'void ' );
       ELSE
-        T^.Generate( G, gcsExplicit ); G^.OutSP();
+         T^.Generate( G, gcsExplicit ); G^.OutSP();
       END;
 
       IF cpCDecl IN Options THEN
@@ -7643,10 +7761,17 @@ CLASS IMPLEMENTATION COperatorDef;
       IF NOT OperandType^.IsFormal() AND ( OperandType^.Unwrap()^.PrimitiveType = DOM.ptStructure ) THEN
         G^.OutS( L'const ' );
         OperandType^.Generate( G, gcsExplicitParameter );
-        G^.OutS( L'& Operand )' );
+        G^.OutS( L'& Operand' );
       ELSE
         OperandType^.Generate( G, gcsExplicitParameter );
-        G^.OutS( L' Operand )' );
+        G^.OutS( L' Operand' );
+      END;
+      IF eoThrowing IN Options THEN
+         G^.OutS( L", OUT " );
+         T^.Generate( G, gcsExplicit );
+         G^.OutS( L'* RetVal )' );
+      ELSE
+         G^.OutS( L' )' );
       END;
       GenerateThrow( G, C );
     IF imAbstract IN IM THEN
@@ -8363,33 +8488,33 @@ CLASS IMPLEMENTATION CENode;
 			UT := r.R^.T^.Unwrap();
 			IF r.O = opISExact THEN // check with class type
    			IF UT^.SymbolKind = skClass THEN
-				   G^.OutS( L'RTTI_IS_RTTI( &' );
-					   r.L^.T^.Generate( G, gcsName );
-				   G^.OutS( L'::rtti, &' );
+				   G^.OutS( L'RTTI_IS_RTTI( ' );
+					   r.L^.Generate( G, C );
+				   G^.OutS( L'.rtti_get(), &' );
 					   r.R^.Generate( G, C );
 				   G^.OutS( L'::rtti )' );
    			ELSE // check with class name
-				   G^.OutS( L'RTTI_IS_NAME( &' );
-					   r.L^.T^.Generate( G, gcsName );
-				   G^.OutS( L'::rtti, ' );
+				   G^.OutS( L'RTTI_IS_NAME( ' );
+					   r.L^.Generate( G, C );
+				   G^.OutS( L'.rtti_get(), ' );
                   TPExpression( r.R )^.AnalyzeAndGenerateOAHigh( G, Types.TBOAString ); 
-					   r.R^.Generate( G, C );
+					   r.R^.Generate( G, C + TGenerateControl{gcCharLiteralAsStringForOA} );
 				   G^.OutS( L' )' );
    			END;
 			ELSE // opISInherits
    			IF UT^.SymbolKind = skClass THEN
-				   G^.OutS( L'RTTI_INHERITS_RTTI( &' );
-					   r.L^.T^.Generate( G, gcsName );
-				   G^.OutS( L'::rtti, &' );
+				   G^.OutS( L'RTTI_INHERITS_RTTI( ' );
+					   r.L^.Generate( G, C );
+				   G^.OutS( L'.rtti_get(), &' );
 					   r.R^.Generate( G, C );
-				   G^.OutS( L'::rtti )' );
+				   G^.OutS( L'::rtti, FALSE )' );
    			ELSE // check with class name
-				   G^.OutS( L'RTTI_INHERITS_NAME( &' );
-					   r.L^.T^.Generate( G, gcsName );
-				   G^.OutS( L'::rtti, ' );
+				   G^.OutS( L'RTTI_INHERITS_NAME( ' );
+					   r.L^.Generate( G, C );
+				   G^.OutS( L'.rtti_get(), ' );
                   TPExpression( r.R )^.AnalyzeAndGenerateOAHigh( G, Types.TBOAString );
-					   r.R^.Generate( G, C );
-				   G^.OutS( L' )' );
+					   r.R^.Generate( G, C + TGenerateControl{gcCharLiteralAsStringForOA} );
+				   G^.OutS( L', FALSE )' );
    			END;
 			END;
 			RETURN;
@@ -8515,7 +8640,7 @@ CLASS IMPLEMENTATION CProcedureCall;
     IF NOT GetFirst( U ) THEN
       RETURN gumSimple;
     END;
-    IF ( imCOM IN P^.IM ) AND ( P^.T <> Types.TUnknown ) THEN
+    IF ( eoReturnInRetval IN P^.Options ) AND ( P^.T <> Types.TUnknown ) THEN
       Context := 1; // will have normal and OUT parameters
     END;
     IF NOT U^.Childs.Empty THEN
@@ -8536,9 +8661,9 @@ CLASS IMPLEMENTATION CProcedureCall;
     U : TPUnit;
   BEGIN
     IF Context = 1 THEN
-      G^.OutS( L', OUT &' ); RVD^.Generate( G, _C ); // COM OUT/function value
+      G^.OutS( L', OUT &' ); RVD^.Generate( G, _C ); // OUT/function value
     ELSIF Context = 2 THEN
-      G^.OutS( L'OUT &' ); RVD^.Generate( G, _C ); // COM OUT/function value
+      G^.OutS( L'OUT &' ); RVD^.Generate( G, _C ); // OUT/function value
     END;
     IF ( P^.OI <> NIL ) AND ( P^.OI^.UnitKind = ukNestedProcedureDecl ) THEN
       IF coParamsInFrame IN P^.Options THEN
@@ -8819,8 +8944,8 @@ CLASS IMPLEMENTATION CDesignator;
         r.Idx^.Generate( G, Cn );
         IF gcLValue IN C THEN
           G^.OutS( L', ' );
-        ELSIF imCOM IN r.DfI^.IM THEN
-          G^.OutS( L', &' ); r.CD^.Generate( G, Cn ); G^.OutS( L' )' ); // obtaining COM indexer value
+        ELSIF eoReturnInRetval IN r.DfI^.Options THEN
+          G^.OutS( L', &' ); r.RVD^.Generate( G, Cn ); G^.OutS( L' )' ); // obtaining retval indexer value
         ELSE
           G^.OutS( L' )' );
         END;
@@ -8902,9 +9027,9 @@ CLASS IMPLEMENTATION CDesignator;
         r.F^.Generate( G, C + gcsNameSimple );
         IF FieldOfTypeFlag THEN
           G^.OutSPRP();
-        // imCOM properties and functions are handled by call/OUT retval, so the usage must be generated properly
-        ELSIF ( gcRValue IN C ) AND ( r.F^.SymbolKind = skProperty ) AND ( imCOM IN TPPropertyDef( r.F )^.IM ) THEN
-          G^.OutS( L'( &' ); r.CD^.Generate( G, Cn ); G^.OutS( L' )' ); // obtaining property value
+        // COM/throwing properties and functions are handled by call/OUT retval, so the usage must be generated properly
+        ELSIF ( gcRValue IN C ) AND ( r.F^.SymbolKind = skProperty ) AND ( eoReturnInRetval IN TPPropertyDef( r.F )^.Options ) THEN
+          G^.OutS( L'( &' ); r.RVD^.Generate( G, Cn ); G^.OutS( L' )' ); // obtaining property value
         END;
 
       | doDereferencing :
@@ -8926,8 +9051,8 @@ CLASS IMPLEMENTATION CDesignator;
         G^.OutSPRP(); 
 
       | doCall :
-        IF imCOM IN TPProcedure( L^.T )^.IM THEN // set COM assignment designator as last (retval) parameter
-          r.P^.RVD := r.CD;
+        IF eoReturnInRetval IN TPProcedure( L^.T )^.Options THEN // set assignment designator as last (retval) parameter
+          r.P^.RVD := r.RVD;
         END;
         L^.Generate( G, Cn );
         r.P^.Generate( G, C );
@@ -9001,9 +9126,9 @@ CLASS IMPLEMENTATION CDesignator;
       END;
       IF r.IdA <> saParentObject THEN
         r.Id^.Generate( G, C + gcsName );
-        // imCOM properties and functions are handled by call/OUT retval, so the usage must be generated properly
-        IF ( gcRValue IN C ) AND ( r.Id^.SymbolKind = skProperty ) AND ( imCOM IN TPPropertyDef( r.Id )^.IM ) THEN
-          G^.OutS( L'( &' ); r.CD^.Generate( G, Cn ); G^.OutS( L' )' ); // obtaining property value
+        // COM/throwing properties and functions are handled by call/OUT retval, so the usage must be generated properly
+        IF ( gcRValue IN C ) AND ( r.Id^.SymbolKind = skProperty ) AND ( eoReturnInRetval IN TPPropertyDef( r.Id )^.Options ) THEN
+          G^.OutS( L'( &' ); r.RVD^.Generate( G, Cn ); G^.OutS( L' )' ); // obtaining property value
         END;
       END;
 
@@ -10223,6 +10348,10 @@ CLASS IMPLEMENTATION CSAssignment;
     WCHARFlag : BOOLEAN;
   BEGIN
     SUPER.GenHead( G, C, Context );
+
+    IF NOT D^.GenTo[Generator.genCPP] THEN // this means, that original assignment was replaced with preceding statement
+      RETURN gumEmpty;
+    END;
     DT := D^.T^.Unwrap();
 
     G^.Indent();
@@ -10233,7 +10362,13 @@ CLASS IMPLEMENTATION CSAssignment;
         E^.Generate( G, C );
 
       | ukSCall :
-        D^.Generate( G, C );
+         IF ( STry <> NIL ) AND ( eoThrowing IN D^.r.P^.P^.Options ) THEN
+            STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" = " );
+            D^.Generate( G, C );
+            G^.OutS( L"; if( " ); STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" != NIL ) goto " ); G^.OutCS( STry^.CatchLabel^.N ); G^.OutSC(); 
+         ELSE
+            D^.Generate( G, C );
+         END;
 
       | ukSAssignmentByCall1 :
         D^.Generate( G, gcsAssignment );
@@ -10246,8 +10381,14 @@ CLASS IMPLEMENTATION CSAssignment;
         E^.Generate( G, C );
         G^.OutS( L" )" );
 
-      | ukSAssignmentByCOMCall :
-        D^.Generate( G, gcsDesignator );
+      | ukSAssignmentByRetvalCall :
+         IF STry = NIL THEN
+            D^.Generate( G, gcsDesignator );
+         ELSE
+            STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" = " );
+            D^.Generate( G, gcsDesignator );
+            G^.OutS( L"; if( " ); STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" != NIL ) goto " ); G^.OutCS( STry^.CatchLabel^.N ); G^.OutSC(); 
+         END;
 
       // | ukSAssignmentByCOMFunctionCall :
         // D^.Generate( G, gcsAssignment ); // gcLValue controls generating doCall, using gcRValue is prohibited
@@ -10320,6 +10461,7 @@ BEGIN
   UnitKind := ukSAssignment;
   D := NIL;
   E := NIL;
+  STry := NIL;
   Preceding.UnitKind := ukForwardedStatements;
   Following.UnitKind := ukForwardedStatements;
 END CSAssignment;
@@ -10351,6 +10493,16 @@ CLASS IMPLEMENTATION CSReturn;
       RETURN gumNoIndent;
     | ukReturnInCOM :
       IF Childs.Empty THEN
+        G^.LineS( L"return 0;" ); // HRESULT
+        RETURN gumSimple;
+      ELSE
+        G^.Indent();
+        G^.OutS( L'*RetVal = ' );
+        RETURN gumNoIndent;
+      END;
+    | ukReturnInThrowing :
+      IF Childs.Empty THEN
+        G^.LineS( L"return NIL;" ); // exception
         RETURN gumSimple;
       ELSE
         G^.Indent();
@@ -10361,13 +10513,16 @@ CLASS IMPLEMENTATION CSReturn;
       G^.Indent();
       IF Childs.Empty THEN
         G^.OutS( L"_FinallyReturns = true;" ); G^.EOL();
-        G^.Indent(); G^.OutS( L"goto " ); L^.OutN( G, C ); G^.OutSC();
-        G^.EOL();
+        G^.Indent(); G^.OutS( L"goto " ); L^.OutN( G, C ); G^.OutSC(); G^.EOL();
         RETURN gumSimple;
       ELSE
         G^.OutS( L'_ReturnResult = ' );
         RETURN gumNoIndent;
       END;
+    | ukThrowingInCPPTry :
+      G^.Indent();
+      G^.OutS( L'_ReturnException = &' );
+      RETURN gumNoIndent;
     END;
     RETURN gumEmpty;
   END GenHead;
@@ -10389,9 +10544,14 @@ CLASS IMPLEMENTATION CSReturn;
         G^.Leave(); G^.LineRB();
       END;
     | ukReturnInCOM :
-      G^.LineS( L"return 0;" );
+      G^.LineS( L"return 0;" ); // HRESULT
+    | ukReturnInThrowing :
+      G^.LineS( L"return NIL;" ); // exception
     | ukReturnInCPPTry :
       G^.LineS( L"_FinallyReturns = true;" );
+      G^.Indent(); G^.OutS( L"goto " ); L^.OutN( G, C ); G^.OutSC(); G^.EOL();
+    | ukThrowingInCPPTry :
+      G^.LineS( L"_FinallyThrows = true;" );
       G^.Indent(); G^.OutS( L"goto " ); L^.OutN( G, C ); G^.OutSC(); G^.EOL();
     END;
   END GenTail;
@@ -10597,6 +10757,9 @@ CLASS IMPLEMENTATION CSTRY;
 
 BEGIN
 	UnitKind := ukSTry;
+	ExceptionVariable := NIL;
+	CatchLabel := NIL;
+   LocalThrowEnabled := TRUE;
 END CSTRY;
 
 //============================================================

@@ -175,13 +175,15 @@ TYPE
     ukSCall,
     ukSAssignmentByCall1, // without arguments in designator part
     ukSAssignmentByCall2, // with arguments in designator part
-    ukSAssignmentByCOMCall, // with argument of call, which fills the assigned argument
+    ukSAssignmentByRetvalCall, // with argument of call, which fills the assigned argument
     ukSAssignmentStringByEmbeddedCall,
     ukSAssignmentSetByEmbeddedCall,
 
     ukReturn,
       ukReturnInCOM,
+      ukReturnInThrowing,
       ukReturnInCPPTry,
+      ukThrowingInCPPTry,
     ukIf,
       ukIfExpr,
         ukIfBlock,
@@ -244,13 +246,14 @@ TYPE
       ukSForBody,
       
     ukSTry,
-      ukTryCPPBlock,
+      ukTryBlock,
       ukTrySEHBlock,
       ukExceptBlock,
       ukExceptSEHExpression,
       ukExceptDoBlock,
       ukFinallyCPPBlock,
       ukFinallySEHBlock,
+      ukFinallyDelete,
 
       ukCatchBlock,
       ukCatchAnyBlock,
@@ -383,7 +386,7 @@ TYPE
     cpStdCall,
     cpFastCall,
 
-	 eoIS,
+    eoCPPExceptions, // otherwise self exceptions are used
     eoLeakChecking,
     eoVolatile,
     eoExport,
@@ -422,6 +425,9 @@ TYPE
     eoHaveReturnInCPPTry, // proecdure contains TRY in CPP style
       eoInsideCPPTry, // for proper RETURN/FINALLY handling, SEHTry this solves by itself
       eoTryReturnsValue,
+    eoReturnInRetval, // COM methods, throwing methods
+      eoCOM,
+      eoThrowing,
     eoLeakInfo
   );
   TEnvironmentOptions = SET OF TEnvironmentOptionsItem;
@@ -836,9 +842,11 @@ END CSubrange;
 //============================================================
 
 CLASS CVariable( CSymbol );
-  InitE : TPExpression;
-  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
-  PROCEDURE GenerateInitExpression( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL );
+   InitE : TPExpression;
+   STry : TPSTRY; // if used in TRY statement
+   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+   PROCEDURE GenerateInitExpression( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL );
+   PROCEDURE GenHeadOfNativeCatch( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
 END CVariable;
 
 CLASS CSelf( CVariable );
@@ -1142,7 +1150,7 @@ CLASS CModule( CSymbol );
   PROCEDURE ForwardOpaqueType( T : TPType );
   PROCEDURE ForwardComplexType( T : TPType );
   PROCEDURE HandleNestedSymbol( Symbol, FoundIn : TPSymbol; VAR SA : TSymbolAccess ) : BOOLEAN;
-  PROCEDURE HandleCOMPropertyOrFunction( AssignmentFlag : BOOLEAN; REF D : TPDesignator );
+  PROCEDURE HandleReturnInRetvalPropertyOrFunction( AssignmentFlag : BOOLEAN; REF D : TPDesignator );
   PROCEDURE IdToType( Id : TPSymbol ) : TPType;
   PROCEDURE IdToClass( Id : TPSymbol ) : TPClass;
 
@@ -1348,7 +1356,7 @@ TYPE
     dkUndefined,
     dkOperator,
     dkId,
-      dkCOMAuxId, // only for variant, dkCOMAuxId is ALWAYS simple dkId
+      dkAuxId, // only for variant, dkAuxId is ALWAYS simple dkId
     dkType,
     dkEmbeddedProcedure
   );
@@ -1411,11 +1419,11 @@ TYPE
       GO  : TPSymbol; // generated owner, must not collide with Id, WV, F, TC
       IdA : TSymbolAccess;
       W   : TPDesignator; // designator of With of which the Id is
-    | dkCOMAuxId :
-      _1  : ADDRESS; // Id
-      OD  : TPDesignator; // original designator
-      PA  : TPSAssignment; // preceding assignment
-      FA  : TPSAssignment; // following assignment
+    | dkAuxId :
+      _1   : ADDRESS; // Id
+      OD   : TPDesignator; // original designator
+      PA   : TPSAssignment; // preceding assignment
+      FA   : TPSAssignment; // following assignment
     | dkOperator :
       // O : TDesignatorOperator cannot be here as
       // Id must have THE SAME PLACE as F !!
@@ -1445,7 +1453,7 @@ TYPE
       D1 : PTR; // data 1
       D2 : LONGWORD; // data 2
     END; // CASE TDesignatorKind
-    CD : TPDesignator; // COM return value designator
+    RVD : TPDesignator; // return value designator
   END; // RECORD
 
 CLASS CDesignator( CUnit );
@@ -1497,6 +1505,7 @@ END CStatement;
 CLASS CSAssignment( CStatement );
   D : TPDesignator;
   E : TPExpression;
+  STry : TPSTRY; // for retval call assignment with exception
   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
 END CSAssignment;
 
@@ -1560,9 +1569,12 @@ END CCATCH;
 //------------------------------------------------------------
 
 CLASS CSTRY( CStatement );
+   ExceptionVariable : TPVariable;
+   CatchLabel : TPLabel;
    InnerThrows : lists.CPtrList;
 	Procedures : lists.CPtrList;
 	Handles : lists.CPtrList;
+	LocalThrowEnabled : BOOLEAN;
 	VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
 END CSTRY;
 

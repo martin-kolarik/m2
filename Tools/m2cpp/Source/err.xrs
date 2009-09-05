@@ -340,7 +340,7 @@
             <item>EXCEPT expression must have TRISTATE type</item>
         </string>
         <string name="_UNHANDLEDMustBeLast">
-            <item>UNHANDLED case must be last</item>
+            <item>UNHANDLED catch must be last</item>
         </string>
         <string name="_DesignatorIsNotConstant">
             <item>Designator is not constant</item>
@@ -361,7 +361,10 @@
             <item>NEW function can be used, when checking memory leaks, only in assignment, call or RETURN statement</item>
         </string>
         <string name="_BadMemberPlacement">
-            <item>Property or COM function can be used in assignment or RETURN statement only.</item>
+            <item>Throwing function, property or COM function can be used in assignment or RETURN statement only.</item>
+        </string>
+        <string name="_ThrowDoesNotSupportedForOperatorsForNativeExceptions">
+            <item>Operators cannot throw native exceptions, CPP exceptions would be used.</item>
         </string>
         <string name="_UnableToUseClassIndex">
             <item>Referenced class cannot be indexed, unable to use []</item>
@@ -406,10 +409,10 @@
             <item>IN expects a set on right side</item>
         </string>
 				<string name="_ISExpectsClassOnLeft">
-					<item>IS expects a polymorphic class on left side</item>
+					<item>IS/INHERITS expects a polymorphic class on left side</item>
 				</string>
 				<string name="_ISExpectsClassOrBStringOnRight">
-					<item>IS expects a class type or class name (byte string) on right side</item>
+					<item>IS/INHERITS expects a class type or class name (byte string) on right side</item>
 				</string>
 				<string name="_StringsCanBeConcatenatedOnly">
             <item>Strings and characters can be concatenated only</item>
@@ -607,6 +610,9 @@
 		<string name="_ThrowIsNotPossible">
 			<item>Throwing this exception is not possible, the exception is missing in the procedure THROWS clause</item>
 		</string>
+        <string name="_COMMemberCannotThrows">
+			<item>COM member cannot throw exceptions</item>
+        </string>
 		<string name="_ProcedureNotCatched">
 			<item>Exception &quot;{0}&quot; is not catched</item>
 		</string>
