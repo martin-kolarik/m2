@@ -294,7 +294,7 @@ END PadRightW;
 	
 PROCEDURE TrimStartW( REF String : ARRAY OF WCHAR );
 BEGIN
-	TrimStartDelimitersW( REF String, WCHAR{' ', WCHAR(9), WCHAR(10), WCHAR(13)} );
+	TrimStartDelimitersW( REF String, WCHAR{L' ', WCHAR(9), WCHAR(10), WCHAR(13)} );
 END TrimStartW;
 
 PROCEDURE TrimStartDelimitersW( REF String : ARRAY OF WCHAR; CONST Delimiters : SET OF WCHAR );
@@ -333,7 +333,7 @@ END TrimStartDelimitersSW;
 
 PROCEDURE TrimEndW( REF String : ARRAY OF WCHAR );
 BEGIN
-	TrimEndDelimitersW( REF String, WCHAR{' ', WCHAR(9), WCHAR(10), WCHAR(13)} );
+	TrimEndDelimitersW( REF String, WCHAR{L' ', WCHAR(9), WCHAR(10), WCHAR(13)} );
 END TrimEndW;
 
 PROCEDURE TrimEndDelimitersW( REF String : ARRAY OF WCHAR; CONST Delimiters : SET OF WCHAR );
@@ -384,7 +384,7 @@ END TrimEndDelimitersSW;
 
 PROCEDURE TrimW( REF String : ARRAY OF WCHAR );
 BEGIN
-	TrimDelimitersW( REF String, WCHAR{' ', WCHAR(9), WCHAR(10), WCHAR(13)} );
+	TrimDelimitersW( REF String, WCHAR{L' ', WCHAR(9), WCHAR(10), WCHAR(13)} );
 END TrimW;
 
 PROCEDURE TrimDelimitersW( REF String : ARRAY OF WCHAR; CONST Delimiters : SET OF WCHAR );

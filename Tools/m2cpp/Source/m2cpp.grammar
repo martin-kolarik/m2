@@ -2978,11 +2978,15 @@ ntDesignatorId<VR : TValueReq; VAR D : DOM.TPDesignator; VAR FI : DOM.TPSymbol>
     {                                                      (. IF Id = NIL THEN
                                                                 // OK, error, read out full chain
                                                               ELSIF Id^.SymbolKind = DOM.skModule THEN
-                                                                IF ( Id <> c^.OD ) AND ( Id^.OfSymbol <> c^.OD ) AND ( Id^.OfSymbol <> c^.OI ) THEN
-                                                                  SemErr( err._ModuleNotImported );
-                                                                END;
-                                                                INC( EnterCount );
-                                                                c^.EnterSymbols( DOM.TPModule( Id )^.SC()^, FALSE, FALSE, NIL );
+                                                               IF Id = c^.OD THEN
+                                                                   // fall down
+                                                               ELSIF ( c^.UnitKind = DOM.ukDefinition ) AND ( Id^.OfSymbol = c^.OD ) THEN
+                                                                   // fall down
+                                                               ELSIF ( Id^.OfSymbol <> c^.OD ) AND ( Id^.OfSymbol <> c^.OI ) THEN
+                                                                   SemErr( err._ModuleNotImported );
+                                                               END;
+                                                               INC( EnterCount );
+                                                               c^.EnterSymbols( DOM.TPModule( Id )^.SC()^, FALSE, FALSE, NIL );
                                                               ELSE
                                                                 GOTO QNameRead;
                                                               END; .)
@@ -5599,8 +5603,9 @@ ntQualifiedId<IdAction : TIdAction; VAR Id : DOM.TPSymbol; AllowClassWOMember, S
                                                                 | DOM.skModule :
                                                                    IF Id = c^.OD THEN
                                                                       // fall down
-                                                                   ELSIF ( c^.UnitKind = DOM.ukDefinition ) AND ( Id^.OfSymbol <> c^.OD ) OR
-                                                                         ( c^.UnitKind <> DOM.ukDefinition ) AND ( Id^.OfSymbol <> c^.OI ) THEN
+                                                                   ELSIF ( c^.UnitKind = DOM.ukDefinition ) AND ( Id^.OfSymbol = c^.OD ) THEN
+                                                                      // fall down
+                                                                   ELSIF ( Id^.OfSymbol <> c^.OD ) AND ( Id^.OfSymbol <> c^.OI ) THEN
                                                                       SemErr( err._ModuleNotImported );
                                                                    END;
                                                                    InSymbols := TRUE;
@@ -5619,9 +5624,13 @@ ntQualifiedId<IdAction : TIdAction; VAR Id : DOM.TPSymbol; AllowClassWOMember, S
     ]                                                      (. IF WithoutMember AND ( Id <> NIL ) THEN
                                                                 CASE Id^.SymbolKind OF
                                                                 | DOM.skModule :
-                                                                  IF ( Id <> c^.OD ) AND ( Id^.OfSymbol <> c^.OD ) AND ( Id^.OfSymbol <> c^.OI ) THEN
-                                                                    SemErr( err._ModuleNotImported );
-                                                                  END;
+                                                                   IF Id = c^.OD THEN
+                                                                      // fall down
+                                                                   ELSIF ( c^.UnitKind = DOM.ukDefinition ) AND ( Id^.OfSymbol = c^.OD ) THEN
+                                                                      // fall down
+                                                                   ELSIF ( Id^.OfSymbol <> c^.OD ) AND ( Id^.OfSymbol <> c^.OI ) THEN
+                                                                      SemErr( err._ModuleNotImported );
+                                                                   END;
                                                                   SemErr( err._ExpectedModuleMember );
                                                                 | DOM.skClass :
                                                                   IF NOT AllowClassWOMember THEN
