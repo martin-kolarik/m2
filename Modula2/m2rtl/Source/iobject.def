@@ -33,6 +33,8 @@ TYPE
       otEphemeral
    );
    
+#save, option( dll_export => on )
+
 INTERFACE IObject;
    READONLY PROPERTY
       Type : TObjectType;
@@ -43,10 +45,8 @@ END IObject;
 
 (*---------------------------------------------------------------------------*)
 
-#save, option( dll_export => on )
 CONST
    cidLibrary = L"Library";
-#restore   
 
 TYPE
    TcllvData = RECORD
@@ -66,6 +66,8 @@ INTERFACE ILibrary( IObject );
    PROCEDURE EnumerateClasses( REF EnumerateState : PTR; OUT ClassName : ARRAY OF WCHAR ) : BOOLEAN;
    PROCEDURE GetLECData( OUT cllvData : TcllvData; OUT cllvPath : ARRAY OF WCHAR ) : BOOLEAN;
 END ILibrary;
+
+#restore   
 
 (*===========================================================================*)
 
