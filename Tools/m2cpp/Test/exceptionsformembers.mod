@@ -115,6 +115,8 @@ TYPE
       V : C;
    BEGIN
       TRY
+         IF TFunc() = 13 THEN
+         END;
          TPlainProc();
          TProc();
          TProcPar( 10 );

@@ -212,7 +212,9 @@ CLASS IMPLEMENTATION CUnit;
           G^.Leave();
         END;
       END;
-    | ukBlockBody, ukBlockBodyOfCOMProcedure :
+    | ukBlockBodyOfProc,
+      ukBlockBodyOfFunc,
+      ukBlockBodyOfCOMProcedure :
       IF NOT Childs.Empty THEN
         G^.EOL();
       END;
@@ -491,10 +493,16 @@ CLASS IMPLEMENTATION CUnit;
 
     | ukProcedureBlock :
       G^.LineRB();
-    | ukBlockBody :
+    | ukBlockBodyOfFunc :
+    | ukBlockBodyOfProc :
+      IF eoThrowing IN Options THEN
+         G^.LineS( L'return NIL; // implicit exception return' );
+      END;
     | ukBlockBodyOfCOMProcedure :
       G^.LineS( L'return 0; // implicit return' );
-    | ukBlockBodyOfReturnInTryProc, ukBlockBodyOfReturnInTryFunc :
+    | ukBlockBodyOfReturnInTryProc,
+      ukBlockBodyOfReturnInTryFunc :
+
     | ukClassInitStart :
 
     | ukActualParameterList :
@@ -2957,7 +2965,7 @@ CLASS IMPLEMENTATION CProcedureType;
     ELSIF PWith^.TypeKind <> tkProcedure THEN
       RETURN FALSE;
     END;
-    RETURN CompareHeader( TPProcedureType( PWith ), OUT E );
+    RETURN CompareHeader( TPProcedureType( PWith ), TRUE, OUT E );
   END Compatible;
 
   PROCEDURE GetFirstFormalType( REF Stack : stacks.CPtrStack; OUT T : TPFormalType ) : BOOLEAN;
@@ -3009,7 +3017,7 @@ CLASS IMPLEMENTATION CProcedureType;
     RETURN FALSE;
   END GetFormalType;
 
-  PROCEDURE CompareHeader( WithP : TPProcedureType; OUT Error : CARDINAL ) : BOOLEAN;
+  PROCEDURE CompareHeader( WithP : TPProcedureType; _CompareThrows : BOOLEAN; OUT Error : CARDINAL ) : BOOLEAN;
   VAR
     MFT, WFT : TPFormalType;
     MStack, WStack : stacks.CPtrStack; 
@@ -3028,6 +3036,9 @@ CLASS IMPLEMENTATION CProcedureType;
       RETURN FALSE;
     ELSIF T^.UnwrapToBaseType() <> WithP^.T^.UnwrapToBaseType() THEN
       Error := err._HdrMismatchReturn;
+      RETURN FALSE;
+    ELSIF _CompareThrows AND NOT CompareThrows( WithP ) THEN
+      Error := err._HdrMismatchThrows;
       RETURN FALSE;
     END;
     mb := GetFirstFormalType( REF MStack, OUT MFT );
@@ -3055,6 +3066,52 @@ CLASS IMPLEMENTATION CProcedureType;
     END;
     RETURN FALSE;
   END CompareHeader;
+  
+   PROCEDURE CompareThrows( WithP : TPProcedureType ) : BOOLEAN;
+   VAR
+      found : BOOLEAN;
+   BEGIN
+      // only virtual methods must be checked
+      IF IM * TInheritanceModifier{imAbstract, imVirtual, imFinal} = TInheritanceModifier{} THEN
+         RETURN TRUE;
+      ELSIF Throws.Empty AND NOT WithP^.Throws.Empty THEN // descendant throws, but ancestor not
+         RETURN FALSE;
+      END;
+
+      // forward check
+      Throws.Reset();
+      WHILE Throws.MoveNext() DO
+         found := FALSE;
+         WithP^.Throws.Reset();
+         WHILE WithP^.Throws.MoveNext() DO
+            IF WithP^.Throws.Current = Throws.Current THEN
+               found := TRUE;
+               EXIT;
+            END;
+         END;
+         IF NOT found THEN
+            RETURN FALSE;
+         END;
+      END;
+
+      // backward check
+      WithP^.Throws.Reset();
+      WHILE WithP^.Throws.MoveNext() DO
+         found := FALSE;
+         Throws.Reset();
+         WHILE Throws.MoveNext() DO
+            IF Throws.Current = WithP^.Throws.Current THEN
+               found := TRUE;
+               EXIT;
+            END;
+         END;
+         IF NOT found THEN
+            RETURN FALSE;
+         END;
+      END;
+
+      RETURN TRUE;
+   END CompareThrows;
 
 	PROCEDURE CopyThrows( From : TPProcedureType );
 	BEGIN
@@ -3681,14 +3738,16 @@ CLASS IMPLEMENTATION CClass;
 
       G^.OutS( L' { public:' ); G^.EOL();
       
-      IF eoVMT IN Options THEN
-         // output of RTTI information
-         G^.Enter();
-            G^.LineS( L'static const RTTI rtti;' );
+      // output of RTTI information
+      G^.Enter();
+         G^.LineS( L'static const RTTI rtti;' );
+         IF eoVMT IN Options THEN
             G^.LineS( L'virtual const RTTI* rtti_get() const;' );
-         G^.Leave();
-         G^.EOL();
-      END;
+         ELSE
+            G^.LineS( L'const RTTI* rtti_get() const;' );
+         END;
+      G^.Leave();
+      G^.EOL();
 
     #if CPP_ACCESS_MODIFIERS #then
       IF UnitKind = ukNestedForwardedFrame THEN
@@ -4153,6 +4212,7 @@ CLASS IMPLEMENTATION CClassDecl;
   
   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
    VAR
+      ancestorCount : CARDINAL;
       first : BOOLEAN;
       InitWithAssign : BOOLEAN := FALSE;
       isInterface : BOOLEAN := imInterface IN OfClass^.IM;
@@ -4167,41 +4227,50 @@ CLASS IMPLEMENTATION CClassDecl;
          G^.LineSCS( L'// CLASS IMPLEMENTATION ', OfClass^.N );
       END;
 
-      IF eoVMT IN OfClass^.Options THEN
-         // ancestors
-         IF NOT OfClass^.Implements.Empty THEN
-            G^.Indent(); G^.OutS( L'const RTTI* ' ); OfClass^.Generate( G, gcsName ); G^.OutS( L"_ancestors[] = {" ); 
-               first := TRUE;
-               OfClass^.Implements.Reset();
-               WHILE OfClass^.Implements.MoveNext() DO
-                  IF first THEN
-                     first := FALSE;
-                     G^.OutS( L"&" );
-                  ELSE
-                     G^.OutS( L", &" );
-                  END;
-                  TPClass( OfClass^.Implements.Current )^.OutQN( G, C ); G^.OutS( L"::rtti" );
-               END; // WHILE
-               G^.OutS( L'};' );
-            G^.EOL();
+      // ancestors
+      ancestorCount := 0;
+      OfClass^.Implements.Reset();
+      WHILE OfClass^.Implements.MoveNext() DO
+         IF imCOM IN TPClass( OfClass^.Implements.Current )^.IM THEN
+            CONTINUE;
          END;
-
-         // rtti
-         G^.Indent(); G^.OutS( L'const RTTI ' ); OfClass^.Generate( G, gcsName ); G^.OutS( L"::rtti = {" ); 
-            // rtti_self
-            G^.OutS( L'"' ); OfClass^.GetFullSourceQN( OUT QName ); G^.OutCS( QName ); G^.OutS( L'", ' );
-            IF OfClass^.Implements.Empty THEN
-               G^.OutS( L"0, 0};" );
-            ELSE
-               // ancestors count
-               G^.OutN( OfClass^.Implements.Count ); G^.OutCmSP();
-               // ancestors
-               OfClass^.Generate( G, gcsName ); G^.OutS( L"_ancestors };" );
-            END;
+         INC( ancestorCount );
+      END; // WHILE
+      IF ancestorCount > 0 THEN
+         G^.Indent(); G^.OutS( L'const RTTI* ' ); OfClass^.Generate( G, gcsName ); G^.OutS( L"_ancestors[] = {" ); 
+            first := TRUE;
+            OfClass^.Implements.Reset();
+            WHILE OfClass^.Implements.MoveNext() DO
+               IF imCOM IN TPClass( OfClass^.Implements.Current )^.IM THEN
+                  CONTINUE;
+               END;
+               IF first THEN
+                  first := FALSE;
+                  G^.OutS( L"&" );
+               ELSE
+                  G^.OutS( L", &" );
+               END;
+               TPClass( OfClass^.Implements.Current )^.OutQN( G, C ); G^.OutS( L"::rtti" );
+            END; // WHILE
+            G^.OutS( L'};' );
          G^.EOL();
-
-         G^.Indent(); G^.OutS( L'const RTTI* ' ); OfClass^.Generate( G, gcsName ); G^.OutS( L"::rtti_get() const { return &rtti; };" ); G^.EOL();
       END;
+
+      // rtti
+      G^.Indent(); G^.OutS( L'const RTTI ' ); OfClass^.Generate( G, gcsName ); G^.OutS( L"::rtti = {" ); 
+         // rtti_self
+         G^.OutS( L'"' ); OfClass^.GetFullSourceQN( OUT QName ); G^.OutCS( QName ); G^.OutS( L'", ' );
+         IF ancestorCount = 0 THEN
+            G^.OutS( L"0, 0};" );
+         ELSE
+            // ancestors count
+            G^.OutN( OfClass^.Implements.Count ); G^.OutCmSP();
+            // ancestors
+            OfClass^.Generate( G, gcsName ); G^.OutS( L"_ancestors };" );
+         END;
+      G^.EOL();
+
+      G^.Indent(); G^.OutS( L'const RTTI* ' ); OfClass^.Generate( G, gcsName ); G^.OutS( L"::rtti_get() const { return &rtti; };" ); G^.EOL();
       
       IF isInterface THEN // go away
          RETURN gumEmpty;
@@ -6407,7 +6476,7 @@ CLASS IMPLEMENTATION CModule;
           END;
         END;
       | ukMethodDef : // compare headers using normal way
-        IF NOT TPProcedure( Id )^.CompareHeader( TPProcedure( Symbol ), OUT Error ) THEN
+        IF NOT TPProcedure( Id )^.CompareHeader( TPProcedure( Symbol ), NOT ImplementationFlag, OUT Error ) THEN
           InClass^.N.ToOA( OUT Name1 );
           M2^.SemErrNNS( err._HdrMismatch, Error, err._HdrSee, Name1 );
         END;
@@ -6556,7 +6625,7 @@ CLASS IMPLEMENTATION CModule;
       IF DP^.T^.UnwrapToBaseType() <> IP^.T^.UnwrapToBaseType() THEN
         SemErrN( err._HdrMismatch, err._HdrMismatchReturn );
       END;
-    ELSIF NOT DP^.CompareHeader( IP, OUT E ) THEN
+    ELSIF NOT DP^.CompareHeader( IP, FALSE, OUT E ) THEN
       SemErrN( err._HdrMismatch, E );
     END;
 
@@ -7054,12 +7123,20 @@ CLASS IMPLEMENTATION CModule;
 
    VIRTUAL PROCEDURE GenTail( G : Generator.TPGenerator; C : TGenerateControl; Context : CARDINAL );
    BEGIN
-      G^.Enter();
-         // this generates content of interface rttis
-         IF NOT InterfaceRTTI.Empty THEN
-            InterfaceRTTI.Generate( G, C + TGenerateControl{gcNameNested} );
-         END;
-      G^.Leave();
+      IF UnitKind = ukImplementation THEN // this generates content of interfaces rttis coming from DEF.
+         G^.Enter();
+            IF NOT OD^.InterfaceRTTI.Empty THEN
+               OD^.InterfaceRTTI.Generate( G, C + TGenerateControl{gcNameNested} );
+            END;
+         G^.Leave();
+      END; // this generates content of other interfaces rttis.
+      IF UnitKind <> ukDefinition THEN
+         G^.Enter();
+            IF NOT InterfaceRTTI.Empty THEN
+               InterfaceRTTI.Generate( G, C + TGenerateControl{gcNameNested} );
+            END;
+         G^.Leave();
+      END;
 
     G^.Enter();
     IF UnitKind <> ukDefinition THEN

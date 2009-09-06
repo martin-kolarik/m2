@@ -201,6 +201,9 @@
         <string name="_HdrMoreParameters">
             <item>more parameters</item>
         </string>
+        <string name="_HdrMismatchThrows">
+            <item>different THROWS</item>
+        </string>
         <string name="_ProcedureNotImplemented">
             <item>Procedure &quot;{0}&quot; not implemented</item>
         </string>
@@ -361,7 +364,7 @@
             <item>NEW function can be used, when checking memory leaks, only in assignment, call or RETURN statement</item>
         </string>
         <string name="_BadMemberPlacement">
-            <item>Throwing function, property or COM function can be used in assignment or RETURN statement only.</item>
+            <item>Throwing function, property or COM function can be used in assignment statement and in IF/CASE/WITH/FOR/RETURN expressions only.</item>
         </string>
         <string name="_ThrowDoesNotSupportedForOperatorsForNativeExceptions">
             <item>Operators cannot throw native exceptions, CPP exceptions would be used.</item>

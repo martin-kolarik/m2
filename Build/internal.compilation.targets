@@ -10,7 +10,7 @@
         <MT>mt -manifest $(OutputFile).manifest -outputresource:$(OutputFile)</MT>
         <MTT>mt -manifest $(TestOutput).manifest -outputresource:$(TestOutput)</MTT>
 
-        <M2>&quot;$(RootBuildPath)\Bin\m2cpp&quot;</M2><!-- povolit CPPexc -->
+        <M2>&quot;$(RootBuildPath)\Bin\m2cpp&quot;</M2>
         <M2D>&quot;$(RootBuildPath)\Bin\m2cpp&quot;</M2D>
         <XRSDEF>&quot;$(RootBuildPath)\Bin\xrsc&quot; -D -O$(SourceDir)</XRSDEF>
         <XRSBIN>&quot;$(RootBuildPath)\Bin\xrsc&quot; -B -O$(IntermediateDir) -P$(MSBuildProjectName).</XRSBIN>
@@ -33,9 +33,11 @@
     <PropertyGroup>
         <M2CTRL>-DManufacturer:$(Manufacturer) -DConfigurationName:$(ConfigurationName) -DPlatformName:$(PlatformName) -DLicenceMachineId:$(LicenceMachineId)</M2CTRL>
         <M2CTRL>$(M2CTRL) -W8 -W9 -W10 -W11 -DDEBUG:$(Debug)</M2CTRL>
+        <M2CTRL Condition="$(CPPExceptions)=='on'">$(M2CTRL) -SE</M2CTRL>
         <M2CTRL Condition="$(LeakChecking)=='on'">$(M2CTRL) -SM</M2CTRL>
-        <CLCTRL>/Zp8 /J /Gy /GR /Gr /GF /GS- /Oi /Zi /DNO_STRICT /DWIN32 /DWINVER=0x0501 /D_WIN32_WINNT=0x0501</CLCTRL>
-        <CLCTRL Condition="$(CPPExceptions)=='on'">$(CLCTRL) /EHsc</CLCTRL>
+        <CLCTRL>/Zp8 /J /Gy /Gr /GF /GS- /Oi /Zi /DNO_STRICT /DWIN32 /DWINVER=0x0501 /D_WIN32_WINNT=0x0501</CLCTRL>
+        <CLCTRL Condition="$(CPPExceptions)=='on'">$(CLCTRL) /GR /EHsc</CLCTRL>
+        <CLCTRL Condition="$(CPPExceptions)!='on'">$(CLCTRL) /GR-</CLCTRL>
         <!-- CLCTRL Condition="$(CLib)!='Static' And $(DynamicCLibInstallMethod)=='Private'">$(CLCTRL) /D_USE_RTM_VERSION</CLCTRL -->
         <LINKCTRL Condition="$(CLib)=='Static'">/OPT:REF /OPT:NOWIN98 /MANIFEST:NO delayimp.lib</LINKCTRL>
         <LINKCTRL Condition="$(CLib)!='Static'">/OPT:REF /OPT:NOWIN98 /MANIFEST delayimp.lib</LINKCTRL>

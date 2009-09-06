@@ -93,7 +93,7 @@
         <CLib Condition="$(CLib)==''">Dynamic</CLib><!-- Static Dynamic --><!-- Static = LIBC, Dynamic = MSVCRT -->
         <Result Condition="$(Result)==''">Static</Result><!-- Static (LIB) Dynamic (DLL) Program (EXE) -->
         <LeakChecking Condition="$(LeakChecking)==''">off</LeakChecking>
-        <CPPExceptions Condition="$(CPPExceptions)==''">on</CPPExceptions>
+        <CPPExceptions Condition="$(CPPExceptions)==''">off</CPPExceptions>
         <CopyRuntimes Condition="$(CopyRuntimes)==''">$(ProductFlag)</CopyRuntimes>
         <LicenceMachineId Condition="$(LicenceMachineId)==''">M</LicenceMachineId><!-- M = MAC, D = disc, MD = MAC + Disc -->
 

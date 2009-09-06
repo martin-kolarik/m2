@@ -155,7 +155,8 @@ TYPE
           ukNestedParamDef,
     ukProcedureDecl,
       ukProcedureBlock,
-        ukBlockBody,
+        ukBlockBodyOfProc,
+        ukBlockBodyOfFunc,
         ukBlockBodyOfCOMProcedure,
         ukBlockBodyOfReturnInTryProc,
         ukBlockBodyOfReturnInTryFunc,
@@ -884,7 +885,8 @@ CLASS CProcedureType( CType );
   PROCEDURE GetFirstFormalType( REF Stack : stacks.CPtrStack; OUT FormalType : TPFormalType ) : BOOLEAN;
   PROCEDURE GetNextFormalType( REF Stack : stacks.CPtrStack; OUT FormalType : TPFormalType ) : BOOLEAN;
   PROCEDURE GetFormalType( FirstFlag : BOOLEAN; REF Stack : stacks.CPtrStack; OUT T : TPFormalType ) : BOOLEAN;
-  PROCEDURE CompareHeader( WithP : TPProcedureType; OUT Error : CARDINAL ) : BOOLEAN;
+  PROCEDURE CompareHeader( WithP : TPProcedureType; CompareThrows : BOOLEAN; OUT Error : CARDINAL ) : BOOLEAN;
+  PROCEDURE CompareThrows( WithP : TPProcedureType ) : BOOLEAN;
   PROCEDURE CopyThrows( From : TPProcedureType );
 
   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
