@@ -20,13 +20,8 @@
         <SUM>&quot;$(RootBuildPath)\Bin\sum&quot;</SUM>
         <LIBEXP>&quot;$(RootBuildPath)\Bin\libexp&quot;</LIBEXP>
 
-        <CompileProductId Condition="$(ProductId)==''">$(MSBuildProjectName)</CompileProductId>
-        <CompileProductId Condition="$(ProductId)!=''">$(ProductId)</CompileProductId>
-        <CompileProductVersion Condition="$(ProductVersion)==''">0.0.0</CompileProductVersion>
-        <CompileProductVersion Condition="$(ProductVersion)!=''">$(ProductVersion)</CompileProductVersion>
-
         <!-- M2PROD takes here self initial value -->
-        <M2PROD>-DProductId:$(CompileProductId) -DProductVersion:$(CompileProductVersion)</M2PROD>
+        <M2PROD>-DProductId:$(ProductId) -DProductVersion:$(ProductVersion)</M2PROD>
     </PropertyGroup>
 
     <!-- CONTROLS -->
@@ -35,12 +30,12 @@
         <M2CTRL>$(M2CTRL) -W8 -W9 -W10 -W11 -DDEBUG:$(Debug)</M2CTRL>
         <M2CTRL Condition="$(CPPExceptions)=='on'">$(M2CTRL) -SE</M2CTRL>
         <M2CTRL Condition="$(LeakChecking)=='on'">$(M2CTRL) -SM</M2CTRL>
-        <CLCTRL>/Zp8 /J /Gy /Gr /GF /GS- /Oi /Zi /DNO_STRICT /DWIN32 /DWINVER=0x0501 /D_WIN32_WINNT=0x0501</CLCTRL>
+        <CLCTRL>/Zp8 /J /Gy /Gr /Gs /GF /GS- /Oi /Zi /DNO_STRICT /DWIN32 /DWINVER=0x0501 /D_WIN32_WINNT=0x0501</CLCTRL><!-- Gs commits stack, its default commit threshold is 4K, the same as linker sets for initial stack commit -->
         <CLCTRL Condition="$(CPPExceptions)=='on'">$(CLCTRL) /GR /EHsc</CLCTRL>
         <CLCTRL Condition="$(CPPExceptions)!='on'">$(CLCTRL) /GR-</CLCTRL>
         <!-- CLCTRL Condition="$(CLib)!='Static' And $(DynamicCLibInstallMethod)=='Private'">$(CLCTRL) /D_USE_RTM_VERSION</CLCTRL -->
-        <LINKCTRL Condition="$(CLib)=='Static'">/OPT:REF /OPT:NOWIN98 /MANIFEST:NO delayimp.lib</LINKCTRL>
-        <LINKCTRL Condition="$(CLib)!='Static'">/OPT:REF /OPT:NOWIN98 /MANIFEST delayimp.lib</LINKCTRL>
+        <LINKCTRL Condition="$(CLib)=='Static'">/OPT:REF /OPT:NOWIN98 /MERGE:.rdata=.text /MANIFEST:NO delayimp.lib</LINKCTRL>
+        <LINKCTRL Condition="$(CLib)!='Static'">/OPT:REF /OPT:NOWIN98 /MERGE:.rdata=.text /MANIFEST delayimp.lib</LINKCTRL>
         <MT Condition="$(Result)=='Program'">$(MT);#1</MT>
         <MT Condition="$(Result)=='Dynamic'">$(MT);#2</MT>
     </PropertyGroup>
@@ -48,6 +43,8 @@
     <PropertyGroup>
         <M2CTRL Condition ="$(PublishExports)=='on'">$(M2CTRL) -LN$(LibraryName) -LD</M2CTRL>
         <M2CTRL Condition ="$(PublishExports)!='on'">$(M2CTRL) -LN$(LibraryName)</M2CTRL>
+        <M2TESTCTRL Condition ="$(Result)=='Static'">$(M2CTRL) -LN$(LibraryName) -LD</M2TESTCTRL>
+        <M2TESTCTRL Condition ="$(Result)!='Static'">$(M2CTRL) -LN$(LibraryName)_test -LD</M2TESTCTRL>
     </PropertyGroup>
 
     <PropertyGroup Condition ="$(ConfigurationName)=='Release'">
@@ -127,7 +124,8 @@
     <!-- DEFINITIONS TOGETHER -->
     <PropertyGroup>
         <M2DEF>$(M2CTRL) $(M2LANG) $(M2INPUTS)</M2DEF>
-        <M2TDEF>-T -QI $(M2DEF)</M2TDEF>
+        <M2TIMEDEF>-T -QI $(M2DEF)</M2TIMEDEF>
+        <M2TESTDEF>$(M2TESTCTRL) $(M2LANG) $(M2INPUTS)</M2TESTDEF>
         <CLDEF>$(CLCTRL) $(CLLANG) $(CLINPUTS)</CLDEF>
         <RCDEF>$(RCCTRL) $(RCLANG) $(RCINPUTS)</RCDEF>
         <LINKDEF>$(LINKCTRL) $(BUILDOUTPUT) $(LINKBASE)</LINKDEF>
