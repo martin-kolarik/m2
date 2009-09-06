@@ -1,4 +1,9 @@
-Version 1.0.922/R V1.0 23.8.2009
+Version 1.0.xxx/R
+- BUG:
+- BUG:
+- BUG:
+
+Version 1.0.922/R rc1 23.8.2009
 - BUG: #100, reconnection to KNX could stop if there was some timeouts during
        starting and stopping listening. The cause of timeouts is not clear yet,
        but reconnection does not stop either in that case. 
