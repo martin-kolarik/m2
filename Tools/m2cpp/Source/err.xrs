@@ -607,6 +607,9 @@
 		<string name="_PropertyWithThrowMustBeUsedInTryBlockOnly">
 			<item>Property &quot;{0}&quot; throws exception, it must be used inside TRY block only</item>
 		</string>
+		<string name="_IndexerWithThrowMustBeUsedInTryBlockOnly">
+			<item>Indexer &quot;{0}&quot; throws exception, it must be used inside TRY block only</item>
+		</string>
 		<string name="_ExpectedException">
 			<item>Expected exception, some of ancestor of Exceptions.Exception class</item>
 		</string>

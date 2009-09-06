@@ -60,6 +60,12 @@ TYPE
       PROCEDURE TMethodFuncPar( Par : INTEGER ) : INTEGER THROWS CEXC1;
       // OPERATOR +( Par : INTEGER ) : INTEGER; // THROWS CEXC1; // not allowed for native exeptions
    END C;
+
+   (*# save, call( convention => stdcall ) *)
+   COM INTERFACE CC;
+      COM PROCEDURE TCOMMethodFunc() : INTEGER;
+   END CC;
+   (*# restore *)
   
    CLASS IMPLEMENTATION C;
 
@@ -111,6 +117,7 @@ TYPE
    PROCEDURE TestProc();
    VAR
       i : INTEGER;
+      I : POINTER TO CC := NIL;
       R : TR;
       V : C;
    BEGIN
@@ -121,6 +128,8 @@ TYPE
          TProc();
          TProcPar( 10 );
          TPlainFunc();
+         I^.TCOMMethodFunc();
+         i := I^.TCOMMethodFunc();
          RETURN;
          TFunc();
          TFuncPar( 11 );

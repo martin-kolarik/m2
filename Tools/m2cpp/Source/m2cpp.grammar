@@ -169,8 +169,7 @@ ntProgramModule // !C.1.2
                                                                 c^.ASCount := c^.OD^.ASCount; // anonymous type counter must not overlap with DEF
                                                                 IF DOM.coDependsOnNewerDEF IN c^.Options THEN
                                                                   // already set
-                                                                ELSIF ( DOM.coDependsOnNewerDEF IN c^.OD^.Options ) OR
-                                                                      ( INT64( c^.OD^.MEnv.Timestamp ) > INT64( c^.MEnv.Timestamp )) THEN
+                                                                ELSIF ( DOM.coDependsOnNewerDEF IN c^.OD^.Options ) OR ( c^.OD^.MEnv.Timestamp > c^.MEnv.Timestamp ) THEN
                                                                   // I'm importing DEF, which is newer than me
                                                                   INCL( c^.Options, DOM.coDependsOnNewerDEF );
                                                                 END;
@@ -2211,6 +2210,9 @@ ntAssignmentOrCallStatement                                (. A : DOM.TPSAssignm
                                                                 END;
                                                                 IF ( Reduce <> 0 ) THEN WITH LD^.r DO
                                                                   // expr ends with COM memeber, the member has RVD, preceding statement and following statement stored in RVD
+                                                                  IF RVD^.r.FA <> NIL THEN
+                                                                    RVD^.r.FA^.GenTo[Generator.genCPP] := FALSE;
+                                                                  END;
                                                                   IF Reduce > 0 THEN
                                                                     // (1) change preceding statement to use A^.D
                                                                     PA^.D^.r.RVD := A^.D;
@@ -2220,9 +2222,6 @@ ntAssignmentOrCallStatement                                (. A : DOM.TPSAssignm
                                                                     // (3) kill aux variable, preceding and following statement (lower)
                                                                     RVD^.r.Id^.GenTo[Generator.genCPP] := FALSE;
                                                                     RVD^.r.PA^.GenTo[Generator.genCPP] := FALSE;
-                                                                  END;
-                                                                  IF RVD^.r.FA <> NIL THEN
-                                                                    RVD^.r.FA^.GenTo[Generator.genCPP] := FALSE;
                                                                   END;
                                                                 END; END; // WITH, IF
                                                               END; .)
@@ -2738,10 +2737,6 @@ ntStructuralExceptionHandlingStatement<RequestedReturnType : DOM.TPType; VAR R :
                                                                 INCL( P^.Options, DOM.eoInsideCPPTry );
                                                               END; .)
       ntStatements<RequestedReturnType, R>                 (. Try^.LocalThrowEnabled := FALSE;
-                                                              IF DOM.eoCPPExceptions NOT IN c^.Options THEN
-                                                                 NEW( Goto ); Goto^.L := L; c^.AddUnit( Goto );
-                                                                 UL := NEW( DOM.CSLabel ); DOM.TPSLabel( UL )^.L := CatchL; c^.AddUnit( UL );
-                                                              END;
                                                               IF P <> NIL THEN
                                                                 EXCL( P^.Options, DOM.eoInsideCPPTry );
                                                               END; .)
@@ -2762,7 +2757,11 @@ ntStructuralExceptionHandlingStatement<RequestedReturnType : DOM.TPType; VAR R :
     SYNC "FINALLY"                                         (. c^.EnterNewUnit( DOM.ukFinallySEHBlock ); .)
       ntStatements<RequestedReturnType, R>                 (. c^.LeaveUnit(); .)
   | // CPP part
-                                                           (. U^.UnitKind := DOM.ukTryBlock;
+                                                           (. IF DOM.eoCPPExceptions NOT IN c^.Options THEN // add goto at TRY block end
+                                                                 NEW( Goto ); Goto^.L := L; c^.AddUnit( Goto );
+                                                                 UL := NEW( DOM.CSLabel ); DOM.TPSLabel( UL )^.L := CatchL; c^.AddUnit( UL );
+                                                              END;
+                                                              U^.UnitKind := DOM.ukTryBlock;
                                                               IF DOM.eoCPPExceptions NOT IN c^.Options THEN
                                                                  c^.HandleAuxVariableRequest( Types.TpException, Try^.ExceptionVariable );
                                                               END;
@@ -3107,6 +3106,7 @@ ntNonLRecursiveDesignator<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM
                                                               M : DOM.TPSymbol;
                                                               T : DOM.TPType;
                                                               HandleReturnInRetval : BOOLEAN := FALSE; // HandleReturnInRetval for creating aux variable -- aux variable is needed if the property/indexer is inside of designator chain
+                                                              ForceHandlingForUnassignedResult : BOOLEAN := FALSE;
                                                               LABEL FSharedWithId; .)
   =                                                        (. T := D^.T^.Unwrap();
                                                               CASE D^.r.DK OF
@@ -3172,6 +3172,7 @@ ntNonLRecursiveDesignator<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM
                                                                   IF DOM.imCOM IN D^.r.DfI^.IM THEN
                                                                     INCL( VI, DOM.viCOMProcedure );
                                                                   END;
+                                                                  c^.CheckIfThrowingProcedureIsPossible( D^.r.DfI );
                                                                   HandleReturnInRetval := ( DOM.eoReturnInRetval IN D^.r.DfI^.Options ) OR
                                                                                           ( vrsLValue * VR <> TValueReq{} ) AND ( DOM.viLValue IN VI );
                                                                 //-----
@@ -3181,7 +3182,8 @@ ntNonLRecursiveDesignator<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM
                                                                   //   SemErr( L'ABSTRACT method cannot be called.' );
                                                                   // END;
                                                                   IF ( T <> Types.TUnknown ) AND ( DOM.eoReturnInRetval IN DOM.TPProcedure( D^.L^.T )^.Options ) THEN
-                                                                    HandleReturnInRetval := TRUE;
+                                                                     ForceHandlingForUnassignedResult := TRUE;
+                                                                     HandleReturnInRetval := TRUE;
                                                                   END;
                                                                   IF DOM.TEnvironmentOptions{DOM.eoLeakChecking, DOM.eoLeakInfo} * DOM.TPProcedure( D^.L^.T )^.Options = DOM.TEnvironmentOptions{DOM.eoLeakChecking, DOM.eoLeakInfo} THEN
                                                                     IF c^.CurST = NIL THEN
@@ -3223,7 +3225,7 @@ ntNonLRecursiveDesignator<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM
                                                                 IF c^.CurST = NIL THEN
                                                                    SemErr( err._BadMemberPlacement );
                                                                 END;
-                                                                c^.HandleReturnInRetvalPropertyOrFunction( vrAssignment IN VR, REF D );
+                                                                c^.HandleReturnInRetvalPropertyOrFunction( ( vrAssignment IN VR ) AND NOT ForceHandlingForUnassignedResult, REF D );
                                                               END; .)
   (                                                        (. CASE T^.TypeKind OF
                                                               | DOM.tkArray, DOM.tkStringArray, DOM.tkOpenArray :
@@ -5481,8 +5483,7 @@ ntImportModuleId<IdAction : TIdAction; VAR Module : DOM.TPModule>
                                                               END;
                                                               IF DOM.coDependsOnNewerDEF IN c^.Options THEN
                                                                 // already set
-                                                              ELSIF ( DOM.coDependsOnNewerDEF IN Module^.OD^.Options ) OR
-                                                                    ( INT64( Module^.OD^.MEnv.Timestamp ) > INT64( c^.MEnv.Timestamp )) THEN
+                                                              ELSIF ( DOM.coDependsOnNewerDEF IN Module^.OD^.Options ) OR ( Module^.OD^.MEnv.Timestamp > c^.MEnv.Timestamp ) THEN
                                                                 // I'm importing DEF, which is newer than me
                                                                 IF c^.Emit THEN
                                                                   INCL( c^.Options, DOM.coDependsOnNewerDEF );

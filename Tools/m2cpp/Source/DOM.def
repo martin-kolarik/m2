@@ -177,6 +177,8 @@ TYPE
     ukSAssignmentByCall1, // without arguments in designator part
     ukSAssignmentByCall2, // with arguments in designator part
     ukSAssignmentByRetvalCall, // with argument of call, which fills the assigned argument
+    ukSAssignmentByIndexRetvalCall,
+    ukSAssignmentByPropertyRetvalCall,
     ukSAssignmentStringByEmbeddedCall,
     ukSAssignmentSetByEmbeddedCall,
 

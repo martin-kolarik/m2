@@ -5756,6 +5756,10 @@ CLASS IMPLEMENTATION CModule;
     LD : TPDesignator;
     Member : TPProcedureType;
   BEGIN
+    IF AssignmentFlag THEN
+      RETURN;
+    END;
+  
     IF D^.r.DK <> dkType THEN
       LD := D;
     ELSIF D^.r.TC^.GetDesignator( OUT LD ) THEN // if D is dkType, then the designator
@@ -5790,16 +5794,28 @@ CLASS IMPLEMENTATION CModule;
       IF NOT D^.T^.IsFormal() OR ( DOM.TPFormalType( D^.T )^.TypeModifier <> DOM.tmOUT ) THEN
          // preceding property-get call
          NEW( r.PA );
-         IF eoReturnInRetval IN Member^.Options THEN
-           r.PA^.UnitKind := ukSAssignmentByRetvalCall;
-           r.PA^.STry := TStack.Peek();
-           r.PA^.D := LD;
-           // hide the original member after replacement, everything is solved with RetvalCall
-           LD^.r.RVD^.GenTo[Generator.genCPP] := FALSE;
+         IF eoReturnInRetval NOT IN Member^.Options THEN
+            r.PA^.UnitKind := ukSAssignment;
+            r.PA^.D := LD^.r.RVD;
+            CreateExpressionWithDesignator( LD, FALSE, OUT r.PA^.E );
+         ELSIF Member^.SymbolKind = skProperty THEN
+            r.PA^.UnitKind := ukSAssignmentByPropertyRetvalCall;
+            r.PA^.STry := TStack.Peek();
+            r.PA^.D := LD;
+            // hide the original member after replacement, everything is solved with RetvalCall
+            LD^.r.RVD^.GenTo[Generator.genCPP] := FALSE;
+         ELSIF Member^.SymbolKind = skIndexer THEN
+            r.PA^.UnitKind := ukSAssignmentByIndexRetvalCall;
+            r.PA^.STry := TStack.Peek();
+            r.PA^.D := LD;
+            // hide the original member after replacement, everything is solved with RetvalCall
+            LD^.r.RVD^.GenTo[Generator.genCPP] := FALSE;
          ELSE
-           r.PA^.UnitKind := ukSAssignment;
-           r.PA^.D := LD^.r.RVD;
-           CreateExpressionWithDesignator( LD, FALSE, OUT r.PA^.E );
+            r.PA^.UnitKind := ukSAssignmentByRetvalCall;
+            r.PA^.STry := TStack.Peek();
+            r.PA^.D := LD;
+            // hide the original member after replacement, everything is solved with RetvalCall
+            LD^.r.RVD^.GenTo[Generator.genCPP] := FALSE;
          END;
          AddPrecedingStatement( r.PA );
       END;
@@ -6765,6 +6781,8 @@ CLASS IMPLEMENTATION CModule;
 		END;
 		IF P^.SymbolKind = skProperty THEN
 			SemErrCS( err._PropertyWithThrowMustBeUsedInTryBlockOnly, P^.N );
+		ELSIF P^.SymbolKind = skIndexer THEN
+			SemErrCS( err._IndexerWithThrowMustBeUsedInTryBlockOnly, P^.OfSymbol^.N );
 		ELSE
 			SemErrCS( err._ProcedureWithThrowMustBeUsedInTryBlockOnly, P^.N );
 		END;
@@ -7472,7 +7490,11 @@ CLASS IMPLEMENTATION CPropertyDef;
         IF gcLValue IN C THEN
           G^.OutS( L'_set' );
         ELSIF gcRValue IN C THEN
-          G^.OutS( L'_get()' );
+          IF eoThrowing IN Options THEN
+            G^.OutS( L'_get' );
+          ELSE
+            G^.OutS( L'_get()' );
+          END;
         END;
       ELSIF gcLValue IN C THEN
         IF cmREF IN CM THEN
@@ -8738,9 +8760,9 @@ CLASS IMPLEMENTATION CProcedureCall;
     U : TPUnit;
   BEGIN
     IF Context = 1 THEN
-      G^.OutS( L', OUT &' ); RVD^.Generate( G, _C ); // OUT/function value
+      G^.OutS( L', OUT (' ); P^.T^.Generate( G, gcsCast ); G^.OutS( '*)&' ); RVD^.Generate( G, _C ); // OUT/function value
     ELSIF Context = 2 THEN
-      G^.OutS( L'OUT &' ); RVD^.Generate( G, _C ); // OUT/function value
+      G^.OutS( L'OUT (' ); P^.T^.Generate( G, gcsCast ); G^.OutS( '*)&' ); RVD^.Generate( G, _C ); // OUT/function value
     END;
     IF ( P^.OI <> NIL ) AND ( P^.OI^.UnitKind = ukNestedProcedureDecl ) THEN
       IF coParamsInFrame IN P^.Options THEN
@@ -9022,7 +9044,7 @@ CLASS IMPLEMENTATION CDesignator;
         IF gcLValue IN C THEN
           G^.OutS( L', ' );
         ELSIF eoReturnInRetval IN r.DfI^.Options THEN
-          G^.OutS( L', &' ); r.RVD^.Generate( G, Cn ); G^.OutS( L' )' ); // obtaining retval indexer value
+          G^.OutS( L', (' ); r.DfI^.T^.Generate( G, gcsCast ); G^.OutS( '*)&' ); r.RVD^.Generate( G, Cn ); G^.OutS( L' )' ); // obtaining retval indexer value
         ELSE
           G^.OutS( L' )' );
         END;
@@ -9106,7 +9128,7 @@ CLASS IMPLEMENTATION CDesignator;
           G^.OutSPRP();
         // COM/throwing properties and functions are handled by call/OUT retval, so the usage must be generated properly
         ELSIF ( gcRValue IN C ) AND ( r.F^.SymbolKind = skProperty ) AND ( eoReturnInRetval IN TPPropertyDef( r.F )^.Options ) THEN
-          G^.OutS( L'( &' ); r.RVD^.Generate( G, Cn ); G^.OutS( L' )' ); // obtaining property value
+          G^.OutS( L'( (' ); TPPropertyDef( r.F )^.T^.Generate( G, gcsCast ); G^.OutS( '*)&' ); r.RVD^.Generate( G, Cn ); G^.OutS( L' )' ); // obtaining property value
         END;
 
       | doDereferencing :
@@ -9205,7 +9227,7 @@ CLASS IMPLEMENTATION CDesignator;
         r.Id^.Generate( G, C + gcsName );
         // COM/throwing properties and functions are handled by call/OUT retval, so the usage must be generated properly
         IF ( gcRValue IN C ) AND ( r.Id^.SymbolKind = skProperty ) AND ( eoReturnInRetval IN TPPropertyDef( r.Id )^.Options ) THEN
-          G^.OutS( L'( &' ); r.RVD^.Generate( G, Cn ); G^.OutS( L' )' ); // obtaining property value
+          G^.OutS( L'( (' ); TPPropertyDef( r.Id )^.Generate( G, gcsCast ); G^.OutS( '*)&' ); r.RVD^.Generate( G, Cn ); G^.OutS( L' )' ); // obtaining property value
         END;
       END;
 
@@ -10422,6 +10444,7 @@ CLASS IMPLEMENTATION CSAssignment;
   VAR
     DT : TPType;
     ProcFlag : BOOLEAN;
+    ThrowFlag : BOOLEAN;
     WCHARFlag : BOOLEAN;
   BEGIN
     SUPER.GenHead( G, C, Context );
@@ -10439,31 +10462,67 @@ CLASS IMPLEMENTATION CSAssignment;
         E^.Generate( G, C );
 
       | ukSCall :
-         IF ( STry <> NIL ) AND ( eoThrowing IN D^.r.P^.P^.Options ) THEN
+         ThrowFlag := ( STry <> NIL ) AND ( eoThrowing IN D^.r.P^.P^.Options );
+         IF ThrowFlag THEN
             STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" = " );
-            D^.Generate( G, C );
+         END;
+         D^.Generate( G, C );
+         IF ThrowFlag THEN
             G^.OutS( L"; if( " ); STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" != NIL ) goto " ); G^.OutCS( STry^.CatchLabel^.N ); G^.OutSC(); 
-         ELSE
-            D^.Generate( G, C );
          END;
 
       | ukSAssignmentByCall1 :
-        D^.Generate( G, gcsAssignment );
-        G^.OutS( L"( " );
-        E^.Generate( G, C );
-        G^.OutS( L" )" );
+         ThrowFlag := ( STry <> NIL ) AND ( eoThrowing IN D^.r.Id^.Options );
+         IF ThrowFlag THEN
+            STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" = " );
+         END;
+         D^.Generate( G, gcsAssignment );
+         G^.OutS( L"( " );
+         E^.Generate( G, C );
+         G^.OutS( L" )" );
+         IF ThrowFlag THEN
+            G^.OutS( L"; if( " ); STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" != NIL ) goto " ); G^.OutCS( STry^.CatchLabel^.N ); G^.OutSC(); 
+         END;
 
       | ukSAssignmentByCall2 :
-        D^.Generate( G, gcsAssignment );
-        E^.Generate( G, C );
-        G^.OutS( L" )" );
+         ThrowFlag := ( STry <> NIL ) AND ( eoThrowing IN D^.r.DfI^.Options );
+         IF ThrowFlag THEN
+            STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" = " );
+         END;
+         D^.Generate( G, gcsAssignment );
+         E^.Generate( G, C );
+         G^.OutS( L" )" );
+         IF ThrowFlag THEN
+            G^.OutS( L"; if( " ); STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" != NIL ) goto " ); G^.OutCS( STry^.CatchLabel^.N ); G^.OutSC(); 
+         END;
 
       | ukSAssignmentByRetvalCall :
-         IF STry = NIL THEN
-            D^.Generate( G, gcsDesignator );
-         ELSE
+         ThrowFlag := ( STry <> NIL ) AND ( eoThrowing IN D^.r.P^.P^.Options );
+         IF ThrowFlag THEN
             STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" = " );
-            D^.Generate( G, gcsDesignator );
+         END;
+         D^.Generate( G, gcsDesignator );
+         IF ThrowFlag THEN
+            G^.OutS( L"; if( " ); STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" != NIL ) goto " ); G^.OutCS( STry^.CatchLabel^.N ); G^.OutSC(); 
+         END;
+
+      | ukSAssignmentByIndexRetvalCall :
+         ThrowFlag := ( STry <> NIL ) AND ( eoThrowing IN D^.r.DfI^.Options );
+         IF ThrowFlag THEN
+            STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" = " );
+         END;
+         D^.Generate( G, gcsDesignator );
+         IF ThrowFlag THEN
+            G^.OutS( L"; if( " ); STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" != NIL ) goto " ); G^.OutCS( STry^.CatchLabel^.N ); G^.OutSC(); 
+         END;
+
+      | ukSAssignmentByPropertyRetvalCall :
+         ThrowFlag := ( STry <> NIL ) AND ( eoThrowing IN D^.r.Id^.Options );
+         IF ThrowFlag THEN
+            STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" = " );
+         END;
+         D^.Generate( G, gcsDesignator );
+         IF ThrowFlag THEN
             G^.OutS( L"; if( " ); STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" != NIL ) goto " ); G^.OutCS( STry^.CatchLabel^.N ); G^.OutSC(); 
          END;
 
