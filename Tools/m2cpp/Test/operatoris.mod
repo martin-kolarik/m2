@@ -49,9 +49,13 @@ VAR
 BEGIN
    b := V^ IS A;
    b := V^ IS D;
+   b := V^ INHERITS A;
+   b := V^ INHERITS D;
 END X;
 
-PROCEDURE wmain() : INTEGER;
+#save, call( convention => cdecl )
+PROCEDURE main( argc : INTEGER; argv : PCHAR; env : PCHAR ) : INTEGER;
+#restore
 VAR
    VA : A;
    VB : B;
@@ -60,6 +64,7 @@ VAR
    b : BOOLEAN;
 BEGIN
    b := VA IS C'A'; // true
+   b := VA IS C'operatoris.A'; // true
 
    b := VA IS A; // true
    b := VA IS B; // false
@@ -82,6 +87,7 @@ BEGIN
    b := VD IS D; // true
    
    b := VA INHERITS C'A';
+   b := VD INHERITS C'operatoris.A';
 
    b := VA INHERITS A;
    b := VA INHERITS B;
@@ -106,6 +112,6 @@ BEGIN
    X( ADR( VD ));
 
    RETURN 0;
-END wmain;
+END main;
 
 END operatoris.

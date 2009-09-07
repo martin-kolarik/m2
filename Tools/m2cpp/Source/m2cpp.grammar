@@ -2764,6 +2764,8 @@ ntStructuralExceptionHandlingStatement<RequestedReturnType : DOM.TPType; VAR R :
                                                               U^.UnitKind := DOM.ukTryBlock;
                                                               IF DOM.eoCPPExceptions NOT IN c^.Options THEN
                                                                  c^.HandleAuxVariableRequest( Types.TpException, Try^.ExceptionVariable );
+                                                                 NEW( Try^.ExceptionVariable^.InitE );
+                                                                 Try^.ExceptionVariable^.InitE^.Init3( Types.TADDRESS, DOM.okUnknown, L"NIL" );
                                                               END;
                                                               c^.LeaveUnit();
                                                               IF ( P <> NIL ) AND ( R > retUnknown ) AND ( R < retGOTO ) THEN
