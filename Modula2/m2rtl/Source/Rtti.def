@@ -1,0 +1,18 @@
+DEFINITION MODULE Rtti;
+// Runtime Type Information
+
+(*================================================================================*)
+
+TYPE
+   TPRTTI = POINTER TO TRTTI;
+
+   TRTTI  = RECORD
+               Name          : POINTER TO CONST CHAR; // zero terminated
+               AncestorCount : CARDINAL;
+               Ancestors     : POINTER TO CONST ARRAY [0..0] OF TPRTTI; // array of AncestorCount length
+               ClassSize     : CARDINAL;
+            END; // RECORD
+
+(*================================================================================*)
+
+END Rtti.

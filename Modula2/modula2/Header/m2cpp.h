@@ -592,6 +592,7 @@ struct RTTI
     const CHAR* self;
     CARDINAL ancestor_count;
     const RTTI* const* ancestors;
+    CARDINAL class_size;
 };
 
 #define RTTI_IS_RTTI(classRtti,testRtti) ((classRtti)==(testRtti))

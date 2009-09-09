@@ -965,6 +965,8 @@ CLASS CClass( CType );
 	PROCEDURE AddNestedFriend( AccessedMember : TPSymbol; P : TPProcedureType );
    PROCEDURE AddAncestor( Ancestor : TPClass );
    PROCEDURE RemoveExposedAbstractByName( AncestorSymbol : TPSymbol );
+   
+   PUBLIC INITIALLY CClass();
 END CClass;
 
 //------------------------------------------------------------
@@ -1409,6 +1411,7 @@ TYPE
     epNEW, epNEWFunc,
     epODD,
     epORD,
+    epRTTI, epRTTISIZE,
     epSIZE,
     epSWAP, epSWAPBytes,
     epTRUNC,

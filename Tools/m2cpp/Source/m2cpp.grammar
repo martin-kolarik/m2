@@ -4885,6 +4885,26 @@ ntEmbeddedLOHIPTRs<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM.TValue
   rpar
 .
 
+ntEmbeddedRTTIs<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM.TValueInfo>
+                                                           (. E : DOM.TPExpression;
+                                                              EType : DOM.TPType; .)
+  =
+  ( "RTTI"                                                 (. D^.r.EP := DOM.epRTTI;
+                                                              D^.T := Types.TADDRESS; .)
+  | "RTTI_SIZE"                                            (. D^.r.EP := DOM.epRTTISIZE;
+                                                              D^.T := Types.TCARDINAL; .)
+  )                                                        (. INCL( VR, vrAllowSingleType ); .)
+  lpar
+    ntCommonExpression<VR, E, VI>                          (. D^.r.U1 := E;
+                                                              EType := T^.Unwrap();
+                                                              IF ( RType^.SymbolKind = DOM.skClass ) OR Types.TBString^.Compatible( DOM.cmOperation, RType ) THEN
+                                                                 // OK
+                                                              ELSE
+                                                                 SemErr( err._ISExpectsClassOrBStringOnRight );
+                                                              END; .)
+  rpar
+.
+
 ntEmbeddedProcedure<VAR D : DOM.TPDesignator>
   =                                                        (. D^.T := Types.TUnknown;
                                                               D^.r.DK := DOM.dkEmbeddedProcedure; .)

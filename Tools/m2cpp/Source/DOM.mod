@@ -4163,17 +4163,20 @@ CLASS IMPLEMENTATION CClass;
       END; // WHILE
    END RemoveExposedAbstractByName;
 
-BEGIN
-  UnitKind := ukSimpleClassDef;
-  SymbolKind := skClass;
-  TypeKind := tkClass;
-  PrimitiveType := ptStructure;
-  IM := TInheritanceModifier{};
-  S.OfSymbol := ADR( SELF );
-  I := NIL;
-  OD := NIL;
-  InitCode := NIL;
-  FinalCode := NIL;
+   PUBLIC INITIALLY CClass();
+   BEGIN
+      UnitKind := ukSimpleClassDef;
+      SymbolKind := skClass;
+      TypeKind := tkClass;
+      PrimitiveType := ptStructure;
+      IM := TInheritanceModifier{};
+      S.OfSymbol := ADR( SELF );
+      I := NIL;
+      OD := NIL;
+      InitCode := NIL;
+      FinalCode := NIL;
+   END CClass;
+
 END CClass;
 
 //------------------------------------------------------------
@@ -4260,17 +4263,18 @@ CLASS IMPLEMENTATION CClassDecl;
       END;
 
       // rtti
-      G^.Indent(); G^.OutS( L'const RTTI ' ); OfClass^.Generate( G, gcsName ); G^.OutS( L"::rtti = {" ); 
+      G^.Indent(); G^.OutS( L'const RTTI ' ); OfClass^.Generate( G, gcsName ); G^.OutS( L"::rtti = { " ); 
          // rtti_self
          G^.OutS( L'"' ); OfClass^.GetFullSourceQN( OUT QName ); G^.OutCS( QName ); G^.OutS( L'", ' );
          IF ancestorCount = 0 THEN
-            G^.OutS( L"0, 0};" );
+            G^.OutS( L"0, 0, sizeof(" );
          ELSE
             // ancestors count
             G^.OutN( OfClass^.Implements.Count ); G^.OutCmSP();
             // ancestors
-            OfClass^.Generate( G, gcsName ); G^.OutS( L"_ancestors };" );
+            OfClass^.Generate( G, gcsName ); G^.OutS( L"_ancestors, sizeof(" );
          END;
+         OfClass^.Generate( G, gcsName ); G^.OutS( L") };" );
       G^.EOL();
 
       G^.Indent(); G^.OutS( L'const RTTI* ' ); OfClass^.Generate( G, gcsName ); G^.OutS( L"::rtti_get() const { return &rtti; };" ); G^.EOL();
@@ -4402,7 +4406,7 @@ CLASS IMPLEMENTATION CEnvironmentStack;
     INC( Current );
     IF Current >= Allocated THEN
       INC( Allocated, 4 );
-      REALLOCATE( PData, Allocated * SIZE( TEnvironment ));
+      REALLOCATE( REF PData, Allocated * SIZE( TEnvironment ));
     END;
     IF Current >= 0 THEN
       PData^[Current] := PData^[Current - 1];
@@ -9919,6 +9923,11 @@ CLASS IMPLEMENTATION CDesignator;
         G^.OutS( L'HIPTRLONGGWORD_((PTR)( ' );
         r.U1^.Generate( G, Cn );
         G^.OutS( L' ))' );
+        
+      | epRTTI :
+         r.U1^.Generate( G, Cn ); G^.OutS( L'.rtti_get()' );
+      | epRTTISIZE :
+         r.U1^.Generate( G, Cn ); G^.OutS( L'.rtti_get()->class_size' );
       END; // CASE r.EK
     END; // CASE r.DK
 
@@ -10302,7 +10311,7 @@ CLASS IMPLEMENTATION CTypedContainer;
         G^.OutNLH( CARD64( sl ));
       ELSE
         G^.OutLB();
-        ALLOCATE( sa, r );
+        ALLOCATE( OUT sa, r );
         Storage.Fill( sa, r, 0 );
         b := GetFirst( E );
         WHILE b DO
