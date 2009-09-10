@@ -8594,11 +8594,19 @@ CLASS IMPLEMENTATION CENode;
 			UT := r.R^.T^.Unwrap();
 			IF r.O = opISExact THEN // check with class type
    			IF UT^.SymbolKind = skClass THEN
-				   G^.OutS( L'RTTI_IS_RTTI( ' );
-					   r.L^.Generate( G, C );
-				   G^.OutS( L'.rtti_get(), &' );
-					   r.R^.Generate( G, C );
-				   G^.OutS( L'::rtti )' );
+               IF ( r.R^.r.N = enDesignator ) AND ( r.R^.r.V^.r.DK = dkType ) THEN
+				      G^.OutS( L'RTTI_IS_RTTI( ' );
+					      r.L^.Generate( G, C );
+				      G^.OutS( L'.rtti_get(), &' );
+					      r.R^.Generate( G, C );
+				      G^.OutS( L'::rtti )' );
+				   ELSE
+				      G^.OutS( L'RTTI_IS_RTTI( ' );
+					      r.L^.Generate( G, C );
+				      G^.OutS( L'.rtti_get(), ' );
+					      r.R^.Generate( G, C );
+				      G^.OutS( L'.rtti_get())' );
+				   END;
    			ELSE // check with class name
 				   G^.OutS( L'RTTI_IS_NAME( ' );
 					   r.L^.Generate( G, C );
@@ -8609,11 +8617,19 @@ CLASS IMPLEMENTATION CENode;
    			END;
 			ELSE // opISInherits
    			IF UT^.SymbolKind = skClass THEN
-				   G^.OutS( L'RTTI_INHERITS_RTTI( ' );
-					   r.L^.Generate( G, C );
-				   G^.OutS( L'.rtti_get(), &' );
-					   r.R^.Generate( G, C );
-				   G^.OutS( L'::rtti, FALSE )' );
+               IF ( r.R^.r.N = enDesignator ) AND ( r.R^.r.V^.r.DK = dkType ) THEN
+				      G^.OutS( L'RTTI_INHERITS_RTTI( ' );
+					      r.L^.Generate( G, C );
+				      G^.OutS( L'.rtti_get(), &' );
+					      r.R^.Generate( G, C );
+				      G^.OutS( L'::rtti, FALSE )' );
+				   ELSE
+				      G^.OutS( L'RTTI_INHERITS_RTTI( ' );
+					      r.L^.Generate( G, C );
+				      G^.OutS( L'.rtti_get(), ' );
+					      r.R^.Generate( G, C );
+				      G^.OutS( L'.rtti_get(), FALSE )' );
+				   END;
    			ELSE // check with class name
 				   G^.OutS( L'RTTI_INHERITS_NAME( ' );
 					   r.L^.Generate( G, C );
@@ -9925,9 +9941,17 @@ CLASS IMPLEMENTATION CDesignator;
         G^.OutS( L' ))' );
         
       | epRTTI :
-         r.U1^.Generate( G, Cn ); G^.OutS( L'.rtti_get()' );
+         IF ( TPExpression( r.U1 )^.N^.r.N = enDesignator ) AND ( TPExpression( r.U1 )^.N^.r.V^.r.DK = dkType ) THEN
+            G^.OutS( L'(void*)(&' ); r.U1^.Generate( G, Cn ); G^.OutS( L'::rtti)' );
+         ELSE
+            G^.OutS( L'(void*)(' ); r.U1^.Generate( G, Cn ); G^.OutS( L'.rtti_get())' );
+         END;
       | epRTTISIZE :
-         r.U1^.Generate( G, Cn ); G^.OutS( L'.rtti_get()->class_size' );
+         IF ( TPExpression( r.U1 )^.N^.r.N = enDesignator ) AND ( TPExpression( r.U1 )^.N^.r.V^.r.DK = dkType ) THEN
+            r.U1^.Generate( G, Cn ); G^.OutS( L'::rtti.class_size' );
+         ELSE
+            r.U1^.Generate( G, Cn ); G^.OutS( L'.rtti_get()->class_size' );
+         END;
       END; // CASE r.EK
     END; // CASE r.DK
 

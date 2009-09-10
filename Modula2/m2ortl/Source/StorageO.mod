@@ -477,12 +477,12 @@ CLASS IMPLEMENTATION CMemoryBuffer;
 			RETURN;
 		END;
 		IF OwnMemory THEN
-			REALLOCATE( _Data, Bytes );
+			REALLOCATE( REF _Data, Bytes );
 		ELSE
 			OwnMemory := TRUE;
 			LData := _Data;
 			_Data := NIL;
-			REALLOCATE( _Data, Bytes );
+			REALLOCATE( REF _Data, Bytes );
 			Storage.Move( LData, _Data, MIN2( _Size, Bytes ));
 		END;
 		_Size := Bytes;
@@ -763,7 +763,7 @@ CLASS IMPLEMENTATION CAAllocator;
 					RETURN FALSE;
 				| asAllocatePages :
 					c := _PageCount + Count;
-					REALLOCATE( _Pages, c * SIZE( TPage ));
+					REALLOCATE( REF _Pages, c * SIZE( TPage ));
 					FOR i := _PageCount TO c-1 DO
 						_Pages^[i].Page := NIL;
 						_Pages^[i].Data := _FirstEmptyPage;
@@ -775,7 +775,7 @@ CLASS IMPLEMENTATION CAAllocator;
 				c := _FirstEmptyPage;
 				_FirstEmptyPage := _Pages^[_FirstEmptyPage].Data;
 
-				ALLOCATE( _Pages^[c].Page, GPageSize );
+				ALLOCATE( OUT _Pages^[c].Page, GPageSize );
 				IF _Debug THEN
 					Storage.Fill( _Pages^[c].Page, GPageSize, 0CDH );
 				END;
@@ -808,7 +808,7 @@ CLASS IMPLEMENTATION CAAllocator;
 
 		IF Index = _PageCount-1 THEN
 			DEC( _PageCount );
-			REALLOCATE( _Pages, _PageCount * SIZE( TPage ));
+			REALLOCATE( REF _Pages, _PageCount * SIZE( TPage ));
 		ELSE
 			_Pages^[Index].Data := _FirstEmptyPage;
 			_FirstEmptyPage := Index;
@@ -947,7 +947,7 @@ CLASS IMPLEMENTATION CSlotAllocator; // allocates slots of equal size
 		g := GPageSize DIV _SlotSize;
 		IF Index + 1 > _KnownPages THEN
 			_KnownPages := Index + 1;
-			REALLOCATE( _EmptySlots, _KnownPages * g * SIZE( CARDINAL ));
+			REALLOCATE( REF _EmptySlots, _KnownPages * g * SIZE( CARDINAL ));
 		END;
 		FOR i := Index * g TO ( Index + 1 ) * g - 1 DO
 			_EmptySlots^[i] := _FirstEmptySlot;
@@ -985,7 +985,7 @@ CLASS IMPLEMENTATION CSlotAllocator; // allocates slots of equal size
 		END; // WHILE
 		IF Index + 1 = _KnownPages THEN
 			_KnownPages := Index;
-			REALLOCATE( _EmptySlots, _KnownPages * ( GPageSize DIV _SlotSize ) * SIZE( CARDINAL ));
+			REALLOCATE( REF _EmptySlots, _KnownPages * ( GPageSize DIV _SlotSize ) * SIZE( CARDINAL ));
 		END;
 	END CSlotAllocator.PageReleased;
 

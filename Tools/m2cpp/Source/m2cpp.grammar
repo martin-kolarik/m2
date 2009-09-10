@@ -4317,6 +4317,7 @@ ntEmbeddedFunction<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM.TValue
   | ntEmbeddedLOHIWs<VR, D, VI>
   | ntEmbeddedLOHILWs<VR, D, VI>
   | ntEmbeddedLOHIPTRs<VR, D, VI>
+  | ntEmbeddedRTTIs<VR, D, VI>
   )                                                        (. VI := VI - DOM.visLValue; .)
 .
 
@@ -4896,11 +4897,11 @@ ntEmbeddedRTTIs<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM.TValueInf
   )                                                        (. INCL( VR, vrAllowSingleType ); .)
   lpar
     ntCommonExpression<VR, E, VI>                          (. D^.r.U1 := E;
-                                                              EType := T^.Unwrap();
-                                                              IF ( RType^.SymbolKind = DOM.skClass ) OR Types.TBString^.Compatible( DOM.cmOperation, RType ) THEN
+                                                              EType := E^.T^.Unwrap();
+                                                              IF ( EType^.SymbolKind = DOM.skClass ) OR Types.TBString^.Compatible( DOM.cmOperation, EType ) THEN
                                                                  // OK
                                                               ELSE
-                                                                 SemErr( err._ISExpectsClassOrBStringOnRight );
+                                                                 SemErr( err._RTTIExpectsClassOrBStringOnRight );
                                                               END; .)
   rpar
 .
@@ -5338,11 +5339,13 @@ ntActualParameter<Count : CARDINAL; PC : DOM.TPParameterContainer; VarArg : BOOL
                                                                 WITH E^.N^.r.V^ DO
                                                                   CASE r.DK OF
                                                                   | DOM.dkType :
-                                                                    // passing expression casted to open array component type must be generated using AuxVariable
-                                                                    IF r.TC^.Cast AND PC^.PT^.IsOpenArray() THEN
-                                                                      c^.HandleAuxVariableRequest( E^.T, PC^.CV );
+                                                                    IF r.TC <> NIL THEN
+                                                                       // passing expression casted to open array component type must be generated using AuxVariable
+                                                                       IF r.TC^.Cast AND PC^.PT^.IsOpenArray() THEN
+                                                                          c^.HandleAuxVariableRequest( E^.T, PC^.CV );
+                                                                       END;
+                                                                       r.TC^.MarkAsInitializedAndCheckRO( c, TRUE, FALSE );
                                                                     END;
-                                                                    r.TC^.MarkAsInitializedAndCheckRO( c, TRUE, FALSE );
                                                                   | DOM.dkId : // do nothing
                                                                   | DOM.dkEmbeddedProcedure :
                                                                     IF r.EP = DOM.epADR THEN

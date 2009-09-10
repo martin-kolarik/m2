@@ -412,10 +412,13 @@
             <item>IN expects a set on right side</item>
         </string>
 				<string name="_ISExpectsClassOnLeft">
-					<item>IS/INHERITS expects a polymorphic class on left side</item>
+					<item>IS/INHERITS expects a class on left side</item>
 				</string>
 				<string name="_ISExpectsClassOrBStringOnRight">
 					<item>IS/INHERITS expects a class type or class name (byte string) on right side</item>
+				</string>
+				<string name="_RTTIExpectsClassOrBStringOnRight">
+					<item>A class type or class name (byte string) expected</item>
 				</string>
 				<string name="_StringsCanBeConcatenatedOnly">
             <item>Strings and characters can be concatenated only</item>

@@ -1948,7 +1948,7 @@ CLASS IMPLEMENTATION CDriver;
             Logger.LogSC( dldDebug, logPrefix, L"Event.Add evStructReceived2Success ", CARDINAL( evStructReceived2Success ));
          END;
          PELE^.Event.PacketLen := DataLen;
-         ALLOCATE( PELE^.Event.PPacket, DataLen );
+         ALLOCATE( OUT PELE^.Event.PPacket, DataLen );
          Storage.Move( PData, PELE^.Event.PPacket, DataLen );
       ELSE
          IF TPPacket( PData )^.TR = trString THEN

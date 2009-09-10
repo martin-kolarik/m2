@@ -118,7 +118,7 @@ CLASS IMPLEMENTATION CDispatcher;
                   ai := ai^.ai_next;
                UNTIL ai = NIL;
                
-               ALLOCATE( Addresses, count * SIZE( Addresses^ ));
+               ALLOCATE( OUT Addresses, count * SIZE( Addresses^ ));
                Storage.Zero( Addresses, count * SIZE( Addresses^ ));
                count := 0;
                ai := TPNameToAddressRequest( Request )^.AddrInfo;
@@ -135,7 +135,7 @@ CLASS IMPLEMENTATION CDispatcher;
 
                Request^.PNotifier^.OnAddressFound( Request^.RequestId, 0, OA( count-1, Addresses ));
                
-               DEALLOCATE( Addresses );
+               DEALLOCATE( OUT Addresses );
             END;
 
          ELSIF Request^ IS CAddressToNameRequest THEN

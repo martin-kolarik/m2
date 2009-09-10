@@ -230,7 +230,7 @@ CLASS IMPLEMENTATION CResources;
       RETURN FALSE;
     END;
     l := FIO.Size( f );
-    ALLOCATE( Bin, l );
+    ALLOCATE( OUT Bin, l );
     IF FIO.RdBin( f, Bin^, l ) <> l THEN
        FIO.Close( f );
       RETURN FALSE;
@@ -471,7 +471,7 @@ CLASS IMPLEMENTATION CResources;
         _Resource := NIL;
       END;
       _Mode := rmSelfMemory;
-      REALLOCATE( _Resource, Bin^.BinLength );
+      REALLOCATE( REF _Resource, Bin^.BinLength );
       Storage.Move( Bin, _Resource, Bin^.BinLength );
     ELSE
       CASE _Mode OF
@@ -496,7 +496,7 @@ CLASS IMPLEMENTATION CResources;
     i, j, l : INTEGER;
   BEGIN
     l := SIZE( TResourceData ) + _Resource^.SlotCount * ( SIZE( TLanguageSlot ) + _Resource^.TextCount * SIZE( TText ));
-    REALLOCATE( _Stub, l );
+    REALLOCATE( REF _Stub, l );
     Storage.Move( _Resource, _Stub, l );
     
     // adjust main offsets
@@ -580,7 +580,7 @@ CLASS IMPLEMENTATION CPlainResources;
         L := MAX2( _TextsAllocated << 1, 256 );
         _Langs.Reset();
         WHILE _Langs.MoveNext() DO
-          REALLOCATE( _Langs.CurrentData, L * SIZE( TText ));
+          REALLOCATE( REF _Langs.CurrentData, L * SIZE( TText ));
           Storage.Fill( INC( _Langs.CurrentData, _TextsAllocated * SIZE( TText )), ( L - _TextsAllocated ) * SIZE( TText ), 0 );
         END; // END
         _TextsAllocated := L;
@@ -597,7 +597,7 @@ CLASS IMPLEMENTATION CPlainResources;
     BEGIN
       IF NOT _Langs.Get( Lang, OUT Texts ) THEN
         L := _TextsAllocated * SIZE( TText );
-        ALLOCATE( Texts, L );
+        ALLOCATE( OUT Texts, L );
         Storage.Fill( Texts, L, 0 );
         _Langs.Add( Lang, Texts );
       END;
@@ -606,7 +606,7 @@ CLASS IMPLEMENTATION CPlainResources;
       L := LENGTH( String ) + 1;
       IF _PoolBytes + L << 1 > _PoolAllocated THEN
         _PoolAllocated := ( _PoolBytes + L << 1 + 4095 ) DIV 4096 * 4096;
-        REALLOCATE( _Pool, _PoolAllocated << 1 );
+        REALLOCATE( REF _Pool, _PoolAllocated << 1 );
       END;
       Strings.MoveW( ADR( String ), _Pool@[ _PoolBytes ], L );
 
@@ -640,7 +640,7 @@ CLASS IMPLEMENTATION CPlainResources;
       l :=  c * SIZE( TText );
       cl := _Langs.Count;
       al := SIZE( TResourceData ) +  cl * ( SIZE( TLanguageSlot ) + l ) + _PoolBytes;
-      ALLOCATE( _Resource, al );
+      ALLOCATE( OUT _Resource, al );
 
       // main record
       WITH _Resource^ DO
