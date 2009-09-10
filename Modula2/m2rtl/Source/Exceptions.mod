@@ -193,6 +193,7 @@ CLASS IMPLEMENTATION CExceptionHandler;
 
    LOCAL PROCEDURE GetException() : POINTER TO Exception;
    BEGIN
+      // TODO
       IF NOT TlsAllocated THEN
          RETURN NIL;
       END;
@@ -231,9 +232,9 @@ BEGIN
    RETURN ExceptionHandler.IsCatchedBy( catchRtti );
 END CATCHED_;
 
-PROCEDURE GET_( catchRtti : ADDRESS ) : BOOLEAN;
+PROCEDURE GET_() : ADDRESS;
 BEGIN
-   RETURN ExceptionHandler.IsCatchedBy( catchRtti );
+   RETURN ExceptionHandler.Get();
 END GET_;
 
 (*================================================================================*)

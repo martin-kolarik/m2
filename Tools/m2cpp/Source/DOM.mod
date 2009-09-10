@@ -223,9 +223,6 @@ CLASS IMPLEMENTATION CUnit;
       IF ( UnitKind = ukBlockBodyOfReturnInTryFunc ) AND ( eoHaveReturnInCPPTry IN Options )THEN
         Childs.GetFirst( OUT U );
         G^.Indent(); TPSymbol( U )^.T^.Generate( G, gcsName ); G^.OutS( L' _ReturnResult; // deferred return result' ); G^.EOL();
-        IF eoThrowing IN Options THEN
-           G^.Indent(); G^.OutS( L'Exceptions::Exception* _ReturnException; // deferred exception result' ); G^.EOL();
-        END;
       END;
       IF eoHaveReturnInCPPTry IN Options THEN
          G^.LineS( L'BOOLEAN _FinallyReturns = false; // TRY/FINALLY exit control' );
@@ -340,22 +337,9 @@ CLASS IMPLEMENTATION CUnit;
       RETURN gumIndent;
     | ukFinallySEHBlock :
       G^.OutS( L" __finally {" ); G^.EOL();
-    | ukFinallyDelete :
-      IF GetFirst( OUT U ) THEN
-         G^.Indent();
-            IF eoThrowing IN U^.Options THEN
-               G^.OutS( L"if( !_FinallyThrows || _ReturnException != " );
-               TPSTRY( U )^.ExceptionVariable^.Generate( G, gcsName ); 
-               G^.OutS( L" ) " );
-            END;
-            G^.OutS( L"if( " );
-               TPSTRY( U )^.ExceptionVariable^.Generate( G, gcsName );  
-               G^.OutS( " != NIL ) delete " ); TPSTRY( U )^.ExceptionVariable^.Generate( G, gcsName );
-            G^.OutSC();
-         G^.EOL();
-      END;
       RETURN gumSimple;
     | ukCatchBlock :
+      G^.EOL();
       IF eoCPPExceptions IN Options THEN
          G^.Indent(); G^.OutS( L"catch (" );
       ELSE
@@ -363,6 +347,7 @@ CLASS IMPLEMENTATION CUnit;
       END;
       RETURN gumNoIndent;
     | ukCatchAnyBlock :
+      G^.EOL();
       IF eoCPPExceptions IN Options THEN
          G^.Indent(); G^.OutS( L"catch (..." );
       ELSE
@@ -375,7 +360,7 @@ CLASS IMPLEMENTATION CUnit;
       IF eoCPPExceptions IN Options THEN
          G^.OutS( L'throw ' );
       ELSE
-         G^.OutS( L'return &' );
+         G^.OutS( L'THROW_( &' );
       END;
       RETURN gumNoIndent;
 
@@ -499,7 +484,7 @@ CLASS IMPLEMENTATION CUnit;
     | ukBlockBodyOfFunc :
     | ukBlockBodyOfProc :
       IF eoThrowing IN Options THEN
-         G^.LineS( L'return NIL; // implicit exception return' );
+         G^.LineS( L'return FALSE; // implicit exception return' );
       END;
     | ukBlockBodyOfCOMProcedure :
       G^.LineS( L'return 0; // implicit return' );
@@ -587,18 +572,19 @@ CLASS IMPLEMENTATION CUnit;
       ukCatchAnyBlock :
     | ukFinallyCPPBlock :
       IF eoHaveReturnInCPPTry IN Options THEN
+        G^.EOL();
         G^.Enter();
         IF eoTryReturnsValue IN Options THEN
           IF eoThrowing IN Options THEN
-            G^.LineS( L'if (_FinallyThrows) { return _ReturnException; } // RETURN from TRY/THROW' );
-            G^.LineS( L'if (_FinallyReturns) { *RetVal = _ReturnResult; return NIL; } // RETURN from TRY' );
+            G^.LineS( L'if (_FinallyThrows) { return TRUE; } // RETURN from TRY/THROW' );
+            G^.LineS( L'if (_FinallyReturns) { *RetVal = _ReturnResult; return FALSE; } // RETURN from TRY' );
           ELSE
             G^.LineS( L'if (_FinallyReturns) return _ReturnResult; // RETURN from TRY' );
           END;
         ELSE
           IF eoThrowing IN Options THEN
-            G^.LineS( L'if (_FinallyThrows) { return _ReturnException; } // RETURN from TRY/THROW' );
-            G^.LineS( L'if (_FinallyReturns) return NIL; // RETURN from TRY' );
+            G^.LineS( L'if (_FinallyThrows) { return TRUE; } // RETURN from TRY/THROW' );
+            G^.LineS( L'if (_FinallyReturns) return FALSE; // RETURN from TRY' );
           ELSE
             G^.LineS( L'if (_FinallyReturns) return; // RETURN from TRY' );
           END;
@@ -606,6 +592,7 @@ CLASS IMPLEMENTATION CUnit;
         G^.Leave();
       END;
       G^.LineRB();
+      G^.EOL();
     | ukTrySEHBlock :
       G^.Indent(); G^.OutRB();
     | ukTryBlock :
@@ -620,7 +607,12 @@ CLASS IMPLEMENTATION CUnit;
       G^.LineRB();
 
     | ukSThrow :
-      G^.OutSC(); G^.EOL();
+      IF eoCPPExceptions IN Options THEN
+         G^.OutSC(); G^.EOL();
+      ELSE
+         G^.OutS( L" );"); G^.EOL();
+         G^.LineS( L"return TRUE;" );
+      END;
 
     ELSE
 
@@ -2615,11 +2607,7 @@ CLASS IMPLEMENTATION CVariable;
     IF ( gcDefault IN C ) AND ( UnitKind = ukVariantSelector ) THEN
       RETURN gumSimple;
     ELSIF gcName IN C THEN
-      IF ( UnitKind <> ukCatchVarDecl ) OR ( eoCPPExceptions IN Options ) THEN
-         OutN( G, C );
-      ELSE
-         G^.OutS( L"(*" ); STry^.ExceptionVariable^.OutN( G, C ); G^.OutRP();
-      END;
+      OutN( G, C );
       RETURN gumSimple;
     ELSIF ( UnitKind = ukSimpleVarDecl ) AND ( eoMovedToFrame IN Options ) THEN // disables generating of symbols moved into frame
       RETURN gumEmpty;
@@ -2644,8 +2632,19 @@ CLASS IMPLEMENTATION CVariable;
     | ukClassVarDecl, ukVariantSelector :
       G^.Indent();
     | ukCatchVarDecl :
-      IF eoCPPExceptions NOT IN Options THEN
-         RETURN GenHeadOfNativeCatch( G, C, Context );
+      IF eoCPPExceptions IN Options THEN
+         RETURN gumEmpty;
+      ELSE
+         G^.OutS( L"CATCHED_(&" ); T^.OutN( G, C ); G^.OutS( L"::rtti)" );
+         RETURN gumSimple;
+      END;
+    | ukCatchVarDef :
+      IF eoCPPExceptions IN Options THEN
+         RETURN gumEmpty;
+      ELSE
+         G^.Indent(); T^.OutN( G, gcsName ); G^.OutS( L"* " ); OutN( G, C ); G^.OutS( L" = (" ); T^.OutN( G, gcsCast ); G^.OutS( L"*)GET_();" ); G^.EOL();
+         G^.EOL();
+         RETURN gumSimple;
       END;
     ELSE
       i := FALSE;
@@ -2726,12 +2725,6 @@ CLASS IMPLEMENTATION CVariable;
       InitE^.Generate( G, C );
     END;
   END GenerateInitExpression;
-
-   PROCEDURE GenHeadOfNativeCatch( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
-   BEGIN
-      G^.OutS( L"RTTI_INHERITS_RTTI( " ); STry^.ExceptionVariable^.OutN( G, C ); G^.OutS( L"->rtti_get(), &" ); T^.OutN( G, C ); G^.OutS( L"::rtti, TRUE )" );
-      RETURN gumSimple;
-   END GenHeadOfNativeCatch;
 
 BEGIN
   UnitKind := ukSimpleVarDecl;
@@ -3156,7 +3149,7 @@ CLASS IMPLEMENTATION CProcedureType;
       //   G^.OutS( L'extern "C" ' );
       // END;
       IF eoThrowing IN Options THEN
-         G^.OutS( L'Exceptions::Exception* ' );
+         G^.OutS( L'BOOLEAN ' );
       ELSIF ( T = NIL ) OR ( T = Types.TUnknown ) THEN
          G^.OutS( L'void ' );
       ELSE
@@ -3296,7 +3289,7 @@ CLASS IMPLEMENTATION CProcedure;
          ( TEnvironmentOptions{eoAssignSelf} * Options = TEnvironmentOptions{} ) THEN
         // constructor and destructor do not have return type...
       ELSIF eoThrowing IN Options THEN
-         G^.OutS( L'Exceptions::Exception* ' );
+         G^.OutS( L'BOOLEAN ' );
       ELSIF eoCOM IN Options THEN
          G^.OutS( L'HRESULT ' );
       ELSIF ( T = NIL ) OR ( T = Types.TUnknown ) THEN
@@ -7546,7 +7539,7 @@ CLASS IMPLEMENTATION CPropertyDef;
           T^.Generate( G, gcsExplicit );
           G^.OutS( L'* RetVal )' );
         ELSIF eoThrowing IN Options THEN
-          G^.OutS( L'Exceptions::Exception* ' );
+          G^.OutS( L'BOOLEAN ' );
           IF cpCDecl IN Options THEN
             G^.OutS( L'__cdecl ' );
           ELSIF cpStdCall IN Options THEN
@@ -7596,7 +7589,7 @@ CLASS IMPLEMENTATION CPropertyDef;
         END;
         IF TInheritanceModifier{imCOM} * IM = TInheritanceModifier{} THEN
           IF eoThrowing IN Options THEN
-             G^.OutS( L'Exceptions::Exception* ' );
+             G^.OutS( L'BOOLEAN ' );
           ELSE
              G^.OutS( L'void ' );
           END;
@@ -7754,7 +7747,7 @@ CLASS IMPLEMENTATION CIndexerDef;
       ELSE
         IF _CM = cmRO THEN
           IF eoThrowing IN Options THEN
-            G^.OutS( L"Exceptions::Exception* " );
+            G^.OutS( L"BOOLEAN " );
           ELSE
             T^.Generate( G, gcsExplicit ); G^.OutSP();
           END;
@@ -7780,7 +7773,7 @@ CLASS IMPLEMENTATION CIndexerDef;
           END;
         ELSIF _CM = cmWO THEN
           IF eoThrowing IN Options THEN
-            G^.OutS( L"Exceptions::Exception* " );
+            G^.OutS( L"BOOLEAN " );
           ELSE
             G^.OutS( L'void ' );
           END;
@@ -7841,7 +7834,7 @@ CLASS IMPLEMENTATION COperatorDef;
         END;
       END;
       IF eoThrowing IN Options THEN
-         G^.OutS( L'Exceptions::Exception* ' );
+         G^.OutS( L'BOOLEAN ' );
       ELSIF T = Types.TUnknown THEN
          G^.OutS( L'void ' );
       ELSE
@@ -10500,66 +10493,66 @@ CLASS IMPLEMENTATION CSAssignment;
       | ukSCall :
          ThrowFlag := ( STry <> NIL ) AND ( eoThrowing IN D^.r.P^.P^.Options );
          IF ThrowFlag THEN
-            STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" = " );
+            G^.OutS( L"if (" );
          END;
          D^.Generate( G, C );
          IF ThrowFlag THEN
-            G^.OutS( L"; if( " ); STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" != NIL ) goto " ); G^.OutCS( STry^.CatchLabel^.N ); G^.OutSC(); 
+            G^.OutS( L") goto " ); G^.OutCS( STry^.CatchLabel^.N ); 
          END;
 
       | ukSAssignmentByCall1 :
          ThrowFlag := ( STry <> NIL ) AND ( eoThrowing IN D^.r.Id^.Options );
          IF ThrowFlag THEN
-            STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" = " );
+            G^.OutS( L"if (" );
          END;
          D^.Generate( G, gcsAssignment );
          G^.OutS( L"( " );
          E^.Generate( G, C );
          G^.OutS( L" )" );
          IF ThrowFlag THEN
-            G^.OutS( L"; if( " ); STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" != NIL ) goto " ); G^.OutCS( STry^.CatchLabel^.N ); G^.OutSC(); 
+            G^.OutS( L") goto " ); G^.OutCS( STry^.CatchLabel^.N );
          END;
 
       | ukSAssignmentByCall2 :
          ThrowFlag := ( STry <> NIL ) AND ( eoThrowing IN D^.r.DfI^.Options );
          IF ThrowFlag THEN
-            STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" = " );
+            G^.OutS( L"if (" );
          END;
          D^.Generate( G, gcsAssignment );
          E^.Generate( G, C );
          G^.OutS( L" )" );
          IF ThrowFlag THEN
-            G^.OutS( L"; if( " ); STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" != NIL ) goto " ); G^.OutCS( STry^.CatchLabel^.N ); G^.OutSC(); 
+            G^.OutS( L") goto " ); G^.OutCS( STry^.CatchLabel^.N );
          END;
 
       | ukSAssignmentByRetvalCall :
          ThrowFlag := ( STry <> NIL ) AND ( eoThrowing IN D^.r.P^.P^.Options );
          IF ThrowFlag THEN
-            STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" = " );
+            G^.OutS( L"if (" );
          END;
          D^.Generate( G, gcsDesignator );
          IF ThrowFlag THEN
-            G^.OutS( L"; if( " ); STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" != NIL ) goto " ); G^.OutCS( STry^.CatchLabel^.N ); G^.OutSC(); 
+            G^.OutS( L") goto " ); G^.OutCS( STry^.CatchLabel^.N );
          END;
 
       | ukSAssignmentByIndexRetvalCall :
          ThrowFlag := ( STry <> NIL ) AND ( eoThrowing IN D^.r.DfI^.Options );
          IF ThrowFlag THEN
-            STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" = " );
+            G^.OutS( L"if (" );
          END;
          D^.Generate( G, gcsDesignator );
          IF ThrowFlag THEN
-            G^.OutS( L"; if( " ); STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" != NIL ) goto " ); G^.OutCS( STry^.CatchLabel^.N ); G^.OutSC(); 
+            G^.OutS( L") goto " ); G^.OutCS( STry^.CatchLabel^.N ); 
          END;
 
       | ukSAssignmentByPropertyRetvalCall :
          ThrowFlag := ( STry <> NIL ) AND ( eoThrowing IN D^.r.Id^.Options );
          IF ThrowFlag THEN
-            STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" = " );
+            G^.OutS( L"if (" );
          END;
          D^.Generate( G, gcsDesignator );
          IF ThrowFlag THEN
-            G^.OutS( L"; if( " ); STry^.ExceptionVariable^.Generate( G, gcsName ); G^.OutS( L" != NIL ) goto " ); G^.OutCS( STry^.CatchLabel^.N ); G^.OutSC(); 
+            G^.OutS( L") goto " ); G^.OutCS( STry^.CatchLabel^.N ); 
          END;
 
       // | ukSAssignmentByCOMFunctionCall :
@@ -10674,7 +10667,7 @@ CLASS IMPLEMENTATION CSReturn;
       END;
     | ukReturnInThrowing :
       IF Childs.Empty THEN
-        G^.LineS( L"return NIL;" ); // exception
+        G^.LineS( L"return FALSE;" ); // exception
         RETURN gumSimple;
       ELSE
         G^.Indent();
@@ -10692,9 +10685,9 @@ CLASS IMPLEMENTATION CSReturn;
         RETURN gumNoIndent;
       END;
     | ukThrowingInCPPTry :
-      G^.Indent();
-      G^.OutS( L'_ReturnException = &' );
-      RETURN gumNoIndent;
+      G^.LineS( L"_FinallyThrows = true;" );
+      G^.Indent(); G^.OutS( L"goto " ); L^.OutN( G, C ); G^.OutSC(); G^.EOL();
+      RETURN gumSimple;
     END;
     RETURN gumEmpty;
   END GenHead;
@@ -10718,12 +10711,9 @@ CLASS IMPLEMENTATION CSReturn;
     | ukReturnInCOM :
       G^.LineS( L"return 0;" ); // HRESULT
     | ukReturnInThrowing :
-      G^.LineS( L"return NIL;" ); // exception
+      G^.LineS( L"return FALSE;" ); // exception
     | ukReturnInCPPTry :
       G^.LineS( L"_FinallyReturns = true;" );
-      G^.Indent(); G^.OutS( L"goto " ); L^.OutN( G, C ); G^.OutSC(); G^.EOL();
-    | ukThrowingInCPPTry :
-      G^.LineS( L"_FinallyThrows = true;" );
       G^.Indent(); G^.OutS( L"goto " ); L^.OutN( G, C ); G^.OutSC(); G^.EOL();
     END;
   END GenTail;
@@ -10929,7 +10919,6 @@ CLASS IMPLEMENTATION CSTRY;
 
 BEGIN
 	UnitKind := ukSTry;
-	ExceptionVariable := NIL;
 	CatchLabel := NIL;
    LocalThrowEnabled := TRUE;
 END CSTRY;

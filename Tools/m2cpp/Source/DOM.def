@@ -256,11 +256,11 @@ TYPE
       ukExceptDoBlock,
       ukFinallyCPPBlock,
       ukFinallySEHBlock,
-      ukFinallyDelete,
 
       ukCatchBlock,
       ukCatchAnyBlock,
       ukCatchVarDecl,
+      ukCatchVarDef,
       ukCatchDoBlock,
 
     ukSThrow
@@ -849,7 +849,6 @@ CLASS CVariable( CSymbol );
    STry : TPSTRY; // if used in TRY statement
    VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
    PROCEDURE GenerateInitExpression( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL );
-   PROCEDURE GenHeadOfNativeCatch( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
 END CVariable;
 
 CLASS CSelf( CVariable );
@@ -1576,7 +1575,6 @@ END CCATCH;
 //------------------------------------------------------------
 
 CLASS CSTRY( CStatement );
-   ExceptionVariable : TPVariable;
    CatchLabel : TPLabel;
    InnerThrows : lists.CPtrList;
 	Procedures : lists.CPtrList;

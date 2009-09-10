@@ -2112,7 +2112,11 @@ ntStatement<RequestedReturnType : DOM.TPType; VAR R : TReturn> // !C.5
   | ntForStatement<RequestedReturnType> // *
   | ntGotoStatement                                        (. R := retGOTO; .) // *
   | ntStructuralExceptionHandlingStatement<RequestedReturnType, R> // ?
-  | ntThrowStatement                                       (. R := retGOTO; .) // *
+  | ntThrowStatement                                       (. IF c^.TStack.Empty OR NOT DOM.TPSTRY( c^.TStack.Peek())^.LocalThrowEnabled THEN
+                                                                 R := retOK;
+                                                              ELSE
+                                                                 R := retGOTO;
+                                                              END; .) // *
   | ntAsmStatement                                         (. R := retUncertain; .) // ?
   )
 .
@@ -2762,11 +2766,6 @@ ntStructuralExceptionHandlingStatement<RequestedReturnType : DOM.TPType; VAR R :
                                                                  UL := NEW( DOM.CSLabel ); DOM.TPSLabel( UL )^.L := CatchL; c^.AddUnit( UL );
                                                               END;
                                                               U^.UnitKind := DOM.ukTryBlock;
-                                                              IF DOM.eoCPPExceptions NOT IN c^.Options THEN
-                                                                 c^.HandleAuxVariableRequest( Types.TpException, Try^.ExceptionVariable );
-                                                                 NEW( Try^.ExceptionVariable^.InitE );
-                                                                 Try^.ExceptionVariable^.InitE^.Init3( Types.TADDRESS, DOM.okUnknown, L"NIL" );
-                                                              END;
                                                               c^.LeaveUnit();
                                                               IF ( P <> NIL ) AND ( R > retUnknown ) AND ( R < retGOTO ) THEN
                                                                 INCL( P^.Options, DOM.eoHaveReturnInCPPTry );
@@ -2784,12 +2783,6 @@ ntStructuralExceptionHandlingStatement<RequestedReturnType : DOM.TPType; VAR R :
                                                                    U := NEW( DOM.CSLabel ); DOM.TPSLabel( U )^.L := L; c^.AddUnit( U );
                                                                 ELSIF DOM.eoCPPExceptions NOT IN c^.Options THEN // finally always requires label for native exceptions
                                                                    U := NEW( DOM.CSLabel ); DOM.TPSLabel( U )^.L := L; c^.AddUnit( U );
-                                                                END;
-                                                                IF DOM.eoCPPExceptions NOT IN c^.Options THEN
-                                                                   NEW( U );
-                                                                   U^.UnitKind := DOM.ukFinallyDelete;
-                                                                   U^.Add( c^.TStack.Peek());
-                                                                   c^.AddUnit( U );
                                                                 END; .)
     [ "FINALLY" ntStatements<RequestedReturnType, R> ]      (.  c^.LeaveUnit();
                                                                 c^.TryCheckParity(); .)
@@ -2801,7 +2794,7 @@ ntStructuralExceptionHandlingStatement<RequestedReturnType : DOM.TPType; VAR R :
 ntCatchClause<RequestedReturnType : DOM.TPType; REF HaveUnhandled : BOOLEAN; P : DOM.TPProcedureType; OUT R : TReturn>                     
                                                             (. C : POINTER TO DOM.CCATCH;
                                                                T : DOM.TPType;
-                                                               V : DOM.TPVariable := NIL;
+                                                               V1, V2 : DOM.TPVariable := NIL;
                                                                New : BOOLEAN := FALSE; .)
   = "CATCH"                                                 (. IF HaveUnhandled THEN
                                                                  SemErr( err._UNHANDLEDMustBeLast );
@@ -2814,27 +2807,34 @@ ntCatchClause<RequestedReturnType : DOM.TPType; REF HaveUnhandled : BOOLEAN; P :
     ( "UNHANDLED"                                           (. c^.AddTryHandleAll();
                                                                C^.UnitKind := DOM.ukCatchAnyBlock;
                                                                HaveUnhandled := TRUE; .)
-    | [ ntVariableId<iaCreate, DOM.skVariable, V> ]
+    | [ ntVariableId<iaCreate, DOM.skVariable, V1> ]
       colon ntTypeDenoter<T, FALSE, FALSE, New>             (. c^.CheckTypeIsException( T );
                                                                c^.AddTryHandle( T );
                                                                c^.ForwardOpaqueType( T );
                                                                c^.ForwardComplexType( T );
-                                                               IF V = NIL THEN
-                                                                  V := NEW( DOM.CVariable );
+                                                               IF V1 = NIL THEN
+                                                                  V1 := NEW( DOM.CVariable );
                                                                END;
-                                                               V^.UnitKind := DOM.ukCatchVarDecl;
-                                                               V^.T := T;
-                                                               V^.STry := c^.TStack.Peek();
-                                                               c^.AddUnit( V ); .)
+                                                               V1^.UnitKind := DOM.ukCatchVarDecl;
+                                                               V1^.T := T;
+                                                               V1^.STry := c^.TStack.Peek();
+                                                               c^.AddUnit( V1 ); .)
     )                                                       (. c^.EnterNewUnit( DOM.ukCatchDoBlock );
+                                                               IF V1 <> NIL THEN
+                                                                  V2 := NEW( DOM.CVariable );
+                                                                  V2^.N := V1^.N;
+                                                                  V2^.UnitKind := DOM.ukCatchVarDef;
+                                                                  V2^.T := T;
+                                                                  c^.AddUnit( V2 );
+                                                               END;
                                                                IF P <> NIL THEN
-                                                                 INCL( P^.Options, DOM.eoInsideCPPTry );
+                                                                  INCL( P^.Options, DOM.eoInsideCPPTry );
                                                                END; .)
     "DO" ntStatements<RequestedReturnType, R>               (. IF P <> NIL THEN
-                                                                 EXCL( P^.Options, DOM.eoInsideCPPTry );
-                                                                 IF ( R > retUnknown ) AND ( R < retGOTO ) THEN
-                                                                   INCL( P^.Options, DOM.eoHaveReturnInCPPTry );
-                                                                 END;
+                                                                  EXCL( P^.Options, DOM.eoInsideCPPTry );
+                                                                  IF ( R > retUnknown ) AND ( R < retGOTO ) THEN
+                                                                     INCL( P^.Options, DOM.eoHaveReturnInCPPTry );
+                                                                  END;
                                                                END;
                                                                c^.LeaveUnit();
                                                                c^.LeaveUnit();
