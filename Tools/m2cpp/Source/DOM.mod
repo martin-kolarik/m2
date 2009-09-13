@@ -360,7 +360,7 @@ CLASS IMPLEMENTATION CUnit;
       IF eoCPPExceptions IN Options THEN
          G^.OutS( L'throw ' );
       ELSE
-         G^.OutS( L'THROW_( &' );
+         Project.Current()^.OD^.MEnv.MIID[miidStoreException]^.Generate( G, gcsName ); G^.OutS( L'(&' );
       END;
       RETURN gumNoIndent;
 
@@ -610,7 +610,7 @@ CLASS IMPLEMENTATION CUnit;
       IF eoCPPExceptions IN Options THEN
          G^.OutSC(); G^.EOL();
       ELSE
-         G^.OutS( L" );"); G^.EOL();
+         G^.OutS( L");"); G^.EOL();
          G^.LineS( L"return TRUE;" );
       END;
 
@@ -2607,7 +2607,11 @@ CLASS IMPLEMENTATION CVariable;
     IF ( gcDefault IN C ) AND ( UnitKind = ukVariantSelector ) THEN
       RETURN gumSimple;
     ELSIF gcName IN C THEN
-      OutN( G, C );
+      IF ( eoCPPExceptions NOT IN Options ) AND ( UnitKind = ukCatchVarDecl ) THEN
+         G^.OutS( L"(*" ); OutN( G, C ); G^.OutRP();
+      ELSE
+         OutN( G, C );
+      END;
       RETURN gumSimple;
     ELSIF ( UnitKind = ukSimpleVarDecl ) AND ( eoMovedToFrame IN Options ) THEN // disables generating of symbols moved into frame
       RETURN gumEmpty;
@@ -2635,14 +2639,15 @@ CLASS IMPLEMENTATION CVariable;
       IF eoCPPExceptions IN Options THEN
          RETURN gumEmpty;
       ELSE
-         G^.OutS( L"CATCHED_(&" ); T^.OutN( G, C ); G^.OutS( L"::rtti)" );
+         Project.Current()^.OD^.MEnv.MIID[miidTestIfCatched]^.Generate( G, gcsName ); G^.OutS( L"((void*)&" ); T^.OutN( G, C ); G^.OutS( L"::rtti)" );
          RETURN gumSimple;
       END;
     | ukCatchVarDef :
       IF eoCPPExceptions IN Options THEN
          RETURN gumEmpty;
       ELSE
-         G^.Indent(); T^.OutN( G, gcsName ); G^.OutS( L"* " ); OutN( G, C ); G^.OutS( L" = (" ); T^.OutN( G, gcsCast ); G^.OutS( L"*)GET_();" ); G^.EOL();
+         G^.Indent(); T^.OutN( G, gcsName ); G^.OutS( L"* " ); OutN( G, C ); G^.OutS( L" = (" );
+            T^.OutN( G, gcsCast ); G^.OutS( L"*)" ); Project.Current()^.OD^.MEnv.MIID[miidRetrieveException]^.Generate( G, gcsName ); G^.OutS( "();" ); G^.EOL();
          G^.EOL();
          RETURN gumSimple;
       END;
@@ -5361,6 +5366,12 @@ CLASS IMPLEMENTATION CModule;
         OD^.MEnv.MIID[miidLogAssertionA] := C^.IsLinkOf;
       ELSIF Symbol^.N.EqualsOA( L"LogAssertionW" ) THEN
         OD^.MEnv.MIID[miidLogAssertionW] := C^.IsLinkOf;
+      ELSIF Symbol^.N.EqualsOA( L"StoreException" ) THEN
+        OD^.MEnv.MIID[miidStoreException] := C^.IsLinkOf;
+      ELSIF Symbol^.N.EqualsOA( L"RetrieveException" ) THEN
+        OD^.MEnv.MIID[miidRetrieveException] := C^.IsLinkOf;
+      ELSIF Symbol^.N.EqualsOA( L"TestIfCatched" ) THEN
+        OD^.MEnv.MIID[miidTestIfCatched] := C^.IsLinkOf;
       END;
 
     ELSIF ReportErrors THEN

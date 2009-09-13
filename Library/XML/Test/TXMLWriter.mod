@@ -2,6 +2,8 @@ MODULE TXMLWriter;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
+FROM Exceptions IMPORT
+   TestIfCatched, RetrieveException;
 
 IMPORT
    FIOO,

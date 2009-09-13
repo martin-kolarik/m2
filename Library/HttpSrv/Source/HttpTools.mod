@@ -2,6 +2,8 @@ IMPLEMENTATION MODULE HttpTools;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
+FROM Exceptions IMPORT
+   TestIfCatched, RetrieveException;
 
 IMPORT
    cphcommon,

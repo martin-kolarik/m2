@@ -6,6 +6,9 @@ FROM Debug IMPORT
 FROM Storage IMPORT
 	ALLOCATE, DEALLOCATE, REALLOCATE;
 
+FROM Exceptions IMPORT
+   StoreException, TestIfCatched, RetrieveException;
+
 IMPORT
 	Storage,
 	windows;

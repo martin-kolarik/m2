@@ -121,7 +121,7 @@ CLASS CExceptionHandler;
       
    LOCAL PROCEDURE StoreException( Source : POINTER TO Exception );
    LOCAL PROCEDURE IsCatchedBy( catchRtti : ADDRESS ) : BOOLEAN;
-   LOCAL PROCEDURE GetException() : POINTER TO Exception;
+   LOCAL PROCEDURE RetrieveException() : POINTER TO Exception;
 END CExceptionHandler;
 
 (*--------------------------------------------------------------------------------*)
@@ -150,7 +150,9 @@ CLASS IMPLEMENTATION CExceptionHandler;
       ExceptionInfo := TPExceptionInfo( windows.TlsGetValue( TlsIndex ));
       IF ExceptionInfo = NIL THEN // this is a documented inital value too
 
-         ExceptionInfo := windows.HeapAlloc( Heap, 0, SIZE( TExceptionInfo ));
+         IF NOT Storage.HeapAllocate( Heap, OUT ExceptionInfo, SIZE( TExceptionInfo )) THEN
+            RETURN;
+         END;
          ExceptionInfo^.rtti := NIL;
          ExceptionInfo^.storageLength := 0;
          ExceptionInfo^.storage := NIL;
@@ -159,13 +161,14 @@ CLASS IMPLEMENTATION CExceptionHandler;
       END;
 
       ExceptionInfo^.rtti := rtti;
-      IF ExceptionInfo^.storageLength = 0 THEN
+      IF rtti^.ClassSize > ExceptionInfo^.storageLength THEN
          ExceptionInfo^.storageLength := ( rtti^.ClassSize + 127 ) AND 0FFFFFF80H;
-         ExceptionInfo^.storage := windows.HeapAlloc( Heap, 0, ExceptionInfo^.storageLength );
-      ELSIF rtti^.ClassSize > ExceptionInfo^.storageLength THEN
-         ExceptionInfo^.storageLength := ( rtti^.ClassSize + 127 ) AND 0FFFFFF80H;
-         ExceptionInfo^.storage := windows.HeapReAlloc( Heap, 0, ExceptionInfo^.storage, ExceptionInfo^.storageLength );
+         IF NOT Storage.HeapReallocate( Heap, REF ExceptionInfo^.storage, ExceptionInfo^.storageLength ) THEN
+            ExceptionInfo^.rtti := NIL;
+            RETURN;
+         END;
       END;
+
       Storage.Move( Source, ExceptionInfo^.storage, ExceptionInfo^.storageLength );
    END StoreException;
 
@@ -180,10 +183,10 @@ CLASS IMPLEMENTATION CExceptionHandler;
       END;
 
       ExceptionInfo := TPExceptionInfo( windows.TlsGetValue( TlsIndex ));
-      IF ExceptionInfo = NIL THEN
+      IF ( ExceptionInfo = NIL ) OR ( ExceptionInfo^.rtti = NIL ) THEN
          RETURN FALSE;
-      // ELSIF TPException( ExceptionInfo^.storage ) IS Exception THEN
-         // RETURN TRUE;
+      ELSIF ( TPException( ExceptionInfo^.storage )^ IS Exception ) OR ( TPException( ExceptionInfo^.storage )^ INHERITS Exception ) THEN
+         RETURN TRUE;
       ELSE
          RETURN FALSE;
       END;
@@ -191,30 +194,29 @@ CLASS IMPLEMENTATION CExceptionHandler;
 
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE GetException() : POINTER TO Exception;
+   LOCAL PROCEDURE RetrieveException() : POINTER TO Exception;
+   VAR
+      ExceptionInfo : TPExceptionInfo;
    BEGIN
-      // TODO
       IF NOT TlsAllocated THEN
          RETURN NIL;
       END;
-      RETURN NIL;
-   END GetException;
+      ExceptionInfo := TPExceptionInfo( windows.TlsGetValue( TlsIndex ));
+      RETURN TPException( ExceptionInfo^.storage );
+   END RetrieveException;
 
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
    TlsAllocated := FALSE;
    TlsIndex := 0;
-   Heap := windows.HeapCreate( 0, 0, 0 );
+   Storage.CreateHeap( OUT Heap );
 FINALLY
    IF TlsAllocated THEN
       windows.TlsFree( TlsIndex );
       TlsAllocated := FALSE;
    END;
-   IF Heap <> NIL THEN
-      windows.HeapDestroy( Heap );
-      Heap := NIL;
-   END;
+   Storage.DisposeHeap( OUT Heap );
 END CExceptionHandler;
 
 (*--------------------------------------------------------------------------------*)
@@ -232,10 +234,10 @@ BEGIN
    RETURN ExceptionHandler.IsCatchedBy( catchRtti );
 END CATCHED_;
 
-PROCEDURE GET_() : ADDRESS;
+PROCEDURE RETRIEVE_() : ADDRESS;
 BEGIN
-   RETURN ExceptionHandler.Get();
-END GET_;
+   RETURN ExceptionHandler.RetrieveException();
+END RETRIEVE_;
 
 (*================================================================================*)
 

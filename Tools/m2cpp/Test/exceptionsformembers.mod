@@ -3,6 +3,9 @@ MODULE ExceptionsForMembers;
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
+FROM Exceptions IMPORT
+   StoreException, TestIfCatched, RetrieveException;
+
 IMPORT
 	Exceptions;
 	

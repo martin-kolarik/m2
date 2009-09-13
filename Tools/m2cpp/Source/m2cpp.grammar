@@ -2795,7 +2795,8 @@ ntCatchClause<RequestedReturnType : DOM.TPType; REF HaveUnhandled : BOOLEAN; P :
                                                             (. C : POINTER TO DOM.CCATCH;
                                                                T : DOM.TPType;
                                                                V1, V2 : DOM.TPVariable := NIL;
-                                                               New : BOOLEAN := FALSE; .)
+                                                               New : BOOLEAN := FALSE;
+                                                               UnnamedException : BOOLEAN := FALSE; .)
   = "CATCH"                                                 (. IF HaveUnhandled THEN
                                                                  SemErr( err._UNHANDLEDMustBeLast );
                                                                END;
@@ -2808,11 +2809,22 @@ ntCatchClause<RequestedReturnType : DOM.TPType; REF HaveUnhandled : BOOLEAN; P :
                                                                C^.UnitKind := DOM.ukCatchAnyBlock;
                                                                HaveUnhandled := TRUE; .)
     | [ ntVariableId<iaCreate, DOM.skVariable, V1> ]
-      colon ntTypeDenoter<T, FALSE, FALSE, New>             (. c^.CheckTypeIsException( T );
+      colon ntTypeDenoter<T, FALSE, FALSE, New>             (. IF DOM.eoCPPExceptions NOT IN c^.Options THEN
+                                                                  c^.M2^.ReportAllErrors();
+                                                                  IF c^.OD^.MEnv.MIID[DOM.miidTestIfCatched] = NIL THEN
+                                                                     SemErr( err._MissingTestIfCatched );
+                                                                  END;
+                                                                  IF ( V1 <> NIL ) AND ( c^.OD^.MEnv.MIID[DOM.miidRetrieveException] = NIL ) THEN
+                                                                    SemErr( err._MissingRetrieveException );
+                                                                  END;
+                                                                  c^.M2^.ReportFirstError();
+                                                               END;
+                                                               c^.CheckTypeIsException( T );
                                                                c^.AddTryHandle( T );
                                                                c^.ForwardOpaqueType( T );
                                                                c^.ForwardComplexType( T );
                                                                IF V1 = NIL THEN
+                                                                  UnnamedException := TRUE;
                                                                   V1 := NEW( DOM.CVariable );
                                                                END;
                                                                V1^.UnitKind := DOM.ukCatchVarDecl;
@@ -2820,7 +2832,7 @@ ntCatchClause<RequestedReturnType : DOM.TPType; REF HaveUnhandled : BOOLEAN; P :
                                                                V1^.STry := c^.TStack.Peek();
                                                                c^.AddUnit( V1 ); .)
     )                                                       (. c^.EnterNewUnit( DOM.ukCatchDoBlock );
-                                                               IF V1 <> NIL THEN
+                                                               IF NOT UnnamedException AND ( DOM.eoCPPExceptions NOT IN c^.Options ) AND ( V1 <> NIL ) THEN
                                                                   V2 := NEW( DOM.CVariable );
                                                                   V2^.N := V1^.N;
                                                                   V2^.UnitKind := DOM.ukCatchVarDef;
@@ -2847,7 +2859,10 @@ ntThrowStatement                                             (. E : DOM.TPExpres
                                                                 P : DOM.TPProcedureType := c^.CurrentP();
                                                                 R : DOM.TPSReturn;
                                                                 U : DOM.TPUnit; .)
-  = "THROW"                                                  (. IF DOM.eoInsideCPPTry IN P^.Options THEN
+  = "THROW"                                                  (. IF ( DOM.eoCPPExceptions NOT IN c^.Options ) AND ( c^.OD^.MEnv.MIID[DOM.miidStoreException] = NIL ) THEN
+                                                                   SemErr( err._MissingStoreException );
+                                                                END;
+                                                                IF DOM.eoInsideCPPTry IN P^.Options THEN
                                                                    NEW( R );
                                                                    R^.UnitKind := DOM.ukThrowingInCPPTry;
                                                                    R^.L := DOM.TPLabel( c^.TStack.PeekData());
