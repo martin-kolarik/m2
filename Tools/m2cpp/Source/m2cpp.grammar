@@ -3493,7 +3493,7 @@ ntCommonExpression<VR : TValueReq; VAR E : DOM.TPExpression; VAR VI : DOM.TValue
                                                               | DOM.tkArray, DOM.tkRecord, DOM.tkSet, DOM.tkReference, DOM.tkProcedure :
                                                                 SemErr( err._BadRelationalOperand );
                                                               END; END;
-                                                                IF ( E^.N^.r.O = DOM.opISExact ) OR ( E^.N^.r.O = DOM.opISInherits ) THEN
+                                                                IF ( E^.N^.r.O = DOM.opISExact ) OR ( E^.N^.r.O = DOM.opISLoose ) OR ( E^.N^.r.O = DOM.opISInherits ) THEN
                                                                    INCL( VR, vrAllowSingleType );
                                                                 END; .)
       ntSimpleExpression<VR, E^.N^.r.R, LVI>               (. IF E^.N^.r.R <> NIL THEN
@@ -3509,7 +3509,7 @@ ntCommonExpression<VR : TValueReq; VAR E : DOM.TPExpression; VAR VI : DOM.TValue
                                                                   IF ( E^.N^.r.L^.r.N = DOM.enOperation ) AND ( E^.N^.r.L^.r.O = DOM.opNotB ) THEN
                                                                     Warning( wrn._PossibleBadNOTUsage );
                                                                   END;
-                                                                ELSIF ( E^.N^.r.O = DOM.opISExact ) OR ( E^.N^.r.O = DOM.opISInherits ) THEN
+                                                                ELSIF ( E^.N^.r.O = DOM.opISExact ) OR ( E^.N^.r.O = DOM.opISLoose ) OR ( E^.N^.r.O = DOM.opISInherits ) THEN
                                                                     T := E^.N^.r.L^.T^.Unwrap();
                                                                     RType := E^.N^.r.R^.T^.Unwrap();
                                                                     IF T^.SymbolKind <> DOM.skClass THEN
@@ -3518,6 +3518,16 @@ ntCommonExpression<VR : TValueReq; VAR E : DOM.TPExpression; VAR VI : DOM.TValue
                                                                         // OK
                                                                     ELSE
                                                                         SemErr( err._ISExpectsClassOrBStringOnRight );
+                                                                    END;
+                                                                ELSIF ( E^.N^.r.O = DOM.opISExactRtti ) OR ( E^.N^.r.O = DOM.opISLooseRtti ) OR ( E^.N^.r.O = DOM.opISInheritsRtti ) THEN
+                                                                    T := E^.N^.r.L^.T^.Unwrap();
+                                                                    RType := E^.N^.r.R^.T^.Unwrap();
+                                                                    IF T^.SymbolKind <> DOM.skClass THEN
+                                                                        SemErr( err._ISExpectsClassOnLeft );
+                                                                    ELSIF Types.TADDRESS^.Compatible( DOM.cmOperation, RType ) THEN
+                                                                        // OK
+                                                                    ELSE
+                                                                        SemErr( err._ISRttiExpectsAddressOnRight );
                                                                     END;
                                                                 ELSE
                                                                   c^.CheckTypeMismatch( RType, E^.N^.r.R^.T, FALSE, -1 );
@@ -3820,7 +3830,17 @@ ntRelationalOperator<VAR O : DOM.TEO>
   | "IN"                                                   (. O := DOM.opIN; .)
   | "NOT" "IN"                                             (. O := DOM.opNotIN; .)
   | "IS"                                                   (. O := DOM.opISExact; .)
+    [ "LOOSE"                                              (. O := DOM.opISLoose; .)
+    ]
+    [ "RTTI"                                               (. IF O = DOM.opISLoose THEN
+                                                                 O := DOM.opISLooseRtti;
+                                                              ELSE
+                                                                 O := DOM.opISExactRtti;
+                                                              END; .)
+    ]
   | "INHERITS"                                             (. O := DOM.opISInherits; .)
+      [ "RTTI"                                             (. O := DOM.opISInheritsRtti; .)
+      ]
 .
   
 ntAdditiveOperator<VAR O : DOM.TEO>

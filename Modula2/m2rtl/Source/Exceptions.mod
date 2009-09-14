@@ -138,11 +138,11 @@ CLASS IMPLEMENTATION CExceptionHandler;
       IF Source = NIL THEN
          RETURN;
       END;
-      // rtti := RTTI( Source^ );
-      rtti := NIL;
+      rtti := RTTI( Source^ );
    
       Lock.Lock();
       IF NOT TlsAllocated THEN
+         TlsAllocated := TRUE;
          TlsIndex := windows.TlsAlloc();
       END;
       Lock.Unlock();
@@ -181,11 +181,10 @@ CLASS IMPLEMENTATION CExceptionHandler;
       IF NOT TlsAllocated THEN
          RETURN FALSE;
       END;
-
       ExceptionInfo := TPExceptionInfo( windows.TlsGetValue( TlsIndex ));
       IF ( ExceptionInfo = NIL ) OR ( ExceptionInfo^.rtti = NIL ) THEN
          RETURN FALSE;
-      ELSIF ( TPException( ExceptionInfo^.storage )^ IS Exception ) OR ( TPException( ExceptionInfo^.storage )^ INHERITS Exception ) THEN
+      ELSIF TPException( ExceptionInfo^.storage )^ IS LOOSE RTTI catchRtti THEN
          RETURN TRUE;
       ELSE
          RETURN FALSE;

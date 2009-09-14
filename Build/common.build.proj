@@ -71,6 +71,7 @@
         <InterfacePath>$(OutputPath)\$(OutputName)</InterfacePath>
 
         <TestOutput>$(OutputDir)\$(MSBuildProjectName).test.dll</TestOutput>
+        <TestDLL>$(RootDir)\$(TestComponent)\$(OutputDir)\test.dll</TestDLL><!-- TODO, test.dll should be a symbolic name -->
         <TestFactoryDir>$(RootDir)\$(TestComponent)\$(SourceDir)</TestFactoryDir>
         <TestFactoryDEF>$(TestFactoryDir)\$(TestFactoryName).def</TestFactoryDEF>
         <TestFactoryMOD>$(TestFactoryDir)\$(TestFactoryName).mod</TestFactoryMOD>
@@ -601,6 +602,7 @@
         <!-- LINK SelfInterface.lib is manually added as Libraries do not include self product -->
         <Exec Condition="$(CLib)!='Static'"
               Command="$(MTT)"/>
+        <Copy SourceFiles="$(TestDLL)" DestinationFolder="$(OutputDir)"/>
     </Target>
 
     <Target Name="ComponentRuntimes"

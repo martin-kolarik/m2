@@ -10,7 +10,7 @@
         <Test>off</Test><!-- not to compile self -->
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='XSCCore'">
+    <PropertyGroup Condition="$(MSBuildProjectName)=='SCCore'">
         <ComponentType>Generic</ComponentType>
     </PropertyGroup>
 

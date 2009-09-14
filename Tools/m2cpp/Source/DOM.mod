@@ -2636,9 +2636,7 @@ CLASS IMPLEMENTATION CVariable;
     | ukClassVarDecl, ukVariantSelector :
       G^.Indent();
     | ukCatchVarDecl :
-      IF eoCPPExceptions IN Options THEN
-         RETURN gumEmpty;
-      ELSE
+      IF eoCPPExceptions NOT IN Options THEN
          Project.Current()^.OD^.MEnv.MIID[miidTestIfCatched]^.Generate( G, gcsName ); G^.OutS( L"((void*)&" ); T^.OutN( G, C ); G^.OutS( L"::rtti)" );
          RETURN gumSimple;
       END;
@@ -8594,7 +8592,7 @@ CLASS IMPLEMENTATION CENode;
         G^.OutS( L')' );
         RETURN;
       
-		ELSIF ( r.O = opISExact ) OR ( r.O = opISInherits ) THEN
+		ELSIF ( r.O = opISExact ) OR ( r.O = opISLoose ) OR ( r.O = opISInherits ) THEN
 			UT := r.R^.T^.Unwrap();
 			IF r.O = opISExact THEN // check with class type
    			IF UT^.SymbolKind = skClass THEN
@@ -8603,13 +8601,13 @@ CLASS IMPLEMENTATION CENode;
 					      r.L^.Generate( G, C );
 				      G^.OutS( L'.rtti_get(), &' );
 					      r.R^.Generate( G, C );
-				      G^.OutS( L'::rtti )' );
+   		         G^.OutS( L'::rtti )' );
 				   ELSE
 				      G^.OutS( L'RTTI_IS_RTTI( ' );
 					      r.L^.Generate( G, C );
 				      G^.OutS( L'.rtti_get(), ' );
 					      r.R^.Generate( G, C );
-				      G^.OutS( L'.rtti_get())' );
+   		         G^.OutS( L'.rtti_get())' );
 				   END;
    			ELSE // check with class name
 				   G^.OutS( L'RTTI_IS_NAME( ' );
@@ -8619,20 +8617,28 @@ CLASS IMPLEMENTATION CENode;
 					   r.R^.Generate( G, C + TGenerateControl{gcCharLiteralAsStringForOA} );
 				   G^.OutS( L' )' );
    			END;
-			ELSE // opISInherits
+			ELSE // opISLoose, opISInherits
    			IF UT^.SymbolKind = skClass THEN
                IF ( r.R^.r.N = enDesignator ) AND ( r.R^.r.V^.r.DK = dkType ) THEN
 				      G^.OutS( L'RTTI_INHERITS_RTTI( ' );
 					      r.L^.Generate( G, C );
 				      G^.OutS( L'.rtti_get(), &' );
 					      r.R^.Generate( G, C );
-				      G^.OutS( L'::rtti, FALSE )' );
+					   IF r.O = opISLoose THEN
+				         G^.OutS( L'::rtti, TRUE )' );
+					   ELSE
+				         G^.OutS( L'::rtti, FALSE )' );
+				      END;
 				   ELSE
 				      G^.OutS( L'RTTI_INHERITS_RTTI( ' );
 					      r.L^.Generate( G, C );
 				      G^.OutS( L'.rtti_get(), ' );
 					      r.R^.Generate( G, C );
-				      G^.OutS( L'.rtti_get(), FALSE )' );
+					   IF r.O = opISLoose THEN
+				         G^.OutS( L'.rtti_get(), TRUE )' );
+					   ELSE
+				         G^.OutS( L'.rtti_get(), FALSE )' );
+				      END;
 				   END;
    			ELSE // check with class name
 				   G^.OutS( L'RTTI_INHERITS_NAME( ' );
@@ -8640,8 +8646,33 @@ CLASS IMPLEMENTATION CENode;
 				   G^.OutS( L'.rtti_get(), ' );
                   r.R^.Evaluate( EV, 0 ); G^.OutN( EV.S.Length - 1 ); G^.OutCmSP();
 					   r.R^.Generate( G, C + TGenerateControl{gcCharLiteralAsStringForOA} );
-				   G^.OutS( L', FALSE )' );
+   			   IF r.O = opISLoose THEN
+				      G^.OutS( L', TRUE )' );
+				   ELSE
+				      G^.OutS( L', FALSE )' );
+				   END;
    			END;
+			END;
+			RETURN;
+
+		ELSIF ( r.O = opISExactRtti ) OR ( r.O = opISLooseRtti ) OR ( r.O = opISInheritsRtti ) THEN
+			UT := r.R^.T^.Unwrap();
+			IF r.O = opISExactRtti THEN // check with class type
+		      G^.OutS( L'RTTI_IS_RTTI( ' );
+			      r.L^.Generate( G, C );
+		      G^.OutS( L'.rtti_get(), (const RTTI*)' );
+			      r.R^.Generate( G, C );
+	         G^.OutS( L' )' );
+			ELSE // opISLoose, opISInherits
+		      G^.OutS( L'RTTI_INHERITS_RTTI( ' );
+			      r.L^.Generate( G, C );
+		      G^.OutS( L'.rtti_get(), (const RTTI*)' );
+			      r.R^.Generate( G, C );
+			   IF r.O = opISLooseRtti THEN
+		         G^.OutS( L', TRUE )' );
+		      ELSE
+		         G^.OutS( L', FALSE )' );
+		      END;
 			END;
 			RETURN;
 
