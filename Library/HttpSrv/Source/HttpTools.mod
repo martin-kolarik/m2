@@ -2,9 +2,12 @@ IMPLEMENTATION MODULE HttpTools;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
+FROM Exceptions IMPORT
+   TestIfCatched, RetrieveException;
 
 IMPORT
    cphcommon,
+   Exceptions,
    Languages,
    lists,
    StorageO,
@@ -274,35 +277,40 @@ BEGIN
 
       i := 0;
       l := mb^.Length;
-      WHILE i < l DO
-         ch := mb^[i];
-         IF ch = C"%" THEN // decode three %XX characters
-            IF i+2 >= l THEN
-               EXIT; // errorneous input
+      TRY
+         WHILE i < l DO
+            ch := mb^[i];
+            IF ch = C"%" THEN // decode three %XX characters
+               IF i+2 >= l THEN
+                  EXIT; // errorneous input
+               END;
+               cphcommon.FromHexByteA( OA( 1, PCHAR( mb^.Data@[i+1] )), OUT byte );
+               mb^[i] := byte;
+               mb^.Remove( i+1, 2 );
+               DEC( l, 2 );
+
+            ELSIF ch = C"=" THEN // remember split position (length)
+               bl.CurrentData := PTR( i );
+               mb^[i] := C"=";
+               
+            ELSIF ch = C"&" THEN // here it can only be an & escape
+               mb^[i] := C"&";
+               mb^.Remove( i+1, 4 );
+               DEC( l, 4 );
+
+            ELSIF XFormFlag AND ( ch = C"+" ) THEN // replace + with spaces
+               mb^[i] := C" ";
+
+            ELSE
+               mb^[i] := ch;
             END;
-            cphcommon.FromHexByteA( OA( 1, PCHAR( mb^.Data@[i+1] )), OUT byte );
-            mb^[i] := byte;
-            mb^.Remove( i+1, 2 );
-            DEC( l, 2 );
-
-         ELSIF ch = C"=" THEN // remember split position (length)
-            bl.CurrentData := PTR( i );
-            mb^[i] := C"=";
             
-         ELSIF ch = C"&" THEN // here it can only be an & escape
-            mb^[i] := C"&";
-            mb^.Remove( i+1, 4 );
-            DEC( l, 4 );
-
-         ELSIF XFormFlag AND ( ch = C"+" ) THEN // replace + with spaces
-            mb^[i] := C" ";
-
-         ELSE
-            mb^[i] := ch;
+            INC( i );
          END;
-         
-         INC( i );
-      END;
+      CATCH m : Exceptions.CModula2Exception DO
+         Decoded.Clear();
+         RETURN;
+      END; // TRY
       
       IF Languages.IsUTF8( OA( i-1, mb^.Data )) THEN
          s.FromOAA( Languages.cp_UTF8, OA( i-1, PCHAR( mb^.Data )));

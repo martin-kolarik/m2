@@ -87,7 +87,7 @@ CLASS IMPLEMENTATION CMalloc;
          RETURN NIL;
       ELSE
          INC( Commit, cb );
-         ALLOCATE( a, cb );
+         ALLOCATE( OUT a, cb );
          RETURN a;
       END;
    END Alloc;
@@ -96,7 +96,7 @@ CLASS IMPLEMENTATION CMalloc;
 
    PUBLIC VIRTUAL PROCEDURE Realloc( pv : windows.PVOID; cb : windows.ULONG ): windows.PVOID;
    BEGIN
-      REALLOCATE( pv, cb );
+      REALLOCATE( REF pv, cb );
       RETURN pv;
    END Realloc;
 
@@ -104,7 +104,7 @@ CLASS IMPLEMENTATION CMalloc;
 
    PUBLIC VIRTUAL PROCEDURE Free( pv : windows.PVOID );
    BEGIN
-      DEALLOCATE( pv );
+      DEALLOCATE( OUT pv );
    END Free;
 
 (*---------------------------------------------------------------------------*)

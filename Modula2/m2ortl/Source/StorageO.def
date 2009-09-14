@@ -189,9 +189,9 @@ ABSTRACT CLASS CAAllocator;
 		Backlog         : CARDINAL; // minimal allocated space, even if memory is deallocated
 		Limit           : CARDINAL;
 
-	PUBLIC ABSTRACT PROCEDURE Allocate( OUT a : ADDRESS; size : CARDINAL ) : BOOLEAN;
-	PUBLIC ABSTRACT PROCEDURE Deallocate( REF a : ADDRESS );
-	PUBLIC ABSTRACT PROCEDURE Reallocate( REF a : ADDRESS; size : CARDINAL ) : BOOLEAN;
+	PUBLIC ABSTRACT PROCEDURE Allocate( OUT a : ADDRESS; size : CARDINAL ) : BOOLEAN THROWS CAllocatorException;
+	PUBLIC ABSTRACT PROCEDURE Deallocate( REF a : ADDRESS ) THROWS CAllocatorException;
+	PUBLIC ABSTRACT PROCEDURE Reallocate( REF a : ADDRESS; size : CARDINAL ) : BOOLEAN THROWS CAllocatorException;
 	
 	INTERNAL PROCEDURE CommitPages( Count : CARDINAL ) : BOOLEAN THROWS CAllocatorException;
 	INTERNAL VIRTUAL PROCEDURE PageCommitted( Index : CARDINAL ); // callback

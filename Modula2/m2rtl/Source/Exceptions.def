@@ -4,9 +4,11 @@ DEFINITION MODULE Exceptions;
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
+(*================================================================================*)
+
 #save, option( dll_export => on )
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 ABSTRACT CLASS Exception; // first ancestor of all exceptions
    PUBLIC READONLY VAR
@@ -17,7 +19,7 @@ ABSTRACT CLASS Exception; // first ancestor of all exceptions
    PUBLIC ABSTRACT PROCEDURE ToString( OUT S : ARRAY OF WCHAR );
 END Exception;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 CLASS CException( Exception );
    PUBLIC READONLY VAR
@@ -30,11 +32,11 @@ CLASS CException( Exception );
    INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
 END CException;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 PROCEDURE GenericException( NestedException : POINTER TO Exception; CONST Originator, Text : ARRAY OF WCHAR ) : CException;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 TYPE
   TModula2Exception = (
@@ -55,12 +57,26 @@ FINAL CLASS CModula2Exception( CException );
    INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
 END CModula2Exception;
 
-//--------------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
 PROCEDURE Modula2Exception( NestedException : POINTER TO Exception; CONST Originator, Text : ARRAY OF WCHAR; Exception : TModula2Exception ) : CModula2Exception;
 
-//--------------------------------------------------------------------------------
+(*================================================================================*)
+// Modula2 intrinsic try/catch native support
+
+PROCEDURE THROW_( Source : POINTER TO Exception );
+PROCEDURE CATCHED_( catchRtti : ADDRESS ) : BOOLEAN;
+PROCEDURE RETRIEVE_() : ADDRESS;
+
+CONST
+   StoreException ::= THROW_;
+   TestIfCatched ::= CATCHED_;
+   RetrieveException ::= RETRIEVE_;
+
+(*--------------------------------------------------------------------------------*)
 
 #restore
+
+(*================================================================================*)
 
 END Exceptions.

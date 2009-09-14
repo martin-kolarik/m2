@@ -2,12 +2,12 @@ IMPLEMENTATION MODULE Store;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
-   
 FROM Log IMPORT
    logger, dldTrace;
-
 FROM Debug IMPORT
    Assertion, LogAssertionW;
+FROM Exceptions IMPORT
+   StoreException, TestIfCatched, RetrieveException;
 
 IMPORT
    bitarray,

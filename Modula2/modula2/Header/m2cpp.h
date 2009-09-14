@@ -585,5 +585,65 @@ class OBJECT { public:
 }; // OBJECT
 
 // --------------------
+// RTTI
+
+struct RTTI
+{
+    const CHAR* self;
+    CARDINAL ancestor_count;
+    const RTTI* const* ancestors;
+    CARDINAL class_size;
+};
+
+#define RTTI_IS_RTTI(classRtti,testRtti) ((classRtti)==(testRtti))
+#define RTTI_IS_NAME(classRtti,high,s) (EQUALSB_( OA_MAX, (*classRtti).self, high, (const CHAR*)s ))
+
+inline BOOLEAN RTTI_INHERITS_RTTI( const RTTI* classRtti, const RTTI* testRtti, BOOLEAN checkSelf )
+{
+    if( checkSelf && RTTI_IS_RTTI( classRtti, testRtti ))
+    {
+        return TRUE;
+    }
+    for( INTEGER i = 0; i < classRtti->ancestor_count; i++ )
+    {
+        if( classRtti->ancestors[i] == testRtti )
+        {
+            return TRUE;
+        }
+    }
+    for( INTEGER i = 0; i < classRtti->ancestor_count; i++ )
+    {
+        if( RTTI_INHERITS_RTTI( classRtti->ancestors[i], testRtti, FALSE ))
+        {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+inline BOOLEAN RTTI_INHERITS_NAME( const RTTI* classRtti, INTEGER HIGH_S, CHAR* S, BOOLEAN checkSelf )
+{
+    if( checkSelf && RTTI_IS_NAME( classRtti, HIGH_S, S ))
+    {
+        return TRUE;
+    }
+    for( INTEGER i = 0; i < classRtti->ancestor_count; i++ )
+    {
+        if( EQUALSB_( OA_MAX, (*classRtti->ancestors[i]).self, HIGH_S, (const CHAR*)S ))
+        {
+            return TRUE;
+        }
+    }
+    for( INTEGER i = 0; i < classRtti->ancestor_count; i++ )
+    {
+        if( RTTI_INHERITS_NAME( classRtti->ancestors[i], HIGH_S, S, FALSE ))
+        {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+// --------------------
 
 # endif // ifndef _M2CPP_H_

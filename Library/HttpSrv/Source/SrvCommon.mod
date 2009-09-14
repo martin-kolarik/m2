@@ -356,8 +356,12 @@ CLASS IMPLEMENTATION ASrvStream;
                   Strings.FromCARD64A( CARD64( L ), 16, OUT _ChunkBuffer );
                   chLen := LENGTH( _ChunkBuffer );
                   chBuffer.FromOA( OA( chLen+1, ADR( _ChunkBuffer )), FALSE ); // chLen+1 automatically sets length to data + CR + LF
-                  chBuffer[chLen] := 13; // add CR
-                  chBuffer[chLen+1] := 10; // add LF
+                  TRY
+                     chBuffer[chLen] := 13; // add CR
+                     chBuffer[chLen+1] := 10; // add LF
+                  CATCH UNHANDLED DO
+                     // impossible
+                  END;
                   Result := SendData( chBuffer );
                   IF Result <> Sync.arCompleted THEN
                      _DataSent := TRUE;

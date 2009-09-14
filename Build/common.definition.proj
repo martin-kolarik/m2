@@ -16,10 +16,11 @@
     <PropertyGroup>
         <Manufacturer Condition="$(Manufacturer)==''">SmartControl</Manufacturer>
         <DynamicCLibInstallMethod Condition="$(DynamicCLibInstallMethod)==''">Private</DynamicCLibInstallMethod><!-- Private Shared -->
+        <ProductId Condition="$(ProductId)==''">$(MSBuildProjectName)</ProductId>
+        <ProductVersion Condition="$(ProductVersion)==''">0.0.0</ProductVersion>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(ComponentType)=='Product'">
-        <ProductId Condition="$(ProductId)==''">$(MSBuildProjectName)</ProductId>
         <ProductDisplayName Condition="$(ProductDisplayName)==''">$(FileDisplayName)</ProductDisplayName>
         <ProductDescription Condition="$(ProductDescription)==''">$(FileDescription)</ProductDescription>
     </PropertyGroup>
@@ -93,7 +94,7 @@
         <CLib Condition="$(CLib)==''">Dynamic</CLib><!-- Static Dynamic --><!-- Static = LIBC, Dynamic = MSVCRT -->
         <Result Condition="$(Result)==''">Static</Result><!-- Static (LIB) Dynamic (DLL) Program (EXE) -->
         <LeakChecking Condition="$(LeakChecking)==''">off</LeakChecking>
-        <CPPExceptions Condition="$(CPPExceptions)==''">on</CPPExceptions>
+        <CPPExceptions Condition="$(CPPExceptions)==''">off</CPPExceptions>
         <CopyRuntimes Condition="$(CopyRuntimes)==''">$(ProductFlag)</CopyRuntimes>
         <LicenceMachineId Condition="$(LicenceMachineId)==''">M</LicenceMachineId><!-- M = MAC, D = disc, MD = MAC + Disc -->
 

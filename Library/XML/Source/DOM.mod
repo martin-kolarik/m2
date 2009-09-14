@@ -274,11 +274,7 @@ CLASS IMPLEMENTATION CXMLDocument;
 		VB : com.VARIANT_BOOL;
 	BEGIN
 		com.VariantInitString( OUT V, Path );
-		TRY
-			VB := of^.load( V );
-		CATCH UNHANDLED DO
-			VB := windows.False;
-		END;
+   	VB := of^.load( V );
 		com.VariantClear( REF V );
 		RETURN VB <> windows.False;
 	END Load;

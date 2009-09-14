@@ -90,7 +90,7 @@ END IMarshal;
 VAR 
   IID_IMalloc : IID;
 
-INTERFACE IMalloc( unknwn.IUnknown );
+COM INTERFACE IMalloc( unknwn.IUnknown );
 
   VIRTUAL PROCEDURE Alloc( 
     (* [in] *) cb : windows.ULONG ): windows.PVOID;
@@ -582,7 +582,7 @@ VAR
 TYPE
   TPISequentialStream = POINTER TO ISequentialStream;  
   
-INTERFACE ISequentialStream( unknwn.IUnknown );
+COM INTERFACE ISequentialStream( unknwn.IUnknown );
 
 (* [local] *) VIRTUAL PROCEDURE Read( 
   (* [length_is][size_is][out] *) pv : ADDRESS;

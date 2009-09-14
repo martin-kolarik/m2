@@ -2,6 +2,8 @@ IMPLEMENTATION MODULE View;
 
 FROM Debug IMPORT
    Assertion, LogAssertionW;
+FROM Exceptions IMPORT
+   TestIfCatched, RetrieveException;
 
 IMPORT
    FIO,

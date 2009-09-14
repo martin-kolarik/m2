@@ -71,6 +71,7 @@
         <InterfacePath>$(OutputPath)\$(OutputName)</InterfacePath>
 
         <TestOutput>$(OutputDir)\$(MSBuildProjectName).test.dll</TestOutput>
+        <TestDLL>$(RootDir)\$(TestComponent)\$(OutputDir)\test.dll</TestDLL><!-- TODO, test.dll should be a symbolic name -->
         <TestFactoryDir>$(RootDir)\$(TestComponent)\$(SourceDir)</TestFactoryDir>
         <TestFactoryDEF>$(TestFactoryDir)\$(TestFactoryName).def</TestFactoryDEF>
         <TestFactoryMOD>$(TestFactoryDir)\$(TestFactoryName).mod</TestFactoryMOD>
@@ -206,7 +207,7 @@
 
     <Target Name="ProductBuildNumberGet"
             DependsOnTargets="DoDummyProductBuildNumberGet;DoProductBuildNumberGet">
-        <CreateProperty Value="-DProductId:$(CompileProductId) -DProductVersion:$(ProductVersion)">
+        <CreateProperty Value="-DProductId:$(ProductId) -DProductVersion:$(ProductVersion)">
             <Output TaskParameter="Value" PropertyName="M2PROD"></Output>
         </CreateProperty>
     </Target>
@@ -454,7 +455,7 @@
 
     <Target Name="GrabOutOfDateFiles" Condition="@(DEFFiles)!='' Or @(MODFiles)!=''">
         <Exec WorkingDirectory="$(SourceDir)"
-              Command="$(M2D) $(M2PROD) $(M2TDEF) -O&quot;..\$(IntermediateDir)&quot; @(DEFFiles, ' ') @(MODFiles, ' ')"/>
+              Command="$(M2D) $(M2PROD) $(M2TIMEDEF) -O&quot;..\$(IntermediateDir)&quot; @(DEFFiles, ' ') @(MODFiles, ' ')"/>
         <ReadLinesFromFile File="$(IntermediateDir)\OutOfDate.DEF.log">
             <Output TaskParameter="Lines" ItemName="OutOfDateDEFs"/>
         </ReadLinesFromFile>
@@ -480,7 +481,7 @@
             Inputs="@(TestDEFFiles);@(TestMODFiles)"
             Outputs="@(TestDEFFiles -> '$(HeaderDir)\%(Filename).h');@(TestMODFiles -> '$(IntermediateDir)\%(Filename).cpp')">
         <Exec WorkingDirectory="$(TestDir)"
-              Command="$(M2) $(M2DEF) -LD -I..\$(SourceDir) -O&quot;..\$(IntermediateDir)&quot; @(TestDEFFiles -> '%(FileName).def', ' ') @(TestMODFiles -> '%(FileName).mod', ' ')"/>
+              Command="$(M2) $(M2TESTDEF) -I..\$(SourceDir) -O&quot;..\$(IntermediateDir)&quot; @(TestDEFFiles -> '%(FileName).def', ' ') @(TestMODFiles -> '%(FileName).mod', ' ')"/>
     </Target>
 
     <Target Name="Modula2InitCPP" Condition="$(Modula2InitCode)!=''"
@@ -601,6 +602,7 @@
         <!-- LINK SelfInterface.lib is manually added as Libraries do not include self product -->
         <Exec Condition="$(CLib)!='Static'"
               Command="$(MTT)"/>
+        <Copy SourceFiles="$(TestDLL)" DestinationFolder="$(OutputDir)"/>
     </Target>
 
     <Target Name="ComponentRuntimes"

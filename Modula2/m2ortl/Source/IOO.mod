@@ -207,7 +207,7 @@ CLASS IMPLEMENTATION CMemoryProxy;
     _Ptr := 0;
     IF CreatePrivateBuffer THEN
       _Private := TRUE;
-      REALLOCATE( _Data, Length );
+      REALLOCATE( REF _Data, Length );
       Move( Data, _Data, Length );
     ELSE
       IF _Private THEN

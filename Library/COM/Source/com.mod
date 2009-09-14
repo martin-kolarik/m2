@@ -88,7 +88,7 @@ CLASS IMPLEMENTATION CIUnknown;
   VAR
     a : ADDRESS;
   BEGIN
-    ALLOCATE( a, size );
+    ALLOCATE( OUT a, size );
     RETURN a;
   END NEW;
 
@@ -96,7 +96,7 @@ CLASS IMPLEMENTATION CIUnknown;
 
   PUBLIC OPERATOR DISPOSE( a : ADDRESS );
   BEGIN
-    DEALLOCATE( a );
+    DEALLOCATE( OUT a );
   END DISPOSE;
 
 //---------------------------------------------------------------------------

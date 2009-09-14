@@ -215,7 +215,7 @@ BEGIN
    END;
 
    // allocate dispatcher table
-   ALLOCATE( DispatcherTable, ( HIGH( _Services ) + 2 ) * SIZE( winsvc.SERVICE_TABLE_ENTRYW ));
+   ALLOCATE( OUT DispatcherTable, ( HIGH( _Services ) + 2 ) * SIZE( winsvc.SERVICE_TABLE_ENTRYW ));
    // fill up it
    FOR i := 0 TO HIGH( _Services ) DO
 

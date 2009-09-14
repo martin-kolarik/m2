@@ -66,7 +66,7 @@ CLASS IMPLEMENTATION CInterfaceEnumerator;
       family : CARDINAL;
       flags : CARDINAL;
    BEGIN
-      DEALLOCATE( Buffer );
+      DEALLOCATE( OUT Buffer );
       Reset();
 
       IF IPV4 AND IPV6 THEN
@@ -88,9 +88,9 @@ CLASS IMPLEMENTATION CInterfaceEnumerator;
          RETURN ADR( SELF );
       END;
       
-      ALLOCATE( Buffer, bufferSize );
+      ALLOCATE( OUT Buffer, bufferSize );
       IF iphlpapi.GetAdaptersAddresses( family, flags, NIL, Buffer, ADR( bufferSize )) <> winerror.ERROR_SUCCESS THEN
-         DEALLOCATE( Buffer );
+         DEALLOCATE( OUT Buffer );
       END;
 
       RETURN ADR( SELF );
@@ -116,7 +116,7 @@ CLASS IMPLEMENTATION CInterfaceEnumerator;
          Current := Current^.Next;
       END;
       IF Current = NIL THEN
-         DEALLOCATE( Buffer );
+         DEALLOCATE( OUT Buffer );
          RETURN FALSE;
       ELSE
          INC( _Index );
@@ -265,7 +265,7 @@ BEGIN
    Buffer := NIL;
    Current := NIL;
 FINALLY   
-   DEALLOCATE( Buffer );
+   DEALLOCATE( OUT Buffer );
 END CInterfaceEnumerator;
 
 (*================================================================================*)

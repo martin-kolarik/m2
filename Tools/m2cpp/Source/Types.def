@@ -80,6 +80,8 @@ VAR
   TPROC, TpPROC           : DOM.TPType;
   TOBJECT, TpOBJECT       : DOM.TPType;
 
+  TException, TpException : DOM.TPType;
+
 INITIALLY __I(); 
 
 END Types.

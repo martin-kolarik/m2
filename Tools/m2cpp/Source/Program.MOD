@@ -63,12 +63,10 @@ VAR
   Value : ARRAY [0..31] OF WCHAR;
   GenerateAll : BOOLEAN;
   GenerateSymbolTable : BOOLEAN;
-  IgnoreBadOptions : BOOLEAN;
 BEGIN
   ErrorLevel := 0;
   GenerateAll := FALSE;
   GenerateSymbolTable := FALSE;
-  IgnoreBadOptions := FALSE;
 
   IF argc <= 1 THEN
     GOTO Error;
@@ -77,8 +75,6 @@ BEGIN
   FOR i := 1 TO argc - 1 DO
     IF ( argp^[i]^[0] = L'/' ) OR ( argp^[i]^[0] = L'-' ) THEN
       CASE argp^[i]^[1] OF
-      | L'B' : // ignores bad options
-        IgnoreBadOptions := TRUE;
       | L'C' : // how to convert TCHARs
         CASE argp^[i]^[2] OF
         | L'B' : Project.RemoveOption( DOM.eoWCHAR );
@@ -138,6 +134,7 @@ BEGIN
           END;      
         | L'C' : Project.AddOption( DOM.eoCOMExtensionAllowed );
         | L'D' : Project.AddOption( DOM.eoDebuggedAllowed );
+        | L'E' : Project.AddOption( DOM.eoCPPExceptions );
         | L'I' : Project.AddOption( DOM.eoISOClassImplementation );
         | L'M' : Project.AddOption( DOM.eoLeakChecking );
         | L'R' : Project.AddOption( DOM.eoRegion );
@@ -158,11 +155,9 @@ BEGIN
           Console.WriteString( L'-- missing or bad warning number' ); Console.WriteEOL();
         END;
       ELSE
-        IF NOT IgnoreBadOptions THEN
-          Console.WriteString( L'-- unknown option: ' ); Console.WriteString( argp^[i]^ ); Console.WriteEOL();
-          ErrorLevel := 2;
-          GOTO Error;
-        END;
+        Console.WriteString( L'-- unknown option: ' ); Console.WriteString( argp^[i]^ ); Console.WriteEOL();
+        ErrorLevel := 2;
+        GOTO Error;
       END;
     ELSE // path
       ASSIGN( Parameter, argp^[i]^ );
