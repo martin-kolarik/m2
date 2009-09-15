@@ -118,7 +118,7 @@ CLASS IMPLEMENTATION CTest;
    PUBLIC VIRTUAL PROCEDURE OnReceive( CONST Data, Value : StringsO.IString );
    BEGIN
       Sync.IInc( REF ReceiveCount );
-      Host^.Log^.LogSSSS( log.dldMessage, L"", OA( Data.Length-1, Data.rawData ), L" ", OA( Value.Length-1, Value.rawData ), L" " );
+      Host^.Log^.LogSSSS( log.dldMessage, L"", OA( Data.Length-1, Data.Data ), L" ", OA( Value.Length-1, Value.Data ), L" " );
    END OnReceive;
 
 (*---------------------------------------------------------------------------*)

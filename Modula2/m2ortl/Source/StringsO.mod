@@ -1,19 +1,19 @@
 IMPLEMENTATION MODULE StringsO;
 
 FROM Storage IMPORT
-	ALLOCATE, REALLOCATE, DEALLOCATE, Fill;
-	
+	ALLOCATE, REALLOCATE, DEALLOCATE;
+FROM Strings IMPORT
+   CapitalizeW, LowerizeW;
+
 IMPORT
 	windows,
 	winnls;
 	
 IMPORT
    lrconv,
-	Strings;
+	Strings,
+	Sync;
 	
-FROM Strings IMPORT
-   CapitalizeW, LowerizeW;
-
 CLASS IMPLEMENTATION CStringException;
 
    PUBLIC PROCEDURE Init( NestedException : POINTER TO Exceptions.Exception; CONST Originator, Text : ARRAY OF WCHAR; Kind : TStringException ) : CStringException;
@@ -68,31 +68,52 @@ CLASS IMPLEMENTATION CString;
 		RETURN _Len = 0;
 	END CString.Empty;
 	
-	PUBLIC VIRTUAL PROPERTY CString.rawData GET : PWCHAR;
+	PUBLIC VIRTUAL PROPERTY CString.Data GET : PWCHAR;
 	BEGIN
-      RETURN _Data;
-	END CString.rawData;
-	
-	PUBLIC VIRTUAL PROPERTY CString.szData GET : PWCHAR;
-	BEGIN
-		IF _Size = _Len THEN
+		IF _Size = _Len THEN // should not occur so frequently, because there is always allocated one characters more
 			Reallocate( _Size + 1 );
 		END;
 		_Data@[_Len<<1]^ := WCHAR( 0 );
 		RETURN _Data;
-	END CString.szData;
+	END CString.Data;
 	
 	INTERNAL VIRTUAL PROCEDURE CString.Reallocate( Characters : CARDINAL );
+   VAR
+      _SourceSize : CARDINAL;
+      _SourceStorage : ADDRESS := NIL;
 	BEGIN
+	   IF ( _Storage = NIL ) OR ( Sync.IGet( REF _Storage^ ) = 1 ) THEN
+	      // if empty or if RefCounter is last (single) do nothing
+		ELSE
+		   // decrement RefCounter and force allocate self as new
+		   Sync.IDec( REF _Storage^ );
+		   _SourceStorage := _Storage; // store current value to make a copy
+		   _SourceSize := MIN2( _Size, Characters ); // store current value to make a copy
+		   _Storage := NIL;
+   		_Size := 0;
+		END;
 		IF Characters > _Size THEN
-			_Size := Characters AND 0FFFFFFF0H + 10H;
-			REALLOCATE( REF _Data, _Size<<1 );
+			_Size := ( Characters + 1 + SIZE( CARDINAL ) DIV 2 + 10H ) AND 0FFFFFFF0H; // reserve a space for zero-termination, for reference counter and for appending (a roundup to 16 characters)
+			REALLOCATE( REF _Storage, _Size<<1 );
+			Sync.IExchg( REF _Storage^, 1 ); // initialize RefCount
+			_Data := PWCHAR( _Storage@[ SIZE( CARDINAL ) ] );
+			// do a copy of current string
+			IF _SourceStorage <> NIL THEN
+			   Strings.MoveW( _SourceStorage, _Storage, _SourceSize<<1 );
+			END;
 		END;
 	END CString.Reallocate;
 
 	INTERNAL VIRTUAL PROCEDURE CString.Deallocate();
 	BEGIN
-		DISPOSE( _Data );
+	   IF Sync.IGet( REF _Storage^ ) = 1 THEN // if RefCounter is last, dispose self
+		   DISPOSE( _Storage );
+		ELSE
+		   Sync.IDec( REF _Storage^ );
+		END;
+		_Storage := NIL;
+		_Data := NIL;
+		_Size := 0;
 	END CString.Deallocate;
 	
 	PUBLIC VIRTUAL INDEX CString GET( Index : CARDINAL ) : WCHAR;
@@ -106,9 +127,7 @@ CLASS IMPLEMENTATION CString;
 	
 	PUBLIC VIRTUAL INDEX CString SET( Index : CARDINAL; Value : WCHAR );
 	BEGIN
-		IF Index >= _Size THEN
-			Reallocate( Index + 1 );
-		END;
+   	Reallocate( Index );
 		IF Index >= _Len THEN
 			_Len := Index + 1;
 		END;
@@ -132,12 +151,11 @@ CLASS IMPLEMENTATION CString;
 
 	PUBLIC VIRTUAL OPERATOR CString.+( CONST S : CString ) : CString;
 	VAR
-		CS : POINTER TO CString;
+		CS : CString;
 	BEGIN
-		NEW( CS );
-		CS^.Assign( SELF );
-		CS^.Append( S );
-		RETURN CS^;
+		CS.Assign( SELF );
+		CS.Append( S );
+		RETURN CS;
 	END CString.+;
 	
 	PUBLIC VIRTUAL PROCEDURE CString.Clear();
@@ -160,7 +178,7 @@ CLASS IMPLEMENTATION CString;
 		ELSIF l = 0 THEN
 			RETURN TRUE;
 		ELSE
-			RETURN EQUALS( OA( l-1, _Data ), OA( l-1, S.rawData ));
+			RETURN EQUALS( OA( l-1, _Data ), OA( l-1, S.Data ));
 		END;
 	END CString.Equals;
 
@@ -186,7 +204,7 @@ CLASS IMPLEMENTATION CString;
 			RETURN winnls.CompareStringW(
 				windows.LOCALE_USER_DEFAULT,
 				winnls.NORM_IGNORECASE,
-				S.rawData, l, _Data, _Len
+				S.Data, l, _Data, _Len
 			) = winnls.CSTR_EQUAL;
 		END;
 	END CString.EqualsIgnoreCase;
@@ -225,7 +243,7 @@ CLASS IMPLEMENTATION CString;
 			RETURN -1;
 		END;
 
-		rd := PWCHAR( S.rawData );
+		rd := PWCHAR( S.Data );
 		i := 0;
 		k := MIN2( l, _Len );
 		WHILE i < k DO
@@ -250,12 +268,22 @@ CLASS IMPLEMENTATION CString;
 	PUBLIC VIRTUAL PROCEDURE CString.Assign( CONST S : IString );
 	BEGIN
 		_Len := S.Length;
-		IF _Len = 0 THEN
-			RETURN;
-		ELSIF _Size < _Len THEN
-			Reallocate( _Len + 1 );
+	   // a part of reallocate
+	   IF Sync.IGet( REF _Storage^ ) = 1 THEN // if RefCounter is last, dispose self
+	      IF _Len > 0 THEN
+		      DISPOSE( _Storage );
+		   END; // otherwise, leave self memory untouched
+		ELSE
+		   Sync.IDec( REF _Storage^ );
+   		_Storage := NIL;
+		   _Size := 0;
 		END;
-		Strings.MoveW( S.rawData, _Data, _Len );
+		IF _Len > 0 THEN
+		   _Data := PWCHAR( S.Data );
+   		_Storage := DEC( _Data, SIZE( CARDINAL ));
+    		_Size := S.Size;
+		   Sync.IInc( REF _Storage^ );
+		END;
 	END CString.Assign;
 
 	PUBLIC VIRTUAL PROCEDURE CString.Append( CONST S : IString );
@@ -267,10 +295,8 @@ CLASS IMPLEMENTATION CString;
 			RETURN;
 		END;
 		INC( _Len, l );
-		IF _Size < _Len THEN
-			Reallocate( _Len + 1 );
-		END;
-		Strings.MoveW( S.rawData, _Data@[(_Len-l)<<1], l );
+   	Reallocate( _Len );
+		Strings.MoveW( S.Data, _Data@[(_Len-l)<<1], l );
 	END CString.Append;
 
 	PUBLIC VIRTUAL PROCEDURE CString.AppendOA( CONST S : ARRAY OF WCHAR );
@@ -282,9 +308,7 @@ CLASS IMPLEMENTATION CString;
 			RETURN;
 		END;
 		INC( _Len, l );
-		IF _Size < _Len THEN
-			Reallocate( _Len + 1 );
-		END;
+   	Reallocate( _Len );
 		Strings.MoveW( ADR( S ), _Data@[(_Len-l)<<1], l );
 	END CString.AppendOA;
 
@@ -297,11 +321,9 @@ CLASS IMPLEMENTATION CString;
 			RETURN;
 		END;
 		INC( _Len, l );
-		IF _Size < _Len THEN
-			Reallocate( _Len + 1 );
-		END;
+		Reallocate( _Len );
 		Strings.MoveW( _Data, _Data@[l<<1], _Len-l );
-		Strings.MoveW( S.rawData, _Data, l );
+		Strings.MoveW( S.Data, _Data, l );
 	END CString.Prepend;
 
 	PUBLIC VIRTUAL PROCEDURE CString.PrependOA( CONST S : ARRAY OF WCHAR );
@@ -313,9 +335,7 @@ CLASS IMPLEMENTATION CString;
 			RETURN;
 		END;
 		INC( _Len, l );
-		IF _Size < _Len THEN
-			Reallocate( _Len + 1 );
-		END;
+		Reallocate( _Len );
 		Strings.MoveW( _Data, _Data@[l<<1], _Len-l );
 		Strings.MoveW( ADR( S ), _Data, l );
 	END CString.PrependOA;
@@ -329,11 +349,9 @@ CLASS IMPLEMENTATION CString;
 			RETURN;
 		END;
 		INC( _Len, l );
-		IF _Size < _Len THEN
-			Reallocate( _Len + 1 );
-		END;
+		Reallocate( _Len );
 		Strings.MoveW( _Data@[To<<1], _Data@[(To+l)<<1], _Len-l-To );
-		Strings.MoveW( S.rawData, _Data@[To<<1], l );
+		Strings.MoveW( S.Data, _Data@[To<<1], l );
 	END CString.Insert;
 
 	PUBLIC VIRTUAL PROCEDURE CString.InsertOA( To : CARDINAL; CONST S : ARRAY OF WCHAR );
@@ -345,9 +363,7 @@ CLASS IMPLEMENTATION CString;
 			RETURN;
 		END;
 		INC( _Len, l );
-		IF _Size < _Len THEN
-			Reallocate( _Len + 1 );
-		END;
+		Reallocate( _Len );
 		Strings.MoveW( _Data@[To<<1], _Data@[(To+l)<<1], _Len-l-To );
 		Strings.MoveW( ADR( S ), _Data@[To<<1], l );
 	END CString.InsertOA;
@@ -383,7 +399,7 @@ CLASS IMPLEMENTATION CString;
 		nl := New.Length;
 		i := 0;
 		LOOP
-			i := iIndexOf( ol, PWCHAR( Old.rawData ), i );
+			i := iIndexOf( ol, PWCHAR( Old.Data ), i );
 			IF i = -1 THEN
 				RETURN;
 			END;
@@ -392,7 +408,7 @@ CLASS IMPLEMENTATION CString;
 				Remove( i+nl, ol-nl );
 			ELSIF ol < nl THEN
 				Strings.MoveW( ADR( New ), _Data@[i<<1], ol );
-				InsertOA( i+ol, OA( nl-ol-1, New.rawData@[ol<<1] ));
+				InsertOA( i+ol, OA( nl-ol-1, New.Data@[ol<<1] ));
 			ELSE
 				Strings.MoveW( ADR( New ), _Data@[i<<1], nl );
 			END;
@@ -477,7 +493,7 @@ CLASS IMPLEMENTATION CString;
 
 	PUBLIC VIRTUAL PROCEDURE IndexOf( CONST S : IString; FromIndex : CARDINAL ) : CARDINAL;
 	BEGIN
-		RETURN iIndexOf( S.Length, PWCHAR( S.rawData ), FromIndex );
+		RETURN iIndexOf( S.Length, PWCHAR( S.Data ), FromIndex );
 	END CString.IndexOf;
 
 	PUBLIC VIRTUAL PROCEDURE IndexOfOA( CONST S : ARRAY OF WCHAR; FromIndex : CARDINAL ) : CARDINAL;
@@ -492,7 +508,7 @@ CLASS IMPLEMENTATION CString;
 		ELSIF S.Length = 0 THEN
 			RETURN FALSE;
 		ELSE
-			RETURN Strings.StartsWithW( OA( _Len-1, _Data ), OA( S.Length-1, S.rawData ));
+			RETURN Strings.StartsWithW( OA( _Len-1, _Data ), OA( S.Length-1, S.Data ));
 		END;
 	END StartsWith;
 
@@ -512,7 +528,7 @@ CLASS IMPLEMENTATION CString;
 		ELSIF S.Length = 0 THEN
 			RETURN FALSE;
 		ELSE
-			RETURN Strings.StartsWithW( OA( _Len-1, _Data ), OA( S.Length-1, S.rawData ));
+			RETURN Strings.StartsWithW( OA( _Len-1, _Data ), OA( S.Length-1, S.Data ));
 		END;
 	END EndsWith;
 
@@ -527,7 +543,7 @@ CLASS IMPLEMENTATION CString;
 
    PUBLIC VIRTUAL PROCEDURE Match( CONST Pattern : IString; CaseSensitive : BOOLEAN ) : BOOLEAN;
    BEGIN
-      RETURN Strings.MatchW( OA( _Len-1, _Data ), OA( Pattern.Length-1, Pattern.rawData ), CaseSensitive );
+      RETURN Strings.MatchW( OA( _Len-1, _Data ), OA( Pattern.Length-1, Pattern.Data ), CaseSensitive );
    END Match;
 
    PUBLIC VIRTUAL PROCEDURE MatchOA( CONST Pattern : ARRAY OF WCHAR; CaseSensitive : BOOLEAN ) : BOOLEAN;
@@ -926,22 +942,14 @@ CLASS IMPLEMENTATION CString;
 	PUBLIC VIRTUAL PROCEDURE CString.FromOA( CONST S : ARRAY OF WCHAR );
 	BEGIN
 		_Len := LENGTH( S );
-		IF _Len = 0 THEN
-			RETURN;
-		ELSIF _Size < _Len THEN
-			Reallocate( _Len + 1 );
-		END;
+		Reallocate( _Len );
 		Strings.MoveW( ADR( S ), _Data, _Len );
 	END CString.FromOA;
 
 	PUBLIC VIRTUAL PROCEDURE FromOAA( CodePage : CARDINAL; CONST S : ARRAY OF CHAR );
 	BEGIN
 		_Len := LENGTH( S );
-		IF _Len = 0 THEN
-			RETURN;
-		ELSIF _Size < _Len THEN
-			Reallocate( _Len + 1 );
-		END;
+		Reallocate( _Len );
 		IF CodePage = 0 THEN
 			CodePage := winnls.CP_ACP;
 		END;
@@ -959,36 +967,28 @@ CLASS IMPLEMENTATION CString;
 
 	PUBLIC VIRTUAL PROCEDURE FromINT32( I : INT32; Base : CARDINAL );
 	BEGIN
-		IF _Size < 10 THEN
-			Reallocate( 10 );
-		END;
+   	Reallocate( 10 );
 		Strings.FromINT32W( I, Base, OUT OA( 9, _Data ));
 		_Len := LENGTH( OA( 9, _Data ));
 	END CString.FromINT32;
 	
 	PUBLIC VIRTUAL PROCEDURE FromCARD32( C : CARD32; Base : CARDINAL );
 	BEGIN
-		IF _Size < 10 THEN
-			Reallocate( 10 );
-		END;
+		Reallocate( 10 );
 		Strings.FromCARD32W( C, Base, OUT OA( 9, _Data ));
 		_Len := LENGTH( OA( 9, _Data ));
 	END CString.FromCARD32;
 	
 	PUBLIC VIRTUAL PROCEDURE FromINT64( I : INT64; Base : CARDINAL );
 	BEGIN
-		IF _Size < 20 THEN
-			Reallocate( 20 );
-		END;
+		Reallocate( 20 );
 		Strings.FromINT64W( I, Base, OUT OA( 19, _Data ));
 		_Len := LENGTH( OA( 19, _Data ));
 	END CString.FromINT64;
 	
 	PUBLIC VIRTUAL PROCEDURE FromCARD64( C : CARD64; Base : CARDINAL );
 	BEGIN
-		IF _Size < 20 THEN
-			Reallocate( 20 );
-		END;
+		Reallocate( 20 );
 		Strings.FromCARD64W( C, Base, OUT OA( 19, _Data ));
 		_Len := LENGTH( OA( 19, _Data ));
 	END CString.FromCARD64;
@@ -1019,6 +1019,7 @@ CLASS IMPLEMENTATION CString;
 	BEGIN
 		_Size := 0;
 		_Len := 0;
+		_Storage := NIL;
 		_Data := NIL;
 	END CString;
 

@@ -282,7 +282,7 @@ CLASS IMPLEMENTATION CDriver;
     IF SW[0].EqualsOA( L'query' ) THEN
     
       Result.Reset( lec.bhBestCase );
-      lec.Query( StoragePath, OA( SW[1].Length-1, SW[1].rawData ), REF Result );
+      lec.Query( StoragePath, OA( SW[1].Length-1, SW[1].Data ), REF Result );
       
       CASE Result.Info OF
       | lec.siDemo :

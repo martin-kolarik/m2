@@ -349,7 +349,7 @@ CLASS IMPLEMENTATION CTextReader;
                END;
                commitLength := i+1;
                IF _OmitCommentaries THEN
-                  i := Strings.IndexOfW( OA( i-1, start ), OA( _CommentaryStart.Length-1, _CommentaryStart.rawData ), 0 );
+                  i := Strings.IndexOfW( OA( i-1, start ), OA( _CommentaryStart.Length-1, _CommentaryStart.Data ), 0 );
                   IF i = 0 THEN
                      dataLength := 0;
                      RETURN srCommentaryLine;

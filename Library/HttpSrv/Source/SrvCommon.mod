@@ -654,7 +654,7 @@ CLASS IMPLEMENTATION ASrvStream;
                Writer.WriteElementStartOA( L"p" );
                   Writer.WriteStringOA( L"The page should be redirected by client to " );
                   Writer.WriteElementStartOA( L"a" );
-                     Writer.WriteAttributeStringOA( L"href", OA( Location.Length-1, Location.rawData ));
+                     Writer.WriteAttributeStringOA( L"href", OA( Location.Length-1, Location.Data ));
                      Writer.WriteString( Location );
                   Writer.WriteElementEnd();
                   Writer.WriteStringOA( L". Please, click the link to move to correct page." );
@@ -1107,7 +1107,7 @@ CLASS IMPLEMENTATION HttpWorker;
             s.AppendOA( sOA );
          END; // IF chunked
 
-         logger^.LogS( dlcError, LOG_HTTP, OA( s.Length-1, s.rawData ));
+         logger^.LogS( dlcError, LOG_HTTP, OA( s.Length-1, s.Data ));
       END;
       
       _Stream^.Close( FALSE );
@@ -1211,7 +1211,7 @@ CLASS IMPLEMENTATION CSessionHolder;
       l := cphcommon.BASE64CharCount( SIZE( sessionid ));
       cookie.Size := l;
       cookie.Length := l;
-      cphcommon.ToBASE64( sessionid, OUT OA( l-1, PWCHAR( cookie.rawData )));
+      cphcommon.ToBASE64( sessionid, OUT OA( l-1, PWCHAR( cookie.Data )));
       
       NEW( session );
       session^.Init( cookie, rootPath );
@@ -1466,7 +1466,7 @@ CLASS IMPLEMENTATION ASrvCommon;
             uri := _PreparedStream^.RequestURI;
             currentProcessor := _Processors.Current;
             currentHolder := _Processors.CurrentData;
-            IF currentProcessor^.AppliesFor( Verb, OA( uri.Length-1, uri.rawData ), OUT WantsSession ) THEN
+            IF currentProcessor^.AppliesFor( Verb, OA( uri.Length-1, uri.Data ), OUT WantsSession ) THEN
                foundProcessor := currentProcessor;
                EXIT;
             END;

@@ -48,7 +48,7 @@ CLASS IMPLEMENTATION CLibrary;
       FileName : FIO.PathStrW;
       S : StringsO.CString;
    BEGIN
-      FIO.PathTailW( OA( Path.Length-1, Path.rawData ), OUT FileName );
+      FIO.PathTailW( OA( Path.Length-1, Path.Data ), OUT FileName );
       FIO.ChangeExtensionW( REF FileName, L"" );
       S.FromOA( FileName );
       RETURN S;
@@ -97,7 +97,7 @@ CLASS IMPLEMENTATION CLibrary;
    BEGIN
       ASSERT( LibraryHandle = NIL );
       EM := windows.SetErrorMode( windows.SEM_FAILCRITICALERRORS );
-      LibraryHandle := windows.LoadLibrary( Path.szData );
+      LibraryHandle := windows.LoadLibrary( Path.Data );
       windows.SetErrorMode( EM );
       IF LibraryHandle = NIL THEN
          RETURN iobject.lrLibraryNotFound;
@@ -116,7 +116,7 @@ CLASS IMPLEMENTATION CLibrary;
          RETURN iobject.lrLibraryFoundButIsUnloadable;
       END;
 
-      LibraryInfo^.HostInfo( Loader, ADR( SELF ), OA( Loader^.Host^.Length-1, Loader^.Host^.rawData ), OA( Loader^.HostVersionString^.Length-1, Loader^.HostVersionString^.rawData ));
+      LibraryInfo^.HostInfo( Loader, ADR( SELF ), OA( Loader^.Host^.Length-1, Loader^.Host^.Data ), OA( Loader^.HostVersionString^.Length-1, Loader^.HostVersionString^.Data ));
 
       RETURN iobject.lrSuccess;
    END LoadLibrary;

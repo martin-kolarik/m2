@@ -579,7 +579,7 @@ CLASS IMPLEMENTATION CINIFilter;
             list := Items.TPInfo( item )^.List;
             list^.Reset();
             WHILE list^.MoveNext() DO
-               INI.SetKeyStr( OA( list^.Current^.Length-1, list^.Current^.rawData ), list^.CurrentData^, FALSE );
+               INI.SetKeyStr( OA( list^.Current^.Length-1, list^.Current^.Data ), list^.CurrentData^, FALSE );
             END; // WHILE
             INI.SetKeyStr( L"data", item^.TransportData, FALSE );
          END;

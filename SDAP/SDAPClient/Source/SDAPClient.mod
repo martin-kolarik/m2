@@ -186,14 +186,14 @@ CLASS IMPLEMENTATION CSDAPClient;
 
    PUBLIC VIRTUAL PROCEDURE Write( CONST Data, Value : StringsO.IString ) : Sync.TAsyncResult;
    BEGIN
-      RETURN DoWriteOA( L"set", OA( Data.Length-1, Data.rawData ), OA( Value.Length-1, Value.rawData ));
+      RETURN DoWriteOA( L"set", OA( Data.Length-1, Data.Data ), OA( Value.Length-1, Value.Data ));
    END Write;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Ask( CONST Data : StringsO.IString ) : Sync.TAsyncResult;
    BEGIN
-      RETURN DoWriteOA( L"get", OA( Data.Length-1, Data.rawData ), L"" );
+      RETURN DoWriteOA( L"get", OA( Data.Length-1, Data.Data ), L"" );
    END Ask;
    
 (*--------------------------------------------------------------------------------*)

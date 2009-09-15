@@ -278,7 +278,7 @@ BEGIN
                Found := FALSE;
                Filters.Reset();
                WHILE Filters.MoveNext() DO
-                  IF Strings.MatchW( Name, OA( Filters.Current^.Length-1, Filters.Current^.rawData ), FALSE ) THEN
+                  IF Strings.MatchW( Name, OA( Filters.Current^.Length-1, Filters.Current^.Data ), FALSE ) THEN
                      Found := TRUE;
                      EXIT;
                   END;

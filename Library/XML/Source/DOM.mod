@@ -64,7 +64,7 @@ CLASS IMPLEMENTATION CXMLNode;
 
 	PUBLIC PROPERTY InnerText SET( CONST Value : StringsO.CString );
 	BEGIN
-		of^.text := com.BSTR( Value.szData );
+		of^.text := com.BSTR( Value.Data );
 	END InnerText;
 
 (*--------------------------------------------------------------------------------*)

@@ -43,8 +43,7 @@ INTERFACE IString;
     Size    : CARDINAL;
   PUBLIC ABSTRACT READONLY PROPERTY
     Empty   : BOOLEAN;
-    rawData : PWCHAR; // can be direct or allocated, the behaviour defines the ancestor
-    szData  : PWCHAR; // can be direct or allocated, the behaviour defines the ancestor
+    Data    : PWCHAR; // It can be direct or allocated, the behaviour defines the ancestor. Size of the memory MUST always be >= Length+1 and the String[Length] MUST be 0W.
 
   PUBLIC ABSTRACT INDEX( Index : CARDINAL ) : WCHAR;
   // PUBLIC ABSTRACT OPERATOR :=( CONST S : IString ); impossible, CPP does not use virtual assign
@@ -119,6 +118,7 @@ END IString;
 CLASS CString IMPLEMENTS IString;
   INTERNAL VAR
     _Size, _Len : CARDINAL;
+    _Storage : ADDRESS;
     _Data : POINTER TO WCHAR;
 
   PUBLIC VIRTUAL PROPERTY
@@ -126,8 +126,7 @@ CLASS CString IMPLEMENTS IString;
     Size    : CARDINAL;
   PUBLIC VIRTUAL READONLY PROPERTY
     Empty   : BOOLEAN;
-    rawData : PWCHAR;
-    szData  : PWCHAR;
+    Data    : PWCHAR;
   
   #save, option( leak_info => on )
   INTERNAL VIRTUAL PROCEDURE Reallocate( Characters : CARDINAL );

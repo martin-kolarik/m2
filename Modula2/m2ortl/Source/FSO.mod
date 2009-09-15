@@ -267,7 +267,7 @@ BEGIN
    END;
    Data.Size := chars;
    Data.Length := chars;
-   Data.Length := windows.GetEnvironmentVariableW( ADR( Variable ), Data.rawData, chars );
+   Data.Length := windows.GetEnvironmentVariableW( ADR( Variable ), Data.Data, chars );
    RETURN Data.Length > 0;
 END GetEnvVariable;
 
@@ -392,7 +392,7 @@ BEGIN
       S.AppendOA( L'" ' );
       S.AppendOA( Parameters );
    END;
-   Success := windows.CreateProcessW( NIL, S.szData, NIL, NIL, windows.True, windows.CREATE_NO_WINDOW, NIL, NIL, ADR( SI ), ADR( PI )) = windows.True;
+   Success := windows.CreateProcessW( NIL, S.Data, NIL, NIL, windows.True, windows.CREATE_NO_WINDOW, NIL, NIL, ADR( SI ), ADR( PI )) = windows.True;
 
    // close inherited handles
    windows.CloseHandle( SI.hStdInput );

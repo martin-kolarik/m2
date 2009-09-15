@@ -73,7 +73,7 @@ CLASS IMPLEMENTATION Validator;
 
       // check for first
       UnwrapData( Data, Length, OUT Unwrapped );
-      hash.hashs( OA( Unwrapped.Length-1, Unwrapped.rawData ), OUT PId );
+      hash.hashs( OA( Unwrapped.Length-1, Unwrapped.Data ), OUT PId );
 
       item.Address := Data;
       IF PId = item.PId THEN
@@ -110,7 +110,7 @@ CLASS IMPLEMENTATION Validator;
       queryPId : Defs.TPID;
       Unwrapped : StringsO.CString;
    BEGIN
-      hash.hashs( OA( Product.Length-1, Product.rawData ), OUT queryPId );
+      hash.hashs( OA( Product.Length-1, Product.Data ), OUT queryPId );
    
       Items.Reset();
       WHILE Items.MoveNext() DO
@@ -121,7 +121,7 @@ CLASS IMPLEMENTATION Validator;
             RETURN 0;
          END;
          UnwrapData( Item^.Address, Item^.Length, OUT Unwrapped );
-         hash.hashs( OA( Unwrapped.Length-1, Unwrapped.rawData ), OUT dataPId );
+         hash.hashs( OA( Unwrapped.Length-1, Unwrapped.Data ), OUT dataPId );
          IF DEBUGGED() OR ( Item^.PId <> dataPId ) THEN
             RETURN 0;
          ELSE
@@ -179,7 +179,7 @@ VAR
 BEGIN
    Unwrapped.Size := Length DIV 2;
    Unwrapped.Length := 1;
-   a := Unwrapped.rawData;
+   a := Unwrapped.Data;
 
    sha256.DigestOA( nk, OUT dk );
    sha256.DigestOA( ni, OUT di );

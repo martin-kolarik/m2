@@ -534,11 +534,11 @@ CLASS IMPLEMENTATION CEIBServer;
 	      RETURN Sync.arCannotStart;
 	   END;
 	   IF LoadConfiguration( Source[0].iString^, OUT message, OUT line ) THEN
-	      Log^.LogSS( log.dldMessage, L"", OAsz( R[ Texts._ConfigurationLoadSuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.rawData ));
+	      Log^.LogSS( log.dldMessage, L"", OAsz( R[ Texts._ConfigurationLoadSuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.Data ));
 	      RETURN Sync.arCompleted;
 	   ELSE
-         Log^.LogFilePos( log.dlcError, L"", OA( Source[0].iString^.Length-1, Source[0].iString^.rawData ), OA( message.Length-1, message.rawData ), line, 0 );
-	      Log^.LogSS( log.dlcInfo, L"", OAsz( R[ Texts._ConfigurationLoadUnsuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.rawData ));
+         Log^.LogFilePos( log.dlcError, L"", OA( Source[0].iString^.Length-1, Source[0].iString^.Data ), OA( message.Length-1, message.Data ), line, 0 );
+	      Log^.LogSS( log.dlcInfo, L"", OAsz( R[ Texts._ConfigurationLoadUnsuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.Data ));
 	      RETURN Sync.arCannotStart;
 	   END;
 	END Configure;
@@ -578,7 +578,7 @@ CLASS IMPLEMENTATION CEIBServer;
          Hash := itemConnected;
          RETURN TRUE;
       END;
-      address.SetGroupAddress3( OA( Name.Length-1, Name.rawData ));
+      address.SetGroupAddress3( OA( Name.Length-1, Name.Data ));
       IF NOT GetObject( address, OUT PObject ) THEN
          RETURN FALSE;
       END;
@@ -1172,12 +1172,12 @@ CLASS IMPLEMENTATION CEIBServer;
          Priority : eib_def.TPriority;
       BEGIN
          TRY
-            FIO.PathHeadW( OA( ConfigurationFile.Length-1, ConfigurationFile.rawData ), OUT Path );
-            FIO.PathAddW( REF Path, OA( ESFPath.Length-1, ESFPath.rawData ));
+            FIO.PathHeadW( OA( ConfigurationFile.Length-1, ConfigurationFile.Data ), OUT Path );
+            FIO.PathAddW( REF Path, OA( ESFPath.Length-1, ESFPath.Data ));
             fs.FromPath( Path, FIOO.imOpenRead );
          CATCH e : IOO.CIOException DO
             ErrorMessage.FromOA( OAsz( R[ Texts._CannotOpenESF ] ));
-            AppendErrorId( REF ErrorMessage, OA( ESFPath.Length-1, ESFPath.rawData ));
+            AppendErrorId( REF ErrorMessage, OA( ESFPath.Length-1, ESFPath.Data ));
             RETURN FALSE;
          END; // try
          tr.Stream := ADR( fs );
@@ -1194,12 +1194,12 @@ CLASS IMPLEMENTATION CEIBServer;
                AppendErrorLine( REF ErrorMessage, tr.Line );
                RETURN FALSE;
             ELSE
-               c := Strings.LastIndexOfCharW( OA( item.Length-1, item.rawData ), L'.', 0 );
+               c := Strings.LastIndexOfCharW( OA( item.Length-1, item.Data ), L'.', 0 );
                IF c <> -1 THEN
                   item.Remove( 0, c+1 );
                END;
                item.Trim();
-               IF NOT GroupAddress.SetGroupAddress3( OA( item.Length-1, item.rawData )) THEN
+               IF NOT GroupAddress.SetGroupAddress3( OA( item.Length-1, item.Data )) THEN
                   ErrorMessage.FromOA( OAsz( R[ Texts._BadGroupAddress ] ));
                   AppendErrorLine( REF ErrorMessage, tr.Line );
                   RETURN FALSE;
@@ -1317,7 +1317,7 @@ CLASS IMPLEMENTATION CEIBServer;
                so := item;
                i := so.ItemS( spaceSet, 0, 0, FALSE, OUT item );
                WHILE NOT item.Empty DO
-                  IF NOT GroupAddress.SetGroupAddress3( OA( item.Length-1, item.rawData )) THEN
+                  IF NOT GroupAddress.SetGroupAddress3( OA( item.Length-1, item.Data )) THEN
                      ErrorMessage.FromOA( OAsz( R[ Texts._BadAdjacentGroupAddress ] ));
                      AppendErrorLine( REF ErrorMessage, tr.Line );
                      RETURN FALSE;
@@ -1364,7 +1364,7 @@ CLASS IMPLEMENTATION CEIBServer;
       InitToDefault();
       
       TRY
-         fs.FromPath( OA( ConfigurationFile.Length-1, ConfigurationFile.rawData ), FIOO.imOpenRead );
+         fs.FromPath( OA( ConfigurationFile.Length-1, ConfigurationFile.Data ), FIOO.imOpenRead );
       CATCH e : IOO.CIOException DO
          ErrorMessage.FromOA( OAsz( R[ Texts._CannotOpenPar ] ));
          GOTO Fail;
@@ -1378,7 +1378,7 @@ CLASS IMPLEMENTATION CEIBServer;
       fs.Close( FALSE );
       IF NOT b THEN
          ErrorMessage.FromOA( OAsz( R[ Texts._CannotOpenPar ] ));
-         AppendErrorId( REF ErrorMessage, OA( ConfigurationFile.Length-1, ConfigurationFile.rawData ));
+         AppendErrorId( REF ErrorMessage, OA( ConfigurationFile.Length-1, ConfigurationFile.Data ));
          GOTO Fail;
       END;
 
@@ -1430,7 +1430,7 @@ CLASS IMPLEMENTATION CEIBServer;
       END;
       // still inside snDevice
       IF TS.GetKeyStr( knMode, OUT ErrorLine, OUT so ) THEN
-         IF NOT EIB^.SetParameter( L"link.mode", OA( so.Length-1, so.rawData ), OUT ErrorMessageOA ) THEN
+         IF NOT EIB^.SetParameter( L"link.mode", OA( so.Length-1, so.Data ), OUT ErrorMessageOA ) THEN
             CreateParameterError( Texts._BadMode, ErrorMessageOA, REF ErrorMessage );
             GOTO Fail;
          END;
@@ -1442,13 +1442,13 @@ CLASS IMPLEMENTATION CEIBServer;
             InputQueueLength := c;
          END;
          IF TS.GetKeyStr( knOutputQueueLength, OUT ErrorLine, OUT so ) THEN
-            IF NOT EIB^.SetParameter( L"link.outputQueueLength", OA( so.Length-1, so.rawData ), OUT ErrorMessageOA ) THEN
+            IF NOT EIB^.SetParameter( L"link.outputQueueLength", OA( so.Length-1, so.Data ), OUT ErrorMessageOA ) THEN
                CreateParameterError( Texts._BadOutputQueueLength, ErrorMessageOA, REF ErrorMessage );
                GOTO Fail;
             END;
          END;
          IF TS.GetKeyStr( knWriteQueueLength, OUT ErrorLine, OUT so ) THEN
-            IF NOT EIB^.SetParameter( L"application.pendingQueueLength.write", OA( so.Length-1, so.rawData ), OUT ErrorMessageOA ) THEN
+            IF NOT EIB^.SetParameter( L"application.pendingQueueLength.write", OA( so.Length-1, so.Data ), OUT ErrorMessageOA ) THEN
                CreateParameterError( Texts._BadWriteQueueLength, ErrorMessageOA, REF ErrorMessage );
                GOTO Fail;
             END;
@@ -1465,13 +1465,13 @@ CLASS IMPLEMENTATION CEIBServer;
             ACKTimeout := c;
          END;
          IF TS.GetKeyStr( knACKMethod, OUT ErrorLine, OUT so ) THEN
-            IF NOT EIB^.SetParameter( L"link.ackMethod", OA( so.Length-1, so.rawData ), OUT ErrorMessageOA ) THEN
+            IF NOT EIB^.SetParameter( L"link.ackMethod", OA( so.Length-1, so.Data ), OUT ErrorMessageOA ) THEN
                CreateParameterError( Texts._BadACKMethod, ErrorMessageOA, REF ErrorMessage );
                GOTO Fail;
             END;
          END;
          IF TS.GetKeyStr( knRetryCount, OUT ErrorLine, OUT so ) THEN
-            IF NOT EIB^.SetParameter( L"link.retryCount", OA( so.Length-1, so.rawData ), OUT ErrorMessageOA ) THEN
+            IF NOT EIB^.SetParameter( L"link.retryCount", OA( so.Length-1, so.Data ), OUT ErrorMessageOA ) THEN
                CreateParameterError( Texts._BadRetryCount, ErrorMessageOA, REF ErrorMessage );
                GOTO Fail;
             END;
@@ -2122,9 +2122,9 @@ CLASS IMPLEMENTATION CEIBServer;
          END;
 
          IF Direction = IOO.dirRead THEN
-            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "UPDATE", address, OA( value.Length-1, value.rawData ), OA( comment.Length-1, comment.rawData ));
+            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "UPDATE", address, OA( value.Length-1, value.Data ), OA( comment.Length-1, comment.Data ));
          ELSIF NOT EIB^.DeviceConnected() THEN
-            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET FAILED", address, OA( value.Length-1, value.rawData ), OA( comment.Length-1, comment.rawData ));
+            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET FAILED", address, OA( value.Length-1, value.Data ), OA( comment.Length-1, comment.Data ));
          END;
                   
       END;
@@ -2215,9 +2215,9 @@ CLASS IMPLEMENTATION CEIBServer;
          END;
 
          IF PObject^.WSStatus = eib_status.essOK THEN
-            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET OK", address, OA( value.Length-1, value.rawData ), OA( comment.Length-1, comment.rawData ));
+            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET OK", address, OA( value.Length-1, value.Data ), OA( comment.Length-1, comment.Data ));
          ELSE
-            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET ERROR", address, OA( value.Length-1, value.rawData ), OA( comment.Length-1, comment.rawData ));
+            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET ERROR", address, OA( value.Length-1, value.Data ), OA( comment.Length-1, comment.Data ));
          END;
                   
       END;
@@ -2403,12 +2403,12 @@ CLASS IMPLEMENTATION CEIBServer;
          IF TimeAsString THEN
             so := Value.String;
             IF TimeFormat.Empty THEN
-               IF NOT DT.FromStringOA( OA( so.Length-1, so.rawData ), L"HH:mm:ss" ) THEN
-                  Logger.LogSSSS( log.dldError, L"srv", L"string to time conversion failure: ", OA( so.Length-1, so.rawData ), L", format: HH:mm:ss", L"" );
+               IF NOT DT.FromStringOA( OA( so.Length-1, so.Data ), L"HH:mm:ss" ) THEN
+                  Logger.LogSSSS( log.dldError, L"srv", L"string to time conversion failure: ", OA( so.Length-1, so.Data ), L", format: HH:mm:ss", L"" );
                END;
             ELSE
-               IF NOT DT.FromStringOA( OA( so.Length-1, so.rawData ), OA( TimeFormat.Length-1, TimeFormat.rawData )) THEN
-                  Logger.LogSSSS( log.dldError, L"srv", L"string to time conversion failure: ", OA( so.Length-1, so.rawData ), L", format: ", OA( TimeFormat.Length-1, TimeFormat.rawData ));
+               IF NOT DT.FromStringOA( OA( so.Length-1, so.Data ), OA( TimeFormat.Length-1, TimeFormat.Data )) THEN
+                  Logger.LogSSSS( log.dldError, L"srv", L"string to time conversion failure: ", OA( so.Length-1, so.Data ), L", format: ", OA( TimeFormat.Length-1, TimeFormat.Data ));
                END;
             END;
             WD := 0;
@@ -2439,12 +2439,12 @@ CLASS IMPLEMENTATION CEIBServer;
          IF DateAsString THEN
             so := Value.String;
             IF DateFormat.Empty THEN
-               IF NOT DT.FromStringOA( OA( so.Length-1, so.rawData ), L"yyyy-MM-dd" ) THEN
-                  Logger.LogSSSS( log.dldError, L"srv", L"string to date conversion failure: ", OA( so.Length-1, so.rawData ), L", format: yyyy-MM-dd", L"" );
+               IF NOT DT.FromStringOA( OA( so.Length-1, so.Data ), L"yyyy-MM-dd" ) THEN
+                  Logger.LogSSSS( log.dldError, L"srv", L"string to date conversion failure: ", OA( so.Length-1, so.Data ), L", format: yyyy-MM-dd", L"" );
                END;
             ELSE
-               IF NOT DT.FromStringOA( OA( so.Length-1, so.rawData ), OA( DateFormat.Length-1, DateFormat.rawData )) THEN
-                  Logger.LogSSSS( log.dldError, L"srv", L"string to date conversion failure: ", OA( so.Length-1, so.rawData ), L", format: ", OA( DateFormat.Length-1, DateFormat.rawData ));
+               IF NOT DT.FromStringOA( OA( so.Length-1, so.Data ), OA( DateFormat.Length-1, DateFormat.Data )) THEN
+                  Logger.LogSSSS( log.dldError, L"srv", L"string to date conversion failure: ", OA( so.Length-1, so.Data ), L", format: ", OA( DateFormat.Length-1, DateFormat.Data ));
                END;
             END;
             Y := DT.Year;
@@ -2532,7 +2532,7 @@ CLASS IMPLEMENTATION CEIBServer;
             IF TimeFormat.Empty THEN // use default format
                b1 := dt.ToStringOA( L"HH:mm:ss", FALSE, TRUE, OUT s );
             ELSE
-               b1 := dt.ToStringOA( OA( TimeFormat.Length-1, TimeFormat.rawData ), FALSE, TRUE, OUT s );
+               b1 := dt.ToStringOA( OA( TimeFormat.Length-1, TimeFormat.Data ), FALSE, TRUE, OUT s );
             END;
             IF b1 THEN
                Value.FromStringOA( s, FALSE );
@@ -2552,7 +2552,7 @@ CLASS IMPLEMENTATION CEIBServer;
             IF DateFormat.Empty THEN
                b1 := dt.ToStringOA( L"yyyy-MM-dd", TRUE, FALSE, OUT s );
             ELSE
-               b1 := dt.ToStringOA( OA( DateFormat.Length-1, DateFormat.rawData ), TRUE, FALSE, OUT s );
+               b1 := dt.ToStringOA( OA( DateFormat.Length-1, DateFormat.Data ), TRUE, FALSE, OUT s );
             END;
             IF b1 THEN
                Value.FromStringOA( s, FALSE );
