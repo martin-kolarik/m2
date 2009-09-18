@@ -55,6 +55,11 @@ CONST
    #else
       Client = FALSE;
    #endif
+   #if Target #contains L"Activator" #then
+      Activator = TRUE;
+   #else
+      Activator = FALSE;
+   #endif
 #endif
 
 TYPE
@@ -74,6 +79,8 @@ TYPE
          , opApplyLicenceFromFile // MSI
          , opRemoveLicenceFromCmdLine // MSI/GUI tool
          , opRemoveLicenceFromFile // MSI/GUI tool
+      #endif
+      #if Client #or Activator #then
          , opQueryRegistration
          , opApplyActivationFromCmdLine
          , opApplyActivationFromFile
@@ -86,7 +93,7 @@ TYPE
       #endif
    );
 
-#if Client #then
+#if Client #or Activator #then
    TYPE
       TIdentityItem = (
          idDisc,
@@ -122,7 +129,7 @@ VAR
       pid : StringsO.CString;
    #endif
 
-   #if Builder #or Client #then
+   #if Builder #or Client #or Activator #then
       data : arrays.CPtrArray;
       item : Items.TPItem;
       ls : store.CFileStorage;
@@ -138,7 +145,7 @@ VAR
       s : ARRAY [0..63] OF WCHAR;
    #endif
    
-   #if Licensor #or Client #then
+   #if Licensor #or Client #or Activator #then
       an : Number.CActivation;
       dtb : time.DateTime;
       dte : time.DateTime;
@@ -151,7 +158,7 @@ VAR
       so : StringsO.CString;
    #endif
 
-   #if Client #then
+   #if Client #or Activator #then
       activationItem : Items.TPActivation;
       allFlag : BOOLEAN := FALSE;
       found : BOOLEAN;
@@ -175,7 +182,7 @@ VAR
       showGOrds : BOOLEAN := FALSE;
    #endif
 
-   #if Client #or Licensor #then
+   #if Client #or Licensor #or Activator #then
    PROCEDURE LoadFile( CONST path : StringsO.IString; OUT lines : lists.CStringList ) : CARDINAL;
    VAR
       fs : FIOO.CFileStream;
@@ -207,7 +214,7 @@ VAR
    END LoadFile;
    #endif
 
-   #if Client #then
+   #if Client #or Activator #then
    PROCEDURE LoadData( bind, validate : BOOLEAN; OUT data : arrays.CPtrArray );
    BEGIN
       ls.Filters^.Add( ADR( lsINI ), 0 );
@@ -398,7 +405,7 @@ BEGIN
          CASE TPString( argp^[i] )^[1] OF
          | 'o' : // common
             outputToStdOut := TRUE;
-         #if Client #then
+         #if Client #or Activator #then
          | 'A' :
             op := opApplyActivationFromCmdLine;
             INC( i );
@@ -460,9 +467,11 @@ BEGIN
          | 'g' : // suboption of I
             showGOrds := TRUE;
          #endif
-         #if Client #then
+         #if Client #or Activator #then
          | 'I' :
             op := opInfo;
+         #endif
+         #if Client #then
          | 'L' :
             op := opApplyLicenceFromCmdLine;
             INC( i );
@@ -582,7 +591,7 @@ BEGIN
       END;
    END; // LOOP
 
-   #if Client #then
+   #if Client #or Activator #then
       IF idDisc IN identity THEN
          uq.Sources^.Add( ADR( uqDisc ), 0 );
       END;
@@ -999,7 +1008,7 @@ BEGIN
       END; // WHILE sns
    #endif
 
-   #if Client #then
+   #if Client #or Activator #then
    //-----
    | opApplyActivationFromCmdLine, opApplyActivationFromFile :
 
@@ -1121,7 +1130,7 @@ BEGIN
       WriteM2Source( pid );
    #endif
 
-   #if Client #then
+   #if Client #or Activator #then
    //-----
    | opInfo :
       LoadData( TRUE, FALSE, OUT data );
