@@ -20,7 +20,7 @@ IMPORT
    Strings,
    Sync,
    time;
-
+   
 (*================================================================================*)
 
 CLASS IMPLEMENTATION CStatusCodeView;
@@ -240,7 +240,7 @@ CLASS IMPLEMENTATION CRedirectView;
       ELSE
          Location := Request.FullURI;
          IF NOT Request.ControllerURI.Empty THEN
-            i := Location.IndexOf( Request.ControllerURI, 0 );
+            i := Location.LastIndexOf( Request.ControllerURI, 0 );
             ASSERTLOG( i <> -1 );
             Location.Remove( i-1, -1 ); // remove trailing slash too
          ELSIF Location.EndsWithOA( L"/" ) THEN

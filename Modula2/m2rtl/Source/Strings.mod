@@ -521,73 +521,103 @@ END IndexOfW;
 PROCEDURE IndexOfMA( SourceLen : CARDINAL; CONST Source : POINTER TO CHAR; StringLen : CARDINAL; CONST String : POINTER TO CHAR; FromIndex : CARDINAL ) : CARDINAL;
 VAR
 	i, j, nexti : CARDINAL;
+	mismatch : BOOLEAN;
+	source : CHAR;
 BEGIN
 	IF ( StringLen = 0 ) OR ( SourceLen = 0 ) THEN
 		RETURN -1;
 	ELSIF FromIndex+StringLen > SourceLen THEN
 		RETURN -1;
 	END;
+	DEC( StringLen ); // convert it to HIGH
+
 	i := FromIndex;
+	j := 0;
+	nexti := 0;
+	mismatch := FALSE;
 	LOOP
-		IF i > SourceLen-StringLen THEN
-			EXIT;
-		ELSIF Source@[i]^ = String^ THEN // have first char, check whole string
-			nexti := 0;
-			j := 1;
-			LOOP
-				IF j >= StringLen THEN
-					RETURN i;
-				ELSIF Source@[i+j]^ <> String@[j]^ THEN // not found
-					IF nexti > 0 THEN
-						i := nexti; // use hint
-					END;
-					EXIT;
-				END;
-				IF ( nexti = 0 ) AND ( Source@[i+j]^ = String^ ) THEN // hint
-					nexti := i+j-1; // after assignment (see "use hint") i is incremented
-				END;
-				INC( j );
-			END; // LOOP
+		IF i >= SourceLen THEN
+		   RETURN -1;
 		END;
-		INC( i );
+
+		source := Source@[i]^;
+		IF ( j <> 0 ) AND ( nexti = 0 ) AND ( source = String^ ) THEN // store hint only if we are inside string, otherwise do not compare characters, next IF does it
+         nexti := i;
+		END;
+
+		IF source = String@[j]^ THEN // char is OK
+		   mismatch := TRUE; // prepare error handling
+		   IF j = StringLen THEN
+		      RETURN i - StringLen;
+		   END;
+		   INC( j );
+   		INC( i );
+
+		ELSIF mismatch THEN
+		   j := 0; // restart searching
+		   IF nexti = 0 THEN // no hint
+		      INC( i );
+		   ELSE
+		      i := nexti; // get next hint
+   		   nexti := 0;
+		   END;
+	
+		ELSE
+		   INC( i );
+		END;
+
 	END; // LOOP
-	RETURN -1;
 END IndexOfMA;
 
 PROCEDURE IndexOfMW( SourceLen : CARDINAL; CONST Source : POINTER TO WCHAR; StringLen : CARDINAL; CONST String : POINTER TO WCHAR; FromIndex : CARDINAL ) : CARDINAL;
 VAR
 	i, j, nexti : CARDINAL;
+	mismatch : BOOLEAN;
+	source : WCHAR;
 BEGIN
 	IF ( StringLen = 0 ) OR ( SourceLen = 0 ) THEN
 		RETURN -1;
 	ELSIF FromIndex+StringLen > SourceLen THEN
 		RETURN -1;
 	END;
+	DEC( StringLen ); // convert it to HIGH
+
 	i := FromIndex;
+	j := 0;
+	nexti := 0;
+	mismatch := FALSE;
 	LOOP
-		IF i > SourceLen-StringLen THEN
-			EXIT;
-		ELSIF Source@[i<<1]^ = String^ THEN // have first char, check whole string
-			nexti := 0;
-			j := 1;
-			LOOP
-				IF j >= StringLen THEN
-					RETURN i;
-				ELSIF Source@[(i+j)<<1]^ <> String@[j<<1]^ THEN // not found
-					IF nexti > 0 THEN
-						i := nexti; // use hint
-					END;
-					EXIT;
-				END;
-				IF ( nexti = 0 ) AND ( Source@[(i+j)<<1]^ = String^ ) THEN // hint
-					nexti := i+j-1; // after assignment (see "use hint") i is incremented
-				END;
-				INC( j );
-			END; // LOOP
+		IF i >= SourceLen THEN
+		   RETURN -1;
 		END;
-		INC( i );
+
+		source := Source@[i<<1]^;
+		IF ( j <> 0 ) AND ( nexti = 0 ) AND ( source = String^ ) THEN // store hint only if we are inside string, otherwise do not compare characters, next IF does it
+         nexti := i;
+		END;
+
+		IF source = String@[j<<1]^ THEN // char is OK
+		   mismatch := TRUE; // prepare error handling
+		   IF j = StringLen THEN
+		      RETURN i - StringLen;
+		   END;
+		   INC( j );
+   		INC( i );
+
+		ELSIF mismatch THEN
+		   j := 0; // restart searching
+		   IF nexti = 0 THEN // no hint
+		      INC( i );
+		   ELSE
+		      i := nexti; // get next hint
+   		   nexti := 0;
+		   END;
+	
+		ELSE
+		   INC( i );
+		END;
+
 	END; // LOOP
-	RETURN -1;
 END IndexOfMW;
 
 PROCEDURE IndexOfAnyW( CONST Source : ARRAY OF WCHAR; CONST Any : SET OF WCHAR; FromIndex : CARDINAL ) : CARDINAL;
@@ -651,10 +681,65 @@ BEGIN
 	IF ( HIGH( String ) = 0 ) OR ( String[1] = 0W) THEN
 		RETURN LastIndexOfCharW( Source, String[0], IndexFromRight );
 	ELSE
-	   ASSERTLOG( FALSE );
-		RETURN -1;
+		RETURN LastIndexOfMW( LENGTH( Source ), ADR( Source ), LENGTH( String ), ADR( String ), IndexFromRight );
 	END;
 END LastIndexOfW;
+
+PROCEDURE LastIndexOfMW( SourceLen : CARDINAL; CONST Source : POINTER TO WCHAR; StringLen : CARDINAL; CONST String : POINTER TO WCHAR; IndexFromRight : CARDINAL ) : CARDINAL;
+VAR
+   exitFlag : BOOLEAN;
+	i, j, nexti : CARDINAL;
+	mismatch : BOOLEAN;
+	source : WCHAR;
+BEGIN
+	IF ( StringLen = 0 ) OR ( SourceLen = 0 ) THEN
+		RETURN -1;
+	ELSIF IndexFromRight >= SourceLen THEN
+		RETURN -1;
+	ELSIF SourceLen-IndexFromRight < StringLen THEN
+		RETURN -1;
+	END;
+	DEC( SourceLen ); // convert it to HIGH
+	DEC( StringLen ); // convert it to HIGH
+
+	i := SourceLen-IndexFromRight;
+	j := StringLen;
+	nexti := 0;
+	mismatch := FALSE;
+	LOOP
+		exitFlag := i = 0;
+
+		source := Source@[i<<1]^;
+		IF ( j <> StringLen ) AND ( nexti = 0 ) AND ( source = String^ ) THEN // store hint only if we are inside string, otherwise do not compare characters, next IF does it
+         nexti := i;
+		END;
+
+		IF source = String@[j<<1]^ THEN // char is OK
+		   mismatch := TRUE; // prepare error handling
+		   IF j = 0 THEN
+		      RETURN i;
+		   END;
+		   DEC( j );
+   		DEC( i );
+
+		ELSIF mismatch THEN
+		   j := StringLen; // restart searching
+		   IF nexti = 0 THEN // no hint
+		      DEC( i );
+		   ELSE
+		      i := nexti; // get next hint
+   		   nexti := 0;
+		   END;
+	
+		ELSE
+		   DEC( i );
+		END;
+		
+		IF exitFlag THEN
+		   RETURN -1;
+		END;
+	END; // LOOP
+END LastIndexOfMW;
 
 PROCEDURE LastIndexOfAnyW( CONST Source : ARRAY OF WCHAR; CONST Any : SET OF WCHAR; IndexFromRight : CARDINAL ) : CARDINAL;
 VAR

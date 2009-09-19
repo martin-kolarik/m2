@@ -24,6 +24,7 @@
         <ResultName Condition="$(ProductVariant)=='Builder'">licbuild</ResultName>
         <ResultName Condition="$(ProductVariant)=='Licensor'">licgen</ResultName>
         <ResultName Condition="$(ProductVariant)=='Client'">liccli</ResultName>
+        <ResultName Condition="$(ProductVariant)=='Activator'">activate</ResultName>
     </PropertyGroup>
 
     <!-- 3 -->

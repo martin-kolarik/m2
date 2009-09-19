@@ -32,14 +32,14 @@
               <li><p>poskytuje klientùm data pouze cca 30 minut od spuštìní,</p></li>
               <li><p>omezení nezastavuje službu a neuzavírá spojení s klienty, klienti zùstanou pøipojení, server jim pouze neposkytne žádná data.</p></li>
             </il>
-            <p>Nainstalovaný SmartServer je nutné do 35 dnù od instalace aktivovat. Aktivaci lze provést z pøíkazové øádky pomocí nástroje (<type>liccli</type>), který se nainstaluje spolu se SmartServerem. Pokud se bìhem 35 dnù od instalace SmartServer neaktivuje, pobìží dále jako demoverze.</p>
+            <p>Nainstalovaný SmartServer je nutné do 35 dnù od instalace aktivovat. Aktivaci lze provést z pøíkazové øádky pomocí nástroje (<type>activate</type>), který se nainstaluje spolu se SmartServerem. Pokud se bìhem 35 dnù od instalace SmartServer neaktivuje, pobìží dále jako demoverze.</p>
             <section level="3">
               <title>Aktivace licence</title>
               <text>
                 <p>Aktivace probíhá dvoukrokovì. V prvním kroku se získá registraèní èíslo, které se odešle na adresu technické podpory (prodejce). Technická podpora èíslo zaeviduje a na jeho základì vytvoøí aktivaèní èíslo, které odešle zpìt. V druhém kroku aktivace se aktivaèní èíslo aplikuje.</p>
-                <p>Registraèní èíslo se pomocí nástroje <type>liccli</type> získá následovnì (záznam operací v pøíkazové øádce):</p>
+                <p>Registraèní èíslo se pomocí nástroje <type>activate</type> získá následovnì (záznam operací v pøíkazové øádce):</p>
                 <p.type>C:\&gt;cd "Program Files\Neno\EibSrv
-C:\Program Files\NeNo\EibSrv&gt;liccli -Q *
+C:\Program Files\NeNo\EibSrv&gt;activate -Q *
 Licence support tool
 (c) NeNo 2009
 
@@ -51,9 +51,9 @@ Licence support tool
     for product "NeNo.EibSrv"
     registration number "REG-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"</p.type>
                 <p>Uvedené registraèní èíslo se nevypíše, pokud je SmartServer nainstalovaný bez licence (tj. jako demoverze), nebo pokud již je SmartServer aktivován.</p>
-                <p>Po odeslání celého registraèního èísla (<type>REG-xxxxx-...-xxxxx</type>) a jeho zpracování vznikne aktivaèní èíslo ve tvaru <type>VAN-xxxxx-...-xxxxx</type>. Toto aktivaèní èíslo se opìt pomocí nástroje <type>liccli</type> aplikuje:</p>
+                <p>Po odeslání celého registraèního èísla (<type>REG-xxxxx-...-xxxxx</type>) a jeho zpracování vznikne aktivaèní èíslo ve tvaru <type>VAN-xxxxx-...-xxxxx</type>. Toto aktivaèní èíslo se opìt pomocí nástroje <type>activate</type> aplikuje:</p>
                 <p.type>C:\&gt;cd "Program Files\Neno\EibSrv
-C:\Program Files\NeNo\EibSrv&gt;liccli -A VAN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx
+C:\Program Files\NeNo\EibSrv&gt;activate -A VAN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx
 Licence support tool
 (c) NeNo 2009
 
@@ -63,8 +63,8 @@ Licence support tool
 
   processing activation "VAN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"
   processing product "NeNo.EibSrv"</p.type>
-                <p>Úspìšnost aktivace lze ovìøit opìt pomocí <type>liccli</type>:</p>
-                <p.type>C:\Program Files\NeNo\EibSrv&gt;liccli -I
+                <p>Úspìšnost aktivace lze ovìøit opìt pomocí <type>activate</type>:</p>
+                <p.type>C:\Program Files\NeNo\EibSrv&gt;activate -I
 Licence support tool
 (c) NeNo 2009
 
@@ -296,7 +296,13 @@ objects = 5/3/100..5/3/119
 logged_on_change_objects = 1/7/0..1/7/9</p.type>
                 <p>Je zøejmé, že v definicích pomocí <type>[blocks]</type> je nejprve uveden výèet blokù (sekcí), které jsou následnì zapsány. Aby se v definicích objektù nemusely typ a zpùsob komunikace opisovat, jsou vytknuty do parametru <type>type</type> a <type>behaviour</type>. Druhá ukázka pøitom definuje stejné objekty, jako první dva øádky v ukázce použití <type>[objects]</type>.</p>
                 <p>Pøed každou definicí datového bodu (skupinové adresy) je možné zapsat do uvozovek popis datového bodu. Tento popis se následnì ukazuje v záznamu datové komunikace (v èásti <gui>Historie dat</gui> webového rozhraní). Pøíklad popisu u datových bodù:</p>
-                <p.type>object = "Bedroom light", 5/2/0</p.type>
+                <p.type>[objects]
+object = tracker_init, value, "Outer temperature", 2/0/0
+
+[controls]
+type = switch
+behaviour = transmitter
+object = "Bedroom light", 5/2/0</p.type>
                 <p>Další ukázky zápisu datových bodù lze najít v souborech: <file>04 init-read.cfg</file> (datové body s vynuceným poèáteèním ètením), <file>06 complex-object.cfg</file> (datové body spojené s více skupinovými adresami), <file>08 blocks.cfg</file> (definice datových bodù pomocí sekce <type>[blocks]</type>).</p>
               </text>
             </section>
@@ -1151,7 +1157,7 @@ var IP_PORT = "6007";</p.type>
           <text>
             <dl class="dlCommon">
               <caption>Mimo ukázky, hlavní program a soubory webového rozhraní SmartServer obsahuje nìkolik nástrojù, které mohou pøi nasazování a diagnostice pomoci. Všechny se instalují jako souèást SmartServeru a nacházejí se v jeho instalaèním adresáøi. Jsou to:</caption>
-              <dt><file>liccli.exe</file></dt>
+              <dt><file>activate.exe</file></dt>
               <dd><p>Program pro aktivaci licencí, jeho volby i použití jsou popsány v kapitole <in.about label="secInstallation"></in.about>.</p></dd>
               <dt><file>discover.exe</file></dt>
               <dd><p>Nástroj pro prohledání místní sítì, výsledkem práce je seznam nalezených EibNet/IP zaøízení. Program nalezne rozhraní i routery. Pøíklad výstupu programu:</p><p.type>C:\Program Files\NeNo\EibSrv&gt;discover
