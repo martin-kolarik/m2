@@ -1,8 +1,11 @@
 Version 1.0.xxx/R
-- BUG: #121
-- BUG: #123
-- CHG: #124
-- CHG: #125
+- BUG: #121, administration web interface was missing version number.
+- BUG: #123, if server's domain name contained (as substring) name of some page
+       (e.g. control), redirection to login page after cookie expiration failed
+       with damaged URL.
+- CHG: #124, "liccli.exe" tool replaced with "activate.exe"
+- CHG: #125, better description of data object commentary added to documentation.
+- NEW: #99, new example of Pronto TSU9400 application added.
 
 Version 1.0.922/R rc1 23.8.2009
 - BUG: #100, reconnection to KNX could stop if there was some timeouts during

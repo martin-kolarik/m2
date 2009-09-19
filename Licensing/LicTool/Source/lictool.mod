@@ -410,7 +410,7 @@ BEGIN
             op := opApplyActivationFromCmdLine;
             INC( i );
             IF i >= argc THEN
-               err^.WriteOA( L'  "L" parameter requires activation number', TRUE );
+               err^.WriteOA( L'  "A" parameter requires activation number', TRUE );
                RETURN 101;
             END;
             sns.AddOA( OAsz( argp^[i] ), 0 );
@@ -499,7 +499,7 @@ BEGIN
             END;
             pid.FromOA( OAsz( argp^[i] ));
          #endif
-         #if Client #then
+         #if Client #or Activator #then
          | 'Q' :
             op := opQueryRegistration;
             INC( i );
