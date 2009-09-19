@@ -32,14 +32,14 @@
               <li><p>it provides data to clients only about 30 minutes after start-up,</p></li>
               <li><p>the limitation does not stop the service and does not terminate connection with clients; the clients will stay connected, the server does not provide any data to them.</p></li>
             </il>
-            <p>Installed SmartServer must be activated till 35 days after the installation. The activation can be performed remotely (with connection to Internet) or from the command line, but always with help of the tool (<type>liccli</type>), which is installed together with the SmartServer. If the SmartServer is not activated during the above shown 35 days, it will run as the demo version after lapse of this time.</p>
+            <p>Installed SmartServer must be activated till 35 days after the installation. The activation can be performed remotely (with connection to Internet) or from the command line, but always with help of the tool (<type>activate</type>), which is installed together with the SmartServer. If the SmartServer is not activated during the above shown 35 days, it will run as the demo version after lapse of this time.</p>
             <section level="3">
               <title>Licence activation</title>
               <text>
                 <p>The activation runs in two steps. In the first step there is obtained there is obtained a registration number, which is then sent to the technical support (of the seller). The technical support will record this number and will create an activation number based on it, which will send back. In the second step of activation<c.special what="dash" />the activation number is applied.</p>
-                <p>The registration number is obtained with help of <type>liccli</type> tool as follows (record of operations in command line):</p>
+                <p>The registration number is obtained with help of <type>activate</type> tool as follows (record of operations in command line):</p>
                 <p.type>C:\&gt;cd "Program Files\Neno\EibSrv
-C:\Program Files\NeNo\EibSrv&gt;liccli -Q *
+C:\Program Files\NeNo\EibSrv&gt;activate -Q *
 Licence support tool
 (c) NeNo 2009
 
@@ -51,9 +51,9 @@ Licence support tool
     for product "NeNo.EibSrv"
     registration number "REG-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"</p.type>
                 <p>The above-mentioned registration number is not written, if the SmartServer is installed without a licence (i.e. as demo version), or if the SmartServer is already activated.</p>
-                <p>After sending of the whole registration number (<type>REG-xxxxx-...-xxxxx</type>) and its processing – an activation number will arise in the form <type>VAN-xxxxx-...-xxxxx</type>. This activation number is applied again with help of liccli tool:</p>
+                <p>After sending of the whole registration number (<type>REG-xxxxx-...-xxxxx</type>) and its processing – an activation number will arise in the form <type>VAN-xxxxx-...-xxxxx</type>. This activation number is applied again with help of activate tool:</p>
                 <p.type>C:\&gt;cd "Program Files\Neno\EibSrv
-C:\Program Files\NeNo\EibSrv&gt;liccli -A VAN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx
+C:\Program Files\NeNo\EibSrv&gt;activate -A VAN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx
 Licence support tool
 (c) NeNo 2009
 
@@ -63,8 +63,8 @@ Licence support tool
 
   processing activation "VAN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"
   processing product "NeNo.EibSrv"</p.type>
-                <p>A fruitfulness of activation can be verified again with help of <type>liccli</type>:</p>
-                <p.type>C:\Program Files\NeNo\EibSrv&gt;liccli -I
+                <p>A fruitfulness of activation can be verified again with help of <type>activate</type>:</p>
+                <p.type>C:\Program Files\NeNo\EibSrv&gt;activate -I
 Licence support tool
 (c) NeNo 2009
 
@@ -296,7 +296,13 @@ objects = 5/3/100..5/3/119
 logged_on_change_objects = 1/7/0..1/7/9</p.type>
                 <p>It is obvious that in definitions with help of <type>[blocks]</type><c.special what="dash" />the list of blocks (sections) is shown first and the blocks are consequently recorded. To avoid repeated entering of the type and kind of communication in definitions of objects, they are included to type and behaviour parameters. The second example defines the same objects, as the first two lines in example of use <type>[objects]</type>.</p>
                 <p>There can be written a short description enclosed in quotes before each data object (group address). The description will appear in data log (in <gui>Data history</gui> web interface page). Example of description written to data object:</p>
-                <p.type>object = "Bedroom light", 5/2/0</p.type>
+                <p.type>[objects]
+object = tracker_init, value, "Outer temperature", 2/0/0
+
+[controls]
+type = switch
+behaviour = transmitter
+object = "Bedroom light", 5/2/0</p.type>
                 <p>Next examples of record of data items can be found in files: <file>04 init-read.cfg</file> (data items with forced initial loading), <file>06 complex-object.cfg</file> (data items connected with more group addresses), <file>08 blocks.cfg</file> (definition of data items with help of <type>[blocks]</type> section).</p>
               </text>
             </section>
@@ -1151,7 +1157,7 @@ var IP_PORT = "6007";</p.type>
           <text>
             <dl class="dlCommon">
               <caption>Except of examples, the main program and files of the SmartServer web interface contain several tools, which may help at setting and diagnostics. All are installed as the part of the SmartServer and are located in its installation directory. They are:</caption>
-              <dt><file>liccli.exe</file></dt>
+              <dt><file>activate.exe</file></dt>
               <dd><p>Program for activation of licences. Its usage is described in chapter <in.about label="secInstallation"></in.about>.</p></dd>
               <dt><file>discover.exe</file></dt>
               <dd><p>A tool for browsing of local network, the result of work is the list of found Eib-Net/IP devices. The program will find interfaces and routers. Example of the program output:</p><p.type>C:\Program Files\NeNo\EibSrv&gt;discover
