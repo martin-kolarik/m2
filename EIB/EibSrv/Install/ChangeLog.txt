@@ -3,6 +3,8 @@ Version 1.0.xxx/R
 - BUG: #123, if server's domain name contained (as substring) name of some page
        (e.g. control), redirection to login page after cookie expiration failed
        with damaged URL.
+- BUG: #126, installations were missing ProductGUID, thus new installations were
+       not able to reinstall/detect previous ones.
 - CHG: #124, "liccli.exe" tool replaced with "activate.exe"
 - CHG: #125, better description of data object commentary added to documentation.
 - NEW: #99, new example of Pronto TSU9400 application added.
