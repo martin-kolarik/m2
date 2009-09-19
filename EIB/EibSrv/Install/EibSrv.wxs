@@ -55,8 +55,8 @@
                         <Component Id="XMLLite.DLL" Guid="55B6DF2F-AD20-441f-9C80-562C89EE7A75">
                             <File Id="xmllite.dll" Name="xmllite.dll" Source="$(var.BuildRoot)\xmllite.dll" DiskId="1" Vital="yes" KeyPath="yes" />
                         </Component>
-                        <Component Guid="AB50D148-9AB4-41d9-8F32-CBA5721DA4FD" Id="ToolLicCli">
-                            <File Id="LicCli.EXE" Name="LicCli.exe" Source="LicCli.exe" DiskId="1" Vital="yes" KeyPath="yes" />
+                        <Component Guid="2C2ADF34-CF25-4d6a-9D1E-AFEBB50B9BFB" Id="ToolActivator">
+                            <File Id="Activate.EXE" Name="Activate.exe" Source="Activate.exe" DiskId="1" Vital="yes" KeyPath="yes" />
                         </Component>
                         <Component Guid="10E54A9E-6B54-4575-8462-3BA83C7242F1" Id="ToolSvcInst">
                             <File Id="SvcInst.EXE" Name="SvcInst.exe" Source="SvcInst.exe" DiskId="1" Vital="yes" KeyPath="yes" />
@@ -149,6 +149,7 @@
                                     <File Id="Main.js" LongName="Main.js" Name="MAIN.JS" Source="Examples\Philips Pronto\Main.js" DiskId="1" />
                                     <File Id="Page.js" LongName="Page.js" Name="PAGE.JS" Source="Examples\Philips Pronto\Page.js" DiskId="1" />
                                     <File Id="TemperaturesPage.js" LongName="TemperaturesPage.js" Name="TEMPPAGE.JS" Source="Examples\Philips Pronto\TemperaturesPage.js" DiskId="1" />
+                                    <File Id="Template_TSU9400_v2.xcf" LongName="Template_TSU9400_v2.xcf" Name="TEMP4V2.XCF" Source="Examples\Philips Pronto\Template_TSU9400_v2.xcf" DiskId="1" />
                                     <File Id="Template_TSU9600_v1.xcf" LongName="Template_TSU9600_v1.xcf" Name="TEMP6V1.XCF" Source="Examples\Philips Pronto\Template_TSU9600_v1.xcf" DiskId="1" />
                                     <File Id="Template_TSU9600_v2.xcf" LongName="Template_TSU9600_v2.xcf" Name="TEMP6V2.XCF" Source="Examples\Philips Pronto\Template_TSU9600_v2.xcf" DiskId="1" />
                                 </Component>
@@ -202,7 +203,7 @@
             <ComponentRef Id="RuntimeLib" />
             <ComponentRef Id="MVCLib" />
             <ComponentRef Id="Licence" />
-            <ComponentRef Id="ToolLicCli" />
+            <ComponentRef Id="ToolActivator" />
             <ComponentRef Id="ToolSvcInst" />
             <ComponentRef Id="ToolCheckCfg" />
             <ComponentRef Id="ToolDiscover" />

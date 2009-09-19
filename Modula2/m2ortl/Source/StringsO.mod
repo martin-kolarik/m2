@@ -383,7 +383,7 @@ CLASS IMPLEMENTATION CString;
 		nl := New.Length;
 		i := 0;
 		LOOP
-			i := iIndexOf( ol, PWCHAR( Old.rawData ), i );
+			i := Strings.IndexOfMW( _Len, _Data, ol, PWCHAR( Old.rawData ), i );
 			IF i = -1 THEN
 				RETURN;
 			END;
@@ -411,7 +411,7 @@ CLASS IMPLEMENTATION CString;
 		nl := LENGTH( New );
 		i := 0;
 		LOOP
-			i := iIndexOf( ol, ADR( Old ), i );
+			i := Strings.IndexOfMW( _Len, _Data, ol, ADR( Old ), i );
 			IF i = -1 THEN
 				RETURN;
 			END;
@@ -436,54 +436,25 @@ CLASS IMPLEMENTATION CString;
 	   END;
 	END Trim;
 
-	PRIVATE PROCEDURE CString.iIndexOf( sl : CARDINAL; CONST sa : POINTER TO WCHAR; FromIndex : CARDINAL ) : CARDINAL;
-	VAR
-		i, j, nexti : CARDINAL;
-	BEGIN
-		IF ( sl = 0 ) OR ( _Len = 0 ) THEN
-			RETURN -1;
-		ELSIF sl = 1 THEN
-			// !! // nechat:
-			RETURN Strings.IndexOfW( OA( _Len-1, _Data ), sa^, FromIndex );
-		ELSIF FromIndex+sl > _Len THEN
-			RETURN -1;
-		END;
-		i := FromIndex;
-		LOOP
-			IF i > _Len-sl THEN
-				EXIT;
-			ELSIF _Data@[i<<1]^ = sa^ THEN // have first char, check whole string
-				nexti := 0;
-				j := 1;
-				LOOP
-					IF j >= sl THEN
-						RETURN i;
-					ELSIF _Data@[(i+j)<<1]^ <> sa@[j<<1]^ THEN // not found
-						IF nexti > 0 THEN
-							i := nexti; // use hint
-						END;
-						EXIT;
-					END;
-					IF ( nexti = 0 ) AND ( _Data@[(i+j)<<1]^ = sa^ ) THEN // hint
-						nexti := i+j-1; // after assignment (see "use hint") i is incremented
-					END;
-					INC( j );
-				END; // LOOP
-			END;
-			INC( i );
-		END; // LOOP
-		RETURN -1;
-	END CString.iIndexOf;
-
 	PUBLIC VIRTUAL PROCEDURE IndexOf( CONST S : IString; FromIndex : CARDINAL ) : CARDINAL;
 	BEGIN
-		RETURN iIndexOf( S.Length, PWCHAR( S.rawData ), FromIndex );
+	   RETURN Strings.IndexOfMW( _Len, _Data, S.Length, PWCHAR( S.rawData ), FromIndex );
 	END CString.IndexOf;
 
 	PUBLIC VIRTUAL PROCEDURE IndexOfOA( CONST S : ARRAY OF WCHAR; FromIndex : CARDINAL ) : CARDINAL;
 	BEGIN
-		RETURN iIndexOf( LENGTH( S ), ADR( S ), FromIndex );
+	   RETURN Strings.IndexOfMW( _Len, _Data, LENGTH( S ), ADR( S ), FromIndex );
 	END CString.IndexOfOA;
+
+   PUBLIC VIRTUAL PROCEDURE LastIndexOf( CONST S : IString; IndexFromRight : CARDINAL ) : CARDINAL;
+   BEGIN
+	   RETURN Strings.LastIndexOfMW( _Len, _Data, S.Length, PWCHAR( S.rawData ), IndexFromRight );
+   END LastIndexOf;
+
+   PUBLIC VIRTUAL PROCEDURE LastIndexOfOA( CONST S : ARRAY OF WCHAR; IndexFromRight : CARDINAL ) : CARDINAL;
+   BEGIN
+	   RETURN Strings.LastIndexOfMW( _Len, _Data, LENGTH( S ), ADR( S ), IndexFromRight );
+   END LastIndexOfOA;
 
 	PUBLIC VIRTUAL PROCEDURE StartsWith( CONST S : IString ) : BOOLEAN;
 	BEGIN

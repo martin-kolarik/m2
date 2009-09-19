@@ -16,6 +16,7 @@
     <PropertyGroup>
         <Manufacturer Condition="$(Manufacturer)==''">SmartControl</Manufacturer>
         <DynamicCLibInstallMethod Condition="$(DynamicCLibInstallMethod)==''">Private</DynamicCLibInstallMethod><!-- Private Shared -->
+        <ProductVersion Condition="$(ProductVersion)==''">0.0.0</ProductVersion>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(ComponentType)=='Product'">
