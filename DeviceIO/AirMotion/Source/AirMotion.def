@@ -1,4 +1,4 @@
-DEFINITION MODULE StiebelHP;
+DEFINITION MODULE AirMotion;
 // setpoint process.value control.value
 
 FROM Storage IMPORT
@@ -130,7 +130,7 @@ END CIO;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CStiebelHPDevice( helper.AObject ) IMPLEMENTS device.IDevice;
+CLASS CAirMotionDevice( helper.AObject ) IMPLEMENTS device.IDevice;
 	PRIVATE VAR
 		_NS : CNS;
 		_IO : CIO;
@@ -151,8 +151,8 @@ CLASS CStiebelHPDevice( helper.AObject ) IMPLEMENTS device.IDevice;
 	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
 
 	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
-END CStiebelHPDevice;
+END CAirMotionDevice;
 
 (*---------------------------------------------------------------------------*)
 
-END StiebelHP.
+END AirMotion.

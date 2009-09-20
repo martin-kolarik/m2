@@ -10,7 +10,7 @@
         <LeakChecking>off</LeakChecking>
     </PropertyGroup>
 
-    <PropertyGroup Condition="$(MSBuildProjectName)=='StiebelHP'">
+    <PropertyGroup Condition="$(MSBuildProjectName)=='AirMotion'">
         <Result>Dynamic</Result>
     </PropertyGroup>
 

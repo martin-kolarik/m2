@@ -4,12 +4,12 @@
 
         <comment>CFG errors</comment>
         <string name="_ConfigurationSectionMissing">
-            <item xml:space="preserve" lang="en-US">Section to load configuration of StiebelHP is missing: </item>
-            <item lang="cs-CZ">Sekce pro konfiguraci StiebelHP chybí: </item>
+            <item xml:space="preserve" lang="en-US">Section to load configuration of AirMotion is missing: </item>
+            <item lang="cs-CZ">Sekce pro konfiguraci AirMotion chybí: </item>
         </string>
         <string name="_HostKeyMissing">
-            <item lang="en-US">&quot;host&quot; key (remote RS-232 server) is missing</item>
-            <item lang="cs-CZ">Chybí parameter &quot;host&quot; (vzdálený RS-232 server)</item>
+            <item lang="en-US">&quot;host&quot; key (remote RS-485 server) is missing</item>
+            <item lang="cs-CZ">Chybí parameter &quot;host&quot; (vzdálený RS-485 server)</item>
         </string>
 
     </strings>
