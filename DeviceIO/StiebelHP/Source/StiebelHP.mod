@@ -133,20 +133,24 @@ CLASS IMPLEMENTATION CNS;
 		D := nsitem.TPnsItem( CreateNewItem( L"Data", ns.ntName, iovalue.vtString, 0 ));
 		Root^.AddChild( D );
 
-		I := TPNSI( CreateNewItem( L"Reset",             ns.ntValue, iovalue.vtInteger, 098000H )); D^.AddChild( I ); I^.Multiplier := 1000;
-		I := TPNSI( CreateNewItem( L"OperatingMode",     ns.ntValue, iovalue.vtInteger, 030112H )); D^.AddChild( I ); I^.Multiplier := 1;
-		I := TPNSI( CreateNewItem( L"EquithermicCurve",  ns.ntValue, iovalue.vtFloat,   03010EH )); D^.AddChild( I ); I^.Multiplier := 100;
+		I := TPNSI( CreateNewItem( L"Reset",                         ns.ntValue, iovalue.vtInteger, 098000H )); D^.AddChild( I ); I^.Multiplier := 1000;
+		I := TPNSI( CreateNewItem( L"OperatingMode",                 ns.ntValue, iovalue.vtInteger, 030112H )); D^.AddChild( I ); I^.Multiplier := 1;
+		I := TPNSI( CreateNewItem( L"EquithermicCurve",              ns.ntValue, iovalue.vtFloat,   03010EH )); D^.AddChild( I ); I^.Multiplier := 100;
 		// I := TPNSI( CreateNewItem( L"T setpoint",        iovalue.vtFloat,   030008H )); D^.AddChild( I );
 
-		I := TPNSI( CreateNewItem( L"Inner T",           ns.ntValue, iovalue.vtFloat,   060011H )); D^.AddChild( I );
-		I := TPNSI( CreateNewItem( L"Inner T setpoint",  ns.ntValue, iovalue.vtFloat,   060005H )); D^.AddChild( I );
-		I := TPNSI( CreateNewItem( L"Outer T",           ns.ntValue, iovalue.vtFloat,   03000CH )); D^.AddChild( I );
-		I := TPNSI( CreateNewItem( L"Return T",          ns.ntValue, iovalue.vtFloat,   030016H )); D^.AddChild( I );
-		I := TPNSI( CreateNewItem( L"Return T setpoint", ns.ntValue, iovalue.vtFloat,   060004H )); D^.AddChild( I );
-		I := TPNSI( CreateNewItem( L"Output T",          ns.ntValue, iovalue.vtFloat,   0301D6H )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Inner T",                       ns.ntValue, iovalue.vtFloat,   060011H )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Inner T setpoint",              ns.ntValue, iovalue.vtFloat,   060005H )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Outer T",                       ns.ntValue, iovalue.vtFloat,   03000CH )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Return T",                      ns.ntValue, iovalue.vtFloat,   030016H )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Return T setpoint",             ns.ntValue, iovalue.vtFloat,   060004H )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Output T",                      ns.ntValue, iovalue.vtFloat,   0301D6H )); D^.AddChild( I );
 
-		I := TPNSI( CreateNewItem( L"Water T",           ns.ntValue, iovalue.vtFloat,   03000EH )); D^.AddChild( I );
-		I := TPNSI( CreateNewItem( L"Water T setpoint",  ns.ntValue, iovalue.vtFloat,   030003H )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Water T",                       ns.ntValue, iovalue.vtFloat,   03000EH )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Water T setpoint",              ns.ntValue, iovalue.vtFloat,   030003H )); D^.AddChild( I );
+
+		I := TPNSI( CreateNewItem( L"Pump 1 Service Hours",          ns.ntValue, iovalue.vtInteger, 0301C4H )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Pump 2 Service Hours",          ns.ntValue, iovalue.vtInteger, 0301C5H )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Bivalent Supply Service Hours", ns.ntValue, iovalue.vtInteger, 0301CBH )); D^.AddChild( I );
 	END CreateStructure;
 
 (*---------------------------------------------------------------------------*)
@@ -405,6 +409,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 			LI := 0;
 		END;
 		*)
+
 		IF NOT DataComplete( RxBuffer, OUT TDI, OUT TI, OUT AC ) THEN
 			RETURN FALSE;
 		END;

@@ -174,6 +174,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LoggerFilter", "..\..\Libra
 		Release.AspNetCompiler.Debug = "False"
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AirMotion", "..\..\DeviceIO\AirMotion\AirMotion.vcproj", "{BE7FD61A-CCEE-4156-ADEE-D25EA356A716}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(TextTemplating) = postSolution
 		TextTemplating = 1
@@ -477,6 +483,16 @@ Global
 		{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}.Release|Win32.ActiveCfg = Release|Win32
 		{6B50BA06-C55C-4A26-A8C9-BCF9A9123F57}.Release|Win32.Build.0 = Release|Win32
+		{BE7FD61A-CCEE-4156-ADEE-D25EA356A716}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{BE7FD61A-CCEE-4156-ADEE-D25EA356A716}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{BE7FD61A-CCEE-4156-ADEE-D25EA356A716}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{BE7FD61A-CCEE-4156-ADEE-D25EA356A716}.Debug|Win32.ActiveCfg = Debug|Win32
+		{BE7FD61A-CCEE-4156-ADEE-D25EA356A716}.Debug|Win32.Build.0 = Debug|Win32
+		{BE7FD61A-CCEE-4156-ADEE-D25EA356A716}.Release|Any CPU.ActiveCfg = Release|Win32
+		{BE7FD61A-CCEE-4156-ADEE-D25EA356A716}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{BE7FD61A-CCEE-4156-ADEE-D25EA356A716}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{BE7FD61A-CCEE-4156-ADEE-D25EA356A716}.Release|Win32.ActiveCfg = Release|Win32
+		{BE7FD61A-CCEE-4156-ADEE-D25EA356A716}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

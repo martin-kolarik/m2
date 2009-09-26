@@ -6,10 +6,10 @@
     <PropertyGroup>
         <ComponentType>Product</ComponentType>
 
-        <ProductId>NeNo.DeviceIO.StiebelHP</ProductId>
+        <ProductId>NeNo.DeviceIO.AirMotion</ProductId>
         <ProductVersionMajor>1</ProductVersionMajor>
         <ProductVersionMinor>0</ProductVersionMinor>
-        <FileDescription>Stiebel Heat Pump Data Device IO</FileDescription>
+        <FileDescription>AirMotion HVAC Unit IO</FileDescription>
     </PropertyGroup>
 
     <!-- 2 INCLUDE DEFINITION -->
@@ -20,7 +20,7 @@
     <ItemGroup>
         <Components Include="Modula2\modula2;API\CLib;API\win32" />
         <Components Include="Component\sccore;Library\DeviceIO"/>
-        <Modules Include="StiebelHP;iface"/>
+        <Modules Include="AirMotion;iface"/>
         <Messages Include="Texts"/>
     </ItemGroup>
 
