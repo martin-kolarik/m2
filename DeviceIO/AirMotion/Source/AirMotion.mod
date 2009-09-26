@@ -31,6 +31,7 @@ CONST
    CH_ENQ = 5C;
    CH_ACK = 6C;
    CH_BEL = 7C;
+   CH_F   = C'F';
 
 #save, option( pack => 1 )
 TYPE
@@ -115,6 +116,7 @@ CLASS CPacket; // class is wrapping some foreign data area
       
    PUBLIC PROCEDURE ComputeCheckSum();
    PUBLIC PROCEDURE CheckSum( Packet : TPPacket; Length : CARDINAL ) : BOOLEAN;
+   PUBLIC PROCEDURE Complete( KnownLength : CARDINAL; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyChecksum : BOOLEAN ) : BOOLEAN;
 
    PRIVATE PROCEDURE SetPacketCharacters(); // _Packet MUST not be NIL
 END CPacket;
@@ -394,15 +396,124 @@ CLASS IMPLEMENTATION CPacket;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE ComputeCheckSum();
+   VAR
+      chksum : CARD8;
+      chksumOffset : CARDINAL;
+      i : CARDINAL;
+      p : TPacket;
+      WData : ARRAY [0..1] OF WCHAR;
    BEGIN
+      CASE _PacketType OF
+      | ptData :
+         IF _Packet^.ValueType = vtDigital THEN
+            // chksumOffset := FIELDOFS( TPacket.dChkSum ); -- m2cpp bug
+            chksumOffset := CARDINAL( ADR( p.dChkSum )) - CARDINAL( ADR( p ));
+         ELSE
+            // chksumOffset := FIELDOFS( TPacket.nChkSum ); -- m2cpp bug
+            chksumOffset := CARDINAL( ADR( p.nChkSum )) - CARDINAL( ADR( p ));
+         END;
+      | ptFillBuffer :
+         // chksumOffset := FIELDOFS( TPacket.fChkSum ); -- m2cpp bug
+         chksumOffset := CARDINAL( ADR( p.fChkSum )) - CARDINAL( ADR( p ));
+      ELSE
+         RETURN;
+      END;
+      
+      chksum := 0;
+      FOR i := 0 TO chksumOffset -1 DO
+         INC( chksum, PCARD8( _Packet@[i] )^ );
+      END;
+      Strings.FromINT32W( CARDINAL( chksum ), 16, OUT WData );
+      
+      IF _PacketType = ptFillBuffer THEN
+         _Packet^.fChkSum[0] := CHAR( WData[0] );
+         _Packet^.fChkSum[1] := CHAR( WData[1] );
+      ELSIF _Packet^.ValueType = vtDigital THEN
+         _Packet^.dChkSum[0] := CHAR( WData[0] );
+         _Packet^.dChkSum[1] := CHAR( WData[1] );
+      ELSE
+         _Packet^.nChkSum[0] := CHAR( WData[0] );
+         _Packet^.nChkSum[1] := CHAR( WData[1] );
+      END;
    END ComputeCheckSum;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE CheckSum( Packet : TPPacket; Length : CARDINAL ) : BOOLEAN;
+   VAR
+      chksum : CARD8;
+      chksumToCheck : CARDINAL;
+      chksumOffset : CARDINAL;
+      i : CARDINAL;
+      p : TPacket;
+      WData : ARRAY [0..1] OF WCHAR;
    BEGIN
-      RETURN FALSE;
+      CASE _PacketType OF
+      | ptData :
+         IF _Packet^.ValueType = vtDigital THEN
+            // chksumOffset := FIELDOFS( TPacket.dChkSum ); -- m2cpp bug
+            chksumOffset := CARDINAL( ADR( p.dChkSum )) - CARDINAL( ADR( p ));
+            WData[0] := WCHAR( _Packet^.dChkSum[0] );
+            WData[1] := WCHAR( _Packet^.dChkSum[1] );
+         ELSE
+            // chksumOffset := FIELDOFS( TPacket.nChkSum ); -- m2cpp bug
+            chksumOffset := CARDINAL( ADR( p.nChkSum )) - CARDINAL( ADR( p ));
+            WData[0] := WCHAR( _Packet^.nChkSum[0] );
+            WData[1] := WCHAR( _Packet^.nChkSum[1] );
+         END;
+      | ptFillBuffer :
+         // chksumOffset := FIELDOFS( TPacket.fChkSum ); -- m2cpp bug
+         chksumOffset := CARDINAL( ADR( p.fChkSum )) - CARDINAL( ADR( p ));
+         WData[0] := WCHAR( _Packet^.fChkSum[0] );
+         WData[1] := WCHAR( _Packet^.fChkSum[1] );
+      ELSE
+         RETURN TRUE;
+      END;
+
+      Strings.ToINT32W( WData, 16, OUT chksumToCheck );
+      
+      chksum := 0;
+      FOR i := 0 TO chksumOffset -1 DO
+         INC( chksum, PCARD8( _Packet@[i] )^ );
+      END;
+
+      RETURN CARD8( chksumToCheck ) = chksum;
    END CheckSum;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Complete( KnownLength : CARDINAL; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyChecksum : BOOLEAN ) : BOOLEAN;
+   VAR
+      complete : BOOLEAN;
+   BEGIN
+      IF ( _Packet = NIL ) OR ( KnownLength < 1 ) THEN
+         RETURN FALSE;
+      END;
+
+      CASE _PacketType OF
+      //-----
+      | ptData :
+         IF KnownLength < FIELDOFS( TPacket.ValueType ) + SIZE( TPacket.ValueType ) THEN
+            RETURN FALSE;
+         ELSIF _Packet^.ValueType = vtDigital THEN
+            FirstIndexAfterData := FIELDOFS( TPacket.dChkSum );
+            FirstIndexAfterFrame := FirstIndexAfterData + SIZE( TPacket.dChkSum );
+         ELSE
+            FirstIndexAfterData := FIELDOFS( TPacket.nChkSum );
+            FirstIndexAfterFrame := FirstIndexAfterData + SIZE( TPacket.nChkSum );
+         END;
+      //-----
+      | ptNoData, ptACK, ptNAK :
+         FirstIndexAfterData := 1;
+         FirstIndexAfterFrame := 1;
+         complete := TRUE;
+      //-----
+      ELSE
+         RETURN FALSE;
+      END;
+
+      complete := KnownLength >= FirstIndexAfterFrame;
+   END Complete;
 
 (*---------------------------------------------------------------------------*)
 
@@ -415,6 +526,7 @@ CLASS IMPLEMENTATION CPacket;
          _Packet^.dSTX := CH_STX;
       | ptFillBuffer :
          _Packet^.fSTX := CH_STX;
+         _Packet^.F := CH_F;
       | ptNoData :
          _Packet^.NUL := CH_NUL;
       | ptACK :
@@ -454,31 +566,18 @@ CLASS IMPLEMENTATION CNS;
    INTERNAL VIRTUAL PROCEDURE CreateStructure();
    VAR
      D : nsitem.TPnsItem;
-     I : TPNSI;
+     I : ns.TPnsItem;
    BEGIN
       Root^.AddChild( CreateNewItem( L"Control", ns.ntName, iovalue.vtString, 0 ));
 
       D := nsitem.TPnsItem( CreateNewItem( L"Data", ns.ntName, iovalue.vtString, 0 ));
       Root^.AddChild( D );
 
-      I := TPNSI( CreateNewItem( L"Reset",                         ns.ntValue, iovalue.vtInteger, 098000H )); D^.AddChild( I ); I^.Multiplier := 1000;
-      I := TPNSI( CreateNewItem( L"OperatingMode",                 ns.ntValue, iovalue.vtInteger, 030112H )); D^.AddChild( I ); I^.Multiplier := 1;
-      I := TPNSI( CreateNewItem( L"EquithermicCurve",              ns.ntValue, iovalue.vtFloat,   03010EH )); D^.AddChild( I ); I^.Multiplier := 100;
-      // I := TPNSI( CreateNewItem( L"T setpoint",        iovalue.vtFloat,   030008H )); D^.AddChild( I );
+      I := CreateNewItem( L"Inner T",           ns.ntValue, iovalue.vtFloat, 060011H ); D^.AddChild( I );
+      I := CreateNewItem( L"Inner T setpoint",  ns.ntValue, iovalue.vtFloat, 060005H ); D^.AddChild( I );
+      I := CreateNewItem( L"Return T",          ns.ntValue, iovalue.vtFloat, 030016H ); D^.AddChild( I );
+      I := CreateNewItem( L"Return T setpoint", ns.ntValue, iovalue.vtFloat, 060004H ); D^.AddChild( I );
 
-      I := TPNSI( CreateNewItem( L"Inner T",                       ns.ntValue, iovalue.vtFloat,   060011H )); D^.AddChild( I );
-      I := TPNSI( CreateNewItem( L"Inner T setpoint",              ns.ntValue, iovalue.vtFloat,   060005H )); D^.AddChild( I );
-      I := TPNSI( CreateNewItem( L"Outer T",                       ns.ntValue, iovalue.vtFloat,   03000CH )); D^.AddChild( I );
-      I := TPNSI( CreateNewItem( L"Return T",                      ns.ntValue, iovalue.vtFloat,   030016H )); D^.AddChild( I );
-      I := TPNSI( CreateNewItem( L"Return T setpoint",             ns.ntValue, iovalue.vtFloat,   060004H )); D^.AddChild( I );
-      I := TPNSI( CreateNewItem( L"Output T",                      ns.ntValue, iovalue.vtFloat,   0301D6H )); D^.AddChild( I );
-
-      I := TPNSI( CreateNewItem( L"Water T",                       ns.ntValue, iovalue.vtFloat,   03000EH )); D^.AddChild( I );
-      I := TPNSI( CreateNewItem( L"Water T setpoint",              ns.ntValue, iovalue.vtFloat,   030003H )); D^.AddChild( I );
-
-      I := TPNSI( CreateNewItem( L"Pump 1 Service Hours",          ns.ntValue, iovalue.vtInteger, 0301C4H )); D^.AddChild( I );
-      I := TPNSI( CreateNewItem( L"Pump 2 Service Hours",          ns.ntValue, iovalue.vtInteger, 0301C5H )); D^.AddChild( I );
-      I := TPNSI( CreateNewItem( L"Bivalent Supply Service Hours", ns.ntValue, iovalue.vtInteger, 0301CBH )); D^.AddChild( I );
    END CreateStructure;
 
 (*---------------------------------------------------------------------------*)
@@ -487,7 +586,7 @@ CLASS IMPLEMENTATION CNS;
    VAR
       R : nsitem.TPnsItem;
    BEGIN
-      NEW( TPNSI( R ))^.Init( Name, ConstNames, NType, VType, Data );
+      NEW( R )^.Init( Name, ConstNames, NType, VType, Data );
       RETURN R;
    END CreateNewItem;
 
@@ -562,43 +661,48 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 (*---------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE DataComplete( CONST Data : StorageO.AMemoryBuffer; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyCheckSum : BOOLEAN ) : BOOLEAN;
+   VAR
+      Packet : CPacket;
    BEGIN
-      IF Data.Length < SIZE( TPacket ) THEN
+      IF Data.Length < 1 THEN
          RETURN FALSE;
+      ELSE
+         Packet.ReceivedPacket := Data.Data;
+         RETURN Packet.Complete( Data.Length, OUT FirstIndexAfterData, OUT FirstIndexAfterData, OUT ApplyCheckSum );
       END;
-      FirstIndexAfterData := SIZE( TPacket );
-      FirstIndexAfterFrame := SIZE( TPacket );
-      ApplyCheckSum := TRUE;
-      RETURN TRUE;
    END DataComplete;
 
 (*---------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE TestChkSum( CONST Data : StorageO.AMemoryBuffer ) : BOOLEAN;
    VAR
-      CRC : CARD16 := 0;
-      i : CARDINAL;
-      l : CARDINAL := Data.Length-2;
+      Packet : CPacket;
    BEGIN
-      FOR i := 0 TO l-1 DO // omit last two bytes
-         INC( CRC, PCARD8( Data.Data@[i] )^ );
-      END; // FOR
-      RETURN TPBE( Data.Data@[l] )^.LE = CRC;
+      Packet.ReceivedPacket := Data.Data;
+      RETURN Packet.TestChkSum();
    END TestChkSum;
 
 (*---------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE OnRx( Result : Sync.TAsyncResult; CONST Data : StorageO.AMemoryBuffer );
+   VAR
+      Packet : CPacket;
    BEGIN
       StopTimeout( REF _TxTimeoutHandle );
       IF Result <> Sync.arCompleted THEN
          StopTimeout( REF _RxTimeoutHandle );
          PIO^.OnRx( Result, NIL );
-      ELSIF PLONGWORD( Data.Data )^ = 055555555H THEN
-         PIO^.OnTxCON( Sync.arCompleted );
       ELSE
-         StopTimeout( REF _RxTimeoutHandle );
-         PIO^.OnRx( Sync.arCompleted, TPPacket( Data.Data ));
+         Packet.ReceivedPacket := Data.Data;
+         CASE Packet.Type OF
+         | ptACK :
+            PIO^.OnTxCON( Sync.arCompleted );
+         | ptNAK :
+            PIO^.OnTxCON( Sync.arAbort );
+         ELSE
+            StopTimeout( REF _RxTimeoutHandle );
+            PIO^.OnRx( Sync.arCompleted, TPPacket( Data.Data ));
+         END;
       END;
    END OnRx;
 
@@ -606,14 +710,10 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    INTERNAL VIRTUAL PROCEDURE AddChkSum( REF Data : StorageO.AMemoryBuffer );
    VAR
-      CRC : CARD16 := 0;
-      i : CARDINAL;
-      l : CARDINAL := Data.Length-2;
+      Packet : CPacket;
    BEGIN
-      FOR i := 0 TO l-1 DO // omit last two bytes
-         INC( CRC, PCARD8( Data.Data@[i] )^ );
-      END; // FOR
-      TPBE( Data.Data@[l] )^.LE := CRC;
+      Packet.PacketToSend := Data.Data;
+      Packet.ComputeCheckSum();
    END AddChkSum;
 
 (*---------------------------------------------------------------------------*)
@@ -715,7 +815,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       LDI, LI : CARDINAL := 0; // TODO
       LRxBuffer : StorageO.CMemoryBuffer;
       TDI, TI : CARDINAL;
-      AC : BOOLEAN; // apply checksum
+      ApplyChecksum : BOOLEAN; // apply checksum
       ChkSumOK : BOOLEAN := TRUE;
    BEGIN
       IF Result <> Sync.arCompleted THEN
@@ -738,11 +838,11 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       END;
       *)
 
-      IF NOT DataComplete( RxBuffer, OUT TDI, OUT TI, OUT AC ) THEN
+      IF NOT DataComplete( RxBuffer, OUT TDI, OUT TI, OUT ApplyChecksum ) THEN
          RETURN FALSE;
       END;
 
-      IF AC THEN
+      IF ApplyChecksum THEN
          RxBuffer.Subbuffer( LI, TI - LI, OUT LRxBuffer );
          ChkSumOK := TestChkSum( LRxBuffer );
       END;

@@ -8,7 +8,7 @@ FROM Storage IMPORT
 IMPORT
    device,
    helper,
-   StiebelHP;
+   AirMotion;
 
 (*===========================================================================*)
 
@@ -73,7 +73,7 @@ CLASS IMPLEMENTATION CCreator;
       IF NOT EQUALS( QName, nDeviceIO ) THEN
          RETURN iobject.lrClassNotFound;
       END;
-      Object := ADR( NEW( StiebelHP.CStiebelHPDevice )^.IDevice );
+      Object := ADR( NEW( AirMotion.CAirMotionDevice )^.IDevice );
       RETURN iobject.lrSuccess;
    END OnFactory;
 
