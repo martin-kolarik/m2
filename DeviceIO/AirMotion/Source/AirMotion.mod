@@ -115,7 +115,7 @@ CLASS CPacket; // class is wrapping some foreign data area
       Length : CARDINAL;
       
    PUBLIC PROCEDURE ComputeCheckSum();
-   PUBLIC PROCEDURE CheckSum( Packet : TPPacket; Length : CARDINAL ) : BOOLEAN;
+   PUBLIC PROCEDURE CheckSum() : BOOLEAN;
    PUBLIC PROCEDURE Complete( KnownLength : CARDINAL; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyChecksum : BOOLEAN ) : BOOLEAN;
 
    PRIVATE PROCEDURE SetPacketCharacters(); // _Packet MUST not be NIL
@@ -205,13 +205,14 @@ CLASS IMPLEMENTATION CPacket;
    VAR
       b : BOOLEAN;
       IValue : INTEGER := INTEGER( Value * 10.0 + 0.5 );
-      WData : ARRAY [0..3] OF WCHAR := L"0000";
+      WData : ARRAY [0..3] OF WCHAR;
    BEGIN
       _PacketType := ptData;
       IF _Packet = NIL THEN
          RETURN;
       END;
       _Packet^.ValueType := vtAnalog;
+      WData := L"0000";
 
       IF IValue < 16 THEN
          b := Strings.FromINT32W( IValue, 16, OUT OA( 0, ADR( WData[3] )));
@@ -262,13 +263,14 @@ CLASS IMPLEMENTATION CPacket;
    PUBLIC PROPERTY Integer SET( IValue : INTEGER );
    VAR
       b : BOOLEAN;
-      WData : ARRAY [0..3] OF WCHAR := L"0000";
+      WData : ARRAY [0..3] OF WCHAR;
    BEGIN
       _PacketType := ptData;
       IF _Packet = NIL THEN
          RETURN;
       END;
       _Packet^.ValueType := vtInteger;
+      WData := L"0000";
 
       IF IValue < 16 THEN
          b := Strings.FromINT32W( IValue, 16, OUT OA( 0, ADR( WData[3] )));
@@ -400,21 +402,17 @@ CLASS IMPLEMENTATION CPacket;
       chksum : CARD8;
       chksumOffset : CARDINAL;
       i : CARDINAL;
-      p : TPacket;
       WData : ARRAY [0..1] OF WCHAR;
    BEGIN
       CASE _PacketType OF
       | ptData :
          IF _Packet^.ValueType = vtDigital THEN
-            // chksumOffset := FIELDOFS( TPacket.dChkSum ); -- m2cpp bug
-            chksumOffset := CARDINAL( ADR( p.dChkSum )) - CARDINAL( ADR( p ));
+            chksumOffset := FIELDOFS( TPacket.dChkSum );
          ELSE
-            // chksumOffset := FIELDOFS( TPacket.nChkSum ); -- m2cpp bug
-            chksumOffset := CARDINAL( ADR( p.nChkSum )) - CARDINAL( ADR( p ));
+            chksumOffset := FIELDOFS( TPacket.nChkSum );
          END;
       | ptFillBuffer :
-         // chksumOffset := FIELDOFS( TPacket.fChkSum ); -- m2cpp bug
-         chksumOffset := CARDINAL( ADR( p.fChkSum )) - CARDINAL( ADR( p ));
+         chksumOffset := FIELDOFS( TPacket.fChkSum );
       ELSE
          RETURN;
       END;
@@ -439,31 +437,27 @@ CLASS IMPLEMENTATION CPacket;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CheckSum( Packet : TPPacket; Length : CARDINAL ) : BOOLEAN;
+   PUBLIC PROCEDURE CheckSum() : BOOLEAN;
    VAR
       chksum : CARD8;
       chksumToCheck : CARDINAL;
       chksumOffset : CARDINAL;
       i : CARDINAL;
-      p : TPacket;
       WData : ARRAY [0..1] OF WCHAR;
    BEGIN
       CASE _PacketType OF
       | ptData :
          IF _Packet^.ValueType = vtDigital THEN
-            // chksumOffset := FIELDOFS( TPacket.dChkSum ); -- m2cpp bug
-            chksumOffset := CARDINAL( ADR( p.dChkSum )) - CARDINAL( ADR( p ));
+            chksumOffset := FIELDOFS( TPacket.dChkSum );
             WData[0] := WCHAR( _Packet^.dChkSum[0] );
             WData[1] := WCHAR( _Packet^.dChkSum[1] );
          ELSE
-            // chksumOffset := FIELDOFS( TPacket.nChkSum ); -- m2cpp bug
-            chksumOffset := CARDINAL( ADR( p.nChkSum )) - CARDINAL( ADR( p ));
+            chksumOffset := FIELDOFS( TPacket.nChkSum );
             WData[0] := WCHAR( _Packet^.nChkSum[0] );
             WData[1] := WCHAR( _Packet^.nChkSum[1] );
          END;
       | ptFillBuffer :
-         // chksumOffset := FIELDOFS( TPacket.fChkSum ); -- m2cpp bug
-         chksumOffset := CARDINAL( ADR( p.fChkSum )) - CARDINAL( ADR( p ));
+         chksumOffset := FIELDOFS( TPacket.fChkSum );
          WData[0] := WCHAR( _Packet^.fChkSum[0] );
          WData[1] := WCHAR( _Packet^.fChkSum[1] );
       ELSE
@@ -483,8 +477,6 @@ CLASS IMPLEMENTATION CPacket;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Complete( KnownLength : CARDINAL; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyChecksum : BOOLEAN ) : BOOLEAN;
-   VAR
-      complete : BOOLEAN;
    BEGIN
       IF ( _Packet = NIL ) OR ( KnownLength < 1 ) THEN
          RETURN FALSE;
@@ -506,13 +498,12 @@ CLASS IMPLEMENTATION CPacket;
       | ptNoData, ptACK, ptNAK :
          FirstIndexAfterData := 1;
          FirstIndexAfterFrame := 1;
-         complete := TRUE;
       //-----
       ELSE
          RETURN FALSE;
       END;
 
-      complete := KnownLength >= FirstIndexAfterFrame;
+      RETURN KnownLength >= FirstIndexAfterFrame;
    END Complete;
 
 (*---------------------------------------------------------------------------*)
@@ -662,13 +653,13 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    INTERNAL VIRTUAL PROCEDURE DataComplete( CONST Data : StorageO.AMemoryBuffer; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyCheckSum : BOOLEAN ) : BOOLEAN;
    VAR
-      Packet : CPacket;
+      Wrapper : CPacket;
    BEGIN
       IF Data.Length < 1 THEN
          RETURN FALSE;
       ELSE
-         Packet.ReceivedPacket := Data.Data;
-         RETURN Packet.Complete( Data.Length, OUT FirstIndexAfterData, OUT FirstIndexAfterData, OUT ApplyCheckSum );
+         Wrapper.ReceivedPacket := Data.Data;
+         RETURN Wrapper.Complete( Data.Length, OUT FirstIndexAfterData, OUT FirstIndexAfterData, OUT ApplyCheckSum );
       END;
    END DataComplete;
 
@@ -676,29 +667,29 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    INTERNAL VIRTUAL PROCEDURE TestChkSum( CONST Data : StorageO.AMemoryBuffer ) : BOOLEAN;
    VAR
-      Packet : CPacket;
+      Wrapper : CPacket;
    BEGIN
-      Packet.ReceivedPacket := Data.Data;
-      RETURN Packet.TestChkSum();
+      Wrapper.ReceivedPacket := Data.Data;
+      RETURN Wrapper.CheckSum();
    END TestChkSum;
 
 (*---------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE OnRx( Result : Sync.TAsyncResult; CONST Data : StorageO.AMemoryBuffer );
    VAR
-      Packet : CPacket;
+      Wrapper : CPacket;
    BEGIN
       StopTimeout( REF _TxTimeoutHandle );
       IF Result <> Sync.arCompleted THEN
          StopTimeout( REF _RxTimeoutHandle );
          PIO^.OnRx( Result, NIL );
       ELSE
-         Packet.ReceivedPacket := Data.Data;
-         CASE Packet.Type OF
+         Wrapper.ReceivedPacket := Data.Data;
+         CASE Wrapper.PacketType OF
          | ptACK :
             PIO^.OnTxCON( Sync.arCompleted );
          | ptNAK :
-            PIO^.OnTxCON( Sync.arAbort );
+            PIO^.OnTxCON( Sync.arAborted );
          ELSE
             StopTimeout( REF _RxTimeoutHandle );
             PIO^.OnRx( Sync.arCompleted, TPPacket( Data.Data ));
@@ -710,10 +701,10 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    INTERNAL VIRTUAL PROCEDURE AddChkSum( REF Data : StorageO.AMemoryBuffer );
    VAR
-      Packet : CPacket;
+      Wrapper : CPacket;
    BEGIN
-      Packet.PacketToSend := Data.Data;
-      Packet.ComputeCheckSum();
+      Wrapper.PacketToSend := Data.Data;
+      Wrapper.ComputeCheckSum();
    END AddChkSum;
 
 (*---------------------------------------------------------------------------*)
@@ -965,38 +956,30 @@ CLASS IMPLEMENTATION CIO;
    PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Delegate : io.TPDataInfo ) : Sync.TAsyncResult;
    VAR
       Packet : TPacket;
+      Wrapper : CPacket;
    BEGIN
       IF _Pending <> IOO.dirUnknown THEN
          RETURN Sync.arAlreadyPending;
       END;
-
+      
       _Pending := Direction;
       _Item := Item;
       _Callback := Delegate;
-
-      Packet.Address := 0; // m2cpp error
-      WITH Packet DO
-         SenderType := dtController;
-         Address := 0;
-         ReceiverType := TDeviceType( LOPTRLONGWORD( nsitem.TPnsItem( Item )^.Data ) >> 16 );
-         IF Direction = IOO.dirWrite THEN
-            Telegram := ttSet;
-         ELSE
-            Telegram := ttGet;
-         END;
-         D1 := 0; // ??
-         D2 := 0FAH; // ??
-         PointNumber.LE := LOWORD( LOPTRLONGWORD( nsitem.TPnsItem( Item )^.Data ));
-         IF Direction = IOO.dirWrite THEN
-            IF TPNSI( Item )^.Multiplier = 1000 THEN
-               D2 := 0FBH; // ??
-               wValue.LE := 0;
-            ELSIF TPNSI( Item )^.Multiplier = 1 THEN
-               bValue := BYTE( Value.Integer );
-            ELSE
-               wValue.LE := WORD( Value.Float * LONGREAL( TPNSI( Item )^.Multiplier ));
-            END;
-         END;
+      
+      Packet.FIRST := 0C;
+      Wrapper.PacketToSend := ADR( Packet );
+      
+      Wrapper.PacketType := ptData;
+      Wrapper.Address := 0; // TODO -- get it from configuration
+      CASE TValueType( LOPTRLONGWORD( nsitem.TPnsItem( Item )^.Data )) OF
+      | vtAnalog :
+         Wrapper.Analog := Value.Float;
+      | vtInteger :
+         Wrapper.Integer := Value.Integer;
+      | vtDigital :
+         Wrapper.Digital := Value.Boolean;
+      ELSE
+         ASSERTLOG( FALSE );
       END;
       
       DeviceCommunicator.Tx( Packet, FALSE, 1, 150, 500 );
@@ -1017,6 +1000,7 @@ CLASS IMPLEMENTATION CIO;
    LOCAL PROCEDURE OnRx( Result : Sync.TAsyncResult; PPacket : TPPacket );
    VAR
       V : iovalue.Value;
+      Wrapper : CPacket;
    BEGIN
       IF _AbortFlag THEN
          _AbortFlag := FALSE;
@@ -1031,10 +1015,16 @@ CLASS IMPLEMENTATION CIO;
          _Pending := IOO.dirUnknown;
       END;
       IF Result = Sync.arCompleted THEN
-         IF _Item^.Multiplier = 1 THEN
-            V.Float := LONGREAL( PPacket^.bValue );
+         Wrapper.ReceivedPacket := PPacket;
+         CASE TValueType( LOPTRLONGWORD( _Item^.Data )) OF
+         | vtAnalog :
+            V.Float := Wrapper.Analog;
+         | vtInteger :
+            V.Integer := Wrapper.Integer;
+         | vtDigital :
+            V.Boolean := Wrapper.Digital;
          ELSE
-            V.Float := LONGREAL( PPacket^.wValue.LE ) / LONGREAL( _Item^.Multiplier );
+            ASSERTLOG( FALSE );
          END;
          _Callback^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ), OA( 0, ADR( V )));
       ELSIF _Pending = IOO.dirWrite THEN

@@ -102,7 +102,7 @@ CLASS CIO( io.AItemizedIO );
 	PRIVATE VAR
 		_AbortFlag : BOOLEAN;
 		_Pending : IOO.TDirection;
-		_Item : TPNSI;
+		_Item : nsitem.TPnsItem;
 		_Callback : io.TPDataInfo;
 
 	PUBLIC PROCEDURE Dispose();
