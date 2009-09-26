@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="windows-1250"?>
+<VisualStudioProject
+	ProjectType="Visual C++"
+	Version="8,00"
+	Name="AirMotion"
+	ProjectGUID="{BE7FD61A-CCEE-4156-ADEE-D25EA356A716}"
+	Keyword="MakeFileProj"
+	>
+	<Platforms>
+		<Platform
+			Name="Win32"
+		/>
+	</Platforms>
+	<ToolFiles>
+	</ToolFiles>
+	<Configurations>
+		<Configuration
+			Name="Debug|Win32"
+			OutputDirectory="~$(ConfigurationName)"
+			IntermediateDirectory="~Build"
+			ConfigurationType="0"
+			BuildLogFile="$(OutDir)\BuildLog.htm"
+			>
+			<Tool
+				Name="VCNMakeTool"
+				BuildCommandLine="msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /p:ConfigurationName=$(ConfigurationName)"
+				ReBuildCommandLine="msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /t:Rebuild /p:ConfigurationName=$(ConfigurationName)"
+				CleanCommandLine="msbuild /nologo /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:ConfigurationName=$(ConfigurationName)"
+				Output="AirMotion.exe"
+				PreprocessorDefinitions="WIN32;_DEBUG"
+				IncludeSearchPath=""
+				ForcedIncludes=""
+				AssemblySearchPath=""
+				ForcedUsingAssemblies=""
+				CompileAsManaged=""
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release|Win32"
+			OutputDirectory="$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
+			ConfigurationType="0"
+			>
+			<Tool
+				Name="VCNMakeTool"
+				BuildCommandLine=""
+				ReBuildCommandLine=""
+				CleanCommandLine=""
+				Output="AirMotion.exe"
+				PreprocessorDefinitions="WIN32;NDEBUG"
+				IncludeSearchPath=""
+				ForcedIncludes=""
+				AssemblySearchPath=""
+				ForcedUsingAssemblies=""
+				CompileAsManaged=""
+			/>
+		</Configuration>
+	</Configurations>
+	<References>
+	</References>
+	<Files>
+		<Filter
+			Name="Source Files"
+			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
+			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
+			>
+			<File
+				RelativePath=".\Source\AirMotion.mod"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\iface.mod"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Header Files"
+			Filter="h;hpp;hxx;hm;inl;inc;xsd"
+			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
+			>
+			<File
+				RelativePath=".\Source\AirMotion.def"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\iface.def"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Resource Files"
+			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
+			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
+			>
+			<File
+				RelativePath=".\Source\Texts.xrs"
+				>
+			</File>
+		</Filter>
+		<File
+			RelativePath=".\AirMotion.definition.proj"
+			>
+		</File>
+		<File
+			RelativePath=".\AirMotion.proj"
+			>
+		</File>
+	</Files>
+	<Globals>
+	</Globals>
+</VisualStudioProject>

@@ -118,7 +118,7 @@ TYPE
 		ltEducational,
 		ltTrial // without activation runs as DEMO not as unregistered
 	);
-	TLicenceType = SET OF TLicenceTypeItem;
+	TLicenceType = SET OF TLicenceTypeItem; // the type is stored on 8 bits in serial number, there must not be more than 8 bit occupied !!
 
 CLASS CLicence( CLockedItem );
    PRIVATE VAR
