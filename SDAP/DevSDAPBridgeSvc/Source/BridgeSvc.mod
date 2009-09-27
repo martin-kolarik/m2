@@ -216,8 +216,6 @@ CLASS IMPLEMENTATION CBridgeSvc;
          DISPOSE( Bridge );
       END;
 
-      ConfigLogger.BufferClear();      
-
       // do this sooner than scinit.Cleanup, because scinit.Cleanup is called from different thread
       netinit.Cleanup();
 
