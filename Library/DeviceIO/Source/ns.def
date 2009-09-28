@@ -39,6 +39,7 @@ ABSTRACT CLASS AnsItem;
       Name : StringsO.TPString;
       NameType : TNameType;
       ValueType : iovalue.TValueType;
+   PUBLIC ABSTRACT PROPERTY
       Data : PTR; // for user data or references
 
    PUBLIC ABSTRACT READONLY PROPERTY

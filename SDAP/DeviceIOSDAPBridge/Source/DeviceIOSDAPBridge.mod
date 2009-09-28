@@ -112,7 +112,7 @@ CLASS IMPLEMENTATION ABridge;
 
                cb.Reset();
                Result := item^.Device^.IO()^.IOh( IOO.dirRead, item^.Hash, REF value, ADR( cb ));
-               IF Result <> Sync.arPending THEN
+               IF ( Result <> Sync.arCompleted ) AND ( Result <> Sync.arPending ) THEN
                   s.FromOA( L"Error in IOh read: " );
                   s.Append( item^.SDAPName );
                   _Logger.LogSR( log.dldTrace, L"IO", OA( s.Length-1, s.rawData ), Result );

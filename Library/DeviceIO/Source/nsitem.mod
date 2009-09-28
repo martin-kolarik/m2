@@ -41,6 +41,13 @@ CLASS IMPLEMENTATION CnsWrapper;
    
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROPERTY Data SET( Value : PTR );
+   BEGIN
+      _NS^.Root^.Data := Value;
+   END Data;
+   
+(*---------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROPERTY Count GET : CARDINAL;
    BEGIN
       RETURN _NS^.Root^.Count;
@@ -101,25 +108,42 @@ TYPE
 
 CLASS IMPLEMENTATION CnsItem;
 
+(*---------------------------------------------------------------------------*)
+
    VIRTUAL PROPERTY Name GET : StringsO.TPString;
    BEGIN
       RETURN ADR( _Name );
    END Name;
+
+(*---------------------------------------------------------------------------*)
 
    VIRTUAL PROPERTY NameType GET : ns.TNameType;
    BEGIN
       RETURN _NameType;
    END NameType;
 
+(*---------------------------------------------------------------------------*)
+
    VIRTUAL PROPERTY ValueType GET : iovalue.TValueType;
    BEGIN
       RETURN _ValueType;
    END ValueType;
 
+(*---------------------------------------------------------------------------*)
+
    VIRTUAL PROPERTY Data GET : PTR;
    BEGIN
       RETURN _Data;
    END Data;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Data SET( Value : PTR );
+   BEGIN
+      _Data := Value;
+   END Data;
+   
+(*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Init( CONST SingleChildName : ARRAY OF WCHAR; ConstName : BOOLEAN; NameType : ns.TNameType; ValueType : iovalue.TValueType; Data : PTR );
    BEGIN
@@ -128,6 +152,8 @@ CLASS IMPLEMENTATION CnsItem;
       _ValueType := ValueType;
       _Data := Data;
    END Init;
+
+(*---------------------------------------------------------------------------*)
 
 BEGIN
    _NameType := ns.ntName;

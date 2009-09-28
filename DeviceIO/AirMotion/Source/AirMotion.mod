@@ -33,9 +33,10 @@ CONST
    CH_BEL = 7C;
    CH_F   = C'F';
    
-   CH_DIGITAL = C'D';
-   CH_INTEGER = C'I';
-   CH_ANALOG  = C'A';
+   CH_DIGITAL     = C'D';
+   CH_INTEGER     = C'I';
+   CH_ANALOG      = C'A';
+   CH_FILL_BUFFER ::= CH_F;
    
    POLL_PERIOD_DEFAULT = 15000;
 
@@ -51,7 +52,7 @@ TYPE
       ptNAK
    );
    
-   TValueType = (
+   TValueType = CARD8( // CARD8 due to presence in TNSPTR
       vtAnalog,
       vtInteger,
       vtDigital
@@ -135,8 +136,8 @@ CLASS CPacket; // class is wrapping some foreign data area
       Digital : BOOLEAN;
       
    PUBLIC WRITEONLY PROPERTY
-      PacketToSend : TPPacket;
-      ReceivedPacket : TPPacket;
+      EmptyPacket : TPPacket;
+      FilledPacket : TPPacket;
 
    PUBLIC READONLY PROPERTY
       ValueType : TValueType;
@@ -237,17 +238,17 @@ CLASS IMPLEMENTATION CPacket;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY PacketToSend SET( Value : TPPacket );
+   PUBLIC PROPERTY EmptyPacket SET( Value : TPPacket );
    BEGIN
       _Packet := Value;
       IF _PacketType <> ptUnknown THEN
          SetPacketCharacters();
       END;
-   END PacketToSend;
+   END EmptyPacket;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY ReceivedPacket SET( Value : TPPacket );
+   PUBLIC PROPERTY FilledPacket SET( Value : TPPacket );
    BEGIN
       _Packet := Value;
       IF _Packet = NIL THEN
@@ -256,7 +257,11 @@ CLASS IMPLEMENTATION CPacket;
       CASE _Packet^.FIRST OF
       // | CH_ENX : // ptDataRequest cannot be received
       | CH_STX :
-         _PacketType := ptData; // ptFill data cannot be received
+         IF _Packet^.ValueType = CH_FILL_BUFFER THEN
+            _PacketType := ptFillBuffer;
+         ELSE
+            _PacketType := ptData;
+         END;
       | CH_NUL :
          _PacketType := ptNoData;
       | CH_ACK :
@@ -264,7 +269,7 @@ CLASS IMPLEMENTATION CPacket;
       | CH_BEL :
          _PacketType := ptNAK;
       END;
-   END ReceivedPacket;
+   END FilledPacket;
 
 (*---------------------------------------------------------------------------*)
 
@@ -497,7 +502,12 @@ CLASS IMPLEMENTATION CPacket;
       FOR i := 0 TO chksumOffset -1 DO
          INC( chksum, PCARD8( _Packet@[i] )^ );
       END;
-      Strings.FromINT32W( CARDINAL( chksum ), 16, OUT WData );
+      IF chksum < 10H THEN
+         WData[0] := L'0';
+      ELSE
+         WData[0] := WCHAR( ORD( L'0' ) + chksum DIV 10H );
+      END;
+      WData[1] := WCHAR( ORD( L'0' ) + chksum AND 0FH );
       
       IF _PacketType = ptFillBuffer THEN
          _Packet^.fChkSum[0] := CHAR( WData[0] );
@@ -591,9 +601,11 @@ CLASS IMPLEMENTATION CPacket;
          _Packet^.ENQ := CH_ENQ;
       | ptData  :
          _Packet^.dSTX := CH_STX;
+         _Packet^.dETX := CH_ETX;
       | ptFillBuffer :
          _Packet^.fSTX := CH_STX;
          _Packet^.F := CH_F;
+         _Packet^.fETX := CH_ETX;
       | ptNoData :
          _Packet^.NUL := CH_NUL;
       | ptACK :
@@ -903,7 +915,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
       END;
    
       Packet.FIRST := 0C;
-      Wrapper.PacketToSend := ADR( Packet );
+      Wrapper.EmptyPacket := ADR( Packet );
       
       Wrapper.PacketType := ptData;
       Wrapper.ValueIndex := GetValueIndexFromPtr( _ItemToWrite^.Data );
@@ -967,11 +979,15 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    BEGIN
       IF PoolHandle = _TxTimeoutHandle THEN
+         _TxTimeoutHandle := NIL;
          Logger.LogS( log.dldTrace, L"", L"Tx timeout" );
          Automaton^.EventTimeout();
+
       ELSIF PoolHandle = _RxTimeoutHandle THEN
+         _RxTimeoutHandle := NIL;
          Logger.LogS( log.dldTrace, L"", L"Rx timeout" );
          Automaton^.EventTimeout();
+
       END;
    END OnTimeout;
 
@@ -983,10 +999,10 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       Wrapper : CPacket;
    BEGIN
       Packet.FIRST := 0C;
-      Wrapper.PacketToSend := ADR( Packet );
+      Wrapper.EmptyPacket := ADR( Packet );
       Wrapper.PacketType := ptFillBuffer;
       Wrapper.DeviceAddress := _DeviceAddress;
-      Tx( Packet, FALSE, 1, 150, 500 );
+      Tx( OA( Wrapper.Length-1, Wrapper.Packet ), FALSE, 1, 150, 500 );
    END UpdateDeviceBuffer;
 
 (*---------------------------------------------------------------------------*)
@@ -997,10 +1013,10 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       Wrapper : CPacket;
    BEGIN
       Packet.FIRST := 0C;
-      Wrapper.PacketToSend := ADR( Packet );
+      Wrapper.EmptyPacket := ADR( Packet );
       Wrapper.PacketType := ptDataRequest;
       Wrapper.DeviceAddress := _DeviceAddress;
-      Tx( Packet, FALSE, 1, 150, 500 );
+      Tx( OA( Wrapper.Length-1, Wrapper.Packet ), FALSE, 1, 150, 500 );
    END AskData;
 
 (*---------------------------------------------------------------------------*)
@@ -1053,7 +1069,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       IF Data.Length < 1 THEN
          RETURN FALSE;
       ELSE
-         Wrapper.ReceivedPacket := Data.Data;
+         Wrapper.FilledPacket := Data.Data;
          RETURN Wrapper.Complete( Data.Length, OUT FirstIndexAfterData, OUT FirstIndexAfterData, OUT ApplyCheckSum );
       END;
    END DataComplete;
@@ -1064,7 +1080,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    VAR
       Wrapper : CPacket;
    BEGIN
-      Wrapper.ReceivedPacket := Data.Data;
+      Wrapper.FilledPacket := Data.Data;
       RETURN Wrapper.CheckSum();
    END TestChkSum;
 
@@ -1079,7 +1095,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
       IF Result = Sync.arCompleted THEN
 
-         Wrapper.ReceivedPacket := Data.Data;
+         Wrapper.FilledPacket := Data.Data;
          CASE Wrapper.PacketType OF
          | ptData :
             Automaton^.EventSTX( Data.Data );
@@ -1105,7 +1121,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    VAR
       Wrapper : CPacket;
    BEGIN
-      Wrapper.PacketToSend := Data.Data;
+      Wrapper.FilledPacket := Data.Data;
       Wrapper.ComputeCheckSum();
    END AddChkSum;
 
@@ -1397,7 +1413,7 @@ CLASS IMPLEMENTATION CIO;
    BEGIN
       IF Result = Sync.arCompleted THEN
          // prepare value
-         Wrapper.ReceivedPacket := PPacket;
+         Wrapper.FilledPacket := PPacket;
          CASE Wrapper.ValueType OF
          | vtAnalog, vtInteger, vtDigital :
          ELSE
@@ -1410,11 +1426,11 @@ CLASS IMPLEMENTATION CIO;
             IF GetValueIndexFromPtr( DataRoot^[i]^.Data ) = Wrapper.ValueIndex THEN
                CASE Wrapper.ValueType OF
                | vtDigital :
-                  // SetPtrValueDigital( REF DataRoot^[i]^.Data, Wrapper.Digital );
+                  SetPtrValueDigital( REF DataRoot^[i]^.Data, Wrapper.Digital );
                | vtInteger :
-                  // SetPtrValueInteger( REF DataRoot^[i]^.Data, Wrapper.Integer );
+                  SetPtrValueInteger( REF DataRoot^[i]^.Data, Wrapper.Integer );
                | vtAnalog :
-                  // SetPtrValueAnalog( REF DataRoot^[i]^.Data, Wrapper.Analog );
+                  SetPtrValueAnalog( REF DataRoot^[i]^.Data, Wrapper.Analog );
                END; // CASE
                EXIT;
             END;
