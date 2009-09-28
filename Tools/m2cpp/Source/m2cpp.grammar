@@ -4419,7 +4419,8 @@ ntEmbeddedODDEVEN<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM.TValueI
 
 ntEmbeddedFIELDOFS<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM.TValueInfo>
                                                            (. FId : DOM.TPSymbol;
-                                                              TId : DOM.TPSymbol; .)
+                                                              TId : DOM.TPSymbol;
+                                                              UnwrappedType : DOM.TPType; .)
   = 
   "FIELDOFS"                                               (. D^.r.EP := DOM.epFIELDOFS; .)
   lpar
@@ -4430,16 +4431,17 @@ ntEmbeddedFIELDOFS<VR : TValueReq; VAR D : DOM.TPDesignator; VAR VI : DOM.TValue
                                                               END;
                                                               D^.r.U1 := TId;
                                                               D^.T := Types.TCARDINAL;
-                                                              CASE DOM.TPType( TId )^.Unwrap()^.TypeKind OF
+                                                              UnwrappedType := DOM.TPType( TId )^.Unwrap();
+                                                              CASE UnwrappedType^.TypeKind OF
                                                               | DOM.tkRecord :
-                                                                c^.EnterSymbols( DOM.TPRecord( TId )^.S, FALSE, FALSE, NIL );
+                                                                c^.EnterSymbols( DOM.TPRecord( UnwrappedType )^.S, FALSE, FALSE, NIL );
                                                               | DOM.tkClass :
-                                                                c^.EnterSymbols( DOM.TPClass( TId )^.S, FALSE, FALSE, NIL );
+                                                                c^.EnterSymbols( DOM.TPClass( UnwrappedType )^.S, FALSE, FALSE, NIL );
                                                               ELSE
                                                                 SemErr( err._RecordOrClassTypeExpected );
                                                               END; .)
     WEAK period ntFieldIdentifier<FId>                     (. D^.r.U2 := FId;
-                                                              CASE DOM.TPType( TId )^.Unwrap()^.TypeKind OF
+                                                              CASE UnwrappedType^.TypeKind OF
                                                               | DOM.tkRecord, DOM.tkClass :
                                                                 c^.LeaveSymbols( FALSE );
                                                               END; .)

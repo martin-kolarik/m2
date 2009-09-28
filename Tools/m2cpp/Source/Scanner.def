@@ -6,6 +6,7 @@ FROM Storage IMPORT
 IMPORT
   FIO,
   StringsO,
+  time,
   windows;
 
 //============================================================
@@ -93,7 +94,7 @@ CLASS CScanner;
 
   Val         : StringsO.CString;
   
-  PROCEDURE Init( FilePath : ARRAY OF WCHAR; OUT Timestamp : FIO.FileTime ) : CARDINAL;
+  PROCEDURE Init( FilePath : ARRAY OF WCHAR; OUT Timestamp : time.DateTime ) : CARDINAL;
 
   PROCEDURE NextCh();
   PROCEDURE AddCh();

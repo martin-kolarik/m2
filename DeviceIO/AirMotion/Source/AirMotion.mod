@@ -32,6 +32,13 @@ CONST
    CH_ACK = 6C;
    CH_BEL = 7C;
    CH_F   = C'F';
+   
+   CH_DIGITAL     = C'D';
+   CH_INTEGER     = C'I';
+   CH_ANALOG      = C'A';
+   CH_FILL_BUFFER ::= CH_F;
+   
+   POLL_PERIOD_DEFAULT = 15000;
 
 #save, option( pack => 1 )
 TYPE
@@ -45,7 +52,7 @@ TYPE
       ptNAK
    );
    
-   TValueType = (
+   TValueType = CARD8( // CARD8 due to presence in TNSPTR
       vtAnalog,
       vtInteger,
       vtDigital
@@ -62,7 +69,7 @@ TYPE
                  | ptData :
                     dSTX        : CHAR;
                     dAddress    : CHAR;
-                    ValueType   : TValueType;
+                    ValueType   : CHAR;
                     ValueIndex  : CHAR;
                     CASE : TValueType OF
                     | vtAnalog,
@@ -89,7 +96,29 @@ TYPE
                     BEL         : CHAR;
                  END; // CASE
               END; // RECORD
-   TPPacket = POINTER TO TPacket;              
+   TPPacket = POINTER TO TPacket;
+   
+   TNSPTR  = RECORD
+                CASE : CARDINAL OF
+                | 0 :
+                  Type : TValueType;
+                  Address : CARD8;
+                  Value : INT16;
+                | 1 :
+                  Ptr : PTR;
+                END; // CASE
+             END; // RECORD
+   TPNSPTR = POINTER TO TNSPTR;
+   
+   PROCEDURE PTRCtor( Type : TValueType; Address : CARD8 ) : PTR;
+   VAR
+      Ptr : TNSPTR;
+   BEGIN
+      Ptr.Type := Type;
+      Ptr.Address := Address;
+      Ptr.Value := 0;
+      RETURN Ptr.Ptr;
+   END PTRCtor;
 #restore
 
 CLASS CPacket; // class is wrapping some foreign data area
@@ -99,23 +128,24 @@ CLASS CPacket; // class is wrapping some foreign data area
 
    PUBLIC PROPERTY
       PacketType : TPacketType;
+      DeviceAddress : CARDINAL;
 
+      ValueIndex : CARDINAL;
       Analog : LONGREAL;
       Integer : INTEGER;
       Digital : BOOLEAN;
       
-      Address : CARDINAL;
-      
    PUBLIC WRITEONLY PROPERTY
-      PacketToSend : TPPacket;
-      ReceivedPacket : TPPacket;
+      EmptyPacket : TPPacket;
+      FilledPacket : TPPacket;
 
    PUBLIC READONLY PROPERTY
+      ValueType : TValueType;
       Packet : TPPacket;
       Length : CARDINAL;
       
    PUBLIC PROCEDURE ComputeCheckSum();
-   PUBLIC PROCEDURE CheckSum( Packet : TPPacket; Length : CARDINAL ) : BOOLEAN;
+   PUBLIC PROCEDURE CheckSum() : BOOLEAN;
    PUBLIC PROCEDURE Complete( KnownLength : CARDINAL; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyChecksum : BOOLEAN ) : BOOLEAN;
 
    PRIVATE PROCEDURE SetPacketCharacters(); // _Packet MUST not be NIL
@@ -144,17 +174,81 @@ CLASS IMPLEMENTATION CPacket;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY PacketToSend SET( Value : TPPacket );
+   PUBLIC PROPERTY DeviceAddress GET : CARDINAL;
+   BEGIN
+      IF _Packet = NIL THEN
+         RETURN -1;
+      END;
+      CASE _PacketType OF
+      | ptDataRequest :
+         RETURN CARDINAL( _Packet^.rAddress ) - ORD( '0' );
+      | ptData :
+         RETURN CARDINAL( _Packet^.dAddress ) - ORD( '0' );
+      | ptFillBuffer :
+         RETURN CARDINAL( _Packet^.fAddress ) - ORD( '0' );
+      ELSE
+         RETURN -1;
+      END;
+   END DeviceAddress;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY DeviceAddress SET( Value : CARDINAL );
+   BEGIN
+      IF _Packet = NIL THEN
+         RETURN;
+      ELSIF ( Value < 1 ) OR ( Value > 200 ) THEN
+         RETURN;
+      END;
+      CASE _PacketType OF
+      | ptDataRequest :
+         _Packet^.rAddress := CHAR( Value + ORD( '0' ));
+      | ptData :
+         _Packet^.dAddress := CHAR( Value + ORD( '0' ));
+      | ptFillBuffer :
+         _Packet^.fAddress := CHAR( Value + ORD( '0' ));
+      END;
+   END DeviceAddress;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY ValueIndex GET : CARDINAL;
+   BEGIN
+      IF _Packet = NIL THEN
+         RETURN -1;
+      ELSIF _PacketType <> ptData THEN
+         RETURN -1;
+      END;
+      RETURN CARDINAL( _Packet^.ValueIndex ) - ORD( '0' );
+   END ValueIndex;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY ValueIndex SET( Value : CARDINAL );
+   BEGIN
+      IF _Packet = NIL THEN
+         RETURN;
+      ELSIF ( Value < 1 ) OR ( Value > 100 ) THEN
+         RETURN;
+      ELSIF _PacketType <> ptData THEN
+         RETURN;
+      END;
+      _Packet^.ValueIndex := CHAR( Value + ORD( '0' ));
+   END ValueIndex;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY EmptyPacket SET( Value : TPPacket );
    BEGIN
       _Packet := Value;
       IF _PacketType <> ptUnknown THEN
          SetPacketCharacters();
       END;
-   END PacketToSend;
+   END EmptyPacket;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY ReceivedPacket SET( Value : TPPacket );
+   PUBLIC PROPERTY FilledPacket SET( Value : TPPacket );
    BEGIN
       _Packet := Value;
       IF _Packet = NIL THEN
@@ -163,7 +257,11 @@ CLASS IMPLEMENTATION CPacket;
       CASE _Packet^.FIRST OF
       // | CH_ENX : // ptDataRequest cannot be received
       | CH_STX :
-         _PacketType := ptData; // ptFill data cannot be received
+         IF _Packet^.ValueType = CH_FILL_BUFFER THEN
+            _PacketType := ptFillBuffer;
+         ELSE
+            _PacketType := ptData;
+         END;
       | CH_NUL :
          _PacketType := ptNoData;
       | CH_ACK :
@@ -171,7 +269,7 @@ CLASS IMPLEMENTATION CPacket;
       | CH_BEL :
          _PacketType := ptNAK;
       END;
-   END ReceivedPacket;
+   END FilledPacket;
 
 (*---------------------------------------------------------------------------*)
 
@@ -184,7 +282,7 @@ CLASS IMPLEMENTATION CPacket;
          RETURN 0.0;
       ELSIF _Packet = NIL THEN
          RETURN 0.0;
-      ELSIF _Packet^.ValueType <> vtAnalog THEN
+      ELSIF _Packet^.ValueType <> CH_ANALOG THEN
          RETURN 0.0;
       END;
 
@@ -205,13 +303,14 @@ CLASS IMPLEMENTATION CPacket;
    VAR
       b : BOOLEAN;
       IValue : INTEGER := INTEGER( Value * 10.0 + 0.5 );
-      WData : ARRAY [0..3] OF WCHAR := L"0000";
+      WData : ARRAY [0..3] OF WCHAR;
    BEGIN
       _PacketType := ptData;
       IF _Packet = NIL THEN
          RETURN;
       END;
-      _Packet^.ValueType := vtAnalog;
+      _Packet^.ValueType := CH_ANALOG;
+      WData := L"0000";
 
       IF IValue < 16 THEN
          b := Strings.FromINT32W( IValue, 16, OUT OA( 0, ADR( WData[3] )));
@@ -242,7 +341,7 @@ CLASS IMPLEMENTATION CPacket;
          RETURN 0;
       ELSIF _Packet = NIL THEN
          RETURN 0;
-      ELSIF _Packet^.ValueType <> vtInteger THEN
+      ELSIF _Packet^.ValueType <> CH_INTEGER THEN
          RETURN 0;
       END;
 
@@ -262,13 +361,14 @@ CLASS IMPLEMENTATION CPacket;
    PUBLIC PROPERTY Integer SET( IValue : INTEGER );
    VAR
       b : BOOLEAN;
-      WData : ARRAY [0..3] OF WCHAR := L"0000";
+      WData : ARRAY [0..3] OF WCHAR;
    BEGIN
       _PacketType := ptData;
       IF _Packet = NIL THEN
          RETURN;
       END;
-      _Packet^.ValueType := vtInteger;
+      _Packet^.ValueType := CH_ANALOG;
+      WData := L"0000";
 
       IF IValue < 16 THEN
          b := Strings.FromINT32W( IValue, 16, OUT OA( 0, ADR( WData[3] )));
@@ -296,7 +396,7 @@ CLASS IMPLEMENTATION CPacket;
          RETURN FALSE;
       ELSIF _Packet = NIL THEN
          RETURN FALSE;
-      ELSIF _Packet^.ValueType <> vtDigital THEN
+      ELSIF _Packet^.ValueType <> CH_DIGITAL THEN
          RETURN FALSE;
       ELSE
          RETURN _Packet^.Digital = C'1';
@@ -311,7 +411,7 @@ CLASS IMPLEMENTATION CPacket;
       IF _Packet = NIL THEN
          RETURN;
       END;
-      _Packet^.ValueType := vtDigital;
+      _Packet^.ValueType := CH_DIGITAL;
       IF Value THEN
          _Packet^.Digital := C'1';
       ELSE
@@ -321,41 +421,24 @@ CLASS IMPLEMENTATION CPacket;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Address GET : CARDINAL;
+   PUBLIC PROPERTY ValueType GET : TValueType;
    BEGIN
-      IF _Packet = NIL THEN
-         RETURN -1;
+      IF _PacketType <> ptData THEN
+         ASSERTLOG( FALSE );
+         RETURN vtDigital;
       END;
-      CASE _PacketType OF
-      | ptDataRequest :
-         RETURN CARDINAL( _Packet^.rAddress ) - ORD( '0' );
-      | ptData :
-         RETURN CARDINAL( _Packet^.dAddress ) - ORD( '0' );
-      | ptFillBuffer :
-         RETURN CARDINAL( _Packet^.fAddress ) - ORD( '0' );
+      CASE _Packet^.ValueType OF
+      | CH_DIGITAL :
+         RETURN vtDigital;
+      | CH_INTEGER :
+         RETURN vtInteger;
+      | CH_ANALOG :
+         RETURN vtAnalog;
       ELSE
-         RETURN -1;
+         ASSERTLOG( FALSE );
+         RETURN vtDigital;
       END;
-   END Address;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Address SET( Value : CARDINAL );
-   BEGIN
-      IF _Packet = NIL THEN
-         RETURN;
-      ELSIF Value > 200 THEN
-         RETURN;
-      END;
-      CASE _PacketType OF
-      | ptDataRequest :
-         _Packet^.rAddress := CHAR( Value + ORD( '0' ));
-      | ptData :
-         _Packet^.dAddress := CHAR( Value + ORD( '0' ));
-      | ptFillBuffer :
-         _Packet^.fAddress := CHAR( Value + ORD( '0' ));
-      END;
-   END Address;
+   END ValueType;
 
 (*---------------------------------------------------------------------------*)
 
@@ -375,7 +458,7 @@ CLASS IMPLEMENTATION CPacket;
       | ptDataRequest :
          RETURN 2;
       | ptData  :
-         IF _Packet^.ValueType = vtDigital THEN
+         IF _Packet^.ValueType = CH_DIGITAL THEN
             RETURN 7;
          ELSE
             RETURN 10;
@@ -400,21 +483,17 @@ CLASS IMPLEMENTATION CPacket;
       chksum : CARD8;
       chksumOffset : CARDINAL;
       i : CARDINAL;
-      p : TPacket;
       WData : ARRAY [0..1] OF WCHAR;
    BEGIN
       CASE _PacketType OF
       | ptData :
-         IF _Packet^.ValueType = vtDigital THEN
-            // chksumOffset := FIELDOFS( TPacket.dChkSum ); -- m2cpp bug
-            chksumOffset := CARDINAL( ADR( p.dChkSum )) - CARDINAL( ADR( p ));
+         IF _Packet^.ValueType = CH_DIGITAL THEN
+            chksumOffset := FIELDOFS( TPacket.dChkSum );
          ELSE
-            // chksumOffset := FIELDOFS( TPacket.nChkSum ); -- m2cpp bug
-            chksumOffset := CARDINAL( ADR( p.nChkSum )) - CARDINAL( ADR( p ));
+            chksumOffset := FIELDOFS( TPacket.nChkSum );
          END;
       | ptFillBuffer :
-         // chksumOffset := FIELDOFS( TPacket.fChkSum ); -- m2cpp bug
-         chksumOffset := CARDINAL( ADR( p.fChkSum )) - CARDINAL( ADR( p ));
+         chksumOffset := FIELDOFS( TPacket.fChkSum );
       ELSE
          RETURN;
       END;
@@ -423,12 +502,17 @@ CLASS IMPLEMENTATION CPacket;
       FOR i := 0 TO chksumOffset -1 DO
          INC( chksum, PCARD8( _Packet@[i] )^ );
       END;
-      Strings.FromINT32W( CARDINAL( chksum ), 16, OUT WData );
+      IF chksum < 10H THEN
+         WData[0] := L'0';
+      ELSE
+         WData[0] := WCHAR( ORD( L'0' ) + chksum DIV 10H );
+      END;
+      WData[1] := WCHAR( ORD( L'0' ) + chksum AND 0FH );
       
       IF _PacketType = ptFillBuffer THEN
          _Packet^.fChkSum[0] := CHAR( WData[0] );
          _Packet^.fChkSum[1] := CHAR( WData[1] );
-      ELSIF _Packet^.ValueType = vtDigital THEN
+      ELSIF _Packet^.ValueType = CH_DIGITAL THEN
          _Packet^.dChkSum[0] := CHAR( WData[0] );
          _Packet^.dChkSum[1] := CHAR( WData[1] );
       ELSE
@@ -439,31 +523,27 @@ CLASS IMPLEMENTATION CPacket;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE CheckSum( Packet : TPPacket; Length : CARDINAL ) : BOOLEAN;
+   PUBLIC PROCEDURE CheckSum() : BOOLEAN;
    VAR
       chksum : CARD8;
       chksumToCheck : CARDINAL;
       chksumOffset : CARDINAL;
       i : CARDINAL;
-      p : TPacket;
       WData : ARRAY [0..1] OF WCHAR;
    BEGIN
       CASE _PacketType OF
       | ptData :
-         IF _Packet^.ValueType = vtDigital THEN
-            // chksumOffset := FIELDOFS( TPacket.dChkSum ); -- m2cpp bug
-            chksumOffset := CARDINAL( ADR( p.dChkSum )) - CARDINAL( ADR( p ));
+         IF _Packet^.ValueType = CH_DIGITAL THEN
+            chksumOffset := FIELDOFS( TPacket.dChkSum );
             WData[0] := WCHAR( _Packet^.dChkSum[0] );
             WData[1] := WCHAR( _Packet^.dChkSum[1] );
          ELSE
-            // chksumOffset := FIELDOFS( TPacket.nChkSum ); -- m2cpp bug
-            chksumOffset := CARDINAL( ADR( p.nChkSum )) - CARDINAL( ADR( p ));
+            chksumOffset := FIELDOFS( TPacket.nChkSum );
             WData[0] := WCHAR( _Packet^.nChkSum[0] );
             WData[1] := WCHAR( _Packet^.nChkSum[1] );
          END;
       | ptFillBuffer :
-         // chksumOffset := FIELDOFS( TPacket.fChkSum ); -- m2cpp bug
-         chksumOffset := CARDINAL( ADR( p.fChkSum )) - CARDINAL( ADR( p ));
+         chksumOffset := FIELDOFS( TPacket.fChkSum );
          WData[0] := WCHAR( _Packet^.fChkSum[0] );
          WData[1] := WCHAR( _Packet^.fChkSum[1] );
       ELSE
@@ -483,8 +563,6 @@ CLASS IMPLEMENTATION CPacket;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Complete( KnownLength : CARDINAL; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyChecksum : BOOLEAN ) : BOOLEAN;
-   VAR
-      complete : BOOLEAN;
    BEGIN
       IF ( _Packet = NIL ) OR ( KnownLength < 1 ) THEN
          RETURN FALSE;
@@ -495,7 +573,7 @@ CLASS IMPLEMENTATION CPacket;
       | ptData :
          IF KnownLength < FIELDOFS( TPacket.ValueType ) + SIZE( TPacket.ValueType ) THEN
             RETURN FALSE;
-         ELSIF _Packet^.ValueType = vtDigital THEN
+         ELSIF _Packet^.ValueType = CH_DIGITAL THEN
             FirstIndexAfterData := FIELDOFS( TPacket.dChkSum );
             FirstIndexAfterFrame := FirstIndexAfterData + SIZE( TPacket.dChkSum );
          ELSE
@@ -506,13 +584,12 @@ CLASS IMPLEMENTATION CPacket;
       | ptNoData, ptACK, ptNAK :
          FirstIndexAfterData := 1;
          FirstIndexAfterFrame := 1;
-         complete := TRUE;
       //-----
       ELSE
          RETURN FALSE;
       END;
 
-      complete := KnownLength >= FirstIndexAfterFrame;
+      RETURN KnownLength >= FirstIndexAfterFrame;
    END Complete;
 
 (*---------------------------------------------------------------------------*)
@@ -524,9 +601,11 @@ CLASS IMPLEMENTATION CPacket;
          _Packet^.ENQ := CH_ENQ;
       | ptData  :
          _Packet^.dSTX := CH_STX;
+         _Packet^.dETX := CH_ETX;
       | ptFillBuffer :
          _Packet^.fSTX := CH_STX;
          _Packet^.F := CH_F;
+         _Packet^.fETX := CH_ETX;
       | ptNoData :
          _Packet^.NUL := CH_NUL;
       | ptACK :
@@ -542,6 +621,63 @@ BEGIN
    _PacketType := ptUnknown;
    _Packet := NIL;
 END CPacket;
+
+(*===========================================================================*)
+
+PROCEDURE SetPtrValueDigital( REF Ptr : PTR; Digital : BOOLEAN );
+BEGIN
+   TPNSPTR( ADR( Ptr ))^.Value := INT16( Digital );
+END SetPtrValueDigital;
+
+(*---------------------------------------------------------------------------*)
+
+PROCEDURE SetPtrValueInteger( REF Ptr : PTR; Integer : INTEGER );
+BEGIN
+   TPNSPTR( ADR( Ptr ))^.Value := INT16( Integer );
+END SetPtrValueInteger;
+
+(*---------------------------------------------------------------------------*)
+
+PROCEDURE SetPtrValueAnalog( REF Ptr : PTR; Analog : LONGREAL );
+BEGIN
+   TPNSPTR( ADR( Ptr ))^.Value := INT16( Analog * 10.0 );
+END SetPtrValueAnalog;
+
+(*---------------------------------------------------------------------------*)
+
+PROCEDURE GetValueIndexFromPtr( Ptr : PTR ) : CARDINAL;
+VAR
+   PPtr : TPNSPTR := TPNSPTR( ADR( Ptr ));
+BEGIN
+   RETURN CARDINAL( PPtr^.Address );
+END GetValueIndexFromPtr;
+
+(*---------------------------------------------------------------------------*)
+
+PROCEDURE GetTypeFromPtr( Ptr : PTR ) : TValueType;
+VAR
+   PPtr : TPNSPTR := TPNSPTR( ADR( Ptr ));
+BEGIN
+   RETURN TValueType( PPtr^.Type );
+END GetTypeFromPtr;
+
+(*---------------------------------------------------------------------------*)
+
+PROCEDURE GetValueFromPtr( Ptr : PTR; OUT Value : iovalue.Value );
+VAR
+   PPtr : TPNSPTR := TPNSPTR( ADR( Ptr ));
+BEGIN
+   CASE PPtr^.Type OF
+   | vtDigital :
+      Value.Boolean := BOOLEAN( PPtr^.Value );
+   | vtInteger :
+      Value.Integer := INTEGER( PPtr^.Value );
+   | vtAnalog :
+      Value.Float := LONGREAL( PPtr^.Value ) / 10.0;
+   ELSE
+      ASSERTLOG( FALSE );
+   END;
+END GetValueFromPtr;
 
 (*===========================================================================*)
 
@@ -565,19 +701,15 @@ CLASS IMPLEMENTATION CNS;
 
    INTERNAL VIRTUAL PROCEDURE CreateStructure();
    VAR
-     D : nsitem.TPnsItem;
      I : ns.TPnsItem;
    BEGIN
       Root^.AddChild( CreateNewItem( L"Control", ns.ntName, iovalue.vtString, 0 ));
 
-      D := nsitem.TPnsItem( CreateNewItem( L"Data", ns.ntName, iovalue.vtString, 0 ));
-      Root^.AddChild( D );
+      DataRoot := nsitem.TPnsItem( CreateNewItem( L"Data", ns.ntName, iovalue.vtString, 0 ));
+      Root^.AddChild( DataRoot );
 
-      I := CreateNewItem( L"Inner T",           ns.ntValue, iovalue.vtFloat, 060011H ); D^.AddChild( I );
-      I := CreateNewItem( L"Inner T setpoint",  ns.ntValue, iovalue.vtFloat, 060005H ); D^.AddChild( I );
-      I := CreateNewItem( L"Return T",          ns.ntValue, iovalue.vtFloat, 030016H ); D^.AddChild( I );
-      I := CreateNewItem( L"Return T setpoint", ns.ntValue, iovalue.vtFloat, 060004H ); D^.AddChild( I );
-
+      I := CreateNewItem( L"Humidity",    ns.ntValue, iovalue.vtFloat, PTRCtor( vtAnalog, 5 )); DataRoot^.AddChild( I );
+      I := CreateNewItem( L"Temperature", ns.ntValue, iovalue.vtFloat, PTRCtor( vtAnalog, 6 )); DataRoot^.AddChild( I );
    END CreateStructure;
 
 (*---------------------------------------------------------------------------*)
@@ -593,8 +725,227 @@ CLASS IMPLEMENTATION CNS;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
+   DataRoot := NIL;
    Initialize();
 END CNS;
+
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CDeviceAutomaton;
+      
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Running GET : BOOLEAN;
+   BEGIN
+      RETURN _PeriodHandle <> NIL;
+   END Running;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
+   BEGIN
+      IF _PeriodHandle <> NIL THEN
+         RETURN Sync.arAlreadyPending;
+      END;
+      State := tasIdle;
+      threadpool.pool()^.WaitTimeout( ADR( _PoolDelegate ), 0, PollPeriodMS, FALSE, FALSE, OUT _PeriodHandle );
+      RETURN Sync.arCompleted;
+   END Start;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Stop();
+   BEGIN
+      IF _PeriodHandle <> NIL THEN
+         threadpool.pool()^.Abort( REF _PeriodHandle );
+      END;
+   END Stop;
+
+(*---------------------------------------------------------------------------*)
+
+   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
+   BEGIN
+      IF PoolHandle = _PeriodHandle THEN
+         EventTime();
+      END;
+   END OnTimeout;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Init( REF Driven : IAutomatonRequest );
+   BEGIN
+      _Driven := ADR( Driven );
+   END Init;
+
+(*---------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE EventTime();
+   BEGIN
+      IF State = tasIdle THEN
+         State := tasWaitUpdate;
+         _Driven^.UpdateDeviceBuffer();
+      END;
+   END EventTime;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE EventAbort();
+   BEGIN
+      State := tasIdle;
+      _ItemToWrite := NIL;
+   END EventAbort;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE EventACK();
+   BEGIN
+      CASE State OF
+      | tasWaitUpdate :
+         State := tasWaitData;
+         _Driven^.AskData();
+      | tasWaitWrite :
+         _Driven^.Sent( Sync.arCompleted, _ItemToWrite );
+         _ItemToWrite := NIL;
+         State := tasWaitData;
+         _Driven^.AskData();
+      END;
+   END EventACK;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE EventNAK();
+   BEGIN
+      IF State = tasWaitUpdate THEN
+         IF _ItemToWrite = NIL THEN
+            State := tasIdle;
+         ELSE
+            State := tasWaitWrite;
+            SendData();
+         END;
+      END;
+   END EventNAK;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE EventSTX( Packet : ADDRESS );
+   BEGIN
+      IF State = tasWaitData THEN
+         _Driven^.ProcessData( Packet );
+         IF _ItemToWrite = NIL THEN
+            _Driven^.AskData();
+         ELSE
+            State := tasWaitWrite;
+            SendData();
+         END;
+      END;
+   END EventSTX;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE EventNUL();
+   BEGIN
+      IF State = tasWaitData THEN
+         State := tasIdle;
+      END;
+   END EventNUL;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE EventWrite( ItemToWrite : nsitem.TPnsItem ) : Sync.TAsyncResult;
+   BEGIN
+      IF _ItemToWrite <> NIL THEN
+         RETURN Sync.arAlreadyPending;
+      END;
+      _ItemToWrite := ItemToWrite;
+      IF State = tasIdle THEN
+         State := tasWaitWrite;
+         SendData();
+      END;
+      RETURN Sync.arPending;
+   END EventWrite;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE EventWriteError();
+   BEGIN
+      EventACK();
+   END EventWriteError;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE EventTimeout();
+   BEGIN
+      CASE State OF
+      | tasWaitUpdate :
+         State := tasIdle;
+      | tasWaitData :
+         State := tasIdle;
+      | tasWaitWrite :
+         _Driven^.Sent( Sync.arTimeout, _ItemToWrite );
+         _ItemToWrite := NIL;
+         State := tasWaitData;
+         _Driven^.AskData();
+      END; // CASE
+   END EventTimeout;
+
+(*---------------------------------------------------------------------------*)
+
+   PRIVATE PROPERTY State GET : TAutomatonState;
+   BEGIN
+      RETURN TAutomatonState( Sync.IGet( REF PINT32( ADR( _State ))^ ));
+   END State;
+
+(*---------------------------------------------------------------------------*)
+
+   PRIVATE PROPERTY State SET( Value : TAutomatonState );
+   BEGIN
+      Sync.IExchg( REF PINT32( ADR( _State ))^, INT32( Value ));
+   END State;
+
+(*---------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE SendData();
+   VAR
+      io : iovalue.Value;
+      Packet : TPacket;
+      Wrapper : CPacket;
+   BEGIN
+      IF _ItemToWrite = NIL THEN
+         RETURN;
+      END;
+   
+      Packet.FIRST := 0C;
+      Wrapper.EmptyPacket := ADR( Packet );
+      
+      Wrapper.PacketType := ptData;
+      Wrapper.ValueIndex := GetValueIndexFromPtr( _ItemToWrite^.Data );
+      GetValueFromPtr( _ItemToWrite^.Data, OUT io );
+      CASE GetTypeFromPtr( _ItemToWrite^.Data ) OF
+      | vtAnalog :
+         Wrapper.Analog := io.Float;
+      | vtInteger :
+         Wrapper.Integer := io.Integer;
+      | vtDigital :
+         Wrapper.Digital := io.Boolean;
+      ELSE
+         ASSERTLOG( FALSE );
+      END;
+      
+      _Driven^.SendData( Wrapper.Packet, Wrapper.Length );
+   END SendData;
+
+(*---------------------------------------------------------------------------*)
+
+BEGIN
+   _State := tasIdle;
+   _Driven := NIL;
+   _PeriodHandle := NIL;
+   _PoolDelegate.TimeoutSink := ADR( SELF );
+   _ItemToWrite := NIL;
+   PollPeriodMS := POLL_PERIOD_DEFAULT;
+FINALLY
+   Stop();
+END CDeviceAutomaton;
 
 (*===========================================================================*)
 
@@ -612,7 +963,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    BEGIN
       Logger.LogS( log.dldMessage, L"AirMotion", L"Started" );
-      RETURN Connection.OpenS( _DeviceAddress, TRUE, 500 );
+      RETURN Connection.OpenS( _HostAddress, TRUE, 500 );
    END Start;
 
 (*---------------------------------------------------------------------------*)
@@ -626,17 +977,68 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 (*---------------------------------------------------------------------------*)
 
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
-   VAR
-      EmptyData : StorageO.CMemoryBuffer;
    BEGIN
       IF PoolHandle = _TxTimeoutHandle THEN
+         _TxTimeoutHandle := NIL;
          Logger.LogS( log.dldTrace, L"", L"Tx timeout" );
-         OnTx( Sync.arTimeout );
+         Automaton^.EventTimeout();
+
       ELSIF PoolHandle = _RxTimeoutHandle THEN
+         _RxTimeoutHandle := NIL;
          Logger.LogS( log.dldTrace, L"", L"Rx timeout" );
-         OnRx( Sync.arTimeout, EmptyData );
+         Automaton^.EventTimeout();
+
       END;
    END OnTimeout;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE UpdateDeviceBuffer();
+   VAR
+      Packet : TPacket;
+      Wrapper : CPacket;
+   BEGIN
+      Packet.FIRST := 0C;
+      Wrapper.EmptyPacket := ADR( Packet );
+      Wrapper.PacketType := ptFillBuffer;
+      Wrapper.DeviceAddress := _DeviceAddress;
+      Tx( OA( Wrapper.Length-1, Wrapper.Packet ), FALSE, 1, 150, 500 );
+   END UpdateDeviceBuffer;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE AskData();
+   VAR
+      Packet : TPacket;
+      Wrapper : CPacket;
+   BEGIN
+      Packet.FIRST := 0C;
+      Wrapper.EmptyPacket := ADR( Packet );
+      Wrapper.PacketType := ptDataRequest;
+      Wrapper.DeviceAddress := _DeviceAddress;
+      Tx( OA( Wrapper.Length-1, Wrapper.Packet ), FALSE, 1, 150, 500 );
+   END AskData;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE ProcessData( Packet : ADDRESS );
+   BEGIN
+      PIO^.OnRx( Sync.arCompleted, TPPacket( Packet ));
+   END ProcessData;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE SendData( Packet : ADDRESS; Length : CARDINAL );
+   BEGIN
+      Tx( OA( Length-1, PBYTE( Packet )), FALSE, 1, 150, 500 );
+   END SendData;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE Sent( Result : Sync.TAsyncResult; SentItem : nsitem.TPnsItem );
+   BEGIN
+      PIO^.OnTxCON( Result );
+   END Sent;
 
 (*---------------------------------------------------------------------------*)
 
@@ -662,13 +1064,13 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    INTERNAL VIRTUAL PROCEDURE DataComplete( CONST Data : StorageO.AMemoryBuffer; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyCheckSum : BOOLEAN ) : BOOLEAN;
    VAR
-      Packet : CPacket;
+      Wrapper : CPacket;
    BEGIN
       IF Data.Length < 1 THEN
          RETURN FALSE;
       ELSE
-         Packet.ReceivedPacket := Data.Data;
-         RETURN Packet.Complete( Data.Length, OUT FirstIndexAfterData, OUT FirstIndexAfterData, OUT ApplyCheckSum );
+         Wrapper.FilledPacket := Data.Data;
+         RETURN Wrapper.Complete( Data.Length, OUT FirstIndexAfterData, OUT FirstIndexAfterData, OUT ApplyCheckSum );
       END;
    END DataComplete;
 
@@ -676,33 +1078,40 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    INTERNAL VIRTUAL PROCEDURE TestChkSum( CONST Data : StorageO.AMemoryBuffer ) : BOOLEAN;
    VAR
-      Packet : CPacket;
+      Wrapper : CPacket;
    BEGIN
-      Packet.ReceivedPacket := Data.Data;
-      RETURN Packet.TestChkSum();
+      Wrapper.FilledPacket := Data.Data;
+      RETURN Wrapper.CheckSum();
    END TestChkSum;
 
 (*---------------------------------------------------------------------------*)
 
    INTERNAL VIRTUAL PROCEDURE OnRx( Result : Sync.TAsyncResult; CONST Data : StorageO.AMemoryBuffer );
    VAR
-      Packet : CPacket;
+      Wrapper : CPacket;
    BEGIN
       StopTimeout( REF _TxTimeoutHandle );
-      IF Result <> Sync.arCompleted THEN
-         StopTimeout( REF _RxTimeoutHandle );
-         PIO^.OnRx( Result, NIL );
-      ELSE
-         Packet.ReceivedPacket := Data.Data;
-         CASE Packet.Type OF
+      StopTimeout( REF _RxTimeoutHandle );
+
+      IF Result = Sync.arCompleted THEN
+
+         Wrapper.FilledPacket := Data.Data;
+         CASE Wrapper.PacketType OF
+         | ptData :
+            Automaton^.EventSTX( Data.Data );
          | ptACK :
-            PIO^.OnTxCON( Sync.arCompleted );
+            Automaton^.EventACK();
          | ptNAK :
-            PIO^.OnTxCON( Sync.arAbort );
+            Automaton^.EventNAK();
+         | ptNoData :
+            Automaton^.EventWriteError();
          ELSE
-            StopTimeout( REF _RxTimeoutHandle );
-            PIO^.OnRx( Sync.arCompleted, TPPacket( Data.Data ));
+            ASSERTLOG( FALSE );
          END;
+
+      ELSE
+         Automaton^.EventTimeout();
+ 
       END;
    END OnRx;
 
@@ -710,26 +1119,19 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    INTERNAL VIRTUAL PROCEDURE AddChkSum( REF Data : StorageO.AMemoryBuffer );
    VAR
-      Packet : CPacket;
+      Wrapper : CPacket;
    BEGIN
-      Packet.PacketToSend := Data.Data;
-      Packet.ComputeCheckSum();
+      Wrapper.FilledPacket := Data.Data;
+      Wrapper.ComputeCheckSum();
    END AddChkSum;
-
-(*---------------------------------------------------------------------------*)
-
-   INTERNAL VIRTUAL PROCEDURE OnTx( Result : Sync.TAsyncResult );
-   BEGIN
-      IF Result <> Sync.arCompleted THEN
-         PIO^.OnTxCON( Result );
-      END;
-   END OnTx;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Configure( CONST iniFile : INIFile.CINIFile; CONST iniFileSection : StringsO.IString; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
    CONST
       keyHost = L"host";
+      keyAddress = L"address";
+      keyPollPeriod = L"poll_period";
    VAR
       Result : Sync.TAsyncResult := Sync.arCompleted;
 
@@ -755,9 +1157,16 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    BEGIN
       IF iniFile.SetSection( OA( iniFileSection.Length-1, iniFileSection.rawData )) THEN
          INIFile.ConfigureLog( iniFile, OA( iniFileSection.Length-1, iniFileSection.rawData ), REF Logger, OUT l );
-         IF NOT iniFile.GetKeyStr( keyHost, OUT l, OUT _DeviceAddress ) THEN
+         IF NOT iniFile.GetKeyStr( keyHost, OUT l, OUT _HostAddress ) THEN
             LogError( l, Texts._HostKeyMissing, NIL );
          END;
+         IF NOT iniFile.GetKeyInt( keyAddress, OUT l, OUT _DeviceAddress ) THEN
+            LogError( l, Texts._AddressKeyMissing, NIL );
+         END;
+         IF NOT iniFile.GetKeyInt( keyPollPeriod, OUT l, OUT _PollPeriodMS ) THEN
+            _PollPeriodMS := POLL_PERIOD_DEFAULT;
+         END;
+         Automaton^.PollPeriodMS := _PollPeriodMS;
       ELSE
          LogError( 0, Texts._ConfigurationSectionMissing, ADR( iniFileSection ));
       END;
@@ -766,7 +1175,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Tx( CONST Data : ARRAY OF BYTE; _SendAsIs : BOOLEAN; _RepeatCount : CARDINAL; _TxTimeout, _RxTimeout : CARDINAL );
+   PRIVATE PROCEDURE Tx( CONST Data : ARRAY OF BYTE; _SendAsIs : BOOLEAN; _RepeatCount : CARDINAL; _TxTimeout, _RxTimeout : CARDINAL );
    VAR
       c : CARDINAL;
       Result : Sync.TAsyncResult;
@@ -774,7 +1183,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    BEGIN
       IF NOT Connection.Connected THEN
          Logger.LogS( log.dldTrace, L"", L"Disconnected, trying to reconnect" );
-         Connection.OpenS( _DeviceAddress, TRUE, 500 );
+         Connection.OpenS( _HostAddress, TRUE, 500 );
       END;
    
       IF INTEGER( HIGH( Data )) >= 0 THEN // HACK
@@ -803,6 +1212,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PUBLIC PROCEDURE Abort();
    BEGIN
+      Automaton^.EventAbort();
       StopTimeout( REF _TxTimeoutHandle );
       StopTimeout( REF _RxTimeoutHandle );
       Connection.Stream^.AbortWriting();
@@ -882,9 +1292,12 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 BEGIN
    Connection.Notifier := ADR( SELF );
    PIO := NIL;
+   Automaton := NIL;
    _RxTimeoutHandle := 0;
    _TxTimeoutHandle := 0;
    _PoolDelegate.TimeoutSink := ADR( SELF );
+   _PollPeriodMS := POLL_PERIOD_DEFAULT;
+   _DeviceAddress := 1;
 END CDeviceCommunicator;
 
 (*===========================================================================*)
@@ -901,13 +1314,14 @@ CLASS IMPLEMENTATION CIO;
 
    PUBLIC PROPERTY Running GET : BOOLEAN;
    BEGIN
-      RETURN DeviceCommunicator.Running;
+      RETURN DeviceAutomaton.Running;
    END Running;
 
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    BEGIN
+      DeviceAutomaton.Start();
       RETURN DeviceCommunicator.Start();
    END Start;
 
@@ -916,6 +1330,7 @@ CLASS IMPLEMENTATION CIO;
    PUBLIC VIRTUAL PROCEDURE Stop();
    BEGIN
       DeviceCommunicator.Stop();
+      DeviceAutomaton.Stop();
    END Stop;
 
 (*---------------------------------------------------------------------------*)
@@ -964,45 +1379,22 @@ CLASS IMPLEMENTATION CIO;
 
    PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Delegate : io.TPDataInfo ) : Sync.TAsyncResult;
    VAR
-      Packet : TPacket;
+      Result : Sync.TAsyncResult := Sync.arCompleted;
    BEGIN
-      IF _Pending <> IOO.dirUnknown THEN
-         RETURN Sync.arAlreadyPending;
+      IF Direction = IOO.dirRead THEN // get data immediatelly
+         GetValueFromPtr( nsitem.TPnsItem( Item )^.Data, OUT Value );
+         Delegate^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( Item )), OA( -1, NIL ), OA( 0, ADR( Value )));
+         
+         RETURN Sync.arCompleted;
+      ELSE
+         _Pending := Direction;
+         _Item := Item;
+         _Callback := Delegate;
+
+         DeviceAutomaton.EventWrite( _Item );
+
+         RETURN Sync.arPending;
       END;
-
-      _Pending := Direction;
-      _Item := Item;
-      _Callback := Delegate;
-
-      Packet.Address := 0; // m2cpp error
-      WITH Packet DO
-         SenderType := dtController;
-         Address := 0;
-         ReceiverType := TDeviceType( LOPTRLONGWORD( nsitem.TPnsItem( Item )^.Data ) >> 16 );
-         IF Direction = IOO.dirWrite THEN
-            Telegram := ttSet;
-         ELSE
-            Telegram := ttGet;
-         END;
-         D1 := 0; // ??
-         D2 := 0FAH; // ??
-         PointNumber.LE := LOWORD( LOPTRLONGWORD( nsitem.TPnsItem( Item )^.Data ));
-         IF Direction = IOO.dirWrite THEN
-            IF TPNSI( Item )^.Multiplier = 1000 THEN
-               D2 := 0FBH; // ??
-               wValue.LE := 0;
-            ELSIF TPNSI( Item )^.Multiplier = 1 THEN
-               bValue := BYTE( Value.Integer );
-            ELSE
-               wValue.LE := WORD( Value.Float * LONGREAL( TPNSI( Item )^.Multiplier ));
-            END;
-         END;
-      END;
-      
-      DeviceCommunicator.Tx( Packet, FALSE, 1, 150, 500 );
-      // Serial.Tx( Packet, FALSE, 1, 0, 0 );
-
-      RETURN Sync.arPending;
    END IOh;
 
 (*---------------------------------------------------------------------------*)
@@ -1016,36 +1408,34 @@ CLASS IMPLEMENTATION CIO;
 
    LOCAL PROCEDURE OnRx( Result : Sync.TAsyncResult; PPacket : TPPacket );
    VAR
-      V : iovalue.Value;
+      i : INTEGER;
+      Wrapper : CPacket;
    BEGIN
-      IF _AbortFlag THEN
-         _AbortFlag := FALSE;
-         _Pending := IOO.dirUnknown;
-         RETURN;
-      ELSIF ( _Pending = IOO.dirWrite ) AND ( Result = Sync.arTimeout ) THEN
-         // TODO
-         // tiemouted write
-      ELSIF ( _Pending <> IOO.dirRead ) OR ( _Callback = NIL ) THEN
-         RETURN;
-      ELSE
-         _Pending := IOO.dirUnknown;
-      END;
       IF Result = Sync.arCompleted THEN
-         IF _Item^.Multiplier = 1 THEN
-            V.Float := LONGREAL( PPacket^.bValue );
+         // prepare value
+         Wrapper.FilledPacket := PPacket;
+         CASE Wrapper.ValueType OF
+         | vtAnalog, vtInteger, vtDigital :
          ELSE
-            V.Float := LONGREAL( PPacket^.wValue.LE ) / LONGREAL( _Item^.Multiplier );
+            ASSERTLOG( FALSE );
+            RETURN;
          END;
-         _Callback^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ), OA( 0, ADR( V )));
-      ELSIF _Pending = IOO.dirWrite THEN
-         // TODO
-         _Pending := IOO.dirUnknown;
-         // TODO
-         _Callback^.OnIO( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ), OA( 0, iovalue.TPValue( NIL )));
-         _Callback^.OnError( IOO.dirWrite, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ));
-      ELSE
-         _Callback^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ), OA( 0, iovalue.TPValue( NIL )));
-         _Callback^.OnError( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ));
+         
+         // lookup for item and set data to it
+         FOR i := 0 TO DataRoot^.Count-1 DO
+            IF GetValueIndexFromPtr( DataRoot^[i]^.Data ) = Wrapper.ValueIndex THEN
+               CASE Wrapper.ValueType OF
+               | vtDigital :
+                  SetPtrValueDigital( REF DataRoot^[i]^.Data, Wrapper.Digital );
+               | vtInteger :
+                  SetPtrValueInteger( REF DataRoot^[i]^.Data, Wrapper.Integer );
+               | vtAnalog :
+                  SetPtrValueAnalog( REF DataRoot^[i]^.Data, Wrapper.Analog );
+               END; // CASE
+               EXIT;
+            END;
+         END;
+         
       END;
    END OnRx;
 
@@ -1073,6 +1463,9 @@ CLASS IMPLEMENTATION CIO;
 
 BEGIN
    DeviceCommunicator.PIO := ADR( SELF );
+   DeviceCommunicator.Automaton := ADR( DeviceAutomaton );
+   DeviceAutomaton.Init( REF DeviceCommunicator );
+   DataRoot := NIL;
    _AbortFlag := FALSE;
    _Pending := IOO.dirUnknown;
    _Callback := NIL;
@@ -1108,7 +1501,7 @@ CLASS IMPLEMENTATION CAirMotionDevice;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROCEDURE OnDispose();
+   PUBLIC VIRTUAL PROCEDURE OnDispose();
    BEGIN
       _IO.Dispose();
    END OnDispose;
@@ -1138,6 +1531,7 @@ CLASS IMPLEMENTATION CAirMotionDevice;
 
    PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
    BEGIN
+      _IO.DataRoot := _NS.DataRoot;
       RETURN ADR( _IO );
    END IO;
 

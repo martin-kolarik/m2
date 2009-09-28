@@ -4235,7 +4235,6 @@ TYPE
 
 CLASS IMPLEMENTATION CModuleEnvironment;
 BEGIN
-  Timestamp := FIO.FileTime( 0, 0 ); 
   Prefix := mprfModula;
   ClassAM := amInternal;
   Storage.Fill( ADR( MIID ), SIZE( MIID ), 0 );

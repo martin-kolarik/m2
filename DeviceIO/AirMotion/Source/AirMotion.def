@@ -30,6 +30,9 @@ TYPE
 (*---------------------------------------------------------------------------*)
 
 CLASS CNS( nsitem.Ans );
+   LOCAL VAR
+      DataRoot : nsitem.TPnsItem;
+
    // IMapper
    PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : ns.THash; OUT Name : StringsO.IString ) : BOOLEAN;
 
@@ -43,20 +46,80 @@ END CNS;
 
 (*---------------------------------------------------------------------------*)
 
-CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopControl, threadpool.ITimeoutSink;
+INTERFACE IAutomatonRequest;
+   PROCEDURE UpdateDeviceBuffer();
+   PROCEDURE AskData();
+   PROCEDURE ProcessData( Packet : ADDRESS );
+   PROCEDURE SendData( Packet : ADDRESS; Length : CARDINAL );
+   PROCEDURE Sent( Result : Sync.TAsyncResult; SentItem : nsitem.TPnsItem );
+END IAutomatonRequest;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TAutomatonState = (
+      tasIdle,
+      tasWaitUpdate,
+      tasWaitData,
+      tasWaitWrite
+   );
+
+CLASS CDeviceAutomaton IMPLEMENTS io.IStartStopControl, threadpool.ITimeoutSink;
+   PRIVATE VAR
+      _State : TAutomatonState;
+      _Driven : POINTER TO IAutomatonRequest;
+      _PeriodHandle : threadpool.TPoolHandle;
+		_PoolDelegate : threadpool.CSinkDelegate;
+		_ItemToWrite : nsitem.TPnsItem;
+   LOCAL VAR
+      PollPeriodMS : CARDINAL;
+
+   // IStartStopControl
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Running : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Stop();
+   
+   // ITimeoutSink
+   LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
+
+   // SELF      
+   PUBLIC PROCEDURE Init( REF Driven : IAutomatonRequest );
+
+   // events -- coming from DeviceCommunicator
+   PRIVATE PROCEDURE EventTime();
+   PUBLIC PROCEDURE EventAbort();
+   PUBLIC PROCEDURE EventACK();
+   PUBLIC PROCEDURE EventNAK();
+   PUBLIC PROCEDURE EventSTX( Packet : ADDRESS );
+   PUBLIC PROCEDURE EventNUL();
+   PUBLIC PROCEDURE EventWrite( ItemToWrite : nsitem.TPnsItem ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE EventWriteError();
+   PUBLIC PROCEDURE EventTimeout();
+   
+   PRIVATE PROPERTY State : TAutomatonState;
+   PRIVATE PROCEDURE SendData();
+END CDeviceAutomaton;
+
+(*---------------------------------------------------------------------------*)
+
+CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopControl, threadpool.ITimeoutSink, IAutomatonRequest;
 	LOCAL VAR
 		PIO : TPIO;
 		Connection : rawconnection.TCPConnection;
 		RxBuffer : StorageO.CMemoryBuffer;
 		Logger : log.CLogger;
+		Automaton : POINTER TO CDeviceAutomaton;
 
    PRIVATE VAR
-		_DeviceAddress : StringsO.CString;
+		_HostAddress : StringsO.CString;
 		_SDAPAddress : StringsO.CString;
 		_Data : lists.CStringList; // String = SDAP address, Data = ns.THash
 		_RxTimeoutHandle : threadpool.TPoolHandle;
 		_TxTimeoutHandle : threadpool.TPoolHandle;
 		_PoolDelegate : threadpool.CSinkDelegate;
+		_DeviceAddress : CARDINAL;
+		_PollPeriodMS : CARDINAL;
 
    // ASocketNotifier
    LOCAL VIRTUAL PROCEDURE OnConnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); 
@@ -71,17 +134,23 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
    // ITimeoutSink
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
 
+   // IAutomatonRequest
+   PUBLIC VIRTUAL PROCEDURE UpdateDeviceBuffer();
+   PUBLIC VIRTUAL PROCEDURE AskData();
+   PUBLIC VIRTUAL PROCEDURE ProcessData( Packet : ADDRESS );
+   PUBLIC VIRTUAL PROCEDURE SendData( Packet : ADDRESS; Length : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE Sent( Result : Sync.TAsyncResult; SentItem : nsitem.TPnsItem );
+
    // from CSerial
 	INTERNAL VIRTUAL PROCEDURE DataComplete( CONST Data : StorageO.AMemoryBuffer; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyCheckSum : BOOLEAN ) : BOOLEAN;
 	INTERNAL VIRTUAL PROCEDURE TestChkSum( CONST Data : StorageO.AMemoryBuffer ) : BOOLEAN;
 	INTERNAL VIRTUAL PROCEDURE OnRx( Result : Sync.TAsyncResult; CONST Data : StorageO.AMemoryBuffer );
 
 	INTERNAL VIRTUAL PROCEDURE AddChkSum( REF Data : StorageO.AMemoryBuffer );
-	INTERNAL VIRTUAL PROCEDURE OnTx( Result : Sync.TAsyncResult );
 	
 	// SELF
 	PUBLIC PROCEDURE Configure( CONST iniFile : INIFile.CINIFile; CONST iniFileSection : StringsO.IString; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
-   PUBLIC PROCEDURE Tx( CONST Data : ARRAY OF BYTE; SendAsIs : BOOLEAN; RepeatCount : CARDINAL; TxTimeout, RxTimeout : CARDINAL );
+   PRIVATE PROCEDURE Tx( CONST Data : ARRAY OF BYTE; SendAsIs : BOOLEAN; RepeatCount : CARDINAL; TxTimeout, RxTimeout : CARDINAL );
    PUBLIC PROCEDURE Abort();
    
    // private
@@ -99,10 +168,12 @@ TYPE
 CLASS CIO( io.AItemizedIO );
 	LOCAL VAR
 		DeviceCommunicator : CDeviceCommunicator;
+		DeviceAutomaton : CDeviceAutomaton;
+		DataRoot : nsitem.TPnsItem;
 	PRIVATE VAR
 		_AbortFlag : BOOLEAN;
 		_Pending : IOO.TDirection;
-		_Item : TPNSI;
+		_Item : nsitem.TPnsItem;
 		_Callback : io.TPDataInfo;
 
 	PUBLIC PROCEDURE Dispose();
@@ -140,7 +211,7 @@ CLASS CAirMotionDevice( helper.AObject ) IMPLEMENTS device.IDevice;
       Type : iobject.TObjectType;
    PUBLIC FINAL PROPERTY
       Library : iobject.TPLibrary;
-   PUBLIC FINAL PROCEDURE OnDispose();
+   PUBLIC VIRTUAL PROCEDURE OnDispose();
 
    // IDevice
    PUBLIC VIRTUAL READONLY PROPERTY

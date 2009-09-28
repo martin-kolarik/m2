@@ -2,6 +2,7 @@
 IMPLEMENTATION MODULE Scanner;
 
 IMPORT
+  time,
   winerror;
 
 FROM Storage IMPORT
@@ -151,7 +152,7 @@ END CBuffer;
 
 CLASS IMPLEMENTATION CScanner;
 
-  PROCEDURE Init( FilePath : ARRAY OF WCHAR; OUT Timestamp : FIO.FileTime ) : CARDINAL;
+  PROCEDURE Init( FilePath : ARRAY OF WCHAR; OUT Timestamp : time.DateTime ) : CARDINAL;
   VAR
     HFile : FIO.File;
     R : CARDINAL;
