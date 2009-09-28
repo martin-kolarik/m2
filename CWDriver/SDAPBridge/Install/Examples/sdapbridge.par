@@ -1,0 +1,8 @@
+[device]
+status_channel = 1
+output_queue_count_channel = 10
+output_queue_length = 50
+
+[debug]
+debug_mode = kernel
+debug_level = all

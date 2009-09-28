@@ -1,0 +1,140 @@
+Version 1.0.671/R beta 29.12.2008
+- BUG: if event and ACK/NAK were both received in single UDP piece no next data
+        were sent to DALI. EventFlag variable was not reset, so receiving code
+        reacted to an event instead of accepting ACK and continuing with send.
+- CHG: DLLs are loaded delayed, xmllite.dll missing on target system is not problem
+       now. 
+
+Version 1.0.668/R beta 18.12.2008
+- BUG: events received from DALI caused sending of next packet event if
+       the previous packet was still unacked. That premature send caused
+       with high probablity frame collision on DALI.
+- CHG: Group and all addresses allowed for "scene" command.
+
+Version 1.0.648/R beta 14.11.2008
+- BUG: "param" command did not use all parameters, it set the first found
+        value to all parameters
+- NEW: Commands "group_add <adr> <grp>", "group_remove <adr> <grp>",
+       "scene_add <adr> <scene> <level>", "scene_remove <adr> <scene>",
+       "scene <adr> <scene>" added.
+
+Version 1.0.622 beta 21.10.2008
+- BUG: "send_delay" parameter value was obtained from "output_queue_length" key.
+- NEW: Driver now accepts command "program_file <Device>.<Linie> <FilePath>",
+       when sequence of sent and expected data is read from the file and sent
+       to DALI. After exhausting file lines event "program" is fired.
+
+Version 1.0.611 beta 14.10.2008
+- NEW: PAR file now can contain [device] "send_delay" parameter, which sets delay
+       between packets sent to interface. Default value is 0 (ms), maximal effective
+       value is 2000 (ms).
+
+Version 1.0.607 beta 13.10.2008
+- BUG: Unexpected interface response caused infinite receive loop without reporting
+       content of bad packet.
+- BUG: Limitation to 10 successive frame link errors was weak, counting was
+       reset after any meaningful interface response, including ACK.
+- BUG: Polling probes could be sent after driver/device stop. This could cause
+       application crash.        
+
+Version 1.0.589 beta 10.10.2008
+- BUG: Response addresses were badly decoded, it caused that data from
+       second and fourth linies were unrecognized.
+- BUG: Only first linie was reset during driver start.
+- CHG: In case of frame link error occurrence driver repeated communication
+       indefnitely. Now it drops current packet after 10 successive frame
+       link errors.
+- NEW: New command "reset_interface <linie>" was addedd to allow programmatic
+       reset of interface.
+
+Version 1.0.584 beta 6.10.2008
+- BUG: Dali created out of OnStartup procedure never run and did not
+       communicate.
+- BUG: Creation of Dali with already existing name caused application crash.
+- CHG: Versioning changed from SVN to HG.
+
+Version 1.0.1782 beta 21.9.2008
+- INF: The majority of changes was done to adhere (non-standard) behavior of
+       Helvar buttons.
+- BUG: Event commands (dali events, reset notifications) could stop timeout
+       measuring. This caused infinite waiting for timeout and communication
+       was stopped.
+- NEW: Polling is enabled for all four linies using new "set_poll_period"
+       command.
+- NEW: Commands "get_addresses" and "load_addreses" added, sequence of
+       address contains both short and long addresses. 
+- NEW: Driver is able to connect more devices -- endpoints are created using
+       "create" command a removed by "delete" command.
+- NEW: Asynchronous events from DALI are now passed to driver exception.
+- NEW: Addressing now works for all linies.
+- CHG: All addresses are extended by device name, e.g. "Device.2.all" for all
+       devices in line 2. 
+- CHG: Check of programmed addresses changed from DALI Check Address command to
+       DALI Read Address command.
+- CHG: Polling and connection definitions were moved from parametric file to
+       driver query procedures.
+- CHG: Addressing added devices does not scan linie before addresing and it
+       requires valid addresses to be set.
+- CHG: More descriptive labels of log records.
+
+Version 1.0.1779 beta 13.9.2008
+- BUG: Polling of device stopped if during waiting for response some addressing
+       command was requested.
+- NEW: Driver now reports change of status if status was previously known and
+       now it is unavailable (device does not respond).
+- NEW: New command "program_scan" was added, the command scans selected linie
+       and fills internal address structures. The command is always run before
+       programming, when "program_added" is requested.
+- NEW: Addressing commands (including "program_scan") fire event about found devices.
+       The event starts with "found ...".
+- NEW: Command "reset_address <adr>" was added, using <adr> all or specific device
+       address can be reset.
+- CHG: Command "program_missing_addresses" was renamed to "program_added", command
+       "program_addresses" was renamed to "program_all", and command "readdress"
+       was renamed to "program_readdress".
+- CHG: Commands "get_addresses" and "load_addresses" were removed.
+- INF: "program_readdress" still requires internal address structures filled
+       (using "program_scan" or "program_all" command).
+- INF: "program_added" command starts internally before self run "program_scan"
+       command to be sure the addresses will be correct.
+
+Version 1.0.1772 beta 6.9.2008
+- BUG: Enumeration of known channels sometimes failed, there was used uninitialized
+       variable
+- NEW: Three new commands were added: "program_missing_addresses", "get_addresses",
+       "load_addresses"      
+
+Version 1.0.1756 beta 20.8.2008
+- BUG: Commands sent to DALI before interface booting up were not passed to DALI
+       and the communication stopped
+- NEW: End of addressing/readdressing is notified to client with driver exception
+       with new event type: program <linie> success/error
+- NEW: New status (bit 4, 0x8) added to signalize pending addressing/readdressing
+- NEW: Addressing/readdressing example application for ControlWeb
+- CHG: Polling changed to send request for only one device during one tick
+- ISS: Polling does not work with more linies and it sometimes stops if
+       addressing/readdressing is stopped
+
+Version 1.0.1737 beta 14.8.2008
+- BUG: Commands to two-cipher addresses were sent to first-cipher-only address
+       (get 27 status asked device with address 2)
+- NEW: Added variant checking of programmed addreses (use_verify)
+- CHG: Reset command and expected response changed according to new firmware
+- CHG: DLL layout changed to SCCore.dll and shared CRT libraries
+- CHG: Salted licensing
+
+Version 1.0.1664 beta 15.6.2008
+- CHG: Renamed to DaliBridge
+- CHG: Driver interface changed to common unified interface using sc iovalue.
+- CHG: Driver modified to new GDE (with ACKs etc.)
+
+Version DEBUG 1.0.1527 7.4.2008
+- NEW: output_queue_count_channel and output_queue_length parameters
+       of [device] section were addres. First for querying pending
+       communications, second for limiting occupied memory size
+- CHG: polling period for status reading can be defined separately for
+       each connected device: [polling] section with keys period/all/devXX
+
+Version DEBUG 1.0.1499 25.3.2008
+- INI: created
+- FEA: setup of device addresses is not present yet
