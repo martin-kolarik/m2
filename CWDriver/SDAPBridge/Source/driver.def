@@ -4,13 +4,13 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-   DaliBridge,
    diface,
    drv_def,
    iovalue,
    lec,
    log,
    Resources,
+   SDAPBridge,
    StringsO;
 
 //================================================================================
@@ -26,35 +26,32 @@ TYPE
       schiRunning,
       schiValid,
       schiEventsPending,
-      schiProgramming
+      schiConnected
    );
    TStatusChannel = SET OF TStatusChannelItem;
 
 CONST
-   schUser = TStatusChannel{schiRunning, schiValid, schiEventsPending, schiProgramming};
+   schUser = TStatusChannel{schiRunning, schiValid, schiEventsPending, schiConnected};
    
 //================================================================================
 
-CLASS CDriver IMPLEMENTS diface.ICWDriver, DaliBridge.IDaliEventSink;
+CLASS CDriver IMPLEMENTS diface.ICWDriver, SDAPBridge.ISDAPEventSink;
    PRIVATE VAR
-      Lock           : Sync.LOCK;
-      RStatus        : TStatusChannel; // accessed from Dali/CW threads
-      ClientName     : ARRAY [0..63] OF WCHAR;
-      CallbackId     : ADDRESS;
-      CallbackProc   : drv_def.TDriverCallbackW;
-      StatusChannel  : CARDINAL;
-      OutputQueueCountChannel
-                     : CARDINAL;
-      OutputQueueLength
-                     : CARDINAL;
-      SendDelay      : CARDINAL;
-   
-      Logger         : log.CLogger;
-      Dali           : DaliBridge.CDali;
-      Result         : lec.CResult;
-      cllvData       : ADDRESS;
-      cllvLength     : CARDINAL;
-      Queue          : lists.CPtrList; // accessed from Dali/CW threads
+      Lock                    : Sync.LOCK;
+      RStatus                 : TStatusChannel; // accessed from SDAP/CW threads
+      ClientName              : ARRAY [0..63] OF WCHAR;
+      CallbackId              : ADDRESS;
+      CallbackProc            : drv_def.TDriverCallbackW;
+      StatusChannel           : CARDINAL;
+      OutputQueueCountChannel : CARDINAL;
+      OutputQueueLength       : CARDINAL;
+      InputQueueCountChannel  : CARDINAL;
+      Logger                  : log.CLogger;
+      SDAP                    : SDAPBridge.CSDAP;
+      Result                  : lec.CResult;
+      cllvData                : ADDRESS;
+      cllvLength              : CARDINAL;
+      Queue                   : lists.CPtrList; // accessed from SDAP/CW threads
       
    // ICWDriver
    PUBLIC VIRTUAL PROCEDURE Initialize( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW );
@@ -81,11 +78,11 @@ CLASS CDriver IMPLEMENTS diface.ICWDriver, DaliBridge.IDaliEventSink;
    PUBLIC VIRTUAL PROCEDURE OutputRequestCompleted();
    PUBLIC VIRTUAL PROCEDURE OutputFinalized( DriverIndex : CARDINAL; OUT ErrorCode : CARDINAL ) : BOOLEAN;
 
-   // IEventSink
-   LOCAL VIRTUAL PROCEDURE OnDeviceFound( CONST DaliName : StringsO.CString; Linie : DaliBridge.TDaliLinie; CONST Address : DaliBridge.DaliAddress; LongAddress : CARDINAL );
-   LOCAL VIRTUAL PROCEDURE OnProgrammingStopped( Result : Sync.TAsyncResult; CONST DaliName : StringsO.CString; Linie : DaliBridge.TDaliLinie );
-   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; CONST DaliName : StringsO.CString; Linie : DaliBridge.TDaliLinie; CONST daliAddress : DaliBridge.DaliAddress; Command : DaliBridge.TDaliCommand; Data : CARD8; ClientId : PTR );
-   
+   // ISDAPEventSink
+   LOCAL VIRTUAL PROCEDURE OnConnected();
+   LOCAL VIRTUAL PROCEDURE OnDisconnected( Result : Sync.TAsyncResult );
+   LOCAL VIRTUAL PROCEDURE OnData( CONST Data, Value : StringsO.CString );
+ 
    // helpers
    PRIVATE PROCEDURE EnqueueEvent( Event : ADDRESS; EventType : PTR );
 END CDriver;

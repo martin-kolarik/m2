@@ -3,8 +3,8 @@
     <strings version="1.0">
 
         <string name="_DriverName">
-            <item lang="en-US">Inris DALI bridge driver</item>
-            <item lang="cs-CZ">Ovladač pro Inris DALI bridge</item>
+            <item lang="en-US">NeNo SDAP bridge driver</item>
+            <item lang="cs-CZ">Ovladač pro NeNo SDAP protokol</item>
         </string>
 
         <string name="_InitError">
@@ -71,9 +71,13 @@
             <item lang="en-US">Status channel of the driver (information about connection and common actions)</item>
             <item lang="cs-CZ">Stavový kanál ovladače (informace o komunikaci a obecných akcích)</item>
         </string>
+        <string name="_InputQueueCountComment">
+            <item lang="en-US">Count of events still waiting to be read out to application</item>
+            <item lang="cs-CZ">Počet událostí čekajících na přijetí aplikací</item>
+        </string>
         <string name="_OutputQueueCountComment">
-            <item lang="en-US">Count of commands still waiting to be sent to DALI</item>
-            <item lang="cs-CZ">Počet povelů čekajících na odeslání do DALI</item>
+            <item lang="en-US">Count of commands still waiting to be sent</item>
+            <item lang="cs-CZ">Počet povelů čekajících na odeslání</item>
         </string>
 
     </strings>

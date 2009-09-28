@@ -4,17 +4,16 @@
 
     <!-- 1 -->
     <PropertyGroup>
-        <Manufacturer Condition="$(Manufacturer)==''">Inris</Manufacturer>
         <ComponentType>Product</ComponentType>
     </PropertyGroup>
 
     <PropertyGroup>
-        <ProductGUID>9DEA5575-18DF-4e91-A2C4-14392DA2921A</ProductGUID>
-        <ProductUpgradeGUID>4C73C97D-457A-4a08-8556-47B3B167C9AA</ProductUpgradeGUID>
-        <ProductId>Inris.DaliBridge.CWDriver</ProductId>
+        <ProductGUID>5A72E669-0E69-4d17-BBB4-20E78E3BF43F</ProductGUID>
+        <ProductUpgradeGUID>1692A782-9CBF-453f-99C2-7A4BDD4117CD</ProductUpgradeGUID>
+        <ProductId>NeNo.SDAPBridge.CWDriver</ProductId>
         <ProductVersionMajor>1</ProductVersionMajor>
         <ProductVersionMinor>0</ProductVersionMinor>
-        <FileDescription>Inris DALI Bridge Driver</FileDescription>
+        <FileDescription>NeNo SDAP client CW driver</FileDescription>
     </PropertyGroup>
 
     <!-- 2 INCLUDE DEFINITION -->
@@ -24,8 +23,8 @@
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
-        <Components Include="Component\sccore;Library\CWDriver"/>
-        <Modules Include="DaliBridge;driver"/>
+        <Components Include="Component\sccore;Library\CWDriver;SDAP\SDAPClient"/>
+        <Modules Include="SDAPBridge;driver"/>
         <Messages Include="Texts"/>
     </ItemGroup>
 

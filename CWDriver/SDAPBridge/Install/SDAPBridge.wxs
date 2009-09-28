@@ -19,30 +19,51 @@
             <?endif ?>
             <Directory Id="ProgramFilesFolder">
                 <Directory Id="Inris" Name="Inris">
-                    <Directory Id="INSTALLDIR" Name="DaliBrg" LongName="DaliBridge">
-                        <Component Guid="EAAA6D5F-84DE-4bbe-9B34-BFB3714AD361" Id="Program">
+                    <Directory Id="INSTALLDIR" Name="SDAPBrg" LongName="SDAPBridge">
+                        <Component Guid="57DF5758-9AF5-47ab-9241-248F1B1227EB" Id="Program">
                             <File DiskId="1" Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" Vital="yes">
                             </File>
                             <File DiskId="1" Id="License.rtf" Name="License.rtf" Source="License.rtf" Vital="yes">
                             </File>
-                            <File DiskId="1" Id="DaliBridge.dll" Name="DaliBrg.dll" LongName="DaliBridge.dll" Source="DaliBridge.dll" Vital="yes">
+                            <File DiskId="1" Id="SDAPBridge.dll" Name="SDAPBrg.dll" LongName="SDAPBridge.dll" Source="SDAPBridge.dll" Vital="yes">
                             </File>
                             <File DiskId="1" Id="SCCore.dll" Name="SCCore.dll" Source="SCCore.dll" Vital="yes">
                             </File>
                         </Component>
-                        <Component Id="Licence" Guid="52F6C8CC-1D96-41A0-BA19-41BAB82FE687">
-                            <File Id="Licence" Name="Licence.lic" DiskId="1" LongName="$(var.ProductId).tlic" Source="$(var.ProductId).tlic" Vital="yes" />
+                        <Component Guid="E84AAF36-7698-429c-A985-70219D8C5E42" Id="DebugInfo">
+                            <File Id="SDAPBridge.PDB" Name="SDAPBridge.pdb" Source="SDAPBridge.pdb" DiskId="1" KeyPath="yes"/>
+                            <File Id="ScCore.PDB" Name="sccore.pdb" Source="sccore.pdb" DiskId="1" />
+                            <File Id="SDAPBridge.MAP" Name="SDAPBridge.map" Source="SDAPBridge.map" DiskId="1" />
+                            <File Id="ScCore.MAP" Name="sccore.map" Source="sccore.map" DiskId="1" />
                         </Component>
+                        <Component Id="Licence" Guid="8E9CA158-2B17-479d-BBA6-37B42830B32C">
+                            <File Id="Licence" Name="Licence.lic" DiskId="1" LongName="$(var.ProductId).tlic" Source="$(var.ProductId).tlic" Vital="yes" />
+                            <File Id="License.rtf" Name="License.rtf" Source="License.rtf" DiskId="1" />
+                        </Component>
+                        <?if $(var.LanguageName)=en ?>
+                        <Component Id="Documentation" Guid="A2D117D2-36A5-40a9-BC13-B1618A7A0EDE">
+                            <File Id="SDAPBridge.pdf" Name="SDAPBrdg.pdf" LongName="SDAPBridge.pdf" Source="..\Doc\SDAPBridge_en.pdf" DiskId="1" Vital="yes" KeyPath="yes">
+                                <Shortcut Id="StartMenuDocumentation" Directory="ProgramMenuDir" Name="Manual" LongName="SDAPBridge documentation" />
+                            </File>
+                            <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" />
+                        </Component>
+                        <?endif ?>
+                        <?if $(var.LanguageName)=cs ?>
+                        <Component Id="Documentation" Guid="90091D59-83EE-4c1f-9615-DBAA3E368EC7">
+                            <File Id="SDAPBridge.pdf" Name="SDAPBrdg.pdf" LongName="SDAPBridge.pdf" Source="..\Doc\SDAPBridge_cs.pdf" DiskId="1" Vital="yes" KeyPath="yes">
+                                <Shortcut Id="StartMenuDocumentation" Directory="ProgramMenuDir" Name="Manuál" LongName="Dokumentace SDAPBridge" />
+                            </File>
+                            <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" />
+                        </Component>
+                        <?endif ?>
                         <Directory Id="EXAMPLES" Name="Examples">
-                            <Component Id="Examples" Guid="504E174F-A539-4C95-B1BA-51674C84ECD4">
-                                <File Id="dalibridge.cw" Name="dalibrg.cw" LongName="dalibridge.cw" Source="Examples\dalibridge.cw" DiskId="1" />
-                                <File Id="dalibridge.par" Name="dalibrg.par" LongName="dalibridge.par" Source="Examples\dalibridge.par" DiskId="1" />
-                                <File Id="daliprogram.cw" Name="daliprg.cw" LongName="daliprogram.cw" Source="Examples\daliprogram.cw" DiskId="1" />
-                                <File Id="daliprogram.par" Name="daliprg.par" LongName="daliprogram.par" Source="Examples\daliprogram.par" DiskId="1" />
+                            <Component Id="Examples" Guid="8E9CA158-2B17-479d-BBA6-37B42830B32C">
+                                <File Id="sdapbridge.cw5.cw" Name="SDAPbrg5.cw" LongName="SDAPbridge.cw5.cw" Source="Examples\SDAPbridge.cw5.cw" DiskId="1" />
+                                <File Id="SDAPbridge.par" Name="SDAPbrg.par" LongName="SDAPbridge.par" Source="Examples\SDAPbridge.par" DiskId="1" />
                             </Component>
                         </Directory>
                         <?if $(var.LeakChecking)=on ?>
-                        <Component Guid="1D90B91C-AB50-48b2-9FBC-D9B133DF0E9D" Id="LeakDetector">
+                        <Component Guid="928D5A77-572E-4265-B78C-FE5F3A1D17A2" Id="LeakDetector">
                             <File DiskId="1" Id="LeakDetector.DLL" LongName="LeakDetector.dll" Name="LeakDet.dll" Source="LeakDetector.dll" Vital="yes">
                             </File>
                         </Component>
@@ -64,6 +85,10 @@
             <?if $(var.LeakChecking)=on ?>
             <ComponentRef Id="LeakDetector" />
             <?endif ?>
+        </Feature>
+        <Feature ConfigurableDirectory="INSTALLDIR" Id="DebugInfo" Level="0">
+            <Condition Level="1">DEBUG_INFO</Condition>
+            <ComponentRef Id="DebugInfo" />
         </Feature>
 
         <UIRef Id="WixUI_Licence" />
