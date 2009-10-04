@@ -39,32 +39,16 @@
             <item lang="en-US">Missing "interface" section</item>
             <item lang="cs-CZ">Chybí sekce "interface"</item>
         </string>
+        <string name="_MissingDeviceSection">
+            <item lang="en-US">Missing "device" section</item>
+            <item lang="cs-CZ">Chybí sekce "device"</item>
+        </string>
+        <string name="_MissingHostKey">
+            <item lang="en-US">Missing "sdap_server" parameter of "device" section</item>
+            <item lang="cs-CZ">Chybí parametr "sdap_server" sekce "device"</item>
+        </string>
 
         <comment>Driver query procedure errors</comment>
-        <string name="_DaliAlreadyExists">
-            <item lang="en-US">error: device with the name already exists</item>
-            <item lang="cs-CZ">error: device with the name already exists</item>
-        </string>
-        <string name="_BadOrMissingListenPort">
-            <item lang="en-US">error: "listen_port" is missing or it is malformed</item>
-            <item lang="cs-CZ">error: "listen_port" is missing or it is malformed</item>
-        </string>
-        <string name="_MissingDeviceAddress">
-            <item lang="en-US">error: "device_address" parameter is missing</item>
-            <item lang="cs-CZ">error: "device_address" parameter is missing</item>
-        </string>
-        <string name="_BadDeviceAddress">
-            <item lang="en-US">error: "device_address" parameter is bad</item>
-            <item lang="cs-CZ">error: "device_address" parameter is bad</item>
-        </string>
-        <string name="_UnableToGetDeviceAddress">
-            <item lang="en-US">error: device address cannot be obtained</item>
-            <item lang="cs-CZ">error: device address cannot be obtained</item>
-        </string>
-        <string name="_UnableToRunDevice">
-            <item lang="en-US">error: device cannot be started</item>
-            <item lang="cs-CZ">error: device cannot be started</item>
-        </string>
 
         <comment>Descriptions</comment> 
         <string name="_StatusComment">

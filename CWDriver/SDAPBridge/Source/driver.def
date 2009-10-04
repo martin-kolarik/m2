@@ -18,9 +18,6 @@ IMPORT
 TYPE
    TPDriver = POINTER TO CDriver;
 
-CONST // device specific error codes
-   ceLine_Timeout    = 10001H;
-
 TYPE
    TStatusChannelItem = (
       schiRunning,
@@ -81,10 +78,11 @@ CLASS CDriver IMPLEMENTS diface.ICWDriver, SDAPBridge.ISDAPEventSink;
    // ISDAPEventSink
    LOCAL VIRTUAL PROCEDURE OnConnected();
    LOCAL VIRTUAL PROCEDURE OnDisconnected( Result : Sync.TAsyncResult );
-   LOCAL VIRTUAL PROCEDURE OnData( CONST Data, Value : StringsO.CString );
+   LOCAL VIRTUAL PROCEDURE OnData( CONST Data, Value : StringsO.IString );
  
    // helpers
    PRIVATE PROCEDURE EnqueueEvent( Event : ADDRESS; EventType : PTR );
+   PRIVATE PROCEDURE DisposeQueue();
 END CDriver;
 
 //================================================================================

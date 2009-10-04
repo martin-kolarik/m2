@@ -1,8 +1,10 @@
-[device]
+[interface]
 status_channel = 1
-output_queue_count_channel = 10
-output_queue_length = 50
+input_queue_count_channel = 10
+output_queue_count_channel = 11
 
-[debug]
-debug_mode = kernel
-debug_level = all
+[device]
+sdap_server = 10.0.0.8:6007
+
+[log]
+level = info

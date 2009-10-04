@@ -40,7 +40,7 @@ TYPE
 CLASS ExceptionItem;
    LOCAL VAR
       Result : Sync.TAsyncResult := Sync.arCompleted;
-      Data : StringsO.CString;
+      Address : StringsO.CString;
       Value : StringsO.CString;
 END ExceptionItem;
 
@@ -72,8 +72,12 @@ CLASS IMPLEMENTATION CDriver;
          knInputQueueCountChannel = L'input_queue_count_channel';
          knOutputQueueCountChannel = L'output_queue_count_channel';
          knOutputQueueLength = L'output_queue_length';
+      snDevice = L'device';
+         knHost = L'sdap_server';
    VAR
       c, line : CARDINAL;
+      commentaryStart : StringsO.CString;
+      Host : StringsO.CString;
       fs : FIOO.CFileStream;
       tr : TextReader.CTextReader;
       TS : INIFile.CINIFile;
@@ -86,6 +90,9 @@ CLASS IMPLEMENTATION CDriver;
          RETURN FALSE;
       END; // try
       tr.Stream := ADR( fs );
+      commentaryStart.FromOA( L";" );
+      tr.CommentaryStart := commentaryStart;
+      tr.OmitCommentaries := TRUE;
       b := TS.Load( tr );
       fs.Close( FALSE );
       IF NOT b THEN
@@ -107,6 +114,8 @@ CLASS IMPLEMENTATION CDriver;
       END;
 
       StatusChannel := MAX( CARDINAL );
+      InputQueueCountChannel := MAX( CARDINAL );
+      OutputQueueCountChannel := MAX( CARDINAL );
       IF TS.SetSection( snInterface ) THEN
          IF TS.GetKeyInt( knStatusChannel, OUT line, OUT c ) THEN
             StatusChannel := c;
@@ -120,7 +129,19 @@ CLASS IMPLEMENTATION CDriver;
          IF TS.GetKeyInt( knOutputQueueLength, OUT line, OUT c ) THEN
             OutputQueueLength := c;
          END;
-      END; // IF snDevice
+      END; // IF snInterface
+      
+      IF TS.SetSection( snDevice ) THEN
+         IF NOT TS.GetKeyStr( knHost, OUT line, OUT Host ) THEN
+            Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._MissingHostKey ] ), 0, 0 );
+            RETURN FALSE;
+         END;
+      ELSE
+         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._MissingDeviceSection ] ), 0, 0 );
+         RETURN FALSE;
+      END;
+      
+      SDAP.SetConfiguration( ClientName, Logger, Host );
       
       RETURN TRUE;
    END ReadParameters;
@@ -129,13 +150,7 @@ CLASS IMPLEMENTATION CDriver;
 
    PUBLIC VIRTUAL PROCEDURE QueryErrorCode( ErrorCode : CARDINAL; OUT ErrorText : StringsO.CString ) : BOOLEAN;
    BEGIN
-      CASE ErrorCode OF
-      | driver.ceLine_Timeout :
-         ErrorText.FromOA( OAsz( R()^[ Texts._E_Line_Timeout ] ));
-      ELSE
-         RETURN FALSE;
-      END;
-      RETURN TRUE;
+      RETURN FALSE;
    END QueryErrorCode;
 
 (*--------------------------------------------------------------------------------*)
@@ -184,7 +199,7 @@ CLASS IMPLEMENTATION CDriver;
       IF Index = 3 THEN
          RETURN FALSE;
       ELSE
-         EnumerateState := Index;
+         EnumerateState := Index+1;
          RETURN TRUE;
       END;
    END EnumerateChannels;
@@ -249,16 +264,9 @@ CLASS IMPLEMENTATION CDriver;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
-   VAR
-      Data : PTR;
-      ExceptionItem : TPExceptionItem;
    BEGIN
       DriverStop();
-      WHILE Queue.Dequeue( OUT ExceptionItem, OUT Data ) DO
-         IF ExceptionItem <> NIL THEN
-            DISPOSE( ExceptionItem );
-         END;
-      END; // WHILE
+      DisposeQueue();
    END Dispose;
 
 (*--------------------------------------------------------------------------------*)
@@ -277,7 +285,9 @@ CLASS IMPLEMENTATION CDriver;
 
    PUBLIC VIRTUAL PROCEDURE InputRequest( DriverIndex : CARDINAL );
    BEGIN
-      Result.Inc();
+      IF DriverIndex <> StatusChannel THEN
+         Result.Inc();
+      END;
    END InputRequest;
 
 (*--------------------------------------------------------------------------------*)
@@ -382,57 +392,40 @@ CLASS IMPLEMENTATION CDriver;
 
    PUBLIC VIRTUAL PROCEDURE QueryProc( CONST InValue1, InValue2 : iovalue.Value; OutValueLimit : CARDINAL; OUT OutValue : iovalue.Value );
    LABEL
-      Error, Success;
-      
-      //-----
-
-      PROCEDURE Send( reques : TRequest ) : BOOLEAN;
-      VAR
-         AsyncResult : Sync.TAsyncResult;
-      BEGIN
-         IF Result.Counted THEN
-            CS.Clear();
-            RETURN FALSE;
-         ELSIF Result.Expired THEN
-            CS.Clear();
-            RETURN FALSE;
-         END;
-
-         AsyncResult := Dali.Command( DaliDevice, Linie, address, command, CARD8( value ), PTR( type ));
-         IF ( AsyncResult = Sync.arPending ) OR ( AsyncResult = Sync.arAlreadyPending ) THEN
-            RETURN TRUE; // OK
-         ELSE
-            CS.FromOA( L'error: unable to send command' );
-            RETURN FALSE;
-         END;
-      END Send;
-      
-      //-----
-
+      Return, Success;
+   VAR
+      c : CARDINAL;
+      CS : StringsO.CString;
+      data : PTR;
+      exceptionItem : TPExceptionItem;
+      exceptionType : TExceptionItemType;
+      haveEvent : BOOLEAN;
+      i : INTEGER;
+      S1, S2, S3 : StringsO.CString;
    BEGIN
       CS := InValue1.String;
-      i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, 0, 0, TRUE, OUT S1 ); Strings.TrimW( REF S1 );
-      i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S2 ); Strings.TrimW( REF S2 );
-      i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S3 ); Strings.TrimW( REF S3 );
-      i := CS.ItemSOA( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S4 ); Strings.TrimW( REF S4 );
+      i := CS.ItemS( StringsO.WCHARS{ L' ' }, 0, 0, TRUE, OUT S1 ); S1.Trim();
+      i := CS.ItemS( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S2 ); S2.Trim();
+      i := CS.ItemS( StringsO.WCHARS{ L' ' }, i, 0, TRUE, OUT S3 ); S3.Trim();
       
-      IF EQUALS( S1, L'event' ) THEN
+      IF S1.EqualsOA( L'event' ) THEN
 
-         IF EQUALS( S2, L'count' ) THEN
+         IF S2.EqualsOA( L'count' ) THEN
             Lock.Lock();
             c := Queue.Count;
             Lock.Unlock();
             OutValue.Integer := c;
 
-            Logger.LogSC( dldDebug, logPrefix, L"Event.Count ", c );
+            Logger.LogSC( dldDebug, logPrefix, L"Event.Count", c );
+            GOTO Return;
             
-         ELSIF EQUALS( S2, L'get' ) THEN
+         ELSIF S2.EqualsOA( L'get' ) THEN
             IF Result.Counted OR Result.Expired THEN
                Logger.LogS( dldDebug, logPrefix, L"Event.Get clear buffer" );
                Logger.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
 
                Lock.Lock();
-               Queue.Dispose();
+               DisposeQueue();
                EXCL( RStatus, schiEventsPending );
                Lock.Unlock();
                
@@ -440,7 +433,7 @@ CLASS IMPLEMENTATION CDriver;
             END;
          
             Lock.Lock();
-            IF Queue.Dequeue( OUT ExceptionItem, OUT data ) THEN
+            IF Queue.Dequeue( OUT exceptionItem, OUT data ) THEN
                haveEvent := TRUE;
             ELSE
                haveEvent := FALSE;
@@ -451,217 +444,79 @@ CLASS IMPLEMENTATION CDriver;
             Lock.Unlock();
 
             IF haveEvent THEN
-               ExceptionItem^.Name.ToOA( OUT S1 );
-               Strings.FromCARD32W( CARD32( ExceptionItem^.Linie ), 10, OUT S2 );
-               Strings.AppendW( REF S1, L"." );
-               Strings.AppendW( REF S1, S2 );
-               ExceptionItem^.Address.ToString( OUT S2 );
-               ExceptionType := TExceptionItemType( LOPTRLONGWORD( data ));
+               exceptionType := TExceptionItemType( LOPTRLONGWORD( data ));
 
-               CASE ExceptionType OF
-               | eitEvent :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"event" );
-               | eitRead :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"read" );
-               | eitPollStatus :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"poll status" );
-               | eitWrite :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"write" );
-               | eitParam :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"param" );
-               | eitReset :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"reset" );
-               | eitProgram :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"program" );
-               | eitAddressFound :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"address found" );
-               | eitResetInterface :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"reset interface" );
+               CASE exceptionType OF
+               | eitConnected :
+                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue", L"'connected'" );
+                  CS.FromOA( L"connected" );  
+               | eitDisconnected :
+                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue", L"'disconnected'" );
+                  CS.FromOA( L"disconnected" );  
+               | eitAdvise :
+                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue", L"'advise'" );
+                  CS.FromOA( L"advise " );
+                  CS.Append( exceptionItem^.Address );
+                  CS.AppendOA( L" " );
+                  CS.Append( exceptionItem^.Value );
                END; // CASE ExceptionType
 
-               CASE ExceptionType OF
-               | eitEvent, eitRead, eitPollStatus :
-                  CASE ExceptionItem^.Command OF
-                  | DaliBridge.cmdStatus :
-                     CS.FromOA( L"status " );  
-                  | DaliBridge.cmdWorking :
-                     CS.FromOA( L"present " );
-                  | DaliBridge.cmdDeviceType :
-                     CS.FromOA( L"type " );
-                  | DaliBridge.cmdVersion :
-                     CS.FromOA( L"version " );
-                  | DaliBridge.cmdCurrentLevel :
-                     CS.FromOA( L"level " );
-                  | DaliBridge.cmdEvent :
-                     CS.FromOA( L"value " );
-                  ELSE
-                     CS.FromOA( L"value " );
-                  END;
-                  CS.AppendOA( S1 ); CS.AppendOA( L"." ); CS.AppendOA( S2 ); CS.AppendOA( L" " );
-            
-                  IF ExceptionItem^.Result = Sync.arCompleted THEN
-
-                     IF ExceptionItem^.Command = DaliBridge.cmdStatus THEN
-                        IF 040H AND ExceptionItem^.Value <> 0 THEN
-                           CS.AppendOA( L"noaddress " );
-                        END;
-                        IF 004H AND ExceptionItem^.Value <> 0 THEN
-                           CS.AppendOA( L"on " );
-                        ELSE
-                           CS.AppendOA( L"off " );
-                        END;
-                        IF 002H AND ExceptionItem^.Value <> 0 THEN
-                           CS.AppendOA( L"lamp_failure " );
-                        END;
-                        IF 080H AND ExceptionItem^.Value <> 0 THEN
-                           CS.AppendOA( L"power_failure " );
-                        END;
-                        IF 008H AND ExceptionItem^.Value <> 0 THEN
-                           CS.AppendOA( L"limit_error " );
-                        END;
-                        IF 020H AND ExceptionItem^.Value <> 0 THEN
-                           CS.AppendOA( L"init_state " );
-                        END;
-                        IF 010H AND ExceptionItem^.Value <> 0 THEN
-                           CS.AppendOA( L"fading" );
-                        END;
-
-                     ELSE
-                        Strings.FromCARD32W( CARD32( ExceptionItem^.Value ), 10, OUT N );
-                        CS.AppendOA( N );
-                     END;
-
-                  ELSIF ExceptionItem^.Result = Sync.arTimeout THEN
-                     CS.AppendOA( L"timeout" );
-                  ELSE
-                     CS.AppendOA( L"error" );
-                  END;
-                  
-               | eitWrite :
-                  CS.FromOA( "set " );
-                  CS.AppendOA( S1 ); CS.AppendOA( L"." ); CS.AppendOA( S2 ); CS.AppendOA( L" " );
-                  IF ExceptionItem^.Result = Sync.arTimeout THEN
-                     CS.AppendOA( L"timeout" );
-                  ELSE
-                     CS.AppendOA( L"error" );
-                  END;
-
-               | eitParam :
-                  CS.FromOA( "param " );
-                  CS.AppendOA( S1 ); CS.AppendOA( L"." ); CS.AppendOA( S2 ); CS.AppendOA( L" " );
-                  IF ExceptionItem^.Result = Sync.arTimeout THEN
-                     CS.AppendOA( L"timeout" );
-                  ELSE
-                     CS.AppendOA( L"error" );
-                  END;
-
-               | eitReset :
-                  CS.FromOA( "reset " );
-                  CS.AppendOA( S1 ); CS.AppendOA( L"." ); CS.AppendOA( S2 ); CS.AppendOA( L" " );
-                  IF ExceptionItem^.Result = Sync.arTimeout THEN
-                     CS.AppendOA( L"timeout" );
-                  ELSE
-                     CS.AppendOA( L"error" );
-                  END;
-
-               | eitProgram :
-                  CS.FromOA( "program " );
-                  CS.AppendOA( S1 ); CS.AppendOA( L" " );
-                  IF ExceptionItem^.Result = Sync.arCompleted THEN
-                     CS.AppendOA( L"success" );
-                  ELSE
-                     CS.AppendOA( L"error" );
-                  END;
-
-               | eitAddressFound :
-                  CS.FromOA( "found " );
-                  CS.AppendOA( S1 ); CS.AppendOA( L"." ); CS.AppendOA( S2 ); CS.AppendOA( L" " );
-                  Strings.FromCARD32W( ExceptionItem^.LongAddress, 10, OUT S1 );
-                  CS.AppendOA( S1 );
-
-               | eitResetInterface :
-                  CS.FromOA( "reset interface " );
-                  CS.AppendOA( S1 ); CS.AppendOA( L" " );
-                  IF ExceptionItem^.Result = Sync.arTimeout THEN
-                     CS.AppendOA( L"timeout" );
-                  ELSE
-                     CS.AppendOA( L"error" );
-                  END;
-
-               END; // CASE
-
-               DISPOSE( ExceptionItem );
-            ELSE
-               CS.Clear();
+               DISPOSE( exceptionItem );
+               GOTO Return;
+               
             END;
 
          ELSE
+            Logger.LogSSSS( dldTrace, logPrefix, L"DQP unknown event procedure '", OA( S2.Length-1, S2.rawData ), L"'", L"" );
             CS.FromOA( L'error: unknown driver procedure' );
+            GOTO Return;
          END;
 
-      ELSIF EQUALS( S1, L'set' ) THEN
-         IF S2[0] = 0W THEN
-            CS.FromOA( L'error: unknown device name' );
-            GOTO Error;
+      ELSIF Result.Counted OR Result.Expired THEN
+         GOTO Success; // allow nothing for unlicenced driver
+
+      ELSIF S1.EqualsOA( L'set' ) THEN
+         IF S2.Empty THEN
+            Logger.LogS( dldTrace, logPrefix, L"DQP 'set', missing address" );
+            CS.FromOA( L'error: missing address' );
+            GOTO Return;
          END;
-         IF S3[0] = 0W THEN
-            CS.FromOA( L'error: unknown listen port' );
-            GOTO Error;
+         IF S3.Empty THEN
+            Logger.LogS( dldTrace, logPrefix, L"DQP 'set', missing value" );
+            CS.FromOA( L'error: missing value' );
+            GOTO Return;
          END;
-         IF S4[0] = 0W THEN
-            CS.FromOA( L'error: unknown device address' );
-            GOTO Error;
+
+         Logger.LogSSSS( dldDebug, logPrefix, L"DQP 'set',", OA( S2.Length-1, S2.rawData ), OA( S3.Length-1, S3.rawData ), L"" );
+         SDAP.Set( S2, S3 );
+
+      ELSIF S1.EqualsOA( L'ask' ) THEN
+         IF S2.Empty THEN
+            Logger.LogS( dldTrace, logPrefix, L"DQP 'ask', missing address" );
+            CS.FromOA( L'error: missing address' );
+            GOTO Return;
          END;
          
-         IF NOT Dali.CreateDali( Logger, S2, S4, S3, PTR( eitPollStatus ), OutputQueueLength, SendDelay, OUT CS ) THEN
-            GOTO Error;
-         END;
-         CS.Clear(); // return value
+         Logger.LogSS( dldDebug, logPrefix, L"DQP 'ask',", OA( S2.Length-1, S2.rawData ));
+         SDAP.Ask( S2 );
 
-      ELSIF EQUALS( S1, L'ask' ) THEN
-         IF S2[0] = 0W THEN
-            CS.FromOA( L'error: missing device name' );
-            GOTO Error;
-         END;
-         
-         IF NOT Dali.RemoveDali( S2 ) THEN
-            CS.FromOA( L'error: unknown device' );
-            GOTO Error;
-         END;
-         CS.Clear(); // return value
+      ELSIF S1.EqualsOA( L'advise' ) THEN
+         Logger.LogS( dldDebug, logPrefix, L"DQP 'advise'" );
+         SDAP.Advise();
 
-      ELSIF EQUALS( S1, L'advise' ) THEN
-         IF NOT SplitAddress( FALSE, FALSE, FALSE, FALSE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
-            GOTO Error;
-         END;
-
-         IF EQUALS( S3, L'status' ) THEN
-            command := DaliBridge.cmdStatus;
-         ELSIF EQUALS( S3, L'present' ) THEN
-            command := DaliBridge.cmdWorking;
-         ELSIF EQUALS( S3, L'type' ) THEN
-            command := DaliBridge.cmdDeviceType;
-         ELSIF EQUALS( S3, L'version' ) THEN
-            command := DaliBridge.cmdVersion;
-         ELSIF EQUALS( S3, L'level' ) THEN
-            command := DaliBridge.cmdCurrentLevel;
-         ELSE
-            CS.FromOA( L'error: bad get command parameter' );
-            GOTO Error;
-         END;
-
-         IF NOT Send( eitRead, daliDevice, Linie, address, command, 0 ) THEN
-            GOTO Error;
-         END;
-         CS.Clear(); // return value
+      ELSIF S1.EqualsOA( L'unadvise' ) THEN
+         Logger.LogS( dldDebug, logPrefix, L"DQP 'unadvise'" );
+         SDAP.Unadvise();
 
       ELSE
+         Logger.LogSSSS( dldTrace, logPrefix, L"DQP unknown procedure '", OA( S1.Length-1, S1.rawData ), L"'", L"" );
          CS.FromOA( L'error: unknown driver procedure' );
+         GOTO Return;
       END;
 
    Success:
       CS.Clear();
-   Error:
+   Return:
       Result.Inc();
       OutValue.String := CS;
    END QueryProc;
@@ -670,6 +525,8 @@ CLASS IMPLEMENTATION CDriver;
 
    LOCAL VIRTUAL PROCEDURE OnConnected();
    BEGIN
+      Logger.LogS( dldTrace, logPrefix, L"'connected' event" );
+
       EnqueueEvent( NIL, PTR( eitConnected ));
    END OnConnected;
 
@@ -679,6 +536,8 @@ CLASS IMPLEMENTATION CDriver;
    VAR
       exceptionItem : TPExceptionItem;
    BEGIN
+      Logger.LogS( dldTrace, logPrefix, L"'disconnected' event" );
+
       NEW( exceptionItem );
       exceptionItem^.Result := Result;
       EnqueueEvent( exceptionItem, PTR( eitDisconnected ));
@@ -686,13 +545,15 @@ CLASS IMPLEMENTATION CDriver;
 
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL VIRTUAL PROCEDURE OnData( CONST Data, Value : StringsO.CString );
+   LOCAL VIRTUAL PROCEDURE OnData( CONST Address, Value : StringsO.IString );
    VAR
       exceptionItem : TPExceptionItem;
    BEGIN
+      Logger.LogSSSS( dldDebug, logPrefix, L"'advise' event,", OA( Address.Length-1, Address.rawData ), OA( Value.Length-1, Value.rawData ), L"" );
+
       NEW( exceptionItem );
-      exceptionItem^.Data := Data;
-      exceptionItem^.Value := Value;
+      exceptionItem^.Address.Assign( Address );
+      exceptionItem^.Value.Assign( Value );
       EnqueueEvent( exceptionItem, PTR( eitAdvise ));
    END OnData;
 
@@ -714,6 +575,20 @@ CLASS IMPLEMENTATION CDriver;
          CallbackProc( CallbackId, drv_def.dcfException, NIL );
       END;
    END EnqueueEvent;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE DisposeQueue();
+   VAR
+      Data : PTR;
+      ExceptionItem : TPExceptionItem;
+   BEGIN
+      WHILE Queue.Dequeue( OUT ExceptionItem, OUT Data ) DO
+         IF ExceptionItem <> NIL THEN
+            DISPOSE( ExceptionItem );
+         END;
+      END; // WHILE
+   END DisposeQueue;
 
 (*--------------------------------------------------------------------------------*)
 

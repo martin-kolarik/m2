@@ -19,20 +19,32 @@ IMPORT
 INTERFACE ISDAPEventSink; // in-thread
    LOCAL PROCEDURE OnConnected();
    LOCAL PROCEDURE OnDisconnected( Result : Sync.TAsyncResult );
-   LOCAL PROCEDURE OnData( CONST Data, Value : StringsO.CString );
+   LOCAL PROCEDURE OnData( CONST Address, Value : StringsO.IString );
 END ISDAPEventSink;
 
 (*-------------------------------------------------------------------------------*)
 
-CLASS CSDAP IMPLEMENTS threadpool.IHandleSink;
+CLASS CSDAP IMPLEMENTS threadpool.IHandleSink, SDAPClient.ISDAPClientEvents;
+
+   // IHandleSink
+   LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
+
+   // ISDAPClientEvents   
+   PUBLIC VIRTUAL PROCEDURE OnConnect( Result : Sync.TAsyncResult; Error : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE OnDisconnect( Result : Sync.TAsyncResult; Error : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE OnReceive( CONST Data, Value : StringsO.IString );
+
+   // SELF
    PRIVATE VAR
-      Running : BOOLEAN;
-      Host : StringsO.CString;
-      Client : SDAPClient.TPISDAPClient;
-      Queue : msgqueue.CPtrQueue;
-      Logger : log.CLogger;
-      Cookie : CARDINAL;
-      QueueSignal : Sync.SIGNAL;
+      _Running : BOOLEAN;
+      _Host : StringsO.CString;
+      _Client : SDAPClient.TPISDAPClient;
+      _Queue : msgqueue.CPtrQueue;
+      _QueueLength : CARDINAL;
+      _Logger : log.CLogger;
+      _QueueSignal : Sync.SIGNAL;
+      _QueueSignalPoolHandle : threadpool.TPoolHandle;
+      _PoolSink : threadpool.CSinkDelegate;
 
    PUBLIC VAR
       EventSink : POINTER TO ISDAPEventSink;
@@ -45,7 +57,7 @@ CLASS CSDAP IMPLEMENTS threadpool.IHandleSink;
    PUBLIC VIRTUAL PROCEDURE Dispose();
 
    // client commands
-   PUBLIC PROCEDURE SetConfiguration( CONST LoggerToClone : log.CLogger; CONST Host : StringsO.CString );
+   PUBLIC PROCEDURE SetConfiguration( CONST ClientName : ARRAY OF WCHAR; CONST LoggerToClone : log.CLogger; CONST Host : StringsO.CString );
    
    PUBLIC PROCEDURE Run() : Sync.TAsyncResult;
    PUBLIC PROCEDURE Stop();
@@ -55,12 +67,9 @@ CLASS CSDAP IMPLEMENTS threadpool.IHandleSink;
    PUBLIC PROCEDURE Advise() : Sync.TAsyncResult;
    PUBLIC PROCEDURE Unadvise() : Sync.TAsyncResult;
    // completes immediatelly or results to IEventSink callback
-   
-   // IHandleSink
-   LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
 
-   // SELF
-   PRIVATE PROCEDURE Communicate() : Sync.TAsyncResult;
+   PRIVATE PROCEDURE Enqueue( Request : ADDRESS ) : Sync.TAsyncResult;
+   PRIVATE PROCEDURE DisposeQueue();
 END CSDAP;
 
 (*===============================================================================*)

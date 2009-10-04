@@ -11,102 +11,217 @@ settings
 end_settings;
 
 driver
-  dali : 'dalibridge.dll', '', 'dalibridge.par';
+  sdap : 'sdapbridge.dll', '', 'sdapbridge.par';
 end_driver;
 
 data
 
-  const
-    DEVICE = 'Test';
-  end_const;
+  channel sdap_input {direction = input};
+    status : longcard {driver = sdap; driver_index = 1};
+    input_queue_length : longcard {driver = sdap; driver_index = 10};
+    output_queue_length : longcard {driver = sdap; driver_index = 11};
+  end_channel;
 
 end_data;
 
 instrument
 
-  switch switch_1;
-    timer = infinite;
+  switch Test;
     owner = background;
-    position = 225, 290, 145, 110;
+    position = 75, 210, 125, 74;
     window = normal;
     
-    procedure OnActivate();
-    var
-       error : string;
+    procedure OnOutput( Output : boolean );
     begin
-      core.DriverQueryProc( 'dali', 'create ' + DEVICE + ' 10001 10.0.0.100', &error );
-      if error = '' then
-        error := '<ok>';
-      end;
-      core.DebugOutput( 'create device ' + DEVICE + ': ' + error );
-
-      core.DriverQueryProc( 'dali', 'get_queue_count ' + DEVICE, &error );
-      if error = '' then
-        error := '<ok>';
-      end;
-      core.DebugOutput( 'get_queue_count ' + DEVICE + ': ' + error );
-    end_procedure;
-    
-    procedure OnOutput( b : boolean );
-    var
-      s : string;
-    begin
-      core.DriverQueryProc( 'dali', 'get_addresses', &s );
-      core.DebugOutput( 'res: ', s );
+      SDAPClient.Ask( '2/0/0' );
     end_procedure;
     
   end_switch;
 
-  meter meter_1;
+  switch Test;
     owner = background;
-    position = 500, 250, 395, 75;
-    expression = dali.10;
-    mode = text_display;
-    range_to = 1E+016;
-    font = 'Arial Rounded MT Bold (Western)', 36, normal;
-  end_meter;
-
-  string_control string_control_2;
-    owner = background;
-    position = 135, 155, 755, 80;
+    position = 75, 95, 125, 74;
     window = normal;
-    font = 'Candara (Central European)', 24, bold;
     
-    procedure OnOutput( Output : string );
-    var
-       s : string;
+    procedure OnOutput( Output : boolean );
     begin
-       core.DebugOutput( 'Command: ', Output );
-       core.DriverQueryProc( 'dali', Output, &s );
-       core.DebugOutput( 'Result:  ', s );
+      SDAPClient.Set( '3/1/21', 'true' );
     end_procedure;
     
-  end_string_control;
+  end_switch;
 
-  program Status;
-    timer = 10.01;
+  panel panel_2;
+    owner = background;
+    position = 225, 95, 200, 120;
+    window = normal;
+  end_panel;
+
+(*
+  meter meter_1;
+    timer = 0.001;
+    owner = panel_2;
+    position = 10, 45, 180, 30;
+    expression = sdap_input.input_queue_length;
+    mode = text_display;
+    range_to = 100000000000;
+    low_limit = 0;
+    high_limit = 100000000000;
+    dec_places = 0;
+    font = font_text;
+  end_meter;
+
+  meter meter_1;
+    timer = 0.001;
+    owner = panel_2;
+    position = 10, 80, 180, 30;
+    expression = sdap_input.output_queue_length;
+    mode = text_display;
+    range_to = 100000000000;
+    low_limit = 0;
+    high_limit = 100000000000;
+    dec_places = 0;
+    font = font_text;
+  end_meter;
+*)
+
+  meter meter_1;
+    timer = 0.001;
+    owner = panel_2;
+    position = 10, 10, 180, 30;
+    expression = sdap_input.status;
+    mode = text_display;
+    range_to = 100000000000;
+    low_limit = 0;
+    high_limit = 100000000000;
+    dec_places = 0;
+    font = font_text;
+  end_meter;
+
+  program SDAPHandler;
+    driver_exception = sdap;
     
     procedure OnActivate();
+    var
+      address : string;
+      value : string;
+      command : string;
+      event : string;
+      space : longint;
     begin
-      core.DebugOutput( 'ST: ', dali.1 );
+      loop
+        core.DriverQueryProc( 'sdap', 'event get', &event );
+        if event = '' then (* no event read, queue is empty *)
+          exit;
+        end;
+
+        (* analyze having no parameter *)
+        if event = 'connected' then
+          OnConnected();
+          continue; (* this skips processing of events with parameters *)
+        elsif event = 'disconnected' then
+          OnDisconnected();
+          continue; (* this skips processing of events with parameters *)
+        end;
+    
+        (* analyze events having parameters *)
+        space = pos( event, ' ' );
+        if space = -1 then (* something strange, event has not form "<command> <par1> <par2>" *)
+          continue;
+        end;
+    
+        command = slice( event, 0, space );
+        event = delete( event, 0, space+1 );
+        if command = 'advise' then
+    
+          space = pos( event, ' ' );
+          if space = -1 then (* something strange, event has not form "<command> <par1> <par2>" *)
+            continue;
+          end;
+    
+          address = slice( event, 0, space );
+          value = delete( event, 0, space+1 );
+    
+          OnAdvise( address, value );
+        end;
+    
+      end; (* loop *)
+    end_procedure;
+    
+    procedure OnConnected();
+    begin
+      Command( 'advise' );
+      SDAPClient.OnConnected();
+    end_procedure;
+    
+    procedure OnDisconnected();
+    begin
+      SDAPClient.OnDisconnected();
+    end_procedure;
+    
+    procedure OnAdvise( address, value : string );
+    begin
+      SDAPClient.OnAdvise( address, value );
+    end_procedure;
+    
+    procedure Command( command : string );
+    var
+      result : string;
+    begin
+      core.DriverQueryProc( 'sdap', command, &result );
+      if result <> '' then
+        core.DebugOutput( 'SDAP command failed:', result );
+      end;
     end_procedure;
     
   end_program;
 
-  program ExceptionHandler;
-    driver_exception = dali;
+  program SDAPClient;
+    
+    procedure OnConnected();
+    begin
+      core.DebugOutput( 'connected' );
+    end_procedure;
+    
+    procedure OnDisconnected();
+    begin
+      core.DebugOutput( 'disconnected' );
+    end_procedure;
+    
+    procedure OnAdvise( address, value : string );
+    begin
+      core.DebugOutput( 'received:', address + ' ' + value );
+    end_procedure;
+    
+    procedure Set( address, value : string );
+    begin
+      SDAPHandler.Command( 'set ' + address + ' ' + value );
+    end_procedure;
+    
+    procedure Ask( address : string );
+    begin
+      SDAPHandler.Command( 'ask ' + address );
+    end_procedure;
+    
+    procedure Advise();
+    begin
+      SDAPHandler.Command( 'advise' );
+    end_procedure;
+    
+    procedure Unadvise();
+    begin
+      SDAPHandler.Command( 'unadvise' );
+    end_procedure;
+    
+  end_program;
+
+  program SDAPStress;
+    (*
+    timer = 0.01;
+    *)
     
     procedure OnActivate();
-    var
-       Event : string;
     begin
-       loop
-          core.DriverQueryProc( 'dali', 'event get', &Event );
-          if Event = '' then
-             exit;
-          end;
-          core.DebugOutput( 'Event: ', Event );
-       end;
+      SDAPClient.Set( '6/3/23', 'true' );
     end_procedure;
     
   end_program;

@@ -1,13 +1,52 @@
 IMPLEMENTATION MODULE SDAPBridge;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM log IMPORT
    dldError, dldMessage, dldTrace, dldDebug;
   
 FROM driver IMPORT
    R;
+   
+IMPORT
+   Log,
+   Strings,
+   Sync;
+   
+CONST
+   CRLF = 13W + 10W;
+   RECONNECT_TIMEOUT = 10000; // 10 seconds
+   LOG_NAME = L"Client";
+
+(*===============================================================================*)
+
+TYPE
+   TRequestType = (
+      reqUnknown,
+      reqSet,
+      reqAsk,
+      reqAdvise,
+      reqUnadvise
+   );
+   
+   TPRequest = POINTER TO CRequest;
+
+(*-------------------------------------------------------------------------------*)
+
+CLASS CRequest;
+   LOCAL VAR
+      Type    : TRequestType;
+      Address : StringsO.CString;
+      Data    : StringsO.CString;
+END CRequest;
+
+(*-------------------------------------------------------------------------------*)
+
+CLASS IMPLEMENTATION CRequest;
+BEGIN
+   Type := reqUnknown;
+END CRequest;
 
 (*===============================================================================*)
 
@@ -15,228 +54,270 @@ CLASS IMPLEMENTATION CSDAP;
 
 (*-------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Connected GET : BOOLEAN;
+   BEGIN
+      IF _Client = NIL THEN
+         RETURN FALSE;
+      ELSE
+         RETURN _Client^.Connected;
+      END;
+   END Connected;
+
+(*-------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY OutputQueueCount GET : CARDINAL;
    BEGIN
-      RETURN Queue.Count;
+      RETURN _Queue.Count;
    END OutputQueueCount;
 
 (*-------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY OutputQueueLength GET : CARDINAL;
    BEGIN
-      RETURN QueueLength;
+      RETURN _QueueLength;
    END OutputQueueLength;
 
 (*-------------------------------------------------------------------------------*)
 
    PUBLIC PROPERTY OutputQueueLength SET( Value : CARDINAL );
+   VAR
+      request : TPRequest;
    BEGIN
-      QueueLength := MAX2( 2, Value );
+      _QueueLength := MAX2( 2, Value );
+      WHILE _Queue.Count > _QueueLength DO // if new queue length is greater than current, forget the first entries
+         IF _Queue.Dequeue( OUT request ) THEN
+            DISPOSE( request );
+         END;
+      END; // WHILE
    END OutputQueueLength;
 
 (*-------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
-   VAR
-      linie : TDaliLinie;
-      Request : TPDaliRequest;
    BEGIN
-      IF PollTimer <> NIL THEN
-         threadpool.pool()^.Abort( REF PollTimer );
+      DisposeQueue();
+      _QueueSignal.Dispose();
+
+      IF _Client <> NIL THEN
+         _Client^.Dispose();
+         _Client := NIL;
       END;
-      WHILE Queue.Dequeue( OUT Request ) DO
-         DISPOSE( Request );
-      END; // WHILE
-      FOR linie := l1 TO l4 DO
-         DISPOSE( FileToSend[linie] );
-      END; // FOR
    END Dispose;
 
 (*-------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE SetConfiguration( CONST SourceLogger : Log.CLogger; CONST ClientName : ARRAY OF WCHAR; ListenPort : CARDINAL; Server : inetaddr.INETADDR );
+   PUBLIC PROCEDURE SetConfiguration( CONST ClientName : ARRAY OF WCHAR; CONST LoggerToClone : log.CLogger; CONST Host : StringsO.CString );
    VAR
       LongName : ARRAY [0..255] OF WCHAR;
    BEGIN
-      Strings.ConcatW( OUT LongName, L"Dali.", ClientName );
-      Logger.SetUpByLogger( SourceLogger );
-      Logger.SetLogName( LongName );
+      Strings.ConcatW( OUT LongName, L"SDAPCWDriver.", ClientName );
+      _Logger.SetUpByLogger( LoggerToClone );
+      _Logger.SetLogName( LongName );
 
-      Name.FromOA( ClientName );
-      Communicator^.Stop();
-      Communicator^.SetDeviceAddress( Server, ListenPort );
+      IF _Client <> NIL THEN
+         _Client^.Disconnect();
+      END;
+      _Host := Host;
    END SetConfiguration;
       
 (*-------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Run() : Sync.TAsyncResult;
-   VAR
-      da : DaliAddress;
-      Result : Sync.TAsyncResult;
    BEGIN
-      IF Running THEN
+      IF _Running THEN
          RETURN Sync.arAlreadyPending;
+      ELSIF _Client = NIL THEN
+         RETURN Sync.arCannotStart;
       END;
-      Running := TRUE;
+      _Running := TRUE;
 
-      IF PollPeriod > 0 THEN
-         threadpool.pool()^.WaitTimeout( PollSink, 0, PollPeriod, FALSE, TRUE, OUT PollTimer );
+      IF NOT threadpool.pool()^.WaitHandle( ADR( _PoolSink ), 0, RECONNECT_TIMEOUT, FALSE, FALSE, _QueueSignal.RawHandle, OUT _QueueSignalPoolHandle ) THEN
+         ASSERTLOG( FALSE );
       END;
 
-      Result := Communicator^.Run();
-      IF Result = Sync.arCompleted THEN
-         Command( l4, da, cmdInterfaceReset, 0, 0 ); // reset
-         Command( l3, da, cmdInterfaceReset, 0, 0 ); // reset
-         Command( l2, da, cmdInterfaceReset, 0, 0 ); // reset
-         Command( l1, da, cmdInterfaceReset, 0, 0 ); // reset, reset first linie (with ETH interface) as last
-      END;
-      RETURN Result;
+      RETURN _Client^.Connect( _Host );
    END Run;
 
 (*-------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Stop();
    BEGIN
-      IF NOT Running THEN
+      IF NOT _Running THEN
+         RETURN;
+      ELSIF _Client = NIL THEN
          RETURN;
       END;
-      Running := FALSE;
+      _Running := FALSE;
       
-      Queue.Clear();
-      Communicator^.Stop();
+      _Client^.Disconnect();
 
-      IF PollTimer <> NIL THEN
-         threadpool.pool()^.Abort( REF PollTimer );
-      END;
+      DisposeQueue();
    END Stop;
 
 (*-------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Set( CONST Data, Value : StringsO.CString ) : Sync.TAsyncResult;
+   VAR
+      request : TPRequest;
    BEGIN
+      NEW( request );
+      request^.Type := reqSet;
+      request^.Address := Data;
+      request^.Data := Value;
+      RETURN Enqueue( request );
    END Set;
 
 (*-------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Ask( CONST Data : StringsO.CString ) : Sync.TAsyncResult;
+   VAR
+      request : TPRequest;
    BEGIN
+      NEW( request );
+      request^.Type := reqAsk;
+      request^.Address := Data;
+      RETURN Enqueue( request );
    END Ask;
 
 (*-------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Advise() : Sync.TAsyncResult;
+   VAR
+      request : TPRequest;
    BEGIN
+      NEW( request );
+      request^.Type := reqAdvise;
+      RETURN Enqueue( request );
    END Advise;
 
 (*-------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Unadvise() : Sync.TAsyncResult;
+   VAR
+      request : TPRequest;
    BEGIN
+      NEW( request );
+      request^.Type := reqUnadvise;
+      RETURN Enqueue( request );
    END Unadvise;
 
 (*-------------------------------------------------------------------------------*)
 
    LOCAL VIRTUAL PROCEDURE OnHandle( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
    VAR
-      address : DaliBridge.DaliAddress;
-      linie : TDaliLinie;
+      request : TPRequest;
    BEGIN
-      IF ProgrammingInProgress OR ( Result <> Sync.arCompleted ) THEN
+      IF Result = Sync.arTimeout THEN
+         IF NOT threadpool.pool()^.WaitHandle( ADR( _PoolSink ), 0, RECONNECT_TIMEOUT, FALSE, FALSE, _QueueSignal.RawHandle, OUT _QueueSignalPoolHandle ) THEN
+            ASSERTLOG( FALSE );
+         END;
+         
+         IF ( _Client <> NIL ) AND NOT _Client^.Connected THEN
+            _Logger.LogS( Log.dldTrace, LOG_NAME, L"Not connected, try to connect again" );
+            _Client^.Connect( _Host );                  
+         END;
+         
          RETURN;
       END;
-         
-      address.Type := DaliBridge.adrSingle;
-      address.Address := PollActive;
+   
+      WHILE _Queue.Dequeue( OUT request ) DO
 
-      Logger.LogSC( dldTrace, logDevPrefix, L"Poll status request for: ", PollActive );
-
-      FOR linie := l1 TO l4 DO // 4 DO
-         IF NOT Polled[linie] OR PendingArray[linie][PollActive] THEN
-            CONTINUE;
-         ELSE
-            PendingArray[linie][PollActive] := TRUE;
+         IF _Client <> NIL THEN
+            CASE request^.Type OF
+            | reqSet :
+               _Client^.Write( request^.Address, request^.Data );
+            | reqAsk :
+               _Client^.Ask( request^.Address );
+            | reqAdvise :
+               _Client^.SetAdvise( TRUE );
+            | reqUnadvise :
+               _Client^.SetAdvise( FALSE );
+            END; // CASE
          END;
-         Command( linie, address, DaliBridge.cmdStatus, 0, _PollClientId );
-      END; // FOR
-
-      PollActive := PollActive + 1;
-      IF PollActive > 63 THEN
-         PollActive := 0;
-      END;
+      
+         DISPOSE( request );
+      END; // WHILE
    END OnHandle;
 
 (*-------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE Communicate() : Sync.TAsyncResult;
-   VAR
-      DaliData : ARRAY [0..1] OF BYTE;
-      Long : BOOLEAN := FALSE;
-      Result : Sync.TAsyncResult;
-      Request : TPDaliRequest;
-      Reset : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE OnConnect( Result : Sync.TAsyncResult; Error : CARDINAL );
    BEGIN
-      IF NOT Queue.Peek( OUT Request ) THEN
-         RETURN Sync.arCompleted;
-      ELSIF Request^.Pending THEN
-         RETURN Sync.arAlreadyPending;
+      IF Result = Sync.arCompleted THEN
+         IF EventSink <> NIL THEN
+            EventSink^.OnConnected();
+         END;
       ELSE
-         Request^.Pending := TRUE;
+         _Logger.LogSC( Log.dldTrace, LOG_NAME, L"Connect error:", Error );
       END;
-      
-      // prepare Dali packet
-      Reset := FALSE;
-      IF Request^.Command = cmdInterfaceReset THEN
-         DaliData[0] := 0;
-         DaliData[1] := 0;
-         Reset := TRUE;
+   END OnConnect;
 
-         LogRequest( dldDebug, L"SNDr: ", Request, Sync.arCompleted, FALSE, FALSE, FALSE );
+(*-------------------------------------------------------------------------------*)
 
-      ELSIF Request^.Command = cmdFileItem THEN
-         Long := PBYTE( Request^.LongData )^ = 2;
-         DaliData[0] := PBYTE( Request^.LongData )@[1]^;
-         DaliData[1] := PBYTE( Request^.LongData )@[2]^;
-
-         LogRequest( dldDebug, L"SNDf: ", Request, Sync.arCompleted, FALSE, FALSE, FALSE );
-
-      ELSIF Request^.Command IN specialCommands THEN
-         DaliData[0] := BYTE( Request^.Command );
-         DaliData[1] := Request^.Data;
-
-         LogRequest( dldDebug, L"SNDs: ", Request, Sync.arCompleted, FALSE, FALSE, TRUE );
-
-      ELSIF Request^.Command = cmdDirect THEN
-         DaliData[0] := Request^.Address.TransportAddress AND NOT 01H;
-         DaliData[1] := MIN2( 0FEH, Request^.Data );
-
-         LogRequest( dldDebug, L"SNDd: ", Request, Sync.arCompleted, TRUE, FALSE, TRUE );
-
-      ELSE
-         DaliData[0] := Request^.Address.TransportAddress OR 01H;
-         DaliData[1] := BYTE( Request^.Command );
-
-         LogRequest( dldDebug, L"SNDn: ", Request, Sync.arCompleted, TRUE, FALSE, FALSE );
+   PUBLIC VIRTUAL PROCEDURE OnDisconnect( Result : Sync.TAsyncResult; Error : CARDINAL );
+   BEGIN
+      IF Result <> Sync.arCompleted THEN
+         _Logger.LogSC( Log.dldTrace, LOG_NAME, L"Disconnect error:", Error );
       END;
-      
-      Result := Communicator^.SendDaliData( Request^.Linie, DaliData, Reset, NOT Reset AND ( Request^.Command IN respondedCommands ), NOT Reset AND ( Request^.Command IN repeatedCommands ), Long );
-      IF Result = Sync.arAlreadyPending THEN // data were not sent, communicator is busy
-         Request^.Pending := FALSE; // prepare next send after a tick
-         RETURN Sync.arPending;
-      ELSIF Result IN Sync.arsStarts THEN
-         RETURN Sync.arPending;
-      ELSE
-         RETURN Result;
+      IF EventSink <> NIL THEN
+         EventSink^.OnDisconnected( Result );
       END;
-   END Communicate;
+   END OnDisconnect;
+
+(*-------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE OnReceive( CONST Address, Value : StringsO.IString );
+   BEGIN
+      IF EventSink <> NIL THEN
+         EventSink^.OnData( Address, Value );
+      END;
+   END OnReceive;
+
+(*-------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE Enqueue( Request : ADDRESS ) : Sync.TAsyncResult;
+   VAR
+      dequeued : PTR;
+   BEGIN
+      IF _Queue.Count > _QueueLength THEN
+         _Queue.Dequeue( OUT dequeued );
+      END;
+      _Queue.Enqueue( Request );
+
+      RETURN Sync.arPending;
+   END Enqueue;
+
+(*-------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE DisposeQueue();
+   VAR
+      request : TPRequest;
+   BEGIN
+      WHILE _Queue.Dequeue( OUT request ) DO
+         DISPOSE( request );
+      END; // WHILE
+      IF _QueueSignalPoolHandle <> NIL THEN
+         threadpool.pool()^.Abort( REF _QueueSignalPoolHandle );
+      END;
+   END DisposeQueue;
 
 (*-------------------------------------------------------------------------------*)
 
 BEGIN
-   Running := FALSE;
+   _Running := FALSE;
+   _QueueLength := 1000;
+   _QueueSignal.Init( Sync.stEventAutoreset, L"", FALSE );
+   _Queue.Consume := ADR( _QueueSignal );
+   _QueueSignalPoolHandle := NIL;
+   _PoolSink.HandleSink := ADR( SELF );
    EventSink := NIL;
-   QueueLength := MAX( CARDINAL );
-   QueueSignal.Init( );
-   Queue.Consume := ADR( QueueSignal );
+
+   IF SDAPClient.newSDAPClient( OUT _Client ) = Sync.arCompleted THEN
+      _Client^.EventListener := ADR( SELF );
+   ELSE
+      ASSERTLOG( FALSE );
+   END;
+
 FINALLY
    Dispose();
 END CSDAP;
