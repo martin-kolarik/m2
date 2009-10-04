@@ -1,0 +1,32 @@
+;==============================================================================
+; Default values are denoted with *. Lines without ; on the start have no
+; default value and should be present/defined.
+
+;==============================================================================
+; [interface] section defines behavior of ControlWeb-driver
+; interface. The section is optional.
+[interface]
+; status_channel = index of to be used in application
+; input_queue_count_channel = index of to be used in application
+; output_queue_count_channel = index of to be used in application
+; output_queue_length = *1000, length of output queue
+;
+status_channel = 1
+input_queue_count_channel = 10
+output_queue_count_channel = 11
+
+;==============================================================================
+; [device] section defines parameters for connection
+; with SDAP server. The section is mandatory.
+[device]
+; sdap_server = IP address or DNS name including port
+;
+sdap_server = 10.0.0.8:6007
+
+;==============================================================================
+; log configuration
+[log]
+; target = *kernel | file | none
+; level = fatal | *error | warning | info
+; file =
+level = info

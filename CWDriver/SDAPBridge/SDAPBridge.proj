@@ -1,0 +1,38 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 -->
+    <PropertyGroup>
+        <ComponentType>Product</ComponentType>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <ProductGUID>5A72E669-0E69-4d17-BBB4-20E78E3BF43F</ProductGUID>
+        <ProductUpgradeGUID>1692A782-9CBF-453f-99C2-7A4BDD4117CD</ProductUpgradeGUID>
+        <ProductId>NeNo.SDAPBridge.CWDriver</ProductId>
+        <ProductVersionMajor>1</ProductVersionMajor>
+        <ProductVersionMinor>0</ProductVersionMinor>
+        <FileDescription>NeNo SDAP driver</FileDescription>
+    </PropertyGroup>
+
+    <!-- 2 INCLUDE DEFINITION -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 3 COMPONENT DEFINITION -->
+    <ItemGroup>
+        <Components Include="Modula2\modula2;API\CLib;API\win32"/>
+        <Components Include="Component\sccore;Library\CWDriver;SDAP\SDAPClient"/>
+        <Modules Include="SDAPBridge;driver"/>
+        <Messages Include="Texts"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <Export>export</Export>
+    </PropertyGroup>
+
+    <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+</Project>
