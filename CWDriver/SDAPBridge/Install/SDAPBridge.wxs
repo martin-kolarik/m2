@@ -18,22 +18,18 @@
             <?endif ?>
             <?endif ?>
             <Directory Id="ProgramFilesFolder">
-                <Directory Id="Inris" Name="Inris">
+                <Directory Id="NeNo" Name="NeNo">
                     <Directory Id="INSTALLDIR" Name="SDAPBrg" LongName="SDAPBridge">
                         <Component Guid="57DF5758-9AF5-47ab-9241-248F1B1227EB" Id="Program">
-                            <File DiskId="1" Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" Vital="yes">
-                            </File>
-                            <File DiskId="1" Id="License.rtf" Name="License.rtf" Source="License.rtf" Vital="yes">
-                            </File>
-                            <File DiskId="1" Id="SDAPBridge.dll" Name="SDAPBrg.dll" LongName="SDAPBridge.dll" Source="SDAPBridge.dll" Vital="yes">
-                            </File>
-                            <File DiskId="1" Id="SCCore.dll" Name="SCCore.dll" Source="SCCore.dll" Vital="yes">
-                            </File>
+                            <File DiskId="1" Id="SDAPBridge.dll" Name="SDAPBrg.dll" LongName="SDAPBridge.dll" Source="SDAPBridge.dll" Vital="yes" KeyPath="yes" />
+                        </Component>
+                        <Component Guid="1DD4D466-7552-4d8d-A1EB-D27A39A1ABBC" Id="RuntimeLib">
+                            <File DiskId="1" Id="SCCore.dll" Name="SCCore.dll" Source="SCCore.dll" Vital="yes" KeyPath="yes" />
                         </Component>
                         <Component Guid="E84AAF36-7698-429c-A985-70219D8C5E42" Id="DebugInfo">
-                            <File Id="SDAPBridge.PDB" Name="SDAPBridge.pdb" Source="SDAPBridge.pdb" DiskId="1" KeyPath="yes"/>
+                            <File Id="SDAPBridge.PDB" Name="SDAPBrdg.pdb" LongName="SDAPBridge.pdb" Source="SDAPBridge.pdb" DiskId="1" KeyPath="yes"/>
                             <File Id="ScCore.PDB" Name="sccore.pdb" Source="sccore.pdb" DiskId="1" />
-                            <File Id="SDAPBridge.MAP" Name="SDAPBridge.map" Source="SDAPBridge.map" DiskId="1" />
+                            <File Id="SDAPBridge.MAP" Name="SDAPBrdg.map" LongName="SDAPBridge.map" Source="SDAPBridge.map" DiskId="1" />
                             <File Id="ScCore.MAP" Name="sccore.map" Source="sccore.map" DiskId="1" />
                         </Component>
                         <Component Id="Licence" Guid="8E9CA158-2B17-479d-BBA6-37B42830B32C">
@@ -59,6 +55,7 @@
                         <Directory Id="EXAMPLES" Name="Examples">
                             <Component Id="Examples" Guid="8E9CA158-2B17-479d-BBA6-37B42830B32C">
                                 <File Id="sdapbridge.cw5.cw" Name="SDAPbrg5.cw" LongName="SDAPbridge.cw5.cw" Source="Examples\SDAPbridge.cw5.cw" DiskId="1" />
+                                <File Id="sdapbridge.cw6.cw" Name="SDAPbrg6.cw" LongName="SDAPbridge.cw6.cw" Source="Examples\SDAPbridge.cw6.cw" DiskId="1" />
                                 <File Id="SDAPbridge.par" Name="SDAPbrg.par" LongName="SDAPbridge.par" Source="Examples\SDAPbridge.par" DiskId="1" />
                             </Component>
                         </Directory>
@@ -72,6 +69,9 @@
                 </Directory>
             </Directory>
         </Directory>
+        <Directory Id="ProgramMenuFolder" Name="PMenu" LongName="Programs">
+            <Directory Id="ProgramMenuDir" Name='SDAPBrdg' LongName="NeNo SDAP Bridge ControlWeb Driver" />
+        </Directory>
         <?if $(var.CLib)!=Static ?>
         <Feature Id="VC8RuntimeFeature" Level="1" AllowAdvertise="no" Display="hidden">
             <MergeRef Id="VC8Runtime" />
@@ -80,7 +80,9 @@
         <?endif ?>
         <Feature ConfigurableDirectory="INSTALLDIR" Id="Complete" Level="1">
             <ComponentRef Id="Program" />
+            <ComponentRef Id="RuntimeLib" />
             <ComponentRef Id="Licence" />
+            <ComponentRef Id="Documentation" />
             <ComponentRef Id="Examples" />
             <?if $(var.LeakChecking)=on ?>
             <ComponentRef Id="LeakDetector" />

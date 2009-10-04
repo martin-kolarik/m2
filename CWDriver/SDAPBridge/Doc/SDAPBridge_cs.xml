@@ -8,16 +8,13 @@
   </adjustment>
   <text>
     <section level="1" selfnumbered="no">
-      <title>Ovladaè SDAP klient (SDAPBridge) pro ControlWeb</title>
+      <title>Ovladaè SDAPBridge pro ControlWeb</title>
       <subtitle>Dokumentace popisuje konfiguraci a chování ovladaèe (1.0.993 a vyšší) pro komunikaci s NeNo SDAP serverem. Zmìny chování ovladaèe vùèi této dokumentaci jsou vyhrazeny.</subtitle>
       <text>
         <content>
           <caption></caption>
         </content>
         <blank size="fill" />
-        <p.figure file="SmartServerIcon" format="pdf" width="5cm">
-          <caption></caption>
-        </p.figure>
         <page></page>
         <section level="2">
           <title>Princip práce ovladaèe</title>
@@ -43,7 +40,7 @@
               <text>
                 <p>Aktivace probíhá dvoukrokovì. V prvním kroku se získá registraèní èíslo, které se odešle na adresu technické podpory (prodejce). Technická podpora èíslo zaeviduje a na jeho základì vytvoøí aktivaèní èíslo, které odešle zpìt. V druhém kroku aktivace se aktivaèní èíslo aplikuje.</p>
                 <p>Registraèní èíslo se pomocí nástroje <type>activate</type> získá následovnì (záznam operací v pøíkazové øádce):</p>
-                <p.type>C:\&gt;cd "Program Files\Neno\SDAPBridge
+                <p.type>C:\&gt;cd "Program Files\Neno\SDAPBridge"
 C:\Program Files\NeNo\SDAPBridge&gt;activate -Q *
 Licence support tool
 (c) NeNo 2009
@@ -57,8 +54,8 @@ Licence support tool
     registration number "REG-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"</p.type>
                 <p>Uvedené registraèní èíslo se nevypíše, pokud je ovladaè nainstalovaný bez licence (tj. jako demoverze), nebo pokud již je ovladaè aktivován.</p>
                 <p>Po odeslání celého registraèního èísla (<type>REG-xxxxx-...-xxxxx</type>) a jeho zpracování vznikne aktivaèní èíslo ve tvaru <type>VAN-xxxxx-...-xxxxx</type>. Toto aktivaèní èíslo se opìt pomocí nástroje <type>activate</type> aplikuje:</p>
-                <p.type>C:\&gt;cd "Program Files\Neno\SDAPBridge
-C:\Program Files\NeNo\SDAPBridge&gt;activate -A VAN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx
+                <p.type>C:\&gt;cd "Program Files\Neno\SDAPBridge"
+C:\Program Files\NeNo\SDAPBridge&gt;activate -A VAN-xxxxx-...-xxxxx
 Licence support tool
 (c) NeNo 2009
 
@@ -86,10 +83,10 @@ Licence support tool
           </text>
         </section>
         <section level="2">
-          <title>Registrace v systému ControlWeb</title>
+          <title>Registrace do systému ControlWeb</title>
           <text>
             <p>Systém ControlWeb automaticky nalézá jen ovladaèe svého výrobce (Moravské pøístroje, a.s.). Pro ostatní ovladaèe je tøeba využít nástroj <gui>Konfigurace ovladaèù</gui>. Ve vývojové verzi systém ControlWeb se <gui>Konfigurace ovladaèù</gui> spustí pomocí menu <gui>Nástroje/Konfigurace ovladaèù...</gui> vývojového prostøedí, v runtime verzi systému ControlWeb se téhož dosáhne z menu operaèního systému <gui>StartMenu/Control Web 5 Runtime/Konfigurace ovladaèù</gui> (nebo <gui>StartMenu/Control Web 6 Runtime/Konfigurace ovladaèù</gui>).</p>
-            <f.figure file="DriverCfg1" format="png" label="figDriverCfg">
+            <f.figure file="DriverCfg1" format="png" label="figDriverCfg" width="4cm">
               <caption>Okno <gui>Konfigurace ovladaèù</gui> pøed registrací</caption>
             </f.figure>
             <il numbered="yes">
@@ -99,7 +96,7 @@ Licence support tool
               <li><p><gui>Konfigurace ovladaèù</gui> ovladaè naète, pøeète jeho verzi a v pøípade úspìchu jej zaøadí do seznamu ovladaèù.</p></li>
               <li><p>Stiskem tlaèítka <gui>Použít</gui> se uzavøe <gui>Konfigurace ovladaèù</gui> a ovladaè se zapíše do konfigurace systému ControlWeb.</p></li>
             </il>
-            <f.figure file="DriverCfg2" format="png" label="figDriverCfg">
+            <f.figure file="DriverCfg2" format="png" label="figDriverCfgAfter" width="4cm">
               <caption>Okno <gui>Konfigurace ovladaèù</gui> po registraci</caption>
             </f.figure>
           </text>
@@ -132,10 +129,10 @@ Licence support tool
                   <caption>Sekce je povinná a obsahuje následující parametry:</caption>
                   <dt><type>sdap_server</type></dt>
                   <dd><p>parametr pro zadání DNS jména èi IP adresy SDAP serveru, ke kterému se má ovladaè pøipojit. Souèástí jména je èíslo portu (za dvojteèkou), který SDAP server používá. Pøíklady zápisu parametru:</p><p.type>; DNS name
-sdap_server = sdap.domain.com:6005
+sdap_server = sdap.domain.com:6007
 
 ; IP address
-sdap_server = 10.0.1.128:6005</p.type><p>Klíè nemá výchozí hodnotu a musí být definován. Èíslo portu 6005 je pro SDAP výchozí.</p></dd>
+sdap_server = 10.0.1.128:6007</p.type><p>Klíè nemá výchozí hodnotu a musí být definován. Èíslo portu 6007 je pro SDAP výchozí.</p></dd>
                 </dl>
               </text>
             </section>
@@ -255,7 +252,7 @@ level = info</p.type>
         <section level="2">
           <title>Procedury ovladaèe (dotazovací procedura ovladaèe)</title>
           <text>
-            <p>Ovladaè rozumí pìti procedurám: <type>event</type>, <type>set</type>, <type>ask</type>, <type>advise</type>, a <type>unadvise</type>. Tyto procedury jsou volány pomocí dotazovací procedury ovladaèe <type>core.DriverQueryProc</type>, kdy druhý parametr volání obsahuje jméno volané procedury vèetnì jejích parametrù. Tøetí parametr procedury <type>DriverQueryProc</type> se na vstupu nepoužívá. Procedura <type>set</type> mùže být v kódu aplikace zavolána napøíklad takto:</p>
+            <p>Ovladaè rozumí pìti procedurám: <type>event</type>, <type>set</type>, <type>ask</type>, <type>advise</type>, a <type>unadvise</type>. Procedury jsou volány pomocí procedury <type>core.DriverQueryProc</type> systému ControlWeb, kdy druhý parametr obsahuje jméno volané procedury vèetnì jejích parametrù. Tøetí parametr procedury <type>DriverQueryProc</type> se na vstupu nepoužívá. Procedura <type>set</type> mùže být v kódu aplikace zavolána napøíklad takto:</p>
             <p.type>... core.DriverQueryProc( 'sdap', 'set 3/1/1 true', &amp;Error ); ...</p.type>
             <p>Nastane-li bìhem provádìní procedury chyba, zapíše ovladaè popis chyby (text) do tøetího (øetìzcového) parametru procedury (<type>&amp;Error</type> v ukázce).</p>
             <section level="3">
@@ -295,7 +292,7 @@ core.DriverQueryProc( 'sdap', 'unadvise', &amp;Error );</p.type>
               <title>Procedura <type>event</type></title>
               <text>
                 <p>Procedura <type>event</type> slouží aplikaci k vyètení událostí (zpráv) pøijatých ze SDAP serveru. Procedura má dvì varianty: <type>event get</type> a <type>event count</type>, obì varianty plní výstupní (tøetí) parametr procedury <type>core.DriverQueryProc</type>. Procedura <type>event count</type> výstupní parametr naplní poètem událostí ve frontì (výsledkem je èíslo stejné jako v kanále input queue count), procedura <type>event get</type> výstupní parametr naplní textem události. Pro obì varianty mùže být výstupní parametr textový. Je to i doporuèeno, protože obì varianty mohou vracet ve výstupním parametru popis chyby.</p>
-                <dl class="dlHanging">
+                <dl class="dlCommon">
                   <caption>Údaj naplnìný procedurou event do výstupního parametru mùže být:</caption>
                   <dt><type>&lt;prázdný øetìzec&gt;</type></dt>
                   <dd><p>Výsledek volání procedury <type>event get</type>, pokud ovladaè pro aplikaci nemá žádnou zprávu a nenastala chyba.</p></dd>
@@ -385,7 +382,7 @@ end_program;</p.type>
           <title>Ukázky</title>
           <text>
             <p>Instalace ovladaèe obsahuje ukázku použití pro systémy ControlWeb<c.special what="thinspace" />5 a ControlWeb<c.special what="thinspace" />6. Ukázka je stejná, liší se pouze syntaxí zápisu zdrojového kódu, pro ControlWeb<c.special what="thinspace" />5 je uložena v instalaèním adresáøi v souboru <file>Examples\sdapbridge.cw5.cw</file> a pro ControlWeb<c.special what="thinspace" />6 v souboru <file>Examples\sdapbridge.cw6.cw</file>. Ukázka pro bìh vyžaduje taktéž správnì nastavený parametrický soubor <file>sdapbridge.par</file>.</p>
-            <dl class="dlHanging">
+            <dl class="dlCommon">
               <caption>Ukázka obsahuje následující èásti:</caption>
               <dt>definici kanálù v sekci <type>sdap_input</type></dt>
               <dd><p>Sekce obsahuje všechny tøi kanály, které ovladaè poskytuje. Èísla kanálù (atribut <type>driver_index</type>) musí odpovídat definici v sekci <type>interface</type> parametrického souboru.</p></dd>
