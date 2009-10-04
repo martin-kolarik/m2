@@ -376,7 +376,7 @@ date_format = dd. MMMM yyyy</p.type><p>Ve obou formátech lze využít formátovací 
                 <dl class="dlParameter">
                   <caption>Sekce definují následující parametry:</caption>
                   <dt><type>target</type></dt>
-                  <dd><p>pro definici výstupu ladicích výpisù. Možné hodnoty parametru jsou zapsány v tabulce <in label="tblTarget"></in>.</p><p>Výchozí hodnota parametru je <type>kernel</type> pro sekci <type>[debug]</type> a <type>none</type> pro sekci <type>[data_log]</type>. Pøíklad:</p><p.type>target = file</p.type></dd>
+                  <dd><p>pro definici výstupu ladicích výpisù. Možné hodnoty parametru jsou zapsány v tabulce <in label="tblTarget"></in>.</p><p>Výchozí hodnota parametru je <type>kernel</type> pro sekci <type>[log]</type> a <type>none</type> pro sekci <type>[datalog]</type>. Pøíklad:</p><p.type>target = file</p.type></dd>
                   <dt><type>level</type></dt>
                   <dd><p>obsažnost ladicích výpisù, urèuje se ve ètyøech stupních podle tabulky <in label="tblLevel"></in>.</p><p>Výchozí hodnota parametru je <type>error</type>. Pøíklad:</p><p.type>level = warning</p.type></dd>
                   <dt><type>file</type></dt>

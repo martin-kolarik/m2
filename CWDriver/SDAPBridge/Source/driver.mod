@@ -28,7 +28,7 @@ IMPORT
 (*================================================================================*)
 
 CONST
-   logName = L"SDAPBridge";
+   logName = L"SDAPBridge.";
    logPrefix = L"DRV";
 
 (*================================================================================*)
@@ -57,8 +57,13 @@ CLASS IMPLEMENTATION CDriver;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Initialize( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; PCallback : drv_def.TDriverCallbackW );
+   VAR
+      LongName : ARRAY [0..255] OF WCHAR;
    BEGIN
       SymbolicName.ToOA( OUT ClientName );
+      Strings.ConcatW( OUT LongName, logName, ClientName );
+      Logger.SetLogName( LongName );
+
       SELF.CallbackId := CallbackId;
       SELF.CallbackProc := PCallback;
    END Initialize;
@@ -238,7 +243,7 @@ CLASS IMPLEMENTATION CDriver;
       END;
       INCL( RStatus, schiRunning );
       
-      Logger.LogS( log.dldError, logPrefix, L"RUN" );
+      Logger.LogS( log.dldMessage, logPrefix, L"RUN" );
 
       Result.Reset( lec.bhBestCase );
       FIO.GetModuleDirW( EMITW( %dll ), OUT s );
@@ -256,7 +261,7 @@ CLASS IMPLEMENTATION CDriver;
       END;
       EXCL( RStatus, schiRunning );
 
-      Logger.LogS( log.dldError, logPrefix, L"STOP" );
+      Logger.LogS( log.dldMessage, logPrefix, L"STOP" );
 
       SDAP.Stop();
    END DriverStop;
@@ -285,9 +290,7 @@ CLASS IMPLEMENTATION CDriver;
 
    PUBLIC VIRTUAL PROCEDURE InputRequest( DriverIndex : CARDINAL );
    BEGIN
-      IF DriverIndex <> StatusChannel THEN
-         Result.Inc();
-      END;
+      // Result.Inc(); -- inputs are fully informative, they do not need licence blocking
    END InputRequest;
 
 (*--------------------------------------------------------------------------------*)
@@ -302,8 +305,6 @@ CLASS IMPLEMENTATION CDriver;
    BEGIN
       IF DriverIndex = StatusChannel THEN
          ErrorCode := drv_def.ecSuccess;
-      ELSIF Result.Expired OR Result.Counted THEN
-         RETURN FALSE;
       ELSIF DriverIndex = InputQueueCountChannel THEN
          ErrorCode := drv_def.ecSuccess;
       ELSIF DriverIndex = OutputQueueCountChannel THEN
@@ -598,7 +599,6 @@ BEGIN
    CallbackId := NIL;
    CallbackProc := NIL;
 
-   Logger.SetLogName( logName );
    StatusChannel := MAX( CARDINAL );
    InputQueueCountChannel := MAX( CARDINAL );
    OutputQueueCountChannel := MAX( CARDINAL );

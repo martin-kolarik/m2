@@ -17,7 +17,7 @@ IMPORT
 CONST
    CRLF = 13W + 10W;
    RECONNECT_TIMEOUT = 10000; // 10 seconds
-   LOG_NAME = L"Client";
+   LOG_NAME = L"NET";
 
 (*===============================================================================*)
 
@@ -110,7 +110,7 @@ CLASS IMPLEMENTATION CSDAP;
    VAR
       LongName : ARRAY [0..255] OF WCHAR;
    BEGIN
-      Strings.ConcatW( OUT LongName, L"SDAPCWDriver.", ClientName );
+      Strings.ConcatW( OUT LongName, L"SDAPBridge.", ClientName );
       _Logger.SetUpByLogger( LoggerToClone );
       _Logger.SetLogName( LongName );
 
