@@ -276,7 +276,7 @@ CLASS IMPLEMENTATION CLeakDetector;
     IF Filters.Empty OR Filters.Search( ADR( LF ), OUT F ) THEN
       LAL.Block := A;
       IF Allocations.Search( ADR( LAL ), OUT AL ) THEN
-        Log.LogSP( log.dlcWarning, L"", L"Duplicite allocation: ", A );
+        Log.LogSP( log.dlcWarning, L"", L"Duplicite allocation:", A );
       ELSE
         NEW( AL );
         AL^.Track := Track^.Data;
@@ -317,7 +317,7 @@ CLASS IMPLEMENTATION CLeakDetector;
       IF Allocations.Remove( ADR( LAL ), OUT AL ) THEN
         DISPOSE( AL );
       ELSE
-        Log.LogSP( log.dlcWarning, L"", L"Deallocation of unallocated memory: ", A );
+        Log.LogSP( log.dlcWarning, L"", L"Deallocation of unallocated memory:", A );
       END;
     END;
     Lock.Unlock();
@@ -355,7 +355,7 @@ CLASS IMPLEMENTATION CLeakDetector;
       ELSIF Allocations.Remove( ADR( LAL ), OUT AL ) THEN
         DISPOSE( AL );
       ELSE
-        Log.LogSP( log.dlcWarning, L"", L"Re/deallocation of unallocated memory: ", O );
+        Log.LogSP( log.dlcWarning, L"", L"Re/deallocation of unallocated memory:", O );
       END;
       // allocate
       LAL.Block := N;
@@ -418,7 +418,7 @@ CLASS IMPLEMENTATION CLeakDetector;
         INC( i );
       END; // WHILE
       Strings.FromCARD64W( CARD64( AL^.Block ), 16, OUT N );
-      Log.LogSSSS( log.dlcWarning, L"", L"Leak of size ", S, " at ", N );
+      Log.LogSSSS( log.dlcWarning, L"", L"Leak of size", S, "at", N );
       
       b := Allocations.NextOf( AL, OUT AL );
     END; // WHILE

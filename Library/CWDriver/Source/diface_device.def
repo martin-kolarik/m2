@@ -41,8 +41,6 @@ END CCWDriverSkeleton;
 (*--------------------------------------------------------------------------------*)
 
 ABSTRACT CLASS ADeviceAsCWDriver( CCWDriverSkeleton ) IMPLEMENTS io.IDataInfo, cache.ICache, diface.ICWDriver;
-   PRIVATE VAR
-      DataInfo : io.TPDataInfo;
 
    // IDataInfo
    PUBLIC FINAL PROCEDURE OnError( Direction : IOO.TDirection; Source : io.TPIO; CONST Result : ARRAY OF Sync.TAsyncResult; CONST Item : ARRAY OF ns.THash; CONST DeviceSpecificError : ARRAY OF CARDINAL );

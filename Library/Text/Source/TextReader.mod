@@ -261,8 +261,6 @@ CLASS IMPLEMENTATION CTextReader;
 
    PUBLIC VIRTUAL PROCEDURE StartReading();
    BEGIN
-      _SBuffer.Clear();
-      _WBuffer.Clear();
       ReadFromStream( Sync.FOREVER, FALSE );
    END StartReading;
 
@@ -325,7 +323,7 @@ CLASS IMPLEMENTATION CTextReader;
 
    PRIVATE PROCEDURE ScanLine( DetectBOM : BOOLEAN; OUT start : PWCHAR; OUT dataLength, commitLength : CARDINAL ) : TScanResult;
    VAR
-      ca : PWCHAR;
+      current : PWCHAR;
       CR : BOOLEAN;
       i : CARDINAL;
       l : CARDINAL := 0;
@@ -335,13 +333,13 @@ CLASS IMPLEMENTATION CTextReader;
       END;
       LOOP
          _WBuffer.Peek( OUT start, OUT l );
-         l := l>>1; ca := start; i := 0; CR := FALSE;
+         l := l>>1; current := start; i := 0; CR := FALSE;
          LOOP
-            IF ( ca^ = WCHAR( 0FEFFH )) AND DetectBOM THEN
+            IF ( current^ = WCHAR( 0FEFFH )) AND DetectBOM THEN
                dataLength := i;
                commitLength := i+1;
                RETURN srBOM;
-            ELSIF ca^ = 10W THEN
+            ELSIF current^ = 10W THEN
                IF CR THEN
                   dataLength := i-1;
                ELSE
@@ -359,7 +357,7 @@ CLASS IMPLEMENTATION CTextReader;
                END;
                RETURN srCompleteLine;
             END;
-            CR := ca^ = 13W;
+            CR := current^ = 13W;
             INC( i );
             IF i = l THEN
                dataLength := i;
@@ -370,7 +368,7 @@ CLASS IMPLEMENTATION CTextReader;
                   RETURN srIncompleteLine;
                END;
             END;
-            INC( ca, SIZE( WCHAR ));
+            INC( current, SIZE( WCHAR ));
          END; // LOOP
       END; // LOOP
    END ScanLine;
