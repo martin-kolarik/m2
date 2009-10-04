@@ -4,7 +4,8 @@ DEFINITION MODULE dllmain;
 // DllMain module
 //==============================================================
 
-(*# call( o_a_size=>off, convention=>stdcall ) *)
+(*# name( decoration => c ) *)
+(*# call( o_a_size => off, convention=>stdcall ) *)
 
 IMPORT
   windows;

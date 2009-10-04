@@ -10,6 +10,7 @@ IMPORT
    FIO,
    Strings,
    StringsO,
+   winerror,
    windows;
 
 (*===========================================================================*)
@@ -92,15 +93,23 @@ CLASS IMPLEMENTATION CLibrary;
 
    PRIVATE PROCEDURE LoadLibrary() : iobject.TResult;
    VAR
-      EM : CARDINAL;
+      ErrorMode : CARDINAL;
+      Error : CARDINAL := 0;
       Result : iobject.TResult;
    BEGIN
       ASSERT( LibraryHandle = NIL );
-      EM := windows.SetErrorMode( windows.SEM_FAILCRITICALERRORS );
+      ErrorMode := windows.SetErrorMode( windows.SEM_FAILCRITICALERRORS );
       LibraryHandle := windows.LoadLibrary( Path.szData );
-      windows.SetErrorMode( EM );
       IF LibraryHandle = NIL THEN
-         RETURN iobject.lrLibraryNotFound;
+         Error := windows.GetLastError();
+      END;
+      windows.SetErrorMode( ErrorMode );
+      IF LibraryHandle = NIL THEN
+         IF Error = winerror.ERROR_MOD_NOT_FOUND THEN
+            RETURN iobject.lrLibraryNotFound;
+         ELSE
+            RETURN iobject.lrLibraryFoundButIsUnloadable;
+         END;
       END;
 
       Factory := windows.GetProcAddress( LibraryHandle, C"Factory" );

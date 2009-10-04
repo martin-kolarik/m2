@@ -81,7 +81,7 @@
                         <?endif ?>
                         <?if $(var.LanguageName)=cs ?>
                         <Component Id="Documentation" Guid="D75EA66F-CD00-4b0b-85A2-2764FB229D47">
-                            <File Id="EibSrv.pdf" Name="EibSrv.pdf" Source="..\Doc\EibSrv_cs.pdf" DiskId="1" Vital="yes">
+                            <File Id="EibSrv.pdf" Name="EibSrv.pdf" Source="..\Doc\EibSrv_cs.pdf" DiskId="1" Vital="yes" KeyPath="yes">
                                 <Shortcut Id="StartMenuDocumentation" Directory="ProgramMenuDir" Name="Manuál" LongName="Dokumentace SmartServer" />
                             </File>
                             <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" />

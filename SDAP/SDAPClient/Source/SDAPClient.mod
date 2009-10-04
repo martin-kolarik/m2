@@ -54,7 +54,7 @@ CLASS CSDAPClient IMPLEMENTS ISDAPClient;
    PUBLIC VIRTUAL PROCEDURE Dispose();
 
    PUBLIC VIRTUAL PROCEDURE Connect( CONST Host : StringsO.IString ) : Sync.TAsyncResult;
-   PUBLIC VIRTUAL PROCEDURE Close();
+   PUBLIC VIRTUAL PROCEDURE Disconnect();
    PUBLIC VIRTUAL PROCEDURE SetAdvise( AdviseEnabled : BOOLEAN ) : Sync.TAsyncResult;
 
    PUBLIC VIRTUAL PROCEDURE Write( CONST Data, Value : StringsO.IString ) : Sync.TAsyncResult;
@@ -151,7 +151,7 @@ CLASS IMPLEMENTATION CSDAPClient;
       a : ADDRESS;
    BEGIN
       _Connection.Notifier := NIL;
-      Close();
+      Disconnect();
 
       a := ADR( SELF );
       DISPOSE( a );
@@ -170,10 +170,10 @@ CLASS IMPLEMENTATION CSDAPClient;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Close();
+   PUBLIC VIRTUAL PROCEDURE Disconnect();
    BEGIN
       _Connection.Close();
-   END Close;
+   END Disconnect;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -216,9 +216,9 @@ CLASS IMPLEMENTATION CSDAPClient;
    BEGIN
       IF _ClientNotifier <> NIL THEN
          IF Error = 0 THEN
-            _ClientNotifier^.OnClose( Sync.arCompleted, Error );
+            _ClientNotifier^.OnDisconnect( Sync.arCompleted, Error );
          ELSE
-            _ClientNotifier^.OnClose( Sync.arAborted, Error );
+            _ClientNotifier^.OnDisconnect( Sync.arAborted, Error );
          END;
       END;
    END OnDisconnect;
@@ -246,7 +246,7 @@ CLASS IMPLEMENTATION CSDAPClient;
          ELSIF _Reader.ReadLine( OUT Line, Sync.FORSAFETY, TRUE ) <> Sync.arCompleted THEN
             ASSERTLOG( FALSE );
          END;
-         
+
          CASE _ReadState OF
          //-----
          | rdsWaitStatus :

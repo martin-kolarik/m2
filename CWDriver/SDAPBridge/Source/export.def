@@ -1,0 +1,71 @@
+LIBRARY SDAPBridge.dll
+
+EXPORTS
+   VersionW
+   Version                 = VersionW
+   Check
+   CheckW
+   GetDriverInfo
+   GetDriverInfoW
+
+   MakeDriverW
+   MakeDriver              = MakeDriverW
+   DisposeDriverW
+   DisposeDriver           = DisposeDriverW
+
+   Init
+   InitW
+   Init3
+   Init3W
+   ReadParameters
+   ReadParametersW
+   QueryErrorCode
+   QueryErrorCodeW
+   EnumerateChannelsW
+   EnumerateChannels       = EnumerateChannelsW
+   GetChannelDescription
+   GetChannelDescriptionW
+
+   RunW
+   Run                     = RunW
+   StopW
+   Stop                    = StopW
+   DoneW
+   Done                    = DoneW
+
+   DriverProcW
+   DriverProc              = DriverProcW
+   QueryProc
+   QueryProcW
+   QueryProc3
+   QueryProc3W
+
+   InputRequestStartW
+   InputRequestStart       = InputRequestStartW
+   InputRequestW
+   InputRequest            = InputRequestW
+   InputRequestCompletedW
+   InputRequestCompleted   = InputRequestCompletedW
+   InputFinalizedW
+   InputFinalized          = InputFinalizedW
+   InputOOBDataQueryW
+   InputOOBDataQuery       = InputOOBDataQueryW
+
+   GetInput
+   GetInputW
+   GetInput3
+   GetInput3W
+
+   OutputRequestStartW
+   OutputRequestStart      = OutputRequestStartW
+   OutputRequest
+   OutputRequestW
+   OutputRequest3
+   OutputRequest3W
+   OutputRequestCompletedW
+   OutputRequestCompleted  = OutputRequestCompletedW
+   OutputFinalizedW
+   OutputFinalized         = OutputFinalizedW
+
+   BufferInfo              = VersionW
+   SetBufferAddr           = VersionW

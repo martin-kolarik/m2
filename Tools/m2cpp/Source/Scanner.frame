@@ -2,6 +2,7 @@
 IMPLEMENTATION MODULE Scanner;
 
 IMPORT
+  time,
   winerror;
 
 FROM Storage IMPORT

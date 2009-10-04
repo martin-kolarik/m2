@@ -216,10 +216,7 @@ ABSTRACT CLASS IMPLEMENTATION ADeviceAsCWDriver;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   NEW( DataInfo );
-   DataInfo^.Sink := ADR( SELF );
 FINALLY
-   DataInfo^.Release();
 END ADeviceAsCWDriver;
 
 (*================================================================================*)

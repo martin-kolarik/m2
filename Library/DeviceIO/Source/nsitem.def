@@ -19,6 +19,7 @@ CLASS CnsWrapper( ns.AnsItem );
       Name : StringsO.TPString;
       NameType : ns.TNameType;
       ValueType : iovalue.TValueType;
+   PUBLIC VIRTUAL PROPERTY
       Data : PTR;
    PUBLIC VIRTUAL READONLY PROPERTY
       Count : CARDINAL;
@@ -48,6 +49,7 @@ CLASS CnsItem( nslookup.AnsAVLItem ); // generic, everybody can/should create se
       Name : StringsO.TPString;
       NameType : ns.TNameType;
       ValueType : iovalue.TValueType;
+   PUBLIC VIRTUAL PROPERTY
       Data : PTR;
    PUBLIC PROCEDURE Init( CONST SingleChildName : ARRAY OF WCHAR; ConstName : BOOLEAN; NameType : ns.TNameType; ValueType : iovalue.TValueType; Data : PTR );
 END CnsItem;

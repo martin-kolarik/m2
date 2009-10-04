@@ -951,13 +951,14 @@ CLASS IMPLEMENTATION CBufferedStream;
     LNotifier : TPDataInfo := _Notifier;
   BEGIN
     CASE Direction OF
-    | dirRead :
+    | dirRead : // for read, after commiting, client must be operated BEFORE notification is called, otherwise the notification would
+                // notify something, which is not in client's proxy buffer yet.
       _RBuffer.CommitWriting( Completed );
+      OperateClient( dirRead, TRUE );
       IF LNotifier <> NIL THEN
         LNotifier^.OnReadable( _RBuffer.Count, ADR( SELF ));
       END;
-      OperateClient( dirRead, TRUE );
-    | dirWrite :
+    | dirWrite : // for write, after commiting, notification should be done before next client push, as this is natural
       _WBuffer.CommitReading( Completed );
       IF LNotifier <> NIL THEN
         LNotifier^.OnWritten( Completed, ADR( SELF ));
@@ -1377,6 +1378,7 @@ CLASS IMPLEMENTATION CDatagramReader;
       ASSERTLOG( L2 <= _Stream^.BufferSize );
       RETURN;
     END;
+
     LNotifier^.OnReadable( L2, ADR( SELF ));
   END OnReadable;
 
