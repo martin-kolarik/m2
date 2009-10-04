@@ -13,7 +13,7 @@ TYPE
 
 INTERFACE ISDAPClientEvents;
    PROCEDURE OnConnect( Result : Sync.TAsyncResult; Error : CARDINAL );
-   PROCEDURE OnClose( Result : Sync.TAsyncResult; Error : CARDINAL );
+   PROCEDURE OnDisconnect( Result : Sync.TAsyncResult; Error : CARDINAL );
    PROCEDURE OnReceive( CONST Data, Value : StringsO.IString );
 END ISDAPClientEvents;
 
@@ -31,7 +31,7 @@ INTERFACE ISDAPClient;
    PROCEDURE Dispose();
 
    PROCEDURE Connect( CONST Host : StringsO.IString ) : Sync.TAsyncResult;
-   PROCEDURE Close();
+   PROCEDURE Disconnect();
    PROCEDURE SetAdvise( AdviseEnabled : BOOLEAN ) : Sync.TAsyncResult;
 
    PROCEDURE Write( CONST Data, Value : StringsO.IString ) : Sync.TAsyncResult;

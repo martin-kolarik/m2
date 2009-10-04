@@ -33,7 +33,7 @@ CLASS CTest IMPLEMENTS test.ITest, SDAPClient.ISDAPClientEvents;
 
    // ISDAPClientEvents
    PUBLIC VIRTUAL PROCEDURE OnConnect( Result : Sync.TAsyncResult; Error : CARDINAL );
-   PUBLIC VIRTUAL PROCEDURE OnClose( Result : Sync.TAsyncResult; Error : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE OnDisconnect( Result : Sync.TAsyncResult; Error : CARDINAL );
    PUBLIC VIRTUAL PROCEDURE OnReceive( CONST Data, Value : StringsO.IString );
 END CTest;
 
@@ -77,7 +77,7 @@ CLASS IMPLEMENTATION CTest;
       END; // FOR
       Sync.Sleep( 100 );
       
-      Client^.Close();
+      Client^.Disconnect();
       Sync.Sleep( 10 );
       Client^.Dispose();
       Client := NIL;
@@ -108,10 +108,10 @@ CLASS IMPLEMENTATION CTest;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnClose( Result : Sync.TAsyncResult; Error : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE OnDisconnect( Result : Sync.TAsyncResult; Error : CARDINAL );
    BEGIN
       Host^.Log^.LogSC( log.dldMessage, L"", L"Close: ", Error );
-   END OnClose;
+   END OnDisconnect;
 
 (*---------------------------------------------------------------------------*)
 

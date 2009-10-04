@@ -1,0 +1,403 @@
+<?xml version="1.0" encoding="windows-1250"?>
+<document file="SDAPBridge" xmlns="http://www.mii.cz/2004/XML/Document/Common">
+  <header creator="martin" last_modified="2009-10-04" last_modifier="martin"></header>
+  <adjustment>
+    <classes>
+      <tableclass class="tblCommon" frame="yes" offset="3pt"></tableclass>
+    </classes>
+  </adjustment>
+  <text>
+    <section level="1" selfnumbered="no">
+      <title>Ovladač SDAPBridge pro ControlWeb</title>
+      <subtitle>Dokumentace popisuje konfiguraci a chování ovladače (1.0.993 a vyšší) pro komunikaci s NeNo SDAP serverem. Změny chování ovladače vůči této dokumentaci jsou vyhrazeny.</subtitle>
+      <text>
+        <content>
+          <caption></caption>
+        </content>
+        <blank size="fill" />
+        <page></page>
+        <section level="2">
+          <title>Princip práce ovladače</title>
+          <text>
+            <p>Ovladač udržuje spojení s NeNo SDAP serverem a dovoluje aplikaci systému ControlWeb zapisovat a číst jeho data. Spojení se navazuje a udržuje automaticky, aplikace dostává jen informace o jeho výpadcích a opětovném připojení. SDAP využívá TCP a je pro NeNo SDAP server univerzální.</p>
+            <p>Veškerá data SDAP aplikace obsluhuje pomocí procedur ovladače (<type>DriverQueryProc</type>) a výjimek ovladače, mimo to je možné pomocí kanálů získávat stavová data.</p>
+            <p>Pro zápis dat do SDAP serveru nabízí ovladač proceduru <type>set</type>. Data ze SDAP serveru lze přijímat buď na vyžádání procedurou <type>ask</type>, nebo automaticky po zapnutí procedurou <type>advise</type>.</p>
+          </text>
+        </section>
+        <section label="secInstallation" level="2">
+          <title>Instalace a licence</title>
+          <text>
+            <p>Instalační balíček SDAPBridge (v podobě MSI souboru, MSI = Microsoft Installer) nainstaluje po spuštění program automaticky do složky <file>Program Files\NeNo\SDAPBridge</file>. Během instalace je třeba vložit správné licenční údaje (z licenčního certifikátu), nebo je možné SDAPBridge nainstalovat jako demoverzi. Pokud je licence vystavena na jméno, musí být při instalaci toto jméno zadáno přesně podle licence (včetně mezer, velkých a malých písmen či diakritiky).</p>
+            <il>
+              <caption>Demoverze je vůči plné verzi omezená následovně:</caption>
+              <li><p>dovoluje klientům souhrnně provést jen cca <number>100000</number> operací pomocí procedur ovladače,</p></li>
+              <li><p>poskytuje klientům data pouze cca 30 minut od spuštění.</p></li>
+              <li><p>omezení neuzavírá spojení se SDAP serverem.</p></li>
+            </il>
+            <p>Nainstalovaný SDAPBridge je nutné do 35 dnů od instalace aktivovat. Aktivaci lze provést z příkazové řádky pomocí nástroje (<type>activate</type>), který se nainstaluje spolu s ovladačem. Pokud se během 35 dnů od instalace ovladač neaktivuje, poběží dále jako demoverze.</p>
+            <section level="3">
+              <title>Aktivace licence</title>
+              <text>
+                <p>Aktivace probíhá dvoukrokově. V prvním kroku se získá registrační číslo, které se odešle na adresu technické podpory (prodejce). Technická podpora číslo zaeviduje a na jeho základě vytvoří aktivační číslo, které odešle zpět. V druhém kroku aktivace se aktivační číslo aplikuje.</p>
+                <p>Registrační číslo se pomocí nástroje <type>activate</type> získá následovně (záznam operací v příkazové řádce):</p>
+                <p.type>C:\&gt;cd "Program Files\Neno\SDAPBridge"
+C:\Program Files\NeNo\SDAPBridge&gt;activate -Q *
+Licence support tool
+(c) NeNo 2009
+
+  found 2 records
+  found 2 unique records
+  found 2 valid records
+
+  processing licence "SN-xxxxx-xxxxx-xxxxx-xxxxx-xxxx"
+    for product "NeNo.SDAPBridge.CWDriver"
+    registration number "REG-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"</p.type>
+                <p>Uvedené registrační číslo se nevypíše, pokud je ovladač nainstalovaný bez licence (tj. jako demoverze), nebo pokud již je ovladač aktivován.</p>
+                <p>Po odeslání celého registračního čísla (<type>REG-xxxxx-...-xxxxx</type>) a jeho zpracování vznikne aktivační číslo ve tvaru <type>VAN-xxxxx-...-xxxxx</type>. Toto aktivační číslo se opět pomocí nástroje <type>activate</type> aplikuje:</p>
+                <p.type>C:\&gt;cd "Program Files\Neno\SDAPBridge"
+C:\Program Files\NeNo\SDAPBridge&gt;activate -A VAN-xxxxx-...-xxxxx
+Licence support tool
+(c) NeNo 2009
+
+  found 2 records
+  found 2 unique records
+  found 2 valid records
+
+  processing activation "VAN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"
+  processing product "NeNo.SDAPBridge.CWDriver"</p.type>
+                <p>Úspěšnost aktivace lze ověřit opět pomocí <type>activate</type>:</p>
+                <p.type>C:\Program Files\NeNo\SDAPBridge&gt;activate -I
+Licence support tool
+(c) NeNo 2009
+
+  found 3 records
+  found 3 unique records
+
+  product "NeNo.SDAPBridge.CWDriver"
+    licence "SN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"
+    type "----"
+      activated permanently</p.type>
+                <p>Upozornění: V počítačích se zabudovaným operačním systémem (Windows<c.special what="thinspace" />XP Embedded) je třeba navíc zapsat změny nastavení počítače na disk a počítač restartovat.</p>
+              </text>
+            </section>
+          </text>
+        </section>
+        <section level="2">
+          <title>Registrace do systému ControlWeb</title>
+          <text>
+            <p>Systém ControlWeb automaticky nalézá jen ovladače svého výrobce (Moravské přístroje, a.s.). Pro ostatní ovladače je třeba využít nástroj <gui>Konfigurace ovladačů</gui>. Ve vývojové verzi systém ControlWeb se <gui>Konfigurace ovladačů</gui> spustí pomocí menu <gui>Nástroje/Konfigurace ovladačů...</gui> vývojového prostředí, v runtime verzi systému ControlWeb se téhož dosáhne z menu operačního systému <gui>StartMenu/Control Web 5 Runtime/Konfigurace ovladačů</gui> (nebo <gui>StartMenu/Control Web 6 Runtime/Konfigurace ovladačů</gui>).</p>
+            <f.figure file="DriverCfg1" format="png" label="figDriverCfg" width="4cm">
+              <caption>Okno <gui>Konfigurace ovladačů</gui> před registrací</caption>
+            </f.figure>
+            <il numbered="yes">
+              <caption>Pomocí <file>Konfigurace ovladačů</file>, zobrazené na obrázku <in label="figDriverCfg"></in>, se ovladač do systému ControlWeb zapojí následovně:</caption>
+              <li><p>Stiskem tlačítka <gui>Přidat...</gui> se oteKonfigře dialogové okno k procházení složek a souborů.</p></li>
+              <li><p>V okně se vyhledá soubor s ovladačem, po výchozí instalaci to je například <file>C:\Program Files\NeNo\SDAPBridge\sdapbridge.dll</file>, a dialogové okno se uzavře pomocí tlačítka <gui>OK</gui>.</p></li>
+              <li><p><gui>Konfigurace ovladačů</gui> ovladač načte, přečte jeho verzi a v případe úspěchu jej zařadí do seznamu ovladačů.</p></li>
+              <li><p>Stiskem tlačítka <gui>Použít</gui> se uzavře <gui>Konfigurace ovladačů</gui> a ovladač se zapíše do konfigurace systému ControlWeb.</p></li>
+            </il>
+            <f.figure file="DriverCfg2" format="png" label="figDriverCfgAfter" width="4cm">
+              <caption>Okno <gui>Konfigurace ovladačů</gui> po registraci</caption>
+            </f.figure>
+          </text>
+        </section>
+        <section level="2">
+          <title>Parametrický soubor</title>
+          <text>
+            <p>Parametrický soubor je zapsán konvencí INI souborů, tj. obsahuje sekce uvozené názvem sekce v hranatých závorkách a parametry (klíče) zapsané na jednom řádku v podobě <diff>parametr = hodnota</diff>. V parametrickém souboru záleží na velikosti písmen.</p>
+            <p>Ovladač rozeznává v parametrickém souboru tři sekce: sekci <type>[interface]</type> s nastavením rozhraní pro ControWeb, sekci <type>[device]</type> s parametry komunikace a sekci <type>[log]</type> pro konfiguraci diagnostických výpisů.</p>
+            <section level="3">
+              <title>Sekce <type>[interface]</type></title>
+              <text>
+                <dl class="dlParameter">
+                  <caption>Sekce obsahuje následující parametry:</caption>
+                  <dt><type>status_channel</type></dt>
+                  <dd><p>parametr definuje číslo stavového kanálu. Bez uvedení parametru není možné stavový kanál v aplikaci číst. Význam bitů stavového kanálu ukazuje tabulka <in label="tblStatusBits"></in>. </p><p>Příklad zápisu parametru:</p><p.type>status_channel = 1</p.type><p>Parametr nemá výchozí hodnotu.</p></dd>
+                  <dt><type>input_queue_count_channel</type></dt>
+                  <dd><p>parametr definuje číslo kanálu s počtem nezpracovaných událostí ovladače (viz proceduru <type>event</type> ovladače). Bez uvedení parametru není možné počet nezpracovaných událostí číst jinak, než pomocí procedury <type>event get</type>.</p><p>Příklad zápisu parametru:</p><p.type>input_queue_count_channel = 2</p.type><p>Parametr nemá výchozí hodnotu.</p></dd>
+                  <dt><type>output_queue_count_channel</type></dt>
+                  <dd><p>parametr definuje číslo kanálu s počtem neodeslaných příkazů. Kanál ukazuje aktuální stav fronty příkazů, délka fronty nemůže být větší, než je hodnota parametru <type>output_queue_length</type>. Bez uvedení parametru není možné kanál v aplikaci číst.</p><p>Příklad zápisu parametru:</p><p.type>output_queue_count_channel = 3</p.type><p>Parametr nemá výchozí hodnotu.</p></dd>
+                  <dt><type>output_queue_length</type></dt>
+                  <dd><p>parametr definuje největší počet příkazů, které mohou čekat ve frontě na odeslání do SDAP serveru. Parametr má význam v poruchových stavech, kdy buď ovladač není spojený se SDAP serverem, nebo aplikace požaduje zapisovat data do serveru příliš hustě. V obou případech by bez omezení délky fronty mohlo dojít k nedostatku paměti, což by způsobilo nefunkčnost celé aplikace. Při dosažení limitu délky jsou z fronty odstraňována nejstarší data.</p><p>Při normálním běhu obsahuje výstupní fronta jednotky příkazů, takže k dosažení limitu nedochází.</p><p>Příklad zápisu parametru:</p><p.type>output_queue_length = 10000</p.type><p>Výchozí hodnota parametru je 1000.</p></dd>
+                </dl>
+              </text>
+            </section>
+            <section level="3">
+              <title>Sekce <type>[device]</type></title>
+              <text>
+                <dl class="dlParameter">
+                  <caption>Sekce je povinná a obsahuje následující parametry:</caption>
+                  <dt><type>sdap_server</type></dt>
+                  <dd><p>parametr pro zadání DNS jména či IP adresy SDAP serveru, ke kterému se má ovladač připojit. Součástí jména je číslo portu (za dvojtečkou), který SDAP server používá. Příklady zápisu parametru:</p><p.type>; DNS name
+sdap_server = sdap.domain.com:6007
+
+; IP address
+sdap_server = 10.0.1.128:6007</p.type><p>Klíč nemá výchozí hodnotu a musí být definován. Číslo portu 6007 je pro SDAP výchozí.</p></dd>
+                </dl>
+              </text>
+            </section>
+            <section label="secLog" level="3">
+              <title>Sekce <type>[log]</type></title>
+              <text>
+                <p>Sekce <type>[log]</type> určuje způsob výpisu ladicích a informačních zpráv ovladače. Detailních zpráv může být velké množství, a proto je doporučeno vypisovat během běžného provozu jen chybové stavy.</p>
+                <dl class="dlParameter">
+                  <caption>Sekce definuje následující parametry:</caption>
+                  <dt><type>target</type></dt>
+                  <dd><p>pro definici výstupu ladicích výpisů. Možné hodnoty parametru jsou zapsány v tabulce <in label="tblTarget"></in>.</p><p>Výchozí hodnota parametru je <type>kernel</type>. Příklad:</p><p.type>target = file</p.type></dd>
+                  <dt><type>level</type></dt>
+                  <dd><p>obsažnost ladicích výpisů, určuje se ve čtyřech stupních podle tabulky <in label="tblLevel"></in>.</p><p>Výchozí hodnota parametru je <type>error</type>. Příklad:</p><p.type>level = warning</p.type></dd>
+                  <dt><type>file</type></dt>
+                  <dd><p>Cesta k souboru s výpisy. Soubor stále roste, při trvalých a detailních výpisech je proto třeba dbát na dostatek místa na disku. Při použití serveru v zabudovaných systémech (Windows XP Embedded) není použití souboru (při nastavení <type>target = file</type>) doporučeno, pokud je disk se souborem Flash (Compact Flash<c.special what="commadots" />).</p><p>Příklad zápisu parametru:</p><p.type>file = z:\sdapdriver.log</p.type></dd>
+                </dl>
+                <f.table label="tblTarget">
+                  <caption>Hodnoty parametru <type>target</type></caption>
+                  <table class="tblCommon">
+                    <tr>
+                      <td>hodnota</td>
+                      <td>význam</td>
+                    </tr>
+                    <tr>
+                      <td><type>none</type></td>
+                      <td>nebudou se vypisovat žádné ladicí výpisy</td>
+                    </tr>
+                    <tr>
+                      <td><type>kernel</type></td>
+                      <td>výpisy budou nasměrovány do operačního systému. Tyto výpisy lze číst pomocí diagnostických nástrojů, jako je například aplikace DbgView (<uri>http://technet.microsoft.com/en-us/sysinternals/bb896647.aspx</uri>).</td>
+                    </tr>
+                    <tr>
+                      <td><type>file</type></td>
+                      <td>výpisy se zapíší do souboru určeného parametrem <type>file</type>.</td>
+                    </tr>
+                  </table>
+                </f.table>
+                <f.table label="tblLevel">
+                  <caption>Hodnoty parametru <type>level</type></caption>
+                  <table class="tblCommon">
+                    <tr>
+                      <td>hodnota</td>
+                      <td>význam</td>
+                    </tr>
+                    <tr>
+                      <td><type>info</type></td>
+                      <td>nejvíce informací, vypisovat se bude všechno. Slouží především k přesné diagnostice komunikace na úrovni přenášených paketů.</td>
+                    </tr>
+                    <tr>
+                      <td><type>warning</type></td>
+                      <td>středně detailní informace, vypisovat se budou všechny zprávy vyjma úrovně <type>info</type>. Slouží k základnímu ladění a diagnostice.</td>
+                    </tr>
+                    <tr>
+                      <td><type>error</type></td>
+                      <td>základní informace, doporučeno pro trvalý běh. Vypisují se jen zprávy označené jako <type>error</type> nebo <type>fatal</type>, čili zprávy, kterými server informuje o chybě dat, komunikace nebo protokolu.</td>
+                    </tr>
+                    <tr>
+                      <td><type>fatal</type></td>
+                      <td>minimální informace, vypisovat se budou pouze informace o vnitřních chybových stavech serveru.</td>
+                    </tr>
+                  </table>
+                </f.table>
+                <p>Popis formátu ladicích a diagnostických zpráv je uveden v kapitole <in.about label="secDebug"></in.about>.</p>
+              </text>
+            </section>
+            <p>Příklad parametrického souboru:</p>
+            <p.type>[interface]
+status_channel = 1
+input_queue_count_channel = 10
+output_queue_count_channel = 11
+
+[device]
+sdap_server = 10.0.0.8:6007
+
+[log]
+level = info</p.type>
+          </text>
+        </section>
+        <section level="2">
+          <title>Kanály ovladače</title>
+          <text>
+            <dl class="dlParameter">
+              <dt>status (<type>longcard</type>)</dt>
+              <dd><p>stavový kanál, číslo určeno parametrem <type>status_channel</type> sekce <type>interface</type> parametrického souboru, v jednotlivých bitech je zapsán stav ovladače. Význam bitů je popsán v tabulce <in label="tblStatusBits"></in>.</p></dd>
+              <dt>input queue count (<type>longcard</type>)</dt>
+              <dd><p>informativní kanál, obsahuje aktuální počet událostí (počet příchozích dat), která dosud aplikací nebyla zpracována.</p></dd>
+              <dt>output queue count (<type>longcard</type>)</dt>
+              <dd><p>informativní kanál, obsahuje počet příkazů, které dosud nebyly odeslány do SDAP serveru a čekají na odeslání.</p></dd>
+            </dl>
+            <f.table label="tblStatusBits">
+              <caption>Bity stavového kanálu</caption>
+              <table class="tblCommon">
+                <tr>
+                  <td>bit</td>
+                  <td>význam</td>
+                </tr>
+                <tr>
+                  <td>0 (running)</td>
+                  <td>Ovladač běží, není systémem ControlWeb zastaven.</td>
+                </tr>
+                <tr>
+                  <td>1 (valid)</td>
+                  <td>Ovladač má platnou aktivní licenci.</td>
+                </tr>
+                <tr>
+                  <td>2 (event pending)</td>
+                  <td>Ovladač nahlásil aplikaci systému ControlWeb výjimku ovladače, ale aplikace dosud události z ovladače nevyčetla.</td>
+                </tr>
+                <tr>
+                  <td>3 (connected)</td>
+                  <td>Ovladač je připojen k SDAP serveru.</td>
+                </tr>
+              </table>
+            </f.table>
+          </text>
+        </section>
+        <section level="2">
+          <title>Procedury ovladače (dotazovací procedura ovladače)</title>
+          <text>
+            <p>Ovladač rozumí pěti procedurám: <type>event</type>, <type>set</type>, <type>ask</type>, <type>advise</type>, a <type>unadvise</type>. Procedury jsou volány pomocí procedury <type>core.DriverQueryProc</type> systému ControlWeb, kdy druhý parametr obsahuje jméno volané procedury včetně jejích parametrů. Třetí parametr procedury <type>DriverQueryProc</type> se na vstupu nepoužívá. Procedura <type>set</type> může být v kódu aplikace zavolána například takto:</p>
+            <p.type>... core.DriverQueryProc( 'sdap', 'set 3/1/1 true', &amp;Error ); ...</p.type>
+            <p>Nastane-li během provádění procedury chyba, zapíše ovladač popis chyby (text) do třetího (řetězcového) parametru procedury (<type>&amp;Error</type> v ukázce).</p>
+            <section level="3">
+              <title>Procedura <type>set</type></title>
+              <text>
+                <p>Pomocí procedury <type>set</type> aplikace odešle data SDAP serveru. Formát procedury:</p>
+                <p.type>set &lt;address&gt; &lt;value&gt;</p.type>
+                <p>přičemž <type>address</type> představuje adresu datového objektu v SDAP serveru a <type>value</type> hodnotu, která má být do datového objektu zapsána. Pokud SDAP server objekt s adresou <type>address</type> nezná, bude příkaz ignorovat. Typ zapisované hodnoty musí odpovídat typu datového objektu SDAP serveru.</p>
+                <p>Je-li zapnuto přijímání komunikovaných hodnot (procedura <type>advise</type>), dostane ovladač po vykonání příkazu <type>set</type> svá zapsaná data zpět jako událost <type>advise</type>.</p>
+                <p>Příklady volání:</p>
+                <p.type>core.DriverQueryProc( 'sdap', 'set 3/1/1 true', &amp;Error );
+core.DriverQueryProc( 'sdap', 'set 3/1/1 12.7', &amp;Error );</p.type>
+              </text>
+            </section>
+            <section level="3">
+              <title>Procedura <type>ask</type></title>
+              <text>
+                <p>Pomocí procedury <type>ask</type> aplikace požádá SDAP server o data. Formát procedury:</p>
+                <p.type>ask &lt;address&gt;</p.type>
+                <p>přičemž <type>address</type> představuje adresu datového objektu v SDAP serveru. Pokud SDAP server objekt s adresou <type>address</type> nezná, bude příkaz ignorovat a aplikace data nezíská.</p>
+                <p>SDAP server odešle ovladači požadovanou hodnotu (pokud ji zná) vždy, bez ohledu na nastavení přijímání komunikovaných hodnot (procedura <type>advise</type>). Ovladač po přijetí těchto dat předá jejich hodnotu aplikaci pomocí události <type>advise</type>.</p>
+                <p>Příklad volání:</p>
+                <p.type>core.DriverQueryProc( 'sdap', 'ask 3/1/1', &amp;Error );</p.type>
+              </text>
+            </section>
+            <section level="3">
+              <title>Procedura <type>advise</type> a <type>unadvise</type></title>
+              <text>
+                <p>SDAP server dokáže ovladači posílat data, která dostává, aniž by je ovladač (aplikace) požadoval. Toto automatické zasílání hodnot není po navázání spojení se SDAP serverem aktivní a musí být voláním procedury <type>advise</type> zapnuto. Zapnutí je nutné opakovat, pokud dojde k novému navázání spojení (po předchozím rozpojení). Pokud aplikace automaticky zasílaná data využívá, je vhodné proceduru <type>advise</type> volat například uvnitř zpracování události <type>connected</type>.</p>
+                <p>Opačná procedura, <type>unadvise</type>, přikáže SDAP serveru, aby data automaticky ovladači neposílal.</p>
+                <p>Příklady volání:</p>
+                <p.type>core.DriverQueryProc( 'sdap', 'advise', &amp;Error );
+core.DriverQueryProc( 'sdap', 'unadvise', &amp;Error );</p.type>
+              </text>
+            </section>
+            <section level="3">
+              <title>Procedura <type>event</type></title>
+              <text>
+                <p>Procedura <type>event</type> slouží aplikaci k vyčtení událostí (zpráv) přijatých ze SDAP serveru. Procedura má dvě varianty: <type>event get</type> a <type>event count</type>, obě varianty plní výstupní (třetí) parametr procedury <type>core.DriverQueryProc</type>. Procedura <type>event count</type> výstupní parametr naplní počtem událostí ve frontě (výsledkem je číslo stejné jako v kanále input queue count), procedura <type>event get</type> výstupní parametr naplní textem události. Pro obě varianty může být výstupní parametr textový. Je to i doporučeno, protože obě varianty mohou vracet ve výstupním parametru popis chyby.</p>
+                <dl class="dlCommon">
+                  <caption>Údaj naplněný procedurou event do výstupního parametru může být:</caption>
+                  <dt><type>&lt;prázdný řetězec&gt;</type></dt>
+                  <dd><p>Výsledek volání procedury <type>event get</type>, pokud ovladač pro aplikaci nemá žádnou zprávu a nenastala chyba.</p></dd>
+                  <dt><type>&lt;číslo&gt;</type></dt>
+                  <dd><p>Výsledek volání procedury <type>event count</type>, pokud při volání nenastala chyba.</p></dd>
+                  <dt><type>error: &lt;description&gt;</type></dt>
+                  <dd><p>Výsledek volání procedury <type>event count</type> nebo <type>event get</type>, pokud při volání nastala chyba.</p></dd>
+                  <dt><type>connected</type></dt>
+                  <dd><p>Výsledek volání procedury <type>event get</type>, oznámení o uzavření spojení se SDAP serverem.</p></dd>
+                  <dt><type>disconnected</type></dt>
+                  <dd><p>Výsledek volání procedury <type>event get</type>, oznámení o rozpadu spojení se SDAP serverem.</p></dd>
+                  <dt><type>advise &lt;address&gt; &lt;value&gt;</type></dt>
+                  <dd><p>Výsledek volání procedury <type>event get</type>, oznámení o přijetí dat ze SDAP serveru. Událost <type>advise</type> nastane po příkazu <type>ask</type> (pokud server požadovaný datový objekt zná), anebo vždy po přijetí dat SDAP serverem, je-li příkazem <type>advise</type> zapnuto automatické přijímání dat.</p></dd>
+                </dl>
+                <p>Příklady hodnot výstupního parametru procedury <type>DriverQueryProc</type> po volání procedury <type>event get</type>:</p>
+                <p.type>connected
+advise 3/1/1 true
+advise 2/0/0 15.78</p.type>
+                <p>Procedury <type>event count</type> a <type>event get</type> mohou být ovladači volány kdykoli, například periodicky nebo podle obsahu bitu 2 (event pending) statového kanálu. Pokud je fronta událostí prázdná, vrátí ovladač aplikaci buď nulu, nebo prázdný řetězec (podle varianty procedury). Doporučený a nejefektivnější způsob přijímání událostí využívá mechanismu výjimek ovladače (<type>driver_exception</type>), kdy ovladač aplikaci (zvolenému přístroji v aplikaci) oznámí příchod nových dat asynchronně. Kostra přijímání zpráv pomocí výjimky ovladače může například vypadat takto (kód pro ControlWeb<c.special what="thinspace" />5, více o výjimkách viz dokumentaci systému ControlWeb):</p>
+                <p.type>program SDAPReceiver;
+  driver_exception = sdap;
+
+  procedure OnActivate();
+  var
+    event : string;
+  begin
+    loop
+      core.DriverQueryProc( 'sdap', 'event get', &amp;event );
+      if event = '' then
+        exit;
+      end;
+
+      ... processing of errors and events
+
+    end; (* loop *)
+  end_procedure;
+
+end_program;</p.type>
+              </text>
+            </section>
+          </text>
+        </section>
+        <section label="secDebug" level="2">
+          <title>Ladicí výpisy a informace</title>
+          <text>
+            <p>Ovladač dokáže při běhu zapisovat informace o aktuálním stavu a probíhajících operacích. To může být užitečné např. při řešení problémů s komunikacemi. Výpisy nejsou ve výchozím stavu zapnuty, pro jejich zapnutí a nastavení slouží sekce <type>[log]</type> parametrického souboru. Ladicí informace nejsou k normálnímu provozu potřebné.</p>
+            <p>Výstup ladicích informací je textový, řádkový a tak snadno čitelný.</p>
+            <p>Příklad výpisu sekce <type>[log]</type>:</p>
+            <p.type>[2009-10-04 11:19:47.210] t SDAPBridge.sdap/DRV: 'connected' event
+[2009-10-04 11:19:47.210] d SDAPBridge.sdap/DRV: RS+ rsEventPending
+[2009-10-04 11:19:47.228] d SDAPBridge.sdap/DRV: Event.Dequeue 'connected'
+[2009-10-04 11:19:47.229] d SDAPBridge.sdap/DRV: DQP 'advise'
+[2009-10-04 11:19:47.230] d SDAPBridge.sdap/DRV: RS- rsEventPending
+[2009-10-04 11:19:59.821] m SDAPBridge.sdap/DRV: STOP
+[2009-10-04 11:19:59.822] t SDAPBridge.sdap/NET: Disconnect error: 10053</p.type>
+            <p>V prvé části mezi hranatými závorkami je datum a čas výpisu. Všechny ladicí výpisy jsou ve světovém čase, tj. v zimě je vůči českému občanskému času menší o hodinu, během platnosti letního času o dvě hodiny. Příklad: výpis s časem <type>11:19:47.229</type> byl pořízen 4.<c.special what="thinspace" />října, takže jeho odpovídající občanský čas pořízení byl 13:19:47,229.</p>
+            <dl class="dlHanging">
+              <caption>Druhá část, samostatné písmeno, kóduje druh zprávy. Možnosti jsou (řazeny od nejvíce podrobných k nejvíce důležitým):</caption>
+              <dt>d</dt>
+              <dd><p>ladicí zpráva, druhá úroveň detailů</p></dd>
+              <dt>I</dt>
+              <dd><p>běžná zpráva, doplňkové informace</p></dd>
+              <dt>t</dt>
+              <dd><p>ladicí zpráva, první úroveň detailů</p></dd>
+              <dt>W</dt>
+              <dd><p>běžná zpráva, varování o možných potížích za určité situace</p></dd>
+              <dt>m</dt>
+              <dd><p>ladicí zpráva, důležitá informace</p></dd>
+              <dt>E</dt>
+              <dd><p>běžná zpráva, chyba protokolu, stavu nebo programu, server je schopen pracovat dále</p></dd>
+              <dt>e</dt>
+              <dd><p>ladicí zpráva, informace o chybě </p></dd>
+              <dt>F</dt>
+              <dd><p>běžná zpráva, fatální chyba programu, server není schopen pracovat dále</p></dd>
+            </dl>
+            <dl class="dlCommon">
+              <caption>Třetí část zprávy rozlišuje původce zprávy, v serveru se objevují zprávy z těchto zdrojů (&lt;name&gt; zastupuje jméno ovladače v aplikaci):</caption>
+              <dt>SDAPBridge.&lt;name&gt;/DRV</dt>
+              <dd><p>Spojení s aplikací ControlWeb, informace o příkazech aplikace a událostech směřujících do aplikace.</p></dd>
+              <dt>SDAPBridge.&lt;name&gt;/NET</dt>
+              <dd><p>SDAP klient, informace o síťové komunikaci.</p></dd>
+            </dl>
+            <p>Za třetí částí následuje v ladicí zprávě text, který již není formalizován a který obsahuje libovolná data (taková která původce chtěl vypsat).</p>
+          </text>
+        </section>
+        <section label="secDebug" level="2">
+          <title>Ukázky</title>
+          <text>
+            <p>Instalace ovladače obsahuje ukázku použití pro systémy ControlWeb<c.special what="thinspace" />5 a ControlWeb<c.special what="thinspace" />6. Ukázka je stejná, liší se pouze syntaxí zápisu zdrojového kódu, pro ControlWeb<c.special what="thinspace" />5 je uložena v instalačním adresáři v souboru <file>Examples\sdapbridge.cw5.cw</file> a pro ControlWeb<c.special what="thinspace" />6 v souboru <file>Examples\sdapbridge.cw6.cw</file>. Ukázka pro běh vyžaduje taktéž správně nastavený parametrický soubor <file>sdapbridge.par</file>.</p>
+            <dl class="dlCommon">
+              <caption>Ukázka obsahuje následující části:</caption>
+              <dt>definici kanálů v sekci <type>sdap_input</type></dt>
+              <dd><p>Sekce obsahuje všechny tři kanály, které ovladač poskytuje. Čísla kanálů (atribut <type>driver_index</type>) musí odpovídat definici v sekci <type>interface</type> parametrického souboru.</p></dd>
+              <dt>přístroje <type>Status</type>, <type>InputQ</type> a <type>OutputQ</type></dt>
+              <dd><p>Přístroje zobrazující aktuální hodnoty kanálů ovladače.</p></dd>
+              <dt>přístroj <type>SDAPHandler</type></dt>
+              <dd><p>Tento přístroj odpovídá kostře uvedené v popisu procedury ovladače <type>event get</type>. Přístroj je aktivován výjimkou ovladače, ve smyčce zpracovává vyčtené události a stará se o jejich další zpracování a doručení. Přístroj spolupracuje s přístrojem <type>SDAPClient</type>, kterému zprávy ovladače doručuje k vyřízení. Přístroj také poskytuje proceduru <type>Command</type>, kterou je možné použít pro odeslání příkazu (procedury) do ovladače. Za zmínku stojí rovněž volání procedury advise v reakci na událost <type>connected</type> tak, jak bylo doporučeno v popisu procedury <type>advise</type>.</p></dd>
+              <dt>přístroj <type>SDAPClient</type></dt>
+              <dd><p>Přístroj zamýšlený jako aplikační rozhraní, jako místo zpracování událostí ovladače a místo zpracování příkazů aplikace. Pro obě úlohy přístroj nabízí jednak procedury volané při přijetí zprávy (<type>OnConnected</type>, <type>OnDisconnected</type>, <type>OnAdvise</type>) a jednak procedury volané odkudkoli z aplikace (<type>Set</type>, <type>Ask</type>, <type>Advise</type>, <type>Unadvise</type>). Procedury pro zprávy jsou přístroji volány přístrojem <type>SDAPHandler</type>.</p></dd>
+              <dt>přístroje <type>Write</type> a <type>Ask</type></dt>
+              <dd><p>Přístroje sloužící k základní ukázce volání příkazů ovladače. Přístroj <type>Write</type> zapisuje do datového objektu SDAP serveru, přístroj <type>Ask</type> data ze serveru požaduje.</p></dd>
+            </dl>
+          </text>
+        </section>
+      </text>
+    </section>
+  </text>
+</document>
