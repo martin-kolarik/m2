@@ -1,3 +1,7 @@
+Version 1.1.1004/R RC1 11.10.2009
+- BUG: #134, SDAP server crashed, when pending unsent data were sent after
+       client had disconnected.
+
 Version 1.0.972/R RTM 19.9.2009
 - BUG: #121, administration web interface was missing version number.
 - BUG: #123, if server's domain name contained (as substring) name of some page

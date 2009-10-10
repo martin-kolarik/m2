@@ -81,12 +81,15 @@ CLASS IMPLEMENTATION CSDAPServer;
             IF NOT b THEN
                EXIT;
             END;
-            
-            Send( NIL, TPClient( client )^.Connection, 0, s.rawData, s.Length<<1 );
+
+            // for disconnected clients Data of _SendQueue was reset to NIL
+            IF client <> NIL THEN
+               Send( NIL, TPClient( client )^.Connection, 0, s.rawData, s.Length<<1 );
+            END;
 
             DEC( count );
             IF count = 0 THEN
-               SUPER.Message( Message, msghandler.delDefault, NIL );
+               SUPER.Message( Message, msghandler.delDefault, NIL ); // resend the message to continue with next 16 data in next loop
                EXIT;
             END;
          END; // LOOP
@@ -270,6 +273,16 @@ CLASS IMPLEMENTATION CSDAPServer;
 
          _Device^.UnadviseAll( Client );
          _Device^.LeaveClient( Client );
+         
+         // mark pending send data as unusable
+         _SendLock.Lock();
+         _SendQueue.Reset();
+         WHILE _SendQueue.MoveNext() DO
+            IF _SendQueue.CurrentData = PTR( Client ) THEN
+               _SendQueue.CurrentData := NIL; // reset Data field
+            END;
+         END; // WHILE
+         _SendLock.Unlock();
 
          DISPOSE( Client );
       END;
