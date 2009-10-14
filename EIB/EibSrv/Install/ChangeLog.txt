@@ -1,6 +1,11 @@
 Version 1.1.1004/R RC1 11.10.2009
+- BUG: #127, SDAP client/server could delay notification of received data
+       to SmartServer of client, so messages could be either lost or delayed
+       for very long time.
 - BUG: #134, SDAP server crashed, when pending unsent data were sent after
        client had disconnected.
+- CHG: #130, in documentation, [debug] section name was badly used instead of
+       correct [log]
 
 Version 1.0.972/R RTM 19.9.2009
 - BUG: #121, administration web interface was missing version number.
