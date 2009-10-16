@@ -41,7 +41,7 @@ ABSTRACT CLASS ABridge IMPLEMENTS
    
    // ISDAPClientEvents
    PUBLIC VIRTUAL PROCEDURE OnConnect( Result : Sync.TAsyncResult; Error : CARDINAL );
-   PUBLIC VIRTUAL PROCEDURE OnClose( Result : Sync.TAsyncResult; Error : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE OnDisconnect( Result : Sync.TAsyncResult; Error : CARDINAL );
    PUBLIC VIRTUAL PROCEDURE OnReceive( CONST Data, Value : StringsO.IString );
 
    // SELF

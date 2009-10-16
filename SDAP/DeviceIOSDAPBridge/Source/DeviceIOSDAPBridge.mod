@@ -193,7 +193,7 @@ CLASS IMPLEMENTATION ABridge;
 
       END; // LOOP
 
-      _SDAPClient^.Close();
+      _SDAPClient^.Disconnect();
       RETURN 0;
    END OnRun;
 
@@ -481,10 +481,10 @@ CLASS IMPLEMENTATION ABridge;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE OnClose( Result : Sync.TAsyncResult; Error : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE OnDisconnect( Result : Sync.TAsyncResult; Error : CARDINAL );
    BEGIN
       // intentionaly empty
-   END OnClose;
+   END OnDisconnect;
 
 (*--------------------------------------------------------------------------------*)
 

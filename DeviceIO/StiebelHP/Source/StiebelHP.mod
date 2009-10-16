@@ -40,8 +40,9 @@ CLASS CBE;
 	PRIVATE VAR
 		_Data : WORD;
 	PUBLIC PROPERTY
-		BE : WORD; // big endian
-		LE : WORD; // little endian
+		BS : INT16; // big endian
+		LS : INT16; // little endian
+		LU : CARD16; // little endian
 END CBE;
 
 TYPE
@@ -67,25 +68,35 @@ TYPE
 
 CLASS IMPLEMENTATION CBE;
 
-	PUBLIC PROPERTY BE GET : WORD;
+	PUBLIC PROPERTY BS GET : INT16;
 	BEGIN
-		RETURN _Data;
-	END BE;
+		RETURN INT16( _Data );
+	END BS;
 
-	PUBLIC PROPERTY BE SET( Value : WORD );
+	PUBLIC PROPERTY BS SET( Value : INT16 );
 	BEGIN
 		_Data := Value;
-	END BE;
+	END BS;
 
-	PUBLIC PROPERTY LE GET : WORD;
+	PUBLIC PROPERTY LS GET : INT16;
+	BEGIN
+		RETURN INT16( ( _Data AND 0FFH << 8 ) OR ( _Data >> 8 ) );
+	END LS;
+
+	PUBLIC PROPERTY LS SET( Value : INT16 );
+	BEGIN
+		_Data := ( WORD( Value ) AND 0FFH << 8 ) OR ( WORD( Value ) >> 8 );
+	END LS;
+
+	PUBLIC PROPERTY LU GET : CARD16;
 	BEGIN
 		RETURN ( _Data AND 0FFH << 8 ) OR ( _Data >> 8 );
-	END LE;
+	END LU;
 
-	PUBLIC PROPERTY LE SET( Value : WORD );
+	PUBLIC PROPERTY LU SET( Value : CARD16 );
 	BEGIN
 		_Data := ( Value AND 0FFH << 8 ) OR ( Value >> 8 );
-	END LE;
+	END LU;
 
 BEGIN
 	_Data := 0;
@@ -255,7 +266,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 		FOR i := 0 TO l-1 DO // omit last two bytes
 			INC( CRC, PCARD8( Data.Data@[i] )^ );
 		END; // FOR
-		RETURN TPBE( Data.Data@[l] )^.LE = CRC;
+		RETURN TPBE( Data.Data@[l] )^.LU = CRC;
 	END TestChkSum;
 
 (*---------------------------------------------------------------------------*)
@@ -285,7 +296,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 		FOR i := 0 TO l-1 DO // omit last two bytes
 			INC( CRC, PCARD8( Data.Data@[i] )^ );
 		END; // FOR
-		TPBE( Data.Data@[l] )^.LE := CRC;
+		TPBE( Data.Data@[l] )^.LU := CRC;
 	END AddChkSum;
 
 (*---------------------------------------------------------------------------*)
@@ -558,15 +569,15 @@ CLASS IMPLEMENTATION CIO;
 			END;
 			D1 := 0; // ??
 			D2 := 0FAH; // ??
-			PointNumber.LE := LOWORD( LOPTRLONGWORD( nsitem.TPnsItem( Item )^.Data ));
+			PointNumber.LU := LOWORD( LOPTRLONGWORD( nsitem.TPnsItem( Item )^.Data ));
 			IF Direction = IOO.dirWrite THEN
 				IF TPNSI( Item )^.Multiplier = 1000 THEN
 					D2 := 0FBH; // ??
-					wValue.LE := 0;
+					wValue.LU := 0;
 				ELSIF TPNSI( Item )^.Multiplier = 1 THEN
 					bValue := BYTE( Value.Integer );
 				ELSE
-					wValue.LE := WORD( Value.Float * LONGREAL( TPNSI( Item )^.Multiplier ));
+					wValue.LS := INT16( Value.Float * LONGREAL( TPNSI( Item )^.Multiplier ));
 				END;
 			END;
 		END;
@@ -606,7 +617,7 @@ CLASS IMPLEMENTATION CIO;
 			IF _Item^.Multiplier = 1 THEN
 				V.Float := LONGREAL( PPacket^.bValue );
 			ELSE
-				V.Float := LONGREAL( PPacket^.wValue.LE ) / LONGREAL( _Item^.Multiplier );
+				V.Float := LONGREAL( PPacket^.wValue.LS ) / LONGREAL( _Item^.Multiplier );
 			END;
 			_Callback^.OnIO( IOO.dirRead, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( _Item )), OA( -1, NIL ), OA( 0, ADR( V )));
 		ELSIF _Pending = IOO.dirWrite THEN
