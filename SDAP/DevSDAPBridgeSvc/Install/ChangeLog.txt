@@ -1,5 +1,7 @@
-Version 1.0.x dev 28.9.2009
-- BUG: Getting of values from device failed if device reported SUCCESS.
+Version 1.0.1009 dev 16.10.2009
+- BUG: #136, StiebelHP returned numbers about 6553 for negative values read
+       from device.
+- BUG: #137, Getting of values from device failed if device reported SUCCESS.
 
 Version 1.0.886 dev 6.8.2009
 - NEW: first run
