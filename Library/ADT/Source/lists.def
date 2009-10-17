@@ -30,9 +30,7 @@ CLASS CIntegerList( list.CListWState );
   #restore
   PUBLIC PROCEDURE Contains( Value : INTEGER ): BOOLEAN;
   PUBLIC PROCEDURE Get( Value : INTEGER; OUT Data : PTR ): BOOLEAN;
-  #save, option( leak_info => on )
   PUBLIC PROCEDURE Remove( Value : INTEGER ); // removes all occurences
-  #restore
   PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN; // similar as []
 
   // list interface
@@ -50,7 +48,9 @@ CLASS CIntegerList( list.CListWState );
   PRIVATE PROCEDURE Lookup( Value : INTEGER; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
 
   // queue interface
+  #save, option( leak_info => on )
   PUBLIC PROCEDURE Enqueue( Value : INTEGER; Data : PTR );
+  #restore
   PUBLIC PROCEDURE Dequeue( OUT Value : INTEGER; OUT Data : PTR ) : BOOLEAN; 
 END CIntegerList;
 
@@ -73,9 +73,7 @@ CLASS CPtrList( list.CListWState );
   #restore
   PUBLIC PROCEDURE Contains( Value : PTR ): BOOLEAN;
   PUBLIC PROCEDURE Get( Value : PTR; OUT Data : PTR ): BOOLEAN;
-  #save, option( leak_info => on )
   PUBLIC PROCEDURE Remove( Value : PTR ); // removes all occurences
-  #restore
   PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; // similar as []
 
   // list interface
@@ -93,7 +91,9 @@ CLASS CPtrList( list.CListWState );
   PRIVATE PROCEDURE Lookup( Value : PTR; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
 
   // queue interface
+  #save, option( leak_info => on )
   PUBLIC PROCEDURE Enqueue( Value : PTR; Data : PTR );
+  #restore
   PUBLIC PROCEDURE Dequeue( OUT Value : PTR; OUT Data : PTR ) : BOOLEAN; 
 END CPtrList;
 
@@ -111,13 +111,17 @@ CLASS CStringList( list.CListWState );
     INDEX( Index : INTEGER ) : POINTER TO IString; // SLOW, O(n)!!
 
   // map interface
+  #save, option( leak_info => on )
   PUBLIC PROCEDURE Add( CONST Value : IString; Data : PTR );
+  #restore
   PUBLIC PROCEDURE Contains( CONST Value : IString ): BOOLEAN;
   PUBLIC PROCEDURE Get( CONST Value : IString; OUT Data : PTR ): BOOLEAN;
   PUBLIC PROCEDURE Remove( CONST Value : IString ); // removes all occurences
   PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : IString; OUT Data : PTR ) : BOOLEAN; // similar as []
 
+  #save, option( leak_info => on )
   PUBLIC PROCEDURE AddOA( CONST Value : ARRAY OF WCHAR; Data : PTR );
+  #restore
   PUBLIC PROCEDURE ContainsOA( CONST Value : ARRAY OF WCHAR ): BOOLEAN;
   PUBLIC PROCEDURE GetOA( CONST Value : ARRAY OF WCHAR; OUT Data : PTR ): BOOLEAN;
   PUBLIC PROCEDURE RemoveOA( CONST Value : ARRAY OF WCHAR ); // removes all occurences
@@ -137,8 +141,10 @@ CLASS CStringList( list.CListWState );
   PRIVATE PROCEDURE Lookup( CONST Value : IString; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
 
   // queue interface
+  #save, option( leak_info => on )
   PUBLIC PROCEDURE Enqueue( CONST Value : IString; Data : PTR );
   PUBLIC PROCEDURE EnqueueOA( CONST Value : ARRAY OF WCHAR; Data : PTR );
+  #restore
 
   PUBLIC PROCEDURE Dequeue( OUT Value : IString; OUT Data : PTR ) : BOOLEAN; 
   PUBLIC PROCEDURE DequeueOA( OUT Value : ARRAY OF WCHAR; OUT Data : PTR ) : BOOLEAN; 
@@ -158,13 +164,17 @@ CLASS CStringStringList( list.CListWState );
     INDEX( Index : INTEGER ) : POINTER TO IString; // SLOW, O(n)!!
 
   // map interface
+  #save, option( leak_info => on )
   PUBLIC PROCEDURE Add( CONST Value : IString; CONST Data : IString );
+  #restore
   PUBLIC PROCEDURE Contains( CONST Value : IString ): BOOLEAN;
   PUBLIC PROCEDURE Get( CONST Value : IString; OUT Data : IString ): BOOLEAN;
   PUBLIC PROCEDURE Remove( CONST Value : IString ); // removes all occurences
   PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : IString; OUT Data : IString ) : BOOLEAN; // similar as []
 
+  #save, option( leak_info => on )
   PUBLIC PROCEDURE AddOA( CONST Value : ARRAY OF WCHAR; CONST Data : IString );
+  #restore
   PUBLIC PROCEDURE ContainsOA( CONST Value : ARRAY OF WCHAR ): BOOLEAN;
   PUBLIC PROCEDURE GetOA( CONST Value : ARRAY OF WCHAR; OUT Data : IString ): BOOLEAN;
   PUBLIC PROCEDURE RemoveOA( CONST Value : ARRAY OF WCHAR ); // removes all occurences
@@ -184,8 +194,10 @@ CLASS CStringStringList( list.CListWState );
   PRIVATE PROCEDURE Lookup( CONST Value : IString; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
 
   // queue interface
+  #save, option( leak_info => on )
   PUBLIC PROCEDURE Enqueue( CONST Value : IString; CONST Data : IString );
   PUBLIC PROCEDURE EnqueueOA( CONST Value : ARRAY OF WCHAR; CONST Data : IString );
+  #restore
 
   PUBLIC PROCEDURE Dequeue( OUT Value : IString; OUT Data : IString ) : BOOLEAN; 
   PUBLIC PROCEDURE DequeueOA( OUT Value : ARRAY OF WCHAR; OUT Data : IString ) : BOOLEAN; 
@@ -215,13 +227,17 @@ CLASS CBufferList( list.CListWState );
       INDEX( Index : INTEGER ) : POINTER TO AMemoryBuffer; // SLOW, O(n)!!
 
   // map interface
+  #save, option( leak_info => on )
   PUBLIC PROCEDURE Add( CONST Value : AMemoryBuffer; Data : PTR );
+  #restore
   PUBLIC PROCEDURE Contains( CONST Value : AMemoryBuffer ): BOOLEAN;
   PUBLIC PROCEDURE Get( CONST Value : AMemoryBuffer; OUT Data : PTR ): BOOLEAN;
   PUBLIC PROCEDURE Remove( CONST Value : AMemoryBuffer ); // removes all occurences
   PUBLIC PROCEDURE ElementAt( Index : INTEGER; OUT Value : AMemoryBuffer; OUT Data : PTR ) : BOOLEAN; // similar as []
 
+  #save, option( leak_info => on )
   PUBLIC PROCEDURE AddOA( CONST Value : ARRAY OF BYTE; Data : PTR );
+  #restore
   PUBLIC PROCEDURE ContainsOA( CONST Value : ARRAY OF BYTE ): BOOLEAN;
   PUBLIC PROCEDURE GetOA( CONST Value : ARRAY OF BYTE; OUT Data : PTR ): BOOLEAN;
   PUBLIC PROCEDURE RemoveOA( CONST Value : ARRAY OF BYTE ); // removes all occurences
@@ -241,8 +257,10 @@ CLASS CBufferList( list.CListWState );
   PRIVATE PROCEDURE Lookup( CONST Value : AMemoryBuffer; OUT Item : list.TPListElem; OUT Index : INTEGER ) : BOOLEAN;
 
   // queue interface
+  #save, option( leak_info => on )
   PUBLIC PROCEDURE Enqueue( CONST Value : AMemoryBuffer; Data : PTR );
   PUBLIC PROCEDURE EnqueueOA( CONST Value : ARRAY OF BYTE; Data : PTR );
+  #restore
 
   PUBLIC PROCEDURE Dequeue( OUT Value : AMemoryBuffer; OUT Data : PTR ) : BOOLEAN; 
   PUBLIC PROCEDURE DequeueOA( OUT Value : ARRAY OF BYTE; OUT Filled : CARDINAL; OUT Data : PTR ) : BOOLEAN; 

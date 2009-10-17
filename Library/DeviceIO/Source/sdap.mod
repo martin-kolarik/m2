@@ -657,8 +657,18 @@ CLASS IMPLEMENTATION CSDAPServer;
 (*--------------------------------------------------------------------------------*)
 
    FINALLY CSDAPServer();
+   VAR
+      Client : TPClient;
    BEGIN
+      _Clients.Reset();
+      WHILE _Clients.MoveNext() DO
+         Client := _Clients.CurrentData;
+         _Device^.UnadviseAll( Client );
+         _Device^.LeaveClient( Client );
+         DISPOSE( Client );
+      END; // WHILE
       _Clients.Dispose();
+
       _SendQueue.Dispose();
    END CSDAPServer;
 

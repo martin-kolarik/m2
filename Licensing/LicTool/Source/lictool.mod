@@ -193,7 +193,7 @@ VAR
          err^.WriteOA( L'  the file name was not specified', TRUE );
          RETURN 300;
       END;
-      lines.Clear();
+      lines.Dispose();
       TRY
          fs.FromPath( OA( path.Length-1, path.rawData ), FIOO.imOpenRead );
       CATCH e : IOO.CIOException DO

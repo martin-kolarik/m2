@@ -31,7 +31,7 @@ CLASS IMPLEMENTATION CLoggerFilter;
             filter := _List.CurrentData = DENY;
          END;
       END; // WHILE
-      _List.Clear();
+      _List.Clear(); // do not dispose, _List is a enumerator copy
       
       RETURN filter;
    END Filtered;

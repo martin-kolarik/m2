@@ -1610,7 +1610,7 @@ PROCEDURE Cleanup();
 BEGIN
    IF MVCHolder <> NIL THEN
       MVCHolder^.Dispose();
-      MVCHolder := NIL;
+      DISPOSE( MVCHolder );
    END;
 END Cleanup;
 
@@ -1693,4 +1693,7 @@ END pageTemplateView;
 
 (*================================================================================*)
 
+BEGIN
+FINALLY
+   Cleanup();
 END MVC.

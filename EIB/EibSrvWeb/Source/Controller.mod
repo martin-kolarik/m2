@@ -441,9 +441,9 @@ CLASS IMPLEMENTATION CController;
          RETURN TRUE;
       END;
 
-      Request.ModelContainer^.AddListOA( CONTROL_DEVICES_NAME, OUT listDevices ); listDevices^.Clear();
-      Request.ModelContainer^.AddListOA( CONTROL_DEVICES_RUN, OUT listRunning ); listRunning^.Clear();
-      Request.ModelContainer^.AddListOA( CONTROL_DEVICES_IDX, OUT listIndexes ); listIndexes^.Clear();
+      Request.ModelContainer^.AddListOA( CONTROL_DEVICES_NAME, OUT listDevices ); listDevices^.Dispose();
+      Request.ModelContainer^.AddListOA( CONTROL_DEVICES_RUN, OUT listRunning ); listRunning^.Dispose();
+      Request.ModelContainer^.AddListOA( CONTROL_DEVICES_IDX, OUT listIndexes ); listIndexes^.Dispose();
 
       count := _Web^.OperatedDeviceCount;
       IF count > 0 THEN
