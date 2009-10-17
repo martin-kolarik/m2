@@ -106,7 +106,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       _EIB^.QueueLock.Lock();
 
       Sync.IExchgAdd( REF _GotByHour[dt.Hour MOD 24], _EIB^.oobData.Count );
-      _EIB^.oobData.Clear();
+      _EIB^.oobData.Dispose();
 
       _EIB^.QueueLock.Unlock();
    END OnInputQueueAdd;
@@ -723,8 +723,14 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE RemoveControllers();
+   VAR
+      LController : Controller.TPController := Controller.TPController( _Controller );
    BEGIN
-      _MVC^.ForgetControllerCompletely( _Controller );
+      IF LController <> NIL THEN
+         _MVC^.ForgetControllerCompletely( LController );
+         DISPOSE( LController );
+         _Controller := NIL;
+      END;
 
       _MVC^.ForgetFallbackController();
    END RemoveControllers;
