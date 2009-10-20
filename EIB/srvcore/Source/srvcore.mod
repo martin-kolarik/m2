@@ -712,8 +712,10 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
    VAR
+      address : ARRAY [0..63] OF WCHAR;
+      description : StringsO.CString;
       EV : eib_def.CValue;
       changed : BOOLEAN;
       key, value : StringsO.CString;
@@ -758,7 +760,16 @@ CLASS IMPLEMENTATION CEIBServer;
       IF Direction = IOO.dirRead THEN
          PObject^.GetValue( OUT EV, TRUE, FALSE );
          EIBValue2IOValue( EV, OUT Value );
+
       ELSE // dirWrite
+      
+         // write operation originator
+         IF Originator <> NIL THEN
+            description := Originator^.Description;
+            PObject^.SendAddress.GetGroupAddress3( TRUE, OUT address );
+            _DataLogger^.LogSSS( log.dldMessage, L"srv", "SET RQ", address, OA( description.Length-1, description.rawData ));
+         END;         
+      
          IOValue2EIBValue( Value, PObject^.Type, OUT EV );
          PObject^.SetValue( EV, OUT changed );
          IF changed THEN
@@ -781,7 +792,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROCEDURE IOha( Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
    BEGIN
       RETURN Sync.arCannotStart;
    END IOha;

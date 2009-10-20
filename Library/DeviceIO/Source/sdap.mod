@@ -301,8 +301,10 @@ CLASS IMPLEMENTATION CSDAPServer;
       error : ARRAY [0..511] OF WCHAR;
       Hash : ns.THash;
       i : CARDINAL;
+      ia : inetaddr.INETADDR;
       IOValue : iovalue.Value;
       l : CARDINAL;
+      Originator : io.CSimpleOriginator;
       p : ARRAY [0..3] OF StringsO.CString; // parameters
       parametersCount : CARDINAL;
       parametersFound : CARDINAL;
@@ -480,10 +482,15 @@ CLASS IMPLEMENTATION CSDAPServer;
 
          ELSE
 
+            ia := GetRemoteAddress( PConnection );
+            ia.GetAddressOA( TRUE, OUT sd );
+            d.FromOA( LOG_SDAP ); d.AppendOA( L"/" ); d.AppendOA( sd );
+            Originator.SetDescription( d );
+
             IF Command = sdapSET THEN // expect data.name (aka data.x/x/x)
                IOValue.String := p[2];
 
-               Result := Device^.IO()^.IOh( IOO.dirWrite, Hash, REF IOValue, NIL );
+               Result := Device^.IO()^.IOh( ADR( Originator ), IOO.dirWrite, Hash, REF IOValue, NIL );
                IF Result = Sync.arCompleted THEN
                   ACK( PConnection, sdap200 );
                ELSE
@@ -492,7 +499,7 @@ CLASS IMPLEMENTATION CSDAPServer;
        
             ELSE
         
-               Result := Device^.IO()^.IOh( IOO.dirRead, Hash, REF IOValue, NIL );
+               Result := Device^.IO()^.IOh( ADR( Originator ), IOO.dirRead, Hash, REF IOValue, NIL );
                CASE Result OF
                | Sync.arCompleted :
                   ACKd( PConnection, sdap200, p[1], IOValue );

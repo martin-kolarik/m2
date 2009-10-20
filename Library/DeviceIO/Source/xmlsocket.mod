@@ -291,7 +291,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
             RETURN;
          END;
          
-         Parse( Client, OA( i - SIZE( LEAD_XMLSOCKET ), PCHAR( Client^.RBuffer.Data@[SIZE( LEAD_XMLSOCKET )-1] ) )); // slice data inside LEADING and TRAILING
+         Parse( Connection, Client, OA( i - SIZE( LEAD_XMLSOCKET ), PCHAR( Client^.RBuffer.Data@[SIZE( LEAD_XMLSOCKET )-1] ) )); // slice data inside LEADING and TRAILING
          
          Client^.RBuffer.RemoveStart( i + SIZE( TRAIL_XMLSOCKET )-1 );
       END; // LOOP
@@ -334,7 +334,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       i := 1;
       l := Items^.Count;
       WHILE i < l DO
-         IO^.IOh( IOO.dirRead, Items^[i], REF value, NIL );
+         IO^.IOh( NIL, IOO.dirRead, Items^[i], REF value, NIL );
          Client^.AddItem( Items^[i], value );
          INC( i );
       END; // WHILE
@@ -344,10 +344,11 @@ CLASS IMPLEMENTATION CXMLSocketServer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE Parse( Client : ADDRESS; Data : ARRAY OF CHAR );
+   PRIVATE PROCEDURE Parse( Connection : netconndispatch.TConnectionHandle; Client : ADDRESS; Data : ARRAY OF CHAR );
    TYPE
       TOperation = ( opAsk, opConnect, opDisconnect, opNotify );
    VAR
+      iaddr : inetaddr.INETADDR;
       high : INTEGER;
       ia, ic, id, in, i, j, current : INTEGER;
       Name, Value : ARRAY [0..511] OF WCHAR;
@@ -486,7 +487,8 @@ CLASS IMPLEMENTATION CXMLSocketServer;
             END;
             HandleRead( Name, REF readRequests );
          ELSE
-            HandleWrite( Name, Value );
+            iaddr := GetRemoteAddress( Connection );
+            HandleWrite( iaddr, Name, Value );
          END;
          
       END; // LOOP
@@ -537,11 +539,14 @@ CLASS IMPLEMENTATION CXMLSocketServer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE HandleWrite( CONST NameOA, Value : ARRAY OF WCHAR );
+   PRIVATE PROCEDURE HandleWrite( CONST ia : inetaddr.INETADDR; CONST NameOA, Value : ARRAY OF WCHAR );
    VAR
+      d : StringsO.CString;
       Hash : ns.THash;
-      io : iovalue.Value;
+      inetaddr : ARRAY [0..63] OF WCHAR;
       Name : StringsO.CString;
+      Originator : io.CSimpleOriginator;
+      value : iovalue.Value;
    BEGIN
       Name.FromOA( NameOA );
       _CommonLogger^.LogSSSS( log.dldTrace, LOG_XMLS, "SET ", NameOA, L" ", Value );
@@ -555,8 +560,12 @@ CLASS IMPLEMENTATION CXMLSocketServer;
          RETURN;
 
       ELSE
-         io.FromStringOA( Value, FALSE );
-         Device^.IO()^.IOh( IOO.dirWrite, Hash, REF io, NIL );
+         ia.GetAddressOA( TRUE, OUT inetaddr );
+         d.FromOA( LOG_XMLS ); d.AppendOA( L"/" ); d.AppendOA( inetaddr );
+         Originator.SetDescription( d );
+
+         value.FromStringOA( Value, FALSE );
+         Device^.IO()^.IOh( ADR( Originator ), IOO.dirWrite, Hash, REF value, NIL );
       END;         
    END HandleWrite;
 

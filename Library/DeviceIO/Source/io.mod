@@ -151,7 +151,27 @@ FINALLY
    DISPOSE( TPCompletionDataInfoSink( DataInfoSink ));
 END CCompletionDataInfo;
 
+(*===========================================================================*)
+
+CLASS IMPLEMENTATION CSimpleOriginator;
+
 (*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Description GET : StringsO.CString;
+   BEGIN
+      RETURN _Description;
+   END Description;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE SetDescription( CONST Description : StringsO.CString );
+   BEGIN
+      _Description := Description;
+   END SetDescription;
+   
+(*---------------------------------------------------------------------------*)
+
+END CSimpleOriginator;
 
 (*===========================================================================*)
 
@@ -166,7 +186,7 @@ CLASS IMPLEMENTATION AItemizedIO;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE IOha( Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
+	PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
 	BEGIN
 		RETURN Sync.arCannotStart;
 	END IOha;

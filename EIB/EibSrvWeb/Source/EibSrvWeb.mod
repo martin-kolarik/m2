@@ -445,20 +445,28 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE SetValue( CONST name, value : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE SetValue( CONST originator : inetaddr.INETADDR; CONST name, value : StringsO.IString ) : BOOLEAN;
    VAR
+      d : StringsO.CString;
       hash : ns.THash;
-      io : iovalue.Value;
+      ia : ARRAY [0..63] OF WCHAR;
+      Originator : io.CSimpleOriginator;
       s : StringsO.CString;
+      Value : iovalue.Value;
    BEGIN
       // no need to sync, NameToHash is be thread safe
       IF NOT _EIB^.NameToHash( name, OUT hash ) THEN
          RETURN FALSE;
       END;
       s.Assign( value );
-      io.String := s;
+      Value.String := s;
+
+      originator.GetAddressOA( TRUE, OUT ia );
+      d.FromOA( L"web/" ); d.AppendOA( ia );
+      Originator.SetDescription( d );
+
       // no need to sync, IOh is be thread safe
-      RETURN _EIB^.IOh( IOO.dirWrite, hash, REF io, NIL ) = Sync.arCompleted; // partial = cache write is not evaluated as true
+      RETURN _EIB^.IOh( ADR( Originator ), IOO.dirWrite, hash, REF Value, NIL ) = Sync.arCompleted; // partial = cache write is not evaluated as true
    END SetValue;
 
 (*--------------------------------------------------------------------------------*)
@@ -474,7 +482,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          RETURN FALSE;
       END;
       // no need to sync, IOh is be thread safe
-      IF _EIB^.IOh( IOO.dirRead, hash, REF io, NIL ) NOT IN Sync.arsCompletions THEN
+      IF _EIB^.IOh( NIL, IOO.dirRead, hash, REF io, NIL ) NOT IN Sync.arsCompletions THEN
          RETURN FALSE;
       END;
       s := io.String;

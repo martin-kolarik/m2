@@ -61,8 +61,8 @@ CLASS CSimulator IMPLEMENTS io.IIO, ns.IMapper, device.IDevice;
    PUBLIC VIRTUAL PROCEDURE Start() : sync.TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE Stop();
 
-   PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
-   PUBLIC VIRTUAL PROCEDURE IOha( Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
 
    PUBLIC VIRTUAL PROCEDURE AbortAll(); // As IIO is allowed to run single operation only Abort does not need more parameters. But because ancestors
 	
@@ -223,14 +223,14 @@ CLASS IMPLEMENTATION CSimulator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
    BEGIN
       RETURN sync.arCannotStart;
    END IOh;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE IOha( Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : sync.TAsyncResult;
    BEGIN
       RETURN sync.arCannotStart;
    END IOha;

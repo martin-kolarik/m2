@@ -115,7 +115,7 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Call( CONST FunctionName : StringsO.IString; REF Parameters : lists.CStringStringList; RetVal : StringsO.TPString ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE Call( CONST Request : mvc.IHttpRequest; CONST FunctionName : StringsO.IString; REF Parameters : lists.CStringStringList; RetVal : StringsO.TPString ) : BOOLEAN;
    VAR
       name, s, value : StringsO.CString;
    BEGIN
@@ -125,7 +125,7 @@ CLASS IMPLEMENTATION CController;
          END;
          Parameters.ElementAt( 0, OUT s, OUT name );
          Parameters.ElementAt( 1, OUT s, OUT value );
-         RETURN _Web^.SetValue( name, value );
+         RETURN _Web^.SetValue( Request.RequestSource, name, value );
       ELSIF FunctionName.EqualsOA( FN_GET ) THEN
          IF Parameters.Count < 2 THEN
             RETURN FALSE;
@@ -609,7 +609,7 @@ CLASS IMPLEMENTATION CController;
       ELSIF Request.ModelContainer^.GetStringOA( IO_FORM_ID, OUT fid ) AND fid.EqualsOA( IO_DO_WRITE ) THEN
          IF Request.ModelContainer^.GetStringOA( IO_WRITE_NAME, OUT wname ) AND
             Request.ModelContainer^.GetStringOA( IO_WRITE_VALUE, OUT wvalue ) THEN
-            Request.ModelContainer^.AddBooleanOA( IO_WRITE_FAILED, NOT _Web^.SetValue( wname, wvalue ));
+            Request.ModelContainer^.AddBooleanOA( IO_WRITE_FAILED, NOT _Web^.SetValue( Request.RequestSource, wname, wvalue ));
          END;
 
          View := mvc.redirectView( IO_PAGE );

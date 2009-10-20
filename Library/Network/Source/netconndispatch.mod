@@ -37,6 +37,13 @@ CLASS IMPLEMENTATION CClientInterface;
   
 //--------------------------------------------------------------------------------
 
+   PUBLIC PROCEDURE GetRemoteAddress( Connection : TConnectionHandle ) : inetaddr.INETADDR;
+   BEGIN
+      RETURN PDispatcher^.GetRemoteAddress( Connection );
+   END GetRemoteAddress;
+
+//--------------------------------------------------------------------------------
+  
   PUBLIC PROCEDURE BindDispatcher( _PDispatcher : TPDispatcher );
   BEGIN
     PDispatcher := _PDispatcher;
@@ -1110,6 +1117,21 @@ CLASS IMPLEMENTATION CDispatcher;
   INTERNAL VIRTUAL PROCEDURE OnClientLeave( PConnection : TConnectionHandle; PClientInterface : TPClientInterface );
   BEGIN
   END OnClientLeave;
+
+//--------------------------------------------------------------------------------
+  
+   LOCAL PROCEDURE GetRemoteAddress( Connection : TConnectionHandle ) : inetaddr.INETADDR;
+   VAR
+      ia : inetaddr.INETADDR;
+   BEGIN
+      IF Connection = NIL THEN
+         RETURN ia;
+      ELSIF Connection^.Connected THEN
+         RETURN Connection^.RemoteAddress;
+      ELSE
+         RETURN ia;
+      END;
+   END GetRemoteAddress;
 
 //--------------------------------------------------------------------------------
   

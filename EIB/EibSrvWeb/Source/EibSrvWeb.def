@@ -7,6 +7,7 @@ FROM Storage IMPORT
    
 IMPORT
    accesslist,
+   inetaddr,
    INIfile,
    io,
    lec,
@@ -71,7 +72,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
    PUBLIC PROCEDURE OperateDevice( index : CARDINAL; StartNotStop : BOOLEAN );
    PUBLIC PROCEDURE DeviceRunning( index : CARDINAL ) : BOOLEAN;
    
-   PUBLIC PROCEDURE SetValue( CONST name, value : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE SetValue( CONST originator : inetaddr.INETADDR; CONST name, value : StringsO.IString ) : BOOLEAN;
    PUBLIC PROCEDURE GetValue( CONST name : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN;
    
    PUBLIC PROCEDURE Authenticate( CONST Name, Password : StringsO.IString ) : TRole;
