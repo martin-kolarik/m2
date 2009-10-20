@@ -885,7 +885,9 @@ BEGIN
       END; // WHILE sns
       
       ls.Store( data, FALSE );
+   #endif
 
+   #if Client #or Activator #then
    | opQueryRegistration :
       IF pathOrFilter.Empty THEN
          err^.WriteOA( L'  the product name was not specified', TRUE );
