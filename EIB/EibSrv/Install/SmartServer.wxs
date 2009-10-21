@@ -28,7 +28,7 @@
             </Directory>
             <Directory Id="ProgramFilesFolder">
                 <Directory Id="NeNoProgram" Name="$(var.Manufacturer)">
-                    <Directory Id="INSTALLDIR" Name="EibSrv">
+                    <Directory Id="INSTALLDIR" Name="SmartSrv" LongName="SmartServer">
                         <Component Guid="7661D6C7-3F2E-4990-815B-36609A99DE62" Id="Program">
                             <File DiskId="1" Id="EibSrv.EXE" Name="EibSrv.exe" Source="EibSrv.exe" Vital="yes" KeyPath="yes" />
                             <ServiceInstall Id="SVC" Name="$(var.ProductId)" Type="ownProcess" Interactive="yes" Start="auto" ErrorControl="normal" DisplayName="$(var.ProductDisplayName)" Description="$(var.ProductDescription)">
@@ -73,7 +73,7 @@
                         </Component>
                         <?if $(var.LanguageName)=en ?>
                         <Component Id="Documentation" Guid="89A02EDA-2261-4c9b-8087-06AA1B5FC0A7">
-                            <File Id="EibSrv.pdf" Name="EibSrv.pdf" Source="..\Doc\EibSrv_en.pdf" DiskId="1" Vital="yes" KeyPath="yes">
+                            <File Id="SmartServer.pdf" Name="SmartSrv.pdf" LongName="SmartServer.pdf" Source="..\Doc\SmartServer_en.pdf" DiskId="1" Vital="yes" KeyPath="yes">
                                 <Shortcut Id="StartMenuDocumentation" Directory="ProgramMenuDir" Name="Manual" LongName="SmartServer documentation" />
                             </File>
                             <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" />
@@ -81,7 +81,7 @@
                         <?endif ?>
                         <?if $(var.LanguageName)=cs ?>
                         <Component Id="Documentation" Guid="D75EA66F-CD00-4b0b-85A2-2764FB229D47">
-                            <File Id="EibSrv.pdf" Name="EibSrv.pdf" Source="..\Doc\EibSrv_cs.pdf" DiskId="1" Vital="yes" KeyPath="yes">
+                            <File Id="SmartServer.pdf" Name="SmartSrv.pdf" LongName="SmartServer.pdf" Source="..\Doc\SmartServer_cs.pdf" DiskId="1" Vital="yes" KeyPath="yes">
                                 <Shortcut Id="StartMenuDocumentation" Directory="ProgramMenuDir" Name="Manuál" LongName="Dokumentace SmartServer" />
                             </File>
                             <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" />
@@ -234,7 +234,7 @@
         </Feature>
         <UIRef Id="WixUI_Licence" />
         <UI />
-        <Icon Id="AddRemoveIcon" SourceFile="EibSrv.ico" />
+        <Icon Id="AddRemoveIcon" SourceFile="SmartServer.ico" />
         <?include $(var.BuildRoot)\Manufacturer.wxs ?>
         <?include $(var.BuildRoot)\Upgrade.wxs ?>
     </Product>

@@ -15,7 +15,7 @@
         <ProductNote>Stable</ProductNote>
         <!-- DynamicCLibInstallMethod>Shared</DynamicCLibInstallMethod -->
 
-        <FileDisplayName>EIB/KNX Server</FileDisplayName>
+        <FileDisplayName>EIB/KNX SmartServer</FileDisplayName>
         <FileDescription>EIB/KNX group object server</FileDescription>
     </PropertyGroup>
 
@@ -25,7 +25,7 @@
 
     <!-- 3 COMPONENT DEFINITION -->
     <ItemGroup>
-        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\EIB\eibnetstack;$(RootPath)\EIB\srvsvc;$(RootPath)\EIB\EibSrvWeb;$(RootPath)\EIB\EibSrv"/>
+        <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\EIB\eibnetstack;$(RootPath)\EIB\srvsvc;$(RootPath)\EIB\EibSrvWeb;$(RootPath)\EIB\SmartServer"/>
 
         <Components Include="Component\sccore;Component\scmvc;EIB\srvsvc;EIB\checkcfg;EIB\discover;Licensing\LicTool;Tools\svcinst"/>
     </ItemGroup>
