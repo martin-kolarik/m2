@@ -243,6 +243,7 @@ Licence support tool
                   </table>
                 </f.table>
                 <p>Note: <type>scaling255</type> extending type changes the standard function of EIS<c.special what="thinspace" />6 type. While the data item of scaling type offers the standard range 0<c.special what="interval" />100 (%) to clients, <type>scaling255</type> data item communicates with clients with non-converted value in the range 0<c.special what="interval" />255.</p>
+                <p>Date (EIS<c.special what="thinspace" />4) and time (EIS<c.special what="thinspace" />3) are usually displayed in the formatted form (see chapter <in label="secFormats"></in>). If formats are not used, date is expressed as Julian date and time is expressed as number of seconds in the day with day of week added to order of hundreds of thousands (1 = Monday).</p>
                 <p>The server in configuration uses keywords (the most frequent selections are shown in bolds) for determination of the way of communication according to the table <in label="tblBehavior"></in>.</p>
                 <f.table label="tblBehavior">
                   <caption>Ways of communication of data objects</caption>
@@ -323,13 +324,13 @@ object = "Bedroom light", 5/2/0</p.type>
                 <p>The initial loading may (especially at large number of initialised data object) last relatively a long time. E.g., at loading of 100 data objects the obtaining of the value itself (without repetition and recovery) lasts in total 15 seconds (150<c.special what="thinspace" />ms<c.special what="binarytimes" />100). Of course, during this time it is possible to load to the data bus arbitrarily, nevertheless, the data for clients need not be valid yet (in such case the server will return zero, <type>false</type> or empty text to clients).</p>
               </text>
             </section>
-            <section level="3">
+            <section label="secFormats" level="3">
               <title><type>[formats]</type></title>
               <text>
                 <dl class="dlParameter">
                   <caption><type>[formats]</type> section defines following parameters:</caption>
                   <dt><type>time_as_string</type> and <type>date_as_string</type></dt>
-                  <dd><p>After starting of conversion of time and date data to the text format and vice versa. In initial status, the server works with date and time as with numbers, which could be hardly convertible in clients. The server will use the mask for conversion determined by <type>time_format</type> or <type>date_format</type> parameter. Example:</p><p.type>time_as_string = true
+                  <dd><p>After starting of conversion of time and date data to the text format and vice versa. In initial status, the server works with date and time as with numbers (see chapter <in label="secObjects"></in>), which could be hardly convertible in clients. The server will use the mask for conversion determined by <type>time_format</type> or <type>date_format</type> parameter. Example:</p><p.type>time_as_string = true
 date_as_string = true</p.type></dd>
                   <dt><type>time_format</type> and <type>date_format</type></dt>
                   <dd><p>A mask for conversion of time and date data to the text format and vice versa. The mask is applicable only in case, when <type>time_as_string</type> or <type>date_as_string</type> parameter is set on the value <type>true</type>. Example:</p><p.type>time_format = HH:mm

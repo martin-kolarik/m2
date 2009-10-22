@@ -49,6 +49,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       RootDir : StringsO.TPString;
       Configuration : StringsO.TPString;
       Connected : BOOLEAN;
+      CacheOnlyMode : BOOLEAN;
       StartedTime : time.TJD;
       ConnectedTime : time.TJDC;
       DisconnectedTime : time.TJD;

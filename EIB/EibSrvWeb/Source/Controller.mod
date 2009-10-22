@@ -44,6 +44,7 @@ CONST
    
    DATETIME_FORMAT = L"d. MMMM H.mm:ss 'GMT'";
    STATUS_CONNECTED = L"connected";
+   STATUS_CACHE_ONLY = L"cacheOnly";
    STATUS_CONNECTIONTIME = L"connectionTime";
    STATUS_CONNECTION = L"connection";
    STATUS_UPTIME = L"uptime";
@@ -320,6 +321,8 @@ CLASS IMPLEMENTATION CController;
    
       b := _Web^.Connected;
       Request.ModelContainer^.AddBooleanOA( STATUS_CONNECTED, b );
+      b := _Web^.CacheOnlyMode;
+      Request.ModelContainer^.AddBooleanOA( STATUS_CACHE_ONLY, b );
 
       starttime := _Web^.StartedTime;
       IF b THEN

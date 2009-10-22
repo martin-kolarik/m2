@@ -199,6 +199,13 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY CacheOnlyMode GET : BOOLEAN;
+   BEGIN
+      RETURN _EIB^.CacheOnlyMode;
+   END CacheOnlyMode;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY StartedTime GET : time.TJD;
    BEGIN
       // no need to lock, value written once

@@ -164,6 +164,7 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
 
    DeviceId                 : LONGWORD;
    PromiscuousMode          : BOOLEAN;
+   _CacheOnlyMode           : BOOLEAN;
 
    InputQueueLength         : CARDINAL;
    Address                  : eib_def.CAddress;
@@ -251,6 +252,7 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    PUBLIC READONLY PROPERTY
       Configuration : StringsO.TPString;
       Connection : StringsO.CString; // information about device connection, read from configuration
+      CacheOnlyMode : BOOLEAN;
    PUBLIC PROCEDURE LoadConfiguration( CONST ConfigurationFile : StringsO.IString; OUT ErrorMessage : StringsO.CString; OUT ErrorLine : CARDINAL ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE Dispose();
 

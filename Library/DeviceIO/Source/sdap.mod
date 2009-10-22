@@ -491,8 +491,11 @@ CLASS IMPLEMENTATION CSDAPServer;
                IOValue.String := p[2];
 
                Result := Device^.IO()^.IOh( ADR( Originator ), IOO.dirWrite, Hash, REF IOValue, NIL );
-               IF Result = Sync.arCompleted THEN
+               CASE Result OF
+               | Sync.arCompleted :
                   ACK( PConnection, sdap200 );
+               | Sync.arCompletedFromCache :
+                  ACK( PConnection, sdap201 );
                ELSE
                   ACK( PConnection, sdap501 );
                END;
