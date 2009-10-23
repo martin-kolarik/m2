@@ -145,6 +145,7 @@ CONST
 
 CONST
    tiInitReadDelay = 67;
+   tiForceRead = 69;
    
 //-----
 
@@ -483,6 +484,8 @@ CLASS IMPLEMENTATION CEIBServer;
    BEGIN
       IF TimerId = tiInitReadDelay THEN
          DoInitRead( TRUE );
+      ELSIF TimerId = tiForceRead THEN
+         DoForceRead();
       END;
    END OnTimer;
 
@@ -691,6 +694,7 @@ CLASS IMPLEMENTATION CEIBServer;
       IF _CacheOnlyMode THEN
          OnDeviceConnect();
       ELSE
+         StopTimer( tiForceRead );
          StopTimer( tiInitReadDelay );
          EXCL( RStatus, rsInitReadFinished );
          EIB^.Connect();
@@ -716,6 +720,7 @@ CLASS IMPLEMENTATION CEIBServer;
       IF _CacheOnlyMode THEN
          OnDeviceDisconnect();
       ELSE
+         StopTimer( tiForceRead );
          StopTimer( tiInitReadDelay );
          IF EIB <> NIL THEN
             EIB^.Disconnect();
@@ -888,6 +893,7 @@ CLASS IMPLEMENTATION CEIBServer;
       knInitReadRepeatCount  = L'read_on_start_repeat_count';
       knPromiscuousMode      = L'promiscuous_mode';
       knBehaviour            = L'behaviour';
+         knForceReadPeriod   = L'readers_period';
          kvReadable          = L'readable';
          kvWritable          = L'writable';
          kvTransmit          = L'transmit';
@@ -1572,6 +1578,12 @@ CLASS IMPLEMENTATION CEIBServer;
       // read behaviours
       Behaviours.Dispose();
       IF TS.SetSection( snBehaviours ) THEN
+         IF NOT TS.GetKeyInt( knForceReadPeriod, OUT ErrorLine, OUT _ForceReadPeriod ) THEN
+            _ForceReadPeriod := 0;
+         ELSIF _ForceReadPeriod < 60 * 1000 THEN // _ForceReadPeriod cannot be smaller than 1 minute
+            _ForceReadPeriod := 60 * 1000;
+         END;
+
          ES := 0;
          WHILE TS.EnumerateKeys( REF ES, OUT ErrorLine, OUT p, OUT so ) DO
             IF NOT EQUALS( p, knBehaviour ) THEN
@@ -1864,6 +1876,9 @@ CLASS IMPLEMENTATION CEIBServer;
       IF Objects.Count = 0 THEN
          InitReadFinished();
       ELSE
+         IF ( _ForceReadPeriod > 0 ) AND ( _ReadersCount > 0 ) THEN
+            StartTimer( tiForceRead, _ForceReadPeriod, TRUE );
+         END;
          DoInitRead( FALSE );
       END;
       
@@ -1886,6 +1901,8 @@ CLASS IMPLEMENTATION CEIBServer;
       IF EventSink <> NIL THEN
          EventSink^.OnDisconnect();
       END;
+
+      StopTimer( tiForceRead );
 
       IF _AdviseListener <> NIL THEN
          hash := itemConnected;
@@ -2006,6 +2023,9 @@ CLASS IMPLEMENTATION CEIBServer;
    BEGIN
       IF _CacheOnlyMode THEN
          Flags := Flags - eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofInitRead};
+      END;
+      IF eib_def.aofForceRead IN Flags THEN
+         INC( _ReadersCount );
       END;
 
       NEW( PObject );
@@ -2330,6 +2350,8 @@ CLASS IMPLEMENTATION CEIBServer;
       END;
       DoneObjects( TRUE );
       Behaviours.Dispose();
+      _ForceReadPeriod := 0;
+      _ReadersCount := 0;
       IF EIB <> NIL THEN
          EIB^.Done();
          DISPOSE( EIB );
@@ -2356,9 +2378,9 @@ CLASS IMPLEMENTATION CEIBServer;
          IF NOT RepeatFlag AND ( eib_def.aofInitRead IN PObject^.GetFlags()) OR
                 RepeatFlag AND ( PObject^.InitReadState = eib_user.irsWillRepeat ) THEN
 
-            IF NOT Logger.Filtered( log.dldDebug, L"srv" ) THEN
+            IF NOT Logger.Filtered( log.dldTrace, L"srv" ) THEN
                PObject^.ReadAddress.GetGroupAddress3( TRUE, saddr );
-               Logger.LogSS( log.dldDebug, L"srv", "INIT: ", saddr );
+               Logger.LogSS( log.dldTrace, L"srv", "INIT: ", saddr );
             END;
 
             INC( InitReadItems );
@@ -2370,6 +2392,38 @@ CLASS IMPLEMENTATION CEIBServer;
       UnlockObjects();
 
    END DoInitRead;
+
+//--------------------------------------------------------------------------------
+
+   PROCEDURE DoForceRead();
+   VAR
+      EV : eib_def.TValue;
+      i : CARDINAL;
+      PObject : TPObject;
+      saddr : ARRAY [0..63] OF WCHAR;
+   BEGIN
+      IF _ReadersCount > 0 THEN // redundant check
+
+         LockObjects();
+
+         FOR i := 0 TO Objects.Count - 1 DO
+            PObject := TPObject( Objects[i] );
+            IF eib_def.aofForceRead NOT IN PObject^.GetFlags() THEN
+               CONTINUE;
+            END;
+
+            IF NOT Logger.Filtered( log.dldTrace, L"srv" ) THEN
+               PObject^.ReadAddress.GetGroupAddress3( TRUE, saddr );
+               Logger.LogSS( log.dldTrace, L"srv", "READER: ", saddr );
+            END;
+
+            PObject^.GetValue( OUT EV, FALSE, TRUE );
+         END;
+
+         UnlockObjects();
+
+      END;
+   END DoForceRead;
 
 //--------------------------------------------------------------------------------
 
@@ -2662,6 +2716,9 @@ BEGIN
    Logger.SetLogName( L"KNX" );
    Logger.RedirectTo := Log.logger();
    
+   _ForceReadPeriod := 0;
+   _ReadersCount := 0;
+
    ObjectLock.Init( Sync.ltCS, L"", FALSE );
    QueueLock.Init( Sync.ltSpin, L"", FALSE );
    

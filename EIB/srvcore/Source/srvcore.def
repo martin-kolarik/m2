@@ -185,6 +185,8 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    InitReadRepeatCount      : CARDINAL;
 
    Behaviours               : list.CList;
+   _ForceReadPeriod         : CARDINAL;
+   _ReadersCount            : CARDINAL;
    ObjectTypes              : lists.CStringList;
 
    ObjectLock               : Sync.LOCK;
@@ -276,6 +278,7 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
 
    // helpers
    PROCEDURE DoInitRead( RepeatFlag : BOOLEAN );
+   PROCEDURE DoForceRead();
    PROCEDURE InitToDefault();
    PROCEDURE InitReadFinished();
    

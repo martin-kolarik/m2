@@ -139,6 +139,16 @@ Licence support tool
                 </dl>
               </text>
             </section>
+            <section label="secInterface" level="3">
+              <title><type>[behaviours]</type></title>
+              <text>
+                <dl class="dlParameter">
+                  <caption>Sekce <type>[behaviours]</type> definuje následující parametry:</caption>
+                  <dt><type>readers_period</type></dt>
+                  <dd><p>pro definici periody, v níž server pravidelnì vyète data objektù <type>reader</type> z KNX. Parametr je nepovinný, jeho výchozí hodnota je 0 (vypnuto). Parametr se uvádí v milisekundách, tzn. napø. <number>60000</number> znamená periodu 1 minuta. Pøíklad:</p><p.type>readers_period = 300000</p.type><p>Pokud konfigurace žádné objekty <type>reader</type> neobsahuje, parametr nemá význam.</p></dd>
+                </dl>
+              </text>
+            </section>
             <section label="secObjects" level="3">
               <title><type>[objects]</type> a <type>[blocks]</type></title>
               <text>
@@ -267,6 +277,10 @@ Licence support tool
                     <tr>
                       <td><type><em>transmitter_with_status_init</em></type></td>
                       <td>Jako <type>transmitter_with_status</type>, avšak pøi rozbìhu èi obnovení spojení nucenì vyèítá hodnotu z EIB stejnì jako <type>tracker_init</type>.</td>
+                    </tr>
+                    <tr>
+                      <td><type>reader</type></td>
+                      <td>Jako <type>tracker</type>, server však navíc hodnotu z EIB pravidelnì podle nastavení parametru <type>readers_period</type> vyèítá. Komunikaèní objekt v EIB zaøízení musí mít nastavenu vlajku R (read).</td>
                     </tr>
                   </table>
                 </f.table>
