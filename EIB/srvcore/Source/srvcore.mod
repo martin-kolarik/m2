@@ -781,15 +781,18 @@ CLASS IMPLEMENTATION CEIBServer;
 
       ELSE // dirWrite
       
-         // write operation originator
-         IF Originator <> NIL THEN
+         IOValue2EIBValue( Value, PObject^.Type, OUT EV );
+         PObject^.SetValue( EV, OUT changed );
+
+         // log operation originator
+         IF ( Originator <> NIL ) AND
+            ( objtLogNoChange IN PObject^.ObjectType ) OR // log always
+            ( objtLogOnChange IN PObject^.ObjectType ) AND changed THEN // always allow log failures
             description := Originator^.Description;
             PObject^.SendAddress.GetGroupAddress3( TRUE, OUT address );
             _DataLogger^.LogSSS( log.dldMessage, L"srv", "SET RQ", address, OA( description.Length-1, description.rawData ));
          END;         
       
-         IOValue2EIBValue( Value, PObject^.Type, OUT EV );
-         PObject^.SetValue( EV, OUT changed );
          IF changed THEN
             PObject^.ChangedOnWrite := 1;
             // for notification using EventSink, if it exists
