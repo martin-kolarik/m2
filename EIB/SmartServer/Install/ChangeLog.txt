@@ -1,11 +1,28 @@
-Version 1.1.1004/R RC1 11.10.2009
+Version 1.1.1020/R RC1 25.10.2009
 - BUG: #127, SDAP client/server could delay notification of received data
        to SmartServer of client, so messages could be either lost or delayed
        for very long time.
+- BUG: #129, packet counts displayed on status page were not reset, they
+       contained number of all packets received from server start.
 - BUG: #134, SDAP server crashed, when pending unsent data were sent after
        client had disconnected.
+- BUG: #138, for each received packet, server lost 32 bytes of memory. This
+       memory leak led to crash after memory was consumed.
+- BUG: #139, -Q parameters of activate tool did not do anything.
 - CHG: #130, in documentation, [debug] section name was badly used instead of
        correct [log]
+- CHG: #135, description text of "get" in direct io page was changed to be clear
+       that value is always returned from the server cache, not from KNX itself.
+- CHG: #142, name of installation and documentation was changed to SmartServer.
+- NEW: #133, datalog now contains information about originator of set operation.
+- NEW: #140, new parameter "cache_only" of "device" section was added. When the
+       parameter is true, the server does not connect to KNX it does not report
+       errors in SDAP communication. SDAP ans XMLSocket client can use the server
+       as cache for data interchanging.
+- NEW: #143, new parameter "readers_period" of "behaviours" section was added. When
+       the parameter is set (if it has nonzero value), all objects with "reader"
+       type are periodically read from KNX. The new "reader" type of objects was
+       introduced to mark these explicitely read objects.
 
 Version 1.0.972/R RTM 19.9.2009
 - BUG: #121, administration web interface was missing version number.

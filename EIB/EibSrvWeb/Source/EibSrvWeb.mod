@@ -753,6 +753,8 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE AdjustHours( CONST dt : time.DateTime; REF hours : ARRAY OF CARDINAL; REF modified : ARRAY OF time.TJD );
+   CONST
+      TWENTY_THREE_HOURS = time.unitsInDay DIV 24 * 23 - 1;
    VAR
       i : CARDINAL;
       jd : time.TJD := dt.JulianDate;
@@ -764,7 +766,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       END;
 
       FOR i := 0 TO HIGH( hours ) DO
-         IF modified[i] + time.unitsInDay < jd THEN
+         IF modified[i] + TWENTY_THREE_HOURS < jd THEN
             hours[i] := 0;
          END;
       END;
