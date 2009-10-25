@@ -133,6 +133,7 @@ CLASS IMPLEMENTATION CProduct;
 BEGIN
    _StateInfo := siUnknown;
    _Expires := expNotSet;
+   Dispose();
 END CProduct;
 
 (*================================================================================*)
@@ -535,7 +536,7 @@ CLASS IMPLEMENTATION CResult;
       Behaviour := _Behaviour;
       _Info := siUnknown;
       _Expires := expNotSet;
-      _Products.Dispose();
+      Dispose();
       _Lock.Unlock();
    END Reset;
 
@@ -605,12 +606,28 @@ CLASS IMPLEMENTATION CResult;
 
 (*--------------------------------------------------------------------------------*)
 
+   PRIVATE PROCEDURE Dispose();
+   VAR
+      product : TPProduct;
+   BEGIN
+      _Products.Reset();
+      WHILE _Products.MoveNext() DO
+         product := _Products.Current;
+         DISPOSE( product );
+      END; // WHILE
+      _Products.Dispose();
+   END Dispose;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
    _Lock.Init( sync.ltSpin, L"", FALSE );
    _Info := siUnknown;
    _Expires := expNotSet;
    _Start := time.GetCurrentJD();
    _Counter := 0;
+FINALLY
+   Dispose();
 END CResult;
 
 (*================================================================================*)

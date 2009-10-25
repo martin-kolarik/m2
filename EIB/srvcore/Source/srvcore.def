@@ -164,6 +164,7 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
 
    DeviceId                 : LONGWORD;
    PromiscuousMode          : BOOLEAN;
+   _CacheOnlyMode           : BOOLEAN;
 
    InputQueueLength         : CARDINAL;
    Address                  : eib_def.CAddress;
@@ -184,6 +185,8 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    InitReadRepeatCount      : CARDINAL;
 
    Behaviours               : list.CList;
+   _ForceReadPeriod         : CARDINAL;
+   _ReadersCount            : CARDINAL;
    ObjectTypes              : lists.CStringList;
 
    ObjectLock               : Sync.LOCK;
@@ -243,14 +246,15 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE Stop();
 
-   PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
-   PUBLIC VIRTUAL PROCEDURE IOha( Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
    PUBLIC VIRTUAL PROCEDURE AbortAll();
 
    // self
    PUBLIC READONLY PROPERTY
       Configuration : StringsO.TPString;
       Connection : StringsO.CString; // information about device connection, read from configuration
+      CacheOnlyMode : BOOLEAN;
    PUBLIC PROCEDURE LoadConfiguration( CONST ConfigurationFile : StringsO.IString; OUT ErrorMessage : StringsO.CString; OUT ErrorLine : CARDINAL ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE Dispose();
 
@@ -274,6 +278,7 @@ CLASS CEIBServer( msghandler.MessageHandler ) IMPLEMENTS device.IDevice, ns.IMap
 
    // helpers
    PROCEDURE DoInitRead( RepeatFlag : BOOLEAN );
+   PROCEDURE DoForceRead();
    PROCEDURE InitToDefault();
    PROCEDURE InitReadFinished();
    

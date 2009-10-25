@@ -17,7 +17,8 @@ IMPORT
 (*===========================================================================*)
 
 CONST
-   count = 20;
+   LIMIT = 20;
+   PERIOD = 1000;
 
 TYPE
    TPTest = POINTER TO CTest;
@@ -48,9 +49,11 @@ CLASS CTest IMPLEMENTS test.ITest;
       CountingStops : BOOLEAN := FALSE;
       Host : test.TPHost := NIL;
       Handler : POINTER TO CMH;
-      Threads : ARRAY [0..count-1] OF thread.TPThread;
+      Threads : ARRAY [0..LIMIT-1] OF thread.TPThread;
       Worker : CWorker;
       Exit : CARDINAL := 0;
+      Limit : CARDINAL := 0;
+      Period : CARDINAL := 0;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
 END CTest;
@@ -70,8 +73,8 @@ CLASS IMPLEMENTATION CWorker;
       i : CARDINAL;
       LIndex : CARDINAL := sync.IInc( REF Index );
    BEGIN 
-      FOR i := 0 TO 199 DO
-         Test^.Handler^.StartTimer( 1000 * LIndex + i, 1000 + i, FALSE );
+      FOR i := 0 TO 10*Test^.Limit-1 DO
+         Test^.Handler^.StartTimer( Test^.Period * LIndex + i, Test^.Period + i, FALSE );
          sync.Sleep( 20 );
       END;
       RETURN 0;
@@ -93,11 +96,19 @@ CLASS IMPLEMENTATION CMH;
    BEGIN
       SUPER.OnJoin( JoinedTo );
    
-      StartTimer( 1, 1000, TRUE );
-      StartTimer( 2, 2000, TRUE );
-      StartTimer( 3, 3000, TRUE );
-      StartTimer( 4, 4000, TRUE );
-      StartTimer( 12, 12000, FALSE );
+      IF Test^.Host^.FastEvaluation THEN
+         StartTimer( 1, 100, TRUE );
+         StartTimer( 2, 200, TRUE );
+         StartTimer( 3, 300, TRUE );
+         StartTimer( 4, 400, TRUE );
+         StartTimer( 12, 1200, FALSE );
+      ELSE
+         StartTimer( 1, 1000, TRUE );
+         StartTimer( 2, 2000, TRUE );
+         StartTimer( 3, 3000, TRUE );
+         StartTimer( 4, 4000, TRUE );
+         StartTimer( 12, 12000, FALSE );
+      END;
    END OnJoin;
 
 (*---------------------------------------------------------------------------*)
@@ -178,6 +189,14 @@ CLASS IMPLEMENTATION CTest;
    BEGIN
       threadinit.Startup();
       SELF.Host := Host;
+      
+      IF Host^.FastEvaluation THEN
+         Limit := LIMIT DIV 10;
+         Period := PERIOD DIV 20;
+      ELSE
+         Limit := LIMIT;
+         Period := PERIOD;
+      END;
    
       NEW( Handler );
       Handler^.Test := ADR( SELF );
@@ -207,11 +226,20 @@ CLASS IMPLEMENTATION CTest;
       Count := 0;
       CountingStops := FALSE;
 
-      Handler^.StartTimer( 1, 1000, TRUE );
-      Handler^.StartTimer( 2, 2000, TRUE );
-      Handler^.StartTimer( 3, 3000, TRUE );
-      Handler^.StartTimer( 4, 4000, TRUE );
-      Handler^.StartTimer( 12, 12000, FALSE );
+
+      IF Host^.FastEvaluation THEN
+         Handler^.StartTimer( 1, 100, TRUE );
+         Handler^.StartTimer( 2, 200, TRUE );
+         Handler^.StartTimer( 3, 300, TRUE );
+         Handler^.StartTimer( 4, 400, TRUE );
+         Handler^.StartTimer( 12, 1200, FALSE );
+      ELSE
+         Handler^.StartTimer( 1, 1000, TRUE );
+         Handler^.StartTimer( 2, 2000, TRUE );
+         Handler^.StartTimer( 3, 3000, TRUE );
+         Handler^.StartTimer( 4, 4000, TRUE );
+         Handler^.StartTimer( 12, 12000, FALSE );
+      END;
 
       REPEAT
         sync.Sleep( 50 );
@@ -241,15 +269,16 @@ CLASS IMPLEMENTATION CTest;
       END;
 
       LCount := 200;
+      i := 10*Limit*(HIGH(Threads)+1);
       REPEAT
          sync.Sleep( 50 );
          DEC( LCount );
          IF LCount = 0 THEN
             EXIT;
          END;
-      UNTIL Count = 4000;
+      UNTIL Count = i;
 
-      IF Count = 4000 THEN
+      IF Count = i THEN
          Host^.StopPhaseWithResult( test.trSuccess );
       ELSE
          Host^.StopPhaseWithResult( test.trFailure );

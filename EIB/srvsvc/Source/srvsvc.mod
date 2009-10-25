@@ -181,6 +181,7 @@ CLASS IMPLEMENTATION CEibSvc;
       IA : inetaddr.INETADDR;
       line : CARDINAL;
       Path : ARRAY [0..260] OF WCHAR;
+      Result : Sync.TAsyncResult := Sync.arCannotStart;
       RS : Registry.CRegistry;
       s1, s2 : StringsO.CString;
    BEGIN
@@ -235,9 +236,7 @@ CLASS IMPLEMENTATION CEibSvc;
       
       configuration[0].Type := device.citIString;
       configuration[0].iString := ADR( s1 );
-      IF EIB^.Configure( configuration, ADR( ConfigLogger )) = Sync.arCompleted THEN
-         EIB^.Start();
-      END;
+      Result := EIB^.Configure( configuration, ADR( ConfigLogger ));
       
       ASSERT( Adviser = NIL );
       NEW( Adviser );
@@ -272,6 +271,9 @@ CLASS IMPLEMENTATION CEibSvc;
       
       IF Web.Init( 6005, L"/SmartServer", cfg, EIB, CDI.Names, CDI.Devices, ADR( ConfigLogger ), ADR( DataLogger ), ADR( HttpLogger )) THEN
          Web.Run();
+      END;
+      IF Result = Sync.arCompleted THEN
+         EIB^.Start();
       END;
 
       SetServiceState( Service.ssRunning, 0 );

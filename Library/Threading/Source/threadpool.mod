@@ -969,7 +969,7 @@ CLASS IMPLEMENTATION CThreadPool;
 
     NEW( PoolThread );
     PoolThread^.Init( ADR( SELF ));
-    PoolThread^.Run( TRUE );
+    PoolThread^.Start( TRUE );
     WHILE PoolThread^.ReqQueue.Consumer = NIL DO // wait thread is able to process administrative messages
       Sync.Sleep( 0 );
     END; // WHILE

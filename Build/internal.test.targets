@@ -1,0 +1,86 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+    <!-- common properties -->
+    <PropertyGroup>
+        <!-- directories -->
+        <TestDir>Test</TestDir>
+    </PropertyGroup>
+
+
+    <!-- outputs -->
+    <PropertyGroup>
+        <OutputName Condition="$(OutputName)=='' And $(Result)=='Static'">$(ResultName).lib</OutputName>
+        <OutputName Condition="$(OutputName)=='' And $(Result)=='Dynamic'">$(ResultName).dll</OutputName>
+        <OutputName Condition="$(OutputName)=='' And $(Result)=='Program'">$(ResultName).exe</OutputName>
+        <OutputPDBName Condition="$(OutputPDBName)=='' And $(Result)!='Static'">$(ResultName).pdb</OutputPDBName>
+        <OutputMAPName Condition="$(OutputMAPName)=='' And $(Result)!='Static'">$(ResultName).map</OutputMAPName>
+        <OutputFile>$(OutputDir)\$(OutputName)</OutputFile>
+        <OutputFilePath>$(OutputPath)\$(OutputName)</OutputFilePath>
+        <OutputPDBFilePath Condition="$(OutputPDBName)!=''">$(OutputPath)\$(OutputPDBName)</OutputPDBFilePath>
+        <OutputMAPFilePath Condition="$(OutputMAPName)!=''">$(OutputPath)\$(OutputMAPName)</OutputMAPFilePath>
+        <InterfaceNamePath>$(OutputPath)\$(MSBuildProjectName)</InterfaceNamePath>
+        <!-- !! without .lib -->
+        <InterfacePath>$(OutputPath)\$(OutputName)</InterfacePath>
+
+        <TestOutput>$(OutputDir)\$(MSBuildProjectName).test.dll</TestOutput>
+        <TestDLL>$(RootDir)\$(TestComponent)\$(OutputDir)\test.dll</TestDLL><!-- TODO, test.dll should be a symbolic name -->
+        <TestFactoryDir>$(RootDir)\$(TestComponent)\$(SourceDir)</TestFactoryDir>
+        <TestFactoryDEF>$(TestFactoryDir)\$(TestFactoryName).def</TestFactoryDEF>
+        <TestFactoryMOD>$(TestFactoryDir)\$(TestFactoryName).mod</TestFactoryMOD>
+    </PropertyGroup>
+
+    <!-- file names, sources, intermediates, outputs for TESTs -->
+    <ItemGroup>
+        <TestDEFFiles Condition="$(Test)!='off'" Include="$(TestDir)\*.def"/>
+        <TestMODFiles Condition="$(Test)!='off'" Include="$(TestDir)\*.mod"/>
+
+        <TestDEFFiles Condition="@(TestDEFFiles)!='' Or @(TestMODFiles)!=''" Include="$(TestFactoryDEF)"/>
+        <TestMODFiles Condition="@(TestDEFFiles)!='' Or @(TestMODFiles)!=''" Include="$(TestFactoryMOD)"/>
+
+        <TestCPPFiles Include="@(TestMODFiles -> '$(IntermediateDir)\%(Filename).cpp');m2init.cpp"/>
+        <TestOBJFiles Include="@(TestMODFiles -> '$(IntermediateDir)\%(Filename).obj');m2init.obj"/>
+
+        <Components Condition="$(Test)=='on' And $(TestComponent)!='' And $(LibraryName)!=$(TestComponentName)"
+                    Include="$(TestComponent)"/>
+    </ItemGroup>
+
+
+    <Target Name="TestCPPs" Condition="@(TestDEFFiles)!='' or @(TestMODFiles)!=''"
+            Inputs="@(TestDEFFiles);@(TestMODFiles)"
+            Outputs="@(TestDEFFiles -> '$(HeaderDir)\%(Filename).h');@(TestMODFiles -> '$(IntermediateDir)\%(Filename).cpp')">
+        <Exec WorkingDirectory="$(TestDir)"
+              Command="$(M2) $(M2TESTDEF) -I..\$(SourceDir) -O&quot;..\$(IntermediateDir)&quot; @(TestDEFFiles -> '%(FileName).def', ' ') @(TestMODFiles -> '%(FileName).mod', ' ')"/>
+    </Target>
+
+
+    <Target Name="TestObjects" Condition="@(TestDEFFiles)!='' or @(TestMODFiles)!=''"
+            DependsOnTargets="Modula2InitCPP;TestCPPs"
+            Inputs="@(TestCPPFiles)" Outputs="@(TestCPPFiles -> '$(IntermediateDir)\%(Filename).obj')">
+        <Exec WorkingDirectory="$(IntermediateDir)"
+              Command="$(CL) $(CLDEF) @(TestCPPFiles ->'%(FileName)%(Extension)', ' ')"/>
+    </Target>
+
+    
+    <Target Name="ComponentTest"
+        Condition="(@(TestDEFFiles)!='' or @(TestMODFiles)!='') And $(Test)!='off'"
+        DependsOnTargets="TestObjects"
+        Inputs="@(TestOBJFiles);@(LinkDependencyLibraries)"
+        Outputs="$(TestOutput)">
+        <Exec WorkingDirectory="$(IntermediateDir)"
+              Command="$(LINK) /dll $(LINKTEST) /out:..\$(TestOutput) @(Objects -> '%(Filename).obj', ' ') @(TestOBJFiles -> '%(Filename).obj', ' ') @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ') @(SelfInterface -> '%(Identity).lib')"/>
+        <!-- LINK SelfInterface.lib is manually added as Libraries do not include self product -->
+        <Exec Condition="$(CLib)!='Static'"
+              Command="$(MTT)"/>
+        <Copy SourceFiles="$(TestDLL)" DestinationFolder="$(OutputDir)"/>
+    </Target>
+
+
+    <Target Name="ComponentTestExec"
+        Condition="$(Test)!='off'"
+        DependsOnTargets="ComponentTestBuild">
+        <Exec Condition="Exists('$(TestOutput)')" 
+              WorkingDirectory="$(OutputDir)"
+              Command="$(RUNTEST) $(MSBuildProjectName).test.dll"/>
+    </Target>
+
+</Project>

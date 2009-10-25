@@ -113,7 +113,7 @@ CLASS IMPLEMENTATION CBrowser;
       FOR i := 0 TO Servers.Count-1 DO
          DISPOSE( TPServer( Servers[i] ));
       END;
-      Servers.Clear();
+      Servers.Dispose();
    END DisposeServers;
 
 (*--------------------------------------------------------------------------------*)

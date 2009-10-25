@@ -1079,7 +1079,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          END;
          IF NOT index.Empty THEN
             value.FromCARD32( i, 10 );
-            Request^.ModelContainer^.SetModelValue( index, value );
+            Request^.ModelContainer^.SetModelValue( Request^, index, value );
          END;
          nl.Reset(); // prepare parsing
          IF NOT Parse( TRUE, FALSE, TRUE ) THEN
@@ -1199,19 +1199,19 @@ CLASS IMPLEMENTATION CPageTemplateView;
          list^.Reset();
          WHILE list^.MoveNext() DO
             IF NOT item.Empty THEN
-               Request^.ModelContainer^.SetModelValue( item, list^.Current^ );
+               Request^.ModelContainer^.SetModelValue( Request^, item, list^.Current^ );
             END;
             IF NOT odd.Empty THEN
                SetModelBoolean( odd, i AND 1 = 1 );
             END;
             IF NOT index.Empty THEN
                value.FromCARD32( i-1, 10 );
-               Request^.ModelContainer^.SetModelValue( index, value );
+               Request^.ModelContainer^.SetModelValue( Request^, index, value );
                INC( i );
             END;
             IF NOT order.Empty THEN
                value.FromCARD32( i, 10 );
-               Request^.ModelContainer^.SetModelValue( order, value );
+               Request^.ModelContainer^.SetModelValue( Request^, order, value );
                INC( i );
             END;
             nl.Reset(); // prepare parsing
@@ -1223,14 +1223,14 @@ CLASS IMPLEMENTATION CPageTemplateView;
          map^.Reset();
          WHILE map^.MoveNext() DO
             IF NOT item.Empty THEN
-               Request^.ModelContainer^.SetModelValue( item, map^.Current^ );
+               Request^.ModelContainer^.SetModelValue( Request^, item, map^.Current^ );
             END;
             IF NOT odd.Empty THEN
                SetModelBoolean( odd, i AND 1 = 1 );
             END;
             IF NOT index.Empty THEN
                value.FromCARD32( i, 10 );
-               Request^.ModelContainer^.SetModelValue( index, value );
+               Request^.ModelContainer^.SetModelValue( Request^, index, value );
                INC( i );
             END;
             nl.Reset(); // prepare parsing
@@ -1324,10 +1324,10 @@ CLASS IMPLEMENTATION CPageTemplateView;
       Writer.WriteElementStartOA( L"input" );
 
       Writer.WriteAttributeStringOA( L"type", OAsz( ptype ));
-      IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( fullModel, OUT value ) THEN // model = form.item
+      IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, fullModel, OUT value ) THEN // model = form.item
          WriteFormNameAttribute( fullModel );
          Writer.WriteAttributeStringOA( L"value", OA( value.Length-1, value.rawData ));
-      ELSIF Request^.ModelContainer^.GetModelValue( model, OUT value ) THEN // model = item
+      ELSIF Request^.ModelContainer^.GetModelValue( Request^, model, OUT value ) THEN // model = item
          WriteFormNameAttribute( model );
          Writer.WriteAttributeStringOA( L"value", OA( value.Length-1, value.rawData ));
       ELSE
@@ -1398,9 +1398,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
       Writer.WriteElementStartOA( L"option" );
 
-      IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( fullModel, OUT value ) THEN // model = form.item
+      IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, fullModel, OUT value ) THEN // model = form.item
          Writer.WriteAttributeStringOA( L"value", OA( value.Length-1, value.rawData ));
-      ELSIF Request^.ModelContainer^.GetModelValue( model, OUT value ) THEN // model = item
+      ELSIF Request^.ModelContainer^.GetModelValue( Request^, model, OUT value ) THEN // model = item
          Writer.WriteAttributeStringOA( L"value", OA( value.Length-1, value.rawData ));
       ELSE
          SetError( model, NIL, L'Model for element is unknown.' );
@@ -1419,7 +1419,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
    PRIVATE PROCEDURE ParseText( CONST Text : StringsO.IString; OUT Parsed : StringsO.IString );
    BEGIN
       // TODO: react to error
-      Request^.ModelContainer^.Format( FALSE, Text, Request^.MessageSource, Request^.Language, OUT Parsed );
+      Request^.ModelContainer^.Format( Request^, FALSE, Text, Request^.MessageSource, Request^.Language, OUT Parsed );
    END ParseText;
 
 (*--------------------------------------------------------------------------------*)
@@ -1604,7 +1604,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          RETURN FALSE;
       ELSIF Value.EqualsOA( L"true" ) OR Value.EqualsOA( L"1" ) THEN
          RETURN TRUE;
-      ELSIF NOT Request^.ModelContainer^.GetModelValue( Value, OUT modelValue ) THEN
+      ELSIF NOT Request^.ModelContainer^.GetModelValue( Request^, Value, OUT modelValue ) THEN
          RETURN TRUE; // value not found, string is not empty
       ELSIF modelValue.EqualsOA( L"false" ) OR modelValue.EqualsOA( L"0" ) OR modelValue.Empty THEN
          RETURN FALSE;

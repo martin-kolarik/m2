@@ -13,10 +13,17 @@ IMPORT
    StringsO,
    Sync,
    test,
+   thread,
    TextReader,
    TextWriter,
    time;
    
+(*================================================================================*)
+
+CONST
+   FAST_TIMEOUT = 5000; // 5 seconds for test
+   SLOW_TIMEOUT = 60*60*1000; // 1 hour
+
 (*================================================================================*)
 
 TYPE
@@ -75,14 +82,18 @@ END CTestLogger;
    
 (*================================================================================*)
    
-CLASS CHost IMPLEMENTS test.IHost;
+CLASS CHost IMPLEMENTS test.IHost, thread.IRunnable;
    PRIVATE VAR
       _Progress : CARDINAL := 0;
       _Logger : CTestLogger;
+      _FastEvaluation : BOOLEAN := FALSE;
+      _Test : test.TPTest := NIL;
+      _TestResult : test.TTestResult := test.trFailure;
 
    // IHost
    PUBLIC VIRTUAL READONLY PROPERTY
       Log : log.TPLogger;
+      FastEvaluation : BOOLEAN;
    PUBLIC VIRTUAL PROPERTY
       Progress : CARDINAL; // percent
    // optional
@@ -90,10 +101,12 @@ CLASS CHost IMPLEMENTS test.IHost;
    PUBLIC VIRTUAL PROCEDURE StopPhase();
    PUBLIC VIRTUAL PROCEDURE StopPhaseWithResult( Result : test.TTestResult );
    
+   // IRunnable
+   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+   
    // self
-   LOCAL PROCEDURE StartSuite( CONST Name : ARRAY OF WCHAR );
-   LOCAL PROCEDURE StartTest( CONST Name : ARRAY OF WCHAR );
-   LOCAL PROCEDURE StopTest( Result : test.TTestResult );
+   LOCAL PROCEDURE StartSuite( CONST Name : ARRAY OF WCHAR; FastEvaluation : BOOLEAN );
+   LOCAL PROCEDURE RunTest( CONST Name : ARRAY OF WCHAR; Test : test.TPTest ) : Sync.TAsyncResult;
 END CHost;   
 
 (*--------------------------------------------------------------------------------*)
@@ -106,6 +119,13 @@ CLASS IMPLEMENTATION CHost;
    BEGIN
       RETURN ADR( _Logger );
    END Log;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY FastEvaluation GET : BOOLEAN;
+   BEGIN
+      RETURN _FastEvaluation;
+   END FastEvaluation;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -148,30 +168,70 @@ CLASS IMPLEMENTATION CHost;
 
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE StartSuite( CONST Name : ARRAY OF WCHAR );
+   LOCAL PROCEDURE StartSuite( CONST Name : ARRAY OF WCHAR; FastEvaluation : BOOLEAN );
    BEGIN
+      _FastEvaluation := FastEvaluation;
       _Logger.LogSS( log.dlcInfo, L"", "Suite: ", Name );
    END StartSuite;
 
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE StartTest( CONST Name : ARRAY OF WCHAR );
+   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
+   TYPE
+      PPWCHAR = POINTER TO PWCHAR;
    BEGIN
-      _Logger.Inside := insideTest;
-      _Logger.LogSS( log.dlcInfo, L"", "Test: ", Name );
-   END StartTest;
+      _TestResult := _Test^.Run( ADR( SELF ), OA( -1, PPWCHAR( NIL )));
+      RETURN 0;
+   END OnRun;
 
 (*--------------------------------------------------------------------------------*)
 
-   LOCAL PROCEDURE StopTest( Result : test.TTestResult );
+   LOCAL PROCEDURE RunTest( CONST Name : ARRAY OF WCHAR; Test : test.TPTest ) : Sync.TAsyncResult;
+   VAR
+      asyncResult : Sync.TAsyncResult;
+      Thread : thread.Thread;
+      Time : CARDINAL;
    BEGIN
-      IF Result = test.trSuccess THEN
+      _Test := Test;
+      _TestResult := test.trFailure;
+
+      _Logger.Inside := insideTest;
+      _Logger.LogSS( log.dlcInfo, L"", "Test: ", Name );
+      
+      asyncResult := Thread.RunWithRunnable( ADR( SELF ));
+      IF asyncResult = Sync.arCompleted THEN
+         Time := time.UptimeMS();
+
+         Thread.Stop( FALSE );
+         asyncResult := Thread.WaitStop( SLOW_TIMEOUT );
+
+         IF asyncResult = Sync.arTimeout THEN
+            // fall down, no need to evaluate timeout
+         ELSIF _FastEvaluation THEN
+            IF time.UptimeMS() > Time + FAST_TIMEOUT THEN
+               asyncResult := Sync.arTimeout;
+            END;
+         ELSE
+            IF time.UptimeMS() > Time + SLOW_TIMEOUT THEN
+               asyncResult := Sync.arTimeout;
+            END;
+         END;
+
+      END;
+      IF asyncResult <> Sync.arCompleted THEN
+         _TestResult := test.trFailure;
+      END;
+
+      _Logger.Inside := insideTest;
+      IF _TestResult = test.trSuccess THEN
          _Logger.LogS( log.dlcInfo, L"", L"  Result: Success" );
       ELSE
-         _Logger.LogS( log.dlcInfo, L"", L"  Result: Failure" );
+         _Logger.LogSR( log.dlcInfo, L"", L"  Result: Failure", asyncResult );
       END;
       _Logger.Inside := insideSuite;
-   END StopTest;
+
+      RETURN asyncResult;
+   END RunTest;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -189,8 +249,6 @@ PROCEDURE wmain( argc : INTEGER; argp : TPParamStringArray; enpv : TPParamString
 # restore
 LABEL
    Error;
-TYPE
-   PPWCHAR = POINTER TO PWCHAR;
 VAR
    ClassPath : ARRAY [0..255] OF WCHAR;
    ESl : PTR;
@@ -198,6 +256,7 @@ VAR
    Host : CHost;
    errout : TextWriter.TPTextWriter := TextWriter.errout();
    Filters : lists.CStringList;
+   FastEvaluation : BOOLEAN := FALSE;
    Found : BOOLEAN;
    i : INTEGER;
    LibraryState : loader.TState;
@@ -207,16 +266,17 @@ VAR
    RepeatCount, rc : CARDINAL := 1;
    StdOutFlag : BOOLEAN := FALSE;
    Test : test.TPTest;
-   TestResult : test.TTestResult;
    Tests : test.TPTests;
    TimeStamps : BOOLEAN := FALSE;
-   TotalResult : BOOLEAN := TRUE;
+   TotalResult : CARDINAL := 0;
 BEGIN
    i := 1;
    WHILE i < argc DO
       IF ( argp^[i]^[0] = L'/' ) OR ( argp^[i]^[0] = L'-' ) THEN // option
 
          CASE argp^[i]^[1] OF
+         | L'F' : // fast evaluation
+            FastEvaluation := TRUE;
          | L'f' : // filter test
             INC( i );
             IF i = argc THEN
@@ -262,10 +322,15 @@ BEGIN
          IF LoadResult <> iobject.lrSuccess THEN
             Host.Log^.LogSS( log.dlcSysError, L"", L"Error loading library: ", Name );
             Host.Log^.LogSC( log.dlcSysError, L"", L"          load result: ", CARDINAL( LoadResult ));
-            CONTINUE;
+            IF LoadResult = iobject.lrLibraryNotFound THEN
+               CONTINUE;
+            ELSE
+               TotalResult := 1;
+               EXIT;
+            END;
          END;
 
-         Host.StartSuite( Name );
+         Host.StartSuite( Name, FastEvaluation );
 
          ESt := 0;
          WHILE Tests^.EnumerateTests( REF ESt, OUT Name, OUT Test ) DO
@@ -288,11 +353,15 @@ BEGIN
                END;
             END;
 
-            Host.StartTest( Name );
-            TestResult := Test^.Run( ADR( Host ), OA( -1, PPWCHAR( NIL )));
-            Host.StopTest( TestResult );
-            
-            TotalResult := TotalResult AND ( TestResult = test.trSuccess );
+            CASE Host.RunTest( Name, Test ) OF
+            | Sync.arCompleted :
+               // do nothing
+            | Sync.arTimeout : // this is fatal error
+               TotalResult := 2;
+               EXIT;
+            ELSE
+               TotalResult := 3;
+            END;
          END; // WHITE Tests
          
          loader.ldr()^.ReleaseObject( REF Tests );
@@ -300,14 +369,10 @@ BEGIN
       
    END; // FOR RepeatCount
 
-   IF TotalResult THEN
-      RETURN 0;
-   ELSE
-      RETURN 1;
-   END;
+   RETURN TotalResult;
 
 Error:
-   errout^.WriteOA( L"  usage: runtest [-o] [-t] [-r <repeatcount>] [-f <filter>] <test-dll-list> [-h]", TRUE );
+   errout^.WriteOA( L"  usage: runtest [-F] [-o] [-t] [-r <repeatcount>] [-f <filter>] <test-dll-list> [-h]", TRUE );
    RETURN -1;
 END wmain;
   

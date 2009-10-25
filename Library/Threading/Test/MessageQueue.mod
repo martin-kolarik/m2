@@ -36,6 +36,8 @@ CLASS CTest IMPLEMENTS test.ITest;
       MH : CMH;
       MQ : msgqueue.CMessageQueue;
       Exit : CARDINAL := 0;
+      Limit : CARDINAL := 0;
+      _ConsumeByEvent : BOOLEAN := FALSE;
 
       ThreadCount : CARDINAL;
       ThreadIndex : CARDINAL;
@@ -43,7 +45,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       Last : ARRAY [0..255] OF CARDINAL; // should be as long as maximal threads number be
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
-   INTERNAL PROCEDURE Round( ConsumeByEvent : BOOLEAN; producentThreads : CARDINAL; QueueSize : CARDINAL ) : BOOLEAN;
+   INTERNAL PROCEDURE Round( producentThreads : CARDINAL; QueueSize : CARDINAL ) : BOOLEAN;
    
    LOCAL PROCEDURE Produce();
    LOCAL PROCEDURE ConsumeByEvent();
@@ -111,18 +113,25 @@ CLASS IMPLEMENTATION CTest;
       SELF.Host := Host;
       MH.Test := ADR( SELF );
       MH.Init( TRUE );
+      
+      IF Host^.FastEvaluation THEN
+         Limit := 1000;
+      ELSE
+         Limit := 10000;
+      END;
 
       FOR Mode := FALSE TO TRUE DO
+         _ConsumeByEvent := Mode;
          FOR Thread := 0 TO HIGH( producentThreads ) DO
             FOR Size := 0 TO HIGH( sizes ) DO
-               Failure := NOT Round( Mode, producentThreads[Thread], sizes[Size] ) OR Failure;
+               Failure := NOT Round( producentThreads[Thread], sizes[Size] ) OR Failure;
             END;
          END;
       END;
       
       MH.Dispose();
 
-      windows.Sleep( 1000 );
+      windows.Sleep( 100 );
       threadinit.Cleanup();
 
       IF Failure THEN
@@ -134,7 +143,7 @@ CLASS IMPLEMENTATION CTest;
    
 (*---------------------------------------------------------------------------*)
 
-   INTERNAL PROCEDURE Round( ConsumeByEvent : BOOLEAN; producentThreads : CARDINAL; QueueSize : CARDINAL ) : BOOLEAN;
+   INTERNAL PROCEDURE Round( producentThreads : CARDINAL; QueueSize : CARDINAL ) : BOOLEAN;
    VAR
       CT : windows.HANDLE := NIL;
       i : CARDINAL;
@@ -148,7 +157,7 @@ CLASS IMPLEMENTATION CTest;
       MQ.Size := QueueSize;
       MQ.ItemSize := SIZE( INT32 );
       MQ.Produce := Sync.CreateSignal( Sync.stEvent, L"", TRUE );
-      IF ConsumeByEvent THEN
+      IF _ConsumeByEvent THEN
          MQ.Consume := Sync.CreateSignal( Sync.stEvent, L"", FALSE );
          MQ.Consumer := NIL;
       ELSE
@@ -162,7 +171,7 @@ CLASS IMPLEMENTATION CTest;
          Last[i] := 0;
       END;
 
-      IF ConsumeByEvent THEN
+      IF _ConsumeByEvent THEN
          Phase := L"Evt";
       ELSE
          Phase := L"Msg";
@@ -175,7 +184,7 @@ CLASS IMPLEMENTATION CTest;
       Strings.AppendW( REF Phase, s );
       Host^.StartPhase( Phase );
 
-      IF ConsumeByEvent THEN
+      IF _ConsumeByEvent THEN
          CT := windows.CreateThread( NIL, 0, ConsumerThreadByEvent, ADR( SELF ), 0, NIL );
       ELSE
          CT := NIL;
@@ -196,7 +205,7 @@ CLASS IMPLEMENTATION CTest;
 
       IF CT = NIL THEN
          // wait for consumer
-         windows.Sleep( 1000 );
+         windows.Sleep( 100 );
       ELSE
          // stop consumer thread
          Exit := 1;
@@ -216,8 +225,15 @@ CLASS IMPLEMENTATION CTest;
    VAR
       Index : CARD32 := Sync.IInc( REF ThreadIndex );
       C32 : CARD32 := 1 OR ( Index << 24 );
+      LLimit : CARDINAL := 0;
       Result : Sync.TAsyncResult;
    BEGIN
+      IF _ConsumeByEvent THEN
+         LLimit := Limit;
+      ELSE
+         LLimit := Limit DIV 50;
+      END;
+   
       LOOP
          LOOP
             Result := MQ.Enqueue( ADR( C32 ), SIZE( C32 ), TRUE, 1000 );
@@ -232,7 +248,7 @@ CLASS IMPLEMENTATION CTest;
          END;
 
          INC( C32 );
-         IF C32 AND 0FFFFFFH > 50000 DIV ( 2 * ThreadCount ) THEN
+         IF C32 AND 0FFFFFFH > LLimit DIV ( 2 * ThreadCount ) THEN
             EXIT;
          END;
       END;
@@ -248,9 +264,8 @@ CLASS IMPLEMENTATION CTest;
       Result : Sync.TAsyncResult;
    BEGIN
       LOOP
-
          LOOP
-            Result := MQ.DequeueOA( OUT C32, TRUE, 100 );
+            Result := MQ.DequeueOA( OUT C32, TRUE, 10 );
             IF Result = Sync.arCompleted THEN
                EXIT;
             ELSIF Exit = 1 THEN

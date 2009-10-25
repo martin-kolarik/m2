@@ -36,6 +36,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       MH : CMH;
       MQ : msgqueue.CBufferQueue;
       Exit : CARDINAL := 0;
+      Limit : CARDINAL := 0;
 
       ThreadCount : CARDINAL;
       ThreadIndex : CARDINAL;
@@ -111,6 +112,12 @@ CLASS IMPLEMENTATION CTest;
       SELF.Host := Host;
       MH.Test := ADR( SELF );
       MH.Init( TRUE );
+      
+      IF Host^.FastEvaluation THEN
+         Limit := 5000;
+      ELSE
+         Limit := 50000;
+      END;
 
       FOR Mode := FALSE TO TRUE DO
          FOR Thread := 0 TO HIGH( producentThreads ) DO
@@ -122,7 +129,7 @@ CLASS IMPLEMENTATION CTest;
       
       MH.Dispose();
 
-      windows.Sleep( 1000 );
+      windows.Sleep( 100 );
       threadinit.Cleanup();
 
       IF Failure THEN
@@ -195,7 +202,7 @@ CLASS IMPLEMENTATION CTest;
 
       IF CT = NIL THEN
          // wait for consumer
-         windows.Sleep( 1000 );
+         windows.Sleep( 100 );
       ELSE
          // stop consumer thread
          Exit := 1;
@@ -231,7 +238,7 @@ CLASS IMPLEMENTATION CTest;
          END;
 
          INC( C32 );
-         IF C32 AND 0FFFFFFH > 50000 DIV ( 2 * ThreadCount ) THEN
+         IF C32 AND 0FFFFFFH > Limit DIV ( 2 * ThreadCount ) THEN
             EXIT;
          END;
       END;
@@ -249,7 +256,7 @@ CLASS IMPLEMENTATION CTest;
       LOOP
 
          LOOP
-            Result := MQ.DequeueOA( OUT C32, TRUE, 100 );
+            Result := MQ.DequeueOA( OUT C32, TRUE, 10 );
             IF Result = Sync.arCompleted THEN
                EXIT;
             ELSIF Exit = 1 THEN

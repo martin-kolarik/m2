@@ -19,6 +19,7 @@
         <LICSIGN>&quot;$(RootBuildPath)\Bin\licbuild&quot; -S</LICSIGN>
         <SUM>&quot;$(RootBuildPath)\Bin\sum&quot;</SUM>
         <LIBEXP>&quot;$(RootBuildPath)\Bin\libexp&quot;</LIBEXP>
+        <RUNTEST>&quot;$(RootBuildPath)\Bin\runtest&quot; -F</RUNTEST>
 
         <!-- M2PROD takes here self initial value -->
         <M2PROD>-DProductId:$(ProductId) -DProductVersion:$(ProductVersion)</M2PROD>

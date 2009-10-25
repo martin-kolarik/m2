@@ -19,6 +19,11 @@ IMPORT
   
 (*===========================================================================*)
 
+CONST
+   LIMIT = 10000;
+
+(*---------------------------------------------------------------------------*)
+
 TYPE
    TPTest = POINTER TO CTest;
 
@@ -49,6 +54,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       ClientSocket : netsocket.TPDSocket;
       ClientCount : CARDINAL := 0;
       ServerCount : CARDINAL := 0;
+      Limit : INTEGER := 0;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    PRIVATE PROCEDURE WaitForMessages( count : CARDINAL );
@@ -132,6 +138,12 @@ CLASS IMPLEMENTATION CTest;
       SELF.Host := Host;
       ServerListener.Test := ADR( SELF );
       ClientListener.Test := ADR( SELF );
+      
+      IF Host^.FastEvaluation THEN
+         Limit := LIMIT DIV 50;
+      ELSE
+         Limit := LIMIT;
+      END;
 
       SCmsgqueuethread.Startup();
       threadpool.Startup();
@@ -156,7 +168,7 @@ CLASS IMPLEMENTATION CTest;
       // ClientSocket^.Connect( L'localhost:4444', windows.INFINITE );
       // wait
       LOOP
-         IF lastCount >= 10000 THEN
+         IF lastCount >= Limit THEN
             EXIT;
          END;
          WaitForMessages( 2 );

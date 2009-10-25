@@ -52,7 +52,7 @@ TYPE
 
 CLASS CSDAPServer( netconndispatch.CDispatcher ) IMPLEMENTS io.IStartStopControl;
 
-   // IRunStopControl
+   // IStartStopControl
    PUBLIC VIRTUAL READONLY PROPERTY
       Running : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;

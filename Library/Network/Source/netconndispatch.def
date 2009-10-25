@@ -29,6 +29,8 @@ TYPE
 CLASS CClientInterface( Delegate.ADelegate );
   INTERNAL VAR
     PDispatcher : TPDispatcher;
+    
+   PUBLIC PROCEDURE GetRemoteAddress( Connection : TConnectionHandle ) : inetaddr.INETADDR;
   
   PUBLIC PROCEDURE BindDispatcher( PDispatcher : TPDispatcher );
   PUBLIC PROCEDURE Join( RemoteAddress : inetaddr.INETADDR );
@@ -99,6 +101,7 @@ CLASS CDispatcher( msghandler.MessageHandler );
   INTERNAL VIRTUAL PROCEDURE OnClientLeave( PConnection : TConnectionHandle; PClientInterface : TPClientInterface );
 
   // internal, client requests, passed from client interface -- INTERNAL
+  LOCAL PROCEDURE GetRemoteAddress( Connection : TConnectionHandle ) : inetaddr.INETADDR;
   LOCAL PROCEDURE Join( PClientInterface : TPClientInterface; RemoteAddress : inetaddr.INETADDR ); // asynchronous, results in Client.OnJoin/Client.OnConnect
   LOCAL PROCEDURE Leave( PClientInterface : TPClientInterface; Connection : TConnectionHandle ); // asynchronous, results in Client.OnDisconnect/Client.OnLeave and Done
   LOCAL PROCEDURE Connect( PClientInterface : TPClientInterface; Connection : TConnectionHandle ); // asynchronous, results in Client.OnConnect
