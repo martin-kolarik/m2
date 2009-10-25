@@ -256,7 +256,7 @@ VAR
    Test : test.TPTest;
    Tests : test.TPTests;
    TimeStamps : BOOLEAN := FALSE;
-   TotalResult : BOOLEAN := TRUE;
+   TotalResult : CARDINAL := 0;
 BEGIN
    i := 1;
    WHILE i < argc DO
@@ -310,7 +310,12 @@ BEGIN
          IF LoadResult <> iobject.lrSuccess THEN
             Host.Log^.LogSS( log.dlcSysError, L"", L"Error loading library: ", Name );
             Host.Log^.LogSC( log.dlcSysError, L"", L"          load result: ", CARDINAL( LoadResult ));
-            CONTINUE;
+            IF LoadResult = iobject.lrLibraryNotFound THEN
+               CONTINUE;
+            ELSE
+               TotalResult := 1;
+               EXIT;
+            END;
          END;
 
          Host.StartSuite( Name, FastEvaluation );
@@ -340,10 +345,10 @@ BEGIN
             | Sync.arCompleted :
                // do nothing
             | Sync.arTimeout : // this is fatal error
-               TotalResult := FALSE;
+               TotalResult := 2;
                EXIT;
             ELSE
-               TotalResult := FALSE;
+               TotalResult := 3;
             END;
          END; // WHITE Tests
          
@@ -352,11 +357,7 @@ BEGIN
       
    END; // FOR RepeatCount
 
-   IF TotalResult THEN
-      RETURN 0;
-   ELSE
-      RETURN 1;
-   END;
+   RETURN TotalResult;
 
 Error:
    errout^.WriteOA( L"  usage: runtest [-F] [-o] [-t] [-r <repeatcount>] [-f <filter>] <test-dll-list> [-h]", TRUE );
