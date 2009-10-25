@@ -122,7 +122,7 @@ CLASS IMPLEMENTATION Win32Thread;
       _Runnable := Runnable;
       RETURN Start( TRUE );
    END RunWithRunnable;
-
+   
    INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : OSALthread.IRunnableHelper ) : CARDINAL;
    BEGIN
       RETURN 0;

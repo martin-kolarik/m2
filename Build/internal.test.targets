@@ -76,7 +76,9 @@
     <Target Name="ComponentTestExec"
         Condition="$(Test)!='off'"
         DependsOnTargets="ComponentTestBuild">
-        <Exec WorkingDirectory="$(OutputDir)" Command="$(RUNTEST) $(MSBuildProjectName).test.dll"/>
+        <Exec Condition="Exists('$(TestOutput)')" 
+              WorkingDirectory="$(OutputDir)"
+              Command="$(RUNTEST) $(MSBuildProjectName).test.dll"/>
     </Target>
 
 </Project>

@@ -17,7 +17,7 @@ IMPORT
 (*===========================================================================*)
 
 CONST
-   count = 1500;
+   LIMIT = 1500;
 
 TYPE
    TPTest = POINTER TO CTest;
@@ -40,6 +40,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       Count : CARDINAL := 0;
       Delegate : CDelegate;
       Pool : threadpool.TPThreadPool;
+      Limit : CARDINAL := 0;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    PRIVATE PROCEDURE Round( CompletionInOwningThread : BOOLEAN ) : BOOLEAN;
@@ -87,12 +88,18 @@ CLASS IMPLEMENTATION CTest;
    
       SELF.Host := Host;
       Delegate.Test := ADR( SELF );
+      
+      IF Host^.FastEvaluation THEN
+         Limit := LIMIT DIV 10;
+      ELSE
+         Limit := LIMIT;
+      END;
 
       Failure := Round( FALSE );
 
       Failure := Round( TRUE ) OR Failure;
 
-      windows.Sleep( 1000 );
+      windows.Sleep( 100 );
       DISPOSE( Pool );
       threadinit.Cleanup();
       
@@ -107,21 +114,21 @@ CLASS IMPLEMENTATION CTest;
 
    PRIVATE PROCEDURE Round( CompletionInOwningThread : BOOLEAN ) : BOOLEAN;
    VAR
-      MH : ARRAY [0..count-1] OF msghandler.TPMessageHandler;
-      MSGS : ARRAY [0..count-1] OF msghandler.Message;
+      MH : ARRAY [0..LIMIT-1] OF msghandler.TPMessageHandler;
+      MSGS : ARRAY [0..LIMIT-1] OF msghandler.Message;
       Failure : BOOLEAN := FALSE;
       i : CARDINAL;
       lcount : CARDINAL;
-      PH : ARRAY [0..count-1] OF windows.HANDLE;
+      PH : ARRAY [0..LIMIT-1] OF windows.HANDLE;
    BEGIN
       PH[0] := NIL;
 
       IF CompletionInOwningThread THEN
-         lcount := count DIV 5;
+         lcount := Limit DIV 5;
          Pool^.CompletionInOwningThread := TRUE;
          Delegate.CheckThread := TRUE;
       ELSE
-         lcount := count;
+         lcount := Limit;
          Pool^.CompletionInOwningThread := FALSE;
          Delegate.CheckThread := FALSE;
       END;
@@ -152,7 +159,7 @@ CLASS IMPLEMENTATION CTest;
          IF CompletionInOwningThread THEN
             WaitForMessages( 0 );
          ELSE
-            windows.Sleep( 1000 );
+            windows.Sleep( 100 );
          END;
 
       // check
@@ -178,7 +185,7 @@ CLASS IMPLEMENTATION CTest;
                INC( Count ); // force failure reporting
             END;
          END; // FOR
-         windows.Sleep( 2500 );
+         windows.Sleep( 250 );
 
          // test
          FOR i := lcount-1 TO 0 BY -1 DO
@@ -190,7 +197,7 @@ CLASS IMPLEMENTATION CTest;
          IF CompletionInOwningThread THEN
             WaitForMessages( 0 );
          ELSE
-            windows.Sleep( 1000 );
+            windows.Sleep( 100 );
          END;
 
       // check

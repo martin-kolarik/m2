@@ -22,7 +22,7 @@ IMPORT
 
 CONST
    FAST_TIMEOUT = 5000; // 5 seconds for test
-   SLOW_TIMEOUT = Sync.FOREVER;
+   SLOW_TIMEOUT = 60*60*1000; // 1 hour
 
 (*================================================================================*)
 
@@ -190,6 +190,7 @@ CLASS IMPLEMENTATION CHost;
    VAR
       asyncResult : Sync.TAsyncResult;
       Thread : thread.Thread;
+      Time : CARDINAL;
    BEGIN
       _Test := Test;
       _TestResult := test.trFailure;
@@ -199,12 +200,23 @@ CLASS IMPLEMENTATION CHost;
       
       asyncResult := Thread.RunWithRunnable( ADR( SELF ));
       IF asyncResult = Sync.arCompleted THEN
+         Time := time.UptimeMS();
+
          Thread.Stop( FALSE );
-         IF _FastEvaluation THEN
-            asyncResult := Thread.WaitStop( FAST_TIMEOUT );
+         asyncResult := Thread.WaitStop( SLOW_TIMEOUT );
+
+         IF asyncResult = Sync.arTimeout THEN
+            // fall down, no need to evaluate timeout
+         ELSIF _FastEvaluation THEN
+            IF time.UptimeMS() > Time + FAST_TIMEOUT THEN
+               asyncResult := Sync.arTimeout;
+            END;
          ELSE
-            asyncResult := Thread.WaitStop( SLOW_TIMEOUT );
+            IF time.UptimeMS() > Time + SLOW_TIMEOUT THEN
+               asyncResult := Sync.arTimeout;
+            END;
          END;
+
       END;
       IF asyncResult <> Sync.arCompleted THEN
          _TestResult := test.trFailure;

@@ -41,7 +41,7 @@ INTERFACE IThread( IRunnable );
    
    // worker thread approach
    PUBLIC PROCEDURE RunWithRunnable( Runnable : TPRunnable ) : Sync.TAsyncResult; // WaitStop or Stop must still be called, because only WaitStop cleans resources
-   
+
    // inherited INTERNAL PROCEDURE OnRun() : CARDINAL; // executive code
 END IThread;
 

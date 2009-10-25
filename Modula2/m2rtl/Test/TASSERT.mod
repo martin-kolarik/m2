@@ -36,9 +36,9 @@ CLASS IMPLEMENTATION CTest;
    BEGIN
       Host^.StartPhase( L"Do ASSERT" );
 
-      ASSERT( FALSE );
-      ASSERTLOG( FALSE );
-      ASSERTLOG( FALSE, L"Je to blbe" );
+      // ASSERT( FALSE );
+      // ASSERTLOG( FALSE );
+      // ASSERTLOG( FALSE, L"Je to blbe" );
    
       Host^.StopPhase();
 

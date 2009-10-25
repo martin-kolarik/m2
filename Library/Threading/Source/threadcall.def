@@ -29,7 +29,7 @@ CLASS ThreadProcedureCall( Delegate.ADelegate );
    PRIVATE VAR
       _Target : TPIThreadProcedureCallTarget := NIL;
       _High : CARDINAL := -1;
-      _Operation : CARDINAL;
+      _Operation : CARDINAL := 0;
       _Parameters : POINTER TO PTR := NIL;
       _ReturnValue : PTR := 0;
       _Sync : Sync.SIGNAL;

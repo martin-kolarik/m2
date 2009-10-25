@@ -32,7 +32,7 @@ CLASS Win32Thread IMPLEMENTS OSALthread.IThread, OSALthread.IRunnableHelper;
   PUBLIC FINAL PROCEDURE Start( WaitRun : BOOLEAN ) : sync.TAsyncResult;
   PUBLIC FINAL PROCEDURE Stop( WaitStop : BOOLEAN ) : sync.TAsyncResult;
   PUBLIC FINAL PROCEDURE WaitStop( Timeout : CARDINAL ) : sync.TAsyncResult;
-  
+
   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : OSALthread.IRunnableHelper ) : CARDINAL;
 
   PUBLIC FINAL PROCEDURE RunWithRunnable( Runnable : OSALthread.TPRunnable ) : sync.TAsyncResult;
