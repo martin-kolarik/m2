@@ -54,9 +54,9 @@ CLASS CContainer IMPLEMENTS IContainer;
    PUBLIC VIRTUAL PROCEDURE ResetFunctionCallsMemo();
    PUBLIC VIRTUAL PROCEDURE GetFunctionCallsMemo() : BOOLEAN; // returns if some function was called after last ResetFunctionCallsMemo
    
-   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Model, Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
-   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Model : StringsO.IString; OUT Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
-   PUBLIC VIRTUAL PROCEDURE Format( FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
+   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IHttpRequest; CONST Model, Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IHttpRequest; CONST Model : StringsO.IString; OUT Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE Format( CONST Request : IHttpRequest; FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
 
    // There can be more active mappings, each identified by ControllerURI.
    PUBLIC VIRTUAL PROCEDURE ResetModelInViewNames( CONST ControllerURI : StringsO.IString ); // clears all mode-view bindings corresponding to SetId
@@ -307,7 +307,7 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST model, value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IHttpRequest; CONST model, value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    LABEL
       Error;
    VAR
@@ -335,7 +335,7 @@ CLASS IMPLEMENTATION CContainer;
             GOTO Error;
          END;
          model.Substring( i+1, -1, OUT sindex1 );            
-         IF NOT GetModelValue( sindex1, OUT sindex2 ) THEN
+         IF NOT GetModelValue( Request, sindex1, OUT sindex2 ) THEN
             sindex2 := sindex1;
          END;
          sindex2.Trim();
@@ -373,7 +373,7 @@ CLASS IMPLEMENTATION CContainer;
       END;
       IF valueIndex OR keyIndex THEN
          model.Substring( i+1, j-i-1, OUT sindex1 );
-         IF NOT GetModelValue( sindex1, OUT sindex2 ) THEN
+         IF NOT GetModelValue( Request, sindex1, OUT sindex2 ) THEN
             sindex2 := sindex1;
          END;
          sindex2.Trim();
@@ -425,7 +425,7 @@ CLASS IMPLEMENTATION CContainer;
             ii := i+1;
             LOOP
                ii := model.ItemS( StringsO.WCHARS{L' ', L','}, ii, 0, TRUE, OUT sindex2 );
-               IF NOT GetModelValue( sindex2, OUT parameter ) THEN
+               IF NOT GetModelValue( Request, sindex2, OUT parameter ) THEN
                   parameter := sindex2;
                END;
                parameter.Trim();
@@ -434,7 +434,7 @@ CLASS IMPLEMENTATION CContainer;
                   EXIT;
                END;
             END; // LOOP
-            boolean := functionHandler^.Call( sindex1, REF parameters, NIL );
+            boolean := functionHandler^.Call( Request, sindex1, REF parameters, NIL );
             CallMemo := CallMemo OR boolean;
             RETURN boolean;
          END; // IF function found
@@ -462,7 +462,7 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST model : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IHttpRequest; CONST model : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    LABEL
       Error;
    VAR
@@ -489,7 +489,7 @@ CLASS IMPLEMENTATION CContainer;
             GOTO Error;
          END;
          model.Substring( i+1, -1, OUT sindex1 );            
-         IF NOT GetModelValue( sindex1, OUT sindex2 ) THEN
+         IF NOT GetModelValue( Request, sindex1, OUT sindex2 ) THEN
             sindex2 := sindex1;
          END;
          sindex2.Trim();
@@ -525,7 +525,7 @@ CLASS IMPLEMENTATION CContainer;
       END;
       IF valueIndex OR keyIndex THEN
          model.Substring( i+1, j-i-1, OUT sindex1 );
-         IF NOT GetModelValue( sindex1, OUT sindex2 ) THEN
+         IF NOT GetModelValue( Request, sindex1, OUT sindex2 ) THEN
             sindex2 := sindex1;
          END;
          sindex2.Trim();
@@ -572,7 +572,7 @@ CLASS IMPLEMENTATION CContainer;
             ii := i+1;
             LOOP
                ii := model.ItemS( StringsO.WCHARS{L' ', L','}, ii, 0, TRUE, OUT sindex2 );
-               IF NOT GetModelValue( sindex2, OUT parameter ) THEN
+               IF NOT GetModelValue( Request, sindex2, OUT parameter ) THEN
                   parameter := sindex2;
                END;
                parameter.Trim();
@@ -581,7 +581,7 @@ CLASS IMPLEMENTATION CContainer;
                   EXIT;
                END;
             END; // LOOP
-            boolean := functionHandler^.Call( sindex1, REF parameters, ADR( value ));
+            boolean := functionHandler^.Call( Request, sindex1, REF parameters, ADR( value ));
             CallMemo := CallMemo OR boolean;
             RETURN boolean;
          END; // IF function found
@@ -611,7 +611,7 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Format( FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
+   PUBLIC VIRTUAL PROCEDURE Format( CONST Request : IHttpRequest; FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
    VAR
       i, mi, j : INTEGER;
       model : StringsO.CString;
@@ -650,7 +650,7 @@ CLASS IMPLEMENTATION CContainer;
             END;
          // generic model
          ELSE
-            IF NOT GetModelValue( model, OUT value ) AND FailOnError THEN
+            IF NOT GetModelValue( Request, model, OUT value ) AND FailOnError THEN
                RETURN FALSE;
             END;
          END;
@@ -716,6 +716,7 @@ CLASS CHttpRequest IMPLEMENTS IHttpRequest;
 
    // IHttpRequest
    PUBLIC VIRTUAL READONLY PROPERTY
+      RequestSource : inetaddr.INETADDR;
       RequestVerb : HttpCommon.TVerb;
       FullURI : StringsO.CString;
       AbsoluteURI : StringsO.CString;
@@ -745,6 +746,13 @@ END CHttpRequest;
 (*--------------------------------------------------------------------------------*)
 
 CLASS IMPLEMENTATION CHttpRequest;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY RequestSource GET : inetaddr.INETADDR;
+   BEGIN
+      RETURN _Connection^.RemoteAddress;
+   END RequestSource;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1179,20 +1187,24 @@ CLASS IMPLEMENTATION CMVC;
       ELSE
          ASSERTLOG( FALSE, L"Unknown HTTP verb when processing MVC request" );
       END;
+
+      // prepare request data
+      request.Init( controllerURI, Connection, Session, container, ADR( SELF ));
+
+      // fill models, call functions
       container^.ResetFunctionCallsMemo();
       connectionData.Reset();
       WHILE connectionData.MoveNext() DO
          IF container^.GetModelByInViewName( controllerURI, connectionData.Current^, OUT mappedName ) THEN
-            container^.SetModelValue( mappedName, connectionData.CurrentData^ );
+            container^.SetModelValue( request, mappedName, connectionData.CurrentData^ );
          ELSIF ( Connection^.RequestVerb <> HttpCommon.verbPOST ) AND // for GET driving by URI parameter is allowed...
-               container^.GetModelValue( connectionData.Current^, OUT modelValue ) THEN // ...only if the parameter is known
-            container^.SetModelValue( connectionData.Current^, connectionData.CurrentData^ );
+               container^.GetModelValue( request, connectionData.Current^, OUT modelValue ) THEN // ...only if the parameter is known
+            container^.SetModelValue( request, connectionData.Current^, connectionData.CurrentData^ );
          END;
       END; // WHILE
       connectionData.Dispose();
       
-      // prepare controller data
-      request.Init( controllerURI, Connection, Session, container, ADR( SELF ));
+      // prepare response data
       response.Init( Connection, Session, container );
       buffer.Size := 16384; // initial size
       view := NIL;
@@ -1610,7 +1622,7 @@ PROCEDURE Cleanup();
 BEGIN
    IF MVCHolder <> NIL THEN
       MVCHolder^.Dispose();
-      MVCHolder := NIL;
+      DISPOSE( MVCHolder );
    END;
 END Cleanup;
 
@@ -1693,4 +1705,7 @@ END pageTemplateView;
 
 (*================================================================================*)
 
+BEGIN
+FINALLY
+   Cleanup();
 END MVC.

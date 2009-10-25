@@ -497,13 +497,18 @@ CLASS IMPLEMENTATION ALogger;
 
   PUBLIC VIRTUAL PROCEDURE LogSR( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; Result : Sync.TAsyncResult );
   VAR
+    R : TString;
     S : TString;
   BEGIN
     IF Filtered( Level, Prefix ) THEN
       RETURN;
-    ELSIF NOT Sync.ResultToName( Result, OUT S ) THEN
+    ELSIF NOT Sync.ResultToName( Result, OUT R ) THEN
       ASSERT( FALSE );
       RETURN;
+    ELSE
+      Strings.ConcatW( OUT S, S1, L" (" );
+      Strings.AppendW( REF S, R );
+      Strings.AppendW( REF S, L")" );
     END;
     Log( Level, Name, Prefix, S );
   END LogSR;

@@ -24,7 +24,9 @@ IMPORT
 (*===========================================================================*)
 
 CONST
-   count = 100000;
+   LIMIT = 100000;
+
+(*---------------------------------------------------------------------------*)
 
 TYPE
    TPTest = POINTER TO CTest;
@@ -73,6 +75,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       Host : test.TPHost := NIL;
       ServerListener : CServerListener;
       ServerSocket : netsocket.DSocket;
+      Limit : INTEGER := 0;
       
       Reader : CReader;
       Writer : CWriter;
@@ -174,7 +177,7 @@ CLASS IMPLEMENTATION CReaderThread;
             Test^.Host^.Log^.LogSC( log.dlcError, L"", L"Read failure: ", Test^.Reader.PrevCount );
             Test^.Host^.Log^.LogSC( log.dlcError, L"", L"      result: ", CARDINAL( r ));
          END;
-         IF count = Test^.Reader.PrevCount + 1 THEN
+         IF Test^.Limit = Test^.Reader.PrevCount + 1 THEN
             EXIT;
          END;
       END; // WHILE
@@ -220,7 +223,7 @@ CLASS IMPLEMENTATION CTest;
          // start
          NetWriteStream.FromServer( L"127.0.0.1:4444" );
          WaitForMessages( 50 );
-         ReaderThread.Run( TRUE );
+         ReaderThread.Start( TRUE );
      
          // run
          Count := 1; // must start from 1, it is due to comparsion with PrevCount in receiver
@@ -232,7 +235,7 @@ CLASS IMPLEMENTATION CTest;
                Host^.Log^.LogSC( log.dlcError, L"", L"Write failure: ", Count );
             END;
 
-            IF Count = count THEN
+            IF Count = Limit THEN
                EXIT;
             END;
          END; // LOOP
@@ -274,9 +277,9 @@ CLASS IMPLEMENTATION CTest;
          WaitForMessages( 50 );
          
          IF BigBlock THEN
-            lcount := count DIV 10;
+            lcount := Limit DIV 10;
          ELSE
-            lcount := count;
+            lcount := Limit;
          END;
      
          // run
@@ -355,6 +358,12 @@ CLASS IMPLEMENTATION CTest;
       ServerListener.Test := ADR( SELF );
       Reader.Test := ADR( SELF );
       Writer.Test := ADR( SELF );
+      
+      IF Host^.FastEvaluation THEN
+         Limit := LIMIT DIV 100;
+      ELSE
+         Limit := LIMIT;
+      END;
 
       SCmsgqueuethread.Startup();
       threadpool.Startup();

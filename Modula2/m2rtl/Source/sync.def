@@ -24,6 +24,7 @@ TYPE
         arSucceeded = arCompleted,
       arPartCompleted, // partial sucessfull completion
         arCompletedFromCache = arPartCompleted,
+      arAlreadyCompleted, // required state already achieved
 
       // processing
       arNoData, // success, but nothing
@@ -40,7 +41,7 @@ TYPE
    TAsyncResults = SET OF TAsyncResult;
 
 CONST
-   arsCompletions = TAsyncResults{arCompleted, arPartCompleted};
+   arsCompletions = TAsyncResults{arCompleted, arPartCompleted, arAlreadyCompleted};
    arsStarts = arsCompletions + TAsyncResults{arPending};
 
 PROCEDURE ResultToName( Result : TAsyncResult; OUT Name : ARRAY OF WCHAR ) : BOOLEAN;

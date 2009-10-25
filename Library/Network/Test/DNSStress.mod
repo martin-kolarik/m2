@@ -21,6 +21,11 @@ IMPORT
   
 (*===========================================================================*)
 
+CONST
+   LIMIT = 16;
+
+(*---------------------------------------------------------------------------*)
+
 TYPE
    TPTest = POINTER TO CTest;
 
@@ -41,6 +46,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       Host : test.TPHost := NIL;
       Notifier : CDNS;
       Results : ARRAY [0..63] OF TRISTATE;
+      Limit : CARDINAL := 0;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
 END CTest;
@@ -121,6 +127,12 @@ CLASS IMPLEMENTATION CTest;
    BEGIN
       SELF.Host := Host;
       Notifier.Test := ADR( SELF );
+      
+      IF Host^.FastEvaluation THEN
+         Limit := LIMIT DIV 8;
+      ELSE
+         Limit := LIMIT;
+      END;
 
       SCmsgqueuethread.Startup();
       threadpool.Startup();
@@ -133,7 +145,7 @@ CLASS IMPLEMENTATION CTest;
       END;
       // run
       // FOR j := 1 TO 255 DO
-         FOR i := 1 TO 16 DO
+         FOR i := 1 TO Limit DO
             av4 := winsock.htonl( 217 << 24 + 112 << 16 + 162 << 8 + i );
             A.FromV4( av4 );
             A.Port := 110;
@@ -144,7 +156,7 @@ CLASS IMPLEMENTATION CTest;
       REPEAT
          sync.Sleep( 100 );
          Completed := TRUE;
-         FOR i := 1 TO 16 DO
+         FOR i := 1 TO Limit DO
             IF Results[i] = -1 THEN
                Completed := FALSE;
                EXIT;
@@ -153,7 +165,7 @@ CLASS IMPLEMENTATION CTest;
       UNTIL Completed;
       // check
       Failure1 := FALSE;
-      FOR i := 1 TO 16 DO
+      FOR i := 1 TO Limit DO
          Failure1 := Failure1 OR ( Results[i] = 0 );
       END;      
       IF Failure1 THEN

@@ -81,12 +81,15 @@ CLASS IMPLEMENTATION CSDAPServer;
             IF NOT b THEN
                EXIT;
             END;
-            
-            Send( NIL, TPClient( client )^.Connection, 0, s.rawData, s.Length<<1 );
+
+            // for disconnected clients Data of _SendQueue was reset to NIL
+            IF client <> NIL THEN
+               Send( NIL, TPClient( client )^.Connection, 0, s.rawData, s.Length<<1 );
+            END;
 
             DEC( count );
             IF count = 0 THEN
-               SUPER.Message( Message, msghandler.delDefault, NIL );
+               SUPER.Message( Message, msghandler.delDefault, NIL ); // resend the message to continue with next 16 data in next loop
                EXIT;
             END;
          END; // LOOP
@@ -270,6 +273,16 @@ CLASS IMPLEMENTATION CSDAPServer;
 
          _Device^.UnadviseAll( Client );
          _Device^.LeaveClient( Client );
+         
+         // mark pending send data as unusable
+         _SendLock.Lock();
+         _SendQueue.Reset();
+         WHILE _SendQueue.MoveNext() DO
+            IF _SendQueue.CurrentData = PTR( Client ) THEN
+               _SendQueue.CurrentData := NIL; // reset Data field
+            END;
+         END; // WHILE
+         _SendLock.Unlock();
 
          DISPOSE( Client );
       END;
@@ -288,8 +301,10 @@ CLASS IMPLEMENTATION CSDAPServer;
       error : ARRAY [0..511] OF WCHAR;
       Hash : ns.THash;
       i : CARDINAL;
+      ia : inetaddr.INETADDR;
       IOValue : iovalue.Value;
       l : CARDINAL;
+      Originator : io.CSimpleOriginator;
       p : ARRAY [0..3] OF StringsO.CString; // parameters
       parametersCount : CARDINAL;
       parametersFound : CARDINAL;
@@ -467,19 +482,27 @@ CLASS IMPLEMENTATION CSDAPServer;
 
          ELSE
 
+            ia := GetRemoteAddress( PConnection );
+            ia.GetAddressOA( TRUE, OUT sd );
+            d.FromOA( LOG_SDAP ); d.AppendOA( L"/" ); d.AppendOA( sd );
+            Originator.SetDescription( d );
+
             IF Command = sdapSET THEN // expect data.name (aka data.x/x/x)
                IOValue.String := p[2];
 
-               Result := Device^.IO()^.IOh( IOO.dirWrite, Hash, REF IOValue, NIL );
-               IF Result = Sync.arCompleted THEN
+               Result := Device^.IO()^.IOh( ADR( Originator ), IOO.dirWrite, Hash, REF IOValue, NIL );
+               CASE Result OF
+               | Sync.arCompleted :
                   ACK( PConnection, sdap200 );
+               | Sync.arCompletedFromCache :
+                  ACK( PConnection, sdap201 );
                ELSE
                   ACK( PConnection, sdap501 );
                END;
        
             ELSE
         
-               Result := Device^.IO()^.IOh( IOO.dirRead, Hash, REF IOValue, NIL );
+               Result := Device^.IO()^.IOh( ADR( Originator ), IOO.dirRead, Hash, REF IOValue, NIL );
                CASE Result OF
                | Sync.arCompleted :
                   ACKd( PConnection, sdap200, p[1], IOValue );
@@ -644,8 +667,18 @@ CLASS IMPLEMENTATION CSDAPServer;
 (*--------------------------------------------------------------------------------*)
 
    FINALLY CSDAPServer();
+   VAR
+      Client : TPClient;
    BEGIN
+      _Clients.Reset();
+      WHILE _Clients.MoveNext() DO
+         Client := _Clients.CurrentData;
+         _Device^.UnadviseAll( Client );
+         _Device^.LeaveClient( Client );
+         DISPOSE( Client );
+      END; // WHILE
       _Clients.Dispose();
+
       _SendQueue.Dispose();
    END CSDAPServer;
 

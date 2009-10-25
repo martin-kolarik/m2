@@ -4,6 +4,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   StringsO,
    Sync,
    IOO;
    
@@ -22,6 +23,7 @@ TYPE
   TPIDataInfo = POINTER TO IDataInfo;
   TPDataInfo = POINTER TO CDataInfo;
   TPCompletionDataInfo = POINTER TO CCompletionDataInfo;
+  TPOriginator = POINTER TO IOriginator;
 
 (*---------------------------------------------------------------------------*)
 
@@ -58,6 +60,13 @@ CLASS CCompletionDataInfo( CDataInfo ); // for single IO operation
    PUBLIC PROCEDURE Reset();
    PUBLIC PROCEDURE WaitCompletion( TimeoutMS : CARDINAL; OUT Value : iovalue.Value ) : Sync.TAsyncResult;
 END CCompletionDataInfo;
+
+(*---------------------------------------------------------------------------*)
+
+INTERFACE IOriginator; // should be refactored? see #141
+   READONLY PROPERTY
+      Description : StringsO.CString;
+END IOriginator;
 
 (*---------------------------------------------------------------------------*)
 
@@ -107,8 +116,8 @@ INTERFACE IIO( IStartStopControl ); // single device, purpose is to have minimal
 
    // IOh, IOha MUST BE asynchronous in the terms, that callback is always called (if operation starts). Anyhow,
    // requirement to be asynchronous means, that there must not be any delays or suspensing inside the methods.
-   PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
-   PROCEDURE IOha( Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
+   PROCEDURE IOh( CONST Originator : TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
+   PROCEDURE IOha( CONST Originator : TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
       // if operation is asynchronous input, then REF Value is not used and everything is returned to Callback
 
    PROCEDURE AbortAll(); // As IIO is allowed to run single operation only Abort does not need more parameters. But because ancestors
@@ -117,10 +126,29 @@ END IIO;
 
 (*---------------------------------------------------------------------------*)
 
+CLASS CSimpleOriginator IMPLEMENTS IOriginator;
+
+   // IOriginator
+   PUBLIC VIRTUAL READONLY PROPERTY
+      Description : StringsO.CString;
+
+   // SELF
+   PUBLIC PROCEDURE SetDescription( CONST Description : StringsO.CString );
+   
+   PRIVATE VAR
+      _Description : StringsO.CString;
+
+END CSimpleOriginator;
+
+(*---------------------------------------------------------------------------*)
+
 ABSTRACT CLASS AItemizedIO IMPLEMENTS IIO; // used for devices with single item operations
+
+   // part of IIO
    PUBLIC VIRTUAL READONLY PROPERTY
       Capabilities : TCapabilities;
-   PUBLIC VIRTUAL PROCEDURE IOha( Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : TPDataInfo ) : Sync.TAsyncResult;
+
 END AItemizedIO;
 
 (*---------------------------------------------------------------------------*)

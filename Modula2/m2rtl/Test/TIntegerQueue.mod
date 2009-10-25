@@ -19,6 +19,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       Host : test.TPHost := NIL;
       IQ   : SyncQueue.IntegerQueue;
       Exit : CARDINAL := 0;
+      Limit : INT32 := 0;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    INTERNAL PROCEDURE Round( RingSize : CARDINAL ) : BOOLEAN;
@@ -66,6 +67,12 @@ CLASS IMPLEMENTATION CTest;
       Size : CARDINAL;
    BEGIN
       SELF.Host := Host;
+      
+      IF Host^.FastEvaluation THEN
+         Limit := 50000;
+      ELSE
+         Limit := 500000;
+      END;
    
       FOR Size := 0 TO HIGH( sizes ) DO
          Failure := NOT Round( sizes[Size] ) OR Failure;
@@ -115,7 +122,7 @@ CLASS IMPLEMENTATION CTest;
       LOOP
          IQ.Enqueue( I32, TRUE, Sync.FOREVER );
          INC( I32 );
-         IF I32 > 500000 THEN
+         IF I32 > Limit THEN
             EXIT;
          ELSIF Exit = 1 THEN
             EXIT;
@@ -138,7 +145,7 @@ CLASS IMPLEMENTATION CTest;
             Exit := 1;
             EXIT;
          END;
-         IF I32 = 500000 THEN
+         IF I32 = Limit THEN
             EXIT;
          ELSIF Exit = 1 THEN
             EXIT;

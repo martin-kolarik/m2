@@ -193,7 +193,7 @@ VAR
          err^.WriteOA( L'  the file name was not specified', TRUE );
          RETURN 300;
       END;
-      lines.Clear();
+      lines.Dispose();
       TRY
          fs.FromPath( OA( path.Length-1, path.rawData ), FIOO.imOpenRead );
       CATCH e : IOO.CIOException DO
@@ -885,7 +885,9 @@ BEGIN
       END; // WHILE sns
       
       ls.Store( data, FALSE );
+   #endif
 
+   #if Client #or Activator #then
    | opQueryRegistration :
       IF pathOrFilter.Empty THEN
          err^.WriteOA( L'  the product name was not specified', TRUE );

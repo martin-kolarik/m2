@@ -16,7 +16,7 @@ IMPORT
 (*===========================================================================*)
 
 CONST
-   count = 1500;
+   LIMIT = 1500;
 
 TYPE
    TPTest = POINTER TO CTest;
@@ -39,6 +39,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       Count : CARDINAL := 0;
       Delegate : CDelegate;
       Pool : threadpool.TPThreadPool;
+      Limit : CARDINAL := 0;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    PRIVATE PROCEDURE Round( CompletionInOwningThread : BOOLEAN; CONST EA : ARRAY OF windows.HANDLE; REF PH : ARRAY OF threadpool.TPoolHandle ) : BOOLEAN;
@@ -79,20 +80,26 @@ CLASS IMPLEMENTATION CTest;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
-      EA : ARRAY [0..count-1] OF windows.HANDLE;
+      EA : ARRAY [0..LIMIT-1] OF windows.HANDLE;
       Failure : BOOLEAN;
       i : CARDINAL;
-      PH : ARRAY [0..10*count-1] OF windows.HANDLE;
+      PH : ARRAY [0..10*LIMIT-1] OF windows.HANDLE;
    BEGIN
       threadinit.Startup();
       NEW( Pool );
-
+      
       PH[0] := NIL;
       SELF.Host := Host;
       Delegate.Test := ADR( SELF );
 
+      IF Host^.FastEvaluation THEN
+         Limit := LIMIT DIV 10;
+      ELSE
+         Limit := LIMIT;
+      END;
+
       // create handles
-      FOR i := 0 TO count-1 DO
+      FOR i := 0 TO Limit-1 DO
          EA[i] := windows.CreateEvent( NIL, windows.True, windows.False, NIL );
       END; // FOR
       
@@ -101,7 +108,7 @@ CLASS IMPLEMENTATION CTest;
       Failure := Round( TRUE, EA, REF PH ) OR Failure;
 
       // done handles
-      FOR i := 0 TO count-1 DO
+      FOR i := 0 TO Limit-1 DO
           windows.CloseHandle( EA[i] );
       END; // FOR
    
@@ -124,11 +131,11 @@ CLASS IMPLEMENTATION CTest;
       lcount : CARDINAL;
    BEGIN
       IF CompletionInOwningThread THEN
-         lcount := count DIV 10;
+         lcount := Limit DIV 10;
          Pool^.CompletionInOwningThread := TRUE;
          Delegate.CheckThread := TRUE;
       ELSE
-         lcount := count;
+         lcount := Limit;
          Pool^.CompletionInOwningThread := FALSE;
          Delegate.CheckThread := FALSE;
       END;
@@ -153,13 +160,13 @@ CLASS IMPLEMENTATION CTest;
          FOR i := lcount-1 TO 0 BY -1 DO
             windows.SetEvent( EA[i] );
             IF CompletionInOwningThread THEN
-               WaitForMessages( 5 );
+               WaitForMessages( 2 );
             END;
          END; // FOR
          IF CompletionInOwningThread THEN
             WaitForMessages( 0 );
          ELSE
-            windows.Sleep( 1000 );
+            windows.Sleep( 100 );
          END;
 
       // check
@@ -188,19 +195,19 @@ CLASS IMPLEMENTATION CTest;
                INC( Count ); // force failure reporting
             END;
          END; // FOR
-         windows.Sleep( 2500 );
+         windows.Sleep( 250 );
 
          // test
          FOR i := lcount-1 TO 0 BY -1 DO
             Pool^.Abort( REF PH[i] );
             IF CompletionInOwningThread THEN
-               WaitForMessages( 5 );
+               WaitForMessages( 2 );
             END;
          END; // FOR
          IF CompletionInOwningThread THEN
             WaitForMessages( 0 );
          ELSE
-            windows.Sleep( 1000 );
+            windows.Sleep( 100 );
          END;
 
       // check
@@ -236,13 +243,13 @@ CLASS IMPLEMENTATION CTest;
          FOR i := lcount-1 TO 0 BY -1 DO
             windows.SetEvent( EA[i] );
             IF CompletionInOwningThread THEN
-               WaitForMessages( 5 );
+               WaitForMessages( 2 );
             END;
          END; // FOR
          IF CompletionInOwningThread THEN
             WaitForMessages( 0 );
          ELSE
-            windows.Sleep( 1000 );
+            windows.Sleep( 100 );
          END;
 
       // check
@@ -273,19 +280,19 @@ CLASS IMPLEMENTATION CTest;
                END;
             END; // FOR
          END; // FOR
-         windows.Sleep( 2500 );
+         windows.Sleep( 250 );
 
          // test
          FOR i := 10*lcount-1 TO 0 BY -1 DO
             Pool^.Abort( REF PH[i] );
             IF CompletionInOwningThread THEN
-               WaitForMessages( 5 );
+               WaitForMessages( 2 );
             END;
          END; // FOR
          IF CompletionInOwningThread THEN
             WaitForMessages( 0 );
          ELSE
-            windows.Sleep( 1000 );
+            windows.Sleep( 100 );
          END;
 
       // check

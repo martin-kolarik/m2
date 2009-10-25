@@ -139,6 +139,16 @@ Licence support tool
                 </dl>
               </text>
             </section>
+            <section label="secInterface" level="3">
+              <title><type>[behaviours]</type></title>
+              <text>
+                <dl class="dlParameter">
+                  <caption>Sekce <type>[behaviours]</type> definuje následující parametry:</caption>
+                  <dt><type>readers_period</type></dt>
+                  <dd><p>pro definici periody, v níž server pravidelnì vyète data objektù <type>reader</type> z KNX. Parametr je nepovinný, jeho výchozí hodnota je 0 (vypnuto). Parametr se uvádí v milisekundách, tzn. napø. <number>60000</number> znamená periodu 1 minuta. Pøíklad:</p><p.type>readers_period = 300000</p.type><p>Pokud konfigurace žádné objekty <type>reader</type> neobsahuje, parametr nemá význam.</p></dd>
+                </dl>
+              </text>
+            </section>
             <section label="secObjects" level="3">
               <title><type>[objects]</type> a <type>[blocks]</type></title>
               <text>
@@ -243,6 +253,7 @@ Licence support tool
                   </table>
                 </f.table>
                 <p>Poznámka: rozšiøující typ scaling255 mìní standardní význam typu EIS<c.special what="thinspace" />6. Zatímco datový bod typu <type>scaling</type> nabízí klientùm standardní rozsah 0<c.special what="interval" />100 (%), datový bod <type>scaling255</type> s klienty komunikuje nepøevedenou hodnotu v rozsahu 0<c.special what="interval" />255.</p>
+                <p>Datum (EIS<c.special what="thinspace" />4) a èas (EIS<c.special what="thinspace" />3) jsou obyèejnì zobrazovány pomocí formátù jako text (viz kapitolu <in label="secFormats"></in>). Pokud se formáty nepoužijí, je datum vyjádøeno jako Juliánské datum a èas jako poèet sekund ve dni doplnìný èíslem dne v øádu statisícù (1 = pondìlí).</p>
                 <p>Pro urèení zpùsobu komunikace používá server v konfiguraci klíèová slova dle tabulky <in label="tblBehavior"></in>.</p>
                 <f.table label="tblBehavior">
                   <caption>Zpùsoby komunikace datových objektù</caption>
@@ -266,6 +277,10 @@ Licence support tool
                     <tr>
                       <td><type><em>transmitter_with_status_init</em></type></td>
                       <td>Jako <type>transmitter_with_status</type>, avšak pøi rozbìhu èi obnovení spojení nucenì vyèítá hodnotu z EIB stejnì jako <type>tracker_init</type>.</td>
+                    </tr>
+                    <tr>
+                      <td><type>reader</type></td>
+                      <td>Jako <type>tracker</type>, server však navíc hodnotu z EIB pravidelnì podle nastavení parametru <type>readers_period</type> vyèítá. Komunikaèní objekt v EIB zaøízení musí mít nastavenu vlajku R (read).</td>
                     </tr>
                   </table>
                 </f.table>
@@ -323,13 +338,13 @@ object = "Bedroom light", 5/2/0</p.type>
                 <p>Poèáteèní ètení mùže (zejména pøi velkém poètu inicializovaných datových objektù) trvat pomìrnì dlouhou dobu. Napøíklad, pøi ètení 100 datových objektù trvá jen samotné získání hodnoty (bez opakování a zotavení) celkem 15 sekund (150 ms<c.special what="binarytimes" />100). Po tuto dobu je samozøejmì možné do sbìrnice libovolnì zapisovat, data pro klienty však nemusejí být ještì platná (server v takovém pøípadì klientùm vrátí nulu, <type>false</type> nebo prázdný text).</p>
               </text>
             </section>
-            <section level="3">
+            <section label="secFormats" level="3">
               <title><type>[formats]</type></title>
               <text>
                 <dl class="dlParameter">
                   <caption>Sekce <type>[formats]</type> definuje následující parametry:</caption>
                   <dt><type>time_as_string</type> a <type>date_as_string</type></dt>
-                  <dd><p>pro zapnutí pøevodu èasových a datumových údajù do textového formátu a naopak. Server ve výchozím stavu pracuje s datem i èasem jako s èísly, která mohou být v klientech obtížnì pøevoditelná. Server pro pøevod použije masku urèenou parametrem <type>time_format</type> nebo <type>date_format</type>. Pøíklad:</p><p.type>time_as_string = true
+                  <dd><p>pro zapnutí pøevodu èasových a datumových údajù do textového formátu a naopak. Server ve výchozím stavu pracuje s datem i èasem jako s èísly (viz kapitolu <in label="secObjects"></in>), která mohou být v klientech obtížnì pøevoditelná. Server pro pøevod použije masku urèenou parametrem <type>time_format</type> nebo <type>date_format</type>. Pøíklad:</p><p.type>time_as_string = true
 date_as_string = true</p.type></dd>
                   <dt><type>time_format</type> a <type>date_format</type></dt>
                   <dd><p>maska pro pøevod èasových a datumových údajù do textového formátu a naopak. Maska se uplatní pouze pokud je parametr <type>time_as_string</type> nebo <type>date_as_string</type> nastaven na hodnotu <type>true</type>. Pøíklad:</p><p.type>time_format = HH:mm
@@ -932,7 +947,7 @@ allow = 127.0.0.1</p.type>
                   <dt>200</dt>
                   <dd><p>Požadavek byl kompletnì vyøízen. </p></dd>
                   <dt>201</dt>
-                  <dd><p>Požadavek byl vyøízen, avšak server nemá spojení s EIB a data byla pouze uložena v cache serveru.</p></dd>
+                  <dd><p>Požadavek byl vyøízen, avšak server nemá spojení s EIB a data byla pouze uložena v cache serveru (pøeètena z cache serveru).</p></dd>
                   <dt>202</dt>
                   <dd><p>Data doruèená serverem (advise).</p></dd>
                   <dt>300</dt>
