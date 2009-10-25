@@ -1,7 +1,6 @@
 Version 1.1.1021/R RC1 25.10.2009
-- BUG: #127, SDAP client/server could delay notification of received data
-       to SmartServer of client, so messages could be either lost or delayed
-       for very long time.
+- BUG: #127, SDAP client/server could internally delay notification of received
+       data, so messages could be either lost or delayed for very long time.
 - BUG: #129, packet counts displayed on status page were not reset, they
        contained number of all packets received from server start.
 - BUG: #134, SDAP server crashed, when pending unsent data were sent after
