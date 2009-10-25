@@ -223,7 +223,7 @@
 
     <Target Name="GrabOutOfDateFiles" Condition="@(DEFFiles)!='' Or @(MODFiles)!=''">
         <Exec WorkingDirectory="$(SourceDir)"
-              Command="$(M2D) $(M2PROD) $(M2TDEF) -O&quot;..\$(IntermediateDir)&quot; @(DEFFiles, ' ') @(MODFiles, ' ')"/>
+              Command="$(M2D) $(M2PROD) $(M2TIMEDEF) -O&quot;..\$(IntermediateDir)&quot; @(DEFFiles, ' ') @(MODFiles, ' ')"/>
         <ReadLinesFromFile File="$(IntermediateDir)\OutOfDate.DEF.log">
             <Output TaskParameter="Lines" ItemName="OutOfDateDEFs"/>
         </ReadLinesFromFile>

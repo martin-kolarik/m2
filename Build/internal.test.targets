@@ -61,7 +61,7 @@
     </Target>
 
     
-    <Target Name="ComponentTest"
+    <Target Name="ComponentTestBuild"
         Condition="(@(TestDEFFiles)!='' or @(TestMODFiles)!='') And $(Test)!='off'"
         DependsOnTargets="TestObjects"
         Inputs="@(TestOBJFiles);@(LinkDependencyLibraries)"

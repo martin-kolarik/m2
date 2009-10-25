@@ -21,8 +21,13 @@
         <LIBEXP>&quot;$(RootBuildPath)\Bin\libexp&quot;</LIBEXP>
         <RUNTEST>&quot;$(RootBuildPath)\Bin\runtest&quot; -F</RUNTEST>
 
+        <CompileProductId Condition="$(ProductId)==''">$(MSBuildProjectName)</CompileProductId>
+        <CompileProductId Condition="$(ProductId)!=''">$(ProductId)</CompileProductId>
+        <CompileProductVersion Condition="$(ProductVersion)==''">0.0.0</CompileProductVersion>
+        <CompileProductVersion Condition="$(ProductVersion)!=''">$(ProductVersion)</CompileProductVersion>
+
         <!-- M2PROD takes here self initial value -->
-        <M2PROD>-DProductId:$(ProductId) -DProductVersion:$(ProductVersion)</M2PROD>
+        <M2PROD>-DProductId:$(CompileProductId) -DProductVersion:$(CompileProductVersion)</M2PROD>
     </PropertyGroup>
 
     <!-- CONTROLS -->
