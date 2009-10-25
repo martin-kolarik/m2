@@ -38,7 +38,7 @@ BEGIN
          END;
       END;
    END; // FOR
-   items.Clear();
+   items.Clear(); // items were copied to localItems, do not dispose them
    FOR i := 0 TO localItems.Count-1 DO
       items.Add( localItems[i] );
    END; // FOR
@@ -200,7 +200,7 @@ BEGIN
          DISPOSE( item );
       END;
    END; // FOR
-   items.Clear();
+   items.Clear(); // items were copied to localItems, do not dispose them
    FOR i := 0 TO localItems.Count-1 DO
       items.Add( localItems[i] );
    END; // FOR

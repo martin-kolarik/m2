@@ -17,7 +17,8 @@ IMPORT
 (*===========================================================================*)
 
 CONST
-   count = 10;
+   LIMIT = 10;
+   PERIOD = 500;
 
 TYPE
    TPTest = POINTER TO CTest;
@@ -37,9 +38,11 @@ END CDelegate;
 CLASS CTest IMPLEMENTS test.ITest;
    PUBLIC VAR
       Host : test.TPHost := NIL;
-      Counts : ARRAY [0..count-1] OF CARDINAL;
+      Counts : ARRAY [0..LIMIT-1] OF CARDINAL;
       Delegate : CDelegate;
       Pool : threadpool.TPThreadPool;
+      Limit : CARDINAL := 0;
+      Period : CARDINAL := 0;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    PRIVATE PROCEDURE Round( CompletionInOwningThread : BOOLEAN ) : BOOLEAN;
@@ -85,6 +88,14 @@ CLASS IMPLEMENTATION CTest;
    
       SELF.Host := Host;
       Delegate.Test := ADR( SELF );
+      
+      IF Host^.FastEvaluation THEN
+         Limit := LIMIT DIV 10;
+         Period := PERIOD DIV 10;
+      ELSE
+         Limit := LIMIT;
+         Period := PERIOD;
+      END;
 
       Failure := Round( FALSE );
 
@@ -106,7 +117,7 @@ CLASS IMPLEMENTATION CTest;
    VAR
       FirstFailure, Failure : BOOLEAN := FALSE;
       i : CARDINAL;
-      PH : ARRAY [0..count-1] OF windows.HANDLE;
+      PH : ARRAY [0..LIMIT-1] OF windows.HANDLE;
    BEGIN
       PH[0] := NIL;
 
@@ -125,26 +136,26 @@ CLASS IMPLEMENTATION CTest;
          Host^.StartPhase( L"10t" );
       END;
          // reset, initiate
-         FOR i := 1 TO count-2 DO
-            Counts[count-i-1] := 0;
-            IF NOT Pool^.WaitTimeout( ADR( Delegate ), count-i-1, ( count-i-1 ) * 500, FALSE, FALSE, OUT PH[i] ) THEN
+         FOR i := 1 TO Limit-2 DO
+            Counts[Limit-i-1] := 0;
+            IF NOT Pool^.WaitTimeout( ADR( Delegate ), Limit-i-1, (Limit-i-1) * Period, FALSE, FALSE, OUT PH[i] ) THEN
                Host^.Log^.LogSC( log.dlcError, L"", L"Unable to run worker of index: ", i );
             END;
          END; // FOR
 
          // test
          IF CompletionInOwningThread THEN
-            WaitForMessages( 5100 );
+            WaitForMessages( Limit + Limit DIV 50 );
          ELSE
-            windows.Sleep( 5100 );
+            windows.Sleep( Limit + Limit DIV 50 );
          END;
 
       // check
-      FOR i := 1 TO count-2 DO
-         IF Counts[i] <> count DIV i THEN
+      FOR i := 1 TO Limit-2 DO
+         IF Counts[i] <> Limit DIV i THEN
             Failure := TRUE;
             Host^.Log^.LogSC( log.dlcError, L"", L"Failure with index: ", i );
-            Host^.Log^.LogSC( log.dlcError, L"", L"  expected: ", count DIV i );
+            Host^.Log^.LogSC( log.dlcError, L"", L"  expected: ", Limit DIV i );
             Host^.Log^.LogSC( log.dlcError, L"", L"  found: ", Counts[i] );
          END;
       END;
@@ -164,18 +175,18 @@ CLASS IMPLEMENTATION CTest;
          Host^.StartPhase( L"10t Abort in reverted order" );
       END;
          // reset, initiate
-         FOR i := 1 TO count-2 DO
-            Counts[count-i-1] := 0;
+         FOR i := 1 TO Limit-2 DO
+            Counts[Limit-i-1] := 0;
          END; // FOR
 
          IF CompletionInOwningThread THEN
-            WaitForMessages( 5100 );
+            WaitForMessages( Limit + Limit DIV 50 );
          ELSE
-            windows.Sleep( 5100 );
+            windows.Sleep( Limit + Limit DIV 50 );
          END;
 
          // test
-         FOR i := count-1 TO 0 BY -1 DO
+         FOR i := Limit-1 TO 0 BY -1 DO
             Pool^.Abort( REF PH[i] );
             IF CompletionInOwningThread THEN
                WaitForMessages( 5 );
@@ -189,11 +200,11 @@ CLASS IMPLEMENTATION CTest;
          END;
 
       // check
-      FOR i := 1 TO count-2 DO
-         IF Counts[i] <> count DIV i + 1 THEN // +1 is for Abort
+      FOR i := 1 TO Limit-2 DO
+         IF Counts[i] <> Limit DIV i + 1 THEN // +1 is for Abort
             Failure := TRUE;
             Host^.Log^.LogSC( log.dlcError, L"", L"Failure with index: ", i );
-            Host^.Log^.LogSC( log.dlcError, L"", L"  expected: ", count DIV i + 1 );
+            Host^.Log^.LogSC( log.dlcError, L"", L"  expected: ", Limit DIV i + 1 );
             Host^.Log^.LogSC( log.dlcError, L"", L"  found: ", Counts[i] );
          END;
       END;

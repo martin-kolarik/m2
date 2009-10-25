@@ -103,6 +103,9 @@ CLASS CResult( Delegate.ADelegate );
    PUBLIC PROCEDURE ProductsMoveNext() : BOOLEAN;
    PUBLIC READONLY PROPERTY
       CurrentProduct : TPProduct;
+
+   // SELF helpers
+   PRIVATE PROCEDURE Dispose();
 END CResult;
 
 (*================================================================================*)

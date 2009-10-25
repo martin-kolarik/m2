@@ -363,7 +363,7 @@ CLASS IMPLEMENTATION CDriver;
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
    BEGIN
-      Events.Clear();
+      Events.Dispose();
    END Dispose;
 
 (*--------------------------------------------------------------------------------*)
@@ -395,7 +395,7 @@ CLASS IMPLEMENTATION CDriver;
          ELSIF si.EqualsOA( L'get' ) THEN
             IF Result.Counted OR Result.Expired THEN
                Logger.LogS( dldDebug, logPrefix, L"Event.Get clear buffer" );
-               Events.Clear();
+               Events.Dispose();
 
                GOTO Success;
 

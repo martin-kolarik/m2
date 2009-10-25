@@ -1,0 +1,230 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+    <!-- common properties -->
+    <PropertyGroup>
+        <!-- recursive child parameters -->
+        <Grabbing>off</Grabbing>
+        <GrabProcessFileName>GrabbedComponents.tmp</GrabProcessFileName>
+        <GrabProcessFile>$(ComponentPath)\$(IntermediateDirName)\$(GrabProcessFileName)</GrabProcessFile>
+        <GrabProcessFile Condition="$(ComponentType)=='Generic' And $(InheritedGrabProcessFile)!=''">$(InheritedGrabProcessFile)</GrabProcessFile>
+    </PropertyGroup>
+
+    <Target Name="DeleteGrabProcessFile">
+        <Delete Files="$(GrabProcessFile)" ContinueOnError="true"/>
+    </Target>
+
+    <Target Name="GrabComponent"
+            DependsOnTargets="Directories"
+            Outputs="@(Grabbed)">
+        <!-- Message Text="-LW:$(MSBuildProjectName)/$(Result): @(Grabbed)" Importance="high"/ -->
+        <!-- Message Text="-LW:$(MSBuildProjectName)/$(Result)" Importance="high"/ -->
+
+        <!-- Message Text="+MF:$(MSBuildProjectName): @(MODFiles)" Importance="high"/ -->
+        <!-- Message Text="+IF:$(MSBuildProjectName): @(Interface -> '%(Identity).lib')" Importance="high"/ -->
+
+        <CallTarget Condition="$(ComponentType)!='Generic'" Targets="DeleteGrabProcessFile"/>
+
+        <!-- try remove already checked components and store result of removing -->
+        <ReadLinesFromFile Condition="@(Components)!=''"
+                           File="$(GrabProcessFile)">
+            <Output TaskParameter="Lines" ItemName="GrabbedComponents"/>
+        </ReadLinesFromFile>
+
+        <!-- Message Text="+LN1:$(MSBuildProjectName)/$(GrabProcessFile): @(GrabbedComponents)" Importance="high"/ -->
+
+        <CreateItem Condition="@(Components)!=''"
+                    Include="@(Components)"
+                    Exclude="@(GrabbedComponents)">
+            <Output TaskParameter="Include" ItemName="ComponentsToParse"/>
+        </CreateItem>
+        <WriteLinesToFile Condition="@(Components)!='' And @(ComponentsToParse)!=''"
+                          File="$(GrabProcessFile)"
+                          Lines="@(ComponentsToParse)"/>
+
+        <!-- Message Text="+LN2:$(MSBuildProjectName): @(ComponentsToParse)" Importance="high"/ -->
+
+        <!-- PARSE ALL CHILD COMPONENTS, specially handle libraries masked with standalone/re-export components -->
+        <CreateProperty Value="$(GetLibrariesToFilter)">
+            <Output TaskParameter="Value" PropertyName="FilterLibraries"/>
+        </CreateProperty>
+        <CreateProperty Condition="@(ExportToInterface)==''" Value="false">
+            <Output TaskParameter="Value" PropertyName="GetLibrariesToFilter"/>
+        </CreateProperty>
+        <CreateProperty Condition="@(ExportToInterface)!=''" Value="true">
+            <Output TaskParameter="Value" PropertyName="GetLibrariesToFilter"/>
+        </CreateProperty>
+
+        <!-- ** After getting informations, clear grabbed for ancestors, if I must not propagate child components. This is achieved using another output,
+             and later by joining the output with Grabbed (see ** below) -->
+        <MSBuild Condition="@(ComponentsToParse)!=''"
+                 Projects="@(ComponentsToParse -> '$(RootDir)\%(Identity)\%(Filename).proj')"
+                 Properties="Grabbing=on;InheritedGrabProcessFile=$(GrabProcessFile);GetLibrariesToFilter=$(GetLibrariesToFilter);$(ChildParameters)"
+                 Targets="GrabComponent">
+            <Output TaskParameter="TargetOutputs" ItemName="PrivateGrabbed"/>
+        </MSBuild>
+
+        <!-- CHILD COMPONENT PATHS FOR ANCESTOR ACCESS TO DEF/H -->
+        <CreateItem Condition="@(ComponentsToParse)!=''"
+                    Include="@(ComponentsToParse -> '$(RootDir)\%(Identity)')"
+                    AdditionalMetadata="Type=Component">
+            <Output TaskParameter="Include" ItemName="PrivateGrabbed"/>
+        </CreateItem>
+
+        <!-- ** If I am propagating components set found components to propagated ones (see ** above). -->
+        <CreateItem Condition="$(PropagateComponents)=='on'"
+                    Include="@(PrivateGrabbed)"
+                    Exclude="@(GrabbedComponents)">
+            <Output TaskParameter="Include" ItemName="Grabbed"/>
+        </CreateItem>
+
+        <!-- USED MESSAGES -->
+        <CreateItem Condition="$(Result)=='Static' And @(Messages)!=''"
+                    Include="@(MessagesBin -> '$(ComponentPath)\%(Identity)')"
+                    AdditionalMetadata="Type=Messages">
+            <Output TaskParameter="Include" ItemName="Grabbed"/>
+        </CreateItem>
+
+        <!-- SELF LIBRARY PATH and DLL/EXE, the libs will be removed during link to not to link with self, here I cannot distinguish if I am doing self or not. -->
+        <CreateItem Condition="$(Result)!='Program'"
+                    Include="@(Interface -> '%(Identity).lib')"
+                    AdditionalMetadata="Type=Library">
+            <Output TaskParameter="Include" ItemName="Grabbed"/>
+        </CreateItem>
+        <!-- interface can be delayed in load -->
+        <CreateItem Condition="$(Result)!='Program'"
+                    Include="@(InterfaceWithDelayLoad -> '%(Identity).lib /delayload:%(FileName).dll')"
+                    AdditionalMetadata="Type=Library">
+            <Output TaskParameter="Include" ItemName="Grabbed"/>
+        </CreateItem>
+
+        <!-- components which are not built must offer their runtimes -->
+        <CreateItem Condition="$(Level)!='0' And $(PropagateBuild)=='off'"
+                    Include="$(OutputFilePath);$(OutputPDBFilePath);$(OutputMAPFilePath)"
+                    AdditionalMetadata="Type=Runtime">
+            <Output TaskParameter="Include" ItemName="Grabbed"/>
+        </CreateItem>
+
+        <!-- standalone/re-export component and component libs -->
+        <CreateItem Condition="$(FilterLibraries)=='true' And $(PropagateBuild)=='on'"
+                    Include="@(SelfInterface -> '%(Identity).filtered')"
+                    AdditionalMetadata="Type=LibraryToFilter">
+            <Output TaskParameter="Include" ItemName="Grabbed"/>
+        </CreateItem>
+
+        <!-- Including Grabbed to PrivateGrabbed assures, that PrivateGrabbed used later will behave in the same manner as Grabbed for PropagateComponents=on -->
+        <!-- CreateItem Condition="$(PropagateComponents)=='on'"
+                    Include="@(Grabbed)">
+            <Output TaskParameter="Include" ItemName="PrivateGrabbed"/>
+        </CreateItem -->
+
+        <!-- Message Text="+LW(%(Type)):$(MSBuildProjectName)/$(Result): @(Grabbed)" Importance="high"/ -->
+    </Target>
+
+    <Target Name="GrabComponents"
+            DependsOnTargets="DeleteGrabProcessFile;GrabComponent">
+
+        <!-- SPLIT COMPONENTS (1a) TO Libraries... -->
+        <CreateItem Condition="%(Type)=='Library'"
+                    Include="@(PrivateGrabbed)">
+            <Output TaskParameter="Include" ItemName="LocalGrabbedUnfilteredLibraries"/>
+        </CreateItem>
+        <RemoveDuplicates Inputs="@(LocalGrabbedUnfilteredLibraries)">
+            <Output TaskParameter="Filtered" ItemName="GrabbedUnfilteredLibraries"/>
+        </RemoveDuplicates>
+        <!-- SPLIT COMPONENTS (1b) TO libraries to be filtered... -->
+        <CreateItem Condition="%(Type)=='LibraryToFilter'"
+                    Include="@(PrivateGrabbed -> '%(RootDir)%(Directory)%(FileName).lib')">
+            <Output TaskParameter="Include" ItemName="LocalGrabbedLibrariesToFilter"/>
+        </CreateItem>
+        <RemoveDuplicates Inputs="@(LocalGrabbedLibrariesToFilter)">
+            <Output TaskParameter="Filtered" ItemName="GrabbedLibrariesToFilter"/>
+        </RemoveDuplicates>
+        <!-- ...and filter them, excluding SELF's one, see not above when these libs are added: I cannot link with myself -->
+        <CreateItem Include="@(GrabbedUnfilteredLibraries)" Exclude="@(GrabbedLibrariesToFilter);@(SelfInterface -> '%(Identity).lib')">
+            <Output TaskParameter="Include" ItemName="LocalGrabbedLibraries"/>
+        </CreateItem>
+        <RemoveDuplicates Inputs="@(LocalGrabbedLibraries)">
+            <Output TaskParameter="Filtered" ItemName="GrabbedLibraries"/>
+        </RemoveDuplicates>
+        <!-- ...and create final libraries -->
+        <CreateItem Include="@(GrabbedLibraries);@(Libraries -> '%(Filename).lib')"
+                    Condition="Exists('%(Identity)')">
+            <Output TaskParameter="Include" ItemName="LocalLinkDependencyLibraries"/>
+        </CreateItem>
+        <RemoveDuplicates Inputs="@(LocalLinkDependencyLibraries)">
+            <Output TaskParameter="Filtered" ItemName="LinkDependencyLibraries"/>
+        </RemoveDuplicates>
+
+        <!-- prepare (2a) unfiltered components -->
+        <CreateItem Condition="%(Type)=='Component'"
+                    Include="@(PrivateGrabbed)"
+                    Exclude="@(GrabbedComponents)">
+            <Output TaskParameter="Include" ItemName="LocalGrabbedComponents"/>
+        </CreateItem>
+        <RemoveDuplicates Inputs="@(LocalGrabbedComponents)">
+            <Output TaskParameter="Filtered" ItemName="GrabbedComponents"/>
+        </RemoveDuplicates>
+
+        <!-- ... (3a) TO Sources (for DEF)... -->
+        <CreateItem Condition="Exists( '%(Identity)\$(SourceDirName)' )"
+                    Include="@(GrabbedComponents)">
+            <Output TaskParameter="Include" ItemName="LocalGrabbedSources"/>
+        </CreateItem>
+        <RemoveDuplicates Inputs="@(LocalGrabbedSources)">
+            <Output TaskParameter="Filtered" ItemName="GrabbedSources"/>
+        </RemoveDuplicates>
+        <!-- ... (3b) TO Includes (for H)... -->
+        <CreateItem Condition="Exists( '%(Identity)\$(IntermediateDirName)' )"
+                    Include="@(GrabbedComponents)">
+            <Output TaskParameter="Include" ItemName="LocalGrabbedIncludes"/>
+        </CreateItem>
+        <RemoveDuplicates Inputs="@(LocalGrabbedIncludes)">
+            <Output TaskParameter="Filtered" ItemName="GrabbedIncludes"/>
+        </RemoveDuplicates>
+
+        <!-- ... (4) TO Header Includes... -->
+        <CreateItem Condition="Exists( '%(Identity)\Header' )"
+                    Include="@(GrabbedComponents)">
+            <Output TaskParameter="Include" ItemName="GrabbedHeaders"/>
+        </CreateItem>
+
+        <!-- SPLIT COMPONENTS (6) TO Messages (BinaryReSources)... -->
+        <CreateItem Condition="%(Type)=='Messages'"
+                    Include="@(PrivateGrabbed)">
+            <Output TaskParameter="Include" ItemName="LocalGrabbedMessages"/>
+        </CreateItem>
+        <RemoveDuplicates Inputs="@(LocalGrabbedMessages)">
+            <Output TaskParameter="Filtered" ItemName="GrabbedMessages"/>
+        </RemoveDuplicates>
+
+        <!-- SPLIT COMPONENTS (7) TO Runtime Modules (DLL,EXE)... -->
+        <CreateItem Condition="%(Type)=='Runtime'"
+                    Include="@(PrivateGrabbed)">
+            <Output TaskParameter="Include" ItemName="LocalGrabbedRuntimes"/>
+        </CreateItem>
+        <RemoveDuplicates Inputs="@(LocalGrabbedRuntimes)">
+            <Output TaskParameter="Filtered" ItemName="GrabbedRuntimes"/>
+        </RemoveDuplicates>
+
+        <!-- Message Text="+AL(%(Type)):$(MSBuildProjectName)/$(Result): @(GrabbedUnfilteredLibraries)" Importance="high"/ -->
+        <!-- Message Text="+FL(%(Type)):$(MSBuildProjectName)/$(Result): @(GrabbedLibrariesToFilter)" Importance="high"/ -->
+        <!-- Message Text="+PR(%(Type)):$(MSBuildProjectName)/$(Result): @(PrivateGrabbed)" Importance="high"/ -->
+        <!-- Message Text="+GC(%(Type)):$(MSBuildProjectName)/$(Result): @(GrabbedComponents)" Importance="high"/ -->
+        <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedSources)" Importance="high"/ -->
+        <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedIncludes)" Importance="high"/ -->
+        <!-- Message Text="+!!$(MSBuildProjectName)/$(Result): @(GrabbedLibraries)" Importance="high"/ -->
+        <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedMessages)" Importance="high"/ -->
+        <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedRuntimes)" Importance="high"/ -->
+        <!-- Message Text="+%(Type)!!$(MSBuildProjectName)/$(Result): @(GrabbedExportInterfaces)" Importance="high"/ -->
+        <!-- Message Text="=========================================" Importance="high"/ -->
+    </Target>
+
+    <Target Name="GrabComponentInterface"
+            Outputs="@(GrabbedObjects)">
+        <CreateItem Include="@(Objects -> '$(ComponentPath)\$(IntermediateDirName)\%(FileName).obj')"
+                    AdditionalMetadata="Type=InterfaceObjects">
+            <Output TaskParameter="Include" ItemName="GrabbedObjects"/>
+        </CreateItem>
+    </Target>
+
+</Project>

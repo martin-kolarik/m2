@@ -245,4 +245,9 @@ END Run;
 
 (*================================================================================*)
 
+BEGIN
+FINALLY
+   IF PR <> NIL THEN
+      DISPOSE( PR );
+   END;
 END Service.

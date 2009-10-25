@@ -145,6 +145,7 @@ CONST
 
 CONST
    tiInitReadDelay = 67;
+   tiForceRead = 69;
    
 //-----
 
@@ -483,6 +484,8 @@ CLASS IMPLEMENTATION CEIBServer;
    BEGIN
       IF TimerId = tiInitReadDelay THEN
          DoInitRead( TRUE );
+      ELSIF TimerId = tiForceRead THEN
+         DoForceRead();
       END;
    END OnTimer;
 
@@ -627,7 +630,11 @@ CLASS IMPLEMENTATION CEIBServer;
 
    PUBLIC VIRTUAL PROPERTY Running GET : BOOLEAN;
    BEGIN
-      RETURN ( rsRunning IN RStatus ) AND ( EIB <> NIL ) AND EIB^.DeviceConnected();
+      IF _CacheOnlyMode THEN
+         RETURN rsRunning IN RStatus;
+      ELSE
+         RETURN ( rsRunning IN RStatus ) AND ( EIB <> NIL ) AND EIB^.DeviceConnected();
+      END;
    END Running;
 
 //--------------------------------------------------------------------------------
@@ -684,9 +691,14 @@ CLASS IMPLEMENTATION CEIBServer;
          Result.QuerySuspension();
       END;
 
-      StopTimer( tiInitReadDelay );
-      EXCL( RStatus, rsInitReadFinished );
-      EIB^.Connect();
+      IF _CacheOnlyMode THEN
+         OnDeviceConnect();
+      ELSE
+         StopTimer( tiForceRead );
+         StopTimer( tiInitReadDelay );
+         EXCL( RStatus, rsInitReadFinished );
+         EIB^.Connect();
+      END;
 
       IF Running THEN
          RETURN Sync.arCompleted;
@@ -704,16 +716,24 @@ CLASS IMPLEMENTATION CEIBServer;
       ELSE
          RETURN;
       END;
-      StopTimer( tiInitReadDelay );
-      IF EIB <> NIL THEN
-         EIB^.Disconnect();
+
+      IF _CacheOnlyMode THEN
+         OnDeviceDisconnect();
+      ELSE
+         StopTimer( tiForceRead );
+         StopTimer( tiInitReadDelay );
+         IF EIB <> NIL THEN
+            EIB^.Disconnect();
+         END;
       END;
    END Stop;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROCEDURE IOh( Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
    VAR
+      address : ARRAY [0..63] OF WCHAR;
+      description : StringsO.CString;
       EV : eib_def.CValue;
       changed : BOOLEAN;
       key, value : StringsO.CString;
@@ -747,7 +767,7 @@ CLASS IMPLEMENTATION CEIBServer;
       
       IF Item = itemConnected THEN
          IF Direction = IOO.dirRead THEN
-            Value.Boolean := ( EIB <> NIL ) AND EIB^.EIBConnected();
+            Value.Boolean := _CacheOnlyMode OR ( EIB <> NIL ) AND EIB^.EIBConnected();
             RETURN Sync.arCompleted;
          ELSE
             RETURN Sync.arCannotStart;
@@ -758,9 +778,21 @@ CLASS IMPLEMENTATION CEIBServer;
       IF Direction = IOO.dirRead THEN
          PObject^.GetValue( OUT EV, TRUE, FALSE );
          EIBValue2IOValue( EV, OUT Value );
+
       ELSE // dirWrite
+      
          IOValue2EIBValue( Value, PObject^.Type, OUT EV );
          PObject^.SetValue( EV, OUT changed );
+
+         // log operation originator
+         IF ( Originator <> NIL ) AND
+            ( objtLogNoChange IN PObject^.ObjectType ) OR // log always
+            ( objtLogOnChange IN PObject^.ObjectType ) AND changed THEN // always allow log failures
+            description := Originator^.Description;
+            PObject^.SendAddress.GetGroupAddress3( TRUE, OUT address );
+            _DataLogger^.LogSSS( log.dldMessage, L"srv", "SET RQ", address, OA( description.Length-1, description.rawData ));
+         END;         
+      
          IF changed THEN
             PObject^.ChangedOnWrite := 1;
             // for notification using EventSink, if it exists
@@ -781,7 +813,7 @@ CLASS IMPLEMENTATION CEIBServer;
 
 //--------------------------------------------------------------------------------
 
-   PUBLIC VIRTUAL PROCEDURE IOha( Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE IOha( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ARRAY OF ns.THash; REF Value : ARRAY OF iovalue.Value; Callback : io.TPDataInfo ) : Sync.TAsyncResult;
    BEGIN
       RETURN Sync.arCannotStart;
    END IOha;
@@ -806,13 +838,22 @@ CLASS IMPLEMENTATION CEIBServer;
       connection : ARRAY [0..255] OF WCHAR;
       s : StringsO.CString;
    BEGIN
-      IF EIB = NIL THEN
+      IF _CacheOnlyMode THEN
+         s.FromOA( L"CACHE" );
+      ELSIF EIB = NIL THEN
          // fall down
       ELSIF EIB^.GetParameter( L"link.connection", OUT connection ) THEN
          s.FromOA( connection );
       END;
       RETURN s;
    END Connection;
+
+//--------------------------------------------------------------------------------
+
+   PUBLIC PROPERTY CacheOnlyMode GET : BOOLEAN;
+   BEGIN
+      RETURN _CacheOnlyMode;
+   END CacheOnlyMode;
 
 //--------------------------------------------------------------------------------
 
@@ -834,6 +875,7 @@ CLASS IMPLEMENTATION CEIBServer;
          kvFalcon            = L'falcon';
          kvEIBNet            = L'eibnet';
       knKey                  = L'key';
+      knCacheOnlyMode        = L'cache_only';
       knMode                 = L'mode';
       knInputQueueLength     = L'input_queue_length';
       knOutputQueueLength    = L'output_queue_length';
@@ -854,6 +896,7 @@ CLASS IMPLEMENTATION CEIBServer;
       knInitReadRepeatCount  = L'read_on_start_repeat_count';
       knPromiscuousMode      = L'promiscuous_mode';
       knBehaviour            = L'behaviour';
+         knForceReadPeriod   = L'readers_period';
          kvReadable          = L'readable';
          kvWritable          = L'writable';
          kvTransmit          = L'transmit';
@@ -1400,8 +1443,13 @@ CLASS IMPLEMENTATION CEIBServer;
          IF TS.GetKeyStr( knKey, OUT ErrorLine, OUT so ) THEN
             so.ToOA( OUT Key );
          END;
+         IF NOT TS.GetKeyBool( knCacheOnlyMode, OUT ErrorLine, OUT _CacheOnlyMode ) AND _CacheOnlyMode THEN
+            _CacheOnlyMode := FALSE;
+         END;
       END; // IF snDevice
-      IF DeviceId = LONGWORD( -1 ) THEN
+      IF _CacheOnlyMode THEN
+         NEW( eibnetstack.TPEIBNetStack( EIB ));
+      ELSIF DeviceId = LONGWORD( -1 ) THEN
          // Stack := stackFalcon;
          // NEW( falconStack.TPFalconStack( EIB ));
          // ASSIGN( falconStack.TPFalconStack( EIB )^.Connection, FalconConnection );
@@ -1533,6 +1581,12 @@ CLASS IMPLEMENTATION CEIBServer;
       // read behaviours
       Behaviours.Dispose();
       IF TS.SetSection( snBehaviours ) THEN
+         IF NOT TS.GetKeyInt( knForceReadPeriod, OUT ErrorLine, OUT _ForceReadPeriod ) THEN
+            _ForceReadPeriod := 0;
+         ELSIF _ForceReadPeriod < 60 * 1000 THEN // _ForceReadPeriod cannot be smaller than 1 minute
+            _ForceReadPeriod := 60 * 1000;
+         END;
+
          ES := 0;
          WHILE TS.EnumerateKeys( REF ES, OUT ErrorLine, OUT p, OUT so ) DO
             IF NOT EQUALS( p, knBehaviour ) THEN
@@ -1762,33 +1816,35 @@ CLASS IMPLEMENTATION CEIBServer;
          END;
       END; // IF snFormats
 
-      EIB^.SetStackAddress( Address );
+      IF NOT _CacheOnlyMode THEN
+         EIB^.SetStackAddress( Address );
 
-      IF PromiscuousMode THEN
-         EIB^.SetParameter( L"application.promiscuousMode", L"true", OUT ErrorMessageOA );
-      ELSE
-         EIB^.SetParameter( L"application.promiscuousMode", L"false", OUT ErrorMessageOA );
-      END;
-      IF PromiscuousMode THEN
-         FOR EIT := eib_def.eitSwitch TO eib_def.eitString DO WITH prObjects[EIT] DO
-            Server := ADR( SELF );
-            Init( EIB, EIT, eib_user.obNone );
-            SetClass( eib_def.priorityNormal );
-            SetFlags( fullIOFlags + eib_def.TA_ObjectFlags{eib_def.aofPromiscuous} );
-            SubscribePromiscuous();
-         END; END; // WITH // FOR
-      END; // IF PromiscuousMode
+         IF PromiscuousMode THEN
+            EIB^.SetParameter( L"application.promiscuousMode", L"true", OUT ErrorMessageOA );
+         ELSE
+            EIB^.SetParameter( L"application.promiscuousMode", L"false", OUT ErrorMessageOA );
+         END;
+         IF PromiscuousMode THEN
+            FOR EIT := eib_def.eitSwitch TO eib_def.eitString DO WITH prObjects[EIT] DO
+               Server := ADR( SELF );
+               Init( EIB, EIT, eib_user.obNone );
+               SetClass( eib_def.priorityNormal );
+               SetFlags( fullIOFlags + eib_def.TA_ObjectFlags{eib_def.aofPromiscuous} );
+               SubscribePromiscuous();
+            END; END; // WITH // FOR
+         END; // IF PromiscuousMode
 
-      EIB^.SetTimeout( eib_stack.tidL_ACKTimeout, ACKTimeout, 0 );
-      EIB^.SetTimeout( eib_stack.tidL_BUSYDelay, BUSYDelay, 0 );
-      EIB^.SetTimeout( eib_stack.tidL_SendDelay, SendDelay, 0 );
-      EIB^.SetTimeout( eib_stack.tidA_PendingDelay, WriteDelay, eib_stack.pendingGroupWrite );
-      EIB^.SetTimeout( eib_stack.tidA_PendingDelay, ReadOnStart.Delay, eib_stack.pendingGroupRead );
-      EIB^.SetTimeout( eib_stack.tidA_PendingTimeout, ReadOnStart.Timeout, eib_stack.pendingGroupRead );
+         EIB^.SetTimeout( eib_stack.tidL_ACKTimeout, ACKTimeout, 0 );
+         EIB^.SetTimeout( eib_stack.tidL_BUSYDelay, BUSYDelay, 0 );
+         EIB^.SetTimeout( eib_stack.tidL_SendDelay, SendDelay, 0 );
+         EIB^.SetTimeout( eib_stack.tidA_PendingDelay, WriteDelay, eib_stack.pendingGroupWrite );
+         EIB^.SetTimeout( eib_stack.tidA_PendingDelay, ReadOnStart.Delay, eib_stack.pendingGroupRead );
+         EIB^.SetTimeout( eib_stack.tidA_PendingTimeout, ReadOnStart.Timeout, eib_stack.pendingGroupRead );
 
-      IF NOT PromiscuousMode THEN
-         eib_stack.TPEIBStackApplicationLayer( EIB^.Layers[ eib_stack.eltApplication ] )^.Update_L_Layer();
-      END;
+         IF NOT PromiscuousMode THEN
+            eib_stack.TPEIBStackApplicationLayer( EIB^.Layers[ eib_stack.eltApplication ] )^.Update_L_Layer();
+         END;
+      END; // IF _CacheOnlyMode
       
       ConfigurationPath.Assign( ConfigurationFile ); // store sucessfully read configuration
       RETURN TRUE;
@@ -1823,6 +1879,9 @@ CLASS IMPLEMENTATION CEIBServer;
       IF Objects.Count = 0 THEN
          InitReadFinished();
       ELSE
+         IF ( _ForceReadPeriod > 0 ) AND ( _ReadersCount > 0 ) THEN
+            StartTimer( tiForceRead, _ForceReadPeriod, TRUE );
+         END;
          DoInitRead( FALSE );
       END;
       
@@ -1845,6 +1904,8 @@ CLASS IMPLEMENTATION CEIBServer;
       IF EventSink <> NIL THEN
          EventSink^.OnDisconnect();
       END;
+
+      StopTimer( tiForceRead );
 
       IF _AdviseListener <> NIL THEN
          hash := itemConnected;
@@ -1963,6 +2024,13 @@ CLASS IMPLEMENTATION CEIBServer;
    VAR
       PObject : TPObject;
    BEGIN
+      IF _CacheOnlyMode THEN
+         Flags := Flags - eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofInitRead};
+      END;
+      IF eib_def.aofForceRead IN Flags THEN
+         INC( _ReadersCount );
+      END;
+
       NEW( PObject );
       PObject^.Server := ADR( SELF );
       PObject^.Init( EIB, Type, eib_user.obNone );
@@ -2285,6 +2353,8 @@ CLASS IMPLEMENTATION CEIBServer;
       END;
       DoneObjects( TRUE );
       Behaviours.Dispose();
+      _ForceReadPeriod := 0;
+      _ReadersCount := 0;
       IF EIB <> NIL THEN
          EIB^.Done();
          DISPOSE( EIB );
@@ -2311,9 +2381,9 @@ CLASS IMPLEMENTATION CEIBServer;
          IF NOT RepeatFlag AND ( eib_def.aofInitRead IN PObject^.GetFlags()) OR
                 RepeatFlag AND ( PObject^.InitReadState = eib_user.irsWillRepeat ) THEN
 
-            IF NOT Logger.Filtered( log.dldDebug, L"srv" ) THEN
+            IF NOT Logger.Filtered( log.dldTrace, L"srv" ) THEN
                PObject^.ReadAddress.GetGroupAddress3( TRUE, saddr );
-               Logger.LogSS( log.dldDebug, L"srv", "INIT: ", saddr );
+               Logger.LogSS( log.dldTrace, L"srv", "INIT: ", saddr );
             END;
 
             INC( InitReadItems );
@@ -2325,6 +2395,38 @@ CLASS IMPLEMENTATION CEIBServer;
       UnlockObjects();
 
    END DoInitRead;
+
+//--------------------------------------------------------------------------------
+
+   PROCEDURE DoForceRead();
+   VAR
+      EV : eib_def.TValue;
+      i : CARDINAL;
+      PObject : TPObject;
+      saddr : ARRAY [0..63] OF WCHAR;
+   BEGIN
+      IF _ReadersCount > 0 THEN // redundant check
+
+         LockObjects();
+
+         FOR i := 0 TO Objects.Count - 1 DO
+            PObject := TPObject( Objects[i] );
+            IF eib_def.aofForceRead NOT IN PObject^.GetFlags() THEN
+               CONTINUE;
+            END;
+
+            IF NOT Logger.Filtered( log.dldTrace, L"srv" ) THEN
+               PObject^.ReadAddress.GetGroupAddress3( TRUE, saddr );
+               Logger.LogSS( log.dldTrace, L"srv", "READER: ", saddr );
+            END;
+
+            PObject^.GetValue( OUT EV, FALSE, TRUE );
+         END;
+
+         UnlockObjects();
+
+      END;
+   END DoForceRead;
 
 //--------------------------------------------------------------------------------
 
@@ -2603,6 +2705,7 @@ CLASS IMPLEMENTATION CEIBServer;
 BEGIN
    RStatus := TRStatus{};
    Stack := stackUnknown;
+   _CacheOnlyMode := FALSE;
 
    EIB := NIL;
    Sink.Server := ADR( SELF );
@@ -2616,6 +2719,9 @@ BEGIN
    Logger.SetLogName( L"KNX" );
    Logger.RedirectTo := Log.logger();
    
+   _ForceReadPeriod := 0;
+   _ReadersCount := 0;
+
    ObjectLock.Init( Sync.ltCS, L"", FALSE );
    QueueLock.Init( Sync.ltSpin, L"", FALSE );
    

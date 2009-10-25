@@ -165,6 +165,10 @@ CLASS IMPLEMENTATION CTest;
       i : CARDINAL;
       stop : CARDINAL := INIT_COUNT DIV ReaderCount;
    BEGIN
+      IF Host^.FastEvaluation THEN
+         stop := stop DIV 100;
+      END;
+   
       LOOP
          RWLock.LockWrite( Sync.FOREVER );
 

@@ -106,7 +106,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       _EIB^.QueueLock.Lock();
 
       Sync.IExchgAdd( REF _GotByHour[dt.Hour MOD 24], _EIB^.oobData.Count );
-      _EIB^.oobData.Clear();
+      _EIB^.oobData.Dispose();
 
       _EIB^.QueueLock.Unlock();
    END OnInputQueueAdd;
@@ -196,6 +196,13 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       
       RETURN connected;
    END Connected;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY CacheOnlyMode GET : BOOLEAN;
+   BEGIN
+      RETURN _EIB^.CacheOnlyMode;
+   END CacheOnlyMode;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -445,20 +452,28 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE SetValue( CONST name, value : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE SetValue( CONST originator : inetaddr.INETADDR; CONST name, value : StringsO.IString ) : BOOLEAN;
    VAR
+      d : StringsO.CString;
       hash : ns.THash;
-      io : iovalue.Value;
+      ia : ARRAY [0..63] OF WCHAR;
+      Originator : io.CSimpleOriginator;
       s : StringsO.CString;
+      Value : iovalue.Value;
    BEGIN
       // no need to sync, NameToHash is be thread safe
       IF NOT _EIB^.NameToHash( name, OUT hash ) THEN
          RETURN FALSE;
       END;
       s.Assign( value );
-      io.String := s;
+      Value.String := s;
+
+      originator.GetAddressOA( TRUE, OUT ia );
+      d.FromOA( L"web/" ); d.AppendOA( ia );
+      Originator.SetDescription( d );
+
       // no need to sync, IOh is be thread safe
-      RETURN _EIB^.IOh( IOO.dirWrite, hash, REF io, NIL ) = Sync.arCompleted; // partial = cache write is not evaluated as true
+      RETURN _EIB^.IOh( ADR( Originator ), IOO.dirWrite, hash, REF Value, NIL ) = Sync.arCompleted; // partial = cache write is not evaluated as true
    END SetValue;
 
 (*--------------------------------------------------------------------------------*)
@@ -474,7 +489,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          RETURN FALSE;
       END;
       // no need to sync, IOh is be thread safe
-      IF _EIB^.IOh( IOO.dirRead, hash, REF io, NIL ) NOT IN Sync.arsCompletions THEN
+      IF _EIB^.IOh( NIL, IOO.dirRead, hash, REF io, NIL ) NOT IN Sync.arsCompletions THEN
          RETURN FALSE;
       END;
       s := io.String;
@@ -723,8 +738,14 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE RemoveControllers();
+   VAR
+      LController : Controller.TPController := Controller.TPController( _Controller );
    BEGIN
-      _MVC^.ForgetControllerCompletely( _Controller );
+      IF LController <> NIL THEN
+         _MVC^.ForgetControllerCompletely( LController );
+         DISPOSE( LController );
+         _Controller := NIL;
+      END;
 
       _MVC^.ForgetFallbackController();
    END RemoveControllers;
@@ -732,6 +753,8 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE AdjustHours( CONST dt : time.DateTime; REF hours : ARRAY OF CARDINAL; REF modified : ARRAY OF time.TJD );
+   CONST
+      TWENTY_THREE_HOURS = time.unitsInDay DIV 24 * 23 - 1;
    VAR
       i : CARDINAL;
       jd : time.TJD := dt.JulianDate;
@@ -743,7 +766,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       END;
 
       FOR i := 0 TO HIGH( hours ) DO
-         IF modified[i] + time.unitsInDay < jd THEN
+         IF modified[i] + TWENTY_THREE_HOURS < jd THEN
             hours[i] := 0;
          END;
       END;
