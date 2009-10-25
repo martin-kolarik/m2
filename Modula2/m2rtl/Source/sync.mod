@@ -21,6 +21,8 @@ BEGIN
       Name := L"completed";
    | arPartCompleted :
       Name := L"completed partialy";
+   | arAlreadyCompleted :
+      Name := L"already completed (done nothing)";
    | arNoData :
       Name := L"no data";
    | arPending :

@@ -52,55 +52,75 @@ CLASS IMPLEMENTATION Win32Thread;
     _WMsg := 1;
   END Win32Thread.WithMessages;
   
-   PUBLIC FINAL PROCEDURE Win32Thread.Run( Wait : BOOLEAN );
+   PUBLIC FINAL PROCEDURE Win32Thread.Start( WaitRun : BOOLEAN ) : Sync.TAsyncResult;
+   VAR
+      Result : Sync.TAsyncResult;
    BEGIN
       IF _HThread <> NIL THEN
-         RETURN;
+         RETURN Sync.arAlreadyPending;
       END;
-      _RunLock := 0;
+
+      _RunLock.Reset();
       _HExit.Reset();
       _HThread := windows.CreateThread( NIL, STACK_SIZE, windows.PTHREAD_START_ROUTINE( Win32_thread ), ADR( SELF ), 0, ADR( _Thread ));
-      WHILE Wait AND ( Sync.IGet( REF _RunLock ) = 0 ) DO
-         Sync.Sleep( 0 );
+      IF WaitRun THEN
+         Result := _RunLock.Wait( Sync.FORSAFETY );
+      ELSE
+         Result := Sync.arPending;
       END;
-   END Win32Thread.Run;
-  
-  PUBLIC FINAL PROCEDURE Win32Thread.Stop( Wait : BOOLEAN );
-  VAR
-    Result : Sync.TAsyncResult;
-  BEGIN
-    IF _HThread = NIL THEN
-      RETURN;
-    END;
-    _HExit.Signal();
-    IF Wait THEN
-      Result := sync.RawWait( _HThread, 10 * sync.FORSAFETY );
       ASSERTLOG( Result <> Sync.arTimeout );
-    END;
-    IF _HThread <> NIL THEN
-      windows.CloseHandle( _HThread );
-    END;
-    _Thread := 0;
-    _HThread := NIL;
-    _Runnable := NIL;
-    IF _WMsg = 1 THEN
-      _WMsg := -1;
-    END;
-  END Win32Thread.Stop;
+      
+      RETURN Result;
+   END Win32Thread.Start;
   
-   PUBLIC FINAL PROCEDURE WaitStop( Timeout : CARDINAL ) : sync.TAsyncResult;
+   PUBLIC FINAL PROCEDURE Win32Thread.Stop( _WaitStop : BOOLEAN ) : Sync.TAsyncResult;
+   VAR
+      Result : Sync.TAsyncResult;
    BEGIN
-      RETURN sync.RawWait( _HThread, Timeout );
+      IF _HThread = NIL THEN
+         RETURN Sync.arAlreadyCompleted;
+      END;
+
+      _HExit.Signal();
+      IF _WaitStop THEN
+         Result := WaitStop( Sync.FORSAFETY );
+      ELSE
+         Result := Sync.arPending;
+      END;
+      ASSERTLOG( Result <> Sync.arTimeout );
+
+      RETURN Result;
+   END Win32Thread.Stop;
+  
+   PUBLIC FINAL PROCEDURE WaitStop( Timeout : CARDINAL ) : Sync.TAsyncResult;
+   VAR
+      Result : Sync.TAsyncResult;
+   BEGIN
+      IF _HThread = NIL THEN
+         RETURN Sync.arAlreadyCompleted;
+      END;
+
+      Result := sync.RawWait( _HThread, Timeout );
+
+      windows.CloseHandle( _HThread );
+      _Thread := 0;
+      _HThread := NIL;
+      _Runnable := NIL;
+      IF _WMsg = 1 THEN
+         _WMsg := -1;
+      END;
+      
+      RETURN Result;
    END WaitStop;
 
-   PUBLIC FINAL PROCEDURE RunWithRunnable( Runnable : OSALthread.TPRunnable );
+   PUBLIC FINAL PROCEDURE RunWithRunnable( Runnable : OSALthread.TPRunnable ) : Sync.TAsyncResult;
    BEGIN
       IF _Runnable <> NIL THEN // already exists
          ASSERTLOG( FALSE );
-         RETURN;
+         RETURN Sync.arAlreadyPending;
       END;
       _Runnable := Runnable;
-      Run( FALSE );
+      RETURN Start( TRUE );
    END RunWithRunnable;
 
    INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : OSALthread.IRunnableHelper ) : CARDINAL;
@@ -223,7 +243,7 @@ CLASS IMPLEMENTATION Win32Thread;
         windows.PeekMessage( ADR( msg ), NIL, 0, 0, windows.PM_NOREMOVE );
         _WMsg := 1;
      END;
-     Sync.IExchg( REF _RunLock, 1 );
+     _RunLock.Signal();
      IF _Runnable = NIL THEN
        RETURN OnRun( SELF );
      ELSE
@@ -237,7 +257,7 @@ CLASS IMPLEMENTATION Win32Thread;
    END Win32Thread;
 
 BEGIN
-   _RunLock := 0;
+   _RunLock.Init( Sync.stSpin, L"", FALSE );;
    _Thread := 0;
    _HThread := NIL;
    _HExit.Init( Sync.stEvent, L"", FALSE );

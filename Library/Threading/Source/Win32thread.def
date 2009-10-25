@@ -13,7 +13,7 @@ IMPORT
 
 CLASS Win32Thread IMPLEMENTS OSALthread.IThread, OSALthread.IRunnableHelper;
   PRIVATE VAR
-    _RunLock : CARDINAL;
+    _RunLock : Sync.SIGNAL;
     _Thread : CARDINAL;
     _HThread : Sync.WAITABLE;
     _WMsg : TRISTATE;
@@ -29,13 +29,13 @@ CLASS Win32Thread IMPLEMENTS OSALthread.IThread, OSALthread.IRunnableHelper;
   PUBLIC PROPERTY
     WithMessages : BOOLEAN;
 
-  PUBLIC FINAL PROCEDURE Run( Wait : BOOLEAN );
-  PUBLIC FINAL PROCEDURE Stop( Wait : BOOLEAN );
+  PUBLIC FINAL PROCEDURE Start( WaitRun : BOOLEAN ) : sync.TAsyncResult;
+  PUBLIC FINAL PROCEDURE Stop( WaitStop : BOOLEAN ) : sync.TAsyncResult;
   PUBLIC FINAL PROCEDURE WaitStop( Timeout : CARDINAL ) : sync.TAsyncResult;
   
   INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : OSALthread.IRunnableHelper ) : CARDINAL;
 
-  PUBLIC FINAL PROCEDURE RunWithRunnable( Runnable : OSALthread.TPRunnable );
+  PUBLIC FINAL PROCEDURE RunWithRunnable( Runnable : OSALthread.TPRunnable ) : sync.TAsyncResult;
 
   // IRunnableHelper
   PUBLIC VIRTUAL PROCEDURE WaitForStopRequest( Timeout : CARDINAL ) : sync.TAsyncResult; // arCompleted for Stop request

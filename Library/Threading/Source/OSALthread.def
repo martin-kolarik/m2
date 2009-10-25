@@ -35,12 +35,12 @@ INTERFACE IThread( IRunnable );
       SelfContext : BOOLEAN;
 
    // fully controlled thread approach
-   PUBLIC PROCEDURE Run( Wait : BOOLEAN ); // command
-   PUBLIC PROCEDURE Stop( Wait : BOOLEAN ); // command
-   PUBLIC PROCEDURE WaitStop( Timeout : CARDINAL ) : Sync.TAsyncResult; // wait to exit
+   PUBLIC PROCEDURE Start( WaitRun : BOOLEAN ) : Sync.TAsyncResult; // command
+   PUBLIC PROCEDURE Stop( WaitStop : BOOLEAN ) : Sync.TAsyncResult; // command, if WaitStop then Stop calls WaitStop internally, otherwise the command is asynchronous
+   PUBLIC PROCEDURE WaitStop( Timeout : CARDINAL ) : Sync.TAsyncResult; // waits for stop, cleans resources
    
    // worker thread approach
-   PUBLIC PROCEDURE RunWithRunnable( Runnable : TPRunnable );
+   PUBLIC PROCEDURE RunWithRunnable( Runnable : TPRunnable ) : Sync.TAsyncResult; // WaitStop or Stop must still be called, because only WaitStop cleans resources
    
    // inherited INTERNAL PROCEDURE OnRun() : CARDINAL; // executive code
 END IThread;
