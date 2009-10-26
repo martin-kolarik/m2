@@ -339,6 +339,10 @@ VAR
 	dn : TPXMLNode;
 	nodeType : xmlDOM.DOMNodeType;
 BEGIN
+   IF xn = NIL THEN
+      RETURN NIL;
+   END;
+
 	nodeType := xn^.nodeType;
 	CASE nodeType OF
 	| xmlDOM.NODE_DOCUMENT :
@@ -353,6 +357,7 @@ BEGIN
 	  xn^.Release();
 	  dn := NIL;
 	END;
+
 	RETURN dn;
 END CastToDOM;
 

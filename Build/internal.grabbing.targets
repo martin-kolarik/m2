@@ -220,6 +220,7 @@
     </Target>
 
     <Target Name="GrabComponentInterface"
+            Condition="$(PropagateBuild)=='on'" 
             Outputs="@(GrabbedObjects)">
         <CreateItem Include="@(Objects -> '$(ComponentPath)\$(IntermediateDirName)\%(FileName).obj')"
                     AdditionalMetadata="Type=InterfaceObjects">
