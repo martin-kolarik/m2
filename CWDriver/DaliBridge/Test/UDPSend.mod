@@ -59,7 +59,7 @@ CLASS IMPLEMENTATION CTest;
       DSocket.LocalAddress := IA;
       DSocket.SSocket.Open( OUT Error );
 
-      IA.SetAddressOA( L"10.0.0.100:10001", 0 );
+      IA.FromOA( L"10.0.0.100:10001", 0 );
       FOR i := 0 TO 100 DO
          DSocket.SendToOA( swonall, IA );
          sync.Sleep( 60 );

@@ -66,7 +66,7 @@ CLASS IMPLEMENTATION CResult;
 
             stdout^.WriteOA( L"        MAC: ", FALSE ); stdout^.Write( server^.MAC, FALSE );
             
-            server^.Address.GetAddressOA( TRUE, OUT s );
+            server^.Address.ToOA( TRUE, OUT s );
             S.FromOA( s );
             IPs.Add( S, 0 );
 

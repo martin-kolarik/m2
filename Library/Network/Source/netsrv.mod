@@ -240,7 +240,7 @@ CLASS IMPLEMENTATION CInterfaceEnumerator;
          RETURN FALSE;
       END;
 
-      Address.FromOA( OA( a^.Address.iSockaddrLength-1, a^.Address.lpSockaddr ));
+      Address.FromBOA( OA( a^.Address.iSockaddrLength-1, a^.Address.lpSockaddr ));
       Preferred := a^.DadState = iptypes.IpDadStatePreferred;
       Scope := Address.Scope;
       

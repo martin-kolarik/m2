@@ -123,7 +123,7 @@ CLASS IMPLEMENTATION CDispatcher;
                count := 0;
                ai := TPNameToAddressRequest( Request )^.AddrInfo;
                REPEAT
-                  Addresses^[count].FromOA( OA( ai^.ai_addrlen-1, ai^.ai_addr ));
+                  Addresses^[count].FromBOA( OA( ai^.ai_addrlen-1, ai^.ai_addr ));
                   INC( count );
                   ai := ai^.ai_next;
                UNTIL ai = NIL;
@@ -273,7 +273,7 @@ VAR
    Address : inetaddr.INETADDR;
    Request : TPNameToAddressRequest;
 BEGIN
-   IF Address.SetAddressOA( Name, DefaultPort ) THEN
+   IF Address.FromOA( Name, DefaultPort ) THEN
       IF PNotifier <> NIL THEN
          PNotifier^.OnAddressFound( RequestId, 0, OA( 0, ADR( Address )) );
       END;

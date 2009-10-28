@@ -994,7 +994,7 @@ CLASS IMPLEMENTATION CDriver;
             b := FALSE;
           END; // CASE
           IF b THEN
-            IAddress.GetAddressOA( FALSE, OUT n );
+            IAddress.ToOA( FALSE, OUT n );
             SW.AppendOA( n ); SW.AppendOA( L"-" );
             Strings.FromCARD32W( IAddress.Port, 10, OUT n );
             SW.AppendOA( n );

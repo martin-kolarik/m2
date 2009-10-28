@@ -142,7 +142,7 @@ BEGIN
       INC( i );
    END; // WHILE
 
-   ia.SetAddressOA( L"10.0.0.6:3671", 0 );
+   ia.FromOA( L"10.0.0.6:3671", 0 );
 
    Busmon.Mode := eibnet.cmTunnelingBlind;
    Busmon.TunnelingMode := eibnet.tmRaw;

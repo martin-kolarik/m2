@@ -22,7 +22,7 @@ PROCEDURE LogSHPAI( Logger : log.TPLogger; Level : TDebugLevel; Prefix, S : ARRA
 VAR
    Address : ARRAY [0..63] OF WCHAR;
 BEGIN
-   HPAI.Address.GetAddressOA( TRUE, OUT Address );
+   HPAI.Address.ToOA( TRUE, OUT Address );
    Logger^.LogSS( dldTrace, Prefix, S, Address );
 END LogSHPAI;
 
@@ -33,7 +33,7 @@ VAR
    Address : ARRAY [0..63] OF WCHAR;
    n : ARRAY [0..15] OF WCHAR;
 BEGIN
-   HPAI.Address.GetAddressOA( TRUE, OUT Address );
+   HPAI.Address.ToOA( TRUE, OUT Address );
    Strings.PrependW( REF Address, L" " );
    Strings.FromCARD32W( C, 10, OUT n );
    Strings.PrependW( REF Address, n );
@@ -354,7 +354,7 @@ CLASS IMPLEMENTATION CConnection;
          ai.Port := _Socket^.LocalAddress.Port;
          HPAISelf.Address := ai;
 
-         ai.SetAddressOA( core.EIBNET_DISCOVERY_ADDRESS, core.EIBNET_IPPORT );
+         ai.FromOA( core.EIBNET_DISCOVERY_ADDRESS, core.EIBNET_IPPORT );
          _Socket^.MulticastGroup := ai;
          IOState := ioReady;
 

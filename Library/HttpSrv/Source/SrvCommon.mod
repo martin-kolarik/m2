@@ -1068,7 +1068,7 @@ CLASS IMPLEMENTATION HttpWorker;
       END;
       
       IF NOT logger^.Filtered( dlcError, LOG_HTTP ) THEN
-         _Stream^.RemoteAddress.GetAddressOA( FALSE, OUT sOA );
+         _Stream^.RemoteAddress.ToOA( FALSE, OUT sOA );
          s.FromOA( sOA );
          s.AppendOA( L" - - [" );
 

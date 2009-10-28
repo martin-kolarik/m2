@@ -348,7 +348,7 @@ CLASS IMPLEMENTATION CEIBNetStack;
          END;
 
       ELSIF EQUALS( Parameter, L"link.connection" ) THEN
-         TPEIBNetPhysicalLayer( Layers[ eib_stack.eltPhysical ] )^.RemoteAddress.GetAddressOA( TRUE, OUT Value );
+         TPEIBNetPhysicalLayer( Layers[ eib_stack.eltPhysical ] )^.RemoteAddress.ToOA( TRUE, OUT Value );
          
       ELSE
          RETURN FALSE;

@@ -198,7 +198,7 @@ CLASS IMPLEMENTATION INETADDR;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE GetAddressOA( IncludePort : BOOLEAN; OUT Address : ARRAY OF WCHAR ); // numerical form in string
+   PUBLIC PROCEDURE ToOA( IncludePort : BOOLEAN; OUT Address : ARRAY OF WCHAR ); // numerical form in string
    VAR
       buffer : ARRAY [0..511] OF CHAR;
       result : CARDINAL;
@@ -227,11 +227,11 @@ CLASS IMPLEMENTATION INETADDR;
             Strings.AppendW( REF Address, serverU );
          END; 
       END;
-   END GetAddressOA;
+   END ToOA;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE SetAddressOA( CONST Address : ARRAY OF WCHAR; DefaultPort : CARDINAL ) : BOOLEAN; // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
+   PUBLIC PROCEDURE FromOA( CONST Address : ARRAY OF WCHAR; DefaultPort : CARDINAL ) : BOOLEAN; // numerical form in string, FQDN will be refused, INETADDR class does not perform DNS operations
    VAR
       ai : WS2TcpIp.Paddrinfo;
       hostA : ARRAY [0..511] OF CHAR;
@@ -264,7 +264,7 @@ CLASS IMPLEMENTATION INETADDR;
 
       WS2TcpIp.freeaddrinfo( ai );
       RETURN TRUE;
-   END SetAddressOA;
+   END FromOA;
    
 (*--------------------------------------------------------------------------------*)
 
@@ -285,13 +285,13 @@ CLASS IMPLEMENTATION INETADDR;
    BEGIN
       CASE What OF
       | saEmpty :
-         SetAddressOA( L"0.0.0.0", 0 );
+         FromOA( L"0.0.0.0", 0 );
       | saLoopback :
-         SetAddressOA( L"127.0.0.1", 0 );
+         FromOA( L"127.0.0.1", 0 );
       | saLocalLink :
-         SetAddressOA( L"127.0.0.1", 0 );
+         FromOA( L"127.0.0.1", 0 );
       | saLocalLinkRandom :
-         SetAddressOA( L"127.0.0.1", 0 );
+         FromOA( L"127.0.0.1", 0 );
       | saPrivateRandom :
          ASSERTLOG( FALSE );
       END; // CASE      
@@ -303,15 +303,15 @@ CLASS IMPLEMENTATION INETADDR;
    BEGIN
       CASE What OF
       | saEmpty :
-         SetAddressOA( L"[::]", 0 );
+         FromOA( L"[::]", 0 );
       | saLoopback :
-         SetAddressOA( L"[::1]", 0 );
+         FromOA( L"[::1]", 0 );
       | saLocalLink :
-         SetAddressOA( L"[fe80::1]", 0 );
+         FromOA( L"[fe80::1]", 0 );
       | saLocalLinkRandom :
-         SetAddressOA( L"[fe80::abcd:abcd]", 0 );
+         FromOA( L"[fe80::abcd:abcd]", 0 );
       | saPrivateRandom :
-         SetAddressOA( L"[fc00::1]", 0 );
+         FromOA( L"[fc00::1]", 0 );
       END; // CASE      
    END SetV6;
 
@@ -341,7 +341,7 @@ CLASS IMPLEMENTATION INETADDR;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE FromOA( CONST storage : ARRAY OF BYTE );
+   PUBLIC PROCEDURE FromBOA( CONST storage : ARRAY OF BYTE );
    VAR
       i : CARDINAL;
    BEGIN
@@ -351,7 +351,7 @@ CLASS IMPLEMENTATION INETADDR;
       FOR i := 0 TO MIN2( HIGH( SELF.storage ), HIGH( storage )) DO
          SELF.storage[i] := storage[i];
       END;
-   END FromOA;
+   END FromBOA;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -364,7 +364,7 @@ CLASS IMPLEMENTATION INETADDR;
       ELSE
          high := SIZE( WS2TcpIp.sockaddr_in6 )-1;
       END;
-      FromOA( OA( high, storage ));
+      FromBOA( OA( high, storage ));
    END FromM;
 
 (*--------------------------------------------------------------------------------*)
@@ -397,7 +397,7 @@ CLASS IMPLEMENTATION INETADDR;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ToAddressOA( OUT IPAddr : ARRAY OF BYTE; OUT filled : CARDINAL ) : BOOLEAN; // returns only address bytes, ignoring V4, V6 differences
+   PUBLIC PROCEDURE ToAddressBOA( OUT IPAddr : ARRAY OF BYTE; OUT filled : CARDINAL ) : BOOLEAN; // returns only address bytes, ignoring V4, V6 differences
    BEGIN
       IF V6 AND ToV6( OUT IPAddr ) THEN
          filled := SIZE( WS2TcpIp.in_addr6 );
@@ -409,11 +409,11 @@ CLASS IMPLEMENTATION INETADDR;
          filled := 0;
          RETURN FALSE;
       END;
-   END ToAddressOA;
+   END ToAddressBOA;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ToOA( OUT storage : ARRAY OF BYTE; OUT Length : CARDINAL ) : BOOLEAN;
+   PUBLIC PROCEDURE ToBOA( OUT storage : ARRAY OF BYTE; OUT Length : CARDINAL ) : BOOLEAN;
    VAR
       i : CARDINAL;
       l : CARDINAL := SELF.Length;
@@ -427,7 +427,7 @@ CLASS IMPLEMENTATION INETADDR;
          storage[i] := SELF.storage[i];
       END;
       RETURN TRUE;
-   END ToOA;
+   END ToBOA;
 
 (*--------------------------------------------------------------------------------*)
 

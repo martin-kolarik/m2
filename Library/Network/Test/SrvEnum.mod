@@ -83,7 +83,7 @@ CLASS IMPLEMENTATION CTest;
             Host^.Log^.LogS( log.dlcInfo, L"", L"no local addresses" );
          ELSE
             FOR i := 0 TO Filled-1 DO
-               Addresses[i].GetAddressOA( FALSE, OUT String );
+               Addresses[i].ToOA( FALSE, OUT String );
                Host^.Log^.LogS( log.dlcInfo, L"", String );
             END; // FOR
          END;
@@ -98,7 +98,7 @@ CLASS IMPLEMENTATION CTest;
             Host^.Log^.LogS( log.dlcInfo, L"", L"no local addresses" );
          ELSE
             FOR i := 0 TO Filled-1 DO
-               Addresses[i].GetAddressOA( FALSE, OUT String );
+               Addresses[i].ToOA( FALSE, OUT String );
                Host^.Log^.LogS( log.dlcInfo, L"", String );
             END; // FOR
          END;
@@ -161,7 +161,7 @@ CLASS IMPLEMENTATION CTest;
          
          index := 0;
          WHILE Enum^.InetAddress( index, OUT ia, OUT preferred, OUT scope, OUT assignment ) DO
-            ia.GetAddressOA( FALSE, OUT String );
+            ia.ToOA( FALSE, OUT String );
             IF preferred THEN
                Strings.AppendW( REF String, L", preferred" );
             END;

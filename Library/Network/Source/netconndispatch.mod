@@ -556,7 +556,7 @@ VAR
 BEGIN
    logger()^.LogS( Severity, logPrefix, Text );
 
-   Connection^.RemoteAddress.GetAddressOA( TRUE, OUT address );
+   Connection^.RemoteAddress.ToOA( TRUE, OUT address );
    logger()^.LogSS( Severity, logPrefix, "  address ", address );
 END Log;
   

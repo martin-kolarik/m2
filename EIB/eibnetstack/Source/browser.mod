@@ -84,7 +84,7 @@ CLASS IMPLEMENTATION CBrowser;
       Server : TPServer;
       String : ARRAY [0..63] OF WCHAR;
    BEGIN
-      packet.Address.GetAddressOA( FALSE, OUT String );
+      packet.Address.ToOA( FALSE, OUT String );
       logger()^.LogSS( dldTrace, L"EIBNet Browser", "found server: ", String );
 
       NEW( Server );
