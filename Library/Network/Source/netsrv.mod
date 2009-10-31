@@ -342,7 +342,7 @@ CLASS CIPServer( msghandler.MessageHandler );
   _FDHandle : threadpool.TPoolHandle;
   _FDMessager : msghandler.TPMessageHandler;
   _FDMessage : msghandler.Message;
-  _Delegate : threadpool.CMessageHandlerDelegate;
+  _Delegate : threadpool.TPMessageHandlerDelegate;
 
   CBMode : IOO.TCallbackMode := IOO.cbmDefault;
   MQueue : msgqueue.CMessageQueue;
@@ -419,6 +419,10 @@ CLASS IMPLEMENTATION CIPServer;
     END;
     IF _FDHandle <> NIL THEN
       netpool.pool()^.Abort( REF _FDHandle );
+    END;
+    IF _Delegate <> NIL THEN
+      _Delegate^.Release();
+      _Delegate := NIL;
     END;
     SUPER.Dispose();
   END Dispose;
@@ -502,8 +506,12 @@ CLASS IMPLEMENTATION CIPServer;
     END;
     CBMode := Mode;
     IF CBMode = IOO.cbmPooled THEN
+      IF _Delegate = NIL THEN
+         NEW( _Delegate );
+         _Delegate^.Handler := ADR( SELF );
+      END;
       IF _FDHandle = NIL THEN
-        netpool.pool()^.WaitMessage( ADR( _Delegate ), 0, Sync.FOREVER, FALSE, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
+        netpool.pool()^.WaitMessage( _Delegate, 0, Sync.FOREVER, FALSE, FALSE, OUT _FDMessager, OUT _FDMessage, OUT _FDHandle );
       END;
       MQueue.Consumer := _FDMessager;
       MQueue.ConsumerMsg := ADR( _FDMessage );
@@ -642,7 +650,7 @@ CLASS IMPLEMENTATION CIPServer;
 BEGIN
   _FDHandle := NIL;
   _FDMessager := NIL;
-  _Delegate.Handler := ADR( SELF );
+  _Delegate := NIL;
   MQueue.Init( 32, SIZE( TMessage ));
   MQueue.Consumer := ADR( SELF );
   SocketNotifier.Server := ADR( SELF );
