@@ -74,7 +74,7 @@
 
 
     <Target Name="ComponentTestExec"
-        Condition="$(Test)!='off'"
+        Condition="$(Test)!='off' And $(TestExec)!='off'"
         DependsOnTargets="ComponentTestBuild">
         <Exec Condition="Exists('$(TestOutput)')" 
               WorkingDirectory="$(OutputDir)"
