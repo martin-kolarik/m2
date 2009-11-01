@@ -1,7 +1,7 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <WixLocalization>
-  <String Id="WixUIBack">&lt; &amp;Zpět</String>
-  <String Id="WixUINext">&amp;Další &gt;</String>
+  <String Id="WixUIBack">&amp;Zpět</String>
+  <String Id="WixUINext">&amp;Další</String>
   <String Id="WixUICancel">Zrušit</String>
   <String Id="WixUIFinish">&amp;Dokončit</String>
   <String Id="WixUIRetry">&amp;Opakovat</String>
@@ -108,7 +108,7 @@
   <String Id="LicenseAgreementDlgCancel">Zrušit</String>
   <String Id="LicenseAgreementDlgBannerBitmap">WixUI_Bmp_Banner</String>
   <String Id="LicenseAgreementDlgAgreementText" />
-  <String Id="LicenseAgreementDlgDescription">Prosím, přečtěte si pečlivě následující licenční ujednání:</String>
+  <String Id="LicenseAgreementDlgDescription">Přečtěte si pečlivě následující licenční ujednání:</String>
   <String Id="LicenseAgreementDlgTitle">{\WixUI_Font_Title}Licenční ujednání</String>
 
   <String Id="MaintenanceTypeDlg_Title">Instalace [ProductName]</String>
@@ -262,9 +262,9 @@
 
   <String Id="WaitForCostingDlg_Title">Instalace [ProductName]</String>
   <String Id="WaitForCostingDlgReturn">&amp;Návrat</String>
-  <String Id="WaitForCostingDlgText">Prosím, vyčkejte dokud Průvodce instalací nezjistí velikost potřebného místa na pevném disku.</String>
+  <String Id="WaitForCostingDlgText">Vyčkejte dokud Průvodce instalací nezjistí velikost potřebného místa na pevném disku.</String>
   <String Id="WaitForCostingDlgIcon">WixUI_Ico_Exclam</String>
-  <String Id="WaitForCostingDlgIconTooltip">Upozornění</String>
+  <String Id="WaitForCostingDlgIconTooltip">Ikona Upozornění</String>
 
   <String Id="WelcomeDlg_Title">Instalace [ProductName]</String>
   <String Id="WelcomeDlgNext">&amp;Další</String>
