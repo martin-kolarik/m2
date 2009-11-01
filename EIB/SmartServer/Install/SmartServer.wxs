@@ -120,6 +120,11 @@
                                 </Component>
                             </Directory>
                         </Directory>
+                        <Directory Id="ETS3" Name="ETS3">
+                            <Component Id="ETSPR3" Guid="B4DD0905-C693-45b2-B846-E6AA106BD0DB">
+                                <File Id="VirtualObjectServer.pr3" LongName="Virtual Object Server.pr3" Name="VirtSrv.pr3" Source="ETS3\Virtual Object Server.pr3" DiskId="1" />
+                            </Component>
+                        </Directory>
                         <Directory Id="EXAMPLES" Name="Examples">
                             <Component Id="Examples" Guid="504E174F-A539-4C95-B1BA-51674C84ECD4">
                                 <File Id="_01_test_direct.cfg" LongName="01 test-direct.cfg" Name="01TEST.CFG" Source="Examples\01 test-direct.cfg" DiskId="1" />
@@ -133,6 +138,7 @@
                                 <File Id="_10_debug_trace.cfg" LongName="10 debug-trace.cfg" Name="10DEBUG.CFG" Source="Examples\10 debug-trace.cfg" DiskId="1" />
                                 <File Id="_11_debug_all.cfg" LongName="11 debug-all.cfg" Name="11DEBUG.CFG" Source="Examples\11 debug-all.cfg" DiskId="1" />
                                 <File Id="_12_test_logged.cfg" LongName="12 test-logged.cfg" Name="12TEST.CFG" Source="Examples\12 test-logged.cfg" DiskId="1" />
+                                <File Id="_13_reader.cfg" LongName="13 reader.cfg" Name="12READER.CFG" Source="Examples\13 reader.cfg" DiskId="1" />
                             </Component>
                             <Directory Id="Adobe_Flash" LongName="Adobe Flash" Name="Flash">
                                 <Component Id="ExamplesFlash" Guid="61E9CC52-47B5-48f3-8EC6-99D1894F9C20">
@@ -209,6 +215,7 @@
             <ComponentRef Id="ToolDiscover" />
             <ComponentRef Id="Documentation" />
             <ComponentRef Id="DefaultConfiguration" />
+            <ComponentRef Id="ETSPR3" />
             <ComponentRef Id="Web" />
             <ComponentRef Id="UserWeb" />
             <ComponentRef Id="UserWebExamples" />
