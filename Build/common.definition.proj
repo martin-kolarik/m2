@@ -107,7 +107,7 @@
 
     <!-- (constructed properties, DO NOT MODIFY) -->
     <PropertyGroup>
-        <ClientLicensing Condition="$(ClientLicensing)=='' Or $(ProductFlag)=='off'">off</ClientLicensing>
+        <ClientLicensing Condition="$(ClientLicensing)=='' Or $(ProductId)==''">off</ClientLicensing>
         <SetupLicensing Condition="$(SetupLicensing)=='' Or $(ProductFlag)=='off'">off</SetupLicensing>
         <ClientLicensing Condition="$(Licensing)=='on' And $(ProductFlag)=='on'">on</ClientLicensing>
         <SetupLicensing Condition="$(Licensing)=='on' And $(ProductFlag)=='on'">on</SetupLicensing>

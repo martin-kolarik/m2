@@ -6,6 +6,7 @@ FROM Storage IMPORT
 IMPORT
    device,
    io,
+   lec,
    lists,
    loader,
    log,
@@ -60,6 +61,7 @@ ABSTRACT CLASS ABridge IMPLEMENTS
       _WriteLock : Sync.LOCK;
       _WriteSignal : Sync.SIGNAL;
       _WriteQueue : lists.CStringStringList;
+      _Result : lec.CResult;
    
    PUBLIC PROCEDURE EnumerateDeviceState( REF ES : PTR; OUT device : StringsO.IString; OUT Running : BOOLEAN ) : BOOLEAN;
 

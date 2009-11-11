@@ -4,6 +4,7 @@ FROM Debug IMPORT
    Assertion, LogAssertionW;
 
 IMPORT
+   cllv,
    FIO,
    INIFile,
    iobject,
@@ -98,6 +99,10 @@ CLASS IMPLEMENTATION ABridge;
             END;
             _TickCounter := _PeriodCounter;
 
+            IF _Result.Counted OR _Result.Expired THEN
+               CONTINUE;
+            END;
+
             // get values from device and send them to SDAP
             _Data.Reset();
             WHILE _Data.MoveNext() DO
@@ -105,13 +110,14 @@ CLASS IMPLEMENTATION ABridge;
                IF item^.Direction <> IOO.dirRead THEN
                   CONTINUE;
                END;
+               _Result.Inc();
 
                IF NOT _Logger.Filtered( log.dldDebug, LOG_NAME ) THEN
                   _Logger.LogSS( log.dldDebug, LOG_NAME, L"Querying: ", OA( item^.SDAPName.Length-1, item^.SDAPName.rawData ));
                END;
 
                cb.Reset();
-               Result := item^.Device^.IO()^.IOh( IOO.dirRead, item^.Hash, REF value, ADR( cb ));
+               Result := item^.Device^.IO()^.IOh( NIL, IOO.dirRead, item^.Hash, REF value, ADR( cb ));
                IF ( Result <> Sync.arCompleted ) AND ( Result <> Sync.arPending ) THEN
                   s.FromOA( L"Error in IOh read: " );
                   s.Append( item^.SDAPName );
@@ -152,6 +158,10 @@ CLASS IMPLEMENTATION ABridge;
                   _WriteLock.Unlock();
                   EXIT;
                END;
+               
+               IF _Result.Counted OR _Result.Expired THEN
+                  CONTINUE;
+               END;
 
                _Data.Reset();
                WHILE _Data.MoveNext() DO
@@ -161,6 +171,7 @@ CLASS IMPLEMENTATION ABridge;
                   ELSIF NOT item^.SDAPName.Equals( sdapName ) THEN
                      CONTINUE;
                   END;
+                  _Result.Inc();
 
                   IF NOT _Logger.Filtered( log.dldDebug, LOG_NAME ) THEN
                      _Logger.LogSSSS( log.dldDebug, LOG_NAME, L"Writing: ", OA( item^.SDAPName.Length-1, item^.SDAPName.rawData ), L"", OA( valueString.Length-1, valueString.rawData ));
@@ -168,7 +179,7 @@ CLASS IMPLEMENTATION ABridge;
 
                   cb.Reset();
                   value.String := valueString;
-                  Result := item^.Device^.IO()^.IOh( IOO.dirWrite, item^.Hash, REF value, ADR( cb ));
+                  Result := item^.Device^.IO()^.IOh( NIL, IOO.dirWrite, item^.Hash, REF value, ADR( cb ));
                   IF Result <> Sync.arPending THEN
                      s.FromOA( L"Error in IOh write: " );
                      s.Append( item^.SDAPName );
@@ -430,8 +441,13 @@ CLASS IMPLEMENTATION ABridge;
    VAR
       dev : device.TPDevice;
       Result : Sync.TAsyncResult := Sync.arCannotStart;
+      s : FIO.PathStrW;
    BEGIN
       _Logger.LogS( log.dldMessage, L"IOSDAPBridge", L"Started" );
+
+      _Result.Reset( lec.bhBestCase );
+      FIO.GetModuleDirW( L"", OUT s );
+      lec.QueryData( s, L"", ADR( cllv.data ), cllv.length, REF _Result );
 
       _Devices.Reset();
       WHILE _Devices.MoveNext() DO
