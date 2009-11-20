@@ -517,7 +517,7 @@ END ReallocateHook;
 
 //================================================================================
   
-PROCEDURE DllMain( Reason : CARDINAL );
+PROCEDURE DllMain( Reason : CARDINAL ) : BOOLEAN;
 VAR
   Track : POINTER TO TTrack;
 BEGIN
@@ -544,6 +544,8 @@ BEGIN
     Track := windows.TlsGetValue( tlsTrack );
     LD.iDeallocate( Track );
   END; // CASE
+
+  RETURN TRUE;
 END DllMain;
 
 //================================================================================
