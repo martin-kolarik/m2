@@ -115,6 +115,30 @@ inline void OBJECT::operator delete(void* ptr) throw()
   __M2DEALLOCATE(&ptr);
 } // OBJECT::operator delete
 
+inline void* __cdecl operator new(size_t size) throw()
+{
+  void* ptr;
+  __M2ALLOCATE(&ptr, size);
+  return ptr;
+}
+
+inline void __cdecl operator delete(void* ptr) throw()
+{
+  __M2DEALLOCATE(&ptr);
+}
+
+inline void* __cdecl operator new[](size_t size) throw()
+{
+  void* ptr;
+  __M2ALLOCATE(&ptr, size);
+  return ptr;
+}
+
+inline void __cdecl operator delete[](void* ptr) throw()
+{
+  __M2DEALLOCATE(&ptr);
+}
+
 # endif // # ifndef _M2INTRINSIC_Storage_
 
 # endif // # ifdef __Storage_MN
