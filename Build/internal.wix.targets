@@ -26,8 +26,8 @@
         <CandleDefs>$(CandleDefs) -dManufacturer=&quot;$(Manufacturer)&quot; -dProductDisplayName=&quot;$(ProductDisplayName)&quot; -dProductDescription=&quot;$(ProductDescription)&quot;</CandleDefs>
         <CandleDefs>$(CandleDefs) -dUpgradeGUID=$(ProductUpgradeGUID) -dLicenceMId=$(LicenceMachineId)</CandleDefs>
         <CandleDefs>$(CandleDefs) -dLanguageName=$(RFC1766Short) -dLanguage=$(LangIdDec) -dCodePage=$(OriginalCodePageDec) -dConfigurationName=$(ConfigurationName) -dLeakChecking=$(LeakChecking)</CandleDefs>
-        <CandleDefs Condition="$(CLib)=='static'">$(CandleDefs) -dCLib=$(CLib)</CandleDefs>
-        <CandleDefs Condition="$(CLib)!='static'">$(CandleDefs) -dCLib=$(DynamicCLibInstallMethod)</CandleDefs>
+        <CandleDefs Condition="$(CLib)=='Static'">$(CandleDefs) -dCLib=$(CLib)</CandleDefs>
+        <CandleDefs Condition="$(CLib)=='Dynamic'">$(CandleDefs) -dCLib=$(DynamicCLibInstallMethod)</CandleDefs>
     </PropertyGroup>
 
     <ItemGroup>

@@ -149,6 +149,9 @@
         <Warning Condition="$(DefinitionFileAllowed)=='off' And $(SelfDefinitionFileExists)=='on'"
                  Text="Definition file $(ComponentDefinitionsPath) will not be used, component type or owning component denies it."
                  HelpKeyword ="ComponentType, *.definition.proj"/>
+        <Error Condition="$(CPPExceptions)=='on' And $(CLib)=='Private'"
+               Text="Private CLib does not support native CPP exceptions, switch native exceptions off or use Static or Dynamic CLib."
+               HelpKeyword ="CLib"/>
         <!-- Exec Command="$(RootDir)\setenv.bat"/ -->
     </Target>
 
@@ -334,7 +337,7 @@
         <Exec Condition="$(Result)=='Program'"
               WorkingDirectory="$(IntermediateDir)"
               Command="$(LINK) $(LINKDEF) @(Objects -> '%(Filename).obj', ' ') @(RESFile -> '%(Filename).res') @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ')"/>
-        <Exec Condition="$(Result)!='Static' And $(CLib)!='Static'"
+        <Exec Condition="$(Result)!='Static' And $(CLib)=='Dynamic'"
               Command="$(MT)"/>
     </Target>
 

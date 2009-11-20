@@ -69,7 +69,7 @@
         <Exec WorkingDirectory="$(IntermediateDir)"
               Command="$(LINK) /dll $(LINKTEST) /out:..\$(TestOutput) @(Objects -> '%(Filename).obj', ' ') @(TestOBJFiles -> '%(Filename).obj', ' ') @(GrabbedLibraries, ' ') @(Libraries -> '%(Filename).lib', ' ') @(SelfInterface -> '%(Identity).lib')"/>
         <!-- LINK SelfInterface.lib is manually added as Libraries do not include self product -->
-        <Exec Condition="$(CLib)!='Static'"
+        <Exec Condition="$(CLib)=='Dynamic'"
               Command="$(MTT)"/>
         <Copy SourceFiles="$(TestDLL)" DestinationFolder="$(OutputDir)"/>
     </Target>

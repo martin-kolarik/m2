@@ -91,7 +91,7 @@
         <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName><!-- Release Debug -->
         <LanguageStyle Condition="$(LanguageStyle)==''">UNICODE</LanguageStyle><!-- ANSI UNICODE -->
         <Language Condition="$(Language)==''">English</Language><!-- English Czech German Japanese -->
-        <CLib Condition="$(CLib)==''">Dynamic</CLib><!-- Static Dynamic --><!-- Static = LIBC, Dynamic = MSVCRT -->
+        <CLib Condition="$(CLib)==''">Private</CLib><!-- Static Dynamic Privat --><!-- Static = LIBC, Dynamic = MSVCRT, Private = CRtl -->
         <Result Condition="$(Result)==''">Static</Result><!-- Static (LIB) Dynamic (DLL) Program (EXE) -->
         <LeakChecking Condition="$(LeakChecking)==''">off</LeakChecking>
         <CPPExceptions Condition="$(CPPExceptions)==''">off</CPPExceptions>

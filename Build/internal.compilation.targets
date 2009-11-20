@@ -39,18 +39,14 @@
         <CLCTRL>/Zp8 /J /Gy /Gr /Gs /GF /GS- /Oi /Zi /DNO_STRICT /DWIN32 /DWINVER=0x0501 /D_WIN32_WINNT=0x0501</CLCTRL><!-- Gs commits stack, its default commit threshold is 4K, the same as linker sets for initial stack commit -->
         <CLCTRL Condition="$(CPPExceptions)=='on'">$(CLCTRL) /GR /EHsc</CLCTRL>
         <CLCTRL Condition="$(CPPExceptions)!='on'">$(CLCTRL) /GR-</CLCTRL>
+        <!-- CLCTRL>$(CLCTRL) /W4 /wd4018 /wd4100 /wd4102 /wd4127 /wd4146 /wd4245</CLCTRL -->
         <!-- CLCTRL Condition="$(CLib)!='Static' And $(DynamicCLibInstallMethod)=='Private'">$(CLCTRL) /D_USE_RTM_VERSION</CLCTRL -->
-        <LINKCTRL Condition="$(CLib)=='Static'">/OPT:REF /OPT:NOWIN98 /MERGE:.rdata=.text /MANIFEST:NO delayimp.lib</LINKCTRL>
-        <LINKCTRL Condition="$(CLib)!='Static'">/OPT:REF /OPT:NOWIN98 /MERGE:.rdata=.text /MANIFEST delayimp.lib</LINKCTRL>
-        <MT Condition="$(Result)=='Program'">$(MT);#1</MT>
-        <MT Condition="$(Result)=='Dynamic'">$(MT);#2</MT>
-    </PropertyGroup>
-
-    <PropertyGroup>
-        <M2CTRL Condition ="$(PublishExports)=='on'">$(M2CTRL) -LN$(LibraryName) -LD</M2CTRL>
-        <M2CTRL Condition ="$(PublishExports)!='on'">$(M2CTRL) -LN$(LibraryName)</M2CTRL>
-        <M2TESTCTRL Condition ="$(Result)=='Static'">$(M2CTRL) -LN$(LibraryName) -LD</M2TESTCTRL>
-        <M2TESTCTRL Condition ="$(Result)!='Static'">$(M2CTRL) -LN$(LibraryName)_test -LD</M2TESTCTRL>
+        <LINKCTRL>/OPT:REF /OPT:NOWIN98 /MERGE:.rdata=.text /IGNORE:4049 /IGNORE:4199 /IGNORE:4210 /IGNORE:4217 delayimp.lib</LINKCTRL>
+        <LINKCTRL Condition="$(CLib)=='Static'">$(LINKCTRL) /MANIFEST:NO</LINKCTRL>
+        <LINKCTRL Condition="$(CLib)=='Dynamic'">$(LINKCTRL) /MANIFEST</LINKCTRL>
+        <LINKCTRL Condition="$(CLib)=='Private'">$(LINKCTRL) /SAFESEH:NO</LINKCTRL>
+        <MT Condition="$(Result)=='Program' And $(CLib)!='Private'">$(MT);#1</MT>
+        <MT Condition="$(Result)=='Dynamic' And $(CLib)!='Private'">$(MT);#2</MT>
     </PropertyGroup>
 
     <PropertyGroup Condition ="$(ConfigurationName)=='Release'">
@@ -67,7 +63,7 @@
         <M2CTRL>$(M2CTRL) -SS</M2CTRL>
         <CLCTRL>$(CLCTRL)</CLCTRL>
         <CLCTRL Condition="$(CLib)=='Static'">$(CLCTRL) /MTd</CLCTRL>
-        <CLCTRL Condition="$(CLib)!='Static'">$(CLCTRL) /MDd</CLCTRL>
+        <CLCTRL Condition="$(CLib)=='Dynamic'">$(CLCTRL) /MDd</CLCTRL>
         <RCCTRL>$(RCCTRL) -DDEBUG</RCCTRL>
         <LINKCTRL>$(LINKCTRL) /DEBUG</LINKCTRL>
     </PropertyGroup>
@@ -75,9 +71,16 @@
         <M2CTRL>$(M2CTRL) -SD</M2CTRL>
         <CLCTRL>$(CLCTRL) /GL /O2</CLCTRL>
         <CLCTRL Condition="$(CLib)=='Static'">$(CLCTRL) /MT</CLCTRL>
-        <CLCTRL Condition="$(CLib)!='Static'">$(CLCTRL) /MD</CLCTRL>
+        <CLCTRL Condition="$(CLib)=='Dynamic'">$(CLCTRL) /MD</CLCTRL>
         <RCCTRL>$(RCCTRL)</RCCTRL>
         <LINKCTRL>$(LINKCTRL) /DEBUG</LINKCTRL>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <M2CTRL Condition ="$(PublishExports)=='on'">$(M2CTRL) -LN$(LibraryName) -LD</M2CTRL>
+        <M2CTRL Condition ="$(PublishExports)!='on'">$(M2CTRL) -LN$(LibraryName)</M2CTRL>
+        <M2TESTCTRL Condition ="$(Result)=='Static'">$(M2CTRL) -LN$(LibraryName) -LD</M2TESTCTRL>
+        <M2TESTCTRL Condition ="$(Result)!='Static'">$(M2CTRL) -LN$(LibraryName)_test -LD</M2TESTCTRL>
     </PropertyGroup>
 
     <!-- INPUTS -->

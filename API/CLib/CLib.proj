@@ -16,7 +16,10 @@
 
     <!-- 4 -->
     <Choose>
-        <When Condition="1==2">
+        <When Condition="$(Parameters)=='Private'">
+            <ItemGroup>
+                <Components Include="API\CRtl"/>
+            </ItemGroup>
         </When>
         <When Condition="$(Parameters)=='Dynamic' And $(Debug)=='On'">
             <ItemGroup>
@@ -36,6 +39,11 @@
         <When Condition="$(Parameters)=='Static' And $(Debug)=='Off'">
             <ItemGroup>
                 <Interface Include="libcmt"/>
+            </ItemGroup>
+        </When>
+        <When Condition="$(CLib)=='Private'">
+            <ItemGroup>
+                <Components Include="API\CRtl"/>
             </ItemGroup>
         </When>
         <When Condition="$(CLib)=='Dynamic' And $(Debug)=='On'">
