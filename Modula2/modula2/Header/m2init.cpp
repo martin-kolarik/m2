@@ -1,10 +1,9 @@
 // MODULE INITIALIZATION
 
-# include "stdlib.h"
 # include "m2init.h"
 
 // initialization
-// # pragma comment(linker, "/merge:.m2=.rdata")
+# pragma comment(linker, "/merge:.m2=.rdata")
 
 # pragma section( ".CRT$XCV", long, read )
 # define __AFTER_CTOR __declspec(allocate(".CRT$XCV")) 
