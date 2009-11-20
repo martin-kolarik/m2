@@ -137,7 +137,7 @@ inline LONGWORD HILONGWORD_( QUADWORD qw ) throw() { return ((__qw*)&qw)->hi; }
    inline LONGWORD HIPTRLONGWORD_( PTR ptr ) throw() { return ((__qw*)&ptr)->hi; }
 # else
    inline LONGWORD LOPTRLONGWORD_( PTR ptr ) { return (LONGWORD)ptr; }
-   inline LONGWORD HIPTRLONGWORD_( PTR ptr ) { return (LONGWORD)0; }
+   inline LONGWORD HIPTRLONGWORD_( PTR     ) { return (LONGWORD)0; }
 # endif
 
 // simple swaps
@@ -604,14 +604,14 @@ inline BOOLEAN RTTI_INHERITS_RTTI( const RTTI* classRtti, const RTTI* testRtti, 
     {
         return TRUE;
     }
-    for( INTEGER i = 0; i < classRtti->ancestor_count; i++ )
+    for( CARDINAL i = 0; i < classRtti->ancestor_count; i++ )
     {
         if( classRtti->ancestors[i] == testRtti )
         {
             return TRUE;
         }
     }
-    for( INTEGER i = 0; i < classRtti->ancestor_count; i++ )
+    for( CARDINAL i = 0; i < classRtti->ancestor_count; i++ )
     {
         if( RTTI_INHERITS_RTTI( classRtti->ancestors[i], testRtti, FALSE ))
         {
@@ -627,14 +627,14 @@ inline BOOLEAN RTTI_INHERITS_NAME( const RTTI* classRtti, INTEGER HIGH_S, CHAR* 
     {
         return TRUE;
     }
-    for( INTEGER i = 0; i < classRtti->ancestor_count; i++ )
+    for( CARDINAL i = 0; i < classRtti->ancestor_count; i++ )
     {
         if( EQUALSB_( OA_MAX, (*classRtti->ancestors[i]).self, HIGH_S, (const CHAR*)S ))
         {
             return TRUE;
         }
     }
-    for( INTEGER i = 0; i < classRtti->ancestor_count; i++ )
+    for( CARDINAL i = 0; i < classRtti->ancestor_count; i++ )
     {
         if( RTTI_INHERITS_NAME( classRtti->ancestors[i], HIGH_S, S, FALSE ))
         {
