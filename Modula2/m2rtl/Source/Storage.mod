@@ -146,11 +146,10 @@ BEGIN
       END; // WHILE
 
    ELSE // move downwards
-      DEC( termination );
       INC( destination, length-1 );
       WHILE source <> termination DO
-         PBYTE( destination )^ := PBYTE( termination )^;
          DEC( termination );
+         PBYTE( destination )^ := PBYTE( termination )^;
          DEC( destination );
       END; // WHILE
 

@@ -9,17 +9,18 @@ FROM Strings IMPORT
 IMPORT
 	Languages,
 	lrconv,
+	Storage,
 	windows,
 	winnls;
 
 PROCEDURE MoveA( CONST Source : ADDRESS; Destination : ADDRESS; Chars : CARDINAL );
 BEGIN
-	windows.MoveMemory( Destination, ADDRESS( Source ), Chars );
+	Storage.Move( Source, Destination, Chars );
 END MoveA;
 
 PROCEDURE MoveW( CONST Source : ADDRESS; Destination : ADDRESS; Chars : CARDINAL );
 BEGIN
-	windows.MoveMemory( Destination, ADDRESS( Source ), Chars << 1 );
+	Storage.Move( Source, Destination, Chars << 1 );
 END MoveW;
 
 PROCEDURE IncA( CONST Source : ADDRESS; Chars : CARDINAL ) : ADDRESS;
