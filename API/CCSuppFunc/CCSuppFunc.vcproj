@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8,00"
-	Name="CRtl"
+	Name="CCSuppFunc"
 	ProjectGUID="{70BDC764-6FA8-4CA8-B728-C0C999747851}"
-	RootNamespace="CRtl"
+	RootNamespace="CCSuppFunc"
 	Keyword="Win32Proj"
 	>
 	<Platforms>
@@ -51,7 +51,7 @@
 				DisableLanguageExtensions="true"
 				RuntimeTypeInfo="false"
 				UsePrecompiledHeader="0"
-				ProgramDataBaseFileName="$(OutDir)\CRtl.pdb"
+				ProgramDataBaseFileName="$(OutDir)\CCSuppFunc.pdb"
 				WarningLevel="4"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="3"
@@ -122,7 +122,7 @@
 				DisableLanguageExtensions="true"
 				RuntimeTypeInfo="false"
 				AssemblerOutput="0"
-				ProgramDataBaseFileName="$(OutDir)\CRtl.pdb"
+				ProgramDataBaseFileName="$(OutDir)\CCSuppFunc.pdb"
 				WarningLevel="4"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="3"
