@@ -348,9 +348,7 @@ CLASS IMPLEMENTATION CController;
       uptime := currentTime - starttime;
       dt.Day := time.JDCToDays( uptime );
       time.fd2HMS( time.fd( uptime ), OUT dt.Hour, OUT dt.Minute, OUT dt.Second, OUT dt.Millisecond );
-      IF dt.Second > 0 THEN
-         INC( dt.Minute );
-      END;
+
       Strings.FromCARD32W( dt.Day, 10, OUT s );
       cs.FromOA( s );
       cs.AppendOA( L"d " );
