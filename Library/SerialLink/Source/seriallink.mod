@@ -786,7 +786,7 @@ END COpenLinkElem;
 (*%E UNICODE *)
   BEGIN
 (*%F UNICODE *)
-    hLink := NOHANDLE;
+    hLink := TLinkHandle( NOHANDLE );
 
     ASSIGN( sPath, Library );
     ASSIGN( sDevice, Device );
@@ -919,7 +919,7 @@ END COpenLinkElem;
     RETURN FALSE;
 (*%E UNICODE *)
 (*%T UNICODE *)
-    hLink := NOHANDLE;
+    hLink := TLinkHandle( NOHANDLE );
 
     ASSIGN( sPath, Library );
     ASSIGN( sDevice, Device );
