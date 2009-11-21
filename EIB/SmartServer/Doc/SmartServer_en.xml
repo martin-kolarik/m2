@@ -280,7 +280,7 @@ Licence support tool
                     </tr>
                     <tr>
                       <td><type>reader</type></td>
-                      <td>As <type>tracker</type>, but moreover server reads item value in the period defined by <type>readers_period</type> parameter. Communication object in the EIB device must have R (read) flag set.</td>
+                      <td>As <type>tracker</type>, but moreover server reads item value in the period defined by <type>readers_period</type> parameter. Communication object in the EIB device must have R (read) flag set. There is an example in file <file>13 reader.cfg</file> installed.</td>
                     </tr>
                   </table>
                 </f.table>

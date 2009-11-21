@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate">
+
+<head>
+  <script type="text/javascript">
+  
+    function setValue( address, value )
+    {
+      try
+      {
+        location.replace( location.pathname + "?set(" + address + "," + value + ")" );
+      }
+      catch(error)
+      {
+        // intentionaly do nothing
+      }
+    }
+    
+  </script>
+</head>
+
+<html>
+  <head>
+    <title>06 input.pt.xml</title>
+  </head>
+  <body>
+    <h1>Set value by input example</h1>
+    <p>Set brightness and press enter: <input type="text" value="${get(3/3/21)}" onchange="setValue( '3/3/21', this.value )" size="3" maxlength="3" /> %</p>
+  </body>
+</html>
+
+</pageTemplate>
