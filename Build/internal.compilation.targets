@@ -46,7 +46,7 @@
         <LINKCTRL Condition="$(ResultSubsystem)=='GUI'">$(LINKCTRL) /SUBSYSTEM:WINDOWS</LINKCTRL>
         <LINKCTRL Condition="$(CLib)=='Static'">$(LINKCTRL) /MANIFEST:NO</LINKCTRL>
         <LINKCTRL Condition="$(CLib)=='Dynamic'">$(LINKCTRL) /MANIFEST</LINKCTRL>
-        <LINKCTRL Condition="$(CLib)=='Private'">$(LINKCTRL) /SAFESEH:NO</LINKCTRL>
+        <LINKCTRL Condition="$(CLib)=='Private'">$(LINKCTRL) /MANIFEST:NO /SAFESEH:NO</LINKCTRL>
         <MT Condition="$(Result)=='Program' And $(CLib)!='Private'">$(MT);#1</MT>
         <MT Condition="$(Result)=='Dynamic' And $(CLib)!='Private'">$(MT);#2</MT>
     </PropertyGroup>

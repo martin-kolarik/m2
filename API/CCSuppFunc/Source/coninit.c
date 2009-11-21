@@ -13,7 +13,7 @@ extern void __stdcall ExitProcess( unsigned int exitCode );
 /* Main is a startup routine of program */
 extern int __cdecl Main( int argc, unsigned short** argv ); 
 
-int __cdecl mainCRTStartup()
+int __fastcall __CRTStartup()
 {
     int ret = 0;
     int argc = 0;
@@ -36,4 +36,14 @@ int __cdecl mainCRTStartup()
 
     ExitProcess( ret );
     return ret;
+}
+
+int __cdecl mainCRTStartup()
+{
+    return __CRTStartup();
+}
+
+int __cdecl WinMainCRTStartup()
+{
+    return __CRTStartup();
 }

@@ -18,7 +18,7 @@
     <Choose>
         <When Condition="$(Parameters)=='Private'">
             <ItemGroup>
-                <Components Include="API\CRtl"/>
+                <Components Include="API\CCSuppFunc"/>
             </ItemGroup>
         </When>
         <When Condition="$(Parameters)=='Dynamic' And $(Debug)=='On'">
@@ -43,7 +43,7 @@
         </When>
         <When Condition="$(CLib)=='Private'">
             <ItemGroup>
-                <Components Include="API\CRtl"/>
+                <Components Include="API\CCSuppFunc"/>
             </ItemGroup>
         </When>
         <When Condition="$(CLib)=='Dynamic' And $(Debug)=='On'">
