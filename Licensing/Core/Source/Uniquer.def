@@ -45,19 +45,27 @@ END NullSource;
 
 (*================================================================================*)
 
+#if #contains( LicenceMachineId, L"D" ) #then
+
 CLASS DiscSource( NullSource );
 	PUBLIC VIRTUAL READONLY PROPERTY
 		UId : TUId;
 	INITIALLY DiscSource;
 END DiscSource;
 
+#endif
+
 (*================================================================================*)
+
+#if #contains( LicenceMachineId, L"M" ) #then
 
 CLASS MACSource( NullSource );
 	PUBLIC VIRTUAL READONLY PROPERTY
 		UId : TUId;
 	INITIALLY MACSource;
 END MACSource;
+
+#endif
 
 (*================================================================================*)
 

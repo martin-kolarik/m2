@@ -3,7 +3,7 @@
     <!-- TOOLS -->
     <PropertyGroup>
         <!-- VCD Condition="$(VCD)==''">$(MSD)\</VCD -->
-        <CL>&quot;$(VCD)cl&quot; /c /D"_ATL_MIN_CRT"</CL>
+        <CL>&quot;$(VCD)cl&quot; /c /D_ATL_MIN_CRT /DWIN32_LEAN_AND_MEAN</CL>
         <LINK>&quot;$(VCD)link&quot; /map /nodefaultlib</LINK>
         <LIB>&quot;$(VCD)lib&quot; /nodefaultlib</LIB>
         <RC>&quot;$(VCD)rc&quot; -r -DWIN32</RC><!-- -i&quot;$(VCD)\..\include&quot;</RC -->

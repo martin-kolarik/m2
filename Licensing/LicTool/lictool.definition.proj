@@ -9,6 +9,7 @@
         <CLib>Static</CLib>
         <Result>Program</Result>
         <LeakChecking>off</LeakChecking>
+        <LicenceMachineId>MD</LicenceMachineId>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(MSBuildProjectName)!='lictool'">
