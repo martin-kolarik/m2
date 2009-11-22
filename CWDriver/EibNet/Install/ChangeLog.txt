@@ -1,3 +1,7 @@
+Version 1.0.1064 beta
+- CHG: CRtl switched to private
+- BUG: Setup of log did not affect global log 
+
 Version 1.0.605 beta
 - CHG: Versioning changed from SVN to HG
 - BUG: OutputQueueLength parameter was unable to read, it always repored error.
