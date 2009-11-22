@@ -42,7 +42,7 @@ CLASS IMPLEMENTATION CTest;
    VAR
       DI : DiskInfo.CDiskInfo;
       i : CARDINAL;
-      MACSource : Uniquer.MACSource;
+      // MACSource : Uniquer.MACSource;
       uid : Uniquer.TUId;
    BEGIN
       SELF.Host := Host;
@@ -59,7 +59,7 @@ CLASS IMPLEMENTATION CTest;
 
       Host^.StartPhase( L"MAC Source" );
 
-      uid := MACSource.UId;      
+      // uid := MACSource.UId;      
       
       Host^.StopPhaseWithResult( test.trSuccess );
 

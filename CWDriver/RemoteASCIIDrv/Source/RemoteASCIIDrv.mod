@@ -7,6 +7,9 @@ MODULE RemoteASCIIDrv;
 FROM Storage IMPORT
   ALLOCATE, DEALLOCATE;
   
+FROM Exceptions IMPORT
+   TestIfCatched;
+  
 FROM Strings IMPORT
   CapitalizeW;  
   
@@ -18,6 +21,7 @@ IMPORT
    cphcommon,
    diface,
    drv_def,
+   Exceptions,
    FIO,
    FIOO,
    INIFile,
@@ -362,8 +366,12 @@ CLASS IMPLEMENTATION CDriver;
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
+   VAR
+      Event : POINTER TO TEventData;
    BEGIN
-      Events.Dispose();
+      WHILE Events.Dequeue( OUT Event ) DO
+         DISPOSE( Event );
+      END; // WHILE
    END Dispose;
 
 (*--------------------------------------------------------------------------------*)
@@ -395,7 +403,7 @@ CLASS IMPLEMENTATION CDriver;
          ELSIF si.EqualsOA( L'get' ) THEN
             IF Result.Counted OR Result.Expired THEN
                Logger.LogS( dldDebug, logPrefix, L"Event.Get clear buffer" );
-               Events.Dispose();
+               Dispose();
 
                GOTO Success;
 
@@ -789,7 +797,11 @@ CLASS IMPLEMENTATION CDriver;
          IF b THEN
             s.Size := 1;
             s.Length := 1;
-            s[0] := WCHAR( RBuffer[RIndex] );
+            TRY
+               s[0] := WCHAR( RBuffer[RIndex] );
+            CATCH : Exceptions.CModula2Exception DO
+               s.Length := 0;
+            END;
          END;
          RBufferLock.Unlock();
 
@@ -855,7 +867,11 @@ CLASS IMPLEMENTATION CDriver;
              
          IF LastError = erOK THEN
             WBuffer.Length := MAX2( WBuffer.Length, WIndex+1 );
-            WBuffer[WIndex] := BYTE( s[0] );
+            TRY
+               WBuffer[WIndex] := BYTE( s[0] );
+            CATCH : Exceptions.CModula2Exception DO
+               /// intentionaly do nothing
+            END;
             INC( WIndex );
          END;
 
