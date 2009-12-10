@@ -13,6 +13,10 @@
         <Result>Dynamic</Result>
     </PropertyGroup>
 
+    <PropertyGroup Condition="$(MSBuildProjectName)=='LicTool'">
+        <ProductVariant>Activator</ProductVariant>
+    </PropertyGroup>
+
     <PropertyGroup>
         <ProductM2Control></ProductM2Control>
         <ProductCLControl></ProductCLControl>
