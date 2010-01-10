@@ -1,10 +1,6 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE pageTemplate [
-    <!ENTITY nbsp "&amp;nbsp;">
-    <!ENTITY copy "&amp;copy;">
-]>
+<?xml version="1.0" encoding="utf-8"?>
 <pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate">
-  <html>
+  <html xmlns="http://www.w3.org/1999/xhtml">
       <head>
           <title>NeNo KNX/EIBSrv</title>
           <link rel="StyleSheet" type="text/css" href="NeNo.css" />
@@ -24,7 +20,7 @@
                           <p><a href="datalog">${msg.menu.datalog}</a></p>
                           <p><a href="syslog">${msg.menu.syslog}</a></p>
                           <p><a href="io">${msg.menu.io}</a></p>
-                          <p>&nbsp;</p>
+                          <p> </p>
                           <p class="logout"><a href="logout">${msg.menu.logout}</a></p>
                       </div>
 
@@ -34,14 +30,14 @@
                         <table cellpadding="0px" cellspacing="0px">
                           <pt:foreach source="names" index="index" item="name">
                             <tr>
-                              <td>${name}</td><td class="spare">&nbsp;</td>
+                              <td>${name}</td><td class="spare"> </td>
                                 <pt:choose>
                                   <pt:when condition="${runStatus[index]}">
-                                    <td><span class="green">${msg.control.running}</span></td><td class="spare">&nbsp;</td>
+                                    <td><span class="green">${msg.control.running}</span></td><td class="spare"> </td>
                                     <td><a href="?stop=${indexes[index]}"><span class="red">[${msg.control.stop}]</span></a></td>
                                   </pt:when>
                                   <pt:otherwise>
-                                    <td><span class="red">${msg.control.stopped}</span></td><td class="spare">&nbsp;</td>
+                                    <td><span class="red">${msg.control.stopped}</span></td><td class="spare"> </td>
                                     <td><a href="?start=${indexes[index]}"><span class="green">[${msg.control.start}]</span></a></td>
                                   </pt:otherwise>
                                 </pt:choose>
@@ -59,7 +55,7 @@
                   </div>
 
                   <div class="bottom">
-                    <p>EIB/KNX SmartServer &copy; NeNo ver. ${version}</p>
+                    <p>EIB/KNX SmartServer © NeNo ver. ${version}</p>
                   </div>
 
               </div>
