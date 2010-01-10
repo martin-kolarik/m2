@@ -443,8 +443,10 @@ END CRawTextView;
 
 CONST
    PT_XMLNS = L"xmlns";
-   PT_NAMESPACE = L"http://www.smartcontrol.cz/2008/XML/Web/PageTemplate";
+   PT_NAMESPACE = L"http://www.smartcontrol.cz/2008/xml/web/pagetemplate";
    PT_ROOTNAME = L"pagetemplate";
+      PT_DECLARATION = L"declaration";
+      PT_CONTENTTYPE = L"contenttype";
       PT_CONDITION = L"condition";
    PT_CHOOSE = L"choose";
       PT_WHEN = L"when";
@@ -460,6 +462,7 @@ CONST
       PT_SOURCE = L"source";
       PT_ITEM = L"item";
    PT_FORM = L"form";
+      PT_ACTION = L"action";
       PT_MODEL = L"model";
       PT_TEXT = L"text";
       PT_NAME = L"name";
@@ -476,6 +479,11 @@ CONST
       PT_FORM_TEXTAREA = L"textarea";
       PT_FORM_HIDDEN = L"hidden";
       PT_FORM_ERRORS = L"errors";
+   PT_VARIABLE = L"variable";
+      // model
+      // source
+
+(*--------------------------------------------------------------------------------*)
 
 CLASS IMPLEMENTATION CPageTemplateView;
 
@@ -492,20 +500,28 @@ CLASS IMPLEMENTATION CPageTemplateView;
    LABEL
       Failure;
    VAR
-      Content : StringsO.CString;
+      acceptHeader : StringsO.CString;
       empty : StringsO.CString;
       fs : FIOO.CFileStream;
       mbs : IOO.CMemoryBufferStream;
       now : time.DateTime;
+      RequestedContent : StringsO.CString;
       viewPath : StringsO.CString;
+      xhtmlSupported : BOOLEAN := FALSE;
    BEGIN
       now.SetNowUTC();
 
       Response.ModelContainer^.ResetModelInViewNames( Request.ControllerURI );
-      HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"", L"utf-8", FALSE, OUT Content );
       Response.AllowCaching := FALSE;
       Response.LastModified := now;
-      Response.ContentType := Content;
+
+      // determine, if client supports XHTML by browser information
+      IF Request.RequestHeaders^.Get( HttpCommon.Accept, OUT acceptHeader ) THEN
+         acceptHeader.Lowerize();
+         IF acceptHeader.ContainsOA( HttpTools.CONTENT_TYPE_XHTML ) THEN // browser explictely states that it supports XHTML, use it
+            xhtmlSupported := TRUE;
+         END;
+      END;
 
       IF Resolver = NIL THEN
          viewPath := ViewName;
@@ -526,18 +542,34 @@ CLASS IMPLEMENTATION CPageTemplateView;
       CurrentViewNameIndex := 1;
       mbs.Init( REF Output, IOO.accWrite );
       Writer.Stream := ADR( mbs );
-      IF NOT ParseRoot() THEN
+      IF NOT ParseRoot( xhtmlSupported, OUT RequestedContent ) THEN
          GOTO Failure;
       END;
       Writer.Close( FALSE ); 
+      
+      // finalize content type
+      IF RequestedContent.Empty THEN // view did not use content type from template file or it is impossible
+         IF xhtmlSupported THEN
+            HttpTools.FormatContentOA( HttpTools.contentTextXHTML, L"", L"utf-8", FALSE, OUT RequestedContent );
+         ELSE // otherwise use compatible content type
+            HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"", L"utf-8", FALSE, OUT RequestedContent );
+         END;
+      // ELSE assume that view (this class) set XHTML/XMLdecl pair or HTML/XMLdecl pair correcly according to client abilities
+      END;
+      Response.ContentType := RequestedContent;
+      
       RETURN TRUE;
       
    Failure:
+      HttpTools.FormatContentOA( HttpTools.contentTextHTML, L"", L"utf-8", FALSE, OUT RequestedContent );
+      Response.ContentType := RequestedContent;
+
       Output.Clear();
       mbs.Init( REF Output, IOO.accWrite );
       Writer.Stream := ADR( mbs );
       FormatError();
       Writer.Close( FALSE ); 
+
       RETURN TRUE;
    END FormatToBuffer;
 
@@ -576,10 +608,15 @@ CLASS IMPLEMENTATION CPageTemplateView;
    
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ParseRoot() : BOOLEAN;
+   PRIVATE PROCEDURE ParseRoot( xhtmlSupported : BOOLEAN; OUT contentTypeRequest : StringsO.CString ) : BOOLEAN;
    VAR
+      haveDeclaration : BOOLEAN := FALSE;
+      haveContentType : BOOLEAN := FALSE;
+      haveXHTML : BOOLEAN := FALSE;
+      haveNS : BOOLEAN := FALSE;
       rootName : StringsO.CString;
       xmle : xmlreader.TXMLError;
+      value : StringsO.CString;
    BEGIN
       xmle := Reader.MoveNext();
       LOOP
@@ -603,7 +640,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
                SetError( rootName, NIL, L"Bad root name." );
                RETURN FALSE;
             ELSIF Reader.MoveToFirstAttribute() <> xmlreader.xmle_S_OK THEN
-               SetError( rootName, NIL, L'"xmlns" attribute(s) not found.' );
+               SetError( rootName, NIL, L'"xmlns" attribute not found.' );
                RETURN FALSE; // at least single attribute with xmlns:... must be present
             END;
             
@@ -612,8 +649,53 @@ CLASS IMPLEMENTATION CPageTemplateView;
                IF Reader.CurrentType <> xmlreader.xntAttribute THEN
                   ASSERTLOG( FALSE ); // should not occur here
                   CONTINUE;
-               ELSIF Reader.CurrentPrefix.EqualsIgnoreCaseOA( PT_XMLNS ) AND Reader.CurrentValue.EqualsIgnoreCaseOA( PT_NAMESPACE ) THEN
+               END;
+               value := Reader.CurrentValue;
+               value.Lowerize();
+               
+               IF Reader.CurrentPrefix.EqualsIgnoreCaseOA( PT_XMLNS ) AND value.EqualsOA( PT_NAMESPACE ) THEN
+                  IF haveNS THEN
+                     SetError( rootName, NIL, L'Duplicate "xmlns" attribute found.' );
+                     RETURN FALSE;
+                  END;
+                  haveNS := TRUE;
                   Prefix := Reader.CurrentName;
+
+               // read template system attributes "declaration" and "contenttype"
+               ELSIF Reader.CurrentPrefix.Empty OR Reader.CurrentPrefix.Equals( Prefix ) THEN
+                  IF Reader.CurrentName.EqualsIgnoreCaseOA( PT_DECLARATION ) THEN
+                     IF haveDeclaration THEN
+                        SetError( rootName, NIL, L'Duplicate "declaration" attribute found.' );
+                        RETURN FALSE;
+                     END;
+                     haveDeclaration := TRUE;
+                     IF haveXHTML THEN // mime type already read, for this type XMLDeclaration is required, if possible for client
+                        Writer.XMLDeclaration := xhtmlSupported;
+                     ELSIF value.EqualsOA( L"none" ) THEN // when explicitely stated, that XML decl shoud not be emitted, do not emit it
+                        Writer.XMLDeclaration := FALSE;
+                     ELSE // in other cases, assume default XML output
+                        Writer.XMLDeclaration := xhtmlSupported;
+                     END;
+
+                  ELSIF Reader.CurrentName.EqualsIgnoreCaseOA( PT_CONTENTTYPE ) THEN
+                     IF haveContentType THEN
+                        SetError( rootName, NIL, L'Duplicate "contenttype" attribute found.' );
+                        RETURN FALSE;
+                     END;
+                     haveContentType := TRUE;
+                     haveXHTML := value.ContainsOA( HttpTools.CONTENT_TYPE_XHTML );
+                     IF NOT haveXHTML THEN // use mime type as is, no logic can be applied
+                        contentTypeRequest := value;
+                        // do not affect XMLDeclaration, author may set it upon his needs
+                     ELSIF xhtmlSupported THEN // ok, use XHTML, it will be OK
+                        contentTypeRequest := value;
+                        Writer.XMLDeclaration := TRUE; // XHTML mime type requires valid XML
+                     ELSE
+                        contentTypeRequest.FromOA( HttpTools.CONTENT_TYPE_HTML ); // overwrite XHTML to HTML, client does not support it
+                        // do not affect XMLDeclaration, author may set it upon his needs
+                     END;
+
+                  END;
                END;
             UNTIL Reader.MoveToNextAttribute() <> xmlreader.xmle_S_OK;
             
@@ -671,6 +753,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
             DEC( depth );
          END;
          IF NOT emit THEN
+            IF isEmpty THEN
+               DEC( depth ); // simulate the same behavior as for emitting
+            END;
             CONTINUE;
          END;
 
@@ -684,7 +769,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
             END;
 
          | xmlreader.xntElementBegin :
-            CASE HandleElementStart( isEmpty, nodePrefix.EqualsIgnoreCase( Prefix ), limitToPTOnly, nodeName, attributes ) OF
+            CASE HandleElementStart( isEmpty, nodePrefix.EqualsIgnoreCase( Prefix ), limitToPTOnly, nodePrefix, nodeName, attributes ) OF
             | esaError :
                RETURN FALSE;
             | esaUnprocessedPT :
@@ -710,7 +795,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE HandleElementStart( isEmpty, ptFlag, limitToPTOnly : BOOLEAN; CONST nodeName : StringsO.CString; CONST attributes : lists.CStringStringList ) : TElementStartAction;
+   PRIVATE PROCEDURE HandleElementStart( isEmpty, ptFlag, limitToPTOnly : BOOLEAN; CONST nodePrefix, nodeName : StringsO.CString; CONST attributes : lists.CStringStringList ) : TElementStartAction;
    VAR
       b : BOOLEAN;
       condition : StringsO.CString;
@@ -743,6 +828,8 @@ CLASS IMPLEMENTATION CPageTemplateView;
             b := ParseFor( attributes );
          ELSIF nodeName.EqualsIgnoreCaseOA( PT_FOREACH ) THEN
             b := ParseForeach( attributes );
+         ELSIF nodeName.EqualsIgnoreCaseOA( PT_VARIABLE ) THEN
+            b := ParseVariable( isEmpty, attributes );
          ELSIF TWhere{whInInput, whInOption} * Where <> TWhere{} THEN
             SetError( nodeName, NIL, L'Element is not allowed inside "pt:input" or "pt:option" context.' );
             b := FALSE;
@@ -818,7 +905,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          RETURN esaError;
       
       ELSE // another element
-         Writer.WriteElementStartOA( OA( nodeName.Length-1, nodeName.rawData ));
+         Writer.WriteElementStartOA( OA( nodePrefix.Length-1, nodePrefix.rawData ), OA( nodeName.Length-1, nodeName.rawData ));
          CopyAttributes( ptFlag, attributes, PT_CONDITION, L"" );
          IF isEmpty THEN
             Writer.WriteElementEnd();
@@ -879,13 +966,13 @@ CLASS IMPLEMENTATION CPageTemplateView;
          ELSIF nodeType = xmlreader.xntElementEnd THEN // other ends are consumed inside
             RETURN TRUE;
          ELSE
-            SetError( nodeName, NIL, L"Forbidden content in pt:case context." );
+            SetError( nodeName, NIL, L"Forbidden content in pt:choose context." );
             RETURN FALSE; // nothing other we do not expect
          END;
          
          IF nodeType = xmlreader.xntElementBegin THEN
             IF NOT nodePrefix.EqualsIgnoreCase( Prefix ) THEN
-               SetError( nodeName, NIL, L"Forbidden element in pt:case context." );
+               SetError( nodeName, NIL, L"Forbidden element in pt:choose context." );
                RETURN FALSE;
 
             ELSIF nodeName.EqualsIgnoreCaseOA( PT_WHEN ) THEN
@@ -934,7 +1021,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
                END;
 
             ELSE
-               SetError( nodeName, NIL, L"Forbidden element in pt:case context." );
+               SetError( nodeName, NIL, L"Forbidden element in pt:choose context." );
                RETURN FALSE; // nothing except when or otherwise is bad
             END;
          END;
@@ -1252,10 +1339,12 @@ CLASS IMPLEMENTATION CPageTemplateView;
          FormModel.Clear();
       END;
 
-      Writer.WriteElementStartOA( L"form" );
+      Writer.WriteElementStartOA( L"", L"form" );
 
-      s := Request^.ControllerURI;
-      Writer.WriteAttributeStringOA( L"action", OA( s.Length-1, s.rawData ));
+      IF NOT GetFormAction( attributes, OUT s ) THEN // action can be predefined by template
+         s := Request^.ControllerURI;
+         Writer.WriteAttributeStringOA( L"", L"action", OA( s.Length-1, s.rawData ));
+      END;
 
       RETURN ParseElement( attributes, isEmpty, FALSE, PT_MODEL, L"" );
    END ParseForm;
@@ -1270,7 +1359,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       value : StringsO.CString;
    BEGIN
       IF NOT GetFormModel( attributes, OUT model ) THEN
-         value.FromOA( L"pt:formid" );
+         value.FromOA( L"pt:model" );
          SetError( value, NIL, L'Required "model" attribute is missing.' );
          RETURN FALSE;
       END;
@@ -1286,15 +1375,15 @@ CLASS IMPLEMENTATION CPageTemplateView;
          RETURN FALSE;
       END;
 
-      Writer.WriteElementStartOA( L"input" );
+      Writer.WriteElementStartOA( L"", L"input" );
 
-      Writer.WriteAttributeStringOA( L"type", PT_FORM_HIDDEN );
+      Writer.WriteAttributeStringOA( L"", L"type", PT_FORM_HIDDEN );
       IF NOT fullModel.Empty THEN // model = form.item
          WriteFormNameAttribute( fullModel );
-         Writer.WriteAttributeStringOA( L"value", OA( id.Length-1, id.rawData ));
+         Writer.WriteAttributeStringOA( L"", L"value", OA( id.Length-1, id.rawData ));
       ELSE
          WriteFormNameAttribute( model );
-         Writer.WriteAttributeStringOA( L"value", OA( id.Length-1, id.rawData ));
+         Writer.WriteAttributeStringOA( L"", L"value", OA( id.Length-1, id.rawData ));
       END;
 
       RETURN ParseElement( attributes, isEmpty, FALSE, PT_MODEL, PT_FORMID );
@@ -1319,15 +1408,15 @@ CLASS IMPLEMENTATION CPageTemplateView;
          fullModel.Append( model );
       END;
 
-      Writer.WriteElementStartOA( L"input" );
+      Writer.WriteElementStartOA( L"", L"input" );
 
-      Writer.WriteAttributeStringOA( L"type", OAsz( ptype ));
+      Writer.WriteAttributeStringOA( L"", L"type", OAsz( ptype ));
       IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, fullModel, OUT value ) THEN // model = form.item
          WriteFormNameAttribute( fullModel );
-         Writer.WriteAttributeStringOA( L"value", OA( value.Length-1, value.rawData ));
+         Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.rawData ));
       ELSIF Request^.ModelContainer^.GetModelValue( Request^, model, OUT value ) THEN // model = item
          WriteFormNameAttribute( model );
-         Writer.WriteAttributeStringOA( L"value", OA( value.Length-1, value.rawData ));
+         Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.rawData ));
       ELSE
          SetError( model, NIL, L'Model for element is unknown.' );
          RETURN FALSE;
@@ -1349,7 +1438,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          RETURN FALSE;
       END;
 
-      Writer.WriteElementStartOA( L"select" );
+      Writer.WriteElementStartOA( L"", L"select" );
       WriteFormNameAttribute( model );
 
       RETURN ParseElement( attributes, isEmpty, TRUE, PT_MODEL, L"" );
@@ -1394,19 +1483,19 @@ CLASS IMPLEMENTATION CPageTemplateView;
          fullSelectedModel.Append( model );
       END;
 
-      Writer.WriteElementStartOA( L"option" );
+      Writer.WriteElementStartOA( L"", L"option" );
 
       IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, fullModel, OUT value ) THEN // model = form.item
-         Writer.WriteAttributeStringOA( L"value", OA( value.Length-1, value.rawData ));
+         Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.rawData ));
       ELSIF Request^.ModelContainer^.GetModelValue( Request^, model, OUT value ) THEN // model = item
-         Writer.WriteAttributeStringOA( L"value", OA( value.Length-1, value.rawData ));
+         Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.rawData ));
       ELSE
          SetError( model, NIL, L'Model for element is unknown.' );
          RETURN FALSE;
       END;
       IF NOT selectedModel.Empty AND EvaluateBoolean( selectedModel ) OR
          NOT fullSelectedModel.Empty AND EvaluateBoolean( fullSelectedModel ) THEN
-         Writer.WriteAttributeStringOA( L"selected", L"selected" );
+         Writer.WriteAttributeStringOA( L"", L"selected", L"selected" );
       END;
 
       RETURN ParseElement( attributes, isEmpty, FALSE, PT_MODEL, PT_FORM_OPTION_SELECTED );
@@ -1419,6 +1508,86 @@ CLASS IMPLEMENTATION CPageTemplateView;
       // TODO: react to error
       Request^.ModelContainer^.Format( Request^, FALSE, Text, Request^.MessageSource, Request^.Language, OUT Parsed );
    END ParseText;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ParseVariable( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
+   VAR
+      attribute : StringsO.CString;
+      lattributes : lists.CStringStringList;
+      nodeName : StringsO.CString;
+      nodePrefix : StringsO.CString;
+      nodeType : xmlreader.TNodeType;
+      model : StringsO.CString;
+      pname : StringsO.TPString;
+      source : StringsO.CString;
+      value : StringsO.CString;
+   BEGIN
+      IF NOT GetFormModel( attributes, OUT model ) THEN
+         value.FromOA( L"pt:variable" );
+         SetError( value, NIL, L'Required "model" attribute is missing.' );
+         RETURN FALSE;
+      END;
+      
+      // found "source" attribute
+      attribute := Prefix;
+      attribute.AppendOA( L":" );
+      attribute.AppendOA( PT_SOURCE );
+      attributes.Reset();
+      WHILE attributes.MoveNext() DO
+         pname := StringsO.TPString( attributes.Current );
+         IF pname^.EqualsIgnoreCaseOA( PT_SOURCE ) OR pname^.EqualsIgnoreCase( attribute ) THEN
+            ParseText( attributes.CurrentData^, OUT source );
+            EXIT;
+         END;
+      END;
+      
+      IF NOT isEmpty AND NOT source.Empty THEN
+         value.FromOA( L"pt:variable" );
+         SetError( value, NIL, L'Both element content and "source" attribute are set. Unable to realize which value to select.' );
+         RETURN FALSE;
+
+      ELSIF isEmpty THEN
+         // fall down, source is filled from attribute
+
+      ELSE // value is not taken from attribute, but from element content
+         IF MoveNext( OUT nodeType, OUT nodePrefix, OUT nodeName, OUT isEmpty, OUT source, OUT lattributes ) <> xmlreader.xmle_S_OK THEN
+            value.FromOA( L"pt:variable" );
+            SetError( nodeName, NIL, L'Unexpected end of buffered source.' );
+            RETURN FALSE;
+         ELSIF nodeType <> xmlreader.xntText THEN
+            value.FromOA( L"pt:variable" );
+            SetError( nodeName, NIL, L'"pt:variable" can contain #text only.' );
+            RETURN FALSE;
+         END; // WHILE
+      END;
+
+      Request^.ModelContainer^.AddVariable( OA( model.Length-1, model.rawData ), source );
+      
+      RETURN ParseElement( attributes, isEmpty, FALSE, PT_MODEL, PT_SOURCE );
+   END ParseVariable;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE GetFormAction( CONST attributes : lists.CStringStringList; OUT formAction : StringsO.IString ) : BOOLEAN;
+   VAR
+      attribute : StringsO.CString;
+      pname : StringsO.TPString;
+   BEGIN
+      attribute := Prefix;
+      attribute.AppendOA( L":" );
+      attribute.AppendOA( PT_ACTION );
+
+      attributes.Reset();
+      WHILE attributes.MoveNext() DO
+         pname := StringsO.TPString( attributes.Current );
+         IF pname^.EqualsIgnoreCaseOA( PT_ACTION ) OR pname^.EqualsIgnoreCase( attribute ) THEN
+            ParseText( attributes.CurrentData^, OUT formAction );
+         END;
+      END; // WHILE
+
+      RETURN NOT formAction.Empty;
+   END GetFormAction;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1567,7 +1736,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
             CONTINUE; // ignore pt:ignore
          END;
          ParseText( attributes.CurrentData^, OUT value );
-         Writer.WriteAttributeStringOA( OA( pname^.Length-1, pname^.rawData ), OA( value.Length-1, value.rawData ));
+         Writer.WriteAttributeStringOA( L"", OA( pname^.Length-1, pname^.rawData ), OA( value.Length-1, value.rawData ));
       END; // WHILE
    END CopyAttributes;
 
@@ -1582,7 +1751,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       INC( CurrentViewNameIndex );
 
       Request^.ModelContainer^.SetModelInViewName( Request^.ControllerURI, model, viewName );
-      Writer.WriteAttributeStringOA( L"name", OA( viewName.Length-1, viewName.rawData ));
+      Writer.WriteAttributeStringOA( L"", L"name", OA( viewName.Length-1, viewName.rawData ));
    END WriteFormNameAttribute;
 
 (*--------------------------------------------------------------------------------*)
@@ -1630,22 +1799,22 @@ CLASS IMPLEMENTATION CPageTemplateView;
    VAR
       n : ARRAY [0..63] OF WCHAR;
    BEGIN
-      Writer.WriteElementStartOA( L"html" );
-         Writer.WriteElementStartOA( L"body" );
-            Writer.WriteElementStringOA( L"h1", L"Page template parse error" );
-            Writer.WriteElementStartOA( L"dl" );
+      Writer.WriteElementStartOA( L"", L"html" );
+         Writer.WriteElementStartOA( L"", L"body" );
+            Writer.WriteElementStringOA( L"", L"h1", L"Page template parse error" );
+            Writer.WriteElementStartOA( L"", L"dl" );
                IF Strings.FromCARD32W( Reader.CurrentLine, 10, OUT n ) THEN
-                  Writer.WriteElementStringOA( L"dt", L"Line:" );
-                  Writer.WriteElementStringOA( L"dd", n );
+                  Writer.WriteElementStringOA( L"", L"dt", L"Line:" );
+                  Writer.WriteElementStringOA( L"", L"dd", n );
                END;
-               Writer.WriteElementStringOA( L"dt", L"Element:" );
-               Writer.WriteElementStringOA( L"dd", OA( ErrorElement.Length-1, ErrorElement.rawData ));
+               Writer.WriteElementStringOA( L"", L"dt", L"Element:" );
+               Writer.WriteElementStringOA( L"", L"dd", OA( ErrorElement.Length-1, ErrorElement.rawData ));
                IF NOT ErrorModel.Empty THEN
-                  Writer.WriteElementStringOA( L"dt", L"Id/Model:" );
-                  Writer.WriteElementStringOA( L"dd", OA( ErrorModel.Length-1, ErrorModel.rawData ));
+                  Writer.WriteElementStringOA( L"", L"dt", L"Id/Model:" );
+                  Writer.WriteElementStringOA( L"", L"dd", OA( ErrorModel.Length-1, ErrorModel.rawData ));
                END;
-               Writer.WriteElementStringOA( L"dt", L"Description:" );
-               Writer.WriteElementStringOA( L"dd", OA( ErrorText.Length-1, ErrorText.rawData ));
+               Writer.WriteElementStringOA( L"", L"dt", L"Description:" );
+               Writer.WriteElementStringOA( L"", L"dd", OA( ErrorText.Length-1, ErrorText.rawData ));
             Writer.WriteElementEnd();
          Writer.WriteElementEnd();
       Writer.WriteElementEnd();

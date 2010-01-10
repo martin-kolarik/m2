@@ -456,6 +456,16 @@ CLASS IMPLEMENTATION CString;
 	   RETURN Strings.LastIndexOfMW( _Len, _Data, LENGTH( S ), ADR( S ), IndexFromRight );
    END LastIndexOfOA;
 
+   PUBLIC VIRTUAL PROCEDURE Contains( CONST S : IString ) : BOOLEAN;
+   BEGIN
+	   RETURN Strings.IndexOfMW( _Len, _Data, S.Length, PWCHAR( S.rawData ), 0 ) <> -1;
+   END Contains;
+
+   PUBLIC VIRTUAL PROCEDURE ContainsOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
+   BEGIN
+	   RETURN Strings.IndexOfMW( _Len, _Data, LENGTH( S ), ADR( S ), 0 ) <> -1;
+   END ContainsOA;
+
 	PUBLIC VIRTUAL PROCEDURE StartsWith( CONST S : IString ) : BOOLEAN;
 	BEGIN
 		IF _Len = 0 THEN
