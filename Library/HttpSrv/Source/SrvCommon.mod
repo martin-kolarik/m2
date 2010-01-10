@@ -639,26 +639,26 @@ CLASS IMPLEMENTATION ASrvStream;
       END;
    
       Writer.Stream := StreamToSend;
-      Writer.WriteElementStartOA( L"html" );
-         Writer.WriteElementStartOA( L"body" );
+      Writer.WriteElementStartOA( L"", L"html" );
+         Writer.WriteElementStartOA( L"", L"body" );
          
             CASE StatusCode OF
             | HttpCommon.httpres_301, HttpCommon.httpres_302, HttpCommon.httpres_303, HttpCommon.httpres_304, HttpCommon.httpres_307 : // workaround m2cpp bug
                ResponseHeaders^.Get( HttpCommon.Location, OUT Location );
 
-               Writer.WriteElementStringOA( L"h1", L"Server notification" );
-               Writer.WriteElementStartOA( L"p" );
+               Writer.WriteElementStringOA( L"", L"h1", L"Server notification" );
+               Writer.WriteElementStartOA( L"", L"p" );
                   Writer.WriteStringOA( L"The page should be redirected by client to " );
-                  Writer.WriteElementStartOA( L"a" );
-                     Writer.WriteAttributeStringOA( L"href", OA( Location.Length-1, Location.rawData ));
+                  Writer.WriteElementStartOA( L"", L"a" );
+                     Writer.WriteAttributeStringOA( L"", L"href", OA( Location.Length-1, Location.rawData ));
                      Writer.WriteString( Location );
                   Writer.WriteElementEnd();
                   Writer.WriteStringOA( L". Please, click the link to move to correct page." );
                Writer.WriteElementEnd();
 
             ELSE // not redirect
-               Writer.WriteElementStringOA( L"h1", L"Unable to handle HTTP request." );
-               Writer.WriteElementStartOA( L"p" );
+               Writer.WriteElementStringOA( L"", L"h1", L"Unable to handle HTTP request." );
+               Writer.WriteElementStartOA( L"", L"p" );
                   Writer.WriteStringOA( L"The server responded with HTTP status code " );
                   Strings.FromCARD32W( CARDINAL( StatusCode ), 10, OUT n );
                   Writer.WriteStringOA( n );
