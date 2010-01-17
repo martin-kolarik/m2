@@ -212,7 +212,7 @@
     </Target>
 
 
-    <Target Name="LicensingSource" Condition="$(ClientLicensing)=='on'" Inputs="$(ProductBuildFile)" Outputs="@(LicensingSourceFiles)">
+    <Target Name="LicensingSource" Condition="$(ClientLicensing)=='on'" Outputs="@(LicensingSourceFiles)">
         <Exec WorkingDirectory="$(LicensingSourceDir)"
               Command="$(LICSRC) $(ProductId)"/>
     </Target>

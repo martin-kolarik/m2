@@ -10,7 +10,7 @@
         <Language Condition="$(Language)==''">Czech</Language>
         <CLib>Dynamic</CLib>
         <LeakChecking>off</LeakChecking>
-        <ClientLicensing>off</ClientLicensing>
+        <SetupLicensing>on</SetupLicensing>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(MSBuildProjectName)=='DevSDAPBridgeSvc'">
