@@ -1,3 +1,12 @@
+Version 1.0.1073 V1.0 (without documentation)
+- CHG: installer now contains hidden PDB and MAP files
+- CHG: discover and checkcfg are not linked to private CRtl too.
+- BUG: #158, discover crashed sometimes during printing out found devices.
+
+Version 1.0.1064 beta
+- CHG: CRtl switched to private
+- BUG: Setup of log did not affect global log 
+
 Version 1.0.605 beta
 - CHG: Versioning changed from SVN to HG
 - BUG: OutputQueueLength parameter was unable to read, it always repored error.
