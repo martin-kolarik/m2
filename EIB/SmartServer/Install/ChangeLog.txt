@@ -1,3 +1,6 @@
+Version 1.1.1075/R RTM 14.12.2009
+- BUG: #161, server wrote negative EIS 5 numbers as malformed positive numbers
+
 Version 1.1.1040/R RTM 1.11.2009
 - BUG: #147, bad "tunneling-ACK" was renamed to "tunneling-NAT" in
        default.cfg commentary

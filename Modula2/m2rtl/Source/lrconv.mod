@@ -369,6 +369,9 @@ VAR
    E : INTEGER := 0;	
    sign : BOOLEAN := FALSE;
 BEGIN
+   IF HIGH( String ) < 0 THEN
+      RETURN FALSE;
+   END;
    i := 0;
    IF String[i] = L'+' THEN
 	   INC( i );

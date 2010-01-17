@@ -57,16 +57,16 @@ CLASS IMPLEMENTATION CTest;
 		END;
 		X.Stream := ADR( S );
 		
-		X.WriteElementStartOA( L"shell" );
-			X.WriteElementStartOA( L"top" );
-				X.WriteAttributeStringOA( L"name", L"Krtecek" );
-				X.WriteAttributeStartOA( L"type" );
+		X.WriteElementStartOA( L"", L"shell" );
+			X.WriteElementStartOA( L"", L"top" );
+				X.WriteAttributeStringOA( L"", L"name", L"Krtecek" );
+				X.WriteAttributeStartOA( L"", L"type" );
 					X.WriteStringOA( L"some type" );
 				X.WriteAttributeEnd();
-				X.WriteElementStringOA( "p", "and some animals..." );
+				X.WriteElementStringOA( L"", "p", "and some animals..." );
 			X.WriteElementEnd();
-			X.WriteElementStringOA( "p", 'and some more "animals"...' );
-			X.WriteElementStringOA( "p", 'and some more "animals"...' );
+			X.WriteElementStringOA( L"", "p", 'and some more "animals"...' );
+			X.WriteElementStringOA( L"", "p", 'and some more "animals"...' );
 		X.WriteElementEnd();
 
 		X.Close( FALSE );

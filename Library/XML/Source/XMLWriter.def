@@ -34,17 +34,19 @@ CLASS CXMLWriter;
 		_Encoding : CARDINAL := Languages.cp_UTF8;
 		_State : TXMLWriterState;
 		_Stack : stacks.CStringStack;
+		_XMLDeclaration : BOOLEAN := TRUE;
 	PUBLIC PROPERTY
 		// Encoding : CARDINAL;
 		Stream : IOO.TPStream;
+		XMLDeclaration : BOOLEAN; // write XML declaration?
 
-	PUBLIC PROCEDURE WriteElementString( CONST Element : ARRAY OF WCHAR; CONST String : StringsO.CString );
-	PUBLIC PROCEDURE WriteElementStringOA( CONST Element, String : ARRAY OF WCHAR );
-	PUBLIC PROCEDURE WriteElementStartOA( CONST Element : ARRAY OF WCHAR );
+	PUBLIC PROCEDURE WriteElementString( CONST NSPrefix, Element : ARRAY OF WCHAR; CONST String : StringsO.CString );
+	PUBLIC PROCEDURE WriteElementStringOA( CONST NSPrefix, Element, String : ARRAY OF WCHAR );
+	PUBLIC PROCEDURE WriteElementStartOA( CONST NSPrefix, Element : ARRAY OF WCHAR );
 	PUBLIC PROCEDURE WriteElementEnd();
 	
-	PUBLIC PROCEDURE WriteAttributeStringOA( CONST Attribute, String : ARRAY OF WCHAR );
-	PUBLIC PROCEDURE WriteAttributeStartOA( CONST Attribute : ARRAY OF WCHAR );
+	PUBLIC PROCEDURE WriteAttributeStringOA( CONST NSPrefix, Attribute, String : ARRAY OF WCHAR );
+	PUBLIC PROCEDURE WriteAttributeStartOA( CONST NSPrefix, Attribute : ARRAY OF WCHAR );
 	PUBLIC PROCEDURE WriteAttributeEnd();
 
 	PUBLIC PROCEDURE WriteString( CONST String : StringsO.CString );
