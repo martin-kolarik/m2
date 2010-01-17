@@ -14,7 +14,7 @@
             <?endif ?>
             <?endif ?>
             <Directory Id="CommonAppDataFolder">
-                <Directory Id="NeNoData" Name="$(var.Manufacturer)">
+                <Directory Id="SmartControlData" Name="SmartCtr" LongName="$(var.Manufacturer)">
                     <Component Id="CommonAppFolderPermissions" Guid="E162282B-7CC7-48b7-9064-F102857EFEFA">
                         <CreateFolder>
                             <Permission GenericAll="yes" User="SYSTEM" />
@@ -63,6 +63,7 @@
                         <Component Id="Documentation" Guid="F3081930-B925-4a80-BAFE-447340DC5EB5">
                             <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" />
                         </Component>
+                        <?endif ?>
                         <Directory Id="EXAMPLES" Name="Examples">
                             <Component Id="Examples" Guid="504E174F-A539-4C95-B1BA-51674C84ECD4">
                                 <File Id="_01_test_direct.cfg" LongName="01 test-direct.cfg" Name="01TEST.CFG" Source="Examples\01 test-direct.cfg" DiskId="1" />
