@@ -9,7 +9,7 @@ IMPLEMENTATION MODULE eib_def;
 (*===========================================================================*)
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 IMPORT
   Storage,
@@ -1218,6 +1218,7 @@ CLASS IMPLEMENTATION EMIPacket;
     sw : ARRAY [0..1] OF WCHAR;
     b : BOOLEAN;
     Up, Down : BOOLEAN;
+    ValueInt : INTEGER;
   BEGIN
     CASE Value.Type OF
     //-----
@@ -1298,49 +1299,22 @@ CLASS IMPLEMENTATION EMIPacket;
       END;
       LR := LR * 100.0;
       Exp := 0;
-      WHILE LR > 2047.0 DO
+      WHILE ABS( LR ) > 2047.0 DO
         INC( Exp );
         LR := LR / 2.0;
       END;
+      ValueInt := INTEGER( LR );
       IF Exp > 15 THEN
         Data[0] := BYTE( CARD8( Data[1] ) OR 07FH );
         Data[1] := 0FFH;
       ELSE
-        Data[0] := BYTE( CARD8( Data[0] ) OR Exp << 3 OR CARD8( INTEGER( LR ) >> 8 AND 07H ));
-        Data[1] := BYTE( INTEGER( LR ) AND 0FFH );
+        Data[0] := BYTE( CARD8( Data[0] ) OR ( Exp << 3 ) OR CARD8(( ValueInt >> 8 ) AND 07H ));
+        Data[1] := BYTE( ValueInt AND 0FFH );
       END;
     //-----
     | eitValueRange:
-      NetworkControl := NetworkControl - ncmDataLength + ncsDataLength3;
-      TransportControl := TransportControl - acmEISData;
-      LR := Value.GetValueRange( LoRange, HiRange );
-      IF LR = 0.0 THEN
-        Data[0] := 0; Data[1] := 0;
-        RETURN;
-      ELSIF LR < 0.0 THEN
-        Data[0] := 080H;
-      ELSE
-        Data[0] := 0;
-      END;
-      LR := ABS( LR ) * 100.0;
-      LoRange := ABS( LoRange ) * 100.0;
-      HiRange := ABS( HiRange ) * 100.0;
-      IF HiRange > LoRange THEN
-        LoRange := HiRange;
-      END;
-      Exp := 0;
-      WHILE LoRange > 2047.0 DO
-        INC( Exp );
-        LR := LR / 2.0;
-        LoRange := LoRange / 2.0;
-      END;
-      IF Exp > 15 THEN
-        Data[0] := BYTE( CARD8( Data[0] ) OR 07FH );
-        Data[1] := 0FFH;
-      ELSE
-        Data[0] := BYTE( CARD8( Data[0] ) OR Exp << 3 OR CARD8( INTEGER( LR ) >> 8 AND 07H ));
-        Data[1] := BYTE( INTEGER( LR ) AND 0FFH );
-      END;
+      // not implemented
+      ASSERTLOG( FALSE );
     //-----
     | eitScaling:
       NetworkControl := NetworkControl - ncmDataLength + ncsDataLength2;

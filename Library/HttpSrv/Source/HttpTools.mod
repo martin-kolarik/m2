@@ -123,21 +123,24 @@ BEGIN
    CASE Content OF
    | contentDefault :
       appendCharset := FALSE;
-      s.FromOA( L"application/octet-stream" );
+      s.FromOA( CONTENT_TYPE_BINARY );
    | contentTextPlain :
-      s.FromOA( L"text/plain" );
+      s.FromOA( CONTENT_TYPE_TEXT );
    | contentTextHTML :
-      s.FromOA( L"text/html" );
+      s.FromOA( CONTENT_TYPE_HTML );
+   | contentTextXHTML :
+      appendCharset := FALSE;
+      s.FromOA( CONTENT_TYPE_XHTML );
    | contentTextXML :
-      s.FromOA( L"text/xml" );
+      s.FromOA( CONTENT_TYPE_XML );
    | contentTextCSS :
-      s.FromOA( L"text/css" );
+      s.FromOA( CONTENT_TYPE_CSS );
    ELSE
       appendCharset := FALSE;
       highF := FileName.Length-1;
       IF highF < 0 THEN
          IF Fallback THEN
-            ContentHeader.FromOA( L"application/octet-stream" );
+            ContentHeader.FromOA( CONTENT_TYPE_BINARY );
             RETURN TRUE;
          ELSE
             RETURN FALSE;
@@ -149,16 +152,17 @@ BEGIN
       
       IF f.EndsWithOA( L"txt" ) THEN
          appendCharset := TRUE;
-         s.FromOA( L"text/plain" );
+         s.FromOA( CONTENT_TYPE_TEXT );
       ELSIF f.EndsWithOA( L"htm" ) OR f.EndsWithOA( L"html" ) THEN
          appendCharset := TRUE;
-         s.FromOA( L"text/html" );
+         s.FromOA( CONTENT_TYPE_HTML );
+      ELSIF f.EndsWithOA( L"xhtml" ) THEN
+         s.FromOA( CONTENT_TYPE_XHTML );
       ELSIF f.EndsWithOA( L"xml" ) THEN
-         appendCharset := TRUE;
-         s.FromOA( L"text/xml" );
+         s.FromOA( CONTENT_TYPE_XML );
       ELSIF f.EndsWithOA( L"css" ) THEN
          appendCharset := TRUE;
-         s.FromOA( L"text/css" );
+         s.FromOA( CONTENT_TYPE_CSS );
 
       ELSIF f.EndsWithOA( L"png" ) THEN
          s.FromOA( L"image/png" );
@@ -166,28 +170,34 @@ BEGIN
          s.FromOA( L"image/gif" );
       ELSIF f.EndsWithOA( L"jpg" ) OR f.EndsWithOA( L"jpeg" ) THEN
          s.FromOA( L"image/jpeg" );
+      ELSIF f.EndsWithOA( L"svg" ) THEN
+         s.FromOA( L"image/svg+xml" );
 
       ELSIF f.EndsWithOA( L"exe" ) OR f.EndsWithOA( L"dll" ) OR f.EndsWithOA( L"obj" ) OR f.EndsWithOA( L"lib" ) THEN
-         s.FromOA( L"application/octet-stream" );
+         s.FromOA( CONTENT_TYPE_BINARY );
       ELSIF f.EndsWithOA( L"zip" ) THEN
          s.FromOA( L"application/zip" );
       ELSIF f.EndsWithOA( L"cab" ) THEN
          s.FromOA( L"application/vnd.ms-cab-compressed" );
       ELSIF f.EndsWithOA( L"msi" ) THEN
-         s.FromOA( L"application/octet-stream" );
+         s.FromOA( CONTENT_TYPE_BINARY );
       ELSIF f.EndsWithOA( L"pdf" ) THEN
          s.FromOA( L"application/pdf" );
 
       ELSIF Fallback THEN
-         s.FromOA( L"application/octet-stream" );
+         s.FromOA( CONTENT_TYPE_BINARY );
       ELSE
          RETURN FALSE;
       END;
       
    END;
-   IF appendCharset AND NOT RFC1766Code.Empty THEN
-      s.AppendOA( L"; charset=" );
-      s.Append( RFC1766Code );
+   IF appendCharset THEN
+      IF RFC1766Code.Empty THEN
+         s.AppendOA( L"; charset=utf-8" );
+      ELSE
+         s.AppendOA( L"; charset=" );
+         s.Append( RFC1766Code );
+      END;
    END;
 
    ContentHeader.Assign( s );

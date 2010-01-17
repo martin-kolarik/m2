@@ -45,6 +45,8 @@ CLASS CContainer IMPLEMENTS IContainer;
    PUBLIC VIRTUAL PROCEDURE AddMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ); // creates map in model
    PUBLIC VIRTUAL PROCEDURE AddFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; Handler : TPFunctionHandler );
 
+   PUBLIC VIRTUAL PROCEDURE AddVariable( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString ); // for in-view processing
+
    PUBLIC VIRTUAL PROCEDURE GetBooleanOA( CONST Name : ARRAY OF WCHAR; OUT Model : BOOLEAN ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE GetStringOA( CONST Name : ARRAY OF WCHAR; OUT Model : StringsO.IString ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE GetListOA( CONST Name : ARRAY OF WCHAR; OUT Model : lists.TPStringStringList ) : BOOLEAN;
@@ -83,7 +85,8 @@ CLASS IMPLEMENTATION CContainer;
          CASE Models.Current^[0] OF
          | L"b" :
             // do nothing
-         | L"s" :
+         | L"s",
+           L"v" :
             s := TPCString( Models.CurrentData );
             DISPOSE( s );
          | L"l" :
@@ -213,6 +216,22 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE AddVariable( CONST Name : ARRAY OF WCHAR; CONST Model : StringsO.IString ); // for in-view processing
+   VAR
+      model : POINTER TO StringsO.CString;
+      name : StringsO.CString;
+   BEGIN
+      name.FromOA( L"v." );
+      name.AppendOA( Name );
+      IF NOT Models.Get( name, OUT model ) THEN
+         NEW( model );
+         Models.Add( name, model );
+      END;
+      model^.Assign( Model );
+   END AddVariable;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE GetBooleanOA( CONST Name : ARRAY OF WCHAR; OUT Model : BOOLEAN ) : BOOLEAN;
    VAR
       model : PTR;
@@ -234,13 +253,22 @@ CLASS IMPLEMENTATION CContainer;
       model : StringsO.TPString;
       name : StringsO.CString;
    BEGIN
+     // try model string
       name.FromOA( L"s." );
       name.AppendOA( Name );
-      IF NOT Models.Get( name, OUT model ) THEN
-         RETURN FALSE;
+      IF Models.Get( name, OUT model ) THEN
+         Model.Assign( model^ );
+         RETURN TRUE;
       END;
-      Model.Assign( model^ );
-      RETURN TRUE;
+      // try variable
+      name.FromOA( L"v." );
+      name.AppendOA( Name );
+      IF Models.Get( name, OUT model ) THEN
+         Model.Assign( model^ );
+         RETURN TRUE;
+      END;
+      // no variable nor string found
+      RETURN FALSE;
    END GetStringOA;
 
 (*--------------------------------------------------------------------------------*)

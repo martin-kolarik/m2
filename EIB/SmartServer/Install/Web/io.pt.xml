@@ -1,10 +1,6 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE pageTemplate [
-    <!ENTITY nbsp "&amp;nbsp;">
-    <!ENTITY copy "&amp;copy;">
-]>
+<?xml version="1.0" encoding="utf-8"?>
 <pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate">
-  <html>
+  <html xmlns="http://www.w3.org/1999/xhtml">
       <head>
           <title>NeNo KNX/EIBSrv</title>
           <link rel="StyleSheet" type="text/css" href="NeNo.css" />
@@ -24,7 +20,7 @@
                           <p><a href="datalog">${msg.menu.datalog}</a></p>
                           <p pt:condition="${isAdmin}"><a href="syslog">${msg.menu.syslog}</a></p>
                           <p>${msg.menu.io}</p>
-                          <p>&nbsp;</p>
+                          <p> </p>
                           <p class="logout"><a href="logout">${msg.menu.logout}</a></p>
                       </div>
 
@@ -54,7 +50,7 @@
                   </div>
 
                   <div class="bottom">
-                    <p>EIB/KNX SmartServer &copy; NeNo ver. ${version}</p>
+                    <p>EIB/KNX SmartServer © NeNo ver. ${version}</p>
                   </div>
 
               </div>

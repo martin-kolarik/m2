@@ -179,9 +179,9 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
       ErrorModel : StringsO.CString;
       ErrorText : StringsO.CString;
       
-   PRIVATE PROCEDURE ParseRoot() : BOOLEAN;
+   PRIVATE PROCEDURE ParseRoot( xhtmlSupported : BOOLEAN; OUT contentTypeRequest : StringsO.CString ) : BOOLEAN;
    PRIVATE PROCEDURE Parse( emit, limitToPTOnly, balanced : BOOLEAN ) : BOOLEAN; // normally, Parse is entered after detecting element start. Element end must be detected inside. But, if reading from node buffer, one could want read pair-by-pair buffer content only. This requires balanced = TRUE to not to read out end of element.
-   PRIVATE PROCEDURE HandleElementStart( isEmpty, ptFlag, limitToPTOnly : BOOLEAN; CONST nodeName : StringsO.CString; CONST attributes : lists.CStringStringList ) : TElementStartAction;
+   PRIVATE PROCEDURE HandleElementStart( isEmpty, ptFlag, limitToPTOnly : BOOLEAN; CONST nodePrefix, nodeName : StringsO.CString; CONST attributes : lists.CStringStringList ) : TElementStartAction;
    PRIVATE PROCEDURE ParseElement( CONST attributes : lists.CStringStringList; isEmpty, limitToPTOnly : BOOLEAN; CONST ignoreOA1, ignoreOA2 : ARRAY OF WCHAR ) : BOOLEAN;
    PRIVATE PROCEDURE ParseChoose() : BOOLEAN;
    PRIVATE PROCEDURE ParseFor( CONST attributes : lists.CStringStringList ) : BOOLEAN;
@@ -192,6 +192,8 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
    PRIVATE PROCEDURE ParseFormSelect( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
    PRIVATE PROCEDURE ParseFormOption( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
    PRIVATE PROCEDURE ParseText( CONST Text : StringsO.IString; OUT Parsed : StringsO.IString );
+   PRIVATE PROCEDURE ParseVariable( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
+   PRIVATE PROCEDURE GetFormAction( CONST attributes : lists.CStringStringList; OUT formAction : StringsO.IString ) : BOOLEAN;
    PRIVATE PROCEDURE GetFormModel( CONST attributes : lists.CStringStringList; OUT formModel : StringsO.IString ) : BOOLEAN;
    PRIVATE PROCEDURE GetFormId( CONST attributes : lists.CStringStringList; OUT formId : StringsO.IString ) : BOOLEAN;
    PRIVATE PROCEDURE MoveNext( OUT nodeType : xmlreader.TNodeType; OUT nodePrefix : StringsO.IString; OUT nodeName : StringsO.IString; OUT isEmpty : BOOLEAN; OUT nodeValue : StringsO.IString; OUT attributes : lists.CStringStringList ) : xmlreader.TXMLError;
