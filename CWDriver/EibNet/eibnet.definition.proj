@@ -6,7 +6,7 @@
         <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName>
         <LanguageStyle Condition="$(LanguageStyle)==''">UNICODE</LanguageStyle>
         <Language Condition="$(Language)==''">Czech</Language>
-        <CLib>Dynamic</CLib>
+        <CLib>Private</CLib>
         <LeakChecking>off</LeakChecking>
     </PropertyGroup>
 
@@ -16,6 +16,10 @@
 
     <PropertyGroup Condition="$(MSBuildProjectName)=='eibnetdrv' Or $(MSBuildProjectName)=='sccore'">
         <Result>Dynamic</Result>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="$(MSBuildProjectName)=='LicTool'">
+        <ProductVariant>Activator</ProductVariant>
     </PropertyGroup>
 
     <PropertyGroup>

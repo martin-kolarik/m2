@@ -5,6 +5,8 @@
     <!-- 1 -->
     <PropertyGroup>
         <ComponentType Condition="$(ComponentType)==''">Library</ComponentType>
+        <ClientLicensing>on</ClientLicensing>
+        <ProductId>NeNo.DevSDAPBridge</ProductId>
 
         <FileDescription>SDAP Client external library</FileDescription>
         <FileVersionMajor>1</FileVersionMajor>
@@ -20,7 +22,7 @@
     <!-- 3 COMPOMENT DEFINITION -->
     <ItemGroup>
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
-        <Components Include="Component\sccore;Library\DeviceIO;SDAP\SDAPClient"/>
+        <Components Include="Component\sccore;Licensing\Core;Library\DeviceIO;SDAP\SDAPClient"/>
         <Modules Include="DeviceIOSDAPBridge"/>
         <Messages Include="Texts"/>
     </ItemGroup>

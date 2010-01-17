@@ -9,7 +9,6 @@
         <LanguageStyle>UNICODE</LanguageStyle>
         <Language Condition="$(Language)==''">Czech</Language>
         <CLib>Dynamic</CLib>
-        <Licensing>off</Licensing>
         <LeakChecking>off</LeakChecking>
         <PublishExports>on</PublishExports>
     </PropertyGroup>

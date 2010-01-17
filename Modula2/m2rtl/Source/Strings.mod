@@ -97,6 +97,12 @@ VAR
 	l : PTR;
 	src, dst, stop : PWCHAR;
 BEGIN
+   IF  HIGH( String ) < 0 THEN
+      RETURN;
+   ELSIF HIGH( Operand1 ) < 0 THEN
+      String[0] := 0W;
+      RETURN;
+   END;
 	src := PWCHAR( ADR( Operand1 ));
 	dst := ADR( String );
 	stop := INC( src, ( MIN2( HIGH( String ), HIGH( Operand1 )) + 1 ) << 1 );
