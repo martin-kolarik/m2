@@ -16,7 +16,7 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(ConfigurationName)"
+			OutputDirectory="~$(ConfigurationName)"
 			IntermediateDirectory="~Build"
 			ConfigurationType="0"
 			BuildLogFile="$(OutDir)\BuildLog.htm"
@@ -65,10 +65,6 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\Source\DllMain.mod"
-				>
-			</File>
-			<File
 				RelativePath=".\Source\ld.mod"
 				>
 			</File>
@@ -78,10 +74,6 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
-			<File
-				RelativePath=".\Source\dllmain.def"
-				>
-			</File>
 			<File
 				RelativePath=".\Source\ld.def"
 				>

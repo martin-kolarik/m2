@@ -878,7 +878,7 @@ CLASS IMPLEMENTATION CBuffer;
    LOCAL PROPERTY Size SET( Value : CARDINAL );
    BEGIN
       _W.Size := Value;
-      REALLOCATE( _Data, _W.Size * SIZE( TString )); 
+      REALLOCATE( REF _Data, _W.Size * SIZE( TString )); 
    END Size;
 
 (*---------------------------------------------------------------------------*)

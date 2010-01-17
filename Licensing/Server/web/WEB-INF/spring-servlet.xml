@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+       http://www.springframework.org/schema/aop
+       http://www.springframework.org/schema/aop/spring-aop-2.5.xsd
+       http://www.springframework.org/schema/context
+http://www.springframework.org/schema/context/spring-context-2.5.xsd">
+    
+    <context:component-scan base-package="cz.smartcontrol.licensing.web" />
+    
+    <bean id="annotationMapper" class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping">
+        <property name="interceptors">
+            <list>
+                <ref bean="operatorWebInterceptor"/>
+                <ref bean="publicWebInterceptor"/>
+            </list>
+        </property> 
+    </bean>
+    
+    <bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
+        <property name="webBindingInitializer">
+            <bean class="cz.smartcontrol.licensing.web.bind.BindingInitializer"/>
+        </property>
+    </bean>
+    
+    <bean id="operatorWebInterceptor" class="cz.smartcontrol.licensing.web.interceptors.OperatorWebInterceptor"/>
+    
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver"
+          p:prefix="/WEB-INF/jsp/"
+          p:suffix=".jsp"
+          p:contentType="text/html;charset=UTF-8"
+          p:viewClass="org.springframework.web.servlet.view.JstlView"
+          p:redirectHttp10Compatible="false"
+    />
+    
+    <!-- Message source for localization -->
+    <bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource"
+          p:basename="cz.edhouse.matickets.web.messages"
+    />
+            
+    <bean id="exceptionResolver" class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+        <property name="warnLogCategory" value="INFO"/>
+        <property name="exceptionMappings">
+            <props>
+                <prop key="java.lang.Exception">errorPage</prop>
+            </props>
+        </property>
+    </bean>
+
+</beans>

@@ -1,3 +1,17 @@
+Version 1.1.1075/R RTM 14.12.2009
+- BUG: #161, server wrote negative EIS 5 numbers as malformed positive numbers
+
+Version 1.1.1040/R RTM 1.11.2009
+- BUG: #147, bad "tunneling-ACK" was renamed to "tunneling-NAT" in
+       default.cfg commentary
+- CHG: #144, text in installation was changed to SmartServer
+- NEW: #146, Virtual Object Server.pr3 file (project file for ETS3) was added
+       to the installation, the project contains virtual device allowing
+       binding of group addresses used in SmartServer.
+- NEW: #148, new example showing usage of "reader" behavior of objects
+       named "13 reader.cfg" was added
+- NEW: #149, SmartVision logo was added to the installation
+
 Version 1.1.1021/R RC1 25.10.2009
 - BUG: #127, SDAP client/server could internally delay notification of received
        data, so messages could be either lost or delayed for very long time.

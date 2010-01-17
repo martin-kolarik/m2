@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE FIOO;
 
+FROM Exceptions IMPORT
+   StoreException;
+
 IMPORT
   windows,
   winerror;

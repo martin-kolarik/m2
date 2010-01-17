@@ -10,7 +10,8 @@ FROM Storage IMPORT
   
 IMPORT
   Storage,
-  Strings;
+  Strings,
+  time;
 -->namespace
 //============================================================
 

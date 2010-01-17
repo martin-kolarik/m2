@@ -3,6 +3,9 @@ IMPLEMENTATION MODULE FSO;
 FROM Storage IMPORT
    ALLOCATE;
 
+FROM Exceptions IMPORT
+   StoreException;
+
 IMPORT
    FIO,
    FIOO,

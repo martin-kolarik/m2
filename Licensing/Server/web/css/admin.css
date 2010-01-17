@@ -1,0 +1,505 @@
+body {
+	padding: 15px 0;
+	margin: 0;
+	text-align: center;
+	font-size: 11px;
+	font-family: Tahoma, Verdana, Geneva, Arial, Helvetica, sans-serif;
+	background-color: #E3E3E3;
+	color: Black;
+}
+a:hover {
+	text-decoration: none;
+}
+a {
+	color: black;
+}
+a img {
+	border: none;
+}
+table, tr, td {
+	font-size: 100%;
+}
+div#holder {
+	width: 780px;
+	background-color: White;
+	margin: 0 auto;
+	background-image: url(../img/admin/top-bg.gif);
+	background-repeat: no-repeat;
+	text-align: left;
+	_overflow: hidden;
+}
+div#top {
+	padding: 20px 0 0 28px;
+	height: 60px;
+	_height: 80px;
+}
+a#logo {
+	float: left;
+	position: relative;
+	display: block;
+	width: 181px;
+	height: 40px;
+	text-decoration: none;
+	text-align: center;
+}
+a#logo span {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	background-image: url(../img/admin/logo_dpmul.gif);
+	background-repeat: no-repeat;
+	cursor: pointer;
+}
+div#top dl {
+	float: right;
+	margin: 0;
+	padding: 0;
+	width: 150px;
+	background-image: url(../img/admin/spojovnik.gif);
+	background-position: left;
+	background-repeat: no-repeat;
+	line-height: 18px;
+}
+div#top dl dt {
+	color: #E1312C;
+	font-weight: bold;
+	padding: 0 0 0 12px;
+	margin: 0;
+}
+div#top dl dd {
+	padding: 0 0 0 12px;
+	margin: 0;
+}
+div#menu ul {
+	margin: 0;
+	padding: 0 0 0 24px;
+	height: 50px;
+	background-image: url(../img/admin/menu-bg-l.gif);
+	background-repeat: no-repeat;
+}
+div#menu {
+	background-image: url(../img/admin/menu-bg.gif);
+}
+div#menu div {
+	background-image: url(../img/admin/menu-bg-r.gif);
+	background-repeat: no-repeat;
+	background-position: right;
+}
+div#menu ul li {
+	list-style: none;
+	float: left;
+	height: 50px;
+}
+div#menu ul li a {
+	display: block;
+	float: left;
+	height: 37px;
+	line-height: 37px;
+	padding: 0 18px;
+	font-weight: bold;
+	color: White;
+	text-decoration: none;
+	border-right: 1px solid #DFDFDF;
+}
+div#menu ul li a:hover {
+	background-color: #8A8A8A;
+}
+div#menu ul li a.act {
+	background-color: #DF1F1A;
+	border-right: none;
+}
+div#menu ul li a.b4act {
+	border-right: none;
+}
+div#content {
+	padding: 30px 25px 35px 25px;
+	background-image: url(../img/admin/bottom-bg.gif);
+	background-repeat: no-repeat;
+	background-position: bottom;
+}
+h1 {
+	font-size: 23px;
+	color: #DF1F1A;
+	font-weight: normal;
+	margin: 0 0 10px 0;
+	padding: 0;
+}
+h3 {
+	margin: 0;
+	padding: 0;
+	font-size: 1em;
+	color: #DF1F1A;
+}
+form#filter, form.filter, div.filter {
+	background-color: #F0EFF4;
+	border: 1px solid #E2E2E4;
+	margin: 20px 0 10px 0;
+	position: relative;
+	padding: 10px;
+	height: 22px; 
+	_height: 44px;
+	line-height: 22px;
+}
+.errors {
+        color: red;
+}
+div#line {
+	height: 42px;
+	width: 1px;
+	overflow: hidden;
+	background-color: #E2E2E4;
+	top: 0;
+	left: 305px;
+	position: absolute;
+}
+form#filter input, form#filter select, form#filter label, form#filter span, form.filter input, form.filter select, form.filter label, form.filter span, div.filter input, div.filter select, div.filter label, div.filter span {
+	font-size: 1em;
+	display: block;
+	float: left;
+}
+form#filter select, form.filter select, div.filter select {
+	width: 105px;
+	margin: 1px 5px 0 5px;
+}
+form#filter label, form.filter label, div.filter label {
+	font-weight: bold;
+	padding: 0 5px;
+}
+form#filter span, form.filter span, div.filter span {
+	padding: 0;
+}
+input#button-filter1 {
+	color: White;
+	font-weight: bold;
+	height: 20px;
+	width: 42px;
+	background-image: url(../img/admin/b-filtr-black.gif);
+	border: none;
+	margin-right: 40px;
+	background-color: Black;
+}
+input#button-filter2 {
+	color: White;
+	font-weight: bold;
+	height: 22px;
+	width: 44px;
+	background-image: url(../img/admin/b-filtr-gray.gif);
+	border: none;
+	background-color: Black;
+}
+form#gfilter, div.gfilter {
+	background-color: #F0EFF4;
+	border: 1px solid #E2E2E4;
+	position: relative;
+	padding: 8px 10px;
+	height: 25px;
+	_height: 44px;
+	line-height: 25px;
+	float: left;
+	width: 405px;
+	_width: 355px;
+	overflow: hidden;
+}
+form#gfilter input, form#gfilter select, form#gfilter label, form#gfilter span, div.gfilter input, div.gfilter select, div.gfilter label, div.gfilter span {
+	font-size: 1em;
+	display: block;
+	float: left;
+}
+form#gfilter label, div.gfilter label {
+	font-weight: bold;
+	padding-right: 8px;
+}
+form#gfilter input#fword, div.gfilter input#fword, .tinput {
+        padding: 3px;
+	width: 150px;
+	height: 18px;
+	_height: 23px;
+	border: 1px solid #C9C9C9;
+	background-image: url(../img/admin/filtr-input-bg.gif);
+	background-repeat: no-repeat;
+}
+input#fhledat, input#freset {
+	height: 20px;
+	color: White;
+	font-weight: bold;
+	border: none;
+	margin: 2px 0 0 5px;
+	border: none;
+	background-color: Black;
+}
+input#fhledat, div#fhledat {
+	width: 56px;
+        color: White;
+	background-image: url(../img/admin/b-hledat.gif);
+	background-repeat: no-repeat;
+        margin-top: 3px;
+        margin-right: 3px;
+}
+div#fhledat {
+	height: 20px;
+	color: White;
+	font-weight: bold;
+	border: none;
+        padding-top: 3px;
+        text-align: center;
+}
+div#fhledat a {
+        color: White;
+        text-decoration: none;
+        font-weight: bold;
+}
+input#freset {
+	width: 52px;
+	background-image: url(../img/admin/b-reset.gif);
+}
+div#listtype {
+	border: 1px solid #E2E2E4;
+	position: relative;
+	padding: 8px 12px;
+	height: 25px;
+	_height: 44px;
+	line-height: 25px;
+	float: right;
+	width: 274px;
+	_width: 366px;
+}
+div#listtype a {
+	color: #606060;
+}
+div#listtype span {
+	color: #606060;
+	padding: 0 1px;
+}
+div#clear {
+	height: 5px;
+	overflow: hidden;
+	clear: both;
+}
+table#grid {
+        margin-top: 5px;
+	clear: both;
+	border-collapse: collapse;
+	width: 100%;
+	_width: 730px;
+}
+table#grid td, table#grid th {
+	padding: 0 10px;
+	border: 1px solid #FFFFFF;
+	background-color: #E8E8E8;
+	height: 28px;
+}
+table#grid tr.even td, table#grid tr.even th {
+	background-color: #F0F0F0;
+}
+table#grid thead td {
+	height: 36px;
+	background-image: url(../img/admin/grid-header-bg.gif);
+	padding-right: 15px;
+        color: White;
+	font-weight: bold;
+}
+table#grid thead td a {
+	color: White;
+	text-decoration: none;
+	background-repeat: no-repeat;
+	background-position: right;
+	display: block;
+	font-weight: bold;
+}
+table#grid thead td a:hover {
+	text-decoration: underline;
+}
+table#grid thead td a.up {
+	background-image: url(../img/admin/arrup.gif);
+}
+table#grid thead td a.down {
+	background-image: url(../img/admin/arrdown.gif);
+}
+table#grid td.p15 {
+	padding-left: 15px;
+}
+table#grid td.p20 {
+	padding-left: 20px;
+}
+table#grid td.red, table#grid td.red a {
+	color: #DF1F1A;
+}
+
+div#pager, div.frame {
+	border: 1px solid #E2E2E4;
+	margin-top: 4px;
+	line-height: 40px;
+	height: 40px;
+	_height: 44px;
+	padding: 0 10px;
+	color: #525252;
+}
+div#pager span {
+	display: block;
+	float: left;
+}
+div#pager strong {
+	padding-right: 15px;
+	color: Black;
+}
+div#pager a {
+	padding: 0 2px;
+	color: #525252;
+	text-decoration: none;
+}
+div#pager a.act {
+	font-weight: bold;
+}
+div#pager a:hover {
+	text-decoration: underline;
+}
+div#pager img {
+	vertical-align: middle;
+}
+span#items {
+	width: 170px;
+	_padding: 10px 0;
+}
+span#items a {
+	padding: 0;
+}
+span#pages {
+	width: 350px;
+	overflow: hidden;
+}
+div.frame {
+	color: Black;
+}
+div.frame a {
+	color: #525252;
+}
+div.frame a.close {
+	padding-left: 20px;
+	margin: 10px 0;
+	width: 46px;
+	_width: 66px;
+	line-height: 20px;
+	height: 20px;
+	text-decoration: none;
+	float: right;
+	background-image: url(../img/admin/b-zavrit.gif);
+	border: none;
+	color: White;
+	font-weight: bold;
+	font-size: 1em;
+	display: block;
+}
+div.frame span {
+	padding: 0 3px;
+	color: #525252;
+}
+h2 {
+	margin: 10px 0 2px 0;
+	padding: 0 10px;
+	line-height: 36px;
+	height: 36px;
+	background-image: url(../img/admin/header-bg.gif);
+	color: White;
+	font-size: 1.1em;
+}
+table#ticketinfo {
+	border-collapse: collapse;
+	width: 100%;
+	_width: 730px;
+}
+table#ticketinfo th, table#ticketinfo td {
+	padding: 0 10px;
+	height: 28px;
+	background-color: #E8E8E8;
+	border-bottom: 1px solid white;
+}
+table#ticketinfo tr.even th, table#ticketinfo tr.even td {
+	background-color: #F0F0F0;
+}
+table#ticketinfo th {
+	width: 130px;
+}
+table#ticketinfo td#kod {
+	font-weight: bold;
+}
+table#ticketinfo input#lcheck {
+        width: 30px;
+}
+p#notready {
+	line-height: 50px;
+	text-align: center;
+	font-weight: bold;
+	margin: 0;
+}
+div#textarea, table#ticketinfo textarea {
+	height: 89px;
+	_height: 111px;
+	padding: 10px;
+	border: 1px solid #C9C9C9;
+	background-image: url(../img/admin/textarea-bg.gif);
+	line-height: 20px;
+	margin-bottom: 10px;
+	width: 708px;
+	_width: 730px;
+	font-family: Tahoma, Verdana, Geneva, Arial, Helvetica, sans-serif;
+	font-size: 1em;
+}
+form {
+	margin: 0;
+	padding: 0;
+}
+table#ticketinfo input {
+	font-size: 1em;
+	padding: 0 5px;
+	width: 200px;
+}
+table#ticketinfo td#kod input {
+	font-weight: bold;
+}
+img#graf {
+  display: block;
+}
+
+div#holder_login {
+	width: 245px;
+        height: 170px;
+        padding: 40px;
+        padding-top: 72px;
+	background-color: White;
+	margin: 0 auto;
+	background-image: url(../img/admin/login-bg.gif);
+	background-repeat: no-repeat;
+	text-align: center;
+	overflow: hidden;
+}
+input#lbutton {
+	height: 20px;
+	color: White;
+	font-weight: bold;
+	border: none;
+	margin: 0 5px 0 0;
+	border: none;
+	background-color: Black;
+	width: 56px;
+	background-image: url(../img/admin/b-hledat.gif);
+}
+div#loginbox {
+	background-color: #F0EFF4;
+	border: 1px solid #E2E2E4;
+	margin: 20px 0;
+	position: relative;
+	padding: 10px;
+	line-height: 22px;
+        text-align: left;
+}
+input.linput {
+        padding: 3px;
+	width: 175px;
+	height: 18px;
+	_height: 23px;
+	border: 1px solid #C9C9C9;
+	background-image: url(../img/admin/filtr-input-bg.gif);
+	background-repeat: no-repeat;
+}

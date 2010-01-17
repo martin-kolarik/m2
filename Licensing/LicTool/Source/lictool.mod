@@ -2,6 +2,8 @@ MODULE lictool;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
+FROM Exceptions IMPORT
+   TestIfCatched, RetrieveException;
 
 IMPORT
    array,
@@ -9,6 +11,7 @@ IMPORT
    cphcommon,
    Defs,
    Engine,
+   Exceptions,
    FIO,
    FIOO,
    FSO,
@@ -38,6 +41,7 @@ CONST
    Builder = TRUE;
    Licensor = TRUE;
    Client = TRUE;
+   Activator = TRUE;
 #else
    Supervisor = FALSE;
    #if Target #contains L"Builder" #then
@@ -113,7 +117,7 @@ TYPE
    TPParameters = POINTER TO ARRAY [0..0] OF PWCHAR;
 
 #save, call( convention => cdecl )
-PROCEDURE wmain( argc : INTEGER; argp : TPParameters; enpv : TPParameters ) : INTEGER;
+PROCEDURE Main( argc : INTEGER; argp : TPParameters ) : INTEGER;
 #restore
 VAR
    args : lists.CStringList;
@@ -313,7 +317,11 @@ VAR
          IF i MOD 16 = 0 THEN
             tw.WriteOA( L"      ", FALSE );
          END;
-         Strings.FromCARD32W( CARDINAL( mb[i] ), 10, OUT s ); tw.WriteOA( s, FALSE ); 
+         TRY
+            Strings.FromCARD32W( CARDINAL( mb[i] ), 10, OUT s ); tw.WriteOA( s, FALSE ); 
+         CATCH e : Exceptions.CModula2Exception DO
+            EXIT; // stop the loop
+         END;
       END;
       tw.LineEnd();
       tw.WriteOA( L"   );", TRUE );
@@ -1305,6 +1313,6 @@ BEGIN
    #endif
 
    RETURN 0;
-END wmain;
+END Main;
 
 END lictool.

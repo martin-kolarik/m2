@@ -24,7 +24,7 @@ TYPE
    TPParamStringArray = POINTER TO TParamStringArray;
   
 # save, call( convention => cdecl )
-PROCEDURE wmain( argc : INTEGER; argp : TPParamStringArray; enpv : TPParamStringArray ) : INTEGER;
+PROCEDURE Main( argc : INTEGER; argp : TPParamStringArray ) : INTEGER;
 # restore
 LABEL
    Error;
@@ -85,7 +85,7 @@ Error:
    errout^.WriteOA( OAsz( R[Texts._UsageInfo] ), TRUE );
 
    RETURN -1;
-END wmain;
+END Main;
   
 (*================================================================================*)
 

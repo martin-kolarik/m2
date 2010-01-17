@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project default="licensing-init">
+    
+    <property file="${lib.store.dir}/libraries.properties"/>
+    <property file="${licensing.dir}/build.properties"/>
+    
+    <target name="licensing-init">
+        <mkdir dir="${licensing.build.dir}"/>
+        <mkdir dir="${licensing.build.classes.dir}"/>
+    </target>
+    
+    <target name="licensing-build" depends="licensing-init">
+        <antcall target="licensing-build-web"/>
+    </target>
+
+    <target name="licensing-clean">
+        <delete dir="${licensing.build.dir}" failonerror="false"/>
+        <delete dir="${licensing.dist.dir}" failonerror="false"/>
+    </target>
+    
+    
+    <target name="licensing-compile" depends="licensing-init">
+        <!--antcall target="licensing-compile-mss"/-->
+        <javac 
+            debug="true" 
+            srcdir="${licensing.src.dir}" 
+            destdir="${licensing.build.classes.dir}" 
+            target="1.5"
+            source="1.5"
+            encoding="utf-8"
+            includes="**/*.java">
+            <classpath>
+                <path path="${licensing.javac.classpath}"/>
+            </classpath>
+        </javac>
+    </target>
+    
+    <target name="licensing-build-web" depends="licensing-compile">
+        <antcall target="licensing-package"/>
+    </target>
+    
+    <target name="licensing-copy-web-files">
+        <property file="${licensing.hibernate.properties.file}"/>
+        
+        <copy todir="${licensing.build.web.dir}">
+            <fileset dir="${licensing.web.dir}"/>
+        </copy>
+        
+        <copy tofile="${licensing.build.web.dir}/WEB-INF/log4j.properties"
+              file="${licensing.log4j.properties.file}"/>
+        
+        <copy todir="${licensing.build.meta.inf.dir}" file="${licensing.conf.dir}/MANIFEST.MF"/>
+        
+        <copy todir="${licensing.build.meta.inf.dir}" file="${licensing.conf.dir}/context.xml">
+            <filterchain>
+                <filterreader classname="org.apache.tools.ant.filters.ReplaceTokens">
+                    <param type="tokenchar" name="begintoken" value="`"/>
+                    <param type="tokenchar" name="endtoken" value="`"/>
+                    <param type="token" name="username" value="${hibernate.connection.username}"/>
+                    <param type="token" name="password" value="${hibernate.connection.password}"/>
+                    <param type="token" name="driverClassName" value="${hibernate.connection.driver_class}"/>
+                    <param type="token" name="url" value="${hibernate.connection.url}"/>
+                </filterreader>
+            </filterchain>
+        </copy>
+        
+        <copy todir="${licensing.build.web.dir}/WEB-INF" file="${licensing.conf.dir}/applicationContext.xml">
+            <filterchain>
+                <filterreader classname="org.apache.tools.ant.filters.ReplaceTokens">
+                    <param type="tokenchar" name="begintoken" value="`"/>
+                    <param type="tokenchar" name="endtoken" value="`"/>
+                </filterreader>
+            </filterchain>
+        </copy>
+
+        <copy todir="${licensing.build.web.dir}/WEB-INF/lib">
+            <fileset file="${file.reference.spring-2.5.2.jar}"/>
+            <fileset file="${file.reference.spring-webmvc-2.5.2.jar}"/>
+            <fileset file="${file.reference.commons-logging-1.1.jar}"/>
+            <fileset file="${file.reference.ejb3-persistence-3.3.1.jar}"/>
+            <fileset file="${file.reference.hibernate-3.2.6.jar}"/>
+            <fileset file="${file.reference.jta.jar}"/>
+            <fileset file="${file.reference.log4j-1.2.11.jar}"/>
+            <fileset file="${file.reference.dom4j-1.6.1.jar}"/>
+            <fileset file="${file.reference.hibernate-annotations-3.3.1.jar}"/>
+            <fileset file="${file.reference.hibernate-commons-annotations-3.3.1.jar}"/>
+            <fileset file="${file.reference.commons-collections-3.2.jar}"/>
+            <fileset file="${file.reference.cglib-nodep-2.1_3.jar}"/>
+            <fileset file="${file.reference.jstl-1.1.2.jar}"/>
+            <fileset file="${file.reference.standard-1.1.2.jar}"/>
+            <fileset file="${file.reference.ojdbc14.jar}"/>
+            <fileset file="${file.reference.antlr-2.7.6.jar}"/>
+            <fileset file="${file.reference.jaxrpc-1.1.jar}"/>
+            <fileset file="${file.reference.axis-1.4.jar}"/>
+            <fileset file="${file.reference.saaj-1.2.jar}"/>
+            <fileset file="${file.reference.commons-discovery-0.2.jar}"/>
+            <fileset file="${file.reference.wsdl4j-1.5.1.jar}"/>
+            <fileset file="${file.reference.commons-httpclient-3.1.jar}"/>
+            <fileset file="${file.reference.displaytag-1.1.1.jar}"/>
+            <fileset file="${file.reference.jcommon-1.0.12.jar}"/>
+            <fileset file="${file.reference.postgresql-8.3-603.jdbc3.jar}"/>
+
+            <fileset file="${file.reference.backport-util-concurrent-2.2.jar}"/>
+            <fileset file="${file.reference.commons-beanutils-1.7.0.jar}"/>
+            <fileset file="${file.reference.commons-codec-1.3.jar}"/>
+            <fileset file="${file.reference.commons-fileupload-1.2.jar}"/>
+            <fileset file="${file.reference.commons-io-1.3.1.jar}"/>
+            <fileset file="${file.reference.commons-lang-2.3.jar}"/>
+            <fileset file="${file.reference.commons-dbcp-1.2.2.jar}"/>
+            <fileset file="${file.reference.commons-pool-1.3.jar}"/>
+            <fileset file="${file.reference.icu4j-3.8-transliterator.jar}"/>
+        </copy>
+        
+        <copy todir="${licensing.build.meta.inf.dir}">
+            <fileset file="${file.license.spring-2.5.2.jar}"/>
+            <fileset file="${file.license.commons-logging-1.1.jar}"/>
+            <fileset file="${file.license.ejb3-persistence-3.3.1.jar}"/>
+            <fileset file="${file.license.hibernate-3.2.6.jar}"/>
+            <fileset file="${file.license.jta.jar}"/>
+            <fileset file="${file.license.log4j-1.2.11.jar}"/>
+            <fileset file="${file.license.dom4j-1.6.1.jar}"/>
+            <fileset file="${file.license.hibernate-annotations-3.3.1.jar}"/>
+            <fileset file="${file.license.hibernate-commons-annotations-3.3.1.jar}"/>
+            <fileset file="${file.license.commons-collections-3.2.jar}"/>
+            <fileset file="${file.license.cglib-nodep-2.1_3.jar}"/>
+            <fileset file="${file.license.jstl-1.1.2.jar}"/>
+            <fileset file="${file.license.standard-1.1.2.jar}"/>
+            <fileset file="${file.license.ojdbc14.jar}"/>
+            <fileset file="${file.license.commons-dbcp-1.2.2.jar}"/>
+            <fileset file="${file.license.commons-pool-1.3.jar}"/>
+            <fileset file="${file.license.commons-httpclient-3.1.jar}"/>
+            <fileset file="${file.license.axis-1.4.jar}"/>
+            <fileset file="${file.license.displaytag-1.1.1.jar}"/>
+            <fileset file="${file.license.postgresql-8.3-603.jdbc3.jar}"/>
+        </copy>
+        
+        <copy todir="${licensing.build.classes.dir}">
+            <fileset dir="${licensing.src.dir}">
+                <include name="**/messages*.properties"/>
+            </fileset>
+        </copy>
+    </target>
+    
+    <target name="licensing-package" depends="licensing-copy-web-files">
+        <dirname property="licensing.dist.jar.dir" file="${licensing.dist.war}"/>
+        <mkdir dir="${licensing.dist.jar.dir}"/>
+        
+        <jar jarfile="${licensing.dist.war}" compress="${licensing.jar.compress}" manifest="${licensing.build.meta.inf.dir}/MANIFEST.MF">
+            <fileset dir="${licensing.build.web.dir}"/>
+        </jar>
+    </target>
+    
+    <target name="licensing-deploy-ant" depends="licensing-build-web">
+        <echo message="Deploying ..."/>
+        <property name="licensing.dist.war.real" location="${licensing.dist.war}"/>
+        <taskdef name="deploy"  classname="org.apache.catalina.ant.DeployTask"
+                 classpath="${tomcat.home}/server/lib/catalina-ant.jar"/>
+        <deploy url="${tomcat.url}/manager" username="${tomcat.username}" 
+                password="${tomcat.password}"  war="${licensing.dist.war.real}" path="/licensing"/>
+    </target>
+    
+    <target name="licensing-undeploy-ant">
+        <echo message="Undeploying ..."/>
+        <taskdef name="undeploy"  classname="org.apache.catalina.ant.UndeployTask"
+                 classpath="${tomcat.home}/server/lib/catalina-ant.jar"/>
+        <undeploy url="${tomcat.url}/manager" username="${tomcat.username}" 
+                  password="${tomcat.password}" path="/licensing"/>
+    </target>
+    
+</project>

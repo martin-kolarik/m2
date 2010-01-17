@@ -281,7 +281,7 @@ CLASS IMPLEMENTATION CServer;
       RETURN;
     ELSIF c > RSize THEN
       RSize := (( RSize + c ) << 10 + 1 ) >> 10;
-      REALLOCATE( RBuffer, RSize );
+      REALLOCATE( REF RBuffer, RSize );
     END;
 
     Storage.Move( PData, ADDRESS( CARDINAL( RBuffer ) + RPos ), DataLen );
@@ -494,10 +494,10 @@ BEGIN
   RPos := 0;
   RSize := 4096;
   RMax := 65536;
-  ALLOCATE( RBuffer, RSize );
+  ALLOCATE( OUT RBuffer, RSize );
   SPos := 0;
   SSize := 8192;
-  ALLOCATE( SBuffer, SSize );
+  ALLOCATE( OUT SBuffer, SSize );
 END CServer;
 
 //================================================================================

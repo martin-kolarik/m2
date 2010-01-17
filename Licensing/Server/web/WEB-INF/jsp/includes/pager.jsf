@@ -1,0 +1,43 @@
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
+
+<c:url value="" var="pageUrl"/>
+<pg:pager pager="${pager}" url="${pageUrl}">
+    
+    <div id="pager">
+        <span id="pages">
+            <strong>Stránka:</strong>
+            
+            <pg:prev activeId="krtActive" uriId="krtUri" pageNumberId="krtPage">
+                <a href="<c:url value='${krtUri}'/>">&lt;</a>
+            </pg:prev>
+            
+            <pg:pages activeId="krtActive" uriId="krtUri" iteratePageNumberId="krtPage">
+                <c:choose>
+                    <c:when test="${krtActive}">
+                        <a class="act" href="<c:url value='${krtUri}'/>">${krtPage}</a>
+                    </c:when>
+                    <c:otherwise>
+                        <a href="<c:url value='${krtUri}'/>">${krtPage}</a>    
+                    </c:otherwise>  
+                </c:choose>
+            </pg:pages>
+            
+            <pg:next activeId="krtActive" uriId="krtUri" pageNumberId="krtPage">
+                <a href="<c:url value='${krtUri}'/>">&gt;</a>
+            </pg:next>
+            
+        </span>
+        <span id="items">
+            <strong>Položek:</strong>
+            <a href='<c:url value="?items=5"/>'><img src="../img/admin/plus.gif" alt="PLUS" /></a>
+            <a href='<c:url value="?items=-5"/>'><img src="../img/admin/minus.gif" alt="MINUS" /></a>
+        </span>
+        <span>
+            <strong>Záznam:</strong>
+            <c:out value="${pager.displayFrom}"/> - <c:out value="${pager.displayTo}"/> / <c:out value="${pager.count}"/>
+        </span>
+    </div>
+</pg:pager>
+
+
+

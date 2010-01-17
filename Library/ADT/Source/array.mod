@@ -27,7 +27,7 @@ CLASS IMPLEMENTATION CArray;
     ELSE
       Value := Value AND NOT 0FH + 10H;
     END;
-    REALLOCATE( _Data, Value * CARDINAL( _ItemSize ));
+    REALLOCATE( REF _Data, Value * CARDINAL( _ItemSize ));
     IF Value > _Size THEN
       Storage.Zero( _Data@[ _Size * _ItemSize ], ( Value - _Size ) * _ItemSize );
     END;

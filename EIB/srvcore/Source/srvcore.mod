@@ -1,5 +1,8 @@
 IMPLEMENTATION MODULE srvcore;
 
+FROM Exceptions IMPORT
+   TestIfCatched, RetrieveException;
+
 (*# call( o_a_copy => off ) *)
 
 //================================================================================

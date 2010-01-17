@@ -280,7 +280,7 @@ Licence support tool
                     </tr>
                     <tr>
                       <td><type>reader</type></td>
-                      <td>Jako <type>tracker</type>, server však navíc hodnotu z EIB pravidelnì podle nastavení parametru <type>readers_period</type> vyèítá. Komunikaèní objekt v EIB zaøízení musí mít nastavenu vlajku R (read).</td>
+                      <td>Jako <type>tracker</type>, server však navíc hodnotu z EIB pravidelnì podle nastavení parametru <type>readers_period</type> vyèítá. Komunikaèní objekt v EIB zaøízení musí mít nastavenu vlajku R (read). Ukázku použití obsahuje soubor <file>13 reader.cfg</file>.</td>
                     </tr>
                   </table>
                 </f.table>

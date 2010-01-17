@@ -446,6 +446,7 @@ CLASS IMPLEMENTATION CTest;
       //=====
 
       netsrv.StopListenServer( netsocket.stStream, ai );
+      ServerSocket.Disconnect( TRUE, 0 );
 
       WaitForMessages( 100 );
 

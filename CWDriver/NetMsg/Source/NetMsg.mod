@@ -994,7 +994,7 @@ CLASS IMPLEMENTATION CDriver;
             b := FALSE;
           END; // CASE
           IF b THEN
-            IAddress.GetAddressOA( FALSE, OUT n );
+            IAddress.ToOA( FALSE, OUT n );
             SW.AppendOA( n ); SW.AppendOA( L"-" );
             Strings.FromCARD32W( IAddress.Port, 10, OUT n );
             SW.AppendOA( n );
@@ -1948,7 +1948,7 @@ CLASS IMPLEMENTATION CDriver;
             Logger.LogSC( dldDebug, logPrefix, L"Event.Add evStructReceived2Success ", CARDINAL( evStructReceived2Success ));
          END;
          PELE^.Event.PacketLen := DataLen;
-         ALLOCATE( PELE^.Event.PPacket, DataLen );
+         ALLOCATE( OUT PELE^.Event.PPacket, DataLen );
          Storage.Move( PData, PELE^.Event.PPacket, DataLen );
       ELSE
          IF TPPacket( PData )^.TR = trString THEN

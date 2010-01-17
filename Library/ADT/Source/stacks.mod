@@ -437,6 +437,8 @@ CLASS IMPLEMENTATION CStringStack;
   BEGIN
     IF SUPER.Peek( OUT PI ) THEN
       Value := PI^.Value;
+    ELSE
+      Value.Clear();
     END;
   END Peek;
 

@@ -22,7 +22,7 @@ CLASS IMPLEMENTATION ThreadProcedureCall;
       _High := HIGH( Parameters );
       IF ( _High <> -1 ) AND ( ADR( Parameters ) <> NIL ) THEN
          Size := INC( _High, 1 ) * SIZE( PTR );
-         ALLOCATE( _Parameters, Size );
+         ALLOCATE( OUT _Parameters, Size );
          Move( ADR( Parameters ), _Parameters, Size );
       END;
    END Init;

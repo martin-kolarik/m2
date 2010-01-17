@@ -245,7 +245,7 @@ TYPE
   TPParamStringArray = POINTER TO TParamStringArray;
   
 # save, call( convention => cdecl )
-PROCEDURE wmain( argc : INTEGER; argp : TPParamStringArray; enpv : TPParamStringArray ) : INTEGER;
+PROCEDURE Main( argc : INTEGER; argp : TPParamStringArray ) : INTEGER;
 # restore
 LABEL
    Error;
@@ -374,6 +374,6 @@ BEGIN
 Error:
    errout^.WriteOA( L"  usage: runtest [-F] [-o] [-t] [-r <repeatcount>] [-f <filter>] <test-dll-list> [-h]", TRUE );
    RETURN -1;
-END wmain;
+END Main;
   
 END runtest.

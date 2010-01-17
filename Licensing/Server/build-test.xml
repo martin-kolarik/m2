@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project>
+    
+    <path id="path.junit">
+        <pathelement location="${file.reference.junit-3.8.1.jar}"/>
+        <pathelement location="${file.reference.spring-mock-2.0.7.jar}"/>
+    </path>
+    
+    <taskdef
+        classname="org.apache.tools.ant.taskdefs.optional.junit.JUnitTask"
+        classpathref="path.junit"
+        name="junit"/>
+    
+    <target name="licensing-build-test" depends="licensing-compile">
+        <mkdir dir="${licensing.build.test.dir}"/>
+        <copy todir="${licensing.build.test.dir}">
+            <fileset file="${licensing.test.dir}/cz/edhouse/licensing/test/log4j.properties"/>
+        </copy>
+        <copy todir="${licensing.build.test.dir}/WEB-INF">
+            <fileset file="${licensing.web.dir}/WEB-INF/hibernate.cfg.xml"/>
+            <fileset file="${licensing.web.dir}/WEB-INF/applicationContext.xml"/>
+            <fileset file="${licensing.hibernate.properties.file}"/>
+        </copy>
+        <javac 
+            debug="true" 
+            srcdir="${licensing.test.dir}" 
+            destdir="${licensing.build.test.dir}" 
+            target="1.5"
+            source="1.5"
+            includes="**/*.java"
+            encoding="utf-8">
+            <classpath>
+                <path path="${licensing.javac.classpath}"/>
+                <path path="${licensing.javac.test.classpath}"/>
+                <path path="${licensing.build.classes.dir}" />
+            </classpath>
+        </javac>
+    </target>
+    
+    <target name="licensing-junit-test" depends="licensing-build-test">
+        <mkdir dir="${licensing.test.results.dir}"/>
+        <junit showoutput="true"
+               fork="false"
+               haltonfailure="no">
+            <classpath>
+                <path path="${licensing.javac.classpath}"/>
+                <pathelement path="${licensing.build.classes.dir}"/>
+                <pathelement path="${licensing.build.web.dir}"/>
+                <pathelement path="${licensing.build.test.dir}"/>
+                <pathelement location="${file.reference.spring-mock-2.0.7.jar}"/>
+                <pathelement location="${file.reference.jta.jar}"/>
+                <pathelement location="${file.reference.log4j-1.2.11.jar}"/>
+                <pathelement location="${file.reference.dom4j-1.6.1.jar}"/>
+                <pathelement location="${file.reference.commons-collections-3.2.jar}"/>
+                <pathelement location="${file.reference.ojdbc14.jar}"/>
+                <pathelement location="${file.reference.cglib-nodep-2.1_3.jar}"/>
+                <pathelement location="${file.reference.antlr-2.7.6.jar}"/>
+            </classpath>
+            <formatter usefile="false" type="brief"/>
+            <formatter type="xml"/>
+            <batchtest toDir="${licensing.test.results.dir}">
+                <fileset dir="${licensing.test.dir}">
+                    <include name="**/*Test.java"/>
+                    <exclude name="**/Abstract*Test.java"/>
+                </fileset>
+            </batchtest>
+        </junit>
+    </target>
+    
+    <target name="licensing-generate-reports">
+        <mkdir dir="${licensing.test.htmlresults.dir}"/>
+        <junitreport todir="${licensing.test.results.dir}">
+            <fileset dir="${licensing.test.results.dir}">
+                <include name="TEST-*.xml"/>
+            </fileset>
+            <report format="frames" todir="${licensing.test.htmlresults.dir}"/>
+        </junitreport>
+    </target>
+    
+    <target name="licensing-generate-show-reports" depends="licensing-generate-reports">
+        <nbbrowse file="${licensing.test.htmlresults.dir}/index.html"/>
+    </target>
+    
+</project>
