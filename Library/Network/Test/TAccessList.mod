@@ -58,32 +58,32 @@ CLASS IMPLEMENTATION CTest;
       AL.Reset();
       AL.Policy := AccessList.actDeny;
       
-      ia.SetAddressOA( L"192.169.1.2", 0 );
+      ia.FromOA( L"192.169.1.2", 0 );
       AL.AddRule( AccessList.actAllow, ia, 14 );
 
       AL.AddRuleOA( AccessList.actDeny, L"192.168.0.63/26" );
       
-      ia.SetAddressOA( L"192.168.0.100", 0 ); // allowed
+      ia.FromOA( L"192.168.0.100", 0 ); // allowed
       IF NOT AL.AllowedForAddress( ia ) THEN
          Failure := TRUE;
       END;
 
-      ia.SetAddressOA( L"192.168.1.128", 0 ); // allowed
+      ia.FromOA( L"192.168.1.128", 0 ); // allowed
       IF NOT AL.AllowedForAddress( ia ) THEN
          Failure := TRUE;
       END;
 
-      ia.SetAddressOA( L"192.169.1.128", 0 ); // allowed
+      ia.FromOA( L"192.169.1.128", 0 ); // allowed
       IF NOT AL.AllowedForAddress( ia ) THEN
          Failure := TRUE;
       END;
 
-      ia.SetAddressOA( L"192.172.1.128", 0 ); // disallowed
+      ia.FromOA( L"192.172.1.128", 0 ); // disallowed
       IF AL.AllowedForAddress( ia ) THEN
          Failure := TRUE;
       END;
 
-      ia.SetAddressOA( L"192.168.0.1", 0 ); // disallowed
+      ia.FromOA( L"192.168.0.1", 0 ); // disallowed
       IF AL.AllowedForAddress( ia ) THEN
          Failure := TRUE;
       END;

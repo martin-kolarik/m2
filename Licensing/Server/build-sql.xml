@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project>
+    
+    <taskdef name="hibernatetool" classname="org.hibernate.tool.ant.HibernateToolTask">
+        <classpath>
+            <path path="${licensing.hibernatetool.classpath}"/>
+        </classpath>
+    </taskdef>
+    
+    <target name="licensing-drop-create-schema" depends="licensing-compile">
+        <hibernatetool destdir=".">
+            <classpath>
+                <pathelement path="${licensing.build.classes.dir}"/>
+            </classpath>
+            
+            <annotationconfiguration configurationfile="${licensing.hibernate.cfg.xml}"
+                                     propertyfile="${licensing.hibernate.properties.file}"/>
+            
+            <hbm2ddl export="true" console="true" drop="true" create="true" />
+        </hibernatetool>
+    </target>
+    
+    <target name="licensing-export-schema" depends="licensing-compile">
+        <hibernatetool destdir=".">
+            <classpath>
+                <pathelement path="${licensing.build.classes.dir}"/>
+            </classpath>
+            
+            <annotationconfiguration configurationfile="${licensing.hibernate.cfg.xml}" />
+            
+            <hbm2ddl export="false" console="true" drop="false" create="true" outputfilename="sql/dbschema.sql" format="true"/>
+        </hibernatetool>
+    </target>
+    
+    <target name="licensing-update-schema" depends="licensing-compile">
+        <hibernatetool destdir=".">
+            <classpath>
+                <pathelement path="${licensing.build.classes.dir}"/>
+            </classpath>
+            
+            <annotationconfiguration configurationfile="${licensing.hibernate.cfg.xml}"
+                                     propertyfile="${licensing.hibernate.properties.file}"/>
+            
+            <hbm2ddl export="true" console="true" update="true" create="false"/>
+        </hibernatetool>
+    </target>
+    
+    <target name="licensing-insert-data">
+        <property file="${licensing.hibernate.properties.file}"/>
+        <sql driver="${hibernate.connection.driver_class}"
+             userid="${hibernate.connection.username}"
+             password="${hibernate.connection.password}"
+             url="${hibernate.connection.url}"
+             onerror="continue"
+             keepformat="true"
+             delimitertype="row"
+             encoding="UTF-8">
+            <classpath>
+                <path location="${file.reference.ojdbc14.jar}"/>
+                <path location="${file.reference.postgresql-8.3-603.jdbc3.jar}"/>
+            </classpath>
+            <transaction src="${licensing.sql.test_data}"/>
+        </sql>
+    </target>
+
+    <target name="licensing-reinit-data">
+        <antcall target="licensing-drop-create-schema"/>
+        <antcall target="licensing-insert-data"/>
+    </target>
+    
+</project>

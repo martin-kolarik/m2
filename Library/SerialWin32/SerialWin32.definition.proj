@@ -10,6 +10,10 @@
         <CLib>Dynamic</CLib>
         <LeakChecking>off</LeakChecking>
     </PropertyGroup>
+    
+    <PropertyGroup>
+        <ComponentType Condition="$(MSBuildProjectName)=='SCCore'">Generic</ComponentType>
+    </PropertyGroup>
 
     <PropertyGroup>
         <ProductM2Control></ProductM2Control>

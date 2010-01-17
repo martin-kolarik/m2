@@ -2,7 +2,6 @@ DEFINITION MODULE ld;
 // LeakDetector main module, procedure Mark is called internally by M2CPP code
 
 #save, call( convention => cdecl ), option( dll_export => on )
-
 // procedures to control detecting
 PROCEDURE SwitchOn();
 PROCEDURE SwitchOff();
@@ -16,12 +15,13 @@ PROCEDURE Mark( Enter : BOOLEAN; CONST Source : ARRAY OF WCHAR; Line : CARDINAL 
 PROCEDURE AllocateHook( CONST A : ADDRESS; CONST S : CARDINAL );
 PROCEDURE DeallocateHook( CONST A : ADDRESS );
 PROCEDURE ReallocateHook( CONST O, N : ADDRESS; CONST S : CARDINAL );
-
 #restore
 
 //--------------------------------------------------------------------------------
   
 // handle processes and threads
-PROCEDURE DllMain( Reason : CARDINAL );
+#save, call( convention => cdecl )
+PROCEDURE DllMain( Reason : CARDINAL ) : BOOLEAN;
+#restore
 
 END ld.

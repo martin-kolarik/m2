@@ -375,7 +375,7 @@ CLASS IMPLEMENTATION CAdvisedDevice;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper; // required
+   PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper;
    BEGIN
 	   IF _Device = NIL THEN
 	      ASSERT( FALSE );
@@ -387,7 +387,7 @@ CLASS IMPLEMENTATION CAdvisedDevice;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns; // optional
+	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
 	BEGIN
 	   IF _Device = NIL THEN
 	      ASSERT( FALSE );
@@ -399,7 +399,7 @@ CLASS IMPLEMENTATION CAdvisedDevice;
 
 (*---------------------------------------------------------------------------*)
 
-	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO; // required
+	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
 	BEGIN
 	   IF _Device = NIL THEN
 	      ASSERT( FALSE );

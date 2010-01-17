@@ -16,12 +16,12 @@
     <PropertyGroup>
         <Manufacturer Condition="$(Manufacturer)==''">SmartControl</Manufacturer>
         <DynamicCLibInstallMethod Condition="$(DynamicCLibInstallMethod)==''">Private</DynamicCLibInstallMethod><!-- Private Shared -->
+        <ProductId Condition="$(ProductId)==''">$(MSBuildProjectName)</ProductId>
         <ProductVersion Condition="$(ProductVersion)==''">0.0.0</ProductVersion>
         <TestExec Condition="$(TestExec)==''">off</TestExec>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(ComponentType)=='Product'">
-        <ProductId Condition="$(ProductId)==''">$(MSBuildProjectName)</ProductId>
         <ProductDisplayName Condition="$(ProductDisplayName)==''">$(FileDisplayName)</ProductDisplayName>
         <ProductDescription Condition="$(ProductDescription)==''">$(FileDescription)</ProductDescription>
     </PropertyGroup>
@@ -92,10 +92,11 @@
         <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName><!-- Release Debug -->
         <LanguageStyle Condition="$(LanguageStyle)==''">UNICODE</LanguageStyle><!-- ANSI UNICODE -->
         <Language Condition="$(Language)==''">English</Language><!-- English Czech German Japanese -->
-        <CLib Condition="$(CLib)==''">Dynamic</CLib><!-- Static Dynamic --><!-- Static = LIBC, Dynamic = MSVCRT -->
+        <CLib Condition="$(CLib)==''">Private</CLib><!-- Static Dynamic Privat --><!-- Static = LIBC, Dynamic = MSVCRT, Private = CRtl -->
         <Result Condition="$(Result)==''">Static</Result><!-- Static (LIB) Dynamic (DLL) Program (EXE) -->
+        <ResultSubsystem Condition="$(ResultSubsystem)==''">Console</ResultSubsystem><!-- Console GUI -->
         <LeakChecking Condition="$(LeakChecking)==''">off</LeakChecking>
-        <CPPExceptions Condition="$(CPPExceptions)==''">on</CPPExceptions>
+        <CPPExceptions Condition="$(CPPExceptions)==''">off</CPPExceptions>
         <CopyRuntimes Condition="$(CopyRuntimes)==''">$(ProductFlag)</CopyRuntimes>
         <LicenceMachineId Condition="$(LicenceMachineId)==''">M</LicenceMachineId><!-- M = MAC, D = disc, MD = MAC + Disc -->
 
@@ -108,7 +109,7 @@
 
     <!-- (constructed properties, DO NOT MODIFY) -->
     <PropertyGroup>
-        <ClientLicensing Condition="$(ClientLicensing)=='' Or $(ProductFlag)=='off'">off</ClientLicensing>
+        <ClientLicensing Condition="$(ClientLicensing)=='' Or $(ProductId)==''">off</ClientLicensing>
         <SetupLicensing Condition="$(SetupLicensing)=='' Or $(ProductFlag)=='off'">off</SetupLicensing>
         <ClientLicensing Condition="$(Licensing)=='on' And $(ProductFlag)=='on'">on</ClientLicensing>
         <SetupLicensing Condition="$(Licensing)=='on' And $(ProductFlag)=='on'">on</SetupLicensing>

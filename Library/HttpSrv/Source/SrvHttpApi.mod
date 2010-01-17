@@ -158,7 +158,7 @@ CLASS IMPLEMENTATION CHttpApiHeaders;
       
       Response.Headers.UnknownHeaderCount := CARD16( UnknownCache.Count );
       IF Response.Headers.UnknownHeaderCount > 0 THEN
-         REALLOCATE( UnknownHeaderBuffer, UnknownCache.Count * SIZE( httpapi.HTTP_UNKNOWN_HEADER ));
+         REALLOCATE( REF UnknownHeaderBuffer, UnknownCache.Count * SIZE( httpapi.HTTP_UNKNOWN_HEADER ));
 
          i := 0;
          UnknownCache.Reset();

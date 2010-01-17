@@ -15,7 +15,7 @@ CLASS IMPLEMENTATION CCircularBuffer;
   BEGIN
     IF PBuffer = NIL THEN
       BufferSize := Size;
-      ALLOCATE( PBuffer, BufferSize );
+      ALLOCATE( OUT PBuffer, BufferSize );
     END;
   END Init;
 

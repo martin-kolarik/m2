@@ -27,7 +27,8 @@ VAR
 
 CLASS CResult( browser.CBrowserDelegate );
    LOCAL VAR
-      ShowDots : CARDINAL := 1; // sync
+      ShowDots : Sync.SIGNAL;
+      InfoDone : Sync.SIGNAL;
       IPs : lists.CStringList;
    LOCAL VIRTUAL PROCEDURE OnCompleted( Result : Sync.TAsyncResult; CONST Servers : arrays.CPtrArray );
 END CResult;
@@ -46,7 +47,7 @@ CLASS IMPLEMENTATION CResult;
       server : browser.TPServer;
       stdout : TextWriter.TPTextWriter := TextWriter.stdout();
    BEGIN
-      Sync.IExchg( REF ShowDots, 0 ); // stop to show dots
+      ShowDots.Reset();
       stdout^.LineEnd();
 
       IF Servers.Empty THEN
@@ -66,18 +67,22 @@ CLASS IMPLEMENTATION CResult;
 
             stdout^.WriteOA( L"        MAC: ", FALSE ); stdout^.Write( server^.MAC, FALSE );
             
-            server^.Address.GetAddressOA( TRUE, OUT s );
+            server^.Address.ToOA( TRUE, OUT s );
             S.FromOA( s );
             IPs.Add( S, 0 );
 
             stdout^.WriteOA( L", IP: ", FALSE ); stdout^.Write( S, TRUE );
          END;
       END;
+
+      InfoDone.Signal();
    END OnCompleted;
 
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
+   ShowDots.Signal();
+   InfoDone.Reset();
 END CResult;
 
 (*================================================================================*)
@@ -87,7 +92,7 @@ TYPE
    TPParamStringArray = POINTER TO TParamStringArray;
   
 # save, call( convention => cdecl )
-PROCEDURE wmain( argc : INTEGER; argp : TPParamStringArray; enpv : TPParamStringArray ) : INTEGER;
+PROCEDURE Main( argc : INTEGER; argp : TPParamStringArray ) : INTEGER;
 # restore
 LABEL
    Error, Stop;
@@ -135,10 +140,15 @@ BEGIN
 
    // browsing runs in separate thread
    errout^.WriteOA( OAsz( R[Texts._Searching] ), FALSE );
-   WHILE Sync.IGet( REF Result.ShowDots ) = 1 DO
+   WHILE Result.ShowDots.State DO
       errout^.WriteOA( L".", FALSE );
       Sync.Sleep( 250 );
    END; // WHILE
+   
+   // wait for emit informations
+   WHILE NOT Result.InfoDone.State DO
+      Sync.Sleep( 10 );
+   END;
    
    IF NOT ConfigFile.Empty THEN
       TS.LoadPath( OA( ConfigFile.Length-1, ConfigFile.rawData ));
@@ -171,7 +181,7 @@ Error:
 
 Stop:
    RETURN -1;
-END wmain;
+END Main;
   
 (*================================================================================*)
 

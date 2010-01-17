@@ -214,7 +214,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       ASSERTLOG( NOT _Clients.Contains( Connection ));
       
       IF NOT _NetworkLogger^.Filtered( log.dlcError, LOG_XMLS ) THEN
-         Connection^.RemoteAddress.GetAddressOA( TRUE, OUT address );
+         Connection^.RemoteAddress.ToOA( TRUE, OUT address );
          _NetworkLogger^.LogSS( log.dlcError, LOG_XMLS, "CONNECT:", address );
       END;
 
@@ -236,7 +236,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       Client : TPClient;
    BEGIN
       IF NOT _NetworkLogger^.Filtered( log.dlcError, LOG_XMLS ) THEN
-         Connection^.RemoteAddress.GetAddressOA( TRUE, OUT address );
+         Connection^.RemoteAddress.ToOA( TRUE, OUT address );
          _NetworkLogger^.LogSS( log.dlcError, LOG_XMLS, "DISCONNECT:", address );
       END;
 
@@ -258,7 +258,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       Client : TPClient;
       sd : ARRAY [0..63] OF WCHAR;
    BEGIN
-      Connection^.RemoteAddress.GetAddressOA( TRUE, OUT sd );
+      Connection^.RemoteAddress.ToOA( TRUE, OUT sd );
       _CommonLogger^.LogSS( log.dldDebug, LOG_XMLS, "RCV: ", sd );
       _CommonLogger^.LogSC( log.dldDebug, LOG_XMLS, "  length: ", DataLen );
 
@@ -560,7 +560,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
          RETURN;
 
       ELSE
-         ia.GetAddressOA( TRUE, OUT inetaddr );
+         ia.ToOA( TRUE, OUT inetaddr );
          d.FromOA( LOG_XMLS ); d.AppendOA( L"/" ); d.AppendOA( inetaddr );
          Originator.SetDescription( d );
 

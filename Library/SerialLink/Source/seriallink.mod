@@ -334,7 +334,7 @@ CLASS IMPLEMENTATION CCommLinkStream; (* >>>>>>>>>>>>>>>>>>>>>>>>>> *)
 BEGIN
   FocusMask := {};
   Storage.Fill( ADR( CommCBArray ), SIZE( CommCBArray ), 0 );
-  ALLOCATE( PSHandles, SessionHandles DIV 8 );
+  ALLOCATE( OUT PSHandles, SessionHandles DIV 8 );
   IF PSHandles <> NIL THEN
     Storage.Fill( PSHandles, SessionHandles DIV 8, 0 );
   END;
@@ -786,7 +786,7 @@ END COpenLinkElem;
 (*%E UNICODE *)
   BEGIN
 (*%F UNICODE *)
-    hLink := NOHANDLE;
+    hLink := TLinkHandle( NOHANDLE );
 
     ASSIGN( sPath, Library );
     ASSIGN( sDevice, Device );
@@ -919,7 +919,7 @@ END COpenLinkElem;
     RETURN FALSE;
 (*%E UNICODE *)
 (*%T UNICODE *)
-    hLink := NOHANDLE;
+    hLink := TLinkHandle( NOHANDLE );
 
     ASSIGN( sPath, Library );
     ASSIGN( sDevice, Device );

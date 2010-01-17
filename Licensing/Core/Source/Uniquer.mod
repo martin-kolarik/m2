@@ -103,6 +103,8 @@ END NullSource;
 
 (*================================================================================*)
 
+#if #contains( LicenceMachineId, L"D" ) #then
+
 CLASS IMPLEMENTATION DiscSource;
 
 (*--------------------------------------------------------------------------------*)
@@ -140,7 +142,11 @@ CLASS IMPLEMENTATION DiscSource;
 
 END DiscSource;
 
+#endif
+
 (*================================================================================*)
+
+#if #contains( LicenceMachineId, L"M" ) #then
 
 CLASS IMPLEMENTATION MACSource;
 
@@ -214,6 +220,8 @@ CLASS IMPLEMENTATION MACSource;
 (*--------------------------------------------------------------------------------*)
 
 END MACSource;
+
+#endif
 
 (*================================================================================*)
 

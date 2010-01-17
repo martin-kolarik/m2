@@ -19,7 +19,7 @@
     <ItemGroup>
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
         <Components Include="Modula2\m2rtl;Library\ADT"/>
-        <Modules Include="dllmain;ld"/>
+        <Modules Include="ld"/>
         <Libraries Include="advapi32"/>
     </ItemGroup>
 

@@ -9,17 +9,18 @@ FROM Strings IMPORT
 IMPORT
 	Languages,
 	lrconv,
+	Storage,
 	windows,
 	winnls;
 
 PROCEDURE MoveA( CONST Source : ADDRESS; Destination : ADDRESS; Chars : CARDINAL );
 BEGIN
-	windows.MoveMemory( Destination, ADDRESS( Source ), Chars );
+	Storage.Move( Source, Destination, Chars );
 END MoveA;
 
 PROCEDURE MoveW( CONST Source : ADDRESS; Destination : ADDRESS; Chars : CARDINAL );
 BEGIN
-	windows.MoveMemory( Destination, ADDRESS( Source ), Chars << 1 );
+	Storage.Move( Source, Destination, Chars << 1 );
 END MoveW;
 
 PROCEDURE IncA( CONST Source : ADDRESS; Chars : CARDINAL ) : ADDRESS;
@@ -300,7 +301,7 @@ END PadRightW;
 	
 PROCEDURE TrimStartW( REF String : ARRAY OF WCHAR );
 BEGIN
-	TrimStartDelimitersW( REF String, WCHAR{' ', WCHAR(9), WCHAR(10), WCHAR(13)} );
+	TrimStartDelimitersW( REF String, WCHAR{L' ', WCHAR(9), WCHAR(10), WCHAR(13)} );
 END TrimStartW;
 
 PROCEDURE TrimStartDelimitersW( REF String : ARRAY OF WCHAR; CONST Delimiters : SET OF WCHAR );
@@ -339,7 +340,7 @@ END TrimStartDelimitersSW;
 
 PROCEDURE TrimEndW( REF String : ARRAY OF WCHAR );
 BEGIN
-	TrimEndDelimitersW( REF String, WCHAR{' ', WCHAR(9), WCHAR(10), WCHAR(13)} );
+	TrimEndDelimitersW( REF String, WCHAR{L' ', WCHAR(9), WCHAR(10), WCHAR(13)} );
 END TrimEndW;
 
 PROCEDURE TrimEndDelimitersW( REF String : ARRAY OF WCHAR; CONST Delimiters : SET OF WCHAR );
@@ -390,7 +391,7 @@ END TrimEndDelimitersSW;
 
 PROCEDURE TrimW( REF String : ARRAY OF WCHAR );
 BEGIN
-	TrimDelimitersW( REF String, WCHAR{' ', WCHAR(9), WCHAR(10), WCHAR(13)} );
+	TrimDelimitersW( REF String, WCHAR{L' ', WCHAR(9), WCHAR(10), WCHAR(13)} );
 END TrimW;
 
 PROCEDURE TrimDelimitersW( REF String : ARRAY OF WCHAR; CONST Delimiters : SET OF WCHAR );

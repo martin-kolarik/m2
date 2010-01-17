@@ -907,7 +907,7 @@ CLASS IMPLEMENTATION DSocket;
       SELF.Result := Sync.arUnknown;
       _HSignal.Reset();
 
-      NumericAddress := Addr.SetAddressOA( Server, 0 );
+      NumericAddress := Addr.FromOA( Server, 0 );
       IF NumericAddress THEN // we know where to connect immediatelly
          _Lock.Incl( REF _Pending, poConnectResolved ); // fulfill Connect prerequisity
          Remote := Addr;
@@ -1348,10 +1348,10 @@ CLASS IMPLEMENTATION DSocket;
          FOR i := 0 TO HIGH( Address ) DO
             IF NOT haveV6 AND Address[i].V6 AND ( Address[i].Scope <> inetaddr.scoLocalLink ) THEN // TODO: address can be select by Local address too (use address by selected interface)
                haveV6 := TRUE;
-               Address[i].ToOA( OUT aiV6, OUT Filled );
+               Address[i].ToBOA( OUT aiV6, OUT Filled );
             ELSIF NOT haveV4 AND NOT Address[i].V6 THEN
                haveV4 := TRUE;
-               Address[i].ToOA( OUT aiV4, OUT Filled );
+               Address[i].ToBOA( OUT aiV4, OUT Filled );
             END;
          END;
          CASE _V6Mode OF

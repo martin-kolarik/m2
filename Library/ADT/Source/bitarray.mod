@@ -86,9 +86,9 @@ CLASS IMPLEMENTATION CBitArray;
         LBA.CountBits := TRUE;
         DEC( Occupied, LBA.AdjustBitsCount());
         LBA._Data := NIL; // deny deallocating mine data
-        REALLOCATE( _Data, L2 );
+        REALLOCATE( REF _Data, L2 );
       ELSE
-        REALLOCATE( _Data, L2 );
+        REALLOCATE( REF _Data, L2 );
         Storage.Fill( _Data@[L1], L2-L1, 0 );
       END;
     END;
@@ -347,7 +347,7 @@ CLASS IMPLEMENTATION CBitArray;
     END;
 
     i := ( _Allocated + bcGi + bcGm ) >> bcGs << 3; // BITSETS converted to GRANULARITY BYTES
-    REALLOCATE( _BitsCount, i );
+    REALLOCATE( REF _BitsCount, i );
     Storage.Fill( _BitsCount, i, 0 );
 
     Count := 0;

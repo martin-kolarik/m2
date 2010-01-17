@@ -5,7 +5,6 @@
 
     <!-- common resource properties -->
     <PropertyGroup>
-        <ProductId Condition="$(ProductId)==''">$(FileDescription)</ProductId>
         <!-- ProductStepping></ProductStepping --><!-- ServicePack etc. -->
         <!-- Comments></Comments -->
         <OriginalFileName Condition="$(OriginalFileName)==''">$(OutputName)</OriginalFileName>

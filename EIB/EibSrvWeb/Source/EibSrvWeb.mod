@@ -468,7 +468,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       s.Assign( value );
       Value.String := s;
 
-      originator.GetAddressOA( TRUE, OUT ia );
+      originator.ToOA( TRUE, OUT ia );
       d.FromOA( L"web/" ); d.AppendOA( ia );
       Originator.SetDescription( d );
 

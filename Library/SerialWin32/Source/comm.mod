@@ -2751,9 +2751,9 @@ OwnEventMask :=
             IF la1 + la2 > TxCacheSize THEN
               TxCacheSize := la1 + la2;
               IF PTxCache <> NIL THEN
-                REALLOCATE( PTxCache, TxCacheSize );
+                REALLOCATE( REF PTxCache, TxCacheSize );
               ELSE
-                ALLOCATE( PTxCache, TxCacheSize );
+                ALLOCATE( OUT PTxCache, TxCacheSize );
               END;
             END;
             pt := PTxCache;
@@ -3207,9 +3207,9 @@ OwnEventMask :=
               IF c > RxCacheSize THEN
                 RxCacheSize := c;
                 IF PRxCache <> NIL THEN
-                  REALLOCATE( PRxCache, RxCacheSize );
+                  REALLOCATE( REF PRxCache, RxCacheSize );
                 ELSE
-                  ALLOCATE( PRxCache, RxCacheSize );
+                  ALLOCATE( OUT PRxCache, RxCacheSize );
                 END;
               END;
               a1 := PRxCache;
@@ -3420,9 +3420,9 @@ OwnEventMask :=
             IF la1 + la2 > TxCacheSize THEN
               TxCacheSize := la1 + la2;
               IF PTxCache <> NIL THEN
-                REALLOCATE( PTxCache, TxCacheSize );
+                REALLOCATE( REF PTxCache, TxCacheSize );
               ELSE
-                ALLOCATE( PTxCache, TxCacheSize );
+                ALLOCATE( OUT PTxCache, TxCacheSize );
               END;
             END;
             pt := PTxCache;
