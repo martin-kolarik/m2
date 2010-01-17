@@ -556,7 +556,7 @@ VAR
 BEGIN
    logger()^.LogS( Severity, logPrefix, Text );
 
-   Connection^.RemoteAddress.GetAddressOA( TRUE, OUT address );
+   Connection^.RemoteAddress.ToOA( TRUE, OUT address );
    logger()^.LogSS( Severity, logPrefix, "  address ", address );
 END Log;
   
@@ -1057,7 +1057,7 @@ CLASS IMPLEMENTATION CDispatcher;
          Message.Command := cmNetworkReceive;
          Message.NRSocket := Socket;
          Message.NRLength := l;
-         ALLOCATE( Message.NRData, l );
+         ALLOCATE( OUT Message.NRData, l );
          Storage.Move( a, Message.NRData, l );
 
          // queue request
@@ -1227,7 +1227,7 @@ CLASS IMPLEMENTATION CDispatcher;
       Message.SPConnection := Connection;
       Message.SPId := ClientId;
       Message.SLen := DataLen;
-      ALLOCATE( Message.SData, DataLen );
+      ALLOCATE( OUT Message.SData, DataLen );
       Storage.Move( PData, Message.SData, DataLen );
 
       Result := SQueue.EnqueueOA( Message, TRUE, netsocket.FORSAFETY );

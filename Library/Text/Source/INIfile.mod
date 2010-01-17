@@ -4,6 +4,8 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 FROM Strings IMPORT
    CapitalizeW;
+FROM Exceptions IMPORT
+   TestIfCatched;
 
 IMPORT
    FIOO,

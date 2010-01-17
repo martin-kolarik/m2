@@ -1,0 +1,19 @@
+<Project
+    DefaultTargets = "Build"
+    xmlns="http://schemas.microsoft.com/developer/msbuild/2003" >
+
+    <!-- 1 -->
+    <Import Project="..\..\Build\common.rootdir.proj"/>
+    <Import Project="$(RootBuildDir)\common.definition.proj"/>
+
+    <!-- 2 -->
+
+    <!-- 3 -->
+    <Import Project="$(RootBuildDir)\common.build.proj"/>
+
+    <!-- 4 -->
+    <ItemGroup>
+        <Interface Include="$(InterfaceNamePath);$(ComponentPath)\Library\ntdll"/>
+    </ItemGroup>
+
+</Project>

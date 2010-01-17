@@ -1,5 +1,8 @@
 MODULE SlotAllocator;
 
+FROM Exceptions IMPORT
+   TestIfCatched, RetrieveException;
+
 IMPORT
   Exceptions,
   StorageO;

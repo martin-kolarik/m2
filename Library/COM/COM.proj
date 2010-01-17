@@ -19,7 +19,7 @@
         <Components Include="Modula2\m2rtl;Library\ADT"/>
         <Modules Include="com"/>
     </ItemGroup>
-
+    
     <!-- 5 LAST INCLUDE COMPILATION CODE ITSELF -->
     <Import Project="$(RootBuildDir)\common.build.proj"/>
 

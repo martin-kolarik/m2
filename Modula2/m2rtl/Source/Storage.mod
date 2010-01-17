@@ -5,16 +5,8 @@ IMPLEMENTATION MODULE Storage;
 IMPORT
    windows;
   
-#if DEBUG #then
-   IMPORT
-      // crtdbg,
-      malloc;
-#else
-   VAR
-      GHeap : windows.HANDLE;
-#endif
-
 VAR
+   GHeap : windows.HANDLE := NIL;
    GPageSize : CARDINAL := 0;
 
 //--------------------------------------------------------------------------------
@@ -23,11 +15,8 @@ INITIALLY __I();
 VAR
 	si : windows.SYSTEM_INFO;
 BEGIN
-   #if DEBUG #then
-      // crtdbg._CrtSetDbgFlag( crtdbg._CRTDBG_CHECK_ALWAYS_DF OR crtdbg._CRTDBG_ALLOC_MEM_DF );
-   #else
-      GHeap := windows.GetProcessHeap();
-   #endif  
+   GHeap := windows.GetProcessHeap();
+
 	Fill( ADR( si ), SIZE( si ), 0 );
 	windows.GetSystemInfo( ADR( si ));
 	GPageSize := si.dwPageSize;
@@ -41,101 +30,167 @@ END PageSize;
 	
 //================================================================================
 
-PROCEDURE M2ALLOCATE( VAR a : ADDRESS; size : CARDINAL );
+PROCEDURE M2ALLOCATE( OUT a : ADDRESS; size : CARDINAL );
 BEGIN
-  IF size = 0 THEN
-    a := NIL;
-  ELSE
-    #if DEBUG #then
-      // ASSERT( malloc._heapchk() = malloc._HEAPOK );
-      a := malloc.malloc( size );
-    #else
-      __I();
-      a := windows.HeapAlloc( GHeap, 0, size );
-    #endif
-    // LeakSTART();
-    LeakALLOCATE( a, size );
-  END;
+   __I();
+   HeapAllocate( GHeap, OUT a, size );
 END M2ALLOCATE;
 
 //--------------------------------------------------------------------------------
 
-PROCEDURE M2DEALLOCATE( VAR a : ADDRESS );
+PROCEDURE M2DEALLOCATE( OUT a : ADDRESS );
 BEGIN
-  IF a = NIL THEN
-    RETURN;
-  ELSE
-    LeakDEALLOCATE( a );
-    #if DEBUG #then
-      malloc.free( a );
-      // ASSERT( malloc._heapchk() = malloc._HEAPOK );
-    #else
-      windows.HeapFree( GHeap, 0, a );
-    #endif
-  END;
-  a := NIL;
+   HeapDeallocate( GHeap, OUT a );
 END M2DEALLOCATE;
 
 //--------------------------------------------------------------------------------
 
-PROCEDURE M2REALLOCATE( VAR a : ADDRESS; size: CARDINAL );
-VAR
-  na : ADDRESS;
+PROCEDURE M2REALLOCATE( REF a : ADDRESS; size: CARDINAL );
 BEGIN
-  #if DEBUG #then
-    IF size = 0 THEN
-      malloc.free( a ); na := NIL;
-    ELSE
-      // ASSERT( malloc._heapchk() = malloc._HEAPOK );
-      na := malloc.realloc( a, size );
-    END;
-  #else
-    __I();
-    IF a = NIL THEN
-      na := windows.HeapAlloc( GHeap, 0, size );
-    ELSIF size = 0 THEN
-      windows.HeapFree( GHeap, 0, a ); na := NIL;
-    ELSE
-      na := windows.HeapReAlloc( GHeap, 0, a, size );
-    END;
-  #endif
-  // LeakSTART();
-  LeakREALLOCATE( a, na, size );
-  a := na;
+   __I();
+   HeapReallocate( GHeap, REF a, size );
 END M2REALLOCATE;
 
-//================================================================================
+(*================================================================================*)
 
-PROCEDURE Move( CONST Source : ADDRESS; Destination : ADDRESS; Length : CARDINAL );
+PROCEDURE CreateHeap( OUT Heap : PTR ) : BOOLEAN;
 BEGIN
-  windows.MoveMemory( Destination, ADDRESS( Source ), Length );
+   Heap := windows.HeapCreate( 0, 0, 0 );
+   RETURN Heap <> NIL;
+END CreateHeap;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE DisposeHeap( OUT Heap : PTR );
+BEGIN
+   IF Heap = NIL THEN
+      RETURN;
+   END;
+   windows.HeapDestroy( Heap );
+   Heap := NIL;
+END DisposeHeap;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE HeapAllocate( Heap : PTR; OUT a : ADDRESS; size : CARDINAL ) : BOOLEAN;
+BEGIN
+   IF Heap = NIL THEN
+      RETURN FALSE;
+   ELSIF size = 0 THEN
+      a := NIL;
+   ELSE
+      a := windows.HeapAlloc( Heap, 0, size );
+      IF a = NIL THEN
+         RETURN FALSE;
+      END;
+      LeakALLOCATE( a, size );
+   END;
+   RETURN TRUE;
+END HeapAllocate;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE HeapDeallocate( Heap : PTR; OUT a : ADDRESS ) : BOOLEAN;
+BEGIN
+   IF ( a = NIL ) OR ( Heap = NIL ) THEN
+      RETURN FALSE;
+   ELSE
+      LeakDEALLOCATE( a );
+      windows.HeapFree( Heap, 0, a );
+      a := NIL;
+      RETURN TRUE;
+   END;
+END HeapDeallocate;
+
+(*--------------------------------------------------------------------------------*)
+
+PROCEDURE HeapReallocate( Heap : PTR; REF a : ADDRESS; size : CARDINAL ) : BOOLEAN;
+VAR
+   na : ADDRESS;
+BEGIN
+   IF Heap = NIL THEN
+      RETURN FALSE;
+   ELSIF a = NIL THEN
+      na := windows.HeapAlloc( Heap, 0, size );
+      IF na = NIL THEN
+         RETURN FALSE;
+      END;
+   ELSIF size = 0 THEN
+      windows.HeapFree( Heap, 0, a );
+      na := NIL;
+   ELSE
+      na := windows.HeapReAlloc( Heap, 0, a, size );
+      IF na = NIL THEN
+         RETURN FALSE;
+      END;
+   END;
+   LeakREALLOCATE( a, na, size );
+   a := na;
+   RETURN TRUE;
+END HeapReallocate;
+
+(*================================================================================*)
+
+PROCEDURE Move( CONST source : ADDRESS; destination : ADDRESS; length : CARDINAL );
+VAR
+   termination : ADDRESS := INC( source, length );
+BEGIN
+   IF length = 0 THEN
+      RETURN;
+
+   ELSIF ( PTR( destination ) < PTR( source )) OR ( PTR( destination ) > PTR( termination )) THEN // blocks do not overlap for upward moving
+      WHILE source <> termination DO
+         PBYTE( destination )^ := PBYTE( source )^;
+         INC( source );
+         INC( destination );
+      END; // WHILE
+
+   ELSE // move downwards
+      INC( destination, length-1 );
+      WHILE source <> termination DO
+         DEC( termination );
+         PBYTE( destination )^ := PBYTE( termination )^;
+         DEC( destination );
+      END; // WHILE
+
+   END;
 END Move;
 
-PROCEDURE Fill( Destination : ADDRESS; Length : CARDINAL; Value : BYTE );
+PROCEDURE Fill( destination : ADDRESS; length : CARDINAL; value : BYTE );
+VAR
+   termination : ADDRESS := INC( destination, length );
 BEGIN
-  windows.FillMemory( Destination, Length, Value );
+   WHILE destination <> termination DO
+      PBYTE( destination )^ := value;
+      INC( destination );
+   END;
 END Fill;
 
-PROCEDURE Zero( Destination : ADDRESS; Length : CARDINAL );
+PROCEDURE Zero( destination : ADDRESS; length : CARDINAL );
+VAR
+   termination : ADDRESS := INC( destination, length );
 BEGIN
-  windows.ZeroMemory( Destination, Length );
+   WHILE destination <> termination DO
+      PBYTE( destination )^ := 0;
+      INC( destination );
+   END;
 END Zero;
 
 PROCEDURE Equals( CONST Source, Destination : ADDRESS; Length : CARDINAL ) : BOOLEAN;
 VAR
-  Termination : ADDRESS;
+   Termination : ADDRESS;
 BEGIN
-  Termination := INC( Source, Length );
-  LOOP
-    IF Source = Termination THEN
-      RETURN TRUE;
-    ELSIF PBYTE( Source )^ <> PBYTE( Destination )^ THEN
-      RETURN FALSE;
-    ELSE
-      INC( Source );
-      INC( Destination );
-    END;
-  END; // LOOP
+   Termination := INC( Source, Length );
+   LOOP
+      IF Source = Termination THEN
+         RETURN TRUE;
+      ELSIF PBYTE( Source )^ <> PBYTE( Destination )^ THEN
+         RETURN FALSE;
+      ELSE
+         INC( Source );
+         INC( Destination );
+      END;
+   END; // LOOP
 END Equals;
 
 //================================================================================

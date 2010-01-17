@@ -89,7 +89,8 @@ TYPE
   TEO = (
     opUnknown, opAssign, opConcat, opNEW, opDISPOSE,
     opAdd, opSub, opDiv, opMult, opIDiv, opRem, opMod, opLShift, opRShift,
-    opEQ, opNEQ, opLT, opGT, opLTE, opGTE, opIN, opNotIN, opISExact, opISInherits,
+    opEQ, opNEQ, opLT, opGT, opLTE, opGTE, opIN, opNotIN,
+    opISExact, opISLoose, opISInherits, opISExactRtti, opISLooseRtti, opISInheritsRtti,
     opORL, opORB, opANDL, opANDB, opEORB,
     opSgnP, opSgnM, opNotL, opNotB,
     opAddSET, opSubSET, opMultSET, opDivSET,
@@ -102,7 +103,8 @@ CONST
   opString = TopSs(
     TopS( L'?'  ), TopS( L'='  ), TopS( L'?' ), TopS( L'new'  ), TopS( L'delete'  ),
     TopS( L'+'  ), TopS( L'-'  ), TopS( L'/' ), TopS( L'*' ), TopS( L'?'  ), TopS( L'?'  ), TopS( L'%' ), TopS( L'<<' ), TopS( L'>>' ),
-    TopS( L'==' ), TopS( L'!=' ), TopS( L'<' ), TopS( L'>' ), TopS( L'<=' ), TopS( L'>=' ), TopS( L'?' ), TopS( L'?'  ), TopS( L'?'  ), TopS( L'?'  ),
+    TopS( L'==' ), TopS( L'!=' ), TopS( L'<' ), TopS( L'>' ), TopS( L'<=' ), TopS( L'>=' ), TopS( L'?' ), TopS( L'?'  ),
+    TopS( L'?'  ), TopS( L'?'  ), TopS( L'?'  ), TopS( L'?'  ), TopS( L'?'  ), TopS( L'?'  ),
     TopS( L'?'  ), TopS( L'|'  ), TopS( L'?' ), TopS( L'&' ), TopS( L'^'  ),
     TopS( L'?'  ), TopS( L'?'  ), TopS( L'!' ), TopS( L'~' ),
     TopS( L'|'  ), TopS( L'&~'  ), TopS( L'&' ), TopS( L'^' ),
@@ -154,7 +156,8 @@ TYPE
           ukNestedParamDef,
     ukProcedureDecl,
       ukProcedureBlock,
-        ukBlockBody,
+        ukBlockBodyOfProc,
+        ukBlockBodyOfFunc,
         ukBlockBodyOfCOMProcedure,
         ukBlockBodyOfReturnInTryProc,
         ukBlockBodyOfReturnInTryFunc,
@@ -174,13 +177,17 @@ TYPE
     ukSCall,
     ukSAssignmentByCall1, // without arguments in designator part
     ukSAssignmentByCall2, // with arguments in designator part
-    ukSAssignmentByCOMCall, // with argument of call, which fills the assigned argument
+    ukSAssignmentByRetvalCall, // with argument of call, which fills the assigned argument
+    ukSAssignmentByIndexRetvalCall,
+    ukSAssignmentByPropertyRetvalCall,
     ukSAssignmentStringByEmbeddedCall,
     ukSAssignmentSetByEmbeddedCall,
 
     ukReturn,
       ukReturnInCOM,
+      ukReturnInThrowing,
       ukReturnInCPPTry,
+      ukThrowingInCPPTry,
     ukIf,
       ukIfExpr,
         ukIfBlock,
@@ -243,7 +250,7 @@ TYPE
       ukSForBody,
       
     ukSTry,
-      ukTryCPPBlock,
+      ukTryBlock,
       ukTrySEHBlock,
       ukExceptBlock,
       ukExceptSEHExpression,
@@ -254,6 +261,7 @@ TYPE
       ukCatchBlock,
       ukCatchAnyBlock,
       ukCatchVarDecl,
+      ukCatchVarDef,
       ukCatchDoBlock,
 
     ukSThrow
@@ -382,7 +390,7 @@ TYPE
     cpStdCall,
     cpFastCall,
 
-	 eoIS,
+    eoCPPExceptions, // otherwise self exceptions are used
     eoLeakChecking,
     eoVolatile,
     eoExport,
@@ -421,6 +429,9 @@ TYPE
     eoHaveReturnInCPPTry, // proecdure contains TRY in CPP style
       eoInsideCPPTry, // for proper RETURN/FINALLY handling, SEHTry this solves by itself
       eoTryReturnsValue,
+    eoReturnInRetval, // COM methods, throwing methods
+      eoCOM,
+      eoThrowing,
     eoLeakInfo
   );
   TEnvironmentOptions = SET OF TEnvironmentOptionsItem;
@@ -557,6 +568,7 @@ CLASS CSymbol( CUnit );
   PROCEDURE GetN( C : TGenerateControl; AppendFlag : BOOLEAN; REF CS : StringsO.CString );
   PROCEDURE GetQN( C : TGenerateControl; REF CS : StringsO.CString );
   PROCEDURE GetSourceQN( OUT CS : StringsO.CString );
+  PROCEDURE GetFullSourceQN( OUT CS : StringsO.CString );
   PROCEDURE OutN( G : Generator.TPGenerator; C : TGenerateControl );
   PROCEDURE OutQN( G : Generator.TPGenerator; C : TGenerateControl );
 
@@ -834,9 +846,10 @@ END CSubrange;
 //============================================================
 
 CLASS CVariable( CSymbol );
-  InitE : TPExpression;
-  VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
-  PROCEDURE GenerateInitExpression( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL );
+   InitE : TPExpression;
+   STry : TPSTRY; // if used in TRY statement
+   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
+   PROCEDURE GenerateInitExpression( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL );
 END CVariable;
 
 CLASS CSelf( CVariable );
@@ -874,7 +887,8 @@ CLASS CProcedureType( CType );
   PROCEDURE GetFirstFormalType( REF Stack : stacks.CPtrStack; OUT FormalType : TPFormalType ) : BOOLEAN;
   PROCEDURE GetNextFormalType( REF Stack : stacks.CPtrStack; OUT FormalType : TPFormalType ) : BOOLEAN;
   PROCEDURE GetFormalType( FirstFlag : BOOLEAN; REF Stack : stacks.CPtrStack; OUT T : TPFormalType ) : BOOLEAN;
-  PROCEDURE CompareHeader( WithP : TPProcedureType; OUT Error : CARDINAL ) : BOOLEAN;
+  PROCEDURE CompareHeader( WithP : TPProcedureType; CompareThrows : BOOLEAN; OUT Error : CARDINAL ) : BOOLEAN;
+  PROCEDURE CompareThrows( WithP : TPProcedureType ) : BOOLEAN;
   PROCEDURE CopyThrows( From : TPProcedureType );
 
   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
@@ -951,6 +965,8 @@ CLASS CClass( CType );
 	PROCEDURE AddNestedFriend( AccessedMember : TPSymbol; P : TPProcedureType );
    PROCEDURE AddAncestor( Ancestor : TPClass );
    PROCEDURE RemoveExposedAbstractByName( AncestorSymbol : TPSymbol );
+   
+   PUBLIC INITIALLY CClass();
 END CClass;
 
 //------------------------------------------------------------
@@ -1031,7 +1047,10 @@ TYPE
     miidLowW,
     miidAssertion,
     miidLogAssertionA,
-    miidLogAssertionW
+    miidLogAssertionW,
+    miidStoreException,
+    miidRetrieveException,
+    miidTestIfCatched
   );
 
 CLASS CModuleEnvironment;
@@ -1078,6 +1097,7 @@ CLASS CModule( CSymbol );
 
   CTDStack : stacks.CPtrStack; // control declarations -- frames, withs
   CurCTDU  : TPUnit; // control declarations
+  InterfaceRTTI : CUnit;
 
   LStack   : stacks.CPtrStack; // LOOP stack
   TStack   : stacks.CPtrStack; // TRY stack
@@ -1139,7 +1159,7 @@ CLASS CModule( CSymbol );
   PROCEDURE ForwardOpaqueType( T : TPType );
   PROCEDURE ForwardComplexType( T : TPType );
   PROCEDURE HandleNestedSymbol( Symbol, FoundIn : TPSymbol; VAR SA : TSymbolAccess ) : BOOLEAN;
-  PROCEDURE HandleCOMPropertyOrFunction( AssignmentFlag : BOOLEAN; REF D : TPDesignator );
+  PROCEDURE HandleReturnInRetvalPropertyOrFunction( AssignmentFlag : BOOLEAN; REF D : TPDesignator );
   PROCEDURE IdToType( Id : TPSymbol ) : TPType;
   PROCEDURE IdToClass( Id : TPSymbol ) : TPClass;
 
@@ -1278,7 +1298,8 @@ CONST
   m2TOP = TOP(
     -1, -1, -1, -1, -1,
     3, 3, 4, 4, 4, 4, 4, 6, 6,
-    2, 2, 2, 2, 2, 2, -1, -1, -1, -1,
+    2, 2, 2, 2, 2, 2, -1, -1,
+    -1, -1, -1, -1, -1, -1,
     3, 5, 3, 5, 5,
     7, 7, 1, 1,
     5, 5, 5, 5,
@@ -1287,7 +1308,8 @@ CONST
   cppTOP = TOP(
     -1, -1, -1, -1, -1,
     8, 8, 9, 9, 9, 9, 9, 7, 7,
-    6, 6, 6, 6, 6, 6, -1, -1, -1, -1,
+    6, 6, 6, 6, 6, 6, -1, -1,
+    -1, -1, -1, -1, -1, -1,
     1, 3, 2, 5, 4,
     10, 10, 11, 11,
     3, 5, 5, 4,
@@ -1345,7 +1367,7 @@ TYPE
     dkUndefined,
     dkOperator,
     dkId,
-      dkCOMAuxId, // only for variant, dkCOMAuxId is ALWAYS simple dkId
+      dkAuxId, // only for variant, dkAuxId is ALWAYS simple dkId
     dkType,
     dkEmbeddedProcedure
   );
@@ -1394,6 +1416,7 @@ TYPE
     epNEW, epNEWFunc,
     epODD,
     epORD,
+    epRTTI, epRTTISIZE,
     epSIZE,
     epSWAP, epSWAPBytes,
     epTRUNC,
@@ -1408,11 +1431,11 @@ TYPE
       GO  : TPSymbol; // generated owner, must not collide with Id, WV, F, TC
       IdA : TSymbolAccess;
       W   : TPDesignator; // designator of With of which the Id is
-    | dkCOMAuxId :
-      _1  : ADDRESS; // Id
-      OD  : TPDesignator; // original designator
-      PA  : TPSAssignment; // preceding assignment
-      FA  : TPSAssignment; // following assignment
+    | dkAuxId :
+      _1   : ADDRESS; // Id
+      OD   : TPDesignator; // original designator
+      PA   : TPSAssignment; // preceding assignment
+      FA   : TPSAssignment; // following assignment
     | dkOperator :
       // O : TDesignatorOperator cannot be here as
       // Id must have THE SAME PLACE as F !!
@@ -1442,7 +1465,7 @@ TYPE
       D1 : PTR; // data 1
       D2 : LONGWORD; // data 2
     END; // CASE TDesignatorKind
-    CD : TPDesignator; // COM return value designator
+    RVD : TPDesignator; // return value designator
   END; // RECORD
 
 CLASS CDesignator( CUnit );
@@ -1494,6 +1517,7 @@ END CStatement;
 CLASS CSAssignment( CStatement );
   D : TPDesignator;
   E : TPExpression;
+  STry : TPSTRY; // for retval call assignment with exception
   VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
 END CSAssignment;
 
@@ -1557,9 +1581,11 @@ END CCATCH;
 //------------------------------------------------------------
 
 CLASS CSTRY( CStatement );
+   CatchLabel : TPLabel;
    InnerThrows : lists.CPtrList;
 	Procedures : lists.CPtrList;
 	Handles : lists.CPtrList;
+	LocalThrowEnabled : BOOLEAN;
 	VIRTUAL PROCEDURE GenHead( G : Generator.TPGenerator; C : TGenerateControl; VAR Context : CARDINAL ) : TGenerateUnitMode;
 END CSTRY;
 

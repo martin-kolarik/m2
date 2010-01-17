@@ -22,10 +22,14 @@ VAR
 	AN : Number.CActivation;
 	sa : ARRAY [0..255] OF CHAR;
 	uq : Uniquer.CUniquer;
-	uqd : Uniquer.DiscSource;
+   #if #contains( LicenceMachineId, L"D" ) #then
+	   uqd : Uniquer.DiscSource;
+   #endif
 	so : StringsO.CString;
 BEGIN
-   uq.Sources^.Add( ADR( uqd ), 0 );
+   #if #contains( LicenceMachineId, L"D" ) #then
+      uq.Sources^.Add( ADR( uqd ), 0 );
+   #endif
 
    so.FromOA( cpid );
    RN.SetPId( so );

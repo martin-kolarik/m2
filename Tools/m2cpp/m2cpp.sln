@@ -2,26 +2,88 @@
 Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "m2rtl", "..\..\Modula2\m2rtl\m2rtl.vcproj", "{8995D229-D00F-4F29-B235-14249D391D21}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "m2ortl", "..\..\Modula2\m2ortl\m2ortl.vcproj", "{332A033A-AF35-4573-83CB-A19E643D5845}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ADT", "..\..\Library\ADT\ADT.vcproj", "{EE84C683-65A3-4321-BBA5-7392D3357B32}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "XRSc", "..\xrsc\XRSc.vcproj", "{A3C15B76-929D-4B41-B9F1-1995B5E1B2FC}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "m2cpp", "m2cpp.vcproj", "{723187AC-A4DB-4F4D-8944-DC11B914556E}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Resources", "..\..\Library\Resources\Resources.vcproj", "{48FD85F0-E5A7-46D5-A7FA-E12D0DB5E71B}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LeakDetector", "..\..\Debug\LeakDetector\LeakDetector.vcproj", "{10476CFA-8DB7-4469-A72A-92AD2D7A05A1}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "svcinst", "..\svcinst\svcinst.vcproj", "{6716E282-7B14-4DE9-B7E4-E0EC1F8CA294}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Text", "..\..\Library\Text\Text.vcproj", "{6B0CFB37-444C-41F6-A62A-4EEEEDB5968C}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Service", "..\..\Library\Service\Service.vcproj", "{40079731-85CE-4761-B60C-126B8909A7DA}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libexp", "..\libexp\libexp.vcproj", "{BC73A173-4C43-44CB-AE5A-BB8B0C83576E}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "runtest", "..\runtest\runtest.vcproj", "{805E5314-E7FB-4D66-B0B5-DAA5DF24E011}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CRtl", "..\..\API\CRtl\CRtl.vcproj", "{70BDC764-6FA8-4CA8-B728-C0C999747851}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Test", "..\..\Debug\Test\Test.vcproj", "{56521FAA-0599-4D66-9E9B-50E583FF2983}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(TextTemplating) = postSolution
@@ -76,6 +138,18 @@ Global
 		{BC73A173-4C43-44CB-AE5A-BB8B0C83576E}.Debug|Win32.Build.0 = Debug|Win32
 		{BC73A173-4C43-44CB-AE5A-BB8B0C83576E}.Release|Win32.ActiveCfg = Release|Win32
 		{BC73A173-4C43-44CB-AE5A-BB8B0C83576E}.Release|Win32.Build.0 = Release|Win32
+		{805E5314-E7FB-4D66-B0B5-DAA5DF24E011}.Debug|Win32.ActiveCfg = Debug|Win32
+		{805E5314-E7FB-4D66-B0B5-DAA5DF24E011}.Debug|Win32.Build.0 = Debug|Win32
+		{805E5314-E7FB-4D66-B0B5-DAA5DF24E011}.Release|Win32.ActiveCfg = Release|Win32
+		{805E5314-E7FB-4D66-B0B5-DAA5DF24E011}.Release|Win32.Build.0 = Release|Win32
+		{70BDC764-6FA8-4CA8-B728-C0C999747851}.Debug|Win32.ActiveCfg = Debug|Win32
+		{70BDC764-6FA8-4CA8-B728-C0C999747851}.Debug|Win32.Build.0 = Debug|Win32
+		{70BDC764-6FA8-4CA8-B728-C0C999747851}.Release|Win32.ActiveCfg = Release|Win32
+		{70BDC764-6FA8-4CA8-B728-C0C999747851}.Release|Win32.Build.0 = Release|Win32
+		{56521FAA-0599-4D66-9E9B-50E583FF2983}.Debug|Win32.ActiveCfg = Debug|Win32
+		{56521FAA-0599-4D66-9E9B-50E583FF2983}.Debug|Win32.Build.0 = Debug|Win32
+		{56521FAA-0599-4D66-9E9B-50E583FF2983}.Release|Win32.ActiveCfg = Release|Win32
+		{56521FAA-0599-4D66-9E9B-50E583FF2983}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

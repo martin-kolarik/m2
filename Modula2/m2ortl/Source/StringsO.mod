@@ -86,7 +86,7 @@ CLASS IMPLEMENTATION CString;
 	BEGIN
 		IF Characters > _Size THEN
 			_Size := Characters AND 0FFFFFFF0H + 10H;
-			REALLOCATE( _Data, _Size<<1 );
+			REALLOCATE( REF _Data, _Size<<1 );
 		END;
 	END CString.Reallocate;
 

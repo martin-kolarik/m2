@@ -69,7 +69,7 @@ CLASS IMPLEMENTATION CDNS;
          Test^.Results[ CARDINAL( LOPTRLONGWORD( RequestId )) ] := 1;
          Test^.Host^.Log^.LogSS( log.dlcInfo, L"", L"Success: ", request );   
          FOR i := 0 TO HIGH( Address ) DO
-            Address[i].GetAddressOA( TRUE, OUT s );
+            Address[i].ToOA( TRUE, OUT s );
             Test^.Host^.Log^.LogSS( log.dlcInfo, L"", L"  found: ", s );   
          END;
       ELSE

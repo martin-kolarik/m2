@@ -241,7 +241,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       ASSERTLOG( NOT _Clients.Contains( Connection ));
       
       IF NOT _NetworkLogger^.Filtered( log.dlcError, LOG_SDAP ) THEN
-         Connection^.RemoteAddress.GetAddressOA( TRUE, OUT address );
+         Connection^.RemoteAddress.ToOA( TRUE, OUT address );
          _NetworkLogger^.LogSS( log.dlcError, LOG_SDAP, "CONNECT:", address );
       END;
 
@@ -264,7 +264,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       Client : TPClient;
    BEGIN
       IF NOT _NetworkLogger^.Filtered( log.dlcError, LOG_SDAP ) THEN
-         Connection^.RemoteAddress.GetAddressOA( TRUE, OUT address );
+         Connection^.RemoteAddress.ToOA( TRUE, OUT address );
          _NetworkLogger^.LogSS( log.dlcError, LOG_SDAP, "DISCONNECT:", address );
       END;
 
@@ -319,7 +319,7 @@ CLASS IMPLEMENTATION CSDAPServer;
          d.Length := d.Length - 2;
       END;
       _CommonLogger^.LogSS( log.dldDebug, LOG_SDAP, "RCV: ", OA( d.Length-1, d.rawData ));
-      PConnection^.RemoteAddress.GetAddressOA( TRUE, OUT sd );
+      PConnection^.RemoteAddress.ToOA( TRUE, OUT sd );
       _CommonLogger^.LogSS( log.dldDebug, LOG_SDAP, "from: ", sd );
 
       d.SplitS( StringsO.WCHARS{L' '}, 0, TRUE, OUT parametersFound, OUT p );
@@ -409,7 +409,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       CASE Command OF
       //-----
       | sdapEXIT :
-         PConnection^.RemoteAddress.GetAddressOA( TRUE, OUT sd );
+         PConnection^.RemoteAddress.ToOA( TRUE, OUT sd );
          _CommonLogger^.LogSS( log.dldTrace, LOG_SDAP, "EXIT from: ", sd );
 
          ACK( PConnection, sdap200 );
@@ -483,7 +483,7 @@ CLASS IMPLEMENTATION CSDAPServer;
          ELSE
 
             ia := GetRemoteAddress( PConnection );
-            ia.GetAddressOA( TRUE, OUT sd );
+            ia.ToOA( TRUE, OUT sd );
             d.FromOA( LOG_SDAP ); d.AppendOA( L"/" ); d.AppendOA( sd );
             Originator.SetDescription( d );
 

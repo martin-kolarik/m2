@@ -29,7 +29,7 @@ CLASS IMPLEMENTATION RingBuffer;
     SUPER.Size := Value;
     DataDoubled := FALSE;
     IF Data <> NIL THEN
-      REALLOCATE( Data, _Size );
+      REALLOCATE( REF Data, _Size );
     END;
   END Size;
 
@@ -41,7 +41,7 @@ CLASS IMPLEMENTATION RingBuffer;
     Offset : CARDINAL;
   BEGIN
     IF Data = NIL THEN
-      REALLOCATE( Data, _Size );
+      REALLOCATE( REF Data, _Size );
     END;
     IF StartConsuming( WantsRead, OUT Offset, OUT Length ) THEN
       BufferToReadFrom := Data@[Offset];
@@ -67,7 +67,7 @@ CLASS IMPLEMENTATION RingBuffer;
     Offset : CARDINAL;
   BEGIN
     IF Data = NIL THEN
-      REALLOCATE( Data, _Size );
+      REALLOCATE( REF Data, _Size );
     END;
     IF StartProducing( WantsWrite, OUT Offset, OUT Length ) THEN
       BufferToWriteTo := Data@[Offset];
@@ -185,7 +185,7 @@ CLASS IMPLEMENTATION RingBuffer;
     IF LTail <= LHead THEN // move is necessary, buffer is splitted
       IF NOT DataDoubled THEN
         DataDoubled := TRUE;
-        REALLOCATE( SELF.Data, 2*_Size );
+        REALLOCATE( REF SELF.Data, 2*_Size );
       END;
       Move( SELF.Data, SELF.Data@[_Size], LTail );
     END;
@@ -639,7 +639,7 @@ CLASS IMPLEMENTATION CDatagramQueue;
   BEGIN
     SUPER.Size := Value;
     IF ItemISize * _Size > 0 THEN
-      REALLOCATE( Data, ItemISize * _Size );
+      REALLOCATE( REF Data, ItemISize * _Size );
       Zero( Data, ItemISize * _Size );
     END;
   END Size;
@@ -661,7 +661,7 @@ CLASS IMPLEMENTATION CDatagramQueue;
   BEGIN
     ItemISize := ( Value + SIZE( CARDINAL ) + 7 ) AND NOT 7;
     IF ItemISize * _Size > 0 THEN
-      REALLOCATE( Data, ItemISize * _Size );
+      REALLOCATE( REF Data, ItemISize * _Size );
       Zero( Data, ItemISize * _Size );
     END;
   END ItemSize;

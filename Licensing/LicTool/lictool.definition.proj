@@ -6,9 +6,10 @@
         <ConfigurationName Condition="$(ConfigurationName)==''">Debug</ConfigurationName>
         <LanguageStyle Condition="$(LanguageStyle)==''">UNICODE</LanguageStyle>
         <Language Condition="$(Language)==''">English</Language>
-        <CLib>Static</CLib>
+        <CLib>Private</CLib>
         <Result>Program</Result>
         <LeakChecking>off</LeakChecking>
+        <LicenceMachineId>MD</LicenceMachineId>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(MSBuildProjectName)!='lictool'">

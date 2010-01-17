@@ -98,7 +98,7 @@ CLASS IMPLEMENTATION CAVLTree;
     IF i = _I THEN
       RETURN;
     END;
-    REALLOCATE( _Root, i * SIZE( TAVLIndex ));
+    REALLOCATE( REF _Root, i * SIZE( TAVLIndex ));
     IF i > _I THEN
       Fill( ADR( _Root^[_I] ), ( i-_I ) * SIZE( TAVLIndex ), 0 );
     END;
