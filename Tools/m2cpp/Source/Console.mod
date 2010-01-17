@@ -72,7 +72,7 @@ BEGIN
   IF QuietMode >= quietInfo THEN
     RETURN;
   END;
-  WriteStringS( Mask, OA( Data.Length, Data.szData ));
+  WriteStringS( Mask, OA( Data.Length, Data.Data ));
 END WriteStringCS;
 
 PROCEDURE WriteLineS( Mask, Data : ARRAY OF WCHAR );
@@ -89,7 +89,7 @@ BEGIN
   IF QuietMode >= quietInfo THEN
     RETURN;
   END;
-  WriteLineS( Mask, OA( Data.Length, Data.szData ));
+  WriteLineS( Mask, OA( Data.Length, Data.Data ));
 END WriteLineCS;
 
 PROCEDURE WriteLineCS2( Mask : ARRAY OF WCHAR; CONST Data1, Data2 : StringsO.CString );
@@ -97,7 +97,7 @@ BEGIN
   IF QuietMode >= quietInfo THEN
     RETURN;
   END;
-  WriteStringS2( Mask, OA( Data1.Length, Data1.szData ), OA( Data2.Length, Data2.szData ));
+  WriteStringS2( Mask, OA( Data1.Length, Data1.Data ), OA( Data2.Length, Data2.Data ));
   iWriteEOL();
 END WriteLineCS2;
 
@@ -112,7 +112,7 @@ BEGIN
   IF QuietMode = quietAll THEN
     RETURN;
   END;
-  ASSIGN( sName, OA( Path.Length, Path.szData ));
+  ASSIGN( sName, OA( Path.Length, Path.Data ));
   IF windows.SearchPathW( NIL, ADR( sName ), NIL, SIZE( LPath ) >> 1, ADR( LPath ), a ) = 0 THEN
     ASSIGN( LPath, sName );
   END;
@@ -141,7 +141,7 @@ BEGIN
   IF QuietMode = quietAll THEN
     RETURN;
   END;
-  ASSIGN( sName, OA( Path.Length, Path.szData ));
+  ASSIGN( sName, OA( Path.Length, Path.Data ));
   IF windows.SearchPathW( NIL, ADR( sName ), NIL, SIZE( LPath ) >> 1, ADR( LPath ), a ) = 0 THEN
     ASSIGN( LPath, sName );
   END;

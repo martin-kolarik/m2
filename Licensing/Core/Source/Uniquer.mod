@@ -36,7 +36,7 @@ CLASS IMPLEMENTATION CUniquer;
       seed : sha256.TDigest;
       source : POINTER TO IUniquerSource;
    BEGIN
-      sha256.DigestSaltOA( OA( 2*S.Length-1, S.rawData ), salt, OUT seed );
+      sha256.DigestSaltOA( OA( 2*S.Length-1, S.Data ), salt, OUT seed );
       FOR i := 0 TO HIGH( uid ) DO
          IF DEBUGGED() THEN
             uid[i] := 58 - i;

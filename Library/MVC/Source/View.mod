@@ -122,13 +122,13 @@ CLASS IMPLEMENTATION CFileView;
       IF Resolver = NIL THEN
          Response.StatusCode := HttpCommon.httpres_404;
          RETURN TRUE;
-      ELSIF NOT Resolver^.ResolvePath( ResolverContext, OA( PathRelativeToContext.Length-1, PathRelativeToContext.rawData ), OUT filePath ) THEN
+      ELSIF NOT Resolver^.ResolvePath( ResolverContext, OA( PathRelativeToContext.Length-1, PathRelativeToContext.Data ), OUT filePath ) THEN
          Response.StatusCode := HttpCommon.httpres_404;
          RETURN TRUE;
       END;
 
       TRY
-         fs.FromPath( OA( filePath.Length-1, filePath.rawData ), FIOO.imOpenRead );
+         fs.FromPath( OA( filePath.Length-1, filePath.Data ), FIOO.imOpenRead );
       CATCH e : IOO.CIOException DO
          Response.StatusCode := HttpCommon.httpres_404;
          RETURN TRUE;
@@ -148,7 +148,7 @@ CLASS IMPLEMENTATION CFileView;
       END;
 
       IF DispositionFlag THEN
-         FIO.PathTailW( OA( filePath.Length-1, filePath.rawData ), OUT fileName );
+         FIO.PathTailW( OA( filePath.Length-1, filePath.Data ), OUT fileName );
          Strings.PrependW( REF fileName, L"attachment; filename=" );
          Response.ResponseHeaders^.AddUnknownOA( L"Content-Disposition", fileName );
       END;
@@ -393,7 +393,7 @@ CLASS IMPLEMENTATION CRawTextView;
       IF DispositionFlag THEN
          s.FromOA( L"attachment; filename=" );
          s.Append( Name );
-         Response.ResponseHeaders^.AddUnknownOA( L"Content-Disposition", OA( s.Length-1, s.rawData ));
+         Response.ResponseHeaders^.AddUnknownOA( L"Content-Disposition", OA( s.Length-1, s.Data ));
       END;
 
       LanguagesO.ToMB( Text, Languages.cp_UTF8, FALSE, REF Output );
@@ -527,14 +527,14 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
       IF Resolver = NIL THEN
          viewPath := ViewName;
-      ELSIF NOT Resolver^.ResolvePath( 0, OA( ViewName.Length-1, ViewName.rawData ), OUT viewPath ) THEN
+      ELSIF NOT Resolver^.ResolvePath( 0, OA( ViewName.Length-1, ViewName.Data ), OUT viewPath ) THEN
          SetError( empty, ADR( ViewName ), L"Unable to resolve view name." );
          GOTO Failure;
       END;
       SELF.Request := MVC.TPHttpRequest( ADR( Request ));
 
       TRY
-         fs.FromPath( OA( viewPath.Length-1, viewPath.rawData ), FIOO.imOpenRead );
+         fs.FromPath( OA( viewPath.Length-1, viewPath.Data ), FIOO.imOpenRead );
       CATCH e : IOO.CIOException DO
          SetError( empty, ADR( viewPath ), L"Unable to find or open view page template file." );
          GOTO Failure;
@@ -907,7 +907,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          RETURN esaError;
       
       ELSE // another element
-         Writer.WriteElementStartOA( OA( nodePrefix.Length-1, nodePrefix.rawData ), OA( nodeName.Length-1, nodeName.rawData ));
+         Writer.WriteElementStartOA( OA( nodePrefix.Length-1, nodePrefix.Data ), OA( nodeName.Length-1, nodeName.Data ));
          CopyAttributes( ptFlag, attributes, PT_CONDITION, L"" );
          IF isEmpty THEN
             Writer.WriteElementEnd();
@@ -1251,9 +1251,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
          value.FromOA( L"pt:foreach" );
          SetError( value, NIL, L'Missing "source" attribute.' );
          RETURN FALSE;
-      ELSIF Request^.ModelContainer^.GetListOA( OA( source.Length-1, source.rawData ), OUT list ) THEN
+      ELSIF Request^.ModelContainer^.GetListOA( OA( source.Length-1, source.Data ), OUT list ) THEN
          haveList := TRUE;
-      ELSIF Request^.ModelContainer^.GetMapOA( OA( source.Length-1, source.rawData ), OUT map ) THEN
+      ELSIF Request^.ModelContainer^.GetMapOA( OA( source.Length-1, source.Data ), OUT map ) THEN
          haveList := FALSE;
       ELSE
          value.FromOA( L"pt:foreach" );
@@ -1345,7 +1345,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
       IF NOT GetFormAction( attributes, OUT s ) THEN // action can be predefined by template
          s := Request^.ControllerURI;
-         Writer.WriteAttributeStringOA( L"", L"action", OA( s.Length-1, s.rawData ));
+         Writer.WriteAttributeStringOA( L"", L"action", OA( s.Length-1, s.Data ));
       END;
 
       RETURN ParseElement( attributes, isEmpty, FALSE, PT_MODEL, L"" );
@@ -1382,10 +1382,10 @@ CLASS IMPLEMENTATION CPageTemplateView;
       Writer.WriteAttributeStringOA( L"", L"type", PT_FORM_HIDDEN );
       IF NOT fullModel.Empty THEN // model = form.item
          WriteFormNameAttribute( fullModel );
-         Writer.WriteAttributeStringOA( L"", L"value", OA( id.Length-1, id.rawData ));
+         Writer.WriteAttributeStringOA( L"", L"value", OA( id.Length-1, id.Data ));
       ELSE
          WriteFormNameAttribute( model );
-         Writer.WriteAttributeStringOA( L"", L"value", OA( id.Length-1, id.rawData ));
+         Writer.WriteAttributeStringOA( L"", L"value", OA( id.Length-1, id.Data ));
       END;
 
       RETURN ParseElement( attributes, isEmpty, FALSE, PT_MODEL, PT_FORMID );
@@ -1415,10 +1415,10 @@ CLASS IMPLEMENTATION CPageTemplateView;
       Writer.WriteAttributeStringOA( L"", L"type", OAsz( ptype ));
       IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, fullModel, OUT value ) THEN // model = form.item
          WriteFormNameAttribute( fullModel );
-         Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.rawData ));
+         Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.Data ));
       ELSIF Request^.ModelContainer^.GetModelValue( Request^, model, OUT value ) THEN // model = item
          WriteFormNameAttribute( model );
-         Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.rawData ));
+         Writer.WriteAttributeStringOA( L"value", OA( value.Length-1, value.Data ));
       ELSE
          SetError( model, NIL, L'Model for element is unknown.' );
          RETURN FALSE;
@@ -1488,9 +1488,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
       Writer.WriteElementStartOA( L"", L"option" );
 
       IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, fullModel, OUT value ) THEN // model = form.item
-         Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.rawData ));
+         Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.Data ));
       ELSIF Request^.ModelContainer^.GetModelValue( Request^, model, OUT value ) THEN // model = item
-         Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.rawData ));
+         Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.Data ));
       ELSE
          SetError( model, NIL, L'Model for element is unknown.' );
          RETURN FALSE;
@@ -1564,7 +1564,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          END; // WHILE
       END;
 
-      Request^.ModelContainer^.AddVariable( OA( model.Length-1, model.rawData ), source );
+      Request^.ModelContainer^.AddVariable( OA( model.Length-1, model.Data ), source );
       
       RETURN ParseElement( attributes, isEmpty, FALSE, PT_MODEL, PT_SOURCE );
    END ParseVariable;
@@ -1738,7 +1738,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
             CONTINUE; // ignore pt:ignore
          END;
          ParseText( attributes.CurrentData^, OUT value );
-         Writer.WriteAttributeStringOA( L"", OA( pname^.Length-1, pname^.rawData ), OA( value.Length-1, value.rawData ));
+         Writer.WriteAttributeStringOA( L"", OA( pname^.Length-1, pname^.Data ), OA( value.Length-1, value.Data ));
       END; // WHILE
    END CopyAttributes;
 
@@ -1753,14 +1753,14 @@ CLASS IMPLEMENTATION CPageTemplateView;
       INC( CurrentViewNameIndex );
 
       Request^.ModelContainer^.SetModelInViewName( Request^.ControllerURI, model, viewName );
-      Writer.WriteAttributeStringOA( L"", L"name", OA( viewName.Length-1, viewName.rawData ));
+      Writer.WriteAttributeStringOA( L"", L"name", OA( viewName.Length-1, viewName.Data ));
    END WriteFormNameAttribute;
 
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE SetModelBoolean( CONST model : StringsO.IString; value : BOOLEAN );
    BEGIN
-      Request^.ModelContainer^.AddBooleanOA( OA( model.Length-1, model.rawData ), value );
+      Request^.ModelContainer^.AddBooleanOA( OA( model.Length-1, model.Data ), value );
    END SetModelBoolean;
 
 (*--------------------------------------------------------------------------------*)
@@ -1810,13 +1810,13 @@ CLASS IMPLEMENTATION CPageTemplateView;
                   Writer.WriteElementStringOA( L"", L"dd", n );
                END;
                Writer.WriteElementStringOA( L"", L"dt", L"Element:" );
-               Writer.WriteElementStringOA( L"", L"dd", OA( ErrorElement.Length-1, ErrorElement.rawData ));
+               Writer.WriteElementStringOA( L"", L"dd", OA( ErrorElement.Length-1, ErrorElement.Data ));
                IF NOT ErrorModel.Empty THEN
                   Writer.WriteElementStringOA( L"", L"dt", L"Id/Model:" );
-                  Writer.WriteElementStringOA( L"", L"dd", OA( ErrorModel.Length-1, ErrorModel.rawData ));
+                  Writer.WriteElementStringOA( L"", L"dd", OA( ErrorModel.Length-1, ErrorModel.Data ));
                END;
                Writer.WriteElementStringOA( L"", L"dt", L"Description:" );
-               Writer.WriteElementStringOA( L"", L"dd", OA( ErrorText.Length-1, ErrorText.rawData ));
+               Writer.WriteElementStringOA( L"", L"dd", OA( ErrorText.Length-1, ErrorText.Data ));
             Writer.WriteElementEnd();
          Writer.WriteElementEnd();
       Writer.WriteElementEnd();

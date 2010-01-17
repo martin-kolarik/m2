@@ -405,7 +405,7 @@ CLASS IMPLEMENTATION CDriver;
   
       PROCEDURE Error( ErrorCode, ErrorLine : CARDINAL );
       BEGIN
-         Logger.LogFilePos( log.dlcError, L"", OA( ParametersFilePath.Length-1, ParametersFilePath.rawData ), OAsz( R[ ErrorCode ] ), ErrorLine, 0 );
+         Logger.LogFilePos( log.dlcError, L"", OA( ParametersFilePath.Length-1, ParametersFilePath.Data ), OAsz( R[ ErrorCode ] ), ErrorLine, 0 );
       END Error;
 
   //----------
@@ -428,7 +428,7 @@ CLASS IMPLEMENTATION CDriver;
     ValueList : lists.TPPtrList;
   BEGIN
       TRY
-         fs.FromPath( OA( ParametersFilePath.Length-1, ParametersFilePath.rawData ), FIOO.imOpenRead );
+         fs.FromPath( OA( ParametersFilePath.Length-1, ParametersFilePath.Data ), FIOO.imOpenRead );
       CATCH : IOO.CIOException DO
          Error( Texts._CannotOpenPar, 0 );
          GOTO Fail;
@@ -456,7 +456,7 @@ CLASS IMPLEMENTATION CDriver;
             GOTO Fail;
          ELSE
             INCL( RStatus, rsGlobalKey );
-            digest.DigestOA( digest.sha256, OA( cs.Length-1, cs.rawData ), OUT GlobalKey );
+            digest.DigestOA( digest.sha256, OA( cs.Length-1, cs.Data ), OUT GlobalKey );
          END;
       END;
       IF TS.GetKeyStr( knDelimiter, OUT ErrorLine, OUT cs ) THEN

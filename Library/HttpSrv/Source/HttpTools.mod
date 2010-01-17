@@ -43,7 +43,7 @@ END FormatDateJD;
 
 PROCEDURE DecodeDate( CONST Encoded : StringsO.IString; OUT Decoded : time.DateTime ) : BOOLEAN;
 BEGIN
-   RETURN Decoded.FromLanguageStringOA( Languages.GetDefaultLanguage( Languages.dlNeutral ), OA( Encoded.Length-1, Encoded.rawData ), HTTP_TIME_FORMAT );
+   RETURN Decoded.FromLanguageStringOA( Languages.GetDefaultLanguage( Languages.dlNeutral ), OA( Encoded.Length-1, Encoded.Data ), HTTP_TIME_FORMAT );
 END DecodeDate;
 
 (*---------------------------------------------------------------------------*)
@@ -232,7 +232,7 @@ BEGIN
       RETURN FALSE;
    END;
    firstItem.Trim();
-   RETURN Languages.RFC1766ToLanguage( OA( firstItem.Length-1, firstItem.szData ), OUT language );
+   RETURN Languages.RFC1766ToLanguage( OA( firstItem.Length-1, firstItem.Data ), OUT language );
 END DecodeLanguage;
 
 (*---------------------------------------------------------------------------*)
@@ -335,12 +335,12 @@ BEGIN
    WHILE sl.MoveNext() DO
       // first part
       i := INTEGER( LOPTRLONGWORD( sl.CurrentData ));
-      s.FromOA( OA( i-1, sl.Current^.rawData ));
+      s.FromOA( OA( i-1, sl.Current^.Data ));
 
       // second part
       l := sl.Current^.Length;
       IF i+1 <= l THEN
-         sd.FromOA( OA( l-i-2, sl.Current^.rawData@[(i+1)<<1] ));
+         sd.FromOA( OA( l-i-2, sl.Current^.Data@[(i+1)<<1] ));
       ELSE
          sd.Clear();
       END;

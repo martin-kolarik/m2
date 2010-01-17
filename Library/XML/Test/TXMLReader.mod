@@ -80,7 +80,7 @@ CLASS IMPLEMENTATION CTest;
 
          s1 := reader.CurrentName;         
          s2 := reader.CurrentValue;
-         Host^.Log^.LogSSSS( log.dlcInfo, L"", L"  name: ", OA( s1.Length-1, s1.rawData ), L" = ", OA( s2.Length-1, s2.rawData ));
+         Host^.Log^.LogSSSS( log.dlcInfo, L"", L"  name: ", OA( s1.Length-1, s1.Data ), L" = ", OA( s2.Length-1, s2.Data ));
          
          IF ( reader.CurrentType = xmlreader.xntElementBegin ) AND ( reader.MoveToFirstAttribute() = xmlreader.xmle_S_OK ) THEN
             REPEAT
@@ -92,7 +92,7 @@ CLASS IMPLEMENTATION CTest;
                END;
                s1 := reader.CurrentName;         
                s2 := reader.CurrentValue;
-               Host^.Log^.LogSSSS( log.dlcInfo, L"", L"    name: ", OA( s1.Length-1, s1.rawData ), L" = ", OA( s2.Length-1, s2.rawData ));
+               Host^.Log^.LogSSSS( log.dlcInfo, L"", L"    name: ", OA( s1.Length-1, s1.Data ), L" = ", OA( s2.Length-1, s2.Data ));
             UNTIL reader.MoveToNextAttribute() <> xmlreader.xmle_S_FALSE;
          END;
 

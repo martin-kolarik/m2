@@ -660,7 +660,7 @@ VAR
    ProductId : StringsO.CString;
 BEGIN
    Validator.UnwrapData( Data, Length, OUT ProductId );
-   Query( Path1, Path2, OA( ProductId.Length-1, ProductId.rawData ), REF Result );
+   Query( Path1, Path2, OA( ProductId.Length-1, ProductId.Data ), REF Result );
 END QueryData;
 
 (*================================================================================*)
@@ -684,7 +684,7 @@ VAR
    pid : StringsO.CString;
 BEGIN
    Validator.UnwrapData( Data, Length, OUT pid );
-   Engine.StoreInfo( Path, OA( pid.Length-1, pid.rawData ), InfoKey, InfoValue );
+   Engine.StoreInfo( Path, OA( pid.Length-1, pid.Data ), InfoKey, InfoValue );
 END StoreInfo;
 
 (*================================================================================*)

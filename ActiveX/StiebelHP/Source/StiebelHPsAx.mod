@@ -348,7 +348,7 @@ CLASS IMPLEMENTATION CStiebelHPsAx;
 		Parameters[0].vt := wtypes.VT_BSTR;
 		IF ( Direction = IOO.dirRead ) AND ( Result = Sync.arCompleted ) THEN
 			Value.ToString( OUT String );
-			Parameters[0].bstrVal := com.ToBS( OAsz( String.szData ));
+			Parameters[0].bstrVal := com.ToBS( OAsz( String.Data ));
 		ELSE
 			Parameters[0].bstrVal := com.ToBS( L"" );
 		END;
