@@ -1,10 +1,6 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE pageTemplate [
-    <!ENTITY nbsp "&amp;nbsp;">
-    <!ENTITY copy "&amp;copy;">
-]>
+<?xml version="1.0" encoding="utf-8"?>
 <pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate">
-  <html>
+  <html xmlns="http://www.w3.org/1999/xhtml">
       <head>
           <title>NeNo KNX/EIBSrv</title>
           <link rel="StyleSheet" type="text/css" href="NeNo.css" />
@@ -24,7 +20,7 @@
                           <p><a href="datalog">${msg.menu.datalog}</a></p>
                           <p pt:condition="${isAdmin}"><a href="syslog">${msg.menu.syslog}</a></p>
                           <p><a href="io">${msg.menu.io}</a></p>
-                          <p>&nbsp;</p>
+                          <p> </p>
                           <p class="logout"><a href="logout">${msg.menu.logout}</a></p>
                       </div>
 
@@ -33,7 +29,7 @@
                         <h1>${msg.status.server}</h1>
                         <table cellpadding="0px" cellspacing="0px">
                           <tr>
-                            <td>${msg.status.EIBconnection}</td><td class="spare">&nbsp;</td>
+                            <td>${msg.status.EIBconnection}</td><td class="spare"> </td>
                             <pt:choose>
                               <pt:when condition="${connected}">
                                 <td><span class="green">${connection}, ${msg.status.connectedFrom}${connectionTime}</span>
@@ -46,30 +42,30 @@
                             </pt:choose>
                           </tr>
                           <tr>
-                            <td>${msg.status.uptime}</td><td class="spare">&nbsp;</td><td>${uptime}</td>
+                            <td>${msg.status.uptime}</td><td class="spare"> </td><td>${uptime}</td>
                           </tr>
                           <tr>
-                            <td>${msg.status.configuration}</td><td class="spare">&nbsp;</td><td>${configurationPath}</td>
+                            <td>${msg.status.configuration}</td><td class="spare"> </td><td>${configurationPath}</td>
                           </tr>
                           <tr>
-                            <td>${msg.status.licence}</td><td class="spare">&nbsp;</td>
+                            <td>${msg.status.licence}</td><td class="spare"> </td>
                             <td><pt:choose>
                               <pt:when condition="${licenceValid}"><span class="green">${licence}</span></pt:when>
                               <pt:otherwise><span class="red">${licence}</span></pt:otherwise>
                             </pt:choose></td>
                           </tr>
                           <tr>
-                            <td>&nbsp;</td><td class="spare">&nbsp;</td><td>${licenceType} ${licenceNumber}</td>
+                            <td> </td><td class="spare"> </td><td>${licenceType} ${licenceNumber}</td>
                           </tr>
                         </table>
 
                         <h1>${msg.status.communication}</h1>
                         <table cellpadding="0px" cellspacing="0px">
                           <tr>
-                            <td>${msg.status.lasthour}</td><td class="spare">&nbsp;</td><td>${ioLastHour}</td>
+                            <td>${msg.status.lasthour}</td><td class="spare"> </td><td>${ioLastHour}</td>
                           </tr>
                           <tr>
-                            <td>${msg.status.lastday}</td><td class="spare">&nbsp;</td><td>${ioLastDay}</td>
+                            <td>${msg.status.lastday}</td><td class="spare"> </td><td>${ioLastDay}</td>
                           </tr>
                         </table>
 
@@ -77,7 +73,7 @@
                   </div>
 
                   <div class="bottom">
-                    <p>EIB/KNX SmartServer &copy; NeNo ver. ${version}</p>
+                    <p>EIB/KNX SmartServer © NeNo ver. ${version}</p>
                   </div>
 
               </div>

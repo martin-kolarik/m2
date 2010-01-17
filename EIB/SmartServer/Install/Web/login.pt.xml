@@ -1,10 +1,6 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE pageTemplate [
-    <!ENTITY nbsp "&amp;nbsp;">
-    <!ENTITY copy "&amp;copy;">
-]>
+<?xml version="1.0" encoding="utf-8"?>
 <pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate">
-    <html>
+    <html xmlns="http://www.w3.org/1999/xhtml">
         <head>
             <title>NeNo KNX/EIBSrv</title>
             <link rel="StyleSheet" type="text/css" href="NeNo.css" />
@@ -31,20 +27,20 @@
                                 <table cellpadding="0px" cellspacing="0px">
                                     <tr>
                                         <td>${msg.login.username}</td>
-                                        <td class="spare">&nbsp;</td>
+                                        <td class="spare"> </td>
                                         <td>
                                             <pt:input model="username"/>
                                         </td>
                                     </tr>
                                     <tr>
                                         <td>${msg.login.password}</td>
-                                        <td class="spare">&nbsp;</td>
+                                        <td class="spare"> </td>
                                         <td>
                                             <pt:password model="password"/>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td colspan="2">&nbsp;</td>
+                                        <td colspan="2"> </td>
                                         <td>
                                             <input type="submit" value="${msg.login.submit}"/>
                                         </td>
@@ -60,7 +56,7 @@
                     </div>
 
                     <div class="bottom">
-                        <p>EIB/KNX SmartServer &copy; NeNo ver. ${version}</p>
+                        <p>EIB/KNX SmartServer © NeNo ver. ${version}</p>
                     </div>
 
                 </div>
