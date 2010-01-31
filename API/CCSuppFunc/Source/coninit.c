@@ -20,7 +20,7 @@ int __fastcall __CRTStartup()
     unsigned short** argv = 0;
 
     __initcrtl();
-    argv = CommandLineToArgvW( GetCommandLineW(), &argc ); // allocates argv
+    argv = CommandLineToArgvW( GetCommandLineW(), &argc ); /* allocates argv */
     if( argv == 0 )
     {
         argc = 0;
