@@ -2,8 +2,8 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8,00"
-	Name="SCCore"
-	ProjectGUID="{F0DA0BA4-EE9E-4AB1-A82E-E7A76DE813C7}"
+	Name="SDAPBridge"
+	ProjectGUID="{FE61491C-7A7A-4BAE-8DCB-E9AC901D1BF4}"
 	Keyword="MakeFileProj"
 	>
 	<Platforms>
@@ -23,10 +23,10 @@
 			>
 			<Tool
 				Name="VCNMakeTool"
-				BuildCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:BuildAll /p:ConfigurationName=$(ConfigurationName)"
+				BuildCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /p:ConfigurationName=$(ConfigurationName)"
 				ReBuildCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:RebuildAll /p:ConfigurationName=$(ConfigurationName)"
-				CleanCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:CleanAll /p:ConfigurationName=$(ConfigurationName)"
-				Output="SCCore.exe"
+				CleanCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:Clean /p:ConfigurationName=$(ConfigurationName)"
+				Output="SDAPBridge.exe"
 				PreprocessorDefinitions="WIN32;_DEBUG"
 				IncludeSearchPath=""
 				ForcedIncludes=""
@@ -37,17 +37,16 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="~$(ConfigurationName)"
-			IntermediateDirectory="~Build"
+			OutputDirectory="$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="0"
-			BuildLogFile="$(OutDir)\BuildLog.htm"
 			>
 			<Tool
 				Name="VCNMakeTool"
-				BuildCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:BuildAll /p:ConfigurationName=$(ConfigurationName)"
-				ReBuildCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:RebuildAll /p:ConfigurationName=$(ConfigurationName)"
-				CleanCommandLine="msbuild /clp:NoSummary /v:m $(ProjectName).proj /t:CleanAll /p:ConfigurationName=$(ConfigurationName)"
-				Output="SCCore.exe"
+				BuildCommandLine=""
+				ReBuildCommandLine=""
+				CleanCommandLine=""
+				Output="SDAPBridge.exe"
 				PreprocessorDefinitions="WIN32;NDEBUG"
 				IncludeSearchPath=""
 				ForcedIncludes=""
@@ -66,7 +65,11 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\scinit\Source\scinit.mod"
+				RelativePath=".\Source\driver.mod"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\SDAPBridge.mod"
 				>
 			</File>
 		</Filter>
@@ -76,7 +79,15 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath="..\scinit\Source\scinit.def"
+				RelativePath=".\Source\driver.def"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\export.def"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\SDAPBridge.def"
 				>
 			</File>
 		</Filter>
@@ -85,29 +96,21 @@
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
-		</Filter>
-		<Filter
-			Name="Test"
-			>
 			<File
-				RelativePath=".\Test\TRunInPipe.mod"
-				>
-			</File>
-			<File
-				RelativePath=".\Test\TTimeTestFast.mod"
+				RelativePath=".\Source\Texts.xrs"
 				>
 			</File>
 		</Filter>
 		<File
-			RelativePath=".\sccore.definition.proj"
+			RelativePath=".\SDAPBridge.definition.proj"
 			>
 		</File>
 		<File
-			RelativePath=".\sccore.proj"
+			RelativePath=".\SDAPBridge.proj"
 			>
 		</File>
 		<File
-			RelativePath="..\scinit\scinit.proj"
+			RelativePath=".\Install\SDAPBridge.wxs"
 			>
 		</File>
 	</Files>
