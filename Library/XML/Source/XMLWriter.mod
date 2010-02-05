@@ -258,7 +258,7 @@ CLASS IMPLEMENTATION CXMLWriter;
          sl := String.Length;
       END;
       i := 0;
-      s := String.rawData;
+      s := String.Data;
       WHILE i < sl DO
          l := MIN2( 2*HIGH( Buffer ) DIV 3 + 1, sl-i );
          Strings.ToA( OA( l-1, s ), _Encoding, OUT Buffer );

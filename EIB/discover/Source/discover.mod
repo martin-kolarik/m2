@@ -151,7 +151,7 @@ BEGIN
    END;
    
    IF NOT ConfigFile.Empty THEN
-      TS.LoadPath( OA( ConfigFile.Length-1, ConfigFile.rawData ));
+      TS.LoadPath( OA( ConfigFile.Length-1, ConfigFile.Data ));
       TS.CreateSection( L"device", FALSE );
       IF Result.IPs.Empty THEN
          TS.SetKeyStr( L"id", Id, FALSE );
@@ -168,7 +168,7 @@ BEGIN
             END;
          END; // WHILE
       END;
-      IF NOT TS.SavePath( OA( ConfigFile.Length-1, ConfigFile.rawData )) THEN
+      IF NOT TS.SavePath( OA( ConfigFile.Length-1, ConfigFile.Data )) THEN
          errout^.WriteOA( OAsz( R[Texts._UnableToSaveConfigFile] ), TRUE );
          GOTO Stop;
       END;

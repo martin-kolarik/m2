@@ -173,7 +173,7 @@ CLASS IMPLEMENTATION CNameToAddressRequest;
       service : ARRAY [0..15] OF WCHAR;
       serviceA : ARRAY [0..15] OF CHAR;
    BEGIN
-      IF inetaddr.SplitAddressOA( OA( Name.Length-1, Name.rawData ), OUT host, OUT service ) THEN
+      IF inetaddr.SplitAddressOA( OA( Name.Length-1, Name.Data ), OUT host, OUT service ) THEN
          Strings.ToA( host, 0, OUT hostA );
          Strings.ToA( service, 0, OUT serviceA );
 

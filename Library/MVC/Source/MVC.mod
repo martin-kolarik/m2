@@ -354,9 +354,9 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       i := model.IndexOfOA( L".", 0 );
       IF i > 0 THEN // ok, find in map or list by key
-         IF GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
+         IF GetMapOA( OA( i-1, model.Data ), OUT map ) THEN
             // fall down
-         ELSIF GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
+         ELSIF GetListOA( OA( i-1, model.Data ), OUT list ) THEN
             // fall down
          END;
          IF ( map = NIL ) AND ( list = NIL ) THEN
@@ -405,9 +405,9 @@ CLASS IMPLEMENTATION CContainer;
             sindex2 := sindex1;
          END;
          sindex2.Trim();
-         IF NOT Strings.ToINT32W( OA( sindex2.Length-1, sindex2.rawData ), 10, OUT index ) THEN
+         IF NOT Strings.ToINT32W( OA( sindex2.Length-1, sindex2.Data ), 10, OUT index ) THEN
             GOTO Error;
-         ELSIF GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
+         ELSIF GetMapOA( OA( i-1, model.Data ), OUT map ) THEN
             IF valueIndex THEN
                ps := map^[index];
                IF ps = NIL THEN
@@ -421,7 +421,7 @@ CLASS IMPLEMENTATION CContainer;
                GOTO Error;
             END;
             RETURN TRUE;
-         ELSIF GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
+         ELSIF GetListOA( OA( i-1, model.Data ), OUT list ) THEN
             IF keyIndex THEN
                ps := list^[index];
                IF ps = NIL THEN
@@ -449,7 +449,7 @@ CLASS IMPLEMENTATION CContainer;
          END;
          model.Substring( 0, i, OUT sindex1 );
          sindex1.Trim();
-         IF GetFunctionHandlerOA( OA( sindex1.Length-1, sindex1.rawData ), OUT functionHandler ) THEN
+         IF GetFunctionHandlerOA( OA( sindex1.Length-1, sindex1.Data ), OUT functionHandler ) THEN
             ii := i+1;
             LOOP
                ii := model.ItemS( StringsO.WCHARS{L' ', L','}, ii, 0, TRUE, OUT sindex2 );
@@ -469,15 +469,15 @@ CLASS IMPLEMENTATION CContainer;
       END;
       
       // try boolean      
-      IF GetBooleanOA( OA( model.Length-1, model.rawData ), OUT boolean ) THEN
+      IF GetBooleanOA( OA( model.Length-1, model.Data ), OUT boolean ) THEN
          lvalue.Assign( value );
          lvalue.Lowerize();
-         AddBooleanOA( OA( model.Length-1, model.rawData ), value.EqualsOA( L"true" ) OR value.EqualsOA( L"1" ) OR value.EqualsOA( L"y" ) OR value.EqualsOA( L"yes" ));
+         AddBooleanOA( OA( model.Length-1, model.Data ), value.EqualsOA( L"true" ) OR value.EqualsOA( L"1" ) OR value.EqualsOA( L"y" ) OR value.EqualsOA( L"yes" ));
          RETURN TRUE;
       END;
 
       // fall to string
-      AddStringOA( OA( model.Length-1, model.rawData ), value );
+      AddStringOA( OA( model.Length-1, model.Data ), value );
       RETURN TRUE;
 
       // emit error      
@@ -508,9 +508,9 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       i := model.IndexOfOA( L".", 0 );
       IF i > 0 THEN // ok, find in map or list by key
-         IF GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
+         IF GetMapOA( OA( i-1, model.Data ), OUT map ) THEN
             // fall down
-         ELSIF GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
+         ELSIF GetListOA( OA( i-1, model.Data ), OUT list ) THEN
             // fall down
          END;
          IF ( map = NIL ) AND ( list = NIL ) THEN
@@ -557,9 +557,9 @@ CLASS IMPLEMENTATION CContainer;
             sindex2 := sindex1;
          END;
          sindex2.Trim();
-         IF NOT Strings.ToINT32W( OA( sindex2.Length-1, sindex2.rawData ), 10, OUT index ) THEN
+         IF NOT Strings.ToINT32W( OA( sindex2.Length-1, sindex2.Data ), 10, OUT index ) THEN
             GOTO Error;
-         ELSIF GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
+         ELSIF GetMapOA( OA( i-1, model.Data ), OUT map ) THEN
             IF valueIndex THEN
                ps := map^[index];
                IF ps = NIL THEN
@@ -570,7 +570,7 @@ CLASS IMPLEMENTATION CContainer;
                GOTO Error;
             END;
             RETURN TRUE;
-         ELSIF GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
+         ELSIF GetListOA( OA( i-1, model.Data ), OUT list ) THEN
             IF keyIndex THEN
                ps := list^[index];
                IF ps = NIL THEN
@@ -596,7 +596,7 @@ CLASS IMPLEMENTATION CContainer;
          model.Remove( j, -1 );
          model.Substring( 0, i, OUT sindex1 );
          sindex1.Trim();
-         IF GetFunctionHandlerOA( OA( sindex1.Length-1, sindex1.rawData ), OUT functionHandler ) THEN
+         IF GetFunctionHandlerOA( OA( sindex1.Length-1, sindex1.Data ), OUT functionHandler ) THEN
             ii := i+1;
             LOOP
                ii := model.ItemS( StringsO.WCHARS{L' ', L','}, ii, 0, TRUE, OUT sindex2 );
@@ -616,12 +616,12 @@ CLASS IMPLEMENTATION CContainer;
       END;
       
       // test string
-      IF GetStringOA( OA( model.Length-1, model.rawData ), OUT value ) THEN
+      IF GetStringOA( OA( model.Length-1, model.Data ), OUT value ) THEN
          RETURN TRUE;
       END;
       
       // test boolean
-      IF GetBooleanOA( OA( model.Length-1, model.rawData ), OUT boolean ) THEN
+      IF GetBooleanOA( OA( model.Length-1, model.Data ), OUT boolean ) THEN
          IF boolean THEN
             value.FromOA( L"true" );
          ELSE
@@ -696,7 +696,7 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       LSetId.FromOA( VIEW_MAPPER );
       LSetId.Append( ControllerURI );
-      RemoveOA( OA( LSetId.Length-1, LSetId.rawData ));
+      RemoveOA( OA( LSetId.Length-1, LSetId.Data ));
    END ResetModelInViewNames;
 
 (*--------------------------------------------------------------------------------*)
@@ -708,8 +708,8 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       LSetId.FromOA( VIEW_MAPPER );
       LSetId.Append( ControllerURI );
-      IF NOT GetMapOA( OA( LSetId.Length-1, LSetId.rawData ), OUT mapper ) THEN
-         AddMapOA( OA( LSetId.Length-1, LSetId.rawData ), OUT mapper );
+      IF NOT GetMapOA( OA( LSetId.Length-1, LSetId.Data ), OUT mapper ) THEN
+         AddMapOA( OA( LSetId.Length-1, LSetId.Data ), OUT mapper );
       END;
       mapper^.Add( InViewName, FullModel );
    END SetModelInViewName;
@@ -723,7 +723,7 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       LSetId.FromOA( VIEW_MAPPER );
       LSetId.Append( ControllerURI );
-      IF NOT GetMapOA( OA( LSetId.Length-1, LSetId.rawData ), OUT mapper ) THEN
+      IF NOT GetMapOA( OA( LSetId.Length-1, LSetId.Data ), OUT mapper ) THEN
          RETURN FALSE;
       ELSIF NOT mapper^.Get( InViewName, OUT FullModel ) THEN
          RETURN FALSE;
@@ -1140,12 +1140,12 @@ CLASS IMPLEMENTATION CMVC;
       END;
       
       l := _Context.Length;
-      IF Strings.StartsWithW( URL, OA( l-1, _Context.rawData )) THEN // URL = .../Context/...
+      IF Strings.StartsWithW( URL, OA( l-1, _Context.Data )) THEN // URL = .../Context/...
          WantsSession := TRUE;
          RETURN TRUE;
       ELSIF l < 2 THEN
          RETURN FALSE;
-      ELSIF Strings.EndsWithW( URL, OA( l-2, _Context.rawData )) THEN // URL = .../Context
+      ELSIF Strings.EndsWithW( URL, OA( l-2, _Context.Data )) THEN // URL = .../Context
          WantsSession := TRUE;
          RETURN TRUE;
       ELSE
@@ -1187,7 +1187,7 @@ CLASS IMPLEMENTATION CMVC;
       controllerURI := Connection^.RequestURI;
       controllerURI.Remove( 0, _Context.Length ); // remove context leading
 
-      IF LookupController( Connection^.RequestVerb, OA( controllerURI.Length-1, controllerURI.rawData ), OUT controller ) THEN
+      IF LookupController( Connection^.RequestVerb, OA( controllerURI.Length-1, controllerURI.Data ), OUT controller ) THEN
          // fall down
       ELSIF ( _FallbackController = NIL ) OR ( Connection^.RequestVerb = HttpCommon.verbPOST ) THEN // fallback works for POST only
          Connection^.StatusCode := HttpCommon.httpres_404;
@@ -1323,7 +1323,7 @@ CLASS IMPLEMENTATION CMVC;
       _MessagesLock.Lock();
       IF _Messages = NIL THEN
          NEW( _Messages );
-         b := _Messages^.LoadXML( OA( _MessageSourcePath.Length-1, _MessageSourcePath.rawData ), OUT e );
+         b := _Messages^.LoadXML( OA( _MessageSourcePath.Length-1, _MessageSourcePath.Data ), OUT e );
          IF b THEN
             _Messages^.FallbackLang := _Messages^.Lang;
          END;

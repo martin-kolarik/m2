@@ -26,13 +26,13 @@ BEGIN
    ELSIF ( CodePage = Languages.cp_UTF16 ) OR ( CodePage = Languages.cp_UTF16_BIG_ENDIAN ) THEN
       Buffer.Size := bl + l << 1;
       Buffer.Length := bl + l << 1;
-      Storage.Move( String.rawData, Buffer.Data@[bl], l );
+      Storage.Move( String.Data, Buffer.Data@[bl], l );
    ELSE
       Languages.BytesPerCharacter( CodePage, OUT f, OUT min, OUT max );
       s := l * max; // the worst case
       Buffer.Size := bl + s;
       a := Buffer.Data@[bl];
-      IF Languages.ToAStream( OA( l-1, String.rawData ), CodePage, OUT OA( s-1, a ), OUT s, OUT l ) THEN
+      IF Languages.ToAStream( OA( l-1, String.Data ), CodePage, OUT OA( s-1, a ), OUT s, OUT l ) THEN
          Buffer.Length := bl + l;
       ELSE // reset buffer back to previous length
          Buffer.Length := bl;
@@ -53,11 +53,11 @@ BEGIN
    ELSIF ( CodePage = Languages.cp_UTF16 ) OR ( CodePage = Languages.cp_UTF16_BIG_ENDIAN ) THEN
       String.Size := l >> 1;
       String.Length := l >> 1;
-      Storage.Move( Buffer.Data, String.rawData, l );
+      Storage.Move( Buffer.Data, String.Data, l );
    ELSE
       String.Size := l; // the worst case
       String.Length := 1; // some not empty string
-      a := String.rawData;
+      a := String.Data;
       IF Languages.ToWStream( OA( l-1, Buffer.Data ), CodePage, OUT OA( l-1, a ), OUT c, OUT l ) THEN
          String.Length := l;
       ELSE

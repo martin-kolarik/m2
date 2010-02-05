@@ -88,7 +88,7 @@ CLASS IMPLEMENTATION CBuffer;
 
   PROCEDURE WriteCS( CONST S : StringsO.CString );
   BEGIN
-    WriteB( S.rawData, S.Length );
+    WriteB( S.Data, S.Length );
   END WriteCS;
 
   PROCEDURE Sync();
@@ -537,7 +537,7 @@ CLASS IMPLEMENTATION CGenerator;
     GenerateMode := GM;
     GenerateOptions := GO;
     GlobalPacking := DOM.TPModule( M )^.EStack.PeekBottom()^.Packing;
-    ASSIGN( P, OA( DOM.TPModule( M )^.FilePath.Length, DOM.TPModule( M )^.FilePath.szData ));
+    ASSIGN( P, OA( DOM.TPModule( M )^.FilePath.Length, DOM.TPModule( M )^.FilePath.Data ));
     c := Strings.LastIndexOfCharW( P, L'.', 0 );
     IF c <> MAX( CARDINAL ) THEN
       Strings.RemoveW( REF P, c, MAX( CARDINAL ));

@@ -181,13 +181,13 @@ CLASS IMPLEMENTATION CController;
       IF Fallback THEN
          uri := Request.ControllerURI;
          IF NOT uri.EndsWithOA( DYNAMIC_SUFFIX ) THEN
-            View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_WEB, OA( uri.Length-1, uri.rawData ), FALSE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
+            View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_WEB, OA( uri.Length-1, uri.Data ), FALSE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
          ELSIF NOT Request.ModelContainer^.GetFunctionCallsMemo() THEN // no call during the request
             Request.ModelContainer^.AddFunctionHandlerOA( FN_SET, ADR( SELF ));
             Request.ModelContainer^.AddFunctionHandlerOA( FN_GET, ADR( SELF ));
-            View := mvc.pageTemplateView( ADR( SELF ), OA( uri.Length-1, uri.rawData ));
+            View := mvc.pageTemplateView( ADR( SELF ), OA( uri.Length-1, uri.Data ));
          ELSE // some call was performed, redirect to self
-            View := mvc.redirectView( OA( uri.Length-1, uri.rawData ));
+            View := mvc.redirectView( OA( uri.Length-1, uri.Data ));
          END;
          RETURN TRUE;
    
@@ -438,7 +438,7 @@ CLASS IMPLEMENTATION CController;
       ELSIF Request.ModelContainer^.GetStringOA( CONTROL_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
          cs.FromOA( L"-1" );
          Request.ModelContainer^.AddStringOA( CONTROL_DOWNLOAD, cs );
-         View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_DISK, OA( _Web^.Configuration^.Length-1, _Web^.Configuration^.rawData ), TRUE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
+         View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_DISK, OA( _Web^.Configuration^.Length-1, _Web^.Configuration^.Data ), TRUE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
          RETURN TRUE;
       END;
 
@@ -515,7 +515,7 @@ CLASS IMPLEMENTATION CController;
             END;
          END;
 
-         View := mvc.rawTextView( OA( logS.Length-1, logS.rawData ), L"datalog", empty, TRUE );
+         View := mvc.rawTextView( OA( logS.Length-1, logS.Data ), L"datalog", empty, TRUE );
       ELSE
          // backward order
          IF count > 0 THEN
@@ -561,7 +561,7 @@ CLASS IMPLEMENTATION CController;
       END;
 
       IF Request.ModelContainer^.GetStringOA( LOG_DOWNLOAD, OUT cs ) AND cs.ToCARD32( 10, OUT i ) AND ( i <> -1 ) THEN
-         View := mvc.rawTextView( OA( logS.Length-1, logS.rawData ), L"systemlog", empty, TRUE );
+         View := mvc.rawTextView( OA( logS.Length-1, logS.Data ), L"systemlog", empty, TRUE );
       ELSE
          Request.ModelContainer^.AddStringOA( LOG_LOG, logS );
          View := mvc.pageTemplateView( ADR( SELF ), SYSTEM_LOG_VIEW );
