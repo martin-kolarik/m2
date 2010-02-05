@@ -126,7 +126,7 @@ CLASS IMPLEMENTATION CTimeTestFast;
          windows.QueryPerformanceCounter( lqc );
          sDTime := GetTimeMS();
          sWTime := GetViewsTimeMS();
-         windows.Sleep(10000);
+         windows.Sleep(60000);
          dDTime := GetTimeMS() - sDTime;
          dWTime := GetViewsTimeMS() - sWTime;
          windows.QueryPerformanceCounter( qc );
@@ -137,7 +137,7 @@ CLASS IMPLEMENTATION CTimeTestFast;
 
          s := L'dQPC: '; Strings.FromINT32W( dPTime, 10, OUT n ); Strings.AppendW( REF s, n );
          Strings.AppendW( REF s, L' dQPCms: ' ); Strings.FromINT32W( INTEGER( LONGREAL( dPTime ) / LONGREAL( INT64( freq )) * 1000.0 ), 10, OUT n ); Strings.AppendW( REF s, n );
-         Strings.AppendW( REF s, L' total (ms/day): ' ); Strings.FromINT32W( 8640 * sdiff DIV count, 10, OUT n ); Strings.AppendW( REF s, n );
+         Strings.AppendW( REF s, L' total (ms/day): ' ); Strings.FromINT32W( 1440 * sdiff DIV count, 10, OUT n ); Strings.AppendW( REF s, n );
          Strings.AppendW( REF s, L' dDTime: ' ); Strings.FromINT32W( INT32( dDTime ), 10, OUT n ); Strings.AppendW( REF s, n );
          Host^.Log^.LogS( log.dlcInfo, L"", s );
 
