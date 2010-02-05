@@ -32,7 +32,7 @@
         <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\SDAP\DeviceIOSDAPBridge"/>
 
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
-        <Components Include="Component\sccore;SDAP\DeviceIOSDAPBridge;Tools\svcinst"/>
+        <Components Include="Tools\svcinst;Component\sccore;SDAP\DeviceIOSDAPBridge"/>
         <Program Include="BridgeSvc"/>
     </ItemGroup>
 

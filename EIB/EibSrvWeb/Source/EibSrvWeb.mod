@@ -545,9 +545,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
             IF cphcommon.FromBASE64( base64OA, OUT hashOA, OUT i ) AND ( i = SIZE( hashOA )) THEN
                hash.FromOA( hashOA );
                IF itemRole = roleAdministrator THEN
-                  digest.DigestSalt( digest.sha256, OA( 2*Password.Length-1, PBYTE( Password.rawData )), C"web_root", OUT password );
+                  digest.DigestSalt( digest.sha256, OA( 2*Password.Length-1, PBYTE( Password.Data )), C"web_root", OUT password );
                ELSE
-                  digest.DigestSalt( digest.sha256, OA( 2*Password.Length-1, PBYTE( Password.rawData )), C"message_file", OUT password );
+                  digest.DigestSalt( digest.sha256, OA( 2*Password.Length-1, PBYTE( Password.Data )), C"message_file", OUT password );
                END;
                IF hash = password THEN
                   role := itemRole;
@@ -664,7 +664,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       httpsrv.srv()^.Start();
 
       ASSERT( _MVC = NIL );
-      _MVC := mvc.mvc( OA( _Context.Length-1, _Context.rawData ));
+      _MVC := mvc.mvc( OA( _Context.Length-1, _Context.Data ));
       _MVC^.MessageSourcePath := _MessageFile;
       _MVC^.Logger := _HttpLogger;
       _MVC^.AccessList := ADR( _AccessList );

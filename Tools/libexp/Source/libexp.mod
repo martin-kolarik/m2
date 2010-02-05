@@ -59,7 +59,7 @@ BEGIN
    S.PrependOA( L"/directives" );
 
    TRY   
-      FSO.RunProgramInPipe( DumpBin, OA( S.Length-1, S.rawData ), NIL, OUT Result );
+      FSO.RunProgramInPipe( DumpBin, OA( S.Length-1, S.Data ), NIL, OUT Result );
    CATCH e : IOO.CIOException DO
       errout^.WriteOA( L"libexp: running dumpbin failed: ", FALSE ); 
       errout^.WriteExc( e, TRUE );

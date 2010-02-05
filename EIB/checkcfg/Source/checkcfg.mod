@@ -60,7 +60,7 @@ BEGIN
 
    Args.Reset();
    WHILE Args.MoveNext() DO
-      IF DI.StartFromPathOA( OA( Args.Current^.Length-1, Args.Current^.rawData ), FSO.soTopDirectoryOnly, FALSE, TRUE ) THEN
+      IF DI.StartFromPathOA( OA( Args.Current^.Length-1, Args.Current^.Data ), FSO.soTopDirectoryOnly, FALSE, TRUE ) THEN
          REPEAT
             stdout^.WriteOA( L"  ", FALSE ); stdout^.Write( DI.Path, FALSE ); stdout^.WriteOA( 9W, FALSE );
 

@@ -129,7 +129,7 @@ __declspec(naked) void __cdecl _ftol2_sse()
         mov         ebp, esp
         sub         esp, 8
         and         esp, 0FFFFFFF8h
-        fstp        [esp]
+        fstp        qword ptr [esp]
         cvttsd2si   eax, [esp]
         leave
         retn

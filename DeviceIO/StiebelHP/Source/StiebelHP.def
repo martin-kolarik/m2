@@ -27,6 +27,11 @@ TYPE
 	TPIO = POINTER TO CIO;
 	TPNS = POINTER TO CNS;
 
+TYPE
+	TPNSI = POINTER TO CNSI;
+	TPErrorNSI = POINTER TO CErrorNSI;
+	TPPacket = POINTER TO TPacket;
+
 (*---------------------------------------------------------------------------*)
 
 CLASS CNS( nsitem.Ans );
@@ -39,6 +44,7 @@ CLASS CNS( nsitem.Ans );
 
    // SELF
 	PUBLIC VIRTUAL PROCEDURE CreateNewItem( CONST Name : ARRAY OF WCHAR; NType : ns.TNameType; VType : iovalue.TValueType; Data : PTR ) : ns.TPnsItem;
+	PRIVATE PROCEDURE CreateErrorItem( CONST Name : ARRAY OF WCHAR ) : TPErrorNSI;
 END CNS;
 
 (*---------------------------------------------------------------------------*)
@@ -92,13 +98,11 @@ END CDeviceCommunicator;
 
 (*---------------------------------------------------------------------------*)
 
-TYPE
-	TPNSI = POINTER TO CNSI;
-	TPPacket = POINTER TO TPacket;
-
 CLASS CIO( io.AItemizedIO );
 	LOCAL VAR
 		DeviceCommunicator : CDeviceCommunicator;
+		DateFormat : StringsO.CString;
+		TimeFormat : StringsO.CString;
 	PRIVATE VAR
 		_AbortFlag : BOOLEAN;
 		_Pending : IOO.TDirection;
@@ -126,6 +130,7 @@ CLASS CIO( io.AItemizedIO );
    // SELF
 	LOCAL PROCEDURE OnRx( Result : Sync.TAsyncResult; PPacket : TPPacket );
 	LOCAL PROCEDURE OnTxCON( Result : Sync.TAsyncResult );
+   PRIVATE PROCEDURE CompositeIO( Direction : IOO.TDirection; Item : TPErrorNSI; Delegate : io.TPDataInfo ) : Sync.TAsyncResult;
 END CIO;
 
 (*---------------------------------------------------------------------------*)

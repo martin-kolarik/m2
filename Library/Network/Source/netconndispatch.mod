@@ -115,7 +115,7 @@ CLASS IMPLEMENTATION CClientInterface;
     ELSIF PDispatcher^.Connection <> ctLine THEN
       OnSent( Connection, Id, winsock.WSAEINVAL );
     ELSE
-      PDispatcher^.Send( ADR( SELF ), Connection, Id, String.rawData, String.Length );
+      PDispatcher^.Send( ADR( SELF ), Connection, Id, String.Data, String.Length );
     END;
   END SendS;
 
