@@ -502,7 +502,7 @@ CLASS IMPLEMENTATION CString;
 
    PUBLIC VIRTUAL PROCEDURE LastIndexOf( CONST S : IString; IndexFromRight : CARDINAL ) : CARDINAL;
    BEGIN
-      RETURN Strings.LastIndexOfMW( _Len, _Data, S.Length, PWCHAR( S.rawData ), IndexFromRight );
+      RETURN Strings.LastIndexOfMW( _Len, _Data, S.Length, PWCHAR( S.Data ), IndexFromRight );
    END LastIndexOf;
 
    PUBLIC VIRTUAL PROCEDURE LastIndexOfOA( CONST S : ARRAY OF WCHAR; IndexFromRight : CARDINAL ) : CARDINAL;
@@ -512,7 +512,7 @@ CLASS IMPLEMENTATION CString;
 
    PUBLIC VIRTUAL PROCEDURE Contains( CONST S : IString ) : BOOLEAN;
    BEGIN
-      RETURN Strings.IndexOfMW( _Len, _Data, S.Length, PWCHAR( S.rawData ), 0 ) <> -1;
+      RETURN Strings.IndexOfMW( _Len, _Data, S.Length, PWCHAR( S.Data ), 0 ) <> -1;
    END Contains;
 
    PUBLIC VIRTUAL PROCEDURE ContainsOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;

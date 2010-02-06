@@ -3,7 +3,7 @@
 
     <!-- main resource properties -->
     <PropertyGroup>
-        <CopyrightYears Condition="$(CopyrightYears)==''">2005-2009</CopyrightYears>
+        <CopyrightYears Condition="$(CopyrightYears)==''">2005-2010</CopyrightYears>
         <CompanyName Condition="$(CompanyName)==''">SmartControl®</CompanyName>
         <LegalCopyright Condition="$(LegalCopyright)==''">Copyright © SmartControl® $(CopyrightYears)</LegalCopyright>
         <LegalTrademarks Condition="$(LegalTrademarks)==''">SmartControl</LegalTrademarks>
