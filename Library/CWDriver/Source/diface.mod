@@ -5,7 +5,7 @@ FROM Storage IMPORT
 
 IMPORT
    log,
-   scinit,
+//   scinit,
    Strings;
 
 (*================================================================================*)
@@ -74,7 +74,7 @@ VAR
    Driver : TPCWDriver := NIL;
 BEGIN
    IF RefCount = 0 THEN
-      scinit.Startup();
+//      scinit.Startup();
    END;
    
    IF Factory = NIL THEN
@@ -100,7 +100,7 @@ BEGIN
 
    DEC( RefCount );
    IF RefCount = 0 THEN
-     scinit.Cleanup();
+//     scinit.Cleanup();
    END;
 END DisposeDriverW;
 

@@ -23,8 +23,7 @@
         <BuildVersionSource Include="$(RootPath)\Component\sccore;$(RootPath)\CWDriver\CPojCrypt"/>
 
         <Components Include="Modula2\modula2;API\CLib;API\win32"/>
-        <Components Include="Component\sccore"/>
-        <Components Include="Library\CWDriver"/>
+        <Components Include="Modula2\m2rtl;Modula2\m2ortl;Library\Resources;Library\Ciphering;Library\CWDriver"/>
         <Messages Include="Texts"/>
         <Program Include="driver"/>
     </ItemGroup>
