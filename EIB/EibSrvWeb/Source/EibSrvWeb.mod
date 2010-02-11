@@ -380,6 +380,13 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Project GET : StringsO.TPString;
+   BEGIN
+      RETURN ADR( _Project );
+   END Project;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE ConnectEIB();
    VAR
       Result : Sync.TAsyncResult;
@@ -567,6 +574,8 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
    PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPBufferedLogger; HttpLogger : Log.TPILogger ) : BOOLEAN;
    CONST
+      snProject = L"project";
+         knName = L"name";
       snServer = L"server";
       snUsers = L"users";
       snAccessList = L"http_access_list";
@@ -594,6 +603,11 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       _ConfigLogger := ConfigLogger;
       _DataLogger := DataLogger;
       _HttpLogger := HttpLogger;
+      
+      IF NOT cfg.SetSection( snProject ) OR
+         NOT cfg.GetKeyStr( knName, OUT line, OUT _Project ) THEN
+         _Project.FromOA( L"SmartServer Project" );
+      END;
 
       IF cfg.SetSection( snServer ) AND FIO.GetModuleDirW( L"", OUT Path ) THEN // EXE dir
          IF cfg.GetKeyStr( knWebRoot, OUT line, OUT _RootDir ) THEN

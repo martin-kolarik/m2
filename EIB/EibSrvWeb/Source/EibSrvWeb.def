@@ -64,6 +64,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       OperatedDeviceCount : CARDINAL;
       ConfigLogger : Log.TPBufferedLogger;
       DataLogger : Log.TPBufferedLogger;
+      Project : StringsO.TPString;
       
    PUBLIC PROCEDURE ConnectEIB();
    PUBLIC PROCEDURE DisconnectEIB();
@@ -97,6 +98,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       _Users : lists.CStringStringList;
       _Lock : Sync.RWLOCK;
       _AccessList : accesslist.CAccessList;
+      _Project : StringsO.CString;
       
       _StartedTime : time.TJD;
       _Connected : BOOLEAN;

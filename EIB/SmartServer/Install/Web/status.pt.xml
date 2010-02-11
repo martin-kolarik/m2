@@ -29,6 +29,9 @@
                         <h1>${msg.status.server}</h1>
                         <table cellpadding="0px" cellspacing="0px">
                           <tr>
+                            <td>${msg.status.Project}</td><td class="spare"> </td><td>${project}</td>
+                          </tr>
+                          <tr>
                             <td>${msg.status.EIBconnection}</td><td class="spare"> </td>
                             <pt:choose>
                               <pt:when condition="${connected}">

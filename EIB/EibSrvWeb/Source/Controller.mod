@@ -57,6 +57,7 @@ CONST
    STATUS_CONFIGURATION = L"configurationPath";
    STATUS_CONNECT = L"connect";
    STATUS_DISCONNECT = L"disconnect";
+   STATUS_PROJECT = L"project";
    
    CONTROL_DEVICES_NAME = L"names";
    CONTROL_DEVICES_RUN = L"runStatus";
@@ -391,6 +392,8 @@ CLASS IMPLEMENTATION CController;
       Request.ModelContainer^.AddStringOA( STATUS_LAST_DAY, cs );
  
       Request.ModelContainer^.AddStringOA( STATUS_CONFIGURATION, _Web^.Configuration^ );
+      
+      Request.ModelContainer^.AddStringOA( STATUS_PROJECT, _Web^.Project^ );
  
       View := mvc.pageTemplateView( ADR( SELF ), STATUS_VIEW );
       RETURN TRUE;
