@@ -23,8 +23,9 @@
         orientované textové TCP/IP rozhraní.</p>
         <il>
           <caption>Softwarové a hardwarové poadavky:</caption>
-          <li><p>operaèní systémy MS Windows XP SP2 a vyšší, XP Embedded SP2 a
-          vyšší nebo Vista RTM a vyšší,</p></li>
+          <li><p>operaèní systémy Windows XP SP2 a vyšší, XP Embedded SP2 a
+          vyšší, Vista RTM a vyšší, Window Server 2003 RTM a vyšší, Windows
+          Server 2008 RTM a vyšší.</p></li>
           <li><p>10<c.special what="thinspace" />MB volného místa na
           disku,</p></li>
           <li><p>síové pøipojení (Ethernet, WiFi<c.special
@@ -1475,7 +1476,7 @@ allow = 127.0.0.1</p.type>
                   <dt>Zobrazení hodnoty datového objektu (<file>01
                   get.pt.xml</file>)</dt>
                   <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
-&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html"&gt;
 
 &lt;html&gt;
   &lt;head&gt;
@@ -1497,7 +1498,7 @@ allow = 127.0.0.1</p.type>
     &lt;p&gt;Current value: false.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</p.type></dd>
                   <dt>Zápis hodnoty (<file>02 set.pt.xml</file>)</dt>
                   <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
-&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html"&gt;
 
 &lt;html&gt;
   &lt;head&gt;
@@ -1523,7 +1524,7 @@ allow = 127.0.0.1</p.type>
                   <dt>Zmìna stylu podle hodnoty objektu (<file>03
                   style.pt.xml</file>)</dt>
                   <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
-&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html"&gt;
 
 &lt;html&gt;
   &lt;head&gt;
@@ -1553,7 +1554,7 @@ allow = 127.0.0.1</p.type>
                   <dt>Kombinace zápisu s podmínkou (<file>04
                   set.pt.xml</file>)</dt>
                   <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
-&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html"&gt;
 
 &lt;html&gt;
   &lt;head&gt;
