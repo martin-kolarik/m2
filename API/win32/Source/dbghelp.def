@@ -1,119 +1,123 @@
 DEFINITION MODULE dbghelp; (* heavily incomplete *)
 
 (*# name( decoration => c ) *)
-(*# module( header  => off ) *)
+(*# module( header => off ) *)
 (*# call( o_a_size => off, convention => stdcall ) *)
 
 IMPORT
-   windows;
+   windows,
+   winver;
 
 (*# save, option( pack => 4 ) *)
 
-typedef struct _MINIDUMP_EXCEPTION_INFORMATION {
-    DWORD ThreadId;
-    PEXCEPTION_POINTERS ExceptionPointers;
-    BOOL ClientPointers;
-} MINIDUMP_EXCEPTION_INFORMATION, *PMINIDUMP_EXCEPTION_INFORMATION;
-
-typedef struct _MINIDUMP_USER_STREAM {
-    ULONG32 Type;
-    ULONG BufferSize;
-    PVOID Buffer;
-
-} MINIDUMP_USER_STREAM, *PMINIDUMP_USER_STREAM;
-
-typedef struct _MINIDUMP_USER_STREAM_INFORMATION {
-    ULONG UserStreamCount;
-    PMINIDUMP_USER_STREAM UserStreamArray;
-} MINIDUMP_USER_STREAM_INFORMATION, *PMINIDUMP_USER_STREAM_INFORMATION;
-
-typedef enum _MINIDUMP_CALLBACK_TYPE {
-    ModuleCallback,
-    ThreadCallback,
-    ThreadExCallback,
-    IncludeThreadCallback,
-    IncludeModuleCallback,
-    MemoryCallback,
-} MINIDUMP_CALLBACK_TYPE;
-
-typedef struct _MINIDUMP_THREAD_CALLBACK {
-    ULONG ThreadId;
-    HANDLE ThreadHandle;
-    CONTEXT Context;
-    ULONG SizeOfContext;
-    ULONG64 StackBase;
-    ULONG64 StackEnd;
-} MINIDUMP_THREAD_CALLBACK, *PMINIDUMP_THREAD_CALLBACK;
-
-typedef struct _MINIDUMP_THREAD_EX_CALLBACK {
-    ULONG ThreadId;
-    HANDLE ThreadHandle;
-    CONTEXT Context;
-    ULONG SizeOfContext;
-    ULONG64 StackBase;
-    ULONG64 StackEnd;
-    ULONG64 BackingStoreBase;
-    ULONG64 BackingStoreEnd;
-} MINIDUMP_THREAD_EX_CALLBACK, *PMINIDUMP_THREAD_EX_CALLBACK;
-
-
-typedef struct _MINIDUMP_INCLUDE_THREAD_CALLBACK {
-    ULONG ThreadId;
-} MINIDUMP_INCLUDE_THREAD_CALLBACK, *PMINIDUMP_INCLUDE_THREAD_CALLBACK;
-
-typedef struct _MINIDUMP_MODULE_CALLBACK {
-    PWCHAR FullPath;
-    ULONG64 BaseOfImage;
-    ULONG SizeOfImage;
-    ULONG CheckSum;
-    ULONG TimeDateStamp;
-    VS_FIXEDFILEINFO VersionInfo;
-    PVOID CvRecord; 
-    ULONG SizeOfCvRecord;
-    PVOID MiscRecord;
-    ULONG SizeOfMiscRecord;
-} MINIDUMP_MODULE_CALLBACK, *PMINIDUMP_MODULE_CALLBACK;
-
-
-typedef struct _MINIDUMP_INCLUDE_MODULE_CALLBACK {
-    ULONG64 BaseOfImage;
-} MINIDUMP_INCLUDE_MODULE_CALLBACK, *PMINIDUMP_INCLUDE_MODULE_CALLBACK;
-
-
-typedef enum _MODULE_WRITE_FLAGS {
-    ModuleWriteModule        = 0x0001,
-    ModuleWriteDataSeg       = 0x0002,
-    ModuleWriteMiscRecord    = 0x0004,
-    ModuleWriteCvRecord      = 0x0008,
-    ModuleReferencedByMemory = 0x0010
-} MODULE_WRITE_FLAGS;
-
-
-typedef struct _MINIDUMP_CALLBACK_INPUT {
-    ULONG ProcessId;
-    HANDLE ProcessHandle;
-    ULONG CallbackType;
-    union {
-        MINIDUMP_THREAD_CALLBACK Thread;
-        MINIDUMP_THREAD_EX_CALLBACK ThreadEx;
-        MINIDUMP_MODULE_CALLBACK Module;
-        MINIDUMP_INCLUDE_THREAD_CALLBACK IncludeThread;
-        MINIDUMP_INCLUDE_MODULE_CALLBACK IncludeModule;
-    };
-} MINIDUMP_CALLBACK_INPUT, *PMINIDUMP_CALLBACK_INPUT;
-
-typedef struct _MINIDUMP_CALLBACK_OUTPUT {
-    union {
-        ULONG ModuleWriteFlags;
-        ULONG ThreadWriteFlags;
-        struct {
-            ULONG64 MemoryBase;
-            ULONG MemorySize;
-        };
-    };
-} MINIDUMP_CALLBACK_OUTPUT, *PMINIDUMP_CALLBACK_OUTPUT;
-
 TYPE
+   MINIDUMP_EXCEPTION_INFORMATION = RECORD
+      ThreadId : windows.DWORD;
+      ExceptionPointers : windows.PEXCEPTION_POINTERS;
+      ClientPointers : windows.BOOL;
+   END;
+   PMINIDUMP_EXCEPTION_INFORMATION = POINTER TO MINIDUMP_EXCEPTION_INFORMATION;
+
+   MINIDUMP_USER_STREAM = RECORD
+      Type : CARD32;
+      BufferSize : windows.ULONG;
+      Buffer : windows.PVOID;
+   END;
+   PMINIDUMP_USER_STREAM = POINTER TO MINIDUMP_USER_STREAM;
+
+   MINIDUMP_USER_STREAM_INFORMATION = RECORD 
+      UserStreamCount : windows.ULONG;
+      UserStreamArray : PMINIDUMP_USER_STREAM;
+   END;
+   PMINIDUMP_USER_STREAM_INFORMATION = POINTER TO MINIDUMP_USER_STREAM_INFORMATION;
+
+   MINIDUMP_CALLBACK_TYPE = (
+      ModuleCallback,
+      ThreadCallback,
+      ThreadExCallback,
+      IncludeThreadCallback,
+      IncludeModuleCallback,
+      MemoryCallback
+   );
+
+   MINIDUMP_THREAD_CALLBACK = RECORD
+      ThreadId : windows.ULONG;
+      ThreadHandle : windows.HANDLE;
+      Context : windows.CONTEXT;
+      SizeOfContext : windows.ULONG;
+      StackBase : CARD64;
+      StackEnd : CARD64;
+   END;
+   PMINIDUMP_THREAD_CALLBACK = POINTER TO MINIDUMP_THREAD_CALLBACK;
+
+   MINIDUMP_THREAD_EX_CALLBACK = RECORD
+      ThreadId : windows.ULONG;
+      ThreadHandle : windows.HANDLE;
+      Context : windows.CONTEXT;
+      SizeOfContext : windows.ULONG;
+      StackBase : CARD64;
+      StackEnd : CARD64;
+      BackingStoreBase : CARD64;
+      BackingStoreEnd : CARD64;
+   END;
+   PMINIDUMP_THREAD_EX_CALLBACK = POINTER TO MINIDUMP_THREAD_EX_CALLBACK;
+
+   MINIDUMP_INCLUDE_THREAD_CALLBACK = RECORD
+      ThreadId : windows.ULONG;
+   END;
+   PMINIDUMP_INCLUDE_THREAD_CALLBACK = POINTER TO MINIDUMP_INCLUDE_THREAD_CALLBACK;
+
+   MINIDUMP_MODULE_CALLBACK = RECORD
+      FullPath : PWCHAR;
+      BaseOfImage : CARD64;
+      SizeOfImage : windows.ULONG;
+      CheckSum : windows.ULONG;
+      TimeDateStamp : windows.ULONG;
+      VersionInfo : winver.VS_FIXEDFILEINFO;
+      CvRecord : windows.PVOID;
+      SizeOfCvRecord : windows.ULONG;
+      MiscRecord : windows.PVOID;
+      SizeOfMiscRecord : windows.ULONG;
+   END;
+   PMINIDUMP_MODULE_CALLBACK = POINTER TO MINIDUMP_MODULE_CALLBACK;
+
+   MINIDUMP_INCLUDE_MODULE_CALLBACK = RECORD
+      BaseOfImage : CARD64;
+   END;
+   PMINIDUMP_INCLUDE_MODULE_CALLBACK = POINTER TO MINIDUMP_INCLUDE_MODULE_CALLBACK;
+
+   MODULE_WRITE_FLAGS = (
+      ModuleWriteModule        = 00001H,
+      ModuleWriteDataSeg       = 00002H,
+      ModuleWriteMiscRecord    = 00004H,
+      ModuleWriteCvRecord      = 00008H,
+      ModuleReferencedByMemory = 00010H
+   );
+
+   MINIDUMP_CALLBACK_INPUT = RECORD
+      ProcessId : windows.ULONG;
+      ProcessHandle : windows.HANDLE;
+      CallbackType : windows.ULONG;
+      CASE : INTEGER OF
+      | 0: Thread : MINIDUMP_THREAD_CALLBACK;
+      | 1: ThreadEx : MINIDUMP_THREAD_EX_CALLBACK;
+      | 2: Module : MINIDUMP_MODULE_CALLBACK;
+      | 3: IncludeThread : MINIDUMP_INCLUDE_THREAD_CALLBACK;
+      | 4: IncludeModule : MINIDUMP_INCLUDE_MODULE_CALLBACK;
+      END;
+   END;
+   PMINIDUMP_CALLBACK_INPUT = POINTER TO MINIDUMP_CALLBACK_INPUT;
+
+   MINIDUMP_CALLBACK_OUTPUT = RECORD
+      CASE : INTEGER OF
+      | 0: ModuleWriteFlags : windows.ULONG;
+      | 1: ThreadWriteFlags : windows.ULONG;
+      | 2: MemoryBase : CARD64;
+           MemorySize : windows.ULONG;
+      END;
+   END;
+   PMINIDUMP_CALLBACK_OUTPUT = POINTER TO MINIDUMP_CALLBACK_OUTPUT;
+
    MINIDUMP_TYPE = (
       MiniDumpNormal                         = 0000H,
       MiniDumpWithDataSegs                   = 0001H,
@@ -130,11 +134,11 @@ TYPE
    );
 
 TYPE
-   MINIDUMP_CALLBACK_ROUTINE = PROCEDURE( CallbackParam : windows.PVOID; CallbackInput : CONST PMINIDUMP_CALLBACK_INPUT; CallbackOutput : PMINIDUMP_CALLBACK_OUTPUT ) : windows.BOOL;
+   MINIDUMP_CALLBACK_ROUTINE = PROCEDURE( windows.PVOID, CONST PMINIDUMP_CALLBACK_INPUT, PMINIDUMP_CALLBACK_OUTPUT ) : windows.BOOL;
 
-   MINIDUMP_CALLBACK_INFORMATION  = RECORD 
+   MINIDUMP_CALLBACK_INFORMATION = RECORD 
       CallbackRoutine : MINIDUMP_CALLBACK_ROUTINE;
-      CallbackParam : PVOID;
+      CallbackParam : windows.PVOID;
    END;
    PMINIDUMP_CALLBACK_INFORMATION = POINTER TO MINIDUMP_CALLBACK_INFORMATION;
 
@@ -143,9 +147,9 @@ PROCEDURE MiniDumpWriteDump(
     ProcessId : windows.DWORD;
     hFile : windows.HANDLE;
     DumpType : MINIDUMP_TYPE;
-    ExceptionParam : CONST PMINIDUMP_EXCEPTION_INFORMATION;
-    UserStreamParam : CONST PMINIDUMP_USER_STREAM_INFORMATION;
-    CallbackParam : CONST PMINIDUMP_CALLBACK_INFORMATION ) : windows.BOOL;
+    ExceptionParam : PMINIDUMP_EXCEPTION_INFORMATION;
+    UserStreamParam : PMINIDUMP_USER_STREAM_INFORMATION;
+    CallbackParam : PMINIDUMP_CALLBACK_INFORMATION ) : windows.BOOL;
 
 (*# restore *)
 

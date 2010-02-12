@@ -11,4 +11,11 @@ BEGIN
    ASSERTLOG( FALSE );
 END Test;
 
+(*# save, call( convention => cdecl ) *)
+PROCEDURE wmain();
+(*# restore *)
+BEGIN
+   Test();
+END wmain;
+
 END Asserts.
