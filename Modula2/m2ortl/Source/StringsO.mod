@@ -210,42 +210,14 @@ CLASS IMPLEMENTATION CString;
    END EqualsIgnoreCaseOA;
    
 	PUBLIC VIRTUAL PROCEDURE CString.Compare( CONST S : IString ) : TRISTATE;
-	VAR
-		i, l, k : CARDINAL;
-		rd : PWCHAR;
 	BEGIN
-		l := S.Length;
-		IF l = 0 THEN
-			IF _Len = 0 THEN
-				RETURN 0;
-			ELSE
-				RETURN 1;
-			END;
-		ELSIF _Len = 0 THEN
-			RETURN -1;
-		END;
-
-		rd := PWCHAR( S.rawData );
-		i := 0;
-		k := MIN2( l, _Len );
-		WHILE i < k DO
-			IF _Data@[i<<1]^ > rd@[i<<1]^ THEN
-				RETURN 1;
-			ELSIF _Data@[i<<1]^ < rd@[i<<1]^ THEN
-				RETURN -1;
-			ELSE
-				INC( i );
-			END;
-		END; // WHILE
-		
-		IF _Len > l THEN
-			RETURN 1;
-		ELSIF _Len < l THEN
-			RETURN -1;
-		ELSE
-			RETURN 0;
-		END;
+	   RETURN Strings.CompareW( OA( _Len-1, _Data ), OA( S.Length-1, S.rawData ));
 	END CString.Compare;
+
+   PUBLIC VIRTUAL PROCEDURE CompareLanguage( Language : Languages.TLanguage; CaseSensitive : BOOLEAN; CONST S : IString ) : TRISTATE;
+   BEGIN
+      RETURN Languages.CompareStringMLW( Language, CaseSensitive, _Len, _Data, S.Length, S.rawData );
+   END CompareLanguage;
 
 	PUBLIC VIRTUAL PROCEDURE CString.Assign( CONST S : IString );
 	BEGIN

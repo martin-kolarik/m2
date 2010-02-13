@@ -35,6 +35,8 @@ PROCEDURE ToAStream( CONST Source : ARRAY OF WCHAR; CodePage : CARDINAL; OUT Des
 
 PROCEDURE IsUTF8( CONST Source : ARRAY OF BYTE ) : BOOLEAN;
 
+PROCEDURE CompareStringMLW( Language : TLanguage; CaseSensitive : BOOLEAN; Length1 : CARDINAL; CONST String1 : PWCHAR; Length2 : CARDINAL; CONST String2 : PWCHAR ) : TRISTATE;
+
 (*================================================================================*)
 
 TYPE
