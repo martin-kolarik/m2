@@ -16,7 +16,6 @@ TYPE
    TScanResult = (
       srNothing,
       srBOM,
-      srCommentaryLine,
       srIncompleteLine,
       srIncompleteLineBufferFull,
       srCompleteLine
