@@ -368,15 +368,15 @@ END CEibSvc;
 VAR
    EibSvc : CEibSvc;
 
-#save, call( convention => cdecl )
-PROCEDURE wmain( argc : CARDINAL; argp, envp : ADDRESS ) : CARDINAL;
-#restore
+# save, call( convention => cdecl )
+PROCEDURE Main( argc : INTEGER; argp : ADDRESS ) : INTEGER;
+# restore
 VAR
    PService : Service.TPService := ADR( EibSvc );
 BEGIN
    Service.Run( OA( 0, ADR( PService )), FALSE, 0 );
    RETURN 0;
-END wmain;
+END Main;
 
 (*================================================================================*)
 
