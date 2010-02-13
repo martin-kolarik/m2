@@ -86,6 +86,7 @@ CONST
    DYNAMIC_SUFFIX = L".pt.xml";
    FN_SET = L"set";
    FN_GET = L"get";
+   FN_GETWIX = L"getWix";
    FN_EQUAL = L"equal";
    FN_NOTEQUAL = L"notEqual";
    FN_LESS = L"less";
@@ -145,6 +146,18 @@ CLASS IMPLEMENTATION CController;
          END;
          Parameters.ElementAt( 0, OUT s, OUT name );
          IF NOT _Web^.GetValue( name, OUT value1 ) THEN
+            RETURN FALSE;
+         ELSIF RetVal <> NIL THEN
+            RetVal^.Assign( value1 );
+         END;
+         RETURN TRUE;
+         
+      ELSIF FunctionName.EqualsOA( FN_GETWIX ) THEN
+         IF Parameters.Count < 1 THEN
+            RETURN FALSE;
+         END;
+         Parameters.ElementAt( 0, OUT s, OUT name );
+         IF NOT _Web^.GetWixValue( name, OUT value1 ) THEN
             RETURN FALSE;
          ELSIF RetVal <> NIL THEN
             RetVal^.Assign( value1 );
@@ -302,6 +315,7 @@ CLASS IMPLEMENTATION CController;
          ELSIF NOT Request.ModelContainer^.GetFunctionCallsMemo() THEN // no call during the request
             Request.ModelContainer^.AddFunctionHandlerOA( FN_SET, ADR( SELF ));
             Request.ModelContainer^.AddFunctionHandlerOA( FN_GET, ADR( SELF ));
+            Request.ModelContainer^.AddFunctionHandlerOA( FN_GETWIX, ADR( SELF ));
             Request.ModelContainer^.AddFunctionHandlerOA( FN_EQUAL, ADR( SELF ));
             Request.ModelContainer^.AddFunctionHandlerOA( FN_NOTEQUAL, ADR( SELF ));
             Request.ModelContainer^.AddFunctionHandlerOA( FN_LESS, ADR( SELF ));

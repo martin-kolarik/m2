@@ -506,6 +506,41 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE GetWixValue( CONST name : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN;
+   VAR
+      hash : ns.THash;
+      io : iovalue.Value;
+      s : StringsO.CString;
+   BEGIN
+      // no need to sync, NameToHash is be thread safe
+      IF NOT _EIB^.NameToHash( name, OUT hash ) THEN
+         RETURN FALSE;
+      END;
+      // no need to sync, IOh is be thread safe
+      IF _EIB^.IOh( NIL, IOO.dirRead, hash, REF io, NIL ) NOT IN Sync.arsCompletions THEN
+         RETURN FALSE;
+      END;
+      
+      CASE io.Type OF
+      | iovalue.vtBoolean,
+        iovalue.vtTristate :
+         value.FromINT32( io.Integer, 10 );
+      | iovalue.vtInteger :
+         value.FromINT32( 10 * io.Integer, 10 );
+      | iovalue.vtLong :
+         value.FromINT64( 10 * io.Long, 10 );
+      | iovalue.vtFloat :
+         value.FromINT64( INT64( 10.0 * io.Float + 0.5 ), 10 );
+      ELSE
+         s := io.String;
+         value.Assign( s );
+      END;
+
+      RETURN TRUE;
+   END GetWixValue;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE Authenticate( CONST Name, Password : StringsO.IString ) : TRole;
    CONST
       ROLE_ADMIN = L"admin";
