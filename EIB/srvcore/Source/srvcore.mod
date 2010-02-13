@@ -1258,7 +1258,7 @@ CLASS IMPLEMENTATION CEIBServer;
                RETURN FALSE;
 
             ELSIF io.EqualsOA( kvEIS ) THEN
-               c := item.ItemS( StringsO.WCHARS{ L' ' }, c, 0, FALSE, OUT io );
+               c := item.ItemS( spaceSet, c, 0, FALSE, OUT io );
                IF NOT io.ToCARD32( 10, OUT c ) THEN
                   ErrorMessage.FromOA( OAsz( R[ Texts._BadTypeInfo ] ));
                   AppendErrorLine( REF ErrorMessage, tr.Line );

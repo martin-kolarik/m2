@@ -527,168 +527,32 @@ CLASS IMPLEMENTATION CString;
 
 	PUBLIC VIRTUAL PROCEDURE CString.Item( CONST Delimiters : SET OF WCHAR; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT S : IString ) : CARDINAL;
 	VAR
-		i, j, l, p : CARDINAL;
+		i, l : CARDINAL;
 	BEGIN
-		p := 0;
-		i := FromIndex;
-   	IF SkipEmpty THEN
-		   WHILE ( i < _Len ) AND ( _Data@[i<<1]^ IN Delimiters ) DO
-			   INC( i );
-		   END;
-		END;
-		LOOP
-			IF i >= _Len THEN
-				S.Clear();
-				RETURN -1;
-			ELSE
-				j := i;
-			END;
-			WHILE ( i < _Len ) AND NOT( _Data@[i<<1]^ IN Delimiters ) DO
-				INC( i );
-			END;
-			IF p = ItemIndex THEN
-				l := i-j;
-				IF l = 0 THEN
-					S.Clear();
-				ELSE
-					S.FromOA( OA( l-1, _Data@[j<<1] ));
-				END;
-			END;
-			IF SkipEmpty THEN
-			   WHILE ( i < _Len ) AND ( _Data@[i<<1]^ IN Delimiters ) DO
-				   INC( i );
-			   END;
-			ELSE
-			   INC( i );
-			END;
-			IF p < ItemIndex THEN
-				INC( p );
-			ELSE
-				RETURN i;
-			END;
-		END;
+	   S.Size := _Len; // preallocate space
+	   i := Strings.ItemMW( _Len, _Data, Delimiters, FromIndex, ItemIndex, SkipEmpty, OUT OA( _Len-1, PWCHAR( S.rawData )), ADR( l ));
+	   S.Length := l; // adjust real size
+	   RETURN i;
 	END CString.Item;
 
 	PUBLIC VIRTUAL PROCEDURE CString.ItemS( CONST Delimiters : SET OF WCHARS; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT S : IString ) : CARDINAL;
 	VAR
-		i, j, l, p : CARDINAL;
+		i, l : CARDINAL;
 	BEGIN
-		p := 0;
-		i := FromIndex;
-		IF SkipEmpty THEN
-		   WHILE ( i < _Len ) AND ( _Data@[i<<1]^ IN Delimiters ) DO
-			   INC( i );
-		   END;
-		END;
-		LOOP
-			IF i >= _Len THEN
-				S.Clear();
-				RETURN -1;
-			ELSE
-				j := i;
-			END;
-			WHILE ( i < _Len ) AND NOT( _Data@[i<<1]^ IN Delimiters ) DO
-				INC( i );
-			END;
-			IF p = ItemIndex THEN
-				l := i-j;
-				IF l = 0 THEN
-					S.Clear();
-				ELSE
-					S.FromOA( OA( l-1, _Data@[j<<1] ));
-				END;
-			END;
-			IF SkipEmpty THEN
-			   WHILE ( i < _Len ) AND ( _Data@[i<<1]^ IN Delimiters ) DO
-				   INC( i );
-			   END;
-			ELSE
-			   INC( i );
-			END;
-			IF p < ItemIndex THEN
-				INC( p );
-			ELSE
-				RETURN i;
-			END;
-		END;
+	   S.Size := _Len; // preallocate space
+	   i := Strings.ItemSMW( _Len, _Data, Strings.WCHARS( Delimiters ), FromIndex, ItemIndex, SkipEmpty, OUT OA( _Len-1, PWCHAR( S.rawData )), ADR( l ));
+	   S.Length := l; // adjust real size
+	   RETURN i;
 	END CString.ItemS;
 
 	PUBLIC VIRTUAL PROCEDURE CString.ItemOA( CONST Delimiters : SET OF WCHAR; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT S : ARRAY OF WCHAR ) : CARDINAL;
-	VAR
-		i, j, p : CARDINAL;
 	BEGIN
-		p := 0;
-		i := FromIndex;
-		IF SkipEmpty THEN
-		   WHILE ( i < _Len ) AND ( _Data@[i<<1]^ IN Delimiters ) DO
-			   INC( i );
-		   END;
-		END;
-		LOOP
-			IF i >= _Len THEN
-				S[0] := WCHAR( 0 );
-				RETURN -1;
-			ELSE
-				j := i;
-			END;
-			WHILE ( i < _Len ) AND NOT( _Data@[i<<1]^ IN Delimiters ) DO
-				INC( i );
-			END;
-			IF p = ItemIndex THEN
-				ASSIGN( S, OA( i-j-1, _Data@[j<<1] ));
-			END;
-			IF SkipEmpty THEN
-			   WHILE ( i < _Len ) AND ( _Data@[i<<1]^ IN Delimiters ) DO
-				   INC( i );
-			   END;
-			ELSE
-			   INC( i );
-			END;
-			IF p < ItemIndex THEN
-				INC( p );
-			ELSE
-				RETURN i;
-			END;
-		END;
+	   RETURN Strings.ItemMW( _Len, _Data, Delimiters, FromIndex, ItemIndex, SkipEmpty, OUT S, NIL );
 	END CString.ItemOA;
 
 	PUBLIC VIRTUAL PROCEDURE CString.ItemSOA( CONST Delimiters : SET OF WCHARS; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT S : ARRAY OF WCHAR ) : CARDINAL;
-	VAR
-		i, j, p : CARDINAL;
 	BEGIN
-		p := 0;
-		i := FromIndex;
-		IF SkipEmpty THEN
-		   WHILE ( i < _Len ) AND ( _Data@[i<<1]^ IN Delimiters ) DO
-			   INC( i );
-		   END;
-		END;
-		LOOP
-			IF i >= _Len THEN
-				S[0] := WCHAR( 0 );
-				RETURN -1;
-			ELSE
-				j := i;
-			END;
-			WHILE ( i < _Len ) AND NOT( _Data@[i<<1]^ IN Delimiters ) DO
-				INC( i );
-			END;
-			IF p = ItemIndex THEN
-				ASSIGN( S, OA( i-j-1, _Data@[j<<1] ));
-			END;
-			IF SkipEmpty THEN
-			   WHILE ( i < _Len ) AND ( _Data@[i<<1]^ IN Delimiters ) DO
-				   INC( i );
-			   END;
-			ELSE
-			   INC( i );
-			END;
-			IF p < ItemIndex THEN
-				INC( p );
-			ELSE
-				RETURN i;
-			END;
-		END;
+	   RETURN Strings.ItemSMW( _Len, _Data, Strings.WCHARS( Delimiters ), FromIndex, ItemIndex, SkipEmpty, OUT S, NIL );
 	END CString.ItemSOA;
 
 	PUBLIC VIRTUAL PROCEDURE CString.Split( CONST Delimiters : SET OF WCHAR; FromIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT Pieces : CARDINAL; OUT S : ARRAY OF CString ) : CARDINAL;

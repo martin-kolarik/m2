@@ -140,7 +140,7 @@ CLASS IMPLEMENTATION CController;
          RETURN _Web^.SetValue( Request.RequestSource, name, value1 );
 
       ELSIF FunctionName.EqualsOA( FN_GET ) THEN
-         IF Parameters.Count < 2 THEN
+         IF Parameters.Count < 1 THEN
             RETURN FALSE;
          END;
          Parameters.ElementAt( 0, OUT s, OUT name );
@@ -156,7 +156,7 @@ CLASS IMPLEMENTATION CController;
             RETURN FALSE;
          ELSIF RetVal <> NIL THEN
             Parameters.ElementAt( 0, OUT s, OUT value1 );
-            Parameters.ElementAt( 0, OUT s, OUT value2 );
+            Parameters.ElementAt( 1, OUT s, OUT value2 );
             IF value1.Equals( value2 ) THEN
                RetVal^.FromOA( TRUE_S );
             ELSE
@@ -170,7 +170,7 @@ CLASS IMPLEMENTATION CController;
             RETURN FALSE;
          ELSIF RetVal <> NIL THEN
             Parameters.ElementAt( 0, OUT s, OUT value1 );
-            Parameters.ElementAt( 0, OUT s, OUT value2 );
+            Parameters.ElementAt( 1, OUT s, OUT value2 );
             IF value1.Equals( value2 ) THEN
                RetVal^.FromOA( FALSE_S );
             ELSE
@@ -184,7 +184,7 @@ CLASS IMPLEMENTATION CController;
             RETURN FALSE;
          ELSIF RetVal <> NIL THEN
             Parameters.ElementAt( 0, OUT s, OUT value1 );
-            Parameters.ElementAt( 0, OUT s, OUT value2 );
+            Parameters.ElementAt( 1, OUT s, OUT value2 );
             IF value1.ToLONGREAL( OUT real1 ) AND value2.ToLONGREAL( OUT real2 ) THEN
                b := real1 < real2;
             ELSE
@@ -203,7 +203,7 @@ CLASS IMPLEMENTATION CController;
             RETURN FALSE;
          ELSIF RetVal <> NIL THEN
             Parameters.ElementAt( 0, OUT s, OUT value1 );
-            Parameters.ElementAt( 0, OUT s, OUT value2 );
+            Parameters.ElementAt( 1, OUT s, OUT value2 );
             IF value1.ToLONGREAL( OUT real1 ) AND value2.ToLONGREAL( OUT real2 ) THEN
                b := real1 <= real2;
             ELSE
@@ -222,7 +222,7 @@ CLASS IMPLEMENTATION CController;
             RETURN FALSE;
          ELSIF RetVal <> NIL THEN
             Parameters.ElementAt( 0, OUT s, OUT value1 );
-            Parameters.ElementAt( 0, OUT s, OUT value2 );
+            Parameters.ElementAt( 1, OUT s, OUT value2 );
             IF value1.ToLONGREAL( OUT real1 ) AND value2.ToLONGREAL( OUT real2 ) THEN
                b := real1 > real2;
             ELSE
@@ -241,7 +241,7 @@ CLASS IMPLEMENTATION CController;
             RETURN FALSE;
          ELSIF RetVal <> NIL THEN
             Parameters.ElementAt( 0, OUT s, OUT value1 );
-            Parameters.ElementAt( 0, OUT s, OUT value2 );
+            Parameters.ElementAt( 1, OUT s, OUT value2 );
             IF value1.ToLONGREAL( OUT real1 ) AND value2.ToLONGREAL( OUT real2 ) THEN
                b := real1 >= real2;
             ELSE

@@ -497,7 +497,8 @@ CLASS IMPLEMENTATION CContainer;
       boolean : BOOLEAN;
       empty : StringsO.CString;
       functionHandler : TPFunctionHandler;
-      i, ii, index, j : INTEGER;
+      i, index, j : INTEGER;
+      ii : CARDINAL;
       keyIndex, valueIndex : BOOLEAN;
       list : lists.TPStringStringList := NIL;
       map : maps.TPStringStringMap := NIL;
@@ -605,7 +606,7 @@ CLASS IMPLEMENTATION CContainer;
                END;
                parameter.Trim();
                parameters.Add( empty, parameter );
-               IF ii = -1 THEN
+               IF ii = model.Length THEN
                   EXIT;
                END;
             END; // LOOP
