@@ -2098,8 +2098,10 @@ CLASS IMPLEMENTATION CEIBServer;
       | eib_status.essConError, // A_Read without L_ACK -- called from ValueReadRequestSent
         eib_status.essA_Timeout : // A_Read with L_ACK but without READ
          // -- handle repeating and delaying after error
-         DEC( PObject^.ReadRepeatCount );
-         IF INTEGER( PObject^.ReadRepeatCount ) <= 0 THEN // finalize operation after all allowed counts
+         IF PObject^.ReadRepeatCount > 1 THEN
+            DEC( PObject^.ReadRepeatCount );
+         ELSIF INTEGER( PObject^.ReadRepeatCount ) = 1 THEN // finalize operation after all allowed counts
+            DEC( PObject^.ReadRepeatCount );
             IF CurrentInitReadState = eib_user.irsPending THEN
                c := ReadOnStart.RecoveryTime;
             ELSE
