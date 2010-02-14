@@ -21,6 +21,8 @@ IMPORT
 
 CONST
    CRLF = 13W + 10W;
+   FALSE_S = L"false";
+   TRUE_S = L"true";
    SESSION_LOGGED = L"logged";
    SESSION_ROLE = L"role";
    ROLE_ADMIN = L"isAdmin";
@@ -57,6 +59,7 @@ CONST
    STATUS_CONFIGURATION = L"configurationPath";
    STATUS_CONNECT = L"connect";
    STATUS_DISCONNECT = L"disconnect";
+   STATUS_PROJECT = L"project";
    
    CONTROL_DEVICES_NAME = L"names";
    CONTROL_DEVICES_RUN = L"runStatus";
@@ -83,6 +86,13 @@ CONST
    DYNAMIC_SUFFIX = L".pt.xml";
    FN_SET = L"set";
    FN_GET = L"get";
+   FN_GETWIX = L"getWix";
+   FN_EQUAL = L"equal";
+   FN_NOTEQUAL = L"notEqual";
+   FN_LESS = L"less";
+   FN_LESSEQUAL = L"lessEqual";
+   FN_GREATER = L"greater";
+   FN_GREATEREQUAL = L"greaterEqual";
 
 (*================================================================================*)
 
@@ -118,26 +128,146 @@ CLASS IMPLEMENTATION CController;
 
    PUBLIC VIRTUAL PROCEDURE Call( CONST Request : mvc.IHttpRequest; CONST FunctionName : StringsO.IString; REF Parameters : lists.CStringStringList; RetVal : StringsO.TPString ) : BOOLEAN;
    VAR
-      name, s, value : StringsO.CString;
+      b : BOOLEAN;
+      name, s, value1, value2 : StringsO.CString;
+      real1, real2 : LONGREAL;
    BEGIN
       IF FunctionName.EqualsOA( FN_SET ) THEN
          IF Parameters.Count < 2 THEN
             RETURN FALSE;
          END;
          Parameters.ElementAt( 0, OUT s, OUT name );
-         Parameters.ElementAt( 1, OUT s, OUT value );
-         RETURN _Web^.SetValue( Request.RequestSource, name, value );
+         Parameters.ElementAt( 1, OUT s, OUT value1 );
+         RETURN _Web^.SetValue( Request.RequestSource, name, value1 );
+
       ELSIF FunctionName.EqualsOA( FN_GET ) THEN
-         IF Parameters.Count < 2 THEN
+         IF Parameters.Count < 1 THEN
             RETURN FALSE;
          END;
          Parameters.ElementAt( 0, OUT s, OUT name );
-         IF NOT _Web^.GetValue( name, OUT value ) THEN
+         IF NOT _Web^.GetValue( name, OUT value1 ) THEN
             RETURN FALSE;
          ELSIF RetVal <> NIL THEN
-            RetVal^.Assign( value );
+            RetVal^.Assign( value1 );
          END;
          RETURN TRUE;
+         
+      ELSIF FunctionName.EqualsOA( FN_GETWIX ) THEN
+         IF Parameters.Count < 1 THEN
+            RETURN FALSE;
+         END;
+         Parameters.ElementAt( 0, OUT s, OUT name );
+         IF NOT _Web^.GetWixValue( name, OUT value1 ) THEN
+            RETURN FALSE;
+         ELSIF RetVal <> NIL THEN
+            RetVal^.Assign( value1 );
+         END;
+         RETURN TRUE;
+         
+      ELSIF FunctionName.EqualsOA( FN_EQUAL ) THEN
+         IF Parameters.Count < 2 THEN
+            RETURN FALSE;
+         ELSIF RetVal <> NIL THEN
+            Parameters.ElementAt( 0, OUT s, OUT value1 );
+            Parameters.ElementAt( 1, OUT s, OUT value2 );
+            IF value1.Equals( value2 ) THEN
+               RetVal^.FromOA( TRUE_S );
+            ELSE
+               RetVal^.FromOA( FALSE_S );
+            END;
+         END;
+         RETURN TRUE;
+         
+      ELSIF FunctionName.EqualsOA( FN_NOTEQUAL ) THEN
+         IF Parameters.Count < 2 THEN
+            RETURN FALSE;
+         ELSIF RetVal <> NIL THEN
+            Parameters.ElementAt( 0, OUT s, OUT value1 );
+            Parameters.ElementAt( 1, OUT s, OUT value2 );
+            IF value1.Equals( value2 ) THEN
+               RetVal^.FromOA( FALSE_S );
+            ELSE
+               RetVal^.FromOA( TRUE_S );
+            END;
+         END;
+         RETURN TRUE;
+         
+      ELSIF FunctionName.EqualsOA( FN_LESS ) THEN
+         IF Parameters.Count < 2 THEN
+            RETURN FALSE;
+         ELSIF RetVal <> NIL THEN
+            Parameters.ElementAt( 0, OUT s, OUT value1 );
+            Parameters.ElementAt( 1, OUT s, OUT value2 );
+            IF value1.ToLONGREAL( OUT real1 ) AND value2.ToLONGREAL( OUT real2 ) THEN
+               b := real1 < real2;
+            ELSE
+               b := value1.CompareLanguage( Request.Language, TRUE, value2 ) = -1;
+            END;
+            IF b THEN
+               RetVal^.FromOA( TRUE_S );
+            ELSE
+               RetVal^.FromOA( FALSE_S );
+            END;
+         END;
+         RETURN TRUE;
+         
+      ELSIF FunctionName.EqualsOA( FN_LESSEQUAL ) THEN
+         IF Parameters.Count < 2 THEN
+            RETURN FALSE;
+         ELSIF RetVal <> NIL THEN
+            Parameters.ElementAt( 0, OUT s, OUT value1 );
+            Parameters.ElementAt( 1, OUT s, OUT value2 );
+            IF value1.ToLONGREAL( OUT real1 ) AND value2.ToLONGREAL( OUT real2 ) THEN
+               b := real1 <= real2;
+            ELSE
+               b := value1.CompareLanguage( Request.Language, TRUE, value2 ) <> 1;
+            END;
+            IF b THEN
+               RetVal^.FromOA( TRUE_S );
+            ELSE
+               RetVal^.FromOA( FALSE_S );
+            END;
+         END;
+         RETURN TRUE;
+         
+      ELSIF FunctionName.EqualsOA( FN_GREATER ) THEN
+         IF Parameters.Count < 2 THEN
+            RETURN FALSE;
+         ELSIF RetVal <> NIL THEN
+            Parameters.ElementAt( 0, OUT s, OUT value1 );
+            Parameters.ElementAt( 1, OUT s, OUT value2 );
+            IF value1.ToLONGREAL( OUT real1 ) AND value2.ToLONGREAL( OUT real2 ) THEN
+               b := real1 > real2;
+            ELSE
+               b := value1.CompareLanguage( Request.Language, TRUE, value2 ) = 1;
+            END;
+            IF b THEN
+               RetVal^.FromOA( TRUE_S );
+            ELSE
+               RetVal^.FromOA( FALSE_S );
+            END;
+         END;
+         RETURN TRUE;
+         
+      ELSIF FunctionName.EqualsOA( FN_GREATEREQUAL ) THEN
+         IF Parameters.Count < 2 THEN
+            RETURN FALSE;
+         ELSIF RetVal <> NIL THEN
+            Parameters.ElementAt( 0, OUT s, OUT value1 );
+            Parameters.ElementAt( 1, OUT s, OUT value2 );
+            IF value1.ToLONGREAL( OUT real1 ) AND value2.ToLONGREAL( OUT real2 ) THEN
+               b := real1 >= real2;
+            ELSE
+               b := value1.CompareLanguage( Request.Language, TRUE, value2 ) <> -1;
+            END;
+            IF b THEN
+               RetVal^.FromOA( TRUE_S );
+            ELSE
+               RetVal^.FromOA( FALSE_S );
+            END;
+         END;
+         RETURN TRUE;
+         
       ELSE
          RETURN FALSE;
       END;
@@ -391,6 +521,8 @@ CLASS IMPLEMENTATION CController;
       Request.ModelContainer^.AddStringOA( STATUS_LAST_DAY, cs );
  
       Request.ModelContainer^.AddStringOA( STATUS_CONFIGURATION, _Web^.Configuration^ );
+      
+      Request.ModelContainer^.AddStringOA( STATUS_PROJECT, _Web^.Project^ );
  
       View := mvc.pageTemplateView( ADR( SELF ), STATUS_VIEW );
       RETURN TRUE;
@@ -453,9 +585,9 @@ CLASS IMPLEMENTATION CController;
             listDevices^.Add( cs, cs );
 
             IF _Web^.DeviceRunning( i ) THEN
-               cs.FromOA( L"true" );
+               cs.FromOA( TRUE_S );
             ELSE
-               cs.FromOA( L"false" );
+               cs.FromOA( FALSE_S );
             END;
             listRunning^.Add( cs, cs );
 

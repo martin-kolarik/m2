@@ -996,7 +996,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
                      END;
                   END; // WHILE
                   IF emit = -1 THEN
-                     SetError( nodeName, NIL, L"pt:condition attribute is required." );
+                     SetError( nodeName, NIL, L"(pt:)condition attribute is required." );
                      RETURN FALSE; // condition is required
                   ELSIF emit = 1 THEN
                      done := TRUE;
@@ -1042,7 +1042,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       haveBy : BOOLEAN := FALSE;
       haveFrom : BOOLEAN := FALSE;
       haveTo : BOOLEAN := FALSE;
-      i, iodd : INTEGER;
+      idx, item : INTEGER;
       index : StringsO.CString;
       inverted : BOOLEAN;
       isEmpty : BOOLEAN;
@@ -1053,6 +1053,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       nodeType : xmlreader.TNodeType;
       nodeValue : StringsO.CString;
       odd : StringsO.CString;
+      order : StringsO.CString;
       pname : StringsO.TPString;
       prefix : StringsO.CString;
       to : INTEGER;
@@ -1072,7 +1073,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
             IF value.ToCARD32( 10, OUT from ) THEN
                haveFrom := TRUE;
             ELSE
-               value.FromOA( L"pt:for" );
+               value.FromOA( L"(pt:)for" );
                SetError( value, NIL, L'Bad value of "from" attribute.' );
                RETURN FALSE;
             END;
@@ -1085,7 +1086,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
             IF value.ToCARD32( 10, OUT to ) THEN
                haveTo := TRUE;
             ELSE
-               value.FromOA( L"pt:for" );
+               value.FromOA( L"(pt:)for" );
                SetError( value, NIL, L'Bad value of "to" attribute.' );
                RETURN FALSE;
             END;
@@ -1098,7 +1099,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
             IF value.ToCARD32( 10, OUT by ) THEN
                haveBy := TRUE;
             ELSE
-               value.FromOA( L"pt:for" );
+               value.FromOA( L"(pt:)for" );
                SetError( nodeName, NIL, L'Bad value of "by" attribute.' );
                RETURN FALSE;
             END;
@@ -1111,6 +1112,12 @@ CLASS IMPLEMENTATION CPageTemplateView;
             CONTINUE;
          END;
 
+         attribute := prefix; attribute.AppendOA( PT_ORDER );
+         IF pname^.EqualsIgnoreCaseOA( PT_ORDER ) OR pname^.EqualsIgnoreCase( attribute ) THEN
+            ParseText( attributes.CurrentData^, OUT order );
+            CONTINUE;
+         END;
+
          attribute := prefix; attribute.AppendOA( PT_ODD );
          IF pname^.EqualsIgnoreCaseOA( PT_ODD ) OR pname^.EqualsIgnoreCase( attribute ) THEN
             ParseText( attributes.CurrentData^, OUT odd );
@@ -1120,19 +1127,19 @@ CLASS IMPLEMENTATION CPageTemplateView;
       END; // WHILE      
       
       IF NOT haveFrom THEN
-         value.FromOA( L"pt:for" );
+         value.FromOA( L"(pt:)for" );
          SetError( nodeName, NIL, L'"from" attribute is missing.' );
          RETURN FALSE;
       ELSIF NOT haveTo THEN
-         value.FromOA( L"pt:for" );
+         value.FromOA( L"(pt:)for" );
          SetError( nodeName, NIL, L'"to" attribute is missing.' );
          RETURN FALSE;
       ELSIF ( to < from ) AND ( by >= 0 ) THEN
-         value.FromOA( L"pt:for" );
+         value.FromOA( L"(pt:)for" );
          SetError( nodeName, NIL, L'"to" is less than "from"' );
          RETURN FALSE;
       ELSIF ( to > from ) AND ( by <= 0 ) THEN
-         value.FromOA( L"pt:for" );
+         value.FromOA( L"(pt:)for" );
          SetError( nodeName, NIL, L'"from" is less than "to"' );
          RETURN FALSE;
       END;
@@ -1140,12 +1147,14 @@ CLASS IMPLEMENTATION CPageTemplateView;
       // second buffer "for" content
       LOOP
          IF MoveNext( OUT nodeType, OUT nodePrefix, OUT nodeName, OUT isEmpty, OUT nodeValue, OUT lattributes ) <> xmlreader.xmle_S_OK THEN
-            value.FromOA( L"pt:for" );
+            value.FromOA( L"(pt:)for" );
             SetError( nodeName, NIL, L'Unexpected end of buffered source.' );
             RETURN FALSE;
          END;
          IF nodeType = xmlreader.xntElementBegin THEN
-            INC( depth );
+            IF NOT isEmpty THEN
+               INC( depth );
+            END;
          ELSIF nodeType = xmlreader.xntElementEnd THEN // other ends are consumed inside Parse
             IF depth = 0 THEN
                EXIT;
@@ -1158,22 +1167,28 @@ CLASS IMPLEMENTATION CPageTemplateView;
       // third switch sources and do "for"
       Sources.Push( ADR( nl ));
       inverted := from > to;
-      i := from;
-      iodd := 1;
-      WHILE inverted AND ( i >= to ) OR NOT inverted AND ( i <= to ) DO
+      idx := from;
+      item := 1;
+      WHILE inverted AND ( idx >= to ) OR NOT inverted AND ( idx <= to ) DO
          IF NOT odd.Empty THEN
-            SetModelBoolean( odd, iodd AND 1 = 1 );
+            SetModelBoolean( odd, item AND 1 = 1 );
          END;
          IF NOT index.Empty THEN
-            value.FromCARD32( i, 10 );
+            value.FromCARD32( idx, 10 );
             Request^.ModelContainer^.SetModelValue( Request^, index, value );
          END;
+         IF NOT order.Empty THEN
+            value.FromCARD32( item, 10 );
+            Request^.ModelContainer^.SetModelValue( Request^, order, value );
+         END;
+
          nl.Reset(); // prepare parsing
          IF NOT Parse( TRUE, FALSE, TRUE ) THEN
             RETURN FALSE;
          END;
-         INC( i, by );
-         INC( iodd );
+
+         INC( idx, by );
+         INC( item );
       END; // WHILE
       Sources.Pop();
       
@@ -1185,15 +1200,16 @@ CLASS IMPLEMENTATION CPageTemplateView;
    PRIVATE PROCEDURE ParseForeach( CONST attributes : lists.CStringStringList ) : BOOLEAN;
    VAR
       attribute : StringsO.CString;
+      current : StringsO.TPString;
       depth : INTEGER := 0;
       haveSource : BOOLEAN := FALSE;
       haveList : BOOLEAN := FALSE;
-      i : INTEGER;
       index : StringsO.CString;
       item : StringsO.CString;
       isEmpty : BOOLEAN;
       lattributes : lists.CStringStringList;
       list : lists.TPStringStringList;
+      loopItem : INTEGER;
       map : maps.TPStringStringMap;
       nl : NodeList.CNodeList;
       nodeName : StringsO.CString;
@@ -1248,7 +1264,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       
       // get list or map
       IF source.Empty THEN
-         value.FromOA( L"pt:foreach" );
+         value.FromOA( L"(pt:)foreach" );
          SetError( value, NIL, L'Missing "source" attribute.' );
          RETURN FALSE;
       ELSIF Request^.ModelContainer^.GetListOA( OA( source.Length-1, source.Data ), OUT list ) THEN
@@ -1256,7 +1272,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       ELSIF Request^.ModelContainer^.GetMapOA( OA( source.Length-1, source.Data ), OUT map ) THEN
          haveList := FALSE;
       ELSE
-         value.FromOA( L"pt:foreach" );
+         value.FromOA( L"(pt:)foreach" );
          SetError( value, NIL, L'"source" attribute is not map either list.' );
          RETURN FALSE;
       END;
@@ -1264,12 +1280,14 @@ CLASS IMPLEMENTATION CPageTemplateView;
       // second buffer "for" content
       LOOP
          IF MoveNext( OUT nodeType, OUT nodePrefix, OUT nodeName, OUT isEmpty, OUT nodeValue, OUT lattributes ) <> xmlreader.xmle_S_OK THEN
-            value.FromOA( L"pt:foreach" );
+            value.FromOA( L"(pt:)foreach" );
             SetError( value, NIL, L'Unexpected end of buffered source.' );
             RETURN FALSE;
          END;
          IF nodeType = xmlreader.xntElementBegin THEN
-            INC( depth );
+            IF NOT isEmpty THEN
+               INC( depth );
+            END;
          ELSIF nodeType = xmlreader.xntElementEnd THEN // other ends are consumed inside Parse
             IF depth = 0 THEN
                EXIT;
@@ -1281,51 +1299,47 @@ CLASS IMPLEMENTATION CPageTemplateView;
       
       // third switch sources and do "for"
       Sources.Push( ADR( nl ));
-      i := 1;
+      loopItem := 1;
       IF haveList THEN
          list^.Reset();
-         WHILE list^.MoveNext() DO
-            IF NOT item.Empty THEN
-               Request^.ModelContainer^.SetModelValue( Request^, item, list^.Current^ );
-            END;
-            IF NOT odd.Empty THEN
-               SetModelBoolean( odd, i AND 1 = 1 );
-            END;
-            IF NOT index.Empty THEN
-               value.FromCARD32( i-1, 10 );
-               Request^.ModelContainer^.SetModelValue( Request^, index, value );
-               INC( i );
-            END;
-            IF NOT order.Empty THEN
-               value.FromCARD32( i, 10 );
-               Request^.ModelContainer^.SetModelValue( Request^, order, value );
-               INC( i );
-            END;
-            nl.Reset(); // prepare parsing
-            IF NOT Parse( TRUE, FALSE, TRUE ) THEN
-               RETURN FALSE;
-            END;
-         END; // WHILE
       ELSE
          map^.Reset();
-         WHILE map^.MoveNext() DO
-            IF NOT item.Empty THEN
-               Request^.ModelContainer^.SetModelValue( Request^, item, map^.Current^ );
-            END;
-            IF NOT odd.Empty THEN
-               SetModelBoolean( odd, i AND 1 = 1 );
-            END;
-            IF NOT index.Empty THEN
-               value.FromCARD32( i, 10 );
-               Request^.ModelContainer^.SetModelValue( Request^, index, value );
-               INC( i );
-            END;
-            nl.Reset(); // prepare parsing
-            IF NOT Parse( TRUE, FALSE, TRUE ) THEN
-               RETURN FALSE;
-            END;
-         END; // WHILE
       END;
+      LOOP
+         IF haveList THEN
+            IF NOT list^.MoveNext() THEN
+               EXIT;
+            END;
+            current := list^.Current;
+         ELSE
+            IF NOT map^.MoveNext() THEN
+               EXIT;
+            END;
+            current := map^.Current;
+         END;
+         
+         IF NOT item.Empty THEN
+            Request^.ModelContainer^.SetModelValue( Request^, item, current^ );
+         END;
+         IF NOT odd.Empty THEN
+            SetModelBoolean( odd, loopItem AND 1 = 1 );
+         END;
+         IF NOT index.Empty THEN
+            value.FromCARD32( loopItem-1, 10 );
+            Request^.ModelContainer^.SetModelValue( Request^, index, value );
+         END;
+         IF NOT order.Empty THEN
+            value.FromCARD32( loopItem, 10 );
+            Request^.ModelContainer^.SetModelValue( Request^, order, value );
+         END;
+
+         nl.Reset(); // prepare parsing
+         IF NOT Parse( TRUE, FALSE, TRUE ) THEN
+            RETURN FALSE;
+         END;
+
+         INC( loopItem );
+      END; // LOOP
       Sources.Pop();
       
       RETURN TRUE;
@@ -1361,7 +1375,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       value : StringsO.CString;
    BEGIN
       IF NOT GetFormModel( attributes, OUT model ) THEN
-         value.FromOA( L"pt:model" );
+         value.FromOA( L"(pt:)model" );
          SetError( value, NIL, L'Required "model" attribute is missing.' );
          RETURN FALSE;
       END;
@@ -1372,7 +1386,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       END;
 
       IF NOT GetFormId( attributes, OUT id ) THEN
-         value.FromOA( L"pt:formid" );
+         value.FromOA( L"(pt:)formid" );
          SetError( value, NIL, L'Required "formid" attribute is missing.' );
          RETURN FALSE;
       END;
@@ -1400,7 +1414,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       value : StringsO.CString;
    BEGIN
       IF NOT GetFormModel( attributes, OUT model ) THEN
-         value.FromOA( L"pt:input" );
+         value.FromOA( L"(pt:)input" );
          SetError( value, NIL, L'Required "model" attribute is missing.' );
          RETURN FALSE;
       END;
@@ -1435,7 +1449,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       value : StringsO.CString;
    BEGIN
       IF NOT GetFormModel( attributes, OUT model ) THEN
-         value.FromOA( L"pt:form" );
+         value.FromOA( L"(pt:)form" );
          SetError( value, NIL, L'Required "model" attribute is missing.' );
          RETURN FALSE;
       END;
@@ -1459,7 +1473,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       value : StringsO.CString;
    BEGIN
       IF NOT GetFormModel( attributes, OUT model ) THEN
-         value.FromOA( L"pt:form" );
+         value.FromOA( L"(pt:)form" );
          SetError( value, NIL, L'Required "model" attribute is missing.' );
          RETURN FALSE;
       END;
@@ -1526,7 +1540,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       value : StringsO.CString;
    BEGIN
       IF NOT GetFormModel( attributes, OUT model ) THEN
-         value.FromOA( L"pt:variable" );
+         value.FromOA( L"(pt:)variable" );
          SetError( value, NIL, L'Required "model" attribute is missing.' );
          RETURN FALSE;
       END;
@@ -1545,7 +1559,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       END;
       
       IF NOT isEmpty AND NOT source.Empty THEN
-         value.FromOA( L"pt:variable" );
+         value.FromOA( L"(pt:)variable" );
          SetError( value, NIL, L'Both element content and "source" attribute are set. Unable to realize which value to select.' );
          RETURN FALSE;
 
@@ -1553,20 +1567,34 @@ CLASS IMPLEMENTATION CPageTemplateView;
          // fall down, source is filled from attribute
 
       ELSE // value is not taken from attribute, but from element content
+         // load content
          IF MoveNext( OUT nodeType, OUT nodePrefix, OUT nodeName, OUT isEmpty, OUT source, OUT lattributes ) <> xmlreader.xmle_S_OK THEN
-            value.FromOA( L"pt:variable" );
-            SetError( nodeName, NIL, L'Unexpected end of buffered source.' );
+            value.FromOA( L"(pt:)variable" );
+            SetError( nodeName, NIL, L'Unexpected end of buffered source, variable source expected.' );
             RETURN FALSE;
-         ELSIF nodeType <> xmlreader.xntText THEN
-            value.FromOA( L"pt:variable" );
+         ELSIF nodeType = xmlreader.xntText THEN
+            // OK, variable source some text
+         ELSIF nodeType <> xmlreader.xntElementEnd THEN
+            value.FromOA( L"(pt:)variable" );
             SetError( nodeName, NIL, L'"pt:variable" can contain #text only.' );
             RETURN FALSE;
-         END; // WHILE
+         END; // IF
+         // load element end, if not loaded yet
+         IF ( nodeType = xmlreader.xntText ) AND
+            ( MoveNext( OUT nodeType, OUT nodePrefix, OUT nodeName, OUT isEmpty, OUT source, OUT lattributes ) <> xmlreader.xmle_S_OK ) THEN
+            value.FromOA( L"(pt:)variable" );
+            SetError( nodeName, NIL, L'Unexpected end of buffered source, end tag of variable expected.' );
+            RETURN FALSE;
+         ELSIF ( nodeType <> xmlreader.xntElementEnd ) OR NOT nodeName.EqualsIgnoreCaseOA( PT_VARIABLE ) THEN
+            value.FromOA( L"(pt:)variable" );
+            SetError( nodeName, NIL, L'Unexpected end of buffered source, end tag of variable expected.' );
+            RETURN FALSE;
+         END; // IF
       END;
 
       Request^.ModelContainer^.AddVariable( OA( model.Length-1, model.Data ), source );
       
-      RETURN ParseElement( attributes, isEmpty, FALSE, PT_MODEL, PT_SOURCE );
+      RETURN TRUE;
    END ParseVariable;
 
 (*--------------------------------------------------------------------------------*)
