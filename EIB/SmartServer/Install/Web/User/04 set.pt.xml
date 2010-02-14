@@ -1,21 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html">
 
-<html>
-  <head>
-    <title>04 set.pt.xml</title>
-  </head>
-  <body>
-    <h1>Set according to current state</h1>
-    <pt:choose>
-      <pt:when condition="get(3/1/21)">
-        <p style="color: green;">OK, <a href="?set(3/1/21,false)">switch off</a>.</p>
-      </pt:when>
-      <pt:otherwise>
-        <p style="color: red;">Failure, <a href="?set(3/1/21,true)">switch on</a>.</p>
-      </pt:otherwise>
-    </pt:choose>
-  </body>
-</html>
+    <html>
+        <head>
+            <title>04 set.pt.xml</title>
+        </head>
+        <body>
+            <h1>Set according to current state</h1>
+            <pt:choose>
+                <pt:when condition="get(3/1/21)">
+                    <p style="color: green;">
+                        OK, <a href="?set(3/1/21,false)">switch off</a>.
+                    </p>
+                </pt:when>
+                <pt:otherwise>
+                    <p style="color: red;">
+                        Failure, <a href="?set(3/1/21,true)">switch on</a>.
+                    </p>
+                </pt:otherwise>
+            </pt:choose>
+        </body>
+    </html>
 
 </pageTemplate>

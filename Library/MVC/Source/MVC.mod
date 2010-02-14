@@ -647,10 +647,10 @@ CLASS IMPLEMENTATION CContainer;
       value : StringsO.CString;
    BEGIN
       Formatted.Assign( Source );
-      i := -1;
+      i := 0;
       LOOP
          // get ${
-         i := Formatted.IndexOfOA( L"${", i+1 );
+         i := Formatted.IndexOfOA( L"${", i );
          IF i = -1 THEN
             RETURN TRUE;
          ELSIF ( i > 0 ) AND ( Formatted[i-1] = L"\" ) THEN // not pattern

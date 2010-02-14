@@ -1,29 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html">
 
-<html>
-  <head>
-    <title>07 dimming.pt.xml</title>
-    <script type="text/javascript">
-    
-      function setValue( address, value )
-      {
-        try
-        {
-          location.replace( location.pathname + "?set(" + address + "," + value + ")" );
-        }
-        catch(error)
-        {
-          // intentionaly do nothing
-        }
-      }
-      
-    </script>
-  </head>
-  <body>
-    <h1>Dim value by buttons example</h1>
-    <p><input type="button" value="Increase" onclick="setValue( '3/2/21', 10 )"/><input type="button" value="Decrease" onclick="setValue( '3/2/21', -10 )"/></p>
-  </body>
-</html>
+    <html>
+        <head>
+            <title>07 dimming.pt.xml</title>
+            <script type="text/javascript">
+
+                function setValue( address, value )
+                {
+                    try
+                    {
+                        location.replace( location.pathname + "?set(" + address + "," + value + ")" );
+                    }
+                    catch(error)
+                    {
+                        // intentionaly do nothing
+                    }
+                }
+
+            </script>
+        </head>
+        <body>
+            <h1>Dim value by buttons example</h1>
+            <p>
+                <input type="button" value="Increase" onclick="setValue( '3/2/21', 10 )"/>
+                <input type="button" value="Decrease" onclick="setValue( '3/2/21', -10 )"/>
+            </p>
+        </body>
+    </html>
 
 </pageTemplate>

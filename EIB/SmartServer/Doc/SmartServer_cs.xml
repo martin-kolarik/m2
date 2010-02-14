@@ -1476,7 +1476,8 @@ allow = 127.0.0.1</p.type>
                   <dt>Zobrazení hodnoty datového objektu (<file>01
                   get.pt.xml</file>)</dt>
                   <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
-&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html"&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"
+              contenttype="text/html"&gt;
 
 &lt;html&gt;
   &lt;head&gt;
@@ -1498,7 +1499,8 @@ allow = 127.0.0.1</p.type>
     &lt;p&gt;Current value: false.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</p.type></dd>
                   <dt>Zápis hodnoty (<file>02 set.pt.xml</file>)</dt>
                   <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
-&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html"&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"
+              contenttype="text/html"&gt;
 
 &lt;html&gt;
   &lt;head&gt;
@@ -1524,7 +1526,8 @@ allow = 127.0.0.1</p.type>
                   <dt>Zmìna stylu podle hodnoty objektu (<file>03
                   style.pt.xml</file>)</dt>
                   <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
-&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html"&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"
+              contenttype="text/html"&gt;
 
 &lt;html&gt;
   &lt;head&gt;
@@ -1554,7 +1557,8 @@ allow = 127.0.0.1</p.type>
                   <dt>Kombinace zápisu s podmínkou (<file>04
                   set.pt.xml</file>)</dt>
                   <dd><p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
-&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html"&gt;
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"
+              contenttype="text/html"&gt;
 
 &lt;html&gt;
   &lt;head&gt;
@@ -1586,6 +1590,100 @@ allow = 127.0.0.1</p.type>
     &lt;h1&gt;Set according to current state&lt;/h1&gt;
     &lt;p style="color: green;"&gt;OK, 
       &lt;a href="?set(3/1/21,false)"&gt;switch off&lt;/a&gt;.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</p.type></dd>
+                  <dt>Opakované ètení (<file>05 get
+                  refresh.pt.xml</file>)</dt>
+                  <dd><p>Opakovaného ètení je dosaženo zapsáním znaèky <type>&lt;meta&gt;</type>
+                  dovnitø znaèky <type>&lt;head&gt;</type>:</p><p.type>&lt;head&gt;  
+  &lt;meta http-equiv="refresh" content="5"/&gt;
+  ...</p.type></dd>
+                  <dt>Zápis uživatelské hodnoty (<file>06
+                  input.pt.xml</file>)</dt>
+                  <dd><p>Do serveru je zapsána hodnota z editaèního øádku. Pro
+                  zápis (a nové naètení stránky) je použitá funkce <type>setValue</type>
+                  zapsaná v JavaScriptu:</p><p.type>function setValue( address, value )
+{
+    try
+    {
+        location.replace( location.pathname +
+                          "?set(" + address + "," + value + ")" );
+    }
+    catch(error)
+    {
+        // intentionaly do nothing
+    }
+}</p.type><p>Samotný editaèní øádek je s touto funkcí spojeno
+                  následovnì:</p><p.type>&lt;input type="text" value="${get(3/3/21)}"
+       onchange="setValue( '3/3/21', this.value )" size="3" maxlength="3" /&gt;</p.type></dd>
+                  <dt>Zápis hodnoty po stisku tlaèítka (<file>07
+                  dimming.pt.xml</file>)</dt>
+                  <dd><p>Pøíklad používá stejnou funkci <type>setValue</type>
+                  jako pøíklad 6, rozdíl je pouze v hodnotách zapisovaných do
+                  serveru:</p><p.type>&lt;input type="button" value="Increase" onclick="setValue( '3/2/21', 10 )"/&gt;
+&lt;input type="button" value="Decrease" onclick="setValue( '3/2/21', -10 )"/&gt;</p.type></dd>
+                  <dt>Zápis hodnoty jen pøi stisku tlaèítka (<file>08 push
+                  button.pt.xml</file>)</dt>
+                  <dd><p>Zápis hodnoty jen pøi stisku tlaèítka vyžaduje, aby
+                  bìhem stisku nedošlo k novému naètení stránky (tak jako tomu
+                  bylo v pøedešlých ukázkách). Tohoto chování se dosáhne
+                  základním prostøedkem AJAX, objektem <type>XMLHttpRequest</type>:</p><p.type>function setValue( address, value )
+{
+    try
+    {
+        var xmlhttp;
+        if (window.XMLHttpRequest)
+        {
+            // code for IE7+, Firefox, Chrome, Opera, Safari
+            xmlhttp = new XMLHttpRequest();
+        }
+        else
+        {
+            // code for IE6, IE5
+            xmlhttp = new ActiveXObject( "Microsoft.XMLHTTP" );
+        }
+        xmlhttp.open( "GET", location.pathname +
+                             "?set(" + address + "," + value + ")", true );
+        xmlhttp.send( null );
+    }
+    catch(error)
+    {
+        // intentionaly do nothing
+    }
+}</p.type><p>Další èást pøíkladu, volání funkce <type>setValue</type>, je
+                  stejné jako v pøedchozích ukázkách.</p></dd>
+                  <dt>Ukázka iterace a promìnných (<file>09
+                  table.pt.xml</file>)</dt>
+                  <dd><p>Ukázka použití poèítaného cyklu <type>pt:for</type> a
+                  v nìm nastavovaných promìnných <type>pt:variable</type>:</p><p.type>&lt;pt:for from="30" to="39" index="index" order="order" odd="odd"&gt;
+    &lt;pt:variable model="status" source="3/0/${index}" /&gt;
+    &lt;pt:variable model="brightness" source="3/3/${index}" /&gt;
+    &lt;tr&gt;
+        &lt;td&gt;${order}&lt;/td&gt;
+        &lt;td&gt;${get(status)}&lt;/td&gt;
+        &lt;td&gt;${get(brightness)}&lt;/td&gt;
+    &lt;/tr&gt;
+&lt;/pt:for&gt;</p.type></dd>
+                  <dt>Relaèní operátory (<file>10
+                  relations.pt.xml</file>)</dt>
+                  <dd><p>Pøíklad ukazující použití srovnávacích funkcí, tj.
+                  funkcí pro rozlišení velikosti hodnoty, pøípadnì jejich
+                  shody:</p><p.type>&lt;p pt:condition="${equal(ementál,chleba)}"&gt;
+    ementál = chleba
+&lt;/p&gt;
+&lt;p pt:condition="${notEqual(ementál,chleba)}"&gt;
+    ementál &amp;amp;lt;&amp;amp;gt; chleba
+&lt;/p&gt;
+&lt;p pt:condition="${less(ementál,chleba)}"&gt;
+    ementál &amp;amp;lt; chleba (incorrect in English, correct in Czech)
+&lt;/p&gt;
+&lt;p pt:condition="${lessEqual(ementál,chleba)}"&gt;
+    ementál &amp;amp;lt;= chleba (incorrect in English, correct in Czech)
+&lt;/p&gt;
+&lt;p pt:condition="${greater(ementál,chleba)}"&gt;
+    ementál &amp;amp;gt; chleba (correct in English, incorrect in Czech)
+&lt;/p&gt;
+&lt;p pt:condition="${greaterEqual(ementál,chleba)}"&gt;
+    ementál &amp;amp;gt;= chleba (correct in English, incorrect in Czech)
+&lt;/p&gt;</p.type></dd>
                 </dl>
                 <p>Z ukázek je zøejmé, že znaèky specifické pro SmartServer
                 jsou jasnì oddìleny (<type>pt:...</type>) a že zbytek textu je

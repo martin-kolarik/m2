@@ -1669,6 +1669,100 @@ allow = 127.0.0.1</p.type>
     &lt;h1&gt;Set according to current state&lt;/h1&gt;
     &lt;p style="color: green;"&gt;OK, 
       &lt;a href="?set(3/1/21,false)"&gt;switch off&lt;/a&gt;.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</p.type></dd>
+                  <dt>Repeated page loading (<file>05 get
+                  refresh.pt.xml</file>)</dt>
+                  <dd><p>The page is loaded repeatedly thanks to <type>&lt;meta&gt;</type>
+                  tag written inside <type>&lt;head&gt;</type>
+                  tag:</p><p.type>&lt;head&gt;  
+  &lt;meta http-equiv="refresh" content="5"/&gt;
+  ...</p.type></dd>
+                  <dt>Writing of user-entered value (<file>06
+                  input.pt.xml</file>)</dt>
+                  <dd><p>The value of edit box is written to server. To write
+                  data (and to reload the page), <type>setValue</type>
+                  function (in JavaScript) is used:</p><p.type>function setValue( address, value )
+{
+    try
+    {
+        location.replace( location.pathname +
+                          "?set(" + address + "," + value + ")" );
+    }
+    catch(error)
+    {
+        // intentionaly do nothing
+    }
+}</p.type><p>The edit box itself is bound to the function using <type>onchange</type>
+                  attribute:</p><p.type>&lt;input type="text" value="${get(3/3/21)}"
+       onchange="setValue( '3/3/21', this.value )" size="3" maxlength="3" /&gt;</p.type></dd>
+                  <dt>Writing of value after pressing a button (<file>07
+                  dimming.pt.xml</file>)</dt>
+                  <dd><p>The example uses the same <type>setValue</type>
+                  function as the example no. 6, the difference is only in
+                  values used.</p><p.type>&lt;input type="button" value="Increase" onclick="setValue( '3/2/21', 10 )"/&gt;
+&lt;input type="button" value="Decrease" onclick="setValue( '3/2/21', -10 )"/&gt;</p.type></dd>
+                  <dt>Writing of value when a button is pressed (<file>08 push
+                  button.pt.xml</file>)</dt>
+                  <dd><p>Communication a value during button press requires to
+                  not to reload page when the button is pressed. This behavior
+                  is achieved using AJAX mean, <type>XMLHttpRequest</type>
+                  object:</p><p.type>function setValue( address, value )
+{
+    try
+    {
+        var xmlhttp;
+        if (window.XMLHttpRequest)
+        {
+            // code for IE7+, Firefox, Chrome, Opera, Safari
+            xmlhttp = new XMLHttpRequest();
+        }
+        else
+        {
+            // code for IE6, IE5
+            xmlhttp = new ActiveXObject( "Microsoft.XMLHTTP" );
+        }
+        xmlhttp.open( "GET", location.pathname +
+                             "?set(" + address + "," + value + ")", true );
+        xmlhttp.send( null );
+    }
+    catch(error)
+    {
+        // intentionaly do nothing
+    }
+}</p.type><p>Next part of the example, <type>setValue</type> function call, is
+                  the same as in previous examples.</p></dd>
+                  <dt>Iteration and variable example (<file>09
+                  table.pt.xml</file>)</dt>
+                  <dd><p>Sample of <type>pt:for</type> and <type>pt:variable</type>
+                  usage:</p><p.type>&lt;pt:for from="30" to="39" index="index" order="order" odd="odd"&gt;
+    &lt;pt:variable model="status" source="3/0/${index}" /&gt;
+    &lt;pt:variable model="brightness" source="3/3/${index}" /&gt;
+    &lt;tr&gt;
+        &lt;td&gt;${order}&lt;/td&gt;
+        &lt;td&gt;${get(status)}&lt;/td&gt;
+        &lt;td&gt;${get(brightness)}&lt;/td&gt;
+    &lt;/tr&gt;
+&lt;/pt:for&gt;</p.type></dd>
+                  <dt>Relational operators (<file>10
+                  relations.pt.xml</file>)</dt>
+                  <dd><p>Example of relational functions available, functions
+                  are useful for comparing values:</p><p.type>&lt;p pt:condition="${equal(ementál,chleba)}"&gt;
+    ementál = chleba
+&lt;/p&gt;
+&lt;p pt:condition="${notEqual(ementál,chleba)}"&gt;
+    ementál &amp;amp;lt;&amp;amp;gt; chleba
+&lt;/p&gt;
+&lt;p pt:condition="${less(ementál,chleba)}"&gt;
+    ementál &amp;amp;lt; chleba (incorrect in English, correct in Czech)
+&lt;/p&gt;
+&lt;p pt:condition="${lessEqual(ementál,chleba)}"&gt;
+    ementál &amp;amp;lt;= chleba (incorrect in English, correct in Czech)
+&lt;/p&gt;
+&lt;p pt:condition="${greater(ementál,chleba)}"&gt;
+    ementál &amp;amp;gt; chleba (correct in English, incorrect in Czech)
+&lt;/p&gt;
+&lt;p pt:condition="${greaterEqual(ementál,chleba)}"&gt;
+    ementál &amp;amp;gt;= chleba (correct in English, incorrect in Czech)
+&lt;/p&gt;</p.type></dd>
                 </dl>
                 <p>From examples it is obvious that signs specific for the
                 SmartServer are clearly separated (<type>pt:...</type>) and
