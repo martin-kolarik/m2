@@ -243,6 +243,7 @@ CLASS IMPLEMENTATION CString;
    BEGIN
       RETURN Languages.CompareStringMLW( Language, CaseSensitive, _Len, _Data, S.Length, S.rawData );
    END CompareLanguage;
+
    PUBLIC VIRTUAL PROCEDURE CString.Assign( CONST S : IString );
    BEGIN
       _Len := S.Length;
