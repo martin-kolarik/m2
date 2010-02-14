@@ -1,13 +1,8 @@
 DEFINITION MODULE excpt;
 
-(*# name(   prefix=>c ) *)
-
-(*# module( header=>off,
-            init_code=>off ) *)
-
-(*# call(   o_a_size=>off,
-            o_a_copy=>off,
-            prefix=>stdcall ) *)
+(*# name( decoration => c ) *)
+(*# module( header => off ) *)
+(*# call( o_a_size => off, convention => stdcall ) *)
 
 FROM windows IMPORT
   PEXCEPTION_RECORD,
@@ -17,7 +12,6 @@ FROM windows IMPORT
 (*============================================================*)
 (* Windows header:           excpt.h                          *)
 (*============================================================*)
-
 
 //
 // Exception disposition return values.
@@ -34,7 +28,7 @@ TYPE
 // Prototype for SEH support function.
 //
 
-(*# save, call( prefix => cdecl ) *)
+(*# save, call( convention => cdecl ) *)
 
 PROCEDURE _except_handler( ExceptionRecord : PEXCEPTION_RECORD;
                            EstablisherFrame : ADDRESS;
@@ -57,7 +51,7 @@ PROCEDURE AbnormalTermination(): INTEGER;
 PROCEDURE abnormal_termination(): INTEGER;
 (*# restore *)
 
-(*# save, call( prefix => cdecl ) *)
+(*# save, call( convention => cdecl ) *)
 PROCEDURE _exception_code(): LONGCARD;
 PROCEDURE _exception_info(): ADDRESS;
 PROCEDURE _abnormal_termination(): INTEGER;
@@ -69,8 +63,8 @@ PROCEDURE _abnormal_termination(): INTEGER;
 //
 
 CONST
-  EXCEPTION_EXECUTE_HANDLER       = 1;
-  EXCEPTION_CONTINUE_SEARCH       = 0;
-  EXCEPTION_CONTINUE_EXECUTION    = -1;
+  EXCEPTION_EXECUTE_HANDLER = 1;
+  EXCEPTION_CONTINUE_SEARCH = 0;
+  EXCEPTION_CONTINUE_EXECUTION = -1;
 
 END excpt.

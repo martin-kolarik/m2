@@ -1,25 +1,13 @@
 DEFINITION MODULE winver;
 
-(*==============================================================
+(*# name( decoration => c ) *)
 
-                    Win32 API for Modula-2
-
-       32-bit version for M2CPP Modula-2 to C++ compiler
-
-      Copyright (c) 1996, 1997 Moravian Instruments, Inc.
-
-==============================================================*)
-
-(*# name(   prefix          => c ) *)
-
-(*# module( header          => off,
-            init_code       => off ) *)
+(*# module( header => off ) *)
 
 (*# call(   o_a_size        => off,
-            o_a_copy        => off,
             c_arrays        => on,
             result_optional => on,
-            prefix=>stdcall ) *)
+            convention      => stdcall ) *)
 
 (*==============================================================*)
 (*/***************************************************************************\

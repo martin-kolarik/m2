@@ -7,11 +7,14 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   windows, // must be imported before dbghelp
+   excpt,
+   dbghelp,
    FIO,
    Folders,
    Log,
    Strings,
-   windows;
+   time;
 
 //--------------------------------------------------------------------------------
 
@@ -118,15 +121,57 @@ END LogAssertA;
 
 //--------------------------------------------------------------------------------
 
+PROCEDURE Dump( file : FIO.File; exceptionPointers : windows.PEXCEPTION_POINTERS ) : TRISTATE;
+VAR
+   mdei : dbghelp.MINIDUMP_EXCEPTION_INFORMATION;
+BEGIN
+   mdei.ThreadId := windows.GetCurrentThreadId(); 
+   mdei.ExceptionPointers := exceptionPointers; 
+   mdei.ClientPointers := windows.False; 
+   
+   dbghelp.MiniDumpWriteDump(
+      windows.GetCurrentProcess(), windows.GetCurrentProcessId(), file,
+      dbghelp.MINIDUMP_TYPE( dbghelp.MiniDumpWithIndirectlyReferencedMemory OR dbghelp.MiniDumpScanMemory ),
+      ADR( mdei ), NIL, NIL );
+      
+   RETURN 1; // execute handler
+END Dump; 
+
+//--------------------------------------------------------------------------------
+
 PROCEDURE LogAssertW( CONST Text, Module : ARRAY OF WCHAR; ModuleLine : CARDINAL );
 VAR
+   file : FIO.File;
    Line : ARRAY [0..15] OF WCHAR;
+   Path, Head, Tail : FIO.PathStrW;
 BEGIN
+   // create logger
+   getLogger();
+
+   // prepare minidump path
+   AssertionLog^.GetLogFile( OUT Path );
+   FIO.SplitPathW( Path, OUT Head, OUT Tail );
+   time.NowUTC().ToStringOA( L"yyyyMMddTHHmmssfff'.mdmp'", TRUE, TRUE, OUT Tail );
+   FIO.MakePathW( Head, Tail, OUT Path );
+   Strings.AppendW( REF Tail, L")" );
+
    Strings.FromCARD32W( ModuleLine, 10, OUT Line );
    IF Text[0] = 0W THEN
-      getLogger()^.LogS( Log.dlcSysError, Module, Line );
+      getLogger()^.LogSSS( Log.dlcSysError, Module, Line, L"(dump:", Tail );
    ELSE
-      getLogger()^.LogSSS( Log.dlcSysError, Module, Text, L" ", Line );
+      getLogger()^.LogSSSS( Log.dlcSysError, Module, Text, Line, L"(dump:", Tail );
+   END;
+   
+   // write minidump
+   file := FIO.CreateW( Path, FIO.TFileShare{ FIO.fsRead } );
+   IF file <> NIL THEN
+      TRY
+         ADDRESS( 0 )^ := 0; // do an exception, minidump cannot dump stack of calling thread properly, the possibility is to create an execption and store the context to exception information
+      EXCEPT Dump( file, excpt.GetExceptionInformation()) DO
+         // intentionally do nothing
+      END;
+      FIO.Flush( file );
+      FIO.Close( file );
    END;
 END LogAssertW;
 
