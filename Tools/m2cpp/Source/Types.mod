@@ -590,7 +590,7 @@ BEGIN
   TypeKind := DOM.tkReference;
   PrimitiveType := DOM.ptADDRESS;
   T := TCARDINAL;
-  N.FromOA( L'ADDRESS' );
+  N.FromOA( L'M2ADDRESS' );
 END CADDRESS;
 
 //============================================================

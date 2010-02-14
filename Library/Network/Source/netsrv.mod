@@ -558,7 +558,7 @@ CLASS IMPLEMENTATION CIPServer;
       Message.CloseTime := AutomaticCloseTimeMS;
       Result := MQueue.EnqueueOA( Message, TRUE, Sync.FORSAFETY );
       IF Result NOT IN Sync.arsStarts THEN
-         Strings.FromCARD32W( 10, MQueue.Count, OUT countString );
+         Strings.FromCARD32W( MQueue.Count, 10, OUT countString );
          ASSERTLOG( Result <> Sync.arTimeout, countString );
          Socket^.Release();
          RETURN -1;
@@ -588,7 +588,7 @@ CLASS IMPLEMENTATION CIPServer;
     Message.Type := Type;
     Result := MQueue.EnqueueOA( Message, TRUE, Sync.FORSAFETY );
     IF Result NOT IN Sync.arsStarts THEN
-      Strings.FromCARD32W( 10, MQueue.Count, OUT countString );
+      Strings.FromCARD32W( MQueue.Count, 10, OUT countString );
       ASSERTLOG( Result <> Sync.arTimeout );
     END;
   END StopListenServer;
@@ -605,7 +605,7 @@ CLASS IMPLEMENTATION CIPServer;
     Message.Socket := Socket;
     Result := MQueue.EnqueueOA( Message, TRUE, Sync.FORSAFETY );
     IF Result NOT IN Sync.arsStarts THEN
-      Strings.FromCARD32W( 10, MQueue.Count, OUT countString );
+      Strings.FromCARD32W( MQueue.Count, 10, OUT countString );
       ASSERTLOG( Result <> Sync.arTimeout );
     END;
   END StopListenSocket;

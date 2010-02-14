@@ -121,7 +121,9 @@ CLASS IMPLEMENTATION CTextReader;
    PUBLIC PROCEDURE ReadLine( OUT Line : StringsO.IString; TimeoutMS : CARDINAL; WaitForResult : BOOLEAN ) : Sync.TAsyncResult;
    VAR
       a : PWCHAR;
+      comment : CARDINAL;
       cl, dl : CARDINAL; // commit length, data length
+      lineSkipped : BOOLEAN;
       Result : Sync.TAsyncResult;
    BEGIN
       Line.Clear();
@@ -144,13 +146,7 @@ CLASS IMPLEMENTATION CTextReader;
             END;
          //-----
          | srBOM :
-            IF dl > 0 THEN
-               Line.AppendOA( OA( dl-1, a ));
-            END;
-         //-----
-         | srCommentaryLine :
-            // full line is ommited, continue
-            INC( SELF.Line );
+            // do nothing, if MaskBOM then BOM must not appear in output, if NOT MaskBOM, then srBOM does not occur
          //-----
          | srIncompleteLine, srIncompleteLineBufferFull :
             IF dl > 0 THEN
@@ -160,12 +156,32 @@ CLASS IMPLEMENTATION CTextReader;
          //-----
          | srCompleteLine : 
             INC( SELF.Line );
+            
             IF dl > 0 THEN
                Line.AppendOA( OA( dl-1, a ));
             END;
-            _WBuffer.CommitReading( cl<<1 );
+            
+            // realize, if there is not some commentary
+            lineSkipped := FALSE;
+            IF _OmitCommentaries AND NOT Line.Empty THEN
+               comment := Line.IndexOf( _CommentaryStart, 0 );
+               IF comment = -1 THEN
+                  // fall down, no comment found
+               ELSIF comment = 0 THEN // drop whole line
+                  Line.Clear(); 
+                  lineSkipped := TRUE;
+               ELSE // trim the line
+                  Line.Length := comment;
+               END;
+            END;
+            
+            // return line found
+            IF NOT lineSkipped THEN
+               _WBuffer.CommitReading( cl<<1 );
+               RETURN Sync.arCompleted;
+            END;
 
-            RETURN Sync.arCompleted;
+         //-----
          END; // CASE
 
          _WBuffer.CommitReading( cl<<1 );
@@ -272,7 +288,7 @@ CLASS IMPLEMENTATION CTextReader;
    BEGIN
       Feed();
       CASE ScanLine( FALSE, OUT Data, OUT dl, OUT Length ) OF
-      | srCommentaryLine, srCompleteLine, srIncompleteLineBufferFull :
+      | srCompleteLine, srIncompleteLineBufferFull :
          Length := Length << 1;
          RETURN TRUE;
       ELSE
@@ -321,7 +337,7 @@ CLASS IMPLEMENTATION CTextReader;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ScanLine( DetectBOM : BOOLEAN; OUT start : PWCHAR; OUT dataLength, commitLength : CARDINAL ) : TScanResult;
+   PRIVATE PROCEDURE ScanLine( DetectBOM : BOOLEAN; OUT start : PWCHAR; OUT charDataLength, charCommitLength : CARDINAL ) : TScanResult;
    VAR
       current : PWCHAR;
       CR : BOOLEAN;
@@ -331,45 +347,43 @@ CLASS IMPLEMENTATION CTextReader;
       IF _WBuffer.Empty THEN
          RETURN srNothing;
       END;
+
+      _WBuffer.Peek( OUT start, OUT l );
+      l := l>>1; current := start; i := 0; CR := FALSE;
       LOOP
-         _WBuffer.Peek( OUT start, OUT l );
-         l := l>>1; current := start; i := 0; CR := FALSE;
-         LOOP
-            IF ( current^ = WCHAR( 0FEFFH )) AND DetectBOM THEN
-               dataLength := i;
-               commitLength := i+1;
-               RETURN srBOM;
-            ELSIF current^ = 10W THEN
-               IF CR THEN
-                  dataLength := i-1;
-               ELSE
-                  dataLength := i;
-               END;
-               commitLength := i+1;
-               IF _OmitCommentaries THEN
-                  i := Strings.IndexOfW( OA( i-1, start ), OA( _CommentaryStart.Length-1, _CommentaryStart.Data ), 0 );
-                  IF i = 0 THEN
-                     dataLength := 0;
-                     RETURN srCommentaryLine;
-                  ELSIF i <> -1 THEN
-                     dataLength := i;
-                  END;
-               END;
-               RETURN srCompleteLine;
+         IF DetectBOM AND ( current^ = WCHAR( 0FEFFH )) THEN
+            charDataLength := i;
+            charCommitLength := i+1;
+            RETURN srBOM;
+         ELSIF current^ = 10W THEN
+            IF CR THEN
+               charDataLength := i-1;
+            ELSE
+               charDataLength := i;
             END;
-            CR := current^ = 13W;
-            INC( i );
-            IF i = l THEN
-               dataLength := i;
-               commitLength := i;
-               IF l = BufferSize THEN
-                  RETURN srIncompleteLineBufferFull;
-               ELSE
-                  RETURN srIncompleteLine;
-               END;
+            charCommitLength := i+1;
+            RETURN srCompleteLine;
+         END;
+         CR := current^ = 13W;
+         INC( i );
+         IF i = l THEN
+            IF NOT CR THEN // CR is not the last character
+               charDataLength := i;
+               charCommitLength := i;
+            ELSIF l = 1 THEN  // CR cannot be splitted from LF, leave it in buffer. If CR is in the buffer alone, return that nothing was scanned.
+               RETURN srNothing;
+            ELSE
+               charDataLength := i-1;
+               charCommitLength := i-1;
             END;
-            INC( current, SIZE( WCHAR ));
-         END; // LOOP
+            IF l = BufferSize THEN
+               RETURN srIncompleteLineBufferFull;
+            ELSE
+               RETURN srIncompleteLine;
+            END;
+         END;
+         INC( current, SIZE( WCHAR ));
+         DetectBOM := FALSE; // BOM can appear on start only
       END; // LOOP
    END ScanLine;
 
