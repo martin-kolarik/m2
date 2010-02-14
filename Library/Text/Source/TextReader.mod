@@ -163,7 +163,7 @@ CLASS IMPLEMENTATION CTextReader;
             
             // realize, if there is not some commentary
             lineSkipped := FALSE;
-            IF _OmitCommentaries THEN
+            IF _OmitCommentaries AND NOT Line.Empty THEN
                comment := Line.IndexOf( _CommentaryStart, 0 );
                IF comment = -1 THEN
                   // fall down, no comment found
@@ -337,7 +337,7 @@ CLASS IMPLEMENTATION CTextReader;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ScanLine( DetectBOM : BOOLEAN; OUT start : PWCHAR; OUT dataLength, commitLength : CARDINAL ) : TScanResult;
+   PRIVATE PROCEDURE ScanLine( DetectBOM : BOOLEAN; OUT start : PWCHAR; OUT charDataLength, charCommitLength : CARDINAL ) : TScanResult;
    VAR
       current : PWCHAR;
       CR : BOOLEAN;
@@ -352,23 +352,30 @@ CLASS IMPLEMENTATION CTextReader;
       l := l>>1; current := start; i := 0; CR := FALSE;
       LOOP
          IF DetectBOM AND ( current^ = WCHAR( 0FEFFH )) THEN
-            dataLength := i;
-            commitLength := i+1;
+            charDataLength := i;
+            charCommitLength := i+1;
             RETURN srBOM;
          ELSIF current^ = 10W THEN
             IF CR THEN
-               dataLength := i-1;
+               charDataLength := i-1;
             ELSE
-               dataLength := i;
+               charDataLength := i;
             END;
-            commitLength := i+1;
+            charCommitLength := i+1;
             RETURN srCompleteLine;
          END;
          CR := current^ = 13W;
          INC( i );
          IF i = l THEN
-            dataLength := i;
-            commitLength := i;
+            IF NOT CR THEN // CR is not the last character
+               charDataLength := i;
+               charCommitLength := i;
+            ELSIF l = 1 THEN  // CR cannot be splitted from LF, leave it in buffer. If CR is in the buffer alone, return that nothing was scanned.
+               RETURN srNothing;
+            ELSE
+               charDataLength := i-1;
+               charCommitLength := i-1;
+            END;
             IF l = BufferSize THEN
                RETURN srIncompleteLineBufferFull;
             ELSE

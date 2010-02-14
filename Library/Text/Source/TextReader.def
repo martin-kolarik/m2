@@ -63,7 +63,7 @@ CLASS CTextReader IMPLEMENTS IOO.IBufferedReader;
    
    PRIVATE PROCEDURE ReadFromStream( TimeoutMS : CARDINAL; WaitForResult : BOOLEAN ) : Sync.TAsyncResult;
    PRIVATE PROCEDURE Feed();
-   PRIVATE PROCEDURE ScanLine( DetectBOM : BOOLEAN; OUT Start : PWCHAR; OUT DataLength, CommitLength : CARDINAL ) : TScanResult;
+   PRIVATE PROCEDURE ScanLine( DetectBOM : BOOLEAN; OUT Start : PWCHAR; OUT CharDataLength, CharCommitLength : CARDINAL ) : TScanResult;
 END CTextReader;
 
 (*================================================================================*)
