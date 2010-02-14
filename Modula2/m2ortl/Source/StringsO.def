@@ -5,7 +5,8 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-  Exceptions;
+  Exceptions,
+  Languages;
 
 #save, option( dll_export => on )
 
@@ -58,6 +59,7 @@ INTERFACE IString;
   PUBLIC ABSTRACT PROCEDURE EqualsIgnoreCase( CONST S : IString ) : BOOLEAN;
   PUBLIC ABSTRACT PROCEDURE EqualsIgnoreCaseOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
   PUBLIC ABSTRACT PROCEDURE Compare( CONST C : IString ) : TRISTATE;
+  PUBLIC ABSTRACT PROCEDURE CompareLanguage( Language : Languages.TLanguage; CaseSensitive : BOOLEAN; CONST S : IString ) : TRISTATE;
 
   PUBLIC ABSTRACT PROCEDURE Assign( CONST S : IString );
 
@@ -155,7 +157,8 @@ CLASS CString IMPLEMENTS IString;
   PUBLIC VIRTUAL PROCEDURE EqualsOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
   PUBLIC VIRTUAL PROCEDURE EqualsIgnoreCase( CONST S : IString ) : BOOLEAN;
   PUBLIC VIRTUAL PROCEDURE EqualsIgnoreCaseOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
-  PUBLIC VIRTUAL PROCEDURE Compare( CONST C : IString ) : TRISTATE;
+  PUBLIC VIRTUAL PROCEDURE Compare( CONST S : IString ) : TRISTATE;
+  PUBLIC VIRTUAL PROCEDURE CompareLanguage( Language : Languages.TLanguage; CaseSensitive : BOOLEAN; CONST S : IString ) : TRISTATE;
 
   #save, option( leak_info => on )
   PUBLIC VIRTUAL PROCEDURE Assign( CONST S : IString );

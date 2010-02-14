@@ -64,6 +64,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       OperatedDeviceCount : CARDINAL;
       ConfigLogger : Log.TPBufferedLogger;
       DataLogger : Log.TPBufferedLogger;
+      Project : StringsO.TPString;
       
    PUBLIC PROCEDURE ConnectEIB();
    PUBLIC PROCEDURE DisconnectEIB();
@@ -75,6 +76,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
    
    PUBLIC PROCEDURE SetValue( CONST originator : inetaddr.INETADDR; CONST name, value : StringsO.IString ) : BOOLEAN;
    PUBLIC PROCEDURE GetValue( CONST name : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE GetWixValue( CONST name : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN;
    
    PUBLIC PROCEDURE Authenticate( CONST Name, Password : StringsO.IString ) : TRole;
    
@@ -97,6 +99,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       _Users : lists.CStringStringList;
       _Lock : Sync.RWLOCK;
       _AccessList : accesslist.CAccessList;
+      _Project : StringsO.CString;
       
       _StartedTime : time.TJD;
       _Connected : BOOLEAN;

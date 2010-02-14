@@ -880,15 +880,15 @@ END SubstringW;
 
 PROCEDURE ItemW( CONST Source : ARRAY OF WCHAR; CONST Delimiters : SET OF WCHAR; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT Substring : ARRAY OF WCHAR ) : CARDINAL;
 BEGIN
-	RETURN ItemMW( LENGTH( Source ), ADR( Source ), Delimiters, FromIndex, ItemIndex, SkipEmpty, OUT Substring );
+	RETURN ItemMW( LENGTH( Source ), ADR( Source ), Delimiters, FromIndex, ItemIndex, SkipEmpty, OUT Substring, NIL );
 END ItemW;
 
 PROCEDURE ItemSW( CONST Source : ARRAY OF WCHAR; CONST Delimiters : SET OF WCHARS; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT Substring : ARRAY OF WCHAR ) : CARDINAL;
 BEGIN
-	RETURN ItemSMW( LENGTH( Source ), ADR( Source ), Delimiters, FromIndex, ItemIndex, SkipEmpty, OUT Substring );
+	RETURN ItemSMW( LENGTH( Source ), ADR( Source ), Delimiters, FromIndex, ItemIndex, SkipEmpty, OUT Substring, NIL );
 END ItemSW;
 
-PROCEDURE ItemMW( SourceLen : CARDINAL; CONST Source : POINTER TO WCHAR; CONST Delimiters : SET OF WCHAR; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT Substring : ARRAY OF WCHAR ) : CARDINAL;
+PROCEDURE ItemMW( SourceLen : CARDINAL; CONST Source : POINTER TO WCHAR; CONST Delimiters : SET OF WCHAR; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT Substring : ARRAY OF WCHAR; pFilled : PCARDINAL ) : CARDINAL;
 VAR
 	i, j, p : CARDINAL;
 BEGIN
@@ -902,6 +902,9 @@ BEGIN
 	LOOP
 		IF i >= SourceLen THEN
 			Substring[0] := 0W;
+			IF pFilled <> NIL THEN
+			   pFilled^ := 0;
+			END;
 			RETURN -1;
 		ELSE
 			j := i;
@@ -911,6 +914,9 @@ BEGIN
 		END;
 		IF p = ItemIndex THEN
 			ASSIGN( Substring, OA( i-j-1, Source@[j<<1] ));
+			IF pFilled <> NIL THEN
+			   pFilled^ := i-j;
+			END;
 		END;
 		IF SkipEmpty THEN
 		   WHILE ( i < SourceLen ) AND ( Source@[i<<1]^ IN Delimiters ) DO
@@ -927,7 +933,7 @@ BEGIN
 	END;
 END ItemMW;
 
-PROCEDURE ItemSMW( SourceLen : CARDINAL; CONST Source : POINTER TO WCHAR; CONST Delimiters : SET OF WCHARS; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT Substring : ARRAY OF WCHAR ) : CARDINAL;
+PROCEDURE ItemSMW( SourceLen : CARDINAL; CONST Source : POINTER TO WCHAR; CONST Delimiters : SET OF WCHARS; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT Substring : ARRAY OF WCHAR; pFilled : PCARDINAL ) : CARDINAL;
 VAR
 	i, j, p : CARDINAL;
 BEGIN
@@ -941,6 +947,9 @@ BEGIN
 	LOOP
 		IF i >= SourceLen THEN
 			Substring[0] := 0W;
+			IF pFilled <> NIL THEN
+			   pFilled^ := 0;
+			END;
 			RETURN -1;
 		ELSE
 			j := i;
@@ -950,6 +959,9 @@ BEGIN
 		END;
 		IF p = ItemIndex THEN
 			ASSIGN( Substring, OA( i-j-1, Source@[j<<1] ));
+			IF pFilled <> NIL THEN
+			   pFilled^ := i-j;
+			END;
 		END;
 		IF SkipEmpty THEN
 		   WHILE ( i < SourceLen ) AND ( Source@[i<<1]^ IN Delimiters ) DO
