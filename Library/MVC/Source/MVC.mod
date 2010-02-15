@@ -1318,6 +1318,7 @@ CLASS IMPLEMENTATION CMVC;
    VAR
       b : BOOLEAN := FALSE;
       e : ARRAY [0..3] OF WCHAR;
+      english : Languages.TLanguage;
       length : CARDINAL;
       text : PWCHAR;
    BEGIN
@@ -1326,11 +1327,19 @@ CLASS IMPLEMENTATION CMVC;
          NEW( _Messages );
          b := _Messages^.LoadXML( OA( _MessageSourcePath.Length-1, _MessageSourcePath.rawData ), OUT e );
          IF b THEN
-            _Messages^.FallbackLang := _Messages^.Lang;
+            IF Languages.RFC1766ToLanguage( L"en", OUT english ) THEN // if english exists, use it
+               _Messages^.FallbackLang := english;
+            ELSIF _Messages^.LanguageCount > 0 THEN // otherwise select first language
+               _Messages^.GetLanguage( 0, OUT _Messages^.FallbackLang );
+            ELSE // and as last resort, use as fallback resource native? language
+               _Messages^.FallbackLang := _Messages^.Lang;
+            END;
          END;
       ELSE
          b := TRUE;
       END;
+      _MessagesLock.Unlock();
+
       IF b THEN
          b := _Messages^.GetTextByKeyL( language, Key, OUT text, OUT length );
       END;
@@ -1339,7 +1348,6 @@ CLASS IMPLEMENTATION CMVC;
       ELSE
          Message.Assign( Key );
       END;
-      _MessagesLock.Unlock();
 
       RETURN b;
    END GetMessage;

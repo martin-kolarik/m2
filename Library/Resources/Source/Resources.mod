@@ -240,49 +240,115 @@ CLASS IMPLEMENTATION CResources;
     RETURN TRUE;
   END LoadBIN;
   
-//---------------------------------------------------------------------------
+(*--------------------------------------------------------------------------------*)
 
-  PUBLIC PROCEDURE GetText( Id : CARDINAL; OUT Text : PWCHAR; OUT Length : CARDINAL ) : BOOLEAN;
-  BEGIN
-    IF ( _Resource <> NIL ) OR ( Id < _Resource^.TextCount ) THEN
-      IF _Texts = NIL THEN // fall down
-      ELSIF TPTexts( _Texts )^[ Id ].Text <> NIL THEN
-        Length := TPTexts( _Texts )^[ Id ].Length;
-        Text := TPTexts( _Texts )^[ Id ].Text;
-        RETURN TRUE;
-      ELSIF _FallbackTexts = NIL THEN // fall down
-      ELSIF TPTexts( _FallbackTexts )^[ Id ].Text <> NIL THEN
-        Length := TPTexts( _FallbackTexts )^[ Id ].Length;
-        Text := TPTexts( _FallbackTexts )^[ Id ].Text;
-        RETURN TRUE;
+   PUBLIC PROPERTY LanguageCount GET : CARDINAL;
+   BEGIN
+      RETURN _Resource^.SlotCount;
+   END LanguageCount;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE GetLanguage( LangIndex : CARDINAL; OUT Lang : Languages.TLanguage ) : BOOLEAN;
+   BEGIN
+      IF LangIndex < _Resource^.SlotCount THEN
+         Lang := _Stub^.Slots^[LangIndex].LangBySource;
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
       END;
-    END;
-    IF GlobalFallback THEN
-      Length := SIZE( fallback ) >> 1;
-      Text := PWCHAR( ADR( fallback ));
-      RETURN TRUE;
-    ELSE
-      RETURN FALSE;
-    END;
-  END GetText;
+   END GetLanguage;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE GetRFC1766( LangIndex : CARDINAL; OUT Lang : Languages.TRFC1766 ) : BOOLEAN;
+   VAR
+      L : Languages.TLanguage;
+   BEGIN
+      IF NOT GetLanguage( LangIndex, OUT L ) THEN
+         RETURN FALSE;
+      ELSE
+         RETURN Languages.LanguageToRFC1766( L, OUT Lang );
+      END;
+   END GetRFC1766;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ContainsLanguage( Lang : Languages.TLanguage ) : BOOLEAN;
+   VAR
+      Index : CARDINAL;
+   BEGIN
+      RETURN SearchLanguage( Lang, OUT Index );
+   END ContainsLanguage;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE ContainsRFC1766( Lang : Languages.TRFC1766 ) : BOOLEAN;
+   VAR
+      L : Languages.TLanguage;
+   BEGIN
+      IF Languages.RFC1766ToLanguage( Lang, OUT L ) THEN
+         RETURN ContainsLanguage( L );
+      ELSE
+         RETURN FALSE;
+      END;
+   END ContainsRFC1766;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE GetText( Id : CARDINAL; OUT Text : PWCHAR; OUT Length : CARDINAL ) : BOOLEAN;
+   BEGIN
+      IF ( _Resource <> NIL ) OR ( Id < _Resource^.TextCount ) THEN
+         IF _Texts = NIL THEN
+            // fall down
+         ELSIF TPTexts( _Texts )^[ Id ].Text <> NIL THEN
+            Length := TPTexts( _Texts )^[ Id ].Length;
+            Text := TPTexts( _Texts )^[ Id ].Text;
+            RETURN TRUE;
+         ELSIF _FallbackTexts = NIL THEN
+            // fall down
+         ELSIF TPTexts( _FallbackTexts )^[ Id ].Text <> NIL THEN
+            Length := TPTexts( _FallbackTexts )^[ Id ].Length;
+            Text := TPTexts( _FallbackTexts )^[ Id ].Text;
+            RETURN TRUE;
+         END;
+      END;
+      IF GlobalFallback THEN
+         Length := SIZE( fallback ) >> 1;
+         Text := PWCHAR( ADR( fallback ));
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END GetText;
 
 //---------------------------------------------------------------------------
 
-  PUBLIC PROCEDURE GetTextL( Language : Languages.TLanguage; Id : CARDINAL; OUT Text : PWCHAR; OUT Length : CARDINAL ) : BOOLEAN;
-  VAR
-    Index : CARDINAL;
-  BEGIN
-    IF ( _Resource <> NIL ) AND ( Id < _Resource^.TextCount ) AND SearchLanguage( Language, OUT Index ) THEN
-      Length := _Stub^.Slots^[ Index ].Texts^[ Id ].Length;
-      Text := _Stub^.Slots^[ Index ].Texts^[ Id ].Text;
-    ELSIF GlobalFallback THEN
-      Length := SIZE( fallback ) >> 1;
-      Text := PWCHAR( ADR( fallback ));
-    ELSE
-      RETURN FALSE;
-    END;
-    RETURN TRUE;
-  END GetTextL;
+   PUBLIC PROCEDURE GetTextL( Language : Languages.TLanguage; Id : CARDINAL; OUT Text : PWCHAR; OUT Length : CARDINAL ) : BOOLEAN;
+   VAR
+      Index : CARDINAL;
+   BEGIN
+      IF ( _Resource <> NIL ) AND ( Id < _Resource^.TextCount ) THEN
+         IF SearchLanguage( Language, OUT Index ) THEN
+            Length := _Stub^.Slots^[ Index ].Texts^[ Id ].Length;
+            Text := _Stub^.Slots^[ Index ].Texts^[ Id ].Text;
+            RETURN TRUE;
+         ELSIF _FallbackTexts = NIL THEN
+            // fall down
+         ELSIF TPTexts( _FallbackTexts )^[ Id ].Text <> NIL THEN
+            Length := TPTexts( _FallbackTexts )^[ Id ].Length;
+            Text := TPTexts( _FallbackTexts )^[ Id ].Text;
+            RETURN TRUE;
+         END;
+      END;       
+      IF GlobalFallback THEN
+         Length := SIZE( fallback ) >> 1;
+         Text := PWCHAR( ADR( fallback ));
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END GetTextL;
 
 //---------------------------------------------------------------------------
 
