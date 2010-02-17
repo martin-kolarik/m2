@@ -25,6 +25,7 @@ CONST
    TRUE_S = L"true";
    SESSION_LOGGED = L"logged";
    SESSION_ROLE = L"role";
+   ROLE_NAME = L"roleName";
    ROLE_ADMIN = L"isAdmin";
    USER_LOGGED = L"isLogged";
    VERSION = L"version";
@@ -313,6 +314,7 @@ CLASS IMPLEMENTATION CController;
          IF NOT uri.EndsWithOA( DYNAMIC_SUFFIX ) THEN
             View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_WEB, OA( uri.Length-1, uri.rawData ), FALSE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
          ELSIF NOT Request.ModelContainer^.GetFunctionCallsMemo() THEN // no call during the request
+            // ??? TODO, functions persist, should they be available for all pages, after this call ???
             Request.ModelContainer^.AddFunctionHandlerOA( FN_SET, ADR( SELF ));
             Request.ModelContainer^.AddFunctionHandlerOA( FN_GET, ADR( SELF ));
             Request.ModelContainer^.AddFunctionHandlerOA( FN_GETWIX, ADR( SELF ));
@@ -351,11 +353,11 @@ CLASS IMPLEMENTATION CController;
          RETURN TRUE;
       
       ELSIF Request.ControllerURI.EqualsOA( STATUS_PAGE ) THEN
-         Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, role = EibSrvWeb.roleAdministrator );
+         Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, role = EibSrvWeb.roleSystemAdministrator );
          RETURN ProcessStatus( Request, OUT View );
 
       ELSIF Request.ControllerURI.EqualsOA( CONTROL_PAGE ) THEN
-         IF role = EibSrvWeb.roleAdministrator THEN
+         IF role = EibSrvWeb.roleSystemAdministrator THEN
             Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, TRUE );
             RETURN ProcessControl( Request, OUT View );
          ELSE
@@ -364,7 +366,7 @@ CLASS IMPLEMENTATION CController;
          END;
 
       ELSIF Request.ControllerURI.EqualsOA( SYSTEM_LOG_PAGE ) THEN
-         IF role = EibSrvWeb.roleAdministrator THEN
+         IF role = EibSrvWeb.roleSystemAdministrator THEN
             Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, TRUE );
             RETURN ProcessSystemLog( Request, OUT View );
          ELSE
@@ -373,11 +375,11 @@ CLASS IMPLEMENTATION CController;
          END;
 
       ELSIF Request.ControllerURI.EqualsOA( DATA_LOG_PAGE ) THEN
-         Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, role = EibSrvWeb.roleAdministrator );
+         Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, role = EibSrvWeb.roleSystemAdministrator );
          RETURN ProcessDataLog( Request, OUT View );
 
       ELSIF Request.ControllerURI.EqualsOA( IO_PAGE ) THEN
-         Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, role = EibSrvWeb.roleAdministrator );
+         Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, role = EibSrvWeb.roleSystemAdministrator );
          RETURN ProcessIO( Request, OUT View );
 
       END;
@@ -780,10 +782,16 @@ CLASS IMPLEMENTATION CController;
    PRIVATE PROCEDURE ValidateUser( CONST Request : mvc.IHttpRequest; CONST UserName, Password : StringsO.CString ) : BOOLEAN;
    VAR
       role : EibSrvWeb.TRole;
+      Role : StringsO.CString;
    BEGIN
-      role := _Web^.Authenticate( UserName, Password );
+      role := _Web^.Authenticate( UserName, Password, OUT Role );
+
       Request.Session^.Remove( SESSION_ROLE );
       Request.Session^.Add( SESSION_ROLE, PTR( role ));
+
+      Request.ModelContainer^.RemoveOA( ROLE_NAME );
+      Request.ModelContainer^.AddStringOA( ROLE_NAME, Role );
+
       RETURN role <> EibSrvWeb.roleGuest;
    END ValidateUser;
    

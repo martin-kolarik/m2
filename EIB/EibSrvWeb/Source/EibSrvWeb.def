@@ -22,9 +22,11 @@ IMPORT
 
 TYPE
    TRole = (
-      roleAdministrator,
-      roleUser,
-      roleGuest
+      roleGuest,
+      roleSystemUser,
+      roleSystemAdministrator,
+      roleUserNamed,
+      roleUserKeyed
    );
 
 TYPE
@@ -78,7 +80,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
    PUBLIC PROCEDURE GetValue( CONST name : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN;
    PUBLIC PROCEDURE GetWixValue( CONST name : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN;
    
-   PUBLIC PROCEDURE Authenticate( CONST Name, Password : StringsO.IString ) : TRole;
+   PUBLIC PROCEDURE Authenticate( CONST Name, Password : StringsO.IString; OUT Role : StringsO.IString ) : TRole; // name can be empty if only a number is required for the password
    
    // SELF
    PRIVATE VAR
@@ -96,6 +98,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       _ConfigLogger : Log.TPBufferedLogger;
       _DataLogger : Log.TPBufferedLogger;
       _HttpLogger : Log.TPILogger;
+      _Roles : lists.CStringList;
       _Users : lists.CStringStringList;
       _Lock : Sync.RWLOCK;
       _AccessList : accesslist.CAccessList;
@@ -122,6 +125,8 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
    PUBLIC PROCEDURE Stop();
    
    // PRIVATE
+   PRIVATE PROCEDURE LoadWebUsers() : BOOLEAN;
+
    PRIVATE PROCEDURE AddControllers();
    PRIVATE PROCEDURE RemoveControllers();
 

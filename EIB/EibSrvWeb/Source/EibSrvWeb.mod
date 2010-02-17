@@ -11,6 +11,7 @@ IMPORT
    device,
    digest,
    FIO,
+   Folders,
    HttpCommon,
    httpsrv,
    IOO,
@@ -35,6 +36,10 @@ TYPE
 
 CONST
     LOG_PREFIX = L"KnxSrv";
+
+    cfSmartServerUsers = L"SmartServer\WebUsers.cfg";
+    ROLE_SYS_ADMIN = L"sysadmin";
+    ROLE_SYS_USER = L"sysuser";
 
 (*================================================================================*)
 
@@ -541,16 +546,14 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Authenticate( CONST Name, Password : StringsO.IString ) : TRole;
-   CONST
-      ROLE_ADMIN = L"admin";
-      ROLE_USER = L"user";
+   PUBLIC PROCEDURE Authenticate( CONST Name, Password : StringsO.IString; OUT Role : StringsO.IString ) : TRole;
    VAR
       base64OA : ARRAY [0..63] OF WCHAR;
       i : CARDINAL;
       hash, password : sha256.CDigest;
       hashOA : sha256.TDigest;
       itemRole, role : TRole := roleGuest;
+      itemRolePtr : PTR;
       localUsers : lists.CStringStringList;
       s : StringsO.CString;
    BEGIN
@@ -560,12 +563,43 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       
       // avoid synchronizing by local copy
       localUsers := _Users;
+      
+      IF Name.Empty THEN // keyed users
+         digest.DigestSalt( digest.sha256, OA( 2*Password.Length-1, PBYTE( Password.rawData )), C"project", OUT password );
+         
+         localUsers.Reset();
+         WHILE localUsers.MoveNext() DO
+            IF NOT _Roles.Get( localUsers.Current^, OUT itemRolePtr ) THEN
+               CONTINUE; // role does not exist
+            END;
+            itemRole := TRole( LOPTRLONGWORD( itemRolePtr ));
+            IF itemRole <> roleUserKeyed THEN
+               CONTINUE;
+            END;
 
-      localUsers.Reset();
-      WHILE localUsers.MoveNext() DO
-         IF localUsers.Current^.Equals( Name ) THEN
+            IF cphcommon.FromBASE64( OA( localUsers.CurrentData^.Length-1, localUsers.CurrentData^.rawData ), OUT hashOA, OUT i ) AND ( i = SIZE( hashOA )) THEN
+               hash.FromOA( hashOA );
+               IF hash = password THEN
+                  role := roleUserKeyed;
+                  Role.Assign( localUsers.Current^ );
+                  EXIT;
+               END;
+            END;
+         END; // WHILE
+         
+      ELSE // named users
 
-            // split data to role and hash
+         localUsers.Reset();
+         WHILE localUsers.MoveNext() DO
+            IF NOT _Roles.Get( localUsers.Current^, OUT itemRolePtr ) THEN // the role does not exist, immediately continue
+               CONTINUE; // role does not exist
+            END;
+            itemRole := TRole( LOPTRLONGWORD( itemRolePtr ));
+            IF itemRole = roleUserKeyed THEN // here only roles with full name and password are allowed
+               CONTINUE;
+            END;
+
+            // split data to name and hash
             i := localUsers.CurrentData^.IndexOfOA( L",", 0 );
             IF i = -1 THEN
                CONTINUE;
@@ -575,31 +609,28 @@ CLASS IMPLEMENTATION CEibSrvWeb;
             s.ToOA( OUT base64OA );
             localUsers.CurrentData^.Substring( 0, i, OUT s );
             s.Trim();
-            IF s.EqualsOA( ROLE_ADMIN ) THEN
-               itemRole := roleAdministrator;
-            ELSIF s.EqualsOA( ROLE_USER ) THEN
-               itemRole := roleUser;
-            ELSE
+            IF NOT s.Equals( Name ) THEN // name does not match
                CONTINUE;
             END;
 
             // try expand and compare hash
             IF cphcommon.FromBASE64( base64OA, OUT hashOA, OUT i ) AND ( i = SIZE( hashOA )) THEN
                hash.FromOA( hashOA );
-               IF itemRole = roleAdministrator THEN
+               IF itemRole = roleSystemAdministrator THEN
                   digest.DigestSalt( digest.sha256, OA( 2*Password.Length-1, PBYTE( Password.rawData )), C"web_root", OUT password );
                ELSE
                   digest.DigestSalt( digest.sha256, OA( 2*Password.Length-1, PBYTE( Password.rawData )), C"message_file", OUT password );
                END;
                IF hash = password THEN
                   role := itemRole;
+                  Role.Assign( localUsers.Current^ );
                END;
                EXIT;
             END;
 
-         END;
-      END; // WHILE
-      
+         END; // WHILE
+      END;
+
       localUsers.Clear(); // deny disposing
  
       RETURN role;
@@ -619,8 +650,8 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       knWebRoot = L"web_root";
       knMessageFile = L"message_file";
    VAR
+      authinfo : StringsO.CString;
       es : PTR;
-      hash : StringsO.CString;
       line : CARDINAL;
       ok : BOOLEAN := TRUE;
       Path : ARRAY [0..260] OF WCHAR;
@@ -663,14 +694,15 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          Log.logger()^.LogS( Log.dlcError, LOG_PREFIX, L"Message source for web is not defined, web interface will not start." );
       END;
       
+      // load users from system configuration
       IF NOT cfg.SetSection( snUsers ) THEN
          ok := FALSE;
          Log.logger()^.LogS( Log.dlcError, LOG_PREFIX, L"No users defined, web interface will not start." );
       ELSE
          es := 0;
-         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT sOA, OUT hash ) DO
+         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT sOA, OUT authinfo ) DO // sOA = role, hash = name, hash
             s.FromOA( sOA );
-            _Users.Add( s, hash );
+            _Users.Add( s, authinfo );
          END; // WHILE
       END;
       
@@ -688,7 +720,11 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          END; // WHILE
       END;
       
-      RETURN ok;
+      IF ok THEN
+         LoadWebUsers();
+      END;
+      
+      RETURN ok
    END Init;
    
 (*--------------------------------------------------------------------------------*)
@@ -750,6 +786,77 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       httpsrv.srv()^.Stop();
       httpsrv.Cleanup();
    END Stop;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE LoadWebUsers() : BOOLEAN; // load users from self configuration file
+   CONST
+      snRoles = L"roles";
+         knNamed = L"named";
+         knKeyed = L"keyed";
+      snUsers = L"users";
+   VAR
+      authinfo : StringsO.CString;
+      cfg : INIfile.CINIFile;
+      es : PTR;
+      key : ARRAY [0..63] OF WCHAR;
+      line : CARDINAL;
+      role : StringsO.CString;
+      usersFileOA : FIO.PathStrW;
+   BEGIN
+      // load users from local configuration
+      (*
+      ELSIF Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataCommon, TRUE, OUT folderOA ) THEN
+         FIO.PathAddW( REF folderOA, cfFolder );
+      ELSE
+         ASSERTLOG( FALSE, L"Unable to get CSIDL_COMMON_APPDATA" );
+         RETURN; // store nothing
+      END;
+      IF NOT FIO.CreateDirectoryW( folderOA ) THEN
+         ASSERTLOG( FALSE, L"Unable to store to CSIDL_COMMON_APPDATA" );
+         RETURN; // store nothing
+      END;
+      *)
+      
+      _Roles.AddOA( ROLE_SYS_ADMIN, PTR( roleSystemAdministrator ));
+      _Roles.AddOA( ROLE_SYS_USER, PTR( roleSystemUser ));
+      
+      IF NOT Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataCommon, TRUE, OUT usersFileOA ) THEN
+         RETURN FALSE;
+      END;
+      FIO.PathAddW( REF usersFileOA, cfSmartServerUsers );
+      IF NOT cfg.LoadPath( usersFileOA ) THEN 
+         RETURN FALSE;
+      END;
+      
+      IF cfg.SetSection( snRoles ) THEN
+         es := 0;
+         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT key, OUT role ) DO
+            IF EQUALS( key, knNamed ) THEN
+               _Roles.Add( role, PTR( roleUserNamed ));
+            ELSIF EQUALS( key, knKeyed ) THEN
+               _Roles.Add( role, PTR( roleUserKeyed ));
+            ELSE
+               CONTINUE;
+            END;
+         END; // WHILE roles
+      END;
+      
+      IF cfg.SetSection( snUsers ) THEN
+         es := 0;
+         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT key, OUT authinfo ) DO
+            IF NOT _Roles.ContainsOA( key ) THEN
+               CONTINUE;
+            END;
+            
+            role.FromOA( key );
+            authinfo.Trim();
+            _Users.Add( role, authinfo )
+         END; // WHILE roles
+      END;
+      
+      RETURN TRUE;
+   END LoadWebUsers;
 
 (*--------------------------------------------------------------------------------*)
 
