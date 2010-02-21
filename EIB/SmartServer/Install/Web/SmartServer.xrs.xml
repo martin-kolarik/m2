@@ -39,6 +39,10 @@
             <item lang="en-US">Direct IO</item>
             <item lang="cs-CZ">Přímý přístup</item>
         </string>
+        <string name="menu.users">
+            <item lang="en-US">Users</item>
+            <item lang="cs-CZ">Uživatelé</item>
+        </string>
         <string name="menu.logout">
             <item lang="en-US">Logout</item>
             <item lang="cs-CZ">Odhlásit</item>
@@ -216,6 +220,15 @@
         <string name="io.writeFailure">
             <item lang="en-US">Write failed.</item>
             <item lang="cs-CZ">Zápis se nezdařil.</item>
+        </string>
+        
+        <string name="users.roles">
+            <item lang="en-US">Roles</item>
+            <item lang="cs-CZ">Role</item>
+        </string>
+        <string name="users.users">
+            <item lang="en-US">Users</item>
+            <item lang="cs-CZ">Uživatelé</item>
         </string>
         
     </strings>

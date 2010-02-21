@@ -148,3 +148,19 @@ h1.mainTitle
   font-size: 125%;
   color: Green;
 }
+
+div.roles
+{
+  overflow: scroll;
+  width: 325px;
+  height: 314px;
+  margin-right: 5px;
+}
+
+div.users
+{
+  overflow: scroll;
+  width: 325px;
+  height: 314px;
+  margin-left: 5px;
+}

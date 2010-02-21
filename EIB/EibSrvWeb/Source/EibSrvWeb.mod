@@ -888,6 +888,14 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.IO_PAGE );
       _MVC^.RegisterController( _Controller, HttpCommon.verbPOST, Controller.IO_PAGE );
       
+      _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.USERS_PAGE );
+
+      _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.ROLE_EDIT_PAGE );
+      _MVC^.RegisterController( _Controller, HttpCommon.verbPOST, Controller.ROLE_EDIT_PAGE );
+      
+      _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.USER_EDIT_PAGE );
+      _MVC^.RegisterController( _Controller, HttpCommon.verbPOST, Controller.USER_EDIT_PAGE );
+      
       _MVC^.RegisterFallbackController( _Controller );
    END AddControllers;
 

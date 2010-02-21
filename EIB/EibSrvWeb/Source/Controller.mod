@@ -39,6 +39,9 @@ CONST
    DATA_LOG_VIEW = L"datalog.pt.xml";
    SYSTEM_LOG_VIEW = L"syslog.pt.xml";
    IO_VIEW = L"io.pt.xml";
+   USERS_VIEW = L"users.pt.xml";
+   ROLE_EDIT_VIEW = L"roleEdit.pt.xml";
+   USER_EDIT_VIEW = L"userEdit.pt.xml";
    INDEX_VIEW = L"index.pt.xml";
    
    LOGIN_MESSAGE = L"message";
@@ -381,6 +384,33 @@ CLASS IMPLEMENTATION CController;
       ELSIF Request.ControllerURI.EqualsOA( IO_PAGE ) THEN
          Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, role = EibSrvWeb.roleSystemAdministrator );
          RETURN ProcessIO( Request, OUT View );
+
+      ELSIF Request.ControllerURI.EqualsOA( USERS_PAGE ) THEN
+         IF role = EibSrvWeb.roleSystemAdministrator THEN
+            Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, TRUE );
+            RETURN ProcessUsers( Request, OUT View );
+         ELSE
+            View := mvc.httpStatusCodeView( HttpCommon.httpres_Unauthorized );
+            RETURN TRUE;
+         END;
+
+      ELSIF Request.ControllerURI.EqualsOA( ROLE_EDIT_PAGE ) THEN
+         IF role = EibSrvWeb.roleSystemAdministrator THEN
+            Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, TRUE );
+            RETURN ProcessRoleEdit( Request, OUT View );
+         ELSE
+            View := mvc.httpStatusCodeView( HttpCommon.httpres_Unauthorized );
+            RETURN TRUE;
+         END;
+
+      ELSIF Request.ControllerURI.EqualsOA( USER_EDIT_PAGE ) THEN
+         IF role = EibSrvWeb.roleSystemAdministrator THEN
+            Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, TRUE );
+            RETURN ProcessUserEdit( Request, OUT View );
+         ELSE
+            View := mvc.httpStatusCodeView( HttpCommon.httpres_Unauthorized );
+            RETURN TRUE;
+         END;
 
       END;
 
@@ -776,6 +806,30 @@ CLASS IMPLEMENTATION CController;
       View := mvc.pageTemplateView( ADR( SELF ), IO_VIEW );
       RETURN TRUE;
    END ProcessIO;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ProcessUsers( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   BEGIN
+      View := mvc.pageTemplateView( ADR( SELF ), USERS_VIEW );
+      RETURN TRUE;
+   END ProcessUsers;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ProcessRoleEdit( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   BEGIN
+      View := mvc.pageTemplateView( ADR( SELF ), ROLE_EDIT_VIEW );
+      RETURN TRUE;
+   END ProcessRoleEdit;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ProcessUserEdit( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   BEGIN
+      View := mvc.pageTemplateView( ADR( SELF ), USER_EDIT_VIEW );
+      RETURN TRUE;
+   END ProcessUserEdit;
 
 (*--------------------------------------------------------------------------------*)
 

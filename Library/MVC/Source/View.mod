@@ -461,8 +461,9 @@ CONST
       PT_ORDER = L"order";
       PT_ODD = L"odd";
    PT_FOREACH = L"foreach";
-      PT_SOURCE = L"source";
+      // model;
       PT_ITEM = L"item";
+      PT_DATA = L"data";
    PT_FORM = L"form";
       PT_ACTION = L"action";
       PT_MODEL = L"model";
@@ -483,7 +484,7 @@ CONST
       PT_FORM_ERRORS = L"errors";
    PT_VARIABLE = L"variable";
       // model
-      // source
+      PT_SOURCE = L"source";
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1201,6 +1202,8 @@ CLASS IMPLEMENTATION CPageTemplateView;
    VAR
       attribute : StringsO.CString;
       current : StringsO.TPString;
+      currentData : StringsO.TPString;
+      data : StringsO.CString;
       depth : INTEGER := 0;
       haveSource : BOOLEAN := FALSE;
       haveList : BOOLEAN := FALSE;
@@ -1211,6 +1214,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       list : lists.TPStringStringList;
       loopItem : INTEGER;
       map : maps.TPStringStringMap;
+      model : StringsO.CString;
       nl : NodeList.CNodeList;
       nodeName : StringsO.CString;
       nodePrefix : StringsO.CString;
@@ -1220,7 +1224,6 @@ CLASS IMPLEMENTATION CPageTemplateView;
       order : StringsO.CString;
       pname : StringsO.TPString;
       prefix : StringsO.CString;
-      source : StringsO.CString;
       value : StringsO.CString;
    BEGIN
       prefix := Prefix;
@@ -1231,9 +1234,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
       WHILE attributes.MoveNext() DO
          pname := StringsO.TPString( attributes.Current );
 
-         attribute := prefix; attribute.AppendOA( PT_SOURCE );
-         IF pname^.EqualsIgnoreCaseOA( PT_SOURCE ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT source );
+         attribute := prefix; attribute.AppendOA( PT_MODEL );
+         IF pname^.EqualsIgnoreCaseOA( PT_MODEL ) OR pname^.EqualsIgnoreCase( attribute ) THEN
+            ParseText( attributes.CurrentData^, OUT model );
             CONTINUE;
          END;
          
@@ -1252,6 +1255,12 @@ CLASS IMPLEMENTATION CPageTemplateView;
          attribute := prefix; attribute.AppendOA( PT_ITEM );
          IF pname^.EqualsIgnoreCaseOA( PT_ITEM ) OR pname^.EqualsIgnoreCase( attribute ) THEN
             ParseText( attributes.CurrentData^, OUT item );
+            CONTINUE;
+         END;
+
+         attribute := prefix; attribute.AppendOA( PT_DATA );
+         IF pname^.EqualsIgnoreCaseOA( PT_DATA ) OR pname^.EqualsIgnoreCase( attribute ) THEN
+            ParseText( attributes.CurrentData^, OUT data );
             CONTINUE;
          END;
 
@@ -1311,15 +1320,20 @@ CLASS IMPLEMENTATION CPageTemplateView;
                EXIT;
             END;
             current := list^.Current;
+            currentData := list^.CurrentData;
          ELSE
             IF NOT map^.MoveNext() THEN
                EXIT;
             END;
             current := map^.Current;
+            currentData := map^.CurrentData;
          END;
          
          IF NOT item.Empty THEN
             Request^.ModelContainer^.SetModelValue( Request^, item, current^ );
+         END;
+         IF NOT data.Empty THEN
+            Request^.ModelContainer^.SetModelValue( Request^, item, currentData^ );
          END;
          IF NOT odd.Empty THEN
             SetModelBoolean( odd, loopItem AND 1 = 1 );
