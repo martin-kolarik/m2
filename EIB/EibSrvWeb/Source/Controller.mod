@@ -86,6 +86,9 @@ CONST
    IO_WRITE_VALUE = L"writeValue";
    IO_DO_WRITE = L"write";
    IO_WRITE_FAILED = L"writeFailed";
+   
+   USERS_ROLES = L"roles";
+   USERS_USERS = L"users";
 
    DYNAMIC_SUFFIX = L".pt.xml";
    FN_SET = L"set";
@@ -810,7 +813,31 @@ CLASS IMPLEMENTATION CController;
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE ProcessUsers( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   VAR
+      i : CARDINAL;
+      listRoles : lists.TPStringStringList;
+      listUsers : lists.TPStringStringList;
+      role : EibSrvWeb.TRole;
+      roleName : StringsO.CString;
+      userName : StringsO.CString;
    BEGIN
+      Request.ModelContainer^.AddListOA( USERS_ROLES, OUT listRoles ); listRoles^.Dispose();
+      Request.ModelContainer^.AddListOA( USERS_USERS, OUT listUsers ); listUsers^.Dispose();
+
+      // roles
+      i := 0;
+      WHILE _Web^.GetRole( i, OUT role, OUT userName ) DO
+         listRoles^.Add( userName, userName );
+         INC( i );
+      END; // WHILE
+   
+      // users
+      i := 0;
+      WHILE _Web^.GetUser( i, OUT role, OUT roleName, OUT userName ) DO
+         listUsers^.Add( userName, roleName );
+         INC( i );
+      END; // WHILE
+   
       View := mvc.pageTemplateView( ADR( SELF ), USERS_VIEW );
       RETURN TRUE;
    END ProcessUsers;

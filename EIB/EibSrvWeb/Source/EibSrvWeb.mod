@@ -638,6 +638,61 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY RolesCount GET : CARDINAL;
+   BEGIN
+      RETURN _Roles.Count;
+   END RolesCount;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY UsersCount GET : CARDINAL;
+   BEGIN
+      RETURN _Users.Count;
+   END UsersCount;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE GetRole( i : CARDINAL; OUT role : TRole; OUT name : StringsO.IString ) : BOOLEAN;
+   VAR
+      data : PTR;
+   BEGIN
+      IF NOT _Roles.ElementAt( i, OUT name, OUT data ) THEN
+         RETURN FALSE;
+      END;
+
+      role := TRole( LOPTRLONGWORD( data ));
+
+      RETURN TRUE;
+   END GetRole;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE GetUser( i : CARDINAL; OUT role : TRole; OUT roleName : StringsO.IString; OUT userName : StringsO.IString ) : BOOLEAN;
+   VAR
+      authinfo : StringsO.CString;
+      data : PTR;
+   BEGIN
+      IF NOT _Users.ElementAt( i, OUT roleName, OUT authinfo ) THEN
+         RETURN FALSE;
+      ELSIF NOT _Roles.Get( roleName, OUT data ) THEN
+         RETURN FALSE;
+      END;
+
+      i := authinfo.IndexOfOA( L",", 0 );
+      IF i = -1 THEN
+         RETURN FALSE;
+      END;
+      authinfo.Length := i;
+      authinfo.Trim();
+      
+      userName.Assign( authinfo );
+      role := TRole( LOPTRLONGWORD( data ));
+
+      RETURN TRUE;
+   END GetUser;
+   
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPBufferedLogger; HttpLogger : Log.TPILogger ) : BOOLEAN;
    CONST
       snProject = L"project";

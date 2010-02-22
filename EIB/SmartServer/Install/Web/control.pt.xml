@@ -29,7 +29,7 @@
 
                         <h1>${msg.control.interfaces}</h1>
                         <table cellpadding="0px" cellspacing="0px">
-                          <pt:foreach source="names" index="index" item="name">
+                          <pt:foreach model="names" index="index" item="name">
                             <tr>
                               <td>${name}</td><td class="spare"> </td>
                                 <pt:choose>

@@ -30,7 +30,7 @@
                               <tr>
 
                                   <td><h1>${msg.users.roles}</h1><div class="roles">
-                                      <pt:foreach model="${roles}" odd="isOdd" item="item"
+                                      <pt:foreach model="roles" odd="isOdd" item="item">
                                           <pt:variable model="lineClass" source="even" />
                                           <pt:variable condition="${isOdd}" model="lineClass" source="odd" />
                                           <span class="${lineClass}">${item}</span>
@@ -41,7 +41,7 @@
                                   </div></td>
 
                                   <td><h1>${msg.users.users}</h1><div class="users">
-                                      <pt:foreach source="${users}" odd="isOdd" item="item" data="data">
+                                      <pt:foreach model="users" odd="isOdd" item="item" data="data">
                                           <pt:variable model="lineClass" source="even" />
                                           <pt:variable condition="${isOdd}" model="lineClass" source="odd" />
                                           <span class="${lineClass}">${item}</span>

@@ -1272,17 +1272,17 @@ CLASS IMPLEMENTATION CPageTemplateView;
       END; // WHILE
       
       // get list or map
-      IF source.Empty THEN
+      IF model.Empty THEN
          value.FromOA( L"(pt:)foreach" );
-         SetError( value, NIL, L'Missing "source" attribute.' );
+         SetError( value, NIL, L'Missing "model" attribute.' );
          RETURN FALSE;
-      ELSIF Request^.ModelContainer^.GetListOA( OA( source.Length-1, source.rawData ), OUT list ) THEN
+      ELSIF Request^.ModelContainer^.GetListOA( OA( model.Length-1, model.rawData ), OUT list ) THEN
          haveList := TRUE;
-      ELSIF Request^.ModelContainer^.GetMapOA( OA( source.Length-1, source.rawData ), OUT map ) THEN
+      ELSIF Request^.ModelContainer^.GetMapOA( OA( model.Length-1, model.rawData ), OUT map ) THEN
          haveList := FALSE;
       ELSE
          value.FromOA( L"(pt:)foreach" );
-         SetError( value, NIL, L'"source" attribute is not map either list.' );
+         SetError( value, NIL, L'"model" attribute is not map either list.' );
          RETURN FALSE;
       END;
 
@@ -1333,7 +1333,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
             Request^.ModelContainer^.SetModelValue( Request^, item, current^ );
          END;
          IF NOT data.Empty THEN
-            Request^.ModelContainer^.SetModelValue( Request^, item, currentData^ );
+            Request^.ModelContainer^.SetModelValue( Request^, data, currentData^ );
          END;
          IF NOT odd.Empty THEN
             SetModelBoolean( odd, loopItem AND 1 = 1 );

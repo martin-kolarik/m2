@@ -82,6 +82,13 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
    
    PUBLIC PROCEDURE Authenticate( CONST Name, Password : StringsO.IString; OUT Role : StringsO.IString ) : TRole; // name can be empty if only a number is required for the password
    
+   // roles and users
+   PUBLIC READONLY PROPERTY
+      RolesCount : CARDINAL;
+      UsersCount : CARDINAL;
+   PUBLIC PROCEDURE GetRole( i : CARDINAL; OUT role : TRole; OUT name : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE GetUser( i : CARDINAL; OUT role : TRole; OUT roleName : StringsO.IString; OUT userName : StringsO.IString ) : BOOLEAN;
+   
    // SELF
    PRIVATE VAR
       _Context : StringsO.CString;
