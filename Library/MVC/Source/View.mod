@@ -711,7 +711,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
             PrefixCondition.AppendOA( PT_CONDITION );
             
             IF NOT Reader.CurrentEmpty THEN
-               RETURN Parse( TRUE, FALSE, FALSE );
+               RETURN Parse( TRUE, FALSE );
             END;
 
          | xmlreader.xntAttribute :
@@ -724,7 +724,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE Parse( emit, limitToPTOnly, balanced : BOOLEAN ) : BOOLEAN;
+   PRIVATE PROCEDURE Parse( emit, limitToPTOnly : BOOLEAN ) : BOOLEAN;
    VAR
       attributes : lists.CStringStringList;
       depth : INTEGER := 0;
@@ -786,10 +786,6 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
          | xmlreader.xntElementEnd :
             Writer.WriteElementEnd(); // writer does it itself
-            
-            IF balanced AND ( depth = 0 ) THEN
-               RETURN TRUE;
-            END;
 
          END; // CASE
 
@@ -814,7 +810,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          IF ptFlag AND pname^.EqualsIgnoreCaseOA( PT_CONDITION ) OR pname^.EqualsIgnoreCase( PrefixCondition ) THEN
             ParseText( attributes.CurrentData^, OUT condition );
             IF NOT EvaluateBoolean( condition ) THEN
-               IF isEmpty OR Parse( FALSE, limitToPTOnly, FALSE ) THEN
+               IF isEmpty OR Parse( FALSE, limitToPTOnly ) THEN
                   RETURN esaProcessedInDeep;
                ELSE
                   RETURN esaError;
@@ -928,7 +924,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       CopyAttributes( TRUE, attributes, ignoreOA1, ignoreOA2 );
       IF isEmpty THEN
          Writer.WriteElementEnd();
-      ELSIF Parse( TRUE, limitToPTOnly, FALSE ) THEN // input can contain text
+      ELSIF Parse( TRUE, limitToPTOnly ) THEN // input can contain text
          Writer.WriteElementEnd();
       ELSE
          RETURN FALSE;
@@ -1004,7 +1000,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
                   END;
                END;
                
-               IF isEmpty OR Parse( emit = 1, FALSE, FALSE ) THEN
+               IF isEmpty OR Parse( emit = 1, FALSE ) THEN
                   // continue
                ELSE
                   RETURN FALSE;
@@ -1017,7 +1013,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
                END;
                haveOtherwise := TRUE;
 
-               IF isEmpty OR Parse( NOT done, FALSE, FALSE ) THEN
+               IF isEmpty OR Parse( NOT done, FALSE ) THEN
                   // continue
                ELSE
                   RETURN FALSE;
@@ -1184,7 +1180,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          END;
 
          nl.Reset(); // prepare parsing
-         IF NOT Parse( TRUE, FALSE, TRUE ) THEN
+         IF NOT Parse( TRUE, FALSE ) THEN
             RETURN FALSE;
          END;
 
@@ -1348,7 +1344,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          END;
 
          nl.Reset(); // prepare parsing
-         IF NOT Parse( TRUE, FALSE, TRUE ) THEN
+         IF NOT Parse( TRUE, FALSE ) THEN
             RETURN FALSE;
          END;
 
@@ -1696,12 +1692,17 @@ CLASS IMPLEMENTATION CPageTemplateView;
             nodeType := Reader.CurrentType;
             CASE nodeType OF
             | xmlreader.xntText :
+               nodePrefix.Clear();
+               nodeName.Clear();
+               empty := FALSE;
                nodeValue.Assign( Reader.CurrentValue );
+               attributes.Dispose();
                RETURN xmlreader.xmle_S_OK;
 
             | xmlreader.xntElementBegin :
                nodePrefix.Assign( Reader.CurrentPrefix );
                nodeName.Assign( Reader.CurrentName );
+               nodeValue.Clear();
                empty := Reader.CurrentEmpty;
 
                // get attributes
@@ -1720,6 +1721,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
             | xmlreader.xntElementEnd :
                nodePrefix.Assign( Reader.CurrentPrefix );
                nodeName.Assign( Reader.CurrentName );
+               empty := FALSE;
+               nodeValue.Clear();
+               attributes.Dispose();
                RETURN xmlreader.xmle_S_OK;
 
             END; // CASE
@@ -1728,8 +1732,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       ELSE
          nl := NodeList.TPNodeList( Sources.Peek());
          IF NOT nl^.MoveNext() THEN
-            ASSERTLOG( FALSE );
-            RETURN xmlreader.xmle_S_FALSE; // should not occur
+            RETURN xmlreader.xmle_S_FALSE;
          END;
          
          nli := nl^.Current;

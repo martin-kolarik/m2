@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html">
+    <html>
+        <head>
+            <title>NeNo KNX/EIBSrv</title>
+            <link rel="StyleSheet" type="text/css" href="NeNo.css" />
+        </head>
+        <body>
+            <div class="shell">
+                <div class="shell-topstrip"></div>
+                <div class="canvas">
+
+                    <div class="top">
+                    </div>
+
+                    <div class="middle">
+                        <div id="menu">
+                            <p><a href="users">${msg.menu.users}</a></p>
+                            <p class="logout"><a href="logout">${msg.menu.logout}</a></p>
+                        </div>
+
+                        <div class="content">
+                            <pt:choose>
+                                <pt:when condition="${error}">
+                                    <h1 class="error">${errorText}</h1>
+                                </pt:when>
+                                <pt:otherwise>
+
+                                    <h1>${msg.userEdit.title}</h1>
+
+                                    <pt:form method="post" action="userEdit">
+
+                                        <table cellpadding="0px" cellspacing="0px">
+                                            <tr>
+                                                <td>${msg.userEdit.name}</td>
+                                                <td class="spare"> </td>
+                                                <td>
+                                                    <pt:input model="name"/>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>${msg.userEdit.role}</td>
+                                                <td class="spare"> </td>
+                                                <td>
+                                                    <pt:select model="role">
+                                                        <pt:foreach model="roles" item="item" index="index">
+                                                            <pt:option model="roleIds[index]" selected="equal(role,item)">${item}</pt:option>
+                                                        </pt:foreach>
+                                                    </pt:select>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>${msg.userEdit.password1}</td>
+                                                <td class="spare"> </td>
+                                                <td>
+                                                    <pt:password model="password1"/>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>${msg.userEdit.password2}</td>
+                                                <td class="spare"> </td>
+                                                <td>
+                                                    <pt:password model="password2"/>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="2"> </td>
+                                                <td>
+                                                    <input type="submit" value="${msg.userEdit.submit}"/>
+                                                </td>
+                                            </tr>
+                                            <tr condition="${message}">
+                                                <td colspan="2"> </td>
+                                                <td><p class="error">${message}</p></td>
+                                            </tr>
+                                        </table>
+
+                                    </pt:form>
+
+                                </pt:otherwise>
+                            </pt:choose>
+
+                            <p><a href="users">${msg.users.backToUsers}</a></p>
+                        </div>
+
+                    </div>
+
+                    <div class="bottom">
+                      <p>EIB/KNX SmartServer © NeNo ver. ${version}</p>
+                    </div>
+
+                </div>
+            </div>
+        </body>
+    </html>
+</pageTemplate>
