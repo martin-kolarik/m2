@@ -267,6 +267,10 @@
             <item lang="en-US">Accept</item>
             <item lang="cs-CZ">Použít</item>
         </string>
+        <string name="userEdit.nameIsEmpty">
+            <item lang="en-US">Name must be defined.</item>
+            <item lang="cs-CZ">Jméno musí být zadáno.</item>
+        </string>
         <string name="userEdit.passwordEmpty">
             <item lang="en-US">Password is cannot be empty.</item>
             <item lang="cs-CZ">Heslo nemůže být prázdné.</item>
@@ -278,6 +282,10 @@
         <string name="userEdit.roleIsEmpty">
             <item lang="en-US">Role is must be selected.</item>
             <item lang="cs-CZ">Role musí být vybrána.</item>
+        </string>
+        <string name="userEdit.updateFailed">
+            <item lang="en-US">User save failed.</item>
+            <item lang="cs-CZ">Uložení uživatele selhalo.</item>
         </string>
         
     </strings>

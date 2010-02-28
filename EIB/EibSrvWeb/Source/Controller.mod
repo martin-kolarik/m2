@@ -104,9 +104,11 @@ CONST
    USER_EDIT_ROLE = L"role";
    USER_EDIT_PASSWORD1 = L"password1";
    USER_EDIT_PASSWORD2 = L"password2";
+   USER_EDIT_ERROR_TEXT_EMPTYNAME = L"userEdit.nameIsEmpty";
    USER_EDIT_ERROR_TEXT_PASSWORDEMPTY = L"userEdit.passwordEmpty";
    USER_EDIT_ERROR_TEXT_PASSWORDSDONOTMATCH = L"userEdit.passwordDoNotMatch";
    USER_EDIT_ERROR_TEXT_EMPTYROLE = L"userEdit.roleIsEmpty";
+   USER_EDIT_ERROR_TEXT_UPDATEFAILED = L"userEdit.updateFailed";
 
    DYNAMIC_SUFFIX = L".pt.xml";
    FN_SET = L"set";
@@ -852,22 +854,22 @@ CLASS IMPLEMENTATION CController;
       Request.ModelContainer^.AddListOA( USERS_USER_IDS, OUT listUserIds ); listUserIds^.Dispose();
 
       // roles
-      i := 0;
-      WHILE _Web^.GetRole( i, OUT role, OUT userName ) DO
-         listRoles^.Add( userName, userName );
-         cs.FromCARD32( i+1, 10 );
-         listRoleIds^.Add( cs, cs );
-         INC( i );
-      END; // WHILE
+      FOR i := 0 TO _Web^.RolesCount-1 DO
+         IF _Web^.GetRole( i, OUT role, OUT roleName ) THEN
+            listRoles^.Add( roleName, roleName );
+            cs.FromCARD32( i+1, 10 );
+            listRoleIds^.Add( cs, cs );
+         END;
+      END; // FOR
    
       // users
-      i := 0;
-      WHILE _Web^.GetUser( i, OUT role, OUT roleName, OUT userName ) DO
-         listUsers^.Add( userName, roleName );
-         cs.FromCARD32( i+1, 10 );
-         listUserIds^.Add( cs, cs );
-         INC( i );
-      END; // WHILE
+      FOR i := 0 TO _Web^.UsersCount-1 DO
+         IF _Web^.GetUser( i, OUT role, OUT userName, OUT roleName ) THEN
+            listUsers^.Add( userName, roleName );
+            cs.FromCARD32( i+1, 10 );
+            listUserIds^.Add( cs, cs );
+         END;
+      END; // FOR
    
       View := mvc.pageTemplateView( ADR( SELF ), USERS_VIEW );
       RETURN TRUE;
@@ -888,6 +890,7 @@ CLASS IMPLEMENTATION CController;
       Edit;
    VAR
       action : StringsO.CString;
+      currentName : StringsO.CString;
       cs1, cs2 : StringsO.CString;
       empty : StringsO.CString;
       i : CARDINAL;
@@ -903,33 +906,48 @@ CLASS IMPLEMENTATION CController;
       Request.ModelContainer^.AddStringOA( USERS_ERROR_TEXT, empty );
       Request.ModelContainer^.AddStringOA( MESSAGE, empty );
 
+      // retrieve editation id      
+      Request.ModelContainer^.GetStringOA( USERS_ID, OUT ids );
+      IF NOT ids.Empty THEN
+         ids.ToINT32( 10, OUT id );
+         IF id = -1 THEN // new user is to be edited
+            role := EibSrvWeb.roleUserNamed;
+         ELSE
+            DEC( id );
+            IF NOT _Web^.GetUser( id, OUT role, OUT currentName, OUT roleName ) THEN
+               Request.ModelContainer^.AddBooleanOA( USERS_ERROR, TRUE );
+               Request.MessageSource^.GetMessageOA( Request.Language, USERS_ERROR_TEXT_BADEDITDATA, OUT cs1 );
+               Request.ModelContainer^.AddStringOA( USERS_ERROR_TEXT, cs1 );
+            END;
+         END;
+      END;
+
       IF Request.RequestVerb = HttpCommon.verbPOST THEN // OK, process form output
          // validate
+         Request.ModelContainer^.GetStringOA( USER_EDIT_NAME, OUT userName ); 
          Request.ModelContainer^.GetStringOA( USER_EDIT_PASSWORD1, OUT cs1 ); 
          Request.ModelContainer^.GetStringOA( USER_EDIT_PASSWORD2, OUT cs2 );
          Request.ModelContainer^.GetStringOA( USER_EDIT_ROLE, OUT roleName );
-         IF cs1.Empty THEN
+         IF userName.Empty THEN
+            Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_EMPTYNAME, OUT cs1 );
+         ELSIF cs1.Empty THEN
             Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_PASSWORDEMPTY, OUT cs1 );
-            Request.ModelContainer^.AddStringOA( MESSAGE, cs1 );
-            // fall down back to the form
          ELSIF cs1 <> cs2 THEN
             Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_PASSWORDSDONOTMATCH, OUT cs1 );
-            Request.ModelContainer^.AddStringOA( MESSAGE, cs1 );
-            // fall down back to the form
          ELSIF roleName.Empty THEN
             Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_EMPTYROLE, OUT cs1 );
-            Request.ModelContainer^.AddStringOA( MESSAGE, cs1 );
-            // fall down back to the form
 
-         ELSE // process success
+         ELSIF _Web^.UpdateUser( roleName, currentName, userName, cs2 ) THEN // either add new or update edited user
             Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id
-
-            // either add new or update edited user
-            // TODO
-
             View := mvc.redirectView( USERS_PAGE );
             RETURN TRUE;
+         ELSE // error during updating
+            Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_UPDATEFAILED, OUT cs1 );
          END;
+
+         // fill error message
+         Request.ModelContainer^.AddStringOA( MESSAGE, cs1 );
+         currentName.Assign( userName );
 
       ELSIF Request.ModelContainer^.GetStringOA( USERS_ACTION, OUT action ) AND NOT action.Empty THEN
          Request.ModelContainer^.AddStringOA( USERS_ACTION, empty );
@@ -939,10 +957,7 @@ CLASS IMPLEMENTATION CController;
 
             IF action.EqualsOA( ACTION_DELETE ) THEN
                Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id, no next deletion allowed
-
-               // delete using ids
-               // TODO
-
+               _Web^.DeleteUser( currentName );
                View := mvc.redirectView( USERS_PAGE );
                RETURN TRUE;
 
@@ -958,26 +973,10 @@ CLASS IMPLEMENTATION CController;
          END;
       END;
 
-      // retrieve editation id      
-      Request.ModelContainer^.GetStringOA( USERS_ID, OUT ids );
-      ids.ToINT32( 10, OUT id );
-      IF id = -1 THEN // new user is to be edited
-         role := EibSrvWeb.roleUserNamed;
-         roleName.Clear();
-         userName.Clear();
-      ELSE
-         DEC( id );
-         IF NOT _Web^.GetUser( id, OUT role, OUT roleName, OUT userName ) THEN
-            Request.ModelContainer^.AddBooleanOA( USERS_ERROR, TRUE );
-            Request.MessageSource^.GetMessageOA( Request.Language, USERS_ERROR_TEXT_BADEDITDATA, OUT cs1 );
-            Request.ModelContainer^.AddStringOA( USERS_ERROR_TEXT, cs1 );
-         END;
-      END;
-
    Edit:
       Request.ModelContainer^.AddBooleanOA( USER_EDIT_UNNAMED, role = EibSrvWeb.roleUserKeyed );
       Request.ModelContainer^.AddStringOA( USER_EDIT_ROLE, roleName );
-      Request.ModelContainer^.AddStringOA( USER_EDIT_NAME, userName );
+      Request.ModelContainer^.AddStringOA( USER_EDIT_NAME, currentName );
       Request.ModelContainer^.AddStringOA( USER_EDIT_PASSWORD1, empty );
       Request.ModelContainer^.AddStringOA( USER_EDIT_PASSWORD2, empty );
 
@@ -985,8 +984,8 @@ CLASS IMPLEMENTATION CController;
       Request.ModelContainer^.AddListOA( USERS_ROLES, OUT listRoles ); listRoles^.Dispose();
       Request.ModelContainer^.AddListOA( USERS_ROLE_IDS, OUT listRoleIds ); listRoleIds^.Dispose();
       i := 0;
-      WHILE _Web^.GetRole( i, OUT role, OUT userName ) DO
-         listRoles^.Add( userName, userName );
+      WHILE _Web^.GetRole( i, OUT role, OUT roleName ) DO
+         listRoles^.Add( roleName, roleName );
          cs1.FromCARD32( i+1, 10 );
          listRoleIds^.Add( cs1, cs1 );
          INC( i );

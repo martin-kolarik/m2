@@ -44,7 +44,7 @@
                                                 <td>
                                                     <pt:select model="role">
                                                         <pt:foreach model="roles" item="item" index="index">
-                                                            <pt:option model="roleIds[index]" selected="equal(role,item)">${item}</pt:option>
+                                                            <pt:option model="item" selected="equal(role,item)">${item}</pt:option>
                                                         </pt:foreach>
                                                     </pt:select>
                                                 </td>

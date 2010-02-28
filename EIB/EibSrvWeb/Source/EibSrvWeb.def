@@ -87,7 +87,11 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       RolesCount : CARDINAL;
       UsersCount : CARDINAL;
    PUBLIC PROCEDURE GetRole( i : CARDINAL; OUT role : TRole; OUT name : StringsO.IString ) : BOOLEAN;
-   PUBLIC PROCEDURE GetUser( i : CARDINAL; OUT role : TRole; OUT roleName : StringsO.IString; OUT userName : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE GetUser( i : CARDINAL; OUT role : TRole; OUT userName, roleName : StringsO.IString ) : BOOLEAN;
+   
+   PUBLIC PROCEDURE UpdateRole( CONST roleName : StringsO.IString; role : TRole ) : BOOLEAN;
+   PUBLIC PROCEDURE UpdateUser( CONST currenName, userName, roleName, password : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE DeleteUser( CONST userName : StringsO.IString );
    
    // SELF
    PRIVATE VAR
@@ -105,8 +109,8 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       _ConfigLogger : Log.TPBufferedLogger;
       _DataLogger : Log.TPBufferedLogger;
       _HttpLogger : Log.TPILogger;
-      _Roles : lists.CStringList;
-      _Users : lists.CStringStringList;
+      _Roles : maps.CStringMap;
+      _Users : maps.CStringStringMap;
       _Lock : Sync.RWLOCK;
       _AccessList : accesslist.CAccessList;
       _Project : StringsO.CString;
@@ -133,6 +137,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
    
    // PRIVATE
    PRIVATE PROCEDURE LoadWebUsers() : BOOLEAN;
+   PRIVATE PROCEDURE PersistUsers();
 
    PRIVATE PROCEDURE AddControllers();
    PRIVATE PROCEDURE RemoveControllers();

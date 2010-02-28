@@ -60,7 +60,7 @@
                                               <pt:variable condition="${isOdd}" model="lineClass" source="odd" />
                                               <div class="row">
                                                   <a href="userEdit?action=delete&amp;id=${userIds[index]}"><img border="0px" src="Trash24.png"/></a>
-                                                  <a href="userEdit?action=edit&amp;id=${roleIds[index]}"><img border="0px" src="Edit24.png"/></a>
+                                                  <a href="userEdit?action=edit&amp;id=${userIds[index]}"><img border="0px" src="Edit24.png"/></a>
                                                   <span> </span>
                                                   <span class="user">${item}</span>
                                                   <span class="userRole">[${data}]</span>
