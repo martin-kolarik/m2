@@ -1,74 +1,78 @@
 <?xml version="1.0" encoding="utf-8"?>
 <pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html">
-  <html>
-      <head>
-          <title>NeNo KNX/EIBSrv</title>
-          <link rel="StyleSheet" type="text/css" href="NeNo.css" />
-      </head>
-      <body>
-          <div class="shell">
-              <div class="shell-topstrip"></div>
-              <div class="canvas">
+    <html>
+        <head>
+            <title>NeNo KNX/EIBSrv</title>
+            <link rel="StyleSheet" type="text/css" href="NeNo.css" />
+        </head>
+        <body>
+            <div class="shell">
+                <div class="shell-topstrip"></div>
+                <div class="canvas">
 
-                  <div class="top">
-                  </div>
+                    <div class="top">
+                    </div>
 
-                  <div class="middle">
-                      <div id="menu">
-                          <p><a href="status">${msg.menu.status}</a></p>
-                          <p><a href="control">${msg.menu.control}</a></p>
-                          <p><a href="datalog">${msg.menu.datalog}</a></p>
-                          <p><a href="syslog">${msg.menu.syslog}</a></p>
-                          <p><a href="io">${msg.menu.io}</a></p>
-                          <p> </p>
-                          <p><a href="users">${msg.menu.users}</a></p>
-                          <p class="logout"><a href="logout">${msg.menu.logout}</a></p>
-                      </div>
+                    <div class="middle">
+                        <div id="menu">
+                            <p><a href="users">${msg.menu.users}</a></p>
+                            <p class="logout"><a href="logout">${msg.menu.logout}</a></p>
+                        </div>
 
-                      <div class="content">
-                          <table cellspacing="0px" cellpadding="0px">
-                              <tr>
+                        <div class="content">
+                            <pt:choose>
+                                <pt:when condition="${error}">
+                                    <h1 class="error">${errorText}</h1>
+                                </pt:when>
+                                <pt:otherwise>
 
-                                  <td><h1>${msg.users.roles}</h1><div class="roles">
-                                      <pt:foreach model="roles" odd="isOdd" index="index" item="item">
-                                          <pt:variable model="lineClass" source="even" />
-                                          <pt:variable condition="${isOdd}" model="lineClass" source="odd" />
-                                          <div class="row">
-                                              <a href="roleEdit?action=delete&amp;id=${roleIds[index]}"><img border="0px" src="Trash24.png"/></a>
-                                              <a href="roleEdit"><img border="0px" src="Edit24.png"/></a>
-                                              <span> </span>
-                                              <span class="role">${item}</span>
-                                          </div>
-                                      </pt:foreach>
+                                    <h1>${msg.roleEdit.title}</h1>
 
-                                  </div></td>
+                                    <pt:form method="post" action="roleEdit">
 
-                                  <td><h1>${msg.users.users}</h1><div class="users">
-                                      <pt:foreach model="users" odd="isOdd" index="index" item="item" data="data">
-                                          <pt:variable model="lineClass" source="even" />
-                                          <pt:variable condition="${isOdd}" model="lineClass" source="odd" />
-                                          <div class="row">
-                                              <a href="userEdit?action=delete&amp;id=${userIds[index]}"><img border="0px" src="Trash24.png"/></a>
-                                              <a href="users"><img border="0px" src="Edit24.png"/></a>
-                                              <span> </span>
-                                              <span class="user">${item}</span>
-                                              <span class="userRole">[${data}]</span>
-                                          </div>
-                                      </pt:foreach>
+                                        <table cellpadding="0px" cellspacing="0px">
+                                            <tr>
+                                                <td>${msg.roleEdit.name}</td>
+                                                <td class="spare"> </td>
+                                                <td>
+                                                    <pt:input model="name"/>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>${msg.roleEdit.keyed}</td>
+                                                <td class="spare"> </td>
+                                                <td>
+                                                    <pt:checkbox model="keyed"/>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="2"> </td>
+                                                <td>
+                                                    <input type="submit" value="${msg.roleEdit.submit}"/>
+                                                </td>
+                                            </tr>
+                                            <tr condition="${message}">
+                                                <td colspan="2"> </td>
+                                                <td><p class="error">${message}</p></td>
+                                            </tr>
+                                        </table>
 
-                                  </div></td>
-                              </tr>
-                          </table>
-                      </div>
+                                    </pt:form>
 
-                  </div>
+                                </pt:otherwise>
+                            </pt:choose>
 
-                  <div class="bottom">
-                    <p>EIB/KNX SmartServer © NeNo ver. ${version}</p>
-                  </div>
+                            <p><a href="users">${msg.users.backToUsers}</a></p>
+                        </div>
 
-              </div>
-          </div>
-      </body>
-  </html>
+                    </div>
+
+                    <div class="bottom">
+                      <p>EIB/KNX SmartServer © NeNo ver. ${version}</p>
+                    </div>
+
+                </div>
+            </div>
+        </body>
+    </html>
 </pageTemplate>

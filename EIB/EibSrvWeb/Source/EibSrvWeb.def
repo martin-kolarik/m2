@@ -89,8 +89,9 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
    PUBLIC PROCEDURE GetRole( i : CARDINAL; OUT role : TRole; OUT name : StringsO.IString ) : BOOLEAN;
    PUBLIC PROCEDURE GetUser( i : CARDINAL; OUT role : TRole; OUT userName, roleName : StringsO.IString ) : BOOLEAN;
    
-   PUBLIC PROCEDURE UpdateRole( CONST roleName : StringsO.IString; role : TRole ) : BOOLEAN;
-   PUBLIC PROCEDURE UpdateUser( CONST currenName, userName, roleName, password : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE UpdateRole( CONST currentName, roleName : StringsO.IString; role : TRole ) : BOOLEAN;
+   PUBLIC PROCEDURE DeleteRole( CONST roleName : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE UpdateUser( CONST currentName, userName, roleName, password : StringsO.IString ) : BOOLEAN;
    PUBLIC PROCEDURE DeleteUser( CONST userName : StringsO.IString );
    
    // SELF

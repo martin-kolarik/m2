@@ -700,23 +700,71 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE UpdateRole( CONST roleName : StringsO.IString; role : TRole ) : BOOLEAN;
+   PUBLIC PROCEDURE UpdateRole( CONST currentName, roleName : StringsO.IString; role : TRole ) : BOOLEAN;
+   VAR
+      i : CARDINAL;
+      userRole : StringsO.CString;
    BEGIN
       IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
          RETURN FALSE;
-      ELSIF NOT _Roles.Contains( roleName ) THEN
+      ELSIF NOT currentName.Empty AND NOT _Roles.Contains( currentName ) THEN
          _Lock.UnlockWrite();
          RETURN FALSE;
       END;
-      
-      _Roles.Remove( roleName );
+
+      // replace roles in users      
+      _Users.Reset();
+      WHILE _Users.MoveNext() DO
+         i := _Users.CurrentData^.IndexOfOA( L",", 0 );
+         IF i = -1 THEN
+            CONTINUE;
+         END;
+         _Users.CurrentData^.Substring( 0, i, OUT userRole );
+         IF userRole.Equals( currentName ) THEN
+            _Users.CurrentData^.Remove( 0, i );
+            _Users.CurrentData^.Prepend( roleName );
+         END;
+      END; // WHILE
+
+      _Roles.Remove( currentName );
       _Roles.Add( roleName, PTR( role ));
       PersistUsers();
       
       _Lock.UnlockWrite();
       RETURN TRUE;
    END UpdateRole;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE DeleteRole( CONST roleName : StringsO.IString ) : BOOLEAN;
+   VAR
+      i : CARDINAL;
+      userRole : StringsO.CString;
+   BEGIN
+      IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
+         ASSERTLOG( FALSE );
+         RETURN FALSE;
+      END;
+
+      _Users.Reset();
+      WHILE _Users.MoveNext() DO
+         i := _Users.CurrentData^.IndexOfOA( L",", 0 );
+         IF i = -1 THEN
+            CONTINUE;
+         END;
+         _Users.CurrentData^.Substring( 0, i, OUT userRole );
+         IF userRole.Equals( roleName ) THEN
+            _Lock.UnlockWrite();
+            RETURN FALSE; // cannot delete role when it is used
+         END;
+      END; // WHILE
+
+      PersistUsers();
+
+      _Lock.UnlockWrite();
+      RETURN TRUE;
+   END DeleteRole;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -986,7 +1034,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
             IF i = -1 THEN
                CONTINUE;
             END;
-            authinfo.Substring( i+1, -1, OUT role );
+            authinfo.Substring( 0, i, OUT role );
             role.Trim();
             IF NOT _Roles.Contains( role ) THEN
                CONTINUE;

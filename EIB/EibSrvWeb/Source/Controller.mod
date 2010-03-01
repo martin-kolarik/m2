@@ -99,7 +99,6 @@ CONST
    USERS_ERROR_TEXT = L"errorText";
    USERS_ERROR_TEXT_BADEDITDATA = L"users.badUsersEditData";
    
-   USER_EDIT_UNNAMED = L"unnamed";
    USER_EDIT_NAME = L"name";
    USER_EDIT_ROLE = L"role";
    USER_EDIT_PASSWORD1 = L"password1";
@@ -109,6 +108,12 @@ CONST
    USER_EDIT_ERROR_TEXT_PASSWORDSDONOTMATCH = L"userEdit.passwordDoNotMatch";
    USER_EDIT_ERROR_TEXT_EMPTYROLE = L"userEdit.roleIsEmpty";
    USER_EDIT_ERROR_TEXT_UPDATEFAILED = L"userEdit.updateFailed";
+   
+   ROLE_EDIT_NAME = L"name";
+   ROLE_EDIT_KEYED = L"keyed";
+   ROLE_EDIT_ERROR_TEXT_EMPTYNAME = L"roleEdit.nameIsEmpty";
+   ROLE_EDIT_ERROR_TEXT_UPDATEFAILED = L"roleEdit.updateFailed";
+   ROLE_EDIT_ERROR_TEXT_DELETEFAILED = L"roleEdit.deleteFailed";
 
    DYNAMIC_SUFFIX = L".pt.xml";
    FN_SET = L"set";
@@ -878,7 +883,94 @@ CLASS IMPLEMENTATION CController;
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE ProcessRoleEdit( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   VAR
+      action : StringsO.CString;
+      currentName : StringsO.CString;
+      cs1, cs2 : StringsO.CString;
+      empty : StringsO.CString;
+      i : CARDINAL;
+      id : CARDINAL;
+      ids : StringsO.CString;
+      keyed : BOOLEAN;
+      role : EibSrvWeb.TRole;
+      roleName : StringsO.CString;
    BEGIN
+      Request.ModelContainer^.AddBooleanOA( USERS_ERROR, FALSE );
+      Request.ModelContainer^.AddStringOA( USERS_ERROR_TEXT, empty );
+      Request.ModelContainer^.AddStringOA( MESSAGE, empty );
+
+      // retrieve editation id      
+      Request.ModelContainer^.GetStringOA( USERS_ID, OUT ids );
+      IF NOT ids.Empty THEN
+         ids.ToINT32( 10, OUT id );
+         IF id = -1 THEN // role user is to be edited
+            // fall down
+         ELSE
+            DEC( id );
+            IF NOT _Web^.GetRole( id, OUT role, OUT currentName ) THEN
+               Request.ModelContainer^.AddBooleanOA( USERS_ERROR, TRUE );
+               Request.MessageSource^.GetMessageOA( Request.Language, USERS_ERROR_TEXT_BADEDITDATA, OUT cs1 );
+               Request.ModelContainer^.AddStringOA( USERS_ERROR_TEXT, cs1 );
+            END;
+         END;
+      END;
+
+      IF Request.RequestVerb = HttpCommon.verbPOST THEN // OK, process form output
+         // validate
+         Request.ModelContainer^.GetStringOA( ROLE_EDIT_NAME, OUT roleName ); 
+         Request.ModelContainer^.GetBooleanOA( ROLE_EDIT_KEYED, OUT keyed ); 
+         IF keyed THEN
+            role := EibSrvWeb.roleUserKeyed;
+         ELSE
+            role := EibSrvWeb.roleUserNamed;
+         END;
+         
+         IF roleName.Empty THEN
+            Request.MessageSource^.GetMessageOA( Request.Language, ROLE_EDIT_ERROR_TEXT_EMPTYNAME, OUT cs1 );
+
+         ELSIF _Web^.UpdateRole( currentName, roleName, role ) THEN
+            Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id
+            View := mvc.redirectView( USERS_PAGE );
+            RETURN TRUE;
+         ELSE // error during updating
+            Request.MessageSource^.GetMessageOA( Request.Language, ROLE_EDIT_ERROR_TEXT_UPDATEFAILED, OUT cs1 );
+         END;
+
+         // fill error message
+         Request.ModelContainer^.AddStringOA( MESSAGE, cs1 );
+         currentName.Assign( roleName );
+
+      ELSIF Request.ModelContainer^.GetStringOA( USERS_ACTION, OUT action ) AND NOT action.Empty THEN
+         Request.ModelContainer^.AddStringOA( USERS_ACTION, empty );
+         
+         IF Request.ModelContainer^.GetStringOA( USERS_ID, OUT ids ) AND NOT ids.Empty THEN
+            // Request.ModelContainer^.AddStringOA( USERS_ID, empty ); -- leave users_id until editing finishes
+
+            IF action.EqualsOA( ACTION_DELETE ) THEN
+               Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id, no next deletion allowed
+               IF _Web^.DeleteRole( currentName ) THEN
+                  View := mvc.redirectView( USERS_PAGE );
+                  RETURN TRUE;
+               ELSE // role cannot be deleted
+                  Request.MessageSource^.GetMessageOA( Request.Language, ROLE_EDIT_ERROR_TEXT_DELETEFAILED, OUT cs1 );
+                  Request.ModelContainer^.AddStringOA( MESSAGE, cs1 );
+               END;
+
+            ELSIF action.EqualsOA( ACTION_EDIT ) THEN 
+               // loop self to edit page with stored editation id
+               View := mvc.redirectView( ROLE_EDIT_PAGE );
+               RETURN TRUE;
+
+            ELSE
+               Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id, bad action
+               
+            END;
+         END;
+      END;
+
+      Request.ModelContainer^.AddStringOA( ROLE_EDIT_NAME, currentName );
+      Request.ModelContainer^.AddBooleanOA( ROLE_EDIT_KEYED, role = EibSrvWeb.roleUserKeyed );
+
       View := mvc.pageTemplateView( ADR( SELF ), ROLE_EDIT_VIEW );
       RETURN TRUE;
    END ProcessRoleEdit;
@@ -886,8 +978,6 @@ CLASS IMPLEMENTATION CController;
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE ProcessUserEdit( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
-   LABEL
-      Edit;
    VAR
       action : StringsO.CString;
       currentName : StringsO.CString;
@@ -973,8 +1063,6 @@ CLASS IMPLEMENTATION CController;
          END;
       END;
 
-   Edit:
-      Request.ModelContainer^.AddBooleanOA( USER_EDIT_UNNAMED, role = EibSrvWeb.roleUserKeyed );
       Request.ModelContainer^.AddStringOA( USER_EDIT_ROLE, roleName );
       Request.ModelContainer^.AddStringOA( USER_EDIT_NAME, currentName );
       Request.ModelContainer^.AddStringOA( USER_EDIT_PASSWORD1, empty );

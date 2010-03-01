@@ -247,10 +247,6 @@
             <item lang="en-US">Name</item>
             <item lang="cs-CZ">Jméno</item>
         </string>
-        <string name="userEdit.unnamed">
-            <item lang="en-US">Login using code only</item>
-            <item lang="cs-CZ">Přihlašovat jen kódem</item>
-        </string>
         <string name="userEdit.role">
             <item lang="en-US">Role</item>
             <item lang="cs-CZ">Role</item>
@@ -286,6 +282,35 @@
         <string name="userEdit.updateFailed">
             <item lang="en-US">User save failed.</item>
             <item lang="cs-CZ">Uložení uživatele selhalo.</item>
+        </string>
+
+        <string name="roleEdit.title">
+            <item lang="en-US">Role editation</item>
+            <item lang="cs-CZ">Editace role</item>
+        </string>
+        <string name="roleEdit.name">
+            <item lang="en-US">Name</item>
+            <item lang="cs-CZ">Jméno</item>
+        </string>
+        <string name="roleEdit.keyed">
+            <item lang="en-US">Login by code only</item>
+            <item lang="cs-CZ">Přihlášení jen kódem</item>
+        </string>
+        <string name="roleEdit.submit">
+            <item lang="en-US">Accept</item>
+            <item lang="cs-CZ">Použít</item>
+        </string>
+        <string name="roleEdit.nameIsEmpty">
+            <item lang="en-US">Name must be defined.</item>
+            <item lang="cs-CZ">Jméno musí být zadáno.</item>
+        </string>
+        <string name="roleEdit.updateFailed">
+            <item lang="en-US">Role save failed.</item>
+            <item lang="cs-CZ">Uložení role selhalo.</item>
+        </string>
+        <string name="roleEdit.deleteFailed">
+            <item lang="en-US">Role cannot be deleted, either role is used or some error occured.</item>
+            <item lang="cs-CZ">Roli nelze smazat, role je buď použita, nebo došlo k chybě.</item>
         </string>
         
     </strings>
