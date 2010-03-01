@@ -472,7 +472,7 @@ CLASS IMPLEMENTATION CContainer;
       IF GetBooleanOA( OA( model.Length-1, model.rawData ), OUT boolean ) THEN
          lvalue.Assign( value );
          lvalue.Lowerize();
-         AddBooleanOA( OA( model.Length-1, model.rawData ), value.EqualsOA( L"true" ) OR value.EqualsOA( L"1" ) OR value.EqualsOA( L"y" ) OR value.EqualsOA( L"yes" ));
+         AddBooleanOA( OA( model.Length-1, model.rawData ), value.EqualsOA( TRUE_STRING ) OR value.EqualsOA( L"1" ) OR value.EqualsOA( L"y" ) OR value.EqualsOA( L"yes" ));
          RETURN TRUE;
       END;
 
@@ -624,9 +624,9 @@ CLASS IMPLEMENTATION CContainer;
       // test boolean
       IF GetBooleanOA( OA( model.Length-1, model.rawData ), OUT boolean ) THEN
          IF boolean THEN
-            value.FromOA( L"true" );
+            value.FromOA( TRUE_STRING );
          ELSE
-            value.FromOA( L"false" );
+            value.FromOA( FALSE_STRING );
          END;
          RETURN TRUE;
       END;

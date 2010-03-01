@@ -87,6 +87,10 @@ END IFunctionHandler;
 
 (*--------------------------------------------------------------------------------*)
 
+CONST
+   TRUE_STRING = L"true";
+   FALSE_STRING = L"false";
+
 INTERFACE IContainer;
    // control
    PROCEDURE Dispose(); // data, not self

@@ -1439,10 +1439,24 @@ CLASS IMPLEMENTATION CPageTemplateView;
       Writer.WriteAttributeStringOA( L"", L"type", OAsz( ptype ));
       IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, fullModel, OUT value ) THEN // model = form.item
          WriteFormNameAttribute( fullModel );
-         Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.rawData ));
+         IF ( ptype = PWCHAR( ADR( PT_FORM_CHECKBOX ))) OR ( ptype = PWCHAR( ADR( PT_FORM_RADIOBUTTON ))) THEN
+            Writer.WriteAttributeStringOA( L"", L"value", L"true" );
+            IF value.EqualsOA( MVC.TRUE_STRING ) THEN
+               Writer.WriteAttributeStringOA( L"", L"checked", L"checked" );
+            END;
+         ELSE            
+            Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.rawData ));
+         END;
       ELSIF Request^.ModelContainer^.GetModelValue( Request^, model, OUT value ) THEN // model = item
          WriteFormNameAttribute( model );
-         Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.rawData ));
+         IF ( ptype = PWCHAR( ADR( PT_FORM_CHECKBOX ))) OR ( ptype = PWCHAR( ADR( PT_FORM_RADIOBUTTON ))) THEN
+            Writer.WriteAttributeStringOA( L"", L"value", L"true" );
+            IF value.EqualsOA( MVC.TRUE_STRING ) THEN
+               Writer.WriteAttributeStringOA( L"", L"checked", L"checked" );
+            END;
+         ELSE            
+            Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.rawData ));
+         END;
       ELSE
          SetError( model, NIL, L'Model for element is unknown.' );
          RETURN FALSE;
