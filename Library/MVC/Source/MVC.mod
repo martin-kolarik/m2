@@ -64,6 +64,7 @@ CLASS CContainer IMPLEMENTS IContainer;
    PUBLIC VIRTUAL PROCEDURE ResetModelInViewNames( CONST ControllerURI : StringsO.IString ); // clears all mode-view bindings corresponding to SetId
    PUBLIC VIRTUAL PROCEDURE SetModelInViewName( CONST ControllerURI, FullModel, InViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
    PUBLIC VIRTUAL PROCEDURE GetModelByInViewName( CONST ControllerURI, InViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
+   PUBLIC VIRTUAL PROCEDURE ResetModelValues( CONST Request : IHttpRequest; CONST ControllerURI : StringsO.IString );
 END CContainer;
 
 (*--------------------------------------------------------------------------------*)
@@ -690,8 +691,8 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   // There can be more active mappings, each identified by SetId. It e.g. can be controller name, or so, always that way, to one would be easily able to identify to which controller/view the set and its data belongs.
-   PUBLIC VIRTUAL PROCEDURE ResetModelInViewNames( CONST ControllerURI : StringsO.IString ); // clears all mode-view bindings corresponding to SetId
+   // There can be more active mappings, each identified by ControllerURI. It e.g. can be controller name, or so, always that way, to one would be easily able to identify to which controller/view the set and its data belongs.
+   PUBLIC VIRTUAL PROCEDURE ResetModelInViewNames( CONST ControllerURI : StringsO.IString ); // clears all mode-view bindings corresponding to ControllerURI
    VAR
       LSetId : StringsO.CString;
    BEGIN
@@ -732,6 +733,24 @@ CLASS IMPLEMENTATION CContainer;
          RETURN TRUE;
       END;
    END GetModelByInViewName;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE ResetModelValues( CONST Request : IHttpRequest; CONST ControllerURI : StringsO.IString );
+   VAR
+      empty : StringsO.CString;
+      LSetId : StringsO.CString;
+      mapper : maps.TPStringStringMap;
+   BEGIN
+      LSetId.FromOA( VIEW_MAPPER );
+      LSetId.Append( ControllerURI );
+      IF GetMapOA( OA( LSetId.Length-1, LSetId.rawData ), OUT mapper ) THEN
+         mapper^.Reset();
+         WHILE mapper^.MoveNext() DO
+            SetModelValue( Request, mapper^.CurrentData^, empty ); // clear model value
+         END; // WHILE
+      END;
+   END ResetModelValues;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1222,6 +1241,7 @@ CLASS IMPLEMENTATION CMVC;
 
       // fill models, call functions
       container^.ResetFunctionCallsMemo();
+      container^.ResetModelValues( request, controllerURI );
       connectionData.Reset();
       WHILE connectionData.MoveNext() DO
          IF container^.GetModelByInViewName( controllerURI, connectionData.Current^, OUT mappedName ) THEN
@@ -1232,6 +1252,7 @@ CLASS IMPLEMENTATION CMVC;
          END;
       END; // WHILE
       connectionData.Dispose();
+      container^.ResetModelInViewNames( controllerURI );
       
       // prepare response data
       response.Init( Connection, Session, container );

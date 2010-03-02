@@ -514,7 +514,6 @@ CLASS IMPLEMENTATION CPageTemplateView;
    BEGIN
       now.SetNowUTC();
 
-      Response.ModelContainer^.ResetModelInViewNames( Request.ControllerURI );
       Response.AllowCaching := FALSE;
       Response.LastModified := now;
 
