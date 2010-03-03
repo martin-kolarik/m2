@@ -196,7 +196,7 @@ CLASS IMPLEMENTATION CNS;
 		I := TPNSI( CreateNewItem( L"Bivalent Supply Service Hours", ns.ntValue, iovalue.vtInteger, 0301CBH )); D^.AddChild( I );
 		
 		// errors, create composite values together with their composite parts -- these are in hidden part of namespace
-		I := TPNSI( CreateNewItem( L"Error occurred",                ns.ntValue, iovalue.vtBoolean, 000000H )); D^.AddChild( I );
+		I := TPNSI( CreateNewItem( L"Error occurred",                ns.ntValue, iovalue.vtBoolean, 000000H )); D^.AddChild( I ); I^.Multiplier := 0;
 		
 		E1 := CreateErrorItem( L"Error 01 Time" ); D^.AddChild( E1 );
 		   I := TPNSI( CreateNewItem( L"01m", ns.ntValue, iovalue.vtInteger, 030B00H )); H^.AddChild( I ); E1^.Items[eiMinute] := I; I^.Multiplier := 2; // special code for dword type
@@ -827,6 +827,7 @@ CLASS IMPLEMENTATION CIO;
    PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Delegate : io.TPDataInfo ) : Sync.TAsyncResult;
 	VAR
 		Packet : TPacket;
+		Result : Sync.TAsyncResult;
 	BEGIN
 		IF _Pending <> IOO.dirUnknown THEN
 			RETURN Sync.arAlreadyPending;
@@ -834,10 +835,12 @@ CLASS IMPLEMENTATION CIO;
 		   RETURN CompositeIO( Direction, Item, Delegate );
 		ELSIF ADDRESS( Item ) = _ErrorOccurred THEN
 		   IF Direction = IOO.dirWrite THEN
-		      TPNSI( Item )^.Multiplier := Value.Integer; // Multiplier used as local storage of value (a new error occured)
+		      TPNSI( Item )^.Multiplier := INTEGER( Value.Boolean ); // Multiplier used as local storage of value (a new error occured)
 		   ELSE
-		      Value.Integer := TPNSI( Item )^.Multiplier; // Multiplier used as local storage of value (a new error occured)
+		      Value.Boolean := BOOLEAN( TPNSI( Item )^.Multiplier ); // Multiplier used as local storage of value (a new error occured)
 		   END;
+		   Result := Sync.arCompleted;
+         Delegate^.OnIO( Direction, ADR( SELF ), OA( 0, ADR( Result )), OA( 0, ADR( Item )), OA( -1, NIL ), OA( 0, ADR( Value )));
 		   RETURN Sync.arCompleted;
 		END;
 
@@ -994,12 +997,12 @@ CLASS IMPLEMENTATION CIO;
          IF TimeFormat.Empty THEN // use default format
             b := dt.ToStringOA( L"HH:mm:ss", FALSE, TRUE, OUT s );
             IF NOT b THEN
-               Logger.LogS( log.dldTrace, L"StiebelHP", L"Conversion to date string failed, format: HH:mm:ss" );
+               DeviceCommunicator.Logger.LogS( log.dldTrace, L"StiebelHP", L"Conversion to date string failed, format: HH:mm:ss" );
             END;
          ELSE
             b := dt.ToStringOA( OA( TimeFormat.Length-1, TimeFormat.rawData ), FALSE, TRUE, OUT s );
             IF NOT b THEN
-               Logger.LogSS( log.dldTrace, L"StiebelHP", L"Conversion to time string failed, format:", OA( TimeFormat.Length-1, TimeFormat.rawData ));
+               DeviceCommunicator.Logger.LogSS( log.dldTrace, L"StiebelHP", L"Conversion to time string failed, format:", OA( TimeFormat.Length-1, TimeFormat.rawData ));
             END;
          END;
          dt.Day := Item^.Peer^.Items[eiDay]^.Value.Integer;
@@ -1012,12 +1015,12 @@ CLASS IMPLEMENTATION CIO;
          IF DateFormat.Empty THEN
             b := dt.ToStringOA( L"yyyy-MM-dd", TRUE, FALSE, OUT s );
             IF NOT b THEN
-               Logger.LogS( log.dldTrace, L"StiebelHP", L"Conversion to date string failed, format: yyyy-MM-dd" );
+               DeviceCommunicator.Logger.LogS( log.dldTrace, L"StiebelHP", L"Conversion to date string failed, format: yyyy-MM-dd" );
             END;
          ELSE
             b := dt.ToStringOA( OA( DateFormat.Length-1, DateFormat.rawData ), TRUE, FALSE, OUT s );
             IF NOT b THEN
-               Logger.LogSS( log.dldTrace, L"StiebelHP", L"Conversion to date string failed, format:", OA( DateFormat.Length-1, DateFormat.rawData ));
+               DeviceCommunicator.Logger.LogSS( log.dldTrace, L"StiebelHP", L"Conversion to date string failed, format:", OA( DateFormat.Length-1, DateFormat.rawData ));
             END;
          END;
          dt.Minute := Item^.Peer^.Items[eiMinute]^.Value.Integer;
@@ -1117,12 +1120,22 @@ CLASS IMPLEMENTATION CStiebelHPDevice;
 (*---------------------------------------------------------------------------*)
 
 	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+	VAR
+	   hash : ns.THash;
+	   name : StringsO.CString;
    BEGIN
       IF HIGH( Source ) < 0 THEN
          RETURN Sync.arCannotStart;
       ELSIF Source[0].Type <> device.citINIFileSection THEN
          RETURN Sync.arCannotStart;
       END;
+      
+      // set error element
+      name.FromOA( L"StiebelHP.Data.Error occurred" );
+      IF _NS.NameToHash( name, OUT hash ) THEN
+         _IO.SetErrorOccurred( TPNSI( hash ));
+      END;
+      
       RETURN _IO.DeviceCommunicator.Configure( Source[0]._iniFile^, Source[0].section^, Log );
    END Configure;
    
