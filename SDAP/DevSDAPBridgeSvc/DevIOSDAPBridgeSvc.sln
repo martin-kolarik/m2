@@ -25,6 +25,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DeviceIO", "..\..\Library\D
 		Release.AspNetCompiler.Debug = "False"
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AirMotion", "..\..\DeviceIO\AirMotion\AirMotion.vcproj", "{BE7FD61A-CCEE-4156-ADEE-D25EA356A716}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -47,6 +53,10 @@ Global
 		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Debug|Win32.Build.0 = Debug|Win32
 		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Release|Win32.ActiveCfg = Release|Win32
 		{A60809F1-641F-4ED7-9128-C41E7A6A9580}.Release|Win32.Build.0 = Release|Win32
+		{BE7FD61A-CCEE-4156-ADEE-D25EA356A716}.Debug|Win32.ActiveCfg = Debug|Win32
+		{BE7FD61A-CCEE-4156-ADEE-D25EA356A716}.Debug|Win32.Build.0 = Debug|Win32
+		{BE7FD61A-CCEE-4156-ADEE-D25EA356A716}.Release|Win32.ActiveCfg = Release|Win32
+		{BE7FD61A-CCEE-4156-ADEE-D25EA356A716}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
