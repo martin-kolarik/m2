@@ -725,7 +725,13 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PRIVATE PROCEDURE StartTimeout( TimeoutMS : CARDINAL; REF Handle : threadpool.TPoolHandle );
    BEGIN
-      ASSERTLOG( Handle = NIL );
+      // wait for some dump, then fix the bug and leave only the ASSERT on the place
+      // ASSERTLOG( Handle = NIL );
+      IF Handle <> NIL THEN
+         StopTimeout( REF Handle );
+         ASSERTLOG( FALSE );
+      END;
+
       threadpool.pool()^.WaitTimeout( ADR( _PoolDelegate ), 0, TimeoutMS, TRUE, FALSE, OUT Handle );
    END StartTimeout;
 
