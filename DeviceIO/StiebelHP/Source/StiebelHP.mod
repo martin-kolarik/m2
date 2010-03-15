@@ -776,7 +776,7 @@ CLASS IMPLEMENTATION CIO;
 
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    BEGIN
-      _LastError.SetNowUTC();
+      _LastError.SetNowLocal();
       RETURN DeviceCommunicator.Start();
    END Start;
 
