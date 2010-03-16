@@ -19,6 +19,7 @@ TYPE
       rsDebugFile,
       rsDebugKernel,
       rsTimeStamps,
+      rsLocalTime,
       rsLevelInfo,
       rsNameInfo,
       rsInject
@@ -95,6 +96,7 @@ ABSTRACT CLASS ALogger IMPLEMENTS iLog.ILogger;
       TimeStamps : BOOLEAN; // prints timestamps, default TRUE
       Levels : BOOLEAN; // prints debug level of message, default TRUE
       Names : BOOLEAN; // prints names/prefixes of message, default TRUE
+      LocalTime : BOOLEAN; // uses local time instead of UTC
 
    PUBLIC PROCEDURE SetLogName( CONST Name : ARRAY OF WCHAR );
    PUBLIC PROCEDURE GetLogName( OUT Name : ARRAY OF WCHAR ) : BOOLEAN;
