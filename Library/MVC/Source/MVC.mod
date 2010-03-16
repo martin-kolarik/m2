@@ -64,6 +64,7 @@ CLASS CContainer IMPLEMENTS IContainer;
    PUBLIC VIRTUAL PROCEDURE ResetModelInViewNames( CONST ControllerURI : StringsO.IString ); // clears all mode-view bindings corresponding to SetId
    PUBLIC VIRTUAL PROCEDURE SetModelInViewName( CONST ControllerURI, FullModel, InViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
    PUBLIC VIRTUAL PROCEDURE GetModelByInViewName( CONST ControllerURI, InViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
+   PUBLIC VIRTUAL PROCEDURE ResetModelValues( CONST Request : IHttpRequest; CONST ControllerURI : StringsO.IString );
 END CContainer;
 
 (*--------------------------------------------------------------------------------*)
@@ -472,7 +473,7 @@ CLASS IMPLEMENTATION CContainer;
       IF GetBooleanOA( OA( model.Length-1, model.Data ), OUT boolean ) THEN
          lvalue.Assign( value );
          lvalue.Lowerize();
-         AddBooleanOA( OA( model.Length-1, model.Data ), value.EqualsOA( L"true" ) OR value.EqualsOA( L"1" ) OR value.EqualsOA( L"y" ) OR value.EqualsOA( L"yes" ));
+         AddBooleanOA( OA( model.Length-1, model.Data ), value.EqualsOA( TRUE_STRING ) OR value.EqualsOA( L"1" ) OR value.EqualsOA( L"y" ) OR value.EqualsOA( L"yes" ));
          RETURN TRUE;
       END;
 
@@ -624,9 +625,9 @@ CLASS IMPLEMENTATION CContainer;
       // test boolean
       IF GetBooleanOA( OA( model.Length-1, model.Data ), OUT boolean ) THEN
          IF boolean THEN
-            value.FromOA( L"true" );
+            value.FromOA( TRUE_STRING );
          ELSE
-            value.FromOA( L"false" );
+            value.FromOA( FALSE_STRING );
          END;
          RETURN TRUE;
       END;
@@ -690,8 +691,8 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   // There can be more active mappings, each identified by SetId. It e.g. can be controller name, or so, always that way, to one would be easily able to identify to which controller/view the set and its data belongs.
-   PUBLIC VIRTUAL PROCEDURE ResetModelInViewNames( CONST ControllerURI : StringsO.IString ); // clears all mode-view bindings corresponding to SetId
+   // There can be more active mappings, each identified by ControllerURI. It e.g. can be controller name, or so, always that way, to one would be easily able to identify to which controller/view the set and its data belongs.
+   PUBLIC VIRTUAL PROCEDURE ResetModelInViewNames( CONST ControllerURI : StringsO.IString ); // clears all mode-view bindings corresponding to ControllerURI
    VAR
       LSetId : StringsO.CString;
    BEGIN
@@ -732,6 +733,24 @@ CLASS IMPLEMENTATION CContainer;
          RETURN TRUE;
       END;
    END GetModelByInViewName;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE ResetModelValues( CONST Request : IHttpRequest; CONST ControllerURI : StringsO.IString );
+   VAR
+      empty : StringsO.CString;
+      LSetId : StringsO.CString;
+      mapper : maps.TPStringStringMap;
+   BEGIN
+      LSetId.FromOA( VIEW_MAPPER );
+      LSetId.Append( ControllerURI );
+      IF GetMapOA( OA( LSetId.Length-1, LSetId.rawData ), OUT mapper ) THEN
+         mapper^.Reset();
+         WHILE mapper^.MoveNext() DO
+            SetModelValue( Request, mapper^.CurrentData^, empty ); // clear model value
+         END; // WHILE
+      END;
+   END ResetModelValues;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1222,6 +1241,7 @@ CLASS IMPLEMENTATION CMVC;
 
       // fill models, call functions
       container^.ResetFunctionCallsMemo();
+      container^.ResetModelValues( request, controllerURI );
       connectionData.Reset();
       WHILE connectionData.MoveNext() DO
          IF container^.GetModelByInViewName( controllerURI, connectionData.Current^, OUT mappedName ) THEN
@@ -1232,6 +1252,7 @@ CLASS IMPLEMENTATION CMVC;
          END;
       END; // WHILE
       connectionData.Dispose();
+      container^.ResetModelInViewNames( controllerURI );
       
       // prepare response data
       response.Init( Connection, Session, container );
@@ -1318,6 +1339,7 @@ CLASS IMPLEMENTATION CMVC;
    VAR
       b : BOOLEAN := FALSE;
       e : ARRAY [0..3] OF WCHAR;
+      english : Languages.TLanguage;
       length : CARDINAL;
       text : PWCHAR;
    BEGIN
@@ -1326,11 +1348,19 @@ CLASS IMPLEMENTATION CMVC;
          NEW( _Messages );
          b := _Messages^.LoadXML( OA( _MessageSourcePath.Length-1, _MessageSourcePath.Data ), OUT e );
          IF b THEN
-            _Messages^.FallbackLang := _Messages^.Lang;
+            IF Languages.RFC1766ToLanguage( L"en", OUT english ) THEN // if english exists, use it
+               _Messages^.FallbackLang := english;
+            ELSIF _Messages^.LanguageCount > 0 THEN // otherwise select first language
+               _Messages^.GetLanguage( 0, OUT _Messages^.FallbackLang );
+            ELSE // and as last resort, use as fallback resource native? language
+               _Messages^.FallbackLang := _Messages^.Lang;
+            END;
          END;
       ELSE
          b := TRUE;
       END;
+      _MessagesLock.Unlock();
+
       IF b THEN
          b := _Messages^.GetTextByKeyL( language, Key, OUT text, OUT length );
       END;
@@ -1339,7 +1369,6 @@ CLASS IMPLEMENTATION CMVC;
       ELSE
          Message.Assign( Key );
       END;
-      _MessagesLock.Unlock();
 
       RETURN b;
    END GetMessage;

@@ -74,7 +74,7 @@
                         <?if $(var.LanguageName)=en ?>
                         <Component Id="Documentation" Guid="89A02EDA-2261-4c9b-8087-06AA1B5FC0A7">
                             <File Id="SmartServer.pdf" Name="SmartSrv.pdf" LongName="SmartServer.pdf" Source="..\Doc\SmartServer_en.pdf" DiskId="1" Vital="yes" KeyPath="yes">
-                                <Shortcut Id="StartMenuDocumentation" Directory="ProgramMenuDir" Name="Manual" LongName="SmartServer documentation" />
+                                <Shortcut Id="StartMenuDocumentation" Directory="SmartServerDir" Name="Manual" LongName="SmartServer documentation" />
                             </File>
                             <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" />
                         </Component>
@@ -82,7 +82,7 @@
                         <?if $(var.LanguageName)=cs ?>
                         <Component Id="Documentation" Guid="D75EA66F-CD00-4b0b-85A2-2764FB229D47">
                             <File Id="SmartServer.pdf" Name="SmartSrv.pdf" LongName="SmartServer.pdf" Source="..\Doc\SmartServer_cs.pdf" DiskId="1" Vital="yes" KeyPath="yes">
-                                <Shortcut Id="StartMenuDocumentation" Directory="ProgramMenuDir" Name="Manuál" LongName="Dokumentace SmartServer" />
+                                <Shortcut Id="StartMenuDocumentation" Directory="SmartServerDir" Name="Manuál" LongName="Dokumentace SmartServer" />
                             </File>
                             <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" />
                         </Component>
@@ -194,7 +194,9 @@
             </Directory>
         </Directory>
         <Directory Id="ProgramMenuFolder" Name="PMenu" LongName="Programs">
-            <Directory Id="ProgramMenuDir" Name='SmartSrv' LongName="NeNo KNX SmartServer" />
+            <Directory Id="ProgramMenuDir" Name='NeNo' LongName="NeNo">
+                <Directory Id="SmartServerDir" Name='SmartSrv' LongName="KNX SmartServer" />
+            </Directory>
         </Directory>
         <?if $(var.CLib)=Private ?>
         <Feature Id="VC8RuntimeFeature" Level="1" AllowAdvertise="no" Display="hidden">

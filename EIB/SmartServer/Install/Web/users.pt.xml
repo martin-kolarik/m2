@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html">
+  <html>
+      <head>
+          <title>NeNo KNX/EIBSrv</title>
+          <link rel="StyleSheet" type="text/css" href="NeNo.css" />
+      </head>
+      <body>
+          <div class="shell">
+              <div class="shell-topstrip"></div>
+              <div class="canvas">
+
+                  <div class="top">
+                  </div>
+
+                  <div class="middle">
+                      <div id="menu">
+                          <p><a href="status">${msg.menu.status}</a></p>
+                          <p><a href="control">${msg.menu.control}</a></p>
+                          <p><a href="datalog">${msg.menu.datalog}</a></p>
+                          <p><a href="syslog">${msg.menu.syslog}</a></p>
+                          <p><a href="io">${msg.menu.io}</a></p>
+                          <p> </p>
+                          <p><a href="users">${msg.menu.users}</a></p>
+                          <p class="logout"><a href="logout">${msg.menu.logout}</a></p>
+                      </div>
+
+                      <div class="content">
+                          <table cellspacing="0px" cellpadding="0px">
+                              <tr>
+
+                                  <td>
+                                      <p class="rightWithBorder"><a href="roleEdit?action=edit&amp;id=-1"><img border="0px" src="Add24.png"/></a></p>
+                                      <h1>${msg.users.roles}</h1>
+
+                                      <div class="roles">
+
+                                          <pt:foreach model="roles" odd="isOdd" index="index" item="item">
+                                              <pt:variable model="lineClass" source="even" />
+                                              <pt:variable condition="${isOdd}" model="lineClass" source="odd" />
+                                              <div class="row">
+                                                  <a href="roleEdit?action=delete&amp;id=${roleIds[index]}"><img border="0px" src="Trash24.png"/></a>
+                                                  <a href="roleEdit?action=edit&amp;id=${roleIds[index]}"><img border="0px" src="Edit24.png"/></a>
+                                                  <span> </span>
+                                                  <span class="role">${item}</span>
+                                              </div>
+                                          </pt:foreach>
+
+                                      </div>
+                                  </td>
+
+                                  <td>
+                                      <p class="rightWithBorder"><a href="userEdit?action=edit&amp;id=-1"><img border="0px" src="Add24.png"/></a></p>
+                                      <h1>${msg.users.users}</h1>
+
+                                      <div class="users">
+
+                                          <pt:foreach model="users" odd="isOdd" index="index" item="item" data="data">
+                                              <pt:variable model="lineClass" source="even" />
+                                              <pt:variable condition="${isOdd}" model="lineClass" source="odd" />
+                                              <div class="row">
+                                                  <a href="userEdit?action=delete&amp;id=${userIds[index]}"><img border="0px" src="Trash24.png"/></a>
+                                                  <a href="userEdit?action=edit&amp;id=${userIds[index]}"><img border="0px" src="Edit24.png"/></a>
+                                                  <span> </span>
+                                                  <span class="user">${item}</span>
+                                                  <span class="userRole">[${data}]</span>
+                                              </div>
+                                          </pt:foreach>
+
+                                      </div>
+                                  </td>
+                              </tr>
+                          </table>
+                      </div>
+
+                  </div>
+
+                  <div class="bottom">
+                    <p>EIB/KNX SmartServer © NeNo ver. ${version}</p>
+                  </div>
+
+              </div>
+          </div>
+      </body>
+  </html>
+</pageTemplate>

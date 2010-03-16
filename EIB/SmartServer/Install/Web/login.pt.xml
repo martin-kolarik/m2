@@ -46,7 +46,8 @@
                                         </td>
                                     </tr>
                                     <tr condition="${message}">
-                                        <td colspan="3"><p>${message}</p></td>
+                                        <td colspan="2"> </td>
+                                        <td><p class="error">${message}</p></td>
                                     </tr>
                                 </table>
 

@@ -39,6 +39,14 @@
                             <File Id="Licence" Name="Licence.lic" LongName="$(var.ProductId).tlic" Source="$(var.ProductId).tlic" DiskId="1" Vital="yes" KeyPath="yes" />
                             <File Id="License.rtf" Name="License.rtf" Source="License.rtf" DiskId="1" />
                         </Component>
+                        <?if $(var.LanguageName)=cs ?>
+                        <Component Id="Documentation" Guid="F7129C66-A91A-4b8f-AC40-FC08805C9CC6">
+                            <File Id="SDAPBridge.pdf" Name="SDAPBrdg.pdf" LongName="SDAPBridge.pdf" Source="..\Doc\SDAPBridge_cs.pdf" DiskId="1" Vital="yes" KeyPath="yes">
+                                <Shortcut Id="StartMenuDocumentation" Directory="ProgramMenuDir" Name="Manuál" LongName="Dokumentace SDAPBridge" />
+                            </File>
+                            <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" />
+                        </Component>
+                        <?endif ?>
                         <Component Id="DefaultConfiguration" Guid="801CD0FE-6B06-4067-A2CC-F7BB6C56C7BB">
                             <File Id="default.cfg" Name="default.cfg" Source="default.cfg" DiskId="1" Vital="yes" KeyPath="yes" />
                         </Component>
@@ -88,6 +96,7 @@
             <ComponentRef Id="BridgeLib" />
             <ComponentRef Id="Licence" />
             <ComponentRef Id="ToolSvcInst" />
+            <ComponentRef Id="Documentation" />
             <ComponentRef Id="DefaultConfiguration" />
             <?if $(var.LeakChecking)=on ?>
             <ComponentRef Id="LeakDetector" />
