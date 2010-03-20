@@ -418,6 +418,16 @@ CLASS IMPLEMENTATION CString;
 	   RETURN Strings.IndexOfMW( _Len, _Data, LENGTH( S ), ADR( S ), FromIndex );
 	END CString.IndexOfOA;
 
+   PUBLIC VIRTUAL PROCEDURE IndexOfAny( CONST Delimiters : SET OF WCHAR; FromIndex : CARDINAL ) : CARDINAL;
+   BEGIN
+      RETURN Strings.IndexOfAnyW( OA( _Len-1, _Data ), Delimiters, FromIndex );
+   END IndexOfAny;
+
+   PUBLIC VIRTUAL PROCEDURE IndexOfAnyS( CONST Delimiters : SET OF WCHARS; FromIndex : CARDINAL ) : CARDINAL;
+   BEGIN
+      RETURN Strings.IndexOfAnySW( OA( _Len-1, _Data ), Strings.WCHARS( Delimiters ), FromIndex );
+   END IndexOfAnyS;
+
    PUBLIC VIRTUAL PROCEDURE LastIndexOf( CONST S : IString; IndexFromRight : CARDINAL ) : CARDINAL;
    BEGIN
 	   RETURN Strings.LastIndexOfMW( _Len, _Data, S.Length, PWCHAR( S.rawData ), IndexFromRight );
@@ -427,6 +437,16 @@ CLASS IMPLEMENTATION CString;
    BEGIN
 	   RETURN Strings.LastIndexOfMW( _Len, _Data, LENGTH( S ), ADR( S ), IndexFromRight );
    END LastIndexOfOA;
+
+   PUBLIC VIRTUAL PROCEDURE LastIndexOfAny( CONST Delimiters : SET OF WCHAR; IndexFromRight : CARDINAL ) : CARDINAL;
+   BEGIN
+      RETURN Strings.LastIndexOfAnyW( OA( _Len-1, _Data ), Delimiters, IndexFromRight );
+   END LastIndexOfAny;
+
+   PUBLIC VIRTUAL PROCEDURE LastIndexOfAnyS( CONST Delimiters : SET OF WCHARS; IndexFromRight : CARDINAL ) : CARDINAL;
+   BEGIN
+      RETURN Strings.LastIndexOfAnySW( OA( _Len-1, _Data ), Strings.WCHARS( Delimiters ), IndexFromRight );
+   END LastIndexOfAnyS;
 
    PUBLIC VIRTUAL PROCEDURE Contains( CONST S : IString ) : BOOLEAN;
    BEGIN

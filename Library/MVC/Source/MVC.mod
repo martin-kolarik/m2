@@ -28,6 +28,15 @@ IMPORT
 CONST
    SESSION_MVC = L"#mvc";
    VIEW_MAPPER = L"#viewmapper.";
+   
+TYPE
+   TModelType = (
+      mtUnknown,
+      mtQualification,
+      mtKey,
+      mtValueKey,
+      mtCall
+   );
 
 (*================================================================================*)
 
@@ -345,16 +354,27 @@ CLASS IMPLEMENTATION CContainer;
       functionHandler : TPFunctionHandler;
       i, ii, index, j : INTEGER;
       lvalue : StringsO.CString;
-      keyIndex, valueIndex : BOOLEAN;
       list : lists.TPStringStringList := NIL;
       map : maps.TPStringStringMap := NIL;
+      modelType : TModelType := mtUnknown;
       parameter : StringsO.CString;
       parameters : lists.CStringStringList;
       ps : StringsO.TPString;
       sindex1, sindex2 : StringsO.CString;
    BEGIN
-      i := model.IndexOfOA( L".", 0 );
-      IF i > 0 THEN // ok, find in map or list by key
+      i := model.IndexOfAnyS( StringsO.WCHARS{L".", L"[", L"<", L"("}, 0 );
+      IF i <> -1 THEN // assign model kind
+         CASE model[i] OF
+         | L"." : modelType := mtQualification;
+         | L"[" : modelType := mtKey;
+         | L"<" : modelType := mtValueKey;
+         | L"(" : modelType := mtCall;
+         END; // CASE
+      END;
+
+      CASE modelType OF
+      //-----
+      | mtQualification : // ok, find in map or list by key
          IF GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
             // fall down
          ELSIF GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
@@ -376,31 +396,18 @@ CLASS IMPLEMENTATION CContainer;
             list^.Add( sindex2, value );
          END;
          RETURN TRUE;
-      END;
 
-      valueIndex := FALSE;
-      keyIndex := FALSE;
-      i := model.IndexOfOA( L"[", 0 );
-      IF i > 0 THEN // ok, find in map or list
-         index := -1;
-         j := model.IndexOfOA( L"]", i+1 );
+      //-----
+      | mtKey, mtValueKey :
+         IF modelType = mtKey THEN
+            j := model.IndexOfOA( L"]", i+1 );
+         ELSE
+            j := model.IndexOfOA( L">", i+1 );
+         END;
          IF j = -1 THEN
             GOTO Error;
          END;
-         valueIndex := TRUE;
-      END;
-      IF NOT valueIndex THEN
-         i := model.IndexOfOA( L"<", 0 );
-         IF i > 0 THEN // ok, find in map or list
-            index := -1;
-            j := model.IndexOfOA( L">", i+1 );
-            IF j = -1 THEN
-               GOTO Error;
-            END;
-            keyIndex := TRUE;
-         END;
-      END;
-      IF valueIndex OR keyIndex THEN
+
          model.Substring( i+1, j-i-1, OUT sindex1 );
          IF NOT GetModelValue( Request, sindex1, OUT sindex2 ) THEN
             sindex2 := sindex1;
@@ -408,8 +415,9 @@ CLASS IMPLEMENTATION CContainer;
          sindex2.Trim();
          IF NOT Strings.ToINT32W( OA( sindex2.Length-1, sindex2.rawData ), 10, OUT index ) THEN
             GOTO Error;
+
          ELSIF GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
-            IF valueIndex THEN
+            IF modelType = mtValueKey THEN
                ps := map^[index];
                IF ps = NIL THEN
                   GOTO Error;
@@ -422,8 +430,9 @@ CLASS IMPLEMENTATION CContainer;
                GOTO Error;
             END;
             RETURN TRUE;
+
          ELSIF GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
-            IF keyIndex THEN
+            IF modelType = mtKey THEN
                ps := list^[index];
                IF ps = NIL THEN
                   GOTO Error;
@@ -436,18 +445,17 @@ CLASS IMPLEMENTATION CContainer;
                GOTO Error;
             END;
             RETURN TRUE;
-         ELSE
-            GOTO Error;
-         END;
-      END;
 
-      // try function
-      i := model.IndexOfOA( L"(", 0 );
-      IF i > 0 THEN
+         // ELSE fall down to error
+         END;
+
+      //-----
+      | mtCall :
          j := model.IndexOfOA( L")", i+1 );
          IF j = -1 THEN
             GOTO Error;
          END;
+
          model.Substring( 0, i, OUT sindex1 );
          sindex1.Trim();
          IF GetFunctionHandlerOA( OA( sindex1.Length-1, sindex1.rawData ), OUT functionHandler ) THEN
@@ -466,20 +474,25 @@ CLASS IMPLEMENTATION CContainer;
             boolean := functionHandler^.Call( Request, sindex1, REF parameters, NIL );
             CallMemo := CallMemo OR boolean;
             RETURN boolean;
+            
+         // ELSE fall to error
          END; // IF function found
-      END;
-      
-      // try boolean      
-      IF GetBooleanOA( OA( model.Length-1, model.rawData ), OUT boolean ) THEN
-         lvalue.Assign( value );
-         lvalue.Lowerize();
-         AddBooleanOA( OA( model.Length-1, model.rawData ), value.EqualsOA( TRUE_STRING ) OR value.EqualsOA( L"1" ) OR value.EqualsOA( L"y" ) OR value.EqualsOA( L"yes" ));
-         RETURN TRUE;
-      END;
 
-      // fall to string
-      AddStringOA( OA( model.Length-1, model.rawData ), value );
-      RETURN TRUE;
+      //-----
+      ELSE // mtUnknown or others
+         // try boolean      
+         IF GetBooleanOA( OA( model.Length-1, model.rawData ), OUT boolean ) THEN
+            lvalue.Assign( value );
+            lvalue.Lowerize();
+            AddBooleanOA( OA( model.Length-1, model.rawData ), value.EqualsOA( TRUE_STRING ) OR value.EqualsOA( L"1" ) OR value.EqualsOA( L"y" ) OR value.EqualsOA( L"yes" ));
+
+         ELSE // fall to string
+            AddStringOA( OA( model.Length-1, model.rawData ), value );
+         END;
+         RETURN TRUE;
+
+      //-----
+      END; // CASE
 
       // emit error      
    Error:
@@ -500,16 +513,27 @@ CLASS IMPLEMENTATION CContainer;
       functionHandler : TPFunctionHandler;
       i, index, j : INTEGER;
       ii : CARDINAL;
-      keyIndex, valueIndex : BOOLEAN;
       list : lists.TPStringStringList := NIL;
       map : maps.TPStringStringMap := NIL;
+      modelType : TModelType := mtUnknown;
       parameter : StringsO.CString;
       parameters : lists.CStringStringList;
       ps : StringsO.TPString;
       sindex1, sindex2 : StringsO.CString;
    BEGIN
-      i := model.IndexOfOA( L".", 0 );
-      IF i > 0 THEN // ok, find in map or list by key
+      i := model.IndexOfAnyS( StringsO.WCHARS{L".", L"[", L"<", L"("}, 0 );
+      IF i <> -1 THEN // assign model kind
+         CASE model[i] OF
+         | L"." : modelType := mtQualification;
+         | L"[" : modelType := mtKey;
+         | L"<" : modelType := mtValueKey;
+         | L"(" : modelType := mtCall;
+         END; // CASE
+      END;
+   
+      CASE modelType OF
+      //-----
+      | mtQualification : // ok, find in map or list by key
          IF GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
             // fall down
          ELSIF GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
@@ -529,31 +553,18 @@ CLASS IMPLEMENTATION CContainer;
             GOTO Error;
          END;
          RETURN TRUE;
-      END;
 
-      valueIndex := FALSE;
-      keyIndex := FALSE;
-      i := model.IndexOfOA( L"[", 0 );
-      IF i > 0 THEN // ok, find in map or list
-         index := -1;
-         j := model.IndexOfOA( L"]", i+1 );
+      //-----
+      | mtKey, mtValueKey :
+         IF modelType = mtKey THEN
+            j := model.IndexOfOA( L"]", i+1 );
+         ELSE
+            j := model.IndexOfOA( L">", i+1 );
+         END;
          IF j = -1 THEN
             GOTO Error;
          END;
-         valueIndex := TRUE;
-      END;
-      IF NOT valueIndex THEN
-         i := model.IndexOfOA( L"<", 0 );
-         IF i > 0 THEN // ok, find in map or list
-            index := -1;
-            j := model.IndexOfOA( L">", i+1 );
-            IF j = -1 THEN
-               GOTO Error;
-            END;
-            keyIndex := TRUE;
-         END;
-      END;
-      IF valueIndex OR keyIndex THEN
+
          model.Substring( i+1, j-i-1, OUT sindex1 );
          IF NOT GetModelValue( Request, sindex1, OUT sindex2 ) THEN
             sindex2 := sindex1;
@@ -561,8 +572,9 @@ CLASS IMPLEMENTATION CContainer;
          sindex2.Trim();
          IF NOT Strings.ToINT32W( OA( sindex2.Length-1, sindex2.rawData ), 10, OUT index ) THEN
             GOTO Error;
+
          ELSIF GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
-            IF valueIndex THEN
+            IF modelType = mtValueKey THEN
                ps := map^[index];
                IF ps = NIL THEN
                   GOTO Error;
@@ -572,8 +584,9 @@ CLASS IMPLEMENTATION CContainer;
                GOTO Error;
             END;
             RETURN TRUE;
+
          ELSIF GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
-            IF keyIndex THEN
+            IF modelType = mtKey THEN
                ps := list^[index];
                IF ps = NIL THEN
                   GOTO Error;
@@ -583,18 +596,17 @@ CLASS IMPLEMENTATION CContainer;
                GOTO Error;
             END;
             RETURN TRUE;
-         ELSE
-            GOTO Error;
+
+         // ELSE fall to error
          END;
-      END;
       
-      // test function
-      i := model.IndexOfOA( L"(", 0 );
-      IF i > 0 THEN
+      //-----
+      | mtCall :
          j := model.IndexOfOA( L")", i+1 );
          IF j = -1 THEN
             GOTO Error;
          END;
+
          model.Remove( j, -1 );
          model.Substring( 0, i, OUT sindex1 );
          sindex1.Trim();
@@ -614,24 +626,29 @@ CLASS IMPLEMENTATION CContainer;
             boolean := functionHandler^.Call( Request, sindex1, REF parameters, ADR( value ));
             CallMemo := CallMemo OR boolean;
             RETURN boolean;
-         END; // IF function found
-      END;
-      
-      // test string
-      IF GetStringOA( OA( model.Length-1, model.rawData ), OUT value ) THEN
-         RETURN TRUE;
-      END;
-      
-      // test boolean
-      IF GetBooleanOA( OA( model.Length-1, model.rawData ), OUT boolean ) THEN
-         IF boolean THEN
-            value.FromOA( TRUE_STRING );
-         ELSE
-            value.FromOA( FALSE_STRING );
+          
+         // ELSE fall to error
          END;
-         RETURN TRUE;
-      END;
+   
+      //-----
+      ELSE // mtUnknown or others
+         // test string
+         IF GetStringOA( OA( model.Length-1, model.rawData ), OUT value ) THEN
+            RETURN TRUE;
+         
+         // test boolean
+         ELSIF GetBooleanOA( OA( model.Length-1, model.rawData ), OUT boolean ) THEN
+            IF boolean THEN
+               value.FromOA( TRUE_STRING );
+            ELSE
+               value.FromOA( FALSE_STRING );
+            END;
+            RETURN TRUE;
 
+         END;
+      //-----
+      END; // CASE
+      
       // emit error      
    Error:
       value.FromOA( L'##unknown model: ' );
