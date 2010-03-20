@@ -67,6 +67,13 @@ CLASS IMPLEMENTATION CStatusCodeView;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   BEGIN
+      RETURN FALSE;
+   END GetAuthenticationInfo;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE Init( StatusCode : HttpCommon.THttpResponse );   
    BEGIN
       SELF.StatusCode := StatusCode;
@@ -192,6 +199,13 @@ CLASS IMPLEMENTATION CFileView;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   BEGIN
+      RETURN FALSE;
+   END GetAuthenticationInfo;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; ResolverContext : PTR; CONST PathRelativeToContext : ARRAY OF WCHAR; DispositionFlag : BOOLEAN; CONST MIMEResolver : MVC.TPMIMEResolver; MIMEResolverContext : PTR );
    BEGIN
       SELF.Resolver := Resolver;
@@ -286,6 +300,13 @@ CLASS IMPLEMENTATION CRedirectView;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   BEGIN
+      RETURN FALSE;
+   END GetAuthenticationInfo;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE Init( CONST URIIsAbsolute : BOOLEAN; URIOrControllerName : ARRAY OF WCHAR );   
    BEGIN
       AbsoluteFlag := URIIsAbsolute;
@@ -351,6 +372,13 @@ CLASS IMPLEMENTATION CRawHTMLView;
    BEGIN
       DISPOSE( a );
    END Release;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   BEGIN
+      RETURN FALSE;
+   END GetAuthenticationInfo;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -427,6 +455,13 @@ CLASS IMPLEMENTATION CRawTextView;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   BEGIN
+      RETURN FALSE;
+   END GetAuthenticationInfo;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE Init( CONST text, name : ARRAY OF WCHAR; CONST content : StringsO.IString; dispositionFlag : BOOLEAN );
    BEGIN
       Text.FromOA( text );
@@ -450,6 +485,9 @@ CONST
       PT_DECLARATION = L"declaration";
       PT_CONTENTTYPE = L"contenttype";
       PT_CONDITION = L"condition";
+   PT_ACCESS = L"access";
+      PT_AUTHENTICATION = L"authentication";
+      PT_ROLE = L"role";
    PT_CHOOSE = L"choose";
       PT_WHEN = L"when";
       PT_OTHERWISE = L"otherwise";
@@ -505,11 +543,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
    VAR
       acceptHeader : StringsO.CString;
       empty : StringsO.CString;
-      fs : FIOO.CFileStream;
       mbs : IOO.CMemoryBufferStream;
       now : time.DateTime;
       RequestedContent : StringsO.CString;
-      viewPath : StringsO.CString;
       xhtmlSupported : BOOLEAN := FALSE;
    BEGIN
       now.SetNowUTC();
@@ -524,27 +560,22 @@ CLASS IMPLEMENTATION CPageTemplateView;
             xhtmlSupported := TRUE;
          END;
       END;
-
-      IF Resolver = NIL THEN
-         viewPath := ViewName;
-      ELSIF NOT Resolver^.ResolvePath( 0, OA( ViewName.Length-1, ViewName.rawData ), OUT viewPath ) THEN
-         SetError( empty, ADR( ViewName ), L"Unable to resolve view name." );
-         GOTO Failure;
-      END;
       SELF.Request := MVC.TPHttpRequest( ADR( Request ));
 
-      TRY
-         fs.FromPath( OA( viewPath.Length-1, viewPath.rawData ), FIOO.imOpenRead );
-      CATCH e : IOO.CIOException DO
-         SetError( empty, ADR( viewPath ), L"Unable to find or open view page template file." );
+      CASE Load() OF
+      | lsNotLoaded :
+         SetError( empty, ADR( ViewName ), L"Unexpected internal error when loading page template file." );
+         ASSERTLOG( FALSE );
          GOTO Failure;
+      | lsLoadError :
+         GOTO Failure;
+      // ELSE all is prepared        
       END;
-      Reader.Stream := ADR( fs );
 
       CurrentViewNameIndex := 1;
       mbs.Init( REF Output, IOO.accWrite );
       Writer.Stream := ADR( mbs );
-      IF NOT ParseRoot( xhtmlSupported, OUT RequestedContent ) THEN
+      IF NOT ParseRoot( pmFormat, xhtmlSupported, OUT RequestedContent ) THEN
          GOTO Failure;
       END;
       Writer.Close( FALSE ); 
@@ -559,6 +590,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       // ELSE assume that view (this class) set XHTML/XMLdecl pair or HTML/XMLdecl pair correcly according to client abilities
       END;
       Response.ContentType := RequestedContent;
+      
       
       RETURN TRUE;
       
@@ -596,9 +628,41 @@ CLASS IMPLEMENTATION CPageTemplateView;
    PUBLIC VIRTUAL PROCEDURE Release();
    VAR
       a : TPPageTemplateView := ADR( SELF );
+      fs : FIOO.TPFileStream;
    BEGIN
+      fs := FIOO.TPFileStream( a^.Reader.Stream );
+      IF fs <> NIL THEN
+         DISPOSE( fs );
+      END;
       DISPOSE( a );
    END Release;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   VAR
+      empty : StringsO.CString;
+   BEGIN
+      methodName.Clear();
+      authenticationTokens.Dispose();
+
+      CASE Load() OF
+      | lsNotLoaded :
+         SetError( empty, ADR( ViewName ), L"Unexpected internal error when loading page template file." );
+         ASSERTLOG( FALSE );
+         RETURN FALSE;
+      | lsLoadError :
+         RETURN FALSE;
+      | lsLoadedForFirst :
+         // all is prepared        
+      | lsAlreadyLoaded :
+         Reader.Reset();
+      END;
+
+      // load data from template file
+      
+      RETURN TRUE;
+   END GetAuthenticationInfo;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -610,7 +674,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
    
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ParseRoot( xhtmlSupported : BOOLEAN; OUT contentTypeRequest : StringsO.CString ) : BOOLEAN;
+   PRIVATE PROCEDURE ParseRoot( parseMode : TParseMode; xhtmlSupported : BOOLEAN; OUT contentTypeRequest : StringsO.CString ) : BOOLEAN;
    VAR
       haveDeclaration : BOOLEAN := FALSE;
       haveContentType : BOOLEAN := FALSE;
@@ -620,6 +684,8 @@ CLASS IMPLEMENTATION CPageTemplateView;
       xmle : xmlreader.TXMLError;
       value : StringsO.CString;
    BEGIN
+      ParseMode := parseMode;
+   
       xmle := Reader.MoveNext();
       LOOP
          IF xmle = xmlreader.xmle_S_FALSE THEN
@@ -664,6 +730,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
                   Prefix := Reader.CurrentName;
 
                // read template system attributes "declaration" and "contenttype"
+               ELSIF ParseMode <> pmFormat THEN
+                  CONTINUE;
+               
                ELSIF Reader.CurrentPrefix.Empty OR Reader.CurrentPrefix.Equals( Prefix ) THEN
                   IF Reader.CurrentName.EqualsIgnoreCaseOA( PT_DECLARATION ) THEN
                      IF haveDeclaration THEN
@@ -732,6 +801,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       nodeType : xmlreader.TNodeType;
       nodeValue : StringsO.CString;
       isEmpty : BOOLEAN;
+      ptFlag : BOOLEAN;
       value : StringsO.CString;
    BEGIN
       LOOP
@@ -771,7 +841,16 @@ CLASS IMPLEMENTATION CPageTemplateView;
             END;
 
          | xmlreader.xntElementBegin :
-            CASE HandleElementStart( isEmpty, nodePrefix.EqualsIgnoreCase( Prefix ), limitToPTOnly, nodePrefix, nodeName, attributes ) OF
+            ptFlag := nodePrefix.EqualsIgnoreCase( Prefix );
+            IF ParseMode = pmAuthentication THEN
+               IF ptFlag AND nodeName.EqualsIgnoreCaseOA( PT_ACCESS ) THEN
+                  // continue with parsing
+               ELSE
+                  RETURN TRUE;
+               END;
+            END;
+         
+            CASE HandleElementStart( isEmpty, ptFlag, limitToPTOnly, nodePrefix, nodeName, attributes ) OF
             | esaError :
                RETURN FALSE;
             | esaUnprocessedPT :
@@ -780,6 +859,11 @@ CLASS IMPLEMENTATION CPageTemplateView;
             | esaProcessedInDeep :
                // OK, but element has consumed self end, so I must not expect it, decrement depth
                DEC( depth );
+
+               IF ParseMode = pmAuthentication THEN // authentication info can be only first and single
+                  RETURN TRUE;
+               END;
+
             // ELSE continue
             END;
 
@@ -828,9 +912,13 @@ CLASS IMPLEMENTATION CPageTemplateView;
             b := ParseForeach( attributes );
          ELSIF nodeName.EqualsIgnoreCaseOA( PT_VARIABLE ) THEN
             b := ParseVariable( isEmpty, attributes );
-         ELSIF TWhere{whInInput, whInOption} * Where <> TWhere{} THEN
-            SetError( nodeName, NIL, L'Element is not allowed inside "pt:input" or "pt:option" context.' );
+         ELSIF TWhere{whInInput, whInOption, whInAccess} * Where <> TWhere{} THEN
+            SetError( nodeName, NIL, L'Element is not allowed inside "pt:input", "pt:option" neither "pt:access" context.' );
             b := FALSE;
+         ELSIF nodeName.EqualsIgnoreCaseOA( PT_ACCESS ) THEN
+            INCL( Where, whInAccess );
+            b := ParseAccess( attributes );
+            EXCL( Where, whInAccess );
          ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM ) THEN
             IF whInForm IN Where THEN
                SetError( nodeName, NIL, L'Element is not allowed inside "pt:form" context.' );
@@ -889,6 +977,13 @@ CLASS IMPLEMENTATION CPageTemplateView;
                SetError( nodeName, NIL, L'Unsupported page template element.' );
                b := FALSE;
             END;
+         ELSIF whInAccess IN Where THEN
+            IF nodeName.EqualsIgnoreCaseOA( PT_ROLE ) THEN
+               b := ParseRole( isEmpty, attributes );
+            ELSE
+               SetError( nodeName, NIL, L'Element is not allowed inside "pt:access" context.' );
+               b := FALSE;
+            END;
          ELSE
             RETURN esaUnprocessedPT;
          END;
@@ -930,6 +1025,20 @@ CLASS IMPLEMENTATION CPageTemplateView;
       END;
       RETURN TRUE;
    END ParseElement;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ParseAccess( CONST attributes : lists.CStringStringList ) : BOOLEAN;
+   BEGIN
+      RETURN FALSE;
+   END ParseAccess;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ParseRole( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
+   BEGIN
+      RETURN FALSE;
+   END ParseRole;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1882,9 +1991,52 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
+   PRIVATE PROCEDURE Load() : TLoadState; // return is copy of LoadState member
+   VAR
+      empty : StringsO.CString;
+      fs : FIOO.TPFileStream;
+      viewPath : StringsO.CString;
+   BEGIN
+      IF LoadState <> lsNotLoaded THEN
+         CASE LoadState OF
+         | lsLoadedForFirst :
+            LoadState := lsAlreadyLoaded;
+            Reader.Reset();
+         | lsAlreadyLoaded :
+            Reader.Reset();
+         END;
+         RETURN LoadState;
+      END;
+      
+      // not loaded, load
+      IF Resolver = NIL THEN
+         viewPath := ViewName;
+      ELSIF NOT Resolver^.ResolvePath( 0, OA( ViewName.Length-1, ViewName.rawData ), OUT viewPath ) THEN
+         SetError( empty, ADR( ViewName ), L"Unable to resolve view name." );
+         LoadState := lsLoadError;
+      END;
+
+      NEW( fs );
+      TRY
+         fs^.FromPath( OA( viewPath.Length-1, viewPath.rawData ), FIOO.imOpenRead );
+         LoadState := lsLoadedForFirst;
+         Reader.Stream := fs;
+      CATCH e : IOO.CIOException DO
+         SetError( empty, ADR( viewPath ), L"Unable to find or open view page template file." );
+         LoadState := lsLoadError;
+         DISPOSE( fs );
+      END;
+      
+      RETURN LoadState;
+   END Load;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
+   ParseMode := pmFormat;
    Request := NIL;
    Resolver := NIL;
+   LoadState := lsNotLoaded;
    CurrentViewNameIndex := 1;
    Where := TWhere{};
 END CPageTemplateView;

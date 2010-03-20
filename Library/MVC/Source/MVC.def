@@ -138,12 +138,20 @@ TYPE
 // IView.Format*Stream implementor SHALL set ContentType and ContentLength/Chunked for its content. Higer level has not sufficient information to do it.
 // IView.Format*Buffer implementor SHALL set ContentType for its content. Higer level has not sufficient information to do it. ContentLength/Chunk is set by MVC.
 INTERFACE IView;
+
+   // formatting
    READONLY PROPERTY
       OutputType : TViewOutputType;
    PROCEDURE FormatToBuffer( CONST Request : IHttpRequest; REF Response : IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
    PROCEDURE FormatToInputStream( CONST Request : IHttpRequest; REF Response : IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    PROCEDURE FormatToOutputStream( CONST Request : IHttpRequest; REF Response : IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   
+   // authentication
+   PROCEDURE GetAuthenticationInfo( OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+
+   // cleanup, releasing
    PROCEDURE Release();
+
 END IView;
 
 (*--------------------------------------------------------------------------------*)
