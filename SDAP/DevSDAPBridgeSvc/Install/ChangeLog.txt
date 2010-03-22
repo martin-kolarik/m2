@@ -1,5 +1,8 @@
-Version 1.0.1183/R RTM 22.3.2010
+Version 1.0.1184/R RTM 22.3.2010
+- BUG: #186, Service could crash when stopped, it depended on number of communicated
+       items.
 - BUG: #191, StiebelHP did not read errors in Release version.
+- CHG: #187, Size of BridgeSvc.exe was decreased, private CRT is used.
 
 Version 1.0.1165/R RTM 15.3.2010
 - BUG: #185, StiebelHP plugin could assert on second attempt to start timeout.
