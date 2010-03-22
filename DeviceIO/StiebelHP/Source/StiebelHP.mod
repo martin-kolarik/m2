@@ -544,6 +544,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 		   StopTimeout( REF _RxTimeoutHandle );
 			PIO^.OnRx( Result, NIL );
 		ELSIF PLONGWORD( Data.Data )^ = 055555555H THEN
+   		StopTimeout( REF _RxTimeoutHandle ); // no need to wait for Rx timeout, when data was written
 			PIO^.OnTxCON( Sync.arCompleted );
 		ELSE
 		   StopTimeout( REF _RxTimeoutHandle );
@@ -725,8 +726,6 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PRIVATE PROCEDURE StartTimeout( TimeoutMS : CARDINAL; REF Handle : threadpool.TPoolHandle );
    BEGIN
-      // wait for some dump, then fix the bug and leave only the ASSERT on the place
-      // ASSERTLOG( Handle = NIL );
       IF Handle <> NIL THEN
          StopTimeout( REF Handle );
          ASSERTLOG( FALSE );
