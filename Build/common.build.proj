@@ -101,7 +101,8 @@
         <DEFFilesDir Include = "$(SourceDir)\cllv.def" />
         <MODFiles Include = "cllv.mod" />
         <MODFilesDir Include = "$(SourceDir)\cllv.mod" />
-        <LicensingSourceFiles Include="$(SourceDir)\cllv.def;$(SourceDir)\cllv.mod"/>
+        <LicensingSourceDef Include="$(SourceDir)\cllv.def"/><!-- it is used in condition of LicensingSource task -->
+        <LicensingSourceFiles Include="@(LicensingSourceDef);$(SourceDir)\cllv.mod"/>
     </ItemGroup>
 
     <!-- intermediates -->
@@ -212,7 +213,9 @@
     </Target>
 
 
-    <Target Name="LicensingSource" Condition="$(ClientLicensing)=='on'" Outputs="@(LicensingSourceFiles)">
+    <Target Condition="$(ClientLicensing)=='on' And !Exists(@(LicensingSourceDef))"
+            Name="LicensingSource"
+            Outputs="@(LicensingSourceFiles)">
         <Exec WorkingDirectory="$(LicensingSourceDir)"
               Command="$(LICSRC) $(ProductId)"/>
     </Target>

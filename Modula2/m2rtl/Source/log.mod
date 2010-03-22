@@ -145,6 +145,24 @@ CLASS IMPLEMENTATION ALogger;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY LocalTime GET : BOOLEAN;
+   BEGIN
+      RETURN rsLocalTime IN RStatus;
+   END LocalTime;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY LocalTime SET( Value : BOOLEAN );
+   BEGIN
+      IF Value THEN
+         INCL( RStatus, rsLocalTime );
+      ELSE
+         EXCL( RStatus, rsLocalTime );
+      END;
+   END LocalTime;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE SetLogName( CONST Name : ARRAY OF WCHAR );
    BEGIN
       ASSIGN( SELF.Name, Name );
@@ -574,7 +592,11 @@ CLASS IMPLEMENTATION ALogger;
     SW := L"";
     IF rsTimeStamps IN RStatus THEN
       leading := TRUE;
-      dt.SetNowUTC();
+      IF rsLocalTime IN RStatus THEN
+         dt.SetNowLocal();
+      ELSE
+         dt.SetNowUTC();
+      END;
       dt.ToStringOA( L"[yyyy-MM-dd HH:mm:ss.fff] ", TRUE, TRUE, OUT SW );
     END;
     IF rsLevelInfo IN RStatus THEN

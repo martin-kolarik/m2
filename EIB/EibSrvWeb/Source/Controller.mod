@@ -21,11 +21,15 @@ IMPORT
 
 CONST
    CRLF = 13W + 10W;
+   FALSE_S = L"false";
+   TRUE_S = L"true";
    SESSION_LOGGED = L"logged";
    SESSION_ROLE = L"role";
+   ROLE_NAME = L"roleName";
    ROLE_ADMIN = L"isAdmin";
    USER_LOGGED = L"isLogged";
    VERSION = L"version";
+   MESSAGE = L"message";
    
    RESOLVER_CONTEXT_WEB = 0;
    RESOLVER_CONTEXT_DISK = 1;
@@ -36,9 +40,11 @@ CONST
    DATA_LOG_VIEW = L"datalog.pt.xml";
    SYSTEM_LOG_VIEW = L"syslog.pt.xml";
    IO_VIEW = L"io.pt.xml";
+   USERS_VIEW = L"users.pt.xml";
+   ROLE_EDIT_VIEW = L"roleEdit.pt.xml";
+   USER_EDIT_VIEW = L"userEdit.pt.xml";
    INDEX_VIEW = L"index.pt.xml";
    
-   LOGIN_MESSAGE = L"message";
    LOGIN_USERNAME = L"username";
    LOGIN_PASSWORD = L"password";
    
@@ -57,6 +63,7 @@ CONST
    STATUS_CONFIGURATION = L"configurationPath";
    STATUS_CONNECT = L"connect";
    STATUS_DISCONNECT = L"disconnect";
+   STATUS_PROJECT = L"project";
    
    CONTROL_DEVICES_NAME = L"names";
    CONTROL_DEVICES_RUN = L"runStatus";
@@ -79,10 +86,45 @@ CONST
    IO_WRITE_VALUE = L"writeValue";
    IO_DO_WRITE = L"write";
    IO_WRITE_FAILED = L"writeFailed";
+   
+   USERS_ACTION = L"action";
+      ACTION_DELETE = L"delete";
+      ACTION_EDIT = L"edit";
+   USERS_ID = L"id";
+   USERS_ROLES = L"roles";
+   USERS_ROLE_IDS = L"roleIds";
+   USERS_USERS = L"users";
+   USERS_USER_IDS = L"userIds";
+   USERS_ERROR = L"error";
+   USERS_ERROR_TEXT = L"errorText";
+   USERS_ERROR_TEXT_BADEDITDATA = L"users.badUsersEditData";
+   
+   USER_EDIT_NAME = L"name";
+   USER_EDIT_ROLE = L"role";
+   USER_EDIT_PASSWORD1 = L"password1";
+   USER_EDIT_PASSWORD2 = L"password2";
+   USER_EDIT_ERROR_TEXT_EMPTYNAME = L"userEdit.nameIsEmpty";
+   USER_EDIT_ERROR_TEXT_PASSWORDEMPTY = L"userEdit.passwordEmpty";
+   USER_EDIT_ERROR_TEXT_PASSWORDSDONOTMATCH = L"userEdit.passwordDoNotMatch";
+   USER_EDIT_ERROR_TEXT_EMPTYROLE = L"userEdit.roleIsEmpty";
+   USER_EDIT_ERROR_TEXT_UPDATEFAILED = L"userEdit.updateFailed";
+   
+   ROLE_EDIT_NAME = L"name";
+   ROLE_EDIT_KEYED = L"keyed";
+   ROLE_EDIT_ERROR_TEXT_EMPTYNAME = L"roleEdit.nameIsEmpty";
+   ROLE_EDIT_ERROR_TEXT_UPDATEFAILED = L"roleEdit.updateFailed";
+   ROLE_EDIT_ERROR_TEXT_DELETEFAILED = L"roleEdit.deleteFailed";
 
    DYNAMIC_SUFFIX = L".pt.xml";
    FN_SET = L"set";
    FN_GET = L"get";
+   FN_GETWIX = L"getWix";
+   FN_EQUAL = L"equal";
+   FN_NOTEQUAL = L"notEqual";
+   FN_LESS = L"less";
+   FN_LESSEQUAL = L"lessEqual";
+   FN_GREATER = L"greater";
+   FN_GREATEREQUAL = L"greaterEqual";
 
 (*================================================================================*)
 
@@ -118,26 +160,146 @@ CLASS IMPLEMENTATION CController;
 
    PUBLIC VIRTUAL PROCEDURE Call( CONST Request : mvc.IHttpRequest; CONST FunctionName : StringsO.IString; REF Parameters : lists.CStringStringList; RetVal : StringsO.TPString ) : BOOLEAN;
    VAR
-      name, s, value : StringsO.CString;
+      b : BOOLEAN;
+      name, s, value1, value2 : StringsO.CString;
+      real1, real2 : LONGREAL;
    BEGIN
       IF FunctionName.EqualsOA( FN_SET ) THEN
          IF Parameters.Count < 2 THEN
             RETURN FALSE;
          END;
          Parameters.ElementAt( 0, OUT s, OUT name );
-         Parameters.ElementAt( 1, OUT s, OUT value );
-         RETURN _Web^.SetValue( Request.RequestSource, name, value );
+         Parameters.ElementAt( 1, OUT s, OUT value1 );
+         RETURN _Web^.SetValue( Request.RequestSource, name, value1 );
+
       ELSIF FunctionName.EqualsOA( FN_GET ) THEN
-         IF Parameters.Count < 2 THEN
+         IF Parameters.Count < 1 THEN
             RETURN FALSE;
          END;
          Parameters.ElementAt( 0, OUT s, OUT name );
-         IF NOT _Web^.GetValue( name, OUT value ) THEN
+         IF NOT _Web^.GetValue( name, OUT value1 ) THEN
             RETURN FALSE;
          ELSIF RetVal <> NIL THEN
-            RetVal^.Assign( value );
+            RetVal^.Assign( value1 );
          END;
          RETURN TRUE;
+         
+      ELSIF FunctionName.EqualsOA( FN_GETWIX ) THEN
+         IF Parameters.Count < 1 THEN
+            RETURN FALSE;
+         END;
+         Parameters.ElementAt( 0, OUT s, OUT name );
+         IF NOT _Web^.GetWixValue( name, OUT value1 ) THEN
+            RETURN FALSE;
+         ELSIF RetVal <> NIL THEN
+            RetVal^.Assign( value1 );
+         END;
+         RETURN TRUE;
+         
+      ELSIF FunctionName.EqualsOA( FN_EQUAL ) THEN
+         IF Parameters.Count < 2 THEN
+            RETURN FALSE;
+         ELSIF RetVal <> NIL THEN
+            Parameters.ElementAt( 0, OUT s, OUT value1 );
+            Parameters.ElementAt( 1, OUT s, OUT value2 );
+            IF value1.Equals( value2 ) THEN
+               RetVal^.FromOA( TRUE_S );
+            ELSE
+               RetVal^.FromOA( FALSE_S );
+            END;
+         END;
+         RETURN TRUE;
+         
+      ELSIF FunctionName.EqualsOA( FN_NOTEQUAL ) THEN
+         IF Parameters.Count < 2 THEN
+            RETURN FALSE;
+         ELSIF RetVal <> NIL THEN
+            Parameters.ElementAt( 0, OUT s, OUT value1 );
+            Parameters.ElementAt( 1, OUT s, OUT value2 );
+            IF value1.Equals( value2 ) THEN
+               RetVal^.FromOA( FALSE_S );
+            ELSE
+               RetVal^.FromOA( TRUE_S );
+            END;
+         END;
+         RETURN TRUE;
+         
+      ELSIF FunctionName.EqualsOA( FN_LESS ) THEN
+         IF Parameters.Count < 2 THEN
+            RETURN FALSE;
+         ELSIF RetVal <> NIL THEN
+            Parameters.ElementAt( 0, OUT s, OUT value1 );
+            Parameters.ElementAt( 1, OUT s, OUT value2 );
+            IF value1.ToLONGREAL( OUT real1 ) AND value2.ToLONGREAL( OUT real2 ) THEN
+               b := real1 < real2;
+            ELSE
+               b := value1.CompareLanguage( Request.Language, TRUE, value2 ) = -1;
+            END;
+            IF b THEN
+               RetVal^.FromOA( TRUE_S );
+            ELSE
+               RetVal^.FromOA( FALSE_S );
+            END;
+         END;
+         RETURN TRUE;
+         
+      ELSIF FunctionName.EqualsOA( FN_LESSEQUAL ) THEN
+         IF Parameters.Count < 2 THEN
+            RETURN FALSE;
+         ELSIF RetVal <> NIL THEN
+            Parameters.ElementAt( 0, OUT s, OUT value1 );
+            Parameters.ElementAt( 1, OUT s, OUT value2 );
+            IF value1.ToLONGREAL( OUT real1 ) AND value2.ToLONGREAL( OUT real2 ) THEN
+               b := real1 <= real2;
+            ELSE
+               b := value1.CompareLanguage( Request.Language, TRUE, value2 ) <> 1;
+            END;
+            IF b THEN
+               RetVal^.FromOA( TRUE_S );
+            ELSE
+               RetVal^.FromOA( FALSE_S );
+            END;
+         END;
+         RETURN TRUE;
+         
+      ELSIF FunctionName.EqualsOA( FN_GREATER ) THEN
+         IF Parameters.Count < 2 THEN
+            RETURN FALSE;
+         ELSIF RetVal <> NIL THEN
+            Parameters.ElementAt( 0, OUT s, OUT value1 );
+            Parameters.ElementAt( 1, OUT s, OUT value2 );
+            IF value1.ToLONGREAL( OUT real1 ) AND value2.ToLONGREAL( OUT real2 ) THEN
+               b := real1 > real2;
+            ELSE
+               b := value1.CompareLanguage( Request.Language, TRUE, value2 ) = 1;
+            END;
+            IF b THEN
+               RetVal^.FromOA( TRUE_S );
+            ELSE
+               RetVal^.FromOA( FALSE_S );
+            END;
+         END;
+         RETURN TRUE;
+         
+      ELSIF FunctionName.EqualsOA( FN_GREATEREQUAL ) THEN
+         IF Parameters.Count < 2 THEN
+            RETURN FALSE;
+         ELSIF RetVal <> NIL THEN
+            Parameters.ElementAt( 0, OUT s, OUT value1 );
+            Parameters.ElementAt( 1, OUT s, OUT value2 );
+            IF value1.ToLONGREAL( OUT real1 ) AND value2.ToLONGREAL( OUT real2 ) THEN
+               b := real1 >= real2;
+            ELSE
+               b := value1.CompareLanguage( Request.Language, TRUE, value2 ) <> -1;
+            END;
+            IF b THEN
+               RetVal^.FromOA( TRUE_S );
+            ELSE
+               RetVal^.FromOA( FALSE_S );
+            END;
+         END;
+         RETURN TRUE;
+         
       ELSE
          RETURN FALSE;
       END;
@@ -175,6 +337,13 @@ CLASS IMPLEMENTATION CController;
          Request.Session^.Add( SESSION_ROLE, PTR( role ));
       END;
       
+      Request.ModelContainer^.AddFunctionHandlerOA( FN_EQUAL, ADR( SELF ));
+      Request.ModelContainer^.AddFunctionHandlerOA( FN_NOTEQUAL, ADR( SELF ));
+      Request.ModelContainer^.AddFunctionHandlerOA( FN_LESS, ADR( SELF ));
+      Request.ModelContainer^.AddFunctionHandlerOA( FN_LESSEQUAL, ADR( SELF ));
+      Request.ModelContainer^.AddFunctionHandlerOA( FN_GREATER, ADR( SELF ));
+      Request.ModelContainer^.AddFunctionHandlerOA( FN_GREATEREQUAL, ADR( SELF ));
+
       version.FromOA( ProductVersion );
       Request.ModelContainer^.AddStringOA( VERSION, version );
 
@@ -183,8 +352,10 @@ CLASS IMPLEMENTATION CController;
          IF NOT uri.EndsWithOA( DYNAMIC_SUFFIX ) THEN
             View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_WEB, OA( uri.Length-1, uri.rawData ), FALSE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
          ELSIF NOT Request.ModelContainer^.GetFunctionCallsMemo() THEN // no call during the request
+            // ??? TODO, functions persist, should they be available for all pages, after this call ???
             Request.ModelContainer^.AddFunctionHandlerOA( FN_SET, ADR( SELF ));
             Request.ModelContainer^.AddFunctionHandlerOA( FN_GET, ADR( SELF ));
+            Request.ModelContainer^.AddFunctionHandlerOA( FN_GETWIX, ADR( SELF ));
             View := mvc.pageTemplateView( ADR( SELF ), OA( uri.Length-1, uri.rawData ));
          ELSE // some call was performed, redirect to self
             View := mvc.redirectView( OA( uri.Length-1, uri.rawData ));
@@ -214,11 +385,11 @@ CLASS IMPLEMENTATION CController;
          RETURN TRUE;
       
       ELSIF Request.ControllerURI.EqualsOA( STATUS_PAGE ) THEN
-         Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, role = EibSrvWeb.roleAdministrator );
+         Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, role = EibSrvWeb.roleSystemAdministrator );
          RETURN ProcessStatus( Request, OUT View );
 
       ELSIF Request.ControllerURI.EqualsOA( CONTROL_PAGE ) THEN
-         IF role = EibSrvWeb.roleAdministrator THEN
+         IF role = EibSrvWeb.roleSystemAdministrator THEN
             Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, TRUE );
             RETURN ProcessControl( Request, OUT View );
          ELSE
@@ -227,7 +398,7 @@ CLASS IMPLEMENTATION CController;
          END;
 
       ELSIF Request.ControllerURI.EqualsOA( SYSTEM_LOG_PAGE ) THEN
-         IF role = EibSrvWeb.roleAdministrator THEN
+         IF role = EibSrvWeb.roleSystemAdministrator THEN
             Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, TRUE );
             RETURN ProcessSystemLog( Request, OUT View );
          ELSE
@@ -236,12 +407,39 @@ CLASS IMPLEMENTATION CController;
          END;
 
       ELSIF Request.ControllerURI.EqualsOA( DATA_LOG_PAGE ) THEN
-         Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, role = EibSrvWeb.roleAdministrator );
+         Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, role = EibSrvWeb.roleSystemAdministrator );
          RETURN ProcessDataLog( Request, OUT View );
 
       ELSIF Request.ControllerURI.EqualsOA( IO_PAGE ) THEN
-         Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, role = EibSrvWeb.roleAdministrator );
+         Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, role = EibSrvWeb.roleSystemAdministrator );
          RETURN ProcessIO( Request, OUT View );
+
+      ELSIF Request.ControllerURI.EqualsOA( USERS_PAGE ) THEN
+         IF role = EibSrvWeb.roleSystemAdministrator THEN
+            Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, TRUE );
+            RETURN ProcessUsers( Request, OUT View );
+         ELSE
+            View := mvc.httpStatusCodeView( HttpCommon.httpres_Unauthorized );
+            RETURN TRUE;
+         END;
+
+      ELSIF Request.ControllerURI.EqualsOA( ROLE_EDIT_PAGE ) THEN
+         IF role = EibSrvWeb.roleSystemAdministrator THEN
+            Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, TRUE );
+            RETURN ProcessRoleEdit( Request, OUT View );
+         ELSE
+            View := mvc.httpStatusCodeView( HttpCommon.httpres_Unauthorized );
+            RETURN TRUE;
+         END;
+
+      ELSIF Request.ControllerURI.EqualsOA( USER_EDIT_PAGE ) THEN
+         IF role = EibSrvWeb.roleSystemAdministrator THEN
+            Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, TRUE );
+            RETURN ProcessUserEdit( Request, OUT View );
+         ELSE
+            View := mvc.httpStatusCodeView( HttpCommon.httpres_Unauthorized );
+            RETURN TRUE;
+         END;
 
       END;
 
@@ -263,7 +461,7 @@ CLASS IMPLEMENTATION CController;
       su, sp : StringsO.CString;
    BEGIN
       IF Request.RequestVerb = HttpCommon.verbGET THEN // OK, only render a login page
-         Request.ModelContainer^.AddStringOA( LOGIN_MESSAGE, sp ); // empty
+         Request.ModelContainer^.AddStringOA( MESSAGE, sp ); // empty
          Request.ModelContainer^.AddStringOA( LOGIN_USERNAME, sp ); // empty
          Request.ModelContainer^.AddStringOA( LOGIN_PASSWORD, sp ); // empty
          View := mvc.pageTemplateView( ADR( SELF ), LOGIN_VIEW );
@@ -273,10 +471,9 @@ CLASS IMPLEMENTATION CController;
             NOT Request.ModelContainer^.GetStringOA( LOGIN_PASSWORD, OUT sp ) OR // bad input
             NOT ValidateUser( Request, su, sp ) THEN // bad credentials
          Request.MessageSource^.GetMessageOA( Request.Language, L"login.badCredentials", OUT su );
-         Request.ModelContainer^.AddStringOA( LOGIN_MESSAGE, su );
+         Request.ModelContainer^.AddStringOA( MESSAGE, su );
 
          sp.Clear();
-         Request.ModelContainer^.AddStringOA( LOGIN_MESSAGE, sp ); // empty
          Request.ModelContainer^.AddStringOA( LOGIN_USERNAME, sp ); // empty
          Request.ModelContainer^.AddStringOA( LOGIN_PASSWORD, sp ); // empty
          View := mvc.pageTemplateView( ADR( SELF ), LOGIN_VIEW );
@@ -391,6 +588,8 @@ CLASS IMPLEMENTATION CController;
       Request.ModelContainer^.AddStringOA( STATUS_LAST_DAY, cs );
  
       Request.ModelContainer^.AddStringOA( STATUS_CONFIGURATION, _Web^.Configuration^ );
+      
+      Request.ModelContainer^.AddStringOA( STATUS_PROJECT, _Web^.Project^ );
  
       View := mvc.pageTemplateView( ADR( SELF ), STATUS_VIEW );
       RETURN TRUE;
@@ -453,9 +652,9 @@ CLASS IMPLEMENTATION CController;
             listDevices^.Add( cs, cs );
 
             IF _Web^.DeviceRunning( i ) THEN
-               cs.FromOA( L"true" );
+               cs.FromOA( TRUE_S );
             ELSE
-               cs.FromOA( L"false" );
+               cs.FromOA( FALSE_S );
             END;
             listRunning^.Add( cs, cs );
 
@@ -638,13 +837,267 @@ CLASS IMPLEMENTATION CController;
 
 (*--------------------------------------------------------------------------------*)
 
+   PRIVATE PROCEDURE ProcessUsers( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   VAR
+      cs : StringsO.CString;
+      empty : StringsO.CString;
+      i : CARDINAL;
+      listRoles : lists.TPStringStringList;
+      listRoleIds : lists.TPStringStringList;
+      listUsers : lists.TPStringStringList;
+      listUserIds : lists.TPStringStringList;
+      role : EibSrvWeb.TRole;
+      roleName : StringsO.CString;
+      userName : StringsO.CString;
+   BEGIN
+      Request.ModelContainer^.AddStringOA( USERS_ACTION, empty );
+      Request.ModelContainer^.AddStringOA( USERS_ID, empty );
+
+      Request.ModelContainer^.AddListOA( USERS_ROLES, OUT listRoles ); listRoles^.Dispose();
+      Request.ModelContainer^.AddListOA( USERS_ROLE_IDS, OUT listRoleIds ); listRoleIds^.Dispose();
+      Request.ModelContainer^.AddListOA( USERS_USERS, OUT listUsers ); listUsers^.Dispose();
+      Request.ModelContainer^.AddListOA( USERS_USER_IDS, OUT listUserIds ); listUserIds^.Dispose();
+
+      // roles
+      FOR i := 0 TO _Web^.RolesCount-1 DO
+         IF _Web^.GetRole( i, OUT role, OUT roleName ) THEN
+            listRoles^.Add( roleName, roleName );
+            cs.FromCARD32( i+1, 10 );
+            listRoleIds^.Add( cs, cs );
+         END;
+      END; // FOR
+   
+      // users
+      FOR i := 0 TO _Web^.UsersCount-1 DO
+         IF _Web^.GetUser( i, OUT role, OUT userName, OUT roleName ) THEN
+            listUsers^.Add( userName, roleName );
+            cs.FromCARD32( i+1, 10 );
+            listUserIds^.Add( cs, cs );
+         END;
+      END; // FOR
+   
+      View := mvc.pageTemplateView( ADR( SELF ), USERS_VIEW );
+      RETURN TRUE;
+   END ProcessUsers;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ProcessRoleEdit( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   VAR
+      action : StringsO.CString;
+      currentName : StringsO.CString;
+      cs1, cs2 : StringsO.CString;
+      empty : StringsO.CString;
+      i : CARDINAL;
+      id : CARDINAL;
+      ids : StringsO.CString;
+      keyed : BOOLEAN;
+      role : EibSrvWeb.TRole;
+      roleName : StringsO.CString;
+   BEGIN
+      Request.ModelContainer^.AddBooleanOA( USERS_ERROR, FALSE );
+      Request.ModelContainer^.AddStringOA( USERS_ERROR_TEXT, empty );
+      Request.ModelContainer^.AddStringOA( MESSAGE, empty );
+
+      // retrieve editation id      
+      Request.ModelContainer^.GetStringOA( USERS_ID, OUT ids );
+      IF NOT ids.Empty THEN
+         ids.ToINT32( 10, OUT id );
+         IF id = -1 THEN // role user is to be edited
+            // fall down
+         ELSE
+            DEC( id );
+            IF NOT _Web^.GetRole( id, OUT role, OUT currentName ) THEN
+               Request.ModelContainer^.AddBooleanOA( USERS_ERROR, TRUE );
+               Request.MessageSource^.GetMessageOA( Request.Language, USERS_ERROR_TEXT_BADEDITDATA, OUT cs1 );
+               Request.ModelContainer^.AddStringOA( USERS_ERROR_TEXT, cs1 );
+            END;
+         END;
+      END;
+
+      IF Request.RequestVerb = HttpCommon.verbPOST THEN // OK, process form output
+         // validate
+         Request.ModelContainer^.GetStringOA( ROLE_EDIT_NAME, OUT roleName ); 
+         Request.ModelContainer^.GetBooleanOA( ROLE_EDIT_KEYED, OUT keyed ); 
+         IF keyed THEN
+            role := EibSrvWeb.roleUserKeyed;
+         ELSE
+            role := EibSrvWeb.roleUserNamed;
+         END;
+         
+         IF roleName.Empty THEN
+            Request.MessageSource^.GetMessageOA( Request.Language, ROLE_EDIT_ERROR_TEXT_EMPTYNAME, OUT cs1 );
+
+         ELSIF _Web^.UpdateRole( currentName, roleName, role ) THEN
+            Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id
+            View := mvc.redirectView( USERS_PAGE );
+            RETURN TRUE;
+         ELSE // error during updating
+            Request.MessageSource^.GetMessageOA( Request.Language, ROLE_EDIT_ERROR_TEXT_UPDATEFAILED, OUT cs1 );
+         END;
+
+         // fill error message
+         Request.ModelContainer^.AddStringOA( MESSAGE, cs1 );
+         currentName.Assign( roleName );
+
+      ELSIF Request.ModelContainer^.GetStringOA( USERS_ACTION, OUT action ) AND NOT action.Empty THEN
+         Request.ModelContainer^.AddStringOA( USERS_ACTION, empty );
+         
+         IF Request.ModelContainer^.GetStringOA( USERS_ID, OUT ids ) AND NOT ids.Empty THEN
+            // Request.ModelContainer^.AddStringOA( USERS_ID, empty ); -- leave users_id until editing finishes
+
+            IF action.EqualsOA( ACTION_DELETE ) THEN
+               Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id, no next deletion allowed
+               IF _Web^.DeleteRole( currentName ) THEN
+                  View := mvc.redirectView( USERS_PAGE );
+                  RETURN TRUE;
+               ELSE // role cannot be deleted
+                  Request.MessageSource^.GetMessageOA( Request.Language, ROLE_EDIT_ERROR_TEXT_DELETEFAILED, OUT cs1 );
+                  Request.ModelContainer^.AddStringOA( MESSAGE, cs1 );
+               END;
+
+            ELSIF action.EqualsOA( ACTION_EDIT ) THEN 
+               // loop self to edit page with stored editation id
+               View := mvc.redirectView( ROLE_EDIT_PAGE );
+               RETURN TRUE;
+
+            ELSE
+               Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id, bad action
+               
+            END;
+         END;
+      END;
+
+      Request.ModelContainer^.AddStringOA( ROLE_EDIT_NAME, currentName );
+      Request.ModelContainer^.AddBooleanOA( ROLE_EDIT_KEYED, role = EibSrvWeb.roleUserKeyed );
+
+      View := mvc.pageTemplateView( ADR( SELF ), ROLE_EDIT_VIEW );
+      RETURN TRUE;
+   END ProcessRoleEdit;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ProcessUserEdit( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   VAR
+      action : StringsO.CString;
+      currentName : StringsO.CString;
+      cs1, cs2 : StringsO.CString;
+      empty : StringsO.CString;
+      i : CARDINAL;
+      id : CARDINAL;
+      ids : StringsO.CString;
+      listRoles : lists.TPStringStringList;
+      listRoleIds : lists.TPStringStringList;
+      role : EibSrvWeb.TRole;
+      roleName : StringsO.CString;
+      userName : StringsO.CString;
+   BEGIN
+      Request.ModelContainer^.AddBooleanOA( USERS_ERROR, FALSE );
+      Request.ModelContainer^.AddStringOA( USERS_ERROR_TEXT, empty );
+      Request.ModelContainer^.AddStringOA( MESSAGE, empty );
+
+      // retrieve editation id      
+      Request.ModelContainer^.GetStringOA( USERS_ID, OUT ids );
+      IF NOT ids.Empty THEN
+         ids.ToINT32( 10, OUT id );
+         IF id = -1 THEN // new user is to be edited
+            role := EibSrvWeb.roleUserNamed;
+         ELSE
+            DEC( id );
+            IF NOT _Web^.GetUser( id, OUT role, OUT currentName, OUT roleName ) THEN
+               Request.ModelContainer^.AddBooleanOA( USERS_ERROR, TRUE );
+               Request.MessageSource^.GetMessageOA( Request.Language, USERS_ERROR_TEXT_BADEDITDATA, OUT cs1 );
+               Request.ModelContainer^.AddStringOA( USERS_ERROR_TEXT, cs1 );
+            END;
+         END;
+      END;
+
+      IF Request.RequestVerb = HttpCommon.verbPOST THEN // OK, process form output
+         // validate
+         Request.ModelContainer^.GetStringOA( USER_EDIT_NAME, OUT userName ); 
+         Request.ModelContainer^.GetStringOA( USER_EDIT_PASSWORD1, OUT cs1 ); 
+         Request.ModelContainer^.GetStringOA( USER_EDIT_PASSWORD2, OUT cs2 );
+         Request.ModelContainer^.GetStringOA( USER_EDIT_ROLE, OUT roleName );
+         IF userName.Empty THEN
+            Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_EMPTYNAME, OUT cs1 );
+         ELSIF cs1.Empty THEN
+            Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_PASSWORDEMPTY, OUT cs1 );
+         ELSIF cs1 <> cs2 THEN
+            Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_PASSWORDSDONOTMATCH, OUT cs1 );
+         ELSIF roleName.Empty THEN
+            Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_EMPTYROLE, OUT cs1 );
+
+         ELSIF _Web^.UpdateUser( roleName, currentName, userName, cs2 ) THEN // either add new or update edited user
+            Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id
+            View := mvc.redirectView( USERS_PAGE );
+            RETURN TRUE;
+         ELSE // error during updating
+            Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_UPDATEFAILED, OUT cs1 );
+         END;
+
+         // fill error message
+         Request.ModelContainer^.AddStringOA( MESSAGE, cs1 );
+         currentName.Assign( userName );
+
+      ELSIF Request.ModelContainer^.GetStringOA( USERS_ACTION, OUT action ) AND NOT action.Empty THEN
+         Request.ModelContainer^.AddStringOA( USERS_ACTION, empty );
+         
+         IF Request.ModelContainer^.GetStringOA( USERS_ID, OUT ids ) AND NOT ids.Empty THEN
+            // Request.ModelContainer^.AddStringOA( USERS_ID, empty ); -- leave users_id until editing finishes
+
+            IF action.EqualsOA( ACTION_DELETE ) THEN
+               Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id, no next deletion allowed
+               _Web^.DeleteUser( currentName );
+               View := mvc.redirectView( USERS_PAGE );
+               RETURN TRUE;
+
+            ELSIF action.EqualsOA( ACTION_EDIT ) THEN 
+               // loop self to edit page with stored editation id
+               View := mvc.redirectView( USER_EDIT_PAGE );
+               RETURN TRUE;
+
+            ELSE
+               Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id, bad action
+               
+            END;
+         END;
+      END;
+
+      Request.ModelContainer^.AddStringOA( USER_EDIT_ROLE, roleName );
+      Request.ModelContainer^.AddStringOA( USER_EDIT_NAME, currentName );
+      Request.ModelContainer^.AddStringOA( USER_EDIT_PASSWORD1, empty );
+      Request.ModelContainer^.AddStringOA( USER_EDIT_PASSWORD2, empty );
+
+      // roles
+      Request.ModelContainer^.AddListOA( USERS_ROLES, OUT listRoles ); listRoles^.Dispose();
+      Request.ModelContainer^.AddListOA( USERS_ROLE_IDS, OUT listRoleIds ); listRoleIds^.Dispose();
+      i := 0;
+      WHILE _Web^.GetRole( i, OUT role, OUT roleName ) DO
+         listRoles^.Add( roleName, roleName );
+         cs1.FromCARD32( i+1, 10 );
+         listRoleIds^.Add( cs1, cs1 );
+         INC( i );
+      END; // WHILE
+   
+      View := mvc.pageTemplateView( ADR( SELF ), USER_EDIT_VIEW );
+      RETURN TRUE;
+   END ProcessUserEdit;
+
+(*--------------------------------------------------------------------------------*)
+
    PRIVATE PROCEDURE ValidateUser( CONST Request : mvc.IHttpRequest; CONST UserName, Password : StringsO.CString ) : BOOLEAN;
    VAR
       role : EibSrvWeb.TRole;
+      Role : StringsO.CString;
    BEGIN
-      role := _Web^.Authenticate( UserName, Password );
+      role := _Web^.Authenticate( UserName, Password, OUT Role );
+
       Request.Session^.Remove( SESSION_ROLE );
       Request.Session^.Add( SESSION_ROLE, PTR( role ));
+
+      Request.ModelContainer^.RemoveOA( ROLE_NAME );
+      Request.ModelContainer^.AddStringOA( ROLE_NAME, Role );
+
       RETURN role <> EibSrvWeb.roleGuest;
    END ValidateUser;
    

@@ -1,0 +1,21 @@
+DEFINITION MODULE svlPvStubService;
+#save, name( decoration => c ), call( convention => cdecl )
+
+TYPE
+   SVL_ERROR =
+   (
+	   SVL_OK, // Normal
+	   SVL_ALREADY_LOADED, // Stub DLL already loaded into service
+	   SVL_LOAD_FAILED, // Failed to load stub DLL into service
+	   SVL_FAILED_TO_ENABLE_STUB_SYMBOLS, // Loaded DLL, but failed to enable stub symbols because couldn't find function
+	   SVL_NOT_LOADED, // Couldn't unload DLL because DLL not loaded
+	   SVL_FAIL_UNLOAD, // Couldn't unload DLL because couldn't find function
+	   SVL_FAIL_TO_CLEANUP_INTERNAL_HEAP, // Couldn't get the internal stub heap and thus couldn't clean it up
+	   SVL_FAIL_MODULE_HANDLE // Couldn't get the stub DLL handle so couldn't continue
+   );
+
+PROCEDURE svlPVStub_LoadPerformanceValidator() : SVL_ERROR;
+PROCEDURE svlPVStub_UnloadPerformanceValidator() : SVL_ERROR;
+
+#restore
+END svlPvStubService.

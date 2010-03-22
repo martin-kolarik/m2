@@ -74,7 +74,7 @@
                         <?if $(var.LanguageName)=en ?>
                         <Component Id="Documentation" Guid="89A02EDA-2261-4c9b-8087-06AA1B5FC0A7">
                             <File Id="SmartServer.pdf" Name="SmartSrv.pdf" LongName="SmartServer.pdf" Source="..\Doc\SmartServer_en.pdf" DiskId="1" Vital="yes" KeyPath="yes">
-                                <Shortcut Id="StartMenuDocumentation" Directory="ProgramMenuDir" Name="Manual" LongName="SmartServer documentation" />
+                                <Shortcut Id="StartMenuDocumentation" Directory="SmartServerDir" Name="Manual" LongName="SmartServer documentation" />
                             </File>
                             <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" />
                         </Component>
@@ -82,7 +82,7 @@
                         <?if $(var.LanguageName)=cs ?>
                         <Component Id="Documentation" Guid="D75EA66F-CD00-4b0b-85A2-2764FB229D47">
                             <File Id="SmartServer.pdf" Name="SmartSrv.pdf" LongName="SmartServer.pdf" Source="..\Doc\SmartServer_cs.pdf" DiskId="1" Vital="yes" KeyPath="yes">
-                                <Shortcut Id="StartMenuDocumentation" Directory="ProgramMenuDir" Name="Manuál" LongName="Dokumentace SmartServer" />
+                                <Shortcut Id="StartMenuDocumentation" Directory="SmartServerDir" Name="Manuál" LongName="Dokumentace SmartServer" />
                             </File>
                             <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" />
                         </Component>
@@ -117,6 +117,11 @@
                                     <File Id="_03_style.pt.xml" LongName="03 style.pt.xml" Name="03STYLE.XML" Source="Web\User\03 style.pt.xml" DiskId="1" />
                                     <File Id="_04_set.pt.xml" LongName="04 set.pt.xml" Name="04SET.XML" Source="Web\User\04 set.pt.xml" DiskId="1" />
                                     <File Id="_05_get_refresh.pt.xml" LongName="05 get refresh.pt.xml" Name="05GETRE.XML" Source="Web\User\05 get refresh.pt.xml" DiskId="1" />
+                                    <File Id="_06_input.pt.xml" LongName="06 input.pt.xml" Name="06INPUT.XML" Source="Web\User\06 input.pt.xml" DiskId="1" />
+                                    <File Id="_07_dimming.pt.xml" LongName="07 dimming.pt.xml" Name="07DIM.XML" Source="Web\User\07 dimming.pt.xml" DiskId="1" />
+                                    <File Id="_08_push_button.pt.xml" LongName="08 push button.pt.xml" Name="08PUSHB.XML" Source="Web\User\08 push button.pt.xml" DiskId="1" />
+                                    <File Id="_09_table.pt.xml" LongName="09 table.pt.xml" Name="09TABLE.XML" Source="Web\User\09 table.pt.xml" DiskId="1" />
+                                    <File Id="_10_relations.pt.xml" LongName="10 relations.pt.xml" Name="10RELAT.XML" Source="Web\User\10 relations.pt.xml" DiskId="1" />
                                 </Component>
                             </Directory>
                         </Directory>
@@ -189,7 +194,9 @@
             </Directory>
         </Directory>
         <Directory Id="ProgramMenuFolder" Name="PMenu" LongName="Programs">
-            <Directory Id="ProgramMenuDir" Name='SmartSrv' LongName="NeNo KNX SmartServer" />
+            <Directory Id="ProgramMenuDir" Name='NeNo' LongName="NeNo">
+                <Directory Id="SmartServerDir" Name='SmartSrv' LongName="KNX SmartServer" />
+            </Directory>
         </Directory>
         <?if $(var.CLib)=Private ?>
         <Feature Id="VC8RuntimeFeature" Level="1" AllowAdvertise="no" Display="hidden">

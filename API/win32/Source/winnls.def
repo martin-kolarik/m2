@@ -1,15 +1,5 @@
 DEFINITION MODULE winnls;
 
-(*==============================================================
-
-                Win32 API Modula-2 to C++ interface
-
-       32-bit version for M2CPP Modula-2 to C++ compiler
-
-      Copyright (c) 1996, 1997 Moravian Instruments, Inc.
-
-==============================================================*)
-
 (*# name(   decoration     => c ) *)
 
 (*# module( header         => off ) *)
@@ -745,10 +735,28 @@ PROCEDURE LCMapString(Locale : LCID;
                       lpDestStr : windows.PTSTR;
                       cchDest : INTEGER) : INTEGER;
 
-PROCEDURE GetLocaleInfo(Locale : LCID;
-                        LCType : LCTYPE;
-                        lpLCData : windows.PTSTR;
-                        cchData : INTEGER) : INTEGER;
+PROCEDURE GetLocaleInfoA(Locale : LCID;
+                         LCType : LCTYPE;
+                         lpLCData : windows.PCSTR;
+                         cchData : INTEGER) : INTEGER;
+
+PROCEDURE GetLocaleInfoW(Locale : LCID;
+                         LCType : LCTYPE;
+                         lpLCData : windows.PWSTR;
+                         cchData : INTEGER) : INTEGER;
+
+#if PlatformName #startswith L"WinCE" #then
+CONST
+  GetLocaleInfo ::= GetLocaleInfoW;
+#else
+CONST
+  (*%F UNICODE *)
+  GetLocaleInfo ::= GetLocaleInfoA;
+  (*%E UNICODE *)
+  (*%T UNICODE *)
+  GetLocaleInfo ::= GetLocaleInfoW;
+  (*%E UNICODE *)
+#endif
 
 PROCEDURE SetLocaleInfo(Locale : LCID;
                         LCType : LCTYPE;

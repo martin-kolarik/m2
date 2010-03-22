@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html">
+
+    <html>
+        <head>
+            <title>10 relations.pt.xml</title>
+        </head>
+        <body>
+            <h1>Relational functions</h1>
+
+            <p pt:condition="${equal(ementál,chleba)}">ementál = chleba</p>
+            <p pt:condition="${notEqual(ementál,chleba)}">ementál &amp;lt;&amp;gt; chleba</p>
+            <p pt:condition="${less(ementál,chleba)}">ementál &amp;lt; chleba (incorrect in English, correct in Czech)</p>
+            <p pt:condition="${lessEqual(ementál,chleba)}">ementál &amp;lt;= chleba (incorrect in English, correct in Czech)</p>
+            <p pt:condition="${greater(ementál,chleba)}">ementál &amp;gt; chleba (correct in English, incorrect in Czech)</p>
+            <p pt:condition="${greaterEqual(ementál,chleba)}">ementál &amp;gt;= chleba (correct in English, incorrect in Czech)</p>
+
+            <p pt:condition="${equal(Čivava,čivava)}">Čivava = čivava</p>
+            <p pt:condition="${notEqual(Čivava,čivava)}">Čivava &amp;lt;&amp;gt; čivava</p>
+            <p pt:condition="${less(Čivava,čivava)}">Čivava &amp;lt; čivava</p>
+            <p pt:condition="${lessEqual(Čivava,čivava)}">Čivava &amp;lt;= čivava</p>
+            <p pt:condition="${greater(Čivava,čivava)}">Čivava &amp;gt; čivava</p>
+            <p pt:condition="${greaterEqual(Čivava,čivava)}">Čivava &amp;gt;= čivava</p>
+
+            <p pt:condition="${equal(Čivava,Ďábel)}">Čivava = Ďábel</p>
+            <p pt:condition="${notEqual(Čivava,Ďábel)}">Čivava &amp;lt;&amp;gt; Ďábel</p>
+            <p pt:condition="${less(Čivava,Ďábel)}">Čivava &amp;lt; Ďábel</p>
+            <p pt:condition="${lessEqual(Čivava,Ďábel)}">Čivava &amp;lt;= Ďábel</p>
+            <p pt:condition="${greater(Čivava,Ďábel)}">Čivava &amp;gt; Ďábel</p>
+            <p pt:condition="${greaterEqual(Čivava,Ďábel)}">Čivava &amp;gt;= Ďábel</p>
+
+            <p pt:condition="${equal(čivava,čivava)}">čivava = čivava</p>
+            <p pt:condition="${notEqual(čivava,čivava)}">čivava &amp;lt;&amp;gt; čivava</p>
+            <p pt:condition="${less(čivava,čivava)}">čivava &amp;lt; čivava</p>
+            <p pt:condition="${lessEqual(čivava,čivava)}">čivava &amp;lt;= čivava</p>
+            <p pt:condition="${greater(čivava,čivava)}">čivava &amp;gt; čivava</p>
+            <p pt:condition="${greaterEqual(čivava,čivava)}">čivava &amp;gt;= čivava</p>
+
+            <p pt:condition="${equal(171,18)}">171 = 18</p>
+            <p pt:condition="${notEqual(171,18)}">171 &amp;lt;&amp;gt; 18</p>
+            <p pt:condition="${less(171,18)}">171 &amp;lt; 18</p>
+            <p pt:condition="${lessEqual(171,18)}">171 &amp;lt;= 18</p>
+            <p pt:condition="${greater(171,18)}">171 &amp;gt; 18</p>
+            <p pt:condition="${greaterEqual(171,18)}">171 &amp;gt;= 18</p>
+
+            <p pt:condition="${equal(s171,s18)}">s171 = s18</p>
+            <p pt:condition="${notEqual(s171,s18)}">s171 &amp;lt;&amp;gt; s18</p>
+            <p pt:condition="${less(s171,s18)}">s171 &amp;lt; s18</p>
+            <p pt:condition="${lessEqual(s171,s18)}">s171 &amp;lt;= s18</p>
+            <p pt:condition="${greater(s171,s18)}">s171 &amp;gt; s18</p>
+            <p pt:condition="${greaterEqual(s171,s18)}">s171 &amp;gt;= s18</p>
+        </body>
+    </html>
+
+</pageTemplate>

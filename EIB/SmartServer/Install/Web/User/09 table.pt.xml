@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html">
+
+    <html>
+        <head>
+            <title>09 table.pt.xml</title>
+            <style type="text/css">
+                .oddLine
+                {
+                    background-color: #CCCCCC;
+                }
+            </style>
+        </head>
+        <body>
+            <h1>Light statuses, table example</h1>
+
+            <table cellspacing="0" cellpadding="2">
+                <tr>
+                    <th>Number</th>
+                    <th>Status</th>
+                    <th>Brightness</th>
+                </tr>
+                <pt:for from="30" to="39" index="index" order="order" odd="odd">
+                    <pt:variable model="status" source="3/0/${index}" />
+                    <pt:variable model="brightness" source="3/3/${index}" />
+                    <pt:choose>
+                        <pt:when condition="${odd}">
+                            <pt:variable model="lineClass" source="oddLine" />
+                        </pt:when>
+                        <pt:otherwise>
+                            <pt:variable model="lineClass" source="evenLine" />
+                        </pt:otherwise>
+                    </pt:choose>
+                    <tr class="${lineClass}">
+                        <td>${order}</td>
+                        <td>${get(status)}</td>
+                        <td>${get(brightness)}</td>
+                    </tr>
+                </pt:for>
+            </table>
+
+        </body>
+    </html>
+
+</pageTemplate>

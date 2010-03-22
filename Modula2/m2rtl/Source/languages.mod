@@ -217,8 +217,14 @@ BEGIN
 END CodePageToLanguage;
 
 PROCEDURE LanguageToCodePage( Language : TLanguage; OUT CodePage : CARDINAL ) : BOOLEAN;
+VAR
+   codePage : CARDINAL;
 BEGIN
-  RETURN FALSE;
+   IF winnls.GetLocaleInfoW( Language, winnls.LOCALE_IDEFAULTANSICODEPAGE OR winnls.LOCALE_RETURN_NUMBER, windows.PWSTR( ADR( codePage )), SIZE( codePage )) = windows.False THEN
+      RETURN FALSE;
+   END;
+   CodePage := codePage;
+   RETURN TRUE;
 END LanguageToCodePage;
 
 PROCEDURE BytesPerCharacter( CodePage : CARDINAL; OUT FixedCount : BOOLEAN; OUT MinimalCount, MaximalCount : CARDINAL ); // for both MCBS and UNICODE
@@ -388,6 +394,29 @@ BEGIN
       RETURN FALSE;
    END;
 END IsUTF8;
+
+//===========================================================================
+
+PROCEDURE CompareStringMLW( Language : TLanguage; CaseSensitive : BOOLEAN; Length1 : CARDINAL; CONST String1 : PWCHAR; Length2 : CARDINAL; CONST String2 : PWCHAR ) : TRISTATE; // calls CompareStringCPW
+VAR
+   flags : CARDINAL;
+BEGIN
+   IF CaseSensitive THEN
+      flags := 0;
+   ELSE
+      flags := winnls.NORM_IGNORECASE;
+   END;
+   CASE winnls.CompareStringW( Language, flags, String1, Length1, String2, Length2 ) OF
+   | winnls.CSTR_LESS_THAN :
+      RETURN -1;
+   | winnls.CSTR_EQUAL :
+      RETURN 0;
+   | winnls.CSTR_GREATER_THAN :
+      RETURN +1;
+   ELSE
+      RETURN -1;
+   END;
+END CompareStringMLW;
 
 //===========================================================================
 

@@ -9381,11 +9381,11 @@ CLASS IMPLEMENTATION CDesignator;
            G^.OutS( L'( ' );
              IF b THEN
                 IF r.U2 = NIL THEN
-                  G^.OutS( L'0, C"", OA_MAX, C"' );
+                  G^.OutS( L'0, "", OA_MAX, "' );
                 ELSE
                   TPExpression( r.U2 )^.AnalyzeAndGenerateOAHigh( G, Types.TBCONSTOAString );
                   r.U2^.Generate( G, Cn + TGenerateControl{gcCharLiteralAsStringForOA} );
-                  G^.OutS( L', OA_MAX, C"' );
+                  G^.OutS( L', OA_MAX, "' );
                 END;
                 G^.OutANSIEscapeCS( Project.Current()^.OD^.Name, FALSE );
              ELSE

@@ -22,9 +22,11 @@ IMPORT
 
 TYPE
    TRole = (
-      roleAdministrator,
-      roleUser,
-      roleGuest
+      roleGuest,
+      roleSystemUser,
+      roleSystemAdministrator,
+      roleUserNamed,
+      roleUserKeyed
    );
 
 TYPE
@@ -64,6 +66,7 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       OperatedDeviceCount : CARDINAL;
       ConfigLogger : Log.TPBufferedLogger;
       DataLogger : Log.TPBufferedLogger;
+      Project : StringsO.TPString;
       
    PUBLIC PROCEDURE ConnectEIB();
    PUBLIC PROCEDURE DisconnectEIB();
@@ -75,8 +78,21 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
    
    PUBLIC PROCEDURE SetValue( CONST originator : inetaddr.INETADDR; CONST name, value : StringsO.IString ) : BOOLEAN;
    PUBLIC PROCEDURE GetValue( CONST name : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE GetWixValue( CONST name : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN;
    
-   PUBLIC PROCEDURE Authenticate( CONST Name, Password : StringsO.IString ) : TRole;
+   PUBLIC PROCEDURE Authenticate( CONST Name, Password : StringsO.IString; OUT Role : StringsO.IString ) : TRole; // name can be empty if only a number is required for the password
+   
+   // roles and users
+   PUBLIC READONLY PROPERTY
+      RolesCount : CARDINAL;
+      UsersCount : CARDINAL;
+   PUBLIC PROCEDURE GetRole( i : CARDINAL; OUT role : TRole; OUT name : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE GetUser( i : CARDINAL; OUT role : TRole; OUT userName, roleName : StringsO.IString ) : BOOLEAN;
+   
+   PUBLIC PROCEDURE UpdateRole( CONST currentName, roleName : StringsO.IString; role : TRole ) : BOOLEAN;
+   PUBLIC PROCEDURE DeleteRole( CONST roleName : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE UpdateUser( CONST currentName, userName, roleName, password : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE DeleteUser( CONST userName : StringsO.IString );
    
    // SELF
    PRIVATE VAR
@@ -94,9 +110,11 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
       _ConfigLogger : Log.TPBufferedLogger;
       _DataLogger : Log.TPBufferedLogger;
       _HttpLogger : Log.TPILogger;
-      _Users : lists.CStringStringList;
+      _Roles : maps.CStringMap;
+      _Users : maps.CStringStringMap;
       _Lock : Sync.RWLOCK;
       _AccessList : accesslist.CAccessList;
+      _Project : StringsO.CString;
       
       _StartedTime : time.TJD;
       _Connected : BOOLEAN;
@@ -119,6 +137,9 @@ CLASS CEibSrvWeb IMPLEMENTS srvcore.IEIBServerSink, threadcall.IThreadProcedureC
    PUBLIC PROCEDURE Stop();
    
    // PRIVATE
+   PRIVATE PROCEDURE LoadWebUsers() : BOOLEAN;
+   PRIVATE PROCEDURE PersistUsers();
+
    PRIVATE PROCEDURE AddControllers();
    PRIVATE PROCEDURE RemoveControllers();
 

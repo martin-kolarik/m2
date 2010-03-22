@@ -87,6 +87,10 @@ END IFunctionHandler;
 
 (*--------------------------------------------------------------------------------*)
 
+CONST
+   TRUE_STRING = L"true";
+   FALSE_STRING = L"false";
+
 INTERFACE IContainer;
    // control
    PROCEDURE Dispose(); // data, not self
@@ -119,6 +123,7 @@ INTERFACE IContainer;
    PROCEDURE ResetModelInViewNames( CONST ControllerURI : StringsO.IString ); // clears all mode-view bindings corresponding to ControllerURI
    PROCEDURE SetModelInViewName( CONST ControllerURI, FullModel, InViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
    PROCEDURE GetModelByInViewName( CONST ControllerURI, InViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
+   PROCEDURE ResetModelValues( CONST Request : IHttpRequest; CONST ControllerURI : StringsO.IString );
 END IContainer;
    
 (*--------------------------------------------------------------------------------*)

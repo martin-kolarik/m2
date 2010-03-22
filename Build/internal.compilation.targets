@@ -3,7 +3,7 @@
     <!-- TOOLS -->
     <PropertyGroup>
         <!-- VCD Condition="$(VCD)==''">$(MSD)\</VCD -->
-        <CL>&quot;$(VCD)cl&quot; /c /D_ATL_MIN_CRT /DWIN32_LEAN_AND_MEAN</CL>
+        <CL>&quot;$(VCD)cl&quot; /c /DNO_STRICT /DWIN32 /DWINVER=0x0501 /D_WIN32_WINNT=0x0501 /D_ATL_MIN_CRT /DWIN32_LEAN_AND_MEAN</CL>
         <LINK>&quot;$(VCD)link&quot; /map /nodefaultlib</LINK>
         <LIB>&quot;$(VCD)lib&quot; /nodefaultlib</LIB>
         <RC>&quot;$(VCD)rc&quot; -r -DWIN32</RC><!-- -i&quot;$(VCD)\..\include&quot;</RC -->
@@ -36,7 +36,7 @@
         <M2CTRL>$(M2CTRL) -W8 -W9 -W10 -W11 -DDEBUG:$(Debug)</M2CTRL>
         <M2CTRL Condition="$(CPPExceptions)=='on'">$(M2CTRL) -SE</M2CTRL>
         <M2CTRL Condition="$(LeakChecking)=='on'">$(M2CTRL) -SM</M2CTRL>
-        <CLCTRL>/Zp8 /J /Gy /Gr /Gs /GF /GS- /Oi /Zi /Zl /DNO_STRICT /DWIN32 /DWINVER=0x0501 /D_WIN32_WINNT=0x0501</CLCTRL><!-- Gs commits stack, its default commit threshold is 4K, the same as linker sets for initial stack commit -->
+        <CLCTRL>/Zp8 /J /Gy /Gr /Gs /GF /GS- /Oi /Zi /Zl /Wp64</CLCTRL><!-- Gs commits stack, its default commit threshold is 4K, the same as linker sets for initial stack commit -->
         <CLCTRL Condition="$(CPPExceptions)=='on'">$(CLCTRL) /GR /EHsc</CLCTRL>
         <CLCTRL Condition="$(CPPExceptions)!='on'">$(CLCTRL) /GR-</CLCTRL>
         <!-- CLCTRL>$(CLCTRL) /W4 /wd4018 /wd4100 /wd4102 /wd4127 /wd4146 /wd4245</CLCTRL -->
