@@ -21,10 +21,11 @@ CONST
    CONTROL_PAGE = L"control";
    DATA_LOG_PAGE = L"datalog";
    SYSTEM_LOG_PAGE = L"syslog";
+   IO_PAGE = L"io";
    USERS_PAGE = L"users";
    ROLE_EDIT_PAGE = L"roleEdit";
    USER_EDIT_PAGE = L"userEdit";
-   IO_PAGE = L"io";
+   USER_LOGIN_PAGE = L"userLogin";
 
 (*--------------------------------------------------------------------------------*)
 
@@ -62,6 +63,7 @@ CLASS CController IMPLEMENTS FSO.IFilePathResolver, mvc.IFunctionHandler, mvc.IM
    PRIVATE PROCEDURE ProcessUsers( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
    PRIVATE PROCEDURE ProcessRoleEdit( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
    PRIVATE PROCEDURE ProcessUserEdit( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   PRIVATE PROCEDURE ProcessUserLogin( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
 
    PRIVATE PROCEDURE ValidateUser( CONST Request : mvc.IHttpRequest; CONST UserName, Password : StringsO.CString ) : BOOLEAN;
 

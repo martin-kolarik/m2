@@ -1134,6 +1134,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.USER_EDIT_PAGE );
       _MVC^.RegisterController( _Controller, HttpCommon.verbPOST, Controller.USER_EDIT_PAGE );
       
+      _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.USER_LOGIN_PAGE );
+      _MVC^.RegisterController( _Controller, HttpCommon.verbPOST, Controller.USER_LOGIN_PAGE );
+      
       _MVC^.RegisterFallbackController( _Controller );
    END AddControllers;
 

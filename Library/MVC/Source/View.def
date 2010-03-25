@@ -196,6 +196,9 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
       FormModel : StringsO.CString;
       CurrentViewNameIndex : CARDINAL;
       
+      AuthMethod : StringsO.CString;
+      AuthTokens : lists.TPStringStringList;
+      
       ErrorElement : StringsO.CString;
       ErrorModel : StringsO.CString;
       ErrorText : StringsO.CString;
@@ -204,7 +207,7 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
    PRIVATE PROCEDURE Parse( emit, limitToPTOnly : BOOLEAN ) : BOOLEAN;
    PRIVATE PROCEDURE HandleElementStart( isEmpty, ptFlag, limitToPTOnly : BOOLEAN; CONST nodePrefix, nodeName : StringsO.CString; CONST attributes : lists.CStringStringList ) : TElementStartAction;
    PRIVATE PROCEDURE ParseElement( CONST attributes : lists.CStringStringList; isEmpty, limitToPTOnly : BOOLEAN; CONST ignoreOA1, ignoreOA2 : ARRAY OF WCHAR ) : BOOLEAN;
-   PRIVATE PROCEDURE ParseAccess( CONST attributes : lists.CStringStringList ) : BOOLEAN;
+   PRIVATE PROCEDURE ParseAccess( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
    PRIVATE PROCEDURE ParseRole( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
    PRIVATE PROCEDURE ParseChoose() : BOOLEAN;
    PRIVATE PROCEDURE ParseFor( CONST attributes : lists.CStringStringList ) : BOOLEAN;
@@ -222,6 +225,7 @@ CLASS CPageTemplateView IMPLEMENTS MVC.IView;
    PRIVATE PROCEDURE MoveNext( OUT nodeType : xmlreader.TNodeType; OUT nodePrefix : StringsO.IString; OUT nodeName : StringsO.IString; OUT isEmpty : BOOLEAN; OUT nodeValue : StringsO.IString; OUT attributes : lists.CStringStringList ) : xmlreader.TXMLError;
    PRIVATE PROCEDURE CopyAttributes( ptFlag : BOOLEAN; CONST attributes : lists.CStringStringList; CONST ignoreOA1, ignoreOA2 : ARRAY OF WCHAR );
    PRIVATE PROCEDURE WriteFormNameAttribute( CONST model : StringsO.IString );
+   PRIVATE PROCEDURE LoadTextContents( OUT Text : StringsO.CString ) : BOOLEAN;
 
    PRIVATE PROCEDURE SetModelBoolean( CONST model : StringsO.IString; value : BOOLEAN );
    PRIVATE PROCEDURE EvaluateBoolean( CONST Value : StringsO.IString ) : BOOLEAN;

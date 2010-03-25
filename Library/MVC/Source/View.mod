@@ -660,8 +660,15 @@ CLASS IMPLEMENTATION CPageTemplateView;
       END;
 
       // load data from template file
-      
-      RETURN TRUE;
+      AuthTokens := ADR( authenticationTokens );
+      IF ParseRoot( pmAuthentication, FALSE, OUT empty ) THEN
+         methodName := AuthMethod;
+         AuthTokens := NIL;
+         RETURN TRUE;
+      ELSE
+         AuthTokens := NIL;
+         RETURN FALSE;
+      END;
    END GetAuthenticationInfo;
 
 (*--------------------------------------------------------------------------------*)
@@ -843,10 +850,12 @@ CLASS IMPLEMENTATION CPageTemplateView;
          | xmlreader.xntElementBegin :
             ptFlag := nodePrefix.EqualsIgnoreCase( Prefix );
             IF ParseMode = pmAuthentication THEN
-               IF ptFlag AND nodeName.EqualsIgnoreCaseOA( PT_ACCESS ) THEN
+               IF NOT ptFlag THEN // not interesting for access
+                  RETURN TRUE;
+               ELSIF nodeName.EqualsIgnoreCaseOA( PT_ACCESS ) OR nodeName.EqualsIgnoreCaseOA( PT_ROLE ) THEN
                   // continue with parsing
                ELSE
-                  RETURN TRUE;
+                  RETURN TRUE; // stop the parsing
                END;
             END;
          
@@ -912,13 +921,17 @@ CLASS IMPLEMENTATION CPageTemplateView;
             b := ParseForeach( attributes );
          ELSIF nodeName.EqualsIgnoreCaseOA( PT_VARIABLE ) THEN
             b := ParseVariable( isEmpty, attributes );
-         ELSIF TWhere{whInInput, whInOption, whInAccess} * Where <> TWhere{} THEN
-            SetError( nodeName, NIL, L'Element is not allowed inside "pt:input", "pt:option" neither "pt:access" context.' );
-            b := FALSE;
+            
          ELSIF nodeName.EqualsIgnoreCaseOA( PT_ACCESS ) THEN
-            INCL( Where, whInAccess );
-            b := ParseAccess( attributes );
-            EXCL( Where, whInAccess );
+            IF TWhere{whInInput, whInOption, whInAccess} * Where <> TWhere{} THEN
+               SetError( nodeName, NIL, L'Element is not allowed inside "pt:input", "pt:option" neither "pt:access" context.' );
+               b := FALSE;
+            ELSE
+               INCL( Where, whInAccess );
+               b := ParseAccess( isEmpty, attributes );
+               EXCL( Where, whInAccess );
+            END;
+            
          ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM ) THEN
             IF whInForm IN Where THEN
                SetError( nodeName, NIL, L'Element is not allowed inside "pt:form" context.' );
@@ -928,12 +941,17 @@ CLASS IMPLEMENTATION CPageTemplateView;
                b := ParseForm( isEmpty, attributes );
                EXCL( Where, whInForm );
             END;
-         ELSIF whInSelect IN Where THEN
-            IF nodeName.EqualsIgnoreCaseOA( PT_FORM_OPTION ) THEN
+
+         ELSIF nodeName.EqualsIgnoreCaseOA( PT_FORM_OPTION ) THEN
+            IF whInSelect NOT IN Where THEN
+               SetError( nodeName, NIL, L'Element is allowed inside "pt:select" context only.' );
+               b := FALSE;
+            ELSE
                INCL( Where, whInOption );
                b := ParseFormOption( isEmpty, attributes );
                EXCL( Where, whInOption );
             END;
+
          ELSIF whInForm IN Where THEN
             simpleInput := TRUE;
             IF nodeName.EqualsIgnoreCaseOA( PT_FORM_INPUT ) THEN
@@ -977,6 +995,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
                SetError( nodeName, NIL, L'Unsupported page template element.' );
                b := FALSE;
             END;
+
          ELSIF whInAccess IN Where THEN
             IF nodeName.EqualsIgnoreCaseOA( PT_ROLE ) THEN
                b := ParseRole( isEmpty, attributes );
@@ -984,6 +1003,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
                SetError( nodeName, NIL, L'Element is not allowed inside "pt:access" context.' );
                b := FALSE;
             END;
+
          ELSE
             RETURN esaUnprocessedPT;
          END;
@@ -1028,16 +1048,53 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE ParseAccess( CONST attributes : lists.CStringStringList ) : BOOLEAN;
+   PRIVATE PROCEDURE ParseAccess( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
+   VAR
+      attribute : StringsO.CString;
+      lattributes : lists.CStringStringList;
+      prefix : StringsO.CString;
+      pname : StringsO.TPString;
+      role : StringsO.CString;
    BEGIN
-      RETURN FALSE;
+      prefix := Prefix;
+      prefix.AppendOA( L":" );
+
+      // first analyze attributes
+      attributes.Reset();
+      WHILE attributes.MoveNext() DO
+         pname := StringsO.TPString( attributes.Current );
+
+         attribute := prefix; attribute.AppendOA( PT_AUTHENTICATION );
+         IF pname^.EqualsIgnoreCaseOA( PT_AUTHENTICATION ) OR pname^.EqualsIgnoreCase( attribute ) THEN
+            ParseText( attributes.CurrentData^, OUT AuthMethod );
+         END;
+         
+         attribute := prefix; attribute.AppendOA( PT_ROLE );
+         IF pname^.EqualsIgnoreCaseOA( PT_ROLE ) OR pname^.EqualsIgnoreCase( attribute ) THEN
+            IF AuthTokens <> NIL THEN
+               ParseText( attributes.CurrentData^, OUT role );
+               AuthTokens^.AddOA( L"", role );
+            END;
+         END;
+      END; // WHILE
+         
+      RETURN ParseElement( lattributes, isEmpty, FALSE, PT_AUTHENTICATION, PT_ROLE );
    END ParseAccess;
 
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE ParseRole( isEmpty : BOOLEAN; CONST attributes : lists.CStringStringList ) : BOOLEAN;
+   VAR
+      role : StringsO.CString;
    BEGIN
-      RETURN FALSE;
+      IF isEmpty THEN
+         RETURN TRUE;
+      ELSIF NOT LoadTextContents( OUT role ) THEN
+         RETURN FALSE;
+      ELSIF AuthTokens <> NIL THEN
+         AuthTokens^.AddOA( L"", role );
+      END;
+      RETURN TRUE;
    END ParseRole;
 
 (*--------------------------------------------------------------------------------*)
@@ -1697,31 +1754,12 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
       ELSIF isEmpty THEN
          // fall down, source is filled from attribute
+      
+      ELSIF LoadTextContents( OUT source ) THEN
+         // fall down, value is not taken from attribute, but from element content
 
-      ELSE // value is not taken from attribute, but from element content
-         // load content
-         IF MoveNext( OUT nodeType, OUT nodePrefix, OUT nodeName, OUT isEmpty, OUT source, OUT lattributes ) <> xmlreader.xmle_S_OK THEN
-            value.FromOA( L"(pt:)variable" );
-            SetError( nodeName, NIL, L'Unexpected end of buffered source, variable source expected.' );
-            RETURN FALSE;
-         ELSIF nodeType = xmlreader.xntText THEN
-            // OK, variable source some text
-         ELSIF nodeType <> xmlreader.xntElementEnd THEN
-            value.FromOA( L"(pt:)variable" );
-            SetError( nodeName, NIL, L'"pt:variable" can contain #text only.' );
-            RETURN FALSE;
-         END; // IF
-         // load element end, if not loaded yet
-         IF ( nodeType = xmlreader.xntText ) AND
-            ( MoveNext( OUT nodeType, OUT nodePrefix, OUT nodeName, OUT isEmpty, OUT source, OUT lattributes ) <> xmlreader.xmle_S_OK ) THEN
-            value.FromOA( L"(pt:)variable" );
-            SetError( nodeName, NIL, L'Unexpected end of buffered source, end tag of variable expected.' );
-            RETURN FALSE;
-         ELSIF ( nodeType <> xmlreader.xntElementEnd ) OR NOT nodeName.EqualsIgnoreCaseOA( PT_VARIABLE ) THEN
-            value.FromOA( L"(pt:)variable" );
-            SetError( nodeName, NIL, L'Unexpected end of buffered source, end tag of variable expected.' );
-            RETURN FALSE;
-         END; // IF
+      ELSE
+         RETURN FALSE;
       END;
 
       Request^.ModelContainer^.AddVariable( OA( model.Length-1, model.rawData ), source );
@@ -1886,6 +1924,10 @@ CLASS IMPLEMENTATION CPageTemplateView;
       pname : StringsO.TPString;
       value : StringsO.CString;
    BEGIN
+      IF attributes.Empty THEN
+         RETURN;
+      END;
+   
       ignore1 := Prefix;
       ignore1.AppendOA( L":" );
       ignore1.AppendOA( ignoreOA1 );
@@ -1922,6 +1964,48 @@ CLASS IMPLEMENTATION CPageTemplateView;
       Request^.ModelContainer^.SetModelInViewName( Request^.ControllerURI, model, viewName );
       Writer.WriteAttributeStringOA( L"", L"name", OA( viewName.Length-1, viewName.rawData ));
    END WriteFormNameAttribute;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE LoadTextContents( OUT Text : StringsO.CString ) : BOOLEAN;
+   VAR
+      attributes : lists.CStringStringList;
+      isEmpty : BOOLEAN;
+      name : StringsO.CString;
+      nodeName : StringsO.CString;
+      nodePrefix : StringsO.CString;
+      nodeType : xmlreader.TNodeType;
+      value : StringsO.CString;
+   BEGIN
+      name := Reader.CurrentName;
+
+      // load content
+      IF MoveNext( OUT nodeType, OUT nodePrefix, OUT nodeName, OUT isEmpty, OUT Text, OUT attributes ) <> xmlreader.xmle_S_OK THEN
+         value.FromOA( L"(pt:)" ); value.Append( name );
+         SetError( nodeName, NIL, L'Unexpected end of buffered source, text content expected.' );
+         RETURN FALSE;
+      ELSIF nodeType = xmlreader.xntText THEN
+         // OK, variable source some text
+      ELSIF nodeType <> xmlreader.xntElementEnd THEN
+         value.FromOA( L"(pt:)" ); value.Append( name );
+         SetError( nodeName, NIL, L'Element can contain #text only.' );
+         RETURN FALSE;
+      END; // IF
+
+      // load element end, if not loaded yet
+      IF ( nodeType = xmlreader.xntText ) AND
+         ( MoveNext( OUT nodeType, OUT nodePrefix, OUT nodeName, OUT isEmpty, OUT value, OUT attributes ) <> xmlreader.xmle_S_OK ) THEN
+         value.FromOA( L"(pt:)" ); value.Append( name );
+         SetError( nodeName, NIL, L'Unexpected end of buffered source, end tag expected.' );
+         RETURN FALSE;
+      ELSIF ( nodeType <> xmlreader.xntElementEnd ) OR NOT nodeName.EqualsIgnoreCase( name ) THEN
+         value.FromOA( L"(pt:)" ); value.Append( name );
+         SetError( nodeName, NIL, L'Unexpected end of buffered source, end tag expected.' );
+         RETURN FALSE;
+      END; // IF
+      
+      RETURN TRUE;
+   END LoadTextContents;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -2039,6 +2123,7 @@ BEGIN
    LoadState := lsNotLoaded;
    CurrentViewNameIndex := 1;
    Where := TWhere{};
+   AuthTokens := NIL;
 END CPageTemplateView;
 
 (*================================================================================*)

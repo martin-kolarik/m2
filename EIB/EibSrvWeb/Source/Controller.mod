@@ -30,6 +30,7 @@ CONST
    USER_LOGGED = L"isLogged";
    VERSION = L"version";
    MESSAGE = L"message";
+   USER_LOGIN_SOURCE_PAGE = L"sourcePage";
    
    RESOLVER_CONTEXT_WEB = 0;
    RESOLVER_CONTEXT_DISK = 1;
@@ -43,6 +44,7 @@ CONST
    USERS_VIEW = L"users.pt.xml";
    ROLE_EDIT_VIEW = L"roleEdit.pt.xml";
    USER_EDIT_VIEW = L"userEdit.pt.xml";
+   USER_LOGIN_VIEW = L"userLogin.pt.xml";
    INDEX_VIEW = L"index.pt.xml";
    
    LOGIN_USERNAME = L"username";
@@ -325,8 +327,12 @@ CLASS IMPLEMENTATION CController;
 
    PUBLIC VIRTUAL PROCEDURE ProcessRequest( Fallback : BOOLEAN; CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN; // returning false means 500 response
    VAR
+      authMethodInfo : StringsO.CString;
+      authorized : BOOLEAN := FALSE;
+      authTokens : lists.CStringStringList;
       data : PTR;
       role : EibSrvWeb.TRole;
+      roleName : StringsO.CString;
       uri : StringsO.CString;
       version : StringsO.CString;
    BEGIN
@@ -351,12 +357,38 @@ CLASS IMPLEMENTATION CController;
          uri := Request.ControllerURI;
          IF NOT uri.EndsWithOA( DYNAMIC_SUFFIX ) THEN
             View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_WEB, OA( uri.Length-1, uri.rawData ), FALSE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
+
          ELSIF NOT Request.ModelContainer^.GetFunctionCallsMemo() THEN // no call during the request
             // ??? TODO, functions persist, should they be available for all pages, after this call ???
             Request.ModelContainer^.AddFunctionHandlerOA( FN_SET, ADR( SELF ));
             Request.ModelContainer^.AddFunctionHandlerOA( FN_GET, ADR( SELF ));
             Request.ModelContainer^.AddFunctionHandlerOA( FN_GETWIX, ADR( SELF ));
             View := mvc.pageTemplateView( ADR( SELF ), OA( uri.Length-1, uri.rawData ));
+
+            // handle authentication
+            IF NOT View^.GetAuthenticationInfo( OUT authMethodInfo, OUT authTokens ) THEN // some error occurred
+               RETURN FALSE;
+            END;
+            // authMethodInfo is ignored now, method is always native
+            IF authTokens.Empty THEN
+               authorized := TRUE;
+            ELSE// check role
+               Request.ModelContainer^.GetStringOA( ROLE_NAME, OUT roleName );
+               authTokens.Reset();
+               WHILE authTokens.MoveNext() DO
+                  IF authTokens.CurrentData^.Equals( roleName ) THEN // authorized
+                     authorized := TRUE;
+                     EXIT;
+                  END;
+               END; // WHILE
+            END;
+            
+            IF NOT authorized THEN // redirect to login page
+               Request.ModelContainer^.AddStringOA( USER_LOGIN_SOURCE_PAGE, uri );
+               View^.Release();
+               View := mvc.redirectView( USER_LOGIN_PAGE );
+            END;
+
          ELSE // some call was performed, redirect to self
             View := mvc.redirectView( OA( uri.Length-1, uri.rawData ));
          END;
@@ -378,6 +410,10 @@ CLASS IMPLEMENTATION CController;
       ELSIF Request.ControllerURI.Empty THEN // context directly accessed
          View := mvc.redirectView( INDEX_PAGE );
          RETURN TRUE;
+
+      // user login must be processed before system login redirect         
+      ELSIF Request.ControllerURI.EqualsOA( USER_LOGIN_PAGE ) THEN
+         RETURN ProcessUserLogin( Request, OUT View );
 
       ELSIF NOT Request.Session^.Get( SESSION_LOGGED, OUT data ) OR ( data <> PTR( ADR( SELF ))) THEN
          Request.Session^.Remove( SESSION_LOGGED );
@@ -1082,6 +1118,41 @@ CLASS IMPLEMENTATION CController;
       View := mvc.pageTemplateView( ADR( SELF ), USER_EDIT_VIEW );
       RETURN TRUE;
    END ProcessUserEdit;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE ProcessUserLogin( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
+   VAR
+      src, su, sp : StringsO.CString;
+   BEGIN
+      IF Request.RequestVerb = HttpCommon.verbGET THEN // OK, only render a login page
+         Request.ModelContainer^.AddStringOA( MESSAGE, sp ); // empty
+         Request.ModelContainer^.AddStringOA( LOGIN_USERNAME, sp ); // empty
+         Request.ModelContainer^.AddStringOA( LOGIN_PASSWORD, sp ); // empty
+         View := mvc.pageTemplateView( ADR( SELF ), USER_LOGIN_VIEW );
+
+      // post, try to login
+      ELSIF NOT Request.ModelContainer^.GetStringOA( USER_LOGIN_SOURCE_PAGE, OUT src ) OR // bad input
+            NOT Request.ModelContainer^.GetStringOA( LOGIN_USERNAME, OUT su ) OR // bad input
+            NOT Request.ModelContainer^.GetStringOA( LOGIN_PASSWORD, OUT sp ) OR // bad input
+            NOT ValidateUser( Request, su, sp ) THEN // bad credentials
+         Request.MessageSource^.GetMessageOA( Request.Language, L"login.badCredentials", OUT su );
+         Request.ModelContainer^.AddStringOA( MESSAGE, su );
+
+         sp.Clear();
+         Request.ModelContainer^.AddStringOA( LOGIN_USERNAME, sp ); // empty
+         Request.ModelContainer^.AddStringOA( LOGIN_PASSWORD, sp ); // empty
+         View := mvc.pageTemplateView( ADR( SELF ), USER_LOGIN_VIEW );
+         
+      ELSE // OK, set up session, redirect to source page
+         Request.Session^.Remove( SESSION_LOGGED );
+         Request.Session^.Add( SESSION_LOGGED, ADR( SELF ));
+         View := mvc.redirectView( OA( src.Length-1, src.rawData ));
+
+      END;
+
+      RETURN TRUE;
+   END ProcessUserLogin;
 
 (*--------------------------------------------------------------------------------*)
 
