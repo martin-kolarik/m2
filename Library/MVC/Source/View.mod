@@ -67,7 +67,7 @@ CLASS IMPLEMENTATION CStatusCodeView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END GetAuthenticationInfo;
@@ -199,7 +199,7 @@ CLASS IMPLEMENTATION CFileView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END GetAuthenticationInfo;
@@ -300,7 +300,7 @@ CLASS IMPLEMENTATION CRedirectView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END GetAuthenticationInfo;
@@ -375,7 +375,7 @@ CLASS IMPLEMENTATION CRawHTMLView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END GetAuthenticationInfo;
@@ -455,7 +455,7 @@ CLASS IMPLEMENTATION CRawTextView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
    BEGIN
       RETURN FALSE;
    END GetAuthenticationInfo;
@@ -639,12 +639,14 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
    VAR
       empty : StringsO.CString;
    BEGIN
       methodName.Clear();
       authenticationTokens.Dispose();
+
+      SELF.Request := MVC.TPHttpRequest( ADR( Request ));
 
       CASE Load() OF
       | lsNotLoaded :
@@ -869,7 +871,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
                // OK, but element has consumed self end, so I must not expect it, decrement depth
                DEC( depth );
 
-               IF ParseMode = pmAuthentication THEN // authentication info can be only first and single
+               IF ( ParseMode = pmAuthentication ) AND nodeName.EqualsIgnoreCaseOA( PT_ACCESS ) THEN // authentication info can be only first and single
                   RETURN TRUE;
                END;
 
@@ -2125,6 +2127,29 @@ BEGIN
    Where := TWhere{};
    AuthTokens := NIL;
 END CPageTemplateView;
+
+(*================================================================================*)
+
+// TODO
+CLASS IMPLEMENTATION CPageErrorView; // specialized for error pages, looks for error.xxx.pt.xml files, if file is not found, default server error page is emitted
+
+   // IView
+   PUBLIC VIRTUAL READONLY PROPERTY
+      OutputType : MVC.TViewOutputType;
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+   PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   PUBLIC VIRTUAL PROCEDURE Release();
+   PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+
+   // SELF
+   PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; StatusCode : HttpCommon.THttpResponse );
+   
+   PRIVATE VAR
+      PageTemplateView : CPageTemplateView;
+      StatusCode : HttpCommon.THttpResponse;
+
+END CPageErrorView;
 
 (*================================================================================*)
 

@@ -66,6 +66,7 @@ CLASS CController IMPLEMENTS FSO.IFilePathResolver, mvc.IFunctionHandler, mvc.IM
    PRIVATE PROCEDURE ProcessUserLogin( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
 
    PRIVATE PROCEDURE ValidateUser( CONST Request : mvc.IHttpRequest; CONST UserName, Password : StringsO.CString ) : BOOLEAN;
+   PRIVATE PROCEDURE InvalidateUser( CONST Request : mvc.IHttpRequest );
 
 END CController;
 

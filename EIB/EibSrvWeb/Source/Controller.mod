@@ -30,6 +30,7 @@ CONST
    USER_LOGGED = L"isLogged";
    VERSION = L"version";
    MESSAGE = L"message";
+   LOGIN_REDIRECTED = L"redirected";
    USER_LOGIN_SOURCE_PAGE = L"sourcePage";
    
    RESOLVER_CONTEXT_WEB = 0;
@@ -333,14 +334,15 @@ CLASS IMPLEMENTATION CController;
       data : PTR;
       role : EibSrvWeb.TRole;
       roleName : StringsO.CString;
+      s : StringsO.CString;
       uri : StringsO.CString;
       version : StringsO.CString;
    BEGIN
       IF Request.Session^.Get( SESSION_ROLE, OUT data ) THEN
          role := EibSrvWeb.TRole( LOPTRLONGWORD( data ));
       ELSE
+         InvalidateUser( Request );
          role := EibSrvWeb.roleGuest;
-         Request.Session^.Add( SESSION_ROLE, PTR( role ));
       END;
       
       Request.ModelContainer^.AddFunctionHandlerOA( FN_EQUAL, ADR( SELF ));
@@ -366,11 +368,11 @@ CLASS IMPLEMENTATION CController;
             View := mvc.pageTemplateView( ADR( SELF ), OA( uri.Length-1, uri.rawData ));
 
             // handle authentication
-            IF NOT View^.GetAuthenticationInfo( OUT authMethodInfo, OUT authTokens ) THEN // some error occurred
+            IF NOT View^.GetAuthenticationInfo( Request, OUT authMethodInfo, OUT authTokens ) THEN // some error occurred
                RETURN FALSE;
             END;
             // authMethodInfo is ignored now, method is always native
-            IF authTokens.Empty THEN
+            IF authTokens.Empty OR ( role = EibSrvWeb.roleSystemAdministrator ) THEN // if page does not want to authorize or if admin is logged
                authorized := TRUE;
             ELSE// check role
                Request.ModelContainer^.GetStringOA( ROLE_NAME, OUT roleName );
@@ -384,6 +386,9 @@ CLASS IMPLEMENTATION CController;
             END;
             
             IF NOT authorized THEN // redirect to login page
+               IF Request.ModelContainer^.GetStringOA( USER_LOGIN_SOURCE_PAGE, OUT s ) THEN // repeated attempt to authorize, leave MESSAGE intact
+                  Request.ModelContainer^.AddBooleanOA( LOGIN_REDIRECTED, TRUE );
+               END;
                Request.ModelContainer^.AddStringOA( USER_LOGIN_SOURCE_PAGE, uri );
                View^.Release();
                View := mvc.redirectView( USER_LOGIN_PAGE );
@@ -403,21 +408,41 @@ CLASS IMPLEMENTATION CController;
          RETURN ProcessLogin( Request, OUT View );
       
       ELSIF Request.ControllerURI.EqualsOA( LOGOUT_PAGE ) THEN
-         Request.Session^.Remove( SESSION_LOGGED );
+         InvalidateUser( Request );
          View := mvc.redirectView( LOGIN_PAGE );
          RETURN TRUE;
       
-      ELSIF Request.ControllerURI.Empty THEN // context directly accessed
+      // context directly accessed
+      ELSIF Request.ControllerURI.Empty THEN
          View := mvc.redirectView( INDEX_PAGE );
          RETURN TRUE;
 
       // user login must be processed before system login redirect         
       ELSIF Request.ControllerURI.EqualsOA( USER_LOGIN_PAGE ) THEN
-         RETURN ProcessUserLogin( Request, OUT View );
+         IF Request.ModelContainer^.GetStringOA( USER_LOGIN_SOURCE_PAGE, OUT s ) THEN // OK
+            RETURN ProcessUserLogin( Request, OUT View );
+         ELSE // nowhere to user-login, redirect to login
+            Request.ModelContainer^.AddBooleanOA( LOGIN_REDIRECTED, TRUE );
+            Request.MessageSource^.GetMessageOA( Request.Language, L"userLogin.invalidLoginOrSessionExpired", OUT s );
+            Request.ModelContainer^.AddStringOA( MESSAGE, s );
+
+            View := mvc.redirectView( LOGIN_PAGE );
+            RETURN TRUE;
+         END;
 
       ELSIF NOT Request.Session^.Get( SESSION_LOGGED, OUT data ) OR ( data <> PTR( ADR( SELF ))) THEN
-         Request.Session^.Remove( SESSION_LOGGED );
+         InvalidateUser( Request );
+
+         Request.ModelContainer^.AddBooleanOA( LOGIN_REDIRECTED, TRUE );
+         Request.MessageSource^.GetMessageOA( Request.Language, L"login.invalidLoginOrSessionExpired", OUT s );
+         Request.ModelContainer^.AddStringOA( MESSAGE, s );
+
          View := mvc.redirectView( LOGIN_PAGE );
+         RETURN TRUE;
+   
+      // all next pages require system role, either sysadmin or sysuser
+      ELSIF ( role <> EibSrvWeb.roleSystemUser ) AND ( role <> EibSrvWeb.roleSystemAdministrator ) THEN
+         View := mvc.httpStatusCodeView( HttpCommon.httpres_Unauthorized );
          RETURN TRUE;
       
       ELSIF Request.ControllerURI.EqualsOA( STATUS_PAGE ) THEN
@@ -494,10 +519,16 @@ CLASS IMPLEMENTATION CController;
 
    PRIVATE PROCEDURE ProcessLogin( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
+      redirected : BOOLEAN;
       su, sp : StringsO.CString;
    BEGIN
       IF Request.RequestVerb = HttpCommon.verbGET THEN // OK, only render a login page
-         Request.ModelContainer^.AddStringOA( MESSAGE, sp ); // empty
+         // message is cleared in all GETs, but in GET coming from redirect
+         IF Request.ModelContainer^.GetBooleanOA( LOGIN_REDIRECTED, OUT redirected ) AND redirected THEN
+            Request.ModelContainer^.RemoveOA( LOGIN_REDIRECTED );
+         ELSE
+            Request.ModelContainer^.AddStringOA( MESSAGE, sp ); // empty
+         END;
          Request.ModelContainer^.AddStringOA( LOGIN_USERNAME, sp ); // empty
          Request.ModelContainer^.AddStringOA( LOGIN_PASSWORD, sp ); // empty
          View := mvc.pageTemplateView( ADR( SELF ), LOGIN_VIEW );
@@ -506,6 +537,8 @@ CLASS IMPLEMENTATION CController;
       ELSIF NOT Request.ModelContainer^.GetStringOA( LOGIN_USERNAME, OUT su ) OR // bad input
             NOT Request.ModelContainer^.GetStringOA( LOGIN_PASSWORD, OUT sp ) OR // bad input
             NOT ValidateUser( Request, su, sp ) THEN // bad credentials
+         InvalidateUser( Request );
+
          Request.MessageSource^.GetMessageOA( Request.Language, L"login.badCredentials", OUT su );
          Request.ModelContainer^.AddStringOA( MESSAGE, su );
 
@@ -1123,20 +1156,29 @@ CLASS IMPLEMENTATION CController;
 
    PRIVATE PROCEDURE ProcessUserLogin( CONST Request : mvc.IHttpRequest; OUT View : mvc.TPView ) : BOOLEAN;
    VAR
+      redirected : BOOLEAN;
       src, su, sp : StringsO.CString;
    BEGIN
       IF Request.RequestVerb = HttpCommon.verbGET THEN // OK, only render a login page
-         Request.ModelContainer^.AddStringOA( MESSAGE, sp ); // empty
+         // message is cleared in all GETs, but in GET coming from redirect
+         IF Request.ModelContainer^.GetBooleanOA( LOGIN_REDIRECTED, OUT redirected ) AND redirected THEN
+            Request.ModelContainer^.RemoveOA( LOGIN_REDIRECTED );
+         ELSE
+            Request.ModelContainer^.AddStringOA( MESSAGE, sp ); // empty
+         END;
          Request.ModelContainer^.AddStringOA( LOGIN_USERNAME, sp ); // empty
          Request.ModelContainer^.AddStringOA( LOGIN_PASSWORD, sp ); // empty
          View := mvc.pageTemplateView( ADR( SELF ), USER_LOGIN_VIEW );
 
       // post, try to login
-      ELSIF NOT Request.ModelContainer^.GetStringOA( USER_LOGIN_SOURCE_PAGE, OUT src ) OR // bad input
+      ELSIF // checked before ProcessUserLogin is called, but there "src" must be get:
+            NOT Request.ModelContainer^.GetStringOA( USER_LOGIN_SOURCE_PAGE, OUT src ) OR // bad input
             NOT Request.ModelContainer^.GetStringOA( LOGIN_USERNAME, OUT su ) OR // bad input
             NOT Request.ModelContainer^.GetStringOA( LOGIN_PASSWORD, OUT sp ) OR // bad input
             NOT ValidateUser( Request, su, sp ) THEN // bad credentials
-         Request.MessageSource^.GetMessageOA( Request.Language, L"login.badCredentials", OUT su );
+         InvalidateUser( Request );
+
+         Request.MessageSource^.GetMessageOA( Request.Language, L"userLogin.badCredentials", OUT su );
          Request.ModelContainer^.AddStringOA( MESSAGE, su );
 
          sp.Clear();
@@ -1145,6 +1187,8 @@ CLASS IMPLEMENTATION CController;
          View := mvc.pageTemplateView( ADR( SELF ), USER_LOGIN_VIEW );
          
       ELSE // OK, set up session, redirect to source page
+         Request.ModelContainer^.RemoveOA( USER_LOGIN_SOURCE_PAGE );
+
          Request.Session^.Remove( SESSION_LOGGED );
          Request.Session^.Add( SESSION_LOGGED, ADR( SELF ));
          View := mvc.redirectView( OA( src.Length-1, src.rawData ));
@@ -1172,6 +1216,18 @@ CLASS IMPLEMENTATION CController;
       RETURN role <> EibSrvWeb.roleGuest;
    END ValidateUser;
    
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE InvalidateUser( CONST Request : mvc.IHttpRequest );
+   BEGIN
+      Request.Session^.Remove( SESSION_LOGGED ); // kill potentially logged user
+
+      Request.Session^.Remove( SESSION_ROLE );
+      Request.Session^.Add( SESSION_ROLE, PTR( EibSrvWeb.roleGuest ));
+
+      Request.ModelContainer^.RemoveOA( ROLE_NAME );
+   END InvalidateUser;
+
 (*--------------------------------------------------------------------------------*)
 
 BEGIN

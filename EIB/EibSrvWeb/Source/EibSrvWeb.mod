@@ -790,9 +790,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       CASE role OF
       | roleSystemAdministrator :
          digest.DigestSalt( digest.sha256, OA( 2*password.Length-1, PBYTE( password.rawData )), C"web_root", OUT hash );
-      | roleSystemUser :
+      | roleSystemUser, roleUserNamed :
          digest.DigestSalt( digest.sha256, OA( 2*password.Length-1, PBYTE( password.rawData )), C"message_file", OUT hash );
-      | roleUserNamed, roleUserKeyed :
+      | roleUserKeyed :
          digest.DigestSalt( digest.sha256, OA( 2*password.Length-1, PBYTE( password.rawData )), C"project", OUT hash );
       ELSE
          _Lock.UnlockWrite();

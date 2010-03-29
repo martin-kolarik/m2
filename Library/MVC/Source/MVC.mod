@@ -1778,6 +1778,17 @@ BEGIN
    RETURN view;
 END pageTemplateView;
 
+//--------------------------------------------------------------------------------
+
+PROCEDURE pageErrorView( CONST resolver : FSO.TPFilePathResolver; StatusCode : HttpCommon.THttpResponse ) : TPView; // specialized for error pages, looks for error.xxx.pt.xml files, if file is not found, default server error page is emitted
+VAR
+   view : View.TPPageErrorView;
+BEGIN
+   NEW( view );
+   view^.Init( resolver, StatusCode );
+   RETURN view;
+END pageErrorView;
+
 (*================================================================================*)
 
 BEGIN

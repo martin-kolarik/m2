@@ -68,6 +68,10 @@
             <item lang="en-US">Invalid login, the username and/or password is incorrect.</item>
             <item lang="cs-CZ">Neplatné přihlášení, jméno a/nebo heslo není správné.</item>
         </string>
+        <string name="login.invalidLoginOrSessionExpired">
+            <item lang="en-US">Invalid login, session probably expired.</item>
+            <item lang="cs-CZ">Neplatné přihlášení, sezení pravděpodobně vypršelo.</item>
+        </string>
 
         <string name="status.server">
             <item lang="en-US">Server</item>
@@ -222,6 +226,31 @@
             <item lang="cs-CZ">Zápis se nezdařil.</item>
         </string>
         
+        <string name="userLogin.text">
+            <item lang="en-US">Restricted user page login</item>
+            <item lang="cs-CZ">Přihlášení k chráněné uživatelské stránce</item>
+        </string>
+        <string name="userLogin.username">
+            <item lang="en-US">Name</item>
+            <item lang="cs-CZ">Jméno</item>
+        </string>
+        <string name="userLogin.password">
+            <item lang="en-US">Password</item>
+            <item lang="cs-CZ">Heslo</item>
+        </string>
+        <string name="userLogin.submit">
+            <item lang="en-US">Login</item>
+            <item lang="cs-CZ">Přihlásit</item>
+        </string>
+        <string name="userLogin.badCredentials">
+            <item lang="en-US">Invalid login, the username and/or password is incorrect for the page.</item>
+            <item lang="cs-CZ">Neplatné přihlášení, jméno a/nebo heslo není pro danou stránku správné.</item>
+        </string>
+        <string name="userLogin.invalidLoginOrSessionExpired">
+            <item lang="en-US">Invalid login, either user login page is requested without restricted page being accessed or session expired.</item>
+            <item lang="cs-CZ">Neplatné přihlášení, buď byla stránka s přihlášením otevřena bez přístupu na chráněnou stránku nebo sezení vypršelo.</item>
+        </string>
+
         <string name="users.roles">
             <item lang="en-US">Roles</item>
             <item lang="cs-CZ">Role</item>
