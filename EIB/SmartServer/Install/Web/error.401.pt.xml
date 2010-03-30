@@ -14,44 +14,13 @@
                     </div>
 
                     <div class="middle">
-
-                        <div id="menu">
-                            <p><a href="index">${msg.menu.index}</a></p>
-                        </div>
-
                         <div class="content">
 
-                            <h1>${msg.login.text}</h1>
-                            <pt:form method="post" action="login">
+                            <h1>${msg.error.401.title}</h1>
 
-                                <table cellpadding="0px" cellspacing="0px">
-                                    <tr>
-                                        <td>${msg.login.username}</td>
-                                        <td class="spare"> </td>
-                                        <td>
-                                            <pt:input model="username"/>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>${msg.login.password}</td>
-                                        <td class="spare"> </td>
-                                        <td>
-                                            <pt:password model="password"/>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="2"> </td>
-                                        <td>
-                                            <input type="submit" value="${msg.login.submit}"/>
-                                        </td>
-                                    </tr>
-                                    <tr condition="${message}">
-                                        <td colspan="2"> </td>
-                                        <td><p class="error">${message}</p></td>
-                                    </tr>
-                                </table>
-
-                            </pt:form>
+                            <p class="error">${msg.error.401.text}</p>
+                            
+                            <p><br/><a href="logout">${msg.error.401.newLogin}</a></p>
 
                         </div>
                     </div>

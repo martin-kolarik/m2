@@ -2,6 +2,9 @@ MODULE sum;
 
 FROM Storage IMPORT
   ALLOCATE;
+  
+FROM Exceptions IMPORT
+  TestIfCatched, RetrieveException;
 
 IMPORT
    FIO,
@@ -24,7 +27,7 @@ TYPE
 PROCEDURE CheckSum( file : IOO.TPStream; hashType : digest.TDigestType; binaryMode : TRISTATE; OUT D : digest.ADigest ); FORWARD;
 
 # save, call( convention => cdecl )
-PROCEDURE wmain( argc : INTEGER; argp : TPParamStringArray; enpv : TPParamStringArray ) : INTEGER;
+PROCEDURE Main( argc : INTEGER; argp : TPParamStringArray ) : INTEGER;
 # restore
 LABEL
    Error;
@@ -187,7 +190,7 @@ BEGIN
 Error:
    errout^.WriteOA( L"  usage: sum [-b] [-1|-2|-5] [-c file-with-sums] [file-to-compute-sum] [-h]", TRUE );
    RETURN Result;
-END wmain;
+END Main;
   
 PROCEDURE CheckSum( file : IOO.TPStream; hashType : digest.TDigestType; binaryMode : TRISTATE; OUT D : digest.ADigest );
 VAR
@@ -212,7 +215,7 @@ BEGIN
    digester^.Init();
 
    IF binaryMode = 1 THEN
-      WHILE file^.ReadOA( OUT buffer, OUT consumed, Sync.FOREVER ) = Sync.arCompleted DO
+      WHILE file^.ReadOA( REF buffer, OUT consumed, Sync.FOREVER ) = Sync.arCompleted DO
          IF consumed > 0 THEN
             digester^.Update( OA( consumed-1, ADR( buffer )));
          END;

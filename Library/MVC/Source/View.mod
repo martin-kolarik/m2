@@ -591,7 +591,6 @@ CLASS IMPLEMENTATION CPageTemplateView;
       END;
       Response.ContentType := RequestedContent;
       
-      
       RETURN TRUE;
       
    Failure:
@@ -2130,26 +2129,85 @@ END CPageTemplateView;
 
 (*================================================================================*)
 
-// TODO
-CLASS IMPLEMENTATION CPageErrorView; // specialized for error pages, looks for error.xxx.pt.xml files, if file is not found, default server error page is emitted
+CLASS IMPLEMENTATION CErrorPageView; // specialized for error pages, looks for error.xxx.pt.xml files, if file is not found, default server error page is emitted
 
-   // IView
-   PUBLIC VIRTUAL READONLY PROPERTY
-      OutputType : MVC.TViewOutputType;
-   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY OutputType GET : MVC.TViewOutputType;
+   BEGIN
+      RETURN MVC.votBuffer;
+   END OutputType;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE FormatToBuffer( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response
+   BEGIN
+      IF PageTemplateView^.FormatToBuffer( Request, REF Response, OUT Output ) THEN // OK, view file found, send it as response
+         Response.OverrideStatusResponse := TRUE;
+         Response.StatusCode := StatusCode;
+      ELSE // error view not found or it is damaged, respond default server response
+         Response.StatusCode := StatusCode;
+         Output.Clear();
+      END;
+      RETURN TRUE;
+   END FormatToBuffer;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE FormatToInputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
+   BEGIN
+      ASSERTLOG( FALSE );
+      RETURN FALSE;
+   END FormatToInputStream;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE FormatToOutputStream( CONST Request : MVC.IHttpRequest; REF Response : MVC.IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   BEGIN
+      ASSERTLOG( FALSE );
+      RETURN FALSE;
+   END FormatToOutputStream;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE Release();
+   VAR
+      a : TPErrorPageView := ADR( SELF );
+   BEGIN
+      PageTemplateView^.Release();
+      DISPOSE( a );
+   END Release;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+   BEGIN
+      RETURN FALSE;
+   END GetAuthenticationInfo;
 
-   // SELF
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; StatusCode : HttpCommon.THttpResponse );
+   CONST
+      PREFIX = L"error.";
+      SUFFIX = L".pt.xml";
+   VAR
+      Path : StringsO.CString;
+   BEGIN
+      Path.FromINT32( CARDINAL( StatusCode ), 10 );
+      Path.PrependOA( PREFIX );
+      Path.AppendOA( SUFFIX );
+      
+      PageTemplateView^.Init( Resolver, OA( Path.Length-1, Path.rawData ));
+      SELF.StatusCode := StatusCode;
+   END Init;
    
-   PRIVATE VAR
-      PageTemplateView : CPageTemplateView;
-      StatusCode : HttpCommon.THttpResponse;
+(*--------------------------------------------------------------------------------*)
 
-END CPageErrorView;
+BEGIN
+   NEW( PageTemplateView );
+   StatusCode := HttpCommon.httpres_InternalServerError;
+END CErrorPageView;
 
 (*================================================================================*)
 

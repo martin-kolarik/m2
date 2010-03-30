@@ -442,7 +442,7 @@ CLASS IMPLEMENTATION CController;
    
       // all next pages require system role, either sysadmin or sysuser
       ELSIF ( role <> EibSrvWeb.roleSystemUser ) AND ( role <> EibSrvWeb.roleSystemAdministrator ) THEN
-         View := mvc.httpStatusCodeView( HttpCommon.httpres_Unauthorized );
+         View := mvc.httpStatusCodeCustomView( ADR( SELF ), HttpCommon.httpres_Unauthorized );
          RETURN TRUE;
       
       ELSIF Request.ControllerURI.EqualsOA( STATUS_PAGE ) THEN
@@ -454,7 +454,7 @@ CLASS IMPLEMENTATION CController;
             Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, TRUE );
             RETURN ProcessControl( Request, OUT View );
          ELSE
-            View := mvc.httpStatusCodeView( HttpCommon.httpres_Unauthorized );
+            View := mvc.httpStatusCodeCustomView( ADR( SELF ), HttpCommon.httpres_Unauthorized );
             RETURN TRUE;
          END;
 
@@ -463,7 +463,7 @@ CLASS IMPLEMENTATION CController;
             Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, TRUE );
             RETURN ProcessSystemLog( Request, OUT View );
          ELSE
-            View := mvc.httpStatusCodeView( HttpCommon.httpres_Unauthorized );
+            View := mvc.httpStatusCodeCustomView( ADR( SELF ), HttpCommon.httpres_Unauthorized );
             RETURN TRUE;
          END;
 
@@ -480,7 +480,7 @@ CLASS IMPLEMENTATION CController;
             Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, TRUE );
             RETURN ProcessUsers( Request, OUT View );
          ELSE
-            View := mvc.httpStatusCodeView( HttpCommon.httpres_Unauthorized );
+            View := mvc.httpStatusCodeCustomView( ADR( SELF ), HttpCommon.httpres_Unauthorized );
             RETURN TRUE;
          END;
 
@@ -489,7 +489,7 @@ CLASS IMPLEMENTATION CController;
             Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, TRUE );
             RETURN ProcessRoleEdit( Request, OUT View );
          ELSE
-            View := mvc.httpStatusCodeView( HttpCommon.httpres_Unauthorized );
+            View := mvc.httpStatusCodeCustomView( ADR( SELF ), HttpCommon.httpres_Unauthorized );
             RETURN TRUE;
          END;
 
@@ -498,7 +498,7 @@ CLASS IMPLEMENTATION CController;
             Request.ModelContainer^.AddBooleanOA( ROLE_ADMIN, TRUE );
             RETURN ProcessUserEdit( Request, OUT View );
          ELSE
-            View := mvc.httpStatusCodeView( HttpCommon.httpres_Unauthorized );
+            View := mvc.httpStatusCodeCustomView( ADR( SELF ), HttpCommon.httpres_Unauthorized );
             RETURN TRUE;
          END;
 

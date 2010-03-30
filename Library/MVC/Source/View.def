@@ -243,9 +243,9 @@ END CPageTemplateView;
 (*--------------------------------------------------------------------------------*)
 
 TYPE
-   TPPageErrorView = POINTER TO CPageErrorView;
+   TPErrorPageView = POINTER TO CErrorPageView;
 
-CLASS CPageErrorView IMPLEMENTS MVC.IView; // specialized for error pages, looks for error.xxx.pt.xml files, if file is not found, default server error page is emitted
+CLASS CErrorPageView IMPLEMENTS MVC.IView; // specialized for error pages, looks for error.xxx.pt.xml files, if file is not found, default server error page is emitted
 
    // IView
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -260,9 +260,9 @@ CLASS CPageErrorView IMPLEMENTS MVC.IView; // specialized for error pages, looks
    PUBLIC PROCEDURE Init( CONST Resolver : FSO.TPFilePathResolver; StatusCode : HttpCommon.THttpResponse );
    
    PRIVATE VAR
-      PageTemplateView : CPageTemplateView;
+      PageTemplateView : TPPageTemplateView;
       StatusCode : HttpCommon.THttpResponse;
-END CPageErrorView;
+END CErrorPageView;
 
 (*================================================================================*)
 
