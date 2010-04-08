@@ -197,6 +197,18 @@ Licence support tool
                   <dd><p>For definition of kind of connection with EIBNet/IP
                   equipment. Possible values of the parameter are displayed in
                   the table <in label="tblMode"></in>.</p></dd>
+                  <dt><type>cache_only</type></dt>
+                  <dd><p>For allowing access to data objects without
+                  connection to KNX/EIB data bus. If parametr valus is <type>false</type>
+                  (defaut value), SmartServer requires connection to KNX/EIB
+                  to be established. If the connection is broken (or if it did
+                  not succeeded to establish), SmartServer does not provide
+                  data to clients either it does not displays it in web
+                  interface (there error message appears). If the parameter is
+                  set to value <type>true</type>, SmartServer will not connect
+                  the bus and data will be provided to clients continuously
+                  (but data will never be passed to the
+                  bus).</p><p>Example:</p><p.type>cache_only = false</p.type></dd>
                 </dl>
                 <f.table label="tblMode">
                   <caption>Values of <type>mode</type> parameter</caption>

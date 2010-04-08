@@ -461,8 +461,9 @@ CONST
       PT_ORDER = L"order";
       PT_ODD = L"odd";
    PT_FOREACH = L"foreach";
-      PT_SOURCE = L"source";
+      // model;
       PT_ITEM = L"item";
+      PT_DATA = L"data";
    PT_FORM = L"form";
       PT_ACTION = L"action";
       PT_MODEL = L"model";
@@ -483,7 +484,7 @@ CONST
       PT_FORM_ERRORS = L"errors";
    PT_VARIABLE = L"variable";
       // model
-      // source
+      PT_SOURCE = L"source";
 
 (*--------------------------------------------------------------------------------*)
 
@@ -513,7 +514,6 @@ CLASS IMPLEMENTATION CPageTemplateView;
    BEGIN
       now.SetNowUTC();
 
-      Response.ModelContainer^.ResetModelInViewNames( Request.ControllerURI );
       Response.AllowCaching := FALSE;
       Response.LastModified := now;
 
@@ -710,7 +710,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
             PrefixCondition.AppendOA( PT_CONDITION );
             
             IF NOT Reader.CurrentEmpty THEN
-               RETURN Parse( TRUE, FALSE, FALSE );
+               RETURN Parse( TRUE, FALSE );
             END;
 
          | xmlreader.xntAttribute :
@@ -723,7 +723,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE Parse( emit, limitToPTOnly, balanced : BOOLEAN ) : BOOLEAN;
+   PRIVATE PROCEDURE Parse( emit, limitToPTOnly : BOOLEAN ) : BOOLEAN;
    VAR
       attributes : lists.CStringStringList;
       depth : INTEGER := 0;
@@ -785,10 +785,6 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
          | xmlreader.xntElementEnd :
             Writer.WriteElementEnd(); // writer does it itself
-            
-            IF balanced AND ( depth = 0 ) THEN
-               RETURN TRUE;
-            END;
 
          END; // CASE
 
@@ -813,7 +809,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          IF ptFlag AND pname^.EqualsIgnoreCaseOA( PT_CONDITION ) OR pname^.EqualsIgnoreCase( PrefixCondition ) THEN
             ParseText( attributes.CurrentData^, OUT condition );
             IF NOT EvaluateBoolean( condition ) THEN
-               IF isEmpty OR Parse( FALSE, limitToPTOnly, FALSE ) THEN
+               IF isEmpty OR Parse( FALSE, limitToPTOnly ) THEN
                   RETURN esaProcessedInDeep;
                ELSE
                   RETURN esaError;
@@ -927,7 +923,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       CopyAttributes( TRUE, attributes, ignoreOA1, ignoreOA2 );
       IF isEmpty THEN
          Writer.WriteElementEnd();
-      ELSIF Parse( TRUE, limitToPTOnly, FALSE ) THEN // input can contain text
+      ELSIF Parse( TRUE, limitToPTOnly ) THEN // input can contain text
          Writer.WriteElementEnd();
       ELSE
          RETURN FALSE;
@@ -1003,7 +999,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
                   END;
                END;
                
-               IF isEmpty OR Parse( emit = 1, FALSE, FALSE ) THEN
+               IF isEmpty OR Parse( emit = 1, FALSE ) THEN
                   // continue
                ELSE
                   RETURN FALSE;
@@ -1016,7 +1012,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
                END;
                haveOtherwise := TRUE;
 
-               IF isEmpty OR Parse( NOT done, FALSE, FALSE ) THEN
+               IF isEmpty OR Parse( NOT done, FALSE ) THEN
                   // continue
                ELSE
                   RETURN FALSE;
@@ -1183,7 +1179,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          END;
 
          nl.Reset(); // prepare parsing
-         IF NOT Parse( TRUE, FALSE, TRUE ) THEN
+         IF NOT Parse( TRUE, FALSE ) THEN
             RETURN FALSE;
          END;
 
@@ -1201,6 +1197,8 @@ CLASS IMPLEMENTATION CPageTemplateView;
    VAR
       attribute : StringsO.CString;
       current : StringsO.TPString;
+      currentData : StringsO.TPString;
+      data : StringsO.CString;
       depth : INTEGER := 0;
       haveSource : BOOLEAN := FALSE;
       haveList : BOOLEAN := FALSE;
@@ -1211,6 +1209,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       list : lists.TPStringStringList;
       loopItem : INTEGER;
       map : maps.TPStringStringMap;
+      model : StringsO.CString;
       nl : NodeList.CNodeList;
       nodeName : StringsO.CString;
       nodePrefix : StringsO.CString;
@@ -1220,7 +1219,6 @@ CLASS IMPLEMENTATION CPageTemplateView;
       order : StringsO.CString;
       pname : StringsO.TPString;
       prefix : StringsO.CString;
-      source : StringsO.CString;
       value : StringsO.CString;
    BEGIN
       prefix := Prefix;
@@ -1231,9 +1229,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
       WHILE attributes.MoveNext() DO
          pname := StringsO.TPString( attributes.Current );
 
-         attribute := prefix; attribute.AppendOA( PT_SOURCE );
-         IF pname^.EqualsIgnoreCaseOA( PT_SOURCE ) OR pname^.EqualsIgnoreCase( attribute ) THEN
-            ParseText( attributes.CurrentData^, OUT source );
+         attribute := prefix; attribute.AppendOA( PT_MODEL );
+         IF pname^.EqualsIgnoreCaseOA( PT_MODEL ) OR pname^.EqualsIgnoreCase( attribute ) THEN
+            ParseText( attributes.CurrentData^, OUT model );
             CONTINUE;
          END;
          
@@ -1255,6 +1253,12 @@ CLASS IMPLEMENTATION CPageTemplateView;
             CONTINUE;
          END;
 
+         attribute := prefix; attribute.AppendOA( PT_DATA );
+         IF pname^.EqualsIgnoreCaseOA( PT_DATA ) OR pname^.EqualsIgnoreCase( attribute ) THEN
+            ParseText( attributes.CurrentData^, OUT data );
+            CONTINUE;
+         END;
+
          attribute := prefix; attribute.AppendOA( PT_ODD );
          IF pname^.EqualsIgnoreCaseOA( PT_ODD ) OR pname^.EqualsIgnoreCase( attribute ) THEN
             ParseText( attributes.CurrentData^, OUT odd );
@@ -1263,17 +1267,17 @@ CLASS IMPLEMENTATION CPageTemplateView;
       END; // WHILE
       
       // get list or map
-      IF source.Empty THEN
+      IF model.Empty THEN
          value.FromOA( L"(pt:)foreach" );
-         SetError( value, NIL, L'Missing "source" attribute.' );
+         SetError( value, NIL, L'Missing "model" attribute.' );
          RETURN FALSE;
-      ELSIF Request^.ModelContainer^.GetListOA( OA( source.Length-1, source.Data ), OUT list ) THEN
+      ELSIF Request^.ModelContainer^.GetListOA( OA( model.Length-1, model.Data ), OUT list ) THEN
          haveList := TRUE;
-      ELSIF Request^.ModelContainer^.GetMapOA( OA( source.Length-1, source.Data ), OUT map ) THEN
+      ELSIF Request^.ModelContainer^.GetMapOA( OA( model.Length-1, model.Data ), OUT map ) THEN
          haveList := FALSE;
       ELSE
          value.FromOA( L"(pt:)foreach" );
-         SetError( value, NIL, L'"source" attribute is not map either list.' );
+         SetError( value, NIL, L'"model" attribute is not map either list.' );
          RETURN FALSE;
       END;
 
@@ -1311,15 +1315,20 @@ CLASS IMPLEMENTATION CPageTemplateView;
                EXIT;
             END;
             current := list^.Current;
+            currentData := list^.CurrentData;
          ELSE
             IF NOT map^.MoveNext() THEN
                EXIT;
             END;
             current := map^.Current;
+            currentData := map^.CurrentData;
          END;
          
          IF NOT item.Empty THEN
             Request^.ModelContainer^.SetModelValue( Request^, item, current^ );
+         END;
+         IF NOT data.Empty THEN
+            Request^.ModelContainer^.SetModelValue( Request^, data, currentData^ );
          END;
          IF NOT odd.Empty THEN
             SetModelBoolean( odd, loopItem AND 1 = 1 );
@@ -1334,7 +1343,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
          END;
 
          nl.Reset(); // prepare parsing
-         IF NOT Parse( TRUE, FALSE, TRUE ) THEN
+         IF NOT Parse( TRUE, FALSE ) THEN
             RETURN FALSE;
          END;
 
@@ -1429,10 +1438,24 @@ CLASS IMPLEMENTATION CPageTemplateView;
       Writer.WriteAttributeStringOA( L"", L"type", OAsz( ptype ));
       IF NOT fullModel.Empty AND Request^.ModelContainer^.GetModelValue( Request^, fullModel, OUT value ) THEN // model = form.item
          WriteFormNameAttribute( fullModel );
-         Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.Data ));
+         IF ( ptype = PWCHAR( ADR( PT_FORM_CHECKBOX ))) OR ( ptype = PWCHAR( ADR( PT_FORM_RADIOBUTTON ))) THEN
+            Writer.WriteAttributeStringOA( L"", L"value", L"true" );
+            IF value.EqualsOA( MVC.TRUE_STRING ) THEN
+               Writer.WriteAttributeStringOA( L"", L"checked", L"checked" );
+            END;
+         ELSE            
+            Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.Data ));
+         END;
       ELSIF Request^.ModelContainer^.GetModelValue( Request^, model, OUT value ) THEN // model = item
          WriteFormNameAttribute( model );
-         Writer.WriteAttributeStringOA( L"value", OA( value.Length-1, value.Data ));
+         IF ( ptype = PWCHAR( ADR( PT_FORM_CHECKBOX ))) OR ( ptype = PWCHAR( ADR( PT_FORM_RADIOBUTTON ))) THEN
+            Writer.WriteAttributeStringOA( L"", L"value", L"true" );
+            IF value.EqualsOA( MVC.TRUE_STRING ) THEN
+               Writer.WriteAttributeStringOA( L"", L"checked", L"checked" );
+            END;
+         ELSE            
+            Writer.WriteAttributeStringOA( L"", L"value", OA( value.Length-1, value.Data ));
+         END;
       ELSE
          SetError( model, NIL, L'Model for element is unknown.' );
          RETURN FALSE;
@@ -1682,12 +1705,17 @@ CLASS IMPLEMENTATION CPageTemplateView;
             nodeType := Reader.CurrentType;
             CASE nodeType OF
             | xmlreader.xntText :
+               nodePrefix.Clear();
+               nodeName.Clear();
+               empty := FALSE;
                nodeValue.Assign( Reader.CurrentValue );
+               attributes.Dispose();
                RETURN xmlreader.xmle_S_OK;
 
             | xmlreader.xntElementBegin :
                nodePrefix.Assign( Reader.CurrentPrefix );
                nodeName.Assign( Reader.CurrentName );
+               nodeValue.Clear();
                empty := Reader.CurrentEmpty;
 
                // get attributes
@@ -1706,6 +1734,9 @@ CLASS IMPLEMENTATION CPageTemplateView;
             | xmlreader.xntElementEnd :
                nodePrefix.Assign( Reader.CurrentPrefix );
                nodeName.Assign( Reader.CurrentName );
+               empty := FALSE;
+               nodeValue.Clear();
+               attributes.Dispose();
                RETURN xmlreader.xmle_S_OK;
 
             END; // CASE
@@ -1714,8 +1745,7 @@ CLASS IMPLEMENTATION CPageTemplateView;
       ELSE
          nl := NodeList.TPNodeList( Sources.Peek());
          IF NOT nl^.MoveNext() THEN
-            ASSERTLOG( FALSE );
-            RETURN xmlreader.xmle_S_FALSE; // should not occur
+            RETURN xmlreader.xmle_S_FALSE;
          END;
          
          nli := nl^.Current;

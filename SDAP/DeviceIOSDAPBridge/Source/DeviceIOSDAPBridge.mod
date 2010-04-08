@@ -117,6 +117,7 @@ CLASS IMPLEMENTATION ABridge;
                END;
 
                cb.Reset();
+               value.Dispose();
                Result := item^.Device^.IO()^.IOh( NIL, IOO.dirRead, item^.Hash, REF value, ADR( cb ));
                IF ( Result <> Sync.arCompleted ) AND ( Result <> Sync.arPending ) THEN
                   s.FromOA( L"Error in IOh read: " );

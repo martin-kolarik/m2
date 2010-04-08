@@ -297,7 +297,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       Command : TsdapCommand;
       configuration : ARRAY [0..0] OF device.TConfigureItem;
       count, prevcount : CARDINAL;
-      d : StringsO.CString; // data
+      data : StringsO.CString; // data
       error : ARRAY [0..511] OF WCHAR;
       Hash : ns.THash;
       i : CARDINAL;
@@ -305,7 +305,8 @@ CLASS IMPLEMENTATION CSDAPServer;
       IOValue : iovalue.Value;
       l : CARDINAL;
       Originator : io.CSimpleOriginator;
-      p : ARRAY [0..3] OF StringsO.CString; // parameters
+      in, out : StringsO.CString;
+      p : ARRAY [0..1] OF StringsO.CString; // parameters
       parametersCount : CARDINAL;
       parametersFound : CARDINAL;
       Result : Sync.TAsyncResult;
@@ -314,15 +315,20 @@ CLASS IMPLEMENTATION CSDAPServer;
       Subcommand : TsdapSubcommand;
       b : BOOLEAN;
    BEGIN
-      d.FromOA( OA( DataLen>>1-1, PWCHAR( PData )));
-      IF d.EndsWithOA( 13W + 10W ) THEN
-         d.Length := d.Length - 2;
+      in.FromOA( OA( DataLen>>1-1, PWCHAR( PData )));
+      IF in.EndsWithOA( 13W + 10W ) THEN
+         in.Length := in.Length - 2;
       END;
-      _CommonLogger^.LogSS( log.dldDebug, LOG_SDAP, "RCV: ", OA( d.Length-1, d.Data ));
+      _CommonLogger^.LogSS( log.dldDebug, LOG_SDAP, "RCV: ", OA( in.Length-1, in.Data ));
       PConnection^.RemoteAddress.ToOA( TRUE, OUT sd );
       _CommonLogger^.LogSS( log.dldDebug, LOG_SDAP, "from: ", sd );
 
-      d.SplitS( StringsO.WCHARS{L' '}, 0, TRUE, OUT parametersFound, OUT p );
+      i := in.SplitS( StringsO.WCHARS{L' '}, 0, TRUE, OUT parametersFound, OUT p ); // i contains position, where splitting should continue if called again
+      IF i < in.Length THEN // splitting is not finished
+         in.Substring( i, -1, OUT data );
+         INC( parametersFound );
+      END;
+
       p[0].Lowerize();
       IF p[0].Empty THEN
          ACK( PConnection, sdap400 );
@@ -334,7 +340,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       p[0].SplitS( StringsO.WCHARS{L'.'}, 0, FALSE, OUT l, OUT s );
       IF s[0].EqualsOA( L"exit" ) THEN
          Command := sdapEXIT;
-         parametersCount := 0;
+         parametersCount := 1;
       ELSIF s[0].EqualsOA( L"load" ) THEN
          Command := sdapLOAD;
          parametersCount := 2;
@@ -398,8 +404,9 @@ CLASS IMPLEMENTATION CSDAPServer;
          ACK( PConnection, sdap502 ); // not supported
          RETURN;
       END; // CASE
-      // presence of parameter
-      FOR i := 0 TO parametersCount-1 DO
+
+      // check presence of parameter
+      FOR i := 0 TO MIN2( HIGH( p ), parametersCount-1 ) DO
          IF p[i].Empty THEN
             ACKs( PConnection, sdap403, i );
             RETURN;
@@ -418,9 +425,9 @@ CLASS IMPLEMENTATION CSDAPServer;
       //-----
       | sdapLOAD :
          // recode parameters
-         d.Substring( p[0].Length + 1, -1, OUT p[1] );
+         in.Substring( p[0].Length + 1, -1, OUT data );
 
-         _CommonLogger^.LogSS( log.dldTrace, LOG_SDAP, "LOAD: ", OA( p[1].Length-1, p[1].Data ));
+         _CommonLogger^.LogSS( log.dldTrace, LOG_SDAP, "LOAD: ", OA( data.Length-1, data.Data ));
 
          // stop, load
          b := Device^.IO()^.Running;
@@ -428,7 +435,7 @@ CLASS IMPLEMENTATION CSDAPServer;
          
          prevcount := _ConfigurationLogger^.BufferCount;
          configuration[0].Type := device.citIString;
-         configuration[0].iString := ADR( p[1] );
+         configuration[0].iString := ADR( data );
          Result := Device^.Configure( configuration, _ConfigurationLogger );
          CASE Result OF
          | Sync.arCompleted :
@@ -438,18 +445,19 @@ CLASS IMPLEMENTATION CSDAPServer;
                ACK( PConnection, sdap200 );
             END;
          ELSE
-            // count of errors
+            // emit count of errors
             count := _ConfigurationLogger^.BufferCount - prevcount;
-            p[0].FromINT32( count, 10 );
-            ACKS( PConnection, sdap406, p[0] );
-            // errors
-            FOR i := 0 TO count-1 DO
-               _ConfigurationLogger^.BufferGetItem( i, OUT error );
+            out.FromINT32( count, 10 );
+            ACKS( PConnection, sdap406, out );
+            // emit errors
+            i := prevcount;
+            WHILE _ConfigurationLogger^.BufferGetItem( i, OUT error ) DO
                Strings.TrimAccentsW( REF error );
 
                _CommonLogger^.LogSS( log.dldDebug, LOG_SDAP, "  406: ", error );
-
                SUPER.Send( NIL, PConnection, 0, ADR( error ), LENGTH( error ) << 1 );
+               
+               INC( i );
             END; // FOR
          END; // CASE
 
@@ -469,7 +477,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       //-----
       | sdapSET, sdapGET :
          IF Command = sdapSET THEN
-            _CommonLogger^.LogSSSS( log.dldTrace, LOG_SDAP, "SET ", OA( p[1].Length-1, p[1].Data ), L" ", OA( p[2].Length-1, p[2].Data ));
+            _CommonLogger^.LogSSSS( log.dldTrace, LOG_SDAP, "SET ", OA( p[1].Length-1, p[1].rawData ), L" ", OA( data.Length-1, data.Data ));
          ELSE
             _CommonLogger^.LogSS( log.dldTrace, LOG_SDAP, "GET ", OA( p[1].Length-1, p[1].Data ));
          END;
@@ -484,11 +492,11 @@ CLASS IMPLEMENTATION CSDAPServer;
 
             ia := GetRemoteAddress( PConnection );
             ia.ToOA( TRUE, OUT sd );
-            d.FromOA( LOG_SDAP ); d.AppendOA( L"/" ); d.AppendOA( sd );
-            Originator.SetDescription( d );
+            out.FromOA( LOG_SDAP ); out.AppendOA( L"/" ); out.AppendOA( sd );
+            Originator.SetDescription( out );
 
             IF Command = sdapSET THEN // expect data.name (aka data.x/x/x)
-               IOValue.String := p[2];
+               IOValue.String := data;
 
                Result := Device^.IO()^.IOh( ADR( Originator ), IOO.dirWrite, Hash, REF IOValue, NIL );
                CASE Result OF
@@ -590,10 +598,13 @@ CLASS IMPLEMENTATION CSDAPServer;
 
    PRIVATE PROCEDURE ACKs( PConnection : netconndispatch.TConnectionHandle; ack : TsdapACK; subCode : CARDINAL );
    VAR
-      s : StringsO.CString;
+      s, n : StringsO.CString;
    BEGIN
       s.FromCARD32( CARDINAL( ack ), 10 );
-
+      s.AppendOA( L"." );
+      n.FromCARD32( subCode, 10 );
+      s.Append( n );
+      
       _CommonLogger^.LogSS( log.dldTrace, LOG_SDAP, "ACK: ", OA( s.Length-1, s.Data ));
       
       SUPER.Send( NIL, PConnection, 0, s.Data, s.Length<<1 );

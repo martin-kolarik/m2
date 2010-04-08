@@ -941,7 +941,7 @@ CLASS IMPLEMENTATION CStringMap;
     IF PI = NIL THEN
       RETURN FALSE;
     ELSE
-      Key := PI^.Key;
+      Key.Assign( PI^.Key );
       Data := PI^.Data;
     END;
     RETURN TRUE;

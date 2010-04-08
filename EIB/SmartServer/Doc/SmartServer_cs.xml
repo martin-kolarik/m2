@@ -194,6 +194,17 @@ Licence support tool
                   <dd><p>pro definici zpùsobu spojení s EIBNet/IP zaøízením.
                   Možné hodnoty parametru jsou uvedeny v tabulce <in
                   label="tblMode"></in>.</p></dd>
+                  <dt><type>cache_only</type></dt>
+                  <dd><p>pro povolení pøístupu k datovým objektùm bez
+                  pøipojení ke KNX/EIB sbìrnici. Je-li hodnota parametru
+                  <type>false</type> (výchozí hodnota), vyžaduje SmartServer
+                  spojení s KNX/EIB sbìrnicí. Dojde-li k rozpojení (nebo pokud
+                  se spojení nepodaøí navázat), neposkytne SmartServer data
+                  klientùm, ani je nezobrazí ve webovém rozhraní (objeví se
+                  hlášení o chybì). Nastaví-li se parametr na hodnotu <type>true</type>,
+                  SmartServer se nebude se sbìrnicí spojovat a data bude
+                  klientùm poskytovat stále (do sbìrnice však nebudou nikdy
+                  zapsána).</p><p>Pøíklad:</p><p.type>cache_only = false</p.type></dd>
                 </dl>
                 <f.table label="tblMode">
                   <caption>Hodnoty parametru <type>mode</type></caption>

@@ -70,15 +70,9 @@ typedef double                 LONGREAL;
 #define M2ADDRESS              void*
 
 # ifdef _WIN64
-typedef CARD64                 PTR;
-typedef CARD64                 CARDPTR;
-typedef INT64                  INTPTR;
-typedef CARD64                 STORPTR;
+typedef __w64 CARD64           PTR;
 # else
-typedef CARD32                 PTR;
-typedef CARD32                 CARDPTR;
-typedef INT32                  INTPTR;
-typedef CARD32                 STORPTR;
+typedef __w64 CARD32           PTR;
 # endif
 
 typedef char                   ORD8;
