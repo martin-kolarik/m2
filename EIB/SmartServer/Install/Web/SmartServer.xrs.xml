@@ -39,6 +39,10 @@
             <item lang="en-US">Direct IO</item>
             <item lang="cs-CZ">Přímý přístup</item>
         </string>
+        <string name="menu.users">
+            <item lang="en-US">Users</item>
+            <item lang="cs-CZ">Uživatelé</item>
+        </string>
         <string name="menu.logout">
             <item lang="en-US">Logout</item>
             <item lang="cs-CZ">Odhlásit</item>
@@ -216,6 +220,97 @@
         <string name="io.writeFailure">
             <item lang="en-US">Write failed.</item>
             <item lang="cs-CZ">Zápis se nezdařil.</item>
+        </string>
+        
+        <string name="users.roles">
+            <item lang="en-US">Roles</item>
+            <item lang="cs-CZ">Role</item>
+        </string>
+        <string name="users.users">
+            <item lang="en-US">Users</item>
+            <item lang="cs-CZ">Uživatelé</item>
+        </string>
+        <string name="users.badUsersEditData">
+            <item lang="en-US">Unable to edit user, editation data is invalid.</item>
+            <item lang="cs-CZ">Nelze upravit uživatele, editační data jsou neplatná.</item>
+        </string>
+        <string name="users.backToUsers">
+            <item lang="en-US">Go to back to users list.</item>
+            <item lang="cs-CZ">Přejít zpět do seznamu uživatelů.</item>
+        </string>
+        
+        <string name="userEdit.title">
+            <item lang="en-US">User editation</item>
+            <item lang="cs-CZ">Editace uživatele</item>
+        </string>
+        <string name="userEdit.name">
+            <item lang="en-US">Name</item>
+            <item lang="cs-CZ">Jméno</item>
+        </string>
+        <string name="userEdit.role">
+            <item lang="en-US">Role</item>
+            <item lang="cs-CZ">Role</item>
+        </string>
+        <string name="userEdit.password1">
+            <item lang="en-US">Password</item>
+            <item lang="cs-CZ">Heslo</item>
+        </string>
+        <string name="userEdit.password2">
+            <item lang="en-US">Password check</item>
+            <item lang="cs-CZ">Heslo znovu</item>
+        </string>
+        <string name="userEdit.submit">
+            <item lang="en-US">Accept</item>
+            <item lang="cs-CZ">Použít</item>
+        </string>
+        <string name="userEdit.nameIsEmpty">
+            <item lang="en-US">Name must be defined.</item>
+            <item lang="cs-CZ">Jméno musí být zadáno.</item>
+        </string>
+        <string name="userEdit.passwordEmpty">
+            <item lang="en-US">Password is cannot be empty.</item>
+            <item lang="cs-CZ">Heslo nemůže být prázdné.</item>
+        </string>
+        <string name="userEdit.passwordDoNotMatch">
+            <item lang="en-US">Passwords do not match.</item>
+            <item lang="cs-CZ">Hesla si neodpovídají.</item>
+        </string>
+        <string name="userEdit.roleIsEmpty">
+            <item lang="en-US">Role is must be selected.</item>
+            <item lang="cs-CZ">Role musí být vybrána.</item>
+        </string>
+        <string name="userEdit.updateFailed">
+            <item lang="en-US">User save failed.</item>
+            <item lang="cs-CZ">Uložení uživatele selhalo.</item>
+        </string>
+
+        <string name="roleEdit.title">
+            <item lang="en-US">Role editation</item>
+            <item lang="cs-CZ">Editace role</item>
+        </string>
+        <string name="roleEdit.name">
+            <item lang="en-US">Name</item>
+            <item lang="cs-CZ">Jméno</item>
+        </string>
+        <string name="roleEdit.keyed">
+            <item lang="en-US">Login by code only</item>
+            <item lang="cs-CZ">Přihlášení jen kódem</item>
+        </string>
+        <string name="roleEdit.submit">
+            <item lang="en-US">Accept</item>
+            <item lang="cs-CZ">Použít</item>
+        </string>
+        <string name="roleEdit.nameIsEmpty">
+            <item lang="en-US">Name must be defined.</item>
+            <item lang="cs-CZ">Jméno musí být zadáno.</item>
+        </string>
+        <string name="roleEdit.updateFailed">
+            <item lang="en-US">Role save failed.</item>
+            <item lang="cs-CZ">Uložení role selhalo.</item>
+        </string>
+        <string name="roleEdit.deleteFailed">
+            <item lang="en-US">Role cannot be deleted, either role is used or some error occured.</item>
+            <item lang="cs-CZ">Roli nelze smazat, role je buď použita, nebo došlo k chybě.</item>
         </string>
         
     </strings>

@@ -53,6 +53,13 @@ CLASS CResources;
   PUBLIC PROCEDURE LoadRES2( CONST ModuleName, ResourceName : ARRAY OF WCHAR ) : BOOLEAN;
   PUBLIC PROCEDURE LoadBIN( Path : ARRAY OF WCHAR ) : BOOLEAN;
   
+   PUBLIC READONLY PROPERTY
+      LanguageCount : CARDINAL;
+   PUBLIC PROCEDURE GetLanguage( LangIndex : CARDINAL; OUT Lang : Languages.TLanguage ) : BOOLEAN;
+   PUBLIC PROCEDURE GetRFC1766( LangIndex : CARDINAL; OUT Lang : Languages.TRFC1766 ) : BOOLEAN;
+   PUBLIC PROCEDURE ContainsLanguage( Lang : Languages.TLanguage ) : BOOLEAN;
+   PUBLIC PROCEDURE ContainsRFC1766( Lang : Languages.TRFC1766 ) : BOOLEAN;
+
   PUBLIC PROCEDURE GetText( Id : CARDINAL; OUT Text : PWCHAR; OUT Length : CARDINAL ) : BOOLEAN;
   PUBLIC PROCEDURE GetTextL( Language : Languages.TLanguage; Id : CARDINAL; OUT Text : PWCHAR; OUT Length : CARDINAL ) : BOOLEAN;
   PUBLIC PROCEDURE FillText( Id : CARDINAL; OUT Text : ARRAY OF WCHAR ) : BOOLEAN;
@@ -67,6 +74,8 @@ CLASS CResources;
   PUBLIC PROCEDURE ForgetNotifier( Notifier : TPResourcesNotifier );
   
   PRIVATE PROCEDURE SearchLanguage( Language : Languages.TLanguage; OUT Index : CARDINAL ) : BOOLEAN;
+  PRIVATE PROCEDURE AcquireText( Id : CARDINAL; OUT Text : PWCHAR; OUT Length : CARDINAL; Fallback : ARRAY OF WCHAR ) : BOOLEAN;
+  PRIVATE PROCEDURE AcquireTextL( Language : Languages.TLanguage; Id : CARDINAL; OUT Text : PWCHAR; OUT Length : CARDINAL; Fallback : ARRAY OF WCHAR ) : BOOLEAN;
   PRIVATE PROCEDURE Notify( Lang, Texts : BOOLEAN );
   INTERNAL PROCEDURE LoadMemory( Bin : TResource; Copy : BOOLEAN; ResultMode : TResourceMode ); // if Copy the ResultMode is ignored
   INTERNAL PROCEDURE ResToStub(); 
