@@ -744,7 +744,7 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       LSetId.FromOA( VIEW_MAPPER );
       LSetId.Append( ControllerURI );
-      IF GetMapOA( OA( LSetId.Length-1, LSetId.rawData ), OUT mapper ) THEN
+      IF GetMapOA( OA( LSetId.Length-1, LSetId.Data ), OUT mapper ) THEN
          mapper^.Reset();
          WHILE mapper^.MoveNext() DO
             SetModelValue( Request, mapper^.CurrentData^, empty ); // clear model value

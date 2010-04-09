@@ -236,12 +236,12 @@ CLASS IMPLEMENTATION CString;
    
 	PUBLIC VIRTUAL PROCEDURE CString.Compare( CONST S : IString ) : TRISTATE;
 	BEGIN
-	   RETURN Strings.CompareW( OA( _Len-1, _Data ), OA( S.Length-1, S.rawData ));
+	   RETURN Strings.CompareW( OA( _Len-1, _Data ), OA( S.Length-1, S.Data ));
 	END CString.Compare;
 
    PUBLIC VIRTUAL PROCEDURE CompareLanguage( Language : Languages.TLanguage; CaseSensitive : BOOLEAN; CONST S : IString ) : TRISTATE;
    BEGIN
-      RETURN Languages.CompareStringMLW( Language, CaseSensitive, _Len, _Data, S.Length, S.rawData );
+      RETURN Languages.CompareStringMLW( Language, CaseSensitive, _Len, _Data, S.Length, S.Data );
    END CompareLanguage;
 
    PUBLIC VIRTUAL PROCEDURE CString.Assign( CONST S : IString );
@@ -474,7 +474,7 @@ CLASS IMPLEMENTATION CString;
 
    PUBLIC VIRTUAL PROCEDURE LastIndexOf( CONST S : IString; IndexFromRight : CARDINAL ) : CARDINAL;
    BEGIN
-      RETURN Strings.LastIndexOfMW( _Len, _Data, S.Length, PWCHAR( S.rawData ), IndexFromRight );
+      RETURN Strings.LastIndexOfMW( _Len, _Data, S.Length, PWCHAR( S.Data ), IndexFromRight );
    END LastIndexOf;
 
    PUBLIC VIRTUAL PROCEDURE LastIndexOfOA( CONST S : ARRAY OF WCHAR; IndexFromRight : CARDINAL ) : CARDINAL;
@@ -484,7 +484,7 @@ CLASS IMPLEMENTATION CString;
 
    PUBLIC VIRTUAL PROCEDURE Contains( CONST S : IString ) : BOOLEAN;
    BEGIN
-      RETURN Strings.IndexOfMW( _Len, _Data, S.Length, PWCHAR( S.rawData ), 0 ) <> -1;
+      RETURN Strings.IndexOfMW( _Len, _Data, S.Length, PWCHAR( S.Data ), 0 ) <> -1;
    END Contains;
 
    PUBLIC VIRTUAL PROCEDURE ContainsOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
@@ -584,7 +584,7 @@ CLASS IMPLEMENTATION CString;
 		i, l : CARDINAL;
 	BEGIN
 	   S.Size := _Len; // preallocate space
-	   i := Strings.ItemMW( _Len, _Data, Delimiters, FromIndex, ItemIndex, SkipEmpty, OUT OA( _Len-1, PWCHAR( S.rawData )), ADR( l ));
+	   i := Strings.ItemMW( _Len, _Data, Delimiters, FromIndex, ItemIndex, SkipEmpty, OUT OA( _Len-1, PWCHAR( S.Data )), ADR( l ));
 	   S.Length := l; // adjust real size
 	   RETURN i;
 	END CString.Item;
@@ -594,7 +594,7 @@ CLASS IMPLEMENTATION CString;
 		i, l : CARDINAL;
 	BEGIN
 	   S.Size := _Len; // preallocate space
-	   i := Strings.ItemSMW( _Len, _Data, Strings.WCHARS( Delimiters ), FromIndex, ItemIndex, SkipEmpty, OUT OA( _Len-1, PWCHAR( S.rawData )), ADR( l ));
+	   i := Strings.ItemSMW( _Len, _Data, Strings.WCHARS( Delimiters ), FromIndex, ItemIndex, SkipEmpty, OUT OA( _Len-1, PWCHAR( S.Data )), ADR( l ));
 	   S.Length := l; // adjust real size
 	   RETURN i;
 	END CString.ItemS;

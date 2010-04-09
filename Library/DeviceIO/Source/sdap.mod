@@ -477,7 +477,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       //-----
       | sdapSET, sdapGET :
          IF Command = sdapSET THEN
-            _CommonLogger^.LogSSSS( log.dldTrace, LOG_SDAP, "SET ", OA( p[1].Length-1, p[1].rawData ), L" ", OA( data.Length-1, data.Data ));
+            _CommonLogger^.LogSSSS( log.dldTrace, LOG_SDAP, "SET ", OA( p[1].Length-1, p[1].Data ), L" ", OA( data.Length-1, data.Data ));
          ELSE
             _CommonLogger^.LogSS( log.dldTrace, LOG_SDAP, "GET ", OA( p[1].Length-1, p[1].Data ));
          END;

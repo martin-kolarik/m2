@@ -33,14 +33,33 @@ CLASS IMPLEMENTATION CTest;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
    VAR
+      avg : LONGREAL;
       i, t : CARDINAL;
+      NS1, NS2 : ARRAY [0..255] OF WCHAR;
       S, S1, S2, S3, S4 : StringsO.CString;
       Result : test.TTestResult := test.trSuccess;
    BEGIN
       SELF.Host := Host;
       
       S.FromOA( L"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum" );
+      ASSIGN( NS1, OA( S.Length-1, S.Data ));
    
+      //----------------------------------------
+      Host^.StartPhase( L"Speed of Copy to existing (80 chars/5 M iterations) -- NATIVE STRING" );
+
+      t := time.UptimeMS();
+      FOR i := 0 TO 5000000-1 DO
+         ASSIGN( NS2, NS1 );
+      END;
+      
+      t := time.UptimeMS() - t;
+      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
+      avg := LONGREAL( t ) / 5.0E3;
+      S.FromLONGREAL( avg, FALSE );
+      Host^.Log^.LogSS( log.dlcInfo, L"", "Average (us): ", OA( S.Length-1, S.Data ));
+
+      Host^.StopPhase();
+
       //----------------------------------------
       Host^.StartPhase( L"Speed of Copy to new (80 chars/5 M iterations)" );
 
@@ -51,7 +70,10 @@ CLASS IMPLEMENTATION CTest;
       END;
       
       t := time.UptimeMS() - t;
-      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed: ", t );
+      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
+      avg := LONGREAL( t ) / 5.0E3;
+      S.FromLONGREAL( avg, FALSE );
+      Host^.Log^.LogSS( log.dlcInfo, L"", "Average (us): ", OA( S.Length-1, S.Data ));
 
       Host^.StopPhase();
 
@@ -64,7 +86,10 @@ CLASS IMPLEMENTATION CTest;
       END;
       
       t := time.UptimeMS() - t;
-      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed: ", t );
+      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
+      avg := LONGREAL( t ) / 5.0E3;
+      S.FromLONGREAL( avg, FALSE );
+      Host^.Log^.LogSS( log.dlcInfo, L"", "Average (us): ", OA( S.Length-1, S.Data ));
 
       Host^.StopPhase();
 
@@ -77,14 +102,34 @@ CLASS IMPLEMENTATION CTest;
       END;
       
       t := time.UptimeMS() - t;
-      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed: ", t );
+      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
+      avg := LONGREAL( t ) / 5.0E3;
+      S.FromLONGREAL( avg, FALSE );
+      Host^.Log^.LogSS( log.dlcInfo, L"", "Average (us): ", OA( S.Length-1, S.Data ));
 
       Host^.StopPhase();
 
       //----------------------------------------
 
       S.FromOA( L"Lorem" );
+      ASSIGN( NS1, OA( S.Length-1, S.Data ));
    
+      //----------------------------------------
+      Host^.StartPhase( L"Speed of Copy to existing (5 chars/5 M iterations) -- NATIVE STRING" );
+
+      t := time.UptimeMS();
+      FOR i := 0 TO 5000000-1 DO
+         ASSIGN( NS2, NS1 );
+      END;
+      
+      t := time.UptimeMS() - t;
+      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
+      avg := LONGREAL( t ) / 5.0E3;
+      S.FromLONGREAL( avg, FALSE );
+      Host^.Log^.LogSS( log.dlcInfo, L"", "Average (us): ", OA( S.Length-1, S.Data ));
+
+      Host^.StopPhase();
+
       //----------------------------------------
       Host^.StartPhase( L"Speed of Copy to new (5 chars/5 M iterations)" );
 
@@ -95,7 +140,10 @@ CLASS IMPLEMENTATION CTest;
       END;
       
       t := time.UptimeMS() - t;
-      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed: ", t );
+      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
+      avg := LONGREAL( t ) / 5.0E3;
+      S.FromLONGREAL( avg, FALSE );
+      Host^.Log^.LogSS( log.dlcInfo, L"", "Average (us): ", OA( S.Length-1, S.Data ));
 
       Host^.StopPhase();
 
@@ -108,7 +156,10 @@ CLASS IMPLEMENTATION CTest;
       END;
       
       t := time.UptimeMS() - t;
-      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed: ", t );
+      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
+      avg := LONGREAL( t ) / 5.0E3;
+      S.FromLONGREAL( avg, FALSE );
+      Host^.Log^.LogSS( log.dlcInfo, L"", "Average (us): ", OA( S.Length-1, S.Data ));
 
       Host^.StopPhase();
 
@@ -121,7 +172,10 @@ CLASS IMPLEMENTATION CTest;
       END;
       
       t := time.UptimeMS() - t;
-      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed: ", t );
+      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
+      avg := LONGREAL( t ) / 5.0E3;
+      S.FromLONGREAL( avg, FALSE );
+      Host^.Log^.LogSS( log.dlcInfo, L"", "Average (us): ", OA( S.Length, S.Data ));
 
       Host^.StopPhase();
 
