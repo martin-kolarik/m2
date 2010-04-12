@@ -793,7 +793,7 @@ CLASS IMPLEMENTATION CEIBServer;
             ( objtLogOnChange IN PObject^.ObjectType ) AND changed THEN // always allow log failures
             description := Originator^.Description;
             PObject^.SendAddress.GetGroupAddress3( TRUE, OUT address );
-            _DataLogger^.LogSSS( log.dldMessage, L"srv", "SET RQ", address, OA( description.Length-1, description.rawData ));
+            _DataLogger^.LogSSS( log.dldMessage, L"srv", "SET RQ", address, OA( description.Length-1, description.Data ));
          END;         
       
          IF changed THEN

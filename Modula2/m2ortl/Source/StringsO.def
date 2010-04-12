@@ -125,8 +125,8 @@ END IString;
 CLASS CString IMPLEMENTS IString;
   INTERNAL VAR
     _Size, _Len : CARDINAL;
-    _Storage : ADDRESS;
-    _Data : POINTER TO WCHAR;
+    _Storage : PCARD32;
+    _Data : PWCHAR;
 
   PUBLIC VIRTUAL PROPERTY
     Length  : CARDINAL;
@@ -136,7 +136,7 @@ CLASS CString IMPLEMENTS IString;
     Data    : PWCHAR;
   
   #save, option( leak_info => on )
-  INTERNAL VIRTUAL PROCEDURE Reallocate( Characters : CARDINAL; PreserveCurrent : BOOLEAN );
+  INTERNAL VIRTUAL PROCEDURE ReallocateAndFork( Characters : CARDINAL; CopyLength : CARDINAL );
   INTERNAL VIRTUAL PROCEDURE Deallocate();
   #restore
   
