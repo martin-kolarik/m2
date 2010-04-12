@@ -180,11 +180,45 @@ CLASS IMPLEMENTATION CTest;
       Host^.StopPhase();
 
       //----------------------------------------
-
-      S.FromOA( L"Template" );
+      Host^.StartPhase( L"Simple Assigns" );
+      
+      S1.Clear();
+      S1 := S;
+      IF ( S1.Data <> S.Data ) THEN
+         Host^.Log^.LogS( log.dlcError, L"", L"Data pointers (1) mismatch" );
+         Result := test.trFailure;
+      END;
+      
+      S1.Clear();
+      S2.Clear();
+      S1 := S2;
+      IF ( S1.Data <> S2.Data ) THEN
+         Host^.Log^.LogS( log.dlcError, L"", L"Data pointers (2) mismatch" );
+         Result := test.trFailure;
+      END;
+      
+      S1.FromOA( L"Short string" );
+      S2.FromOA( L"Long long very long string, over prealocated buffer size -- this is to replace S1" );
+      S1 := S2;
+      IF ( S1.Data <> S2.Data ) THEN
+         Host^.Log^.LogS( log.dlcError, L"", L"Data pointers (3) mismatch" );
+         Result := test.trFailure;
+      END;
+      
+      S1.FromOA( L"Short string" );
+      S2.FromOA( L"Long long very long string, over prealocated buffer size -- this is to replace S1" );
+      S1.Copy( S2 );
+      IF ( S1.Data = S2.Data ) THEN
+         Host^.Log^.LogS( log.dlcError, L"", L"Data pointers (4) mismatch" );
+         Result := test.trFailure;
+      END;
+      
+      Host^.StopPhase();
 
       //----------------------------------------
       Host^.StartPhase( L"More Assigns, next Dispose" );
+
+      S.FromOA( L"Template" );
 
       S1 := S;
       S2 := S;
