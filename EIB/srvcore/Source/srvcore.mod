@@ -138,8 +138,10 @@ CONST // object type names
    
 CONST
    itemSystemSuspend = 1;
-   itemConnected = 2;
+   itemSystemSerialNumber = 2;
+   itemConnected = 3;
    nameSystemSuspend = L".System.Licensing.Suspend";
+   nameSystemSerialNumber = L"System.Licensing.SerialNumber";
    nameConnected = L"Control.Connected";
    suspendKey = L"suspend";
    suspendValue = L"true";
@@ -580,6 +582,9 @@ CLASS IMPLEMENTATION CEIBServer;
       ELSIF Name.EqualsOA( nameConnected ) THEN
          Hash := itemConnected;
          RETURN TRUE;
+      ELSIF Name.EqualsOA( nameSystemSerialNumber ) THEN
+         Hash := itemSystemSerialNumber;
+         RETURN TRUE;
       END;
       address.SetGroupAddress3( OA( Name.Length-1, Name.rawData ));
       IF NOT GetObject( address, OUT PObject ) THEN
@@ -603,6 +608,9 @@ CLASS IMPLEMENTATION CEIBServer;
          RETURN FALSE;
       ELSIF Hash = itemConnected THEN
          Name.FromOA( nameConnected );
+         RETURN TRUE;
+      ELSIF Hash = itemSystemSerialNumber THEN
+         Name.FromOA( nameSystemSerialNumber );
          RETURN TRUE;
       END;
       address := TPObject( Hash )^.SendAddress;
@@ -740,7 +748,9 @@ CLASS IMPLEMENTATION CEIBServer;
       EV : eib_def.CValue;
       changed : BOOLEAN;
       key, value : StringsO.CString;
+      licences : lists.CStringList;
       PObject : TPObject;
+      ptrType : PTR;
       s : FIO.PathStrW;
    BEGIN
       // system suspend must be processed before expiration check
@@ -761,6 +771,14 @@ CLASS IMPLEMENTATION CEIBServer;
                Result.QuerySuspension();
             END;
          END;
+         RETURN Sync.arCompleted;
+
+      ELSIF Item = itemSystemSerialNumber THEN
+         Result.GetLicences( OUT licences );
+         IF NOT licences.GetFirst( OUT value, OUT ptrType ) THEN
+            value.FromOA( L"<undefined>" );
+         END;
+         Value.String := value;
          RETURN Sync.arCompleted;
       END;
       
