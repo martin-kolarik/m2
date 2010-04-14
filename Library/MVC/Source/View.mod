@@ -684,8 +684,10 @@ CLASS IMPLEMENTATION CPageTemplateView;
 
    PRIVATE PROCEDURE ParseRoot( parseMode : TParseMode; xhtmlSupported : BOOLEAN; OUT contentTypeRequest : StringsO.CString ) : BOOLEAN;
    VAR
-      haveDeclaration : BOOLEAN := FALSE;
+      appendCharset : BOOLEAN := FALSE;
+      encoding : StringsO.CString;
       haveContentType : BOOLEAN := FALSE;
+      haveDeclaration : BOOLEAN := FALSE;
       haveXHTML : BOOLEAN := FALSE;
       haveNS : BOOLEAN := FALSE;
       rootName : StringsO.CString;
@@ -707,6 +709,13 @@ CLASS IMPLEMENTATION CPageTemplateView;
          END;
          
          CASE Reader.CurrentType OF
+         | xmlreader.xntXMLDeclaration: // encoding must be read
+            IF Reader.MoveToAttributeByNameOA( L"encoding" ) = xmlreader.xmle_S_OK THEN
+               encoding := Reader.CurrentValue;
+            ELSE
+               encoding.FromOA( L"utf-8" ); // XML has default encoding utf-8 by design
+            END;
+         
          | xmlreader.xntText :
             ASSERTLOG( FALSE ); // should not occur here
 
@@ -763,15 +772,27 @@ CLASS IMPLEMENTATION CPageTemplateView;
                      END;
                      haveContentType := TRUE;
                      haveXHTML := value.ContainsOA( HttpTools.CONTENT_TYPE_XHTML );
-                     IF NOT haveXHTML THEN // use mime type as is, no logic can be applied
+                     IF NOT haveXHTML THEN // use mime type as is, no logic can be applied; handle encoding
                         contentTypeRequest := value;
+                        IF value.ContainsOA( HttpTools.CONTENT_TYPE_TEXT ) OR value.ContainsOA( HttpTools.CONTENT_TYPE_HTML ) OR value.ContainsOA( HttpTools.CONTENT_TYPE_CSS ) THEN
+                           IF NOT contentTypeRequest.ContainsOA( HttpTools.CHARSET_PREFIX ) THEN // supply content type with source encoding
+                              appendCharset := TRUE;
+                           END;
+                        END;
                         // do not affect XMLDeclaration, author may set it upon his needs
-                     ELSIF xhtmlSupported THEN // ok, use XHTML, it will be OK
-                        contentTypeRequest := value;
+                     ELSIF xhtmlSupported THEN // ok, use XHTML, it will be OK in client; do not handle encoding, client takes XML declaration including encoding
+                        contentTypeRequest := value; // XHTML
                         Writer.XMLDeclaration := TRUE; // XHTML mime type requires valid XML
                      ELSE
-                        contentTypeRequest.FromOA( HttpTools.CONTENT_TYPE_HTML ); // overwrite XHTML to HTML, client does not support it
+                        contentTypeRequest.FromOA( HttpTools.CONTENT_TYPE_HTML ); // overwrite XHTML to HTML, client does not support it; handle encoding
+                        appendCharset := TRUE;
                         // do not affect XMLDeclaration, author may set it upon his needs
+                     END;
+                     IF appendCharset THEN
+                        contentTypeRequest.AppendOA( L"; " );
+                        contentTypeRequest.AppendOA( HttpTools.CHARSET_PREFIX );
+                        contentTypeRequest.AppendOA( L"=" );
+                        contentTypeRequest.Append( encoding ); // got from XML declaration
                      END;
 
                   END;
