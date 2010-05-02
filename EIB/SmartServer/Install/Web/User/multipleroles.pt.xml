@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html">
+    <pt:access>
+        <pt:role>roleone</pt:role>
+        <pt:role>roletwo</pt:role>
+        <pt:role>somerole</pt:role>
+    </pt:access>
+    <html>
+        <head>
+            <meta http-equiv="Content-Type" content="text/html" />
+            <title>Test multiple roles</title>
+        </head>
+        <body>
+          <p>Multiple roles.</p>
+        </body>
+    </html>
+</pageTemplate>

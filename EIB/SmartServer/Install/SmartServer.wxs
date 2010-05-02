@@ -106,6 +106,15 @@
                                 <File Id="Transparent.png" LongName="Transparent.png" Name="TRANSPA.PNG" Source="Web\Transparent.png" DiskId="1" />
                                 <File Id="TransparentBig.png" LongName="TransparentBig.png" Name="TRANSPB.PNG" Source="Web\TransparentBig.png" DiskId="1" />
                                 <File Id="index.pt.xml" LongName="index.pt.xml" Name="INDEX.XML" Source="Web\index.pt.xml" DiskId="1" />
+                                <File Id="Edit24.png" Name="Edit24.png" Source="Web\Edit24.png" DiskId="1" />
+                                <File Id="Trash24.png" Name="Trash24.png" Source="Web\Trash24.png" DiskId="1" />
+                                <File Id="Add24.png" Name="Add24.png" Source="Web\Add24.png" DiskId="1" />
+                                <File Id="users.pt.xml" LongName="users.pt.xml" Name="USERS.XML" Source="Web\users.pt.xml" DiskId="1" />
+                                <File Id="userEdit.pt.xml" LongName="userEdit.pt.xml" Name="USEREDIT.XML" Source="Web\userEdit.pt.xml" DiskId="1" />
+                                <File Id="roleEdit.pt.xml" LongName="roleEdit.pt.xml" Name="ROLEEDIT.XML" Source="Web\roleEdit.pt.xml" DiskId="1" />
+                                <File Id="userLogin.pt.xml" LongName="userLogin.pt.xml" Name="USERLOG.XML" Source="Web\userLogin.pt.xml" DiskId="1" />
+                                <File Id="userLoginCanvas.jpg" LongName="userLoginCanvas.jpg" Name="UCANVAS.JPG" Source="Web\userLoginCanvas.jpg" DiskId="1" />
+                                <File Id="error.401.pt.xml" LongName="error.401.pt.xml" Name="err401.XML" Source="Web\error.401.pt.xml" DiskId="1" />
                             </Component>
                             <Directory Id="UserWeb" Name="User">
                                 <Component Id="UserWeb" Guid="FDF719DB-B1DA-4401-BE5F-1FA854E7DB2D">
@@ -122,6 +131,8 @@
                                     <File Id="_08_push_button.pt.xml" LongName="08 push button.pt.xml" Name="08PUSHB.XML" Source="Web\User\08 push button.pt.xml" DiskId="1" />
                                     <File Id="_09_table.pt.xml" LongName="09 table.pt.xml" Name="09TABLE.XML" Source="Web\User\09 table.pt.xml" DiskId="1" />
                                     <File Id="_10_relations.pt.xml" LongName="10 relations.pt.xml" Name="10RELAT.XML" Source="Web\User\10 relations.pt.xml" DiskId="1" />
+                                    <File Id="_singlerole.pt.xml" LongName="singlerole.pt.xml" Name="ONEROLE.XML" Source="Web\User\singlerole.pt.xml" DiskId="1" />
+                                    <File Id="_multipleroles.pt.xml" LongName="multipleroles.pt.xml" Name="MUTLROLE.XML" Source="Web\User\multipleroles.pt.xml" DiskId="1" />
                                 </Component>
                             </Directory>
                         </Directory>

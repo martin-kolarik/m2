@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate" contenttype="text/html">
+    <pt:access role="somerole" />
+    <html>
+        <head>
+            <meta http-equiv="Content-Type" content="text/html" />
+            <title>Test single role</title>
+        </head>
+        <body>
+          <p>Single role.</p>
+        </body>
+    </html>
+</pageTemplate>

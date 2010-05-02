@@ -51,7 +51,7 @@ CONST
    LOGIN_USERNAME = L"username";
    LOGIN_PASSWORD = L"password";
    
-   DATETIME_FORMAT = L"d. MMMM H.mm:ss 'GMT'";
+   DATETIME_FORMAT = L"d. MMMM H.mm:ss";
    STATUS_CONNECTED = L"connected";
    STATUS_CACHE_ONLY = L"cacheOnly";
    STATUS_CONNECTIONTIME = L"connectionTime";
@@ -599,6 +599,7 @@ CLASS IMPLEMENTATION CController;
       IF dt.Empty THEN
          dt.JulianDate := starttime;
       END;
+      dt.SetZoneToLocal();
       IF dt.ToLanguageStringOA( Request.Language, DATETIME_FORMAT, TRUE, TRUE, OUT s ) THEN
          cs.FromOA( s );
       ELSE
@@ -630,6 +631,7 @@ CLASS IMPLEMENTATION CController;
       IF dt.Day = 0 THEN
          Request.MessageSource^.GetMessageOA( Request.Language, L"status.licencePermanent", OUT cs );
       ELSE
+         dt.SetZoneToLocal();
          dt.ToLanguageStringOA( Request.Language, DATETIME_FORMAT, TRUE, TRUE, OUT s );
          Request.MessageSource^.GetMessageOA( Request.Language, L"status.licenceValidUntil", OUT cs );
          cs.AppendOA( s );
