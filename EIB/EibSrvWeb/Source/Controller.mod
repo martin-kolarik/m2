@@ -27,6 +27,7 @@ CONST
    SESSION_ROLE = L"role";
    ROLE_NAME = L"roleName";
    ROLE_ADMIN = L"isAdmin";
+   ROLE_IS_KEYED = L"roleIsKeyed";
    USER_LOGGED = L"isLogged";
    VERSION = L"version";
    MESSAGE = L"message";
@@ -111,6 +112,7 @@ CONST
    USER_EDIT_ERROR_TEXT_PASSWORDSDONOTMATCH = L"userEdit.passwordDoNotMatch";
    USER_EDIT_ERROR_TEXT_EMPTYROLE = L"userEdit.roleIsEmpty";
    USER_EDIT_ERROR_TEXT_UPDATEFAILED = L"userEdit.updateFailed";
+   USER_EDIT_ERROR_TEXT_DELETEFAILED = L"userEdit.deleteFailed";
    
    ROLE_EDIT_NAME = L"name";
    ROLE_EDIT_KEYED = L"keyed";
@@ -932,6 +934,9 @@ CLASS IMPLEMENTATION CController;
       // roles
       FOR i := 0 TO _Web^.RolesCount-1 DO
          IF _Web^.GetRole( i, OUT role, OUT roleName ) THEN
+            IF ( role = EibSrvWeb.roleSystemAdministrator ) OR ( role = EibSrvWeb.roleSystemUser ) THEN
+               CONTINUE;
+            END;
             listRoles^.Add( roleName, roleName );
             cs.FromCARD32( i+1, 10 );
             listRoleIds^.Add( cs, cs );
@@ -1118,9 +1123,13 @@ CLASS IMPLEMENTATION CController;
 
             IF action.EqualsOA( ACTION_DELETE ) THEN
                Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id, no next deletion allowed
-               _Web^.DeleteUser( currentName );
-               View := mvc.redirectView( USERS_PAGE );
-               RETURN TRUE;
+               IF _Web^.DeleteUser( currentName ) THEN
+                  View := mvc.redirectView( USERS_PAGE );
+                  RETURN TRUE;
+               ELSE // user cannot be deleted
+                  Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_DELETEFAILED, OUT cs1 );
+                  Request.ModelContainer^.AddStringOA( MESSAGE, cs1 );
+               END;
 
             ELSIF action.EqualsOA( ACTION_EDIT ) THEN 
                // loop self to edit page with stored editation id
@@ -1214,6 +1223,7 @@ CLASS IMPLEMENTATION CController;
 
       Request.ModelContainer^.RemoveOA( ROLE_NAME );
       Request.ModelContainer^.AddStringOA( ROLE_NAME, Role );
+      Request.ModelContainer^.AddBooleanOA( ROLE_IS_KEYED, role = EibSrvWeb.roleUserKeyed );
 
       RETURN role <> EibSrvWeb.roleGuest;
    END ValidateUser;

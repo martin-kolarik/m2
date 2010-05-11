@@ -599,7 +599,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       itemRole, role : TRole := roleGuest;
       s : StringsO.CString;
    BEGIN
-      IF Name.Empty OR Password.Empty THEN
+      IF Password.Empty THEN
          RETURN roleGuest;
       ELSIF _Lock.LockRead( Sync.FORSAFETY ) = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
@@ -817,17 +817,19 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE DeleteUser( CONST userName : StringsO.IString );
+   PUBLIC PROCEDURE DeleteUser( CONST userName : StringsO.IString ) : BOOLEAN;
    BEGIN
       IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
-         RETURN;
+         RETURN FALSE;
       END;
 
       _Users.Remove( userName );
       PersistUsers();
 
       _Lock.UnlockWrite();
+      
+      RETURN TRUE;
    END DeleteUser;
 
 (*--------------------------------------------------------------------------------*)

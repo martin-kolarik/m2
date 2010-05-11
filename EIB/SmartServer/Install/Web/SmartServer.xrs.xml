@@ -325,6 +325,10 @@
             <item lang="en-US">User save failed.</item>
             <item lang="cs-CZ">Uložení uživatele selhalo.</item>
         </string>
+        <string name="userEdit.deleteFailed">
+            <item lang="en-US">User cannot be deleted and its name cannot be changed. Only its password can be set.</item>
+            <item lang="cs-CZ">Uživatele nelze smazat ani mu nelze změnit jméno. Pouze heslo je nastavitelné.</item>
+        </string>
 
         <string name="roleEdit.title">
             <item lang="en-US">Role editing</item>
@@ -351,8 +355,8 @@
             <item lang="cs-CZ">Uložení role selhalo.</item>
         </string>
         <string name="roleEdit.deleteFailed">
-            <item lang="en-US">Role cannot be deleted, either role is used or some error occured.</item>
-            <item lang="cs-CZ">Roli nelze smazat, role je buď použita, nebo došlo k chybě.</item>
+            <item lang="en-US">Role cannot be deleted, either role is used or it cannot be deleted.</item>
+            <item lang="cs-CZ">Roli nelze smazat, role je buď použita, nebo nesmí být smazána.</item>
         </string>
         
     </strings>

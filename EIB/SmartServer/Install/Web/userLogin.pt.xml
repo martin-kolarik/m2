@@ -21,13 +21,18 @@
                             <pt:form method="post">
 
                                 <table cellpadding="0px" cellspacing="0px">
-                                    <tr>
-                                        <td>${msg.userLogin.username}</td>
-                                        <td class="spare"> </td>
-                                        <td>
-                                            <pt:input model="username"/>
-                                        </td>
-                                    </tr>
+                                    <pt:choose>
+                                        <pt:when condition="roleIsKeyed" />
+                                        <pt:otherwise>
+                                        </pt:otherwise>
+                                    </pt:choose>
+                                            <tr>
+                                                <td>${msg.userLogin.username}</td>
+                                                <td class="spare"> </td>
+                                                <td>
+                                                    <pt:input model="username"/>
+                                                </td>
+                                            </tr>
                                     <tr>
                                         <td>${msg.userLogin.password}</td>
                                         <td class="spare"> </td>
