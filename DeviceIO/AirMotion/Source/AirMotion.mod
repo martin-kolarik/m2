@@ -459,12 +459,12 @@ CLASS IMPLEMENTATION CPacket;
          RETURN 2;
       | ptData  :
          IF _Packet^.ValueType = CH_DIGITAL THEN
-            RETURN 7;
+            RETURN 8;
          ELSE
-            RETURN 10;
+            RETURN 11;
          END;
       | ptFillBuffer :
-         RETURN 5;
+         RETURN 6;
       | ptNoData :
          RETURN 1;
       | ptACK :
