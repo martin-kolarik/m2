@@ -123,7 +123,7 @@ CONST
    DYNAMIC_SUFFIX = L".pt.xml";
    FN_SET = L"set";
    FN_GET = L"get";
-   FN_GETWIX = L"getWix";
+   FN_GETWIX = L"getwix";
    FN_EQUAL = L"equal";
    FN_NOTEQUAL = L"notEqual";
    FN_LESS = L"less";
