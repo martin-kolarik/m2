@@ -491,7 +491,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       Originator.SetDescription( d );
 
       // no need to sync, IOh is be thread safe
-      RETURN _EIB^.IOh( ADR( Originator ), IOO.dirWrite, hash, REF Value, NIL ) = Sync.arCompleted; // partial = cache write is not evaluated as true
+      RETURN _EIB^.IOh( ADR( Originator ), IOO.dirWrite, hash, REF Value, NIL ) IN Sync.arsCompletions;
    END SetValue;
 
 (*--------------------------------------------------------------------------------*)

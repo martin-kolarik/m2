@@ -1865,7 +1865,7 @@ CLASS IMPLEMENTATION CEIBServer;
          IF NOT PromiscuousMode THEN
             eib_stack.TPEIBStackApplicationLayer( EIB^.Layers[ eib_stack.eltApplication ] )^.Update_L_Layer();
          END;
-      END; // IF _CacheOnlyMode
+      END; // IF NOT _CacheOnlyMode
       
       ConfigurationPath.Assign( ConfigurationFile ); // store sucessfully read configuration
       RETURN TRUE;
@@ -2212,7 +2212,11 @@ CLASS IMPLEMENTATION CEIBServer;
          IF Direction = IOO.dirRead THEN
             _DataLogger^.LogSSSS( log.dldMessage, L"srv", "UPDATE", address, OA( value.Length-1, value.rawData ), OA( comment.Length-1, comment.rawData ));
          ELSIF NOT EIB^.DeviceConnected() THEN
-            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET FAILED", address, OA( value.Length-1, value.rawData ), OA( comment.Length-1, comment.rawData ));
+            IF _CacheOnlyMode THEN
+               _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET TO CACHE", address, OA( value.Length-1, value.rawData ), OA( comment.Length-1, comment.rawData ));
+            ELSE
+               _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET FAILED", address, OA( value.Length-1, value.rawData ), OA( comment.Length-1, comment.rawData ));
+            END;
          END;
                   
       END;
