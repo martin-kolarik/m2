@@ -2011,7 +2011,7 @@ CLASS IMPLEMENTATION CEIBServer;
          b := Behaviours.NextOf( PBehaviour, OUT PBehaviour );
       END;
       IF EQUALS( BehaviourName, bnReader ) THEN
-         Flags := eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofUpdate, eib_def.aofForceRead};
+         Flags := eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofUpdate, eib_def.aofWritable, eib_def.aofInitRead, eib_def.aofForceRead};
       ELSIF EQUALS( BehaviourName, bnTracker ) THEN
          Flags := eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofUpdate, eib_def.aofWritable};
       ELSIF EQUALS( BehaviourName, bnTracker2 ) THEN
