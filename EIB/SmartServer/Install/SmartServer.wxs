@@ -72,24 +72,44 @@
                             <File Id="License.rtf" Name="License.rtf" Source="License.rtf" DiskId="1" />
                         </Component>
                         <?if $(var.LanguageName)=en ?>
-                        <Component Id="Documentation" Guid="89A02EDA-2261-4c9b-8087-06AA1B5FC0A7">
-                            <File Id="SmartServer.pdf" Name="SmartSrv.pdf" LongName="SmartServer.pdf" Source="..\Doc\SmartServer_en.pdf" DiskId="1" Vital="yes" KeyPath="yes">
-                                <Shortcut Id="StartMenuDocumentation" Directory="SmartServerDir" Name="Manual" LongName="SmartServer documentation" />
-                            </File>
-                            <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" />
-                        </Component>
+                            <Component Id="Documentation" Guid="{D172AB6D-5999-4677-B590-8C5EB991973B">
+                                <File Id="SmartServer.pdf" Name="SmartSrv.pdf" LongName="SmartServer.pdf" Source="..\Doc\SmartServer_en.pdf" DiskId="1" Vital="yes" KeyPath="yes">
+                                    <Shortcut Id="StartMenuDocumentation" Directory="SmartServerDir" Name="Manual" LongName="Documentation" Advertised="yes" Icon="PDF.exe" />
+                                </File>
+                                <RemoveFolder Id="DocumentationFolderRemove" On="uninstall"/>
+                            </Component>
+                            <Component Id="Changelog" Guid="1E7D7631-7496-4a06-8BF3-673DED82E3AD">
+                                <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" Vital="yes" KeyPath="yes">
+                                    <Shortcut Id="ChangeLogOpenShortcut" Directory="SmartServerDir" Name="Changes" LongName="Change log" Advertise="yes" Icon="TXT.exe" />
+                                </File>
+                                <RemoveFolder Id="ChangelogFolderRemove" On="uninstall"/>
+                            </Component>
+                            <Component Id="DefaultConfiguration" Guid="A845DA49-44F1-40f9-BFAA-3110DC6FB7FF">
+                                <File Id="default.cfg" Name="default.cfg" Source="default.cfg" DiskId="1" Vital="yes" KeyPath="yes">
+                                    <Shortcut Id="StartMenuCFG" Directory="SmartServerDir" Name="CFG" LongName="Configuration" Advertise="yes" Icon="CFG.exe" />
+                                </File>
+                            </Component>
                         <?endif ?>
                         <?if $(var.LanguageName)=cs ?>
-                        <Component Id="Documentation" Guid="D75EA66F-CD00-4b0b-85A2-2764FB229D47">
-                            <File Id="SmartServer.pdf" Name="SmartSrv.pdf" LongName="SmartServer.pdf" Source="..\Doc\SmartServer_cs.pdf" DiskId="1" Vital="yes" KeyPath="yes">
-                                <Shortcut Id="StartMenuDocumentation" Directory="SmartServerDir" Name="Manuál" LongName="Dokumentace SmartServer" />
-                            </File>
-                            <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" />
-                        </Component>
+                            <Component Id="Documentation" Guid="8FA98162-E511-435b-B80D-68149C625478">
+                                <File Id="SmartServer.pdf" Name="SmartSrv.pdf" LongName="SmartServer.pdf" Source="..\Doc\SmartServer_cs.pdf" DiskId="1" Vital="yes" KeyPath="yes">
+                                    <Shortcut Id="StartMenuDocumentation" Directory="SmartServerDir" Name="Manuál" LongName="Dokumentace" Advertise="yes" Icon="PDF.exe" />
+                                </File>
+                                <RemoveFolder Id="DocumentationFolderRemove" On="uninstall"/>
+                            </Component>
+                            <Component Id="Changelog" Guid="A72537D2-8BA9-4096-8BDC-0F25521F2049">
+                                <File Id="Changelog.txt" Name="Changes.txt" Source="Changelog.txt" DiskId="1" Vital="yes" KeyPath="yes">
+                                    <Shortcut Id="ChangeLogOpenShortcut" Directory="SmartServerDir" Name="Změny" LongName="Seznam změn" Advertise="yes" Icon="TXT.exe" />
+                                </File>
+                                <RemoveFolder Id="ChangelogFolderRemove" On="uninstall"/>
+                            </Component>
+                            <Component Id="DefaultConfiguration" Guid="E3110039-B225-43ed-B91F-1C45A68D8B52">
+                                <File Id="default.cfg" Name="default.cfg" Source="default.cfg" DiskId="1" Vital="yes" KeyPath="yes">
+                                    <Shortcut Id="StartMenuCFG" Directory="SmartServerDir" Name="CFG" LongName="Konfigurace" Advertise="no" Icon="CFG.exe"
+                                              WorkingDirectory="INSTALLDIR" Target="[SystemFolder]notepad.exe" Arguments="[!default.cfg]" />
+                                </File>
+                            </Component>
                         <?endif ?>
-                        <Component Id="DefaultConfiguration" Guid="E3110039-B225-43ed-B91F-1C45A68D8B52">
-                            <File Id="default.cfg" Name="default.cfg" Source="default.cfg" DiskId="1" Vital="yes" KeyPath="yes" />
-                        </Component>
                         <Directory Id="WEB" Name="Web">
                             <Component Id="Web" Guid="7A88F76D-6C57-4047-95F6-79E8CB4730E4">
                                 <File Id="NeNo.css" LongName="NeNo.css" Name="NENO.CSS" Source="Web\NeNo.css" DiskId="1" />
@@ -232,6 +252,7 @@
             <ComponentRef Id="ToolCheckCfg" />
             <ComponentRef Id="ToolDiscover" />
             <ComponentRef Id="Documentation" />
+            <ComponentRef Id="Changelog" />
             <ComponentRef Id="DefaultConfiguration" />
             <ComponentRef Id="ETSPR3" />
             <ComponentRef Id="Web" />
@@ -260,6 +281,9 @@
         <UIRef Id="WixUI_Licence" />
         <UI />
         <Icon Id="AddRemoveIcon" SourceFile="SmartServer.ico" />
+        <Icon Id="TXT.exe" SourceFile="TXT.ico" />
+        <Icon Id="PDF.exe" SourceFile="PDF.ico" />
+        <Icon Id="CFG.exe" SourceFile="CFG.ico" />
         <?include $(var.BuildRoot)\Manufacturer.wxs ?>
         <?include $(var.BuildRoot)\Upgrade.wxs ?>
     </Product>
