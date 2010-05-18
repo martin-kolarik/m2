@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="windows-1250"?>
-<document file="SmartServer" xmlns="http://www.mii.cz/2004/XML/Document/Common">
-  <header creator="martin" doc_type="generic" language="english" last_modified="2008-08-15" last_modifier="martin"
-          version="1.0.1516.0"></header>
+<document file="SmartServer" xml:lang="en" xmlns="http://www.mii.cz/2004/XML/Document/Common">
+  <header creator="martin" doc_type="generic" last_modified="2008-08-15" last_modifier="martin" version="1.0.1516.0"
+          xml:lang="en"></header>
 
   <adjustment>
     <classes>
@@ -1595,7 +1595,7 @@ allow = 127.0.0.1</p.type>
               </text>
             </section>
 
-            <section level="3">
+            <section label="secUserPages" level="3">
               <title>User pages</title>
 
               <text>
@@ -1625,9 +1625,7 @@ allow = 127.0.0.1</p.type>
 
                 <p><type>get</type> function is completed with similar function <type>getwix</type>, which is, before
                 all, intended to be used together with Wix visualization tool (see <uri>www.papouch.com</uri>). <type>getwix</type>
-                function, in difference to <type>get</type> function, returns all number ten times bigger and without
-                decimal part (to test the function, <type>${get(...)}</type> string can simply be replaced with <type>${getwix(...)}</type>
-                in all examples below).</p>
+                function is described further in the chapter <in label="secGetWix"></in>.</p>
 
                 <dl class="dlCaption">
                   <caption>Following set of examples shows everything. After examples (<file>*.pt.xml</file>) there
@@ -1983,6 +1981,54 @@ allow = 127.0.0.1</p.type>
                 server for new data each five seconds.</p>
               </text>
             </section>
+
+            <section label="secGetWix" level="3">
+              <title>Wix<c.special what="dash" />the measuring software</title>
+
+              <text>
+                <p>Wix is a product of Papouch, s.r.o. company (<uri>www.papouch.com</uri>) targeted to fast and simple
+                presentation of data (values and graphs) read from measuring sensors produced by the company. As Wix
+                uses standard XML format for value transfers, SmartServer can be used (its web interface) as Wix data
+                source too.</p>
+
+                <p>Wix uses a special number format in its messages. To be able to use the number format, SmartServer
+                defines a special <type>getwix</type> function (for <type>get</type> function see the chapter <in
+                label="secUserPages"></in>).</p>
+
+                <p><type>getwix</type> function, in opposite to <type>get</type> function, returns all numbers ten times
+                greater and without the fraction part (to test the feature, simply <type>${get(...)}</type> can be
+                replaced with <type>${getwix(...)}</type> in all previously described examples).</p>
+
+                <p>The simplest wix data message looks like (more about Wix message format you can see in Wix
+                documentation):</p>
+
+                <p.type>&lt;thermometer&gt; 
+  &lt;temperature&gt;235&lt;/temperature&gt; 
+&lt;/thermometer&gt;</p.type>
+
+                <p>To get this message from SmartServer in a correct form, the user web page <file>pt.xml</file> file
+                must contain the following wrapping tags:</p>
+
+                <p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"
+              contenttype="text/plain"&gt;
+
+  &lt;thermometer&gt; 
+    &lt;temperature&gt;${getWix(1/1/1)}&lt;/temperature&gt; 
+  &lt;/thermometer&gt;
+
+&lt;/pageTemplate&gt;</p.type>
+
+                <p>Wix can be downloaded from the page
+                <uri>http://www.papouch.com/shop/scripts/_ruzne.asp?clanek=wix</uri>.</p>
+
+                <warning><p>Wix is not a product of NeNo company. NeNo company helds no warranty for it.</p></warning>
+
+                <p>SmartServer installation contains an example of Wix setting, see the chapter <in
+                label="secWixExample"></in>.</p>
+              </text>
+            </section>
           </text>
         </section>
 
@@ -2232,9 +2278,10 @@ Control.Connected true</p.type>
           <title>Examples of clients</title>
 
           <text>
-            <p>In the SmartServer installation there are included two examples of clients. The first client
+            <p>In the SmartServer installation there are included three examples of clients. The first client
             (<file>Examples\Philips Pronto</file>) uses SDAP for communication, the second client (<file>Examples\Adobe
-            Flash</file>) uses XMLSocket for communication.</p>
+            Flash</file>) uses XMLSocket for communication and the third one (<file>Examples\Wix</file>) uses pure web
+            interface of SmartServer.</p>
 
             <section level="3">
               <title>Philips Pronto</title>
@@ -2477,6 +2524,56 @@ var IP_PORT = "6007";</p.type>
                 </dl>
 
                 <p>Example scripts can be inserted to application for Adobe Flash, e.g. using clipboard.</p>
+              </text>
+            </section>
+
+            <section level="3">
+              <title>Wix</title>
+
+              <text>
+                <il>
+                  <caption>To get Wix examples working, there are two steps which must be done:</caption>
+
+                  <li><p>User web pages of SmartServer must be prepared.</p></li>
+
+                  <li><p>Wix must be set up in way to read data from SmartServer.</p></li>
+                </il>
+
+                <dl>
+                  <caption>The first step, setting up of SmartServer, is the same as preparation of any other user web
+                  page (<file>pt.xml</file>) . The example (in the folder <file>Examples\Wix</file>) contains:</caption>
+
+                  <dt><file>default.cfg</file></dt>
+
+                  <dd><p>SmartServer configuration file, there are defined two data objects, each of object will be used
+                  in one of the following files.</p></dd>
+
+                  <dt><file>getwixLogical.xml</file></dt>
+
+                  <dd><p>The page offering a logical value to Wix.</p></dd>
+
+                  <dt><file>getwixNumber.xml</file></dt>
+
+                  <dd><p>The page offering a numerical value to Wix.</p></dd>
+                </dl>
+
+                <il>
+                  <caption>The second step, setting up of Wix, can be done:</caption>
+
+                  <li><p>Using the file <file>wx.core.cfg.xml</file> of the example. This Wix configuration file
+                  contains setting up of both sample data objects prepared in SmartServer. The file can simply be copied
+                  from the example to Wix just after installing it.</p></li>
+
+                  <li><p>Using standard Wix setup <gui>Add sensor</gui> function. To achieve correct communication with
+                  SmartServer, the sensor type <gui>TME-XML</gui> must be used and the correct user page address must be
+                  entered into <gui>XML server</gui> edit box (for instance, the example uses
+                  <uri>http://127.0.0.1:6005/SmartServer/User/getwixNumber.pt.xml</uri>).</p><p>Wix can display logical
+                  values as numbers (0 and 1), but both these values can also take so-called replacement text (see Wix
+                  documentation). As a result, the value can be displayed as fully descriptive two-stated
+                  text.</p><p>The sensor configuration is displayed in the following figure:</p><p.figure file="WixAdd">
+                      <caption>New sensor addition in Wix</caption>
+                    </p.figure></li>
+                </il>
               </text>
             </section>
           </text>

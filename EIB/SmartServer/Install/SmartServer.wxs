@@ -196,6 +196,14 @@
                                     <File Id="Template_TSU9600_v2.xcf" LongName="Template_TSU9600_v2.xcf" Name="TEMP6V2.XCF" Source="Examples\Philips Pronto\Template_TSU9600_v2.xcf" DiskId="1" />
                                 </Component>
                             </Directory>
+                            <Directory Id="Wix" Name="Wix">
+                                <Component Id="ExamplesWix" Guid="7196E9D5-DA50-4d9c-8500-94A6286210BD">
+                                    <File Id="wixDefault.cfg" Name="default.cfg" Source="Examples\Wix\default.cfg" DiskId="1" />
+                                    <File Id="getwixLogical.xml" Name="getwlog.xml" LongName="getwixLogical.pt.xml" Source="Examples\Wix\getwixLogical.pt.xml" DiskId="1" />
+                                    <File Id="getwixNumber.xml" Name="getwnum.xml" LongName="getwixNumber.pt.xml" Source="Examples\Wix\getwixNumber.pt.xml" DiskId="1" />
+                                    <File Id="wx.core.cfg.xml" Name="wix.cfg" LongName="wx.core.cfg.xml" Source="Examples\Wix\wx.core.cfg.xml" DiskId="1" />
+                                </Component>
+                            </Directory>
                         </Directory>
                         <?if $(var.LeakChecking)=on ?>
                         <Component Guid="B77FFC41-B032-47C6-841B-12239073885D" Id="LeakDetector">
@@ -261,6 +269,7 @@
             <ComponentRef Id="Examples" />
             <ComponentRef Id="ExamplesFlash" />
             <ComponentRef Id="ExamplesPronto" />
+            <ComponentRef Id="ExamplesWix" />
             <?if $(var.LeakChecking)=on ?>
             <ComponentRef Id="LeakDetector" />
             <?endif ?>

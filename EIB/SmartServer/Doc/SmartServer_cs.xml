@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="windows-1250"?>
 <document file="SmartServer" xmlns="http://www.mii.cz/2004/XML/Document/Common">
-  <header creator="martin" doc_type="generic" language="czech" last_modified="2008-08-15" last_modifier="martin"
-          version="1.0.1516.0"></header>
+  <header creator="martin" doc_type="generic" last_modified="2008-08-15" last_modifier="martin" version="1.0.1516.0"
+          xml:lang="cs"></header>
 
   <adjustment>
     <classes>
@@ -1552,7 +1552,7 @@ allow = 127.0.0.1</p.type>
               </text>
             </section>
 
-            <section level="3">
+            <section label="secUserPages" level="3">
               <title>Uživatelské stránky</title>
 
               <text>
@@ -1581,9 +1581,7 @@ allow = 127.0.0.1</p.type>
 
                 <p>Funkce <type>get</type> je doplněna odlišně pracující funkcí <type>getwix</type>, která slouží
                 především pro předávání dat do vizualizačního nástroje Wix (viz <uri>www.papouch.com</uri>). Funkce
-                <type>getwix</type>, na rozdíl od funkce <type>get</type>, vrací všechna čísla desetkrát vetší a bez
-                desetinné části (pro otestování lze ve všech níže uvedených ukázkách jednoduše vyměnit <type>${get(...)}</type>
-                za <type>${getwix(...)}</type>).</p>
+                <gui>getwix</gui> je popsána dále v kapitole <in label="secGetWiz"></in>.</p>
 
                 <dl class="dlCaption">
                   <caption>Vše ukazuje následující sada příkladů. Příklady (<file>*.pt.xml</file> soubory, po instalaci
@@ -1943,6 +1941,54 @@ allow = 127.0.0.1</p.type>
                 každých pět sekund.</p>
               </text>
             </section>
+
+            <section label="secGetWiz" level="3">
+              <title>Wix<c.special what="dash" />měřicí software</title>
+
+              <text>
+                <p>Wix je produkt společnosti Papouch, s.r.o. (<uri>www.papouch.com</uri>) určený pro rychlé a
+                jednoduché zobrazování dat (hodnot i grafů) vyčtených z měřicích prvků téže společnosti. Wix používá pro
+                přenos hodnot standardní XML formát, takže jako zdroj je možné dat využít i webové rozhraní (uživatelské
+                stránky) SmartServeru.</p>
+
+                <p>Wix ve svých datových zprávách využívá speciální formát čísel. Aby bylo možné mezi SmartServerem a
+                Wixem data přenést, definuje SmartServer v uživatelských webových stránkách funkci <type>getwix</type>
+                (popis funkce get viz kapitolu <in label="secUserPages"></in>). </p>
+
+                <p>Funkce <type>getwix</type>, na rozdíl od funkce <type>get</type>, vrací všechna čísla desetkrát vetší
+                a bez desetinné části (pro otestování lze ve všech výše uvedených ukázkách jednoduše vyměnit <type>${get(...)}</type>
+                za <type>${getwix(...)}</type>).</p>
+
+                <p>Datová zpráva Wixu v nejjednodušší podobě vypadá například takto (více o formátu a druzích zpráv
+                vizte dokumentaci Wixu):</p>
+
+                <p.type>&lt;thermometer&gt; 
+  &lt;temperature&gt;235&lt;/temperature&gt; 
+&lt;/thermometer&gt;</p.type>
+
+                <p>Aby tuto zprávu SmartServer při požadavku Wixu správně sestavil, musí uživatelský <file>pt.xml</file>
+                soubor vypadat následovně:</p>
+
+                <p.type>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+
+&lt;pageTemplate xmlns:pt="http://www.smartcontrol.cz/2008/XML/Web/PageTemplate"
+              contenttype="text/plain"&gt;
+
+  &lt;thermometer&gt; 
+    &lt;temperature&gt;${getWix(1/1/1)}&lt;/temperature&gt; 
+  &lt;/thermometer&gt;
+
+&lt;/pageTemplate&gt;</p.type>
+
+                <p>Wix lze stáhnout ze stránky <uri>http://www.papouch.com/shop/scripts/_ruzne.asp?clanek=wix</uri>.</p>
+
+                <warning><p>Wix není produktem společnosti NeNo. Společnost NeNo za něj nenese žádnou
+                záruku.</p></warning>
+
+                <p>Instalace SmartServeru obsahuje ukázky nastavení Wixu, více vizte kapitolu <in
+                label="secWixExample"></in>.</p>
+              </text>
+            </section>
           </text>
         </section>
 
@@ -2188,9 +2234,10 @@ Control.Connected true</p.type>
           <title>Ukázky klientů</title>
 
           <text>
-            <p>V instalaci SmartServeru jsou zařazeny dvě ukázky klientů. První klient (<file>Examples\Philips
-            Pronto</file>) používá pro komunikaci SDAP, druhý klient (<file>Examples\Adobe Flash</file>) používá pro
-            komunikaci XMLSocket.</p>
+            <p>V instalaci SmartServeru jsou zařazeny dvě ukázky datových klientů a jedna ukázka klienta webového. První
+            klient (<file>Examples\Philips Pronto</file>) používá pro komunikaci SDAP, druhý klient
+            (<file>Examples\Adobe Flash</file>) XMLSocket a třetí klient (Wix, <file>Examples\Wix</file>) využívá jen
+            webového rozhraní SmartServeru.</p>
 
             <section level="3">
               <title>Philips Pronto</title>
@@ -2432,6 +2479,56 @@ var IP_PORT = "6007";</p.type>
                 </dl>
 
                 <p>Ukázkové skripty je možné do aplikace pro Adobe Flash vložit například pomocí schránky.</p>
+              </text>
+            </section>
+
+            <section level="3">
+              <title>Wix</title>
+
+              <text>
+                <il>
+                  <caption>Pro rozběh příkladů pro Wix je třeba dvou kroků:</caption>
+
+                  <li><p>Připravit uživatelské webové stránky SmartServeru.</p></li>
+
+                  <li><p>Nastavit Wix tak, aby četl údaje ze SmartServeru.</p></li>
+                </il>
+
+                <dl>
+                  <caption>První krok, nastavení SmartServeru, je shodný s přípravou jakýchkoli jiných uživatelských
+                  (<file>pt.xml</file>) stránek. Ukázka (ve složce <file>Examples\Wix</file>) obsahuje:</caption>
+
+                  <dt><file>default.cfg</file></dt>
+
+                  <dd><p>Konfigurační soubor SmartServeru, v souboru jsou definovány dva datové objekty pro následující
+                  dva soubory.</p></dd>
+
+                  <dt><file>getwixLogical.xml</file></dt>
+
+                  <dd><p>Stránka poskytující Wixu logickou hodnotu.</p></dd>
+
+                  <dt><file>getwixNumber.xml</file></dt>
+
+                  <dd><p>Stránka poskytující Wixu číselnou hodnotu.</p></dd>
+                </dl>
+
+                <il>
+                  <caption>Druhý krok, nastavení Wixu, lze provést dvěma způsoby:</caption>
+
+                  <li><p>Pomocí souboru z ukázky: <file>wx.core.cfg.xml</file>. Tento konfigurační soubor Wixu obsahuje
+                  nastavení zobrazení obou ukázkových údajů poskytovaných SmartServerem. Soubor lze po instalaci Wixu
+                  zkopírovat na místo původní konfigurace Wixu.</p></li>
+
+                  <li><p>Pomocí standardního nastavení Wixu s využitím funkce <gui>Přidat čidlo</gui>. Pro správnou
+                  komunikaci se SmartServerem je třeba jako typ čidla uvést <gui>TME-XML</gui> a do řádku <gui>XML
+                  server</gui> je třeba zapsat správnou adresu patřičné uživatelské stránky (např. pro danou ukázku
+                  <uri>http://127.0.0.1:6005/SmartServer/User/getwixNumber.pt.xml</uri>).</p><p>Logické hodnoty lze ve
+                  Wixu zobrazovat jako čísla 0 a 1, oběma hodnotám však lze také přiřadit tzv. zástupný text (vizte
+                  dokumentaci Wixu). Výsledkem může být popisné dvojstavové zobrazení.</p><p>Konfiguraci čidla ukazuje
+                  následující obrázek:</p><p.figure file="WixAdd">
+                      <caption>Přidání nového čidla do Wixu</caption>
+                    </p.figure></li>
+                </il>
               </text>
             </section>
           </text>
