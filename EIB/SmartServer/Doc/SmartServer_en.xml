@@ -34,7 +34,7 @@
           <li><p>on the KNX/EIB devices EIBNet/IP (it is part of a KNX standard).</p></li>
         </il>
 
-        <p>Version of the documentation: 1.2.20xx</p>
+        <p>Version of the documentation: 1.2.1218</p>
 
         <content>
           <caption>Content</caption>
@@ -2020,8 +2020,9 @@ allow = 127.0.0.1</p.type>
 
 &lt;/pageTemplate&gt;</p.type>
 
-                <p>Wix can be downloaded from the page
-                <uri>http://www.papouch.com/shop/scripts/_ruzne.asp?clanek=wix</uri>.</p>
+                <p>Wix can be downloaded from the page <uri>http://www.papouch.com/<c.special
+                what="breakhint" />shop/<c.special what="breakhint" />scripts/<c.special
+                what="break" />_ruzne.asp?<c.special what="breakhint" />clanek=wix</uri>.</p>
 
                 <warning><p>Wix is not a product of NeNo company. NeNo company helds no warranty for it.</p></warning>
 
@@ -2527,7 +2528,7 @@ var IP_PORT = "6007";</p.type>
               </text>
             </section>
 
-            <section level="3">
+            <section label="secWixExample" level="3">
               <title>Wix</title>
 
               <text>
@@ -2567,10 +2568,12 @@ var IP_PORT = "6007";</p.type>
                   <li><p>Using standard Wix setup <gui>Add sensor</gui> function. To achieve correct communication with
                   SmartServer, the sensor type <gui>TME-XML</gui> must be used and the correct user page address must be
                   entered into <gui>XML server</gui> edit box (for instance, the example uses
-                  <uri>http://127.0.0.1:6005/SmartServer/User/getwixNumber.pt.xml</uri>).</p><p>Wix can display logical
-                  values as numbers (0 and 1), but both these values can also take so-called replacement text (see Wix
-                  documentation). As a result, the value can be displayed as fully descriptive two-stated
-                  text.</p><p>The sensor configuration is displayed in the following figure:</p><p.figure file="WixAdd">
+                  <uri>http://127.0.0.1:6005/<c.special what="breakhint" />SmartServer/<c.special
+                  what="breakhint" />User/<c.special what="breakhint" />getwixNumber.pt.xml</uri>).</p><p>Wix can
+                  display logical values as numbers (0 and 1), but both these values can also take so-called replacement
+                  text (see Wix documentation). As a result, the value can be displayed as fully descriptive two-stated
+                  text.</p><p>The sensor configuration is displayed in the following figure:</p><p.figure file="WixAdd"
+                      width="4cm">
                       <caption>New sensor addition in Wix</caption>
                     </p.figure></li>
                 </il>

@@ -1,4 +1,20 @@
-Version 1.2.120x/R RC1 2.5.2010
+Version 1.2.1218/R RC2 19.5.2010
+- BUG: #203, in documentation, preformatted texts contained bad accented characters 
+- BUG: #208, "getWix" function was renamed to "getwix", as it was intended
+- CHG: #199, in cache_mode only, web interface does not display error message after
+       direct write, it displays "Write succeeded"
+- CHG: #202, "getwix" function and "Wix" program was more described in the documentation,
+       new examples for "Wix" setup and "getwix" function were added to installation
+- CHG: #206, possibility to log to used pages with name/password was reduced to log in
+       using password (key or code) only              
+- NEW: #200, "Changes.txt" file link was added to StartMenu
+- NEW: #200, "default.cfg" file edit link was added to StartMenu
+- NEW: #204, new example "11 intervals.pt.xml" with relational operator and text
+       coloring added
+- NEW: #205, "RCWare" (soft PLC) description, libraries and link to the vendor including
+       documentation were added
+  
+Version 1.2.1201/R RC1 2.5.2010
 - BUG: #85, if get of two variables in pt.xml was written without space (like in
        ${get(3/0/0)}${get(3/0/1)}) the second get was not rendered
 - BUG: #150, sometimes "Uptime" displayed in status page showed "60" minutes instead

@@ -35,7 +35,7 @@
           <li><p>na stranì KNX/EIB zaøízení s protokolem EIBNet/IP (souèást standardu KNX).</p></li>
         </il>
 
-        <p>Verze dokumentace: 1.2.20xx</p>
+        <p>Verze dokumentace: 1.2.1218</p>
 
         <content>
           <caption>Obsah</caption>
@@ -1581,7 +1581,7 @@ allow = 127.0.0.1</p.type>
 
                 <p>Funkce <type>get</type> je doplnìna odlišnì pracující funkcí <type>getwix</type>, která slouží
                 pøedevším pro pøedávání dat do vizualizaèního nástroje Wix (viz <uri>www.papouch.com</uri>). Funkce
-                <gui>getwix</gui> je popsána dále v kapitole <in label="secGetWiz"></in>.</p>
+                <gui>getwix</gui> je popsána dále v kapitole <in label="secGetWix"></in>.</p>
 
                 <dl class="dlCaption">
                   <caption>Vše ukazuje následující sada pøíkladù. Pøíklady (<file>*.pt.xml</file> soubory, po instalaci
@@ -1942,7 +1942,7 @@ allow = 127.0.0.1</p.type>
               </text>
             </section>
 
-            <section label="secGetWiz" level="3">
+            <section label="secGetWix" level="3">
               <title>Wix<c.special what="dash" />mìøicí software</title>
 
               <text>
@@ -1953,7 +1953,7 @@ allow = 127.0.0.1</p.type>
 
                 <p>Wix ve svých datových zprávách využívá speciální formát èísel. Aby bylo možné mezi SmartServerem a
                 Wixem data pøenést, definuje SmartServer v uživatelských webových stránkách funkci <type>getwix</type>
-                (popis funkce get viz kapitolu <in label="secUserPages"></in>). </p>
+                (popis funkce <type>get</type> viz kapitolu <in label="secUserPages"></in>).</p>
 
                 <p>Funkce <type>getwix</type>, na rozdíl od funkce <type>get</type>, vrací všechna èísla desetkrát vetší
                 a bez desetinné èásti (pro otestování lze ve všech výše uvedených ukázkách jednoduše vymìnit <type>${get(...)}</type>
@@ -1980,7 +1980,9 @@ allow = 127.0.0.1</p.type>
 
 &lt;/pageTemplate&gt;</p.type>
 
-                <p>Wix lze stáhnout ze stránky <uri>http://www.papouch.com/shop/scripts/_ruzne.asp?clanek=wix</uri>.</p>
+                <p>Wix lze stáhnout ze stránky <uri>http://www.papouch.com/<c.special what="breakhint" />shop/<c.special
+                what="breakhint" />scripts/<c.special what="break" />_ruzne.asp?<c.special
+                what="breakhint" />clanek=wix</uri>.</p>
 
                 <warning><p>Wix není produktem spoleènosti NeNo. Spoleènost NeNo za nìj nenese žádnou
                 záruku.</p></warning>
@@ -2482,7 +2484,7 @@ var IP_PORT = "6007";</p.type>
               </text>
             </section>
 
-            <section level="3">
+            <section label="secWixExample" level="3">
               <title>Wix</title>
 
               <text>
@@ -2522,10 +2524,11 @@ var IP_PORT = "6007";</p.type>
                   <li><p>Pomocí standardního nastavení Wixu s využitím funkce <gui>Pøidat èidlo</gui>. Pro správnou
                   komunikaci se SmartServerem je tøeba jako typ èidla uvést <gui>TME-XML</gui> a do øádku <gui>XML
                   server</gui> je tøeba zapsat správnou adresu patøièné uživatelské stránky (napø. pro danou ukázku
-                  <uri>http://127.0.0.1:6005/SmartServer/User/getwixNumber.pt.xml</uri>).</p><p>Logické hodnoty lze ve
-                  Wixu zobrazovat jako èísla 0 a 1, obìma hodnotám však lze také pøiøadit tzv. zástupný text (vizte
-                  dokumentaci Wixu). Výsledkem mùže být popisné dvojstavové zobrazení.</p><p>Konfiguraci èidla ukazuje
-                  následující obrázek:</p><p.figure file="WixAdd">
+                  <uri>http://127.0.0.1:6005/<c.special what="breakhint" />SmartServer/<c.special
+                  what="breakhint" />User/<c.special what="breakhint" />getwixNumber.pt.xml</uri>).</p><p>Logické
+                  hodnoty lze ve Wixu zobrazovat jako èísla 0 a 1, obìma hodnotám však lze také pøiøadit tzv. zástupný
+                  text (vizte dokumentaci Wixu). Výsledkem mùže být popisné dvojstavové zobrazení.</p><p>Konfiguraci
+                  èidla ukazuje následující obrázek:</p><p.figure file="WixAdd" width="4cm">
                       <caption>Pøidání nového èidla do Wixu</caption>
                     </p.figure></li>
                 </il>
