@@ -8,7 +8,7 @@
         <body>
             <h1>Coloring by values interval</h1>
 
-            <pt:variable model="value" source="3/0/1" />
+            <pt:variable model="value" source="${get(5/0/0)}" />
 
             <pt:choose>
                 <pt:when condition="less(value,10)">
