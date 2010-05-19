@@ -535,7 +535,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       CASE io.Type OF
       | iovalue.vtBoolean,
         iovalue.vtTristate :
-         value.FromINT32( io.Integer, 10 );
+         value.FromINT32( 10 * io.Integer, 10 );
       | iovalue.vtInteger :
          value.FromINT32( 10 * io.Integer, 10 );
       | iovalue.vtLong :
