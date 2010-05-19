@@ -71,6 +71,16 @@
                             <File Id="Licence" Name="Licence.lic" DiskId="1" LongName="$(var.ProductId).tlic" Source="$(var.ProductId).tlic" Vital="yes" KeyPath="yes" />
                             <File Id="License.rtf" Name="License.rtf" Source="License.rtf" DiskId="1" />
                         </Component>
+                        <Directory Id="RCWare" Name="RCWare">
+                            <Component Id="RCWareDLL1" Guid="">
+                                <File Id="RCWareDLL1.dll" Name="RCWare1.dll" LongName="ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.dll"
+                                      Source="RCWare\ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.dll" DiskId="1" Vital="yes" KeyPath="yes" />
+                            </Component>
+                            <Component Id="RCWareDLL2" Guid="">
+                                <File Id="RCWareDLL2.dll" Name="RCWare2.dll" LongName="ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.Editor.dll"
+                                      Source="RCWare\ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.Editor.dll" DiskId="1" Vital="yes" KeyPath="yes" />
+                            </Component>
+                        </Directory>
                         <?if $(var.LanguageName)=en ?>
                             <Component Id="Documentation" Guid="{D172AB6D-5999-4677-B590-8C5EB991973B">
                                 <File Id="SmartServer.pdf" Name="SmartSrv.pdf" LongName="SmartServer.pdf" Source="..\Doc\SmartServer_en.pdf" DiskId="1" Vital="yes" KeyPath="yes">
@@ -151,6 +161,7 @@
                                     <File Id="_08_push_button.pt.xml" LongName="08 push button.pt.xml" Name="08PUSHB.XML" Source="Web\User\08 push button.pt.xml" DiskId="1" />
                                     <File Id="_09_table.pt.xml" LongName="09 table.pt.xml" Name="09TABLE.XML" Source="Web\User\09 table.pt.xml" DiskId="1" />
                                     <File Id="_10_relations.pt.xml" LongName="10 relations.pt.xml" Name="10RELAT.XML" Source="Web\User\10 relations.pt.xml" DiskId="1" />
+                                    <File Id="_11_intervals.pt.xml" LongName="11 intervals.pt.xml" Name="11INTER.XML" Source="Web\User\11 intervals.pt.xml" DiskId="1" />
                                     <File Id="_singlerole.pt.xml" LongName="singlerole.pt.xml" Name="ONEROLE.XML" Source="Web\User\singlerole.pt.xml" DiskId="1" />
                                     <File Id="_multipleroles.pt.xml" LongName="multipleroles.pt.xml" Name="MUTLROLE.XML" Source="Web\User\multipleroles.pt.xml" DiskId="1" />
                                 </Component>
@@ -203,6 +214,12 @@
                                     <File Id="getwixNumber.xml" Name="getwnum.xml" LongName="getwixNumber.pt.xml" Source="Examples\Wix\getwixNumber.pt.xml" DiskId="1" />
                                     <File Id="wx.core.cfg.xml" Name="wix.cfg" LongName="wx.core.cfg.xml" Source="Examples\Wix\wx.core.cfg.xml" DiskId="1" />
                                 </Component>
+                            </Directory>
+                            <Directory Id="RCWareRoot" Name="RCWare">
+                                <Directory Id="RCWareAirConditioning" Name="ModbusWago">
+                                </Directory>
+                                <Directory Id="RCWareAirConditioning" Name="AirConditioning">
+                                </Directory>
                             </Directory>
                         </Directory>
                         <?if $(var.LeakChecking)=on ?>
@@ -263,6 +280,8 @@
             <ComponentRef Id="Changelog" />
             <ComponentRef Id="DefaultConfiguration" />
             <ComponentRef Id="ETSPR3" />
+            <ComponentRef Id="RCWareDLL1" />
+            <ComponentRef Id="RCWareDLL2" />
             <ComponentRef Id="Web" />
             <ComponentRef Id="UserWeb" />
             <ComponentRef Id="UserWebExamples" />
