@@ -934,9 +934,10 @@ CLASS IMPLEMENTATION CController;
       // roles
       FOR i := 0 TO _Web^.RolesCount-1 DO
          IF _Web^.GetRole( i, OUT role, OUT roleName ) THEN
-            IF ( role = EibSrvWeb.roleSystemAdministrator ) OR ( role = EibSrvWeb.roleSystemUser ) THEN
-               CONTINUE;
-            END;
+            // TODO
+            // IF ( role = EibSrvWeb.roleSystemAdministrator ) OR ( role = EibSrvWeb.roleSystemUser ) THEN
+            //    CONTINUE;
+            // END;
             listRoles^.Add( roleName, roleName );
             cs.FromCARD32( i+1, 10 );
             listRoleIds^.Add( cs, cs );
@@ -1045,7 +1046,9 @@ CLASS IMPLEMENTATION CController;
       END;
 
       Request.ModelContainer^.AddStringOA( ROLE_EDIT_NAME, currentName );
-      Request.ModelContainer^.AddBooleanOA( ROLE_EDIT_KEYED, role = EibSrvWeb.roleUserKeyed );
+      // TODO
+      // Request.ModelContainer^.AddBooleanOA( ROLE_EDIT_KEYED, role = EibSrvWeb.roleUserKeyed );
+      Request.ModelContainer^.AddBooleanOA( ROLE_EDIT_KEYED, ( role <> EibSrvWeb.roleSystemUser ) AND ( role <> EibSrvWeb.roleSystemAdministrator ));
 
       View := mvc.pageTemplateView( ADR( SELF ), ROLE_EDIT_VIEW );
       RETURN TRUE;
