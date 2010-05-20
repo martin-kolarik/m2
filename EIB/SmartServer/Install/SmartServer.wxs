@@ -84,7 +84,7 @@
                         <?if $(var.LanguageName)=en ?>
                             <Component Id="Documentation" Guid="D172AB6D-5999-4677-B590-8C5EB991973B">
                                 <File Id="SmartServer.pdf" Name="SmartSrv.pdf" LongName="SmartServer.pdf" Source="..\Doc\SmartServer_en.pdf" DiskId="1" Vital="yes" KeyPath="yes">
-                                    <Shortcut Id="StartMenuDocumentation" Directory="SmartServerDir" Name="Manual" LongName="Documentation" Advertised="yes" Icon="PDF.exe" />
+                                    <Shortcut Id="StartMenuDocumentation" Directory="SmartServerDir" Name="Manual" LongName="Documentation" Advertise="yes" Icon="PDF.exe" />
                                 </File>
                                 <RemoveFolder Id="DocumentationFolderRemove" On="uninstall"/>
                             </Component>
