@@ -662,11 +662,13 @@ CLASS IMPLEMENTATION CClient;
 
       WBuffer.AppendOA( OA( SIZE( LEAD_NAME )-2, ADR( LEAD_NAME ))); WBuffer.AppendByte( TRAIL );
       Server^.Device^.Mapper()^.HashToName( Item, OUT S );
+      S.ReplaceOA( L"&", L"&amp;" ); S.ReplaceOA( L"<", L"&lt;" ); S.ReplaceOA( L">", L"&gt;" );
       LanguagesO.ToMB( S, Languages.cp_UTF8, TRUE, REF WBuffer );
       WBuffer.AppendOA( OA( SIZE( TRAIL_NAME )-2, ADR( TRAIL_NAME ))); WBuffer.AppendByte( TRAIL );
       
       WBuffer.AppendOA( OA( SIZE( LEAD_VALUE )-2, ADR( LEAD_VALUE ))); WBuffer.AppendByte( TRAIL );
       S := Value.String;
+      S.ReplaceOA( L"&", L"&amp;" ); S.ReplaceOA( L"<", L"&lt;" ); S.ReplaceOA( L">", L"&gt;" );
       LanguagesO.ToMB( S, Languages.cp_UTF8, TRUE, REF WBuffer );
       WBuffer.AppendOA( OA( SIZE( TRAIL_VALUE )-2, ADR( TRAIL_VALUE ))); WBuffer.AppendByte( TRAIL );
       

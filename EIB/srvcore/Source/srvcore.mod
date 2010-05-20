@@ -776,7 +776,7 @@ CLASS IMPLEMENTATION CEIBServer;
       ELSIF Item = itemSystemSerialNumber THEN
          Result.GetLicences( OUT licences );
          IF NOT licences.GetFirst( OUT value, OUT ptrType ) THEN
-            value.FromOA( L"<undefined>" );
+            value.Clear();
          END;
          Value.String := value;
          RETURN Sync.arCompleted;
