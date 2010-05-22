@@ -1,3 +1,12 @@
+Version 1.2.1227/R 22.5.2010
+- BUG: #208, "System.Licensing.SerialNumber" contained invalid XML characters, which
+       damaged XMLSocket transfer of the item
+- BUG: #210, configuration file examples contained bad names of administration roles       
+- CHG: #64, predefined users and roles cannot be renamed either deleted
+       #207, when data is sent through HTTP, the stream can disconnect prematurely.
+       Now the state is considered being fully correct.
+- NEW: #205, SOFT PLC and iWebKit examples description was added to documentation
+
 Version 1.2.1218/R RC2 19.5.2010
 - BUG: #203, in documentation, preformatted texts contained bad accented characters 
 - BUG: #208, "getWix" function was renamed to "getwix", as it was intended
