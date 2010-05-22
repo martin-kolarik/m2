@@ -35,6 +35,7 @@
                                 <ServiceDependency Id="Tcpip" />
                             </ServiceInstall>
                             <ServiceControl Id="SVCControlProgram" Name="$(var.ProductId)" Remove="uninstall" Start="install" Stop="both" />
+                            <RemoveFolder Id="INSTALLDIRRemove" On="uninstall"/>
                         </Component>
                         <Component Guid="1FAB7C94-0544-4b30-80D9-2C824C43E4AD" Id="RuntimeLib">
                             <File Id="SCCore.DLL" Name="SCCore.dll" Source="SCCore.dll" DiskId="1" Vital="yes" KeyPath="yes" />
