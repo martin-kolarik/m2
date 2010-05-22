@@ -72,11 +72,11 @@
                             <File Id="License.rtf" Name="License.rtf" Source="License.rtf" DiskId="1" />
                         </Component>
                         <Directory Id="RCWare" Name="RCWare">
-                            <Component Id="RCWareDLL1" Guid="">
+                            <Component Id="RCWareDLL1" Guid="36FD59CA-EAB9-457d-B031-57A1B469D5F5">
                                 <File Id="RCWareDLL1.dll" Name="RCWare1.dll" LongName="ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.dll"
                                       Source="RCWare\ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.dll" DiskId="1" Vital="yes" KeyPath="yes" />
                             </Component>
-                            <Component Id="RCWareDLL2" Guid="">
+                            <Component Id="RCWareDLL2" Guid="428BF0C8-B96D-4894-A359-44297DF02B65">
                                 <File Id="RCWareDLL2.dll" Name="RCWare2.dll" LongName="ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.Editor.dll"
                                       Source="RCWare\ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.Editor.dll" DiskId="1" Vital="yes" KeyPath="yes" />
                             </Component>
@@ -274,6 +274,12 @@
                                     </Directory>
                                 </Directory>
                             </Directory>
+                            <Directory Id="iWebKit" Name="iWebKit">
+                                <Component Id="ExamplesiWebKit" Guid="EAC4A79A-24A5-493d-B148-219081E4BD0E">
+                                    <File Id="iWebKit.zip" Name="iWebKit.cfg" LongName="iWebKit5.04.zip" Source="Examples\iWebKit\iWebKit5.04.zip" DiskId="1" />
+                                    <File Id="iPhone.zip" Name="iphone.zip" Source="Examples\iWebKit\iphone.zip" DiskId="1" />
+                                </Component>
+                            </Directory>
                         </Directory>
                         <?if $(var.LeakChecking)=on ?>
                         <Component Guid="B77FFC41-B032-47C6-841B-12239073885D" Id="LeakDetector">
@@ -342,6 +348,7 @@
             <ComponentRef Id="ExamplesFlash" />
             <ComponentRef Id="ExamplesPronto" />
             <ComponentRef Id="ExamplesWix" />
+            <ComponentRef Id="ExamplesiWebKit" />
             <ComponentRef Id="RCWE01" />
             <ComponentRef Id="RCWE02" />
             <ComponentRef Id="RCWE03" />

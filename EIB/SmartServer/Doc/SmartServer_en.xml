@@ -2579,6 +2579,77 @@ var IP_PORT = "6007";</p.type>
                 </il>
               </text>
             </section>
+
+            <section label="secWixExample" level="3">
+              <title>RCWare</title>
+
+              <text>
+                <p>RCWare (<uri>http://rcware.eu/public/rcware</uri>) is a product of Domat Control System s.r.o.
+                company, which offers full possibility to control (soft PLC), visualize and to communicate with variety
+                of devices. SmartServer communicates with RCWare using SDAP, so in both environments there are all data
+                available.</p>
+
+                <dl>
+                  <caption>RCWare libraries for SDAP are installed with the product for newer versions, to get SDAP
+                  working in older versions the libraries must be copied from SmartServer installation. The libraries
+                  are installed in the folder <file>RCWare</file>, their targets differ for each of the file:</caption>
+
+                  <dt><file>ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.dll</file></dt>
+
+                  <dd><p>should be placed to <file>C:\Program Files\RcWare\SoftPLC\Drivers</file>.</p></dd>
+
+                  <dt><file>ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.Editor.dll</file></dt>
+
+                  <dd><p>should be placed to <file>C:\Program Files\RcWare\SoftPLC\Editors</file>.</p></dd>
+                </dl>
+
+                <p>RCWare itself is not a part of SmartServer installation, it must be downloaded from vendor's web
+                pages.</p>
+
+                <dl>
+                  <caption>Examples of RCWare cooperation with SmartServer are placed in <file>Examples\RCWare</file>
+                  folder:</caption>
+
+                  <dt><file>AirConditioning</file></dt>
+
+                  <dd><p>There is simple air quality control created in RCWare.</p></dd>
+
+                  <dt><file>ModbusWago</file></dt>
+
+                  <dd><p>There are two projects in the example, project for RCWare and a project for PLC Wago. RCWare
+                  application communicates with PLC using Modbus protocol, the project od PLC realizes a simple control
+                  algorithm.</p></dd>
+                </dl>
+
+                <warning><p>RCWare is not a product of NeNo company. NeNo company helds no warranty for it and does not
+                support it.</p></warning>
+              </text>
+            </section>
+
+            <section label="secWixExample" level="3">
+              <title>iWebKit/iPhone</title>
+
+              <text>
+                <dl>
+                  <caption>The example of iPhone (iPad) client; the example is created in iWebKit development tool
+                  (<uri>http://www.iwebkit.net</uri>). There are two files in <file>Examples\iWebKit</file>
+                  folder:</caption>
+
+                  <dt><file>iWebKit5.04.zip</file></dt>
+
+                  <dd><p>containing iWebKit tool installation, including documentation. Next information, how to use the
+                  toolkit, you can find on the mentioned web server.</p></dd>
+
+                  <dt><file>iphone.zip</file></dt>
+
+                  <dd><p>containing sample application displaying and setting values.</p></dd>
+                </dl>
+
+                <p>iWebKit uses HTML/HTTP, so it uses web browser (Safari on iPhone) for client communication. To get
+                the example working on SmartServer side the example (content of <file>iphone.zip</file>) must be copied
+                to the folder with SmartServer web.</p>
+              </text>
+            </section>
           </text>
         </section>
 

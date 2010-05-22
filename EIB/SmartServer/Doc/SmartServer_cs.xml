@@ -2534,6 +2534,75 @@ var IP_PORT = "6007";</p.type>
                 </il>
               </text>
             </section>
+
+            <section label="secWixExample" level="3">
+              <title>RCWare</title>
+
+              <text>
+                <p>RCWare (<uri>http://rcware.eu/public/rcware</uri>) je produkt spoleènosti Domat Control System
+                s.r.o., který poskytuje plné možnosti øízení (soft PLC), vizualizace a komunikace se širokou øadou
+                zaøízení. Se SmartServerem komunikuje RCWare pomocí protokolu SDAP, takže v obou prostøedích je možné
+                využít libovolná dostupná data.</p>
+
+                <dl>
+                  <caption>Knihovny pro SDAP komunikaci jsou v nových verzích RCWare souèástí instalace, do starších
+                  verzích je tøeba tyto knihovny ruènì zkopírovat. V instalaci SmartServeru jsou knihovny umístìny ve
+                  složce <file>RCWare</file>, jejich cílové umístìní v RCWare je pro každý ze souborù odlišné:</caption>
+
+                  <dt><file>ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.dll</file></dt>
+
+                  <dd><p>patøí do <file>C:\Program Files\RcWare\SoftPLC\Drivers</file>.</p></dd>
+
+                  <dt><file>ESG.RcWare.SCADA.Runtime.Drivers.SmartServer.Editor.dll</file></dt>
+
+                  <dd><p>patøí do <file>C:\Program Files\RcWare\SoftPLC\Editors</file>.</p></dd>
+                </dl>
+
+                <p>Samotný RCWare není souèástí instalace SmartServeru a musí být stažen ze stánek výrobce.</p>
+
+                <dl>
+                  <caption>Pøíklady použití RCWare se SmartServerem jsou umístìny ve složce
+                  <file>Examples\RCWare</file>:</caption>
+
+                  <dt><file>AirConditioning</file></dt>
+
+                  <dd><p>V RCWare je vytvoøeno jednoduché øízení kvality vzduchu.</p></dd>
+
+                  <dt><file>ModbusWago</file></dt>
+
+                  <dd><p>Souèástí pøíkladu je projekt pro RCWare a projekt pro PLC Wago. Aplikace v RCWare komunikuje
+                  s PLC pomocí protokolu Modbus, projekt pro PLC obsahuje jednoduchý øídicí algoritmus.</p></dd>
+                </dl>
+
+                <warning><p>RCWare není produktem spoleènosti NeNo. Spoleènost NeNo za nìj nenese žádnou záruku ani pro
+                nìj neposkytuje podporu.</p></warning>
+              </text>
+            </section>
+
+            <section label="secWixExample" level="3">
+              <title>iWebKit/iPhone</title>
+
+              <text>
+                <dl>
+                  <caption>Ukázka klienta pro iPhone (iPad), jako vývojové prostøedí je využit iWebKit
+                  (<uri>http://www.iwebkit.net</uri>). Ve složce <file>Examples\iWebKit</file> jsou umístìny dva
+                  soubory:</caption>
+
+                  <dt><file>iWebKit5.04.zip</file></dt>
+
+                  <dd><p>s instalací vývojového balíèku iWebKit, vèetnì dokumentace. Další informace, jak tento balíèek
+                  používat, naleznete na uvedeném webovém serveru.</p></dd>
+
+                  <dt><file>iphone.zip</file></dt>
+
+                  <dd><p>s ukázkovou aplikací pro zobrazování i odesílání hodnot.</p></dd>
+                </dl>
+
+                <p>iWebKit je vystavìn nad HTML/HTTP, takže pro komunikaci s klienty využívá webový prohlížeè (v iPhone
+                Safari). Na stranì SmartServeru je tøeba ukázku (obsah <file>iphone.zip</file>) zkopírovat dovnitø
+                složky s obsahem webu SmartServeru.</p>
+              </text>
+            </section>
           </text>
         </section>
 
