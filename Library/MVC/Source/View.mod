@@ -175,8 +175,11 @@ CLASS IMPLEMENTATION CFileView;
 
          IF NOT buffer.Empty THEN
             Result := OutputStream^.WriteBuffer( buffer, OUT l, netsocket.FORSAFETY );
-            ASSERTLOG( Result <> Sync.arTimeout );
-            ASSERTLOG( l = buffer.Length );
+            IF Result IN Sync.arsCompletions THEN // OK
+               ASSERTLOG( l = buffer.Length );
+            ELSE
+               EXIT; // sending crashed
+            END;
          END;
          
          IF Result = Sync.arNoData THEN
