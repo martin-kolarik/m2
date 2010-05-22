@@ -3,8 +3,10 @@ Version 1.2.1227/R 22.5.2010
        damaged XMLSocket transfer of the item
 - BUG: #210, configuration file examples contained bad names of administration roles       
 - CHG: #64, predefined users and roles cannot be renamed either deleted
-       #207, when data is sent through HTTP, the stream can disconnect prematurely.
+- CHG: #207, when data is sent through HTTP, the stream can disconnect prematurely.
        Now the state is considered being fully correct.
+- CHG: #211, XMLSocket interface now returns all cached data even if KNX is not
+       connected. Now XMLSocket behaves the same way as SDAP.
 - NEW: #205, SOFT PLC and iWebKit examples description was added to documentation
 
 Version 1.2.1218/R RC2 19.5.2010

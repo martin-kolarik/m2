@@ -523,11 +523,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       Name.FromOA( NameOA );
       _CommonLogger^.LogSS( log.dldTrace, LOG_XMLS, "GET ", NameOA );
 
-      IF NOT Device^.IO()^.Running THEN
-         _CommonLogger^.LogS( log.dldDebug, LOG_XMLS, "  device is not running, nothing GET" );
-         RETURN;
-
-      ELSIF NOT Device^.Mapper()^.NameToHash( Name, OUT Hash ) THEN
+      IF NOT Device^.Mapper()^.NameToHash( Name, OUT Hash ) THEN
          _CommonLogger^.LogSS( log.dldTrace, LOG_XMLS, "  unknown name, nothing GET: ", NameOA );
          RETURN;
 
