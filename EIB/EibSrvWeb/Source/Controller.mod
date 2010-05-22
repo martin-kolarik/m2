@@ -11,6 +11,7 @@ IMPORT
    FIOO,
    HttpCommon,
    HttpTools,
+   Languages,
    lec,
    lists,
    Log,
@@ -52,7 +53,8 @@ CONST
    LOGIN_USERNAME = L"username";
    LOGIN_PASSWORD = L"password";
    
-   DATETIME_FORMAT = L"d. MMMM H.mm:ss";
+   DATETIME_FORMAT_CS = L"d. MMMM H.mm:ss";
+   DATETIME_FORMAT_EN = L"MMMM d, H:mm:ss";
    STATUS_CONNECTED = L"connected";
    STATUS_CACHE_ONLY = L"cacheOnly";
    STATUS_CONNECTIONTIME = L"connectionTime";
@@ -113,12 +115,14 @@ CONST
    USER_EDIT_ERROR_TEXT_EMPTYROLE = L"userEdit.roleIsEmpty";
    USER_EDIT_ERROR_TEXT_UPDATEFAILED = L"userEdit.updateFailed";
    USER_EDIT_ERROR_TEXT_DELETEFAILED = L"userEdit.deleteFailed";
+   USER_EDIT_ERROR_NAME_EXISTS = L"userEdit.nameCollides";
    
    ROLE_EDIT_NAME = L"name";
    ROLE_EDIT_KEYED = L"keyed";
    ROLE_EDIT_ERROR_TEXT_EMPTYNAME = L"roleEdit.nameIsEmpty";
    ROLE_EDIT_ERROR_TEXT_UPDATEFAILED = L"roleEdit.updateFailed";
    ROLE_EDIT_ERROR_TEXT_DELETEFAILED = L"roleEdit.deleteFailed";
+   ROLE_EDIT_ERROR_NAME_EXISTS = L"roleEdit.nameCollides";
 
    DYNAMIC_SUFFIX = L".pt.xml";
    FN_SET = L"set";
@@ -569,6 +573,7 @@ CLASS IMPLEMENTATION CController;
       currentDT : time.DateTime;
       currentTime : time.TJD;
       dt : time.DateTime;
+      LangName : ARRAY[0..15] OF WCHAR;
       lt : lec.TLicenceType;
       s : ARRAY [0..63] OF WCHAR;
       starttime : time.TJD;
@@ -602,7 +607,13 @@ CLASS IMPLEMENTATION CController;
          dt.JulianDate := starttime;
       END;
       dt.SetZoneToLocal();
-      IF dt.ToLanguageStringOA( Request.Language, DATETIME_FORMAT, TRUE, TRUE, OUT s ) THEN
+      IF Languages.LanguageToRFC1766( Request.Language, OUT LangName ) AND Strings.StartsWithW( LangName, L"cs" ) THEN
+         b := dt.ToLanguageStringOA( Request.Language, DATETIME_FORMAT_CS, TRUE, TRUE, OUT s );
+      ELSE
+         LangName := L""; // it is used below too
+         b := dt.ToLanguageStringOA( Request.Language, DATETIME_FORMAT_EN, TRUE, TRUE, OUT s );
+      END;
+      IF b THEN
          cs.FromOA( s );
       ELSE
          cs.FromOA( L"N/A" );
@@ -634,7 +645,11 @@ CLASS IMPLEMENTATION CController;
          Request.MessageSource^.GetMessageOA( Request.Language, L"status.licencePermanent", OUT cs );
       ELSE
          dt.SetZoneToLocal();
-         dt.ToLanguageStringOA( Request.Language, DATETIME_FORMAT, TRUE, TRUE, OUT s );
+         IF Strings.StartsWithW( LangName, L"cs" ) THEN
+            dt.ToLanguageStringOA( Request.Language, DATETIME_FORMAT_CS, TRUE, TRUE, OUT s );
+         ELSE
+            dt.ToLanguageStringOA( Request.Language, DATETIME_FORMAT_EN, TRUE, TRUE, OUT s );
+         END;
          Request.MessageSource^.GetMessageOA( Request.Language, L"status.licenceValidUntil", OUT cs );
          cs.AppendOA( s );
       END;
@@ -934,10 +949,9 @@ CLASS IMPLEMENTATION CController;
       // roles
       FOR i := 0 TO _Web^.RolesCount-1 DO
          IF _Web^.GetRole( i, OUT role, OUT roleName ) THEN
-            // TODO
-            // IF ( role = EibSrvWeb.roleSystemAdministrator ) OR ( role = EibSrvWeb.roleSystemUser ) THEN
-            //    CONTINUE;
-            // END;
+            IF ( role = EibSrvWeb.roleSystemAdministrator ) OR ( role = EibSrvWeb.roleSystemUser ) THEN
+               CONTINUE;
+            END;
             listRoles^.Add( roleName, roleName );
             cs.FromCARD32( i+1, 10 );
             listRoleIds^.Add( cs, cs );
@@ -1004,6 +1018,8 @@ CLASS IMPLEMENTATION CController;
          
          IF roleName.Empty THEN
             Request.MessageSource^.GetMessageOA( Request.Language, ROLE_EDIT_ERROR_TEXT_EMPTYNAME, OUT cs1 );
+         ELSIF _Web^.CheckRenameRoleConflict( currentName, roleName ) THEN
+            Request.MessageSource^.GetMessageOA( Request.Language, ROLE_EDIT_ERROR_NAME_EXISTS, OUT cs1 );
 
          ELSIF _Web^.UpdateRole( currentName, roleName, role ) THEN
             Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id
@@ -1024,8 +1040,8 @@ CLASS IMPLEMENTATION CController;
             // Request.ModelContainer^.AddStringOA( USERS_ID, empty ); -- leave users_id until editing finishes
 
             IF action.EqualsOA( ACTION_DELETE ) THEN
-               Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id, no next deletion allowed
                IF _Web^.DeleteRole( currentName ) THEN
+                  Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id, no next deletion allowed
                   View := mvc.redirectView( USERS_PAGE );
                   RETURN TRUE;
                ELSE // role cannot be deleted
@@ -1046,7 +1062,7 @@ CLASS IMPLEMENTATION CController;
       END;
 
       Request.ModelContainer^.AddStringOA( ROLE_EDIT_NAME, currentName );
-      // TODO
+      // user role is always KEYED -- see #206
       // Request.ModelContainer^.AddBooleanOA( ROLE_EDIT_KEYED, role = EibSrvWeb.roleUserKeyed );
       Request.ModelContainer^.AddBooleanOA( ROLE_EDIT_KEYED, ( role <> EibSrvWeb.roleSystemUser ) AND ( role <> EibSrvWeb.roleSystemAdministrator ));
 
@@ -1105,6 +1121,8 @@ CLASS IMPLEMENTATION CController;
             Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_PASSWORDSDONOTMATCH, OUT cs1 );
          ELSIF roleName.Empty THEN
             Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_TEXT_EMPTYROLE, OUT cs1 );
+         ELSIF _Web^.CheckRenameUserConflict( currentName, userName ) THEN
+            Request.MessageSource^.GetMessageOA( Request.Language, USER_EDIT_ERROR_NAME_EXISTS, OUT cs1 );
 
          ELSIF _Web^.UpdateUser( roleName, currentName, userName, cs2 ) THEN // either add new or update edited user
             Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id
@@ -1125,8 +1143,8 @@ CLASS IMPLEMENTATION CController;
             // Request.ModelContainer^.AddStringOA( USERS_ID, empty ); -- leave users_id until editing finishes
 
             IF action.EqualsOA( ACTION_DELETE ) THEN
-               Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id, no next deletion allowed
                IF _Web^.DeleteUser( currentName ) THEN
+                  Request.ModelContainer^.AddStringOA( USERS_ID, empty ); // kill edited id, no next deletion allowed
                   View := mvc.redirectView( USERS_PAGE );
                   RETURN TRUE;
                ELSE // user cannot be deleted

@@ -326,8 +326,12 @@
             <item lang="cs-CZ">Uložení uživatele selhalo.</item>
         </string>
         <string name="userEdit.deleteFailed">
-            <item lang="en-US">User cannot be deleted and its name cannot be changed. Only its password can be set.</item>
-            <item lang="cs-CZ">Uživatele nelze smazat ani mu nelze změnit jméno. Pouze heslo je nastavitelné.</item>
+            <item lang="en-US">User is predefined, neither it can be deleted nor its name can be changed.</item>
+            <item lang="cs-CZ">Uživatel je zabudovaný, nelze jej smazat ani mu nelze změnit jméno.</item>
+        </string>
+        <string name="userEdit.nameCollides">
+            <item lang="en-US">User name cannot be used, because another user with the new name already exists (or the user is predefined).</item>
+            <item lang="cs-CZ">Jméno uživatele nelze použít, protože jiný uživatel se stejným jménem již existuje (nebo se jedná o zabudovaného uživatele).</item>
         </string>
 
         <string name="roleEdit.title">
@@ -355,8 +359,12 @@
             <item lang="cs-CZ">Uložení role selhalo.</item>
         </string>
         <string name="roleEdit.deleteFailed">
-            <item lang="en-US">Role cannot be deleted, either role is used or it cannot be deleted.</item>
-            <item lang="cs-CZ">Roli nelze smazat, role je buď použita, nebo nesmí být smazána.</item>
+            <item lang="en-US">Role cannot be deleted, either the role is used or it is predefined and cannot be deleted.</item>
+            <item lang="cs-CZ">Roli nelze smazat, role je buď použita, nebo je zabudovaná a nesmí být smazána.</item>
+        </string>
+        <string name="roleEdit.nameCollides">
+            <item lang="en-US">Role name cannot be used, because another role with the new name already exists.</item>
+            <item lang="cs-CZ">Jméno role nelze použít, protože jiná role se stejným jménem již existuje.</item>
         </string>
         
     </strings>
