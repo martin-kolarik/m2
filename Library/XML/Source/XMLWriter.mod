@@ -132,9 +132,6 @@ CLASS IMPLEMENTATION CXMLWriter;
          Write( REF Element, FALSE );
          WriteOAA( C'>' );
       END;
-      IF _Stack.Empty THEN
-         EXCL( _State, xwsStarted );	
-      END;
    END WriteElementEnd;
    
 (*---------------------------------------------------------------------------*)

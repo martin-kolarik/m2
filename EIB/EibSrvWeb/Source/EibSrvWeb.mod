@@ -491,7 +491,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       Originator.SetDescription( d );
 
       // no need to sync, IOh is be thread safe
-      RETURN _EIB^.IOh( ADR( Originator ), IOO.dirWrite, hash, REF Value, NIL ) = Sync.arCompleted; // partial = cache write is not evaluated as true
+      RETURN _EIB^.IOh( ADR( Originator ), IOO.dirWrite, hash, REF Value, NIL ) IN Sync.arsCompletions;
    END SetValue;
 
 (*--------------------------------------------------------------------------------*)
@@ -535,7 +535,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       CASE io.Type OF
       | iovalue.vtBoolean,
         iovalue.vtTristate :
-         value.FromINT32( io.Integer, 10 );
+         value.FromINT32( 10 * io.Integer, 10 );
       | iovalue.vtInteger :
          value.FromINT32( 10 * io.Integer, 10 );
       | iovalue.vtLong :
@@ -599,7 +599,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       itemRole, role : TRole := roleGuest;
       s : StringsO.CString;
    BEGIN
-      IF Name.Empty OR Password.Empty THEN
+      IF Password.Empty THEN
          RETURN roleGuest;
       ELSIF _Lock.LockRead( Sync.FORSAFETY ) = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
@@ -700,6 +700,19 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROCEDURE CheckRenameRoleConflict( CONST currentName, roleName : StringsO.IString ) : BOOLEAN; // TRUE = conflict
+   BEGIN
+      IF currentName.Equals( roleName ) THEN // no conflict on rename will appear
+         RETURN FALSE; 
+      ELSIF _Roles.Contains( roleName ) THEN // role would be renamed to a name, which would collide with another existing one
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END CheckRenameRoleConflict;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE UpdateRole( CONST currentName, roleName : StringsO.IString; role : TRole ) : BOOLEAN;
    VAR
       i : CARDINAL;
@@ -708,27 +721,33 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
          RETURN FALSE;
-      ELSIF NOT currentName.Empty AND NOT _Roles.Contains( currentName ) THEN
+      ELSIF NOT currentName.Empty AND NOT _Roles.Contains( currentName ) THEN // unable to edit role, which does not exist
+         _Lock.UnlockWrite();
+         RETURN FALSE;
+      ELSIF NOT currentName.Equals( roleName ) AND _Roles.Contains( roleName ) THEN // unable to rename role to an existing name
          _Lock.UnlockWrite();
          RETURN FALSE;
       END;
 
-      // replace roles in users      
-      _Users.Reset();
-      WHILE _Users.MoveNext() DO
-         i := _Users.CurrentData^.IndexOfOA( L",", 0 );
-         IF i = -1 THEN
-            CONTINUE;
-         END;
-         _Users.CurrentData^.Substring( 0, i, OUT userRole );
-         IF userRole.Equals( currentName ) THEN
-            _Users.CurrentData^.Remove( 0, i );
-            _Users.CurrentData^.Prepend( roleName );
-         END;
-      END; // WHILE
+      // replace roles in users, if the role is not new
+      IF NOT currentName.Empty THEN
+         _Users.Reset();
+         WHILE _Users.MoveNext() DO
+            i := _Users.CurrentData^.IndexOfOA( L",", 0 );
+            IF i = -1 THEN
+               CONTINUE;
+            END;
+            _Users.CurrentData^.Substring( 0, i, OUT userRole );
+            IF userRole.Equals( currentName ) THEN
+               _Users.CurrentData^.Remove( 0, i );
+               _Users.CurrentData^.Prepend( roleName );
+            END;
+         END; // WHILE
+      END;
 
       _Roles.Remove( currentName );
       _Roles.Add( roleName, PTR( role ));
+
       PersistUsers();
       
       _Lock.UnlockWrite();
@@ -760,11 +779,25 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          END;
       END; // WHILE
 
+      _Roles.Remove( roleName );
       PersistUsers();
 
       _Lock.UnlockWrite();
       RETURN TRUE;
    END DeleteRole;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CheckRenameUserConflict( CONST currentName, userName : StringsO.IString ) : BOOLEAN; // TRUE = conflict
+   BEGIN
+      IF currentName.Equals( userName ) THEN // no conflict on rename will appear
+         RETURN FALSE;
+      ELSIF _SysUsers.Contains( currentName ) OR _Users.Contains( userName ) THEN // user would be renamed to a name, which would collide with another existing one
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END CheckRenameUserConflict;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -780,7 +813,12 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
          RETURN FALSE;
-      ELSIF NOT currentName.Empty AND NOT _Users.Contains( currentName ) OR NOT _Roles.Get( roleName, OUT rolePtr ) THEN
+      ELSIF NOT currentName.Empty AND NOT _Users.Contains( currentName ) OR NOT _Roles.Get( roleName, OUT rolePtr ) THEN // unable to edit user, which does not exist, or role of which does not exist
+         _Lock.UnlockWrite();
+         RETURN FALSE;
+      ELSIF currentName.Equals( userName ) THEN
+         // OK, only a property, not name is to be changed
+      ELSIF _SysUsers.Contains( currentName ) OR _Users.Contains( userName ) THEN // unable to rename user to an existing name or to rename system user
          _Lock.UnlockWrite();
          RETURN FALSE;
       END;
@@ -790,9 +828,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       CASE role OF
       | roleSystemAdministrator :
          digest.DigestSalt( digest.sha256, OA( 2*password.Length-1, PBYTE( password.rawData )), C"web_root", OUT hash );
-      | roleSystemUser :
+      | roleSystemUser, roleUserNamed :
          digest.DigestSalt( digest.sha256, OA( 2*password.Length-1, PBYTE( password.rawData )), C"message_file", OUT hash );
-      | roleUserNamed, roleUserKeyed :
+      | roleUserKeyed :
          digest.DigestSalt( digest.sha256, OA( 2*password.Length-1, PBYTE( password.rawData )), C"project", OUT hash );
       ELSE
          _Lock.UnlockWrite();
@@ -817,17 +855,22 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE DeleteUser( CONST userName : StringsO.IString );
+   PUBLIC PROCEDURE DeleteUser( CONST userName : StringsO.IString ) : BOOLEAN;
    BEGIN
       IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
-         RETURN;
+         RETURN FALSE;
+      ELSIF _SysUsers.Contains( userName ) THEN // system user cannot be deleted
+         _Lock.UnlockWrite();
+         RETURN FALSE;
       END;
 
       _Users.Remove( userName );
       PersistUsers();
 
       _Lock.UnlockWrite();
+      
+      RETURN TRUE;
    END DeleteUser;
 
 (*--------------------------------------------------------------------------------*)
@@ -902,6 +945,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
             s.FromOA( sOA );
             _Users.Remove( s );
             _Users.Add( s, authinfo );
+            _SysUsers.Add( s, 0 );
          END; // WHILE
       END;
       
@@ -974,6 +1018,10 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          RETURN;
       END;
       _Running := FALSE;
+      
+      _Roles.Dispose();
+      _Users.Dispose();
+      _SysUsers.Dispose();
       
       // unhook EIB
       _EIB^.EventSink := NIL;
@@ -1077,9 +1125,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
               roleSystemUser :
                CONTINUE; // roles are not written
             | roleUserKeyed :
-               cfg.SetKeyStr( knKeyed, _Roles.Current^, FALSE );
+               cfg.SetKeyStr( knKeyed, _Roles.Current^, TRUE );
             ELSE
-               cfg.SetKeyStr( knNamed, _Roles.Current^, FALSE );
+               cfg.SetKeyStr( knNamed, _Roles.Current^, TRUE );
             END;
          END;
       END;
@@ -1133,6 +1181,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       
       _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.USER_EDIT_PAGE );
       _MVC^.RegisterController( _Controller, HttpCommon.verbPOST, Controller.USER_EDIT_PAGE );
+      
+      _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.USER_LOGIN_PAGE );
+      _MVC^.RegisterController( _Controller, HttpCommon.verbPOST, Controller.USER_LOGIN_PAGE );
       
       _MVC^.RegisterFallbackController( _Controller );
    END AddControllers;

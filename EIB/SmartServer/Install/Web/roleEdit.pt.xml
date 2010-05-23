@@ -38,7 +38,7 @@
                                                     <pt:input model="name"/>
                                                 </td>
                                             </tr>
-                                            <tr>
+                                            <tr pt:condition="false">
                                                 <td>${msg.roleEdit.keyed}</td>
                                                 <td class="spare"> </td>
                                                 <td>

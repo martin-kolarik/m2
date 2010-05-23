@@ -660,8 +660,17 @@ CLASS IMPLEMENTATION ASrvStream;
                   Writer.WriteStringOA( L". Please, click the link to move to correct page." );
                Writer.WriteElementEnd();
 
-            ELSE // not redirect
-               Writer.WriteElementStringOA( L"", L"h1", L"Unable to handle HTTP request." );
+            | HttpCommon.httpres_401 :
+               Writer.WriteElementStringOA( L"", L"h1", L"Unauthorized access" );
+               Writer.WriteElementStartOA( L"", L"p" );
+                  Writer.WriteStringOA( L"The server responded with HTTP status code " );
+                  Strings.FromCARD32W( CARDINAL( StatusCode ), 10, OUT n );
+                  Writer.WriteStringOA( n );
+                  Writer.WriteStringOA( L". Please, log in to server and repeat the request." );
+               Writer.WriteElementEnd();
+
+            ELSE
+               Writer.WriteElementStringOA( L"", L"h1", L"Unable to handle HTTP request" );
                Writer.WriteElementStartOA( L"", L"p" );
                   Writer.WriteStringOA( L"The server responded with HTTP status code " );
                   Strings.FromCARD32W( CARDINAL( StatusCode ), 10, OUT n );

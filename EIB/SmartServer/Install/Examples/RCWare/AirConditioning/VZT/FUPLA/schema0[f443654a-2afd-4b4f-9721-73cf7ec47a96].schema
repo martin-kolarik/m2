@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<FUPLASchema GUID="f443654a-2afd-4b4f-9721-73cf7ec47a96" version="1.1" IDEVersion="0.9.9.917" ProjectGUID="012631e8-3fb5-4a70-ba1d-e1863c01297e" EditedBy="Bláha" EditedTime="634032196460237543" xmlns="http://dev.rcware.net/xml/softplcide/fupla1.0">
+  <GadgetsStore>
+    <FakeVariableAccessors />
+  </GadgetsStore>
+  <VisualSchema>
+    <SchemaDims Width="1120" NumberOfVars="15" LeftVarWidth="100" RightVarWidth="380" />
+    <VisualBox NodeGuid="1352656d-b591-4501-be28-6f641e3afd26">
+      <BoxAtts posX="330" posY="5" />
+    </VisualBox>
+    <VisualBox NodeGuid="8b2374e1-c174-4dc9-84c0-9c54ff14da3c">
+      <BoxAtts posX="340" posY="95" />
+    </VisualBox>
+    <VisualBox NodeGuid="07158e53-97fa-4d0a-b3eb-33101837d78b">
+      <BoxAtts posX="300" posY="175" />
+    </VisualBox>
+    <VisualBox NodeGuid="b45c0d96-577b-4b82-ae7a-6b3fde87ec63">
+      <BoxAtts posX="580" posY="365" />
+    </VisualBox>
+    <SchemaVariables>
+      <VarList Side="Left" NumberOfFields="15">
+        <Variable index="0" guid="7f0f080a-d988-4db8-801c-c2fdb7fc17b8" />
+        <Variable index="1" guid="87e67cca-4f52-47f9-b3a0-f4fd77acc2e2" />
+        <Variable index="3" guid="7f0f080a-d988-4db8-801c-c2fdb7fc17b8" />
+        <Variable index="6" guid="2022c634-bd94-429b-acf0-1bdea196ed67" />
+      </VarList>
+      <VarList Side="Right" NumberOfFields="15">
+        <Variable index="3" guid="1662ba70-65d7-4822-91aa-90443f00ad42" />
+        <Variable index="6" guid="f7cf1059-0f42-45cb-a52a-ab94af616757" />
+        <Variable index="9" guid="2022c634-bd94-429b-acf0-1bdea196ed67" />
+        <Variable index="13" guid="1c8977a1-0c54-443f-8988-e94e8e752b9a" />
+      </VarList>
+    </SchemaVariables>
+    <SchemaPorts />
+    <SchemaLinks>
+      <link f_b="7f0f080a-d988-4db8-801c-c2fdb7fc17b8:LEFT" id_f="0" t_p="x" t_b="1352656d-b591-4501-be28-6f641e3afd26" def="h 120 15 280 35 330" pts_atts="1" />
+      <link f_b="87e67cca-4f52-47f9-b3a0-f4fd77acc2e2:LEFT" id_f="1" t_p="w" t_b="1352656d-b591-4501-be28-6f641e3afd26" def="h 120 45 130 55 330" pts_atts="1" />
+      <link f_b="7f0f080a-d988-4db8-801c-c2fdb7fc17b8:LEFT" id_f="3" t_p="x" t_b="8b2374e1-c174-4dc9-84c0-9c54ff14da3c" def="h 120 105 130 135 340" pts_atts="1" />
+      <link f_p="y" f_b="8b2374e1-c174-4dc9-84c0-9c54ff14da3c" t_b="1662ba70-65d7-4822-91aa-90443f00ad42:RIGTH" id_t="3" def="h 480 135 520 105 720" pts_atts="1" />
+      <link f_p="y" f_b="1352656d-b591-4501-be28-6f641e3afd26" t_b="2022c634-bd94-429b-acf0-1bdea196ed67:RIGTH" id_t="9" def="h 470 45 600 285 720" />
+      <link f_b="2022c634-bd94-429b-acf0-1bdea196ed67:LEFT" id_f="6" t_p="x" t_b="07158e53-97fa-4d0a-b3eb-33101837d78b" def="h 120 195 260 215 300" pts_atts="1" />
+      <link f_p="y" f_b="07158e53-97fa-4d0a-b3eb-33101837d78b" t_b="f7cf1059-0f42-45cb-a52a-ab94af616757:RIGTH" id_t="6" def="h 440 215 630 195 720" pts_atts="1" />
+      <link f_p="y" f_b="1352656d-b591-4501-be28-6f641e3afd26" t_p="x" t_b="b45c0d96-577b-4b82-ae7a-6b3fde87ec63" def="h 470 45 600 365 580 405" pts_atts="1 2 3" />
+    </SchemaLinks>
+    <SchemaDecorations />
+  </VisualSchema>
+</FUPLASchema>

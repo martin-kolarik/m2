@@ -29,6 +29,8 @@ CONST
    CONTENT_TYPE_XML    = L"text/xml";
    CONTENT_TYPE_CSS    = L"text/css";
    CONTENT_TYPE_BINARY = L"application/octet-stream";
+   
+   CHARSET_PREFIX      = L"charset"; // a part of 'text/html; charset=<charset>'
 
 // if Content = contentUnknown then FileName is used, otherwise not
 // if Fallback = FALSE then FALSE is returned when mime type cannot be determined. Fallback MIME is application/octet-stream
