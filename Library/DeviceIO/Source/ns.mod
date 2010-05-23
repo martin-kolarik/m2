@@ -25,7 +25,7 @@ CLASS IMPLEMENTATION AnsItem;
 		IF SingleName.Empty THEN
 			RETURN FALSE;
 		ELSE
-			RETURN ContainsOA( OA( SingleName.Length-1, SingleName.rawData ));
+			RETURN ContainsOA( OA( SingleName.Length-1, SingleName.Data ));
 		END;
 	END Contains;
 	
@@ -36,7 +36,7 @@ CLASS IMPLEMENTATION AnsItem;
 		IF SingleName.Empty THEN
 			RETURN FALSE;
 		ELSE
-			RETURN GetOA( OA( SingleName.Length-1, SingleName.rawData ), OUT Item );
+			RETURN GetOA( OA( SingleName.Length-1, SingleName.Data ), OUT Item );
 		END;
 	END Get;
 
@@ -152,7 +152,7 @@ CLASS IMPLEMENTATION Ans;
 		IF Name.Empty THEN
 			RETURN FALSE;
 		ELSE
-			RETURN GetOA( OA( Name.Length-1, Name.rawData ), OUT Item );
+			RETURN GetOA( OA( Name.Length-1, Name.Data ), OUT Item );
 		END;
 	END Get;
 

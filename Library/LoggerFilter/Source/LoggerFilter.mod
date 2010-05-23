@@ -27,7 +27,7 @@ CLASS IMPLEMENTATION CLoggerFilter;
       _List := _Filter;
       _List.Reset();
       WHILE _List.MoveNext() DO
-         IF Strings.MatchW( Prefix, OA( _List.Current^.Length-1, _List.Current^.rawData ), TRUE ) THEN
+         IF Strings.MatchW( Prefix, OA( _List.Current^.Length-1, _List.Current^.Data ), TRUE ) THEN
             filter := _List.CurrentData = DENY;
          END;
       END; // WHILE

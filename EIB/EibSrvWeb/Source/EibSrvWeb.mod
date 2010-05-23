@@ -596,7 +596,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    VAR
       authinfo : StringsO.CString;
       hash, password : sha256.CDigest;
+      hashOA : sha256.TDigest;
       itemRole, role : TRole := roleGuest;
+      localUsers : lists.CStringStringList;
       s : StringsO.CString;
    BEGIN
       IF Password.Empty THEN
@@ -607,7 +609,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       END;
       
       IF Name.Empty THEN // keyed users
-         digest.DigestSalt( digest.sha256, OA( 2*Password.Length-1, PBYTE( Password.rawData )), C"project", OUT password );
+         digest.DigestSalt( digest.sha256, OA( 2*Password.Length-1, PBYTE( Password.Data )), C"project", OUT password );
          
          _Users.Reset();
          WHILE _Users.MoveNext() DO
@@ -625,9 +627,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
             itemRole := PrepareItem( authinfo, OUT s, OUT hash );
             IF ( itemRole <> roleUserKeyed ) AND ( itemRole <> roleGuest ) THEN 
                IF itemRole = roleSystemAdministrator THEN
-                  digest.DigestSalt( digest.sha256, OA( 2*Password.Length-1, PBYTE( Password.rawData )), C"web_root", OUT password );
+                  digest.DigestSalt( digest.sha256, OA( 2*Password.Length-1, PBYTE( Password.Data )), C"web_root", OUT password );
                ELSE
-                  digest.DigestSalt( digest.sha256, OA( 2*Password.Length-1, PBYTE( Password.rawData )), C"message_file", OUT password );
+                  digest.DigestSalt( digest.sha256, OA( 2*Password.Length-1, PBYTE( Password.Data )), C"message_file", OUT password );
                END;
                IF hash = password THEN
                   role := itemRole;
@@ -827,11 +829,11 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       // compute hash
       CASE role OF
       | roleSystemAdministrator :
-         digest.DigestSalt( digest.sha256, OA( 2*password.Length-1, PBYTE( password.rawData )), C"web_root", OUT hash );
+         digest.DigestSalt( digest.sha256, OA( 2*password.Length-1, PBYTE( password.Data )), C"web_root", OUT hash );
       | roleSystemUser, roleUserNamed :
-         digest.DigestSalt( digest.sha256, OA( 2*password.Length-1, PBYTE( password.rawData )), C"message_file", OUT hash );
+         digest.DigestSalt( digest.sha256, OA( 2*password.Length-1, PBYTE( password.Data )), C"message_file", OUT hash );
       | roleUserKeyed :
-         digest.DigestSalt( digest.sha256, OA( 2*password.Length-1, PBYTE( password.rawData )), C"project", OUT hash );
+         digest.DigestSalt( digest.sha256, OA( 2*password.Length-1, PBYTE( password.Data )), C"project", OUT hash );
       ELSE
          _Lock.UnlockWrite();
          RETURN FALSE;
@@ -992,7 +994,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       httpsrv.srv()^.Start();
 
       ASSERT( _MVC = NIL );
-      _MVC := mvc.mvc( OA( _Context.Length-1, _Context.rawData ));
+      _MVC := mvc.mvc( OA( _Context.Length-1, _Context.Data ));
       _MVC^.MessageSourcePath := _MessageFile;
       _MVC^.Logger := _HttpLogger;
       _MVC^.AccessList := ADR( _AccessList );
@@ -1137,7 +1139,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       IF cfg.SetSection( snUsers ) THEN
          _Users.Reset();
          WHILE _Users.MoveNext() DO
-            cfg.SetKeyStr( OA( _Users.Current^.Length-1, _Users.Current^.rawData ), _Users.CurrentData^, FALSE );
+            cfg.SetKeyStr( OA( _Users.Current^.Length-1, _Users.Current^.Data ), _Users.CurrentData^, FALSE );
          END;
       END;
 

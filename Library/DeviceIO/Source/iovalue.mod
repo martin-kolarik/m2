@@ -485,7 +485,7 @@ CLASS IMPLEMENTATION Value;
          RETURN time.FromSJD( _Storage.Float );
 
       | vtString :
-         IF dt.FromStringOA( OA( _Storage.String^.Length-1, _Storage.String^.rawData ), defaultDateTimeFormat ) THEN
+         IF dt.FromStringOA( OA( _Storage.String^.Length-1, _Storage.String^.Data ), defaultDateTimeFormat ) THEN
             RETURN dt.JulianDate;
          ELSE
             RETURN defaultDate;
@@ -803,7 +803,7 @@ CLASS IMPLEMENTATION Value;
          _Storage.String^ := value;
 
       | vtDate :
-         IF dt.FromStringOA( OA( value.Length-1, value.rawData ), defaultDateTimeFormat ) THEN
+         IF dt.FromStringOA( OA( value.Length-1, value.Data ), defaultDateTimeFormat ) THEN
             _Storage.Date := dt.JulianDate;
          ELSE
             Undefined := TRUE;

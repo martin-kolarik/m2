@@ -241,7 +241,7 @@ CLASS IMPLEMENTATION CDriver;
   
       PROCEDURE Error( ErrorCode, ErrorLine : CARDINAL );
       BEGIN
-         Logger.LogFilePos( log.dlcError, L"", OA( ParametersFilePath.Length-1, ParametersFilePath.rawData ), OAsz( R[ ErrorCode ] ), ErrorLine, 0 );
+         Logger.LogFilePos( log.dlcError, L"", OA( ParametersFilePath.Length-1, ParametersFilePath.Data ), OAsz( R[ ErrorCode ] ), ErrorLine, 0 );
       END Error;
 
   //----------
@@ -253,7 +253,7 @@ CLASS IMPLEMENTATION CDriver;
     tr : TextReader.CTextReader;
   BEGIN
       TRY
-         fs.FromPath( OA( ParametersFilePath.Length-1, ParametersFilePath.rawData ), FIOO.imOpenRead );
+         fs.FromPath( OA( ParametersFilePath.Length-1, ParametersFilePath.Data ), FIOO.imOpenRead );
       CATCH : IOO.CIOException DO
          Error( Texts._CannotOpenPar, 0 );
          GOTO Fail;
@@ -503,7 +503,7 @@ CLASS IMPLEMENTATION CDriver;
                GOTO Error;
             END;
 
-            IF NOT cphcommon.FromHex( OA( si.Length-1, si.rawData ), OUT OA( l-1, ADDRESS( WBuffer.Data@[WBuffer.Length] )), OUT c ) THEN
+            IF NOT cphcommon.FromHex( OA( si.Length-1, si.Data ), OUT OA( l-1, ADDRESS( WBuffer.Data@[WBuffer.Length] )), OUT c ) THEN
                sw.FromOA( OAsz( R[ Texts._BadCharacterInDataToSend ] ));
                GOTO Error;
             ELSE
@@ -519,7 +519,7 @@ CLASS IMPLEMENTATION CDriver;
             IF l > 0 THEN
                sw.Size := l;
                sw.Length := l;
-               cphcommon.ToHex( OA( c-1, ADDRESS( RBuffer.Data )), OUT OA( l-1, PWCHAR( sw.rawData )));
+               cphcommon.ToHex( OA( c-1, ADDRESS( RBuffer.Data )), OUT OA( l-1, PWCHAR( sw.Data )));
                RBuffer.RemoveStart( c );
             ELSE
                sw.Clear();
@@ -679,7 +679,7 @@ CLASS IMPLEMENTATION CDriver;
          ELSIF String[i] = L"#" THEN
             IF String[i+1] = L"#" THEN // reduce # escapce
                String.Remove( i, 1 );
-            ELSIF cphcommon.FromHex( OA( 1, String.rawData@[2*(i+1)] ), OUT byte, OUT c ) THEN // reduce hexadecimal character
+            ELSIF cphcommon.FromHex( OA( 1, String.Data@[2*(i+1)] ), OUT byte, OUT c ) THEN // reduce hexadecimal character
                String.Remove( i, 2 );
                String[i] := WCHAR( byte );
             ELSE

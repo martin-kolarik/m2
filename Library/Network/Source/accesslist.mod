@@ -64,7 +64,7 @@ CLASS IMPLEMENTATION CAccessList;
 
    PUBLIC PROCEDURE AddRuleS( Type : TAccessType; CONST AddressPortPrefixLen : StringsO.IString );
    BEGIN
-      AddRuleOA( Type, OA( AddressPortPrefixLen.Length-1, AddressPortPrefixLen.rawData ));
+      AddRuleOA( Type, OA( AddressPortPrefixLen.Length-1, AddressPortPrefixLen.Data ));
    END AddRuleS;
 
 (*--------------------------------------------------------------------------------*)

@@ -596,7 +596,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 	      IF addonText <> NIL THEN
 	         msg.Append( addonText^ );
 	      END;
-	      Log^.LogFilePos( log.dlcError, L"StiebelHP", L"", OA( msg.Length-1, msg.rawData ), line, 0 );
+	      Log^.LogFilePos( log.dlcError, L"StiebelHP", L"", OA( msg.Length-1, msg.Data ), line, 0 );
 	   END LogError;
 
 	   (*----------*)
@@ -604,8 +604,8 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    VAR
       l : CARDINAL;
 	BEGIN
-	   IF iniFile.SetSection( OA( iniFileSection.Length-1, iniFileSection.rawData )) THEN
-         INIFile.ConfigureLog( iniFile, OA( iniFileSection.Length-1, iniFileSection.rawData ), REF Logger, OUT l );
+	   IF iniFile.SetSection( OA( iniFileSection.Length-1, iniFileSection.Data )) THEN
+         INIFile.ConfigureLog( iniFile, OA( iniFileSection.Length-1, iniFileSection.Data ), REF Logger, OUT l );
 
          // mandatory keys
          IF NOT iniFile.GetKeyStr( keyHost, OUT l, OUT _DeviceAddress ) THEN

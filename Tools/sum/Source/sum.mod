@@ -116,7 +116,7 @@ BEGIN
          Line.Substring( 0, i, OUT Hash );
          Line.Substring( i+1, -1, OUT Name );
 
-         Dc^.FromHex( OA( Hash.Length-1, Hash.rawData ));
+         Dc^.FromHex( OA( Hash.Length-1, Hash.Data ));
          IF Name[0] = L"*" THEN
             BinaryMode := 1;
             Name.Remove( 0, 1 );
@@ -125,7 +125,7 @@ BEGIN
          END;
 
          TRY
-            file.FromPath( OA( Name.Length-1, Name.rawData ), FIOO.imOpenRead );
+            file.FromPath( OA( Name.Length-1, Name.Data ), FIOO.imOpenRead );
          CATCH e : IOO.CIOException DO
             errout^.WriteOA( L"open failed: ", FALSE ); errout^.Write( Name, TRUE );
             CONTINUE;
@@ -150,7 +150,7 @@ BEGIN
          REPEAT
             Line := DI.Path;
             TRY
-               file.FromPath( OA( Line.Length-1, Line.rawData ), FIOO.imOpenRead );
+               file.FromPath( OA( Line.Length-1, Line.Data ), FIOO.imOpenRead );
             CATCH e : IOO.CIOException DO
                errout^.WriteOA( L"open failed: ", FALSE ); errout^.Write( Line, TRUE );
                CONTINUE;
@@ -224,7 +224,7 @@ BEGIN
       tr.Stream := file;
       WHILE tr.ReadLineS( OUT Line ) DO
          IF NOT Line.Empty THEN
-            digester^.Update( OA( Line.Length-1, Line.rawData ));
+            digester^.Update( OA( Line.Length-1, Line.Data ));
          END;
       END; // WHILE
       tr.Stream := NIL;

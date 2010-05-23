@@ -627,7 +627,7 @@ CLASS IMPLEMENTATION CClient;
          IF NOT Server^.CommonLogger^.Filtered( log.dldTrace, LOG_XMLS ) THEN
             Server^.Device^.Mapper()^.HashToName( Item[i], OUT n );
             s := Value[i].String;
-            Server^.CommonLogger^.LogSSSS( log.dldTrace, LOG_XMLS, "ADV ", OA( n.Length-1, n.rawData ), L" ", OA( s.Length-1, s.rawData ));
+            Server^.CommonLogger^.LogSSSS( log.dldTrace, LOG_XMLS, "ADV ", OA( n.Length-1, n.Data ), L" ", OA( s.Length-1, s.Data ));
          END;
 
          IF Result[i] IN Sync.arsCompletions THEN
