@@ -8,7 +8,6 @@ FROM Strings IMPORT
    CapitalizeW, LowerizeW;
 
 IMPORT
-   windows,
    winnls;
    
 IMPORT
@@ -258,17 +257,13 @@ CLASS IMPLEMENTATION CString;
       ELSIF l = 0 THEN
          RETURN TRUE;
       ELSE
-         RETURN winnls.CompareStringW(
-            windows.LOCALE_USER_DEFAULT,
-            winnls.NORM_IGNORECASE,
-            S.Data, l, _Data, _Len
-         ) = winnls.CSTR_EQUAL;
+         RETURN Languages.CompareStringMLW( Languages.GetDefaultLanguage( Languages.dlUser ), FALSE, _Len, _Data, l, S.Data ) = 0;
       END;
    END CString.EqualsIgnoreCase;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE EqualsIgnoreCaseOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE CString.EqualsIgnoreCaseOA( CONST S : ARRAY OF WCHAR ) : BOOLEAN;
    VAR
       l : CARDINAL;
    BEGIN
@@ -278,13 +273,9 @@ CLASS IMPLEMENTATION CString;
       ELSIF l = 0 THEN
          RETURN TRUE;
       ELSE
-         RETURN winnls.CompareStringW(
-            windows.LOCALE_USER_DEFAULT,
-            winnls.NORM_IGNORECASE,
-            ADR( S ), l, _Data, _Len
-         ) = winnls.CSTR_EQUAL;
+         RETURN Languages.CompareStringMLW( Languages.GetDefaultLanguage( Languages.dlUser ), FALSE, _Len, _Data, l, ADR( S )) = 0;
       END;
-   END EqualsIgnoreCaseOA;
+   END CString.EqualsIgnoreCaseOA;
    
 (*--------------------------------------------------------------------------------*)
 
@@ -295,10 +286,10 @@ CLASS IMPLEMENTATION CString;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE CompareLanguage( Language : Languages.TLanguage; CaseSensitive : BOOLEAN; CONST S : IString ) : TRISTATE;
+   PUBLIC VIRTUAL PROCEDURE CString.CompareLanguage( Language : Languages.TLanguage; CaseSensitive : BOOLEAN; CONST S : IString ) : TRISTATE;
    BEGIN
       RETURN Languages.CompareStringMLW( Language, CaseSensitive, _Len, _Data, S.Length, S.Data );
-   END CompareLanguage;
+   END CString.CompareLanguage;
 
 (*--------------------------------------------------------------------------------*)
 
