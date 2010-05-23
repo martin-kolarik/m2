@@ -1068,7 +1068,7 @@ CLASS IMPLEMENTATION DateTime;
                    INTEGER( _Year ),
                    INTEGER( _Month ),
                    INTEGER( _Day ),
-                   HMS2fd( _Hour, _Minute, _Second, _Millisecond ) + CARDINAL( _UTCBias + _DSTBias ) * 36000000
+                   HMS2fd( _Hour, _Minute, _Second, _Millisecond ) + CARDINAL( _UTCBias + _DSTBias ) * 600000
                 );
       END;
    END JulianDate;
@@ -1247,7 +1247,7 @@ CLASS IMPLEMENTATION DateTime;
       FD : CARDINAL;
       Y, M, D : INTEGER;
    BEGIN
-      jd := jd - TJD( dstBias + dstBias ) * 36000000;
+      jd := jd - TJD( dstBias + dstBias ) * 600000;
       iJD( jd, OUT Y, OUT M, OUT D, OUT FD );
 
       _Empty := FALSE;

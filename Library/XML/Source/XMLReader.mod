@@ -443,6 +443,8 @@ CLASS IMPLEMENTATION CXMLReader;
 	   IF _IStream = NIL THEN
 	      NEW( stream );
          _IStream := stream;
+      ELSE
+         stream := TPStream( _IStream );
 	   END;
 	   stream^.Stream := _Stream;
 

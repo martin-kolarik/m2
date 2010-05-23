@@ -638,6 +638,7 @@ BEGIN
 		IF l = 0 THEN
 			RETURN -1;
 		END;
+		DEC( l );
 	END;
 	FOR i := FromIndex TO l DO
 		IF Source[i] IN Any THEN
@@ -660,6 +661,7 @@ BEGIN
 		IF l = 0 THEN
 			RETURN -1;
 		END;
+		DEC( l );
 	END;
 	FOR i := FromIndex TO l DO
 		IF Source[i] IN Any THEN

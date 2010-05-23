@@ -138,8 +138,10 @@ CONST // object type names
    
 CONST
    itemSystemSuspend = 1;
-   itemConnected = 2;
+   itemSystemSerialNumber = 2;
+   itemConnected = 3;
    nameSystemSuspend = L".System.Licensing.Suspend";
+   nameSystemSerialNumber = L"System.Licensing.SerialNumber";
    nameConnected = L"Control.Connected";
    suspendKey = L"suspend";
    suspendValue = L"true";
@@ -580,6 +582,9 @@ CLASS IMPLEMENTATION CEIBServer;
       ELSIF Name.EqualsOA( nameConnected ) THEN
          Hash := itemConnected;
          RETURN TRUE;
+      ELSIF Name.EqualsOA( nameSystemSerialNumber ) THEN
+         Hash := itemSystemSerialNumber;
+         RETURN TRUE;
       END;
       address.SetGroupAddress3( OA( Name.Length-1, Name.Data ));
       IF NOT GetObject( address, OUT PObject ) THEN
@@ -603,6 +608,9 @@ CLASS IMPLEMENTATION CEIBServer;
          RETURN FALSE;
       ELSIF Hash = itemConnected THEN
          Name.FromOA( nameConnected );
+         RETURN TRUE;
+      ELSIF Hash = itemSystemSerialNumber THEN
+         Name.FromOA( nameSystemSerialNumber );
          RETURN TRUE;
       END;
       address := TPObject( Hash )^.SendAddress;
@@ -740,7 +748,9 @@ CLASS IMPLEMENTATION CEIBServer;
       EV : eib_def.CValue;
       changed : BOOLEAN;
       key, value : StringsO.CString;
+      licences : lists.CStringList;
       PObject : TPObject;
+      ptrType : PTR;
       s : FIO.PathStrW;
    BEGIN
       // system suspend must be processed before expiration check
@@ -761,6 +771,14 @@ CLASS IMPLEMENTATION CEIBServer;
                Result.QuerySuspension();
             END;
          END;
+         RETURN Sync.arCompleted;
+
+      ELSIF Item = itemSystemSerialNumber THEN
+         Result.GetLicences( OUT licences );
+         IF NOT licences.GetFirst( OUT value, OUT ptrType ) THEN
+            value.Clear();
+         END;
+         Value.String := value;
          RETURN Sync.arCompleted;
       END;
       
@@ -1847,7 +1865,7 @@ CLASS IMPLEMENTATION CEIBServer;
          IF NOT PromiscuousMode THEN
             eib_stack.TPEIBStackApplicationLayer( EIB^.Layers[ eib_stack.eltApplication ] )^.Update_L_Layer();
          END;
-      END; // IF _CacheOnlyMode
+      END; // IF NOT _CacheOnlyMode
       
       ConfigurationPath.Assign( ConfigurationFile ); // store sucessfully read configuration
       RETURN TRUE;
@@ -1993,7 +2011,7 @@ CLASS IMPLEMENTATION CEIBServer;
          b := Behaviours.NextOf( PBehaviour, OUT PBehaviour );
       END;
       IF EQUALS( BehaviourName, bnReader ) THEN
-         Flags := eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofUpdate, eib_def.aofForceRead};
+         Flags := eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofUpdate, eib_def.aofWritable, eib_def.aofInitRead, eib_def.aofForceRead};
       ELSIF EQUALS( BehaviourName, bnTracker ) THEN
          Flags := eib_def.TA_ObjectFlags{eib_def.aofCommunicated, eib_def.aofUpdate, eib_def.aofWritable};
       ELSIF EQUALS( BehaviourName, bnTracker2 ) THEN
@@ -2194,7 +2212,11 @@ CLASS IMPLEMENTATION CEIBServer;
          IF Direction = IOO.dirRead THEN
             _DataLogger^.LogSSSS( log.dldMessage, L"srv", "UPDATE", address, OA( value.Length-1, value.Data ), OA( comment.Length-1, comment.Data ));
          ELSIF NOT EIB^.DeviceConnected() THEN
-            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET FAILED", address, OA( value.Length-1, value.Data ), OA( comment.Length-1, comment.Data ));
+            IF _CacheOnlyMode THEN
+               _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET TO CACHE", address, OA( value.Length-1, value.Data ), OA( comment.Length-1, comment.Data ));
+            ELSE
+               _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET FAILED", address, OA( value.Length-1, value.Data ), OA( comment.Length-1, comment.Data ));
+            END;
          END;
                   
       END;
