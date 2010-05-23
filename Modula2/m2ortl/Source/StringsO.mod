@@ -8,9 +8,6 @@ FROM Strings IMPORT
    CapitalizeW, LowerizeW;
 
 IMPORT
-   winnls;
-   
-IMPORT
    lrconv,
    Strings;
    
@@ -123,7 +120,7 @@ CLASS IMPLEMENTATION CString;
          _Size := ( Characters + 10H ) AND 0FFFFFFF0H; // a roundup to 16 characters
          REALLOCATE( REF _Storage, _Size<<1 );
          _Data := PWCHAR( _Storage@[SIZE( _Storage^ )] );
-         _Storage^ := 1; // initialize RefCount
+         _Storage^ := 1; // initialize RefCount -- done on new own memory, no need to lock (all Fork calls must be done either on local (fork) string or synchronized (source) string
 
          // do a copy of current string (forked string is identical, do not copy if no fork is done)
          IF CopyLength > 0 THEN
@@ -295,29 +292,29 @@ CLASS IMPLEMENTATION CString;
 
    PUBLIC VIRTUAL PROCEDURE CString.Assign( CONST S : IString );
    BEGIN
-      IF S IS CString THEN
-         _Len := S.Length;
-         IF _Storage = NIL THEN // I am empty
-            // fall down
-         ELSIF _Storage^ = 1 THEN // if RefCounter is one (= me), dispose
-            DISPOSE( _Storage );
-         ELSE
-            DEC( _Storage^ );
-            _Storage := NIL;
-         END;
-
-         IF _Len = 0 THEN
-            _Data := NIL;
-            _Size := 0;
-         ELSE
-            _Data := PWCHAR( S.Data );
-            _Storage := PCARD32( DEC( _Data, SIZE( _Storage^ )));
-            _Size := S.Size;
-            INC( _Storage^ );
-         END;
-
-      ELSE
+      IF NOT( S IS CString ) THEN // I cannot assume anything about S, use generic method
          Copy( S );
+         RETURN;
+      END;
+
+      _Len := S.Length;
+      IF _Storage = NIL THEN // I am empty
+         // fall down
+      ELSIF _Storage^ = 1 THEN // if RefCounter is one (= me), dispose
+         DISPOSE( _Storage );
+      ELSE
+         DEC( _Storage^ );
+         _Storage := NIL;
+      END;
+
+      IF _Len = 0 THEN
+         _Data := NIL;
+         _Size := 0;
+      ELSE
+         _Data := PWCHAR( S.Data );
+         _Storage := PCARD32( DEC( _Data, SIZE( _Storage^ )));
+         _Size := S.Size;
+         INC( _Storage^ );
       END;
    END CString.Assign;
 
@@ -869,14 +866,9 @@ CLASS IMPLEMENTATION CString;
       IF _Len = 0 THEN
          Filled := 0;
          S[0] := CHAR( 0 );
-      ELSE
-         IF CodePage = 0 THEN
-            CodePage := winnls.CP_ACP;
-         END;
-         Filled := winnls.WideCharToMultiByte( CodePage, 0, _Data, _Len, ADR( S ), HIGH( S ) + 1, NIL, NIL );
-         IF Filled < HIGH( S ) THEN
-            S[Filled] := CHAR( 0 );
-         END;
+      ELSIF NOT Strings.ToMA( _Len, _Data, CodePage, HIGH( S ) + 1, ADR( S ), OUT Filled ) THEN // something failed
+         Filled := 0;
+         S[0] := CHAR( 0 );
       END;
    END CString.ToOAA;
 
@@ -884,7 +876,7 @@ CLASS IMPLEMENTATION CString;
 
    PUBLIC VIRTUAL PROCEDURE CString.ToUTF8( OUT S : ARRAY OF CHAR; OUT Filled : CARDINAL );
    BEGIN
-      ToOAA( winnls.CP_UTF8, OUT S, OUT Filled );
+      ToOAA( Languages.cp_UTF8, OUT S, OUT Filled );
    END CString.ToUTF8;
 
 (*--------------------------------------------------------------------------------*)
@@ -967,13 +959,8 @@ CLASS IMPLEMENTATION CString;
    BEGIN
       _Len := LENGTH( S );
       ReallocateAndFork( _Len, 0 );
-      IF CodePage = 0 THEN
-         CodePage := winnls.CP_ACP;
-      END;
-      IF CodePage = winnls.CP_UTF8 THEN
-         _Len := winnls.MultiByteToWideChar( CodePage, 0, ADR( S ), _Len, _Data, _Len );
-      ELSE
-         _Len := winnls.MultiByteToWideChar( CodePage, winnls.MB_PRECOMPOSED, ADR( S ), _Len, _Data, _Len );
+      IF NOT Strings.ToMW( _Len, ADR( S ), CodePage, _Size, _Data, OUT _Len ) THEN // something failed
+         Clear();
       END;
    END CString.FromOAA;
    
@@ -981,7 +968,7 @@ CLASS IMPLEMENTATION CString;
 
    PUBLIC VIRTUAL PROCEDURE FromUTF8( CONST S : ARRAY OF CHAR );
    BEGIN
-      FromOAA( winnls.CP_UTF8, S );
+      FromOAA( Languages.cp_UTF8, S );
    END CString.FromUTF8;
 
 (*--------------------------------------------------------------------------------*)

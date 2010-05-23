@@ -70,8 +70,10 @@ PROCEDURE ItemSMW( SourceLen : CARDINAL; CONST Source : POINTER TO WCHAR; CONST 
 PROCEDURE ItemMW( SourceLen : CARDINAL; CONST Source : POINTER TO WCHAR; CONST Delimiters : SET OF WCHAR; FromIndex, ItemIndex : CARDINAL; SkipEmpty : BOOLEAN; OUT Substring : ARRAY OF WCHAR; pFilled : PCARDINAL ) : CARDINAL;
 
 PROCEDURE ToA( CONST Source : ARRAY OF WCHAR; CodePage : CARDINAL; OUT Destination : ARRAY OF CHAR ) : BOOLEAN; // CodePage can be 0, FALSE is returned mostly if Destination is too small
+PROCEDURE ToMA( SourceCharLen : CARDINAL; CONST Source : PWCHAR; CodePage : CARDINAL; DestinationCharSpace : CARDINAL; Destination : PCHAR; OUT FilledChar : CARDINAL ) : BOOLEAN; // CodePage can be 0, FALSE is returned mostly if Destination is too small
 PROCEDURE ToAStream( CONST Source : ARRAY OF WCHAR; CodePage : CARDINAL; OUT Destination : ARRAY OF BYTE; OUT Consumed, Produced : CARDINAL ) : BOOLEAN; // returns if something consumed
 PROCEDURE ToW( CONST Source : ARRAY OF CHAR; CodePage : CARDINAL; OUT Destination : ARRAY OF WCHAR ) : BOOLEAN; // FALSE is returned mostly if Destination is too small
+PROCEDURE ToMW( SourceCharLen : CARDINAL; CONST Source : PCHAR; CodePage : CARDINAL; DestinationCharSpace : CARDINAL; Destination : PWCHAR; OUT FilledChar : CARDINAL ) : BOOLEAN; // FALSE is returned mostly if Destination is too small
 PROCEDURE ToWStream( CONST Source : ARRAY OF BYTE; CodePage : CARDINAL; OUT Destination : ARRAY OF WCHAR; OUT Consumed, Produced : CARDINAL ) : BOOLEAN; // returns if something consumed
 PROCEDURE IsUTF8( CONST Source : ARRAY OF BYTE ) : BOOLEAN;
 

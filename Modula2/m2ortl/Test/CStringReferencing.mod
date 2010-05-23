@@ -8,7 +8,8 @@ IMPORT
    StringsO,
    test,
    testimpl,
-   time;
+   time,
+   windows;
   
 (*===========================================================================*)
 
@@ -16,6 +17,10 @@ CLASS CTest IMPLEMENTS test.ITest;
    PRIVATE VAR
       Host : test.TPHost := NIL;
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
+   
+   PRIVATE VAR
+      SFromAssign : StringsO.CString;
+   LOCAL PROCEDURE AssignInThreadTest();
 END CTest;
 
 (*---------------------------------------------------------------------------*)
@@ -24,6 +29,16 @@ TYPE
    TPTest = POINTER TO CTest;
 VAR
    Test : CTest;
+
+(*===========================================================================*)
+
+#save, call( convention => stdcall )
+PROCEDURE AssignThread( a : ADDRESS ) : windows.DWORD;
+BEGIN
+   TPTest( a )^.AssignInThreadTest();
+   RETURN 0;
+END AssignThread;
+#restore
 
 (*===========================================================================*)
 
@@ -38,6 +53,7 @@ CLASS IMPLEMENTATION CTest;
       NS1, NS2 : ARRAY [0..255] OF WCHAR;
       S, S1, S2, S3, S4 : StringsO.CString;
       Result : test.TTestResult := test.trSuccess;
+      thread : windows.HANDLE;
    BEGIN
       SELF.Host := Host;
       
@@ -426,9 +442,47 @@ CLASS IMPLEMENTATION CTest;
       
       Host^.StopPhase();
 
+      //----------------------------------------
+      Host^.StartPhase( L"Assigns from string to more threads" );
+      
+      SFromAssign.Assign( S );
+      
+      FOR i := 0 TO 99 DO
+         thread := windows.CreateThread( NIL, 0, AssignThread, ADR( SELF ), 0, NIL );
+         windows.CloseHandle( thread );
+      END;
+      
+      windows.Sleep( 360000 );
+      
+      Host^.StopPhase();
+
       RETURN Result;
    END Run;
    
+(*---------------------------------------------------------------------------*)
+
+   LOCAL PROCEDURE AssignInThreadTest();
+   VAR
+      i : CARDINAL;
+      S : StringsO.CString;
+   BEGIN
+      FOR i := 0 TO 500000-1 DO
+         S.Assign( SFromAssign );
+         IF S.Data <> SFromAssign.Data THEN
+            Host^.Log^.LogS( log.dlcError, L"", L"Pointers in not expected state (1)" );
+         END;
+         S.Dispose();
+      END;
+
+      FOR i := 0 TO 500000-1 DO
+         S.Copy( SFromAssign );
+         IF S.Data = SFromAssign.Data THEN
+            Host^.Log^.LogS( log.dlcError, L"", L"Pointers in not expected state (2)" );
+         END;
+         S.Dispose();
+      END;
+   END AssignInThreadTest;
+
 (*---------------------------------------------------------------------------*)
 
 BEGIN

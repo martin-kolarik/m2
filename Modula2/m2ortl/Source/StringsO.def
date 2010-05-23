@@ -6,7 +6,8 @@ FROM Storage IMPORT
 
 IMPORT
   Exceptions,
-  Languages;
+  Languages,
+  Sync;
 
 #save, option( dll_export => on )
 
@@ -127,7 +128,7 @@ END IString;
 
 // class for storing variable length strings, mostly for single operation
 CLASS CString IMPLEMENTS IString;
-  INTERNAL VAR
+  PRIVATE VAR
     _Size, _Len : CARDINAL;
     _Storage : PCARD32;
     _Data : PWCHAR;
