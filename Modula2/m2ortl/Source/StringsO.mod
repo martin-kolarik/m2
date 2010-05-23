@@ -104,12 +104,14 @@ CLASS IMPLEMENTATION CString;
    VAR
       _SourceData : ADDRESS := _Data;
    BEGIN
-      IF ( _Storage = NIL ) OR ( _Storage^ = 1 ) THEN // if empty or if RefCounter is one (= me) simply reallocate memory
+      IF _Storage = NIL THEN // empty, simply reallocate memory
+         // fall down
+      ELSIF Sync.IDec( REF _Storage^ ) = 0 THEN // RefCounter is one (= me), simply reallocate memory
+         _Storage^ := 1; // RefCounter must be restored, it is not assigned if Characters = 0
          CopyLength := 0; // no copy is required, when no fork is done
-      ELSE // decrement RefCounter and force allocate self as new
-         DEC( _Storage^ );
-         _Storage := NIL; // fork
-         _Size := 0; // force pure new allocation, when reallocating
+      ELSE // RefCounter decremented, force allocate self as new
+         _Storage := NIL; // fork, force new allocation
+         _Size := 0; // set correct size here, if Characters = 0 procedure finishes
       END;
       IF Characters = 0 THEN // no memory will be allocated
          RETURN;
@@ -135,10 +137,9 @@ CLASS IMPLEMENTATION CString;
    BEGIN
       IF _Storage = NIL THEN
          // fall down
-      ELSIF _Storage^ = 1 THEN // if RefCounter is one (= me), dispose
+      ELSIF Sync.IDec( REF _Storage^ ) = 0 THEN // if RefCounter was one (= me), dispose
          DISPOSE( _Storage );
       ELSE
-         DEC( _Storage^ );
          _Storage := NIL;
       END;
       _Data := NIL;
@@ -300,10 +301,9 @@ CLASS IMPLEMENTATION CString;
       _Len := S.Length;
       IF _Storage = NIL THEN // I am empty
          // fall down
-      ELSIF _Storage^ = 1 THEN // if RefCounter is one (= me), dispose
+      ELSIF Sync.IDec( REF _Storage^ ) = 0 THEN // if RefCounter was one (= me), dispose
          DISPOSE( _Storage );
       ELSE
-         DEC( _Storage^ );
          _Storage := NIL;
       END;
 
@@ -314,7 +314,7 @@ CLASS IMPLEMENTATION CString;
          _Data := PWCHAR( S.Data );
          _Storage := PCARD32( DEC( _Data, SIZE( _Storage^ )));
          _Size := S.Size;
-         INC( _Storage^ );
+         Sync.IInc( REF _Storage^ );
       END;
    END CString.Assign;
 

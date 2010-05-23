@@ -445,14 +445,14 @@ CLASS IMPLEMENTATION CTest;
       //----------------------------------------
       Host^.StartPhase( L"Assigns from string to more threads" );
       
-      SFromAssign.Assign( S );
+      SFromAssign.Copy( S );
       
       FOR i := 0 TO 99 DO
          thread := windows.CreateThread( NIL, 0, AssignThread, ADR( SELF ), 0, NIL );
          windows.CloseHandle( thread );
       END;
       
-      windows.Sleep( 360000 );
+      windows.Sleep( 30000 );
       
       Host^.StopPhase();
 
@@ -464,22 +464,26 @@ CLASS IMPLEMENTATION CTest;
    LOCAL PROCEDURE AssignInThreadTest();
    VAR
       i : CARDINAL;
-      S : StringsO.CString;
+      S1, S2 : StringsO.CString;
    BEGIN
-      FOR i := 0 TO 500000-1 DO
-         S.Assign( SFromAssign );
-         IF S.Data <> SFromAssign.Data THEN
+      FOR i := 0 TO 250000-1 DO
+         S1.Assign( SFromAssign );
+         S2.Assign( S1 );
+         IF ( S1.Data <> SFromAssign.Data ) OR ( S2.Data <> S1.Data ) THEN
             Host^.Log^.LogS( log.dlcError, L"", L"Pointers in not expected state (1)" );
          END;
-         S.Dispose();
+         S1.Dispose();
+         S2.Dispose();
       END;
 
-      FOR i := 0 TO 500000-1 DO
-         S.Copy( SFromAssign );
-         IF S.Data = SFromAssign.Data THEN
+      FOR i := 0 TO 250000-1 DO
+         S1.Copy( SFromAssign );
+         S2.Assign( S1 );
+         IF ( S1.Data = SFromAssign.Data ) OR ( S2.Data <> S1.Data ) THEN
             Host^.Log^.LogS( log.dlcError, L"", L"Pointers in not expected state (2)" );
          END;
-         S.Dispose();
+         S1.Dispose();
+         S2.Dispose();
       END;
    END AssignInThreadTest;
 
