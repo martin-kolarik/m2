@@ -47,6 +47,7 @@ END CNS;
 (*---------------------------------------------------------------------------*)
 
 INTERFACE IAutomatonRequest;
+   PROCEDURE Ack();
    PROCEDURE UpdateDeviceBuffer();
    PROCEDURE AskData();
    PROCEDURE ProcessData( Packet : ADDRESS );
@@ -92,9 +93,8 @@ CLASS CDeviceAutomaton IMPLEMENTS io.IStartStopControl, threadpool.ITimeoutSink;
    PUBLIC PROCEDURE EventACK();
    PUBLIC PROCEDURE EventNAK();
    PUBLIC PROCEDURE EventSTX( Packet : ADDRESS );
-   PUBLIC PROCEDURE EventNUL();
+   PUBLIC PROCEDURE EventNoData();
    PUBLIC PROCEDURE EventWrite( ItemToWrite : nsitem.TPnsItem ) : Sync.TAsyncResult;
-   PUBLIC PROCEDURE EventWriteError();
    PUBLIC PROCEDURE EventTimeout();
    
    PRIVATE PROPERTY State : TAutomatonState;
@@ -135,6 +135,7 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
 
    // IAutomatonRequest
+   PUBLIC VIRTUAL PROCEDURE Ack();
    PUBLIC VIRTUAL PROCEDURE UpdateDeviceBuffer();
    PUBLIC VIRTUAL PROCEDURE AskData();
    PUBLIC VIRTUAL PROCEDURE ProcessData( Packet : ADDRESS );

@@ -16,6 +16,9 @@ IMPORT
    StringsO,
    Sync,
    Texts;
+   
+IMPORT
+   Log;
 
 (*================================================================================*)
 
@@ -550,7 +553,7 @@ CLASS IMPLEMENTATION CPacket;
          RETURN TRUE;
       END;
 
-      Strings.ToINT32W( WData, 16, OUT chksumToCheck );
+      chksumToCheck := 10H * ( ORD( WData[0] ) - ORD( L'0' )) + ( ORD( WData[1] ) - ORD( C'0' ));
       
       chksum := 0;
       FOR i := 0 TO chksumOffset -1 DO
@@ -580,10 +583,12 @@ CLASS IMPLEMENTATION CPacket;
             FirstIndexAfterData := FIELDOFS( TPacket.nChkSum );
             FirstIndexAfterFrame := FirstIndexAfterData + SIZE( TPacket.nChkSum );
          END;
+         ApplyChecksum := TRUE;
       //-----
       | ptNoData, ptACK, ptNAK :
          FirstIndexAfterData := 1;
          FirstIndexAfterFrame := 1;
+         ApplyChecksum := FALSE;
       //-----
       ELSE
          RETURN FALSE;
@@ -830,6 +835,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    PUBLIC PROCEDURE EventSTX( Packet : ADDRESS );
    BEGIN
       IF State = tasWaitData THEN
+         _Driven^.Ack();
          _Driven^.ProcessData( Packet );
          IF _ItemToWrite = NIL THEN
             _Driven^.AskData();
@@ -842,12 +848,12 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE EventNUL();
+   PUBLIC PROCEDURE EventNoData();
    BEGIN
       IF State = tasWaitData THEN
          State := tasIdle;
       END;
-   END EventNUL;
+   END EventNoData;
 
 (*---------------------------------------------------------------------------*)
 
@@ -863,13 +869,6 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
       END;
       RETURN Sync.arPending;
    END EventWrite;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROCEDURE EventWriteError();
-   BEGIN
-      EventACK();
-   END EventWriteError;
 
 (*---------------------------------------------------------------------------*)
 
@@ -1007,6 +1006,19 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE Ack();
+   VAR
+      Packet : TPacket;
+      Wrapper : CPacket;
+   BEGIN
+      Packet.FIRST := 0C;
+      Wrapper.EmptyPacket := ADR( Packet );
+      Wrapper.PacketType := ptACK;
+      Tx( OA( Wrapper.Length-1, Wrapper.Packet ), FALSE, 1, 0, 0 );
+   END Ack;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE AskData();
    VAR
       Packet : TPacket;
@@ -1070,7 +1082,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          RETURN FALSE;
       ELSE
          Wrapper.FilledPacket := Data.Data;
-         RETURN Wrapper.Complete( Data.Length, OUT FirstIndexAfterData, OUT FirstIndexAfterData, OUT ApplyCheckSum );
+         RETURN Wrapper.Complete( Data.Length, OUT FirstIndexAfterData, OUT FirstIndexAfterFrame, OUT ApplyCheckSum );
       END;
    END DataComplete;
 
@@ -1104,7 +1116,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          | ptNAK :
             Automaton^.EventNAK();
          | ptNoData :
-            Automaton^.EventWriteError();
+            Automaton^.EventNoData();
          ELSE
             ASSERTLOG( FALSE );
          END;
@@ -1430,6 +1442,10 @@ CLASS IMPLEMENTATION CIO;
                | vtInteger :
                   SetPtrValueInteger( REF DataRoot^[i]^.Data, Wrapper.Integer );
                | vtAnalog :
+            
+// TODO            
+Log.logger()^.LogSCC( log.dldTrace, L'', L"Analog", Wrapper.ValueIndex, CARDINAL( 100.0 * Wrapper.Analog ));
+            
                   SetPtrValueAnalog( REF DataRoot^[i]^.Data, Wrapper.Analog );
                END; // CASE
                EXIT;
