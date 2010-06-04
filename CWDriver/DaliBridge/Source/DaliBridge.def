@@ -206,7 +206,7 @@ END CDaliAddressProgrammer;
 INTERFACE IDaliEventSink; // in-thread
    LOCAL PROCEDURE OnDeviceFound( CONST Dali : StringsO.CString; Linie : TDaliLinie; CONST Address : DaliAddress; LongAddress : CARDINAL );
    LOCAL PROCEDURE OnProgrammingStopped( Result : Sync.TAsyncResult; CONST Dali : StringsO.CString; Linie : TDaliLinie );
-   LOCAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; CONST Dali : StringsO.CString; Linie : TDaliLinie; CONST daliAddress : DaliAddress; Command : TDaliCommand; Data : CARD8; ClientId : PTR );
+   LOCAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; CONST Dali : StringsO.CString; Linie : TDaliLinie; CONST daliAddress : DaliAddress; Command : TDaliCommand; Data : CARD8; ClientId : PTR; CONST userId : StringsO.TPString );
 END IDaliEventSink;
 
 (*-------------------------------------------------------------------------------*)
@@ -254,7 +254,7 @@ CLASS CDaliDevice( msghandler.MessageHandler ) IMPLEMENTS threadpool.ITimeoutSin
    PUBLIC PROCEDURE Run() : Sync.TAsyncResult;
    PUBLIC PROCEDURE Stop();
    
-   PUBLIC PROCEDURE Command( Linie : TDaliLinie; CONST daliAddress : DaliAddress; Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE Command( Linie : TDaliLinie; CONST daliAddress : DaliAddress; Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR; CONST userId : ARRAY OF WCHAR ) : Sync.TAsyncResult;
    // completes immediatelly or results to IEventSink callback
    
    PUBLIC PROCEDURE Address( Linie : TDaliLinie; Specific : BOOLEAN; CONST SpecificAddress : DaliAddress ) : BOOLEAN;
@@ -279,7 +279,7 @@ CLASS CDaliDevice( msghandler.MessageHandler ) IMPLEMENTS threadpool.ITimeoutSin
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
 
    // SELF
-   PRIVATE PROCEDURE FeedCommand( Linie : TDaliLinie; daliAddress : TPDaliAddress; Command : TDaliCommand; Data : CARD8; LongData : ADDRESS; CONST ClientId : PTR ) : Sync.TAsyncResult;
+   PRIVATE PROCEDURE FeedCommand( Linie : TDaliLinie; daliAddress : TPDaliAddress; Command : TDaliCommand; Data : CARD8; LongData : ADDRESS; CONST ClientId : PTR; CONST userId : ARRAY OF WCHAR ) : Sync.TAsyncResult;
    PRIVATE PROCEDURE Communicate() : Sync.TAsyncResult;
    PRIVATE PROCEDURE ProgrammingStep( Linie : TDaliLinie );
    PRIVATE PROCEDURE LogRequest( Level : log.TDebugLevel; LeadingText : ARRAY OF WCHAR; Request : ADDRESS; Result : Sync.TAsyncResult; PrintAddress, PrintResult, PrintData : BOOLEAN );
@@ -300,7 +300,7 @@ CLASS CDali IMPLEMENTS IDaliEventSink;
    // IDaliEventSink      
    LOCAL VIRTUAL PROCEDURE OnDeviceFound( CONST Dali : StringsO.CString; Linie : TDaliLinie; CONST Address : DaliAddress; LongAddress : CARDINAL );
    LOCAL VIRTUAL PROCEDURE OnProgrammingStopped( Result : Sync.TAsyncResult; CONST Dali : StringsO.CString; Linie : TDaliLinie );
-   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; CONST Dali : StringsO.CString; Linie : TDaliLinie; CONST daliAddress : DaliAddress; Command : TDaliCommand; Data : CARD8; ClientId : PTR );
+   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; CONST Dali : StringsO.CString; Linie : TDaliLinie; CONST daliAddress : DaliAddress; Command : TDaliCommand; Data : CARD8; ClientId : PTR; CONST UserId : StringsO.TPString );
    
    // SELF
    PUBLIC PROCEDURE CreateDali( CONST SourceLogger : log.CLogger; CONST Name, Server, Port : ARRAY OF WCHAR; PollClientId : PTR; OutputQueueLength, SendDelay : CARDINAL; OUT Error : StringsO.CString ) : BOOLEAN;
@@ -310,7 +310,7 @@ CLASS CDali IMPLEMENTS IDaliEventSink;
    PUBLIC PROCEDURE Run() : Sync.TAsyncResult;
    PUBLIC PROCEDURE Stop();
 
-   PUBLIC PROCEDURE Command( Dali : PTR; Linie : TDaliLinie; CONST daliAddress : DaliAddress; Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE Command( Dali : PTR; Linie : TDaliLinie; CONST daliAddress : DaliAddress; Command : TDaliCommand; Data : CARD8; CONST ClientId : PTR; CONST userId : ARRAY OF WCHAR ) : Sync.TAsyncResult;
    // completes immediatelly or results to IEventSink callback
    
    PUBLIC PROCEDURE Address( Dali : PTR; Linie : TDaliLinie; Specific : BOOLEAN; CONST SpecificAddress : DaliAddress ) : BOOLEAN;
