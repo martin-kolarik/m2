@@ -42,7 +42,9 @@ CLASS IMPLEMENTATION CTest;
    VAR
       DI : DiskInfo.CDiskInfo;
       i : CARDINAL;
+      #if #contains( LicenceMachineId, L"M" ) #then
       MACSource : Uniquer.MACSource;
+      #endif
       uid : Uniquer.TUId;
    BEGIN
       SELF.Host := Host;
@@ -57,11 +59,13 @@ CLASS IMPLEMENTATION CTest;
       
       Host^.StopPhaseWithResult( test.trSuccess );
 
+      #if #contains( LicenceMachineId, L"M" ) #then
       Host^.StartPhase( L"MAC Source" );
 
       uid := MACSource.UId;      
       
       Host^.StopPhaseWithResult( test.trSuccess );
+      #endif
 
       RETURN test.trSuccess;
    END Run;
