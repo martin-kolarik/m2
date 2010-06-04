@@ -1,7 +1,15 @@
+Version 1.0.1242/D beta 4.6.2010
+- CHG: switched to referenced CStrings
+- CHG: switched to private CLib
+- CHG: switched to native RTTI and exceptions
+- NEW: "set" and "get" commands can be supplied with new "userId" parameter.
+       The parameter is a string without space and it is placed as the last
+       (the fourth).
+
 Version 1.0.671/R beta 29.12.2008
 - BUG: if event and ACK/NAK were both received in single UDP piece no next data
-        were sent to DALI. EventFlag variable was not reset, so receiving code
-        reacted to an event instead of accepting ACK and continuing with send.
+       were sent to DALI. EventFlag variable was not reset, so receiving code
+       reacted to an event instead of accepting ACK and continuing with send.
 - CHG: DLLs are loaded delayed, xmllite.dll missing on target system is not problem
        now. 
 
