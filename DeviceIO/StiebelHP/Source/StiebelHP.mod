@@ -461,6 +461,8 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    BEGIN
+   	_PoolDelegate.TimeoutSink := ADR( SELF );
+
       Logger.LogS( log.dldMessage, L"StiebelHP", L"Started" );
       RETURN Connection.OpenS( _DeviceAddress, TRUE, 500 );
    END Start;
@@ -469,6 +471,11 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PUBLIC VIRTUAL PROCEDURE Stop();
    BEGIN
+   	_PoolDelegate.TimeoutSink := NIL;
+
+      StopTimeout( REF _TxTimeoutHandle );
+      StopTimeout( REF _RxTimeoutHandle );
+
       Connection.Close();
       Logger.LogS( log.dldMessage, L"StiebelHP", L"Stopped" );
    END Stop;
@@ -751,7 +758,6 @@ BEGIN
 	PIO := NIL;
 	_RxTimeoutHandle := 0;
 	_TxTimeoutHandle := 0;
-	_PoolDelegate.TimeoutSink := ADR( SELF );
 END CDeviceCommunicator;
 
 (*===========================================================================*)

@@ -4,6 +4,9 @@ IMPLEMENTATION MODULE AirMotion;
 
 FROM Debug IMPORT
    Assertion, LogAssertionW;
+   
+FROM Exceptions IMPORT
+   TestIfCatched, RetrieveException, CModula2Exception;
 
 IMPORT
    FIO,
@@ -787,8 +790,12 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
       IF _PeriodHandle <> NIL THEN
          RETURN Sync.arAlreadyPending;
       END;
+
       State := tasIdle;
+
+      _PoolDelegate.TimeoutSink := ADR( SELF );
       threadpool.pool()^.WaitTimeout( ADR( _PoolDelegate ), 0, PollPeriodMS, FALSE, FALSE, OUT _PeriodHandle );
+
       RETURN Sync.arCompleted;
    END Start;
 
@@ -796,6 +803,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
 
    PUBLIC VIRTUAL PROCEDURE Stop();
    BEGIN
+      _PoolDelegate.TimeoutSink := NIL;
       IF _PeriodHandle <> NIL THEN
          threadpool.pool()^.Abort( REF _PeriodHandle );
       END;
@@ -942,7 +950,6 @@ BEGIN
    _State := tasIdle;
    _Driven := NIL;
    _PeriodHandle := NIL;
-   _PoolDelegate.TimeoutSink := ADR( SELF );
    _ItemToWrite := NIL;
    PollPeriodMS := POLL_PERIOD_DEFAULT;
 FINALLY
@@ -964,6 +971,8 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    BEGIN
+      _PoolDelegate.TimeoutSink := ADR( SELF );
+
       Logger.LogS( log.dldMessage, L"AirMotion", L"Started" );
       RETURN Connection.OpenS( _HostAddress, TRUE, 500 );
    END Start;
@@ -972,6 +981,11 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PUBLIC VIRTUAL PROCEDURE Stop();
    BEGIN
+      _PoolDelegate.TimeoutSink := NIL;
+   
+      StopTimeout( REF _TxTimeoutHandle );
+      StopTimeout( REF _RxTimeoutHandle );
+
       Connection.Close();
       Logger.LogS( log.dldMessage, L"AirMotion", L"Stopped" );
    END Stop;
@@ -1100,6 +1114,36 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       HandleRx( Sync.arCompleted, REF Data );
       Connection.BufferedStream^.StartReading();
    END OnReadable;
+
+(*---------------------------------------------------------------------------*)
+
+   INTERNAL VIRTUAL PROCEDURE DetectDataStart( CONST Data : StorageO.AMemoryBuffer; OUT FirstIndexOfFrame, FirstIndexOfData : CARDINAL ) : BOOLEAN;
+   VAR
+      ch : CHAR;
+      i : CARDINAL := 0;
+      l : CARDINAL := Data.Length;
+   BEGIN
+      WHILE i < l DO
+         TRY
+            ch := CHAR( Data[i] ); // ch in CASE is not handled correctly by CASE
+            CASE ch OF
+            | CH_NUL,
+              CH_STX,
+              CH_ACK,
+              CH_BEL :
+               FirstIndexOfFrame := i;
+               FirstIndexOfData := i;
+               RETURN TRUE;
+            END; // CASE
+         CATCH e : CModula2Exception DO
+            RETURN FALSE;
+         END;
+
+         INC( i );
+      END; // WHILE
+
+      RETURN FALSE;
+   END DetectDataStart;
 
 (*---------------------------------------------------------------------------*)
 
@@ -1263,7 +1307,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PRIVATE PROCEDURE HandleRx( Result : Sync.TAsyncResult; REF Data : StorageO.AMemoryBuffer ) : BOOLEAN;
    VAR
-      LDI, LI : CARDINAL := 0; // TODO
+      LDI, LI : CARDINAL := 0;
       LRxBuffer : StorageO.CMemoryBuffer;
       TDI, TI : CARDINAL;
       ApplyChecksum : BOOLEAN; // apply checksum
@@ -1279,15 +1323,14 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
          Logger.LogSCB( log.dldDebug, L'', L'rx success, len: ', Data.Length, Data.Data, Data.Length );
       END;
 
-      (* // TODO
       IF NOT DetectDataStart( RxBuffer, OUT LI, OUT LDI ) THEN
+         RxBuffer.Clear();
          RETURN FALSE;
       ELSIF LI > 0 THEN
          RxBuffer.RemoveStart( LI );
          DEC( LDI, LI );
          LI := 0;
       END;
-      *)
 
       IF NOT DataComplete( RxBuffer, OUT TDI, OUT TI, OUT ApplyChecksum ) THEN
          RETURN FALSE;
@@ -1336,7 +1379,6 @@ BEGIN
    Automaton := NIL;
    _RxTimeoutHandle := 0;
    _TxTimeoutHandle := 0;
-   _PoolDelegate.TimeoutSink := ADR( SELF );
    _PollPeriodMS := POLL_PERIOD_DEFAULT;
    _DeviceAddress := 1;
 END CDeviceCommunicator;
