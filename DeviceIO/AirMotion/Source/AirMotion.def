@@ -51,7 +51,7 @@ INTERFACE IAutomatonRequest;
    PROCEDURE UpdateDeviceBuffer();
    PROCEDURE AskData();
    PROCEDURE ProcessData( Packet : ADDRESS );
-   PROCEDURE SendData( Packet : ADDRESS; Length : CARDINAL );
+   PROCEDURE SendData( ItemToSend : nsitem.TPnsItem );
    PROCEDURE Sent( Result : Sync.TAsyncResult; SentItem : nsitem.TPnsItem );
 END IAutomatonRequest;
 
@@ -98,7 +98,6 @@ CLASS CDeviceAutomaton IMPLEMENTS io.IStartStopControl, threadpool.ITimeoutSink;
    PUBLIC PROCEDURE EventTimeout();
    
    PRIVATE PROPERTY State : TAutomatonState;
-   PRIVATE PROCEDURE SendData();
 END CDeviceAutomaton;
 
 (*---------------------------------------------------------------------------*)
@@ -139,7 +138,7 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
    PUBLIC VIRTUAL PROCEDURE UpdateDeviceBuffer();
    PUBLIC VIRTUAL PROCEDURE AskData();
    PUBLIC VIRTUAL PROCEDURE ProcessData( Packet : ADDRESS );
-   PUBLIC VIRTUAL PROCEDURE SendData( Packet : ADDRESS; Length : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE SendData( ItemToSend : nsitem.TPnsItem );
    PUBLIC VIRTUAL PROCEDURE Sent( Result : Sync.TAsyncResult; SentItem : nsitem.TPnsItem );
 
    // from CSerial

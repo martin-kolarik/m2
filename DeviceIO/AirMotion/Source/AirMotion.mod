@@ -313,6 +313,7 @@ CLASS IMPLEMENTATION CPacket;
          RETURN;
       END;
       _Packet^.ValueType := CH_ANALOG;
+      _Packet^.nETX := CH_ETX;
       WData := L"0000";
 
       IF IValue < 16 THEN
@@ -371,6 +372,7 @@ CLASS IMPLEMENTATION CPacket;
          RETURN;
       END;
       _Packet^.ValueType := CH_ANALOG;
+      _Packet^.nETX := CH_ETX;
       WData := L"0000";
 
       IF IValue < 16 THEN
@@ -415,6 +417,7 @@ CLASS IMPLEMENTATION CPacket;
          RETURN;
       END;
       _Packet^.ValueType := CH_DIGITAL;
+      _Packet^.dETX := CH_ETX;
       IF Value THEN
          _Packet^.Digital := C'1';
       ELSE
@@ -674,15 +677,36 @@ VAR
 BEGIN
    CASE PPtr^.Type OF
    | vtDigital :
+      Value.Type := iovalue.vtBoolean;
       Value.Boolean := BOOLEAN( PPtr^.Value );
    | vtInteger :
+      Value.Type := iovalue.vtInteger;
       Value.Integer := INTEGER( PPtr^.Value );
    | vtAnalog :
+      Value.Type := iovalue.vtFloat;
       Value.Float := LONGREAL( PPtr^.Value ) / 10.0;
    ELSE
       ASSERTLOG( FALSE );
    END;
 END GetValueFromPtr;
+
+(*---------------------------------------------------------------------------*)
+
+PROCEDURE SetValueToPtr( REF Ptr : PTR; CONST Value : iovalue.Value );
+VAR
+   PPtr : TPNSPTR := TPNSPTR( ADR( Ptr ));
+BEGIN
+   CASE PPtr^.Type OF
+   | vtDigital :
+      SetPtrValueDigital( REF Ptr, Value.Boolean );
+   | vtInteger :
+      SetPtrValueInteger( REF Ptr, Value.Integer );
+   | vtAnalog :
+      SetPtrValueAnalog( REF Ptr, Value.Float );
+   ELSE
+      ASSERTLOG( FALSE );
+   END;
+END SetValueToPtr;
 
 (*===========================================================================*)
 
@@ -715,6 +739,17 @@ CLASS IMPLEMENTATION CNS;
 
       I := CreateNewItem( L"Humidity",    ns.ntValue, iovalue.vtFloat, PTRCtor( vtAnalog, 5 )); DataRoot^.AddChild( I );
       I := CreateNewItem( L"Temperature", ns.ntValue, iovalue.vtFloat, PTRCtor( vtAnalog, 6 )); DataRoot^.AddChild( I );
+
+      I := CreateNewItem( L"Humidity setpoint",    ns.ntValue, iovalue.vtFloat, PTRCtor( vtAnalog, 13 )); DataRoot^.AddChild( I );
+      I := CreateNewItem( L"Temperature setpoint", ns.ntValue, iovalue.vtFloat, PTRCtor( vtAnalog, 11 )); DataRoot^.AddChild( I );
+
+      I := CreateNewItem( L"Temperature (bath) setpoint", ns.ntValue, iovalue.vtFloat, PTRCtor( vtAnalog, 29 )); DataRoot^.AddChild( I );
+      I := CreateNewItem( L"Temperature (party) setpoint", ns.ntValue, iovalue.vtFloat, PTRCtor( vtAnalog, 33 )); DataRoot^.AddChild( I );
+      I := CreateNewItem( L"Temperature (standby) setpoint", ns.ntValue, iovalue.vtFloat, PTRCtor( vtAnalog, 31 )); DataRoot^.AddChild( I );
+
+      I := CreateNewItem( L"Humidity (bath) setpoint", ns.ntValue, iovalue.vtFloat, PTRCtor( vtAnalog, 30 )); DataRoot^.AddChild( I );
+      I := CreateNewItem( L"Humidity (party) setpoint", ns.ntValue, iovalue.vtFloat, PTRCtor( vtAnalog, 34 )); DataRoot^.AddChild( I );
+      I := CreateNewItem( L"Humidity (standby) setpoint", ns.ntValue, iovalue.vtFloat, PTRCtor( vtAnalog, 32 )); DataRoot^.AddChild( I );
    END CreateStructure;
 
 (*---------------------------------------------------------------------------*)
@@ -825,7 +860,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
             State := tasIdle;
          ELSE
             State := tasWaitWrite;
-            SendData();
+            _Driven^.SendData( _ItemToWrite );
          END;
       END;
    END EventNAK;
@@ -841,7 +876,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
             _Driven^.AskData();
          ELSE
             State := tasWaitWrite;
-            SendData();
+            _Driven^.SendData( _ItemToWrite );
          END;
       END;
    END EventSTX;
@@ -865,7 +900,7 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
       _ItemToWrite := ItemToWrite;
       IF State = tasIdle THEN
          State := tasWaitWrite;
-         SendData();
+         _Driven^.SendData( _ItemToWrite );
       END;
       RETURN Sync.arPending;
    END EventWrite;
@@ -900,38 +935,6 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
    BEGIN
       Sync.IExchg( REF PINT32( ADR( _State ))^, INT32( Value ));
    END State;
-
-(*---------------------------------------------------------------------------*)
-
-   PRIVATE PROCEDURE SendData();
-   VAR
-      io : iovalue.Value;
-      Packet : TPacket;
-      Wrapper : CPacket;
-   BEGIN
-      IF _ItemToWrite = NIL THEN
-         RETURN;
-      END;
-   
-      Packet.FIRST := 0C;
-      Wrapper.EmptyPacket := ADR( Packet );
-      
-      Wrapper.PacketType := ptData;
-      Wrapper.ValueIndex := GetValueIndexFromPtr( _ItemToWrite^.Data );
-      GetValueFromPtr( _ItemToWrite^.Data, OUT io );
-      CASE GetTypeFromPtr( _ItemToWrite^.Data ) OF
-      | vtAnalog :
-         Wrapper.Analog := io.Float;
-      | vtInteger :
-         Wrapper.Integer := io.Integer;
-      | vtDigital :
-         Wrapper.Digital := io.Boolean;
-      ELSE
-         ASSERTLOG( FALSE );
-      END;
-      
-      _Driven^.SendData( Wrapper.Packet, Wrapper.Length );
-   END SendData;
 
 (*---------------------------------------------------------------------------*)
 
@@ -1040,9 +1043,35 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE SendData( Packet : ADDRESS; Length : CARDINAL );
+   PUBLIC VIRTUAL PROCEDURE SendData( _ItemToWrite : nsitem.TPnsItem );
+   VAR
+      io : iovalue.Value;
+      Packet : TPacket;
+      Wrapper : CPacket;
    BEGIN
-      Tx( OA( Length-1, PBYTE( Packet )), FALSE, 1, 150, 500 );
+      IF _ItemToWrite = NIL THEN
+         RETURN;
+      END;
+   
+      Packet.FIRST := 0C;
+      Wrapper.EmptyPacket := ADR( Packet );
+      Wrapper.PacketType := ptData;
+      Wrapper.DeviceAddress := _DeviceAddress;
+
+      Wrapper.ValueIndex := GetValueIndexFromPtr( _ItemToWrite^.Data );
+      GetValueFromPtr( _ItemToWrite^.Data, OUT io );
+      CASE GetTypeFromPtr( _ItemToWrite^.Data ) OF
+      | vtAnalog :
+         Wrapper.Analog := io.Float;
+      | vtInteger :
+         Wrapper.Integer := io.Integer;
+      | vtDigital :
+         Wrapper.Digital := io.Boolean;
+      ELSE
+         ASSERTLOG( FALSE );
+      END;
+      
+      Tx( OA( Wrapper.Length-1, PBYTE( Wrapper.Packet )), FALSE, 1, 150, 0 );
    END SendData;
 
 (*---------------------------------------------------------------------------*)
@@ -1403,6 +1432,7 @@ CLASS IMPLEMENTATION CIO;
          _Item := Item;
          _Callback := Delegate;
 
+         SetValueToPtr( REF nsitem.TPnsItem( Item )^.Data, Value );
          DeviceAutomaton.EventWrite( _Item );
 
          RETURN Sync.arPending;
@@ -1435,17 +1465,14 @@ CLASS IMPLEMENTATION CIO;
          
          // lookup for item and set data to it
          FOR i := 0 TO DataRoot^.Count-1 DO
-            IF GetValueIndexFromPtr( DataRoot^[i]^.Data ) = Wrapper.ValueIndex THEN
+            IF ( GetValueIndexFromPtr( DataRoot^[i]^.Data ) = Wrapper.ValueIndex ) AND
+               ( GetTypeFromPtr( DataRoot^[i]^.Data ) = Wrapper.ValueType ) THEN
                CASE Wrapper.ValueType OF
                | vtDigital :
                   SetPtrValueDigital( REF DataRoot^[i]^.Data, Wrapper.Digital );
                | vtInteger :
                   SetPtrValueInteger( REF DataRoot^[i]^.Data, Wrapper.Integer );
                | vtAnalog :
-            
-// TODO            
-Log.logger()^.LogSCC( log.dldTrace, L'', L"Analog", Wrapper.ValueIndex, CARDINAL( 100.0 * Wrapper.Analog ));
-            
                   SetPtrValueAnalog( REF DataRoot^[i]^.Data, Wrapper.Analog );
                END; // CASE
                EXIT;
