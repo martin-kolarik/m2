@@ -44,7 +44,7 @@ CONST
    CH_ANALOG      = C'A';
    CH_FILL_BUFFER ::= CH_F;
    
-   POLL_PERIOD_DEFAULT = 15000;
+   POLL_PERIOD_DEFAULT = 30000;
 
 #save, option( pack => 1 )
 TYPE
