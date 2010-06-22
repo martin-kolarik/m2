@@ -74,7 +74,11 @@ TYPE
    
 CONST
    repeatedCommands = TDaliCommands{
-      cmdDTRToMax, cmdDTRToMin, cmdDTRToFail, cmdDTRToPowerOn, cmdDTRToFadeTime, cmdDTRToFadeRate, cmdDTRToAddress, cmdRandomize, cmdInitialize, cmdTerminate
+      cmdDTRToMax, cmdDTRToMin, cmdDTRToFail, cmdDTRToPowerOn, cmdDTRToFadeTime, cmdDTRToFadeRate, cmdDTRToAddress, cmdRandomize, cmdInitialize, cmdTerminate,
+      cmdGroupAdd1 + 0, cmdGroupAdd1 + 1, cmdGroupAdd1 + 2, cmdGroupAdd1 + 3, cmdGroupAdd1 + 4, cmdGroupAdd1 + 5, cmdGroupAdd1 + 6, cmdGroupAdd1 + 7,
+      cmdGroupAdd1 + 8, cmdGroupAdd1 + 9, cmdGroupAdd1 + 10, cmdGroupAdd1 + 11, cmdGroupAdd1 + 12, cmdGroupAdd1 + 13, cmdGroupAdd1 + 14, cmdGroupAdd1 + 15,
+      cmdGroupRemove1 + 0, cmdGroupRemove1 + 1, cmdGroupRemove1 + 2, cmdGroupRemove1 + 3, cmdGroupRemove1 + 4, cmdGroupRemove1 + 5, cmdGroupRemove1 + 6, cmdGroupRemove1 + 7,
+      cmdGroupRemove1 + 8, cmdGroupRemove1 + 9, cmdGroupRemove1 + 10, cmdGroupRemove1 + 11, cmdGroupRemove1 + 12, cmdGroupRemove1 + 13, cmdGroupRemove1 + 14, cmdGroupRemove1 + 15
    };
    respondedCommands = TDaliCommands{
       cmdStatus, cmdWorking, cmdVersion, cmdDeviceType, cmdCurrentLevel, cmdCompare, cmdCheckAddress, cmdGetAddress, cmdReadLongH, cmdReadLongM, cmdReadLongL
