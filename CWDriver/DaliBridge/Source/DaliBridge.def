@@ -62,12 +62,15 @@ TYPE
       
       cmdDTRToAddress = 080H, cmdStatus = 090H, cmdWorking = 091H, cmdVersion = 097H, cmdDeviceType = 099H,
       
-      cmdCurrentLevel = 0A0H,
+      cmdCurrentLevel = 0A0H, cmdCurrentMax = 0A1H, cmdCurrentMin = 0A2H, cmdCurrentPowerOn = 0A3H, cmdCurrentFail = 0A4H, cmdCurrentFadeTimeRate = 0A5H,
+
+      cmdSceneGet1 = 0B0H, cmdSceneGet16 = 0BFH,
+      cmdGetGroupsL = 0C0H, cmdGetGroupsH = 0C1H,
       
-      cmdTerminate = 0A1H, cmdLoadDTR = 0A3H, cmdInitialize = 0A5H, cmdRandomize = 0A7H, cmdCompare = 0A9H, cmdWithdraw = 0ABH,
-      cmdStoreH = 0B1H, cmdStoreM = 0B3H, cmdStoreL = 0B5H, cmdSetAddress = 0B7H, cmdCheckAddress = 0B9H, cmdGetAddress = 0BBH,
-      
-      cmdReadLongH = 0C2H, cmdReadLongM = 0C3H, cmdReadLongL = 0C4H
+      cmdReadLongH = 0C2H, cmdReadLongM = 0C3H, cmdReadLongL = 0C4H,
+
+      cmdTerminate = 01A1H, cmdLoadDTR = 01A3H, cmdInitialize = 01A5H, cmdRandomize = 01A7H, cmdCompare = 01A9H, cmdWithdraw = 01ABH,
+      cmdStoreH = 01B1H, cmdStoreM = 01B3H, cmdStoreL = 01B5H, cmdSetAddress = 01B7H, cmdCheckAddress = 01B9H, cmdGetAddress = 01BBH
    );
    
    TDaliCommands = SET OF TDaliCommand;
@@ -75,13 +78,25 @@ TYPE
 CONST
    repeatedCommands = TDaliCommands{
       cmdDTRToMax, cmdDTRToMin, cmdDTRToFail, cmdDTRToPowerOn, cmdDTRToFadeTime, cmdDTRToFadeRate, cmdDTRToAddress, cmdRandomize, cmdInitialize, cmdTerminate,
+
+      cmdSceneFromDTR1 + 0, cmdSceneFromDTR1 + 1, cmdSceneFromDTR1 + 2, cmdSceneFromDTR1 + 3, cmdSceneFromDTR1 + 4, cmdSceneFromDTR1 + 5, cmdSceneFromDTR1 + 6, cmdSceneFromDTR1 + 7,
+      cmdSceneFromDTR1 + 8, cmdSceneFromDTR1 + 9, cmdSceneFromDTR1 + 10, cmdSceneFromDTR1 + 11, cmdSceneFromDTR1 + 12, cmdSceneFromDTR1 + 13, cmdSceneFromDTR1 + 14, cmdSceneFromDTR1 + 15,
+      cmdSceneRemove1 + 0, cmdSceneRemove1 + 1, cmdSceneRemove1 + 2, cmdSceneRemove1 + 3, cmdSceneRemove1 + 4, cmdSceneRemove1 + 5, cmdSceneRemove1 + 6, cmdSceneRemove1 + 7,
+      cmdSceneRemove1 + 8, cmdSceneRemove1 + 9, cmdSceneRemove1 + 10, cmdSceneRemove1 + 11, cmdSceneRemove1 + 12, cmdSceneRemove1 + 13, cmdSceneRemove1 + 14, cmdSceneRemove1 + 15,
+
       cmdGroupAdd1 + 0, cmdGroupAdd1 + 1, cmdGroupAdd1 + 2, cmdGroupAdd1 + 3, cmdGroupAdd1 + 4, cmdGroupAdd1 + 5, cmdGroupAdd1 + 6, cmdGroupAdd1 + 7,
       cmdGroupAdd1 + 8, cmdGroupAdd1 + 9, cmdGroupAdd1 + 10, cmdGroupAdd1 + 11, cmdGroupAdd1 + 12, cmdGroupAdd1 + 13, cmdGroupAdd1 + 14, cmdGroupAdd1 + 15,
       cmdGroupRemove1 + 0, cmdGroupRemove1 + 1, cmdGroupRemove1 + 2, cmdGroupRemove1 + 3, cmdGroupRemove1 + 4, cmdGroupRemove1 + 5, cmdGroupRemove1 + 6, cmdGroupRemove1 + 7,
       cmdGroupRemove1 + 8, cmdGroupRemove1 + 9, cmdGroupRemove1 + 10, cmdGroupRemove1 + 11, cmdGroupRemove1 + 12, cmdGroupRemove1 + 13, cmdGroupRemove1 + 14, cmdGroupRemove1 + 15
    };
    respondedCommands = TDaliCommands{
-      cmdStatus, cmdWorking, cmdVersion, cmdDeviceType, cmdCurrentLevel, cmdCompare, cmdCheckAddress, cmdGetAddress, cmdReadLongH, cmdReadLongM, cmdReadLongL
+      cmdStatus, cmdWorking, cmdVersion, cmdDeviceType, cmdCurrentLevel, cmdCompare, cmdCheckAddress, cmdGetAddress,
+      cmdReadLongH, cmdReadLongM, cmdReadLongL,
+      cmdGetGroupsL, cmdGetGroupsH,
+      cmdCurrentLevel, cmdCurrentMax, cmdCurrentMin, cmdCurrentPowerOn, cmdCurrentFail, cmdCurrentFadeTimeRate,
+
+      cmdSceneGet1 + 0, cmdSceneGet1 + 1, cmdSceneGet1 + 2, cmdSceneGet1 + 3, cmdSceneGet1 + 4, cmdSceneGet1 + 5, cmdSceneGet1 + 6, cmdSceneGet1 + 7, 
+      cmdSceneGet1 + 8, cmdSceneGet1 + 9, cmdSceneGet1 + 10, cmdSceneGet1 + 11, cmdSceneGet1 + 12, cmdSceneGet1 + 13, cmdSceneGet1 + 14, cmdSceneGet1 + 15
    };
    specialCommands = TDaliCommands{
       cmdTerminate, cmdLoadDTR, cmdInitialize, cmdRandomize, cmdCompare, cmdWithdraw, cmdStoreH, cmdStoreM, cmdStoreL, cmdSetAddress, cmdCheckAddress, cmdGetAddress
@@ -210,7 +225,7 @@ END CDaliAddressProgrammer;
 INTERFACE IDaliEventSink; // in-thread
    LOCAL PROCEDURE OnDeviceFound( CONST Dali : StringsO.CString; Linie : TDaliLinie; CONST Address : DaliAddress; LongAddress : CARDINAL );
    LOCAL PROCEDURE OnProgrammingStopped( Result : Sync.TAsyncResult; CONST Dali : StringsO.CString; Linie : TDaliLinie );
-   LOCAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; CONST Dali : StringsO.CString; Linie : TDaliLinie; CONST daliAddress : DaliAddress; Command : TDaliCommand; Data : CARD8; ClientId : PTR; CONST userId : StringsO.TPString );
+   LOCAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; CONST Dali : StringsO.CString; Linie : TDaliLinie; CONST daliAddress : DaliAddress; Command : TDaliCommand; Data : CARD32; ClientId : PTR; CONST userId : StringsO.TPString );
 END IDaliEventSink;
 
 (*-------------------------------------------------------------------------------*)
@@ -304,7 +319,7 @@ CLASS CDali IMPLEMENTS IDaliEventSink;
    // IDaliEventSink      
    LOCAL VIRTUAL PROCEDURE OnDeviceFound( CONST Dali : StringsO.CString; Linie : TDaliLinie; CONST Address : DaliAddress; LongAddress : CARDINAL );
    LOCAL VIRTUAL PROCEDURE OnProgrammingStopped( Result : Sync.TAsyncResult; CONST Dali : StringsO.CString; Linie : TDaliLinie );
-   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; CONST Dali : StringsO.CString; Linie : TDaliLinie; CONST daliAddress : DaliAddress; Command : TDaliCommand; Data : CARD8; ClientId : PTR; CONST UserId : StringsO.TPString );
+   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; CONST Dali : StringsO.CString; Linie : TDaliLinie; CONST daliAddress : DaliAddress; Command : TDaliCommand; Data : CARD32; ClientId : PTR; CONST UserId : StringsO.TPString );
    
    // SELF
    PUBLIC PROCEDURE CreateDali( CONST SourceLogger : log.CLogger; CONST Name, Server, Port : ARRAY OF WCHAR; PollClientId : PTR; OutputQueueLength, SendDelay : CARDINAL; OUT Error : StringsO.CString ) : BOOLEAN;

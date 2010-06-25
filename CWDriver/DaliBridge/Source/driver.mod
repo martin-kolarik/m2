@@ -48,7 +48,7 @@ CLASS ExceptionItem;
       Linie : DaliBridge.TDaliLinie := DaliBridge.l1;
       Address : DaliBridge.DaliAddress;
       LongAddress : CARDINAL := 0;
-      Value : CARD8 := 0;
+      Value : CARD32 := 0;
       UserId : StringsO.CString;
 END ExceptionItem;
 
@@ -378,6 +378,7 @@ CLASS IMPLEMENTATION CDriver;
       Linie : DaliBridge.TDaliLinie;
       N : ARRAY [0..15] OF WCHAR;
       S1, S2, S3, S4 : ARRAY [0..63] OF WCHAR;
+      sceneNumber : CARDINAL;
       tr : TextReader.CTextReader;
       
       //-----
@@ -597,21 +598,35 @@ CLASS IMPLEMENTATION CDriver;
                   Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue ", L"reset interface" );
                END; // CASE ExceptionType
 
+               sceneNumber := -1;
                CASE ExceptionType OF
                | eitEvent, eitRead, eitPollStatus :
-                  CASE ExceptionItem^.Command OF
-                  | DaliBridge.cmdStatus :
+                  CASE CARDINAL( ExceptionItem^.Command ) OF
+                  | CARDINAL( DaliBridge.cmdStatus ):
                      CS.FromOA( L"status " );  
-                  | DaliBridge.cmdWorking :
+                  | CARDINAL( DaliBridge.cmdWorking ):
                      CS.FromOA( L"present " );
-                  | DaliBridge.cmdDeviceType :
+                  | CARDINAL( DaliBridge.cmdDeviceType ):
                      CS.FromOA( L"type " );
-                  | DaliBridge.cmdVersion :
+                  | CARDINAL( DaliBridge.cmdVersion ):
                      CS.FromOA( L"version " );
-                  | DaliBridge.cmdCurrentLevel :
+                  | CARDINAL( DaliBridge.cmdCurrentLevel ):
                      CS.FromOA( L"level " );
-                  | DaliBridge.cmdEvent :
+                  | CARDINAL( DaliBridge.cmdEvent ):
                      CS.FromOA( L"value " );
+                  | CARDINAL( DaliBridge.cmdCurrentMin ):
+                     CS.FromOA( L'minimum' );
+                  | CARDINAL( DaliBridge.cmdCurrentMax ):
+                     CS.FromOA( L'maximum' );
+                  | CARDINAL( DaliBridge.cmdCurrentPowerOn ):
+                     CS.FromOA( L'power_on_level' );
+                  | CARDINAL( DaliBridge.cmdCurrentFail ):
+                     CS.FromOA( L'failure_level' );
+                  | CARDINAL( DaliBridge.cmdCurrentFadeTimeRate ):
+                     CS.FromOA( L'fade' );
+                  | CARDINAL( DaliBridge.cmdSceneGet1 )..CARDINAL( DaliBridge.cmdSceneGet16 ):
+                     CS.FromOA( L'scene_level' );
+                     sceneNumber := CARDINAL( ExceptionItem^.Command ) - CARDINAL( DaliBridge.cmdSceneGet1 ) + 1;
                   ELSE
                      CS.FromOA( L"value " );
                   END;
@@ -647,6 +662,12 @@ CLASS IMPLEMENTATION CDriver;
                      ELSE
                         Strings.FromCARD32W( CARD32( ExceptionItem^.Value ), 10, OUT N );
                         CS.AppendOA( N );
+                        
+                        IF sceneNumber <> -1 THEN
+                           CS.AppendOA( L" " );
+                           Strings.FromCARD32W( sceneNumber, 10, OUT N );
+                           CS.AppendOA( N );
+                        END;
                      END;
 
                   ELSIF ExceptionItem^.Result = Sync.arTimeout THEN
@@ -773,6 +794,18 @@ CLASS IMPLEMENTATION CDriver;
             command := DaliBridge.cmdVersion;
          ELSIF EQUALS( S3, L'level' ) THEN
             command := DaliBridge.cmdCurrentLevel;
+         ELSIF EQUALS( S3, L'minimum' ) THEN
+            command := DaliBridge.cmdCurrentMin;
+         ELSIF EQUALS( S3, L'maximum' ) THEN
+            command := DaliBridge.cmdCurrentMax;
+         ELSIF EQUALS( S3, L'power_on_level' ) THEN
+            command := DaliBridge.cmdCurrentPowerOn;
+         ELSIF EQUALS( S3, L'failure_level' ) THEN
+            command := DaliBridge.cmdCurrentFail;
+         ELSIF EQUALS( S3, L'fade' ) THEN
+            command := DaliBridge.cmdCurrentFadeTimeRate;
+         ELSIF EQUALS( S3, L'groups' ) THEN
+            command := DaliBridge.cmdGetGroupsH; // it must be started with H
          ELSE
             CS.FromOA( L'error: bad get command parameter' );
             GOTO Error;
@@ -947,6 +980,22 @@ CLASS IMPLEMENTATION CDriver;
          END;
 
          IF NOT Send( eitParam, daliDevice, Linie, address, DaliBridge.TDaliCommand( DaliBridge.cmdSceneRemove1 + c ), 0, L'' ) THEN
+            GOTO Error;
+         END;
+         CS.Clear(); // return value
+
+      ELSIF EQUALS( S1, L'get_scene_level' ) THEN
+         IF NOT SplitAddress( FALSE, FALSE, FALSE, FALSE, REF S2, OUT daliDevice, OUT Linie, REF address ) THEN
+            GOTO Error;
+         END;
+
+         IF NOT Strings.ToCARD32W( S3, 10, OUT c ) OR ( c > 15 ) THEN
+            CS.FromOA( L'error: bad scene number: ' );
+            CS.AppendOA( S3 );
+            GOTO Error;
+         END;
+
+         IF NOT Send( eitRead, daliDevice, Linie, address, DaliBridge.TDaliCommand( DaliBridge.cmdSceneGet1 + c ), 0, S4 ) THEN
             GOTO Error;
          END;
          CS.Clear(); // return value
@@ -1231,7 +1280,7 @@ CLASS IMPLEMENTATION CDriver;
 
 //================================================================================
 
-   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; CONST DaliName : StringsO.CString; Linie : DaliBridge.TDaliLinie; CONST daliAddress : DaliBridge.DaliAddress; Command : DaliBridge.TDaliCommand; Data : CARD8; ClientId : PTR; CONST UserId : StringsO.TPString );
+   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; CONST DaliName : StringsO.CString; Linie : DaliBridge.TDaliLinie; CONST daliAddress : DaliBridge.DaliAddress; Command : DaliBridge.TDaliCommand; Data : CARD32; ClientId : PTR; CONST UserId : StringsO.TPString );
    VAR
       exceptionItem : TPExceptionItem;
    BEGIN

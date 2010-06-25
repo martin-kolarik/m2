@@ -1,7 +1,7 @@
 IMPLEMENTATION MODULE DaliBridge;
 
 FROM Debug IMPORT
-   Assertion;
+   Assertion, LogAssertionW;
 
 FROM log IMPORT
    dldError, dldMessage, dldTrace, dldDebug;
@@ -1042,6 +1042,7 @@ CLASS DaliRequest;
       Data : CARD8;
       LongData : ADDRESS;
       UserId : StringsO.CString;
+      Groups : CARD32 := 0;
 END DaliRequest;
 
 (*-------------------------------------------------------------------------------*)
@@ -1178,13 +1179,17 @@ CLASS IMPLEMENTATION CDaliDevice;
 (*-------------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE Stop();
+   VAR
+      Request : TPDaliRequest;
    BEGIN
       IF NOT Running THEN
          RETURN;
       END;
       Running := FALSE;
       
-      Queue.Clear();
+      WHILE Queue.Dequeue( OUT Request ) DO
+         DISPOSE( Request );
+      END; // WHILE
       Communicator^.Stop();
 
       IF PollTimer <> NIL THEN
@@ -1200,6 +1205,7 @@ CLASS IMPLEMENTATION CDaliDevice;
          Logger.LogSC( dldMessage, logDevPrefix, L"Unable to send command in programming mode: ", CARDINAL( _Command ));
          RETURN Sync.arCannotStart;
       ELSE
+         ASSERTLOG( _Command <> cmdGetGroupsL );
          RETURN FeedCommand( Linie, TPDaliAddress( ADR( daliAddress )), _Command, Data, NIL, ClientId, userId );
       END;
    END Command;
@@ -1399,10 +1405,12 @@ CLASS IMPLEMENTATION CDaliDevice;
       address : CARDINAL;
       CurrentNext : TCommand;
       da : DaliAddress;
+      disposeRequest : BOOLEAN := TRUE;
       fileItem : PBYTE;
       i : CARDINAL;
       linie : TDaliLinie;
       Response : CARD8 := 0;
+      Response32 : CARD32 := 0;
       Request : TPDaliRequest;
    BEGIN
       IF EventFlag THEN
@@ -1416,7 +1424,7 @@ CLASS IMPLEMENTATION CDaliDevice;
                linie := l1;
             END; // CASE
             da.TransportAddress := Data[1];
-            EventSink^.OnCompletion( Result, Name, linie, da, cmdEvent, Data[2], 0, NIL );
+            EventSink^.OnCompletion( Result, Name, linie, da, cmdEvent, CARD32( Data[2] ), 0, NIL );
          END;
       
       ELSIF Queue.Peek( OUT Request ) THEN
@@ -1475,6 +1483,7 @@ CLASS IMPLEMENTATION CDaliDevice;
 
             ELSIF EventSink <> NIL THEN
                LogRequest( dldDebug, L"FIN: ", Request, Result, TRUE, TRUE, FALSE );
+               Response32 := CARD32( Response );
 
                IF Request^.ClientId = _PollClientId THEN // response to polling
                   address := Request^.Address.Address;
@@ -1482,20 +1491,38 @@ CLASS IMPLEMENTATION CDaliDevice;
                   IF Result = Sync.arCompleted THEN
                      IF StatusArray[Request^.Linie][address] <> Response THEN // unchanged status is not reported
                         StatusArray[Request^.Linie][address] := Response;
-                        EventSink^.OnCompletion( Result, Name, Request^.Linie, Request^.Address, Request^.Command, Response, Request^.ClientId, ADR( Request^.UserId ));
+                        EventSink^.OnCompletion( Result, Name, Request^.Linie, Request^.Address, Request^.Command, Response32, Request^.ClientId, ADR( Request^.UserId ));
                      END;
                   ELSE
                      IF StatusArray[Request^.Linie][address] <> 0FFH THEN // device was found sooner, but now it is unknown, report dismiss
                         StatusArray[Request^.Linie][address] := 0FFH;
-                        EventSink^.OnCompletion( Result, Name, Request^.Linie, Request^.Address, Request^.Command, Response, Request^.ClientId, ADR( Request^.UserId ));
+                        EventSink^.OnCompletion( Result, Name, Request^.Linie, Request^.Address, Request^.Command, Response32, Request^.ClientId, ADR( Request^.UserId ));
                      END;
                   END;
+
+               // check if first part of light groups is read and start next one
+               ELSIF ( Request^.Command = cmdGetGroupsH ) AND ( Result = Sync.arCompleted ) THEN
+                  Request^.Pending := FALSE;
+                  Request^.Command := cmdGetGroupsL;
+                  Request^.Groups := Response32 << 8;
+                  disposeRequest := FALSE;
+               
+               // check if second part of light groups is read and complete the request
+               ELSIF ( Request^.Command = cmdGetGroupsL ) AND ( Result = Sync.arCompleted ) THEN
+                  Response32 := Request^.Groups OR Response32;
+                  EventSink^.OnCompletion( Result, Name, Request^.Linie, Request^.Address, Request^.Command, Response32, Request^.ClientId, ADR( Request^.UserId ));
+               
+               // normal finished request
                ELSE
-                  EventSink^.OnCompletion( Result, Name, Request^.Linie, Request^.Address, Request^.Command, Response, Request^.ClientId, ADR( Request^.UserId ));
+                  EventSink^.OnCompletion( Result, Name, Request^.Linie, Request^.Address, Request^.Command, Response32, Request^.ClientId, ADR( Request^.UserId ));
                END;
 
             END;
-            DISPOSE( Request );
+            IF disposeRequest THEN
+               DISPOSE( Request );
+            ELSE // reuse the request
+               Queue.Enqueue( Request );
+            END;
             
             // flush queue
             WHILE Queue.Count > QueueLength DO
@@ -1951,7 +1978,7 @@ CLASS IMPLEMENTATION CDali;
 
 (*-------------------------------------------------------------------------------*)
 
-   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; CONST Dali : StringsO.CString; Linie : TDaliLinie; CONST daliAddress : DaliAddress; Command : TDaliCommand; Data : CARD8; ClientId : PTR; CONST UserId : StringsO.TPString );
+   LOCAL VIRTUAL PROCEDURE OnCompletion( Result : Sync.TAsyncResult; CONST Dali : StringsO.CString; Linie : TDaliLinie; CONST daliAddress : DaliAddress; Command : TDaliCommand; Data : CARD32; ClientId : PTR; CONST UserId : StringsO.TPString );
    BEGIN
       IF EventSink <> NIL THEN
          EventSink^.OnCompletion( Result, Dali, Linie, daliAddress, Command, Data, ClientId, UserId );
