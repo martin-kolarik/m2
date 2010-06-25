@@ -1,4 +1,13 @@
-Version 1.0.1253/D beta 4.6.2010
+Version 1.0.1255/D beta 25.6.2010
+- BUG: #219, commands to set (reset) device scene level did not work,
+       corresponding DALI commands were not sent twice
+- NEW: #218, new commads "get minimum", "get maximum", "get power_on_level",
+       "get failure_level", "get fade", "get groups", "get_scene_level <adr> <scene>"
+       were added. All commands have their new corresponding events.
+       "scene_level" event is supplied with last parameter containing the
+       scene number.
+
+Version 1.0.1253/D beta 22.6.2010
 - BUG: #217, commands to add (remove) device to (from) group did not work,
        corresponding DALI commands were not sent twice
 
