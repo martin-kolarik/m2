@@ -36,12 +36,12 @@
         <M2CTRL>$(M2CTRL) -W8 -W9 -W10 -W11 -DDEBUG:$(Debug)</M2CTRL>
         <M2CTRL Condition="$(CPPExceptions)=='on'">$(M2CTRL) -SE</M2CTRL>
         <M2CTRL Condition="$(LeakChecking)=='on'">$(M2CTRL) -SM</M2CTRL>
-        <CLCTRL>/Zp8 /J /Gy /Gr /Gs /GF /GS- /Oi /Zi /Wp64</CLCTRL><!-- Gs commits stack, its default commit threshold is 4K, the same as linker sets for initial stack commit -->
+        <CLCTRL>/Zp8 /J /Gy /Gr /Gs /GF /GS- /Oi /Zi /MP</CLCTRL><!-- Gs commits stack, its default commit threshold is 4K, the same as linker sets for initial stack commit -->
         <CLCTRL Condition="$(CPPExceptions)=='on'">$(CLCTRL) /GR /EHsc</CLCTRL>
         <CLCTRL Condition="$(CPPExceptions)!='on'">$(CLCTRL) /GR-</CLCTRL>
         <!-- CLCTRL>$(CLCTRL) /W4 /wd4018 /wd4100 /wd4102 /wd4127 /wd4146 /wd4245</CLCTRL -->
         <!-- CLCTRL Condition="$(CLib)!='Static' And $(DynamicCLibInstallMethod)=='Private'">$(CLCTRL) /D_USE_RTM_VERSION</CLCTRL -->
-        <LINKCTRL>/OPT:REF /OPT:NOWIN98 /MERGE:.rdata=.text /IGNORE:4049 /IGNORE:4199 /IGNORE:4210 /IGNORE:4217 delayimp.lib</LINKCTRL>
+        <LINKCTRL>/OPT:REF /MERGE:.rdata=.text /IGNORE:4049 /IGNORE:4199 /IGNORE:4210 /IGNORE:4217 delayimp.lib</LINKCTRL>
         <LINKCTRL Condition="$(ResultSubsystem)=='Console'">$(LINKCTRL) /SUBSYSTEM:CONSOLE</LINKCTRL>
         <LINKCTRL Condition="$(ResultSubsystem)=='GUI'">$(LINKCTRL) /SUBSYSTEM:WINDOWS</LINKCTRL>
         <LINKCTRL Condition="$(CLib)=='Static'">$(LINKCTRL) /MANIFEST:NO</LINKCTRL>
