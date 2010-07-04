@@ -43,7 +43,7 @@ CLASS IMPLEMENTATION CSupport;
    VAR
       Result : Sync.TAsyncResult;
    BEGIN
-      Result := ThreadCall( ADR( SELF ), OP_JOIN, OA( 0, ADR( Handler )), NIL, TRUE, Sync.FORSAFETY );
+      Result := DispatchCall( ADR( SELF ), OP_JOIN, OA( 0, ADR( Handler )), NIL, TRUE, Sync.FORSAFETY );
       ASSERTLOG( Result <> Sync.arTimeout );
    END Join;
 
@@ -53,7 +53,7 @@ CLASS IMPLEMENTATION CSupport;
    VAR
       Result : Sync.TAsyncResult;
    BEGIN
-      Result := ThreadCall( ADR( SELF ), OP_LEAVE, OA( 0, ADR( Handler )), NIL, TRUE, Sync.FORSAFETY );
+      Result := DispatchCall( ADR( SELF ), OP_LEAVE, OA( 0, ADR( Handler )), NIL, TRUE, Sync.FORSAFETY );
       ASSERTLOG( Result <> Sync.arTimeout );
    END Leave;
    
@@ -68,7 +68,7 @@ CLASS IMPLEMENTATION CSupport;
       Parameters[1] := TimerId;
       Parameters[2] := PeriodMS;
       Parameters[3] := PTR( Repeat );
-      Result := ThreadCall( ADR( SELF ), OP_START_TIMER, Parameters, NIL, TRUE, Sync.FORSAFETY );
+      Result := DispatchCall( ADR( SELF ), OP_START_TIMER, Parameters, NIL, TRUE, Sync.FORSAFETY );
       ASSERTLOG( Result <> Sync.arTimeout );
    END StartTimer;
 
@@ -81,14 +81,14 @@ CLASS IMPLEMENTATION CSupport;
    BEGIN
       Parameters[0] := Target;
       Parameters[1] := TimerId;
-      Result := ThreadCall( ADR( SELF ), OP_STOP_TIMER, Parameters, NIL, TRUE, Sync.FORSAFETY );
+      Result := DispatchCall( ADR( SELF ), OP_STOP_TIMER, Parameters, NIL, TRUE, Sync.FORSAFETY );
       ASSERTLOG( Result <> Sync.arTimeout );
    END StopTimer;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE ThreadCall( Target : threadcall.TPIThreadProcedureCallTarget; Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;
-                                WaitForResult : BOOLEAN; WaitTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC PROCEDURE DispatchCall( Target : threadcall.TPIThreadProcedureCallTarget; Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;
+                                  WaitForResult : BOOLEAN; WaitTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    VAR
       Call : threadcall.TPThreadProcedureCall;
       MSG : msghandler.Message;
@@ -127,7 +127,7 @@ CLASS IMPLEMENTATION CSupport;
          PReturnValue^ := ReturnValue;
       END;
       RETURN Sync.arCompleted;
-   END ThreadCall;                         
+   END DispatchCall;                         
 
 (*---------------------------------------------------------------------------*)
 

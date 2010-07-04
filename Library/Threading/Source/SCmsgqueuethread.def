@@ -15,7 +15,7 @@ IMPORT
   
 #save, option( dll_export => on )
 
-CLASS SCMessageQueueThread( Win32thread.Win32Thread ) IMPLEMENTS threadcall.IThreadProcedureCallHandler, OSALmsg.IMessageQueueThread;
+CLASS SCMessageQueueThread( Win32thread.Win32Thread ) IMPLEMENTS threadcall.IThreadProcedureCallDispatcher, OSALmsg.IMessageQueueThread;
    PRIVATE VAR
       Consume : Sync.SIGNAL;
       Produce : Sync.SIGNAL;
@@ -26,9 +26,9 @@ CLASS SCMessageQueueThread( Win32thread.Win32Thread ) IMPLEMENTS threadcall.IThr
    // IThread/IRunnable
    INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    
-   // IThreadProcedureCallHandler
-   PUBLIC FINAL PROCEDURE ThreadCall( Target : threadcall.TPIThreadProcedureCallTarget; Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;
-                                      WaitForResult : BOOLEAN; WaitTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   // IThreadProcedureCallDispatcher
+   PUBLIC FINAL PROCEDURE DispatchCall( Target : threadcall.TPIThreadProcedureCallTarget; Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;
+                                        WaitForResult : BOOLEAN; WaitTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    
    // IMessageTarget
    INTERNAL VIRTUAL PROCEDURE OnMessage( CONST Msg : msghandler.IMessage; OUT Result : PTR ) : BOOLEAN; // thread targetted messages

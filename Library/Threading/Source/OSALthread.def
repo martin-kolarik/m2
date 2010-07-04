@@ -56,10 +56,14 @@ END IThreadProcedureCallTarget;
 
 (*---------------------------------------------------------------------------*)
 
-INTERFACE IThreadProcedureCallHandler;
-   PUBLIC PROCEDURE ThreadCall( Target : TPIThreadProcedureCallTarget; Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;
-                                WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
-END IThreadProcedureCallHandler;
+TYPE
+   TPIThreadProcedureCallDispatcher = POINTER TO IThreadProcedureCallDispatcher;
+
+INTERFACE IThreadProcedureCallDispatcher;
+   PUBLIC PROCEDURE DispatchCall( Target : TPIThreadProcedureCallTarget;
+                                  Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;
+                                  WaitForResult : BOOLEAN; TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+END IThreadProcedureCallDispatcher;
 
 (*===========================================================================*)
 

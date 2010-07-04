@@ -52,7 +52,7 @@ CLASS CTest IMPLEMENTS test.ITest;
       Host : test.TPHost := NIL;
       ServerListener : CServerListener;
       ClientListener : CClientListener;
-      ClientConnection : rawconnection.TPTCPConnection := NIL;
+      ClientConnection : rawconnection.TPClientTCPConnection := NIL;
       ClientCount : CARDINAL := 0;
       ServerCount : CARDINAL := 0;
       Limit : INTEGER := 0;

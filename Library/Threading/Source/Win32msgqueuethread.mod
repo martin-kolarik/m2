@@ -71,11 +71,11 @@ CLASS IMPLEMENTATION Win32MessageQueueThread;
    
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROCEDURE ThreadCall( Target : threadcall.TPIThreadProcedureCallTarget; Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;
-                                      WaitForResult : BOOLEAN; WaitTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC FINAL PROCEDURE DispatchCall( Target : threadcall.TPIThreadProcedureCallTarget; Operation : CARDINAL; CONST Parameters : ARRAY OF PTR; PReturnValue : POINTER TO PTR;
+                                        WaitForResult : BOOLEAN; WaitTimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    BEGIN
-      RETURN Support^.ThreadCall( Target, Operation, Parameters, PReturnValue, WaitForResult, WaitTimeoutMS );
-   END ThreadCall;
+      RETURN Support^.DispatchCall( Target, Operation, Parameters, PReturnValue, WaitForResult, WaitTimeoutMS );
+   END DispatchCall;
 
 (*---------------------------------------------------------------------------*)
 

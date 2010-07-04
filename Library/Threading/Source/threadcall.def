@@ -16,7 +16,8 @@ CONST
    TPIThreadProcedureCallTarget ::= OSALthread.TPIThreadProcedureCallTarget;
 
    // usually message thread
-   IThreadProcedureCallHandler ::= OSALthread.IThreadProcedureCallHandler;
+   IThreadProcedureCallDispatcher ::= OSALthread.IThreadProcedureCallDispatcher;
+   TPIThreadProcedureCallDispatcher ::= OSALthread.TPIThreadProcedureCallDispatcher;
 
 (*===========================================================================*)
 
