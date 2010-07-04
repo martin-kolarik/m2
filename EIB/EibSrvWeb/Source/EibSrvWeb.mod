@@ -61,7 +61,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       END;
 
       _Connected := TRUE;
-      _ConnectedTime := time.GetCurrentJD();
+      _ConnectedTime := datetime.GetCurrentJD();
       
       _Lock.UnlockWrite();
    END OnConnect;
@@ -76,7 +76,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       END;
 
       _Connected := FALSE;
-      _DisconnectedTime := time.GetCurrentJD();
+      _DisconnectedTime := datetime.GetCurrentJD();
       
       _Lock.UnlockWrite();
    END OnDisconnect;
@@ -97,7 +97,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
    PUBLIC VIRTUAL PROCEDURE OnWritten( PObject : srvcore.TPObject );
    VAR
-      dt : time.DateTime;
+      dt : datetime.DateTime;
    BEGIN
       dt.SetNowUTC();
       AdjustHours( dt, REF _WrittenByHour, REF _WrittenByHourModified );
@@ -109,7 +109,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
    PUBLIC VIRTUAL PROCEDURE OnInputQueueAdd( OOBQueue, PromiscuousQueue : BOOLEAN );
    VAR
-      dt : time.DateTime;
+      dt : datetime.DateTime;
    BEGIN
       dt.SetNowUTC();
       AdjustHours( dt, REF _GotByHour, REF _GotByHourModified );
@@ -217,7 +217,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY StartedTime GET : time.TJD;
+   PUBLIC PROPERTY StartedTime GET : datetime.TJD;
    BEGIN
       // no need to lock, value written once
       RETURN _StartedTime;
@@ -225,9 +225,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY ConnectedTime  GET : time.TJD;
+   PUBLIC PROPERTY ConnectedTime  GET : datetime.TJD;
    VAR
-      connectedTime : time.TJD;
+      connectedTime : datetime.TJD;
    BEGIN
       IF _Lock.LockRead( Sync.FORSAFETY ) = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
@@ -241,9 +241,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY DisconnectedTime  GET : time.TJD;
+   PUBLIC PROPERTY DisconnectedTime  GET : datetime.TJD;
    VAR
-      connectedTime : time.TJD;
+      connectedTime : datetime.TJD;
    BEGIN
       IF _Lock.LockRead( Sync.FORSAFETY ) = Sync.arTimeout THEN
          ASSERTLOG( FALSE );
@@ -257,9 +257,9 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY LicenceExpires GET : time.DateTime;
+   PUBLIC PROPERTY LicenceExpires GET : datetime.DateTime;
    VAR
-      startTime : time.DateTime;
+      startTime : datetime.DateTime;
    BEGIN
       // no need to sync
       IF _EIB^.PResult^.Suspended THEN
@@ -314,7 +314,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
    PUBLIC PROPERTY WrittenByHour GET : CARDINAL;
    VAR
-      dt : time.DateTime;
+      dt : datetime.DateTime;
    BEGIN
       dt.SetNowUTC();
       AdjustHours( dt, REF _WrittenByHour, REF _WrittenByHourModified );
@@ -327,7 +327,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    PUBLIC PROPERTY WrittenByDay GET : CARDINAL;
    VAR
       byDay : CARDINAL := 0;
-      dt : time.DateTime;
+      dt : datetime.DateTime;
       i : CARDINAL;
    BEGIN
       dt.SetNowUTC();
@@ -343,7 +343,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
    PUBLIC PROPERTY ReadByHour GET : CARDINAL;
    VAR
-      dt : time.DateTime;
+      dt : datetime.DateTime;
    BEGIN
       dt.SetNowUTC();
       AdjustHours( dt, REF _GotByHour, REF _GotByHourModified );
@@ -356,7 +356,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
    PUBLIC PROPERTY ReadByDay GET : CARDINAL;
    VAR
       byDay : CARDINAL := 0;
-      dt : time.DateTime;
+      dt : datetime.DateTime;
       i : CARDINAL;
    BEGIN
       dt.SetNowUTC();
@@ -1006,7 +1006,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          _GotByHourModified[i] := 0;
          _GotByHour[i] := 0;
       END; // FOR
-      _StartedTime := time.GetCurrentJD();      
+      _StartedTime := datetime.GetCurrentJD();      
 
       // hook EIB
       _EIB^.EventSink := ADR( SELF );
@@ -1207,12 +1207,12 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE AdjustHours( CONST dt : time.DateTime; REF hours : ARRAY OF CARDINAL; REF modified : ARRAY OF time.TJD );
+   PRIVATE PROCEDURE AdjustHours( CONST dt : datetime.DateTime; REF hours : ARRAY OF CARDINAL; REF modified : ARRAY OF datetimetime.TJD );
    CONST
-      TWENTY_THREE_HOURS = time.unitsInDay DIV 24 * 23 - 1;
+      TWENTY_THREE_HOURS = datetime.unitsInDay DIV 24 * 23 - 1;
    VAR
       i : CARDINAL;
-      jd : time.TJD := dt.JulianDate;
+      jd : datetime.TJD := dt.JulianDate;
       locked : BOOLEAN := FALSE;
    BEGIN
       IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN

@@ -6,13 +6,13 @@ FROM Storage IMPORT
 IMPORT
    HttpCommon,
    HttpSrv,
+   datetime,
    inetaddr,
    lists,
    Log,
    sha256,
    StringsO,
    Sync,
-   time,
    TimeoutableTwoPtrMap,
    threadpool;
 
@@ -98,9 +98,9 @@ ABSTRACT CLASS ASrvStream( IOO.AStream ); // synchronous implementation only
       ResponseLength : CARD64;
       OverrideStatusResponse : BOOLEAN; // Default = FALSE means server generates self error pages
       AllowCaching : BOOLEAN;
-      LastModified : time.DateTime;
+      LastModified : datetime.DateTime;
 
-   PUBLIC PROCEDURE TestConditions( CONST ResourceLastModified : time.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
+   PUBLIC PROCEDURE TestConditions( CONST ResourceLastModified : datetime.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
 
    // private, not for clients
    LOCAL PROCEDURE StartHandleRequest() : Sync.TAsyncResult;

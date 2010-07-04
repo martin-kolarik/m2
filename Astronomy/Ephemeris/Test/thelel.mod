@@ -2,10 +2,10 @@ MODULE thelel;
 
 IMPORT
 	astro,
+   datetime,
 	FIO,
 	math,
 	Strings,
-	time,
 	windows;
 	
 	TYPE
@@ -100,7 +100,7 @@ IMPORT
 		IF argc > 10 THEN
 			Strings.ToLONGREALW( OAsz( argp^[10] ), OUT jd );
 		ELSE
-			jd := time.GetCurrentJD();
+			jd := datetime.GetCurrentJD();
 		END;
 		
 		refpar.tC := 15.0;

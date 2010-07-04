@@ -7,13 +7,13 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   datetime,
    log,
    Strings,
    Sync,
    SyncQueue,
    test,
    testimpl,
-   time,
    windows;
   
 (*===========================================================================*)

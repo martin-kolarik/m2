@@ -793,7 +793,7 @@ CLASS CHttpRequest IMPLEMENTS IHttpRequest;
       Session : HttpSrv.TPSession;
       MessageSource : TPMessageSource; // messages are loaded single time for MVC's context, can be NIL
       
-   PUBLIC VIRTUAL PROCEDURE TestConditions( CONST ResourceLastModified : time.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
+   PUBLIC VIRTUAL PROCEDURE TestConditions( CONST ResourceLastModified : datetime.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
 
    // SELF
    PRIVATE VAR
@@ -900,7 +900,7 @@ CLASS IMPLEMENTATION CHttpRequest;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE TestConditions( CONST ResourceLastModified : time.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
+   PUBLIC VIRTUAL PROCEDURE TestConditions( CONST ResourceLastModified : datetime.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
    BEGIN
       IF _Connection^.Stream^ INHERITS SrvCommon.ASrvStream THEN
          RETURN SrvCommon.TPSrvStream( _Connection^.Stream )^.TestConditions( ResourceLastModified, ResourceName );
@@ -942,7 +942,7 @@ CLASS CHttpResponse IMPLEMENTS IHttpResponse;
       Chunked : BOOLEAN; // default FALSE
       OverrideStatusResponse : BOOLEAN; // default FALSE
       AllowCaching : BOOLEAN;
-      LastModified : time.DateTime;
+      LastModified : datetime.DateTime;
 
    PUBLIC VIRTUAL READONLY PROPERTY
       ResponseHeaders : HttpCommon.TPHttpHeaders;
@@ -1045,14 +1045,14 @@ CLASS IMPLEMENTATION CHttpResponse;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY LastModified GET : time.DateTime;
+   PUBLIC VIRTUAL PROPERTY LastModified GET : datetime.DateTime;
    BEGIN
       RETURN _Connection^.LastModified;
    END LastModified;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY LastModified SET( CONST Value : time.DateTime );
+   PUBLIC VIRTUAL PROPERTY LastModified SET( CONST Value : datetime.DateTime );
    BEGIN
       _Connection^.LastModified := Value;
    END LastModified;

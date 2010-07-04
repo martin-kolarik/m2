@@ -143,8 +143,6 @@ CLASS IMPLEMENTATION CTimeTestFast;
 
          INC( count )
       END; // LOOP
-     
-      RETURN test.trSuccess;
    END Run;
 
 (*---------------------------------------------------------------------------*)

@@ -4,7 +4,7 @@ IMPORT
 	astro,
 	FIO,
 	Strings,
-	time,
+	datetime,,
 	windows;
 	
 	TYPE
@@ -43,7 +43,7 @@ IMPORT
 		h, m, s, ms : CARDINAL;
 	BEGIN
 		IF argc = 1 THEN
-			jd := time.GetCurrentJD();
+			jd := datetime.GetCurrentJD();
 		ELSE
 			Strings.ToLONGREALW( OAsz( argp^[1] ), OUT jd );
 		END;
@@ -52,7 +52,7 @@ IMPORT
 		OutLR( L"JD:           ", jd, TRUE );
 		OutLR( L"Sideral time: ", cm.SideralTimeUT(), TRUE );
 		
-		time.fd2HMS( cm.SideralTimeUT() / 24.0, h, m, s, ms );
+		datetime.fd2HMS( cm.SideralTimeUT() / 24.0, h, m, s, ms );
 
 		OutLR( "  h: ", LONGREAL( h ), TRUE );
 		OutLR( "  m: ", LONGREAL( m ), TRUE );

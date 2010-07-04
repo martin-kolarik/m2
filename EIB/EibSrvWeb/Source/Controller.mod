@@ -6,6 +6,7 @@ FROM Debug IMPORT
    Assertion;
    
 IMPORT
+   datetime,
    EibSrvWeb,
    FIO,
    FIOO,
@@ -15,8 +16,7 @@ IMPORT
    lec,
    lists,
    Log,
-   Strings,
-   time;
+   Strings;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -570,14 +570,14 @@ CLASS IMPLEMENTATION CController;
       b : BOOLEAN;
       c : CARDINAL;
       cs : StringsO.CString;
-      currentDT : time.DateTime;
-      currentTime : time.TJD;
-      dt : time.DateTime;
+      currentDT : datetime.DateTime;
+      currentTime : datetime.TJD;
+      dt : datetime.DateTime;
       LangName : ARRAY[0..15] OF WCHAR;
       lt : lec.TLicenceType;
       s : ARRAY [0..63] OF WCHAR;
-      starttime : time.TJD;
-      uptime : time.TJDC;
+      starttime : datetime.TJD;
+      uptime : datetime.TJDC;
    BEGIN
       // check actions to do
       IF Request.ModelContainer^.GetBooleanOA( STATUS_CONNECT, OUT b ) AND b THEN
@@ -626,8 +626,8 @@ CLASS IMPLEMENTATION CController;
       currentDT.SetNowUTC();
       currentTime := currentDT.JulianDate;
       uptime := currentTime - starttime;
-      dt.Day := time.JDCToDays( uptime );
-      time.fd2HMS( time.fd( uptime ), OUT dt.Hour, OUT dt.Minute, OUT dt.Second, OUT dt.Millisecond );
+      dt.Day := datetime.JDCToDays( uptime );
+      datetime.fd2HMS( datetime.fd( uptime ), OUT dt.Hour, OUT dt.Minute, OUT dt.Second, OUT dt.Millisecond );
 
       Strings.FromCARD32W( dt.Day, 10, OUT s );
       cs.FromOA( s );

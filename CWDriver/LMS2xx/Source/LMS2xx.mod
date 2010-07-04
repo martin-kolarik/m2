@@ -49,6 +49,7 @@ IMPORT
 
 IMPORT
    cllv,
+   datetime,
    FIO,
    lec,
    list,
@@ -64,8 +65,7 @@ IMPORT
    Strings,
    StringsO,
    Sync,
-   Texts,
-   time;
+   Texts;
 
 //================================================================================
 
@@ -559,7 +559,7 @@ CLASS IMPLEMENTATION CDriver;
    BEGIN
       CASE Timer OF
       | tiRx :
-         IF ( rsRxTimeout IN RStatus ) AND ( INTEGER( time.UptimeMS() - RxTimeoutTime ) > 0 ) THEN
+         IF ( rsRxTimeout IN RStatus ) AND ( INTEGER( datetime.UptimeMS() - RxTimeoutTime ) > 0 ) THEN
             OnReceive( Sync.arTimeout, StorageO.TPMemoryBuffer( NIL )^ );
          END;
       | tiScan :
@@ -1833,7 +1833,7 @@ CLASS IMPLEMENTATION CDriver;
       Serial.Logger.LogSC( Log.dldTrace, Name, L'RX timeout set to: ', RxDataTimeout + AddOn );
       StartTimer( tiRx, RxDataTimeout, TRUE );
       RxTimeoutPeriod := RxDataTimeout + AddOn;
-      RxTimeoutTime := time.UptimeMS() + RxTimeoutPeriod;
+      RxTimeoutTime := datetime.UptimeMS() + RxTimeoutPeriod;
     END;
   END SetRxTimeout;
 

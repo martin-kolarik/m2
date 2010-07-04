@@ -6,6 +6,7 @@ FROM Debug IMPORT
    Assertion, LogAssertionW;
 
 IMPORT
+   datetime,
 	FIO,
 	iobject,
 	IOO,
@@ -13,8 +14,7 @@ IMPORT
 	StorageO,
 	StringsO,
 	Sync,
-	Texts,
-	time;
+	Texts;
 
 (*================================================================================*)
 
@@ -965,7 +965,7 @@ CLASS IMPLEMENTATION CIO;
    VAR
       b : BOOLEAN;
       delegate : io.CCompletionDataInfo;
-      dt : time.DateTime;
+      dt : datetime.DateTime;
       item : TErrorItem;
       itemFor : INTEGER;
       Result : Sync.TAsyncResult := Sync.arCompleted;

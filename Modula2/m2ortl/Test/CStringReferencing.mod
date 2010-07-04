@@ -4,11 +4,11 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
+   datetime,
    log,
    StringsO,
    test,
    testimpl,
-   time,
    windows;
   
 (*===========================================================================*)
@@ -63,12 +63,12 @@ CLASS IMPLEMENTATION CTest;
       //----------------------------------------
       Host^.StartPhase( L"Speed of Copy to existing (80 chars/5 M iterations) -- NATIVE STRING" );
 
-      t := time.UptimeMS();
+      t := datetime.UptimeMS();
       FOR i := 0 TO 5000000-1 DO
          ASSIGN( NS2, NS1 );
       END;
       
-      t := time.UptimeMS() - t;
+      t := datetime.UptimeMS() - t;
       Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
       avg := LONGREAL( t ) / 5.0E3;
       S.FromLONGREAL( avg, FALSE );
@@ -79,13 +79,13 @@ CLASS IMPLEMENTATION CTest;
       //----------------------------------------
       Host^.StartPhase( L"Speed of Copy to new (80 chars/5 M iterations)" );
 
-      t := time.UptimeMS();
+      t := datetime.UptimeMS();
       FOR i := 0 TO 5000000-1 DO
          S1.Copy( S );
          S1.Dispose();
       END;
       
-      t := time.UptimeMS() - t;
+      t := datetime.UptimeMS() - t;
       Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
       avg := LONGREAL( t ) / 5.0E3;
       S.FromLONGREAL( avg, FALSE );
@@ -96,12 +96,12 @@ CLASS IMPLEMENTATION CTest;
       //----------------------------------------
       Host^.StartPhase( L"Speed of Copy to existing (80 chars/5 M iterations)" );
 
-      t := time.UptimeMS();
+      t := datetime.UptimeMS();
       FOR i := 0 TO 5000000-1 DO
          S1.Copy( S );         
       END;
       
-      t := time.UptimeMS() - t;
+      t := datetime.UptimeMS() - t;
       Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
       avg := LONGREAL( t ) / 5.0E3;
       S.FromLONGREAL( avg, FALSE );
@@ -112,12 +112,12 @@ CLASS IMPLEMENTATION CTest;
       //----------------------------------------
       Host^.StartPhase( L"Speed of Assign (80 chars/5 M iterations)" );
 
-      t := time.UptimeMS();
+      t := datetime.UptimeMS();
       FOR i := 0 TO 5000000-1 DO
          S1.Assign( S );         
       END;
       
-      t := time.UptimeMS() - t;
+      t := datetime.UptimeMS() - t;
       Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
       avg := LONGREAL( t ) / 5.0E3;
       S.FromLONGREAL( avg, FALSE );
@@ -133,12 +133,12 @@ CLASS IMPLEMENTATION CTest;
       //----------------------------------------
       Host^.StartPhase( L"Speed of Copy to existing (5 chars/5 M iterations) -- NATIVE STRING" );
 
-      t := time.UptimeMS();
+      t := datetime.UptimeMS();
       FOR i := 0 TO 5000000-1 DO
          ASSIGN( NS2, NS1 );
       END;
       
-      t := time.UptimeMS() - t;
+      t := datetime.UptimeMS() - t;
       Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
       avg := LONGREAL( t ) / 5.0E3;
       S.FromLONGREAL( avg, FALSE );
@@ -149,13 +149,13 @@ CLASS IMPLEMENTATION CTest;
       //----------------------------------------
       Host^.StartPhase( L"Speed of Copy to new (5 chars/5 M iterations)" );
 
-      t := time.UptimeMS();
+      t := datetime.UptimeMS();
       FOR i := 0 TO 5000000-1 DO
          S1.Copy( S );
          S1.Dispose();
       END;
       
-      t := time.UptimeMS() - t;
+      t := datetime.UptimeMS() - t;
       Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
       avg := LONGREAL( t ) / 5.0E3;
       S.FromLONGREAL( avg, FALSE );
@@ -166,12 +166,12 @@ CLASS IMPLEMENTATION CTest;
       //----------------------------------------
       Host^.StartPhase( L"Speed of Copy to existing (5 chars/5 M iterations)" );
 
-      t := time.UptimeMS();
+      t := datetime.UptimeMS();
       FOR i := 0 TO 5000000-1 DO
          S1.Copy( S );         
       END;
       
-      t := time.UptimeMS() - t;
+      t := datetime.UptimeMS() - t;
       Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
       avg := LONGREAL( t ) / 5.0E3;
       S.FromLONGREAL( avg, FALSE );
@@ -182,12 +182,12 @@ CLASS IMPLEMENTATION CTest;
       //----------------------------------------
       Host^.StartPhase( L"Speed of Assign (5 chars/5 M iterations)" );
 
-      t := time.UptimeMS();
+      t := datetime.UptimeMS();
       FOR i := 0 TO 5000000-1 DO
          S1.Assign( S );         
       END;
       
-      t := time.UptimeMS() - t;
+      t := datetime.UptimeMS() - t;
       Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed (ms): ", t );
       avg := LONGREAL( t ) / 5.0E3;
       S.FromLONGREAL( avg, FALSE );

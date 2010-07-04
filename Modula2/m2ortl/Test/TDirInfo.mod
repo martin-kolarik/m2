@@ -1,9 +1,9 @@
 MODULE TDirInfo;
 
 IMPORT
-	FSO,
-	StringsO,
-	time;
+   datetime,
+   FSO,
+	StringsO;
 
 	#save, call( convention => cdecl )
 	PROCEDURE wmain04() : INTEGER;
@@ -11,7 +11,7 @@ IMPORT
 	VAR
 		D : FSO.CDirectoryInfo;
 		S : StringsO.CString;
-		t : time.DateTime;
+		t : datetime.DateTime;
 		b : BOOLEAN;
 	BEGIN
 		b := D.StartOA( L"D:\x", L"", FSO.soTopDirectoryOnly, TRUE, FALSE );

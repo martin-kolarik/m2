@@ -18,6 +18,7 @@ FROM Storage IMPORT
 
 IMPORT
    cllv,
+   datetime,
    diface,
    drv_def,
    eib_def,
@@ -37,8 +38,7 @@ IMPORT
    Sync,
    TextReader,
    Texts,
-   threadcall,
-   Time;
+   threadcall;
 
 //================================================================================
 
@@ -503,7 +503,7 @@ CLASS IMPLEMENTATION CEIBDriver;
       ELSIF PObject^.Reading THEN
          // pass down
       ELSIF eib_def.aofForceRead IN PObject^.GetFlags() THEN
-         IF ( PObject^.RecoveryExpiration <> 0 ) AND ( INTEGER( PObject^.RecoveryExpiration - CARDINAL( Time.UptimeMS())) < 0 ) THEN
+         IF ( PObject^.RecoveryExpiration <> 0 ) AND ( INTEGER( PObject^.RecoveryExpiration - CARDINAL( datetime.UptimeMS())) < 0 ) THEN
             // still cannot read, pass away
             RETURN;
          END;

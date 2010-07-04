@@ -9,10 +9,10 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
   
 IMPORT
+   datetime,
    msghandler,
    SCmsg,
-   Sync,
-   time;
+   Sync;
 
 (*===========================================================================*)
 
@@ -32,7 +32,7 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
       OnStart();
 
       LOOP
-         Timeout := Support^.GetTimeoutToFirstElapsed( time.UptimeMS());
+         Timeout := Support^.GetTimeoutToFirstElapsed( datetime.UptimeMS());
          CASE Helper.WaitForStopRequestAndSignal( Queue.Consume, Timeout ) OF
          //-----
          | Sync.arCompleted : // graceful EXIT
@@ -54,7 +54,7 @@ CLASS IMPLEMENTATION SCMessageQueueThread;
          
          //-----
          | Sync.arTimeout :
-            CurrentTime := time.UptimeMS();
+            CurrentTime := datetime.UptimeMS();
             WHILE Support^.GetFirstElapsed( CurrentTime, OUT Target, OUT Timer ) DO
                
                Msg.Source := ADR( SELF );

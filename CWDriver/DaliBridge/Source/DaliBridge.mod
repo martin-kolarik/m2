@@ -13,6 +13,7 @@ FROM driver IMPORT
    R;
 
 IMPORT
+   datetime,
    dns,
    Log,
    netsocket,
@@ -21,8 +22,7 @@ IMPORT
    Strings,
    Sync,
    Texts,
-   threadpool,
-   time;
+   threadpool;
 
 (*===============================================================================*)
 
@@ -162,13 +162,13 @@ CLASS IMPLEMENTATION CUDPCommunicator;
          RETURN Sync.arAlreadyPending;
 
       ELSIF InterPacketDelay > 0 THEN
-         delay := INTEGER( time.UptimeMS() - LastSend );
+         delay := INTEGER( datetime.UptimeMS() - LastSend );
          IF ( Delay = NIL ) AND ( delay < INTEGER( InterPacketDelay )) THEN // wait if not waiting yet
             threadpool.pool()^.WaitTimeout( TimerSink, timerDelay, delay, TRUE, TRUE, OUT Delay );
             RETURN Sync.arAlreadyPending;
          END;   
       END;
-      LastSend := time.UptimeMS();
+      LastSend := datetime.UptimeMS();
 
       // copy data to packet
       WaitReset := FALSE;

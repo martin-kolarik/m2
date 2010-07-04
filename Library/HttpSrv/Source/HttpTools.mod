@@ -18,7 +18,7 @@ CONST
 
 (*===========================================================================*)
 
-PROCEDURE FormatDate( CONST Date : time.DateTime ) : StringsO.CString;
+PROCEDURE FormatDate( CONST Date : datetime.DateTime ) : StringsO.CString;
 VAR
    formatted : ARRAY [0..255] OF WCHAR;
    s : StringsO.CString;
@@ -31,9 +31,9 @@ END FormatDate;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE FormatDateJD( Date : time.TJD ) : StringsO.CString;
+PROCEDURE FormatDateJD( Date : datetime.TJD ) : StringsO.CString;
 VAR
-   dt : time.DateTime;
+   dt : datetime.DateTime;
 BEGIN
    dt.JulianDate := Date;
    RETURN FormatDate( dt );
@@ -41,16 +41,16 @@ END FormatDateJD;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE DecodeDate( CONST Encoded : StringsO.IString; OUT Decoded : time.DateTime ) : BOOLEAN;
+PROCEDURE DecodeDate( CONST Encoded : StringsO.IString; OUT Decoded : datetime.DateTime ) : BOOLEAN;
 BEGIN
    RETURN Decoded.FromLanguageStringOA( Languages.GetDefaultLanguage( Languages.dlNeutral ), OA( Encoded.Length-1, Encoded.Data ), HTTP_TIME_FORMAT );
 END DecodeDate;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE DecodeDateJD( CONST Encoded : StringsO.IString; OUT Decoded : time.TJD ) : BOOLEAN;
+PROCEDURE DecodeDateJD( CONST Encoded : StringsO.IString; OUT Decoded : datetime.TJD ) : BOOLEAN;
 VAR
-   dt : time.DateTime;
+   dt : datetime.DateTime;
 BEGIN
    IF NOT DecodeDate( Encoded, OUT dt ) THEN
       RETURN FALSE;
@@ -61,7 +61,7 @@ END DecodeDateJD;
 
 (*---------------------------------------------------------------------------*)
 
-PROCEDURE FormatSIDCookie( CONST SID : StringsO.IString; CONST Expires : time.DateTime; CONST Path, Domain : StringsO.IString ) : StringsO.CString;
+PROCEDURE FormatSIDCookie( CONST SID : StringsO.IString; CONST Expires : datetime.DateTime; CONST Path, Domain : StringsO.IString ) : StringsO.CString;
 VAR
    s : StringsO.CString;
 BEGIN

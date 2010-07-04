@@ -4,6 +4,7 @@ DEFINITION MODULE MVC;
 
 IMPORT
    accesslist,
+   datetime,
    FSO,
    IOO,
    inetaddr,
@@ -12,8 +13,7 @@ IMPORT
    Languages,
    Log,
    maps,
-   StringsO,
-   time;
+   StringsO;
 
 //================================================================================
 
@@ -59,7 +59,7 @@ INTERFACE IHttpRequest;
       Session : HttpSrv.TPSession;
       MessageSource : TPMessageSource; // messages are loaded single time for MVC's context, can be NIL
       
-   PROCEDURE TestConditions( CONST ResourceLastModified : time.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
+   PROCEDURE TestConditions( CONST ResourceLastModified : datetime.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
 END IHttpRequest;
 
 (*--------------------------------------------------------------------------------*)
@@ -72,7 +72,7 @@ INTERFACE IHttpResponse;
       Chunked : BOOLEAN; // default FALSE
       OverrideStatusResponse : BOOLEAN; // default FALSE
       AllowCaching : BOOLEAN; // default TRUE
-      LastModified : time.DateTime; // default none
+      LastModified : datetime.DateTime; // default none
    READONLY PROPERTY
       ModelContainer : TPContainer;
       Session : HttpSrv.TPSession;

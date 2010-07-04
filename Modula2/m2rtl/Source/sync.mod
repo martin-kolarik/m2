@@ -7,7 +7,7 @@ FROM Storage IMPORT
   ALLOCATE, DEALLOCATE, Zero;
   
 IMPORT
-   Time,
+   datetime,
    windows;
 
 (*================================================================================*)
@@ -70,7 +70,7 @@ BEGIN
       SpinCount := 0;
    END;
    IF ( Timeout <> 0 ) AND ( Timeout <> FOREVER ) THEN
-      StartTime := Time.UptimeMS();
+      StartTime := datetime.UptimeMS();
    END;
 
    LOOP
@@ -96,7 +96,7 @@ BEGIN
          CONTINUE;
       ELSIF Timeout = 0 THEN // only tick or spincount wait allowed
          RETURN arTimeout;
-      ELSIF INTEGER( Time.UptimeMS() - StartTime ) > INTEGER( Timeout ) THEN
+      ELSIF INTEGER( datetime.UptimeMS() - StartTime ) > INTEGER( Timeout ) THEN
          RETURN arTimeout;
       ELSE
          CONTINUE;

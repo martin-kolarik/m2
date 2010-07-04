@@ -1,4 +1,4 @@
-DEFINITION MODULE Time;
+DEFINITION MODULE datetime;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -164,4 +164,4 @@ INITIALLY __I();
 
 #restore
 
-END Time.
+END datetime.

@@ -2,8 +2,8 @@ MODULE TClient;
 
 IMPORT
   windows,
-  lec,
-  time;
+  datetime,
+  lec;
   
 #save, call( convention => cdecl )
 PROCEDURE wmain5() : INTEGER;
@@ -27,7 +27,7 @@ BEGIN
       windows.OutputDebugStringW( "forever" + 13W+10W );
    ELSE
       windows.OutputDebugStringW( "expires: " + 13W+10W );
-      // time.DateTimeToString( res.Expires, "yyyy-MM-dd HH.mm.ss,fff", TRUE, TRUE, s );
+      // datetime.DateTimeToString( res.Expires, "yyyy-MM-dd HH.mm.ss,fff", TRUE, TRUE, s );
       windows.OutputDebugStringW( ADR( s ));
       windows.OutputDebugStringW( 13W+10W );
    END;

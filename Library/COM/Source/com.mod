@@ -456,7 +456,7 @@ VAR
    PBSTR : wtypes.BSTR;
    s : ARRAY [0..127] OF WCHAR;
 BEGIN
-   Strings.FromCARD32W( CARDINAL( POwner ), 16, OUT s );
+   Strings.FromCARD64W( CARD64( POwner ), 16, OUT s );
    Strings.PrependW( REF s, L'ref: ' );
    Strings.PrependW( REF s, String );
    Strings.AppendW( REF s, L' req: ' );
@@ -498,7 +498,7 @@ VAR
    n : ARRAY [0..31] OF WCHAR;
    s : ARRAY [0..127] OF WCHAR;
 BEGIN
-   Strings.FromCARD32W( CARDINAL( PInterface ), 16, OUT s );
+   Strings.FromCARD64W( CARD64( PInterface ), 16, OUT s );
    Strings.PrependW( REF s, Text );
    Strings.FromCARD32W( From, 10, OUT n );
    Strings.AppendW( REF s, L', ' );

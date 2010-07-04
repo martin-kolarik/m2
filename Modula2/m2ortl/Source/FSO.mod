@@ -11,8 +11,7 @@ IMPORT
    FIOO,
    Storage,
    Strings,
-   Sync,
-   timeWin32;
+   Sync;
 
 (*================================================================================*)
 
@@ -177,9 +176,9 @@ CLASS IMPLEMENTATION CDirectoryInfo; // 0W or '*' are equivalent in SearchPatter
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY CreationTime GET : time.DateTime;
+   PUBLIC PROPERTY CreationTime GET : datetime.DateTime;
    VAR
-      t : time.DateTime;
+      t : datetime.DateTime;
    BEGIN
       IF _handle <> windows.INVALID_HANDLE_VALUE THEN
          t := FIO.FileTimeToDateTime( CARD64( _current.ftCreationTime ));
@@ -189,9 +188,9 @@ CLASS IMPLEMENTATION CDirectoryInfo; // 0W or '*' are equivalent in SearchPatter
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY LastAccessTime GET : time.DateTime;
+   PUBLIC PROPERTY LastAccessTime GET : datetime.DateTime;
    VAR
-      t : time.DateTime;
+      t : datetime.DateTime;
    BEGIN
       IF _handle <> windows.INVALID_HANDLE_VALUE THEN
          t := FIO.FileTimeToDateTime( CARD64( _current.ftLastAccessTime ));

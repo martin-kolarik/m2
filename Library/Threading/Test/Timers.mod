@@ -119,7 +119,7 @@ CLASS IMPLEMENTATION CMH;
          INC( Test^.Count );
       
       ELSE
-         Test^.Host^.Log^.LogSC( log.dlcInfo, L"", L"  Timer: ", CARDINAL( TimerId ));
+         Test^.Host^.Log^.LogSP( log.dlcInfo, L"", L"  Timer: ", TimerId );
          INC( Test^.Count, TimerId );
 
          IF TimerId = 12 THEN

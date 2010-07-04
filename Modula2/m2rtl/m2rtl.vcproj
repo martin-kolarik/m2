@@ -66,6 +66,14 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\Source\datetime.mod"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\datetimeWin32.mod"
+				>
+			</File>
+			<File
 				RelativePath=".\Source\debug.mod"
 				>
 			</File>
@@ -121,20 +129,20 @@
 				RelativePath=".\Source\syncqueue.mod"
 				>
 			</File>
-			<File
-				RelativePath=".\Source\time.mod"
-				>
-			</File>
-			<File
-				RelativePath=".\Source\timeWin32.mod"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath=".\Source\datetime.def"
+				>
+			</File>
+			<File
+				RelativePath=".\Source\datetimeWin32.def"
+				>
+			</File>
 			<File
 				RelativePath=".\Source\debug.def"
 				>
@@ -189,14 +197,6 @@
 			</File>
 			<File
 				RelativePath=".\Source\syncqueue.def"
-				>
-			</File>
-			<File
-				RelativePath=".\Source\time.def"
-				>
-			</File>
-			<File
-				RelativePath=".\Source\timeWin32.def"
 				>
 			</File>
 		</Filter>

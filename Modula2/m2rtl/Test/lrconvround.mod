@@ -1,9 +1,9 @@
 MODULE lrconvround;
 
 IMPORT
+   datetime,
    lrconv,
    Strings,
-   Time,
    windows;
    
    PROCEDURE Out( s : ARRAY OF WCHAR );
