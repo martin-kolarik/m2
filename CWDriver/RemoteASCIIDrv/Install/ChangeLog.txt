@@ -1,3 +1,12 @@
+Version DEBUG 1.1.xxx xx.xx.2010
+- CHG: Switched to referenced strings
+- NEW: Complete server mode added; new commands "server listen",
+       "server stop_listen", "server send/receive/disconnect/available"
+       intruduced. Both modes (client and server) are mutually exclusive,
+       "client connect" and "server listen" start the corresponding mode,
+       "client disconnect" and "server stop_listen" stop it. Only single
+       server connection is allowed.
+
 Version DEBUG 1.1.1065 22.11.2009
 - CHG: Rebuilt with current sources, check for missing disconnect event?
 - CHG: Switched to private CRtl

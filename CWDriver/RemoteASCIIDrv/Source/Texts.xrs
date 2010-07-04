@@ -60,6 +60,10 @@
             <item lang="en-US">Unrecognized "client" command</item>
             <item lang="cs-CZ">Chybný "client" povel</item>
         </string>
+        <string name="_UnrecognizedServerCommand">
+            <item lang="en-US">Unrecognized "server" command</item>
+            <item lang="cs-CZ">Chybný "server" povel</item>
+        </string>
 
         <string name="_BadSendData">
             <item lang="en-US">Data to send has not event count of characters</item>
@@ -85,6 +89,26 @@
         <string name="_BadCharacterInDataToSend">
             <item lang="en-US">Data to send contains bad characters</item>
             <item lang="cs-CZ">Data k odeslání obsahují nepovolené znaky</item>
+        </string>
+        <string name="_StillRunningAsClient">
+            <item lang="en-US">Driver is still running as client</item>
+            <item lang="cs-CZ">Ovladač pracuje jako klient</item>
+        </string>
+        <string name="_AlreadyListening">
+            <item lang="en-US">Server already listens</item>
+            <item lang="cs-CZ">Server již naslouchá</item>
+        </string>
+        <string name="_PortNotRecognized">
+            <item lang="en-US">Port is not recognized</item>
+            <item lang="cs-CZ">Chybný port</item>
+        </string>
+        <string name="_ListenError">
+            <item lang="en-US">Error when starting to listen</item>
+            <item lang="cs-CZ">Chyba při zahájení naslouchání</item>
+        </string>
+        <string name="_StillRunningAsServer">
+            <item lang="en-US">Driver is still running as server</item>
+            <item lang="cs-CZ">Ovladač pracuje jako server</item>
         </string>
 
     </strings>

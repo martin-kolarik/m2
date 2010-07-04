@@ -14,16 +14,18 @@ FROM Strings IMPORT
   CapitalizeW;  
   
 FROM log IMPORT
-  dldTrace, dldDebug;
+  dldTrace, dldDebug, dlcError;
 
 IMPORT
    cllv,
+   connection,
    cphcommon,
    diface,
    drv_def,
    Exceptions,
    FIO,
    FIOO,
+   inetaddr,
    INIFile,
    IOO,
    iovalue,
@@ -32,6 +34,7 @@ IMPORT
    log,
    msgqueue,
    netsocket,
+   netsrv,
    rawconnection,
    Resources,
    Strings,
@@ -79,6 +82,14 @@ CLASS CNotifier( netsocket.ASocketNotifier );
    PUBLIC VIRTUAL PROCEDURE OnReadable( Length : CARDINAL; Source : ADDRESS );
 END CNotifier;
 
+(*--------------------------------------------------------------------------------*)
+
+CLASS CListener( netsrv.AListener );
+   LOCAL VAR
+      Driver : TPDriver;
+   LOCAL VIRTUAL PROCEDURE OnListen( CONST ServerSocket : netsocket.TPSSocket ); // stStream
+END CListener;
+
 (*================================================================================*)
 
 TYPE
@@ -90,7 +101,8 @@ TYPE
       evDriverError = 4,
       
       evConnect = 100,
-      evDisconnect = 101
+      evDisconnect = 101,
+      evAccept = 102
    );
    
    TASCIIError = (
@@ -110,7 +122,7 @@ TYPE
                         ASCIIError : TASCIIError;
                      | evDataReceived :
                         Length : CARDINAL;
-                     | evConnect, evDisconnect :
+                     | evConnect, evDisconnect, evAccept :
                         NetError : CARDINAL;
                         Local : BOOLEAN;
                      END; // CASE
@@ -119,29 +131,43 @@ TYPE
 
 (*--------------------------------------------------------------------------------*)
 
-CLASS CDriver IMPLEMENTS diface.ICWDriver;
-   R             : Resources.CResources;
-   RStatus       : TRStatus;
-   Name          : StringsO.CString;
-   Logger        : log.CLogger;
+TYPE
+   TConnectionMode = (
+      cmUnknown,
+      cmClient,
+      cmServer
+   );
 
-   CallbackId    : ADDRESS;
-   CallbackProc  : drv_def.TDriverCallbackW;
-   RunMode       : CARDINAL;
-   Result        : lec.CResult;
+CLASS CDriver IMPLEMENTS diface.ICWDriver;
+   R                : Resources.CResources;
+   RStatus          : TRStatus;
+   Name             : StringsO.CString;
+   Logger           : log.CLogger;
+
+   CallbackId       : ADDRESS;
+   CallbackProc     : drv_def.TDriverCallbackW;
+   RunMode          : CARDINAL;
+   Result           : lec.CResult;
 
    // driver data
-   Notifier      : CNotifier;
-   Connection    : rawconnection.TCPConnection;
-   Events        : msgqueue.CPtrQueue;
-   LastError     : TASCIIError;
-   Delimiter     : WCHAR;
+   Mode             : TConnectionMode := cmUnknown;
+   Notifier         : CNotifier;
+   ClientConnection : rawconnection.ClientTCPConnection;
+   Listener         : CListener;
+   ListeningSocket  : netsocket.TPSSocket := NIL;
+   ServerConnection : rawconnection.ServerTCPConnection;
+   Events           : msgqueue.CPtrQueue;
+   LastError        : TASCIIError;
+   Delimiter        : WCHAR;
 
-   WBuffer       : StorageO.CMemoryBuffer;
-   WIndex        : CARDINAL;
-   RBufferLock   : Sync.LOCK;
-   RBuffer       : StorageO.CMemoryBuffer;
-   RIndex        : CARDINAL;
+   WBuffer          : StorageO.CMemoryBuffer;
+   WIndex           : CARDINAL;
+   RBufferLock      : Sync.LOCK;
+   RBuffer          : StorageO.CMemoryBuffer;
+   RIndex           : CARDINAL;
+   
+   PRIVATE READONLY PROPERTY Connection : connection.TPIConnection;
+   PRIVATE READONLY PROPERTY BufferedStream : IOO.TPBufferedStream;
 
    // binding to procedural interface
    PUBLIC VIRTUAL PROCEDURE Initialize( RunMode : CARDINAL; CONST SymbolicName : StringsO.CString; CallbackId : ADDRESS; CallbackProc : drv_def.TDriverCallbackW );
@@ -177,8 +203,10 @@ CLASS CDriver IMPLEMENTS diface.ICWDriver;
    // callbacks
    LOCAL PROCEDURE OnConnect( Local : BOOLEAN; Error : CARDINAL );
    LOCAL PROCEDURE OnDisconnect( Local : BOOLEAN; Error : CARDINAL );
+   LOCAL PROCEDURE OnAccept( Error : CARDINAL );
    LOCAL PROCEDURE OnDataReceived( Length : CARDINAL );
    LOCAL PROCEDURE OnFlowPossible( Direction : IOO.TDirection );
+   LOCAL PROCEDURE OnListen( CONST ServerSocket : netsocket.TPSSocket );
 END CDriver;
 
 (*================================================================================*)
@@ -221,7 +249,46 @@ END CNotifier;
 
 (*================================================================================*)
 
+CLASS IMPLEMENTATION CListener;
+
+(*--------------------------------------------------------------------------------*)
+
+   LOCAL VIRTUAL PROCEDURE OnListen( CONST ServerSocket : netsocket.TPSSocket );
+   BEGIN
+      Driver^.OnListen( ServerSocket );
+   END OnListen;
+
+(*--------------------------------------------------------------------------------*)
+
+BEGIN
+   Driver := NIL;
+END CListener;
+
+(*================================================================================*)
+
 CLASS IMPLEMENTATION CDriver;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROPERTY Connection GET : connection.TPIConnection;
+   BEGIN
+      IF Mode = cmServer THEN
+         RETURN ADR( ServerConnection );
+      ELSE
+         RETURN ADR( ClientConnection );
+      END;
+   END Connection;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROPERTY BufferedStream GET : IOO.TPBufferedStream;
+   BEGIN
+      IF Mode = cmServer THEN
+         RETURN ServerConnection.BufferedStream;
+      ELSE
+         RETURN ClientConnection.BufferedStream;
+      END;
+   END BufferedStream;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -345,6 +412,7 @@ CLASS IMPLEMENTATION CDriver;
          RETURN;
       END;
       INCL( RStatus, rsRunning );
+      Mode := cmUnknown;
 
       Result.Reset( lec.bhBestCase );
       FIO.GetModuleDirW( EMITW( %dll ), OUT s );
@@ -359,7 +427,11 @@ CLASS IMPLEMENTATION CDriver;
          RETURN;
       END;
       
-      Connection.Close();
+      Connection^.Close();
+      IF ListeningSocket <> NIL THEN
+         netsrv.StopListenSocket( REF ListeningSocket );
+      END;      
+
       EXCL( RStatus, rsRunning );
    END DriverStop;
 
@@ -378,10 +450,11 @@ CLASS IMPLEMENTATION CDriver;
 
    PUBLIC VIRTUAL PROCEDURE QueryProc( CONST InValue1, InValue2 : iovalue.Value; OutValueLimit : CARDINAL; OUT OutValue : iovalue.Value );
    LABEL
-      DoSend, Error, Success;
+      DoSend, Error, Success, DispatchFromServer;
    VAR
       c, l : CARDINAL;
       Event : POINTER TO TEventData;
+      listenAddress : inetaddr.INETADDR;
       n : ARRAY [0..31] OF WCHAR;
       si : StringsO.CString;
       sw : StringsO.CString;
@@ -447,7 +520,16 @@ CLASS IMPLEMENTATION CDriver;
                   Strings.FromCARD32W( Event^.NetError, 10, OUT n );
                   sw.AppendOA( n );
                   
-                  Connection.Close();
+                  Connection^.Close();
+                  IF Mode = cmClient THEN
+                     Mode := cmUnknown;
+                  END;
+               //-----
+               | evAccept :
+                  sw.FromOA( L'server_accept' );
+                  sw.AppendOA( Delimiter );
+                  Strings.FromCARD32W( Event^.NetError, 10, OUT n );
+                  sw.AppendOA( n );
 
                //-----
                | evDataReceived :
@@ -476,23 +558,94 @@ CLASS IMPLEMENTATION CDriver;
             GOTO Error;
          END;
 
-      ELSIF si.EqualsOA( L'client' ) THEN
+      ELSIF si.EqualsOA( L'server' ) THEN
+         IF Mode = cmClient THEN
+            Logger.LogS( dldDebug, logPrefix, L"Cmd.Server -- running as client" );
+
+            sw.FromOA( OAsz( R[ Texts._StillRunningAsClient ] ));
+            GOTO Error;
+         END;
+      
          sw.ItemS( StringsO.WCHARS{ L' ' }, 0, 1, TRUE, OUT si );
 
+         IF si.EqualsOA( L'listen' ) THEN
+            Logger.LogS( dldDebug, logPrefix, L"Cmd.Server.Listen" );
+
+            Mode := cmServer;
+            
+            IF ListeningSocket <> NIL THEN
+               sw.FromOA( OAsz( R[ Texts._AlreadyListening ] ));
+               GOTO Error;
+            END;
+         
+            sw.ItemS( StringsO.WCHARS{ L' ' }, 0, 2, TRUE, OUT si ); // port
+            IF NOT si.ToCARD32( 10, OUT c ) THEN
+               sw.FromOA( OAsz( R[ Texts._PortNotRecognized ] ));
+               GOTO Error;
+            END;
+
+            listenAddress.Port := c;
+            c := netsrv.StartListen( netsocket.stStream, listenAddress, NIL, ADR( Listener ), Sync.FOREVER, ADR( ListeningSocket ));
+            IF c <> 0 THEN // listening error
+               sw.FromOA( OAsz( R[ Texts._ListenError ] ));
+               Strings.FromCARD32W( c, 10, OUT n );
+               sw.AppendOA( L' ' );
+               sw.AppendOA( n );
+               GOTO Error;
+            END;
+
+         ELSIF si.EqualsOA( L'stop_listen' ) THEN
+            Logger.LogS( dldDebug, logPrefix, L"Cmd.Server.StopListen" );
+
+            netsrv.StopListenSocket( REF ListeningSocket );
+            Mode := cmUnknown;
+
+         ELSIF si.EqualsOA( L'disconnect' ) OR si.EqualsOA( L'send' ) OR si.EqualsOA( L'receive' ) OR si.EqualsOA( L'available' ) THEN
+            // re-dispatch to client
+            GOTO DispatchFromServer;
+
+         ELSE
+            sw.FromOA( OAsz( R[ Texts._UnrecognizedServerCommand ] ));
+            GOTO Error;
+         END;
+         GOTO Success;
+
+      ELSIF si.EqualsOA( L'client' ) THEN
+         IF Mode = cmServer THEN
+            Logger.LogS( dldDebug, logPrefix, L"Cmd.Server -- running as server" );
+
+            sw.FromOA( OAsz( R[ Texts._StillRunningAsServer ] ));
+            GOTO Error;
+         END;
+      
+         sw.ItemS( StringsO.WCHARS{ L' ' }, 0, 1, TRUE, OUT si );
+
+      DispatchFromServer:
          IF si.EqualsOA( L'connect' ) THEN
-            IF Connection.Connected THEN
+            Logger.LogS( dldDebug, logPrefix, L"Cmd.Server.Connect" );
+
+            Mode := cmClient;
+         
+            IF ClientConnection.Connected THEN
                sw.FromOA( OAsz( R[ Texts._AlreadyConnected ] ));
                GOTO Error;
             END;
          
             sw.ItemS( StringsO.WCHARS{ L' ' }, 0, 2, TRUE, OUT si );
-            Connection.OpenS( si, FALSE, netsocket.FORSAFETY );
+            ClientConnection.OpenS( si, FALSE, netsocket.FORSAFETY );
 
          ELSIF si.EqualsOA( L'disconnect' ) THEN
-            Connection.Close();
+            Logger.LogS( dldDebug, logPrefix, L"Cmd.*.Disconnect" );
+
+            Connection^.Close();
+            IF Mode = cmClient THEN
+               Mode := cmUnknown;
+            END;
 
          ELSIF si.EqualsOA( L'send' ) THEN
-            IF NOT Connection.Connected THEN
+            Logger.LogS( dldDebug, logPrefix, L"Cmd.*.Send" );
+
+            IF NOT Connection^.Connected THEN
                sw.FromOA( OAsz( R[ Texts._NotConnected ] ));
                GOTO Error;
             END;
@@ -506,7 +659,7 @@ CLASS IMPLEMENTATION CDriver;
             ELSIF si.Length DIV 2 > l THEN
                sw.FromOA( OAsz( R[ Texts._NotEnoughWriteSpace ] ));
                GOTO Error;
-            ELSIF WBuffer.Length + si.Length DIV 2 > Connection.BufferedStream^.WriteSpace THEN
+            ELSIF WBuffer.Length + si.Length DIV 2 > BufferedStream^.WriteSpace THEN
                sw.FromOA( OAsz( R[ Texts._NotEnoughWriteSpace ] ));
                GOTO Error;
             END;
@@ -516,11 +669,13 @@ CLASS IMPLEMENTATION CDriver;
                GOTO Error;
             ELSE
                INC( WBuffer.Length, c );
-               Connection.Stream^.WriteBuffer( WBuffer, OUT c, netsocket.FORSAFETY );
+               Connection^.Stream^.WriteBuffer( WBuffer, OUT c, netsocket.FORSAFETY );
                WBuffer.RemoveStart( c );
             END;
 
          ELSIF si.EqualsOA( L'receive' ) THEN
+            Logger.LogS( dldDebug, logPrefix, L"Cmd.*.Receive" );
+
             RBufferLock.Lock();
             c := MIN2( OutValueLimit DIV 2, RBuffer.Length );
             l := c << 1;
@@ -539,7 +694,7 @@ CLASS IMPLEMENTATION CDriver;
          
          ELSIF si.EqualsOA( L'available' ) THEN
             c := RBuffer.Length;
-            Logger.LogSC( dldDebug, logPrefix, L"Client.Available ", c );
+            Logger.LogSC( dldDebug, logPrefix, L"Cmd.*.Available ", c );
 
             OutValue.Integer := c; 
             RETURN;
@@ -753,7 +908,7 @@ CLASS IMPLEMENTATION CDriver;
             CASE Event^.Event OF
             | evRxError, evTxError, evDriverError :
                OutValue.Integer := INTEGER( Event^.ASCIIError );
-            | evConnect, evDisconnect :
+            | evConnect, evDisconnect, evAccept :
                OutValue.Integer := INTEGER( Event^.NetError );
             ELSE
                OutValue.Integer := 0;
@@ -768,7 +923,14 @@ CLASS IMPLEMENTATION CDriver;
          c := Events.Count;
          IF c > 0 THEN
             Events.Dequeue( OUT Event );
+            IF Event^.Event = evDisconnect THEN /// duplicate to another event queue reading
+               Connection^.Close();
+               IF Mode = cmClient THEN
+                  Mode := cmUnknown;
+               END;
+            END;
             DISPOSE( Event );
+
             IF c > 1 THEN
                CallbackProc( CallbackId, drv_def.dcfException, NIL );
             END;
@@ -882,14 +1044,14 @@ CLASS IMPLEMENTATION CDriver;
       ELSIF Command.EqualsOA( L"SendAsync" ) THEN
          WBuffer.Length := InValue2.Integer;
 
-         IF NOT Connection.Connected THEN
+         IF NOT Connection^.Connected THEN
             // NEW( Event ); // error
             // Event^.Event := evTxError;
             // Event^.ASCIIError := erNotConnected;
             // AddEvent( Event );
 
             LastError := erNotConnected;
-         ELSIF WBuffer.Length > Connection.BufferedStream^.WriteSpace THEN
+         ELSIF WBuffer.Length > BufferedStream^.WriteSpace THEN
             // NEW( Event ); // error
             // Event^.Event := evTxError;
             // Event^.ASCIIError := erTxBufferFull;
@@ -897,7 +1059,7 @@ CLASS IMPLEMENTATION CDriver;
 
             LastError := erTxBufferFull;
          ELSE
-            Connection.Stream^.WriteBuffer( WBuffer, OUT c, netsocket.FORSAFETY );
+            Connection^.Stream^.WriteBuffer( WBuffer, OUT c, netsocket.FORSAFETY );
             WBuffer.RemoveStart( c );
 
             LastError := erOK;
@@ -944,7 +1106,7 @@ CLASS IMPLEMENTATION CDriver;
 
       AddEvent( Event );
 
-      Connection.BufferedStream^.StartReading(); // start advise reading
+      BufferedStream^.StartReading(); // start advise reading
    END OnConnect;
 
 (*--------------------------------------------------------------------------------*)
@@ -965,6 +1127,23 @@ CLASS IMPLEMENTATION CDriver;
 
 (*--------------------------------------------------------------------------------*)
 
+   LOCAL PROCEDURE OnAccept( Error : CARDINAL );
+   VAR
+      Event : POINTER TO TEventData;
+   BEGIN
+      Logger.LogSC( dldDebug, logPrefix, L"Event.Add evAccept ", CARDINAL( Error ));
+
+      NEW( Event );
+      Event^.Event := evAccept;
+      Event^.NetError := Error;
+
+      AddEvent( Event );
+
+      BufferedStream^.StartReading(); // start advise reading
+   END OnAccept;
+
+(*--------------------------------------------------------------------------------*)
+
    LOCAL PROCEDURE OnDataReceived( Length : CARDINAL );
    VAR
       Event : POINTER TO TEventData;
@@ -980,7 +1159,7 @@ CLASS IMPLEMENTATION CDriver;
          Event^.ASCIIError := erRxBufferFull;
          AddEvent( Event );
       END;
-      Connection.Stream^.ReadBuffer( RBuffer.Size - RBuffer.Length, REF RBuffer, 0 ); // read only what is immediatelly possible
+      Connection^.Stream^.ReadBuffer( RBuffer.Size - RBuffer.Length, REF RBuffer, 0 ); // read only what is immediatelly possible
       l := RBuffer.Length;
 
       RBufferLock.Unlock();
@@ -992,7 +1171,7 @@ CLASS IMPLEMENTATION CDriver;
       Event^.Length := l;
       AddEvent( Event );
 
-      Connection.BufferedStream^.StartReading(); // continue with advised reading
+      BufferedStream^.StartReading(); // continue with advised reading
    END OnDataReceived;
 
 (*--------------------------------------------------------------------------------*)
@@ -1013,6 +1192,28 @@ CLASS IMPLEMENTATION CDriver;
 
 (*--------------------------------------------------------------------------------*)
 
+   LOCAL PROCEDURE OnListen( CONST ServerSocket : netsocket.TPSSocket );
+   VAR
+      error : CARDINAL;
+      result : Sync.TAsyncResult;
+      socket : netsocket.TPDSocket;
+   BEGIN
+      IF ServerConnection.Connected THEN
+         Logger.LogS( dldDebug, logPrefix, L"OnListen when connected" );
+         NEW( socket );
+         socket^.Accept( ServerSocket, OUT error );
+         socket^.Disconnect( TRUE, netsocket.FORSAFETY );
+         socket^.Release();
+      ELSE
+         result := ServerConnection.Accept( ServerSocket, FALSE, 0 );
+         IF result <> Sync.arCompleted THEN // log error
+            Logger.LogSC( dlcError, logPrefix, L"OnListen failed:", CARDINAL( result ));
+         END;
+      END;
+   END OnListen;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
    R.LoadRES2( EMITW( %dll ), L'RemoteASCIIDrv.Texts' );
    R.Lang := Languages.GetDefaultLanguage( Languages.dlUser );
@@ -1021,11 +1222,16 @@ BEGIN
    CallbackId := NIL;
    CallbackProc := NIL;
    
-   Connection.CallbackMode := IOO.cbmPooled;
-   Connection.Notifier := ADR( Notifier );
-   Connection.BufferedStream^.BufferSize := 16384;
+   ClientConnection.Dispatcher := NIL;
+   ClientConnection.Notifier := ADR( Notifier );
+   ClientConnection.BufferedStream^.BufferSize := 16384;
+
+   ServerConnection.Dispatcher := NIL;
+   ServerConnection.Notifier := ADR( Notifier );
+   ServerConnection.BufferedStream^.BufferSize := 16384;
 
    Notifier.Driver := ADR( SELF );
+   Listener.Driver := ADR( SELF );
 
    Events.Produce := Sync.CreateSignal( Sync.stEventAutoreset, L"", TRUE );
    LastError := erOK;

@@ -13,7 +13,7 @@ settings
 end_settings;
 
 driver
-  nm : 'remoteasciidrv.dll', '', 'RemoteASCIIDrv.par';
+  nm {driver = 'remoteasciidrv.dll'; parameter_file = 'RemoteASCIIDrv.par'};
 end_driver;
 
 data
@@ -22,16 +22,41 @@ end_data;
 instrument
 
   panel panel_2;
-    owner = background;
-    position = 215, 115, 320, 355;
-    window = normal;
+    gui
+      owner = background;
+      position = 215, 115, 320, 355;
+      window
+        type = normal;
+      end_window;
+    end_gui;
   end_panel;
 
+  switch switch_1;
+    gui
+      owner = panel_2;
+      position = 170, 95, 92, 30;
+      window
+        disable = zoom, maximize;
+      end_window;
+    end_gui;
+    mode = text_button;
+    true_text = 'server disconnect';
+    false_text = 'server disconnect';
+
+    procedure OnOutput( b : boolean );
+    begin
+      core.DriverQueryProc( 'nm', 'server disconnect', 0 );
+    end_procedure;
+
+  end_switch;
+
   string_control string_control_1;
-    owner = panel_2;
-    position = 15, 210, 135, 18;
+    gui
+      owner = panel_2;
+      position = 15, 100, 135, 18;
+    end_gui;
     init_value = '474554202F20485454502F312E300D0A0D0A';
-    
+
     procedure OnOutput( s : string );
     var
       error : string;
@@ -71,42 +96,142 @@ instrument
 
       core.DriverQueryProc( 'nm', 'SendAsync', 18 );
     end_procedure;
-    
+
   end_string_control;
 
   switch switch_1;
-    owner = panel_2;
-    position = 170, 160, 88, 30;
+    gui
+      owner = panel_2;
+      position = 170, 50, 90, 30;
+      window
+        disable = zoom, maximize;
+      end_window;
+    end_gui;
     mode = text_button;
-    true_text = 'client disconnect';
-    false_text = 'client disconnect';
-    
+    true_text = 'server stop_listen';
+    false_text = 'server stop_listen';
+
     procedure OnOutput( b : boolean );
     begin
-      core.DriverQueryProc( 'nm', 'client disconnect', 0 );
+      core.DriverQueryProc( 'nm', 'server stop_listen', 0 );
     end_procedure;
-    
+
   end_switch;
 
   switch switch_1;
-    owner = panel_2;
-    position = 70, 160, 80, 31;
+    gui
+      owner = panel_2;
+      position = 70, 50, 80, 31;
+      window
+        disable = zoom, maximize;
+      end_window;
+    end_gui;
     mode = text_button;
-    true_text = 'client connect';
-    false_text = 'client connect';
-    
+    true_text = 'server listen';
+    false_text = 'server listen';
+
     procedure OnOutput( b : boolean );
     var
       s : string;
     begin
-      core.DriverQueryProc( 'nm', 'client connect 10.0.0.52:9038', &s );
+      core.DriverQueryProc( 'nm', 'server listen 6004', &s );
+      core.DebugOutput( 'listen:', s );
+    end_procedure;
+
+  end_switch;
+
+  string_control string_control_1;
+    gui
+      owner = panel_2;
+      position = 15, 210, 135, 18;
+    end_gui;
+    init_value = '474554202F20485454502F312E300D0A0D0A';
+
+    procedure OnOutput( s : string );
+    var
+      error : string;
+    begin
+      (*
+      core.DriverQueryProc( 'nm', 'client send ' + s, &error );
+      core.DebugOutput( 'Send error: ', error );
+      *)
+
+      core.DriverQueryProc( 'nm', 'ClearTxQueue', 0 );
+      core.DriverQueryProc( 'nm', 'SetTxIndex', 10 );
+      core.DriverQueryProc( 'nm', 'SetTxIndex', 0 );
+      core.DriverQueryProc( 'nm', 'SetRxIndex', 10 );
+      core.DriverQueryProc( 'nm', 'SetRxIndex', 0 );
+
+      core.DriverQueryProc( 'nm', 'PutCharSeq', 71 );
+      (*
+      core.DriverQueryProc( 'nm', 'PutCharSeq', 'G' );
+      *)
+      core.DriverQueryProc( 'nm', 'PutCharSeq', 'E' );
+      core.DriverQueryProc( 'nm', 'PutCharSeq', 'T' );
+      core.DriverQueryProc( 'nm', 'PutCharSeq', ' ' );
+      core.DriverQueryProc( 'nm', 'PutCharSeq', '/' );
+      core.DriverQueryProc( 'nm', 'PutCharSeq', ' ' );
+      core.DriverQueryProc( 'nm', 'PutCharSeq', 'H' );
+      core.DriverQueryProc( 'nm', 'PutCharSeq', 'T' );
+      core.DriverQueryProc( 'nm', 'PutCharSeq', 'T' );
+      core.DriverQueryProc( 'nm', 'PutCharSeq', 'P' );
+      core.DriverQueryProc( 'nm', 'PutCharSeq', '/' );
+      core.DriverQueryProc( 'nm', 'PutCharSeq', '1' );
+      core.DriverQueryProc( 'nm', 'PutCharSeq', '.' );
+      core.DriverQueryProc( 'nm', 'PutCharSeq', '0' );
+      core.DriverQueryProc( 'nm', 'PutCharSeq', '#0D' );
+      core.DriverQueryProc( 'nm', 'PutCharSeq', '#0A' );
+      core.DriverQueryProc( 'nm', 'PutCharSeq', '#0D' );
+      core.DriverQueryProc( 'nm', 'PutCharSeq', '#0A' );
+
+      core.DriverQueryProc( 'nm', 'SendAsync', 18 );
+    end_procedure;
+
+  end_string_control;
+
+  switch switch_1;
+    gui
+      owner = panel_2;
+      position = 170, 160, 88, 30;
+      window
+        disable = zoom, maximize;
+      end_window;
+    end_gui;
+    mode = text_button;
+    true_text = 'client disconnect';
+    false_text = 'client disconnect';
+
+    procedure OnOutput( b : boolean );
+    begin
+      core.DriverQueryProc( 'nm', 'client disconnect', 0 );
+    end_procedure;
+
+  end_switch;
+
+  switch switch_1;
+    gui
+      owner = panel_2;
+      position = 70, 160, 80, 31;
+      window
+        disable = zoom, maximize;
+      end_window;
+    end_gui;
+    mode = text_button;
+    true_text = 'client connect';
+    false_text = 'client connect';
+
+    procedure OnOutput( b : boolean );
+    var
+      s : string;
+    begin
+      core.DriverQueryProc( 'nm', 'client connect 10.78.0.8:6005', &s );
       core.DebugOutput( 'connect: ', s );
     end_procedure;
-    
+
   end_switch;
 
   program excpt;
-    
+
     procedure OnActivate();
     const
       delimiter = ' ';
@@ -155,12 +280,14 @@ instrument
         end;
       end;
     end_procedure;
-    
+
   end_program;
 
   program excpt2;
-    driver_exception = nm;
-    
+    activity
+      driver = nm;
+    end_activity;
+
     procedure OnActivate();
     const
       delimiter = ' ';
@@ -232,17 +359,22 @@ instrument
 
       case 100; (* connect *)
         core.DriverQueryProc( 'nm', 'GetErrorCode', &c );
-        core.DebugOutput( 'AS Connect: ', c );
+        core.DebugOutput( 'AS Connect:', c );
 
       case 101; (* disconnect *)
         core.DriverQueryProc( 'nm', 'GetErrorCode', &c );
-        core.DebugOutput( 'AS Disconnect: ', c );
+        core.DebugOutput( 'AS Disconnect:', c );
+
+      case 102; (* accept *)
+        core.DriverQueryProc( 'nm', 'GetErrorCode', &c );
+        core.DebugOutput( 'AS Accept:', c );
 
       end; (* case *)
 
       core.DriverQueryProc( 'nm', 'EnableException', 0 );
+
     end_procedure;
-    
+
   end_program;
 
 end_instrument;
