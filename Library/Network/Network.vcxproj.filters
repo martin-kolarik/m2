@@ -1,0 +1,115 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Test">
+      <UniqueIdentifier>{0b351979-b66e-4343-a26c-c5550e70143c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Source\accesslist.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\dns.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\inetaddr.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\netconndispatch.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\netinit.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\netpool.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\netsocket.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\netsrv.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\netstream.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\rawconnection.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\accesslist.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\connection.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\dns.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\inetaddr.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\netconndispatch.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\netinit.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\netpool.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\netsocket.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\netsrv.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\netstream.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\rawconnection.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Test\ConnectDisconnect.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\DNSStress.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\SendReceive.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\SendReceiveBufferedStream.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\SendReceiveStream.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\SrvEnum.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\SrvListen.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\StartupCleanup.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TAccessList.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TINETADDR.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TRawConnection.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="network.proj" />
+  </ItemGroup>
+</Project>

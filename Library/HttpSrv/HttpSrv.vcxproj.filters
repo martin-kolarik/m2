@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Test">
+      <UniqueIdentifier>{c35bf798-76a9-45b4-a074-9923e45c35d3}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Source\HttpSrv.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\HttpTools.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\SrvCommon.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\SrvHttpApi.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\HttpCommon.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\HttpConnection.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\HttpSrv.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\HttpTools.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\SrvCommon.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\SrvHttpApi.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Test\TDecodeURL.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\THttpSrv.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="HttpSrv.proj" />
+  </ItemGroup>
+</Project>

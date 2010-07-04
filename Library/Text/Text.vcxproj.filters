@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Test">
+      <UniqueIdentifier>{12a78fc6-174f-433c-90a0-4aff30e81e8c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="CPPs">
+      <UniqueIdentifier>{69a2ed00-0a70-4eab-9de8-decd55eb7508}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Source\INIfile.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\TextReader.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\TextWriter.mod">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Source\INIfile.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\TextReader.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Source\TextWriter.def">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="Test\TxtReader.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Test\TxtWriter.mod">
+      <Filter>Test</Filter>
+    </None>
+    <None Include="Text.proj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="~Build\INIFile.cpp">
+      <Filter>CPPs</Filter>
+    </ClCompile>
+    <ClCompile Include="~Build\TextReader.cpp">
+      <Filter>CPPs</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="~Build\INIFile.h">
+      <Filter>CPPs</Filter>
+    </ClInclude>
+    <ClInclude Include="~Build\TextReader.h">
+      <Filter>CPPs</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
