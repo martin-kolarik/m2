@@ -87,6 +87,10 @@ END IFunctionHandler;
 
 (*--------------------------------------------------------------------------------*)
 
+CONST
+   TRUE_STRING = L"true";
+   FALSE_STRING = L"false";
+
 INTERFACE IContainer;
    // control
    PROCEDURE Dispose(); // data, not self
@@ -119,6 +123,7 @@ INTERFACE IContainer;
    PROCEDURE ResetModelInViewNames( CONST ControllerURI : StringsO.IString ); // clears all mode-view bindings corresponding to ControllerURI
    PROCEDURE SetModelInViewName( CONST ControllerURI, FullModel, InViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
    PROCEDURE GetModelByInViewName( CONST ControllerURI, InViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
+   PROCEDURE ResetModelValues( CONST Request : IHttpRequest; CONST ControllerURI : StringsO.IString );
 END IContainer;
    
 (*--------------------------------------------------------------------------------*)
@@ -133,12 +138,20 @@ TYPE
 // IView.Format*Stream implementor SHALL set ContentType and ContentLength/Chunked for its content. Higer level has not sufficient information to do it.
 // IView.Format*Buffer implementor SHALL set ContentType for its content. Higer level has not sufficient information to do it. ContentLength/Chunk is set by MVC.
 INTERFACE IView;
+
+   // formatting
    READONLY PROPERTY
       OutputType : TViewOutputType;
    PROCEDURE FormatToBuffer( CONST Request : IHttpRequest; REF Response : IHttpResponse; OUT Output : StorageO.CMemoryBuffer ) : BOOLEAN; // returning false means 500 response, Output is empty on input
    PROCEDURE FormatToInputStream( CONST Request : IHttpRequest; REF Response : IHttpResponse; OUT InputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response, Stream MUST be DISPOSED after usage
    PROCEDURE FormatToOutputStream( CONST Request : IHttpRequest; REF Response : IHttpResponse; OutputStream : IOO.TPStream ) : BOOLEAN; // returning false means 500 response
+   
+   // authentication
+   PROCEDURE GetAuthenticationInfo( CONST Request : MVC.IHttpRequest; OUT methodName : StringsO.IString; OUT authenticationTokens : lists.CStringStringList ) : BOOLEAN;
+
+   // cleanup, releasing
    PROCEDURE Release();
+
 END IView;
 
 (*--------------------------------------------------------------------------------*)
@@ -171,7 +184,8 @@ PROCEDURE Cleanup();
 
 //================================================================================
 
-PROCEDURE httpStatusCodeView( StatusCode : HttpCommon.THttpResponse ) : TPView;
+PROCEDURE httpStatusCodeSystemView( StatusCode : HttpCommon.THttpResponse ) : TPView;
+PROCEDURE httpStatusCodeCustomView( CONST resolver : FSO.TPFilePathResolver; StatusCode : HttpCommon.THttpResponse ) : TPView; // specialized for error pages, looks for error.xxx.pt.xml files, if file is not found, default server error page is emitted
 PROCEDURE fileView( CONST resolver : FSO.TPFilePathResolver; resolverContext : PTR; CONST PathRelativeToContext : ARRAY OF WCHAR; dispositionFlag : BOOLEAN; CONST mimeResolver : TPMIMEResolver; mimeResolverContext : PTR ) : TPView;
 PROCEDURE absoluteRedirectView( CONST FullURI : ARRAY OF WCHAR ) : TPView;
 PROCEDURE redirectView( CONST ContextRelativeURI : ARRAY OF WCHAR ) : TPView;

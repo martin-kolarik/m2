@@ -523,11 +523,7 @@ CLASS IMPLEMENTATION CXMLSocketServer;
       Name.FromOA( NameOA );
       _CommonLogger^.LogSS( log.dldTrace, LOG_XMLS, "GET ", NameOA );
 
-      IF NOT Device^.IO()^.Running THEN
-         _CommonLogger^.LogS( log.dldDebug, LOG_XMLS, "  device is not running, nothing GET" );
-         RETURN;
-
-      ELSIF NOT Device^.Mapper()^.NameToHash( Name, OUT Hash ) THEN
+      IF NOT Device^.Mapper()^.NameToHash( Name, OUT Hash ) THEN
          _CommonLogger^.LogSS( log.dldTrace, LOG_XMLS, "  unknown name, nothing GET: ", NameOA );
          RETURN;
 
@@ -631,7 +627,7 @@ CLASS IMPLEMENTATION CClient;
          IF NOT Server^.CommonLogger^.Filtered( log.dldTrace, LOG_XMLS ) THEN
             Server^.Device^.Mapper()^.HashToName( Item[i], OUT n );
             s := Value[i].String;
-            Server^.CommonLogger^.LogSSSS( log.dldTrace, LOG_XMLS, "ADV ", OA( n.Length-1, n.rawData ), L" ", OA( s.Length-1, s.rawData ));
+            Server^.CommonLogger^.LogSSSS( log.dldTrace, LOG_XMLS, "ADV ", OA( n.Length-1, n.Data ), L" ", OA( s.Length-1, s.Data ));
          END;
 
          IF Result[i] IN Sync.arsCompletions THEN
@@ -662,11 +658,13 @@ CLASS IMPLEMENTATION CClient;
 
       WBuffer.AppendOA( OA( SIZE( LEAD_NAME )-2, ADR( LEAD_NAME ))); WBuffer.AppendByte( TRAIL );
       Server^.Device^.Mapper()^.HashToName( Item, OUT S );
+      S.ReplaceOA( L"&", L"&amp;" ); S.ReplaceOA( L"<", L"&lt;" ); S.ReplaceOA( L">", L"&gt;" );
       LanguagesO.ToMB( S, Languages.cp_UTF8, TRUE, REF WBuffer );
       WBuffer.AppendOA( OA( SIZE( TRAIL_NAME )-2, ADR( TRAIL_NAME ))); WBuffer.AppendByte( TRAIL );
       
       WBuffer.AppendOA( OA( SIZE( LEAD_VALUE )-2, ADR( LEAD_VALUE ))); WBuffer.AppendByte( TRAIL );
       S := Value.String;
+      S.ReplaceOA( L"&", L"&amp;" ); S.ReplaceOA( L"<", L"&lt;" ); S.ReplaceOA( L">", L"&gt;" );
       LanguagesO.ToMB( S, Languages.cp_UTF8, TRUE, REF WBuffer );
       WBuffer.AppendOA( OA( SIZE( TRAIL_VALUE )-2, ADR( TRAIL_VALUE ))); WBuffer.AppendByte( TRAIL );
       

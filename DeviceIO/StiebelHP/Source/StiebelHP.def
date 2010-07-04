@@ -5,27 +5,33 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 IMPORT
-	device,
-	helper,
-	INIFile,
-	io,
-	IOO,
-	iovalue,
-	log,
-	netsocket,
-	ns,
-	nsitem,
-	rawconnection,
-	StorageO,
-	StringsO,
-	Sync,
-	threadpool;
-	
+   device,
+   helper,
+   INIFile,
+   io,
+   IOO,
+   iovalue,
+   log,
+   netsocket,
+   ns,
+   nsitem,
+   rawconnection,
+   StorageO,
+   StringsO,
+   Sync,
+   threadpool,
+   time;
+   
 (*===========================================================================*)
 
 TYPE
-	TPIO = POINTER TO CIO;
-	TPNS = POINTER TO CNS;
+   TPIO = POINTER TO CIO;
+   TPNS = POINTER TO CNS;
+
+TYPE
+   TPNSI = POINTER TO CNSI;
+   TPErrorNSI = POINTER TO CErrorNSI;
+   TPPacket = POINTER TO TPacket;
 
 (*---------------------------------------------------------------------------*)
 
@@ -34,29 +40,30 @@ CLASS CNS( nsitem.Ans );
    PUBLIC VIRTUAL PROCEDURE HashToName( CONST Hash : ns.THash; OUT Name : StringsO.IString ) : BOOLEAN;
 
    // Ans
-	INTERNAL VIRTUAL PROCEDURE CreateRoot() : ns.TPnsItem;
-	INTERNAL VIRTUAL PROCEDURE CreateStructure();
+   INTERNAL VIRTUAL PROCEDURE CreateRoot() : ns.TPnsItem;
+   INTERNAL VIRTUAL PROCEDURE CreateStructure();
 
    // SELF
-	PUBLIC VIRTUAL PROCEDURE CreateNewItem( CONST Name : ARRAY OF WCHAR; NType : ns.TNameType; VType : iovalue.TValueType; Data : PTR ) : ns.TPnsItem;
+   PUBLIC VIRTUAL PROCEDURE CreateNewItem( CONST Name : ARRAY OF WCHAR; NType : ns.TNameType; VType : iovalue.TValueType; Data : PTR ) : ns.TPnsItem;
+   PRIVATE PROCEDURE CreateErrorItem( CONST Name : ARRAY OF WCHAR ) : TPErrorNSI;
 END CNS;
 
 (*---------------------------------------------------------------------------*)
 
 CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopControl, threadpool.ITimeoutSink;
-	LOCAL VAR
-		PIO : TPIO;
-		Connection : rawconnection.TCPConnection;
-		RxBuffer : StorageO.CMemoryBuffer;
-		Logger : log.CLogger;
+   LOCAL VAR
+      PIO : TPIO;
+      Connection : rawconnection.TCPConnection;
+      RxBuffer : StorageO.CMemoryBuffer;
+      Logger : log.CLogger;
 
    PRIVATE VAR
-		_DeviceAddress : StringsO.CString;
-		_SDAPAddress : StringsO.CString;
-		_Data : lists.CStringList; // String = SDAP address, Data = ns.THash
-		_RxTimeoutHandle : threadpool.TPoolHandle;
-		_TxTimeoutHandle : threadpool.TPoolHandle;
-		_PoolDelegate : threadpool.CSinkDelegate;
+      _DeviceAddress : StringsO.CString;
+      _SDAPAddress : StringsO.CString;
+      _Data : lists.CStringList; // String = SDAP address, Data = ns.THash
+      _RxTimeoutHandle : threadpool.TPoolHandle;
+      _TxTimeoutHandle : threadpool.TPoolHandle;
+      _PoolDelegate : threadpool.CSinkDelegate;
 
    // ASocketNotifier
    LOCAL VIRTUAL PROCEDURE OnConnect( Result : CARDINAL; CONST Socket : netsocket.TPDSocket; Local : BOOLEAN ); 
@@ -72,40 +79,40 @@ CLASS CDeviceCommunicator( netsocket.ASocketNotifier ) IMPLEMENTS io.IStartStopC
    LOCAL VIRTUAL PROCEDURE OnTimeout( Result : Sync.TAsyncResult; PoolHandle : threadpool.TPoolHandle; UserId : PTR );
 
    // from CSerial
-	INTERNAL VIRTUAL PROCEDURE DataComplete( CONST Data : StorageO.AMemoryBuffer; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyCheckSum : BOOLEAN ) : BOOLEAN;
-	INTERNAL VIRTUAL PROCEDURE TestChkSum( CONST Data : StorageO.AMemoryBuffer ) : BOOLEAN;
-	INTERNAL VIRTUAL PROCEDURE OnRx( Result : Sync.TAsyncResult; CONST Data : StorageO.AMemoryBuffer );
+   INTERNAL VIRTUAL PROCEDURE DataComplete( CONST Data : StorageO.AMemoryBuffer; OUT FirstIndexAfterData, FirstIndexAfterFrame : CARDINAL; OUT ApplyCheckSum : BOOLEAN ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE TestChkSum( CONST Data : StorageO.AMemoryBuffer ) : BOOLEAN;
+   INTERNAL VIRTUAL PROCEDURE OnRx( Result : Sync.TAsyncResult; CONST Data : StorageO.AMemoryBuffer );
 
-	INTERNAL VIRTUAL PROCEDURE AddChkSum( REF Data : StorageO.AMemoryBuffer );
-	INTERNAL VIRTUAL PROCEDURE OnTx( Result : Sync.TAsyncResult );
-	
-	// SELF
-	PUBLIC PROCEDURE Configure( CONST iniFile : INIFile.CINIFile; CONST iniFileSection : StringsO.IString; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+   INTERNAL VIRTUAL PROCEDURE AddChkSum( REF Data : StorageO.AMemoryBuffer );
+   INTERNAL VIRTUAL PROCEDURE OnTx( Result : Sync.TAsyncResult );
+   
+   // SELF
+   PUBLIC PROCEDURE Configure( CONST iniFile : INIFile.CINIFile; CONST iniFileSection : StringsO.IString; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
    PUBLIC PROCEDURE Tx( CONST Data : ARRAY OF BYTE; SendAsIs : BOOLEAN; RepeatCount : CARDINAL; TxTimeout, RxTimeout : CARDINAL );
    PUBLIC PROCEDURE Abort();
    
    // private
-	PRIVATE PROCEDURE HandleRx( Result : Sync.TAsyncResult; REF Data : StorageO.AMemoryBuffer ) : BOOLEAN;
+   PRIVATE PROCEDURE HandleRx( Result : Sync.TAsyncResult; REF Data : StorageO.AMemoryBuffer ) : BOOLEAN;
    PRIVATE PROCEDURE StartTimeout( TimeoutMS : CARDINAL; REF Handle : threadpool.TPoolHandle );
    PRIVATE PROCEDURE StopTimeout( REF Handle : threadpool.TPoolHandle );
 END CDeviceCommunicator;
 
 (*---------------------------------------------------------------------------*)
 
-TYPE
-	TPNSI = POINTER TO CNSI;
-	TPPacket = POINTER TO TPacket;
-
 CLASS CIO( io.AItemizedIO );
-	LOCAL VAR
-		DeviceCommunicator : CDeviceCommunicator;
-	PRIVATE VAR
-		_AbortFlag : BOOLEAN;
-		_Pending : IOO.TDirection;
-		_Item : TPNSI;
-		_Callback : io.TPDataInfo;
+   LOCAL VAR
+      DeviceCommunicator : CDeviceCommunicator;
+      DateFormat : StringsO.CString;
+      TimeFormat : StringsO.CString;
+   PRIVATE VAR
+      _AbortFlag : BOOLEAN;
+      _Pending : IOO.TDirection;
+      _Item : TPNSI;
+      _Callback : io.TPDataInfo;
+      _LastError : time.DateTime;
+      _ErrorOccurred : TPNSI;
 
-	PUBLIC PROCEDURE Dispose();
+   PUBLIC PROCEDURE Dispose();
 
    // IStartStopControl
    PUBLIC VIRTUAL READONLY PROPERTY
@@ -121,19 +128,21 @@ CLASS CIO( io.AItemizedIO );
       Advise : io.TAdvise;
       AdviseListener : io.TPIAdviseInfo;
    PUBLIC VIRTUAL PROCEDURE IOh( CONST Originator : io.TPOriginator; Direction : IOO.TDirection; Item : ns.THash; REF Value : iovalue.Value; Delegate : io.TPDataInfo ) : Sync.TAsyncResult;
-	PUBLIC VIRTUAL PROCEDURE AbortAll();
+   PUBLIC VIRTUAL PROCEDURE AbortAll();
 
    // SELF
-	LOCAL PROCEDURE OnRx( Result : Sync.TAsyncResult; PPacket : TPPacket );
-	LOCAL PROCEDURE OnTxCON( Result : Sync.TAsyncResult );
+   LOCAL PROCEDURE SetErrorOccurred( ErrorOccurred : TPNSI );
+   LOCAL PROCEDURE OnRx( Result : Sync.TAsyncResult; PPacket : TPPacket );
+   LOCAL PROCEDURE OnTxCON( Result : Sync.TAsyncResult );
+   PRIVATE PROCEDURE CompositeIO( Direction : IOO.TDirection; Item : TPErrorNSI; Delegate : io.TPDataInfo ) : Sync.TAsyncResult;
 END CIO;
 
 (*---------------------------------------------------------------------------*)
 
 CLASS CStiebelHPDevice( helper.AObject ) IMPLEMENTS device.IDevice;
-	PRIVATE VAR
-		_NS : CNS;
-		_IO : CIO;
+   PRIVATE VAR
+      _NS : CNS;
+      _IO : CIO;
 
    // IObject
    PUBLIC FINAL READONLY PROPERTY
@@ -145,12 +154,12 @@ CLASS CStiebelHPDevice( helper.AObject ) IMPLEMENTS device.IDevice;
    // IDevice
    PUBLIC VIRTUAL READONLY PROPERTY
       DeviceCapabilities : device.TCapabilities;
-	PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Configure( CONST Source : ARRAY OF device.TConfigureItem; CONST Log : log.TPLogger ) : Sync.TAsyncResult;
 
    PUBLIC VIRTUAL PROCEDURE Mapper() : ns.TPMapper;
-	PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
+   PUBLIC VIRTUAL PROCEDURE NS() : ns.TPns;
 
-	PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
+   PUBLIC VIRTUAL PROCEDURE IO() : io.TPIO;
 END CStiebelHPDevice;
 
 (*---------------------------------------------------------------------------*)

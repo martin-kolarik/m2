@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="Windows-1250"?>
+<document file="SDAPBridge" xmlns="http://www.mii.cz/2004/XML/Document/Common">
+  <header creator="martin" doc_type="generic" language="czech"
+          last_modified="2010-03-10" last_modifier="martin"
+          version="1.0.1516.0"></header>
+  <adjustment>
+    <classes>
+      <tableclass class="tblCommon" frame="yes" offset="3pt"></tableclass>
+    </classes>
+  </adjustment>
+  <text>
+    <section level="1" selfnumbered="no">
+      <title>SDAP Bridge</title>
+      <text>
+        <p>SDAP Bridge je produkt, který převádí komunikaci dat pomocí
+        specializovaných protokolů do protokolu SDAP. SDAP Bridge je určen pro
+        trvalý běh, v operačním systému je přítomen jako služba. SDAP Bridge
+        je SDAP klient, pro svou práci potřebuje SDAP server, kterému data
+        specializovaných protokolů periodicky odesílá. V opačném směru (SDAP
+        Server<c.special what="dash" />SDAP Bridge<c.special
+        what="dash" />specializovaný protokol) SDAP Bridge data přenáší jen po
+        přijetí zprávy ze SDAP serveru.</p>
+        <p>SDAP Bridge sám žádný specializovaný protokol neimplementuje, pouze
+        pro ně poskytuje oddělené vnitřní rozhraní. Každý ze speciálních
+        protokolů proto musí být do SDAP Bridge zapojen jako samostatný
+        zásuvný modul.</p>
+        <il>
+          <caption>Softwarové a hardwarové požadavky:</caption>
+          <li><p>operační systémy MS Windows XP SP2 a vyšší, XP Embedded SP2 a
+          vyšší nebo Vista RTM a vyšší,</p></li>
+          <li><p>10<c.special what="thinspace" />MB volného místa na
+          disku,</p></li>
+          <li><p>síťové připojení (Ethernet, WiFi<c.special
+          what="commadots" />) pro spojení se SDAP serverem,</p></li>
+          <li><p>pomocí IP sítě dostupný SDAP server (například
+          SmartServer).</p></li>
+        </il>
+        <content>
+          <caption>Obsah</caption>
+        </content>
+        <section label="secInstallation" level="2">
+          <title>Instalace a licence</title>
+          <text>
+            <p>Instalační balíček SDAP Bridge (v podobě MSI souboru, MSI =
+            Microsoft Installer) nainstaluje po spuštění program automaticky
+            do složky <file>Program Files\NeNo\DevSDAPBridge</file>. Během
+            instalace je třeba vložit správné licenční údaje (z licenčního
+            certifikátu), nebo je možné SDAP Bridge nainstalovat jako
+            demoverzi. Pokud je licence vystavena na jméno, musí být při
+            instalaci toto jméno zadáno přesně podle licence (včetně mezer,
+            velkých a malých písmen či diakritiky).</p>
+            <il>
+              <caption>Demoverze je vůči plné verzi omezená
+              následovně:</caption>
+              <li><p>dovoluje klientům souhrnně provést pouze cca
+              <number>100000</number> přenosů dat,</p></li>
+              <li><p>poskytuje klientům data pouze cca 30 minut od
+              spuštění,</p></li>
+              <li><p>omezení nezastavuje službu a neuzavírá spojení s klienty,
+              klienti zůstanou připojení, server jim pouze neposkytne žádná
+              data.</p></li>
+            </il>
+            <p>Nainstalovaný SDAP Bridge je nutné do 35 dnů od instalace
+            aktivovat. Aktivaci lze provést z příkazové řádky pomocí nástroje
+            (<type>activate</type>), který se nainstaluje spolu se SDAP
+            Bridge. Pokud se během 35 dnů od instalace SDAP Bridge neaktivuje,
+            poběží dále jako demoverze.</p>
+            <section level="3">
+              <title>Aktivace licence</title>
+              <text>
+                <p>Aktivace probíhá dvoukrokově. V prvním kroku se získá
+                registrační číslo, které se odešle na adresu technické podpory
+                (prodejce). Technická podpora číslo zaeviduje a na jeho
+                základě vytvoří aktivační číslo, které odešle zpět. V druhém
+                kroku aktivace se aktivační číslo aplikuje.</p>
+                <p>Registrační číslo se pomocí nástroje <type>activate</type>
+                získá následovně (záznam operací v příkazové řádce):</p>
+                <p.type>C:\&gt;cd "Program Files\Neno\DevSDAPBridge"
+C:\Program Files\NeNo\DevSDAPBridge&gt;activate -Q *
+Licence support tool
+(c) NeNo 2009
+
+  found 2 records
+  found 2 unique records
+  found 2 valid records
+
+  processing licence "SN-xxxxx-xxxxx-xxxxx-xxxxx-xxxx"
+    for product "NeNo.DevSDAPBridge"
+    registration number "REG-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"</p.type>
+                <p>Uvedené registrační číslo se nevypíše, pokud je SDAP Bridge
+                nainstalovaný bez licence (tj. jako demoverze), nebo pokud již
+                je SDAP Bridge aktivován.</p>
+                <p>Po odeslání celého registračního čísla (<type>REG-xxxxx-...-xxxxx</type>)
+                a jeho zpracování vznikne aktivační číslo ve tvaru <type>VAN-xxxxx-...-xxxxx</type>.
+                Toto aktivační číslo se opět pomocí nástroje <type>activate</type>
+                aplikuje:</p>
+                <p.type>C:\&gt;cd "Program Files\Neno\DevSDAPBridge
+C:\Program Files\NeNo\DevSDAPBridge&gt;activate -A VAN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx
+Licence support tool
+(c) NeNo 2009
+
+  found 2 records
+  found 2 unique records
+  found 2 valid records
+
+  processing activation "VAN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"
+  processing product "NeNo.DevSDAPBridge"</p.type>
+                <p>Úspěšnost aktivace lze ověřit opět pomocí <type>activate</type>:</p>
+                <p.type>C:\Program Files\NeNo\DevSDAPBridge&gt;activate -I
+Licence support tool
+(c) NeNo 2009
+
+  found 3 records
+  found 3 unique records
+
+  product "NeNo.DevSDAPBridge"
+    licence "SN-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx"
+    type "----"
+      activated permanently</p.type>
+                <p>Upozornění: po aktivaci je třeba službu SDAP Bridge
+                restartovat. V počítačích se zabudovaným operačním systémem
+                (Windows<c.special what="thinspace" />XP Embedded) je třeba
+                navíc zapsat změny nastavení počítače na disk a počítač
+                restartovat.</p>
+              </text>
+            </section>
+          </text>
+        </section>
+        <section level="2">
+          <title>Zásuvné moduly protokolů</title>
+          <text>
+            <section level="3">
+              <title>Tepelná čerpadla Stiebel-Eltron</title>
+              <text>
+                <p>Jméno souboru zásuvného modulu:
+                <file>StiebelHP.dll</file>.</p>
+                <dl>
+                  <caption>Popis parametrů konfigurace:</caption>
+                  <dt><type>library</type></dt>
+                  <dd><p>Parametr společný všem zásuvným modulů, pomocí něj
+                  SDAP Bridge pozná, v jakém souboru je zásuvný modul
+                  uložen.</p><p>Příklad použití v konfiguraci:</p><p.type>[device_HP]
+library = C:\Program Files\NeNo\DevSDAPBridge\StiebelHP.dll</p.type></dd>
+                  <dt><type>host</type></dt>
+                  <dd><p>IP adresa nebo DNS jméno převodníku XPort/NeNo
+                  RS232/485-Ethernet. Zásuvný modul komunikuje s převodníkem
+                  pomocí TCP, převodník dále zajišťuje sériovou komunikaci
+                  s řídicí jednotkou tepelného čerpadla. Struktura parametru
+                  je <type>&lt;IP/DNS&gt;:&lt;port&gt;</type>.</p><p>Příklad
+                  použití:</p><p.type>[device_HP]
+host = 192.168.1.100:10001</p.type></dd>
+                </dl>
+                <dl>
+                  <caption>Popis datových bodů (R/O = jen pro čtení, R/W = pro
+                  čtení i zápis, W/O = jen pro zápis):</caption>
+                  <dt><type>StiebelHP.Data.OperatingMode</type> R/W</dt>
+                  <dd><p>Režim běhu tepelného čerpadla, možné hodnoty ukazuje
+                  tabulka <in label="tblOperatingMode"></in>.</p></dd>
+                  <dt><type>StiebelHP.Data.EquithermicCurve</type> R/W</dt>
+                  <dd><p>Strmost ekvitermní křivky, možný rozsah hodnot je
+                  0,5<c.special what="interval" />2.</p></dd>
+                  <dt><type>StiebelHP.Data.Outer T</type> R/O</dt>
+                  <dd><p>Venkovní teplota.</p></dd>
+                  <dt><type>StiebelHP.Data.Inner T setpoint</type> R/W</dt>
+                  <dd><p>Požadovaná vnitřní teplota.</p></dd>
+                  <dt><type>StiebelHP.Data.Return T</type> R/O</dt>
+                  <dd><p>Teplota zpáteční topné vody.</p></dd>
+                  <dt><type>StiebelHP.Data.Return T setpoint</type> R/W</dt>
+                  <dd><p>Požadovaná teplota zpáteční topné vody.</p></dd>
+                  <dt><type>StiebelHP.Data.Water T</type> R/O</dt>
+                  <dd><p>Teplota teplé vody (ne topné).</p></dd>
+                  <dt><type>StiebelHP.Data.Water T setpoint</type> R/W</dt>
+                  <dd><p>Požadovaná teplota teplé vody (ne topné).</p></dd>
+                  <dt><type>StiebelHP.Data.Output T</type> R/O</dt>
+                  <dd><p>Teplota výstupní topné vody.</p></dd>
+                  <dt><type>StiebelHP.Data.Reset</type> W/O</dt>
+                  <dd><p>Reset chyb, restart řízení tepelného
+                  čerpadla.</p></dd>
+                  <dt><type>StiebelHP.Data.Error occurred</type> R/W</dt>
+                  <dd><p>Informace o nové chybě. Zásuvný modul při vzniku nové
+                  chyby nastaví datový bod na hodnotu <type>true</type>. Po
+                  zpracování v SDAP serveru je třeba zápisem <type>false</type>
+                  zpět do tohoto datového bodu povolit detekci dalších
+                  chyb.</p><p>Za běhu se za novou chybu považuje chyba
+                  s datem/časem větším, než je poslední známá chyba. Při
+                  startu se za novou chybu považuje jen chyba novější, než je
+                  aktuální datum/čas.</p></dd>
+                  <dt><type>StiebelHP.Data.Error 01 Code</type><c.special
+                  what="interval" /><type>StiebelHP.Data.Error 20 Code</type>
+                  R/O</dt>
+                  <dd><p>Kódy chyb 1<c.special what="interval" />20. Pokud je
+                  kód nulový, nejedná se o chybu.</p></dd>
+                  <dt><type>StiebelHP.Data.Error 01 Time</type><c.special
+                  what="interval" /><type>StiebelHP.Data.Error 20 Time</type>
+                  R/O</dt>
+                  <dd><p>Datum chyb 1<c.special what="interval" />20. Pokud je
+                  datum nulové nebo prázdné, nejedná se o chybu.</p></dd>
+                  <dt><type>StiebelHP.Data.Error 01 Date</type><c.special
+                  what="interval" /><type>StiebelHP.Data.Error 20 Date</type>
+                  R/O</dt>
+                  <dd><p>Čas chyb 1<c.special what="interval" />20. Pokud je
+                  čas nulový nebo prázdný, nejedná se o chybu.</p></dd>
+                </dl>
+                <f.table label="tblOperatingMode">
+                  <caption>Režimy běhu tepelného čerpadla</caption>
+                  <table class="tblCommon">
+                    <tr>
+                      <td>0</td>
+                      <td>nouze</td>
+                    </tr>
+                    <tr>
+                      <td>1</td>
+                      <td>pohotovost</td>
+                    </tr>
+                    <tr>
+                      <td>2</td>
+                      <td>automatický běh</td>
+                    </tr>
+                    <tr>
+                      <td>3</td>
+                      <td>denní režim</td>
+                    </tr>
+                    <tr>
+                      <td>4</td>
+                      <td>útlum</td>
+                    </tr>
+                    <tr>
+                      <td>5</td>
+                      <td>jen teplá voda</td>
+                    </tr>
+                  </table>
+                </f.table>
+                <p>Příklad části konfiguračního souboru s definicí
+                Stiebel-Eltron dat:</p>
+                <p.type>[sdap_to_device]
+hp1/StiebelHP.Data.Error occurred = 7/1/21
+
+[device_to_sdap]
+3/1/101 = hp1/StiebelHP.Data.Inner T
+7/1/0 = hp1/StiebelHP.Data.Error occurred
+7/3/1 = hp1/StiebelHP.Data.Error 01 Date</p.type>
+              </text>
+            </section>
+          </text>
+        </section>
+      </text>
+    </section>
+  </text>
+</document>

@@ -12,6 +12,14 @@ body
   color: White;
 }
 
+.right, .rightWithBorder
+{
+  float: right;
+}
+.rightWithBorder
+{
+  margin-right: 24px;
+}
 .spare
 {
   width: 10px;
@@ -20,7 +28,7 @@ body
 {
   margin-left: 20px;
 }
-.red
+.red, .error
 {
   color: Red;
 }
@@ -46,6 +54,15 @@ div.shell-topstrip
 div.canvas
 {
   background-image: url(Canvas.jpg);
+  width: 899px;
+  height: 603px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+div.canvas-userLogin
+{
+  background-image: url(userLoginCanvas.jpg);
   width: 899px;
   height: 603px;
   margin: 0 auto;
@@ -129,7 +146,7 @@ pre.log, pre.longlog
   font-size: 70%;
 }
 
-input
+input, select, option
 {
   color: Black;
   height: 25px;
@@ -147,4 +164,49 @@ h1.mainTitle
 {
   font-size: 125%;
   color: Green;
+}
+
+h1.error
+{
+  font-size: 125%;
+  margin-bottom: 10px;
+}
+
+div.roles
+{
+  overflow: scroll;
+  width: 245px;
+  height: 314px;
+  margin-right: 5px;
+}
+
+div.users
+{
+  overflow: scroll;
+  width: 405px;
+  height: 314px;
+  margin-left: 5px;
+}
+
+div.row
+{
+  border-bottom: solid 1px gray;
+}
+
+span.role,
+span.user,
+span.userRole
+{
+  height: 24px;
+  vertical-align: top;
+}
+
+span.user
+{
+}
+
+span.userRole
+{
+  color: Gray; 
+  font-style: italic;
 }

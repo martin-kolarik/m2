@@ -583,7 +583,7 @@ BEGIN
       
    END;
    
-   logger^.SetLogFile( OA( File.Length-1, File.rawData ));
+   logger^.SetLogFile( OA( File.Length-1, File.Data ));
    logger^.Method := Method;
    logger^.Level := Level;
    IF buffered AND haveCached THEN

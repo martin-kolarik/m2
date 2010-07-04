@@ -61,7 +61,7 @@ CLASS IMPLEMENTATION CSearchHelper;
 		NameToCompare : StringsO.TPString;
 	BEGIN
 		NameToCompare := TPnsAVLTreeElem( pelem )^.Item^.Name;
-		RETURN Strings.CompareW( OA( Length-1, String ), OA( NameToCompare^.Length-1, NameToCompare^.rawData ));
+		RETURN Strings.CompareW( OA( Length-1, String ), OA( NameToCompare^.Length-1, NameToCompare^.Data ));
 	END Compare;
 
 (*---------------------------------------------------------------------------*)

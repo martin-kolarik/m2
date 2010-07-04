@@ -1068,7 +1068,7 @@ CLASS IMPLEMENTATION DateTime;
                    INTEGER( _Year ),
                    INTEGER( _Month ),
                    INTEGER( _Day ),
-                   HMS2fd( _Hour, _Minute, _Second, _Millisecond ) + CARDINAL( _UTCBias + _DSTBias ) * 36000000
+                   HMS2fd( _Hour, _Minute, _Second, _Millisecond ) + CARDINAL( _UTCBias + _DSTBias ) * 600000
                 );
       END;
    END JulianDate;
@@ -1247,7 +1247,7 @@ CLASS IMPLEMENTATION DateTime;
       FD : CARDINAL;
       Y, M, D : INTEGER;
    BEGIN
-      jd := jd - TJD( dstBias + dstBias ) * 36000000;
+      jd := jd - TJD( dstBias + dstBias ) * 600000;
       iJD( jd, OUT Y, OUT M, OUT D, OUT FD );
 
       _Empty := FALSE;
@@ -1858,13 +1858,19 @@ CLASS IMPLEMENTATION DateTime;
       FFlag : BOOLEAN;
    BEGIN
       // inlined DateTimeToSystemTime( DateTime, OUT st ):
-      IF _Year < 1601 THEN
+      IF NOT FormatDate THEN
+         // prefill date to assure GetDate/TimeFormat does not fail
+         st.wYear := 2000;
+         st.wMonth := 1;
+         st.wDay := 1;
+      ELSIF _Year < 1601 THEN // for lower values GetDate/TimeFormat fails
          RETURN FALSE;
+      ELSE
+         st.wYear := WORD( _Year );
+         st.wMonth := WORD( _Month );
+         st.wDay := WORD( _Day );
       END;
 
-      st.wYear := WORD( MAX2( 1601, _Year ));
-      st.wMonth := WORD( _Month );
-      st.wDay := WORD( _Day );
       st.wHour := WORD( _Hour );
       st.wMinute := WORD( _Minute );
       st.wSecond := WORD( _Second );

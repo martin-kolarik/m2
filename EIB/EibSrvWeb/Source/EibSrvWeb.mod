@@ -11,6 +11,7 @@ IMPORT
    device,
    digest,
    FIO,
+   Folders,
    HttpCommon,
    httpsrv,
    IOO,
@@ -20,6 +21,7 @@ IMPORT
    MVC,
    ns,
    sha256,
+   Strings,
    Sync;
 
 (*--------------------------------------------------------------------------------*)
@@ -35,6 +37,15 @@ TYPE
 
 CONST
     LOG_PREFIX = L"KnxSrv";
+
+    cfSmartServerUsers = L"SmartServer\WebUsers.cfg";
+    snRoles = L"roles";
+       knNamed = L"named";
+       knKeyed = L"keyed";
+    snUsers = L"users";
+
+    ROLE_SYS_ADMIN = L"sysadmin";
+    ROLE_SYS_USER = L"sysuser";
 
 (*================================================================================*)
 
@@ -380,6 +391,13 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Project GET : StringsO.TPString;
+   BEGIN
+      RETURN ADR( _Project );
+   END Project;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE ConnectEIB();
    VAR
       Result : Sync.TAsyncResult;
@@ -473,7 +491,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       Originator.SetDescription( d );
 
       // no need to sync, IOh is be thread safe
-      RETURN _EIB^.IOh( ADR( Originator ), IOO.dirWrite, hash, REF Value, NIL ) = Sync.arCompleted; // partial = cache write is not evaluated as true
+      RETURN _EIB^.IOh( ADR( Originator ), IOO.dirWrite, hash, REF Value, NIL ) IN Sync.arsCompletions;
    END SetValue;
 
 (*--------------------------------------------------------------------------------*)
@@ -499,74 +517,370 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Authenticate( CONST Name, Password : StringsO.IString ) : TRole;
-   CONST
-      ROLE_ADMIN = L"admin";
-      ROLE_USER = L"user";
+   PUBLIC PROCEDURE GetWixValue( CONST name : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN;
    VAR
-      base64OA : ARRAY [0..63] OF WCHAR;
-      i : CARDINAL;
+      hash : ns.THash;
+      io : iovalue.Value;
+      s : StringsO.CString;
+   BEGIN
+      // no need to sync, NameToHash is be thread safe
+      IF NOT _EIB^.NameToHash( name, OUT hash ) THEN
+         RETURN FALSE;
+      END;
+      // no need to sync, IOh is be thread safe
+      IF _EIB^.IOh( NIL, IOO.dirRead, hash, REF io, NIL ) NOT IN Sync.arsCompletions THEN
+         RETURN FALSE;
+      END;
+      
+      CASE io.Type OF
+      | iovalue.vtBoolean,
+        iovalue.vtTristate :
+         value.FromINT32( 10 * io.Integer, 10 );
+      | iovalue.vtInteger :
+         value.FromINT32( 10 * io.Integer, 10 );
+      | iovalue.vtLong :
+         value.FromINT64( 10 * io.Long, 10 );
+      | iovalue.vtFloat :
+         value.FromINT64( INT64( 10.0 * io.Float + 0.5 ), 10 );
+      ELSE
+         s := io.String;
+         value.Assign( s );
+      END;
+
+      RETURN TRUE;
+   END GetWixValue;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE Authenticate( CONST Name, Password : StringsO.IString; OUT Role : StringsO.IString ) : TRole;
+   
+   (*----------*)
+   
+      PROCEDURE PrepareItem( CONST authinfo : StringsO.IString; OUT Role : StringsO.IString; OUT hash : sha256.CDigest ) : TRole;
+      VAR
+         base64OA : ARRAY [0..63] OF WCHAR;
+         hashOA : sha256.TDigest;
+         i : CARDINAL;
+         itemRolePtr : PTR;
+         role : TRole;
+         roleS : StringsO.CString;
+      BEGIN
+         // split role and hash
+         i := authinfo.IndexOfOA( L",", 0 );
+         IF i = -1 THEN
+            RETURN roleGuest;
+         END;
+         authinfo.Substring( 0, i, OUT roleS );
+         authinfo.SubstringOA( i+1, -1, OUT base64OA );
+         roleS.Trim();
+         Strings.TrimW( REF base64OA );
+         
+         // check if role is known
+         IF NOT _Roles.Get( roleS, OUT itemRolePtr ) THEN
+            RETURN roleGuest;
+         END;
+         role := TRole( LOPTRLONGWORD( itemRolePtr ));
+
+         // check if hash is not corrupted
+         IF cphcommon.FromBASE64( base64OA, OUT hashOA, OUT i ) AND ( i = SIZE( hashOA )) THEN
+            hash.FromOA( hashOA );
+            Role.Assign( roleS );
+            RETURN role;
+         END;
+
+         RETURN roleGuest;
+      END PrepareItem;
+   
+   (*----------*)
+   
+   VAR
+      authinfo : StringsO.CString;
       hash, password : sha256.CDigest;
       hashOA : sha256.TDigest;
       itemRole, role : TRole := roleGuest;
       localUsers : lists.CStringStringList;
       s : StringsO.CString;
    BEGIN
-      IF Name.Empty OR Password.Empty THEN
-         RETURN role;
+      IF Password.Empty THEN
+         RETURN roleGuest;
+      ELSIF _Lock.LockRead( Sync.FORSAFETY ) = Sync.arTimeout THEN
+         ASSERTLOG( FALSE );
+         RETURN roleGuest;
       END;
       
-      // avoid synchronizing by local copy
-      localUsers := _Users;
-
-      localUsers.Reset();
-      WHILE localUsers.MoveNext() DO
-         IF localUsers.Current^.Equals( Name ) THEN
-
-            // split data to role and hash
-            i := localUsers.CurrentData^.IndexOfOA( L",", 0 );
-            IF i = -1 THEN
-               CONTINUE;
+      IF Name.Empty THEN // keyed users
+         digest.DigestSalt( digest.sha256, OA( 2*Password.Length-1, PBYTE( Password.Data )), C"project", OUT password );
+         
+         _Users.Reset();
+         WHILE _Users.MoveNext() DO
+            itemRole := PrepareItem( _Users.CurrentData^, OUT s, OUT hash );
+            IF ( itemRole = roleUserKeyed ) AND ( hash = password ) THEN
+               role := itemRole;
+               Role.Assign( s );
+               EXIT; // WHILE
             END;
-            localUsers.CurrentData^.Substring( i+1, -1, OUT s );
-            s.Trim();
-            s.ToOA( OUT base64OA );
-            localUsers.CurrentData^.Substring( 0, i, OUT s );
-            s.Trim();
-            IF s.EqualsOA( ROLE_ADMIN ) THEN
-               itemRole := roleAdministrator;
-            ELSIF s.EqualsOA( ROLE_USER ) THEN
-               itemRole := roleUser;
-            ELSE
-               CONTINUE;
-            END;
+         END; // WHILE
+         
+      ELSE // named users
 
-            // try expand and compare hash
-            IF cphcommon.FromBASE64( base64OA, OUT hashOA, OUT i ) AND ( i = SIZE( hashOA )) THEN
-               hash.FromOA( hashOA );
-               IF itemRole = roleAdministrator THEN
-                  digest.DigestSalt( digest.sha256, OA( 2*Password.Length-1, PBYTE( Password.rawData )), C"web_root", OUT password );
+         IF _Users.Get( Name, OUT authinfo ) THEN
+            itemRole := PrepareItem( authinfo, OUT s, OUT hash );
+            IF ( itemRole <> roleUserKeyed ) AND ( itemRole <> roleGuest ) THEN 
+               IF itemRole = roleSystemAdministrator THEN
+                  digest.DigestSalt( digest.sha256, OA( 2*Password.Length-1, PBYTE( Password.Data )), C"web_root", OUT password );
                ELSE
-                  digest.DigestSalt( digest.sha256, OA( 2*Password.Length-1, PBYTE( Password.rawData )), C"message_file", OUT password );
+                  digest.DigestSalt( digest.sha256, OA( 2*Password.Length-1, PBYTE( Password.Data )), C"message_file", OUT password );
                END;
                IF hash = password THEN
                   role := itemRole;
+                  Role.Assign( s );
                END;
-               EXIT;
             END;
-
          END;
-      END; // WHILE
-      
-      localUsers.Clear(); // deny disposing
- 
+
+      END;
+
+      _Lock.UnlockRead();
       RETURN role;
    END Authenticate;
    
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY RolesCount GET : CARDINAL;
+   BEGIN
+      RETURN _Roles.Count;
+   END RolesCount;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY UsersCount GET : CARDINAL;
+   BEGIN
+      RETURN _Users.Count;
+   END UsersCount;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE GetRole( i : CARDINAL; OUT role : TRole; OUT name : StringsO.IString ) : BOOLEAN;
+   VAR
+      data : PTR;
+   BEGIN
+      IF NOT _Roles.ElementAt( i, OUT name, OUT data ) THEN
+         RETURN FALSE;
+      END;
+
+      role := TRole( LOPTRLONGWORD( data ));
+
+      RETURN TRUE;
+   END GetRole;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE GetUser( i : CARDINAL; OUT role : TRole; OUT userName, roleName : StringsO.IString ) : BOOLEAN;
+   VAR
+      authinfo : StringsO.CString;
+      data : PTR;
+   BEGIN
+      IF NOT _Users.ElementAt( i, OUT userName, OUT authinfo ) THEN
+         RETURN FALSE;
+      END;
+
+      i := authinfo.IndexOfOA( L",", 0 );
+      IF i = -1 THEN
+         RETURN FALSE;
+      END;
+      authinfo.Length := i;
+      authinfo.Trim();
+      
+      roleName.Assign( authinfo );
+      IF NOT _Roles.Get( roleName, OUT data ) THEN
+         RETURN FALSE;
+      END;
+      role := TRole( LOPTRLONGWORD( data ));
+
+      RETURN TRUE;
+   END GetUser;
+   
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CheckRenameRoleConflict( CONST currentName, roleName : StringsO.IString ) : BOOLEAN; // TRUE = conflict
+   BEGIN
+      IF currentName.Equals( roleName ) THEN // no conflict on rename will appear
+         RETURN FALSE; 
+      ELSIF _Roles.Contains( roleName ) THEN // role would be renamed to a name, which would collide with another existing one
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END CheckRenameRoleConflict;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE UpdateRole( CONST currentName, roleName : StringsO.IString; role : TRole ) : BOOLEAN;
+   VAR
+      i : CARDINAL;
+      userRole : StringsO.CString;
+   BEGIN
+      IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
+         ASSERTLOG( FALSE );
+         RETURN FALSE;
+      ELSIF NOT currentName.Empty AND NOT _Roles.Contains( currentName ) THEN // unable to edit role, which does not exist
+         _Lock.UnlockWrite();
+         RETURN FALSE;
+      ELSIF NOT currentName.Equals( roleName ) AND _Roles.Contains( roleName ) THEN // unable to rename role to an existing name
+         _Lock.UnlockWrite();
+         RETURN FALSE;
+      END;
+
+      // replace roles in users, if the role is not new
+      IF NOT currentName.Empty THEN
+         _Users.Reset();
+         WHILE _Users.MoveNext() DO
+            i := _Users.CurrentData^.IndexOfOA( L",", 0 );
+            IF i = -1 THEN
+               CONTINUE;
+            END;
+            _Users.CurrentData^.Substring( 0, i, OUT userRole );
+            IF userRole.Equals( currentName ) THEN
+               _Users.CurrentData^.Remove( 0, i );
+               _Users.CurrentData^.Prepend( roleName );
+            END;
+         END; // WHILE
+      END;
+
+      _Roles.Remove( currentName );
+      _Roles.Add( roleName, PTR( role ));
+
+      PersistUsers();
+      
+      _Lock.UnlockWrite();
+      RETURN TRUE;
+   END UpdateRole;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE DeleteRole( CONST roleName : StringsO.IString ) : BOOLEAN;
+   VAR
+      i : CARDINAL;
+      userRole : StringsO.CString;
+   BEGIN
+      IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
+         ASSERTLOG( FALSE );
+         RETURN FALSE;
+      END;
+
+      _Users.Reset();
+      WHILE _Users.MoveNext() DO
+         i := _Users.CurrentData^.IndexOfOA( L",", 0 );
+         IF i = -1 THEN
+            CONTINUE;
+         END;
+         _Users.CurrentData^.Substring( 0, i, OUT userRole );
+         IF userRole.Equals( roleName ) THEN
+            _Lock.UnlockWrite();
+            RETURN FALSE; // cannot delete role when it is used
+         END;
+      END; // WHILE
+
+      _Roles.Remove( roleName );
+      PersistUsers();
+
+      _Lock.UnlockWrite();
+      RETURN TRUE;
+   END DeleteRole;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE CheckRenameUserConflict( CONST currentName, userName : StringsO.IString ) : BOOLEAN; // TRUE = conflict
+   BEGIN
+      IF currentName.Equals( userName ) THEN // no conflict on rename will appear
+         RETURN FALSE;
+      ELSIF _SysUsers.Contains( currentName ) OR _Users.Contains( userName ) THEN // user would be renamed to a name, which would collide with another existing one
+         RETURN TRUE;
+      ELSE
+         RETURN FALSE;
+      END;
+   END CheckRenameUserConflict;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE UpdateUser( CONST roleName, currentName, userName, password : StringsO.IString ) : BOOLEAN;
+   VAR
+      authinfo : StringsO.CString;
+      hash : sha256.CDigest;
+      hashOA : sha256.TDigest;
+      base64OA : ARRAY [0..63] OF WCHAR;
+      role : TRole;
+      rolePtr : PTR;
+   BEGIN
+      IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
+         ASSERTLOG( FALSE );
+         RETURN FALSE;
+      ELSIF NOT currentName.Empty AND NOT _Users.Contains( currentName ) OR NOT _Roles.Get( roleName, OUT rolePtr ) THEN // unable to edit user, which does not exist, or role of which does not exist
+         _Lock.UnlockWrite();
+         RETURN FALSE;
+      ELSIF currentName.Equals( userName ) THEN
+         // OK, only a property, not name is to be changed
+      ELSIF _SysUsers.Contains( currentName ) OR _Users.Contains( userName ) THEN // unable to rename user to an existing name or to rename system user
+         _Lock.UnlockWrite();
+         RETURN FALSE;
+      END;
+      role := TRole( LOPTRLONGWORD( rolePtr ));
+      
+      // compute hash
+      CASE role OF
+      | roleSystemAdministrator :
+         digest.DigestSalt( digest.sha256, OA( 2*password.Length-1, PBYTE( password.Data )), C"web_root", OUT hash );
+      | roleSystemUser, roleUserNamed :
+         digest.DigestSalt( digest.sha256, OA( 2*password.Length-1, PBYTE( password.Data )), C"message_file", OUT hash );
+      | roleUserKeyed :
+         digest.DigestSalt( digest.sha256, OA( 2*password.Length-1, PBYTE( password.Data )), C"project", OUT hash );
+      ELSE
+         _Lock.UnlockWrite();
+         RETURN FALSE;
+      END;
+      hash.ToOA( OUT hashOA );
+      IF NOT cphcommon.ToBASE64( hashOA, OUT base64OA ) THEN
+         RETURN FALSE;
+      END;
+      
+      authinfo.Assign( roleName );
+      authinfo.AppendOA( L", " );
+      authinfo.AppendOA( base64OA );
+
+      _Users.Remove( currentName );
+      _Users.Add( userName, authinfo );
+      PersistUsers();
+      
+      _Lock.UnlockWrite();
+      RETURN TRUE;
+   END UpdateUser;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC PROCEDURE DeleteUser( CONST userName : StringsO.IString ) : BOOLEAN;
+   BEGIN
+      IF _Lock.LockWrite( Sync.FORSAFETY ) = Sync.arTimeout THEN
+         ASSERTLOG( FALSE );
+         RETURN FALSE;
+      ELSIF _SysUsers.Contains( userName ) THEN // system user cannot be deleted
+         _Lock.UnlockWrite();
+         RETURN FALSE;
+      END;
+
+      _Users.Remove( userName );
+      PersistUsers();
+
+      _Lock.UnlockWrite();
+      
+      RETURN TRUE;
+   END DeleteUser;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROCEDURE Init( Port : CARDINAL; CONST ContextName : ARRAY OF WCHAR; CONST cfg : INIfile.CINIFile; EIB : srvcore.TPEIBServer; DeviceNames : ARRAY OF PWCHAR; Devices : ARRAY OF io.TPIStartStopControl; ConfigLogger, DataLogger : Log.TPBufferedLogger; HttpLogger : Log.TPILogger ) : BOOLEAN;
    CONST
+      snProject = L"project";
+         knName = L"name";
       snServer = L"server";
       snUsers = L"users";
       snAccessList = L"http_access_list";
@@ -575,8 +889,8 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       knWebRoot = L"web_root";
       knMessageFile = L"message_file";
    VAR
+      authinfo : StringsO.CString;
       es : PTR;
-      hash : StringsO.CString;
       line : CARDINAL;
       ok : BOOLEAN := TRUE;
       Path : ARRAY [0..260] OF WCHAR;
@@ -594,6 +908,11 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       _ConfigLogger := ConfigLogger;
       _DataLogger := DataLogger;
       _HttpLogger := HttpLogger;
+      
+      IF NOT cfg.SetSection( snProject ) OR
+         NOT cfg.GetKeyStr( knName, OUT line, OUT _Project ) THEN
+         _Project.FromOA( L"SmartServer Project" );
+      END;
 
       IF cfg.SetSection( snServer ) AND FIO.GetModuleDirW( L"", OUT Path ) THEN // EXE dir
          IF cfg.GetKeyStr( knWebRoot, OUT line, OUT _RootDir ) THEN
@@ -614,14 +933,21 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          Log.logger()^.LogS( Log.dlcError, LOG_PREFIX, L"Message source for web is not defined, web interface will not start." );
       END;
       
+      // add system roles      
+      _Roles.AddOA( ROLE_SYS_ADMIN, PTR( roleSystemAdministrator ));
+      _Roles.AddOA( ROLE_SYS_USER, PTR( roleSystemUser ));
+      
+      // load users from system configuration
       IF NOT cfg.SetSection( snUsers ) THEN
          ok := FALSE;
          Log.logger()^.LogS( Log.dlcError, LOG_PREFIX, L"No users defined, web interface will not start." );
       ELSE
          es := 0;
-         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT sOA, OUT hash ) DO
+         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT sOA, OUT authinfo ) DO // sOA = name, authinfo = role, hash
             s.FromOA( sOA );
-            _Users.Add( s, hash );
+            _Users.Remove( s );
+            _Users.Add( s, authinfo );
+            _SysUsers.Add( s, 0 );
          END; // WHILE
       END;
       
@@ -639,7 +965,11 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          END; // WHILE
       END;
       
-      RETURN ok;
+      IF ok THEN
+         LoadWebUsers();
+      END;
+      
+      RETURN ok
    END Init;
    
 (*--------------------------------------------------------------------------------*)
@@ -664,7 +994,7 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       httpsrv.srv()^.Start();
 
       ASSERT( _MVC = NIL );
-      _MVC := mvc.mvc( OA( _Context.Length-1, _Context.rawData ));
+      _MVC := mvc.mvc( OA( _Context.Length-1, _Context.Data ));
       _MVC^.MessageSourcePath := _MessageFile;
       _MVC^.Logger := _HttpLogger;
       _MVC^.AccessList := ADR( _AccessList );
@@ -691,6 +1021,10 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       END;
       _Running := FALSE;
       
+      _Roles.Dispose();
+      _Users.Dispose();
+      _SysUsers.Dispose();
+      
       // unhook EIB
       _EIB^.EventSink := NIL;
       
@@ -701,6 +1035,116 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       httpsrv.srv()^.Stop();
       httpsrv.Cleanup();
    END Stop;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE LoadWebUsers() : BOOLEAN; // load users from self configuration file
+   VAR
+      authinfo : StringsO.CString;
+      cfg : INIfile.CINIFile;
+      es : PTR;
+      i : CARDINAL;
+      key : ARRAY [0..63] OF WCHAR;
+      line : CARDINAL;
+      role : StringsO.CString;
+      user : StringsO.CString;
+      usersFileOA : FIO.PathStrW;
+   BEGIN
+      IF NOT Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataCommon, TRUE, OUT usersFileOA ) THEN
+         RETURN FALSE;
+      END;
+      FIO.PathAddW( REF usersFileOA, cfSmartServerUsers );
+      IF NOT cfg.LoadPath( usersFileOA ) THEN 
+         RETURN FALSE;
+      END;
+      
+      IF cfg.SetSection( snRoles ) THEN
+         es := 0;
+         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT key, OUT role ) DO
+            IF role.EqualsOA( ROLE_SYS_ADMIN ) OR role.EqualsOA( ROLE_SYS_USER ) THEN // cannot override system roles
+               CONTINUE;
+            ELSIF EQUALS( key, knNamed ) THEN
+               _Roles.Remove( role );
+               _Roles.Add( role, PTR( roleUserNamed ));
+            ELSIF EQUALS( key, knKeyed ) THEN
+               _Roles.Remove( role );
+               _Roles.Add( role, PTR( roleUserKeyed ));
+            ELSE
+               CONTINUE;
+            END;
+         END; // WHILE roles
+      END;
+      
+      IF cfg.SetSection( snUsers ) THEN
+         es := 0;
+         WHILE cfg.EnumerateKeys( REF es, OUT line, OUT key, OUT authinfo ) DO
+            // detect and filter out missing roles
+            authinfo.Trim();
+            i := authinfo.IndexOfOA( L",", 0 );
+            IF i = -1 THEN
+               CONTINUE;
+            END;
+            authinfo.Substring( 0, i, OUT role );
+            role.Trim();
+            IF NOT _Roles.Contains( role ) THEN
+               CONTINUE;
+            END;
+
+            user.FromOA( key );
+            _Users.Remove( user );
+            _Users.Add( user, authinfo );
+         END; // WHILE roles
+      END;
+      
+      RETURN TRUE;
+   END LoadWebUsers;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE PersistUsers(); // synchronized
+   VAR
+      cfg : INIfile.CINIFile;
+      usersFileOA : FIO.PathStrW;
+   BEGIN
+      IF NOT Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataCommon, TRUE, OUT usersFileOA ) THEN
+         ASSERTLOG( FALSE, L"Unable to get web users file folder" );
+         RETURN;
+      END;
+      IF NOT FIO.CreateDirectoryW( usersFileOA ) THEN
+         ASSERTLOG( FALSE, L"Unable to store to web users file" );
+         RETURN; // store nothing
+      END;
+      FIO.PathAddW( REF usersFileOA, cfSmartServerUsers );
+      cfg.LoadPath( usersFileOA ); // load the file
+
+      cfg.CreateSection( snRoles, FALSE );
+      cfg.ClearSection( snRoles );
+      IF cfg.SetSection( snRoles ) THEN
+         _Roles.Reset();
+         WHILE _Roles.MoveNext() DO
+            CASE TRole( LOPTRLONGWORD( _Roles.CurrentData )) OF
+            | roleSystemAdministrator,
+              roleSystemUser :
+               CONTINUE; // roles are not written
+            | roleUserKeyed :
+               cfg.SetKeyStr( knKeyed, _Roles.Current^, TRUE );
+            ELSE
+               cfg.SetKeyStr( knNamed, _Roles.Current^, TRUE );
+            END;
+         END;
+      END;
+
+      cfg.CreateSection( snUsers, FALSE );
+      cfg.ClearSection( snUsers );
+      IF cfg.SetSection( snUsers ) THEN
+         _Users.Reset();
+         WHILE _Users.MoveNext() DO
+            cfg.SetKeyStr( OA( _Users.Current^.Length-1, _Users.Current^.Data ), _Users.CurrentData^, FALSE );
+         END;
+      END;
+
+      cfg.SavePath( usersFileOA ); // save the file
+   END PersistUsers;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -731,6 +1175,17 @@ CLASS IMPLEMENTATION CEibSrvWeb;
 
       _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.IO_PAGE );
       _MVC^.RegisterController( _Controller, HttpCommon.verbPOST, Controller.IO_PAGE );
+      
+      _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.USERS_PAGE );
+
+      _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.ROLE_EDIT_PAGE );
+      _MVC^.RegisterController( _Controller, HttpCommon.verbPOST, Controller.ROLE_EDIT_PAGE );
+      
+      _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.USER_EDIT_PAGE );
+      _MVC^.RegisterController( _Controller, HttpCommon.verbPOST, Controller.USER_EDIT_PAGE );
+      
+      _MVC^.RegisterController( _Controller, HttpCommon.verbGET, Controller.USER_LOGIN_PAGE );
+      _MVC^.RegisterController( _Controller, HttpCommon.verbPOST, Controller.USER_LOGIN_PAGE );
       
       _MVC^.RegisterFallbackController( _Controller );
    END AddControllers;

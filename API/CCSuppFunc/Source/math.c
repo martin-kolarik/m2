@@ -8,51 +8,33 @@ __declspec(naked) void __fastcall _get_sse2_info()
 {
     __asm
     {
-        mov     edi, edi
-        push    ebp
-        mov     ebp, esp
-        sub     esp, 18h
-        xor     eax, eax
         push    ebx
-        mov     [ebp-04h], eax
-        mov     [ebp-0Ch], eax
-        mov     [ebp-08h], eax
-        push    ebx
-        pushf
+
+        /* check Pentium+ ID bit */
+        pushfd
         pop     eax
-        mov     ecx, eax
-        xor     eax, 200000h
+        mov     ebx, eax
+        xor     eax, 200000h /* toggle the bit */
         push    eax
-        popf
-        pushf
-        pop     edx
-        sub     edx, ecx
-        jz      short get_sse2_info_no_SSE_POP
-        push    ecx
-        popf
+        popfd
+        pushfd
+        pop     eax
+        xor     eax, ebx
+        jz      get_sse2_info_no_SSE2 /* no Pentium+ ID bit found */
+
         xor     eax, eax
+        inc     eax
         cpuid
-        mov     [ebp-0Ch], eax
-        mov     [ebp-18h], ebx
-        mov     [ebp-14h], edx
-        mov     [ebp-10h], ecx
-        mov     eax, 1
-        cpuid
-        mov     [ebp-04h], edx
-        mov     [ebp-08h], eax
-get_sse2_info_no_SSE_POP:
-        pop     ebx
-        test    [ebp-04h], 4000000h
-        jnz      short get_sse2_info_no_SSE
+        test    edx, 4000000h
+        jz      short get_sse2_info_no_SSE2
         xor     eax, eax
         inc     eax
         
 get_sse2_info_exit:
         pop     ebx
-        leave
         retn
 
-get_sse2_info_no_SSE:
+get_sse2_info_no_SSE2:
         xor     eax, eax
         jmp     short get_sse2_info_exit
     }
@@ -129,7 +111,7 @@ __declspec(naked) void __cdecl _ftol2_sse()
         mov         ebp, esp
         sub         esp, 8
         and         esp, 0FFFFFFF8h
-        fstp        [esp]
+        fstp        qword ptr [esp]
         cvttsd2si   eax, [esp]
         leave
         retn

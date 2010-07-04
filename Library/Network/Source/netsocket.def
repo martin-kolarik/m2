@@ -93,6 +93,7 @@ CLASS SSocket( threadpool.APoolDelegate );
     _HSignal     : Sync.SIGNAL;
     _Backlog     : CARDINAL;
     _V6Mode      : TV6Mode := v6mPreferV6;
+    _Broadcast   : BOOLEAN := FALSE; // for stDatagram
     Socket       : LONGWORD;
     Local        : inetaddr.INETADDR;
     Remote       : inetaddr.INETADDR; // here in SSocket only for storing mcast data
@@ -105,7 +106,8 @@ CLASS SSocket( threadpool.APoolDelegate );
     Notifier       : TPSocketNotifier;
     V6Mode         : TV6Mode;
     LocalAddress   : inetaddr.INETADDR; // setting V4/V6 determines type of socket (also for DSocket and Connect)
-    MulticastGroup : inetaddr.INETADDR;
+    MulticastGroup : inetaddr.INETADDR; // for stDatagram
+    Broadcast      : BOOLEAN; // for stDatagram, affects sending
     Waitable       : BOOLEAN;
   PUBLIC READONLY PROPERTY
     Listening      : BOOLEAN;

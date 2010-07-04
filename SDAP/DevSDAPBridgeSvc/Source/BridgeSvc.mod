@@ -161,7 +161,7 @@ CLASS IMPLEMENTATION CBridgeSvc;
          s2.FromOA( defaultConfiguration );
       END;
       FIOO.PathAdd( REF s1, s2 );
-      cfg.LoadPath( OA( s1.Length-1, s1.rawData ));
+      cfg.LoadPath( OA( s1.Length-1, s1.Data ));
       
       INIfile.ConfigureLog( cfg, L"", REF Log.logger()^, OUT line );
       ConfigLogger.SetUpByLogger( Log.logger()^ );

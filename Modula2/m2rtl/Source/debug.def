@@ -12,6 +12,13 @@ PROCEDURE LogAssertW( CONST Text, Module : ARRAY OF WCHAR; ModuleLine : CARDINAL
 
 //--------------------------------------------------------------------------------
 
+PROCEDURE Dump( path : ARRAY OF WCHAR; exceptionPointers : ADDRESS ) : BOOLEAN; // writes a minidump, if path is empty default one is used (AppData and name by time). exceptionPointers = windows.PEXCEPTION_POINTERS
+
+PROCEDURE InstallCrashHandler();
+PROCEDURE UninstallCrashHandler();
+
+//--------------------------------------------------------------------------------
+
 CONST
    Assertion ::= Assert;
    LogAssertionA ::= LogAssertA;

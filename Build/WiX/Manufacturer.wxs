@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Include>
 
+    <Property Id="ALLUSERS" Value="1" />
+
     <Property Id="PID" Value="$(var.ProductId)" />
     <Property Id="PIDLICENCE" Value="$(var.ProductId).tlic" />
     <Property Id="PIDLICENCEMID" Value="$(var.LicenceMId)" />

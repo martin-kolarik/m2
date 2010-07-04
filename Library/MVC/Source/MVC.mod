@@ -28,6 +28,15 @@ IMPORT
 CONST
    SESSION_MVC = L"#mvc";
    VIEW_MAPPER = L"#viewmapper.";
+   
+TYPE
+   TModelType = (
+      mtUnknown,
+      mtQualification,
+      mtKey,
+      mtValueKey,
+      mtCall
+   );
 
 (*================================================================================*)
 
@@ -64,6 +73,7 @@ CLASS CContainer IMPLEMENTS IContainer;
    PUBLIC VIRTUAL PROCEDURE ResetModelInViewNames( CONST ControllerURI : StringsO.IString ); // clears all mode-view bindings corresponding to SetId
    PUBLIC VIRTUAL PROCEDURE SetModelInViewName( CONST ControllerURI, FullModel, InViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
    PUBLIC VIRTUAL PROCEDURE GetModelByInViewName( CONST ControllerURI, InViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
+   PUBLIC VIRTUAL PROCEDURE ResetModelValues( CONST Request : IHttpRequest; CONST ControllerURI : StringsO.IString );
 END CContainer;
 
 (*--------------------------------------------------------------------------------*)
@@ -344,19 +354,30 @@ CLASS IMPLEMENTATION CContainer;
       functionHandler : TPFunctionHandler;
       i, ii, index, j : INTEGER;
       lvalue : StringsO.CString;
-      keyIndex, valueIndex : BOOLEAN;
       list : lists.TPStringStringList := NIL;
       map : maps.TPStringStringMap := NIL;
+      modelType : TModelType := mtUnknown;
       parameter : StringsO.CString;
       parameters : lists.CStringStringList;
       ps : StringsO.TPString;
       sindex1, sindex2 : StringsO.CString;
    BEGIN
-      i := model.IndexOfOA( L".", 0 );
-      IF i > 0 THEN // ok, find in map or list by key
-         IF GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
+      i := model.IndexOfAnyS( StringsO.WCHARS{L".", L"[", L"<", L"("}, 0 );
+      IF i <> -1 THEN // assign model kind
+         CASE model[i] OF
+         | L"." : modelType := mtQualification;
+         | L"[" : modelType := mtKey;
+         | L"<" : modelType := mtValueKey;
+         | L"(" : modelType := mtCall;
+         END; // CASE
+      END;
+
+      CASE modelType OF
+      //-----
+      | mtQualification : // ok, find in map or list by key
+         IF GetMapOA( OA( i-1, model.Data ), OUT map ) THEN
             // fall down
-         ELSIF GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
+         ELSIF GetListOA( OA( i-1, model.Data ), OUT list ) THEN
             // fall down
          END;
          IF ( map = NIL ) AND ( list = NIL ) THEN
@@ -375,40 +396,28 @@ CLASS IMPLEMENTATION CContainer;
             list^.Add( sindex2, value );
          END;
          RETURN TRUE;
-      END;
 
-      valueIndex := FALSE;
-      keyIndex := FALSE;
-      i := model.IndexOfOA( L"[", 0 );
-      IF i > 0 THEN // ok, find in map or list
-         index := -1;
-         j := model.IndexOfOA( L"]", i+1 );
+      //-----
+      | mtKey, mtValueKey :
+         IF modelType = mtKey THEN
+            j := model.IndexOfOA( L"]", i+1 );
+         ELSE
+            j := model.IndexOfOA( L">", i+1 );
+         END;
          IF j = -1 THEN
             GOTO Error;
          END;
-         valueIndex := TRUE;
-      END;
-      IF NOT valueIndex THEN
-         i := model.IndexOfOA( L"<", 0 );
-         IF i > 0 THEN // ok, find in map or list
-            index := -1;
-            j := model.IndexOfOA( L">", i+1 );
-            IF j = -1 THEN
-               GOTO Error;
-            END;
-            keyIndex := TRUE;
-         END;
-      END;
-      IF valueIndex OR keyIndex THEN
+
          model.Substring( i+1, j-i-1, OUT sindex1 );
          IF NOT GetModelValue( Request, sindex1, OUT sindex2 ) THEN
             sindex2 := sindex1;
          END;
          sindex2.Trim();
-         IF NOT Strings.ToINT32W( OA( sindex2.Length-1, sindex2.rawData ), 10, OUT index ) THEN
+         IF NOT Strings.ToINT32W( OA( sindex2.Length-1, sindex2.Data ), 10, OUT index ) THEN
             GOTO Error;
-         ELSIF GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
-            IF valueIndex THEN
+
+         ELSIF GetMapOA( OA( i-1, model.Data ), OUT map ) THEN
+            IF modelType = mtValueKey THEN
                ps := map^[index];
                IF ps = NIL THEN
                   GOTO Error;
@@ -421,8 +430,9 @@ CLASS IMPLEMENTATION CContainer;
                GOTO Error;
             END;
             RETURN TRUE;
-         ELSIF GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
-            IF keyIndex THEN
+
+         ELSIF GetListOA( OA( i-1, model.Data ), OUT list ) THEN
+            IF modelType = mtKey THEN
                ps := list^[index];
                IF ps = NIL THEN
                   GOTO Error;
@@ -435,21 +445,20 @@ CLASS IMPLEMENTATION CContainer;
                GOTO Error;
             END;
             RETURN TRUE;
-         ELSE
-            GOTO Error;
-         END;
-      END;
 
-      // try function
-      i := model.IndexOfOA( L"(", 0 );
-      IF i > 0 THEN
+         // ELSE fall down to error
+         END;
+
+      //-----
+      | mtCall :
          j := model.IndexOfOA( L")", i+1 );
          IF j = -1 THEN
             GOTO Error;
          END;
+
          model.Substring( 0, i, OUT sindex1 );
          sindex1.Trim();
-         IF GetFunctionHandlerOA( OA( sindex1.Length-1, sindex1.rawData ), OUT functionHandler ) THEN
+         IF GetFunctionHandlerOA( OA( sindex1.Length-1, sindex1.Data ), OUT functionHandler ) THEN
             ii := i+1;
             LOOP
                ii := model.ItemS( StringsO.WCHARS{L' ', L','}, ii, 0, TRUE, OUT sindex2 );
@@ -465,20 +474,25 @@ CLASS IMPLEMENTATION CContainer;
             boolean := functionHandler^.Call( Request, sindex1, REF parameters, NIL );
             CallMemo := CallMemo OR boolean;
             RETURN boolean;
+            
+         // ELSE fall to error
          END; // IF function found
-      END;
-      
-      // try boolean      
-      IF GetBooleanOA( OA( model.Length-1, model.rawData ), OUT boolean ) THEN
-         lvalue.Assign( value );
-         lvalue.Lowerize();
-         AddBooleanOA( OA( model.Length-1, model.rawData ), value.EqualsOA( L"true" ) OR value.EqualsOA( L"1" ) OR value.EqualsOA( L"y" ) OR value.EqualsOA( L"yes" ));
-         RETURN TRUE;
-      END;
 
-      // fall to string
-      AddStringOA( OA( model.Length-1, model.rawData ), value );
-      RETURN TRUE;
+      //-----
+      ELSE // mtUnknown or others
+         // try boolean      
+         IF GetBooleanOA( OA( model.Length-1, model.Data ), OUT boolean ) THEN
+            lvalue.Assign( value );
+            lvalue.Lowerize();
+            AddBooleanOA( OA( model.Length-1, model.Data ), value.EqualsOA( TRUE_STRING ) OR value.EqualsOA( L"1" ) OR value.EqualsOA( L"y" ) OR value.EqualsOA( L"yes" ));
+
+         ELSE // fall to string
+            AddStringOA( OA( model.Length-1, model.Data ), value );
+         END;
+         RETURN TRUE;
+
+      //-----
+      END; // CASE
 
       // emit error      
    Error:
@@ -497,20 +511,32 @@ CLASS IMPLEMENTATION CContainer;
       boolean : BOOLEAN;
       empty : StringsO.CString;
       functionHandler : TPFunctionHandler;
-      i, ii, index, j : INTEGER;
-      keyIndex, valueIndex : BOOLEAN;
+      i, index, j : INTEGER;
+      ii : CARDINAL;
       list : lists.TPStringStringList := NIL;
       map : maps.TPStringStringMap := NIL;
+      modelType : TModelType := mtUnknown;
       parameter : StringsO.CString;
       parameters : lists.CStringStringList;
       ps : StringsO.TPString;
       sindex1, sindex2 : StringsO.CString;
    BEGIN
-      i := model.IndexOfOA( L".", 0 );
-      IF i > 0 THEN // ok, find in map or list by key
-         IF GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
+      i := model.IndexOfAnyS( StringsO.WCHARS{L".", L"[", L"<", L"("}, 0 );
+      IF i <> -1 THEN // assign model kind
+         CASE model[i] OF
+         | L"." : modelType := mtQualification;
+         | L"[" : modelType := mtKey;
+         | L"<" : modelType := mtValueKey;
+         | L"(" : modelType := mtCall;
+         END; // CASE
+      END;
+   
+      CASE modelType OF
+      //-----
+      | mtQualification : // ok, find in map or list by key
+         IF GetMapOA( OA( i-1, model.Data ), OUT map ) THEN
             // fall down
-         ELSIF GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
+         ELSIF GetListOA( OA( i-1, model.Data ), OUT list ) THEN
             // fall down
          END;
          IF ( map = NIL ) AND ( list = NIL ) THEN
@@ -527,40 +553,28 @@ CLASS IMPLEMENTATION CContainer;
             GOTO Error;
          END;
          RETURN TRUE;
-      END;
 
-      valueIndex := FALSE;
-      keyIndex := FALSE;
-      i := model.IndexOfOA( L"[", 0 );
-      IF i > 0 THEN // ok, find in map or list
-         index := -1;
-         j := model.IndexOfOA( L"]", i+1 );
+      //-----
+      | mtKey, mtValueKey :
+         IF modelType = mtKey THEN
+            j := model.IndexOfOA( L"]", i+1 );
+         ELSE
+            j := model.IndexOfOA( L">", i+1 );
+         END;
          IF j = -1 THEN
             GOTO Error;
          END;
-         valueIndex := TRUE;
-      END;
-      IF NOT valueIndex THEN
-         i := model.IndexOfOA( L"<", 0 );
-         IF i > 0 THEN // ok, find in map or list
-            index := -1;
-            j := model.IndexOfOA( L">", i+1 );
-            IF j = -1 THEN
-               GOTO Error;
-            END;
-            keyIndex := TRUE;
-         END;
-      END;
-      IF valueIndex OR keyIndex THEN
+
          model.Substring( i+1, j-i-1, OUT sindex1 );
          IF NOT GetModelValue( Request, sindex1, OUT sindex2 ) THEN
             sindex2 := sindex1;
          END;
          sindex2.Trim();
-         IF NOT Strings.ToINT32W( OA( sindex2.Length-1, sindex2.rawData ), 10, OUT index ) THEN
+         IF NOT Strings.ToINT32W( OA( sindex2.Length-1, sindex2.Data ), 10, OUT index ) THEN
             GOTO Error;
-         ELSIF GetMapOA( OA( i-1, model.rawData ), OUT map ) THEN
-            IF valueIndex THEN
+
+         ELSIF GetMapOA( OA( i-1, model.Data ), OUT map ) THEN
+            IF modelType = mtValueKey THEN
                ps := map^[index];
                IF ps = NIL THEN
                   GOTO Error;
@@ -570,8 +584,9 @@ CLASS IMPLEMENTATION CContainer;
                GOTO Error;
             END;
             RETURN TRUE;
-         ELSIF GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
-            IF keyIndex THEN
+
+         ELSIF GetListOA( OA( i-1, model.Data ), OUT list ) THEN
+            IF modelType = mtKey THEN
                ps := list^[index];
                IF ps = NIL THEN
                   GOTO Error;
@@ -581,22 +596,21 @@ CLASS IMPLEMENTATION CContainer;
                GOTO Error;
             END;
             RETURN TRUE;
-         ELSE
-            GOTO Error;
+
+         // ELSE fall to error
          END;
-      END;
       
-      // test function
-      i := model.IndexOfOA( L"(", 0 );
-      IF i > 0 THEN
+      //-----
+      | mtCall :
          j := model.IndexOfOA( L")", i+1 );
          IF j = -1 THEN
             GOTO Error;
          END;
+
          model.Remove( j, -1 );
          model.Substring( 0, i, OUT sindex1 );
          sindex1.Trim();
-         IF GetFunctionHandlerOA( OA( sindex1.Length-1, sindex1.rawData ), OUT functionHandler ) THEN
+         IF GetFunctionHandlerOA( OA( sindex1.Length-1, sindex1.Data ), OUT functionHandler ) THEN
             ii := i+1;
             LOOP
                ii := model.ItemS( StringsO.WCHARS{L' ', L','}, ii, 0, TRUE, OUT sindex2 );
@@ -605,31 +619,36 @@ CLASS IMPLEMENTATION CContainer;
                END;
                parameter.Trim();
                parameters.Add( empty, parameter );
-               IF ii = -1 THEN
+               IF ii = model.Length THEN
                   EXIT;
                END;
             END; // LOOP
             boolean := functionHandler^.Call( Request, sindex1, REF parameters, ADR( value ));
             CallMemo := CallMemo OR boolean;
             RETURN boolean;
-         END; // IF function found
-      END;
-      
-      // test string
-      IF GetStringOA( OA( model.Length-1, model.rawData ), OUT value ) THEN
-         RETURN TRUE;
-      END;
-      
-      // test boolean
-      IF GetBooleanOA( OA( model.Length-1, model.rawData ), OUT boolean ) THEN
-         IF boolean THEN
-            value.FromOA( L"true" );
-         ELSE
-            value.FromOA( L"false" );
+          
+         // ELSE fall to error
          END;
-         RETURN TRUE;
-      END;
+   
+      //-----
+      ELSE // mtUnknown or others
+         // test string
+         IF GetStringOA( OA( model.Length-1, model.Data ), OUT value ) THEN
+            RETURN TRUE;
+         
+         // test boolean
+         ELSIF GetBooleanOA( OA( model.Length-1, model.Data ), OUT boolean ) THEN
+            IF boolean THEN
+               value.FromOA( TRUE_STRING );
+            ELSE
+               value.FromOA( FALSE_STRING );
+            END;
+            RETURN TRUE;
 
+         END;
+      //-----
+      END; // CASE
+      
       // emit error      
    Error:
       value.FromOA( L'##unknown model: ' );
@@ -646,10 +665,10 @@ CLASS IMPLEMENTATION CContainer;
       value : StringsO.CString;
    BEGIN
       Formatted.Assign( Source );
-      i := -1;
+      i := 0;
       LOOP
          // get ${
-         i := Formatted.IndexOfOA( L"${", i+1 );
+         i := Formatted.IndexOfOA( L"${", i );
          IF i = -1 THEN
             RETURN TRUE;
          ELSIF ( i > 0 ) AND ( Formatted[i-1] = L"\" ) THEN // not pattern
@@ -689,14 +708,14 @@ CLASS IMPLEMENTATION CContainer;
 
 (*--------------------------------------------------------------------------------*)
 
-   // There can be more active mappings, each identified by SetId. It e.g. can be controller name, or so, always that way, to one would be easily able to identify to which controller/view the set and its data belongs.
-   PUBLIC VIRTUAL PROCEDURE ResetModelInViewNames( CONST ControllerURI : StringsO.IString ); // clears all mode-view bindings corresponding to SetId
+   // There can be more active mappings, each identified by ControllerURI. It e.g. can be controller name, or so, always that way, to one would be easily able to identify to which controller/view the set and its data belongs.
+   PUBLIC VIRTUAL PROCEDURE ResetModelInViewNames( CONST ControllerURI : StringsO.IString ); // clears all mode-view bindings corresponding to ControllerURI
    VAR
       LSetId : StringsO.CString;
    BEGIN
       LSetId.FromOA( VIEW_MAPPER );
       LSetId.Append( ControllerURI );
-      RemoveOA( OA( LSetId.Length-1, LSetId.rawData ));
+      RemoveOA( OA( LSetId.Length-1, LSetId.Data ));
    END ResetModelInViewNames;
 
 (*--------------------------------------------------------------------------------*)
@@ -708,8 +727,8 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       LSetId.FromOA( VIEW_MAPPER );
       LSetId.Append( ControllerURI );
-      IF NOT GetMapOA( OA( LSetId.Length-1, LSetId.rawData ), OUT mapper ) THEN
-         AddMapOA( OA( LSetId.Length-1, LSetId.rawData ), OUT mapper );
+      IF NOT GetMapOA( OA( LSetId.Length-1, LSetId.Data ), OUT mapper ) THEN
+         AddMapOA( OA( LSetId.Length-1, LSetId.Data ), OUT mapper );
       END;
       mapper^.Add( InViewName, FullModel );
    END SetModelInViewName;
@@ -723,7 +742,7 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       LSetId.FromOA( VIEW_MAPPER );
       LSetId.Append( ControllerURI );
-      IF NOT GetMapOA( OA( LSetId.Length-1, LSetId.rawData ), OUT mapper ) THEN
+      IF NOT GetMapOA( OA( LSetId.Length-1, LSetId.Data ), OUT mapper ) THEN
          RETURN FALSE;
       ELSIF NOT mapper^.Get( InViewName, OUT FullModel ) THEN
          RETURN FALSE;
@@ -731,6 +750,24 @@ CLASS IMPLEMENTATION CContainer;
          RETURN TRUE;
       END;
    END GetModelByInViewName;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE ResetModelValues( CONST Request : IHttpRequest; CONST ControllerURI : StringsO.IString );
+   VAR
+      empty : StringsO.CString;
+      LSetId : StringsO.CString;
+      mapper : maps.TPStringStringMap;
+   BEGIN
+      LSetId.FromOA( VIEW_MAPPER );
+      LSetId.Append( ControllerURI );
+      IF GetMapOA( OA( LSetId.Length-1, LSetId.Data ), OUT mapper ) THEN
+         mapper^.Reset();
+         WHILE mapper^.MoveNext() DO
+            SetModelValue( Request, mapper^.CurrentData^, empty ); // clear model value
+         END; // WHILE
+      END;
+   END ResetModelValues;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -1140,12 +1177,12 @@ CLASS IMPLEMENTATION CMVC;
       END;
       
       l := _Context.Length;
-      IF Strings.StartsWithW( URL, OA( l-1, _Context.rawData )) THEN // URL = .../Context/...
+      IF Strings.StartsWithW( URL, OA( l-1, _Context.Data )) THEN // URL = .../Context/...
          WantsSession := TRUE;
          RETURN TRUE;
       ELSIF l < 2 THEN
          RETURN FALSE;
-      ELSIF Strings.EndsWithW( URL, OA( l-2, _Context.rawData )) THEN // URL = .../Context
+      ELSIF Strings.EndsWithW( URL, OA( l-2, _Context.Data )) THEN // URL = .../Context
          WantsSession := TRUE;
          RETURN TRUE;
       ELSE
@@ -1187,7 +1224,7 @@ CLASS IMPLEMENTATION CMVC;
       controllerURI := Connection^.RequestURI;
       controllerURI.Remove( 0, _Context.Length ); // remove context leading
 
-      IF LookupController( Connection^.RequestVerb, OA( controllerURI.Length-1, controllerURI.rawData ), OUT controller ) THEN
+      IF LookupController( Connection^.RequestVerb, OA( controllerURI.Length-1, controllerURI.Data ), OUT controller ) THEN
          // fall down
       ELSIF ( _FallbackController = NIL ) OR ( Connection^.RequestVerb = HttpCommon.verbPOST ) THEN // fallback works for POST only
          Connection^.StatusCode := HttpCommon.httpres_404;
@@ -1221,6 +1258,7 @@ CLASS IMPLEMENTATION CMVC;
 
       // fill models, call functions
       container^.ResetFunctionCallsMemo();
+      container^.ResetModelValues( request, controllerURI );
       connectionData.Reset();
       WHILE connectionData.MoveNext() DO
          IF container^.GetModelByInViewName( controllerURI, connectionData.Current^, OUT mappedName ) THEN
@@ -1231,6 +1269,7 @@ CLASS IMPLEMENTATION CMVC;
          END;
       END; // WHILE
       connectionData.Dispose();
+      container^.ResetModelInViewNames( controllerURI );
       
       // prepare response data
       response.Init( Connection, Session, container );
@@ -1317,19 +1356,28 @@ CLASS IMPLEMENTATION CMVC;
    VAR
       b : BOOLEAN := FALSE;
       e : ARRAY [0..3] OF WCHAR;
+      english : Languages.TLanguage;
       length : CARDINAL;
       text : PWCHAR;
    BEGIN
       _MessagesLock.Lock();
       IF _Messages = NIL THEN
          NEW( _Messages );
-         b := _Messages^.LoadXML( OA( _MessageSourcePath.Length-1, _MessageSourcePath.rawData ), OUT e );
+         b := _Messages^.LoadXML( OA( _MessageSourcePath.Length-1, _MessageSourcePath.Data ), OUT e );
          IF b THEN
-            _Messages^.FallbackLang := _Messages^.Lang;
+            IF Languages.RFC1766ToLanguage( L"en", OUT english ) THEN // if english exists, use it
+               _Messages^.FallbackLang := english;
+            ELSIF _Messages^.LanguageCount > 0 THEN // otherwise select first language
+               _Messages^.GetLanguage( 0, OUT _Messages^.FallbackLang );
+            ELSE // and as last resort, use as fallback resource native? language
+               _Messages^.FallbackLang := _Messages^.Lang;
+            END;
          END;
       ELSE
          b := TRUE;
       END;
+      _MessagesLock.Unlock();
+
       IF b THEN
          b := _Messages^.GetTextByKeyL( language, Key, OUT text, OUT length );
       END;
@@ -1338,7 +1386,6 @@ CLASS IMPLEMENTATION CMVC;
       ELSE
          Message.Assign( Key );
       END;
-      _MessagesLock.Unlock();
 
       RETURN b;
    END GetMessage;
@@ -1656,14 +1703,25 @@ END Cleanup;
 
 (*================================================================================*)
 
-PROCEDURE httpStatusCodeView( StatusCode : HttpCommon.THttpResponse ) : TPView;
+PROCEDURE httpStatusCodeSystemView( StatusCode : HttpCommon.THttpResponse ) : TPView;
 VAR
    view : View.TPStatusCodeView;
 BEGIN
    NEW( view );
    view^.Init( StatusCode );
    RETURN view;
-END httpStatusCodeView;
+END httpStatusCodeSystemView;
+
+//--------------------------------------------------------------------------------
+
+PROCEDURE httpStatusCodeCustomView( CONST resolver : FSO.TPFilePathResolver; StatusCode : HttpCommon.THttpResponse ) : TPView; // specialized for error pages, looks for error.xxx.pt.xml files, if file is not found, default server error page is emitted
+VAR
+   view : View.TPErrorPageView;
+BEGIN
+   NEW( view );
+   view^.Init( resolver, StatusCode );
+   RETURN view;
+END httpStatusCodeCustomView;
 
 //--------------------------------------------------------------------------------
 

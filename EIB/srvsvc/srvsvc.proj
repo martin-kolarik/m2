@@ -5,6 +5,7 @@
     <!-- 1 -->
     <PropertyGroup>
         <ComponentType>Product</ComponentType>
+        <ClientLicensing>on</ClientLicensing>
 
         <ProductId>NeNo.EibSrv</ProductId>
         <ProductVersionMajor>1</ProductVersionMajor>
@@ -14,6 +15,8 @@
 
         <FileDisplayName>SmartServer</FileDisplayName>
         <FileDescription>EIB/KNX SmartServer</FileDescription>
+
+        <ClientLicensing>on</ClientLicensing>
     </PropertyGroup>
 
     <PropertyGroup>

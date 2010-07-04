@@ -84,29 +84,29 @@ CLASS IMPLEMENTATION CDriver;
       b : BOOLEAN;
    BEGIN
       TRY
-         fs.FromPath( OA( ParFilePath.Length-1, ParFilePath.rawData ), FIOO.imOpenRead );
+         fs.FromPath( OA( ParFilePath.Length-1, ParFilePath.Data ), FIOO.imOpenRead );
       CATCH e : IOO.CIOException DO
-         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._CannotOpenPar ] ), 0, 0 );
+         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._CannotOpenPar ] ), 0, 0 );
          RETURN FALSE;
       END; // try
       tr.Stream := ADR( fs );
       b := TS.Load( tr );
       fs.Close( FALSE );
       IF NOT b THEN
-         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._CannotOpenPar ] ), 0, 0 );
+         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._CannotOpenPar ] ), 0, 0 );
          RETURN FALSE;
       END;
 
       Logger.SetUpByRegistry( LIBRARY );
       CASE INIFile.ConfigureLog( TS, L"", REF Logger, OUT line ) OF
       | INIFile.clrUnknownTarget :
-         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._UnknownDebugMode ] ), line, 0 );
+         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._UnknownDebugMode ] ), line, 0 );
          RETURN FALSE;
       | INIFile.clrUnknownLevel :
-         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._UnknownDebugLevel ] ), line, 0 );
+         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._UnknownDebugLevel ] ), line, 0 );
          RETURN FALSE;
       | INIFile.clrTargetFileMissingFile :
-         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.rawData ), OAsz( R()^[ Texts._FileDebugMissingFile ] ), line, 0 );
+         Log.LogFilePos( log.dlcError, ClientName, OA( ParFilePath.Length-1, ParFilePath.Data ), OAsz( R()^[ Texts._FileDebugMissingFile ] ), line, 0 );
          RETURN FALSE;
       END;
 
@@ -1132,7 +1132,7 @@ CLASS IMPLEMENTATION CDriver;
                   FileToSend^.AddOA( filedata, 0 );
                END;
                haveSend := TRUE;
-               IF NOT cphcommon.FromHex( OA( cs.Length-1, cs.rawData ), OUT OA( 30, ADR( filedata[1] )), OUT i ) THEN
+               IF NOT cphcommon.FromHex( OA( cs.Length-1, cs.Data ), OUT OA( 30, ADR( filedata[1] )), OUT i ) THEN
                   CS.FromOA( L'error: bad hex string: ' );
                   CS.AppendOA( ch );
                   CS.Append( cs );
@@ -1146,7 +1146,7 @@ CLASS IMPLEMENTATION CDriver;
                   CS.FromOA( L'error: receive expectation without send' );
                   GOTO Error;
                END;
-               IF NOT cphcommon.FromHex( OA( cs.Length-1, cs.rawData ), OUT OA( 30, ADR( filedata[33] )), OUT i ) THEN
+               IF NOT cphcommon.FromHex( OA( cs.Length-1, cs.Data ), OUT OA( 30, ADR( filedata[33] )), OUT i ) THEN
                   CS.FromOA( L'error: bad hex string: ' );
                   CS.AppendOA( ch );
                   CS.Append( cs );
