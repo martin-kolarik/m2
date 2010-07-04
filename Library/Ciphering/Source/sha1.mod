@@ -134,7 +134,7 @@ CLASS IMPLEMENTATION CSHA1;
 	
 (*--------------------------------------------------------------------------------*)
 
-	PRIVATE INLINE PROCEDURE sha1_process( CONST data : TBuffer );
+	PRIVATE PROCEDURE sha1_process( CONST data : TBuffer );
 
 	(*----------*)
 

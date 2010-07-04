@@ -27,7 +27,7 @@ TYPE
 
 (*--------------------------------------------------------------------------------*)
 
-INLINE PROCEDURE Permute( C16 : CARD16; REF K, IV : T32 );
+PROCEDURE Permute( C16 : CARD16; REF K, IV : T32 );
 VAR
 	C32 : CARD32;
 	D : SHA256.CDigest;

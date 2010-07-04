@@ -38,7 +38,7 @@ CLASS CSHA256( digest.Digester );
 
 	// in ancestor PUBLIC PROCEDURE Digest( CONST input : ARRAY OF BYTE; OUT digest : CDigest );
 
-	PRIVATE INLINE PROCEDURE sha256_process( CONST data : TBuffer );
+	PRIVATE PROCEDURE sha256_process( CONST data : TBuffer );
 END CSHA256;
 
 (*================================================================================*)

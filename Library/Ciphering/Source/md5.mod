@@ -133,7 +133,7 @@ CLASS IMPLEMENTATION CMD5;
 	
 (*--------------------------------------------------------------------------------*)
 
-	PRIVATE INLINE PROCEDURE md5_process( CONST data : TBuffer );
+	PRIVATE PROCEDURE md5_process( CONST data : TBuffer );
 
 	(*----------*)
 
