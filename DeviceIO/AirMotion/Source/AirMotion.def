@@ -67,6 +67,7 @@ TYPE
 
 CLASS CDeviceAutomaton IMPLEMENTS io.IStartStopControl, threadpool.ITimeoutSink;
    PRIVATE VAR
+      _Lock : Sync.LOCK;
       _State : TAutomatonState;
       _Driven : POINTER TO IAutomatonRequest;
       _PeriodHandle : threadpool.TPoolHandle;

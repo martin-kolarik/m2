@@ -791,7 +791,9 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
          RETURN Sync.arAlreadyPending;
       END;
 
+      _Lock.Lock();
       State := tasIdle;
+      _Lock.Unlock();
 
       _PoolDelegate.TimeoutSink := ADR( SELF );
       threadpool.pool()^.WaitTimeout( ADR( _PoolDelegate ), 0, PollPeriodMS, FALSE, FALSE, OUT _PeriodHandle );
@@ -828,7 +830,10 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
 (*---------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE EventTime();
+   VAR
+      al : Sync.AutoLock;
    BEGIN
+      al.Take( REF _Lock );
       IF State = tasIdle THEN
          State := tasWaitUpdate;
          _Driven^.UpdateDeviceBuffer();
@@ -838,7 +843,10 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE EventAbort();
+   VAR
+      al : Sync.AutoLock;
    BEGIN
+      al.Take( REF _Lock );
       State := tasIdle;
       _ItemToWrite := NIL;
    END EventAbort;
@@ -846,7 +854,10 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE EventACK();
+   VAR
+      al : Sync.AutoLock;
    BEGIN
+      al.Take( REF _Lock );
       CASE State OF
       | tasWaitUpdate :
          State := tasWaitData;
@@ -862,7 +873,10 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE EventNAK();
+   VAR
+      al : Sync.AutoLock;
    BEGIN
+      al.Take( REF _Lock );
       IF State = tasWaitUpdate THEN
          IF _ItemToWrite = NIL THEN
             State := tasIdle;
@@ -876,7 +890,10 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE EventSTX( Packet : ADDRESS );
+   VAR
+      al : Sync.AutoLock;
    BEGIN
+      al.Take( REF _Lock );
       IF State = tasWaitData THEN
          _Driven^.Ack();
          _Driven^.ProcessData( Packet );
@@ -892,7 +909,10 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE EventNoData();
+   VAR
+      al : Sync.AutoLock;
    BEGIN
+      al.Take( REF _Lock );
       IF State = tasWaitData THEN
          State := tasIdle;
       END;
@@ -901,7 +921,10 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE EventWrite( ItemToWrite : nsitem.TPnsItem ) : Sync.TAsyncResult;
+   VAR
+      al : Sync.AutoLock;
    BEGIN
+      al.Take( REF _Lock );
       IF _ItemToWrite <> NIL THEN
          RETURN Sync.arAlreadyPending;
       END;
@@ -916,7 +939,10 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC PROCEDURE EventTimeout();
+   VAR
+      al : Sync.AutoLock;
    BEGIN
+      al.Take( REF _Lock );
       CASE State OF
       | tasWaitUpdate :
          State := tasIdle;
@@ -934,14 +960,14 @@ CLASS IMPLEMENTATION CDeviceAutomaton;
 
    PRIVATE PROPERTY State GET : TAutomatonState;
    BEGIN
-      RETURN TAutomatonState( Sync.IGet( REF PINT32( ADR( _State ))^ ));
+      RETURN _State;
    END State;
 
 (*---------------------------------------------------------------------------*)
 
    PRIVATE PROPERTY State SET( Value : TAutomatonState );
    BEGIN
-      Sync.IExchg( REF PINT32( ADR( _State ))^, INT32( Value ));
+      _State := Value;
    END State;
 
 (*---------------------------------------------------------------------------*)
