@@ -272,10 +272,10 @@ CLASS IMPLEMENTATION CDriver;
 
    PRIVATE PROPERTY Connection GET : connection.TPIConnection;
    BEGIN
-      IF Mode = cmServer THEN
-         RETURN ADR( ServerConnection );
-      ELSE
+      IF Mode = cmClient THEN
          RETURN ADR( ClientConnection );
+      ELSE
+         RETURN ADR( ServerConnection );
       END;
    END Connection;
 
@@ -283,10 +283,10 @@ CLASS IMPLEMENTATION CDriver;
 
    PRIVATE PROPERTY BufferedStream GET : IOO.TPBufferedStream;
    BEGIN
-      IF Mode = cmServer THEN
-         RETURN ServerConnection.BufferedStream;
-      ELSE
+      IF Mode = cmClient THEN
          RETURN ClientConnection.BufferedStream;
+      ELSE
+         RETURN ServerConnection.BufferedStream;
       END;
    END BufferedStream;
 
@@ -598,6 +598,8 @@ CLASS IMPLEMENTATION CDriver;
             Logger.LogS( dldDebug, logPrefix, L"Cmd.Server.StopListen" );
 
             netsrv.StopListenSocket( REF ListeningSocket );
+            ServerConnection.Close(); // to be sure
+            
             Mode := cmUnknown;
 
          ELSIF si.EqualsOA( L'disconnect' ) OR si.EqualsOA( L'send' ) OR si.EqualsOA( L'receive' ) OR si.EqualsOA( L'available' ) THEN
@@ -951,6 +953,20 @@ CLASS IMPLEMENTATION CDriver;
          RBufferLock.Unlock();
          RIndex := 0;         
 
+         LastError := erOK;
+
+      ELSIF Command.EqualsOA( L"PopRxQueue" ) THEN
+         c := InValue2.Integer;
+      
+         RBufferLock.Lock();
+         RBuffer.RemoveStart( c );
+         RBufferLock.Unlock();
+
+         IF RIndex > c THEN
+            DEC( RIndex, c );
+         ELSE
+            RIndex := 0;
+         END;
          LastError := erOK;
 
       ELSIF Command.EqualsOA( L"GetCharSeq" ) THEN
