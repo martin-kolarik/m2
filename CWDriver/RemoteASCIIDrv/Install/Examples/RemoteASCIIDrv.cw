@@ -134,7 +134,7 @@ instrument
     var
       s : string;
     begin
-      core.DriverQueryProc( 'nm', 'server listen 6004', &s );
+      core.DriverQueryProc( 'nm', 'server listen 3001', &s );
       core.DebugOutput( 'listen:', s );
     end_procedure;
 
@@ -157,15 +157,18 @@ instrument
       *)
 
       core.DriverQueryProc( 'nm', 'ClearTxQueue', 0 );
+(*
       core.DriverQueryProc( 'nm', 'SetTxIndex', 10 );
+*)
       core.DriverQueryProc( 'nm', 'SetTxIndex', 0 );
+(*
       core.DriverQueryProc( 'nm', 'SetRxIndex', 10 );
+*)
       core.DriverQueryProc( 'nm', 'SetRxIndex', 0 );
 
+(*
       core.DriverQueryProc( 'nm', 'PutCharSeq', 71 );
-      (*
       core.DriverQueryProc( 'nm', 'PutCharSeq', 'G' );
-      *)
       core.DriverQueryProc( 'nm', 'PutCharSeq', 'E' );
       core.DriverQueryProc( 'nm', 'PutCharSeq', 'T' );
       core.DriverQueryProc( 'nm', 'PutCharSeq', ' ' );
@@ -185,6 +188,14 @@ instrument
       core.DriverQueryProc( 'nm', 'PutCharSeq', '#0A' );
 
       core.DriverQueryProc( 'nm', 'SendAsync', 18 );
+*)
+      core.DriverQueryProc( 'nm', 'PutCharSeq', '#1B' );
+      core.DriverQueryProc( 'nm', 'PutCharSeq', '#01' );
+      core.DriverQueryProc( 'nm', 'PutCharSeq', '#03' );
+      core.DriverQueryProc( 'nm', 'PutCharSeq', '#01' );
+      core.DriverQueryProc( 'nm', 'PutCharSeq', '#03' );
+      core.DriverQueryProc( 'nm', 'PutCharSeq', '#FC' );
+      core.DriverQueryProc( 'nm', 'SendAsync', 6 );
     end_procedure;
 
   end_string_control;
@@ -224,7 +235,10 @@ instrument
     var
       s : string;
     begin
+    (*
       core.DriverQueryProc( 'nm', 'client connect 10.78.0.8:6005', &s );
+     *)
+      core.DriverQueryProc( 'nm', 'client connect 192.168.84.54:3001', &s );
       core.DebugOutput( 'connect: ', s );
     end_procedure;
 
