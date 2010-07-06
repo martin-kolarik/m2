@@ -7,52 +7,76 @@ IMPORT
 (*===========================================================================*)
 
 TYPE
-   TDebugLevel = (
-      dlcSysError, dldError, // critical severity OR brief         // Fatal,   debug Xtra problem
-      dlcError,    dldMessage,                                     // Error,   debug Message
-      dlcWarning,  dldTrace,                                       // Warning, debug Trace
-      dlcInfo,     dldDebug // very low severity OR exhaustive     // Info,    debug Debug
+   TLevel = (
+      lcSysError, ldError, // critical severity OR brief         // Fatal,   debug Xtra problem
+      lcError,    ldMessage,                                     // Error,   debug Message
+      lcWarning,  ldTrace,                                       // Warning, debug Trace
+      lcInfo,     ldDebug // very low severity OR exhaustive     // Info,    debug Debug
    );
 
 TYPE
    TPLogger = POINTER TO ILogger;
    TPFilter = POINTER TO IFilter;
+   TPAppender = POINTER TO IAppender;
+   TPOutput = POINTER TO IOutput;
+
+(*--------------------------------------------------------------------------------*)
 
 #save, option( dll_export => on )
 
 INTERFACE IFilter;
 
-   PUBLIC PROPERTY
-      Level : TDebugLevel;
-
-   PROCEDURE Filtered( Level : TDebugLevel; CONST Prefix : ARRAY OF WCHAR ) : BOOLEAN;
+   PROCEDURE FilteredFastCheck( Level : TDebugLevel ) : BOOLEAN; // fast check for level only
+   PROCEDURE FilteredFullCheck( Level : TDebugLevel; UserData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR ) : BOOLEAN; // precise check, inlucing level
    
 END IFilter;
 
 (*--------------------------------------------------------------------------------*)
 
-INTERFACE ILogger( IFilter );
+INTERFACE ILogger;
 
-   PROCEDURE LogS( Level : TDebugLevel; CONST Prefix, S : ARRAY OF WCHAR );
-   PROCEDURE LogSS( Level : TDebugLevel; CONST Prefix, S1, S2 : ARRAY OF WCHAR );
-   PROCEDURE LogSSC( Level : TDebugLevel; CONST Prefix, S1, S2 : ARRAY OF WCHAR; C : CARDINAL );
-   PROCEDURE LogSC( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL );
-   PROCEDURE LogSCC( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; C1, C2 : CARDINAL );
-   PROCEDURE LogSH( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL );
-   PROCEDURE LogSP( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; P : PTR );
-   PROCEDURE LogSCP( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; P : PTR );
-   PROCEDURE LogSHP( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL; P : PTR );
-   PROCEDURE LogSB( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; A : ADDRESS; Bytes : CARDINAL );
-   PROCEDURE LogSCB( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; A : ADDRESS; Bytes : CARDINAL );
-   PROCEDURE LogSSS( Level : TDebugLevel; CONST Prefix, S1, S2, S3 : ARRAY OF WCHAR );
-   PROCEDURE LogSSSS( Level : TDebugLevel; CONST Prefix, S1, S2, S3, S4 : ARRAY OF WCHAR );
+   PROCEDURE LogS( Level : TDebugLevel; UserData : PTR; CONST Prefix, S : ARRAY OF WCHAR );
+   PROCEDURE LogSS( Level : TDebugLevel; UserData : PTR; CONST Prefix, S1, S2 : ARRAY OF WCHAR );
+   PROCEDURE LogSSC( Level : TDebugLevel; UserData : PTR; CONST Prefix, S1, S2 : ARRAY OF WCHAR; C : CARDINAL );
+   PROCEDURE LogSC( Level : TDebugLevel; UserData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL );
+   PROCEDURE LogSCC( Level : TDebugLevel; UserData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; C1, C2 : CARDINAL );
+   PROCEDURE LogSH( Level : TDebugLevel; UserData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL );
+   PROCEDURE LogSP( Level : TDebugLevel; UserData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; P : PTR );
+   PROCEDURE LogSCP( Level : TDebugLevel; UserData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; P : PTR );
+   PROCEDURE LogSHP( Level : TDebugLevel; UserData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; H : CARDINAL; P : PTR );
+   PROCEDURE LogSB( Level : TDebugLevel; UserData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; A : ADDRESS; Bytes : CARDINAL );
+   PROCEDURE LogSCB( Level : TDebugLevel; UserData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; C : CARDINAL; A : ADDRESS; Bytes : CARDINAL );
+   PROCEDURE LogSSS( Level : TDebugLevel; UserData : PTR; CONST Prefix, S1, S2, S3 : ARRAY OF WCHAR );
+   PROCEDURE LogSSSS( Level : TDebugLevel; UserData : PTR; CONST Prefix, S1, S2, S3, S4 : ARRAY OF WCHAR );
   
-   PROCEDURE LogSE( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; ErrorCode : CARDINAL );
-   PROCEDURE LogSR( Level : TDebugLevel; CONST Prefix, S1 : ARRAY OF WCHAR; Result : Sync.TAsyncResult );
-   PROCEDURE LogExc( Level : TDebugLevel; CONST Prefix : ARRAY OF WCHAR; CONST e : Exceptions.CException );
-   PROCEDURE LogFilePos( Level : TDebugLevel; CONST Prefix : ARRAY OF WCHAR; CONST Path, S1 : ARRAY OF WCHAR; Line, Col : CARDINAL ); // Line, Col = 0/-1 means unused, unknown
+   PROCEDURE LogSE( Level : TDebugLevel; UserData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; ErrorCode : CARDINAL );
+   PROCEDURE LogSR( Level : TDebugLevel; UserData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; Result : Sync.TAsyncResult );
+   PROCEDURE LogExc( Level : TDebugLevel; UserData : PTR; CONST Prefix : ARRAY OF WCHAR; CONST e : Exceptions.CException );
+   PROCEDURE LogFilePos( Level : TDebugLevel; UserData : PTR; CONST Prefix : ARRAY OF WCHAR; CONST Path, S1 : ARRAY OF WCHAR; Line, Col : CARDINAL ); // Line, Col = 0/-1 means unused, unknown
 
 END ILogger;
+
+(*--------------------------------------------------------------------------------*)
+
+INTERFACE IOutput;
+
+   PROCEDURE Append( Level : TDebugLevel; UserData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR );
+
+END IOutput;
+
+(*--------------------------------------------------------------------------------*)
+
+INTERFACE IAppender( IOutput );
+
+   // inherited PROCEDURE Append( Level : TDebugLevel; UserData : PTR; CONST Appender, Prefix, Message : ARRAY OF WCHAR );
+
+   PROCEDURE SetName( CONST Name : ARRAY OF WCHAR );
+   PROCEDURE GetName( OUT Name : ARRAY OF WCHAR );
+
+   PROCEDURE AddOutput( Output : TPIOutput );
+   PROCEDURE RemoveOutput( Output : TPIOutput );
+
+END IAppender;
 
 #restore
 
