@@ -539,7 +539,7 @@ CLASS IMPLEMENTATION CEIBServer;
 	      RETURN Sync.arCannotStart;
 	   END;
 	   IF LoadConfiguration( Source[0].iString^, OUT message, OUT line ) THEN
-	      Log^.LogSS( log.dldMessage, L"", OAsz( R[ Texts._ConfigurationLoadSuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.rawData ));
+	      Log^.LogSS( log.ldMessage, 0, L"", OAsz( R[ Texts._ConfigurationLoadSuccessfully ] ), OA( Source[0].iString^.Length-1, Source[0].iString^.rawData ));
 	      RETURN Sync.arCompleted;
 	   ELSE
          Log^.LogFilePos( log.dlcError, L"", OA( Source[0].iString^.Length-1, Source[0].iString^.rawData ), OA( message.Length-1, message.rawData ), line, 0 );
@@ -811,7 +811,7 @@ CLASS IMPLEMENTATION CEIBServer;
             ( objtLogOnChange IN PObject^.ObjectType ) AND changed THEN // always allow log failures
             description := Originator^.Description;
             PObject^.SendAddress.GetGroupAddress3( TRUE, OUT address );
-            _DataLogger^.LogSSS( log.dldMessage, L"srv", "SET RQ", address, OA( description.Length-1, description.rawData ));
+            _DataLogger^.LogSSS( log.ldMessage, 0, L"srv", "SET RQ", address, OA( description.Length-1, description.rawData ));
          END;         
       
          IF changed THEN
@@ -2210,12 +2210,12 @@ CLASS IMPLEMENTATION CEIBServer;
          END;
 
          IF Direction = IOO.dirRead THEN
-            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "UPDATE", address, OA( value.Length-1, value.rawData ), OA( comment.Length-1, comment.rawData ));
+            _DataLogger^.LogSSSS( log.ldMessage, 0, L"srv", "UPDATE", address, OA( value.Length-1, value.rawData ), OA( comment.Length-1, comment.rawData ));
          ELSIF NOT EIB^.DeviceConnected() THEN
             IF _CacheOnlyMode THEN
-               _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET TO CACHE", address, OA( value.Length-1, value.rawData ), OA( comment.Length-1, comment.rawData ));
+               _DataLogger^.LogSSSS( log.ldMessage, 0, L"srv", "SET TO CACHE", address, OA( value.Length-1, value.rawData ), OA( comment.Length-1, comment.rawData ));
             ELSE
-               _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET FAILED", address, OA( value.Length-1, value.rawData ), OA( comment.Length-1, comment.rawData ));
+               _DataLogger^.LogSSSS( log.ldMessage, 0, L"srv", "SET FAILED", address, OA( value.Length-1, value.rawData ), OA( comment.Length-1, comment.rawData ));
             END;
          END;
                   
@@ -2307,9 +2307,9 @@ CLASS IMPLEMENTATION CEIBServer;
          END;
 
          IF PObject^.WSStatus = eib_status.essOK THEN
-            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET OK", address, OA( value.Length-1, value.rawData ), OA( comment.Length-1, comment.rawData ));
+            _DataLogger^.LogSSSS( log.ldMessage, 0, L"srv", "SET OK", address, OA( value.Length-1, value.rawData ), OA( comment.Length-1, comment.rawData ));
          ELSE
-            _DataLogger^.LogSSSS( log.dldMessage, L"srv", "SET ERROR", address, OA( value.Length-1, value.rawData ), OA( comment.Length-1, comment.rawData ));
+            _DataLogger^.LogSSSS( log.ldMessage, 0, L"srv", "SET ERROR", address, OA( value.Length-1, value.rawData ), OA( comment.Length-1, comment.rawData ));
          END;
                   
       END;
@@ -2408,9 +2408,9 @@ CLASS IMPLEMENTATION CEIBServer;
          IF NOT RepeatFlag AND ( eib_def.aofInitRead IN PObject^.GetFlags()) OR
                 RepeatFlag AND ( PObject^.InitReadState = eib_user.irsWillRepeat ) THEN
 
-            IF NOT Logger.Filtered( log.dldTrace, L"srv" ) THEN
+            IF NOT Logger.Filtered( log.ldTrace, 0, L"srv" ) THEN
                PObject^.ReadAddress.GetGroupAddress3( TRUE, saddr );
-               Logger.LogSS( log.dldTrace, L"srv", "INIT: ", saddr );
+               Logger.LogSS( log.ldTrace, 0, L"srv", "INIT: ", saddr );
             END;
 
             INC( InitReadItems );
@@ -2442,9 +2442,9 @@ CLASS IMPLEMENTATION CEIBServer;
                CONTINUE;
             END;
 
-            IF NOT Logger.Filtered( log.dldTrace, L"srv" ) THEN
+            IF NOT Logger.Filtered( log.ldTrace, 0, L"srv" ) THEN
                PObject^.ReadAddress.GetGroupAddress3( TRUE, saddr );
-               Logger.LogSS( log.dldTrace, L"srv", "READER: ", saddr );
+               Logger.LogSS( log.ldTrace, 0, L"srv", "READER: ", saddr );
             END;
 
             PObject^.GetValue( OUT EV, FALSE, TRUE );
@@ -2530,11 +2530,11 @@ CLASS IMPLEMENTATION CEIBServer;
             so := Value.String;
             IF TimeFormat.Empty THEN
                IF NOT DT.FromStringOA( OA( so.Length-1, so.rawData ), L"HH:mm:ss" ) THEN
-                  Logger.LogSSSS( log.dldError, L"srv", L"string to time conversion failure: ", OA( so.Length-1, so.rawData ), L", format: HH:mm:ss", L"" );
+                  Logger.LogSSSS( log.ldError, 0, L"srv", L"string to time conversion failure: ", OA( so.Length-1, so.rawData ), L", format: HH:mm:ss", L"" );
                END;
             ELSE
                IF NOT DT.FromStringOA( OA( so.Length-1, so.rawData ), OA( TimeFormat.Length-1, TimeFormat.rawData )) THEN
-                  Logger.LogSSSS( log.dldError, L"srv", L"string to time conversion failure: ", OA( so.Length-1, so.rawData ), L", format: ", OA( TimeFormat.Length-1, TimeFormat.rawData ));
+                  Logger.LogSSSS( log.ldError, 0, L"srv", L"string to time conversion failure: ", OA( so.Length-1, so.rawData ), L", format: ", OA( TimeFormat.Length-1, TimeFormat.rawData ));
                END;
             END;
             WD := 0;
@@ -2566,11 +2566,11 @@ CLASS IMPLEMENTATION CEIBServer;
             so := Value.String;
             IF DateFormat.Empty THEN
                IF NOT DT.FromStringOA( OA( so.Length-1, so.rawData ), L"yyyy-MM-dd" ) THEN
-                  Logger.LogSSSS( log.dldError, L"srv", L"string to date conversion failure: ", OA( so.Length-1, so.rawData ), L", format: yyyy-MM-dd", L"" );
+                  Logger.LogSSSS( log.ldError, 0, L"srv", L"string to date conversion failure: ", OA( so.Length-1, so.rawData ), L", format: yyyy-MM-dd", L"" );
                END;
             ELSE
                IF NOT DT.FromStringOA( OA( so.Length-1, so.rawData ), OA( DateFormat.Length-1, DateFormat.rawData )) THEN
-                  Logger.LogSSSS( log.dldError, L"srv", L"string to date conversion failure: ", OA( so.Length-1, so.rawData ), L", format: ", OA( DateFormat.Length-1, DateFormat.rawData ));
+                  Logger.LogSSSS( log.ldError, 0, L"srv", L"string to date conversion failure: ", OA( so.Length-1, so.rawData ), L", format: ", OA( DateFormat.Length-1, DateFormat.rawData ));
                END;
             END;
             Y := DT.Year;

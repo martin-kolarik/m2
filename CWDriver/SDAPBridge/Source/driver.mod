@@ -6,7 +6,7 @@ FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
 
 FROM log IMPORT
-  dldTrace, dldDebug;
+  ldTrace, ldDebug;
 
 IMPORT
    cllv,
@@ -243,7 +243,7 @@ CLASS IMPLEMENTATION CDriver;
       END;
       INCL( RStatus, schiRunning );
       
-      Logger.LogS( log.dldMessage, logPrefix, L"RUN" );
+      Logger.LogS( log.ldMessage, 0, logPrefix, L"RUN" );
 
       Result.Reset( lec.bhBestCase );
       FIO.GetModuleDirW( EMITW( %dll ), OUT s );
@@ -261,7 +261,7 @@ CLASS IMPLEMENTATION CDriver;
       END;
       EXCL( RStatus, schiRunning );
 
-      Logger.LogS( log.dldMessage, logPrefix, L"STOP" );
+      Logger.LogS( log.ldMessage, 0, logPrefix, L"STOP" );
 
       SDAP.Stop();
    END DriverStop;
@@ -417,13 +417,13 @@ CLASS IMPLEMENTATION CDriver;
             Lock.Unlock();
             OutValue.Integer := c;
 
-            Logger.LogSC( dldDebug, logPrefix, L"Event.Count", c );
+            Logger.LogSC( ldDebug, 0, logPrefix, L"Event.Count", c );
             GOTO Return;
             
          ELSIF S2.EqualsOA( L'get' ) THEN
             IF Result.Counted OR Result.Expired THEN
-               Logger.LogS( dldDebug, logPrefix, L"Event.Get clear buffer" );
-               Logger.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
+               Logger.LogS( ldDebug, 0, logPrefix, L"Event.Get clear buffer" );
+               Logger.LogS( ldDebug, 0, logPrefix, L"RS- rsEventPending" );
 
                Lock.Lock();
                DisposeQueue();
@@ -438,7 +438,7 @@ CLASS IMPLEMENTATION CDriver;
                haveEvent := TRUE;
             ELSE
                haveEvent := FALSE;
-               Logger.LogS( dldDebug, logPrefix, L"RS- rsEventPending" );
+               Logger.LogS( ldDebug, 0, logPrefix, L"RS- rsEventPending" );
 
                EXCL( RStatus, schiEventsPending );
             END;
@@ -449,13 +449,13 @@ CLASS IMPLEMENTATION CDriver;
 
                CASE exceptionType OF
                | eitConnected :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue", L"'connected'" );
+                  Logger.LogSS( ldDebug, 0, logPrefix, L"Event.Dequeue", L"'connected'" );
                   CS.FromOA( L"connected" );  
                | eitDisconnected :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue", L"'disconnected'" );
+                  Logger.LogSS( ldDebug, 0, logPrefix, L"Event.Dequeue", L"'disconnected'" );
                   CS.FromOA( L"disconnected" );  
                | eitAdvise :
-                  Logger.LogSS( dldDebug, logPrefix, L"Event.Dequeue", L"'advise'" );
+                  Logger.LogSS( ldDebug, 0, logPrefix, L"Event.Dequeue", L"'advise'" );
                   CS.FromOA( L"advise " );
                   CS.Append( exceptionItem^.Address );
                   CS.AppendOA( L" " );
@@ -468,7 +468,7 @@ CLASS IMPLEMENTATION CDriver;
             END;
 
          ELSE
-            Logger.LogSSSS( dldTrace, logPrefix, L"DQP unknown event procedure '", OA( S2.Length-1, S2.rawData ), L"'", L"" );
+            Logger.LogSSSS( ldTrace, 0, logPrefix, L"DQP unknown event procedure '", OA( S2.Length-1, S2.rawData ), L"'", L"" );
             CS.FromOA( L'error: unknown driver procedure' );
             GOTO Return;
          END;
@@ -478,39 +478,39 @@ CLASS IMPLEMENTATION CDriver;
 
       ELSIF S1.EqualsOA( L'set' ) THEN
          IF S2.Empty THEN
-            Logger.LogS( dldTrace, logPrefix, L"DQP 'set', missing address" );
+            Logger.LogS( ldTrace, 0, logPrefix, L"DQP 'set', missing address" );
             CS.FromOA( L'error: missing address' );
             GOTO Return;
          END;
          IF S3.Empty THEN
-            Logger.LogS( dldTrace, logPrefix, L"DQP 'set', missing value" );
+            Logger.LogS( ldTrace, 0, logPrefix, L"DQP 'set', missing value" );
             CS.FromOA( L'error: missing value' );
             GOTO Return;
          END;
 
-         Logger.LogSSSS( dldDebug, logPrefix, L"DQP 'set',", OA( S2.Length-1, S2.rawData ), OA( S3.Length-1, S3.rawData ), L"" );
+         Logger.LogSSSS( ldDebug, 0, logPrefix, L"DQP 'set',", OA( S2.Length-1, S2.rawData ), OA( S3.Length-1, S3.rawData ), L"" );
          SDAP.Set( S2, S3 );
 
       ELSIF S1.EqualsOA( L'ask' ) THEN
          IF S2.Empty THEN
-            Logger.LogS( dldTrace, logPrefix, L"DQP 'ask', missing address" );
+            Logger.LogS( ldTrace, 0, logPrefix, L"DQP 'ask', missing address" );
             CS.FromOA( L'error: missing address' );
             GOTO Return;
          END;
          
-         Logger.LogSS( dldDebug, logPrefix, L"DQP 'ask',", OA( S2.Length-1, S2.rawData ));
+         Logger.LogSS( ldDebug, 0, logPrefix, L"DQP 'ask',", OA( S2.Length-1, S2.rawData ));
          SDAP.Ask( S2 );
 
       ELSIF S1.EqualsOA( L'advise' ) THEN
-         Logger.LogS( dldDebug, logPrefix, L"DQP 'advise'" );
+         Logger.LogS( ldDebug, 0, logPrefix, L"DQP 'advise'" );
          SDAP.Advise();
 
       ELSIF S1.EqualsOA( L'unadvise' ) THEN
-         Logger.LogS( dldDebug, logPrefix, L"DQP 'unadvise'" );
+         Logger.LogS( ldDebug, 0, logPrefix, L"DQP 'unadvise'" );
          SDAP.Unadvise();
 
       ELSE
-         Logger.LogSSSS( dldTrace, logPrefix, L"DQP unknown procedure '", OA( S1.Length-1, S1.rawData ), L"'", L"" );
+         Logger.LogSSSS( ldTrace, 0, logPrefix, L"DQP unknown procedure '", OA( S1.Length-1, S1.rawData ), L"'", L"" );
          CS.FromOA( L'error: unknown driver procedure' );
          GOTO Return;
       END;
@@ -526,7 +526,7 @@ CLASS IMPLEMENTATION CDriver;
 
    LOCAL VIRTUAL PROCEDURE OnConnected();
    BEGIN
-      Logger.LogS( dldTrace, logPrefix, L"'connected' event" );
+      Logger.LogS( ldTrace, 0, logPrefix, L"'connected' event" );
 
       EnqueueEvent( NIL, PTR( eitConnected ));
    END OnConnected;
@@ -537,7 +537,7 @@ CLASS IMPLEMENTATION CDriver;
    VAR
       exceptionItem : TPExceptionItem;
    BEGIN
-      Logger.LogS( dldTrace, logPrefix, L"'disconnected' event" );
+      Logger.LogS( ldTrace, 0, logPrefix, L"'disconnected' event" );
 
       NEW( exceptionItem );
       exceptionItem^.Result := Result;
@@ -550,7 +550,7 @@ CLASS IMPLEMENTATION CDriver;
    VAR
       exceptionItem : TPExceptionItem;
    BEGIN
-      Logger.LogSSSS( dldDebug, logPrefix, L"'advise' event,", OA( Address.Length-1, Address.rawData ), OA( Value.Length-1, Value.rawData ), L"" );
+      Logger.LogSSSS( ldDebug, 0, logPrefix, L"'advise' event,", OA( Address.Length-1, Address.rawData ), OA( Value.Length-1, Value.rawData ), L"" );
 
       NEW( exceptionItem );
       exceptionItem^.Address.Assign( Address );
@@ -566,7 +566,7 @@ CLASS IMPLEMENTATION CDriver;
       Queue.Enqueue( exceptionItem, eventType );
 
       IF schiEventsPending NOT IN RStatus THEN
-         Logger.LogS( dldDebug, logPrefix, L"RS+ rsEventPending" );
+         Logger.LogS( ldDebug, 0, logPrefix, L"RS+ rsEventPending" );
 
          INCL( RStatus, schiEventsPending );
       END;

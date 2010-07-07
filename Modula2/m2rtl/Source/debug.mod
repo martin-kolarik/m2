@@ -66,18 +66,18 @@ VAR
    success : BOOLEAN := FALSE;
 BEGIN
    NEW( AssertionLog );
-   AssertionLog^.Method := Log.dmNone;
+   AssertionLog^.Output := Log.outsNone;
    
    // read data from registry
    IF AssertionLog^.SetUpByRegistry( REGISTRY_LIBRARY ) THEN
-      IF AssertionLog^.Method = Log.dmFile THEN
+      IF Log.outFile IN AssertionLog^.Output THEN
          success := TRUE;
       END;
    ELSE
-      AssertionLog^.Method := Log.dmFile;
-      AssertionLog^.Level := Log.dlcSysError;
+      AssertionLog^.Output := Log.outsFile;
+      AssertionLog^.Level := Log.lcSysError;
       AssertionLog^.Levels := FALSE;
-      AssertionLog^.SetLogName( ProductId );
+      AssertionLog^.SetName( ProductId );
    END;
 
    // try common application data path, should always succeed
@@ -261,9 +261,9 @@ BEGIN
    Strings.FromCARD32W( ModuleLine, 10, OUT Line );
    Strings.AppendW( REF Name, L")" );
    IF Text[0] = 0W THEN
-      getLogger()^.LogSSS( Log.dlcSysError, Module, Line, L"(dump:", Name );
+      getLogger()^.LogSSS( Log.lcSysError, 0, Module, Line, L"(dump:", Name );
    ELSE
-      getLogger()^.LogSSSS( Log.dlcSysError, Module, Text, Line, L"(dump:", Name );
+      getLogger()^.LogSSSS( Log.lcSysError, 0, Module, Text, Line, L"(dump:", Name );
    END;
    
    // write minidump
