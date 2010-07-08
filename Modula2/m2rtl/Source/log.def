@@ -22,8 +22,11 @@ TYPE
    TOutput = SET OF TOutputItem;
    
    TPLevelAndBitsFilter = POINTER TO CLevelAndBitsFilter;
-   TPLogger = POINTER TO CPlainLogger;
+   TPPlainLogger = POINTER TO CPlainLogger;
    TPBufferedLogger = POINTER TO CBufferedLogger;
+   
+CONST
+   TPLogger ::= TPPlainLogger;
    
 CONST
    outsNone    = TOutput{};
@@ -202,9 +205,6 @@ CLASS CBaseLogger IMPLEMENTS iLog.ILogger, iLog.IAppender;
    PUBLIC VIRTUAL PROCEDURE RemoveOutput( Output : TPIOutput );
 
    // SELF
-   PUBLIC VIRTUAL PROCEDURE SetUpByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN; // gets config from registry
-   PUBLIC VIRTUAL PROCEDURE SetUpByLogger( CONST Logger : CBaseLogger ) : BOOLEAN; // gets config from another existing logger
-
    PUBLIC PROPERTY
       Filter : TPIFilter;
 
@@ -213,7 +213,6 @@ CLASS CBaseLogger IMPLEMENTS iLog.ILogger, iLog.IAppender;
       _Name : ARRAY [0..63] OF WCHAR;
       _Filter : TPIFilter;
   
-   PRIVATE PROCEDURE LoadByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN;
    PRIVATE INLINE PROCEDURE Filtered( Level : TLevel ) : BOOLEAN; // fast check
 END CBaseLogger;
 
@@ -222,9 +221,6 @@ END CBaseLogger;
 LOCAL CLASS CPlainLogger( CBaseLogger );
 
    // SELF
-   PUBLIC VIRTUAL PROCEDURE SetUpByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN; // gets config from registry
-   PUBLIC VIRTUAL PROCEDURE SetUpByLogger( CONST Logger : CBaseLogger ) : BOOLEAN; // gets config from another existing logger
-
    PUBLIC PROPERTY
       Output : TOutput; // switches output to single output (leaves only single appender)
       Level : TLevel;
@@ -244,8 +240,6 @@ LOCAL CLASS CPlainLogger( CBaseLogger );
       _KernelOutput : CKernelOutput;
       _FileOutput : CFileOutput;
   
-   PRIVATE PROCEDURE LoadByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN;
-   PRIVATE PROCEDURE TrySetFileToDefault();
 END CPlainLogger;
 
 CONST
@@ -256,8 +250,6 @@ CONST
 CLASS CBufferedLogger( CPlainLogger );
   
    // SELF
-   PUBLIC VIRTUAL PROCEDURE SetUpByLogger( CONST Logger : CBaseLogger ) : BOOLEAN; // gets config from another existing logger
-
    PUBLIC PROPERTY
       BufferSize : CARDINAL; // default 256
       BufferMode : TBufferMode;
@@ -275,6 +267,12 @@ CLASS CBufferedLogger( CPlainLogger );
 END CBufferedLogger;
 
 (*===========================================================================*)
+
+PROCEDURE ConfigureByRegistry( REF logger : CBaseLogger; CONST SectionName : ARRAY OF WCHAR ) : BOOLEAN; // DOES NOT copy any output, does not load filter, returns if the section was found
+PROCEDURE ConfigureByLogger( REF logger : CBaseLogger; CONST sourceLogger : CBaseLogger ); // DOES NOT copy any output, does not load filter
+  // both functions configure all types of loggers
+
+(*===========================================================================*)
 // internally, map of loggers is maintained to be able to connects logger outputs by name for everybody
 
 // Classes derived from CBaseLogger MUST NOT be registered, they are registered automatically
@@ -283,5 +281,44 @@ PROCEDURE ForgetAppender( Appender : iLog.TPIAppender );
 PROCEDURE GetAppender( CONST Name : ARRAY OF WCHAR; OUT Appender : iLog.TPIAppender ) : BOOLEAN;
 
 (*===========================================================================*)
+
+// dll_export flag
+#restore
+
+TYPE
+   TConfigKeyword = (
+      cksLog,
+      ckkJoin,
+      ckkOutput,
+      ckkTarget,
+         ckvFile,
+         ckvKernel,
+      ckkFile,
+      ckkFilter,
+         ckvDeny,
+         ckvAllow,
+      ckkLevel,
+         ckvFatal,
+         ckvError,
+         ckvWarning,
+         ckvInfo,
+         ckvDebugFailure,
+         ckvDebugMessage,
+         ckvDebugTrace,
+         ckvDebugAll,
+      ckkCached,
+      ckkAllowedFilterBits,
+      ckkTimeStamps,
+      ckkLevels,
+      ckkNames,
+      ckkLocalTime,
+         ckvTrue,
+         ckvFalse
+   );
+
+// for configuration purposes, not exported out of DLL
+PROCEDURE GetKeyword( keyword : TConfigKeyword ) : PWCHAR; // zero terminated
+
+(*---------------------------------------------------------------------------*)
 
 END log.

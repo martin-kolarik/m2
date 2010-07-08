@@ -494,48 +494,7 @@ END CINIFile;
 
 (*================================================================================*)
 
-CONST
-   snLog             = L'log';
-   knTarget          = L'target';
-      kvTargetNone   = L'none';
-      kvTargetFile   = L'file';
-      kvTargetKernel = L'kernel';
-   knFile            = L'file';
-   knFilter          = L'filter';
-      kvDeny         = L'deny';
-      kvAllow        = L'allow';
-   knLevel           = L'level';
-      kvFatal        = L'fatal'; 
-      kvError        = L'error'; 
-      kvWarning      = L'warning'; 
-      kvInfo         = L'info'; 
-      kvDebugFailure = L'failure';
-      kvDebugMessage = L'message';
-      kvDebugTrace   = L'trace';
-      kvDebugAll     = L'all';
-   knCached          = L'cached';
-
-(*--------------------------------------------------------------------------------*)
-
-PROCEDURE ConfigureLogInternal( buffered : BOOLEAN; CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; logger : Log.TPALogger; OUT errorLine : CARDINAL ) : TConfigureLogResult; FORWARD;
-
-(*--------------------------------------------------------------------------------*)
-
 PROCEDURE ConfigureLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : Log.CLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
-BEGIN
-   RETURN ConfigureLogInternal( FALSE, ini, SectionName, ADR( logger ), OUT errorLine );
-END ConfigureLog;
-
-(*--------------------------------------------------------------------------------*)
-
-PROCEDURE ConfigureBufferedLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : Log.CBufferedLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
-BEGIN
-   RETURN ConfigureLogInternal( TRUE, ini, SectionName, ADR( logger ), OUT errorLine );
-END ConfigureBufferedLog;
-
-(*--------------------------------------------------------------------------------*)
-
-PROCEDURE ConfigureLogInternal( buffered : BOOLEAN; CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; logger : Log.TPALogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
 VAR
    Cached : CARDINAL;
    cs : StringsO.CString;

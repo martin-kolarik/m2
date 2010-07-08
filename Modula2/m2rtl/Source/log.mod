@@ -1045,7 +1045,9 @@ BEGIN
    NEW( _Outputs );
    _Name[0] := 0W;
    _Filter := NIL;
+   RegisterAppender( ADR( SELF ));
 FINALLY
+   ForgetAppender( ADR( SELF ));
    DISPOSE( _Outputs );
 END CBaseLogger;
 
@@ -1192,149 +1194,18 @@ CLASS IMPLEMENTATION CPlainLogger;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE SetUpByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN;
-   BEGIN
-      RETURN LoadByRegistry( LibraryName );
-   END SetUpByRegistry;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE SetUpByLogger( CONST Logger : ALogger ) : BOOLEAN; // gets config from another existing logger
-   BEGIN
-      SELF.RStatus := Logger.RStatus;
-      SELF._Name := Logger._Name;
-      SELF._Level := Logger._Level;
-      SELF.DebugFile := Logger.DebugFile;
-      RETURN TRUE;
-   END SetUpByLogger;
-
-(*---------------------------------------------------------------------------*)
-
-   PRIVATE PROCEDURE LoadByRegistry( CONST LibraryName : ARRAY OF WCHAR ) : BOOLEAN;
-   BEGIN
-(*   
-   CONST
-      keyJoin   = L"join";
-      keyTarget = L"target";
-      keyOutput = L"output";
-         valKernel = L"kernel";
-         valFile   = L"file";
-         // -- val<Name> of output to
-      keyFile   = L"file";
-      keyLevel  = L"level";
-         valSystemError = L"fatal";
-         valError       = L"error";
-         valWarning     = L"warning";
-         valInfo        = L"info";
-      keyTimeStamps = L"timestamps";
-         valTrue = L"true";
-         valFalse = L"false";
-   VAR
-      DataSize : CARDINAL;
-      Dir : FIO.PathStrW;
-      hkey : winreg.HKEY;
-      Key, Data : TString;
-      LLibraryName : TString;
-      PData : PBYTE := PBYTE( ADR( Data ));
-      RegType : CARDINAL;
-      res : CARDINAL;
-   BEGIN
-      LLibraryName := LibraryName;
-      // defaults are not set here, they come from constructor or from previous CLog property settings
-
-      LOOP
-         Strings.ConcatW( OUT Key, L"SOFTWARE\" + Manufacturer + "\Log\", LLibraryName );
-         res := winreg.RegOpenKeyExW( winreg.HKEY_CURRENT_USER, ADR( Key ), 0, windows.KEY_READ, ADR( hkey ));
-         IF res <> 0 THEN // key does not exists, try HKLM
-            res := winreg.RegOpenKeyExW( winreg.HKEY_LOCAL_MACHINE, ADR( Key ), 0, windows.KEY_READ, ADR( hkey ));
-         END;
-         IF res <> 0 THEN // key not found
-            RETURN FALSE;
-         END;
-
-         // read data
-         DataSize := SIZE( Data );
-         IF ( winreg.RegQueryValueExW( hkey, keyJoin, NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
-            // redirect to another settings
-            ASSIGNsz( LLibraryName, PWCHAR( PData ));
-
-            winreg.RegCloseKey( hkey );
-            CONTINUE;
-         END;
-
-         DataSize := SIZE( Data );
-         IF ( winreg.RegQueryValueExW( hkey, keyTarget, NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
-            LOW( OAsz( PWCHAR( PData )));
-            IF EQUALS( OAsz( PWCHAR( PData )), valKernel ) THEN
-               RStatus := RStatus - TRStatus{rsDebugFile} + TRStatus{rsDebugKernel};
-            ELSIF EQUALS( OAsz( PWCHAR( PData )), valFile ) THEN
-               RStatus := RStatus - TRStatus{rsDebugKernel} + TRStatus{rsDebugFile};
-            END;
-         END;
-
-         DataSize := SIZE( Data );
-         IF ( winreg.RegQueryValueExW( hkey, keyTimeStamps, NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
-            LOW( OAsz( PWCHAR( PData )));
-            IF EQUALS( OAsz( PWCHAR( PData )), valTrue ) THEN
-               RStatus := RStatus + TRStatus{rsTimeStamps};
-            ELSIF EQUALS( OAsz( PWCHAR( PData )), valFalse ) THEN
-               RStatus := RStatus - TRStatus{rsTimeStamps};
-            END;
-         END;
-
-         DataSize := SIZE( Data );
-         IF ( winreg.RegQueryValueExW( hkey, keyFile, NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
-            ASSIGNsz( DebugFile, PWCHAR( PData ));
-         ELSIF DebugFile[0] = 0W THEN
-            FIO.GetModuleDirW( EMITW( %dll ), OUT Dir );
-            IF Dir[0] = 0W THEN
-               FIO.GetModuleDirW( L"", OUT Dir );
-            END;
-            Strings.ConcatW( OUT DebugFile, LibraryName, L".log" ); // use client's name, not processing LLibrary
-            FIO.MakePathW( Dir, DebugFile, OUT DebugFile );
-         END;
-
-         DataSize := SIZE( Data );
-         IF ( winreg.RegQueryValueExW( hkey, keyLevel, NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
-            LOW( OAsz( PWCHAR( PData )));
-            IF EQUALS( OAsz( PWCHAR( PData )), valSystemError ) THEN
-               DebugLevel := dldError;
-            ELSIF EQUALS( OAsz( PWCHAR( PData )), valError ) THEN
-               DebugLevel := dldMessage;
-            ELSIF EQUALS( OAsz( PWCHAR( PData )), valWarning ) THEN
-               DebugLevel := dldTrace;
-            ELSIF EQUALS( OAsz( PWCHAR( PData )), valInfo ) THEN
-               DebugLevel := dldDebug;
-            END;
-         END;
-
-         winreg.RegCloseKey( hkey );
-         RETURN TRUE;
-      END; // LOOP
-*)      
-   END LoadByRegistry;
-
-(*---------------------------------------------------------------------------*)
-
 BEGIN
    _Output := TOutput{};
    Output := TOutput{outKernel};
 
    #if #defined LIBRARY #then
-      LoadByRegistry( LIBRARY );
+      ConfigureByRegistry( REF SELF, LIBRARY );
    #endif
 END CPlainLogger;
 
 (*===========================================================================*)
 
 CLASS IMPLEMENTATION CBufferedLogger;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY BufferSize SET( Value : CARDINAL );
-   BEGIN
-      _BufferOutput.Size := Value;
-   END BufferSize;
 
 (*---------------------------------------------------------------------------*)
 
@@ -1387,23 +1258,169 @@ CLASS IMPLEMENTATION CBufferedLogger;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE SetUpByLogger( CONST Logger : CBufferedLogger ) : BOOLEAN; // gets config from another existing logger
-   BEGIN
-      IF NOT SUPER.SetUpByLogger( Logger ) THEN
-         RETURN FALSE;
-      END;
-      BufferMode := Logger.BufferMode;
-      BufferSize := Logger.BufferSize;
-      RETURN TRUE;
-   END SetUpByLogger;
-
-(*---------------------------------------------------------------------------*)
-
 BEGIN
    AddOutput( ADR( _BufferOutput ));
 FINALLY
    RemoveOutput( ADR( _BufferOutput ));
 END CBufferedLogger;
+
+(*===========================================================================*)
+
+PROCEDURE ConfigureByRegistry( REF _logger : CBaseLogger; CONST SectionName : ARRAY OF WCHAR ) : BOOLEAN; // loads also all outputs
+VAR
+   AllowedBits : CARD64;
+   Cached : CARDINAL;
+   DataSize : CARDINAL;
+   Dir : FIO.PathStrW;
+   hkey : winreg.HKEY;
+   Key, Data : TString;
+   LSectionName : TString;
+   logger : TPPlainLogger;
+   PData : PBYTE := PBYTE( ADR( Data ));
+   RegType : CARDINAL;
+   res : CARDINAL;
+BEGIN
+   Data[0] := 0W;
+   LSectionName := SectionName;
+   // defaults are not set here, they come from constructor or from previous CLog property settings
+
+   LOOP
+      Strings.ConcatW( OUT Key, L"SOFTWARE\" + Manufacturer + "\Log\", LSectionName );
+      res := winreg.RegOpenKeyExW( winreg.HKEY_CURRENT_USER, ADR( Key ), 0, windows.KEY_READ, ADR( hkey ));
+      IF res <> 0 THEN // key does not exists, try HKLM
+         res := winreg.RegOpenKeyExW( winreg.HKEY_LOCAL_MACHINE, ADR( Key ), 0, windows.KEY_READ, ADR( hkey ));
+      END;
+      IF res <> 0 THEN // key not found
+         RETURN FALSE;
+      END;
+
+      // read data
+      DataSize := SIZE( Data );
+      IF ( winreg.RegQueryValueExW( hkey, GetKeyword( ckkJoin ), NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
+         // redirect to another settings
+         LSectionName := Data;
+
+         winreg.RegCloseKey( hkey );
+         CONTINUE;
+      END;
+
+      IF NOT( _logger INHERITS CPlainLogger ) THEN
+         CONTINUE;
+      END;
+      logger := TPPlainLogger( ADR( _logger ));
+
+      DataSize := SIZE( Data );
+      IF ( winreg.RegQueryValueExW( hkey, GetKeyword( ckkTarget ), NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) OR
+         ( winreg.RegQueryValueExW( hkey, GetKeyword( ckkOutput ), NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
+         LOW( Data );
+         IF EQUALS( Data, OAsz( GetKeyword( ckvKernel )) ) THEN
+            logger^.Output := outsKernel;
+         ELSIF EQUALS( Data, OAsz( GetKeyword( ckvFile )) ) THEN
+            logger^.Output := outsFile;
+         END;
+      END;
+
+      DataSize := SIZE( Data );
+      IF ( winreg.RegQueryValueExW( hkey, GetKeyword( ckkTimeStamps ), NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
+         LOW( Data );
+         logger^.TimeStamps := EQUALS( Data, OAsz( GetKeyword( ckvTrue )) );
+      END;
+
+      DataSize := SIZE( Data );
+      IF ( winreg.RegQueryValueExW( hkey, GetKeyword( ckkLevels ), NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
+         LOW( Data );
+         logger^.Levels := EQUALS( Data, OAsz( GetKeyword( ckvTrue )) );
+      END;
+
+      DataSize := SIZE( Data );
+      IF ( winreg.RegQueryValueExW( hkey, GetKeyword( ckkNames ), NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
+         LOW( Data );
+         logger^.Names := EQUALS( Data, OAsz( GetKeyword( ckvTrue )) );
+      END;
+
+      DataSize := SIZE( Data );
+      IF ( winreg.RegQueryValueExW( hkey, GetKeyword( ckkLocalTime ), NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
+         LOW( Data );
+         logger^.LocalTime := EQUALS( Data, OAsz( GetKeyword( ckvTrue )) );
+      END;
+
+      DataSize := SIZE( Data );
+      IF ( winreg.RegQueryValueExW( hkey, GetKeyword( ckkFile ), NIL, ADR( RegType ), PData, ADR( DataSize )) <> 0 ) OR ( RegType <> windows.REG_SZ ) THEN
+         logger^.GetLogFile( OUT Data );
+         IF Data[0] = 0W THEN
+            FIO.GetModuleDirW( EMITW( %dll ), OUT Dir );
+            IF Dir[0] = 0W THEN
+               FIO.GetModuleDirW( L"", OUT Dir );
+            END;
+            Strings.ConcatW( OUT Data, SectionName, L".log" ); // use client's name, not processing LLibrary
+            FIO.MakePathW( Dir, Data, OUT Data );
+         END;
+      END;
+      logger^.SetLogFile( Data );
+
+      DataSize := SIZE( Data );
+      IF ( winreg.RegQueryValueExW( hkey, GetKeyword( ckkLevel ), NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) OR
+         ( winreg.RegQueryValueExW( hkey, GetKeyword( ckkFilter ), NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) THEN
+         LOW( Data );
+         IF EQUALS( Data, OAsz( GetKeyword( ckvError )) ) OR EQUALS( Data, OAsz( GetKeyword( ckvDebugFailure )) ) THEN
+            logger^.Level := ldError;
+         ELSIF EQUALS( Data, OAsz( GetKeyword( ckvError )) ) OR EQUALS( Data, OAsz( GetKeyword( ckvDebugMessage )) ) THEN
+            logger^.Level := ldMessage;
+         ELSIF EQUALS( Data, OAsz( GetKeyword( ckvWarning )) ) OR EQUALS( Data, OAsz( GetKeyword( ckvDebugTrace )) ) THEN
+            logger^.Level := ldTrace;
+         ELSIF EQUALS( Data, OAsz( GetKeyword( ckvInfo )) ) OR EQUALS( Data, OAsz( GetKeyword( ckvDebugAll )) ) THEN
+            logger^.Level := ldDebug;
+         END;
+      END;
+      
+      DataSize := SIZE( Data );
+      IF ( winreg.RegQueryValueExW( hkey, GetKeyword( ckkAllowedFilterBits ), NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) AND
+         Strings.ToCARD64W( Data, 16, OUT AllowedBits ) THEN
+         IF SIZE( PTR ) = SIZE( LONGWORD ) THEN
+            logger^.AllowedFilterDataBits := CARD32( AllowedBits );
+         ELSE
+            logger^.AllowedFilterDataBits := AllowedBits;
+         END;
+      END;
+
+      IF NOT( _logger INHERITS CBufferedLogger ) THEN
+         CONTINUE;
+      END;
+
+      DataSize := SIZE( Data );
+      IF ( winreg.RegQueryValueExW( hkey, GetKeyword( ckkCached ), NIL, ADR( RegType ), PData, ADR( DataSize )) = 0 ) AND ( RegType = windows.REG_SZ ) AND
+         Strings.ToCARD32W( Data, 10, OUT Cached ) THEN
+         TPBufferedLogger( logger )^.BufferSize := Cached;
+      END;
+
+      winreg.RegCloseKey( hkey );
+      RETURN TRUE;
+   END; // LOOP
+END ConfigureByRegistry;
+
+(*---------------------------------------------------------------------------*)
+
+PROCEDURE ConfigureByLogger( REF logger : CBaseLogger; CONST sourceLogger : CBaseLogger ); // DOES NOT LOAD any output
+VAR
+   s : TString;
+BEGIN
+   sourceLogger.GetName( OUT s ); logger.SetName( s );
+
+   IF ( logger IS CPlainLogger ) AND ( sourceLogger IS CPlainLogger ) THEN
+      TPPlainLogger( ADR( logger ))^.Level := TPPlainLogger( ADR( sourceLogger ))^.Level;
+      TPPlainLogger( ADR( logger ))^.AllowedFilterDataBits := TPPlainLogger( ADR( sourceLogger ))^.AllowedFilterDataBits;
+      TPPlainLogger( ADR( logger ))^.TimeStamps := TPPlainLogger( ADR( sourceLogger ))^.TimeStamps;
+      TPPlainLogger( ADR( logger ))^.Levels := TPPlainLogger( ADR( sourceLogger ))^.Levels;
+      TPPlainLogger( ADR( logger ))^.Names := TPPlainLogger( ADR( sourceLogger ))^.Names;
+      TPPlainLogger( ADR( logger ))^.LocalTime := TPPlainLogger( ADR( sourceLogger ))^.LocalTime;
+      TPPlainLogger( ADR( logger ))^.GetLogFile( OUT s ); TPPlainLogger( ADR( sourceLogger ))^.SetLogFile( s );
+   END;
+
+   IF ( logger IS CBufferedLogger ) AND ( sourceLogger IS CBufferedLogger ) THEN
+      TPBufferedLogger( ADR( logger ))^.BufferMode := TPBufferedLogger( ADR( sourceLogger ))^.BufferMode;
+      TPBufferedLogger( ADR( logger ))^.BufferSize := TPBufferedLogger( ADR( sourceLogger ))^.BufferSize;
+   END;
+END ConfigureByLogger;
 
 (*===========================================================================*)
 
@@ -1507,6 +1524,43 @@ BEGIN
 END GetAppender;
 
 (*===========================================================================*)
+
+// for configuration purposes, not exported out of DLL
+PROCEDURE GetKeyword( keyword : TConfigKeyword ) : PWCHAR; // zero terminated
+BEGIN
+   CASE keyword OF
+   | cksLog : RETURN L'log';
+   | ckkOutput : RETURN L'output';
+   | ckkTarget : RETURN L'target';
+   | ckvFile : RETURN L'file';
+   | ckvKernel : RETURN L'kernel';
+   | ckkFile : RETURN L'file';
+   | ckkFilter : RETURN L'filter';
+   | ckvDeny : RETURN L'deny';
+   | ckvAllow : RETURN L'allow';
+   | ckkLevel : RETURN L'level';
+   | ckvFatal : RETURN L'fatal'; 
+   | ckvError : RETURN L'error'; 
+   | ckvWarning : RETURN L'warning'; 
+   | ckvInfo : RETURN L'info'; 
+   | ckvDebugFailure : RETURN L'failure';
+   | ckvDebugMessage : RETURN L'message';
+   | ckvDebugTrace : RETURN L'trace';
+   | ckvDebugAll : RETURN L'all';
+   | ckkCached : RETURN L'cached';
+   | ckkAllowedFilterBits : RETURN L"allowed_filter_bits";
+   | ckkTimeStamps : RETURN L"timestamps";
+   | ckkLevels : RETURN L"levels";
+   | ckkNames : RETURN L"names";
+   | ckkLocalTime : RETURN L"localtime";
+   | ckvTrue : RETURN L"true";
+   | ckvFalse : RETURN L"false";
+   ELSE
+      RETURN L"<unknown>";
+   END; // CASE
+END GetKeyword;
+
+(*---------------------------------------------------------------------------*)
 
 BEGIN
 FINALLY

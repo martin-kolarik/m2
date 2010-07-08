@@ -69,7 +69,7 @@ BEGIN
    AssertionLog^.Output := Log.outsNone;
    
    // read data from registry
-   IF AssertionLog^.SetUpByRegistry( REGISTRY_LIBRARY ) THEN
+   IF Log.ConfigureByRegistry( REF AssertionLog^, REGISTRY_LIBRARY ) THEN
       IF Log.outFile IN AssertionLog^.Output THEN
          success := TRUE;
       END;

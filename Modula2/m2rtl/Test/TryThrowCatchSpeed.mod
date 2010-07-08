@@ -118,7 +118,7 @@ CLASS IMPLEMENTATION CTest;
       END;
       
       t := time.UptimeMS() - t;
-      Host^.Log^.LogSC( log.dlcInfo, L"", "Consumed: ", t );
+      Host^.Log^.LogSC( log.lcInfo, 0, L"", "Consumed: ", t );
 
       RETURN test.trSuccess;
    END Run;

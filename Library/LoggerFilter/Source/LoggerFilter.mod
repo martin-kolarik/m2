@@ -15,12 +15,12 @@ CLASS IMPLEMENTATION CLoggerFilter;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE Filtered( Level : iLog.TDebugLevel; CONST Prefix : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE FilteredFullCheck( Level : iLog.TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR ) : BOOLEAN;
    VAR
       filter : BOOLEAN := FALSE;
       _List : lists.CStringList;
    BEGIN
-      IF Level > _Level THEN
+      IF SUPER.FilteredFullCheck( Level, FilterData, Logger, Prefix, Message ) THEN
          RETURN TRUE;
       END;
    
@@ -34,7 +34,7 @@ CLASS IMPLEMENTATION CLoggerFilter;
       _List.Clear(); // do not dispose, _List is a enumerator copy
       
       RETURN filter;
-   END Filtered;
+   END FilteredFullCheck;
 
 (*---------------------------------------------------------------------------*)
 
@@ -56,26 +56,6 @@ CLASS IMPLEMENTATION CLoggerFilter;
    
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Level GET : log.TDebugLevel;
-   BEGIN
-      RETURN _Level;
-   END Level;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Level SET( Value : log.TDebugLevel );
-   BEGIN
-      _Level := Value;
-   END Level;
-
-(*---------------------------------------------------------------------------*)
-
-BEGIN
-   #if DEBUG #then
-      _Level := log.dldTrace;
-   #else
-      _Level := log.dldMessage;
-   #endif
 END CLoggerFilter;
 
 (*===========================================================================*)

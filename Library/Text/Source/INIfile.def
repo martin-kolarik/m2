@@ -66,9 +66,9 @@ TYPE
       clrTargetFileMissingFile
    );
 
-PROCEDURE ConfigureLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : Log.CLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
-PROCEDURE ConfigureBufferedLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : Log.CBufferedLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
+PROCEDURE ConfigureLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : Log.CBaseLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
   // if SectionName is empty, default "log" section name is used
+  // configures all known log.* classes
 
 (*--------------------------------------------------------------------------------*)
 
