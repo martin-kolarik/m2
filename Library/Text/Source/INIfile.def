@@ -39,8 +39,8 @@ CLASS CINIFile;
    PUBLIC PROCEDURE DeleteSection( CONST Section : ARRAY OF WCHAR ) : BOOLEAN; // operates first section of the name
    // PROCEDURE DeleteKey( CONST Section : ARRAY OF WCHAR ) : BOOLEAN;
 
-   PUBLIC PROCEDURE EnumerateSections( REF EnumerateState : PTR; OUT Line : CARDINAL; OUT Section : ARRAY OF WCHAR; SetAsActive : BOOLEAN ) : BOOLEAN;
-   PUBLIC PROCEDURE EnumerateKeys( REF EnumerateState : PTR; OUT Line : CARDINAL; OUT Key : ARRAY OF WCHAR; OUT Value : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE EnumerateSections( REF EnumerateState : PTR; OUT Line : CARDINAL; OUT Section : StringsO.IString; SetAsActive : BOOLEAN ) : BOOLEAN;
+   PUBLIC PROCEDURE EnumerateKeys( REF EnumerateState : PTR; OUT Line : CARDINAL; OUT Key, Value : StringsO.IString ) : BOOLEAN;
 
    PUBLIC PROCEDURE GetKeyStr( CONST Key : ARRAY OF WCHAR; OUT Line : CARDINAL; OUT String : StringsO.IString ): BOOLEAN;
    PUBLIC PROCEDURE GetKeyBool( CONST Key : ARRAY OF WCHAR; OUT Line : CARDINAL; OUT b : BOOLEAN ): BOOLEAN;

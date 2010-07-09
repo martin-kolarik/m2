@@ -1,0 +1,157 @@
+DEFINITION MODULE Tokenizer;
+
+IMPORT
+   StringsO,
+   TextReader;
+
+#save, option( dll_export => on )
+
+(*================================================================================*)
+
+TYPE
+   TToken = (
+      tokenDelimiter,
+      tokenKeyword,
+      tokenString,
+      tokenNumber
+   );
+   
+   TDelimiter = (
+      delAsterisk,
+      delAmpersand,
+      delAt,
+      delCircumflex,
+      delColon,
+      delDot,
+      delExclamationMark,
+      delInterval,
+      delNumberSign,
+      delPercent,
+      delQuestionMark,
+      delQuote,
+      delSemicolon,
+      delUnknown
+   );
+   
+   TNumber = (
+      numDecimal = 10,
+      numFloat = 10,
+      numCHexadecimal = 16,
+      numCOctal = 8,
+      numMBinary = 2,
+      numMOctal = 8,
+      numMHexadecimal = 16,
+      numPlainHexadecimal = 16
+   );
+   TNumbers = SET OF TNumber;
+   
+   TString = (
+      strApostrophe,
+      strGrave,
+      strQuote,
+      strCEscape,
+      strDoublingEscape
+   );
+   TStrings = SET OF TString;
+   
+(*---------------------------------------------------------------------------*)
+
+CLASS CToken;
+
+   PUBLIC READONLY PROPERTY
+      Type : TToken;
+      Delimiter : TDelimiter;
+      Keyword : StringsO.CString;
+      String : StringsO.CString;
+
+      Number : StringsO.CString;
+      Base : CARDINAL;
+      Integer : INT32;
+      Long : INT64;
+      Float : LONGREAL;
+      
+   PUBLIC PROCEDURE InitKeyword( CONST Keyword : StringsO.IString );
+   PUBLIC PROCEDURE InitDelimiter( Delimiter : TDelimiter );
+   PUBLIC PROCEDURE InitNumber( Number : TNumber; CONST String : StringsO.IString );
+   PUBLIC PROCEDURE InitString( CONST String : StringsO.IString );
+      
+   PRIVATE VAR
+      _Type : TToken;
+      _Delimiter : TDelimiter;
+      _Number : TNumber;
+      _Data : StringO.CString;
+      _Base : CARDINAL;
+
+END CToken;
+   
+(*---------------------------------------------------------------------------*)
+
+INTERFACE ITokenizer;
+
+   READONLY PROPERTY
+      Current     : CToken;
+      TokenNumber : CARD64;
+      Position    : CARD64;
+      Line        : CARD64;
+      Column      : CARDINAL;
+      
+   PROCEDURE Reset(); // rewinds to start
+   PROCEDURE MoveNext( TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   
+   PROCEDURE Mark() : PTR; // return mark handle of current position
+   PROCEDURE GotoMark( Handle : PTR );
+
+END ITokenizer;
+
+(*---------------------------------------------------------------------------*)
+
+TYPE
+   TPCharacters = POINTER TO SET OF WCHAR;
+   
+CLASS CTokenizer IMPLEMENTS ITokenizer;
+
+   // ITokenizer
+   READONLY PROPERTY
+      Current     : CToken;
+      TokenNumber : CARD64;
+      Position    : CARD64; // points to the start of current token
+      Line        : CARD64; // points to the start of current token
+      Column      : CARDINAL; // points to the start of current token
+      
+   PROCEDURE Reset(); // rewinds to start
+   PROCEDURE MoveNext( TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   
+   PROCEDURE Mark() : PTR; // return mark handle of current position
+   PROCEDURE GotoMark( Handle : PTR );
+   
+   // SELF
+   PUBLIC PROPERTY
+      Reader : TextReader.TPReader;
+      Numbers : TNumbers;
+      Strings : TStrings;
+      RestrictKeywordsToASCII : BOOLEAN;
+      UnescapeStrings : BOOLEAN;
+      WhiteSpaces : TPCharacters;
+      
+   PRIVATE VAR
+      _Reader : TextReader.TPReader := NIL;
+      _Numbers : TNumbers := TNumbers{numDecimal, numFloat, numPlainHexadecimal};
+      _Strings : TStrings := TStrings{strApostrophe, strQuote, strDoublingEscape};
+      _RestrictKeywordsToASCII : BOOLEAN := TRUE;
+      _UnescapeStrings : BOOLEAN := TRUE;
+      _WhiteSpaces := NIL; // means default = CR, LF, SPACE, TAB
+      _Current : CToken;
+      _CurrentLength : CARDINAL;
+      _Number : CARD64;
+      _Position : CARD64;
+      _Line : CARD64;
+      _Column : CARDINAL;
+      _Marks : lists.CBufferList;
+
+END CTokenizer;
+
+(*================================================================================*)
+
+#restore
+
+END Tokenizer.
