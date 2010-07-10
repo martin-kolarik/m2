@@ -29,13 +29,12 @@ TYPE
 
 (*================================================================================*)
 
-FINAL CLASS CIOException( Exceptions.CException );
+FINAL CLASS CIOException( Exceptions.Exception );
    PUBLIC READONLY VAR
       ErrorCode : CARDINAL := 0;
 
+   INTERNAL VIRTUAL PROCEDURE FormatCode( OUT Code : ARRAY OF WCHAR );
    PUBLIC PROCEDURE Init( NestedException : POINTER TO Exceptions.Exception; CONST Originator, Text : ARRAY OF WCHAR; ErrorCode : CARDINAL ) : CIOException;
-
-   INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
 END CIOException;
 
 PROCEDURE IOException( NestedException : POINTER TO Exceptions.Exception; CONST Originator, Text : ARRAY OF WCHAR; ErrorCode : CARDINAL ) : CIOException;

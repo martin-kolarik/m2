@@ -427,7 +427,7 @@ CLASS IMPLEMENTATION CINIFile;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE EnumerateSections( REF EnumerateState : PTR; OUT Line : CARDINAL; OUT Section : StringsO.IStrings; SetAsActive : BOOLEAN ) : BOOLEAN;
+   PUBLIC PROCEDURE EnumerateSections( REF EnumerateState : PTR; OUT Line : CARDINAL; OUT Section : StringsO.IString; SetAsActive : BOOLEAN ) : BOOLEAN;
    VAR
       PElem : TPDataListElem;
       b : BOOLEAN;
@@ -498,13 +498,14 @@ PROCEDURE ConfigureLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR
 VAR
    Cached : CARDINAL;
    cs : StringsO.CString;
+   EnumerateState : PTR;
    File : StringsO.CString;
    haveAllowedBits : BOOLEAN := FALSE;
    haveCached : BOOLEAN := FALSE;
    haveFile : BOOLEAN := FALSE;
    haveLevel : BOOLEAN := FALSE;
    key : StringsO.CString;
-   Level : Log.TLevel := logger^.Level;
+   Level : Log.TLevel := Log.ldInfo;
    Levels : TRISTATE := -1;
    LocalTime : TRISTATE := -1;
    Names : TRISTATE := -1;
@@ -512,13 +513,18 @@ VAR
    plainLogger : Log.TPPlainLogger;
    TimeStamps : TRISTATE := -1;
 BEGIN
-   IF ( SectionName[0] <> 0W ) AND ini.SetSection( SectionName ) OR ini.SetSection( OAsz( Log.GetKeyword( cksLog )) ) THEN
+   IF ( SectionName[0] <> 0W ) AND ini.SetSection( SectionName ) OR ini.SetSection( OAsz( Log.GetKeyword( Log.cksLog )) ) THEN
+   
+      IF logger INHERITS Log.CPlainLogger THEN
+         plainLogger := Log.TPPlainLogger( ADR( logger ));
+         Level := plainLogger^.Level;
+      END;
 
       EnumerateState := 0;
       WHILE ini.EnumerateKeys( REF EnumerateState, OUT errorLine, OUT key, OUT cs ) DO
 
          // target, output
-         IF key.EqualsOA( OAsz( Log.GetKeyword( ckkTarget )) ) OR key.EqualsOA( OAsz( Log.GetKeyword( ckkOutput )) ) THEN
+         IF key.EqualsOA( OAsz( Log.GetKeyword( Log.ckkTarget )) ) OR key.EqualsOA( OAsz( Log.GetKeyword( Log.ckkOutput )) ) THEN
             IF cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvFile )) ) THEN
                Output := Output + Log.outsFile;
             ELSIF cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvKernel )) ) THEN
@@ -528,7 +534,7 @@ BEGIN
             END;
 
          // file
-         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( ckkFile )) ) THEN
+         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( Log.ckkFile )) ) THEN
             IF haveFile THEN
                RETURN clrKeyAlreadyKnown;
             END;
@@ -536,17 +542,17 @@ BEGIN
             File := cs;
 
          // level
-         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( ckkLevel )) ) THEN
+         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( Log.ckkLevel )) ) THEN
             IF haveLevel THEN
                RETURN clrKeyAlreadyKnown;
             END;
-            IF cs.EqualsOA( OAsz( Log.GetKeyword( ckvDebugFailure )) ) OR cs.EqualsOA( OAsz( Log.GetKeyword( ckvFatal )) ) THEN
+            IF cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvDebugFailure )) ) OR cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvFatal )) ) THEN
                Level := Log.ldError;
-            ELSIF cs.EqualsOA( OAsz( Log.GetKeyword( ckvDebugMessage )) ) OR cs.EqualsOA( OAsz( Log.GetKeyword( ckvError )) ) THEN
+            ELSIF cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvDebugMessage )) ) OR cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvError )) ) THEN
                Level := Log.ldMessage;
-            ELSIF cs.EqualsOA( OAsz( Log.GetKeyword( ckvDebugTrace )) ) OR cs.EqualsOA( OAsz( Log.GetKeyword( ckvWarning )) ) THEN
+            ELSIF cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvDebugTrace )) ) OR cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvWarning )) ) THEN
                Level := Log.ldTrace;
-            ELSIF cs.EqualsOA( OAsz( Log.GetKeyword( ckvDebugAll )) ) OR cs.EqualsOA( OAsz( Log.GetKeyword( ckvInfo )) ) THEN
+            ELSIF cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvDebugAll )) ) OR cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvInfo )) ) THEN
                Level := Log.ldDebug;
             ELSE
                RETURN clrUnknownLevel;
@@ -554,59 +560,59 @@ BEGIN
             haveLevel := TRUE;
             
          // filter
-         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( ckkFilter )) ) THEN
+         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( Log.ckkFilter )) ) THEN
             // OK, opaque for reading
 
          // timestamps            
-         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( ckkTimeStamps )) ) THEN
+         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( Log.ckkTimeStamps )) ) THEN
             IF TimeStamps <> -1 THEN
                RETURN clrKeyAlreadyKnown;
             END;
-            cs.Lows();
-            IF cs.EqualsOA( OAsz( GetKeyword( ckvTrue )) ) THEN
+            cs.Lowerize();
+            IF cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvTrue )) ) THEN
                TimeStamps := 1;
             ELSE
                TimeStamps := 0;
             END;
 
          // levels
-         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( ckkLevels )) ) THEN
+         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( Log.ckkLevels )) ) THEN
             IF Levels <> -1 THEN
                RETURN clrKeyAlreadyKnown;
             END;
-            cs.Lows();
-            IF cs.EqualsOA( OAsz( GetKeyword( ckvTrue )) ) THEN
+            cs.Lowerize();
+            IF cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvTrue )) ) THEN
                Levels := 1;
             ELSE
                Levels := 0;
             END;
 
          // names
-         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( ckkNames )) ) THEN
+         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( Log.ckkNames )) ) THEN
             IF Names <> -1 THEN
                RETURN clrKeyAlreadyKnown;
             END;
-            cs.Lows();
-            IF cs.EqualsOA( OAsz( GetKeyword( ckvTrue )) ) THEN
+            cs.Lowerize();
+            IF cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvTrue )) ) THEN
                Names := 1;
             ELSE
                Names := 0;
             END;
 
          // localtime
-         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( ckkLocalTime )) ) THEN
+         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( Log.ckkLocalTime )) ) THEN
             IF LocalTime <> -1 THEN
                RETURN clrKeyAlreadyKnown;
             END;
-            cs.Lows();
-            IF cs.EqualsOA( OAsz( GetKeyword( ckvTrue )) ) THEN
+            cs.Lowerize();
+            IF cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvTrue )) ) THEN
                LocalTime := 1;
             ELSE
                LocalTime := 0;
             END;
 
          // allowedfilterdatabits
-         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( ckkAllowedFilterBits )) ) THEN
+         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( Log.ckkAllowedFilterBits )) ) THEN
             IF haveAllowedBits THEN
                RETURN clrKeyAlreadyKnown;
             END;
@@ -616,7 +622,7 @@ BEGIN
             haveAllowedBits := TRUE;
 
          // cached
-         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( ckkCached )) ) THEN
+         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( Log.ckkCached )) ) THEN
             IF haveCached THEN
                RETURN clrKeyAlreadyKnown;
             END;
@@ -626,7 +632,7 @@ BEGIN
             haveCached := TRUE;
 
          ELSE
-            Log.logger()^.LogSS( Log.lcInfo, 0, EMITW( %class% ), L"Unknown key:", OA( key.Length-1, key.Data ));
+            Log.logger()^.LogSS( Log.lcInfo, 0, EMITW( %class ), L"Unknown key:", OA( key.Length-1, key.Data ) );
          
          END;
 
@@ -635,11 +641,10 @@ BEGIN
    END;
    
    IF logger INHERITS Log.CPlainLogger THEN
-      plainLogger := Log.TPPlainLogger( ADR( logger ));
       plainLogger^.SetLogFile( OA( File.Length-1, File.rawData ));
       IF Output <> Log.outsNone THEN
          plainLogger^.Output := Output;
-      END
+      END;
       plainLogger^.Level := Level;
       plainLogger^.TimeStamps := TimeStamps = 1;
       plainLogger^.Levels := Levels = 1;

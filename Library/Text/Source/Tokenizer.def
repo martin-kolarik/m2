@@ -1,6 +1,10 @@
 DEFINITION MODULE Tokenizer;
 
+FROM Storage IMPORT
+   ALLOCATE, DEALLOCATE;
+
 IMPORT
+   lists,
    StringsO,
    TextReader;
 
@@ -10,6 +14,7 @@ IMPORT
 
 TYPE
    TToken = (
+      tokenUnknown,
       tokenDelimiter,
       tokenKeyword,
       tokenString,
@@ -19,19 +24,58 @@ TYPE
    TDelimiter = (
       delAsterisk,
       delAmpersand,
+      delAnd, // &&
       delAt,
+      delBraceL, // {
+      delBraceR, // }
+      delBracketL, // [
+      delBracketR, // ]
       delCircumflex,
-      delColon,
-      delDot,
+      delColon, // :
+      delComma, // ,
+      delDot, // .
       delExclamationMark,
-      delInterval,
-      delNumberSign,
+      delInterval, // ..
+      delNumberSign, // #
+      delOr, // ||
+      delParenthesisL, // (
+      delParenthesisR, // )
       delPercent,
       delQuestionMark,
       delQuote,
-      delSemicolon,
+      delSemicolon, // ;
       delUnknown
    );
+
+   TMultigram = (
+      mulNotEqual1, // !=
+      mulAndAssignment, // &=
+      mulLogicalAnd, // &&
+      mulLogicalAndAssignment, // &&=
+      mulLogicalNotShortcutAnd, // &&&
+      mulPower, // **
+      mulMultiplyAssignment, // *=
+      mulIncrement, // ++
+      mulPlusAssignment, // +=
+      mulDecrement, // --
+      mulMinusAssignment, // -=
+      mulAccessor1, // ->
+      mulInterval, // ..
+      mulLineComment, // //
+      mulDivideAssignment, // /=
+      mulAssignment, // :=
+      mulLessEqual, // <=
+      mulNotEqual2, // <>
+      mulEqualEqual, // ==
+      mulGreaterEqual, // >=
+      mulBackslashEscape, // \\
+      mulAccessor2, // ^.
+      mulOrAssignment, // |=
+      mulLogicalOr, // ||
+      mulLogicalOrAssignment, // ||=
+      mulLogicalNotShortcutOr // |||
+   );
+   TMultigrams = SET OF TMultigram;
    
    TNumber = (
       numDecimal = 10,
@@ -54,6 +98,40 @@ TYPE
    );
    TStrings = SET OF TString;
    
+(*---------------------------------------------------------------------------*)
+
+CONST
+   C_MULTIGRAMS = TMultigrams{
+      mulNotEqual1, // !=
+      mulAndAssignment, // &=
+      mulLogicalAnd, // &&
+      mulLogicalAndAssignment, // &&=
+      mulMultiplyAssignment, // *=
+      mulIncrement, // ++
+      mulPlusAssignment, // +=
+      mulDecrement, // --
+      mulMinusAssignment, // -=
+      mulAccessor1, // ->
+      mulLineComment, // //
+      mulDivideAssignment, // /=
+      mulLessEqual, // <=
+      mulEqualEqual, // ==
+      mulGreaterEqual, // >=
+      mulBackslashEscape, // \\
+      mulOrAssignment, // |=
+      mulLogicalOr, // ||
+      mulLogicalOrAssignment // ||=
+   };
+
+   M_MULTIGRAMS = TMultigrams{
+      mulInterval, // ..
+      mulLineComment, // //
+      mulAssignment, // :=
+      mulLessEqual, // <=
+      mulNotEqual2, // <>
+      mulGreaterEqual // >=
+   };
+
 (*---------------------------------------------------------------------------*)
 
 CLASS CToken;
@@ -79,7 +157,7 @@ CLASS CToken;
       _Type : TToken;
       _Delimiter : TDelimiter;
       _Number : TNumber;
-      _Data : StringO.CString;
+      _Data : StringsO.CString;
       _Base : CARDINAL;
 
 END CToken;
@@ -105,48 +183,76 @@ END ITokenizer;
 
 (*---------------------------------------------------------------------------*)
 
+CLASS CFeedException( Exceptions.CGenericException );
+   INTERNAL VIRTUAL PROCEDURE FormatCode( OUT Code : ARRAY OF WCHAR );
+END CFeedException;
+
+PROCEDURE FeedException( Result : Sync.TAsyncResult ) : CFeedException;
+
+(*---------------------------------------------------------------------------*)
+
 TYPE
    TPCharacters = POINTER TO SET OF WCHAR;
    
 CLASS CTokenizer IMPLEMENTS ITokenizer;
 
    // ITokenizer
-   READONLY PROPERTY
+   PUBLIC VIRTUAL READONLY PROPERTY
       Current     : CToken;
       TokenNumber : CARD64;
       Position    : CARD64; // points to the start of current token
       Line        : CARD64; // points to the start of current token
       Column      : CARDINAL; // points to the start of current token
       
-   PROCEDURE Reset(); // rewinds to start
-   PROCEDURE MoveNext( TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
+   PUBLIC VIRTUAL PROCEDURE Reset(); // rewinds to start
+   PUBLIC VIRTUAL PROCEDURE MoveNext( TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    
-   PROCEDURE Mark() : PTR; // return mark handle of current position
-   PROCEDURE GotoMark( Handle : PTR );
+   PUBLIC VIRTUAL PROCEDURE Mark() : PTR; // return mark handle of current position
+   PUBLIC VIRTUAL PROCEDURE GotoMark( Handle : PTR );
    
    // SELF
    PUBLIC PROPERTY
-      Reader : TextReader.TPReader;
+      Reader : TextReader.TPTextReader;
+      RestrictKeywordsToASCII : BOOLEAN;
       Numbers : TNumbers;
       Strings : TStrings;
-      RestrictKeywordsToASCII : BOOLEAN;
       UnescapeStrings : BOOLEAN;
+      Delimiters : TPCharacters;
+      Multigrams : TMultigrams;
       WhiteSpaces : TPCharacters;
       
    PRIVATE VAR
-      _Reader : TextReader.TPReader := NIL;
+      // settings
       _Numbers : TNumbers := TNumbers{numDecimal, numFloat, numPlainHexadecimal};
       _Strings : TStrings := TStrings{strApostrophe, strQuote, strDoublingEscape};
       _RestrictKeywordsToASCII : BOOLEAN := TRUE;
       _UnescapeStrings : BOOLEAN := TRUE;
-      _WhiteSpaces := NIL; // means default = CR, LF, SPACE, TAB
+      _Delimiters : TPCharacters := NIL; // means default set -- all delimiters without "
+      _Multigrams : TMultigrams;
+      _WhiteSpaces : TPCharacters := NIL; // means default = CR, LF, SPACE, TAB
+      
+      // infos
       _Current : CToken;
-      _CurrentLength : CARDINAL;
-      _Number : CARD64;
+      _TokenNumber : CARD64;
       _Position : CARD64;
       _Line : CARD64;
       _Column : CARDINAL;
       _Marks : lists.CBufferList;
+
+      // reading      
+      _Reader : TextReader.TPTextReader := NIL;
+      _StopTime : CARDINAL;
+      _InProgress : BOOLEAN;
+      _Next : WCHAR;
+      _Type : TToken;
+      _Data : StringsO.CString;
+      _Delimiter : TDelimiter;
+      _Number : TNumber;
+      _String : TString;
+      _CurrentLength : CARDINAL;
+      
+   PRIVATE PROCEDURE DoMoveNext() THROWS CFeedException;
+   PRIVATE PROCEDURE Feed() : WCHAR THROWS CFeedException;
 
 END CTokenizer;
 

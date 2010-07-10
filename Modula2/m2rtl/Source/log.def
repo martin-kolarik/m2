@@ -192,7 +192,7 @@ CLASS CBaseLogger IMPLEMENTS iLog.ILogger, iLog.IAppender;
   
    PUBLIC VIRTUAL PROCEDURE LogSE( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; ErrorCode : CARDINAL );
    PUBLIC VIRTUAL PROCEDURE LogSR( Level : TLevel; FilterData : PTR; CONST Prefix, S1 : ARRAY OF WCHAR; Result : Sync.TAsyncResult );
-   PUBLIC VIRTUAL PROCEDURE LogExc( Level : TLevel; FilterData : PTR; CONST Prefix : ARRAY OF WCHAR; CONST e : Exceptions.CException );
+   PUBLIC VIRTUAL PROCEDURE LogExc( Level : TLevel; FilterData : PTR; CONST Prefix : ARRAY OF WCHAR; CONST e : Exceptions.Exception );
    PUBLIC VIRTUAL PROCEDURE LogFilePos( Level : TLevel; FilterData : PTR; CONST Prefix : ARRAY OF WCHAR; CONST Path, S1 : ARRAY OF WCHAR; Line, Col : CARDINAL ); // Line, Col = 0/-1 means unused, unknown
    
    // IAppender -- should check filter thoroughly
@@ -218,7 +218,7 @@ END CBaseLogger;
 
 (*---------------------------------------------------------------------------*)
 
-LOCAL CLASS CPlainLogger( CBaseLogger );
+CLASS CPlainLogger( CBaseLogger );
 
    // SELF
    PUBLIC PROPERTY

@@ -20,13 +20,12 @@ TYPE
     sexcNumberTooBig
   );
 
-FINAL CLASS CStringException( Exceptions.CException );
+FINAL CLASS CStringException( Exceptions.CGenericException );
    PUBLIC READONLY VAR
       Kind : TStringException;
 
+   INTERNAL VIRTUAL PROCEDURE FormatCode( OUT Code : ARRAY OF WCHAR );
    PUBLIC PROCEDURE Init( NestedException : POINTER TO Exceptions.Exception; CONST Originator, Text : ARRAY OF WCHAR; Kind : TStringException ) : CStringException;
-
-   INTERNAL VIRTUAL PROCEDURE Name( OUT S : ARRAY OF WCHAR );
 END CStringException;
 
 PROCEDURE StringException( NestedException : POINTER TO Exceptions.Exception; CONST Originator, Text : ARRAY OF WCHAR; Kind : TStringException ) : CStringException;
