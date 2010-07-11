@@ -20,7 +20,7 @@ CLASS IMPLEMENTATION Exception;
    VAR
       N : ARRAY [0..7] OF WCHAR;
    BEGIN
-      S := L" (code ";
+      S := L"(code ";
       Strings.FromCARD32W( CARDINAL( Code ), 10, OUT N );
       Strings.AppendW( REF S, N );
       Strings.AppendW( REF S, L")" );
@@ -36,13 +36,13 @@ CLASS IMPLEMENTATION Exception;
       N : ARRAY [0..127] OF WCHAR;
    BEGIN
       IF NestedException = NIL THEN
-         Name( OUT N ); Strings.AppendW( REF S, N );
-         FormatCode( OUT N ); Strings.AppendW( REF S, N );
+         S := L"";
       ELSE
          NestedException^.ToString( OUT S );
-         Strings.AppendW( REF S, L" in " );
-         Name( OUT N ); Strings.AppendW( REF S, N );
+         Strings.AppendW( REF S, L" [in] " );
       END;
+      Name( OUT N ); Strings.AppendW( REF S, N );
+      FormatCode( OUT N ); Strings.AppendW( REF S, N );
    END ToString;
 
 BEGIN
@@ -65,13 +65,13 @@ CLASS IMPLEMENTATION CGenericException;
    BEGIN
       SUPER.ToString( OUT S );
       IF Originator[0] <> 0W THEN
-         Strings.AppendW( REF S, L" [" );
+         Strings.AppendW( REF S, L" of " );
          Strings.AppendW( REF S, Originator );
-         Strings.AppendW( REF S, L"] " );
       END;
       IF Text[0] <> 0W THEN
-         Strings.AppendW( REF S, L": " );
+         Strings.AppendW( REF S, L' ("' );
          Strings.AppendW( REF S, Text );
+         Strings.AppendW( REF S, L'")' );
       END;
    END ToString;
 

@@ -33,66 +33,74 @@ TYPE
       insidePhase
    );
    
+   TPTestOutput = POINTER TO CTestOutput;
+   
 (*--------------------------------------------------------------------------------*)
 
-CLASS CTestLogger( log.CLogger );
+CLASS CTestOutput( log.AFormatter );
+
+   // IOutput
+   PUBLIC VIRTUAL PROCEDURE Append( Level : log.TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR );
+
+   // AFormatter
+   INTERNAL VIRTUAL PROCEDURE Output( CONST Message : ARRAY OF WCHAR );
+
+   // SELF
    PRIVATE VAR
       stdout : TextWriter.TPTextWriter := TextWriter.stdout();
    LOCAL VAR
       Inside : TInside := insideSuite;
-   INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : log.TDebugLevel; CONST Name, Prefix, S : ARRAY OF WCHAR );
-   INTERNAL VIRTUAL PROCEDURE OnLogOutputString( CONST OutputString : ARRAY OF WCHAR );
-END CTestLogger;
+
+END CTestOutput;
 
 (*--------------------------------------------------------------------------------*)
 
-CLASS IMPLEMENTATION CTestLogger;
+CLASS IMPLEMENTATION CTestOutput;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE Log( LoggedLevel : log.TDebugLevel; CONST Name, Prefix, S : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE Append( Level : log.TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR );
    VAR
       Buffer : ARRAY [0..4095] OF WCHAR;
    BEGIN
       CASE Inside OF
       | insideSuite :
-         SUPER.Log( LoggedLevel, Name, Prefix, S );
+         SUPER.Append( Level, FilterData, Logger, Prefix, Message );
       | insideTest :
-         Strings.ConcatW( OUT Buffer, L"  ", S );
-         SUPER.Log( LoggedLevel, Name, Prefix, Buffer );
+         Strings.ConcatW( OUT Buffer, L"  ", Message );
+         SUPER.Append( Level, FilterData, Logger, Prefix, Buffer );
       | insidePhase :
-         Strings.ConcatW( OUT Buffer, L"        ", S );
-         SUPER.Log( LoggedLevel, Name, Prefix, Buffer );
+         Strings.ConcatW( OUT Buffer, L"        ", Message );
+         SUPER.Append( Level, FilterData, Logger, Prefix, Buffer );
       END;
-   END Log;
+   END Append;
 
 (*--------------------------------------------------------------------------------*)
 
-   INTERNAL VIRTUAL PROCEDURE OnLogOutputString( CONST OutputString : ARRAY OF WCHAR );
+   INTERNAL VIRTUAL PROCEDURE Output( CONST Message : ARRAY OF WCHAR );
    BEGIN
-      stdout^.WriteOA( OutputString, TRUE );
-   END OnLogOutputString;
+      stdout^.WriteOA( Message, TRUE );
+   END Output;
 
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
-   Method := log.dmNone;
-   Level := log.dlcInfo;
-END CTestLogger;
+END CTestOutput;
    
 (*================================================================================*)
    
 CLASS CHost IMPLEMENTS test.IHost, thread.IRunnable;
    PRIVATE VAR
       _Progress : CARDINAL := 0;
-      _Logger : CTestLogger;
+      _Logger : log.CPlainLogger;
+      _Output : CTestOutput;
       _FastEvaluation : BOOLEAN := FALSE;
       _Test : test.TPTest := NIL;
       _TestResult : test.TTestResult := test.trFailure;
 
    // IHost
    PUBLIC VIRTUAL READONLY PROPERTY
-      Log : log.TPLogger;
+      Log : log.TPILogger;
       FastEvaluation : BOOLEAN;
    PUBLIC VIRTUAL PROPERTY
       Progress : CARDINAL; // percent
@@ -105,6 +113,8 @@ CLASS CHost IMPLEMENTS test.IHost, thread.IRunnable;
    INTERNAL VIRTUAL PROCEDURE OnRun( CONST Helper : thread.IRunnableHelper ) : CARDINAL;
    
    // self
+   PUBLIC READONLY PROPERTY
+      Output : TPTestOutput;
    LOCAL PROCEDURE StartSuite( CONST Name : ARRAY OF WCHAR; FastEvaluation : BOOLEAN );
    LOCAL PROCEDURE RunTest( CONST Name : ARRAY OF WCHAR; Test : test.TPTest ) : Sync.TAsyncResult;
 END CHost;   
@@ -115,7 +125,7 @@ CLASS IMPLEMENTATION CHost;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Log GET : log.TPLogger;
+   PUBLIC VIRTUAL PROPERTY Log GET : log.TPILogger;
    BEGIN
       RETURN ADR( _Logger );
    END Log;
@@ -145,8 +155,8 @@ CLASS IMPLEMENTATION CHost;
 
    PUBLIC VIRTUAL PROCEDURE StartPhase( CONST Name : ARRAY OF WCHAR );
    BEGIN
-      _Logger.LogSS( log.dlcInfo, L"", "    Phase: ", Name );
-      _Logger.Inside := insidePhase;
+      _Logger.LogSS( log.lcInfo, 0, L"", "    Phase: ", Name );
+      _Output.Inside := insidePhase;
    END StartPhase;
 
 (*--------------------------------------------------------------------------------*)
@@ -160,9 +170,9 @@ CLASS IMPLEMENTATION CHost;
 
    PUBLIC VIRTUAL PROCEDURE StopPhaseWithResult( Result : test.TTestResult );
    BEGIN
-      _Logger.Inside := insideTest;
+      _Output.Inside := insideTest;
       IF Result = test.trFailure THEN
-         _Logger.LogS( log.dlcInfo, L"", L"      Result: Failure" );
+         _Logger.LogS( log.lcInfo, 0, L"", L"      Result: Failure" );
       END;
    END StopPhaseWithResult;
 
@@ -171,7 +181,7 @@ CLASS IMPLEMENTATION CHost;
    LOCAL PROCEDURE StartSuite( CONST Name : ARRAY OF WCHAR; FastEvaluation : BOOLEAN );
    BEGIN
       _FastEvaluation := FastEvaluation;
-      _Logger.LogSS( log.dlcInfo, L"", "Suite: ", Name );
+      _Logger.LogSS( log.lcInfo, 0, L"", "Suite: ", Name );
    END StartSuite;
 
 (*--------------------------------------------------------------------------------*)
@@ -186,6 +196,13 @@ CLASS IMPLEMENTATION CHost;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Output GET : TPTestOutput;
+   BEGIN
+      RETURN ADR( _Output );
+   END Output;
+
+(*--------------------------------------------------------------------------------*)
+
    LOCAL PROCEDURE RunTest( CONST Name : ARRAY OF WCHAR; Test : test.TPTest ) : Sync.TAsyncResult;
    VAR
       asyncResult : Sync.TAsyncResult;
@@ -195,8 +212,8 @@ CLASS IMPLEMENTATION CHost;
       _Test := Test;
       _TestResult := test.trFailure;
 
-      _Logger.Inside := insideTest;
-      _Logger.LogSS( log.dlcInfo, L"", "Test: ", Name );
+      _Output.Inside := insideTest;
+      _Logger.LogSS( log.lcInfo, 0, L"", "Test: ", Name );
       
       asyncResult := Thread.RunWithRunnable( ADR( SELF ));
       IF asyncResult = Sync.arCompleted THEN
@@ -222,13 +239,13 @@ CLASS IMPLEMENTATION CHost;
          _TestResult := test.trFailure;
       END;
 
-      _Logger.Inside := insideTest;
+      _Output.Inside := insideTest;
       IF _TestResult = test.trSuccess THEN
-         _Logger.LogS( log.dlcInfo, L"", L"  Result: Success" );
+         _Logger.LogS( log.lcInfo, 0, L"", L"  Result: Success" );
       ELSE
-         _Logger.LogSR( log.dlcInfo, L"", L"  Result: Failure", asyncResult );
+         _Logger.LogSR( log.lcInfo, 0, L"", L"  Result: Failure", asyncResult );
       END;
-      _Logger.Inside := insideSuite;
+      _Output.Inside := insideSuite;
 
       RETURN asyncResult;
    END RunTest;
@@ -236,6 +253,8 @@ CLASS IMPLEMENTATION CHost;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
+   _Logger.Output := log.outsNone;
+   _Logger.AddOutput( ADR( _Output ));
 END CHost;
 
 (*================================================================================*)
@@ -311,7 +330,7 @@ BEGIN
       INC( i );
    END; // WHILE
    
-   Host.Log^.TimeStamps := TimeStamps;
+   Host.Output^.TimeStamps := TimeStamps;
    
    FOR rc := 1 TO RepeatCount DO
    
@@ -320,8 +339,8 @@ BEGIN
          Strings.ConcatW( OUT ClassPath, Name, L"/Development.Tests" );
          LoadResult := loader.ldr()^.CreateObject( ClassPath, OUT Tests );
          IF LoadResult <> iobject.lrSuccess THEN
-            Host.Log^.LogSS( log.dlcSysError, L"", L"Error loading library: ", Name );
-            Host.Log^.LogSC( log.dlcSysError, L"", L"          load result: ", CARDINAL( LoadResult ));
+            Host.Log^.LogSS( log.lcSysError, 0, L"", L"Error loading library: ", Name );
+            Host.Log^.LogSC( log.lcSysError, 0, L"", L"          load result: ", CARDINAL( LoadResult ));
             IF LoadResult = iobject.lrLibraryNotFound THEN
                CONTINUE;
             ELSE
@@ -335,7 +354,7 @@ BEGIN
          ESt := 0;
          WHILE Tests^.EnumerateTests( REF ESt, OUT Name, OUT Test ) DO
             IF Test = NIL THEN
-               Host.Log^.LogSS( log.dlcSysError, L"", L"Error getting test: ", Name );
+               Host.Log^.LogSS( log.lcSysError, 0, L"", L"Error getting test: ", Name );
                CONTINUE;
             END;
          
