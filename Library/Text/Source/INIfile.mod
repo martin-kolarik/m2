@@ -496,6 +496,7 @@ END CINIFile;
 
 PROCEDURE ConfigureLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : Log.CBaseLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
 VAR
+   AllowedBits : CARD64;
    Cached : CARDINAL;
    cs : StringsO.CString;
    EnumerateState : PTR;
@@ -505,7 +506,7 @@ VAR
    haveFile : BOOLEAN := FALSE;
    haveLevel : BOOLEAN := FALSE;
    key : StringsO.CString;
-   Level : Log.TLevel := Log.ldInfo;
+   Level : Log.TLevel := Log.ldDebug;
    Levels : TRISTATE := -1;
    LocalTime : TRISTATE := -1;
    Names : TRISTATE := -1;
@@ -530,7 +531,7 @@ BEGIN
             ELSIF cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvKernel )) ) THEN
                Output := Output + Log.outsKernel;
             ELSE
-               RETURN ;
+               RETURN clrSuccess; // TODO
             END;
 
          // file
@@ -616,7 +617,7 @@ BEGIN
             IF haveAllowedBits THEN
                RETURN clrKeyAlreadyKnown;
             END;
-            IF NOT cs.ToCARD64( 16, OUT Bits ) THEN
+            IF NOT cs.ToCARD64( 16, OUT AllowedBits ) THEN
                RETURN clrBadAllowedBits;
             END;
             haveAllowedBits := TRUE;
@@ -632,7 +633,7 @@ BEGIN
             haveCached := TRUE;
 
          ELSE
-            Log.logger()^.LogSS( Log.lcInfo, 0, EMITW( %class ), L"Unknown key:", OA( key.Length-1, key.Data ) );
+            Log.logger()^.LogSS( Log.lcInfo, 0, EMITW( %class ), L"Unknown key:", OA( key.Length-1, key.rawData ) );
          
          END;
 
@@ -652,11 +653,11 @@ BEGIN
       plainLogger^.LocalTime := LocalTime = 1;
    END;
    IF logger INHERITS Log.CBufferedLogger THEN
-      Log.TPBufferedLogger( plainLogger^ )^.BufferSize := Cached;
+      Log.TPBufferedLogger( plainLogger )^.BufferSize := Cached;
    END;
    
    RETURN clrSuccess;
-END ConfigureLogInternal;
+END ConfigureLog;
 
 (*================================================================================*)
 
@@ -671,6 +672,7 @@ VAR
    pieces : CARDINAL;
    value : StringsO.CString;
 BEGIN
+(*
    filter.Reset();
 
    IF ( SectionName[0] <> 0W ) AND ini.SetSection( SectionName ) OR ini.SetSection( snLog ) THEN
@@ -714,6 +716,7 @@ BEGIN
       END; // WHILE
 
    END;
+*)   
    
    RETURN clfrSuccess;
 END ConfigureLoggerFilter;

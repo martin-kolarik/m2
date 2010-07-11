@@ -61,9 +61,12 @@ END CINIFile;
 TYPE
    TConfigureLogResult = (
       clrSuccess,
+      clrKeyAlreadyKnown,
       clrUnknownTarget,
       clrUnknownLevel,
-      clrTargetFileMissingFile
+      clrTargetFileMissingFile,
+      clrBadAllowedBits,
+      clrBadCachedNumber
    );
 
 PROCEDURE ConfigureLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : Log.CBaseLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;

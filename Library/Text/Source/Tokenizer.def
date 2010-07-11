@@ -22,10 +22,19 @@ TYPE
    );
    
    TDelimiter = (
-      delAsterisk,
-      delAmpersand,
-      delAnd, // &&
-      delAt,
+      delAccessor1, // ->
+      delAccessor2, // ^.
+      delAssignment, // :=
+      delAsterisk, // *
+      delAmpersand, // &
+      delAndAssignment, // &=
+      delApostrophe, // '
+      delAt, // @
+      delBackslash, // \
+      delBeginComment1, // /*
+      delBeginJavaDoc1, // /**
+      delBeginComment2, // (*
+      delBeginJavaDoc2, // (**
       delBraceL, // {
       delBraceR, // }
       delBracketL, // [
@@ -33,17 +42,48 @@ TYPE
       delCircumflex,
       delColon, // :
       delComma, // ,
+      delDecrement, // --
+      delDivideAssignment, // /=
       delDot, // .
-      delExclamationMark,
+      delDollar, // $
+      delEndComment1, // */
+      delEndComment2, // *)
+      delEqual, // =
+      delExclamationMark, // !
+      delGreater, // >
+      delGreaterEqual, // >=
+      delIncrement, // ++
       delInterval, // ..
+      delLess, // <
+      delLessEqual, // <=
+      delLineComment, // //
+      delLogicalAnd, // &&
+      delLogicalNotShortcutAnd, // &&&
+      delLogicalAndAssignment, // &&=
+      delLogicalOr, // ||
+      delLogicalNotShortcutOr, // |||
+      delLogicalOrAssignment, // ||=
+      delMinus, // -
+      delMinusAssignment, // -=
+      delMultiplyAssignment, // *=
+      delNotEqual1, // !=
+      delNotEqual2, // <>
       delNumberSign, // #
       delOr, // ||
       delParenthesisL, // (
       delParenthesisR, // )
-      delPercent,
-      delQuestionMark,
-      delQuote,
+      delPercent, // %
+      delPipe, // |
+      delPlus, // +
+      delPlusAssignment, //+=
+      delPower, // **
+      delOrAssignment, // |=
+      delQuestionMark, // ?
+      delQuote, // "
       delSemicolon, // ;
+      delSlash, // /
+      delTilde, // ~
+      delUnderscore, // _
       delUnknown
    );
 
@@ -51,10 +91,14 @@ TYPE
       mulNotEqual1, // !=
       mulAndAssignment, // &=
       mulLogicalAnd, // &&
-      mulLogicalAndAssignment, // &&=
-      mulLogicalNotShortcutAnd, // &&&
+      mulLogicalAndAssignment, // &&=, requires mulLogicalAnd being present too
+      mulLogicalNotShortcutAnd, // &&&, requires mulLogicalAnd being present too
+      mulBeginComment2, // (*
+      mulBeginJavaDoc2, // (**, requires mulBeginComment2 being present too
       mulPower, // **
       mulMultiplyAssignment, // *=
+      mulEndComment1, // */
+      mulEndComment2, // *)
       mulIncrement, // ++
       mulPlusAssignment, // +=
       mulDecrement, // --
@@ -63,31 +107,34 @@ TYPE
       mulInterval, // ..
       mulLineComment, // //
       mulDivideAssignment, // /=
+      mulBeginComment1, // /*
+      mulBeginJavaDoc1, // /**, requires mulBeginComment1 being present too
       mulAssignment, // :=
       mulLessEqual, // <=
       mulNotEqual2, // <>
       mulEqualEqual, // ==
       mulGreaterEqual, // >=
-      mulBackslashEscape, // \\
       mulAccessor2, // ^.
       mulOrAssignment, // |=
       mulLogicalOr, // ||
-      mulLogicalOrAssignment, // ||=
-      mulLogicalNotShortcutOr // |||
+      mulLogicalOrAssignment, // ||=, requires mulLogicalOr being present too
+      mulLogicalNotShortcutOr // |||, requires mulLogicalOr being present too
    );
    TMultigrams = SET OF TMultigram;
    
    TNumber = (
-      numDecimal = 10,
-      numFloat = 10,
-      numCHexadecimal = 16,
-      numCOctal = 8,
-      numMBinary = 2,
-      numMOctal = 8,
-      numMHexadecimal = 16,
-      numPlainHexadecimal = 16
+      numDecimal, // = 10,
+      numFloat, // = 10,
+      numCHexadecimal, // = 16,
+      numCOctal, // = 8,
+      numMBinary, // = 2,
+      numMOctal, // = 8,
+      numMHexadecimal, // = 16,
+      numPlainHexadecimal // = 16
    );
    TNumbers = SET OF TNumber;
+   
+   TBases = ARRAY TNumber OF CARDINAL;
    
    TString = (
       strApostrophe,
@@ -101,6 +148,8 @@ TYPE
 (*---------------------------------------------------------------------------*)
 
 CONST
+   E_MULTIGRAMS = TMultigrams{}; // default
+
    C_MULTIGRAMS = TMultigrams{
       mulNotEqual1, // !=
       mulAndAssignment, // &=
@@ -117,7 +166,6 @@ CONST
       mulLessEqual, // <=
       mulEqualEqual, // ==
       mulGreaterEqual, // >=
-      mulBackslashEscape, // \\
       mulOrAssignment, // |=
       mulLogicalOr, // ||
       mulLogicalOrAssignment // ||=
@@ -131,6 +179,17 @@ CONST
       mulNotEqual2, // <>
       mulGreaterEqual // >=
    };
+   
+   BASES = TBases(
+      10, // numDecimal = 10,
+      10, // numFloat = 10,
+      16, // numCHexadecimal = 16,
+       8, // numCOctal = 8,
+       2, // numMBinary = 2,
+       8, // numMOctal = 8,
+      16, // numMHexadecimal = 16,
+      16  // numPlainHexadecimal = 16
+   );
 
 (*---------------------------------------------------------------------------*)
 
@@ -158,7 +217,6 @@ CLASS CToken;
       _Delimiter : TDelimiter;
       _Number : TNumber;
       _Data : StringsO.CString;
-      _Base : CARDINAL;
 
 END CToken;
    
@@ -228,11 +286,11 @@ CLASS CTokenizer IMPLEMENTS ITokenizer;
       _RestrictKeywordsToASCII : BOOLEAN := TRUE;
       _UnescapeStrings : BOOLEAN := TRUE;
       _Delimiters : TPCharacters := NIL; // means default set -- all delimiters without "
-      _Multigrams : TMultigrams;
+      _Multigrams : TMultigrams := E_MULTIGRAMS;
       _WhiteSpaces : TPCharacters := NIL; // means default = CR, LF, SPACE, TAB
       
       // infos
-      _Current : CToken;
+      _CurrentToken : CToken;
       _TokenNumber : CARD64;
       _Position : CARD64;
       _Line : CARD64;
@@ -242,7 +300,7 @@ CLASS CTokenizer IMPLEMENTS ITokenizer;
       // reading      
       _Reader : TextReader.TPTextReader := NIL;
       _StopTime : CARDINAL;
-      _InProgress : BOOLEAN;
+      _Current : WCHAR;
       _Next : WCHAR;
       _Type : TToken;
       _Data : StringsO.CString;
@@ -252,7 +310,7 @@ CLASS CTokenizer IMPLEMENTS ITokenizer;
       _CurrentLength : CARDINAL;
       
    PRIVATE PROCEDURE DoMoveNext() THROWS CFeedException;
-   PRIVATE PROCEDURE Feed() : WCHAR THROWS CFeedException;
+   PRIVATE PROCEDURE Feed() THROWS CFeedException;
 
 END CTokenizer;
 

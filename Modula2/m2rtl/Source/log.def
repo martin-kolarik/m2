@@ -79,12 +79,12 @@ END CLevelAndBitsFilter;
 ABSTRACT CLASS AFormatter IMPLEMENTS iLog.IOutput;
 
    // IOutput
-   PUBLIC FINAL PROCEDURE Append( Level : TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE Append( Level : TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR );
    
    // SELF
    INTERNAL ABSTRACT PROCEDURE Output( CONST Message : ARRAY OF WCHAR );  // to rewrite
 
-   LOCAL VAR
+   PUBLIC VAR
       TimeStamps : BOOLEAN := TRUE; // prints timestamps
       Levels : BOOLEAN := TRUE; // prints debug level of message
       Names : BOOLEAN := TRUE; // prints names/prefixes of message

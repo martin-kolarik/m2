@@ -69,6 +69,17 @@ CLASS IMPLEMENTATION CToken;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC PROPERTY Base GET : CARDINAL;
+   BEGIN
+      IF _Type = tokenNumber THEN
+         RETURN BASES[_Number];
+      ELSE
+         RETURN 0;
+      END;
+   END Base;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC PROPERTY Integer GET : INT32;
    VAR
       i : INT32;
@@ -92,7 +103,7 @@ CLASS IMPLEMENTATION CToken;
       ELSE
          RETURN 0;
       END;
-      IF s.ToCARD32( CARDINAL( _Number ), OUT i ) THEN
+      IF s.ToCARD32( BASES[_Number], OUT i ) THEN
          RETURN i;
       ELSE
          RETURN 0;
@@ -218,20 +229,26 @@ END FeedException;
 
 (*================================================================================*)
 
+CONST
+   DELIMITER_BEGIN_SET = StringsO.WCHARS{L"!", L"#", L"$", L"%", L"&", L"'", L"(", L")", L"*", L"+", L",", L"-", L".", L"/", L":", L";", L"<", L"=", L">", L"?", L"[", L"\", L"]", L"^", L"_", L"{", L"|", L"}", L"~"};
+   WHITE_SPACE_SET = StringsO.WCHARS{9W, 32W};
+
+(*--------------------------------------------------------------------------------*)
+
 CLASS IMPLEMENTATION CTokenizer;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY Current GET : CToken;
    BEGIN
-      RETURN _Current;
+      RETURN _CurrentToken;
    END Current;
 
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY TokenNumber GET : CARD64;
    BEGIN
-      RETURN _Number;
+      RETURN _TokenNumber;
    END TokenNumber;
 
 (*--------------------------------------------------------------------------------*)
@@ -261,7 +278,7 @@ CLASS IMPLEMENTATION CTokenizer;
    VAR
       empty : CToken;
    BEGIN
-      _Current := empty;
+      _CurrentToken := empty;
       _TokenNumber := 0;
       _Position := 0;
       _Line := 0;
@@ -269,7 +286,6 @@ CLASS IMPLEMENTATION CTokenizer;
       _Marks.Dispose();
 
       // reading      
-      _InProgress := FALSE;
       _Next := 0W;
       _Type := tokenUnknown;
       _Data.Clear();
@@ -282,10 +298,10 @@ CLASS IMPLEMENTATION CTokenizer;
 
    PUBLIC VIRTUAL PROCEDURE MoveNext( TimeoutMS : CARDINAL ) : Sync.TAsyncResult;
    BEGIN
-      _StopTime : Time.UptimeMS() + TimeoutMS;
+      _StopTime := Time.UptimeMS() + TimeoutMS;
       TRY
          DoMoveNext();
-         RETURN Sync.asCompleted;
+         RETURN Sync.arCompleted;
       CATCH fe : CFeedException DO
          RETURN Sync.TAsyncResult( fe.Code );
       END;
@@ -295,6 +311,7 @@ CLASS IMPLEMENTATION CTokenizer;
 
    PUBLIC VIRTUAL PROCEDURE Mark() : PTR; // return mark handle of current position
    BEGIN
+      RETURN 0;
    END Mark;
 
 (*--------------------------------------------------------------------------------*)
@@ -305,14 +322,14 @@ CLASS IMPLEMENTATION CTokenizer;
    
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Reader GET : TextReader.TPReader;
+   PUBLIC VIRTUAL PROPERTY Reader GET : TextReader.TPTextReader;
    BEGIN
       RETURN _Reader;
    END Reader;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROPERTY Reader SET( Value : TextReader.TPReader );
+   PUBLIC VIRTUAL PROPERTY Reader SET( Value : TextReader.TPTextReader );
    BEGIN
       _Reader := Value;
    END Reader;
@@ -347,6 +364,20 @@ CLASS IMPLEMENTATION CTokenizer;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROPERTY RestrictKeywordsToASCII GET : BOOLEAN;
+   BEGIN
+      RETURN _RestrictKeywordsToASCII;
+   END RestrictKeywordsToASCII;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY RestrictKeywordsToASCII SET( Value : BOOLEAN );
+   BEGIN
+      _RestrictKeywordsToASCII := Value;
+   END RestrictKeywordsToASCII;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROPERTY UnescapeStrings GET : BOOLEAN;
    BEGIN
       RETURN _UnescapeStrings;
@@ -361,54 +392,96 @@ CLASS IMPLEMENTATION CTokenizer;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROPERTY Delimiters GET : TPCharacters;
+   BEGIN
+      IF _Delimiters = TPCharacters( ADR( DELIMITER_BEGIN_SET )) THEN
+         RETURN NIL;
+      ELSE
+         RETURN _Delimiters;
+      END;
+   END Delimiters;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Delimiters SET( Value : TPCharacters );
+   BEGIN
+      IF Value = NIL THEN
+         _Delimiters := TPCharacters( ADR( DELIMITER_BEGIN_SET ));
+      ELSE
+         _Delimiters := Value;
+      END;
+   END Delimiters;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Multigrams GET : TMultigrams;
+   BEGIN
+      RETURN _Multigrams;
+   END Multigrams;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Multigrams SET( Value : TMultigrams );
+   BEGIN
+      _Multigrams := Value;
+      // correct the set
+      IF TMultigrams{mulLogicalAndAssignment, mulLogicalNotShortcutAnd} * _Multigrams <> TMultigrams{} THEN // &&=, &&& require mulLogicalAnd being present too
+         INCL( _Multigrams, mulLogicalAnd );
+      END;
+      IF mulBeginJavaDoc2 IN _Multigrams THEN
+         INCL( _Multigrams, mulBeginComment2 );
+      END;
+      IF mulBeginJavaDoc1 IN _Multigrams THEN
+         INCL( _Multigrams, mulBeginComment1 );
+      END;
+      IF TMultigrams{mulLogicalOrAssignment, mulLogicalNotShortcutOr} * _Multigrams <> TMultigrams{} THEN // ||=, ||| require mulLogicalOr being present too
+         INCL( _Multigrams, mulLogicalOr );
+      END;
+   END Multigrams;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROPERTY WhiteSpaces GET : TPCharacters;
    BEGIN
-      RETURN _WhiteSpaces;
+      IF _WhiteSpaces = TPCharacters( ADR( WHITE_SPACE_SET )) THEN
+         RETURN NIL;
+      ELSE
+         RETURN _WhiteSpaces;
+      END;
    END WhiteSpaces;
       
 (*--------------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROPERTY WhiteSpaces SET( Value : TPCharacters );
    BEGIN
-      _WhiteSpaces := Value;
+      IF Value = NIL THEN
+         _WhiteSpaces := TPCharacters( ADR( WHITE_SPACE_SET ));
+      ELSE
+         _WhiteSpaces := Value;
+      END;
    END WhiteSpaces;
       
 (*--------------------------------------------------------------------------------*)
 
    PRIVATE PROCEDURE DoMoveNext();
    LABEL
+      Finish,
       DoKeyword,
-      DoNot, DoAmpersand, DoLogicalAnd, DoAsterisk, DoPlus, DoMinus, DoDot, DoSlash, DoColon, DoLess, DoEqual, DoGreater, DoBackslash, DoCircumflex, DoPipe, DoLogicalOr,
+      DoExclamationMark, DoAmpersand, DoLogicalAnd, DoParenthesisL, DoBeginComment2, DoAsterisk, DoPlus, DoMinus, DoDot, DoSlash, DoBeginComment1, DoColon, DoLess, DoEqual, DoGreater, DoCircumflex, DoPipe, DoLogicalOr,
       DoNumber,
-      DoApostropheString, DoGraveString, DoQuoteString
+      DoApostropheString, DoGraveString, DoQuoteString;
    CONST
       ASCII_ID_BEGIN_SET = StringsO.WCHARS{L"A".."Z", "a".."z", "_"};
       ASCII_ID_SET = StringsO.WCHARS{L"A".."Z", "a".."z", "_", "0".."9"};
-      DELIMITER_BEGIN_SET = StringsO.WCHARS{L"!", L"#", L"$", L"%", L"&", L"'", L"(", L")", L"*", L"+", L",", L"-", L".", L"/", L":", L";", L"<", L"=", L">", L"?", L"[", L"\", L"]", L"^", L"_", L"{", L"|", L"}", L"~"};
       NEXT_WHITE_SPACE_SET = StringsO.WCHARS{9W, 10W, 13W, 32W};
       NUMBER_SET = StringsO.WCHARS{L"0"..L"9"};
-      WHITE_SPACE_SET = StringsO.WCHARS{9W, 32W};
-   VAR
-      Ch : WCHAR;
-      WS : TPCharacters;
    BEGIN
-      IF _WhiteSpaces = NIL THEN
-         WS := ADR( WHITE_SPACE_SET );
-      ELSE
-         WS := _WhiteSpaces;
-      END;
-      IF _Delimiters = NIL THEN
-         DEL := ADR( DELIMITER_BEGIN_SET );
-      ELSE
-         DEL := _Delimiters;
-      END;
-   
       CASE _Type OF
       | tokenUnknown : // fall down to the loop
       | tokenKeyword : GOTO DoKeyword;
       | tokenDelimiter :
          CASE _Delimiter OF
-         | delNot : GOTO DoNot;
+         | delExclamationMark : GOTO DoExclamationMark;
          | delAmpersand : GOTO DoAmpersand;
          | delLogicalAnd : GOTO DoLogicalAnd;
          | delAsterisk : GOTO DoAsterisk;
@@ -420,7 +493,6 @@ CLASS IMPLEMENTATION CTokenizer;
          | delLess : GOTO DoLess;
          | delEqual : GOTO DoEqual;
          | delGreater : GOTO DoGreater;
-         | delBackslash : GOTO DoBackslash;
          | delCircumflex : GOTO DoCircumflex;
          | delPipe : GOTO DoPipe;
          | delLogicalOr : GOTO DoLogicalOr;
@@ -436,29 +508,29 @@ CLASS IMPLEMENTATION CTokenizer;
 
       TRY
          LOOP // LOOP assures looping around whitespaces and lines
-            Ch := Feed();
+            Feed();
 
             // keyword start      
-            IF Ch IN ASCII_ID_BEGIN_SET THEN   
-               _Type = tokenKeyword;
-               _Data.Append( Ch );
-               LOOP
+            IF _Current IN ASCII_ID_BEGIN_SET THEN   
+               _Type := tokenKeyword;
+               _Data.AppendOA( _Current );
             DoKeyword:
-                  Ch := Feed();
-                  IF Ch IN ASCII_ID_SET THEN
-                     _Data.Append( Ch );
+               LOOP
+                  IF _Next IN ASCII_ID_SET THEN
+                     Feed();
+                     _Data.AppendOA( _Current );
                   ELSE
                      GOTO Finish;
                   END;
                END;
                
             // delimiters start
-            ELSIF Ch IN DEL^ THEN
+            ELSIF _Current IN _Delimiters^ THEN
                _Type := tokenDelimiter;
-               CASE Ch OF
+               CASE _Current OF
                | L"!" :
-                  _Delimiter := delNot; // !
-               DoNot:
+                  _Delimiter := delExclamationMark; // !
+               DoExclamationMark:
                   IF ( _Next = L"=" ) AND ( mulNotEqual1 IN _Multigrams ) THEN
                      Feed();
                      _Delimiter := delNotEqual1; // !=
@@ -474,13 +546,13 @@ CLASS IMPLEMENTATION CTokenizer;
                | L"&" :
                   _Delimiter := delAmpersand; // &
                DoAmpersand:
-                  IF ( _Next = L"&" ) AND ( TMultigrams{mulLogicalAnd, mulLogicalNotShurtcutAnd, mulLogicalAndAssignment} * _Multigrams <> TMultigrams{} ) THEN
+                  IF ( _Next = L"&" ) AND ( TMultigrams{mulLogicalAnd, mulLogicalNotShortcutAnd, mulLogicalAndAssignment} * _Multigrams <> TMultigrams{} ) THEN
                      Feed();
                      _Delimiter := delLogicalAnd; // &&
                   DoLogicalAnd:
                      IF ( _Next = L"&" ) AND ( mulLogicalNotShortcutAnd IN _Multigrams ) THEN
                         Feed();
-                        _Delimiter = delLogicalNotShortcutAnd; // &&&
+                        _Delimiter := delLogicalNotShortcutAnd; // &&&
                      ELSIF ( _Next = L"=" ) AND ( mulLogicalAndAssignment IN _Multigrams ) THEN
                         Feed();
                         _Delimiter := delLogicalAndAssignment; // &&=
@@ -493,12 +565,28 @@ CLASS IMPLEMENTATION CTokenizer;
                   _Delimiter := delApostrophe; // '
                | L"(" :
                   _Delimiter := delParenthesisL; // (
+               DoParenthesisL:
+                  IF ( _Next = L"*" ) AND ( mulBeginComment2 IN _Multigrams ) THEN
+                     Feed();
+                     _Delimiter := delBeginComment2; // (*
+                  DoBeginComment2:
+                     IF ( _Next = L"*" ) AND ( mulBeginJavaDoc2 IN _Multigrams ) THEN
+                        Feed();
+                        _Delimiter := delBeginJavaDoc2; // (**
+                     END;
+                  END;
                | L")" :
                   _Delimiter := delParenthesisR; // (
                | L"*" :
                   _Delimiter := delAsterisk; // *
                DoAsterisk:
-                  IF ( _Next = L"*" ) AND ( mulMultiplyAssignment IN _Multigrams ) THEN
+                  IF ( _Next = L"/" ) AND ( mulEndComment1 IN _Multigrams ) THEN
+                     Feed();
+                     _Delimiter := delEndComment1; // */
+                  ELSIF ( _Next = L")" ) AND ( mulEndComment2 IN _Multigrams ) THEN
+                     Feed();
+                     _Delimiter := delEndComment1; // *)
+                  ELSIF ( _Next = L"=" ) AND ( mulMultiplyAssignment IN _Multigrams ) THEN
                      Feed();
                      _Delimiter := delMultiplyAssignment; // *=
                   ELSIF ( _Next = L"*" ) AND ( mulPower IN _Multigrams ) THEN
@@ -540,19 +628,27 @@ CLASS IMPLEMENTATION CTokenizer;
                | L"/" :
                   _Delimiter := delSlash; // /
                DoSlash:
-                  IF ( _Next = L"/" ) AND ( mulComment IN _Multigrams ) THEN
+                  IF ( _Next = L"/" ) AND ( mulLineComment IN _Multigrams ) THEN
                      Feed();
-                     _Delimiter := delComment; // //
+                     _Delimiter := delLineComment; // //
+                  ELSIF ( _Next = L"*" ) AND ( TMultigrams{mulBeginComment1, mulBeginJavaDoc1} * _Multigrams <> TMultigrams{} ) THEN
+                     Feed();
+                     _Delimiter := delBeginComment1; // /*
+                  DoBeginComment1:
+                     IF ( _Next = L"*" ) AND ( mulBeginJavaDoc1 IN _Multigrams ) THEN
+                        Feed();
+                        _Delimiter := delBeginJavaDoc1; // /**
+                     END;
                   ELSIF ( _Next = L"=" ) AND ( mulDivideAssignment IN _Multigrams ) THEN
                      Feed();
-                     _Delimiter = delDivideAssignment; // /=
+                     _Delimiter := delDivideAssignment; // /=
                   END;
                | L":" :
                   _Delimiter := delColon; // :
                DoColon:
                   IF ( _Next = L"=" ) AND ( mulAssignment IN _Multigrams ) THEN
                      Feed();
-                     _Delimiter = delAssignment; // :=
+                     _Delimiter := delAssignment; // :=
                   END;
                | L";" :
                   _Delimiter := delSemicolon; // ;
@@ -575,7 +671,7 @@ CLASS IMPLEMENTATION CTokenizer;
                   END;
                | L">" :
                   _Delimiter := delGreater; // >
-               DoGrater:
+               DoGreater:
                   IF ( _Next = L"=" ) AND ( mulGreaterEqual IN _Multigrams ) THEN
                      Feed();
                      _Delimiter := delGreaterEqual; // >=
@@ -588,11 +684,6 @@ CLASS IMPLEMENTATION CTokenizer;
                   _Delimiter := delBracketL; // [
                | L"\" :
                   _Delimiter := delBackslash; // \
-               DoBackslash:
-                  IF ( _Next = L"\" ) AND ( mulBackslashEscape IN _Multigrams ) THEN
-                     Feed();
-                     _Delimiter := delBackslashEscape; // \\
-                  END;
                | L"]" :
                   _Delimiter := delBracketR; // ]
                | L"^" :
@@ -600,7 +691,7 @@ CLASS IMPLEMENTATION CTokenizer;
                DoCircumflex:
                   IF ( _Next = L"." ) AND ( mulAccessor2 IN _Multigrams ) THEN
                      Feed();
-                     _Delimiter := mulAccessor2; // ^.
+                     _Delimiter := delAccessor2; // ^.
                   END;
                | L"_" :
                   _Delimiter := delUnderscore; // _
@@ -609,7 +700,7 @@ CLASS IMPLEMENTATION CTokenizer;
                | L"|" :
                   _Delimiter := delPipe; // |
                DoPipe:
-                  IF ( _Next = L"|" ) AND ( TMultigrams{mulLogicalOr, mulLogicalNotShurtcutOr, mulLogicalOrAssignment} * _Multigrams <> TMultigrams{} ) THEN
+                  IF ( _Next = L"|" ) AND ( TMultigrams{mulLogicalOr, mulLogicalNotShortcutOr, mulLogicalOrAssignment} * _Multigrams <> TMultigrams{} ) THEN
                      Feed();
                      _Delimiter := delLogicalOr; // ||
                   DoLogicalOr:
@@ -630,73 +721,65 @@ CLASS IMPLEMENTATION CTokenizer;
                   _Delimiter := delTilde; // ~
 
                END; // CASE
-               GOTO Finish;
 
             // white spaces start
-            ELSIF Ch IN WS^ THEN
-               LOOP
-                  Ch := Feed();
-                  IF Ch NOT IN WS^ THEN
-                     EXIT;
-                  END;
+            ELSIF _Current IN _WhiteSpaces^ THEN
+               WHILE _Next IN _WhiteSpaces^ DO
+                  Feed();
                END;            
-            ELSIF Ch = 13W THEN
+            ELSIF _Current = 13W THEN
                // ignore
-            ELSIF Ch = 10W THEN
+            ELSIF _Current = 10W THEN
                _Column := 0;
                INC( _Line );            
 
             // number start
-            ELSIF Ch IN NUMBER_SET THEN
+            ELSIF _Current IN NUMBER_SET THEN
                _Type := tokenKeyword;
-               _Data.Append( Ch );
-               LOOP
+               _Data.AppendOA( _Current );
             DoNumber:
-                  Ch := Feed();
-                  IF Ch IN NUMBER_SET THEN
-                     _Data.Append( Ch );
-                  ELSE
-                     GOTO Finish;
-                  END;
+               WHILE _Next IN NUMBER_SET DO
+                  Feed();
+                  _Data.AppendOA( _Current );
                END;
             
             // strings
-            ELSIF Ch = '"' THEN
+            ELSIF _Current = '"' THEN
                _Type := tokenString;
                _String := strQuote;
-               LOOP
             DoQuoteString:
-                  Ch := Feed();
-                  IF Ch = '"' THEN
+               LOOP
+                  Feed();
+                  IF _Current = '"' THEN
                      GOTO Finish;
                   ELSE
-                     _Data.AppendOA( Ch );
+                     _Data.AppendOA( _Current );
                   END;
                END;
 
-            ELSIF Ch = "'" THEN
+            ELSIF _Current = "'" THEN
                _Type := tokenString;
                _String := strApostrophe;
-               LOOP
             DoApostropheString:
-                  Ch := Feed();
-                  IF Ch = "'" THEN
+               LOOP
+                  Feed();
+                  IF _Current = "'" THEN
                      GOTO Finish;
                   ELSE
-                     _Data.AppendOA( Ch );
+                     _Data.AppendOA( _Current );
                   END;
                END;
             
-            ELSIF Ch = "`" THEN
+            ELSIF _Current = "`" THEN
                _Type := tokenString;
                _String := strGrave;
-               LOOP
             DoGraveString:
-                  Ch := Feed();
-                  IF Ch = "`" THEN
+               LOOP
+                  Feed();
+                  IF _Current= "`" THEN
                      GOTO Finish;
                   ELSE
-                     _Data.AppendOA( Ch );
+                     _Data.AppendOA( _Current );
                   END;
                END;
 
@@ -711,16 +794,16 @@ CLASS IMPLEMENTATION CTokenizer;
       INC( _TokenNumber );
       CASE _Type OF
       | tokenKeyword :
-         _Current.InitKeyword( _Data );
+         _CurrentToken.InitKeyword( _Data );
          _CurrentLength := _Data.Length;
       | tokenNumber :
-         _Current.InitNumber( _Number, _Data );
+         _CurrentToken.InitNumber( _Number, _Data );
          _CurrentLength := _Data.Length;
       | tokenDelimiter :
-         _Current.InitDelimiter( _Delimiter );
+         _CurrentToken.InitDelimiter( _Delimiter );
          _CurrentLength := 1; // TODO longer delimiters
       | tokenString :
-         _Current.InitString( _Data );
+         _CurrentToken.InitString( _Data );
          _CurrentLength := _Data.Length; // TODO unescaped/escaped
       END;
       _Type := tokenUnknown;
@@ -729,7 +812,7 @@ CLASS IMPLEMENTATION CTokenizer;
 
 (*--------------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE Feed() : WCHAR;
+   PRIVATE PROCEDURE Feed();
    VAR
       Result : Sync.TAsyncResult;
       timeout : INTEGER;
@@ -741,7 +824,7 @@ CLASS IMPLEMENTATION CTokenizer;
 
       // handle ahead reading
       IF _Next = 0W THEN
-         Result := ReadCharS( OUT Ch, timeout, TRUE );
+         Result := Reader^.ReadChar( OUT _Current, timeout, TRUE );
          IF Result NOT IN Sync.arsCompletions THEN
             THROW FeedException( Result );
          END;
@@ -752,25 +835,34 @@ CLASS IMPLEMENTATION CTokenizer;
 
          INC( _Line );            
       ELSE
-         Ch := _Next;
+         _Current := _Next;
       END;
 
       // read new
-      Result := ReadChar( OUT _Next, timeout, TRUE );
+      Result := Reader^.ReadChar( OUT _Next, timeout, TRUE );
       IF Result NOT IN Sync.arsCompletions THEN
          THROW FeedException( Result );
       END;
 
       INC( _Position );
       INC( _Column );
-
-      RETURN Ch;
    END Feed;
 
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
    _Next := 0W;
+   _Current := 0W;
+   _TokenNumber := 0;
+   _Position := 0;
+   _Line := 0;
+   _Column := 0;   
+   _StopTime := 0;
+   _Type := tokenUnknown;
+   _Delimiter := delUnknown;
+   _Number := numDecimal;
+   _String := strQuote;
+   _CurrentLength := 0;
 END CTokenizer;
 
 (*================================================================================*)

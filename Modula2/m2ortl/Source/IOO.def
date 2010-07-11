@@ -29,7 +29,7 @@ TYPE
 
 (*================================================================================*)
 
-FINAL CLASS CIOException( Exceptions.Exception );
+FINAL CLASS CIOException( Exceptions.CGenericException );
    PUBLIC READONLY VAR
       ErrorCode : CARDINAL := 0;
 

@@ -473,7 +473,7 @@ CLASS IMPLEMENTATION CIPServer;
         ELSE
           // flush should not be called here as the socket has already been deallocated
           // Message.Socket^.Flush();
-          log.logger()^.LogSP( log.dldMessage, logPrefix, L"Socket not found for cmAccept", Message.Socket );
+          log.logger()^.LogSP( log.ldMessage, 0, logPrefix, L"Socket not found for cmAccept", Message.Socket );
         END;
       //-----
       | cmDataArrived :
@@ -484,7 +484,7 @@ CLASS IMPLEMENTATION CIPServer;
         ELSE
           // flush should not be called here as the socket has already been deallocated
           // Message.Socket^.Flush();
-          log.logger()^.LogSP( log.dldMessage, logPrefix, L"Socket not found for cmDataArrived", Message.Socket );
+          log.logger()^.LogSP( log.ldMessage, 0, logPrefix, L"Socket not found for cmDataArrived", Message.Socket );
         END;
       END; // CASE
     END; // WHILE

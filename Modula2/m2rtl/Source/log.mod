@@ -98,7 +98,7 @@ CLASS IMPLEMENTATION AFormatter;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC FINAL PROCEDURE Append( Level : TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR );
+   PUBLIC VIRTUAL PROCEDURE Append( Level : TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR );
    VAR
       dt : time.DateTime;
       leading : BOOLEAN := FALSE;
