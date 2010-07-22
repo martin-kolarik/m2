@@ -38,7 +38,9 @@ TYPE
 CONST
     LOG_PREFIX = L"KnxSrv";
 
-    cfSmartServerUsers = L"SmartServer\WebUsers.cfg";
+    cfSmartServerUsersFolder = L"SmartServer";
+    cfSmartServerUsersFile = L"WebUsers.cfg";
+
     snRoles = L"roles";
        knNamed = L"named";
        knKeyed = L"keyed";
@@ -1051,7 +1053,8 @@ CLASS IMPLEMENTATION CEibSrvWeb;
       IF NOT Folders.GetManufacturerSpecialFolderW( Folders.sfAppDataCommon, TRUE, OUT usersFileOA ) THEN
          RETURN FALSE;
       END;
-      FIO.PathAddW( REF usersFileOA, cfSmartServerUsers );
+      FIO.PathAddW( REF usersFileOA, cfSmartServerUsersFolder );
+      FIO.PathAddW( REF usersFileOA, cfSmartServerUsersFile );
       IF NOT cfg.LoadPath( usersFileOA ) THEN 
          RETURN FALSE;
       END;
@@ -1108,11 +1111,12 @@ CLASS IMPLEMENTATION CEibSrvWeb;
          ASSERTLOG( FALSE, L"Unable to get web users file folder" );
          RETURN;
       END;
+      FIO.PathAddW( REF usersFileOA, cfSmartServerUsersFolder );
       IF NOT FIO.CreateDirectoryW( usersFileOA ) THEN
          ASSERTLOG( FALSE, L"Unable to store to web users file" );
          RETURN; // store nothing
       END;
-      FIO.PathAddW( REF usersFileOA, cfSmartServerUsers );
+      FIO.PathAddW( REF usersFileOA, cfSmartServerUsersFile );
       cfg.LoadPath( usersFileOA ); // load the file
 
       cfg.CreateSection( snRoles, FALSE );
