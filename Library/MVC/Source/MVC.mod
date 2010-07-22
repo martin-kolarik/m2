@@ -43,7 +43,7 @@ TYPE
 CLASS CContainer IMPLEMENTS IContainer;
    PRIVATE VAR
       Models : maps.CStringMap;
-      CallMemo : BOOLEAN := FALSE;
+      Lock : Sync.RWLOCK;
 
    PUBLIC VIRTUAL PROCEDURE Dispose();
    PUBLIC VIRTUAL PROCEDURE RemoveOA( CONST Name : ARRAY OF WCHAR ); // removes all types
@@ -62,11 +62,8 @@ CLASS CContainer IMPLEMENTS IContainer;
    PUBLIC VIRTUAL PROCEDURE GetMapOA( CONST Name : ARRAY OF WCHAR; OUT Model : maps.TPStringStringMap ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE GetFunctionHandlerOA( CONST Name : ARRAY OF WCHAR; OUT Handler : TPFunctionHandler ) : BOOLEAN;
 
-   PUBLIC VIRTUAL PROCEDURE ResetFunctionCallsMemo();
-   PUBLIC VIRTUAL PROCEDURE GetFunctionCallsMemo() : BOOLEAN; // returns if some function was called after last ResetFunctionCallsMemo
-   
-   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IHttpRequest; CONST Model, Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
-   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IHttpRequest; CONST Model : StringsO.IString; OUT Value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IHttpRequest; CONST Model, Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IHttpRequest; CONST Model : StringsO.IString; OUT Value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    PUBLIC VIRTUAL PROCEDURE Format( CONST Request : IHttpRequest; FailOnError : BOOLEAN; CONST Source : StringsO.IString; MessageSource : TPMessageSource; language : Languages.TLanguage; OUT Formatted : StringsO.IString ) : BOOLEAN; // main format method, replaces view syntax with model data
 
    // There can be more active mappings, each identified by ControllerURI.
@@ -74,6 +71,11 @@ CLASS CContainer IMPLEMENTS IContainer;
    PUBLIC VIRTUAL PROCEDURE SetModelInViewName( CONST ControllerURI, FullModel, InViewName : StringsO.IString ); // stores logical name used in view output together with full model accessor
    PUBLIC VIRTUAL PROCEDURE GetModelByInViewName( CONST ControllerURI, InViewName : StringsO.IString; OUT FullModel : StringsO.IString ) : BOOLEAN; // gets model name by logical name used in view
    PUBLIC VIRTUAL PROCEDURE ResetModelValues( CONST Request : IHttpRequest; CONST ControllerURI : StringsO.IString );
+   
+   PRIVATE PROCEDURE LockWrite() : BOOLEAN;
+   PRIVATE PROCEDURE UnlockWrite();
+   PRIVATE PROCEDURE LockRead() : BOOLEAN;
+   PRIVATE PROCEDURE UnlockRead();
 END CContainer;
 
 (*--------------------------------------------------------------------------------*)
@@ -90,6 +92,10 @@ CLASS IMPLEMENTATION CContainer;
       m : maps.TPStringStringMap;
       s : TPCString;
    BEGIN
+      IF NOT LockWrite() THEN
+         RETURN;
+      END;
+      
       Models.Reset();
       WHILE Models.MoveNext() DO
          CASE Models.Current^[0] OF
@@ -112,6 +118,8 @@ CLASS IMPLEMENTATION CContainer;
          END; // CASE
       END; // WHILE
       Models.Dispose();
+      
+      UnlockWrite();
    END Dispose;
 
 (*--------------------------------------------------------------------------------*)
@@ -123,6 +131,10 @@ CLASS IMPLEMENTATION CContainer;
       name : StringsO.CString;
       s : POINTER TO StringsO.CString;
    BEGIN
+      IF NOT LockWrite() THEN
+         RETURN;
+      END;
+      
       name.FromOA( L" ." );
       name.AppendOA( Name ); 
 
@@ -146,6 +158,8 @@ CLASS IMPLEMENTATION CContainer;
          DISPOSE( m );
          Models.Remove( name );
       END;
+
+      UnlockWrite();
    END RemoveOA;
 
 (*--------------------------------------------------------------------------------*)
@@ -156,10 +170,13 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       name.FromOA( L"b." );
       name.AppendOA( Name );
-      IF Models.Contains( name ) THEN
+      IF NOT LockWrite() THEN
+         RETURN;
+      ELSIF Models.Contains( name ) THEN
          Models.Remove( name );
       END;
       Models.Add( name, PTR( Model ));
+      UnlockWrite();
    END AddBooleanOA;
 
 (*--------------------------------------------------------------------------------*)
@@ -171,11 +188,14 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       name.FromOA( L"s." );
       name.AppendOA( Name );
-      IF NOT Models.Get( name, OUT model ) THEN
+      IF NOT LockWrite() THEN
+         RETURN;
+      ELSIF NOT Models.Get( name, OUT model ) THEN
          NEW( model );
          Models.Add( name, model );
       END;
       model^.Assign( Model );
+      UnlockWrite();
    END AddStringOA;
 
 (*--------------------------------------------------------------------------------*)
@@ -186,12 +206,16 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       name.FromOA( L"l." );
       name.AppendOA( Name );
-      IF Models.Get( name, OUT Model ) THEN
+      IF NOT LockWrite() THEN
+         Model := NIL;
+         RETURN;
+      ELSIF Models.Get( name, OUT Model ) THEN
          Model^.Dispose();
       ELSE
          NEW( Model );
          Models.Add( name, Model );
       END;
+      UnlockWrite();
    END AddListOA;
 
 (*--------------------------------------------------------------------------------*)
@@ -202,12 +226,16 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       name.FromOA( L"m." );
       name.AppendOA( Name );
-      IF Models.Get( name, OUT Model ) THEN
+      IF NOT LockWrite() THEN
+         Model := NIL;
+         RETURN;
+      ELSIF Models.Get( name, OUT Model ) THEN
          Model^.Dispose();
       ELSE
          NEW( Model );
          Models.Add( name, Model );
       END;
+      UnlockWrite();
    END AddMapOA;
 
 (*--------------------------------------------------------------------------------*)
@@ -218,10 +246,13 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       name.FromOA( L"f." );
       name.AppendOA( Name );
-      IF Models.Contains( name ) THEN
+      IF NOT LockWrite() THEN
+         RETURN;
+      ELSIF Models.Contains( name ) THEN
          Models.Remove( name );
       END;
       Models.Add( name, PTR( Handler ));
+      UnlockWrite();
    END AddFunctionHandlerOA;
 
 (*--------------------------------------------------------------------------------*)
@@ -233,11 +264,14 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       name.FromOA( L"v." );
       name.AppendOA( Name );
-      IF NOT Models.Get( name, OUT model ) THEN
+      IF NOT LockWrite() THEN
+         RETURN;
+      ELSIF NOT Models.Get( name, OUT model ) THEN
          NEW( model );
          Models.Add( name, model );
       END;
       model^.Assign( Model );
+      UnlockWrite();
    END AddVariable;
 
 (*--------------------------------------------------------------------------------*)
@@ -249,10 +283,14 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       name.FromOA( L"b." );
       name.AppendOA( Name );
-      IF NOT Models.Get( name, OUT model ) THEN
+      IF NOT LockRead() THEN
+         RETURN FALSE;
+      ELSIF NOT Models.Get( name, OUT model ) THEN
+         UnlockRead();
          RETURN FALSE;
       END;
       Model := BOOLEAN( LOPTRLONGWORD( model ));
+      UnlockRead();
       RETURN TRUE;
    END GetBooleanOA;
 
@@ -266,8 +304,11 @@ CLASS IMPLEMENTATION CContainer;
      // try model string
       name.FromOA( L"s." );
       name.AppendOA( Name );
-      IF Models.Get( name, OUT model ) THEN
+      IF NOT LockRead() THEN
+         RETURN FALSE;
+      ELSIF Models.Get( name, OUT model ) THEN
          Model.Assign( model^ );
+         UnlockRead();
          RETURN TRUE;
       END;
       // try variable
@@ -275,9 +316,11 @@ CLASS IMPLEMENTATION CContainer;
       name.AppendOA( Name );
       IF Models.Get( name, OUT model ) THEN
          Model.Assign( model^ );
+         UnlockRead();
          RETURN TRUE;
       END;
       // no variable nor string found
+      UnlockRead();
       RETURN FALSE;
    END GetStringOA;
 
@@ -290,10 +333,14 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       name.FromOA( L"l." );
       name.AppendOA( Name );
-      IF NOT Models.Get( name, OUT model ) THEN
+      IF NOT LockRead() THEN
+         RETURN FALSE;
+      ELSIF NOT Models.Get( name, OUT model ) THEN
+         UnlockRead();
          RETURN FALSE;
       END;
       Model := model;
+      UnlockRead();
       RETURN TRUE;
    END GetListOA;
 
@@ -306,26 +353,16 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       name.FromOA( L"m." );
       name.AppendOA( Name );
-      IF NOT Models.Get( name, OUT model ) THEN
+      IF NOT LockRead() THEN
+         RETURN FALSE;
+      ELSIF NOT Models.Get( name, OUT model ) THEN
+         UnlockRead();
          RETURN FALSE;
       END;
       Model := model;
+      UnlockRead();
       RETURN TRUE;
    END GetMapOA;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE ResetFunctionCallsMemo();
-   BEGIN
-      CallMemo := FALSE;
-   END ResetFunctionCallsMemo;
-
-(*--------------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE GetFunctionCallsMemo() : BOOLEAN; // returns if some function was called after last ResetFunctionCallsMemo
-   BEGIN
-      RETURN CallMemo;
-   END GetFunctionCallsMemo;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -336,16 +373,19 @@ CLASS IMPLEMENTATION CContainer;
    BEGIN
       name.FromOA( L"f." );
       name.AppendOA( Name );
-      IF NOT Models.Get( name, OUT model ) THEN
+      IF NOT LockRead() THEN
+         RETURN FALSE;
+      ELSIF NOT Models.Get( name, OUT model ) THEN
          RETURN FALSE;
       END;
       Handler := model;
+      UnlockRead();
       RETURN TRUE;
    END GetFunctionHandlerOA;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IHttpRequest; CONST model, value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE SetModelValue( CONST Request : IHttpRequest; CONST model, value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    LABEL
       Error;
    VAR
@@ -362,6 +402,10 @@ CLASS IMPLEMENTATION CContainer;
       ps : StringsO.TPString;
       sindex1, sindex2 : StringsO.CString;
    BEGIN
+      IF PFunctionCalled <> NIL THEN
+         PFunctionCalled^ := FALSE;
+      END;
+   
       i := model.IndexOfAnyS( StringsO.WCHARS{L".", L"[", L"<", L"("}, 0 );
       IF i <> -1 THEN // assign model kind
          CASE model[i] OF
@@ -372,6 +416,10 @@ CLASS IMPLEMENTATION CContainer;
          END; // CASE
       END;
 
+      IF NOT LockWrite() THEN
+         RETURN FALSE;
+      END;
+      
       CASE modelType OF
       //-----
       | mtQualification : // ok, find in map or list by key
@@ -384,7 +432,7 @@ CLASS IMPLEMENTATION CContainer;
             GOTO Error;
          END;
          model.Substring( i+1, -1, OUT sindex1 );            
-         IF NOT GetModelValue( Request, sindex1, OUT sindex2 ) THEN
+         IF NOT GetModelValue( Request, sindex1, OUT sindex2, NIL ) THEN
             sindex2 := sindex1;
          END;
          sindex2.Trim();
@@ -395,6 +443,8 @@ CLASS IMPLEMENTATION CContainer;
             list^.Remove( sindex2 );
             list^.Add( sindex2, value );
          END;
+
+         UnlockWrite();
          RETURN TRUE;
 
       //-----
@@ -409,7 +459,7 @@ CLASS IMPLEMENTATION CContainer;
          END;
 
          model.Substring( i+1, j-i-1, OUT sindex1 );
-         IF NOT GetModelValue( Request, sindex1, OUT sindex2 ) THEN
+         IF NOT GetModelValue( Request, sindex1, OUT sindex2, NIL ) THEN
             sindex2 := sindex1;
          END;
          sindex2.Trim();
@@ -429,6 +479,8 @@ CLASS IMPLEMENTATION CContainer;
             ELSE
                GOTO Error;
             END;
+
+            UnlockWrite();
             RETURN TRUE;
 
          ELSIF GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
@@ -444,6 +496,8 @@ CLASS IMPLEMENTATION CContainer;
             ELSE
                GOTO Error;
             END;
+
+            UnlockWrite();
             RETURN TRUE;
 
          // ELSE fall down to error
@@ -462,7 +516,7 @@ CLASS IMPLEMENTATION CContainer;
             ii := i+1;
             LOOP
                ii := model.ItemS( StringsO.WCHARS{L' ', L','}, ii, 0, TRUE, OUT sindex2 );
-               IF NOT GetModelValue( Request, sindex2, OUT parameter ) THEN
+               IF NOT GetModelValue( Request, sindex2, OUT parameter, NIL ) THEN
                   parameter := sindex2;
                END;
                parameter.Trim();
@@ -472,7 +526,11 @@ CLASS IMPLEMENTATION CContainer;
                END;
             END; // LOOP
             boolean := functionHandler^.Call( Request, sindex1, REF parameters, NIL );
-            CallMemo := CallMemo OR boolean;
+            IF PFunctionCalled <> NIL THEN
+               PFunctionCalled^ := PFunctionCalled^ OR boolean;
+            END;
+
+            UnlockWrite();
             RETURN boolean;
             
          // ELSE fall to error
@@ -489,6 +547,8 @@ CLASS IMPLEMENTATION CContainer;
          ELSE // fall to string
             AddStringOA( OA( model.Length-1, model.rawData ), value );
          END;
+
+         UnlockWrite();
          RETURN TRUE;
 
       //-----
@@ -499,12 +559,14 @@ CLASS IMPLEMENTATION CContainer;
       value.FromOA( L'##unknown model: ' );
       value.Append( model );
       value.AppendOA( L"" );
+
+      UnlockWrite();
       RETURN FALSE;
    END SetModelValue;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IHttpRequest; CONST model : StringsO.IString; OUT value : StringsO.IString ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
+   PUBLIC VIRTUAL PROCEDURE GetModelValue( CONST Request : IHttpRequest; CONST model : StringsO.IString; OUT value : StringsO.IString; PFunctionCalled : PBOOLEAN ) : BOOLEAN; // main methods for accessing, it solves indexes, points, etc. in names
    LABEL
       Error;
    VAR
@@ -521,6 +583,10 @@ CLASS IMPLEMENTATION CContainer;
       ps : StringsO.TPString;
       sindex1, sindex2 : StringsO.CString;
    BEGIN
+      IF PFunctionCalled <> NIL THEN
+         PFunctionCalled^ := FALSE;
+      END;
+   
       i := model.IndexOfAnyS( StringsO.WCHARS{L".", L"[", L"<", L"("}, 0 );
       IF i <> -1 THEN // assign model kind
          CASE model[i] OF
@@ -531,6 +597,10 @@ CLASS IMPLEMENTATION CContainer;
          END; // CASE
       END;
    
+      IF NOT LockRead() THEN
+         RETURN FALSE;
+      END;
+      
       CASE modelType OF
       //-----
       | mtQualification : // ok, find in map or list by key
@@ -543,7 +613,7 @@ CLASS IMPLEMENTATION CContainer;
             GOTO Error;
          END;
          model.Substring( i+1, -1, OUT sindex1 );            
-         IF NOT GetModelValue( Request, sindex1, OUT sindex2 ) THEN
+         IF NOT GetModelValue( Request, sindex1, OUT sindex2, NIL ) THEN
             sindex2 := sindex1;
          END;
          sindex2.Trim();
@@ -552,6 +622,8 @@ CLASS IMPLEMENTATION CContainer;
          ELSIF ( list <> NIL ) AND NOT list^.Get( sindex2, OUT value ) THEN
             GOTO Error;
          END;
+
+         UnlockRead();
          RETURN TRUE;
 
       //-----
@@ -566,7 +638,7 @@ CLASS IMPLEMENTATION CContainer;
          END;
 
          model.Substring( i+1, j-i-1, OUT sindex1 );
-         IF NOT GetModelValue( Request, sindex1, OUT sindex2 ) THEN
+         IF NOT GetModelValue( Request, sindex1, OUT sindex2, NIL ) THEN
             sindex2 := sindex1;
          END;
          sindex2.Trim();
@@ -583,6 +655,8 @@ CLASS IMPLEMENTATION CContainer;
             ELSIF NOT map^.ElementAt( index, OUT sindex1, OUT value ) THEN
                GOTO Error;
             END;
+
+            UnlockRead();
             RETURN TRUE;
 
          ELSIF GetListOA( OA( i-1, model.rawData ), OUT list ) THEN
@@ -595,6 +669,8 @@ CLASS IMPLEMENTATION CContainer;
             ELSIF NOT list^.ElementAt( index, OUT value, OUT sindex1 ) THEN
                GOTO Error;
             END;
+
+            UnlockRead();
             RETURN TRUE;
 
          // ELSE fall to error
@@ -614,7 +690,7 @@ CLASS IMPLEMENTATION CContainer;
             ii := i+1;
             LOOP
                ii := model.ItemS( StringsO.WCHARS{L' ', L','}, ii, 0, TRUE, OUT sindex2 );
-               IF NOT GetModelValue( Request, sindex2, OUT parameter ) THEN
+               IF NOT GetModelValue( Request, sindex2, OUT parameter, NIL ) THEN
                   parameter := sindex2;
                END;
                parameter.Trim();
@@ -624,7 +700,11 @@ CLASS IMPLEMENTATION CContainer;
                END;
             END; // LOOP
             boolean := functionHandler^.Call( Request, sindex1, REF parameters, ADR( value ));
-            CallMemo := CallMemo OR boolean;
+            IF PFunctionCalled <> NIL THEN
+               PFunctionCalled^ := PFunctionCalled^ OR boolean;
+            END;
+
+            UnlockRead();
             RETURN boolean;
           
          // ELSE fall to error
@@ -634,6 +714,8 @@ CLASS IMPLEMENTATION CContainer;
       ELSE // mtUnknown or others
          // test string
          IF GetStringOA( OA( model.Length-1, model.rawData ), OUT value ) THEN
+
+            UnlockRead();
             RETURN TRUE;
          
          // test boolean
@@ -643,6 +725,8 @@ CLASS IMPLEMENTATION CContainer;
             ELSE
                value.FromOA( FALSE_STRING );
             END;
+
+            UnlockRead();
             RETURN TRUE;
 
          END;
@@ -653,6 +737,8 @@ CLASS IMPLEMENTATION CContainer;
    Error:
       value.FromOA( L'##unknown model: ' );
       value.Append( model );
+
+      UnlockRead();
       RETURN FALSE;
    END GetModelValue;
 
@@ -697,7 +783,7 @@ CLASS IMPLEMENTATION CContainer;
             END;
          // generic model
          ELSE
-            IF NOT GetModelValue( Request, model, OUT value ) AND FailOnError THEN
+            IF NOT GetModelValue( Request, model, OUT value, NIL ) AND FailOnError THEN
                RETURN FALSE;
             END;
          END;
@@ -764,10 +850,46 @@ CLASS IMPLEMENTATION CContainer;
       IF GetMapOA( OA( LSetId.Length-1, LSetId.rawData ), OUT mapper ) THEN
          mapper^.Reset();
          WHILE mapper^.MoveNext() DO
-            SetModelValue( Request, mapper^.CurrentData^, empty ); // clear model value
+            SetModelValue( Request, mapper^.CurrentData^, empty, NIL ); // clear model value
          END; // WHILE
       END;
    END ResetModelValues;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE LockWrite() : BOOLEAN;
+   VAR
+      locked : BOOLEAN;
+   BEGIN
+      locked := Lock.LockWrite( Sync.FORSAFETY ) = Sync.arCompleted;
+      ASSERTLOG( locked, L"Unable to lock for write" );
+      RETURN locked;
+   END LockWrite;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE UnlockWrite();
+   BEGIN
+      Lock.UnlockWrite();
+   END UnlockWrite;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE LockRead() : BOOLEAN;
+   VAR
+      locked : BOOLEAN;
+   BEGIN
+      locked := Lock.LockRead( Sync.FORSAFETY ) = Sync.arCompleted;
+      ASSERTLOG( locked, L"Unable to lock for read" );
+      RETURN locked;
+   END LockRead;
+
+(*--------------------------------------------------------------------------------*)
+
+   PRIVATE PROCEDURE UnlockRead();
+   BEGIN
+      Lock.UnlockRead();
+   END UnlockRead;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -792,6 +914,7 @@ CLASS CHttpRequest IMPLEMENTS IHttpRequest;
       ModelContainer : TPContainer;
       Session : HttpSrv.TPSession;
       MessageSource : TPMessageSource; // messages are loaded single time for MVC's context, can be NIL
+      FunctionCalled : BOOLEAN;
       
    PUBLIC VIRTUAL PROCEDURE TestConditions( CONST ResourceLastModified : time.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
 
@@ -803,8 +926,11 @@ CLASS CHttpRequest IMPLEMENTS IHttpRequest;
       _Container : TPContainer;
       _MessageSource : TPMessageSource;
       _Language : Languages.TLanguage;
+      _FunctionCalled : BOOLEAN;
 
    LOCAL PROCEDURE Init( CONST RequestURI : StringsO.CString; Connection : HttpConnection.TPHttpSrvConnection; CONST Session : HttpSrv.TPSession; CONST Container : TPContainer;  CONST MessageSource : TPMessageSource );
+   
+   LOCAL PROCEDURE SetFunctionCalled( FunctionCalled : BOOLEAN );
 
 END CHttpRequest;
 
@@ -900,6 +1026,13 @@ CLASS IMPLEMENTATION CHttpRequest;
 
 (*--------------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROPERTY FunctionCalled GET : BOOLEAN;
+   BEGIN
+      RETURN _FunctionCalled;
+   END FunctionCalled;
+
+(*--------------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE TestConditions( CONST ResourceLastModified : time.DateTime; CONST ResourceName : StringsO.IString ) : HttpCommon.THttpResponse; // returns suggested status -- 200, 304 of 412
    BEGIN
       IF _Connection^.Stream^ INHERITS SrvCommon.ASrvStream THEN
@@ -922,12 +1055,20 @@ CLASS IMPLEMENTATION CHttpRequest;
 
 (*--------------------------------------------------------------------------------*)
 
+   LOCAL PROCEDURE SetFunctionCalled( _FunctionCalled : BOOLEAN );
+   BEGIN
+      SELF._FunctionCalled := _FunctionCalled;
+   END SetFunctionCalled;
+
+(*--------------------------------------------------------------------------------*)
+
 BEGIN
    _Connection := NIL;
    _Session := NIL;
    _Container := NIL;
    _MessageSource := NIL;
    _Language := -1;
+   _FunctionCalled := FALSE;
 END CHttpRequest;
 
 (*================================================================================*)
@@ -1212,6 +1353,7 @@ CLASS IMPLEMENTATION CMVC;
       containerMap : syncmaps.TPPtrSyncMap;
       container : POINTER TO CContainer;
       fallbackFlag : BOOLEAN := FALSE;
+      functionCalled : BOOLEAN;
       InputStream : IOO.TPStream;
       l : CARDINAL;
       mappedName : StringsO.CString;
@@ -1257,19 +1399,23 @@ CLASS IMPLEMENTATION CMVC;
       request.Init( controllerURI, Connection, Session, container, ADR( SELF ));
 
       // fill models, call functions
-      container^.ResetFunctionCallsMemo();
+      functionCalled := FALSE;
       container^.ResetModelValues( request, controllerURI );
       connectionData.Reset();
       WHILE connectionData.MoveNext() DO
          IF container^.GetModelByInViewName( controllerURI, connectionData.Current^, OUT mappedName ) THEN
-            container^.SetModelValue( request, mappedName, connectionData.CurrentData^ );
+            container^.SetModelValue( request, mappedName, connectionData.CurrentData^, ADR( functionCalled ));
          ELSIF ( Connection^.RequestVerb <> HttpCommon.verbPOST ) AND // for GET driving by URI parameter is allowed...
-               container^.GetModelValue( request, connectionData.Current^, OUT modelValue ) THEN // ...only if the parameter is known
-            container^.SetModelValue( request, connectionData.Current^, connectionData.CurrentData^ );
+               container^.GetModelValue( request, connectionData.Current^, OUT modelValue, ADR( functionCalled )) AND // ...only if the parameter is known
+               NOT functionCalled THEN // ...and only if Get does not call -- then it cannot be set
+            container^.SetModelValue( request, connectionData.Current^, connectionData.CurrentData^, ADR( functionCalled ));
+         ELSE
+            functionCalled := FALSE;
          END;
       END; // WHILE
       connectionData.Dispose();
       container^.ResetModelInViewNames( controllerURI );
+      request.SetFunctionCalled( functionCalled );
       
       // prepare response data
       response.Init( Connection, Session, container );

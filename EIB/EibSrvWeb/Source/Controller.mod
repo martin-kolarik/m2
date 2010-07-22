@@ -343,6 +343,7 @@ CLASS IMPLEMENTATION CController;
       s : StringsO.CString;
       uri : StringsO.CString;
       version : StringsO.CString;
+      i : CARDINAL;
    BEGIN
       IF Request.Session^.Get( SESSION_ROLE, OUT data ) THEN
          role := EibSrvWeb.TRole( LOPTRLONGWORD( data ));
@@ -351,12 +352,14 @@ CLASS IMPLEMENTATION CController;
          role := EibSrvWeb.roleGuest;
       END;
       
-      Request.ModelContainer^.AddFunctionHandlerOA( FN_EQUAL, ADR( SELF ));
-      Request.ModelContainer^.AddFunctionHandlerOA( FN_NOTEQUAL, ADR( SELF ));
-      Request.ModelContainer^.AddFunctionHandlerOA( FN_LESS, ADR( SELF ));
-      Request.ModelContainer^.AddFunctionHandlerOA( FN_LESSEQUAL, ADR( SELF ));
-      Request.ModelContainer^.AddFunctionHandlerOA( FN_GREATER, ADR( SELF ));
-      Request.ModelContainer^.AddFunctionHandlerOA( FN_GREATEREQUAL, ADR( SELF ));
+      FOR i := 0 TO 100000 DO
+         Request.ModelContainer^.AddFunctionHandlerOA( FN_EQUAL, ADR( SELF ));
+         Request.ModelContainer^.AddFunctionHandlerOA( FN_NOTEQUAL, ADR( SELF ));
+         Request.ModelContainer^.AddFunctionHandlerOA( FN_LESS, ADR( SELF ));
+         Request.ModelContainer^.AddFunctionHandlerOA( FN_LESSEQUAL, ADR( SELF ));
+         Request.ModelContainer^.AddFunctionHandlerOA( FN_GREATER, ADR( SELF ));
+         Request.ModelContainer^.AddFunctionHandlerOA( FN_GREATEREQUAL, ADR( SELF ));
+      END;
 
       version.FromOA( ProductVersion );
       Request.ModelContainer^.AddStringOA( VERSION, version );
@@ -366,7 +369,10 @@ CLASS IMPLEMENTATION CController;
          IF NOT uri.EndsWithOA( DYNAMIC_SUFFIX ) THEN
             View := mvc.fileView( ADR( SELF ), RESOLVER_CONTEXT_WEB, OA( uri.Length-1, uri.rawData ), FALSE, ADR( SELF ), RESOLVER_CONTEXT_WEB );
 
-         ELSIF NOT Request.ModelContainer^.GetFunctionCallsMemo() THEN // no call during the request
+         ELSIF Request.FunctionCalled THEN // some call was performed, redirect to self
+            View := mvc.redirectView( OA( uri.Length-1, uri.rawData ));
+         
+         ELSE // no call during the request
             // ??? TODO, functions persist, should they be available for all pages, after this call ???
             Request.ModelContainer^.AddFunctionHandlerOA( FN_SET, ADR( SELF ));
             Request.ModelContainer^.AddFunctionHandlerOA( FN_GET, ADR( SELF ));
@@ -400,8 +406,6 @@ CLASS IMPLEMENTATION CController;
                View := mvc.redirectView( USER_LOGIN_PAGE );
             END;
 
-         ELSE // some call was performed, redirect to self
-            View := mvc.redirectView( OA( uri.Length-1, uri.rawData ));
          END;
          RETURN TRUE;
    
