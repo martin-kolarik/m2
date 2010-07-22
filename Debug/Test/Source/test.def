@@ -24,6 +24,7 @@ TYPE
 INTERFACE IHost;
    READONLY PROPERTY
       Log : log.TPILogger;
+      Output : log.TPIOutput;
       FastEvaluation : BOOLEAN;
    PROPERTY
       Progress : CARDINAL; // percent

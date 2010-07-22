@@ -60,7 +60,7 @@ PROCEDURE logger() : TPBufferedLogger;
 CLASS CLevelAndBitsFilter IMPLEMENTS iLog.IFilter;
 
    // IFilter
-   PUBLIC VIRTUAL PROCEDURE FilteredFastCheck( Level : TLevel ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE FilteredFastCheck( Level : TLevel; FilterData : PTR ) : BOOLEAN;
    PUBLIC VIRTUAL PROCEDURE FilteredFullCheck( Level : TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR ) : BOOLEAN;
 
    // SELF
@@ -152,22 +152,6 @@ CLASS CBufferOutput( AFormatter );
 
 END CBufferOutput;
 
-(*---------------------------------------------------------------------------*)
-
-CLASS CAppenderOutput IMPLEMENTS iLog.IOutput;
-
-   // IOutput
-   PUBLIC VIRTUAL PROCEDURE Append( Level : TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR );
-   
-   // SELF
-   PUBLIC PROPERTY
-      Appender : iLog.TPIAppender;
-   
-   PRIVATE VAR
-      _Appender : ilog.TPIAppender;
-
-END CAppenderOutput;
-
 (*===========================================================================*)
 
 TYPE
@@ -175,7 +159,10 @@ TYPE
 
 CLASS CBaseLogger IMPLEMENTS iLog.ILogger, iLog.IAppender;
 
-   // ILogger -- should check filter level (only roughly)
+   // ILogger
+   PUBLIC VIRTUAL PROCEDURE FilteredFastCheck( Level : TLevel; FilterData : PTR ) : BOOLEAN; // not neccessarily uses some filter, but it is more helpful
+
+   // methods should check filter level (only roughly)
    PUBLIC VIRTUAL PROCEDURE LogS( Level : TLevel; FilterData : PTR; CONST Prefix, S : ARRAY OF WCHAR );
    PUBLIC VIRTUAL PROCEDURE LogSS( Level : TLevel; FilterData : PTR; CONST Prefix, S1, S2 : ARRAY OF WCHAR );
    PUBLIC VIRTUAL PROCEDURE LogSSC( Level : TLevel; FilterData : PTR; CONST Prefix, S1, S2 : ARRAY OF WCHAR; C : CARDINAL );
@@ -195,14 +182,14 @@ CLASS CBaseLogger IMPLEMENTS iLog.ILogger, iLog.IAppender;
    PUBLIC VIRTUAL PROCEDURE LogExc( Level : TLevel; FilterData : PTR; CONST Prefix : ARRAY OF WCHAR; CONST e : Exceptions.Exception );
    PUBLIC VIRTUAL PROCEDURE LogFilePos( Level : TLevel; FilterData : PTR; CONST Prefix : ARRAY OF WCHAR; CONST Path, S1 : ARRAY OF WCHAR; Line, Col : CARDINAL ); // Line, Col = 0/-1 means unused, unknown
    
-   // IAppender -- should check filter thoroughly
+   // IAppender -- method should check filter thoroughly
    PUBLIC VIRTUAL PROCEDURE Append( Level : TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR );
 
    PUBLIC VIRTUAL PROCEDURE SetName( CONST Name : ARRAY OF WCHAR );
    PUBLIC VIRTUAL PROCEDURE GetName( OUT Name : ARRAY OF WCHAR );
 
-   PUBLIC VIRTUAL PROCEDURE AddOutput( Output : TPIOutput );
-   PUBLIC VIRTUAL PROCEDURE RemoveOutput( Output : TPIOutput );
+   PUBLIC VIRTUAL PROCEDURE AddOutput( CONST Output : TPIOutput );
+   PUBLIC VIRTUAL PROCEDURE RemoveOutput( CONST Output : TPIOutput );
 
    // SELF
    PUBLIC PROPERTY
@@ -213,7 +200,7 @@ CLASS CBaseLogger IMPLEMENTS iLog.ILogger, iLog.IAppender;
       _Name : ARRAY [0..63] OF WCHAR;
       _Filter : TPIFilter;
   
-   PRIVATE INLINE PROCEDURE Filtered( Level : TLevel ) : BOOLEAN; // fast check
+   PRIVATE INLINE PROCEDURE Filtered( Level : TLevel; FilterData : PTR ) : BOOLEAN; // fast check
 END CBaseLogger;
 
 (*---------------------------------------------------------------------------*)
@@ -225,6 +212,7 @@ CLASS CPlainLogger( CBaseLogger );
       Output : TOutput; // switches output to single output (leaves only single appender)
       Level : TLevel;
       AllowedFilterDataBits : PTR;
+      Filter : TPIFilter; // to override default inherited filter
       TimeStamps : BOOLEAN; // prints timestamps, default TRUE --> AFormatter
       Levels : BOOLEAN; // prints debug level of message, default TRUE --> AFormatter
       Names : BOOLEAN; // prints names/prefixes of message, default TRUE --> AFormatter

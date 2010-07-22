@@ -101,6 +101,7 @@ CLASS CHost IMPLEMENTS test.IHost, thread.IRunnable;
    // IHost
    PUBLIC VIRTUAL READONLY PROPERTY
       Log : log.TPILogger;
+      Output : log.TPIOutput;
       FastEvaluation : BOOLEAN;
    PUBLIC VIRTUAL PROPERTY
       Progress : CARDINAL; // percent
@@ -114,7 +115,7 @@ CLASS CHost IMPLEMENTS test.IHost, thread.IRunnable;
    
    // self
    PUBLIC READONLY PROPERTY
-      Output : TPTestOutput;
+      TestOutput : TPTestOutput;
    LOCAL PROCEDURE StartSuite( CONST Name : ARRAY OF WCHAR; FastEvaluation : BOOLEAN );
    LOCAL PROCEDURE RunTest( CONST Name : ARRAY OF WCHAR; Test : test.TPTest ) : Sync.TAsyncResult;
 END CHost;   
@@ -129,6 +130,13 @@ CLASS IMPLEMENTATION CHost;
    BEGIN
       RETURN ADR( _Logger );
    END Log;
+
+(*--------------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROPERTY Output GET : log.TPIOutput;
+   BEGIN
+      RETURN ADR( _Logger );
+   END Output;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -196,10 +204,10 @@ CLASS IMPLEMENTATION CHost;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROPERTY Output GET : TPTestOutput;
+   PUBLIC PROPERTY TestOutput GET : TPTestOutput;
    BEGIN
       RETURN ADR( _Output );
-   END Output;
+   END TestOutput;
 
 (*--------------------------------------------------------------------------------*)
 
@@ -253,6 +261,7 @@ CLASS IMPLEMENTATION CHost;
 (*--------------------------------------------------------------------------------*)
 
 BEGIN
+   _Logger.Level := log.ldDebug;
    _Logger.Output := log.outsNone;
    _Logger.AddOutput( ADR( _Output ));
 END CHost;
@@ -330,7 +339,7 @@ BEGIN
       INC( i );
    END; // WHILE
    
-   Host.Output^.TimeStamps := TimeStamps;
+   Host.TestOutput^.TimeStamps := TimeStamps;
    
    FOR rc := 1 TO RepeatCount DO
    

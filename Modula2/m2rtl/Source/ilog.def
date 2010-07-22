@@ -26,14 +26,16 @@ TYPE
 
 INTERFACE IFilter;
 
-   PROCEDURE FilteredFastCheck( Level : TLevel ) : BOOLEAN; // fast check for level only
-   PROCEDURE FilteredFullCheck( Level : TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR ) : BOOLEAN; // precise check, inlucing level
+   PROCEDURE FilteredFastCheck( Level : TLevel; FilterData : PTR ) : BOOLEAN; // fast check for level and FilterData only
+   PROCEDURE FilteredFullCheck( Level : TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR ) : BOOLEAN; // precise check, inlucing level and FilterData
    
 END IFilter;
 
 (*--------------------------------------------------------------------------------*)
 
 INTERFACE ILogger;
+
+   PROCEDURE FilteredFastCheck( Level : TLevel; FilterData : PTR ) : BOOLEAN; // not neccessarily uses some filter, but it is more helpful
 
    PROCEDURE LogS( Level : TLevel; FilterData : PTR; CONST Prefix, S : ARRAY OF WCHAR );
    PROCEDURE LogSS( Level : TLevel; FilterData : PTR; CONST Prefix, S1, S2 : ARRAY OF WCHAR );
@@ -73,8 +75,8 @@ INTERFACE IAppender( IOutput );
    PROCEDURE SetName( CONST Name : ARRAY OF WCHAR );
    PROCEDURE GetName( OUT Name : ARRAY OF WCHAR );
 
-   PROCEDURE AddOutput( Output : TPIOutput );
-   PROCEDURE RemoveOutput( Output : TPIOutput );
+   PROCEDURE AddOutput( CONST Output : TPIOutput );
+   PROCEDURE RemoveOutput( CONST Output : TPIOutput );
 
 END IAppender;
 

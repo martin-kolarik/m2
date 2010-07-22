@@ -33,14 +33,7 @@ CLASS IMPLEMENTATION CLevelAndBitsFilter;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE FilteredFastCheck( Level : TLevel ) : BOOLEAN;
-   BEGIN
-      RETURN Level > _Level;
-   END FilteredFastCheck;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE FilteredFullCheck( Level : TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR ) : BOOLEAN;
+   PUBLIC VIRTUAL PROCEDURE FilteredFastCheck( Level : TLevel; FilterData : PTR ) : BOOLEAN;
    BEGIN
       IF Level > _Level THEN
          RETURN TRUE;
@@ -51,6 +44,13 @@ CLASS IMPLEMENTATION CLevelAndBitsFilter;
       ELSE
          RETURN FALSE;
       END;
+   END FilteredFastCheck;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC VIRTUAL PROCEDURE FilteredFullCheck( Level : TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR ) : BOOLEAN;
+   BEGIN
+      RETURN FilteredFastCheck( Level, FilterData );
    END FilteredFullCheck;
 
 (*---------------------------------------------------------------------------*)
@@ -330,6 +330,7 @@ CLASS IMPLEMENTATION CBuffer;
 (*---------------------------------------------------------------------------*)
 
 BEGIN
+   Size := 64;
 FINALLY
    DISPOSE( _Data );
 END CBuffer;
@@ -404,46 +405,13 @@ END CBufferOutput;
 
 (*===========================================================================*)
 
-CLASS IMPLEMENTATION CAppenderOutput;
-
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC VIRTUAL PROCEDURE Append( Level : TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR );
-   BEGIN
-      IF _Appender <> NIL THEN
-         _Appender^.Append( Level, FilterData, Logger, Prefix, Message );
-      END;
-   END Append;
-   
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Appender GET : iLog.TPIAppender;
-   BEGIN
-      RETURN _Appender;
-   END Appender;
-   
-(*---------------------------------------------------------------------------*)
-
-   PUBLIC PROPERTY Appender SET( Value : iLog.TPIAppender );
-   BEGIN
-      _Appender := Value;
-   END Appender;
-   
-(*---------------------------------------------------------------------------*)
-
-BEGIN
-   _Appender := NIL;
-END CAppenderOutput;
-
-(*===========================================================================*)
-
 // inside CSimplePtrArray also only IOutputs are stored, which is not too clean. Keep it on mind!!
 // DO NOT LOCK anything inside, the class is fully locked from outside
 CLASS CSimplePtrArray;
 
    PUBLIC PROCEDURE Clear();
-   PUBLIC PROCEDURE Add( Data : iLog.TPIOutput );
-   PUBLIC PROCEDURE Remove( Appender : iLog.TPIOutput );
+   PUBLIC PROCEDURE Add( CONST Data : iLog.TPIOutput );
+   PUBLIC PROCEDURE Remove( CONST Appender : iLog.TPIOutput );
 
    PUBLIC PROCEDURE Get( CONST Name : ARRAY OF WCHAR; OUT Appender : iLog.TPIAppender ) : BOOLEAN;
    PUBLIC READONLY INDEX( Index : CARDINAL ) : iLog.TPIAppender;
@@ -481,7 +449,7 @@ CLASS IMPLEMENTATION CSimplePtrArray;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Add( Appender : iLog.TPIOutput );
+   PUBLIC PROCEDURE Add( CONST Appender : iLog.TPIOutput );
    VAR
       i : CARDINAL;
    BEGIN
@@ -502,7 +470,7 @@ CLASS IMPLEMENTATION CSimplePtrArray;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE Remove( Appender : iLog.TPIOutput );
+   PUBLIC PROCEDURE Remove( CONST Appender : iLog.TPIOutput );
    VAR
       i : CARDINAL;
       move : BOOLEAN := FALSE;
@@ -611,9 +579,16 @@ CLASS IMPLEMENTATION CBaseLogger;
 
 (*---------------------------------------------------------------------------*)
 
+   PUBLIC VIRTUAL PROCEDURE FilteredFastCheck( Level : TLevel; FilterData : PTR ) : BOOLEAN; // not neccessarily uses some filter, but it is more helpful
+   BEGIN
+      RETURN Filtered( Level, FilterData );
+   END FilteredFastCheck;
+
+(*---------------------------------------------------------------------------*)
+
    PUBLIC VIRTUAL PROCEDURE LogS( Level : TLevel; FilterData : PTR; CONST Prefix, S : ARRAY OF WCHAR );
    BEGIN
-      IF Filtered( Level ) THEN
+      IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
       Append( Level, FilterData, _Name, Prefix, S );
@@ -625,7 +600,7 @@ CLASS IMPLEMENTATION CBaseLogger;
    VAR
       S : TString;
    BEGIN
-      IF Filtered( Level ) THEN
+      IF Filtered( Level, FilterData ) THEN
         RETURN;
       END;
       Strings.ConcatW( OUT S, S1, L" " );
@@ -640,7 +615,7 @@ CLASS IMPLEMENTATION CBaseLogger;
       N : TNum;
       S : TString;
    BEGIN
-      IF Filtered( Level ) THEN
+      IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
       Strings.ConcatW( OUT S, S1, L" " );
@@ -658,7 +633,7 @@ CLASS IMPLEMENTATION CBaseLogger;
       N : TNum;
       S : TString;
    BEGIN
-      IF Filtered( Level ) THEN
+      IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
       Strings.ConcatW( OUT S, S1, L" " );
@@ -674,7 +649,7 @@ CLASS IMPLEMENTATION CBaseLogger;
       N : TNum;
       S : TString;
    BEGIN
-      IF Filtered( Level ) THEN
+      IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
       Strings.ConcatW( OUT S, S1, L" " );
@@ -693,7 +668,7 @@ CLASS IMPLEMENTATION CBaseLogger;
       N : TNum;
       S : TString;
    BEGIN
-      IF Filtered( Level ) THEN
+      IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
       Strings.ConcatW( OUT S, S1, L" " );
@@ -709,7 +684,7 @@ CLASS IMPLEMENTATION CBaseLogger;
       N : TNum;
       S : TString;
    BEGIN
-      IF Filtered( Level ) THEN
+      IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
       Strings.ConcatW( OUT S, S1, L" " );
@@ -725,7 +700,7 @@ CLASS IMPLEMENTATION CBaseLogger;
       N : TNum;
       S : TString;
    BEGIN
-      IF Filtered( Level ) THEN
+      IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
       Strings.ConcatW( OUT S, S1, L" " );
@@ -744,7 +719,7 @@ CLASS IMPLEMENTATION CBaseLogger;
       N : TNum;
       S : TString;
    BEGIN
-      IF Filtered( Level ) THEN
+      IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
       Strings.ConcatW( OUT S, S1, L" " );
@@ -766,11 +741,11 @@ CLASS IMPLEMENTATION CBaseLogger;
       c8 : CARD8;
       S : TString;
    BEGIN
-      IF Filtered( Level ) THEN
+      IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
       ASSIGN( S, S1 );
-      Strings.AppendW( REF S, L'[' );
+      Strings.AppendW( REF S, L' [' );
       c := LENGTH( S );
       WHILE ( Bytes > 0 ) AND ( c < SIZE( S ) DIV SIZE( WCHAR ) - 4 ) DO // 3 characters + trailing zero
          c8 := TPC8( A )^ >> 4;
@@ -808,7 +783,7 @@ CLASS IMPLEMENTATION CBaseLogger;
       N : TNum;
       S : TString;
    BEGIN
-      IF Filtered( Level ) THEN
+      IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
       Strings.ConcatW( OUT S, S1, L" " );
@@ -847,7 +822,7 @@ CLASS IMPLEMENTATION CBaseLogger;
    VAR
       S : TString;
    BEGIN
-      IF Filtered( Level ) THEN
+      IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
       Strings.ConcatW( OUT S, S1, L" " );
@@ -863,7 +838,7 @@ CLASS IMPLEMENTATION CBaseLogger;
    VAR
       S : TString;
    BEGIN
-      IF Filtered( Level ) THEN
+      IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
       Strings.ConcatW( OUT S, S1, L" " );
@@ -882,7 +857,7 @@ CLASS IMPLEMENTATION CBaseLogger;
       E : TString;
       S : TString;
    BEGIN
-      IF Filtered( Level ) THEN
+      IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
       Strings.ConcatW( OUT S, S1, L" " );
@@ -898,7 +873,7 @@ CLASS IMPLEMENTATION CBaseLogger;
       R : TString;
       S : TString;
    BEGIN
-      IF Filtered( Level ) THEN
+      IF Filtered( Level, FilterData ) THEN
          RETURN;
       ELSIF NOT Sync.ResultToName( Result, OUT R ) THEN
          ASSERT( FALSE );
@@ -917,7 +892,7 @@ CLASS IMPLEMENTATION CBaseLogger;
 	VAR
 		S : TString;
 	BEGIN
-      IF Filtered( Level ) THEN
+      IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
 	   e.ToString( OUT S );
@@ -932,7 +907,7 @@ CLASS IMPLEMENTATION CBaseLogger;
 		S : TString;
       N : TNum;
    BEGIN
-      IF Filtered( Level ) THEN
+      IF Filtered( Level, FilterData ) THEN
          RETURN;
       END;
 
@@ -965,8 +940,13 @@ CLASS IMPLEMENTATION CBaseLogger;
 
    PUBLIC VIRTUAL PROCEDURE Append( Level : TLevel; FilterData : PTR; CONST Logger, Prefix, Message : ARRAY OF WCHAR );
    VAR
+      filter : iLog.TPIFilter := Sync.IGetPtr( REF _Filter );
       i : CARDINAL;
    BEGIN
+      IF ( filter <> NIL ) AND filter^.FilteredFullCheck( Level, FilterData, Logger, Prefix, Message ) THEN
+         RETURN;
+      END;
+
       _Outputs^.LockRead();
       IF NOT _Outputs^.Empty THEN // although it was already tested, anybody could change it after the check
          FOR i := 0 TO _Outputs^.Count-1 DO
@@ -978,7 +958,7 @@ CLASS IMPLEMENTATION CBaseLogger;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE AddOutput( Output : TPIOutput );
+   PUBLIC VIRTUAL PROCEDURE AddOutput( CONST Output : TPIOutput );
    BEGIN
       _Outputs^.LockWrite();
       _Outputs^.Add( Output );
@@ -987,7 +967,7 @@ CLASS IMPLEMENTATION CBaseLogger;
 
 (*---------------------------------------------------------------------------*)
 
-   PUBLIC VIRTUAL PROCEDURE RemoveOutput( Output : TPIOutput );
+   PUBLIC VIRTUAL PROCEDURE RemoveOutput( CONST Output : TPIOutput );
    BEGIN
       _Outputs^.LockWrite();
       _Outputs^.Remove( Output );
@@ -1024,12 +1004,12 @@ CLASS IMPLEMENTATION CBaseLogger;
 
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE INLINE PROCEDURE Filtered( Level : TLevel ) : BOOLEAN;
+   PRIVATE INLINE PROCEDURE Filtered( Level : TLevel; FilterData : PTR ) : BOOLEAN;
    VAR
       b : BOOLEAN;
       filter : iLog.TPIFilter := Sync.IGetPtr( REF _Filter );
    BEGIN
-      IF ( filter <> NIL ) AND filter^.FilteredFastCheck( Level ) THEN
+      IF ( filter <> NIL ) AND filter^.FilteredFastCheck( Level, FilterData ) THEN
          b := TRUE;
       ELSE
          _Outputs^.LockRead();
@@ -1069,7 +1049,7 @@ CLASS IMPLEMENTATION CPlainLogger;
       b : BOOLEAN;
    BEGIN
       b := outKernel IN Value;
-      IF b <> ( outKernel NOT IN _Output ) THEN
+      IF b <> ( outKernel IN _Output ) THEN
          IF b THEN
             AddOutput( ADR( _KernelOutput ));
          ELSE
@@ -1077,7 +1057,7 @@ CLASS IMPLEMENTATION CPlainLogger;
          END;
       END;
       b := outFile IN Value;
-      IF b <> ( outFile NOT IN _Output ) THEN
+      IF b <> ( outFile IN _Output ) THEN
          IF b THEN
             AddOutput( ADR( _FileOutput ));
          ELSE
@@ -1100,6 +1080,28 @@ CLASS IMPLEMENTATION CPlainLogger;
    BEGIN
       _LevelFilter.Level := Value;
    END Level;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Filter GET : TPIFilter;
+   BEGIN
+      IF SUPER.Filter = TPIFilter( ADR( _LevelFilter )) THEN
+         RETURN NIL;
+      ELSE
+         RETURN SUPER.Filter;
+      END;
+   END Filter;
+
+(*---------------------------------------------------------------------------*)
+
+   PUBLIC PROPERTY Filter SET( Value : TPIFilter );
+   BEGIN
+      IF Value = NIL THEN
+         SUPER.Filter := ADR( _LevelFilter );
+      ELSE
+         SUPER.Filter := Value;
+      END;
+   END Filter;
 
 (*---------------------------------------------------------------------------*)
 
@@ -1197,6 +1199,7 @@ CLASS IMPLEMENTATION CPlainLogger;
 BEGIN
    _Output := TOutput{};
    Output := TOutput{outKernel};
+   Filter := ADR( _LevelFilter );
 
    #if #defined LIBRARY #then
       ConfigureByRegistry( REF SELF, LIBRARY );
