@@ -224,34 +224,34 @@ inline QUADWORD REVERSEQWB_( QUADWORD w ) throw() {
 }
 
 // sets -- test
-inline bool INS_( SET s, SET l, SET b ) throw()
+inline BOOLEAN INS_( SET s, SET l, SET b ) throw()
 {
   if (b<=l) {
     return (s & (1<<b)) != 0;
   } else {
-    return false;
+    return FALSE;
   }
 }
 
-inline bool INL_( LONGSET s, SET l, SET b ) throw()
+inline BOOLEAN INL_( LONGSET s, SET l, SET b ) throw()
 {
   if (b<=l) {
     return (s & (1ull<<b)) != 0;
   } else {
-    return false;
+    return FALSE;
   }
 }
 
-inline bool INA_( BYTE* s, SET l, SET b ) throw()
+inline BOOLEAN INA_( BYTE* s, SET l, SET b ) throw()
 {
   if (b<=l) {
     return (s[b/8] & (1<<(b&7))) != 0;
   } else {
-    return false;
+    return FALSE;
   }
 }
 //... a pair to simply solve CONST, the casting should be in m2cpp ???
-inline bool INA_( const BYTE* s, SET l, SET b ) throw()
+inline BOOLEAN INA_( const BYTE* s, SET l, SET b ) throw()
 {
   return INA_( (BYTE*)s, l, b );
 }

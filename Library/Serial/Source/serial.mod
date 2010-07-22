@@ -58,10 +58,10 @@ CLASS IMPLEMENTATION CSerialHandler;
   PUBLIC PROPERTY ReadBack SET( Value : BOOLEAN );
   BEGIN
 		IF Value THEN
-			Logger.LogS( Log.dldDebug, L'', L'tx/rx read back activated' );
+			Logger.LogS( Log.ldDebug, 0, L'', L'tx/rx read back activated' );
 			INCL( RStatus, rsReadBack );
 		ELSE
-			Logger.LogS( Log.dldDebug, L'', L'tx/rx read back stopped' );
+			Logger.LogS( Log.ldDebug, 0, L'', L'tx/rx read back stopped' );
 			EXCL( RStatus, rsReadBack );
 			ReadBackLen := 0;
 		END;
@@ -103,14 +103,14 @@ CLASS IMPLEMENTATION CSerialHandler;
 			IF log <> NIL THEN
    			log^.LogSS( Log.dlcInfo, L'', L'init success on ', Channel );
 			END;
-			Logger.LogSS( Log.dldDebug, L'', L'init success on ', Channel );
+			Logger.LogSS( Log.ldDebug, 0, L'', L'init success on ', Channel );
 			RETURN TRUE;
 		ELSE
 			Strings.ToW( ErrorStringA, 0, OUT ErrorStringW );
 			IF log <> NIL THEN
    			log^.LogSSSS( Log.dlcError, L'', L'init failed on ', Channel, L': ', ErrorStringW );
 			END;
-			Logger.LogSSSS( Log.dldError, L'', L'init failed on ', Channel, L': ', ErrorStringW );
+			Logger.LogSSSS( Log.ldError, 0, L'', L'init failed on ', Channel, L': ', ErrorStringW );
 			RETURN FALSE;
 		END;
 	END Init;
@@ -122,7 +122,7 @@ CLASS IMPLEMENTATION CSerialHandler;
 		Stop();
 		IF ComLink <> NIL THEN
 			SerialLink.CloseLink( ComLink, ComSession );
-			Logger.LogS( Log.dldError, L'', L'channel closed' );
+			Logger.LogS( Log.ldError, 0, L'', L'channel closed' );
 			ComLink := NIL;
 		END;
 		TxBuffer.Dispose();
@@ -174,7 +174,7 @@ CLASS IMPLEMENTATION CSerialHandler;
 		END; // LOOP
 		SerialLink.SetCommFocusMask( ComLink, CM );
 		INCL( RStatus, rsRun );
-		Logger.LogS( Log.dldDebug, L'', L'listening on callbacks' );
+		Logger.LogS( Log.ldDebug, 0, L'', L'listening on callbacks' );
 	END Run;
 
 //---------------------------------------------------------
@@ -197,7 +197,7 @@ CLASS IMPLEMENTATION CSerialHandler;
 			END;
 		END; // LOOP
 		EXCL( RStatus, rsRun );
-		Logger.LogS( Log.dldDebug, L'', L'stop listening on callbacks' );
+		Logger.LogS( Log.ldDebug, 0, L'', L'stop listening on callbacks' );
 	END Stop;
 
 //---------------------------------------------------------
@@ -220,7 +220,7 @@ CLASS IMPLEMENTATION CSerialHandler;
 	BEGIN
 		IF Result <> Sync.arCompleted THEN
 			_ResetRxTimeout();
-			Logger.LogSC( Log.dldError, L'', L'rx error: ', CARDINAL( Result ));
+			Logger.LogSC( Log.ldError, 0, L'', L'rx error: ', CARDINAL( Result ));
 			OnRx( Result, LRxBuffer );
 			IF rsRxW IN RStatus THEN
 				OnRxW( Result, LRxBufferW );
@@ -229,7 +229,7 @@ CLASS IMPLEMENTATION CSerialHandler;
 			RETURN FALSE;
 		ELSIF NOT Data.Empty THEN
 			RxBuffer.Append( Data );
-			Logger.LogSCB( Log.dldDebug, L'', L'rx success, len: ', Data.Length, Data.Data, Data.Length );
+			Logger.LogSCB( Log.ldDebug, 0, L'', L'rx success, len: ', Data.Length, Data.Data, Data.Length );
 		END;
 
 		IF NOT DetectDataStart( RxBuffer, OUT LI, OUT LDI ) THEN
@@ -328,7 +328,7 @@ CLASS IMPLEMENTATION CSerialHandler;
 		LB : StorageO.CMemoryBuffer;
 	BEGIN
 		IF NOT TimerRunning( tiRx ) THEN
-			Logger.LogS( Log.dldTrace, L'', L'rx timeout unexpected' );
+			Logger.LogS( Log.ldTrace, 0, L'', L'rx timeout unexpected' );
 			RETURN;
 		END;
 		_ResetRxTimeout();
@@ -345,7 +345,7 @@ CLASS IMPLEMENTATION CSerialHandler;
 		IF RxTimeout = 0 THEN
 			RETURN;
 		END;
-		Logger.LogSC( Log.dldTrace, L'', L'rx timeout set to: ', RxTimeout );
+		Logger.LogSC( Log.ldTrace, 0, L'', L'rx timeout set to: ', RxTimeout );
 		StartTimer( tiRx, RxTimeout, FALSE );
 	END _SetRxTimeout;
 
@@ -355,7 +355,7 @@ CLASS IMPLEMENTATION CSerialHandler;
 	BEGIN
 		IF TimerRunning( tiRx ) THEN
 			StopTimer( tiRx );
-			Logger.LogS( Log.dldTrace, L'', L'rx timeout reset' );
+			Logger.LogS( Log.ldTrace, 0, L'', L'rx timeout reset' );
 		END;
 	END _ResetRxTimeout;
 
@@ -368,7 +368,7 @@ CLASS IMPLEMENTATION CSerialHandler;
 		END;
 		SkipCount := MIN2( AbleToReceive, ReadBackLen );
 		DEC( ReadBackLen, SkipCount );
-		Logger.LogSC( Log.dldDebug, L'', L'tx/rx read back skipped, now: ', ReadBackLen );
+		Logger.LogSC( Log.ldDebug, 0, L'', L'tx/rx read back skipped, now: ', ReadBackLen );
 		RETURN TRUE;
 	END _QueryRxSkip;
 
@@ -396,7 +396,7 @@ CLASS IMPLEMENTATION CSerialHandler;
 		L := TxBuffer.Length;
 		IF rsReadBack IN RStatus THEN
 			INC( ReadBackLen, L );
-			Logger.LogSC( Log.dldDebug, L'', L'tx/rx read back now: ', ReadBackLen );
+			Logger.LogSC( Log.ldDebug, 0, L'', L'tx/rx read back now: ', ReadBackLen );
 		END;
 
 		// cwxlink.PurgeRxBuffer( ComLink );
@@ -414,7 +414,7 @@ CLASS IMPLEMENTATION CSerialHandler;
 			_SetRxTimeout( _RxTimeout + L );
 		END;
 
-		Logger.LogSCB( Log.dldDebug, L'', L'tx start of ', L, A, L );
+		Logger.LogSCB( Log.ldDebug, 0, L'', L'tx start of ', L, A, L );
 		SerialLink.Send( ComLink, A, L );
 	END Tx;
 
@@ -442,9 +442,9 @@ CLASS IMPLEMENTATION CSerialHandler;
 	BEGIN
 		_ResetTxTimeout();
 		IF Result = Sync.arCompleted THEN
-			Logger.LogSC( Log.dldTrace, L'', L'tx success, len: ', TxBuffer.Length );
+			Logger.LogSC( Log.ldTrace, 0, L'', L'tx success, len: ', TxBuffer.Length );
 		ELSE
-			Logger.LogSC( Log.dldError, L'', L'tx error: ', CARDINAL( Result ));
+			Logger.LogSC( Log.ldError, 0, L'', L'tx error: ', CARDINAL( Result ));
 		END;
 		TxBuffer.Clear();
 		OnTx( Result );
@@ -461,14 +461,14 @@ CLASS IMPLEMENTATION CSerialHandler;
 	LOCAL PROCEDURE _OnTxTimeout();
 	BEGIN
 		IF NOT TimerRunning( tiTx ) THEN
-			Logger.LogS( Log.dldTrace, L'', L'tx timeout unexpected' );
+			Logger.LogS( Log.ldTrace, 0, L'', L'tx timeout unexpected' );
 			_OnTx( Sync.arTimeout );
 			RETURN;
 		END;
 		_ResetTxTimeout();
 		SerialLink.PurgeTxBuffer( ComLink );
 		IF RepeatCount > 1 THEN
-			Logger.LogS( Log.dldTrace, L'', L'tx will repeat' );
+			Logger.LogS( Log.ldTrace, 0, L'', L'tx will repeat' );
 			DEC( RepeatCount );
 		ELSE
 			_OnTx( Sync.arTimeout );
@@ -486,7 +486,7 @@ CLASS IMPLEMENTATION CSerialHandler;
 		IF TxTimeout = 0 THEN
 			RETURN;
 		END;
-		Logger.LogSC( Log.dldTrace, L'', L'tx timeout set to: ', TxTimeout );
+		Logger.LogSC( Log.ldTrace, 0, L'', L'tx timeout set to: ', TxTimeout );
 		StartTimer( tiTx, TxTimeout, FALSE );
 	END _SetTxTimeout;
 
@@ -496,7 +496,7 @@ CLASS IMPLEMENTATION CSerialHandler;
 	BEGIN
 		IF TimerRunning( tiTx ) THEN
 			StopTimer( tiTx );
-			Logger.LogS( Log.dldTrace, L'', L'tx timeout reset' );
+			Logger.LogS( Log.ldTrace, 0, L'', L'tx timeout reset' );
 		END;
 	END _ResetTxTimeout;
 

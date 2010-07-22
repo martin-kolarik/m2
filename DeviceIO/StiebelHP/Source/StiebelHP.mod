@@ -461,7 +461,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 
    PUBLIC VIRTUAL PROCEDURE Start() : Sync.TAsyncResult;
    BEGIN
-      Logger.LogS( log.dldMessage, L"StiebelHP", L"Started" );
+      Logger.LogS( log.ldMessage, 0, L"StiebelHP", L"Started" );
       RETURN Connection.OpenS( _DeviceAddress, TRUE, 500 );
    END Start;
 
@@ -470,7 +470,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
    PUBLIC VIRTUAL PROCEDURE Stop();
    BEGIN
       Connection.Close();
-      Logger.LogS( log.dldMessage, L"StiebelHP", L"Stopped" );
+      Logger.LogS( log.ldMessage, 0, L"StiebelHP", L"Stopped" );
    END Stop;
 
 (*---------------------------------------------------------------------------*)
@@ -480,10 +480,10 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
       EmptyData : StorageO.CMemoryBuffer;
    BEGIN
       IF PoolHandle = _TxTimeoutHandle THEN
-	      Logger.LogS( log.dldTrace, L"", L"Tx timeout" );
+	      Logger.LogS( log.ldTrace, 0, L"", L"Tx timeout" );
          OnTx( Sync.arTimeout );
       ELSIF PoolHandle = _RxTimeoutHandle THEN
-	      Logger.LogS( log.dldTrace, L"", L"Rx timeout" );
+	      Logger.LogS( log.ldTrace, 0, L"", L"Rx timeout" );
          OnRx( Sync.arTimeout, EmptyData );
       END;
    END OnTimeout;
@@ -635,7 +635,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 	   TxBuffer : StorageO.CMemoryBuffer;
 	BEGIN
 	   IF NOT Connection.Connected THEN
-	      Logger.LogS( log.dldTrace, L"", L"Disconnected, trying to reconnect" );
+	      Logger.LogS( log.ldTrace, 0, L"", L"Disconnected, trying to reconnect" );
          Connection.OpenS( _DeviceAddress, TRUE, 500 );
 	   END;
 	
@@ -654,7 +654,7 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 		   StartTimeout( _RxTimeout, REF _RxTimeoutHandle );
 		END;
 
-		Logger.LogSCB( log.dldDebug, L'', L'tx start of ', TxBuffer.Length, TxBuffer.Data, TxBuffer.Length );
+		Logger.LogSCB( log.ldDebug, 0, L'', L'tx start of ', TxBuffer.Length, TxBuffer.Data, TxBuffer.Length );
 		Result := Connection.Stream^.WriteBuffer( TxBuffer, OUT c, netsocket.FORSAFETY );
 		IF Result = Sync.arTimeout THEN
 		   ASSERTLOG( FALSE );
@@ -681,13 +681,13 @@ CLASS IMPLEMENTATION CDeviceCommunicator;
 		ChkSumOK : BOOLEAN := TRUE;
 	BEGIN
 		IF Result <> Sync.arCompleted THEN
-			Logger.LogSC( log.dldError, L'', L'rx error: ', CARDINAL( Result ));
+			Logger.LogSC( log.ldError, 0, L'', L'rx error: ', CARDINAL( Result ));
 			OnRx( Result, LRxBuffer );
 			RxBuffer.Clear();
 			RETURN FALSE;
 		ELSIF NOT Data.Empty THEN
 			RxBuffer.Append( Data );
-			Logger.LogSCB( log.dldDebug, L'', L'rx success, len: ', Data.Length, Data.Data, Data.Length );
+			Logger.LogSCB( log.ldDebug, 0, L'', L'rx success, len: ', Data.Length, Data.Data, Data.Length );
 		END;
 
       (* // TODO

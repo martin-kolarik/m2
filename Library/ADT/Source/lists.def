@@ -1,10 +1,10 @@
 DEFINITION MODULE lists;
 
 IMPORT
-  list;
+   list;
   
 FROM StringsO IMPORT
-  IString;
+   IString;
   
 FROM StorageO IMPORT
 	AMemoryBuffer;

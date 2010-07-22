@@ -1,4 +1,4 @@
-MODULE TryThrowCatchSpeed;
+MODULE TExceptionToString;
 
 FROM Storage IMPORT
    ALLOCATE, DEALLOCATE;
@@ -39,10 +39,12 @@ END Exc2;
 CLASS CTest IMPLEMENTS test.ITest;
    PRIVATE VAR
       Host : test.TPHost := NIL;
+      M2Ex : Exceptions.CModula2Exception;
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
 
-   PRIVATE PROCEDURE Try() THROWS Exc1, Exc2;
+   PRIVATE PROCEDURE Try( Which : BOOLEAN ) THROWS Exc1, Exc2;
+   PRIVATE PROCEDURE TryM2( Inner : BOOLEAN ) THROWS Exceptions.CModula2Exception;
 END CTest;
 
 (*---------------------------------------------------------------------------*)
@@ -59,40 +61,52 @@ CLASS IMPLEMENTATION CTest;
 (*---------------------------------------------------------------------------*)
 
    PUBLIC VIRTUAL PROCEDURE Run( CONST Host : test.TPHost; CONST Parameters : ARRAY OF PWCHAR ) : test.TTestResult;
-   VAR
-      i, t : CARDINAL;
    BEGIN
       SELF.Host := Host;
-   
-      t := time.UptimeMS();
-      FOR i := 0 TO 5000000-1 DO
-         TRY
-            Try();
-         CATCH e : Exc1 DO
-            IF e.Code = 0 THEN
-               INC( t, 0 );
-            END;
-         CATCH e : Exc2 DO
-            IF e.Code = 0 THEN
-               INC( t, 0 );
-            END;
-         END;
-      END;
       
-      t := time.UptimeMS() - t;
-      Host^.Log^.LogSC( log.lcInfo, 0, L"", "Consumed: ", t );
+      Host^.StartPhase( L"Exception.ToString" );
+
+      TRY
+         Try( FALSE );   
+      CATCH e : Exceptions.Exception DO
+         Host^.Log^.LogExc( log.lcError, 0, L"", e );
+      END;
+
+      TRY
+         Try( TRUE );   
+      CATCH e : Exceptions.Exception DO
+         Host^.Log^.LogExc( log.lcError, 0, L"", e );
+      END;
+
+      Host^.StopPhase();
+
+      Host^.StartPhase( L"M2Exception.ToString" );
+
+      TRY
+         TryM2( FALSE );
+      CATCH e : Exceptions.Exception DO
+         Host^.Log^.LogExc( log.lcError, 0, L"", e );
+      END;
+
+      TRY
+         TryM2( TRUE );
+      CATCH e : Exceptions.Exception DO
+         Host^.Log^.LogExc( log.lcError, 0, L"", e );
+      END;
+
+      Host^.StopPhase();
 
       RETURN test.trSuccess;
    END Run;
    
 (*---------------------------------------------------------------------------*)
 
-   PRIVATE PROCEDURE Try();
+   PRIVATE PROCEDURE Try( Which : BOOLEAN );
    VAR
       VExc1 : Exc1;
       VExc2 : Exc2;
    BEGIN
-      IF time.UptimeMS() MOD 2 = 0 THEN
+      IF Which THEN
          THROW VExc1;
       ELSE
          THROW VExc2;
@@ -101,10 +115,22 @@ CLASS IMPLEMENTATION CTest;
 
 (*---------------------------------------------------------------------------*)
 
+   PRIVATE PROCEDURE TryM2( Inner : BOOLEAN );
+   BEGIN
+      IF Inner THEN
+         M2Ex.Init( NIL, L"TryM2", L"Text of inner exception", Exceptions.mexMethodNotImplemented );
+         THROW Exceptions.Modula2Exception( ADR( M2Ex ), L"Test", L"Text of test exception.", Exceptions.mexNotSupported );
+      ELSE
+         THROW Exceptions.Modula2Exception( NIL, L"Test", L"Text of test exception.", Exceptions.mexNotSupported );
+      END;
+   END TryM2;
+
+(*---------------------------------------------------------------------------*)
+
 BEGIN
-   testimpl.tests()^.AddTest( L"TryThrowCatchSpeed", ADR( Test ));
+   testimpl.tests()^.AddTest( L"ExceptionToString", ADR( Test ));
 END CTest;
 
 (*===========================================================================*)
 
-END TryThrowCatchSpeed.
+END TExceptionToString.

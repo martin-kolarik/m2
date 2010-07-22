@@ -16,6 +16,7 @@ IMPORT
   iphlpapi,
   iptypes,
   lists,
+  log,
   msghandler,
   msgqueue,
   netpool,
@@ -25,6 +26,9 @@ IMPORT
   threadpool,
   winerror,
   WS2TcpIp;
+
+CONST
+   logPrefix = L"netsrv";
 
 (*================================================================================*)
 
@@ -467,7 +471,9 @@ CLASS IMPLEMENTATION CIPServer;
         ELSIF Sockets.Get( Message.Socket, OUT Creator ) THEN
           Creator^.OnListen( Message.Socket );
         ELSE
-          Message.Socket^.Flush();
+          // flush should not be called here as the socket has already been deallocated
+          // Message.Socket^.Flush();
+          log.logger()^.LogSP( log.ldMessage, 0, logPrefix, L"Socket not found for cmAccept", Message.Socket );
         END;
       //-----
       | cmDataArrived :
@@ -476,7 +482,9 @@ CLASS IMPLEMENTATION CIPServer;
         ELSIF Sockets.Get( Message.Socket, OUT Creator ) THEN
           Creator^.OnDatagramReceived( Message.Socket );
         ELSE
-          Message.Socket^.Flush();
+          // flush should not be called here as the socket has already been deallocated
+          // Message.Socket^.Flush();
+          log.logger()^.LogSP( log.ldMessage, 0, logPrefix, L"Socket not found for cmDataArrived", Message.Socket );
         END;
       END; // CASE
     END; // WHILE

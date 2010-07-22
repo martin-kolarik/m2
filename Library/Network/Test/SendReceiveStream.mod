@@ -111,7 +111,7 @@ CLASS IMPLEMENTATION CReader;
     _Ptr := 0; // reset reading
 
     IF DetectPrevious AND ( PINTEGER( _Data )^ <> PrevCount+1 ) THEN
-       Test^.Host^.Log^.LogSC( log.dlcError, L"", L"Failed: ", PCARDINAL( _Data )^ );
+       Test^.Host^.Log^.LogSC( log.lcError, 0, L"", L"Failed: ", PCARDINAL( _Data )^ );
     END;
     INC( PrevCount );
   END CompleteData;

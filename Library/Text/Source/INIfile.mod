@@ -427,7 +427,7 @@ CLASS IMPLEMENTATION CINIFile;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE EnumerateSections( REF EnumerateState : PTR; OUT Line : CARDINAL; OUT Section : ARRAY OF WCHAR; SetAsActive : BOOLEAN ) : BOOLEAN;
+   PUBLIC PROCEDURE EnumerateSections( REF EnumerateState : PTR; OUT Line : CARDINAL; OUT Section : StringsO.IString; SetAsActive : BOOLEAN ) : BOOLEAN;
    VAR
       PElem : TPDataListElem;
       b : BOOLEAN;
@@ -441,7 +441,7 @@ CLASS IMPLEMENTATION CINIFile;
          IF PElem^.IsSection THEN
             EnumerateState := PElem;
             Line := PElem^.SourceLine;
-            PElem^.KeyStr.ToOA( OUT Section );
+            Section.Assign( PElem^.KeyStr );
             IF SetAsActive THEN
                _PSection := PElem;
             END;
@@ -455,7 +455,7 @@ CLASS IMPLEMENTATION CINIFile;
 
 (*--------------------------------------------------------------------------------*)
 
-   PUBLIC PROCEDURE EnumerateKeys( REF EnumerateState : PTR; OUT Line : CARDINAL; OUT Key : ARRAY OF WCHAR; OUT Value : StringsO.IString ) : BOOLEAN;
+   PUBLIC PROCEDURE EnumerateKeys( REF EnumerateState : PTR; OUT Line : CARDINAL; OUT Key, Value : StringsO.IString ) : BOOLEAN;
    VAR
       PElem : TPDataListElem;
       b : BOOLEAN;
@@ -471,7 +471,7 @@ CLASS IMPLEMENTATION CINIFile;
          IF NOT PElem^.IsSection THEN
             EnumerateState := PElem;
             Line := PElem^.SourceLine;
-            PElem^.KeyStr.ToOA( OUT Key );
+            Key.Assign( PElem^.KeyStr );
             Value.Assign( PElem^.DataStr );
             RETURN TRUE;
          ELSIF PElem^.IsSection THEN
@@ -494,104 +494,170 @@ END CINIFile;
 
 (*================================================================================*)
 
-CONST
-   snLog             = L'log';
-   knTarget          = L'target';
-      kvTargetNone   = L'none';
-      kvTargetFile   = L'file';
-      kvTargetKernel = L'kernel';
-   knFile            = L'file';
-   knFilter          = L'filter';
-      kvDeny         = L'deny';
-      kvAllow        = L'allow';
-   knLevel           = L'level';
-      kvFatal        = L'fatal'; 
-      kvError        = L'error'; 
-      kvWarning      = L'warning'; 
-      kvInfo         = L'info'; 
-      kvDebugFailure = L'failure';
-      kvDebugMessage = L'message';
-      kvDebugTrace   = L'trace';
-      kvDebugAll     = L'all';
-   knCached          = L'cached';
-
-(*--------------------------------------------------------------------------------*)
-
-PROCEDURE ConfigureLogInternal( buffered : BOOLEAN; CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; logger : Log.TPALogger; OUT errorLine : CARDINAL ) : TConfigureLogResult; FORWARD;
-
-(*--------------------------------------------------------------------------------*)
-
-PROCEDURE ConfigureLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : Log.CLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
-BEGIN
-   RETURN ConfigureLogInternal( FALSE, ini, SectionName, ADR( logger ), OUT errorLine );
-END ConfigureLog;
-
-(*--------------------------------------------------------------------------------*)
-
-PROCEDURE ConfigureBufferedLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : Log.CBufferedLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
-BEGIN
-   RETURN ConfigureLogInternal( TRUE, ini, SectionName, ADR( logger ), OUT errorLine );
-END ConfigureBufferedLog;
-
-(*--------------------------------------------------------------------------------*)
-
-PROCEDURE ConfigureLogInternal( buffered : BOOLEAN; CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; logger : Log.TPALogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
+PROCEDURE ConfigureLog( CONST ini : CINIFile; CONST SectionName : ARRAY OF WCHAR; REF logger : Log.CBaseLogger; OUT errorLine : CARDINAL ) : TConfigureLogResult;
 VAR
+   AllowedBits : CARD64;
    Cached : CARDINAL;
    cs : StringsO.CString;
+   EnumerateState : PTR;
    File : StringsO.CString;
+   haveAllowedBits : BOOLEAN := FALSE;
    haveCached : BOOLEAN := FALSE;
-   Level : Log.TDebugLevel := logger^.Level;
-   Method : Log.TDebugMethod := logger^.Method;
+   haveFile : BOOLEAN := FALSE;
+   haveLevel : BOOLEAN := FALSE;
+   key : StringsO.CString;
+   Level : Log.TLevel := Log.ldDebug;
+   Levels : TRISTATE := -1;
+   LocalTime : TRISTATE := -1;
+   Names : TRISTATE := -1;
+   Output : Log.TOutput := Log.outsNone;
+   plainLogger : Log.TPPlainLogger;
+   TimeStamps : TRISTATE := -1;
 BEGIN
-   IF ( SectionName[0] <> 0W ) AND ini.SetSection( SectionName ) OR ini.SetSection( snLog ) THEN
-
-      IF ini.GetKeyStr( knTarget, OUT errorLine, OUT cs ) THEN
-         IF cs.EqualsOA( kvTargetNone ) THEN
-            Method := Log.dmNone;
-         ELSIF cs.EqualsOA( kvTargetFile ) THEN
-            Method := Log.dmFile;
-            IF NOT ini.GetKeyStr( knFile, OUT errorLine, OUT File ) THEN
-               RETURN clrTargetFileMissingFile;
-            END;
-         ELSIF cs.EqualsOA( kvTargetKernel ) THEN
-            Method := Log.dmKernel;
-         ELSE
-            RETURN clrUnknownTarget;
-         END;
+   IF ( SectionName[0] <> 0W ) AND ini.SetSection( SectionName ) OR ini.SetSection( OAsz( Log.GetKeyword( Log.cksLog )) ) THEN
+   
+      IF logger INHERITS Log.CPlainLogger THEN
+         plainLogger := Log.TPPlainLogger( ADR( logger ));
+         Level := plainLogger^.Level;
       END;
 
-      IF Method <> Log.dmNone THEN
+      EnumerateState := 0;
+      WHILE ini.EnumerateKeys( REF EnumerateState, OUT errorLine, OUT key, OUT cs ) DO
 
-         IF ini.GetKeyStr( knLevel, OUT errorLine, OUT cs ) THEN
-            IF cs.EqualsOA( kvDebugFailure ) OR cs.EqualsOA( kvFatal ) THEN
-               Level := Log.dldError;
-            ELSIF cs.EqualsOA( kvDebugMessage ) OR cs.EqualsOA( kvError ) THEN
-               Level := Log.dldMessage;
-            ELSIF cs.EqualsOA( kvDebugTrace ) OR cs.EqualsOA( kvWarning ) THEN
-               Level := Log.dldTrace;
-            ELSIF cs.EqualsOA( kvDebugAll ) OR cs.EqualsOA( kvInfo ) THEN
-               Level := Log.dldDebug;
+         // target, output
+         IF key.EqualsOA( OAsz( Log.GetKeyword( Log.ckkTarget )) ) OR key.EqualsOA( OAsz( Log.GetKeyword( Log.ckkOutput )) ) THEN
+            IF cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvFile )) ) THEN
+               Output := Output + Log.outsFile;
+            ELSIF cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvKernel )) ) THEN
+               Output := Output + Log.outsKernel;
+            ELSE
+               RETURN clrSuccess; // TODO
+            END;
+
+         // file
+         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( Log.ckkFile )) ) THEN
+            IF haveFile THEN
+               RETURN clrKeyAlreadyKnown;
+            END;
+            haveFile := TRUE;
+            File := cs;
+
+         // level
+         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( Log.ckkLevel )) ) THEN
+            IF haveLevel THEN
+               RETURN clrKeyAlreadyKnown;
+            END;
+            IF cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvDebugFailure )) ) OR cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvFatal )) ) THEN
+               Level := Log.ldError;
+            ELSIF cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvDebugMessage )) ) OR cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvError )) ) THEN
+               Level := Log.ldMessage;
+            ELSIF cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvDebugTrace )) ) OR cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvWarning )) ) THEN
+               Level := Log.ldTrace;
+            ELSIF cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvDebugAll )) ) OR cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvInfo )) ) THEN
+               Level := Log.ldDebug;
             ELSE
                RETURN clrUnknownLevel;
             END;
-         END;
-         
-         haveCached := ini.GetKeyInt( knCached, OUT errorLine, OUT Cached );
+            haveLevel := TRUE;
+            
+         // filter
+         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( Log.ckkFilter )) ) THEN
+            // OK, opaque for reading
 
-      END;
-      
+         // timestamps            
+         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( Log.ckkTimeStamps )) ) THEN
+            IF TimeStamps <> -1 THEN
+               RETURN clrKeyAlreadyKnown;
+            END;
+            cs.Lowerize();
+            IF cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvTrue )) ) THEN
+               TimeStamps := 1;
+            ELSE
+               TimeStamps := 0;
+            END;
+
+         // levels
+         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( Log.ckkLevels )) ) THEN
+            IF Levels <> -1 THEN
+               RETURN clrKeyAlreadyKnown;
+            END;
+            cs.Lowerize();
+            IF cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvTrue )) ) THEN
+               Levels := 1;
+            ELSE
+               Levels := 0;
+            END;
+
+         // names
+         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( Log.ckkNames )) ) THEN
+            IF Names <> -1 THEN
+               RETURN clrKeyAlreadyKnown;
+            END;
+            cs.Lowerize();
+            IF cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvTrue )) ) THEN
+               Names := 1;
+            ELSE
+               Names := 0;
+            END;
+
+         // localtime
+         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( Log.ckkLocalTime )) ) THEN
+            IF LocalTime <> -1 THEN
+               RETURN clrKeyAlreadyKnown;
+            END;
+            cs.Lowerize();
+            IF cs.EqualsOA( OAsz( Log.GetKeyword( Log.ckvTrue )) ) THEN
+               LocalTime := 1;
+            ELSE
+               LocalTime := 0;
+            END;
+
+         // allowedfilterdatabits
+         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( Log.ckkAllowedFilterBits )) ) THEN
+            IF haveAllowedBits THEN
+               RETURN clrKeyAlreadyKnown;
+            END;
+            IF NOT cs.ToCARD64( 16, OUT AllowedBits ) THEN
+               RETURN clrBadAllowedBits;
+            END;
+            haveAllowedBits := TRUE;
+
+         // cached
+         ELSIF key.EqualsOA( OAsz( Log.GetKeyword( Log.ckkCached )) ) THEN
+            IF haveCached THEN
+               RETURN clrKeyAlreadyKnown;
+            END;
+            IF NOT cs.ToCARD32( 10, OUT Cached ) THEN
+               RETURN clrBadCachedNumber;
+            END;
+            haveCached := TRUE;
+
+         ELSE
+            Log.logger()^.LogSS( Log.lcInfo, 0, EMITW( %class ), L"Unknown key:", OA( key.Length-1, key.Data ) );
+         
+         END;
+
+      END; // WHILE
+
    END;
    
-   logger^.SetLogFile( OA( File.Length-1, File.Data ));
-   logger^.Method := Method;
-   logger^.Level := Level;
-   IF buffered AND haveCached THEN
-      Log.TPBufferedLogger( logger )^.BufferSize := Cached;
+   IF logger INHERITS Log.CPlainLogger THEN
+      plainLogger^.SetLogFile( OA( File.Length-1, File.Data ));
+      IF Output <> Log.outsNone THEN
+         plainLogger^.Output := Output;
+      END;
+      plainLogger^.Level := Level;
+      plainLogger^.TimeStamps := TimeStamps = 1;
+      plainLogger^.Levels := Levels = 1;
+      plainLogger^.Names := Names = 1;
+      plainLogger^.LocalTime := LocalTime = 1;
+   END;
+   IF logger INHERITS Log.CBufferedLogger THEN
+      Log.TPBufferedLogger( plainLogger )^.BufferSize := Cached;
    END;
    
    RETURN clrSuccess;
-END ConfigureLogInternal;
+END ConfigureLog;
 
 (*================================================================================*)
 
@@ -606,6 +672,7 @@ VAR
    pieces : CARDINAL;
    value : StringsO.CString;
 BEGIN
+(*
    filter.Reset();
 
    IF ( SectionName[0] <> 0W ) AND ini.SetSection( SectionName ) OR ini.SetSection( snLog ) THEN
@@ -649,6 +716,7 @@ BEGIN
       END; // WHILE
 
    END;
+*)   
    
    RETURN clfrSuccess;
 END ConfigureLoggerFilter;

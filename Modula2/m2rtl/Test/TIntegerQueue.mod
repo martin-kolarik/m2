@@ -141,7 +141,7 @@ CLASS IMPLEMENTATION CTest;
          IQ.Dequeue( OUT I32, TRUE, Sync.FOREVER );
          IF I32 <> P32+1 THEN
             Strings.FromINT32W( I32, 10, OUT sI32 ); Strings.FromINT32W( P32, 10, OUT sP32 );
-            Host^.Log^.LogSSSS( log.dlcError, L"", L"Failed on numbers: ", sI32, L"/", sP32 );
+            Host^.Log^.LogSSSS( log.lcError, 0, L"", L"Failed on numbers: ", sI32, L"/", sP32 );
             Exit := 1;
             EXIT;
          END;

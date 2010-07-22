@@ -84,7 +84,7 @@ CLASS IMPLEMENTATION ABridge;
 
          // check and renew the connection
          IF NOT _Connecting AND NOT _SDAPClient^.Connected THEN
-            _Logger.LogS( log.dldTrace, LOG_NAME, L"Not connected to SDAP server trying again." );
+            _Logger.LogS( log.ldTrace, 0, LOG_NAME, L"Not connected to SDAP server trying again." );
 
             _Connecting := TRUE;
             _SDAPClient^.Connect( _SDAPHost );
@@ -112,8 +112,8 @@ CLASS IMPLEMENTATION ABridge;
                END;
                _Result.Inc();
 
-               IF NOT _Logger.Filtered( log.dldDebug, LOG_NAME ) THEN
-                  _Logger.LogSS( log.dldDebug, LOG_NAME, L"Querying: ", OA( item^.SDAPName.Length-1, item^.SDAPName.Data ));
+               IF NOT _Logger.Filtered( log.ldDebug, 0, LOG_NAME ) THEN
+                  _Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Querying: ", OA( item^.SDAPName.Length-1, item^.SDAPName.Data ));
                END;
 
                cb.Reset();
@@ -122,7 +122,7 @@ CLASS IMPLEMENTATION ABridge;
                IF ( Result <> Sync.arCompleted ) AND ( Result <> Sync.arPending ) THEN
                   s.FromOA( L"Error in IOh read: " );
                   s.Append( item^.SDAPName );
-                  _Logger.LogSR( log.dldTrace, L"IO", OA( s.Length-1, s.Data ), Result );
+                  _Logger.LogSR( log.ldTrace, 0, L"IO", OA( s.Length-1, s.Data ), Result );
                   CONTINUE;
                END;
                Result := cb.WaitCompletion( Sync.FORSAFETY, OUT value );
@@ -133,12 +133,12 @@ CLASS IMPLEMENTATION ABridge;
 
                   s.FromOA( L"Error waiting read completion: " );
                   s.Append( item^.SDAPName );
-                  _Logger.LogSR( log.dldTrace, L"IO", OA( s.Length-1, s.Data ), Result );
+                  _Logger.LogSR( log.ldTrace, 0, L"IO", OA( s.Length-1, s.Data ), Result );
                   CONTINUE;
                END;
 
-               IF NOT _Logger.Filtered( log.dldDebug, LOG_NAME ) THEN
-                  _Logger.LogSS( log.dldDebug, LOG_NAME, L"Got value: ", OA( valueString.Length-1,  valueString.Data ));
+               IF NOT _Logger.Filtered( log.ldDebug, 0, LOG_NAME ) THEN
+                  _Logger.LogSS( log.ldDebug, 0, LOG_NAME, L"Got value: ", OA( valueString.Length-1,  valueString.Data ));
                END;
 
                // send value using SDAPClient
@@ -146,7 +146,7 @@ CLASS IMPLEMENTATION ABridge;
                IF Result <> Sync.arCompleted THEN
                   s.FromOA( L"Error sending by SDAP: " );
                   s.Append( item^.SDAPName );
-                  _Logger.LogSR( log.dldTrace, LOG_NAME, OA( s.Length-1, s.Data ), Result );
+                  _Logger.LogSR( log.ldTrace, 0, LOG_NAME, OA( s.Length-1, s.Data ), Result );
                END;
             END; // WHILE
             
@@ -174,8 +174,8 @@ CLASS IMPLEMENTATION ABridge;
                   END;
                   _Result.Inc();
 
-                  IF NOT _Logger.Filtered( log.dldDebug, LOG_NAME ) THEN
-                     _Logger.LogSSSS( log.dldDebug, LOG_NAME, L"Writing: ", OA( item^.SDAPName.Length-1, item^.SDAPName.Data ), L"", OA( valueString.Length-1, valueString.Data ));
+                  IF NOT _Logger.Filtered( log.ldDebug, 0, LOG_NAME ) THEN
+                     _Logger.LogSSSS( log.ldDebug, 0, LOG_NAME, L"Writing: ", OA( item^.SDAPName.Length-1, item^.SDAPName.Data ), L"", OA( valueString.Length-1, valueString.Data ));
                   END;
 
                   cb.Reset();
@@ -184,7 +184,7 @@ CLASS IMPLEMENTATION ABridge;
                   IF Result <> Sync.arPending THEN
                      s.FromOA( L"Error in IOh write: " );
                      s.Append( item^.SDAPName );
-                     _Logger.LogSR( log.dldTrace, LOG_NAME, OA( s.Length-1, s.Data ), Result );
+                     _Logger.LogSR( log.ldTrace, 0, LOG_NAME, OA( s.Length-1, s.Data ), Result );
                      CONTINUE;
                   END;
                   Result := cb.WaitCompletion( Sync.FORSAFETY, OUT value );
@@ -193,7 +193,7 @@ CLASS IMPLEMENTATION ABridge;
 
                      s.FromOA( L"Error waiting write completion: " );
                      s.Append( item^.SDAPName );
-                     _Logger.LogSR( log.dldTrace, LOG_NAME, OA( s.Length-1, s.Data ), Result );
+                     _Logger.LogSR( log.ldTrace, 0, LOG_NAME, OA( s.Length-1, s.Data ), Result );
                      CONTINUE;
                   END;
 
@@ -444,7 +444,7 @@ CLASS IMPLEMENTATION ABridge;
       Result : Sync.TAsyncResult := Sync.arCannotStart;
       s : FIO.PathStrW;
    BEGIN
-      _Logger.LogS( log.dldMessage, L"IOSDAPBridge", L"Started" );
+      _Logger.LogS( log.ldMessage, 0, L"IOSDAPBridge", L"Started" );
 
       _Result.Reset( lec.bhBestCase );
       FIO.GetModuleDirW( L"", OUT s );
@@ -483,7 +483,7 @@ CLASS IMPLEMENTATION ABridge;
          dev^.IO()^.Stop();
       END; // WHILE
 
-      _Logger.LogS( log.dldMessage, L"IOSDAPBridge", L"Stopped" );
+      _Logger.LogS( log.ldMessage, 0, L"IOSDAPBridge", L"Stopped" );
    END Stop;
 
 (*--------------------------------------------------------------------------------*)

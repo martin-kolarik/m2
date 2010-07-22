@@ -319,9 +319,9 @@ CLASS IMPLEMENTATION CSDAPServer;
       IF in.EndsWithOA( 13W + 10W ) THEN
          in.Length := in.Length - 2;
       END;
-      _CommonLogger^.LogSS( log.dldDebug, LOG_SDAP, "RCV: ", OA( in.Length-1, in.Data ));
+      _CommonLogger^.LogSS( log.ldDebug, 0, LOG_SDAP, "RCV: ", OA( in.Length-1, in.Data ));
       PConnection^.RemoteAddress.ToOA( TRUE, OUT sd );
-      _CommonLogger^.LogSS( log.dldDebug, LOG_SDAP, "from: ", sd );
+      _CommonLogger^.LogSS( log.ldDebug, 0, LOG_SDAP, "from: ", sd );
 
       i := in.SplitS( StringsO.WCHARS{L' '}, 0, TRUE, OUT parametersFound, OUT p ); // i contains position, where splitting should continue if called again
       IF i < in.Length THEN // splitting is not finished
@@ -417,7 +417,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       //-----
       | sdapEXIT :
          PConnection^.RemoteAddress.ToOA( TRUE, OUT sd );
-         _CommonLogger^.LogSS( log.dldTrace, LOG_SDAP, "EXIT from: ", sd );
+         _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "EXIT from: ", sd );
 
          ACK( PConnection, sdap200 );
          Disconnect( NIL, PConnection );
@@ -427,7 +427,7 @@ CLASS IMPLEMENTATION CSDAPServer;
          // recode parameters
          in.Substring( p[0].Length + 1, -1, OUT data );
 
-         _CommonLogger^.LogSS( log.dldTrace, LOG_SDAP, "LOAD: ", OA( data.Length-1, data.Data ));
+         _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "LOAD: ", OA( data.Length-1, data.Data ));
 
          // stop, load
          b := Device^.IO()^.Running;
@@ -454,7 +454,7 @@ CLASS IMPLEMENTATION CSDAPServer;
             WHILE _ConfigurationLogger^.BufferGetItem( i, OUT error ) DO
                Strings.TrimAccentsW( REF error );
 
-               _CommonLogger^.LogSS( log.dldDebug, LOG_SDAP, "  406: ", error );
+               _CommonLogger^.LogSS( log.ldDebug, 0, LOG_SDAP, "  406: ", error );
                SUPER.Send( NIL, PConnection, 0, ADR( error ), LENGTH( error ) << 1 );
                
                INC( i );
@@ -463,13 +463,13 @@ CLASS IMPLEMENTATION CSDAPServer;
 
       //-----
       | sdapRUN :
-         _CommonLogger^.LogS( log.dldTrace, LOG_SDAP, "RUN" );
+         _CommonLogger^.LogS( log.ldTrace, 0, LOG_SDAP, "RUN" );
 
          DoRun( PConnection );
 
       //-----
       | sdapSTOP :
-         _CommonLogger^.LogS( log.dldTrace, LOG_SDAP, "STOP" );
+         _CommonLogger^.LogS( log.ldTrace, 0, LOG_SDAP, "STOP" );
 
          Device^.IO()^.Stop();
          ACK( PConnection, sdap200 );
@@ -477,9 +477,9 @@ CLASS IMPLEMENTATION CSDAPServer;
       //-----
       | sdapSET, sdapGET :
          IF Command = sdapSET THEN
-            _CommonLogger^.LogSSSS( log.dldTrace, LOG_SDAP, "SET ", OA( p[1].Length-1, p[1].Data ), L" ", OA( data.Length-1, data.Data ));
+            _CommonLogger^.LogSSSS( log.ldTrace, 0, LOG_SDAP, "SET ", OA( p[1].Length-1, p[1].Data ), L" ", OA( data.Length-1, data.Data ));
          ELSE
-            _CommonLogger^.LogSS( log.dldTrace, LOG_SDAP, "GET ", OA( p[1].Length-1, p[1].Data ));
+            _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "GET ", OA( p[1].Length-1, p[1].Data ));
          END;
 
          IF ( Command = sdapSET ) AND NOT Device^.IO()^.Running THEN
@@ -527,9 +527,9 @@ CLASS IMPLEMENTATION CSDAPServer;
       //-----
       | sdapADVISE, sdapUNADVISE :
          IF Command = sdapADVISE THEN
-            _CommonLogger^.LogSS( log.dldTrace, LOG_SDAP, "ADVISE ", OA( p[1].Length-1, p[1].Data ));
+            _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "ADVISE ", OA( p[1].Length-1, p[1].Data ));
          ELSE
-            _CommonLogger^.LogSS( log.dldTrace, LOG_SDAP, "UNADVISE ", OA( p[1].Length-1, p[1].Data ));
+            _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "UNADVISE ", OA( p[1].Length-1, p[1].Data ));
          END;
          
          allFlag := p[1].EqualsOA( L"all" );
@@ -589,7 +589,7 @@ CLASS IMPLEMENTATION CSDAPServer;
    BEGIN
       s.FromCARD32( CARDINAL( ack ), 10 );
 
-      _CommonLogger^.LogSS( log.dldTrace, LOG_SDAP, "ACK: ", OA( s.Length-1, s.Data ));
+      _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "ACK: ", OA( s.Length-1, s.Data ));
 
       SUPER.Send( NIL, PConnection, 0, s.Data, s.Length<<1 );
    END ACK;
@@ -605,7 +605,7 @@ CLASS IMPLEMENTATION CSDAPServer;
       n.FromCARD32( subCode, 10 );
       s.Append( n );
       
-      _CommonLogger^.LogSS( log.dldTrace, LOG_SDAP, "ACK: ", OA( s.Length-1, s.Data ));
+      _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "ACK: ", OA( s.Length-1, s.Data ));
       
       SUPER.Send( NIL, PConnection, 0, s.Data, s.Length<<1 );
    END ACKs;
@@ -620,9 +620,9 @@ CLASS IMPLEMENTATION CSDAPServer;
       s.AppendOA( L" " );
       s.Append( S );
 
-      _CommonLogger^.LogSS( log.dldTrace, LOG_SDAP, "ACK: ", OA( s.Length-1, s.Data ));
+      _CommonLogger^.LogSS( log.dldTrace, LOG_SDAP, "ACK: ", OA( s.Length-1, s.rawData ));
       
-      SUPER.Send( NIL, PConnection, 0, s.Data, s.Length<<1 );
+      SUPER.Send( NIL, PConnection, 0, s.rawData, s.Length<<1 );
    END ACKS;
 
 (*--------------------------------------------------------------------------------*)
@@ -634,13 +634,13 @@ CLASS IMPLEMENTATION CSDAPServer;
       s.FromCARD32( CARDINAL( ack ), 10 );
       s.AppendOA( ' 1' );
 
-      _CommonLogger^.LogSS( log.dldTrace, LOG_SDAP, "ACK: ", OA( s.Length-1, s.Data ));
+      _CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "ACK: ", OA( s.Length-1, s.Data ));
       
       SUPER.Send( NIL, PConnection, 0, s.Data, s.Length<<1 );
 
       s := address; s.AppendOA( L" " ); s.Append( value.String );
 
-      _CommonLogger^.LogSS( log.dldDebug, LOG_SDAP, "DATA: ", OA( s.Length-1, s.Data ));
+      _CommonLogger^.LogSS( log.ldDebug, 0, LOG_SDAP, "DATA: ", OA( s.Length-1, s.Data ));
       
       SUPER.Send( NIL, PConnection, 0, s.Data, s.Length<<1 );
    END ACKd;
@@ -720,8 +720,8 @@ CLASS IMPLEMENTATION CClient;
             s := n;
             s.AppendOA( L" " ); s.Append( Value[i].String );
 
-            IF NOT Server^.CommonLogger^.Filtered( log.dldTrace, LOG_SDAP ) THEN
-               Server^.CommonLogger^.LogSS( log.dldTrace, LOG_SDAP, "ADV: ", OA( s.Length-1, s.Data ));
+            IF NOT Server^.CommonLogger^.Filtered( log.ldTrace, 0, LOG_SDAP ) THEN
+               Server^.CommonLogger^.LogSS( log.ldTrace, 0, LOG_SDAP, "ADV: ", OA( s.Length-1, s.Data ));
             END;
 
             Server^.SendAdvise( ADR( SELF ), s );
